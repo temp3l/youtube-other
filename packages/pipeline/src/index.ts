@@ -39,6 +39,7 @@ import { HeuristicMetadataProvider } from "@mediaforge/metadata";
 import { FFmpegVideoRenderer, validateRenderedVideo } from "@mediaforge/rendering";
 import { buildSrt, ensureDir, fileExists, hashText, slugify, writeJsonAtomic, writeTextAtomic } from "@mediaforge/shared";
 import { MockTranscriptionProvider, WhisperCppTranscriptionProvider } from "@mediaforge/transcription";
+import { runCommandJson } from "@mediaforge/process-runner";
 
 export type PipelineStage =
   | "inspect-source"
@@ -272,6 +273,11 @@ export class MediaForgePipeline {
     const rewritten = await this.rewriteScript(manifest, cleaned);
     const scenes = await this.planScenes(manifest, transcript, rewritten);
     const audioSegments = await this.synthesizeSceneAudio(manifest, scenes, episodeDirPath);
+    const sceneDurationById = new Map(audioSegments.map((segment) => [segment.sceneId, segment.durationSeconds] as const));
+    scenes.scenes = scenes.scenes.map((scene) => ({
+      ...scene,
+      actualAudioDurationSeconds: sceneDurationById.get(scene.id) ?? scene.actualAudioDurationSeconds ?? scene.estimatedDurationSeconds
+    }));
     const concatenatedAudio = await this.concatenateAudio(manifest, episodeDirPath, audioSegments);
     const alignment = this.alignAudio(manifest, rewritten, scenes);
     const captions = await this.createCaptions(manifest, scenes, rewritten);
@@ -409,14 +415,31 @@ export class MediaForgePipeline {
     const output: Array<{ sceneId: string; filePath: string; durationSeconds: number }> = [];
     for (const scene of plan.scenes) {
       const outputPath = path.join(episodeDirPath, "audio", "segments", `${scene.id}.wav`);
+      if (await fileExists(outputPath)) {
+        const durationSeconds = await runCommandJson(
+          "ffprobe",
+          ["-v", "quiet", "-print_format", "json", "-show_format", "-show_streams", outputPath],
+          {},
+          (value: unknown) => {
+            const parsed = value as { format?: { duration?: string } };
+            return Number.parseFloat(parsed.format?.duration ?? "0");
+          }
+        );
+        output.push({
+          sceneId: scene.id,
+          filePath: outputPath,
+          durationSeconds: Math.max(1, durationSeconds)
+        });
+        continue;
+      }
       const result = await this.speech.synthesize(
-          {
-            sceneId: scene.id,
-            text: scene.canonicalNarration,
-            voiceProfile: speechVoiceSettings.profile,
-            outputPath,
-            targetDurationSeconds: scene.estimatedDurationSeconds
-          },
+        {
+          sceneId: scene.id,
+          text: scene.canonicalNarration,
+          voiceProfile: speechVoiceSettings.profile,
+          outputPath,
+          targetDurationSeconds: scene.estimatedDurationSeconds
+        },
         new AbortController().signal
       );
       output.push(result);

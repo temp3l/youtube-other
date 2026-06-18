@@ -1,3 +1,7 @@
+generate the first scene image of the 001-calhoun-experiment with the relevant prompt and the openai API. make sure to incorporate the settings from .env for image processing.
+
+always generate the videos first with locally generated images, then ask me if everything is correct.
+
 # scaffolding
 
 i need an app where i can input a youtube or ticktok url of a video. the app should then fetch the transcript of the video the transcript will contian alot of spelling mistakes and bad grammar. i want the app to fix the mistaskes and the bad grammar. the app should then rephrase the whole content so that a wide audience can easily grasp it. the app should then transform the the rephrased content from text into voice with a slow male voice. i then want it to use whisper to create a transcript from that with precicse but fast timestamps. i then want to it to generate visually appealing images from a prompt template. i will define the prompt template later on. the app should then combine the images and the audio aligned to the correct timestamps into a video the app should also generate a file with SEO effective metadata, like tags, descriptions, titles etc - so that i can easily copy paste that when uploading the video to ticktock or youtube. let's start a debate, give me recommendations and ask me anything you might need to know. goal is to create the whole app with a single codex prompt and use typescript and linux utilities to pull it off.

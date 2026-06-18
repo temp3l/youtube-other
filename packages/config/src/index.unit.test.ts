@@ -41,4 +41,14 @@ describe("runtime config", () => {
     expect(episodeConfig?.ttsProvider).toBe("openai-compatible");
     expect(episodeConfig?.openAiSpeechVoice).toBe("onyx");
   });
+
+  it("defaults whisper concurrency to all available cpu cores", async () => {
+    const config = await loadRuntimeConfig({
+      transcriptionProvider: "whisper.cpp",
+      whisperModel: "models/ggml-base.en.bin"
+    });
+    const cpuCount = Math.max(1, os.cpus().length);
+    expect(config.whisperThreads).toBe(cpuCount);
+    expect(config.whisperProcessors).toBe(1);
+  });
 });

@@ -6,7 +6,7 @@ import {
   type RenderProfile,
   type ScenePlan
 } from "@mediaforge/domain";
-import { ensureDir, writeTextAtomic } from "@mediaforge/shared";
+import { ensureDir, fileExists, writeTextAtomic } from "@mediaforge/shared";
 import { runCommand, runCommandJson } from "@mediaforge/process-runner";
 
 export interface VideoRenderRequest {
@@ -113,7 +113,7 @@ async function renderSceneClip(
     "-shortest"
   ];
   args.push(outputPath);
-  await runCommand("ffmpeg", args, { timeoutMs: 120000 });
+  await runCommand("ffmpeg", args, { timeoutMs: 600000 });
 }
 
 export class FFmpegVideoRenderer implements VideoRenderer {
@@ -127,6 +127,10 @@ export class FFmpegVideoRenderer implements VideoRenderer {
       const imagePath = path.join(request.episodeDir, "images", "generated", scene.expectedImageFilenames[0] ?? "");
       const audioPath = path.join(request.episodeDir, "audio", "segments", `${scene.id}.wav`);
       const clipPath = path.join(clipsDir, `${scene.id}.mp4`);
+      if (await fileExists(clipPath)) {
+        clipPaths.push(clipPath);
+        continue;
+      }
       await renderSceneClip(
         imagePath,
         audioPath,
@@ -146,7 +150,7 @@ export class FFmpegVideoRenderer implements VideoRenderer {
     );
     const cleanPath = path.join(request.outputDir, `youtube-${request.renderProfile.aspectRatio.replace(":", "x")}-clean.mp4`);
     await runCommand("ffmpeg", ["-y", "-f", "concat", "-safe", "0", "-i", concatListPath, "-c", "copy", cleanPath], {
-      timeoutMs: 120000
+      timeoutMs: 600000
     });
     let captionedPath: string | undefined;
     if (request.captionsPath && request.captionBurnIn) {
@@ -154,7 +158,7 @@ export class FFmpegVideoRenderer implements VideoRenderer {
       await runCommand(
         "ffmpeg",
         ["-y", "-i", cleanPath, "-vf", `subtitles=${request.captionsPath}`, "-c:v", "libx264", "-c:a", "copy", captionedPath],
-        { timeoutMs: 120000 }
+        { timeoutMs: 600000 }
       );
     }
     const validation = await probeMedia(captionedPath ?? cleanPath);
