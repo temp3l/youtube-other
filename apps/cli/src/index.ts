@@ -8,7 +8,7 @@ import {
   type CreateEpisodeOptions,
   type MediaForgeEnvironment
 } from "@mediaforge/pipeline";
-import { loadRuntimeConfig } from "@mediaforge/config";
+import { loadEpisodeConfig, loadRuntimeConfig, type RuntimeConfig, type RuntimeConfigOverrides } from "@mediaforge/config";
 import { episodeManifestSchema } from "@mediaforge/domain";
 import { createLogger } from "@mediaforge/observability";
 import {
@@ -29,6 +29,11 @@ interface CliOptions {
   dryRun?: boolean;
   workspace?: string;
   db?: string;
+  ttsProvider?: "mock" | "openai-compatible";
+  openAiBaseUrl?: string;
+  openAiApiKey?: string;
+  openAiSpeechModel?: string;
+  openAiSpeechVoice?: string;
 }
 
 interface DoctorCheck {
@@ -46,26 +51,54 @@ function isTruthy(value: string | undefined): boolean {
   return value === "1" || value === "true" || value === "yes";
 }
 
-async function buildEnvironment(options: CliOptions): Promise<MediaForgeEnvironment> {
-  const overrides: {
-    workspaceDir?: string;
-    dbPath?: string;
-  } = {};
+function configOverridesFromCli(options: CliOptions): RuntimeConfigOverrides {
+  const overrides: RuntimeConfigOverrides = {};
   if (options.workspace) {
     overrides.workspaceDir = options.workspace;
   }
   if (options.db) {
     overrides.dbPath = options.db;
   }
-  const config = await loadRuntimeConfig(overrides);
+  if (options.ttsProvider) {
+    overrides.ttsProvider = options.ttsProvider;
+  }
+  if (options.openAiBaseUrl) {
+    overrides.openAiCompatibleBaseUrl = options.openAiBaseUrl;
+  }
+  if (options.openAiApiKey) {
+    overrides.openAiCompatibleApiKey = options.openAiApiKey;
+  }
+  if (options.openAiSpeechModel) {
+    overrides.openAiSpeechModel = options.openAiSpeechModel;
+  }
+  if (options.openAiSpeechVoice) {
+    overrides.openAiSpeechVoice = options.openAiSpeechVoice;
+  }
+  return overrides;
+}
+
+function compactConfigOverrides(overrides: RuntimeConfigOverrides): RuntimeConfigOverrides {
+  const compacted: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(overrides) as Array<[keyof RuntimeConfig, RuntimeConfig[keyof RuntimeConfig] | undefined]>) {
+    if (value !== undefined) {
+      compacted[String(key)] = value;
+    }
+  }
+  return compacted as RuntimeConfigOverrides;
+}
+
+async function buildEnvironment(options: CliOptions): Promise<MediaForgeEnvironment> {
+  const config = await loadRuntimeConfig(configOverridesFromCli(options));
   createLogger(options.verbose ? "debug" : config.logLevel);
-  const pipeline = await createPipeline(config);
+  const pipeline = await createPipeline(configOverridesFromCli(options));
   return pipeline.environment;
 }
 
-async function loadPipeline(options: CliOptions) {
-  const environment = await buildEnvironment(options);
-  return createPipeline(environment.config);
+async function loadPipeline(options: CliOptions, episodeDir?: string) {
+  const overrides = compactConfigOverrides(configOverridesFromCli(options));
+  const episodeConfig = episodeDir ? await loadEpisodeConfig(episodeDir) : null;
+  const emptyEpisodeOverrides: RuntimeConfigOverrides = {};
+  return createPipeline(overrides, episodeConfig ? compactConfigOverrides(episodeConfig) : emptyEpisodeOverrides);
 }
 
 function describeDoctorItem(label: string, ok: boolean, detail: string, kind: "required" | "optional" | "manual" | "credential"): DoctorCheck {
@@ -73,14 +106,7 @@ function describeDoctorItem(label: string, ok: boolean, detail: string, kind: "r
 }
 
 async function commandDoctor(options: CliOptions): Promise<void> {
-  const overrides: { workspaceDir?: string; dbPath?: string } = {};
-  if (options.workspace) {
-    overrides.workspaceDir = options.workspace;
-  }
-  if (options.db) {
-    overrides.dbPath = options.db;
-  }
-  const config = await loadRuntimeConfig(overrides);
+  const config = await loadRuntimeConfig(configOverridesFromCli(options));
   const checks: DoctorCheck[] = [];
   checks.push(describeDoctorItem("Node", process.versions.node.startsWith("22."), `Node ${process.versions.node}`, "required"));
   checks.push(describeDoctorItem("pnpm", spawnSync("pnpm", ["-v"], { encoding: "utf8" }).status === 0, "pnpm available", "required"));
@@ -140,7 +166,8 @@ async function commandCreate(options: CliOptions, input: CreateEpisodeOptions): 
 }
 
 async function commandRun(options: CliOptions, episodeId: string): Promise<void> {
-  const pipeline = await loadPipeline(options);
+  const { episodeDir } = await readManifestForEpisode(options, episodeId);
+  const pipeline = await loadPipeline(options, episodeDir);
   const result = await pipeline.runEpisode(episodeId as never, {});
   if (options.json) {
     printJson(result);
@@ -150,8 +177,8 @@ async function commandRun(options: CliOptions, episodeId: string): Promise<void>
 }
 
 async function readManifestForEpisode(options: CliOptions, episodeId: string) {
-  const pipeline = await loadPipeline(options);
-  const workspace = pipeline.environment.config.workspaceDir;
+  const config = await loadRuntimeConfig(configOverridesFromCli(options));
+  const workspace = config.workspaceDir;
   const entries = await fs.readdir(workspace, { withFileTypes: true }).catch(() => []);
   for (const entry of entries) {
     if (!entry.isDirectory()) {
@@ -319,7 +346,7 @@ async function commandRender(options: CliOptions, episodeId: string, profile: "y
     aspectRatio: profile === "youtube" ? "16:9" : "9:16",
     burnCaptions: true
   } as const;
-  const pipeline = await loadPipeline(options);
+  const pipeline = await loadPipeline(options, episodeDir);
   const result = await pipeline.renderer.render(
     {
       episodeDir,
@@ -368,7 +395,12 @@ function addGlobalOptions(command: Command): Command {
     .option("--json", "output machine-readable JSON")
     .option("--quiet", "suppress non-essential output")
     .option("--verbose", "increase logging verbosity")
-    .option("--dry-run", "preview actions without writing");
+    .option("--dry-run", "preview actions without writing")
+    .option("--tts-provider <provider>", "mock or openai-compatible")
+    .option("--openai-base-url <url>", "OpenAI API base URL")
+    .option("--openai-api-key <key>", "OpenAI API key")
+    .option("--openai-speech-model <model>", "OpenAI speech model")
+    .option("--openai-speech-voice <voice>", "OpenAI speech voice");
 }
 
 const program = addGlobalOptions(new Command());

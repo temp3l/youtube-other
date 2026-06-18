@@ -17,14 +17,14 @@ import {
   type Transcript,
   transcriptSchema
 } from "@mediaforge/domain";
-import { loadRuntimeConfig, type RuntimeConfig } from "@mediaforge/config";
+import { loadRuntimeConfig, type RuntimeConfig, type RuntimeConfigOverrides } from "@mediaforge/config";
 import { createLogger } from "@mediaforge/observability";
 import { createPersistence, type SQLitePersistence } from "@mediaforge/persistence";
 import { LocalFileSourceAdapter, createLocalSourceMetadata } from "@mediaforge/source-ingestion";
 import { ConservativeScriptRewriter, OpenAiCompatibleScriptRewriter } from "@mediaforge/rewriting";
 import { ConservativeTranscriptCleaner, OpenAiCompatibleTranscriptCleaner } from "@mediaforge/transcript-cleaning";
 import { OneToOneScenePlanner } from "@mediaforge/scene-planning";
-import { MockSpeechProvider, OpenAiCompatibleSpeechProvider } from "@mediaforge/speech";
+import { MockSpeechProvider, OpenAiCompatibleSpeechProvider, speechVoiceSettings } from "@mediaforge/speech";
 import { alignScriptToScenes, buildCaptionPack } from "@mediaforge/alignment";
 import {
   createPlaceholderImage,
@@ -154,16 +154,6 @@ function createEpisodeId(slug: string): EpisodeId {
   return slugify(slug).slice(0, 64) as EpisodeId;
 }
 
-function defaultVoiceProfile() {
-  return {
-    id: "mock-male-calm",
-    label: "Mock calm male",
-    gender: "male" as const,
-    style: "calm, mature, clear, informative",
-    paceWpm: 128
-  };
-}
-
 function copySourceToWorkspace(sourcePath: string, targetDir: string): Promise<string> {
   return fs.copyFile(sourcePath, path.join(targetDir, `source-media${path.extname(sourcePath)}`)).then(
     () => path.join(targetDir, `source-media${path.extname(sourcePath)}`)
@@ -199,12 +189,12 @@ export class MediaForgePipeline {
           })
         : new ConservativeScriptRewriter();
     this.speech =
-      config.ttsProvider === "openai-compatible" && config.openAiCompatibleBaseUrl && config.openAiCompatibleApiKey && config.openAiCompatibleModel
+      config.ttsProvider === "openai-compatible" && config.openAiCompatibleApiKey
         ? new OpenAiCompatibleSpeechProvider({
-            baseUrl: config.openAiCompatibleBaseUrl,
             apiKey: config.openAiCompatibleApiKey,
-            model: config.openAiCompatibleModel,
-            voice: config.openAiCompatibleTtsVoice ?? "alloy"
+            model: config.openAiSpeechModel ?? config.openAiCompatibleModel ?? "gpt-4o-mini-tts",
+            voice: config.openAiSpeechVoice ?? config.openAiCompatibleTtsVoice ?? "onyx",
+            ...(config.openAiCompatibleBaseUrl ? { baseUrl: config.openAiCompatibleBaseUrl } : {})
           })
         : new MockSpeechProvider();
     this.transcription =
@@ -420,13 +410,13 @@ export class MediaForgePipeline {
     for (const scene of plan.scenes) {
       const outputPath = path.join(episodeDirPath, "audio", "segments", `${scene.id}.wav`);
       const result = await this.speech.synthesize(
-        {
-          sceneId: scene.id,
-          text: scene.canonicalNarration,
-          voiceProfile: defaultVoiceProfile(),
-          outputPath,
-          targetDurationSeconds: scene.estimatedDurationSeconds
-        },
+          {
+            sceneId: scene.id,
+            text: scene.canonicalNarration,
+            voiceProfile: speechVoiceSettings.profile,
+            outputPath,
+            targetDurationSeconds: scene.estimatedDurationSeconds
+          },
         new AbortController().signal
       );
       output.push(result);
@@ -612,14 +602,20 @@ export class MediaForgePipeline {
   }
 }
 
-export async function createEnvironment(configOverrides: Partial<RuntimeConfig> = {}): Promise<MediaForgeEnvironment> {
-  const config = await loadRuntimeConfig(configOverrides);
+export async function createEnvironment(
+  configOverrides: RuntimeConfigOverrides = {},
+  episodeOverrides: RuntimeConfigOverrides = {}
+): Promise<MediaForgeEnvironment> {
+  const config = await loadRuntimeConfig(configOverrides, episodeOverrides);
   const db = createPersistence(config.dbPath);
   db.migrate();
   const logger = createLogger(config.logLevel);
   return { config, db, logger };
 }
 
-export async function createPipeline(configOverrides: Partial<RuntimeConfig> = {}): Promise<MediaForgePipeline> {
-  return new MediaForgePipeline(await createEnvironment(configOverrides));
+export async function createPipeline(
+  configOverrides: RuntimeConfigOverrides = {},
+  episodeOverrides: RuntimeConfigOverrides = {}
+): Promise<MediaForgePipeline> {
+  return new MediaForgePipeline(await createEnvironment(configOverrides, episodeOverrides));
 }

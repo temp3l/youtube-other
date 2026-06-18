@@ -13,6 +13,7 @@
     "@mediaforge/domain": "workspace:*",
     "@mediaforge/process-runner": "workspace:*",
     "@mediaforge/shared": "workspace:*",
+    "openai": "^6.44.0",
     "zod": "^4.0.14"
   }
 }

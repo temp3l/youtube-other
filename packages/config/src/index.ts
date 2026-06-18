@@ -24,9 +24,16 @@ const configSchema = z.object({
   openAiCompatibleApiKey: z.string().optional(),
   openAiCompatibleModel: z.string().optional(),
   openAiCompatibleTtsVoice: z.string().optional(),
+  openAiSpeechModel: z.string().optional(),
+  openAiSpeechVoice: z.string().optional(),
   apiPort: z.number().int().positive()
 });
 export type RuntimeConfig = z.infer<typeof configSchema>;
+export type RuntimeConfigOverrides = {
+  [K in keyof RuntimeConfig]?: RuntimeConfig[K] | undefined;
+};
+export const episodeConfigSchema: z.ZodType<RuntimeConfigOverrides> = configSchema.partial();
+export type EpisodeConfig = z.infer<typeof episodeConfigSchema>;
 
 const envSchema = z.object({
   MEDIAFORGE_WORKSPACE: z.string().optional(),
@@ -49,6 +56,12 @@ const envSchema = z.object({
   MEDIAFORGE_OPENAI_COMPATIBLE_API_KEY: z.string().optional(),
   MEDIAFORGE_OPENAI_COMPATIBLE_MODEL: z.string().optional(),
   MEDIAFORGE_OPENAI_COMPATIBLE_TTS_VOICE: z.string().optional(),
+  MEDIAFORGE_OPENAI_SPEECH_MODEL: z.string().optional(),
+  MEDIAFORGE_OPENAI_SPEECH_VOICE: z.string().optional(),
+  OPENAI_BASE_URL: z.string().url().optional(),
+  OPENAI_API_KEY: z.string().optional(),
+  OPENAI_SPEECH_MODEL: z.string().optional(),
+  OPENAI_SPEECH_VOICE: z.string().optional(),
   MEDIAFORGE_API_PORT: z.coerce.number().int().positive().optional()
 });
 
@@ -61,7 +74,10 @@ export async function loadPackageJsonConfig(configPath: string): Promise<Record<
   }
 }
 
-export async function loadRuntimeConfig(overrides: Partial<RuntimeConfig> = {}): Promise<RuntimeConfig> {
+export async function loadRuntimeConfig(
+  overrides: RuntimeConfigOverrides = {},
+  episodeOverrides: RuntimeConfigOverrides = {}
+): Promise<RuntimeConfig> {
   const env = envSchema.parse(process.env);
   const workspaceDir = overrides.workspaceDir ?? env.MEDIAFORGE_WORKSPACE ?? "./episodes";
   const dbPath = overrides.dbPath ?? env.MEDIAFORGE_DB_PATH ?? "./.mediaforge.sqlite";
@@ -69,34 +85,47 @@ export async function loadRuntimeConfig(overrides: Partial<RuntimeConfig> = {}):
   const localWhisperModel = path.resolve("tools/whisper.cpp/models/ggml-base.en.bin");
   const whisperBin = overrides.whisperBin ?? env.MEDIAFORGE_WHISPER_BIN ?? (await fs.stat(localWhisperBin).then(() => localWhisperBin).catch(() => "whisper-cli"));
   const whisperModel = overrides.whisperModel ?? env.MEDIAFORGE_WHISPER_MODEL ?? (await fs.stat(localWhisperModel).then(() => localWhisperModel).catch(() => undefined));
+  const mergedSpeechProvider = overrides.ttsProvider ?? episodeOverrides.ttsProvider;
+  const mergedOpenAiBaseUrl = overrides.openAiCompatibleBaseUrl ?? episodeOverrides.openAiCompatibleBaseUrl ?? env.MEDIAFORGE_OPENAI_COMPATIBLE_BASE_URL ?? env.OPENAI_BASE_URL;
+  const mergedOpenAiApiKey = overrides.openAiCompatibleApiKey ?? episodeOverrides.openAiCompatibleApiKey ?? env.MEDIAFORGE_OPENAI_COMPATIBLE_API_KEY ?? env.OPENAI_API_KEY;
   const config = configSchema.parse({
     workspaceDir: path.resolve(workspaceDir),
     dbPath: path.resolve(dbPath),
     logLevel: overrides.logLevel ?? env.MEDIAFORGE_LOG_LEVEL ?? "info",
     defaultAspectRatio: overrides.defaultAspectRatio ?? env.MEDIAFORGE_DEFAULT_ASPECT_RATIO ?? "16:9",
     openArtBatchSize: overrides.openArtBatchSize ?? env.MEDIAFORGE_OPENART_BATCH_SIZE ?? 8,
-    ttsProvider: overrides.ttsProvider ?? env.MEDIAFORGE_TTS_PROVIDER ?? "mock",
-    transcriptionProvider: overrides.transcriptionProvider ?? env.MEDIAFORGE_TRANSCRIPTION_PROVIDER ?? "mock",
-    imageProvider: overrides.imageProvider ?? env.MEDIAFORGE_IMAGE_PROVIDER ?? "placeholder",
-    textProvider: overrides.textProvider ?? env.MEDIAFORGE_TEXT_PROVIDER ?? "mock",
+    ttsProvider:
+      mergedSpeechProvider ??
+      env.MEDIAFORGE_TTS_PROVIDER ??
+      (mergedOpenAiApiKey ? "openai-compatible" : env.MEDIAFORGE_TTS_PROVIDER ?? "mock"),
+    transcriptionProvider: overrides.transcriptionProvider ?? episodeOverrides.transcriptionProvider ?? env.MEDIAFORGE_TRANSCRIPTION_PROVIDER ?? "mock",
+    imageProvider: overrides.imageProvider ?? episodeOverrides.imageProvider ?? env.MEDIAFORGE_IMAGE_PROVIDER ?? "placeholder",
+    textProvider: overrides.textProvider ?? episodeOverrides.textProvider ?? env.MEDIAFORGE_TEXT_PROVIDER ?? "mock",
     whisperBin,
     whisperModel,
-    whisperLanguage: overrides.whisperLanguage ?? env.MEDIAFORGE_WHISPER_LANGUAGE,
-    whisperThreads: overrides.whisperThreads ?? env.MEDIAFORGE_WHISPER_THREADS,
-    whisperProcessors: overrides.whisperProcessors ?? env.MEDIAFORGE_WHISPER_PROCESSORS,
-    whisperTimeoutMs: overrides.whisperTimeoutMs ?? env.MEDIAFORGE_WHISPER_TIMEOUT_MS,
-    whisperMaxDurationSeconds: overrides.whisperMaxDurationSeconds ?? env.MEDIAFORGE_WHISPER_MAX_DURATION_SECONDS,
-    openAiCompatibleBaseUrl: overrides.openAiCompatibleBaseUrl ?? env.MEDIAFORGE_OPENAI_COMPATIBLE_BASE_URL,
-    openAiCompatibleApiKey: overrides.openAiCompatibleApiKey ?? env.MEDIAFORGE_OPENAI_COMPATIBLE_API_KEY,
-    openAiCompatibleModel: overrides.openAiCompatibleModel ?? env.MEDIAFORGE_OPENAI_COMPATIBLE_MODEL,
-    openAiCompatibleTtsVoice: overrides.openAiCompatibleTtsVoice ?? env.MEDIAFORGE_OPENAI_COMPATIBLE_TTS_VOICE,
-    apiPort: overrides.apiPort ?? env.MEDIAFORGE_API_PORT ?? 3333
+    whisperLanguage: overrides.whisperLanguage ?? episodeOverrides.whisperLanguage ?? env.MEDIAFORGE_WHISPER_LANGUAGE,
+    whisperThreads: overrides.whisperThreads ?? episodeOverrides.whisperThreads ?? env.MEDIAFORGE_WHISPER_THREADS,
+    whisperProcessors: overrides.whisperProcessors ?? episodeOverrides.whisperProcessors ?? env.MEDIAFORGE_WHISPER_PROCESSORS,
+    whisperTimeoutMs: overrides.whisperTimeoutMs ?? episodeOverrides.whisperTimeoutMs ?? env.MEDIAFORGE_WHISPER_TIMEOUT_MS,
+    whisperMaxDurationSeconds: overrides.whisperMaxDurationSeconds ?? episodeOverrides.whisperMaxDurationSeconds ?? env.MEDIAFORGE_WHISPER_MAX_DURATION_SECONDS,
+    openAiCompatibleBaseUrl: mergedOpenAiBaseUrl,
+    openAiCompatibleApiKey: mergedOpenAiApiKey,
+    openAiCompatibleModel: overrides.openAiCompatibleModel ?? episodeOverrides.openAiCompatibleModel ?? env.MEDIAFORGE_OPENAI_COMPATIBLE_MODEL,
+    openAiCompatibleTtsVoice:
+      overrides.openAiCompatibleTtsVoice ?? episodeOverrides.openAiCompatibleTtsVoice ?? env.MEDIAFORGE_OPENAI_COMPATIBLE_TTS_VOICE ?? env.OPENAI_SPEECH_VOICE,
+    openAiSpeechModel: overrides.openAiSpeechModel ?? episodeOverrides.openAiSpeechModel ?? env.MEDIAFORGE_OPENAI_SPEECH_MODEL ?? env.OPENAI_SPEECH_MODEL,
+    openAiSpeechVoice: overrides.openAiSpeechVoice ?? episodeOverrides.openAiSpeechVoice ?? env.MEDIAFORGE_OPENAI_SPEECH_VOICE ?? env.OPENAI_SPEECH_VOICE,
+    apiPort: overrides.apiPort ?? episodeOverrides.apiPort ?? env.MEDIAFORGE_API_PORT ?? 3333
   });
   return config;
 }
 
-export async function loadEpisodeConfig(episodeDir: string): Promise<Record<string, unknown> | null> {
-  return loadPackageJsonConfig(path.join(episodeDir, "episode.config.json"));
+export async function loadEpisodeConfig(episodeDir: string): Promise<EpisodeConfig | null> {
+  const raw = await loadPackageJsonConfig(path.join(episodeDir, "episode.config.json"));
+  if (!raw) {
+    return null;
+  }
+  return episodeConfigSchema.parse(raw);
 }
 
 export function mergeConfig<T extends Record<string, unknown>>(defaults: T, ...layers: Array<Partial<T> | null | undefined>): T {

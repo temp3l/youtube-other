@@ -594,6 +594,20 @@ Default voice profile:
 
 Do not hard-code a provider-specific voice ID into domain code.
 
+OpenAI speech configuration is now available through project, episode, environment, and CLI overrides. The repo uses `docs/voice-settings.md` as the canonical prompt-level voice guide, and the speech provider reads:
+
+- `MEDIAFORGE_TTS_PROVIDER=openai-compatible`
+- `MEDIAFORGE_OPENAI_COMPATIBLE_BASE_URL`
+- `MEDIAFORGE_OPENAI_COMPATIBLE_API_KEY`
+- `MEDIAFORGE_OPENAI_SPEECH_MODEL`
+- `MEDIAFORGE_OPENAI_SPEECH_VOICE`
+- `OPENAI_BASE_URL`
+- `OPENAI_API_KEY`
+- `OPENAI_SPEECH_MODEL`
+- `OPENAI_SPEECH_VOICE`
+
+CLI equivalents are available via `--tts-provider`, `--openai-base-url`, `--openai-api-key`, `--openai-speech-model`, and `--openai-speech-voice`.
+
 # Whisper and alignment
 
 Support whisper.cpp through a safe subprocess adapter.

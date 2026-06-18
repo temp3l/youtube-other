@@ -1,7 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
+import OpenAI from "openai";
 import {
-  HumanActionRequiredError,
   ProviderAuthenticationError,
   ProviderResponseError,
   type AudioSegment,
@@ -9,7 +9,8 @@ import {
   type VoiceProfile
 } from "@mediaforge/domain";
 import { ensureDir, fileExists } from "@mediaforge/shared";
-import { runCommand } from "@mediaforge/process-runner";
+import { loadSpeechVoiceSettings } from "./voice-settings.js";
+export { loadSpeechVoiceSettings, speechVoiceSettings } from "./voice-settings.js";
 
 export interface SpeechSynthesisRequest {
   readonly sceneId: SceneId;
@@ -29,11 +30,35 @@ export interface SpeechProvider {
 }
 
 export interface OpenAiCompatibleSpeechOptions {
-  readonly baseUrl: string;
+  readonly baseUrl?: string;
   readonly apiKey: string;
-  readonly model: string;
-  readonly voice: string;
+  readonly model?: string;
+  readonly voice?: string;
+  readonly instructions?: string;
+  readonly speed?: number;
+  readonly responseFormat?: "mp3" | "opus" | "aac" | "flac" | "wav" | "pcm";
+  readonly client?: SpeechClientLike;
 }
+
+interface SpeechClientLike {
+  readonly audio: {
+    readonly speech: {
+      create(
+        body: {
+          readonly input: string;
+          readonly model: string;
+          readonly voice: string;
+          readonly instructions?: string;
+          readonly response_format?: "mp3" | "opus" | "aac" | "flac" | "wav" | "pcm";
+          readonly speed?: number;
+        },
+        options?: { readonly signal?: AbortSignal }
+      ): Promise<Response>;
+    };
+  };
+}
+
+const defaultSpeechSettings = loadSpeechVoiceSettings();
 
 function makeWavHeader(sampleRate: number, channels: number, bitsPerSample: number, dataSize: number): Buffer {
   const blockAlign = (channels * bitsPerSample) / 8;
@@ -68,20 +93,29 @@ async function writeToneWav(filePath: string, durationSeconds: number, sampleRat
   }
   const header = makeWavHeader(sampleRate, channels, bitsPerSample, pcm.byteLength);
   await ensureDir(path.dirname(filePath));
-  await fs.writeFile(filePath, Buffer.concat([header, pcm]));
+  const tempPath = `${filePath}.${process.pid}.tmp`;
+  await fs.writeFile(tempPath, Buffer.concat([header, pcm]));
+  await fs.rename(tempPath, filePath);
 }
 
-async function inspectWavDuration(filePath: string): Promise<number> {
-  const buffer = await fs.readFile(filePath);
-  if (buffer.byteLength < 44 || buffer.toString("ascii", 0, 4) !== "RIFF") {
+function inspectWavMetadata(filePath: string, buffer: Buffer): { readonly sampleRate: number; readonly channels: number; readonly durationSeconds: number } {
+  if (buffer.byteLength < 44 || buffer.toString("ascii", 0, 4) !== "RIFF" || buffer.toString("ascii", 8, 12) !== "WAVE") {
     throw new ProviderResponseError(`Invalid WAV file: ${filePath}`);
   }
   const sampleRate = buffer.readUInt32LE(24);
   const dataSize = buffer.readUInt32LE(40);
-  const bytesPerSample = buffer.readUInt16LE(32);
+  const bitsPerSample = buffer.readUInt16LE(34);
   const channels = buffer.readUInt16LE(22);
+  const bytesPerSample = bitsPerSample / 8;
+  if (sampleRate <= 0 || channels <= 0 || bytesPerSample <= 0) {
+    throw new ProviderResponseError(`Invalid WAV header metadata in ${filePath}`);
+  }
   const frames = dataSize / (channels * bytesPerSample);
-  return frames / sampleRate;
+  return {
+    sampleRate,
+    channels,
+    durationSeconds: frames / sampleRate
+  };
 }
 
 export class MockSpeechProvider implements SpeechProvider {
@@ -101,40 +135,55 @@ export class MockSpeechProvider implements SpeechProvider {
 }
 
 export class OpenAiCompatibleSpeechProvider implements SpeechProvider {
-  public constructor(private readonly options: OpenAiCompatibleSpeechOptions) {}
+  private readonly client: SpeechClientLike;
+  private readonly model: string;
+  private readonly voice: string;
+  private readonly instructions: string;
+  private readonly speed: number | undefined;
+  private readonly responseFormat: "mp3" | "opus" | "aac" | "flac" | "wav" | "pcm";
+
+  public constructor(private readonly options: OpenAiCompatibleSpeechOptions) {
+    this.client = options.client ?? new OpenAI(options.baseUrl ? { apiKey: options.apiKey, baseURL: options.baseUrl } : { apiKey: options.apiKey });
+    const speechSettings = loadSpeechVoiceSettings({
+      ...(options.model ? { model: options.model } : {}),
+      ...(options.voice ? { voice: options.voice } : {})
+    });
+    this.model = speechSettings.model;
+    this.voice = speechSettings.voice;
+    this.instructions = options.instructions ?? speechSettings.instructions;
+    this.speed = options.speed;
+    this.responseFormat = options.responseFormat ?? "wav";
+  }
 
   public async synthesize(request: SpeechSynthesisRequest, signal: AbortSignal): Promise<SpeechSynthesisResult> {
     signal.throwIfAborted();
     if (!this.options.apiKey) {
-      throw new ProviderAuthenticationError("OpenAI-compatible speech synthesis requires an API key.");
+      throw new ProviderAuthenticationError("OpenAI TTS synthesis requires an API key.");
     }
-    const response = await fetch(new URL("/v1/audio/speech", this.options.baseUrl), {
-      method: "POST",
-      headers: {
-        authorization: `Bearer ${this.options.apiKey}`,
-        "content-type": "application/json"
-      },
-      body: JSON.stringify({
-        model: this.options.model,
-        voice: this.options.voice,
-        input: request.text,
-        response_format: "wav"
-      }),
-      signal
-    });
-    if (!response.ok) {
-      throw new ProviderResponseError(`Speech provider returned ${response.status} ${response.statusText}`);
-    }
+    const speechOptions = {
+      input: request.text,
+      model: this.model,
+      voice: request.voiceProfile.providerVoiceId ?? this.voice,
+      instructions: this.instructions,
+      response_format: this.responseFormat,
+      ...(this.speed !== undefined ? { speed: this.speed } : {})
+    } satisfies Parameters<SpeechClientLike["audio"]["speech"]["create"]>[0];
+    const response = await this.client.audio.speech.create(speechOptions, { signal });
     const data = Buffer.from(await response.arrayBuffer());
+    if (data.byteLength === 0) {
+      throw new ProviderResponseError("OpenAI speech provider returned an empty audio payload.");
+    }
     await ensureDir(path.dirname(request.outputPath));
-    await fs.writeFile(request.outputPath, data);
-    const durationSeconds = await inspectWavDuration(request.outputPath);
+    const tempPath = `${request.outputPath}.${process.pid}.tmp`;
+    await fs.writeFile(tempPath, data);
+    await fs.rename(tempPath, request.outputPath);
+    const metadata = inspectWavMetadata(request.outputPath, data);
     return {
       sceneId: request.sceneId,
       filePath: request.outputPath,
-      durationSeconds,
-      sampleRate: 24000,
-      channels: 1
+      durationSeconds: metadata.durationSeconds,
+      sampleRate: metadata.sampleRate,
+      channels: metadata.channels
     };
   }
 }
@@ -142,4 +191,3 @@ export class OpenAiCompatibleSpeechProvider implements SpeechProvider {
 export async function ensureSpeechProviderReady(filePath: string): Promise<boolean> {
   return filePath.length > 0 && (await fileExists(filePath));
 }
-

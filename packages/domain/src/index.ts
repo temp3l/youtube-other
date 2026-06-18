@@ -258,7 +258,69 @@ export const imageAssetSchema = z.object({
   mimeType: z.string(),
   checksumSha256: z.string(),
   duplicateOf: z.string().optional(),
-  validated: z.boolean()
+  validated: z.boolean(),
+  originalImagePrompt: z.string().optional(),
+  optimizedImagePrompt: z.string().optional(),
+  optimizedImagePromptPath: z.string().optional(),
+  optimizedImagePromptHash: z.string().optional(),
+  generationStatus: z
+    .enum(["pending", "prompt-optimized", "generating", "generated", "validated", "failed", "skipped-cache-hit"])
+    .optional(),
+  provenance: z
+    .object({
+      schemaVersion: z.literal(1),
+      episodeSlug: z.string(),
+      sceneId: sceneIdSchema,
+      sequence: z.number().int().positive(),
+      sourceSceneHash: z.string(),
+      originalPromptHash: z.string(),
+      optimizedPromptHash: z.string(),
+      optimizerVersion: z.string(),
+      optimizerModel: z.string().optional(),
+      optimizedAt: z.string(),
+      metrics: z.object({
+        originalCharacters: z.number().int().nonnegative(),
+        optimizedCharacters: z.number().int().nonnegative(),
+        reductionCharacters: z.number().int().nonnegative(),
+        reductionPercent: z.number().nonnegative(),
+        originalEstimatedTokens: z.number().int().nonnegative(),
+        optimizedEstimatedTokens: z.number().int().nonnegative()
+      }),
+      preservedRequirements: z.array(z.string()),
+      omittedNonVisualContent: z.array(z.string()),
+      warnings: z.array(z.string()),
+      model: z.string().optional(),
+      referenceMode: z.enum(["none", "canonical", "previous"]).optional(),
+      referenceImagePath: z.string().optional(),
+      referenceImageHash: z.string().optional(),
+      referenceImageSource: z.enum(["canonical", "previous", "none", "fallback"]).optional(),
+      size: z.string(),
+      quality: z.string(),
+      outputFormat: z.enum(["png", "webp", "jpeg"]),
+      candidateCount: z.number().int().positive(),
+      cacheKey: z.string(),
+      requestId: z.string().optional(),
+      generatedAt: z.string().optional(),
+      validatedAt: z.string().optional(),
+      validation: z
+        .object({
+          valid: z.boolean(),
+          width: z.number().int().positive().optional(),
+          height: z.number().int().positive().optional(),
+          checksumSha256: z.string().optional(),
+          warnings: z.array(z.string()).default([])
+        })
+        .optional(),
+      failure: z
+        .object({
+          failedStage: z.enum(["load", "optimize", "prompt-validation", "generate", "image-validation", "write"]),
+          retryable: z.boolean(),
+          errorCode: z.string(),
+          errorMessage: z.string()
+        })
+        .optional()
+    })
+    .optional()
 });
 export type ImageAsset = z.infer<typeof imageAssetSchema>;
 
