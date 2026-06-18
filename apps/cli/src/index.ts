@@ -9,7 +9,7 @@ import {
   type MediaForgeEnvironment
 } from "@mediaforge/pipeline";
 import { loadEpisodeConfig, loadRuntimeConfig, type RuntimeConfig, type RuntimeConfigOverrides } from "@mediaforge/config";
-import { episodeManifestSchema } from "@mediaforge/domain";
+import { artifactIdSchema, episodeManifestSchema, sceneIdSchema, type ArtifactReference } from "@mediaforge/domain";
 import { createLogger } from "@mediaforge/observability";
 import {
   createPromptBatch,
@@ -20,7 +20,8 @@ import {
   missingScenes,
   validateImageAssets
 } from "@mediaforge/image-generation";
-import { buildSrt, ensureDir, fileExists, writeJsonAtomic, writeTextAtomic } from "@mediaforge/shared";
+import { buildSrt, ensureDir, fileExists, hashFile, safeBasename, writeJsonAtomic, writeTextAtomic } from "@mediaforge/shared";
+import { loadEpisodeScriptMarkdown, splitEpisodeScriptMarkdown, writeEpisodeScriptMarkdown, speechVoiceSettings } from "@mediaforge/speech";
 
 interface CliOptions {
   json?: boolean;
@@ -196,6 +197,22 @@ async function readManifestForEpisode(options: CliOptions, episodeId: string) {
   throw new Error(`Episode not found: ${episodeId}`);
 }
 
+async function readEpisodeWorkspaceForAudio(options: CliOptions, episodeId: string) {
+  const config = await loadRuntimeConfig(configOverridesFromCli(options));
+  const directDir = path.join(config.workspaceDir, episodeId);
+  const directScriptExists =
+    (await fileExists(path.join(directDir, "script.md"))) || (await fileExists(path.join(directDir, "script", "rewritten-script.md")));
+  const directManifestPath = path.join(directDir, "manifest.json");
+  if (directScriptExists || (await fileExists(directManifestPath))) {
+    const manifest = (await fileExists(directManifestPath))
+      ? episodeManifestSchema.parse(JSON.parse(await fs.readFile(directManifestPath, "utf8")) as unknown)
+      : null;
+    return { episodeDir: directDir, manifest };
+  }
+  const manifestResult = await readManifestForEpisode(options, episodeId);
+  return manifestResult;
+}
+
 async function commandStatus(options: CliOptions, episodeId: string): Promise<void> {
   const { manifest } = await readManifestForEpisode(options, episodeId);
   if (options.json) {
@@ -225,6 +242,123 @@ async function commandTranscriptExport(options: CliOptions, episodeId: string): 
   process.stdout.write(`${output}\n`);
   await writeJsonAtomic(path.join(episodeDir, "original-transcript.json"), transcript);
   await writeTextAtomic(path.join(episodeDir, "original-transcript.srt"), buildSrt(transcript.segments));
+}
+
+async function commandAudioGenerate(options: CliOptions, episodeId: string): Promise<void> {
+  const overrides = compactConfigOverrides(configOverridesFromCli(options));
+  const resolved = await readEpisodeWorkspaceForAudio(options, episodeId);
+  const { episodeDir, manifest } = resolved;
+  const episodeConfig = await loadEpisodeConfig(episodeDir);
+  const emptyEpisodeOverrides: RuntimeConfigOverrides = {};
+  const config = await loadRuntimeConfig(overrides, episodeConfig ? compactConfigOverrides(episodeConfig) : emptyEpisodeOverrides);
+  if (config.ttsProvider === "openai-compatible" && !config.openAiCompatibleApiKey) {
+    throw new Error("OpenAI speech is configured but no API key is available.");
+  }
+  const script = await loadEpisodeScriptMarkdown(episodeDir);
+  const chunks = splitEpisodeScriptMarkdown(script.text);
+  if (chunks.length === 0) {
+    throw new Error(`No narration text found in ${script.filePath}.`);
+  }
+  const audioDir = path.join(episodeDir, "audio");
+  const segmentsDir = path.join(audioDir, "segments");
+  const narrationPath = path.join(audioDir, "narration.wav");
+  const episodeSlug = manifest?.slug ?? episodeId;
+  if (options.dryRun) {
+    printJson({
+      episodeId,
+      scriptPath: script.filePath,
+      outputDir: audioDir,
+      narrationPath,
+      segmentCount: chunks.length,
+      dryRun: true
+    });
+    return;
+  }
+  const pipeline = await createPipeline(overrides, episodeConfig ? compactConfigOverrides(episodeConfig) : emptyEpisodeOverrides);
+  await ensureDir(segmentsDir);
+  const scriptSourcePath = await writeEpisodeScriptMarkdown(episodeDir, script.text);
+  const generatedAt = new Date().toISOString();
+  const segmentPaths: string[] = [];
+  const artifacts: ArtifactReference[] = [];
+  for (const [index, chunk] of chunks.entries()) {
+    const sceneId = sceneIdSchema.parse(`scene-${String(index + 1).padStart(3, "0")}`);
+    const outputPath = path.join(segmentsDir, `${safeBasename(`segment-${String(index + 1).padStart(3, "0")}`)}.wav`);
+    const words = chunk.trim().split(/\s+/u).filter(Boolean).length;
+    const estimatedDurationSeconds = Math.max(2, Math.ceil((words / speechVoiceSettings.profile.paceWpm) * 60));
+    await pipeline.speech.synthesize(
+      {
+        sceneId,
+        text: chunk,
+        voiceProfile: speechVoiceSettings.profile,
+        outputPath,
+        targetDurationSeconds: estimatedDurationSeconds
+      },
+      new AbortController().signal
+    );
+    segmentPaths.push(outputPath);
+    const stats = await fs.stat(outputPath);
+    artifacts.push({
+      id: artifactIdSchema.parse(`artifact-${safeBasename(`${episodeSlug}-segment-${String(index + 1).padStart(3, "0")}`)}`),
+      kind: "audio.segment",
+      path: outputPath,
+      mimeType: "audio/wav",
+      sizeBytes: stats.size,
+      checksumSha256: await hashFile(outputPath),
+      createdAt: generatedAt
+    });
+  }
+  const segmentsListPath = path.join(audioDir, "segments.txt");
+  await writeTextAtomic(segmentsListPath, segmentPaths.map((segmentPath) => `file '${segmentPath.replace(/'/g, "'\\''")}'`).join("\n"));
+  const concat = spawnSync("ffmpeg", ["-y", "-f", "concat", "-safe", "0", "-i", segmentsListPath, "-c", "copy", narrationPath], { encoding: "utf8" });
+  if (concat.status !== 0) {
+    throw new Error(concat.stderr || "Failed to concatenate narration audio.");
+  }
+  const narrationStats = await fs.stat(narrationPath);
+  artifacts.push({
+    id: artifactIdSchema.parse(`artifact-${safeBasename(`${episodeSlug}-narration`)}`),
+    kind: "audio.narration",
+    path: narrationPath,
+    mimeType: "audio/wav",
+    sizeBytes: narrationStats.size,
+    checksumSha256: await hashFile(narrationPath),
+    createdAt: generatedAt
+  });
+  artifacts.push({
+    id: artifactIdSchema.parse(`artifact-${safeBasename(`${episodeSlug}-script-source`)}`),
+    kind: "audio.script-source",
+    path: scriptSourcePath,
+    mimeType: "text/markdown",
+    sizeBytes: (await fs.stat(scriptSourcePath)).size,
+    checksumSha256: await hashFile(scriptSourcePath),
+    createdAt: generatedAt
+  });
+  if (manifest) {
+    manifest.artifacts = [
+      ...manifest.artifacts.filter((artifact) => !["audio.segment", "audio.narration", "audio.script-source"].includes(artifact.kind)),
+      ...artifacts
+    ];
+    manifest.updatedAt = generatedAt;
+    await writeJsonAtomic(path.join(episodeDir, "manifest.json"), manifest);
+  }
+  await writeJsonAtomic(path.join(audioDir, "generation-report.json"), {
+    episodeId,
+    slug: episodeSlug,
+    scriptPath: script.filePath,
+    narrationPath,
+    segmentCount: chunks.length,
+    generatedAt
+  });
+  if (options.json) {
+    printJson({
+      episodeId,
+      scriptPath: script.filePath,
+      narrationPath,
+      segmentCount: chunks.length,
+      segmentPaths
+    });
+    return;
+  }
+  process.stdout.write(`Generated narration for ${episodeId}\n${narrationPath}\n`);
 }
 
 async function commandScenesList(options: CliOptions, episodeId: string): Promise<void> {
@@ -505,7 +639,7 @@ audioCommand
   .command("generate")
   .argument("<episode-id>")
   .action(async (episodeId: string) => {
-    await commandRun(program.opts<CliOptions>(), episodeId);
+    await commandAudioGenerate(program.opts<CliOptions>(), episodeId);
   });
 
 program

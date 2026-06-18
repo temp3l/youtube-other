@@ -608,6 +608,12 @@ OpenAI speech configuration is now available through project, episode, environme
 
 CLI equivalents are available via `--tts-provider`, `--openai-base-url`, `--openai-api-key`, `--openai-speech-model`, and `--openai-speech-voice`.
 
+For direct narration generation, `mediaforge audio generate <episode-id>` reads the episode's root `script.md` first, falls back to `script/rewritten-script.md` when needed, and saves the result under that episode's `audio/` directory:
+
+- `audio/script-source.md`
+- `audio/segments/*.wav`
+- `audio/narration.wav`
+
 # Whisper and alignment
 
 Support whisper.cpp through a safe subprocess adapter.

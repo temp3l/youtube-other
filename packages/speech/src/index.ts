@@ -10,6 +10,7 @@ import {
 } from "@mediaforge/domain";
 import { ensureDir, fileExists } from "@mediaforge/shared";
 import { loadSpeechVoiceSettings } from "./voice-settings.js";
+export { loadEpisodeScriptMarkdown, splitEpisodeScriptMarkdown, writeEpisodeScriptMarkdown } from "./script-markdown.js";
 export { loadSpeechVoiceSettings, speechVoiceSettings } from "./voice-settings.js";
 
 export interface SpeechSynthesisRequest {
