@@ -9,3 +9,4 @@ tools/whisper.cpp
 episodes
 !.gitkeep
 secrets/youtube-oauth-client.json
+.env
