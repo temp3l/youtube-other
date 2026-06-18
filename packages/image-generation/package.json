@@ -12,6 +12,7 @@
   "dependencies": {
     "@mediaforge/domain": "workspace:*",
     "@mediaforge/shared": "workspace:*",
+    "openai": "^6.44.0",
     "sharp": "^0.34.3",
     "zod": "^4.0.14"
   }

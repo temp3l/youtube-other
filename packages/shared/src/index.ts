@@ -70,6 +70,14 @@ export async function writeTextAtomic(filePath: string, value: string): Promise<
   await fs.rename(tempPath, filePath);
 }
 
+export async function writeBinaryAtomic(filePath: string, value: Buffer): Promise<void> {
+  const dir = path.dirname(filePath);
+  await ensureDir(dir);
+  const tempPath = path.join(dir, `${path.basename(filePath)}.${process.pid}.${Date.now()}.tmp`);
+  await fs.writeFile(tempPath, value);
+  await fs.rename(tempPath, filePath);
+}
+
 export async function copyAtomic(sourcePath: string, targetPath: string): Promise<void> {
   const dir = path.dirname(targetPath);
   await ensureDir(dir);
@@ -224,4 +232,3 @@ export function sortBy<T>(values: ReadonlyArray<T>, selector: (value: T) => numb
 export function tempDir(): string {
   return os.tmpdir();
 }
-

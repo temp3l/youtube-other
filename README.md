@@ -1,6 +1,34 @@
+001-calhoun-experiment
+
+pnpm mediaforge render 001-calhoun-experiment --profile vertical
+
+That’s the documented command in the repo’s README, and render defaults to the youtube profile anyway. See /home/box/workspace/fehmarn-seo/youtube/other/README.md#L933-L934 (അ), /home/box/workspace/
+fehmarn-seo/youtube/other/apps/cli/src/index.ts#L718-L723 (അ).
+
+If you want the vertical preview instead:
+
+pnpm mediaforge render <episode-id> --profile vertical
+
+The output lands under the episode’s output/ directory, with filenames like youtube-16x9-clean.mp4 and youtube-16x9-captioned.mp4 when captions are burned in. See /home/box/workspace/fehmarn-seo/youtube/
+other/packages/rendering/src/index.ts#L151-L160 (അ).
+
+If you haven’t built the CLI yet, run:
+
+pnpm build
+
 generate the first scene image of the 001-calhoun-experiment with the relevant prompt and the openai API. make sure to incorporate the settings from .env for image processing.
 
+make sure image generation with openai always uses parallel image proccessing as configured in .env. Also make sure that the original images returned from the API are stored as well as storing the normalized images.
+
+now generate the remaining scene images from 10 onwards
+
+re-generate the preview video
+
 always generate the videos first with locally generated images, then ask me if everything is correct.
+
+i want to generate seo effective thumbnail and title for every video with the openai API.
+Have the API create five title candidates, each with a score. save the response and select the highest one.
+recommend me how to do this while keeping token consumption low.
 
 # scaffolding
 

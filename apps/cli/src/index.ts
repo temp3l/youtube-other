@@ -9,13 +9,22 @@ import {
   type MediaForgeEnvironment
 } from "@mediaforge/pipeline";
 import { loadEpisodeConfig, loadRuntimeConfig, type RuntimeConfig, type RuntimeConfigOverrides } from "@mediaforge/config";
-import { artifactIdSchema, episodeManifestSchema, sceneIdSchema, type ArtifactReference } from "@mediaforge/domain";
+import {
+  artifactIdSchema,
+  episodeManifestSchema,
+  rewrittenScriptSchema,
+  sceneIdSchema,
+  scenePlanSchema,
+  type ArtifactReference
+} from "@mediaforge/domain";
 import { createLogger } from "@mediaforge/observability";
 import {
   createPromptBatch,
   exportSceneWorkbook,
+  generateOpenAiSceneImages,
   localSceneNegativePrompt,
   localSceneStyle,
+  loadOpenAiImageGenerationSettings,
   importImageAssets,
   missingScenes,
   validateImageAssets
@@ -191,7 +200,39 @@ async function readManifestForEpisode(options: CliOptions, episodeId: string) {
     }
     const manifest = episodeManifestSchema.parse(JSON.parse(await fs.readFile(manifestPath, "utf8")) as unknown);
     if (manifest.episodeId === episodeId) {
-      return { manifestPath, episodeDir: path.dirname(manifestPath), manifest };
+      const episodeDir = path.dirname(manifestPath);
+      let nextManifest = manifest;
+      let shouldWrite = false;
+
+      if (!nextManifest.scenePlan) {
+        const scenePlanPath = path.join(episodeDir, "scenes.json");
+        if (await fileExists(scenePlanPath)) {
+          nextManifest = {
+            ...nextManifest,
+            scenePlan: scenePlanSchema.parse(JSON.parse(await fs.readFile(scenePlanPath, "utf8")) as unknown),
+            updatedAt: new Date().toISOString()
+          };
+          shouldWrite = true;
+        }
+      }
+
+      if (!nextManifest.rewrittenScript) {
+        const rewrittenScriptPath = path.join(episodeDir, "script", "rewritten-script.json");
+        if (await fileExists(rewrittenScriptPath)) {
+          nextManifest = {
+            ...nextManifest,
+            rewrittenScript: rewrittenScriptSchema.parse(JSON.parse(await fs.readFile(rewrittenScriptPath, "utf8")) as unknown),
+            updatedAt: new Date().toISOString()
+          };
+          shouldWrite = true;
+        }
+      }
+
+      if (shouldWrite) {
+        await writeJsonAtomic(manifestPath, nextManifest);
+      }
+
+      return { manifestPath, episodeDir, manifest: nextManifest };
     }
   }
   throw new Error(`Episode not found: ${episodeId}`);
@@ -465,6 +506,41 @@ async function commandImagesAssign(options: CliOptions, episodeId: string, scene
   process.stdout.write(`${target}\n`);
 }
 
+async function commandImagesGenerateOpenAi(options: CliOptions, episodeId: string, sceneId?: string): Promise<void> {
+  const { manifest, episodeDir } = await readManifestForEpisode(options, episodeId);
+  if (!manifest.scenePlan) {
+    throw new Error("Scene plan is not available.");
+  }
+  const settings = loadOpenAiImageGenerationSettings(process.env);
+  const selectedScenes = sceneId ? manifest.scenePlan.scenes.filter((scene) => scene.id === sceneId) : manifest.scenePlan.scenes;
+  if (selectedScenes.length === 0) {
+    throw new Error(sceneId ? `Scene not found: ${sceneId}` : "No scenes available.");
+  }
+  const jobs = selectedScenes.map((scene) => ({
+    scene,
+    prompt: scene.imagePrompt,
+    episodeSlug: manifest.slug,
+    episodeDir,
+    normalizedFilename: scene.expectedImageFilenames[0] ?? `${scene.id}.png`
+  }));
+  const results = await generateOpenAiSceneImages(jobs, settings);
+  printJson(
+    results.map((result: Awaited<ReturnType<typeof generateOpenAiSceneImages>>[number]) => ({
+      sceneId: result.sceneId,
+      sourcePath: result.sourcePath,
+      renderedPath: result.renderedPath,
+      promptPath: result.promptPath,
+      rawPath: result.rawPath,
+      normalizedPath: result.renderedPath,
+      width: result.width,
+      height: result.height,
+      checksumSha256: result.checksumSha256,
+      rawChecksumSha256: result.rawChecksumSha256,
+      finalChecksumSha256: result.finalChecksumSha256
+    }))
+  );
+}
+
 async function commandRender(options: CliOptions, episodeId: string, profile: "youtube" | "vertical"): Promise<void> {
   const { manifest, episodeDir } = await readManifestForEpisode(options, episodeId);
   if (!manifest.scenePlan) {
@@ -673,6 +749,9 @@ imagesCommand.command("regenerate-workbook").argument("<episode-id>").option("--
 });
 imagesCommand.command("assign").argument("<episode-id>").requiredOption("--scene <scene-id>").requiredOption("--file <path>").action(async (episodeId: string, opts: { scene: string; file: string }) => {
   await commandImagesAssign(program.opts<CliOptions>(), episodeId, opts.scene, opts.file);
+});
+imagesCommand.command("generate-openai").argument("<episode-id>").option("--scene <scene-id>").action(async (episodeId: string, opts: { scene?: string }) => {
+  await commandImagesGenerateOpenAi(program.opts<CliOptions>(), episodeId, opts.scene);
 });
 
 program

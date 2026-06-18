@@ -23,6 +23,7 @@ import {
   writeJsonAtomic,
   writeTextAtomic
 } from "@mediaforge/shared";
+export { generateOpenAiSceneImages, loadOpenAiImageGenerationSettings } from "./openai-image.js";
 
 export interface PromptTemplateContext {
   readonly GLOBAL_STYLE: string;
