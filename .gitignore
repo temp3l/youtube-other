@@ -1,0 +1,10 @@
+node_modules
+dist
+coverage
+*.tsbuildinfo
+.DS_Store
+*.log
+.mediaforge.sqlite
+tools/whisper.cpp
+episodes
+!.gitkeep

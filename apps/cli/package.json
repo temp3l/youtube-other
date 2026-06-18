@@ -1,0 +1,40 @@
+{
+  "name": "@mediaforge/cli",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "mediaforge": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "mediaforge": "node ./dist/index.js",
+    "doctor": "node ./dist/index.js doctor",
+    "db:migrate": "node ./dist/index.js db migrate"
+  },
+  "dependencies": {
+    "@mediaforge/alignment": "workspace:*",
+    "@mediaforge/config": "workspace:*",
+    "@mediaforge/domain": "workspace:*",
+    "@mediaforge/image-generation": "workspace:*",
+    "@mediaforge/metadata": "workspace:*",
+    "@mediaforge/observability": "workspace:*",
+    "@mediaforge/persistence": "workspace:*",
+    "@mediaforge/pipeline": "workspace:*",
+    "@mediaforge/process-runner": "workspace:*",
+    "@mediaforge/rendering": "workspace:*",
+    "@mediaforge/rewriting": "workspace:*",
+    "@mediaforge/scene-planning": "workspace:*",
+    "@mediaforge/shared": "workspace:*",
+    "@mediaforge/source-ingestion": "workspace:*",
+    "@mediaforge/speech": "workspace:*",
+    "@mediaforge/testing": "workspace:*",
+    "@mediaforge/transcript-cleaning": "workspace:*",
+    "@mediaforge/transcription": "workspace:*",
+    "commander": "^14.0.0",
+    "pino": "^9.8.0",
+    "sharp": "^0.34.3",
+    "zod": "^4.0.14"
+  }
+}

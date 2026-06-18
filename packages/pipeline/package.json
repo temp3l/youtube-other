@@ -1,0 +1,31 @@
+{
+  "name": "@mediaforge/pipeline",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@mediaforge/alignment": "workspace:*",
+    "@mediaforge/config": "workspace:*",
+    "@mediaforge/domain": "workspace:*",
+    "@mediaforge/image-generation": "workspace:*",
+    "@mediaforge/metadata": "workspace:*",
+    "@mediaforge/observability": "workspace:*",
+    "@mediaforge/persistence": "workspace:*",
+    "@mediaforge/process-runner": "workspace:*",
+    "@mediaforge/rendering": "workspace:*",
+    "@mediaforge/rewriting": "workspace:*",
+    "@mediaforge/scene-planning": "workspace:*",
+    "@mediaforge/shared": "workspace:*",
+    "@mediaforge/source-ingestion": "workspace:*",
+    "@mediaforge/speech": "workspace:*",
+    "@mediaforge/transcript-cleaning": "workspace:*",
+    "@mediaforge/transcription": "workspace:*",
+    "zod": "^4.0.14"
+  }
+}
