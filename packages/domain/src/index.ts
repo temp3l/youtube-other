@@ -338,6 +338,7 @@ export type RenderProfile = z.infer<typeof renderProfileSchema>;
 export const publishingMetadataSchema = z.object({
   sourceId: episodeIdSchema,
   platform: z.enum(["youtube", "tiktok"]),
+  language: z.string().min(1).optional(),
   titleCandidates: z.array(z.string()),
   recommendedTitle: z.string(),
   description: z.string(),

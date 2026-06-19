@@ -4,10 +4,18 @@ import {
   type RewrittenScript,
   type ScenePlan
 } from "@mediaforge/domain";
-import { normalizeWhitespace, splitIntoWords } from "@mediaforge/shared";
+import { formatTimestampLabel, normalizeWhitespace, splitIntoWords } from "@mediaforge/shared";
 
 export interface MetadataProvider {
   generate(script: RewrittenScript, scenePlan: ScenePlan, platform: "youtube" | "tiktok"): PublishingMetadata;
+}
+
+export interface LocalizedMetadataInput {
+  readonly sourceId: string;
+  readonly language: string;
+  readonly scriptText: string;
+  readonly scenePlan: ScenePlan;
+  readonly platform: "youtube" | "tiktok";
 }
 
 function titleFromScript(script: RewrittenScript): string {
@@ -20,6 +28,30 @@ function buildChapters(scenePlan: ScenePlan): PublishingMetadata["chapters"] {
     timestampSeconds: scene.timing.startSeconds,
     title: normalizeWhitespace(scene.canonicalNarration).slice(0, 60)
   }));
+}
+
+function buildLocalizedChapters(scenePlan: ScenePlan, scriptText: string): PublishingMetadata["chapters"] {
+  const chunks = scriptText
+    .replace(/\r\n/g, "\n")
+    .split(/\n{2,}/u)
+    .map((chunk) => normalizeWhitespace(chunk))
+    .filter((chunk) => chunk.length > 0);
+  if (chunks.length !== scenePlan.scenes.length || chunks.length === 0) {
+    return buildChapters(scenePlan);
+  }
+  return scenePlan.scenes.map((scene, index) => ({
+    timestampSeconds: scene.timing.startSeconds,
+    title: chunks[index]?.slice(0, 72) ?? normalizeWhitespace(scene.canonicalNarration).slice(0, 72)
+  }));
+}
+
+function titleFromText(text: string): string {
+  const firstSentence = normalizeWhitespace(text.split(/(?<=[.!?])\s+/u)[0] ?? text);
+  return firstSentence.slice(0, 90);
+}
+
+function makeMarkdownChapterList(chapters: PublishingMetadata["chapters"]): string {
+  return chapters.map((chapter) => `${formatTimestampLabel(chapter.timestampSeconds)} ${normalizeWhitespace(chapter.title).slice(0, 72)}`).join("\n");
 }
 
 export class HeuristicMetadataProvider implements MetadataProvider {
@@ -52,3 +84,43 @@ export class HeuristicMetadataProvider implements MetadataProvider {
   }
 }
 
+export function generateLocalizedPublishingMetadata(input: LocalizedMetadataInput): PublishingMetadata {
+  const title = titleFromText(input.scriptText);
+  const keywords = splitIntoWords(input.scriptText).slice(0, 12);
+  const metadata = publishingMetadataSchema.parse({
+    sourceId: input.sourceId,
+    platform: input.platform,
+    language: input.language,
+    titleCandidates: [title, `${title} Explained`, `What Really Happens in ${title}`],
+    recommendedTitle: title,
+    description: normalizeWhitespace(input.scriptText),
+    caption: input.platform === "tiktok" ? normalizeWhitespace(input.scriptText).slice(0, 220) : undefined,
+    tags: keywords,
+    hashtags: keywords.slice(0, 5).map((keyword) => `#${keyword.replace(/[^a-z0-9]/giu, "")}`),
+    chapters: buildLocalizedChapters(input.scenePlan, input.scriptText),
+    thumbnailTextCandidates: [title.slice(0, 30), normalizeWhitespace(input.scriptText).slice(0, 30)],
+    coverTextCandidates: [title.slice(0, 24)],
+    pinnedComment: "Use the timestamps and scene notes in the description.",
+    summary: normalizeWhitespace(input.scriptText).slice(0, 240),
+    primaryKeyword: keywords[0] ?? "video",
+    secondaryKeywords: keywords.slice(1, 5),
+    warnings: []
+  });
+  return {
+    ...metadata,
+    language: input.language
+  };
+}
+
+export function formatPublishingMetadataMarkdown(metadata: PublishingMetadata): string {
+  const lines = [
+    `# ${metadata.recommendedTitle}`,
+    "",
+    metadata.description,
+    "",
+    "## Chapters",
+    makeMarkdownChapterList(metadata.chapters),
+    ""
+  ];
+  return lines.join("\n");
+}

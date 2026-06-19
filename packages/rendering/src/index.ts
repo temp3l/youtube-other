@@ -2,7 +2,6 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import {
   MediaValidationError,
-  type EpisodeManifest,
   type RenderProfile,
   type ScenePlan
 } from "@mediaforge/domain";
@@ -16,12 +15,21 @@ export interface VideoRenderRequest {
   readonly outputDir: string;
   readonly renderProfile: RenderProfile;
   readonly captionBurnIn: boolean;
+  readonly clipsDirName?: string;
+  readonly sceneAudioDir?: string;
+  readonly imageDir?: string;
+  readonly outputSuffix?: string;
 }
 
 export interface VideoRenderResult {
   readonly cleanPath: string;
   readonly captionedPath?: string;
   readonly validation: RenderValidation;
+}
+
+export interface SceneClipRenderResult {
+  readonly clipsDir: string;
+  readonly clipPaths: string[];
 }
 
 export interface RenderValidation {
@@ -36,6 +44,7 @@ export interface RenderValidation {
 
 export interface VideoRenderer {
   render(request: VideoRenderRequest, signal: AbortSignal): Promise<VideoRenderResult>;
+  renderSceneClips(request: VideoRenderRequest, signal: AbortSignal): Promise<SceneClipRenderResult>;
 }
 
 async function probeMedia(filePath: string): Promise<RenderValidation> {
@@ -82,7 +91,6 @@ async function renderSceneClip(
   imagePath: string,
   audioPath: string,
   outputPath: string,
-  durationSeconds: number,
   fps: number,
   width: number,
   height: number,
@@ -100,8 +108,6 @@ async function renderSceneClip(
     imagePath,
     "-i",
     audioPath,
-    "-t",
-    String(durationSeconds),
     "-vf",
     filterGraph,
     "-r",
@@ -116,26 +122,75 @@ async function renderSceneClip(
   await runCommand("ffmpeg", args, { timeoutMs: 600000 });
 }
 
+async function resolveSceneImagePath(
+  episodeDir: string,
+  scenePlan: ScenePlan,
+  sceneIndex: number,
+  imageDir: string
+): Promise<string> {
+  const scene = scenePlan.scenes[sceneIndex];
+  if (!scene) {
+    throw new MediaValidationError(`Missing scene at index ${sceneIndex}.`);
+  }
+  const expected = path.join(imageDir, scene.expectedImageFilenames[0] ?? `${scene.id}.png`);
+  if (await fileExists(expected)) {
+    return expected;
+  }
+  for (let previousIndex = sceneIndex - 1; previousIndex >= 0; previousIndex -= 1) {
+    const previousScene = scenePlan.scenes[previousIndex];
+    if (!previousScene) {
+      continue;
+    }
+    const previousCandidate = path.join(imageDir, previousScene.expectedImageFilenames[0] ?? `${previousScene.id}.png`);
+    if (await fileExists(previousCandidate)) {
+      return previousCandidate;
+    }
+  }
+  throw new MediaValidationError(`Missing image asset for ${scene.id} in ${episodeDir}.`);
+}
+
+async function resolveSceneAudioPath(episodeDir: string, scenePlan: ScenePlan, sceneIndex: number, audioDir: string): Promise<string> {
+  const scene = scenePlan.scenes[sceneIndex];
+  if (!scene) {
+    throw new MediaValidationError(`Missing scene at index ${sceneIndex}.`);
+  }
+  const candidates = [path.join(audioDir, `${scene.id}.wav`)];
+  const segmentMatch = scene.id.match(/^scene-(\d{3})$/u);
+  if (segmentMatch?.[1]) {
+    candidates.push(path.join(audioDir, `segment-${segmentMatch[1]}.wav`));
+  }
+  for (const candidate of candidates) {
+    if (await fileExists(candidate)) {
+      return candidate;
+    }
+  }
+  throw new MediaValidationError(`Missing scene audio for ${scene.id} in ${audioDir}.`);
+}
+
 export class FFmpegVideoRenderer implements VideoRenderer {
-  public async render(request: VideoRenderRequest, signal: AbortSignal): Promise<VideoRenderResult> {
+  public async renderSceneClips(request: VideoRenderRequest, signal: AbortSignal): Promise<SceneClipRenderResult> {
     signal.throwIfAborted();
     await ensureDir(request.outputDir);
-    const clipsDir = path.join(request.outputDir, "clips");
+    const clipsDir = path.join(request.outputDir, request.clipsDirName ?? "clips");
     await ensureDir(clipsDir);
+    const imageDir = request.imageDir ?? path.join(request.episodeDir, "images", "generated");
+    const audioDir = request.sceneAudioDir ?? path.join(request.episodeDir, "audio", "segments");
     const clipPaths: string[] = [];
-    for (const scene of request.scenePlan.scenes) {
-      const imagePath = path.join(request.episodeDir, "images", "generated", scene.expectedImageFilenames[0] ?? "");
-      const audioPath = path.join(request.episodeDir, "audio", "segments", `${scene.id}.wav`);
+    for (const [index, scene] of request.scenePlan.scenes.entries()) {
+      const imagePath = await resolveSceneImagePath(request.episodeDir, request.scenePlan, index, imageDir);
+      const audioPath = await resolveSceneAudioPath(request.episodeDir, request.scenePlan, index, audioDir);
       const clipPath = path.join(clipsDir, `${scene.id}.mp4`);
       if (await fileExists(clipPath)) {
         clipPaths.push(clipPath);
         continue;
       }
+      if (!(await fileExists(audioPath))) {
+        throw new MediaValidationError(`Missing scene audio for ${scene.id} in ${audioDir}.`);
+      }
       await renderSceneClip(
         imagePath,
         audioPath,
         clipPath,
-        Math.max(1, scene.actualAudioDurationSeconds ?? scene.estimatedDurationSeconds),
         request.renderProfile.fps,
         request.renderProfile.width,
         request.renderProfile.height,
@@ -143,18 +198,25 @@ export class FFmpegVideoRenderer implements VideoRenderer {
       );
       clipPaths.push(clipPath);
     }
+    return { clipsDir, clipPaths };
+  }
+
+  public async render(request: VideoRenderRequest, signal: AbortSignal): Promise<VideoRenderResult> {
+    signal.throwIfAborted();
+    const { clipPaths } = await this.renderSceneClips(request, signal);
     const concatListPath = path.join(request.outputDir, "concat.txt");
     await writeTextAtomic(
       concatListPath,
       clipPaths.map((clipPath) => `file '${clipPath.replace(/'/g, "'\\''")}'`).join("\n")
     );
-    const cleanPath = path.join(request.outputDir, `youtube-${request.renderProfile.aspectRatio.replace(":", "x")}-clean.mp4`);
+    const suffix = request.outputSuffix ?? "";
+    const cleanPath = path.join(request.outputDir, `youtube-${request.renderProfile.aspectRatio.replace(":", "x")}${suffix}-clean.mp4`);
     await runCommand("ffmpeg", ["-y", "-f", "concat", "-safe", "0", "-i", concatListPath, "-c", "copy", cleanPath], {
       timeoutMs: 600000
     });
     let captionedPath: string | undefined;
     if (request.captionsPath && request.captionBurnIn) {
-      captionedPath = path.join(request.outputDir, `youtube-${request.renderProfile.aspectRatio.replace(":", "x")}-captioned.mp4`);
+      captionedPath = path.join(request.outputDir, `youtube-${request.renderProfile.aspectRatio.replace(":", "x")}${suffix}-captioned.mp4`);
       await runCommand(
         "ffmpeg",
         ["-y", "-i", cleanPath, "-vf", `subtitles=${request.captionsPath}`, "-c:v", "libx264", "-c:a", "copy", captionedPath],

@@ -14,6 +14,15 @@ describe("loadEpisodeScriptMarkdown", () => {
     expect(script.filePath).toBe(path.join(tempDir, "script.md"));
     expect(script.text).toBe("Root script");
   });
+
+  it("loads a localized script when a language is specified", async () => {
+    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "mediaforge-script-"));
+    await fs.mkdir(path.join(tempDir, "languages"), { recursive: true });
+    await fs.writeFile(path.join(tempDir, "languages", "script-es.md"), "Guion en español");
+    const script = await loadEpisodeScriptMarkdown(tempDir, "es");
+    expect(script.filePath).toBe(path.join(tempDir, "languages", "script-es.md"));
+    expect(script.text).toBe("Guion en español");
+  });
 });
 
 describe("splitEpisodeScriptMarkdown", () => {

@@ -59,8 +59,6 @@ interface SpeechClientLike {
   };
 }
 
-const defaultSpeechSettings = loadSpeechVoiceSettings();
-
 function makeWavHeader(sampleRate: number, channels: number, bitsPerSample: number, dataSize: number): Buffer {
   const blockAlign = (channels * bitsPerSample) / 8;
   const byteRate = sampleRate * blockAlign;

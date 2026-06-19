@@ -24,7 +24,7 @@ import { LocalFileSourceAdapter, createLocalSourceMetadata } from "@mediaforge/s
 import { ConservativeScriptRewriter, OpenAiCompatibleScriptRewriter } from "@mediaforge/rewriting";
 import { ConservativeTranscriptCleaner, OpenAiCompatibleTranscriptCleaner } from "@mediaforge/transcript-cleaning";
 import { OneToOneScenePlanner } from "@mediaforge/scene-planning";
-import { MockSpeechProvider, OpenAiCompatibleSpeechProvider, speechVoiceSettings } from "@mediaforge/speech";
+import { MockSpeechProvider, OpenAiCompatibleSpeechProvider, loadSpeechVoiceSettings } from "@mediaforge/speech";
 import { alignScriptToScenes, buildCaptionPack } from "@mediaforge/alignment";
 import {
   createPlaceholderImage,
@@ -38,7 +38,11 @@ import {
 import { HeuristicMetadataProvider } from "@mediaforge/metadata";
 import { FFmpegVideoRenderer, validateRenderedVideo } from "@mediaforge/rendering";
 import { buildSrt, ensureDir, fileExists, hashText, slugify, writeJsonAtomic, writeTextAtomic } from "@mediaforge/shared";
-import { MockTranscriptionProvider, WhisperCppTranscriptionProvider } from "@mediaforge/transcription";
+import {
+  MockTranscriptionProvider,
+  OpenAiCompatibleTranscriptionProvider,
+  WhisperCppTranscriptionProvider
+} from "@mediaforge/transcription";
 import { runCommandJson } from "@mediaforge/process-runner";
 
 export type PipelineStage =
@@ -170,9 +174,14 @@ export class MediaForgePipeline {
   public readonly metadata = new HeuristicMetadataProvider();
   public readonly renderer = new FFmpegVideoRenderer();
   public readonly sourceAdapter = new LocalFileSourceAdapter();
+  private readonly speechSettings;
 
   public constructor(public readonly environment: MediaForgeEnvironment) {
     const config = environment.config;
+    this.speechSettings = loadSpeechVoiceSettings({
+      ...(config.speechVoicePreset ? { preset: config.speechVoicePreset } : {}),
+      ...(config.scriptLanguage ? { language: config.scriptLanguage } : {})
+    });
     this.cleaner =
       config.textProvider === "openai-compatible" && config.openAiCompatibleBaseUrl && config.openAiCompatibleApiKey && config.openAiCompatibleModel
         ? new OpenAiCompatibleTranscriptCleaner({
@@ -195,11 +204,37 @@ export class MediaForgePipeline {
             apiKey: config.openAiCompatibleApiKey,
             model: config.openAiSpeechModel ?? config.openAiCompatibleModel ?? "gpt-4o-mini-tts",
             voice: config.openAiSpeechVoice ?? config.openAiCompatibleTtsVoice ?? "onyx",
+            ...(this.speechSettings.preset ? { preset: this.speechSettings.preset } : {}),
+            ...(this.speechSettings.language ? { language: this.speechSettings.language } : {}),
             ...(config.openAiCompatibleBaseUrl ? { baseUrl: config.openAiCompatibleBaseUrl } : {})
           })
         : new MockSpeechProvider();
     this.transcription =
-      config.transcriptionProvider === "whisper.cpp" && config.whisperModel
+      config.transcriptionProvider === "openai-compatible" && config.openAiCompatibleApiKey
+        ? (() => {
+            const transcriptionOptions: {
+              apiKey: string;
+              baseUrl?: string;
+              model?: string;
+              language?: string;
+              prompt?: string;
+            } = {
+              apiKey: config.openAiCompatibleApiKey
+            };
+            if (config.openAiCompatibleBaseUrl) {
+              transcriptionOptions.baseUrl = config.openAiCompatibleBaseUrl;
+            }
+            transcriptionOptions.model = config.openAiTranscriptionModel ?? "whisper-1";
+            const transcriptionLanguage = config.openAiTranscriptionLanguage ?? config.scriptLanguage;
+            if (transcriptionLanguage) {
+              transcriptionOptions.language = transcriptionLanguage;
+            }
+            if (config.openAiTranscriptionPrompt) {
+              transcriptionOptions.prompt = config.openAiTranscriptionPrompt;
+            }
+            return new OpenAiCompatibleTranscriptionProvider(transcriptionOptions);
+          })()
+        : config.transcriptionProvider === "whisper.cpp" && config.whisperModel
         ? new WhisperCppTranscriptionProvider({
             whisperBin: config.whisperBin,
             whisperModel: config.whisperModel,
@@ -436,7 +471,7 @@ export class MediaForgePipeline {
         {
           sceneId: scene.id,
           text: scene.canonicalNarration,
-          voiceProfile: speechVoiceSettings.profile,
+          voiceProfile: this.speechSettings.profile,
           outputPath,
           targetDurationSeconds: scene.estimatedDurationSeconds
         },

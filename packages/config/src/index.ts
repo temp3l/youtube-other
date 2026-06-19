@@ -11,7 +11,7 @@ const configSchema = z.object({
   defaultAspectRatio: z.enum(["16:9", "9:16"]),
   openArtBatchSize: z.number().int().positive(),
   ttsProvider: z.enum(["mock", "openai-compatible"]),
-  transcriptionProvider: z.enum(["mock", "whisper.cpp"]),
+  transcriptionProvider: z.enum(["mock", "whisper.cpp", "openai-compatible"]),
   imageProvider: z.enum(["mock", "placeholder"]),
   textProvider: z.enum(["mock", "openai-compatible"]),
   whisperBin: z.string().min(1),
@@ -21,12 +21,17 @@ const configSchema = z.object({
   whisperProcessors: z.number().int().positive().optional(),
   whisperTimeoutMs: z.number().int().positive().optional(),
   whisperMaxDurationSeconds: z.number().int().positive().optional(),
+  openAiTranscriptionModel: z.string().optional(),
+  openAiTranscriptionLanguage: z.string().optional(),
+  openAiTranscriptionPrompt: z.string().optional(),
   openAiCompatibleBaseUrl: z.string().url().optional(),
   openAiCompatibleApiKey: z.string().optional(),
   openAiCompatibleModel: z.string().optional(),
   openAiCompatibleTtsVoice: z.string().optional(),
   openAiSpeechModel: z.string().optional(),
   openAiSpeechVoice: z.string().optional(),
+  speechVoicePreset: z.enum(["slow", "fast"]).optional(),
+  scriptLanguage: z.string().regex(/^[a-z]{2}(?:-[a-z0-9]{2,8})*$/iu).optional(),
   apiPort: z.number().int().positive()
 });
 export type RuntimeConfig = z.infer<typeof configSchema>;
@@ -43,7 +48,7 @@ const envSchema = z.object({
   MEDIAFORGE_DEFAULT_ASPECT_RATIO: z.enum(["16:9", "9:16"]).optional(),
   MEDIAFORGE_OPENART_BATCH_SIZE: z.coerce.number().int().positive().optional(),
   MEDIAFORGE_TTS_PROVIDER: z.enum(["mock", "openai-compatible"]).optional(),
-  MEDIAFORGE_TRANSCRIPTION_PROVIDER: z.enum(["mock", "whisper.cpp"]).optional(),
+  MEDIAFORGE_TRANSCRIPTION_PROVIDER: z.enum(["mock", "whisper.cpp", "openai-compatible"]).optional(),
   MEDIAFORGE_IMAGE_PROVIDER: z.enum(["mock", "placeholder"]).optional(),
   MEDIAFORGE_TEXT_PROVIDER: z.enum(["mock", "openai-compatible"]).optional(),
   MEDIAFORGE_WHISPER_BIN: z.string().optional(),
@@ -53,12 +58,17 @@ const envSchema = z.object({
   MEDIAFORGE_WHISPER_PROCESSORS: z.coerce.number().int().positive().optional(),
   MEDIAFORGE_WHISPER_TIMEOUT_MS: z.coerce.number().int().positive().optional(),
   MEDIAFORGE_WHISPER_MAX_DURATION_SECONDS: z.coerce.number().int().positive().optional(),
+  MEDIAFORGE_OPENAI_TRANSCRIPTION_MODEL: z.string().optional(),
+  MEDIAFORGE_OPENAI_TRANSCRIPTION_LANGUAGE: z.string().optional(),
+  MEDIAFORGE_OPENAI_TRANSCRIPTION_PROMPT: z.string().optional(),
   MEDIAFORGE_OPENAI_COMPATIBLE_BASE_URL: z.string().url().optional(),
   MEDIAFORGE_OPENAI_COMPATIBLE_API_KEY: z.string().optional(),
   MEDIAFORGE_OPENAI_COMPATIBLE_MODEL: z.string().optional(),
   MEDIAFORGE_OPENAI_COMPATIBLE_TTS_VOICE: z.string().optional(),
   MEDIAFORGE_OPENAI_SPEECH_MODEL: z.string().optional(),
   MEDIAFORGE_OPENAI_SPEECH_VOICE: z.string().optional(),
+  MEDIAFORGE_SPEECH_VOICE_PRESET: z.enum(["slow", "fast"]).optional(),
+  MEDIAFORGE_SCRIPT_LANGUAGE: z.string().regex(/^[a-z]{2}(?:-[a-z0-9]{2,8})*$/iu).optional(),
   OPENAI_BASE_URL: z.string().url().optional(),
   OPENAI_API_KEY: z.string().optional(),
   OPENAI_SPEECH_MODEL: z.string().optional(),
@@ -85,9 +95,24 @@ export async function loadRuntimeConfig(
   const dbPath = overrides.dbPath ?? env.MEDIAFORGE_DB_PATH ?? "./.mediaforge.sqlite";
   const transcriptionProvider = overrides.transcriptionProvider ?? episodeOverrides.transcriptionProvider ?? env.MEDIAFORGE_TRANSCRIPTION_PROVIDER ?? "mock";
   const localWhisperBin = path.resolve("tools/whisper.cpp/build/bin/whisper-cli");
-  const localWhisperModel = path.resolve("tools/whisper.cpp/models/ggml-base.en.bin");
+  const preferredWhisperModels = [
+    path.resolve("tools/whisper.cpp/models/ggml-small.bin"),
+    path.resolve("tools/whisper.cpp/models/ggml-medium.bin"),
+    path.resolve("tools/whisper.cpp/models/ggml-base.bin"),
+    path.resolve("tools/whisper.cpp/models/ggml-base.en.bin")
+  ];
   const whisperBin = overrides.whisperBin ?? env.MEDIAFORGE_WHISPER_BIN ?? (await fs.stat(localWhisperBin).then(() => localWhisperBin).catch(() => "whisper-cli"));
-  const whisperModel = overrides.whisperModel ?? env.MEDIAFORGE_WHISPER_MODEL ?? (await fs.stat(localWhisperModel).then(() => localWhisperModel).catch(() => undefined));
+  const whisperModel =
+    overrides.whisperModel ??
+    env.MEDIAFORGE_WHISPER_MODEL ??
+    (await (async () => {
+      for (const candidate of preferredWhisperModels) {
+        if (await fs.stat(candidate).then(() => true).catch(() => false)) {
+          return candidate;
+        }
+      }
+      return undefined;
+    })());
   const mergedSpeechProvider = overrides.ttsProvider ?? episodeOverrides.ttsProvider;
   const mergedOpenAiBaseUrl = overrides.openAiCompatibleBaseUrl ?? episodeOverrides.openAiCompatibleBaseUrl ?? env.MEDIAFORGE_OPENAI_COMPATIBLE_BASE_URL ?? env.OPENAI_BASE_URL;
   const mergedOpenAiApiKey = overrides.openAiCompatibleApiKey ?? episodeOverrides.openAiCompatibleApiKey ?? env.MEDIAFORGE_OPENAI_COMPATIBLE_API_KEY ?? env.OPENAI_API_KEY;
@@ -108,6 +133,12 @@ export async function loadRuntimeConfig(
     whisperProcessors: overrides.whisperProcessors ?? episodeOverrides.whisperProcessors ?? env.MEDIAFORGE_WHISPER_PROCESSORS ?? (transcriptionProvider === "whisper.cpp" ? 1 : undefined),
     whisperTimeoutMs: overrides.whisperTimeoutMs ?? episodeOverrides.whisperTimeoutMs ?? env.MEDIAFORGE_WHISPER_TIMEOUT_MS,
     whisperMaxDurationSeconds: overrides.whisperMaxDurationSeconds ?? episodeOverrides.whisperMaxDurationSeconds ?? env.MEDIAFORGE_WHISPER_MAX_DURATION_SECONDS,
+    openAiTranscriptionModel:
+      overrides.openAiTranscriptionModel ?? episodeOverrides.openAiTranscriptionModel ?? env.MEDIAFORGE_OPENAI_TRANSCRIPTION_MODEL,
+    openAiTranscriptionLanguage:
+      overrides.openAiTranscriptionLanguage ?? episodeOverrides.openAiTranscriptionLanguage ?? env.MEDIAFORGE_OPENAI_TRANSCRIPTION_LANGUAGE,
+    openAiTranscriptionPrompt:
+      overrides.openAiTranscriptionPrompt ?? episodeOverrides.openAiTranscriptionPrompt ?? env.MEDIAFORGE_OPENAI_TRANSCRIPTION_PROMPT,
     openAiCompatibleBaseUrl: mergedOpenAiBaseUrl,
     openAiCompatibleApiKey: mergedOpenAiApiKey,
     openAiCompatibleModel: overrides.openAiCompatibleModel ?? episodeOverrides.openAiCompatibleModel ?? env.MEDIAFORGE_OPENAI_COMPATIBLE_MODEL,
@@ -115,6 +146,8 @@ export async function loadRuntimeConfig(
       overrides.openAiCompatibleTtsVoice ?? episodeOverrides.openAiCompatibleTtsVoice ?? env.MEDIAFORGE_OPENAI_COMPATIBLE_TTS_VOICE ?? env.OPENAI_SPEECH_VOICE,
     openAiSpeechModel: overrides.openAiSpeechModel ?? episodeOverrides.openAiSpeechModel ?? env.MEDIAFORGE_OPENAI_SPEECH_MODEL ?? env.OPENAI_SPEECH_MODEL,
     openAiSpeechVoice: overrides.openAiSpeechVoice ?? episodeOverrides.openAiSpeechVoice ?? env.MEDIAFORGE_OPENAI_SPEECH_VOICE ?? env.OPENAI_SPEECH_VOICE,
+    speechVoicePreset: overrides.speechVoicePreset ?? episodeOverrides.speechVoicePreset ?? env.MEDIAFORGE_SPEECH_VOICE_PRESET ?? "fast",
+    scriptLanguage: overrides.scriptLanguage ?? episodeOverrides.scriptLanguage ?? env.MEDIAFORGE_SCRIPT_LANGUAGE ?? "en",
     apiPort: overrides.apiPort ?? episodeOverrides.apiPort ?? env.MEDIAFORGE_API_PORT ?? 3333
   });
   return config;

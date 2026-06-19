@@ -1,3 +1,8 @@
+document, commit and push everything that is relevant. then merge the branch into master
+
+what are the recommended next steps in order to generate the full spanish video?
+there are more segments in the spanish transcript than i have generated images, can you solve that without generating new images? you might use the same image multiple times and/or consult openai API via curl command when unsure which image fits the current clip
+
 i have changed the docs/voice-settings.md to contain a slow and a fast voice.
 i want this to be configurable per episode.
 
@@ -11,9 +16,16 @@ i want the metadata in youtube.md to contain a text based chapter description in
 00:50 short and concise chapter description
 """
 
-Ask me any questions you might have and provide recommendations
+Ask me any questions you might have and provide recommendations.
+should i use openai api to generate the text based chapter description? if so implement the strategy for that.
+
+---
 
 i want to generate the transcript files with openai API instead of running whisper locally. i want the model to be configurable from .env file, start with: gpt-4o-mini-transcribe. now wire up everything and let me choose per episode and language if i want to use local whisper or the openai API.
+
+---
+
+i want to run the translations of the script.md fully automatic with openai API and have a centralized config file for defining the languages to be generated
 
 001-calhoun-experiment
 

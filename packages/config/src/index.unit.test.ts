@@ -31,7 +31,9 @@ describe("runtime config", () => {
           ttsProvider: "openai-compatible",
           openAiCompatibleApiKey: "episode-key",
           openAiSpeechModel: "gpt-4o-mini-tts",
-          openAiSpeechVoice: "onyx"
+          openAiSpeechVoice: "onyx",
+          speechVoicePreset: "fast",
+          scriptLanguage: "es"
         },
         null,
         2
@@ -40,6 +42,8 @@ describe("runtime config", () => {
     const episodeConfig = await loadEpisodeConfig(episodeDir);
     expect(episodeConfig?.ttsProvider).toBe("openai-compatible");
     expect(episodeConfig?.openAiSpeechVoice).toBe("onyx");
+    expect(episodeConfig?.speechVoicePreset).toBe("fast");
+    expect(episodeConfig?.scriptLanguage).toBe("es");
   });
 
   it("defaults whisper concurrency to all available cpu cores", async () => {
@@ -50,5 +54,7 @@ describe("runtime config", () => {
     const cpuCount = Math.max(1, os.cpus().length);
     expect(config.whisperThreads).toBe(cpuCount);
     expect(config.whisperProcessors).toBe(1);
+    expect(config.scriptLanguage).toBe("en");
+    expect(config.speechTrailingSilenceFactor).toBeCloseTo(1 / 3);
   });
 });

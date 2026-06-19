@@ -30,3 +30,17 @@ Pronounce “Calhoun” clearly and consistently. Pronounce “Universe 25” as
 Avoid exaggerated emotion, dramatic acting, advertising energy, slow narration, drawn-out words, and unnaturally long pauses.
 
 Maintain consistent volume, vocal character, tempo, and speaking rhythm across every generated chunk. Begin speaking immediately and avoid slow introductions or trailing endings.
+
+## per-episode selection
+
+Set the voice preset in `episode.config.json` to choose the narration style for a specific episode:
+
+```json
+{
+  "speechVoicePreset": "slow"
+}
+```
+
+Use `"fast"` for a brisker delivery. If no episode override is set, new episodes use `"fast"` by default. The preset changes the narration instructions and pacing estimate while keeping provider-side TTS configuration separate unless you override it elsewhere.
+
+If you also set `scriptLanguage` in `episode.config.json` or `MEDIAFORGE_SCRIPT_LANGUAGE`, the narration instructions are adjusted to speak naturally in that language while still using the selected slow or fast pacing profile.
