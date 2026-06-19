@@ -1,3 +1,5 @@
+make sure the image generation will use the OPENAI_IMAGE_CONCURRENCY setting from .env
+
 001-calhoun-experiment
 
 pnpm mediaforge render 001-calhoun-experiment --profile vertical
