@@ -4,6 +4,12 @@ i want this to be configurable per episode.
 i want to produce the episodes in multiple languages while generating the scene images only once. I will place the translated scripts in the ./episodes/\*/languages folder. I want the language to be configurable. make sure to always use the correct voice-settings from ./docs/voice-settings.md, ask if unsure which one to use and adjust them for the specified language.
 Do not generate or touch any of the existing images. just implement the multilanguage feature. make sure all metadata for seo effective upload and settings configuration will also implement the multilanguae feature. i want all clips to be generated on demand and be put into clips-{länderkürzel} folder.
 generate the same amount of clips as in the english version that was generated from script.md, you might need to use the same image for the last clips if you need more images, or similar approach to match the scene and clip and image count.
+i want the metadata in youtube.md to contain a text based chapter description in the following format:
+"""
+00:00 short and concise chapter description
+00:25 short and concise chapter description
+00:50 short and concise chapter description
+"""
 
 Ask me any questions you might have and provide recommendations
 

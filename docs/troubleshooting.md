@@ -12,6 +12,10 @@ That is expected in this slice if you have not installed it yet. The doctor outp
 
 Check the scene image paths, captions path, and that `ffmpeg` and `ffprobe` are installed.
 
+## Scene clips feel too long
+
+The episode build uses the current `output/clips/scene-*.mp4` assets and trims trailing silence before concatenating the final export. If the full video still feels padded at the end of a scene, regenerate the clip set and rerun the concat step.
+
 ## Scene import finds no images
 
 Verify that the files were copied into the inbox directory and that filenames match the workbook manifest.
