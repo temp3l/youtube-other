@@ -1,32 +1,15 @@
-make sure the image generation will use the OPENAI_IMAGE_CONCURRENCY setting from .env
+i have changed the docs/voice-settings.md to contain a slow and a fast voice.
+i want this to be configurable per episode.
+
+i want to produce the episodes in multiple languages while generating the scene images only once. I will place the translated scripts in the ./episodes/\*/languages folder. I want the language to be configurable. make sure to always use the correct voice-settings from ./docs/voice-settings.md, ask if unsure which one to use and adjust them for the specified language.
+Do not generate or touch any of the existing images. just implement the multilanguage feature. make sure all metadata for seo effective upload and settings configuration will also implement the multilanguae feature. i want all clips to be generated on demand and be put into clips-{länderkürzel} folder.
+generate the same amount of clips as in the english version that was generated from script.md, you might need to use the same image for the last clips if you need more images, or similar approach to match the scene and clip and image count.
+
+Ask me any questions you might have and provide recommendations
+
+i want to generate the transcript files with openai API instead of running whisper locally. i want the model to be configurable from .env file, start with: gpt-4o-mini-transcribe. now wire up everything and let me choose per episode and language if i want to use local whisper or the openai API.
 
 001-calhoun-experiment
-
-pnpm mediaforge render 001-calhoun-experiment --profile vertical
-
-That’s the documented command in the repo’s README, and render defaults to the youtube profile anyway. See /home/box/workspace/fehmarn-seo/youtube/other/README.md#L933-L934 (അ), /home/box/workspace/
-fehmarn-seo/youtube/other/apps/cli/src/index.ts#L718-L723 (അ).
-
-If you want the vertical preview instead:
-
-pnpm mediaforge render <episode-id> --profile vertical
-
-The output lands under the episode’s output/ directory, with filenames like youtube-16x9-clean.mp4 and youtube-16x9-captioned.mp4 when captions are burned in. See /home/box/workspace/fehmarn-seo/youtube/
-other/packages/rendering/src/index.ts#L151-L160 (അ).
-
-If you haven’t built the CLI yet, run:
-
-pnpm build
-
-generate the first scene image of the 001-calhoun-experiment with the relevant prompt and the openai API. make sure to incorporate the settings from .env for image processing.
-
-make sure image generation with openai always uses parallel image proccessing as configured in .env. Also make sure that the original images returned from the API are stored as well as storing the normalized images.
-
-now generate the remaining scene images from 10 onwards
-
-re-generate the preview video
-
-always generate the videos first with locally generated images, then ask me if everything is correct.
 
 i want to generate seo effective thumbnail and title for every video with the openai API.
 Have the API create five title candidates, each with a score. save the response and select the highest one.
