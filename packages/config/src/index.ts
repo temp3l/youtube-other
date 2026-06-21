@@ -21,6 +21,16 @@ const configSchema = z.object({
   whisperProcessors: z.number().int().positive().optional(),
   whisperTimeoutMs: z.number().int().positive().optional(),
   whisperMaxDurationSeconds: z.number().int().positive().optional(),
+  whisperWordTimestamps: z.boolean(),
+  transcriptMinSegmentSeconds: z.number().positive(),
+  transcriptMaxSegmentSeconds: z.number().positive(),
+  transcriptMaxSilenceSeconds: z.number().nonnegative(),
+  transcriptTimestampPrecision: z.number().int().min(0).max(6),
+  transcriptMaxWordDurationSeconds: z.number().positive(),
+  transcriptBoundaryLookbackWords: z.number().int().nonnegative(),
+  visualSceneMinSeconds: z.number().positive(),
+  visualSceneMaxSeconds: z.number().positive(),
+  trailingSilenceRatio: z.number().min(0).max(1),
   openAiTranscriptionModel: z.string().optional(),
   openAiTranscriptionLanguage: z.string().optional(),
   openAiTranscriptionPrompt: z.string().optional(),
@@ -58,6 +68,16 @@ const envSchema = z.object({
   MEDIAFORGE_WHISPER_PROCESSORS: z.coerce.number().int().positive().optional(),
   MEDIAFORGE_WHISPER_TIMEOUT_MS: z.coerce.number().int().positive().optional(),
   MEDIAFORGE_WHISPER_MAX_DURATION_SECONDS: z.coerce.number().int().positive().optional(),
+  WHISPER_WORD_TIMESTAMPS: z.string().optional(),
+  TRANSCRIPT_MIN_SEGMENT_SECONDS: z.coerce.number().positive().optional(),
+  TRANSCRIPT_MAX_SEGMENT_SECONDS: z.coerce.number().positive().optional(),
+  TRANSCRIPT_MAX_SILENCE_SECONDS: z.coerce.number().nonnegative().optional(),
+  TRANSCRIPT_TIMESTAMP_PRECISION: z.coerce.number().int().min(0).max(6).optional(),
+  TRANSCRIPT_MAX_WORD_DURATION_SECONDS: z.coerce.number().positive().optional(),
+  TRANSCRIPT_BOUNDARY_LOOKBACK_WORDS: z.coerce.number().int().nonnegative().optional(),
+  VISUAL_SCENE_MIN_SECONDS: z.coerce.number().positive().optional(),
+  VISUAL_SCENE_MAX_SECONDS: z.coerce.number().positive().optional(),
+  MEDIAFORGE_TRAILING_SILENCE_RATIO: z.coerce.number().min(0).max(1).optional(),
   MEDIAFORGE_OPENAI_TRANSCRIPTION_MODEL: z.string().optional(),
   MEDIAFORGE_OPENAI_TRANSCRIPTION_LANGUAGE: z.string().optional(),
   MEDIAFORGE_OPENAI_TRANSCRIPTION_PROMPT: z.string().optional(),
@@ -83,6 +103,20 @@ export async function loadPackageJsonConfig(configPath: string): Promise<Record<
   } catch {
     return null;
   }
+}
+
+function parseBooleanEnv(value: string | undefined): boolean | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  const normalized = value.trim().toLowerCase();
+  if (["1", "true", "yes", "on"].includes(normalized)) {
+    return true;
+  }
+  if (["0", "false", "no", "off"].includes(normalized)) {
+    return false;
+  }
+  return undefined;
 }
 
 export async function loadRuntimeConfig(
@@ -133,6 +167,26 @@ export async function loadRuntimeConfig(
     whisperProcessors: overrides.whisperProcessors ?? episodeOverrides.whisperProcessors ?? env.MEDIAFORGE_WHISPER_PROCESSORS ?? (transcriptionProvider === "whisper.cpp" ? 1 : undefined),
     whisperTimeoutMs: overrides.whisperTimeoutMs ?? episodeOverrides.whisperTimeoutMs ?? env.MEDIAFORGE_WHISPER_TIMEOUT_MS,
     whisperMaxDurationSeconds: overrides.whisperMaxDurationSeconds ?? episodeOverrides.whisperMaxDurationSeconds ?? env.MEDIAFORGE_WHISPER_MAX_DURATION_SECONDS,
+    whisperWordTimestamps:
+      overrides.whisperWordTimestamps ?? episodeOverrides.whisperWordTimestamps ?? parseBooleanEnv(env.WHISPER_WORD_TIMESTAMPS) ?? true,
+    transcriptMinSegmentSeconds:
+      overrides.transcriptMinSegmentSeconds ?? episodeOverrides.transcriptMinSegmentSeconds ?? env.TRANSCRIPT_MIN_SEGMENT_SECONDS ?? 2,
+    transcriptMaxSegmentSeconds:
+      overrides.transcriptMaxSegmentSeconds ?? episodeOverrides.transcriptMaxSegmentSeconds ?? env.TRANSCRIPT_MAX_SEGMENT_SECONDS ?? 15,
+    transcriptMaxSilenceSeconds:
+      overrides.transcriptMaxSilenceSeconds ?? episodeOverrides.transcriptMaxSilenceSeconds ?? env.TRANSCRIPT_MAX_SILENCE_SECONDS ?? 1.25,
+    transcriptTimestampPrecision:
+      overrides.transcriptTimestampPrecision ?? episodeOverrides.transcriptTimestampPrecision ?? env.TRANSCRIPT_TIMESTAMP_PRECISION ?? 3,
+    transcriptMaxWordDurationSeconds:
+      overrides.transcriptMaxWordDurationSeconds ?? episodeOverrides.transcriptMaxWordDurationSeconds ?? env.TRANSCRIPT_MAX_WORD_DURATION_SECONDS ?? 5,
+    transcriptBoundaryLookbackWords:
+      overrides.transcriptBoundaryLookbackWords ?? episodeOverrides.transcriptBoundaryLookbackWords ?? env.TRANSCRIPT_BOUNDARY_LOOKBACK_WORDS ?? 6,
+    visualSceneMinSeconds:
+      overrides.visualSceneMinSeconds ?? episodeOverrides.visualSceneMinSeconds ?? env.VISUAL_SCENE_MIN_SECONDS ?? 8,
+    visualSceneMaxSeconds:
+      overrides.visualSceneMaxSeconds ?? episodeOverrides.visualSceneMaxSeconds ?? env.VISUAL_SCENE_MAX_SECONDS ?? 18,
+    trailingSilenceRatio:
+      overrides.trailingSilenceRatio ?? episodeOverrides.trailingSilenceRatio ?? env.MEDIAFORGE_TRAILING_SILENCE_RATIO ?? 1,
     openAiTranscriptionModel:
       overrides.openAiTranscriptionModel ?? episodeOverrides.openAiTranscriptionModel ?? env.MEDIAFORGE_OPENAI_TRANSCRIPTION_MODEL,
     openAiTranscriptionLanguage:

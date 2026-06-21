@@ -5,6 +5,7 @@ import { writeTextAtomic } from "@mediaforge/shared";
 
 const fallbackScriptPaths = ["script.md", path.join("script", "rewritten-script.md")];
 const localizedScriptPath = (language: string): string => path.join("languages", `script-${language}.md`);
+const maxSpeechChunkCharacters = 3200;
 
 function stripMarkdown(value: string): string {
   return normalizeWhitespace(
@@ -65,7 +66,58 @@ export function splitEpisodeScriptMarkdown(text: string): string[] {
     .map((block) => block.replace(/\n+/gu, " "))
     .map((block) => normalizeWhitespace(block))
     .filter((block) => block.length > 0);
-  return blocks.length > 0 ? blocks : [normalizeWhitespace(stripMarkdown(text))].filter((block) => block.length > 0);
+
+  const sourceBlocks = blocks.length > 0 ? blocks : [normalizeWhitespace(stripMarkdown(text))].filter((block) => block.length > 0);
+  const chunks: string[] = [];
+
+  const pushChunk = (chunk: string): void => {
+    const normalized = normalizeWhitespace(chunk);
+    if (normalized.length > 0) {
+      chunks.push(normalized);
+    }
+  };
+
+  for (const block of sourceBlocks) {
+    if (block.length <= maxSpeechChunkCharacters) {
+      pushChunk(block);
+      continue;
+    }
+
+    const sentences = block.split(/(?<=[.!?…]["'»”)]*)\s+/u).map((sentence) => normalizeWhitespace(sentence)).filter((sentence) => sentence.length > 0);
+    let buffer = "";
+
+    for (const sentence of sentences.length > 0 ? sentences : [block]) {
+      if (sentence.length > maxSpeechChunkCharacters) {
+        if (buffer.length > 0) {
+          pushChunk(buffer);
+          buffer = "";
+        }
+        let remaining = sentence;
+        while (remaining.length > maxSpeechChunkCharacters) {
+          let splitAt = remaining.lastIndexOf(" ", maxSpeechChunkCharacters);
+          if (splitAt <= 0) {
+            splitAt = maxSpeechChunkCharacters;
+          }
+          pushChunk(remaining.slice(0, splitAt));
+          remaining = normalizeWhitespace(remaining.slice(splitAt));
+        }
+        buffer = remaining;
+        continue;
+      }
+
+      const candidate = buffer.length > 0 ? `${buffer} ${sentence}` : sentence;
+      if (candidate.length > maxSpeechChunkCharacters) {
+        pushChunk(buffer);
+        buffer = sentence;
+      } else {
+        buffer = candidate;
+      }
+    }
+
+    pushChunk(buffer);
+  }
+
+  return chunks;
 }
 
 export async function writeEpisodeScriptMarkdown(episodeDir: string, text: string, language?: string): Promise<string> {

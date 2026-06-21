@@ -15,6 +15,7 @@ import {
   type SourceMedia,
   type SourceMetadata,
   type Transcript,
+  normalizedTranscriptSchema,
   transcriptSchema
 } from "@mediaforge/domain";
 import { loadRuntimeConfig, type RuntimeConfig, type RuntimeConfigOverrides } from "@mediaforge/config";
@@ -25,7 +26,7 @@ import { ConservativeScriptRewriter, OpenAiCompatibleScriptRewriter } from "@med
 import { ConservativeTranscriptCleaner, OpenAiCompatibleTranscriptCleaner } from "@mediaforge/transcript-cleaning";
 import { OneToOneScenePlanner } from "@mediaforge/scene-planning";
 import { MockSpeechProvider, OpenAiCompatibleSpeechProvider, loadSpeechVoiceSettings } from "@mediaforge/speech";
-import { alignScriptToScenes, buildCaptionPack } from "@mediaforge/alignment";
+import { buildCaptionPack } from "@mediaforge/alignment";
 import {
   createPlaceholderImage,
   createPromptBatch,
@@ -73,6 +74,7 @@ export interface CreateEpisodeOptions {
   url?: string;
   transcriptPath?: string;
   slug?: string;
+  title?: string;
 }
 
 export interface RunPipelineOptions {
@@ -153,6 +155,38 @@ function createEmptyManifest(episodeId: EpisodeId, slug: string, source: Episode
 
 function episodeDir(workspaceDir: string, slug: string): string {
   return path.join(workspaceDir, slug);
+}
+
+function localizedTranscriptArtifactPaths(episodeDirPath: string, language: string): string[] {
+  const safeLanguage = slugify(language);
+  return [
+    path.join(episodeDirPath, "audio", `whisper-transcript-${safeLanguage}.json`),
+    path.join(episodeDirPath, "transcript", `transcript-${safeLanguage}.json`)
+  ];
+}
+
+async function loadLocalizedTranscriptArtifact(episodeDirPath: string, language: string): Promise<Transcript | null> {
+  for (const candidate of localizedTranscriptArtifactPaths(episodeDirPath, language)) {
+    if (!(await fileExists(candidate))) {
+      continue;
+    }
+    const raw = JSON.parse(await fs.readFile(candidate, "utf8")) as unknown;
+    const normalized = normalizedTranscriptSchema.safeParse(raw);
+    if (normalized.success) {
+      return transcriptSchema.parse({
+        sourceId: normalized.data.sourceId,
+        language: normalized.data.language,
+        text: normalized.data.text,
+        segments: normalized.data.segments,
+        words: normalized.data.words
+      });
+    }
+    const transcript = transcriptSchema.safeParse(raw);
+    if (transcript.success) {
+      return transcript.data;
+    }
+  }
+  return null;
 }
 
 function createEpisodeId(slug: string): EpisodeId {
@@ -248,7 +282,8 @@ export class MediaForgePipeline {
   }
 
   public async createEpisode(options: CreateEpisodeOptions): Promise<EpisodeManifest> {
-    const slug = options.slug ?? slugify(path.basename(options.filePath ?? options.url ?? "episode"));
+    const sourceLabel = options.title ?? path.basename(options.filePath ?? options.url ?? "episode");
+    const slug = options.slug ?? slugify(sourceLabel);
     const episodeId = createEpisodeId(slug);
     const dir = episodeDir(this.environment.config.workspaceDir, slug);
     await ensureDir(dir);
@@ -313,9 +348,8 @@ export class MediaForgePipeline {
       ...scene,
       actualAudioDurationSeconds: sceneDurationById.get(scene.id) ?? scene.actualAudioDurationSeconds ?? scene.estimatedDurationSeconds
     }));
-    const concatenatedAudio = await this.concatenateAudio(manifest, episodeDirPath, audioSegments);
-    const alignment = this.alignAudio(manifest, rewritten, scenes);
-    const captions = await this.createCaptions(manifest, scenes, rewritten);
+    await this.concatenateAudio(manifest, episodeDirPath, audioSegments);
+    const captions = await this.createCaptions(manifest, scenes, transcript);
     const prompts = this.createImagePrompts(manifest, scenes);
     await this.exportWorkbooks(manifest, prompts, episodeDirPath);
     const imported = await this.importPlaceholderImages(manifest, scenes, episodeDirPath, options.missingScenesOnly ?? false);
@@ -340,7 +374,6 @@ export class MediaForgePipeline {
       captions,
       imported,
       metadata,
-      concatenatedAudio,
       renderResult
     );
     await saveManifest(manifestPath, finalManifest);
@@ -391,7 +424,35 @@ export class MediaForgePipeline {
   }
 
   private async acquireTranscript(manifest: EpisodeManifest, episodeDirPath: string, source: SourceMetadata): Promise<Transcript> {
-    if (manifest.transcript) {
+    const targetLanguage = this.environment.config.scriptLanguage ?? manifest.transcript?.language ?? "en";
+    const localizedTranscript = await loadLocalizedTranscriptArtifact(episodeDirPath, targetLanguage);
+    if (localizedTranscript) {
+      return localizedTranscript;
+    }
+    if (
+      manifest.source.platform === "local-file" &&
+      manifest.source.filePath &&
+      this.environment.config.transcriptionProvider === "openai-compatible" &&
+      this.environment.config.openAiCompatibleApiKey
+    ) {
+      const transcript = await this.transcription.transcribe(
+        {
+          sourceId: manifest.episodeId,
+          audioPath: manifest.source.filePath,
+          episodeDir: episodeDirPath,
+          language: targetLanguage
+        },
+        new AbortController().signal
+      );
+      const transcriptPath = path.join(episodeDirPath, "original-transcript.json");
+      await writeJsonAtomic(transcriptPath, transcript);
+      await writeTextAtomic(path.join(episodeDirPath, "original-transcript.srt"), buildSrt(transcript.segments));
+      return transcript;
+    }
+    if (targetLanguage.toLowerCase() !== "en") {
+      throw new Error(`Localized Whisper transcript for ${targetLanguage} is required but was not found in ${episodeDirPath}.`);
+    }
+    if (manifest.transcript && (manifest.transcript.words.length > 0 || this.environment.config.transcriptionProvider !== "whisper.cpp")) {
       return manifest.transcript;
     }
     if (manifest.source.platform === "local-file" && manifest.source.filePath) {
@@ -405,12 +466,11 @@ export class MediaForgePipeline {
       const transcript = await this.transcription.transcribe(
         {
           sourceId: manifest.episodeId,
-          audioPath: manifest.source.filePath
+          audioPath: manifest.source.filePath,
+          episodeDir: episodeDirPath
         },
         new AbortController().signal
       );
-      await writeJsonAtomic(path.join(episodeDirPath, "original-transcript.json"), transcript);
-      await writeTextAtomic(path.join(episodeDirPath, "original-transcript.srt"), buildSrt(transcript.segments));
       return transcript;
     }
     throw new Error("Transcript acquisition is not available for this source in the initial slice.");
@@ -436,7 +496,10 @@ export class MediaForgePipeline {
   }
 
   private async planScenes(manifest: EpisodeManifest, transcript: Transcript, rewritten: RewrittenScript): Promise<ScenePlan> {
-    const plan = this.planner.plan(transcript, rewritten, [this.environment.config.defaultAspectRatio]);
+    const plan = this.planner.plan(transcript, rewritten, [this.environment.config.defaultAspectRatio], {
+      visualSceneMinSeconds: this.environment.config.visualSceneMinSeconds,
+      visualSceneMaxSeconds: this.environment.config.visualSceneMaxSeconds
+    });
     const filePath = path.join(this.environment.config.workspaceDir, manifest.slug, "scenes.json");
     await writeJsonAtomic(filePath, plan);
     return plan;
@@ -500,13 +563,8 @@ export class MediaForgePipeline {
     return outputPath;
   }
 
-  private alignAudio(manifest: EpisodeManifest, rewritten: RewrittenScript, plan: ScenePlan) {
-    const alignment = alignScriptToScenes(rewritten, plan);
-    return alignment;
-  }
-
-  private createCaptions(manifest: EpisodeManifest, plan: ScenePlan, rewritten: RewrittenScript) {
-    const captions = buildCaptionPack(rewritten, plan);
+  private createCaptions(manifest: EpisodeManifest, plan: ScenePlan, transcript: Transcript) {
+    const captions = buildCaptionPack(transcript, plan);
     const captionsDir = path.join(this.environment.config.workspaceDir, manifest.slug, "captions");
     return Promise.all([
       writeTextAtomic(path.join(captionsDir, "captions.srt"), captions.srt),
@@ -536,25 +594,29 @@ export class MediaForgePipeline {
   ): Promise<ImageAsset[]> {
     const generatedDir = path.join(episodeDirPath, "images", "generated");
     await ensureDir(generatedDir);
-    const existing = await fs.readdir(generatedDir).catch(() => []);
-    if (existing.length === 0 || !missingOnly) {
-      const assets: ImageAsset[] = [];
-      for (const scene of scenePlan.scenes) {
-        const outputPath = path.join(generatedDir, scene.expectedImageFilenames[0] ?? `${scene.id}.png`);
-        assets.push(await createPlaceholderImage(outputPath, scene, this.environment.config.defaultAspectRatio));
+    const assets: ImageAsset[] = [];
+    for (const scene of scenePlan.scenes) {
+      const outputPath = path.join(generatedDir, scene.expectedImageFilenames[0] ?? `${scene.id}.png`);
+      const exists = await fileExists(outputPath);
+      if (exists) {
+        assets.push({
+          sceneId: scene.id,
+          sourcePath: outputPath,
+          renderedPath: outputPath,
+          width: this.environment.config.defaultAspectRatio === "16:9" ? 1920 : 1080,
+          height: this.environment.config.defaultAspectRatio === "16:9" ? 1080 : 1920,
+          mimeType: "image/png",
+          checksumSha256: hashText(scene.id),
+          validated: true
+        });
+        continue;
       }
-      return assets;
+      if (missingOnly) {
+        continue;
+      }
+      assets.push(await createPlaceholderImage(outputPath, scene, this.environment.config.defaultAspectRatio));
     }
-    return scenePlan.scenes.map((scene) => ({
-      sceneId: scene.id,
-      sourcePath: path.join(generatedDir, scene.expectedImageFilenames[0] ?? `${scene.id}.png`),
-      renderedPath: path.join(generatedDir, scene.expectedImageFilenames[0] ?? `${scene.id}.png`),
-      width: this.environment.config.defaultAspectRatio === "16:9" ? 1920 : 1080,
-      height: this.environment.config.defaultAspectRatio === "16:9" ? 1080 : 1920,
-      mimeType: "image/png",
-      checksumSha256: hashText(scene.id),
-      validated: true
-    }));
+    return assets;
   }
 
   private generateMetadata(manifest: EpisodeManifest, rewritten: RewrittenScript, plan: ScenePlan): PublishingMetadata {
@@ -598,7 +660,8 @@ export class MediaForgePipeline {
         captionsPath: path.join(episodeDirPath, "captions", "captions.ass"),
         outputDir: path.join(episodeDirPath, "output"),
         renderProfile,
-        captionBurnIn: true
+        captionBurnIn: true,
+        trailingSilenceRatio: this.environment.config.trailingSilenceRatio
       },
       new AbortController().signal
     );
@@ -615,7 +678,6 @@ export class MediaForgePipeline {
     captions: Awaited<ReturnType<typeof buildCaptionPack>>,
     images: ImageAsset[],
     metadata: PublishingMetadata,
-    audioPath: string,
     renderResult: Awaited<ReturnType<FFmpegVideoRenderer["render"]>>
   ): Promise<EpisodeManifest> {
     const nextManifest: EpisodeManifest = episodeManifestSchema.parse({

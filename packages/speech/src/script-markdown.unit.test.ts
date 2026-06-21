@@ -34,4 +34,11 @@ describe("splitEpisodeScriptMarkdown", () => {
       "Second block with code."
     ]);
   });
+
+  it("splits long narration into speech-safe chunks", () => {
+    const longSentence = "This is a sentence with enough repeated content to force a smaller OpenAI speech chunk. ".repeat(80);
+    const chunks = splitEpisodeScriptMarkdown(longSentence);
+    expect(chunks.length).toBeGreaterThan(1);
+    expect(chunks.every((chunk) => chunk.length <= 3200)).toBe(true);
+  });
 });

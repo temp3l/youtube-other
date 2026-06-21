@@ -55,6 +55,12 @@ describe("runtime config", () => {
     expect(config.whisperThreads).toBe(cpuCount);
     expect(config.whisperProcessors).toBe(1);
     expect(config.scriptLanguage).toBe("en");
-    expect(config.speechTrailingSilenceFactor).toBeCloseTo(1 / 3);
+    expect(config.whisperWordTimestamps).toBe(true);
+    expect(config.transcriptMinSegmentSeconds).toBe(2);
+    expect(config.transcriptMaxSegmentSeconds).toBe(15);
+    expect(config.transcriptMaxSilenceSeconds).toBe(1.25);
+    expect(config.transcriptTimestampPrecision).toBe(3);
+    expect(config.visualSceneMinSeconds).toBe(8);
+    expect(config.visualSceneMaxSeconds).toBe(18);
   });
 });

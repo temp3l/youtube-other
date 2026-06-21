@@ -3,7 +3,7 @@ import {
   captionSegmentSchema,
   type AlignmentResult,
   type CaptionSegment,
-  type RewrittenScript,
+  type Transcript,
   type ScenePlan,
   type WordTiming
 } from "@mediaforge/domain";
@@ -17,7 +17,7 @@ export interface CaptionPack {
   readonly ass: string;
 }
 
-export function alignScriptToScenes(script: RewrittenScript, scenePlan: ScenePlan): AlignmentResult {
+export function alignScriptToScenes(_transcript: Transcript, scenePlan: ScenePlan): AlignmentResult {
   const words: WordTiming[] = [];
   for (const scene of scenePlan.scenes) {
     const sceneWords = splitIntoWords(scene.canonicalNarration);
@@ -40,13 +40,13 @@ export function alignScriptToScenes(script: RewrittenScript, scenePlan: ScenePla
   });
 }
 
-export function buildCaptionPack(script: RewrittenScript, scenePlan: ScenePlan): CaptionPack {
-  const alignment = alignScriptToScenes(script, scenePlan);
-  const segments = scenePlan.scenes.map((scene) =>
+export function buildCaptionPack(transcript: Transcript, scenePlan: ScenePlan): CaptionPack {
+  const alignment = alignScriptToScenes(transcript, scenePlan);
+  const segments = transcript.segments.map((segment) =>
     captionSegmentSchema.parse({
-      startSeconds: scene.timing.startSeconds,
-      endSeconds: scene.timing.endSeconds,
-      text: scene.canonicalNarration
+      startSeconds: segment.startSeconds,
+      endSeconds: segment.endSeconds,
+      text: segment.text
     })
   );
   const simpleEntries = segments.map((segment) => ({
@@ -62,4 +62,3 @@ export function buildCaptionPack(script: RewrittenScript, scenePlan: ScenePlan):
     ass: buildAss(simpleEntries)
   };
 }
-

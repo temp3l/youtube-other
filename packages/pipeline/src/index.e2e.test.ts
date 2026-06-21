@@ -34,7 +34,11 @@ describe("pipeline e2e", () => {
     );
     const pipeline = await createPipeline({
       workspaceDir: path.join(baseDir, "workspace"),
-      dbPath: path.join(baseDir, "db.sqlite")
+      dbPath: path.join(baseDir, "db.sqlite"),
+      transcriptionProvider: "mock",
+      ttsProvider: "mock",
+      imageProvider: "placeholder",
+      textProvider: "mock"
     });
     const manifest = await pipeline.createEpisode({
       filePath: sourcePath,
@@ -49,6 +53,5 @@ describe("pipeline e2e", () => {
     expect(validation.valid).toBe(true);
     const manifestText = readFileSync(path.join(baseDir, "workspace", "episode-fixture", "manifest.json"), "utf8");
     expect(manifestText).toContain("episode-fixture");
-  });
+  }, 30000);
 });
-

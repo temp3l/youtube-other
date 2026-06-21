@@ -3,14 +3,14 @@ import { OneToOneScenePlanner } from "./index.js";
 import { transcriptSchema, rewrittenScriptSchema } from "@mediaforge/domain";
 
 describe("scene planning", () => {
-  it("creates deterministic scenes from transcript segments", () => {
+  it("groups subtitle segments into longer visual scenes", () => {
     const transcript = transcriptSchema.parse({
       sourceId: "episode-fixture",
       language: "en",
       text: "One. Two.",
       segments: [
-        { id: "scene-001", startSeconds: 0, endSeconds: 4, text: "One.", words: [] },
-        { id: "scene-002", startSeconds: 4, endSeconds: 8, text: "Two.", words: [] }
+        { id: "segment-001", startSeconds: 0, endSeconds: 4, text: "One.", words: [], boundaryReason: "sentence" },
+        { id: "segment-002", startSeconds: 4, endSeconds: 8, text: "Two.", words: [], boundaryReason: "sentence" }
       ],
       words: []
     });
@@ -25,8 +25,8 @@ describe("scene planning", () => {
       claims: []
     });
     const plan = new OneToOneScenePlanner().plan(transcript, script, ["16:9"]);
-    expect(plan.scenes).toHaveLength(2);
-    expect(plan.scenes[0]?.expectedImageFilenames[0]).toBe("scene-001__000000-000004__16x9.png");
+    expect(plan.scenes).toHaveLength(1);
+    expect(plan.scenes[0]?.sourceSegmentIds).toEqual(["segment-001", "segment-002"]);
+    expect(plan.scenes[0]?.expectedImageFilenames[0]).toBe("scene-001__000000-000008__16x9.png");
   });
 });
-

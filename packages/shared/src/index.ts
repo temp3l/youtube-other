@@ -58,32 +58,52 @@ export async function writeJsonAtomic(filePath: string, value: unknown): Promise
   const dir = path.dirname(filePath);
   await ensureDir(dir);
   const tempPath = path.join(dir, `${path.basename(filePath)}.${process.pid}.${Date.now()}.tmp`);
-  await fs.writeFile(tempPath, `${JSON.stringify(value, null, 2)}\n`, "utf8");
-  await fs.rename(tempPath, filePath);
+  try {
+    await fs.writeFile(tempPath, `${JSON.stringify(value, null, 2)}\n`, "utf8");
+    await fs.rename(tempPath, filePath);
+  } catch (error) {
+    await fs.unlink(tempPath).catch(() => void 0);
+    throw error;
+  }
 }
 
 export async function writeTextAtomic(filePath: string, value: string): Promise<void> {
   const dir = path.dirname(filePath);
   await ensureDir(dir);
   const tempPath = path.join(dir, `${path.basename(filePath)}.${process.pid}.${Date.now()}.tmp`);
-  await fs.writeFile(tempPath, value, "utf8");
-  await fs.rename(tempPath, filePath);
+  try {
+    await fs.writeFile(tempPath, value, "utf8");
+    await fs.rename(tempPath, filePath);
+  } catch (error) {
+    await fs.unlink(tempPath).catch(() => void 0);
+    throw error;
+  }
 }
 
 export async function writeBinaryAtomic(filePath: string, value: Buffer): Promise<void> {
   const dir = path.dirname(filePath);
   await ensureDir(dir);
   const tempPath = path.join(dir, `${path.basename(filePath)}.${process.pid}.${Date.now()}.tmp`);
-  await fs.writeFile(tempPath, value);
-  await fs.rename(tempPath, filePath);
+  try {
+    await fs.writeFile(tempPath, value);
+    await fs.rename(tempPath, filePath);
+  } catch (error) {
+    await fs.unlink(tempPath).catch(() => void 0);
+    throw error;
+  }
 }
 
 export async function copyAtomic(sourcePath: string, targetPath: string): Promise<void> {
   const dir = path.dirname(targetPath);
   await ensureDir(dir);
   const tempPath = path.join(dir, `${path.basename(targetPath)}.${process.pid}.${Date.now()}.tmp`);
-  await fs.copyFile(sourcePath, tempPath);
-  await fs.rename(tempPath, targetPath);
+  try {
+    await fs.copyFile(sourcePath, tempPath);
+    await fs.rename(tempPath, targetPath);
+  } catch (error) {
+    await fs.unlink(tempPath).catch(() => void 0);
+    throw error;
+  }
 }
 
 export async function hashFile(filePath: string): Promise<string> {

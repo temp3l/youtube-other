@@ -1,6 +1,7 @@
 import {
   imagePromptSchema,
   sceneIdSchema,
+  transcriptSegmentIdSchema,
   scenePlanSchema,
   type ImagePrompt,
   type RewrittenScript,
@@ -11,7 +12,12 @@ import {
 import { sceneFilename, safeTimestampToken } from "@mediaforge/shared";
 
 export interface ScenePlanner {
-  plan(transcript: Transcript, script: RewrittenScript, aspectRatios?: ReadonlyArray<"16:9" | "9:16">): ScenePlan;
+  plan(
+    transcript: Transcript,
+    script: RewrittenScript,
+    aspectRatios?: ReadonlyArray<"16:9" | "9:16">,
+    options?: { readonly visualSceneMinSeconds?: number; readonly visualSceneMaxSeconds?: number }
+  ): ScenePlan;
 }
 
 function buildScenePrompt(sceneNumber: number, scriptText: string, aspectRatio: "16:9" | "9:16"): string {
@@ -30,27 +36,54 @@ function buildSceneId(sequenceNumber: number): `scene-${string}` {
 }
 
 export class OneToOneScenePlanner implements ScenePlanner {
-  public plan(transcript: Transcript, script: RewrittenScript, aspectRatios: ReadonlyArray<"16:9" | "9:16"> = ["16:9", "9:16"]): ScenePlan {
-    const segments =
+  public plan(
+    transcript: Transcript,
+    script: RewrittenScript,
+    aspectRatios: ReadonlyArray<"16:9" | "9:16"> = ["16:9", "9:16"],
+    options: { readonly visualSceneMinSeconds?: number; readonly visualSceneMaxSeconds?: number } = {}
+  ): ScenePlan {
+    const subtitleSegments =
       transcript.segments.length > 0
         ? transcript.segments
         : transcript.text.split(/(?<=[.!?])\s+/u).map((text, index) => ({
-            id: sceneIdSchema.parse(buildSceneId(index + 1)),
+            id: transcriptSegmentIdSchema.parse(`segment-${String(index + 1).padStart(3, "0")}`),
             startSeconds: index * 4,
             endSeconds: index * 4 + 4,
             text,
-            words: []
+            words: [],
+            boundaryReason: "end-of-transcript" as const
           }));
-    const scenes: Scene[] = segments.map((segment, index) => {
+    const grouped: Array<typeof subtitleSegments> = [];
+    const minDurationSeconds = options.visualSceneMinSeconds ?? 8;
+    const maxDurationSeconds = options.visualSceneMaxSeconds ?? 18;
+    const targetDurationSeconds = (minDurationSeconds + maxDurationSeconds) / 2;
+    let buffer: typeof subtitleSegments = [];
+    const flush = (): void => {
+      if (buffer.length === 0) {
+        return;
+      }
+      grouped.push(buffer);
+      buffer = [];
+    };
+    for (const segment of subtitleSegments) {
+      buffer = [...buffer, segment];
+      const durationSeconds = (buffer[buffer.length - 1]?.endSeconds ?? 0) - (buffer[0]?.startSeconds ?? 0);
+      if (durationSeconds >= minDurationSeconds && (durationSeconds >= targetDurationSeconds || durationSeconds >= maxDurationSeconds)) {
+        flush();
+      }
+    }
+    flush();
+    const scenes: Scene[] = grouped.map((group, index) => {
       const sequenceNumber = index + 1;
-      const startSeconds = segment.startSeconds;
-      const endSeconds = segment.endSeconds;
+      const startSeconds = group[0]?.startSeconds ?? 0;
+      const endSeconds = group[group.length - 1]?.endSeconds ?? startSeconds;
       const sceneId = sceneIdSchema.parse(buildSceneId(sequenceNumber));
+      const narration = group.map((segment) => segment.text).join(" ").trim();
       return {
         id: sceneId,
         sequenceNumber,
-        canonicalNarration: script.sections[index]?.text ?? segment.text,
-        sourceSegmentIds: [segment.id],
+        canonicalNarration: narration.length > 0 ? narration : script.sections[index]?.text ?? transcript.text,
+        sourceSegmentIds: group.map((segment) => segment.id),
         estimatedDurationSeconds: Math.max(1, endSeconds - startSeconds),
         timing: {
           startSeconds,
@@ -67,7 +100,7 @@ export class OneToOneScenePlanner implements ScenePlanner {
         onScreenText: "",
         negativeConstraints: ["no watermark", "no extra limbs", "no unreadable text"],
         aspectRatios: [...aspectRatios],
-        imagePrompt: buildScenePrompt(sequenceNumber, script.sections[index]?.text ?? segment.text, aspectRatios[0] ?? "16:9"),
+        imagePrompt: buildScenePrompt(sequenceNumber, narration.length > 0 ? narration : script.sections[index]?.text ?? transcript.text, aspectRatios[0] ?? "16:9"),
         expectedImageFilenames: aspectRatios.map((aspectRatio) => sceneFilename(sequenceNumber, startSeconds, endSeconds, aspectRatio)),
         qualityStatus: "draft"
       };

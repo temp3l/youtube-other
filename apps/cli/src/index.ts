@@ -12,9 +12,11 @@ import { loadEpisodeConfig, loadRuntimeConfig, type RuntimeConfig, type RuntimeC
 import {
   artifactIdSchema,
   episodeManifestSchema,
+  normalizedTranscriptSchema,
   rewrittenScriptSchema,
   sceneIdSchema,
   scenePlanSchema,
+  type NormalizedTranscript,
   type ArtifactReference
 } from "@mediaforge/domain";
 import { createLogger } from "@mediaforge/observability";
@@ -30,17 +32,27 @@ import {
   missingScenes,
   validateImageAssets
 } from "@mediaforge/image-generation";
+import { runCommand } from "@mediaforge/process-runner";
 import {
   buildSrt,
   ensureDir,
   fileExists,
   formatTimestampLabel,
   hashFile,
+  normalizeWhitespace,
   safeBasename,
   writeJsonAtomic,
   writeTextAtomic
 } from "@mediaforge/shared";
 import { loadEpisodeScriptMarkdown, loadSpeechVoiceSettings, splitEpisodeScriptMarkdown, writeEpisodeScriptMarkdown } from "@mediaforge/speech";
+import {
+  buildVisualScenesFromSubtitleSegments,
+  normalizeTranscriptFromWords,
+  parseWhisperRawArtifact,
+  validateNormalizedTranscript,
+  writeNormalizedTranscriptArtifacts,
+  type WhisperRawTranscriptArtifact
+} from "@mediaforge/transcription";
 
 interface CliOptions {
   json?: boolean;
@@ -94,10 +106,6 @@ function serializeError(error: unknown): Record<string, unknown> {
     result["cause"] = serializeError((error as { cause?: unknown }).cause);
   }
   return result;
-}
-
-function isTruthy(value: string | undefined): boolean {
-  return value === "1" || value === "true" || value === "yes";
 }
 
 function configOverridesFromCli(options: CliOptions): RuntimeConfigOverrides {
@@ -170,29 +178,113 @@ function localizedOutputSuffix(language: string): string {
   return localizedSuffix(language);
 }
 
-function balanceScriptChunksForScenes(chunks: string[], sceneCount?: number): string[] {
-  if (!sceneCount || sceneCount <= 0 || chunks.length === sceneCount) {
-    return chunks;
-  }
-  if (chunks.length === 0) {
+function countWords(text: string): number {
+  return normalizeWhitespace(text).split(/\s+/u).filter(Boolean).length;
+}
+
+function splitSpeechSentences(text: string): string[] {
+  const normalized = normalizeWhitespace(text);
+  if (normalized.length === 0) {
     return [];
   }
-  if (chunks.length > sceneCount) {
-    const grouped: string[] = [];
-    const step = chunks.length / sceneCount;
-    for (let index = 0; index < sceneCount; index += 1) {
+  const sentences = normalized
+    .split(/(?<=[.!?…]["'»”)]*)\s+/u)
+    .map((sentence) => normalizeWhitespace(sentence))
+    .filter((sentence) => sentence.length > 0);
+  return sentences.length > 0 ? sentences : [normalized];
+}
+
+function splitLongChunk(chunk: string): [string, string] | null {
+  const words = normalizeWhitespace(chunk).split(/\s+/u).filter(Boolean);
+  if (words.length <= 1) {
+    return null;
+  }
+  const midpoint = Math.max(1, Math.floor(words.length / 2));
+  return [words.slice(0, midpoint).join(" "), words.slice(midpoint).join(" ")];
+}
+
+function rebalanceChunks(chunks: string[], desiredCount: number): string[] {
+  if (desiredCount <= 0) {
+    return chunks;
+  }
+  const normalized = chunks.map((chunk) => normalizeWhitespace(chunk)).filter((chunk) => chunk.length > 0);
+  if (normalized.length === 0) {
+    return [];
+  }
+  if (normalized.length > desiredCount) {
+    const balanced: string[] = [];
+    const step = normalized.length / desiredCount;
+    for (let index = 0; index < desiredCount; index += 1) {
       const start = Math.floor(index * step);
-      const end = index === sceneCount - 1 ? chunks.length : Math.max(start + 1, Math.floor((index + 1) * step));
-      grouped.push(chunks.slice(start, end).join(" ").trim());
+      const end = index === desiredCount - 1 ? normalized.length : Math.max(start + 1, Math.floor((index + 1) * step));
+      balanced.push(normalized.slice(start, end).join(" "));
     }
-    return grouped.map((chunk, index) => chunk.length > 0 ? chunk : chunks[Math.min(index, chunks.length - 1)] ?? "");
+    return balanced.map((chunk) => normalizeWhitespace(chunk)).filter((chunk) => chunk.length > 0);
   }
-  const padded = [...chunks];
-  const tail = chunks[chunks.length - 1] ?? chunks[0] ?? "";
-  while (padded.length < sceneCount) {
-    padded.push(tail);
+  const expanded = [...normalized];
+  while (expanded.length < desiredCount) {
+    let splitIndex = -1;
+    let longestLength = 0;
+    for (let index = 0; index < expanded.length; index += 1) {
+      const wordCount = countWords(expanded[index] ?? "");
+      if (wordCount > longestLength) {
+        longestLength = wordCount;
+        splitIndex = index;
+      }
+    }
+    if (splitIndex === -1) {
+      break;
+    }
+    const target = expanded[splitIndex];
+    if (target === undefined) {
+      break;
+    }
+    const split = splitLongChunk(target);
+    if (!split) {
+      break;
+    }
+    expanded.splice(splitIndex, 1, split[0], split[1]);
   }
-  return padded;
+  return expanded.slice(0, desiredCount);
+}
+
+async function localizedSceneAudioIsComplete(episodeDir: string, language: string, expectedCount: number): Promise<boolean> {
+  const segmentsDir = localizedSegmentsDir(episodeDir, language);
+  const existing = await fs.readdir(segmentsDir, { withFileTypes: true }).catch(() => []);
+  const wavCount = existing.filter((entry) => entry.isFile() && entry.name.endsWith(".wav")).length;
+  return wavCount >= expectedCount;
+}
+
+async function loadNarrationScriptMarkdown(episodeDir: string, language: string): Promise<{ readonly filePath: string; readonly text: string }> {
+  const languageSlug = safeBasename(language);
+  const candidates = [
+    path.join(episodeDir, "script", `rewritten-script-${languageSlug}.md`),
+    path.join(episodeDir, "script", "rewritten-script.md"),
+    path.join(episodeDir, "languages", `script-${languageSlug}.md`),
+    path.join(episodeDir, "script.md")
+  ];
+  for (const candidate of candidates) {
+    if (await fileExists(candidate)) {
+      return {
+        filePath: candidate,
+        text: await fs.readFile(candidate, "utf8")
+      };
+    }
+  }
+  throw new Error(`Missing rewritten narration script in ${episodeDir}.`);
+}
+
+function balanceScriptChunksForScenes(chunks: string[], sceneCount?: number): string[] {
+  const normalized = chunks.map((chunk) => normalizeWhitespace(chunk)).filter((chunk) => chunk.length > 0);
+  if (!sceneCount || sceneCount <= 0 || normalized.length === 0) {
+    return normalized;
+  }
+  if (normalized.length === sceneCount) {
+    return normalized;
+  }
+  const sentenceChunks = normalized.flatMap((chunk) => splitSpeechSentences(chunk));
+  const packed = rebalanceChunks(sentenceChunks.length > 0 ? sentenceChunks : normalized, sceneCount);
+  return packed.length > 0 ? packed : normalized;
 }
 
 async function buildEnvironment(options: CliOptions): Promise<MediaForgeEnvironment> {
@@ -359,6 +451,289 @@ async function readEpisodeWorkspaceForAudio(options: CliOptions, episodeId: stri
   return manifestResult;
 }
 
+async function resolveEpisodeSourceAudioPath(
+  episodeDir: string,
+  manifest: { readonly source: { readonly filePath?: string | undefined } } | null
+): Promise<string> {
+  const candidates: string[] = [];
+  const sourceFilePath = manifest?.source?.filePath;
+  if (sourceFilePath) {
+    candidates.push(sourceFilePath);
+  }
+  const sourceDir = path.join(episodeDir, "source");
+  const rootEntries = await fs.readdir(sourceDir, { withFileTypes: true }).catch(() => []);
+  for (const entry of rootEntries) {
+    if (!entry.isFile()) {
+      continue;
+    }
+    const candidate = path.join(sourceDir, entry.name);
+    if (/^source-media\./u.test(entry.name) || /\.(?:wav|mp3|m4a|mp4|mkv|webm|ogg|flac)$/iu.test(entry.name)) {
+      candidates.push(candidate);
+    }
+  }
+  const episodeEntries = await fs.readdir(episodeDir, { withFileTypes: true }).catch(() => []);
+  for (const entry of episodeEntries) {
+    if (!entry.isFile()) {
+      continue;
+    }
+    if (/^source-media\./u.test(entry.name) || /\.(?:wav|mp3|m4a|mp4|mkv|webm|ogg|flac)$/iu.test(entry.name)) {
+      candidates.push(path.join(episodeDir, entry.name));
+    }
+  }
+  for (const candidate of candidates) {
+    if (await fileExists(candidate)) {
+      return candidate;
+    }
+  }
+  throw new Error(`No source audio file could be located for ${path.basename(episodeDir)}.`);
+}
+
+function transcriptSegmentationOptionsFromConfig(config: RuntimeConfig): {
+  readonly minDurationSeconds: number;
+  readonly maxDurationSeconds: number;
+  readonly maxSilenceSeconds: number;
+  readonly timestampPrecision: number;
+  readonly maxSingleWordDurationSeconds: number;
+  readonly boundaryLookbackWords: number;
+} {
+  return {
+    minDurationSeconds: config.transcriptMinSegmentSeconds,
+    maxDurationSeconds: config.transcriptMaxSegmentSeconds,
+    maxSilenceSeconds: config.transcriptMaxSilenceSeconds,
+    timestampPrecision: config.transcriptTimestampPrecision,
+    maxSingleWordDurationSeconds: config.transcriptMaxWordDurationSeconds,
+    boundaryLookbackWords: config.transcriptBoundaryLookbackWords
+  };
+}
+
+async function readTranscriptArtifacts(episodeDir: string): Promise<{
+  readonly rawPath: string;
+  readonly normalizedPath: string;
+  readonly raw: WhisperRawTranscriptArtifact | null;
+  readonly normalized: NormalizedTranscript | null;
+}> {
+  const transcriptDir = path.join(episodeDir, "transcript");
+  const rawPath = path.join(transcriptDir, "transcript.raw.json");
+  const normalizedPath = path.join(transcriptDir, "transcript.json");
+  const legacyRawPath = path.join(episodeDir, "original-transcript.json");
+  const rawCandidate = (await fileExists(rawPath))
+    ? rawPath
+    : (await fileExists(legacyRawPath))
+      ? legacyRawPath
+      : null;
+  const normalizedCandidate = (await fileExists(normalizedPath)) ? normalizedPath : null;
+  const raw = rawCandidate ? parseWhisperRawArtifact(JSON.parse(await fs.readFile(rawCandidate, "utf8")) as unknown) : null;
+  const normalized = normalizedCandidate
+    ? normalizedTranscriptSchema.parse(JSON.parse(await fs.readFile(normalizedCandidate, "utf8")) as unknown)
+    : null;
+  return {
+    rawPath,
+    normalizedPath,
+    raw,
+    normalized
+  };
+}
+
+async function inspectAudioDurationSeconds(filePath: string): Promise<number> {
+  const result = await runCommand("ffprobe", ["-v", "error", "-show_entries", "format=duration", "-of", "default=noprint_wrappers=1:nokey=1", filePath], {
+    timeoutMs: 120000
+  });
+  const duration = Number.parseFloat(result.stdout.trim());
+  if (!Number.isFinite(duration) || duration <= 0) {
+    throw new Error(`Unable to inspect duration for ${filePath}`);
+  }
+  return duration;
+}
+
+async function commandTranscriptGenerate(options: CliOptions, episodeId: string): Promise<void> {
+  const { manifest, episodeDir } = await readEpisodeWorkspaceForAudio(options, episodeId);
+  if (!manifest) {
+    throw new Error(`Episode manifest not found for ${episodeId}`);
+  }
+  const config = await loadRuntimeConfig(configOverridesFromCli(options), (await loadEpisodeConfig(episodeDir)) ?? {});
+  if (config.transcriptionProvider !== "whisper.cpp") {
+    throw new Error("Transcript generation requires transcriptionProvider=whisper.cpp so word timestamps are available.");
+  }
+  if (!config.whisperWordTimestamps) {
+    throw new Error("Transcript generation requires WHISPER_WORD_TIMESTAMPS=true.");
+  }
+  const audioPath = await resolveEpisodeSourceAudioPath(episodeDir, manifest);
+  const audioDurationSeconds = await inspectAudioDurationSeconds(audioPath);
+  const outputPaths = {
+    raw: path.join(episodeDir, "transcript", "transcript.raw.json"),
+    normalized: path.join(episodeDir, "transcript", "transcript.json"),
+    srt: path.join(episodeDir, "transcript", "transcript.srt")
+  };
+  if (options.dryRun) {
+    printJson({
+      episodeId,
+      audioPath,
+      audioDurationSeconds,
+      whisperBin: config.whisperBin,
+      whisperModel: config.whisperModel,
+      language: config.whisperLanguage ?? config.scriptLanguage,
+      outputPaths,
+      dryRun: true
+    });
+    return;
+  }
+  const pipeline = await loadPipeline(options, episodeDir);
+  const transcriptionLanguage = config.whisperLanguage ?? config.scriptLanguage;
+  const transcriptRequest = transcriptionLanguage
+    ? {
+        sourceId: manifest.episodeId,
+        audioPath,
+        episodeDir,
+        language: transcriptionLanguage
+      }
+    : {
+        sourceId: manifest.episodeId,
+        audioPath,
+        episodeDir
+      };
+  const transcript = await pipeline.transcription.transcribe(transcriptRequest, new AbortController().signal);
+  const artifacts = await readTranscriptArtifacts(episodeDir);
+  const raw = artifacts.raw;
+  const normalized = artifacts.normalized ?? normalizedTranscriptSchema.parse({
+    schemaVersion: 1,
+    sourceId: transcript.sourceId,
+    language: transcript.language,
+    text: transcript.text,
+    segments: transcript.segments,
+    words: transcript.words,
+    generation: {
+      provider: "whisper.cpp",
+      model: config.whisperModel ?? "unknown",
+      generatedAt: new Date().toISOString(),
+      wordTimestamps: true as const
+    }
+  });
+  const visualSceneCount = buildVisualScenesFromSubtitleSegments(normalized.segments, {
+    minDurationSeconds: config.visualSceneMinSeconds,
+    maxDurationSeconds: config.visualSceneMaxSeconds
+  }).length;
+  const summary = {
+    episodeId,
+    backend: raw?.backend ?? "whisper.cpp",
+    model: raw?.model ?? config.whisperModel ?? "unknown",
+    language: normalized.language,
+    audioDurationSeconds,
+    wordCount: normalized.words.length,
+    rawSegmentCount: raw?.rawSegments.length ?? 0,
+    normalizedSubtitleCount: normalized.segments.length,
+    visualSceneCount,
+    outputPaths: [artifacts.rawPath, artifacts.normalizedPath, outputPaths.srt]
+  };
+  if (options.json) {
+    printJson(summary);
+    return;
+  }
+  process.stdout.write(
+    [
+      `backend: ${summary.backend}`,
+      `model: ${summary.model}`,
+      `language: ${summary.language}`,
+      `audio duration: ${summary.audioDurationSeconds.toFixed(3)}s`,
+      `word count: ${summary.wordCount}`,
+      `raw segment count: ${summary.rawSegmentCount}`,
+      `normalized subtitle count: ${summary.normalizedSubtitleCount}`,
+      `visual scene count: ${summary.visualSceneCount}`,
+      `output paths:`,
+      ...summary.outputPaths.map((value) => `  ${value}`)
+    ].join("\n") + "\n"
+  );
+}
+
+async function commandTranscriptNormalize(options: CliOptions, episodeId: string): Promise<void> {
+  const { episodeDir, manifest } = await readEpisodeWorkspaceForAudio(options, episodeId);
+  if (!manifest) {
+    throw new Error(`Episode manifest not found for ${episodeId}`);
+  }
+  const config = await loadRuntimeConfig(configOverridesFromCli(options), (await loadEpisodeConfig(episodeDir)) ?? {});
+  const artifacts = await readTranscriptArtifacts(episodeDir);
+  if (!artifacts.raw) {
+    throw new Error(`No raw Whisper transcript found for ${episodeId}.`);
+  }
+  const normalized = normalizeTranscriptFromWords({
+    sourceId: artifacts.raw.sourceId,
+    language: artifacts.raw.language,
+    words: artifacts.raw.words,
+    provider: artifacts.raw.backend,
+    model: artifacts.raw.model,
+    generatedAt: new Date().toISOString(),
+    options: transcriptSegmentationOptionsFromConfig(config)
+  });
+  if (options.dryRun) {
+    printJson({
+      episodeId,
+      rawPath: artifacts.rawPath,
+      normalizedPath: artifacts.normalizedPath,
+      subtitleCount: normalized.segments.length,
+      wordCount: normalized.words.length,
+      dryRun: true
+    });
+    return;
+  }
+  await writeNormalizedTranscriptArtifacts(path.join(episodeDir, "transcript"), artifacts.rawPath, artifacts.normalizedPath, artifacts.raw, normalized);
+  if (options.json) {
+    printJson(normalized);
+    return;
+  }
+  process.stdout.write(`${artifacts.normalizedPath}\n`);
+}
+
+async function commandTranscriptValidate(options: CliOptions, episodeId: string): Promise<void> {
+  const { episodeDir, manifest } = await readEpisodeWorkspaceForAudio(options, episodeId);
+  if (!manifest) {
+    throw new Error(`Episode manifest not found for ${episodeId}`);
+  }
+  const config = await loadRuntimeConfig(configOverridesFromCli(options), (await loadEpisodeConfig(episodeDir)) ?? {});
+  const artifacts = await readTranscriptArtifacts(episodeDir);
+  const issues: string[] = [];
+  const spokenRawWords = (artifacts.raw?.words ?? []).filter((word: { readonly text: string }) => !/^\[(?:music|música|applause|silence)\]$/iu.test(word.text));
+  if (!artifacts.raw) {
+    issues.push("missing raw Whisper transcript");
+  }
+  if (!artifacts.normalized) {
+    issues.push("missing normalized transcript");
+  } else {
+    try {
+      validateNormalizedTranscript(artifacts.normalized);
+    } catch (error) {
+      issues.push(error instanceof Error ? error.message : String(error));
+    }
+  }
+  if (artifacts.raw && artifacts.normalized) {
+    if (spokenRawWords.length !== artifacts.normalized.words.length) {
+      issues.push("word count mismatch between raw and normalized transcript");
+    }
+    const visualSceneCount = buildVisualScenesFromSubtitleSegments(artifacts.normalized.segments, {
+      minDurationSeconds: config.visualSceneMinSeconds,
+      maxDurationSeconds: config.visualSceneMaxSeconds
+    }).length;
+    if (visualSceneCount > artifacts.normalized.segments.length) {
+      issues.push("visual scenes should not exceed subtitle segments");
+    }
+  }
+  const summary = {
+    episodeId,
+    valid: issues.length === 0,
+    issues,
+    rawPath: artifacts.rawPath,
+    normalizedPath: artifacts.normalizedPath,
+    subtitleCount: artifacts.normalized?.segments.length ?? 0,
+    wordCount: artifacts.normalized?.words.length ?? 0
+  };
+  if (options.json) {
+    printJson(summary);
+    return;
+  }
+  if (!summary.valid) {
+    throw new Error(issues.join("; "));
+  }
+  process.stdout.write(`Transcript valid for ${episodeId}\n`);
+}
+
 async function commandStatus(options: CliOptions, episodeId: string): Promise<void> {
   const { manifest } = await readManifestForEpisode(options, episodeId);
   if (options.json) {
@@ -397,13 +772,25 @@ async function commandAudioGenerate(options: CliOptions, episodeId: string): Pro
   const episodeConfig = await loadEpisodeConfig(episodeDir);
   const emptyEpisodeOverrides: RuntimeConfigOverrides = {};
   const config = await loadRuntimeConfig(overrides, episodeConfig ? compactConfigOverrides(episodeConfig) : emptyEpisodeOverrides);
-  if (config.ttsProvider === "openai-compatible" && !config.openAiCompatibleApiKey) {
-    throw new Error("OpenAI speech is configured but no API key is available.");
+  if (config.ttsProvider !== "openai-compatible" || !config.openAiCompatibleApiKey) {
+    throw new Error("OpenAI speech is required for narration generation; mock speech is disabled.");
   }
   const language = config.scriptLanguage ?? episodeConfig?.scriptLanguage ?? "en";
-  const script = await loadEpisodeScriptMarkdown(episodeDir, language);
+  const script = await loadNarrationScriptMarkdown(episodeDir, language);
+  const rewrittenChunks =
+    manifest?.rewrittenScript?.sections
+      .map((section) => normalizeWhitespace(section.text))
+      .filter((chunk) => chunk.length > 0) ?? [];
+  const sceneChunks = manifest?.scenePlan?.scenes
+    .map((scene) => normalizeWhitespace(scene.canonicalNarration))
+    .filter((chunk) => chunk.length > 0) ?? [];
   const sceneCount = manifest?.scenePlan?.scenes.length;
-  const chunks = balanceScriptChunksForScenes(splitEpisodeScriptMarkdown(script.text), sceneCount);
+  const chunks =
+    sceneChunks.length > 0
+      ? sceneChunks
+      : rewrittenChunks.length > 0
+        ? balanceScriptChunksForScenes(rewrittenChunks, sceneCount)
+      : balanceScriptChunksForScenes(splitEpisodeScriptMarkdown(script.text), sceneCount);
   if (chunks.length === 0) {
     throw new Error(`No narration text found in ${script.filePath}.`);
   }
@@ -432,43 +819,66 @@ async function commandAudioGenerate(options: CliOptions, episodeId: string): Pro
   await ensureDir(segmentsDir);
   const scriptSourcePath = await writeEpisodeScriptMarkdown(episodeDir, script.text, language);
   const generatedAt = new Date().toISOString();
-  const segmentPaths: string[] = [];
-  const artifacts: ArtifactReference[] = [];
-  for (const [index, chunk] of chunks.entries()) {
-    const sceneId = sceneIdSchema.parse(`scene-${String(index + 1).padStart(3, "0")}`);
-    const outputPath = path.join(segmentsDir, `${safeBasename(`segment-${String(index + 1).padStart(3, "0")}`)}.wav`);
-    const words = chunk.trim().split(/\s+/u).filter(Boolean).length;
-    const estimatedDurationSeconds = Math.max(2, Math.ceil((words / speechSettings.profile.paceWpm) * 60));
-    await pipeline.speech.synthesize(
-      {
-        sceneId,
-        text: chunk,
-        voiceProfile: speechSettings.profile,
-        outputPath,
-        targetDurationSeconds: estimatedDurationSeconds
-      },
-      new AbortController().signal
-    );
-    segmentPaths.push(outputPath);
-    const stats = await fs.stat(outputPath);
-    artifacts.push({
-      id: artifactIdSchema.parse(`artifact-${safeBasename(`${episodeSlug}-segment-${String(index + 1).padStart(3, "0")}-${language}`)}`),
-      kind: language === "en" ? "audio.segment" : `audio.segment.${language}`,
-      path: outputPath,
-      mimeType: "audio/wav",
-      sizeBytes: stats.size,
-      checksumSha256: await hashFile(outputPath),
-      createdAt: generatedAt
-    });
-  }
+  const segmentPaths: string[] = Array(chunks.length).fill("");
+  const artifacts: Array<ArtifactReference | undefined> = Array(chunks.length).fill(undefined);
+  const workerCount = Math.min(2, chunks.length);
+  let nextIndex = 0;
+  const takeIndex = (): number | null => {
+    if (nextIndex >= chunks.length) {
+      return null;
+    }
+    const current = nextIndex;
+    nextIndex += 1;
+    return current;
+  };
+  const workers = Array.from({ length: workerCount }, async () => {
+    while (true) {
+      const index = takeIndex();
+      if (index === null) {
+        return;
+      }
+      const chunk = chunks[index];
+      if (chunk === undefined) {
+        return;
+      }
+      const sceneId = sceneIdSchema.parse(`scene-${String(index + 1).padStart(3, "0")}`);
+      const outputPath = path.join(segmentsDir, `${safeBasename(`segment-${String(index + 1).padStart(3, "0")}`)}.wav`);
+      const words = chunk.trim().split(/\s+/u).filter(Boolean).length;
+      const estimatedDurationSeconds = Math.max(2, Math.ceil((words / speechSettings.profile.paceWpm) * 60));
+      await pipeline.speech.synthesize(
+        {
+          sceneId,
+          text: chunk,
+          voiceProfile: speechSettings.profile,
+          outputPath,
+          targetDurationSeconds: estimatedDurationSeconds
+        },
+        new AbortController().signal
+      );
+      segmentPaths[index] = outputPath;
+      const stats = await fs.stat(outputPath);
+      artifacts[index] = {
+        id: artifactIdSchema.parse(`artifact-${safeBasename(`${episodeSlug}-segment-${String(index + 1).padStart(3, "0")}-${language}`)}`),
+        kind: language === "en" ? "audio.segment" : `audio.segment.${language}`,
+        path: outputPath,
+        mimeType: "audio/wav",
+        sizeBytes: stats.size,
+        checksumSha256: await hashFile(outputPath),
+        createdAt: generatedAt
+      };
+    }
+  });
+  await Promise.all(workers);
+  const completeSegmentPaths = segmentPaths.filter((segmentPath): segmentPath is string => segmentPath.length > 0);
+  const completeArtifacts = artifacts.filter((artifact): artifact is ArtifactReference => artifact !== undefined);
   const segmentsListPath = path.join(audioDir, "segments.txt");
-  await writeTextAtomic(segmentsListPath, segmentPaths.map((segmentPath) => `file '${segmentPath.replace(/'/g, "'\\''")}'`).join("\n"));
+  await writeTextAtomic(segmentsListPath, completeSegmentPaths.map((segmentPath) => `file '${segmentPath.replace(/'/g, "'\\''")}'`).join("\n"));
   const concat = spawnSync("ffmpeg", ["-y", "-f", "concat", "-safe", "0", "-i", segmentsListPath, "-c", "copy", narrationPath], { encoding: "utf8" });
   if (concat.status !== 0) {
     throw new Error(concat.stderr || "Failed to concatenate narration audio.");
   }
   const narrationStats = await fs.stat(narrationPath);
-  artifacts.push({
+  completeArtifacts.push({
     id: artifactIdSchema.parse(`artifact-${safeBasename(`${episodeSlug}-narration-${language}`)}`),
     kind: language === "en" ? "audio.narration" : `audio.narration.${language}`,
     path: narrationPath,
@@ -477,7 +887,7 @@ async function commandAudioGenerate(options: CliOptions, episodeId: string): Pro
     checksumSha256: await hashFile(narrationPath),
     createdAt: generatedAt
   });
-  artifacts.push({
+  completeArtifacts.push({
     id: artifactIdSchema.parse(`artifact-${safeBasename(`${episodeSlug}-script-source-${language}`)}`),
     kind: language === "en" ? "audio.script-source" : `audio.script-source.${language}`,
     path: scriptSourcePath,
@@ -492,7 +902,7 @@ async function commandAudioGenerate(options: CliOptions, episodeId: string): Pro
         const kinds = language === "en" ? ["audio.segment", "audio.narration", "audio.script-source"] : [`audio.segment.${language}`, `audio.narration.${language}`, `audio.script-source.${language}`];
         return !kinds.includes(artifact.kind);
       }),
-      ...artifacts
+      ...completeArtifacts
     ];
     manifest.updatedAt = generatedAt;
     await writeJsonAtomic(path.join(episodeDir, "manifest.json"), manifest);
@@ -515,7 +925,7 @@ async function commandAudioGenerate(options: CliOptions, episodeId: string): Pro
       narrationPath,
       segmentsDir,
       segmentCount: chunks.length,
-      segmentPaths
+      segmentPaths: completeSegmentPaths
     });
     return;
   }
@@ -542,7 +952,9 @@ async function commandClipsGenerate(options: CliOptions, episodeId: string): Pro
     });
     return;
   }
-  await commandAudioGenerate({ ...options, json: false, quiet: true }, episodeId);
+  if (!await localizedSceneAudioIsComplete(episodeDir, language, manifest.scenePlan.scenes.length)) {
+    await commandAudioGenerate({ ...options, json: false, quiet: true }, episodeId);
+  }
   const pipeline = await loadPipeline(options, episodeDir);
   const renderProfile = {
     id: "clips",
@@ -557,13 +969,14 @@ async function commandClipsGenerate(options: CliOptions, episodeId: string): Pro
     {
       episodeDir,
       scenePlan: manifest.scenePlan,
-      outputDir: path.join(episodeDir, "output"),
-      renderProfile,
-      captionBurnIn: false,
-      clipsDirName: localizedClipsDirName(language),
-      sceneAudioDir: localizedSegmentsDir(episodeDir, language),
-      imageDir: path.join(episodeDir, "images", "generated")
-    },
+    outputDir: path.join(episodeDir, "output"),
+    renderProfile,
+    captionBurnIn: false,
+    clipsDirName: localizedClipsDirName(language),
+    sceneAudioDir: localizedSegmentsDir(episodeDir, language),
+    imageDir: path.join(episodeDir, "images", "generated"),
+    trailingSilenceRatio: config.trailingSilenceRatio
+  },
     new AbortController().signal
   );
   if (options.json) {
@@ -731,7 +1144,9 @@ async function commandRender(options: CliOptions, episodeId: string, profile: "y
     });
     return;
   }
-  await commandAudioGenerate({ ...options, json: false, quiet: true }, episodeId);
+  if (!await localizedSceneAudioIsComplete(episodeDir, language, manifest.scenePlan.scenes.length)) {
+    await commandAudioGenerate({ ...options, json: false, quiet: true }, episodeId);
+  }
   const captionsPath = isEnglishLanguage(language) ? path.join(episodeDir, "captions", "captions.ass") : undefined;
   const renderProfile = {
     id: profile,
@@ -753,6 +1168,7 @@ async function commandRender(options: CliOptions, episodeId: string, profile: "y
     sceneAudioDir: localizedSegmentsDir(episodeDir, language),
     imageDir: path.join(episodeDir, "images", "generated"),
     outputSuffix: localizedOutputSuffix(language),
+    trailingSilenceRatio: config.trailingSilenceRatio,
     ...(captionsPath ? { captionsPath } : {})
   };
   const result = await pipeline.renderer.render(renderRequest, new AbortController().signal);
@@ -860,8 +1276,9 @@ program
   .option("--file <path>", "local source file")
   .option("--url <url>", "source URL")
   .option("--transcript <path>", "local transcript file")
+  .option("--title <title>", "episode title")
   .option("--slug <slug>", "episode slug")
-.action(async (opts: { file?: string; url?: string; transcript?: string; slug?: string }) => {
+.action(async (opts: { file?: string; url?: string; transcript?: string; title?: string; slug?: string }) => {
     const input: CreateEpisodeOptions = {};
     if (opts.file) {
       input.filePath = opts.file;
@@ -871,6 +1288,9 @@ program
     }
     if (opts.transcript) {
       input.transcriptPath = opts.transcript;
+    }
+    if (opts.title) {
+      input.title = opts.title;
     }
     if (opts.slug) {
       input.slug = opts.slug;
@@ -915,6 +1335,27 @@ program
   });
 
 const transcriptCommand = program.command("transcript").description("Transcript utilities");
+transcriptCommand
+  .command("generate")
+  .requiredOption("--episode <episode-id>")
+  .description("Run Whisper, write raw and normalized transcript artifacts")
+  .action(async (opts: { episode: string }) => {
+    await commandTranscriptGenerate(program.opts<CliOptions>(), opts.episode);
+  });
+transcriptCommand
+  .command("normalize")
+  .requiredOption("--episode <episode-id>")
+  .description("Normalize an existing raw Whisper transcript without rerunning Whisper")
+  .action(async (opts: { episode: string }) => {
+    await commandTranscriptNormalize(program.opts<CliOptions>(), opts.episode);
+  });
+transcriptCommand
+  .command("validate")
+  .requiredOption("--episode <episode-id>")
+  .description("Validate transcript artifacts locally")
+  .action(async (opts: { episode: string }) => {
+    await commandTranscriptValidate(program.opts<CliOptions>(), opts.episode);
+  });
 transcriptCommand
   .command("export")
   .argument("<episode-id>")

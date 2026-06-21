@@ -79,17 +79,11 @@ function makeWavHeader(sampleRate: number, channels: number, bitsPerSample: numb
   return buffer;
 }
 
-async function writeToneWav(filePath: string, durationSeconds: number, sampleRate = 24000): Promise<void> {
+async function writeSilenceWav(filePath: string, durationSeconds: number, sampleRate = 24000): Promise<void> {
   const channels = 1;
   const bitsPerSample = 16;
   const frames = Math.max(1, Math.floor(durationSeconds * sampleRate));
   const pcm = Buffer.alloc(frames * channels * 2);
-  for (let index = 0; index < frames; index += 1) {
-    const t = index / sampleRate;
-    const amplitude =
-      0.12 * Math.sin(2 * Math.PI * 220 * t) * Math.min(1, t / 0.25) * Math.min(1, (durationSeconds - t) / 0.25);
-    pcm.writeInt16LE(Math.round(Math.max(-1, Math.min(1, amplitude)) * 32767), index * 2);
-  }
   const header = makeWavHeader(sampleRate, channels, bitsPerSample, pcm.byteLength);
   await ensureDir(path.dirname(filePath));
   const tempPath = `${filePath}.${process.pid}.tmp`;
@@ -122,7 +116,7 @@ export class MockSpeechProvider implements SpeechProvider {
     signal.throwIfAborted();
     const words = request.text.trim().split(/\s+/u).filter(Boolean).length;
     const estimatedDuration = request.targetDurationSeconds ?? Math.max(2, Math.ceil((words / request.voiceProfile.paceWpm) * 60));
-    await writeToneWav(request.outputPath, estimatedDuration);
+    await writeSilenceWav(request.outputPath, estimatedDuration);
     return {
       sceneId: request.sceneId,
       filePath: request.outputPath,

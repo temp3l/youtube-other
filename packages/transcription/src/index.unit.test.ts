@@ -22,13 +22,13 @@ describe("chunked whisper transcription", () => {
           text: "Hello world.",
           segments: [
             {
-              id: "scene-001",
+              id: "segment-001",
               startSeconds: 0,
               endSeconds: 2,
               text: "Hello world.",
               words: [
-                { index: 0, text: "Hello", startSeconds: 0, endSeconds: 1, confidence: 0.9 },
-                { index: 1, text: "world", startSeconds: 1, endSeconds: 2, confidence: 0.9 }
+                { text: "Hello", startSeconds: 0, endSeconds: 1, confidence: 0.9 },
+                { text: "world", startSeconds: 1, endSeconds: 2, confidence: 0.9 }
               ]
             }
           ],
@@ -43,11 +43,11 @@ describe("chunked whisper transcription", () => {
           text: "Second chunk.",
           segments: [
             {
-              id: "scene-001",
+              id: "segment-001",
               startSeconds: 0,
               endSeconds: 3,
               text: "Second chunk.",
-              words: [{ index: 0, text: "Second", startSeconds: 0, endSeconds: 1, confidence: 0.8 }]
+              words: [{ text: "Second", startSeconds: 0, endSeconds: 1, confidence: 0.8 }]
             }
           ],
           words: []

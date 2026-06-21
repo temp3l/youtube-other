@@ -7,21 +7,58 @@ import {
   ProviderAuthenticationError,
   ProviderResponseError,
   sceneIdSchema,
+  transcriptSchema,
   transcriptSegmentSchema,
   transcriptWordSchema,
   type EpisodeId,
+  type NormalizedTranscript,
   type Transcript,
-  transcriptSchema
+  type TranscriptSegment,
+  type SentenceSegmentationOptions,
 } from "@mediaforge/domain";
 import { runCommand } from "@mediaforge/process-runner";
-import { normalizeWhitespace, splitIntoSentences, splitIntoWords } from "@mediaforge/shared";
+import { buildSrt, ensureDir, normalizeWhitespace, splitIntoSentences, splitIntoWords, writeJsonAtomic, writeTextAtomic } from "@mediaforge/shared";
 import { z } from "zod";
+import {
+  DEFAULT_SEGMENTATION_OPTIONS,
+  buildVisualScenesFromSubtitleSegments,
+  extractRawSegmentsFromWhisperResponse,
+  extractTimedWordsFromWhisperResponse,
+  normalizeTranscriptFromWords,
+  parseWhisperRawArtifact,
+  type WhisperRawChunk,
+  type WhisperRawTranscriptArtifact,
+  writeNormalizedTranscriptArtifacts
+} from "./segmentation.js";
+import {
+  AtomicWriteError,
+  MissingAudioFileError,
+  MissingWordTimestampsError,
+  WhisperBinaryNotFoundError,
+  WhisperProcessFailureError,
+  WhisperTimeoutError
+} from "./errors.js";
+
+export {
+  DEFAULT_SEGMENTATION_OPTIONS,
+  buildSentenceSegments,
+  buildVisualScenesFromSubtitleSegments,
+  extractRawSegmentsFromWhisperResponse,
+  extractTimedWordsFromWhisperResponse,
+  normalizeTranscriptFromWords,
+  parseWhisperRawArtifact,
+  validateNormalizedTranscript,
+  writeNormalizedTranscriptArtifacts
+} from "./segmentation.js";
+export type { WhisperRawTranscriptArtifact } from "./segmentation.js";
+export * from "./errors.js";
 
 export interface TranscriptionRequest {
   readonly sourceId: EpisodeId;
   readonly transcript?: Transcript;
   readonly audioPath?: string;
   readonly language?: string;
+  readonly episodeDir?: string;
 }
 
 export interface TranscriptionProvider {
@@ -38,6 +75,12 @@ export interface WhisperCppOptions {
   readonly maxDurationSeconds?: number | undefined;
   readonly chunkDurationSeconds?: number | undefined;
   readonly chunkOverlapSeconds?: number | undefined;
+}
+
+function whisperDtwPresetFromModelPath(modelPath: string): string {
+  const modelName = path.basename(modelPath);
+  const match = /ggml-(?<preset>.+)\.bin$/u.exec(modelName);
+  return match?.groups?.["preset"] ?? "base";
 }
 
 export interface OpenAiTranscriptionOptions {
@@ -258,19 +301,19 @@ export function mergeChunkSegments(
     chunk.transcript.segments.map((segment) => {
       segmentCounter += 1;
       return transcriptSegmentSchema.parse({
-        id: sceneIdSchema.parse(`scene-${String(segmentCounter).padStart(3, "0")}`),
+        id: `segment-${String(segmentCounter).padStart(3, "0")}`,
         startSeconds: chunk.startSeconds + segment.startSeconds,
         endSeconds: chunk.startSeconds + segment.endSeconds,
         text: segment.text,
-        words: segment.words.map((word, wordIndex) =>
+        words: segment.words.map((word) =>
           transcriptWordSchema.parse({
-            index: wordIndex,
             text: word.text,
             startSeconds: chunk.startSeconds + word.startSeconds,
             endSeconds: chunk.startSeconds + word.endSeconds,
-            confidence: word.confidence
+            confidence: word.probability
           })
-        )
+        ),
+        boundaryReason: segment.boundaryReason
       });
     })
   );
@@ -284,16 +327,26 @@ export function mergeChunkSegments(
   });
 }
 
+interface WhisperChunkResult {
+  readonly chunkIndex: number;
+  readonly startSeconds: number;
+  readonly durationSeconds: number;
+  readonly raw: unknown;
+  readonly rawSegments: TranscriptSegment[];
+  readonly words: Array<{ readonly text: string; readonly startSeconds: number; readonly endSeconds: number; readonly probability?: number }>;
+  readonly text: string;
+}
+
 async function runWhisperChunk(
   options: WhisperCppOptions,
   audioPath: string,
   workingDir: string,
   startSeconds: number,
   durationSeconds: number,
-  sourceId: EpisodeId,
+  chunkIndex: number,
   language: string,
   signal: AbortSignal
-): Promise<Transcript> {
+): Promise<WhisperChunkResult> {
   const chunkAudioPath = await createChunkWav(audioPath, workingDir, startSeconds, durationSeconds, signal);
   const outputPrefix = path.join(workingDir, `transcript-${String(Math.max(0, Math.floor(startSeconds))).padStart(6, "0")}`);
   const availableCpuCores = Math.max(1, os.cpus().length);
@@ -306,7 +359,11 @@ async function runWhisperChunk(
     chunkAudioPath,
     "-of",
     outputPrefix,
-    "-oj",
+    "-ojf",
+    "-owts",
+    "-sow",
+    "-dtw",
+    whisperDtwPresetFromModelPath(options.whisperModel),
     "-osrt",
     "-otxt",
     "-l",
@@ -321,34 +378,148 @@ async function runWhisperChunk(
     "-p",
     String(processors)
   ];
-  await runCommand(options.whisperBin, args, {
-    timeoutMs: options.timeoutMs ?? 300000,
-    signal
-  });
+  try {
+    await runCommand(options.whisperBin, args, {
+      timeoutMs: options.timeoutMs ?? 300000,
+      signal
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (/timed out/i.test(message)) {
+      throw new WhisperTimeoutError(`whisper.cpp timed out while processing chunk at ${startSeconds}s.`, { cause: error });
+    }
+    if (/ENOENT|not found|Failed to start/i.test(message)) {
+      throw new WhisperBinaryNotFoundError(`whisper.cpp binary is not available: ${options.whisperBin}`, { cause: error });
+    }
+    throw new WhisperProcessFailureError(`whisper.cpp failed while processing chunk at ${startSeconds}s.`, { cause: error });
+  }
   const jsonPath = `${outputPrefix}.json`;
   if (!(await fs.stat(jsonPath).catch(() => null))) {
-    throw new ProviderResponseError("whisper.cpp did not produce a JSON transcript.");
+    throw new WhisperProcessFailureError("whisper.cpp did not produce a JSON transcript.");
   }
-  const payload = whisperResponseSchema.parse(JSON.parse(await fs.readFile(jsonPath, "utf8")) as unknown);
-  const chunks = payload.transcription ?? [];
-  const segments = chunks.map((segment, index) => {
-    const segmentId = sceneIdSchema.parse(`scene-${String(index + 1).padStart(3, "0")}`);
-    const startSeconds = segment.offsets?.from !== undefined ? segment.offsets.from / 1000 : segment.timestamps ? parseWhisperTimestamp(segment.timestamps.from) : index * 4;
-    const endSeconds = segment.offsets?.to !== undefined ? segment.offsets.to / 1000 : segment.timestamps ? parseWhisperTimestamp(segment.timestamps.to) : index * 4 + 4;
-    return transcriptSegmentSchema.parse({
-      id: segmentId,
-      startSeconds,
-      endSeconds,
-      text: segment.text ?? ""
-    });
-  });
-  return transcriptSchema.parse({
+  const raw = JSON.parse(await fs.readFile(jsonPath, "utf8")) as unknown;
+  const rawSegments = extractRawSegmentsFromWhisperResponse(raw);
+  const words = extractTimedWordsFromWhisperResponse(raw, DEFAULT_SEGMENTATION_OPTIONS.timestampPrecision);
+  const offsetWords = words.map((word) =>
+    word.probability === undefined
+      ? {
+          text: word.text,
+          startSeconds: word.startSeconds + startSeconds,
+          endSeconds: word.endSeconds + startSeconds
+        }
+      : {
+          text: word.text,
+          startSeconds: word.startSeconds + startSeconds,
+          endSeconds: word.endSeconds + startSeconds,
+          probability: word.probability
+        }
+  );
+  const offsetSegments = rawSegments.map((segment, index) =>
+    transcriptSegmentSchema.parse({
+      id: `segment-${String(index + 1).padStart(3, "0")}`,
+      startSeconds: segment.startSeconds + startSeconds,
+      endSeconds: segment.endSeconds + startSeconds,
+      text: segment.text,
+      words: segment.words.map((word) => ({
+        text: word.text,
+        startSeconds: word.startSeconds + startSeconds,
+        endSeconds: word.endSeconds + startSeconds,
+        probability: word.probability
+      })),
+      boundaryReason: segment.boundaryReason
+    })
+  );
+  return {
+    chunkIndex,
+    startSeconds,
+    durationSeconds,
+    raw,
+    rawSegments: offsetSegments,
+    words: offsetWords,
+    text: offsetSegments.map((segment) => segment.text).join(" ")
+  };
+}
+
+function mergeWhisperChunkResults(
+  chunked: ReadonlyArray<WhisperChunkResult>,
+  sourceId: EpisodeId,
+  language: string,
+  generatedAt: string,
+  model: string,
+  provider: string,
+  options?: Partial<SentenceSegmentationOptions>
+): {
+  readonly rawArtifact: WhisperRawTranscriptArtifact;
+  readonly normalizedTranscript: NormalizedTranscript;
+  readonly subtitleSegments: TranscriptSegment[];
+  readonly visualScenes: Array<{ readonly id: string; readonly startSeconds: number; readonly endSeconds: number; readonly narration: string; readonly sourceSegmentIds: string[] }>;
+} {
+  const rawSegments = chunked.flatMap((chunk) => chunk.rawSegments);
+  const allWords = chunked.flatMap((chunk) => chunk.words).map((word) => ({
+    text: word.text,
+    startSeconds: word.startSeconds,
+    endSeconds: word.endSeconds,
+    probability: word.probability
+  }));
+  if (allWords.length === 0) {
+    throw new MissingWordTimestampsError("Whisper produced no usable word timestamps.");
+  }
+  const normalizedTranscript = normalizeTranscriptFromWords({
     sourceId,
     language,
-    text: payload.text ?? segments.map((segment) => segment.text).join(" "),
-    segments,
-    words: segments.flatMap((segment) => segment.words)
+    words: allWords,
+    provider,
+    model,
+    generatedAt,
+    ...(options ? { options } : {})
   });
+  const subtitleSegments = normalizedTranscript.segments;
+  const visualScenes = buildVisualScenesFromSubtitleSegments(subtitleSegments, {
+    minDurationSeconds: 8,
+    maxDurationSeconds: 18
+  });
+  const rawArtifact = parseWhisperRawArtifact({
+    schemaVersion: 1,
+    sourceId,
+    language,
+    backend: provider,
+    model,
+    generatedAt,
+    wordTimestamps: true,
+    chunks: chunked.map((chunk) => ({
+      chunkIndex: chunk.chunkIndex,
+      startSeconds: chunk.startSeconds,
+      durationSeconds: chunk.durationSeconds,
+      raw: chunk.raw
+    })),
+    rawSegments,
+    words: allWords,
+    text: normalizedTranscript.text
+  });
+  return {
+    rawArtifact,
+    normalizedTranscript,
+    subtitleSegments,
+    visualScenes
+  };
+}
+
+async function persistWhisperArtifacts(
+  episodeDir: string,
+  rawArtifact: WhisperRawTranscriptArtifact,
+  normalizedTranscript: NormalizedTranscript
+): Promise<void> {
+  const transcriptDir = path.join(episodeDir, "transcript");
+  await ensureDir(transcriptDir);
+  try {
+    await writeJsonAtomic(path.join(episodeDir, "original-transcript.json"), rawArtifact);
+    await writeTextAtomic(path.join(episodeDir, "original-transcript.srt"), buildSrt(normalizedTranscript.segments));
+    await writeJsonAtomic(path.join(transcriptDir, "transcript.raw.json"), rawArtifact);
+    await writeJsonAtomic(path.join(transcriptDir, "transcript.json"), normalizedTranscript);
+    await writeTextAtomic(path.join(transcriptDir, "transcript.srt"), buildSrt(normalizedTranscript.segments));
+  } catch (error) {
+    throw new AtomicWriteError("Failed to persist Whisper transcript artifacts.", { cause: error });
+  }
 }
 
 export class MockTranscriptionProvider implements TranscriptionProvider {
@@ -367,7 +538,7 @@ export class WhisperCppTranscriptionProvider implements TranscriptionProvider {
   public async transcribe(request: TranscriptionRequest, signal: AbortSignal): Promise<Transcript> {
     signal.throwIfAborted();
     if (!request.audioPath) {
-      throw new HumanActionRequiredError("whisper.cpp transcription requires an audio file.");
+      throw new MissingAudioFileError("whisper.cpp transcription requires an audio file.");
     }
     if (!this.options.whisperModel) {
       throw new ProviderAuthenticationError("whisper.cpp transcription requires a model path.");
@@ -379,7 +550,8 @@ export class WhisperCppTranscriptionProvider implements TranscriptionProvider {
     const maxDurationSeconds = this.options.maxDurationSeconds ?? durationSeconds;
     const transcriptionDuration = Math.min(durationSeconds, maxDurationSeconds);
     const chunkDurationSeconds = Math.max(10, Math.min(this.options.chunkDurationSeconds ?? 60, transcriptionDuration));
-    const chunkedTranscripts: Array<{ readonly startSeconds: number; readonly transcript: Transcript }> = [];
+    const chunkedTranscripts: WhisperChunkResult[] = [];
+    let chunkIndex = 0;
     for (const range of chunkRanges(transcriptionDuration, chunkDurationSeconds)) {
       signal.throwIfAborted();
       const transcript = await runWhisperChunk(
@@ -388,16 +560,40 @@ export class WhisperCppTranscriptionProvider implements TranscriptionProvider {
         workingDir,
         range.startSeconds,
         range.durationSeconds,
-        request.sourceId,
+        chunkIndex,
         language,
         signal
       );
-      chunkedTranscripts.push({
-        startSeconds: range.startSeconds,
-        transcript
-      });
+      chunkedTranscripts.push(transcript);
+      chunkIndex += 1;
     }
-    return mergeChunkSegments(chunkedTranscripts, request.sourceId, language);
+    const generatedAt = new Date().toISOString();
+    const merged = mergeWhisperChunkResults(
+      chunkedTranscripts,
+      request.sourceId,
+      language,
+      generatedAt,
+      this.options.whisperModel,
+      "whisper.cpp",
+      {
+        minDurationSeconds: DEFAULT_SEGMENTATION_OPTIONS.minDurationSeconds,
+        maxDurationSeconds: DEFAULT_SEGMENTATION_OPTIONS.maxDurationSeconds,
+        maxSilenceSeconds: DEFAULT_SEGMENTATION_OPTIONS.maxSilenceSeconds,
+        timestampPrecision: DEFAULT_SEGMENTATION_OPTIONS.timestampPrecision,
+        maxSingleWordDurationSeconds: DEFAULT_SEGMENTATION_OPTIONS.maxSingleWordDurationSeconds,
+        boundaryLookbackWords: DEFAULT_SEGMENTATION_OPTIONS.boundaryLookbackWords
+      }
+    );
+    if (request.episodeDir) {
+      await persistWhisperArtifacts(request.episodeDir, merged.rawArtifact, merged.normalizedTranscript);
+    }
+    return transcriptSchema.parse({
+      sourceId: merged.normalizedTranscript.sourceId,
+      language: merged.normalizedTranscript.language,
+      text: merged.normalizedTranscript.text,
+      segments: merged.normalizedTranscript.segments,
+      words: merged.normalizedTranscript.words
+    });
   }
 }
 
@@ -495,12 +691,13 @@ export class OpenAiCompatibleTranscriptionProvider implements TranscriptionProvi
       throw new ProviderAuthenticationError("OpenAI transcription requires an API key.");
     }
     const model = this.options.model ?? "gpt-4o-mini-transcribe";
-    const responseFormat = this.options.responseFormat ?? "json";
+    const responseFormat = this.options.responseFormat ?? "verbose_json";
     const language = request.language ?? this.options.language ?? "en";
     const targetDurationSeconds = await inspectAudioDurationSeconds(request.audioPath, signal);
     const chunkDurationSeconds = Math.max(20, Math.min(60, targetDurationSeconds / 8));
     const workingDir = await fs.mkdtemp(path.join(path.dirname(request.audioPath), "openai-transcription-"));
     const chunkedTranscripts: Array<{ readonly startSeconds: number; readonly text: string }> = [];
+    const timedWords: Array<{ readonly text: string; readonly startSeconds: number; readonly endSeconds: number }> = [];
     for (const range of chunkRanges(targetDurationSeconds, chunkDurationSeconds)) {
       signal.throwIfAborted();
       const chunkAudioPath = await createChunkWav(request.audioPath, workingDir, range.startSeconds, range.durationSeconds, signal);
@@ -529,6 +726,44 @@ export class OpenAiCompatibleTranscriptionProvider implements TranscriptionProvi
           cause: error instanceof Error ? error.message : String(error)
         });
       }
+      if (responseFormat === "verbose_json") {
+        const payload = openAiVerboseTranscriptionSchema.parse(parsed);
+        if (payload.words && payload.words.length > 0) {
+          for (const word of payload.words) {
+            timedWords.push({
+              text: word.word,
+              startSeconds: range.startSeconds + word.start,
+              endSeconds: range.startSeconds + word.end
+            });
+          }
+          continue;
+        }
+        if (payload.segments && payload.segments.length > 0) {
+          for (const segment of payload.segments) {
+            const text = normalizeWhitespace(segment.text);
+            if (text.length === 0) {
+              continue;
+            }
+            chunkedTranscripts.push({
+              startSeconds: range.startSeconds + segment.start,
+              text
+            });
+          }
+          continue;
+        }
+        const segmentTexts = splitTranscriptTextIntoSegments(payload.text);
+        if (segmentTexts.length === 0) {
+          continue;
+        }
+        const timings = buildApproximateSegmentTimings(range.startSeconds, range.durationSeconds, segmentTexts);
+        for (const timing of timings) {
+          chunkedTranscripts.push({
+            startSeconds: timing.startSeconds,
+            text: timing.text
+          });
+        }
+        continue;
+      }
       const payload = openAiTextTranscriptionSchema.parse(parsed);
       const segmentTexts = splitTranscriptTextIntoSegments(payload.text);
       if (segmentTexts.length === 0) {
@@ -541,6 +776,51 @@ export class OpenAiCompatibleTranscriptionProvider implements TranscriptionProvi
           text: timing.text
         });
       }
+    }
+    if (timedWords.length > 0) {
+      const normalized = normalizeTranscriptFromWords({
+        sourceId: request.sourceId,
+        language,
+        words: timedWords.map((word) => ({
+          text: word.text,
+          startSeconds: word.startSeconds,
+          endSeconds: word.endSeconds
+        })),
+        provider: "openai-compatible",
+        model,
+        generatedAt: new Date().toISOString(),
+        options: {
+          minDurationSeconds: DEFAULT_SEGMENTATION_OPTIONS.minDurationSeconds,
+          maxDurationSeconds: DEFAULT_SEGMENTATION_OPTIONS.maxDurationSeconds,
+          maxSilenceSeconds: DEFAULT_SEGMENTATION_OPTIONS.maxSilenceSeconds,
+          timestampPrecision: DEFAULT_SEGMENTATION_OPTIONS.timestampPrecision,
+          maxSingleWordDurationSeconds: DEFAULT_SEGMENTATION_OPTIONS.maxSingleWordDurationSeconds,
+          boundaryLookbackWords: DEFAULT_SEGMENTATION_OPTIONS.boundaryLookbackWords
+        }
+      });
+      if (request.episodeDir) {
+        const rawArtifact: WhisperRawTranscriptArtifact = {
+          schemaVersion: 1,
+          sourceId: request.sourceId,
+          language,
+          backend: "openai-compatible",
+          model,
+          generatedAt: new Date().toISOString(),
+          wordTimestamps: true,
+          chunks: [],
+          rawSegments: normalized.segments,
+          words: normalized.words,
+          text: normalized.text
+        };
+        await persistWhisperArtifacts(request.episodeDir, rawArtifact, normalized);
+      }
+      return transcriptSchema.parse({
+        sourceId: normalized.sourceId,
+        language: normalized.language,
+        text: normalized.text,
+        segments: normalized.segments,
+        words: normalized.words
+      });
     }
     if (chunkedTranscripts.length === 0) {
       throw new ProviderResponseError("OpenAI transcription returned no usable transcript text.");

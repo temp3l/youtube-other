@@ -19,6 +19,7 @@ export interface VideoRenderRequest {
   readonly sceneAudioDir?: string;
   readonly imageDir?: string;
   readonly outputSuffix?: string;
+  readonly trailingSilenceRatio?: number;
 }
 
 export interface VideoRenderResult {
@@ -87,6 +88,63 @@ async function probeMedia(filePath: string): Promise<RenderValidation> {
   };
 }
 
+async function probeDurationSeconds(filePath: string): Promise<number> {
+  const probe = await runCommandJson(
+    "ffprobe",
+    ["-v", "quiet", "-print_format", "json", "-show_format", filePath],
+    { timeoutMs: 30000 },
+    (value: unknown) => value as { format?: { duration?: string } }
+  );
+  const duration = Number.parseFloat(probe.format?.duration ?? "0");
+  if (!Number.isFinite(duration) || duration <= 0) {
+    throw new MediaValidationError(`Unable to inspect duration for ${filePath}.`);
+  }
+  return duration;
+}
+
+async function detectTrailingSilenceSeconds(filePath: string): Promise<number> {
+  const result = await runCommand(
+    "ffmpeg",
+    [
+      "-hide_banner",
+      "-nostats",
+      "-i",
+      filePath,
+      "-af",
+      "silencedetect=n=-40dB:d=0.25",
+      "-f",
+      "null",
+      "-"
+    ],
+    { timeoutMs: 120000 }
+  );
+  const matches = [...result.stderr.matchAll(/silence_start:\s*([0-9]+(?:\.[0-9]+)?)/gu)];
+  if (matches.length === 0) {
+    return 0;
+  }
+  const lastMatch = matches[matches.length - 1];
+  const silenceStart = Number.parseFloat(lastMatch?.[1] ?? "0");
+  if (!Number.isFinite(silenceStart) || silenceStart < 0) {
+    return 0;
+  }
+  const duration = await probeDurationSeconds(filePath);
+  return Math.max(0, duration - silenceStart);
+}
+
+async function calculateClipDurationSeconds(filePath: string, trailingSilenceRatio: number): Promise<number> {
+  const duration = await probeDurationSeconds(filePath);
+  if (trailingSilenceRatio >= 1) {
+    return duration;
+  }
+  const trailingSilence = await detectTrailingSilenceSeconds(filePath);
+  if (trailingSilence <= 0) {
+    return duration;
+  }
+  const preservedSilence = trailingSilence * Math.max(0, trailingSilenceRatio);
+  const trimmedDuration = duration - trailingSilence + preservedSilence;
+  return Math.max(0.1, Math.min(duration, trimmedDuration));
+}
+
 async function renderSceneClip(
   imagePath: string,
   audioPath: string,
@@ -94,12 +152,14 @@ async function renderSceneClip(
   fps: number,
   width: number,
   height: number,
-  captionsPath?: string
+  captionsPath?: string,
+  trailingSilenceRatio = 1
 ): Promise<void> {
   const scaleFilter = `scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2,format=yuv420p`;
   const filterGraph = captionsPath
     ? `subtitles=${captionsPath.replace(/:/g, "\\:")},${scaleFilter}`
     : scaleFilter;
+  const clipDurationSeconds = await calculateClipDurationSeconds(audioPath, trailingSilenceRatio);
   const args = [
     "-y",
     "-loop",
@@ -110,13 +170,14 @@ async function renderSceneClip(
     audioPath,
     "-vf",
     filterGraph,
+    "-t",
+    String(clipDurationSeconds),
     "-r",
     String(fps),
     "-c:v",
     "libx264",
     "-c:a",
-    "aac",
-    "-shortest"
+    "aac"
   ];
   args.push(outputPath);
   await runCommand("ffmpeg", args, { timeoutMs: 600000 });
@@ -194,7 +255,8 @@ export class FFmpegVideoRenderer implements VideoRenderer {
         request.renderProfile.fps,
         request.renderProfile.width,
         request.renderProfile.height,
-        request.captionBurnIn && request.captionsPath ? request.captionsPath : undefined
+        request.captionBurnIn && request.captionsPath ? request.captionsPath : undefined,
+        request.trailingSilenceRatio ?? 1
       );
       clipPaths.push(clipPath);
     }

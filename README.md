@@ -1,3 +1,10 @@
+make sure you never use the test tone again when generating speech but the openai api call with curl command and relevant settings.
+also make sure that the script.md's text is always rephrased in simple language and the simple one is used for speech generation. Also i always want you to use a human readable name with "###-${title}" format when creating new episode folders. Also make sure to always use 2 parallel api calls when generating speech to speed things up - if that is possible, otherwise fallback to sequential voice generation with a single api concurrent api call.
+
+---
+
+the narration.wav looks good now, continue with re-generating the transcript and metadata files with openai. then stop and let me check everything.
+
 document, commit and push everything that is relevant. then merge the branch into master
 
 what are the recommended next steps in order to generate the full spanish video?

@@ -67,8 +67,24 @@ export const sourceMediaSchema = z.object({
 });
 export type SourceMedia = z.infer<typeof sourceMediaSchema>;
 
+export const rawTimedWordSchema = z.object({
+  text: z.string(),
+  startSeconds: z.number().nonnegative(),
+  endSeconds: z.number().nonnegative(),
+  probability: z.number().min(0).max(1).optional()
+});
+export type RawTimedWord = z.infer<typeof rawTimedWordSchema>;
+
+export const timestampedWordSchema = z.object({
+  text: z.string(),
+  startSeconds: z.number().nonnegative(),
+  endSeconds: z.number().nonnegative(),
+  probability: z.number().min(0).max(1).optional()
+});
+export type TimestampedWord = z.infer<typeof timestampedWordSchema>;
+
 export const transcriptWordSchema = z.object({
-  index: z.number().int().nonnegative(),
+  index: z.number().int().nonnegative().optional(),
   text: z.string(),
   startSeconds: z.number().nonnegative(),
   endSeconds: z.number().nonnegative(),
@@ -76,23 +92,63 @@ export const transcriptWordSchema = z.object({
 });
 export type TranscriptWord = z.infer<typeof transcriptWordSchema>;
 
+export const segmentBoundaryReasonSchema = z.enum(["sentence", "silence", "max-duration", "end-of-transcript"]);
+export type SegmentBoundaryReason = z.infer<typeof segmentBoundaryReasonSchema>;
+
+const transcriptSegmentIdSchema = z
+  .string()
+  .regex(/^(?:scene|segment)-[0-9]{3}$/u)
+  .brand<"TranscriptSegmentId">();
+export { transcriptSegmentIdSchema };
+export type TranscriptSegmentId = z.infer<typeof transcriptSegmentIdSchema>;
+
+export const sentenceSegmentationOptionsSchema = z.object({
+  minDurationSeconds: z.number().positive(),
+  maxDurationSeconds: z.number().positive(),
+  maxSilenceSeconds: z.number().nonnegative(),
+  timestampPrecision: z.number().int().min(0).max(6),
+  maxSingleWordDurationSeconds: z.number().positive(),
+  boundaryLookbackWords: z.number().int().nonnegative()
+});
+export type SentenceSegmentationOptions = z.infer<typeof sentenceSegmentationOptionsSchema>;
+
 export const transcriptSegmentSchema = z.object({
-  id: sceneIdSchema.catch("scene-001" as SceneId),
+  id: transcriptSegmentIdSchema,
   startSeconds: z.number().nonnegative(),
   endSeconds: z.number().nonnegative(),
   text: z.string(),
-  words: z.array(transcriptWordSchema).default([])
+  words: z.array(timestampedWordSchema).default([]),
+  boundaryReason: segmentBoundaryReasonSchema.optional()
 });
 export type TranscriptSegment = z.infer<typeof transcriptSegmentSchema>;
+
+export const subtitleSegmentSchema = transcriptSegmentSchema;
+export type SubtitleSegment = z.infer<typeof subtitleSegmentSchema>;
 
 export const transcriptSchema = z.object({
   sourceId: episodeIdSchema,
   language: z.string().min(1),
   text: z.string(),
   segments: z.array(transcriptSegmentSchema),
-  words: z.array(transcriptWordSchema).default([])
+  words: z.array(timestampedWordSchema).default([])
 });
 export type Transcript = z.infer<typeof transcriptSchema>;
+
+export const normalizedTranscriptSchema = z.object({
+  schemaVersion: z.literal(1),
+  sourceId: episodeIdSchema,
+  language: z.string().min(1),
+  text: z.string(),
+  segments: z.array(transcriptSegmentSchema),
+  words: z.array(timestampedWordSchema),
+  generation: z.object({
+    provider: z.string(),
+    model: z.string(),
+    generatedAt: z.string(),
+    wordTimestamps: z.literal(true)
+  })
+});
+export type NormalizedTranscript = z.infer<typeof normalizedTranscriptSchema>;
 
 export const transcriptCorrectionSchema = z.object({
   originalText: z.string(),
@@ -124,7 +180,7 @@ export type CleanedTranscript = z.infer<typeof cleanedTranscriptSchema>;
 
 export const rewrittenScriptSectionSchema = z.object({
   sectionId: z.string(),
-  transcriptSegmentIds: z.array(sceneIdSchema),
+  transcriptSegmentIds: z.array(transcriptSegmentIdSchema),
   text: z.string(),
   claims: z.array(z.string()).default([])
 });
@@ -147,7 +203,7 @@ export type RewrittenScript = z.infer<typeof rewrittenScriptSchema>;
 
 export const claimSchema = z.object({
   text: z.string(),
-  sourceSegmentIds: z.array(sceneIdSchema),
+  sourceSegmentIds: z.array(transcriptSegmentIdSchema),
   reviewRequired: z.boolean(),
   reason: z.string().optional()
 });
@@ -177,7 +233,7 @@ export const sceneSchema = z.object({
   id: sceneIdSchema,
   sequenceNumber: z.number().int().positive(),
   canonicalNarration: z.string(),
-  sourceSegmentIds: z.array(sceneIdSchema),
+  sourceSegmentIds: z.array(transcriptSegmentIdSchema),
   estimatedDurationSeconds: z.number().nonnegative(),
   actualAudioDurationSeconds: z.number().nonnegative().optional(),
   timing: sceneTimingSchema,
@@ -203,6 +259,15 @@ export const scenePlanSchema = z.object({
   scenes: z.array(sceneSchema)
 });
 export type ScenePlan = z.infer<typeof scenePlanSchema>;
+
+export const visualSceneSchema = z.object({
+  id: sceneIdSchema,
+  startSeconds: z.number().nonnegative(),
+  endSeconds: z.number().nonnegative(),
+  narration: z.string(),
+  sourceSegmentIds: z.array(transcriptSegmentIdSchema)
+});
+export type VisualScene = z.infer<typeof visualSceneSchema>;
 
 export const voiceProfileSchema = z.object({
   id: z.string(),

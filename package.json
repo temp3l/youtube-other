@@ -17,7 +17,10 @@
     "format": "prettier --write .",
     "doctor": "node apps/cli/dist/index.js doctor",
     "mediaforge": "node apps/cli/dist/index.js",
-    "db:migrate": "pnpm --filter @mediaforge/cli db:migrate"
+    "db:migrate": "pnpm --filter @mediaforge/cli db:migrate",
+    "transcript:generate": "node apps/cli/dist/index.js transcript generate",
+    "transcript:normalize": "node apps/cli/dist/index.js transcript normalize",
+    "transcript:validate": "node apps/cli/dist/index.js transcript validate"
   },
   "devDependencies": {
     "@eslint/js": "^9.30.1",
