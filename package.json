@@ -20,7 +20,10 @@
     "db:migrate": "pnpm --filter @mediaforge/cli db:migrate",
     "transcript:generate": "node apps/cli/dist/index.js transcript generate",
     "transcript:normalize": "node apps/cli/dist/index.js transcript normalize",
-    "transcript:validate": "node apps/cli/dist/index.js transcript validate"
+    "transcript:validate": "node apps/cli/dist/index.js transcript validate",
+    "metadata:youtube": "node apps/cli/dist/index.js metadata youtube",
+    "metadata:youtube:curl": "bash scripts/generate-youtube-metadata.sh",
+    "test:metadata": "vitest run packages/metadata/src/youtube-metadata.unit.test.ts"
   },
   "devDependencies": {
     "@eslint/js": "^9.30.1",

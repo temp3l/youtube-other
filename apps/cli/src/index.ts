@@ -22,6 +22,15 @@ import {
 import { createLogger } from "@mediaforge/observability";
 import { formatPublishingMetadataMarkdown, generateLocalizedPublishingMetadata } from "@mediaforge/metadata";
 import {
+  findEpisodeScenesFile,
+  generateYoutubeMetadataFromScenesFile,
+  listEpisodeSceneFiles,
+  readAndValidateScenesFile,
+  type YoutubeMetadataGenerationInfo,
+  type YoutubeMetadataGenerationOptions,
+  type YoutubeMetadataOutputs
+} from "@mediaforge/metadata";
+import {
   createPromptBatch,
   exportSceneWorkbook,
   generateOpenAiSceneImages,
@@ -40,6 +49,7 @@ import {
   formatTimestampLabel,
   hashFile,
   normalizeWhitespace,
+  ensureWorkspacePath,
   slugify,
   safeBasename,
   writeJsonAtomic,
@@ -1228,6 +1238,165 @@ async function commandMetadataGenerate(options: CliOptions, episodeId: string): 
   process.stdout.write(`${youtubeMarkdownPath}\n`);
 }
 
+interface YoutubeMetadataRunSummary {
+  readonly episodeSlug: string;
+  readonly sourceFilePath: string;
+  readonly outputs: YoutubeMetadataOutputs;
+  readonly generation?: YoutubeMetadataGenerationInfo;
+  readonly cacheHit?: boolean;
+  readonly dryRun: boolean;
+  readonly sceneCount: number;
+  readonly durationSeconds: number;
+  readonly language: string;
+  readonly model: string;
+  readonly promptVersion: string;
+}
+
+function youtubeMetadataPromptPath(): string {
+  return path.resolve("prompts", "youtube-metadata.prompt.md");
+}
+
+async function loadYoutubeMetadataPromptText(): Promise<{ readonly filePath: string; readonly text: string }> {
+  const filePath = youtubeMetadataPromptPath();
+  if (!(await fileExists(filePath))) {
+    throw new Error(`Missing metadata prompt file: ${filePath}`);
+  }
+  return {
+    filePath,
+    text: await fs.readFile(filePath, "utf8")
+  };
+}
+
+function youtubeMetadataOutputsForEpisode(episodeDir: string): YoutubeMetadataOutputs {
+  const outputDir = path.join(episodeDir, "output");
+  return {
+    outputDir,
+    jsonPath: path.join(outputDir, "youtube-metadata.json"),
+    markdownPath: path.join(outputDir, "youtube-metadata.md"),
+    descriptionPath: path.join(outputDir, "youtube-description.txt"),
+    chaptersPath: path.join(outputDir, "youtube-chapters.txt"),
+    tagsPath: path.join(outputDir, "youtube-tags.txt"),
+    pinnedCommentPath: path.join(outputDir, "youtube-pinned-comment.txt"),
+    generationPath: path.join(outputDir, "youtube-metadata-generation.json")
+  };
+}
+
+async function resolveYoutubeMetadataTargets(
+  options: CliOptions,
+  sourcePath: string | undefined,
+  episodeSlug: string | undefined,
+  all: boolean
+): Promise<Array<{ readonly episodeSlug: string; readonly sourceFilePath: string }>> {
+  const config = await loadRuntimeConfig(configOverridesFromCli(options));
+  if (all) {
+    if (sourcePath || episodeSlug) {
+      throw new Error("--all cannot be combined with an explicit source path or --episode.");
+    }
+    return listEpisodeSceneFiles(config.workspaceDir);
+  }
+  if (sourcePath) {
+    if (episodeSlug) {
+      throw new Error("Use either an explicit source path or --episode, not both.");
+    }
+    const resolved = ensureWorkspacePath(config.workspaceDir, path.resolve(sourcePath));
+    if (!(await fileExists(resolved))) {
+      throw new Error(`Missing scenes file: ${resolved}`);
+    }
+    const episodeDir = path.basename(path.dirname(resolved)) === "output" ? path.dirname(path.dirname(resolved)) : path.dirname(resolved);
+    return [
+      {
+        episodeSlug: path.basename(episodeDir),
+        sourceFilePath: resolved
+      }
+    ];
+  }
+  if (!episodeSlug) {
+    throw new Error("Provide a scenes file path, --episode, or --all.");
+  }
+  const sourceFilePath = await findEpisodeScenesFile(config.workspaceDir, episodeSlug);
+  return [{ episodeSlug, sourceFilePath }];
+}
+
+async function commandMetadataYoutube(
+  options: CliOptions,
+  sourcePath: string | undefined,
+  metadataOptions: { readonly episode?: string; readonly all?: boolean; readonly force?: boolean }
+): Promise<void> {
+  const config = await loadRuntimeConfig(configOverridesFromCli(options));
+  const prompt = await loadYoutubeMetadataPromptText();
+  const language = config.youtubeMetadataLanguage ?? config.scriptLanguage ?? "en";
+  const targets = await resolveYoutubeMetadataTargets(options, sourcePath, metadataOptions.episode, metadataOptions.all ?? false);
+  if (options.dryRun) {
+    const summary = await Promise.all(
+      targets.map(async (target) => {
+        const targetData = await readAndValidateScenesFile(target.sourceFilePath, language);
+        const outputs = youtubeMetadataOutputsForEpisode(targetData.episodeDir);
+        return {
+          episodeSlug: target.episodeSlug,
+          sourceFilePath: target.sourceFilePath,
+          outputs,
+          dryRun: true,
+          sceneCount: targetData.scenePlan.scenes.length,
+          durationSeconds: targetData.durationSeconds,
+          language,
+          model: config.openAiMetadataModel ?? "gpt-4o-mini",
+          promptVersion: "youtube-metadata-v1"
+        } satisfies YoutubeMetadataRunSummary;
+      })
+    );
+    printJson(summary.length === 1 ? summary[0] : summary);
+    return;
+  }
+  const results: YoutubeMetadataRunSummary[] = [];
+  let failed = false;
+  for (const target of targets) {
+    try {
+      const baseUrl = config.openAiCompatibleBaseUrl ?? process.env["OPENAI_BASE_URL"];
+      const generationOptions: Omit<YoutubeMetadataGenerationOptions, "baseUrl"> & { baseUrl?: string } = {
+        apiKey: config.openAiCompatibleApiKey ?? process.env["OPENAI_API_KEY"] ?? "",
+        model: config.openAiMetadataModel ?? "gpt-4o-mini",
+        language,
+        promptText: prompt.text,
+        promptVersion: "youtube-metadata-v1",
+        maxRetries: config.openAiMetadataMaxRetries ?? 3,
+        timeoutMs: config.openAiMetadataTimeoutMs ?? 120000,
+        keepFile: config.openAiMetadataKeepFile,
+        force: metadataOptions.force ?? false,
+        logger: createLogger(options.verbose ? "debug" : config.logLevel)
+      };
+      if (baseUrl !== undefined) {
+        generationOptions.baseUrl = baseUrl;
+      }
+      const generation = await generateYoutubeMetadataFromScenesFile(target.sourceFilePath, generationOptions);
+      results.push({
+        episodeSlug: target.episodeSlug,
+        sourceFilePath: target.sourceFilePath,
+        outputs: generation.outputs,
+        generation: generation.generation,
+        cacheHit: generation.cacheHit,
+        dryRun: false,
+        sceneCount: generation.metadata.source.sceneCount,
+        durationSeconds: generation.metadata.source.durationSeconds,
+        language: generation.metadata.source.language,
+        model: generation.generation.model,
+        promptVersion: generation.generation.promptVersion
+      });
+      if (!options.quiet) {
+        process.stdout.write(`${generation.outputs.jsonPath}\n`);
+      }
+    } catch (error: unknown) {
+      failed = true;
+      process.stderr.write(`${JSON.stringify(serializeError(error), null, 2)}\n`);
+    }
+  }
+  if (options.json) {
+    printJson(results.length === 1 ? results[0] : results);
+  }
+  if (failed) {
+    process.exitCode = 1;
+  }
+}
+
 async function commandPackage(options: CliOptions, episodeId: string): Promise<void> {
   const { manifest } = await readManifestForEpisode(options, episodeId);
   printJson({
@@ -1443,12 +1612,21 @@ program
   .action(async (episodeId: string, opts: { profile: "youtube" | "vertical"; captions?: boolean }) => {
     await commandRender(program.opts<CliOptions>(), episodeId, opts.profile, opts.captions ?? true);
   });
-program
-  .command("metadata")
+const metadataCommand = program.command("metadata").description("Metadata utilities");
+metadataCommand
   .command("generate")
   .argument("<episode-id>")
   .action(async (episodeId: string) => {
     await commandMetadataGenerate(program.opts<CliOptions>(), episodeId);
+  });
+metadataCommand
+  .command("youtube")
+  .argument("[source]")
+  .option("--episode <episode-slug>")
+  .option("--all")
+  .option("--force")
+  .action(async (source: string | undefined, opts: { episode?: string; all?: boolean; force?: boolean }) => {
+    await commandMetadataYoutube(program.opts<CliOptions>(), source, opts);
   });
 program
   .command("package")

@@ -5,6 +5,33 @@ import {
   type ScenePlan
 } from "@mediaforge/domain";
 import { formatTimestampLabel, normalizeWhitespace, splitIntoWords } from "@mediaforge/shared";
+export {
+  ConfigurationError,
+  MetadataValidationError,
+  OpenAIResponseError,
+  OpenAIUploadError,
+  type OpenAiMetadataClient,
+  OutputWriteError,
+  SourceFileError,
+  SourceValidationError,
+  YOUTUBE_METADATA_PROMPT_VERSION,
+  YOUTUBE_METADATA_SCHEMA_VERSION,
+  type YoutubeMetadata,
+  type YoutubeMetadataGenerationInfo,
+  type YoutubeMetadataGenerationOptions,
+  type YoutubeMetadataOutputs,
+  type YoutubeMetadataTarget,
+  computeYoutubeMetadataCacheKey,
+  extractResponseText,
+  findEpisodeScenesFile,
+  generateYoutubeMetadataForTarget,
+  generateYoutubeMetadataFromScenesFile,
+  listEpisodeSceneFiles,
+  parseScenesFile,
+  readAndValidateScenesFile,
+  formatYoutubeMetadataMarkdown,
+  youtubeMetadataSchema
+} from "./youtube-metadata.js";
 
 export interface MetadataProvider {
   generate(script: RewrittenScript, scenePlan: ScenePlan, platform: "youtube" | "tiktok"): PublishingMetadata;

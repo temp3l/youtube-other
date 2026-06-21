@@ -34,6 +34,11 @@ const configSchema = z.object({
   openAiTranscriptionModel: z.string().optional(),
   openAiTranscriptionLanguage: z.string().optional(),
   openAiTranscriptionPrompt: z.string().optional(),
+  openAiMetadataModel: z.string().optional(),
+  openAiMetadataMaxRetries: z.number().int().positive().optional(),
+  openAiMetadataKeepFile: z.boolean(),
+  openAiMetadataTimeoutMs: z.number().int().positive().optional(),
+  youtubeMetadataLanguage: z.string().regex(/^[a-z]{2}(?:-[a-z0-9]{2,8})*$/iu).optional(),
   openAiCompatibleBaseUrl: z.string().url().optional(),
   openAiCompatibleApiKey: z.string().optional(),
   openAiCompatibleModel: z.string().optional(),
@@ -81,6 +86,11 @@ const envSchema = z.object({
   MEDIAFORGE_OPENAI_TRANSCRIPTION_MODEL: z.string().optional(),
   MEDIAFORGE_OPENAI_TRANSCRIPTION_LANGUAGE: z.string().optional(),
   MEDIAFORGE_OPENAI_TRANSCRIPTION_PROMPT: z.string().optional(),
+  OPENAI_METADATA_MODEL: z.string().optional(),
+  OPENAI_METADATA_MAX_RETRIES: z.coerce.number().int().positive().optional(),
+  OPENAI_METADATA_KEEP_FILE: z.string().optional(),
+  OPENAI_METADATA_TIMEOUT_MS: z.coerce.number().int().positive().optional(),
+  YOUTUBE_METADATA_LANGUAGE: z.string().regex(/^[a-z]{2}(?:-[a-z0-9]{2,8})*$/iu).optional(),
   MEDIAFORGE_OPENAI_COMPATIBLE_BASE_URL: z.string().url().optional(),
   MEDIAFORGE_OPENAI_COMPATIBLE_API_KEY: z.string().optional(),
   MEDIAFORGE_OPENAI_COMPATIBLE_MODEL: z.string().optional(),
@@ -193,6 +203,21 @@ export async function loadRuntimeConfig(
       overrides.openAiTranscriptionLanguage ?? episodeOverrides.openAiTranscriptionLanguage ?? env.MEDIAFORGE_OPENAI_TRANSCRIPTION_LANGUAGE,
     openAiTranscriptionPrompt:
       overrides.openAiTranscriptionPrompt ?? episodeOverrides.openAiTranscriptionPrompt ?? env.MEDIAFORGE_OPENAI_TRANSCRIPTION_PROMPT,
+    openAiMetadataModel: overrides.openAiMetadataModel ?? episodeOverrides.openAiMetadataModel ?? env.OPENAI_METADATA_MODEL,
+    openAiMetadataMaxRetries:
+      overrides.openAiMetadataMaxRetries ?? episodeOverrides.openAiMetadataMaxRetries ?? env.OPENAI_METADATA_MAX_RETRIES ?? 3,
+    openAiMetadataKeepFile:
+      overrides.openAiMetadataKeepFile ?? episodeOverrides.openAiMetadataKeepFile ?? parseBooleanEnv(env.OPENAI_METADATA_KEEP_FILE) ?? false,
+    openAiMetadataTimeoutMs:
+      overrides.openAiMetadataTimeoutMs ?? episodeOverrides.openAiMetadataTimeoutMs ?? env.OPENAI_METADATA_TIMEOUT_MS ?? 120000,
+    youtubeMetadataLanguage:
+      overrides.youtubeMetadataLanguage ??
+      episodeOverrides.youtubeMetadataLanguage ??
+      env.YOUTUBE_METADATA_LANGUAGE ??
+      overrides.scriptLanguage ??
+      episodeOverrides.scriptLanguage ??
+      env.MEDIAFORGE_SCRIPT_LANGUAGE ??
+      "en",
     openAiCompatibleBaseUrl: mergedOpenAiBaseUrl,
     openAiCompatibleApiKey: mergedOpenAiApiKey,
     openAiCompatibleModel: overrides.openAiCompatibleModel ?? episodeOverrides.openAiCompatibleModel ?? env.MEDIAFORGE_OPENAI_COMPATIBLE_MODEL,
