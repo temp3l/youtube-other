@@ -493,9 +493,12 @@ async function generateSingleImage(
       reductionPercent:
         job.scene.imagePrompt.length === 0
           ? 0
-          : ((job.scene.imagePrompt.length - job.prompt.length) /
-              job.scene.imagePrompt.length) *
-            100,
+          : Math.max(
+              0,
+              ((job.scene.imagePrompt.length - job.prompt.length) /
+                job.scene.imagePrompt.length) *
+                100
+            ),
       originalEstimatedTokens: Math.ceil(job.scene.imagePrompt.length / 4),
       optimizedEstimatedTokens: Math.ceil(job.prompt.length / 4),
     },

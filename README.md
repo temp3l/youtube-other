@@ -1,5 +1,13 @@
+name the episode: "003-Baby-Memory" and produce a video from this source: https://www.youtube.com/watch?v=royoy7-PyTw
+
+name the episode: "002-Ancient-Humans-at-Night"
+
 make sure you never use the test tone again when generating speech but the openai api call with curl command and relevant settings.
-also make sure that the script.md's text is always rephrased in simple language and the simple one is used for speech generation. Also i always want you to use a human readable name with "###-${title}" format when creating new episode folders. Also make sure to always use 2 parallel api calls when generating speech to speed things up - if that is possible, otherwise fallback to sequential voice generation with a single api concurrent api call.
+also make sure that the script.md's text is always rephrased in simple language and the simple one is used for speech generation. i prefer long sentences over multiple small ones. Also i always want you to use a human readable name with "###-${title}" format when creating new episode folders. Also make sure to always use 2 parallel api calls when generating speech to speed things up - if that is possible, otherwise fallback to sequential voice generation with a single api concurrent api call.
+
+---
+
+after getting the text from a youtube video source I always want it to be rephrased in a totally custom but simple way and easy language. it should be clearly distinct from the original source but carry the same message.
 
 ---
 

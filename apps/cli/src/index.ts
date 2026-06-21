@@ -40,6 +40,7 @@ import {
   formatTimestampLabel,
   hashFile,
   normalizeWhitespace,
+  slugify,
   safeBasename,
   writeJsonAtomic,
   writeTextAtomic
@@ -551,11 +552,8 @@ async function commandTranscriptGenerate(options: CliOptions, episodeId: string)
     throw new Error(`Episode manifest not found for ${episodeId}`);
   }
   const config = await loadRuntimeConfig(configOverridesFromCli(options), (await loadEpisodeConfig(episodeDir)) ?? {});
-  if (config.transcriptionProvider !== "whisper.cpp") {
-    throw new Error("Transcript generation requires transcriptionProvider=whisper.cpp so word timestamps are available.");
-  }
-  if (!config.whisperWordTimestamps) {
-    throw new Error("Transcript generation requires WHISPER_WORD_TIMESTAMPS=true.");
+  if (config.transcriptionProvider === "whisper.cpp" && !config.whisperWordTimestamps) {
+    throw new Error("Transcript generation requires WHISPER_WORD_TIMESTAMPS=true when using whisper.cpp.");
   }
   const audioPath = await resolveEpisodeSourceAudioPath(episodeDir, manifest);
   const audioDurationSeconds = await inspectAudioDurationSeconds(audioPath);
@@ -569,8 +567,10 @@ async function commandTranscriptGenerate(options: CliOptions, episodeId: string)
       episodeId,
       audioPath,
       audioDurationSeconds,
+      transcriptionProvider: config.transcriptionProvider,
       whisperBin: config.whisperBin,
       whisperModel: config.whisperModel,
+      openAiTranscriptionModel: config.openAiTranscriptionModel,
       language: config.whisperLanguage ?? config.scriptLanguage,
       outputPaths,
       dryRun: true
@@ -578,7 +578,7 @@ async function commandTranscriptGenerate(options: CliOptions, episodeId: string)
     return;
   }
   const pipeline = await loadPipeline(options, episodeDir);
-  const transcriptionLanguage = config.whisperLanguage ?? config.scriptLanguage;
+  const transcriptionLanguage = config.whisperLanguage ?? config.openAiTranscriptionLanguage ?? config.scriptLanguage;
   const transcriptRequest = transcriptionLanguage
     ? {
         sourceId: manifest.episodeId,
@@ -602,8 +602,8 @@ async function commandTranscriptGenerate(options: CliOptions, episodeId: string)
     segments: transcript.segments,
     words: transcript.words,
     generation: {
-      provider: "whisper.cpp",
-      model: config.whisperModel ?? "unknown",
+      provider: config.transcriptionProvider,
+      model: config.whisperModel ?? config.openAiTranscriptionModel ?? "unknown",
       generatedAt: new Date().toISOString(),
       wordTimestamps: true as const
     }
@@ -614,8 +614,8 @@ async function commandTranscriptGenerate(options: CliOptions, episodeId: string)
   }).length;
   const summary = {
     episodeId,
-    backend: raw?.backend ?? "whisper.cpp",
-    model: raw?.model ?? config.whisperModel ?? "unknown",
+    backend: raw?.backend ?? config.transcriptionProvider,
+    model: raw?.model ?? config.whisperModel ?? config.openAiTranscriptionModel ?? "unknown",
     language: normalized.language,
     audioDurationSeconds,
     wordCount: normalized.words.length,
@@ -690,7 +690,10 @@ async function commandTranscriptValidate(options: CliOptions, episodeId: string)
   const config = await loadRuntimeConfig(configOverridesFromCli(options), (await loadEpisodeConfig(episodeDir)) ?? {});
   const artifacts = await readTranscriptArtifacts(episodeDir);
   const issues: string[] = [];
-  const spokenRawWords = (artifacts.raw?.words ?? []).filter((word: { readonly text: string }) => !/^\[(?:music|música|applause|silence)\]$/iu.test(word.text));
+  const spokenRawWords = (artifacts.raw?.words ?? []).filter(
+    (word: { readonly text: string }) =>
+      normalizeWhitespace(word.text).length > 0 && !/^\[(?:music|música|applause|silence)\]$/iu.test(word.text)
+  );
   if (!artifacts.raw) {
     issues.push("missing raw Whisper transcript");
   }
@@ -858,7 +861,7 @@ async function commandAudioGenerate(options: CliOptions, episodeId: string): Pro
       segmentPaths[index] = outputPath;
       const stats = await fs.stat(outputPath);
       artifacts[index] = {
-        id: artifactIdSchema.parse(`artifact-${safeBasename(`${episodeSlug}-segment-${String(index + 1).padStart(3, "0")}-${language}`)}`),
+        id: artifactIdSchema.parse(`artifact-${slugify(`${episodeSlug}-segment-${String(index + 1).padStart(3, "0")}-${language}`)}`),
         kind: language === "en" ? "audio.segment" : `audio.segment.${language}`,
         path: outputPath,
         mimeType: "audio/wav",
@@ -879,7 +882,7 @@ async function commandAudioGenerate(options: CliOptions, episodeId: string): Pro
   }
   const narrationStats = await fs.stat(narrationPath);
   completeArtifacts.push({
-    id: artifactIdSchema.parse(`artifact-${safeBasename(`${episodeSlug}-narration-${language}`)}`),
+    id: artifactIdSchema.parse(`artifact-${slugify(`${episodeSlug}-narration-${language}`)}`),
     kind: language === "en" ? "audio.narration" : `audio.narration.${language}`,
     path: narrationPath,
     mimeType: "audio/wav",
@@ -888,7 +891,7 @@ async function commandAudioGenerate(options: CliOptions, episodeId: string): Pro
     createdAt: generatedAt
   });
   completeArtifacts.push({
-    id: artifactIdSchema.parse(`artifact-${safeBasename(`${episodeSlug}-script-source-${language}`)}`),
+    id: artifactIdSchema.parse(`artifact-${slugify(`${episodeSlug}-script-source-${language}`)}`),
     kind: language === "en" ? "audio.script-source" : `audio.script-source.${language}`,
     path: scriptSourcePath,
     mimeType: "text/markdown",
@@ -1096,13 +1099,15 @@ async function commandImagesGenerateOpenAi(options: CliOptions, episodeId: strin
     throw new Error("Scene plan is not available.");
   }
   const settings = loadOpenAiImageGenerationSettings(process.env);
+  const promptBatch = createPromptBatch(manifest.scenePlan, "16:9", localSceneStyle, localSceneNegativePrompt);
+  const promptBySceneId = new Map(promptBatch.map((prompt) => [prompt.sceneId, prompt] as const));
   const selectedScenes = sceneId ? manifest.scenePlan.scenes.filter((scene) => scene.id === sceneId) : manifest.scenePlan.scenes;
   if (selectedScenes.length === 0) {
     throw new Error(sceneId ? `Scene not found: ${sceneId}` : "No scenes available.");
   }
   const jobs = selectedScenes.map((scene) => ({
     scene,
-    prompt: scene.imagePrompt,
+    prompt: promptBySceneId.get(scene.id)?.prompt ?? scene.imagePrompt,
     episodeSlug: manifest.slug,
     episodeDir,
     normalizedFilename: scene.expectedImageFilenames[0] ?? `${scene.id}.png`
@@ -1125,7 +1130,7 @@ async function commandImagesGenerateOpenAi(options: CliOptions, episodeId: strin
   );
 }
 
-async function commandRender(options: CliOptions, episodeId: string, profile: "youtube" | "vertical"): Promise<void> {
+async function commandRender(options: CliOptions, episodeId: string, profile: "youtube" | "vertical", burnCaptions = true): Promise<void> {
   const { manifest, episodeDir } = await readManifestForEpisode(options, episodeId);
   if (!manifest.scenePlan) {
     throw new Error("Scene plan is not available.");
@@ -1147,7 +1152,7 @@ async function commandRender(options: CliOptions, episodeId: string, profile: "y
   if (!await localizedSceneAudioIsComplete(episodeDir, language, manifest.scenePlan.scenes.length)) {
     await commandAudioGenerate({ ...options, json: false, quiet: true }, episodeId);
   }
-  const captionsPath = isEnglishLanguage(language) ? path.join(episodeDir, "captions", "captions.ass") : undefined;
+  const captionsPath = burnCaptions && isEnglishLanguage(language) ? path.join(episodeDir, "captions", "captions.ass") : undefined;
   const renderProfile = {
     id: profile,
     label: profile,
@@ -1434,8 +1439,9 @@ program
   .command("render")
   .argument("<episode-id>")
   .option("--profile <profile>", "youtube or vertical", "youtube")
-  .action(async (episodeId: string, opts: { profile: "youtube" | "vertical" }) => {
-    await commandRender(program.opts<CliOptions>(), episodeId, opts.profile);
+  .option("--no-captions", "render without burned-in captions")
+  .action(async (episodeId: string, opts: { profile: "youtube" | "vertical"; captions?: boolean }) => {
+    await commandRender(program.opts<CliOptions>(), episodeId, opts.profile, opts.captions ?? true);
   });
 program
   .command("metadata")

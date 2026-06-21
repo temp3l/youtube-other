@@ -480,7 +480,9 @@ function validateChronology(words: readonly TimestampedWord[], maxSingleWordDura
 }
 
 function sortWords(words: readonly RawTimedWord[], precision: number, maxSingleWordDurationSeconds: number): TimestampedWord[] {
-  const normalized = words.map((word) => normalizeTimedWord(word, precision));
+  const normalized = words
+    .map((word) => normalizeTimedWord(word, precision))
+    .filter((word) => word.text.length > 0);
   const sorted = [...normalized].sort((left, right) => {
     if (left.startSeconds !== right.startSeconds) {
       return left.startSeconds - right.startSeconds;
