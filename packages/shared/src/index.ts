@@ -233,6 +233,67 @@ export function splitIntoWords(text: string): string[] {
   return normalizeWhitespace(text).split(/\s+/u).filter((part) => part.length > 0);
 }
 
+export function collapseRepeatedTokenRuns(
+  text: string,
+  options: {
+    readonly minWindowTokens?: number;
+    readonly maxWindowTokens?: number;
+  } = {}
+): string {
+  const minWindowTokens = options.minWindowTokens ?? 3;
+  const maxWindowTokens = options.maxWindowTokens ?? 48;
+  const tokens = normalizeWhitespace(text).split(/\s+/u).filter((part) => part.length > 0);
+  if (tokens.length < minWindowTokens * 2) {
+    return normalizeWhitespace(text);
+  }
+  const output: string[] = [];
+  let index = 0;
+  while (index < tokens.length) {
+    let collapsed = false;
+    const remaining = tokens.length - index;
+    const maxWindow = Math.min(maxWindowTokens, Math.floor(remaining / 2));
+    for (let windowSize = maxWindow; windowSize >= minWindowTokens; windowSize -= 1) {
+      const candidate = tokens.slice(index, index + windowSize);
+      if (candidate.length < minWindowTokens) {
+        continue;
+      }
+      let repeatCount = 1;
+      while (index + repeatCount * windowSize + windowSize <= tokens.length) {
+        const left = tokens.slice(index + (repeatCount - 1) * windowSize, index + repeatCount * windowSize);
+        const right = tokens.slice(index + repeatCount * windowSize, index + (repeatCount + 1) * windowSize);
+        if (left.length !== windowSize || right.length !== windowSize) {
+          break;
+        }
+        let matches = true;
+        for (let tokenIndex = 0; tokenIndex < windowSize; tokenIndex += 1) {
+          if (left[tokenIndex] !== right[tokenIndex]) {
+            matches = false;
+            break;
+          }
+        }
+        if (!matches) {
+          break;
+        }
+        repeatCount += 1;
+      }
+      if (repeatCount > 1) {
+        output.push(...candidate);
+        index += repeatCount * windowSize;
+        collapsed = true;
+        break;
+      }
+    }
+    if (!collapsed) {
+      const token = tokens[index];
+      if (token) {
+        output.push(token);
+      }
+      index += 1;
+    }
+  }
+  return normalizeWhitespace(output.join(" "));
+}
+
 export function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
 }

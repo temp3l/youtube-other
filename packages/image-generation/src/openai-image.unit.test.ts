@@ -5,7 +5,12 @@ import path from "node:path";
 import sharp from "sharp";
 import { describe, expect, it } from "vitest";
 import { scenePlanSchema } from "@mediaforge/domain";
-import { generateOpenAiSceneImages, loadOpenAiImageGenerationSettings } from "./openai-image.js";
+import {
+  buildOpenAiImageRequestBody,
+  generateOpenAiSceneImages,
+  loadOpenAiImageGenerationSettings,
+  redactApiKey,
+} from "./openai-image.js";
 
 describe("OpenAI image generation settings", () => {
   it("uses curl-compatible defaults and preserves configured concurrency", () => {
@@ -21,7 +26,7 @@ describe("OpenAI image generation settings", () => {
     expect(settings.apiSize).toBe("1024x1024");
   });
 
-  it("uses configured concurrency for gpt-image-2 sizes divisible by 16", () => {
+  it("maps larger gpt-image-2 landscape sizes to a supported request size and preserves concurrency", () => {
     const settings = loadOpenAiImageGenerationSettings({
       OPENAI_API_KEY: "test-key",
       OPENAI_IMAGE_MODEL: "gpt-image-2",
@@ -30,17 +35,93 @@ describe("OpenAI image generation settings", () => {
     });
     expect(settings.concurrency).toBe(4);
     expect(settings.requestedSize).toBe("1920x1088");
-    expect(settings.apiSize).toBe("1920x1088");
+    expect(settings.apiSize).toBe("1536x1024");
   });
 
-  it("rejects unsupported sizes for non-gpt-image-2 models", () => {
+  it("accepts a lower 16:9 output size and maps it to a supported API size", () => {
+    const settings = loadOpenAiImageGenerationSettings({
+      OPENAI_API_KEY: "test-key",
+      OPENAI_IMAGE_MODEL: "gpt-image-1-mini",
+      OPENAI_IMAGE_SIZE: "1280x720",
+      OPENAI_IMAGE_CONCURRENCY: "2"
+    });
+
+    expect(settings.requestedSize).toBe("1280x720");
+    expect(settings.apiSize).toBe("1536x1024");
+  });
+
+  it("prefers OPENAI_ORGANIZATION but still accepts the legacy org id variable", () => {
+    const settings = loadOpenAiImageGenerationSettings({
+      OPENAI_API_KEY: "test-key",
+      OPENAI_ORGANIZATION: "org-new",
+      OPENAI_ORG_ID: "org-legacy"
+    });
+
+    expect(settings.organization).toBe("org-new");
+  });
+
+  it("rejects malformed image sizes", () => {
     expect(() =>
       loadOpenAiImageGenerationSettings({
         OPENAI_API_KEY: "test-key",
         OPENAI_IMAGE_MODEL: "gpt-image-1-mini",
-        OPENAI_IMAGE_SIZE: "1920x1080"
+        OPENAI_IMAGE_SIZE: "not-a-size"
       })
-    ).toThrowError(/not supported by gpt-image-1-mini/i);
+    ).toThrowError(/Invalid OPENAI_IMAGE_SIZE value/i);
+  });
+
+  it("redacts API keys and keeps the request body curl-compatible", () => {
+    const settings = loadOpenAiImageGenerationSettings({
+      OPENAI_API_KEY: "sk-test-1234567890",
+      OPENAI_IMAGE_MODEL: "gpt-image-2",
+      OPENAI_IMAGE_SIZE: "1920x1088",
+      OPENAI_IMAGE_QUALITY: "medium"
+    });
+    const plan = scenePlanSchema.parse({
+      sourceId: "episode-fixture",
+      scenes: [
+        {
+          id: "scene-001",
+          sequenceNumber: 1,
+          canonicalNarration: "First scene.",
+          sourceSegmentIds: ["scene-001"],
+          estimatedDurationSeconds: 4,
+          timing: { startSeconds: 0, endSeconds: 4 },
+          visualPurpose: "introduce",
+          subject: "mouse",
+          action: "eating",
+          setting: "habitat",
+          composition: "centered",
+          cameraFraming: "medium shot",
+          mood: "calm",
+          continuityReferences: [],
+          onScreenText: "",
+          negativeConstraints: ["no text"],
+          aspectRatios: ["16:9"],
+          imagePrompt: "mouse eating in a habitat",
+          expectedImageFilenames: ["scene-001__000000-000004__16x9.png"],
+          qualityStatus: "draft"
+        }
+      ]
+    });
+    const body = buildOpenAiImageRequestBody(
+      {
+        scene: plan.scenes[0]!,
+        prompt: "mouse eating in a habitat",
+        episodeSlug: "episode-fixture",
+        episodeDir: "/tmp/episode-fixture",
+        normalizedFilename: "scene-001__000000-000004__16x9.png"
+      },
+      settings
+    );
+    expect(body).toEqual({
+      model: "gpt-image-2",
+      prompt: "mouse eating in a habitat",
+      size: "1536x1024",
+      quality: "medium",
+      n: 1
+    });
+    expect(redactApiKey(settings.apiKey)).toBe("sk-t…7890");
   });
 });
 
@@ -236,6 +317,105 @@ describe("OpenAI image generation", () => {
       expect(normalizedMeta.height).toBe(1024);
     }
   }, 20000);
+
+  it("reuses a prior image when the semantic prompt is highly similar", async () => {
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), "mediaforge-openai-images-reuse-"));
+    const episodeDir = path.join(tempDir, "episode");
+    await fs.mkdir(episodeDir, { recursive: true });
+    const png = await sharp({
+      create: {
+        width: 8,
+        height: 8,
+        channels: 3,
+        background: "#0000ff"
+      }
+    })
+      .png()
+      .toBuffer();
+    let calls = 0;
+    const client = {
+      images: {
+        async generate() {
+          calls += 1;
+          return { data: [{ b64_json: png.toString("base64") }] };
+        }
+      }
+    };
+    const plan = scenePlanSchema.parse({
+      sourceId: "episode-fixture",
+      scenes: [
+        {
+          id: "scene-001",
+          sequenceNumber: 1,
+          canonicalNarration: "A mouse studies the same memory map.",
+          sourceSegmentIds: ["scene-001"],
+          estimatedDurationSeconds: 4,
+          timing: { startSeconds: 0, endSeconds: 4 },
+          visualPurpose: "introduce",
+          subject: "mouse studying a memory map",
+          action: "looking closely at the same diagram",
+          setting: "paper collage workspace",
+          composition: "centered",
+          cameraFraming: "medium shot",
+          mood: "calm",
+          continuityReferences: [],
+          onScreenText: "",
+          negativeConstraints: ["no text"],
+          aspectRatios: ["16:9"],
+          imagePrompt: "mouse studying a memory map in a paper collage workspace",
+          expectedImageFilenames: ["scene-001__000000-000004__16x9.png"],
+          qualityStatus: "draft"
+        },
+        {
+          id: "scene-002",
+          sequenceNumber: 2,
+          canonicalNarration: "The mouse studies the same memory map again.",
+          sourceSegmentIds: ["scene-002"],
+          estimatedDurationSeconds: 4,
+          timing: { startSeconds: 4, endSeconds: 8 },
+          visualPurpose: "continue",
+          subject: "mouse studying a memory map",
+          action: "looking closely at the same diagram",
+          setting: "paper collage workspace",
+          composition: "centered",
+          cameraFraming: "medium shot",
+          mood: "calm",
+          continuityReferences: [],
+          onScreenText: "",
+          negativeConstraints: ["no text"],
+          aspectRatios: ["16:9"],
+          imagePrompt: "mouse studying a memory map in a paper collage workspace, same composition",
+          expectedImageFilenames: ["scene-002__000004-000008__16x9.png"],
+          qualityStatus: "draft"
+        }
+      ]
+    });
+    const settings = loadOpenAiImageGenerationSettings({
+      OPENAI_API_KEY: "test-key",
+      OPENAI_IMAGE_MODEL: "gpt-image-1-mini",
+      OPENAI_IMAGE_SIZE: "1024x1024",
+      OPENAI_IMAGE_QUALITY: "low",
+      OPENAI_IMAGE_CONCURRENCY: "2",
+      OPENAI_IMAGE_MAX_RETRIES: "0",
+      OPENAI_IMAGE_TIMEOUT_MS: "1000"
+    });
+    const results = await generateOpenAiSceneImages(
+      plan.scenes.map((scene) => ({
+        scene,
+        prompt: scene.imagePrompt,
+        episodeSlug: "episode-fixture",
+        episodeDir,
+        normalizedFilename: scene.expectedImageFilenames[0]!
+      })),
+      settings,
+      { client }
+    );
+
+    expect(calls).toBe(1);
+    expect(results).toHaveLength(2);
+    expect(results[1]?.reusedFromSceneId).toBe("scene-001");
+    expect(await fs.readFile(results[0]!.renderedPath ?? "")).toEqual(await fs.readFile(results[1]!.renderedPath ?? ""));
+  });
 
   it("includes the full JSON payload when the OpenAI API returns an error", async () => {
     const tempDir = mkdtempSync(path.join(os.tmpdir(), "mediaforge-openai-images-error-"));

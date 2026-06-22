@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { sceneFilename, secondsToSrtTimestamp, slugify } from "./index.js";
+import { collapseRepeatedTokenRuns, sceneFilename, secondsToSrtTimestamp, slugify } from "./index.js";
 
 describe("shared helpers", () => {
   it("slugifies text deterministically", () => {
@@ -13,5 +13,10 @@ describe("shared helpers", () => {
   it("formats SRT timestamps", () => {
     expect(secondsToSrtTimestamp(12.345)).toBe("00:00:12,345");
   });
-});
 
+  it("collapses repeated token runs conservatively", () => {
+    expect(
+      collapseRepeatedTokenRuns("Open your fridge right now. Open your fridge right now. A can of soda.")
+    ).toBe("Open your fridge right now. A can of soda.");
+  });
+});

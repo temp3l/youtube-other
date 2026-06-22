@@ -1,4 +1,20 @@
-name the episode: "003-Baby-Memory" and produce a video from this source: https://www.youtube.com/watch?v=royoy7-PyTw
+make sure all images can be grasped within the 6-9 seconds they are beeing displayed. re-use existing images in case the image prompts are expected to generate very similar output
+
+there are only 8 files in images/generated/prompts and only 6 files in images/generated/metadata is that correct?
+make sure all scenes will have the relevant generated prompts, metadata and images.
+
+i want all new videos to have a new scene/image every 6-9 seconds. how can we make this happen? recommend a strategy.
+make sure this never happens again: """  
+So the images are “out of sync” because the system is using:
+
+- stale or transcript-derived scene timing
+- generic visual placeholders
+- prompt text that is not a proper visual spec
+  """
+
+re-generate all audio and transcript files for the 003-Baby-Memory, start from the rewritten-script.md
+
+name the episode: "003-Baby-Memory-2" and produce a video from this source: https://www.youtube.com/watch?v=royoy7-PyTw
 
 name the episode: "002-Ancient-Humans-at-Night"
 

@@ -7,9 +7,10 @@ import {
   type RewrittenScript,
   type Scene,
   type ScenePlan,
+  type TranscriptSegmentId,
   type Transcript
 } from "@mediaforge/domain";
-import { sceneFilename, safeTimestampToken } from "@mediaforge/shared";
+import { clamp, normalizeWhitespace, sceneFilename, safeTimestampToken, splitIntoSentences, splitIntoWords } from "@mediaforge/shared";
 
 export interface ScenePlanner {
   plan(
@@ -20,19 +21,408 @@ export interface ScenePlanner {
   ): ScenePlan;
 }
 
-function buildScenePrompt(sceneNumber: number, scriptText: string, aspectRatio: "16:9" | "9:16"): string {
-  return [
-    `Create a rough hand-drawn ink-and-paper collage for scene ${String(sceneNumber).padStart(3, "0")}.`,
-    `Aspect ratio: ${aspectRatio}.`,
-    `Subject matter: ${scriptText}`,
-    "Keep the composition hand-drawn, imperfect, and visually direct.",
-    "Use simple expressive people and animals when they help explain the scene.",
-    "Avoid borders, bands, frames, cinematic polish, text, logos, and watermarks unless explicitly required."
-  ].join(" ");
-}
-
 function buildSceneId(sequenceNumber: number): `scene-${string}` {
   return `scene-${String(sequenceNumber).padStart(3, "0")}` as `scene-${string}`;
+}
+
+const stopWords = new Set([
+  "the",
+  "and",
+  "for",
+  "with",
+  "from",
+  "that",
+  "this",
+  "there",
+  "their",
+  "about",
+  "into",
+  "your",
+  "yours",
+  "they",
+  "them",
+  "then",
+  "than",
+  "when",
+  "what",
+  "which",
+  "while",
+  "were",
+  "was",
+  "are",
+  "been",
+  "being",
+  "have",
+  "has",
+  "had",
+  "you",
+  "our",
+  "out",
+  "over",
+  "under",
+  "into",
+  "just",
+  "some",
+  "more",
+  "most",
+  "very",
+  "can",
+  "could",
+  "would",
+  "should",
+  "will",
+  "not",
+  "but",
+  "because",
+  "since",
+  "into"
+]);
+
+function uniqueWords(values: ReadonlyArray<string>): string[] {
+  return [...new Set(values)];
+}
+
+function extractKeywords(text: string, limit = 8): string[] {
+  const words = splitIntoWords(text)
+    .map((word) => word.toLowerCase().replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, ""))
+    .filter((word) => word.length > 2 && !stopWords.has(word));
+  return uniqueWords(words).slice(0, limit);
+}
+
+function splitLongChunk(chunk: string): [string, string] | null {
+  const words = splitIntoWords(chunk);
+  if (words.length <= 1) {
+    return null;
+  }
+  const midpoint = Math.max(1, Math.floor(words.length / 2));
+  return [words.slice(0, midpoint).join(" "), words.slice(midpoint).join(" ")];
+}
+
+function rebalanceChunks(chunks: ReadonlyArray<string>, desiredCount: number): string[] {
+  const normalized = chunks.map((chunk) => normalizeWhitespace(chunk)).filter((chunk) => chunk.length > 0);
+  if (desiredCount <= 0 || normalized.length === 0) {
+    return normalized;
+  }
+  if (normalized.length === desiredCount) {
+    return [...normalized];
+  }
+  if (normalized.length > desiredCount) {
+    const balanced: string[] = [];
+    const step = normalized.length / desiredCount;
+    for (let index = 0; index < desiredCount; index += 1) {
+      const start = Math.floor(index * step);
+      const end = index === desiredCount - 1 ? normalized.length : Math.max(start + 1, Math.floor((index + 1) * step));
+      balanced.push(normalized.slice(start, end).join(" "));
+    }
+    return balanced.map((chunk) => normalizeWhitespace(chunk)).filter((chunk) => chunk.length > 0);
+  }
+  const expanded = [...normalized];
+  while (expanded.length < desiredCount) {
+    let splitIndex = -1;
+    let longest = 0;
+    for (let index = 0; index < expanded.length; index += 1) {
+      const current = expanded[index];
+      const length = current ? splitIntoWords(current).length : 0;
+      if (length > longest) {
+        longest = length;
+        splitIndex = index;
+      }
+    }
+    if (splitIndex === -1) {
+      break;
+    }
+    const target = expanded[splitIndex];
+    if (!target) {
+      break;
+    }
+    const split = splitLongChunk(target);
+    if (!split) {
+      break;
+    }
+    expanded.splice(splitIndex, 1, split[0], split[1]);
+  }
+  return expanded.slice(0, desiredCount);
+}
+
+function buildSceneNarration(script: RewrittenScript, sceneCount: number): string[] {
+  const scriptText = normalizeWhitespace(
+    script.sections
+      .map((section) => normalizeWhitespace(section.text))
+      .filter((section) => section.length > 0)
+      .join(" ")
+  );
+  const sentenceChunks = splitIntoSentences(scriptText).map((sentence) => normalizeWhitespace(sentence)).filter((sentence) => sentence.length > 0);
+  const baseChunks = sentenceChunks.length > 0 ? sentenceChunks : [scriptText];
+  return rebalanceChunks(baseChunks, sceneCount);
+}
+
+interface SceneWindow {
+  readonly startSeconds: number;
+  readonly endSeconds: number;
+  readonly startWordIndex: number;
+  readonly endWordIndex: number;
+}
+
+function buildSceneWindows(transcript: Transcript, minDurationSeconds: number, maxDurationSeconds: number): SceneWindow[] {
+  const words = transcript.words
+    .map((word) => ({
+      startSeconds: word.startSeconds,
+      endSeconds: word.endSeconds
+    }))
+    .filter((word) => Number.isFinite(word.startSeconds) && Number.isFinite(word.endSeconds) && word.endSeconds > word.startSeconds)
+    .sort((left, right) => left.startSeconds - right.startSeconds || left.endSeconds - right.endSeconds);
+
+  if (words.length === 0) {
+    const segments = transcript.segments
+      .map((segment) => ({
+        startSeconds: segment.startSeconds,
+        endSeconds: segment.endSeconds
+      }))
+      .filter((segment) => Number.isFinite(segment.startSeconds) && Number.isFinite(segment.endSeconds) && segment.endSeconds > segment.startSeconds)
+      .sort((left, right) => left.startSeconds - right.startSeconds || left.endSeconds - right.endSeconds);
+    if (segments.length === 0) {
+      return [{ startSeconds: 0, endSeconds: Math.max(minDurationSeconds, 1), startWordIndex: 0, endWordIndex: 0 }];
+    }
+    const targetDurationSeconds = clamp((minDurationSeconds + maxDurationSeconds) / 2, minDurationSeconds, maxDurationSeconds);
+    const windows: SceneWindow[] = [];
+    let startIndex = 0;
+    while (startIndex < segments.length) {
+      const startSegment = segments[startIndex];
+      if (!startSegment) {
+        break;
+      }
+      const startSeconds = startSegment.startSeconds;
+      let bestIndex = startIndex;
+      let bestScore = Number.POSITIVE_INFINITY;
+      let latestValidIndex = startIndex;
+      for (let index = startIndex; index < segments.length; index += 1) {
+        const currentSegment = segments[index];
+        if (!currentSegment) {
+          continue;
+        }
+        const duration = currentSegment.endSeconds - startSeconds;
+        if (duration < minDurationSeconds) {
+          latestValidIndex = index;
+          continue;
+        }
+        if (duration > maxDurationSeconds) {
+          break;
+        }
+        latestValidIndex = index;
+        const score = Math.abs(duration - targetDurationSeconds);
+        if (score < bestScore || (score === bestScore && index > bestIndex)) {
+          bestScore = score;
+          bestIndex = index;
+        }
+      }
+      const chosenIndex = bestIndex > startIndex ? bestIndex : latestValidIndex;
+      const chosenSegment = segments[chosenIndex] ?? segments[latestValidIndex] ?? startSegment;
+      windows.push({
+        startSeconds,
+        endSeconds: Math.max(chosenSegment.endSeconds, startSeconds + minDurationSeconds),
+        startWordIndex: startIndex,
+        endWordIndex: chosenIndex
+      });
+      startIndex = chosenIndex + 1;
+    }
+    return windows.filter((window) => window.endSeconds > window.startSeconds);
+  }
+
+  const targetDurationSeconds = clamp((minDurationSeconds + maxDurationSeconds) / 2, minDurationSeconds, maxDurationSeconds);
+  const windows: SceneWindow[] = [];
+  let startIndex = 0;
+
+  while (startIndex < words.length) {
+    const startWord = words[startIndex];
+    if (!startWord) {
+      break;
+    }
+    const startSeconds = startWord.startSeconds;
+    let bestIndex = startIndex;
+    let bestScore = Number.POSITIVE_INFINITY;
+    let latestValidIndex = startIndex;
+
+    for (let index = startIndex; index < words.length; index += 1) {
+      const currentWord = words[index];
+      if (!currentWord) {
+        continue;
+      }
+      const duration = currentWord.endSeconds - startSeconds;
+      if (duration < minDurationSeconds) {
+        latestValidIndex = index;
+        continue;
+      }
+      if (duration > maxDurationSeconds) {
+        break;
+      }
+      latestValidIndex = index;
+      const score = Math.abs(duration - targetDurationSeconds);
+      if (score < bestScore || (score === bestScore && index > bestIndex)) {
+        bestScore = score;
+        bestIndex = index;
+      }
+    }
+
+    const chosenIndex = bestIndex > startIndex ? bestIndex : latestValidIndex;
+    const chosenWord = words[chosenIndex] ?? words[latestValidIndex] ?? words[startIndex];
+    if (!chosenWord) {
+      break;
+    }
+    const endSeconds = Math.max(chosenWord.endSeconds, startSeconds + minDurationSeconds);
+    windows.push({
+      startSeconds,
+      endSeconds: Math.min(endSeconds, startSeconds + maxDurationSeconds),
+      startWordIndex: startIndex,
+      endWordIndex: chosenIndex
+    });
+    startIndex = chosenIndex + 1;
+  }
+
+  if (windows.length > 1) {
+    const finalWindow = windows[windows.length - 1];
+    const previousWindow = windows[windows.length - 2];
+    if (finalWindow && previousWindow) {
+      const finalDuration = finalWindow.endSeconds - finalWindow.startSeconds;
+      const combinedDuration = finalWindow.endSeconds - previousWindow.startSeconds;
+      if (finalDuration < minDurationSeconds && combinedDuration <= maxDurationSeconds) {
+        windows[windows.length - 2] = {
+          ...previousWindow,
+          endSeconds: finalWindow.endSeconds,
+          endWordIndex: finalWindow.endWordIndex
+        };
+        windows.pop();
+      }
+    }
+  }
+
+  return windows.filter((window) => window.endSeconds > window.startSeconds);
+}
+
+function resolveSourceSegmentIds(transcript: Transcript, window: SceneWindow): TranscriptSegmentId[] {
+  return transcript.segments
+    .filter((segment) => segment.endSeconds > window.startSeconds && segment.startSeconds < window.endSeconds)
+    .map((segment) => transcriptSegmentIdSchema.parse(segment.id));
+}
+
+interface SceneVisualSpec {
+  readonly subject: string;
+  readonly action: string;
+  readonly setting: string;
+  readonly composition: string;
+  readonly cameraFraming: string;
+  readonly mood: string;
+  readonly continuityReferences: string[];
+  readonly onScreenText: string;
+  readonly negativeConstraints: string[];
+}
+
+function deriveSceneVisualSpec(narration: string): SceneVisualSpec {
+  const lower = narration.toLowerCase();
+  const keywords = extractKeywords(narration, 10);
+  const hasEarlyLife = /\b(age of three|before the age of three|born|opened your eyes|mother's voice|first steps|first word|baby brain|infantile amnesia)\b/u.test(lower);
+  const hasBaby = /\b(baby|infant|crib|mother|ankle|mobile)\b/u.test(lower);
+  const hasMemoryLab = /\b(experiment|scientist|research|rutgers|hospital|science)\b/u.test(lower);
+  const hasBrain = /\b(hippocampus|brain|neuron|neurons|neurogenesis|prefrontal)\b/u.test(lower);
+  const hasMirror = /\b(mirror|self[- ]?recognition|rouge)\b/u.test(lower);
+  const hasLanguage = /\b(language|story|stories|conversation|talking|narratives?)\b/u.test(lower);
+  const hasCulture = /\b(culture|maori|new zealand|east asian|western)\b/u.test(lower);
+  const hasFreud = /\bfreud|infantile amnesia\b/u.test(lower);
+
+  if (hasMemoryLab) {
+    return {
+      subject: "a simple memory experiment diagram with a hanging mobile and response arrows",
+      action: "showing how learned movement is remembered over time",
+      setting: "a calm research board with labels, arrows, and simple lab notes",
+      composition: "Landscape 16:9. One clear focal point. Keep the experiment simple and readable.",
+      cameraFraming: "medium shot",
+      mood: "curious and observational",
+      continuityReferences: ["keep the same rough ink-and-paper collage style"],
+      onScreenText: "",
+      negativeConstraints: ["no photorealism", "no stock-photo look", "no watermarks", "no readable captions"]
+    };
+  }
+
+  if (hasEarlyLife) {
+    return {
+      subject: "a baby growing into a toddler shown through early life milestones",
+      action: "birth, first glance, first steps, and first words connected in one clear visual story",
+      setting: "a calm hand-drawn collage with a crib, soft household details, and a subtle life timeline",
+      composition: "Landscape 16:9. One clear focal point. Show the baby and childhood milestones large and readable.",
+      cameraFraming: "medium shot",
+      mood: "reflective and intimate",
+      continuityReferences: ["keep the same rough ink-and-paper collage style"],
+      onScreenText: "",
+      negativeConstraints: ["no photorealism", "no stock-photo look", "no watermarks", "no readable captions"]
+    };
+  }
+
+  if (hasBaby && hasMirror) {
+    return {
+      subject: "a toddler standing in front of a mirror",
+      action: "recognizing their own reflection",
+      setting: "a simple home interior with a mirror and soft daylight",
+      composition: "Landscape 16:9. One clear focal point. Leave open space around the mirror.",
+      cameraFraming: "medium shot",
+      mood: "gentle and thoughtful",
+      continuityReferences: ["keep the same rough ink-and-paper collage style"],
+      onScreenText: "",
+      negativeConstraints: ["no photorealism", "no stock-photo look", "no watermarks", "no readable captions"]
+    };
+  }
+
+  if (hasBrain) {
+    return {
+      subject: "a brain drawn as a simple memory map",
+      action: "new neurons forming while old pathways fade",
+      setting: "an abstract brain diagram shown as a hand-drawn collage",
+      composition: "Landscape 16:9. One clear focal point. Show the brain diagram large and uncluttered.",
+      cameraFraming: "close medium shot",
+      mood: "scientific and explanatory",
+      continuityReferences: ["keep the same rough ink-and-paper collage style"],
+      onScreenText: "",
+      negativeConstraints: ["no photorealism", "no stock-photo look", "no watermarks", "no readable captions"]
+    };
+  }
+
+  if (hasLanguage || hasCulture) {
+    return {
+      subject: "a parent and child talking over family stories",
+      action: "sharing memories that help the child remember the past",
+      setting: "a warm family room with story prompts and simple household objects",
+      composition: "Landscape 16:9. One clear focal point. Keep the room sparse and easy to read.",
+      cameraFraming: "medium shot",
+      mood: "warm and reflective",
+      continuityReferences: ["keep the same rough ink-and-paper collage style"],
+      onScreenText: "",
+      negativeConstraints: ["no photorealism", "no stock-photo look", "no watermarks", "no readable captions"]
+    };
+  }
+
+  if (hasFreud) {
+    return {
+      subject: "Sigmund Freud at a desk with notes about infantile amnesia",
+      action: "writing down the idea that early memories fade",
+      setting: "a historical study with papers, ink, and memory diagrams",
+      composition: "Landscape 16:9. One clear focal point. Keep the desk and notes readable without clutter.",
+      cameraFraming: "medium shot",
+      mood: "historical and reflective",
+      continuityReferences: ["keep the same rough ink-and-paper collage style"],
+      onScreenText: "",
+      negativeConstraints: ["no photorealism", "no stock-photo look", "no watermarks", "no readable captions"]
+    };
+  }
+
+  return {
+    subject: keywords.slice(0, 4).join(", ") || "the main idea from the narration",
+    action: "showing the key narrated idea in a clear visual scene",
+    setting: "a minimal hand-drawn documentary scene",
+    composition: "Landscape 16:9. One clear focal point. Keep the background sparse and readable.",
+    cameraFraming: "medium shot",
+    mood: "informative and calm",
+    continuityReferences: ["keep the same rough ink-and-paper collage style"],
+    onScreenText: "",
+    negativeConstraints: ["no photorealism", "no stock-photo look", "no watermarks", "no readable captions"]
+  };
 }
 
 export class OneToOneScenePlanner implements ScenePlanner {
@@ -42,65 +432,39 @@ export class OneToOneScenePlanner implements ScenePlanner {
     aspectRatios: ReadonlyArray<"16:9" | "9:16"> = ["16:9", "9:16"],
     options: { readonly visualSceneMinSeconds?: number; readonly visualSceneMaxSeconds?: number } = {}
   ): ScenePlan {
-    const subtitleSegments =
-      transcript.segments.length > 0
-        ? transcript.segments
-        : transcript.text.split(/(?<=[.!?])\s+/u).map((text, index) => ({
-            id: transcriptSegmentIdSchema.parse(`segment-${String(index + 1).padStart(3, "0")}`),
-            startSeconds: index * 4,
-            endSeconds: index * 4 + 4,
-            text,
-            words: [],
-            boundaryReason: "end-of-transcript" as const
-          }));
-    const grouped: Array<typeof subtitleSegments> = [];
-    const minDurationSeconds = options.visualSceneMinSeconds ?? 8;
-    const maxDurationSeconds = options.visualSceneMaxSeconds ?? 18;
-    const targetDurationSeconds = (minDurationSeconds + maxDurationSeconds) / 2;
-    let buffer: typeof subtitleSegments = [];
-    const flush = (): void => {
-      if (buffer.length === 0) {
-        return;
-      }
-      grouped.push(buffer);
-      buffer = [];
-    };
-    for (const segment of subtitleSegments) {
-      buffer = [...buffer, segment];
-      const durationSeconds = (buffer[buffer.length - 1]?.endSeconds ?? 0) - (buffer[0]?.startSeconds ?? 0);
-      if (durationSeconds >= minDurationSeconds && (durationSeconds >= targetDurationSeconds || durationSeconds >= maxDurationSeconds)) {
-        flush();
-      }
-    }
-    flush();
-    const scenes: Scene[] = grouped.map((group, index) => {
+    const minDurationSeconds = options.visualSceneMinSeconds ?? 6;
+    const maxDurationSeconds = options.visualSceneMaxSeconds ?? 9;
+    const windows = buildSceneWindows(transcript, minDurationSeconds, maxDurationSeconds);
+    const sceneNarrations = buildSceneNarration(script, windows.length);
+    const scenes: Scene[] = windows.map((window, index) => {
       const sequenceNumber = index + 1;
-      const startSeconds = group[0]?.startSeconds ?? 0;
-      const endSeconds = group[group.length - 1]?.endSeconds ?? startSeconds;
+      const startSeconds = window.startSeconds;
+      const endSeconds = window.endSeconds;
       const sceneId = sceneIdSchema.parse(buildSceneId(sequenceNumber));
-      const narration = group.map((segment) => segment.text).join(" ").trim();
+      const narration = normalizeWhitespace(sceneNarrations[index] ?? script.sections[index]?.text ?? transcript.text);
+      const visualSpec = deriveSceneVisualSpec(narration);
       return {
         id: sceneId,
         sequenceNumber,
         canonicalNarration: narration.length > 0 ? narration : script.sections[index]?.text ?? transcript.text,
-        sourceSegmentIds: group.map((segment) => segment.id),
+        sourceSegmentIds: resolveSourceSegmentIds(transcript, window),
         estimatedDurationSeconds: Math.max(1, endSeconds - startSeconds),
         timing: {
           startSeconds,
           endSeconds
         },
         visualPurpose: "Depict the narrated concept clearly and directly.",
-        subject: "subject inferred from narration",
-        action: "static illustrative action",
-        setting: "appropriate scene setting",
-        composition: "balanced editorial composition with safe overlay area",
-        cameraFraming: "medium shot",
-        mood: "informative",
-        continuityReferences: [],
-        onScreenText: "",
-        negativeConstraints: ["no watermark", "no extra limbs", "no unreadable text"],
+        subject: visualSpec.subject,
+        action: visualSpec.action,
+        setting: visualSpec.setting,
+        composition: visualSpec.composition,
+        cameraFraming: visualSpec.cameraFraming,
+        mood: visualSpec.mood,
+        continuityReferences: visualSpec.continuityReferences,
+        onScreenText: visualSpec.onScreenText,
+        negativeConstraints: visualSpec.negativeConstraints,
         aspectRatios: [...aspectRatios],
-        imagePrompt: buildScenePrompt(sequenceNumber, narration.length > 0 ? narration : script.sections[index]?.text ?? transcript.text, aspectRatios[0] ?? "16:9"),
+        imagePrompt: buildScenePrompt(sequenceNumber, narration.length > 0 ? narration : script.sections[index]?.text ?? transcript.text, aspectRatios[0] ?? "16:9", visualSpec),
         expectedImageFilenames: aspectRatios.map((aspectRatio) => sceneFilename(sequenceNumber, startSeconds, endSeconds, aspectRatio)),
         qualityStatus: "draft"
       };
@@ -110,6 +474,28 @@ export class OneToOneScenePlanner implements ScenePlanner {
       scenes
     });
   }
+}
+
+function buildScenePrompt(
+  sceneNumber: number,
+  scriptText: string,
+  aspectRatio: "16:9" | "9:16",
+  visualSpec: SceneVisualSpec
+): string {
+  const keywords = extractKeywords(scriptText, 8);
+  return [
+    `SCENE ${String(sceneNumber).padStart(3, "0")}`,
+    `${visualSpec.subject}. ${visualSpec.action}.`,
+    `SETTING ${visualSpec.setting}.`,
+    `COMPOSITION ${visualSpec.composition}.`,
+    `CAMERA ${visualSpec.cameraFraming}. MOOD ${visualSpec.mood}.`,
+    `GLOBAL STYLE Custom rough ink-and-paper collage on an off-white background. Thick uneven charcoal lines. Deliberately imperfect hand-drawn shapes. Simple expressive figures. Two accent colors only. No photorealism, 3D rendering, cinematic lighting, borders, bands, frames, stock-photo look, logos, or watermarks.`,
+    `ASPECT RATIO ${aspectRatio}.`,
+    `CONTINUITY Keep the hand-drawn style consistent and match the narrated concept.`,
+    `REQUIRED OBJECTS ${keywords.join(", ")}.`,
+    `SOURCE IDEA ${scriptText}.`,
+    `DO NOT INCLUDE text, captions, labels, typography, or watermarks.`
+  ].join("\n");
 }
 
 export function createImagePrompts(scenePlan: ScenePlan, aspectRatio: "16:9" | "9:16"): ImagePrompt[] {

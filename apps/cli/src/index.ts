@@ -79,6 +79,9 @@ interface CliOptions {
   openAiSpeechVoice?: string;
   speechVoicePreset?: "slow" | "fast";
   scriptLanguage?: string;
+  sceneLimit?: number;
+  fromStage?: string;
+  untilStage?: string;
 }
 
 interface DoctorCheck {
@@ -386,7 +389,11 @@ async function commandCreate(options: CliOptions, input: CreateEpisodeOptions): 
 async function commandRun(options: CliOptions, episodeId: string): Promise<void> {
   const { episodeDir } = await readManifestForEpisode(options, episodeId);
   const pipeline = await loadPipeline(options, episodeDir);
-  const result = await pipeline.runEpisode(episodeId as never, {});
+  const result = await pipeline.runEpisode(episodeId as never, {
+    ...(options.fromStage ? { fromStage: options.fromStage as never } : {}),
+    ...(options.untilStage ? { untilStage: options.untilStage as never } : {}),
+    ...(options.sceneLimit ? { sceneLimit: options.sceneLimit } : {})
+  });
   if (options.json) {
     printJson(result);
     return;
@@ -554,6 +561,92 @@ async function inspectAudioDurationSeconds(filePath: string): Promise<number> {
     throw new Error(`Unable to inspect duration for ${filePath}`);
   }
   return duration;
+}
+
+function isInsufficientQuotaError(error: unknown): boolean {
+  const message = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+  return /insufficient_quota|exceeded your current quota|does not have access to model/i.test(message);
+}
+
+async function cleanupAudioGenerationArtifacts(audioDir: string, segmentsDir: string, narrationPath: string): Promise<void> {
+  const entries = await fs.readdir(segmentsDir, { withFileTypes: true }).catch(() => []);
+  await Promise.all(
+    entries
+      .filter((entry) => entry.isFile())
+      .map(async (entry) => {
+        await fs.rm(path.join(segmentsDir, entry.name), { force: true }).catch(() => {});
+      })
+  );
+  await Promise.all([
+    fs.rm(path.join(audioDir, "segments.txt"), { force: true }).catch(() => {}),
+    fs.rm(path.join(audioDir, "generation-report.json"), { force: true }).catch(() => {}),
+    fs.rm(narrationPath, { force: true }).catch(() => {})
+  ]);
+}
+
+async function cleanupStaleAudioTempFiles(audioDir: string, segmentsDir: string): Promise<void> {
+  const directories = [audioDir, segmentsDir];
+  await Promise.all(
+    directories.map(async (directory) => {
+      const entries = await fs.readdir(directory, { withFileTypes: true }).catch(() => []);
+      await Promise.all(
+        entries
+          .filter((entry) => entry.isFile() && entry.name.endsWith(".tmp"))
+          .map(async (entry) => {
+            await fs.rm(path.join(directory, entry.name), { force: true }).catch(() => {});
+          })
+      );
+    })
+  );
+}
+
+async function synthesizeSpeechChunks(
+  pipeline: Awaited<ReturnType<typeof loadPipeline>>,
+  chunks: ReadonlyArray<string>,
+  speechSettings: Awaited<ReturnType<typeof loadSpeechVoiceSettings>>,
+  segmentsDir: string,
+  episodeSlug: string,
+  language: string,
+  generatedAt: string
+): Promise<{ segmentPaths: string[]; artifacts: Array<ArtifactReference | undefined> }> {
+  const segmentPaths: string[] = Array(chunks.length).fill("");
+  const artifacts: Array<ArtifactReference | undefined> = Array(chunks.length).fill(undefined);
+  try {
+    for (let index = 0; index < chunks.length; index += 1) {
+      const chunk = chunks[index];
+      if (chunk === undefined) {
+        continue;
+      }
+      const sceneId = sceneIdSchema.parse(`scene-${String(index + 1).padStart(3, "0")}`);
+      const outputPath = path.join(segmentsDir, `${safeBasename(`segment-${String(index + 1).padStart(3, "0")}`)}.wav`);
+      const words = chunk.trim().split(/\s+/u).filter(Boolean).length;
+      const estimatedDurationSeconds = Math.max(2, Math.ceil((words / speechSettings.profile.paceWpm) * 60));
+      await pipeline.speech.synthesize(
+        {
+          sceneId,
+          text: chunk,
+          voiceProfile: speechSettings.profile,
+          outputPath,
+          targetDurationSeconds: estimatedDurationSeconds
+        },
+        new AbortController().signal
+      );
+      segmentPaths[index] = outputPath;
+      const stats = await fs.stat(outputPath);
+      artifacts[index] = {
+        id: artifactIdSchema.parse(`artifact-${slugify(`${episodeSlug}-segment-${String(index + 1).padStart(3, "0")}-${language}`)}`),
+        kind: language === "en" ? "audio.segment" : `audio.segment.${language}`,
+        path: outputPath,
+        mimeType: "audio/wav",
+        sizeBytes: stats.size,
+        checksumSha256: await hashFile(outputPath),
+        createdAt: generatedAt
+      };
+    }
+    return { segmentPaths, artifacts };
+  } catch (error) {
+    throw error;
+  }
 }
 
 async function commandTranscriptGenerate(options: CliOptions, episodeId: string): Promise<void> {
@@ -830,58 +923,20 @@ async function commandAudioGenerate(options: CliOptions, episodeId: string): Pro
     ...(language ? { language } : {})
   });
   await ensureDir(segmentsDir);
+  await cleanupStaleAudioTempFiles(audioDir, segmentsDir);
   const scriptSourcePath = await writeEpisodeScriptMarkdown(episodeDir, script.text, language);
   const generatedAt = new Date().toISOString();
-  const segmentPaths: string[] = Array(chunks.length).fill("");
-  const artifacts: Array<ArtifactReference | undefined> = Array(chunks.length).fill(undefined);
-  const workerCount = Math.min(2, chunks.length);
-  let nextIndex = 0;
-  const takeIndex = (): number | null => {
-    if (nextIndex >= chunks.length) {
-      return null;
+  let generated;
+  try {
+    generated = await synthesizeSpeechChunks(pipeline, chunks, speechSettings, segmentsDir, episodeSlug, language, generatedAt);
+  } catch (error) {
+    if (!isInsufficientQuotaError(error) || chunks.length <= 1) {
+      throw error;
     }
-    const current = nextIndex;
-    nextIndex += 1;
-    return current;
-  };
-  const workers = Array.from({ length: workerCount }, async () => {
-    while (true) {
-      const index = takeIndex();
-      if (index === null) {
-        return;
-      }
-      const chunk = chunks[index];
-      if (chunk === undefined) {
-        return;
-      }
-      const sceneId = sceneIdSchema.parse(`scene-${String(index + 1).padStart(3, "0")}`);
-      const outputPath = path.join(segmentsDir, `${safeBasename(`segment-${String(index + 1).padStart(3, "0")}`)}.wav`);
-      const words = chunk.trim().split(/\s+/u).filter(Boolean).length;
-      const estimatedDurationSeconds = Math.max(2, Math.ceil((words / speechSettings.profile.paceWpm) * 60));
-      await pipeline.speech.synthesize(
-        {
-          sceneId,
-          text: chunk,
-          voiceProfile: speechSettings.profile,
-          outputPath,
-          targetDurationSeconds: estimatedDurationSeconds
-        },
-        new AbortController().signal
-      );
-      segmentPaths[index] = outputPath;
-      const stats = await fs.stat(outputPath);
-      artifacts[index] = {
-        id: artifactIdSchema.parse(`artifact-${slugify(`${episodeSlug}-segment-${String(index + 1).padStart(3, "0")}-${language}`)}`),
-        kind: language === "en" ? "audio.segment" : `audio.segment.${language}`,
-        path: outputPath,
-        mimeType: "audio/wav",
-        sizeBytes: stats.size,
-        checksumSha256: await hashFile(outputPath),
-        createdAt: generatedAt
-      };
-    }
-  });
-  await Promise.all(workers);
+    await cleanupAudioGenerationArtifacts(audioDir, segmentsDir, narrationPath);
+    generated = await synthesizeSpeechChunks(pipeline, chunks, speechSettings, segmentsDir, episodeSlug, language, generatedAt);
+  }
+  const { segmentPaths, artifacts } = generated;
   const completeSegmentPaths = segmentPaths.filter((segmentPath): segmentPath is string => segmentPath.length > 0);
   const completeArtifacts = artifacts.filter((artifact): artifact is ArtifactReference => artifact !== undefined);
   const segmentsListPath = path.join(audioDir, "segments.txt");
@@ -966,6 +1021,7 @@ async function commandClipsGenerate(options: CliOptions, episodeId: string): Pro
     return;
   }
   const pipeline = await loadPipeline(options, episodeDir);
+  const scenePlan = options.sceneLimit ? { ...manifest.scenePlan, scenes: manifest.scenePlan.scenes.slice(0, options.sceneLimit) } : manifest.scenePlan;
   const renderProfile = {
     id: "clips",
     label: "Localized clips",
@@ -978,7 +1034,7 @@ async function commandClipsGenerate(options: CliOptions, episodeId: string): Pro
   const result = await pipeline.renderer.renderSceneClips(
     {
       episodeDir,
-      scenePlan: manifest.scenePlan,
+      scenePlan,
     outputDir: path.join(episodeDir, "output"),
     renderProfile,
     captionBurnIn: false,
@@ -1468,9 +1524,22 @@ program
 program
   .command("run")
   .argument("<episode-id>")
+  .option("--from <stage>", "start from a pipeline stage")
+  .option("--until <stage>", "stop at a pipeline stage")
+  .option("--scene-limit <n>", "process only the first N scenes", (value: string) => Number.parseInt(value, 10))
   .description("Run the pipeline for an episode")
-  .action(async (episodeId: string) => {
-    await commandRun(program.opts<CliOptions>(), episodeId);
+  .action(async (episodeId: string, opts: { from?: string; until?: string; sceneLimit?: number }) => {
+    const cliOptions: CliOptions = { ...program.opts<CliOptions>() };
+    if (opts.from) {
+      cliOptions.fromStage = opts.from;
+    }
+    if (opts.until) {
+      cliOptions.untilStage = opts.until;
+    }
+    if (opts.sceneLimit !== undefined) {
+      cliOptions.sceneLimit = opts.sceneLimit;
+    }
+    await commandRun(cliOptions, episodeId);
   });
 program
   .command("status")
@@ -1558,8 +1627,13 @@ const clipsCommand = program.command("clips").description("Language-specific cli
 clipsCommand
   .command("generate")
   .argument("<episode-id>")
-  .action(async (episodeId: string) => {
-    await commandClipsGenerate(program.opts<CliOptions>(), episodeId);
+  .option("--scene-limit <n>", "generate only the first N clips", (value: string) => Number.parseInt(value, 10))
+  .action(async (episodeId: string, opts: { sceneLimit?: number }) => {
+    const cliOptions: CliOptions = { ...program.opts<CliOptions>() };
+    if (opts.sceneLimit !== undefined) {
+      cliOptions.sceneLimit = opts.sceneLimit;
+    }
+    await commandClipsGenerate(cliOptions, episodeId);
   });
 
 program

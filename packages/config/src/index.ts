@@ -41,6 +41,8 @@ const configSchema = z.object({
   youtubeMetadataLanguage: z.string().regex(/^[a-z]{2}(?:-[a-z0-9]{2,8})*$/iu).optional(),
   openAiCompatibleBaseUrl: z.string().url().optional(),
   openAiCompatibleApiKey: z.string().optional(),
+  openAiCompatibleOrganization: z.string().optional(),
+  openAiCompatibleProject: z.string().optional(),
   openAiCompatibleModel: z.string().optional(),
   openAiCompatibleTtsVoice: z.string().optional(),
   openAiSpeechModel: z.string().optional(),
@@ -55,6 +57,41 @@ export type RuntimeConfigOverrides = {
 };
 export const episodeConfigSchema: z.ZodType<RuntimeConfigOverrides> = configSchema.partial();
 export type EpisodeConfig = z.infer<typeof episodeConfigSchema>;
+
+function parseDotEnv(content: string): Record<string, string> {
+  const values: Record<string, string> = {};
+  for (const line of content.split(/\r?\n/u)) {
+    const trimmed = line.trim();
+    if (trimmed.length === 0 || trimmed.startsWith("#")) {
+      continue;
+    }
+    const equalsIndex = trimmed.indexOf("=");
+    if (equalsIndex <= 0) {
+      continue;
+    }
+    const key = trimmed.slice(0, equalsIndex).trim();
+    const rawValue = trimmed.slice(equalsIndex + 1).trim();
+    if (key.length === 0) {
+      continue;
+    }
+    const quoted =
+      (rawValue.startsWith('"') && rawValue.endsWith('"')) || (rawValue.startsWith("'") && rawValue.endsWith("'"))
+        ? rawValue.slice(1, -1)
+        : rawValue;
+    values[key] = quoted.replace(/\\n/gu, "\n");
+  }
+  return values;
+}
+
+async function loadDotEnvValues(cwd: string): Promise<Record<string, string>> {
+  const dotenvPath = path.join(cwd, ".env");
+  try {
+    const raw = await fs.readFile(dotenvPath, "utf8");
+    return parseDotEnv(raw);
+  } catch {
+    return {};
+  }
+}
 
 const envSchema = z.object({
   MEDIAFORGE_WORKSPACE: z.string().optional(),
@@ -93,6 +130,8 @@ const envSchema = z.object({
   YOUTUBE_METADATA_LANGUAGE: z.string().regex(/^[a-z]{2}(?:-[a-z0-9]{2,8})*$/iu).optional(),
   MEDIAFORGE_OPENAI_COMPATIBLE_BASE_URL: z.string().url().optional(),
   MEDIAFORGE_OPENAI_COMPATIBLE_API_KEY: z.string().optional(),
+  MEDIAFORGE_OPENAI_COMPATIBLE_ORGANIZATION: z.string().optional(),
+  MEDIAFORGE_OPENAI_COMPATIBLE_PROJECT: z.string().optional(),
   MEDIAFORGE_OPENAI_COMPATIBLE_MODEL: z.string().optional(),
   MEDIAFORGE_OPENAI_COMPATIBLE_TTS_VOICE: z.string().optional(),
   MEDIAFORGE_OPENAI_SPEECH_MODEL: z.string().optional(),
@@ -101,6 +140,8 @@ const envSchema = z.object({
   MEDIAFORGE_SCRIPT_LANGUAGE: z.string().regex(/^[a-z]{2}(?:-[a-z0-9]{2,8})*$/iu).optional(),
   OPENAI_BASE_URL: z.string().url().optional(),
   OPENAI_API_KEY: z.string().optional(),
+  OPENAI_ORGANIZATION: z.string().optional(),
+  OPENAI_PROJECT: z.string().optional(),
   OPENAI_SPEECH_MODEL: z.string().optional(),
   OPENAI_SPEECH_VOICE: z.string().optional(),
   MEDIAFORGE_API_PORT: z.coerce.number().int().positive().optional()
@@ -133,7 +174,11 @@ export async function loadRuntimeConfig(
   overrides: RuntimeConfigOverrides = {},
   episodeOverrides: RuntimeConfigOverrides = {}
 ): Promise<RuntimeConfig> {
-  const env = envSchema.parse(process.env);
+  const dotenvValues = await loadDotEnvValues(process.cwd());
+  const env = envSchema.parse({
+    ...process.env,
+    ...dotenvValues
+  });
   const availableCpuCores = Math.max(1, os.cpus().length);
   const workspaceDir = overrides.workspaceDir ?? env.MEDIAFORGE_WORKSPACE ?? "./episodes";
   const dbPath = overrides.dbPath ?? env.MEDIAFORGE_DB_PATH ?? "./.mediaforge.sqlite";
@@ -160,6 +205,13 @@ export async function loadRuntimeConfig(
   const mergedSpeechProvider = overrides.ttsProvider ?? episodeOverrides.ttsProvider;
   const mergedOpenAiBaseUrl = overrides.openAiCompatibleBaseUrl ?? episodeOverrides.openAiCompatibleBaseUrl ?? env.MEDIAFORGE_OPENAI_COMPATIBLE_BASE_URL ?? env.OPENAI_BASE_URL;
   const mergedOpenAiApiKey = overrides.openAiCompatibleApiKey ?? episodeOverrides.openAiCompatibleApiKey ?? env.MEDIAFORGE_OPENAI_COMPATIBLE_API_KEY ?? env.OPENAI_API_KEY;
+  const mergedOpenAiOrganization =
+    overrides.openAiCompatibleOrganization ??
+    episodeOverrides.openAiCompatibleOrganization ??
+    env.MEDIAFORGE_OPENAI_COMPATIBLE_ORGANIZATION ??
+    env.OPENAI_ORGANIZATION;
+  const mergedOpenAiProject =
+    overrides.openAiCompatibleProject ?? episodeOverrides.openAiCompatibleProject ?? env.MEDIAFORGE_OPENAI_COMPATIBLE_PROJECT ?? env.OPENAI_PROJECT;
   const config = configSchema.parse({
     workspaceDir: path.resolve(workspaceDir),
     dbPath: path.resolve(dbPath),
@@ -192,9 +244,9 @@ export async function loadRuntimeConfig(
     transcriptBoundaryLookbackWords:
       overrides.transcriptBoundaryLookbackWords ?? episodeOverrides.transcriptBoundaryLookbackWords ?? env.TRANSCRIPT_BOUNDARY_LOOKBACK_WORDS ?? 6,
     visualSceneMinSeconds:
-      overrides.visualSceneMinSeconds ?? episodeOverrides.visualSceneMinSeconds ?? env.VISUAL_SCENE_MIN_SECONDS ?? 8,
+      overrides.visualSceneMinSeconds ?? episodeOverrides.visualSceneMinSeconds ?? env.VISUAL_SCENE_MIN_SECONDS ?? 6,
     visualSceneMaxSeconds:
-      overrides.visualSceneMaxSeconds ?? episodeOverrides.visualSceneMaxSeconds ?? env.VISUAL_SCENE_MAX_SECONDS ?? 18,
+      overrides.visualSceneMaxSeconds ?? episodeOverrides.visualSceneMaxSeconds ?? env.VISUAL_SCENE_MAX_SECONDS ?? 9,
     trailingSilenceRatio:
       overrides.trailingSilenceRatio ?? episodeOverrides.trailingSilenceRatio ?? env.MEDIAFORGE_TRAILING_SILENCE_RATIO ?? 1,
     openAiTranscriptionModel:
@@ -220,6 +272,8 @@ export async function loadRuntimeConfig(
       "en",
     openAiCompatibleBaseUrl: mergedOpenAiBaseUrl,
     openAiCompatibleApiKey: mergedOpenAiApiKey,
+    openAiCompatibleOrganization: mergedOpenAiOrganization,
+    openAiCompatibleProject: mergedOpenAiProject,
     openAiCompatibleModel: overrides.openAiCompatibleModel ?? episodeOverrides.openAiCompatibleModel ?? env.MEDIAFORGE_OPENAI_COMPATIBLE_MODEL,
     openAiCompatibleTtsVoice:
       overrides.openAiCompatibleTtsVoice ?? episodeOverrides.openAiCompatibleTtsVoice ?? env.MEDIAFORGE_OPENAI_COMPATIBLE_TTS_VOICE ?? env.OPENAI_SPEECH_VOICE,

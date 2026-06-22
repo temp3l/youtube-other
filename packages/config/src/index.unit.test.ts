@@ -60,7 +60,37 @@ describe("runtime config", () => {
     expect(config.transcriptMaxSegmentSeconds).toBe(15);
     expect(config.transcriptMaxSilenceSeconds).toBe(1.25);
     expect(config.transcriptTimestampPrecision).toBe(3);
-    expect(config.visualSceneMinSeconds).toBe(8);
-    expect(config.visualSceneMaxSeconds).toBe(18);
+    expect(config.visualSceneMinSeconds).toBe(6);
+    expect(config.visualSceneMaxSeconds).toBe(9);
+  });
+
+  it("lets .env override inherited process env values for OpenAI credentials", async () => {
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "mediaforge-dotenv-"));
+    const previousCwd = process.cwd();
+    const previousOpenAiKey = process.env.OPENAI_API_KEY;
+    await fs.writeFile(
+      path.join(dir, ".env"),
+      [
+        "OPENAI_API_KEY=test-key",
+        "MEDIAFORGE_OPENAI_COMPATIBLE_BASE_URL=https://api.openai.com/v1",
+        "MEDIAFORGE_OPENAI_SPEECH_MODEL=gpt-4o-mini-tts",
+        "MEDIAFORGE_OPENAI_SPEECH_VOICE=onyx"
+      ].join("\n")
+    );
+    process.chdir(dir);
+    try {
+      const config = await loadRuntimeConfig();
+      expect(config.openAiCompatibleApiKey).toBe("test-key");
+      expect(config.ttsProvider).toBe("openai-compatible");
+      expect(config.openAiSpeechModel).toBe("gpt-4o-mini-tts");
+      expect(config.openAiSpeechVoice).toBe("onyx");
+    } finally {
+      process.chdir(previousCwd);
+      if (previousOpenAiKey !== undefined) {
+        process.env.OPENAI_API_KEY = previousOpenAiKey;
+      } else {
+        delete process.env.OPENAI_API_KEY;
+      }
+    }
   });
 });

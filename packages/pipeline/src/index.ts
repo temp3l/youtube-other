@@ -81,6 +81,7 @@ export interface RunPipelineOptions {
   readonly fromStage?: PipelineStage;
   readonly untilStage?: PipelineStage;
   readonly sceneId?: string;
+  readonly sceneLimit?: number;
   readonly missingScenesOnly?: boolean;
   readonly outputProfile?: "youtube" | "vertical";
   readonly json?: boolean;
@@ -221,6 +222,8 @@ export class MediaForgePipeline {
         ? new OpenAiCompatibleTranscriptCleaner({
             baseUrl: config.openAiCompatibleBaseUrl,
             apiKey: config.openAiCompatibleApiKey,
+            ...(config.openAiCompatibleOrganization ? { organization: config.openAiCompatibleOrganization } : {}),
+            ...(config.openAiCompatibleProject ? { project: config.openAiCompatibleProject } : {}),
             model: config.openAiCompatibleModel
           })
         : new ConservativeTranscriptCleaner();
@@ -229,6 +232,8 @@ export class MediaForgePipeline {
         ? new OpenAiCompatibleScriptRewriter({
             baseUrl: config.openAiCompatibleBaseUrl,
             apiKey: config.openAiCompatibleApiKey,
+            ...(config.openAiCompatibleOrganization ? { organization: config.openAiCompatibleOrganization } : {}),
+            ...(config.openAiCompatibleProject ? { project: config.openAiCompatibleProject } : {}),
             model: config.openAiCompatibleModel
           })
         : new ConservativeScriptRewriter();
@@ -236,6 +241,8 @@ export class MediaForgePipeline {
       config.ttsProvider === "openai-compatible" && config.openAiCompatibleApiKey
         ? new OpenAiCompatibleSpeechProvider({
             apiKey: config.openAiCompatibleApiKey,
+            ...(config.openAiCompatibleOrganization ? { organization: config.openAiCompatibleOrganization } : {}),
+            ...(config.openAiCompatibleProject ? { project: config.openAiCompatibleProject } : {}),
             model: config.openAiSpeechModel ?? config.openAiCompatibleModel ?? "gpt-4o-mini-tts",
             voice: config.openAiSpeechVoice ?? config.openAiCompatibleTtsVoice ?? "onyx",
             ...(this.speechSettings.preset ? { preset: this.speechSettings.preset } : {}),
@@ -342,23 +349,36 @@ export class MediaForgePipeline {
     const cleaned = await this.cleanTranscript(manifest, transcript);
     const rewritten = await this.rewriteScript(manifest, cleaned);
     const scenes = await this.planScenes(manifest, transcript, rewritten);
-    const audioSegments = await this.synthesizeSceneAudio(manifest, scenes, episodeDirPath);
+    const limitedScenes = Number.isFinite(options.sceneLimit) && (options.sceneLimit ?? 0) > 0 ? {
+      ...scenes,
+      scenes: scenes.scenes.slice(0, options.sceneLimit)
+    } : scenes;
+    const audioSegments = await this.synthesizeSceneAudio(manifest, limitedScenes, episodeDirPath);
     const sceneDurationById = new Map(audioSegments.map((segment) => [segment.sceneId, segment.durationSeconds] as const));
-    scenes.scenes = scenes.scenes.map((scene) => ({
+    limitedScenes.scenes = limitedScenes.scenes.map((scene) => ({
       ...scene,
       actualAudioDurationSeconds: sceneDurationById.get(scene.id) ?? scene.actualAudioDurationSeconds ?? scene.estimatedDurationSeconds
     }));
     await this.concatenateAudio(manifest, episodeDirPath, audioSegments);
-    const captions = await this.createCaptions(manifest, scenes, transcript);
-    const prompts = this.createImagePrompts(manifest, scenes);
+    const captions = await this.createCaptions(manifest, limitedScenes, transcript);
+    const prompts = this.createImagePrompts(manifest, limitedScenes);
     await this.exportWorkbooks(manifest, prompts, episodeDirPath);
-    const imported = await this.importPlaceholderImages(manifest, scenes, episodeDirPath, options.missingScenesOnly ?? false);
-    const validation = validateImageAssets(scenes, imported);
+    const imported = await this.importPlaceholderImages(manifest, limitedScenes, episodeDirPath, options.missingScenesOnly ?? false);
+    const validation = validateImageAssets(limitedScenes, imported);
     if (!validation.valid) {
       warnings.push(...validation.issues);
     }
-    const metadata = this.generateMetadata(manifest, rewritten, scenes);
-    const renderResult = await this.render(manifest, episodeDirPath, scenes, captions, options.outputProfile ?? "youtube");
+    const metadata = this.generateMetadata(manifest, rewritten, limitedScenes);
+    if (options.untilStage === "concatenate-audio") {
+      return {
+        episodeId,
+        slug: manifest.slug,
+        manifestPath,
+        outputPaths: [path.join(episodeDirPath, "audio", "narration.wav")],
+        warnings
+      };
+    }
+    const renderResult = await this.render(manifest, episodeDirPath, limitedScenes, captions, options.outputProfile ?? "youtube");
     const outputValidation = await validateRenderedVideo(renderResult.captionedPath ?? renderResult.cleanPath);
     if (!outputValidation.valid) {
       warnings.push(...outputValidation.issues);
@@ -370,7 +390,7 @@ export class MediaForgePipeline {
       transcript,
       cleaned,
       rewritten,
-      scenes,
+      limitedScenes,
       captions,
       imported,
       metadata,

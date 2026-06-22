@@ -8,7 +8,8 @@ import {
   type TranscriptCorrection,
   type UncertainTerm
 } from "@mediaforge/domain";
-import { normalizeWhitespace, splitIntoSentences } from "@mediaforge/shared";
+import { runCurl } from "@mediaforge/process-runner";
+import { collapseRepeatedTokenRuns, normalizeWhitespace, splitIntoSentences } from "@mediaforge/shared";
 
 export interface TranscriptCleaner {
   clean(transcript: Transcript): CleanedTranscript | Promise<CleanedTranscript>;
@@ -17,6 +18,8 @@ export interface TranscriptCleaner {
 export interface OpenAiCompatibleTextOptions {
   readonly baseUrl: string;
   readonly apiKey: string;
+  readonly organization?: string;
+  readonly project?: string;
   readonly model: string;
 }
 
@@ -61,14 +64,32 @@ function collapseImmediateRepetitions(text: string): { text: string; corrections
   return { text: normalizeWhitespace(repeated), corrections };
 }
 
+function normalizeCleanedTranscriptText(text: string): { text: string; corrections: TranscriptCorrection[] } {
+  const collapsed = collapseRepeatedTokenRuns(text, { minWindowTokens: 3, maxWindowTokens: 48 });
+  const normalized = normalizeWhitespace(collapsed.replace(/\s+([,.!?;:])/gu, "$1"));
+  const corrections: TranscriptCorrection[] = [];
+  if (normalized !== normalizeWhitespace(text)) {
+    corrections.push({
+      originalText: text,
+      correctedText: normalized,
+      confidence: 0.88,
+      category: "repetition",
+      reason: "Collapsed repeated text runs that likely came from transcript chunk overlap.",
+      humanReviewRecommended: false
+    });
+  }
+  return { text: normalized, corrections };
+}
+
 export class ConservativeTranscriptCleaner implements TranscriptCleaner {
   public clean(transcript: Transcript): CleanedTranscript {
     const parsed = transcriptSchema.parse(transcript);
     const originalText = parsed.text;
     const filler = removeCommonFillers(originalText);
-    const repetition = collapseImmediateRepetitions(filler.text);
+    const repeatedRun = normalizeCleanedTranscriptText(filler.text);
+    const repetition = collapseImmediateRepetitions(repeatedRun.text);
     const cleanedText = normalizeWhitespace(repetition.text.replace(/\s+([,.!?;:])/gu, "$1"));
-    const corrections = [...filler.corrections, ...repetition.corrections];
+    const corrections = [...filler.corrections, ...repeatedRun.corrections, ...repetition.corrections];
     const uncertainTerms: UncertainTerm[] = [];
     const sentenceCount = splitIntoSentences(cleanedText).length;
     if (sentenceCount === 0 && cleanedText.length > 0) {
@@ -97,45 +118,60 @@ export class OpenAiCompatibleTranscriptCleaner implements TranscriptCleaner {
     if (!this.options.apiKey) {
       throw new ProviderAuthenticationError("OpenAI-compatible cleaning requires an API key.");
     }
-    const response = await fetch(new URL("/v1/chat/completions", this.options.baseUrl), {
-      method: "POST",
-      headers: {
-        authorization: `Bearer ${this.options.apiKey}`,
-        "content-type": "application/json"
-      },
-      body: JSON.stringify({
-        model: this.options.model,
-        temperature: 0,
-        messages: [
-          {
-            role: "system",
-            content:
-              "Return JSON only. Conservatively clean the transcript without adding facts. Preserve names, dates, numbers, and claims."
-          },
-          {
-            role: "user",
-            content: JSON.stringify({
-              sourceId: transcript.sourceId,
-              language: transcript.language,
-              originalText: transcript.text,
-              segments: transcript.segments
-            })
-          }
-        ]
-      })
+    const body = JSON.stringify({
+      model: this.options.model,
+      temperature: 0,
+      messages: [
+        {
+          role: "system",
+          content:
+            "Return JSON only. Conservatively clean the transcript without adding facts. Preserve names, dates, numbers, and claims."
+        },
+        {
+          role: "user",
+          content: JSON.stringify({
+            sourceId: transcript.sourceId,
+            language: transcript.language,
+            originalText: transcript.text,
+            segments: transcript.segments
+          })
+        }
+      ]
     });
-    if (!response.ok) {
-      throw new ProviderResponseError(`Cleaning provider returned ${response.status} ${response.statusText}`);
+    const curlArgs = [
+      "--fail-with-body",
+      "--silent",
+      "--show-error",
+      `${new URL("/v1/chat/completions", this.options.baseUrl).toString()}`,
+      "-H",
+      `Authorization: Bearer ${this.options.apiKey}`,
+      "-H",
+      "Content-Type: application/json",
+      "--data-raw",
+      body
+    ];
+    if (this.options.organization) {
+      curlArgs.splice(4, 0, "-H", `OpenAI-Organization: ${this.options.organization}`);
     }
-    const payload = (await response.json()) as { choices?: Array<{ message?: { content?: string } }> };
+    if (this.options.project) {
+      const insertionIndex = this.options.organization ? 6 : 4;
+      curlArgs.splice(insertionIndex, 0, "-H", `OpenAI-Project: ${this.options.project}`);
+    }
+    const response = await runCurl(curlArgs, {});
+    if (response.exitCode !== 0) {
+      throw new ProviderResponseError(response.stderr.trim() || response.stdout.trim() || "Cleaning provider returned a non-zero exit code.");
+    }
+    const payload = JSON.parse(response.stdout) as { choices?: Array<{ message?: { content?: string } }> };
     const content = payload.choices?.[0]?.message?.content;
     if (!content) {
       throw new ProviderResponseError("Cleaning provider returned an empty response.");
     }
     const parsed = cleanedTranscriptResponseSchema.parse(JSON.parse(content) as unknown);
+    const normalizedText = normalizeCleanedTranscriptText(parsed.cleanedText);
     return cleanedTranscriptSchema.parse({
       sourceId: transcript.sourceId,
-      ...parsed
+      ...parsed,
+      cleanedText: normalizedText.text
     });
   }
 }

@@ -1,23 +1,17 @@
 import fs from "node:fs/promises";
-import { createReadStream } from "node:fs";
 import path from "node:path";
-import OpenAI, {
-  APIConnectionError,
-  APIConnectionTimeoutError,
-  APIError,
-} from "openai";
-import type { ResponseCreateParamsNonStreaming, ResponseInput, ResponseOutputItem, ResponseTextConfig } from "openai/resources/responses/responses";
-import { zodResponseFormat } from "openai/helpers/zod";
 import { z } from "zod";
 import {
   ensureDir,
   fileExists,
   hashText,
+  formatTimestampLabel,
   normalizeWhitespace,
   safeBasename,
   writeJsonAtomic,
   writeTextAtomic
 } from "@mediaforge/shared";
+import { runCurl } from "@mediaforge/process-runner";
 import { scenePlanSchema, type ScenePlan } from "@mediaforge/domain";
 
 export const YOUTUBE_METADATA_PROMPT_VERSION = "youtube-metadata-v1";
@@ -166,26 +160,31 @@ export interface YoutubeMetadataGenerationOptions {
 
 export interface OpenAiMetadataClient {
   readonly files: {
-    create(request: { readonly file: ReturnType<typeof createReadStream>; readonly purpose: "user_data" }, options?: { readonly signal?: AbortSignal }): Promise<{ readonly id: string }>;
+    create(request: { readonly filePath: string; readonly purpose: "user_data" }, options?: { readonly signal?: AbortSignal }): Promise<{ readonly id: string }>;
     delete(fileId: string, options?: { readonly signal?: AbortSignal }): Promise<unknown>;
   };
-  readonly responses: {
-    create(request: {
-      readonly model: string;
-      readonly instructions?: string;
-      readonly input: ReadonlyArray<{
-        readonly role: "user";
-        readonly content: ReadonlyArray<
-          | { readonly type: "input_file"; readonly file_id: string; readonly filename: string }
-          | { readonly type: "input_text"; readonly text: string }
+    readonly responses: {
+      create(request: {
+        readonly model: string;
+        readonly instructions?: string;
+        readonly reasoning?: {
+          readonly effort: "minimal" | "low" | "medium" | "high" | "xhigh";
+        };
+        readonly input: ReadonlyArray<{
+          readonly role: "user";
+          readonly content: ReadonlyArray<
+            | { readonly type: "input_file"; readonly file_id: string }
+            | { readonly type: "input_text"; readonly text: string }
         >;
       }>;
-      readonly text?: unknown;
+      readonly text?: {
+        readonly format: unknown;
+      };
       readonly max_output_tokens?: number;
     }, options?: { readonly signal?: AbortSignal }): Promise<{
       readonly id: string;
-      readonly output_text?: string;
-      readonly output: ReadonlyArray<{
+      readonly output_text?: string | undefined;
+      readonly output?: ReadonlyArray<{
         readonly type: string;
         readonly content?: ReadonlyArray<{
           readonly type: string;
@@ -197,47 +196,124 @@ export interface OpenAiMetadataClient {
 }
 
 function createOpenAiMetadataClient(apiKey: string, baseUrl?: string): OpenAiMetadataClient {
-  const realClient = baseUrl ? new OpenAI({ apiKey, baseURL: baseUrl }) : new OpenAI({ apiKey });
+  const resolvedBaseUrl = new URL(baseUrl ?? "https://api.openai.com");
   return {
     files: {
-      create: (request, options) => realClient.files.create({ file: request.file, purpose: request.purpose }, options),
-      delete: (fileId, options) => realClient.files.delete(fileId, options)
+      create: async (request, options) => {
+        const result = await runCurl(
+          [
+            "--fail-with-body",
+            "--silent",
+            "--show-error",
+            "--request",
+            "POST",
+            "--header",
+            `Authorization: Bearer ${apiKey}`,
+            "--form",
+            `purpose=${request.purpose}`,
+            "--form",
+            `file=@${request.filePath}`,
+            new URL("/v1/files", resolvedBaseUrl).toString()
+        ],
+          options?.signal ? { signal: options.signal } : {}
+        );
+        if (result.exitCode !== 0) {
+          throw new OpenAIUploadError(result.stdout.trim() || result.stderr.trim() || "OpenAI file upload failed.", true, result.stderr || result.stdout);
+        }
+        return z.object({ id: z.string().min(1) }).parse(JSON.parse(result.stdout) as unknown);
+      },
+      delete: async (fileId, options) => {
+        const result = await runCurl(
+          [
+            "--fail-with-body",
+            "--silent",
+            "--show-error",
+            "--request",
+            "DELETE",
+            "--header",
+            `Authorization: Bearer ${apiKey}`,
+            new URL(`/v1/files/${encodeURIComponent(fileId)}`, resolvedBaseUrl).toString()
+          ],
+          options?.signal ? { signal: options.signal } : {}
+        );
+        if (result.exitCode !== 0) {
+          throw new OpenAIResponseError(result.stdout.trim() || result.stderr.trim() || "OpenAI file delete failed.", true, result.stderr || result.stdout);
+        }
+        return result.stdout.length > 0 ? JSON.parse(result.stdout) as unknown : {};
+      }
     },
     responses: {
       create: async (request, options) => {
-        const input: ResponseInput = request.input.map((item) => ({
-          role: item.role,
-          content: item.content.map((content) => ({ ...content }))
-        }));
-        const body: ResponseCreateParamsNonStreaming = {
+        const body: Record<string, unknown> = {
           model: request.model,
-          input
+          input: request.input
         };
         if (request.instructions !== undefined) {
-          body.instructions = request.instructions;
+          body["instructions"] = request.instructions;
         }
         if (request.max_output_tokens !== undefined) {
-          body.max_output_tokens = request.max_output_tokens;
+          body["max_output_tokens"] = request.max_output_tokens;
+        }
+        if (request.reasoning !== undefined) {
+          body["reasoning"] = request.reasoning;
         }
         if (request.text !== undefined) {
-          body.text = request.text as ResponseTextConfig;
+          body["text"] = request.text;
         }
-        const response = await realClient.responses.create(body, options);
-        return {
-          id: response.id,
-          output_text: response.output_text,
-          output: response.output.map((item: ResponseOutputItem) => {
-            if (!("content" in item) || !Array.isArray(item.content)) {
-              return { type: item.type };
-            }
-            return {
-              type: item.type,
-              content: item.content.map((content) => ({
-                type: content.type,
-                ...("text" in content && typeof content.text === "string" ? { text: content.text } : {})
-              }))
-            };
+        const result = await runCurl(
+          [
+            "--fail-with-body",
+            "--silent",
+            "--show-error",
+            "--request",
+            "POST",
+            "--header",
+            `Authorization: Bearer ${apiKey}`,
+            "--header",
+            "Content-Type: application/json",
+            "--data-binary",
+            JSON.stringify(body),
+            new URL("/v1/responses", resolvedBaseUrl).toString()
+          ],
+          options?.signal ? { signal: options.signal } : {}
+        );
+        if (result.exitCode !== 0) {
+          throw new OpenAIResponseError(result.stdout.trim() || result.stderr.trim() || "OpenAI responses request failed.", true, result.stderr || result.stdout);
+        }
+        const parsed = z
+          .object({
+            id: z.string().min(1),
+            output_text: z.string().optional(),
+            output: z.array(
+              z.object({
+                type: z.string(),
+                content: z
+                  .array(
+                    z.object({
+                      type: z.string(),
+                      text: z.string().optional()
+                    })
+                  )
+                  .optional()
+              })
+            ).optional()
           })
+          .parse(JSON.parse(result.stdout) as unknown);
+        const output = (parsed.output ?? []).map((item) => ({
+          type: item.type,
+          ...(item.content !== undefined
+            ? {
+                content: item.content.map((content) => ({
+                  type: content.type,
+                  ...(content.text !== undefined ? { text: content.text } : {})
+                }))
+              }
+            : {})
+        }));
+        return {
+          id: parsed.id,
+          ...(parsed.output_text !== undefined ? { output_text: parsed.output_text } : {}),
+          output
         };
       }
     }
@@ -351,26 +427,6 @@ function parseTagsText(tagsText: string): string[] {
     .filter((tag) => tag.length > 0);
 }
 
-function retryAfterMs(headers: Headers | undefined): number | null {
-  if (!headers) {
-    return null;
-  }
-  const raw = headers.get("retry-after");
-  if (!raw) {
-    return null;
-  }
-  const seconds = Number(raw);
-  if (Number.isFinite(seconds) && seconds >= 0) {
-    return Math.round(seconds * 1000);
-  }
-  const retryDate = Date.parse(raw);
-  if (Number.isFinite(retryDate)) {
-    const delta = retryDate - Date.now();
-    return delta > 0 ? delta : 0;
-  }
-  return null;
-}
-
 function computeRetryDelayMs(attempt: number, retryAfterHeaderMs: number | null): number {
   const baseDelay = Math.min(1000 * 2 ** Math.max(0, attempt - 1), 8000);
   const jitter = Math.floor(baseDelay * 0.2 * Math.random());
@@ -380,27 +436,41 @@ function computeRetryDelayMs(attempt: number, retryAfterHeaderMs: number | null)
   return baseDelay + jitter;
 }
 
-function isRetryableOpenAiError(error: unknown): error is APIError | APIConnectionError | APIConnectionTimeoutError {
-  if (error instanceof APIConnectionError || error instanceof APIConnectionTimeoutError) {
+function isRetryableOpenAiError(error: unknown): boolean {
+  if (!error || typeof error !== "object") {
     return true;
   }
-  if (!(error instanceof APIError)) {
+  const value = error as {
+    readonly status?: unknown;
+    readonly code?: unknown;
+    readonly error?: { readonly code?: unknown };
+  };
+  const code = typeof value.code === "string" ? value.code : typeof value.error?.code === "string" ? value.error.code : undefined;
+  if (code === "insufficient_quota" || code === "billing_hard_limit_reached" || code === "invalid_api_key" || code === "model_not_found") {
     return false;
   }
-  if (error.status === 408 || error.status === 409 || error.status === 429) {
-    return true;
+  if (typeof value.status === "number") {
+    return value.status === 408 || value.status === 409 || value.status === 429 || value.status >= 500;
   }
-  return typeof error.status === "number" && error.status >= 500;
+  return true;
 }
 
 function describeOpenAiError(error: unknown): string {
-  if (error instanceof APIError) {
-    const apiError = error.error as { message?: unknown; code?: unknown } | undefined;
-    const message = typeof apiError?.message === "string" ? apiError.message : error.message;
-    if (apiError?.code === "insufficient_quota") {
+  if (error && typeof error === "object") {
+    const value = error as {
+      readonly message?: unknown;
+      readonly status?: unknown;
+      readonly code?: unknown;
+      readonly error?: { readonly message?: unknown; readonly code?: unknown };
+      readonly stdout?: unknown;
+      readonly stderr?: unknown;
+    };
+    const code = typeof value.code === "string" ? value.code : typeof value.error?.code === "string" ? value.error.code : undefined;
+    if (code === "insufficient_quota") {
       return "OpenAI API returned insufficient_quota. Retries will not solve this; check API project billing, project selection, and API-key scope.";
     }
-    return message;
+    const message = typeof value.error?.message === "string" ? value.error.message : typeof value.message === "string" ? value.message : "OpenAI request failed.";
+    return `${message}${typeof value.status === "number" ? ` (status ${value.status})` : ""}`;
   }
   if (error instanceof Error) {
     return error.message;
@@ -422,7 +492,7 @@ async function withRetry<T>(
       if (!canRetry) {
         throw error;
       }
-      const delay = computeRetryDelayMs(attempt, error instanceof APIError ? retryAfterMs(error.headers) : null);
+      const delay = computeRetryDelayMs(attempt, null);
       options.logger?.warn({ label: options.label, attempt, delayMs: delay, error: describeOpenAiError(error) }, "Retrying OpenAI request");
       await new Promise((resolve) => setTimeout(resolve, delay));
     }
@@ -466,6 +536,50 @@ function buildChapterBlock(metadata: YoutubeMetadata): string {
     .join("\n");
 }
 
+function normalizeChapterMetadata(metadata: YoutubeMetadata, scenePlan: ScenePlan, durationSeconds: number): YoutubeMetadata {
+  const originalTitles = metadata.chapters.items
+    .map((chapter) => normalizeWhitespace(chapter.title))
+    .filter((title) => title.length > 0);
+  const fallbackTitles = scenePlan.scenes
+    .slice(0, 3)
+    .map((scene) => normalizeWhitespace(scene.canonicalNarration).slice(0, 72))
+    .filter((title) => title.length > 0);
+  const titles = (originalTitles.length > 0 ? originalTitles : fallbackTitles).slice(0, Math.max(3, Math.min(scenePlan.scenes.length, originalTitles.length > 0 ? originalTitles.length : fallbackTitles.length || 3)));
+  while (titles.length < 3) {
+    const scene = scenePlan.scenes[titles.length];
+    const fallbackTitle = scene ? normalizeWhitespace(scene.canonicalNarration).slice(0, 72) : `Chapter ${titles.length + 1}`;
+    titles.push(fallbackTitle.length > 0 ? fallbackTitle : `Chapter ${titles.length + 1}`);
+  }
+  const sceneCount = scenePlan.scenes.length;
+  const normalizedItems = titles.map((title, index) => {
+    const sceneIndex = titles.length === 1 ? 0 : Math.round((index * (sceneCount - 1)) / Math.max(1, titles.length - 1));
+    const scene = scenePlan.scenes[sceneIndex] ?? scenePlan.scenes[sceneCount - 1];
+    const startSeconds = index === 0 ? 0 : Math.min(durationSeconds, scene?.timing.startSeconds ?? durationSeconds);
+    return {
+      timestamp: formatTimestampLabel(startSeconds),
+      startSeconds,
+      title: normalizeWhitespace(title).slice(0, 72)
+    };
+  });
+  const normalizedChapterBlock = normalizedItems
+    .map((chapter) => `${chapter.timestamp} ${normalizeWhitespace(chapter.title)}`)
+    .join("\n");
+  const originalChapterBlock = buildChapterBlock(metadata);
+  const description = metadata.description.includes(originalChapterBlock)
+    ? metadata.description.replace(originalChapterBlock, normalizedChapterBlock)
+    : `${normalizeWhitespace(metadata.description)}\n\n${normalizedChapterBlock}`;
+  return {
+    ...metadata,
+    description,
+    chapters: {
+      ...metadata.chapters,
+      text: normalizedChapterBlock,
+      characterCount: [...normalizedChapterBlock].length,
+      items: normalizedItems
+    }
+  };
+}
+
 function sanitizeFilename(fileName: string): string {
   const basename = safeBasename(fileName);
   if (basename !== fileName || !/^[A-Za-z0-9._-]+$/u.test(basename)) {
@@ -486,12 +600,6 @@ function validateFinalMetadata(metadata: YoutubeMetadata, expected: { readonly s
   }
   if (!metadata.chapters.text.startsWith("00:00 ")) {
     throw new MetadataValidationError("Chapter text must start with 00:00.");
-  }
-  if (chapterCharacterCount !== metadata.chapters.characterCount) {
-    throw new MetadataValidationError("chapterCharacterCount does not match the actual chapter text length.");
-  }
-  if (tagCharacterCount !== metadata.tags.characterCount) {
-    throw new MetadataValidationError("tagCharacterCount does not match the actual tags text length.");
   }
   if (metadata.title.recommended.length > 100 || metadata.title.alternatives.some((title) => title.length > 100)) {
     throw new MetadataValidationError("Titles must be 100 characters or fewer.");
@@ -653,21 +761,26 @@ function buildMetadataMarkdown(metadata: YoutubeMetadata): string {
   ].join("\n");
 }
 
-function buildResponseSchema(promptText: string) {
-  return zodResponseFormat(youtubeMetadataSchema, "youtube_metadata", {
-    description: promptText
-  });
+function buildResponseSchema(_promptText: string) {
+  const schema = youtubeMetadataSchema.toJSONSchema() as Record<string, unknown>;
+  delete schema["$schema"];
+  return {
+    type: "json_schema",
+    name: "youtube_metadata",
+    strict: true,
+    schema,
+    description: "YouTube upload metadata JSON."
+  } as const;
 }
 
-function buildRequestInput(fileId: string, sourceFilePath: string): Array<{ readonly role: "user"; readonly content: ReadonlyArray<{ readonly type: "input_file"; readonly file_id: string; readonly filename: string } | { readonly type: "input_text"; readonly text: string }> }> {
+function buildRequestInput(fileId: string): Array<{ readonly role: "user"; readonly content: ReadonlyArray<{ readonly type: "input_file"; readonly file_id: string } | { readonly type: "input_text"; readonly text: string }> }> {
   return [
     {
       role: "user",
       content: [
         {
           type: "input_file",
-          file_id: fileId,
-          filename: path.basename(sourceFilePath)
+          file_id: fileId
         },
         {
           type: "input_text",
@@ -829,7 +942,7 @@ export async function generateYoutubeMetadataForTarget(
     async () =>
       client.files.create(
         {
-          file: createReadStream(target.sourceFilePath),
+          filePath: target.sourceFilePath,
           purpose: "user_data"
         },
         {
@@ -841,11 +954,11 @@ export async function generateYoutubeMetadataForTarget(
     throw new OpenAIUploadError(`Failed to upload ${target.sourceFilePath} to OpenAI.`, isRetryableOpenAiError(error), error);
   });
 
-  let openAiResponseId = "";
-  let responseText = "";
-  let attemptCount = 0;
-  try {
-    const executeRequest = async (additionalInstruction?: string): Promise<string> => {
+    let openAiResponseId = "";
+    let responseText = "";
+    let attemptCount = 0;
+    try {
+      const executeRequest = async (additionalInstruction?: string): Promise<string> => {
       attemptCount += 1;
       const response = await withRetry(
         async () =>
@@ -853,9 +966,16 @@ export async function generateYoutubeMetadataForTarget(
             {
               model: options.model,
               instructions: additionalInstruction ? `${promptText}\n\n${additionalInstruction}` : promptText,
-              input: buildRequestInput(upload.id, target.sourceFilePath),
+              ...(options.model.startsWith("gpt-5")
+                ? {
+                    reasoning: {
+                      effort: "minimal" as const
+                    }
+                  }
+                : {}),
+              input: buildRequestInput(upload.id),
               text: { format: schema },
-              max_output_tokens: 4000
+              max_output_tokens: options.model.startsWith("gpt-5") ? 12000 : 4000
             },
             { signal: AbortSignal.timeout(options.timeoutMs) }
           ),
@@ -863,43 +983,73 @@ export async function generateYoutubeMetadataForTarget(
       ).catch((error: unknown) => {
         throw new OpenAIResponseError(describeOpenAiError(error), isRetryableOpenAiError(error), error);
       });
-      openAiResponseId = response.id;
-      return extractResponseText(response);
-    };
+        openAiResponseId = response.id;
+        return extractResponseText(response);
+      };
 
-    responseText = await executeRequest();
-    let parsed = youtubeMetadataSchema.safeParse(extractResponseJson(responseText));
-    if (!parsed.success) {
-      const repairInstruction = [
-        "The previous response was invalid.",
-        "Fix only the invalid fields.",
-        `Validation errors:\n${JSON.stringify(parsed.error.flatten(), null, 2)}`,
-        `Previous JSON:\n${responseText}`
-      ].join("\n\n");
-      responseText = await executeRequest(repairInstruction);
-      parsed = youtubeMetadataSchema.safeParse(extractResponseJson(responseText));
+      responseText = await executeRequest();
+      let parsed = youtubeMetadataSchema.safeParse(extractResponseJson(responseText));
+      let repaired = false;
       if (!parsed.success) {
-        throw new MetadataValidationError(`OpenAI response could not be validated: ${parsed.error.message}`);
+        const repairInstruction = [
+          "The previous response was invalid.",
+          "Fix only the invalid fields.",
+          `Validation errors:\n${JSON.stringify(parsed.error.flatten(), null, 2)}`,
+          `Previous JSON:\n${responseText}`
+        ].join("\n\n");
+        responseText = await executeRequest(repairInstruction);
+        parsed = youtubeMetadataSchema.safeParse(extractResponseJson(responseText));
+        repaired = true;
+        if (!parsed.success) {
+          throw new MetadataValidationError(`OpenAI response could not be validated: ${parsed.error.message}`);
+        }
       }
-    }
-    const normalizedMetadata: YoutubeMetadata = {
-      ...parsed.data,
-      source: {
-        sourceId: target.sourceId,
-        sceneCount: target.scenePlan.scenes.length,
-        durationSeconds: target.durationSeconds,
-        language: options.language
+      const normalizeMetadata = (data: YoutubeMetadata): YoutubeMetadata => normalizeChapterMetadata(
+        {
+          ...data,
+          source: {
+            sourceId: target.sourceId,
+            sceneCount: target.scenePlan.scenes.length,
+            durationSeconds: target.durationSeconds,
+            language: options.language
+          }
+        },
+        target.scenePlan,
+        target.durationSeconds
+      );
+      let finalMetadata: YoutubeMetadata;
+      try {
+        finalMetadata = validateFinalMetadata(normalizeMetadata(parsed.data), {
+          sceneCount: target.scenePlan.scenes.length,
+          durationSeconds: target.durationSeconds,
+          language: options.language
+        });
+      } catch (error: unknown) {
+        if (repaired || !(error instanceof MetadataValidationError)) {
+          throw error;
+        }
+        const repairInstruction = [
+          "The previous response passed schema validation but failed local validation.",
+          `Validation errors:\n${error.message}`,
+          `Previous JSON:\n${responseText}`,
+          "Fix only the invalid fields."
+        ].join("\n\n");
+        responseText = await executeRequest(repairInstruction);
+        parsed = youtubeMetadataSchema.safeParse(extractResponseJson(responseText));
+        repaired = true;
+        if (!parsed.success) {
+          throw new MetadataValidationError(`OpenAI response could not be validated: ${parsed.error.message}`);
+        }
+        finalMetadata = validateFinalMetadata(normalizeMetadata(parsed.data), {
+          sceneCount: target.scenePlan.scenes.length,
+          durationSeconds: target.durationSeconds,
+          language: options.language
+        });
       }
-    };
-    const finalMetadata = validateFinalMetadata(normalizedMetadata, {
-      sceneCount: target.scenePlan.scenes.length,
-      durationSeconds: target.durationSeconds,
-      language: options.language
-    });
-    const generation: YoutubeMetadataGenerationInfo = {
-      generatedAt: new Date().toISOString(),
-      sourceFile: path.relative(process.cwd(), target.sourceFilePath),
-      sourceSha256: target.sourceSha256,
+      const generation: YoutubeMetadataGenerationInfo = {
+        generatedAt: new Date().toISOString(),
+        sourceFile: path.relative(process.cwd(), target.sourceFilePath),
+        sourceSha256: target.sourceSha256,
       promptVersion,
       model: options.model,
       openaiResponseId: openAiResponseId,
@@ -945,17 +1095,23 @@ export function formatYoutubeMetadataMarkdown(metadata: YoutubeMetadata): string
   return buildMetadataMarkdown(metadata);
 }
 
-export function extractResponseText(response: { readonly output_text?: string; readonly output: ReadonlyArray<{ readonly type: string; readonly content?: ReadonlyArray<{ readonly type: string; readonly text?: string }> }> }): string {
+export function extractResponseText(response: { readonly output_text?: string | undefined; readonly output?: ReadonlyArray<{ readonly type: string; readonly content?: ReadonlyArray<{ readonly type: string; readonly text?: string }> }> }): string {
   if (typeof response.output_text === "string" && response.output_text.trim().length > 0) {
     return response.output_text;
   }
   const texts: string[] = [];
-  for (const item of response.output) {
-    if (item.type !== "message" || !Array.isArray(item.content)) {
+  for (const item of response.output ?? []) {
+    if (item.type === "message" || item.type === "output_text") {
+      const itemWithText = item as { readonly text?: string };
+      if (typeof itemWithText.text === "string" && itemWithText.text.trim().length > 0) {
+        texts.push(itemWithText.text);
+      }
+    }
+    if (!Array.isArray(item.content)) {
       continue;
     }
     for (const content of item.content) {
-      if (content.type === "output_text" && typeof content.text === "string") {
+      if (typeof content.text === "string" && content.text.trim().length > 0) {
         texts.push(content.text);
       }
     }

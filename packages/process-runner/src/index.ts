@@ -13,9 +13,10 @@ export interface SpawnOptions {
   readonly env?: Record<string, string | undefined>;
   readonly timeoutMs?: number;
   readonly signal?: AbortSignal;
+  readonly allowNonZeroExit?: boolean;
 }
 
-const allowlist = new Set(["ffmpeg", "ffprobe", "yt-dlp", "node", "whisper", "whisper-cli", "whisper.cpp"]);
+const allowlist = new Set(["curl", "ffmpeg", "ffprobe", "yt-dlp", "node", "whisper", "whisper-cli", "whisper.cpp"]);
 
 export async function runCommand(executable: string, args: ReadonlyArray<string>, options: SpawnOptions = {}): Promise<CommandResult> {
   if (!allowlist.has(path.basename(executable))) {
@@ -60,7 +61,7 @@ export async function runCommand(executable: string, args: ReadonlyArray<string>
         clearTimeout(timeout);
       }
       options.signal?.removeEventListener("abort", abortHandler);
-      if (exitCode !== 0) {
+      if (exitCode !== 0 && !options.allowNonZeroExit) {
         reject(new ProcessExecutionError(`Command exited with code ${String(exitCode)}: ${executable}`));
         return;
       }
@@ -75,5 +76,14 @@ export async function runCommand(executable: string, args: ReadonlyArray<string>
 
 export async function runCommandJson<T>(executable: string, args: ReadonlyArray<string>, options: SpawnOptions = {}, parser: (value: unknown) => T): Promise<T> {
   const result = await runCommand(executable, args, options);
+  return parser(JSON.parse(result.stdout) as unknown);
+}
+
+export async function runCurl(args: ReadonlyArray<string>, options: SpawnOptions = {}): Promise<CommandResult> {
+  return runCommand("curl", args, { ...options, allowNonZeroExit: true });
+}
+
+export async function runCurlJson<T>(args: ReadonlyArray<string>, options: SpawnOptions = {}, parser: (value: unknown) => T): Promise<T> {
+  const result = await runCurl(args, options);
   return parser(JSON.parse(result.stdout) as unknown);
 }

@@ -3,7 +3,6 @@ import path from "node:path";
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { describe, expect, it, vi } from "vitest";
-import { APIError } from "openai";
 import { scenePlanSchema } from "@mediaforge/domain";
 import { hashText } from "@mediaforge/shared";
 import {
@@ -302,6 +301,20 @@ describe("youtube metadata helpers", () => {
         ]
       })
     ).toBe("hello world");
+
+    expect(
+      extractResponseText({
+        output: [
+          {
+            type: "message",
+            content: [
+              { type: "text", text: "hello" },
+              { type: "text", text: " world" }
+            ]
+          }
+        ]
+      })
+    ).toBe("hello world");
   });
 
   it("accepts a fully valid metadata payload", () => {
@@ -328,6 +341,23 @@ describe("youtube metadata generation", () => {
     expect(result.cacheHit).toBe(false);
     expect(await fs.readFile(result.outputs.jsonPath, "utf8")).toContain("The Simple Problem");
     expect(client.files.delete).toHaveBeenCalledWith("file_123");
+  });
+
+  it("normalizes model-provided chapter timestamps onto real scene timings", async () => {
+    const chapterText = makeChapterText(72);
+    const tagText = makeTagText(26);
+    const metadata = makeValidMetadata(chapterText, tagText);
+    metadata.chapters.items = metadata.chapters.items.map((chapter, index) => ({
+      ...chapter,
+      timestamp: `${index === 0 ? "00:00" : "07"}:${10 + index}`,
+      startSeconds: 430 + index * 10
+    }));
+    metadata.chapters.text = metadata.chapters.items.map((chapter) => `${chapter.timestamp} ${chapter.title}`).join("\n");
+    metadata.description = `Intro text.\n\n${metadata.chapters.text}\n\nShort summary.\n\nSubscribe for more.\n\n#topic`;
+    const { result } = await runWithMetadata(metadata);
+    const refreshed = await fs.readFile(result.outputs.jsonPath, "utf8");
+    expect(refreshed).toContain("00:00");
+    expect(refreshed).toContain("00:04");
   });
 
   it("uses the cached generation on subsequent runs", async () => {
@@ -437,7 +467,11 @@ describe("youtube metadata generation", () => {
     const tagText = makeTagText(26);
     const metadata = makeValidMetadata(chapterText, tagText);
     let uploadAttempts = 0;
-    const retryableError = APIError.generate(429, { error: { message: "rate limited", code: "rate_limit" } }, "rate limited", new Headers({ "retry-after": "0" }));
+    const retryableError = {
+      status: 429,
+      code: "rate_limit",
+      error: { message: "rate limited", code: "rate_limit" }
+    };
     const client: OpenAiMetadataClient = {
       files: {
         create: vi.fn(async () => {
