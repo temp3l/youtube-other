@@ -225,7 +225,35 @@ async function resolveSceneAudioPath(episodeDir: string, scenePlan: ScenePlan, s
       return candidate;
     }
   }
-  throw new MediaValidationError(`Missing scene audio for ${scene.id} in ${audioDir}.`);
+  const narrationCandidates = [
+    path.join(path.dirname(audioDir), "narration.wav"),
+    path.join(path.dirname(audioDir), "narration-en.wav")
+  ];
+  for (const candidate of narrationCandidates) {
+    if (await fileExists(candidate)) {
+      const targetPath = candidates[0] ?? path.join(audioDir, `${scene.id}.wav`);
+      await ensureDir(path.dirname(targetPath));
+      await runCommand(
+        "ffmpeg",
+        [
+          "-y",
+          "-ss",
+          String(scene.timing.startSeconds),
+          "-t",
+          String(Math.max(0.1, scene.timing.endSeconds - scene.timing.startSeconds)),
+          "-i",
+          candidate,
+          "-vn",
+          "-acodec",
+          "pcm_s16le",
+          targetPath
+        ],
+        { timeoutMs: 600000 }
+      );
+      return targetPath;
+    }
+  }
+  throw new MediaValidationError(`Missing scene audio for ${scene.id} in ${audioDir} and no narration source was found.`);
 }
 
 export class FFmpegVideoRenderer implements VideoRenderer {
@@ -236,31 +264,49 @@ export class FFmpegVideoRenderer implements VideoRenderer {
     await ensureDir(clipsDir);
     const imageDir = request.imageDir ?? path.join(request.episodeDir, "images", "generated");
     const audioDir = request.sceneAudioDir ?? path.join(request.episodeDir, "audio", "segments");
-    const clipPaths: string[] = [];
-    for (const [index, scene] of request.scenePlan.scenes.entries()) {
-      const imagePath = await resolveSceneImagePath(request.episodeDir, request.scenePlan, index, imageDir);
-      const audioPath = await resolveSceneAudioPath(request.episodeDir, request.scenePlan, index, audioDir);
-      const clipPath = path.join(clipsDir, `${scene.id}.mp4`);
-      if (await fileExists(clipPath)) {
-        clipPaths.push(clipPath);
-        continue;
+    const clipPaths: string[] = Array.from({ length: request.scenePlan.scenes.length }, () => "");
+    let nextIndex = 0;
+    const takeIndex = (): number | null => {
+      if (nextIndex >= request.scenePlan.scenes.length) {
+        return null;
       }
-      if (!(await fileExists(audioPath))) {
-        throw new MediaValidationError(`Missing scene audio for ${scene.id} in ${audioDir}.`);
+      const current = nextIndex;
+      nextIndex += 1;
+      return current;
+    };
+    const workerCount = Math.min(2, request.scenePlan.scenes.length);
+    const workers = Array.from({ length: workerCount }, async () => {
+      while (true) {
+        const index = takeIndex();
+        if (index === null) {
+          return;
+        }
+        const scene = request.scenePlan.scenes[index];
+        if (!scene) {
+          continue;
+        }
+        const clipPath = path.join(clipsDir, `${scene.id}.mp4`);
+        if (await fileExists(clipPath)) {
+          clipPaths[index] = clipPath;
+          continue;
+        }
+        const imagePath = await resolveSceneImagePath(request.episodeDir, request.scenePlan, index, imageDir);
+        const audioPath = await resolveSceneAudioPath(request.episodeDir, request.scenePlan, index, audioDir);
+        await renderSceneClip(
+          imagePath,
+          audioPath,
+          clipPath,
+          request.renderProfile.fps,
+          request.renderProfile.width,
+          request.renderProfile.height,
+          request.captionBurnIn && request.captionsPath ? request.captionsPath : undefined,
+          request.trailingSilenceRatio ?? 1
+        );
+        clipPaths[index] = clipPath;
       }
-      await renderSceneClip(
-        imagePath,
-        audioPath,
-        clipPath,
-        request.renderProfile.fps,
-        request.renderProfile.width,
-        request.renderProfile.height,
-        request.captionBurnIn && request.captionsPath ? request.captionsPath : undefined,
-        request.trailingSilenceRatio ?? 1
-      );
-      clipPaths.push(clipPath);
-    }
-    return { clipsDir, clipPaths };
+    });
+    await Promise.all(workers);
+    return { clipsDir, clipPaths: clipPaths.filter((clipPath) => clipPath.length > 0) };
   }
 
   public async render(request: VideoRenderRequest, signal: AbortSignal): Promise<VideoRenderResult> {

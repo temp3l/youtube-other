@@ -965,9 +965,6 @@ async function commandClipsGenerate(options: CliOptions, episodeId: string): Pro
     });
     return;
   }
-  if (!await localizedSceneAudioIsComplete(episodeDir, language, manifest.scenePlan.scenes.length)) {
-    await commandAudioGenerate({ ...options, json: false, quiet: true }, episodeId);
-  }
   const pipeline = await loadPipeline(options, episodeDir);
   const renderProfile = {
     id: "clips",
@@ -1158,9 +1155,6 @@ async function commandRender(options: CliOptions, episodeId: string, profile: "y
       dryRun: true
     });
     return;
-  }
-  if (!await localizedSceneAudioIsComplete(episodeDir, language, manifest.scenePlan.scenes.length)) {
-    await commandAudioGenerate({ ...options, json: false, quiet: true }, episodeId);
   }
   const captionsPath = burnCaptions && isEnglishLanguage(language) ? path.join(episodeDir, "captions", "captions.ass") : undefined;
   const renderProfile = {
