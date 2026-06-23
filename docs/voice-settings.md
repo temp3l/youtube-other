@@ -31,6 +31,24 @@ Avoid exaggerated emotion, dramatic acting, advertising energy, slow narration, 
 
 Maintain consistent volume, vocal character, tempo, and speaking rhythm across every generated chunk. Begin speaking immediately and avoid slow introductions or trailing endings.
 
+## very fast voice
+
+Speak in natural, conversational English with a curious, confident, and focused documentary tone.
+
+Use a very brisk but still natural delivery at approximately 180 to 195 words per minute. Aim for a target pace of 185 words per minute.
+
+Keep the narration energetic, compact, and efficient without sounding rushed, breathless, robotic, theatrical, or like an advertisement.
+
+Move smoothly through sentences with clear pronunciation. Use only very short pauses after major conclusions, scene changes, or important reveals. Avoid noticeable pauses between ordinary paragraphs, list items, or closely related ideas.
+
+Do not slow down for emphasis unless the contrast is essential to understanding the sentence. Emphasize important contrasts through tone and clarity rather than long pauses.
+
+Pronounce “Calhoun” clearly and consistently. Pronounce “Universe 25” as “Universe Twenty-Five.”
+
+Avoid exaggerated emotion, dramatic acting, slow narration, drawn-out words, filler sounds, and unnaturally long pauses.
+
+Maintain consistent volume, vocal character, tempo, and rhythm across every generated chunk. Begin speaking immediately and end cleanly without trailing off.
+
 ## per-episode selection
 
 Set the voice preset in `episode.config.json` to choose the narration style for a specific episode:

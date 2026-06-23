@@ -1,3 +1,21 @@
+## document for manual task execution
+
+provide me documentation about how to run all tasks in sequence in order to produce a full video with openai generated audio,images and video output.
+I also want to write informational log file during every video execution, which lists executed commands, results, errors and execution time
+
+## very fast voice
+
+i have added the "very fast voice" configuration to docs/voice-settings.md. wire it up. and use the very fast voice setting as default for generatig voice audios.
+
+## prompt for special effects
+
+provide me a recommendation on how to solve the following:
+some of my youtube shorts scripts will contain special effects and special noises, like **Plitsch**. or **Splash**.
+Analyse all the short scripts and extract these special instructions in a separate file.
+I want them to be generated with audio-generation prompts. Do not generate the same effect twice, but re-use the generated file where relevant.
+
+---
+
 make sure all images can be grasped within the 6-9 seconds they are beeing displayed. re-use existing images in case the image prompts are expected to generate very similar output
 
 there are only 8 files in images/generated/prompts and only 6 files in images/generated/metadata is that correct?
