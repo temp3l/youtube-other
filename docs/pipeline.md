@@ -21,9 +21,9 @@ The pipeline is implemented as a versioned sequence of idempotent stages.
 15. export-openart-batches
 16. import-image-assets
 17. validate-image-assets
-18. generate-publishing-metadata
-19. render-video
-20. validate-output
+18. render-video
+19. validate-output
+20. generate-publishing-metadata
 21. package-results
 
 ## Current vertical slice
@@ -38,6 +38,7 @@ The first implementation focuses on local files and a mock media workflow:
 - placeholder images allow rendering without an external image provider
 - FFmpeg assembles the final MP4
 - ffprobe validates the container
+- YouTube/TikTok publishing metadata is generated last through the OpenAI-backed metadata step
 
 ## Idempotency
 

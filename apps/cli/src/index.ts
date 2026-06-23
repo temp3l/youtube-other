@@ -20,15 +20,16 @@ import {
   type ArtifactReference
 } from "@mediaforge/domain";
 import { createLogger } from "@mediaforge/observability";
-import { formatPublishingMetadataMarkdown, generateLocalizedPublishingMetadata } from "@mediaforge/metadata";
 import {
   findEpisodeScenesFile,
   generateYoutubeMetadataFromScenesFile,
+  YOUTUBE_METADATA_PROMPT_VERSION,
   listEpisodeSceneFiles,
   readAndValidateScenesFile,
   type YoutubeMetadataGenerationInfo,
   type YoutubeMetadataGenerationOptions,
-  type YoutubeMetadataOutputs
+  type YoutubeMetadataOutputs,
+  type YoutubeMetadata
 } from "@mediaforge/metadata";
 import {
   createPromptBatch,
@@ -55,7 +56,7 @@ import {
   writeJsonAtomic,
   writeTextAtomic
 } from "@mediaforge/shared";
-import { loadEpisodeScriptMarkdown, loadSpeechVoiceSettings, splitEpisodeScriptMarkdown, writeEpisodeScriptMarkdown } from "@mediaforge/speech";
+import { loadSpeechVoiceSettings, splitEpisodeScriptMarkdown, writeEpisodeScriptMarkdown } from "@mediaforge/speech";
 import {
   buildVisualScenesFromSubtitleSegments,
   normalizeTranscriptFromWords,
@@ -611,8 +612,7 @@ async function synthesizeSpeechChunks(
 ): Promise<{ segmentPaths: string[]; artifacts: Array<ArtifactReference | undefined> }> {
   const segmentPaths: string[] = Array(chunks.length).fill("");
   const artifacts: Array<ArtifactReference | undefined> = Array(chunks.length).fill(undefined);
-  try {
-    for (let index = 0; index < chunks.length; index += 1) {
+  for (let index = 0; index < chunks.length; index += 1) {
       const chunk = chunks[index];
       if (chunk === undefined) {
         continue;
@@ -644,9 +644,6 @@ async function synthesizeSpeechChunks(
       };
     }
     return { segmentPaths, artifacts };
-  } catch (error) {
-    throw error;
-  }
 }
 
 async function commandTranscriptGenerate(options: CliOptions, episodeId: string): Promise<void> {
@@ -1248,44 +1245,75 @@ async function commandMetadataGenerate(options: CliOptions, episodeId: string): 
   const episodeConfig = await loadEpisodeConfig(episodeDir);
   const config = await loadRuntimeConfig(configOverridesFromCli(options), episodeConfig ? compactConfigOverrides(episodeConfig) : {});
   const language = config.scriptLanguage ?? episodeConfig?.scriptLanguage ?? "en";
-  const script = await loadEpisodeScriptMarkdown(episodeDir, language);
-  const metadata = generateLocalizedPublishingMetadata({
-    sourceId: manifest.episodeId,
-    language,
-    scriptText: script.text,
-    scenePlan: manifest.scenePlan,
-    platform: "youtube"
-  });
   const metadataDir = localizedMetadataDir(episodeDir, language);
+  const scenesFilePath = await findEpisodeScenesFile(config.workspaceDir, episodeId);
+  const target = await readAndValidateScenesFile(scenesFilePath, language);
+  const generationOptions: Omit<YoutubeMetadataGenerationOptions, "baseUrl"> & { baseUrl?: string } = {
+    apiKey: config.openAiCompatibleApiKey ?? process.env["OPENAI_API_KEY"] ?? "",
+    model: config.openAiMetadataModel ?? "gpt-4.1-mini",
+    language,
+    promptText: await fs.readFile(path.resolve("prompts", "youtube-metadata.prompt.md"), "utf8"),
+    promptVersion: YOUTUBE_METADATA_PROMPT_VERSION,
+    maxRetries: config.openAiMetadataMaxRetries ?? 3,
+    timeoutMs: config.openAiMetadataTimeoutMs ?? 120000,
+    keepFile: config.openAiMetadataKeepFile,
+    logger: createLogger(options.verbose ? "debug" : config.logLevel)
+  };
+  const baseUrl = config.openAiCompatibleBaseUrl ?? process.env["OPENAI_BASE_URL"];
+  if (baseUrl !== undefined) {
+    generationOptions.baseUrl = baseUrl;
+  }
   if (options.dryRun) {
     printJson({
       episodeId,
       language,
+      sourceFilePath: scenesFilePath,
       metadataDir,
+      model: generationOptions.model,
+      promptVersion: generationOptions.promptVersion,
+      sceneCount: target.scenePlan.scenes.length,
+      durationSeconds: target.durationSeconds,
       youtubeMarkdownPath: path.join(metadataDir, "youtube.md"),
-      youtubeJsonPath: path.join(metadataDir, "youtube.json"),
+      youtubeJsonPath: path.join(metadataDir, "youtube-metadata.json"),
       dryRun: true
     });
     return;
   }
-  await ensureDir(metadataDir);
-  const youtubeJsonPath = path.join(metadataDir, "youtube.json");
-  const youtubeMarkdownPath = path.join(metadataDir, "youtube.md");
-  const chapterLines = metadata.chapters.map((chapter) => `${formatTimestampLabel(chapter.timestampSeconds)} ${chapter.title}`).join("\n");
-  await writeJsonAtomic(youtubeJsonPath, metadata);
-  await writeTextAtomic(youtubeMarkdownPath, [formatPublishingMetadataMarkdown(metadata), "", "## Chapter descriptions", chapterLines].join("\n"));
-  await writeTextAtomic(path.join(metadataDir, "chapters.txt"), chapterLines);
-  await writeTextAtomic(path.join(metadataDir, "description.txt"), metadata.description);
-  await writeTextAtomic(path.join(metadataDir, "titles.txt"), metadata.titleCandidates.join("\n"));
-  await writeTextAtomic(path.join(metadataDir, "tags.txt"), metadata.tags.join("\n"));
-  await writeTextAtomic(path.join(metadataDir, "publishing.md"), formatPublishingMetadataMarkdown(metadata));
+  const { generateYoutubeMetadataForTarget } = await import("@mediaforge/metadata");
+  const generation = await generateYoutubeMetadataForTarget(
+    {
+      ...target,
+      outputDir: metadataDir,
+      sourceId: manifest.episodeId,
+      language
+    },
+    generationOptions
+  );
+  await writeTextAtomic(path.join(metadataDir, "youtube.md"), await fs.readFile(generation.outputs.markdownPath, "utf8"));
+  const chapterLines = generation.metadata.chapters.items.map((chapter: YoutubeMetadata["chapters"]["items"][number]) => `${formatTimestampLabel(chapter.startSeconds)} ${chapter.title}`).join("\n");
   manifest.publishingMetadata = {
-    ...(manifest.publishingMetadata ?? {}),
-    ...metadata,
-    language
+    sourceId: manifest.episodeId,
+    platform: "youtube",
+    language: generation.metadata.source.language,
+    titleCandidates: [generation.metadata.title.recommended, ...generation.metadata.title.alternatives],
+    recommendedTitle: generation.metadata.title.recommended,
+    description: generation.metadata.description,
+    tags: generation.metadata.tags.items,
+    hashtags: generation.metadata.hashtags,
+    chapters: generation.metadata.chapters.items.map((chapter: YoutubeMetadata["chapters"]["items"][number]) => ({
+      timestampSeconds: chapter.startSeconds,
+      title: chapter.title
+    })),
+    thumbnailTextCandidates: [generation.metadata.thumbnail.recommendedText, ...generation.metadata.thumbnail.alternativeTexts],
+    coverTextCandidates: [generation.metadata.thumbnail.recommendedText, ...generation.metadata.thumbnail.alternativeTexts],
+    pinnedComment: generation.metadata.pinnedComment,
+    summary: generation.metadata.contentSummary,
+    primaryKeyword: generation.metadata.seo.primaryKeyword,
+    secondaryKeywords: generation.metadata.seo.secondaryKeywords,
+    warnings: generation.metadata.verificationWarnings.map((warning: YoutubeMetadata["verificationWarnings"][number]) => `${warning.claim}: ${warning.reason}`)
   };
   await writeJsonAtomic(path.join(episodeDir, "manifest.json"), manifest);
-  process.stdout.write(`${youtubeMarkdownPath}\n`);
+  process.stdout.write(`${path.join(metadataDir, "youtube.md")}\n`);
 }
 
 interface YoutubeMetadataRunSummary {
@@ -1389,7 +1417,7 @@ async function commandMetadataYoutube(
           sceneCount: targetData.scenePlan.scenes.length,
           durationSeconds: targetData.durationSeconds,
           language,
-          model: config.openAiMetadataModel ?? "gpt-4o-mini",
+          model: config.openAiMetadataModel ?? "gpt-4.1-mini",
           promptVersion: "youtube-metadata-v1"
         } satisfies YoutubeMetadataRunSummary;
       })
@@ -1404,7 +1432,7 @@ async function commandMetadataYoutube(
       const baseUrl = config.openAiCompatibleBaseUrl ?? process.env["OPENAI_BASE_URL"];
       const generationOptions: Omit<YoutubeMetadataGenerationOptions, "baseUrl"> & { baseUrl?: string } = {
         apiKey: config.openAiCompatibleApiKey ?? process.env["OPENAI_API_KEY"] ?? "",
-        model: config.openAiMetadataModel ?? "gpt-4o-mini",
+        model: config.openAiMetadataModel ?? "gpt-4.1-mini",
         language,
         promptText: prompt.text,
         promptVersion: "youtube-metadata-v1",

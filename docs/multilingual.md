@@ -34,7 +34,8 @@ Language-specific outputs are written without touching existing images:
 - `audio/narration-<lang>.wav`
 - `output/clips-<lang>/`
 - `output/youtube-16x9-<lang>-clean.mp4`
-- `metadata/<lang>/youtube.md`
+- `metadata/<lang>/youtube-metadata.md`
+- `metadata/<lang>/youtube.md` as a compatibility alias
 
 English remains the default language and continues to use the non-suffixed paths.
 
@@ -47,7 +48,9 @@ English remains the default language and continues to use the non-suffixed paths
 
 ## Chapters
 
-`youtube.md` contains text-based chapter lines in this format:
+`youtube-metadata.md` contains the OpenAI-generated metadata. `youtube.md` is kept as a compatibility alias and contains the same content.
+
+The chapter block inside the metadata uses text-based lines in this format:
 
 ```text
 00:00 short and concise chapter description

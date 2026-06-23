@@ -36,7 +36,11 @@ import {
   missingScenes,
   validateImageAssets
 } from "@mediaforge/image-generation";
-import { HeuristicMetadataProvider } from "@mediaforge/metadata";
+import {
+  generateYoutubeMetadataForTarget,
+  YOUTUBE_METADATA_PROMPT_VERSION,
+  type YoutubeMetadata
+} from "@mediaforge/metadata";
 import { FFmpegVideoRenderer, validateRenderedVideo } from "@mediaforge/rendering";
 import { buildSrt, ensureDir, fileExists, hashText, slugify, writeJsonAtomic, writeTextAtomic } from "@mediaforge/shared";
 import {
@@ -119,9 +123,9 @@ const stageOrder: PipelineStage[] = [
   "export-openart-batches",
   "import-image-assets",
   "validate-image-assets",
-  "generate-publishing-metadata",
   "render-video",
   "validate-output",
+  "generate-publishing-metadata",
   "package-results"
 ];
 
@@ -206,7 +210,6 @@ export class MediaForgePipeline {
   public readonly planner = new OneToOneScenePlanner();
   public readonly speech;
   public readonly transcription;
-  public readonly metadata = new HeuristicMetadataProvider();
   public readonly renderer = new FFmpegVideoRenderer();
   public readonly sourceAdapter = new LocalFileSourceAdapter();
   private readonly speechSettings;
@@ -368,7 +371,6 @@ export class MediaForgePipeline {
     if (!validation.valid) {
       warnings.push(...validation.issues);
     }
-    const metadata = this.generateMetadata(manifest, rewritten, limitedScenes);
     if (options.untilStage === "concatenate-audio") {
       return {
         episodeId,
@@ -383,6 +385,7 @@ export class MediaForgePipeline {
     if (!outputValidation.valid) {
       warnings.push(...outputValidation.issues);
     }
+    const metadata = await this.generateMetadata(manifest, episodeDirPath, rewritten, limitedScenes);
     const finalManifest = await this.packageResults(
       manifest,
       episodeDirPath,
@@ -639,21 +642,91 @@ export class MediaForgePipeline {
     return assets;
   }
 
-  private generateMetadata(manifest: EpisodeManifest, rewritten: RewrittenScript, plan: ScenePlan): PublishingMetadata {
-    const youtube = this.metadata.generate(rewritten, plan, "youtube");
-    const tiktok = this.metadata.generate(rewritten, plan, "tiktok");
+  private async generateMetadata(
+    manifest: EpisodeManifest,
+    episodeDirPath: string,
+    rewritten: RewrittenScript,
+    plan: ScenePlan
+  ): Promise<PublishingMetadata> {
     const metadataDir = path.join(this.environment.config.workspaceDir, manifest.slug, "metadata");
-    void writeJsonAtomic(path.join(metadataDir, "youtube.json"), youtube);
-    void writeJsonAtomic(path.join(metadataDir, "tiktok.json"), tiktok);
-    void writeTextAtomic(path.join(metadataDir, "titles.txt"), youtube.titleCandidates.join("\n"));
-    void writeTextAtomic(path.join(metadataDir, "description.txt"), youtube.description);
-    void writeTextAtomic(path.join(metadataDir, "tags.txt"), youtube.tags.join("\n"));
-    void writeTextAtomic(
-      path.join(metadataDir, "chapters.txt"),
-      youtube.chapters.map((chapter) => `${chapter.timestampSeconds.toFixed(0)} ${chapter.title}`).join("\n")
+    const scenesFilePath = path.join(episodeDirPath, "scenes.json");
+    const sourceText = await fs.readFile(scenesFilePath, "utf8").catch(() => JSON.stringify(plan));
+    const generated = await generateYoutubeMetadataForTarget(
+      {
+        sourceFilePath: scenesFilePath,
+        episodeDir: episodeDirPath,
+        outputDir: metadataDir,
+        episodeSlug: manifest.slug,
+        sourceId: manifest.episodeId,
+        language: this.environment.config.youtubeMetadataLanguage ?? this.environment.config.scriptLanguage ?? "en",
+        scenePlan: plan,
+        sourceSha256: hashText(sourceText),
+        durationSeconds: Math.max(...plan.scenes.map((scene) => scene.timing.endSeconds), 0)
+      },
+      {
+        apiKey: this.environment.config.openAiCompatibleApiKey ?? process.env["OPENAI_API_KEY"] ?? "",
+        model: this.environment.config.openAiMetadataModel ?? "gpt-4.1-mini",
+        language: this.environment.config.youtubeMetadataLanguage ?? this.environment.config.scriptLanguage ?? "en",
+        promptText: await fs.readFile(path.resolve("prompts", "youtube-metadata.prompt.md"), "utf8"),
+        promptVersion: YOUTUBE_METADATA_PROMPT_VERSION,
+        maxRetries: this.environment.config.openAiMetadataMaxRetries ?? 3,
+        timeoutMs: this.environment.config.openAiMetadataTimeoutMs ?? 120000,
+        keepFile: this.environment.config.openAiMetadataKeepFile,
+        logger: this.environment.logger
+      }
     );
-    void writeTextAtomic(path.join(metadataDir, "publishing.md"), JSON.stringify(youtube, null, 2));
-    return youtube;
+    const youtube = generated.metadata;
+    const tiktok = this.convertYoutubeMetadataForPlatform(youtube, plan, rewritten, "tiktok");
+    await Promise.all([
+      writeJsonAtomic(path.join(metadataDir, "youtube.json"), youtube),
+      writeJsonAtomic(path.join(metadataDir, "tiktok.json"), tiktok),
+      writeTextAtomic(path.join(metadataDir, "titles.txt"), [youtube.title.recommended, ...youtube.title.alternatives].join("\n")),
+      writeTextAtomic(path.join(metadataDir, "description.txt"), youtube.description),
+      writeTextAtomic(path.join(metadataDir, "tags.txt"), youtube.tags.items.join("\n")),
+      writeTextAtomic(
+        path.join(metadataDir, "chapters.txt"),
+        youtube.chapters.items.map((chapter) => `${chapter.startSeconds.toFixed(0)} ${chapter.title}`).join("\n")
+      ),
+      writeTextAtomic(path.join(metadataDir, "publishing.md"), JSON.stringify(youtube, null, 2))
+    ]);
+    return this.convertYoutubeMetadataForPlatform(youtube, plan, rewritten, "youtube");
+  }
+
+  private convertYoutubeMetadataForPlatform(
+    youtube: YoutubeMetadata,
+    plan: ScenePlan,
+    rewritten: RewrittenScript,
+    platform: "youtube" | "tiktok"
+  ): PublishingMetadata {
+    const coverTexts = [youtube.thumbnail.recommendedText, ...youtube.thumbnail.alternativeTexts];
+    return {
+      sourceId: (youtube.source.sourceId ?? rewritten.sourceId) as EpisodeId,
+      platform,
+      language: youtube.source.language,
+      titleCandidates: [youtube.title.recommended, ...youtube.title.alternatives],
+      recommendedTitle: youtube.title.recommended,
+      description: youtube.description,
+      caption: platform === "tiktok" ? youtube.description.slice(0, 220) : undefined,
+      tags: youtube.tags.items,
+      hashtags: youtube.hashtags,
+      chapters:
+        platform === "youtube"
+          ? youtube.chapters.items.map((chapter) => ({
+              timestampSeconds: chapter.startSeconds,
+              title: chapter.title
+            }))
+          : plan.scenes.map((scene) => ({
+              timestampSeconds: scene.timing.startSeconds,
+              title: scene.canonicalNarration.slice(0, 72)
+            })),
+      thumbnailTextCandidates: coverTexts,
+      coverTextCandidates: coverTexts,
+      pinnedComment: youtube.pinnedComment,
+      summary: youtube.contentSummary,
+      primaryKeyword: youtube.seo.primaryKeyword,
+      secondaryKeywords: youtube.seo.secondaryKeywords,
+      warnings: youtube.verificationWarnings.map((warning) => `${warning.claim}: ${warning.reason}`)
+    };
   }
 
   private async render(

@@ -1,6 +1,7 @@
 # YouTube Metadata Generation
 
 This repository now includes a reusable command for generating SEO-focused YouTube upload metadata from an episode `scenes.json`.
+The main episode pipeline now runs the OpenAI-backed metadata step last, after render and output validation.
 
 ## Prerequisites
 
@@ -17,14 +18,14 @@ Set these values in your shell or `.env` file:
 
 ```dotenv
 OPENAI_API_KEY=
-OPENAI_METADATA_MODEL=gpt-4o-mini
+OPENAI_METADATA_MODEL=gpt-4.1-mini
 OPENAI_METADATA_MAX_RETRIES=3
 OPENAI_METADATA_KEEP_FILE=false
 OPENAI_METADATA_TIMEOUT_MS=120000
 YOUTUBE_METADATA_LANGUAGE=en
 ```
 
-The model is configurable. The default in this repository is `gpt-4o-mini`.
+The model is configurable. The default in this repository is `gpt-4.1-mini`.
 
 ## Commands
 
