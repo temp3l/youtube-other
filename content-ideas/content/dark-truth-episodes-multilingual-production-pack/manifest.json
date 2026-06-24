@@ -1,0 +1,2004 @@
+[
+  {
+    "episode": 1,
+    "language": "en",
+    "localized_title": "The Forbidden Japanese Village Where No Laws Apply",
+    "full_words": 1577,
+    "short_words": 286
+  },
+  {
+    "episode": 1,
+    "language": "de",
+    "localized_title": "Das verbotene japanische Dorf, in dem keine Gesetze gelten",
+    "full_words": 1556,
+    "short_words": 276
+  },
+  {
+    "episode": 1,
+    "language": "es",
+    "localized_title": "El pueblo japonés prohibido donde no se aplican las leyes",
+    "full_words": 1617,
+    "short_words": 295
+  },
+  {
+    "episode": 1,
+    "language": "fr",
+    "localized_title": "Le village japonais interdit où les lois ne s’appliquent pas",
+    "full_words": 1698,
+    "short_words": 304
+  },
+  {
+    "episode": 2,
+    "language": "en",
+    "full_words": 969
+  },
+  {
+    "episode": 2,
+    "language": "de",
+    "full_words": 827,
+    "short_words": 269,
+    "localized_title": "Der Mörder war bereits im Haus"
+  },
+  {
+    "episode": 2,
+    "language": "es",
+    "full_words": 907,
+    "short_words": 286,
+    "localized_title": "El asesino ya estaba dentro de la casa"
+  },
+  {
+    "episode": 2,
+    "language": "fr",
+    "full_words": 935,
+    "short_words": 284,
+    "localized_title": "Le tueur était déjà dans la maison"
+  },
+  {
+    "episode": 3,
+    "language": "en",
+    "full_words": 966
+  },
+  {
+    "episode": 3,
+    "language": "de",
+    "full_words": 815,
+    "short_words": 266,
+    "localized_title": "Ihr Vater verschwand im Puppenhaus"
+  },
+  {
+    "episode": 3,
+    "language": "es",
+    "full_words": 919,
+    "short_words": 289,
+    "localized_title": "Su padre desapareció dentro de la casa de muñecas"
+  },
+  {
+    "episode": 3,
+    "language": "fr",
+    "full_words": 960,
+    "short_words": 291,
+    "localized_title": "Son père a disparu dans la maison de poupée"
+  },
+  {
+    "episode": 4,
+    "language": "en",
+    "full_words": 950
+  },
+  {
+    "episode": 4,
+    "language": "de",
+    "full_words": 828,
+    "short_words": 270,
+    "localized_title": "Die Kerze, die den Werwolf fernhielt"
+  },
+  {
+    "episode": 4,
+    "language": "es",
+    "full_words": 907,
+    "short_words": 286,
+    "localized_title": "La vela que mantenía alejado al hombre lobo"
+  },
+  {
+    "episode": 4,
+    "language": "fr",
+    "full_words": 948,
+    "short_words": 288,
+    "localized_title": "La bougie qui tenait le loup-garou à distance"
+  },
+  {
+    "episode": 5,
+    "language": "en",
+    "full_words": 954
+  },
+  {
+    "episode": 5,
+    "language": "de",
+    "full_words": 814,
+    "short_words": 265,
+    "localized_title": "Sie fragte: „Bin ich schön?“"
+  },
+  {
+    "episode": 5,
+    "language": "es",
+    "full_words": 856,
+    "short_words": 271,
+    "localized_title": "Ella preguntó: «¿Soy hermosa?»"
+  },
+  {
+    "episode": 5,
+    "language": "fr",
+    "full_words": 961,
+    "short_words": 292,
+    "localized_title": "Elle a demandé : « Suis-je belle ? »"
+  },
+  {
+    "episode": 6,
+    "language": "en",
+    "full_words": 960
+  },
+  {
+    "episode": 6,
+    "language": "de",
+    "full_words": 829,
+    "short_words": 271,
+    "localized_title": "Die Puppe folgte ihr nach Hause"
+  },
+  {
+    "episode": 6,
+    "language": "es",
+    "full_words": 882,
+    "short_words": 279,
+    "localized_title": "La muñeca la siguió hasta casa"
+  },
+  {
+    "episode": 6,
+    "language": "fr",
+    "full_words": 935,
+    "short_words": 284,
+    "localized_title": "La poupée l’a suivie jusque chez elle"
+  },
+  {
+    "episode": 7,
+    "language": "en",
+    "full_words": 939
+  },
+  {
+    "episode": 7,
+    "language": "de",
+    "full_words": 827,
+    "short_words": 269,
+    "localized_title": "Der Spielstand kannte seinen echten Namen"
+  },
+  {
+    "episode": 7,
+    "language": "es",
+    "full_words": 894,
+    "short_words": 282,
+    "localized_title": "La partida guardada conocía su verdadero nombre"
+  },
+  {
+    "episode": 7,
+    "language": "fr",
+    "full_words": 922,
+    "short_words": 280,
+    "localized_title": "La sauvegarde connaissait son véritable nom"
+  },
+  {
+    "episode": 8,
+    "language": "en",
+    "full_words": 932
+  },
+  {
+    "episode": 8,
+    "language": "de",
+    "full_words": 841,
+    "short_words": 274,
+    "localized_title": "Jede schwarze Rose kündigte einen Tod an"
+  },
+  {
+    "episode": 8,
+    "language": "es",
+    "full_words": 880,
+    "short_words": 277,
+    "localized_title": "Cada rosa negra anunciaba una muerte"
+  },
+  {
+    "episode": 8,
+    "language": "fr",
+    "full_words": 921,
+    "short_words": 279,
+    "localized_title": "Chaque rose noire annonçait une mort"
+  },
+  {
+    "episode": 9,
+    "language": "en",
+    "full_words": 932
+  },
+  {
+    "episode": 9,
+    "language": "de",
+    "full_words": 815,
+    "short_words": 266,
+    "localized_title": "Die Weihnachtspuppe öffnete die Augen"
+  },
+  {
+    "episode": 9,
+    "language": "es",
+    "full_words": 894,
+    "short_words": 282,
+    "localized_title": "La muñeca de Navidad abrió los ojos"
+  },
+  {
+    "episode": 9,
+    "language": "fr",
+    "full_words": 948,
+    "short_words": 288,
+    "localized_title": "La poupée de Noël a ouvert les yeux"
+  },
+  {
+    "episode": 10,
+    "language": "en",
+    "full_words": 946
+  },
+  {
+    "episode": 10,
+    "language": "de",
+    "full_words": 827,
+    "short_words": 269,
+    "localized_title": "Sie reinigte Zimmer, bevor Menschen starben"
+  },
+  {
+    "episode": 10,
+    "language": "es",
+    "full_words": 908,
+    "short_words": 287,
+    "localized_title": "Limpiaba las habitaciones antes de que muriera alguien"
+  },
+  {
+    "episode": 10,
+    "language": "fr",
+    "full_words": 961,
+    "short_words": 292,
+    "localized_title": "Elle nettoyait les chambres avant la mort des clients"
+  },
+  {
+    "episode": 11,
+    "language": "en",
+    "full_words": 937
+  },
+  {
+    "episode": 11,
+    "language": "de",
+    "full_words": 842,
+    "short_words": 275,
+    "localized_title": "Die Kinder baten darum, hereingelassen zu werden"
+  },
+  {
+    "episode": 11,
+    "language": "es",
+    "full_words": 895,
+    "short_words": 283,
+    "localized_title": "Los niños pidieron que los dejaran entrar"
+  },
+  {
+    "episode": 11,
+    "language": "fr",
+    "full_words": 922,
+    "short_words": 280,
+    "localized_title": "Les enfants ont demandé à entrer"
+  },
+  {
+    "episode": 12,
+    "language": "en",
+    "full_words": 927
+  },
+  {
+    "episode": 12,
+    "language": "de",
+    "full_words": 801,
+    "short_words": 261,
+    "localized_title": "Sie befolgte das Aufzugritual"
+  },
+  {
+    "episode": 12,
+    "language": "es",
+    "full_words": 868,
+    "short_words": 274,
+    "localized_title": "Siguió el ritual del ascensor"
+  },
+  {
+    "episode": 12,
+    "language": "fr",
+    "full_words": 935,
+    "short_words": 284,
+    "localized_title": "Elle a suivi le rituel de l’ascenseur"
+  },
+  {
+    "episode": 13,
+    "language": "en",
+    "full_words": 983
+  },
+  {
+    "episode": 13,
+    "language": "de",
+    "full_words": 815,
+    "short_words": 266,
+    "localized_title": "Was geschah wirklich am Djatlow-Pass?"
+  },
+  {
+    "episode": 13,
+    "language": "es",
+    "full_words": 893,
+    "short_words": 281,
+    "localized_title": "¿Qué ocurrió realmente en el paso Diátlov?"
+  },
+  {
+    "episode": 13,
+    "language": "fr",
+    "full_words": 947,
+    "short_words": 287,
+    "localized_title": "Que s’est-il réellement passé au col Dyatlov ?"
+  },
+  {
+    "episode": 14,
+    "language": "en",
+    "full_words": 940
+  },
+  {
+    "episode": 14,
+    "language": "de",
+    "full_words": 854,
+    "short_words": 278,
+    "localized_title": "Die zweieinhalb Meter große Frau rief seinen Namen"
+  },
+  {
+    "episode": 14,
+    "language": "es",
+    "full_words": 933,
+    "short_words": 294,
+    "localized_title": "La mujer de dos metros y medio pronunció su nombre"
+  },
+  {
+    "episode": 14,
+    "language": "fr",
+    "full_words": 974,
+    "short_words": 296,
+    "localized_title": "La femme de deux mètres cinquante a appelé son nom"
+  },
+  {
+    "episode": 15,
+    "language": "en",
+    "full_words": 960
+  },
+  {
+    "episode": 15,
+    "language": "de",
+    "full_words": 840,
+    "short_words": 273,
+    "localized_title": "Die Stimme, die die Familie Bell heimsuchte"
+  },
+  {
+    "episode": 15,
+    "language": "es",
+    "full_words": 908,
+    "short_words": 287,
+    "localized_title": "La voz que atormentó a la familia Bell"
+  },
+  {
+    "episode": 15,
+    "language": "fr",
+    "full_words": 935,
+    "short_words": 284,
+    "localized_title": "La voix qui hantait la famille Bell"
+  },
+  {
+    "episode": 16,
+    "language": "en",
+    "full_words": 943
+  },
+  {
+    "episode": 16,
+    "language": "de",
+    "full_words": 881,
+    "short_words": 287,
+    "localized_title": "Der Zug hielt an einem Bahnhof, den es nicht gibt"
+  },
+  {
+    "episode": 16,
+    "language": "es",
+    "full_words": 921,
+    "short_words": 291,
+    "localized_title": "El tren paró en una estación que no existe"
+  },
+  {
+    "episode": 16,
+    "language": "fr",
+    "full_words": 974,
+    "short_words": 296,
+    "localized_title": "Le train s’est arrêté dans une gare qui n’existe pas"
+  },
+  {
+    "episode": 17,
+    "language": "en",
+    "full_words": 934
+  },
+  {
+    "episode": 17,
+    "language": "de",
+    "full_words": 814,
+    "short_words": 265,
+    "localized_title": "Sie luden den Mitternachtsmann herein"
+  },
+  {
+    "episode": 17,
+    "language": "es",
+    "full_words": 894,
+    "short_words": 282,
+    "localized_title": "Invitaron al Hombre de Medianoche a entrar"
+  },
+  {
+    "episode": 17,
+    "language": "fr",
+    "full_words": 948,
+    "short_words": 288,
+    "localized_title": "Ils ont invité l’Homme de Minuit à entrer"
+  },
+  {
+    "episode": 18,
+    "language": "en",
+    "full_words": 923
+  },
+  {
+    "episode": 18,
+    "language": "de",
+    "full_words": 841,
+    "short_words": 274,
+    "localized_title": "Der lächelnde Mann folgte ihr nach Hause"
+  },
+  {
+    "episode": 18,
+    "language": "es",
+    "full_words": 893,
+    "short_words": 281,
+    "localized_title": "El hombre sonriente la siguió hasta casa"
+  },
+  {
+    "episode": 18,
+    "language": "fr",
+    "full_words": 934,
+    "short_words": 283,
+    "localized_title": "L’homme souriant l’a suivie jusque chez elle"
+  },
+  {
+    "episode": 19,
+    "language": "en",
+    "full_words": 942
+  },
+  {
+    "episode": 19,
+    "language": "de",
+    "full_words": 828,
+    "short_words": 270,
+    "localized_title": "Die Wahrheit über das russische Schlafexperiment"
+  },
+  {
+    "episode": 19,
+    "language": "es",
+    "full_words": 907,
+    "short_words": 286,
+    "localized_title": "La verdad sobre el experimento ruso del sueño"
+  },
+  {
+    "episode": 19,
+    "language": "fr",
+    "full_words": 935,
+    "short_words": 284,
+    "localized_title": "La vérité sur l’expérience russe du sommeil"
+  },
+  {
+    "episode": 20,
+    "language": "en",
+    "full_words": 935
+  },
+  {
+    "episode": 20,
+    "language": "de",
+    "full_words": 827,
+    "short_words": 269,
+    "localized_title": "Sie hörte Teke Teke hinter sich"
+  },
+  {
+    "episode": 20,
+    "language": "es",
+    "full_words": 895,
+    "short_words": 283,
+    "localized_title": "Oyó a Teke Teke detrás de ella"
+  },
+  {
+    "episode": 20,
+    "language": "fr",
+    "full_words": 935,
+    "short_words": 284,
+    "localized_title": "Elle a entendu Teke Teke derrière elle"
+  },
+  {
+    "episode": 21,
+    "language": "en",
+    "full_words": 929
+  },
+  {
+    "episode": 21,
+    "language": "de",
+    "full_words": 829,
+    "short_words": 271,
+    "localized_title": "Etwas beobachtete ihn vom Schlafzimmerfenster aus"
+  },
+  {
+    "episode": 21,
+    "language": "es",
+    "full_words": 908,
+    "short_words": 287,
+    "localized_title": "Algo lo observaba desde la ventana del dormitorio"
+  },
+  {
+    "episode": 21,
+    "language": "fr",
+    "full_words": 961,
+    "short_words": 292,
+    "localized_title": "Quelque chose l’observait depuis la fenêtre de la chambre"
+  },
+  {
+    "episode": 22,
+    "language": "en",
+    "full_words": 914
+  },
+  {
+    "episode": 22,
+    "language": "de",
+    "full_words": 827,
+    "short_words": 269,
+    "localized_title": "Der Pfeifer im Wald kam näher"
+  },
+  {
+    "episode": 22,
+    "language": "es",
+    "full_words": 881,
+    "short_words": 278,
+    "localized_title": "El silbador del bosque se acercaba"
+  },
+  {
+    "episode": 22,
+    "language": "fr",
+    "full_words": 935,
+    "short_words": 284,
+    "localized_title": "Le siffleur dans les bois se rapprochait"
+  },
+  {
+    "episode": 23,
+    "language": "en",
+    "full_words": 912
+  },
+  {
+    "episode": 23,
+    "language": "de",
+    "full_words": 815,
+    "short_words": 266,
+    "localized_title": "Die Anhalterin verschwand vom Rücksitz"
+  },
+  {
+    "episode": 23,
+    "language": "es",
+    "full_words": 880,
+    "short_words": 277,
+    "localized_title": "La autoestopista desapareció del asiento trasero"
+  },
+  {
+    "episode": 23,
+    "language": "fr",
+    "full_words": 934,
+    "short_words": 283,
+    "localized_title": "L’auto-stoppeuse a disparu de la banquette arrière"
+  },
+  {
+    "episode": 24,
+    "language": "en",
+    "full_words": 896
+  },
+  {
+    "episode": 24,
+    "language": "de",
+    "full_words": 815,
+    "short_words": 266,
+    "localized_title": "Das Rote-Zimmer-Pop-up kannte ihren Namen"
+  },
+  {
+    "episode": 24,
+    "language": "es",
+    "full_words": 920,
+    "short_words": 290,
+    "localized_title": "La ventana de la Habitación Roja conocía su nombre"
+  },
+  {
+    "episode": 24,
+    "language": "fr",
+    "full_words": 961,
+    "short_words": 292,
+    "localized_title": "La fenêtre de la Chambre Rouge connaissait son nom"
+  },
+  {
+    "episode": 25,
+    "language": "en",
+    "full_words": 904
+  },
+  {
+    "episode": 25,
+    "language": "de",
+    "full_words": 827,
+    "short_words": 269,
+    "localized_title": "Er fiel in die endlosen Hinterräume"
+  },
+  {
+    "episode": 25,
+    "language": "es",
+    "full_words": 869,
+    "short_words": 275,
+    "localized_title": "Cayó en los Backrooms infinitos"
+  },
+  {
+    "episode": 25,
+    "language": "fr",
+    "full_words": 948,
+    "short_words": 288,
+    "localized_title": "Il est tombé dans les Backrooms sans fin"
+  },
+  {
+    "episode": 26,
+    "language": "en",
+    "full_words": 898
+  },
+  {
+    "episode": 26,
+    "language": "de",
+    "full_words": 816,
+    "short_words": 267,
+    "localized_title": "Sie sagte dreimal Bloody Mary"
+  },
+  {
+    "episode": 26,
+    "language": "es",
+    "full_words": 869,
+    "short_words": 275,
+    "localized_title": "Dijo Bloody Mary tres veces"
+  },
+  {
+    "episode": 26,
+    "language": "fr",
+    "full_words": 935,
+    "short_words": 284,
+    "localized_title": "Elle a prononcé Bloody Mary trois fois"
+  },
+  {
+    "episode": 27,
+    "language": "en",
+    "full_words": 910
+  },
+  {
+    "episode": 27,
+    "language": "de",
+    "full_words": 840,
+    "short_words": 273,
+    "localized_title": "Sie fanden einen Haken an der Autotür"
+  },
+  {
+    "episode": 27,
+    "language": "es",
+    "full_words": 920,
+    "short_words": 290,
+    "localized_title": "Encontraron un gancho colgando de la puerta del coche"
+  },
+  {
+    "episode": 27,
+    "language": "fr",
+    "full_words": 961,
+    "short_words": 292,
+    "localized_title": "Ils ont trouvé un crochet accroché à la portière"
+  },
+  {
+    "episode": 28,
+    "language": "en",
+    "full_words": 876
+  },
+  {
+    "episode": 28,
+    "language": "de",
+    "full_words": 815,
+    "short_words": 266,
+    "localized_title": "Jemand lebte auf dem Dachboden"
+  },
+  {
+    "episode": 28,
+    "language": "es",
+    "full_words": 867,
+    "short_words": 273,
+    "localized_title": "Alguien vivía en el ático"
+  },
+  {
+    "episode": 28,
+    "language": "fr",
+    "full_words": 908,
+    "short_words": 275,
+    "localized_title": "Quelqu’un vivait dans le grenier"
+  },
+  {
+    "episode": 29,
+    "language": "en",
+    "full_words": 879
+  },
+  {
+    "episode": 29,
+    "language": "de",
+    "full_words": 828,
+    "short_words": 270,
+    "localized_title": "Der Geisterzug kommt um 4:19 Uhr"
+  },
+  {
+    "episode": 29,
+    "language": "es",
+    "full_words": 894,
+    "short_words": 282,
+    "localized_title": "El tren fantasma llega a las 4:19"
+  },
+  {
+    "episode": 29,
+    "language": "fr",
+    "full_words": 948,
+    "short_words": 288,
+    "localized_title": "Le train fantôme arrive à 4 h 19"
+  },
+  {
+    "episode": 30,
+    "language": "en",
+    "full_words": 900
+  },
+  {
+    "episode": 30,
+    "language": "de",
+    "full_words": 827,
+    "short_words": 269,
+    "localized_title": "Die Frau im Gemälde bewegte sich"
+  },
+  {
+    "episode": 30,
+    "language": "es",
+    "full_words": 882,
+    "short_words": 279,
+    "localized_title": "La mujer del cuadro se movía"
+  },
+  {
+    "episode": 30,
+    "language": "fr",
+    "full_words": 922,
+    "short_words": 280,
+    "localized_title": "La femme dans le tableau bougeait"
+  },
+  {
+    "episode": 31,
+    "language": "en",
+    "full_words": 882
+  },
+  {
+    "episode": 31,
+    "language": "de",
+    "full_words": 842,
+    "short_words": 275,
+    "localized_title": "Der gesichtslose Mann erschien auf jedem Foto"
+  },
+  {
+    "episode": 31,
+    "language": "es",
+    "full_words": 921,
+    "short_words": 291,
+    "localized_title": "El hombre sin rostro aparecía en todas las fotografías"
+  },
+  {
+    "episode": 31,
+    "language": "fr",
+    "full_words": 935,
+    "short_words": 284,
+    "localized_title": "L’homme sans visage apparaissait sur chaque photo"
+  },
+  {
+    "episode": 32,
+    "language": "en",
+    "full_words": 886
+  },
+  {
+    "episode": 32,
+    "language": "de",
+    "full_words": 827,
+    "short_words": 269,
+    "localized_title": "Die Notfallmeldung nannte das nächste Opfer"
+  },
+  {
+    "episode": 32,
+    "language": "es",
+    "full_words": 920,
+    "short_words": 290,
+    "localized_title": "La emisión de emergencia nombró a la siguiente víctima"
+  },
+  {
+    "episode": 32,
+    "language": "fr",
+    "full_words": 935,
+    "short_words": 284,
+    "localized_title": "L’alerte d’urgence a nommé la prochaine victime"
+  },
+  {
+    "episode": 33,
+    "language": "en",
+    "full_words": 885
+  },
+  {
+    "episode": 33,
+    "language": "de",
+    "full_words": 867,
+    "short_words": 282,
+    "localized_title": "Sie begruben es – aber es kam immer zurück"
+  },
+  {
+    "episode": 33,
+    "language": "es",
+    "full_words": 867,
+    "short_words": 273,
+    "localized_title": "Lo enterraron, pero siempre regresaba"
+  },
+  {
+    "episode": 33,
+    "language": "fr",
+    "full_words": 934,
+    "short_words": 283,
+    "localized_title": "Ils l’ont enterré, mais il revenait toujours"
+  },
+  {
+    "episode": 34,
+    "language": "en",
+    "full_words": 859
+  },
+  {
+    "episode": 34,
+    "language": "de",
+    "full_words": 828,
+    "short_words": 270,
+    "localized_title": "Ihr Spiegelbild hörte auf, sie nachzuahmen"
+  },
+  {
+    "episode": 34,
+    "language": "es",
+    "full_words": 868,
+    "short_words": 274,
+    "localized_title": "Su reflejo dejó de imitarla"
+  },
+  {
+    "episode": 34,
+    "language": "fr",
+    "full_words": 922,
+    "short_words": 280,
+    "localized_title": "Son reflet a cessé de l’imiter"
+  },
+  {
+    "episode": 35,
+    "language": "en",
+    "full_words": 933
+  },
+  {
+    "episode": 35,
+    "language": "de",
+    "full_words": 879,
+    "short_words": 285,
+    "localized_title": "Bei der Wendigo-Legende ging es nie nur um ein Monster"
+  },
+  {
+    "episode": 35,
+    "language": "es",
+    "full_words": 934,
+    "short_words": 295,
+    "localized_title": "La leyenda del Wendigo nunca trató solamente de un monstruo"
+  },
+  {
+    "episode": 35,
+    "language": "fr",
+    "full_words": 974,
+    "short_words": 296,
+    "localized_title": "La légende du Wendigo n’a jamais seulement parlé d’un monstre"
+  },
+  {
+    "episode": 36,
+    "language": "en",
+    "full_words": 882
+  },
+  {
+    "episode": 36,
+    "language": "de",
+    "full_words": 855,
+    "short_words": 279,
+    "localized_title": "Das Haus wiederholte jede Stimme, die es hörte"
+  },
+  {
+    "episode": 36,
+    "language": "es",
+    "full_words": 908,
+    "short_words": 287,
+    "localized_title": "La casa repetía todas las voces que oía"
+  },
+  {
+    "episode": 36,
+    "language": "fr",
+    "full_words": 948,
+    "short_words": 288,
+    "localized_title": "La maison répétait toutes les voix qu’elle entendait"
+  },
+  {
+    "episode": 37,
+    "language": "en",
+    "full_words": 853
+  },
+  {
+    "episode": 37,
+    "language": "de",
+    "full_words": 840,
+    "short_words": 273,
+    "localized_title": "Der Krankenhausflur, den es nicht geben dürfte"
+  },
+  {
+    "episode": 37,
+    "language": "es",
+    "full_words": 907,
+    "short_words": 286,
+    "localized_title": "El pasillo del hospital que no debería existir"
+  },
+  {
+    "episode": 37,
+    "language": "fr",
+    "full_words": 948,
+    "short_words": 288,
+    "localized_title": "Le couloir d’hôpital qui ne devrait pas exister"
+  },
+  {
+    "episode": 38,
+    "language": "en",
+    "full_words": 890
+  },
+  {
+    "episode": 38,
+    "language": "de",
+    "full_words": 828,
+    "short_words": 270,
+    "localized_title": "Der Regenmann erschien nur bei Unwettern"
+  },
+  {
+    "episode": 38,
+    "language": "es",
+    "full_words": 932,
+    "short_words": 293,
+    "localized_title": "El Hombre de la Lluvia solo aparecía durante las tormentas"
+  },
+  {
+    "episode": 38,
+    "language": "fr",
+    "full_words": 960,
+    "short_words": 291,
+    "localized_title": "L’Homme de la Pluie n’apparaissait que pendant les tempêtes"
+  },
+  {
+    "episode": 39,
+    "language": "en",
+    "full_words": 867
+  },
+  {
+    "episode": 39,
+    "language": "de",
+    "full_words": 828,
+    "short_words": 270,
+    "localized_title": "Das Foto veränderte sich jede Nacht"
+  },
+  {
+    "episode": 39,
+    "language": "es",
+    "full_words": 868,
+    "short_words": 274,
+    "localized_title": "La fotografía cambiaba cada noche"
+  },
+  {
+    "episode": 39,
+    "language": "fr",
+    "full_words": 909,
+    "short_words": 276,
+    "localized_title": "La photographie changeait chaque nuit"
+  },
+  {
+    "episode": 40,
+    "language": "en",
+    "full_words": 871
+  },
+  {
+    "episode": 40,
+    "language": "de",
+    "full_words": 827,
+    "short_words": 269,
+    "localized_title": "Kein Gast verließ jemals Zimmer 1413"
+  },
+  {
+    "episode": 40,
+    "language": "es",
+    "full_words": 908,
+    "short_words": 287,
+    "localized_title": "Ningún huésped salió jamás de la habitación 1413"
+  },
+  {
+    "episode": 40,
+    "language": "fr",
+    "full_words": 948,
+    "short_words": 288,
+    "localized_title": "Aucun client n’a jamais quitté la chambre 1413"
+  },
+  {
+    "episode": 41,
+    "language": "en",
+    "full_words": 619,
+    "short_words": 176
+  },
+  {
+    "episode": 41,
+    "language": "de",
+    "full_words": 561,
+    "short_words": 170
+  },
+  {
+    "episode": 41,
+    "language": "es",
+    "full_words": 631,
+    "short_words": 191
+  },
+  {
+    "episode": 41,
+    "language": "fr",
+    "full_words": 620,
+    "short_words": 186
+  },
+  {
+    "episode": 42,
+    "language": "en",
+    "full_words": 594,
+    "short_words": 167
+  },
+  {
+    "episode": 42,
+    "language": "de",
+    "full_words": 562,
+    "short_words": 173
+  },
+  {
+    "episode": 42,
+    "language": "es",
+    "full_words": 629,
+    "short_words": 196
+  },
+  {
+    "episode": 42,
+    "language": "fr",
+    "full_words": 615,
+    "short_words": 186
+  },
+  {
+    "episode": 43,
+    "language": "en",
+    "full_words": 593,
+    "short_words": 168
+  },
+  {
+    "episode": 43,
+    "language": "de",
+    "full_words": 560,
+    "short_words": 167
+  },
+  {
+    "episode": 43,
+    "language": "es",
+    "full_words": 627,
+    "short_words": 191
+  },
+  {
+    "episode": 43,
+    "language": "fr",
+    "full_words": 616,
+    "short_words": 182
+  },
+  {
+    "episode": 44,
+    "language": "en",
+    "full_words": 605,
+    "short_words": 180
+  },
+  {
+    "episode": 44,
+    "language": "de",
+    "full_words": 554,
+    "short_words": 167
+  },
+  {
+    "episode": 44,
+    "language": "es",
+    "full_words": 623,
+    "short_words": 192
+  },
+  {
+    "episode": 44,
+    "language": "fr",
+    "full_words": 616,
+    "short_words": 187
+  },
+  {
+    "episode": 45,
+    "language": "en",
+    "full_words": 575,
+    "short_words": 159
+  },
+  {
+    "episode": 45,
+    "language": "de",
+    "full_words": 552,
+    "short_words": 165
+  },
+  {
+    "episode": 45,
+    "language": "es",
+    "full_words": 628,
+    "short_words": 195
+  },
+  {
+    "episode": 45,
+    "language": "fr",
+    "full_words": 619,
+    "short_words": 192
+  },
+  {
+    "episode": 46,
+    "language": "en",
+    "full_words": 589,
+    "short_words": 173
+  },
+  {
+    "episode": 46,
+    "language": "de",
+    "full_words": 556,
+    "short_words": 173
+  },
+  {
+    "episode": 46,
+    "language": "es",
+    "full_words": 622,
+    "short_words": 190
+  },
+  {
+    "episode": 46,
+    "language": "fr",
+    "full_words": 608,
+    "short_words": 181
+  },
+  {
+    "episode": 47,
+    "language": "en",
+    "full_words": 587,
+    "short_words": 171
+  },
+  {
+    "episode": 47,
+    "language": "de",
+    "full_words": 568,
+    "short_words": 180
+  },
+  {
+    "episode": 47,
+    "language": "es",
+    "full_words": 633,
+    "short_words": 199
+  },
+  {
+    "episode": 47,
+    "language": "fr",
+    "full_words": 620,
+    "short_words": 191
+  },
+  {
+    "episode": 48,
+    "language": "en",
+    "full_words": 581,
+    "short_words": 159
+  },
+  {
+    "episode": 48,
+    "language": "de",
+    "full_words": 551,
+    "short_words": 166
+  },
+  {
+    "episode": 48,
+    "language": "es",
+    "full_words": 632,
+    "short_words": 195
+  },
+  {
+    "episode": 48,
+    "language": "fr",
+    "full_words": 615,
+    "short_words": 184
+  },
+  {
+    "episode": 49,
+    "language": "en",
+    "full_words": 592,
+    "short_words": 170
+  },
+  {
+    "episode": 49,
+    "language": "de",
+    "full_words": 554,
+    "short_words": 164
+  },
+  {
+    "episode": 49,
+    "language": "es",
+    "full_words": 620,
+    "short_words": 181
+  },
+  {
+    "episode": 49,
+    "language": "fr",
+    "full_words": 612,
+    "short_words": 176
+  },
+  {
+    "episode": 50,
+    "language": "en",
+    "full_words": 595,
+    "short_words": 175
+  },
+  {
+    "episode": 50,
+    "language": "de",
+    "full_words": 569,
+    "short_words": 175
+  },
+  {
+    "episode": 50,
+    "language": "es",
+    "full_words": 636,
+    "short_words": 194
+  },
+  {
+    "episode": 50,
+    "language": "fr",
+    "full_words": 633,
+    "short_words": 195
+  },
+  {
+    "episode": 51,
+    "language": "en",
+    "full_words": 583,
+    "short_words": 166
+  },
+  {
+    "episode": 51,
+    "language": "de",
+    "full_words": 562,
+    "short_words": 173
+  },
+  {
+    "episode": 51,
+    "language": "es",
+    "full_words": 626,
+    "short_words": 191
+  },
+  {
+    "episode": 51,
+    "language": "fr",
+    "full_words": 617,
+    "short_words": 186
+  },
+  {
+    "episode": 52,
+    "language": "en",
+    "full_words": 580,
+    "short_words": 168
+  },
+  {
+    "episode": 52,
+    "language": "de",
+    "full_words": 567,
+    "short_words": 179
+  },
+  {
+    "episode": 52,
+    "language": "es",
+    "full_words": 642,
+    "short_words": 205
+  },
+  {
+    "episode": 52,
+    "language": "fr",
+    "full_words": 622,
+    "short_words": 191
+  },
+  {
+    "episode": 53,
+    "language": "en",
+    "full_words": 578,
+    "short_words": 169
+  },
+  {
+    "episode": 53,
+    "language": "de",
+    "full_words": 556,
+    "short_words": 172
+  },
+  {
+    "episode": 53,
+    "language": "es",
+    "full_words": 623,
+    "short_words": 193
+  },
+  {
+    "episode": 53,
+    "language": "fr",
+    "full_words": 612,
+    "short_words": 188
+  },
+  {
+    "episode": 54,
+    "language": "en",
+    "full_words": 582,
+    "short_words": 168
+  },
+  {
+    "episode": 54,
+    "language": "de",
+    "full_words": 556,
+    "short_words": 170
+  },
+  {
+    "episode": 54,
+    "language": "es",
+    "full_words": 622,
+    "short_words": 189
+  },
+  {
+    "episode": 54,
+    "language": "fr",
+    "full_words": 613,
+    "short_words": 184
+  },
+  {
+    "episode": 55,
+    "language": "en",
+    "full_words": 600,
+    "short_words": 175
+  },
+  {
+    "episode": 55,
+    "language": "de",
+    "full_words": 565,
+    "short_words": 176
+  },
+  {
+    "episode": 55,
+    "language": "es",
+    "full_words": 645,
+    "short_words": 207
+  },
+  {
+    "episode": 55,
+    "language": "fr",
+    "full_words": 637,
+    "short_words": 205
+  },
+  {
+    "episode": 56,
+    "language": "en",
+    "full_words": 580,
+    "short_words": 163
+  },
+  {
+    "episode": 56,
+    "language": "de",
+    "full_words": 560,
+    "short_words": 170
+  },
+  {
+    "episode": 56,
+    "language": "es",
+    "full_words": 629,
+    "short_words": 192
+  },
+  {
+    "episode": 56,
+    "language": "fr",
+    "full_words": 623,
+    "short_words": 188
+  },
+  {
+    "episode": 57,
+    "language": "en",
+    "full_words": 572,
+    "short_words": 159
+  },
+  {
+    "episode": 57,
+    "language": "de",
+    "full_words": 554,
+    "short_words": 167
+  },
+  {
+    "episode": 57,
+    "language": "es",
+    "full_words": 620,
+    "short_words": 188
+  },
+  {
+    "episode": 57,
+    "language": "fr",
+    "full_words": 606,
+    "short_words": 178
+  },
+  {
+    "episode": 58,
+    "language": "en",
+    "full_words": 574,
+    "short_words": 163
+  },
+  {
+    "episode": 58,
+    "language": "de",
+    "full_words": 567,
+    "short_words": 179
+  },
+  {
+    "episode": 58,
+    "language": "es",
+    "full_words": 641,
+    "short_words": 205
+  },
+  {
+    "episode": 58,
+    "language": "fr",
+    "full_words": 631,
+    "short_words": 200
+  },
+  {
+    "episode": 59,
+    "language": "en",
+    "full_words": 569,
+    "short_words": 159
+  },
+  {
+    "episode": 59,
+    "language": "de",
+    "full_words": 561,
+    "short_words": 169
+  },
+  {
+    "episode": 59,
+    "language": "es",
+    "full_words": 646,
+    "short_words": 201
+  },
+  {
+    "episode": 59,
+    "language": "fr",
+    "full_words": 637,
+    "short_words": 193
+  },
+  {
+    "episode": 60,
+    "language": "en",
+    "full_words": 588,
+    "short_words": 176
+  },
+  {
+    "episode": 60,
+    "language": "de",
+    "full_words": 561,
+    "short_words": 175
+  },
+  {
+    "episode": 60,
+    "language": "es",
+    "full_words": 632,
+    "short_words": 198
+  },
+  {
+    "episode": 60,
+    "language": "fr",
+    "full_words": 630,
+    "short_words": 203
+  },
+  {
+    "episode": 61,
+    "language": "en",
+    "full_words": 571,
+    "short_words": 197
+  },
+  {
+    "episode": 61,
+    "language": "de",
+    "full_words": 530,
+    "short_words": 170
+  },
+  {
+    "episode": 61,
+    "language": "es",
+    "full_words": 573,
+    "short_words": 187
+  },
+  {
+    "episode": 61,
+    "language": "fr",
+    "full_words": 573,
+    "short_words": 182
+  },
+  {
+    "episode": 62,
+    "language": "en",
+    "full_words": 564,
+    "short_words": 198
+  },
+  {
+    "episode": 62,
+    "language": "de",
+    "full_words": 530,
+    "short_words": 170
+  },
+  {
+    "episode": 62,
+    "language": "es",
+    "full_words": 574,
+    "short_words": 188
+  },
+  {
+    "episode": 62,
+    "language": "fr",
+    "full_words": 573,
+    "short_words": 182
+  },
+  {
+    "episode": 63,
+    "language": "en",
+    "full_words": 559,
+    "short_words": 192
+  },
+  {
+    "episode": 63,
+    "language": "de",
+    "full_words": 541,
+    "short_words": 181
+  },
+  {
+    "episode": 63,
+    "language": "es",
+    "full_words": 586,
+    "short_words": 200
+  },
+  {
+    "episode": 63,
+    "language": "fr",
+    "full_words": 578,
+    "short_words": 187
+  },
+  {
+    "episode": 64,
+    "language": "en",
+    "full_words": 546,
+    "short_words": 179
+  },
+  {
+    "episode": 64,
+    "language": "de",
+    "full_words": 519,
+    "short_words": 159
+  },
+  {
+    "episode": 64,
+    "language": "es",
+    "full_words": 567,
+    "short_words": 181
+  },
+  {
+    "episode": 64,
+    "language": "fr",
+    "full_words": 570,
+    "short_words": 179
+  },
+  {
+    "episode": 65,
+    "language": "en",
+    "full_words": 553,
+    "short_words": 181
+  },
+  {
+    "episode": 65,
+    "language": "de",
+    "full_words": 524,
+    "short_words": 164
+  },
+  {
+    "episode": 65,
+    "language": "es",
+    "full_words": 564,
+    "short_words": 178
+  },
+  {
+    "episode": 65,
+    "language": "fr",
+    "full_words": 564,
+    "short_words": 173
+  },
+  {
+    "episode": 66,
+    "language": "en",
+    "full_words": 553,
+    "short_words": 198
+  },
+  {
+    "episode": 66,
+    "language": "de",
+    "full_words": 533,
+    "short_words": 173
+  },
+  {
+    "episode": 66,
+    "language": "es",
+    "full_words": 573,
+    "short_words": 187
+  },
+  {
+    "episode": 66,
+    "language": "fr",
+    "full_words": 573,
+    "short_words": 182
+  },
+  {
+    "episode": 67,
+    "language": "en",
+    "full_words": 531,
+    "short_words": 176
+  },
+  {
+    "episode": 67,
+    "language": "de",
+    "full_words": 530,
+    "short_words": 170
+  },
+  {
+    "episode": 67,
+    "language": "es",
+    "full_words": 577,
+    "short_words": 191
+  },
+  {
+    "episode": 67,
+    "language": "fr",
+    "full_words": 572,
+    "short_words": 181
+  },
+  {
+    "episode": 68,
+    "language": "en",
+    "full_words": 540,
+    "short_words": 176
+  },
+  {
+    "episode": 68,
+    "language": "de",
+    "full_words": 529,
+    "short_words": 169
+  },
+  {
+    "episode": 68,
+    "language": "es",
+    "full_words": 574,
+    "short_words": 188
+  },
+  {
+    "episode": 68,
+    "language": "fr",
+    "full_words": 572,
+    "short_words": 181
+  },
+  {
+    "episode": 69,
+    "language": "en",
+    "full_words": 560,
+    "short_words": 196
+  },
+  {
+    "episode": 69,
+    "language": "de",
+    "full_words": 537,
+    "short_words": 177
+  },
+  {
+    "episode": 69,
+    "language": "es",
+    "full_words": 581,
+    "short_words": 195
+  },
+  {
+    "episode": 69,
+    "language": "fr",
+    "full_words": 573,
+    "short_words": 182
+  },
+  {
+    "episode": 70,
+    "language": "en",
+    "full_words": 539,
+    "short_words": 182
+  },
+  {
+    "episode": 70,
+    "language": "de",
+    "full_words": 534,
+    "short_words": 174
+  },
+  {
+    "episode": 70,
+    "language": "es",
+    "full_words": 574,
+    "short_words": 188
+  },
+  {
+    "episode": 70,
+    "language": "fr",
+    "full_words": 570,
+    "short_words": 179
+  },
+  {
+    "episode": 71,
+    "language": "en",
+    "full_words": 523,
+    "short_words": 172
+  },
+  {
+    "episode": 71,
+    "language": "de",
+    "full_words": 530,
+    "short_words": 170
+  },
+  {
+    "episode": 71,
+    "language": "es",
+    "full_words": 571,
+    "short_words": 185
+  },
+  {
+    "episode": 71,
+    "language": "fr",
+    "full_words": 562,
+    "short_words": 171
+  },
+  {
+    "episode": 72,
+    "language": "en",
+    "full_words": 524,
+    "short_words": 172
+  },
+  {
+    "episode": 72,
+    "language": "de",
+    "full_words": 529,
+    "short_words": 169
+  },
+  {
+    "episode": 72,
+    "language": "es",
+    "full_words": 572,
+    "short_words": 186
+  },
+  {
+    "episode": 72,
+    "language": "fr",
+    "full_words": 568,
+    "short_words": 177
+  },
+  {
+    "episode": 73,
+    "language": "en",
+    "full_words": 536,
+    "short_words": 180
+  },
+  {
+    "episode": 73,
+    "language": "de",
+    "full_words": 530,
+    "short_words": 170
+  },
+  {
+    "episode": 73,
+    "language": "es",
+    "full_words": 578,
+    "short_words": 192
+  },
+  {
+    "episode": 73,
+    "language": "fr",
+    "full_words": 573,
+    "short_words": 182
+  },
+  {
+    "episode": 74,
+    "language": "en",
+    "full_words": 536,
+    "short_words": 184
+  },
+  {
+    "episode": 74,
+    "language": "de",
+    "full_words": 531,
+    "short_words": 171
+  },
+  {
+    "episode": 74,
+    "language": "es",
+    "full_words": 571,
+    "short_words": 185
+  },
+  {
+    "episode": 74,
+    "language": "fr",
+    "full_words": 570,
+    "short_words": 179
+  },
+  {
+    "episode": 75,
+    "language": "en",
+    "full_words": 531,
+    "short_words": 180
+  },
+  {
+    "episode": 75,
+    "language": "de",
+    "full_words": 530,
+    "short_words": 170
+  },
+  {
+    "episode": 75,
+    "language": "es",
+    "full_words": 582,
+    "short_words": 196
+  },
+  {
+    "episode": 75,
+    "language": "fr",
+    "full_words": 579,
+    "short_words": 188
+  },
+  {
+    "episode": 76,
+    "language": "en",
+    "full_words": 529,
+    "short_words": 182
+  },
+  {
+    "episode": 76,
+    "language": "de",
+    "full_words": 530,
+    "short_words": 170
+  },
+  {
+    "episode": 76,
+    "language": "es",
+    "full_words": 574,
+    "short_words": 188
+  },
+  {
+    "episode": 76,
+    "language": "fr",
+    "full_words": 566,
+    "short_words": 175
+  },
+  {
+    "episode": 77,
+    "language": "en",
+    "full_words": 527,
+    "short_words": 175
+  },
+  {
+    "episode": 77,
+    "language": "de",
+    "full_words": 529,
+    "short_words": 169
+  },
+  {
+    "episode": 77,
+    "language": "es",
+    "full_words": 572,
+    "short_words": 186
+  },
+  {
+    "episode": 77,
+    "language": "fr",
+    "full_words": 568,
+    "short_words": 177
+  },
+  {
+    "episode": 78,
+    "language": "en",
+    "full_words": 539,
+    "short_words": 192
+  },
+  {
+    "episode": 78,
+    "language": "de",
+    "full_words": 528,
+    "short_words": 168
+  },
+  {
+    "episode": 78,
+    "language": "es",
+    "full_words": 572,
+    "short_words": 186
+  },
+  {
+    "episode": 78,
+    "language": "fr",
+    "full_words": 572,
+    "short_words": 181
+  },
+  {
+    "episode": 79,
+    "language": "en",
+    "full_words": 544,
+    "short_words": 183
+  },
+  {
+    "episode": 79,
+    "language": "de",
+    "full_words": 538,
+    "short_words": 178
+  },
+  {
+    "episode": 79,
+    "language": "es",
+    "full_words": 574,
+    "short_words": 188
+  },
+  {
+    "episode": 79,
+    "language": "fr",
+    "full_words": 573,
+    "short_words": 182
+  },
+  {
+    "episode": 80,
+    "language": "en",
+    "full_words": 557,
+    "short_words": 195
+  },
+  {
+    "episode": 80,
+    "language": "de",
+    "full_words": 534,
+    "short_words": 174
+  },
+  {
+    "episode": 80,
+    "language": "es",
+    "full_words": 573,
+    "short_words": 187
+  },
+  {
+    "episode": 80,
+    "language": "fr",
+    "full_words": 569,
+    "short_words": 178
+  }
+]

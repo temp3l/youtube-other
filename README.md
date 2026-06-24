@@ -1,11 +1,87 @@
+## horrorr stories
+
+- https://chatgpt.com/g/g-p-6a317d326e30819183556eca604b770c/c/6a3b3c87-809c-83eb-b2cc-a9da8d2fffc9
+- ./content-ideas/content/
+- 41-60 already multilanguage
+
+---
+
+/home/box/workspace/fehmarn-seo/youtube/other/content-ideas/dark-truth-episodes-001-110-localized-audio-ready/
+check: audio-ready-thumbnails
+review: https://chatgpt.com/c/6a3b3821-ec44-83eb-b964-6ed82ae37447
+review: https://chatgpt.com/share/6a3b47fb-3a00-83eb-bf6b-9bdefe27f0a6
+
+- if you could utilize openai API - how would this change the pipeline?
+
+## comntent to video
+
+Copy the following as one prompt into Codex: https://chatgpt.com/c/6a3b3821-ec44-83eb-b964-6ed82ae37447
+
+##
+
+- steal the content - research other sources - reproduce
+- we need better prompts
+- most expensive task: 'audio to text'
+  - use linux `whisper` to transcribe locally - saving shitloads of money
+  - you have fast a fast dekstop/macbook ? ;)
+
+## cash
+
+- 8000€ right now
+- 1 share (1%) = 80€
+- 80€ = 10 videos \* 4 sprachen = 40 videos
+  - 50% of total revenue
+- membershit
+
+### Getting paid per channel
+
+- history channel
+- scary movies ...
+
+### Strategy ?
+
+- build 5 channels - 5 disctinct topics
+- see how it g(rows)
+
+## Content production in a nutshell
+
+Facts and scientific concepts are not copyrighted.
+
+1. History & Historical Mysteries
+2. Psychology & Human Behavior
+3. Science & Space
+4. Programming & Technology
+
+# howto:
+
+## What I learned about content
+
+- fictional stories are copywrite protected - even when rephrased
+- urban legends are _less_ protected
+  - financial strategies ...
+  - programming lessons ...
+  - historical facts ...
+
+we might run into more or less copywrite problems depending on type of content....
+
+- let's find an neiche with low entry barrier
+- lets built followers -
+
 ## document for manual task execution
 
-provide me documentation about how to run all tasks in sequence in order to produce a full video with openai generated audio,images and video output.
-I also want to write informational log file during every video execution, which lists executed commands, results, errors and execution time
+provide me documentation about how to run all tasks in sequence in order to produce a full video with openai generated audio,images and video output, and fetching the transcript from a youtube video.
+I also want to write informational log file during every video generation run, which lists executed commands, results, errors and execution times.
 
 ## very fast voice
 
 i have added the "very fast voice" configuration to docs/voice-settings.md. wire it up. and use the very fast voice setting as default for generatig voice audios.
+
+## generate horror stories
+
+- check: /home/box/workspace/fehmarn-seo/youtube/other/content-ideas/youtube-10-min-scary-stories/english/
+- there are 0-6 without clear audio instructions inside
+- 7-10 with clear audio instructions
+- produce one of each
 
 ## prompt for special effects
 
