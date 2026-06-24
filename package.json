@@ -7,6 +7,7 @@
     "node": ">=22.0.0"
   },
   "scripts": {
+    "youtube:auth": "tsx scripts/youtube-auth.ts",
     "build": "pnpm -r --if-present build",
     "test": "pnpm test:unit && pnpm test:integration && pnpm test:e2e",
     "test:unit": "vitest run -c vitest.unit.config.ts",
@@ -17,6 +18,19 @@
     "format": "prettier --write .",
     "doctor": "node apps/cli/dist/index.js doctor",
     "mediaforge": "node apps/cli/dist/index.js",
+    "episode:inspect": "node apps/cli/dist/index.js episode inspect",
+    "episode:dry-run": "node apps/cli/dist/index.js episode dry-run",
+    "episode:analyze": "node apps/cli/dist/index.js episode analyze",
+    "episode:plan": "node apps/cli/dist/index.js episode plan",
+    "episode:english": "node apps/cli/dist/index.js episode english",
+    "episode:localized": "node apps/cli/dist/index.js episode localized",
+    "episode:short": "node apps/cli/dist/index.js episode short",
+    "episode:status": "node apps/cli/dist/index.js episode status",
+    "episode:validate": "node apps/cli/dist/index.js episode validate",
+    "episode:review:prepare": "node apps/cli/dist/index.js episode review prepare",
+    "episode:review:approve": "node apps/cli/dist/index.js episode review approve",
+    "episode:review:reject": "node apps/cli/dist/index.js episode review reject",
+    "episode:review:status": "node apps/cli/dist/index.js episode review status",
     "db:migrate": "pnpm --filter @mediaforge/cli db:migrate",
     "transcript:generate": "node apps/cli/dist/index.js transcript generate",
     "transcript:normalize": "node apps/cli/dist/index.js transcript normalize",
@@ -37,6 +51,8 @@
   },
   "dependencies": {
     "commander": "^14.0.0",
+    "dotenv": "^17.4.2",
+    "googleapis": "^173.0.0",
     "pino": "^9.8.0",
     "sharp": "^0.34.3",
     "zod": "^4.0.14"

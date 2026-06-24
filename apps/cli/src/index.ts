@@ -65,6 +65,7 @@ import {
   writeNormalizedTranscriptArtifacts,
   type WhisperRawTranscriptArtifact
 } from "@mediaforge/transcription";
+import { registerEpisodeCommands } from "./episode-commands.js";
 
 interface CliOptions {
   json?: boolean;
@@ -1735,6 +1736,8 @@ const dbCommand = program.command("db").description("Database utilities");
 dbCommand.command("migrate").action(async () => {
   await commandDbMigrate(program.opts<CliOptions>());
 });
+
+registerEpisodeCommands(program);
 
 program.parseAsync(process.argv).catch((error: unknown) => {
   process.stderr.write(`${JSON.stringify(serializeError(error), null, 2)}\n`);

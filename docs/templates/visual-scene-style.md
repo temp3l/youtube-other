@@ -1,3 +1,3 @@
 ## Visual style
 
-Custom rough ink-and-paper collage: off-white background, thick uneven charcoal lines, two accent colors, simple expressive people and animals, no borders, bands, frames, stock-photo, or cinematic look.
+Photorealistic cinematic horror with a dark, atmospheric, and cohesive visual language. Use moody lighting, controlled contrast, subtle environmental detail, and a grounded documentary feel. Keep the imagery unsettling without excessive gore. Maintain strict consistency within each episode. No embedded text, captions, logos, borders, or watermarks.

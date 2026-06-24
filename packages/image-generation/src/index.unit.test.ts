@@ -10,6 +10,7 @@ describe("prompt rendering", () => {
       TIMESTAMP_START: "00:00",
       TIMESTAMP_END: "00:04",
       VISUAL_PURPOSE: "introduce the topic",
+      DISTINCTIVE_ANCHOR: "a person | talking | studio",
       SUBJECT: "a person",
       ACTION: "talking",
       SETTING: "studio",
@@ -18,6 +19,8 @@ describe("prompt rendering", () => {
       LIGHTING: "soft",
       MOOD: "calm",
       CONTINUITY: "none",
+      SOURCE_NARRATION: "narration text",
+      SCENE_PROMPT: "scene prompt text",
       BRAND_GUIDANCE: "none",
       NEGATIVE_PROMPT: "text"
     });
@@ -25,4 +28,3 @@ describe("prompt rendering", () => {
     expect(rendered).toContain("ASPECT RATIO: 16:9");
   });
 });
-

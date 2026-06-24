@@ -1,8 +1,51 @@
+if persons are used in the images the same person should always look the same.
+always generate assets in the correct order when possible.
+
+Use concurrency of 5 when generating image prompts. fall back to lower concurrency if there are errors.
+
+Adopt this base style for all generated images of the dark-truth-episodes:
+
+- photorealistic
+- cinematic
+- dark and atmospheric
+- visually consistent throughout each episode
+- closely synchronized with the narration
+- suitable for YouTube horror videos
+- free from embedded text, captions, logos, borders, and watermarks
+- unsettling without relying on excessive gore
+
+produce the full english episode: 001-the-forbidden-village-where-japan-s-laws-do-not-apply
+use two CONCURRENCY=2 when generating images with openai API.
+the first generated image in /home/box/workspace/fehmarn-seo/youtube/other/episodes/001-the-forbidden-village-where-japan-s-laws-do-not-apply/shared/images/generated/scene-001**000000-000016**16x9.png is very photo realistic. iuse that photo realistic style for all upcoming images in dark-truth-episodes. I also want all images to be
+
+Detected Episode 001 Languages / Requests
+
+- Detected full-story languages: en, de, es, fr.
+- Detected Short languages: en, de, es, fr.
+- Estimated text-analysis requests during initial implementation: 0 paid requests.
+- Estimated TTS requests during initial implementation: 0 paid requests.
+- Estimated English image requests during initial implementation: 0 paid requests; the implemented path uses local placeholder imagery.
+- Confirmed localized image requests: 0 paid requests.
+- Confirmed Short image requests: 0 paid requests.
+- Estimated transcription requests during initial implementation: 0 paid requests.
+
+Exact Commands
+
+- Generate episode 001 English full video: npm run episode:english -- --episode 001
+- Approve episode 001 English: npm run episode:review:approve -- --episode 001 --language en --artifact full --reviewer "steph"
+- Generate German, Spanish, and French full videos: npm run episode:localized -- --episode 001 --languages de,es,fr --reuse-images
+- Approve episode 001 German: npm run episode:review:approve -- --episode 001 --language de --artifact full --reviewer "steph"
+- Generate episode 001 German Short: npm run episode:short -- --episode 001 --language de --reuse-images
+- Reject episode 001 English: npm run episode:review:reject -- --episode 001 --language en --artifact full --reviewer "steph" --reason "Narrator pronunciation needs correction"
+
+Remaining Risks / Incomplete Work
+
 ## horrorr stories
 
 - https://chatgpt.com/g/g-p-6a317d326e30819183556eca604b770c/c/6a3b3c87-809c-83eb-b2cc-a9da8d2fffc9
 - ./content-ideas/content/
 - 41-60 already multilanguage
+- Dark Truth multilingual production guide: [docs/dark-truth-multilingual-production.md](/home/box/workspace/fehmarn-seo/youtube/other/docs/dark-truth-multilingual-production.md)
 
 ---
 

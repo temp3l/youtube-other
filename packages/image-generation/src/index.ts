@@ -32,6 +32,7 @@ export interface PromptTemplateContext {
   readonly TIMESTAMP_START: string;
   readonly TIMESTAMP_END: string;
   readonly VISUAL_PURPOSE: string;
+  readonly DISTINCTIVE_ANCHOR: string;
   readonly SUBJECT: string;
   readonly ACTION: string;
   readonly SETTING: string;
@@ -40,39 +41,23 @@ export interface PromptTemplateContext {
   readonly LIGHTING: string;
   readonly MOOD: string;
   readonly CONTINUITY: string;
+  readonly SOURCE_NARRATION: string;
+  readonly SCENE_PROMPT: string;
   readonly BRAND_GUIDANCE: string;
   readonly NEGATIVE_PROMPT: string;
 }
 
 const repoRoot = path.resolve(import.meta.dirname, "../../..");
 const fallbackVisualSceneStyle =
-  "Custom rough ink-and-paper collage: off-white background, thick uneven charcoal lines, two accent colors, simple expressive people and animals, no borders, bands, frames, stock-photo, or cinematic look.";
+  "Photorealistic cinematic horror with a dark, atmospheric, and cohesive visual language. Use moody lighting, controlled contrast, subtle environmental detail, and a grounded documentary feel. Keep the imagery unsettling without excessive gore. Maintain strict consistency within each episode. No embedded text, captions, logos, borders, or watermarks.";
 export const localSceneNegativePrompt =
-  "photorealism, stock photography, borders, bands, frames, dense text, unreadable labels, unrelated dominant objects, watermarks";
-const fallbackImagePromptSeed = {
-  visualBrief: {
-    composition: "Landscape 16:9, one clear focal point, subject large enough to read in one second, uncluttered background.",
-    continuityNotes: "Establish the recurring rough hand-drawn visual style.",
-    forbiddenElements: ["photorealism", "stock photography", "dense text", "unreadable labels", "unrelated dominant objects", "watermarks"]
-  }
-};
+  "stock photography, borders, bands, frames, dense text, unreadable labels, unrelated dominant objects, watermarks, logos";
 
 function loadSceneStyleReference(): string {
   try {
-    const visualSceneStyle = readFileSync(path.join(repoRoot, "docs", "templates", "visual-scene-style.md"), "utf8").trim();
-    const raw = JSON.parse(readFileSync(path.join(repoRoot, "docs", "templates", "image-prompt.json"), "utf8")) as {
-      scenes?: Array<{ visualBrief?: { composition?: string; continuityNotes?: string; forbiddenElements?: string[] } }>;
-    };
-    const visualBrief = raw.scenes?.[0]?.visualBrief ?? fallbackImagePromptSeed.visualBrief;
-    return [
-      visualSceneStyle,
-      visualBrief.composition ?? "",
-      visualBrief.continuityNotes ?? "",
-      (visualBrief.forbiddenElements ?? []).join(", ")
-    ]
-      .map((part) => part.trim())
-      .filter((part) => part.length > 0)
-      .join(" ");
+    return readFileSync(path.join(repoRoot, "docs", "templates", "visual-scene-style.md"), "utf8")
+      .replace(/^##[^\n]*\n+/u, "")
+      .trim();
   } catch {
     return fallbackVisualSceneStyle;
   }
@@ -86,6 +71,7 @@ export const defaultPromptTemplate = [
   "SCENE: {{SCENE_NUMBER}}",
   "TIMING: {{TIMESTAMP_START}} - {{TIMESTAMP_END}}",
   "PURPOSE: {{VISUAL_PURPOSE}}",
+  "DISTINCTIVE ANCHOR: {{DISTINCTIVE_ANCHOR}}",
   "SUBJECT: {{SUBJECT}}",
   "ACTION: {{ACTION}}",
   "SETTING: {{SETTING}}",
@@ -94,6 +80,8 @@ export const defaultPromptTemplate = [
   "LIGHTING: {{LIGHTING}}",
   "MOOD: {{MOOD}}",
   "CONTINUITY: {{CONTINUITY}}",
+  "SOURCE NARRATION: {{SOURCE_NARRATION}}",
+  "SCENE PROMPT: {{SCENE_PROMPT}}",
   "BRAND GUIDANCE: {{BRAND_GUIDANCE}}",
   "NEGATIVE PROMPT: {{NEGATIVE_PROMPT}}"
 ].join("\n");
@@ -106,6 +94,7 @@ export function renderPromptTemplate(template: string, context: PromptTemplateCo
     TIMESTAMP_START: context.TIMESTAMP_START,
     TIMESTAMP_END: context.TIMESTAMP_END,
     VISUAL_PURPOSE: context.VISUAL_PURPOSE,
+    DISTINCTIVE_ANCHOR: context.DISTINCTIVE_ANCHOR,
     SUBJECT: context.SUBJECT,
     ACTION: context.ACTION,
     SETTING: context.SETTING,
@@ -114,6 +103,8 @@ export function renderPromptTemplate(template: string, context: PromptTemplateCo
     LIGHTING: context.LIGHTING,
     MOOD: context.MOOD,
     CONTINUITY: context.CONTINUITY,
+    SOURCE_NARRATION: context.SOURCE_NARRATION,
+    SCENE_PROMPT: context.SCENE_PROMPT,
     BRAND_GUIDANCE: context.BRAND_GUIDANCE,
     NEGATIVE_PROMPT: context.NEGATIVE_PROMPT
   };
@@ -135,6 +126,9 @@ export function createImagePrompt(scene: Scene, aspectRatio: "16:9" | "9:16", gl
       TIMESTAMP_START: scene.timing.startSeconds.toFixed(0).padStart(2, "0"),
       TIMESTAMP_END: scene.timing.endSeconds.toFixed(0).padStart(2, "0"),
       VISUAL_PURPOSE: scene.visualPurpose,
+      DISTINCTIVE_ANCHOR: normalizeWhitespace(
+        [scene.subject, scene.action, scene.setting].join(" | ")
+      ),
       SUBJECT: scene.subject,
       ACTION: scene.action,
       SETTING: scene.setting,
@@ -143,6 +137,8 @@ export function createImagePrompt(scene: Scene, aspectRatio: "16:9" | "9:16", gl
       LIGHTING: "natural",
       MOOD: scene.mood,
       CONTINUITY: scene.continuityReferences.join("; "),
+      SOURCE_NARRATION: scene.canonicalNarration,
+      SCENE_PROMPT: scene.imagePrompt,
       BRAND_GUIDANCE: brandGuidance,
       NEGATIVE_PROMPT: scene.negativeConstraints.join(", ")
     }),

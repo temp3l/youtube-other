@@ -1063,7 +1063,7 @@ export function loadOpenAiImageGenerationSettings(
     apiSize: resolveCompatibleApiSize(requestedSize, model),
     quality: resolveImageQuality(mergedEnv["OPENAI_IMAGE_QUALITY"]),
     outputFormat: resolveImageOutputFormat(mergedEnv["OPENAI_IMAGE_FORMAT"]),
-    concurrency: parseEnvInt(mergedEnv["OPENAI_IMAGE_CONCURRENCY"], 1),
+    concurrency: parseEnvInt(mergedEnv["OPENAI_IMAGE_CONCURRENCY"], 2),
     maxRetries: parseEnvInt(mergedEnv["OPENAI_IMAGE_MAX_RETRIES"], 2),
     timeoutMs: parseEnvInt(mergedEnv["OPENAI_IMAGE_TIMEOUT_MS"], 180000),
     debug: mergedEnv["OPENAI_IMAGE_DEBUG"] === "true",
@@ -1082,31 +1082,12 @@ export async function generateOpenAiSceneImages(
   const client =
     options?.client ?? null;
 
-  const reusableAnchors: Array<{ readonly index: number; readonly job: OpenAiImageGenerationJob }> = [];
-  const generationPlan = jobs.map((job, index) => {
-    let reuseFromIndex: number | null = null;
-    let bestSimilarity = 0;
-    for (const candidate of reusableAnchors) {
-      const similarity = shouldReuseImage(job.scene, candidate.job.scene, job.prompt, candidate.job.prompt);
-      if (similarity >= 0.7 && similarity > bestSimilarity) {
-        bestSimilarity = similarity;
-        reuseFromIndex = candidate.index;
-      }
-    }
-    if (reuseFromIndex === null) {
-      reusableAnchors.push({ index, job });
-    }
-    return {
-      job,
-      index,
-      reuseFromIndex,
-      similarity: bestSimilarity
-    };
-  });
-
-  const uniqueJobs = generationPlan.filter((item) => item.reuseFromIndex === null);
-  const queue = [...uniqueJobs];
-  const uniqueResultsByIndex = new Map<number, OpenAiImageGenerationResult>();
+  const generationPlan = jobs.map((job, index) => ({
+    job,
+    index
+  }));
+  const queue = [...generationPlan];
+  const resultsByIndex = new Map<number, OpenAiImageGenerationResult>();
 
   const workers = Array.from(
     { length: Math.max(1, settings.concurrency) },
@@ -1117,7 +1098,7 @@ export async function generateOpenAiSceneImages(
           return;
         }
         const result = await generateSingleImage(client, entry.job, settings);
-        uniqueResultsByIndex.set(entry.index, result);
+        resultsByIndex.set(entry.index, result);
       }
     }
   );
@@ -1126,15 +1107,7 @@ export async function generateOpenAiSceneImages(
 
   const results: OpenAiImageGenerationResult[] = [];
   for (const entry of generationPlan) {
-    if (entry.reuseFromIndex !== null) {
-      const source = uniqueResultsByIndex.get(entry.reuseFromIndex);
-      if (!source) {
-        throw new ProviderResponseError(`Could not reuse image for scene ${entry.job.scene.id} because the source scene was not generated.`);
-      }
-      results.push(await reuseSingleImage(source, entry.job, settings, entry.similarity));
-      continue;
-    }
-    const generated = uniqueResultsByIndex.get(entry.index);
+    const generated = resultsByIndex.get(entry.index);
     if (!generated) {
       throw new ProviderResponseError(`Missing generated image for scene ${entry.job.scene.id}.`);
     }

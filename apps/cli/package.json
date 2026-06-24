@@ -17,6 +17,7 @@
     "@mediaforge/alignment": "workspace:*",
     "@mediaforge/config": "workspace:*",
     "@mediaforge/domain": "workspace:*",
+    "@mediaforge/dark-truth": "workspace:*",
     "@mediaforge/image-generation": "workspace:*",
     "@mediaforge/metadata": "workspace:*",
     "@mediaforge/observability": "workspace:*",
