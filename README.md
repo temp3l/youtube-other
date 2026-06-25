@@ -1,17 +1,30 @@
-the english full narration.wav is over 8 minutes and is good. but the final video is below 8 minutes and is truncated. fix that and make sure it never happens again.
-also make sure the final video outputs for full and short always have a relevant filename.
+## prompts
+
+regenereate all english audio assets for 001-the-forbidden-village-where-japan-s-laws-do-not-apply. dont use mock providers. then regenerate all downstream assets.
+
+the engliush full narration.wav is silent. i cannot hear anything. i think there was a sandbox network issue when you tried to re-generate it. regenerate the narration.wav now without running into sandbox issues
 
 ---
 
-document, commit and push all relevant changes. then merge the branch into master
+---
+
+prepend the thumbnail to the english short video, Keep it visible for roughly 0.5–1 second so it is easy to select.
+do not regenerate anything else, except the final video
+
+prepend this thumbnail to the german short video: "content-ideas/audio-ready-thumbnails/de/001-das-verbotene-dorf-in-dem-japans-gesetze-nicht-gelten.png", Keep it visible for roughly 0.5–1 second so it is easy to select.
+do not regenerate anything else, except the final video
+
+---
+
+document, commit and push everything relevant. then merge the branch into master
 
 i have added a YOUTUBE_CHANNEL_ID_GERMAN in .env for uploading german videos.
 i will also add YOUTUBE_CHANNEL_ID_SPANISH and YOUTUBE_CHANNEL_ID_FRENCH later on. wire it up.
 
 ---
 
-i did create thubnail images with chatgpt and placed them in ./content-ideas/thumbnails-de/.
-can you match them with the relevant stories and copy them into the correct folder of the episodes output?=
+i did create thumbnail images with chatgpt and placed them in ./content-ideas/thumbnails-{lang}
+always try to find a matching thumbnail in that folder or ask me to provide one manually. i want the thumbnails to be prepended to short videos, Keep it visible for roughly 0.5–1 second.
 
 ---
 

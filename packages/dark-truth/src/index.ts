@@ -267,6 +267,20 @@ export interface SubtitleManifest {
   readonly generatedAt: string;
 }
 
+interface NarrationAudioManifest {
+  readonly schemaVersion: 2;
+  readonly episodeId: string;
+  readonly language: SupportedLanguage;
+  readonly artifactType: ArtifactType;
+  readonly speechPlanHash: string;
+  readonly voiceProfileHash: string;
+  readonly segmentCount: number;
+  readonly segmentSha256s: readonly string[];
+  readonly narrationPath: string;
+  readonly narrationSha256: string;
+  readonly generatedAt: string;
+}
+
 export interface ReviewRecord {
   readonly episodeId: string;
   readonly language: SupportedLanguage;
@@ -1343,6 +1357,11 @@ export async function renderCleanVideo(
     readonly imageDir?: string;
   }
 ): Promise<{ readonly cleanPath: string; readonly validation: unknown }> {
+  const languageDir = path.basename(path.dirname(episodeDir));
+  const episodeSlug = path.basename(path.dirname(path.dirname(episodeDir)));
+  const outputBasename = slugify(
+    `${episodeSlug}-${languageDir}-${artifactType}`
+  );
   const renderer = new FFmpegVideoRenderer();
   const renderResult = await renderer.render(
     {
@@ -1361,7 +1380,7 @@ export async function renderCleanVideo(
       captionBurnIn: false,
       imageDir: options?.imageDir ?? path.join(episodeDir, "shared", "images", "generated"),
       sceneAudioDir: path.join(episodeDir, "audio", "segments"),
-      outputSuffix: artifactType === "short" ? "-short" : "",
+      outputBasename,
       trailingSilenceRatio: 0.8,
       trailingSilenceBufferSeconds: 0.5,
     },
@@ -1691,6 +1710,92 @@ async function inspectAudioDurationSeconds(filePath: string): Promise<number> {
   return duration;
 }
 
+function narrationAudioManifestPath(narrationDir: string): string {
+  return path.join(narrationDir, "narration-manifest.json");
+}
+
+function buildSpeechPlanHash(speechPlan: SpeechPlan): string {
+  return hashText(
+    JSON.stringify({
+      version: speechPlan.version,
+      episodeId: speechPlan.episodeId,
+      language: speechPlan.language,
+      artifactType: speechPlan.artifactType,
+      title: speechPlan.title,
+      canonicalVoiceProfileHash: speechPlan.canonicalVoiceProfileHash,
+      segments: speechPlan.segments.map((segment) => ({
+        id: segment.id,
+        sequenceNumber: segment.sequenceNumber,
+        text: segment.text,
+        wordCount: segment.wordCount,
+        characterCount: segment.characterCount,
+        type: segment.type,
+        pace: segment.pace,
+        intensity: segment.intensity,
+        pauseBeforeMs: segment.pauseBeforeMs,
+        pauseAfterMs: segment.pauseAfterMs,
+      })),
+    })
+  );
+}
+
+async function loadNarrationAudioManifest(
+  filePath: string
+): Promise<NarrationAudioManifest | null> {
+  if (!(await fileExists(filePath))) {
+    return null;
+  }
+  const raw = JSON.parse(await fs.readFile(filePath, "utf8")) as unknown;
+  if (!raw || typeof raw !== "object") {
+    return null;
+  }
+  const value = raw as Partial<NarrationAudioManifest>;
+  if (
+    value.schemaVersion !== 2 ||
+    typeof value.episodeId !== "string" ||
+    typeof value.language !== "string" ||
+    typeof value.artifactType !== "string" ||
+    typeof value.speechPlanHash !== "string" ||
+    typeof value.voiceProfileHash !== "string" ||
+    typeof value.segmentCount !== "number" ||
+    !Array.isArray(value.segmentSha256s) ||
+    value.segmentSha256s.some((entry) => typeof entry !== "string") ||
+    typeof value.narrationPath !== "string" ||
+    typeof value.narrationSha256 !== "string" ||
+    typeof value.generatedAt !== "string"
+  ) {
+    return null;
+  }
+  return value as NarrationAudioManifest;
+}
+
+async function clearNarrationAudioArtifacts(
+  narrationDir: string,
+  segmentsDir: string,
+  narrationPath: string
+): Promise<void> {
+  const cleanupDirs = [narrationDir, segmentsDir];
+  await Promise.all(
+    cleanupDirs.map(async (directory) => {
+      const entries = await fs
+        .readdir(directory, { withFileTypes: true })
+        .catch(() => []);
+      await Promise.all(
+        entries
+          .filter((entry) => entry.isFile())
+          .map(async (entry) => {
+            await fs.rm(path.join(directory, entry.name), { force: true }).catch(() => {});
+          })
+      );
+    })
+  );
+  await fs.rm(narrationPath, { force: true }).catch(() => {});
+  await fs.rm(path.join(narrationDir, "segments.txt"), { force: true }).catch(() => {});
+  await fs
+    .rm(narrationAudioManifestPath(narrationDir), { force: true })
+    .catch(() => {});
+}
+
 export async function generateMockNarrationAudio(
   episodeDir: string,
   speechPlan: SpeechPlan
@@ -1702,7 +1807,49 @@ export async function generateMockNarrationAudio(
     speechPlan.language,
     speechPlan.artifactType
   );
+  const narrationPath = path.join(narrationDir, "narration.wav");
+  const segmentsListPath = path.join(narrationDir, "segments.txt");
+  const manifestPath = narrationAudioManifestPath(narrationDir);
+  const speechPlanHash = buildSpeechPlanHash(speechPlan);
+  const voiceProfileHash = speechPlan.canonicalVoiceProfileHash;
+  const expectedSegmentPaths = speechPlan.segments.map((segment) =>
+    path.join(segmentsDir, `${segment.id}.wav`)
+  );
+  const existingManifest = await loadNarrationAudioManifest(manifestPath);
+  if (
+    existingManifest &&
+    existingManifest.episodeId === speechPlan.episodeId &&
+    existingManifest.language === speechPlan.language &&
+    existingManifest.artifactType === speechPlan.artifactType &&
+    existingManifest.speechPlanHash === speechPlanHash &&
+    existingManifest.voiceProfileHash === voiceProfileHash &&
+    existingManifest.segmentCount === speechPlan.segments.length &&
+    (await fileExists(narrationPath)) &&
+    (await hashFile(narrationPath).catch(() => Promise.resolve(""))) ===
+      existingManifest.narrationSha256
+  ) {
+    let segmentsValid = true;
+    for (let index = 0; index < expectedSegmentPaths.length; index += 1) {
+      const segmentPath = expectedSegmentPaths[index];
+      if (!segmentPath || !(await fileExists(segmentPath))) {
+        segmentsValid = false;
+        break;
+      }
+      if (
+        (await hashFile(segmentPath).catch(() => Promise.resolve(""))) !==
+        existingManifest.segmentSha256s[index]
+      ) {
+        segmentsValid = false;
+        break;
+      }
+    }
+    if (segmentsValid) {
+      return narrationPath;
+    }
+  }
+  await clearNarrationAudioArtifacts(narrationDir, segmentsDir, narrationPath);
   const segmentPaths: string[] = [];
+  const segmentSha256s: string[] = [];
   for (const segment of speechPlan.segments) {
     const outputPath = path.join(segmentsDir, `${segment.id}.wav`);
     await provider.synthesize(
@@ -1721,15 +1868,14 @@ export async function generateMockNarrationAudio(
       new AbortController().signal
     );
     segmentPaths.push(outputPath);
+    segmentSha256s.push(await hashFile(outputPath));
   }
-  const concatListPath = path.join(narrationDir, "segments.txt");
   await writeTextAtomic(
-    concatListPath,
+    segmentsListPath,
     segmentPaths
       .map((segmentPath) => `file '${segmentPath.replace(/'/g, "'\\''")}'`)
       .join("\n")
   );
-  const narrationPath = path.join(narrationDir, "narration.wav");
   await runCommand(
     "ffmpeg",
     [
@@ -1739,14 +1885,40 @@ export async function generateMockNarrationAudio(
       "-safe",
       "0",
       "-i",
-      concatListPath,
+      segmentsListPath,
       "-c",
       "copy",
       narrationPath,
     ],
     { timeoutMs: 600000 }
   );
+  const narrationSha256 = await hashFile(narrationPath);
+  await writeJsonAtomic(manifestPath, {
+    schemaVersion: 2,
+    episodeId: speechPlan.episodeId,
+    language: speechPlan.language,
+    artifactType: speechPlan.artifactType,
+    speechPlanHash,
+    voiceProfileHash,
+    segmentCount: speechPlan.segments.length,
+    segmentSha256s,
+    narrationPath,
+    narrationSha256,
+    generatedAt: nowIso(),
+  } satisfies NarrationAudioManifest);
   return narrationPath;
+}
+
+export async function generateNarrationAudio(
+  episodeDir: string,
+  speechPlan: SpeechPlan
+): Promise<string> {
+  if (!isPaidProviderOptInEnabled()) {
+    throw new Error(
+      "DARK_TRUTH_ENABLE_PAID_PROVIDERS=true is required for episode narration generation."
+    );
+  }
+  return generateMockNarrationAudio(episodeDir, speechPlan);
 }
 
 export async function writeSidecarSubtitles(

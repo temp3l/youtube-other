@@ -8,7 +8,7 @@ import {
   createApprovalRecord,
   discoverEpisodeSources,
   generateCanonicalImages,
-  generateMockNarrationAudio,
+  generateNarrationAudio,
   parseEpisodeSourceFile,
   readApprovalRecord,
   renderCleanVideo,
@@ -331,7 +331,7 @@ async function prepareEpisodeLanguage(
         scenePlan
       );
     }
-    const narrationPath = await generateMockNarrationAudio(
+    const narrationPath = await generateNarrationAudio(
       baseDir,
       loadResult.speechPlan
     );
@@ -341,7 +341,13 @@ async function prepareEpisodeLanguage(
       scenePlan,
       artifactType,
       {
-        imageDir: path.join(outputRoot, discovery.slug, "shared", "images"),
+        imageDir: path.join(
+          outputRoot,
+          discovery.slug,
+          "shared",
+          "images",
+          "generated"
+        ),
       }
     );
     reviewVideoPath = renderResult.cleanPath;

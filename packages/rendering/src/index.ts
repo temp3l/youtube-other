@@ -26,6 +26,7 @@ export interface VideoRenderRequest {
   readonly sceneAudioDir?: string;
   readonly imageDir?: string;
   readonly outputSuffix?: string;
+  readonly outputBasename?: string;
   readonly trailingSilenceRatio?: number;
   readonly trailingSilenceBufferSeconds?: number;
 }
@@ -42,7 +43,7 @@ export interface SceneClipRenderResult {
 }
 
 interface SceneClipManifest {
-  readonly schemaVersion: 1;
+  readonly schemaVersion: 2;
   readonly sceneId: string;
   readonly sceneHash: string;
   readonly imageSha256: string;
@@ -58,6 +59,13 @@ interface SceneClipManifest {
   readonly trailingSilenceBufferSeconds: number;
   readonly outputSha256: string;
   readonly generatedAt: string;
+}
+
+function scenePlanDurationSeconds(scenePlan: ScenePlan): number {
+  return scenePlan.scenes.reduce(
+    (maxDuration, scene) => Math.max(maxDuration, scene.timing.endSeconds),
+    0
+  );
 }
 
 export interface RenderValidation {
@@ -172,7 +180,7 @@ async function loadSceneClipManifest(
   }
   const value = raw as Partial<SceneClipManifest>;
   if (
-    value.schemaVersion !== 1 ||
+    value.schemaVersion !== 2 ||
     typeof value.sceneId !== "string" ||
     typeof value.sceneHash !== "string" ||
     typeof value.imageSha256 !== "string" ||
@@ -268,6 +276,7 @@ async function renderSceneClip(
   fps: number,
   width: number,
   height: number,
+  minimumDurationSeconds: number,
   captionsPath?: string,
   trailingSilenceRatio = 0.8,
   trailingSilenceBufferSeconds = 0.5
@@ -281,6 +290,10 @@ async function renderSceneClip(
     trailingSilenceRatio,
     trailingSilenceBufferSeconds
   );
+  const targetDurationSeconds = Math.max(
+    minimumDurationSeconds,
+    clipDurationSeconds
+  );
   const args = [
     "-y",
     "-loop",
@@ -292,7 +305,7 @@ async function renderSceneClip(
     "-vf",
     filterGraph,
     "-t",
-    String(clipDurationSeconds),
+    String(targetDurationSeconds),
     "-r",
     String(fps),
     "-c:v",
@@ -489,6 +502,7 @@ export class FFmpegVideoRenderer implements VideoRenderer {
           request.renderProfile.fps,
           request.renderProfile.width,
           request.renderProfile.height,
+          Math.max(0.1, scene.timing.endSeconds - scene.timing.startSeconds),
           request.captionBurnIn && request.captionsPath
             ? request.captionsPath
             : undefined,
@@ -497,7 +511,7 @@ export class FFmpegVideoRenderer implements VideoRenderer {
         );
         const outputSha256 = await hashFile(clipPath);
         const sceneClipManifest: SceneClipManifest = {
-          schemaVersion: 1,
+          schemaVersion: 2,
           sceneId: scene.id,
           sceneHash: currentSceneHash,
           imageSha256: currentImageSha256,
@@ -542,9 +556,12 @@ export class FFmpegVideoRenderer implements VideoRenderer {
         .join("\n")
     );
     const suffix = request.outputSuffix ?? "";
+    const baseName =
+      request.outputBasename ??
+      `youtube-${request.renderProfile.aspectRatio.replace(":", "x")}${suffix}`;
     const cleanPath = path.join(
       request.outputDir,
-      `youtube-${request.renderProfile.aspectRatio.replace(":", "x")}${suffix}-clean.mp4`
+      `${baseName}-clean.mp4`
     );
     await runCommand(
       "ffmpeg",
@@ -568,7 +585,7 @@ export class FFmpegVideoRenderer implements VideoRenderer {
     if (request.captionsPath && request.captionBurnIn) {
       captionedPath = path.join(
         request.outputDir,
-        `youtube-${request.renderProfile.aspectRatio.replace(":", "x")}${suffix}-captioned.mp4`
+        `${baseName}-captioned.mp4`
       );
       await runCommand(
         "ffmpeg",
@@ -591,6 +608,12 @@ export class FFmpegVideoRenderer implements VideoRenderer {
     if (!validation.valid) {
       throw new MediaValidationError(
         `Rendered media failed validation: ${validation.issues.join("; ")}`
+      );
+    }
+    const expectedDurationSeconds = scenePlanDurationSeconds(request.scenePlan);
+    if (validation.durationSeconds + 0.25 < expectedDurationSeconds) {
+      throw new MediaValidationError(
+        `Rendered media is shorter than the planned scene duration. Expected at least ${expectedDurationSeconds.toFixed(3)}s but got ${validation.durationSeconds.toFixed(3)}s.`
       );
     }
     return captionedPath

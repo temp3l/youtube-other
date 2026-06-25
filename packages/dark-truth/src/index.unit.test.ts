@@ -8,6 +8,7 @@ import {
   createApprovalRecord,
   discoverEpisodeSources,
   generateCanonicalImages,
+  generateNarrationAudio,
   generateMockNarrationAudio,
   parseEpisodeSourceFile,
   buildSpeechPlan,
@@ -155,6 +156,71 @@ describe("dark-truth workflow", () => {
       vi.unstubAllEnvs();
     }
   });
+
+  it("refuses episode narration generation unless paid providers are explicitly enabled", async () => {
+    const tempDir = await fs.mkdtemp(
+      path.join(os.tmpdir(), "dark-truth-episode-tts-")
+    );
+    const outputRoot = path.join(tempDir, "episodes");
+    const result = await buildEpisodeLoadResult(
+      episode001EnglishFull,
+      outputRoot
+    );
+    const episodeDir = path.join(
+      outputRoot,
+      "001-the-forbidden-village-where-japan-s-laws-do-not-apply",
+      "en",
+      "full"
+    );
+    vi.stubEnv("DARK_TRUTH_ENABLE_PAID_PROVIDERS", "false");
+    await expect(
+      generateNarrationAudio(episodeDir, result.speechPlan)
+    ).rejects.toThrow("DARK_TRUTH_ENABLE_PAID_PROVIDERS=true");
+    vi.unstubAllEnvs();
+  });
+
+  it("cleans stale narration segments before regenerating audio", async () => {
+    const tempDir = await fs.mkdtemp(
+      path.join(os.tmpdir(), "dark-truth-stale-segments-")
+    );
+    const outputRoot = path.join(tempDir, "episodes");
+    const result = await buildEpisodeLoadResult(
+      episode001EnglishFull,
+      outputRoot
+    );
+    const episodeDir = path.join(
+      outputRoot,
+      "001-the-forbidden-village-where-japan-s-laws-do-not-apply",
+      "en",
+      "full"
+    );
+    const segmentsDir = path.join(episodeDir, "audio", "segments-speech");
+    await fs.mkdir(segmentsDir, { recursive: true });
+    await fs.writeFile(path.join(segmentsDir, "segment-999.wav"), "stale");
+    await fs.writeFile(
+      path.join(segmentsDir, "segment-999.wav.tmp"),
+      "temp"
+    );
+    const narrationPath = await generateMockNarrationAudio(
+      episodeDir,
+      result.speechPlan
+    );
+    expect((await fs.stat(narrationPath)).size).toBeGreaterThan(0);
+    await expect(
+      fs.stat(path.join(segmentsDir, "segment-999.wav"))
+    ).rejects.toThrow();
+    await expect(
+      fs.stat(path.join(segmentsDir, "segment-999.wav.tmp"))
+    ).rejects.toThrow();
+    const manifest = JSON.parse(
+      await fs.readFile(
+        path.join(episodeDir, "audio", "narration-manifest.json"),
+        "utf8"
+      )
+    ) as { segmentCount: number; speechPlanHash: string };
+    expect(manifest.segmentCount).toBe(result.speechPlan.segments.length);
+    expect(manifest.speechPlanHash).toHaveLength(64);
+  }, 120000);
 
   it("keeps canonical image generation local unless paid providers are explicitly enabled", async () => {
     const tempDir = await fs.mkdtemp(

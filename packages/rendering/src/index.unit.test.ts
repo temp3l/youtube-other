@@ -175,4 +175,130 @@ describe("FFmpegVideoRenderer", () => {
     expect(secondDuration).toBeGreaterThan(firstDuration);
     expect(secondDuration).toBeGreaterThanOrEqual(4.5);
   }, 120000);
+
+  it("does not shorten a scene clip below the planned scene timing", async () => {
+    const baseDir = mkdtempSync(
+      path.join(os.tmpdir(), "mediaforge-rendering-duration-")
+    );
+    const episodeDir = path.join(baseDir, "episode");
+    const outputDir = path.join(episodeDir, "video");
+    const imageDir = path.join(episodeDir, "images", "generated");
+    const audioDir = path.join(episodeDir, "audio", "segments");
+    await fs.mkdir(imageDir, { recursive: true });
+    await fs.mkdir(audioDir, { recursive: true });
+    await fs.writeFile(
+      path.join(imageDir, "scene-001__000000-000003__16x9.png"),
+      await sharp({
+        create: { width: 32, height: 32, channels: 3, background: "#112233" },
+      })
+        .png()
+        .toBuffer()
+    );
+    execFileSync(
+      "ffmpeg",
+      [
+        "-y",
+        "-f",
+        "lavfi",
+        "-i",
+        "sine=frequency=440:sample_rate=24000:duration=2",
+        "-f",
+        "lavfi",
+        "-i",
+        "anullsrc=r=24000:cl=mono",
+        "-filter_complex",
+        "[0:a][1:a]concat=n=2:v=0:a=1[a]",
+        "-map",
+        "[a]",
+        "-t",
+        "3",
+        path.join(audioDir, "scene-001.wav"),
+      ],
+      { stdio: "ignore" }
+    );
+
+    const renderer = new FFmpegVideoRenderer();
+    const result = await renderer.renderSceneClips(
+      {
+        episodeDir,
+        scenePlan: makeScenePlan(),
+        outputDir,
+        renderProfile: {
+          aspectRatio: "16:9",
+          width: 1080,
+          height: 1920,
+          fps: 30,
+        },
+        captionBurnIn: false,
+        imageDir,
+        sceneAudioDir: audioDir,
+        trailingSilenceRatio: 0,
+        trailingSilenceBufferSeconds: 0,
+      },
+      new AbortController().signal
+    );
+
+    const validation = await validateRenderedVideo(
+      result.clipPaths[0] as string
+    );
+    expect(validation.durationSeconds).toBeGreaterThanOrEqual(2.95);
+  }, 120000);
+
+  it("uses an explicit output basename for final renders", async () => {
+    const baseDir = mkdtempSync(
+      path.join(os.tmpdir(), "mediaforge-rendering-output-")
+    );
+    const episodeDir = path.join(baseDir, "episode");
+    const outputDir = path.join(episodeDir, "video");
+    const imageDir = path.join(episodeDir, "images", "generated");
+    const audioDir = path.join(episodeDir, "audio", "segments");
+    await fs.mkdir(imageDir, { recursive: true });
+    await fs.mkdir(audioDir, { recursive: true });
+    await fs.writeFile(
+      path.join(imageDir, "scene-001__000000-000003__16x9.png"),
+      await sharp({
+        create: { width: 32, height: 32, channels: 3, background: "#223344" },
+      })
+        .png()
+        .toBuffer()
+    );
+    execFileSync(
+      "ffmpeg",
+      [
+        "-y",
+        "-f",
+        "lavfi",
+        "-i",
+        "anullsrc=r=24000:cl=mono",
+        "-t",
+        "3",
+        path.join(audioDir, "scene-001.wav"),
+      ],
+      { stdio: "ignore" }
+    );
+
+    const renderer = new FFmpegVideoRenderer();
+    const result = await renderer.render(
+      {
+        episodeDir,
+        scenePlan: makeScenePlan(),
+        outputDir,
+        renderProfile: {
+          aspectRatio: "16:9",
+          width: 1080,
+          height: 1920,
+          fps: 30,
+        },
+        captionBurnIn: false,
+        imageDir,
+        sceneAudioDir: audioDir,
+        outputBasename: "episode-fixture-en-full",
+      },
+      new AbortController().signal
+    );
+
+    expect(path.basename(result.cleanPath)).toBe(
+      "episode-fixture-en-full-clean.mp4"
+    );
+  }, 120000);
 });
