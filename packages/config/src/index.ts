@@ -53,8 +53,14 @@ const configSchema = z.object({
   youtubeClientId: z.string().optional(),
   youtubeClientSecret: z.string().optional(),
   youtubeRefreshToken: z.string().optional(),
+  youtubeRefreshTokenGerman: z.string().optional(),
+  youtubeRefreshTokenSpanish: z.string().optional(),
+  youtubeRefreshTokenFrench: z.string().optional(),
   youtubeRedirectUri: z.string().url().optional(),
   youtubeChannelId: z.string().optional(),
+  youtubeChannelIdGerman: z.string().optional(),
+  youtubeChannelIdSpanish: z.string().optional(),
+  youtubeChannelIdFrench: z.string().optional(),
   apiPort: z.number().int().positive()
 });
 export type RuntimeConfig = z.infer<typeof configSchema>;
@@ -148,8 +154,14 @@ const envSchema = z.object({
   YOUTUBE_CLIENT_ID: z.string().optional(),
   YOUTUBE_CLIENT_SECRET: z.string().optional(),
   YOUTUBE_REFRESH_TOKEN: z.string().optional(),
+  YOUTUBE_REFRESH_TOKEN_GERMAN: z.string().optional(),
+  YOUTUBE_REFRESH_TOKEN_SPANISH: z.string().optional(),
+  YOUTUBE_REFRESH_TOKEN_FRENCH: z.string().optional(),
   YOUTUBE_REDIRECT_URI: z.string().url().optional(),
   YOUTUBE_CHANNEL_ID: z.string().optional(),
+  YOUTUBE_CHANNEL_ID_GERMAN: z.string().optional(),
+  YOUTUBE_CHANNEL_ID_SPANISH: z.string().optional(),
+  YOUTUBE_CHANNEL_ID_FRENCH: z.string().optional(),
   OPENAI_BASE_URL: z.string().url().optional(),
   OPENAI_API_KEY: z.string().optional(),
   OPENAI_ORGANIZATION: z.string().optional(),
@@ -298,11 +310,63 @@ export async function loadRuntimeConfig(
     youtubeClientId: overrides.youtubeClientId ?? episodeOverrides.youtubeClientId ?? env.YOUTUBE_CLIENT_ID,
     youtubeClientSecret: overrides.youtubeClientSecret ?? episodeOverrides.youtubeClientSecret ?? env.YOUTUBE_CLIENT_SECRET,
     youtubeRefreshToken: overrides.youtubeRefreshToken ?? episodeOverrides.youtubeRefreshToken ?? env.YOUTUBE_REFRESH_TOKEN,
+    youtubeRefreshTokenGerman:
+      overrides.youtubeRefreshTokenGerman ??
+      episodeOverrides.youtubeRefreshTokenGerman ??
+      env.YOUTUBE_REFRESH_TOKEN_GERMAN,
+    youtubeRefreshTokenSpanish:
+      overrides.youtubeRefreshTokenSpanish ??
+      episodeOverrides.youtubeRefreshTokenSpanish ??
+      env.YOUTUBE_REFRESH_TOKEN_SPANISH,
+    youtubeRefreshTokenFrench:
+      overrides.youtubeRefreshTokenFrench ??
+      episodeOverrides.youtubeRefreshTokenFrench ??
+      env.YOUTUBE_REFRESH_TOKEN_FRENCH,
     youtubeRedirectUri: overrides.youtubeRedirectUri ?? episodeOverrides.youtubeRedirectUri ?? env.YOUTUBE_REDIRECT_URI,
     youtubeChannelId: overrides.youtubeChannelId ?? episodeOverrides.youtubeChannelId ?? env.YOUTUBE_CHANNEL_ID,
+    youtubeChannelIdGerman:
+      overrides.youtubeChannelIdGerman ??
+      episodeOverrides.youtubeChannelIdGerman ??
+      env.YOUTUBE_CHANNEL_ID_GERMAN,
+    youtubeChannelIdSpanish:
+      overrides.youtubeChannelIdSpanish ??
+      episodeOverrides.youtubeChannelIdSpanish ??
+      env.YOUTUBE_CHANNEL_ID_SPANISH,
+    youtubeChannelIdFrench:
+      overrides.youtubeChannelIdFrench ??
+      episodeOverrides.youtubeChannelIdFrench ??
+      env.YOUTUBE_CHANNEL_ID_FRENCH,
     apiPort: overrides.apiPort ?? episodeOverrides.apiPort ?? env.MEDIAFORGE_API_PORT ?? 3333
   });
   return config;
+}
+
+function normalizeLanguageCode(language: string | undefined): string | undefined {
+  if (!language) {
+    return undefined;
+  }
+  return language.trim().toLowerCase();
+}
+
+export function resolveYoutubeChannelIdForLanguage(
+  config: RuntimeConfig,
+  language: string | undefined
+): string | undefined {
+  const normalized = normalizeLanguageCode(language);
+  if (!normalized) {
+    return config.youtubeChannelId;
+  }
+  const languagePrefix = normalized.split("-")[0];
+  if (languagePrefix === "de") {
+    return config.youtubeChannelIdGerman ?? config.youtubeChannelId;
+  }
+  if (languagePrefix === "es") {
+    return config.youtubeChannelIdSpanish ?? config.youtubeChannelId;
+  }
+  if (languagePrefix === "fr") {
+    return config.youtubeChannelIdFrench ?? config.youtubeChannelId;
+  }
+  return config.youtubeChannelId;
 }
 
 export async function loadEpisodeConfig(episodeDir: string): Promise<EpisodeConfig | null> {

@@ -2,7 +2,7 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { loadEpisodeConfig, loadRuntimeConfig } from "./index.js";
+import { loadEpisodeConfig, loadRuntimeConfig, resolveYoutubeChannelIdForLanguage } from "./index.js";
 
 describe("runtime config", () => {
   it("lets CLI overrides beat episode config", async () => {
@@ -110,5 +110,21 @@ describe("runtime config", () => {
     });
 
     expect(config.trailingSilenceBufferSeconds).toBe(0.75);
+  });
+
+  it("resolves language-specific YouTube channels with fallback", async () => {
+    const config = await loadRuntimeConfig({
+      youtubeChannelId: "global-channel",
+      youtubeChannelIdGerman: "german-channel",
+      youtubeChannelIdSpanish: "spanish-channel",
+      youtubeChannelIdFrench: "french-channel"
+    });
+
+    expect(resolveYoutubeChannelIdForLanguage(config, "de")).toBe("german-channel");
+    expect(resolveYoutubeChannelIdForLanguage(config, "de-AT")).toBe("german-channel");
+    expect(resolveYoutubeChannelIdForLanguage(config, "es")).toBe("spanish-channel");
+    expect(resolveYoutubeChannelIdForLanguage(config, "fr-CA")).toBe("french-channel");
+    expect(resolveYoutubeChannelIdForLanguage(config, "it")).toBe("global-channel");
+    expect(resolveYoutubeChannelIdForLanguage(config, undefined)).toBe("global-channel");
   });
 });

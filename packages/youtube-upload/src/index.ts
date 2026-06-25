@@ -45,6 +45,7 @@ export interface YoutubeUploadOverrides {
   readonly recordingDate?: string;
   readonly notifySubscribers?: boolean;
   readonly madeForKids?: boolean;
+  readonly containsSyntheticMedia?: boolean;
   readonly embeddable?: boolean;
   readonly publicStatsViewable?: boolean;
   readonly license?: z.infer<typeof licenseSchema>;
@@ -188,7 +189,7 @@ const uploadMetadataSchema = z.object({
   privacyStatus: privacyStatusSchema.default("private"),
   publishAt: z.string().datetime().optional(),
   madeForKids: z.boolean().default(false),
-  containsSyntheticMedia: z.boolean().default(false),
+  containsSyntheticMedia: z.boolean().default(true),
   embeddable: z.boolean().default(true),
   publicStatsViewable: z.boolean().default(true),
   license: licenseSchema.default("youtube"),
@@ -388,7 +389,7 @@ function normalizeUploadMetadata(metadata: YoutubeMetadata, overrides: YoutubeUp
     categoryId: categories,
     privacyStatus,
     madeForKids: overrides.madeForKids ?? metadata.uploadSettings.madeForKids,
-    containsSyntheticMedia: false,
+    containsSyntheticMedia: overrides.containsSyntheticMedia ?? true,
     embeddable: overrides.embeddable ?? true,
     publicStatsViewable: overrides.publicStatsViewable ?? true,
     license: normalizeLicense(overrides.license ?? metadata.uploadSettings.licence),
@@ -851,24 +852,6 @@ async function validateChannelOwnership(
   expectedChannelId: string | undefined,
   telemetry: ReturnType<typeof currentExecutionTelemetry>
 ): Promise<string | undefined> {
-  if (expectedChannelId) {
-    telemetry?.recordApiCall({
-      provider: "googleapis",
-      model: "youtube.v3",
-      operation: "youtube-upload",
-      startedAt: new Date().toISOString(),
-      endedAt: new Date().toISOString(),
-      durationMs: 0,
-      attempt: 1,
-      success: true,
-      details: {
-        endpoint: "channels.list",
-        channelId: expectedChannelId,
-        skipped: true,
-      },
-    });
-    return expectedChannelId;
-  }
   const response = await withRetry(
     async () =>
       youtube.channels.list({
@@ -892,12 +875,15 @@ async function validateChannelOwnership(
     details: {
       endpoint: "channels.list",
       channelId,
+      expectedChannelId,
     },
   });
   if (expectedChannelId && channelId && expectedChannelId !== channelId) {
-    throw new YoutubeUploadConfigurationError(`Authenticated YouTube channel ${channelId} does not match configured YOUTUBE_CHANNEL_ID ${expectedChannelId}.`);
+    throw new YoutubeUploadConfigurationError(
+      `Authenticated YouTube channel ${channelId} does not match configured channel ID ${expectedChannelId}.`
+    );
   }
-  return channelId;
+  return expectedChannelId ?? channelId;
 }
 
 export async function uploadYoutubeEpisode(input: YoutubeUploadCommandInput): Promise<YoutubeUploadResult> {

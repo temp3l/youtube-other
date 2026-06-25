@@ -118,6 +118,15 @@ interface CliOptions {
   character?: string;
 }
 
+type YoutubeChannelRuntimeConfig = RuntimeConfig & {
+  youtubeChannelIdGerman?: string;
+  youtubeChannelIdSpanish?: string;
+  youtubeChannelIdFrench?: string;
+  youtubeRefreshTokenGerman?: string;
+  youtubeRefreshTokenSpanish?: string;
+  youtubeRefreshTokenFrench?: string;
+};
+
 interface DoctorCheck {
   readonly label: string;
   readonly status: "ok" | "missing";
@@ -2364,7 +2373,108 @@ async function commandMetadataYoutube(
   }
 }
 
-function resolveYoutubeAuthSettings(config: RuntimeConfig): YoutubeAuthSettings {
+function inferLanguageFromPath(candidatePath: string | undefined): string | undefined {
+  if (!candidatePath) {
+    return undefined;
+  }
+  const normalized = candidatePath.split(path.sep).map((segment) => segment.toLowerCase());
+  for (const segment of normalized) {
+    if (segment === "de" || segment === "es" || segment === "fr") {
+      return segment;
+    }
+  }
+  return undefined;
+}
+
+async function resolveYoutubeUploadLanguage(
+  episodeDir: string,
+  config: RuntimeConfig,
+  uploadOptions: {
+    readonly metadataPath?: string;
+    readonly videoPath?: string;
+    readonly generateMetadata?: boolean;
+  }
+): Promise<string> {
+  const candidatePaths = [
+    uploadOptions.metadataPath ? path.resolve(episodeDir, uploadOptions.metadataPath) : undefined,
+    uploadOptions.videoPath ? path.resolve(episodeDir, uploadOptions.videoPath) : undefined,
+  ].filter((entry): entry is string => entry !== undefined);
+  for (const candidate of candidatePaths) {
+    const inferred = inferLanguageFromPath(candidate);
+    if (inferred) {
+      return inferred;
+    }
+  }
+  const metadataCandidates = [
+    path.join(episodeDir, "metadata", "youtube.json"),
+    path.join(episodeDir, "metadata", "youtube-metadata.json"),
+    path.join(episodeDir, "output", "youtube.json"),
+    path.join(episodeDir, "output", "youtube-metadata.json"),
+  ];
+  for (const candidate of metadataCandidates) {
+    if (!(await fileExists(candidate))) {
+      continue;
+    }
+    try {
+      const raw = JSON.parse(await fs.readFile(candidate, "utf8")) as { source?: { language?: unknown } };
+      if (typeof raw.source?.language === "string" && raw.source.language.trim().length > 0) {
+        return raw.source.language;
+      }
+    } catch {
+      continue;
+    }
+  }
+  return config.scriptLanguage ?? "en";
+}
+
+function resolveYoutubeChannelIdForLanguage(
+  config: RuntimeConfig,
+  language: string | undefined
+): string | undefined {
+  const youtubeConfig = config as YoutubeChannelRuntimeConfig;
+  const normalized = language?.trim().toLowerCase();
+  if (!normalized) {
+    return youtubeConfig.youtubeChannelId;
+  }
+  const prefix = normalized.split("-")[0];
+  if (prefix === "de") {
+    return youtubeConfig.youtubeChannelIdGerman ?? youtubeConfig.youtubeChannelId;
+  }
+  if (prefix === "es") {
+    return youtubeConfig.youtubeChannelIdSpanish ?? youtubeConfig.youtubeChannelId;
+  }
+  if (prefix === "fr") {
+    return youtubeConfig.youtubeChannelIdFrench ?? youtubeConfig.youtubeChannelId;
+  }
+  return youtubeConfig.youtubeChannelId;
+}
+
+function resolveYoutubeRefreshTokenForLanguage(
+  config: RuntimeConfig,
+  language: string | undefined
+): string | undefined {
+  const youtubeConfig = config as YoutubeChannelRuntimeConfig;
+  const normalized = language?.trim().toLowerCase();
+  if (!normalized) {
+    return youtubeConfig.youtubeRefreshToken;
+  }
+  const prefix = normalized.split("-")[0];
+  if (prefix === "de") {
+    return youtubeConfig.youtubeRefreshTokenGerman ?? youtubeConfig.youtubeRefreshToken;
+  }
+  if (prefix === "es") {
+    return youtubeConfig.youtubeRefreshTokenSpanish ?? youtubeConfig.youtubeRefreshToken;
+  }
+  if (prefix === "fr") {
+    return youtubeConfig.youtubeRefreshTokenFrench ?? youtubeConfig.youtubeRefreshToken;
+  }
+  return youtubeConfig.youtubeRefreshToken;
+}
+
+function resolveYoutubeAuthSettings(
+  config: RuntimeConfig,
+  channelId?: string
+): YoutubeAuthSettings {
   const clientId = config.youtubeClientId ?? process.env["YOUTUBE_CLIENT_ID"];
   const clientSecret = config.youtubeClientSecret ?? process.env["YOUTUBE_CLIENT_SECRET"];
   const refreshToken = config.youtubeRefreshToken ?? process.env["YOUTUBE_REFRESH_TOKEN"];
@@ -2373,13 +2483,20 @@ function resolveYoutubeAuthSettings(config: RuntimeConfig): YoutubeAuthSettings 
       "Missing YOUTUBE_CLIENT_ID, YOUTUBE_CLIENT_SECRET, or YOUTUBE_REFRESH_TOKEN."
     );
   }
-  return {
+  const authBase: YoutubeAuthSettings = {
     clientId,
     clientSecret,
     refreshToken,
     ...(config.youtubeRedirectUri ? { redirectUri: config.youtubeRedirectUri } : {}),
-    ...(config.youtubeChannelId ? { channelId: config.youtubeChannelId } : {}),
   };
+  const resolvedChannelId = channelId ?? config.youtubeChannelId;
+  if (resolvedChannelId) {
+    return {
+      ...authBase,
+      channelId: resolvedChannelId,
+    };
+  }
+  return authBase;
 }
 
 async function commandYoutubeUpload(
@@ -2400,7 +2517,17 @@ async function commandYoutubeUpload(
   markEpisodeTelemetry(uploadOptions.episode);
   const config = await loadRuntimeConfig(configOverridesFromCli(options));
   const { episodeDir } = await readManifestForEpisode(options, uploadOptions.episode);
-  const auth = resolveYoutubeAuthSettings(config);
+  const uploadLanguage = await resolveYoutubeUploadLanguage(episodeDir, config, uploadOptions);
+  const authConfig = {
+    ...config,
+    youtubeRefreshToken:
+      resolveYoutubeRefreshTokenForLanguage(config, uploadLanguage) ??
+      config.youtubeRefreshToken,
+  };
+  const auth = resolveYoutubeAuthSettings(
+    authConfig,
+    resolveYoutubeChannelIdForLanguage(config, uploadLanguage)
+  );
   let metadataGeneration: YoutubeUploadCommandInput["metadataGeneration"];
   if (uploadOptions.generateMetadata) {
     metadataGeneration = {

@@ -247,6 +247,7 @@ describe("youtube upload", () => {
     expect(result.report.thumbnail.sourcePath).toContain("thumbnail.png");
     expect(result.report.thumbnail.path).toContain("generated-assets/thumbnails/youtube-thumbnail.jpg");
     expect(client.requests).toEqual([
+      "channels.list",
       "videos.insert",
       "thumbnails.set",
       "playlistItems.insert",

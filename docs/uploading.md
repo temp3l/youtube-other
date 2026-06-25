@@ -36,9 +36,17 @@ Set these values in your shell or `.env` file:
 YOUTUBE_CLIENT_ID=
 YOUTUBE_CLIENT_SECRET=
 YOUTUBE_REFRESH_TOKEN=
+YOUTUBE_REFRESH_TOKEN_GERMAN=
+YOUTUBE_REFRESH_TOKEN_SPANISH=
+YOUTUBE_REFRESH_TOKEN_FRENCH=
 YOUTUBE_CHANNEL_ID=
+YOUTUBE_CHANNEL_ID_GERMAN=
+YOUTUBE_CHANNEL_ID_SPANISH=
+YOUTUBE_CHANNEL_ID_FRENCH=
 YOUTUBE_REDIRECT_URI=http://localhost
 ```
+
+When the uploader can determine the video language, it prefers the matching channel ID and refresh token for that language, then falls back to the global `YOUTUBE_CHANNEL_ID` and `YOUTUBE_REFRESH_TOKEN`.
 
 The CLI also accepts the existing runtime configuration from `MEDIAFORGE_WORKSPACE` and the repo's standard `.env` loading flow.
 
@@ -138,7 +146,7 @@ The command fails before any upload when:
 - the render or thumbnail is missing;
 - the metadata file is missing or invalid;
 - the OAuth settings are incomplete;
-- the authenticated channel does not match `YOUTUBE_CHANNEL_ID` when that variable is set;
+- the authenticated channel does not match the configured channel ID for the upload language;
 - scheduled publish times are not in the future;
 - the metadata requests a scheduled publish with a non-private visibility;
 - chapter data or other metadata fields are invalid for YouTube.
@@ -154,8 +162,8 @@ The command fails before any upload when:
 - `Unable to locate a custom thumbnail`  
   Check `output/thumbnail.png` or pass `--thumbnail-path`.
 
-- `Authenticated YouTube channel ... does not match configured YOUTUBE_CHANNEL_ID`  
-  Update the configured channel ID or use the correct refresh token.
+- `Authenticated YouTube channel ... does not match configured channel ID ...`  
+  Update the channel mapping for the upload language or use the correct refresh token.
 
 - `publishAt must be a future RFC 3339 timestamp.`  
   Use a future ISO-8601 timestamp.
