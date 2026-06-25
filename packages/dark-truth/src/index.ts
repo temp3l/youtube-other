@@ -6,6 +6,7 @@ import {
   sceneIdSchema,
   scenePlanSchema,
   sceneSchema,
+  inferSceneTextRequirement,
   type ScenePlan,
 } from "@mediaforge/domain";
 import {
@@ -192,6 +193,8 @@ export interface EpisodeAnalysis {
   readonly parserErrors: string[];
   readonly extractedNarrationPreview: string;
   readonly generationEligibility: "eligible" | "blocked";
+  readonly visualSceneTargetPer10Minutes: number;
+  readonly estimatedVisualSceneCount: number;
   readonly analyzedAt: string;
 }
 
@@ -327,6 +330,7 @@ export interface EpisodePathContext {
 export interface EpisodeLoadResult {
   readonly discovery: EpisodeSourceDiscovery;
   readonly source: ParsedEpisodeSource;
+  readonly analysis: EpisodeAnalysis;
   readonly speechPlan: SpeechPlan;
   readonly subtitleEntries: readonly SubtitleEntry[];
   readonly subtitleManifest: SubtitleManifest;
@@ -988,6 +992,52 @@ function splitLongChunk(chunk: string): [string, string] | null {
   return [words.slice(0, midpoint).join(" "), words.slice(midpoint).join(" ")];
 }
 
+function splitNarrationBeats(text: string): string[] {
+  const normalized = normalizeWhitespace(text);
+  if (normalized.length === 0) {
+    return [];
+  }
+  const sentences = splitIntoSentences(normalized);
+  const source = sentences.length > 0 ? sentences : [normalized];
+  const beats: string[] = [];
+  for (const sentence of source) {
+    const trimmed = normalizeWhitespace(sentence);
+    if (trimmed.length === 0) {
+      continue;
+    }
+    const wordCount = splitIntoWords(trimmed).length;
+    if (wordCount <= 16) {
+      beats.push(trimmed);
+      continue;
+    }
+    const clauses = trimmed
+      .split(/\s*(?:,|;|:|—|–)\s*/u)
+      .map((clause) => normalizeWhitespace(clause))
+      .filter((clause) => clause.length > 0);
+    if (clauses.length > 1) {
+      for (const clause of clauses) {
+        const clauseWords = splitIntoWords(clause).length;
+        if (clauseWords > 24) {
+          const split = splitLongChunk(clause);
+          if (split) {
+            beats.push(split[0], split[1]);
+            continue;
+          }
+        }
+        beats.push(clause);
+      }
+      continue;
+    }
+    const split = splitLongChunk(trimmed);
+    if (split) {
+      beats.push(split[0], split[1]);
+    } else {
+      beats.push(trimmed);
+    }
+  }
+  return beats.filter((beat) => beat.length > 0);
+}
+
 function rebalanceChunks(
   chunks: ReadonlyArray<string>,
   desiredCount: number
@@ -1045,23 +1095,51 @@ function buildBalancedNarrationChunks(
   narration: string,
   desiredCount: number
 ): string[] {
-  const sentences = splitIntoSentences(narration)
-    .map((sentence: string) => normalizeWhitespace(sentence))
-    .filter((sentence: string) => sentence.length > 0);
-  const base =
-    sentences.length > 0 ? sentences : [normalizeWhitespace(narration)];
+  const beats = splitNarrationBeats(narration);
+  const base = beats.length > 0 ? beats : [normalizeWhitespace(narration)];
   return rebalanceChunks(base, desiredCount);
+}
+
+function resolveTargetSceneCount(
+  narration: string,
+  artifactType: ArtifactType,
+  targetPer10Minutes = Number(process.env["VISUAL_SCENE_TARGET_PER_10_MINUTES"] ?? 100)
+): number {
+  const words = splitIntoWords(narration).length;
+  const estimatedDurationSeconds = Math.max(1, (words / 180) * 60);
+  const targetDurationSeconds =
+    Number.isFinite(targetPer10Minutes) && targetPer10Minutes > 0
+      ? 600 / targetPer10Minutes
+      : 6;
+  const rawCount = Math.max(
+    1,
+    Math.round(estimatedDurationSeconds / targetDurationSeconds)
+  );
+  if (artifactType === "short") {
+    return Math.max(3, Math.min(24, rawCount));
+  }
+  return Math.max(1, Math.min(240, rawCount));
 }
 
 function estimateSceneCount(
   narration: string,
-  artifactType: ArtifactType
+  artifactType: ArtifactType,
+  targetPer10Minutes = Number(process.env["VISUAL_SCENE_TARGET_PER_10_MINUTES"] ?? 100)
 ): number {
-  const words = splitIntoWords(narration).length;
-  if (artifactType === "short") {
-    return Math.max(6, Math.min(12, Math.round(words / 30)));
+  return resolveTargetSceneCount(narration, artifactType, targetPer10Minutes);
+}
+
+function estimateVisualSceneCountFromDuration(
+  durationSeconds: number,
+  targetPer10Minutes: number
+): number {
+  if (!Number.isFinite(durationSeconds) || durationSeconds <= 0) {
+    return 1;
   }
-  return Math.max(16, Math.min(96, Math.round(words / 22)));
+  if (!Number.isFinite(targetPer10Minutes) || targetPer10Minutes <= 0) {
+    return Math.max(1, Math.round(durationSeconds / 6));
+  }
+  return Math.max(1, Math.round((durationSeconds / 600) * targetPer10Minutes));
 }
 
 function visualPurposeForScene(index: number, total: number): string {
@@ -1083,11 +1161,17 @@ function visualPurposeForScene(index: number, total: number): string {
 export function buildScenePlan(
   narration: string,
   episodeId: string,
-  artifactType: ArtifactType
+  artifactType: ArtifactType,
+  options?: {
+    readonly visualSceneTargetPer10Minutes?: number;
+  }
 ): ScenePlan {
+  const targetPer10Minutes =
+    options?.visualSceneTargetPer10Minutes ??
+    Number(process.env["VISUAL_SCENE_TARGET_PER_10_MINUTES"] ?? 100);
   const chunks = buildBalancedNarrationChunks(
     narration,
-    estimateSceneCount(narration, artifactType)
+    estimateSceneCount(narration, artifactType, targetPer10Minutes)
   );
   let cursor = 0;
   const scenes: Scene[] = chunks.map((chunk: string, index: number) => {
@@ -1116,7 +1200,8 @@ export function buildScenePlan(
       continuityReferences:
         index > 0 ? [`scene-${String(index).padStart(3, "0")}`] : [],
       onScreenText: "",
-      negativeConstraints: ["no text", "no subtitles", "no watermark"],
+      textRequirement: inferSceneTextRequirement(chunk),
+      negativeConstraints: ["no subtitles", "no watermark"],
       aspectRatios: ["16:9"],
       imagePrompt: chunk,
       expectedImageFilenames: [
@@ -1130,7 +1215,10 @@ export function buildScenePlan(
 
 export function buildLocalizedScenePlan(
   canonical: ScenePlan,
-  localizedNarration: string
+  localizedNarration: string,
+  options?: {
+    readonly visualSceneTargetPer10Minutes?: number;
+  }
 ): ScenePlan {
   const chunks = buildBalancedNarrationChunks(
     localizedNarration,
@@ -1629,6 +1717,13 @@ export async function parseEpisodeSourceFile(
     parserErrors: [],
     extractedNarrationPreview: narration.slice(0, 240),
     generationEligibility: narration.length > 0 ? "eligible" : "blocked",
+    visualSceneTargetPer10Minutes: Number(
+      process.env["VISUAL_SCENE_TARGET_PER_10_MINUTES"] ?? 100
+    ),
+    estimatedVisualSceneCount: estimateVisualSceneCountFromDuration(
+      estimateDurationSeconds(narration, artifactType),
+      Number(process.env["VISUAL_SCENE_TARGET_PER_10_MINUTES"] ?? 100)
+    ),
     analyzedAt: nowIso(),
   };
   return {
@@ -1961,11 +2056,58 @@ export async function writeSidecarSubtitles(
   return { srtPath, vttPath };
 }
 
+export async function syncEpisodeCharacters(
+  sourceFile: string,
+  outputRoot = "./episodes",
+  options: { readonly overwrite?: boolean; readonly required?: boolean } = {}
+): Promise<{
+  readonly episodeId: string;
+  readonly sourceCharactersPath: string;
+  readonly outputCharactersPath: string;
+  readonly copied: boolean;
+}> {
+  const episodeSlug = path.basename(path.dirname(path.dirname(sourceFile)));
+  const sourceCharactersPath = path.join(
+    path.dirname(path.dirname(sourceFile)),
+    "characters.json"
+  );
+  const outputCharactersPath = path.join(
+    outputRoot,
+    episodeSlug,
+    "characters.json"
+  );
+  if (!(await fileExists(sourceCharactersPath))) {
+    if (options.required) {
+      throw new Error(
+        `Missing character registry in source pack: ${sourceCharactersPath}`
+      );
+    }
+    return {
+      episodeId: episodeSlug,
+      sourceCharactersPath,
+      outputCharactersPath,
+      copied: false,
+    };
+  }
+  const copied = options.overwrite || !(await fileExists(outputCharactersPath));
+  if (copied) {
+    await ensureDir(path.dirname(outputCharactersPath));
+    await fs.copyFile(sourceCharactersPath, outputCharactersPath);
+  }
+  return {
+    episodeId: episodeSlug,
+    sourceCharactersPath,
+    outputCharactersPath,
+    copied,
+  };
+}
+
 export async function buildEpisodeLoadResult(
   sourceFile: string,
   outputRoot = "./episodes"
 ): Promise<EpisodeLoadResult> {
   const source = await parseEpisodeSourceFile(sourceFile, outputRoot);
+  await syncEpisodeCharacters(sourceFile, outputRoot);
   const speechPlan = await buildSpeechPlan(source);
   const subtitleEntries = buildSubtitleTimeline(speechPlan);
   const subtitleDir = path.join(
@@ -2024,6 +2166,8 @@ export async function buildEpisodeLoadResult(
     sourceSha256: source.sourceSha256,
     narrationSha256: hashText(source.narration),
     burnedInSubtitles: false,
+    visualSceneTargetPer10Minutes: source.analysis.visualSceneTargetPer10Minutes,
+    estimatedVisualSceneCount: source.analysis.estimatedVisualSceneCount,
     subtitleSidecars: subtitleManifest.sidecarFiles,
     imageRequests:
       source.language === "en" && source.artifactType === "full"
@@ -2059,6 +2203,7 @@ export async function buildEpisodeLoadResult(
       candidates: [],
     },
     source,
+    analysis: source.analysis,
     speechPlan,
     subtitleEntries,
     subtitleManifest,

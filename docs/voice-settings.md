@@ -35,7 +35,7 @@ Maintain consistent volume, vocal character, tempo, and speaking rhythm across e
 
 Speak in natural, conversational English with a curious, confident, and focused documentary tone.
 
-Use a very brisk but still natural delivery at approximately 180 to 195 words per minute. Aim for a target pace of 185 words per minute.
+Use a very brisk but still natural delivery at approximately 190 to 205 words per minute. Aim for a target pace of 190 words per minute.
 
 Keep the narration energetic, compact, and efficient without sounding rushed, breathless, robotic, theatrical, or like an advertisement.
 

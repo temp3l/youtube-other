@@ -12,6 +12,7 @@ import {
   parseEpisodeSourceFile,
   readApprovalRecord,
   renderCleanVideo,
+  syncEpisodeCharacters,
   type ArtifactType,
   type ApprovalRecord,
   type EpisodeSourceDiscovery,
@@ -428,6 +429,7 @@ async function prepareEpisodeLanguage(
     language,
     artifactType,
     sourceFile,
+    analysis: loadResult.analysis,
     outputRoot,
     dryRun: options.dryRun ?? false,
     reviewDir,
@@ -675,6 +677,38 @@ export async function commandEpisodeStatus(
   );
 }
 
+export async function commandEpisodeSyncCharacters(
+  options: EpisodeCommandOptions
+): Promise<void> {
+  const sourceRoot = resolveSourceRoot(options);
+  const outputRoot = resolveOutputRoot(options);
+  const discoveries = filterDiscoveries(
+    await discoverEpisodeSources(sourceRoot),
+    resolveEpisodeFilter(options)
+  );
+  const selected = discoveries[0];
+  if (!selected) {
+    throw new Error(`No episode found under ${sourceRoot}.`);
+  }
+  const sourceFile = selected.candidates.find(
+    (candidate) => candidate.status === "present"
+  )?.filePath;
+  if (!sourceFile) {
+    throw new Error(`No source file found for ${selected.slug}.`);
+  }
+  const result = await syncEpisodeCharacters(sourceFile, outputRoot, {
+    overwrite: options.force,
+    required: true,
+  });
+  if (options.json) {
+    process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+    return;
+  }
+  process.stdout.write(
+    `${result.copied ? "Copied" : "Kept"} ${result.outputCharactersPath}\n`
+  );
+}
+
 export async function commandEpisodeValidate(
   options: EpisodeCommandOptions
 ): Promise<void> {
@@ -852,6 +886,16 @@ export function registerEpisodeCommands(program: Command): void {
     .option("--source <path>", "source root")
     .option("--output-root <path>", "output root")
     .action(async (opts: EpisodeCommandOptions) => commandEpisodeStatus(opts));
+  episode
+    .command("sync-characters")
+    .option("--episode <number-or-slug>", "episode number or slug")
+    .option("--source <path>", "source root")
+    .option("--output-root <path>", "output root")
+    .option("--force")
+    .option("--json")
+    .action(async (opts: EpisodeCommandOptions) =>
+      commandEpisodeSyncCharacters(opts)
+    );
   episode
     .command("validate")
     .option("--episode <number-or-slug>", "episode number or slug")

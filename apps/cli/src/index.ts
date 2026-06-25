@@ -1033,6 +1033,7 @@ async function commandTranscriptGenerate(
   const visualSceneCount = buildVisualScenesFromSubtitleSegments(
     normalized.segments,
     {
+      targetDurationSeconds: 600 / config.visualSceneTargetPer10Minutes,
       minDurationSeconds: config.visualSceneMinSeconds,
       maxDurationSeconds: config.visualSceneMaxSeconds,
     }
@@ -1169,6 +1170,7 @@ async function commandTranscriptValidate(
     const visualSceneCount = buildVisualScenesFromSubtitleSegments(
       artifacts.normalized.segments,
       {
+        targetDurationSeconds: 600 / config.visualSceneTargetPer10Minutes,
         minDurationSeconds: config.visualSceneMinSeconds,
         maxDurationSeconds: config.visualSceneMaxSeconds,
       }

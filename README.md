@@ -1,6 +1,30 @@
+# prompts
+
+- i want the character map and character reference images to be shared across all languages and full and short movies. is this already wired in ?
+
+---
+
+always use a concurrency of 3 when generating audio files, fallback to lower concurrency in case of errors.
+
+re-generate the audio segments starting from 032, then re-generate the narration.wav
+
+## imagiry
+
+- i want more scenes to be generated and the generated images should match the narration more closely. i want about 100 images per 10 min video. wire it up. recommend strategies
+
+---
+
+is the last change effective for the darktruthepisodes video generation?
+
+upload the german full and short video to the german channel. set "ai used to true"
+
+---
+
+where are the results saved with cost calculation per episode?
+
 ## prompts
 
-regenereate all english audio assets for 001-the-forbidden-village-where-japan-s-laws-do-not-apply. dont use mock providers. then regenerate all downstream assets.
+regenereate all english audio assets for full and short 001-the-forbidden-village-where-japan-s-laws-do-not-apply. dont use mock providers. then regenerate all downstream assets.
 
 the engliush full narration.wav is silent. i cannot hear anything. i think there was a sandbox network issue when you tried to re-generate it. regenerate the narration.wav now without running into sandbox issues
 

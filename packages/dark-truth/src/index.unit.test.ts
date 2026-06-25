@@ -102,6 +102,80 @@ describe("dark-truth workflow", () => {
     expect(result.subtitleManifest.sidecarFiles).toContain(
       result.paths.subtitlesSrt
     );
+    expect(result.analysis.visualSceneTargetPer10Minutes).toBe(100);
+    expect(result.analysis.estimatedVisualSceneCount).toBeGreaterThan(0);
+  });
+
+  it("copies a source-pack character registry into the generated episode workspace", async () => {
+    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "dark-truth-characters-"));
+    const sourceRoot = path.join(tempDir, "source");
+    const outputRoot = path.join(tempDir, "episodes");
+    const episodeSlug = "001-the-forbidden-village-where-japan-s-laws-do-not-apply";
+    const sourceEpisodeDir = path.join(sourceRoot, episodeSlug);
+    const sourceLanguageDir = path.join(sourceEpisodeDir, "en");
+    await fs.mkdir(sourceLanguageDir, { recursive: true });
+    const sourceFile = path.join(
+      sourceLanguageDir,
+      `${episodeSlug}-en-full.md`
+    );
+    await fs.copyFile(episode001EnglishFull, sourceFile);
+    await fs.writeFile(
+      path.join(sourceEpisodeDir, "characters.json"),
+      JSON.stringify(
+        {
+          episodeId: episodeSlug,
+          updatedAt: "2026-06-25T00:00:00.000Z",
+          characters: [
+            {
+              id: "elena-ward",
+              name: "Elena Ward",
+              role: "main protagonist",
+              physicalDescription: "A tired student with a practical late-night look.",
+              ageRange: "20s",
+              genderPresentation: "woman",
+              face: {
+                shape: "oval",
+                skinTone: "light",
+                eyeColor: "brown",
+                eyebrows: "slightly arched",
+                nose: "small",
+                mouth: "neutral",
+                distinguishingFeatures: ["subtle under-eye shadows"],
+              },
+              hair: {
+                color: "dark brown",
+                length: "medium",
+                style: "slightly messy",
+              },
+              build: "slim",
+              defaultWardrobe: {
+                upperBody: "dark hoodie",
+                lowerBody: "jeans",
+                footwear: "sneakers",
+                accessories: [],
+                carriedObjects: ["phone"],
+                colors: ["dark navy", "grey"],
+              },
+              continuityTraits: ["same tired expression"],
+              referenceStatus: "missing",
+            },
+          ],
+        },
+        null,
+        2
+      )
+    );
+
+    await buildEpisodeLoadResult(sourceFile, outputRoot);
+
+    const copiedCharacters = JSON.parse(
+      await fs.readFile(
+        path.join(outputRoot, episodeSlug, "characters.json"),
+        "utf8"
+      )
+    ) as { characters: Array<{ id: string }> };
+    expect(copiedCharacters.characters).toHaveLength(1);
+    expect(copiedCharacters.characters[0]?.id).toBe("elena-ward");
   });
 
   it("creates approval records and preserves the approval state", async () => {
@@ -246,6 +320,18 @@ describe("dark-truth workflow", () => {
           scenePlan
         )
       ).rejects.toThrow("OPENAI_API_KEY");
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
+  it("uses the shared scene density target when building Dark Truth scene plans", () => {
+    const narration = Array.from({ length: 180 }, (_, index) => `word${index + 1}`).join(" ");
+    vi.stubEnv("VISUAL_SCENE_TARGET_PER_10_MINUTES", "20");
+    try {
+      const scenePlan = buildScenePlan(narration, "episode-fixture", "full");
+      expect(scenePlan.scenes).toHaveLength(2);
+      expect(scenePlan.scenes.every((scene) => scene.estimatedDurationSeconds >= 25 && scene.estimatedDurationSeconds <= 35)).toBe(true);
     } finally {
       vi.unstubAllEnvs();
     }

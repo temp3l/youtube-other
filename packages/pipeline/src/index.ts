@@ -843,6 +843,8 @@ export class MediaForgePipeline {
       rewritten,
       [this.environment.config.defaultAspectRatio],
       {
+        visualSceneTargetPer10Minutes:
+          this.environment.config.visualSceneTargetPer10Minutes,
         visualSceneMinSeconds: this.environment.config.visualSceneMinSeconds,
         visualSceneMaxSeconds: this.environment.config.visualSceneMaxSeconds,
       }

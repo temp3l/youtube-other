@@ -3,6 +3,8 @@ import {
   sceneIdSchema,
   transcriptSegmentIdSchema,
   scenePlanSchema,
+  inferSceneTextRequirement,
+  requiresSceneText,
   type ImagePrompt,
   type RewrittenScript,
   type Scene,
@@ -17,7 +19,11 @@ export interface ScenePlanner {
     transcript: Transcript,
     script: RewrittenScript,
     aspectRatios?: ReadonlyArray<"16:9" | "9:16">,
-    options?: { readonly visualSceneMinSeconds?: number; readonly visualSceneMaxSeconds?: number }
+    options?: {
+      readonly visualSceneTargetPer10Minutes?: number;
+      readonly visualSceneMinSeconds?: number;
+      readonly visualSceneMaxSeconds?: number;
+    }
   ): ScenePlan;
 }
 
@@ -98,6 +104,72 @@ function splitLongChunk(chunk: string): [string, string] | null {
   return [words.slice(0, midpoint).join(" "), words.slice(midpoint).join(" ")];
 }
 
+function splitNarrationBeats(text: string): string[] {
+  const normalized = normalizeWhitespace(text);
+  if (normalized.length === 0) {
+    return [];
+  }
+  const sentences = splitIntoSentences(normalized);
+  const source = sentences.length > 0 ? sentences : [normalized];
+  const beats: string[] = [];
+  for (const sentence of source) {
+    const trimmed = normalizeWhitespace(sentence);
+    if (trimmed.length === 0) {
+      continue;
+    }
+    const wordCount = splitIntoWords(trimmed).length;
+    if (wordCount <= 16) {
+      beats.push(trimmed);
+      continue;
+    }
+    const clauses = trimmed
+      .split(/\s*(?:,|;|:|—|–)\s*/u)
+      .map((clause) => normalizeWhitespace(clause))
+      .filter((clause) => clause.length > 0);
+    if (clauses.length > 1) {
+      for (const clause of clauses) {
+        const clauseWords = splitIntoWords(clause).length;
+        if (clauseWords > 24) {
+          const split = splitLongChunk(clause);
+          if (split) {
+            beats.push(split[0], split[1]);
+            continue;
+          }
+        }
+        beats.push(clause);
+      }
+      continue;
+    }
+    const split = splitLongChunk(trimmed);
+    if (split) {
+      beats.push(split[0], split[1]);
+    } else {
+      beats.push(trimmed);
+    }
+  }
+  return beats.filter((beat) => beat.length > 0);
+}
+
+function resolveVisualSceneDurationBounds(options: {
+  readonly visualSceneTargetPer10Minutes?: number;
+  readonly visualSceneMinSeconds?: number;
+  readonly visualSceneMaxSeconds?: number;
+}): { readonly minDurationSeconds: number; readonly maxDurationSeconds: number } {
+  if (typeof options.visualSceneTargetPer10Minutes === "number" && Number.isFinite(options.visualSceneTargetPer10Minutes) && options.visualSceneTargetPer10Minutes > 0) {
+    const targetDurationSeconds = 600 / options.visualSceneTargetPer10Minutes;
+    const minDurationSeconds = options.visualSceneMinSeconds ?? Math.max(1, targetDurationSeconds * 0.85);
+    const maxDurationSeconds = options.visualSceneMaxSeconds ?? Math.max(minDurationSeconds, targetDurationSeconds * 1.15);
+    return {
+      minDurationSeconds,
+      maxDurationSeconds
+    };
+  }
+  return {
+    minDurationSeconds: options.visualSceneMinSeconds ?? 5,
+    maxDurationSeconds: options.visualSceneMaxSeconds ?? 6
+  };
+}
+
 function rebalanceChunks(chunks: ReadonlyArray<string>, desiredCount: number): string[] {
   const normalized = chunks.map((chunk) => normalizeWhitespace(chunk)).filter((chunk) => chunk.length > 0);
   if (desiredCount <= 0 || normalized.length === 0) {
@@ -151,9 +223,9 @@ function buildSceneNarration(script: RewrittenScript, sceneCount: number): strin
       .filter((section) => section.length > 0)
       .join(" ")
   );
-  const sentenceChunks = splitIntoSentences(scriptText).map((sentence) => normalizeWhitespace(sentence)).filter((sentence) => sentence.length > 0);
-  const baseChunks = sentenceChunks.length > 0 ? sentenceChunks : [scriptText];
-  return rebalanceChunks(baseChunks, sceneCount);
+  const baseChunks = splitNarrationBeats(scriptText);
+  const normalizedChunks = baseChunks.length > 0 ? baseChunks : [scriptText];
+  return rebalanceChunks(normalizedChunks, sceneCount);
 }
 
 interface SceneWindow {
@@ -313,7 +385,9 @@ interface SceneVisualSpec {
   readonly mood: string;
   readonly continuityReferences: string[];
   readonly onScreenText: string;
+  readonly textRequirement: Scene["textRequirement"];
   readonly negativeConstraints: string[];
+  readonly sourceNarration: string;
 }
 
 function deriveSceneVisualSpec(narration: string): SceneVisualSpec {
@@ -338,7 +412,9 @@ function deriveSceneVisualSpec(narration: string): SceneVisualSpec {
       mood: "curious and observational",
       continuityReferences: ["keep the same rough ink-and-paper collage style"],
       onScreenText: "",
-      negativeConstraints: ["no photorealism", "no stock-photo look", "no watermarks", "no readable captions"]
+      textRequirement: inferSceneTextRequirement(narration),
+      negativeConstraints: ["no photorealism", "no stock-photo look", "no watermarks"],
+      sourceNarration: narration
     };
   }
 
@@ -352,7 +428,9 @@ function deriveSceneVisualSpec(narration: string): SceneVisualSpec {
       mood: "reflective and intimate",
       continuityReferences: ["keep the same rough ink-and-paper collage style"],
       onScreenText: "",
-      negativeConstraints: ["no photorealism", "no stock-photo look", "no watermarks", "no readable captions"]
+      textRequirement: inferSceneTextRequirement(narration),
+      negativeConstraints: ["no photorealism", "no stock-photo look", "no watermarks"],
+      sourceNarration: narration
     };
   }
 
@@ -366,7 +444,9 @@ function deriveSceneVisualSpec(narration: string): SceneVisualSpec {
       mood: "gentle and thoughtful",
       continuityReferences: ["keep the same rough ink-and-paper collage style"],
       onScreenText: "",
-      negativeConstraints: ["no photorealism", "no stock-photo look", "no watermarks", "no readable captions"]
+      textRequirement: inferSceneTextRequirement(narration),
+      negativeConstraints: ["no photorealism", "no stock-photo look", "no watermarks"],
+      sourceNarration: narration
     };
   }
 
@@ -380,7 +460,9 @@ function deriveSceneVisualSpec(narration: string): SceneVisualSpec {
       mood: "scientific and explanatory",
       continuityReferences: ["keep the same rough ink-and-paper collage style"],
       onScreenText: "",
-      negativeConstraints: ["no photorealism", "no stock-photo look", "no watermarks", "no readable captions"]
+      textRequirement: inferSceneTextRequirement(narration),
+      negativeConstraints: ["no photorealism", "no stock-photo look", "no watermarks"],
+      sourceNarration: narration
     };
   }
 
@@ -394,7 +476,9 @@ function deriveSceneVisualSpec(narration: string): SceneVisualSpec {
       mood: "warm and reflective",
       continuityReferences: ["keep the same rough ink-and-paper collage style"],
       onScreenText: "",
-      negativeConstraints: ["no photorealism", "no stock-photo look", "no watermarks", "no readable captions"]
+      textRequirement: inferSceneTextRequirement(narration),
+      negativeConstraints: ["no photorealism", "no stock-photo look", "no watermarks"],
+      sourceNarration: narration
     };
   }
 
@@ -408,7 +492,9 @@ function deriveSceneVisualSpec(narration: string): SceneVisualSpec {
       mood: "historical and reflective",
       continuityReferences: ["keep the same rough ink-and-paper collage style"],
       onScreenText: "",
-      negativeConstraints: ["no photorealism", "no stock-photo look", "no watermarks", "no readable captions"]
+      textRequirement: inferSceneTextRequirement(narration),
+      negativeConstraints: ["no photorealism", "no stock-photo look", "no watermarks"],
+      sourceNarration: narration
     };
   }
 
@@ -421,7 +507,9 @@ function deriveSceneVisualSpec(narration: string): SceneVisualSpec {
     mood: "informative and calm",
     continuityReferences: ["keep the same rough ink-and-paper collage style"],
     onScreenText: "",
-    negativeConstraints: ["no photorealism", "no stock-photo look", "no watermarks", "no readable captions"]
+    textRequirement: inferSceneTextRequirement(narration),
+    negativeConstraints: ["no photorealism", "no stock-photo look", "no watermarks"],
+    sourceNarration: narration
   };
 }
 
@@ -430,10 +518,14 @@ export class OneToOneScenePlanner implements ScenePlanner {
     transcript: Transcript,
     script: RewrittenScript,
     aspectRatios: ReadonlyArray<"16:9" | "9:16"> = ["16:9", "9:16"],
-    options: { readonly visualSceneMinSeconds?: number; readonly visualSceneMaxSeconds?: number } = {}
+    options: {
+      readonly visualSceneTargetPer10Minutes?: number;
+      readonly visualSceneMinSeconds?: number;
+      readonly visualSceneMaxSeconds?: number;
+    } = {}
   ): ScenePlan {
-    const minDurationSeconds = options.visualSceneMinSeconds ?? 6;
-    const maxDurationSeconds = options.visualSceneMaxSeconds ?? 9;
+    const { minDurationSeconds, maxDurationSeconds } =
+      resolveVisualSceneDurationBounds(options);
     const windows = buildSceneWindows(transcript, minDurationSeconds, maxDurationSeconds);
     const sceneNarrations = buildSceneNarration(script, windows.length);
     const scenes: Scene[] = windows.map((window, index) => {
@@ -460,8 +552,9 @@ export class OneToOneScenePlanner implements ScenePlanner {
         composition: visualSpec.composition,
         cameraFraming: visualSpec.cameraFraming,
         mood: visualSpec.mood,
-        continuityReferences: visualSpec.continuityReferences,
-        onScreenText: visualSpec.onScreenText,
+      continuityReferences: visualSpec.continuityReferences,
+      onScreenText: visualSpec.onScreenText,
+        textRequirement: visualSpec.textRequirement,
         negativeConstraints: visualSpec.negativeConstraints,
         aspectRatios: [...aspectRatios],
         imagePrompt: buildScenePrompt(sequenceNumber, narration.length > 0 ? narration : script.sections[index]?.text ?? transcript.text, aspectRatios[0] ?? "16:9", visualSpec),
@@ -485,6 +578,7 @@ function buildScenePrompt(
   const keywords = extractKeywords(scriptText, 8);
   return [
     `SCENE ${String(sceneNumber).padStart(3, "0")}`,
+    `NARRATION ${scriptText}.`,
     `${visualSpec.subject}. ${visualSpec.action}.`,
     `SETTING ${visualSpec.setting}.`,
     `COMPOSITION ${visualSpec.composition}.`,
@@ -494,7 +588,19 @@ function buildScenePrompt(
     `CONTINUITY Keep the hand-drawn style consistent and match the narrated concept.`,
     `REQUIRED OBJECTS ${keywords.join(", ")}.`,
     `SOURCE IDEA ${scriptText}.`,
-    `DO NOT INCLUDE text, captions, labels, typography, or watermarks.`
+    requiresSceneText(visualSpec.textRequirement)
+      ? [
+          "TEXT REQUIREMENT This scene requires one specific piece of readable text.",
+          `Render exactly ${JSON.stringify(visualSpec.textRequirement.text)}.`,
+          visualSpec.textRequirement.placement
+            ? `Placement ${visualSpec.textRequirement.placement}.`
+            : undefined,
+          "The spelling, capitalization, punctuation, and language must be exact and clearly legible.",
+          "Do not add any other words, captions, subtitles, labels, logos, watermarks, or unrelated background text.",
+        ]
+          .filter((line): line is string => Boolean(line))
+          .join(" ")
+      : "TEXT REQUIREMENT Do not include captions, subtitles, labels, logos, watermarks, or readable text."
   ].join("\n");
 }
 

@@ -5,30 +5,52 @@ import { describe, expect, it } from "vitest";
 import { OpenAiCompatibleSpeechProvider, loadSpeechVoiceSettings } from "./index.js";
 import { sceneIdSchema } from "@mediaforge/domain";
 
-function buildWavBytes(durationSeconds: number, sampleRate = 24000): Buffer {
+function makeChunk(id: string, payload: Buffer): Buffer {
+  const paddedLength = payload.byteLength + (payload.byteLength % 2);
+  const buffer = Buffer.alloc(8 + paddedLength);
+  buffer.write(id, 0);
+  buffer.writeUInt32LE(payload.byteLength, 4);
+  payload.copy(buffer, 8);
+  return buffer;
+}
+
+function buildWavBytes(
+  durationSeconds: number,
+  sampleRate = 24000,
+  options: { readonly amplitude?: number; readonly includeInfoChunk?: boolean } = {}
+): Buffer {
   const channels = 1;
   const bitsPerSample = 16;
   const frames = Math.max(1, Math.floor(durationSeconds * sampleRate));
   const dataSize = frames * channels * (bitsPerSample / 8);
-  const buffer = Buffer.alloc(44 + dataSize);
-  buffer.write("RIFF", 0);
-  buffer.writeUInt32LE(36 + dataSize, 4);
-  buffer.write("WAVE", 8);
-  buffer.write("fmt ", 12);
-  buffer.writeUInt32LE(16, 16);
-  buffer.writeUInt16LE(1, 20);
-  buffer.writeUInt16LE(channels, 22);
-  buffer.writeUInt32LE(sampleRate, 24);
-  buffer.writeUInt32LE(sampleRate * channels * (bitsPerSample / 8), 28);
-  buffer.writeUInt16LE(channels * (bitsPerSample / 8), 32);
-  buffer.writeUInt16LE(bitsPerSample, 34);
-  buffer.write("data", 36);
-  buffer.writeUInt32LE(dataSize, 40);
-  const amplitude = Math.max(1, Math.floor(0.02 * 32767));
+  const amplitude = Math.max(1, Math.floor((options.amplitude ?? 0.02) * 32767));
   const frequencyHz = 220;
+  const pcm = Buffer.alloc(dataSize);
   for (let index = 0; index < frames; index += 1) {
     const sample = Math.round(Math.sin((index / sampleRate) * Math.PI * 2 * frequencyHz) * amplitude);
-    buffer.writeInt16LE(sample, 44 + index * 2);
+    pcm.writeInt16LE(sample, index * 2);
+  }
+  const fmt = Buffer.alloc(16);
+  fmt.writeUInt16LE(1, 0);
+  fmt.writeUInt16LE(channels, 2);
+  fmt.writeUInt32LE(sampleRate, 4);
+  fmt.writeUInt32LE(sampleRate * channels * (bitsPerSample / 8), 8);
+  fmt.writeUInt16LE(channels * (bitsPerSample / 8), 12);
+  fmt.writeUInt16LE(bitsPerSample, 14);
+  const chunks = [makeChunk("fmt ", fmt)];
+  if (options.includeInfoChunk) {
+    chunks.push(makeChunk("LIST", Buffer.from("INFOISFTLavf59.27.100\0", "ascii")));
+  }
+  chunks.push(makeChunk("data", pcm));
+  const payloadSize = 4 + chunks.reduce((sum, chunk) => sum + chunk.byteLength, 0);
+  const buffer = Buffer.alloc(8 + payloadSize);
+  buffer.write("RIFF", 0);
+  buffer.writeUInt32LE(payloadSize, 4);
+  buffer.write("WAVE", 8);
+  let offset = 12;
+  for (const chunk of chunks) {
+    chunk.copy(buffer, offset);
+    offset += chunk.byteLength;
   }
   return buffer;
 }
@@ -55,7 +77,7 @@ describe("OpenAiCompatibleSpeechProvider", () => {
         audio: {
           speech: {
             async create() {
-              return new Response(buildWavBytes(2));
+              return new Response(buildWavBytes(2, 24000, { includeInfoChunk: true }));
             }
           }
         }
@@ -73,6 +95,43 @@ describe("OpenAiCompatibleSpeechProvider", () => {
     expect(result.sceneId).toBe("scene-001");
     expect(result.sampleRate).toBe(24000);
     expect(result.channels).toBe(1);
+    expect(result.durationSeconds).toBeGreaterThan(1.9);
+    expect((await fs.stat(outputPath)).size).toBeGreaterThan(44);
+  });
+
+  it("rejects near-silent audio and retries the next model", async () => {
+    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "mediaforge-speech-quality-"));
+    const outputPath = path.join(tempDir, "scene-001.wav");
+    const calls: string[] = [];
+    const provider = new OpenAiCompatibleSpeechProvider({
+      apiKey: "test-key",
+      model: "gpt-4o-mini-tts",
+      fallbackModels: ["gpt-4.1-mini-tts"],
+      voice: "onyx",
+      client: {
+        audio: {
+          speech: {
+            async create(body) {
+              calls.push(body.model);
+              if (body.model === "gpt-4o-mini-tts") {
+                return new Response(buildWavBytes(2, 24000, { amplitude: 0.0005, includeInfoChunk: true }));
+              }
+              return new Response(buildWavBytes(2, 24000, { includeInfoChunk: true }));
+            }
+          }
+        }
+      }
+    });
+    const result = await provider.synthesize(
+      {
+        sceneId: sceneIdSchema.parse("scene-001"),
+        text: "Hello from the narrator.",
+        voiceProfile: loadSpeechVoiceSettings().profile,
+        outputPath
+      },
+      new AbortController().signal
+    );
+    expect(calls).toEqual(["gpt-4o-mini-tts", "gpt-4.1-mini-tts"]);
     expect(result.durationSeconds).toBeGreaterThan(1.9);
     expect((await fs.stat(outputPath)).size).toBeGreaterThan(44);
   });

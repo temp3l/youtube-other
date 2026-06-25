@@ -13,6 +13,7 @@ This repo’s command line surface is the `mediaforge` CLI plus a small set of n
 | Regenerate one scene | `npm run images:generate -- --episode <episode-id> --scene scene-007 --force` |
 | Create character references | `npm run mediaforge -- images generate-character-references --episode <episode-id> --character <character-id>` |
 | Approve a character reference | `npm run mediaforge -- images approve-character --episode <episode-id> --character <character-id>` |
+| Sync shared character map | `npm run mediaforge -- episode sync-characters --episode <episode-id>` |
 | Upload a rendered episode | `npm run youtube:upload -- --episode <episode-id>` |
 | Validate generated images | `npm run mediaforge -- images validate <episode-id>` |
 
@@ -62,6 +63,7 @@ The image workflow is grouped under `images`:
 - `images generate-character-references` - create reference images for a character.
 - `images approve-character` - mark a generated character reference as approved.
 - `images regenerate-character` - regenerate a specific character reference.
+- `episode sync-characters` - copy the canonical source-pack `characters.json` into the shared episode workspace.
 - `images export-openart` - export prompts for OpenArt.
 - `images open-openart` - open the OpenArt handoff.
 - `images import --from <dir>` - import generated images from a directory.
@@ -167,6 +169,10 @@ Defaults worth knowing:
 - `OPENAI_IMAGE_CONCURRENCY` defaults to `2`.
 - `OPENAI_IMAGE_MAX_RETRIES` defaults to `2`.
 - `OPENAI_IMAGE_TIMEOUT_MS` defaults to `180000`.
+- `VISUAL_SCENE_TARGET_PER_10_MINUTES` defaults to `100`.
+- `VISUAL_SCENE_MIN_SECONDS` defaults to `5`.
+- `VISUAL_SCENE_MAX_SECONDS` defaults to `6`.
+- The target setting is the primary density knob. The seconds-based values remain available as fallback bounds.
 
 ## Examples
 

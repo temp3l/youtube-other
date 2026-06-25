@@ -33,7 +33,7 @@ The first implementation focuses on local files and a mock media workflow:
 - source media is copied into the episode workspace
 - a transcript can be supplied as a sidecar JSON file
 - transcript cleanup and rewriting are conservative
-- scene planning is one-to-one with transcript segments
+- scene planning uses short timed visual beats derived from the transcript and rewritten script, with a target density knob for roughly 100 images per 10 minute video
 - mock TTS generates scene-level WAV files
 - placeholder images allow rendering without an external image provider
 - FFmpeg assembles the final MP4

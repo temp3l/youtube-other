@@ -107,27 +107,29 @@ function makeRegistry(
 }
 
 function makeSceneSpec(): SceneVisualSpec {
-  return {
-    sceneId: "scene-001",
-    sequenceNumber: 1,
-    narrativePurpose: "establish",
-    focalSubject: "Daniel Mercer",
+    return {
+      sceneId: "scene-001",
+      sequenceNumber: 1,
+      narrativePurpose: "establish",
+      focalSubject: "Daniel Mercer",
     visibleAction: "studies the corridor on a monitor",
     environment: "dark parking garage corridor",
     foreground: "laptop screen glow and a trembling hand",
     background: "shadowed concrete walls",
     shotSize: "medium-close-up",
     cameraAngle: "eye-level",
+    sourceNarration: "Daniel studies the corridor on a monitor.",
     composition:
       "Daniel occupies the right third with the corridor leading into darkness",
     lighting: "low-key cinematic lighting with controlled contrast",
-    timeOfDay: "night",
-    mood: "uneasy",
-    distinctiveAnchor: "Daniel notices the impossible duplicate on the monitor",
-    continuityElements: ["keep Daniel's jacket, backpack, and hair consistent"],
-    characters: [
-      {
-        characterId: "daniel-mercer",
+      timeOfDay: "night",
+      mood: "uneasy",
+      distinctiveAnchor: "Daniel notices the impossible duplicate on the monitor",
+      continuityElements: ["keep Daniel's jacket, backpack, and hair consistent"],
+      textRequirement: { required: false },
+      characters: [
+        {
+          characterId: "daniel-mercer",
         pose: "leaning forward",
         expression: "tense",
         position: "right third",
@@ -218,6 +220,37 @@ describe("episode image pipeline helpers", () => {
         spec
       )
     ).toContain("prompt contains contradictory style directions");
+  });
+
+  it("keeps ordinary scenes text-free and allows exact required text without blanket bans", () => {
+    const registry = makeRegistry();
+    const noTextPrompt = buildPromptFromSpec(
+      makeSceneSpec(),
+      undefined,
+      registry
+    );
+    const textPrompt = buildPromptFromSpec(
+      {
+        ...makeSceneSpec(),
+        textRequirement: {
+          required: true,
+          text: "ROOM 237",
+          placement: "on the worn brass plaque",
+          reason: "The room number is essential to the narrated reveal.",
+        },
+      },
+      undefined,
+      registry
+    );
+
+    expect(noTextPrompt).toContain(
+      "Do not include captions, subtitles, labels, logos, watermarks, or readable text."
+    );
+    expect(textPrompt).toContain('Render exactly: "ROOM 237".');
+    expect(textPrompt).toContain("Placement: on the worn brass plaque.");
+    expect(textPrompt).not.toContain(
+      "Do not include captions, subtitles, labels, logos, watermarks, or readable text."
+    );
   });
 
   it("scores adjacent differences and rewrites repeated shot choices", () => {

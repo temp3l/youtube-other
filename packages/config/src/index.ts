@@ -28,6 +28,7 @@ const configSchema = z.object({
   transcriptTimestampPrecision: z.number().int().min(0).max(6),
   transcriptMaxWordDurationSeconds: z.number().positive(),
   transcriptBoundaryLookbackWords: z.number().int().nonnegative(),
+  visualSceneTargetPer10Minutes: z.number().positive(),
   visualSceneMinSeconds: z.number().positive(),
   visualSceneMaxSeconds: z.number().positive(),
   trailingSilenceRatio: z.number().min(0).max(1),
@@ -129,6 +130,7 @@ const envSchema = z.object({
   TRANSCRIPT_TIMESTAMP_PRECISION: z.coerce.number().int().min(0).max(6).optional(),
   TRANSCRIPT_MAX_WORD_DURATION_SECONDS: z.coerce.number().positive().optional(),
   TRANSCRIPT_BOUNDARY_LOOKBACK_WORDS: z.coerce.number().int().nonnegative().optional(),
+  VISUAL_SCENE_TARGET_PER_10_MINUTES: z.coerce.number().positive().optional(),
   VISUAL_SCENE_MIN_SECONDS: z.coerce.number().positive().optional(),
   VISUAL_SCENE_MAX_SECONDS: z.coerce.number().positive().optional(),
   MEDIAFORGE_TRAILING_SILENCE_RATIO: z.coerce.number().min(0).max(1).optional(),
@@ -267,10 +269,12 @@ export async function loadRuntimeConfig(
       overrides.transcriptMaxWordDurationSeconds ?? episodeOverrides.transcriptMaxWordDurationSeconds ?? env.TRANSCRIPT_MAX_WORD_DURATION_SECONDS ?? 5,
     transcriptBoundaryLookbackWords:
       overrides.transcriptBoundaryLookbackWords ?? episodeOverrides.transcriptBoundaryLookbackWords ?? env.TRANSCRIPT_BOUNDARY_LOOKBACK_WORDS ?? 6,
+    visualSceneTargetPer10Minutes:
+      overrides.visualSceneTargetPer10Minutes ?? episodeOverrides.visualSceneTargetPer10Minutes ?? env.VISUAL_SCENE_TARGET_PER_10_MINUTES ?? 100,
     visualSceneMinSeconds:
-      overrides.visualSceneMinSeconds ?? episodeOverrides.visualSceneMinSeconds ?? env.VISUAL_SCENE_MIN_SECONDS ?? 6,
+      overrides.visualSceneMinSeconds ?? episodeOverrides.visualSceneMinSeconds ?? env.VISUAL_SCENE_MIN_SECONDS ?? 5,
     visualSceneMaxSeconds:
-      overrides.visualSceneMaxSeconds ?? episodeOverrides.visualSceneMaxSeconds ?? env.VISUAL_SCENE_MAX_SECONDS ?? 9,
+      overrides.visualSceneMaxSeconds ?? episodeOverrides.visualSceneMaxSeconds ?? env.VISUAL_SCENE_MAX_SECONDS ?? 6,
     trailingSilenceRatio:
       overrides.trailingSilenceRatio ?? episodeOverrides.trailingSilenceRatio ?? env.MEDIAFORGE_TRAILING_SILENCE_RATIO ?? 0.8,
     trailingSilenceBufferSeconds:

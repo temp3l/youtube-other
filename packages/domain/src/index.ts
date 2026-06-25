@@ -215,6 +215,135 @@ export const sceneTimingSchema = z.object({
 });
 export type SceneTiming = z.infer<typeof sceneTimingSchema>;
 
+function normalizeSceneText(value: string): string {
+  return value.replace(/\s+/gu, " ").trim();
+}
+
+const sceneTextRequirementDisabledSchema = z.object({
+  required: z.literal(false),
+  reason: z.string().optional(),
+});
+
+const sceneTextRequirementEnabledSchema = z.object({
+  required: z.literal(true),
+  text: z.string().min(1),
+  placement: z.string().min(1).optional(),
+  reason: z.string().min(1),
+}).superRefine((value, ctx) => {
+  const text = normalizeSceneText(value.text);
+  const placement = value.placement ? normalizeSceneText(value.placement) : undefined;
+  const reason = normalizeSceneText(value.reason);
+  const wordCount = text.length === 0 ? 0 : text.split(/\s+/u).length;
+  if (text.length === 0) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["text"],
+      message: "Required scene text must not be empty.",
+    });
+  }
+  if (reason.length === 0) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["reason"],
+      message: "Required scene text must include a reason.",
+    });
+  }
+  if (text.length > 40) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["text"],
+      message: "Required scene text must be 40 characters or fewer.",
+    });
+  }
+  if (wordCount > 5) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["text"],
+      message: "Required scene text must be 5 words or fewer.",
+    });
+  }
+  if (placement !== undefined && placement.length === 0) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["placement"],
+      message: "Required scene text placement must not be empty when provided.",
+    });
+  }
+});
+
+export const sceneTextRequirementSchema = z.union([
+  sceneTextRequirementDisabledSchema,
+  sceneTextRequirementEnabledSchema.transform((value) => ({
+    required: true as const,
+    text: normalizeSceneText(value.text),
+    ...(value.placement ? { placement: normalizeSceneText(value.placement) } : {}),
+    reason: normalizeSceneText(value.reason),
+  })),
+]).default({ required: false });
+export type SceneTextRequirement = z.infer<typeof sceneTextRequirementSchema>;
+
+export function requiresSceneText(
+  requirement: SceneTextRequirement
+): requirement is Extract<SceneTextRequirement, { required: true }> {
+  return requirement.required;
+}
+
+const sceneTextContextPattern =
+  /\b(badge|id card|mailbox|door|room|sign|warning sign|storefront|headline|newspaper|screen|monitor|document|file|record|label|number|code|date|message|note|handwritten|placard|nameplate|ticket|board|email)\b/u;
+const quotedSceneTextPattern =
+  /(?:["“])([^"\n“”]{1,40})(?:["”])/u;
+const explicitSceneTextPattern =
+  /\b(?:reads?|says?|shows?|states?|marks?|labels?|labels?|bears?|displays?|displaying|written|writing)\s+([A-Z0-9][A-Z0-9 .,'’()\-/:]{0,39})/u;
+const roomNumberTextPattern =
+  /\b(room|suite|gate|platform|route|flight|train|bus)\s+([A-Z0-9-]{1,12})\b/u;
+const codeTextPattern =
+  /\b(?:code|pin|case\s*no\.?|record\s*no\.?|ref(?:erence)?\.?|item\s*#)\s+([A-Z0-9-]{1,20})\b/u;
+const dateTextPattern =
+  /\b(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:tember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\s+\d{1,2}(?:,\s*\d{4})?|\b\d{1,2}[/-]\d{1,2}[/-]\d{2,4}\b/u;
+
+export function inferSceneTextRequirement(
+  narration: string
+): SceneTextRequirement {
+  const normalizedNarration = normalizeSceneText(narration);
+  if (normalizedNarration.length === 0) {
+    return { required: false };
+  }
+
+  const lowerNarration = normalizedNarration.toLowerCase();
+  if (!sceneTextContextPattern.test(lowerNarration)) {
+    return { required: false };
+  }
+
+  const quotedMatch = quotedSceneTextPattern.exec(normalizedNarration);
+  const roomMatch = roomNumberTextPattern.exec(normalizedNarration);
+  const codeMatch = codeTextPattern.exec(normalizedNarration);
+  const dateMatch = dateTextPattern.exec(normalizedNarration);
+  const explicitMatch = explicitSceneTextPattern.exec(normalizedNarration);
+
+  const candidate =
+    quotedMatch?.[1] ??
+    (roomMatch ? `ROOM ${roomMatch[2]}` : undefined) ??
+    codeMatch?.[1] ??
+    dateMatch?.[0] ??
+    explicitMatch?.[1];
+
+  if (!candidate) {
+    return { required: false };
+  }
+
+  const text = normalizeSceneText(candidate.replace(/[.?!,:;]+$/u, ""));
+  const wordCount = text.length === 0 ? 0 : text.split(/\s+/u).length;
+  if (text.length === 0 || wordCount > 5 || text.length > 40) {
+    return { required: false };
+  }
+
+  return {
+    required: true,
+    text,
+    reason: "The narration depends on a short piece of visible written information.",
+  };
+}
+
 export const imagePromptSchema = z.object({
   sceneId: sceneIdSchema,
   sequenceNumber: z.number().int().positive(),
@@ -238,6 +367,7 @@ export const sceneSchema = z.object({
   actualAudioDurationSeconds: z.number().nonnegative().optional(),
   timing: sceneTimingSchema,
   visualPurpose: z.string(),
+  textRequirement: sceneTextRequirementSchema,
   subject: z.string(),
   action: z.string(),
   setting: z.string(),

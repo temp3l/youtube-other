@@ -4,7 +4,11 @@ import path from "node:path";
 import OpenAI, { toFile } from "openai";
 import sharp from "sharp";
 import { z } from "zod";
-import { type Scene, type ScenePlan } from "@mediaforge/domain";
+import {
+  requiresSceneText,
+  type Scene,
+  type ScenePlan,
+} from "@mediaforge/domain";
 import {
   currentExecutionTelemetry,
   estimateImageGenerationCost,
@@ -19,6 +23,10 @@ import {
   writeJsonAtomic,
   writeTextAtomic,
 } from "@mediaforge/shared";
+import {
+  buildSceneNegativePrompt,
+  buildSceneTextPromptSection,
+} from "./scene-text.js";
 
 export type CharacterId = string;
 
@@ -118,6 +126,8 @@ export interface SceneVisualSpec {
   shotSize: ShotSize;
   cameraAngle: CameraAngle;
   cameraMovementImpression?: string;
+  sourceNarration: string;
+  textRequirement: Scene["textRequirement"];
   composition: string;
   lighting: string;
   timeOfDay: string;
@@ -760,7 +770,6 @@ function buildContinuityElements(
 
 function buildProhibitedElements(scene: Scene): string[] {
   const base = [
-    "No text, captions, subtitles, logos, borders, split screen, collage, or watermark",
     "No malformed anatomy, duplicate figures, or unreadable UI",
   ];
   return [
@@ -791,6 +800,8 @@ export function buildSceneVisualSpec(
     ...(scene.sequenceNumber % 3 === 0
       ? { cameraMovementImpression: "subtle handheld documentary drift" }
       : {}),
+    sourceNarration: scene.canonicalNarration,
+    textRequirement: scene.textRequirement,
     composition: isGenericText(scene.composition)
       ? "strong cinematic composition with a clear visual hierarchy and negative space"
       : normalizeSentence(scene.composition),
@@ -976,7 +987,12 @@ export function buildPromptFromSpec(
     ),
     promptSection(
       "PRIMARY VISUAL EVENT",
-      `${spec.focalSubject}. ${spec.visibleAction}. ${spec.characters.length === 0 ? "Focus on visible evidence, reaction, or environmental consequence rather than narration." : ""}`
+      `${spec.sourceNarration}. ${spec.focalSubject}. ${spec.visibleAction}. ${spec.characters.length === 0 ? "Focus on visible evidence, reaction, or environmental consequence rather than narration." : ""}`
+    ),
+    promptSection("NARRATION BEAT", spec.sourceNarration),
+    promptSection(
+      "TEXT REQUIREMENT",
+      buildSceneTextPromptSection(spec.textRequirement)
     ),
     promptSection("CHARACTER IDENTITY AND CONTINUITY", referenceText),
     promptSection(
@@ -1004,7 +1020,10 @@ export function buildPromptFromSpec(
         ? differences.map((entry) => `- ${entry}`).join("\n")
         : "This is the opening scene; establish a fresh visual baseline."
     ),
-    promptSection("EXCLUSIONS", spec.prohibitedElements.join(", ")),
+    promptSection(
+      "EXCLUSIONS",
+      buildSceneNegativePrompt(spec.textRequirement, spec.prohibitedElements)
+    ),
   ].join("\n\n");
 }
 
@@ -1015,6 +1034,8 @@ export function validatePrompt(
   previous?: SceneVisualSpec
 ): string[] {
   const failures: string[] = [];
+  if (isGenericText(current.sourceNarration))
+    failures.push("narration beat is too generic");
   if (current.focalSubject.length === 0 || isGenericText(current.focalSubject))
     failures.push("prompt does not identify a concrete visible subject");
   if (
@@ -1028,6 +1049,30 @@ export function validatePrompt(
     failures.push("prompt lacks a distinctive visual anchor");
   if (/rough ink collage/i.test(prompt) && /photorealistic/i.test(prompt))
     failures.push("prompt contains contradictory style directions");
+  const hasBlanketNoText = /do not include captions, subtitles, labels, logos, watermarks, or readable text/i.test(
+    prompt
+  );
+  const hasExactRequiredText = requiresSceneText(current.textRequirement)
+    ? prompt.includes(current.textRequirement.text)
+    : false;
+  if (requiresSceneText(current.textRequirement)) {
+    if (!hasExactRequiredText) {
+      failures.push(
+        `required_text_missing: prompt must render exactly ${JSON.stringify(current.textRequirement.text)}`
+      );
+    }
+    if (hasBlanketNoText) {
+      failures.push(
+        "blanket_no_text_instruction: prompt cannot ban readable text when the scene requires it"
+      );
+    }
+  } else {
+    if (!hasBlanketNoText && !/no readable text|no captions|no subtitles|no labels/i.test(prompt)) {
+      failures.push(
+        "blanket_no_text_instruction_missing: prompt should discourage readable text for ordinary scenes"
+      );
+    }
+  }
   if (
     previous &&
     current.focalSubject === previous.focalSubject &&
@@ -1421,6 +1466,8 @@ async function ensureReferenceImage(
       background: "plain neutral backdrop",
       shotSize: "medium-close-up",
       cameraAngle: "eye-level",
+      sourceNarration: "Neutral identity reference for character approval.",
+      textRequirement: { required: false },
       composition: "reference-sheet layout",
       lighting: "soft natural light",
       timeOfDay: "daylight",
@@ -1435,7 +1482,6 @@ async function ensureReferenceImage(
         },
       ],
       prohibitedElements: [
-        "No text, captions, subtitles, logos, borders, split screen, collage, or watermark",
         "No extra people, no blood, no masks, no hands covering the face",
       ],
     },

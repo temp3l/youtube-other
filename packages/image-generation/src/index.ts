@@ -23,6 +23,10 @@ import {
   writeJsonAtomic,
   writeTextAtomic,
 } from "@mediaforge/shared";
+import {
+  buildSceneNegativePrompt,
+  buildSceneTextPromptSection,
+} from "./scene-text.js";
 export {
   generateOpenAiSceneImages,
   loadOpenAiImageGenerationSettings,
@@ -47,15 +51,16 @@ export interface PromptTemplateContext {
   readonly CONTINUITY: string;
   readonly SOURCE_NARRATION: string;
   readonly SCENE_PROMPT: string;
+  readonly TEXT_REQUIREMENT: string;
   readonly BRAND_GUIDANCE: string;
   readonly NEGATIVE_PROMPT: string;
 }
 
 const repoRoot = path.resolve(import.meta.dirname, "../../..");
 const fallbackVisualSceneStyle =
-  "Photorealistic cinematic horror with a dark, atmospheric, and cohesive visual language. Use moody lighting, controlled contrast, subtle environmental detail, and a grounded documentary feel. Keep the imagery unsettling without excessive gore. Maintain strict consistency within each episode. No embedded text, captions, logos, borders, or watermarks.";
+  "Photorealistic cinematic horror with a dark, atmospheric, and cohesive visual language. Use moody lighting, controlled contrast, subtle environmental detail, and a grounded documentary feel. Keep the imagery unsettling without excessive gore. Maintain strict consistency within each episode.";
 export const localSceneNegativePrompt =
-  "stock photography, borders, bands, frames, dense text, unreadable labels, unrelated dominant objects, watermarks, logos";
+  "stock photography, borders, bands, frames, unrelated dominant objects, watermarks, logos";
 
 function loadSceneStyleReference(): string {
   try {
@@ -89,6 +94,7 @@ export const defaultPromptTemplate = [
   "CONTINUITY: {{CONTINUITY}}",
   "SOURCE NARRATION: {{SOURCE_NARRATION}}",
   "SCENE PROMPT: {{SCENE_PROMPT}}",
+  "TEXT REQUIREMENT: {{TEXT_REQUIREMENT}}",
   "BRAND GUIDANCE: {{BRAND_GUIDANCE}}",
   "NEGATIVE PROMPT: {{NEGATIVE_PROMPT}}",
 ].join("\n");
@@ -115,6 +121,7 @@ export function renderPromptTemplate(
     CONTINUITY: context.CONTINUITY,
     SOURCE_NARRATION: context.SOURCE_NARRATION,
     SCENE_PROMPT: context.SCENE_PROMPT,
+    TEXT_REQUIREMENT: context.TEXT_REQUIREMENT,
     BRAND_GUIDANCE: context.BRAND_GUIDANCE,
     NEGATIVE_PROMPT: context.NEGATIVE_PROMPT,
   };
@@ -157,10 +164,11 @@ export function createImagePrompt(
       CONTINUITY: scene.continuityReferences.join("; "),
       SOURCE_NARRATION: scene.canonicalNarration,
       SCENE_PROMPT: scene.imagePrompt,
+      TEXT_REQUIREMENT: buildSceneTextPromptSection(scene.textRequirement),
       BRAND_GUIDANCE: brandGuidance,
-      NEGATIVE_PROMPT: scene.negativeConstraints.join(", "),
+      NEGATIVE_PROMPT: buildSceneNegativePrompt(scene.textRequirement, scene.negativeConstraints),
     }),
-    negativePrompt: scene.negativeConstraints.join(", "),
+    negativePrompt: buildSceneNegativePrompt(scene.textRequirement, scene.negativeConstraints),
     continuity: scene.continuityReferences.join("; "),
     expectedFilename: sceneFilename(
       scene.sequenceNumber,

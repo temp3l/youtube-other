@@ -52,6 +52,9 @@ SUBTITLE_FORMATS=srt,vtt
 BURNED_IN_SUBTITLES=false
 ENABLE_TRANSCRIPTION_QA=true
 QA_SIMILARITY_THRESHOLD=0.98
+VISUAL_SCENE_TARGET_PER_10_MINUTES=100
+VISUAL_SCENE_MIN_SECONDS=5
+VISUAL_SCENE_MAX_SECONDS=6
 MEDIAFORGE_TRAILING_SILENCE_RATIO=0.8
 MEDIAFORGE_TRAILING_SILENCE_BUFFER_SECONDS=0.5
 FULL_VIDEO_WIDTH=1920
@@ -61,6 +64,10 @@ SHORT_VIDEO_HEIGHT=1920
 ```
 
 `MEDIAFORGE_TRAILING_SILENCE_RATIO=0.8` trims most of the detected tail silence while `MEDIAFORGE_TRAILING_SILENCE_BUFFER_SECONDS=0.5` preserves a small safety margin so clips do not cut off quiet speech. Use these values together if you want a different tradeoff between dead-air removal and speech safety.
+
+`VISUAL_SCENE_TARGET_PER_10_MINUTES=100` is the default density target for both the generic MediaForge pipeline and the Dark Truth workflow. Lower it for fewer scenes, or raise it for denser image coverage.
+
+The dry-run analysis JSON now includes the target density and an estimated visual scene count so you can verify the pacing before rendering.
 
 `BURNED_IN_SUBTITLES` must stay `false`. Setting it to `true` is rejected.
 `DARK_TRUTH_ENABLE_PAID_PROVIDERS` must remain `false` during initial implementation and dry-run work. Set it to `true` only when you intentionally want the paid OpenAI branches and have valid credentials configured.
