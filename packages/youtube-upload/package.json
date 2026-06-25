@@ -1,0 +1,22 @@
+{
+  "name": "@mediaforge/youtube-upload",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@mediaforge/config": "workspace:*",
+    "@mediaforge/domain": "workspace:*",
+    "@mediaforge/metadata": "workspace:*",
+    "@mediaforge/observability": "workspace:*",
+    "@mediaforge/shared": "workspace:*",
+    "googleapis": "^173.0.0",
+    "sharp": "^0.34.3",
+    "zod": "^4.0.14"
+  }
+}

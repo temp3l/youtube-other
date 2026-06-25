@@ -615,7 +615,8 @@ export async function commandEpisodeShort(
   if (!selected) {
     throw new Error(`No episode found under ${sourceRoot}.`);
   }
-  const language = options.language ?? "de";
+  const language =
+    options.language ?? (process.env["MEDIAFORGE_SCRIPT_LANGUAGE"] as SupportedLanguage | undefined) ?? "de";
   if (language === "de") {
     await requireApproval(outputRoot, selected.slug, "de", "full");
   }

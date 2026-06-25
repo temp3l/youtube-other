@@ -52,11 +52,15 @@ SUBTITLE_FORMATS=srt,vtt
 BURNED_IN_SUBTITLES=false
 ENABLE_TRANSCRIPTION_QA=true
 QA_SIMILARITY_THRESHOLD=0.98
+MEDIAFORGE_TRAILING_SILENCE_RATIO=0.8
+MEDIAFORGE_TRAILING_SILENCE_BUFFER_SECONDS=0.5
 FULL_VIDEO_WIDTH=1920
 FULL_VIDEO_HEIGHT=1080
 SHORT_VIDEO_WIDTH=1080
 SHORT_VIDEO_HEIGHT=1920
 ```
+
+`MEDIAFORGE_TRAILING_SILENCE_RATIO=0.8` trims most of the detected tail silence while `MEDIAFORGE_TRAILING_SILENCE_BUFFER_SECONDS=0.5` preserves a small safety margin so clips do not cut off quiet speech. Use these values together if you want a different tradeoff between dead-air removal and speech safety.
 
 `BURNED_IN_SUBTITLES` must stay `false`. Setting it to `true` is rejected.
 `DARK_TRUTH_ENABLE_PAID_PROVIDERS` must remain `false` during initial implementation and dry-run work. Set it to `true` only when you intentionally want the paid OpenAI branches and have valid credentials configured.
@@ -202,6 +206,18 @@ npm run episode:review:approve -- --episode 001 --language en --artifact full --
 npm run episode:review:reject -- --episode 001 --language en --artifact full --reviewer "steph" --reason "Narrator pronunciation needs correction"
 npm run episode:review:status -- --episode 001 --language en --artifact full
 ```
+
+## Episode Image Pipeline
+
+Episode-level image generation now has its own dedicated workflow for narrated videos.
+The new pipeline is documented in [docs/episode-image-generation.md](/home/box/workspace/fehmarn-seo/youtube/other/docs/episode-image-generation.md).
+
+Use it when you need:
+
+- prompt planning without API calls;
+- character reference generation and approval;
+- scene-by-scene generation with continuity checks;
+- resumable output manifests.
 
 ### `episode:inspect`
 

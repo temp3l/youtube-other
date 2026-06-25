@@ -1,22 +1,121 @@
-if persons are used in the images the same person should always look the same.
-always generate assets in the correct order when possible.
+the english full narration.wav is over 8 minutes and is good. but the final video is below 8 minutes and is truncated. fix that and make sure it never happens again.
+also make sure the final video outputs for full and short always have a relevant filename.
 
-Use concurrency of 5 when generating image prompts. fall back to lower concurrency if there are errors.
+---
 
-Adopt this base style for all generated images of the dark-truth-episodes:
+document, commit and push all relevant changes. then merge the branch into master
 
-- photorealistic
-- cinematic
-- dark and atmospheric
-- visually consistent throughout each episode
-- closely synchronized with the narration
-- suitable for YouTube horror videos
-- free from embedded text, captions, logos, borders, and watermarks
-- unsettling without relying on excessive gore
+i have added a YOUTUBE_CHANNEL_ID_GERMAN in .env for uploading german videos.
+i will also add YOUTUBE_CHANNEL_ID_SPANISH and YOUTUBE_CHANNEL_ID_FRENCH later on. wire it up.
 
-produce the full english episode: 001-the-forbidden-village-where-japan-s-laws-do-not-apply
-use two CONCURRENCY=2 when generating images with openai API.
-the first generated image in /home/box/workspace/fehmarn-seo/youtube/other/episodes/001-the-forbidden-village-where-japan-s-laws-do-not-apply/shared/images/generated/scene-001**000000-000016**16x9.png is very photo realistic. iuse that photo realistic style for all upcoming images in dark-truth-episodes. I also want all images to be
+---
+
+i did create thubnail images with chatgpt and placed them in ./content-ideas/thumbnails-de/.
+can you match them with the relevant stories and copy them into the correct folder of the episodes output?=
+
+---
+
+the generated images are currently prevented from containing any text. change this so there can be text if the scene aboluty requires it, like names or signs
+
+---
+
+patch the image pipeline so it invalidates and regenerates a scene image when the scene hash or prompt hash changes, which will prevent this from happening again
+
+To continue this session, run codex resume 019efb7e-f92d-7d70-b268-25037423c92c
+
+• It does not look like a renderer index bug anymore.
+
+What I checked:
+
+- The clip renderer now resolves images by scene.id in packages/rendering/src/index.ts:197.
+- The current per-scene image metadata matches the current scene JSON hashes for scene-006, scene-007, and scene-008.
+- I inspected the actual images for those scenes, and they line up with the narration order.
+
+So the remaining cause is almost certainly cached assets being reused, not the clip renderer shifting scenes. The image generator has a skip path that keeps existing outputs when they already exist and are
+marked generated in packages/image-generation/src/episode-image-pipeline.ts:1698. If the scene plan or prompts changed after those files were first written, the old per-scene image stays attached to that
+scene-id, which makes the episode feel offset.
+
+In short:
+
+- renderer: correct
+- current scene metadata: correct
+- likely problem: stale image outputs not being force-regenerated
+
+If you want, I can patch the image pipeline so it invalidates and regenerates a scene image when the scene hash or prompt hash changes, which will prevent this from happening again.
+
+› for example: clip-14 is talking about the loudspeaker but showing the image with fruits.
+
+• I’m checking clip 14 against the scene plan and the actual scene image now. That should tell us whether this is a bad source image, a stale clip, or an index mismatch in the renderer.
+
+───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+• I found a concrete mismatch on disk: scene-014’s filename encodes 000150-000158, but the scene plan says 110-118. That means the image for scene 14 was generated from a different timing window, which is
+exactly the kind of drift that can make the clip feel off by one. I’m checking whether the image content itself matches the wrong scene.
+
+npm run episode:short -- --episode 001-the-forbidden-village-where-japan-s-laws-do-not-apply --language en
+
+wire up thumbnail generation
+log all npm script executions + API costs
+
+every episode should log a summary of total API costs + detailed + image retries
+cost per image and cost per episodes's images
+transcript and metadata cost
+
+provide me a documentation in ./docs/cli.md that explains
+
+- how to generate a DTH Episode from commandline
+  - how to generate the audio files
+  - how to generate the images
+  - how to generate the clips
+  - how to generate the metadata
+  - how to generate another language or a short
+  - how to resume tasks
+
+---
+
+derive up to 3 main characters from the story and extract charater sets
+
+Architecture
+
+- Core implementation lives in packages/image-generation/src/episode-image-pipeline.ts.
+- It adds:
+  - episode-local characters.json registry
+  - structured SceneVisualSpec
+  - adjacent-scene diffing and rewrite logic
+  - prompt validation before any paid API call
+  - OpenAIImageGenerator with images.generate() for text-only scenes and images.edit() for reference-assisted scenes
+  - atomic output writing
+  - per-scene manifests and prompt files
+  - resumability and skip-if-valid behavior
+
+- CLI wiring is in apps/cli/src/index.ts.
+- Package scripts are in package.json:41.
+- Full documentation and examples: [docs/episode-image-generation.md](/home/box/workspace/fehmarn-seo/youtube/other/docs/episode-image-generation.md)
+
+Generation Flow
+
+1. Load episode scene data and character registry.
+2. Build a structured SceneVisualSpec for each scene.
+3. Compare against the previous scene and enforce material differences.
+4. Generate a final prompt from the structured spec, not from narration alone.
+5. Validate the prompt before calling OpenAI.
+6. Route:
+   - no recurring characters -> images.generate()
+   - recurring characters with approved references -> images.edit() with attached identity references
+
+7. Write output atomically.
+8. Emit a manifest with hashes, model, prompt, references, duration, attempts, and request id when available.
+9. Skip regeneration unless --force is supplied.
+
+Commands
+
+npm run images:plan -- --episode <episode-id>
+npm run images:generate -- --episode <episode-id>
+npm run images:generate -- --episode <episode-id> --scene scene-007
+npm run images:generate -- --episode <episode-id> --scene scene-007 --force
+node apps/cli/dist/index.js images generate-character-references --episode <episode-id>
+node apps/cli/dist/index.js images approve-character --episode <episode-id> --character <character-id>
+node apps/cli/dist/index.js images regenerate-character --episode <episode-id> --character <character-id>
 
 Detected Episode 001 Languages / Requests
 
@@ -1351,6 +1450,7 @@ Default OpenArt workbook batch size should be configurable and initially set to 
 Create:
 
 - README.md;
+- docs/README.md;
 - docs/architecture.md;
 - docs/pipeline.md;
 - docs/openart-workflow.md;

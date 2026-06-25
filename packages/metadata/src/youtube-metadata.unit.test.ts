@@ -507,6 +507,52 @@ describe("youtube metadata generation", () => {
     expect(uploadAttempts).toBe(2);
   });
 
+  it("falls back to the next configured model when the elected metadata model is at capacity", async () => {
+    const workspaceDir = createWorkspace();
+    const episodeDir = path.join(workspaceDir, "episode-001");
+    await fs.mkdir(episodeDir, { recursive: true });
+    await fs.writeFile(path.join(episodeDir, "scenes.json"), makeScenariosJson(), "utf8");
+    const target = makeTarget(workspaceDir);
+    const chapterText = makeChapterText(72);
+    const tagText = makeTagText(26);
+    const metadata = makeValidMetadata(chapterText, tagText);
+    const calls: string[] = [];
+    const client: OpenAiMetadataClient = {
+      files: {
+        create: vi.fn(async () => ({ id: "file_123" })),
+        delete: vi.fn(async () => ({ deleted: true }))
+      },
+      responses: {
+        create: vi.fn(async (request) => {
+          calls.push(request.model);
+          if (request.model === "gpt-4.1-mini") {
+            throw new Error("elected model is at capacity. Please try a different model.");
+          }
+          return {
+            id: "resp_123",
+            output_text: JSON.stringify(metadata),
+            output: [{ type: "message", content: [{ type: "output_text", text: JSON.stringify(metadata) }] }]
+          };
+        })
+      }
+    };
+
+    const result = await generateYoutubeMetadataForTarget(target, {
+      apiKey: "sk-test",
+      model: "gpt-4.1-mini",
+      fallbackModels: ["gpt-4o-mini"],
+      language: "en",
+      promptText: "Prompt",
+      maxRetries: 0,
+      timeoutMs: 10_000,
+      keepFile: false,
+      client
+    });
+
+    expect(calls).toEqual(["gpt-4.1-mini", "gpt-4o-mini"]);
+    expect(result.generation.model).toBe("gpt-4o-mini");
+  });
+
   it("repairs a malformed response once before failing", async () => {
     const workspaceDir = createWorkspace();
     const episodeDir = path.join(workspaceDir, "episode-001");

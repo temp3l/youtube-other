@@ -1,0 +1,214 @@
+# CLI
+
+This repo’s command line surface is the `mediaforge` CLI plus a small set of npm scripts that wrap it with telemetry.
+
+## Quick Matrix
+
+| Task | Preferred command |
+| --- | --- |
+| Inspect an episode | `npm run doctor` |
+| Plan image prompts | `npm run images:plan -- --episode <episode-id>` |
+| Generate images | `npm run images:generate -- --episode <episode-id>` |
+| Generate one scene | `npm run images:generate -- --episode <episode-id> --scene scene-007` |
+| Regenerate one scene | `npm run images:generate -- --episode <episode-id> --scene scene-007 --force` |
+| Create character references | `npm run mediaforge -- images generate-character-references --episode <episode-id> --character <character-id>` |
+| Approve a character reference | `npm run mediaforge -- images approve-character --episode <episode-id> --character <character-id>` |
+| Upload a rendered episode | `npm run youtube:upload -- --episode <episode-id>` |
+| Validate generated images | `npm run mediaforge -- images validate <episode-id>` |
+
+## Running It
+
+Use the root scripts for the common flows:
+
+```bash
+npm run doctor
+npm run images:plan -- --episode 001-calhoun-experiment
+npm run images:generate -- --episode 001-calhoun-experiment
+npm run youtube:upload -- --episode 001-calhoun-experiment
+```
+
+If you already have a built CLI, you can also call it directly:
+
+```bash
+node apps/cli/dist/index.js images generate --episode 001-calhoun-experiment
+```
+
+## Telemetry Wrapper
+
+`scripts/run-with-telemetry.mjs` wraps selected npm scripts and forwards the actual command after `--`.
+
+It does three things:
+
+1. emits JSON start/end events to stderr;
+2. generates or reuses a `MEDIAFORGE_EXECUTION_ID`;
+3. passes execution metadata into the child process.
+
+The wrapper sets these environment variables for the child:
+
+- `MEDIAFORGE_EXECUTION_ID`
+- `MEDIAFORGE_EXECUTION_STARTED_AT`
+- `MEDIAFORGE_NPM_SCRIPT`
+- `MEDIAFORGE_NPM_SCRIPT_COMMAND`
+- `MEDIAFORGE_NPM_SCRIPT_ARGS`
+
+If you want to correlate multiple commands, set `MEDIAFORGE_EXECUTION_ID` yourself before running them.
+
+## Image Commands
+
+The image workflow is grouped under `images`:
+
+- `images plan` - build prompts and scene workbook without making a paid image call.
+- `images generate` - generate episode images, optionally for one `--scene`.
+- `images generate-character-references` - create reference images for a character.
+- `images approve-character` - mark a generated character reference as approved.
+- `images regenerate-character` - regenerate a specific character reference.
+- `images export-openart` - export prompts for OpenArt.
+- `images open-openart` - open the OpenArt handoff.
+- `images import --from <dir>` - import generated images from a directory.
+- `images validate` - validate generated image assets against the scene plan.
+- `images missing` - print missing scenes as JSON.
+- `images reject --scene <id> --reason <text>` - record a rejection note.
+- `images regenerate-workbook [--missing-only]` - rebuild the workbook, optionally only for missing scenes.
+- `images assign --scene <id> --file <path>` - assign a local file to a scene.
+- `images generate-openai [--scene <id>]` - call the OpenAI image pipeline directly.
+
+Useful flags:
+
+- `--allow-unapproved-character-references` to override reference gating.
+- `--force` to regenerate instead of reusing existing outputs.
+- `--scene <scene-id>` to scope a command to one scene.
+
+## YouTube Upload
+
+`npm run youtube:upload -- --episode <episode-id>` uploads the rendered episode video and thumbnail using the metadata already written by the pipeline.
+
+The command is resumable:
+
+- it records a planned upload report before the API call;
+- it skips already uploaded episodes when the video, thumbnail, and source metadata hashes still match;
+- it writes a final report after the upload, thumbnail update, and playlist step complete.
+
+Useful flags:
+
+- `--generate-metadata` to regenerate YouTube metadata from the episode scenes before upload.
+- `--metadata-path <path>` to use a specific metadata JSON file.
+- `--video-path <path>` to override the rendered video file.
+- `--thumbnail-path <path>` to override the thumbnail file.
+- `--playlist-id <id>` to add the video to a playlist.
+- `--privacy-status <private|public|unlisted>` to set the upload visibility.
+- `--publish-at <iso-timestamp>` to schedule a future release.
+- `--notify-subscribers` to toggle subscriber notifications.
+- `--force` to ignore an existing successful upload report and re-run the upload.
+
+The uploader writes reports to:
+
+```text
+episodes/<episode-id>/generated-assets/upload-reports/youtube-upload.json
+episodes/<episode-id>/generated-assets/upload-reports/youtube-upload.md
+```
+
+## Common Environment Variables
+
+The CLI reads standard workspace and runtime settings from `.env` or the process environment.
+
+General runtime:
+
+- `MEDIAFORGE_WORKSPACE`
+- `MEDIAFORGE_DB_PATH`
+- `MEDIAFORGE_LOG_LEVEL`
+- `MEDIAFORGE_OPENART_BATCH_SIZE`
+- `MEDIAFORGE_TTS_PROVIDER`
+- `MEDIAFORGE_TRANSCRIPTION_PROVIDER`
+- `MEDIAFORGE_IMAGE_PROVIDER`
+- `MEDIAFORGE_TEXT_PROVIDER`
+- `MEDIAFORGE_SCRIPT_LANGUAGE`
+- `MEDIAFORGE_SPEECH_VOICE_PRESET`
+- `MEDIAFORGE_OPENAI_COMPATIBLE_BASE_URL`
+- `MEDIAFORGE_OPENAI_COMPATIBLE_API_KEY`
+- `MEDIAFORGE_OPENAI_SPEECH_MODEL`
+- `MEDIAFORGE_OPENAI_SPEECH_VOICE`
+
+OpenAI image settings used by the image workflow:
+
+- `OPENAI_API_KEY`
+- `OPENAI_BASE_URL`
+- `OPENAI_ORGANIZATION` or `OPENAI_ORG_ID`
+- `OPENAI_PROJECT`
+- `OPENAI_IMAGE_MODEL`
+- `OPENAI_IMAGE_SIZE`
+- `OPENAI_IMAGE_QUALITY`
+- `OPENAI_IMAGE_FORMAT`
+- `OPENAI_IMAGE_CONCURRENCY`
+- `OPENAI_IMAGE_MAX_RETRIES`
+- `OPENAI_IMAGE_TIMEOUT_MS`
+- `OPENAI_IMAGE_DEBUG`
+- `OPENAI_IMAGE_ALLOW_UNAPPROVED_CHARACTER_REFERENCES`
+- `OPENAI_IMAGE_FORCE`
+
+YouTube upload settings:
+
+- `YOUTUBE_CLIENT_ID`
+- `YOUTUBE_CLIENT_SECRET`
+- `YOUTUBE_REFRESH_TOKEN`
+- `YOUTUBE_REDIRECT_URI`
+- `YOUTUBE_CHANNEL_ID`
+
+Defaults worth knowing:
+
+- `OPENAI_IMAGE_SIZE` defaults to `1024x1024`.
+- `OPENAI_IMAGE_MODEL` defaults to `gpt-image-1-mini` for direct OpenAI image calls.
+- `OPENAI_IMAGE_QUALITY` defaults to `low`.
+- `OPENAI_IMAGE_CONCURRENCY` defaults to `2`.
+- `OPENAI_IMAGE_MAX_RETRIES` defaults to `2`.
+- `OPENAI_IMAGE_TIMEOUT_MS` defaults to `180000`.
+
+## Examples
+
+Plan and generate all images for one episode:
+
+```bash
+npm run images:plan -- --episode 001-calhoun-experiment
+npm run images:generate -- --episode 001-calhoun-experiment
+```
+
+Regenerate one scene only:
+
+```bash
+npm run images:generate -- --episode 001-calhoun-experiment --scene scene-008 --force
+```
+
+Generate a character reference:
+
+```bash
+npm run mediaforge -- images generate-character-references --episode 001-calhoun-experiment --character daniel-mercer
+```
+
+Validate the generated assets:
+
+```bash
+npm run mediaforge -- images validate 001-calhoun-experiment
+```
+
+Upload a rendered episode:
+
+```bash
+npm run youtube:upload -- --episode 001-calhoun-experiment
+```
+
+## Execution Reports
+
+Every CLI run writes a JSON report to:
+
+```text
+.mediaforge/execution-reports/<executionId>.json
+```
+
+The report includes:
+
+- the command, argv, cwd, start/end timestamps, and duration;
+- success, exit code, signal, and episode ID when available;
+- API calls, process executions, and generated images;
+- totals for calls, retries, image count, and estimated costs;
+- aggregates by provider, model, and operation.
+
+The wrapper also emits `npm_script_start` and `npm_script_end` events, and the CLI writes a per-run JSON execution report for resumability and cost tracking.

@@ -1,4 +1,6 @@
 import pino from "pino";
+export * from "./pricing.js";
+export * from "./telemetry.js";
 
 export interface LoggerContext {
   episodeId?: string;
@@ -8,6 +10,8 @@ export interface LoggerContext {
   provider?: string;
   artifactId?: string;
   commandName?: string;
+  executionId?: string;
+  npmScript?: string;
 }
 
 export function createLogger(level: pino.LevelWithSilent = "info", destination = process.stdout): pino.Logger {
@@ -42,7 +46,8 @@ export function toLogContext(context: LoggerContext): Record<string, string | un
     sceneId: context.sceneId,
     provider: context.provider,
     artifactId: context.artifactId,
-    commandName: context.commandName
+    commandName: context.commandName,
+    executionId: context.executionId,
+    npmScript: context.npmScript
   };
 }
-

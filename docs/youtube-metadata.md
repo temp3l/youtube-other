@@ -19,6 +19,7 @@ Set these values in your shell or `.env` file:
 ```dotenv
 OPENAI_API_KEY=
 OPENAI_METADATA_MODEL=gpt-4.1-mini
+OPENAI_METADATA_MODEL_FALLBACKS=gpt-4o-mini
 OPENAI_METADATA_MAX_RETRIES=3
 OPENAI_METADATA_KEEP_FILE=false
 OPENAI_METADATA_TIMEOUT_MS=120000
@@ -26,6 +27,7 @@ YOUTUBE_METADATA_LANGUAGE=en
 ```
 
 The model is configurable. The default in this repository is `gpt-4.1-mini`.
+If the elected model is unavailable or at capacity, the generator will retry the next configured fallback model. If `OPENAI_METADATA_MODEL_FALLBACKS` is unset, the repository uses a built-in fallback to `gpt-4o-mini` for `gpt-4.1-*` models and `gpt-4.1-mini` for `gpt-4o-*` models.
 
 ## Commands
 
@@ -121,6 +123,7 @@ The helper:
 
 - `OPENAI_API_KEY` missing: export the key before running the command
 - `insufficient_quota`: check API project billing, project selection, and key scope
+- `model is at capacity`: add `OPENAI_METADATA_MODEL_FALLBACKS` or keep the built-in fallback enabled
 - invalid source JSON: fix `scenes.json`
 - malformed model output: rerun once after fixing the prompt or source scene data
 - temporary file retention: set `OPENAI_METADATA_KEEP_FILE=true`

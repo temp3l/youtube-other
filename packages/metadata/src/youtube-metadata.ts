@@ -13,6 +13,10 @@ import {
 } from "@mediaforge/shared";
 import { runCurl } from "@mediaforge/process-runner";
 import { scenePlanSchema, type ScenePlan } from "@mediaforge/domain";
+import {
+  currentExecutionTelemetry,
+  estimateTextGenerationCost
+} from "@mediaforge/observability";
 
 export const YOUTUBE_METADATA_PROMPT_VERSION = "youtube-metadata-v1";
 export const YOUTUBE_METADATA_SCHEMA_VERSION = "1.0" as const;
@@ -145,6 +149,7 @@ export interface YoutubeMetadataTarget {
 export interface YoutubeMetadataGenerationOptions {
   readonly apiKey: string;
   readonly model: string;
+  readonly fallbackModels?: ReadonlyArray<string>;
   readonly language: string;
   readonly promptText: string;
   readonly promptVersion?: string;
@@ -453,6 +458,24 @@ function isRetryableOpenAiError(error: unknown): boolean {
     return value.status === 408 || value.status === 409 || value.status === 429 || value.status >= 500;
   }
   return true;
+}
+
+function uniqueModels(models: ReadonlyArray<string>): string[] {
+  return [...new Set(models.map((model) => model.trim()).filter((model) => model.length > 0))];
+}
+
+function resolveMetadataFallbackModels(model: string, fallbackModels?: ReadonlyArray<string>): string[] {
+  const configuredFallbacks = uniqueModels(fallbackModels ?? []);
+  if (configuredFallbacks.length > 0) {
+    return configuredFallbacks.filter((fallbackModel) => fallbackModel !== model);
+  }
+  if (model.startsWith("gpt-4.1-")) {
+    return ["gpt-4o-mini"];
+  }
+  if (model.startsWith("gpt-4o-")) {
+    return ["gpt-4.1-mini"];
+  }
+  return [];
 }
 
 function describeOpenAiError(error: unknown): string {
@@ -773,6 +796,23 @@ function buildResponseSchema(_promptText: string) {
   } as const;
 }
 
+function describeLanguage(language: string): string {
+  const normalized = language.toLowerCase();
+  if (normalized === "de") {
+    return "German";
+  }
+  if (normalized === "en") {
+    return "English";
+  }
+  if (normalized === "es") {
+    return "Spanish";
+  }
+  if (normalized === "fr") {
+    return "French";
+  }
+  return language;
+}
+
 function buildRequestInput(fileId: string): Array<{ readonly role: "user"; readonly content: ReadonlyArray<{ readonly type: "input_file"; readonly file_id: string } | { readonly type: "input_text"; readonly text: string }> }> {
   return [
     {
@@ -935,8 +975,15 @@ export async function generateYoutubeMetadataForTarget(
     throw new ConfigurationError("OPENAI_API_KEY is required.");
   }
   const client = options.client ?? createOpenAiMetadataClient(options.apiKey, options.baseUrl);
+  const models = uniqueModels([options.model, ...resolveMetadataFallbackModels(options.model, options.fallbackModels)]);
 
   const promptText = options.promptText;
+  const languageInstruction = [
+    `Target language: ${describeLanguage(options.language)} (${options.language}).`,
+    "Write every user-facing field in that language, including the title, description, chapters, tags, hashtags, thumbnail text, pinned comment, social teaser, content summary, corrections, and verification warnings.",
+    "Do not mix in English unless it is a proper noun, product name, or unavoidable technical term.",
+  ].join(" ");
+  const promptInstructions = `${promptText}\n\n${languageInstruction}`;
   const schema = buildResponseSchema(promptText);
   const upload = await withRetry(
     async () =>
@@ -954,19 +1001,21 @@ export async function generateYoutubeMetadataForTarget(
     throw new OpenAIUploadError(`Failed to upload ${target.sourceFilePath} to OpenAI.`, isRetryableOpenAiError(error), error);
   });
 
-    let openAiResponseId = "";
-    let responseText = "";
-    let attemptCount = 0;
-    try {
-      const executeRequest = async (additionalInstruction?: string): Promise<string> => {
+  let openAiResponseId = "";
+  let responseText = "";
+  let attemptCount = 0;
+  let resolvedModel = options.model;
+  const telemetry = currentExecutionTelemetry();
+  try {
+    const executeRequest = async (model: string, additionalInstruction?: string): Promise<string> => {
       attemptCount += 1;
       const response = await withRetry(
         async () =>
           client.responses.create(
             {
-              model: options.model,
-              instructions: additionalInstruction ? `${promptText}\n\n${additionalInstruction}` : promptText,
-              ...(options.model.startsWith("gpt-5")
+              model,
+              instructions: additionalInstruction ? `${promptInstructions}\n\n${additionalInstruction}` : promptInstructions,
+              ...(model.startsWith("gpt-5")
                 ? {
                     reasoning: {
                       effort: "minimal" as const
@@ -975,7 +1024,7 @@ export async function generateYoutubeMetadataForTarget(
                 : {}),
               input: buildRequestInput(upload.id),
               text: { format: schema },
-              max_output_tokens: options.model.startsWith("gpt-5") ? 12000 : 4000
+              max_output_tokens: model.startsWith("gpt-5") ? 12000 : 4000
             },
             { signal: AbortSignal.timeout(options.timeoutMs) }
           ),
@@ -983,75 +1032,171 @@ export async function generateYoutubeMetadataForTarget(
       ).catch((error: unknown) => {
         throw new OpenAIResponseError(describeOpenAiError(error), isRetryableOpenAiError(error), error);
       });
-        openAiResponseId = response.id;
-        return extractResponseText(response);
-      };
+      openAiResponseId = response.id;
+      resolvedModel = model;
+      const usage = (response as {
+        readonly usage?: {
+          readonly input_tokens?: number;
+          readonly output_tokens?: number;
+          readonly input_tokens_details?: { readonly cached_tokens?: number };
+        };
+      }).usage;
+      const cost = telemetry
+        ? estimateTextGenerationCost(telemetry.catalog, {
+            provider: "openai",
+            model,
+            ...(usage?.input_tokens !== undefined
+              ? { inputTokens: usage.input_tokens }
+              : {}),
+            ...(usage?.input_tokens_details?.cached_tokens !== undefined
+              ? {
+                  cachedInputTokens:
+                    usage.input_tokens_details.cached_tokens,
+                }
+              : {}),
+            ...(usage?.output_tokens !== undefined
+              ? { outputTokens: usage.output_tokens }
+              : {}),
+          })
+        : { pricingVersion: "unconfigured", costMicros: null, warning: undefined };
+      telemetry?.recordApiCall({
+        provider: "openai",
+        model,
+        operation: "metadata-generation",
+        startedAt: new Date().toISOString(),
+        endedAt: new Date().toISOString(),
+        durationMs: 0,
+        attempt: attemptCount,
+        success: true,
+        requestId: response.id,
+        ...(usage?.input_tokens !== undefined ||
+        usage?.input_tokens_details?.cached_tokens !== undefined ||
+        usage?.output_tokens !== undefined
+          ? {
+              usage: {
+                ...(usage?.input_tokens !== undefined
+                  ? { inputTokens: usage.input_tokens }
+                  : {}),
+                ...(usage?.input_tokens_details?.cached_tokens !== undefined
+                  ? {
+                      cachedInputTokens:
+                        usage.input_tokens_details.cached_tokens,
+                    }
+                  : {}),
+                ...(usage?.output_tokens !== undefined
+                  ? { outputTokens: usage.output_tokens }
+                  : {}),
+              },
+            }
+          : {}),
+      });
+      telemetry?.recordCost({
+        provider: "openai",
+        model,
+        operation: "metadata-generation",
+        costMicros: cost.costMicros,
+        warning: cost.warning
+      });
+      return extractResponseText(response);
+    };
 
-      responseText = await executeRequest();
-      let parsed = youtubeMetadataSchema.safeParse(extractResponseJson(responseText));
-      let repaired = false;
-      if (!parsed.success) {
-        const repairInstruction = [
-          "The previous response was invalid.",
-          "Fix only the invalid fields.",
-          `Validation errors:\n${JSON.stringify(parsed.error.flatten(), null, 2)}`,
-          `Previous JSON:\n${responseText}`
-        ].join("\n\n");
-        responseText = await executeRequest(repairInstruction);
-        parsed = youtubeMetadataSchema.safeParse(extractResponseJson(responseText));
-        repaired = true;
-        if (!parsed.success) {
-          throw new MetadataValidationError(`OpenAI response could not be validated: ${parsed.error.message}`);
-        }
-      }
-      const normalizeMetadata = (data: YoutubeMetadata): YoutubeMetadata => normalizeChapterMetadata(
-        {
-          ...data,
-          source: {
-            sourceId: target.sourceId,
-            sceneCount: target.scenePlan.scenes.length,
-            durationSeconds: target.durationSeconds,
-            language: options.language
-          }
-        },
-        target.scenePlan,
-        target.durationSeconds
-      );
-      let finalMetadata: YoutubeMetadata;
+    let lastRetryableError: unknown = null;
+    for (const model of models) {
       try {
-        finalMetadata = validateFinalMetadata(normalizeMetadata(parsed.data), {
-          sceneCount: target.scenePlan.scenes.length,
-          durationSeconds: target.durationSeconds,
-          language: options.language
-        });
+        responseText = await executeRequest(model);
+        break;
       } catch (error: unknown) {
-        if (repaired || !(error instanceof MetadataValidationError)) {
+        lastRetryableError = error;
+        const retryable = error instanceof OpenAIResponseError ? error.retryable : isRetryableOpenAiError(error);
+        if (!retryable) {
           throw error;
         }
-        const repairInstruction = [
-          "The previous response passed schema validation but failed local validation.",
-          `Validation errors:\n${error.message}`,
-          `Previous JSON:\n${responseText}`,
-          "Fix only the invalid fields."
-        ].join("\n\n");
-        responseText = await executeRequest(repairInstruction);
-        parsed = youtubeMetadataSchema.safeParse(extractResponseJson(responseText));
-        repaired = true;
-        if (!parsed.success) {
-          throw new MetadataValidationError(`OpenAI response could not be validated: ${parsed.error.message}`);
+        const nextModel = models[models.indexOf(model) + 1];
+        if (nextModel) {
+          options.logger?.warn(
+            {
+              primaryModel: options.model,
+              fallbackModel: nextModel,
+              failedModel: model,
+              error: describeOpenAiError(error),
+            },
+            "OpenAI metadata model at capacity, retrying with fallback model"
+          );
+          continue;
         }
-        finalMetadata = validateFinalMetadata(normalizeMetadata(parsed.data), {
+      }
+    }
+    if (!responseText) {
+      throw new OpenAIResponseError(
+        describeOpenAiError(lastRetryableError),
+        isRetryableOpenAiError(lastRetryableError),
+        lastRetryableError
+      );
+    }
+    let parsed = youtubeMetadataSchema.safeParse(extractResponseJson(responseText));
+    let repaired = false;
+    if (!parsed.success) {
+      const repairInstruction = [
+        "The previous response was invalid.",
+        "Fix only the invalid fields.",
+        `Validation errors:\n${JSON.stringify(parsed.error.flatten(), null, 2)}`,
+        `Previous JSON:\n${responseText}`
+      ].join("\n\n");
+      responseText = await executeRequest(resolvedModel, repairInstruction);
+      parsed = youtubeMetadataSchema.safeParse(extractResponseJson(responseText));
+      repaired = true;
+      if (!parsed.success) {
+        throw new MetadataValidationError(`OpenAI response could not be validated: ${parsed.error.message}`);
+      }
+    }
+    const normalizeMetadata = (data: YoutubeMetadata): YoutubeMetadata => normalizeChapterMetadata(
+      {
+        ...data,
+        source: {
+          sourceId: target.sourceId,
           sceneCount: target.scenePlan.scenes.length,
           durationSeconds: target.durationSeconds,
           language: options.language
-        });
+        }
+      },
+      target.scenePlan,
+      target.durationSeconds
+    );
+    let finalMetadata: YoutubeMetadata;
+    try {
+      finalMetadata = validateFinalMetadata(normalizeMetadata(parsed.data), {
+        sceneCount: target.scenePlan.scenes.length,
+        durationSeconds: target.durationSeconds,
+        language: options.language
+      });
+    } catch (error: unknown) {
+      if (repaired || !(error instanceof MetadataValidationError)) {
+        throw error;
       }
-      const generation: YoutubeMetadataGenerationInfo = {
-        generatedAt: new Date().toISOString(),
-        sourceFile: path.relative(process.cwd(), target.sourceFilePath),
-        sourceSha256: target.sourceSha256,
+      const repairInstruction = [
+        "The previous response passed schema validation but failed local validation.",
+        `Validation errors:\n${error.message}`,
+        `Previous JSON:\n${responseText}`,
+        "Fix only the invalid fields."
+      ].join("\n\n");
+      responseText = await executeRequest(resolvedModel, repairInstruction);
+      parsed = youtubeMetadataSchema.safeParse(extractResponseJson(responseText));
+      repaired = true;
+      if (!parsed.success) {
+        throw new MetadataValidationError(`OpenAI response could not be validated: ${parsed.error.message}`);
+      }
+      finalMetadata = validateFinalMetadata(normalizeMetadata(parsed.data), {
+        sceneCount: target.scenePlan.scenes.length,
+        durationSeconds: target.durationSeconds,
+        language: options.language
+      });
+    }
+    const generation: YoutubeMetadataGenerationInfo = {
+      generatedAt: new Date().toISOString(),
+      sourceFile: path.relative(process.cwd(), target.sourceFilePath),
+      sourceSha256: target.sourceSha256,
       promptVersion,
-      model: options.model,
+      model: resolvedModel,
       openaiResponseId: openAiResponseId,
       attemptCount,
       chapterCharacterCount: [...finalMetadata.chapters.text].length,

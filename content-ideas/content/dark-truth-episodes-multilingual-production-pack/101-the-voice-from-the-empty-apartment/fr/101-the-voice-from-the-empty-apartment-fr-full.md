@@ -1,0 +1,82 @@
+# Episode 101 — La voix de l’appartement vide
+
+## Instructions de génération audio
+
+> Production directions only. Do not narrate this section.
+
+- Utilisez toujours la même voix masculine adulte.
+- Parlez dans un français naturel avec un ton documentaire sombre et maîtrisé.
+- Visez environ 175 à 185 mots par minute.
+- Ne lisez pas les titres, les métadonnées ni les consignes de production.
+
+### Sound design
+
+Use a restrained recurring sound linked to the central object or location. Keep it below the narration and cut briefly to silence before the final reveal.
+
+# Texte de narration
+
+Paul entend une femme parler dans l’appartement voisin, pourtant vide depuis des années.
+
+Le premier événement impossible paraît assez mineur pour être ignoré.
+
+Tous les indices restent liés au mystère central de « La voix de l’appartement vide ».
+
+Un second incident rend la coïncidence moins crédible.
+
+Tous les indices restent liés au mystère central de « La voix de l’appartement vide ».
+
+Le protagoniste consigne les heures, les bruits et les traces physiques.
+
+Tous les indices restent liés au mystère central de « La voix de l’appartement vide ».
+
+D’anciens dossiers montrent que d’autres témoins ont connu le même schéma.
+
+Tous les indices restent liés au mystère central de « La voix de l’appartement vide ».
+
+La menace obéit à une règle claire liée à l’attention, à la permission ou à l’identité.
+
+Tous les indices restent liés au mystère central de « La voix de l’appartement vide ».
+
+La nuit suivante, elle cesse de se cacher et commence à modifier l’environnement.
+
+Tous les indices restent liés au mystère central de « La voix de l’appartement vide ».
+
+Une fausse piste permet de tester ce que la menace ne comprend pas.
+
+Tous les indices restent liés au mystère central de « La voix de l’appartement vide ».
+
+Le plan fonctionne brièvement et révèle la véritable sortie.
+
+Tous les indices restent liés au mystère central de « La voix de l’appartement vide ».
+
+Le danger immédiat prend fin, mais les preuves restent impossibles à expliquer.
+
+Tous les indices restent liés au mystère central de « La voix de l’appartement vide ».
+
+Un dernier détail montre que la menace a trouvé une autre manière de rester proche.
+
+Tous les indices restent liés au mystère central de « La voix de l’appartement vide ».
+
+La question inquiétante n’est pas de savoir si l’événement a pris fin, mais s’il est simplement devenu plus difficile à remarquer.
+
+---
+
+## Métadonnées de l’épisode
+
+**Episode:** 101
+
+**Primary title:** La voix de l’appartement vide
+
+**Thumbnail text:** L’APPARTEMENT ÉTAIT VIDE
+
+**Description:** Paul entend une femme parler dans l’appartement voisin, pourtant vide depuis des années.
+
+**Content disclosure:** Histoire d’horreur originale et fictive.
+
+**Hashtags:** #HistoireDHorreur #HistoiresEffrayantes #DarkTruthEpisodes
+
+**Narration pace:** 175–185 words per minute
+
+**Target duration:** approximately 6–8 minutes with natural pauses and sound design
+
+**Format:** 16:9, 1920 × 1080

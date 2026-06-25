@@ -1,14 +1,10 @@
 #!/usr/bin/env node
-import fs from "node:fs/promises";
-import path from "node:path";
-import { spawnSync } from "node:child_process";
-import { Command } from "commander";
 import {
-  createPipeline,
-  type CreateEpisodeOptions,
-  type MediaForgeEnvironment
-} from "@mediaforge/pipeline";
-import { loadEpisodeConfig, loadRuntimeConfig, type RuntimeConfig, type RuntimeConfigOverrides } from "@mediaforge/config";
+  loadEpisodeConfig,
+  loadRuntimeConfig,
+  type RuntimeConfig,
+  type RuntimeConfigOverrides,
+} from "@mediaforge/config";
 import {
   artifactIdSchema,
   episodeManifestSchema,
@@ -16,55 +12,86 @@ import {
   rewrittenScriptSchema,
   sceneIdSchema,
   scenePlanSchema,
+  type ArtifactReference,
   type NormalizedTranscript,
-  type ArtifactReference
 } from "@mediaforge/domain";
-import { createLogger } from "@mediaforge/observability";
+import {
+  approveEpisodeCharacter,
+  createPromptBatch,
+  exportSceneWorkbook,
+  generateEpisodeImageReferences,
+  generateEpisodeImages,
+  generateOpenAiSceneImages,
+  importImageAssets,
+  loadEpisodeImageGenerationSettings,
+  loadOpenAiImageGenerationSettings,
+  localSceneNegativePrompt,
+  localSceneStyle,
+  missingScenes,
+  planEpisodeImageGeneration,
+  regenerateEpisodeCharacter,
+  validateImageAssets,
+} from "@mediaforge/image-generation";
 import {
   findEpisodeScenesFile,
   generateYoutubeMetadataFromScenesFile,
-  YOUTUBE_METADATA_PROMPT_VERSION,
   listEpisodeSceneFiles,
   readAndValidateScenesFile,
+  YOUTUBE_METADATA_PROMPT_VERSION,
+  type YoutubeMetadata,
   type YoutubeMetadataGenerationInfo,
   type YoutubeMetadataGenerationOptions,
   type YoutubeMetadataOutputs,
-  type YoutubeMetadata
 } from "@mediaforge/metadata";
 import {
-  createPromptBatch,
-  exportSceneWorkbook,
-  generateOpenAiSceneImages,
-  localSceneNegativePrompt,
-  localSceneStyle,
-  loadOpenAiImageGenerationSettings,
-  importImageAssets,
-  missingScenes,
-  validateImageAssets
-} from "@mediaforge/image-generation";
+  uploadYoutubeEpisode,
+  type YoutubeUploadCommandInput,
+  type YoutubeUploadOverrides,
+  type YoutubeAuthSettings,
+} from "@mediaforge/youtube-upload";
+import {
+  createExecutionTelemetry,
+  createLogger,
+  currentExecutionTelemetry,
+  withExecutionTelemetry,
+} from "@mediaforge/observability";
+import {
+  createPipeline,
+  type CreateEpisodeOptions,
+  type MediaForgeEnvironment,
+} from "@mediaforge/pipeline";
 import { runCommand } from "@mediaforge/process-runner";
 import {
   buildSrt,
   ensureDir,
+  ensureWorkspacePath,
   fileExists,
   formatTimestampLabel,
   hashFile,
   normalizeWhitespace,
-  ensureWorkspacePath,
-  slugify,
   safeBasename,
+  slugify,
   writeJsonAtomic,
-  writeTextAtomic
+  writeTextAtomic,
 } from "@mediaforge/shared";
-import { loadSpeechVoiceSettings, splitEpisodeScriptMarkdown, writeEpisodeScriptMarkdown } from "@mediaforge/speech";
+import {
+  loadSpeechVoiceSettings,
+  splitEpisodeScriptMarkdown,
+  writeEpisodeScriptMarkdown,
+} from "@mediaforge/speech";
 import {
   buildVisualScenesFromSubtitleSegments,
   normalizeTranscriptFromWords,
   parseWhisperRawArtifact,
   validateNormalizedTranscript,
   writeNormalizedTranscriptArtifacts,
-  type WhisperRawTranscriptArtifact
+  type WhisperRawTranscriptArtifact,
 } from "@mediaforge/transcription";
+import { Command } from "commander";
+import { spawnSync } from "node:child_process";
+import { randomUUID } from "node:crypto";
+import fs from "node:fs/promises";
+import path from "node:path";
 import { registerEpisodeCommands } from "./episode-commands.js";
 
 interface CliOptions {
@@ -84,6 +111,11 @@ interface CliOptions {
   sceneLimit?: number;
   fromStage?: string;
   untilStage?: string;
+  allowUnapprovedCharacterReferences?: boolean;
+  force?: boolean;
+  episode?: string;
+  scene?: string;
+  character?: string;
 }
 
 interface DoctorCheck {
@@ -95,6 +127,27 @@ interface DoctorCheck {
 
 function printJson(value: unknown): void {
   process.stdout.write(`${JSON.stringify(value, null, 2)}\n`);
+}
+
+function markEpisodeTelemetry(episodeId: string): void {
+  currentExecutionTelemetry()?.setEpisodeId(episodeId);
+}
+
+function resolveLogLevel(
+  value: string | undefined
+): "info" | "debug" | "warn" | "error" | "trace" | "fatal" | "silent" {
+  if (
+    value === "info" ||
+    value === "debug" ||
+    value === "warn" ||
+    value === "error" ||
+    value === "trace" ||
+    value === "fatal" ||
+    value === "silent"
+  ) {
+    return value;
+  }
+  return "info";
 }
 
 function serializeError(error: unknown): Record<string, unknown> {
@@ -156,9 +209,13 @@ function configOverridesFromCli(options: CliOptions): RuntimeConfigOverrides {
   return overrides;
 }
 
-function compactConfigOverrides(overrides: RuntimeConfigOverrides): RuntimeConfigOverrides {
+function compactConfigOverrides(
+  overrides: RuntimeConfigOverrides
+): RuntimeConfigOverrides {
   const compacted: Record<string, unknown> = {};
-  for (const [key, value] of Object.entries(overrides) as Array<[keyof RuntimeConfig, RuntimeConfig[keyof RuntimeConfig] | undefined]>) {
+  for (const [key, value] of Object.entries(overrides) as Array<
+    [keyof RuntimeConfig, RuntimeConfig[keyof RuntimeConfig] | undefined]
+  >) {
     if (value !== undefined) {
       compacted[String(key)] = value;
     }
@@ -175,19 +232,35 @@ function localizedSuffix(language: string): string {
 }
 
 function localizedSegmentsDir(episodeDir: string, language: string): string {
-  return path.join(episodeDir, "audio", isEnglishLanguage(language) ? "segments" : `segments-${safeBasename(language)}`);
+  return path.join(
+    episodeDir,
+    "audio",
+    isEnglishLanguage(language)
+      ? "segments"
+      : `segments-${safeBasename(language)}`
+  );
 }
 
 function localizedNarrationPath(episodeDir: string, language: string): string {
-  return path.join(episodeDir, "audio", isEnglishLanguage(language) ? "narration.wav" : `narration-${safeBasename(language)}.wav`);
+  return path.join(
+    episodeDir,
+    "audio",
+    isEnglishLanguage(language)
+      ? "narration.wav"
+      : `narration-${safeBasename(language)}.wav`
+  );
 }
 
 function localizedMetadataDir(episodeDir: string, language: string): string {
-  return isEnglishLanguage(language) ? path.join(episodeDir, "metadata") : path.join(episodeDir, "metadata", safeBasename(language));
+  return isEnglishLanguage(language)
+    ? path.join(episodeDir, "metadata")
+    : path.join(episodeDir, "metadata", safeBasename(language));
 }
 
 function localizedClipsDirName(language: string): string {
-  return isEnglishLanguage(language) ? "clips" : `clips-${safeBasename(language)}`;
+  return isEnglishLanguage(language)
+    ? "clips"
+    : `clips-${safeBasename(language)}`;
 }
 
 function localizedOutputSuffix(language: string): string {
@@ -223,7 +296,9 @@ function rebalanceChunks(chunks: string[], desiredCount: number): string[] {
   if (desiredCount <= 0) {
     return chunks;
   }
-  const normalized = chunks.map((chunk) => normalizeWhitespace(chunk)).filter((chunk) => chunk.length > 0);
+  const normalized = chunks
+    .map((chunk) => normalizeWhitespace(chunk))
+    .filter((chunk) => chunk.length > 0);
   if (normalized.length === 0) {
     return [];
   }
@@ -232,10 +307,15 @@ function rebalanceChunks(chunks: string[], desiredCount: number): string[] {
     const step = normalized.length / desiredCount;
     for (let index = 0; index < desiredCount; index += 1) {
       const start = Math.floor(index * step);
-      const end = index === desiredCount - 1 ? normalized.length : Math.max(start + 1, Math.floor((index + 1) * step));
+      const end =
+        index === desiredCount - 1
+          ? normalized.length
+          : Math.max(start + 1, Math.floor((index + 1) * step));
       balanced.push(normalized.slice(start, end).join(" "));
     }
-    return balanced.map((chunk) => normalizeWhitespace(chunk)).filter((chunk) => chunk.length > 0);
+    return balanced
+      .map((chunk) => normalizeWhitespace(chunk))
+      .filter((chunk) => chunk.length > 0);
   }
   const expanded = [...normalized];
   while (expanded.length < desiredCount) {
@@ -264,46 +344,69 @@ function rebalanceChunks(chunks: string[], desiredCount: number): string[] {
   return expanded.slice(0, desiredCount);
 }
 
-async function localizedSceneAudioIsComplete(episodeDir: string, language: string, expectedCount: number): Promise<boolean> {
+async function localizedSceneAudioIsComplete(
+  episodeDir: string,
+  language: string,
+  expectedCount: number
+): Promise<boolean> {
   const segmentsDir = localizedSegmentsDir(episodeDir, language);
-  const existing = await fs.readdir(segmentsDir, { withFileTypes: true }).catch(() => []);
-  const wavCount = existing.filter((entry) => entry.isFile() && entry.name.endsWith(".wav")).length;
+  const existing = await fs
+    .readdir(segmentsDir, { withFileTypes: true })
+    .catch(() => []);
+  const wavCount = existing.filter(
+    (entry) => entry.isFile() && entry.name.endsWith(".wav")
+  ).length;
   return wavCount >= expectedCount;
 }
 
-async function loadNarrationScriptMarkdown(episodeDir: string, language: string): Promise<{ readonly filePath: string; readonly text: string }> {
+async function loadNarrationScriptMarkdown(
+  episodeDir: string,
+  language: string
+): Promise<{ readonly filePath: string; readonly text: string }> {
   const languageSlug = safeBasename(language);
   const candidates = [
     path.join(episodeDir, "script", `rewritten-script-${languageSlug}.md`),
     path.join(episodeDir, "script", "rewritten-script.md"),
     path.join(episodeDir, "languages", `script-${languageSlug}.md`),
-    path.join(episodeDir, "script.md")
+    path.join(episodeDir, "script.md"),
   ];
   for (const candidate of candidates) {
     if (await fileExists(candidate)) {
       return {
         filePath: candidate,
-        text: await fs.readFile(candidate, "utf8")
+        text: await fs.readFile(candidate, "utf8"),
       };
     }
   }
   throw new Error(`Missing rewritten narration script in ${episodeDir}.`);
 }
 
-function balanceScriptChunksForScenes(chunks: string[], sceneCount?: number): string[] {
-  const normalized = chunks.map((chunk) => normalizeWhitespace(chunk)).filter((chunk) => chunk.length > 0);
+function balanceScriptChunksForScenes(
+  chunks: string[],
+  sceneCount?: number
+): string[] {
+  const normalized = chunks
+    .map((chunk) => normalizeWhitespace(chunk))
+    .filter((chunk) => chunk.length > 0);
   if (!sceneCount || sceneCount <= 0 || normalized.length === 0) {
     return normalized;
   }
   if (normalized.length === sceneCount) {
     return normalized;
   }
-  const sentenceChunks = normalized.flatMap((chunk) => splitSpeechSentences(chunk));
-  const packed = rebalanceChunks(sentenceChunks.length > 0 ? sentenceChunks : normalized, sceneCount);
+  const sentenceChunks = normalized.flatMap((chunk) =>
+    splitSpeechSentences(chunk)
+  );
+  const packed = rebalanceChunks(
+    sentenceChunks.length > 0 ? sentenceChunks : normalized,
+    sceneCount
+  );
   return packed.length > 0 ? packed : normalized;
 }
 
-async function buildEnvironment(options: CliOptions): Promise<MediaForgeEnvironment> {
+async function buildEnvironment(
+  options: CliOptions
+): Promise<MediaForgeEnvironment> {
   const config = await loadRuntimeConfig(configOverridesFromCli(options));
   createLogger(options.verbose ? "debug" : config.logLevel);
   const pipeline = await createPipeline(configOverridesFromCli(options));
@@ -314,32 +417,98 @@ async function loadPipeline(options: CliOptions, episodeDir?: string) {
   const overrides = compactConfigOverrides(configOverridesFromCli(options));
   const episodeConfig = episodeDir ? await loadEpisodeConfig(episodeDir) : null;
   const emptyEpisodeOverrides: RuntimeConfigOverrides = {};
-  return createPipeline(overrides, episodeConfig ? compactConfigOverrides(episodeConfig) : emptyEpisodeOverrides);
+  return createPipeline(
+    overrides,
+    episodeConfig
+      ? compactConfigOverrides(episodeConfig)
+      : emptyEpisodeOverrides
+  );
 }
 
-function describeDoctorItem(label: string, ok: boolean, detail: string, kind: "required" | "optional" | "manual" | "credential"): DoctorCheck {
+function describeDoctorItem(
+  label: string,
+  ok: boolean,
+  detail: string,
+  kind: "required" | "optional" | "manual" | "credential"
+): DoctorCheck {
   return { label, status: ok ? "ok" : "missing", detail, kind };
 }
 
 async function commandDoctor(options: CliOptions): Promise<void> {
   const config = await loadRuntimeConfig(configOverridesFromCli(options));
   const checks: DoctorCheck[] = [];
-  checks.push(describeDoctorItem("Node", process.versions.node.startsWith("22."), `Node ${process.versions.node}`, "required"));
-  checks.push(describeDoctorItem("pnpm", spawnSync("pnpm", ["-v"], { encoding: "utf8" }).status === 0, "pnpm available", "required"));
-  checks.push(describeDoctorItem("ffmpeg", spawnSync("ffmpeg", ["-version"], { encoding: "utf8" }).status === 0, "ffmpeg available", "required"));
-  checks.push(describeDoctorItem("ffprobe", spawnSync("ffprobe", ["-version"], { encoding: "utf8" }).status === 0, "ffprobe available", "required"));
-  checks.push(describeDoctorItem("yt-dlp", spawnSync("yt-dlp", ["--version"], { encoding: "utf8" }).status === 0, "yt-dlp available", "optional"));
-  checks.push(describeDoctorItem("SQLite", true, "node:sqlite available in Node 22", "required"));
-  checks.push(describeDoctorItem("Browser opener", spawnSync("xdg-open", ["--help"], { encoding: "utf8" }).status === 0, "xdg-open available", "optional"));
+  checks.push(
+    describeDoctorItem(
+      "Node",
+      process.versions.node.startsWith("22."),
+      `Node ${process.versions.node}`,
+      "required"
+    )
+  );
+  checks.push(
+    describeDoctorItem(
+      "pnpm",
+      spawnSync("pnpm", ["-v"], { encoding: "utf8" }).status === 0,
+      "pnpm available",
+      "required"
+    )
+  );
+  checks.push(
+    describeDoctorItem(
+      "ffmpeg",
+      spawnSync("ffmpeg", ["-version"], { encoding: "utf8" }).status === 0,
+      "ffmpeg available",
+      "required"
+    )
+  );
+  checks.push(
+    describeDoctorItem(
+      "ffprobe",
+      spawnSync("ffprobe", ["-version"], { encoding: "utf8" }).status === 0,
+      "ffprobe available",
+      "required"
+    )
+  );
+  checks.push(
+    describeDoctorItem(
+      "yt-dlp",
+      spawnSync("yt-dlp", ["--version"], { encoding: "utf8" }).status === 0,
+      "yt-dlp available",
+      "optional"
+    )
+  );
+  checks.push(
+    describeDoctorItem(
+      "SQLite",
+      true,
+      "node:sqlite available in Node 22",
+      "required"
+    )
+  );
+  checks.push(
+    describeDoctorItem(
+      "Browser opener",
+      spawnSync("xdg-open", ["--help"], { encoding: "utf8" }).status === 0,
+      "xdg-open available",
+      "optional"
+    )
+  );
   checks.push(
     describeDoctorItem(
       "whisper.cpp",
-      spawnSync(config.whisperBin ?? "whisper-cli", ["--help"], { encoding: "utf8" }).status === 0,
+      spawnSync(config.whisperBin ?? "whisper-cli", ["--help"], {
+        encoding: "utf8",
+      }).status === 0,
       config.whisperBin ?? "whisper-cli",
       config.transcriptionProvider === "whisper.cpp" ? "required" : "optional"
     )
   );
-  const whisperModelExists = Boolean(config.whisperModel) && (await fs.stat(config.whisperModel ?? "").then(() => true).catch(() => false));
+  const whisperModelExists =
+    Boolean(config.whisperModel) &&
+    (await fs
+      .stat(config.whisperModel ?? "")
+      .then(() => true)
+      .catch(() => false));
   checks.push(
     describeDoctorItem(
       "Whisper model",
@@ -348,24 +517,40 @@ async function commandDoctor(options: CliOptions): Promise<void> {
       config.transcriptionProvider === "whisper.cpp" ? "required" : "optional"
     )
   );
-  const needsOpenAiCredentials = config.textProvider === "openai-compatible" || config.ttsProvider === "openai-compatible";
+  const needsOpenAiCredentials =
+    config.textProvider === "openai-compatible" ||
+    config.ttsProvider === "openai-compatible";
   checks.push(
     describeDoctorItem(
       "OpenAI API key",
       !needsOpenAiCredentials || Boolean(config.openAiCompatibleApiKey),
-      needsOpenAiCredentials ? "Required for openai-compatible providers" : "Not required for the current configuration",
+      needsOpenAiCredentials
+        ? "Required for openai-compatible providers"
+        : "Not required for the current configuration",
       needsOpenAiCredentials ? "credential" : "optional"
     )
   );
   const workspace = config.workspaceDir;
   await ensureDir(workspace);
-  const writable = await fs.access(workspace).then(() => true).catch(() => false);
-  checks.push(describeDoctorItem("Workspace writable", writable, workspace, "required"));
-  const fonts = spawnSync("bash", ["-lc", "ls /usr/share/fonts >/dev/null 2>&1"], { encoding: "utf8" }).status === 0;
-  checks.push(describeDoctorItem("Fonts", fonts, "System font directory", "optional"));
+  const writable = await fs
+    .access(workspace)
+    .then(() => true)
+    .catch(() => false);
+  checks.push(
+    describeDoctorItem("Workspace writable", writable, workspace, "required")
+  );
+  const fonts =
+    spawnSync("bash", ["-lc", "ls /usr/share/fonts >/dev/null 2>&1"], {
+      encoding: "utf8",
+    }).status === 0;
+  checks.push(
+    describeDoctorItem("Fonts", fonts, "System font directory", "optional")
+  );
   const summary = {
-    ok: checks.every((check) => check.status === "ok" || check.kind !== "required"),
-    checks
+    ok: checks.every(
+      (check) => check.status === "ok" || check.kind !== "required"
+    ),
+    checks,
   };
   printJson(summary);
 }
@@ -374,39 +559,54 @@ async function commandInit(options: CliOptions): Promise<void> {
   const environment = await buildEnvironment(options);
   await ensureDir(environment.config.workspaceDir);
   if (!options.quiet) {
-    process.stdout.write(`Workspace ready at ${environment.config.workspaceDir}\n`);
+    process.stdout.write(
+      `Workspace ready at ${environment.config.workspaceDir}\n`
+    );
   }
 }
 
-async function commandCreate(options: CliOptions, input: CreateEpisodeOptions): Promise<void> {
+async function commandCreate(
+  options: CliOptions,
+  input: CreateEpisodeOptions
+): Promise<void> {
   const pipeline = await loadPipeline(options);
   const manifest = await pipeline.createEpisode(input);
   if (options.json) {
     printJson(manifest);
     return;
   }
-  process.stdout.write(`Created episode ${manifest.episodeId} at ${manifest.slug}\n`);
+  process.stdout.write(
+    `Created episode ${manifest.episodeId} at ${manifest.slug}\n`
+  );
 }
 
-async function commandRun(options: CliOptions, episodeId: string): Promise<void> {
+async function commandRun(
+  options: CliOptions,
+  episodeId: string
+): Promise<void> {
+  markEpisodeTelemetry(episodeId);
   const { episodeDir } = await readManifestForEpisode(options, episodeId);
   const pipeline = await loadPipeline(options, episodeDir);
   const result = await pipeline.runEpisode(episodeId as never, {
     ...(options.fromStage ? { fromStage: options.fromStage as never } : {}),
     ...(options.untilStage ? { untilStage: options.untilStage as never } : {}),
-    ...(options.sceneLimit ? { sceneLimit: options.sceneLimit } : {})
+    ...(options.sceneLimit ? { sceneLimit: options.sceneLimit } : {}),
   });
   if (options.json) {
     printJson(result);
     return;
   }
-  process.stdout.write(`Completed ${result.episodeId}\n${result.outputPaths.join("\n")}\n`);
+  process.stdout.write(
+    `Completed ${result.episodeId}\n${result.outputPaths.join("\n")}\n`
+  );
 }
 
 async function readManifestForEpisode(options: CliOptions, episodeId: string) {
   const config = await loadRuntimeConfig(configOverridesFromCli(options));
   const workspace = config.workspaceDir;
-  const entries = await fs.readdir(workspace, { withFileTypes: true }).catch(() => []);
+  const entries = await fs
+    .readdir(workspace, { withFileTypes: true })
+    .catch(() => []);
   for (const entry of entries) {
     if (!entry.isDirectory()) {
       continue;
@@ -415,7 +615,10 @@ async function readManifestForEpisode(options: CliOptions, episodeId: string) {
     if (!(await fileExists(manifestPath))) {
       continue;
     }
-    const manifest = episodeManifestSchema.parse(JSON.parse(await fs.readFile(manifestPath, "utf8")) as unknown);
+    const manifest = episodeManifestSchema.parse(
+      JSON.parse(await fs.readFile(manifestPath, "utf8")) as unknown
+    );
+    console.log({ episodeId: manifest.episodeId, manifestPath });
     if (manifest.episodeId === episodeId) {
       const episodeDir = path.dirname(manifestPath);
       let nextManifest = manifest;
@@ -426,20 +629,30 @@ async function readManifestForEpisode(options: CliOptions, episodeId: string) {
         if (await fileExists(scenePlanPath)) {
           nextManifest = {
             ...nextManifest,
-            scenePlan: scenePlanSchema.parse(JSON.parse(await fs.readFile(scenePlanPath, "utf8")) as unknown),
-            updatedAt: new Date().toISOString()
+            scenePlan: scenePlanSchema.parse(
+              JSON.parse(await fs.readFile(scenePlanPath, "utf8")) as unknown
+            ),
+            updatedAt: new Date().toISOString(),
           };
           shouldWrite = true;
         }
       }
 
       if (!nextManifest.rewrittenScript) {
-        const rewrittenScriptPath = path.join(episodeDir, "script", "rewritten-script.json");
+        const rewrittenScriptPath = path.join(
+          episodeDir,
+          "script",
+          "rewritten-script.json"
+        );
         if (await fileExists(rewrittenScriptPath)) {
           nextManifest = {
             ...nextManifest,
-            rewrittenScript: rewrittenScriptSchema.parse(JSON.parse(await fs.readFile(rewrittenScriptPath, "utf8")) as unknown),
-            updatedAt: new Date().toISOString()
+            rewrittenScript: rewrittenScriptSchema.parse(
+              JSON.parse(
+                await fs.readFile(rewrittenScriptPath, "utf8")
+              ) as unknown
+            ),
+            updatedAt: new Date().toISOString(),
           };
           shouldWrite = true;
         }
@@ -455,15 +668,21 @@ async function readManifestForEpisode(options: CliOptions, episodeId: string) {
   throw new Error(`Episode not found: ${episodeId}`);
 }
 
-async function readEpisodeWorkspaceForAudio(options: CliOptions, episodeId: string) {
+async function readEpisodeWorkspaceForAudio(
+  options: CliOptions,
+  episodeId: string
+) {
   const config = await loadRuntimeConfig(configOverridesFromCli(options));
   const directDir = path.join(config.workspaceDir, episodeId);
   const directScriptExists =
-    (await fileExists(path.join(directDir, "script.md"))) || (await fileExists(path.join(directDir, "script", "rewritten-script.md")));
+    (await fileExists(path.join(directDir, "script.md"))) ||
+    (await fileExists(path.join(directDir, "script", "rewritten-script.md")));
   const directManifestPath = path.join(directDir, "manifest.json");
   if (directScriptExists || (await fileExists(directManifestPath))) {
     const manifest = (await fileExists(directManifestPath))
-      ? episodeManifestSchema.parse(JSON.parse(await fs.readFile(directManifestPath, "utf8")) as unknown)
+      ? episodeManifestSchema.parse(
+          JSON.parse(await fs.readFile(directManifestPath, "utf8")) as unknown
+        )
       : null;
     return { episodeDir: directDir, manifest };
   }
@@ -473,7 +692,9 @@ async function readEpisodeWorkspaceForAudio(options: CliOptions, episodeId: stri
 
 async function resolveEpisodeSourceAudioPath(
   episodeDir: string,
-  manifest: { readonly source: { readonly filePath?: string | undefined } } | null
+  manifest: {
+    readonly source: { readonly filePath?: string | undefined };
+  } | null
 ): Promise<string> {
   const candidates: string[] = [];
   const sourceFilePath = manifest?.source?.filePath;
@@ -481,22 +702,32 @@ async function resolveEpisodeSourceAudioPath(
     candidates.push(sourceFilePath);
   }
   const sourceDir = path.join(episodeDir, "source");
-  const rootEntries = await fs.readdir(sourceDir, { withFileTypes: true }).catch(() => []);
+  const rootEntries = await fs
+    .readdir(sourceDir, { withFileTypes: true })
+    .catch(() => []);
   for (const entry of rootEntries) {
     if (!entry.isFile()) {
       continue;
     }
     const candidate = path.join(sourceDir, entry.name);
-    if (/^source-media\./u.test(entry.name) || /\.(?:wav|mp3|m4a|mp4|mkv|webm|ogg|flac)$/iu.test(entry.name)) {
+    if (
+      /^source-media\./u.test(entry.name) ||
+      /\.(?:wav|mp3|m4a|mp4|mkv|webm|ogg|flac)$/iu.test(entry.name)
+    ) {
       candidates.push(candidate);
     }
   }
-  const episodeEntries = await fs.readdir(episodeDir, { withFileTypes: true }).catch(() => []);
+  const episodeEntries = await fs
+    .readdir(episodeDir, { withFileTypes: true })
+    .catch(() => []);
   for (const entry of episodeEntries) {
     if (!entry.isFile()) {
       continue;
     }
-    if (/^source-media\./u.test(entry.name) || /\.(?:wav|mp3|m4a|mp4|mkv|webm|ogg|flac)$/iu.test(entry.name)) {
+    if (
+      /^source-media\./u.test(entry.name) ||
+      /\.(?:wav|mp3|m4a|mp4|mkv|webm|ogg|flac)$/iu.test(entry.name)
+    ) {
       candidates.push(path.join(episodeDir, entry.name));
     }
   }
@@ -505,7 +736,9 @@ async function resolveEpisodeSourceAudioPath(
       return candidate;
     }
   }
-  throw new Error(`No source audio file could be located for ${path.basename(episodeDir)}.`);
+  throw new Error(
+    `No source audio file could be located for ${path.basename(episodeDir)}.`
+  );
 }
 
 function transcriptSegmentationOptionsFromConfig(config: RuntimeConfig): {
@@ -522,7 +755,7 @@ function transcriptSegmentationOptionsFromConfig(config: RuntimeConfig): {
     maxSilenceSeconds: config.transcriptMaxSilenceSeconds,
     timestampPrecision: config.transcriptTimestampPrecision,
     maxSingleWordDurationSeconds: config.transcriptMaxWordDurationSeconds,
-    boundaryLookbackWords: config.transcriptBoundaryLookbackWords
+    boundaryLookbackWords: config.transcriptBoundaryLookbackWords,
   };
 }
 
@@ -541,23 +774,43 @@ async function readTranscriptArtifacts(episodeDir: string): Promise<{
     : (await fileExists(legacyRawPath))
       ? legacyRawPath
       : null;
-  const normalizedCandidate = (await fileExists(normalizedPath)) ? normalizedPath : null;
-  const raw = rawCandidate ? parseWhisperRawArtifact(JSON.parse(await fs.readFile(rawCandidate, "utf8")) as unknown) : null;
+  const normalizedCandidate = (await fileExists(normalizedPath))
+    ? normalizedPath
+    : null;
+  const raw = rawCandidate
+    ? parseWhisperRawArtifact(
+        JSON.parse(await fs.readFile(rawCandidate, "utf8")) as unknown
+      )
+    : null;
   const normalized = normalizedCandidate
-    ? normalizedTranscriptSchema.parse(JSON.parse(await fs.readFile(normalizedCandidate, "utf8")) as unknown)
+    ? normalizedTranscriptSchema.parse(
+        JSON.parse(await fs.readFile(normalizedCandidate, "utf8")) as unknown
+      )
     : null;
   return {
     rawPath,
     normalizedPath,
     raw,
-    normalized
+    normalized,
   };
 }
 
 async function inspectAudioDurationSeconds(filePath: string): Promise<number> {
-  const result = await runCommand("ffprobe", ["-v", "error", "-show_entries", "format=duration", "-of", "default=noprint_wrappers=1:nokey=1", filePath], {
-    timeoutMs: 120000
-  });
+  const result = await runCommand(
+    "ffprobe",
+    [
+      "-v",
+      "error",
+      "-show_entries",
+      "format=duration",
+      "-of",
+      "default=noprint_wrappers=1:nokey=1",
+      filePath,
+    ],
+    {
+      timeoutMs: 120000,
+    }
+  );
   const duration = Number.parseFloat(result.stdout.trim());
   if (!Number.isFinite(duration) || duration <= 0) {
     throw new Error(`Unable to inspect duration for ${filePath}`);
@@ -566,36 +819,56 @@ async function inspectAudioDurationSeconds(filePath: string): Promise<number> {
 }
 
 function isInsufficientQuotaError(error: unknown): boolean {
-  const message = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
-  return /insufficient_quota|exceeded your current quota|does not have access to model/i.test(message);
+  const message =
+    error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+  return /insufficient_quota|exceeded your current quota|does not have access to model/i.test(
+    message
+  );
 }
 
-async function cleanupAudioGenerationArtifacts(audioDir: string, segmentsDir: string, narrationPath: string): Promise<void> {
-  const entries = await fs.readdir(segmentsDir, { withFileTypes: true }).catch(() => []);
+async function cleanupAudioGenerationArtifacts(
+  audioDir: string,
+  segmentsDir: string,
+  narrationPath: string
+): Promise<void> {
+  const entries = await fs
+    .readdir(segmentsDir, { withFileTypes: true })
+    .catch(() => []);
   await Promise.all(
     entries
       .filter((entry) => entry.isFile())
       .map(async (entry) => {
-        await fs.rm(path.join(segmentsDir, entry.name), { force: true }).catch(() => {});
+        await fs
+          .rm(path.join(segmentsDir, entry.name), { force: true })
+          .catch(() => {});
       })
   );
   await Promise.all([
     fs.rm(path.join(audioDir, "segments.txt"), { force: true }).catch(() => {}),
-    fs.rm(path.join(audioDir, "generation-report.json"), { force: true }).catch(() => {}),
-    fs.rm(narrationPath, { force: true }).catch(() => {})
+    fs
+      .rm(path.join(audioDir, "generation-report.json"), { force: true })
+      .catch(() => {}),
+    fs.rm(narrationPath, { force: true }).catch(() => {}),
   ]);
 }
 
-async function cleanupStaleAudioTempFiles(audioDir: string, segmentsDir: string): Promise<void> {
+async function cleanupStaleAudioTempFiles(
+  audioDir: string,
+  segmentsDir: string
+): Promise<void> {
   const directories = [audioDir, segmentsDir];
   await Promise.all(
     directories.map(async (directory) => {
-      const entries = await fs.readdir(directory, { withFileTypes: true }).catch(() => []);
+      const entries = await fs
+        .readdir(directory, { withFileTypes: true })
+        .catch(() => []);
       await Promise.all(
         entries
           .filter((entry) => entry.isFile() && entry.name.endsWith(".tmp"))
           .map(async (entry) => {
-            await fs.rm(path.join(directory, entry.name), { force: true }).catch(() => {});
+            await fs
+              .rm(path.join(directory, entry.name), { force: true })
+              .catch(() => {});
           })
       );
     })
@@ -610,58 +883,88 @@ async function synthesizeSpeechChunks(
   episodeSlug: string,
   language: string,
   generatedAt: string
-): Promise<{ segmentPaths: string[]; artifacts: Array<ArtifactReference | undefined> }> {
+): Promise<{
+  segmentPaths: string[];
+  artifacts: Array<ArtifactReference | undefined>;
+}> {
   const segmentPaths: string[] = Array(chunks.length).fill("");
-  const artifacts: Array<ArtifactReference | undefined> = Array(chunks.length).fill(undefined);
+  const artifacts: Array<ArtifactReference | undefined> = Array(
+    chunks.length
+  ).fill(undefined);
   for (let index = 0; index < chunks.length; index += 1) {
-      const chunk = chunks[index];
-      if (chunk === undefined) {
-        continue;
-      }
-      const sceneId = sceneIdSchema.parse(`scene-${String(index + 1).padStart(3, "0")}`);
-      const outputPath = path.join(segmentsDir, `${safeBasename(`segment-${String(index + 1).padStart(3, "0")}`)}.wav`);
-      const words = chunk.trim().split(/\s+/u).filter(Boolean).length;
-      const estimatedDurationSeconds = Math.max(2, Math.ceil((words / speechSettings.profile.paceWpm) * 60));
-      await pipeline.speech.synthesize(
-        {
-          sceneId,
-          text: chunk,
-          voiceProfile: speechSettings.profile,
-          outputPath,
-          targetDurationSeconds: estimatedDurationSeconds
-        },
-        new AbortController().signal
-      );
-      segmentPaths[index] = outputPath;
-      const stats = await fs.stat(outputPath);
-      artifacts[index] = {
-        id: artifactIdSchema.parse(`artifact-${slugify(`${episodeSlug}-segment-${String(index + 1).padStart(3, "0")}-${language}`)}`),
-        kind: language === "en" ? "audio.segment" : `audio.segment.${language}`,
-        path: outputPath,
-        mimeType: "audio/wav",
-        sizeBytes: stats.size,
-        checksumSha256: await hashFile(outputPath),
-        createdAt: generatedAt
-      };
+    const chunk = chunks[index];
+    if (chunk === undefined) {
+      continue;
     }
-    return { segmentPaths, artifacts };
+    const sceneId = sceneIdSchema.parse(
+      `scene-${String(index + 1).padStart(3, "0")}`
+    );
+    const outputPath = path.join(
+      segmentsDir,
+      `${safeBasename(`segment-${String(index + 1).padStart(3, "0")}`)}.wav`
+    );
+    const words = chunk.trim().split(/\s+/u).filter(Boolean).length;
+    const estimatedDurationSeconds = Math.max(
+      2,
+      Math.ceil((words / speechSettings.profile.paceWpm) * 60)
+    );
+    await pipeline.speech.synthesize(
+      {
+        sceneId,
+        text: chunk,
+        voiceProfile: speechSettings.profile,
+        outputPath,
+        targetDurationSeconds: estimatedDurationSeconds,
+      },
+      new AbortController().signal
+    );
+    segmentPaths[index] = outputPath;
+    const stats = await fs.stat(outputPath);
+    artifacts[index] = {
+      id: artifactIdSchema.parse(
+        `artifact-${slugify(`${episodeSlug}-segment-${String(index + 1).padStart(3, "0")}-${language}`)}`
+      ),
+      kind: language === "en" ? "audio.segment" : `audio.segment.${language}`,
+      path: outputPath,
+      mimeType: "audio/wav",
+      sizeBytes: stats.size,
+      checksumSha256: await hashFile(outputPath),
+      createdAt: generatedAt,
+    };
+  }
+  return { segmentPaths, artifacts };
 }
 
-async function commandTranscriptGenerate(options: CliOptions, episodeId: string): Promise<void> {
-  const { manifest, episodeDir } = await readEpisodeWorkspaceForAudio(options, episodeId);
+async function commandTranscriptGenerate(
+  options: CliOptions,
+  episodeId: string
+): Promise<void> {
+  markEpisodeTelemetry(episodeId);
+  const { manifest, episodeDir } = await readEpisodeWorkspaceForAudio(
+    options,
+    episodeId
+  );
   if (!manifest) {
     throw new Error(`Episode manifest not found for ${episodeId}`);
   }
-  const config = await loadRuntimeConfig(configOverridesFromCli(options), (await loadEpisodeConfig(episodeDir)) ?? {});
-  if (config.transcriptionProvider === "whisper.cpp" && !config.whisperWordTimestamps) {
-    throw new Error("Transcript generation requires WHISPER_WORD_TIMESTAMPS=true when using whisper.cpp.");
+  const config = await loadRuntimeConfig(
+    configOverridesFromCli(options),
+    (await loadEpisodeConfig(episodeDir)) ?? {}
+  );
+  if (
+    config.transcriptionProvider === "whisper.cpp" &&
+    !config.whisperWordTimestamps
+  ) {
+    throw new Error(
+      "Transcript generation requires WHISPER_WORD_TIMESTAMPS=true when using whisper.cpp."
+    );
   }
   const audioPath = await resolveEpisodeSourceAudioPath(episodeDir, manifest);
   const audioDurationSeconds = await inspectAudioDurationSeconds(audioPath);
   const outputPaths = {
     raw: path.join(episodeDir, "transcript", "transcript.raw.json"),
     normalized: path.join(episodeDir, "transcript", "transcript.json"),
-    srt: path.join(episodeDir, "transcript", "transcript.srt")
+    srt: path.join(episodeDir, "transcript", "transcript.srt"),
   };
   if (options.dryRun) {
     printJson({
@@ -674,56 +977,72 @@ async function commandTranscriptGenerate(options: CliOptions, episodeId: string)
       openAiTranscriptionModel: config.openAiTranscriptionModel,
       language: config.whisperLanguage ?? config.scriptLanguage,
       outputPaths,
-      dryRun: true
+      dryRun: true,
     });
     return;
   }
   const pipeline = await loadPipeline(options, episodeDir);
-  const transcriptionLanguage = config.whisperLanguage ?? config.openAiTranscriptionLanguage ?? config.scriptLanguage;
+  const transcriptionLanguage =
+    config.whisperLanguage ??
+    config.openAiTranscriptionLanguage ??
+    config.scriptLanguage;
   const transcriptRequest = transcriptionLanguage
     ? {
         sourceId: manifest.episodeId,
         audioPath,
         episodeDir,
-        language: transcriptionLanguage
+        language: transcriptionLanguage,
       }
     : {
         sourceId: manifest.episodeId,
         audioPath,
-        episodeDir
+        episodeDir,
       };
-  const transcript = await pipeline.transcription.transcribe(transcriptRequest, new AbortController().signal);
+  const transcript = await pipeline.transcription.transcribe(
+    transcriptRequest,
+    new AbortController().signal
+  );
   const artifacts = await readTranscriptArtifacts(episodeDir);
   const raw = artifacts.raw;
-  const normalized = artifacts.normalized ?? normalizedTranscriptSchema.parse({
-    schemaVersion: 1,
-    sourceId: transcript.sourceId,
-    language: transcript.language,
-    text: transcript.text,
-    segments: transcript.segments,
-    words: transcript.words,
-    generation: {
-      provider: config.transcriptionProvider,
-      model: config.whisperModel ?? config.openAiTranscriptionModel ?? "unknown",
-      generatedAt: new Date().toISOString(),
-      wordTimestamps: true as const
+  const normalized =
+    artifacts.normalized ??
+    normalizedTranscriptSchema.parse({
+      schemaVersion: 1,
+      sourceId: transcript.sourceId,
+      language: transcript.language,
+      text: transcript.text,
+      segments: transcript.segments,
+      words: transcript.words,
+      generation: {
+        provider: config.transcriptionProvider,
+        model:
+          config.whisperModel ?? config.openAiTranscriptionModel ?? "unknown",
+        generatedAt: new Date().toISOString(),
+        wordTimestamps: true as const,
+      },
+    });
+  const visualSceneCount = buildVisualScenesFromSubtitleSegments(
+    normalized.segments,
+    {
+      minDurationSeconds: config.visualSceneMinSeconds,
+      maxDurationSeconds: config.visualSceneMaxSeconds,
     }
-  });
-  const visualSceneCount = buildVisualScenesFromSubtitleSegments(normalized.segments, {
-    minDurationSeconds: config.visualSceneMinSeconds,
-    maxDurationSeconds: config.visualSceneMaxSeconds
-  }).length;
+  ).length;
   const summary = {
     episodeId,
     backend: raw?.backend ?? config.transcriptionProvider,
-    model: raw?.model ?? config.whisperModel ?? config.openAiTranscriptionModel ?? "unknown",
+    model:
+      raw?.model ??
+      config.whisperModel ??
+      config.openAiTranscriptionModel ??
+      "unknown",
     language: normalized.language,
     audioDurationSeconds,
     wordCount: normalized.words.length,
     rawSegmentCount: raw?.rawSegments.length ?? 0,
     normalizedSubtitleCount: normalized.segments.length,
     visualSceneCount,
-    outputPaths: [artifacts.rawPath, artifacts.normalizedPath, outputPaths.srt]
+    outputPaths: [artifacts.rawPath, artifacts.normalizedPath, outputPaths.srt],
   };
   if (options.json) {
     printJson(summary);
@@ -740,17 +1059,27 @@ async function commandTranscriptGenerate(options: CliOptions, episodeId: string)
       `normalized subtitle count: ${summary.normalizedSubtitleCount}`,
       `visual scene count: ${summary.visualSceneCount}`,
       `output paths:`,
-      ...summary.outputPaths.map((value) => `  ${value}`)
+      ...summary.outputPaths.map((value) => `  ${value}`),
     ].join("\n") + "\n"
   );
 }
 
-async function commandTranscriptNormalize(options: CliOptions, episodeId: string): Promise<void> {
-  const { episodeDir, manifest } = await readEpisodeWorkspaceForAudio(options, episodeId);
+async function commandTranscriptNormalize(
+  options: CliOptions,
+  episodeId: string
+): Promise<void> {
+  markEpisodeTelemetry(episodeId);
+  const { episodeDir, manifest } = await readEpisodeWorkspaceForAudio(
+    options,
+    episodeId
+  );
   if (!manifest) {
     throw new Error(`Episode manifest not found for ${episodeId}`);
   }
-  const config = await loadRuntimeConfig(configOverridesFromCli(options), (await loadEpisodeConfig(episodeDir)) ?? {});
+  const config = await loadRuntimeConfig(
+    configOverridesFromCli(options),
+    (await loadEpisodeConfig(episodeDir)) ?? {}
+  );
   const artifacts = await readTranscriptArtifacts(episodeDir);
   if (!artifacts.raw) {
     throw new Error(`No raw Whisper transcript found for ${episodeId}.`);
@@ -762,7 +1091,7 @@ async function commandTranscriptNormalize(options: CliOptions, episodeId: string
     provider: artifacts.raw.backend,
     model: artifacts.raw.model,
     generatedAt: new Date().toISOString(),
-    options: transcriptSegmentationOptionsFromConfig(config)
+    options: transcriptSegmentationOptionsFromConfig(config),
   });
   if (options.dryRun) {
     printJson({
@@ -771,11 +1100,17 @@ async function commandTranscriptNormalize(options: CliOptions, episodeId: string
       normalizedPath: artifacts.normalizedPath,
       subtitleCount: normalized.segments.length,
       wordCount: normalized.words.length,
-      dryRun: true
+      dryRun: true,
     });
     return;
   }
-  await writeNormalizedTranscriptArtifacts(path.join(episodeDir, "transcript"), artifacts.rawPath, artifacts.normalizedPath, artifacts.raw, normalized);
+  await writeNormalizedTranscriptArtifacts(
+    path.join(episodeDir, "transcript"),
+    artifacts.rawPath,
+    artifacts.normalizedPath,
+    artifacts.raw,
+    normalized
+  );
   if (options.json) {
     printJson(normalized);
     return;
@@ -783,17 +1118,28 @@ async function commandTranscriptNormalize(options: CliOptions, episodeId: string
   process.stdout.write(`${artifacts.normalizedPath}\n`);
 }
 
-async function commandTranscriptValidate(options: CliOptions, episodeId: string): Promise<void> {
-  const { episodeDir, manifest } = await readEpisodeWorkspaceForAudio(options, episodeId);
+async function commandTranscriptValidate(
+  options: CliOptions,
+  episodeId: string
+): Promise<void> {
+  markEpisodeTelemetry(episodeId);
+  const { episodeDir, manifest } = await readEpisodeWorkspaceForAudio(
+    options,
+    episodeId
+  );
   if (!manifest) {
     throw new Error(`Episode manifest not found for ${episodeId}`);
   }
-  const config = await loadRuntimeConfig(configOverridesFromCli(options), (await loadEpisodeConfig(episodeDir)) ?? {});
+  const config = await loadRuntimeConfig(
+    configOverridesFromCli(options),
+    (await loadEpisodeConfig(episodeDir)) ?? {}
+  );
   const artifacts = await readTranscriptArtifacts(episodeDir);
   const issues: string[] = [];
   const spokenRawWords = (artifacts.raw?.words ?? []).filter(
     (word: { readonly text: string }) =>
-      normalizeWhitespace(word.text).length > 0 && !/^\[(?:music|música|applause|silence)\]$/iu.test(word.text)
+      normalizeWhitespace(word.text).length > 0 &&
+      !/^\[(?:music|música|applause|silence)\]$/iu.test(word.text)
   );
   if (!artifacts.raw) {
     issues.push("missing raw Whisper transcript");
@@ -811,10 +1157,13 @@ async function commandTranscriptValidate(options: CliOptions, episodeId: string)
     if (spokenRawWords.length !== artifacts.normalized.words.length) {
       issues.push("word count mismatch between raw and normalized transcript");
     }
-    const visualSceneCount = buildVisualScenesFromSubtitleSegments(artifacts.normalized.segments, {
-      minDurationSeconds: config.visualSceneMinSeconds,
-      maxDurationSeconds: config.visualSceneMaxSeconds
-    }).length;
+    const visualSceneCount = buildVisualScenesFromSubtitleSegments(
+      artifacts.normalized.segments,
+      {
+        minDurationSeconds: config.visualSceneMinSeconds,
+        maxDurationSeconds: config.visualSceneMaxSeconds,
+      }
+    ).length;
     if (visualSceneCount > artifacts.normalized.segments.length) {
       issues.push("visual scenes should not exceed subtitle segments");
     }
@@ -826,7 +1175,7 @@ async function commandTranscriptValidate(options: CliOptions, episodeId: string)
     rawPath: artifacts.rawPath,
     normalizedPath: artifacts.normalizedPath,
     subtitleCount: artifacts.normalized?.segments.length ?? 0,
-    wordCount: artifacts.normalized?.words.length ?? 0
+    wordCount: artifacts.normalized?.words.length ?? 0,
   };
   if (options.json) {
     printJson(summary);
@@ -838,7 +1187,10 @@ async function commandTranscriptValidate(options: CliOptions, episodeId: string)
   process.stdout.write(`Transcript valid for ${episodeId}\n`);
 }
 
-async function commandStatus(options: CliOptions, episodeId: string): Promise<void> {
+async function commandStatus(
+  options: CliOptions,
+  episodeId: string
+): Promise<void> {
   const { manifest } = await readManifestForEpisode(options, episodeId);
   if (options.json) {
     printJson(manifest);
@@ -848,13 +1200,22 @@ async function commandStatus(options: CliOptions, episodeId: string): Promise<vo
   process.stdout.write(`${manifest.pipelineRuns.length} pipeline runs\n`);
 }
 
-async function commandInspect(options: CliOptions, episodeId: string): Promise<void> {
+async function commandInspect(
+  options: CliOptions,
+  episodeId: string
+): Promise<void> {
   const { manifest } = await readManifestForEpisode(options, episodeId);
   printJson(manifest);
 }
 
-async function commandTranscriptExport(options: CliOptions, episodeId: string): Promise<void> {
-  const { manifest, episodeDir } = await readManifestForEpisode(options, episodeId);
+async function commandTranscriptExport(
+  options: CliOptions,
+  episodeId: string
+): Promise<void> {
+  const { manifest, episodeDir } = await readManifestForEpisode(
+    options,
+    episodeId
+  );
   const transcript = manifest.transcript;
   if (!transcript) {
     throw new Error("Transcript is not available in the manifest.");
@@ -865,36 +1226,61 @@ async function commandTranscriptExport(options: CliOptions, episodeId: string): 
     return;
   }
   process.stdout.write(`${output}\n`);
-  await writeJsonAtomic(path.join(episodeDir, "original-transcript.json"), transcript);
-  await writeTextAtomic(path.join(episodeDir, "original-transcript.srt"), buildSrt(transcript.segments));
+  await writeJsonAtomic(
+    path.join(episodeDir, "original-transcript.json"),
+    transcript
+  );
+  await writeTextAtomic(
+    path.join(episodeDir, "original-transcript.srt"),
+    buildSrt(transcript.segments)
+  );
 }
 
-async function commandAudioGenerate(options: CliOptions, episodeId: string): Promise<void> {
+async function commandAudioGenerate(
+  options: CliOptions,
+  episodeId: string
+): Promise<void> {
+  markEpisodeTelemetry(episodeId);
   const overrides = compactConfigOverrides(configOverridesFromCli(options));
   const resolved = await readEpisodeWorkspaceForAudio(options, episodeId);
   const { episodeDir, manifest } = resolved;
   const episodeConfig = await loadEpisodeConfig(episodeDir);
   const emptyEpisodeOverrides: RuntimeConfigOverrides = {};
-  const config = await loadRuntimeConfig(overrides, episodeConfig ? compactConfigOverrides(episodeConfig) : emptyEpisodeOverrides);
-  if (config.ttsProvider !== "openai-compatible" || !config.openAiCompatibleApiKey) {
-    throw new Error("OpenAI speech is required for narration generation; mock speech is disabled.");
+  const config = await loadRuntimeConfig(
+    overrides,
+    episodeConfig
+      ? compactConfigOverrides(episodeConfig)
+      : emptyEpisodeOverrides
+  );
+  if (
+    config.ttsProvider !== "openai-compatible" ||
+    !config.openAiCompatibleApiKey
+  ) {
+    throw new Error(
+      "OpenAI speech is required for narration generation; mock speech is disabled."
+    );
   }
-  const language = config.scriptLanguage ?? episodeConfig?.scriptLanguage ?? "en";
+  const language =
+    config.scriptLanguage ?? episodeConfig?.scriptLanguage ?? "en";
   const script = await loadNarrationScriptMarkdown(episodeDir, language);
   const rewrittenChunks =
     manifest?.rewrittenScript?.sections
       .map((section) => normalizeWhitespace(section.text))
       .filter((chunk) => chunk.length > 0) ?? [];
-  const sceneChunks = manifest?.scenePlan?.scenes
-    .map((scene) => normalizeWhitespace(scene.canonicalNarration))
-    .filter((chunk) => chunk.length > 0) ?? [];
+  const sceneChunks =
+    manifest?.scenePlan?.scenes
+      .map((scene) => normalizeWhitespace(scene.canonicalNarration))
+      .filter((chunk) => chunk.length > 0) ?? [];
   const sceneCount = manifest?.scenePlan?.scenes.length;
   const chunks =
     sceneChunks.length > 0
       ? sceneChunks
       : rewrittenChunks.length > 0
         ? balanceScriptChunksForScenes(rewrittenChunks, sceneCount)
-      : balanceScriptChunksForScenes(splitEpisodeScriptMarkdown(script.text), sceneCount);
+        : balanceScriptChunksForScenes(
+            splitEpisodeScriptMarkdown(script.text),
+            sceneCount
+          );
   if (chunks.length === 0) {
     throw new Error(`No narration text found in ${script.filePath}.`);
   }
@@ -911,64 +1297,131 @@ async function commandAudioGenerate(options: CliOptions, episodeId: string): Pro
       narrationPath,
       segmentsDir,
       segmentCount: chunks.length,
-      dryRun: true
+      dryRun: true,
     });
     return;
   }
-  const pipeline = await createPipeline(overrides, episodeConfig ? compactConfigOverrides(episodeConfig) : emptyEpisodeOverrides);
+  const pipeline = await createPipeline(
+    overrides,
+    episodeConfig
+      ? compactConfigOverrides(episodeConfig)
+      : emptyEpisodeOverrides
+  );
   const speechSettings = loadSpeechVoiceSettings({
-    ...(config.speechVoicePreset ? { preset: config.speechVoicePreset } : episodeConfig?.speechVoicePreset ? { preset: episodeConfig.speechVoicePreset } : {}),
-    ...(language ? { language } : {})
+    ...(config.speechVoicePreset
+      ? { preset: config.speechVoicePreset }
+      : episodeConfig?.speechVoicePreset
+        ? { preset: episodeConfig.speechVoicePreset }
+        : {}),
+    ...(language ? { language } : {}),
   });
   await ensureDir(segmentsDir);
   await cleanupStaleAudioTempFiles(audioDir, segmentsDir);
-  const scriptSourcePath = await writeEpisodeScriptMarkdown(episodeDir, script.text, language);
+  const scriptSourcePath = await writeEpisodeScriptMarkdown(
+    episodeDir,
+    script.text,
+    language
+  );
   const generatedAt = new Date().toISOString();
   let generated;
   try {
-    generated = await synthesizeSpeechChunks(pipeline, chunks, speechSettings, segmentsDir, episodeSlug, language, generatedAt);
+    generated = await synthesizeSpeechChunks(
+      pipeline,
+      chunks,
+      speechSettings,
+      segmentsDir,
+      episodeSlug,
+      language,
+      generatedAt
+    );
   } catch (error) {
     if (!isInsufficientQuotaError(error) || chunks.length <= 1) {
       throw error;
     }
     await cleanupAudioGenerationArtifacts(audioDir, segmentsDir, narrationPath);
-    generated = await synthesizeSpeechChunks(pipeline, chunks, speechSettings, segmentsDir, episodeSlug, language, generatedAt);
+    generated = await synthesizeSpeechChunks(
+      pipeline,
+      chunks,
+      speechSettings,
+      segmentsDir,
+      episodeSlug,
+      language,
+      generatedAt
+    );
   }
   const { segmentPaths, artifacts } = generated;
-  const completeSegmentPaths = segmentPaths.filter((segmentPath): segmentPath is string => segmentPath.length > 0);
-  const completeArtifacts = artifacts.filter((artifact): artifact is ArtifactReference => artifact !== undefined);
+  const completeSegmentPaths = segmentPaths.filter(
+    (segmentPath): segmentPath is string => segmentPath.length > 0
+  );
+  const completeArtifacts = artifacts.filter(
+    (artifact): artifact is ArtifactReference => artifact !== undefined
+  );
   const segmentsListPath = path.join(audioDir, "segments.txt");
-  await writeTextAtomic(segmentsListPath, completeSegmentPaths.map((segmentPath) => `file '${segmentPath.replace(/'/g, "'\\''")}'`).join("\n"));
-  const concat = spawnSync("ffmpeg", ["-y", "-f", "concat", "-safe", "0", "-i", segmentsListPath, "-c", "copy", narrationPath], { encoding: "utf8" });
+  await writeTextAtomic(
+    segmentsListPath,
+    completeSegmentPaths
+      .map((segmentPath) => `file '${segmentPath.replace(/'/g, "'\\''")}'`)
+      .join("\n")
+  );
+  const concat = spawnSync(
+    "ffmpeg",
+    [
+      "-y",
+      "-f",
+      "concat",
+      "-safe",
+      "0",
+      "-i",
+      segmentsListPath,
+      "-c",
+      "copy",
+      narrationPath,
+    ],
+    { encoding: "utf8" }
+  );
   if (concat.status !== 0) {
     throw new Error(concat.stderr || "Failed to concatenate narration audio.");
   }
   const narrationStats = await fs.stat(narrationPath);
   completeArtifacts.push({
-    id: artifactIdSchema.parse(`artifact-${slugify(`${episodeSlug}-narration-${language}`)}`),
+    id: artifactIdSchema.parse(
+      `artifact-${slugify(`${episodeSlug}-narration-${language}`)}`
+    ),
     kind: language === "en" ? "audio.narration" : `audio.narration.${language}`,
     path: narrationPath,
     mimeType: "audio/wav",
     sizeBytes: narrationStats.size,
     checksumSha256: await hashFile(narrationPath),
-    createdAt: generatedAt
+    createdAt: generatedAt,
   });
   completeArtifacts.push({
-    id: artifactIdSchema.parse(`artifact-${slugify(`${episodeSlug}-script-source-${language}`)}`),
-    kind: language === "en" ? "audio.script-source" : `audio.script-source.${language}`,
+    id: artifactIdSchema.parse(
+      `artifact-${slugify(`${episodeSlug}-script-source-${language}`)}`
+    ),
+    kind:
+      language === "en"
+        ? "audio.script-source"
+        : `audio.script-source.${language}`,
     path: scriptSourcePath,
     mimeType: "text/markdown",
     sizeBytes: (await fs.stat(scriptSourcePath)).size,
     checksumSha256: await hashFile(scriptSourcePath),
-    createdAt: generatedAt
+    createdAt: generatedAt,
   });
   if (manifest) {
     manifest.artifacts = [
       ...manifest.artifacts.filter((artifact) => {
-        const kinds = language === "en" ? ["audio.segment", "audio.narration", "audio.script-source"] : [`audio.segment.${language}`, `audio.narration.${language}`, `audio.script-source.${language}`];
+        const kinds =
+          language === "en"
+            ? ["audio.segment", "audio.narration", "audio.script-source"]
+            : [
+                `audio.segment.${language}`,
+                `audio.narration.${language}`,
+                `audio.script-source.${language}`,
+              ];
         return !kinds.includes(artifact.kind);
       }),
-      ...completeArtifacts
+      ...completeArtifacts,
     ];
     manifest.updatedAt = generatedAt;
     await writeJsonAtomic(path.join(episodeDir, "manifest.json"), manifest);
@@ -981,7 +1434,7 @@ async function commandAudioGenerate(options: CliOptions, episodeId: string): Pro
     narrationPath,
     segmentsDir,
     segmentCount: chunks.length,
-    generatedAt
+    generatedAt,
   });
   if (options.json) {
     printJson({
@@ -991,35 +1444,57 @@ async function commandAudioGenerate(options: CliOptions, episodeId: string): Pro
       narrationPath,
       segmentsDir,
       segmentCount: chunks.length,
-      segmentPaths: completeSegmentPaths
+      segmentPaths: completeSegmentPaths,
     });
     return;
   }
   if (!options.quiet) {
-    process.stdout.write(`Generated narration for ${episodeId} (${language})\n${narrationPath}\n`);
+    process.stdout.write(
+      `Generated narration for ${episodeId} (${language})\n${narrationPath}\n`
+    );
   }
 }
 
-async function commandClipsGenerate(options: CliOptions, episodeId: string): Promise<void> {
-  const { manifest, episodeDir } = await readManifestForEpisode(options, episodeId);
+async function commandClipsGenerate(
+  options: CliOptions,
+  episodeId: string
+): Promise<void> {
+  markEpisodeTelemetry(episodeId);
+  const { manifest, episodeDir } = await readManifestForEpisode(
+    options,
+    episodeId
+  );
   if (!manifest.scenePlan) {
     throw new Error("Scene plan is not available.");
   }
   const episodeConfig = await loadEpisodeConfig(episodeDir);
-  const config = await loadRuntimeConfig(configOverridesFromCli(options), episodeConfig ? compactConfigOverrides(episodeConfig) : {});
-  const language = config.scriptLanguage ?? episodeConfig?.scriptLanguage ?? "en";
+  const config = await loadRuntimeConfig(
+    configOverridesFromCli(options),
+    episodeConfig ? compactConfigOverrides(episodeConfig) : {}
+  );
+  const language =
+    config.scriptLanguage ?? episodeConfig?.scriptLanguage ?? "en";
   if (options.dryRun) {
     printJson({
       episodeId,
       language,
       audioDir: localizedSegmentsDir(episodeDir, language),
-      clipsDir: path.join(episodeDir, "output", localizedClipsDirName(language)),
-      dryRun: true
+      clipsDir: path.join(
+        episodeDir,
+        "output",
+        localizedClipsDirName(language)
+      ),
+      dryRun: true,
     });
     return;
   }
   const pipeline = await loadPipeline(options, episodeDir);
-  const scenePlan = options.sceneLimit ? { ...manifest.scenePlan, scenes: manifest.scenePlan.scenes.slice(0, options.sceneLimit) } : manifest.scenePlan;
+  const scenePlan = options.sceneLimit
+    ? {
+        ...manifest.scenePlan,
+        scenes: manifest.scenePlan.scenes.slice(0, options.sceneLimit),
+      }
+    : manifest.scenePlan;
   const renderProfile = {
     id: "clips",
     label: "Localized clips",
@@ -1027,36 +1502,48 @@ async function commandClipsGenerate(options: CliOptions, episodeId: string): Pro
     height: config.defaultAspectRatio === "16:9" ? 1080 : 1920,
     fps: 30,
     aspectRatio: config.defaultAspectRatio,
-    burnCaptions: false
+    burnCaptions: false,
   } as const;
   const result = await pipeline.renderer.renderSceneClips(
     {
       episodeDir,
       scenePlan,
-    outputDir: path.join(episodeDir, "output"),
-    renderProfile,
-    captionBurnIn: false,
-    clipsDirName: localizedClipsDirName(language),
-    sceneAudioDir: localizedSegmentsDir(episodeDir, language),
-    imageDir: path.join(episodeDir, "images", "generated"),
-    trailingSilenceRatio: config.trailingSilenceRatio
-  },
+      outputDir: path.join(episodeDir, "output"),
+      renderProfile,
+      captionBurnIn: false,
+      clipsDirName: localizedClipsDirName(language),
+      sceneAudioDir: localizedSegmentsDir(episodeDir, language),
+      imageDir: path.join(episodeDir, "shared", "images", "generated"),
+      trailingSilenceRatio: config.trailingSilenceRatio,
+      trailingSilenceBufferSeconds: config.trailingSilenceBufferSeconds,
+    },
     new AbortController().signal
   );
   if (options.json) {
     printJson({ episodeId, language, ...result });
     return;
   }
-  process.stdout.write(`Generated localized clips for ${episodeId} (${language})\n${result.clipsDir}\n`);
+  process.stdout.write(
+    `Generated localized clips for ${episodeId} (${language})\n${result.clipsDir}\n`
+  );
 }
 
-async function commandScenesList(options: CliOptions, episodeId: string): Promise<void> {
+async function commandScenesList(
+  options: CliOptions,
+  episodeId: string
+): Promise<void> {
   const { manifest } = await readManifestForEpisode(options, episodeId);
   const scenes = manifest.scenePlan?.scenes ?? [];
-  process.stdout.write(`${scenes.map((scene) => `${scene.id} ${scene.timing.startSeconds}-${scene.timing.endSeconds}`).join("\n")}\n`);
+  process.stdout.write(
+    `${scenes.map((scene) => `${scene.id} ${scene.timing.startSeconds}-${scene.timing.endSeconds}`).join("\n")}\n`
+  );
 }
 
-async function commandScenesInspect(options: CliOptions, episodeId: string, sceneId: string): Promise<void> {
+async function commandScenesInspect(
+  options: CliOptions,
+  episodeId: string,
+  sceneId: string
+): Promise<void> {
   const { manifest } = await readManifestForEpisode(options, episodeId);
   const scene = manifest.scenePlan?.scenes.find((item) => item.id === sceneId);
   if (!scene) {
@@ -1065,23 +1552,39 @@ async function commandScenesInspect(options: CliOptions, episodeId: string, scen
   printJson(scene);
 }
 
-async function commandImagesExportOpenArt(options: CliOptions, episodeId: string): Promise<void> {
-  const { manifest, episodeDir } = await readManifestForEpisode(options, episodeId);
+async function commandImagesExportOpenArt(
+  options: CliOptions,
+  episodeId: string
+): Promise<void> {
+  const { manifest, episodeDir } = await readManifestForEpisode(
+    options,
+    episodeId
+  );
   if (!manifest.scenePlan) {
     throw new Error("Scene plan is not available.");
   }
-  const prompts = createPromptBatch(manifest.scenePlan, "16:9", localSceneStyle, localSceneNegativePrompt);
+  const prompts = createPromptBatch(
+    manifest.scenePlan,
+    "16:9",
+    localSceneStyle,
+    localSceneNegativePrompt
+  );
   await exportSceneWorkbook(episodeDir, prompts, {
     batchSize: Number(process.env["MEDIAFORGE_OPENART_BATCH_SIZE"] ?? 8),
     aspectRatio: "16:9",
-    globalStyle: localSceneStyle
+    globalStyle: localSceneStyle,
   });
   if (!options.quiet) {
-    process.stdout.write(`Exported scene workbook to ${path.join(episodeDir, "images", "scene-workbook.html")}\n`);
+    process.stdout.write(
+      `Exported scene workbook to ${path.join(episodeDir, "images", "scene-workbook.html")}\n`
+    );
   }
 }
 
-async function commandImagesOpenOpenArt(options: CliOptions, episodeId: string): Promise<void> {
+async function commandImagesOpenOpenArt(
+  options: CliOptions,
+  episodeId: string
+): Promise<void> {
   const { episodeDir } = await readManifestForEpisode(options, episodeId);
   const workbook = path.join(episodeDir, "images", "scene-workbook.html");
   const opener = spawnSync("xdg-open", [workbook], { encoding: "utf8" });
@@ -1090,17 +1593,34 @@ async function commandImagesOpenOpenArt(options: CliOptions, episodeId: string):
   }
 }
 
-async function commandImagesImport(options: CliOptions, episodeId: string, fromDir: string): Promise<void> {
-  const { manifest, episodeDir } = await readManifestForEpisode(options, episodeId);
+async function commandImagesImport(
+  options: CliOptions,
+  episodeId: string,
+  fromDir: string
+): Promise<void> {
+  const { manifest, episodeDir } = await readManifestForEpisode(
+    options,
+    episodeId
+  );
   if (!manifest.scenePlan) {
     throw new Error("Scene plan is not available.");
   }
-  const assets = await importImageAssets(episodeDir, manifest.scenePlan, fromDir);
-  await writeJsonAtomic(path.join(episodeDir, "images", "generated", "imported.json"), assets);
+  const assets = await importImageAssets(
+    episodeDir,
+    manifest.scenePlan,
+    fromDir
+  );
+  await writeJsonAtomic(
+    path.join(episodeDir, "images", "generated", "imported.json"),
+    assets
+  );
   printJson(assets);
 }
 
-async function commandImagesValidate(options: CliOptions, episodeId: string): Promise<void> {
+async function commandImagesValidate(
+  options: CliOptions,
+  episodeId: string
+): Promise<void> {
   const { manifest } = await readManifestForEpisode(options, episodeId);
   if (!manifest.scenePlan) {
     throw new Error("Scene plan is not available.");
@@ -1109,7 +1629,10 @@ async function commandImagesValidate(options: CliOptions, episodeId: string): Pr
   printJson(validation);
 }
 
-async function commandImagesMissing(options: CliOptions, episodeId: string): Promise<void> {
+async function commandImagesMissing(
+  options: CliOptions,
+  episodeId: string
+): Promise<void> {
   const { manifest } = await readManifestForEpisode(options, episodeId);
   if (!manifest.scenePlan) {
     throw new Error("Scene plan is not available.");
@@ -1118,28 +1641,61 @@ async function commandImagesMissing(options: CliOptions, episodeId: string): Pro
   printJson(missing);
 }
 
-async function commandImagesReject(options: CliOptions, episodeId: string, sceneId: string, reason: string): Promise<void> {
+async function commandImagesReject(
+  options: CliOptions,
+  episodeId: string,
+  sceneId: string,
+  reason: string
+): Promise<void> {
   const { episodeDir } = await readManifestForEpisode(options, episodeId);
-  await writeTextAtomic(path.join(episodeDir, "images", "rejected", `${sceneId}.txt`), reason);
+  await writeTextAtomic(
+    path.join(episodeDir, "images", "rejected", `${sceneId}.txt`),
+    reason
+  );
   process.stdout.write(`Rejected ${sceneId}: ${reason}\n`);
 }
 
-async function commandImagesRegenerateWorkbook(options: CliOptions, episodeId: string, missingOnly: boolean): Promise<void> {
-  const { manifest, episodeDir } = await readManifestForEpisode(options, episodeId);
+async function commandImagesRegenerateWorkbook(
+  options: CliOptions,
+  episodeId: string,
+  missingOnly: boolean
+): Promise<void> {
+  const { manifest, episodeDir } = await readManifestForEpisode(
+    options,
+    episodeId
+  );
   if (!manifest.scenePlan) {
     throw new Error("Scene plan is not available.");
   }
-  const prompts = createPromptBatch(manifest.scenePlan, "16:9", localSceneStyle, localSceneNegativePrompt);
-  const filtered = missingOnly ? prompts.filter((prompt) => !manifest.images.some((asset) => asset.sceneId === prompt.sceneId)) : prompts;
+  const prompts = createPromptBatch(
+    manifest.scenePlan,
+    "16:9",
+    localSceneStyle,
+    localSceneNegativePrompt
+  );
+  const filtered = missingOnly
+    ? prompts.filter(
+        (prompt) =>
+          !manifest.images.some((asset) => asset.sceneId === prompt.sceneId)
+      )
+    : prompts;
   await exportSceneWorkbook(episodeDir, filtered, {
     batchSize: Number(process.env["MEDIAFORGE_OPENART_BATCH_SIZE"] ?? 8),
     aspectRatio: "16:9",
-    globalStyle: localSceneStyle
+    globalStyle: localSceneStyle,
   });
 }
 
-async function commandImagesAssign(options: CliOptions, episodeId: string, sceneId: string, filePath: string): Promise<void> {
-  const { episodeDir, manifest } = await readManifestForEpisode(options, episodeId);
+async function commandImagesAssign(
+  options: CliOptions,
+  episodeId: string,
+  sceneId: string,
+  filePath: string
+): Promise<void> {
+  const { episodeDir, manifest } = await readManifestForEpisode(
+    options,
+    episodeId
+  );
   if (!manifest.scenePlan) {
     throw new Error("Scene plan is not available.");
   }
@@ -1149,68 +1705,308 @@ async function commandImagesAssign(options: CliOptions, episodeId: string, scene
   }
   const targetDir = path.join(episodeDir, "images", "inbox");
   await ensureDir(targetDir);
-  const target = path.join(targetDir, scene.expectedImageFilenames[0] ?? path.basename(filePath));
+  const target = path.join(
+    targetDir,
+    scene.expectedImageFilenames[0] ?? path.basename(filePath)
+  );
   await fs.copyFile(filePath, target);
   process.stdout.write(`${target}\n`);
 }
 
-async function commandImagesGenerateOpenAi(options: CliOptions, episodeId: string, sceneId?: string): Promise<void> {
-  const { manifest, episodeDir } = await readManifestForEpisode(options, episodeId);
+async function readEpisodeScenePlan(options: CliOptions, episodeId: string) {
+  const { manifest, episodeDir } = await readManifestForEpisode(
+    options,
+    episodeId
+  );
+  if (!manifest.scenePlan) {
+    throw new Error("Scene plan is not available.");
+  }
+  return { manifest, episodeDir, scenePlan: manifest.scenePlan };
+}
+
+async function commandImagesPlan(
+  options: CliOptions,
+  episodeId: string,
+  sceneId?: string
+): Promise<void> {
+  markEpisodeTelemetry(episodeId);
+  const { manifest, episodeDir, scenePlan } = await readEpisodeScenePlan(
+    options,
+    episodeId
+  );
+  const settings = loadEpisodeImageGenerationSettings({
+    OPENAI_API_KEY: process.env["OPENAI_API_KEY"] ?? "dry-run",
+    OPENAI_IMAGE_MODEL: process.env["OPENAI_IMAGE_MODEL"],
+    OPENAI_IMAGE_SIZE: process.env["OPENAI_IMAGE_SIZE"],
+    OPENAI_IMAGE_QUALITY: process.env["OPENAI_IMAGE_QUALITY"],
+    OPENAI_IMAGE_CONCURRENCY: process.env["OPENAI_IMAGE_CONCURRENCY"],
+    OPENAI_IMAGE_MAX_RETRIES: process.env["OPENAI_IMAGE_MAX_RETRIES"],
+    OPENAI_IMAGE_TIMEOUT_MS: process.env["OPENAI_IMAGE_TIMEOUT_MS"],
+    OPENAI_IMAGE_ALLOW_UNAPPROVED_CHARACTER_REFERENCES:
+      options.allowUnapprovedCharacterReferences
+        ? "true"
+        : process.env["OPENAI_IMAGE_ALLOW_UNAPPROVED_CHARACTER_REFERENCES"],
+    OPENAI_IMAGE_FORCE: options.force
+      ? "true"
+      : process.env["OPENAI_IMAGE_FORCE"],
+    OPENAI_BASE_URL: process.env["OPENAI_BASE_URL"],
+    OPENAI_ORGANIZATION: process.env["OPENAI_ORGANIZATION"],
+    OPENAI_PROJECT: process.env["OPENAI_PROJECT"],
+  });
+  const results = await planEpisodeImageGeneration(
+    episodeDir,
+    manifest.episodeId,
+    scenePlan,
+    settings,
+    sceneId !== undefined ? { sceneId } : undefined
+  );
+  printJson(results);
+}
+
+async function commandImagesGenerate(
+  options: CliOptions,
+  episodeId: string,
+  sceneId?: string
+): Promise<void> {
+  markEpisodeTelemetry(episodeId);
+  const { manifest, episodeDir, scenePlan } = await readEpisodeScenePlan(
+    options,
+    episodeId
+  );
+  const settings = loadEpisodeImageGenerationSettings({
+    OPENAI_API_KEY: process.env["OPENAI_API_KEY"],
+    OPENAI_IMAGE_MODEL: process.env["OPENAI_IMAGE_MODEL"],
+    OPENAI_IMAGE_SIZE: process.env["OPENAI_IMAGE_SIZE"],
+    OPENAI_IMAGE_QUALITY: process.env["OPENAI_IMAGE_QUALITY"],
+    OPENAI_IMAGE_CONCURRENCY: process.env["OPENAI_IMAGE_CONCURRENCY"],
+    OPENAI_IMAGE_MAX_RETRIES: process.env["OPENAI_IMAGE_MAX_RETRIES"],
+    OPENAI_IMAGE_TIMEOUT_MS: process.env["OPENAI_IMAGE_TIMEOUT_MS"],
+    OPENAI_IMAGE_ALLOW_UNAPPROVED_CHARACTER_REFERENCES:
+      options.allowUnapprovedCharacterReferences
+        ? "true"
+        : process.env["OPENAI_IMAGE_ALLOW_UNAPPROVED_CHARACTER_REFERENCES"],
+    OPENAI_IMAGE_FORCE: options.force
+      ? "true"
+      : process.env["OPENAI_IMAGE_FORCE"],
+    OPENAI_BASE_URL: process.env["OPENAI_BASE_URL"],
+    OPENAI_ORGANIZATION: process.env["OPENAI_ORGANIZATION"],
+    OPENAI_PROJECT: process.env["OPENAI_PROJECT"],
+  });
+  const results = await generateEpisodeImages(
+    episodeDir,
+    manifest.episodeId,
+    scenePlan,
+    settings,
+    {
+      ...(sceneId !== undefined ? { sceneId } : {}),
+      ...(options.force !== undefined ? { force: options.force } : {}),
+    }
+  );
+  printJson(results);
+}
+
+async function commandImagesGenerateCharacterReferences(
+  options: CliOptions,
+  episodeId: string,
+  characterId?: string
+): Promise<void> {
+  markEpisodeTelemetry(episodeId);
+  const { manifest, episodeDir } = await readEpisodeScenePlan(
+    options,
+    episodeId
+  );
+  const settings = loadEpisodeImageGenerationSettings({
+    OPENAI_API_KEY: process.env["OPENAI_API_KEY"],
+    OPENAI_IMAGE_MODEL: process.env["OPENAI_IMAGE_MODEL"],
+    OPENAI_IMAGE_SIZE: process.env["OPENAI_IMAGE_SIZE"],
+    OPENAI_IMAGE_QUALITY: process.env["OPENAI_IMAGE_QUALITY"],
+    OPENAI_IMAGE_CONCURRENCY: process.env["OPENAI_IMAGE_CONCURRENCY"],
+    OPENAI_IMAGE_MAX_RETRIES: process.env["OPENAI_IMAGE_MAX_RETRIES"],
+    OPENAI_IMAGE_TIMEOUT_MS: process.env["OPENAI_IMAGE_TIMEOUT_MS"],
+    OPENAI_IMAGE_ALLOW_UNAPPROVED_CHARACTER_REFERENCES:
+      options.allowUnapprovedCharacterReferences
+        ? "true"
+        : process.env["OPENAI_IMAGE_ALLOW_UNAPPROVED_CHARACTER_REFERENCES"],
+    OPENAI_IMAGE_FORCE: options.force
+      ? "true"
+      : process.env["OPENAI_IMAGE_FORCE"],
+    OPENAI_BASE_URL: process.env["OPENAI_BASE_URL"],
+    OPENAI_ORGANIZATION: process.env["OPENAI_ORGANIZATION"],
+    OPENAI_PROJECT: process.env["OPENAI_PROJECT"],
+  });
+  const registry = await generateEpisodeImageReferences(
+    episodeDir,
+    manifest.episodeId,
+    settings,
+    characterId !== undefined ? { characterId } : undefined
+  );
+  printJson(registry);
+}
+
+async function commandImagesApproveCharacter(
+  options: CliOptions,
+  episodeId: string,
+  characterId: string
+): Promise<void> {
+  markEpisodeTelemetry(episodeId);
+  const { manifest, episodeDir } = await readEpisodeScenePlan(
+    options,
+    episodeId
+  );
+  const registry = await approveEpisodeCharacter(
+    episodeDir,
+    manifest.episodeId,
+    characterId
+  );
+  printJson(registry);
+}
+
+async function commandImagesRegenerateCharacter(
+  options: CliOptions,
+  episodeId: string,
+  characterId: string
+): Promise<void> {
+  markEpisodeTelemetry(episodeId);
+  const { manifest, episodeDir } = await readEpisodeScenePlan(
+    options,
+    episodeId
+  );
+  const settings = loadEpisodeImageGenerationSettings({
+    OPENAI_API_KEY: process.env["OPENAI_API_KEY"],
+    OPENAI_IMAGE_MODEL: process.env["OPENAI_IMAGE_MODEL"],
+    OPENAI_IMAGE_SIZE: process.env["OPENAI_IMAGE_SIZE"],
+    OPENAI_IMAGE_QUALITY: process.env["OPENAI_IMAGE_QUALITY"],
+    OPENAI_IMAGE_CONCURRENCY: process.env["OPENAI_IMAGE_CONCURRENCY"],
+    OPENAI_IMAGE_MAX_RETRIES: process.env["OPENAI_IMAGE_MAX_RETRIES"],
+    OPENAI_IMAGE_TIMEOUT_MS: process.env["OPENAI_IMAGE_TIMEOUT_MS"],
+    OPENAI_IMAGE_ALLOW_UNAPPROVED_CHARACTER_REFERENCES:
+      options.allowUnapprovedCharacterReferences
+        ? "true"
+        : process.env["OPENAI_IMAGE_ALLOW_UNAPPROVED_CHARACTER_REFERENCES"],
+    OPENAI_IMAGE_FORCE: options.force
+      ? "true"
+      : process.env["OPENAI_IMAGE_FORCE"],
+    OPENAI_BASE_URL: process.env["OPENAI_BASE_URL"],
+    OPENAI_ORGANIZATION: process.env["OPENAI_ORGANIZATION"],
+    OPENAI_PROJECT: process.env["OPENAI_PROJECT"],
+  });
+  const registry = await regenerateEpisodeCharacter(
+    episodeDir,
+    manifest.episodeId,
+    characterId,
+    settings
+  );
+  printJson(registry);
+}
+
+async function commandImagesGenerateOpenAi(
+  options: CliOptions,
+  episodeId: string,
+  sceneId?: string
+): Promise<void> {
+  markEpisodeTelemetry(episodeId);
+  const { manifest, episodeDir } = await readManifestForEpisode(
+    options,
+    episodeId
+  );
   if (!manifest.scenePlan) {
     throw new Error("Scene plan is not available.");
   }
   const settings = loadOpenAiImageGenerationSettings(process.env);
-  const promptBatch = createPromptBatch(manifest.scenePlan, "16:9", localSceneStyle, localSceneNegativePrompt);
-  const promptBySceneId = new Map(promptBatch.map((prompt) => [prompt.sceneId, prompt] as const));
-  const selectedScenes = sceneId ? manifest.scenePlan.scenes.filter((scene) => scene.id === sceneId) : manifest.scenePlan.scenes;
+  const promptBatch = createPromptBatch(
+    manifest.scenePlan,
+    "16:9",
+    localSceneStyle,
+    localSceneNegativePrompt
+  );
+  const promptBySceneId = new Map(
+    promptBatch.map((prompt) => [prompt.sceneId, prompt] as const)
+  );
+  const selectedScenes = sceneId
+    ? manifest.scenePlan.scenes.filter((scene) => scene.id === sceneId)
+    : manifest.scenePlan.scenes;
   if (selectedScenes.length === 0) {
-    throw new Error(sceneId ? `Scene not found: ${sceneId}` : "No scenes available.");
+    throw new Error(
+      sceneId ? `Scene not found: ${sceneId}` : "No scenes available."
+    );
   }
   const jobs = selectedScenes.map((scene) => ({
     scene,
     prompt: promptBySceneId.get(scene.id)?.prompt ?? scene.imagePrompt,
     episodeSlug: manifest.slug,
     episodeDir,
-    normalizedFilename: scene.expectedImageFilenames[0] ?? `${scene.id}.png`
+    normalizedFilename: scene.expectedImageFilenames[0] ?? `${scene.id}.png`,
   }));
   const results = await generateOpenAiSceneImages(jobs, settings);
   printJson(
-    results.map((result: Awaited<ReturnType<typeof generateOpenAiSceneImages>>[number]) => ({
-      sceneId: result.sceneId,
-      sourcePath: result.sourcePath,
-      renderedPath: result.renderedPath,
-      promptPath: result.promptPath,
-      rawPath: result.rawPath,
-      normalizedPath: result.renderedPath,
-      width: result.width,
-      height: result.height,
-      checksumSha256: result.checksumSha256,
-      rawChecksumSha256: result.rawChecksumSha256,
-      finalChecksumSha256: result.finalChecksumSha256
-    }))
+    results.map(
+      (
+        result: Awaited<ReturnType<typeof generateOpenAiSceneImages>>[number]
+      ) => ({
+        sceneId: result.sceneId,
+        sourcePath: result.sourcePath,
+        renderedPath: result.renderedPath,
+        promptPath: result.promptPath,
+        rawPath: result.rawPath,
+        normalizedPath: result.renderedPath,
+        width: result.width,
+        height: result.height,
+        checksumSha256: result.checksumSha256,
+        rawChecksumSha256: result.rawChecksumSha256,
+        finalChecksumSha256: result.finalChecksumSha256,
+      })
+    )
   );
 }
 
-async function commandRender(options: CliOptions, episodeId: string, profile: "youtube" | "vertical", burnCaptions = true): Promise<void> {
-  const { manifest, episodeDir } = await readManifestForEpisode(options, episodeId);
+async function commandRender(
+  options: CliOptions,
+  episodeId: string,
+  profile: "youtube" | "vertical",
+  burnCaptions = true
+): Promise<void> {
+  markEpisodeTelemetry(episodeId);
+  const { manifest, episodeDir } = await readManifestForEpisode(
+    options,
+    episodeId
+  );
   if (!manifest.scenePlan) {
     throw new Error("Scene plan is not available.");
   }
   const episodeConfig = await loadEpisodeConfig(episodeDir);
-  const config = await loadRuntimeConfig(configOverridesFromCli(options), episodeConfig ? compactConfigOverrides(episodeConfig) : {});
-  const language = config.scriptLanguage ?? episodeConfig?.scriptLanguage ?? "en";
+  const config = await loadRuntimeConfig(
+    configOverridesFromCli(options),
+    episodeConfig ? compactConfigOverrides(episodeConfig) : {}
+  );
+  const language =
+    config.scriptLanguage ?? episodeConfig?.scriptLanguage ?? "en";
   if (options.dryRun) {
     printJson({
       episodeId,
       language,
-      clipsDir: path.join(episodeDir, "output", localizedClipsDirName(language)),
-      cleanPath: path.join(episodeDir, "output", `youtube-${profile === "youtube" ? "16x9" : "9x16"}${localizedOutputSuffix(language)}-clean.mp4`),
-      captionedPath: path.join(episodeDir, "output", `youtube-${profile === "youtube" ? "16x9" : "9x16"}${localizedOutputSuffix(language)}-captioned.mp4`),
-      dryRun: true
+      clipsDir: path.join(
+        episodeDir,
+        "output",
+        localizedClipsDirName(language)
+      ),
+      cleanPath: path.join(
+        episodeDir,
+        "output",
+        `youtube-${profile === "youtube" ? "16x9" : "9x16"}${localizedOutputSuffix(language)}-clean.mp4`
+      ),
+      captionedPath: path.join(
+        episodeDir,
+        "output",
+        `youtube-${profile === "youtube" ? "16x9" : "9x16"}${localizedOutputSuffix(language)}-captioned.mp4`
+      ),
+      dryRun: true,
     });
     return;
   }
-  const captionsPath = burnCaptions && isEnglishLanguage(language) ? path.join(episodeDir, "captions", "captions.ass") : undefined;
+  const captionsPath =
+    burnCaptions && isEnglishLanguage(language)
+      ? path.join(episodeDir, "captions", "captions.ass")
+      : undefined;
   const renderProfile = {
     id: profile,
     label: profile,
@@ -1218,7 +2014,7 @@ async function commandRender(options: CliOptions, episodeId: string, profile: "y
     height: profile === "youtube" ? 1080 : 1920,
     fps: 30,
     aspectRatio: profile === "youtube" ? "16:9" : "9:16",
-    burnCaptions: true
+    burnCaptions: true,
   } as const;
   const pipeline = await loadPipeline(options, episodeDir);
   const renderRequest = {
@@ -1229,38 +2025,63 @@ async function commandRender(options: CliOptions, episodeId: string, profile: "y
     captionBurnIn: Boolean(captionsPath),
     clipsDirName: localizedClipsDirName(language),
     sceneAudioDir: localizedSegmentsDir(episodeDir, language),
-    imageDir: path.join(episodeDir, "images", "generated"),
+    imageDir: path.join(episodeDir, "shared", "images", "generated"),
     outputSuffix: localizedOutputSuffix(language),
     trailingSilenceRatio: config.trailingSilenceRatio,
-    ...(captionsPath ? { captionsPath } : {})
+    trailingSilenceBufferSeconds: config.trailingSilenceBufferSeconds,
+    ...(captionsPath ? { captionsPath } : {}),
   };
-  const result = await pipeline.renderer.render(renderRequest, new AbortController().signal);
+  const result = await pipeline.renderer.render(
+    renderRequest,
+    new AbortController().signal
+  );
   printJson(result);
 }
 
-async function commandMetadataGenerate(options: CliOptions, episodeId: string): Promise<void> {
-  const { manifest, episodeDir } = await readManifestForEpisode(options, episodeId);
+async function commandMetadataGenerate(
+  options: CliOptions,
+  episodeId: string
+): Promise<void> {
+  markEpisodeTelemetry(episodeId);
+  const { manifest, episodeDir } = await readManifestForEpisode(
+    options,
+    episodeId
+  );
   if (!manifest.scenePlan) {
     throw new Error("Scene plan is required.");
   }
   const episodeConfig = await loadEpisodeConfig(episodeDir);
-  const config = await loadRuntimeConfig(configOverridesFromCli(options), episodeConfig ? compactConfigOverrides(episodeConfig) : {});
-  const language = config.scriptLanguage ?? episodeConfig?.scriptLanguage ?? "en";
+  const config = await loadRuntimeConfig(
+    configOverridesFromCli(options),
+    episodeConfig ? compactConfigOverrides(episodeConfig) : {}
+  );
+  const language =
+    config.scriptLanguage ?? episodeConfig?.scriptLanguage ?? "en";
   const metadataDir = localizedMetadataDir(episodeDir, language);
-  const scenesFilePath = await findEpisodeScenesFile(config.workspaceDir, episodeId);
+  const scenesFilePath = await findEpisodeScenesFile(
+    config.workspaceDir,
+    episodeId
+  );
   const target = await readAndValidateScenesFile(scenesFilePath, language);
-  const generationOptions: Omit<YoutubeMetadataGenerationOptions, "baseUrl"> & { baseUrl?: string } = {
-    apiKey: config.openAiCompatibleApiKey ?? process.env["OPENAI_API_KEY"] ?? "",
+  const generationOptions: Omit<YoutubeMetadataGenerationOptions, "baseUrl"> & {
+    baseUrl?: string;
+  } = {
+    apiKey:
+      config.openAiCompatibleApiKey ?? process.env["OPENAI_API_KEY"] ?? "",
     model: config.openAiMetadataModel ?? "gpt-4.1-mini",
     language,
-    promptText: await fs.readFile(path.resolve("prompts", "youtube-metadata.prompt.md"), "utf8"),
+    promptText: await fs.readFile(
+      path.resolve("prompts", "youtube-metadata.prompt.md"),
+      "utf8"
+    ),
     promptVersion: YOUTUBE_METADATA_PROMPT_VERSION,
     maxRetries: config.openAiMetadataMaxRetries ?? 3,
     timeoutMs: config.openAiMetadataTimeoutMs ?? 120000,
     keepFile: config.openAiMetadataKeepFile,
-    logger: createLogger(options.verbose ? "debug" : config.logLevel)
+    logger: createLogger(options.verbose ? "debug" : config.logLevel),
   };
-  const baseUrl = config.openAiCompatibleBaseUrl ?? process.env["OPENAI_BASE_URL"];
+  const baseUrl =
+    config.openAiCompatibleBaseUrl ?? process.env["OPENAI_BASE_URL"];
   if (baseUrl !== undefined) {
     generationOptions.baseUrl = baseUrl;
   }
@@ -1276,42 +2097,65 @@ async function commandMetadataGenerate(options: CliOptions, episodeId: string): 
       durationSeconds: target.durationSeconds,
       youtubeMarkdownPath: path.join(metadataDir, "youtube.md"),
       youtubeJsonPath: path.join(metadataDir, "youtube-metadata.json"),
-      dryRun: true
+      dryRun: true,
     });
     return;
   }
-  const { generateYoutubeMetadataForTarget } = await import("@mediaforge/metadata");
+  const { generateYoutubeMetadataForTarget } =
+    await import("@mediaforge/metadata");
   const generation = await generateYoutubeMetadataForTarget(
     {
       ...target,
       outputDir: metadataDir,
       sourceId: manifest.episodeId,
-      language
+      language,
     },
     generationOptions
   );
-  await writeTextAtomic(path.join(metadataDir, "youtube.md"), await fs.readFile(generation.outputs.markdownPath, "utf8"));
-  const chapterLines = generation.metadata.chapters.items.map((chapter: YoutubeMetadata["chapters"]["items"][number]) => `${formatTimestampLabel(chapter.startSeconds)} ${chapter.title}`).join("\n");
+  await writeTextAtomic(
+    path.join(metadataDir, "youtube.md"),
+    await fs.readFile(generation.outputs.markdownPath, "utf8")
+  );
+  const chapterLines = generation.metadata.chapters.items
+    .map(
+      (chapter: YoutubeMetadata["chapters"]["items"][number]) =>
+        `${formatTimestampLabel(chapter.startSeconds)} ${chapter.title}`
+    )
+    .join("\n");
   manifest.publishingMetadata = {
     sourceId: manifest.episodeId,
     platform: "youtube",
     language: generation.metadata.source.language,
-    titleCandidates: [generation.metadata.title.recommended, ...generation.metadata.title.alternatives],
+    titleCandidates: [
+      generation.metadata.title.recommended,
+      ...generation.metadata.title.alternatives,
+    ],
     recommendedTitle: generation.metadata.title.recommended,
     description: generation.metadata.description,
     tags: generation.metadata.tags.items,
     hashtags: generation.metadata.hashtags,
-    chapters: generation.metadata.chapters.items.map((chapter: YoutubeMetadata["chapters"]["items"][number]) => ({
-      timestampSeconds: chapter.startSeconds,
-      title: chapter.title
-    })),
-    thumbnailTextCandidates: [generation.metadata.thumbnail.recommendedText, ...generation.metadata.thumbnail.alternativeTexts],
-    coverTextCandidates: [generation.metadata.thumbnail.recommendedText, ...generation.metadata.thumbnail.alternativeTexts],
+    chapters: generation.metadata.chapters.items.map(
+      (chapter: YoutubeMetadata["chapters"]["items"][number]) => ({
+        timestampSeconds: chapter.startSeconds,
+        title: chapter.title,
+      })
+    ),
+    thumbnailTextCandidates: [
+      generation.metadata.thumbnail.recommendedText,
+      ...generation.metadata.thumbnail.alternativeTexts,
+    ],
+    coverTextCandidates: [
+      generation.metadata.thumbnail.recommendedText,
+      ...generation.metadata.thumbnail.alternativeTexts,
+    ],
     pinnedComment: generation.metadata.pinnedComment,
     summary: generation.metadata.contentSummary,
     primaryKeyword: generation.metadata.seo.primaryKeyword,
     secondaryKeywords: generation.metadata.seo.secondaryKeywords,
-    warnings: generation.metadata.verificationWarnings.map((warning: YoutubeMetadata["verificationWarnings"][number]) => `${warning.claim}: ${warning.reason}`)
+    warnings: generation.metadata.verificationWarnings.map(
+      (warning: YoutubeMetadata["verificationWarnings"][number]) =>
+        `${warning.claim}: ${warning.reason}`
+    ),
   };
   await writeJsonAtomic(path.join(episodeDir, "manifest.json"), manifest);
   process.stdout.write(`${path.join(metadataDir, "youtube.md")}\n`);
@@ -1335,18 +2179,23 @@ function youtubeMetadataPromptPath(): string {
   return path.resolve("prompts", "youtube-metadata.prompt.md");
 }
 
-async function loadYoutubeMetadataPromptText(): Promise<{ readonly filePath: string; readonly text: string }> {
+async function loadYoutubeMetadataPromptText(): Promise<{
+  readonly filePath: string;
+  readonly text: string;
+}> {
   const filePath = youtubeMetadataPromptPath();
   if (!(await fileExists(filePath))) {
     throw new Error(`Missing metadata prompt file: ${filePath}`);
   }
   return {
     filePath,
-    text: await fs.readFile(filePath, "utf8")
+    text: await fs.readFile(filePath, "utf8"),
   };
 }
 
-function youtubeMetadataOutputsForEpisode(episodeDir: string): YoutubeMetadataOutputs {
+function youtubeMetadataOutputsForEpisode(
+  episodeDir: string
+): YoutubeMetadataOutputs {
   const outputDir = path.join(episodeDir, "output");
   return {
     outputDir,
@@ -1356,7 +2205,7 @@ function youtubeMetadataOutputsForEpisode(episodeDir: string): YoutubeMetadataOu
     chaptersPath: path.join(outputDir, "youtube-chapters.txt"),
     tagsPath: path.join(outputDir, "youtube-tags.txt"),
     pinnedCommentPath: path.join(outputDir, "youtube-pinned-comment.txt"),
-    generationPath: path.join(outputDir, "youtube-metadata-generation.json")
+    generationPath: path.join(outputDir, "youtube-metadata-generation.json"),
   };
 }
 
@@ -1365,50 +2214,78 @@ async function resolveYoutubeMetadataTargets(
   sourcePath: string | undefined,
   episodeSlug: string | undefined,
   all: boolean
-): Promise<Array<{ readonly episodeSlug: string; readonly sourceFilePath: string }>> {
+): Promise<
+  Array<{ readonly episodeSlug: string; readonly sourceFilePath: string }>
+> {
   const config = await loadRuntimeConfig(configOverridesFromCli(options));
   if (all) {
     if (sourcePath || episodeSlug) {
-      throw new Error("--all cannot be combined with an explicit source path or --episode.");
+      throw new Error(
+        "--all cannot be combined with an explicit source path or --episode."
+      );
     }
     return listEpisodeSceneFiles(config.workspaceDir);
   }
   if (sourcePath) {
     if (episodeSlug) {
-      throw new Error("Use either an explicit source path or --episode, not both.");
+      throw new Error(
+        "Use either an explicit source path or --episode, not both."
+      );
     }
-    const resolved = ensureWorkspacePath(config.workspaceDir, path.resolve(sourcePath));
+    const resolved = ensureWorkspacePath(
+      config.workspaceDir,
+      path.resolve(sourcePath)
+    );
     if (!(await fileExists(resolved))) {
       throw new Error(`Missing scenes file: ${resolved}`);
     }
-    const episodeDir = path.basename(path.dirname(resolved)) === "output" ? path.dirname(path.dirname(resolved)) : path.dirname(resolved);
+    const episodeDir =
+      path.basename(path.dirname(resolved)) === "output"
+        ? path.dirname(path.dirname(resolved))
+        : path.dirname(resolved);
     return [
       {
         episodeSlug: path.basename(episodeDir),
-        sourceFilePath: resolved
-      }
+        sourceFilePath: resolved,
+      },
     ];
   }
   if (!episodeSlug) {
     throw new Error("Provide a scenes file path, --episode, or --all.");
   }
-  const sourceFilePath = await findEpisodeScenesFile(config.workspaceDir, episodeSlug);
+  const sourceFilePath = await findEpisodeScenesFile(
+    config.workspaceDir,
+    episodeSlug
+  );
   return [{ episodeSlug, sourceFilePath }];
 }
 
 async function commandMetadataYoutube(
   options: CliOptions,
   sourcePath: string | undefined,
-  metadataOptions: { readonly episode?: string; readonly all?: boolean; readonly force?: boolean }
+  metadataOptions: {
+    readonly episode?: string;
+    readonly all?: boolean;
+    readonly force?: boolean;
+  }
 ): Promise<void> {
   const config = await loadRuntimeConfig(configOverridesFromCli(options));
   const prompt = await loadYoutubeMetadataPromptText();
-  const language = config.youtubeMetadataLanguage ?? config.scriptLanguage ?? "en";
-  const targets = await resolveYoutubeMetadataTargets(options, sourcePath, metadataOptions.episode, metadataOptions.all ?? false);
+  const language =
+    config.youtubeMetadataLanguage ?? config.scriptLanguage ?? "en";
+  const targets = await resolveYoutubeMetadataTargets(
+    options,
+    sourcePath,
+    metadataOptions.episode,
+    metadataOptions.all ?? false
+  );
   if (options.dryRun) {
     const summary = await Promise.all(
       targets.map(async (target) => {
-        const targetData = await readAndValidateScenesFile(target.sourceFilePath, language);
+        const targetData = await readAndValidateScenesFile(
+          target.sourceFilePath,
+          language
+        );
         const outputs = youtubeMetadataOutputsForEpisode(targetData.episodeDir);
         return {
           episodeSlug: target.episodeSlug,
@@ -1419,7 +2296,7 @@ async function commandMetadataYoutube(
           durationSeconds: targetData.durationSeconds,
           language,
           model: config.openAiMetadataModel ?? "gpt-4.1-mini",
-          promptVersion: "youtube-metadata-v1"
+          promptVersion: "youtube-metadata-v1",
         } satisfies YoutubeMetadataRunSummary;
       })
     );
@@ -1430,9 +2307,15 @@ async function commandMetadataYoutube(
   let failed = false;
   for (const target of targets) {
     try {
-      const baseUrl = config.openAiCompatibleBaseUrl ?? process.env["OPENAI_BASE_URL"];
-      const generationOptions: Omit<YoutubeMetadataGenerationOptions, "baseUrl"> & { baseUrl?: string } = {
-        apiKey: config.openAiCompatibleApiKey ?? process.env["OPENAI_API_KEY"] ?? "",
+      currentExecutionTelemetry()?.setEpisodeId(target.episodeSlug);
+      const baseUrl =
+        config.openAiCompatibleBaseUrl ?? process.env["OPENAI_BASE_URL"];
+      const generationOptions: Omit<
+        YoutubeMetadataGenerationOptions,
+        "baseUrl"
+      > & { baseUrl?: string } = {
+        apiKey:
+          config.openAiCompatibleApiKey ?? process.env["OPENAI_API_KEY"] ?? "",
         model: config.openAiMetadataModel ?? "gpt-4.1-mini",
         language,
         promptText: prompt.text,
@@ -1441,12 +2324,15 @@ async function commandMetadataYoutube(
         timeoutMs: config.openAiMetadataTimeoutMs ?? 120000,
         keepFile: config.openAiMetadataKeepFile,
         force: metadataOptions.force ?? false,
-        logger: createLogger(options.verbose ? "debug" : config.logLevel)
+        logger: createLogger(options.verbose ? "debug" : config.logLevel),
       };
       if (baseUrl !== undefined) {
         generationOptions.baseUrl = baseUrl;
       }
-      const generation = await generateYoutubeMetadataFromScenesFile(target.sourceFilePath, generationOptions);
+      const generation = await generateYoutubeMetadataFromScenesFile(
+        target.sourceFilePath,
+        generationOptions
+      );
       results.push({
         episodeSlug: target.episodeSlug,
         sourceFilePath: target.sourceFilePath,
@@ -1458,14 +2344,16 @@ async function commandMetadataYoutube(
         durationSeconds: generation.metadata.source.durationSeconds,
         language: generation.metadata.source.language,
         model: generation.generation.model,
-        promptVersion: generation.generation.promptVersion
+        promptVersion: generation.generation.promptVersion,
       });
       if (!options.quiet) {
         process.stdout.write(`${generation.outputs.jsonPath}\n`);
       }
     } catch (error: unknown) {
       failed = true;
-      process.stderr.write(`${JSON.stringify(serializeError(error), null, 2)}\n`);
+      process.stderr.write(
+        `${JSON.stringify(serializeError(error), null, 2)}\n`
+      );
     }
   }
   if (options.json) {
@@ -1476,13 +2364,110 @@ async function commandMetadataYoutube(
   }
 }
 
-async function commandPackage(options: CliOptions, episodeId: string): Promise<void> {
+function resolveYoutubeAuthSettings(config: RuntimeConfig): YoutubeAuthSettings {
+  const clientId = config.youtubeClientId ?? process.env["YOUTUBE_CLIENT_ID"];
+  const clientSecret = config.youtubeClientSecret ?? process.env["YOUTUBE_CLIENT_SECRET"];
+  const refreshToken = config.youtubeRefreshToken ?? process.env["YOUTUBE_REFRESH_TOKEN"];
+  if (!clientId || !clientSecret || !refreshToken) {
+    throw new Error(
+      "Missing YOUTUBE_CLIENT_ID, YOUTUBE_CLIENT_SECRET, or YOUTUBE_REFRESH_TOKEN."
+    );
+  }
+  return {
+    clientId,
+    clientSecret,
+    refreshToken,
+    ...(config.youtubeRedirectUri ? { redirectUri: config.youtubeRedirectUri } : {}),
+    ...(config.youtubeChannelId ? { channelId: config.youtubeChannelId } : {}),
+  };
+}
+
+async function commandYoutubeUpload(
+  options: CliOptions,
+  uploadOptions: {
+    readonly episode: string;
+    readonly force?: boolean;
+    readonly generateMetadata?: boolean;
+    readonly metadataPath?: string;
+    readonly playlistId?: string;
+    readonly privacyStatus?: "private" | "public" | "unlisted";
+    readonly publishAt?: string;
+    readonly notifySubscribers?: boolean;
+    readonly videoPath?: string;
+    readonly thumbnailPath?: string;
+  }
+): Promise<void> {
+  markEpisodeTelemetry(uploadOptions.episode);
+  const config = await loadRuntimeConfig(configOverridesFromCli(options));
+  const { episodeDir } = await readManifestForEpisode(options, uploadOptions.episode);
+  const auth = resolveYoutubeAuthSettings(config);
+  let metadataGeneration: YoutubeUploadCommandInput["metadataGeneration"];
+  if (uploadOptions.generateMetadata) {
+    metadataGeneration = {
+      apiKey: config.openAiCompatibleApiKey ?? process.env["OPENAI_API_KEY"] ?? "",
+      model: config.openAiMetadataModel ?? "gpt-4.1-mini",
+      promptText: await fs.readFile(
+        path.resolve("prompts", "youtube-metadata.prompt.md"),
+        "utf8"
+      ),
+      maxRetries: config.openAiMetadataMaxRetries ?? 3,
+      timeoutMs: config.openAiMetadataTimeoutMs ?? 120000,
+      keepFile: config.openAiMetadataKeepFile,
+    };
+    const baseUrl = config.openAiCompatibleBaseUrl ?? process.env["OPENAI_BASE_URL"];
+    if (baseUrl) {
+      metadataGeneration = { ...metadataGeneration, baseUrl };
+    }
+  }
+  const result = await uploadYoutubeEpisode({
+    workspaceDir: config.workspaceDir,
+    episodeId: uploadOptions.episode,
+    episodeDir,
+    auth,
+    force: uploadOptions.force,
+    generateMetadata: uploadOptions.generateMetadata,
+    metadataPath: uploadOptions.metadataPath,
+    overrides: {
+      ...(uploadOptions.playlistId ? { playlistId: uploadOptions.playlistId } : {}),
+      ...(uploadOptions.privacyStatus ? { privacyStatus: uploadOptions.privacyStatus } : {}),
+      ...(uploadOptions.publishAt ? { publishAt: uploadOptions.publishAt } : {}),
+      ...(uploadOptions.notifySubscribers !== undefined
+        ? { notifySubscribers: uploadOptions.notifySubscribers }
+        : {}),
+      ...(uploadOptions.videoPath ? { videoPath: uploadOptions.videoPath } : {}),
+      ...(uploadOptions.thumbnailPath
+        ? { thumbnailPath: uploadOptions.thumbnailPath }
+        : {}),
+    },
+    metadataGeneration,
+    logger: createLogger(options.verbose ? "debug" : config.logLevel),
+  });
+  if (options.json) {
+    printJson(result.report);
+    return;
+  }
+  process.stdout.write(
+    [
+      `Uploaded ${uploadOptions.episode}`,
+      `Video ID: ${result.report.youtubeVideoId ?? "n/a"}`,
+      `Report: ${result.reportPath}`,
+      `Markdown: ${result.markdownPath}`,
+      result.skipped ? "Status: skipped" : "Status: uploaded",
+    ].join("\n") + "\n"
+  );
+}
+
+async function commandPackage(
+  options: CliOptions,
+  episodeId: string
+): Promise<void> {
+  markEpisodeTelemetry(episodeId);
   const { manifest } = await readManifestForEpisode(options, episodeId);
   printJson({
     episodeId: manifest.episodeId,
     slug: manifest.slug,
     artifacts: manifest.artifacts.length,
-    scenes: manifest.scenePlan?.scenes.length ?? 0
+    scenes: manifest.scenePlan?.scenes.length ?? 0,
   });
 }
 
@@ -1490,7 +2475,9 @@ async function commandDbMigrate(options: CliOptions): Promise<void> {
   const pipeline = await loadPipeline(options);
   pipeline.environment.db.migrate();
   if (!options.quiet) {
-    process.stdout.write(`Database migrated at ${pipeline.environment.config.dbPath}\n`);
+    process.stdout.write(
+      `Database migrated at ${pipeline.environment.config.dbPath}\n`
+    );
   }
 }
 
@@ -1506,11 +2493,17 @@ function addGlobalOptions(command: Command): Command {
     .option("--openai-speech-model <model>", "OpenAI speech model")
     .option("--openai-speech-voice <voice>", "OpenAI speech voice")
     .option("--speech-voice-preset <preset>", "slow or fast speech settings")
-    .option("--language <code>", "localized script language, for example en, es, pt");
+    .option(
+      "--language <code>",
+      "localized script language, for example en, es, pt"
+    );
 }
 
 const program = addGlobalOptions(new Command());
-program.name("mediaforge").description("Local-first media repurposing pipeline").version("0.0.0");
+program
+  .name("mediaforge")
+  .description("Local-first media repurposing pipeline")
+  .version("0.0.0");
 program
   .command("doctor")
   .description("Check local dependencies and environment readiness")
@@ -1531,45 +2524,62 @@ program
   .option("--transcript <path>", "local transcript file")
   .option("--title <title>", "episode title")
   .option("--slug <slug>", "episode slug")
-.action(async (opts: { file?: string; url?: string; transcript?: string; title?: string; slug?: string }) => {
-    const input: CreateEpisodeOptions = {};
-    if (opts.file) {
-      input.filePath = opts.file;
+  .action(
+    async (opts: {
+      file?: string;
+      url?: string;
+      transcript?: string;
+      title?: string;
+      slug?: string;
+    }) => {
+      const input: CreateEpisodeOptions = {};
+      if (opts.file) {
+        input.filePath = opts.file;
+      }
+      if (opts.url) {
+        input.url = opts.url;
+      }
+      if (opts.transcript) {
+        input.transcriptPath = opts.transcript;
+      }
+      if (opts.title) {
+        input.title = opts.title;
+      }
+      if (opts.slug) {
+        input.slug = opts.slug;
+      }
+      await commandCreate(program.opts<CliOptions>(), input);
     }
-    if (opts.url) {
-      input.url = opts.url;
-    }
-    if (opts.transcript) {
-      input.transcriptPath = opts.transcript;
-    }
-    if (opts.title) {
-      input.title = opts.title;
-    }
-    if (opts.slug) {
-      input.slug = opts.slug;
-    }
-    await commandCreate(program.opts<CliOptions>(), input);
-  });
+  );
 program
   .command("run")
   .argument("<episode-id>")
   .option("--from <stage>", "start from a pipeline stage")
   .option("--until <stage>", "stop at a pipeline stage")
-  .option("--scene-limit <n>", "process only the first N scenes", (value: string) => Number.parseInt(value, 10))
+  .option(
+    "--scene-limit <n>",
+    "process only the first N scenes",
+    (value: string) => Number.parseInt(value, 10)
+  )
   .description("Run the pipeline for an episode")
-  .action(async (episodeId: string, opts: { from?: string; until?: string; sceneLimit?: number }) => {
-    const cliOptions: CliOptions = { ...program.opts<CliOptions>() };
-    if (opts.from) {
-      cliOptions.fromStage = opts.from;
+  .action(
+    async (
+      episodeId: string,
+      opts: { from?: string; until?: string; sceneLimit?: number }
+    ) => {
+      const cliOptions: CliOptions = { ...program.opts<CliOptions>() };
+      if (opts.from) {
+        cliOptions.fromStage = opts.from;
+      }
+      if (opts.until) {
+        cliOptions.untilStage = opts.until;
+      }
+      if (opts.sceneLimit !== undefined) {
+        cliOptions.sceneLimit = opts.sceneLimit;
+      }
+      await commandRun(cliOptions, episodeId);
     }
-    if (opts.until) {
-      cliOptions.untilStage = opts.until;
-    }
-    if (opts.sceneLimit !== undefined) {
-      cliOptions.sceneLimit = opts.sceneLimit;
-    }
-    await commandRun(cliOptions, episodeId);
-  });
+  );
 program
   .command("status")
   .argument("<episode-id>")
@@ -1600,7 +2610,9 @@ program
     process.stdout.write("Cleanup is not implemented in the first slice.\n");
   });
 
-const transcriptCommand = program.command("transcript").description("Transcript utilities");
+const transcriptCommand = program
+  .command("transcript")
+  .description("Transcript utilities");
 transcriptCommand
   .command("generate")
   .requiredOption("--episode <episode-id>")
@@ -1611,7 +2623,9 @@ transcriptCommand
 transcriptCommand
   .command("normalize")
   .requiredOption("--episode <episode-id>")
-  .description("Normalize an existing raw Whisper transcript without rerunning Whisper")
+  .description(
+    "Normalize an existing raw Whisper transcript without rerunning Whisper"
+  )
   .action(async (opts: { episode: string }) => {
     await commandTranscriptNormalize(program.opts<CliOptions>(), opts.episode);
   });
@@ -1641,7 +2655,11 @@ scenesCommand
   .argument("<episode-id>")
   .requiredOption("--scene <scene-id>")
   .action(async (episodeId: string, opts: { scene: string }) => {
-    await commandScenesInspect(program.opts<CliOptions>(), episodeId, opts.scene);
+    await commandScenesInspect(
+      program.opts<CliOptions>(),
+      episodeId,
+      opts.scene
+    );
   });
 
 const audioCommand = program.command("audio").description("Audio utilities");
@@ -1652,11 +2670,17 @@ audioCommand
     await commandAudioGenerate(program.opts<CliOptions>(), episodeId);
   });
 
-const clipsCommand = program.command("clips").description("Language-specific clip utilities");
+const clipsCommand = program
+  .command("clips")
+  .description("Language-specific clip utilities");
 clipsCommand
   .command("generate")
   .argument("<episode-id>")
-  .option("--scene-limit <n>", "generate only the first N clips", (value: string) => Number.parseInt(value, 10))
+  .option(
+    "--scene-limit <n>",
+    "generate only the first N clips",
+    (value: string) => Number.parseInt(value, 10)
+  )
   .action(async (episodeId: string, opts: { sceneLimit?: number }) => {
     const cliOptions: CliOptions = { ...program.opts<CliOptions>() };
     if (opts.sceneLimit !== undefined) {
@@ -1672,44 +2696,224 @@ program
     await commandRun(program.opts<CliOptions>(), episodeId);
   });
 
-const imagesCommand = program.command("images").description("Local scene image workflow");
-imagesCommand.command("export-openart").argument("<episode-id>").action(async (episodeId: string) => {
-  await commandImagesExportOpenArt(program.opts<CliOptions>(), episodeId);
-});
-imagesCommand.command("open-openart").argument("<episode-id>").action(async (episodeId: string) => {
-  await commandImagesOpenOpenArt(program.opts<CliOptions>(), episodeId);
-});
-imagesCommand.command("import").argument("<episode-id>").requiredOption("--from <directory>").action(async (episodeId: string, opts: { from: string }) => {
-  await commandImagesImport(program.opts<CliOptions>(), episodeId, opts.from);
-});
-imagesCommand.command("validate").argument("<episode-id>").action(async (episodeId: string) => {
-  await commandImagesValidate(program.opts<CliOptions>(), episodeId);
-});
-imagesCommand.command("missing").argument("<episode-id>").action(async (episodeId: string) => {
-  await commandImagesMissing(program.opts<CliOptions>(), episodeId);
-});
-imagesCommand.command("reject").argument("<episode-id>").requiredOption("--scene <scene-id>").requiredOption("--reason <reason>").action(async (episodeId: string, opts: { scene: string; reason: string }) => {
-  await commandImagesReject(program.opts<CliOptions>(), episodeId, opts.scene, opts.reason);
-});
-imagesCommand.command("regenerate-workbook").argument("<episode-id>").option("--missing-only").action(async (episodeId: string, opts: { missingOnly?: boolean }) => {
-  await commandImagesRegenerateWorkbook(program.opts<CliOptions>(), episodeId, opts.missingOnly ?? false);
-});
-imagesCommand.command("assign").argument("<episode-id>").requiredOption("--scene <scene-id>").requiredOption("--file <path>").action(async (episodeId: string, opts: { scene: string; file: string }) => {
-  await commandImagesAssign(program.opts<CliOptions>(), episodeId, opts.scene, opts.file);
-});
-imagesCommand.command("generate-openai").argument("<episode-id>").option("--scene <scene-id>").action(async (episodeId: string, opts: { scene?: string }) => {
-  await commandImagesGenerateOpenAi(program.opts<CliOptions>(), episodeId, opts.scene);
-});
+const imagesCommand = program
+  .command("images")
+  .description("Local scene image workflow");
+imagesCommand
+  .command("plan")
+  .requiredOption("--episode <episode-id>")
+  .option("--scene <scene-id>")
+  .option("--allow-unapproved-character-references")
+  .option("--force")
+  .action(
+    async (opts: {
+      episode: string;
+      scene?: string;
+      allowUnapprovedCharacterReferences?: boolean;
+      force?: boolean;
+    }) => {
+      const cliOptions: CliOptions = {
+        ...program.opts<CliOptions>(),
+        episode: opts.episode,
+        ...(opts.scene !== undefined ? { scene: opts.scene } : {}),
+        ...(opts.allowUnapprovedCharacterReferences !== undefined
+          ? {
+              allowUnapprovedCharacterReferences:
+                opts.allowUnapprovedCharacterReferences,
+            }
+          : {}),
+        ...(opts.force !== undefined ? { force: opts.force } : {}),
+      };
+      await commandImagesPlan(cliOptions, opts.episode, opts.scene);
+    }
+  );
+imagesCommand
+  .command("generate")
+  .requiredOption("--episode <episode-id>")
+  .option("--scene <scene-id>")
+  .option("--allow-unapproved-character-references")
+  .option("--force")
+  .action(
+    async (opts: {
+      episode: string;
+      scene?: string;
+      allowUnapprovedCharacterReferences?: boolean;
+      force?: boolean;
+    }) => {
+      const cliOptions: CliOptions = {
+        ...program.opts<CliOptions>(),
+        episode: opts.episode,
+        ...(opts.scene !== undefined ? { scene: opts.scene } : {}),
+        ...(opts.allowUnapprovedCharacterReferences !== undefined
+          ? {
+              allowUnapprovedCharacterReferences:
+                opts.allowUnapprovedCharacterReferences,
+            }
+          : {}),
+        ...(opts.force !== undefined ? { force: opts.force } : {}),
+      };
+      await commandImagesGenerate(cliOptions, opts.episode, opts.scene);
+    }
+  );
+imagesCommand
+  .command("generate-character-references")
+  .requiredOption("--episode <episode-id>")
+  .option("--character <character-id>")
+  .option("--force")
+  .action(
+    async (opts: { episode: string; character?: string; force?: boolean }) => {
+      const cliOptions: CliOptions = {
+        ...program.opts<CliOptions>(),
+        episode: opts.episode,
+        ...(opts.character !== undefined ? { character: opts.character } : {}),
+        ...(opts.force !== undefined ? { force: opts.force } : {}),
+      };
+      await commandImagesGenerateCharacterReferences(
+        cliOptions,
+        opts.episode,
+        opts.character
+      );
+    }
+  );
+imagesCommand
+  .command("approve-character")
+  .requiredOption("--episode <episode-id>")
+  .requiredOption("--character <character-id>")
+  .action(async (opts: { episode: string; character: string }) => {
+    const cliOptions: CliOptions = {
+      ...program.opts<CliOptions>(),
+      episode: opts.episode,
+      character: opts.character,
+    };
+    await commandImagesApproveCharacter(
+      cliOptions,
+      opts.episode,
+      opts.character
+    );
+  });
+imagesCommand
+  .command("regenerate-character")
+  .requiredOption("--episode <episode-id>")
+  .requiredOption("--character <character-id>")
+  .option("--force")
+  .action(
+    async (opts: { episode: string; character: string; force?: boolean }) => {
+      const cliOptions: CliOptions = {
+        ...program.opts<CliOptions>(),
+        episode: opts.episode,
+        character: opts.character,
+        ...(opts.force !== undefined ? { force: opts.force } : {}),
+      };
+      await commandImagesRegenerateCharacter(
+        cliOptions,
+        opts.episode,
+        opts.character
+      );
+    }
+  );
+imagesCommand
+  .command("export-openart")
+  .argument("<episode-id>")
+  .action(async (episodeId: string) => {
+    await commandImagesExportOpenArt(program.opts<CliOptions>(), episodeId);
+  });
+imagesCommand
+  .command("open-openart")
+  .argument("<episode-id>")
+  .action(async (episodeId: string) => {
+    await commandImagesOpenOpenArt(program.opts<CliOptions>(), episodeId);
+  });
+imagesCommand
+  .command("import")
+  .argument("<episode-id>")
+  .requiredOption("--from <directory>")
+  .action(async (episodeId: string, opts: { from: string }) => {
+    await commandImagesImport(program.opts<CliOptions>(), episodeId, opts.from);
+  });
+imagesCommand
+  .command("validate")
+  .argument("<episode-id>")
+  .action(async (episodeId: string) => {
+    await commandImagesValidate(program.opts<CliOptions>(), episodeId);
+  });
+imagesCommand
+  .command("missing")
+  .argument("<episode-id>")
+  .action(async (episodeId: string) => {
+    await commandImagesMissing(program.opts<CliOptions>(), episodeId);
+  });
+imagesCommand
+  .command("reject")
+  .argument("<episode-id>")
+  .requiredOption("--scene <scene-id>")
+  .requiredOption("--reason <reason>")
+  .action(
+    async (episodeId: string, opts: { scene: string; reason: string }) => {
+      await commandImagesReject(
+        program.opts<CliOptions>(),
+        episodeId,
+        opts.scene,
+        opts.reason
+      );
+    }
+  );
+imagesCommand
+  .command("regenerate-workbook")
+  .argument("<episode-id>")
+  .option("--missing-only")
+  .action(async (episodeId: string, opts: { missingOnly?: boolean }) => {
+    await commandImagesRegenerateWorkbook(
+      program.opts<CliOptions>(),
+      episodeId,
+      opts.missingOnly ?? false
+    );
+  });
+imagesCommand
+  .command("assign")
+  .argument("<episode-id>")
+  .requiredOption("--scene <scene-id>")
+  .requiredOption("--file <path>")
+  .action(async (episodeId: string, opts: { scene: string; file: string }) => {
+    await commandImagesAssign(
+      program.opts<CliOptions>(),
+      episodeId,
+      opts.scene,
+      opts.file
+    );
+  });
+imagesCommand
+  .command("generate-openai")
+  .argument("<episode-id>")
+  .option("--scene <scene-id>")
+  .action(async (episodeId: string, opts: { scene?: string }) => {
+    await commandImagesGenerateOpenAi(
+      program.opts<CliOptions>(),
+      episodeId,
+      opts.scene
+    );
+  });
 
 program
   .command("render")
   .argument("<episode-id>")
   .option("--profile <profile>", "youtube or vertical", "youtube")
   .option("--no-captions", "render without burned-in captions")
-  .action(async (episodeId: string, opts: { profile: "youtube" | "vertical"; captions?: boolean }) => {
-    await commandRender(program.opts<CliOptions>(), episodeId, opts.profile, opts.captions ?? true);
-  });
-const metadataCommand = program.command("metadata").description("Metadata utilities");
+  .action(
+    async (
+      episodeId: string,
+      opts: { profile: "youtube" | "vertical"; captions?: boolean }
+    ) => {
+      await commandRender(
+        program.opts<CliOptions>(),
+        episodeId,
+        opts.profile,
+        opts.captions ?? true
+      );
+    }
+  );
+const metadataCommand = program
+  .command("metadata")
+  .description("Metadata utilities");
 metadataCommand
   .command("generate")
   .argument("<episode-id>")
@@ -1722,9 +2926,14 @@ metadataCommand
   .option("--episode <episode-slug>")
   .option("--all")
   .option("--force")
-  .action(async (source: string | undefined, opts: { episode?: string; all?: boolean; force?: boolean }) => {
-    await commandMetadataYoutube(program.opts<CliOptions>(), source, opts);
-  });
+  .action(
+    async (
+      source: string | undefined,
+      opts: { episode?: string; all?: boolean; force?: boolean }
+    ) => {
+      await commandMetadataYoutube(program.opts<CliOptions>(), source, opts);
+    }
+  );
 program
   .command("package")
   .argument("<episode-id>")
@@ -1737,9 +2946,77 @@ dbCommand.command("migrate").action(async () => {
   await commandDbMigrate(program.opts<CliOptions>());
 });
 
+const youtubeCommand = program.command("youtube").description("YouTube utilities");
+youtubeCommand
+  .command("upload")
+  .requiredOption("--episode <episode-id>")
+  .option("--generate-metadata", "regenerate metadata before upload")
+  .option("--metadata-path <path>", "explicit metadata file path")
+  .option("--playlist-id <playlist-id>", "add the uploaded video to a playlist")
+  .option("--privacy-status <status>", "private, unlisted, or public")
+  .option("--publish-at <timestamp>", "future RFC 3339 publish timestamp")
+  .option("--notify-subscribers", "notify subscribers on publish")
+  .option("--video-path <path>", "override rendered video path")
+  .option("--thumbnail-path <path>", "override thumbnail path")
+  .option("--force", "regenerate even if a previous upload report exists")
+  .description("Upload a completed episode to YouTube")
+  .action(
+    async (
+      opts: {
+        episode: string;
+        generateMetadata?: boolean;
+        metadataPath?: string;
+        playlistId?: string;
+        privacyStatus?: "private" | "public" | "unlisted";
+        publishAt?: string;
+        notifySubscribers?: boolean;
+        videoPath?: string;
+        thumbnailPath?: string;
+        force?: boolean;
+      }
+    ) => {
+      await commandYoutubeUpload(program.opts<CliOptions>(), opts);
+    }
+  );
+
 registerEpisodeCommands(program);
 
-program.parseAsync(process.argv).catch((error: unknown) => {
-  process.stderr.write(`${JSON.stringify(serializeError(error), null, 2)}\n`);
-  process.exitCode = 1;
+const executionId =
+  process.env["MEDIAFORGE_EXECUTION_ID"] ?? randomUUID();
+const startedAt =
+  process.env["MEDIAFORGE_EXECUTION_STARTED_AT"] ?? new Date().toISOString();
+const telemetry = createExecutionTelemetry({
+  context: {
+    executionId,
+    command:
+      process.env["MEDIAFORGE_NPM_SCRIPT_COMMAND"] ??
+      process.argv.slice(2).join(" "),
+    argv: process.argv.slice(2),
+    cwd: process.cwd(),
+    startedAt,
+    ...(process.env["MEDIAFORGE_NPM_SCRIPT"]
+      ? { npmScript: process.env["MEDIAFORGE_NPM_SCRIPT"] }
+      : {}),
+  },
+  logger: createLogger(resolveLogLevel(process.env["MEDIAFORGE_LOG_LEVEL"])),
+  reportDir: path.join(process.cwd(), ".mediaforge", "execution-reports"),
+});
+
+await withExecutionTelemetry(telemetry, async () => {
+  try {
+    await program.parseAsync(process.argv);
+    await telemetry.finalize({
+      success: true,
+      exitCode: typeof process.exitCode === "number" ? process.exitCode : 0,
+      endedAt: new Date().toISOString(),
+    });
+  } catch (error: unknown) {
+    await telemetry.finalize({
+      success: false,
+      exitCode: 1,
+      endedAt: new Date().toISOString(),
+    });
+    process.stderr.write(`${JSON.stringify(serializeError(error), null, 2)}\n`);
+    process.exitCode = 1;
+  }
 });

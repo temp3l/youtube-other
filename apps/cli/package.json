@@ -30,6 +30,7 @@
     "@mediaforge/shared": "workspace:*",
     "@mediaforge/source-ingestion": "workspace:*",
     "@mediaforge/speech": "workspace:*",
+    "@mediaforge/youtube-upload": "workspace:*",
     "@mediaforge/testing": "workspace:*",
     "@mediaforge/transcript-cleaning": "workspace:*",
     "@mediaforge/transcription": "workspace:*",

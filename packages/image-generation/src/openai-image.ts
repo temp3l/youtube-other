@@ -22,6 +22,10 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { promisify } from "node:util";
 import sharp from "sharp";
+import {
+  currentExecutionTelemetry,
+  estimateImageGenerationCost,
+} from "@mediaforge/observability";
 
 export interface OpenAiImageGenerationSettings {
   readonly apiKey: string;
@@ -691,6 +695,7 @@ async function generateSingleImage(
     | Awaited<ReturnType<OpenAiImageClientLike["images"]["generate"]>>
     | undefined;
   let lastError: unknown;
+  const telemetry = currentExecutionTelemetry();
 
   for (let attempt = 0; attempt <= settings.maxRetries; attempt += 1) {
     try {
@@ -744,8 +749,57 @@ async function generateSingleImage(
       }
 
       lastError = undefined;
+      const cost = telemetry
+          ? estimateImageGenerationCost(telemetry.catalog, {
+              provider: "openai",
+              model: settings.model,
+              operation: "generate",
+              size: settings.apiSize,
+              quality: settings.quality,
+            })
+        : { pricingVersion: "unconfigured", costMicros: null, warning: undefined };
+      telemetry?.recordApiCall({
+        provider: "openai",
+        model: settings.model,
+        operation: "image-generation",
+        startedAt: new Date().toISOString(),
+        endedAt: new Date().toISOString(),
+        durationMs: 0,
+        attempt: attempt + 1,
+        success: true,
+        usage: { imageCount: 1 },
+        details: {
+          size: settings.apiSize,
+          quality: settings.quality,
+        },
+      });
+      telemetry?.recordCost({
+        provider: "openai",
+        model: settings.model,
+        operation: "image-generation",
+        costMicros: cost.costMicros,
+        warning: cost.warning,
+      });
       break;
     } catch (error) {
+      telemetry?.recordApiCall({
+        provider: "openai",
+        model: settings.model,
+        operation: "image-generation",
+        startedAt: new Date().toISOString(),
+        endedAt: new Date().toISOString(),
+        durationMs: 0,
+        attempt: attempt + 1,
+        success: false,
+        retryable: isRetryableOpenAiError(error),
+        details: {
+          size: settings.apiSize,
+          quality: settings.quality,
+        },
+        error: {
+          message: error instanceof Error ? error.message : String(error),
+        },
+      });
       lastError = error;
 
       if (!isRetryableOpenAiError(error) || attempt >= settings.maxRetries) {
