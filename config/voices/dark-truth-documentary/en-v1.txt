@@ -1,0 +1,7 @@
+Use one consistent adult male narrator.
+Speak natural English in a restrained dark-documentary tone.
+Target approximately 175–185 words per minute.
+Keep a stable narrator identity, volume, recording character, and pronunciation.
+Use restrained emotional changes for dialogue.
+Do not perform exaggerated character voices.
+Do not narrate headings, metadata, production directions, sound-design notes, or Markdown syntax.

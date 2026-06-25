@@ -2000,5 +2000,845 @@
     "language": "fr",
     "full_words": 569,
     "short_words": 178
+  },
+  {
+    "episode": 81,
+    "language": "en",
+    "title": "The Room Answered Before He Spoke",
+    "full_words": 654,
+    "short_words": 187
+  },
+  {
+    "episode": 81,
+    "language": "de",
+    "title": "Der Raum antwortete, bevor er sprach",
+    "full_words": 643,
+    "short_words": 190
+  },
+  {
+    "episode": 81,
+    "language": "es",
+    "title": "La habitación respondió antes de que él hablara",
+    "full_words": 725,
+    "short_words": 206
+  },
+  {
+    "episode": 81,
+    "language": "fr",
+    "title": "La pièce répondait avant qu’il parle",
+    "full_words": 736,
+    "short_words": 202
+  },
+  {
+    "episode": 82,
+    "language": "en",
+    "title": "The Night Bus Had No Final Stop",
+    "full_words": 667,
+    "short_words": 190
+  },
+  {
+    "episode": 82,
+    "language": "de",
+    "title": "Der Nachtbus hatte keine Endstation",
+    "full_words": 630,
+    "short_words": 187
+  },
+  {
+    "episode": 82,
+    "language": "es",
+    "title": "El autobús nocturno no tenía última parada",
+    "full_words": 712,
+    "short_words": 203
+  },
+  {
+    "episode": 82,
+    "language": "fr",
+    "title": "Le bus de nuit n’avait pas de terminus",
+    "full_words": 762,
+    "short_words": 208
+  },
+  {
+    "episode": 83,
+    "language": "en",
+    "title": "The Window Never Showed Daylight",
+    "full_words": 640,
+    "short_words": 183
+  },
+  {
+    "episode": 83,
+    "language": "de",
+    "title": "Das Fenster zeigte niemals Tageslicht",
+    "full_words": 629,
+    "short_words": 186
+  },
+  {
+    "episode": 83,
+    "language": "es",
+    "title": "La ventana nunca mostraba la luz del día",
+    "full_words": 724,
+    "short_words": 205
+  },
+  {
+    "episode": 83,
+    "language": "fr",
+    "title": "La fenêtre ne montrait jamais le jour",
+    "full_words": 748,
+    "short_words": 204
+  },
+  {
+    "episode": 84,
+    "language": "en",
+    "title": "The Phone Rang From Inside a Grave",
+    "full_words": 668,
+    "short_words": 191
+  },
+  {
+    "episode": 84,
+    "language": "de",
+    "title": "Das Telefon klingelte aus einem Grab",
+    "full_words": 644,
+    "short_words": 191
+  },
+  {
+    "episode": 84,
+    "language": "es",
+    "title": "El teléfono sonó desde una tumba",
+    "full_words": 700,
+    "short_words": 201
+  },
+  {
+    "episode": 84,
+    "language": "fr",
+    "title": "Le téléphone sonnait depuis une tombe",
+    "full_words": 737,
+    "short_words": 203
+  },
+  {
+    "episode": 85,
+    "language": "en",
+    "title": "A Voice Spoke Through the Baby Monitor",
+    "full_words": 668,
+    "short_words": 191
+  },
+  {
+    "episode": 85,
+    "language": "de",
+    "title": "Eine Stimme sprach durch das Babyphone",
+    "full_words": 644,
+    "short_words": 191
+  },
+  {
+    "episode": 85,
+    "language": "es",
+    "title": "Una voz habló a través del vigilabebés",
+    "full_words": 713,
+    "short_words": 204
+  },
+  {
+    "episode": 85,
+    "language": "fr",
+    "title": "Une voix parlait dans le babyphone",
+    "full_words": 737,
+    "short_words": 203
+  },
+  {
+    "episode": 86,
+    "language": "en",
+    "title": "A House Appeared Inside the Storm",
+    "full_words": 654,
+    "short_words": 187
+  },
+  {
+    "episode": 86,
+    "language": "de",
+    "title": "Ein Haus erschien im Sturm",
+    "full_words": 630,
+    "short_words": 187
+  },
+  {
+    "episode": 86,
+    "language": "es",
+    "title": "Una casa apareció dentro de la tormenta",
+    "full_words": 712,
+    "short_words": 203
+  },
+  {
+    "episode": 86,
+    "language": "fr",
+    "title": "Une maison est apparue dans la tempête",
+    "full_words": 749,
+    "short_words": 205
+  },
+  {
+    "episode": 87,
+    "language": "en",
+    "title": "A Bell Was Ringing Beneath the Church",
+    "full_words": 667,
+    "short_words": 190
+  },
+  {
+    "episode": 87,
+    "language": "de",
+    "title": "Unter der Kirche läutete eine Glocke",
+    "full_words": 643,
+    "short_words": 190
+  },
+  {
+    "episode": 87,
+    "language": "es",
+    "title": "Una campana sonaba bajo la iglesia",
+    "full_words": 699,
+    "short_words": 200
+  },
+  {
+    "episode": 87,
+    "language": "fr",
+    "title": "Une cloche sonnait sous l’église",
+    "full_words": 723,
+    "short_words": 199
+  },
+  {
+    "episode": 88,
+    "language": "en",
+    "title": "Camera Nine Showed a Guard Who Wasn't There",
+    "full_words": 681,
+    "short_words": 194
+  },
+  {
+    "episode": 88,
+    "language": "de",
+    "title": "Kamera Neun zeigte einen Wachmann, den es nicht gab",
+    "full_words": 683,
+    "short_words": 200
+  },
+  {
+    "episode": 88,
+    "language": "es",
+    "title": "La cámara nueve mostraba a un guardia inexistente",
+    "full_words": 726,
+    "short_words": 207
+  },
+  {
+    "episode": 88,
+    "language": "fr",
+    "title": "La caméra neuf montrait un gardien inexistant",
+    "full_words": 750,
+    "short_words": 206
+  },
+  {
+    "episode": 89,
+    "language": "en",
+    "title": "The Chair Turned Toward the Room",
+    "full_words": 655,
+    "short_words": 188
+  },
+  {
+    "episode": 89,
+    "language": "de",
+    "title": "Der Stuhl drehte sich zum Raum",
+    "full_words": 644,
+    "short_words": 191
+  },
+  {
+    "episode": 89,
+    "language": "es",
+    "title": "La silla se giró hacia la habitación",
+    "full_words": 713,
+    "short_words": 204
+  },
+  {
+    "episode": 89,
+    "language": "fr",
+    "title": "La chaise s’est tournée vers la pièce",
+    "full_words": 750,
+    "short_words": 206
+  },
+  {
+    "episode": 90,
+    "language": "en",
+    "title": "The Empty Train Opened Its Doors",
+    "full_words": 655,
+    "short_words": 188
+  },
+  {
+    "episode": 90,
+    "language": "de",
+    "title": "Der leere Zug öffnete seine Türen",
+    "full_words": 644,
+    "short_words": 191
+  },
+  {
+    "episode": 90,
+    "language": "es",
+    "title": "El tren vacío abrió sus puertas",
+    "full_words": 700,
+    "short_words": 201
+  },
+  {
+    "episode": 90,
+    "language": "fr",
+    "title": "Le train vide a ouvert ses portes",
+    "full_words": 750,
+    "short_words": 206
+  },
+  {
+    "episode": 91,
+    "language": "en",
+    "title": "A New Floor Appeared at 2 A.M.",
+    "full_words": 667,
+    "short_words": 190
+  },
+  {
+    "episode": 91,
+    "language": "de",
+    "title": "Um zwei Uhr erschien ein neues Stockwerk",
+    "full_words": 656,
+    "short_words": 193
+  },
+  {
+    "episode": 91,
+    "language": "es",
+    "title": "A las dos apareció una planta nueva",
+    "full_words": 712,
+    "short_words": 203
+  },
+  {
+    "episode": 91,
+    "language": "fr",
+    "title": "Un nouvel étage est apparu à deux heures",
+    "full_words": 762,
+    "short_words": 208
+  },
+  {
+    "episode": 92,
+    "language": "en",
+    "title": "A Woman Was Standing Behind the Curtain",
+    "full_words": 667,
+    "short_words": 190
+  },
+  {
+    "episode": 92,
+    "language": "de",
+    "title": "Eine Frau stand hinter dem Vorhang",
+    "full_words": 643,
+    "short_words": 190
+  },
+  {
+    "episode": 92,
+    "language": "es",
+    "title": "Una mujer estaba detrás de la cortina",
+    "full_words": 712,
+    "short_words": 203
+  },
+  {
+    "episode": 92,
+    "language": "fr",
+    "title": "Une femme se tenait derrière le rideau",
+    "full_words": 749,
+    "short_words": 205
+  },
+  {
+    "episode": 93,
+    "language": "en",
+    "title": "They Found Stairs Beneath the Playground",
+    "full_words": 655,
+    "short_words": 188
+  },
+  {
+    "episode": 93,
+    "language": "de",
+    "title": "Unter dem Spielplatz fanden sie eine Treppe",
+    "full_words": 657,
+    "short_words": 194
+  },
+  {
+    "episode": 93,
+    "language": "es",
+    "title": "Encontraron unas escaleras bajo el parque infantil",
+    "full_words": 713,
+    "short_words": 204
+  },
+  {
+    "episode": 93,
+    "language": "fr",
+    "title": "Ils ont trouvé un escalier sous l’aire de jeux",
+    "full_words": 776,
+    "short_words": 212
+  },
+  {
+    "episode": 94,
+    "language": "en",
+    "title": "The Photograph Was Breathing",
+    "full_words": 627,
+    "short_words": 180
+  },
+  {
+    "episode": 94,
+    "language": "de",
+    "title": "Das Foto atmete",
+    "full_words": 603,
+    "short_words": 180
+  },
+  {
+    "episode": 94,
+    "language": "es",
+    "title": "La fotografía respiraba",
+    "full_words": 659,
+    "short_words": 190
+  },
+  {
+    "episode": 94,
+    "language": "fr",
+    "title": "La photographie respirait",
+    "full_words": 696,
+    "short_words": 192
+  },
+  {
+    "episode": 95,
+    "language": "en",
+    "title": "The Forest Repeated Their Names",
+    "full_words": 640,
+    "short_words": 183
+  },
+  {
+    "episode": 95,
+    "language": "de",
+    "title": "Der Wald wiederholte ihre Namen",
+    "full_words": 629,
+    "short_words": 186
+  },
+  {
+    "episode": 95,
+    "language": "es",
+    "title": "El bosque repetía sus nombres",
+    "full_words": 685,
+    "short_words": 196
+  },
+  {
+    "episode": 95,
+    "language": "fr",
+    "title": "La forêt répétait leurs noms",
+    "full_words": 722,
+    "short_words": 198
+  },
+  {
+    "episode": 96,
+    "language": "en",
+    "title": "The Hospital Had One Final Room",
+    "full_words": 654,
+    "short_words": 187
+  },
+  {
+    "episode": 96,
+    "language": "de",
+    "title": "Das Krankenhaus hatte ein letztes Zimmer",
+    "full_words": 643,
+    "short_words": 190
+  },
+  {
+    "episode": 96,
+    "language": "es",
+    "title": "El hospital tenía una última habitación",
+    "full_words": 699,
+    "short_words": 200
+  },
+  {
+    "episode": 96,
+    "language": "fr",
+    "title": "L’hôpital avait une dernière chambre",
+    "full_words": 723,
+    "short_words": 199
+  },
+  {
+    "episode": 97,
+    "language": "en",
+    "title": "A Face Appeared in Every Rainstorm",
+    "full_words": 656,
+    "short_words": 189
+  },
+  {
+    "episode": 97,
+    "language": "de",
+    "title": "In jedem Regenschauer erschien ein Gesicht",
+    "full_words": 645,
+    "short_words": 192
+  },
+  {
+    "episode": 97,
+    "language": "es",
+    "title": "Un rostro aparecía en cada tormenta",
+    "full_words": 701,
+    "short_words": 202
+  },
+  {
+    "episode": 97,
+    "language": "fr",
+    "title": "Un visage apparaissait dans chaque averse",
+    "full_words": 738,
+    "short_words": 204
+  },
+  {
+    "episode": 98,
+    "language": "en",
+    "title": "The Library Had a Room No One Could Open",
+    "full_words": 694,
+    "short_words": 197
+  },
+  {
+    "episode": 98,
+    "language": "de",
+    "title": "Die Bibliothek hatte einen Raum, den niemand öffnen konnte",
+    "full_words": 683,
+    "short_words": 200
+  },
+  {
+    "episode": 98,
+    "language": "es",
+    "title": "La biblioteca tenía una sala que nadie podía abrir",
+    "full_words": 739,
+    "short_words": 210
+  },
+  {
+    "episode": 98,
+    "language": "fr",
+    "title": "La bibliothèque possédait une salle impossible à ouvrir",
+    "full_words": 763,
+    "short_words": 209
+  },
+  {
+    "episode": 99,
+    "language": "en",
+    "title": "The Man Only Stood Between Streetlights",
+    "full_words": 655,
+    "short_words": 188
+  },
+  {
+    "episode": 99,
+    "language": "de",
+    "title": "Der Mann stand nur zwischen den Straßenlaternen",
+    "full_words": 657,
+    "short_words": 194
+  },
+  {
+    "episode": 99,
+    "language": "es",
+    "title": "El hombre solo aparecía entre las farolas",
+    "full_words": 713,
+    "short_words": 204
+  },
+  {
+    "episode": 99,
+    "language": "fr",
+    "title": "L’homme ne se tenait qu’entre les lampadaires",
+    "full_words": 750,
+    "short_words": 206
+  },
+  {
+    "episode": 100,
+    "language": "en",
+    "title": "Every Dream Ended at the Same Door",
+    "full_words": 667,
+    "short_words": 190
+  },
+  {
+    "episode": 100,
+    "language": "de",
+    "title": "Jeder Traum endete an derselben Tür",
+    "full_words": 643,
+    "short_words": 190
+  },
+  {
+    "episode": 100,
+    "language": "es",
+    "title": "Todos los sueños terminaban en la misma puerta",
+    "full_words": 725,
+    "short_words": 206
+  },
+  {
+    "episode": 100,
+    "language": "fr",
+    "title": "Chaque rêve se terminait devant la même porte",
+    "full_words": 762,
+    "short_words": 208
+  },
+  {
+    "episode": 101,
+    "language": "en",
+    "title": "The Voice From the Empty Apartment",
+    "full_words": 443,
+    "short_words": 177
+  },
+  {
+    "episode": 101,
+    "language": "de",
+    "title": "Die Stimme aus der leeren Wohnung",
+    "full_words": 428,
+    "short_words": 177
+  },
+  {
+    "episode": 101,
+    "language": "es",
+    "title": "La voz del apartamento vacío",
+    "full_words": 469,
+    "short_words": 185
+  },
+  {
+    "episode": 101,
+    "language": "fr",
+    "title": "La voix de l’appartement vide",
+    "full_words": 477,
+    "short_words": 180
+  },
+  {
+    "episode": 102,
+    "language": "en",
+    "title": "The Shadow on the Ceiling",
+    "full_words": 425,
+    "short_words": 169
+  },
+  {
+    "episode": 102,
+    "language": "de",
+    "title": "Der Schatten an der Decke",
+    "full_words": 417,
+    "short_words": 176
+  },
+  {
+    "episode": 102,
+    "language": "es",
+    "title": "La sombra del techo",
+    "full_words": 457,
+    "short_words": 183
+  },
+  {
+    "episode": 102,
+    "language": "fr",
+    "title": "L’ombre au plafond",
+    "full_words": 457,
+    "short_words": 180
+  },
+  {
+    "episode": 103,
+    "language": "en",
+    "title": "The Door That Only Opened in Storms",
+    "full_words": 442,
+    "short_words": 166
+  },
+  {
+    "episode": 103,
+    "language": "de",
+    "title": "Die Tür, die sich nur bei Sturm öffnete",
+    "full_words": 445,
+    "short_words": 174
+  },
+  {
+    "episode": 103,
+    "language": "es",
+    "title": "La puerta que solo se abría durante las tormentas",
+    "full_words": 514,
+    "short_words": 190
+  },
+  {
+    "episode": 103,
+    "language": "fr",
+    "title": "La porte qui ne s’ouvrait que pendant les tempêtes",
+    "full_words": 531,
+    "short_words": 194
+  },
+  {
+    "episode": 104,
+    "language": "en",
+    "title": "The Visitor in the Security Mirror",
+    "full_words": 440,
+    "short_words": 174
+  },
+  {
+    "episode": 104,
+    "language": "de",
+    "title": "Der Besucher im Sicherheitsspiegel",
+    "full_words": 407,
+    "short_words": 176
+  },
+  {
+    "episode": 104,
+    "language": "es",
+    "title": "El visitante del espejo de seguridad",
+    "full_words": 480,
+    "short_words": 186
+  },
+  {
+    "episode": 104,
+    "language": "fr",
+    "title": "Le visiteur dans le miroir de sécurité",
+    "full_words": 514,
+    "short_words": 197
+  },
+  {
+    "episode": 105,
+    "language": "en",
+    "title": "The Empty House on the Map",
+    "full_words": 439,
+    "short_words": 173
+  },
+  {
+    "episode": 105,
+    "language": "de",
+    "title": "Das leere Haus auf der Karte",
+    "full_words": 431,
+    "short_words": 180
+  },
+  {
+    "episode": 105,
+    "language": "es",
+    "title": "La casa vacía del mapa",
+    "full_words": 472,
+    "short_words": 188
+  },
+  {
+    "episode": 105,
+    "language": "fr",
+    "title": "La maison vide sur la carte",
+    "full_words": 497,
+    "short_words": 190
+  },
+  {
+    "episode": 106,
+    "language": "en",
+    "title": "The Elevator That Stopped Between Seconds",
+    "full_words": 434,
+    "short_words": 168
+  },
+  {
+    "episode": 106,
+    "language": "de",
+    "title": "Der Aufzug, der zwischen den Sekunden anhielt",
+    "full_words": 440,
+    "short_words": 179
+  },
+  {
+    "episode": 106,
+    "language": "es",
+    "title": "El ascensor que se detuvo entre segundos",
+    "full_words": 495,
+    "short_words": 191
+  },
+  {
+    "episode": 106,
+    "language": "fr",
+    "title": "L’ascenseur qui s’est arrêté entre deux secondes",
+    "full_words": 510,
+    "short_words": 193
+  },
+  {
+    "episode": 107,
+    "language": "en",
+    "title": "The Child Who Waved From the Bus Window",
+    "full_words": 459,
+    "short_words": 173
+  },
+  {
+    "episode": 107,
+    "language": "de",
+    "title": "Das Kind, das aus dem Busfenster winkte",
+    "full_words": 442,
+    "short_words": 181
+  },
+  {
+    "episode": 107,
+    "language": "es",
+    "title": "El niño que saludaba desde la ventana del autobús",
+    "full_words": 509,
+    "short_words": 185
+  },
+  {
+    "episode": 107,
+    "language": "fr",
+    "title": "L’enfant qui faisait signe depuis la fenêtre du bus",
+    "full_words": 528,
+    "short_words": 191
+  },
+  {
+    "episode": 108,
+    "language": "en",
+    "title": "The Closet That Opened to Another House",
+    "full_words": 444,
+    "short_words": 168
+  },
+  {
+    "episode": 108,
+    "language": "de",
+    "title": "Der Schrank, der sich zu einem anderen Haus öffnete",
+    "full_words": 460,
+    "short_words": 179
+  },
+  {
+    "episode": 108,
+    "language": "es",
+    "title": "El armario que se abría a otra casa",
+    "full_words": 500,
+    "short_words": 186
+  },
+  {
+    "episode": 108,
+    "language": "fr",
+    "title": "Le placard qui s’ouvrait sur une autre maison",
+    "full_words": 517,
+    "short_words": 190
+  },
+  {
+    "episode": 109,
+    "language": "en",
+    "title": "The Last Email in the Inbox",
+    "full_words": 431,
+    "short_words": 165
+  },
+  {
+    "episode": 109,
+    "language": "de",
+    "title": "Die letzte E-Mail im Posteingang",
+    "full_words": 416,
+    "short_words": 175
+  },
+  {
+    "episode": 109,
+    "language": "es",
+    "title": "El último correo de la bandeja de entrada",
+    "full_words": 497,
+    "short_words": 183
+  },
+  {
+    "episode": 109,
+    "language": "fr",
+    "title": "Le dernier e-mail de la boîte de réception",
+    "full_words": 508,
+    "short_words": 181
+  },
+  {
+    "episode": 110,
+    "language": "en",
+    "title": "The House That Called Itself Home",
+    "full_words": 431,
+    "short_words": 165
+  },
+  {
+    "episode": 110,
+    "language": "de",
+    "title": "Das Haus, das sich selbst Zuhause nannte",
+    "full_words": 440,
+    "short_words": 179
+  },
+  {
+    "episode": 110,
+    "language": "es",
+    "title": "La casa que se llamaba hogar",
+    "full_words": 475,
+    "short_words": 181
+  },
+  {
+    "episode": 110,
+    "language": "fr",
+    "title": "La maison qui se faisait appeler chez soi",
+    "full_words": 514,
+    "short_words": 187
   }
 ]

@@ -1,0 +1,21 @@
+{
+  "name": "@mediaforge/dark-truth",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@mediaforge/domain": "workspace:*",
+    "@mediaforge/image-generation": "workspace:*",
+    "@mediaforge/rendering": "workspace:*",
+    "@mediaforge/process-runner": "workspace:*",
+    "@mediaforge/shared": "workspace:*",
+    "@mediaforge/speech": "workspace:*",
+    "zod": "^4.0.14"
+  }
+}

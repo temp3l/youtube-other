@@ -1,0 +1,7 @@
+Verwende durchgehend dieselbe erwachsene männliche Erzählerstimme.
+Sprich natürliches Deutsch mit einem zurückhaltenden, düsteren Dokumentarton.
+Zieltempo: ungefähr 175–185 Wörter pro Minute.
+Behalte eine gleichbleibende Stimme, Lautstärke, Aufnahmecharakteristik und Aussprache bei.
+Verwende bei Dialogen nur zurückhaltende emotionale Veränderungen.
+Vermeide übertriebene Charakterstimmen.
+Lies keine Überschriften, Metadaten, Produktionshinweise, Sounddesign-Anweisungen oder Markdown-Syntax vor.

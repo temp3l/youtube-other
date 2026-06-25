@@ -20,6 +20,10 @@ import { runCommand } from "@mediaforge/process-runner";
 import { buildSrt, ensureDir, normalizeWhitespace, splitIntoSentences, splitIntoWords, writeJsonAtomic, writeTextAtomic } from "@mediaforge/shared";
 import { z } from "zod";
 import {
+  currentExecutionTelemetry,
+  estimateDurationPricing
+} from "@mediaforge/observability";
+import {
   DEFAULT_SEGMENTATION_OPTIONS,
   buildVisualScenesFromSubtitleSegments,
   extractRawSegmentsFromWhisperResponse,
@@ -684,6 +688,7 @@ export class OpenAiCompatibleTranscriptionProvider implements TranscriptionProvi
 
   public async transcribe(request: TranscriptionRequest, signal: AbortSignal): Promise<Transcript> {
     signal.throwIfAborted();
+    const telemetry = currentExecutionTelemetry();
     if (!request.audioPath) {
       throw new HumanActionRequiredError("OpenAI transcription requires an audio file.");
     }
@@ -814,6 +819,21 @@ export class OpenAiCompatibleTranscriptionProvider implements TranscriptionProvi
         };
         await persistWhisperArtifacts(request.episodeDir, rawArtifact, normalized);
       }
+      const cost = telemetry
+        ? estimateDurationPricing(telemetry.catalog, {
+            provider: "openai",
+            model,
+            operation: "transcription",
+            durationSeconds: targetDurationSeconds
+          })
+        : { pricingVersion: "unconfigured", costMicros: null, warning: undefined };
+      telemetry?.recordCost({
+        provider: "openai",
+        model,
+        operation: "transcription",
+        costMicros: cost.costMicros,
+        warning: cost.warning
+      });
       return transcriptSchema.parse({
         sourceId: normalized.sourceId,
         language: normalized.language,
@@ -834,12 +854,28 @@ export class OpenAiCompatibleTranscriptionProvider implements TranscriptionProvi
         words: []
       })
     );
-    return transcriptSchema.parse({
+    const transcript = transcriptSchema.parse({
       sourceId: request.sourceId,
       language,
       text: segments.map((segment) => segment.text).join(" "),
       segments,
       words: []
     });
+    const cost = telemetry
+      ? estimateDurationPricing(telemetry.catalog, {
+          provider: "openai",
+          model,
+          operation: "transcription",
+          durationSeconds: targetDurationSeconds
+        })
+      : { pricingVersion: "unconfigured", costMicros: null, warning: undefined };
+    telemetry?.recordCost({
+      provider: "openai",
+      model,
+      operation: "transcription",
+      costMicros: cost.costMicros,
+      warning: cost.warning
+    });
+    return transcript;
   }
 }

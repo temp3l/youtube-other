@@ -10,6 +10,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@mediaforge/shared": "workspace:*",
     "pino": "^9.8.0",
     "zod": "^4.0.14"
   }

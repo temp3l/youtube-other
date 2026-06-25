@@ -31,6 +31,7 @@ const configSchema = z.object({
   visualSceneMinSeconds: z.number().positive(),
   visualSceneMaxSeconds: z.number().positive(),
   trailingSilenceRatio: z.number().min(0).max(1),
+  trailingSilenceBufferSeconds: z.number().min(0),
   openAiTranscriptionModel: z.string().optional(),
   openAiTranscriptionLanguage: z.string().optional(),
   openAiTranscriptionPrompt: z.string().optional(),
@@ -49,6 +50,11 @@ const configSchema = z.object({
   openAiSpeechVoice: z.string().optional(),
   speechVoicePreset: z.enum(["slow", "fast"]).optional(),
   scriptLanguage: z.string().regex(/^[a-z]{2}(?:-[a-z0-9]{2,8})*$/iu).optional(),
+  youtubeClientId: z.string().optional(),
+  youtubeClientSecret: z.string().optional(),
+  youtubeRefreshToken: z.string().optional(),
+  youtubeRedirectUri: z.string().url().optional(),
+  youtubeChannelId: z.string().optional(),
   apiPort: z.number().int().positive()
 });
 export type RuntimeConfig = z.infer<typeof configSchema>;
@@ -120,6 +126,7 @@ const envSchema = z.object({
   VISUAL_SCENE_MIN_SECONDS: z.coerce.number().positive().optional(),
   VISUAL_SCENE_MAX_SECONDS: z.coerce.number().positive().optional(),
   MEDIAFORGE_TRAILING_SILENCE_RATIO: z.coerce.number().min(0).max(1).optional(),
+  MEDIAFORGE_TRAILING_SILENCE_BUFFER_SECONDS: z.coerce.number().min(0).optional(),
   MEDIAFORGE_OPENAI_TRANSCRIPTION_MODEL: z.string().optional(),
   MEDIAFORGE_OPENAI_TRANSCRIPTION_LANGUAGE: z.string().optional(),
   MEDIAFORGE_OPENAI_TRANSCRIPTION_PROMPT: z.string().optional(),
@@ -138,6 +145,11 @@ const envSchema = z.object({
   MEDIAFORGE_OPENAI_SPEECH_VOICE: z.string().optional(),
   MEDIAFORGE_SPEECH_VOICE_PRESET: z.enum(["slow", "fast"]).optional(),
   MEDIAFORGE_SCRIPT_LANGUAGE: z.string().regex(/^[a-z]{2}(?:-[a-z0-9]{2,8})*$/iu).optional(),
+  YOUTUBE_CLIENT_ID: z.string().optional(),
+  YOUTUBE_CLIENT_SECRET: z.string().optional(),
+  YOUTUBE_REFRESH_TOKEN: z.string().optional(),
+  YOUTUBE_REDIRECT_URI: z.string().url().optional(),
+  YOUTUBE_CHANNEL_ID: z.string().optional(),
   OPENAI_BASE_URL: z.string().url().optional(),
   OPENAI_API_KEY: z.string().optional(),
   OPENAI_ORGANIZATION: z.string().optional(),
@@ -248,7 +260,9 @@ export async function loadRuntimeConfig(
     visualSceneMaxSeconds:
       overrides.visualSceneMaxSeconds ?? episodeOverrides.visualSceneMaxSeconds ?? env.VISUAL_SCENE_MAX_SECONDS ?? 9,
     trailingSilenceRatio:
-      overrides.trailingSilenceRatio ?? episodeOverrides.trailingSilenceRatio ?? env.MEDIAFORGE_TRAILING_SILENCE_RATIO ?? 1,
+      overrides.trailingSilenceRatio ?? episodeOverrides.trailingSilenceRatio ?? env.MEDIAFORGE_TRAILING_SILENCE_RATIO ?? 0.8,
+    trailingSilenceBufferSeconds:
+      overrides.trailingSilenceBufferSeconds ?? episodeOverrides.trailingSilenceBufferSeconds ?? env.MEDIAFORGE_TRAILING_SILENCE_BUFFER_SECONDS ?? 0.5,
     openAiTranscriptionModel:
       overrides.openAiTranscriptionModel ?? episodeOverrides.openAiTranscriptionModel ?? env.MEDIAFORGE_OPENAI_TRANSCRIPTION_MODEL,
     openAiTranscriptionLanguage:
@@ -281,6 +295,11 @@ export async function loadRuntimeConfig(
     openAiSpeechVoice: overrides.openAiSpeechVoice ?? episodeOverrides.openAiSpeechVoice ?? env.MEDIAFORGE_OPENAI_SPEECH_VOICE ?? env.OPENAI_SPEECH_VOICE,
     speechVoicePreset: overrides.speechVoicePreset ?? episodeOverrides.speechVoicePreset ?? env.MEDIAFORGE_SPEECH_VOICE_PRESET ?? "fast",
     scriptLanguage: overrides.scriptLanguage ?? episodeOverrides.scriptLanguage ?? env.MEDIAFORGE_SCRIPT_LANGUAGE ?? "en",
+    youtubeClientId: overrides.youtubeClientId ?? episodeOverrides.youtubeClientId ?? env.YOUTUBE_CLIENT_ID,
+    youtubeClientSecret: overrides.youtubeClientSecret ?? episodeOverrides.youtubeClientSecret ?? env.YOUTUBE_CLIENT_SECRET,
+    youtubeRefreshToken: overrides.youtubeRefreshToken ?? episodeOverrides.youtubeRefreshToken ?? env.YOUTUBE_REFRESH_TOKEN,
+    youtubeRedirectUri: overrides.youtubeRedirectUri ?? episodeOverrides.youtubeRedirectUri ?? env.YOUTUBE_REDIRECT_URI,
+    youtubeChannelId: overrides.youtubeChannelId ?? episodeOverrides.youtubeChannelId ?? env.YOUTUBE_CHANNEL_ID,
     apiPort: overrides.apiPort ?? episodeOverrides.apiPort ?? env.MEDIAFORGE_API_PORT ?? 3333
   });
   return config;

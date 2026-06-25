@@ -62,6 +62,8 @@ describe("runtime config", () => {
     expect(config.transcriptTimestampPrecision).toBe(3);
     expect(config.visualSceneMinSeconds).toBe(6);
     expect(config.visualSceneMaxSeconds).toBe(9);
+    expect(config.trailingSilenceRatio).toBe(0.8);
+    expect(config.trailingSilenceBufferSeconds).toBe(0.5);
   });
 
   it("lets .env override inherited process env values for OpenAI credentials", async () => {
@@ -92,5 +94,21 @@ describe("runtime config", () => {
         delete process.env.OPENAI_API_KEY;
       }
     }
+  });
+
+  it("allows trailing silence to be preserved when explicitly configured", async () => {
+    const config = await loadRuntimeConfig({
+      trailingSilenceRatio: 0.25
+    });
+
+    expect(config.trailingSilenceRatio).toBe(0.25);
+  });
+
+  it("allows the silence buffer to be configured independently", async () => {
+    const config = await loadRuntimeConfig({
+      trailingSilenceBufferSeconds: 0.75
+    });
+
+    expect(config.trailingSilenceBufferSeconds).toBe(0.75);
   });
 });

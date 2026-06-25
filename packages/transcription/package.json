@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@mediaforge/domain": "workspace:*",
+    "@mediaforge/observability": "workspace:*",
     "@mediaforge/process-runner": "workspace:*",
     "@mediaforge/shared": "workspace:*",
     "zod": "^4.0.14"

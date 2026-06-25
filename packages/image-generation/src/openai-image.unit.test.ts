@@ -318,7 +318,7 @@ describe("OpenAI image generation", () => {
     }
   }, 20000);
 
-  it("reuses a prior image when the semantic prompt is highly similar", async () => {
+  it("generates each scene independently even when prompts are similar", async () => {
     const tempDir = mkdtempSync(path.join(os.tmpdir(), "mediaforge-openai-images-reuse-"));
     const episodeDir = path.join(tempDir, "episode");
     await fs.mkdir(episodeDir, { recursive: true });
@@ -411,10 +411,9 @@ describe("OpenAI image generation", () => {
       { client }
     );
 
-    expect(calls).toBe(1);
+    expect(calls).toBe(2);
     expect(results).toHaveLength(2);
-    expect(results[1]?.reusedFromSceneId).toBe("scene-001");
-    expect(await fs.readFile(results[0]!.renderedPath ?? "")).toEqual(await fs.readFile(results[1]!.renderedPath ?? ""));
+    expect(results[0]?.renderedPath).not.toBe(results[1]?.renderedPath);
   });
 
   it("includes the full JSON payload when the OpenAI API returns an error", async () => {

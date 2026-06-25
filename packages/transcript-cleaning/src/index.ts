@@ -10,6 +10,10 @@ import {
 } from "@mediaforge/domain";
 import { runCurl } from "@mediaforge/process-runner";
 import { collapseRepeatedTokenRuns, normalizeWhitespace, splitIntoSentences } from "@mediaforge/shared";
+import {
+  currentExecutionTelemetry,
+  estimateTextGenerationCost
+} from "@mediaforge/observability";
 
 export interface TranscriptCleaner {
   clean(transcript: Transcript): CleanedTranscript | Promise<CleanedTranscript>;
@@ -162,6 +166,38 @@ export class OpenAiCompatibleTranscriptCleaner implements TranscriptCleaner {
       throw new ProviderResponseError(response.stderr.trim() || response.stdout.trim() || "Cleaning provider returned a non-zero exit code.");
     }
     const payload = JSON.parse(response.stdout) as { choices?: Array<{ message?: { content?: string } }> };
+    const usage = (payload as {
+      readonly usage?: {
+        readonly prompt_tokens?: number;
+        readonly completion_tokens?: number;
+        readonly prompt_tokens_details?: { readonly cached_tokens?: number };
+      };
+    }).usage;
+    const telemetry = currentExecutionTelemetry();
+    const cost = telemetry
+      ? estimateTextGenerationCost(telemetry.catalog, {
+          provider: "openai",
+          model: this.options.model,
+          ...(usage?.prompt_tokens !== undefined
+            ? { inputTokens: usage.prompt_tokens }
+            : {}),
+          ...(usage?.prompt_tokens_details?.cached_tokens !== undefined
+            ? {
+                cachedInputTokens: usage.prompt_tokens_details.cached_tokens,
+              }
+            : {}),
+          ...(usage?.completion_tokens !== undefined
+            ? { outputTokens: usage.completion_tokens }
+            : {}),
+        })
+      : { pricingVersion: "unconfigured", costMicros: null, warning: undefined };
+    telemetry?.recordCost({
+      provider: "openai",
+      model: this.options.model,
+      operation: "text-generation",
+      costMicros: cost.costMicros,
+      warning: cost.warning
+    });
     const content = payload.choices?.[0]?.message?.content;
     if (!content) {
       throw new ProviderResponseError("Cleaning provider returned an empty response.");

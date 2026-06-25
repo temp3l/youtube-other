@@ -8,6 +8,10 @@ import {
 } from "@mediaforge/domain";
 import { collapseRepeatedTokenRuns, normalizeWhitespace, splitIntoSentences } from "@mediaforge/shared";
 import { runCurl } from "@mediaforge/process-runner";
+import {
+  currentExecutionTelemetry,
+  estimateTextGenerationCost
+} from "@mediaforge/observability";
 
 export interface ScriptRewriter {
   rewrite(cleanedTranscript: CleanedTranscript): RewrittenScript | Promise<RewrittenScript>;
@@ -293,7 +297,40 @@ function createCurlTextTransport(): OpenAiCompatibleTextTransport {
         throw new ProviderResponseError(`Rewriting provider returned ${result.stderr.trim() || result.stdout.trim() || "an HTTP error"}.`);
       }
       try {
-        return JSON.parse(result.stdout) as OpenAiChatCompletionResponse;
+        const parsed = JSON.parse(result.stdout) as OpenAiChatCompletionResponse & {
+          readonly usage?: {
+            readonly prompt_tokens?: number;
+            readonly completion_tokens?: number;
+            readonly prompt_tokens_details?: { readonly cached_tokens?: number };
+          };
+        };
+        const telemetry = currentExecutionTelemetry();
+        const cost = telemetry
+          ? estimateTextGenerationCost(telemetry.catalog, {
+              provider: "openai",
+              model: request.model,
+              ...(parsed.usage?.prompt_tokens !== undefined
+                ? { inputTokens: parsed.usage.prompt_tokens }
+                : {}),
+              ...(parsed.usage?.prompt_tokens_details?.cached_tokens !== undefined
+                ? {
+                    cachedInputTokens:
+                      parsed.usage.prompt_tokens_details.cached_tokens,
+                  }
+                : {}),
+              ...(parsed.usage?.completion_tokens !== undefined
+                ? { outputTokens: parsed.usage.completion_tokens }
+                : {}),
+            })
+          : { pricingVersion: "unconfigured", costMicros: null, warning: undefined };
+        telemetry?.recordCost({
+          provider: "openai",
+          model: request.model,
+          operation: "text-generation",
+          costMicros: cost.costMicros,
+          warning: cost.warning
+        });
+        return parsed;
       } catch (error) {
         throw new ProviderResponseError(`Rewriting provider returned invalid JSON: ${error instanceof Error ? error.message : String(error)}`);
       }
