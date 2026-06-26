@@ -268,8 +268,8 @@ export async function loadRuntimeConfig(
 ): Promise<RuntimeConfig> {
   const dotenvValues = await loadDotEnvValues(process.cwd());
   const env = envSchema.parse({
-    ...process.env,
-    ...dotenvValues
+    ...dotenvValues,
+    ...process.env
   });
   const availableCpuCores = Math.max(1, os.cpus().length);
   const workspaceDir = overrides.workspaceDir ?? env.MEDIAFORGE_WORKSPACE ?? "./episodes";

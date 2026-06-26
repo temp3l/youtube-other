@@ -84,6 +84,10 @@ export interface PreparedShortsImagesResult {
   readonly entries: ShortsSceneManifestEntry[];
 }
 
+export interface ShortsImageAuditResult {
+  readonly warnings: string[];
+}
+
 interface CharacterRegistryFile {
   episodeId: string;
   characters: CharacterRegistry["characters"];
@@ -218,6 +222,26 @@ function portraitFilename(scene: ScenePlan["scenes"][number]): string {
       scene.timing.endSeconds,
       "9:16"
     )
+  );
+}
+
+function expectedPortraitFilenames(scenePlan: ScenePlan): Set<string> {
+  return new Set(scenePlan.scenes.map((scene) => portraitFilename(scene)));
+}
+
+async function removeStalePortraitAssets(
+  outputDir: string,
+  scenePlan: ScenePlan
+): Promise<void> {
+  const expected = expectedPortraitFilenames(scenePlan);
+  const entries = await fs.readdir(outputDir).catch(() => []);
+  await Promise.all(
+    entries
+      .filter((entry) => entry.endsWith(".png") && !expected.has(entry))
+      .map(async (entry) => {
+        const target = path.join(outputDir, entry);
+        await fs.rm(target, { force: true }).catch(() => undefined);
+      })
   );
 }
 
@@ -500,6 +524,7 @@ export async function prepareShortsImageAssets(
   const manifestPath = path.join(path.dirname(outputDir), "shorts-image-manifest.json");
   await ensureDir(outputDir);
   await ensureDir(path.dirname(manifestPath));
+  await removeStalePortraitAssets(outputDir, scenePlan);
   const existingEntries = new Map(
     (await loadExistingManifest(manifestPath) ?? []).map((entry) => [entry.sceneId, entry] as const)
   );
@@ -677,10 +702,71 @@ export async function prepareShortsImageAssets(
       }
     }
   }
+  const failures = entries.filter((entry) => entry.status === "failed");
+  if (failures.length > 0) {
+    throw new Error(
+      `Unable to prepare all Shorts images for ${episodeId}: ${failures
+        .map((entry) => `${entry.sceneId}${entry.error ? ` (${entry.error})` : ""}`)
+        .join(", ")}`
+    );
+  }
   await writeJsonAtomic(manifestPath, entries);
   return {
     outputDir,
     manifestPath,
     entries,
   };
+}
+
+export async function auditShortsImageAssets(
+  scenePlan: ScenePlan,
+  outputDir: string,
+  manifestPath: string
+): Promise<ShortsImageAuditResult> {
+  const warnings: string[] = [];
+  const manifestEntries = await loadExistingManifest(manifestPath);
+  if (!manifestEntries) {
+    warnings.push(`Shorts image manifest is missing or unreadable: ${manifestPath}`);
+    return { warnings };
+  }
+  if (manifestEntries.length !== scenePlan.scenes.length) {
+    warnings.push(
+      `Shorts image manifest has ${manifestEntries.length} entries but the short scene plan has ${scenePlan.scenes.length} scenes.`
+    );
+  }
+  const expectedFiles = new Set(scenePlan.scenes.map((scene) => portraitFilename(scene)));
+  const actualFiles = (await fs.readdir(outputDir).catch(() => [])).filter((entry) => entry.endsWith(".png"));
+  for (const scene of scenePlan.scenes) {
+    const candidates = actualFiles.filter((entry) => entry.startsWith(`${scene.id}__`));
+    if (candidates.length === 0) {
+      warnings.push(`Missing Shorts image for ${scene.id} in ${outputDir}.`);
+      continue;
+    }
+    if (candidates.length > 1) {
+      warnings.push(
+        `Duplicate Shorts images found for ${scene.id} in ${outputDir}: ${candidates.join(", ")}`
+      );
+    }
+    const expectedName = portraitFilename(scene);
+    if (!actualFiles.includes(expectedName)) {
+      warnings.push(`Shorts image name mismatch for ${scene.id}; expected ${expectedName}.`);
+    }
+    const checkedPath = path.join(outputDir, candidates.includes(expectedName) ? expectedName : candidates[0]!);
+    const metadata = await sharp(checkedPath).metadata().catch(() => null);
+    if (!metadata?.width || !metadata?.height) {
+      warnings.push(`Unable to inspect Shorts image dimensions for ${checkedPath}.`);
+      continue;
+    }
+    if (metadata.width < metadata.height) {
+      warnings.push(
+        `Shorts image is not portrait for ${scene.id}: ${metadata.width}x${metadata.height}.`
+      );
+    }
+  }
+  for (const entry of actualFiles) {
+    if (!expectedFiles.has(entry)) {
+      warnings.push(`Unexpected stale Shorts image present in ${outputDir}: ${entry}`);
+    }
+  }
+  return { warnings };
 }

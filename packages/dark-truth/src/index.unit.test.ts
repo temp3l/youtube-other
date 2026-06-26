@@ -11,8 +11,10 @@ import {
   generateNarrationAudio,
   generateMockNarrationAudio,
   parseEpisodeSourceFile,
+  retimeScenePlan,
   buildSpeechPlan,
 } from "./index.js";
+import { scenePlanSchema } from "@mediaforge/domain";
 
 const sourceRoot = path.resolve(
   "content-ideas/content/dark-truth-episodes-multilingual-production-pack"
@@ -335,5 +337,76 @@ describe("dark-truth workflow", () => {
     } finally {
       vi.unstubAllEnvs();
     }
+  });
+
+  it("retimes scene plans to the actual narration duration", () => {
+    const scenePlan = scenePlanSchema.parse({
+      sourceId: "episode-fixture",
+      scenes: [
+        {
+          id: "scene-001",
+          sequenceNumber: 1,
+          canonicalNarration: "First scene.",
+          sourceSegmentIds: ["scene-001"],
+          estimatedDurationSeconds: 4,
+          timing: { startSeconds: 0, endSeconds: 4 },
+          visualPurpose: "introduce the setting",
+          textRequirement: { required: false },
+          subject: "first scene",
+          action: "shown",
+          setting: "dark room",
+          composition: "centered",
+          cameraFraming: "wide shot",
+          mood: "tense",
+          continuityReferences: [],
+          onScreenText: "",
+          negativeConstraints: [],
+          aspectRatios: ["16:9"],
+          imagePrompt: "first scene",
+          expectedImageFilenames: ["scene-001__000000-000004__16x9.png"],
+          qualityStatus: "draft",
+        },
+        {
+          id: "scene-002",
+          sequenceNumber: 2,
+          canonicalNarration: "Second scene.",
+          sourceSegmentIds: ["scene-002"],
+          estimatedDurationSeconds: 4,
+          timing: { startSeconds: 4, endSeconds: 8 },
+          visualPurpose: "close on the reveal",
+          textRequirement: { required: false },
+          subject: "second scene",
+          action: "shown",
+          setting: "dark room",
+          composition: "centered",
+          cameraFraming: "wide shot",
+          mood: "tense",
+          continuityReferences: ["scene-001"],
+          onScreenText: "",
+          negativeConstraints: [],
+          aspectRatios: ["16:9"],
+          imagePrompt: "second scene",
+          expectedImageFilenames: ["scene-002__000004-000008__16x9.png"],
+          qualityStatus: "draft",
+        },
+      ],
+    });
+    const retimed = retimeScenePlan(scenePlan, 10);
+    expect(retimed.scenes[0]?.timing).toEqual({
+      startSeconds: 0,
+      endSeconds: 5,
+    });
+    expect(retimed.scenes[1]?.timing).toEqual({
+      startSeconds: 5,
+      endSeconds: 10,
+    });
+    expect(retimed.scenes[0]?.expectedImageFilenames[0]).toBe(
+      "scene-001__000000-000005__16x9.png"
+    );
+    expect(retimed.scenes[1]?.expectedImageFilenames[0]).toBe(
+      "scene-002__000005-000010__16x9.png"
+    );
+    expect(retimed.scenes[0]?.actualAudioDurationSeconds).toBe(5);
+    expect(retimed.scenes[1]?.actualAudioDurationSeconds).toBe(5);
   });
 });

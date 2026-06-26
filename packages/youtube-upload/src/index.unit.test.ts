@@ -2,7 +2,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import sharp from "sharp";
 import { scenePlanSchema } from "@mediaforge/domain";
 import { writeJsonAtomic } from "@mediaforge/shared";
@@ -93,6 +93,7 @@ function makeScenePlan() {
 async function prepareEpisode(episodeDir: string): Promise<void> {
   await fs.mkdir(path.join(episodeDir, "metadata"), { recursive: true });
   await fs.mkdir(path.join(episodeDir, "output"), { recursive: true });
+  await fs.mkdir(path.join("content-ideas", "audio-ready-thumbnails", "en"), { recursive: true });
   await writeJsonAtomic(
     path.join(episodeDir, "manifest.json"),
     {
@@ -120,6 +121,12 @@ async function prepareEpisode(episodeDir: string): Promise<void> {
   await fs.writeFile(
     path.join(episodeDir, "output", "thumbnail.png"),
     await sharp({ create: { width: 8, height: 8, channels: 3, background: "#222222" } })
+      .png()
+      .toBuffer()
+  );
+  await fs.writeFile(
+    path.join("content-ideas", "audio-ready-thumbnails", "en", "episode-fixture.png"),
+    await sharp({ create: { width: 1200, height: 675, channels: 3, background: "#333333" } })
       .png()
       .toBuffer()
   );
@@ -205,6 +212,17 @@ function createMockYoutubeClient() {
 }
 
 describe("youtube upload", () => {
+  const thumbnailFixturePath = path.join(
+    "content-ideas",
+    "audio-ready-thumbnails",
+    "en",
+    "episode-fixture.png"
+  );
+
+  afterEach(async () => {
+    await fs.rm(thumbnailFixturePath, { force: true }).catch(() => undefined);
+  });
+
   it("resolves episode assets and upload metadata", async () => {
     const workspace = createWorkspace();
     const episodeDir = path.join(workspace, "episode-fixture");
@@ -212,7 +230,7 @@ describe("youtube upload", () => {
     const resolved = await generateUploadMetadataForEpisode(episodeDir, "episode-fixture");
     expect(resolved.metadata.title.recommended).toBe("A Simple Upload");
     expect(resolved.resolvedVideoPath).toContain("video.mp4");
-    expect(resolved.resolvedThumbnailPath).toContain("thumbnail.png");
+    expect(resolved.resolvedThumbnailPath).toContain(thumbnailFixturePath);
   });
 
   it("writes an upload report using a mocked YouTube client", async () => {
@@ -244,7 +262,9 @@ describe("youtube upload", () => {
     });
     expect(result.report.status).toBe("uploaded");
     expect(result.report.youtubeVideoId).toBe("video-id");
-    expect(result.report.thumbnail.sourcePath).toContain("thumbnail.png");
+    expect(result.report.thumbnail.sourcePath).toContain(
+      path.join("content-ideas", "audio-ready-thumbnails", "en", "episode-fixture.png")
+    );
     expect(result.report.thumbnail.path).toContain("generated-assets/thumbnails/youtube-thumbnail.jpg");
     expect(client.requests).toEqual([
       "channels.list",

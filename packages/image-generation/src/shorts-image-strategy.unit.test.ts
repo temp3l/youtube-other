@@ -181,5 +181,59 @@ describe("shorts image strategy", () => {
     const manifest = JSON.parse(await fs.readFile(result.manifestPath, "utf8")) as unknown[];
     expect(manifest).toHaveLength(6);
     await fs.rm(tempDir, { recursive: true, force: true });
-  });
+  }, 15_000);
+
+  it("removes stale portrait assets before regenerating shorts images", async () => {
+    const tempDir = await fs.mkdtemp(path.join(process.cwd(), ".tmp-shorts-cleanup-"));
+    const episodeDir = path.join(tempDir, "episode");
+    const landscapeDir = path.join(tempDir, "landscape");
+    const outputDir = path.join(tempDir, "short", "images", "generated");
+    await fs.mkdir(episodeDir, { recursive: true });
+    await fs.mkdir(landscapeDir, { recursive: true });
+    await fs.writeFile(
+      path.join(episodeDir, "characters.json"),
+      JSON.stringify({ episodeId: "episode-1", characters: [], updatedAt: new Date().toISOString() })
+    );
+    const scenePlan = makeScenePlan(2);
+    await fs.mkdir(outputDir, { recursive: true });
+    await fs.writeFile(path.join(outputDir, "stale.png"), Buffer.from("stale"));
+    for (const scene of scenePlan.scenes) {
+      await sharp({
+        create: {
+          width: 1920,
+          height: 1080,
+          channels: 4,
+          background: { r: 20, g: 40, b: 60, alpha: 1 },
+        },
+      })
+        .png()
+        .toFile(path.join(landscapeDir, scene.expectedImageFilenames[0] ?? `${scene.id}.png`));
+    }
+    await prepareShortsImageAssets(
+      episodeDir,
+      "episode-1",
+      scenePlan,
+      createSettings(),
+      {
+        enabled: true,
+        keySceneCount: 1,
+        portraitWidth: 1088,
+        portraitHeight: 1920,
+        finalWidth: 1080,
+        finalHeight: 1920,
+        reuseLandscapeImages: true,
+        enablePanAndScan: true,
+        enableBlurredFallback: true,
+        forceRegenerateAll: false,
+        selectionMode: "first-n",
+      },
+      {
+        landscapeDir,
+        outputDir,
+        generator: createGenerator(),
+      }
+    );
+    expect(await fs.readdir(outputDir)).not.toContain("stale.png");
+    await fs.rm(tempDir, { recursive: true, force: true });
+  }, 15_000);
 });

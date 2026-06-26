@@ -1470,7 +1470,7 @@ export async function renderCleanVideo(
       sceneAudioDir: path.join(episodeDir, "audio", "segments"),
       outputBasename,
       trailingSilenceRatio: 0.8,
-      trailingSilenceBufferSeconds: 0.5,
+      trailingSilenceBufferSeconds: 0,
     },
     new AbortController().signal
   );
@@ -1784,7 +1784,9 @@ export function buildSubtitleTimeline(plan: SpeechPlan): SubtitleEntry[] {
   return buildSubtitleEntries(plan.segments, 180);
 }
 
-async function inspectAudioDurationSeconds(filePath: string): Promise<number> {
+export async function inspectAudioDurationSeconds(
+  filePath: string
+): Promise<number> {
   const result = await runCommand(
     "ffprobe",
     [
@@ -1803,6 +1805,67 @@ async function inspectAudioDurationSeconds(filePath: string): Promise<number> {
     throw new Error(`Unable to inspect duration for ${filePath}`);
   }
   return duration;
+}
+
+function formatSceneExpectedFilename(
+  sceneNumber: number,
+  startSeconds: number,
+  endSeconds: number,
+  aspectRatio: "16:9" | "9:16"
+): string {
+  return `scene-${String(sceneNumber).padStart(3, "0")}__${String(Math.floor(startSeconds)).padStart(6, "0")}-${String(Math.floor(endSeconds)).padStart(6, "0")}__${aspectRatio.replace(":", "x")}.png`;
+}
+
+export function retimeScenePlan(
+  scenePlan: ScenePlan,
+  actualDurationSeconds: number
+): ScenePlan {
+  if (!Number.isFinite(actualDurationSeconds) || actualDurationSeconds <= 0) {
+    throw new Error(
+      `Invalid actual narration duration for scene plan retiming: ${String(actualDurationSeconds)}`
+    );
+  }
+  const plannedDurationSeconds = scenePlan.scenes.at(-1)?.timing.endSeconds ?? 0;
+  if (plannedDurationSeconds <= 0) {
+    return scenePlanSchema.parse(scenePlan);
+  }
+  const scale = actualDurationSeconds / plannedDurationSeconds;
+  let cursor = 0;
+  const scenes = scenePlan.scenes.map((scene, index) => {
+    const originalDurationSeconds = Math.max(
+      0.1,
+      scene.timing.endSeconds - scene.timing.startSeconds
+    );
+    const isLastScene = index === scenePlan.scenes.length - 1;
+    const scaledDurationSeconds = isLastScene
+      ? Math.max(0.1, actualDurationSeconds - cursor)
+      : Math.max(0.1, originalDurationSeconds * scale);
+    const startSeconds = cursor;
+    const endSeconds = isLastScene ? actualDurationSeconds : cursor + scaledDurationSeconds;
+    cursor = endSeconds;
+    const aspectRatio = scene.aspectRatios[0] ?? "16:9";
+    return sceneSchema.parse({
+      ...scene,
+      estimatedDurationSeconds: scaledDurationSeconds,
+      actualAudioDurationSeconds: scaledDurationSeconds,
+      timing: {
+        startSeconds,
+        endSeconds,
+      },
+      expectedImageFilenames: [
+        formatSceneExpectedFilename(
+          scene.sequenceNumber,
+          startSeconds,
+          endSeconds,
+          aspectRatio
+        ),
+      ],
+    });
+  });
+  return scenePlanSchema.parse({
+    sourceId: scenePlan.sourceId,
+    scenes,
+  });
 }
 
 function narrationAudioManifestPath(narrationDir: string): string {

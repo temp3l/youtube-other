@@ -489,24 +489,63 @@ async function resolveVideoPath(episodeDir: string, overrides?: YoutubeUploadOve
   throw new YoutubeUploadValidationError(`Unable to locate a rendered video for ${episodeDir}.`);
 }
 
-async function resolveThumbnailPath(episodeDir: string, overrides?: YoutubeUploadOverrides): Promise<string> {
+function normalizeThumbnailLanguage(language: string | undefined): string | undefined {
+  const normalized = normalizeText(language ?? "").toLowerCase();
+  if (!normalized) {
+    return undefined;
+  }
+  return normalized.split("-")[0];
+}
+
+async function resolveThumbnailPath(
+  episodeDir: string,
+  language: string | undefined,
+  overrides?: YoutubeUploadOverrides
+): Promise<string> {
   if (overrides?.thumbnailPath) {
     return path.resolve(episodeDir, overrides.thumbnailPath);
   }
-  const candidates = [
-    path.join(episodeDir, "output", "thumbnail.png"),
-    path.join(episodeDir, "output", "thumbnail.jpg"),
-    path.join(episodeDir, "output", "thumbnail.jpeg"),
-    path.join(episodeDir, "output", "thumbnail.webp"),
-    path.join(episodeDir, "metadata", "thumbnail.png"),
-    path.join(episodeDir, "metadata", "thumbnail.jpg"),
-    path.join(episodeDir, "metadata", "thumbnail.jpeg"),
+  const thumbnailLanguage = normalizeThumbnailLanguage(language);
+  const thumbnailRoot = thumbnailLanguage
+    ? path.resolve("content-ideas", "audio-ready-thumbnails", thumbnailLanguage)
+    : undefined;
+  const episodeSlug = path.basename(episodeDir);
+  const basenames = [
+    `${episodeSlug}.png`,
+    `${episodeSlug}.jpg`,
+    `${episodeSlug}.jpeg`,
+    `${episodeSlug}.webp`,
+    `${episodeSlug}-thumbnail.png`,
+    `${episodeSlug}-thumbnail.jpg`,
+    `${episodeSlug}-thumbnail.jpeg`,
+    `${episodeSlug}-thumbnail.webp`,
+    `${episodeSlug}-short-thumbnail.png`,
+    `${episodeSlug}-short-thumbnail.jpg`,
+    `${episodeSlug}-short-thumbnail.jpeg`,
+    `${episodeSlug}-short-thumbnail.webp`,
   ];
-  const resolved = await resolveFirstExisting(candidates);
-  if (!resolved) {
-    throw new YoutubeUploadValidationError(`Unable to locate a custom thumbnail for ${episodeDir}.`);
+  if (thumbnailRoot) {
+    for (const basename of basenames) {
+      const candidate = path.join(thumbnailRoot, basename);
+      if (await fileExists(candidate)) {
+        return candidate;
+      }
+    }
+    const matches = (await fs.readdir(thumbnailRoot).catch(() => [])).filter((entry) => {
+      const lower = entry.toLowerCase();
+      return (
+        lower.startsWith(`${episodeSlug.toLowerCase()}-`) ||
+        lower.startsWith(`${episodeSlug.toLowerCase()}.`) ||
+        lower.includes(episodeSlug.toLowerCase())
+      );
+    });
+    if (matches.length === 1) {
+      return path.join(thumbnailRoot, matches[0]!);
+    }
   }
-  return resolved;
+  throw new YoutubeUploadValidationError(
+    `Unable to locate a matching thumbnail for ${episodeSlug} in content-ideas/audio-ready-thumbnails/${thumbnailLanguage ?? "(unknown)"}. Provide overrides.thumbnailPath explicitly.`
+  );
 }
 
 async function prepareThumbnailForUpload(episodeDir: string, sourcePath: string): Promise<{
@@ -759,7 +798,11 @@ export async function generateUploadMetadataForEpisode(
     throw new YoutubeUploadValidationError(`Missing generated YouTube metadata for episode ${episodeId}.`);
   }
   const resolvedVideoPath = await resolveVideoPath(episodeDir, overrides, manifest);
-  const resolvedThumbnailPath = await resolveThumbnailPath(episodeDir, overrides);
+  const resolvedThumbnailPath = await resolveThumbnailPath(
+    episodeDir,
+    metadata.source.language,
+    overrides
+  );
   return {
     metadata,
     metadataPath: resolvedMetadataPath,

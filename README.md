@@ -1,13 +1,17 @@
 ## pr
 
-- when 2 people are re-appearing multiple times in different scenes - they look completly different
-- thats why i extract character maps from the stories and generate reference images for each person
-- the reference images are attached to the image prompts when they reappear in a scene
+add to the translation pipeline:
+I want an image prompt to be generated for every story for creating a thumbnail with openai.
+the thumbnails should be consistent in their look and feel. full stories need a 16:09 thumbnail.
+short stories need a thumbnail in 9:16. wire it up, so thumbnails can be generated on demand per story and language.
 
-- there is a short silence after every clip in the concatted video. this silence was added programatically right?
-  can we safley remove it ?
+after the first translation i want the main protagonists to be identified for the character map prepared in the relevant episode output folder with relevant image prompt for generating the reference images
 
-• The drift happens because the dark-truth pipeline is timing scenes from estimated word counts, not from the actual narration timeline. In packages/dark-truth/src/index.ts, scene duration is derived from
+is the darktruthepisode image generation using the reponses api or the correct image api endpoint?
+
+---
+
+The drift happens because the dark-truth pipeline is timing scenes from estimated word counts, not from the actual narration timeline. In packages/dark-truth/src/index.ts, scene duration is derived from
 words / 180 wpm, then accumulated across the episode. That compounds error, so the later scenes drift farther out of sync than the early ones.
 
 I fixed it by only regenerating the relevant assets:
@@ -34,8 +38,6 @@ generate the youtube metadata and upload the video. then generate the german ful
 make sure the drift wont happen again in full or short videos
 
 make sure the shared images will always be built in the way you just solved it.
-
-is the darktruthepisode image generation using the reponses api or the correct image api endpoint?
 
 # prompts
 

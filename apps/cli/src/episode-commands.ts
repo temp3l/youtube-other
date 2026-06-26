@@ -9,9 +9,11 @@ import {
   discoverEpisodeSources,
   generateCanonicalImages,
   generateNarrationAudio,
+  inspectAudioDurationSeconds,
   parseEpisodeSourceFile,
   readApprovalRecord,
   renderCleanVideo,
+  retimeScenePlan,
   syncEpisodeCharacters,
   type ArtifactType,
   type ApprovalRecord,
@@ -28,9 +30,10 @@ import {
   loadEpisodeImageGenerationSettings,
 } from "@mediaforge/image-generation";
 import {
+  auditShortsImageAssets,
   prepareShortsImageAssets,
   type ShortsImageConfig,
-} from "@mediaforge/image-generation/shorts-image-strategy.js";
+} from "@mediaforge/image-generation";
 import {
   ensureDir,
   fileExists,
@@ -372,7 +375,7 @@ async function prepareEpisodeLanguage(
     "shared",
     "scenes.json"
   );
-  const scenePlan =
+  let scenePlan =
     language !== "en" &&
     artifactType === "full" &&
     (await fileExists(canonicalScenePlanPath))
@@ -393,12 +396,6 @@ async function prepareEpisodeLanguage(
     language === "en" && artifactType === "full"
       ? path.join(outputRoot, discovery.slug, "shared")
       : baseDir;
-  await writeScenePlanArtifacts(
-    scenePlanDir,
-    scenePlan,
-    language,
-    artifactType
-  );
   const reviewDir = await ensureReviewPackageFiles(
     outputRoot,
     discovery.slug,
@@ -458,6 +455,24 @@ async function prepareEpisodeLanguage(
     "images",
     "shorts-image-manifest.json"
   );
+  let narrationPath: string | undefined;
+  let shortsWarnings: string[] = [];
+  if (!options.dryRun) {
+    narrationPath = await generateNarrationAudio(
+      baseDir,
+      loadResult.speechPlan
+    );
+    const narrationDurationSeconds = await inspectAudioDurationSeconds(
+      narrationPath
+    );
+    scenePlan = retimeScenePlan(scenePlan, narrationDurationSeconds);
+  }
+  await writeScenePlanArtifacts(
+    scenePlanDir,
+    scenePlan,
+    language,
+    artifactType
+  );
   if (!options.dryRun) {
     if (language === "en" && artifactType === "full") {
       await generateCanonicalImages(
@@ -495,11 +510,24 @@ async function prepareEpisodeLanguage(
           outputDir: sharedShortImageDir,
         }
       );
+      const shortsAudit = await auditShortsImageAssets(
+        scenePlan,
+        sharedShortImageDir,
+        shortsImageManifestPath
+      );
+      shortsWarnings = shortsAudit.warnings;
+      if (shortsWarnings.length > 0) {
+        process.stderr.write(
+          [
+            `Shorts asset warnings for ${discovery.slug} ${language}:`,
+            ...shortsWarnings.map((warning) => `- ${warning}`),
+          ].join("\n") + "\n"
+        );
+      }
     }
-    const narrationPath = await generateNarrationAudio(
-      baseDir,
-      loadResult.speechPlan
-    );
+    if (!narrationPath) {
+      throw new Error("Narration audio was not generated for scene retiming.");
+    }
     await sliceSceneAudioFiles(narrationPath, scenePlan, baseDir);
     const renderResult = await renderCleanVideo(
       baseDir,
@@ -522,6 +550,7 @@ async function prepareEpisodeLanguage(
           ? shortsImageManifestPath
           : path.join(outputRoot, discovery.slug, "shared", "image-manifest.json")
       ).catch(() => "missing"),
+      ...(shortsWarnings.length > 0 ? { shortsWarnings } : {}),
       burnedInSubtitles: false,
       subtitleSidecars: loadResult.subtitleManifest.sidecarFiles,
       audioPath: narrationPath,

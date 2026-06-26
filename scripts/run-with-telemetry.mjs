@@ -5,8 +5,8 @@ import { randomUUID } from "node:crypto";
 const argv = process.argv.slice(2);
 const separatorIndex = argv.indexOf("--");
 const scriptName = argv[0] ?? "mediaforge";
-const command = separatorIndex >= 0 ? argv.slice(1, separatorIndex) : argv.slice(1);
-const forwardedArgs = separatorIndex >= 0 ? argv.slice(separatorIndex + 1) : [];
+const command = separatorIndex >= 0 ? argv.slice(separatorIndex + 1) : argv.slice(1);
+const forwardedArgs = [];
 const executionId = process.env.MEDIAFORGE_EXECUTION_ID ?? randomUUID();
 const startedAt = new Date().toISOString();
 
