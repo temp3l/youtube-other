@@ -1,6 +1,60 @@
 import { z } from "zod";
 import { languageCodes } from "./story-localization.types.js";
 
+const batchOperationSchema = z.enum([
+  "canonical-facts",
+  "english-short",
+  "localization",
+  "character-analysis",
+  "visual-analysis",
+  "repair",
+]);
+
+const batchIndexStatusSchema = z.enum([
+  "prepared",
+  "submitted",
+  "validating",
+  "in_progress",
+  "finalizing",
+  "completed",
+  "partially_completed",
+  "failed",
+  "expired",
+  "cancelling",
+  "cancelled",
+  "imported",
+  "imported_with_failures",
+]);
+
+const localBatchManifestStatusSchema = z.enum([
+  "prepared",
+  "uploading",
+  "submitted",
+  "validating",
+  "in_progress",
+  "finalizing",
+  "completed",
+  "failed",
+  "expired",
+  "cancelling",
+  "cancelled",
+  "imported",
+  "imported_with_failures",
+]);
+
+const localBatchManifestItemStatusSchema = z.enum([
+  "planned",
+  "submitted",
+  "api-succeeded",
+  "api-failed",
+  "expired",
+  "schema-invalid",
+  "content-invalid",
+  "repair-required",
+  "persisted",
+  "skipped-cached",
+]);
+
 export const sourceMetadataBlockSchema = z.object({
   episodeNumber: z.string().min(1),
   primaryTitle: z.string().min(1),
@@ -23,6 +77,35 @@ export const sourceStoryFileSchema = z.object({
   slug: z.string().min(1),
   narrationParagraphs: z.array(z.string().min(1)).min(1),
   metadata: sourceMetadataBlockSchema,
+});
+
+export const compactCanonicalStoryFactsSchema = z.object({
+  characters: z.array(
+    z.object({
+      id: z.string().min(1),
+      name: z.string().min(1),
+      role: z.string().min(1),
+      relationship: z.string().min(1).optional(),
+    })
+  ),
+  setting: z.string().min(1).optional(),
+  criticalObjects: z.array(z.string().min(1)),
+  criticalEvents: z.array(z.string().min(1)),
+  writtenMessages: z.array(z.string().min(1)),
+  centralThreat: z.string().min(1),
+  primaryReveal: z.string().min(1),
+  finalConsequence: z.string().min(1),
+});
+
+export const compactStorySourceSchema = z.object({
+  episodeNumber: z.string().min(1),
+  primaryTitle: z.string().min(1),
+  sourceTitle: z.string().min(1).optional(),
+  narration: z.string().min(1),
+  thumbnailHook: z.string().min(1).optional(),
+  contentDisclosure: z.string().min(1).optional(),
+  soundMotif: z.string().min(1).optional(),
+  canonicalFacts: compactCanonicalStoryFactsSchema,
 });
 
 export const preservationChecklistSchema = z.object({
@@ -90,3 +173,128 @@ export const EnglishGeneratedStoryPackageSchema = z.object({
 });
 
 export type EnglishGeneratedStoryPackageShape = z.infer<typeof EnglishGeneratedStoryPackageSchema>;
+
+export const openAIBatchRequestLineSchema = z.object({
+  custom_id: z.string().min(1),
+  method: z.literal("POST"),
+  url: z.literal("/v1/responses"),
+  body: z.record(z.string(), z.unknown()),
+});
+
+export const localBatchManifestItemSchema = z.object({
+  customId: z.string().min(1),
+  episodeNumber: z.string().min(1),
+  language: z.enum(languageCodes).optional(),
+  operation: batchOperationSchema,
+  sourcePath: z.string().min(1),
+  sourceHash: z.string().min(8),
+  promptVersion: z.string().min(1),
+  configurationHash: z.string().min(8),
+  plannedOutputPaths: z.array(z.string().min(1)),
+  estimatedInputTokens: z.number().int().nonnegative(),
+  estimatedOutputTokens: z.number().int().nonnegative().optional(),
+  status: localBatchManifestItemStatusSchema,
+  resultImportedAt: z.string().min(1).optional(),
+  usage: z
+    .object({
+      inputTokens: z.number().int().nonnegative(),
+      cachedInputTokens: z.number().int().nonnegative().optional(),
+      outputTokens: z.number().int().nonnegative(),
+    })
+    .optional(),
+  error: z
+    .object({
+      code: z.string().min(1).optional(),
+      message: z.string().min(1),
+    })
+    .optional(),
+});
+
+export const localBatchManifestSchema = z.object({
+  schemaVersion: z.string().min(1),
+  localBatchId: z.string().min(1),
+  rootLocalBatchId: z.string().min(1),
+  parentLocalBatchId: z.string().min(1).optional(),
+  retryNumber: z.number().int().nonnegative(),
+  createdAt: z.string().min(1),
+  updatedAt: z.string().min(1),
+  mode: z.literal("batch"),
+  endpoint: z.literal("/v1/responses"),
+  model: z.string().min(1),
+  completionWindow: z.literal("24h"),
+  inputFilePath: z.string().min(1),
+  inputFileHash: z.string().min(8),
+  openAIInputFileId: z.string().min(1).optional(),
+  openAIBatchId: z.string().min(1).optional(),
+  status: localBatchManifestStatusSchema,
+  items: z.array(localBatchManifestItemSchema),
+  outputFileId: z.string().min(1).optional(),
+  errorFileId: z.string().min(1).optional(),
+  resultFilePath: z.string().min(1).optional(),
+  errorFilePath: z.string().min(1).optional(),
+  reportFilePath: z.string().min(1).optional(),
+  submittedAt: z.string().min(1).optional(),
+  completedAt: z.string().min(1).optional(),
+  importedAt: z.string().min(1).optional(),
+  requestCounts: z
+    .object({
+      total: z.number().int().nonnegative(),
+      completed: z.number().int().nonnegative(),
+      failed: z.number().int().nonnegative(),
+    })
+    .optional(),
+});
+
+export const batchIndexEntrySchema = z.object({
+  localBatchId: z.string().min(1),
+  openAIBatchId: z.string().min(1).optional(),
+  rootLocalBatchId: z.string().min(1),
+  parentLocalBatchId: z.string().min(1).optional(),
+  retryNumber: z.number().int().nonnegative(),
+  status: batchIndexStatusSchema,
+  createdAt: z.string().min(1),
+  updatedAt: z.string().min(1),
+  submittedAt: z.string().min(1).optional(),
+  completedAt: z.string().min(1).optional(),
+  importedAt: z.string().min(1).optional(),
+  model: z.string().min(1),
+  endpoint: z.literal("/v1/responses"),
+  completionWindow: z.literal("24h"),
+  operations: z.array(batchOperationSchema),
+  episodeNumbers: z.array(z.string().min(1)),
+  languages: z.array(z.enum(languageCodes)),
+  itemCount: z.number().int().nonnegative(),
+  completedItemCount: z.number().int().nonnegative(),
+  failedItemCount: z.number().int().nonnegative(),
+  persistedItemCount: z.number().int().nonnegative(),
+  inputFilePath: z.string().min(1),
+  manifestPath: z.string().min(1),
+  resultFilePath: z.string().min(1).optional(),
+  errorFilePath: z.string().min(1).optional(),
+  reportFilePath: z.string().min(1).optional(),
+  openAIInputFileId: z.string().min(1).optional(),
+  outputFileId: z.string().min(1).optional(),
+  errorFileId: z.string().min(1).optional(),
+  sourceHashPrefixes: z.array(z.string().min(1)),
+  imported: z.boolean(),
+  requiresImport: z.boolean(),
+  hasRetryableFailures: z.boolean(),
+  estimatedInputTokens: z.number().nonnegative().optional(),
+  actualInputTokens: z.number().nonnegative().optional(),
+  actualOutputTokens: z.number().nonnegative().optional(),
+  estimatedCostUsd: z.number().nonnegative().optional(),
+  lastError: z
+    .object({
+      code: z.string().min(1).optional(),
+      message: z.string().min(1),
+      occurredAt: z.string().min(1),
+    })
+    .optional(),
+});
+
+export const batchIndexFileSchema = z.object({
+  schemaVersion: z.string().min(1),
+  createdAt: z.string().min(1),
+  updatedAt: z.string().min(1),
+  entries: z.array(batchIndexEntrySchema),
+});

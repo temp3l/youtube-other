@@ -1,4 +1,3 @@
-import OpenAI from "openai";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { z } from "zod";
@@ -15,38 +14,10 @@ import { buildConfigurationHash, readCanonicalFactsCache, readLocalizationCacheE
 import { estimateStoryLocalizationCost } from "./story-localization.cost-tracker.js";
 import { StoryLocalizationApiError, StoryLocalizationConfigurationError, StoryLocalizationSchemaError, StoryLocalizationValidationError } from "./story-localization.errors.js";
 import { copyFileAtomicIfChanged, countWords, estimateDurationSeconds, writeTextAtomicIfChanged } from "./story-localization.utils.js";
-import { type CanonicalStoryFacts, type GeneratedStoryPackage, type LanguageCode, type ModelPricing, type ParsedSourceStory, type StoryLocalizationConfig, type StoryLocalizationEpisodeResult, type StoryLocalizationRunCounts } from "./story-localization.types.js";
+import { type CanonicalStoryFacts, type GeneratedStoryPackage, type LanguageCode, type ModelPricing, type ParsedSourceStory, type StoryLocalizationConfig, type StoryLocalizationEpisodeResult, type StoryLocalizationRunCounts, type StoryLocalizationRunResult } from "./story-localization.types.js";
 import { detectForbiddenPhrases, detectGenericFiller, validateGeneratedStoryPackage } from "./generated-story-validator.js";
-
-export interface OpenAiStoryClient {
-  readonly responses: {
-    create(request: {
-      readonly model: string;
-      readonly input: ReadonlyArray<{
-        readonly role: "system" | "user";
-        readonly content: ReadonlyArray<{ readonly type: "input_text"; readonly text: string }>;
-      }>;
-      readonly text?: {
-        readonly format: unknown;
-      };
-      readonly max_output_tokens?: number;
-      readonly temperature?: number;
-    }, options?: { readonly signal?: AbortSignal }): Promise<{
-      readonly id: string;
-      readonly output_text?: string;
-      readonly usage?: {
-        readonly input_tokens?: number;
-        readonly output_tokens?: number;
-        readonly input_tokens_details?: { readonly cached_tokens?: number };
-      };
-    }>;
-  };
-}
-
-export interface StoryLocalizationRunResult {
-  readonly counts: StoryLocalizationRunCounts;
-  readonly results: readonly StoryLocalizationEpisodeResult[];
-}
+import { createOpenAiStoryClient, type OpenAiStoryClient } from "./story-localization-openai-batch.js";
+import { runStoryLocalizationInBatchMode } from "./story-localization-batch-service.js";
 
 export interface StoryLocalizationOptions {
   readonly client?: OpenAiStoryClient;
@@ -64,21 +35,17 @@ function validateConfiguration(config: StoryLocalizationConfig): void {
   if (config.shortMinSeconds >= config.shortMaxSeconds) {
     throw new StoryLocalizationConfigurationError("shortMinSeconds must be less than shortMaxSeconds");
   }
+  if (!Number.isInteger(config.pollIntervalSeconds) || config.pollIntervalSeconds < 1) {
+    throw new StoryLocalizationConfigurationError("pollIntervalSeconds must be a positive integer");
+  }
   if (!path.isAbsolute(config.sourceDirectory) || !path.isAbsolute(config.outputDirectory)) {
     throw new StoryLocalizationConfigurationError("Directories must be resolved before use.");
   }
 }
 
 async function loadOpenAiClient(config: StoryLocalizationConfig): Promise<OpenAiStoryClient> {
-  const apiKey = process.env["OPENAI_API_KEY"];
-  if (!apiKey) {
-    throw new StoryLocalizationConfigurationError("OPENAI_API_KEY is required for story localization.");
-  }
-  const client = new OpenAI({
-    apiKey,
-    ...(process.env["OPENAI_BASE_URL"] ? { baseURL: process.env["OPENAI_BASE_URL"] } : {}),
-  });
-  return client as unknown as OpenAiStoryClient;
+  void config;
+  return createOpenAiStoryClient();
 }
 
 function buildShortPromptConfig(
@@ -628,6 +595,14 @@ export async function localizeStories(
   const discovered = await discoverCanonicalSourceStories(sourceDirectory);
   const total = discovered.length;
   const selected = total > 0 ? discovered : [];
+  const client = options.client ?? (await loadOpenAiClient(config));
+  if (config.processingMode === "batch") {
+    return runStoryLocalizationInBatchMode(
+      selected.map((candidate) => candidate.filePath),
+      config,
+      { client, logger }
+    );
+  }
   const results: StoryLocalizationEpisodeResult[] = [];
   let copiedEnglishFull = 0;
   let generatedEnglishShort = 0;
@@ -646,7 +621,6 @@ export async function localizeStories(
   let totalInputTokens = 0;
   let totalOutputTokens = 0;
   let estimatedTotalCostUsd: number | null = 0;
-  const client = options.client ?? (await loadOpenAiClient(config));
   for (const candidate of selected) {
     try {
       const episodeResult = await localizeStoryEpisode(candidate.filePath, config, {
@@ -744,13 +718,20 @@ export function createStoryLocalizationConfig(input: Partial<StoryLocalizationCo
     outputDirectory,
     languages: (input.languages ?? ["de", "es", "fr", "pt"]) as readonly Exclude<LanguageCode, "en">[],
     includeEnglishShort: input.includeEnglishShort ?? true,
+    processingMode: input.processingMode ?? "batch",
     adaptationMode: input.adaptationMode ?? "retention-optimized",
     shortMinSeconds: input.shortMinSeconds ?? 55,
     shortMaxSeconds: input.shortMaxSeconds ?? 65,
     shortWpm: input.shortWpm ?? 180,
     concurrency: input.concurrency ?? 2,
     model: input.model ?? "gpt-4o-mini",
+    fallbackToSync: input.fallbackToSync ?? false,
     force: input.force ?? false,
+    submit: input.submit ?? false,
+    prepareBatch: input.prepareBatch ?? false,
+    waitForBatch: input.waitForBatch ?? false,
+    autoImport: input.autoImport ?? false,
+    pollIntervalSeconds: input.pollIntervalSeconds ?? 60,
     dryRun: input.dryRun ?? false,
     validateOnly: input.validateOnly ?? false,
     verbose: input.verbose ?? false,

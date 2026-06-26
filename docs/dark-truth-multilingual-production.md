@@ -214,6 +214,30 @@ npm run episode:review:reject -- --episode 001 --language en --artifact full --r
 npm run episode:review:status -- --episode 001 --language en --artifact full
 ```
 
+## Story Localization Batch Workflow
+
+Story text localization now defaults to OpenAI Batch API preparation for production runs. The canonical source remains the English full story, and batch artifacts are persisted under:
+
+```text
+content-ideas/content/dark-truth-episodes/.batch/
+```
+
+Important commands:
+
+```bash
+npm run stories:localize -- --episode 002 --mode batch --prepare-batch
+npm run stories:localize -- --episode 002 --mode batch --submit
+npm run stories:batches -- list
+npm run stories:batches -- ready
+npm run stories:batches -- import-ready
+npm run stories:batches -- retry-failed --batch <local-or-openai-batch-id>
+npm run stories:batches -- verify-index
+npm run stories:batches -- verify-index --repair
+npm run stories:batches -- rebuild-index
+```
+
+Batch manifests, JSONL inputs, downloaded results, error files, and the central batch index are restart-safe. `retry-failed` creates a child batch containing only failed items, preserving successful languages from the parent batch.
+
 ## Episode Image Pipeline
 
 Episode-level image generation now has its own dedicated workflow for narrated videos.

@@ -11,5 +11,8 @@ export * from "./story-markdown-renderer.js";
 export * from "./story-localization-cache.js";
 export * from "./story-localization.cost-tracker.js";
 export * from "./localization-prompt-builder.js";
+export * from "./story-localization-batch-storage.js";
+export * from "./story-localization-batch-index.js";
+export * from "./story-localization-openai-batch.js";
+export * from "./story-localization-batch-service.js";
 export * from "./story-localization.service.js";
-

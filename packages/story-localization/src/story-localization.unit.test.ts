@@ -14,6 +14,7 @@ import {
   estimateDurationSeconds,
   extractCanonicalStoryFacts,
   getLanguageProfile,
+  createOpenAiStoryClient,
   parseCanonicalSourceFilename,
   parseCanonicalSourceStory,
   resolveDefaultOutputDirectory,
@@ -40,7 +41,11 @@ const sourceFile = path.join(
 describe("story localization helpers", () => {
   it("resolves the fixed default directories from the repository root", () => {
     expect(resolveDefaultSourceDirectory()).toBe(
-      path.join(repoRoot, "content", "dark-truth-episodes-multilingual-production-pack")
+      path.join(
+        repoRoot,
+        "content",
+        "dark-truth-episodes-multilingual-production-pack"
+      )
     );
     expect(resolveDefaultOutputDirectory()).toBe(
       path.join(repoRoot, "content-ideas", "content", "dark-truth-episodes")
@@ -57,22 +62,33 @@ describe("story localization helpers", () => {
   });
 
   it("builds episode-prefixed output filenames", () => {
-    expect(
-      buildOutputFiles("/out", "002-even-killers-can-lick", "de")
-    ).toEqual({
-      full: "/out/002-even-killers-can-lick-de-full.md",
-      short: "/out/002-even-killers-can-lick-de-short.md",
-    });
+    expect(buildOutputFiles("/out", "002-even-killers-can-lick", "de")).toEqual(
+      {
+        full: "/out/002-even-killers-can-lick-de-full.md",
+        short: "/out/002-even-killers-can-lick-de-short.md",
+      }
+    );
   });
 
   it("discovers only canonical English full stories", async () => {
-    const tempDir = mkdtempSync(path.join(os.tmpdir(), "story-localization-discovery-"));
+    const tempDir = mkdtempSync(
+      path.join(os.tmpdir(), "story-localization-discovery-")
+    );
     const episodeDir = path.join(tempDir, "001-demo");
     await fs.mkdir(path.join(episodeDir, "en"), { recursive: true });
     await fs.mkdir(path.join(episodeDir, "de"), { recursive: true });
-    await fs.writeFile(path.join(episodeDir, "en", "001-demo-en-full.md"), "# Episode 001 — Demo\n\n## Narration Script\n\nText\n\n## Episode Metadata\n**Episode number:** 001\n**Primary title:** Demo\n");
-    await fs.writeFile(path.join(episodeDir, "en", "001-demo-en-short.md"), "# Short 001 — Demo");
-    await fs.writeFile(path.join(episodeDir, "de", "001-demo-de-full.md"), "# Episode 001 — Demo");
+    await fs.writeFile(
+      path.join(episodeDir, "en", "001-demo-en-full.md"),
+      "# Episode 001 — Demo\n\n## Narration Script\n\nText\n\n## Episode Metadata\n**Episode number:** 001\n**Primary title:** Demo\n"
+    );
+    await fs.writeFile(
+      path.join(episodeDir, "en", "001-demo-en-short.md"),
+      "# Short 001 — Demo"
+    );
+    await fs.writeFile(
+      path.join(episodeDir, "de", "001-demo-de-full.md"),
+      "# Episode 001 — Demo"
+    );
     const discovered = await discoverCanonicalSourceStories(tempDir);
     expect(discovered).toHaveLength(1);
     expect(discovered[0]?.filePath).toContain("001-demo-en-full.md");
@@ -122,25 +138,54 @@ describe("story localization helpers", () => {
     expect(profile.shortWordRange.target).toBeGreaterThan(0);
   });
 
+  it("accepts OPENAI_API_TOKEN as a fallback credential alias", () => {
+    const previousKey = process.env.OPENAI_API_KEY;
+    const previousToken = process.env.OPENAI_API_TOKEN;
+    try {
+      delete process.env.OPENAI_API_KEY;
+      process.env.OPENAI_API_TOKEN = "test-token";
+      expect(() => createOpenAiStoryClient()).not.toThrow();
+    } finally {
+      if (previousKey === undefined) {
+        delete process.env.OPENAI_API_KEY;
+      } else {
+        process.env.OPENAI_API_KEY = previousKey;
+      }
+      if (previousToken === undefined) {
+        delete process.env.OPENAI_API_TOKEN;
+      } else {
+        process.env.OPENAI_API_TOKEN = previousToken;
+      }
+    }
+  });
+
   it("detects title, thumbnail, hashtag, and preservation issues", () => {
-    expect(validateTitleAndThumbnail("", "Valid thumb").length).toBeGreaterThan(0);
+    expect(validateTitleAndThumbnail("", "Valid thumb").length).toBeGreaterThan(
+      0
+    );
     expect(validateHashtags(["#Valid", "bad tag"])).toEqual(["bad tag"]);
-    expect(validatePreservationChecklist({
-      charactersPreserved: true,
-      relationshipsPreserved: false,
-      chronologyPreserved: true,
-      criticalObjectsPreserved: true,
-      cluesPreserved: true,
-      writtenMessagesPreserved: true,
-      primaryRevealPreserved: true,
-      endingPreserved: true,
-      noNewPlotElementsAdded: true,
-    })).toContain("relationshipsPreserved");
+    expect(
+      validatePreservationChecklist({
+        charactersPreserved: true,
+        relationshipsPreserved: false,
+        chronologyPreserved: true,
+        criticalObjectsPreserved: true,
+        cluesPreserved: true,
+        writtenMessagesPreserved: true,
+        primaryRevealPreserved: true,
+        endingPreserved: true,
+        noNewPlotElementsAdded: true,
+      })
+    ).toContain("relationshipsPreserved");
   });
 
   it("detects generic filler and forbidden phrases", () => {
-    expect(detectGenericFiller("The protagonist arrived.")).toContain("The protagonist");
-    expect(detectForbiddenPhrases("Here is the translation of the story.")).toContain("Here is the translation");
+    expect(detectGenericFiller("The protagonist arrived.")).toContain(
+      "The protagonist"
+    );
+    expect(
+      detectForbiddenPhrases("Here is the translation of the story.")
+    ).toContain("Here is the translation");
   });
 
   it("preserves written messages semantically", () => {
@@ -162,17 +207,29 @@ describe("story localization helpers", () => {
   });
 
   it("keeps cache hashes stable", () => {
-    expect(buildConfigurationHash(["a", "b"])).toBe(buildConfigurationHash(["a", "b"]));
-    expect(buildConfigurationHash(["a", "b"])).not.toBe(buildConfigurationHash(["a", "c"]));
+    expect(buildConfigurationHash(["a", "b"])).toBe(
+      buildConfigurationHash(["a", "b"])
+    );
+    expect(buildConfigurationHash(["a", "b"])).not.toBe(
+      buildConfigurationHash(["a", "c"])
+    );
   });
 
   it("writes files atomically and skips unchanged writes", async () => {
-    const tempDir = mkdtempSync(path.join(os.tmpdir(), "story-localization-atomic-"));
+    const tempDir = mkdtempSync(
+      path.join(os.tmpdir(), "story-localization-atomic-")
+    );
     const filePath = path.join(tempDir, "note.txt");
-    expect(await writeTextAtomicIfChanged(filePath, "hello", false)).toBe("written");
-    expect(await writeTextAtomicIfChanged(filePath, "hello", false)).toBe("skipped");
+    expect(await writeTextAtomicIfChanged(filePath, "hello", false)).toBe(
+      "written"
+    );
+    expect(await writeTextAtomicIfChanged(filePath, "hello", false)).toBe(
+      "skipped"
+    );
     const copyPath = path.join(tempDir, "copy.txt");
-    expect(await copyFileAtomicIfChanged(filePath, copyPath, false)).toBe("written");
+    expect(await copyFileAtomicIfChanged(filePath, copyPath, false)).toBe(
+      "written"
+    );
     expect(await fs.readFile(copyPath, "utf8")).toBe("hello");
   });
 
@@ -181,7 +238,9 @@ describe("story localization helpers", () => {
     const facts = extractCanonicalStoryFacts(parsed);
     expect(parsed.language).toBe("en");
     expect(facts.episodeNumber).toBe("002");
-    expect(facts.characters.some((character) => character.name.includes("Elena"))).toBe(true);
+    expect(
+      facts.characters.some((character) => character.name.includes("Elena"))
+    ).toBe(true);
     expect(facts.writtenMessages.join(" ")).toContain("HUMANS CAN LICK TOO");
   });
 });
