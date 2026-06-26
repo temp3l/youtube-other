@@ -104,6 +104,8 @@ export function createOpenAiStoryClient(): OpenAiStoryClient {
   }
   return new OpenAI({
     apiKey,
+    maxRetries: 5,
+    timeout: 120_000,
     ...(process.env["OPENAI_BASE_URL"]
       ? { baseURL: process.env["OPENAI_BASE_URL"] }
       : {}),

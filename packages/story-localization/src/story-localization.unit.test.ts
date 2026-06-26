@@ -235,9 +235,21 @@ describe("story localization helpers", () => {
     expect(profile.shortWordRange.target).toBeGreaterThan(0);
   });
 
-  it("adds explicit short-word guidance to the short localization prompt", async () => {
+  it("adds explicit full and short guidance to the localization prompts", async () => {
     const parsed = await parseCanonicalSourceStory(sourceFile);
     const facts = extractCanonicalStoryFacts(parsed);
+    const fullPrompt = buildLocalizationPrompt({
+      languageProfile: getLanguageProfile("es"),
+      adaptationMode: "retention-optimized",
+      sourceStory: parsed,
+      canonicalFacts: facts,
+      target: "full",
+    });
+    expect(fullPrompt.user).toContain("Full output guidance:");
+    expect(fullPrompt.user).toContain("Full narration target: 1750 words.");
+    expect(fullPrompt.user).toContain("Written message guidance:");
+    expect(fullPrompt.user).not.toContain("Short output guidance:");
+
     const prompt = buildLocalizationPrompt({
       languageProfile: getLanguageProfile("es"),
       adaptationMode: "retention-optimized",
@@ -246,12 +258,14 @@ describe("story localization helpers", () => {
       target: "short",
     });
     expect(prompt.user).toContain("Short output guidance:");
-    expect(prompt.user).toContain("Short narration target: 178 words.");
+    expect(prompt.user).toContain("Short narration target: 160 words.");
     expect(prompt.user).toContain("Hard limit: keep the short narration within 100-200 words.");
-    expect(prompt.user).toContain("Aim for roughly 168-183 words.");
+    expect(prompt.user).toContain("Aim for roughly 150-165 words.");
     expect(prompt.user).toContain("Use exactly 2-3 short paragraphs.");
     expect(prompt.user).toContain("Use 5-7 sentences total.");
     expect(prompt.user).toContain("If the draft is below the minimum, add one concrete sentence about the protagonist's next action and one sentence about the immediate consequence before ending.");
+    expect(prompt.user).toContain("Exact written messages to preserve verbatim:");
+    expect(prompt.user).toContain("HUMANS CAN LICK TOO");
   });
 
   it("retries short-length failures with a targeted short rewrite", async () => {
@@ -394,6 +408,138 @@ describe("story localization helpers", () => {
     expect(result.failure).toContain("insufficient_quota");
     expect(result.failure).toContain("status 429");
     expect(result.failure).toContain("Check API billing");
+  }, 15000);
+
+  it("labels OpenAI connectivity failures distinctly", async () => {
+    const tempDir = mkdtempSync(
+      path.join(os.tmpdir(), "story-localization-openai-connectivity-")
+    );
+    const config = createStoryLocalizationConfig({
+      outputDirectory: tempDir,
+      languages: [],
+      processingMode: "sync",
+    });
+    const client = {
+      responses: {
+        create: async () => {
+          throw {
+            message: "fetch failed",
+            code: "ECONNRESET",
+          };
+        },
+      },
+    };
+
+    const result = await localizeStoryEpisode(sourceFile, config, {
+      client: client as never,
+    });
+
+    expect(result.failure).toContain("Connection/transport error");
+    expect(result.failure).toContain("ECONNRESET");
+  }, 15000);
+
+  it("fails fast with a clear OpenAI preflight message", async () => {
+    const tempDir = mkdtempSync(
+      path.join(os.tmpdir(), "story-localization-openai-preflight-")
+    );
+    const config = createStoryLocalizationConfig({
+      outputDirectory: tempDir,
+      languages: [],
+      processingMode: "sync",
+    });
+    const client = {
+      responses: {
+        create: vi.fn(async () => {
+          throw {
+            message: "fetch failed",
+            code: "ECONNRESET",
+          };
+        }),
+      },
+    };
+
+    await expect(
+      localizeStoryEpisode(sourceFile, config, {
+        client: client as never,
+        preflightConnectivity: true,
+      })
+    ).rejects.toThrow(
+      "Unable to reach OpenAI before story localization started"
+    );
+    expect(client.responses.create).toHaveBeenCalledTimes(1);
+  }, 15000);
+
+  it("retries transient OpenAI connectivity failures before succeeding", async () => {
+    const tempDir = mkdtempSync(
+      path.join(os.tmpdir(), "story-localization-openai-retry-")
+    );
+    const config = createStoryLocalizationConfig({
+      outputDirectory: tempDir,
+      languages: [],
+      processingMode: "sync",
+    });
+    const client = {
+      responses: {
+        create: vi
+          .fn()
+          .mockRejectedValueOnce({
+            message: "socket hang up",
+            code: "ECONNRESET",
+          })
+          .mockResolvedValueOnce({
+            id: "resp_retry",
+            output_text: JSON.stringify({
+              short: {
+                title: "The Killer Was Already Inside the House",
+                narrationInstructions: ["Use the same narrator as the full episode."],
+                narrationParagraphs: buildLocalizedNarration(165),
+                thumbnailText: "IT WASN'T THE DOG",
+                description: "Elena hears something under the bed.",
+                hashtags: ["#Shorts", "#Horror", "#DarkTruthEpisodes"],
+                targetNarrationWpm: 180,
+                recommendedDurationSeconds: { min: 55, max: 65 },
+                visualGuidance: "Mirror, hallway, attic.",
+              },
+              preservationChecklist: {
+                charactersPreserved: true,
+                relationshipsPreserved: true,
+                chronologyPreserved: true,
+                criticalObjectsPreserved: true,
+                cluesPreserved: true,
+                writtenMessagesPreserved: true,
+                primaryRevealPreserved: true,
+                endingPreserved: true,
+                noNewPlotElementsAdded: true,
+              },
+              diagnostics: {
+                fullWordCount: 100,
+                shortWordCount: 165,
+                shortEstimatedDurationSeconds: 55,
+                removedGenericFiller: [],
+                adaptationNotes: ["Derived from the English full story."],
+              },
+            }),
+            usage: {
+              input_tokens: 10,
+              output_tokens: 10,
+              input_tokens_details: { cached_tokens: 0 },
+            },
+          }),
+      },
+    };
+
+    const result = await localizeStoryEpisode(sourceFile, config, {
+      client: client as never,
+    });
+
+    expect(result.failure).toBeUndefined();
+    expect(client.responses.create).toHaveBeenCalledTimes(2);
+    expect(
+      await fs.readFile(
+        path.join(tempDir, "002-even-killers-can-lick-en-short.md"),
+        "utf8"
+      )
+    ).toContain("# Short 002");
   });
 
   it("accepts generated localized full stories without sourceTitle", () => {

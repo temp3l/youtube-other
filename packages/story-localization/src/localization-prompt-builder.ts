@@ -14,18 +14,44 @@ function serializedFacts(facts: CanonicalStoryFacts): string {
   return JSON.stringify(facts, null, 2);
 }
 
+const FULL_WORD_TARGET = 1750;
+const SHORT_WORD_TARGET = 160;
+
 function shortWordRangeGuidance(profile: LanguageProfile): readonly string[] {
   const { min, target, max } = profile.shortWordRange;
   return [
-    `Short narration target: ${target} words.`,
+    `Short narration target: ${SHORT_WORD_TARGET} words.`,
     `Hard limit: keep the short narration within ${min}-${max} words.`,
-    `Aim for roughly ${Math.max(min + 10, target - 10)}-${Math.max(min + 20, target + 5)} words.`,
+    `Aim for roughly ${Math.max(min + 10, SHORT_WORD_TARGET - 10)}-${Math.max(min + 20, SHORT_WORD_TARGET + 5)} words.`,
     "Use exactly 2-3 short paragraphs.",
     "Use 5-7 sentences total.",
     "Keep each sentence concise and avoid long compound clauses.",
     "If the draft is below the minimum, add one concrete sentence about the protagonist's next action and one sentence about the immediate consequence before ending.",
     "Prefer the lower end of the range when a translation would otherwise run long.",
     "Trim recap phrases, filler, and duplicated phrasing before finalizing.",
+  ];
+}
+
+function fullWordGuidance(): readonly string[] {
+  return [
+    `Full narration target: ${FULL_WORD_TARGET} words.`,
+    "Aim for a complete episode script that is close to the target length.",
+    "Preserve all major scenes, motivations, turns, and the final reveal.",
+    "Expand with concrete scene detail and character action if the draft is too short.",
+    "Do not add new plot events just to increase length.",
+  ];
+}
+
+function writtenMessageGuidance(messages: readonly string[]): readonly string[] {
+  if (messages.length === 0) {
+    return [];
+  }
+  return [
+    "Exact written messages to preserve verbatim:",
+    ...messages,
+    "Keep each of these messages exactly as written.",
+    "Do not translate, paraphrase, summarize, or omit them.",
+    "If a written message is visible in the scene, it must appear in the narration context with the same spelling, capitalization, punctuation, and language.",
   ];
 }
 
@@ -94,8 +120,14 @@ export function buildLocalizationPrompt(args: {
     `Target language: ${args.languageProfile.displayName} (${args.languageProfile.locale})`,
     `Adaptation mode: ${args.adaptationMode}`,
     `Target output: ${args.target}`,
+    ...(args.target === "full"
+      ? ["", "Full output guidance:", lineList(fullWordGuidance())]
+      : []),
     ...(args.target === "short"
       ? ["", "Short output guidance:", lineList(shortWordRangeGuidance(args.languageProfile))]
+      : []),
+    ...(args.canonicalFacts.writtenMessages.length > 0
+      ? ["", "Written message guidance:", lineList(writtenMessageGuidance(args.canonicalFacts.writtenMessages))]
       : []),
     "",
     "Language guidance:",

@@ -1,0 +1,107 @@
+{
+  "schemaVersion": "story-localization-batch-v1",
+  "category": "text-localization",
+  "localBatchId": "slb-20260626125836867-001",
+  "rootLocalBatchId": "slb-20260626125836867-001",
+  "retryNumber": 0,
+  "createdAt": "2026-06-26T12:58:36.899Z",
+  "updatedAt": "2026-06-26T14:24:35.275Z",
+  "mode": "batch",
+  "endpoint": "/v1/responses",
+  "model": "gpt-4o-mini",
+  "completionWindow": "24h",
+  "inputFilePath": "content-ideas/content/dark-truth-episodes/.batch/inputs/batch-slb-20260626125836867-001.jsonl",
+  "inputFileHash": "5c583f8887b2183faad358d6f780089234a971c8d1a07814e52b4fc1f6efcb8e",
+  "openAIInputFileId": "file-6PQC3fR21j7KBUYCDWX5zk",
+  "openAIBatchId": "batch_6a3e777ef5388190beef7693b1cacb10",
+  "status": "cancelled",
+  "items": [
+    {
+      "customId": "dte:004:english-short:en:7e9692b1:f2b57c34",
+      "episodeNumber": "004",
+      "language": "en",
+      "operation": "english-short",
+      "sourcePath": "content-ideas/content/dark-truth-episodes-multilingual-production-pack/004-when-the-candle-went-out-the-werewolf-returned/en/004-when-the-candle-went-out-the-werewolf-returned-en-full.md",
+      "sourceHash": "7e9692b1eaab5b2e5a764e4e935eb93bcaefa7c9e20bdd19a28fd6e7b4e7c4e3",
+      "promptVersion": "story-localization-v1",
+      "configurationHash": "f2b57c34bf5a66aa9d6fd255c255509418d7e8376fb01d9f52615df7a7ccda9f",
+      "plannedOutputPaths": [
+        "content-ideas/content/dark-truth-episodes/004-when-the-candle-went-out-the-werewolf-returned-en-full.md",
+        "content-ideas/content/dark-truth-episodes/004-when-the-candle-went-out-the-werewolf-returned-en-short.md"
+      ],
+      "estimatedInputTokens": 2649,
+      "status": "submitted"
+    },
+    {
+      "customId": "dte:004:localization:de:7e9692b1:2207f54c",
+      "episodeNumber": "004",
+      "language": "de",
+      "operation": "localization",
+      "sourcePath": "content-ideas/content/dark-truth-episodes-multilingual-production-pack/004-when-the-candle-went-out-the-werewolf-returned/en/004-when-the-candle-went-out-the-werewolf-returned-en-full.md",
+      "sourceHash": "7e9692b1eaab5b2e5a764e4e935eb93bcaefa7c9e20bdd19a28fd6e7b4e7c4e3",
+      "promptVersion": "story-localization-v1",
+      "configurationHash": "2207f54cfa2814850d2de56af46f8ed3d5cabdc773e187a0235c4c19f2e31bc8",
+      "plannedOutputPaths": [
+        "content-ideas/content/dark-truth-episodes/004-when-the-candle-went-out-the-werewolf-returned-de-full.md",
+        "content-ideas/content/dark-truth-episodes/004-when-the-candle-went-out-the-werewolf-returned-de-short.md"
+      ],
+      "estimatedInputTokens": 2919,
+      "status": "submitted"
+    },
+    {
+      "customId": "dte:004:localization:es:7e9692b1:ff30ea1e",
+      "episodeNumber": "004",
+      "language": "es",
+      "operation": "localization",
+      "sourcePath": "content-ideas/content/dark-truth-episodes-multilingual-production-pack/004-when-the-candle-went-out-the-werewolf-returned/en/004-when-the-candle-went-out-the-werewolf-returned-en-full.md",
+      "sourceHash": "7e9692b1eaab5b2e5a764e4e935eb93bcaefa7c9e20bdd19a28fd6e7b4e7c4e3",
+      "promptVersion": "story-localization-v1",
+      "configurationHash": "ff30ea1e89badb1ea63cde90619bf196450f36392fb11fd3a196ae5bcc6fffd0",
+      "plannedOutputPaths": [
+        "content-ideas/content/dark-truth-episodes/004-when-the-candle-went-out-the-werewolf-returned-es-full.md",
+        "content-ideas/content/dark-truth-episodes/004-when-the-candle-went-out-the-werewolf-returned-es-short.md"
+      ],
+      "estimatedInputTokens": 2924,
+      "status": "submitted"
+    },
+    {
+      "customId": "dte:004:localization:fr:7e9692b1:ca9c9553",
+      "episodeNumber": "004",
+      "language": "fr",
+      "operation": "localization",
+      "sourcePath": "content-ideas/content/dark-truth-episodes-multilingual-production-pack/004-when-the-candle-went-out-the-werewolf-returned/en/004-when-the-candle-went-out-the-werewolf-returned-en-full.md",
+      "sourceHash": "7e9692b1eaab5b2e5a764e4e935eb93bcaefa7c9e20bdd19a28fd6e7b4e7c4e3",
+      "promptVersion": "story-localization-v1",
+      "configurationHash": "ca9c9553bfc747e907d3d4a9746e7326f974e3a1a242817f52d66a0616826f76",
+      "plannedOutputPaths": [
+        "content-ideas/content/dark-truth-episodes/004-when-the-candle-went-out-the-werewolf-returned-fr-full.md",
+        "content-ideas/content/dark-truth-episodes/004-when-the-candle-went-out-the-werewolf-returned-fr-short.md"
+      ],
+      "estimatedInputTokens": 2920,
+      "status": "submitted"
+    },
+    {
+      "customId": "dte:004:localization:pt:7e9692b1:28dc4f6c",
+      "episodeNumber": "004",
+      "language": "pt",
+      "operation": "localization",
+      "sourcePath": "content-ideas/content/dark-truth-episodes-multilingual-production-pack/004-when-the-candle-went-out-the-werewolf-returned/en/004-when-the-candle-went-out-the-werewolf-returned-en-full.md",
+      "sourceHash": "7e9692b1eaab5b2e5a764e4e935eb93bcaefa7c9e20bdd19a28fd6e7b4e7c4e3",
+      "promptVersion": "story-localization-v1",
+      "configurationHash": "28dc4f6c0921959f50caf78cc9ad104591a0b3134353eaecb7e91f82ea7ba082",
+      "plannedOutputPaths": [
+        "content-ideas/content/dark-truth-episodes/004-when-the-candle-went-out-the-werewolf-returned-pt-full.md",
+        "content-ideas/content/dark-truth-episodes/004-when-the-candle-went-out-the-werewolf-returned-pt-short.md"
+      ],
+      "estimatedInputTokens": 2921,
+      "status": "submitted"
+    }
+  ],
+  "submittedAt": "2026-06-26T12:58:39.738Z",
+  "requestCounts": {
+    "total": 5,
+    "completed": 0,
+    "failed": 0
+  },
+  "errorFileId": "file-DUBsDTyi3wnkbYYCLKhgDL"
+}

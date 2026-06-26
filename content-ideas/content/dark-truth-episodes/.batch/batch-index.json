@@ -1,7 +1,7 @@
 {
   "schemaVersion": "story-localization-batch-index-v2",
   "createdAt": "2026-06-26T12:12:45.409Z",
-  "updatedAt": "2026-06-26T14:15:13.287Z",
+  "updatedAt": "2026-06-26T14:27:20.584Z",
   "entries": [
     {
       "localBatchId": "slb-20260626123145911-001",
@@ -9,9 +9,9 @@
       "category": "text-localization",
       "rootLocalBatchId": "slb-20260626123145911-001",
       "retryNumber": 0,
-      "status": "cancelling",
+      "status": "cancelled",
       "createdAt": "2026-06-26T12:31:45.950Z",
-      "updatedAt": "2026-06-26T14:11:37.356Z",
+      "updatedAt": "2026-06-26T14:24:33.683Z",
       "submittedAt": "2026-06-26T12:36:18.000Z",
       "model": "gpt-4o-mini",
       "endpoint": "/v1/responses",
@@ -37,6 +37,7 @@
       "inputFilePath": "content-ideas/content/dark-truth-episodes/.batch/inputs/batch-slb-20260626123145911-001.jsonl",
       "manifestPath": "/home/box/workspace/fehmarn-seo/youtube/other/content-ideas/content/dark-truth-episodes/.batch/manifests/batch-slb-20260626123145911-001.manifest.json",
       "openAIInputFileId": "file-NjCvGZexjw8YHC9sLdXGij",
+      "errorFileId": "file-VNovnyr9cs888zSGbZyzxN",
       "sourceHashPrefixes": [
         "0154c5a4"
       ],
@@ -50,9 +51,9 @@
       "category": "text-localization",
       "rootLocalBatchId": "slb-20260626125836867-001",
       "retryNumber": 0,
-      "status": "cancelling",
+      "status": "cancelled",
       "createdAt": "2026-06-26T12:58:36.899Z",
-      "updatedAt": "2026-06-26T14:11:39.599Z",
+      "updatedAt": "2026-06-26T14:24:35.275Z",
       "submittedAt": "2026-06-26T12:58:39.738Z",
       "model": "gpt-4o-mini",
       "endpoint": "/v1/responses",
@@ -78,6 +79,7 @@
       "inputFilePath": "content-ideas/content/dark-truth-episodes/.batch/inputs/batch-slb-20260626125836867-001.jsonl",
       "manifestPath": "/home/box/workspace/fehmarn-seo/youtube/other/content-ideas/content/dark-truth-episodes/.batch/manifests/batch-slb-20260626125836867-001.manifest.json",
       "openAIInputFileId": "file-6PQC3fR21j7KBUYCDWX5zk",
+      "errorFileId": "file-DUBsDTyi3wnkbYYCLKhgDL",
       "sourceHashPrefixes": [
         "7e9692b1"
       ],
