@@ -63,6 +63,8 @@ import {
 } from "@mediaforge/metadata";
 import {
   FFmpegVideoRenderer,
+  HybridFFmpegVideoRenderer,
+  type RemoteRenderSettings,
   validateRenderedVideo,
 } from "@mediaforge/rendering";
 import {
@@ -355,7 +357,7 @@ export class MediaForgePipeline {
   public readonly planner = new OneToOneScenePlanner();
   public readonly speech;
   public readonly transcription;
-  public readonly renderer = new FFmpegVideoRenderer();
+  public readonly renderer: FFmpegVideoRenderer;
   public readonly sourceAdapter = new LocalFileSourceAdapter();
   private readonly speechSettings;
 
@@ -470,6 +472,34 @@ export class MediaForgePipeline {
               maxDurationSeconds: config.whisperMaxDurationSeconds,
             })
           : new MockTranscriptionProvider();
+    const remoteRenderSettings: RemoteRenderSettings = {
+      enabled: config.remoteRenderEnabled,
+      host: config.remoteRenderHost,
+      user: config.remoteRenderUser,
+      port: config.remoteRenderPort,
+      baseDir: config.remoteRenderBaseDir,
+      concurrency: config.remoteRenderConcurrency,
+      connectTimeoutSeconds: config.remoteRenderConnectTimeoutSeconds,
+      commandTimeoutSeconds: config.remoteRenderCommandTimeoutSeconds,
+      maxRetries: config.remoteRenderMaxRetries,
+      fallbackToLocal: config.remoteRenderFallbackToLocal,
+      keepFiles: config.remoteRenderKeepFiles,
+      verifyHostKey: config.remoteRenderVerifyHostKey,
+      ...(config.remoteRenderKnownHostsFile
+        ? { knownHostsFile: config.remoteRenderKnownHostsFile }
+        : {}),
+      ...(config.remoteRenderSshPrivateKey
+        ? { sshPrivateKey: config.remoteRenderSshPrivateKey }
+        : {}),
+      uploadMethod: config.remoteRenderUploadMethod,
+      ...(config.localRenderConcurrency
+        ? { localRenderConcurrency: config.localRenderConcurrency }
+        : {}),
+      cleanupMaxAgeHours: config.remoteRenderCleanupMaxAgeHours,
+    };
+    this.renderer = config.remoteRenderEnabled
+      ? new HybridFFmpegVideoRenderer(remoteRenderSettings)
+      : new FFmpegVideoRenderer();
   }
 
   public async createEpisode(

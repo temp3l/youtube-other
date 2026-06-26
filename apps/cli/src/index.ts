@@ -44,6 +44,12 @@ import {
   type YoutubeMetadataOutputs,
 } from "@mediaforge/metadata";
 import {
+  FFmpegVideoRenderer,
+  HybridFFmpegVideoRenderer,
+  validateRenderedVideo,
+  type RemoteRenderSettings,
+} from "@mediaforge/rendering";
+import {
   uploadYoutubeEpisode,
   type YoutubeUploadCommandInput,
   type YoutubeUploadOverrides,
@@ -91,8 +97,10 @@ import { Command } from "commander";
 import { spawnSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import fs from "node:fs/promises";
+import os from "node:os";
 import path from "node:path";
 import { registerEpisodeCommands } from "./episode-commands.js";
+import { registerStoryLocalizationCommands } from "./story-localization-commands.js";
 
 interface CliOptions {
   json?: boolean;
@@ -230,6 +238,34 @@ function compactConfigOverrides(
     }
   }
   return compacted as RuntimeConfigOverrides;
+}
+
+function buildRemoteRenderSettings(config: RuntimeConfig): RemoteRenderSettings {
+  return {
+    enabled: config.remoteRenderEnabled,
+    host: config.remoteRenderHost,
+    user: config.remoteRenderUser,
+    port: config.remoteRenderPort,
+    baseDir: config.remoteRenderBaseDir,
+    concurrency: config.remoteRenderConcurrency,
+    connectTimeoutSeconds: config.remoteRenderConnectTimeoutSeconds,
+    commandTimeoutSeconds: config.remoteRenderCommandTimeoutSeconds,
+    maxRetries: config.remoteRenderMaxRetries,
+    fallbackToLocal: config.remoteRenderFallbackToLocal,
+    keepFiles: config.remoteRenderKeepFiles,
+    verifyHostKey: config.remoteRenderVerifyHostKey,
+    ...(config.remoteRenderKnownHostsFile
+      ? { knownHostsFile: config.remoteRenderKnownHostsFile }
+      : {}),
+    ...(config.remoteRenderSshPrivateKey
+      ? { sshPrivateKey: config.remoteRenderSshPrivateKey }
+      : {}),
+    uploadMethod: config.remoteRenderUploadMethod,
+    ...(config.localRenderConcurrency
+      ? { localRenderConcurrency: config.localRenderConcurrency }
+      : {}),
+    cleanupMaxAgeHours: config.remoteRenderCleanupMaxAgeHours,
+  };
 }
 
 function isEnglishLanguage(language: string): boolean {
@@ -2049,6 +2085,248 @@ async function commandRender(
   printJson(result);
 }
 
+function renderRemoteShellScript(kind: "check" | "cleanup"): string {
+  if (kind === "check") {
+    return [
+      "set -Eeuo pipefail",
+      "umask 077",
+      "test \"$(id -u)\" -ne 0",
+      "command -v ffmpeg >/dev/null",
+      "command -v ffprobe >/dev/null",
+      "command -v rsync >/dev/null",
+      "mkdir -p \"$1/jobs\"",
+      "chmod 700 \"$1\" \"$1/jobs\"",
+      "tmpdir=\"$1/.remote-check-$(date +%s)-$$\"",
+      "mkdir -p \"$tmpdir\"",
+      "ffmpeg -y -f lavfi -i testsrc2=duration=1:size=64x64:rate=30 -c:v libx264 -pix_fmt yuv420p \"$tmpdir/test.mp4\"",
+      "ffprobe -v error -show_streams -show_format \"$tmpdir/test.mp4\" >/dev/null",
+      "rm -rf \"$tmpdir\"",
+    ].join("; ");
+  }
+  return [
+    "set -Eeuo pipefail",
+    "umask 077",
+    "jobs_dir=\"$1/jobs\"",
+    "cutoff_minutes=\"$2\"",
+    "find \"$jobs_dir\" -mindepth 1 -maxdepth 1 -type d -mmin \"+${cutoff_minutes}\" -exec rm -rf -- {} +",
+  ].join("; ");
+}
+
+async function commandRenderRemoteCheck(
+  options: CliOptions
+): Promise<void> {
+  const config = await loadRuntimeConfig(configOverridesFromCli(options));
+  const remote = buildRemoteRenderSettings(config);
+  if (!remote.enabled) {
+    process.stdout.write("Remote rendering is disabled.\n");
+    return;
+  }
+  const sshArgs = [
+    "-p",
+    String(remote.port),
+    "-o",
+    "BatchMode=yes",
+    "-o",
+    `ConnectTimeout=${remote.connectTimeoutSeconds}`,
+    "-o",
+    `StrictHostKeyChecking=${remote.verifyHostKey ? "yes" : "no"}`,
+    ...(remote.knownHostsFile ? ["-o", `UserKnownHostsFile=${remote.knownHostsFile}`] : []),
+    ...(remote.sshPrivateKey ? ["-i", remote.sshPrivateKey] : []),
+    `${remote.user}@${remote.host}`,
+    "bash",
+    "-lc",
+    renderRemoteShellScript("check"),
+    "--",
+    remote.baseDir,
+  ];
+  const result = spawnSync("ssh", sshArgs, { encoding: "utf8" });
+  if (result.status !== 0) {
+    throw new Error(result.stderr || "Remote preflight failed.");
+  }
+  process.stdout.write(`Remote render preflight succeeded for ${remote.user}@${remote.host}\n`);
+}
+
+async function commandRenderRemoteCleanup(
+  options: CliOptions
+): Promise<void> {
+  const config = await loadRuntimeConfig(configOverridesFromCli(options));
+  const remote = buildRemoteRenderSettings(config);
+  if (!remote.enabled) {
+    process.stdout.write("Remote rendering is disabled.\n");
+    return;
+  }
+  const cutoffMinutes = Math.max(1, remote.cleanupMaxAgeHours * 60);
+  const sshArgs = [
+    "-p",
+    String(remote.port),
+    "-o",
+    "BatchMode=yes",
+    "-o",
+    `ConnectTimeout=${remote.connectTimeoutSeconds}`,
+    "-o",
+    `StrictHostKeyChecking=${remote.verifyHostKey ? "yes" : "no"}`,
+    ...(remote.knownHostsFile ? ["-o", `UserKnownHostsFile=${remote.knownHostsFile}`] : []),
+    ...(remote.sshPrivateKey ? ["-i", remote.sshPrivateKey] : []),
+    `${remote.user}@${remote.host}`,
+    "bash",
+    "-lc",
+    renderRemoteShellScript("cleanup"),
+    "--",
+    remote.baseDir,
+    String(cutoffMinutes),
+  ];
+  const result = spawnSync("ssh", sshArgs, { encoding: "utf8" });
+  if (result.status !== 0) {
+    throw new Error(result.stderr || "Remote cleanup failed.");
+  }
+  process.stdout.write(`Cleaned remote jobs older than ${remote.cleanupMaxAgeHours}h.\n`);
+}
+
+async function commandRenderRemoteTest(
+  options: CliOptions
+): Promise<void> {
+  const config = await loadRuntimeConfig(configOverridesFromCli(options));
+  const remote = buildRemoteRenderSettings(config);
+  if (!remote.enabled) {
+    throw new Error("REMOTE_RENDER_ENABLED must be true for the remote render test.");
+  }
+  const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "mediaforge-remote-test-"));
+  const episodeDir = path.join(tmpDir, "episode");
+  const imageDir = path.join(episodeDir, "images", "generated");
+  const audioDir = path.join(episodeDir, "audio", "segments");
+  const outputDir = path.join(episodeDir, "output");
+  await Promise.all([
+    ensureDir(imageDir),
+    ensureDir(audioDir),
+    ensureDir(outputDir),
+  ]);
+  const makePng = (filePath: string, color: string) =>
+    spawnSync(
+      "ffmpeg",
+      [
+        "-y",
+        "-f",
+        "lavfi",
+        "-i",
+        `color=c=${color}:s=64x64:d=1`,
+        "-frames:v",
+        "1",
+        filePath,
+      ],
+      { encoding: "utf8" }
+    );
+  const makeWav = (filePath: string, frequency: number) =>
+    spawnSync(
+      "ffmpeg",
+      [
+        "-y",
+        "-f",
+        "lavfi",
+        "-i",
+        `sine=frequency=${frequency}:sample_rate=24000:duration=1`,
+        filePath,
+      ],
+      { encoding: "utf8" }
+    );
+  if (makePng(path.join(imageDir, "scene-001__000000-000001__16x9.png"), "red").status !== 0) {
+    throw new Error("Failed to generate local test image.");
+  }
+  if (makePng(path.join(imageDir, "scene-002__000001-000002__16x9.png"), "blue").status !== 0) {
+    throw new Error("Failed to generate local test image.");
+  }
+  if (makeWav(path.join(audioDir, "scene-001.wav"), 440).status !== 0) {
+    throw new Error("Failed to generate local test audio.");
+  }
+  if (makeWav(path.join(audioDir, "scene-002.wav"), 550).status !== 0) {
+    throw new Error("Failed to generate local test audio.");
+  }
+  const scenePlan = scenePlanSchema.parse({
+    sourceId: "episode-remote-test",
+    scenes: [
+      {
+        id: "scene-001",
+        sequenceNumber: 1,
+        canonicalNarration: "A red test frame appears.",
+        sourceSegmentIds: ["scene-001"],
+        estimatedDurationSeconds: 1,
+        timing: { startSeconds: 0, endSeconds: 1 },
+        visualPurpose: "local render test",
+        textRequirement: { required: false },
+        subject: "red frame",
+        action: "shown",
+        setting: "test scene",
+        composition: "centered",
+        cameraFraming: "medium shot",
+        mood: "neutral",
+        continuityReferences: [],
+        onScreenText: "",
+        negativeConstraints: [],
+        aspectRatios: ["16:9"],
+        imagePrompt: "red frame",
+        expectedImageFilenames: ["scene-001__000000-000001__16x9.png"],
+        qualityStatus: "draft",
+      },
+      {
+        id: "scene-002",
+        sequenceNumber: 2,
+        canonicalNarration: "A blue test frame appears.",
+        sourceSegmentIds: ["scene-002"],
+        estimatedDurationSeconds: 1,
+        timing: { startSeconds: 1, endSeconds: 2 },
+        visualPurpose: "remote render test",
+        textRequirement: { required: false },
+        subject: "blue frame",
+        action: "shown",
+        setting: "test scene",
+        composition: "centered",
+        cameraFraming: "medium shot",
+        mood: "neutral",
+        continuityReferences: [],
+        onScreenText: "",
+        negativeConstraints: [],
+        aspectRatios: ["16:9"],
+        imagePrompt: "blue frame",
+        expectedImageFilenames: ["scene-002__000001-000002__16x9.png"],
+        qualityStatus: "draft",
+      },
+    ],
+  });
+  const renderer = new HybridFFmpegVideoRenderer(remote);
+  const result = await renderer.renderSceneClips(
+    {
+      episodeDir,
+      scenePlan,
+      outputDir,
+      renderProfile: {
+        id: "test",
+        label: "test",
+        width: 64,
+        height: 64,
+        fps: 30,
+        aspectRatio: "16:9",
+        burnCaptions: false,
+      },
+      captionBurnIn: false,
+      imageDir,
+      sceneAudioDir: audioDir,
+      trailingSilenceRatio: 0,
+      trailingSilenceBufferSeconds: 0,
+    },
+    new AbortController().signal
+  );
+  const outputs = await Promise.all(
+    result.clipPaths.map(async (clipPath) => ({
+      clipPath,
+      hash: await hashFile(clipPath),
+      validation: await validateRenderedVideo(clipPath),
+    }))
+  );
+  printJson({
+    episodeDir,
+    outputs,
+  });
+}
+
 async function commandMetadataGenerate(
   options: CliOptions,
   episodeId: string
@@ -3022,7 +3300,7 @@ imagesCommand
     );
   });
 
-program
+const renderCommand = program
   .command("render")
   .argument("<episode-id>")
   .option("--profile <profile>", "youtube or vertical", "youtube")
@@ -3040,6 +3318,27 @@ program
       );
     }
   );
+const renderRemoteCommand = renderCommand
+  .command("remote")
+  .description("Remote rendering utilities");
+renderRemoteCommand
+  .command("check")
+  .description("Run an SSH/ffmpeg/rsync preflight against the remote worker")
+  .action(async () => {
+    await commandRenderRemoteCheck(program.opts<CliOptions>());
+  });
+renderRemoteCommand
+  .command("cleanup")
+  .description("Remove stale remote render workspaces")
+  .action(async () => {
+    await commandRenderRemoteCleanup(program.opts<CliOptions>());
+  });
+renderRemoteCommand
+  .command("test")
+  .description("Render a deterministic local and remote clip pair")
+  .action(async () => {
+    await commandRenderRemoteTest(program.opts<CliOptions>());
+  });
 const metadataCommand = program
   .command("metadata")
   .description("Metadata utilities");
@@ -3109,6 +3408,7 @@ youtubeCommand
   );
 
 registerEpisodeCommands(program);
+registerStoryLocalizationCommands(program);
 
 const executionId =
   process.env["MEDIAFORGE_EXECUTION_ID"] ?? randomUUID();

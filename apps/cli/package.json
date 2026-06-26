@@ -27,6 +27,7 @@
     "@mediaforge/rendering": "workspace:*",
     "@mediaforge/rewriting": "workspace:*",
     "@mediaforge/scene-planning": "workspace:*",
+    "@mediaforge/story-localization": "workspace:*",
     "@mediaforge/shared": "workspace:*",
     "@mediaforge/source-ingestion": "workspace:*",
     "@mediaforge/speech": "workspace:*",

@@ -113,6 +113,20 @@ describe("runtime config", () => {
     expect(config.trailingSilenceBufferSeconds).toBe(0.75);
   });
 
+  it("defaults remote rendering to disabled with safe connection settings", async () => {
+    const config = await loadRuntimeConfig();
+    expect(config.remoteRenderEnabled).toBe(false);
+    expect(config.remoteRenderHost).toBe("2.24.81.148");
+    expect(config.remoteRenderUser).toBe("box");
+    expect(config.remoteRenderPort).toBe(22);
+    expect(config.remoteRenderBaseDir).toBe("/home/box/youtube-render-worker");
+    expect(config.remoteRenderConcurrency).toBe(1);
+    expect(config.remoteRenderFallbackToLocal).toBe(true);
+    expect(config.remoteRenderVerifyHostKey).toBe(true);
+    expect(config.remoteRenderUploadMethod).toBe("rsync");
+    expect(config.remoteRenderCleanupMaxAgeHours).toBe(24);
+  });
+
   it("resolves language-specific YouTube channels with fallback", async () => {
     const config = await loadRuntimeConfig({
       youtubeChannelId: "global-channel",

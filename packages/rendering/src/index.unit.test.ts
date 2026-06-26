@@ -6,7 +6,7 @@ import path from "node:path";
 import sharp from "sharp";
 import { describe, expect, it } from "vitest";
 import { scenePlanSchema } from "@mediaforge/domain";
-import { validateRenderedVideo, FFmpegVideoRenderer } from "./index.js";
+import { assignClipRenderers, validateRenderedVideo, FFmpegVideoRenderer } from "./index.js";
 
 function makeScenePlan() {
   return scenePlanSchema.parse({
@@ -39,6 +39,46 @@ function makeScenePlan() {
 }
 
 describe("FFmpegVideoRenderer", () => {
+  it("assigns alternating renderers after sorting by sequence number", () => {
+    const assignments = assignClipRenderers([
+      {
+        episodeId: "episode",
+        clipId: "scene-003",
+        sequenceNumber: 3,
+        inputPaths: [],
+        outputPath: "/tmp/scene-003.mp4",
+        ffmpegArguments: [],
+      },
+      {
+        episodeId: "episode",
+        clipId: "scene-001",
+        sequenceNumber: 1,
+        inputPaths: [],
+        outputPath: "/tmp/scene-001.mp4",
+        ffmpegArguments: [],
+      },
+      {
+        episodeId: "episode",
+        clipId: "scene-002",
+        sequenceNumber: 2,
+        inputPaths: [],
+        outputPath: "/tmp/scene-002.mp4",
+        ffmpegArguments: [],
+      },
+    ]);
+
+    expect(assignments.map((item) => item.clipId)).toEqual([
+      "scene-001",
+      "scene-002",
+      "scene-003",
+    ]);
+    expect(assignments.map((item) => item.renderer)).toEqual([
+      "local",
+      "remote",
+      "local",
+    ]);
+  });
+
   it("rebuilds placeholder-sized scene clips before concat", async () => {
     const baseDir = mkdtempSync(
       path.join(os.tmpdir(), "mediaforge-rendering-")

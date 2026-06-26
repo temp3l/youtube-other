@@ -62,7 +62,24 @@ const configSchema = z.object({
   youtubeChannelIdGerman: z.string().optional(),
   youtubeChannelIdSpanish: z.string().optional(),
   youtubeChannelIdFrench: z.string().optional(),
-  apiPort: z.number().int().positive()
+  apiPort: z.number().int().positive(),
+  remoteRenderEnabled: z.boolean(),
+  remoteRenderHost: z.string().min(1),
+  remoteRenderUser: z.string().min(1),
+  remoteRenderPort: z.number().int().min(1).max(65535),
+  remoteRenderBaseDir: z.string().min(1),
+  remoteRenderConcurrency: z.number().int().positive(),
+  remoteRenderConnectTimeoutSeconds: z.number().int().positive(),
+  remoteRenderCommandTimeoutSeconds: z.number().int().positive(),
+  remoteRenderMaxRetries: z.number().int().nonnegative(),
+  remoteRenderFallbackToLocal: z.boolean(),
+  remoteRenderKeepFiles: z.boolean(),
+  remoteRenderVerifyHostKey: z.boolean(),
+  remoteRenderKnownHostsFile: z.string().optional(),
+  remoteRenderSshPrivateKey: z.string().optional(),
+  remoteRenderUploadMethod: z.enum(["rsync"]),
+  localRenderConcurrency: z.number().int().positive().optional(),
+  remoteRenderCleanupMaxAgeHours: z.number().int().positive()
 });
 export type RuntimeConfig = z.infer<typeof configSchema>;
 export type RuntimeConfigOverrides = {
@@ -170,7 +187,24 @@ const envSchema = z.object({
   OPENAI_PROJECT: z.string().optional(),
   OPENAI_SPEECH_MODEL: z.string().optional(),
   OPENAI_SPEECH_VOICE: z.string().optional(),
-  MEDIAFORGE_API_PORT: z.coerce.number().int().positive().optional()
+  MEDIAFORGE_API_PORT: z.coerce.number().int().positive().optional(),
+  REMOTE_RENDER_ENABLED: z.string().optional(),
+  REMOTE_RENDER_HOST: z.string().optional(),
+  REMOTE_RENDER_USER: z.string().optional(),
+  REMOTE_RENDER_PORT: z.coerce.number().int().min(1).max(65535).optional(),
+  REMOTE_RENDER_BASE_DIR: z.string().optional(),
+  REMOTE_RENDER_CONCURRENCY: z.coerce.number().int().positive().optional(),
+  REMOTE_RENDER_CONNECT_TIMEOUT_SECONDS: z.coerce.number().int().positive().optional(),
+  REMOTE_RENDER_COMMAND_TIMEOUT_SECONDS: z.coerce.number().int().positive().optional(),
+  REMOTE_RENDER_MAX_RETRIES: z.coerce.number().int().nonnegative().optional(),
+  REMOTE_RENDER_FALLBACK_TO_LOCAL: z.string().optional(),
+  REMOTE_RENDER_KEEP_FILES: z.string().optional(),
+  REMOTE_RENDER_VERIFY_HOST_KEY: z.string().optional(),
+  REMOTE_RENDER_KNOWN_HOSTS_FILE: z.string().optional(),
+  REMOTE_RENDER_SSH_PRIVATE_KEY: z.string().optional(),
+  REMOTE_RENDER_UPLOAD_METHOD: z.enum(["rsync"]).optional(),
+  LOCAL_RENDER_CONCURRENCY: z.string().optional(),
+  REMOTE_RENDER_CLEANUP_MAX_AGE_HOURS: z.coerce.number().int().positive().optional()
 });
 
 export async function loadPackageJsonConfig(configPath: string): Promise<Record<string, unknown> | null> {
@@ -194,6 +228,38 @@ function parseBooleanEnv(value: string | undefined): boolean | undefined {
     return false;
   }
   return undefined;
+}
+
+function parseStrictBooleanEnv(value: string | undefined, variableName: string): boolean | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  const parsed = parseBooleanEnv(value);
+  if (parsed === undefined) {
+    throw new Error(`Invalid boolean value for ${variableName}: ${value}`);
+  }
+  return parsed;
+}
+
+function parseOptionalPositiveIntEnv(
+  value: string | undefined,
+  variableName: string
+): number | undefined {
+  if (value === undefined || value.trim().length === 0) {
+    return undefined;
+  }
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed <= 0) {
+    throw new Error(`Invalid positive integer value for ${variableName}: ${value}`);
+  }
+  return parsed;
+}
+
+function normalizeOptionalPath(value: string | undefined): string | undefined {
+  if (value === undefined || value.trim().length === 0) {
+    return undefined;
+  }
+  return value;
 }
 
 export async function loadRuntimeConfig(
@@ -340,7 +406,89 @@ export async function loadRuntimeConfig(
       overrides.youtubeChannelIdFrench ??
       episodeOverrides.youtubeChannelIdFrench ??
       env.YOUTUBE_CHANNEL_ID_FRENCH,
-    apiPort: overrides.apiPort ?? episodeOverrides.apiPort ?? env.MEDIAFORGE_API_PORT ?? 3333
+    apiPort: overrides.apiPort ?? episodeOverrides.apiPort ?? env.MEDIAFORGE_API_PORT ?? 3333,
+    remoteRenderEnabled:
+      overrides.remoteRenderEnabled ??
+      episodeOverrides.remoteRenderEnabled ??
+      parseStrictBooleanEnv(env.REMOTE_RENDER_ENABLED, "REMOTE_RENDER_ENABLED") ??
+      false,
+    remoteRenderHost:
+      overrides.remoteRenderHost ??
+      episodeOverrides.remoteRenderHost ??
+      env.REMOTE_RENDER_HOST ??
+      "2.24.81.148",
+    remoteRenderUser:
+      overrides.remoteRenderUser ??
+      episodeOverrides.remoteRenderUser ??
+      env.REMOTE_RENDER_USER ??
+      "box",
+    remoteRenderPort:
+      overrides.remoteRenderPort ??
+      episodeOverrides.remoteRenderPort ??
+      env.REMOTE_RENDER_PORT ??
+      22,
+    remoteRenderBaseDir:
+      overrides.remoteRenderBaseDir ??
+      episodeOverrides.remoteRenderBaseDir ??
+      env.REMOTE_RENDER_BASE_DIR ??
+      "/home/box/youtube-render-worker",
+    remoteRenderConcurrency:
+      overrides.remoteRenderConcurrency ??
+      episodeOverrides.remoteRenderConcurrency ??
+      env.REMOTE_RENDER_CONCURRENCY ??
+      1,
+    remoteRenderConnectTimeoutSeconds:
+      overrides.remoteRenderConnectTimeoutSeconds ??
+      episodeOverrides.remoteRenderConnectTimeoutSeconds ??
+      env.REMOTE_RENDER_CONNECT_TIMEOUT_SECONDS ??
+      10,
+    remoteRenderCommandTimeoutSeconds:
+      overrides.remoteRenderCommandTimeoutSeconds ??
+      episodeOverrides.remoteRenderCommandTimeoutSeconds ??
+      env.REMOTE_RENDER_COMMAND_TIMEOUT_SECONDS ??
+      1800,
+    remoteRenderMaxRetries:
+      overrides.remoteRenderMaxRetries ??
+      episodeOverrides.remoteRenderMaxRetries ??
+      env.REMOTE_RENDER_MAX_RETRIES ??
+      2,
+    remoteRenderFallbackToLocal:
+      overrides.remoteRenderFallbackToLocal ??
+      episodeOverrides.remoteRenderFallbackToLocal ??
+      parseStrictBooleanEnv(env.REMOTE_RENDER_FALLBACK_TO_LOCAL, "REMOTE_RENDER_FALLBACK_TO_LOCAL") ??
+      true,
+    remoteRenderKeepFiles:
+      overrides.remoteRenderKeepFiles ??
+      episodeOverrides.remoteRenderKeepFiles ??
+      parseStrictBooleanEnv(env.REMOTE_RENDER_KEEP_FILES, "REMOTE_RENDER_KEEP_FILES") ??
+      false,
+    remoteRenderVerifyHostKey:
+      overrides.remoteRenderVerifyHostKey ??
+      episodeOverrides.remoteRenderVerifyHostKey ??
+      parseStrictBooleanEnv(env.REMOTE_RENDER_VERIFY_HOST_KEY, "REMOTE_RENDER_VERIFY_HOST_KEY") ??
+      true,
+    remoteRenderKnownHostsFile:
+      overrides.remoteRenderKnownHostsFile ??
+      episodeOverrides.remoteRenderKnownHostsFile ??
+      normalizeOptionalPath(env.REMOTE_RENDER_KNOWN_HOSTS_FILE),
+    remoteRenderSshPrivateKey:
+      overrides.remoteRenderSshPrivateKey ??
+      episodeOverrides.remoteRenderSshPrivateKey ??
+      normalizeOptionalPath(env.REMOTE_RENDER_SSH_PRIVATE_KEY),
+    remoteRenderUploadMethod:
+      overrides.remoteRenderUploadMethod ??
+      episodeOverrides.remoteRenderUploadMethod ??
+      env.REMOTE_RENDER_UPLOAD_METHOD ??
+      "rsync",
+    localRenderConcurrency:
+      overrides.localRenderConcurrency ??
+      episodeOverrides.localRenderConcurrency ??
+      parseOptionalPositiveIntEnv(env.LOCAL_RENDER_CONCURRENCY, "LOCAL_RENDER_CONCURRENCY"),
+    remoteRenderCleanupMaxAgeHours:
+      overrides.remoteRenderCleanupMaxAgeHours ??
+      episodeOverrides.remoteRenderCleanupMaxAgeHours ??
+      env.REMOTE_RENDER_CLEANUP_MAX_AGE_HOURS ??
+      24
   });
   return config;
 }

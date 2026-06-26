@@ -5,8 +5,15 @@ coverage
 .DS_Store
 *.log
 .mediaforge.sqlite
+.mediaforge/
+.tmp-shorts-*/
 tools/whisper.cpp
 episodes
 !.gitkeep
 secrets/youtube-oauth-client.json
 .env
+openai-*.tgz
+ws-*.tgz
+out.png
+scene-*.png
+test.mp3
