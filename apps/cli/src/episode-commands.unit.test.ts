@@ -1,16 +1,42 @@
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   buildEpisodeLoadResult,
   createApprovalRecord,
 } from "@mediaforge/dark-truth";
 import { hashFile } from "@mediaforge/shared";
-import {
+import type {
+  CharacterRegistry,
+  EpisodeImagePipelineSettings,
+} from "@mediaforge/image-generation";
+
+const imageGenerationMocks = vi.hoisted(() => ({
+  generateEpisodeImageReferencesMock: vi.fn(),
+  approveEpisodeCharacterMock: vi.fn(),
+  loadEpisodeImageGenerationSettingsMock: vi.fn(),
+}));
+
+vi.mock("@mediaforge/image-generation", async () => {
+  const actual = await vi.importActual<typeof import("@mediaforge/image-generation")>(
+    "@mediaforge/image-generation"
+  );
+  return {
+    ...actual,
+    generateEpisodeImageReferences:
+      imageGenerationMocks.generateEpisodeImageReferencesMock,
+    approveEpisodeCharacter: imageGenerationMocks.approveEpisodeCharacterMock,
+    loadEpisodeImageGenerationSettings:
+      imageGenerationMocks.loadEpisodeImageGenerationSettingsMock,
+  };
+});
+
+const {
+  commandEpisodeBootstrapCharacters,
   commandEpisodeLocalized,
   commandEpisodeShort,
-} from "./episode-commands.js";
+} = await import("./episode-commands.js");
 
 const sourceRoot = path.resolve(
   "content-ideas/content/dark-truth-episodes-multilingual-production-pack"
@@ -61,6 +87,77 @@ async function mutateManifest(manifestPath: string): Promise<void> {
 }
 
 describe("episode commands", () => {
+  it("bootstraps shared character references into the workspace and optionally approves them", async () => {
+    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "dark-truth-cli-"));
+    const outputRoot = path.join(tempDir, "episodes");
+    const registry: CharacterRegistry = {
+      episodeId: "002-even-killers-can-lick",
+      updatedAt: "2026-06-25T00:00:00.000Z",
+      characters: [
+        {
+          id: "main-protagonist",
+          name: "Main Protagonist",
+        } as unknown as CharacterRegistry["characters"][number],
+        {
+          id: "supporting-character",
+          name: "Supporting Character",
+        } as unknown as CharacterRegistry["characters"][number],
+      ],
+    };
+    imageGenerationMocks.generateEpisodeImageReferencesMock.mockResolvedValueOnce(
+      registry
+    );
+    imageGenerationMocks.approveEpisodeCharacterMock.mockResolvedValue({
+      ...registry,
+      characters: registry.characters.map((character) => ({
+        ...character,
+        referenceStatus: "approved",
+      })),
+    });
+    imageGenerationMocks.loadEpisodeImageGenerationSettingsMock.mockReturnValue({
+      apiKey: "test",
+      model: "gpt-image-2",
+      size: "1536x1024",
+      resolvedSize: "1536x1024",
+      quality: "medium",
+      concurrency: 1,
+      maxRetries: 2,
+      timeoutMs: 180000,
+      allowUnapprovedCharacterReferences: false,
+      force: false,
+    } as EpisodeImagePipelineSettings);
+
+    await expect(
+      commandEpisodeBootstrapCharacters({
+        episode: "002",
+        source: sourceRoot,
+        outputRoot,
+        approve: true,
+        json: true,
+      })
+    ).resolves.toBeUndefined();
+
+    expect(
+      imageGenerationMocks.loadEpisodeImageGenerationSettingsMock
+    ).toHaveBeenCalledTimes(1);
+    expect(
+      imageGenerationMocks.generateEpisodeImageReferencesMock
+    ).toHaveBeenCalledWith(
+      path.join(outputRoot, "002-even-killers-can-lick"),
+      "002-even-killers-can-lick",
+      expect.objectContaining({ force: false })
+    );
+    expect(imageGenerationMocks.approveEpisodeCharacterMock).toHaveBeenCalledTimes(
+      2
+    );
+    expect(
+      await fs.readFile(
+        path.join(outputRoot, "002-even-killers-can-lick", "characters.json"),
+        "utf8"
+      )
+    ).toContain("002-even-killers-can-lick");
+  });
+
   it("rejects unsupported language codes", async () => {
     const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "dark-truth-cli-"));
     const outputRoot = path.join(tempDir, "episodes");

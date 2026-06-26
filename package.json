@@ -27,6 +27,7 @@
     "episode:short": "node scripts/run-with-telemetry.mjs episode:short -- node apps/cli/dist/index.js episode short",
     "episode:status": "node scripts/run-with-telemetry.mjs episode:status -- node apps/cli/dist/index.js episode status",
     "episode:validate": "node scripts/run-with-telemetry.mjs episode:validate -- node apps/cli/dist/index.js episode validate",
+    "episode:bootstrap-characters": "node scripts/run-with-telemetry.mjs episode:bootstrap-characters -- node apps/cli/dist/index.js episode bootstrap-characters",
     "episode:review:prepare": "node scripts/run-with-telemetry.mjs episode:review:prepare -- node apps/cli/dist/index.js episode review prepare",
     "episode:review:approve": "node scripts/run-with-telemetry.mjs episode:review:approve -- node apps/cli/dist/index.js episode review approve",
     "episode:review:reject": "node scripts/run-with-telemetry.mjs episode:review:reject -- node apps/cli/dist/index.js episode review reject",

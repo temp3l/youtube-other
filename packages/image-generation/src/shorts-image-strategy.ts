@@ -1,0 +1,686 @@
+import fs from "node:fs/promises";
+import path from "node:path";
+import sharp from "sharp";
+import { z } from "zod";
+import { type ScenePlan } from "@mediaforge/domain";
+import {
+  type CharacterRegistry,
+  type EpisodeImagePipelineSettings,
+  type ImageGenerator,
+  type SceneVisualSpec,
+  buildSceneVisualSpec,
+  buildPromptFromSpec,
+  OpenAIImageGenerator,
+} from "./episode-image-pipeline.js";
+import {
+  ensureDir,
+  fileExists,
+  hashFile,
+  hashText,
+  sceneFilename,
+  writeJsonAtomic,
+} from "@mediaforge/shared";
+
+export type ShortsImageStrategy =
+  | "regenerate"
+  | "smart-crop"
+  | "pan-and-scan"
+  | "blurred-fill";
+
+export interface ShortsImageConfig {
+  enabled: boolean;
+  keySceneCount: number;
+  portraitWidth: number;
+  portraitHeight: number;
+  finalWidth: number;
+  finalHeight: number;
+  reuseLandscapeImages: boolean;
+  enablePanAndScan: boolean;
+  enableBlurredFallback: boolean;
+  forceRegenerateAll: boolean;
+  selectionMode?: "first-n" | "importance-based";
+  importanceSceneIds?: string[];
+}
+
+export interface ShortsScenePlan {
+  sceneId: string;
+  sequenceNumber: number;
+  strategy: ShortsImageStrategy;
+  sourceLandscapePath?: string;
+  outputPortraitPath: string;
+  regenerateReason?: string;
+  motion?: {
+    mode: "none" | "pan-and-scan";
+    startX?: number;
+    endX?: number;
+    startY?: number;
+    endY?: number;
+    startZoom?: number;
+    endZoom?: number;
+  };
+}
+
+export interface ShortsSceneManifestEntry {
+  sceneId: string;
+  sequenceNumber: number;
+  strategy: ShortsImageStrategy;
+  sourceImagePath?: string;
+  outputImagePath: string;
+  reusedExistingImage: boolean;
+  regenerated: boolean;
+  attemptCount: number;
+  status: "success" | "skipped" | "failed";
+  error?: string | null;
+  sceneHash?: string;
+  sourceImageSha256?: string;
+  outputImageSha256?: string;
+  promptHash?: string;
+  generatedAt?: string;
+}
+
+export interface PreparedShortsImagesResult {
+  readonly outputDir: string;
+  readonly manifestPath: string;
+  readonly entries: ShortsSceneManifestEntry[];
+}
+
+interface CharacterRegistryFile {
+  episodeId: string;
+  characters: CharacterRegistry["characters"];
+  updatedAt: string;
+}
+
+const registrySchema = z.object({
+  episodeId: z.string().min(1),
+  characters: z.array(
+    z.object({
+      id: z.string().min(1),
+      name: z.string().min(1),
+      role: z.string().min(1),
+      physicalDescription: z.string().min(1),
+      ageRange: z.string().min(1),
+      genderPresentation: z.string().min(1),
+      ethnicityOrRegionalAppearance: z.string().optional(),
+      face: z.object({
+        shape: z.string().min(1),
+        skinTone: z.string().min(1),
+        eyeColor: z.string().min(1),
+        eyebrows: z.string().min(1),
+        nose: z.string().min(1),
+        mouth: z.string().min(1),
+        distinguishingFeatures: z.array(z.string()),
+      }),
+      hair: z.object({
+        color: z.string().min(1),
+        length: z.string().min(1),
+        style: z.string().min(1),
+        texture: z.string().optional(),
+      }),
+      build: z.string().min(1),
+      height: z.string().optional(),
+      defaultWardrobe: z.object({
+        upperBody: z.string().min(1),
+        lowerBody: z.string().min(1),
+        footwear: z.string().min(1),
+        outerwear: z.string().optional(),
+        accessories: z.array(z.string()),
+        carriedObjects: z.array(z.string()),
+        colors: z.array(z.string()),
+      }),
+      continuityTraits: z.array(z.string()),
+      referenceImagePath: z.string().optional(),
+      referenceFileId: z.string().optional(),
+      referenceStatus: z.enum(["missing", "generated", "approved"]),
+    })
+  ),
+  updatedAt: z.string(),
+});
+
+const manifestEntrySchema = z.object({
+  sceneId: z.string().min(1),
+  sequenceNumber: z.number().int().positive(),
+  strategy: z.enum(["regenerate", "smart-crop", "pan-and-scan", "blurred-fill"]),
+  sourceImagePath: z.string().optional(),
+  outputImagePath: z.string().min(1),
+  reusedExistingImage: z.boolean(),
+  regenerated: z.boolean(),
+  attemptCount: z.number().int().nonnegative(),
+  status: z.enum(["success", "skipped", "failed"]),
+  error: z.string().nullable().optional(),
+  sceneHash: z.string().optional(),
+  sourceImageSha256: z.string().optional(),
+  outputImageSha256: z.string().optional(),
+  promptHash: z.string().optional(),
+  generatedAt: z.string().optional(),
+});
+
+function sceneHash(scene: ScenePlan["scenes"][number]): string {
+  return hashText(
+    JSON.stringify({
+      id: scene.id,
+      sequenceNumber: scene.sequenceNumber,
+      canonicalNarration: scene.canonicalNarration,
+      sourceSegmentIds: scene.sourceSegmentIds,
+      estimatedDurationSeconds: scene.estimatedDurationSeconds,
+      timing: scene.timing,
+      visualPurpose: scene.visualPurpose,
+      subject: scene.subject,
+      action: scene.action,
+      setting: scene.setting,
+      composition: scene.composition,
+      cameraFraming: scene.cameraFraming,
+      mood: scene.mood,
+      continuityReferences: scene.continuityReferences,
+      onScreenText: scene.onScreenText,
+      negativeConstraints: scene.negativeConstraints,
+      aspectRatios: scene.aspectRatios,
+      imagePrompt: scene.imagePrompt,
+      expectedImageFilenames: scene.expectedImageFilenames,
+      qualityStatus: scene.qualityStatus,
+    })
+  );
+}
+
+function normalizeSceneIdPath(scene: ScenePlan["scenes"][number]): string {
+  return scene.expectedImageFilenames.find((name) => name.includes("__16x9"))
+    ?? scene.expectedImageFilenames[0]
+    ?? `${scene.id}.png`;
+}
+
+async function resolveLandscapeImagePath(
+  scene: ScenePlan["scenes"][number],
+  landscapeDir: string
+): Promise<string | undefined> {
+  const expectedPath = path.join(landscapeDir, normalizeSceneIdPath(scene));
+  if (await fileExists(expectedPath)) {
+    return expectedPath;
+  }
+  const candidates = (await fs.readdir(landscapeDir).catch(() => [])).filter(
+    (entry) => entry.startsWith(`${scene.id}__`) && entry.endsWith(".png")
+  );
+  if (candidates.length === 1) {
+    return path.join(landscapeDir, candidates[0] ?? "");
+  }
+  if (candidates.length > 1) {
+    throw new Error(
+      `Multiple landscape images found for ${scene.id} in ${landscapeDir}: ${candidates.join(", ")}`
+    );
+  }
+  return undefined;
+}
+
+function portraitFilename(scene: ScenePlan["scenes"][number]): string {
+  return (
+    scene.expectedImageFilenames.find((name) => name.includes("__9x16")) ??
+    sceneFilename(
+      scene.sequenceNumber,
+      scene.timing.startSeconds,
+      scene.timing.endSeconds,
+      "9:16"
+    )
+  );
+}
+
+function resolveKeySceneIds(
+  scenePlan: ScenePlan,
+  config: ShortsImageConfig
+): Set<string> {
+  if (config.selectionMode === "importance-based" && config.importanceSceneIds) {
+    return new Set(
+      config.importanceSceneIds
+        .map((entry) => entry.trim())
+        .filter((entry) => entry.length > 0)
+        .slice(0, config.keySceneCount)
+    );
+  }
+  return new Set(
+    scenePlan.scenes
+      .slice(0, config.keySceneCount)
+      .map((scene) => scene.id)
+  );
+}
+
+function buildMotionPlan(index: number, strategy: ShortsImageStrategy) {
+  if (strategy !== "pan-and-scan") {
+    return { mode: "none" as const };
+  }
+  const direction = index % 2 === 0 ? 1 : -1;
+  return {
+    mode: "pan-and-scan" as const,
+    startX: direction < 0 ? 0.08 : 0.0,
+    endX: direction < 0 ? 0.0 : 0.08,
+    startY: 0.0,
+    endY: 0.0,
+    startZoom: 1.06,
+    endZoom: 1.12,
+  };
+}
+
+async function loadCharacterRegistry(
+  episodeDir: string,
+  episodeId: string
+): Promise<CharacterRegistry> {
+  const registryPath = path.join(episodeDir, "characters.json");
+  if (!(await fileExists(registryPath))) {
+    return {
+      episodeId,
+      characters: [],
+      updatedAt: new Date().toISOString(),
+    };
+  }
+  const parsed = registrySchema.parse(
+    JSON.parse(await fs.readFile(registryPath, "utf8")) as unknown
+  ) as CharacterRegistryFile;
+  return parsed;
+}
+
+async function loadReferenceImages(
+  registry: CharacterRegistry,
+  usages: ReadonlyArray<SceneVisualSpec["characters"][number]>
+): Promise<Array<{ characterId: string; filePath: string; mimeType: "image/png" }>> {
+  const references: Array<{
+    characterId: string;
+    filePath: string;
+    mimeType: "image/png";
+  }> = [];
+  const selectedCharacterIds = new Set(usages.map((usage) => usage.characterId));
+  for (const character of registry.characters) {
+    if (!selectedCharacterIds.has(character.id)) {
+      continue;
+    }
+    if (!character.referenceImagePath) {
+      continue;
+    }
+    if (
+      character.referenceStatus !== "approved" &&
+      character.referenceStatus !== "generated"
+    ) {
+      continue;
+    }
+    if (!(await fileExists(character.referenceImagePath))) {
+      continue;
+    }
+    references.push({
+      characterId: character.id,
+      filePath: character.referenceImagePath,
+      mimeType: "image/png",
+    });
+  }
+  return references;
+}
+
+async function normalizePortraitImage(
+  sourcePath: string,
+  outputPath: string,
+  finalWidth: number,
+  finalHeight: number,
+  strategy: ShortsImageStrategy
+): Promise<void> {
+  await ensureDir(path.dirname(outputPath));
+  if (strategy === "blurred-fill") {
+    const base = sharp(sourcePath).resize({
+      width: finalWidth,
+      height: finalHeight,
+      fit: "cover",
+      position: "attention",
+    });
+    const foreground = await sharp(sourcePath)
+      .resize({
+        width: Math.round(finalWidth * 0.92),
+        height: Math.round(finalHeight * 0.92),
+        fit: "contain",
+        background: { r: 0, g: 0, b: 0, alpha: 0 },
+      })
+      .png()
+      .toBuffer();
+    await base
+      .blur(28)
+      .composite([{ input: foreground, gravity: "center" }])
+      .png()
+      .toFile(outputPath);
+    return;
+  }
+  await sharp(sourcePath)
+    .resize({
+      width: finalWidth,
+      height: finalHeight,
+      fit: "cover",
+      position: "attention",
+    })
+    .png()
+    .toFile(outputPath);
+}
+
+async function createNativeVerticalImage(
+  generator: OpenAIImageGenerator,
+  scene: ScenePlan["scenes"][number],
+  previous: SceneVisualSpec | undefined,
+  registry: CharacterRegistry,
+  outputPath: string,
+  portraitWidth: number,
+  portraitHeight: number,
+  finalWidth: number,
+  finalHeight: number
+): Promise<{ outputSha256: string; promptHash: string }> {
+  const spec = buildSceneVisualSpec(scene, registry, previous);
+  const prompt = buildPromptFromSpec(spec, previous, registry, "9:16");
+  const tempPath = `${outputPath}.native.tmp.png`;
+  const result = await generator.generate({
+    scene: spec,
+    prompt,
+    referenceImages: await loadReferenceImages(registry, spec.characters),
+    outputPath: tempPath,
+  });
+  await normalizePortraitImage(tempPath, outputPath, portraitWidth, portraitHeight, "smart-crop");
+  if (finalWidth !== portraitWidth || finalHeight !== portraitHeight) {
+    await normalizePortraitImage(outputPath, outputPath, finalWidth, finalHeight, "smart-crop");
+  }
+  await fs.rm(tempPath, { force: true }).catch(() => undefined);
+  return {
+    outputSha256: await hashFile(outputPath),
+    promptHash: result.promptHash,
+  };
+}
+
+async function transformLandscapeImage(
+  sourcePath: string,
+  outputPath: string,
+  finalWidth: number,
+  finalHeight: number,
+  strategy: ShortsImageStrategy
+): Promise<void> {
+  await normalizePortraitImage(sourcePath, outputPath, finalWidth, finalHeight, strategy);
+}
+
+function loadExistingManifest(
+  manifestPath: string
+): Promise<ShortsSceneManifestEntry[] | null> {
+  return fs
+    .readFile(manifestPath, "utf8")
+    .then((raw) =>
+      z.array(manifestEntrySchema).parse(JSON.parse(raw) as unknown) as ShortsSceneManifestEntry[]
+    )
+    .catch(() => null);
+}
+
+function canReuseEntry(
+  existing: ShortsSceneManifestEntry | undefined,
+  currentSceneHash: string,
+  currentSourceSha?: string,
+  currentStrategy?: ShortsImageStrategy
+): boolean {
+  if (!existing || existing.status !== "success") {
+    return false;
+  }
+  if (existing.sceneHash && existing.sceneHash !== currentSceneHash) {
+    return false;
+  }
+  if (currentSourceSha && existing.sourceImageSha256 && existing.sourceImageSha256 !== currentSourceSha) {
+    return false;
+  }
+  if (currentStrategy && existing.strategy !== currentStrategy) {
+    return false;
+  }
+  return true;
+}
+
+export function buildShortsImageStrategyPlan(
+  scenePlan: ScenePlan,
+  config: ShortsImageConfig,
+  options?: {
+    readonly landscapeDir?: string;
+    readonly outputDir?: string;
+  }
+): ShortsScenePlan[] {
+  const keySceneIds = resolveKeySceneIds(scenePlan, config);
+  const outputDir = options?.outputDir ?? path.join(".", "images", "generated");
+  return scenePlan.scenes.map((scene, index) => {
+    const portraitPath = path.join(outputDir, portraitFilename(scene));
+    const sourceLandscapePath = options?.landscapeDir
+      ? path.join(options.landscapeDir, normalizeSceneIdPath(scene))
+      : undefined;
+    const regenerate =
+      config.forceRegenerateAll ||
+      keySceneIds.has(scene.id) ||
+      !config.reuseLandscapeImages;
+    const strategy: ShortsImageStrategy = regenerate
+      ? "regenerate"
+      : config.enablePanAndScan
+        ? "smart-crop"
+        : config.enableBlurredFallback
+          ? "blurred-fill"
+          : "smart-crop";
+    const plan: ShortsScenePlan = {
+      sceneId: scene.id,
+      sequenceNumber: scene.sequenceNumber,
+      strategy,
+      outputPortraitPath: portraitPath,
+      motion:
+        !regenerate && config.enablePanAndScan
+          ? buildMotionPlan(index, "pan-and-scan")
+          : { mode: "none" as const },
+    };
+    if (sourceLandscapePath) {
+      plan.sourceLandscapePath = sourceLandscapePath;
+    }
+    if (regenerate) {
+      plan.regenerateReason = config.forceRegenerateAll
+        ? "force_regenerate_all"
+        : `key_scene_${scene.sequenceNumber}`;
+    }
+    return plan;
+  });
+}
+
+export async function prepareShortsImageAssets(
+  episodeDir: string,
+  episodeId: string,
+  scenePlan: ScenePlan,
+  settings: EpisodeImagePipelineSettings,
+  config: ShortsImageConfig,
+  options?: {
+    readonly landscapeDir?: string;
+    readonly outputDir?: string;
+    readonly force?: boolean;
+    readonly client?: ConstructorParameters<typeof OpenAIImageGenerator>[1];
+    readonly generator?: ImageGenerator;
+  }
+): Promise<PreparedShortsImagesResult> {
+  if (!config.enabled) {
+    return {
+      outputDir: options?.outputDir ?? path.join(episodeDir, "images", "generated"),
+      manifestPath: path.join(
+        path.dirname(options?.outputDir ?? path.join(episodeDir, "images", "generated")),
+        "shorts-image-manifest.json"
+      ),
+      entries: [],
+    };
+  }
+  const outputDir = options?.outputDir ?? path.join(episodeDir, "images", "generated");
+  const manifestPath = path.join(path.dirname(outputDir), "shorts-image-manifest.json");
+  await ensureDir(outputDir);
+  await ensureDir(path.dirname(manifestPath));
+  const existingEntries = new Map(
+    (await loadExistingManifest(manifestPath) ?? []).map((entry) => [entry.sceneId, entry] as const)
+  );
+  const registry = await loadCharacterRegistry(episodeDir, episodeId);
+  const keySceneIds = resolveKeySceneIds(scenePlan, config);
+  const generator = options?.generator ?? new OpenAIImageGenerator(settings, options?.client);
+  const entries: ShortsSceneManifestEntry[] = [];
+  let previousSpec: SceneVisualSpec | undefined;
+  for (const [index, scene] of scenePlan.scenes.entries()) {
+    const currentSceneHash = sceneHash(scene);
+    const outputPortraitPath = path.join(outputDir, portraitFilename(scene));
+    const landscapePath = options?.landscapeDir
+      ? await resolveLandscapeImagePath(scene, options.landscapeDir)
+      : undefined;
+    const sourceLandscapeSha = landscapePath && (await fileExists(landscapePath))
+      ? await hashFile(landscapePath)
+      : undefined;
+    const shouldRegenerate =
+      config.forceRegenerateAll ||
+      keySceneIds.has(scene.id) ||
+      !config.reuseLandscapeImages;
+    const strategy: ShortsImageStrategy = shouldRegenerate
+      ? "regenerate"
+      : config.enablePanAndScan
+        ? "smart-crop"
+        : config.enableBlurredFallback
+          ? "blurred-fill"
+          : "smart-crop";
+    const cached = existingEntries.get(scene.id);
+    if (
+      !options?.force &&
+      canReuseEntry(cached, currentSceneHash, sourceLandscapeSha, strategy) &&
+      (await fileExists(outputPortraitPath))
+    ) {
+      const entry: ShortsSceneManifestEntry = {
+        sceneId: scene.id,
+        sequenceNumber: scene.sequenceNumber,
+        strategy,
+        outputImagePath: outputPortraitPath,
+        reusedExistingImage: cached?.reusedExistingImage ?? !shouldRegenerate,
+        regenerated: cached?.regenerated ?? shouldRegenerate,
+        attemptCount: cached?.attemptCount ?? 0,
+        status: "success",
+        error: null,
+        sceneHash: currentSceneHash,
+        outputImageSha256: await hashFile(outputPortraitPath),
+      };
+      const sourceImagePath = cached?.sourceImagePath ?? landscapePath;
+      if (sourceImagePath) {
+        entry.sourceImagePath = sourceImagePath;
+      }
+      if (sourceLandscapeSha) {
+        entry.sourceImageSha256 = sourceLandscapeSha;
+      }
+      if (cached?.promptHash) {
+        entry.promptHash = cached.promptHash;
+      }
+      if (cached?.generatedAt) {
+        entry.generatedAt = cached.generatedAt;
+      }
+      entries.push(entry);
+      if (shouldRegenerate) {
+        const spec = buildSceneVisualSpec(scene, registry, previousSpec);
+        previousSpec = spec;
+      }
+      continue;
+    }
+    const attemptCount = 1;
+    try {
+      if (shouldRegenerate) {
+        const spec = buildSceneVisualSpec(scene, registry, previousSpec);
+        const prompt = buildPromptFromSpec(spec, previousSpec, registry, "9:16");
+        const tempPath = `${outputPortraitPath}.native.tmp.png`;
+        const result = await generator.generate({
+          scene: spec,
+          prompt,
+          referenceImages: await loadReferenceImages(registry, spec.characters),
+          outputPath: tempPath,
+        });
+        await normalizePortraitImage(
+          tempPath,
+          outputPortraitPath,
+          config.portraitWidth,
+          config.portraitHeight,
+          "smart-crop"
+        );
+        if (
+          config.finalWidth !== config.portraitWidth ||
+          config.finalHeight !== config.portraitHeight
+        ) {
+          const resizedPath = `${outputPortraitPath}.final.tmp.png`;
+          await sharp(outputPortraitPath)
+            .resize({
+              width: config.finalWidth,
+              height: config.finalHeight,
+              fit: "cover",
+              position: "attention",
+            })
+            .png()
+            .toFile(resizedPath);
+          await fs.rename(resizedPath, outputPortraitPath);
+        }
+        await fs.rm(tempPath, { force: true }).catch(() => undefined);
+        const entry: ShortsSceneManifestEntry = {
+          sceneId: scene.id,
+          sequenceNumber: scene.sequenceNumber,
+          strategy: "regenerate",
+          outputImagePath: outputPortraitPath,
+          reusedExistingImage: false,
+          regenerated: true,
+          attemptCount: result.attempts,
+          status: "success",
+          error: null,
+          sceneHash: currentSceneHash,
+          outputImageSha256: await hashFile(outputPortraitPath),
+          promptHash: result.promptHash,
+          generatedAt: new Date().toISOString(),
+        };
+        entries.push(entry);
+        previousSpec = spec;
+        continue;
+      }
+      if (!landscapePath || !(await fileExists(landscapePath))) {
+        throw new Error(`Missing landscape image for ${scene.id}.`);
+      }
+      await transformLandscapeImage(
+        landscapePath,
+        outputPortraitPath,
+        config.finalWidth,
+        config.finalHeight,
+        strategy
+      );
+      const entry: ShortsSceneManifestEntry = {
+        sceneId: scene.id,
+        sequenceNumber: scene.sequenceNumber,
+        strategy,
+        outputImagePath: outputPortraitPath,
+        reusedExistingImage: true,
+        regenerated: false,
+        attemptCount,
+        status: "success",
+        error: null,
+        sceneHash: currentSceneHash,
+        outputImageSha256: await hashFile(outputPortraitPath),
+      };
+      if (landscapePath) {
+        entry.sourceImagePath = landscapePath;
+      }
+      if (sourceLandscapeSha) {
+        entry.sourceImageSha256 = sourceLandscapeSha;
+      }
+      entries.push(entry);
+    } catch (error) {
+      const entry: ShortsSceneManifestEntry = {
+        sceneId: scene.id,
+        sequenceNumber: scene.sequenceNumber,
+        strategy,
+        outputImagePath: outputPortraitPath,
+        reusedExistingImage: !shouldRegenerate,
+        regenerated: shouldRegenerate,
+        attemptCount,
+        status: "failed",
+        error: error instanceof Error ? error.message : String(error),
+        sceneHash: currentSceneHash,
+      };
+      if (landscapePath) {
+        entry.sourceImagePath = landscapePath;
+      }
+      if (sourceLandscapeSha) {
+        entry.sourceImageSha256 = sourceLandscapeSha;
+      }
+      entries.push(entry);
+      if (shouldRegenerate) {
+        previousSpec = buildSceneVisualSpec(scene, registry, previousSpec);
+      }
+    }
+  }
+  await writeJsonAtomic(manifestPath, entries);
+  return {
+    outputDir,
+    manifestPath,
+    entries,
+  };
+}

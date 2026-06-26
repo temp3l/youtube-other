@@ -1,4 +1,45 @@
+## pr
+
+- when 2 people are re-appearing multiple times in different scenes - they look completly different
+- thats why i extract character maps from the stories and generate reference images for each person
+- the reference images are attached to the image prompts when they reappear in a scene
+
+- there is a short silence after every clip in the concatted video. this silence was added programatically right?
+  can we safley remove it ?
+
+• The drift happens because the dark-truth pipeline is timing scenes from estimated word counts, not from the actual narration timeline. In packages/dark-truth/src/index.ts, scene duration is derived from
+words / 180 wpm, then accumulated across the episode. That compounds error, so the later scenes drift farther out of sync than the early ones.
+
+I fixed it by only regenerating the relevant assets:
+
+- Retimed the episode scene plan in episodes/002-even-killers-can-lick/shared/scenes.json and episodes/002-even-killers-can-lick/en/full/scenes.json
+- Re-sliced the scene audio segments
+- Re-rendered the affected scene clips
+- Rebuilt episodes/002-even-killers-can-lick/en/full/video/002-even-killers-can-lick-en-full-clean.mp4
+
+I did not regenerate images.
+
+Verification:
+
+- Narration duration: 256.300s
+- Final video duration: 256.589s
+
+So yes, the sync issue is fixed by retiming and re-rendering only the dependent audio/video assets. If you want, I can wire this same retiming behavior into both the full and short pipelines so it happens
+automatically instead of relying on estimated timings.
+
+---
+
+generate the youtube metadata and upload the video. then generate the german full and short and their relevant metadata and upload the videos.
+
+make sure the drift wont happen again in full or short videos
+
+make sure the shared images will always be built in the way you just solved it.
+
+is the darktruthepisode image generation using the reponses api or the correct image api endpoint?
+
 # prompts
+
+can you use episodes/002-even-killers-can-lick/shared/images/dog-under-bed.png for scene-005**000021-000031**16x9.png ? you might need to change the image size and aspect ratio. please replace scene-005**000021-000031**16x9.png
 
 - i want the character map and character reference images to be shared across all languages and full and short movies. is this already wired in ?
 

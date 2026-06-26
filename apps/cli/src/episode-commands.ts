@@ -23,6 +23,15 @@ import {
 } from "@mediaforge/dark-truth";
 import { scenePlanSchema } from "@mediaforge/domain";
 import {
+  approveEpisodeCharacter,
+  generateEpisodeImageReferences,
+  loadEpisodeImageGenerationSettings,
+} from "@mediaforge/image-generation";
+import {
+  prepareShortsImageAssets,
+  type ShortsImageConfig,
+} from "@mediaforge/image-generation/shorts-image-strategy.js";
+import {
   ensureDir,
   fileExists,
   hashFile,
@@ -45,6 +54,7 @@ export interface EpisodeCommandOptions {
   readonly resume?: boolean;
   readonly continueOnError?: boolean;
   readonly reuseImages?: boolean;
+  readonly approve?: boolean;
   readonly noQa?: boolean;
   readonly withTranscriptionQa?: boolean;
   readonly concurrency?: number;
@@ -106,6 +116,78 @@ function resolveEpisodeFilter(
   options: EpisodeCommandOptions
 ): string | undefined {
   return options.episode ? normalizeWhitespace(options.episode) : undefined;
+}
+
+async function resolveSelectedEpisode(
+  options: EpisodeCommandOptions
+): Promise<{
+  readonly sourceRoot: string;
+  readonly outputRoot: string;
+  readonly discovery: EpisodeSourceDiscovery;
+}> {
+  const sourceRoot = resolveSourceRoot(options);
+  const outputRoot = resolveOutputRoot(options);
+  const discoveries = filterDiscoveries(
+    await discoverEpisodeSources(sourceRoot),
+    resolveEpisodeFilter(options)
+  );
+  const discovery = discoveries[0];
+  if (!discovery) {
+    throw new Error(`No episode found under ${sourceRoot}.`);
+  }
+  return { sourceRoot, outputRoot, discovery };
+}
+
+async function resolvePresentSourceFile(
+  discovery: EpisodeSourceDiscovery
+): Promise<string> {
+  const sourceFile = discovery.candidates.find(
+    (candidate) => candidate.status === "present"
+  )?.filePath;
+  if (!sourceFile) {
+    throw new Error(`No source file found for ${discovery.slug}.`);
+  }
+  return sourceFile;
+}
+
+async function loadImageGenerationSettings(
+  force?: boolean
+): Promise<ReturnType<typeof loadEpisodeImageGenerationSettings>> {
+  return loadEpisodeImageGenerationSettings({
+    OPENAI_API_KEY: process.env["OPENAI_API_KEY"],
+    OPENAI_IMAGE_MODEL: process.env["OPENAI_IMAGE_MODEL"],
+    OPENAI_IMAGE_SIZE: process.env["OPENAI_IMAGE_SIZE"],
+    OPENAI_IMAGE_QUALITY: process.env["OPENAI_IMAGE_QUALITY"],
+    OPENAI_IMAGE_CONCURRENCY: process.env["OPENAI_IMAGE_CONCURRENCY"],
+    OPENAI_IMAGE_MAX_RETRIES: process.env["OPENAI_IMAGE_MAX_RETRIES"],
+    OPENAI_IMAGE_TIMEOUT_MS: process.env["OPENAI_IMAGE_TIMEOUT_MS"],
+    OPENAI_IMAGE_FORCE: force
+      ? "true"
+      : process.env["OPENAI_IMAGE_FORCE"],
+    OPENAI_BASE_URL: process.env["OPENAI_BASE_URL"],
+    OPENAI_ORGANIZATION: process.env["OPENAI_ORGANIZATION"],
+    OPENAI_PROJECT: process.env["OPENAI_PROJECT"],
+  });
+}
+
+async function syncSelectedEpisodeCharacters(
+  options: EpisodeCommandOptions
+): Promise<{
+  readonly sourceRoot: string;
+  readonly outputRoot: string;
+  readonly discovery: EpisodeSourceDiscovery;
+  readonly sourceFile: string;
+  readonly result: Awaited<ReturnType<typeof syncEpisodeCharacters>>;
+}> {
+  const { sourceRoot, outputRoot, discovery } = await resolveSelectedEpisode(
+    options
+  );
+  const sourceFile = await resolvePresentSourceFile(discovery);
+  const result = await syncEpisodeCharacters(sourceFile, outputRoot, {
+    ...(options.force !== undefined ? { overwrite: options.force } : {}),
+    required: true,
+  });
+  return { sourceRoot, outputRoot, discovery, sourceFile, result };
 }
 
 function filterDiscoveries(
@@ -325,11 +407,93 @@ async function prepareEpisodeLanguage(
     loadResult.source.sourceSha256
   );
   let reviewVideoPath = path.join(baseDir, "generation-manifest.json");
+  const sharedImageDir = path.join(
+    outputRoot,
+    discovery.slug,
+    "shared",
+    "images",
+    "generated"
+  );
+  const sharedShortImageDir = path.join(
+    outputRoot,
+    discovery.slug,
+    "shared",
+    "short",
+    "images",
+    "generated"
+  );
+  const shortsImageConfig: ShortsImageConfig = {
+    enabled: artifactType === "short",
+    keySceneCount: Number(process.env["SHORTS_KEY_SCENE_COUNT"] ?? 5),
+    portraitWidth: Number(process.env["SHORTS_PORTRAIT_WIDTH"] ?? 1088),
+    portraitHeight: Number(process.env["SHORTS_PORTRAIT_HEIGHT"] ?? 1920),
+    finalWidth: Number(process.env["SHORTS_FINAL_WIDTH"] ?? 1080),
+    finalHeight: Number(process.env["SHORTS_FINAL_HEIGHT"] ?? 1920),
+    reuseLandscapeImages: true,
+    enablePanAndScan: true,
+    enableBlurredFallback: true,
+    forceRegenerateAll:
+      (options.force ?? false) ||
+      (process.env["SHORTS_FORCE_REGENERATE_ALL"] ?? "").toLowerCase() ===
+        "true",
+    selectionMode:
+      (process.env["SHORTS_SELECTION_MODE"] as
+        | "first-n"
+        | "importance-based"
+        | undefined) ?? "first-n",
+  };
+  if (process.env["SHORTS_IMPORTANCE_SCENE_IDS"]) {
+    shortsImageConfig.importanceSceneIds = process.env[
+      "SHORTS_IMPORTANCE_SCENE_IDS"
+    ]
+      .split(",")
+      .map((value) => normalizeWhitespace(value))
+      .filter((value) => value.length > 0);
+  }
+  const shortsImageManifestPath = path.join(
+    outputRoot,
+    discovery.slug,
+    "shared",
+    "short",
+    "images",
+    "shorts-image-manifest.json"
+  );
   if (!options.dryRun) {
     if (language === "en" && artifactType === "full") {
       await generateCanonicalImages(
         path.join(outputRoot, discovery.slug, "shared"),
         scenePlan
+      );
+    }
+    if (artifactType === "short") {
+      await prepareShortsImageAssets(
+        path.join(outputRoot, discovery.slug),
+        discovery.slug,
+        scenePlan,
+        loadEpisodeImageGenerationSettings({
+          OPENAI_API_KEY: process.env["OPENAI_API_KEY"] ?? "dry-run",
+          OPENAI_IMAGE_MODEL: process.env["OPENAI_IMAGE_MODEL"],
+          OPENAI_IMAGE_SIZE:
+            process.env["SHORTS_OPENAI_IMAGE_SIZE"] ?? "1024x1536",
+          OPENAI_IMAGE_QUALITY: process.env["OPENAI_IMAGE_QUALITY"],
+          OPENAI_IMAGE_CONCURRENCY: process.env["OPENAI_IMAGE_CONCURRENCY"],
+          OPENAI_IMAGE_MAX_RETRIES: process.env["OPENAI_IMAGE_MAX_RETRIES"],
+          OPENAI_IMAGE_TIMEOUT_MS: process.env["OPENAI_IMAGE_TIMEOUT_MS"],
+          OPENAI_IMAGE_ALLOW_UNAPPROVED_CHARACTER_REFERENCES:
+            options.reuseImages === false
+              ? "false"
+              : process.env["OPENAI_IMAGE_ALLOW_UNAPPROVED_CHARACTER_REFERENCES"],
+          OPENAI_IMAGE_FORCE:
+            shortsImageConfig.forceRegenerateAll ? "true" : process.env["OPENAI_IMAGE_FORCE"],
+          OPENAI_BASE_URL: process.env["OPENAI_BASE_URL"],
+          OPENAI_ORGANIZATION: process.env["OPENAI_ORGANIZATION"],
+          OPENAI_PROJECT: process.env["OPENAI_PROJECT"],
+        }),
+        shortsImageConfig,
+        {
+          landscapeDir: sharedImageDir,
+          outputDir: sharedShortImageDir,
+        }
       );
     }
     const narrationPath = await generateNarrationAudio(
@@ -342,13 +506,7 @@ async function prepareEpisodeLanguage(
       scenePlan,
       artifactType,
       {
-        imageDir: path.join(
-          outputRoot,
-          discovery.slug,
-          "shared",
-          "images",
-          "generated"
-        ),
+        imageDir: artifactType === "short" ? sharedShortImageDir : sharedImageDir,
       }
     );
     reviewVideoPath = renderResult.cleanPath;
@@ -359,24 +517,11 @@ async function prepareEpisodeLanguage(
       sourceSha256: loadResult.source.sourceSha256,
       narrationSha256: hashText(loadResult.source.narration),
       scenePlanSha256: await hashFile(path.join(scenePlanDir, "scenes.json")),
-      imageManifestSha256:
-        language === "en" && artifactType === "full"
-          ? await hashFile(
-              path.join(
-                outputRoot,
-                discovery.slug,
-                "shared",
-                "image-manifest.json"
-              )
-            )
-          : await hashFile(
-              path.join(
-                outputRoot,
-                discovery.slug,
-                "shared",
-                "image-manifest.json"
-              )
-            ).catch(() => "missing"),
+      imageManifestSha256: await hashFile(
+        artifactType === "short"
+          ? shortsImageManifestPath
+          : path.join(outputRoot, discovery.slug, "shared", "image-manifest.json")
+      ).catch(() => "missing"),
       burnedInSubtitles: false,
       subtitleSidecars: loadResult.subtitleManifest.sidecarFiles,
       audioPath: narrationPath,
@@ -409,12 +554,10 @@ async function prepareEpisodeLanguage(
     narrationPath: loadResult.paths.narrationText,
     metadataPath: loadResult.paths.metadataJson,
     sceneListPath: path.join(scenePlanDir, "visual-plan.json"),
-    canonicalAssetReferencesPath: path.join(
-      outputRoot,
-      discovery.slug,
-      "shared",
-      "image-manifest.json"
-    ),
+    canonicalAssetReferencesPath:
+      artifactType === "short"
+        ? shortsImageManifestPath
+        : path.join(outputRoot, discovery.slug, "shared", "image-manifest.json"),
     checklistPath: path.join(reviewDir, "checklist.md"),
     approvalState: "awaiting-human-review",
     rejectionNotesPath: path.join(reviewDir, "rejection-notes.md"),
@@ -680,32 +823,62 @@ export async function commandEpisodeStatus(
 export async function commandEpisodeSyncCharacters(
   options: EpisodeCommandOptions
 ): Promise<void> {
-  const sourceRoot = resolveSourceRoot(options);
-  const outputRoot = resolveOutputRoot(options);
-  const discoveries = filterDiscoveries(
-    await discoverEpisodeSources(sourceRoot),
-    resolveEpisodeFilter(options)
-  );
-  const selected = discoveries[0];
-  if (!selected) {
-    throw new Error(`No episode found under ${sourceRoot}.`);
-  }
-  const sourceFile = selected.candidates.find(
-    (candidate) => candidate.status === "present"
-  )?.filePath;
-  if (!sourceFile) {
-    throw new Error(`No source file found for ${selected.slug}.`);
-  }
-  const result = await syncEpisodeCharacters(sourceFile, outputRoot, {
-    overwrite: options.force,
-    required: true,
-  });
+  const { result } = await syncSelectedEpisodeCharacters(options);
   if (options.json) {
     process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
     return;
   }
   process.stdout.write(
     `${result.copied ? "Copied" : "Kept"} ${result.outputCharactersPath}\n`
+  );
+}
+
+export async function commandEpisodeBootstrapCharacters(
+  options: EpisodeCommandOptions
+): Promise<void> {
+  const { outputRoot, discovery, sourceFile, result } =
+    await syncSelectedEpisodeCharacters(options);
+  const episodeDir = path.join(outputRoot, discovery.slug);
+  const settings = await loadImageGenerationSettings(options.force);
+  let registry = await generateEpisodeImageReferences(
+    episodeDir,
+    discovery.slug,
+    settings
+  );
+  let approvedCharacters = 0;
+  if (options.approve) {
+    for (const character of registry.characters) {
+      registry = await approveEpisodeCharacter(
+        episodeDir,
+        discovery.slug,
+        character.id
+      );
+      approvedCharacters += 1;
+    }
+  }
+  const payload = {
+    episode: discovery.episodeNumber,
+    episodeSlug: discovery.slug,
+    sourceFile,
+    outputRoot,
+    sync: result,
+    registry,
+    approvedCharacters,
+  };
+  if (options.json) {
+    process.stdout.write(`${JSON.stringify(payload, null, 2)}\n`);
+    return;
+  }
+  process.stdout.write(
+    [
+      `Synced ${result.outputCharactersPath}`,
+      `Generated ${registry.characters.length} character reference(s)`,
+      options.approve
+        ? `Approved ${approvedCharacters} character reference(s)`
+        : null,
+    ]
+      .filter((line): line is string => line !== null)
+      .join("\n") + "\n"
   );
 }
 
@@ -895,6 +1068,17 @@ export function registerEpisodeCommands(program: Command): void {
     .option("--json")
     .action(async (opts: EpisodeCommandOptions) =>
       commandEpisodeSyncCharacters(opts)
+    );
+  episode
+    .command("bootstrap-characters")
+    .option("--episode <number-or-slug>", "episode number or slug")
+    .option("--source <path>", "source root")
+    .option("--output-root <path>", "output root")
+    .option("--force")
+    .option("--approve", "approve generated references")
+    .option("--json")
+    .action(async (opts: EpisodeCommandOptions) =>
+      commandEpisodeBootstrapCharacters(opts)
     );
   episode
     .command("validate")

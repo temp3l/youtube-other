@@ -20,6 +20,7 @@ Key behavior:
 - generate reference-assisted images with `images.edit()` when a recurring character appears;
 - require approved character references unless `--allow-unapproved-character-references` is explicitly supplied;
 - sync a source-pack `characters.json` into the episode workspace with `episode sync-characters`;
+- bootstrap the shared episode character folder and reference images in one pass with `episode bootstrap-characters`;
 - store character state in `episodes/<episode-id>/characters.json`;
 - store scene manifests in `episodes/<episode-id>/generated-assets/image-manifests/`;
 - store prompts in `episodes/<episode-id>/generated-assets/prompts/`;
@@ -71,6 +72,12 @@ Sync the canonical source-pack character registry into the workspace:
 
 ```bash
 npm run mediaforge -- episode sync-characters --episode 002-even-killers-can-lick
+```
+
+Bootstrap the registry and all reference images for the episode:
+
+```bash
+npm run episode:bootstrap-characters -- --episode 002-even-killers-can-lick --approve
 ```
 
 Approve a character reference:

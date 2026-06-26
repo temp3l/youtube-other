@@ -785,6 +785,7 @@ export function buildSceneVisualSpec(
   registry: CharacterRegistry,
   previous?: SceneVisualSpec
 ): SceneVisualSpec {
+  const textRequirement = scene.textRequirement ?? { required: false };
   const characters = inferCharactersForScene(scene, registry);
   return {
     sceneId: scene.id,
@@ -801,7 +802,7 @@ export function buildSceneVisualSpec(
       ? { cameraMovementImpression: "subtle handheld documentary drift" }
       : {}),
     sourceNarration: scene.canonicalNarration,
-    textRequirement: scene.textRequirement,
+    textRequirement,
     composition: isGenericText(scene.composition)
       ? "strong cinematic composition with a clear visual hierarchy and negative space"
       : normalizeSentence(scene.composition),
@@ -959,7 +960,8 @@ function buildCharacterIdentitySection(
 export function buildPromptFromSpec(
   spec: SceneVisualSpec,
   previous?: SceneVisualSpec,
-  registry?: CharacterRegistry
+  registry?: CharacterRegistry,
+  aspectRatio: "16:9" | "9:16" = "16:9"
 ): string {
   const characterLookup = new Map(
     (registry?.characters ?? []).map(
@@ -983,7 +985,7 @@ export function buildPromptFromSpec(
   return [
     promptSection(
       "IMAGE TYPE AND STYLE",
-      "Photorealistic cinematic horror documentary still, grounded realism, believable human anatomy, 16:9, no illustration, no collage, no stylized cartoon look."
+      `Photorealistic cinematic horror documentary still, grounded realism, believable human anatomy, ${aspectRatio}, no illustration, no collage, no stylized cartoon look.`
     ),
     promptSection(
       "PRIMARY VISUAL EVENT",

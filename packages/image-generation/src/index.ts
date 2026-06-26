@@ -31,6 +31,7 @@ export {
   generateOpenAiSceneImages,
   loadOpenAiImageGenerationSettings,
 } from "./openai-image.js";
+export * from "./shorts-image-strategy.js";
 export * from "./episode-image-pipeline.js";
 
 export interface PromptTemplateContext {
