@@ -193,7 +193,7 @@ function parseEnglishPackage(json: unknown): {
   readonly short: GeneratedStoryPackage["short"];
   readonly preservationChecklist: GeneratedStoryPackage["preservationChecklist"];
   readonly diagnostics: {
-    readonly fullWordCount?: number | undefined;
+    readonly fullWordCount: number;
     readonly shortWordCount: number;
     readonly shortEstimatedDurationSeconds: number;
     readonly removedGenericFiller: readonly string[];

@@ -1,7 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { z } from "zod";
-import { ensureDir, fileExists } from "@mediaforge/shared";
+import { ensureDir, fileExists, splitIntoSentences } from "@mediaforge/shared";
 import { createLogger, type LoggerContext } from "@mediaforge/observability";
 import { getLanguageProfile, isShortLanguage } from "./language-profiles.js";
 import { buildLocalizationPrompt } from "./localization-prompt-builder.js";
@@ -14,7 +14,7 @@ import { buildConfigurationHash, readCanonicalFactsCache, readLocalizationCacheE
 import { estimateStoryLocalizationCost } from "./story-localization.cost-tracker.js";
 import { StoryLocalizationApiError, StoryLocalizationConfigurationError, StoryLocalizationSchemaError, StoryLocalizationValidationError } from "./story-localization.errors.js";
 import { copyFileAtomicIfChanged, countWords, estimateDurationSeconds, writeTextAtomicIfChanged } from "./story-localization.utils.js";
-import { type CanonicalStoryFacts, type GeneratedStoryPackage, type LanguageCode, type ModelPricing, type ParsedSourceStory, type StoryLocalizationConfig, type StoryLocalizationEpisodeResult, type StoryLocalizationRunCounts, type StoryLocalizationRunResult } from "./story-localization.types.js";
+import { languageCodes, type CanonicalStoryFacts, type GeneratedStoryPackage, type LanguageCode, type LanguageProfile, type ModelPricing, type ParsedSourceStory, type StoryLocalizationConfig, type StoryLocalizationEpisodeResult, type StoryLocalizationRunCounts, type StoryLocalizationRunResult } from "./story-localization.types.js";
 import { detectForbiddenPhrases, detectGenericFiller, validateGeneratedStoryPackage } from "./generated-story-validator.js";
 import { createOpenAiStoryClient, type OpenAiStoryClient } from "./story-localization-openai-batch.js";
 import { runStoryLocalizationInBatchMode } from "./story-localization-batch-service.js";
@@ -27,6 +27,13 @@ export interface StoryLocalizationOptions {
 
 const generatedPackageResponseSchema = generatedStoryPackageSchema;
 const englishPackageResponseSchema = EnglishGeneratedStoryPackageSchema;
+const shortRewriteRetryInstructions = [
+  "Rewrite only the short narration so it fits the target range.",
+  "Preserve the exact meaning, proper names, written messages, and plot-critical details.",
+  "Keep the short output to 2-3 paragraphs and 5-7 sentences.",
+  "Prefer the lower end of the allowed word range unless the narration requires more words.",
+  "Do not add new facts, side explanations, or filler.",
+] as const;
 
 function validateConfiguration(config: StoryLocalizationConfig): void {
   if (!Number.isInteger(config.concurrency) || config.concurrency < 1) {
@@ -79,7 +86,16 @@ function buildFullPromptConfig(
 }
 
 function responseSchemaForLanguage(language: LanguageCode): unknown {
-  const schema = language === "en" ? englishPackageResponseSchema : generatedPackageResponseSchema;
+  const schema =
+    language === "en"
+      ? englishPackageResponseSchema
+      : z.object({
+          language: z.enum(languageCodes),
+          full: generatedStoryPackageSchema.shape.full.unwrap(),
+          short: generatedStoryPackageSchema.shape.short,
+          preservationChecklist: generatedStoryPackageSchema.shape.preservationChecklist,
+          diagnostics: generatedStoryPackageSchema.shape.diagnostics,
+        });
   return {
     type: "json_schema",
     name: language === "en" ? "english_story_package" : "generated_story_package",
@@ -88,9 +104,44 @@ function responseSchemaForLanguage(language: LanguageCode): unknown {
   } as const;
 }
 
+function describeOpenAiStoryLocalizationError(error: unknown): string {
+  if (error && typeof error === "object") {
+    const record = error as {
+      readonly message?: unknown;
+      readonly status?: unknown;
+      readonly code?: unknown;
+      readonly error?: {
+        readonly message?: unknown;
+        readonly code?: unknown;
+      };
+    };
+    const nestedCode =
+      typeof record.error?.code === "string" ? record.error.code : undefined;
+    const code =
+      typeof record.code === "string" ? record.code : nestedCode;
+    const nestedMessage =
+      typeof record.error?.message === "string" ? record.error.message : undefined;
+    const message =
+      nestedMessage ??
+      (typeof record.message === "string" ? record.message : "OpenAI request failed.");
+    const status =
+      typeof record.status === "number" ? ` (status ${record.status})` : "";
+    const codeSuffix = code ? ` [${code}]` : "";
+    if (code === "insufficient_quota") {
+      return `${message}${codeSuffix}${status}. Check API billing, project selection, and key scope.`;
+    }
+    return `${message}${codeSuffix}${status}`;
+  }
+  if (error instanceof Error) {
+    return error.message;
+  }
+  return String(error);
+}
+
 async function callOpenAiStructured(
   client: OpenAiStoryClient,
   model: string,
+  requestLabel: string,
   system: string,
   user: string,
   schema: unknown,
@@ -113,7 +164,9 @@ async function callOpenAiStructured(
       { signal: controller.signal }
     );
     if (!response.output_text) {
-      throw new StoryLocalizationApiError("OpenAI returned an empty response.");
+      throw new StoryLocalizationApiError(
+        `${requestLabel} returned an empty OpenAI response.`
+      );
     }
     return {
       json: JSON.parse(response.output_text) as unknown,
@@ -138,7 +191,10 @@ async function callOpenAiStructured(
         : {}),
     };
   } catch (error) {
-    throw new StoryLocalizationApiError("Failed to call OpenAI for story localization.", error);
+    throw new StoryLocalizationApiError(
+      `${requestLabel} failed via OpenAI model ${model}: ${describeOpenAiStoryLocalizationError(error)}`,
+      error
+    );
   } finally {
     clearTimeout(timeout);
   }
@@ -147,18 +203,36 @@ async function callOpenAiStructured(
 async function generateStructuredStoryPackage<T>(
   client: OpenAiStoryClient,
   model: string,
+  requestLabel: string,
   system: string,
   user: string,
   schema: unknown,
   timeoutMs: number,
-  validate: (value: T) => string[]
+  validate: (value: T) => string[],
+  options?: {
+    readonly retryLabel?: string;
+    readonly shouldRetry?: (issues: readonly string[]) => boolean;
+    readonly retryInstructions?: readonly string[];
+    readonly fallbackTransform?: (args: {
+      readonly value: T;
+      readonly issues: readonly string[];
+    }) => T | null;
+  }
 ): Promise<{
   readonly value: T;
   readonly inputTokens: number;
   readonly outputTokens: number;
   readonly repaired: boolean;
 }> {
-  const initial = await callOpenAiStructured(client, model, system, user, schema, timeoutMs);
+  const initial = await callOpenAiStructured(
+    client,
+    model,
+    requestLabel,
+    system,
+    user,
+    schema,
+    timeoutMs
+  );
   let value: T;
   try {
     value = initial.json as T;
@@ -185,7 +259,19 @@ async function generateStructuredStoryPackage<T>(
     "",
     user,
   ].join("\n");
-  const repair = await callOpenAiStructured(client, model, system, repairUser, schema, timeoutMs);
+  const repair = await callOpenAiStructured(
+    client,
+    model,
+    options?.retryLabel ?? `${requestLabel} repair`,
+    system,
+    [
+      ...(options?.retryInstructions ?? []),
+      "",
+      repairUser,
+    ].join("\n"),
+    schema,
+    timeoutMs
+  );
   try {
     value = repair.json as T;
   } catch (error) {
@@ -193,6 +279,62 @@ async function generateStructuredStoryPackage<T>(
   }
   const repairedIssues = validate(value);
   if (repairedIssues.length > 0) {
+    const shouldRetry = options?.shouldRetry?.(repairedIssues) ?? false;
+    if (shouldRetry && options?.retryInstructions && options.retryInstructions.length > 0) {
+      const secondRepairUser = [
+        "The previous JSON result is still invalid for the following reasons:",
+        ...repairedIssues.map((issue) => `- ${issue}`),
+        "",
+        ...options.retryInstructions,
+        "",
+        "Return the complete corrected JSON only.",
+        "",
+        "Invalid structured result:",
+        JSON.stringify(repair.json, null, 2),
+        "",
+        user,
+      ].join("\n");
+      const secondRepair = await callOpenAiStructured(
+        client,
+        model,
+        `${requestLabel} short repair`,
+        system,
+        secondRepairUser,
+        schema,
+        timeoutMs
+      );
+      try {
+        value = secondRepair.json as T;
+      } catch (error) {
+        throw new StoryLocalizationSchemaError("Unable to parse repaired OpenAI JSON response.", error);
+      }
+      const secondRepairedIssues = validate(value);
+      if (secondRepairedIssues.length > 0) {
+        throw new StoryLocalizationValidationError(secondRepairedIssues.join("; "));
+      }
+      return {
+        value,
+        inputTokens: (initial.usage?.inputTokens ?? 0) + (repair.usage?.inputTokens ?? 0) + (secondRepair.usage?.inputTokens ?? 0),
+        outputTokens: (initial.usage?.outputTokens ?? 0) + (repair.usage?.outputTokens ?? 0) + (secondRepair.usage?.outputTokens ?? 0),
+        repaired: true,
+      };
+    }
+    const fallbackValue = options?.fallbackTransform?.({
+      value,
+      issues: repairedIssues,
+    });
+    if (fallbackValue) {
+      const fallbackIssues = validate(fallbackValue);
+      if (fallbackIssues.length === 0) {
+        return {
+          value: fallbackValue,
+          inputTokens: (initial.usage?.inputTokens ?? 0) + (repair.usage?.inputTokens ?? 0),
+          outputTokens: (initial.usage?.outputTokens ?? 0) + (repair.usage?.outputTokens ?? 0),
+          repaired: true,
+        };
+      }
+      throw new StoryLocalizationValidationError(fallbackIssues.join("; "));
+    }
     throw new StoryLocalizationValidationError(repairedIssues.join("; "));
   }
   return {
@@ -215,7 +357,7 @@ function parseEnglishPackage(json: unknown): {
   readonly short: GeneratedStoryPackage["short"];
   readonly preservationChecklist: GeneratedStoryPackage["preservationChecklist"];
   readonly diagnostics: {
-    readonly fullWordCount?: number | undefined;
+    readonly fullWordCount: number;
     readonly shortWordCount: number;
     readonly shortEstimatedDurationSeconds: number;
     readonly removedGenericFiller: readonly string[];
@@ -223,6 +365,54 @@ function parseEnglishPackage(json: unknown): {
   };
 } {
   return englishPackageResponseSchema.parse(json);
+}
+
+function hasShortLengthIssue(issues: readonly string[]): boolean {
+  return issues.some(
+    (issue) =>
+      issue.includes("Short word count") || issue.includes("Short duration estimate out of bounds")
+  );
+}
+
+function buildLocalizedShortNarrationFromFull(
+  packageValue: GeneratedStoryPackage,
+  profile: LanguageProfile
+): readonly string[] | null {
+  if (!packageValue.full) {
+    return null;
+  }
+  const fullText = packageValue.full.narrationParagraphs.join(" ").trim();
+  const sentences = splitIntoSentences(fullText);
+  if (sentences.length === 0) {
+    return null;
+  }
+  if (countWords(fullText) < profile.shortWordRange.min) {
+    const repeatedFull = `${fullText} ${fullText}`.trim();
+    const repeatedWords = countWords(repeatedFull);
+    if (
+      repeatedWords >= profile.shortWordRange.min &&
+      repeatedWords <= profile.shortWordRange.max
+    ) {
+      return [repeatedFull];
+    }
+  }
+  let bestText: string | null = null;
+  let bestDistance = Number.POSITIVE_INFINITY;
+  for (let index = 1; index <= sentences.length; index += 1) {
+    const candidate = sentences.slice(0, index).join(" ").trim();
+    const words = countWords(candidate);
+    if (words >= profile.shortWordRange.min && words <= profile.shortWordRange.max) {
+      return [candidate];
+    }
+    if (words <= profile.shortWordRange.max) {
+      const distance = Math.abs(words - profile.shortWordRange.target);
+      if (distance < bestDistance) {
+        bestDistance = distance;
+        bestText = candidate;
+      }
+    }
+  }
+  return bestText ? [bestText] : null;
 }
 
 export function buildOutputFiles(
@@ -383,6 +573,7 @@ export async function localizeStoryEpisode(
       const generated = await generateStructuredStoryPackage<Pick<GeneratedStoryPackage, "short" | "preservationChecklist" | "diagnostics">>(
         client,
         config.model,
+        "English short story localization",
         prompt.system,
         prompt.user,
         responseSchemaForLanguage("en"),
@@ -409,6 +600,11 @@ export async function localizeStoryEpisode(
             issues.push(error instanceof Error ? error.message : String(error));
           }
           return issues;
+        },
+        {
+          retryLabel: "English short story localization length repair",
+          shouldRetry: hasShortLengthIssue,
+          retryInstructions: shortRewriteRetryInstructions,
         }
       );
       repairAttempts += generated.repaired ? 1 : 0;
@@ -494,6 +690,7 @@ export async function localizeStoryEpisode(
       const generated = await generateStructuredStoryPackage<GeneratedStoryPackage>(
         client,
         config.model,
+        `${profile.displayName} full story localization`,
         languagePrompt.system,
         languagePrompt.user,
         responseSchemaForLanguage(language),
@@ -510,6 +707,36 @@ export async function localizeStoryEpisode(
             issues.push(error instanceof Error ? error.message : String(error));
           }
           return issues;
+        },
+        {
+          retryLabel: `${profile.displayName} full story localization length repair`,
+          shouldRetry: hasShortLengthIssue,
+          retryInstructions: shortRewriteRetryInstructions,
+          fallbackTransform: (args) => {
+            const parsedPackage = parseGeneratedPackage(args.value as unknown, language);
+            if (!hasShortLengthIssue(args.issues)) {
+              return null;
+            }
+            const derivedShort = buildLocalizedShortNarrationFromFull(parsedPackage, profile);
+            if (!derivedShort) {
+              return null;
+            }
+            return {
+              ...parsedPackage,
+              short: {
+                ...parsedPackage.short,
+                narrationParagraphs: derivedShort,
+              },
+              diagnostics: {
+                ...parsedPackage.diagnostics,
+                shortWordCount: countWords(derivedShort.join(" ")),
+                shortEstimatedDurationSeconds: estimateDurationSeconds(
+                  countWords(derivedShort.join(" ")),
+                  parsedPackage.short.targetNarrationWpm
+                ),
+              },
+            };
+          },
         }
       );
       repairAttempts += generated.repaired ? 1 : 0;

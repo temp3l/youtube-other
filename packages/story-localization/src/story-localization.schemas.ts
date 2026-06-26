@@ -8,6 +8,21 @@ const batchOperationSchema = z.enum([
   "character-analysis",
   "visual-analysis",
   "repair",
+  "image-generation",
+  "image-edit",
+]);
+
+const batchCategorySchema = z.enum([
+  "text-localization",
+  "image-generation",
+  "image-edit",
+  "video-generation",
+]);
+
+const batchEndpointSchema = z.enum([
+  "/v1/responses",
+  "/v1/images/generations",
+  "/v1/images/edits",
 ]);
 
 const batchIndexStatusSchema = z.enum([
@@ -53,6 +68,21 @@ const localBatchManifestItemStatusSchema = z.enum([
   "repair-required",
   "persisted",
   "skipped-cached",
+]);
+
+const imageBatchStatusSchema = localBatchManifestStatusSchema;
+const imageBatchItemStatusSchema = z.enum([
+  "planned",
+  "submitted",
+  "api-succeeded",
+  "api-failed",
+  "expired",
+  "policy-rejected",
+  "decode-failed",
+  "validation-failed",
+  "persisted",
+  "skipped-cached",
+  "retry-required",
 ]);
 
 export const sourceMetadataBlockSchema = z.object({
@@ -108,6 +138,29 @@ export const compactStorySourceSchema = z.object({
   canonicalFacts: compactCanonicalStoryFactsSchema,
 });
 
+export const sceneImageJobSchema = z.object({
+  episodeNumber: z.string().min(1),
+  episodeSlug: z.string().min(1),
+  language: z.literal("en"),
+  format: z.literal("full"),
+  sceneId: z.string().min(1),
+  sceneIndex: z.number().int().nonnegative(),
+  startTimeSeconds: z.number().nonnegative().optional(),
+  endTimeSeconds: z.number().nonnegative().optional(),
+  promptPath: z.string().min(1).optional(),
+  positivePrompt: z.string().min(1),
+  negativePrompt: z.string().min(1).optional(),
+  characterIds: z.array(z.string().min(1)),
+  characterReferencePaths: z.array(z.string().min(1)),
+  model: z.string().min(1),
+  quality: z.string().min(1),
+  requestedSize: z.string().min(1),
+  outputFormat: z.enum(["png", "jpeg", "webp"]),
+  expectedOutputPath: z.string().min(1),
+  promptHash: z.string().min(1),
+  generationConfigurationHash: z.string().min(1),
+});
+
 export const preservationChecklistSchema = z.object({
   charactersPreserved: z.boolean(),
   relationshipsPreserved: z.boolean(),
@@ -121,7 +174,7 @@ export const preservationChecklistSchema = z.object({
 });
 
 export const diagnosticsSchema = z.object({
-  fullWordCount: z.number().int().nonnegative().optional(),
+  fullWordCount: z.number().int().nonnegative(),
   shortWordCount: z.number().int().nonnegative(),
   shortEstimatedDurationSeconds: z.number().nonnegative(),
   removedGenericFiller: z.array(z.string()),
@@ -133,9 +186,7 @@ export const generatedStoryPackageSchema = z.object({
   full: z
     .object({
       title: z.string().min(1),
-      sourceTitle: z.string().min(1).optional(),
       audioInstructions: z.array(z.string().min(1)).min(1),
-      soundMotif: z.string().min(1).optional(),
       narrationParagraphs: z.array(z.string().min(1)).min(3),
       thumbnailText: z.string().min(1).max(50),
       contentDisclosure: z.string().min(1),
@@ -164,6 +215,73 @@ export const generatedStoryPackageSchema = z.object({
   diagnostics: diagnosticsSchema,
 });
 
+export const imageBatchManifestItemSchema = z.object({
+  customId: z.string().min(1),
+  episodeNumber: z.string().min(1),
+  episodeSlug: z.string().min(1),
+  language: z.literal("en"),
+  format: z.literal("full"),
+  sceneId: z.string().min(1),
+  sceneIndex: z.number().int().nonnegative(),
+  promptHash: z.string().min(1),
+  generationConfigurationHash: z.string().min(1),
+  expectedOutputPath: z.string().min(1),
+  characterIds: z.array(z.string().min(1)),
+  characterReferenceHashes: z.array(z.string().min(1)),
+  requestedSize: z.string().min(1),
+  quality: z.string().min(1).optional(),
+  outputFormat: z.enum(["png", "jpeg", "webp"]),
+  status: imageBatchItemStatusSchema,
+  imageHash: z.string().min(1).optional(),
+  actualWidth: z.number().int().positive().optional(),
+  actualHeight: z.number().int().positive().optional(),
+  actualMimeType: z.string().min(1).optional(),
+  actualByteSize: z.number().int().nonnegative().optional(),
+  usage: z
+    .object({
+      inputTokens: z.number().int().nonnegative(),
+      cachedInputTokens: z.number().int().nonnegative().optional(),
+      outputTokens: z.number().int().nonnegative(),
+    })
+    .optional(),
+  estimatedCostUsd: z.number().nonnegative().optional(),
+  error: z
+    .object({
+      category: z.string().min(1),
+      code: z.string().min(1).optional(),
+      message: z.string().min(1),
+    })
+    .optional(),
+});
+
+export const imageBatchManifestSchema = z.object({
+  schemaVersion: z.string().min(1),
+  category: z.literal("image-generation"),
+  localBatchId: z.string().min(1),
+  rootLocalBatchId: z.string().min(1),
+  parentLocalBatchId: z.string().min(1).optional(),
+  retryNumber: z.number().int().nonnegative(),
+  createdAt: z.string().min(1),
+  updatedAt: z.string().min(1),
+  endpoint: z.enum(["/v1/images/generations", "/v1/images/edits"]),
+  model: z.string().min(1),
+  completionWindow: z.literal("24h"),
+  inputFilePath: z.string().min(1),
+  inputFileHash: z.string().min(1),
+  openAIInputFileId: z.string().min(1).optional(),
+  openAIBatchId: z.string().min(1).optional(),
+  outputFileId: z.string().min(1).optional(),
+  errorFileId: z.string().min(1).optional(),
+  status: imageBatchStatusSchema,
+  items: z.array(imageBatchManifestItemSchema),
+  resultFilePath: z.string().min(1).optional(),
+  errorFilePath: z.string().min(1).optional(),
+  reportFilePath: z.string().min(1).optional(),
+  submittedAt: z.string().min(1).optional(),
+  completedAt: z.string().min(1).optional(),
+  importedAt: z.string().min(1).optional(),
+});
+
 export type GeneratedStoryPackageShape = z.infer<typeof generatedStoryPackageSchema>;
 
 export const EnglishGeneratedStoryPackageSchema = z.object({
@@ -177,7 +295,7 @@ export type EnglishGeneratedStoryPackageShape = z.infer<typeof EnglishGeneratedS
 export const openAIBatchRequestLineSchema = z.object({
   custom_id: z.string().min(1),
   method: z.literal("POST"),
-  url: z.literal("/v1/responses"),
+  url: batchEndpointSchema,
   body: z.record(z.string(), z.unknown()),
 });
 
@@ -212,6 +330,7 @@ export const localBatchManifestItemSchema = z.object({
 
 export const localBatchManifestSchema = z.object({
   schemaVersion: z.string().min(1),
+  category: batchCategorySchema.default("text-localization"),
   localBatchId: z.string().min(1),
   rootLocalBatchId: z.string().min(1),
   parentLocalBatchId: z.string().min(1).optional(),
@@ -219,7 +338,7 @@ export const localBatchManifestSchema = z.object({
   createdAt: z.string().min(1),
   updatedAt: z.string().min(1),
   mode: z.literal("batch"),
-  endpoint: z.literal("/v1/responses"),
+  endpoint: batchEndpointSchema,
   model: z.string().min(1),
   completionWindow: z.literal("24h"),
   inputFilePath: z.string().min(1),
@@ -248,6 +367,7 @@ export const localBatchManifestSchema = z.object({
 export const batchIndexEntrySchema = z.object({
   localBatchId: z.string().min(1),
   openAIBatchId: z.string().min(1).optional(),
+  category: batchCategorySchema.default("text-localization"),
   rootLocalBatchId: z.string().min(1),
   parentLocalBatchId: z.string().min(1).optional(),
   retryNumber: z.number().int().nonnegative(),
@@ -258,7 +378,7 @@ export const batchIndexEntrySchema = z.object({
   completedAt: z.string().min(1).optional(),
   importedAt: z.string().min(1).optional(),
   model: z.string().min(1),
-  endpoint: z.literal("/v1/responses"),
+  endpoint: batchEndpointSchema,
   completionWindow: z.literal("24h"),
   operations: z.array(batchOperationSchema),
   episodeNumbers: z.array(z.string().min(1)),
@@ -288,6 +408,21 @@ export const batchIndexEntrySchema = z.object({
       code: z.string().min(1).optional(),
       message: z.string().min(1),
       occurredAt: z.string().min(1),
+    })
+    .optional(),
+  imageDetails: z
+    .object({
+      category: z.literal("image-generation"),
+      episodeNumbers: z.array(z.string().min(1)),
+      sceneCount: z.number().int().nonnegative(),
+      imageModel: z.string().min(1),
+      imageQuality: z.string().min(1).optional(),
+      outputFormat: z.string().min(1),
+      generatedImageCount: z.number().int().nonnegative(),
+      invalidImageCount: z.number().int().nonnegative(),
+      failedImageCount: z.number().int().nonnegative(),
+      missingImageCount: z.number().int().nonnegative(),
+      requiresImport: z.boolean(),
     })
     .optional(),
 });

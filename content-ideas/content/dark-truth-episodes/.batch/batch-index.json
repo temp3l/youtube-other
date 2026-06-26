@@ -1,127 +1,17 @@
 {
-  "schemaVersion": "story-localization-batch-index-v1",
+  "schemaVersion": "story-localization-batch-index-v2",
   "createdAt": "2026-06-26T12:12:45.409Z",
-  "updatedAt": "2026-06-26T12:31:45.962Z",
+  "updatedAt": "2026-06-26T14:15:13.287Z",
   "entries": [
-    {
-      "localBatchId": "slb-20260626121245364-001",
-      "rootLocalBatchId": "slb-20260626121245364-001",
-      "retryNumber": 0,
-      "status": "prepared",
-      "createdAt": "2026-06-26T12:12:45.407Z",
-      "updatedAt": "2026-06-26T12:12:45.407Z",
-      "model": "gpt-4o-mini",
-      "endpoint": "/v1/responses",
-      "completionWindow": "24h",
-      "operations": [
-        "english-short",
-        "localization"
-      ],
-      "episodeNumbers": [
-        "003"
-      ],
-      "languages": [
-        "de",
-        "en",
-        "es",
-        "fr",
-        "pt"
-      ],
-      "itemCount": 5,
-      "completedItemCount": 0,
-      "failedItemCount": 0,
-      "persistedItemCount": 0,
-      "inputFilePath": "content-ideas/content/dark-truth-episodes/.batch/inputs/batch-slb-20260626121245364-001.jsonl",
-      "manifestPath": "/home/box/workspace/fehmarn-seo/youtube/other/content-ideas/content/dark-truth-episodes/.batch/manifests/batch-slb-20260626121245364-001.manifest.json",
-      "sourceHashPrefixes": [
-        "0154c5a4"
-      ],
-      "imported": false,
-      "requiresImport": false,
-      "hasRetryableFailures": false
-    },
-    {
-      "localBatchId": "slb-20260626122129575-001",
-      "rootLocalBatchId": "slb-20260626122129575-001",
-      "retryNumber": 0,
-      "status": "prepared",
-      "createdAt": "2026-06-26T12:21:29.624Z",
-      "updatedAt": "2026-06-26T12:21:29.624Z",
-      "model": "gpt-4o-mini",
-      "endpoint": "/v1/responses",
-      "completionWindow": "24h",
-      "operations": [
-        "english-short",
-        "localization"
-      ],
-      "episodeNumbers": [
-        "003"
-      ],
-      "languages": [
-        "de",
-        "en",
-        "es",
-        "fr",
-        "pt"
-      ],
-      "itemCount": 5,
-      "completedItemCount": 0,
-      "failedItemCount": 0,
-      "persistedItemCount": 0,
-      "inputFilePath": "content-ideas/content/dark-truth-episodes/.batch/inputs/batch-slb-20260626122129575-001.jsonl",
-      "manifestPath": "/home/box/workspace/fehmarn-seo/youtube/other/content-ideas/content/dark-truth-episodes/.batch/manifests/batch-slb-20260626122129575-001.manifest.json",
-      "sourceHashPrefixes": [
-        "0154c5a4"
-      ],
-      "imported": false,
-      "requiresImport": false,
-      "hasRetryableFailures": false
-    },
-    {
-      "localBatchId": "slb-20260626123023528-001",
-      "rootLocalBatchId": "slb-20260626123023528-001",
-      "retryNumber": 0,
-      "status": "prepared",
-      "createdAt": "2026-06-26T12:30:23.634Z",
-      "updatedAt": "2026-06-26T12:30:23.634Z",
-      "model": "gpt-4o-mini",
-      "endpoint": "/v1/responses",
-      "completionWindow": "24h",
-      "operations": [
-        "english-short",
-        "localization"
-      ],
-      "episodeNumbers": [
-        "003"
-      ],
-      "languages": [
-        "de",
-        "en",
-        "es",
-        "fr",
-        "pt"
-      ],
-      "itemCount": 5,
-      "completedItemCount": 0,
-      "failedItemCount": 0,
-      "persistedItemCount": 0,
-      "inputFilePath": "content-ideas/content/dark-truth-episodes/.batch/inputs/batch-slb-20260626123023528-001.jsonl",
-      "manifestPath": "/home/box/workspace/fehmarn-seo/youtube/other/content-ideas/content/dark-truth-episodes/.batch/manifests/batch-slb-20260626123023528-001.manifest.json",
-      "sourceHashPrefixes": [
-        "0154c5a4"
-      ],
-      "imported": false,
-      "requiresImport": false,
-      "hasRetryableFailures": false
-    },
     {
       "localBatchId": "slb-20260626123145911-001",
       "openAIBatchId": "batch_6a3e724373288190b91dd0b39dc85eaa",
+      "category": "text-localization",
       "rootLocalBatchId": "slb-20260626123145911-001",
       "retryNumber": 0,
-      "status": "submitted",
+      "status": "cancelling",
       "createdAt": "2026-06-26T12:31:45.950Z",
-      "updatedAt": "2026-06-26T12:33:32.000Z",
+      "updatedAt": "2026-06-26T14:11:37.356Z",
       "submittedAt": "2026-06-26T12:36:18.000Z",
       "model": "gpt-4o-mini",
       "endpoint": "/v1/responses",
@@ -146,8 +36,50 @@
       "persistedItemCount": 0,
       "inputFilePath": "content-ideas/content/dark-truth-episodes/.batch/inputs/batch-slb-20260626123145911-001.jsonl",
       "manifestPath": "/home/box/workspace/fehmarn-seo/youtube/other/content-ideas/content/dark-truth-episodes/.batch/manifests/batch-slb-20260626123145911-001.manifest.json",
+      "openAIInputFileId": "file-NjCvGZexjw8YHC9sLdXGij",
       "sourceHashPrefixes": [
         "0154c5a4"
+      ],
+      "imported": false,
+      "requiresImport": false,
+      "hasRetryableFailures": false
+    },
+    {
+      "localBatchId": "slb-20260626125836867-001",
+      "openAIBatchId": "batch_6a3e777ef5388190beef7693b1cacb10",
+      "category": "text-localization",
+      "rootLocalBatchId": "slb-20260626125836867-001",
+      "retryNumber": 0,
+      "status": "cancelling",
+      "createdAt": "2026-06-26T12:58:36.899Z",
+      "updatedAt": "2026-06-26T14:11:39.599Z",
+      "submittedAt": "2026-06-26T12:58:39.738Z",
+      "model": "gpt-4o-mini",
+      "endpoint": "/v1/responses",
+      "completionWindow": "24h",
+      "operations": [
+        "english-short",
+        "localization"
+      ],
+      "episodeNumbers": [
+        "004"
+      ],
+      "languages": [
+        "de",
+        "en",
+        "es",
+        "fr",
+        "pt"
+      ],
+      "itemCount": 5,
+      "completedItemCount": 0,
+      "failedItemCount": 0,
+      "persistedItemCount": 0,
+      "inputFilePath": "content-ideas/content/dark-truth-episodes/.batch/inputs/batch-slb-20260626125836867-001.jsonl",
+      "manifestPath": "/home/box/workspace/fehmarn-seo/youtube/other/content-ideas/content/dark-truth-episodes/.batch/manifests/batch-slb-20260626125836867-001.manifest.json",
+      "openAIInputFileId": "file-6PQC3fR21j7KBUYCDWX5zk",
+      "sourceHashPrefixes": [
+        "7e9692b1"
       ],
       "imported": false,
       "requiresImport": false,

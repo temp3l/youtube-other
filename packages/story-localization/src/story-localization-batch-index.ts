@@ -17,7 +17,7 @@ import {
   withFileLock,
 } from "./story-localization-batch-storage.js";
 
-const INDEX_SCHEMA_VERSION = "story-localization-batch-index-v1";
+const INDEX_SCHEMA_VERSION = "story-localization-batch-index-v2";
 
 function sortUnique(values: readonly string[]): string[] {
   return [...new Set(values)].sort((left, right) => left.localeCompare(right));
@@ -26,6 +26,9 @@ function sortUnique(values: readonly string[]): string[] {
 function matchesFilter(entry: BatchIndexEntry, filter: BatchIndexFilter | undefined): boolean {
   if (!filter) {
     return true;
+  }
+  if (filter.category && filter.category !== entry.category) {
+    return false;
   }
   if (filter.statuses && !filter.statuses.includes(entry.status)) {
     return false;
@@ -67,6 +70,7 @@ function entryFromManifest(manifestPath: string, manifest: Awaited<ReturnType<ty
   if (!manifest) {
     throw new Error(`Missing manifest: ${manifestPath}`);
   }
+  const category = manifest.category ?? "text-localization";
   const operations = sortUnique(manifest.items.map((item) => item.operation));
   const episodeNumbers = sortUnique(manifest.items.map((item) => item.episodeNumber));
   const languages = sortUnique(
@@ -93,6 +97,7 @@ function entryFromManifest(manifestPath: string, manifest: Awaited<ReturnType<ty
         : manifest.status;
   return batchIndexEntrySchema.parse({
     localBatchId: manifest.localBatchId,
+    category,
     ...(manifest.openAIBatchId ? { openAIBatchId: manifest.openAIBatchId } : {}),
     rootLocalBatchId: manifest.rootLocalBatchId,
     ...(manifest.parentLocalBatchId ? { parentLocalBatchId: manifest.parentLocalBatchId } : {}),
@@ -323,6 +328,21 @@ export class StoryBatchIndexService {
     const index = await readJsonIfExists(layout.indexPath, (value) => batchIndexFileSchema.parse(value) as BatchIndexFile);
     if (!index) {
       throw new Error(`Missing batch index: ${layout.indexPath}`);
+    }
+    if (index.schemaVersion !== INDEX_SCHEMA_VERSION) {
+      const migrated: BatchIndexFile = {
+        schemaVersion: INDEX_SCHEMA_VERSION,
+        createdAt: index.createdAt,
+        updatedAt: new Date().toISOString(),
+        entries: index.entries.map((entry) =>
+          batchIndexEntrySchema.parse({
+            ...entry,
+            category: entry.category ?? "text-localization",
+          }) as BatchIndexEntry
+        ),
+      };
+      await this.writeIndex(migrated);
+      return migrated;
     }
     return index;
   }

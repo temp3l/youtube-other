@@ -14,6 +14,21 @@ function serializedFacts(facts: CanonicalStoryFacts): string {
   return JSON.stringify(facts, null, 2);
 }
 
+function shortWordRangeGuidance(profile: LanguageProfile): readonly string[] {
+  const { min, target, max } = profile.shortWordRange;
+  return [
+    `Short narration target: ${target} words.`,
+    `Hard limit: keep the short narration within ${min}-${max} words.`,
+    `Aim for roughly ${Math.max(min + 10, target - 10)}-${Math.max(min + 20, target + 5)} words.`,
+    "Use exactly 2-3 short paragraphs.",
+    "Use 5-7 sentences total.",
+    "Keep each sentence concise and avoid long compound clauses.",
+    "If the draft is below the minimum, add one concrete sentence about the protagonist's next action and one sentence about the immediate consequence before ending.",
+    "Prefer the lower end of the range when a translation would otherwise run long.",
+    "Trim recap phrases, filler, and duplicated phrasing before finalizing.",
+  ];
+}
+
 export function buildCompactStorySource(
   sourceStory: ParsedSourceStory,
   canonicalFacts: CanonicalStoryFacts
@@ -79,6 +94,9 @@ export function buildLocalizationPrompt(args: {
     `Target language: ${args.languageProfile.displayName} (${args.languageProfile.locale})`,
     `Adaptation mode: ${args.adaptationMode}`,
     `Target output: ${args.target}`,
+    ...(args.target === "short"
+      ? ["", "Short output guidance:", lineList(shortWordRangeGuidance(args.languageProfile))]
+      : []),
     "",
     "Language guidance:",
     lineList(args.languageProfile.stylisticGuidance),

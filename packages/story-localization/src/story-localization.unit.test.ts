@@ -2,10 +2,11 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { mkdtempSync } from "node:fs";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   buildConfigurationHash,
   buildOutputFiles,
+  buildLocalizationPrompt,
   countWords,
   copyFileAtomicIfChanged,
   detectForbiddenPhrases,
@@ -15,11 +16,14 @@ import {
   extractCanonicalStoryFacts,
   getLanguageProfile,
   createOpenAiStoryClient,
+  generatedStoryPackageSchema,
   parseCanonicalSourceFilename,
   parseCanonicalSourceStory,
   resolveDefaultOutputDirectory,
   resolveDefaultSourceDirectory,
   selectSourceCandidates,
+  createStoryLocalizationConfig,
+  localizeStoryEpisode,
   validateHashtags,
   validatePreservationChecklist,
   validateTitleAndThumbnail,
@@ -37,6 +41,99 @@ const sourceFile = path.join(
   "en",
   "002-even-killers-can-lick-en-full.md"
 );
+
+type MockResponse = {
+  readonly output_text: string;
+  readonly id?: string;
+};
+
+function makeMockClient(responses: readonly MockResponse[]) {
+  const queue = [...responses];
+  return {
+    responses: {
+      create: vi.fn(async () => {
+        const next = queue.shift();
+        if (!next) {
+          throw new Error("No mock response left.");
+        }
+        return {
+          id: next.id ?? "resp_mock",
+          output_text: next.output_text,
+          usage: {
+            input_tokens: 100,
+            output_tokens: 50,
+            input_tokens_details: { cached_tokens: 0 },
+          },
+        };
+      }),
+    },
+  };
+}
+
+function buildLocalizedNarration(wordCount: number): string[] {
+  const base = [
+    "Elena Ward escuchó a Bramble respirar bajo la cama durante la tormenta.",
+    "Por la mañana, HUMANS CAN LICK TOO estaba escrito en el espejo y SHE REACHED DOWN FIRST seguía en la habitación.",
+    "La casa permaneció húmeda, silenciosa y atenta mientras Elena buscaba la salida.",
+  ].join(" ");
+  const filler = "silencio";
+  let text = base;
+  while (countWords(text) < wordCount) {
+    text = `${text} ${filler}`;
+  }
+  return [text];
+}
+
+function makeLocalizedPackage(language: LanguageCode, shortWordCount: number): GeneratedStoryPackage {
+  return {
+    language,
+    full: {
+      title: `${language.toUpperCase()} House of Licking Shadows`,
+      audioInstructions: ["Use a steady narrator.", "Keep the tone restrained."],
+      narrationParagraphs: [
+        `${language.toUpperCase()} version: Elena Ward stayed in the house after dark and kept hearing Bramble breathe from under the bed.`,
+        "She found the same wet tracks in the hallway, the same attic note, and the same impossible message on the mirror.",
+        "By the time she understood the rule, the house had already learned Elena Ward's name and the final choice had become a trap.",
+      ],
+      thumbnailText: "NOT THE DOG",
+      contentDisclosure: "Fictional horror narration.",
+      seoDescription: "A house learns the wrong name.",
+      tags: ["horror", "story", "house"],
+      hashtags: ["#HorrorStory", "#DarkTruthEpisodes"],
+      targetNarrationWpm: 170,
+      visualDirection: "Dark hallway, mirror, and attic.",
+    },
+    short: {
+      title: `${language.toUpperCase()} Short House`,
+      narrationInstructions: ["Begin immediately.", "Keep the hook visible."],
+      narrationParagraphs: buildLocalizedNarration(shortWordCount),
+      thumbnailText: "IT WASN'T THE DOG",
+      description: "A dog is not what Elena fears.",
+      hashtags: ["#Shorts", "#Horror", "#DarkTruthEpisodes"],
+      targetNarrationWpm: 180,
+      recommendedDurationSeconds: { min: 55, max: 65 },
+      visualGuidance: "Fast opening shots, mirror reveal, attic ending.",
+    },
+    preservationChecklist: {
+      charactersPreserved: true,
+      relationshipsPreserved: true,
+      chronologyPreserved: true,
+      criticalObjectsPreserved: true,
+      cluesPreserved: true,
+      writtenMessagesPreserved: true,
+      primaryRevealPreserved: true,
+      endingPreserved: true,
+      noNewPlotElementsAdded: true,
+    },
+    diagnostics: {
+      fullWordCount: 120,
+      shortWordCount: shortWordCount,
+      shortEstimatedDurationSeconds: 58,
+      removedGenericFiller: [],
+      adaptationNotes: [],
+    },
+  };
+}
 
 describe("story localization helpers", () => {
   it("resolves the fixed default directories from the repository root", () => {
@@ -138,6 +235,59 @@ describe("story localization helpers", () => {
     expect(profile.shortWordRange.target).toBeGreaterThan(0);
   });
 
+  it("adds explicit short-word guidance to the short localization prompt", async () => {
+    const parsed = await parseCanonicalSourceStory(sourceFile);
+    const facts = extractCanonicalStoryFacts(parsed);
+    const prompt = buildLocalizationPrompt({
+      languageProfile: getLanguageProfile("es"),
+      adaptationMode: "retention-optimized",
+      sourceStory: parsed,
+      canonicalFacts: facts,
+      target: "short",
+    });
+    expect(prompt.user).toContain("Short output guidance:");
+    expect(prompt.user).toContain("Short narration target: 178 words.");
+    expect(prompt.user).toContain("Hard limit: keep the short narration within 100-200 words.");
+    expect(prompt.user).toContain("Aim for roughly 168-183 words.");
+    expect(prompt.user).toContain("Use exactly 2-3 short paragraphs.");
+    expect(prompt.user).toContain("Use 5-7 sentences total.");
+    expect(prompt.user).toContain("If the draft is below the minimum, add one concrete sentence about the protagonist's next action and one sentence about the immediate consequence before ending.");
+  });
+
+  it("retries short-length failures with a targeted short rewrite", async () => {
+    const tempDir = mkdtempSync(
+      path.join(os.tmpdir(), "story-localization-short-retry-")
+    );
+    const config = createStoryLocalizationConfig({
+      outputDirectory: tempDir,
+      languages: ["es"],
+      includeEnglishShort: false,
+      processingMode: "sync",
+      force: true,
+    });
+    const client = makeMockClient([
+      { output_text: JSON.stringify(makeLocalizedPackage("es", 80)) },
+      { output_text: JSON.stringify(makeLocalizedPackage("es", 80)) },
+      { output_text: JSON.stringify(makeLocalizedPackage("es", 165)) },
+    ]);
+
+    const result = await localizeStoryEpisode(sourceFile, config, {
+      client: client as never,
+    });
+
+    expect(result.failure).toBeUndefined();
+    expect(client.responses.create).toHaveBeenCalledTimes(3);
+    expect(
+      await fs.readFile(
+        path.join(
+          tempDir,
+          "002-even-killers-can-lick-es-short.md"
+        ),
+        "utf8"
+      )
+    ).toContain("# Short 002");
+  });
+
   it("accepts OPENAI_API_TOKEN as a fallback credential alias", () => {
     const previousKey = process.env.OPENAI_API_KEY;
     const previousToken = process.env.OPENAI_API_TOKEN;
@@ -213,6 +363,53 @@ describe("story localization helpers", () => {
     expect(buildConfigurationHash(["a", "b"])).not.toBe(
       buildConfigurationHash(["a", "c"])
     );
+  });
+
+  it("includes OpenAI status and code details when story localization fails", async () => {
+    const tempDir = mkdtempSync(
+      path.join(os.tmpdir(), "story-localization-openai-error-")
+    );
+    const config = createStoryLocalizationConfig({
+      outputDirectory: tempDir,
+      languages: [],
+      processingMode: "sync",
+    });
+    const client = {
+      responses: {
+        create: async () => {
+          throw {
+            message: "quota exceeded",
+            status: 429,
+            code: "insufficient_quota",
+          };
+        },
+      },
+    };
+
+    const result = await localizeStoryEpisode(sourceFile, config, {
+      client: client as never,
+    });
+
+    expect(result.failure).toContain("English short story localization");
+    expect(result.failure).toContain("insufficient_quota");
+    expect(result.failure).toContain("status 429");
+    expect(result.failure).toContain("Check API billing");
+  });
+
+  it("accepts generated localized full stories without sourceTitle", () => {
+    const parsed = generatedStoryPackageSchema.shape.full.parse({
+      title: "Some Title",
+      audioInstructions: ["Keep it tense."],
+      narrationParagraphs: ["One.", "Two.", "Three."],
+      thumbnailText: "Nightfall",
+      contentDisclosure: "Horror content.",
+      seoDescription: "A short description.",
+      tags: ["tag-1", "tag-2", "tag-3"],
+      hashtags: ["#Horror"],
+      targetNarrationWpm: 170,
+      visualDirection: "Cinematic and dark.",
+    });
+    expect(parsed.sourceTitle).toBeUndefined();
   });
 
   it("writes files atomically and skips unchanged writes", async () => {

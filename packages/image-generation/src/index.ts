@@ -33,6 +33,11 @@ export {
 } from "./openai-image.js";
 export * from "./shorts-image-strategy.js";
 export * from "./episode-image-pipeline.js";
+export * from "./image-batch.types.js";
+export * from "./image-batch.schemas.js";
+export * from "./image-batch-storage.js";
+export * from "./image-batch-planner.js";
+export * from "./image-batch-service.js";
 
 export interface PromptTemplateContext {
   readonly GLOBAL_STYLE: string;
