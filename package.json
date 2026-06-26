@@ -26,6 +26,7 @@
     "episode:localized": "node scripts/run-with-telemetry.mjs episode:localized -- node apps/cli/dist/index.js episode localized",
     "episode:short": "node scripts/run-with-telemetry.mjs episode:short -- node apps/cli/dist/index.js episode short",
     "stories:localize": "node scripts/run-with-telemetry.mjs stories:localize -- node apps/cli/dist/index.js stories localize",
+    "stories:batches": "node scripts/run-with-telemetry.mjs stories:batches -- node apps/cli/dist/index.js stories:batches",
     "episode:status": "node scripts/run-with-telemetry.mjs episode:status -- node apps/cli/dist/index.js episode status",
     "episode:validate": "node scripts/run-with-telemetry.mjs episode:validate -- node apps/cli/dist/index.js episode validate",
     "episode:bootstrap-characters": "node scripts/run-with-telemetry.mjs episode:bootstrap-characters -- node apps/cli/dist/index.js episode bootstrap-characters",

@@ -1,5 +1,13 @@
 import { type LanguageCode, type LanguageProfile } from "./story-localization.types.js";
 
+export const SHORT_WORD_RANGES = {
+  en: { min: 160, target: 175, max: 190 },
+  de: { min: 145, target: 165, max: 180 },
+  es: { min: 160, target: 178, max: 195 },
+  fr: { min: 155, target: 172, max: 190 },
+  pt: { min: 160, target: 178, max: 195 },
+} as const;
+
 export const LANGUAGE_PROFILES: Readonly<Record<LanguageCode, LanguageProfile>> = {
   en: {
     code: "en",
@@ -8,7 +16,7 @@ export const LANGUAGE_PROFILES: Readonly<Record<LanguageCode, LanguageProfile>> 
     narratorLanguageName: "English",
     fullNarrationWpm: 178,
     shortNarrationWpm: 180,
-    shortWordRange: { min: 160, target: 175, max: 190 },
+    shortWordRange: SHORT_WORD_RANGES.en,
     stylisticGuidance: [
       "Use natural international English.",
       "Keep spoken narration clear and direct.",
@@ -24,7 +32,7 @@ export const LANGUAGE_PROFILES: Readonly<Record<LanguageCode, LanguageProfile>> 
     narratorLanguageName: "German",
     fullNarrationWpm: 168,
     shortNarrationWpm: 170,
-    shortWordRange: { min: 145, target: 165, max: 180 },
+    shortWordRange: SHORT_WORD_RANGES.de,
     stylisticGuidance: [
       "Use natural standard German.",
       "Avoid bureaucratic wording and nested clauses.",
@@ -40,7 +48,7 @@ export const LANGUAGE_PROFILES: Readonly<Record<LanguageCode, LanguageProfile>> 
     narratorLanguageName: "Spanish",
     fullNarrationWpm: 175,
     shortNarrationWpm: 178,
-    shortWordRange: { min: 160, target: 178, max: 195 },
+    shortWordRange: SHORT_WORD_RANGES.es,
     stylisticGuidance: [
       "Use neutral international Spanish.",
       "Keep the language simple and natural for speech.",
@@ -56,7 +64,7 @@ export const LANGUAGE_PROFILES: Readonly<Record<LanguageCode, LanguageProfile>> 
     narratorLanguageName: "French",
     fullNarrationWpm: 172,
     shortNarrationWpm: 172,
-    shortWordRange: { min: 155, target: 172, max: 190 },
+    shortWordRange: SHORT_WORD_RANGES.fr,
     stylisticGuidance: [
       "Use natural international French.",
       "Keep sentences direct and easy to speak.",
@@ -72,7 +80,7 @@ export const LANGUAGE_PROFILES: Readonly<Record<LanguageCode, LanguageProfile>> 
     narratorLanguageName: "Brazilian Portuguese",
     fullNarrationWpm: 175,
     shortNarrationWpm: 178,
-    shortWordRange: { min: 160, target: 178, max: 195 },
+    shortWordRange: SHORT_WORD_RANGES.pt,
     stylisticGuidance: [
       "Use Brazilian Portuguese.",
       "Keep the narration natural and broadly understandable.",
@@ -90,4 +98,3 @@ export function getLanguageProfile(code: LanguageCode): LanguageProfile {
 export function isShortLanguage(code: string): code is Exclude<LanguageCode, "en"> {
   return code === "de" || code === "es" || code === "fr" || code === "pt";
 }
-

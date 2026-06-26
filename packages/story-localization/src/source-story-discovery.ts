@@ -10,6 +10,12 @@ export interface SourceStoryCandidate {
   readonly filePath: string;
 }
 
+export const DEFAULT_SOURCE_DIRECTORY =
+  "./content/dark-truth-episodes-multilingual-production-pack";
+
+export const DEFAULT_OUTPUT_DIRECTORY =
+  "./content-ideas/content/dark-truth-episodes";
+
 const canonicalSourceFilePattern =
   /^(?<episodeNumber>\d{3})-(?<slug>.+)-en-full\.md$/u;
 
@@ -37,11 +43,11 @@ async function walkMarkdownFiles(rootDir: string): Promise<string[]> {
 }
 
 export function resolveDefaultSourceDirectory(): string {
-  return path.resolve(getRepoRoot(), "content", "dark-truth-episodes-multilingual-production-pack");
+  return path.resolve(getRepoRoot(), DEFAULT_SOURCE_DIRECTORY);
 }
 
 export function resolveDefaultOutputDirectory(): string {
-  return path.resolve(getRepoRoot(), "content-ideas", "content", "dark-truth-episodes");
+  return path.resolve(getRepoRoot(), DEFAULT_OUTPUT_DIRECTORY);
 }
 
 export function parseCanonicalSourceFilename(fileName: string): SourceStoryCandidate {

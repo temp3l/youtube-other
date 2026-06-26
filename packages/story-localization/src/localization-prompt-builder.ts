@@ -1,4 +1,10 @@
-import { type CanonicalStoryFacts, type LanguageProfile, type ParsedSourceStory, type AdaptationMode } from "./story-localization.types.js";
+import {
+  type AdaptationMode,
+  type CanonicalStoryFacts,
+  type CompactStorySource,
+  type LanguageProfile,
+  type ParsedSourceStory,
+} from "./story-localization.types.js";
 
 function lineList(lines: readonly string[]): string {
   return lines.map((line) => `- ${line}`).join("\n");
@@ -8,6 +14,44 @@ function serializedFacts(facts: CanonicalStoryFacts): string {
   return JSON.stringify(facts, null, 2);
 }
 
+export function buildCompactStorySource(
+  sourceStory: ParsedSourceStory,
+  canonicalFacts: CanonicalStoryFacts
+): CompactStorySource {
+  return {
+    episodeNumber: sourceStory.episodeNumber,
+    primaryTitle: sourceStory.title,
+    ...(sourceStory.metadata.sourceTitle
+      ? { sourceTitle: sourceStory.metadata.sourceTitle }
+      : {}),
+    narration: sourceStory.narrationParagraphs.join("\n\n"),
+    ...(sourceStory.metadata.thumbnailText
+      ? { thumbnailHook: sourceStory.metadata.thumbnailText }
+      : {}),
+    ...(sourceStory.metadata.contentDisclosure
+      ? { contentDisclosure: sourceStory.metadata.contentDisclosure }
+      : {}),
+    ...(sourceStory.soundMotif ? { soundMotif: sourceStory.soundMotif } : {}),
+    canonicalFacts: {
+      characters: canonicalFacts.characters.map((character, index) => ({
+        id: `c${index + 1}`,
+        name: character.name,
+        role: character.role,
+        ...(character.relationship
+          ? { relationship: character.relationship }
+          : {}),
+      })),
+      ...(canonicalFacts.setting ? { setting: canonicalFacts.setting } : {}),
+      criticalObjects: canonicalFacts.criticalObjects,
+      criticalEvents: canonicalFacts.criticalEvents,
+      writtenMessages: canonicalFacts.writtenMessages,
+      centralThreat: canonicalFacts.threat,
+      primaryReveal: canonicalFacts.primaryReveal,
+      finalConsequence: canonicalFacts.finalConsequence,
+    },
+  };
+}
+
 export function buildLocalizationPrompt(args: {
   readonly languageProfile: LanguageProfile;
   readonly adaptationMode: AdaptationMode;
@@ -15,6 +59,7 @@ export function buildLocalizationPrompt(args: {
   readonly canonicalFacts: CanonicalStoryFacts;
   readonly target: "full" | "short";
 }): { readonly system: string; readonly user: string } {
+  const compactSource = buildCompactStorySource(args.sourceStory, args.canonicalFacts);
   const system = [
     "You are a senior multilingual horror writer, narrative editor, YouTube retention strategist, and localization specialist.",
     "Transform the source story into natural spoken narration for the requested target language.",
@@ -23,13 +68,13 @@ export function buildLocalizationPrompt(args: {
     "Return JSON only that matches the requested schema.",
   ].join(" ");
   const user = [
+    "<compact_story_source>",
+    JSON.stringify(compactSource, null, 2),
+    "</compact_story_source>",
+    "",
     "<canonical_story_facts>",
     serializedFacts(args.canonicalFacts),
     "</canonical_story_facts>",
-    "",
-    "<source_story>",
-    args.sourceStory.content,
-    "</source_story>",
     "",
     `Target language: ${args.languageProfile.displayName} (${args.languageProfile.locale})`,
     `Adaptation mode: ${args.adaptationMode}`,
@@ -40,4 +85,3 @@ export function buildLocalizationPrompt(args: {
   ].join("\n");
   return { system, user };
 }
-
