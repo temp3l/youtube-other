@@ -1,0 +1,100 @@
+{
+  "schemaVersion": "story-localization-batch-v1",
+  "localBatchId": "slb-20260626123145911-001",
+  "rootLocalBatchId": "slb-20260626123145911-001",
+  "retryNumber": 0,
+  "createdAt": "2026-06-26T12:31:45.950Z",
+  "updatedAt": "2026-06-26T12:33:32.000Z",
+  "mode": "batch",
+  "endpoint": "/v1/responses",
+  "model": "gpt-4o-mini",
+  "completionWindow": "24h",
+  "inputFilePath": "content-ideas/content/dark-truth-episodes/.batch/inputs/batch-slb-20260626123145911-001.jsonl",
+  "inputFileHash": "5044a9fd688c9595fc64a08c5a687581b1ba8b2ee14a5ef34db7f5b0ce3ec5df",
+  "openAIInputFileId": "file-NjCvGZexjw8YHC9sLdXGij",
+  "openAIBatchId": "batch_6a3e724373288190b91dd0b39dc85eaa",
+  "submittedAt": "2026-06-26T12:36:18.000Z",
+  "status": "submitted",
+  "items": [
+    {
+      "customId": "dte:003:english-short:en:0154c5a4:d635e731",
+      "episodeNumber": "003",
+      "language": "en",
+      "operation": "english-short",
+      "sourcePath": "content-ideas/content/dark-truth-episodes-multilingual-production-pack/003-the-dollhouse-that-swallowed-her-father/en/003-the-dollhouse-that-swallowed-her-father-en-full.md",
+      "sourceHash": "0154c5a42e3b9eaa43eb8fc15b6e5944566fd52b7eae993cb45a5855af1c6bc9",
+      "promptVersion": "story-localization-v1",
+      "configurationHash": "d635e7317e9e6fa759b54782cb0df60ff0dfd3c4990dbc6d348ec8fd1bd242f7",
+      "plannedOutputPaths": [
+        "content-ideas/content/dark-truth-episodes/003-the-dollhouse-that-swallowed-her-father-en-full.md",
+        "content-ideas/content/dark-truth-episodes/003-the-dollhouse-that-swallowed-her-father-en-short.md"
+      ],
+      "estimatedInputTokens": 2668,
+      "status": "submitted"
+    },
+    {
+      "customId": "dte:003:localization:de:0154c5a4:252372b2",
+      "episodeNumber": "003",
+      "language": "de",
+      "operation": "localization",
+      "sourcePath": "content-ideas/content/dark-truth-episodes-multilingual-production-pack/003-the-dollhouse-that-swallowed-her-father/en/003-the-dollhouse-that-swallowed-her-father-en-full.md",
+      "sourceHash": "0154c5a42e3b9eaa43eb8fc15b6e5944566fd52b7eae993cb45a5855af1c6bc9",
+      "promptVersion": "story-localization-v1",
+      "configurationHash": "252372b2828b9adc17f3115c6b845a53fe48eb0ade6e0cee82e255da7b89273b",
+      "plannedOutputPaths": [
+        "content-ideas/content/dark-truth-episodes/003-the-dollhouse-that-swallowed-her-father-de-full.md",
+        "content-ideas/content/dark-truth-episodes/003-the-dollhouse-that-swallowed-her-father-de-short.md"
+      ],
+      "estimatedInputTokens": 2938,
+      "status": "submitted"
+    },
+    {
+      "customId": "dte:003:localization:es:0154c5a4:9f171c90",
+      "episodeNumber": "003",
+      "language": "es",
+      "operation": "localization",
+      "sourcePath": "content-ideas/content/dark-truth-episodes-multilingual-production-pack/003-the-dollhouse-that-swallowed-her-father/en/003-the-dollhouse-that-swallowed-her-father-en-full.md",
+      "sourceHash": "0154c5a42e3b9eaa43eb8fc15b6e5944566fd52b7eae993cb45a5855af1c6bc9",
+      "promptVersion": "story-localization-v1",
+      "configurationHash": "9f171c907862c9a1e72810bd5acda947f3231fcc28654b7fa22fa27a6609d5a6",
+      "plannedOutputPaths": [
+        "content-ideas/content/dark-truth-episodes/003-the-dollhouse-that-swallowed-her-father-es-full.md",
+        "content-ideas/content/dark-truth-episodes/003-the-dollhouse-that-swallowed-her-father-es-short.md"
+      ],
+      "estimatedInputTokens": 2943,
+      "status": "submitted"
+    },
+    {
+      "customId": "dte:003:localization:fr:0154c5a4:137ac923",
+      "episodeNumber": "003",
+      "language": "fr",
+      "operation": "localization",
+      "sourcePath": "content-ideas/content/dark-truth-episodes-multilingual-production-pack/003-the-dollhouse-that-swallowed-her-father/en/003-the-dollhouse-that-swallowed-her-father-en-full.md",
+      "sourceHash": "0154c5a42e3b9eaa43eb8fc15b6e5944566fd52b7eae993cb45a5855af1c6bc9",
+      "promptVersion": "story-localization-v1",
+      "configurationHash": "137ac9233f99fcb8ec540b7f689b245a139ec8dbb0551621f918e37d736cb628",
+      "plannedOutputPaths": [
+        "content-ideas/content/dark-truth-episodes/003-the-dollhouse-that-swallowed-her-father-fr-full.md",
+        "content-ideas/content/dark-truth-episodes/003-the-dollhouse-that-swallowed-her-father-fr-short.md"
+      ],
+      "estimatedInputTokens": 2939,
+      "status": "submitted"
+    },
+    {
+      "customId": "dte:003:localization:pt:0154c5a4:a31dee41",
+      "episodeNumber": "003",
+      "language": "pt",
+      "operation": "localization",
+      "sourcePath": "content-ideas/content/dark-truth-episodes-multilingual-production-pack/003-the-dollhouse-that-swallowed-her-father/en/003-the-dollhouse-that-swallowed-her-father-en-full.md",
+      "sourceHash": "0154c5a42e3b9eaa43eb8fc15b6e5944566fd52b7eae993cb45a5855af1c6bc9",
+      "promptVersion": "story-localization-v1",
+      "configurationHash": "a31dee41ac386d1759e92ceb84a6921d4116dabb552a671fe52bcafb513fb7af",
+      "plannedOutputPaths": [
+        "content-ideas/content/dark-truth-episodes/003-the-dollhouse-that-swallowed-her-father-pt-full.md",
+        "content-ideas/content/dark-truth-episodes/003-the-dollhouse-that-swallowed-her-father-pt-short.md"
+      ],
+      "estimatedInputTokens": 2940,
+      "status": "submitted"
+    }
+  ]
+}

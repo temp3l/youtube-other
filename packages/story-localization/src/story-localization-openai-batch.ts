@@ -1,23 +1,35 @@
 import fs from "node:fs";
 import OpenAI from "openai";
-import type { Batch as OpenAIBatch, BatchRequestCounts } from "openai/resources/batches";
+import type {
+  Batch as OpenAIBatch,
+  BatchRequestCounts,
+} from "openai/resources/batches";
 import type { FileObject } from "openai/resources/files";
-import { StoryLocalizationApiError, StoryLocalizationConfigurationError } from "./story-localization.errors.js";
+import {
+  StoryLocalizationApiError,
+  StoryLocalizationConfigurationError,
+} from "./story-localization.errors.js";
 
 export interface OpenAiStoryClient {
   readonly responses: {
-    create(request: {
-      readonly model: string;
-      readonly input: ReadonlyArray<{
-        readonly role: "system" | "user";
-        readonly content: ReadonlyArray<{ readonly type: "input_text"; readonly text: string }>;
-      }>;
-      readonly text?: {
-        readonly format: unknown;
-      };
-      readonly max_output_tokens?: number;
-      readonly temperature?: number;
-    }, options?: { readonly signal?: AbortSignal }): Promise<{
+    create(
+      request: {
+        readonly model: string;
+        readonly input: ReadonlyArray<{
+          readonly role: "system" | "user";
+          readonly content: ReadonlyArray<{
+            readonly type: "input_text";
+            readonly text: string;
+          }>;
+        }>;
+        readonly text?: {
+          readonly format: unknown;
+        };
+        readonly max_output_tokens?: number;
+        readonly temperature?: number;
+      },
+      options?: { readonly signal?: AbortSignal }
+    ): Promise<{
       readonly id: string;
       readonly output_text?: string;
       readonly usage?: {
@@ -68,7 +80,9 @@ export interface OpenAiBatchOutputLine {
   };
 }
 
-export function requireBatchCapabilities(client: OpenAiStoryClient): asserts client is OpenAiStoryClient & {
+export function requireBatchCapabilities(
+  client: OpenAiStoryClient
+): asserts client is OpenAiStoryClient & {
   readonly files: NonNullable<OpenAiStoryClient["files"]>;
   readonly batches: NonNullable<OpenAiStoryClient["batches"]>;
 } {
@@ -80,37 +94,53 @@ export function requireBatchCapabilities(client: OpenAiStoryClient): asserts cli
 }
 
 export function createOpenAiStoryClient(): OpenAiStoryClient {
-  const apiKey = process.env["OPENAI_API_KEY"];
+  const apiKey =
+    process.env["OPENAI_API_KEY"] ?? process.env["OPENAI_API_TOKEN"];
   if (!apiKey) {
-    throw new StoryLocalizationConfigurationError("OPENAI_API_KEY is required for story localization.");
+    throw new StoryLocalizationConfigurationError(
+      "OPENAI_API_KEY or OPENAI_API_TOKEN is required for story localization."
+    );
   }
   return new OpenAI({
     apiKey,
-    ...(process.env["OPENAI_BASE_URL"] ? { baseURL: process.env["OPENAI_BASE_URL"] } : {}),
+    ...(process.env["OPENAI_BASE_URL"]
+      ? { baseURL: process.env["OPENAI_BASE_URL"] }
+      : {}),
   }) as unknown as OpenAiStoryClient;
 }
 
-export function normalizeBatchStatus(status: OpenAIBatch["status"]): OpenAIBatch["status"] {
+export function normalizeBatchStatus(
+  status: OpenAIBatch["status"]
+): OpenAIBatch["status"] {
   return status;
 }
 
-export function batchRequestCounts(batch: OpenAIBatch): BatchRequestCounts | undefined {
+export function batchRequestCounts(
+  batch: OpenAIBatch
+): BatchRequestCounts | undefined {
   return batch.request_counts;
 }
 
 export async function readRemoteFileText(
-  client: OpenAiStoryClient & { readonly files: NonNullable<OpenAiStoryClient["files"]> },
+  client: OpenAiStoryClient & {
+    readonly files: NonNullable<OpenAiStoryClient["files"]>;
+  },
   fileId: string
 ): Promise<string> {
   try {
     const response = await client.files.content(fileId);
     return await response.text();
   } catch (error) {
-    throw new StoryLocalizationApiError(`Failed to download OpenAI file ${fileId}.`, error);
+    throw new StoryLocalizationApiError(
+      `Failed to download OpenAI file ${fileId}.`,
+      error
+    );
   }
 }
 
-export function parseBatchOutputJsonl(content: string): OpenAiBatchOutputLine[] {
+export function parseBatchOutputJsonl(
+  content: string
+): OpenAiBatchOutputLine[] {
   return content
     .split(/\n+/u)
     .map((line) => line.trim())

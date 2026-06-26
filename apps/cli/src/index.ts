@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import "dotenv/config";
 import {
   loadEpisodeConfig,
   loadRuntimeConfig,
@@ -240,7 +241,9 @@ function compactConfigOverrides(
   return compacted as RuntimeConfigOverrides;
 }
 
-function buildRemoteRenderSettings(config: RuntimeConfig): RemoteRenderSettings {
+function buildRemoteRenderSettings(
+  config: RuntimeConfig
+): RemoteRenderSettings {
   return {
     enabled: config.remoteRenderEnabled,
     host: config.remoteRenderHost,
@@ -2090,31 +2093,29 @@ function renderRemoteShellScript(kind: "check" | "cleanup"): string {
     return [
       "set -Eeuo pipefail",
       "umask 077",
-      "test \"$(id -u)\" -ne 0",
+      'test "$(id -u)" -ne 0',
       "command -v ffmpeg >/dev/null",
       "command -v ffprobe >/dev/null",
       "command -v rsync >/dev/null",
-      "mkdir -p \"$1/jobs\"",
-      "chmod 700 \"$1\" \"$1/jobs\"",
-      "tmpdir=\"$1/.remote-check-$(date +%s)-$$\"",
-      "mkdir -p \"$tmpdir\"",
-      "ffmpeg -y -f lavfi -i testsrc2=duration=1:size=64x64:rate=30 -c:v libx264 -pix_fmt yuv420p \"$tmpdir/test.mp4\"",
-      "ffprobe -v error -show_streams -show_format \"$tmpdir/test.mp4\" >/dev/null",
-      "rm -rf \"$tmpdir\"",
+      'mkdir -p "$1/jobs"',
+      'chmod 700 "$1" "$1/jobs"',
+      'tmpdir="$1/.remote-check-$(date +%s)-$$"',
+      'mkdir -p "$tmpdir"',
+      'ffmpeg -y -f lavfi -i testsrc2=duration=1:size=64x64:rate=30 -c:v libx264 -pix_fmt yuv420p "$tmpdir/test.mp4"',
+      'ffprobe -v error -show_streams -show_format "$tmpdir/test.mp4" >/dev/null',
+      'rm -rf "$tmpdir"',
     ].join("; ");
   }
   return [
     "set -Eeuo pipefail",
     "umask 077",
-    "jobs_dir=\"$1/jobs\"",
-    "cutoff_minutes=\"$2\"",
-    "find \"$jobs_dir\" -mindepth 1 -maxdepth 1 -type d -mmin \"+${cutoff_minutes}\" -exec rm -rf -- {} +",
+    'jobs_dir="$1/jobs"',
+    'cutoff_minutes="$2"',
+    'find "$jobs_dir" -mindepth 1 -maxdepth 1 -type d -mmin "+${cutoff_minutes}" -exec rm -rf -- {} +',
   ].join("; ");
 }
 
-async function commandRenderRemoteCheck(
-  options: CliOptions
-): Promise<void> {
+async function commandRenderRemoteCheck(options: CliOptions): Promise<void> {
   const config = await loadRuntimeConfig(configOverridesFromCli(options));
   const remote = buildRemoteRenderSettings(config);
   if (!remote.enabled) {
@@ -2130,7 +2131,9 @@ async function commandRenderRemoteCheck(
     `ConnectTimeout=${remote.connectTimeoutSeconds}`,
     "-o",
     `StrictHostKeyChecking=${remote.verifyHostKey ? "yes" : "no"}`,
-    ...(remote.knownHostsFile ? ["-o", `UserKnownHostsFile=${remote.knownHostsFile}`] : []),
+    ...(remote.knownHostsFile
+      ? ["-o", `UserKnownHostsFile=${remote.knownHostsFile}`]
+      : []),
     ...(remote.sshPrivateKey ? ["-i", remote.sshPrivateKey] : []),
     `${remote.user}@${remote.host}`,
     "bash",
@@ -2143,12 +2146,12 @@ async function commandRenderRemoteCheck(
   if (result.status !== 0) {
     throw new Error(result.stderr || "Remote preflight failed.");
   }
-  process.stdout.write(`Remote render preflight succeeded for ${remote.user}@${remote.host}\n`);
+  process.stdout.write(
+    `Remote render preflight succeeded for ${remote.user}@${remote.host}\n`
+  );
 }
 
-async function commandRenderRemoteCleanup(
-  options: CliOptions
-): Promise<void> {
+async function commandRenderRemoteCleanup(options: CliOptions): Promise<void> {
   const config = await loadRuntimeConfig(configOverridesFromCli(options));
   const remote = buildRemoteRenderSettings(config);
   if (!remote.enabled) {
@@ -2165,7 +2168,9 @@ async function commandRenderRemoteCleanup(
     `ConnectTimeout=${remote.connectTimeoutSeconds}`,
     "-o",
     `StrictHostKeyChecking=${remote.verifyHostKey ? "yes" : "no"}`,
-    ...(remote.knownHostsFile ? ["-o", `UserKnownHostsFile=${remote.knownHostsFile}`] : []),
+    ...(remote.knownHostsFile
+      ? ["-o", `UserKnownHostsFile=${remote.knownHostsFile}`]
+      : []),
     ...(remote.sshPrivateKey ? ["-i", remote.sshPrivateKey] : []),
     `${remote.user}@${remote.host}`,
     "bash",
@@ -2179,18 +2184,22 @@ async function commandRenderRemoteCleanup(
   if (result.status !== 0) {
     throw new Error(result.stderr || "Remote cleanup failed.");
   }
-  process.stdout.write(`Cleaned remote jobs older than ${remote.cleanupMaxAgeHours}h.\n`);
+  process.stdout.write(
+    `Cleaned remote jobs older than ${remote.cleanupMaxAgeHours}h.\n`
+  );
 }
 
-async function commandRenderRemoteTest(
-  options: CliOptions
-): Promise<void> {
+async function commandRenderRemoteTest(options: CliOptions): Promise<void> {
   const config = await loadRuntimeConfig(configOverridesFromCli(options));
   const remote = buildRemoteRenderSettings(config);
   if (!remote.enabled) {
-    throw new Error("REMOTE_RENDER_ENABLED must be true for the remote render test.");
+    throw new Error(
+      "REMOTE_RENDER_ENABLED must be true for the remote render test."
+    );
   }
-  const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "mediaforge-remote-test-"));
+  const tmpDir = await fs.mkdtemp(
+    path.join(os.tmpdir(), "mediaforge-remote-test-")
+  );
   const episodeDir = path.join(tmpDir, "episode");
   const imageDir = path.join(episodeDir, "images", "generated");
   const audioDir = path.join(episodeDir, "audio", "segments");
@@ -2228,10 +2237,16 @@ async function commandRenderRemoteTest(
       ],
       { encoding: "utf8" }
     );
-  if (makePng(path.join(imageDir, "scene-001__000000-000001__16x9.png"), "red").status !== 0) {
+  if (
+    makePng(path.join(imageDir, "scene-001__000000-000001__16x9.png"), "red")
+      .status !== 0
+  ) {
     throw new Error("Failed to generate local test image.");
   }
-  if (makePng(path.join(imageDir, "scene-002__000001-000002__16x9.png"), "blue").status !== 0) {
+  if (
+    makePng(path.join(imageDir, "scene-002__000001-000002__16x9.png"), "blue")
+      .status !== 0
+  ) {
     throw new Error("Failed to generate local test image.");
   }
   if (makeWav(path.join(audioDir, "scene-001.wav"), 440).status !== 0) {
@@ -2653,11 +2668,15 @@ async function commandMetadataYoutube(
   }
 }
 
-function inferLanguageFromPath(candidatePath: string | undefined): string | undefined {
+function inferLanguageFromPath(
+  candidatePath: string | undefined
+): string | undefined {
   if (!candidatePath) {
     return undefined;
   }
-  const normalized = candidatePath.split(path.sep).map((segment) => segment.toLowerCase());
+  const normalized = candidatePath
+    .split(path.sep)
+    .map((segment) => segment.toLowerCase());
   for (const segment of normalized) {
     if (segment === "de" || segment === "es" || segment === "fr") {
       return segment;
@@ -2676,8 +2695,12 @@ async function resolveYoutubeUploadLanguage(
   }
 ): Promise<string> {
   const candidatePaths = [
-    uploadOptions.metadataPath ? path.resolve(episodeDir, uploadOptions.metadataPath) : undefined,
-    uploadOptions.videoPath ? path.resolve(episodeDir, uploadOptions.videoPath) : undefined,
+    uploadOptions.metadataPath
+      ? path.resolve(episodeDir, uploadOptions.metadataPath)
+      : undefined,
+    uploadOptions.videoPath
+      ? path.resolve(episodeDir, uploadOptions.videoPath)
+      : undefined,
   ].filter((entry): entry is string => entry !== undefined);
   for (const candidate of candidatePaths) {
     const inferred = inferLanguageFromPath(candidate);
@@ -2696,8 +2719,13 @@ async function resolveYoutubeUploadLanguage(
       continue;
     }
     try {
-      const raw = JSON.parse(await fs.readFile(candidate, "utf8")) as { source?: { language?: unknown } };
-      if (typeof raw.source?.language === "string" && raw.source.language.trim().length > 0) {
+      const raw = JSON.parse(await fs.readFile(candidate, "utf8")) as {
+        source?: { language?: unknown };
+      };
+      if (
+        typeof raw.source?.language === "string" &&
+        raw.source.language.trim().length > 0
+      ) {
         return raw.source.language;
       }
     } catch {
@@ -2718,13 +2746,19 @@ function resolveYoutubeChannelIdForLanguage(
   }
   const prefix = normalized.split("-")[0];
   if (prefix === "de") {
-    return youtubeConfig.youtubeChannelIdGerman ?? youtubeConfig.youtubeChannelId;
+    return (
+      youtubeConfig.youtubeChannelIdGerman ?? youtubeConfig.youtubeChannelId
+    );
   }
   if (prefix === "es") {
-    return youtubeConfig.youtubeChannelIdSpanish ?? youtubeConfig.youtubeChannelId;
+    return (
+      youtubeConfig.youtubeChannelIdSpanish ?? youtubeConfig.youtubeChannelId
+    );
   }
   if (prefix === "fr") {
-    return youtubeConfig.youtubeChannelIdFrench ?? youtubeConfig.youtubeChannelId;
+    return (
+      youtubeConfig.youtubeChannelIdFrench ?? youtubeConfig.youtubeChannelId
+    );
   }
   return youtubeConfig.youtubeChannelId;
 }
@@ -2740,13 +2774,22 @@ function resolveYoutubeRefreshTokenForLanguage(
   }
   const prefix = normalized.split("-")[0];
   if (prefix === "de") {
-    return youtubeConfig.youtubeRefreshTokenGerman ?? youtubeConfig.youtubeRefreshToken;
+    return (
+      youtubeConfig.youtubeRefreshTokenGerman ??
+      youtubeConfig.youtubeRefreshToken
+    );
   }
   if (prefix === "es") {
-    return youtubeConfig.youtubeRefreshTokenSpanish ?? youtubeConfig.youtubeRefreshToken;
+    return (
+      youtubeConfig.youtubeRefreshTokenSpanish ??
+      youtubeConfig.youtubeRefreshToken
+    );
   }
   if (prefix === "fr") {
-    return youtubeConfig.youtubeRefreshTokenFrench ?? youtubeConfig.youtubeRefreshToken;
+    return (
+      youtubeConfig.youtubeRefreshTokenFrench ??
+      youtubeConfig.youtubeRefreshToken
+    );
   }
   return youtubeConfig.youtubeRefreshToken;
 }
@@ -2756,8 +2799,10 @@ function resolveYoutubeAuthSettings(
   channelId?: string
 ): YoutubeAuthSettings {
   const clientId = config.youtubeClientId ?? process.env["YOUTUBE_CLIENT_ID"];
-  const clientSecret = config.youtubeClientSecret ?? process.env["YOUTUBE_CLIENT_SECRET"];
-  const refreshToken = config.youtubeRefreshToken ?? process.env["YOUTUBE_REFRESH_TOKEN"];
+  const clientSecret =
+    config.youtubeClientSecret ?? process.env["YOUTUBE_CLIENT_SECRET"];
+  const refreshToken =
+    config.youtubeRefreshToken ?? process.env["YOUTUBE_REFRESH_TOKEN"];
   if (!clientId || !clientSecret || !refreshToken) {
     throw new Error(
       "Missing YOUTUBE_CLIENT_ID, YOUTUBE_CLIENT_SECRET, or YOUTUBE_REFRESH_TOKEN."
@@ -2767,7 +2812,9 @@ function resolveYoutubeAuthSettings(
     clientId,
     clientSecret,
     refreshToken,
-    ...(config.youtubeRedirectUri ? { redirectUri: config.youtubeRedirectUri } : {}),
+    ...(config.youtubeRedirectUri
+      ? { redirectUri: config.youtubeRedirectUri }
+      : {}),
   };
   const resolvedChannelId = channelId ?? config.youtubeChannelId;
   if (resolvedChannelId) {
@@ -2796,8 +2843,15 @@ async function commandYoutubeUpload(
 ): Promise<void> {
   markEpisodeTelemetry(uploadOptions.episode);
   const config = await loadRuntimeConfig(configOverridesFromCli(options));
-  const { episodeDir } = await readManifestForEpisode(options, uploadOptions.episode);
-  const uploadLanguage = await resolveYoutubeUploadLanguage(episodeDir, config, uploadOptions);
+  const { episodeDir } = await readManifestForEpisode(
+    options,
+    uploadOptions.episode
+  );
+  const uploadLanguage = await resolveYoutubeUploadLanguage(
+    episodeDir,
+    config,
+    uploadOptions
+  );
   const authConfig = {
     ...config,
     youtubeRefreshToken:
@@ -2811,7 +2865,8 @@ async function commandYoutubeUpload(
   let metadataGeneration: YoutubeUploadCommandInput["metadataGeneration"];
   if (uploadOptions.generateMetadata) {
     metadataGeneration = {
-      apiKey: config.openAiCompatibleApiKey ?? process.env["OPENAI_API_KEY"] ?? "",
+      apiKey:
+        config.openAiCompatibleApiKey ?? process.env["OPENAI_API_KEY"] ?? "",
       model: config.openAiMetadataModel ?? "gpt-4.1-mini",
       promptText: await fs.readFile(
         path.resolve("prompts", "youtube-metadata.prompt.md"),
@@ -2821,7 +2876,8 @@ async function commandYoutubeUpload(
       timeoutMs: config.openAiMetadataTimeoutMs ?? 120000,
       keepFile: config.openAiMetadataKeepFile,
     };
-    const baseUrl = config.openAiCompatibleBaseUrl ?? process.env["OPENAI_BASE_URL"];
+    const baseUrl =
+      config.openAiCompatibleBaseUrl ?? process.env["OPENAI_BASE_URL"];
     if (baseUrl) {
       metadataGeneration = { ...metadataGeneration, baseUrl };
     }
@@ -2835,13 +2891,21 @@ async function commandYoutubeUpload(
     generateMetadata: uploadOptions.generateMetadata,
     metadataPath: uploadOptions.metadataPath,
     overrides: {
-      ...(uploadOptions.playlistId ? { playlistId: uploadOptions.playlistId } : {}),
-      ...(uploadOptions.privacyStatus ? { privacyStatus: uploadOptions.privacyStatus } : {}),
-      ...(uploadOptions.publishAt ? { publishAt: uploadOptions.publishAt } : {}),
+      ...(uploadOptions.playlistId
+        ? { playlistId: uploadOptions.playlistId }
+        : {}),
+      ...(uploadOptions.privacyStatus
+        ? { privacyStatus: uploadOptions.privacyStatus }
+        : {}),
+      ...(uploadOptions.publishAt
+        ? { publishAt: uploadOptions.publishAt }
+        : {}),
       ...(uploadOptions.notifySubscribers !== undefined
         ? { notifySubscribers: uploadOptions.notifySubscribers }
         : {}),
-      ...(uploadOptions.videoPath ? { videoPath: uploadOptions.videoPath } : {}),
+      ...(uploadOptions.videoPath
+        ? { videoPath: uploadOptions.videoPath }
+        : {}),
       ...(uploadOptions.thumbnailPath
         ? { thumbnailPath: uploadOptions.thumbnailPath }
         : {}),
@@ -3374,7 +3438,9 @@ dbCommand.command("migrate").action(async () => {
   await commandDbMigrate(program.opts<CliOptions>());
 });
 
-const youtubeCommand = program.command("youtube").description("YouTube utilities");
+const youtubeCommand = program
+  .command("youtube")
+  .description("YouTube utilities");
 youtubeCommand
   .command("upload")
   .requiredOption("--episode <episode-id>")
@@ -3389,20 +3455,18 @@ youtubeCommand
   .option("--force", "regenerate even if a previous upload report exists")
   .description("Upload a completed episode to YouTube")
   .action(
-    async (
-      opts: {
-        episode: string;
-        generateMetadata?: boolean;
-        metadataPath?: string;
-        playlistId?: string;
-        privacyStatus?: "private" | "public" | "unlisted";
-        publishAt?: string;
-        notifySubscribers?: boolean;
-        videoPath?: string;
-        thumbnailPath?: string;
-        force?: boolean;
-      }
-    ) => {
+    async (opts: {
+      episode: string;
+      generateMetadata?: boolean;
+      metadataPath?: string;
+      playlistId?: string;
+      privacyStatus?: "private" | "public" | "unlisted";
+      publishAt?: string;
+      notifySubscribers?: boolean;
+      videoPath?: string;
+      thumbnailPath?: string;
+      force?: boolean;
+    }) => {
       await commandYoutubeUpload(program.opts<CliOptions>(), opts);
     }
   );
@@ -3410,8 +3474,7 @@ youtubeCommand
 registerEpisodeCommands(program);
 registerStoryLocalizationCommands(program);
 
-const executionId =
-  process.env["MEDIAFORGE_EXECUTION_ID"] ?? randomUUID();
+const executionId = process.env["MEDIAFORGE_EXECUTION_ID"] ?? randomUUID();
 const startedAt =
   process.env["MEDIAFORGE_EXECUTION_STARTED_AT"] ?? new Date().toISOString();
 const telemetry = createExecutionTelemetry({
