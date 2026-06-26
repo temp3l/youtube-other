@@ -187,8 +187,46 @@ describe("story localization integration", () => {
     const result = await localizeStoryEpisode(sourceFile, makeConfig(tempDir, []), { client: client as never });
     expect(result.failure).toBeUndefined();
     expect(client.responses.create).toHaveBeenCalledTimes(1);
-    expect(await fs.readFile(path.join(tempDir, "002-even-killers-can-lick-en-full.md"), "utf8")).toContain("The Killer Was Already Inside the House");
-    expect(await fs.readFile(path.join(tempDir, "002-even-killers-can-lick-en-short.md"), "utf8")).toContain("# Short 002");
+    expect(
+      await fs.readFile(
+        path.join(tempDir, "002-even-killers-can-lick", "script.md"),
+        "utf8"
+      )
+    ).toContain("The Killer Was Already Inside the House");
+    expect(
+      await fs.readFile(
+        path.join(
+          tempDir,
+          "002-even-killers-can-lick",
+          "en",
+          "short",
+          "script.md"
+        ),
+        "utf8"
+      )
+    ).toContain("# Short 002");
+  });
+
+  it("persists production artifacts and stage state", async () => {
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), "story-localization-production-"));
+    const client = makeMockClient([
+      {
+        output_text: JSON.stringify(makeEnglishShortPayload()),
+      },
+    ]);
+    const result = await localizeStoryEpisode(sourceFile, makeConfig(tempDir, []), { client: client as never });
+    expect(result.failure).toBeUndefined();
+    const productionDir = path.join(tempDir, "002-even-killers-can-lick", ".localization-cache", "production", "002", "002-even-killers-can-lick");
+    const sourceAnalysis = JSON.parse(await fs.readFile(path.join(productionDir, "source-analysis.json"), "utf8")) as Record<string, unknown>;
+    const bible = JSON.parse(await fs.readFile(path.join(productionDir, "story-bible.json"), "utf8")) as Record<string, unknown>;
+    const originalityReview = JSON.parse(await fs.readFile(path.join(productionDir, "originality-review.json"), "utf8")) as Record<string, unknown>;
+    const retentionPlan = JSON.parse(await fs.readFile(path.join(productionDir, "retention-plan.json"), "utf8")) as unknown[];
+    const stage = JSON.parse(await fs.readFile(path.join(productionDir, "production-state.json"), "utf8")) as Record<string, unknown>;
+    expect(sourceAnalysis).toHaveProperty("issueSummary");
+    expect(bible).toHaveProperty("protagonist");
+    expect(originalityReview).toHaveProperty("risk");
+    expect(retentionPlan.length).toBeGreaterThan(0);
+    expect(stage).toMatchObject({ stage: "completed" });
   });
 
   it.each(["de", "es", "fr", "pt"] as const)(
@@ -206,8 +244,30 @@ describe("story localization integration", () => {
       const result = await localizeStoryEpisode(sourceFile, makeConfig(tempDir, [language]), { client: client as never });
       expect(result.failure).toBeUndefined();
       expect(client.responses.create).toHaveBeenCalledTimes(2);
-      expect(await fs.readFile(path.join(tempDir, `002-even-killers-can-lick-${language}-full.md`), "utf8")).toContain(`# Episode 002`);
-      expect(await fs.readFile(path.join(tempDir, `002-even-killers-can-lick-${language}-short.md`), "utf8")).toContain(`# Short 002`);
+      expect(
+        await fs.readFile(
+          path.join(
+            tempDir,
+            "002-even-killers-can-lick",
+            language,
+            "full",
+            "script.md"
+          ),
+          "utf8"
+        )
+      ).toContain(`# Episode 002`);
+      expect(
+        await fs.readFile(
+          path.join(
+            tempDir,
+            "002-even-killers-can-lick",
+            language,
+            "short",
+            "script.md"
+          ),
+          "utf8"
+        )
+      ).toContain(`# Short 002`);
     }
   );
 
@@ -236,6 +296,7 @@ describe("story localization integration", () => {
     expect(result.failure).toBeDefined();
     const failedDir = path.join(
       tempDir,
+      "002-even-killers-can-lick",
       ".batch",
       "failed",
       "002-even-killers-can-lick",

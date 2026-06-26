@@ -24,6 +24,10 @@ import {
   selectSourceCandidates,
   createStoryLocalizationConfig,
   localizeStoryEpisode,
+  buildStoryBible,
+  analyzeStorySource,
+  buildOriginalityReview,
+  buildRetentionPlan,
   validateHashtags,
   validatePreservationChecklist,
   validateTitleAndThumbnail,
@@ -161,8 +165,9 @@ describe("story localization helpers", () => {
   it("builds episode-prefixed output filenames", () => {
     expect(buildOutputFiles("/out", "002-even-killers-can-lick", "de")).toEqual(
       {
-        full: "/out/002-even-killers-can-lick-de-full.md",
-        short: "/out/002-even-killers-can-lick-de-short.md",
+        full: "/out/002-even-killers-can-lick/de/full/script.md",
+        short: "/out/002-even-killers-can-lick/de/short/script.md",
+        rootScript: "/out/002-even-killers-can-lick/script.md",
       }
     );
   });
@@ -238,16 +243,28 @@ describe("story localization helpers", () => {
   it("adds explicit full and short guidance to the localization prompts", async () => {
     const parsed = await parseCanonicalSourceStory(sourceFile);
     const facts = extractCanonicalStoryFacts(parsed);
+    const analysis = analyzeStorySource(parsed, facts);
+    const bible = buildStoryBible(parsed, facts, analysis);
     const fullPrompt = buildLocalizationPrompt({
       languageProfile: getLanguageProfile("es"),
       adaptationMode: "retention-optimized",
       sourceStory: parsed,
       canonicalFacts: facts,
       target: "full",
+      productionContext: {
+        analysis,
+        bible,
+        originalityReview: buildOriginalityReview(parsed, facts, analysis),
+        retentionPlan: buildRetentionPlan(parsed, bible),
+      },
     });
     expect(fullPrompt.user).toContain("Full output guidance:");
     expect(fullPrompt.user).toContain("Full narration target: 1750 words.");
     expect(fullPrompt.user).toContain("Written message guidance:");
+    expect(fullPrompt.user).toContain("Source analysis:");
+    expect(fullPrompt.user).toContain("Story bible:");
+    expect(fullPrompt.user).toContain("Originality review:");
+    expect(fullPrompt.user).toContain("Retention plan:");
     expect(fullPrompt.user).not.toContain("Short output guidance:");
 
     const prompt = buildLocalizationPrompt({
@@ -256,6 +273,12 @@ describe("story localization helpers", () => {
       sourceStory: parsed,
       canonicalFacts: facts,
       target: "short",
+      productionContext: {
+        analysis,
+        bible,
+        originalityReview: buildOriginalityReview(parsed, facts, analysis),
+        retentionPlan: buildRetentionPlan(parsed, bible),
+      },
     });
     expect(prompt.user).toContain("Short output guidance:");
     expect(prompt.user).toContain("Short narration target: 160 words.");
@@ -295,7 +318,10 @@ describe("story localization helpers", () => {
       await fs.readFile(
         path.join(
           tempDir,
-          "002-even-killers-can-lick-es-short.md"
+          "002-even-killers-can-lick",
+          "es",
+          "short",
+          "script.md"
         ),
         "utf8"
       )
@@ -536,7 +562,13 @@ describe("story localization helpers", () => {
     expect(client.responses.create).toHaveBeenCalledTimes(2);
     expect(
       await fs.readFile(
-        path.join(tempDir, "002-even-killers-can-lick-en-short.md"),
+        path.join(
+          tempDir,
+          "002-even-killers-can-lick",
+          "en",
+          "short",
+          "script.md"
+        ),
         "utf8"
       )
     ).toContain("# Short 002");

@@ -5,6 +5,12 @@ import {
   type LanguageProfile,
   type ParsedSourceStory,
 } from "./story-localization.types.js";
+import {
+  type OriginalityReview,
+  type RetentionBeat,
+  type StoryBible,
+  type StorySourceAnalysis,
+} from "./story-production.js";
 
 function lineList(lines: readonly string[]): string {
   return lines.map((line) => `- ${line}`).join("\n");
@@ -99,6 +105,12 @@ export function buildLocalizationPrompt(args: {
   readonly sourceStory: ParsedSourceStory;
   readonly canonicalFacts: CanonicalStoryFacts;
   readonly target: "full" | "short";
+  readonly productionContext?: {
+    readonly analysis?: StorySourceAnalysis;
+    readonly bible?: StoryBible;
+    readonly originalityReview?: OriginalityReview;
+    readonly retentionPlan?: ReadonlyArray<RetentionBeat>;
+  };
 }): { readonly system: string; readonly user: string } {
   const compactSource = buildCompactStorySource(args.sourceStory, args.canonicalFacts);
   const system = [
@@ -128,6 +140,18 @@ export function buildLocalizationPrompt(args: {
       : []),
     ...(args.canonicalFacts.writtenMessages.length > 0
       ? ["", "Written message guidance:", lineList(writtenMessageGuidance(args.canonicalFacts.writtenMessages))]
+      : []),
+    ...(args.productionContext?.analysis
+      ? ["", "Source analysis:", JSON.stringify(args.productionContext.analysis, null, 2)]
+      : []),
+    ...(args.productionContext?.bible
+      ? ["", "Story bible:", JSON.stringify(args.productionContext.bible, null, 2)]
+      : []),
+    ...(args.productionContext?.originalityReview
+      ? ["", "Originality review:", JSON.stringify(args.productionContext.originalityReview, null, 2)]
+      : []),
+    ...(args.productionContext?.retentionPlan
+      ? ["", "Retention plan:", JSON.stringify(args.productionContext.retentionPlan, null, 2)]
       : []),
     "",
     "Language guidance:",

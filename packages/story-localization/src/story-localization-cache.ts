@@ -27,6 +27,43 @@ export function resolveCacheDirectory(outputDirectory: string): string {
   return path.join(outputDirectory, ".localization-cache");
 }
 
+export function resolveEpisodeCacheDirectory(
+  outputDirectory: string,
+  episodeSlug: string
+): string {
+  return path.join(outputDirectory, episodeSlug, ".localization-cache");
+}
+
+export function resolveEpisodeOutputDirectory(
+  outputDirectory: string,
+  episodeSlug: string
+): string {
+  return path.join(outputDirectory, episodeSlug);
+}
+
+export function resolveEpisodeStoryOutputFiles(
+  outputDirectory: string,
+  episodeSlug: string,
+  language: LanguageCode
+): {
+  readonly episodeDir: string;
+  readonly rootScript: string;
+  readonly full: string;
+  readonly short: string;
+} {
+  const episodeDir = resolveEpisodeOutputDirectory(outputDirectory, episodeSlug);
+  const languageDir = path.join(episodeDir, language);
+  return {
+    episodeDir,
+    rootScript: path.join(episodeDir, "script.md"),
+    full:
+      language === "en"
+        ? path.join(episodeDir, "script.md")
+        : path.join(languageDir, "full", "script.md"),
+    short: path.join(languageDir, "short", "script.md"),
+  };
+}
+
 function entryPath(cacheDirectory: string, sourceHash: string, configurationHash: string): string {
   return path.join(cacheDirectory, "entries", `${sourceHash}.${configurationHash}.json`);
 }

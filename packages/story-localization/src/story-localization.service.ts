@@ -10,7 +10,7 @@ import { discoverCanonicalSourceStories, resolveDefaultOutputDirectory, resolveD
 import { parseCanonicalSourceStory } from "./source-story-parser.js";
 import { generatedStoryPackageSchema, EnglishGeneratedStoryPackageSchema } from "./story-localization.schemas.js";
 import { renderLocalizedFullStory, renderLocalizedShort } from "./story-markdown-renderer.js";
-import { buildConfigurationHash, readCanonicalFactsCache, readLocalizationCacheEntry, resolveCacheDirectory, writeCanonicalFactsCache, writeLocalizationCacheEntry } from "./story-localization-cache.js";
+import { buildConfigurationHash, readCanonicalFactsCache, readLocalizationCacheEntry, resolveEpisodeCacheDirectory, resolveEpisodeStoryOutputFiles, writeCanonicalFactsCache, writeLocalizationCacheEntry } from "./story-localization-cache.js";
 import { estimateStoryLocalizationCost } from "./story-localization.cost-tracker.js";
 import { StoryLocalizationApiError, StoryLocalizationConfigurationError, StoryLocalizationSchemaError, StoryLocalizationValidationError } from "./story-localization.errors.js";
 import { copyFileAtomicIfChanged, countWords, estimateDurationSeconds, writeJsonAtomicIfChanged, writeTextAtomicIfChanged } from "./story-localization.utils.js";
@@ -19,6 +19,21 @@ import { detectForbiddenPhrases, detectGenericFiller, validateGeneratedStoryPack
 import { createOpenAiStoryClient, type OpenAiStoryClient } from "./story-localization-openai-batch.js";
 import { runStoryLocalizationInBatchMode } from "./story-localization-batch-service.js";
 import { resolveBatchStorageLayout, toRepositoryRelativePath } from "./story-localization-batch-storage.js";
+import {
+  analyzeStorySource,
+  buildOriginalityReview,
+  buildProtectedStoryElements,
+  buildRetentionPlan,
+  buildStoryBible,
+  persistStoryProductionArtifact,
+  persistStoryProductionStage,
+  resolveEpisodeStoryProductionDirectory,
+  type OriginalityReview,
+  type RetentionBeat,
+  type StoryBible,
+  type StoryProductionStage,
+  type StorySourceAnalysis,
+} from "./story-production.js";
 
 export interface StoryLocalizationOptions {
   readonly client?: OpenAiStoryClient;
@@ -92,7 +107,7 @@ async function preflightOpenAiConnectivity(
             ],
           },
         ],
-        max_output_tokens: 1,
+        max_output_tokens: 16,
         temperature: 0,
       },
       { signal: controller.signal }
@@ -117,7 +132,13 @@ function buildShortPromptConfig(
   language: LanguageCode,
   sourceStory: ParsedSourceStory,
   canonicalFacts: CanonicalStoryFacts,
-  adaptationMode: StoryLocalizationConfig["adaptationMode"]
+  adaptationMode: StoryLocalizationConfig["adaptationMode"],
+  productionContext?: {
+    readonly analysis?: StorySourceAnalysis;
+    readonly bible?: StoryBible;
+    readonly originalityReview?: OriginalityReview;
+    readonly retentionPlan?: ReadonlyArray<RetentionBeat>;
+  }
 ): { readonly system: string; readonly user: string } {
   return buildLocalizationPrompt({
     languageProfile: getLanguageProfile(language),
@@ -125,6 +146,7 @@ function buildShortPromptConfig(
     sourceStory,
     canonicalFacts,
     target: "short",
+    ...(productionContext ? { productionContext } : {}),
   });
 }
 
@@ -132,7 +154,13 @@ function buildFullPromptConfig(
   language: Exclude<LanguageCode, "en">,
   sourceStory: ParsedSourceStory,
   canonicalFacts: CanonicalStoryFacts,
-  adaptationMode: StoryLocalizationConfig["adaptationMode"]
+  adaptationMode: StoryLocalizationConfig["adaptationMode"],
+  productionContext?: {
+    readonly analysis?: StorySourceAnalysis;
+    readonly bible?: StoryBible;
+    readonly originalityReview?: OriginalityReview;
+    readonly retentionPlan?: ReadonlyArray<RetentionBeat>;
+  }
 ): { readonly system: string; readonly user: string } {
   return buildLocalizationPrompt({
     languageProfile: getLanguageProfile(language),
@@ -140,6 +168,7 @@ function buildFullPromptConfig(
     sourceStory,
     canonicalFacts,
     target: "full",
+    ...(productionContext ? { productionContext } : {}),
   });
 }
 
@@ -660,10 +689,12 @@ export function buildOutputFiles(
   outputDirectory: string,
   slug: string,
   language: LanguageCode
-): { readonly full: string; readonly short: string } {
+): { readonly full: string; readonly short: string; readonly rootScript: string } {
+  const files = resolveEpisodeStoryOutputFiles(outputDirectory, slug, language);
   return {
-    full: path.join(outputDirectory, `${slug}-${language}-full.md`),
-    short: path.join(outputDirectory, `${slug}-${language}-short.md`),
+    full: files.full,
+    short: files.short,
+    rootScript: files.rootScript,
   };
 }
 
@@ -678,7 +709,7 @@ function buildFailedOutputFiles(
   readonly report: string;
   readonly raw: string;
 } {
-  const layout = resolveBatchStorageLayout(outputDirectory);
+  const layout = resolveBatchStorageLayout(path.join(outputDirectory, slug));
   const episodeFolder = slug;
   const failedDir = path.join(layout.failedDir, episodeFolder, language);
   return {
@@ -861,12 +892,28 @@ export async function localizeStoryEpisode(
   const logger = options.logger ?? createLogger("info");
   const client = options.client ?? (await loadOpenAiClient(config));
   if (options.preflightConnectivity ?? false) {
-    await preflightOpenAiConnectivity(client, config.model, 10_000);
+    await preflightOpenAiConnectivity(client, config.model, 60_000);
   }
-  const cacheDir = resolveCacheDirectory(config.outputDirectory);
-  await ensureDir(cacheDir);
   const { parsed, facts } = await prepareParsedStory(sourceFile);
+  const cacheDir = resolveEpisodeCacheDirectory(config.outputDirectory, parsed.slug);
+  await ensureDir(cacheDir);
   await ensureCacheFacts(cacheDir, parsed.sourceHash, facts);
+  const analysis = analyzeStorySource(parsed, facts);
+  const bible = buildStoryBible(parsed, facts, analysis);
+  const originalityReview = buildOriginalityReview(parsed, facts, analysis);
+  const retentionPlan = buildRetentionPlan(parsed, bible);
+  const protectedElements = buildProtectedStoryElements(bible);
+  await ensureDir(resolveEpisodeStoryProductionDirectory(cacheDir, parsed));
+  await persistStoryProductionStage(cacheDir, parsed, "raw-source");
+  await persistStoryProductionArtifact(cacheDir, parsed, "source-analysis.json", analysis);
+  await persistStoryProductionStage(cacheDir, parsed, "source-analysis");
+  await persistStoryProductionArtifact(cacheDir, parsed, "story-bible.json", bible);
+  await persistStoryProductionStage(cacheDir, parsed, "story-bible");
+  await persistStoryProductionArtifact(cacheDir, parsed, "originality-review.json", originalityReview);
+  await persistStoryProductionStage(cacheDir, parsed, "originality-review");
+  await persistStoryProductionArtifact(cacheDir, parsed, "retention-plan.json", retentionPlan);
+  await persistStoryProductionArtifact(cacheDir, parsed, "protected-elements.json", protectedElements);
+  await persistStoryProductionStage(cacheDir, parsed, "retention-plan");
   const profileEn = getLanguageProfile("en");
   const outputFiles = buildOutputFiles(config.outputDirectory, parsed.slug, "en");
   const generatedFiles: string[] = [];
@@ -897,7 +944,7 @@ export async function localizeStoryEpisode(
   if (cachedEntry) {
     cacheHit = true;
   }
-  const englishShortPath = path.join(config.outputDirectory, `${parsed.slug}-en-short.md`);
+    const englishShortPath = outputFiles.short;
   const englishShortPackage = await (async () => {
     try {
       if (!config.includeEnglishShort) {
@@ -906,7 +953,13 @@ export async function localizeStoryEpisode(
       if (cachedEntry && (await fileExists(englishShortPath))) {
         return buildEnglishShortPackage(parsed);
       }
-      const prompt = buildShortPromptConfig("en", parsed, facts, config.adaptationMode);
+      await persistStoryProductionStage(cacheDir, parsed, "english-short-generation");
+      const prompt = buildShortPromptConfig("en", parsed, facts, config.adaptationMode, {
+        analysis,
+        bible,
+        originalityReview,
+        retentionPlan,
+      });
       const generated = await generateStructuredStoryPackage<Pick<GeneratedStoryPackage, "short" | "preservationChecklist" | "diagnostics">>(
         client,
         config.model,
@@ -965,6 +1018,7 @@ export async function localizeStoryEpisode(
       if (issues.length > 0) {
         throw new StoryLocalizationValidationError(issues.join("; "));
       }
+      await persistStoryProductionStage(cacheDir, parsed, "english-short-validation");
       return packageValue;
     } catch (error) {
       languageFailures.push(error instanceof Error ? error.message : String(error));
@@ -1015,14 +1069,20 @@ export async function localizeStoryEpisode(
     model: config.model,
     language: "en",
     generatedAt: new Date().toISOString(),
-    outputFiles: config.includeEnglishShort ? [outputFiles.full, englishShortPath] : [outputFiles.full],
+      outputFiles: config.includeEnglishShort ? [outputFiles.full, englishShortPath] : [outputFiles.full],
     inputTokens,
     outputTokens,
   });
   for (const language of config.languages) {
     const profile = getLanguageProfile(language);
     const localizedOutputFiles = buildOutputFiles(config.outputDirectory, parsed.slug, language);
-    const languagePrompt = buildFullPromptConfig(language, parsed, facts, config.adaptationMode);
+    await persistStoryProductionStage(cacheDir, parsed, "localized-long-form-generation");
+    const languagePrompt = buildFullPromptConfig(language, parsed, facts, config.adaptationMode, {
+      analysis,
+      bible,
+      originalityReview,
+      retentionPlan,
+    });
     let generatedValueForFailure: unknown;
     try {
       const generated = await generateStructuredStoryPackage<GeneratedStoryPackage>(
@@ -1107,6 +1167,8 @@ export async function localizeStoryEpisode(
       } else {
         skippedFiles.push(localizedOutputFiles.short);
       }
+      await persistStoryProductionStage(cacheDir, parsed, "localized-long-form-validation");
+      await persistStoryProductionStage(cacheDir, parsed, "localized-short-generation");
       const outputFilesForCache = [localizedOutputFiles.full, localizedOutputFiles.short];
       await writeLocalizationCacheEntry(cacheDir, {
         sourceFile: parsed.sourceFile,
@@ -1130,6 +1192,7 @@ export async function localizeStoryEpisode(
         inputTokens,
         outputTokens,
       });
+      await persistStoryProductionStage(cacheDir, parsed, "localized-short-validation");
     } catch (error) {
       const failureMessage = error instanceof Error ? error.message : String(error);
       languageFailures.push(`${language}: ${failureMessage}`);
@@ -1171,6 +1234,7 @@ export async function localizeStoryEpisode(
     estimatedCostUsd: cost.estimatedCostUsd,
     ...(languageFailures.length > 0 ? { failure: languageFailures.join("; ") } : {}),
   };
+  await persistStoryProductionStage(cacheDir, parsed, languageFailures.length > 0 ? "failed" : "completed");
   logger.info({ episodeId: parsed.slug, ...result } satisfies LoggerContext, "localized story episode");
   return result;
 }

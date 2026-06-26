@@ -23,6 +23,20 @@ import {
   buildLocalizationPrompt,
 } from "./localization-prompt-builder.js";
 import {
+  analyzeStorySource,
+  buildOriginalityReview,
+  buildProtectedStoryElements,
+  buildRetentionPlan,
+  buildStoryBible,
+  persistStoryProductionArtifact,
+  persistStoryProductionStage,
+  resolveEpisodeStoryProductionDirectory,
+  type OriginalityReview,
+  type RetentionBeat,
+  type StoryBible,
+  type StorySourceAnalysis,
+} from "./story-production.js";
+import {
   parseBatchOutputJsonl,
   type OpenAiBatchOutputLine,
   type OpenAiStoryClient,
@@ -60,7 +74,8 @@ import { estimateStoryLocalizationCost } from "./story-localization.cost-tracker
 import {
   readCanonicalFactsCache,
   readLocalizationCacheEntry,
-  resolveCacheDirectory,
+  resolveEpisodeCacheDirectory,
+  resolveEpisodeStoryOutputFiles,
   writeCanonicalFactsCache,
   writeLocalizationCacheEntry,
   buildConfigurationHash,
@@ -182,10 +197,13 @@ function buildOutputFiles(
 ): {
   readonly full: string;
   readonly short: string;
+  readonly rootScript: string;
 } {
+  const files = resolveEpisodeStoryOutputFiles(outputDirectory, slug, language);
   return {
-    full: path.join(outputDirectory, `${slug}-${language}-full.md`),
-    short: path.join(outputDirectory, `${slug}-${language}-short.md`),
+    full: files.full,
+    short: files.short,
+    rootScript: files.rootScript,
   };
 }
 
@@ -227,10 +245,37 @@ async function ensureCachedFacts(
   }
 }
 
+function buildProductionContext(
+  parsed: Awaited<ReturnType<typeof parseCanonicalSourceStory>>,
+  facts: CanonicalStoryFacts
+): {
+  readonly analysis: StorySourceAnalysis;
+  readonly bible: StoryBible;
+  readonly originalityReview: OriginalityReview;
+  readonly retentionPlan: readonly RetentionBeat[];
+  readonly protectedElements: readonly ReturnType<typeof buildProtectedStoryElements>[number][];
+} {
+  const analysis = analyzeStorySource(parsed, facts);
+  const bible = buildStoryBible(parsed, facts, analysis);
+  return {
+    analysis,
+    bible,
+    originalityReview: buildOriginalityReview(parsed, facts, analysis),
+    retentionPlan: buildRetentionPlan(parsed, bible),
+    protectedElements: buildProtectedStoryElements(bible),
+  };
+}
+
 function englishShortBody(
   config: StoryLocalizationConfig,
   sourceFile: Awaited<ReturnType<typeof parseCanonicalSourceStory>>,
-  facts: CanonicalStoryFacts
+  facts: CanonicalStoryFacts,
+  productionContext?: {
+    readonly analysis?: StorySourceAnalysis;
+    readonly bible?: StoryBible;
+    readonly originalityReview?: OriginalityReview;
+    readonly retentionPlan?: ReadonlyArray<RetentionBeat>;
+  }
 ): Record<string, unknown> {
   const prompt = buildLocalizationPrompt({
     languageProfile: getLanguageProfile("en"),
@@ -238,6 +283,7 @@ function englishShortBody(
     sourceStory: sourceFile,
     canonicalFacts: facts,
     target: "short",
+    ...(productionContext ? { productionContext } : {}),
   });
   return {
     model: config.model,
@@ -258,7 +304,13 @@ function localizationBody(
   config: StoryLocalizationConfig,
   language: Exclude<LanguageCode, "en">,
   sourceFile: Awaited<ReturnType<typeof parseCanonicalSourceStory>>,
-  facts: CanonicalStoryFacts
+  facts: CanonicalStoryFacts,
+  productionContext?: {
+    readonly analysis?: StorySourceAnalysis;
+    readonly bible?: StoryBible;
+    readonly originalityReview?: OriginalityReview;
+    readonly retentionPlan?: ReadonlyArray<RetentionBeat>;
+  }
 ): Record<string, unknown> {
   const prompt = buildLocalizationPrompt({
     languageProfile: getLanguageProfile(language),
@@ -266,6 +318,7 @@ function localizationBody(
     sourceStory: sourceFile,
     canonicalFacts: facts,
     target: "full",
+    ...(productionContext ? { productionContext } : {}),
   });
   return {
     model: config.model,
@@ -313,11 +366,23 @@ function buildEnglishShortBatchItem(args: {
   readonly config: StoryLocalizationConfig;
   readonly configurationHash: string;
   readonly retryNumber?: number;
+  readonly productionContext: {
+    readonly analysis: StorySourceAnalysis;
+    readonly bible: StoryBible;
+    readonly originalityReview: OriginalityReview;
+    readonly retentionPlan: readonly RetentionBeat[];
+    readonly protectedElements: ReadonlyArray<ReturnType<typeof buildProtectedStoryElements>[number]>;
+  };
 }): {
   readonly requestItem: StoryBatchItem;
   readonly manifestItem: LocalBatchManifestItem;
 } {
-  const body = englishShortBody(args.config, args.parsed, args.facts);
+  const body = englishShortBody(
+    args.config,
+    args.parsed,
+    args.facts,
+    args.productionContext
+  );
   const outputFiles = buildOutputFiles(
     args.config.outputDirectory,
     args.parsed.slug,
@@ -371,6 +436,13 @@ function buildLocalizationBatchItem(args: {
   readonly language: Exclude<LanguageCode, "en">;
   readonly configurationHash: string;
   readonly retryNumber?: number;
+  readonly productionContext: {
+    readonly analysis: StorySourceAnalysis;
+    readonly bible: StoryBible;
+    readonly originalityReview: OriginalityReview;
+    readonly retentionPlan: readonly RetentionBeat[];
+    readonly protectedElements: ReadonlyArray<ReturnType<typeof buildProtectedStoryElements>[number]>;
+  };
 }): {
   readonly requestItem: StoryBatchItem;
   readonly manifestItem: LocalBatchManifestItem;
@@ -379,7 +451,8 @@ function buildLocalizationBatchItem(args: {
     args.config,
     args.language,
     args.parsed,
-    args.facts
+    args.facts,
+    args.productionContext
   );
   const outputFiles = buildOutputFiles(
     args.config.outputDirectory,
@@ -435,15 +508,55 @@ async function buildBatchItems(
   readonly manifestItems: readonly LocalBatchManifestItem[];
   readonly skippedCachedItemCount: number;
 }> {
-  const cacheDir = resolveCacheDirectory(config.outputDirectory);
-  await ensureDir(cacheDir);
   const requestItems: StoryBatchItem[] = [];
   const manifestItems: LocalBatchManifestItem[] = [];
   let skippedCachedItemCount = 0;
   for (const sourcePath of sourceFiles) {
     const parsed = await parseCanonicalSourceStory(sourcePath);
     const facts = extractCanonicalStoryFacts(parsed);
+    const cacheDir = resolveEpisodeCacheDirectory(
+      config.outputDirectory,
+      parsed.slug
+    );
+    await ensureDir(cacheDir);
     await ensureCachedFacts(cacheDir, parsed.sourceHash, facts);
+    const productionContext = buildProductionContext(parsed, facts);
+    await ensureDir(resolveEpisodeStoryProductionDirectory(cacheDir, parsed));
+    await persistStoryProductionStage(cacheDir, parsed, "raw-source");
+    await persistStoryProductionArtifact(
+      cacheDir,
+      parsed,
+      "source-analysis.json",
+      productionContext.analysis
+    );
+    await persistStoryProductionStage(cacheDir, parsed, "source-analysis");
+    await persistStoryProductionArtifact(
+      cacheDir,
+      parsed,
+      "story-bible.json",
+      productionContext.bible
+    );
+    await persistStoryProductionStage(cacheDir, parsed, "story-bible");
+    await persistStoryProductionArtifact(
+      cacheDir,
+      parsed,
+      "originality-review.json",
+      productionContext.originalityReview
+    );
+    await persistStoryProductionStage(cacheDir, parsed, "originality-review");
+    await persistStoryProductionArtifact(
+      cacheDir,
+      parsed,
+      "retention-plan.json",
+      productionContext.retentionPlan
+    );
+    await persistStoryProductionArtifact(
+      cacheDir,
+      parsed,
+      "protected-elements.json",
+      productionContext.protectedElements
+    );
+    await persistStoryProductionStage(cacheDir, parsed, "retention-plan");
     if (config.includeEnglishShort) {
       const configHash = buildCacheKey({
         sourceHash: parsed.sourceHash,
@@ -473,6 +586,7 @@ async function buildBatchItems(
           facts,
           config,
           configurationHash: configHash,
+          productionContext,
         });
         requestItems.push(item.requestItem);
         manifestItems.push(item.manifestItem);
@@ -513,6 +627,7 @@ async function buildBatchItems(
         config,
         language,
         configurationHash: configHash,
+        productionContext,
       });
       requestItems.push(item.requestItem);
       manifestItems.push(item.manifestItem);
@@ -537,6 +652,47 @@ async function buildRetryBatchItems(args: {
       fromRepositoryRelativePath(retryItem.sourcePath)
     );
     const facts = extractCanonicalStoryFacts(parsed);
+    const cacheDir = resolveEpisodeCacheDirectory(
+      args.config.outputDirectory,
+      parsed.slug
+    );
+    const productionContext = buildProductionContext(parsed, facts);
+    await ensureDir(resolveEpisodeStoryProductionDirectory(cacheDir, parsed));
+    await persistStoryProductionStage(cacheDir, parsed, "raw-source");
+    await persistStoryProductionArtifact(
+      cacheDir,
+      parsed,
+      "source-analysis.json",
+      productionContext.analysis
+    );
+    await persistStoryProductionStage(cacheDir, parsed, "source-analysis");
+    await persistStoryProductionArtifact(
+      cacheDir,
+      parsed,
+      "story-bible.json",
+      productionContext.bible
+    );
+    await persistStoryProductionStage(cacheDir, parsed, "story-bible");
+    await persistStoryProductionArtifact(
+      cacheDir,
+      parsed,
+      "originality-review.json",
+      productionContext.originalityReview
+    );
+    await persistStoryProductionStage(cacheDir, parsed, "originality-review");
+    await persistStoryProductionArtifact(
+      cacheDir,
+      parsed,
+      "retention-plan.json",
+      productionContext.retentionPlan
+    );
+    await persistStoryProductionArtifact(
+      cacheDir,
+      parsed,
+      "protected-elements.json",
+      productionContext.protectedElements
+    );
+    await persistStoryProductionStage(cacheDir, parsed, "retention-plan");
     if (retryItem.operation === "english-short") {
       const item = buildEnglishShortBatchItem({
         parsed,
@@ -544,6 +700,7 @@ async function buildRetryBatchItems(args: {
         config: args.config,
         configurationHash: retryItem.configurationHash,
         retryNumber: nextRetryNumber,
+        productionContext,
       });
       requestItems.push(item.requestItem);
       manifestItems.push(item.manifestItem);
@@ -557,6 +714,7 @@ async function buildRetryBatchItems(args: {
         language: retryItem.language,
         configurationHash: retryItem.configurationHash,
         retryNumber: nextRetryNumber,
+        productionContext,
       });
       requestItems.push(item.requestItem);
       manifestItems.push(item.manifestItem);
@@ -756,7 +914,10 @@ async function importEnglishShortResult(args: {
   if (shortWrite === "written") {
     persisted.push(outputFiles.short);
   }
-  const cacheDir = resolveCacheDirectory(args.config.outputDirectory);
+  const cacheDir = resolveEpisodeCacheDirectory(
+    args.config.outputDirectory,
+    args.sourceFile.slug
+  );
   await writeLocalizationCacheEntry(cacheDir, {
     sourceFile: args.sourceFile.sourceFile,
     sourceHash: args.sourceFile.sourceHash,
@@ -819,7 +980,10 @@ async function importLocalizationResult(args: {
     ),
     true
   );
-  const cacheDir = resolveCacheDirectory(args.config.outputDirectory);
+  const cacheDir = resolveEpisodeCacheDirectory(
+    args.config.outputDirectory,
+    args.sourceFile.slug
+  );
   await writeLocalizationCacheEntry(cacheDir, {
     sourceFile: args.sourceFile.sourceFile,
     sourceHash: args.sourceFile.sourceHash,
@@ -893,6 +1057,10 @@ export async function importStoryLocalizationBatch(
         const sourceFile = await parseCanonicalSourceStory(
           fromRepositoryRelativePath(item.sourcePath)
         );
+        const cacheDir = resolveEpisodeCacheDirectory(
+          config.outputDirectory,
+          sourceFile.slug
+        );
         const facts = extractCanonicalStoryFacts(sourceFile);
         try {
           const line =
@@ -932,8 +1100,9 @@ export async function importStoryLocalizationBatch(
                   sourceFile,
                   facts,
                   config,
-                });
+              });
           persistedFiles.push(...persisted);
+          await persistStoryProductionStage(cacheDir, sourceFile, "completed");
           nextItems.push({
             ...item,
             status: "persisted",
@@ -957,6 +1126,7 @@ export async function importStoryLocalizationBatch(
           });
         } catch (error) {
           failedItemCount += 1;
+          await persistStoryProductionStage(cacheDir, sourceFile, "failed");
           nextItems.push({
             ...item,
             status:

@@ -148,16 +148,18 @@ async function printDryRunSummary(
   config: ReturnType<typeof createStoryLocalizationConfig>
 ): Promise<void> {
   const planned = selected.map((candidate) => {
-    const base = path.join(
+    const episodeRoot = path.join(
       config.outputDirectory,
       `${candidate.episodeNumber}-${candidate.slug}`
     );
     const files = [
-      `${base}-en-full.md`,
-      ...(config.includeEnglishShort ? [`${base}-en-short.md`] : []),
+      path.join(episodeRoot, "script.md"),
+      ...(config.includeEnglishShort
+        ? [path.join(episodeRoot, "en", "short", "script.md")]
+        : []),
       ...config.languages.flatMap((language: Exclude<LanguageCode, "en">) => [
-        `${base}-${language}-full.md`,
-        `${base}-${language}-short.md`,
+        path.join(episodeRoot, language, "full", "script.md"),
+        path.join(episodeRoot, language, "short", "script.md"),
       ]),
     ];
     return {
@@ -216,39 +218,47 @@ function summarizeResults(
       .length,
     englishShorts: results.filter((result: StoryLocalizationEpisodeResult) =>
       result.generatedFiles.some((file: string) =>
-        file.endsWith("-en-short.md")
+        file.endsWith(path.join("en", "short", "script.md"))
       )
     ).length,
     germanFull: results.filter((result: StoryLocalizationEpisodeResult) =>
-      result.generatedFiles.some((file: string) => file.endsWith("-de-full.md"))
+      result.generatedFiles.some((file: string) =>
+        file.endsWith(path.join("de", "full", "script.md"))
+      )
     ).length,
     germanShort: results.filter((result: StoryLocalizationEpisodeResult) =>
       result.generatedFiles.some((file: string) =>
-        file.endsWith("-de-short.md")
+        file.endsWith(path.join("de", "short", "script.md"))
       )
     ).length,
     spanishFull: results.filter((result: StoryLocalizationEpisodeResult) =>
-      result.generatedFiles.some((file: string) => file.endsWith("-es-full.md"))
+      result.generatedFiles.some((file: string) =>
+        file.endsWith(path.join("es", "full", "script.md"))
+      )
     ).length,
     spanishShort: results.filter((result: StoryLocalizationEpisodeResult) =>
       result.generatedFiles.some((file: string) =>
-        file.endsWith("-es-short.md")
+        file.endsWith(path.join("es", "short", "script.md"))
       )
     ).length,
     frenchFull: results.filter((result: StoryLocalizationEpisodeResult) =>
-      result.generatedFiles.some((file: string) => file.endsWith("-fr-full.md"))
+      result.generatedFiles.some((file: string) =>
+        file.endsWith(path.join("fr", "full", "script.md"))
+      )
     ).length,
     frenchShort: results.filter((result: StoryLocalizationEpisodeResult) =>
       result.generatedFiles.some((file: string) =>
-        file.endsWith("-fr-short.md")
+        file.endsWith(path.join("fr", "short", "script.md"))
       )
     ).length,
     portugueseFull: results.filter((result: StoryLocalizationEpisodeResult) =>
-      result.generatedFiles.some((file: string) => file.endsWith("-pt-full.md"))
+      result.generatedFiles.some((file: string) =>
+        file.endsWith(path.join("pt", "full", "script.md"))
+      )
     ).length,
     portugueseShort: results.filter((result: StoryLocalizationEpisodeResult) =>
       result.generatedFiles.some((file: string) =>
-        file.endsWith("-pt-short.md")
+        file.endsWith(path.join("pt", "short", "script.md"))
       )
     ).length,
     skippedFiles: results.flatMap((result) => result.skippedFiles),

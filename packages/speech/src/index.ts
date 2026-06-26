@@ -86,6 +86,12 @@ function makeWavHeader(sampleRate: number, channels: number, bitsPerSample: numb
   return buffer;
 }
 
+function describePayloadPrefix(buffer: Buffer): string {
+  const prefix = buffer.subarray(0, Math.min(buffer.byteLength, 16));
+  const ascii = prefix.toString("ascii").replace(/[^\x20-\x7E]/gu, ".");
+  return `payloadPrefixAscii=${JSON.stringify(ascii)}, payloadPrefixHex=${prefix.toString("hex")}, byteLength=${buffer.byteLength}`;
+}
+
 interface WavMetadata {
   readonly sampleRate: number;
   readonly channels: number;
@@ -105,7 +111,7 @@ interface WavQualityMetrics {
 
 function parseWavMetadata(filePath: string, buffer: Buffer): WavMetadata {
   if (buffer.byteLength < 12 || buffer.toString("ascii", 0, 4) !== "RIFF" || buffer.toString("ascii", 8, 12) !== "WAVE") {
-    throw new ProviderResponseError(`Invalid WAV file: ${filePath}`);
+    throw new ProviderResponseError(`Invalid WAV file: ${filePath}. ${describePayloadPrefix(buffer)}`);
   }
   let sampleRate = 0;
   let channels = 0;
@@ -119,12 +125,12 @@ function parseWavMetadata(filePath: string, buffer: Buffer): WavMetadata {
     const chunkSize = buffer.readUInt32LE(offset + 4);
     const chunkStart = offset + 8;
     const chunkEnd = chunkStart + chunkSize;
-    if (chunkEnd > buffer.byteLength) {
-      throw new ProviderResponseError(`Invalid WAV chunk in ${filePath}`);
-    }
     if (chunkId === "fmt ") {
+      if (chunkEnd > buffer.byteLength) {
+        throw new ProviderResponseError(`Invalid WAV chunk in ${filePath}. offset=${offset}, chunkId=${JSON.stringify(chunkId)}, chunkSize=${chunkSize}, ${describePayloadPrefix(buffer)}`);
+      }
       if (chunkSize < 16) {
-        throw new ProviderResponseError(`Invalid WAV fmt chunk in ${filePath}`);
+        throw new ProviderResponseError(`Invalid WAV fmt chunk in ${filePath}. offset=${offset}, chunkId=${JSON.stringify(chunkId)}, chunkSize=${chunkSize}, ${describePayloadPrefix(buffer)}`);
       }
       const audioFormat = buffer.readUInt16LE(chunkStart);
       channels = buffer.readUInt16LE(chunkStart + 2);
@@ -132,21 +138,23 @@ function parseWavMetadata(filePath: string, buffer: Buffer): WavMetadata {
       blockAlign = buffer.readUInt16LE(chunkStart + 12);
       bitsPerSample = buffer.readUInt16LE(chunkStart + 14);
       if (audioFormat !== 1) {
-        throw new ProviderResponseError(`Unsupported WAV encoding in ${filePath}`);
+        throw new ProviderResponseError(`Unsupported WAV encoding in ${filePath}. offset=${offset}, chunkId=${JSON.stringify(chunkId)}, chunkSize=${chunkSize}, ${describePayloadPrefix(buffer)}`);
       }
     } else if (chunkId === "data") {
       dataOffset = chunkStart;
-      dataSize = chunkSize;
+      dataSize = chunkEnd > buffer.byteLength ? buffer.byteLength - chunkStart : chunkSize;
       break;
+    } else if (chunkEnd > buffer.byteLength) {
+      throw new ProviderResponseError(`Invalid WAV chunk in ${filePath}. offset=${offset}, chunkId=${JSON.stringify(chunkId)}, chunkSize=${chunkSize}, ${describePayloadPrefix(buffer)}`);
     }
     offset = chunkEnd + (chunkSize % 2);
   }
   if (sampleRate <= 0 || channels <= 0 || bitsPerSample !== 16 || blockAlign !== channels * 2 || dataOffset < 0 || dataSize <= 0) {
-    throw new ProviderResponseError(`Invalid WAV header metadata in ${filePath}`);
+    throw new ProviderResponseError(`Invalid WAV header metadata in ${filePath}. ${describePayloadPrefix(buffer)}`);
   }
   const frames = dataSize / blockAlign;
   if (!Number.isFinite(frames) || frames <= 0 || !Number.isInteger(frames)) {
-    throw new ProviderResponseError(`Invalid WAV duration metadata in ${filePath}`);
+    throw new ProviderResponseError(`Invalid WAV duration metadata in ${filePath}. ${describePayloadPrefix(buffer)}`);
   }
   return {
     sampleRate,
@@ -206,6 +214,13 @@ function analyzeWavQuality(buffer: Buffer, metadata: WavMetadata): WavQualityMet
   };
 }
 
+function describeAudioPayload(buffer: Buffer): string {
+  const prefix = buffer.subarray(0, Math.min(buffer.byteLength, 16));
+  const ascii = prefix.toString("ascii").replace(/[^\x20-\x7E]/gu, ".");
+  const hex = prefix.toString("hex");
+  return `payloadPrefixAscii=${JSON.stringify(ascii)}, payloadPrefixHex=${hex}, byteLength=${buffer.byteLength}`;
+}
+
 function validateSpeechAudioPayload(
   filePath: string,
   buffer: Buffer,
@@ -245,7 +260,7 @@ function validateSpeechAudioPayload(
   }
   if (reasons.length > 0) {
     throw new ProviderResponseError(
-      `OpenAI speech provider returned audio that failed quality validation for ${filePath}: ${reasons.join("; ")}.`
+      `OpenAI speech provider returned audio that failed quality validation for ${filePath}: ${reasons.join("; ")}. ${describeAudioPayload(buffer)}`
     );
   }
   return metadata;

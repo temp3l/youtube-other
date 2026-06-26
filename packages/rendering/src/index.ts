@@ -1021,10 +1021,13 @@ class RemoteClipRenderer implements ClipRenderer {
           path.join(workspace.inputDir, path.basename(inputFile.remotePath))
         )
       ),
-      fs.copyFile(
-        path.join(workspace.metadataDir, "job-manifest.json"),
-        path.join(workspace.metadataDir, "job-manifest.json")
-      ),
+    ]);
+    await spawnWithResult("ssh", [
+      ...buildSshArgs(this.settings),
+      `${this.settings.user}@${this.settings.host}`,
+      "mkdir",
+      "-p",
+      workspace.remoteRoot,
     ]);
     const remoteTarget = `${this.settings.user}@${this.settings.host}:${workspace.remoteRoot}/`;
     await spawnWithResult("rsync", [
@@ -1197,6 +1200,14 @@ class HybridClipRenderScheduler {
     }
     const localErrors: string[] = [];
     const remoteErrors: string[] = [];
+    const remoteQueue = this.remoteRenderer
+      .renderBatch(remoteJobs)
+      .catch((error: unknown) => {
+        remoteErrors.push(
+          error instanceof Error ? error.message : String(error)
+        );
+        return [];
+      });
     const localQueue = promisePool(
       localJobs,
       this.localConcurrency,
@@ -1208,14 +1219,6 @@ class HybridClipRenderScheduler {
           return undefined;
         })
     );
-    const remoteQueue = this.remoteRenderer
-      .renderBatch(remoteJobs)
-      .catch((error: unknown) => {
-        remoteErrors.push(
-          error instanceof Error ? error.message : String(error)
-        );
-        return [];
-      });
     const [localResults, remoteResults] = await Promise.all([
       localQueue,
       remoteQueue,

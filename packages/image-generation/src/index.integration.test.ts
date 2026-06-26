@@ -91,7 +91,8 @@ describe("image workflow", () => {
     await fs.mkdir(episodeDir, { recursive: true });
     const referenceDir = path.join(
       episodeDir,
-      "generated-assets",
+      "shared",
+      "images",
       "character-references"
     );
     await fs.mkdir(referenceDir, { recursive: true });

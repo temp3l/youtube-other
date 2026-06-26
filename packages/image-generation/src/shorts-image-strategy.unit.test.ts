@@ -122,8 +122,9 @@ describe("shorts image strategy", () => {
     const outputDir = path.join(tempDir, "short", "images", "generated");
     await fs.mkdir(episodeDir, { recursive: true });
     await fs.mkdir(landscapeDir, { recursive: true });
+    await fs.mkdir(path.join(episodeDir, "shared"), { recursive: true });
     await fs.writeFile(
-      path.join(episodeDir, "characters.json"),
+      path.join(episodeDir, "shared", "characters.json"),
       JSON.stringify({ episodeId: "episode-1", characters: [], updatedAt: new Date().toISOString() })
     );
     const scenePlan = makeScenePlan(6);
@@ -190,8 +191,9 @@ describe("shorts image strategy", () => {
     const outputDir = path.join(tempDir, "short", "images", "generated");
     await fs.mkdir(episodeDir, { recursive: true });
     await fs.mkdir(landscapeDir, { recursive: true });
+    await fs.mkdir(path.join(episodeDir, "shared"), { recursive: true });
     await fs.writeFile(
-      path.join(episodeDir, "characters.json"),
+      path.join(episodeDir, "shared", "characters.json"),
       JSON.stringify({ episodeId: "episode-1", characters: [], updatedAt: new Date().toISOString() })
     );
     const scenePlan = makeScenePlan(2);

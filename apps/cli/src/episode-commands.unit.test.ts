@@ -152,7 +152,12 @@ describe("episode commands", () => {
     );
     expect(
       await fs.readFile(
-        path.join(outputRoot, "002-even-killers-can-lick", "characters.json"),
+        path.join(
+          outputRoot,
+          "002-even-killers-can-lick",
+          "shared",
+          "characters.json"
+        ),
         "utf8"
       )
     ).toContain("002-even-killers-can-lick");

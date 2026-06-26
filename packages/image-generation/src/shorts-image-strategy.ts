@@ -5,6 +5,7 @@ import { z } from "zod";
 import { type ScenePlan } from "@mediaforge/domain";
 import {
   type CharacterRegistry,
+  resolveCharacterRegistryPath,
   type EpisodeImagePipelineSettings,
   type ImageGenerator,
   type SceneVisualSpec,
@@ -284,8 +285,15 @@ async function loadCharacterRegistry(
   episodeDir: string,
   episodeId: string
 ): Promise<CharacterRegistry> {
-  const registryPath = path.join(episodeDir, "characters.json");
+  const registryPath = resolveCharacterRegistryPath(episodeDir);
   if (!(await fileExists(registryPath))) {
+    const legacyRegistryPath = path.join(episodeDir, "characters.json");
+    if (await fileExists(legacyRegistryPath)) {
+      const parsed = registrySchema.parse(
+        JSON.parse(await fs.readFile(legacyRegistryPath, "utf8")) as unknown
+      ) as CharacterRegistryFile;
+      return parsed;
+    }
     return {
       episodeId,
       characters: [],
