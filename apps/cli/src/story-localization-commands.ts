@@ -70,6 +70,13 @@ function resolveSelection(
 }
 
 function buildCommandConfig(options: StoryLocalizationCliOptions): ReturnType<typeof createStoryLocalizationConfig> {
+  const rawArgs = new Set(process.argv.slice(2));
+  const commandText = [
+    process.env["MEDIAFORGE_NPM_SCRIPT_COMMAND"] ?? "",
+    process.argv.join(" "),
+  ].join(" ");
+  const hasDryRunFlag = rawArgs.has("--dry-run") || commandText.includes("--dry-run");
+  const hasValidateOnlyFlag = rawArgs.has("--validate-only") || commandText.includes("--validate-only");
   return createStoryLocalizationConfig({
     sourceDirectory: options.sourceDir ?? resolveDefaultSourceDirectory(),
     outputDirectory: options.outputDir ?? resolveDefaultOutputDirectory(),
@@ -82,8 +89,8 @@ function buildCommandConfig(options: StoryLocalizationCliOptions): ReturnType<ty
     concurrency: options.concurrency ?? 2,
     model: options.model ?? "gpt-4o-mini",
     force: options.force ?? false,
-    dryRun: options.dryRun ?? false,
-    validateOnly: options.validateOnly ?? false,
+    dryRun: options.dryRun || hasDryRunFlag,
+    validateOnly: options.validateOnly || hasValidateOnlyFlag,
     verbose: options.verbose ?? false,
   });
 }
@@ -93,7 +100,7 @@ async function printDryRunSummary(
   config: ReturnType<typeof createStoryLocalizationConfig>
 ): Promise<void> {
   const planned = selected.map((candidate) => {
-    const base = path.join(config.outputDirectory, `${candidate.slug}`);
+    const base = path.join(config.outputDirectory, `${candidate.episodeNumber}-${candidate.slug}`);
     const files = [
       `${base}-en-full.md`,
       ...(config.includeEnglishShort ? [`${base}-en-short.md`] : []),
@@ -182,6 +189,19 @@ export async function commandStoriesLocalize(options: StoryLocalizationCliOption
 }
 
 export function registerStoryLocalizationCommands(program: Command): void {
+  const normalizeCommandFlags = (opts: StoryLocalizationCliOptions): StoryLocalizationCliOptions => {
+    const rawArgs = new Set(process.argv.slice(2));
+    const commandText = [
+      process.env["MEDIAFORGE_NPM_SCRIPT_COMMAND"] ?? "",
+      process.argv.join(" "),
+    ].join(" ");
+    return {
+      ...opts,
+      dryRun: opts.dryRun || rawArgs.has("--dry-run") || commandText.includes("--dry-run"),
+      validateOnly: opts.validateOnly || rawArgs.has("--validate-only") || commandText.includes("--validate-only"),
+    };
+  };
+
   program
     .command("stories")
     .description("Story localization utilities")
@@ -203,5 +223,5 @@ export function registerStoryLocalizationCommands(program: Command): void {
     .option("--dry-run", "show the plan only")
     .option("--validate-only", "validate existing outputs only")
     .option("--verbose", "enable verbose logging")
-    .action(async (opts: StoryLocalizationCliOptions) => commandStoriesLocalize(opts));
+    .action(async (opts: StoryLocalizationCliOptions) => commandStoriesLocalize(normalizeCommandFlags(opts)));
 }
