@@ -8,16 +8,17 @@ import { buildLocalizationPrompt } from "./localization-prompt-builder.js";
 import { extractCanonicalStoryFacts } from "./canonical-facts.service.js";
 import { discoverCanonicalSourceStories, resolveDefaultOutputDirectory, resolveDefaultSourceDirectory } from "./source-story-discovery.js";
 import { parseCanonicalSourceStory } from "./source-story-parser.js";
-import { generatedStoryPackageSchema, EnglishGeneratedStoryPackageSchema } from "./story-localization.schemas.js";
+import { generatedStoryPackageSchema, EnglishFullGeneratedStoryPackageSchema, EnglishGeneratedStoryPackageSchema } from "./story-localization.schemas.js";
 import { renderLocalizedFullStory, renderLocalizedShort } from "./story-markdown-renderer.js";
 import { buildConfigurationHash, readCanonicalFactsCache, readLocalizationCacheEntry, resolveEpisodeCacheDirectory, resolveEpisodeStoryOutputFiles, writeCanonicalFactsCache, writeLocalizationCacheEntry } from "./story-localization-cache.js";
 import { estimateStoryLocalizationCost } from "./story-localization.cost-tracker.js";
 import { StoryLocalizationApiError, StoryLocalizationConfigurationError, StoryLocalizationSchemaError, StoryLocalizationValidationError } from "./story-localization.errors.js";
-import { copyFileAtomicIfChanged, countWords, estimateDurationSeconds, writeJsonAtomicIfChanged, writeTextAtomicIfChanged } from "./story-localization.utils.js";
+import { countWords, estimateDurationSeconds, writeJsonAtomicIfChanged, writeTextAtomicIfChanged } from "./story-localization.utils.js";
 import { languageCodes, type CanonicalStoryFacts, type GeneratedStoryPackage, type LanguageCode, type LanguageProfile, type ModelPricing, type ParsedSourceStory, type StoryLocalizationConfig, type StoryLocalizationEpisodeResult, type StoryLocalizationRunCounts, type StoryLocalizationRunResult } from "./story-localization.types.js";
 import { detectForbiddenPhrases, detectGenericFiller, validateGeneratedStoryPackage, validateWrittenMessagesPreserved } from "./generated-story-validator.js";
 import { createOpenAiStoryClient, type OpenAiStoryClient } from "./story-localization-openai-batch.js";
 import { runStoryLocalizationInBatchMode } from "./story-localization-batch-service.js";
+import { rewriteShortStories } from "./short-rewrite.service.js";
 import { resolveBatchStorageLayout, toRepositoryRelativePath } from "./story-localization-batch-storage.js";
 import {
   analyzeStorySource,
@@ -40,10 +41,12 @@ export interface StoryLocalizationOptions {
   readonly logger?: ReturnType<typeof createLogger>;
   readonly modelPricing?: Readonly<Record<string, ModelPricing>>;
   readonly preflightConnectivity?: boolean;
+  readonly signal?: AbortSignal;
 }
 
 const generatedPackageResponseSchema = generatedStoryPackageSchema;
 const englishPackageResponseSchema = EnglishGeneratedStoryPackageSchema;
+const englishFullPackageResponseSchema = EnglishFullGeneratedStoryPackageSchema;
 const shortRewriteRetryInstructions = [
   "Rewrite only the short narration so it fits the target range.",
   "Preserve the exact meaning, proper names, written messages, and plot-critical details.",
@@ -151,7 +154,7 @@ function buildShortPromptConfig(
 }
 
 function buildFullPromptConfig(
-  language: Exclude<LanguageCode, "en">,
+  language: LanguageCode,
   sourceStory: ParsedSourceStory,
   canonicalFacts: CanonicalStoryFacts,
   adaptationMode: StoryLocalizationConfig["adaptationMode"],
@@ -175,7 +178,7 @@ function buildFullPromptConfig(
 function responseSchemaForLanguage(language: LanguageCode): unknown {
   const schema =
     language === "en"
-      ? englishPackageResponseSchema
+      ? englishFullPackageResponseSchema
       : z.object({
           language: z.enum(languageCodes),
           full: generatedStoryPackageSchema.shape.full.unwrap(),
@@ -231,6 +234,7 @@ function describeOpenAiStoryLocalizationError(error: unknown): string {
         readonly message?: unknown;
         readonly code?: unknown;
       };
+      readonly cause?: unknown;
     };
     const nestedCode =
       typeof record.error?.code === "string" ? record.error.code : undefined;
@@ -250,6 +254,7 @@ function describeOpenAiStoryLocalizationError(error: unknown): string {
     if (
       isConnectivityError(record) ||
       isConnectivityError(record.error) ||
+      isConnectivityError(record.cause) ||
       isConnectivityError(record.message)
     ) {
       return `Connection/transport error while calling OpenAI${codeSuffix}${status}: ${message}`;
@@ -600,6 +605,18 @@ function hasShortLengthIssue(issues: readonly string[]): boolean {
   );
 }
 
+function filterEnglishFullValidationIssues(issues: readonly string[]): string[] {
+  return issues.filter(
+    (issue) =>
+      !issue.startsWith("short:") &&
+      issue !== "Written messages are not preserved." &&
+      issue !== "Short narration is empty." &&
+      issue !== "Short contains forbidden boilerplate." &&
+      issue !== "Short contains editorial commentary." &&
+      issue !== "Short contains generic filler."
+  );
+}
+
 function buildLocalizedShortNarrationFromFull(
   packageValue: GeneratedStoryPackage,
   profile: LanguageProfile
@@ -772,7 +789,8 @@ async function persistFailedLocalizedOutput(args: {
       const fullMarkdown = renderLocalizedFullStory(
         args.parsed.episodeNumber,
         packageValue.full,
-        args.language
+        args.language,
+        args.parsed.sourceHash
       );
       await writeTextAtomicIfChanged(files.full, fullMarkdown, true);
       persistedFiles.push(files.full);
@@ -832,57 +850,6 @@ async function maybeReuseExistingOutput(filePath: string, expectedContent: strin
   return writeTextAtomicIfChanged(filePath, expectedContent, force);
 }
 
-function buildEnglishShortPackage(
-  source: ParsedSourceStory,
-  profile = getLanguageProfile("en")
-): {
-  readonly language: "en";
-  readonly full: undefined;
-  readonly short: GeneratedStoryPackage["short"];
-  readonly preservationChecklist: GeneratedStoryPackage["preservationChecklist"];
-  readonly diagnostics: GeneratedStoryPackage["diagnostics"];
-} {
-  const narration = source.narrationParagraphs.slice(0, 4);
-  const shortText = narration.join(" ");
-  return {
-    language: "en",
-    full: undefined,
-    short: {
-      title: source.title,
-      narrationInstructions: [
-        "Use the same narrator as the full episode.",
-        `Keep the pace close to ${profile.shortNarrationWpm} words per minute.`,
-        "Begin immediately and keep the hook visible from the first sentence.",
-      ],
-      narrationParagraphs: narration,
-      thumbnailText: source.metadata.thumbnailText ?? source.title.slice(0, 50),
-      description: source.metadata.seoDescription ?? shortText,
-      hashtags: source.metadata.hashtags.length > 0 ? source.metadata.hashtags : profile.defaultShortHashtags,
-      targetNarrationWpm: profile.shortNarrationWpm,
-      recommendedDurationSeconds: { min: 55, max: 65 },
-      visualGuidance: source.metadata.visualDirection ?? "Use short, high-contrast shots with a clear opening threat.",
-    },
-    preservationChecklist: {
-      charactersPreserved: true,
-      relationshipsPreserved: true,
-      chronologyPreserved: true,
-      criticalObjectsPreserved: true,
-      cluesPreserved: true,
-      writtenMessagesPreserved: true,
-      primaryRevealPreserved: true,
-      endingPreserved: true,
-      noNewPlotElementsAdded: true,
-    },
-    diagnostics: {
-      fullWordCount: countWords(source.narrationParagraphs.join(" ")),
-      shortWordCount: countWords(shortText),
-      shortEstimatedDurationSeconds: estimateDurationSeconds(countWords(shortText), profile.shortNarrationWpm),
-      removedGenericFiller: [],
-      adaptationNotes: ["Derived directly from the English full story."],
-    },
-  };
-}
-
 export async function localizeStoryEpisode(
   sourceFile: string,
   config: StoryLocalizationConfig,
@@ -923,10 +890,66 @@ export async function localizeStoryEpisode(
   let repairAttempts = 0;
   let cacheHit = false;
   const languageFailures: string[] = [];
-  const sourceCopyResult = await copyFileAtomicIfChanged(parsed.sourceFile, outputFiles.full, config.force);
-  if (sourceCopyResult === "written") {
-    generatedFiles.push(outputFiles.full);
-  } else {
+  let englishFullPackage: GeneratedStoryPackage | undefined;
+  const englishFullPrompt = buildFullPromptConfig("en", parsed, facts, config.adaptationMode, {
+    analysis,
+    bible,
+    originalityReview,
+    retentionPlan,
+  });
+  try {
+    await persistStoryProductionStage(cacheDir, parsed, "localized-long-form-generation");
+    const generated = await generateStructuredStoryPackage<GeneratedStoryPackage>(
+      client,
+      config.model,
+      "English full story localization",
+      englishFullPrompt.system,
+      englishFullPrompt.user,
+      responseSchemaForLanguage("en"),
+      90_000,
+      (value) => {
+        const issues: string[] = [];
+        try {
+          const packageValue = parseGeneratedPackage(value as unknown, "en");
+          issues.push(
+            ...filterEnglishFullValidationIssues(
+              validateGeneratedStoryPackage(packageValue, facts, profileEn, parsed, "en")
+            )
+          );
+          if (!packageValue.full) {
+            issues.push("Missing full story payload for en.");
+          }
+        } catch (error) {
+          issues.push(error instanceof Error ? error.message : String(error));
+        }
+        return issues;
+      }
+    );
+    repairAttempts += generated.repaired ? 1 : 0;
+    inputTokens += generated.inputTokens;
+    outputTokens += generated.outputTokens;
+    englishFullPackage = parseGeneratedPackage(generated.value, "en");
+    if (!englishFullPackage.full) {
+      throw new StoryLocalizationSchemaError("Missing full story payload for en.");
+    }
+    const englishFullMarkdown = renderLocalizedFullStory(
+      parsed.episodeNumber,
+      englishFullPackage.full,
+      "en",
+      parsed.sourceHash
+    );
+    const fullWrite = await maybeReuseExistingOutput(
+      outputFiles.full,
+      englishFullMarkdown,
+      config.force
+    );
+    if (fullWrite === "written") {
+      generatedFiles.push(outputFiles.full);
+    } else {
+      skippedFiles.push(outputFiles.full);
+    }
+    } catch (error) {
+    languageFailures.push(error instanceof Error ? error.message : String(error));
     skippedFiles.push(outputFiles.full);
   }
   const shortCacheKey = buildCacheKey({
@@ -944,135 +967,76 @@ export async function localizeStoryEpisode(
   if (cachedEntry) {
     cacheHit = true;
   }
-    const englishShortPath = outputFiles.short;
-  const englishShortPackage = await (async () => {
-    try {
-      if (!config.includeEnglishShort) {
-        return buildEnglishShortPackage(parsed);
-      }
-      if (cachedEntry && (await fileExists(englishShortPath))) {
-        return buildEnglishShortPackage(parsed);
-      }
-      await persistStoryProductionStage(cacheDir, parsed, "english-short-generation");
-      const prompt = buildShortPromptConfig("en", parsed, facts, config.adaptationMode, {
-        analysis,
-        bible,
-        originalityReview,
-        retentionPlan,
-      });
-      const generated = await generateStructuredStoryPackage<Pick<GeneratedStoryPackage, "short" | "preservationChecklist" | "diagnostics">>(
-        client,
-        config.model,
-        "English short story localization",
-        prompt.system,
-        prompt.user,
-        responseSchemaForLanguage("en"),
-        60_000,
-        (value) => {
-          const issues: string[] = [];
-          try {
-            const parsedValue = parseEnglishPackage(value);
-            const packageValue: GeneratedStoryPackage = {
-              language: "en",
-              full: undefined,
-              short: parsedValue.short,
-              preservationChecklist: parsedValue.preservationChecklist,
-              diagnostics: {
-                fullWordCount: parsedValue.diagnostics.fullWordCount ?? 0,
-                shortWordCount: parsedValue.diagnostics.shortWordCount,
-                shortEstimatedDurationSeconds: parsedValue.diagnostics.shortEstimatedDurationSeconds,
-                removedGenericFiller: parsedValue.diagnostics.removedGenericFiller,
-                adaptationNotes: parsedValue.diagnostics.adaptationNotes,
-              },
-            };
-            issues.push(...validateGeneratedStoryPackage(packageValue, facts, profileEn, parsed, "en"));
-          } catch (error) {
-            issues.push(error instanceof Error ? error.message : String(error));
-          }
-          return issues;
-        },
-        {
-          retryLabel: "English short story localization length repair",
-          shouldRetry: hasShortLengthIssue,
-          retryInstructions: shortRewriteRetryInstructions,
-        }
-      );
-      repairAttempts += generated.repaired ? 1 : 0;
-      inputTokens += generated.inputTokens;
-      outputTokens += generated.outputTokens;
-      const parsedResult = parseEnglishPackage(generated.value);
-      const packageValue: GeneratedStoryPackage = {
-        language: "en",
-        full: undefined,
-        short: parsedResult.short,
-        preservationChecklist: parsedResult.preservationChecklist,
-        diagnostics: {
-          fullWordCount: parsedResult.diagnostics.fullWordCount ?? 0,
-          shortWordCount: parsedResult.diagnostics.shortWordCount,
-          shortEstimatedDurationSeconds: parsedResult.diagnostics.shortEstimatedDurationSeconds,
-          removedGenericFiller: parsedResult.diagnostics.removedGenericFiller,
-          adaptationNotes: parsedResult.diagnostics.adaptationNotes,
-        },
-      };
-      const issues = validateGeneratedStoryPackage(packageValue, facts, profileEn, parsed, "en");
-      if (issues.length > 0) {
-        throw new StoryLocalizationValidationError(issues.join("; "));
-      }
-      await persistStoryProductionStage(cacheDir, parsed, "english-short-validation");
-      return packageValue;
-    } catch (error) {
-      languageFailures.push(error instanceof Error ? error.message : String(error));
-      return buildEnglishShortPackage(parsed);
-    }
-  })();
+  const englishShortPath = outputFiles.short;
+  const englishCacheOutputFiles: string[] = [];
   if (config.includeEnglishShort) {
-    const englishShortContent = [
-      `# Short ${parsed.episodeNumber} — ${englishShortPackage.short.title}`,
-      "",
-      "## Narration Instructions",
-      "",
-      ...englishShortPackage.short.narrationInstructions.map((line) => `- ${line}`),
-      "",
-      "## Narration Script",
-      "",
-      englishShortPackage.short.narrationParagraphs.join("\n\n"),
-      "",
-      "## Short Metadata",
-      "",
-      `**Primary title:** ${englishShortPackage.short.title}`,
-      "",
-      `**Thumbnail text:** ${englishShortPackage.short.thumbnailText}`,
-      "",
-      `**Description:** ${englishShortPackage.short.description}`,
-      "",
-      `**Hashtags:** ${englishShortPackage.short.hashtags.join(" ")}`,
-      "",
-      "**Format:** 1080 × 1920, 9:16 vertical",
-      "",
-      `**Recommended duration:** approximately ${englishShortPackage.short.recommendedDurationSeconds.min}–${englishShortPackage.short.recommendedDurationSeconds.max} seconds`,
-      "",
-      `**Visual guidance:** ${englishShortPackage.short.visualGuidance}`,
-      "",
-    ].join("\n");
-    const shortWrite = await maybeReuseExistingOutput(englishShortPath, englishShortContent, config.force);
-    if (shortWrite === "written") {
-      generatedFiles.push(englishShortPath);
-    } else {
+    if (!englishFullPackage) {
+      languageFailures.push(
+        "English short generation requires a validated generated English full story."
+      );
       skippedFiles.push(englishShortPath);
+    } else {
+      await persistStoryProductionStage(cacheDir, parsed, "english-short-generation");
+      try {
+        const shortSummary = await rewriteShortStories(
+          {
+            inputPath: outputFiles.full,
+            episodeSlug: parsed.slug,
+            outputRoot: config.outputDirectory,
+            languages: ["en"],
+            model: config.model,
+            temperature: undefined,
+            reasoningEffort: undefined,
+            maxConcurrency: 1,
+            timeoutMs: 90_000,
+            maxRetries: 2,
+            overwrite: config.force,
+            resume: false,
+            dryRun: false,
+            force: config.force,
+            verbose: config.verbose,
+            json: false,
+          },
+          {
+            client,
+            logger,
+            ...(options.signal ? { signal: options.signal } : {}),
+          }
+        );
+        inputTokens += shortSummary.inputTokens;
+        outputTokens += shortSummary.outputTokens;
+        for (const artifact of shortSummary.artifacts) {
+          const markdownPath = path.join(config.outputDirectory, parsed.slug, artifact.markdownOutputPath);
+          if (artifact.status === "completed") {
+            generatedFiles.push(markdownPath);
+          } else {
+            skippedFiles.push(markdownPath);
+          }
+        }
+        if (shortSummary.completed > 0) {
+          englishCacheOutputFiles.push(outputFiles.full, englishShortPath);
+        }
+      } catch (error) {
+        const failureMessage = error instanceof Error ? error.message : String(error);
+        languageFailures.push(failureMessage);
+        skippedFiles.push(englishShortPath);
+      }
     }
   }
-  await writeLocalizationCacheEntry(cacheDir, {
-    sourceFile: parsed.sourceFile,
-    sourceHash: parsed.sourceHash,
-    configurationHash: shortCacheKey,
-    promptVersion: config.promptVersion,
-    model: config.model,
-    language: "en",
-    generatedAt: new Date().toISOString(),
-      outputFiles: config.includeEnglishShort ? [outputFiles.full, englishShortPath] : [outputFiles.full],
-    inputTokens,
-    outputTokens,
-  });
+  if (englishFullPackage) {
+    await writeLocalizationCacheEntry(cacheDir, {
+      sourceFile: parsed.sourceFile,
+      sourceHash: parsed.sourceHash,
+      configurationHash: shortCacheKey,
+      promptVersion: config.promptVersion,
+      model: config.model,
+      language: "en",
+      generatedAt: new Date().toISOString(),
+      outputFiles: englishCacheOutputFiles.length > 0 ? englishCacheOutputFiles : [outputFiles.full],
+      inputTokens,
+      outputTokens,
+    });
+  }
   for (const language of config.languages) {
     const profile = getLanguageProfile(language);
     const localizedOutputFiles = buildOutputFiles(config.outputDirectory, parsed.slug, language);
@@ -1153,7 +1117,7 @@ export async function localizeStoryEpisode(
       if (!generatedFull) {
         throw new StoryLocalizationSchemaError(`Missing full story payload for ${language}.`);
       }
-      const fullMarkdown = renderLocalizedFullStory(parsed.episodeNumber, generatedFull, language);
+      const fullMarkdown = renderLocalizedFullStory(parsed.episodeNumber, generatedFull, language, parsed.sourceHash);
       const shortMarkdown = renderLocalizedShort(parsed.episodeNumber, generatedPackage.short, language);
       const fullWrite = await writeTextAtomicIfChanged(localizedOutputFiles.full, fullMarkdown, config.force);
       const shortWriteLocalized = await writeTextAtomicIfChanged(localizedOutputFiles.short, shortMarkdown, config.force);

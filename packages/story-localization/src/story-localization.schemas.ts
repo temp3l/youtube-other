@@ -292,6 +292,14 @@ export const EnglishGeneratedStoryPackageSchema = z.object({
 
 export type EnglishGeneratedStoryPackageShape = z.infer<typeof EnglishGeneratedStoryPackageSchema>;
 
+export const EnglishFullGeneratedStoryPackageSchema = generatedStoryPackageSchema.extend({
+  full: generatedStoryPackageSchema.shape.full.unwrap(),
+});
+
+export type EnglishFullGeneratedStoryPackageShape = z.infer<
+  typeof EnglishFullGeneratedStoryPackageSchema
+>;
+
 export const openAIBatchRequestLineSchema = z.object({
   custom_id: z.string().min(1),
   method: z.literal("POST"),

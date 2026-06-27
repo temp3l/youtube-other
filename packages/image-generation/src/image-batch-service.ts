@@ -228,7 +228,7 @@ function imageManifestPath(layout: ImageBatchStorageLayout, localBatchId: string
 function sceneManifestPathForOutput(outputPath: string, sceneId: string): string {
   return path.join(
     path.dirname(path.dirname(outputPath)),
-    "image-manifests",
+    "manifests",
     `${sceneId}.json`
   );
 }
@@ -369,9 +369,14 @@ function classifyBatchFailure(
 }
 
 function resolveEpisodeDir(outputDirectory: string): string {
-  return path.basename(outputDirectory) === "generated-assets"
-    ? path.dirname(outputDirectory)
-    : outputDirectory;
+  const basename = path.basename(outputDirectory);
+  if (basename === "generated-assets") {
+    return path.dirname(outputDirectory);
+  }
+  if (basename === "image-generation") {
+    return path.dirname(path.dirname(outputDirectory));
+  }
+  return outputDirectory;
 }
 
 function normalizeImageBatchQuality(

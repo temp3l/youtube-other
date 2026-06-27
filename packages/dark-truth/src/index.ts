@@ -1,5 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
+import sharp from "sharp";
 import { z } from "zod";
 import {
   type Scene,
@@ -24,6 +25,7 @@ import {
   loadSpeechVoiceSettings,
   MockSpeechProvider,
 } from "@mediaforge/speech";
+import { loadEpisodeConfig } from "@mediaforge/config";
 import {
   buildSrt,
   buildVtt,
@@ -39,7 +41,7 @@ import {
   writeTextAtomic,
 } from "@mediaforge/shared";
 
-export type SpeechVoicePreset = "slow" | "fast";
+export type SpeechVoicePreset = "slow" | "fast" | "very-fast";
 
 export const supportedLanguages = ["en", "de", "es", "fr"] as const;
 export type SupportedLanguage = (typeof supportedLanguages)[number];
@@ -404,57 +406,88 @@ function resolveSpeechFallbackModels(model: string): string[] {
   return [];
 }
 
+function resolveEpisodeRootDir(episodePath: string): string {
+  return path.dirname(path.dirname(episodePath));
+}
+
+function normalizeSpeechVoicePreset(
+  value: string | undefined
+): SpeechVoicePreset | undefined {
+  if (value === "slow" || value === "fast" || value === "very-fast") {
+    return value;
+  }
+  return undefined;
+}
+
+async function resolveSpeechVoicePreset(
+  episodeRootDir: string,
+  fallback: SpeechVoicePreset
+): Promise<SpeechVoicePreset> {
+  const envPreset = normalizeSpeechVoicePreset(
+    process.env["MEDIAFORGE_SPEECH_VOICE_PRESET"]
+  );
+  if (envPreset) {
+    return envPreset;
+  }
+  const episodeConfig = await loadEpisodeConfig(episodeRootDir);
+  return normalizeSpeechVoicePreset(episodeConfig?.speechVoicePreset) ?? fallback;
+}
+
 function createSpeechProvider(
+  episodeRootDir: string,
   language: SupportedLanguage,
   artifactType: ArtifactType
-): { readonly provider: MockSpeechProvider | OpenAiCompatibleSpeechProvider; readonly voiceProfile: ReturnType<typeof loadSpeechVoiceSettings>["profile"] } {
-  const preset: SpeechVoicePreset = "fast";
+): Promise<{ readonly provider: MockSpeechProvider | OpenAiCompatibleSpeechProvider; readonly voiceProfile: ReturnType<typeof loadSpeechVoiceSettings>["profile"] }> {
+  const fallbackPreset: SpeechVoicePreset = artifactType === "short" ? "very-fast" : "fast";
   const configuredVoice = resolveTtsVoice(language, artifactType);
-  const voiceSettings = loadSpeechVoiceSettings({
-    preset,
-    language,
-    ...(configuredVoice ? { voice: configuredVoice } : {}),
-    ...(process.env["OPENAI_TTS_MODEL"]
-      ? { model: process.env["OPENAI_TTS_MODEL"] }
-      : {}),
-  });
-  if (!isPaidProviderOptInEnabled()) {
+  return resolveSpeechVoicePreset(episodeRootDir, fallbackPreset).then((preset) => {
+    const voiceSettings = loadSpeechVoiceSettings({
+      preset,
+      language,
+      ...(configuredVoice ? { voice: configuredVoice } : {}),
+      ...(process.env["OPENAI_TTS_MODEL"]
+        ? { model: process.env["OPENAI_TTS_MODEL"] }
+        : {}),
+    });
+    if (!isPaidProviderOptInEnabled()) {
+      return {
+        provider: new MockSpeechProvider(),
+        voiceProfile: voiceSettings.profile,
+      };
+    }
+    const apiKey = process.env["OPENAI_API_KEY"];
+    if (!apiKey) {
+      throw new Error(
+        "DARK_TRUTH_ENABLE_PAID_PROVIDERS=true requires OPENAI_API_KEY for narration generation."
+      );
+    }
+    const organization =
+      process.env["OPENAI_ORGANIZATION"] ?? process.env["OPENAI_ORG_ID"];
+    const model = process.env["OPENAI_TTS_MODEL"] ?? voiceSettings.model;
+    const provider = new OpenAiCompatibleSpeechProvider({
+      apiKey,
+      ...(process.env["OPENAI_BASE_URL"]
+        ? { baseUrl: process.env["OPENAI_BASE_URL"] }
+        : {}),
+      ...(organization ? { organization } : {}),
+      ...(process.env["OPENAI_PROJECT"]
+        ? { project: process.env["OPENAI_PROJECT"] }
+        : {}),
+      model,
+      fallbackModels: resolveSpeechFallbackModels(model),
+      voice: configuredVoice ?? voiceSettings.voice,
+      instructions: voiceSettings.instructions,
+      ...(voiceSettings.speed !== undefined ? { speed: voiceSettings.speed } : {}),
+      responseFormat: resolveTtsFormat(),
+    });
     return {
-      provider: new MockSpeechProvider(),
-      voiceProfile: voiceSettings.profile,
+      provider,
+      voiceProfile: {
+        ...voiceSettings.profile,
+        ...(configuredVoice ? { providerVoiceId: configuredVoice } : {}),
+      },
     };
-  }
-  const apiKey = process.env["OPENAI_API_KEY"];
-  if (!apiKey) {
-    throw new Error(
-      "DARK_TRUTH_ENABLE_PAID_PROVIDERS=true requires OPENAI_API_KEY for narration generation."
-    );
-  }
-  const organization =
-    process.env["OPENAI_ORGANIZATION"] ?? process.env["OPENAI_ORG_ID"];
-  const model = process.env["OPENAI_TTS_MODEL"] ?? voiceSettings.model;
-  const provider = new OpenAiCompatibleSpeechProvider({
-    apiKey,
-    ...(process.env["OPENAI_BASE_URL"]
-      ? { baseUrl: process.env["OPENAI_BASE_URL"] }
-      : {}),
-    ...(organization ? { organization } : {}),
-    ...(process.env["OPENAI_PROJECT"]
-      ? { project: process.env["OPENAI_PROJECT"] }
-      : {}),
-    model,
-    fallbackModels: resolveSpeechFallbackModels(model),
-    voice: configuredVoice ?? voiceSettings.voice,
-    instructions: voiceSettings.instructions,
-    responseFormat: resolveTtsFormat(),
   });
-  return {
-    provider,
-    voiceProfile: {
-      ...voiceSettings.profile,
-      ...(configuredVoice ? { providerVoiceId: configuredVoice } : {}),
-    },
-  };
 }
 
 function normalizeHeading(value: string): string {
@@ -1285,6 +1318,54 @@ export async function generateCanonicalImages(
     localSceneStyle,
     localSceneNegativePrompt
   );
+  const scenesById = new Map(
+    scenePlan.scenes.map((scene: Scene) => [scene.id, scene] as const)
+  );
+  const buildAssetRecord = async (
+    scene: Scene,
+    targetPath: string,
+    imageModel: string,
+    sourcePath?: string
+  ) => {
+    const metadata = await sharp(targetPath).metadata();
+    return {
+      assetId: `asset-${String(scene.sequenceNumber).padStart(3, "0")}`,
+      canonicalSceneId: scene.id,
+      filename: path.basename(targetPath),
+      relativePath: path.relative(sharedDir, targetPath),
+      sha256: await hashFile(targetPath),
+      width: metadata.width ?? 1920,
+      height: metadata.height ?? 1080,
+      aspectRatio: "16:9",
+      imageModel,
+      prompt: scene.imagePrompt,
+      promptSha256: hashText(scene.imagePrompt),
+      sourceNarrationSha256: hashText(scene.canonicalNarration),
+      creationTimestamp: nowIso(),
+      reviewState: "approved",
+      languageUsage: ["en"],
+      fullVideoUsage: true,
+      shortUsage: true,
+      ...(sourcePath ? { sourcePath } : {}),
+    };
+  };
+  const assetRecordsBySceneId = new Map<string, Awaited<ReturnType<typeof buildAssetRecord>>>();
+  const pendingPrompts: typeof prompts = [];
+  for (const prompt of prompts) {
+    const scene = scenesById.get(prompt.sceneId);
+    if (!scene) {
+      throw new Error(`Missing scene for prompt ${prompt.sceneId}.`);
+    }
+    const targetPath = path.join(imageDir, path.basename(prompt.expectedFilename));
+    if (await fileExists(targetPath)) {
+      assetRecordsBySceneId.set(
+        scene.id,
+        await buildAssetRecord(scene, targetPath, "existing", targetPath)
+      );
+      continue;
+    }
+    pendingPrompts.push(prompt);
+  }
   if (isPaidProviderOptInEnabled()) {
     const apiKey = process.env["OPENAI_API_KEY"];
     if (!apiKey) {
@@ -1293,26 +1374,25 @@ export async function generateCanonicalImages(
       );
     }
     const settings = loadOpenAiImageGenerationSettings(process.env);
-    const scenesById = new Map(
-      scenePlan.scenes.map((scene: Scene) => [scene.id, scene] as const)
-    );
-    const results = await generateOpenAiSceneImages(
-      prompts.map((prompt) => {
-        const scene = scenesById.get(prompt.sceneId);
-        if (!scene) {
-          throw new Error(`Missing scene for prompt ${prompt.sceneId}.`);
-        }
-        return {
-          scene,
-          prompt: prompt.prompt,
-          episodeSlug: scenePlan.sourceId,
-          episodeDir: sharedDir,
-          normalizedFilename: prompt.expectedFilename,
-        };
-      }),
-      settings
-    );
-    const assetRecords = await Promise.all(
+    const results = pendingPrompts.length > 0
+      ? await generateOpenAiSceneImages(
+          pendingPrompts.map((prompt) => {
+            const scene = scenesById.get(prompt.sceneId);
+            if (!scene) {
+              throw new Error(`Missing scene for prompt ${prompt.sceneId}.`);
+            }
+            return {
+              scene,
+              prompt: prompt.prompt,
+              episodeSlug: scenePlan.sourceId,
+              episodeDir: sharedDir,
+              normalizedFilename: prompt.expectedFilename,
+            };
+          }),
+          settings
+        )
+      : [];
+    await Promise.all(
       results.map(async (result) => {
         const sourcePath = result.renderedPath ?? result.sourcePath;
         const targetPath = path.join(imageDir, path.basename(sourcePath));
@@ -1323,7 +1403,7 @@ export async function generateCanonicalImages(
         if (!scene) {
           throw new Error(`Missing scene for image result ${result.sceneId}.`);
         }
-        return {
+        assetRecordsBySceneId.set(scene.id, {
           assetId: `asset-${String(scene.sequenceNumber).padStart(3, "0")}`,
           canonicalSceneId: scene.id,
           filename: path.basename(targetPath),
@@ -1341,9 +1421,16 @@ export async function generateCanonicalImages(
           languageUsage: ["en"],
           fullVideoUsage: true,
           shortUsage: true,
-        };
+        });
       })
     );
+    const assetRecords = prompts.map((prompt) => {
+      const record = assetRecordsBySceneId.get(prompt.sceneId);
+      if (!record) {
+        throw new Error(`Missing image asset record for scene ${prompt.sceneId}.`);
+      }
+      return record;
+    });
     const manifestPath = path.join(sharedDir, "image-manifest.json");
     await writeJsonAtomic(manifestPath, {
       episodeId: scenePlan.sourceId,
@@ -1367,6 +1454,12 @@ export async function generateCanonicalImages(
       continue;
     }
     const imagePath = path.join(imageDir, prompt.expectedFilename);
+    if (await fileExists(imagePath)) {
+      const asset = await buildAssetRecord(scene, imagePath, "existing", imagePath);
+      assets.push(imagePath);
+      assetRecords.push(asset);
+      continue;
+    }
     const asset = await createPlaceholderImage(imagePath, scene, "16:9");
     assets.push(imagePath);
     assetRecords.push({
@@ -1482,14 +1575,29 @@ export async function renderCleanVideo(
 
 async function loadVoiceProfile(
   language: SupportedLanguage,
-  artifactType: ArtifactType
+  artifactType: ArtifactType,
+  sourceFile?: string
 ): Promise<{
   readonly text: string;
   readonly path: string;
   readonly sha256: string;
   readonly preset: SpeechVoicePreset;
 }> {
-  const preset: SpeechVoicePreset = artifactType === "short" ? "fast" : "fast";
+  const preset =
+    sourceFile !== undefined
+      ? await resolveSpeechVoicePreset(
+          resolveEpisodeRootDir(sourceFile),
+          artifactType === "short" ? "very-fast" : "fast"
+        )
+      : artifactType === "short"
+        ? "very-fast"
+        : "fast";
+  const safePreset: SpeechVoicePreset =
+    preset === "slow" || preset === "fast" || preset === "very-fast"
+      ? preset
+      : artifactType === "short"
+        ? "very-fast"
+        : "fast";
   const suffix = artifactType === "short" ? "short" : "v1";
   const filePath = path.resolve(
     "config",
@@ -1497,7 +1605,7 @@ async function loadVoiceProfile(
     "dark-truth-documentary",
     `${language}-${suffix}.txt`
   );
-  const fallback = loadSpeechVoiceSettings({ preset, language }).instructions;
+  const fallback = loadSpeechVoiceSettings({ preset: safePreset, language }).instructions;
   const text = (await fileExists(filePath))
     ? await fs.readFile(filePath, "utf8")
     : fallback;
@@ -1505,7 +1613,7 @@ async function loadVoiceProfile(
     text,
     path: filePath,
     sha256: hashText(text),
-    preset,
+    preset: safePreset,
   };
 }
 
@@ -1753,7 +1861,8 @@ export async function buildSpeechPlan(
 ): Promise<SpeechPlan> {
   const voiceProfile = await loadVoiceProfile(
     parsed.language,
-    parsed.artifactType
+    parsed.artifactType,
+    parsed.sourceFile
   );
   const segments = buildSpeechSegments(parsed.narration, parsed.artifactType);
   const concatenated = segments.map((segment) => segment.text).join("\n\n");
@@ -1961,7 +2070,8 @@ export async function generateMockNarrationAudio(
   const narrationDir = path.join(episodeDir, "audio");
   const segmentsDir = path.join(narrationDir, "segments-speech");
   await ensureDir(segmentsDir);
-  const { provider, voiceProfile } = createSpeechProvider(
+  const { provider, voiceProfile } = await createSpeechProvider(
+    resolveEpisodeRootDir(episodeDir),
     speechPlan.language,
     speechPlan.artifactType
   );

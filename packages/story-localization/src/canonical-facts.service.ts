@@ -51,13 +51,40 @@ function extractCandidateNames(text: string): string[] {
     "With",
     "You",
   ]);
+  const trailingGenericNouns = new Set([
+    "Apartment",
+    "Bathroom",
+    "Bed",
+    "Cabin",
+    "Car",
+    "Door",
+    "Floor",
+    "Hall",
+    "Hallway",
+    "House",
+    "Kitchen",
+    "Lobby",
+    "Motel",
+    "Office",
+    "Room",
+    "Road",
+    "Street",
+    "Suite",
+    "Tent",
+    "Vehicle",
+    "Window",
+  ]);
   for (const match of text.matchAll(pattern)) {
     const candidate = normalizeWhitespace(match[1] ?? "");
-    const firstWord = candidate.split(/\s+/u)[0] ?? "";
+    const words = candidate.split(/\s+/u);
+    const firstWord = words[0] ?? "";
+    const lastWord = words.at(-1) ?? "";
     if (
       candidate.length > 0 &&
       firstWord.length > 0 &&
+      lastWord.length > 0 &&
       !leadingStopwords.has(firstWord) &&
+      !trailingGenericNouns.has(lastWord) &&
       !/^(Episode|Narration|Episode Metadata)$/u.test(candidate)
     ) {
       candidates.add(candidate);

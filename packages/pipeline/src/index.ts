@@ -70,10 +70,16 @@ import {
 import {
   buildSrt,
   ensureDir,
+  ensureEpisodeWorkspace,
   fileExists,
   hashFile,
   hashText,
+  createEpisodePathResolver,
+  normalizeLocaleCode,
   slugify,
+  type EpisodeId as SharedEpisodeId,
+  type LocaleCode,
+  type EpisodePathResolver,
   writeJsonAtomic,
   writeTextAtomic,
 } from "@mediaforge/shared";
@@ -296,6 +302,22 @@ function localizedTranscriptArtifactPaths(
   return [
     path.join(
       episodeDirPath,
+      "locales",
+      safeLanguage,
+      "full",
+      "transcript",
+      "original-transcript.json"
+    ),
+    path.join(
+      episodeDirPath,
+      "locales",
+      safeLanguage,
+      "full",
+      "transcript",
+      "transcript.json"
+    ),
+    path.join(
+      episodeDirPath,
       "audio",
       `whisper-transcript-${safeLanguage}.json`
     ),
@@ -351,6 +373,18 @@ function copySourceToWorkspace(
     );
 }
 
+function resolveEpisodeRelativePath(
+  episodeDirPath: string,
+  candidatePath: string | undefined
+): string | undefined {
+  if (!candidatePath) {
+    return undefined;
+  }
+  return path.isAbsolute(candidatePath)
+    ? candidatePath
+    : path.resolve(episodeDirPath, candidatePath);
+}
+
 export class MediaForgePipeline {
   public readonly cleaner;
   public readonly rewriter;
@@ -360,9 +394,11 @@ export class MediaForgePipeline {
   public readonly renderer: FFmpegVideoRenderer;
   public readonly sourceAdapter = new LocalFileSourceAdapter();
   private readonly speechSettings;
+  private readonly paths: EpisodePathResolver;
 
   public constructor(public readonly environment: MediaForgeEnvironment) {
     const config = environment.config;
+    this.paths = createEpisodePathResolver(config.workspaceDir);
     this.speechSettings = loadSpeechVoiceSettings({
       ...(config.speechVoicePreset ? { preset: config.speechVoicePreset } : {}),
       ...(config.scriptLanguage ? { language: config.scriptLanguage } : {}),
@@ -422,6 +458,9 @@ export class MediaForgePipeline {
               "onyx",
             ...(this.speechSettings.preset
               ? { preset: this.speechSettings.preset }
+              : {}),
+            ...(this.speechSettings.speed !== undefined
+              ? { speed: this.speechSettings.speed }
               : {}),
             ...(this.speechSettings.language
               ? { language: this.speechSettings.language }
@@ -502,6 +541,21 @@ export class MediaForgePipeline {
       : new FFmpegVideoRenderer();
   }
 
+  private episodeLocale(): LocaleCode {
+    return normalizeLocaleCode(this.environment.config.scriptLanguage ?? "en");
+  }
+
+  private episodeContext(
+    episodeId: SharedEpisodeId,
+    variant: "full" | "short" = "full"
+  ) {
+    return {
+      episodeId,
+      locale: this.episodeLocale(),
+      variant,
+    } as const;
+  }
+
   public async createEpisode(
     options: CreateEpisodeOptions
   ): Promise<EpisodeManifest> {
@@ -510,10 +564,10 @@ export class MediaForgePipeline {
       path.basename(options.filePath ?? options.url ?? "episode");
     const slug = options.slug ?? slugify(sourceLabel);
     const episodeId = createEpisodeId(slug);
-    const dir = episodeDir(this.environment.config.workspaceDir, slug);
-    await ensureDir(dir);
+    const sharedEpisodeId = episodeId as unknown as SharedEpisodeId;
+    const dir = this.paths.episodeRoot(sharedEpisodeId);
+    await ensureEpisodeWorkspace(this.paths, sharedEpisodeId);
     await Promise.all([
-      ensureDir(path.join(dir, "source")),
       ensureDir(path.join(dir, "transcript")),
       ensureDir(path.join(dir, "script")),
       ensureDir(path.join(dir, "audio", "segments")),
@@ -524,17 +578,16 @@ export class MediaForgePipeline {
       ensureDir(path.join(dir, "images", "rejected")),
       ensureDir(path.join(dir, "metadata")),
       ensureDir(path.join(dir, "output")),
-      ensureDir(path.join(dir, "logs")),
     ]);
     let source: EpisodeManifest["source"];
     if (options.filePath) {
       const sourceMediaPath = await copySourceToWorkspace(
         options.filePath,
-        path.join(dir, "source")
+        this.paths.sourceMediaDir(sharedEpisodeId)
       );
       source = {
         platform: "local-file",
-        filePath: sourceMediaPath,
+        filePath: path.relative(dir, sourceMediaPath),
       };
     } else if (options.url) {
       source = {
@@ -559,7 +612,7 @@ export class MediaForgePipeline {
         buildSrt(transcript.segments)
       );
     }
-    await saveManifest(path.join(dir, "manifest.json"), manifest);
+    await saveManifest(this.paths.manifestPath(sharedEpisodeId), manifest);
     this.environment.db.saveEpisodeManifest(manifest);
     return manifest;
   }
@@ -585,8 +638,8 @@ export class MediaForgePipeline {
       episodeDirPath,
       source
     );
-    const cleaned = await this.cleanTranscript(manifest, transcript);
-    const rewritten = await this.rewriteScript(manifest, cleaned);
+    const cleaned = await this.cleanTranscript(manifest, transcript, episodeDirPath);
+    const rewritten = await this.rewriteScript(manifest, cleaned, episodeDirPath);
     const scenes = await this.planScenes(manifest, transcript, rewritten);
     const limitedScenes =
       Number.isFinite(options.sceneLimit) && (options.sceneLimit ?? 0) > 0
@@ -687,6 +740,12 @@ export class MediaForgePipeline {
   }
 
   private async findManifestPath(episodeId: EpisodeId): Promise<string> {
+    const sharedEpisodeId = episodeId as unknown as SharedEpisodeId;
+    const direct = this.paths.manifestPath(sharedEpisodeId);
+    const directManifest = await loadManifest(direct);
+    if (directManifest?.episodeId === episodeId) {
+      return direct;
+    }
     const workspace = this.environment.config.workspaceDir;
     const entries = await fs
       .readdir(workspace, { withFileTypes: true })
@@ -709,7 +768,10 @@ export class MediaForgePipeline {
     episodeDirPath: string
   ): Promise<SourceMetadata> {
     if (manifest.source.platform === "local-file" && manifest.source.filePath) {
-      return createLocalSourceMetadata(manifest.source.filePath);
+      return createLocalSourceMetadata(
+        resolveEpisodeRelativePath(episodeDirPath, manifest.source.filePath) ??
+          manifest.source.filePath
+      );
     }
     if (manifest.source.url) {
       return {
@@ -732,6 +794,8 @@ export class MediaForgePipeline {
       this.environment.config.scriptLanguage ??
       manifest.transcript?.language ??
       "en";
+    const episodeId = manifest.episodeId as unknown as SharedEpisodeId;
+    const localeContext = this.episodeContext(episodeId, "full");
     const localizedTranscript = await loadLocalizedTranscriptArtifact(
       episodeDirPath,
       targetLanguage
@@ -748,19 +812,28 @@ export class MediaForgePipeline {
       const transcript = await this.transcription.transcribe(
         {
           sourceId: manifest.episodeId,
-          audioPath: manifest.source.filePath,
+          audioPath:
+            resolveEpisodeRelativePath(
+              episodeDirPath,
+              manifest.source.filePath
+            ) ?? manifest.source.filePath,
           episodeDir: episodeDirPath,
           language: targetLanguage,
         },
         new AbortController().signal
       );
       const transcriptPath = path.join(
-        episodeDirPath,
+        this.paths.localeVariantRoot(localeContext),
+        "transcript",
         "original-transcript.json"
       );
       await writeJsonAtomic(transcriptPath, transcript);
       await writeTextAtomic(
-        path.join(episodeDirPath, "original-transcript.srt"),
+        path.join(
+          this.paths.localeVariantRoot(localeContext),
+          "transcript",
+          "original-transcript.srt"
+        ),
         buildSrt(transcript.segments)
       );
       return transcript;
@@ -783,12 +856,17 @@ export class MediaForgePipeline {
         new AbortController().signal
       );
       const transcriptPath = path.join(
-        episodeDirPath,
+        this.paths.localeVariantRoot(localeContext),
+        "transcript",
         "original-transcript.json"
       );
       await writeJsonAtomic(transcriptPath, adapterResult.transcript);
       await writeTextAtomic(
-        path.join(episodeDirPath, "original-transcript.srt"),
+        path.join(
+          this.paths.localeVariantRoot(localeContext),
+          "transcript",
+          "original-transcript.srt"
+        ),
         buildSrt(adapterResult.transcript.segments)
       );
       return adapterResult.transcript;
@@ -797,7 +875,11 @@ export class MediaForgePipeline {
       const transcript = await this.transcription.transcribe(
         {
           sourceId: manifest.episodeId,
-          audioPath: manifest.source.filePath,
+          audioPath:
+            resolveEpisodeRelativePath(
+              episodeDirPath,
+              manifest.source.filePath
+            ) ?? manifest.source.filePath,
           episodeDir: episodeDirPath,
         },
         new AbortController().signal
@@ -811,12 +893,14 @@ export class MediaForgePipeline {
 
   private async cleanTranscript(
     manifest: EpisodeManifest,
-    transcript: Transcript
+    transcript: Transcript,
+    episodeDirPath: string
   ): Promise<CleanedTranscript> {
     const cleaned = await this.cleaner.clean(transcript);
     const transcriptDir = path.join(
-      this.environment.config.workspaceDir,
-      manifest.slug,
+      this.paths.localeVariantRoot(
+        this.episodeContext(manifest.episodeId as unknown as SharedEpisodeId, "full")
+      ),
       "transcript"
     );
     await writeJsonAtomic(
@@ -840,12 +924,14 @@ export class MediaForgePipeline {
 
   private async rewriteScript(
     manifest: EpisodeManifest,
-    transcript: CleanedTranscript
+    transcript: CleanedTranscript,
+    episodeDirPath: string
   ): Promise<RewrittenScript> {
     const rewritten = await this.rewriter.rewrite(transcript);
     const scriptDir = path.join(
-      this.environment.config.workspaceDir,
-      manifest.slug,
+      this.paths.localeVariantRoot(
+        this.episodeContext(manifest.episodeId as unknown as SharedEpisodeId, "full")
+      ),
       "script"
     );
     await writeJsonAtomic(
@@ -879,10 +965,8 @@ export class MediaForgePipeline {
         visualSceneMaxSeconds: this.environment.config.visualSceneMaxSeconds,
       }
     );
-    const filePath = path.join(
-      this.environment.config.workspaceDir,
-      manifest.slug,
-      "scenes.json"
+    const filePath = this.paths.canonicalScenesPath(
+      manifest.episodeId as unknown as SharedEpisodeId
     );
     await writeJsonAtomic(filePath, plan);
     return plan;
@@ -895,6 +979,10 @@ export class MediaForgePipeline {
   ): Promise<
     Array<{ sceneId: string; filePath: string; durationSeconds: number }>
   > {
+    const audioContext = this.episodeContext(
+      manifest.episodeId as unknown as SharedEpisodeId,
+      "full"
+    );
     const output: Array<{
       sceneId: string;
       filePath: string;
@@ -902,9 +990,7 @@ export class MediaForgePipeline {
     }> = [];
     for (const scene of plan.scenes) {
       const outputPath = path.join(
-        episodeDirPath,
-        "audio",
-        "segments",
+        this.paths.audioSegmentsDir(audioContext),
         `${scene.id}.wav`
       );
       const manifestPath = sceneAudioManifestPath(outputPath);
@@ -984,14 +1070,18 @@ export class MediaForgePipeline {
     episodeDirPath: string,
     segments: ReadonlyArray<{ filePath: string; durationSeconds: number }>
   ): Promise<string> {
-    const concatPath = path.join(episodeDirPath, "audio", "segments.txt");
+    const audioContext = this.episodeContext(
+      manifest.episodeId as unknown as SharedEpisodeId,
+      "full"
+    );
+    const concatPath = path.join(this.paths.audioDir(audioContext), "segments.txt");
     await writeTextAtomic(
       concatPath,
       segments
         .map((segment) => `file '${segment.filePath.replace(/'/g, "'\\''")}'`)
         .join("\n")
     );
-    const outputPath = path.join(episodeDirPath, "audio", "narration.wav");
+    const outputPath = this.paths.audioNarration(audioContext);
     const { runCommand } = await import("@mediaforge/process-runner");
     await runCommand(
       "ffmpeg",
@@ -1020,10 +1110,14 @@ export class MediaForgePipeline {
     transcript: Transcript
   ) {
     const captions = buildCaptionPack(transcript, plan);
-    const captionsDir = path.join(
-      this.environment.config.workspaceDir,
-      manifest.slug,
-      "captions"
+    const captionsDir = path.dirname(
+      this.paths.captionsFile(
+        this.episodeContext(
+          manifest.episodeId as unknown as SharedEpisodeId,
+          "full"
+        ),
+        "srt"
+      )
     );
     return Promise.all([
       writeTextAtomic(path.join(captionsDir, "captions.srt"), captions.srt),
@@ -1060,7 +1154,12 @@ export class MediaForgePipeline {
     episodeDirPath: string,
     missingOnly: boolean
   ): Promise<ImageAsset[]> {
-    const generatedDir = path.join(episodeDirPath, "images", "generated");
+    const generatedDir = path.dirname(
+      this.paths.generatedImage(
+        manifest.episodeId as unknown as SharedEpisodeId,
+        "placeholder"
+      )
+    );
     await ensureDir(generatedDir);
     const assets: ImageAsset[] = [];
     for (const scene of scenePlan.scenes) {
@@ -1104,12 +1203,15 @@ export class MediaForgePipeline {
     rewritten: RewrittenScript,
     plan: ScenePlan
   ): Promise<PublishingMetadata> {
-    const metadataDir = path.join(
-      this.environment.config.workspaceDir,
-      manifest.slug,
-      "metadata"
+    const metadataDir = this.paths.metadataDir(
+      this.episodeContext(
+        manifest.episodeId as unknown as SharedEpisodeId,
+        "full"
+      )
     );
-    const scenesFilePath = path.join(episodeDirPath, "scenes.json");
+    const scenesFilePath = this.paths.canonicalScenesPath(
+      manifest.episodeId as unknown as SharedEpisodeId
+    );
     const sourceText = await fs
       .readFile(scenesFilePath, "utf8")
       .catch(() => JSON.stringify(plan));
@@ -1248,6 +1350,10 @@ export class MediaForgePipeline {
     captions: Awaited<ReturnType<typeof buildCaptionPack>>,
     profileName: "youtube" | "vertical"
   ) {
+    const renderContext = this.episodeContext(
+      manifest.episodeId as unknown as SharedEpisodeId,
+      "full"
+    );
     const renderProfile = {
       id: profileName,
       label: profileName,
@@ -1262,8 +1368,8 @@ export class MediaForgePipeline {
       {
         episodeDir: episodeDirPath,
         scenePlan: plan,
-        captionsPath: path.join(episodeDirPath, "captions", "captions.ass"),
-        outputDir: path.join(episodeDirPath, "output"),
+        captionsPath: this.paths.captionsFile(renderContext, "ass"),
+        outputDir: this.paths.renderDir(renderContext, renderProfile.id),
         renderProfile,
         captionBurnIn: true,
         trailingSilenceRatio: this.environment.config.trailingSilenceRatio,
@@ -1287,12 +1393,16 @@ export class MediaForgePipeline {
     metadata: PublishingMetadata,
     renderResult: Awaited<ReturnType<FFmpegVideoRenderer["render"]>>
   ): Promise<EpisodeManifest> {
+    const context = this.episodeContext(
+      manifest.episodeId as unknown as SharedEpisodeId,
+      "full"
+    );
     const nextManifest: EpisodeManifest = episodeManifestSchema.parse({
       ...manifest,
       sourceMetadata: source,
       sourceMedia: manifest.source.filePath
         ? {
-            path: manifest.source.filePath,
+            path: path.relative(episodeDirPath, manifest.source.filePath),
             mimeType: "video/mp4",
             sizeBytes: 0,
             durationSeconds: source.durationSeconds,
@@ -1304,9 +1414,18 @@ export class MediaForgePipeline {
       scenePlan: plan,
       alignment: captions.alignment,
       captions: {
-        srtPath: path.join(episodeDirPath, "captions", "captions.srt"),
-        vttPath: path.join(episodeDirPath, "captions", "captions.vtt"),
-        assPath: path.join(episodeDirPath, "captions", "captions.ass"),
+        srtPath: path.relative(
+          episodeDirPath,
+          this.paths.captionsFile(context, "srt")
+        ),
+        vttPath: path.relative(
+          episodeDirPath,
+          this.paths.captionsFile(context, "vtt")
+        ),
+        assPath: path.relative(
+          episodeDirPath,
+          this.paths.captionsFile(context, "ass")
+        ),
       },
       images,
       publishingMetadata: metadata,
@@ -1314,10 +1433,10 @@ export class MediaForgePipeline {
         {
           id: `artifact-${slugify(path.basename(renderResult.cleanPath))}` as never,
           kind: "video",
-          path: renderResult.cleanPath,
+          path: path.relative(episodeDirPath, renderResult.cleanPath),
           mimeType: "video/mp4",
           sizeBytes: 0,
-          checksumSha256: hashText(renderResult.cleanPath),
+          checksumSha256: await hashFile(renderResult.cleanPath),
           createdAt: nowIso(),
         },
       ],
@@ -1325,7 +1444,7 @@ export class MediaForgePipeline {
       updatedAt: nowIso(),
     });
     await saveManifest(
-      path.join(episodeDirPath, "manifest.json"),
+      this.paths.manifestPath(manifest.episodeId as unknown as SharedEpisodeId),
       nextManifest
     );
     return nextManifest;

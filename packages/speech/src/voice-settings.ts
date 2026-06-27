@@ -8,7 +8,7 @@ const repoRoot = path.resolve(moduleDir, "../../..");
 const voiceSettingsPath = path.join(repoRoot, "docs", "voice-settings.md");
 
 export const speechVoicePresetSchema = {
-  values: ["slow", "fast"] as const
+  values: ["slow", "fast", "very-fast"] as const
 } as const;
 export type SpeechVoicePreset = (typeof speechVoicePresetSchema.values)[number];
 
@@ -36,6 +36,18 @@ const fallbackVoiceInstructions: Record<SpeechVoicePreset, string> = {
     'Pronounce "Universe 25" as "Universe Twenty-Five."',
     "Avoid theatrical acting, exaggerated emotion, advertising energy, drawn-out words, and unnaturally long pauses.",
     "Maintain consistent volume, tempo, and speaking rhythm across every generated chunk."
+  ].join(" "),
+  "very-fast": [
+    "Use a calm adult male narrator voice.",
+    "Speak in natural, conversational English with a confident, focused, and documentary-like tone.",
+    "Keep the delivery very brisk, clear, and efficient.",
+    "Use a measured pace of approximately 190 words per minute.",
+    "Use only very short natural pauses after major conclusions or scene changes.",
+    "Keep emphasis sharp but avoid dragging out words or sentences.",
+    'Pronounce "Calhoun" clearly and consistently.',
+    'Pronounce "Universe 25" as "Universe Twenty-Five."',
+    "Avoid theatrical acting, advertising energy, slow openings, and unnecessary pauses.",
+    "Maintain consistent volume, tempo, and speaking rhythm across every generated chunk."
   ].join(" ")
 };
 
@@ -46,7 +58,11 @@ const fallbackVoiceSettingsDocument = [
   "",
   "## fast voice",
   "",
-  fallbackVoiceInstructions.fast
+  fallbackVoiceInstructions.fast,
+  "",
+  "## very-fast voice",
+  "",
+  fallbackVoiceInstructions["very-fast"]
 ].join("\n");
 
 function inferPresetFromHeading(heading: string): SpeechVoicePreset | null {
@@ -56,6 +72,9 @@ function inferPresetFromHeading(heading: string): SpeechVoicePreset | null {
   }
   if (normalized === "fast voice") {
     return "fast";
+  }
+  if (normalized === "very-fast voice" || normalized === "very fast voice") {
+    return "very-fast";
   }
   return null;
 }
@@ -105,6 +124,7 @@ export interface SpeechVoiceSettings {
   readonly profile: VoiceProfile;
   readonly model: string;
   readonly voice: string;
+  readonly speed?: number;
 }
 
 function readVoiceSettingsFile(): string {
@@ -127,28 +147,37 @@ export function loadSpeechVoiceSettings(overrides: SpeechVoiceSettingsOverrides 
   const language = overrides.language;
   const instructions = [buildLanguageAdjustment(language), instructionsForPreset(readVoiceSettingsFile(), preset)].filter((part) => part.length > 0).join(" ");
   const profile =
-    preset === "fast"
+    preset === "very-fast"
       ? {
-          id: "chatgpt-fast-male-documentary",
-          label: "ChatGPT fast male documentary",
+          id: "chatgpt-very-fast-male-documentary",
+          label: "ChatGPT very-fast male documentary",
           gender: "male" as const,
-          style: "brisk, confident, clear, informative, documentary-like",
-          paceWpm: 180
+          style: "very brisk, focused, clear, informative, documentary-like",
+          paceWpm: 190
         }
-      : {
-          id: "chatgpt-calm-male-documentary",
-          label: "ChatGPT calm male documentary",
-          gender: "male" as const,
-          style: "calm, mature, clear, informative, warm but not theatrical",
-          paceWpm: 145
-        };
+      : preset === "fast"
+        ? {
+            id: "chatgpt-fast-male-documentary",
+            label: "ChatGPT fast male documentary",
+            gender: "male" as const,
+            style: "brisk, confident, clear, informative, documentary-like",
+            paceWpm: 180
+          }
+        : {
+            id: "chatgpt-calm-male-documentary",
+            label: "ChatGPT calm male documentary",
+            gender: "male" as const,
+            style: "calm, mature, clear, informative, warm but not theatrical",
+            paceWpm: 145
+          };
   return {
     preset,
     ...(language ? { language } : {}),
     instructions,
     model: overrides.model ?? "gpt-4o-mini-tts",
     voice: overrides.voice ?? "onyx",
-    profile
+    profile,
+    ...(preset === "very-fast" ? { speed: 1.5 } : {})
   };
 }
 

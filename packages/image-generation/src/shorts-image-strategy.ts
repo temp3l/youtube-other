@@ -95,6 +95,10 @@ interface CharacterRegistryFile {
   updatedAt: string;
 }
 
+interface LandscapeMetadataFile {
+  normalizedImagePath?: string;
+}
+
 const registrySchema = z.object({
   episodeId: z.string().min(1),
   characters: z.array(
@@ -207,6 +211,22 @@ async function resolveLandscapeImagePath(
     return path.join(landscapeDir, candidates[0] ?? "");
   }
   if (candidates.length > 1) {
+    const metadataPath = path.join(landscapeDir, "metadata", `${scene.id}.json`);
+    if (await fileExists(metadataPath)) {
+      try {
+        const metadata = JSON.parse(
+          await fs.readFile(metadataPath, "utf8")
+        ) as LandscapeMetadataFile;
+        const normalizedImageName = metadata.normalizedImagePath
+          ? path.basename(metadata.normalizedImagePath)
+          : undefined;
+        if (normalizedImageName && candidates.includes(normalizedImageName)) {
+          return path.join(landscapeDir, normalizedImageName);
+        }
+      } catch {
+        // Fall through to the duplicate error below when metadata is unreadable.
+      }
+    }
     throw new Error(
       `Multiple landscape images found for ${scene.id} in ${landscapeDir}: ${candidates.join(", ")}`
     );
@@ -435,27 +455,6 @@ function loadExistingManifest(
     .catch(() => null);
 }
 
-function canReuseEntry(
-  existing: ShortsSceneManifestEntry | undefined,
-  currentSceneHash: string,
-  currentSourceSha?: string,
-  currentStrategy?: ShortsImageStrategy
-): boolean {
-  if (!existing || existing.status !== "success") {
-    return false;
-  }
-  if (existing.sceneHash && existing.sceneHash !== currentSceneHash) {
-    return false;
-  }
-  if (currentSourceSha && existing.sourceImageSha256 && existing.sourceImageSha256 !== currentSourceSha) {
-    return false;
-  }
-  if (currentStrategy && existing.strategy !== currentStrategy) {
-    return false;
-  }
-  return true;
-}
-
 export function buildShortsImageStrategyPlan(
   scenePlan: ScenePlan,
   config: ShortsImageConfig,
@@ -562,18 +561,14 @@ export async function prepareShortsImageAssets(
           ? "blurred-fill"
           : "smart-crop";
     const cached = existingEntries.get(scene.id);
-    if (
-      !options?.force &&
-      canReuseEntry(cached, currentSceneHash, sourceLandscapeSha, strategy) &&
-      (await fileExists(outputPortraitPath))
-    ) {
+    if (await fileExists(outputPortraitPath)) {
       const entry: ShortsSceneManifestEntry = {
         sceneId: scene.id,
         sequenceNumber: scene.sequenceNumber,
-        strategy,
+        strategy: cached?.strategy ?? strategy,
         outputImagePath: outputPortraitPath,
-        reusedExistingImage: cached?.reusedExistingImage ?? !shouldRegenerate,
-        regenerated: cached?.regenerated ?? shouldRegenerate,
+        reusedExistingImage: true,
+        regenerated: false,
         attemptCount: cached?.attemptCount ?? 0,
         status: "success",
         error: null,
@@ -594,10 +589,7 @@ export async function prepareShortsImageAssets(
         entry.generatedAt = cached.generatedAt;
       }
       entries.push(entry);
-      if (shouldRegenerate) {
-        const spec = buildSceneVisualSpec(scene, registry, previousSpec);
-        previousSpec = spec;
-      }
+      previousSpec = buildSceneVisualSpec(scene, registry, previousSpec);
       continue;
     }
     const attemptCount = 1;

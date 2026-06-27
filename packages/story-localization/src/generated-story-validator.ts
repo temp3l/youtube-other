@@ -1,6 +1,7 @@
 import { normalizeWhitespace, splitIntoSentences } from "@mediaforge/shared";
 import { type CanonicalStoryFacts, type GeneratedStoryPackage, type LanguageCode, type LanguageProfile, type ParsedSourceStory } from "./story-localization.types.js";
 import { countWords, estimateDurationSeconds } from "./story-localization.utils.js";
+import { detectEditorialCommentary } from "./short-rewrite.utils.js";
 
 const forbiddenPhrases = [
   "Here is the translation",
@@ -25,6 +26,10 @@ export function detectGenericFiller(text: string): string[] {
 
 export function detectForbiddenPhrases(text: string): string[] {
   return forbiddenPhrases.filter((phrase) => text.includes(phrase));
+}
+
+export function detectEditorialCommentaryIssues(text: string): string[] {
+  return detectEditorialCommentary(text);
 }
 
 export function validateHashtags(hashtags: readonly string[]): string[] {
@@ -100,8 +105,14 @@ export function validateGeneratedStoryPackage(
   if (detectForbiddenPhrases(generatedShortText).length > 0) {
     issues.push("Short contains forbidden boilerplate.");
   }
+  if (detectEditorialCommentaryIssues(generatedShortText).length > 0) {
+    issues.push("Short contains editorial commentary.");
+  }
   if (detectForbiddenPhrases(packageValue.full?.narrationParagraphs.join(" ") ?? "").length > 0) {
     issues.push("Full story contains forbidden boilerplate.");
+  }
+  if (detectEditorialCommentaryIssues(packageValue.full?.narrationParagraphs.join(" ") ?? "").length > 0) {
+    issues.push("Full story contains editorial commentary.");
   }
   if (detectGenericFiller(generatedShortText).length > 0 && packageValue.short.targetNarrationWpm > 0) {
     issues.push("Short contains generic filler.");

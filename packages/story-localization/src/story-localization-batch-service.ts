@@ -967,7 +967,8 @@ async function importLocalizationResult(args: {
     renderLocalizedFullStory(
       args.sourceFile.episodeNumber,
       args.packageValue.full,
-      language
+      language,
+      args.sourceFile.sourceHash
     ),
     true
   );

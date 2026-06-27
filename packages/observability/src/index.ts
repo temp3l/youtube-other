@@ -1,4 +1,5 @@
 import pino from "pino";
+import type { Writable } from "node:stream";
 export * from "./pricing.js";
 export * from "./telemetry.js";
 
@@ -14,7 +15,10 @@ export interface LoggerContext {
   npmScript?: string;
 }
 
-export function createLogger(level: pino.LevelWithSilent = "info", destination = process.stdout): pino.Logger {
+export function createLogger(
+  level: pino.LevelWithSilent = "info",
+  destination: Writable = process.stdout
+): pino.Logger {
   return pino({
     level,
     redact: {

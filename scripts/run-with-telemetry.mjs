@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
+import process from "node:process";
 
 const argv = process.argv.slice(2);
 const separatorIndex = argv.indexOf("--");
@@ -11,7 +12,7 @@ const executionId = process.env.MEDIAFORGE_EXECUTION_ID ?? randomUUID();
 const startedAt = new Date().toISOString();
 
 if (command.length === 0) {
-  console.error(
+  globalThis.console.error(
     JSON.stringify({
       level: "error",
       event: "npm_script_wrapper_error",
@@ -35,7 +36,7 @@ const child = spawn(command[0], [...command.slice(1), ...forwardedArgs], {
   },
 });
 
-console.error(
+globalThis.console.error(
   JSON.stringify({
     level: "info",
     event: "npm_script_start",
@@ -58,7 +59,7 @@ process.on("SIGTERM", () => forwardSignal("SIGTERM"));
 
 child.on("close", (exitCode, signal) => {
   const endedAt = new Date().toISOString();
-  console.error(
+  globalThis.console.error(
     JSON.stringify({
       level: "info",
       event: "npm_script_end",
@@ -78,7 +79,7 @@ child.on("close", (exitCode, signal) => {
 });
 
 child.on("error", (error) => {
-  console.error(
+  globalThis.console.error(
     JSON.stringify({
       level: "error",
       event: "npm_script_spawn_failed",

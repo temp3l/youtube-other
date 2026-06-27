@@ -117,7 +117,7 @@ interface CliOptions {
   openAiApiKey?: string;
   openAiSpeechModel?: string;
   openAiSpeechVoice?: string;
-  speechVoicePreset?: "slow" | "fast";
+  speechVoicePreset?: "slow" | "fast" | "very-fast";
   scriptLanguage?: string;
   sceneLimit?: number;
   fromStage?: string;
@@ -278,20 +278,7 @@ function isEnglishLanguage(language: string): boolean {
 }
 
 function localizedAudioBaseDir(episodeDir: string, language: string): string {
-  const normalizedEpisodeDir = path.resolve(episodeDir);
-  const safeLanguage = safeBasename(language);
-  const basename = path.basename(normalizedEpisodeDir);
-  const parentBasename = path.basename(path.dirname(normalizedEpisodeDir));
-  if (basename === "full" && parentBasename === safeLanguage) {
-    return normalizedEpisodeDir;
-  }
-  if (basename === safeLanguage) {
-    return path.join(normalizedEpisodeDir, "full");
-  }
-  if (basename === "full") {
-    return path.dirname(normalizedEpisodeDir);
-  }
-  return path.join(normalizedEpisodeDir, safeLanguage, "full");
+  return path.join(path.resolve(episodeDir), "locales", safeBasename(language), "full");
 }
 
 function localizedSuffix(language: string): string {
@@ -299,29 +286,15 @@ function localizedSuffix(language: string): string {
 }
 
 function localizedSegmentsDir(episodeDir: string, language: string): string {
-  return path.join(
-    episodeDir,
-    "audio",
-    isEnglishLanguage(language)
-      ? "segments"
-      : `segments-${safeBasename(language)}`
-  );
+  return path.join(localizedAudioBaseDir(episodeDir, language), "audio", "segments");
 }
 
 function localizedNarrationPath(episodeDir: string, language: string): string {
-  return path.join(
-    episodeDir,
-    "audio",
-    isEnglishLanguage(language)
-      ? "narration.wav"
-      : `narration-${safeBasename(language)}.wav`
-  );
+  return path.join(localizedAudioBaseDir(episodeDir, language), "audio", "narration.wav");
 }
 
 function localizedMetadataDir(episodeDir: string, language: string): string {
-  return isEnglishLanguage(language)
-    ? path.join(episodeDir, "metadata")
-    : path.join(episodeDir, "metadata", safeBasename(language));
+  return path.join(localizedAudioBaseDir(episodeDir, language), "metadata");
 }
 
 function localizedClipsDirName(language: string): string {
@@ -680,8 +653,18 @@ async function readManifestForEpisode(options: CliOptions, episodeId: string) {
       let shouldWrite = false;
 
       if (!nextManifest.scenePlan) {
-        const scenePlanPath = path.join(episodeDir, "scenes.json");
-        if (await fileExists(scenePlanPath)) {
+        const scenePlanCandidates = [
+          path.join(episodeDir, "canonical", "scenes.json"),
+          path.join(episodeDir, "scenes.json"),
+          path.join(episodeDir, "output", "scenes.json"),
+        ];
+        const scenePlanPath = (
+          await Promise.all(scenePlanCandidates.map(async (candidate) => ({
+            candidate,
+            exists: await fileExists(candidate),
+          })))
+        ).find((entry) => entry.exists)?.candidate;
+        if (scenePlanPath) {
           nextManifest = {
             ...nextManifest,
             scenePlan: scenePlanSchema.parse(
@@ -1008,6 +991,101 @@ async function synthesizeSpeechChunks(
   });
   await Promise.all(workers);
   return { segmentPaths, artifacts };
+}
+
+function buildSpeechRequestPayload(
+  chunk: string,
+  options: {
+    readonly model: string;
+    readonly voice: string;
+    readonly instructions: string;
+    readonly responseFormat: "mp3" | "opus" | "aac" | "flac" | "wav" | "pcm";
+  }
+): {
+  readonly input: string;
+  readonly model: string;
+  readonly voice: string;
+  readonly instructions: string;
+  readonly response_format: "mp3" | "opus" | "aac" | "flac" | "wav" | "pcm";
+} {
+  return {
+    input: chunk,
+    model: options.model,
+    voice: options.voice,
+    instructions: options.instructions,
+    response_format: options.responseFormat,
+  };
+}
+
+async function writeAudioPromptLogs(args: {
+  readonly episodeDir: string;
+  readonly episodeSlug: string;
+  readonly language: string;
+  readonly chunks: ReadonlyArray<string>;
+  readonly speechSettings: Awaited<ReturnType<typeof loadSpeechVoiceSettings>>;
+  readonly model: string;
+  readonly voice: string;
+  readonly generatedAt: string;
+}): Promise<void> {
+  const canonicalPromptDir = path.join(
+    localizedAudioBaseDir(args.episodeDir, args.language),
+    "audio",
+    "prompts"
+  );
+  const legacyPromptDir = path.join(
+    args.episodeDir,
+    safeBasename(args.language),
+    "audio",
+    "prompts"
+  );
+  const payloadBase = {
+    model: args.model,
+    voice: args.voice,
+    instructions: args.speechSettings.instructions,
+    responseFormat: "wav" as const,
+  };
+  const promptRecords = args.chunks.map((chunk, index) => {
+    const sceneId = `scene-${String(index + 1).padStart(3, "0")}`;
+    const requestPayload = buildSpeechRequestPayload(chunk, {
+      ...payloadBase,
+      responseFormat: payloadBase.responseFormat,
+    });
+    return {
+      episodeId: args.episodeSlug,
+      episodeSlug: args.episodeSlug,
+      language: args.language,
+      chunkIndex: index + 1,
+      chunkCount: args.chunks.length,
+      sceneId,
+      generatedAt: args.generatedAt,
+      request: requestPayload,
+    };
+  });
+  await Promise.all(
+    [canonicalPromptDir, legacyPromptDir].map(async (promptDir) => {
+      await ensureDir(promptDir);
+      await writeJsonAtomic(
+        path.join(promptDir, "index.json"),
+        {
+          episodeId: args.episodeSlug,
+          language: args.language,
+          chunkCount: args.chunks.length,
+          generatedAt: args.generatedAt,
+          prompts: promptRecords.map((record, index) => ({
+            chunkIndex: index + 1,
+            sceneId: record.sceneId,
+            file: `chunk-${String(index + 1).padStart(3, "0")}.json`,
+          })),
+        }
+      );
+      await Promise.all(
+        promptRecords.map(async (record, index) => {
+          const fileName = `chunk-${String(index + 1).padStart(3, "0")}.json`;
+          await writeJsonAtomic(path.join(promptDir, fileName), record);
+        })
+      );
+    })
+  );
 }
 
 async function commandTranscriptGenerate(
@@ -1406,6 +1484,24 @@ async function commandAudioGenerate(
     resolveTtsConcurrency(),
     Math.max(1, chunks.length)
   );
+  const model =
+    config.openAiSpeechModel ??
+    config.openAiCompatibleModel ??
+    "gpt-4o-mini-tts";
+  const voice =
+    config.openAiSpeechVoice ??
+    config.openAiCompatibleTtsVoice ??
+    "onyx";
+  await writeAudioPromptLogs({
+    episodeDir,
+    episodeSlug,
+    language,
+    chunks,
+    speechSettings,
+    model,
+    voice,
+    generatedAt,
+  });
   let generated;
   try {
     generated = await synthesizeSpeechChunks(
@@ -1565,11 +1661,7 @@ async function commandClipsGenerate(
       episodeId,
       language,
       audioDir: localizedSegmentsDir(audioBaseDir, language),
-      clipsDir: path.join(
-        episodeDir,
-        "output",
-        localizedClipsDirName(language)
-      ),
+      clipsDir: path.join(audioBaseDir, "renders", localizedClipsDirName(language)),
       dryRun: true,
     });
     return;
@@ -1594,12 +1686,12 @@ async function commandClipsGenerate(
     {
       episodeDir,
       scenePlan,
-      outputDir: path.join(episodeDir, "output"),
+      outputDir: path.join(audioBaseDir, "renders"),
       renderProfile,
       captionBurnIn: false,
       clipsDirName: localizedClipsDirName(language),
       sceneAudioDir: localizedSegmentsDir(audioBaseDir, language),
-      imageDir: path.join(episodeDir, "shared", "images", "generated"),
+      imageDir: path.join(episodeDir, "state", "image-generation", "images"),
       trailingSilenceRatio: config.trailingSilenceRatio,
       trailingSilenceBufferSeconds: config.trailingSilenceBufferSeconds,
     },
@@ -1661,13 +1753,13 @@ async function commandClipsBackfillManifests(
   const audioBaseDir = localizedAudioBaseDir(episodeRootDir, language);
   const captionsPath =
     isEnglishLanguage(language) &&
-    (await fileExists(path.join(episodeRootDir, "captions", "captions.ass")))
-      ? path.join(episodeRootDir, "captions", "captions.ass")
+    (await fileExists(path.join(audioBaseDir, "captions", "captions.ass")))
+      ? path.join(audioBaseDir, "captions", "captions.ass")
       : undefined;
   const result = await backfillSceneClipManifests({
     episodeDir: episodeRootDir,
     scenePlan: target.scenePlan,
-    outputDir: path.join(episodeRootDir, language, "full", "video"),
+    outputDir: path.join(audioBaseDir, "renders", "youtube"),
     renderProfile: {
       id: "youtube",
       label: "youtube",
@@ -1680,7 +1772,7 @@ async function commandClipsBackfillManifests(
     captionBurnIn: Boolean(captionsPath),
     clipsDirName: localizedClipsDirName(language),
     sceneAudioDir: localizedSegmentsDir(audioBaseDir, language),
-    imageDir: path.join(episodeRootDir, "shared", "images", "generated"),
+    imageDir: path.join(episodeRootDir, "state", "image-generation", "images"),
     trailingSilenceRatio: config.trailingSilenceRatio,
     trailingSilenceBufferSeconds: config.trailingSilenceBufferSeconds,
   });
@@ -2151,19 +2243,17 @@ async function commandRender(
     printJson({
       episodeId,
       language,
-      clipsDir: path.join(
-        episodeDir,
-        "output",
-        localizedClipsDirName(language)
-      ),
+      clipsDir: path.join(audioBaseDir, "renders", localizedClipsDirName(language)),
       cleanPath: path.join(
-        episodeDir,
-        "output",
+        audioBaseDir,
+        "renders",
+        profile,
         `youtube-${profile === "youtube" ? "16x9" : "9x16"}${localizedOutputSuffix(language)}-clean.mp4`
       ),
       captionedPath: path.join(
-        episodeDir,
-        "output",
+        audioBaseDir,
+        "renders",
+        profile,
         `youtube-${profile === "youtube" ? "16x9" : "9x16"}${localizedOutputSuffix(language)}-captioned.mp4`
       ),
       dryRun: true,
@@ -2172,7 +2262,7 @@ async function commandRender(
   }
   const captionsPath =
     burnCaptions && isEnglishLanguage(language)
-      ? path.join(episodeDir, "captions", "captions.ass")
+      ? path.join(audioBaseDir, "captions", "captions.ass")
       : undefined;
   const renderProfile = {
     id: profile,
@@ -2187,12 +2277,12 @@ async function commandRender(
   const renderRequest = {
     episodeDir,
     scenePlan: manifest.scenePlan,
-    outputDir: path.join(episodeDir, "output"),
+    outputDir: path.join(audioBaseDir, "renders", profile),
     renderProfile,
     captionBurnIn: Boolean(captionsPath),
     clipsDirName: localizedClipsDirName(language),
     sceneAudioDir: localizedSegmentsDir(audioBaseDir, language),
-    imageDir: path.join(episodeDir, "shared", "images", "generated"),
+    imageDir: path.join(episodeDir, "state", "image-generation", "images"),
     outputSuffix: localizedOutputSuffix(language),
     trailingSilenceRatio: config.trailingSilenceRatio,
     trailingSilenceBufferSeconds: config.trailingSilenceBufferSeconds,
@@ -3080,7 +3170,7 @@ function addGlobalOptions(command: Command): Command {
     .option("--openai-api-key <key>", "OpenAI API key")
     .option("--openai-speech-model <model>", "OpenAI speech model")
     .option("--openai-speech-voice <voice>", "OpenAI speech voice")
-    .option("--speech-voice-preset <preset>", "slow or fast speech settings")
+    .option("--speech-voice-preset <preset>", "slow, fast, or very-fast speech settings")
     .option(
       "--language <code>",
       "localized script language, for example en, es, pt"

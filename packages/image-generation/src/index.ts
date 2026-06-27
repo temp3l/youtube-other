@@ -213,7 +213,7 @@ export async function exportSceneWorkbook(
     readonly globalStyle: string;
   }
 ): Promise<void> {
-  const imagesDir = path.join(episodeDir, "images");
+  const imagesDir = path.join(episodeDir, "state", "image-generation");
   const batchesDir = path.join(imagesDir, "prompt-batches");
   await ensureDir(batchesDir);
   await writeJsonAtomic(path.join(imagesDir, "prompts.json"), {
@@ -1209,7 +1209,7 @@ export async function importImageAssets(
   scenePlan: ScenePlan,
   inboxDir: string
 ): Promise<ImageAsset[]> {
-  const generatedDir = path.join(episodeDir, "images", "generated");
+  const generatedDir = path.join(episodeDir, "state", "image-generation", "images");
   const manifestPath = path.join(inboxDir, "import-manifest.json");
   const imported: ImageAsset[] = [];
   const mapping: Record<string, string> = {};

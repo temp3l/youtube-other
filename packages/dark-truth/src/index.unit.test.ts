@@ -1,6 +1,7 @@
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+import sharp from "sharp";
 import { describe, expect, it, vi } from "vitest";
 import {
   buildEpisodeLoadResult,
@@ -15,6 +16,7 @@ import {
   buildSpeechPlan,
 } from "./index.js";
 import { scenePlanSchema } from "@mediaforge/domain";
+import { hashFile } from "@mediaforge/shared";
 
 const sourceRoot = path.resolve(
   "content-ideas/content/dark-truth-episodes-multilingual-production-pack"
@@ -325,6 +327,69 @@ describe("dark-truth workflow", () => {
     } finally {
       vi.unstubAllEnvs();
     }
+  });
+
+  it("reuses existing shared full images instead of regenerating them", async () => {
+    const tempDir = await fs.mkdtemp(
+      path.join(os.tmpdir(), "dark-truth-shared-images-")
+    );
+    const sharedDir = path.join(tempDir, "shared");
+    const imageDir = path.join(sharedDir, "images");
+    await fs.mkdir(imageDir, { recursive: true });
+    const scenePlan = scenePlanSchema.parse({
+      sourceId: "episode-fixture",
+      scenes: [
+        {
+          id: "scene-001",
+          sequenceNumber: 1,
+          canonicalNarration: "A single reused scene.",
+          sourceSegmentIds: ["scene-001"],
+          estimatedDurationSeconds: 4,
+          timing: { startSeconds: 0, endSeconds: 4 },
+          visualPurpose: "introduce the setting",
+          subject: "subject",
+          action: "shown",
+          setting: "setting",
+          composition: "composition",
+          cameraFraming: "wide shot",
+          mood: "tense",
+          continuityReferences: [],
+          onScreenText: "",
+          textRequirement: { required: false },
+          negativeConstraints: [],
+          aspectRatios: ["16:9"],
+          imagePrompt: "existing prompt",
+          expectedImageFilenames: ["scene-001__000000-000004__16x9.png"],
+          qualityStatus: "draft",
+        },
+      ],
+    });
+    const existingPath = path.join(imageDir, "scene-001__000000-000004__16x9.png");
+    await sharp({
+      create: {
+        width: 64,
+        height: 64,
+        channels: 4,
+        background: { r: 10, g: 20, b: 30, alpha: 1 },
+      },
+    })
+      .png()
+      .toFile(existingPath);
+    const beforeHash = await hashFile(existingPath);
+
+    const result = await generateCanonicalImages(sharedDir, scenePlan);
+
+    const afterHash = await hashFile(existingPath);
+    expect(afterHash).toBe(beforeHash);
+    expect(result.assets).toHaveLength(1);
+    expect(result.assets[0]).toBe(existingPath);
+    const manifest = JSON.parse(
+      await fs.readFile(result.imageManifestPath, "utf8")
+    ) as { imageCount: number; assets: Array<{ filename: string }> };
+    expect(manifest.imageCount).toBe(1);
+    expect(manifest.assets[0]?.filename).toBe(
+      "scene-001__000000-000004__16x9.png"
+    );
   });
 
   it("uses the shared scene density target when building Dark Truth scene plans", () => {

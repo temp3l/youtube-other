@@ -233,6 +233,25 @@ export function splitIntoWords(text: string): string[] {
   return normalizeWhitespace(text).split(/\s+/u).filter((part) => part.length > 0);
 }
 
+export function countSpokenWords(text: string): number {
+  const normalized = normalizeWhitespace(text);
+  if (normalized.length === 0) {
+    return 0;
+  }
+  if (typeof Intl !== "undefined" && "Segmenter" in Intl) {
+    const segmenter = new Intl.Segmenter(undefined, { granularity: "word" });
+    let count = 0;
+    for (const segment of segmenter.segment(normalized)) {
+      if (segment.isWordLike) {
+        count += 1;
+      }
+    }
+    return count;
+  }
+  const fallbackPattern = /[\p{L}\p{N}]+(?:[’'-][\p{L}\p{N}]+)*/gu;
+  return Array.from(normalized.matchAll(fallbackPattern)).length;
+}
+
 export function collapseRepeatedTokenRuns(
   text: string,
   options: {
@@ -313,3 +332,5 @@ export function sortBy<T>(values: ReadonlyArray<T>, selector: (value: T) => numb
 export function tempDir(): string {
   return os.tmpdir();
 }
+
+export * from "./episode-filesystem.js";

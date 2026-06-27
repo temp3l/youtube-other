@@ -184,6 +184,71 @@ describe("shorts image strategy", () => {
     await fs.rm(tempDir, { recursive: true, force: true });
   }, 15_000);
 
+  it("prefers the landscape image recorded in scene metadata when duplicates exist", async () => {
+    const tempDir = await fs.mkdtemp(path.join(process.cwd(), ".tmp-shorts-metadata-"));
+    const episodeDir = path.join(tempDir, "episode");
+    const landscapeDir = path.join(tempDir, "landscape");
+    const outputDir = path.join(tempDir, "short", "images", "generated");
+    await fs.mkdir(episodeDir, { recursive: true });
+    await fs.mkdir(landscapeDir, { recursive: true });
+    await fs.mkdir(path.join(landscapeDir, "metadata"), { recursive: true });
+    await fs.mkdir(path.join(episodeDir, "shared"), { recursive: true });
+    await fs.writeFile(
+      path.join(episodeDir, "shared", "characters.json"),
+      JSON.stringify({ episodeId: "episode-1", characters: [], updatedAt: new Date().toISOString() })
+    );
+    const scenePlan = makeScenePlan(1);
+    const scene = scenePlan.scenes[0]!;
+    const olderName = scene.expectedImageFilenames[0]!;
+    const newerName = "scene-001__000000-000010__16x9.png";
+    scene.expectedImageFilenames = ["scene-001__000000-000020__16x9.png"];
+    for (const [index, fileName] of [olderName, newerName].entries()) {
+      await sharp({
+        create: {
+          width: 1920,
+          height: 1080,
+          channels: 4,
+          background: { r: 40 + index * 30, g: 20, b: 60, alpha: 1 },
+        },
+      })
+        .png()
+        .toFile(path.join(landscapeDir, fileName));
+    }
+    await fs.writeFile(
+      path.join(landscapeDir, "metadata", `${scene.id}.json`),
+      JSON.stringify({
+        sceneId: scene.id,
+        normalizedImagePath: path.join(landscapeDir, newerName),
+      })
+    );
+    const result = await prepareShortsImageAssets(
+      episodeDir,
+      "episode-1",
+      scenePlan,
+      createSettings(),
+      {
+        enabled: true,
+        keySceneCount: 0,
+        portraitWidth: 1088,
+        portraitHeight: 1920,
+        finalWidth: 1080,
+        finalHeight: 1920,
+        reuseLandscapeImages: true,
+        enablePanAndScan: true,
+        enableBlurredFallback: true,
+        forceRegenerateAll: false,
+        selectionMode: "first-n",
+      },
+      {
+        landscapeDir,
+        outputDir,
+        generator: createGenerator(),
+      }
+    );
+    expect(result.entries[0]?.sourceImagePath).toBe(path.join(landscapeDir, newerName));
+    await fs.rm(tempDir, { recursive: true, force: true });
+  }, 15_000);
+
   it("removes stale portrait assets before regenerating shorts images", async () => {
     const tempDir = await fs.mkdtemp(path.join(process.cwd(), ".tmp-shorts-cleanup-"));
     const episodeDir = path.join(tempDir, "episode");
@@ -236,6 +301,72 @@ describe("shorts image strategy", () => {
       }
     );
     expect(await fs.readdir(outputDir)).not.toContain("stale.png");
+    await fs.rm(tempDir, { recursive: true, force: true });
+  }, 15_000);
+
+  it("reuses an existing shared Shorts image instead of regenerating it", async () => {
+    const tempDir = await fs.mkdtemp(path.join(process.cwd(), ".tmp-shorts-reuse-"));
+    const episodeDir = path.join(tempDir, "episode");
+    const outputDir = path.join(tempDir, "shared", "short", "images", "generated");
+    await fs.mkdir(episodeDir, { recursive: true });
+    await fs.mkdir(outputDir, { recursive: true });
+    await fs.mkdir(path.join(episodeDir, "shared"), { recursive: true });
+    await fs.writeFile(
+      path.join(episodeDir, "shared", "characters.json"),
+      JSON.stringify({ episodeId: "episode-1", characters: [], updatedAt: new Date().toISOString() })
+    );
+    const scenePlan = makeScenePlan(1);
+    const config: ShortsImageConfig = {
+      enabled: true,
+      keySceneCount: 1,
+      portraitWidth: 1088,
+      portraitHeight: 1920,
+      finalWidth: 1080,
+      finalHeight: 1920,
+      reuseLandscapeImages: true,
+      enablePanAndScan: true,
+      enableBlurredFallback: true,
+      forceRegenerateAll: true,
+      selectionMode: "first-n",
+    };
+    const existingPath = buildShortsImageStrategyPlan(scenePlan, config, {
+      outputDir,
+    })[0]?.outputPortraitPath;
+    if (!existingPath) {
+      throw new Error("missing expected portrait path");
+    }
+    await sharp({
+      create: {
+        width: 1080,
+        height: 1920,
+        channels: 4,
+        background: { r: 80, g: 40, b: 20, alpha: 1 },
+      },
+    })
+      .png()
+      .toFile(existingPath);
+    const generator = {
+      async generate() {
+        throw new Error("generator should not be called for existing images");
+      },
+    } satisfies ImageGenerator;
+
+    const result = await prepareShortsImageAssets(
+      episodeDir,
+      "episode-1",
+      scenePlan,
+      createSettings(),
+      config,
+      {
+        outputDir,
+        generator,
+      }
+    );
+
+    expect(result.entries).toHaveLength(1);
+    expect(result.entries[0]?.reusedExistingImage).toBe(true);
+    expect(result.entries[0]?.regenerated).toBe(false);
+    expect(result.entries[0]?.outputImagePath).toBe(existingPath);
     await fs.rm(tempDir, { recursive: true, force: true });
   }, 15_000);
 });

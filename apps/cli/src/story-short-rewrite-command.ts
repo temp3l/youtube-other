@@ -1,0 +1,203 @@
+import path from "node:path";
+import { Command } from "commander";
+import { loadRuntimeConfig } from "@mediaforge/config";
+import { createLogger } from "@mediaforge/observability";
+import {
+  createOpenAiStoryClientWithOptions,
+  rewriteShortStories,
+  SHORT_REWRITE_DEFAULT_MODEL,
+  SHORT_REWRITE_DEFAULT_TIMEOUT_MS,
+  SUPPORTED_STORY_LANGUAGES,
+  type ShortRewriteRunOptions,
+  type StoryLanguage,
+} from "@mediaforge/story-localization";
+import {
+  normalizeWhitespace,
+} from "@mediaforge/shared";
+
+export interface StoryRewriteShortCliOptions {
+  readonly episode?: string;
+  readonly input?: string;
+  readonly episodeSlug?: string;
+  readonly language?: string;
+  readonly languages?: string;
+  readonly model?: string;
+  readonly outputRoot?: string;
+  readonly temperature?: number;
+  readonly reasoningEffort?: "none" | "minimal" | "low" | "medium" | "high" | "xhigh";
+  readonly maxConcurrency?: number;
+  readonly timeoutMs?: number;
+  readonly maxRetries?: number;
+  readonly overwrite?: boolean;
+  readonly resume?: boolean;
+  readonly dryRun?: boolean;
+  readonly force?: boolean;
+  readonly json?: boolean;
+  readonly verbose?: boolean;
+}
+
+function printJson(value: unknown): void {
+  process.stdout.write(`${JSON.stringify(value, null, 2)}\n`);
+}
+
+function parseLanguageList(value: string | undefined): string[] {
+  if (!value) {
+    return [];
+  }
+  return value
+    .split(",")
+    .map((entry) => normalizeWhitespace(entry).toLowerCase())
+    .filter((entry) => entry.length > 0);
+}
+
+function normalizeRequestedLanguages(options: StoryRewriteShortCliOptions): StoryLanguage[] {
+  const raw = [...parseLanguageList(options.language), ...parseLanguageList(options.languages)];
+  const supported = new Set<StoryLanguage>(Object.keys(SUPPORTED_STORY_LANGUAGES) as StoryLanguage[]);
+  const normalized: StoryLanguage[] = [];
+  const unsupported: string[] = [];
+  if (raw.length === 0) {
+    normalized.push("en");
+    return normalized;
+  }
+  for (const entry of raw) {
+    const primary = entry.split("-", 1)[0] as StoryLanguage;
+    if (supported.has(primary)) {
+      normalized.push(primary);
+    } else {
+      unsupported.push(entry);
+    }
+  }
+  if (unsupported.length > 0) {
+    throw new Error(
+      `Unsupported story language(s): ${unsupported.join(", ")}. Supported values: en, de, es, fr, pt.`
+    );
+  }
+  return [...new Set(normalized)];
+}
+
+function resolveModel(
+  options: StoryRewriteShortCliOptions,
+  runtimeConfig: Awaited<ReturnType<typeof loadRuntimeConfig>>
+): string {
+  return (
+    options.model ??
+    runtimeConfig.openAiMetadataModel ??
+    runtimeConfig.openAiCompatibleModel ??
+    SHORT_REWRITE_DEFAULT_MODEL
+  );
+}
+
+function formatSummary(summary: Awaited<ReturnType<typeof rewriteShortStories>>): string {
+  return [
+    `Episode: ${summary.episodeId} — ${summary.episodeSlug}`,
+    `Source: ${summary.sourcePath}`,
+    `Languages requested: ${summary.languagesRequested.join(", ")}`,
+    `Completed: ${summary.completed}`,
+    `Skipped: ${summary.skipped}`,
+    `Failed: ${summary.failed}`,
+    `Input tokens: ${summary.inputTokens}`,
+    `Output tokens: ${summary.outputTokens}`,
+    `Estimated cost: ${summary.estimatedCostUsd === null ? "n/a" : `$${summary.estimatedCostUsd.toFixed(4)}`}`,
+    `Duration: ${Math.round(summary.generationDurationMs / 1000)}s`,
+  ].join("\n");
+}
+
+export function registerStoryRewriteShortCommand(storiesCommand: Command): void {
+  storiesCommand
+    .command("rewrite-short")
+    .description("Rewrite an English full-length horror story into localized YouTube Shorts")
+    .option("--episode <id-or-slug>", "episode id or slug")
+    .option("--input <path>", "explicit English full-story markdown input")
+    .option("--episode-slug <slug>", "canonical episode slug for bootstrapped input")
+    .option("--language <code>", "single target language")
+    .option("--languages <comma-separated-codes>", "target languages")
+    .option("--model <model>", "OpenAI model")
+    .option("--output-root <path>", "output root directory")
+    .option("--temperature <number>", "sampling temperature", (value) => Number(value))
+    .option("--reasoning-effort <value>", "reasoning effort")
+    .option("--max-concurrency <number>", "maximum concurrent requests", (value) => Number(value))
+    .option("--timeout-ms <number>", "request timeout in milliseconds", (value) => Number(value))
+    .option("--max-retries <number>", "maximum transient retries", (value) => Number(value))
+    .option("--overwrite", "overwrite existing outputs")
+    .option("--resume", "skip valid outputs and regenerate invalid ones")
+    .option("--dry-run", "plan the run without calling OpenAI or writing files")
+    .option("--force", "alias for overwrite")
+    .option("--json", "print machine-readable output")
+    .option("--verbose", "enable verbose logging")
+    .action(async (options: StoryRewriteShortCliOptions) => {
+      const rawArgs = new Set(process.argv.slice(2));
+      const commandText = [
+        process.env["MEDIAFORGE_NPM_SCRIPT_COMMAND"] ?? "",
+        process.argv.join(" "),
+      ].join(" ");
+      const hasDryRunFlag =
+        rawArgs.has("--dry-run") || commandText.includes("--dry-run");
+      const runtimeConfig = await loadRuntimeConfig();
+      const outputRoot = path.resolve(options.outputRoot ?? runtimeConfig.workspaceDir);
+      const languages = normalizeRequestedLanguages(options);
+      if (options.episode && options.input) {
+        throw new Error("--episode and --input are mutually exclusive.");
+      }
+      if (!options.episode && !options.input) {
+        throw new Error("Either --episode or --input is required.");
+      }
+      const timeoutMs = options.timeoutMs ?? SHORT_REWRITE_DEFAULT_TIMEOUT_MS;
+      const maxRetries = options.maxRetries ?? 2;
+      const model = resolveModel(options, runtimeConfig);
+      const client = options.dryRun
+        ? undefined
+        : createOpenAiStoryClientWithOptions({
+            apiKey: runtimeConfig.openAiCompatibleApiKey ?? undefined,
+            baseUrl: runtimeConfig.openAiCompatibleBaseUrl ?? undefined,
+            timeoutMs,
+            maxRetries,
+          });
+      const logger = createLogger(options.verbose ? "debug" : runtimeConfig.logLevel, process.stderr);
+      const controller = new AbortController();
+      const abort = (): void => {
+        controller.abort(new Error("Short rewrite interrupted."));
+      };
+      process.once("SIGINT", abort);
+      process.once("SIGTERM", abort);
+      try {
+        const serviceOptions = {
+          logger,
+          signal: controller.signal,
+          ...(client ? { client } : {}),
+        };
+        const summary = await rewriteShortStories(
+          {
+            inputPath: options.input,
+            episode: options.episode,
+            episodeSlug: options.episodeSlug,
+            outputRoot,
+            languages,
+            model,
+            temperature: options.temperature,
+            reasoningEffort: options.reasoningEffort,
+            maxConcurrency: options.maxConcurrency,
+            timeoutMs,
+            maxRetries,
+            overwrite: options.overwrite ?? options.force ?? false,
+            resume: options.resume ?? false,
+            dryRun: options.dryRun || hasDryRunFlag,
+            force: options.force ?? false,
+            verbose: options.verbose ?? false,
+            json: options.json ?? false,
+          } satisfies ShortRewriteRunOptions,
+          serviceOptions
+        );
+        if (options.json) {
+          printJson(summary);
+        } else {
+          process.stdout.write(`${formatSummary(summary)}\n`);
+        }
+        if (summary.failed > 0) {
+          process.exitCode = 1;
+        }
+      } finally {
+        process.off("SIGINT", abort);
+        process.off("SIGTERM", abort);
+      }
+    });
+}

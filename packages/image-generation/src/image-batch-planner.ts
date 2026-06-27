@@ -105,7 +105,7 @@ function buildCustomId(args: {
 }
 
 function promptFilePath(episodeDir: string, sceneId: string): string {
-  return path.join(episodeDir, "generated-assets", "prompts", `${sceneId}.txt`);
+  return path.join(episodeDir, "state", "image-generation", "prompts", `${sceneId}.txt`);
 }
 
 function normalizePrompt(value: string): string {
@@ -207,8 +207,9 @@ async function buildSceneJob(args: {
     promptHash,
     manifestPath: path.join(
       args.episodeDir,
-      "generated-assets",
-      "image-manifests",
+      "state",
+      "image-generation",
+      "manifests",
       `${args.sceneId}.json`
     ),
     sceneManifest: args.sceneManifest,
@@ -237,7 +238,7 @@ export async function planImageBatchForEpisode(args: {
           .filter((entry) => entry.length > 0)
       )
     : undefined;
-  const batchRoot = path.join(args.episodeDir, "generated-assets");
+  const batchRoot = path.join(args.episodeDir, "state", "image-generation");
   const storagePlan = await createImageBatchStoragePlan(batchRoot);
   const plannedScenes: PlannedImageBatchScene[] = [];
   const skippedSceneIds: string[] = [];
