@@ -22,6 +22,8 @@ import {
   buildCompactStorySource,
   buildLocalizationPrompt,
 } from "./localization-prompt-builder.js";
+import { materializeCanonicalSourceStory } from "./short-rewrite.bootstrap.js";
+import { buildCanonicalSourceFileName } from "./short-rewrite.utils.js";
 import {
   analyzeStorySource,
   buildOriginalityReview,
@@ -111,6 +113,7 @@ import {
   countWords,
   copyFileAtomicIfChanged,
   estimateDurationSeconds,
+  shouldIncludeTemperatureForModel,
   writeTextAtomicIfChanged,
 } from "./story-localization.utils.js";
 
@@ -133,6 +136,8 @@ function buildCacheKey(args: {
   readonly language: LanguageCode;
   readonly adaptationMode: StoryLocalizationConfig["adaptationMode"];
   readonly model: string;
+  readonly temperature: number;
+  readonly reasoningEffort: StoryLocalizationConfig["reasoningEffort"];
   readonly promptVersion: string;
   readonly shortWpm: number;
   readonly shortMinSeconds: number;
@@ -144,6 +149,8 @@ function buildCacheKey(args: {
     args.language,
     args.adaptationMode,
     args.model,
+    String(args.temperature),
+    args.reasoningEffort,
     args.promptVersion,
     JSON.stringify(profile.shortWordRange),
     String(args.shortWpm),
@@ -296,7 +303,10 @@ function englishShortBody(
     ],
     text: { format: responseSchemaForLanguage("en") },
     max_output_tokens: 6000,
-    temperature: 0.4,
+    ...(shouldIncludeTemperatureForModel(config.model) ? { temperature: config.temperature } : {}),
+    ...(config.reasoningEffort !== "none"
+      ? { reasoning: { effort: config.reasoningEffort } }
+      : {}),
   };
 }
 
@@ -331,13 +341,17 @@ function localizationBody(
     ],
     text: { format: responseSchemaForLanguage(language) },
     max_output_tokens: 6000,
-    temperature: 0.4,
+    ...(shouldIncludeTemperatureForModel(config.model) ? { temperature: config.temperature } : {}),
+    ...(config.reasoningEffort !== "none"
+      ? { reasoning: { effort: config.reasoningEffort } }
+      : {}),
   };
 }
 
 function buildManifestItem(args: {
   readonly customId: string;
   readonly parsed: Awaited<ReturnType<typeof parseCanonicalSourceStory>>;
+  readonly canonicalSourcePath: string;
   readonly operation: StoryBatchItem["metadata"]["operation"];
   readonly configurationHash: string;
   readonly promptVersion: string;
@@ -350,7 +364,7 @@ function buildManifestItem(args: {
     episodeNumber: args.parsed.episodeNumber,
     ...(args.language ? { language: args.language } : {}),
     operation: args.operation,
-    sourcePath: toRepositoryRelativePath(args.parsed.sourceFile),
+    sourcePath: toRepositoryRelativePath(args.canonicalSourcePath),
     sourceHash: args.parsed.sourceHash,
     promptVersion: args.promptVersion,
     configurationHash: args.configurationHash,
@@ -362,6 +376,7 @@ function buildManifestItem(args: {
 
 function buildEnglishShortBatchItem(args: {
   readonly parsed: Awaited<ReturnType<typeof parseCanonicalSourceStory>>;
+  readonly canonicalSourcePath: string;
   readonly facts: CanonicalStoryFacts;
   readonly config: StoryLocalizationConfig;
   readonly configurationHash: string;
@@ -416,6 +431,7 @@ function buildEnglishShortBatchItem(args: {
     manifestItem: buildManifestItem({
       customId,
       parsed: args.parsed,
+      canonicalSourcePath: args.canonicalSourcePath,
       language: "en",
       operation: "english-short",
       configurationHash: args.configurationHash,
@@ -431,6 +447,7 @@ function buildEnglishShortBatchItem(args: {
 
 function buildLocalizationBatchItem(args: {
   readonly parsed: Awaited<ReturnType<typeof parseCanonicalSourceStory>>;
+  readonly canonicalSourcePath: string;
   readonly facts: CanonicalStoryFacts;
   readonly config: StoryLocalizationConfig;
   readonly language: Exclude<LanguageCode, "en">;
@@ -487,6 +504,7 @@ function buildLocalizationBatchItem(args: {
     manifestItem: buildManifestItem({
       customId,
       parsed: args.parsed,
+      canonicalSourcePath: args.canonicalSourcePath,
       language: args.language,
       operation: "localization",
       configurationHash: args.configurationHash,
@@ -513,56 +531,74 @@ async function buildBatchItems(
   let skippedCachedItemCount = 0;
   for (const sourcePath of sourceFiles) {
     const parsed = await parseCanonicalSourceStory(sourcePath);
-    const facts = extractCanonicalStoryFacts(parsed);
+    const canonicalSourcePath = path.join(
+      config.outputDirectory,
+      parsed.slug,
+      "source",
+      buildCanonicalSourceFileName({
+        episodeNumber: parsed.episodeNumber,
+        episodeSlug: parsed.slug,
+      })
+    );
+    await materializeCanonicalSourceStory({
+      sourcePath: parsed.sourceFile,
+      targetPath: canonicalSourcePath,
+      sourceSha256: parsed.sourceHash,
+      overwrite: config.force,
+    });
+    const canonicalParsed = await parseCanonicalSourceStory(canonicalSourcePath);
+    const facts = extractCanonicalStoryFacts(canonicalParsed);
     const cacheDir = resolveEpisodeCacheDirectory(
       config.outputDirectory,
-      parsed.slug
+      canonicalParsed.slug
     );
     await ensureDir(cacheDir);
-    await ensureCachedFacts(cacheDir, parsed.sourceHash, facts);
-    const productionContext = buildProductionContext(parsed, facts);
-    await ensureDir(resolveEpisodeStoryProductionDirectory(cacheDir, parsed));
-    await persistStoryProductionStage(cacheDir, parsed, "raw-source");
+    await ensureCachedFacts(cacheDir, canonicalParsed.sourceHash, facts);
+    const productionContext = buildProductionContext(canonicalParsed, facts);
+    await ensureDir(resolveEpisodeStoryProductionDirectory(cacheDir, canonicalParsed));
+    await persistStoryProductionStage(cacheDir, canonicalParsed, "raw-source");
     await persistStoryProductionArtifact(
       cacheDir,
-      parsed,
+      canonicalParsed,
       "source-analysis.json",
       productionContext.analysis
     );
-    await persistStoryProductionStage(cacheDir, parsed, "source-analysis");
+    await persistStoryProductionStage(cacheDir, canonicalParsed, "source-analysis");
     await persistStoryProductionArtifact(
       cacheDir,
-      parsed,
+      canonicalParsed,
       "story-bible.json",
       productionContext.bible
     );
-    await persistStoryProductionStage(cacheDir, parsed, "story-bible");
+    await persistStoryProductionStage(cacheDir, canonicalParsed, "story-bible");
     await persistStoryProductionArtifact(
       cacheDir,
-      parsed,
+      canonicalParsed,
       "originality-review.json",
       productionContext.originalityReview
     );
-    await persistStoryProductionStage(cacheDir, parsed, "originality-review");
+    await persistStoryProductionStage(cacheDir, canonicalParsed, "originality-review");
     await persistStoryProductionArtifact(
       cacheDir,
-      parsed,
+      canonicalParsed,
       "retention-plan.json",
       productionContext.retentionPlan
     );
     await persistStoryProductionArtifact(
       cacheDir,
-      parsed,
+      canonicalParsed,
       "protected-elements.json",
       productionContext.protectedElements
     );
-    await persistStoryProductionStage(cacheDir, parsed, "retention-plan");
+    await persistStoryProductionStage(cacheDir, canonicalParsed, "retention-plan");
     if (config.includeEnglishShort) {
       const configHash = buildCacheKey({
-        sourceHash: parsed.sourceHash,
+        sourceHash: canonicalParsed.sourceHash,
         language: "en",
         adaptationMode: config.adaptationMode,
         model: config.model,
+        temperature: config.temperature,
+        reasoningEffort: config.reasoningEffort,
         promptVersion: config.promptVersion,
         shortWpm: config.shortWpm,
         shortMinSeconds: config.shortMinSeconds,
@@ -570,19 +606,20 @@ async function buildBatchItems(
       });
       const outputFiles = buildOutputFiles(
         config.outputDirectory,
-        parsed.slug,
+        canonicalParsed.slug,
         "en"
       );
       const cacheEntry = await readLocalizationCacheEntry(
         cacheDir,
-        parsed.sourceHash,
+        canonicalParsed.sourceHash,
         configHash
       );
       if (cacheEntry && (await fileExists(outputFiles.short))) {
         skippedCachedItemCount += 1;
       } else {
         const item = buildEnglishShortBatchItem({
-          parsed,
+          parsed: canonicalParsed,
+          canonicalSourcePath,
           facts,
           config,
           configurationHash: configHash,
@@ -594,10 +631,12 @@ async function buildBatchItems(
     }
     for (const language of config.languages) {
       const configHash = buildCacheKey({
-        sourceHash: parsed.sourceHash,
+        sourceHash: canonicalParsed.sourceHash,
         language,
         adaptationMode: config.adaptationMode,
         model: config.model,
+        temperature: config.temperature,
+        reasoningEffort: config.reasoningEffort,
         promptVersion: config.promptVersion,
         shortWpm: config.shortWpm,
         shortMinSeconds: config.shortMinSeconds,
@@ -605,12 +644,12 @@ async function buildBatchItems(
       });
       const outputFiles = buildOutputFiles(
         config.outputDirectory,
-        parsed.slug,
+        canonicalParsed.slug,
         language
       );
       const cacheEntry = await readLocalizationCacheEntry(
         cacheDir,
-        parsed.sourceHash,
+        canonicalParsed.sourceHash,
         configHash
       );
       if (
@@ -622,7 +661,8 @@ async function buildBatchItems(
         continue;
       }
       const item = buildLocalizationBatchItem({
-        parsed,
+        parsed: canonicalParsed,
+        canonicalSourcePath,
         facts,
         config,
         language,
@@ -651,51 +691,68 @@ async function buildRetryBatchItems(args: {
     const parsed = await parseCanonicalSourceStory(
       fromRepositoryRelativePath(retryItem.sourcePath)
     );
-    const facts = extractCanonicalStoryFacts(parsed);
+    const canonicalSourcePath = path.join(
+      args.config.outputDirectory,
+      parsed.slug,
+      "source",
+      buildCanonicalSourceFileName({
+        episodeNumber: parsed.episodeNumber,
+        episodeSlug: parsed.slug,
+      })
+    );
+    await materializeCanonicalSourceStory({
+      sourcePath: parsed.sourceFile,
+      targetPath: canonicalSourcePath,
+      sourceSha256: parsed.sourceHash,
+      overwrite: args.config.force,
+    });
+    const canonicalParsed = await parseCanonicalSourceStory(canonicalSourcePath);
+    const facts = extractCanonicalStoryFacts(canonicalParsed);
     const cacheDir = resolveEpisodeCacheDirectory(
       args.config.outputDirectory,
-      parsed.slug
+      canonicalParsed.slug
     );
-    const productionContext = buildProductionContext(parsed, facts);
-    await ensureDir(resolveEpisodeStoryProductionDirectory(cacheDir, parsed));
-    await persistStoryProductionStage(cacheDir, parsed, "raw-source");
+    const productionContext = buildProductionContext(canonicalParsed, facts);
+    await ensureDir(resolveEpisodeStoryProductionDirectory(cacheDir, canonicalParsed));
+    await persistStoryProductionStage(cacheDir, canonicalParsed, "raw-source");
     await persistStoryProductionArtifact(
       cacheDir,
-      parsed,
+      canonicalParsed,
       "source-analysis.json",
       productionContext.analysis
     );
-    await persistStoryProductionStage(cacheDir, parsed, "source-analysis");
+    await persistStoryProductionStage(cacheDir, canonicalParsed, "source-analysis");
     await persistStoryProductionArtifact(
       cacheDir,
-      parsed,
+      canonicalParsed,
       "story-bible.json",
       productionContext.bible
     );
-    await persistStoryProductionStage(cacheDir, parsed, "story-bible");
+    await persistStoryProductionStage(cacheDir, canonicalParsed, "story-bible");
     await persistStoryProductionArtifact(
       cacheDir,
-      parsed,
+      canonicalParsed,
       "originality-review.json",
       productionContext.originalityReview
     );
-    await persistStoryProductionStage(cacheDir, parsed, "originality-review");
+    await persistStoryProductionStage(cacheDir, canonicalParsed, "originality-review");
     await persistStoryProductionArtifact(
       cacheDir,
-      parsed,
+      canonicalParsed,
       "retention-plan.json",
       productionContext.retentionPlan
     );
     await persistStoryProductionArtifact(
       cacheDir,
-      parsed,
+      canonicalParsed,
       "protected-elements.json",
       productionContext.protectedElements
     );
-    await persistStoryProductionStage(cacheDir, parsed, "retention-plan");
+    await persistStoryProductionStage(cacheDir, canonicalParsed, "retention-plan");
     if (retryItem.operation === "english-short") {
       const item = buildEnglishShortBatchItem({
-        parsed,
+        parsed: canonicalParsed,
+        canonicalSourcePath,
         facts,
         config: args.config,
         configurationHash: retryItem.configurationHash,
@@ -708,7 +765,8 @@ async function buildRetryBatchItems(args: {
     }
     if (retryItem.language && retryItem.language !== "en") {
       const item = buildLocalizationBatchItem({
-        parsed,
+        parsed: canonicalParsed,
+        canonicalSourcePath,
         facts,
         config: args.config,
         language: retryItem.language,

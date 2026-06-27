@@ -55,4 +55,6 @@ Before returning the result, silently verify:
 - it sounds natural when narrated;
 - it contains no editorial commentary.
 
-Return only the finished narration.
+Return exactly one object matching the supplied response schema.
+Place the completed narration in the schema’s narration paragraph array, with one complete paragraph per array element.
+Do not include Markdown fences, commentary, or text outside the schema-defined object.

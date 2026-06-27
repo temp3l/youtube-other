@@ -18,6 +18,7 @@ import {
   getLanguageProfile,
   createOpenAiStoryClient,
   EnglishFullGeneratedStoryPackageSchema,
+  generatedFullStoryPackageSchema,
   generatedStoryPackageSchema,
   parseCanonicalSourceFilename,
   parseCanonicalSourceStory,
@@ -26,12 +27,15 @@ import {
   selectSourceCandidates,
   createStoryLocalizationConfig,
   localizeStoryEpisode,
+  extractStructuredResponseText,
   buildStoryBible,
   analyzeStorySource,
   buildOriginalityReview,
   buildRetentionPlan,
   renderLocalizedFullStory,
+  shouldIncludeTemperatureForModel,
   validateHashtags,
+  validateGeneratedFullStoryPackage,
   validatePreservationChecklist,
   validateTitleAndThumbnail,
   validateWrittenMessagesPreserved,
@@ -54,27 +58,32 @@ const sourceFile = path.join(
 type MockResponse = {
   readonly output_text: string;
   readonly id?: string;
+  readonly output?: readonly unknown[];
 };
 
 function makeMockClient(responses: readonly MockResponse[]) {
   const queue = [...responses];
+  const responseFn = vi.fn(async () => {
+    const next = queue.shift();
+    if (!next) {
+      throw new Error("No mock response left.");
+    }
+    return {
+      id: next.id ?? "resp_mock",
+      output_text: next.output_text,
+      ...(next.output ? { output: next.output } : {}),
+      output_parsed: next.output_text ? JSON.parse(next.output_text) : null,
+      usage: {
+        input_tokens: 100,
+        output_tokens: 50,
+        input_tokens_details: { cached_tokens: 0 },
+      },
+    };
+  });
   return {
     responses: {
-      create: vi.fn(async () => {
-        const next = queue.shift();
-        if (!next) {
-          throw new Error("No mock response left.");
-        }
-        return {
-          id: next.id ?? "resp_mock",
-          output_text: next.output_text,
-          usage: {
-            input_tokens: 100,
-            output_tokens: 50,
-            input_tokens_details: { cached_tokens: 0 },
-          },
-        };
-      }),
+      create: responseFn,
+      parse: responseFn,
     },
   };
 }
@@ -101,7 +110,7 @@ function makeLocalizedPackage(language: LanguageCode, shortWordCount: number): G
       audioInstructions: ["Use a steady narrator.", "Keep the tone restrained."],
       narrationParagraphs: [
         `${language.toUpperCase()} version: Elena Ward stayed in the house after dark and kept hearing Bramble breathe from under the bed.`,
-        "She found the same wet tracks in the hallway, the same attic note, and the same impossible message on the mirror.",
+        "She found the same wet tracks in the hallway, the same attic note, HUMANS CAN LICK TOO was written on the mirror, and the notebook still said SHE REACHED DOWN FIRST.",
         "By the time she understood the rule, the house had already learned Elena Ward's name and the final choice had become a trap.",
       ],
       thumbnailText: "NOT THE DOG",
@@ -237,6 +246,8 @@ describe("story localization helpers", () => {
   it("counts words and estimates spoken duration", () => {
     expect(countWords("One two three")).toBe(3);
     expect(Math.round(estimateDurationSeconds(180, 180))).toBe(60);
+    expect(shouldIncludeTemperatureForModel("gpt-4o-mini")).toBe(true);
+    expect(shouldIncludeTemperatureForModel("gpt-5.5")).toBe(false);
   });
 
   it("loads the language profile for Portuguese", () => {
@@ -279,6 +290,8 @@ describe("story localization helpers", () => {
     expect(fullPrompt.user).toContain("<SOURCE_NARRATION>");
     expect(fullPrompt.user).toContain("<IMMUTABLE_FACTS>");
     expect(fullPrompt.user).toContain("<CHARACTER_MAP>");
+    expect(fullPrompt.user).toContain("## Locale settings");
+    expect(fullPrompt.user).toContain("## Spanish Localization");
     expect(fullPrompt.user).toContain("Source analysis:");
     expect(fullPrompt.user).toContain("Story bible:");
     expect(fullPrompt.user).toContain("Originality review:");
@@ -303,6 +316,8 @@ describe("story localization helpers", () => {
     expect(prompt.user).toContain("TARGET_LOCALE: es-419");
     expect(prompt.user).toContain("TARGET_WPM: 175");
     expect(prompt.user).toContain(`TARGET_WORD_RANGE: ${expectedWordRange}`);
+    expect(prompt.user).toContain("## Locale settings");
+    expect(prompt.user).toContain("## Spanish Localization");
     expect(prompt.user).toContain("Source analysis:");
     expect(prompt.user).toContain("Story bible:");
     expect(prompt.user).toContain("Originality review:");
@@ -321,7 +336,14 @@ describe("story localization helpers", () => {
       force: true,
     });
     const client = makeMockClient([
-      { output_text: JSON.stringify(makeLocalizedPackage("en", 160)) },
+      {
+        output_text: JSON.stringify({
+          language: "en",
+          full: makeLocalizedPackage("en", 160).full,
+          preservationChecklist: makeLocalizedPackage("en", 160).preservationChecklist,
+          diagnostics: makeLocalizedPackage("en", 160).diagnostics,
+        }),
+      },
       { output_text: JSON.stringify(makeLocalizedPackage("es", 80)) },
       { output_text: JSON.stringify(makeLocalizedPackage("es", 165)) },
     ]);
@@ -344,6 +366,31 @@ describe("story localization helpers", () => {
         "utf8"
       )
     ).toContain("# Short 002");
+  });
+
+  it("falls back to the structured output array when output_text is empty", () => {
+    const structuredText = JSON.stringify({
+      language: "en",
+      full: makeLocalizedPackage("en").full,
+      preservationChecklist: makeLocalizedPackage("en").preservationChecklist,
+      diagnostics: makeLocalizedPackage("en").diagnostics,
+    });
+    expect(
+      extractStructuredResponseText({
+        output_text: "",
+        output: [
+          {
+            type: "message",
+            content: [
+              {
+                type: "output_text",
+                text: structuredText,
+              },
+            ],
+          },
+        ],
+      })
+    ).toBe(structuredText);
   });
 
   it("accepts OPENAI_API_TOKEN as a fallback credential alias", () => {
@@ -448,9 +495,7 @@ describe("story localization helpers", () => {
       client: client as never,
     });
 
-    expect(result.failure).toContain(
-      "English short generation requires a validated generated English full story."
-    );
+    expect(result.failure).toContain("English full story localization failed via OpenAI model");
     expect(result.failure).toContain("insufficient_quota");
     expect(result.failure).toContain("status 400");
     expect(result.failure).toContain("Check API billing");
@@ -670,6 +715,22 @@ describe("story localization helpers", () => {
     ).toBe(true);
   });
 
+  it("serializes the full-only story schema without requiring a short payload", () => {
+    const jsonSchema = z.toJSONSchema(generatedFullStoryPackageSchema);
+    expect(jsonSchema).toMatchObject({
+      type: "object",
+      required: expect.arrayContaining([
+        "language",
+        "full",
+        "preservationChecklist",
+        "diagnostics",
+      ]),
+    });
+    expect(
+      (jsonSchema as { readonly required?: readonly string[] }).required?.includes("short")
+    ).toBe(false);
+  });
+
   it("writes files atomically and skips unchanged writes", async () => {
     const tempDir = mkdtempSync(
       path.join(os.tmpdir(), "story-localization-atomic-")
@@ -744,5 +805,24 @@ describe("story localization helpers", () => {
     );
     expect(markdown).toContain("mediaforge:generated-full-story");
     expect(markdown).toContain("source-sha256");
+  });
+
+  it("does not apply short word-count validation to full-only packages", async () => {
+    const parsed = await parseCanonicalSourceStory(sourceFile);
+    const facts = extractCanonicalStoryFacts(parsed);
+    const localized = makeLocalizedPackage("de", 220);
+    const fullOnlyPackage = {
+      language: localized.language,
+      full: localized.full,
+      preservationChecklist: localized.preservationChecklist,
+      diagnostics: localized.diagnostics,
+    };
+    const issues = validateGeneratedFullStoryPackage(
+      fullOnlyPackage,
+      facts,
+      getLanguageProfile("de"),
+      "de"
+    );
+    expect(issues.some((issue) => issue.includes("Short word count"))).toBe(false);
   });
 });

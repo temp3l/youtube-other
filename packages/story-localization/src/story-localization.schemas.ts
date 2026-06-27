@@ -181,6 +181,11 @@ export const diagnosticsSchema = z.object({
   adaptationNotes: z.array(z.string()),
 });
 
+export const fullRewriteGenerationDiagnosticsSchema = z.object({
+  removedGenericFiller: z.array(z.string().min(1)).max(50),
+  adaptationNotes: z.array(z.string().min(1)).max(50),
+});
+
 export const generatedStoryPackageSchema = z.object({
   language: z.enum(languageCodes),
   full: z
@@ -283,6 +288,39 @@ export const imageBatchManifestSchema = z.object({
 });
 
 export type GeneratedStoryPackageShape = z.infer<typeof generatedStoryPackageSchema>;
+
+export const generatedFullStoryPackageSchema = z.object({
+  language: z.enum(languageCodes),
+  full: generatedStoryPackageSchema.shape.full.unwrap(),
+  preservationChecklist: preservationChecklistSchema,
+  diagnostics: diagnosticsSchema,
+});
+
+export type GeneratedFullStoryPackageShape = z.infer<typeof generatedFullStoryPackageSchema>;
+
+export const localizedFullRewriteResponseSchema = z
+  .object({
+    language: z.enum(languageCodes),
+    full: z.object({
+      title: z.string().min(1),
+      audioInstructions: z.array(z.string().min(1)).min(1),
+      narrationParagraphs: z.array(z.string().min(1)).min(1),
+      thumbnailText: z.string().min(1).max(50),
+      contentDisclosure: z.string().min(1),
+      seoDescription: z.string().min(1),
+      tags: z.array(z.string().min(1)).min(3).max(20),
+      hashtags: z.array(z.string().regex(/^#/u)).min(1).max(8),
+      targetNarrationWpm: z.number().int().min(120).max(220),
+      visualDirection: z.string().min(1),
+    }).strict(),
+    preservationChecklist: preservationChecklistSchema,
+    diagnostics: fullRewriteGenerationDiagnosticsSchema,
+  })
+  .strict();
+
+export type LocalizedFullRewriteResponseShape = z.infer<
+  typeof localizedFullRewriteResponseSchema
+>;
 
 export const EnglishGeneratedStoryPackageSchema = z.object({
   short: generatedStoryPackageSchema.shape.short,

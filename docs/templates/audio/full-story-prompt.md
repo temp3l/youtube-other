@@ -214,4 +214,6 @@ Before returning the output, verify:
 11. No source-language fragments remain.
 12. The output is a complete story, not a synopsis.
 
-Return only the finished narration text.
+Return exactly one object matching the supplied response schema.
+Place the completed narration in the schema’s narration paragraph array, with one complete paragraph per array element.
+Do not include Markdown fences, commentary, or text outside the schema-defined object.

@@ -2579,7 +2579,8 @@ async function commandMetadataGenerate(
   } = {
     apiKey:
       config.openAiCompatibleApiKey ?? process.env["OPENAI_API_KEY"] ?? "",
-    model: config.openAiMetadataModel ?? "gpt-4.1-mini",
+    model: config.openAiMetadataModel ?? "gpt-5.4-mini",
+    reasoningEffort: config.openAiMetadataReasoningEffort ?? "low",
     language,
     promptText: await fs.readFile(
       path.resolve("prompts", "youtube-metadata.prompt.md"),
@@ -2806,7 +2807,7 @@ async function commandMetadataYoutube(
           sceneCount: targetData.scenePlan.scenes.length,
           durationSeconds: targetData.durationSeconds,
           language,
-          model: config.openAiMetadataModel ?? "gpt-4.1-mini",
+          model: config.openAiMetadataModel ?? "gpt-5.4-mini",
           promptVersion: "youtube-metadata-v1",
         } satisfies YoutubeMetadataRunSummary;
       })
@@ -2827,7 +2828,8 @@ async function commandMetadataYoutube(
       > & { baseUrl?: string } = {
         apiKey:
           config.openAiCompatibleApiKey ?? process.env["OPENAI_API_KEY"] ?? "",
-        model: config.openAiMetadataModel ?? "gpt-4.1-mini",
+        model: config.openAiMetadataModel ?? "gpt-5.4-mini",
+        reasoningEffort: config.openAiMetadataReasoningEffort ?? "low",
         language,
         promptText: prompt.text,
         promptVersion: "youtube-metadata-v1",
@@ -3074,7 +3076,8 @@ async function commandYoutubeUpload(
     metadataGeneration = {
       apiKey:
         config.openAiCompatibleApiKey ?? process.env["OPENAI_API_KEY"] ?? "",
-      model: config.openAiMetadataModel ?? "gpt-4.1-mini",
+      model: config.openAiMetadataModel ?? "gpt-5.4-mini",
+      reasoningEffort: config.openAiMetadataReasoningEffort ?? "low",
       promptText: await fs.readFile(
         path.resolve("prompts", "youtube-metadata.prompt.md"),
         "utf8"

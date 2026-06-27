@@ -144,10 +144,24 @@ This writes:
 episodes/<episode-slug>/shared/characters.json
 ```
 
+If you want the same output from the story-localization surface, use:
+
+```bash
+npm run mediaforge -- stories sync-characters --episode <episode-id-or-slug>
+```
+
+That shortcut writes only `episodes/<episode-slug>/shared/characters.json` and does not generate reference images.
+
 If you want the shared registry plus reference images in one step, use:
 
 ```bash
 npm run episode:bootstrap-characters -- --episode <episode-id-or-slug> --approve
+```
+
+The story-oriented shortcut is:
+
+```bash
+npm run mediaforge -- stories bootstrap-shared --episode <episode-id-or-slug> --approve
 ```
 
 ## 4. Generate Thumbnails And Reference Characters

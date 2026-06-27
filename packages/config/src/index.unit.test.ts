@@ -77,6 +77,15 @@ describe("runtime config", () => {
       [
         "OPENAI_API_KEY=test-key",
         "MEDIAFORGE_OPENAI_COMPATIBLE_BASE_URL=https://api.openai.com/v1",
+        "MEDIAFORGE_OPENAI_STORY_MODEL=gpt-5.5",
+        "MEDIAFORGE_OPENAI_STORY_TEMPERATURE=0.5",
+        "MEDIAFORGE_OPENAI_STORY_REASONING_EFFORT=high",
+        "MEDIAFORGE_OPENAI_STORY_MAX_OUTPUT_TOKENS=25000",
+        "MEDIAFORGE_OPENAI_STORY_RETRY_MAX_OUTPUT_TOKENS=25000",
+        "MEDIAFORGE_OPENAI_SHORT_REWRITE_MAX_OUTPUT_TOKENS=16000",
+        "MEDIAFORGE_OPENAI_SHORT_REWRITE_RETRY_MAX_OUTPUT_TOKENS=25000",
+        "MEDIAFORGE_OPENAI_METADATA_MODEL=gpt-5.4-mini",
+        "MEDIAFORGE_OPENAI_METADATA_REASONING_EFFORT=low",
         "MEDIAFORGE_OPENAI_SPEECH_MODEL=gpt-4o-mini-tts",
         "MEDIAFORGE_OPENAI_SPEECH_VOICE=onyx"
       ].join("\n")
@@ -86,6 +95,15 @@ describe("runtime config", () => {
       const config = await loadRuntimeConfig();
       expect(config.openAiCompatibleApiKey).toBe("test-key");
       expect(config.ttsProvider).toBe("openai-compatible");
+      expect(config.openAiStoryModel).toBe("gpt-5.5");
+      expect(config.openAiStoryTemperature).toBe(0.5);
+      expect(config.openAiStoryReasoningEffort).toBe("high");
+      expect(config.openAiStoryMaxOutputTokens).toBe(25000);
+      expect(config.openAiStoryRetryMaxOutputTokens).toBe(25000);
+      expect(config.openAiShortRewriteMaxOutputTokens).toBe(16000);
+      expect(config.openAiShortRewriteRetryMaxOutputTokens).toBe(25000);
+      expect(config.openAiMetadataModel).toBe("gpt-5.4-mini");
+      expect(config.openAiMetadataReasoningEffort).toBe("low");
       expect(config.openAiSpeechModel).toBe("gpt-4o-mini-tts");
       expect(config.openAiSpeechVoice).toBe("onyx");
     } finally {

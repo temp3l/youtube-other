@@ -17,6 +17,7 @@ import {
   loadAudioTemplate,
   renderTemplate,
 } from "./prompt-template-loader.js";
+import { loadMultilingualStoryLocalizationSettings } from "./multilingual-story-localization-settings.js";
 
 function lineList(lines: readonly string[]): string {
   return lines.map((line) => `- ${line}`).join("\n");
@@ -87,6 +88,9 @@ export function buildLocalizationPrompt(args: {
   const targetWordMin = Math.max(1, Math.round(sourceWordCount * 0.92));
   const targetWordMax = Math.max(targetWordMin, Math.round(sourceWordCount * 1.08));
   const system = loadAudioTemplate("system-prompt.md");
+  const localeSettings = loadMultilingualStoryLocalizationSettings(
+    args.languageProfile.locale
+  );
   const user = renderTemplate(loadAudioTemplate("full-story-prompt.md"), {
     SOURCE_LANGUAGE: args.sourceStory.language === "en" ? "English" : args.sourceStory.language,
     TARGET_LANGUAGE: args.languageProfile.displayName,
@@ -99,8 +103,17 @@ export function buildLocalizationPrompt(args: {
     IMMUTABLE_FACTS: serializedFacts(args.canonicalFacts),
     CHARACTER_MAP: JSON.stringify(compactSource.canonicalFacts.characters, null, 2),
   });
+  const localizedUser = insertSectionBeforeMarker(
+    user,
+    "## Task",
+    [
+      "## Locale settings",
+      "",
+      localeSettings,
+    ].join("\n")
+  );
   if (!args.productionContext) {
-    return { system, user };
+    return { system, user: localizedUser };
   }
   const contextSections: string[] = [
     "## Additional production context",
@@ -137,7 +150,7 @@ export function buildLocalizationPrompt(args: {
   return {
     system,
     user: insertSectionBeforeMarker(
-      user,
+      localizedUser,
       "## Final silent verification",
       contextSections.join("\n")
     ),

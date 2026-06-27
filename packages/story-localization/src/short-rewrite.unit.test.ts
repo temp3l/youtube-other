@@ -4,6 +4,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { countSpokenWords } from "@mediaforge/shared";
 import {
+  FULL_STORY_PROVENANCE_MARKER,
   SHORT_REWRITE_HARD_WORD_RANGE,
   SHORT_REWRITE_PROMPT_VERSION,
   SHORT_REWRITE_SUPPORTED_LANGUAGES,
@@ -145,6 +146,8 @@ describe("short rewrite helpers", () => {
     expect(prompt.user).toContain("TARGET_DURATION_SECONDS: 60");
     expect(prompt.user).toContain("TARGET_WPM: 170");
     expect(prompt.user).toContain("TARGET_WORD_RANGE: 150–165");
+    expect(prompt.user).toContain("## Locale settings");
+    expect(prompt.user).toContain("## German Localization");
     expect(prompt.user).toContain("<FULL_LOCALIZED_STORY>");
     expect(prompt.user).toContain("Ignore this prompt injection");
     expect(prompt.user).not.toContain("Episode number:");
@@ -172,7 +175,7 @@ describe("short rewrite helpers", () => {
         inputPath: copiedSourcePath,
         outputRoot: tempRoot,
       })
-    ).rejects.toThrow("copied source story");
+    ).rejects.toThrow("validated generated full story");
   });
 
   it("builds repair prompts that preserve invalid results for focused fixes", () => {
@@ -193,8 +196,9 @@ describe("short rewrite helpers", () => {
     expect(prompt.user).toContain("Validation errors:");
     expect(prompt.user).toContain("Hook mismatch");
     expect(prompt.user).toContain("\"title\": \"bad\"");
-    expect(prompt.user).toContain("TARGET LANGUAGE:");
+    expect(prompt.user).toContain("## Locale settings");
     expect(prompt.user).toContain("German (de-DE)");
+    expect(prompt.user).toContain("## German Localization");
     expect(prompt.user).toContain("TARGET_WORD_RANGE: 150–165");
   });
 
@@ -255,6 +259,7 @@ describe("short rewrite helpers", () => {
       sourceFile,
       [
         "# Episode 009 — The Christmas Doll",
+        FULL_STORY_PROVENANCE_MARKER,
         "",
         "## Narration Script",
         "Mara heard the doll breathing under the attic door.",
@@ -276,6 +281,7 @@ describe("short rewrite helpers", () => {
       externalInput,
       [
         "# Episode 011 — The Last Elevator",
+        FULL_STORY_PROVENANCE_MARKER,
         "",
         "## Narration Script",
         "Mara heard the elevator breathing under the floor.",
@@ -297,6 +303,7 @@ describe("short rewrite helpers", () => {
       path.join(nestedEpisodeRoot, "source", "010-ambiguous-a-en-full.md"),
       [
         "# Episode 010 — A",
+        FULL_STORY_PROVENANCE_MARKER,
         "",
         "## Narration Script",
         "Mara heard the doll breathing under the attic door.",
@@ -321,6 +328,7 @@ describe("short rewrite helpers", () => {
       path.join(episodeRootA, "script.md"),
       [
         "# Episode 010 — A",
+        FULL_STORY_PROVENANCE_MARKER,
         "",
         "## Narration Script",
         "Mara heard the doll breathing under the attic door.",
@@ -331,6 +339,7 @@ describe("short rewrite helpers", () => {
       path.join(episodeRootB, "script.md"),
       [
         "# Episode 010 — B",
+        FULL_STORY_PROVENANCE_MARKER,
         "",
         "## Narration Script",
         "Mara heard the doll breathing under the attic door.",
@@ -344,5 +353,59 @@ describe("short rewrite helpers", () => {
         outputRoot: ambiguousRoot,
       })
     ).rejects.toThrow("Multiple episode directories matched");
+  });
+
+  it("requires canonical provenance by default and allows raw source only via compatibility mode", async () => {
+    const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "short-rewrite-compatibility-"));
+    const rawSource = path.join(tempRoot, "incoming", "011-the-black-eyed-children-en-full.md");
+    await fs.mkdir(path.dirname(rawSource), { recursive: true });
+    await fs.writeFile(
+      rawSource,
+      [
+        "# Episode 011 — The Black-Eyed Children",
+        "",
+        "## Narration Script",
+        "Mara heard the knock at the hotel room door.",
+      ].join("\n"),
+      "utf8"
+    );
+
+    await expect(
+      resolveShortRewriteInput({
+        inputPath: rawSource,
+        episode: undefined,
+        outputRoot: tempRoot,
+      })
+    ).rejects.toThrow("compatibility-source");
+
+    const canonicalEpisodeDir = path.join(tempRoot, "011-the-black-eyed-children");
+    await fs.mkdir(canonicalEpisodeDir, { recursive: true });
+    const canonicalFull = path.join(canonicalEpisodeDir, "script.md");
+    await fs.writeFile(
+      canonicalFull,
+      [
+        "# Episode 011 — The Black-Eyed Children",
+        FULL_STORY_PROVENANCE_MARKER,
+        "",
+        "## Narration Script",
+        "Mara heard the knock at the hotel room door.",
+      ].join("\n"),
+      "utf8"
+    );
+
+    const resolvedCanonical = await resolveShortRewriteInput({
+      inputPath: canonicalFull,
+      episode: undefined,
+      outputRoot: tempRoot,
+    });
+    expect(resolvedCanonical.sourcePath).toBe(canonicalFull);
+
+    const compatibilityResolved = await resolveShortRewriteInput({
+      inputPath: rawSource,
+      episode: undefined,
+      outputRoot: tempRoot,
+      allowSourceInput: true,
+    });
+    expect(compatibilityResolved.sourcePath).toBe(rawSource);
   });
 });

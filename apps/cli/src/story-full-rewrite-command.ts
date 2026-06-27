@@ -7,10 +7,15 @@ import {
   createOpenAiStoryClientWithOptions,
   createStoryLocalizationConfig,
   buildCanonicalSourceFileName,
+  DEFAULT_FULL_REWRITE_MAX_OUTPUT_TOKENS,
+  DEFAULT_FULL_REWRITE_RETRY_MAX_OUTPUT_TOKENS,
+  DEFAULT_STORY_REWRITE_MODEL,
+  DEFAULT_STORY_REWRITE_REASONING_EFFORT,
+  SHORT_REWRITE_DEFAULT_TEMPERATURE,
   type LanguageCode,
+  resolveFullRewriteInput,
   localizeStoryEpisode,
   materializeCanonicalSourceStory,
-  resolveShortRewriteInput,
 } from "@mediaforge/story-localization";
 import { normalizeWhitespace } from "@mediaforge/shared";
 
@@ -22,7 +27,10 @@ export interface StoryRewriteFullCliOptions {
   readonly languages?: string;
   readonly outputRoot?: string;
   readonly model?: string;
+  readonly temperature?: number;
   readonly reasoningEffort?: "none" | "minimal" | "low" | "medium" | "high" | "xhigh";
+  readonly maxOutputTokens?: number;
+  readonly retryMaxOutputTokens?: number;
   readonly maxConcurrency?: number;
   readonly timeoutMs?: number;
   readonly maxRetries?: number;
@@ -60,7 +68,10 @@ export function registerStoryRewriteFullCommand(storiesCommand: Command): void {
     .option("--languages <comma-separated-codes>", "target languages")
     .option("--model <model>", "OpenAI model")
     .option("--output-root <path>", "output root directory")
+    .option("--temperature <number>", "sampling temperature", (value) => Number(value))
     .option("--reasoning-effort <value>", "reasoning effort")
+    .option("--max-output-tokens <number>", "maximum output tokens", (value) => Number(value))
+    .option("--retry-max-output-tokens <number>", "retry output tokens", (value) => Number(value))
     .option("--max-concurrency <number>", "maximum concurrent requests", (value) => Number(value))
     .option("--timeout-ms <number>", "request timeout in milliseconds", (value) => Number(value))
     .option("--max-retries <number>", "maximum transient retries", (value) => Number(value))
@@ -87,7 +98,7 @@ export function registerStoryRewriteFullCommand(storiesCommand: Command): void {
 
       const runtimeConfig = await loadRuntimeConfig();
       const outputRoot = path.resolve(options.outputRoot ?? runtimeConfig.workspaceDir);
-      const resolved = await resolveShortRewriteInput({
+      const resolved = await resolveFullRewriteInput({
         inputPath: options.input,
         episode: options.episode,
         episodeSlug: options.episodeSlug,
@@ -120,12 +131,10 @@ export function registerStoryRewriteFullCommand(storiesCommand: Command): void {
           sourceFile: canonicalSourcePath,
           plannedOutputs: {
             englishFull: path.join(outputRoot, resolved.episodeSlug, "script.md"),
-            englishShort: path.join(outputRoot, resolved.episodeSlug, "en", "short", "script.md"),
             localized: requestedLanguages.map((language) =>
               ({
                 language,
                 full: path.join(outputRoot, resolved.episodeSlug, language, "full", "script.md"),
-                short: path.join(outputRoot, resolved.episodeSlug, language, "short", "script.md"),
               })
             ),
           },
@@ -139,19 +148,40 @@ export function registerStoryRewriteFullCommand(storiesCommand: Command): void {
         sourceDirectory: outputRoot,
         outputDirectory: outputRoot,
         languages: requestedLanguages as readonly Exclude<LanguageCode, "en">[],
-        includeEnglishShort: true,
+        includeEnglishShort: false,
+        includeLocalizedShorts: false,
         processingMode: "sync",
-        model: options.model ?? runtimeConfig.openAiMetadataModel ?? runtimeConfig.openAiCompatibleModel ?? "gpt-4.1-mini",
+        timeoutMs: options.timeoutMs ?? 180_000,
+        maxOutputTokens:
+          options.maxOutputTokens ??
+          runtimeConfig.openAiStoryMaxOutputTokens ??
+          DEFAULT_FULL_REWRITE_MAX_OUTPUT_TOKENS,
+        retryMaxOutputTokens:
+          options.retryMaxOutputTokens ??
+          runtimeConfig.openAiStoryRetryMaxOutputTokens ??
+          DEFAULT_FULL_REWRITE_RETRY_MAX_OUTPUT_TOKENS,
+        model:
+          options.model ??
+          runtimeConfig.openAiStoryModel ??
+          DEFAULT_STORY_REWRITE_MODEL,
+        temperature: options.temperature ?? runtimeConfig.openAiStoryTemperature ?? SHORT_REWRITE_DEFAULT_TEMPERATURE,
+        reasoningEffort:
+          options.reasoningEffort ??
+          runtimeConfig.openAiStoryReasoningEffort ??
+          DEFAULT_STORY_REWRITE_REASONING_EFFORT,
         force: options.overwrite ?? options.force ?? false,
+        resume: options.resume ?? false,
         dryRun: options.dryRun || hasDryRunFlag,
         verbose: options.verbose ?? false,
+        debugOutputs: true,
+        debugPrefix: "stories-rewrite-full",
       });
       const client = options.dryRun || hasDryRunFlag
         ? undefined
         : createOpenAiStoryClientWithOptions({
             apiKey: runtimeConfig.openAiCompatibleApiKey ?? undefined,
             baseUrl: runtimeConfig.openAiCompatibleBaseUrl ?? undefined,
-            timeoutMs: options.timeoutMs ?? 120_000,
+            timeoutMs: options.timeoutMs ?? 180_000,
             maxRetries: options.maxRetries ?? 2,
           });
       const logger = createLogger(options.verbose ? "debug" : runtimeConfig.logLevel, process.stderr);

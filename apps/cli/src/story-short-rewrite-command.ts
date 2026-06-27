@@ -5,8 +5,12 @@ import { createLogger } from "@mediaforge/observability";
 import {
   createOpenAiStoryClientWithOptions,
   rewriteShortStories,
-  SHORT_REWRITE_DEFAULT_MODEL,
+  DEFAULT_SHORT_REWRITE_MAX_OUTPUT_TOKENS,
+  DEFAULT_SHORT_REWRITE_RETRY_MAX_OUTPUT_TOKENS,
+  DEFAULT_STORY_REWRITE_MODEL,
+  DEFAULT_STORY_REWRITE_REASONING_EFFORT,
   SHORT_REWRITE_DEFAULT_TIMEOUT_MS,
+  SHORT_REWRITE_DEFAULT_TEMPERATURE,
   SUPPORTED_STORY_LANGUAGES,
   type ShortRewriteRunOptions,
   type StoryLanguage,
@@ -25,12 +29,15 @@ export interface StoryRewriteShortCliOptions {
   readonly outputRoot?: string;
   readonly temperature?: number;
   readonly reasoningEffort?: "none" | "minimal" | "low" | "medium" | "high" | "xhigh";
+  readonly maxOutputTokens?: number;
+  readonly retryMaxOutputTokens?: number;
   readonly maxConcurrency?: number;
   readonly timeoutMs?: number;
   readonly maxRetries?: number;
   readonly overwrite?: boolean;
   readonly resume?: boolean;
   readonly dryRun?: boolean;
+  readonly compatibilitySource?: boolean;
   readonly force?: boolean;
   readonly json?: boolean;
   readonly verbose?: boolean;
@@ -81,9 +88,8 @@ function resolveModel(
 ): string {
   return (
     options.model ??
-    runtimeConfig.openAiMetadataModel ??
-    runtimeConfig.openAiCompatibleModel ??
-    SHORT_REWRITE_DEFAULT_MODEL
+    runtimeConfig.openAiStoryModel ??
+    DEFAULT_STORY_REWRITE_MODEL
   );
 }
 
@@ -115,12 +121,15 @@ export function registerStoryRewriteShortCommand(storiesCommand: Command): void 
     .option("--output-root <path>", "output root directory")
     .option("--temperature <number>", "sampling temperature", (value) => Number(value))
     .option("--reasoning-effort <value>", "reasoning effort")
+    .option("--max-output-tokens <number>", "maximum output tokens", (value) => Number(value))
+    .option("--retry-max-output-tokens <number>", "retry output tokens", (value) => Number(value))
     .option("--max-concurrency <number>", "maximum concurrent requests", (value) => Number(value))
     .option("--timeout-ms <number>", "request timeout in milliseconds", (value) => Number(value))
     .option("--max-retries <number>", "maximum transient retries", (value) => Number(value))
     .option("--overwrite", "overwrite existing outputs")
     .option("--resume", "skip valid outputs and regenerate invalid ones")
     .option("--dry-run", "plan the run without calling OpenAI or writing files")
+    .option("--compatibility-source", "allow raw source markdown for short generation")
     .option("--force", "alias for overwrite")
     .option("--json", "print machine-readable output")
     .option("--verbose", "enable verbose logging")
@@ -173,14 +182,26 @@ export function registerStoryRewriteShortCommand(storiesCommand: Command): void 
             outputRoot,
             languages,
             model,
-            temperature: options.temperature,
-            reasoningEffort: options.reasoningEffort,
+            maxOutputTokens:
+              options.maxOutputTokens ??
+              runtimeConfig.openAiShortRewriteMaxOutputTokens ??
+              DEFAULT_SHORT_REWRITE_MAX_OUTPUT_TOKENS,
+            retryMaxOutputTokens:
+              options.retryMaxOutputTokens ??
+              runtimeConfig.openAiShortRewriteRetryMaxOutputTokens ??
+              DEFAULT_SHORT_REWRITE_RETRY_MAX_OUTPUT_TOKENS,
+            temperature: options.temperature ?? runtimeConfig.openAiStoryTemperature ?? SHORT_REWRITE_DEFAULT_TEMPERATURE,
+            reasoningEffort:
+              options.reasoningEffort ??
+              runtimeConfig.openAiStoryReasoningEffort ??
+              DEFAULT_STORY_REWRITE_REASONING_EFFORT,
             maxConcurrency: options.maxConcurrency,
             timeoutMs,
             maxRetries,
             overwrite: options.overwrite ?? options.force ?? false,
             resume: options.resume ?? false,
             dryRun: options.dryRun || hasDryRunFlag,
+            allowSourceInput: options.compatibilitySource ?? false,
             force: options.force ?? false,
             verbose: options.verbose ?? false,
             json: options.json ?? false,

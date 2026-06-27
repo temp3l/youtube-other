@@ -4,7 +4,7 @@ import path from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { countSpokenWords } from "@mediaforge/shared";
 import { rewriteShortStories } from "./short-rewrite.service.js";
-import { SHORT_REWRITE_PROMPT_VERSION } from "./short-rewrite.constants.js";
+import { FULL_STORY_PROVENANCE_MARKER, SHORT_REWRITE_PROMPT_VERSION } from "./short-rewrite.constants.js";
 
 type MockResponse = {
   readonly id?: string;
@@ -28,25 +28,28 @@ function buildNarration(wordTarget: number): string {
 
 function makeMockClient(responses: readonly MockResponse[] = []) {
   const queue = [...responses];
+  const responseFn = vi.fn(async () => {
+    const next = queue.shift();
+    if (!next) {
+      throw new Error("No mock response available.");
+    }
+    return {
+      id: next.id ?? "mock-response",
+      output_text: next.output_text,
+      output_parsed: JSON.parse(next.output_text),
+      usage: {
+        input_tokens: 120,
+        output_tokens: 80,
+        total_tokens: 200,
+        input_tokens_details: { cached_tokens: 0 },
+        output_tokens_details: { reasoning_tokens: 5 },
+      },
+    };
+  });
   return {
     responses: {
-      create: vi.fn(async () => {
-        const next = queue.shift();
-        if (!next) {
-          throw new Error("No mock response available.");
-        }
-        return {
-          id: next.id ?? "mock-response",
-          output_text: next.output_text,
-          usage: {
-            input_tokens: 120,
-            output_tokens: 80,
-            total_tokens: 200,
-            input_tokens_details: { cached_tokens: 0 },
-            output_tokens_details: { reasoning_tokens: 5 },
-          },
-        };
-      }),
+      create: responseFn,
+      parse: responseFn,
     },
   };
 }
@@ -85,9 +88,29 @@ async function createSourceStory(tempRoot: string): Promise<string> {
     sourcePath,
     [
       "# Episode 009 — The Christmas Doll",
+      FULL_STORY_PROVENANCE_MARKER,
       "",
       "## Audio Generation Instructions",
       "- Use a steady narrator.",
+      "",
+      "## Narration Script",
+      "Mara heard the doll breathing under the attic door.",
+      "When she opened it, the doll sat on the nursery chair with wet hands and her own name scratched across the glass.",
+      "She burned the dress, locked the trunk, and thought the house had gone quiet, but the final photograph on the stairs showed the doll behind her brother.",
+    ].join("\n"),
+    "utf8"
+  );
+  return sourcePath;
+}
+
+async function createRawCompatibilitySource(tempRoot: string): Promise<string> {
+  const sourceDir = path.join(tempRoot, "incoming");
+  await fs.mkdir(sourceDir, { recursive: true });
+  const sourcePath = path.join(sourceDir, "009-the-christmas-doll-en-full.md");
+  await fs.writeFile(
+    sourcePath,
+    [
+      "# Episode 009 — The Christmas Doll",
       "",
       "## Narration Script",
       "Mara heard the doll breathing under the attic door.",
@@ -286,6 +309,61 @@ describe("short rewrite service", () => {
     expect(client.responses.create).not.toHaveBeenCalled();
   });
 
+  it("materializes the canonical source before generating when compatibility mode is enabled", async () => {
+    const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "short-rewrite-compat-source-"));
+    const rawSource = await createRawCompatibilitySource(tempRoot);
+    const client = makeMockClient([
+      {
+        id: "resp-compatibility",
+        output_text: buildResponseJson({
+          title: "Das Puppenhaus",
+          wordCount: 153,
+          thumbnailText: "Nasse Hände",
+          fullVideoBridge: "Sieh dir die ganze Episode an.",
+        }),
+      },
+    ]);
+
+    const summary = await rewriteShortStories(
+      {
+        inputPath: rawSource,
+        outputRoot: tempRoot,
+        episodeSlug: "the-christmas-doll",
+        languages: ["de"],
+        model: "gpt-5-mini",
+        dryRun: false,
+        resume: false,
+        overwrite: false,
+        maxRetries: 0,
+        allowSourceInput: true,
+      },
+      {
+        client,
+      }
+    );
+
+    expect(summary.completed).toBe(1);
+    expect(summary.sourcePath).toBe(
+      path.join(
+        tempRoot,
+        "009-the-christmas-doll",
+        "source",
+        "009-the-christmas-doll-en-full.md"
+      )
+    );
+    expect(
+      await fs.readFile(
+        path.join(
+          tempRoot,
+          "009-the-christmas-doll",
+          "source",
+          "009-the-christmas-doll-en-full.md"
+        ),
+        "utf8"
+      )
+    ).toContain("Mara heard the doll breathing under the attic door.");
+  });
+
   it("skips valid artifacts on resume and regenerates stale hashes", async () => {
     const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "short-rewrite-resume-"));
     const sourcePath = await createSourceStory(tempRoot);
@@ -405,5 +483,14 @@ describe("short rewrite service", () => {
     expect(summary.failed).toBeGreaterThan(0);
     expect(summary.artifacts).toHaveLength(2);
     expect(client.responses.create).toHaveBeenCalledTimes(2);
+    const debugDir = path.join(tempRoot, "009-the-christmas-doll", "debug");
+    expect(
+      await fs.readFile(path.join(debugDir, "stories-rewrite-short-es.request.json"), "utf8")
+    ).toContain("short_rewrite_result");
+    expect(
+      JSON.parse(
+        await fs.readFile(path.join(debugDir, "stories-rewrite-short-es.response.json"), "utf8")
+      )
+    ).toHaveProperty("status", "failed");
   });
 });

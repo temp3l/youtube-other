@@ -129,8 +129,11 @@ export interface ShortRewriteRunOptions {
   readonly outputRoot?: string | undefined;
   readonly languages: readonly StoryLanguage[];
   readonly model: string;
+  readonly allowSourceInput?: boolean | undefined;
   readonly temperature?: number | undefined;
   readonly reasoningEffort?: "none" | "minimal" | "low" | "medium" | "high" | "xhigh" | undefined;
+  readonly maxOutputTokens?: number | undefined;
+  readonly retryMaxOutputTokens?: number | undefined;
   readonly maxConcurrency?: number | undefined;
   readonly timeoutMs?: number | undefined;
   readonly maxRetries?: number | undefined;

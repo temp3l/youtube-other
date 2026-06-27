@@ -1,6 +1,7 @@
 import path from "node:path";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
+import { zodTextFormat } from "openai/helpers/zod.js";
 import {
   createLogger,
 } from "@mediaforge/observability";
@@ -16,6 +17,8 @@ import {
   type OpenAiStoryClient,
 } from "./story-localization-openai-batch.js";
 import {
+  DEFAULT_SHORT_REWRITE_MAX_OUTPUT_TOKENS,
+  DEFAULT_SHORT_REWRITE_RETRY_MAX_OUTPUT_TOKENS,
   SHORT_REWRITE_DEFAULT_CONCURRENCY,
   SHORT_REWRITE_DEFAULT_MODEL,
   SHORT_REWRITE_DEFAULT_OUTPUT_ROOT,
@@ -58,6 +61,8 @@ import {
   roundDuration,
   sha256NormalizedSource,
 } from "./short-rewrite.utils.js";
+import { shouldIncludeTemperatureForModel } from "./story-localization.utils.js";
+import { writeJsonAtomicIfChanged, writeTextAtomicIfChanged } from "./story-localization.utils.js";
 import { materializeCanonicalSourceStory } from "./short-rewrite.bootstrap.js";
 import {
   type ResolvedShortRewriteSource,
@@ -80,6 +85,25 @@ import { getRepoRoot } from "./story-localization.utils.js";
 
 type ResponseCreateRequest = Parameters<OpenAiStoryClient["responses"]["create"]>[0];
 type Logger = ReturnType<typeof createLogger>;
+type StructuredResponsesClient = {
+  readonly parse?: (
+    request: ResponseCreateRequest,
+    options?: { readonly signal?: AbortSignal }
+  ) => Promise<{
+    readonly id: string;
+    readonly output_parsed?: unknown | null;
+    readonly output_text?: string;
+    readonly output?: readonly unknown[];
+    readonly usage?: {
+      readonly input_tokens?: number;
+      readonly output_tokens?: number;
+      readonly input_tokens_details?: { readonly cached_tokens?: number };
+      readonly output_tokens_details?: { readonly reasoning_tokens?: number };
+      readonly total_tokens?: number;
+    };
+  }>;
+  readonly create: OpenAiStoryClient["responses"]["create"];
+};
 
 interface GenerateLanguageRequest {
   readonly source: ResolvedShortRewriteSource;
@@ -88,6 +112,8 @@ interface GenerateLanguageRequest {
   readonly model: string;
   readonly temperature: number;
   readonly reasoningEffort: "none" | "minimal" | "low" | "medium" | "high" | "xhigh" | undefined;
+  readonly maxOutputTokens: number;
+  readonly retryMaxOutputTokens: number;
   readonly timeoutMs: number;
   readonly maxRetries: number;
   readonly overwrite: boolean;
@@ -97,6 +123,8 @@ interface GenerateLanguageRequest {
   readonly client: Pick<OpenAiStoryClient, "responses"> | undefined;
   readonly logger: Logger;
   readonly modelPricing?: ShortRewriteServices["modelPricing"];
+  readonly debugDirectory?: string;
+  readonly debugFileBaseName?: string;
 }
 
 interface GeneratedPayload {
@@ -133,6 +161,95 @@ function createAbortError(message: string): Error {
 
 function normalizeValidationErrors(errors: string[]): string[] {
   return [...new Set(errors.map((entry) => normalizeWhitespace(entry)).filter(Boolean))];
+}
+
+async function persistShortRewriteDebugArtifacts(args: {
+  readonly debugDirectory: string;
+  readonly fileBaseName: string;
+  readonly requestLabel: string;
+  readonly prompt: { readonly system: string; readonly user: string };
+  readonly request: Record<string, unknown>;
+  readonly response?: {
+    readonly requestId?: string;
+    readonly status: "completed" | "failed";
+    readonly responseId?: string;
+    readonly outputText?: string;
+    readonly responseJson?: unknown;
+    readonly startedAt: number;
+    readonly finishedAt: number;
+    readonly durationMs: number;
+    readonly usage?: {
+      readonly inputTokens?: number;
+      readonly cachedInputTokens?: number;
+      readonly reasoningTokens?: number;
+      readonly outputTokens?: number;
+      readonly totalTokens?: number;
+    };
+  };
+  readonly error?: unknown;
+}): Promise<void> {
+  await ensureDir(args.debugDirectory);
+  const basePath = path.join(args.debugDirectory, args.fileBaseName);
+  await Promise.all([
+    writeTextAtomicIfChanged(
+      `${basePath}.prompt.md`,
+      `SYSTEM:\n${args.prompt.system}\n\nUSER:\n${args.prompt.user}\n`,
+      true
+    ),
+    writeJsonAtomicIfChanged(`${basePath}.request.json`, args.request, true),
+    writeJsonAtomicIfChanged(
+      `${basePath}.response.json`,
+      args.response
+        ? {
+            requestId: args.response.requestId,
+            status: args.response.status,
+            responseId: args.response.responseId,
+            outputText: args.response.outputText,
+            responseJson: args.response.responseJson,
+            startedAt: args.response.startedAt,
+            finishedAt: args.response.finishedAt,
+            durationMs: args.response.durationMs,
+            usage: args.response.usage,
+          }
+        : {
+            status: "failed",
+            error:
+              args.error instanceof Error
+                ? {
+                    name: args.error.name,
+                    message: args.error.message,
+                    stack: args.error.stack,
+                  }
+                : { message: String(args.error ?? "Unknown error") },
+          },
+      true
+    ),
+    writeJsonAtomicIfChanged(
+      `${basePath}.response-text.json`,
+      args.response?.responseJson ?? (args.error ? { error: String(args.error) } : null),
+      true
+    ),
+    ...(args.error
+      ? [
+          writeJsonAtomicIfChanged(
+            `${basePath}.error.json`,
+            {
+              requestLabel: args.requestLabel,
+              failedAt: new Date().toISOString(),
+              error:
+                args.error instanceof Error
+                  ? {
+                      name: args.error.name,
+                      message: args.error.message,
+                      stack: args.error.stack,
+                    }
+                  : { message: String(args.error) },
+            },
+            true
+          ),
+        ]
+      : []),
+  ]);
 }
 
 interface ShortRewriteUsagePayload {
@@ -365,30 +482,48 @@ function analyzeGeneratedPayload(args: {
   return { generation, validation, warnings, issues };
 }
 
-function buildRequestSchema(): unknown {
-  return {
-    type: "json_schema",
-    name: "short_rewrite_result",
-    schema: z.toJSONSchema(shortRewriteResultSchema),
-    strict: true,
-  } as const;
+function buildRequestSchema(): z.ZodTypeAny {
+  return shortRewriteResultSchema;
 }
 
 async function requestStructuredShortRewrite(args: {
   readonly client: Pick<OpenAiStoryClient, "responses">;
   readonly model: string;
+  readonly requestLabel: string;
   readonly prompt: { readonly system: string; readonly user: string };
   readonly temperature: number;
   readonly reasoningEffort: "none" | "minimal" | "low" | "medium" | "high" | "xhigh" | undefined;
+  readonly maxOutputTokens: number;
   readonly timeoutMs: number;
   readonly maxRetries: number;
   readonly signal: AbortSignal | undefined;
+  readonly debugDirectory: string;
+  readonly debugFileBaseName: string;
 }): Promise<ShortRewriteApiResult> {
   if (!args.client) {
     throw new OpenAIShortRewriteError("Missing OpenAI client for short rewrite.");
   }
   const start = Date.now();
   let lastError: unknown;
+  const request: ResponseCreateRequest = {
+    model: args.model,
+    input: [
+      {
+        role: "system",
+        content: [{ type: "input_text", text: args.prompt.system }],
+      },
+      {
+        role: "user",
+        content: [{ type: "input_text", text: args.prompt.user }],
+      },
+    ],
+    text: { format: zodTextFormat(buildRequestSchema(), "short_rewrite_result") },
+    ...(shouldIncludeTemperatureForModel(args.model) ? { temperature: args.temperature } : {}),
+    max_output_tokens: args.maxOutputTokens,
+    ...(args.reasoningEffort
+      ? { reasoning: { effort: args.reasoningEffort } }
+      : {}),
+  };
   for (let attempt = 0; attempt <= args.maxRetries; attempt += 1) {
     if (args.signal?.aborted) {
       throw createAbortError("Short rewrite was aborted.");
@@ -401,54 +536,151 @@ async function requestStructuredShortRewrite(args: {
     const abortListener = () => controller.abort(args.signal?.reason ?? createAbortError("Short rewrite was aborted."));
     args.signal?.addEventListener("abort", abortListener, { once: true });
     try {
-      const request: ResponseCreateRequest = {
-        model: args.model,
-        input: [
-          {
-            role: "system",
-            content: [{ type: "input_text", text: args.prompt.system }],
-          },
-          {
-            role: "user",
-            content: [{ type: "input_text", text: args.prompt.user }],
-          },
-        ],
-        text: { format: buildRequestSchema() },
-        temperature: args.temperature,
-        max_output_tokens: 1800,
-        ...(args.reasoningEffort
-          ? { reasoning: { effort: args.reasoningEffort } }
+      await persistShortRewriteDebugArtifacts({
+        debugDirectory: args.debugDirectory,
+        fileBaseName: args.debugFileBaseName,
+        requestLabel: args.requestLabel,
+        prompt: args.prompt,
+        request,
+      });
+      const structuredResponses = args.client.responses as StructuredResponsesClient;
+      const response = structuredResponses.parse
+        ? await structuredResponses.parse(request, { signal: controller.signal })
+        : await structuredResponses.create(request, { signal: controller.signal });
+      const responseRecord = response as unknown as {
+        readonly id: string;
+        readonly output_parsed?: unknown | null;
+        readonly output_text?: string;
+        readonly output?: readonly unknown[];
+        readonly usage?: {
+          readonly input_tokens?: number;
+          readonly output_tokens?: number;
+          readonly input_tokens_details?: { readonly cached_tokens?: number };
+          readonly output_tokens_details?: { readonly reasoning_tokens?: number };
+          readonly total_tokens?: number;
+        };
+      };
+      if (responseRecord.output_parsed === null || responseRecord.output_parsed === undefined) {
+        const extractedText = responseRecord.output_text ?? extractStructuredResponseText(responseRecord.output);
+        if (!extractedText) {
+          await persistShortRewriteDebugArtifacts({
+            debugDirectory: args.debugDirectory,
+            fileBaseName: args.debugFileBaseName,
+            requestLabel: args.requestLabel,
+            prompt: args.prompt,
+            request,
+            error: new OpenAIShortRewriteError("OpenAI returned an empty structured response."),
+          });
+          throw new OpenAIShortRewriteError("OpenAI returned an empty structured response.");
+        }
+        try {
+          const parsed = JSON.parse(extractedText) as unknown;
+          const responseFinishedAt = Date.now();
+          const responseUsage = {
+            ...(responseRecord.usage?.input_tokens !== undefined
+              ? { inputTokens: responseRecord.usage.input_tokens }
+              : {}),
+            ...(responseRecord.usage?.input_tokens_details?.cached_tokens !== undefined
+              ? { cachedInputTokens: responseRecord.usage.input_tokens_details.cached_tokens }
+              : {}),
+            ...(responseRecord.usage?.output_tokens_details?.reasoning_tokens !== undefined
+              ? { reasoningTokens: responseRecord.usage.output_tokens_details.reasoning_tokens }
+              : {}),
+            ...(responseRecord.usage?.output_tokens !== undefined
+              ? { outputTokens: responseRecord.usage.output_tokens }
+              : {}),
+            ...(responseRecord.usage?.total_tokens !== undefined
+              ? { totalTokens: responseRecord.usage.total_tokens }
+              : {}),
+          };
+          await persistShortRewriteDebugArtifacts({
+            debugDirectory: args.debugDirectory,
+            fileBaseName: args.debugFileBaseName,
+            requestLabel: args.requestLabel,
+            prompt: args.prompt,
+            request,
+            response: {
+              requestId: responseRecord.id,
+              status: "completed",
+              responseId: responseRecord.id,
+              outputText: JSON.stringify(parsed),
+              responseJson: parsed,
+              startedAt: start,
+              finishedAt: responseFinishedAt,
+              durationMs: responseFinishedAt - start,
+              ...(responseUsage.inputTokens !== undefined ? { usage: responseUsage } : {}),
+            },
+          });
+          return {
+            id: responseRecord.id,
+            outputText: JSON.stringify(parsed),
+            ...responseUsage,
+          };
+        } catch {
+          await persistShortRewriteDebugArtifacts({
+            debugDirectory: args.debugDirectory,
+            fileBaseName: args.debugFileBaseName,
+            requestLabel: args.requestLabel,
+            prompt: args.prompt,
+            request,
+            error: new OpenAIShortRewriteError("OpenAI returned a non-JSON structured response."),
+          });
+          throw new OpenAIShortRewriteError("OpenAI returned a non-JSON structured response.");
+        }
+      }
+      const outputText = responseRecord.output_text ?? JSON.stringify(responseRecord.output_parsed);
+      const responseFinishedAt = Date.now();
+      const responseUsage = {
+        ...(responseRecord.usage?.input_tokens !== undefined
+          ? { inputTokens: responseRecord.usage.input_tokens }
+          : {}),
+        ...(responseRecord.usage?.input_tokens_details?.cached_tokens !== undefined
+          ? { cachedInputTokens: responseRecord.usage.input_tokens_details.cached_tokens }
+          : {}),
+        ...(responseRecord.usage?.output_tokens_details?.reasoning_tokens !== undefined
+          ? { reasoningTokens: responseRecord.usage.output_tokens_details.reasoning_tokens }
+          : {}),
+        ...(responseRecord.usage?.output_tokens !== undefined
+          ? { outputTokens: responseRecord.usage.output_tokens }
+          : {}),
+        ...(responseRecord.usage?.total_tokens !== undefined
+          ? { totalTokens: responseRecord.usage.total_tokens }
           : {}),
       };
-      const response = await args.client.responses.create(request, {
-        signal: controller.signal,
+      await persistShortRewriteDebugArtifacts({
+        debugDirectory: args.debugDirectory,
+        fileBaseName: args.debugFileBaseName,
+        requestLabel: args.requestLabel,
+        prompt: args.prompt,
+        request,
+        response: {
+          requestId: responseRecord.id,
+          status: "completed",
+          responseId: responseRecord.id,
+          outputText,
+          responseJson: responseRecord.output_parsed,
+          startedAt: start,
+          finishedAt: responseFinishedAt,
+          durationMs: responseFinishedAt - start,
+          ...(responseUsage.inputTokens !== undefined ? { usage: responseUsage } : {}),
+        },
       });
-      const outputText = response.output_text ?? "";
-      if (normalizeWhitespace(outputText).length === 0) {
-        throw new OpenAIShortRewriteError("OpenAI returned an empty structured response.");
-      }
       const apiResult: ShortRewriteApiResult = {
-        id: response.id,
+        id: responseRecord.id,
         outputText,
-        ...(response.usage?.input_tokens !== undefined
-          ? { inputTokens: response.usage.input_tokens }
-          : {}),
-        ...(response.usage?.input_tokens_details?.cached_tokens !== undefined
-          ? { cachedInputTokens: response.usage.input_tokens_details.cached_tokens }
-          : {}),
-        ...(response.usage?.output_tokens_details?.reasoning_tokens !== undefined
-          ? { reasoningTokens: response.usage.output_tokens_details.reasoning_tokens }
-          : {}),
-        ...(response.usage?.output_tokens !== undefined
-          ? { outputTokens: response.usage.output_tokens }
-          : {}),
-        ...(response.usage?.total_tokens !== undefined
-          ? { totalTokens: response.usage.total_tokens }
-          : {}),
+        ...responseUsage,
       };
       return apiResult;
     } catch (error) {
       lastError = error;
+      await persistShortRewriteDebugArtifacts({
+        debugDirectory: args.debugDirectory,
+        fileBaseName: args.debugFileBaseName,
+        requestLabel: args.requestLabel,
+        prompt: args.prompt,
+        request,
+        error,
+      });
       if (attempt < args.maxRetries && isTransientOpenAiError(error)) {
         const jitter = 0.75 + Math.random() * 0.5;
         const backoff = Math.min(8_000, Math.round(500 * 2 ** attempt * jitter));
@@ -474,6 +706,36 @@ function parseStructuredResult(outputText: string): z.infer<typeof shortRewriteR
   return shortRewriteResultSchema.parse(parsedJson);
 }
 
+function extractStructuredResponseText(output: readonly unknown[] | undefined): string | null {
+  if (!output) {
+    return null;
+  }
+  const texts: string[] = [];
+  for (const item of output) {
+    if (!item || typeof item !== "object") {
+      continue;
+    }
+    const record = item as {
+      readonly type?: unknown;
+      readonly content?: readonly unknown[];
+    };
+    if (record.type !== "message" || !Array.isArray(record.content)) {
+      continue;
+    }
+    for (const content of record.content) {
+      if (!content || typeof content !== "object") {
+        continue;
+      }
+      const textRecord = content as { readonly type?: unknown; readonly text?: unknown };
+      if (textRecord.type === "output_text" && typeof textRecord.text === "string" && textRecord.text.trim().length > 0) {
+        texts.push(textRecord.text);
+      }
+    }
+  }
+  const combined = texts.join("").trim();
+  return combined.length > 0 ? combined : null;
+}
+
 async function generateLanguagePayload(args: GenerateLanguageRequest): Promise<GeneratedPayload> {
   const paths = resolveShortRewriteOutputPaths({
     outputRoot: args.outputRoot,
@@ -482,6 +744,8 @@ async function generateLanguagePayload(args: GenerateLanguageRequest): Promise<G
     language: args.language,
   });
   const languageDefinition = SHORT_REWRITE_SUPPORTED_LANGUAGES[args.language];
+  const debugDirectory = path.join(args.outputRoot, args.source.episodeSlug, "debug");
+  const debugFileBaseName = `stories-rewrite-short-${args.language}`;
   const promptContext = {
     episodeNumber: args.source.episodeNumber,
     episodeSlug: args.source.episodeSlug,
@@ -569,9 +833,13 @@ async function generateLanguagePayload(args: GenerateLanguageRequest): Promise<G
     prompt: initialPrompt,
     temperature: args.temperature,
     reasoningEffort: args.reasoningEffort,
+    maxOutputTokens: args.maxOutputTokens,
     timeoutMs: args.timeoutMs,
     maxRetries: args.maxRetries,
     signal: args.signal,
+    requestLabel: `${languageDefinition.name} short rewrite`,
+    debugDirectory,
+    debugFileBaseName,
   });
   const initialParsed = parseStructuredResult(initialResponse.outputText);
   const initialAnalysis = analyzeGeneratedPayload({
@@ -610,9 +878,13 @@ async function generateLanguagePayload(args: GenerateLanguageRequest): Promise<G
       prompt: repairPrompt,
       temperature: args.temperature,
       reasoningEffort: args.reasoningEffort,
+      maxOutputTokens: args.retryMaxOutputTokens,
       timeoutMs: args.timeoutMs,
       maxRetries: args.maxRetries,
       signal: args.signal,
+      requestLabel: `${languageDefinition.name} short rewrite repair`,
+      debugDirectory,
+      debugFileBaseName,
     });
     requestId = repairResponse.id;
     usage = buildUsagePayload({
@@ -817,6 +1089,7 @@ export async function rewriteShortStories(
     episode: options.episode,
     episodeSlug: options.episodeSlug,
     outputRoot,
+    allowSourceInput: options.allowSourceInput ?? false,
   });
   const canonicalSourcePath = path.join(
     outputRoot,
@@ -905,6 +1178,10 @@ export async function rewriteShortStories(
           model: options.model,
           temperature: options.temperature ?? SHORT_REWRITE_DEFAULT_TEMPERATURE,
           reasoningEffort: options.reasoningEffort,
+          maxOutputTokens:
+            options.maxOutputTokens ?? DEFAULT_SHORT_REWRITE_MAX_OUTPUT_TOKENS,
+          retryMaxOutputTokens:
+            options.retryMaxOutputTokens ?? DEFAULT_SHORT_REWRITE_RETRY_MAX_OUTPUT_TOKENS,
           timeoutMs: options.timeoutMs ?? SHORT_REWRITE_DEFAULT_TIMEOUT_MS,
           maxRetries: options.maxRetries ?? SHORT_REWRITE_DEFAULT_MAX_RETRIES,
           overwrite: options.overwrite ?? false,
@@ -964,6 +1241,10 @@ export async function rewriteShortStories(
         model: options.model,
         temperature: options.temperature ?? SHORT_REWRITE_DEFAULT_TEMPERATURE,
         reasoningEffort: options.reasoningEffort,
+        maxOutputTokens:
+          options.maxOutputTokens ?? DEFAULT_SHORT_REWRITE_MAX_OUTPUT_TOKENS,
+        retryMaxOutputTokens:
+          options.retryMaxOutputTokens ?? DEFAULT_SHORT_REWRITE_RETRY_MAX_OUTPUT_TOKENS,
         timeoutMs: options.timeoutMs ?? SHORT_REWRITE_DEFAULT_TIMEOUT_MS,
         maxRetries: options.maxRetries ?? SHORT_REWRITE_DEFAULT_MAX_RETRIES,
         overwrite: options.overwrite ?? false,

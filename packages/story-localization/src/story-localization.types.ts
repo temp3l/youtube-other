@@ -127,15 +127,22 @@ export interface StoryLocalizationConfig {
   readonly outputDirectory: string;
   readonly languages: readonly Exclude<LanguageCode, "en">[];
   readonly includeEnglishShort: boolean;
+  readonly includeLocalizedShorts?: boolean;
   readonly processingMode: ProcessingMode;
   readonly adaptationMode: AdaptationMode;
   readonly shortMinSeconds: number;
   readonly shortMaxSeconds: number;
   readonly shortWpm: number;
+  readonly timeoutMs: number;
+  readonly maxOutputTokens?: number;
+  readonly retryMaxOutputTokens?: number;
   readonly concurrency: number;
   readonly model: string;
+  readonly temperature: number;
+  readonly reasoningEffort: "none" | "minimal" | "low" | "medium" | "high" | "xhigh";
   readonly fallbackToSync: boolean;
   readonly force: boolean;
+  readonly resume: boolean;
   readonly submit: boolean;
   readonly prepareBatch: boolean;
   readonly waitForBatch: boolean;
@@ -145,6 +152,8 @@ export interface StoryLocalizationConfig {
   readonly validateOnly: boolean;
   readonly verbose: boolean;
   readonly promptVersion: string;
+  readonly debugOutputs?: boolean;
+  readonly debugPrefix?: string;
 }
 
 export interface SceneImageJob {

@@ -130,6 +130,7 @@ export interface YoutubeUploadCommandInput {
   readonly metadataGeneration?: {
     readonly apiKey: string;
     readonly model: string;
+    readonly reasoningEffort?: "none" | "minimal" | "low" | "medium" | "high" | "xhigh" | undefined;
     readonly promptText: string;
     readonly maxRetries: number;
     readonly timeoutMs: number;

@@ -1,5 +1,9 @@
 import path from "node:path";
 import { Command } from "commander";
+import {
+  commandEpisodeBootstrapCharacters,
+  commandEpisodeSyncCharacters,
+} from "./episode-commands.js";
 import { registerStoryRewriteShortCommand } from "./story-short-rewrite-command.js";
 import { registerStoryRewriteFullCommand } from "./story-full-rewrite-command.js";
 import {
@@ -22,6 +26,9 @@ import {
   selectSourceCandidates,
   submitStoryLocalizationBatch,
   StoryBatchIndexService,
+  SHORT_REWRITE_DEFAULT_MODEL,
+  SHORT_REWRITE_DEFAULT_REASONING_EFFORT,
+  SHORT_REWRITE_DEFAULT_TEMPERATURE,
   validateGeneratedStories,
   type LanguageCode,
   type StoryLocalizationEpisodeResult,
@@ -66,6 +73,16 @@ export interface StoryBatchCliOptions {
   readonly languages?: string;
   readonly model?: string;
   readonly repair?: boolean;
+  readonly verbose?: boolean;
+}
+
+export interface StoryBootstrapSharedCliOptions {
+  readonly episode?: string;
+  readonly source?: string;
+  readonly outputRoot?: string;
+  readonly approve?: boolean;
+  readonly force?: boolean;
+  readonly json?: boolean;
   readonly verbose?: boolean;
 }
 
@@ -127,7 +144,9 @@ function buildCommandConfig(
     shortMaxSeconds: options.shortMaxSeconds ?? 65,
     shortWpm: options.shortWpm ?? 180,
     concurrency: options.concurrency ?? 2,
-    model: options.model ?? "gpt-4o-mini",
+    model: options.model ?? SHORT_REWRITE_DEFAULT_MODEL,
+    temperature: SHORT_REWRITE_DEFAULT_TEMPERATURE,
+    reasoningEffort: SHORT_REWRITE_DEFAULT_REASONING_EFFORT,
     fallbackToSync: options.fallbackToSync ?? false,
     force: options.force ?? false,
     submit: options.submit ?? false,
@@ -476,7 +495,9 @@ function buildBatchConfig(
     languages: parseLanguages(options.languages),
     includeEnglishShort: true,
     processingMode: "batch",
-    model: options.model ?? "gpt-4o-mini",
+    model: options.model ?? SHORT_REWRITE_DEFAULT_MODEL,
+    temperature: SHORT_REWRITE_DEFAULT_TEMPERATURE,
+    reasoningEffort: SHORT_REWRITE_DEFAULT_REASONING_EFFORT,
     verbose: options.verbose ?? false,
   });
 }
@@ -752,6 +773,46 @@ export function registerStoryLocalizationCommands(program: Command): void {
 
   registerStoryRewriteShortCommand(stories);
   registerStoryRewriteFullCommand(stories);
+  stories
+    .command("bootstrap-shared")
+    .description("Sync the shared character map and generate character reference images for an episode")
+    .option("--episode <number-or-slug>", "episode number or slug")
+    .option("--source <path>", "source root")
+    .option("--output-root <path>", "output root")
+    .option("--approve", "approve generated references")
+    .option("--force", "overwrite generated artifacts")
+    .option("--json", "print machine-readable output")
+    .option("--verbose", "enable verbose logging")
+    .action(async (opts: StoryBootstrapSharedCliOptions) =>
+      commandEpisodeBootstrapCharacters({
+        ...(opts.episode !== undefined ? { episode: opts.episode } : {}),
+        ...(opts.source !== undefined ? { source: opts.source } : {}),
+        ...(opts.outputRoot !== undefined ? { outputRoot: opts.outputRoot } : {}),
+        ...(opts.approve !== undefined ? { approve: opts.approve } : {}),
+        ...(opts.force !== undefined ? { force: opts.force } : {}),
+        ...(opts.json !== undefined ? { json: opts.json } : {}),
+        ...(opts.verbose !== undefined ? { verbose: opts.verbose } : {}),
+      })
+    );
+  stories
+    .command("sync-characters")
+    .description("Copy the canonical source-pack characters.json into the shared episode workspace")
+    .option("--episode <number-or-slug>", "episode number or slug")
+    .option("--source <path>", "source root")
+    .option("--output-root <path>", "output root")
+    .option("--force")
+    .option("--json", "print machine-readable output")
+    .option("--verbose", "enable verbose logging")
+    .action(async (opts: StoryBootstrapSharedCliOptions) =>
+      commandEpisodeSyncCharacters({
+        ...(opts.episode !== undefined ? { episode: opts.episode } : {}),
+        ...(opts.source !== undefined ? { source: opts.source } : {}),
+        ...(opts.outputRoot !== undefined ? { outputRoot: opts.outputRoot } : {}),
+        ...(opts.force !== undefined ? { force: opts.force } : {}),
+        ...(opts.json !== undefined ? { json: opts.json } : {}),
+        ...(opts.verbose !== undefined ? { verbose: opts.verbose } : {}),
+      })
+    );
 
   const batches = program
     .command("stories:batches")

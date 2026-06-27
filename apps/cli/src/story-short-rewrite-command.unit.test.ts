@@ -18,7 +18,11 @@ vi.mock("@mediaforge/config", () => ({
   loadRuntimeConfig: vi.fn(async () => ({
     workspaceDir: "/tmp",
     logLevel: "info",
-    openAiMetadataModel: "gpt-5-mini",
+    openAiStoryModel: "gpt-5.5",
+    openAiStoryTemperature: 0.5,
+    openAiStoryReasoningEffort: "high",
+    openAiMetadataModel: "gpt-5.4-mini",
+    openAiMetadataReasoningEffort: "low",
     openAiCompatibleModel: "gpt-4.1-mini",
     openAiCompatibleApiKey: "test-key",
     openAiCompatibleBaseUrl: undefined,
@@ -41,6 +45,10 @@ vi.mock("@mediaforge/story-localization", async () => {
   );
   return {
     ...actual,
+    DEFAULT_SHORT_REWRITE_MAX_OUTPUT_TOKENS: 16_000,
+    DEFAULT_SHORT_REWRITE_RETRY_MAX_OUTPUT_TOKENS: 25_000,
+    DEFAULT_STORY_REWRITE_MODEL: "gpt-5.5",
+    DEFAULT_STORY_REWRITE_REASONING_EFFORT: "high",
     SUPPORTED_STORY_LANGUAGES: actual.SUPPORTED_STORY_LANGUAGES,
     rewriteShortStories: rewriteShortStoriesMock,
     createOpenAiStoryClientWithOptions: vi.fn(),
@@ -91,7 +99,10 @@ describe("story short rewrite command", () => {
     const flags = rewriteShort?.options.map((option) => option.flags) ?? [];
     expect(flags).toContain("--languages <comma-separated-codes>");
     expect(flags).toContain("--dry-run");
+    expect(flags).toContain("--compatibility-source");
     expect(flags).toContain("--episode-slug <slug>");
+    expect(flags).toContain("--max-output-tokens <number>");
+    expect(flags).toContain("--retry-max-output-tokens <number>");
     expect(rewriteShort?.description()).toContain("Rewrite an English full-length horror story");
   });
 
@@ -109,18 +120,25 @@ describe("story short rewrite command", () => {
       "/tmp/009-the-christmas-doll/source/009-the-christmas-doll-en-full.md",
       "--episode-slug",
       "the-christmas-doll",
-      "--languages",
-      "de,es,de",
-      "--dry-run",
-      "--json",
-    ]);
+        "--languages",
+        "de,es,de",
+        "--dry-run",
+        "--compatibility-source",
+        "--json",
+      ]);
 
     expect(rewriteShortStoriesMock).toHaveBeenCalledTimes(1);
     expect(rewriteShortStoriesMock.mock.calls[0]?.[0]).toMatchObject({
       inputPath: "/tmp/009-the-christmas-doll/source/009-the-christmas-doll-en-full.md",
       episodeSlug: "the-christmas-doll",
       languages: ["de", "es"],
+      model: "gpt-5.5",
+      temperature: 0.5,
+      reasoningEffort: "high",
+      maxOutputTokens: 16000,
+      retryMaxOutputTokens: 25000,
       dryRun: true,
+      allowSourceInput: true,
       overwrite: false,
       resume: false,
     });

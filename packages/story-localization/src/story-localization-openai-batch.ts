@@ -37,6 +37,7 @@ export interface OpenAiStoryClient {
     ): Promise<{
       readonly id: string;
       readonly output_text?: string;
+      readonly output?: readonly unknown[];
       readonly usage?: {
         readonly input_tokens?: number;
         readonly output_tokens?: number;
@@ -44,6 +45,45 @@ export interface OpenAiStoryClient {
         readonly output_tokens_details?: { readonly reasoning_tokens?: number };
         readonly total_tokens?: number;
       };
+    }>;
+    parse<ParsedT>(
+      request: {
+        readonly model: string;
+        readonly input: ReadonlyArray<{
+          readonly role: "system" | "user";
+          readonly content: ReadonlyArray<{
+            readonly type: "input_text";
+            readonly text: string;
+          }>;
+        }>;
+        readonly text?: {
+          readonly format: unknown;
+        };
+        readonly max_output_tokens?: number;
+        readonly temperature?: number;
+        readonly reasoning?: {
+          readonly effort?: ReasoningEffort;
+        };
+      },
+      options?: { readonly signal?: AbortSignal }
+    ): Promise<{
+      readonly id: string;
+      readonly output_parsed: ParsedT | null;
+      readonly output_text?: string;
+      readonly output?: readonly unknown[];
+      readonly status?: string;
+      readonly model?: string;
+      readonly created_at?: number;
+      readonly usage?: {
+        readonly input_tokens?: number;
+        readonly output_tokens?: number;
+        readonly input_tokens_details?: { readonly cached_tokens?: number };
+        readonly output_tokens_details?: { readonly reasoning_tokens?: number };
+        readonly total_tokens?: number;
+      };
+      readonly incomplete_details?: {
+        readonly reason?: string;
+      } | null;
     }>;
   };
   readonly files?: {

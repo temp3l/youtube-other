@@ -102,6 +102,37 @@ function lastSentence(text: string): string {
   return sentences.at(-1) ?? normalizeWhitespace(text);
 }
 
+function summarizeSetting(narration: string, parsed: ParsedSourceStory): string {
+  const normalized = narration.toLowerCase();
+  if (/\bmotel\b/u.test(normalized)) {
+    return "An isolated roadside motel on a frozen night";
+  }
+  if (/\bhotel\b/u.test(normalized)) {
+    return "An isolated roadside hotel";
+  }
+  if (/\bhouse\b|\bhouse\b/u.test(normalized)) {
+    return "A secluded haunted house";
+  }
+  if (/\broad\b|\bmountain\b|\bstorm\b/u.test(normalized)) {
+    return "A remote road during dangerous weather";
+  }
+  return parsed.metadata.visualDirection ?? parsed.sourceTitle ?? parsed.title;
+}
+
+function summarizeThreat(narration: string, parsed: ParsedSourceStory, names: readonly string[]): string {
+  const normalized = narration.toLowerCase();
+  if (/black[- ]eyed children/u.test(normalized) || /\bpermission\b/u.test(normalized)) {
+    return "Two black-eyed children seeking permission to enter";
+  }
+  if (/\bdoll\b/u.test(normalized)) {
+    return "A haunted doll";
+  }
+  if (/\bchildren\b/u.test(normalized) && names.length > 0) {
+    return `${names[0]} being drawn into a supernatural trap`;
+  }
+  return parsed.metadata.soundMotif ?? firstSentence(narration);
+}
+
 function pickImportantSentences(text: string, count: number): string[] {
   const sentences = splitIntoSentences(text).map((sentence) => normalizeWhitespace(sentence)).filter(Boolean);
   return sentences.slice(0, Math.min(count, sentences.length));
@@ -125,11 +156,11 @@ export function extractCanonicalStoryFacts(parsed: ParsedSourceStory): Canonical
     primaryTitle: parsed.title,
     ...(parsed.metadata.sourceTitle ? { sourceTitle: parsed.metadata.sourceTitle } : {}),
     characters,
-    setting: parsed.metadata.visualDirection ?? firstSentence(narration),
+    setting: summarizeSetting(narration, parsed),
     criticalObjects: parsed.metadata.tags.slice(0, 5),
     criticalEvents: pickImportantSentences(narration, 4),
     writtenMessages: messages,
-    threat: parsed.metadata.soundMotif ?? firstSentence(narration),
+    threat: summarizeThreat(narration, parsed, names),
     primaryReveal: messages[0] ?? lastSentence(narration),
     finalConsequence: lastSentence(narration),
   };

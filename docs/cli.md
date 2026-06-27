@@ -14,7 +14,9 @@ This repo’s command line surface is the `mediaforge` CLI plus a small set of n
 | Create character references | `npm run mediaforge -- images generate-character-references --episode <episode-id> --character <character-id>` |
 | Approve a character reference | `npm run mediaforge -- images approve-character --episode <episode-id> --character <character-id>` |
 | Sync shared character map | `npm run mediaforge -- episode sync-characters --episode <episode-id>` |
+| Sync shared character map from `stories` | `npm run mediaforge -- stories sync-characters --episode <episode-id>` |
 | Bootstrap shared character refs | `npm run episode:bootstrap-characters -- --episode <episode-id> --approve` |
+| Bootstrap shared story assets | `npm run mediaforge -- stories bootstrap-shared --episode <episode-id> --approve` |
 | Upload a rendered episode | `npm run youtube:upload -- --episode <episode-id>` |
 | Validate generated images | `npm run mediaforge -- images validate <episode-id>` |
 
@@ -65,7 +67,9 @@ The image workflow is grouped under `images`:
 - `images approve-character` - mark a generated character reference as approved.
 - `images regenerate-character` - regenerate a specific character reference.
 - `episode sync-characters` - copy the canonical source-pack `characters.json` into the shared episode workspace.
+- `stories sync-characters` - story-oriented alias for `episode sync-characters`; it copies only `shared/characters.json` and does not generate reference images.
 - `episode bootstrap-characters` - sync the shared character map, generate all reference images, and optionally approve them.
+- `stories bootstrap-shared` - story-oriented alias for `episode bootstrap-characters`; it syncs `shared/characters.json` and generates the shared character reference images for the selected episode.
 - `images export-openart` - export prompts for OpenArt.
 - `images open-openart` - open the OpenArt handoff.
 - `images import --from <dir>` - import generated images from a directory.

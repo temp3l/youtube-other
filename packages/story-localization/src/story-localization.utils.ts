@@ -22,6 +22,10 @@ export function sha256Config(parts: ReadonlyArray<string>): string {
   return contentHash(parts);
 }
 
+export function shouldIncludeTemperatureForModel(model: string): boolean {
+  return !model.trim().toLowerCase().startsWith("gpt-5");
+}
+
 export function countWords(text: string): number {
   if (text.trim().length === 0) {
     return 0;

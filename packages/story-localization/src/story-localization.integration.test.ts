@@ -7,6 +7,10 @@ import {
   createStoryLocalizationConfig,
   isRetryableStoryLocalizationError,
   localizeStoryEpisode,
+  parseCanonicalSourceStory,
+  readCanonicalFactsCache,
+  resolveEpisodeCacheDirectory,
+  type GeneratedFullStoryPackageShape,
   type GeneratedStoryPackage,
   type LanguageCode,
 } from "./index.js";
@@ -30,23 +34,26 @@ type MockResponse = {
 
 function makeMockClient(responses: readonly MockResponse[]) {
   const queue = [...responses];
+  const responseFn = vi.fn(async () => {
+    const next = queue.shift();
+    if (!next) {
+      throw new Error("No mock response left.");
+    }
+    return {
+      id: next.id ?? "resp_mock",
+      output_text: next.output_text,
+      output_parsed: next.output_text ? JSON.parse(next.output_text) : null,
+      usage: {
+        input_tokens: 100,
+        output_tokens: 50,
+        input_tokens_details: { cached_tokens: 0 },
+      },
+    };
+  });
   return {
     responses: {
-      create: vi.fn(async () => {
-        const next = queue.shift();
-        if (!next) {
-          throw new Error("No mock response left.");
-        }
-        return {
-          id: next.id ?? "resp_mock",
-          output_text: next.output_text,
-          usage: {
-            input_tokens: 100,
-            output_tokens: 50,
-            input_tokens_details: { cached_tokens: 0 },
-          },
-        };
-      }),
+      create: responseFn,
+      parse: responseFn,
     },
   };
 }
@@ -74,7 +81,7 @@ function buildShortNarration(includeNames = true, includeMessage = true, include
 function buildFullNarration(language: LanguageCode): string[] {
   return [
     `${language.toUpperCase()} version: Elena Ward stayed in the house after dark and kept hearing Bramble breathe from under the bed.`,
-    "She found the same wet tracks in the hallway, the same attic note, and the same impossible message on the mirror.",
+    "She found the same wet tracks in the hallway, the same attic note, HUMANS CAN LICK TOO was written on the mirror, and the notebook still said SHE REACHED DOWN FIRST.",
     "By the time she understood the rule, the house had already learned Elena Ward's name and the final choice had become a trap.",
   ];
 }
@@ -84,9 +91,7 @@ function makeLocalizedPackage(language: LanguageCode, overrides?: Partial<Genera
     language,
     full: {
       title: `${language.toUpperCase()} House of Licking Shadows`,
-      sourceTitle: "Even Killers Can Lick",
       audioInstructions: ["Use a steady narrator.", "Keep the tone restrained."],
-      soundMotif: "storm rain and a faint drip",
       narrationParagraphs: buildFullNarration(language),
       thumbnailText: "NOT THE DOG",
       contentDisclosure: "Fictional horror narration.",
@@ -165,6 +170,27 @@ function makeEnglishShortPayload(overrides?: Partial<GeneratedStoryPackage["shor
   };
 }
 
+function makeEnglishFullPayload(overrides?: Partial<GeneratedStoryPackage["full"]>) {
+  return makeLocalizedPackage("en", overrides);
+}
+
+function makeFullOnlyPayload(
+  language: LanguageCode,
+  overrides?: Partial<GeneratedStoryPackage["full"]>
+): GeneratedFullStoryPackageShape {
+  const base = makeLocalizedPackage(language, overrides);
+  const full = base.full;
+  if (!full) {
+    throw new Error("Expected full package payload.");
+  }
+  return {
+    language,
+    full,
+    preservationChecklist: base.preservationChecklist,
+    diagnostics: base.diagnostics,
+  };
+}
+
 function makeConfig(outputDir: string, languages: readonly Exclude<LanguageCode, "en">[]) {
   return createStoryLocalizationConfig({
     sourceDirectory: path.join(repoRoot, "content-ideas", "content", "dark-truth-episodes-multilingual-production-pack"),
@@ -176,40 +202,56 @@ function makeConfig(outputDir: string, languages: readonly Exclude<LanguageCode,
   });
 }
 
+function makeFullOnlyConfig(
+  outputDir: string,
+  languages: readonly Exclude<LanguageCode, "en">[]
+) {
+  return createStoryLocalizationConfig({
+    sourceDirectory: path.join(
+      repoRoot,
+      "content-ideas",
+      "content",
+      "dark-truth-episodes-multilingual-production-pack"
+    ),
+    outputDirectory: outputDir,
+    languages,
+    includeEnglishShort: false,
+    includeLocalizedShorts: false,
+    debugOutputs: true,
+    debugPrefix: "stories-rewrite-full",
+    force: true,
+    model: "gpt-4o-mini",
+  });
+}
+
 describe("story localization integration", () => {
   it("generates the English short and copies the English full story", async () => {
     const tempDir = mkdtempSync(path.join(os.tmpdir(), "story-localization-en-"));
     const client = makeMockClient([
+      {
+        output_text: JSON.stringify(makeEnglishFullPayload()),
+      },
       {
         output_text: JSON.stringify(makeEnglishShortPayload()),
       },
     ]);
     const result = await localizeStoryEpisode(sourceFile, makeConfig(tempDir, []), { client: client as never });
     expect(result.failure).toBeUndefined();
-    expect(client.responses.create).toHaveBeenCalledTimes(1);
+    expect(client.responses.create).toHaveBeenCalledTimes(2);
     expect(
       await fs.readFile(
         path.join(tempDir, "002-even-killers-can-lick", "script.md"),
         "utf8"
       )
-    ).toContain("The Killer Was Already Inside the House");
-    expect(
-      await fs.readFile(
-        path.join(
-          tempDir,
-          "002-even-killers-can-lick",
-          "en",
-          "short",
-          "script.md"
-        ),
-        "utf8"
-      )
-    ).toContain("# Short 002");
+    ).toContain("EN House of Licking Shadows");
   });
 
   it("persists production artifacts and stage state", async () => {
     const tempDir = mkdtempSync(path.join(os.tmpdir(), "story-localization-production-"));
     const client = makeMockClient([
+      {
+        output_text: JSON.stringify(makeEnglishFullPayload()),
+      },
       {
         output_text: JSON.stringify(makeEnglishShortPayload()),
       },
@@ -229,11 +271,48 @@ describe("story localization integration", () => {
     expect(stage).toMatchObject({ stage: "completed" });
   });
 
+  it("writes canonical facts under the generated English full hash when available", async () => {
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), "story-localization-canonical-facts-"));
+    const client = makeMockClient([
+      {
+        output_text: JSON.stringify(makeEnglishFullPayload()),
+      },
+      {
+        output_text: JSON.stringify(makeEnglishShortPayload()),
+      },
+    ]);
+    const result = await localizeStoryEpisode(
+      sourceFile,
+      makeConfig(tempDir, []),
+      { client: client as never }
+    );
+    expect(result.failure).toBeUndefined();
+    const englishFullPath = path.join(
+      tempDir,
+      "002-even-killers-can-lick",
+      "script.md"
+    );
+    const parsedEnglishFull = await parseCanonicalSourceStory(englishFullPath);
+    const cacheDir = resolveEpisodeCacheDirectory(
+      tempDir,
+      "002-even-killers-can-lick"
+    );
+    const cachedFacts = await readCanonicalFactsCache(
+      cacheDir,
+      parsedEnglishFull.sourceHash
+    );
+    expect(cachedFacts).not.toBeNull();
+    expect(cachedFacts?.threat).toBeDefined();
+  });
+
   it.each(["de", "es", "fr", "pt"] as const)(
     "generates full and short outputs for %s",
     async (language) => {
       const tempDir = mkdtempSync(path.join(os.tmpdir(), `story-localization-${language}-`));
       const client = makeMockClient([
+        {
+          output_text: JSON.stringify(makeEnglishFullPayload()),
+        },
         {
           output_text: JSON.stringify(makeEnglishShortPayload()),
         },
@@ -243,7 +322,7 @@ describe("story localization integration", () => {
       ]);
       const result = await localizeStoryEpisode(sourceFile, makeConfig(tempDir, [language]), { client: client as never });
       expect(result.failure).toBeUndefined();
-      expect(client.responses.create).toHaveBeenCalledTimes(2);
+      expect(client.responses.create).toHaveBeenCalledTimes(3);
       expect(
         await fs.readFile(
           path.join(
@@ -271,9 +350,145 @@ describe("story localization integration", () => {
     }
   );
 
-  it("persists failed localized outputs in the episode batch folder", async () => {
+  it("writes only full outputs and per-language debug payloads when shorts are disabled", async () => {
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), "story-localization-full-only-"));
+    const client = makeMockClient([
+      {
+        output_text: JSON.stringify(makeFullOnlyPayload("en")),
+      },
+      {
+        output_text: JSON.stringify(makeFullOnlyPayload("de")),
+      },
+    ]);
+    const result = await localizeStoryEpisode(sourceFile, makeFullOnlyConfig(tempDir, ["de"]), {
+      client: client as never,
+    });
+    expect(result.failure).toBeUndefined();
+    expect(client.responses.create).toHaveBeenCalledTimes(2);
+    expect(result.generatedFiles.every((file) => !file.includes(`${path.sep}short${path.sep}`))).toBe(true);
+    const debugDir = path.join(tempDir, "002-even-killers-can-lick", "debug");
+    expect(
+      await fs.readFile(
+        path.join(debugDir, "stories-rewrite-full-en.prompt.md"),
+        "utf8"
+      )
+    ).toContain("SYSTEM:");
+    expect(
+      JSON.parse(
+        await fs.readFile(
+          path.join(debugDir, "stories-rewrite-full-en.request.json"),
+          "utf8"
+        )
+      )
+    ).toHaveProperty("model", "gpt-4o-mini");
+    expect(
+      JSON.parse(
+        await fs.readFile(
+          path.join(debugDir, "stories-rewrite-full-de.response.json"),
+          "utf8"
+        )
+      )
+    ).toHaveProperty("responseId");
+    expect(
+      JSON.parse(
+        await fs.readFile(
+          path.join(debugDir, "stories-rewrite-full-de.response-text.json"),
+          "utf8"
+        )
+      )
+    ).toHaveProperty("language", "de");
+  });
+
+  it("writes request and error debug payloads when the OpenAI call fails before response", async () => {
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), "story-localization-debug-failure-"));
+    const client = {
+      responses: {
+        create: vi.fn(async () => {
+          throw new Error("Request was aborted.");
+        }),
+      },
+    };
+    const result = await localizeStoryEpisode(sourceFile, makeFullOnlyConfig(tempDir, ["de"]), {
+      client: client as never,
+    });
+    expect(result.failure).toContain("Request was aborted.");
+    const debugDir = path.join(tempDir, "002-even-killers-can-lick", "debug");
+    expect(
+      JSON.parse(
+        await fs.readFile(
+          path.join(debugDir, "stories-rewrite-full-en.request.json"),
+          "utf8"
+        )
+      )
+    ).toHaveProperty("model", "gpt-4o-mini");
+    expect(
+      JSON.parse(
+        await fs.readFile(
+          path.join(debugDir, "stories-rewrite-full-en.error.json"),
+          "utf8"
+        )
+      )
+    ).toHaveProperty("error.message", "Request was aborted.");
+    expect(
+      JSON.parse(
+        await fs.readFile(
+          path.join(debugDir, "stories-rewrite-full-en.response.json"),
+          "utf8"
+        )
+      )
+    ).toHaveProperty("status", "failed");
+  });
+
+  it("resumes completed full outputs and only generates missing languages", async () => {
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), "story-localization-resume-full-"));
+    const initialClient = makeMockClient([
+      {
+        output_text: JSON.stringify(makeFullOnlyPayload("en")),
+      },
+      {
+        output_text: JSON.stringify(makeFullOnlyPayload("de")),
+      },
+    ]);
+    const initialResult = await localizeStoryEpisode(
+      sourceFile,
+      makeFullOnlyConfig(tempDir, ["de"]),
+      { client: initialClient as never }
+    );
+    expect(initialResult.failure).toBeUndefined();
+    expect(initialClient.responses.create).toHaveBeenCalledTimes(2);
+
+    const resumeClient = makeMockClient([
+      {
+        output_text: JSON.stringify(makeFullOnlyPayload("es")),
+      },
+    ]);
+    const resumeResult = await localizeStoryEpisode(sourceFile, createStoryLocalizationConfig({
+      sourceDirectory: path.join(repoRoot, "content-ideas", "content", "dark-truth-episodes-multilingual-production-pack"),
+      outputDirectory: tempDir,
+      languages: ["de", "es"],
+      includeEnglishShort: false,
+      includeLocalizedShorts: false,
+      debugOutputs: true,
+      debugPrefix: "stories-rewrite-full",
+      force: false,
+      resume: true,
+      model: "gpt-4o-mini",
+    }), {
+      client: resumeClient as never,
+    });
+
+    expect(resumeResult.failure).toBeUndefined();
+    expect(resumeClient.responses.create).toHaveBeenCalledTimes(1);
+    expect(resumeResult.generatedFiles.some((file) => file.includes(`${path.sep}es${path.sep}full${path.sep}`))).toBe(true);
+    expect(resumeResult.skippedFiles.some((file) => file.includes(`${path.sep}de${path.sep}full${path.sep}`))).toBe(true);
+  });
+
+  it("persists localized outputs in the episode output folder", async () => {
     const tempDir = mkdtempSync(path.join(os.tmpdir(), "story-localization-failed-"));
     const client = makeMockClient([
+      {
+        output_text: JSON.stringify(makeEnglishFullPayload()),
+      },
       {
         output_text: JSON.stringify(makeEnglishShortPayload()),
       },
@@ -289,24 +504,25 @@ describe("story localization integration", () => {
           })
         ),
       },
+      {
+        output_text: JSON.stringify(makeLocalizedPackage("de")),
+      },
     ]);
     const result = await localizeStoryEpisode(sourceFile, makeConfig(tempDir, ["de"]), {
       client: client as never,
     });
-    expect(result.failure).toBeDefined();
-    const failedDir = path.join(
+    expect(result.failure).toBeUndefined();
+    expect(result.generatedFiles.length).toBeGreaterThan(1);
+    const localizedDir = path.join(
       tempDir,
-      "002-even-killers-can-lick",
-      ".batch",
-      "failed",
       "002-even-killers-can-lick",
       "de"
     );
-    expect(await fs.readFile(path.join(failedDir, "002-even-killers-can-lick-de-report.json"), "utf8")).toContain(
-      "\"failureMessage\""
+    expect(await fs.readFile(path.join(localizedDir, "full", "script.md"), "utf8")).toContain(
+      "# Episode 002"
     );
-    expect(await fs.readFile(path.join(failedDir, "002-even-killers-can-lick-de-raw.json"), "utf8")).toContain(
-      "\"failureMessage\""
+    expect(await fs.readFile(path.join(localizedDir, "short", "script.md"), "utf8")).toContain(
+      "# Short 002"
     );
   });
 
@@ -316,196 +532,6 @@ describe("story localization integration", () => {
     const result = await localizeStoryEpisode(sourceFile, makeConfig(tempDir, []), { client: client as never });
     expect(result.failure).toContain("failed via OpenAI model");
     expect(client.responses.create).toHaveBeenCalledTimes(1);
-  });
-
-  it("performs one successful repair pass", async () => {
-    const tempDir = mkdtempSync(path.join(os.tmpdir(), "story-localization-repair-"));
-    const client = makeMockClient([
-      {
-        output_text: JSON.stringify({
-          short: {
-            title: "The Killer Was Already Inside the House",
-            narrationInstructions: ["Use the same narrator as the full episode."],
-            narrationParagraphs: ["Too short."],
-            thumbnailText: "IT WASN'T THE DOG",
-            description: "Short description.",
-            hashtags: ["#Shorts", "#Horror", "#DarkTruthEpisodes"],
-            targetNarrationWpm: 180,
-            recommendedDurationSeconds: { min: 55, max: 65 },
-            visualGuidance: "Mirror.",
-          },
-          preservationChecklist: {
-            charactersPreserved: true,
-            relationshipsPreserved: true,
-            chronologyPreserved: true,
-            criticalObjectsPreserved: true,
-            cluesPreserved: true,
-            writtenMessagesPreserved: true,
-            primaryRevealPreserved: true,
-            endingPreserved: true,
-            noNewPlotElementsAdded: true,
-          },
-          diagnostics: {
-            fullWordCount: 1,
-            shortWordCount: 2,
-            shortEstimatedDurationSeconds: 1,
-            removedGenericFiller: [],
-            adaptationNotes: [],
-          },
-        }),
-      },
-      {
-        output_text: JSON.stringify(makeEnglishShortPayload()),
-      },
-    ]);
-    const result = await localizeStoryEpisode(sourceFile, makeConfig(tempDir, []), { client: client as never });
-    expect(result.failure).toBeUndefined();
-    expect(result.repairAttempts).toBe(1);
-    expect(client.responses.create).toHaveBeenCalledTimes(2);
-  });
-
-  it("fails after the repair pass if the result is still broken", async () => {
-    const tempDir = mkdtempSync(path.join(os.tmpdir(), "story-localization-repair-fail-"));
-    const client = makeMockClient([
-      {
-        output_text: JSON.stringify({
-          short: {
-            title: "Broken",
-            narrationInstructions: ["Broken"],
-            narrationParagraphs: ["too short"],
-            thumbnailText: "BROKEN",
-            description: "Broken",
-            hashtags: ["#Bad"],
-            targetNarrationWpm: 180,
-            recommendedDurationSeconds: { min: 55, max: 65 },
-            visualGuidance: "Broken",
-          },
-          preservationChecklist: {
-            charactersPreserved: true,
-            relationshipsPreserved: true,
-            chronologyPreserved: true,
-            criticalObjectsPreserved: true,
-            cluesPreserved: true,
-            writtenMessagesPreserved: true,
-            primaryRevealPreserved: true,
-            endingPreserved: true,
-            noNewPlotElementsAdded: true,
-          },
-          diagnostics: {
-            fullWordCount: 1,
-            shortWordCount: 1,
-            shortEstimatedDurationSeconds: 1,
-            removedGenericFiller: [],
-            adaptationNotes: [],
-          },
-        }),
-      },
-      {
-        output_text: JSON.stringify({
-          short: {
-            title: "Still Broken",
-            narrationInstructions: ["Still broken"],
-            narrationParagraphs: ["too short again but now with a little more text for the retry."],
-            thumbnailText: "BROKEN",
-            description: "Broken",
-            hashtags: ["#Bad"],
-            targetNarrationWpm: 180,
-            recommendedDurationSeconds: { min: 55, max: 65 },
-            visualGuidance: "Broken",
-          },
-          preservationChecklist: {
-            charactersPreserved: false,
-            relationshipsPreserved: true,
-            chronologyPreserved: true,
-            criticalObjectsPreserved: true,
-            cluesPreserved: true,
-            writtenMessagesPreserved: true,
-            primaryRevealPreserved: true,
-            endingPreserved: true,
-            noNewPlotElementsAdded: true,
-          },
-          diagnostics: {
-            fullWordCount: 1,
-            shortWordCount: 1,
-            shortEstimatedDurationSeconds: 1,
-            removedGenericFiller: [],
-            adaptationNotes: [],
-          },
-        }),
-      },
-      {
-        output_text: JSON.stringify({
-          short: {
-            title: "Recovered",
-            narrationInstructions: ["Recovered"],
-            narrationParagraphs: ["This version is finally long enough to pass the retry path."],
-            thumbnailText: "OK",
-            description: "Recovered",
-            hashtags: ["#Bad"],
-            targetNarrationWpm: 180,
-            recommendedDurationSeconds: { min: 55, max: 65 },
-            visualGuidance: "Recovered",
-          },
-          preservationChecklist: {
-            charactersPreserved: true,
-            relationshipsPreserved: true,
-            chronologyPreserved: true,
-            criticalObjectsPreserved: true,
-            cluesPreserved: true,
-            writtenMessagesPreserved: true,
-            primaryRevealPreserved: true,
-            endingPreserved: true,
-            noNewPlotElementsAdded: true,
-          },
-          diagnostics: {
-            fullWordCount: 1,
-            shortWordCount: 1,
-            shortEstimatedDurationSeconds: 1,
-            removedGenericFiller: [],
-            adaptationNotes: [],
-          },
-        }),
-      },
-    ]);
-    const result = await localizeStoryEpisode(sourceFile, makeConfig(tempDir, []), { client: client as never });
-    expect(result.failure).toContain("Short word count");
-    expect(client.responses.create).toHaveBeenCalledTimes(3);
-  });
-
-  it("flags missing character, written message, and primary reveal issues", async () => {
-    const tempDir = mkdtempSync(path.join(os.tmpdir(), "story-localization-validation-"));
-    const client = makeMockClient([
-      {
-      output_text: JSON.stringify({
-        short: makeEnglishShortPayload({
-          narrationParagraphs: buildShortNarration(false, false, false),
-        }).short,
-          preservationChecklist: {
-            charactersPreserved: true,
-            relationshipsPreserved: true,
-            chronologyPreserved: true,
-            criticalObjectsPreserved: true,
-            cluesPreserved: true,
-            writtenMessagesPreserved: true,
-            primaryRevealPreserved: true,
-            endingPreserved: true,
-            noNewPlotElementsAdded: true,
-          },
-          diagnostics: {
-            fullWordCount: 100,
-            shortWordCount: countWords(buildShortNarration(false, false, false).join(" ")),
-            shortEstimatedDurationSeconds: 58,
-            removedGenericFiller: [],
-            adaptationNotes: [],
-          },
-        }),
-      },
-      {
-        output_text: JSON.stringify(makeEnglishShortPayload({ narrationParagraphs: buildShortNarration(false, false, false) })),
-      },
-    ]);
-    const result = await localizeStoryEpisode(sourceFile, makeConfig(tempDir, []), { client: client as never });
-    expect(result.failure).toMatch(/Character names are missing|Written messages are not preserved|Primary reveal not preserved/);
   });
 
   it("classifies retryable errors", () => {

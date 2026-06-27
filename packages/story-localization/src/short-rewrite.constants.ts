@@ -3,6 +3,13 @@ import { getRepoRoot } from "./story-localization.utils.js";
 
 export const SHORT_REWRITE_PROMPT_VERSION = "short-rewrite-v1";
 
+export const DEFAULT_STORY_REWRITE_MODEL = "gpt-5.5";
+export const DEFAULT_STORY_REWRITE_REASONING_EFFORT = "high" as const;
+export const DEFAULT_FULL_REWRITE_MAX_OUTPUT_TOKENS = 25_000;
+export const DEFAULT_FULL_REWRITE_RETRY_MAX_OUTPUT_TOKENS = 25_000;
+export const DEFAULT_SHORT_REWRITE_MAX_OUTPUT_TOKENS = 16_000;
+export const DEFAULT_SHORT_REWRITE_RETRY_MAX_OUTPUT_TOKENS = 25_000;
+
 export const SHORT_REWRITE_SUPPORTED_LANGUAGES = {
   en: { name: "English", locale: "en" },
   de: { name: "German", locale: "de-DE" },
@@ -34,7 +41,7 @@ export const SHORT_REWRITE_DEFAULT_OUTPUT_ROOT = path.join(
   "episodes"
 );
 
-export const SHORT_REWRITE_DEFAULT_MODEL = "gpt-4.1-mini";
+export const SHORT_REWRITE_DEFAULT_MODEL = "gpt-5.5";
 
 export const SHORT_REWRITE_DEFAULT_TIMEOUT_MS = 120_000;
 
@@ -42,7 +49,9 @@ export const SHORT_REWRITE_DEFAULT_CONCURRENCY = 2;
 
 export const SHORT_REWRITE_DEFAULT_MAX_RETRIES = 2;
 
-export const SHORT_REWRITE_DEFAULT_TEMPERATURE = 0.4;
+export const SHORT_REWRITE_DEFAULT_TEMPERATURE = 0.5;
+
+export const SHORT_REWRITE_DEFAULT_REASONING_EFFORT = "high" as const;
 
 export const SHORT_REWRITE_DEFAULT_MAX_SOURCE_BYTES = 1_500_000;
 

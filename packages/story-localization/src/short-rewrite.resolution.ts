@@ -268,25 +268,31 @@ export async function resolveShortRewriteInput(args: {
   readonly episode: string | undefined;
   readonly episodeSlug?: string | undefined;
   readonly outputRoot: string;
+  readonly allowSourceInput?: boolean | undefined;
 }): Promise<ResolvedShortRewriteSource> {
   if (args.inputPath) {
     const absoluteInput = path.resolve(args.inputPath);
     if (!(await fileExists(absoluteInput))) {
       throw new StoryInputNotFoundError(`No story input found at ${absoluteInput}.`);
     }
-  const content = await readStoryFile(absoluteInput);
-  if (
-    isEpisodeOutputFullStoryPath(absoluteInput, args.outputRoot) &&
-    !hasGeneratedFullStoryProvenance(content)
-  ) {
-    throw new StoryInputNotFoundError(
-      `The selected input looks like a copied source story rather than a validated generated full story: ${absoluteInput}`
-    );
-  }
-  if (isShortStoryPath(absoluteInput) || /^#\s*Short\b/imu.test(content)) {
-    throw new StoryInputNotFoundError(
-      `The selected input appears to be a Short rather than an English full story: ${absoluteInput}`
-    );
+    const content = await readStoryFile(absoluteInput);
+    if (isShortStoryPath(absoluteInput) || /^#\s*Short\b/imu.test(content)) {
+      throw new StoryInputNotFoundError(
+        `The selected input appears to be a Short rather than a canonical full story: ${absoluteInput}`
+      );
+    }
+    if (!args.allowSourceInput && !hasGeneratedFullStoryProvenance(content)) {
+      throw new StoryInputNotFoundError(
+        `The selected input is not a validated generated full story. Use --compatibility-source to allow raw source input: ${absoluteInput}`
+      );
+    }
+    if (
+      isEpisodeOutputFullStoryPath(absoluteInput, args.outputRoot) &&
+      !hasGeneratedFullStoryProvenance(content)
+    ) {
+      throw new StoryInputNotFoundError(
+        `The selected input looks like a copied source story rather than a validated generated full story: ${absoluteInput}`
+      );
     }
     const episodeSlug = args.episodeSlug
       ? slugify(normalizeWhitespace(args.episodeSlug))
@@ -333,11 +339,12 @@ export async function resolveShortRewriteInput(args: {
     }
     candidateRoots.push(episodeMatches[0] ?? "");
   } else {
-    const entries = await fs.readdir(outputRoot, { withFileTypes: true });
+    const searchRoot = await resolveEpisodeSearchRoot(outputRoot);
+    const entries = await fs.readdir(searchRoot, { withFileTypes: true });
     candidateRoots.push(
       ...entries
         .filter((entry) => entry.isDirectory())
-        .map((entry) => path.join(outputRoot, entry.name))
+        .map((entry) => path.join(searchRoot, entry.name))
         .sort((left, right) => left.localeCompare(right))
     );
   }
@@ -389,6 +396,11 @@ export async function resolveShortRewriteInput(args: {
     throw new StoryInputNotFoundError("Unable to resolve source story.");
   }
   const content = await readStoryFile(sourcePath);
+  if (!args.allowSourceInput && !hasGeneratedFullStoryProvenance(content)) {
+    throw new StoryInputNotFoundError(
+      `The resolved source is not a validated generated full story. Use --compatibility-source to allow raw source input: ${sourcePath}`
+    );
+  }
   if (
     isEpisodeOutputFullStoryPath(sourcePath, args.outputRoot) &&
     !hasGeneratedFullStoryProvenance(content)

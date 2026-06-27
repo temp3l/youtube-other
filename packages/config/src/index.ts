@@ -36,7 +36,15 @@ const configSchema = z.object({
   openAiTranscriptionModel: z.string().optional(),
   openAiTranscriptionLanguage: z.string().optional(),
   openAiTranscriptionPrompt: z.string().optional(),
+  openAiStoryModel: z.string().optional(),
+  openAiStoryTemperature: z.number().min(0).max(2).optional(),
+  openAiStoryReasoningEffort: z.enum(["none", "minimal", "low", "medium", "high", "xhigh"]).optional(),
+  openAiStoryMaxOutputTokens: z.number().int().positive().optional(),
+  openAiStoryRetryMaxOutputTokens: z.number().int().positive().optional(),
+  openAiShortRewriteMaxOutputTokens: z.number().int().positive().optional(),
+  openAiShortRewriteRetryMaxOutputTokens: z.number().int().positive().optional(),
   openAiMetadataModel: z.string().optional(),
+  openAiMetadataReasoningEffort: z.enum(["none", "minimal", "low", "medium", "high", "xhigh"]).optional(),
   openAiMetadataMaxRetries: z.number().int().positive().optional(),
   openAiMetadataKeepFile: z.boolean(),
   openAiMetadataTimeoutMs: z.number().int().positive().optional(),
@@ -155,7 +163,24 @@ const envSchema = z.object({
   MEDIAFORGE_OPENAI_TRANSCRIPTION_MODEL: z.string().optional(),
   MEDIAFORGE_OPENAI_TRANSCRIPTION_LANGUAGE: z.string().optional(),
   MEDIAFORGE_OPENAI_TRANSCRIPTION_PROMPT: z.string().optional(),
+  MEDIAFORGE_OPENAI_STORY_MODEL: z.string().optional(),
+  MEDIAFORGE_OPENAI_STORY_TEMPERATURE: z.coerce.number().min(0).max(2).optional(),
+  MEDIAFORGE_OPENAI_STORY_REASONING_EFFORT: z.enum(["none", "minimal", "low", "medium", "high", "xhigh"]).optional(),
+  MEDIAFORGE_OPENAI_STORY_MAX_OUTPUT_TOKENS: z.coerce.number().int().positive().optional(),
+  MEDIAFORGE_OPENAI_STORY_RETRY_MAX_OUTPUT_TOKENS: z.coerce.number().int().positive().optional(),
+  MEDIAFORGE_OPENAI_SHORT_REWRITE_MAX_OUTPUT_TOKENS: z.coerce.number().int().positive().optional(),
+  MEDIAFORGE_OPENAI_SHORT_REWRITE_RETRY_MAX_OUTPUT_TOKENS: z.coerce.number().int().positive().optional(),
+  OPENAI_STORY_MODEL: z.string().optional(),
+  OPENAI_STORY_TEMPERATURE: z.coerce.number().min(0).max(2).optional(),
+  OPENAI_STORY_REASONING_EFFORT: z.enum(["none", "minimal", "low", "medium", "high", "xhigh"]).optional(),
+  OPENAI_STORY_MAX_OUTPUT_TOKENS: z.coerce.number().int().positive().optional(),
+  OPENAI_STORY_RETRY_MAX_OUTPUT_TOKENS: z.coerce.number().int().positive().optional(),
+  OPENAI_SHORT_REWRITE_MAX_OUTPUT_TOKENS: z.coerce.number().int().positive().optional(),
+  OPENAI_SHORT_REWRITE_RETRY_MAX_OUTPUT_TOKENS: z.coerce.number().int().positive().optional(),
+  MEDIAFORGE_OPENAI_METADATA_MODEL: z.string().optional(),
+  MEDIAFORGE_OPENAI_METADATA_REASONING_EFFORT: z.enum(["none", "minimal", "low", "medium", "high", "xhigh"]).optional(),
   OPENAI_METADATA_MODEL: z.string().optional(),
+  OPENAI_METADATA_REASONING_EFFORT: z.enum(["none", "minimal", "low", "medium", "high", "xhigh"]).optional(),
   OPENAI_METADATA_MAX_RETRIES: z.coerce.number().int().positive().optional(),
   OPENAI_METADATA_KEEP_FILE: z.string().optional(),
   OPENAI_METADATA_TIMEOUT_MS: z.coerce.number().int().positive().optional(),
@@ -351,7 +376,60 @@ export async function loadRuntimeConfig(
       overrides.openAiTranscriptionLanguage ?? episodeOverrides.openAiTranscriptionLanguage ?? env.MEDIAFORGE_OPENAI_TRANSCRIPTION_LANGUAGE,
     openAiTranscriptionPrompt:
       overrides.openAiTranscriptionPrompt ?? episodeOverrides.openAiTranscriptionPrompt ?? env.MEDIAFORGE_OPENAI_TRANSCRIPTION_PROMPT,
-    openAiMetadataModel: overrides.openAiMetadataModel ?? episodeOverrides.openAiMetadataModel ?? env.OPENAI_METADATA_MODEL,
+    openAiStoryModel:
+      overrides.openAiStoryModel ??
+      episodeOverrides.openAiStoryModel ??
+      env.MEDIAFORGE_OPENAI_STORY_MODEL ??
+      env.OPENAI_STORY_MODEL ??
+      "gpt-5.5",
+    openAiStoryTemperature:
+      overrides.openAiStoryTemperature ??
+      episodeOverrides.openAiStoryTemperature ??
+      env.MEDIAFORGE_OPENAI_STORY_TEMPERATURE ??
+      env.OPENAI_STORY_TEMPERATURE ??
+      0.5,
+    openAiStoryReasoningEffort:
+      overrides.openAiStoryReasoningEffort ??
+      episodeOverrides.openAiStoryReasoningEffort ??
+      env.MEDIAFORGE_OPENAI_STORY_REASONING_EFFORT ??
+      env.OPENAI_STORY_REASONING_EFFORT ??
+      "high",
+    openAiStoryMaxOutputTokens:
+      overrides.openAiStoryMaxOutputTokens ??
+      episodeOverrides.openAiStoryMaxOutputTokens ??
+      env.MEDIAFORGE_OPENAI_STORY_MAX_OUTPUT_TOKENS ??
+      env.OPENAI_STORY_MAX_OUTPUT_TOKENS ??
+      25_000,
+    openAiStoryRetryMaxOutputTokens:
+      overrides.openAiStoryRetryMaxOutputTokens ??
+      episodeOverrides.openAiStoryRetryMaxOutputTokens ??
+      env.MEDIAFORGE_OPENAI_STORY_RETRY_MAX_OUTPUT_TOKENS ??
+      env.OPENAI_STORY_RETRY_MAX_OUTPUT_TOKENS ??
+      25_000,
+    openAiShortRewriteMaxOutputTokens:
+      overrides.openAiShortRewriteMaxOutputTokens ??
+      episodeOverrides.openAiShortRewriteMaxOutputTokens ??
+      env.MEDIAFORGE_OPENAI_SHORT_REWRITE_MAX_OUTPUT_TOKENS ??
+      env.OPENAI_SHORT_REWRITE_MAX_OUTPUT_TOKENS ??
+      16_000,
+    openAiShortRewriteRetryMaxOutputTokens:
+      overrides.openAiShortRewriteRetryMaxOutputTokens ??
+      episodeOverrides.openAiShortRewriteRetryMaxOutputTokens ??
+      env.MEDIAFORGE_OPENAI_SHORT_REWRITE_RETRY_MAX_OUTPUT_TOKENS ??
+      env.OPENAI_SHORT_REWRITE_RETRY_MAX_OUTPUT_TOKENS ??
+      25_000,
+    openAiMetadataModel:
+      overrides.openAiMetadataModel ??
+      episodeOverrides.openAiMetadataModel ??
+      env.MEDIAFORGE_OPENAI_METADATA_MODEL ??
+      env.OPENAI_METADATA_MODEL ??
+      "gpt-5.4-mini",
+    openAiMetadataReasoningEffort:
+      overrides.openAiMetadataReasoningEffort ??
+      episodeOverrides.openAiMetadataReasoningEffort ??
+      env.MEDIAFORGE_OPENAI_METADATA_REASONING_EFFORT ??
+      env.OPENAI_METADATA_REASONING_EFFORT ??
+      "low",
     openAiMetadataMaxRetries:
       overrides.openAiMetadataMaxRetries ?? episodeOverrides.openAiMetadataMaxRetries ?? env.OPENAI_METADATA_MAX_RETRIES ?? 3,
     openAiMetadataKeepFile:

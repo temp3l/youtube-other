@@ -14,6 +14,7 @@ import {
   refreshStoryLocalizationBatch,
   StoryBatchIndexService,
   submitStoryLocalizationBatch,
+  toRepositoryRelativePath,
   type GeneratedStoryPackage,
   type LanguageCode,
 } from "./index.js";
@@ -205,6 +206,29 @@ describe("story localization batch integration", () => {
     const latest = await index.getLatest();
     expect(latest?.localBatchId).toBe(prepared.localBatchId);
     expect(latest?.status).toBe("prepared");
+    const layout = resolveBatchStorageLayout(tempDir);
+    const manifest = await readLocalBatchManifest(layout, prepared.localBatchId);
+    expect(manifest?.items[0]?.sourcePath).toBe(
+      toRepositoryRelativePath(
+        path.join(
+          tempDir,
+          "002-even-killers-can-lick",
+          "source",
+          "002-even-killers-can-lick-en-full.md"
+        )
+      )
+    );
+    expect(
+      await fs.readFile(
+        path.join(
+          tempDir,
+          "002-even-killers-can-lick",
+          "source",
+          "002-even-killers-can-lick-en-full.md"
+        ),
+        "utf8"
+      )
+    ).toContain("Bramble");
   });
 
   it("persists production artifacts during batch preparation", async () => {
@@ -287,6 +311,12 @@ describe("story localization batch integration", () => {
       client as never
     );
     expect(imported.failedItemCount).toBe(0);
+    expect(
+      await fs.readFile(
+        path.join(tempDir, "002-even-killers-can-lick", "script.md"),
+        "utf8"
+      )
+    ).toContain("# Episode 002");
     expect(
       await fs.readFile(
         path.join(

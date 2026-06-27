@@ -1,5 +1,6 @@
-import { normalizeWhitespace, splitIntoSentences } from "@mediaforge/shared";
+import { countSpokenWords, normalizeWhitespace } from "@mediaforge/shared";
 import { type CanonicalStoryFacts, type GeneratedStoryPackage, type LanguageCode, type LanguageProfile, type ParsedSourceStory } from "./story-localization.types.js";
+import { type LocalizedFullRewriteResponseShape } from "./story-localization.schemas.js";
 import { countWords, estimateDurationSeconds } from "./story-localization.utils.js";
 import { detectEditorialCommentary } from "./short-rewrite.utils.js";
 
@@ -71,6 +72,40 @@ export function validateWrittenMessagesPreserved(
   );
 }
 
+function validateFullStoryPackageNarration(
+  packageValue: Pick<GeneratedStoryPackage, "full">,
+  profile: LanguageProfile
+): string[] {
+  const issues: string[] = [];
+  if (packageValue.full) {
+    issues.push(
+      ...validateTitleAndThumbnail(packageValue.full.title, packageValue.full.thumbnailText).map(
+        (issue) => `full:${issue}`
+      )
+    );
+    issues.push(
+      ...validateHashtags(packageValue.full.hashtags).map((tag) => `full:invalid hashtag ${tag}`)
+    );
+    const fullText = packageValue.full.narrationParagraphs.join(" ");
+    if (packageValue.full.narrationParagraphs.length === 0 || !/[\w\p{L}\p{N}]/u.test(fullText)) {
+      issues.push("Full narration is empty.");
+    }
+    if (packageValue.full.narrationParagraphs.length < 3) {
+      issues.push("Full narration is too short.");
+    }
+    if (detectForbiddenPhrases(fullText).length > 0) {
+      issues.push("Full contains forbidden boilerplate.");
+    }
+    if (detectEditorialCommentaryIssues(fullText).length > 0) {
+      issues.push("Full contains editorial commentary.");
+    }
+    if (detectGenericFiller(fullText).length > 0 && profile.fullNarrationWpm > 0) {
+      issues.push("Full contains generic filler.");
+    }
+  }
+  return issues;
+}
+
 export function validateGeneratedStoryPackage(
   packageValue: GeneratedStoryPackage,
   facts: CanonicalStoryFacts,
@@ -82,12 +117,15 @@ export function validateGeneratedStoryPackage(
   if (packageValue.language !== language) {
     issues.push("Language mismatch.");
   }
-  issues.push(...validateTitleAndThumbnail(packageValue.short.title, packageValue.short.thumbnailText).map((issue) => `short:${issue}`));
-  issues.push(...validateHashtags(packageValue.short.hashtags).map((tag) => `short:invalid hashtag ${tag}`));
-  if (packageValue.full) {
-    issues.push(...validateTitleAndThumbnail(packageValue.full.title, packageValue.full.thumbnailText).map((issue) => `full:${issue}`));
-    issues.push(...validateHashtags(packageValue.full.hashtags).map((tag) => `full:invalid hashtag ${tag}`));
-  }
+  issues.push(
+    ...validateTitleAndThumbnail(packageValue.short.title, packageValue.short.thumbnailText).map(
+      (issue) => `short:${issue}`
+    )
+  );
+  issues.push(
+    ...validateHashtags(packageValue.short.hashtags).map((tag) => `short:invalid hashtag ${tag}`)
+  );
+  issues.push(...validateFullStoryPackageNarration(packageValue, profile));
   issues.push(...validatePreservationChecklist(packageValue.preservationChecklist).map((entry) => `preservation:${entry}`));
   const shortText = packageValue.short.narrationParagraphs.join(" ");
   const shortWordCount = countWords(shortText);
@@ -108,12 +146,6 @@ export function validateGeneratedStoryPackage(
   if (detectEditorialCommentaryIssues(generatedShortText).length > 0) {
     issues.push("Short contains editorial commentary.");
   }
-  if (detectForbiddenPhrases(packageValue.full?.narrationParagraphs.join(" ") ?? "").length > 0) {
-    issues.push("Full story contains forbidden boilerplate.");
-  }
-  if (detectEditorialCommentaryIssues(packageValue.full?.narrationParagraphs.join(" ") ?? "").length > 0) {
-    issues.push("Full story contains editorial commentary.");
-  }
   if (detectGenericFiller(generatedShortText).length > 0 && packageValue.short.targetNarrationWpm > 0) {
     issues.push("Short contains generic filler.");
   }
@@ -129,8 +161,89 @@ export function validateGeneratedStoryPackage(
   if (!packageValue.preservationChecklist.endingPreserved) {
     issues.push("Ending not preserved.");
   }
-  if (packageValue.full && splitIntoSentences(packageValue.full.narrationParagraphs.join(" ")).length < 3) {
+  return issues;
+}
+
+export function validateGeneratedFullStoryPackage(
+  packageValue: Pick<
+    GeneratedStoryPackage,
+    "language" | "full" | "preservationChecklist" | "diagnostics"
+  >,
+  facts: CanonicalStoryFacts,
+  profile: LanguageProfile,
+  language: LanguageCode
+): string[] {
+  const issues: string[] = [];
+  if (packageValue.language !== language) {
+    issues.push("Language mismatch.");
+  }
+  issues.push(...validateFullStoryPackageNarration(packageValue, profile));
+  issues.push(
+    ...validatePreservationChecklist(packageValue.preservationChecklist).map(
+      (entry) => `preservation:${entry}`
+    )
+  );
+  if (packageValue.full) {
+    const fullText = packageValue.full.narrationParagraphs.join(" ");
+    if (countWords(fullText) < 1) {
+      issues.push("Full story narration is empty.");
+    }
+    if (!facts.characters.every((character) => fullText.includes(character.name))) {
+      issues.push("Character names are missing.");
+    }
+    if (validateWrittenMessagesPreserved(facts, fullText).length > 0) {
+      issues.push("Written messages are not preserved.");
+    }
+  }
+  return issues;
+}
+
+export function validateGeneratedLocalizedFullRewritePackage(
+  packageValue: Pick<
+    LocalizedFullRewriteResponseShape,
+    "language" | "full" | "preservationChecklist" | "diagnostics"
+  >,
+  facts: CanonicalStoryFacts,
+  profile: LanguageProfile,
+  language: LanguageCode
+): string[] {
+  const issues: string[] = [];
+  if (packageValue.language !== language) {
+    issues.push("Language mismatch.");
+  }
+  issues.push(
+    ...validateTitleAndThumbnail(packageValue.full.title, packageValue.full.thumbnailText).map(
+      (issue) => `full:${issue}`
+    )
+  );
+  issues.push(
+    ...validateHashtags(packageValue.full.hashtags).map((tag) => `full:invalid hashtag ${tag}`)
+  );
+  const fullText = packageValue.full.narrationParagraphs.join(" ");
+  if (packageValue.full.narrationParagraphs.length === 0 || !/[\w\p{L}\p{N}]/u.test(fullText)) {
+    issues.push("Full narration is empty.");
+  }
+  if (packageValue.full.narrationParagraphs.length < 1) {
     issues.push("Full narration is too short.");
+  }
+  if (detectForbiddenPhrases(fullText).length > 0) {
+    issues.push("Full contains forbidden boilerplate.");
+  }
+  if (detectEditorialCommentaryIssues(fullText).length > 0) {
+    issues.push("Full contains editorial commentary.");
+  }
+  if (detectGenericFiller(fullText).length > 0 && profile.fullNarrationWpm > 0) {
+    issues.push("Full contains generic filler.");
+  }
+  issues.push(...validatePreservationChecklist(packageValue.preservationChecklist).map((entry) => `preservation:${entry}`));
+  if (countSpokenWords(fullText) < 1) {
+    issues.push("Full story narration is empty.");
+  }
+  if (!facts.characters.every((character) => fullText.includes(character.name))) {
+    issues.push("Character names are missing.");
+  }
+  if (validateWrittenMessagesPreserved(facts, fullText).length > 0) {
+    issues.push("Written messages are not preserved.");
   }
   return issues;
 }

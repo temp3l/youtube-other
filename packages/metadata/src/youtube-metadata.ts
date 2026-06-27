@@ -149,6 +149,7 @@ export interface YoutubeMetadataTarget {
 export interface YoutubeMetadataGenerationOptions {
   readonly apiKey: string;
   readonly model: string;
+  readonly reasoningEffort?: "none" | "minimal" | "low" | "medium" | "high" | "xhigh" | undefined;
   readonly fallbackModels?: ReadonlyArray<string>;
   readonly language: string;
   readonly promptText: string;
@@ -173,7 +174,7 @@ export interface OpenAiMetadataClient {
         readonly model: string;
         readonly instructions?: string;
         readonly reasoning?: {
-          readonly effort: "minimal" | "low" | "medium" | "high" | "xhigh";
+          readonly effort: "none" | "minimal" | "low" | "medium" | "high" | "xhigh";
         };
         readonly input: ReadonlyArray<{
           readonly role: "user";
@@ -259,7 +260,7 @@ function createOpenAiMetadataClient(apiKey: string, baseUrl?: string): OpenAiMet
         if (request.max_output_tokens !== undefined) {
           body["max_output_tokens"] = request.max_output_tokens;
         }
-        if (request.reasoning !== undefined) {
+        if (request.reasoning !== undefined && request.reasoning.effort !== "none") {
           body["reasoning"] = request.reasoning;
         }
         if (request.text !== undefined) {
@@ -1034,13 +1035,17 @@ export async function generateYoutubeMetadataForTarget(
             {
               model,
               instructions: additionalInstruction ? `${promptInstructions}\n\n${additionalInstruction}` : promptInstructions,
-              ...(model.startsWith("gpt-5")
-                ? {
-                    reasoning: {
-                      effort: "minimal" as const
+              ...(() => {
+                const reasoningEffort =
+                  options.reasoningEffort ?? (model.startsWith("gpt-5") ? "low" : undefined);
+                return reasoningEffort && reasoningEffort !== "none"
+                  ? {
+                      reasoning: {
+                        effort: reasoningEffort,
+                      },
                     }
-                  }
-                : {}),
+                  : {};
+              })(),
               input: buildRequestInput(upload.id),
               text: { format: schema },
               max_output_tokens: model.startsWith("gpt-5") ? 12000 : 4000

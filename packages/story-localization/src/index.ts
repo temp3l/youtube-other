@@ -17,6 +17,7 @@ export * from "./story-localization-batch-index.js";
 export * from "./story-localization-openai-batch.js";
 export * from "./story-localization-batch-service.js";
 export * from "./story-localization.service.js";
+export * from "./multilingual-story-localization-settings.js";
 export * from "./short-rewrite.constants.js";
 export * from "./short-rewrite.types.js";
 export * from "./short-rewrite.errors.js";
@@ -26,6 +27,7 @@ export * from "./short-rewrite.renderer.js";
 export * from "./short-rewrite.prompt.js";
 export * from "./short-rewrite.persistence.js";
 export * from "./short-rewrite.bootstrap.js";
+export * from "./full-rewrite.resolution.js";
 export {
   buildCanonicalEpisodeSlug,
   buildCanonicalSourceFileName,

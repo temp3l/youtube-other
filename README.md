@@ -1,4 +1,113 @@
+abfuscate names
+
+make rewrite-short use the same resume semantics as rewrite-full, make it more explicitly in its CLI help text so both commands read consistently.
+
+# propmpts
+
+- 27.06 20:37 = $34.91
+
+## models
+
+Lost multiple days because of this:
+
+I wanted perfectly structured horror stories (in N languages):
+
+- scary claim in the beginning
+- tension building
+- providing facts
+- reveal
+- consistent characters & scenes
+- consistent facts
+- etc
+
+After re-writing:
+
+- wrong plot
+- bad language
+- hallucinations
+
+Tried:
+
+- templates
+- schemas
+- character & scene maps
+- fact maps
+- 100 different prompts
+
+Solved it all: switched from gpt-4.1-mini to gpt-5.5
+
+- perfectly structured long + short videos (en,de,es,pt)
+- somehow got the price for 100 images down from ~6$ to ~1$
+- low quality + low aspect ratio is good enough (scaling up locally to full-hd)
+
+---
+
+### gpt-5.5
+
+- optimized English master-story generation;
+- German, French, Spanish, and Portuguese creative localization;
+- repairing causality and continuity;
+- preserving supernatural rules;
+- natural spoken-language rewriting;
+- complex prompts containing a story bible, constraints, and strict structured output.
+
+Your task is not simple translation. It combines creative writing, consistency checking, localization, retention editing, and schema compliance. That is exactly where the strongest model is most valuable.
+
+- 0.3–0.4: conservative, highly faithful localization;
+- 0.5–0.6: better native flow and creative rewriting;
+- above 0.7: greater risk of invented details and rule drift.
+
+For your preservation-heavy workflow, use approximately 0.4–0.5.
+
 ## pr
+
+---
+
+### characters
+
+Example commands:
+
+# Create only shared/characters.json
+
+node apps/cli/dist/index.js stories sync-characters --episode 011-the-black-eyed-children
+
+# Same operation through the existing episode command
+
+node apps/cli/dist/index.js episode sync-characters --episode 011-the-black-eyed-children
+
+# Create shared/characters.json plus reference images
+
+node apps/cli/dist/index.js stories bootstrap-shared --episode 011-the-black-eyed-children --approve
+
+If you want, I can also add a --dry-run mode to stories sync-characters so it prints the resolved output path without writing anything.
+
+• Use the existing episode bootstrap command:
+
+node apps/cli/dist/index.js episode bootstrap-characters \
+ --episode 011-the-black-eyed-children \
+ --approve
+
+What it does:
+
+- syncs characters.json into episodes/011-the-black-eyed-children/shared/characters.json
+- generates character reference images into episodes/011-the-black-eyed-children/shared/images/character-references/
+- approves the generated references when --approve is set
+
+If you only want the shared character map without generating images:
+
+node apps/cli/dist/index.js episode sync-characters \
+ --episode 011-the-black-eyed-children
+
+---
+
+the "epispoes rewrite-full" command should generate only the full stories and not generate the short stories.
+it also did not store the request response prompt payloads into the relevant localized debug folder.
+
+node apps/cli/dist/index.js stories rewrite-full \
+ --input content-ideas/content/dark-truth-episodes-optimized/011-the-black-eyed-children-en-full-optimized.md \
+ --episode-slug 011-the-black-eyed-children \
+ --languages de,es,fr,pt \
+ --verbose --dry-run
 
 i want the extraction of the character map to be a separate cli command, like:
 node apps/cli/dist/index.js stories rewrite-short
@@ -66,6 +175,41 @@ run "pnpm lint" & "pnpm build" at the end
 ---
 
 Example CLI commands:
+• Use stories rewrite-full with the optimized English file as --input. rewrite-full already produces the canonical English full story by default, so you do not need --languages en.
+
+Examples:
+
+# Inspect what will be generated
+
+node apps/cli/dist/index.js stories rewrite-full \
+ --input content-ideas/content/dark-truth-episodes-optimized/011-the-black-eyed-children-en-full-optimized.md \
+ --episode-slug 011-the-black-eyed-children \
+ --dry-run \
+ --verbose
+
+# Bootstrap the canonical English full story
+
+node apps/cli/dist/index.js stories rewrite-full \
+ --input content-ideas/content/dark-truth-episodes-optimized/011-the-black-eyed-children-en-full-optimized.md \
+ --episode-slug 011-the-black-eyed-children \
+ --verbose
+
+# Bootstrap the English full story and also generate localized outputs
+
+node apps/cli/dist/index.js stories rewrite-full \
+ --input content-ideas/content/dark-truth-episodes-optimized/011-the-black-eyed-children-en-full-optimized.md \
+ --episode-slug 011-the-black-eyed-children \
+ --languages de,es,pt \
+ --verbose
+
+pnpm cli stories rewrite-short \
+ --episode 009 \
+ --languages de
+
+pnpm cli stories rewrite-short \
+ --input episodes/009-the-christmas-doll/source/009-the-christmas-doll-en-full.md \
+ --languages de \
+ --compatibility-source
 
 - pnpm cli stories rewrite-short --episode 009 --language en
 - pnpm cli stories rewrite-short --episode 009 --languages en,de,es,fr,pt --resume

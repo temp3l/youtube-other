@@ -1,21 +1,22 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { z } from "zod";
-import { ensureDir, fileExists, splitIntoSentences } from "@mediaforge/shared";
+import { zodTextFormat } from "openai/helpers/zod.js";
+import { ensureDir, fileExists, normalizeWhitespace, splitIntoSentences } from "@mediaforge/shared";
 import { createLogger, type LoggerContext } from "@mediaforge/observability";
 import { getLanguageProfile, isShortLanguage } from "./language-profiles.js";
 import { buildLocalizationPrompt } from "./localization-prompt-builder.js";
 import { extractCanonicalStoryFacts } from "./canonical-facts.service.js";
 import { discoverCanonicalSourceStories, resolveDefaultOutputDirectory, resolveDefaultSourceDirectory } from "./source-story-discovery.js";
 import { parseCanonicalSourceStory } from "./source-story-parser.js";
-import { generatedStoryPackageSchema, EnglishFullGeneratedStoryPackageSchema, EnglishGeneratedStoryPackageSchema } from "./story-localization.schemas.js";
+import { generatedFullStoryPackageSchema, generatedStoryPackageSchema, EnglishFullGeneratedStoryPackageSchema, EnglishGeneratedStoryPackageSchema, localizedFullRewriteResponseSchema, type GeneratedFullStoryPackageShape, type LocalizedFullRewriteResponseShape } from "./story-localization.schemas.js";
 import { renderLocalizedFullStory, renderLocalizedShort } from "./story-markdown-renderer.js";
 import { buildConfigurationHash, readCanonicalFactsCache, readLocalizationCacheEntry, resolveEpisodeCacheDirectory, resolveEpisodeStoryOutputFiles, writeCanonicalFactsCache, writeLocalizationCacheEntry } from "./story-localization-cache.js";
 import { estimateStoryLocalizationCost } from "./story-localization.cost-tracker.js";
 import { StoryLocalizationApiError, StoryLocalizationConfigurationError, StoryLocalizationSchemaError, StoryLocalizationValidationError } from "./story-localization.errors.js";
-import { countWords, estimateDurationSeconds, writeJsonAtomicIfChanged, writeTextAtomicIfChanged } from "./story-localization.utils.js";
-import { languageCodes, type CanonicalStoryFacts, type GeneratedStoryPackage, type LanguageCode, type LanguageProfile, type ModelPricing, type ParsedSourceStory, type StoryLocalizationConfig, type StoryLocalizationEpisodeResult, type StoryLocalizationRunCounts, type StoryLocalizationRunResult } from "./story-localization.types.js";
-import { detectForbiddenPhrases, detectGenericFiller, validateGeneratedStoryPackage, validateWrittenMessagesPreserved } from "./generated-story-validator.js";
+import { countWords, estimateDurationSeconds, shouldIncludeTemperatureForModel, writeJsonAtomicIfChanged, writeTextAtomicIfChanged } from "./story-localization.utils.js";
+import { languageCodes, type CanonicalStoryFacts, type GeneratedStoryPackage, type LanguageCode, type LanguageProfile, type ModelPricing, type ParsedSourceStory, type StoryLocalizationCacheEntry, type StoryLocalizationConfig, type StoryLocalizationEpisodeResult, type StoryLocalizationRunCounts, type StoryLocalizationRunResult } from "./story-localization.types.js";
+import { detectForbiddenPhrases, detectGenericFiller, validateGeneratedFullStoryPackage, validateGeneratedLocalizedFullRewritePackage, validateGeneratedStoryPackage, validateWrittenMessagesPreserved } from "./generated-story-validator.js";
 import { createOpenAiStoryClient, type OpenAiStoryClient } from "./story-localization-openai-batch.js";
 import { runStoryLocalizationInBatchMode } from "./story-localization-batch-service.js";
 import { rewriteShortStories } from "./short-rewrite.service.js";
@@ -35,6 +36,13 @@ import {
   type StoryProductionStage,
   type StorySourceAnalysis,
 } from "./story-production.js";
+import {
+  DEFAULT_SHORT_REWRITE_MAX_OUTPUT_TOKENS,
+  DEFAULT_SHORT_REWRITE_RETRY_MAX_OUTPUT_TOKENS,
+  SHORT_REWRITE_DEFAULT_MODEL,
+  SHORT_REWRITE_DEFAULT_REASONING_EFFORT,
+  SHORT_REWRITE_DEFAULT_TEMPERATURE,
+} from "./short-rewrite.constants.js";
 
 export interface StoryLocalizationOptions {
   readonly client?: OpenAiStoryClient;
@@ -44,7 +52,117 @@ export interface StoryLocalizationOptions {
   readonly signal?: AbortSignal;
 }
 
+interface StructuredOpenAiCallResult {
+  readonly request: Record<string, unknown>;
+  readonly response: {
+    readonly requestModel: string;
+    readonly responseId: string;
+    readonly status?: string;
+    readonly model?: string;
+    readonly incompleteReason?: string;
+    readonly outputText: string;
+    readonly createdAt?: number;
+    readonly startedAt: number;
+    readonly finishedAt: number;
+    readonly durationMs: number;
+    readonly usage?: {
+      readonly inputTokens?: number;
+      readonly outputTokens?: number;
+      readonly cachedInputTokens?: number;
+    };
+  };
+  readonly json: unknown;
+}
+
+type ResponseCreateRequest = Parameters<OpenAiStoryClient["responses"]["create"]>[0];
+type ResponseMessageLike = {
+  readonly type?: unknown;
+  readonly content?: readonly {
+    readonly type?: unknown;
+    readonly text?: unknown;
+  }[];
+};
+type StructuredResponsesClient = {
+  readonly parse?: (
+    request: ResponseCreateRequest,
+    options?: { readonly signal?: AbortSignal }
+  ) => Promise<{
+    readonly id: string;
+    readonly output_parsed?: unknown | null;
+    readonly output_text?: string;
+    readonly output?: readonly unknown[];
+    readonly status?: string;
+    readonly model?: string;
+    readonly created_at?: number;
+    readonly usage?: {
+      readonly input_tokens?: number;
+      readonly output_tokens?: number;
+      readonly input_tokens_details?: { readonly cached_tokens?: number };
+      readonly output_tokens_details?: { readonly reasoning_tokens?: number };
+      readonly total_tokens?: number;
+    };
+    readonly incomplete_details?: { readonly reason?: string } | null;
+  }>;
+  readonly create: OpenAiStoryClient["responses"]["create"];
+};
+
+function buildOpenAiStructuredRequest(args: {
+  readonly model: string;
+  readonly system: string;
+  readonly user: string;
+  readonly schema: z.ZodTypeAny;
+  readonly schemaName: string;
+  readonly temperature: number;
+  readonly reasoningEffort: StoryLocalizationConfig["reasoningEffort"];
+  readonly maxOutputTokens: number;
+}): ResponseCreateRequest {
+  return {
+    model: args.model,
+    input: [
+      { role: "system", content: [{ type: "input_text", text: args.system }] },
+      { role: "user", content: [{ type: "input_text", text: args.user }] },
+    ],
+    text: { format: zodTextFormat(args.schema, args.schemaName) },
+    max_output_tokens: args.maxOutputTokens,
+    ...(shouldIncludeTemperatureForModel(args.model) ? { temperature: args.temperature } : {}),
+    ...(args.reasoningEffort !== "none"
+      ? {
+          reasoning: {
+            effort: args.reasoningEffort,
+          },
+        }
+      : {}),
+  };
+}
+
+export function extractStructuredResponseText(response: {
+  readonly output_text?: string;
+  readonly output?: readonly unknown[];
+}): string | null {
+  if (typeof response.output_text === "string" && response.output_text.trim().length > 0) {
+    return response.output_text;
+  }
+  const texts: string[] = [];
+  for (const item of response.output ?? []) {
+    if (!item || typeof item !== "object") {
+      continue;
+    }
+    const message = item as ResponseMessageLike;
+    if (message.type !== "message") {
+      continue;
+    }
+    for (const content of message.content ?? []) {
+      if (content?.type === "output_text" && typeof content.text === "string" && content.text.trim().length > 0) {
+        texts.push(content.text);
+      }
+    }
+  }
+  const combined = texts.join("").trim();
+  return combined.length > 0 ? combined : null;
+}
+
 const generatedPackageResponseSchema = generatedStoryPackageSchema;
+const generatedFullPackageResponseSchema = generatedFullStoryPackageSchema;
 const englishPackageResponseSchema = EnglishGeneratedStoryPackageSchema;
 const englishFullPackageResponseSchema = EnglishFullGeneratedStoryPackageSchema;
 const shortRewriteRetryInstructions = [
@@ -68,6 +186,17 @@ function validateConfiguration(config: StoryLocalizationConfig): void {
   }
   if (!path.isAbsolute(config.sourceDirectory) || !path.isAbsolute(config.outputDirectory)) {
     throw new StoryLocalizationConfigurationError("Directories must be resolved before use.");
+  }
+  if (!Number.isFinite(config.temperature) || config.temperature < 0 || config.temperature > 2) {
+    throw new StoryLocalizationConfigurationError("temperature must be between 0 and 2");
+  }
+  const maxOutputTokens = config.maxOutputTokens ?? 25_000;
+  const retryMaxOutputTokens = config.retryMaxOutputTokens ?? maxOutputTokens;
+  if (!Number.isInteger(maxOutputTokens) || maxOutputTokens < 1) {
+    throw new StoryLocalizationConfigurationError("maxOutputTokens must be a positive integer");
+  }
+  if (!Number.isInteger(retryMaxOutputTokens) || retryMaxOutputTokens < maxOutputTokens) {
+    throw new StoryLocalizationConfigurationError("retryMaxOutputTokens must be a positive integer at least as large as maxOutputTokens");
   }
 }
 
@@ -175,7 +304,29 @@ function buildFullPromptConfig(
   });
 }
 
-function responseSchemaForLanguage(language: LanguageCode): unknown {
+function buildProductionContext(
+  parsed: ParsedSourceStory,
+  facts: CanonicalStoryFacts
+): {
+  readonly analysis: StorySourceAnalysis;
+  readonly bible: StoryBible;
+  readonly originalityReview: OriginalityReview;
+  readonly retentionPlan: ReadonlyArray<RetentionBeat>;
+} {
+  const analysis = analyzeStorySource(parsed, facts);
+  const bible = buildStoryBible(parsed, facts, analysis);
+  return {
+    analysis,
+    bible,
+    originalityReview: buildOriginalityReview(parsed, facts, analysis),
+    retentionPlan: buildRetentionPlan(parsed, bible),
+  };
+}
+
+function responseSchemaForLanguage(language: LanguageCode): {
+  readonly schema: z.ZodTypeAny;
+  readonly name: string;
+} {
   const schema =
     language === "en"
       ? englishFullPackageResponseSchema
@@ -187,11 +338,19 @@ function responseSchemaForLanguage(language: LanguageCode): unknown {
           diagnostics: generatedStoryPackageSchema.shape.diagnostics,
         });
   return {
-    type: "json_schema",
+    schema,
     name: language === "en" ? "english_story_package" : "generated_story_package",
-    schema: z.toJSONSchema(schema),
-    strict: true,
-  } as const;
+  };
+}
+
+function responseSchemaForFullLanguage(language: LanguageCode): {
+  readonly schema: z.ZodTypeAny;
+  readonly name: string;
+} {
+  return {
+    schema: localizedFullRewriteResponseSchema,
+    name: language === "en" ? "english_full_story_package" : "generated_full_story_package",
+  };
 }
 
 function describeOpenAiStoryLocalizationError(error: unknown): string {
@@ -326,12 +485,104 @@ async function callOpenAiStructured(
   requestLabel: string,
   system: string,
   user: string,
-  schema: unknown,
-  timeoutMs: number
-): Promise<{ readonly json: unknown; readonly responseId: string; readonly usage?: { readonly inputTokens?: number; readonly outputTokens?: number; readonly cachedInputTokens?: number } }> {
+  schema: z.ZodTypeAny,
+  schemaName: string,
+  timeoutMs: number,
+  temperature: number,
+  maxOutputTokens: number,
+  reasoningEffort: StoryLocalizationConfig["reasoningEffort"],
+  options?: {
+    readonly debugDirectory: string;
+    readonly debugFileBaseName: string;
+  }
+): Promise<StructuredOpenAiCallResult> {
   const maxAttempts = 5;
   let lastError: unknown;
   const startedAt = Date.now();
+  const request = buildOpenAiStructuredRequest({
+    model,
+    system,
+    user,
+    schema,
+    schemaName,
+    temperature,
+    reasoningEffort,
+    maxOutputTokens,
+  });
+  const debugDirectory = options?.debugDirectory;
+  const debugFileBaseName = options?.debugFileBaseName;
+  const persistDebugRequest = async (): Promise<void> => {
+    if (!debugDirectory || !debugFileBaseName) {
+      return;
+    }
+    await ensureDir(debugDirectory);
+    await Promise.all([
+      writeTextAtomicIfChanged(
+        path.join(debugDirectory, `${debugFileBaseName}.prompt.md`),
+        `SYSTEM:\n${system}\n\nUSER:\n${user}\n`,
+        true
+      ),
+      writeJsonAtomicIfChanged(
+        path.join(debugDirectory, `${debugFileBaseName}.request.json`),
+        request,
+        true
+      ),
+    ]);
+  };
+  const persistDebugFailure = async (error: unknown): Promise<void> => {
+    if (!debugDirectory || !debugFileBaseName) {
+      return;
+    }
+    try {
+      await ensureDir(debugDirectory);
+      const failurePayload = {
+        requestLabel,
+        model,
+        startedAt,
+        failedAt: Date.now(),
+        status: "failed" as const,
+        error:
+          error instanceof Error
+            ? {
+                name: error.name,
+                message: error.message,
+                stack: error.stack,
+              }
+            : {
+                message: String(error),
+              },
+      };
+      await writeJsonAtomicIfChanged(
+        path.join(debugDirectory, `${debugFileBaseName}.error.json`),
+        failurePayload,
+        true
+      );
+      await writeJsonAtomicIfChanged(
+        path.join(debugDirectory, `${debugFileBaseName}.response.json`),
+        failurePayload,
+        true
+      );
+      await writeJsonAtomicIfChanged(
+        path.join(debugDirectory, `${debugFileBaseName}.response-text.json`),
+        {
+          status: "failed",
+          error:
+            error instanceof Error
+              ? {
+                  name: error.name,
+                  message: error.message,
+                }
+              : {
+                  message: String(error),
+                },
+        },
+        true
+      );
+    } catch {
+      // Preserve the original OpenAI failure even if debug artifact writes fail.
+    }
+  };
+  await persistDebugRequest();
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
     const remainingMs = timeoutMs - (Date.now() - startedAt);
     if (remainingMs <= 0) {
@@ -344,27 +595,70 @@ async function callOpenAiStructured(
       remainingMs
     );
     try {
-      const response = await client.responses.create(
-        {
-          model,
-          input: [
-            { role: "system", content: [{ type: "input_text", text: system }] },
-            { role: "user", content: [{ type: "input_text", text: user }] },
-          ],
-          text: { format: schema },
-          max_output_tokens: 6000,
-          temperature: 0.4,
-        },
-        { signal: controller.signal }
-      );
-      if (!response.output_text) {
-        throw new StoryLocalizationApiError(
-          `${requestLabel} returned an empty OpenAI response.`
-        );
+      const structuredResponses = client.responses as StructuredResponsesClient;
+      const response = structuredResponses.parse
+        ? await structuredResponses.parse(request, { signal: controller.signal })
+        : await structuredResponses.create(request, { signal: controller.signal });
+      const responseRecord = response as unknown as {
+        readonly status?: string;
+        readonly model?: string;
+        readonly created_at?: number;
+        readonly output?: readonly unknown[];
+        readonly output_parsed?: unknown | null;
+        readonly incomplete_details?: { readonly reason?: string } | null;
+      };
+      let parsedOutput = responseRecord.output_parsed;
+      if (parsedOutput === null || parsedOutput === undefined) {
+        const extractedText = extractStructuredResponseText(responseRecord);
+        if (extractedText) {
+          try {
+            parsedOutput = JSON.parse(extractedText) as unknown;
+          } catch {
+            parsedOutput = null;
+          }
+        }
       }
-      return {
-        json: JSON.parse(response.output_text) as unknown,
+      if (parsedOutput === null || parsedOutput === undefined) {
+        const refusalText = responseRecord.output?.find((item) =>
+          item && typeof item === "object" && (item as { readonly type?: unknown }).type === "message"
+        ) as
+          | { readonly content?: readonly { readonly type?: unknown; readonly refusal?: string; readonly text?: string }[] }
+          | undefined;
+        const refusal = refusalText?.content?.find(
+          (content) => content?.type === "refusal" && typeof content.refusal === "string"
+        )?.refusal;
+        const incompleteReason = responseRecord.incomplete_details?.reason;
+        const message =
+          incompleteReason === "max_output_tokens"
+            ? `${requestLabel} was incomplete because max_output_tokens was exhausted.`
+            : incompleteReason
+              ? `${requestLabel} was incomplete (${incompleteReason}).`
+              : refusal
+                ? `${requestLabel} was refused by the model: ${refusal}`
+                : `${requestLabel} returned no parsed output.`;
+        throw new StoryLocalizationApiError(message);
+      }
+      const outputText = extractStructuredResponseText(responseRecord) ?? JSON.stringify(parsedOutput);
+      const finishedAt = Date.now();
+      const responsePayload: StructuredOpenAiCallResult["response"] = {
+        requestModel: model,
         responseId: response.id,
+        outputText,
+        startedAt,
+        finishedAt,
+        durationMs: finishedAt - startedAt,
+        ...(responseRecord.status !== undefined
+          ? { status: responseRecord.status }
+          : {}),
+        ...(responseRecord.model !== undefined
+          ? { model: responseRecord.model }
+          : {}),
+        ...(responseRecord.created_at !== undefined
+          ? { createdAt: responseRecord.created_at }
+          : {}),
+        ...(responseRecord.incomplete_details?.reason !== undefined
+          ? { incompleteReason: responseRecord.incomplete_details.reason }
+          : {}),
         ...(response.usage
           ? {
               usage: {
@@ -384,6 +678,11 @@ async function callOpenAiStructured(
             }
           : {}),
       };
+      return {
+        request,
+        response: responsePayload,
+        json: parsedOutput,
+      };
     } catch (error) {
       lastError = error;
       if (attempt < maxAttempts && isRetryableOpenAiRequestError(error)) {
@@ -395,6 +694,7 @@ async function callOpenAiStructured(
         await sleep(delayMs);
         continue;
       }
+      await persistDebugFailure(error);
       throw new StoryLocalizationApiError(
         `${requestLabel} failed via OpenAI model ${model}: ${describeOpenAiStoryLocalizationError(error)}${attempt > 1 ? ` after ${attempt} attempts` : ""}`,
         error
@@ -409,14 +709,51 @@ async function callOpenAiStructured(
   );
 }
 
+async function writeStructuredOpenAiDebugArtifacts(args: {
+  readonly debugDirectory: string;
+  readonly fileBaseName: string;
+  readonly prompt: { readonly system: string; readonly user: string };
+  readonly request: Record<string, unknown>;
+  readonly response: StructuredOpenAiCallResult["response"];
+  readonly responseJson: unknown;
+}): Promise<void> {
+  await ensureDir(args.debugDirectory);
+  await Promise.all([
+    writeTextAtomicIfChanged(
+      path.join(args.debugDirectory, `${args.fileBaseName}.prompt.md`),
+      `SYSTEM:\n${args.prompt.system}\n\nUSER:\n${args.prompt.user}\n`,
+      true
+    ),
+    writeJsonAtomicIfChanged(
+      path.join(args.debugDirectory, `${args.fileBaseName}.request.json`),
+      args.request,
+      true
+    ),
+    writeJsonAtomicIfChanged(
+      path.join(args.debugDirectory, `${args.fileBaseName}.response.json`),
+      args.response,
+      true
+    ),
+    writeJsonAtomicIfChanged(
+      path.join(args.debugDirectory, `${args.fileBaseName}.response-text.json`),
+      args.responseJson,
+      true
+    ),
+  ]);
+}
+
 async function generateStructuredStoryPackage<T>(
   client: OpenAiStoryClient,
   model: string,
   requestLabel: string,
   system: string,
   user: string,
-  schema: unknown,
+  schema: z.ZodTypeAny,
+  schemaName: string,
   timeoutMs: number,
+  temperature: number,
+  maxOutputTokens: number,
+  reasoningEffort: StoryLocalizationConfig["reasoningEffort"],
   validate: (value: T) => string[],
   options?: {
     readonly retryLabel?: string;
@@ -426,6 +763,10 @@ async function generateStructuredStoryPackage<T>(
       readonly value: T;
       readonly issues: readonly string[];
     }) => T | null;
+    readonly debug?: {
+      readonly debugDirectory: string;
+      readonly fileBaseName: string;
+    };
   }
 ): Promise<{
   readonly value: T;
@@ -433,6 +774,28 @@ async function generateStructuredStoryPackage<T>(
   readonly outputTokens: number;
   readonly repaired: boolean;
 }> {
+  const persistDebugArtifacts = async (
+    call: StructuredOpenAiCallResult,
+    prompt: { readonly system: string; readonly user: string }
+  ): Promise<void> => {
+    if (!options?.debug) {
+      return;
+    }
+    await writeStructuredOpenAiDebugArtifacts({
+      debugDirectory: options.debug.debugDirectory,
+      fileBaseName: options.debug.fileBaseName,
+      prompt,
+      request: call.request,
+      response: call.response,
+      responseJson: call.json,
+    });
+  };
+  const debugOptions = options?.debug
+    ? {
+        debugDirectory: options.debug.debugDirectory,
+        debugFileBaseName: options.debug.fileBaseName,
+      }
+    : undefined;
   const initial = await callOpenAiStructured(
     client,
     model,
@@ -440,7 +803,12 @@ async function generateStructuredStoryPackage<T>(
     system,
     user,
     schema,
-    timeoutMs
+    schemaName,
+    timeoutMs,
+    temperature,
+    maxOutputTokens,
+    reasoningEffort,
+    debugOptions
   );
   let value: T;
   try {
@@ -448,12 +816,13 @@ async function generateStructuredStoryPackage<T>(
   } catch (error) {
     throw new StoryLocalizationSchemaError("Unable to parse OpenAI JSON response.", error);
   }
+  await persistDebugArtifacts(initial, { system, user });
   const initialIssues = validate(value);
   if (initialIssues.length === 0) {
     return {
       value,
-      inputTokens: initial.usage?.inputTokens ?? 0,
-      outputTokens: initial.usage?.outputTokens ?? 0,
+      inputTokens: initial.response.usage?.inputTokens ?? 0,
+      outputTokens: initial.response.usage?.outputTokens ?? 0,
       repaired: false,
     };
   }
@@ -479,13 +848,19 @@ async function generateStructuredStoryPackage<T>(
       repairUser,
     ].join("\n"),
     schema,
-    timeoutMs
+    schemaName,
+    timeoutMs,
+    temperature,
+    maxOutputTokens,
+    reasoningEffort,
+    debugOptions
   );
   try {
     value = repair.json as T;
   } catch (error) {
     throw new StoryLocalizationSchemaError("Unable to parse repaired OpenAI JSON response.", error);
   }
+  await persistDebugArtifacts(repair, { system, user: repairUser });
   const repairedIssues = validate(value);
   if (repairedIssues.length > 0) {
     const shouldRetry = options?.shouldRetry?.(repairedIssues) ?? false;
@@ -510,13 +885,19 @@ async function generateStructuredStoryPackage<T>(
         system,
         secondRepairUser,
         schema,
-        timeoutMs
+        schemaName,
+        timeoutMs,
+        temperature,
+        maxOutputTokens,
+        reasoningEffort,
+        debugOptions
       );
       try {
         value = secondRepair.json as T;
       } catch (error) {
         throw new StoryLocalizationSchemaError("Unable to parse repaired OpenAI JSON response.", error);
       }
+      await persistDebugArtifacts(secondRepair, { system, user: secondRepairUser });
       const secondRepairedIssues = validate(value);
       if (secondRepairedIssues.length > 0) {
         const fallbackValue = options?.fallbackTransform?.({
@@ -529,13 +910,13 @@ async function generateStructuredStoryPackage<T>(
             return {
               value: fallbackValue,
               inputTokens:
-                (initial.usage?.inputTokens ?? 0) +
-                (repair.usage?.inputTokens ?? 0) +
-                (secondRepair.usage?.inputTokens ?? 0),
+                (initial.response.usage?.inputTokens ?? 0) +
+                (repair.response.usage?.inputTokens ?? 0) +
+                (secondRepair.response.usage?.inputTokens ?? 0),
               outputTokens:
-                (initial.usage?.outputTokens ?? 0) +
-                (repair.usage?.outputTokens ?? 0) +
-                (secondRepair.usage?.outputTokens ?? 0),
+                (initial.response.usage?.outputTokens ?? 0) +
+                (repair.response.usage?.outputTokens ?? 0) +
+                (secondRepair.response.usage?.outputTokens ?? 0),
               repaired: true,
             };
           }
@@ -545,8 +926,8 @@ async function generateStructuredStoryPackage<T>(
       }
       return {
         value,
-        inputTokens: (initial.usage?.inputTokens ?? 0) + (repair.usage?.inputTokens ?? 0) + (secondRepair.usage?.inputTokens ?? 0),
-        outputTokens: (initial.usage?.outputTokens ?? 0) + (repair.usage?.outputTokens ?? 0) + (secondRepair.usage?.outputTokens ?? 0),
+        inputTokens: (initial.response.usage?.inputTokens ?? 0) + (repair.response.usage?.inputTokens ?? 0) + (secondRepair.response.usage?.inputTokens ?? 0),
+        outputTokens: (initial.response.usage?.outputTokens ?? 0) + (repair.response.usage?.outputTokens ?? 0) + (secondRepair.response.usage?.outputTokens ?? 0),
         repaired: true,
       };
     }
@@ -559,8 +940,8 @@ async function generateStructuredStoryPackage<T>(
       if (fallbackIssues.length === 0) {
         return {
           value: fallbackValue,
-          inputTokens: (initial.usage?.inputTokens ?? 0) + (repair.usage?.inputTokens ?? 0),
-          outputTokens: (initial.usage?.outputTokens ?? 0) + (repair.usage?.outputTokens ?? 0),
+          inputTokens: (initial.response.usage?.inputTokens ?? 0) + (repair.response.usage?.inputTokens ?? 0),
+          outputTokens: (initial.response.usage?.outputTokens ?? 0) + (repair.response.usage?.outputTokens ?? 0),
           repaired: true,
         };
       }
@@ -570,8 +951,12 @@ async function generateStructuredStoryPackage<T>(
   }
   return {
     value,
-    inputTokens: (initial.usage?.inputTokens ?? 0) + (repair.usage?.inputTokens ?? 0),
-    outputTokens: (initial.usage?.outputTokens ?? 0) + (repair.usage?.outputTokens ?? 0),
+    inputTokens:
+      (initial.response.usage?.inputTokens ?? 0) +
+      (repair.response.usage?.inputTokens ?? 0),
+    outputTokens:
+      (initial.response.usage?.outputTokens ?? 0) +
+      (repair.response.usage?.outputTokens ?? 0),
     repaired: true,
   };
 }
@@ -582,6 +967,28 @@ function parseGeneratedPackage(json: unknown, language: LanguageCode): Generated
     throw new StoryLocalizationSchemaError(`Expected language ${language}, received ${parsed.language}.`);
   }
   return parsed as GeneratedStoryPackage;
+}
+
+function parseGeneratedFullPackage(
+  json: unknown,
+  language: LanguageCode
+): GeneratedFullStoryPackageShape {
+  const parsed = generatedFullPackageResponseSchema.parse(json);
+  if (parsed.language !== language) {
+    throw new StoryLocalizationSchemaError(`Expected language ${language}, received ${parsed.language}.`);
+  }
+  return parsed;
+}
+
+function parseLocalizedFullRewritePackage(
+  json: unknown,
+  language: LanguageCode
+): LocalizedFullRewriteResponseShape {
+  const parsed = localizedFullRewriteResponseSchema.parse(json);
+  if (parsed.language !== language) {
+    throw new StoryLocalizationSchemaError(`Expected language ${language}, received ${parsed.language}.`);
+  }
+  return parsed;
 }
 
 function parseEnglishPackage(json: unknown): {
@@ -803,7 +1210,21 @@ async function persistFailedLocalizedOutput(args: {
     await writeTextAtomicIfChanged(files.short, shortMarkdown, true);
     persistedFiles.push(files.short);
   } catch {
-    // Keep the structured JSON artifact even if the generated package cannot be rendered.
+    try {
+      const packageValue = parseGeneratedFullPackage(args.generatedValue, args.language);
+      if (packageValue.full) {
+        const fullMarkdown = renderLocalizedFullStory(
+          args.parsed.episodeNumber,
+          packageValue.full,
+          args.language,
+          args.parsed.sourceHash
+        );
+        await writeTextAtomicIfChanged(files.full, fullMarkdown, true);
+        persistedFiles.push(files.full);
+      }
+    } catch {
+      // Keep the structured JSON artifact even if the generated package cannot be rendered.
+    }
   }
 
   return persistedFiles;
@@ -814,6 +1235,8 @@ function buildCacheKey(args: {
   readonly language: LanguageCode;
   readonly adaptationMode: StoryLocalizationConfig["adaptationMode"];
   readonly model: string;
+  readonly temperature: number;
+  readonly reasoningEffort: StoryLocalizationConfig["reasoningEffort"];
   readonly profile: ReturnType<typeof getLanguageProfile>;
   readonly promptVersion: string;
   readonly shortWpm: number;
@@ -825,6 +1248,8 @@ function buildCacheKey(args: {
     args.language,
     args.adaptationMode,
     args.model,
+    String(args.temperature),
+    args.reasoningEffort,
     args.promptVersion,
     JSON.stringify(args.profile.shortWordRange),
     String(args.shortWpm),
@@ -848,6 +1273,68 @@ async function ensureCacheFacts(cacheDir: string, sourceHash: string, facts: Can
 
 async function maybeReuseExistingOutput(filePath: string, expectedContent: string, force: boolean): Promise<"written" | "skipped"> {
   return writeTextAtomicIfChanged(filePath, expectedContent, force);
+}
+
+const sourceHashMarkerPattern = /source-sha256:\s*([a-f0-9]{64})/iu;
+
+async function resolveResumableFullStoryOutput(args: {
+  readonly cacheDir: string;
+  readonly sourceHash: string;
+  readonly cacheKey: string;
+  readonly outputFile: string;
+  readonly expectedSourceFile: string;
+  readonly language: LanguageCode;
+  readonly model: string;
+  readonly promptVersion: string;
+}): Promise<
+  | {
+      readonly eligible: false;
+    }
+  | {
+      readonly eligible: true;
+      readonly cacheEntry: StoryLocalizationCacheEntry;
+      readonly parsed?: ParsedSourceStory;
+      readonly facts?: CanonicalStoryFacts;
+    }
+> {
+  if (!(await fileExists(args.outputFile))) {
+    return { eligible: false };
+  }
+  const cacheEntry = await readLocalizationCacheEntry(args.cacheDir, args.sourceHash, args.cacheKey);
+  if (
+    !cacheEntry ||
+    cacheEntry.language !== args.language ||
+    cacheEntry.model !== args.model ||
+    cacheEntry.promptVersion !== args.promptVersion ||
+    cacheEntry.sourceHash !== args.sourceHash ||
+    cacheEntry.sourceFile !== args.expectedSourceFile ||
+    cacheEntry.outputFiles.length === 0 ||
+    !cacheEntry.outputFiles.includes(args.outputFile)
+  ) {
+    return { eligible: false };
+  }
+  const fileChecks = await Promise.all(cacheEntry.outputFiles.map((filePath) => fileExists(filePath)));
+  if (fileChecks.some((exists) => !exists)) {
+    return { eligible: false };
+  }
+  const rendered = await fs.readFile(args.outputFile, "utf8");
+  const marker = sourceHashMarkerPattern.exec(rendered);
+  if (!marker?.[1] || marker[1].toLowerCase() !== args.sourceHash.toLowerCase()) {
+    return { eligible: false };
+  }
+  if (normalizeWhitespace(rendered).length === 0) {
+    return { eligible: false };
+  }
+  if (args.language === "en") {
+    const parsed = await parseCanonicalSourceStory(args.outputFile);
+    return {
+      eligible: true,
+      cacheEntry,
+      parsed,
+      facts: extractCanonicalStoryFacts(parsed),
+    };
+  }
+  return { eligible: true, cacheEntry };
 }
 
 export async function localizeStoryEpisode(
@@ -883,6 +1370,10 @@ export async function localizeStoryEpisode(
   await persistStoryProductionStage(cacheDir, parsed, "retention-plan");
   const profileEn = getLanguageProfile("en");
   const outputFiles = buildOutputFiles(config.outputDirectory, parsed.slug, "en");
+  const debugDirectory = config.debugOutputs
+    ? path.join(config.outputDirectory, parsed.slug, "debug")
+    : undefined;
+  const debugPrefix = config.debugPrefix ?? "stories-rewrite-full";
   const generatedFiles: string[] = [];
   const skippedFiles: string[] = [];
   let inputTokens = 0;
@@ -890,180 +1381,327 @@ export async function localizeStoryEpisode(
   let repairAttempts = 0;
   let cacheHit = false;
   const languageFailures: string[] = [];
-  let englishFullPackage: GeneratedStoryPackage | undefined;
-  const englishFullPrompt = buildFullPromptConfig("en", parsed, facts, config.adaptationMode, {
-    analysis,
-    bible,
-    originalityReview,
-    retentionPlan,
-  });
-  try {
-    await persistStoryProductionStage(cacheDir, parsed, "localized-long-form-generation");
-    const generated = await generateStructuredStoryPackage<GeneratedStoryPackage>(
-      client,
-      config.model,
-      "English full story localization",
-      englishFullPrompt.system,
-      englishFullPrompt.user,
-      responseSchemaForLanguage("en"),
-      90_000,
-      (value) => {
-        const issues: string[] = [];
-        try {
-          const packageValue = parseGeneratedPackage(value as unknown, "en");
-          issues.push(
-            ...filterEnglishFullValidationIssues(
-              validateGeneratedStoryPackage(packageValue, facts, profileEn, parsed, "en")
-            )
-          );
-          if (!packageValue.full) {
-            issues.push("Missing full story payload for en.");
-          }
-        } catch (error) {
-          issues.push(error instanceof Error ? error.message : String(error));
-        }
-        return issues;
-      }
-    );
-    repairAttempts += generated.repaired ? 1 : 0;
-    inputTokens += generated.inputTokens;
-    outputTokens += generated.outputTokens;
-    englishFullPackage = parseGeneratedPackage(generated.value, "en");
-    if (!englishFullPackage.full) {
-      throw new StoryLocalizationSchemaError("Missing full story payload for en.");
-    }
-    const englishFullMarkdown = renderLocalizedFullStory(
-      parsed.episodeNumber,
-      englishFullPackage.full,
-      "en",
-      parsed.sourceHash
-    );
-    const fullWrite = await maybeReuseExistingOutput(
-      outputFiles.full,
-      englishFullMarkdown,
-      config.force
-    );
-    if (fullWrite === "written") {
-      generatedFiles.push(outputFiles.full);
-    } else {
-      skippedFiles.push(outputFiles.full);
-    }
-    } catch (error) {
-    languageFailures.push(error instanceof Error ? error.message : String(error));
-    skippedFiles.push(outputFiles.full);
-  }
-  const shortCacheKey = buildCacheKey({
+  let englishFullPackage:
+    | GeneratedStoryPackage
+    | GeneratedFullStoryPackageShape
+    | LocalizedFullRewriteResponseShape
+    | undefined;
+  let canonicalEnglishStory: { readonly parsed: ParsedSourceStory; readonly facts: CanonicalStoryFacts } | undefined;
+  const resumeEnabled = config.resume && !config.force;
+  const englishFullCacheKey = buildCacheKey({
     sourceHash: parsed.sourceHash,
     language: "en",
     adaptationMode: config.adaptationMode,
     model: config.model,
+    temperature: config.temperature,
+    reasoningEffort: config.reasoningEffort,
     profile: profileEn,
     promptVersion: config.promptVersion,
     shortWpm: config.shortWpm,
     shortMinSeconds: config.shortMinSeconds,
     shortMaxSeconds: config.shortMaxSeconds,
   });
-  const cachedEntry = await readLocalizationCacheEntry(cacheDir, parsed.sourceHash, shortCacheKey);
-  if (cachedEntry) {
+  const englishResume = resumeEnabled
+    ? await resolveResumableFullStoryOutput({
+        cacheDir,
+        sourceHash: parsed.sourceHash,
+        cacheKey: englishFullCacheKey,
+        outputFile: outputFiles.full,
+        expectedSourceFile: parsed.sourceFile,
+        language: "en",
+        model: config.model,
+        promptVersion: config.promptVersion,
+      })
+    : { eligible: false as const };
+  if (englishResume.eligible) {
     cacheHit = true;
-  }
-  const englishShortPath = outputFiles.short;
-  const englishCacheOutputFiles: string[] = [];
-  if (config.includeEnglishShort) {
-    if (!englishFullPackage) {
-      languageFailures.push(
-        "English short generation requires a validated generated English full story."
-      );
-      skippedFiles.push(englishShortPath);
-    } else {
-      await persistStoryProductionStage(cacheDir, parsed, "english-short-generation");
-      try {
-        const shortSummary = await rewriteShortStories(
-          {
-            inputPath: outputFiles.full,
-            episodeSlug: parsed.slug,
-            outputRoot: config.outputDirectory,
-            languages: ["en"],
-            model: config.model,
-            temperature: undefined,
-            reasoningEffort: undefined,
-            maxConcurrency: 1,
-            timeoutMs: 90_000,
-            maxRetries: 2,
-            overwrite: config.force,
-            resume: false,
-            dryRun: false,
-            force: config.force,
-            verbose: config.verbose,
-            json: false,
-          },
-          {
-            client,
-            logger,
-            ...(options.signal ? { signal: options.signal } : {}),
-          }
-        );
-        inputTokens += shortSummary.inputTokens;
-        outputTokens += shortSummary.outputTokens;
-        for (const artifact of shortSummary.artifacts) {
-          const markdownPath = path.join(config.outputDirectory, parsed.slug, artifact.markdownOutputPath);
-          if (artifact.status === "completed") {
-            generatedFiles.push(markdownPath);
-          } else {
-            skippedFiles.push(markdownPath);
-          }
-        }
-        if (shortSummary.completed > 0) {
-          englishCacheOutputFiles.push(outputFiles.full, englishShortPath);
-        }
-      } catch (error) {
-        const failureMessage = error instanceof Error ? error.message : String(error);
-        languageFailures.push(failureMessage);
-        skippedFiles.push(englishShortPath);
-      }
-    }
-  }
-  if (englishFullPackage) {
-    await writeLocalizationCacheEntry(cacheDir, {
-      sourceFile: parsed.sourceFile,
-      sourceHash: parsed.sourceHash,
-      configurationHash: shortCacheKey,
-      promptVersion: config.promptVersion,
-      model: config.model,
-      language: "en",
-      generatedAt: new Date().toISOString(),
-      outputFiles: englishCacheOutputFiles.length > 0 ? englishCacheOutputFiles : [outputFiles.full],
-      inputTokens,
-      outputTokens,
-    });
-  }
-  for (const language of config.languages) {
-    const profile = getLanguageProfile(language);
-    const localizedOutputFiles = buildOutputFiles(config.outputDirectory, parsed.slug, language);
-    await persistStoryProductionStage(cacheDir, parsed, "localized-long-form-generation");
-    const languagePrompt = buildFullPromptConfig(language, parsed, facts, config.adaptationMode, {
+    skippedFiles.push(outputFiles.full);
+    canonicalEnglishStory = {
+      parsed: englishResume.parsed ?? (await parseCanonicalSourceStory(outputFiles.full)),
+      facts:
+        englishResume.facts ??
+        extractCanonicalStoryFacts(englishResume.parsed ?? (await parseCanonicalSourceStory(outputFiles.full))),
+    };
+    await ensureCacheFacts(
+      cacheDir,
+      canonicalEnglishStory.parsed.sourceHash,
+      canonicalEnglishStory.facts
+    );
+  } else {
+    const englishFullPrompt = buildFullPromptConfig("en", parsed, facts, config.adaptationMode, {
       analysis,
       bible,
       originalityReview,
       retentionPlan,
     });
-    let generatedValueForFailure: unknown;
+    const englishResponseSchema = config.includeEnglishShort
+      ? responseSchemaForLanguage("en")
+      : responseSchemaForFullLanguage("en");
     try {
-      const generated = await generateStructuredStoryPackage<GeneratedStoryPackage>(
+      await persistStoryProductionStage(cacheDir, parsed, "localized-long-form-generation");
+      const generated = await generateStructuredStoryPackage<
+        GeneratedStoryPackage | GeneratedFullStoryPackageShape
+      >(
+        client,
+        config.model,
+        "English full story localization",
+        englishFullPrompt.system,
+        englishFullPrompt.user,
+        englishResponseSchema.schema,
+        englishResponseSchema.name,
+        config.timeoutMs,
+        config.temperature,
+        config.maxOutputTokens ?? 25_000,
+        config.reasoningEffort,
+        (value) => {
+          const issues: string[] = [];
+          try {
+            if (config.includeEnglishShort) {
+              const packageValue = parseGeneratedPackage(value as unknown, "en");
+              issues.push(
+                ...filterEnglishFullValidationIssues(
+                  validateGeneratedStoryPackage(packageValue, facts, profileEn, parsed, "en")
+                )
+              );
+              if (!packageValue.full) {
+                issues.push("Missing full story payload for en.");
+              }
+            } else {
+              const packageValue = parseLocalizedFullRewritePackage(value as unknown, "en");
+              issues.push(
+                ...validateGeneratedLocalizedFullRewritePackage(packageValue, facts, profileEn, "en")
+              );
+            }
+          } catch (error) {
+            issues.push(error instanceof Error ? error.message : String(error));
+          }
+          return issues;
+        },
+        debugDirectory
+          ? {
+              debug: {
+                debugDirectory,
+                fileBaseName: `${debugPrefix}-en`,
+              },
+            }
+          : undefined
+      );
+      repairAttempts += generated.repaired ? 1 : 0;
+      inputTokens += generated.inputTokens;
+      outputTokens += generated.outputTokens;
+      englishFullPackage = config.includeEnglishShort
+        ? parseGeneratedPackage(generated.value, "en")
+        : parseLocalizedFullRewritePackage(generated.value, "en");
+      const englishFullPayload = englishFullPackage?.full;
+      if (!englishFullPayload) {
+        throw new StoryLocalizationSchemaError("Missing full story payload for en.");
+      }
+      const englishFullMarkdown = renderLocalizedFullStory(
+        parsed.episodeNumber,
+        englishFullPayload,
+        "en",
+        parsed.sourceHash
+      );
+      const fullWrite = await maybeReuseExistingOutput(
+        outputFiles.full,
+        englishFullMarkdown,
+        config.force
+      );
+      if (fullWrite === "written") {
+        generatedFiles.push(outputFiles.full);
+      } else {
+        skippedFiles.push(outputFiles.full);
+      }
+      canonicalEnglishStory = await prepareParsedStory(outputFiles.full);
+      await ensureCacheFacts(
+        cacheDir,
+        canonicalEnglishStory.parsed.sourceHash,
+        canonicalEnglishStory.facts
+      );
+    } catch (error) {
+      languageFailures.push(error instanceof Error ? error.message : String(error));
+      skippedFiles.push(outputFiles.full);
+    }
+  }
+  if (!canonicalEnglishStory) {
+    const failureMessage =
+      languageFailures.find((entry) => entry.length > 0) ??
+      "English full story optimization failed before downstream localization.";
+    const result: StoryLocalizationEpisodeResult = {
+      episodeNumber: parsed.episodeNumber,
+      slug: parsed.slug,
+      sourceFile: parsed.sourceFile,
+      copiedEnglishFull: outputFiles.full,
+      generatedFiles,
+      skippedFiles,
+      cacheHit,
+      repairAttempts,
+      inputTokens,
+      outputTokens,
+      estimatedCostUsd: estimateStoryLocalizationCost(options.modelPricing?.[config.model], {
+        inputTokens,
+        outputTokens,
+      }).estimatedCostUsd,
+      failure: failureMessage,
+    };
+    await persistStoryProductionStage(cacheDir, parsed, "failed");
+    logger.info({ episodeId: parsed.slug, ...result } satisfies LoggerContext, "localized story episode");
+    return result;
+  }
+  if (englishFullPackage) {
+    const englishCacheOutputFiles: string[] = [outputFiles.full];
+    await writeLocalizationCacheEntry(cacheDir, {
+      sourceFile: parsed.sourceFile,
+      sourceHash: parsed.sourceHash,
+      configurationHash: englishFullCacheKey,
+      promptVersion: config.promptVersion,
+      model: config.model,
+      language: "en",
+      generatedAt: new Date().toISOString(),
+      outputFiles: englishCacheOutputFiles,
+      inputTokens,
+      outputTokens,
+    });
+  }
+  const englishShortPath = outputFiles.short;
+  if (config.includeEnglishShort) {
+    await persistStoryProductionStage(cacheDir, parsed, "english-short-generation");
+    try {
+      const shortSummary = await rewriteShortStories(
+        {
+          inputPath: outputFiles.full,
+          episodeSlug: parsed.slug,
+          outputRoot: config.outputDirectory,
+          languages: ["en"],
+          model: config.model,
+          temperature: config.temperature,
+          reasoningEffort: config.reasoningEffort,
+          maxOutputTokens: DEFAULT_SHORT_REWRITE_MAX_OUTPUT_TOKENS,
+          retryMaxOutputTokens: DEFAULT_SHORT_REWRITE_RETRY_MAX_OUTPUT_TOKENS,
+          maxConcurrency: 1,
+          timeoutMs: config.timeoutMs,
+          maxRetries: 2,
+          overwrite: config.force,
+          resume: false,
+          dryRun: false,
+          force: config.force,
+          verbose: config.verbose,
+          json: false,
+        },
+        {
+          client,
+          logger,
+          ...(options.signal ? { signal: options.signal } : {}),
+        }
+      );
+      inputTokens += shortSummary.inputTokens;
+      outputTokens += shortSummary.outputTokens;
+      for (const artifact of shortSummary.artifacts) {
+        const markdownPath = path.join(config.outputDirectory, parsed.slug, artifact.markdownOutputPath);
+        if (artifact.status === "completed") {
+          generatedFiles.push(markdownPath);
+        } else {
+          skippedFiles.push(markdownPath);
+        }
+      }
+      await writeLocalizationCacheEntry(cacheDir, {
+        sourceFile: canonicalEnglishStory.parsed.sourceFile,
+        sourceHash: canonicalEnglishStory.parsed.sourceHash,
+        configurationHash: englishFullCacheKey,
+        promptVersion: config.promptVersion,
+        model: config.model,
+        language: "en",
+        generatedAt: new Date().toISOString(),
+        outputFiles: [outputFiles.full, englishShortPath],
+        inputTokens,
+        outputTokens,
+      });
+    } catch (error) {
+      const failureMessage = error instanceof Error ? error.message : String(error);
+      languageFailures.push(failureMessage);
+      skippedFiles.push(englishShortPath);
+    }
+  }
+  const canonicalProductionContext = buildProductionContext(
+    canonicalEnglishStory.parsed,
+    canonicalEnglishStory.facts
+  );
+  const includeLocalizedShorts = config.includeLocalizedShorts ?? true;
+  for (const language of config.languages) {
+    const profile = getLanguageProfile(language);
+    const localizedOutputFiles = buildOutputFiles(config.outputDirectory, parsed.slug, language);
+    const localizedCacheKey = buildCacheKey({
+      sourceHash: canonicalEnglishStory.parsed.sourceHash,
+      language,
+      adaptationMode: config.adaptationMode,
+      model: config.model,
+      temperature: config.temperature,
+      reasoningEffort: config.reasoningEffort,
+      profile,
+      promptVersion: config.promptVersion,
+      shortWpm: config.shortWpm,
+      shortMinSeconds: config.shortMinSeconds,
+      shortMaxSeconds: config.shortMaxSeconds,
+    });
+    const localizedResume = resumeEnabled
+      ? await resolveResumableFullStoryOutput({
+          cacheDir,
+          sourceHash: canonicalEnglishStory.parsed.sourceHash,
+          cacheKey: localizedCacheKey,
+          outputFile: localizedOutputFiles.full,
+          expectedSourceFile: canonicalEnglishStory.parsed.sourceFile,
+          language,
+          model: config.model,
+          promptVersion: config.promptVersion,
+        })
+      : { eligible: false as const };
+    if (localizedResume.eligible) {
+      cacheHit = true;
+      skippedFiles.push(localizedOutputFiles.full);
+      continue;
+    }
+    await persistStoryProductionStage(cacheDir, parsed, "localized-long-form-generation");
+    const languagePrompt = buildFullPromptConfig(language, canonicalEnglishStory.parsed, canonicalEnglishStory.facts, config.adaptationMode, {
+      analysis: canonicalProductionContext.analysis,
+      bible: canonicalProductionContext.bible,
+      originalityReview: canonicalProductionContext.originalityReview,
+      retentionPlan: canonicalProductionContext.retentionPlan,
+    });
+    let generatedValueForFailure: unknown;
+    const languageResponseSchema = includeLocalizedShorts
+      ? responseSchemaForLanguage(language)
+      : responseSchemaForFullLanguage(language);
+    try {
+      const generated = await generateStructuredStoryPackage<
+        GeneratedStoryPackage | LocalizedFullRewriteResponseShape
+      >(
         client,
         config.model,
         `${profile.displayName} full story localization`,
         languagePrompt.system,
         languagePrompt.user,
-        responseSchemaForLanguage(language),
-        90_000,
+        languageResponseSchema.schema,
+        languageResponseSchema.name,
+        config.timeoutMs,
+        config.temperature,
+        config.maxOutputTokens ?? 25_000,
+        config.reasoningEffort,
         (value) => {
           const issues: string[] = [];
           try {
-            const packageValue = parseGeneratedPackage(value as unknown, language);
-            issues.push(...validateGeneratedStoryPackage(packageValue, facts, profile, parsed, language));
-            if (!packageValue.full) {
-              issues.push(`Missing full story payload for ${language}.`);
+            if (includeLocalizedShorts) {
+              const packageValue = parseGeneratedPackage(value as unknown, language);
+              issues.push(
+                ...validateGeneratedStoryPackage(packageValue, facts, profile, parsed, language)
+              );
+              if (!packageValue.full) {
+                issues.push(`Missing full story payload for ${language}.`);
+              }
+            } else {
+              const packageValue = parseLocalizedFullRewritePackage(value as unknown, language);
+              issues.push(
+                ...validateGeneratedLocalizedFullRewritePackage(packageValue, facts, profile, language)
+              );
             }
           } catch (error) {
             issues.push(error instanceof Error ? error.message : String(error));
@@ -1071,83 +1709,130 @@ export async function localizeStoryEpisode(
           return issues;
         },
         {
-          retryLabel: `${profile.displayName} full story localization length repair`,
-          shouldRetry: hasShortLengthIssue,
-          retryInstructions: shortRewriteRetryInstructions,
-          fallbackTransform: (args) => {
-            const parsedPackage = parseGeneratedPackage(args.value as unknown, language);
-            const derivedShort = hasShortLengthIssue(args.issues)
-              ? buildLocalizedShortNarrationFromFull(parsedPackage, profile)
-              : null;
-            const nextShortNarration =
-              buildLocalizedShortNarrationWithExactMessages({
-                baseNarrationParagraphs:
-                  derivedShort ?? parsedPackage.short.narrationParagraphs,
-                language,
-                facts,
-                profile,
-              }) ?? derivedShort;
-            if (!nextShortNarration) {
-              return null;
-            }
-            return {
-              ...parsedPackage,
-              short: {
-                ...parsedPackage.short,
-                narrationParagraphs: nextShortNarration,
-              },
-              diagnostics: {
-                ...parsedPackage.diagnostics,
-                shortWordCount: countWords(nextShortNarration.join(" ")),
-                shortEstimatedDurationSeconds: estimateDurationSeconds(
-                  countWords(nextShortNarration.join(" ")),
-                  parsedPackage.short.targetNarrationWpm
-                ),
-              },
-            };
-          },
+          ...(debugDirectory
+            ? {
+                debug: {
+                  debugDirectory,
+                  fileBaseName: `${debugPrefix}-${language}`,
+                },
+              }
+            : {}),
+          ...(includeLocalizedShorts
+            ? {
+                retryLabel: `${profile.displayName} full story localization length repair`,
+                shouldRetry: hasShortLengthIssue,
+                retryInstructions: shortRewriteRetryInstructions,
+                fallbackTransform: (args) => {
+                  const parsedPackage = parseGeneratedPackage(args.value as unknown, language);
+                  const derivedShort = hasShortLengthIssue(args.issues)
+                    ? buildLocalizedShortNarrationFromFull(parsedPackage, profile)
+                    : null;
+                  const nextShortNarration =
+                    buildLocalizedShortNarrationWithExactMessages({
+                      baseNarrationParagraphs:
+                        derivedShort ?? parsedPackage.short.narrationParagraphs,
+                      language,
+                      facts,
+                      profile,
+                    }) ?? derivedShort;
+                  if (!nextShortNarration) {
+                    return null;
+                  }
+                  return {
+                    ...parsedPackage,
+                    short: {
+                      ...parsedPackage.short,
+                      narrationParagraphs: nextShortNarration,
+                    },
+                    diagnostics: {
+                      ...parsedPackage.diagnostics,
+                      shortWordCount: countWords(nextShortNarration.join(" ")),
+                      shortEstimatedDurationSeconds: estimateDurationSeconds(
+                        countWords(nextShortNarration.join(" ")),
+                        parsedPackage.short.targetNarrationWpm
+                      ),
+                    },
+                  };
+                },
+              }
+            : {})
         }
-      );
+    );
       repairAttempts += generated.repaired ? 1 : 0;
       inputTokens += generated.inputTokens;
       outputTokens += generated.outputTokens;
       generatedValueForFailure = generated.value;
-      const generatedPackage = parseGeneratedPackage(generated.value, language);
-      const generatedFull = generatedPackage.full;
-      if (!generatedFull) {
-        throw new StoryLocalizationSchemaError(`Missing full story payload for ${language}.`);
-      }
-      const fullMarkdown = renderLocalizedFullStory(parsed.episodeNumber, generatedFull, language, parsed.sourceHash);
-      const shortMarkdown = renderLocalizedShort(parsed.episodeNumber, generatedPackage.short, language);
-      const fullWrite = await writeTextAtomicIfChanged(localizedOutputFiles.full, fullMarkdown, config.force);
-      const shortWriteLocalized = await writeTextAtomicIfChanged(localizedOutputFiles.short, shortMarkdown, config.force);
-      if (fullWrite === "written") {
-        generatedFiles.push(localizedOutputFiles.full);
-      } else {
-        skippedFiles.push(localizedOutputFiles.full);
-      }
-      if (shortWriteLocalized === "written") {
-        generatedFiles.push(localizedOutputFiles.short);
-      } else {
-        skippedFiles.push(localizedOutputFiles.short);
-      }
-      await persistStoryProductionStage(cacheDir, parsed, "localized-long-form-validation");
-      await persistStoryProductionStage(cacheDir, parsed, "localized-short-generation");
-      const outputFilesForCache = [localizedOutputFiles.full, localizedOutputFiles.short];
-      await writeLocalizationCacheEntry(cacheDir, {
-        sourceFile: parsed.sourceFile,
-        sourceHash: parsed.sourceHash,
-        configurationHash: buildCacheKey({
-          sourceHash: parsed.sourceHash,
+      if (includeLocalizedShorts) {
+        const generatedPackage = parseGeneratedPackage(generated.value, language);
+        const generatedFull = generatedPackage.full;
+        if (!generatedFull) {
+          throw new StoryLocalizationSchemaError(`Missing full story payload for ${language}.`);
+        }
+        const fullMarkdown = renderLocalizedFullStory(
+          canonicalEnglishStory.parsed.episodeNumber,
+          generatedFull,
           language,
-          adaptationMode: config.adaptationMode,
-          model: config.model,
-          profile,
-          promptVersion: config.promptVersion,
-          shortWpm: config.shortWpm,
-          shortMinSeconds: config.shortMinSeconds,
-          shortMaxSeconds: config.shortMaxSeconds,
-        }),
+          canonicalEnglishStory.parsed.sourceHash
+        );
+        const fullWrite = await writeTextAtomicIfChanged(
+          localizedOutputFiles.full,
+          fullMarkdown,
+          config.force
+        );
+        if (fullWrite === "written") {
+          generatedFiles.push(localizedOutputFiles.full);
+        } else {
+          skippedFiles.push(localizedOutputFiles.full);
+        }
+        await persistStoryProductionStage(cacheDir, parsed, "localized-long-form-validation");
+        const shortMarkdown = renderLocalizedShort(
+          parsed.episodeNumber,
+          generatedPackage.short,
+          language
+        );
+        const shortWriteLocalized = await writeTextAtomicIfChanged(
+          localizedOutputFiles.short,
+          shortMarkdown,
+          config.force
+        );
+        if (shortWriteLocalized === "written") {
+          generatedFiles.push(localizedOutputFiles.short);
+        } else {
+          skippedFiles.push(localizedOutputFiles.short);
+        }
+        await persistStoryProductionStage(cacheDir, parsed, "localized-short-generation");
+        await persistStoryProductionStage(cacheDir, parsed, "localized-short-validation");
+      } else {
+        const generatedPackage = parseLocalizedFullRewritePackage(generated.value, language);
+        const generatedFull = generatedPackage.full;
+        if (!generatedFull) {
+          throw new StoryLocalizationSchemaError(`Missing full story payload for ${language}.`);
+        }
+        const fullMarkdown = renderLocalizedFullStory(
+          canonicalEnglishStory.parsed.episodeNumber,
+          generatedFull,
+          language,
+          canonicalEnglishStory.parsed.sourceHash
+        );
+        const fullWrite = await writeTextAtomicIfChanged(
+          localizedOutputFiles.full,
+          fullMarkdown,
+          config.force
+        );
+        if (fullWrite === "written") {
+          generatedFiles.push(localizedOutputFiles.full);
+        } else {
+          skippedFiles.push(localizedOutputFiles.full);
+        }
+        await persistStoryProductionStage(cacheDir, parsed, "localized-long-form-validation");
+      }
+      const outputFilesForCache = includeLocalizedShorts
+        ? [localizedOutputFiles.full, localizedOutputFiles.short]
+        : [localizedOutputFiles.full];
+      await writeLocalizationCacheEntry(cacheDir, {
+        sourceFile: canonicalEnglishStory.parsed.sourceFile,
+        sourceHash: canonicalEnglishStory.parsed.sourceHash,
+        configurationHash: localizedCacheKey,
         promptVersion: config.promptVersion,
         model: config.model,
         language,
@@ -1156,14 +1841,13 @@ export async function localizeStoryEpisode(
         inputTokens,
         outputTokens,
       });
-      await persistStoryProductionStage(cacheDir, parsed, "localized-short-validation");
     } catch (error) {
       const failureMessage = error instanceof Error ? error.message : String(error);
       languageFailures.push(`${language}: ${failureMessage}`);
       const validationIssues = failureMessage.split("; ").filter((issue) => issue.length > 0);
       const persistedFiles = await persistFailedLocalizedOutput({
         outputDirectory: config.outputDirectory,
-        parsed,
+        parsed: canonicalEnglishStory.parsed,
         language,
         generatedValue: generatedValueForFailure,
         issues: validationIssues,
@@ -1179,7 +1863,10 @@ export async function localizeStoryEpisode(
             .join(", ")}`
         );
       }
-      skippedFiles.push(localizedOutputFiles.full, localizedOutputFiles.short);
+      skippedFiles.push(localizedOutputFiles.full);
+      if (includeLocalizedShorts) {
+        skippedFiles.push(localizedOutputFiles.short);
+      }
     }
   }
   const pricing = options.modelPricing?.[config.model];
@@ -1251,15 +1938,15 @@ export async function localizeStories(
       });
       results.push(episodeResult);
       copiedEnglishFull += 1;
-      generatedEnglishShort += 1;
+      generatedEnglishShort += config.includeEnglishShort ? 1 : 0;
       generatedGermanFull += config.languages.includes("de") ? 1 : 0;
-      generatedGermanShort += config.languages.includes("de") ? 1 : 0;
+      generatedGermanShort += config.languages.includes("de") && (config.includeLocalizedShorts ?? true) ? 1 : 0;
       generatedSpanishFull += config.languages.includes("es") ? 1 : 0;
-      generatedSpanishShort += config.languages.includes("es") ? 1 : 0;
+      generatedSpanishShort += config.languages.includes("es") && (config.includeLocalizedShorts ?? true) ? 1 : 0;
       generatedFrenchFull += config.languages.includes("fr") ? 1 : 0;
-      generatedFrenchShort += config.languages.includes("fr") ? 1 : 0;
+      generatedFrenchShort += config.languages.includes("fr") && (config.includeLocalizedShorts ?? true) ? 1 : 0;
       generatedPortugueseFull += config.languages.includes("pt") ? 1 : 0;
-      generatedPortugueseShort += config.languages.includes("pt") ? 1 : 0;
+      generatedPortugueseShort += config.languages.includes("pt") && (config.includeLocalizedShorts ?? true) ? 1 : 0;
       skipped += episodeResult.skippedFiles.length;
       cacheHits += episodeResult.cacheHit ? 1 : 0;
       repairAttempts += episodeResult.repairAttempts;
@@ -1339,15 +2026,23 @@ export function createStoryLocalizationConfig(input: Partial<StoryLocalizationCo
     outputDirectory,
     languages: (input.languages ?? ["de", "es", "fr", "pt"]) as readonly Exclude<LanguageCode, "en">[],
     includeEnglishShort: input.includeEnglishShort ?? true,
+    includeLocalizedShorts: input.includeLocalizedShorts ?? true,
     processingMode: input.processingMode ?? "batch",
     adaptationMode: input.adaptationMode ?? "retention-optimized",
     shortMinSeconds: input.shortMinSeconds ?? 55,
     shortMaxSeconds: input.shortMaxSeconds ?? 65,
     shortWpm: input.shortWpm ?? 180,
+    timeoutMs: input.timeoutMs ?? 180_000,
+    maxOutputTokens: input.maxOutputTokens ?? 25_000,
+    retryMaxOutputTokens: input.retryMaxOutputTokens ?? 25_000,
     concurrency: input.concurrency ?? 2,
-    model: input.model ?? "gpt-4o-mini",
+    model: input.model ?? SHORT_REWRITE_DEFAULT_MODEL,
+    temperature: input.temperature ?? SHORT_REWRITE_DEFAULT_TEMPERATURE,
+    reasoningEffort:
+      input.reasoningEffort ?? SHORT_REWRITE_DEFAULT_REASONING_EFFORT,
     fallbackToSync: input.fallbackToSync ?? false,
     force: input.force ?? false,
+    resume: input.resume ?? false,
     submit: input.submit ?? false,
     prepareBatch: input.prepareBatch ?? false,
     waitForBatch: input.waitForBatch ?? false,
@@ -1357,5 +2052,7 @@ export function createStoryLocalizationConfig(input: Partial<StoryLocalizationCo
     validateOnly: input.validateOnly ?? false,
     verbose: input.verbose ?? false,
     promptVersion: input.promptVersion ?? "story-localization-v1",
+    debugOutputs: input.debugOutputs ?? false,
+    debugPrefix: input.debugPrefix ?? "stories-rewrite-full",
   };
 }
