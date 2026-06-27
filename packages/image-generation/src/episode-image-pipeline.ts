@@ -579,14 +579,21 @@ function sceneOutputPath(episodeDir: string, sceneId: string): string {
   return path.join(episodeDir, "generated-assets", "images", `${sceneId}.png`);
 }
 
-function registryPath(episodeDir: string): string {
-  return path.join(episodeDir, "characters.json");
+export function resolveEpisodeSharedDirectory(episodeDir: string): string {
+  return path.join(episodeDir, "shared");
 }
 
-function referencePath(episodeDir: string, characterId: string): string {
+export function resolveCharacterRegistryPath(episodeDir: string): string {
+  return path.join(resolveEpisodeSharedDirectory(episodeDir), "characters.json");
+}
+
+export function resolveCharacterReferencePath(
+  episodeDir: string,
+  characterId: string
+): string {
   return path.join(
-    episodeDir,
-    "generated-assets",
+    resolveEpisodeSharedDirectory(episodeDir),
+    "images",
     "character-references",
     `${characterId}.png`
   );
@@ -1191,10 +1198,15 @@ async function loadRegistry(
   episodeId: string
 ): Promise<CharacterRegistry> {
   const existing = await readJsonIfExists(
-    registryPath(episodeDir),
+    resolveCharacterRegistryPath(episodeDir),
     (value) => registrySchema.parse(value) as unknown as CharacterRegistry
   );
   if (existing) return existing;
+  const legacyExisting = await readJsonIfExists(
+    path.join(episodeDir, "characters.json"),
+    (value) => registrySchema.parse(value) as unknown as CharacterRegistry
+  );
+  if (legacyExisting) return legacyExisting;
   return {
     episodeId,
     characters: [],
@@ -1206,7 +1218,7 @@ async function saveRegistry(
   episodeDir: string,
   registry: CharacterRegistry
 ): Promise<void> {
-  await writeJsonAtomic(registryPath(episodeDir), registry);
+  await writeJsonAtomic(resolveCharacterRegistryPath(episodeDir), registry);
 }
 
 export function loadEpisodeImageGenerationSettings(
@@ -1415,7 +1427,7 @@ async function ensureReferenceImage(
   client?: OpenAI
 ): Promise<{ path: string; sha256: string }> {
   const filePath =
-    character.referenceImagePath ?? referencePath(episodeDir, character.id);
+    character.referenceImagePath ?? resolveCharacterReferencePath(episodeDir, character.id);
   await ensureDir(path.dirname(filePath));
   if (
     character.referenceStatus === "approved" &&
@@ -1534,7 +1546,8 @@ async function loadReferenceImages(
       }
     }
     const filePath =
-      character.referenceImagePath ?? referencePath(episodeDir, character.id);
+      character.referenceImagePath ??
+      resolveCharacterReferencePath(episodeDir, character.id);
     if (!(await fileExists(filePath))) {
       throw new Error(`Missing reference image for character ${character.id}.`);
     }
@@ -1573,7 +1586,8 @@ async function summarizeReferenceImages(
     );
     if (!character) continue;
     const filePath =
-      character.referenceImagePath ?? referencePath(episodeDir, character.id);
+      character.referenceImagePath ??
+      resolveCharacterReferencePath(episodeDir, character.id);
     summaries.push({
       characterId: character.id,
       path: filePath,

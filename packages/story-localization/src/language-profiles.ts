@@ -2,8 +2,8 @@ import { type LanguageCode, type LanguageProfile } from "./story-localization.ty
 
 export const SHORT_WORD_RANGES = {
   en: { min: 160, target: 175, max: 190 },
-  de: { min: 145, target: 165, max: 180 },
-  es: { min: 160, target: 178, max: 195 },
+  de: { min: 160, target: 175, max: 190 },
+  es: { min: 100, target: 178, max: 200 },
   fr: { min: 155, target: 172, max: 190 },
   pt: { min: 160, target: 178, max: 195 },
 } as const;

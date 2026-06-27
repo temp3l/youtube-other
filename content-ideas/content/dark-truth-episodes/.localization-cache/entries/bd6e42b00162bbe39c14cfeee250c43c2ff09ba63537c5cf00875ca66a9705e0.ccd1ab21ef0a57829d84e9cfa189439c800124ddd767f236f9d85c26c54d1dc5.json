@@ -1,0 +1,15 @@
+{
+  "sourceFile": "/home/box/workspace/fehmarn-seo/youtube/other/content-ideas/content/dark-truth-episodes-multilingual-production-pack/013-the-dyatlov-pass-incident/en/013-the-dyatlov-pass-incident-en-full.md",
+  "sourceHash": "bd6e42b00162bbe39c14cfeee250c43c2ff09ba63537c5cf00875ca66a9705e0",
+  "configurationHash": "ccd1ab21ef0a57829d84e9cfa189439c800124ddd767f236f9d85c26c54d1dc5",
+  "promptVersion": "story-localization-v1",
+  "model": "gpt-4o-mini",
+  "language": "en",
+  "generatedAt": "2026-06-26T13:18:00.589Z",
+  "outputFiles": [
+    "/home/box/workspace/fehmarn-seo/youtube/other/content-ideas/content/dark-truth-episodes/013-the-dyatlov-pass-incident-en-full.md",
+    "/home/box/workspace/fehmarn-seo/youtube/other/content-ideas/content/dark-truth-episodes/013-the-dyatlov-pass-incident-en-short.md"
+  ],
+  "inputTokens": 0,
+  "outputTokens": 0
+}

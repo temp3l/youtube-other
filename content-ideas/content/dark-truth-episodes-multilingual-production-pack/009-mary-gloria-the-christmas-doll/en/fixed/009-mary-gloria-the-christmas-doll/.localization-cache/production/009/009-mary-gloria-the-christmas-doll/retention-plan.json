@@ -1,0 +1,32 @@
+[
+  {
+    "approximateSecond": 0,
+    "type": "hook",
+    "description": "The doll arrived without a sender. Its card said, 'For the daughter who should have been mine.'"
+  },
+  {
+    "approximateSecond": 47,
+    "type": "question",
+    "description": "What is the first impossible clue?"
+  },
+  {
+    "approximateSecond": 94,
+    "type": "new-evidence",
+    "description": "Its card said, 'For the daughter who should have been mine.' Adrian Cole was a widowed father raising his eight-year-old daughter when the story began in a snowbound family home on Christmas Eve."
+  },
+  {
+    "approximateSecond": 141,
+    "type": "escalation",
+    "description": "The first reports did not describe an obvious monster or violent attack."
+  },
+  {
+    "approximateSecond": 188,
+    "type": "reveal",
+    "description": "The final warning is therefore simple: when the same impossible detail appears twice, do not wait for a third occurrence to prove that it is real."
+  },
+  {
+    "approximateSecond": 235,
+    "type": "final-sting",
+    "description": "The final warning is therefore simple: when the same impossible detail appears twice, do not wait for a third occurrence to prove that it is real."
+  }
+]

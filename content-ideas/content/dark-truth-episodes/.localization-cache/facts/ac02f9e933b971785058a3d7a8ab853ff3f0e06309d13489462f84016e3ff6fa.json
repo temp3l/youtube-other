@@ -1,0 +1,27 @@
+{
+  "sourceHash": "ac02f9e933b971785058a3d7a8ab853ff3f0e06309d13489462f84016e3ff6fa",
+  "facts": {
+    "episodeNumber": "017",
+    "primaryTitle": "They Invited the Midnight Man Inside",
+    "characters": [
+      {
+        "name": "Daniel Cross",
+        "role": "main protagonist"
+      }
+    ],
+    "setting": "The ritual required Daniel to carry a candle until 3:33 a.m.",
+    "criticalObjects": [],
+    "criticalEvents": [
+      "The ritual required Daniel to carry a candle until 3:33 a.m.",
+      "The first time it went out, something whispered from inside his shadow.",
+      "Daniel Cross was a sceptical livestream host when the story began in an abandoned country house used for an online challenge.",
+      "The first reports did not describe an obvious monster or violent attack."
+    ],
+    "writtenMessages": [],
+    "threat": "The ritual required Daniel to carry a candle until 3:33 a.m.",
+    "primaryReveal": "The final warning is therefore simple: when the same impossible detail appears twice, do not wait for a third occurrence to prove that it is real.",
+    "finalConsequence": "The final warning is therefore simple: when the same impossible detail appears twice, do not wait for a third occurrence to prove that it is real.",
+    "unresolvedQuestion": "Did Daniel Cross defeat the thing at the centre of the story, or did the encounter simply teach it how to remain hidden?"
+  },
+  "generatedAt": "2026-06-26T13:16:52.962Z"
+}

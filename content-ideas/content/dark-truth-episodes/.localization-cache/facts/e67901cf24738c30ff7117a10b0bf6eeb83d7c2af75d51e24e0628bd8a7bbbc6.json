@@ -1,0 +1,26 @@
+{
+  "sourceHash": "e67901cf24738c30ff7117a10b0bf6eeb83d7c2af75d51e24e0628bd8a7bbbc6",
+  "facts": {
+    "episodeNumber": "021",
+    "primaryTitle": "Something Was Watching From the Bedroom Window",
+    "characters": [
+      {
+        "name": "Paul Mercer",
+        "role": "main protagonist"
+      }
+    ],
+    "setting": "Paul's bedroom was on the second floor.",
+    "criticalObjects": [],
+    "criticalEvents": [
+      "Paul's bedroom was on the second floor.",
+      "There was no balcony, no tree and no ladder.",
+      "Yet every night, something tapped on the glass.",
+      "Paul Mercer was a freelance editor caring for his injured brother when the story began in a remote farmhouse bordered by winter fields."
+    ],
+    "writtenMessages": [],
+    "threat": "Paul's bedroom was on the second floor.",
+    "primaryReveal": "It did prove that the official account left out something important.",
+    "finalConsequence": "It did prove that the official account left out something important."
+  },
+  "generatedAt": "2026-06-26T13:16:57.892Z"
+}

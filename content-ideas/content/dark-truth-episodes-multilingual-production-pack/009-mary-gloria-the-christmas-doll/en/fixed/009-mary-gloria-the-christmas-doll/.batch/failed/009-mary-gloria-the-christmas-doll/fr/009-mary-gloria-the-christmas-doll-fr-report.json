@@ -1,0 +1,17 @@
+{
+  "episodeNumber": "009",
+  "slug": "009-mary-gloria-the-christmas-doll",
+  "language": "fr",
+  "sourceFile": "content-ideas/content/dark-truth-episodes-multilingual-production-pack/009-mary-gloria-the-christmas-doll/en/009-mary-gloria-the-christmas-doll-en-full.md",
+  "generatedAt": "2026-06-26T18:19:56.046Z",
+  "failureMessage": "Character names are missing.",
+  "issues": [
+    "Character names are missing."
+  ],
+  "outputFiles": {
+    "full": "/home/box/workspace/fehmarn-seo/youtube/other/content-ideas/content/dark-truth-episodes-multilingual-production-pack/009-mary-gloria-the-christmas-doll/en/fixed/009-mary-gloria-the-christmas-doll/.batch/failed/009-mary-gloria-the-christmas-doll/fr/009-mary-gloria-the-christmas-doll-fr-full.failed.md",
+    "short": "/home/box/workspace/fehmarn-seo/youtube/other/content-ideas/content/dark-truth-episodes-multilingual-production-pack/009-mary-gloria-the-christmas-doll/en/fixed/009-mary-gloria-the-christmas-doll/.batch/failed/009-mary-gloria-the-christmas-doll/fr/009-mary-gloria-the-christmas-doll-fr-short.failed.md",
+    "report": "/home/box/workspace/fehmarn-seo/youtube/other/content-ideas/content/dark-truth-episodes-multilingual-production-pack/009-mary-gloria-the-christmas-doll/en/fixed/009-mary-gloria-the-christmas-doll/.batch/failed/009-mary-gloria-the-christmas-doll/fr/009-mary-gloria-the-christmas-doll-fr-report.json",
+    "raw": "/home/box/workspace/fehmarn-seo/youtube/other/content-ideas/content/dark-truth-episodes-multilingual-production-pack/009-mary-gloria-the-christmas-doll/en/fixed/009-mary-gloria-the-christmas-doll/.batch/failed/009-mary-gloria-the-christmas-doll/fr/009-mary-gloria-the-christmas-doll-fr-raw.json"
+  }
+}

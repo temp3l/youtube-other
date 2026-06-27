@@ -187,8 +187,46 @@ describe("story localization integration", () => {
     const result = await localizeStoryEpisode(sourceFile, makeConfig(tempDir, []), { client: client as never });
     expect(result.failure).toBeUndefined();
     expect(client.responses.create).toHaveBeenCalledTimes(1);
-    expect(await fs.readFile(path.join(tempDir, "002-even-killers-can-lick-en-full.md"), "utf8")).toContain("The Killer Was Already Inside the House");
-    expect(await fs.readFile(path.join(tempDir, "002-even-killers-can-lick-en-short.md"), "utf8")).toContain("# Short 002");
+    expect(
+      await fs.readFile(
+        path.join(tempDir, "002-even-killers-can-lick", "script.md"),
+        "utf8"
+      )
+    ).toContain("The Killer Was Already Inside the House");
+    expect(
+      await fs.readFile(
+        path.join(
+          tempDir,
+          "002-even-killers-can-lick",
+          "en",
+          "short",
+          "script.md"
+        ),
+        "utf8"
+      )
+    ).toContain("# Short 002");
+  });
+
+  it("persists production artifacts and stage state", async () => {
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), "story-localization-production-"));
+    const client = makeMockClient([
+      {
+        output_text: JSON.stringify(makeEnglishShortPayload()),
+      },
+    ]);
+    const result = await localizeStoryEpisode(sourceFile, makeConfig(tempDir, []), { client: client as never });
+    expect(result.failure).toBeUndefined();
+    const productionDir = path.join(tempDir, "002-even-killers-can-lick", ".localization-cache", "production", "002", "002-even-killers-can-lick");
+    const sourceAnalysis = JSON.parse(await fs.readFile(path.join(productionDir, "source-analysis.json"), "utf8")) as Record<string, unknown>;
+    const bible = JSON.parse(await fs.readFile(path.join(productionDir, "story-bible.json"), "utf8")) as Record<string, unknown>;
+    const originalityReview = JSON.parse(await fs.readFile(path.join(productionDir, "originality-review.json"), "utf8")) as Record<string, unknown>;
+    const retentionPlan = JSON.parse(await fs.readFile(path.join(productionDir, "retention-plan.json"), "utf8")) as unknown[];
+    const stage = JSON.parse(await fs.readFile(path.join(productionDir, "production-state.json"), "utf8")) as Record<string, unknown>;
+    expect(sourceAnalysis).toHaveProperty("issueSummary");
+    expect(bible).toHaveProperty("protagonist");
+    expect(originalityReview).toHaveProperty("risk");
+    expect(retentionPlan.length).toBeGreaterThan(0);
+    expect(stage).toMatchObject({ stage: "completed" });
   });
 
   it.each(["de", "es", "fr", "pt"] as const)(
@@ -206,16 +244,77 @@ describe("story localization integration", () => {
       const result = await localizeStoryEpisode(sourceFile, makeConfig(tempDir, [language]), { client: client as never });
       expect(result.failure).toBeUndefined();
       expect(client.responses.create).toHaveBeenCalledTimes(2);
-      expect(await fs.readFile(path.join(tempDir, `002-even-killers-can-lick-${language}-full.md`), "utf8")).toContain(`# Episode 002`);
-      expect(await fs.readFile(path.join(tempDir, `002-even-killers-can-lick-${language}-short.md`), "utf8")).toContain(`# Short 002`);
+      expect(
+        await fs.readFile(
+          path.join(
+            tempDir,
+            "002-even-killers-can-lick",
+            language,
+            "full",
+            "script.md"
+          ),
+          "utf8"
+        )
+      ).toContain(`# Episode 002`);
+      expect(
+        await fs.readFile(
+          path.join(
+            tempDir,
+            "002-even-killers-can-lick",
+            language,
+            "short",
+            "script.md"
+          ),
+          "utf8"
+        )
+      ).toContain(`# Short 002`);
     }
   );
+
+  it("persists failed localized outputs in the episode batch folder", async () => {
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), "story-localization-failed-"));
+    const client = makeMockClient([
+      {
+        output_text: JSON.stringify(makeEnglishShortPayload()),
+      },
+      {
+        output_text: JSON.stringify(
+          makeLocalizedPackage("de", {
+            short: {
+              ...makeLocalizedPackage("de").short,
+              narrationParagraphs: [
+                "A deliberately short German localization that fails validation because it is far too brief.",
+              ],
+            },
+          })
+        ),
+      },
+    ]);
+    const result = await localizeStoryEpisode(sourceFile, makeConfig(tempDir, ["de"]), {
+      client: client as never,
+    });
+    expect(result.failure).toBeDefined();
+    const failedDir = path.join(
+      tempDir,
+      "002-even-killers-can-lick",
+      ".batch",
+      "failed",
+      "002-even-killers-can-lick",
+      "de"
+    );
+    expect(await fs.readFile(path.join(failedDir, "002-even-killers-can-lick-de-report.json"), "utf8")).toContain(
+      "\"failureMessage\""
+    );
+    expect(await fs.readFile(path.join(failedDir, "002-even-killers-can-lick-de-raw.json"), "utf8")).toContain(
+      "\"failureMessage\""
+    );
+  });
 
   it("reports malformed JSON and keeps retry attempts bounded", async () => {
     const tempDir = mkdtempSync(path.join(os.tmpdir(), "story-localization-malformed-"));
     const client = makeMockClient([{ output_text: "not-json" }]);
     const result = await localizeStoryEpisode(sourceFile, makeConfig(tempDir, []), { client: client as never });
-    expect(result.failure).toContain("Failed to call OpenAI");
+    expect(result.failure).toContain("failed via OpenAI model");
     expect(client.responses.create).toHaveBeenCalledTimes(1);
   });
 
@@ -306,7 +405,7 @@ describe("story localization integration", () => {
           short: {
             title: "Still Broken",
             narrationInstructions: ["Still broken"],
-            narrationParagraphs: ["too short again"],
+            narrationParagraphs: ["too short again but now with a little more text for the retry."],
             thumbnailText: "BROKEN",
             description: "Broken",
             hashtags: ["#Bad"],
@@ -334,10 +433,43 @@ describe("story localization integration", () => {
           },
         }),
       },
+      {
+        output_text: JSON.stringify({
+          short: {
+            title: "Recovered",
+            narrationInstructions: ["Recovered"],
+            narrationParagraphs: ["This version is finally long enough to pass the retry path."],
+            thumbnailText: "OK",
+            description: "Recovered",
+            hashtags: ["#Bad"],
+            targetNarrationWpm: 180,
+            recommendedDurationSeconds: { min: 55, max: 65 },
+            visualGuidance: "Recovered",
+          },
+          preservationChecklist: {
+            charactersPreserved: true,
+            relationshipsPreserved: true,
+            chronologyPreserved: true,
+            criticalObjectsPreserved: true,
+            cluesPreserved: true,
+            writtenMessagesPreserved: true,
+            primaryRevealPreserved: true,
+            endingPreserved: true,
+            noNewPlotElementsAdded: true,
+          },
+          diagnostics: {
+            fullWordCount: 1,
+            shortWordCount: 1,
+            shortEstimatedDurationSeconds: 1,
+            removedGenericFiller: [],
+            adaptationNotes: [],
+          },
+        }),
+      },
     ]);
     const result = await localizeStoryEpisode(sourceFile, makeConfig(tempDir, []), { client: client as never });
     expect(result.failure).toContain("Short word count");
-    expect(client.responses.create).toHaveBeenCalledTimes(2);
+    expect(client.responses.create).toHaveBeenCalledTimes(3);
   });
 
   it("flags missing character, written message, and primary reveal issues", async () => {

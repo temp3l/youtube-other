@@ -1,0 +1,19 @@
+{
+  "risk": "medium",
+  "tropeOverlaps": [
+    "haunted object",
+    "forbidden message",
+    "wrong-name reveal"
+  ],
+  "distinctiveElements": [
+    "The Christmas Doll Opened Her Eyes",
+    "Adrian Cole",
+    "The doll arrived without a sender."
+  ],
+  "potentiallyDerivativeElements": [
+    "the official account"
+  ],
+  "recommendedChanges": [
+    "Review distinctive names and recurring messages for exact preservation."
+  ]
+}

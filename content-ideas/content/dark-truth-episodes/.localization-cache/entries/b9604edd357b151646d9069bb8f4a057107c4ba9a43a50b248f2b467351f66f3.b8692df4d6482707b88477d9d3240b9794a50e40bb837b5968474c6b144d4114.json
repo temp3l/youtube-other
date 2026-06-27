@@ -1,0 +1,15 @@
+{
+  "sourceFile": "/home/box/workspace/fehmarn-seo/youtube/other/content-ideas/content/dark-truth-episodes-multilingual-production-pack/009-mary-gloria-the-christmas-doll/en/009-mary-gloria-the-christmas-doll-en-full.md",
+  "sourceHash": "b9604edd357b151646d9069bb8f4a057107c4ba9a43a50b248f2b467351f66f3",
+  "configurationHash": "b8692df4d6482707b88477d9d3240b9794a50e40bb837b5968474c6b144d4114",
+  "promptVersion": "story-localization-v1",
+  "model": "gpt-4o-mini",
+  "language": "en",
+  "generatedAt": "2026-06-26T13:17:55.698Z",
+  "outputFiles": [
+    "/home/box/workspace/fehmarn-seo/youtube/other/content-ideas/content/dark-truth-episodes/009-mary-gloria-the-christmas-doll-en-full.md",
+    "/home/box/workspace/fehmarn-seo/youtube/other/content-ideas/content/dark-truth-episodes/009-mary-gloria-the-christmas-doll-en-short.md"
+  ],
+  "inputTokens": 0,
+  "outputTokens": 0
+}

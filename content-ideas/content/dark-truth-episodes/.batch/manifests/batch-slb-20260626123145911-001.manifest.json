@@ -1,10 +1,11 @@
 {
   "schemaVersion": "story-localization-batch-v1",
+  "category": "text-localization",
   "localBatchId": "slb-20260626123145911-001",
   "rootLocalBatchId": "slb-20260626123145911-001",
   "retryNumber": 0,
   "createdAt": "2026-06-26T12:31:45.950Z",
-  "updatedAt": "2026-06-26T12:33:32.000Z",
+  "updatedAt": "2026-06-26T14:24:33.683Z",
   "mode": "batch",
   "endpoint": "/v1/responses",
   "model": "gpt-4o-mini",
@@ -13,8 +14,7 @@
   "inputFileHash": "5044a9fd688c9595fc64a08c5a687581b1ba8b2ee14a5ef34db7f5b0ce3ec5df",
   "openAIInputFileId": "file-NjCvGZexjw8YHC9sLdXGij",
   "openAIBatchId": "batch_6a3e724373288190b91dd0b39dc85eaa",
-  "submittedAt": "2026-06-26T12:36:18.000Z",
-  "status": "submitted",
+  "status": "cancelled",
   "items": [
     {
       "customId": "dte:003:english-short:en:0154c5a4:d635e731",
@@ -96,5 +96,12 @@
       "estimatedInputTokens": 2940,
       "status": "submitted"
     }
-  ]
+  ],
+  "submittedAt": "2026-06-26T12:36:18.000Z",
+  "errorFileId": "file-VNovnyr9cs888zSGbZyzxN",
+  "requestCounts": {
+    "total": 5,
+    "completed": 0,
+    "failed": 0
+  }
 }

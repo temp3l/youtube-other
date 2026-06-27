@@ -1,0 +1,30 @@
+{
+  "sourceHash": "a2b562a4f347d5705605f73789b9def6ef15735e7370d3707fb523eb375c7428",
+  "facts": {
+    "episodeNumber": "002",
+    "primaryTitle": "The Killer Was Already Inside the House",
+    "characters": [
+      {
+        "name": "Elena Ward",
+        "role": "main protagonist"
+      }
+    ],
+    "setting": "Elena believed the dog beneath her bed was calming her.",
+    "criticalObjects": [],
+    "criticalEvents": [
+      "Elena believed the dog beneath her bed was calming her.",
+      "By morning, the dog was dead in the hallway—and someone had written a message on the mirror.",
+      "Elena Ward was a university student house-sitting for her aunt when the story began in a rain- soaked suburban house on the edge of Brighton.",
+      "The first reports did not describe an obvious monster or violent attack."
+    ],
+    "writtenMessages": [
+      "HUMANS CAN LICK TOO.",
+      "SHE REACHED DOWN FIRST."
+    ],
+    "threat": "Elena believed the dog beneath her bed was calming her.",
+    "primaryReveal": "HUMANS CAN LICK TOO.",
+    "finalConsequence": "The final warning is therefore simple: when the same impossible detail appears twice, do not wait for a third occurrence to prove that it is real.",
+    "unresolvedQuestion": "Did Elena Ward defeat the thing at the centre of the story, or did the encounter simply teach it how to remain hidden?"
+  },
+  "generatedAt": "2026-06-26T10:34:45.900Z"
+}

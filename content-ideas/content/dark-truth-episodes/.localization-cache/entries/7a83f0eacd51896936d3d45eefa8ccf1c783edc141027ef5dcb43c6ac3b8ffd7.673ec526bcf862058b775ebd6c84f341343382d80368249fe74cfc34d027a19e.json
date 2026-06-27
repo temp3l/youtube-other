@@ -1,0 +1,15 @@
+{
+  "sourceFile": "/home/box/workspace/fehmarn-seo/youtube/other/content-ideas/content/dark-truth-episodes-multilingual-production-pack/019-the-russian-sleep-experiment/en/019-the-russian-sleep-experiment-en-full.md",
+  "sourceHash": "7a83f0eacd51896936d3d45eefa8ccf1c783edc141027ef5dcb43c6ac3b8ffd7",
+  "configurationHash": "673ec526bcf862058b775ebd6c84f341343382d80368249fe74cfc34d027a19e",
+  "promptVersion": "story-localization-v1",
+  "model": "gpt-4o-mini",
+  "language": "en",
+  "generatedAt": "2026-06-26T13:16:55.635Z",
+  "outputFiles": [
+    "/home/box/workspace/fehmarn-seo/youtube/other/content-ideas/content/dark-truth-episodes/019-the-russian-sleep-experiment-en-full.md",
+    "/home/box/workspace/fehmarn-seo/youtube/other/content-ideas/content/dark-truth-episodes/019-the-russian-sleep-experiment-en-short.md"
+  ],
+  "inputTokens": 0,
+  "outputTokens": 0
+}

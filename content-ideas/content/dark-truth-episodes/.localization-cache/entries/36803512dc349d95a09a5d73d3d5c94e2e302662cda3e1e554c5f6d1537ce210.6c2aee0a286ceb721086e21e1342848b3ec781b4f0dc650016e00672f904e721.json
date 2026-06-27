@@ -1,0 +1,15 @@
+{
+  "sourceFile": "/home/box/workspace/fehmarn-seo/youtube/other/content-ideas/content/dark-truth-episodes-multilingual-production-pack/011-the-black-eyed-children/en/011-the-black-eyed-children-en-full.md",
+  "sourceHash": "36803512dc349d95a09a5d73d3d5c94e2e302662cda3e1e554c5f6d1537ce210",
+  "configurationHash": "6c2aee0a286ceb721086e21e1342848b3ec781b4f0dc650016e00672f904e721",
+  "promptVersion": "story-localization-v1",
+  "model": "gpt-4o-mini",
+  "language": "en",
+  "generatedAt": "2026-06-26T13:17:57.622Z",
+  "outputFiles": [
+    "/home/box/workspace/fehmarn-seo/youtube/other/content-ideas/content/dark-truth-episodes/011-the-black-eyed-children-en-full.md",
+    "/home/box/workspace/fehmarn-seo/youtube/other/content-ideas/content/dark-truth-episodes/011-the-black-eyed-children-en-short.md"
+  ],
+  "inputTokens": 0,
+  "outputTokens": 0
+}

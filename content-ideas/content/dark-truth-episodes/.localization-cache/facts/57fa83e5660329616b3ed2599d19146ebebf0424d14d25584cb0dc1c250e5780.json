@@ -1,0 +1,27 @@
+{
+  "sourceHash": "57fa83e5660329616b3ed2599d19146ebebf0424d14d25584cb0dc1c250e5780",
+  "facts": {
+    "episodeNumber": "012",
+    "primaryTitle": "She Followed the Elevator Ritual",
+    "characters": [
+      {
+        "name": "Emma Shaw",
+        "role": "main protagonist"
+      }
+    ],
+    "setting": "Emma completed the button sequence exactly.",
+    "criticalObjects": [],
+    "criticalEvents": [
+      "Emma completed the button sequence exactly.",
+      "On the tenth floor, the doors opened onto a city with no lights and a red sky.",
+      "Emma Shaw was a graduate student testing an urban legend for a podcast when the story began in a nearly empty twenty-storey apartment tower.",
+      "The first reports did not describe an obvious monster or violent attack."
+    ],
+    "writtenMessages": [],
+    "threat": "Emma completed the button sequence exactly.",
+    "primaryReveal": "The final warning is therefore simple: when the same impossible detail appears twice, do not wait for a third occurrence to prove that it is real.",
+    "finalConsequence": "The final warning is therefore simple: when the same impossible detail appears twice, do not wait for a third occurrence to prove that it is real.",
+    "unresolvedQuestion": "Did Emma Shaw defeat the thing at the centre of the story, or did the encounter simply teach it how to remain hidden?"
+  },
+  "generatedAt": "2026-06-26T13:16:46.221Z"
+}

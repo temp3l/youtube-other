@@ -1,0 +1,482 @@
+[
+  {
+    "episode": 61,
+    "language": "en",
+    "full_words": 571,
+    "short_words": 197
+  },
+  {
+    "episode": 61,
+    "language": "de",
+    "full_words": 530,
+    "short_words": 170
+  },
+  {
+    "episode": 61,
+    "language": "es",
+    "full_words": 573,
+    "short_words": 187
+  },
+  {
+    "episode": 61,
+    "language": "fr",
+    "full_words": 573,
+    "short_words": 182
+  },
+  {
+    "episode": 62,
+    "language": "en",
+    "full_words": 564,
+    "short_words": 198
+  },
+  {
+    "episode": 62,
+    "language": "de",
+    "full_words": 530,
+    "short_words": 170
+  },
+  {
+    "episode": 62,
+    "language": "es",
+    "full_words": 574,
+    "short_words": 188
+  },
+  {
+    "episode": 62,
+    "language": "fr",
+    "full_words": 573,
+    "short_words": 182
+  },
+  {
+    "episode": 63,
+    "language": "en",
+    "full_words": 559,
+    "short_words": 192
+  },
+  {
+    "episode": 63,
+    "language": "de",
+    "full_words": 541,
+    "short_words": 181
+  },
+  {
+    "episode": 63,
+    "language": "es",
+    "full_words": 586,
+    "short_words": 200
+  },
+  {
+    "episode": 63,
+    "language": "fr",
+    "full_words": 578,
+    "short_words": 187
+  },
+  {
+    "episode": 64,
+    "language": "en",
+    "full_words": 546,
+    "short_words": 179
+  },
+  {
+    "episode": 64,
+    "language": "de",
+    "full_words": 519,
+    "short_words": 159
+  },
+  {
+    "episode": 64,
+    "language": "es",
+    "full_words": 567,
+    "short_words": 181
+  },
+  {
+    "episode": 64,
+    "language": "fr",
+    "full_words": 570,
+    "short_words": 179
+  },
+  {
+    "episode": 65,
+    "language": "en",
+    "full_words": 553,
+    "short_words": 181
+  },
+  {
+    "episode": 65,
+    "language": "de",
+    "full_words": 524,
+    "short_words": 164
+  },
+  {
+    "episode": 65,
+    "language": "es",
+    "full_words": 564,
+    "short_words": 178
+  },
+  {
+    "episode": 65,
+    "language": "fr",
+    "full_words": 564,
+    "short_words": 173
+  },
+  {
+    "episode": 66,
+    "language": "en",
+    "full_words": 553,
+    "short_words": 198
+  },
+  {
+    "episode": 66,
+    "language": "de",
+    "full_words": 533,
+    "short_words": 173
+  },
+  {
+    "episode": 66,
+    "language": "es",
+    "full_words": 573,
+    "short_words": 187
+  },
+  {
+    "episode": 66,
+    "language": "fr",
+    "full_words": 573,
+    "short_words": 182
+  },
+  {
+    "episode": 67,
+    "language": "en",
+    "full_words": 531,
+    "short_words": 176
+  },
+  {
+    "episode": 67,
+    "language": "de",
+    "full_words": 530,
+    "short_words": 170
+  },
+  {
+    "episode": 67,
+    "language": "es",
+    "full_words": 577,
+    "short_words": 191
+  },
+  {
+    "episode": 67,
+    "language": "fr",
+    "full_words": 572,
+    "short_words": 181
+  },
+  {
+    "episode": 68,
+    "language": "en",
+    "full_words": 540,
+    "short_words": 176
+  },
+  {
+    "episode": 68,
+    "language": "de",
+    "full_words": 529,
+    "short_words": 169
+  },
+  {
+    "episode": 68,
+    "language": "es",
+    "full_words": 574,
+    "short_words": 188
+  },
+  {
+    "episode": 68,
+    "language": "fr",
+    "full_words": 572,
+    "short_words": 181
+  },
+  {
+    "episode": 69,
+    "language": "en",
+    "full_words": 560,
+    "short_words": 196
+  },
+  {
+    "episode": 69,
+    "language": "de",
+    "full_words": 537,
+    "short_words": 177
+  },
+  {
+    "episode": 69,
+    "language": "es",
+    "full_words": 581,
+    "short_words": 195
+  },
+  {
+    "episode": 69,
+    "language": "fr",
+    "full_words": 573,
+    "short_words": 182
+  },
+  {
+    "episode": 70,
+    "language": "en",
+    "full_words": 539,
+    "short_words": 182
+  },
+  {
+    "episode": 70,
+    "language": "de",
+    "full_words": 534,
+    "short_words": 174
+  },
+  {
+    "episode": 70,
+    "language": "es",
+    "full_words": 574,
+    "short_words": 188
+  },
+  {
+    "episode": 70,
+    "language": "fr",
+    "full_words": 570,
+    "short_words": 179
+  },
+  {
+    "episode": 71,
+    "language": "en",
+    "full_words": 523,
+    "short_words": 172
+  },
+  {
+    "episode": 71,
+    "language": "de",
+    "full_words": 530,
+    "short_words": 170
+  },
+  {
+    "episode": 71,
+    "language": "es",
+    "full_words": 571,
+    "short_words": 185
+  },
+  {
+    "episode": 71,
+    "language": "fr",
+    "full_words": 562,
+    "short_words": 171
+  },
+  {
+    "episode": 72,
+    "language": "en",
+    "full_words": 524,
+    "short_words": 172
+  },
+  {
+    "episode": 72,
+    "language": "de",
+    "full_words": 529,
+    "short_words": 169
+  },
+  {
+    "episode": 72,
+    "language": "es",
+    "full_words": 572,
+    "short_words": 186
+  },
+  {
+    "episode": 72,
+    "language": "fr",
+    "full_words": 568,
+    "short_words": 177
+  },
+  {
+    "episode": 73,
+    "language": "en",
+    "full_words": 536,
+    "short_words": 180
+  },
+  {
+    "episode": 73,
+    "language": "de",
+    "full_words": 530,
+    "short_words": 170
+  },
+  {
+    "episode": 73,
+    "language": "es",
+    "full_words": 578,
+    "short_words": 192
+  },
+  {
+    "episode": 73,
+    "language": "fr",
+    "full_words": 573,
+    "short_words": 182
+  },
+  {
+    "episode": 74,
+    "language": "en",
+    "full_words": 536,
+    "short_words": 184
+  },
+  {
+    "episode": 74,
+    "language": "de",
+    "full_words": 531,
+    "short_words": 171
+  },
+  {
+    "episode": 74,
+    "language": "es",
+    "full_words": 571,
+    "short_words": 185
+  },
+  {
+    "episode": 74,
+    "language": "fr",
+    "full_words": 570,
+    "short_words": 179
+  },
+  {
+    "episode": 75,
+    "language": "en",
+    "full_words": 531,
+    "short_words": 180
+  },
+  {
+    "episode": 75,
+    "language": "de",
+    "full_words": 530,
+    "short_words": 170
+  },
+  {
+    "episode": 75,
+    "language": "es",
+    "full_words": 582,
+    "short_words": 196
+  },
+  {
+    "episode": 75,
+    "language": "fr",
+    "full_words": 579,
+    "short_words": 188
+  },
+  {
+    "episode": 76,
+    "language": "en",
+    "full_words": 529,
+    "short_words": 182
+  },
+  {
+    "episode": 76,
+    "language": "de",
+    "full_words": 530,
+    "short_words": 170
+  },
+  {
+    "episode": 76,
+    "language": "es",
+    "full_words": 574,
+    "short_words": 188
+  },
+  {
+    "episode": 76,
+    "language": "fr",
+    "full_words": 566,
+    "short_words": 175
+  },
+  {
+    "episode": 77,
+    "language": "en",
+    "full_words": 527,
+    "short_words": 175
+  },
+  {
+    "episode": 77,
+    "language": "de",
+    "full_words": 529,
+    "short_words": 169
+  },
+  {
+    "episode": 77,
+    "language": "es",
+    "full_words": 572,
+    "short_words": 186
+  },
+  {
+    "episode": 77,
+    "language": "fr",
+    "full_words": 568,
+    "short_words": 177
+  },
+  {
+    "episode": 78,
+    "language": "en",
+    "full_words": 539,
+    "short_words": 192
+  },
+  {
+    "episode": 78,
+    "language": "de",
+    "full_words": 528,
+    "short_words": 168
+  },
+  {
+    "episode": 78,
+    "language": "es",
+    "full_words": 572,
+    "short_words": 186
+  },
+  {
+    "episode": 78,
+    "language": "fr",
+    "full_words": 572,
+    "short_words": 181
+  },
+  {
+    "episode": 79,
+    "language": "en",
+    "full_words": 544,
+    "short_words": 183
+  },
+  {
+    "episode": 79,
+    "language": "de",
+    "full_words": 538,
+    "short_words": 178
+  },
+  {
+    "episode": 79,
+    "language": "es",
+    "full_words": 574,
+    "short_words": 188
+  },
+  {
+    "episode": 79,
+    "language": "fr",
+    "full_words": 573,
+    "short_words": 182
+  },
+  {
+    "episode": 80,
+    "language": "en",
+    "full_words": 557,
+    "short_words": 195
+  },
+  {
+    "episode": 80,
+    "language": "de",
+    "full_words": 534,
+    "short_words": 174
+  },
+  {
+    "episode": 80,
+    "language": "es",
+    "full_words": 573,
+    "short_words": 187
+  },
+  {
+    "episode": 80,
+    "language": "fr",
+    "full_words": 569,
+    "short_words": 178
+  }
+]

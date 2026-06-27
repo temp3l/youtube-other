@@ -1,0 +1,27 @@
+{
+  "sourceHash": "ca2dc81f2b4da22a6d6ab4c48c14165e731e943426a525febcb0b3060dda9333",
+  "facts": {
+    "episodeNumber": "018",
+    "primaryTitle": "The Smiling Man Followed Her Home",
+    "characters": [
+      {
+        "name": "Elena Brooks",
+        "role": "main protagonist"
+      }
+    ],
+    "setting": "The man danced beneath a streetlight with a smile too wide for his face.",
+    "criticalObjects": [],
+    "criticalEvents": [
+      "The man danced beneath a streetlight with a smile too wide for his face.",
+      "When Elena crossed the road, he folded sideways and followed.",
+      "Elena Brooks was a nurse walking home after a late shift when the story began in empty city streets shortly before dawn.",
+      "The first reports did not describe an obvious monster or violent attack."
+    ],
+    "writtenMessages": [],
+    "threat": "The man danced beneath a streetlight with a smile too wide for his face.",
+    "primaryReveal": "The final warning is therefore simple: when the same impossible detail appears twice, do not wait for a third occurrence to prove that it is real.",
+    "finalConsequence": "The final warning is therefore simple: when the same impossible detail appears twice, do not wait for a third occurrence to prove that it is real.",
+    "unresolvedQuestion": "Did Elena Brooks defeat the thing at the centre of the story, or did the encounter simply teach it how to remain hidden?"
+  },
+  "generatedAt": "2026-06-26T13:16:54.186Z"
+}

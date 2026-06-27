@@ -1,0 +1,15 @@
+{
+  "sourceFile": "/home/box/workspace/fehmarn-seo/youtube/other/content-ideas/content/dark-truth-episodes-multilingual-production-pack/014-hachishakusama-the-eight-foot-woman/en/014-hachishakusama-the-eight-foot-woman-en-full.md",
+  "sourceHash": "9037083ab420217bfb93fd46ef037e3363d72da99d0764980de29887c8baecba",
+  "configurationHash": "bd3ffb5bfb09e0f9e063558a6f92996f816d0370a3dd82362cef3d33085df0f3",
+  "promptVersion": "story-localization-v1",
+  "model": "gpt-4o-mini",
+  "language": "en",
+  "generatedAt": "2026-06-26T13:18:01.607Z",
+  "outputFiles": [
+    "/home/box/workspace/fehmarn-seo/youtube/other/content-ideas/content/dark-truth-episodes/014-hachishakusama-the-eight-foot-woman-en-full.md",
+    "/home/box/workspace/fehmarn-seo/youtube/other/content-ideas/content/dark-truth-episodes/014-hachishakusama-the-eight-foot-woman-en-short.md"
+  ],
+  "inputTokens": 0,
+  "outputTokens": 0
+}

@@ -344,7 +344,7 @@ export async function loadRuntimeConfig(
     trailingSilenceRatio:
       overrides.trailingSilenceRatio ?? episodeOverrides.trailingSilenceRatio ?? env.MEDIAFORGE_TRAILING_SILENCE_RATIO ?? 0.8,
     trailingSilenceBufferSeconds:
-      overrides.trailingSilenceBufferSeconds ?? episodeOverrides.trailingSilenceBufferSeconds ?? env.MEDIAFORGE_TRAILING_SILENCE_BUFFER_SECONDS ?? 0.5,
+      overrides.trailingSilenceBufferSeconds ?? episodeOverrides.trailingSilenceBufferSeconds ?? env.MEDIAFORGE_TRAILING_SILENCE_BUFFER_SECONDS ?? 0,
     openAiTranscriptionModel:
       overrides.openAiTranscriptionModel ?? episodeOverrides.openAiTranscriptionModel ?? env.MEDIAFORGE_OPENAI_TRANSCRIPTION_MODEL,
     openAiTranscriptionLanguage:

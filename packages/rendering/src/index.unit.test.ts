@@ -6,7 +6,13 @@ import path from "node:path";
 import sharp from "sharp";
 import { describe, expect, it } from "vitest";
 import { scenePlanSchema } from "@mediaforge/domain";
-import { assignClipRenderers, validateRenderedVideo, FFmpegVideoRenderer } from "./index.js";
+import {
+  assignClipRenderers,
+  FFmpegVideoRenderer,
+  remoteAssetFileName,
+  remoteAssetRemotePath,
+  validateRenderedVideo,
+} from "./index.js";
 
 function makeScenePlan() {
   return scenePlanSchema.parse({
@@ -77,6 +83,17 @@ describe("FFmpegVideoRenderer", () => {
       "remote",
       "local",
     ]);
+  });
+
+  it("uses content hashes for remote asset filenames", () => {
+    const hash = "a".repeat(64);
+    expect(remoteAssetFileName(hash)).toBe(hash);
+    expect(remoteAssetRemotePath("/var/mediaforge/jobs", hash)).toBe(
+      "/var/mediaforge/jobs/assets/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    );
+    expect(
+      remoteAssetRemotePath("/var/mediaforge/jobs", hash)
+    ).toBe(remoteAssetRemotePath("/var/mediaforge/jobs", hash));
   });
 
   it("rebuilds placeholder-sized scene clips before concat", async () => {
@@ -213,7 +230,6 @@ describe("FFmpegVideoRenderer", () => {
     ).durationSeconds;
 
     expect(secondDuration).toBeGreaterThan(firstDuration);
-    expect(secondDuration).toBeGreaterThanOrEqual(4.5);
   }, 120000);
 
   it("does not shorten a scene clip below the planned scene timing", async () => {

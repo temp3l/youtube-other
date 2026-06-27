@@ -1,0 +1,31 @@
+{
+  "sourceHash": "db0899bf54c756286b368969b75a1df56627b8dd4e17364819e8f7e391f33863",
+  "facts": {
+    "episodeNumber": "016",
+    "primaryTitle": "The Train Stopped at a Station That Doesn't Exist",
+    "characters": [
+      {
+        "name": "Kisaragi Station",
+        "role": "main protagonist"
+      },
+      {
+        "name": "Mara Lewis",
+        "role": "supporting character"
+      }
+    ],
+    "setting": "Mara's train passed her stop and continued for twenty minutes without slowing.",
+    "criticalObjects": [],
+    "criticalEvents": [
+      "Mara's train passed her stop and continued for twenty minutes without slowing.",
+      "Then it arrived at Kisaragi Station—a place missing from every map.",
+      "Mara Lewis was an exchange student travelling home when the story began in a late-night commuter train in Japan.",
+      "The first reports did not describe an obvious monster or violent attack."
+    ],
+    "writtenMessages": [],
+    "threat": "Mara's train passed her stop and continued for twenty minutes without slowing.",
+    "primaryReveal": "The final warning is therefore simple: when the same impossible detail appears twice, do not wait for a third occurrence to prove that it is real.",
+    "finalConsequence": "The final warning is therefore simple: when the same impossible detail appears twice, do not wait for a third occurrence to prove that it is real.",
+    "unresolvedQuestion": "Did Mara Lewis defeat the thing at the centre of the story, or did the encounter simply teach it how to remain hidden?"
+  },
+  "generatedAt": "2026-06-26T13:16:51.697Z"
+}

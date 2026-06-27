@@ -1,0 +1,15 @@
+{
+  "sourceFile": "/home/box/workspace/fehmarn-seo/youtube/other/content-ideas/content/dark-truth-episodes-multilingual-production-pack/004-when-the-candle-went-out-the-werewolf-returned/en/004-when-the-candle-went-out-the-werewolf-returned-en-full.md",
+  "sourceHash": "7e9692b1eaab5b2e5a764e4e935eb93bcaefa7c9e20bdd19a28fd6e7b4e7c4e3",
+  "configurationHash": "f2b57c34bf5a66aa9d6fd255c255509418d7e8376fb01d9f52615df7a7ccda9f",
+  "promptVersion": "story-localization-v1",
+  "model": "gpt-4o-mini",
+  "language": "en",
+  "generatedAt": "2026-06-26T13:17:50.839Z",
+  "outputFiles": [
+    "/home/box/workspace/fehmarn-seo/youtube/other/content-ideas/content/dark-truth-episodes/004-when-the-candle-went-out-the-werewolf-returned-en-full.md",
+    "/home/box/workspace/fehmarn-seo/youtube/other/content-ideas/content/dark-truth-episodes/004-when-the-candle-went-out-the-werewolf-returned-en-short.md"
+  ],
+  "inputTokens": 0,
+  "outputTokens": 0
+}

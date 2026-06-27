@@ -1,0 +1,15 @@
+{
+  "sourceFile": "/home/box/workspace/fehmarn-seo/youtube/other/content-ideas/content/dark-truth-episodes-multilingual-production-pack/015-the-bell-witch/en/015-the-bell-witch-en-full.md",
+  "sourceHash": "c4dd54a7a8362ee1448eb2ecdef9802d4d7f656db8a0a15a22f1370eca0d5993",
+  "configurationHash": "5b646b695ff56725188d4dff039c26e147a1776208124fab4bc1f9c82603d775",
+  "promptVersion": "story-localization-v1",
+  "model": "gpt-4o-mini",
+  "language": "en",
+  "generatedAt": "2026-06-26T13:18:02.638Z",
+  "outputFiles": [
+    "/home/box/workspace/fehmarn-seo/youtube/other/content-ideas/content/dark-truth-episodes/015-the-bell-witch-en-full.md",
+    "/home/box/workspace/fehmarn-seo/youtube/other/content-ideas/content/dark-truth-episodes/015-the-bell-witch-en-short.md"
+  ],
+  "inputTokens": 0,
+  "outputTokens": 0
+}
