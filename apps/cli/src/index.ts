@@ -47,6 +47,7 @@ import {
 import {
   FFmpegVideoRenderer,
   HybridFFmpegVideoRenderer,
+  backfillSceneClipManifests,
   validateRenderedVideo,
   type RemoteRenderSettings,
 } from "@mediaforge/rendering";
@@ -929,6 +930,18 @@ async function cleanupStaleAudioTempFiles(
   );
 }
 
+function resolveTtsConcurrency(): number {
+  const raw =
+    process.env["TTS_CONCURRENCY"] ??
+    process.env["OPENAI_TTS_CONCURRENCY"] ??
+    "3";
+  const parsed = Number.parseInt(raw, 10);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return 1;
+  }
+  return parsed;
+}
+
 async function synthesizeSpeechChunks(
   pipeline: Awaited<ReturnType<typeof loadPipeline>>,
   chunks: ReadonlyArray<string>,
@@ -936,7 +949,8 @@ async function synthesizeSpeechChunks(
   segmentsDir: string,
   episodeSlug: string,
   language: string,
-  generatedAt: string
+  generatedAt: string,
+  concurrency: number
 ): Promise<{
   segmentPaths: string[];
   artifacts: Array<ArtifactReference | undefined>;
@@ -945,47 +959,54 @@ async function synthesizeSpeechChunks(
   const artifacts: Array<ArtifactReference | undefined> = Array(
     chunks.length
   ).fill(undefined);
-  for (let index = 0; index < chunks.length; index += 1) {
-    const chunk = chunks[index];
-    if (chunk === undefined) {
-      continue;
+  const effectiveConcurrency = Math.min(
+    Math.max(1, concurrency),
+    Math.max(1, chunks.length)
+  );
+  let nextIndex = 0;
+  const workers = Array.from({ length: effectiveConcurrency }, async () => {
+    while (true) {
+      const index = nextIndex;
+      nextIndex += 1;
+      if (index >= chunks.length) {
+        return;
+      }
+      const chunk = chunks[index];
+      if (chunk === undefined) {
+        continue;
+      }
+      const sceneId = sceneIdSchema.parse(
+        `scene-${String(index + 1).padStart(3, "0")}`
+      );
+      const outputPath = path.join(
+        segmentsDir,
+        `${safeBasename(`segment-${String(index + 1).padStart(3, "0")}`)}.wav`
+      );
+      await pipeline.speech.synthesize(
+        {
+          sceneId,
+          text: chunk,
+          voiceProfile: speechSettings.profile,
+          outputPath,
+        },
+        new AbortController().signal
+      );
+      segmentPaths[index] = outputPath;
+      const stats = await fs.stat(outputPath);
+      artifacts[index] = {
+        id: artifactIdSchema.parse(
+          `artifact-${slugify(`${episodeSlug}-segment-${String(index + 1).padStart(3, "0")}-${language}`)}`
+        ),
+        kind: language === "en" ? "audio.segment" : `audio.segment.${language}`,
+        path: outputPath,
+        mimeType: "audio/wav",
+        sizeBytes: stats.size,
+        checksumSha256: await hashFile(outputPath),
+        createdAt: generatedAt,
+      };
     }
-    const sceneId = sceneIdSchema.parse(
-      `scene-${String(index + 1).padStart(3, "0")}`
-    );
-    const outputPath = path.join(
-      segmentsDir,
-      `${safeBasename(`segment-${String(index + 1).padStart(3, "0")}`)}.wav`
-    );
-    const words = chunk.trim().split(/\s+/u).filter(Boolean).length;
-    const estimatedDurationSeconds = Math.max(
-      2,
-      Math.ceil((words / speechSettings.profile.paceWpm) * 60)
-    );
-    await pipeline.speech.synthesize(
-      {
-        sceneId,
-        text: chunk,
-        voiceProfile: speechSettings.profile,
-        outputPath,
-        targetDurationSeconds: estimatedDurationSeconds,
-      },
-      new AbortController().signal
-    );
-    segmentPaths[index] = outputPath;
-    const stats = await fs.stat(outputPath);
-    artifacts[index] = {
-      id: artifactIdSchema.parse(
-        `artifact-${slugify(`${episodeSlug}-segment-${String(index + 1).padStart(3, "0")}-${language}`)}`
-      ),
-      kind: language === "en" ? "audio.segment" : `audio.segment.${language}`,
-      path: outputPath,
-      mimeType: "audio/wav",
-      sizeBytes: stats.size,
-      checksumSha256: await hashFile(outputPath),
-      createdAt: generatedAt,
-    };
-  }
+  });
+  await Promise.all(workers);
   return { segmentPaths, artifacts };
 }
 
@@ -1374,12 +1395,17 @@ async function commandAudioGenerate(
   });
   await ensureDir(segmentsDir);
   await cleanupStaleAudioTempFiles(audioDir, segmentsDir);
+  await cleanupAudioGenerationArtifacts(audioDir, segmentsDir, narrationPath);
   const scriptSourcePath = await writeEpisodeScriptMarkdown(
     audioBaseDir,
     script.text,
     language
   );
   const generatedAt = new Date().toISOString();
+  const preferredConcurrency = Math.min(
+    resolveTtsConcurrency(),
+    Math.max(1, chunks.length)
+  );
   let generated;
   try {
     generated = await synthesizeSpeechChunks(
@@ -1389,10 +1415,11 @@ async function commandAudioGenerate(
       segmentsDir,
       episodeSlug,
       language,
-      generatedAt
+      generatedAt,
+      preferredConcurrency
     );
   } catch (error) {
-    if (!isInsufficientQuotaError(error) || chunks.length <= 1) {
+    if (chunks.length <= 1 || preferredConcurrency <= 1) {
       throw error;
     }
     await cleanupAudioGenerationArtifacts(audioDir, segmentsDir, narrationPath);
@@ -1403,7 +1430,8 @@ async function commandAudioGenerate(
       segmentsDir,
       episodeSlug,
       language,
-      generatedAt
+      generatedAt,
+      1
     );
   }
   const { segmentPaths, artifacts } = generated;
@@ -1583,6 +1611,86 @@ async function commandClipsGenerate(
   }
   process.stdout.write(
     `Generated localized clips for ${episodeId} (${language})\n${result.clipsDir}\n`
+  );
+}
+
+async function commandClipsBackfillManifests(
+  options: CliOptions,
+  episodeId: string
+): Promise<void> {
+  markEpisodeTelemetry(episodeId);
+  const initialConfig = await loadRuntimeConfig(configOverridesFromCli(options));
+  const episodeDirCandidates = [
+    path.join(initialConfig.workspaceDir, "episodes", episodeId),
+    path.join(initialConfig.workspaceDir, episodeId),
+    path.resolve("episodes", episodeId),
+    path.resolve(episodeId),
+  ];
+  let resolvedEpisodeDir: string | undefined;
+  let scenesFilePath: string | undefined;
+  for (const candidate of episodeDirCandidates) {
+    const candidateScenes = path.join(candidate, "shared", "scenes.json");
+    if (await fileExists(candidateScenes)) {
+      resolvedEpisodeDir = candidate;
+      scenesFilePath = candidateScenes;
+      break;
+    }
+  }
+  if (!resolvedEpisodeDir || !scenesFilePath) {
+    scenesFilePath = await findEpisodeScenesFile(
+      initialConfig.workspaceDir,
+      episodeId
+    );
+    resolvedEpisodeDir = path.dirname(path.dirname(scenesFilePath));
+  }
+  const target = await readAndValidateScenesFile(
+    scenesFilePath,
+    initialConfig.scriptLanguage ?? "en"
+  );
+  const episodeRootDir =
+    path.basename(target.episodeDir) === "shared"
+      ? path.dirname(target.episodeDir)
+      : target.episodeDir;
+  const episodeConfig = await loadEpisodeConfig(episodeRootDir);
+  const config = await loadRuntimeConfig(
+    configOverridesFromCli(options),
+    episodeConfig ? compactConfigOverrides(episodeConfig) : {}
+  );
+  const language =
+    config.scriptLanguage ?? episodeConfig?.scriptLanguage ?? "en";
+  const audioBaseDir = localizedAudioBaseDir(episodeRootDir, language);
+  const captionsPath =
+    isEnglishLanguage(language) &&
+    (await fileExists(path.join(episodeRootDir, "captions", "captions.ass")))
+      ? path.join(episodeRootDir, "captions", "captions.ass")
+      : undefined;
+  const result = await backfillSceneClipManifests({
+    episodeDir: episodeRootDir,
+    scenePlan: target.scenePlan,
+    outputDir: path.join(episodeRootDir, language, "full", "video"),
+    renderProfile: {
+      id: "youtube",
+      label: "youtube",
+      width: 1920,
+      height: 1080,
+      fps: 30,
+      aspectRatio: "16:9",
+      burnCaptions: Boolean(captionsPath),
+    },
+    captionBurnIn: Boolean(captionsPath),
+    clipsDirName: localizedClipsDirName(language),
+    sceneAudioDir: localizedSegmentsDir(audioBaseDir, language),
+    imageDir: path.join(episodeRootDir, "shared", "images", "generated"),
+    trailingSilenceRatio: config.trailingSilenceRatio,
+    trailingSilenceBufferSeconds: config.trailingSilenceBufferSeconds,
+  });
+  process.stdout.write(
+    [
+      `Backfilled clip manifests for ${episodeId} (${language})`,
+      `Clips dir: ${result.clipsDir}`,
+      `Written: ${result.written}`,
+      `Skipped: ${result.skipped}`,
+    ].join("\n") + "\n"
   );
 }
 
@@ -3167,6 +3275,13 @@ clipsCommand
       cliOptions.sceneLimit = opts.sceneLimit;
     }
     await commandClipsGenerate(cliOptions, episodeId);
+  });
+clipsCommand
+  .command("backfill-manifests")
+  .argument("<episode-id>")
+  .description("Generate missing clip sidecar manifests from existing clips")
+  .action(async (episodeId: string) => {
+    await commandClipsBackfillManifests(program.opts<CliOptions>(), episodeId);
   });
 
 program

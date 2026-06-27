@@ -2,9 +2,34 @@
 
 ---
 
-always use parallel remote and local rendering for clips.
+always use 3 parallel requests when generating audio with openai API
 
-there is a drift in the episode 009 english video. the drift gets worse in the later scenes. also please remove the artificially added silence at the end of clip. make sure this never happens again when generating videos. then fix the english full video for 009
+for the german full video: backfill the manifests for clips that dont have a sidecar json yet, use the "backfill manifests command". then verify all remote clips usuable. and create the final video
+
+---
+
+create the minimal localized folder structure for episode 010 for placing the relevant script files, like here:
+"""
+episodes/009-mary-gloria-the-christmas-doll/es/full
+episodes/009-mary-gloria-the-christmas-doll/es/short
+episodes/009-mary-gloria-the-christmas-doll/de/full
+episodes/009-mary-gloria-the-christmas-doll/de/short
+episodes/009-mary-gloria-the-christmas-doll/pt/full
+episodes/009-mary-gloria-the-christmas-doll/pt/short
+episodes/009-mary-gloria-the-christmas-doll/fr/full
+episodes/009-mary-gloria-the-christmas-doll/fr/short
+
+then copy the relevant story source file from content-ideas/content/dark-truth-episodes-optimized/ into these folders as script.md
+"""
+
+---
+
+Always use parallel remote and local rendering for clips. download and sync all remote clips as soon as the local renderer finishes. make sure the local renderer never renders clips twice unless explictly told to.
+
+---
+
+There is a drift in the episode 009 english and german video. the drift gets worse in the later scenes. make sure this never happens again when generating videos. also set the artificially silence at the end of clips to zero.
+then fix the english and german full videos for 009.
 
 ---
 
