@@ -98,6 +98,15 @@ const whisperOutputCandidateSchema = z
   })
   .passthrough();
 
+const NON_WORD_TOKEN_PATTERN = new RegExp(
+  "^[\\s.,!?…:;()\\[\\]{}\"“”«»'’¿¡-]+$",
+  "u"
+);
+const PUNCTUATION_ONLY_PATTERN = new RegExp(
+  "^[,.;:!?…¿¡()\"“”«»'’-]+$",
+  "u"
+);
+
 export interface WhisperRawChunk {
   readonly chunkIndex: number;
   readonly startSeconds: number;
@@ -190,7 +199,7 @@ function validateOptions(options: SentenceSegmentationOptions): SentenceSegmenta
 }
 
 function isWordToken(value: string): boolean {
-  return !/^[\s.,!?…:;()\[\]{}"“”«»'’¿¡-]+$/u.test(value);
+  return !NON_WORD_TOKEN_PATTERN.test(value);
 }
 
 function isOpeningPunctuationToken(value: string): boolean {
@@ -258,7 +267,10 @@ function joinTokens(tokens: readonly string[]): string {
     text += ` ${token}`;
     afterOpeningPunctuation = false;
   }
-  return text.replace(/\s+/g, " ").replace(/\s+([,.;:!?…)\]}»”]+)/gu, "$1").replace(/([¿¡([{«“])\s+/gu, "$1");
+  return text
+    .replace(/\s+/g, " ")
+    .replace(/\s+([,.;:!?…)\]}»”]+)/gu, "$1")
+    .replace(/([¿¡([{«“])\s+/gu, "$1");
 }
 
 function normalizeTimedWord(word: RawTimedWord, precision: number): TimestampedWord {
@@ -319,7 +331,6 @@ function normalizeRawTimedWordCandidate(candidate: unknown, precision: number): 
 }
 
 function mergeTokenFragments(tokens: readonly WhisperTimedTokenCandidate[]): RawTimedWord[] {
-  const punctuationOnlyPattern = /^[,.;:!?…¿¡()"“”«»'’\-]+$/u;
   const specialTokenPattern = /^\[_[^\]]+\]$/u;
   const words: RawTimedWord[] = [];
   let current: WhisperTimedTokenCandidate | null = null;
@@ -342,7 +353,7 @@ function mergeTokenFragments(tokens: readonly WhisperTimedTokenCandidate[]): Raw
     if (normalizedText.length === 0 || specialTokenPattern.test(normalizedText)) {
       continue;
     }
-    if (punctuationOnlyPattern.test(normalizedText)) {
+    if (PUNCTUATION_ONLY_PATTERN.test(normalizedText)) {
       flushCurrent();
       words.push({
         text: normalizedText,

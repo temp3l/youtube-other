@@ -1,8 +1,136 @@
 ## pr
 
+i want the extraction of the character map to be a separate cli command, like:
+node apps/cli/dist/index.js stories rewrite-short
+--episode 009 \
+
+inspect these prompts, find the variables and wire it up.
+
+- system prompt: docs/templates/audio/system-prompt.md
+- full story prompt: docs/templates/audio/full-story-prompt.md
+- short story prompt: docs/templates/audio/short-story-prompt.md
+
+provide me full request and response debug output and breakdown, also save it into the relevant debug folder, like before.
+let me verify the request and response debug files before you implement changes
+
+i have created a master prompt that for audio generation: docs/templates/audio/master-localized.md
+
+I want to use it whenver running the "stories rewrite-full" and "stories rewrite-short" commands.
+
+inspect the prompt, find the variables and wire it up.
+
+what will the full json payload look like for this example? "stories rewrite-full --input content-ideas/content/dark-truth-episodes-optimized/010-the-cleaner-of-death-en-full-optimized.md --episode-slug 010-the-cleaner-of-death --languages de"
+
+let me verify the payload, then give me recommendations and a breakdown before you implement it.
+
 ---
 
-always use 3 parallel requests when generating audio with openai API
+this command "node apps/cli/dist/index.js stories rewrite-short --episode 009 --languages pt" is trying to access the nonexisting directories and uses different slugs and fails:
+
+- /home/box/workspace/fehmarn-seo/youtube/other/episodes/episodes
+- /home/box/workspace/fehmarn-seo/youtube/other/episodes/009-mary-gloria-the-christmas-doll/en/script.md
+- /home/box/workspace/fehmarn-seo/youtube/other/episodes/mary-gloria-the-christmas-doll/pt/short/009-mary-gloria-the-christmas-doll-pt-short.json
+
+---
+
+and this command: "node apps/cli/dist/index.js stories rewrite-full --input content-ideas/content/dark-truth-episodes-optimized/010-the-cleaner-of-death-en-full-optimized.md --episode-slug the-cleaner-of-death --languages en --verbose"
+
+Is creating multiple directories: episodes/010-010-the-cleaner-of-death/ and episodes/010-the-cleaner-of-death/
+fix this so that all generated files for this episode will be generated under: episodes/010-the-cleaner-of-death/
+
+this is the output of verbose dry-run
+"""
+{
+"command": "stories rewrite-full",
+"episodeId": "010",
+"episodeSlug": "010-the-cleaner-of-death",
+"sourceFile": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/010-the-cleaner-of-death/source/010-010-the-cleaner-of-death-en-full.md",
+"plannedOutputs": {
+"englishFull": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/010-the-cleaner-of-death/script.md",
+"englishShort": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/010-the-cleaner-of-death/en/short/script.md",
+"localized": [
+{
+"language": "de",
+"full": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/010-the-cleaner-of-death/de/full/script.md",
+"short": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/010-the-cleaner-of-death/de/short/script.md"
+}
+]
+},
+"dryRun": true
+}
+"""
+create some tests to prevent this from happening again.
+
+run "pnpm lint" & "pnpm build" at the end
+
+---
+
+Example CLI commands:
+
+- pnpm cli stories rewrite-short --episode 009 --language en
+- pnpm cli stories rewrite-short --episode 009 --languages en,de,es,fr,pt --resume
+- pnpm cli stories rewrite-short --input episodes/009-the-christmas-doll/source/009-the-christmas-doll-en-full.md --languages de,es
+- pnpm cli stories rewrite-short --episode 009 --languages en,de,es,fr,pt --dry-run
+- pnpm cli stories rewrite-short --episode 009 --languages en,de --overwrite
+
+---
+
+the command:
+node apps/cli/dist/index.js stories rewrite-full --input content-ideas/content/dark-truth-episodes-optimized/010-the-cleaner-of-death-en-full-optimized.md --episode-slug 010-the-cleaner-of-death --language
+s de --verbose
+
+Fails with:
+"""
+English full story localization failed via OpenAI model
+gpt-4.1-mini: Invalid schema for response_format 'english_story_package': In context=(), 'required' is required to be supplied and to be an array including every key in properties. Missing 'full'. [invalid_j
+son_schema] (status 400)","msg":"localized story episode"
+"""
+
+---
+
+## Example CLI Commands
+
+node apps/cli/dist/index.js stories rewrite-short --help
+
+node apps/cli/dist/index.js stories rewrite-short \
+ --episode 009 \
+ --language en
+
+node apps/cli/dist/index.js stories rewrite-short \
+ --episode 009 \
+ --languages en,de,es,fr,pt \
+ --resume
+
+node apps/cli/dist/index.js stories rewrite-short \
+ --input episodes/009-mary-gloria-the-christmas-doll/en/full/script.md \
+ --languages de,es
+
+node apps/cli/dist/index.js stories rewrite-short \
+ --episode 009 \
+ --languages en,de,es,fr,pt \
+ --dry-run
+
+node apps/cli/dist/index.js stories rewrite-short \
+ --episode 009 \
+ --languages en,de \
+ --overwrite
+
+---
+
+run the prompt: todo-prompts/rewrite-stories-extend-cli.md
+
+---
+
+fix the pnpm sandbox issue. make sure all
+
+---
+
+use faster voice https://chatgpt.com/g/g-p-6a317d326e30819183556eca604b770c-youtube/c/6a3f0fe1-fb28-83ed-bc06-265b34466394
+how to use episode.config.json?
+
+---
+
+---
 
 for the german full video: backfill the manifests for clips that dont have a sidecar json yet, use the "backfill manifests command". then verify all remote clips usuable. and create the final video
 
@@ -330,7 +458,7 @@ there are only 8 files in images/generated/prompts and only 6 files in images/ge
 make sure all scenes will have the relevant generated prompts, metadata and images.
 
 i want all new videos to have a new scene/image every 6-9 seconds. how can we make this happen? recommend a strategy.
-make sure this never happens again: """  
+make sure this never happens again: """
 So the images are “out of sync” because the system is using:
 
 - stale or transcript-derived scene timing
@@ -1748,3 +1876,7 @@ At the end:
    - generated fixture artifacts;
    - external dependencies still requiring user action;
    - exact next command the user should run.
+
+```
+
+```

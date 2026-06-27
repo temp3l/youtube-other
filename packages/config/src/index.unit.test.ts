@@ -32,7 +32,7 @@ describe("runtime config", () => {
           openAiCompatibleApiKey: "episode-key",
           openAiSpeechModel: "gpt-4o-mini-tts",
           openAiSpeechVoice: "onyx",
-          speechVoicePreset: "fast",
+          speechVoicePreset: "very-fast",
           scriptLanguage: "es"
         },
         null,
@@ -42,7 +42,7 @@ describe("runtime config", () => {
     const episodeConfig = await loadEpisodeConfig(episodeDir);
     expect(episodeConfig?.ttsProvider).toBe("openai-compatible");
     expect(episodeConfig?.openAiSpeechVoice).toBe("onyx");
-    expect(episodeConfig?.speechVoicePreset).toBe("fast");
+    expect(episodeConfig?.speechVoicePreset).toBe("very-fast");
     expect(episodeConfig?.scriptLanguage).toBe("es");
   });
 
@@ -71,6 +71,7 @@ describe("runtime config", () => {
     const dir = await fs.mkdtemp(path.join(os.tmpdir(), "mediaforge-dotenv-"));
     const previousCwd = process.cwd();
     const previousOpenAiKey = process.env.OPENAI_API_KEY;
+    delete process.env.OPENAI_API_KEY;
     await fs.writeFile(
       path.join(dir, ".env"),
       [
@@ -114,17 +115,31 @@ describe("runtime config", () => {
   });
 
   it("defaults remote rendering to disabled with safe connection settings", async () => {
-    const config = await loadRuntimeConfig();
-    expect(config.remoteRenderEnabled).toBe(false);
-    expect(config.remoteRenderHost).toBe("2.24.81.148");
-    expect(config.remoteRenderUser).toBe("box");
-    expect(config.remoteRenderPort).toBe(22);
-    expect(config.remoteRenderBaseDir).toBe("/home/box/youtube-render-worker");
-    expect(config.remoteRenderConcurrency).toBe(1);
-    expect(config.remoteRenderFallbackToLocal).toBe(true);
-    expect(config.remoteRenderVerifyHostKey).toBe(true);
-    expect(config.remoteRenderUploadMethod).toBe("rsync");
-    expect(config.remoteRenderCleanupMaxAgeHours).toBe(24);
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "mediaforge-remote-render-"));
+    const previousCwd = process.cwd();
+    const previousRemoteRenderEnabled = process.env.REMOTE_RENDER_ENABLED;
+    delete process.env.REMOTE_RENDER_ENABLED;
+    process.chdir(dir);
+    try {
+      const config = await loadRuntimeConfig();
+      expect(config.remoteRenderEnabled).toBe(false);
+      expect(config.remoteRenderHost).toBe("2.24.81.148");
+      expect(config.remoteRenderUser).toBe("box");
+      expect(config.remoteRenderPort).toBe(22);
+      expect(config.remoteRenderBaseDir).toBe("/home/box/youtube-render-worker");
+      expect(config.remoteRenderConcurrency).toBe(1);
+      expect(config.remoteRenderFallbackToLocal).toBe(true);
+      expect(config.remoteRenderVerifyHostKey).toBe(true);
+      expect(config.remoteRenderUploadMethod).toBe("rsync");
+      expect(config.remoteRenderCleanupMaxAgeHours).toBe(24);
+    } finally {
+      process.chdir(previousCwd);
+      if (previousRemoteRenderEnabled !== undefined) {
+        process.env.REMOTE_RENDER_ENABLED = previousRemoteRenderEnabled;
+      } else {
+        delete process.env.REMOTE_RENDER_ENABLED;
+      }
+    }
   });
 
   it("resolves language-specific YouTube channels with fallback", async () => {

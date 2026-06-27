@@ -10,6 +10,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@mediaforge/config": "workspace:*",
     "@mediaforge/domain": "workspace:*",
     "@mediaforge/image-generation": "workspace:*",
     "@mediaforge/rendering": "workspace:*",

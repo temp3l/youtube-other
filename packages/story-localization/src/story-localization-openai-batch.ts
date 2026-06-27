@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import OpenAI from "openai";
+import type { ReasoningEffort } from "openai/resources/shared.js";
 import type {
   Batch as OpenAIBatch,
   BatchRequestCounts,
@@ -28,6 +29,9 @@ export interface OpenAiStoryClient {
         };
         readonly max_output_tokens?: number;
         readonly temperature?: number;
+        readonly reasoning?: {
+          readonly effort?: ReasoningEffort;
+        };
       },
       options?: { readonly signal?: AbortSignal }
     ): Promise<{
@@ -37,6 +41,8 @@ export interface OpenAiStoryClient {
         readonly input_tokens?: number;
         readonly output_tokens?: number;
         readonly input_tokens_details?: { readonly cached_tokens?: number };
+        readonly output_tokens_details?: { readonly reasoning_tokens?: number };
+        readonly total_tokens?: number;
       };
     }>;
   };
@@ -95,8 +101,19 @@ export function requireBatchCapabilities(
 }
 
 export function createOpenAiStoryClient(): OpenAiStoryClient {
+  return createOpenAiStoryClientWithOptions({});
+}
+
+export function createOpenAiStoryClientWithOptions(options: {
+  readonly apiKey?: string | undefined;
+  readonly baseUrl?: string | undefined;
+  readonly maxRetries?: number | undefined;
+  readonly timeoutMs?: number | undefined;
+}): OpenAiStoryClient {
   const apiKey =
-    process.env["OPENAI_API_KEY"] ?? process.env["OPENAI_API_TOKEN"];
+    options.apiKey ??
+    process.env["OPENAI_API_KEY"] ??
+    process.env["OPENAI_API_TOKEN"];
   if (!apiKey) {
     throw new StoryLocalizationConfigurationError(
       "OPENAI_API_KEY or OPENAI_API_TOKEN is required for story localization."
@@ -104,10 +121,10 @@ export function createOpenAiStoryClient(): OpenAiStoryClient {
   }
   return new OpenAI({
     apiKey,
-    maxRetries: 5,
-    timeout: 120_000,
-    ...(process.env["OPENAI_BASE_URL"]
-      ? { baseURL: process.env["OPENAI_BASE_URL"] }
+    maxRetries: options.maxRetries ?? 5,
+    timeout: options.timeoutMs ?? 120_000,
+    ...(options.baseUrl ?? process.env["OPENAI_BASE_URL"]
+      ? { baseURL: options.baseUrl ?? process.env["OPENAI_BASE_URL"] }
       : {}),
   }) as unknown as OpenAiStoryClient;
 }

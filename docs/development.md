@@ -6,6 +6,12 @@
 pnpm install
 ```
 
+If Corepack is broken in this sandbox, run:
+
+```bash
+./scripts/ensure-pnpm.sh install
+```
+
 ## Build
 
 ```bash
@@ -41,4 +47,3 @@ pnpm mediaforge --help
 ```bash
 pnpm run doctor
 ```
-

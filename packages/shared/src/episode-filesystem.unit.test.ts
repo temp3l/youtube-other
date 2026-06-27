@@ -1,0 +1,40 @@
+import { describe, expect, it } from "vitest";
+import {
+  createEpisodePathResolver,
+  ensurePortableRelativePath,
+  normalizeContentVariant,
+  normalizeEpisodeId,
+  normalizeLocaleCode,
+} from "./episode-filesystem.js";
+
+describe("episode filesystem helpers", () => {
+  it("normalizes episode ids, locales, and variants", () => {
+    expect(normalizeEpisodeId(" 009-mary-gloria ")).toBe("009-mary-gloria");
+    expect(normalizeLocaleCode("DE")).toBe("de");
+    expect(normalizeContentVariant("SHORT")).toBe("short");
+  });
+
+  it("rejects unsafe portable paths", () => {
+    expect(() => ensurePortableRelativePath("../escape.json")).toThrow();
+    expect(() => ensurePortableRelativePath("/abs/path")).toThrow();
+  });
+
+  it("resolves canonical episode and locale paths", () => {
+    const resolver = createEpisodePathResolver("/workspace");
+    const episodeId = normalizeEpisodeId("009-mary-gloria-the-christmas-doll");
+    const locale = normalizeLocaleCode("fr");
+    const variant = normalizeContentVariant("full");
+
+    expect(resolver.manifestPath(episodeId)).toBe(
+      "/workspace/009-mary-gloria-the-christmas-doll/manifest.json"
+    );
+    expect(
+      resolver.narrationScript({ episodeId, locale, variant })
+    ).toBe(
+      "/workspace/009-mary-gloria-the-christmas-doll/locales/fr/full/script.md"
+    );
+    expect(resolver.canonicalScenesPath(episodeId)).toBe(
+      "/workspace/009-mary-gloria-the-christmas-doll/canonical/scenes.json"
+    );
+  });
+});

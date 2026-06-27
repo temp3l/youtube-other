@@ -82,6 +82,32 @@ Useful flags:
 - `--force` to regenerate instead of reusing existing outputs.
 - `--scene <scene-id>` to scope a command to one scene.
 
+## Story Rewrite Commands
+
+The story localization workflow now exposes two focused commands under `stories`:
+
+- `stories rewrite-full` - rewrite an English full-length horror story into an optimized English full story plus localized full/short outputs.
+- `stories rewrite-short` - rewrite an English full story into localized YouTube Short narration.
+
+Useful flags:
+
+- `--episode <id-or-slug>` to select an existing episode.
+- `--input <path>` to bootstrap from an external English Markdown file.
+- `--episode-slug <slug>` to pin the output episode slug when bootstrapping a new episode from an external input file.
+- `--languages <comma-separated-codes>` to select target languages.
+- `--overwrite` to replace existing generated outputs.
+- `--resume` to reuse already validated outputs when available.
+- `--dry-run` to plan the rewrite without writing files or calling OpenAI.
+- `--json` to emit machine-readable output.
+
+The generated files live under the episode workspace:
+
+- `episodes/<episode-slug>/source/<episode-number>-<episode-slug>-en-full.md`
+- `episodes/<episode-slug>/script.md`
+- `episodes/<episode-slug>/<lang>/full/script.md`
+- `episodes/<episode-slug>/<lang>/short/script.md`
+- `episodes/<episode-slug>/shared/characters.json`
+
 ## YouTube Upload
 
 `npm run youtube:upload -- --episode <episode-id>` uploads the rendered episode video and thumbnail using the metadata already written by the pipeline.

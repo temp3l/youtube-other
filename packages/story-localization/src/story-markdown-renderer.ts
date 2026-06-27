@@ -1,6 +1,7 @@
 import { normalizeWhitespace } from "@mediaforge/shared";
 import { type GeneratedStoryPackage, type LanguageCode, type LanguageProfile, type ParsedSourceStory } from "./story-localization.types.js";
 import { estimateDurationSeconds, countWords } from "./story-localization.utils.js";
+import { FULL_STORY_PROVENANCE_MARKER } from "./short-rewrite.constants.js";
 
 const headingLabels: Record<LanguageCode, {
   readonly audio: string;
@@ -61,7 +62,8 @@ export function renderEnglishSourceCopy(content: string): string {
 export function renderLocalizedFullStory(
   episodeNumber: string,
   packageValue: NonNullable<GeneratedStoryPackage["full"]>,
-  language: LanguageCode
+  language: LanguageCode,
+  sourceSha256?: string
 ): string {
   const labels = headingLabels[language];
   const duration = estimateDurationSeconds(countWords(packageValue.narrationParagraphs.join(" ")), packageValue.targetNarrationWpm);
@@ -108,7 +110,11 @@ export function renderLocalizedFullStory(
     "",
     `**Visual direction:** ${packageValue.visualDirection}`,
     "",
-  ].join("\n");
+    FULL_STORY_PROVENANCE_MARKER,
+    sourceSha256 ? `<!-- source-sha256: ${sourceSha256} -->` : "",
+  ]
+    .filter((line) => line.length > 0)
+    .join("\n");
 }
 
 export function renderLocalizedShort(
@@ -146,4 +152,3 @@ export function renderLocalizedShort(
     "",
   ].join("\n");
 }
-

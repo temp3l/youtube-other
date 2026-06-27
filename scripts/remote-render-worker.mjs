@@ -2,8 +2,10 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { spawn } from "node:child_process";
+import process from "node:process";
 
 process.umask(0o077);
+const { setTimeout } = globalThis;
 
 const activeChildren = new Set();
 let abortRequested = false;
@@ -44,70 +46,6 @@ async function waitForInputs(workspaceRoot, inputPaths) {
     const resolved = safeResolve(workspaceRoot, inputPath);
     await waitForFile(resolved);
   }
-}
-
-function spawnCommand(executable, args, options = {}) {
-  return new Promise((resolve, reject) => {
-    const child = spawn(executable, args, {
-      cwd: options.cwd,
-      env: options.env,
-      stdio: ["ignore", "pipe", "pipe"],
-    });
-    activeChildren.add(child);
-    let stderr = "";
-    child.stderr.setEncoding("utf8");
-    child.stderr.on("data", (chunk) => {
-      stderr += chunk;
-    });
-    const timeout = options.timeoutMs
-      ? setTimeout(() => {
-          child.kill("SIGKILL");
-          reject(new Error(`Command timed out: ${executable}`));
-        }, options.timeoutMs)
-      : null;
-    const cleanup = () => {
-      if (timeout) {
-        clearTimeout(timeout);
-      }
-      activeChildren.delete(child);
-    };
-    const abortHandler = () => {
-      child.kill("SIGKILL");
-      reject(new Error(`Command aborted: ${executable}`));
-    };
-    if (options.signal) {
-      options.signal.addEventListener("abort", abortHandler, { once: true });
-    }
-    child.on("error", (error) => {
-      cleanup();
-      reject(error);
-    });
-    child.on("close", (exitCode) => {
-      cleanup();
-      if (options.signal) {
-        options.signal.removeEventListener("abort", abortHandler);
-      }
-      resolve({ exitCode: exitCode ?? 0, stderr });
-    });
-  });
-}
-
-async function probeMedia(filePath) {
-  const result = await spawnCommand(
-    "ffprobe",
-    [
-      "-v",
-      "quiet",
-      "-print_format",
-      "json",
-      "-show_format",
-      "-show_streams",
-      filePath,
-    ],
-    {}
-  );
-  const parsed = JSON.parse(result.stderr || "{}");
-  return parsed;
 }
 
 async function validateOutput(filePath, options = {}) {
@@ -169,7 +107,7 @@ async function validateOutput(filePath, options = {}) {
   };
 }
 
-async function renderClip(workspaceRoot, job, manifest) {
+async function renderClip(workspaceRoot, job) {
   const outputPath = safeResolve(workspaceRoot, job.outputPath);
   const logPath = safeResolve(workspaceRoot, job.logPath);
   const metadataPath = safeResolve(workspaceRoot, job.metadataPath);
@@ -245,7 +183,7 @@ async function main() {
         return;
       }
       try {
-        const result = await renderClip(workspaceRoot, job, rawManifest);
+        const result = await renderClip(workspaceRoot, job);
         results.push(result);
         if (result.status !== "succeeded") {
           failed = true;

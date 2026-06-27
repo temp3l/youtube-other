@@ -563,20 +563,15 @@ function hashBuffer(buffer: Buffer): string {
 }
 
 function sceneManifestPath(episodeDir: string, sceneId: string): string {
-  return path.join(
-    episodeDir,
-    "generated-assets",
-    "image-manifests",
-    `${sceneId}.json`
-  );
+  return path.join(episodeDir, "state", "image-generation", "manifests", `${sceneId}.json`);
 }
 
 function scenePromptPath(episodeDir: string, sceneId: string): string {
-  return path.join(episodeDir, "generated-assets", "prompts", `${sceneId}.txt`);
+  return path.join(episodeDir, "state", "image-generation", "prompts", `${sceneId}.txt`);
 }
 
 function sceneOutputPath(episodeDir: string, sceneId: string): string {
-  return path.join(episodeDir, "generated-assets", "images", `${sceneId}.png`);
+  return path.join(episodeDir, "state", "image-generation", "images", `${sceneId}.png`);
 }
 
 export function resolveEpisodeSharedDirectory(episodeDir: string): string {
@@ -1646,8 +1641,8 @@ export async function planEpisodeImageGeneration(
   options?: { sceneId?: string; client?: OpenAI }
 ): Promise<EpisodeImagePlanResult[]> {
   const registry = await loadRegistry(episodeDir, episodeId);
-  await ensureDir(path.join(episodeDir, "generated-assets", "image-manifests"));
-  await ensureDir(path.join(episodeDir, "generated-assets", "prompts"));
+  await ensureDir(path.join(episodeDir, "state", "image-generation", "manifests"));
+  await ensureDir(path.join(episodeDir, "state", "image-generation", "prompts"));
   const scenes = options?.sceneId
     ? scenePlan.scenes.filter((scene) => scene.id === options.sceneId)
     : scenePlan.scenes;
@@ -1814,8 +1809,8 @@ export async function generateEpisodeImages(
   options?: { sceneId?: string; force?: boolean; client?: OpenAI }
 ): Promise<EpisodeImageGenerationResult[]> {
   const registry = await loadRegistry(episodeDir, episodeId);
-  await ensureDir(path.join(episodeDir, "generated-assets", "image-manifests"));
-  await ensureDir(path.join(episodeDir, "generated-assets", "images"));
+  await ensureDir(path.join(episodeDir, "state", "image-generation", "manifests"));
+  await ensureDir(path.join(episodeDir, "state", "image-generation", "images"));
   const scenes = options?.sceneId
     ? scenePlan.scenes.filter((scene) => scene.id === options.sceneId)
     : scenePlan.scenes;

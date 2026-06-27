@@ -238,16 +238,39 @@ const CATEGORY_NAME_TO_ID: Record<string, string> = {
 };
 
 function normalizeText(value: string): string {
-  return normalizeWhitespace(
-    value.replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/gu, "")
-  );
+  return normalizeWhitespace(stripInvisibleControlChars(value));
 }
 
 function normalizeDescription(value: string): string {
   return value
     .replace(/\r\n/g, "\n")
-    .replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/gu, "")
+    .replace(/\n/u, "\n")
+    .split("")
+    .filter((character) => !isInvisibleControlCharacter(character))
+    .join("")
     .trim();
+}
+
+function isInvisibleControlCharacter(character: string): boolean {
+  const codePoint = character.codePointAt(0);
+  return (
+    codePoint !== undefined &&
+    ((codePoint >= 0x0000 && codePoint <= 0x0008) ||
+      codePoint === 0x000b ||
+      codePoint === 0x000c ||
+      (codePoint >= 0x000e && codePoint <= 0x001f) ||
+      codePoint === 0x007f)
+  );
+}
+
+function stripInvisibleControlChars(value: string): string {
+  let output = "";
+  for (const character of value) {
+    if (!isInvisibleControlCharacter(character)) {
+      output += character;
+    }
+  }
+  return output;
 }
 
 function normalizeLicense(value: string | undefined): z.infer<typeof licenseSchema> {
@@ -455,34 +478,61 @@ async function loadEpisodeManifest(episodeDir: string): Promise<EpisodeManifest 
 }
 
 async function resolveVideoPath(episodeDir: string, overrides?: YoutubeUploadOverrides, manifest?: EpisodeManifest | null): Promise<string> {
+  const resolveEpisodePath = (candidate: string | undefined): string | undefined =>
+    candidate
+      ? path.isAbsolute(candidate)
+        ? candidate
+        : path.resolve(episodeDir, candidate)
+      : undefined;
   if (overrides?.videoPath) {
-    return path.resolve(episodeDir, overrides.videoPath);
+    const absolute = resolveEpisodePath(overrides.videoPath);
+    if (!absolute) {
+      throw new YoutubeUploadValidationError("Invalid video path override.");
+    }
+    return absolute;
   }
   const manifestVideo = manifest?.artifacts.find((artifact) => artifact.kind === "video" && artifact.mimeType === "video/mp4");
-  if (manifestVideo && (await fileExists(manifestVideo.path))) {
-    return manifestVideo.path;
+  const manifestVideoPath = resolveEpisodePath(manifestVideo?.path);
+  if (manifestVideoPath && (await fileExists(manifestVideoPath))) {
+    return manifestVideoPath;
   }
-  const outputDir = path.join(episodeDir, "output");
-  const outputEntries = await fs.readdir(outputDir, { withFileTypes: true }).catch(() => []);
-  const mp4Candidates = outputEntries
-    .filter((entry) => entry.isFile() && entry.name.endsWith(".mp4"))
-    .map((entry) => path.join(outputDir, entry.name))
-    .sort((left, right) => {
-      const score = (value: string): number => {
-        const normalized = path.basename(value).toLowerCase();
-        if (normalized.includes("youtube-16x9-clean")) {
-          return 0;
-        }
-        if (normalized.includes("clean")) {
-          return 1;
-        }
-        if (normalized.includes("captioned")) {
-          return 2;
-        }
-        return 3;
-      };
-      return score(left) - score(right) || left.localeCompare(right);
-    });
+  const localeRoots = await fs.readdir(path.join(episodeDir, "locales"), {
+    withFileTypes: true,
+  }).catch(() => []);
+  const candidateDirs = [
+    ...localeRoots
+      .filter((entry) => entry.isDirectory())
+      .map((entry) => entry.name)
+      .sort((left, right) => left.localeCompare(right))
+      .map((localeName) =>
+        path.join(episodeDir, "locales", localeName, "full", "renders", "youtube")
+      ),
+    path.join(episodeDir, "output"),
+  ];
+  const mp4Candidates: string[] = [];
+  for (const outputDir of candidateDirs) {
+    const outputEntries = await fs.readdir(outputDir, { withFileTypes: true }).catch(() => []);
+    const currentCandidates = outputEntries
+      .filter((entry) => entry.isFile() && entry.name.endsWith(".mp4"))
+      .map((entry) => path.join(outputDir, entry.name));
+    mp4Candidates.push(...currentCandidates);
+  }
+  mp4Candidates.sort((left, right) => {
+    const score = (value: string): number => {
+      const normalized = path.basename(value).toLowerCase();
+      if (normalized.includes("youtube-16x9-clean")) {
+        return 0;
+      }
+      if (normalized.includes("clean")) {
+        return 1;
+      }
+      if (normalized.includes("captioned")) {
+        return 2;
+      }
+      return 3;
+    };
+    return score(left) - score(right) || left.localeCompare(right);
+  });
   if (mp4Candidates.length > 0) {
     return mp4Candidates[0]!;
   }
@@ -502,8 +552,18 @@ async function resolveThumbnailPath(
   language: string | undefined,
   overrides?: YoutubeUploadOverrides
 ): Promise<string> {
+  const resolveEpisodePath = (candidate: string | undefined): string | undefined =>
+    candidate
+      ? path.isAbsolute(candidate)
+        ? candidate
+        : path.resolve(episodeDir, candidate)
+      : undefined;
   if (overrides?.thumbnailPath) {
-    return path.resolve(episodeDir, overrides.thumbnailPath);
+    const absolute = resolveEpisodePath(overrides.thumbnailPath);
+    if (!absolute) {
+      throw new YoutubeUploadValidationError("Invalid thumbnail path override.");
+    }
+    return absolute;
   }
   const thumbnailLanguage = normalizeThumbnailLanguage(language);
   const thumbnailRoot = thumbnailLanguage
@@ -554,7 +614,7 @@ async function prepareThumbnailForUpload(episodeDir: string, sourcePath: string)
   readonly mimeType: "image/png" | "image/jpeg" | "image/webp";
   readonly optimized: boolean;
 }> {
-  const thumbnailDir = path.join(episodeDir, "generated-assets", "thumbnails");
+  const thumbnailDir = path.join(episodeDir, "state", "upload", "thumbnails");
   await ensureDir(thumbnailDir);
   const stagedPath = path.join(thumbnailDir, "youtube-thumbnail.jpg");
   const originalStats = await fs.stat(sourcePath);
@@ -781,9 +841,21 @@ export async function generateUploadMetadataForEpisode(
   metadataPath?: string
 ): Promise<{ readonly metadata: YoutubeMetadata; readonly metadataPath: string; readonly metadataSha256: string; readonly resolvedVideoPath: string; readonly resolvedThumbnailPath: string }> {
   const manifest = await loadEpisodeManifest(episodeDir);
+  const localeRoots = await fs.readdir(path.join(episodeDir, "locales"), {
+    withFileTypes: true,
+  }).catch(() => []);
+  const localizedMetadataCandidates = localeRoots
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => entry.name)
+    .sort((left, right) => left.localeCompare(right))
+    .flatMap((entry) => [
+      path.join(episodeDir, "locales", entry, "full", "metadata", "youtube.json"),
+      path.join(episodeDir, "locales", entry, "full", "metadata", "youtube-metadata.json"),
+    ]);
   const targetMetadataPath = metadataPath
     ? path.resolve(episodeDir, metadataPath)
     : await resolveFirstExisting([
+        ...localizedMetadataCandidates,
         path.join(episodeDir, "metadata", "youtube.json"),
         path.join(episodeDir, "metadata", "youtube-metadata.json"),
         path.join(episodeDir, "output", "youtube.json"),
@@ -814,6 +886,7 @@ export async function generateUploadMetadataForEpisode(
 
 async function resolveScenesFileForEpisode(episodeDir: string): Promise<string> {
   const candidates = [
+    path.join(episodeDir, "canonical", "scenes.json"),
     path.join(episodeDir, "scenes.json"),
     path.join(episodeDir, "output", "scenes.json"),
   ];
@@ -932,7 +1005,7 @@ async function validateChannelOwnership(
 export async function uploadYoutubeEpisode(input: YoutubeUploadCommandInput): Promise<YoutubeUploadResult> {
   const startedAt = Date.now();
   const episodeDir = input.episodeDir ?? path.join(input.workspaceDir, input.episodeId);
-  const reportDir = input.reportDir ?? path.join(episodeDir, "generated-assets", "upload-reports");
+  const reportDir = input.reportDir ?? path.join(episodeDir, "state", "upload", "reports");
   const resolved = await generateUploadMetadataForEpisode(
     episodeDir,
     input.episodeId,

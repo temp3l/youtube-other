@@ -407,6 +407,9 @@ export class OutputWriteError extends Error {
 function resolveEpisodeDirFromScenesFile(sourceFilePath: string): string {
   const resolved = path.resolve(sourceFilePath);
   const parent = path.basename(path.dirname(resolved));
+  if (parent === "canonical") {
+    return path.dirname(path.dirname(resolved));
+  }
   if (parent === "output") {
     return path.dirname(path.dirname(resolved));
   }
@@ -863,12 +866,23 @@ export async function readAndValidateScenesFile(sourceFilePath: string, language
   const target = parseScenesFile(raw, resolved);
   return {
     ...target,
-    language
+    language,
+    outputDir: path.join(
+      target.episodeDir,
+      "locales",
+      safeBasename(language),
+      "full",
+      "metadata"
+    )
   };
 }
 
 export async function findEpisodeScenesFile(workspaceDir: string, episodeSlug: string): Promise<string> {
   const episodeDir = path.join(workspaceDir, episodeSlug);
+  const canonicalScenes = path.join(episodeDir, "canonical", "scenes.json");
+  if (await fileExists(canonicalScenes)) {
+    return canonicalScenes;
+  }
   const rootScenes = path.join(episodeDir, "scenes.json");
   if (await fileExists(rootScenes)) {
     return rootScenes;
@@ -888,6 +902,11 @@ export async function listEpisodeSceneFiles(workspaceDir: string): Promise<Array
       continue;
     }
     const episodeSlug = entry.name;
+    const canonicalScenes = path.join(workspaceDir, episodeSlug, "canonical", "scenes.json");
+    if (await fileExists(canonicalScenes)) {
+      results.push({ episodeSlug, sourceFilePath: canonicalScenes });
+      continue;
+    }
     const rootScenes = path.join(workspaceDir, episodeSlug, "scenes.json");
     if (await fileExists(rootScenes)) {
       results.push({ episodeSlug, sourceFilePath: rootScenes });

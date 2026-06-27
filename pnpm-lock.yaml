@@ -117,6 +117,9 @@ importers:
       '@mediaforge/speech':
         specifier: workspace:*
         version: link:../../packages/speech
+      '@mediaforge/story-localization':
+        specifier: workspace:*
+        version: link:../../packages/story-localization
       '@mediaforge/testing':
         specifier: workspace:*
         version: link:../../packages/testing
@@ -126,6 +129,9 @@ importers:
       '@mediaforge/transcription':
         specifier: workspace:*
         version: link:../../packages/transcription
+      '@mediaforge/youtube-upload':
+        specifier: workspace:*
+        version: link:../../packages/youtube-upload
       commander:
         specifier: ^14.0.0
         version: 14.0.3
@@ -171,6 +177,9 @@ importers:
 
   packages/dark-truth:
     dependencies:
+      '@mediaforge/config':
+        specifier: workspace:*
+        version: link:../config
       '@mediaforge/domain':
         specifier: workspace:*
         version: link:../domain
@@ -204,12 +213,18 @@ importers:
       '@mediaforge/domain':
         specifier: workspace:*
         version: link:../domain
+      '@mediaforge/observability':
+        specifier: workspace:*
+        version: link:../observability
       '@mediaforge/process-runner':
         specifier: workspace:*
         version: link:../process-runner
       '@mediaforge/shared':
         specifier: workspace:*
         version: link:../shared
+      '@mediaforge/story-localization':
+        specifier: workspace:*
+        version: link:../story-localization
       openai:
         specifier: ^6.44.0
         version: 6.45.0(zod@4.4.3)
@@ -225,6 +240,9 @@ importers:
       '@mediaforge/domain':
         specifier: workspace:*
         version: link:../domain
+      '@mediaforge/observability':
+        specifier: workspace:*
+        version: link:../observability
       '@mediaforge/process-runner':
         specifier: workspace:*
         version: link:../process-runner
@@ -240,6 +258,9 @@ importers:
 
   packages/observability:
     dependencies:
+      '@mediaforge/shared':
+        specifier: workspace:*
+        version: link:../shared
       pino:
         specifier: ^9.8.0
         version: 9.14.0
@@ -318,6 +339,9 @@ importers:
       '@mediaforge/domain':
         specifier: workspace:*
         version: link:../domain
+      '@mediaforge/observability':
+        specifier: workspace:*
+        version: link:../observability
       '@mediaforge/shared':
         specifier: workspace:*
         version: link:../shared
@@ -348,6 +372,9 @@ importers:
       '@mediaforge/domain':
         specifier: workspace:*
         version: link:../domain
+      '@mediaforge/observability':
+        specifier: workspace:*
+        version: link:../observability
       '@mediaforge/process-runner':
         specifier: workspace:*
         version: link:../process-runner
@@ -393,9 +420,27 @@ importers:
       '@mediaforge/domain':
         specifier: workspace:*
         version: link:../domain
+      '@mediaforge/observability':
+        specifier: workspace:*
+        version: link:../observability
       '@mediaforge/process-runner':
         specifier: workspace:*
         version: link:../process-runner
+      '@mediaforge/shared':
+        specifier: workspace:*
+        version: link:../shared
+      openai:
+        specifier: ^6.44.0
+        version: 6.45.0(zod@4.4.3)
+      zod:
+        specifier: ^4.0.14
+        version: 4.4.3
+
+  packages/story-localization:
+    dependencies:
+      '@mediaforge/observability':
+        specifier: workspace:*
+        version: link:../observability
       '@mediaforge/shared':
         specifier: workspace:*
         version: link:../shared
@@ -423,6 +468,9 @@ importers:
       '@mediaforge/domain':
         specifier: workspace:*
         version: link:../domain
+      '@mediaforge/observability':
+        specifier: workspace:*
+        version: link:../observability
       '@mediaforge/process-runner':
         specifier: workspace:*
         version: link:../process-runner
@@ -438,12 +486,42 @@ importers:
       '@mediaforge/domain':
         specifier: workspace:*
         version: link:../domain
+      '@mediaforge/observability':
+        specifier: workspace:*
+        version: link:../observability
       '@mediaforge/process-runner':
         specifier: workspace:*
         version: link:../process-runner
       '@mediaforge/shared':
         specifier: workspace:*
         version: link:../shared
+      zod:
+        specifier: ^4.0.14
+        version: 4.4.3
+
+  packages/youtube-upload:
+    dependencies:
+      '@mediaforge/config':
+        specifier: workspace:*
+        version: link:../config
+      '@mediaforge/domain':
+        specifier: workspace:*
+        version: link:../domain
+      '@mediaforge/metadata':
+        specifier: workspace:*
+        version: link:../metadata
+      '@mediaforge/observability':
+        specifier: workspace:*
+        version: link:../observability
+      '@mediaforge/shared':
+        specifier: workspace:*
+        version: link:../shared
+      googleapis:
+        specifier: ^173.0.0
+        version: 173.0.0
+      sharp:
+        specifier: ^0.34.3
+        version: 0.34.5
       zod:
         specifier: ^4.0.14
         version: 4.4.3

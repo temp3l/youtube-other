@@ -21,6 +21,8 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
+type ProcessEnv = Readonly<Record<string, string | undefined>>;
+
 export interface VideoRenderRequest {
   readonly episodeDir: string;
   readonly scenePlan: ScenePlan;
@@ -464,7 +466,7 @@ async function spawnWithResult(
   args: readonly string[],
   options: {
     readonly cwd?: string;
-    readonly env?: NodeJS.ProcessEnv;
+    readonly env?: ProcessEnv;
     readonly timeoutMs?: number;
     readonly signal?: AbortSignal;
   } = {}
@@ -521,7 +523,7 @@ function spawnBackgroundProcess(
   args: readonly string[],
   options: {
     readonly cwd?: string;
-    readonly env?: NodeJS.ProcessEnv;
+    readonly env?: ProcessEnv;
     readonly timeoutMs?: number;
     readonly signal?: AbortSignal;
   } = {}

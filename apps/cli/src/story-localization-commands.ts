@@ -1,5 +1,7 @@
 import path from "node:path";
 import { Command } from "commander";
+import { registerStoryRewriteShortCommand } from "./story-short-rewrite-command.js";
+import { registerStoryRewriteFullCommand } from "./story-full-rewrite-command.js";
 import {
   cancelStoryBatch,
   createOpenAiStoryClient,
@@ -704,9 +706,8 @@ export function registerStoryLocalizationCommands(program: Command): void {
     };
   };
 
-  program
-    .command("stories")
-    .description("Story localization utilities")
+  const stories = program.command("stories").description("Story localization utilities");
+  stories
     .command("localize")
     .option("--all", "process all discovered English full stories")
     .option("--file <path>", "explicit canonical English full story file")
@@ -748,6 +749,9 @@ export function registerStoryLocalizationCommands(program: Command): void {
     .action(async (opts: StoryLocalizationCliOptions) =>
       commandStoriesLocalize(normalizeCommandFlags(opts))
     );
+
+  registerStoryRewriteShortCommand(stories);
+  registerStoryRewriteFullCommand(stories);
 
   const batches = program
     .command("stories:batches")
