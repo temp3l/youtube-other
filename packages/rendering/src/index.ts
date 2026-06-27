@@ -1,8 +1,3 @@
-import fs from "node:fs/promises";
-import os from "node:os";
-import path from "node:path";
-import { spawn } from "node:child_process";
-import { randomUUID } from "node:crypto";
 import {
   MediaValidationError,
   ProcessExecutionError,
@@ -10,15 +5,21 @@ import {
   type ScenePlan,
   scenePlanSchema,
 } from "@mediaforge/domain";
+import { runCommand, runCommandJson } from "@mediaforge/process-runner";
 import {
   ensureDir,
+  copyAtomic,
   fileExists,
   hashFile,
   hashText,
   writeJsonAtomic,
   writeTextAtomic,
 } from "@mediaforge/shared";
-import { runCommand, runCommandJson } from "@mediaforge/process-runner";
+import { spawn } from "node:child_process";
+import { randomUUID } from "node:crypto";
+import fs from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
 
 export interface VideoRenderRequest {
   readonly episodeDir: string;
@@ -47,6 +48,14 @@ export interface SceneClipRenderResult {
   readonly clipPaths: string[];
 }
 
+export interface RemoteAssetRecord {
+  readonly localPath: string;
+  readonly sourcePath: string;
+  readonly contentHash: string;
+  readonly remotePath: string;
+  readonly sizeBytes: number;
+}
+
 interface SceneClipManifest {
   readonly schemaVersion: 2;
   readonly sceneId: string;
@@ -66,6 +75,110 @@ interface SceneClipManifest {
   readonly renderer?: "local" | "remote";
   readonly outputSha256: string;
   readonly generatedAt: string;
+}
+
+interface SpawnedProcessResult {
+  readonly stdout: string;
+  readonly stderr: string;
+  readonly exitCode: number;
+}
+
+interface SpawnedBackgroundProcess {
+  readonly child: ReturnType<typeof spawn>;
+  readonly promise: Promise<SpawnedProcessResult>;
+}
+
+function buildSceneClipManifest(
+  request: {
+    readonly sceneId: string;
+    readonly sceneHash: string;
+    readonly imageSha256: string;
+    readonly audioSha256: string;
+    readonly captionsSha256?: string;
+    readonly renderProfile: SceneClipManifest["renderProfile"];
+    readonly trailingSilenceRatio: number;
+    readonly trailingSilenceBufferSeconds: number;
+    readonly renderFingerprint?: string;
+  },
+  outputSha256: string,
+  renderer?: "local" | "remote"
+): SceneClipManifest {
+  return {
+    schemaVersion: 2,
+    sceneId: request.sceneId,
+    sceneHash: request.sceneHash,
+    imageSha256: request.imageSha256,
+    audioSha256: request.audioSha256,
+    ...(request.captionsSha256
+      ? { captionsSha256: request.captionsSha256 }
+      : {}),
+    renderProfile: request.renderProfile,
+    trailingSilenceRatio: request.trailingSilenceRatio,
+    trailingSilenceBufferSeconds: request.trailingSilenceBufferSeconds,
+    ...(request.renderFingerprint
+      ? { renderFingerprint: request.renderFingerprint }
+      : {}),
+    ...(renderer ? { renderer } : {}),
+    outputSha256,
+    generatedAt: new Date().toISOString(),
+  };
+}
+
+async function writeSceneClipManifest(
+  manifestPath: string,
+  manifest: SceneClipManifest
+): Promise<void> {
+  await writeJsonAtomic(manifestPath, manifest);
+}
+
+async function writeSceneClipManifestFromRequest(
+  request: ClipRenderRequest,
+  outputSha256: string,
+  renderer?: "local" | "remote"
+): Promise<void> {
+  if (!request.sceneManifest) {
+    return;
+  }
+  await writeSceneClipManifest(
+    request.sceneManifest.manifestPath,
+    buildSceneClipManifest(
+      {
+        sceneId: request.clipId,
+        sceneHash: request.sceneManifest.sceneHash,
+        imageSha256: request.sceneManifest.imageSha256,
+        audioSha256: request.sceneManifest.audioSha256,
+        ...(request.sceneManifest.captionsSha256
+          ? { captionsSha256: request.sceneManifest.captionsSha256 }
+          : {}),
+        renderProfile: request.sceneManifest.renderProfile,
+        trailingSilenceRatio: request.sceneManifest.trailingSilenceRatio,
+        trailingSilenceBufferSeconds:
+          request.sceneManifest.trailingSilenceBufferSeconds,
+        renderFingerprint: request.sceneManifest.renderFingerprint,
+      },
+      outputSha256,
+      renderer
+    )
+  );
+}
+
+export interface BackfillSceneClipManifestsRequest {
+  readonly episodeDir: string;
+  readonly scenePlan: ScenePlan;
+  readonly outputDir: string;
+  readonly renderProfile: RenderProfile;
+  readonly captionBurnIn: boolean;
+  readonly clipsDirName?: string;
+  readonly sceneAudioDir?: string;
+  readonly imageDir?: string;
+  readonly trailingSilenceRatio?: number;
+  readonly trailingSilenceBufferSeconds?: number;
+}
+
+export interface BackfillSceneClipManifestsResult {
+  readonly clipsDir: string;
+  readonly written: number;
+  readonly skipped: number;
 }
 
 function scenePlanDurationSeconds(scenePlan: ScenePlan): number {
@@ -97,6 +210,122 @@ export interface VideoRenderer {
   ): Promise<SceneClipRenderResult>;
 }
 
+export async function backfillSceneClipManifests(
+  request: BackfillSceneClipManifestsRequest
+): Promise<BackfillSceneClipManifestsResult> {
+  await ensureDir(request.outputDir);
+  const clipsDir = path.join(
+    request.outputDir,
+    request.clipsDirName ?? "clips"
+  );
+  await ensureDir(clipsDir);
+  const imageDir =
+    request.imageDir ?? path.join(request.episodeDir, "images", "generated");
+  const audioDir =
+    request.sceneAudioDir ?? path.join(request.episodeDir, "audio", "segments");
+  const sortedScenePlan = stableSortScenes(request.scenePlan);
+  let written = 0;
+  let skipped = 0;
+  for (const [index, scene] of sortedScenePlan.scenes.entries()) {
+    const clipPath = path.join(clipsDir, `${scene.id}.mp4`);
+    const manifestPath = path.join(clipsDir, `${scene.id}.json`);
+    if (!(await fileExists(clipPath))) {
+      skipped += 1;
+      continue;
+    }
+    const imagePath = await resolveSceneImagePath(
+      request.episodeDir,
+      sortedScenePlan,
+      index,
+      imageDir
+    );
+    const audioPath = await resolveSceneAudioPath(
+      request.episodeDir,
+      sortedScenePlan,
+      index,
+      audioDir
+    );
+    const currentSceneHash = sceneHash(scene);
+    const currentImageSha256 = await hashFile(imagePath).catch(() => "");
+    const currentAudioSha256 = await hashFile(audioPath).catch(() => "");
+    const clipRequest = await buildSceneClipRenderRequest({
+      episodeId: sortedScenePlan.sourceId,
+      clipId: scene.id,
+      sequenceNumber: scene.sequenceNumber,
+      imagePath,
+      audioPath,
+      sceneHash: currentSceneHash,
+      imageSha256: currentImageSha256,
+      audioSha256: currentAudioSha256,
+      manifestPath,
+      outputPath: clipPath,
+      fps: request.renderProfile.fps,
+      width: request.renderProfile.width,
+      height: request.renderProfile.height,
+      minimumDurationSeconds: Math.max(
+        0.1,
+        scene.timing.endSeconds - scene.timing.startSeconds
+      ),
+      trailingSilenceRatio: request.trailingSilenceRatio ?? 0.8,
+      trailingSilenceBufferSeconds: request.trailingSilenceBufferSeconds ?? 0,
+    });
+    const existingManifest = await loadSceneClipManifest(manifestPath);
+    if (
+      existingManifest &&
+      existingManifest.sceneHash === currentSceneHash &&
+      existingManifest.imageSha256 === currentImageSha256 &&
+      existingManifest.audioSha256 === currentAudioSha256 &&
+      ((existingManifest.renderFingerprint !== undefined &&
+        existingManifest.renderFingerprint === clipRequest.renderFingerprint) ||
+        (existingManifest.renderFingerprint === undefined &&
+          existingManifest.renderProfile.aspectRatio ===
+            clipRequest.sceneManifest?.renderProfile.aspectRatio &&
+          existingManifest.renderProfile.width ===
+            clipRequest.sceneManifest?.renderProfile.width &&
+          existingManifest.renderProfile.height ===
+            clipRequest.sceneManifest?.renderProfile.height &&
+          existingManifest.renderProfile.fps ===
+            clipRequest.sceneManifest?.renderProfile.fps &&
+          existingManifest.trailingSilenceRatio ===
+            (request.trailingSilenceRatio ?? 0.8) &&
+          existingManifest.trailingSilenceBufferSeconds ===
+            (request.trailingSilenceBufferSeconds ?? 0))) &&
+      existingManifest.outputSha256 ===
+        (await hashFile(clipPath).catch(() => ""))
+    ) {
+      skipped += 1;
+      continue;
+    }
+    const validation = await validateRenderOutput(clipPath, {
+      ...(clipRequest.expectedDurationSeconds !== undefined
+        ? { expectedDurationSeconds: clipRequest.expectedDurationSeconds }
+        : {}),
+      ...(clipRequest.expectedWidth !== undefined
+        ? { expectedWidth: clipRequest.expectedWidth }
+        : {}),
+      ...(clipRequest.expectedHeight !== undefined
+        ? { expectedHeight: clipRequest.expectedHeight }
+        : {}),
+    });
+    if (!validation.valid) {
+      throw new MediaValidationError(
+        `Unable to backfill ${scene.id}: ${validation.issues.join("; ")}`
+      );
+    }
+    await writeSceneClipManifestFromRequest(
+      clipRequest,
+      await hashFile(clipPath),
+      existingManifest?.renderer
+    );
+    written += 1;
+  }
+  return {
+    clipsDir,
+    written,
+    skipped,
+  };
+}
+
 export interface ClipRenderRequest {
   readonly episodeId: string;
   readonly clipId: string;
@@ -107,6 +336,17 @@ export interface ClipRenderRequest {
   readonly expectedDurationSeconds?: number;
   readonly expectedWidth?: number;
   readonly expectedHeight?: number;
+  readonly sceneManifest?: {
+    readonly manifestPath: string;
+    readonly sceneHash: string;
+    readonly imageSha256: string;
+    readonly audioSha256: string;
+    readonly captionsSha256?: string;
+    readonly renderProfile: SceneClipManifest["renderProfile"];
+    readonly trailingSilenceRatio: number;
+    readonly trailingSilenceBufferSeconds: number;
+    readonly renderFingerprint: string;
+  };
 }
 
 export interface ClipRenderResult {
@@ -187,9 +427,7 @@ function buildRenderFingerprint(
       episodeId: request.episodeId,
       clipId: request.clipId,
       sequenceNumber: request.sequenceNumber,
-      inputPaths: [...request.inputPaths].map((value) =>
-        path.resolve(value)
-      ),
+      inputPaths: [...request.inputPaths].map((value) => path.resolve(value)),
       ffmpegArguments: [...request.ffmpegArguments],
       expectedDurationSeconds: request.expectedDurationSeconds ?? null,
       expectedWidth: request.expectedWidth ?? null,
@@ -203,8 +441,8 @@ function mapCommandPaths(
   args: readonly string[],
   pathMap: ReadonlyMap<string, string>
 ): string[] {
-  const ordered = [...pathMap.entries()].sort((left, right) =>
-    right[0].length - left[0].length
+  const ordered = [...pathMap.entries()].sort(
+    (left, right) => right[0].length - left[0].length
   );
   return args.map((argument) => {
     let next = argument;
@@ -243,7 +481,9 @@ async function spawnWithResult(
       options.timeoutMs !== undefined
         ? setTimeout(() => {
             child.kill("SIGKILL");
-            reject(new ProcessExecutionError(`Command timed out: ${executable}`));
+            reject(
+              new ProcessExecutionError(`Command timed out: ${executable}`)
+            );
           }, options.timeoutMs)
         : null;
     const abortHandler = (): void => {
@@ -274,6 +514,68 @@ async function spawnWithResult(
       resolve({ stdout, stderr, exitCode: exitCode ?? 0 });
     });
   });
+}
+
+function spawnBackgroundProcess(
+  executable: string,
+  args: readonly string[],
+  options: {
+    readonly cwd?: string;
+    readonly env?: NodeJS.ProcessEnv;
+    readonly timeoutMs?: number;
+    readonly signal?: AbortSignal;
+  } = {}
+): SpawnedBackgroundProcess {
+  const child = spawn(executable, [...args], {
+    cwd: options.cwd,
+    env: options.env,
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+  let stdout = "";
+  let stderr = "";
+  const promise = new Promise<SpawnedProcessResult>((resolve, reject) => {
+    const timeout =
+      options.timeoutMs !== undefined
+        ? setTimeout(() => {
+            child.kill("SIGKILL");
+            reject(
+              new ProcessExecutionError(`Command timed out: ${executable}`)
+            );
+          }, options.timeoutMs)
+        : null;
+    const abortHandler = (): void => {
+      child.kill("SIGKILL");
+      reject(new ProcessExecutionError(`Command aborted: ${executable}`));
+    };
+    const cleanup = (): void => {
+      if (timeout !== null) {
+        clearTimeout(timeout);
+      }
+      options.signal?.removeEventListener("abort", abortHandler);
+    };
+    options.signal?.addEventListener("abort", abortHandler, { once: true });
+    child.stdout?.setEncoding("utf8");
+    child.stderr?.setEncoding("utf8");
+    child.stdout?.on("data", (chunk: string) => {
+      stdout += chunk;
+    });
+    child.stderr?.on("data", (chunk: string) => {
+      stderr += chunk;
+    });
+    child.on("error", (error) => {
+      cleanup();
+      reject(
+        new ProcessExecutionError(
+          `Failed to start ${executable}: ${(error as Error).message}`
+        )
+      );
+    });
+    child.on("close", (exitCode) => {
+      cleanup();
+      resolve({ stdout, stderr, exitCode: exitCode ?? 0 });
+    });
+  });
+  return { child, promise };
 }
 
 function toPositiveFiniteNumber(value: number | undefined): number | undefined {
@@ -324,7 +626,9 @@ async function validateRenderOutput(
       `Unexpected height ${validation.height}; expected ${options.expectedHeight}.`
     );
   }
-  const expectedDuration = toPositiveFiniteNumber(options.expectedDurationSeconds);
+  const expectedDuration = toPositiveFiniteNumber(
+    options.expectedDurationSeconds
+  );
   if (expectedDuration !== undefined) {
     const tolerance = options.durationToleranceSeconds ?? 0.5;
     if (Math.abs(validation.durationSeconds - expectedDuration) > tolerance) {
@@ -536,27 +840,30 @@ function buildSceneClipFilterGraph(
     : scaleFilter;
 }
 
-export async function buildSceneClipRenderRequest(
-  request: {
-    readonly episodeId: string;
-    readonly clipId: string;
-    readonly sequenceNumber: number;
-    readonly imagePath: string;
-    readonly audioPath: string;
-    readonly outputPath: string;
-    readonly fps: number;
-    readonly width: number;
-    readonly height: number;
-    readonly minimumDurationSeconds: number;
-    readonly captionsPath?: string;
-    readonly trailingSilenceRatio?: number;
-    readonly trailingSilenceBufferSeconds?: number;
-  }
-): Promise<ClipRenderRequest & { readonly renderFingerprint: string }> {
+export async function buildSceneClipRenderRequest(request: {
+  readonly episodeId: string;
+  readonly clipId: string;
+  readonly sequenceNumber: number;
+  readonly imagePath: string;
+  readonly audioPath: string;
+  readonly sceneHash?: string;
+  readonly imageSha256?: string;
+  readonly audioSha256?: string;
+  readonly manifestPath?: string;
+  readonly captionsSha256?: string;
+  readonly outputPath: string;
+  readonly fps: number;
+  readonly width: number;
+  readonly height: number;
+  readonly minimumDurationSeconds: number;
+  readonly captionsPath?: string;
+  readonly trailingSilenceRatio?: number;
+  readonly trailingSilenceBufferSeconds?: number;
+}): Promise<ClipRenderRequest & { readonly renderFingerprint: string }> {
   const clipDurationSeconds = await calculateClipDurationSeconds(
     request.audioPath,
     request.trailingSilenceRatio ?? 0.8,
-    request.trailingSilenceBufferSeconds ?? 0.5
+    request.trailingSilenceBufferSeconds ?? 0
   );
   const targetDurationSeconds = Math.max(
     request.minimumDurationSeconds,
@@ -586,6 +893,31 @@ export async function buildSceneClipRenderRequest(
     "aac",
     request.outputPath,
   ];
+  const renderFingerprint = buildRenderFingerprint(
+    {
+      episodeId: request.episodeId,
+      clipId: request.clipId,
+      sequenceNumber: request.sequenceNumber,
+      inputPaths: [
+        request.imagePath,
+        request.audioPath,
+        ...(request.captionsPath ? [request.captionsPath] : []),
+      ],
+      outputPath: request.outputPath,
+      ffmpegArguments,
+      expectedDurationSeconds: targetDurationSeconds,
+      expectedWidth: request.width,
+      expectedHeight: request.height,
+    },
+    {
+      fps: request.fps,
+      width: request.width,
+      height: request.height,
+      captionsPath: request.captionsPath ?? null,
+      trailingSilenceRatio: request.trailingSilenceRatio ?? 0.8,
+      trailingSilenceBufferSeconds: request.trailingSilenceBufferSeconds ?? 0,
+    }
+  );
   return {
     episodeId: request.episodeId,
     clipId: request.clipId,
@@ -600,32 +932,33 @@ export async function buildSceneClipRenderRequest(
     expectedDurationSeconds: targetDurationSeconds,
     expectedWidth: request.width,
     expectedHeight: request.height,
-    renderFingerprint: buildRenderFingerprint(
-      {
-        episodeId: request.episodeId,
-        clipId: request.clipId,
-        sequenceNumber: request.sequenceNumber,
-        inputPaths: [
-          request.imagePath,
-          request.audioPath,
-          ...(request.captionsPath ? [request.captionsPath] : []),
-        ],
-        outputPath: request.outputPath,
-        ffmpegArguments,
-        expectedDurationSeconds: targetDurationSeconds,
-        expectedWidth: request.width,
-        expectedHeight: request.height,
-      },
-      {
-        fps: request.fps,
-        width: request.width,
-        height: request.height,
-        captionsPath: request.captionsPath ?? null,
-        trailingSilenceRatio: request.trailingSilenceRatio ?? 0.8,
-        trailingSilenceBufferSeconds:
-          request.trailingSilenceBufferSeconds ?? 0.5,
-      }
-    ),
+    renderFingerprint,
+    ...(request.sceneHash &&
+    request.imageSha256 &&
+    request.audioSha256 &&
+    request.manifestPath
+      ? {
+          sceneManifest: {
+            manifestPath: request.manifestPath,
+            sceneHash: request.sceneHash,
+            imageSha256: request.imageSha256,
+            audioSha256: request.audioSha256,
+            ...(request.captionsSha256
+              ? { captionsSha256: request.captionsSha256 }
+              : {}),
+            renderProfile: {
+              aspectRatio: request.width < request.height ? "9:16" : "16:9",
+              width: request.width,
+              height: request.height,
+              fps: request.fps,
+            },
+            trailingSilenceRatio: request.trailingSilenceRatio ?? 0.8,
+            trailingSilenceBufferSeconds:
+              request.trailingSilenceBufferSeconds ?? 0,
+            renderFingerprint,
+          },
+        }
+      : {}),
   };
 }
 
@@ -639,7 +972,7 @@ async function renderSceneClip(
   minimumDurationSeconds: number,
   captionsPath?: string,
   trailingSilenceRatio = 0.8,
-  trailingSilenceBufferSeconds = 0.5
+  trailingSilenceBufferSeconds = 0
 ): Promise<void> {
   const request = await buildSceneClipRenderRequest({
     episodeId: "episode",
@@ -681,6 +1014,8 @@ export class LocalClipRenderer implements ClipRenderer {
         `Rendered clip ${request.clipId} failed validation: ${validation.issues.join("; ")}`
       );
     }
+    const outputSha256 = await hashFile(request.outputPath);
+    await writeSceneClipManifestFromRequest(request, outputSha256, "local");
     return {
       clipId: request.clipId,
       sequenceNumber: request.sequenceNumber,
@@ -810,24 +1145,48 @@ export interface RemoteBatchRenderResult {
 }
 
 function sanitizeWorkspaceSegment(value: string): string {
-  return value
-    .replace(/[^a-zA-Z0-9._-]+/gu, "-")
-    .replace(/-+/gu, "-")
-    .replace(/^[-.]+|[-.]+$/gu, "")
-    .slice(0, 48) || "run";
+  return (
+    value
+      .replace(/[^a-zA-Z0-9._-]+/gu, "-")
+      .replace(/-+/gu, "-")
+      .replace(/^[-.]+|[-.]+$/gu, "")
+      .slice(0, 48) || "run"
+  );
 }
 
 function createRemoteRunId(episodeId: string): string {
   return `run-${sanitizeWorkspaceSegment(episodeId)}-${Date.now().toString(36)}-${randomUUID().slice(0, 8)}`;
 }
 
-function sanitizeRemoteAssetName(sourcePath: string): string {
-  const baseName = path.basename(sourcePath);
-  const ext = path.extname(baseName);
-  const stem = baseName.slice(0, baseName.length - ext.length);
-  const safeStem = stem.replace(/[^a-zA-Z0-9._-]+/gu, "-");
-  const hash = hashText(path.resolve(sourcePath)).slice(0, 10);
-  return `${hash}-${safeStem || "asset"}${ext}`;
+export function remoteAssetFileName(contentHash: string): string {
+  return contentHash;
+}
+
+export function remoteAssetRoot(baseDir: string): string {
+  return path.posix.join(baseDir, "assets");
+}
+
+function remoteAssetManifestPath(baseDir: string): string {
+  return path.posix.join(remoteAssetRoot(baseDir), "manifest.json");
+}
+
+export function remoteAssetRemotePath(
+  baseDir: string,
+  contentHash: string
+): string {
+  return path.posix.join(remoteAssetRoot(baseDir), remoteAssetFileName(contentHash));
+}
+
+async function ensureCachedAsset(
+  localCacheDir: string,
+  sourcePath: string,
+  contentHash: string
+): Promise<string> {
+  const cachedPath = path.join(localCacheDir, remoteAssetFileName(contentHash));
+  if (!(await fileExists(cachedPath))) {
+    await copyAtomic(sourcePath, cachedPath);
+  }
+  return cachedPath;
 }
 
 function buildSshArgs(settings: RemoteRenderSettings): string[] {
@@ -859,11 +1218,10 @@ function buildRsyncArgs(
     "-a",
     "--partial",
     "--append-verify",
+    "--no-compress",
+    "-whole-file",
     "-e",
-    [
-      "ssh",
-      ...buildSshArgs(settings),
-    ].join(" "),
+    ["ssh", ...buildSshArgs(settings)].join(" "),
     sourcePath,
     targetPath,
   ];
@@ -899,8 +1257,15 @@ class RemoteWorkspaceManager {
     };
   }
 
+  public remoteAssetPath(baseDir: string, contentHash: string): string {
+    return remoteAssetRemotePath(baseDir, contentHash);
+  }
+
   public remotePath(remoteRoot: string, ...segments: string[]): string {
-    return path.posix.join(remoteRoot, ...segments.map((segment) => segment.replace(/\\/gu, "/")));
+    return path.posix.join(
+      remoteRoot,
+      ...segments.map((segment) => segment.replace(/\\/gu, "/"))
+    );
   }
 }
 
@@ -916,7 +1281,9 @@ class RemoteClipRenderer implements ClipRenderer {
   public async render(request: ClipRenderRequest): Promise<ClipRenderResult> {
     const [result] = await this.renderBatch([request]);
     if (!result) {
-      throw new MediaValidationError(`Remote render produced no result for ${request.clipId}.`);
+      throw new MediaValidationError(
+        `Remote render produced no result for ${request.clipId}.`
+      );
     }
     return result;
   }
@@ -925,40 +1292,70 @@ class RemoteClipRenderer implements ClipRenderer {
     requests: readonly ClipRenderRequest[]
   ): Promise<ClipRenderResult[]> {
     if (!this.settings.enabled) {
-      return Promise.all(requests.map((request) => this.localRenderer.render(request)));
+      return Promise.all(
+        requests.map((request) => this.localRenderer.render(request))
+      );
     }
     if (requests.length === 0) {
       return [];
     }
     await spawnWithResult("rsync", ["--version"], {}).catch(() => {
-      throw new ProcessExecutionError("rsync is required for remote rendering.");
+      throw new ProcessExecutionError(
+        "rsync is required for remote rendering."
+      );
     });
-    const workspace = this.workspaceManager.createWorkspace(requests[0]?.episodeId ?? "episode");
-    await fs.rm(workspace.localRoot, { recursive: true, force: true }).catch(() => {});
+    const workspace = this.workspaceManager.createWorkspace(
+      requests[0]?.episodeId ?? "episode"
+    );
+    await fs
+      .rm(workspace.localRoot, { recursive: true, force: true })
+      .catch(() => {});
     await ensureDir(workspace.inputDir);
     await ensureDir(workspace.outputDir);
     await ensureDir(workspace.logsDir);
     await ensureDir(workspace.metadataDir);
+    const localAssetCacheDir = path.join(
+      os.tmpdir(),
+      "mediaforge-remote-assets"
+    );
+    await ensureDir(localAssetCacheDir);
     const inputPathMap = new Map<string, string>();
-    const inputFiles: Array<{ readonly localPath: string; readonly remotePath: string; readonly sizeBytes: number }> = [];
+    const assetFiles = new Map<string, RemoteAssetRecord>();
+    const seenContentHashes = new Set<string>();
     for (const request of requests) {
       for (const inputPath of request.inputPaths) {
         const resolved = path.resolve(inputPath);
         if (inputPathMap.has(resolved)) {
           continue;
         }
-        const remotePath = this.workspaceManager.remotePath(
-          workspace.remoteRoot,
-          "input",
-          sanitizeRemoteAssetName(resolved)
+        const contentHash = await hashFile(resolved);
+        const remotePath = this.workspaceManager.remoteAssetPath(
+          this.settings.baseDir,
+          contentHash
         );
         inputPathMap.set(resolved, remotePath);
-        const stagingPath = path.join(workspace.inputDir, path.basename(remotePath));
-        await fs.copyFile(resolved, stagingPath);
-        const sizeBytes = (await fs.stat(resolved)).size;
-        inputFiles.push({ localPath: resolved, remotePath, sizeBytes });
+        if (!seenContentHashes.has(contentHash)) {
+          seenContentHashes.add(contentHash);
+          const cachedPath = await ensureCachedAsset(
+            localAssetCacheDir,
+            resolved,
+            contentHash
+          );
+          const sizeBytes = (await fs.stat(cachedPath)).size;
+          assetFiles.set(contentHash, {
+            localPath: cachedPath,
+            sourcePath: resolved,
+            contentHash,
+            remotePath,
+            sizeBytes,
+          });
+        }
       }
     }
+    const bootstrapRelativePaths = [
+      "metadata/job-manifest.json",
+      "metadata/remote-render-worker.mjs",
+    ];
     const remoteRequests = await Promise.all(
       requests.map(async (request) => {
         const mappedArgs = mapCommandPaths(
@@ -970,8 +1367,18 @@ class RemoteClipRenderer implements ClipRenderer {
           "output",
           path.basename(request.outputPath)
         );
+        const remoteInputPaths = request.inputPaths.map((inputPath) => {
+          const mapped = inputPathMap.get(path.resolve(inputPath));
+          if (!mapped) {
+            throw new ProcessExecutionError(
+              `Missing remote input mapping for ${inputPath} in ${request.clipId}.`
+            );
+          }
+          return mapped;
+        });
         return {
           ...request,
+          inputPaths: remoteInputPaths,
           outputPath: remoteOutputPath,
           ffmpegArguments: mapCommandPaths(
             mappedArgs,
@@ -991,8 +1398,12 @@ class RemoteClipRenderer implements ClipRenderer {
       jobs: remoteRequests.map((request) => ({
         clipId: request.clipId,
         sequenceNumber: request.sequenceNumber,
+        inputPaths: request.inputPaths,
         outputPath: request.outputPath,
-        metadataPath: remoteResultPathForClip(workspace.remoteRoot, request.clipId),
+        metadataPath: remoteResultPathForClip(
+          workspace.remoteRoot,
+          request.clipId
+        ),
         logPath: this.workspaceManager.remotePath(
           workspace.remoteRoot,
           "logs",
@@ -1014,45 +1425,101 @@ class RemoteClipRenderer implements ClipRenderer {
       workerSource,
       path.join(workspace.metadataDir, "remote-render-worker.mjs")
     );
-    await Promise.all([
-      ...inputFiles.map((inputFile) =>
-        fs.copyFile(
-          inputFile.localPath,
-          path.join(workspace.inputDir, path.basename(inputFile.remotePath))
-        )
-      ),
-    ]);
     await spawnWithResult("ssh", [
       ...buildSshArgs(this.settings),
       `${this.settings.user}@${this.settings.host}`,
       "mkdir",
       "-p",
       workspace.remoteRoot,
+      remoteAssetRoot(this.settings.baseDir),
     ]);
     const remoteTarget = `${this.settings.user}@${this.settings.host}:${workspace.remoteRoot}/`;
+    const bootstrapListPath = path.join(
+      workspace.metadataDir,
+      "bootstrap-files.txt"
+    );
+    await writeTextAtomic(bootstrapListPath, bootstrapRelativePaths.join("\n"));
     await spawnWithResult("rsync", [
       "-a",
       "--partial",
       "--append-verify",
       "-e",
       ["ssh", ...buildSshArgs(this.settings)].join(" "),
+      "--files-from",
+      bootstrapListPath,
       `${workspace.localRoot}/`,
       remoteTarget,
     ]);
+    const assetListPath = path.join(workspace.metadataDir, "asset-files.txt");
+    await writeTextAtomic(
+      assetListPath,
+      [...assetFiles.values()]
+        .map((assetFile) =>
+          path
+            .relative(localAssetCacheDir, assetFile.localPath)
+            .replace(/\\/gu, "/")
+        )
+        .join("\n")
+    );
+    const backgroundUpload = spawnBackgroundProcess("rsync", [
+      "-a",
+      "--partial",
+      "--append-verify",
+      "-e",
+      ["ssh", ...buildSshArgs(this.settings)].join(" "),
+      "--files-from",
+      assetListPath,
+      `${localAssetCacheDir}/`,
+      `${this.settings.user}@${this.settings.host}:${remoteAssetRoot(this.settings.baseDir)}/`,
+    ]);
+    await writeJsonAtomic(
+      path.join(workspace.metadataDir, "asset-manifest.json"),
+      {
+        schemaVersion: 1,
+        remoteAssetRoot: remoteAssetRoot(this.settings.baseDir),
+        remoteAssetManifestPath: remoteAssetManifestPath(this.settings.baseDir),
+        assets: [...assetFiles.values()].map((assetFile) => ({
+          sourcePath: assetFile.sourcePath,
+          contentHash: assetFile.contentHash,
+          remotePath: assetFile.remotePath,
+          sizeBytes: assetFile.sizeBytes,
+        })),
+      }
+    );
     const sshArgs = [
       ...buildSshArgs(this.settings),
       `${this.settings.user}@${this.settings.host}`,
       "node",
-      path.posix.join(workspace.remoteRoot, "metadata", "remote-render-worker.mjs"),
+      path.posix.join(
+        workspace.remoteRoot,
+        "metadata",
+        "remote-render-worker.mjs"
+      ),
       path.posix.join(workspace.remoteRoot, "metadata", "job-manifest.json"),
     ];
     const startedAt = Date.now();
-    const runResult = await spawnWithResult("ssh", sshArgs, {
+    const worker = spawnBackgroundProcess("ssh", sshArgs, {
       timeoutMs: Math.max(1, this.settings.commandTimeoutSeconds) * 1000,
     });
+    const runResult = await worker.promise.catch((error: unknown) => {
+      backgroundUpload.child.kill("SIGTERM");
+      throw error;
+    });
     if (runResult.exitCode !== 0) {
+      backgroundUpload.child.kill("SIGTERM");
       throw new ProcessExecutionError(
         `Remote render worker exited with code ${runResult.exitCode}: ${runResult.stderr.slice(0, 400)}`
+      );
+    }
+    const uploadResult = await backgroundUpload.promise.catch(
+      (error: unknown) => {
+        worker.child.kill("SIGTERM");
+        throw error;
+      }
+    );
+    if (uploadResult.exitCode !== 0) {
+      throw new ProcessExecutionError(
+        `Background remote upload exited with code ${uploadResult.exitCode}: ${uploadResult.stderr.slice(0, 400)}`
       );
     }
     await spawnWithResult("rsync", [
@@ -1084,13 +1551,22 @@ class RemoteClipRenderer implements ClipRenderer {
     ]);
     const results: ClipRenderResult[] = [];
     for (const request of requests) {
-      const localResultPath = path.join(workspace.metadataDir, `${request.clipId}.json`);
+      const localResultPath = path.join(
+        workspace.metadataDir,
+        `${request.clipId}.json`
+      );
       if (!(await fileExists(localResultPath))) {
         const fallbackResult = await this.localRenderer.render(request);
-        results.push({ ...fallbackResult, renderer: "local", fallbackUsed: true });
+        results.push({
+          ...fallbackResult,
+          renderer: "local",
+          fallbackUsed: true,
+        });
         continue;
       }
-      const remoteResult = JSON.parse(await fs.readFile(localResultPath, "utf8")) as {
+      const remoteResult = JSON.parse(
+        await fs.readFile(localResultPath, "utf8")
+      ) as {
         status?: string;
         outputPath?: string;
         outputSizeBytes?: number;
@@ -1107,7 +1583,11 @@ class RemoteClipRenderer implements ClipRenderer {
           );
         }
         const fallbackResult = await this.localRenderer.render(request);
-        results.push({ ...fallbackResult, renderer: "local", fallbackUsed: true });
+        results.push({
+          ...fallbackResult,
+          renderer: "local",
+          fallbackUsed: true,
+        });
         continue;
       }
       await ensureDir(path.dirname(localOutputPath));
@@ -1133,24 +1613,34 @@ class RemoteClipRenderer implements ClipRenderer {
           );
         }
         const fallbackResult = await this.localRenderer.render(request);
-        results.push({ ...fallbackResult, renderer: "local", fallbackUsed: true });
+        results.push({
+          ...fallbackResult,
+          renderer: "local",
+          fallbackUsed: true,
+        });
         await fs.rm(partialPath, { force: true }).catch(() => {});
         continue;
       }
       await fs.rename(partialPath, localOutputPath);
-      results.push({
-        clipId: request.clipId,
-        sequenceNumber: request.sequenceNumber,
-        renderer: "remote",
-        outputPath: localOutputPath,
+      await writeSceneClipManifestFromRequest(
+        request,
+        await hashFile(localOutputPath),
+        "remote"
+      );
+        results.push({
+          clipId: request.clipId,
+          sequenceNumber: request.sequenceNumber,
+          renderer: "remote",
+          outputPath: localOutputPath,
         durationMs:
           typeof remoteResult.durationMs === "number"
             ? remoteResult.durationMs
             : Date.now() - startedAt,
-        attempts: typeof remoteResult.attempt === "number" ? remoteResult.attempt : 1,
+        attempts:
+          typeof remoteResult.attempt === "number" ? remoteResult.attempt : 1,
         transferredBytes:
-          (inputFiles.reduce((sum, file) => sum + file.sizeBytes, 0) +
-            (await fs.stat(localOutputPath)).size),
+          [...assetFiles.values()].reduce((sum, file) => sum + file.sizeBytes, 0) +
+          (await fs.stat(localOutputPath)).size,
         fallbackUsed: false,
       });
     }
@@ -1183,7 +1673,8 @@ class HybridClipRenderScheduler {
       const localResults = await promisePool(
         sorted,
         this.localConcurrency,
-        async (request) => this.localRenderer.render(request).catch(() => undefined)
+        async (request) =>
+          this.localRenderer.render(request).catch(() => undefined)
       );
       return localResults.filter(
         (result): result is ClipRenderResult => result !== undefined
@@ -1306,6 +1797,13 @@ export class FFmpegVideoRenderer implements VideoRenderer {
           sequenceNumber: scene.sequenceNumber,
           imagePath,
           audioPath,
+          sceneHash: currentSceneHash,
+          imageSha256: currentImageSha256,
+          audioSha256: currentAudioSha256,
+          manifestPath,
+          ...(currentCaptionsSha256
+            ? { captionsSha256: currentCaptionsSha256 }
+            : {}),
           outputPath: clipPath,
           fps: request.renderProfile.fps,
           width: request.renderProfile.width,
@@ -1319,7 +1817,7 @@ export class FFmpegVideoRenderer implements VideoRenderer {
             : {}),
           trailingSilenceRatio: request.trailingSilenceRatio ?? 0.8,
           trailingSilenceBufferSeconds:
-            request.trailingSilenceBufferSeconds ?? 0.5,
+            request.trailingSilenceBufferSeconds ?? 0,
         });
         const clipIsReusable =
           existingManifest &&
@@ -1330,7 +1828,8 @@ export class FFmpegVideoRenderer implements VideoRenderer {
           (existingManifest.captionsSha256 ?? undefined) ===
             (currentCaptionsSha256 ?? undefined) &&
           ((existingManifest.renderFingerprint !== undefined &&
-            existingManifest.renderFingerprint === clipRequest.renderFingerprint) ||
+            existingManifest.renderFingerprint ===
+              clipRequest.renderFingerprint) ||
             (existingManifest.renderFingerprint === undefined &&
               existingManifest.renderProfile.aspectRatio ===
                 request.renderProfile.aspectRatio &&
@@ -1343,7 +1842,7 @@ export class FFmpegVideoRenderer implements VideoRenderer {
               existingManifest.trailingSilenceRatio ===
                 (request.trailingSilenceRatio ?? 0.8) &&
               existingManifest.trailingSilenceBufferSeconds ===
-                (request.trailingSilenceBufferSeconds ?? 0.5))) &&
+                (request.trailingSilenceBufferSeconds ?? 0))) &&
           (await isReusableSceneClip(clipPath)) &&
           (await hashFile(clipPath).catch(() => "")) ===
             existingManifest.outputSha256;
@@ -1355,30 +1854,11 @@ export class FFmpegVideoRenderer implements VideoRenderer {
           timeoutMs: 600000,
         });
         const outputSha256 = await hashFile(clipPath);
-        const sceneClipManifest: SceneClipManifest = {
-          schemaVersion: 2,
-          sceneId: scene.id,
-          sceneHash: currentSceneHash,
-          imageSha256: currentImageSha256,
-          audioSha256: currentAudioSha256,
-          ...(currentCaptionsSha256
-            ? { captionsSha256: currentCaptionsSha256 }
-            : {}),
-          renderProfile: {
-            aspectRatio: request.renderProfile.aspectRatio,
-            width: request.renderProfile.width,
-            height: request.renderProfile.height,
-            fps: request.renderProfile.fps,
-          },
-          trailingSilenceRatio: request.trailingSilenceRatio ?? 0.8,
-          trailingSilenceBufferSeconds:
-            request.trailingSilenceBufferSeconds ?? 0.5,
-          renderFingerprint: clipRequest.renderFingerprint,
-          renderer: "local",
+        await writeSceneClipManifestFromRequest(
+          clipRequest,
           outputSha256,
-          generatedAt: new Date().toISOString(),
-        };
-        await writeJsonAtomic(manifestPath, sceneClipManifest);
+          "local"
+        );
         clipPaths[index] = clipPath;
       }
     });
@@ -1406,10 +1886,7 @@ export class FFmpegVideoRenderer implements VideoRenderer {
     const baseName =
       request.outputBasename ??
       `youtube-${request.renderProfile.aspectRatio.replace(":", "x")}${suffix}`;
-    const cleanPath = path.join(
-      request.outputDir,
-      `${baseName}-clean.mp4`
-    );
+    const cleanPath = path.join(request.outputDir, `${baseName}-clean.mp4`);
     await runCommand(
       "ffmpeg",
       [
@@ -1430,10 +1907,7 @@ export class FFmpegVideoRenderer implements VideoRenderer {
     );
     let captionedPath: string | undefined;
     if (request.captionsPath && request.captionBurnIn) {
-      captionedPath = path.join(
-        request.outputDir,
-        `${baseName}-captioned.mp4`
-      );
+      captionedPath = path.join(request.outputDir, `${baseName}-captioned.mp4`);
       await runCommand(
         "ffmpeg",
         [
@@ -1548,6 +2022,13 @@ export class HybridFFmpegVideoRenderer extends FFmpegVideoRenderer {
         sequenceNumber: scene.sequenceNumber,
         imagePath,
         audioPath,
+        sceneHash: currentSceneHash,
+        imageSha256: currentImageSha256,
+        audioSha256: currentAudioSha256,
+        manifestPath,
+        ...(currentCaptionsSha256
+          ? { captionsSha256: currentCaptionsSha256 }
+          : {}),
         outputPath: clipPath,
         fps: request.renderProfile.fps,
         width: request.renderProfile.width,
@@ -1557,8 +2038,7 @@ export class HybridFFmpegVideoRenderer extends FFmpegVideoRenderer {
           scene.timing.endSeconds - scene.timing.startSeconds
         ),
         trailingSilenceRatio: request.trailingSilenceRatio ?? 0.8,
-        trailingSilenceBufferSeconds:
-          request.trailingSilenceBufferSeconds ?? 0.5,
+        trailingSilenceBufferSeconds: request.trailingSilenceBufferSeconds ?? 0,
         ...(request.captionBurnIn && request.captionsPath
           ? { captionsPath: request.captionsPath }
           : {}),
@@ -1572,7 +2052,8 @@ export class HybridFFmpegVideoRenderer extends FFmpegVideoRenderer {
         (existingManifest.captionsSha256 ?? undefined) ===
           (currentCaptionsSha256 ?? undefined) &&
         ((existingManifest.renderFingerprint !== undefined &&
-          existingManifest.renderFingerprint === clipRequest.renderFingerprint) ||
+          existingManifest.renderFingerprint ===
+            clipRequest.renderFingerprint) ||
           (existingManifest.renderFingerprint === undefined &&
             existingManifest.renderProfile.aspectRatio ===
               request.renderProfile.aspectRatio &&
@@ -1584,7 +2065,7 @@ export class HybridFFmpegVideoRenderer extends FFmpegVideoRenderer {
             existingManifest.trailingSilenceRatio ===
               (request.trailingSilenceRatio ?? 0.8) &&
             existingManifest.trailingSilenceBufferSeconds ===
-              (request.trailingSilenceBufferSeconds ?? 0.5))) &&
+              (request.trailingSilenceBufferSeconds ?? 0))) &&
         (await isReusableSceneClip(clipPath)) &&
         (await hashFile(clipPath).catch(() => "")) ===
           existingManifest.outputSha256;
