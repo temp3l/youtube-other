@@ -10,6 +10,8 @@ import {
 } from "@mediaforge/shared";
 import { localBatchManifestSchema } from "./story-localization.schemas.js";
 import {
+  type BatchCategory,
+  type BatchEndpoint,
   type BatchOperation,
   type LocalBatchManifest,
   type OpenAIBatchRequestLine,
@@ -246,10 +248,12 @@ export async function listManifestPaths(
 
 export function createBaseManifest(args: {
   readonly localBatchId: string;
+  readonly category?: BatchCategory;
   readonly rootLocalBatchId?: string;
   readonly parentLocalBatchId?: string;
   readonly retryNumber?: number;
   readonly model: string;
+  readonly endpoint?: BatchEndpoint;
   readonly inputFilePath: string;
   readonly inputFileHash: string;
   readonly items: LocalBatchManifest["items"];
@@ -257,6 +261,7 @@ export function createBaseManifest(args: {
   const now = new Date().toISOString();
   return {
     schemaVersion: BATCH_SCHEMA_VERSION,
+    category: args.category ?? "text-localization",
     localBatchId: args.localBatchId,
     rootLocalBatchId: args.rootLocalBatchId ?? args.localBatchId,
     ...(args.parentLocalBatchId
@@ -266,7 +271,7 @@ export function createBaseManifest(args: {
     createdAt: now,
     updatedAt: now,
     mode: "batch",
-    endpoint: "/v1/responses",
+    endpoint: args.endpoint ?? "/v1/responses",
     model: args.model,
     completionWindow: "24h",
     inputFilePath: toRepositoryRelativePath(args.inputFilePath),

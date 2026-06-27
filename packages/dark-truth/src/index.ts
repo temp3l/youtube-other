@@ -2137,6 +2137,7 @@ export async function syncEpisodeCharacters(
   const outputCharactersPath = path.join(
     outputRoot,
     episodeSlug,
+    "shared",
     "characters.json"
   );
   if (!(await fileExists(sourceCharactersPath))) {

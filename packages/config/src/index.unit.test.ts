@@ -64,7 +64,7 @@ describe("runtime config", () => {
     expect(config.visualSceneMinSeconds).toBe(5);
     expect(config.visualSceneMaxSeconds).toBe(6);
     expect(config.trailingSilenceRatio).toBe(0.8);
-    expect(config.trailingSilenceBufferSeconds).toBe(0.5);
+    expect(config.trailingSilenceBufferSeconds).toBe(0);
   });
 
   it("lets .env override inherited process env values for OpenAI credentials", async () => {

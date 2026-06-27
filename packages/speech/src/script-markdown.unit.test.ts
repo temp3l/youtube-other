@@ -17,11 +17,26 @@ describe("loadEpisodeScriptMarkdown", () => {
 
   it("loads a localized script when a language is specified", async () => {
     const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "mediaforge-script-"));
-    await fs.mkdir(path.join(tempDir, "languages"), { recursive: true });
-    await fs.writeFile(path.join(tempDir, "languages", "script-es.md"), "Guion en español");
+    await fs.mkdir(path.join(tempDir, "es", "full"), { recursive: true });
+    await fs.writeFile(
+      path.join(tempDir, "es", "full", "script.md"),
+      "# Episode 009\n\n# Narration Script\n\nGuion en español.\n\n## Episode Metadata\n**Episode number:** 009\n"
+    );
     const script = await loadEpisodeScriptMarkdown(tempDir, "es");
-    expect(script.filePath).toBe(path.join(tempDir, "languages", "script-es.md"));
-    expect(script.text).toBe("Guion en español");
+    expect(script.filePath).toBe(path.join(tempDir, "es", "full", "script.md"));
+    expect(script.text).toContain("Guion en español.");
+  });
+
+  it("extracts the narration script section when requested", async () => {
+    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "mediaforge-script-"));
+    await fs.mkdir(path.join(tempDir, "en", "full"), { recursive: true });
+    await fs.writeFile(
+      path.join(tempDir, "en", "full", "script.md"),
+      "# Episode 009\n\n## Audio Generation Instructions\n- Speak clearly.\n\n# Narration Script\n\nFirst paragraph.\n\nSecond paragraph.\n\n## Episode Metadata\n**Episode number:** 009\n"
+    );
+    const script = await loadEpisodeScriptMarkdown(tempDir, "en", "Narration Script");
+    expect(script.filePath).toBe(path.join(tempDir, "en", "full", "script.md"));
+    expect(script.text).toBe("First paragraph.\n\nSecond paragraph.");
   });
 });
 

@@ -10,7 +10,6 @@ import {
   getLanguageProfile,
   isShortLanguage,
   localizeStoryEpisode,
-  localizeStories,
   parseCanonicalSourceStory,
   prepareStoryLocalizationBatch,
   refreshActiveStoryBatches,
@@ -24,6 +23,7 @@ import {
   validateGeneratedStories,
   type LanguageCode,
   type StoryLocalizationEpisodeResult,
+  type StoryLocalizationRunCounts,
 } from "@mediaforge/story-localization";
 import { createLogger } from "@mediaforge/observability";
 import { ensureDir, fileExists, normalizeWhitespace } from "@mediaforge/shared";
@@ -148,16 +148,18 @@ async function printDryRunSummary(
   config: ReturnType<typeof createStoryLocalizationConfig>
 ): Promise<void> {
   const planned = selected.map((candidate) => {
-    const base = path.join(
+    const episodeRoot = path.join(
       config.outputDirectory,
       `${candidate.episodeNumber}-${candidate.slug}`
     );
     const files = [
-      `${base}-en-full.md`,
-      ...(config.includeEnglishShort ? [`${base}-en-short.md`] : []),
+      path.join(episodeRoot, "script.md"),
+      ...(config.includeEnglishShort
+        ? [path.join(episodeRoot, "en", "short", "script.md")]
+        : []),
       ...config.languages.flatMap((language: Exclude<LanguageCode, "en">) => [
-        `${base}-${language}-full.md`,
-        `${base}-${language}-short.md`,
+        path.join(episodeRoot, language, "full", "script.md"),
+        path.join(episodeRoot, language, "short", "script.md"),
       ]),
     ];
     return {
@@ -216,39 +218,47 @@ function summarizeResults(
       .length,
     englishShorts: results.filter((result: StoryLocalizationEpisodeResult) =>
       result.generatedFiles.some((file: string) =>
-        file.endsWith("-en-short.md")
+        file.endsWith(path.join("en", "short", "script.md"))
       )
     ).length,
     germanFull: results.filter((result: StoryLocalizationEpisodeResult) =>
-      result.generatedFiles.some((file: string) => file.endsWith("-de-full.md"))
+      result.generatedFiles.some((file: string) =>
+        file.endsWith(path.join("de", "full", "script.md"))
+      )
     ).length,
     germanShort: results.filter((result: StoryLocalizationEpisodeResult) =>
       result.generatedFiles.some((file: string) =>
-        file.endsWith("-de-short.md")
+        file.endsWith(path.join("de", "short", "script.md"))
       )
     ).length,
     spanishFull: results.filter((result: StoryLocalizationEpisodeResult) =>
-      result.generatedFiles.some((file: string) => file.endsWith("-es-full.md"))
+      result.generatedFiles.some((file: string) =>
+        file.endsWith(path.join("es", "full", "script.md"))
+      )
     ).length,
     spanishShort: results.filter((result: StoryLocalizationEpisodeResult) =>
       result.generatedFiles.some((file: string) =>
-        file.endsWith("-es-short.md")
+        file.endsWith(path.join("es", "short", "script.md"))
       )
     ).length,
     frenchFull: results.filter((result: StoryLocalizationEpisodeResult) =>
-      result.generatedFiles.some((file: string) => file.endsWith("-fr-full.md"))
+      result.generatedFiles.some((file: string) =>
+        file.endsWith(path.join("fr", "full", "script.md"))
+      )
     ).length,
     frenchShort: results.filter((result: StoryLocalizationEpisodeResult) =>
       result.generatedFiles.some((file: string) =>
-        file.endsWith("-fr-short.md")
+        file.endsWith(path.join("fr", "short", "script.md"))
       )
     ).length,
     portugueseFull: results.filter((result: StoryLocalizationEpisodeResult) =>
-      result.generatedFiles.some((file: string) => file.endsWith("-pt-full.md"))
+      result.generatedFiles.some((file: string) =>
+        file.endsWith(path.join("pt", "full", "script.md"))
+      )
     ).length,
     portugueseShort: results.filter((result: StoryLocalizationEpisodeResult) =>
       result.generatedFiles.some((file: string) =>
-        file.endsWith("-pt-short.md")
+        file.endsWith(path.join("pt", "short", "script.md"))
       )
     ).length,
     skippedFiles: results.flatMap((result) => result.skippedFiles),
@@ -272,6 +282,106 @@ function summarizeResults(
     ),
   };
   return summary;
+}
+
+async function localizeSelectedStories(
+  selected: ReadonlyArray<{
+    readonly filePath: string;
+    readonly episodeNumber: string;
+    readonly slug: string;
+  }>,
+  config: ReturnType<typeof createStoryLocalizationConfig>,
+  logger: ReturnType<typeof createLogger>
+): Promise<{
+  readonly counts: StoryLocalizationRunCounts;
+  readonly results: readonly StoryLocalizationEpisodeResult[];
+}> {
+  const results: StoryLocalizationEpisodeResult[] = [];
+  let copiedEnglishFull = 0;
+  let generatedEnglishShort = 0;
+  let generatedGermanFull = 0;
+  let generatedGermanShort = 0;
+  let generatedSpanishFull = 0;
+  let generatedSpanishShort = 0;
+  let generatedFrenchFull = 0;
+  let generatedFrenchShort = 0;
+  let generatedPortugueseFull = 0;
+  let generatedPortugueseShort = 0;
+  let skipped = 0;
+  let cacheHits = 0;
+  let repairAttempts = 0;
+  let failures = 0;
+  let totalInputTokens = 0;
+  let totalOutputTokens = 0;
+  let estimatedTotalCostUsd: number | null = 0;
+  const started = Date.now();
+
+  for (const candidate of selected) {
+    try {
+      const episodeResult = await localizeStoryEpisode(candidate.filePath, config, {
+        logger,
+        preflightConnectivity: true,
+      });
+      results.push(episodeResult);
+      copiedEnglishFull += 1;
+      generatedEnglishShort += 1;
+      generatedGermanFull += config.languages.includes("de") ? 1 : 0;
+      generatedGermanShort += config.languages.includes("de") ? 1 : 0;
+      generatedSpanishFull += config.languages.includes("es") ? 1 : 0;
+      generatedSpanishShort += config.languages.includes("es") ? 1 : 0;
+      generatedFrenchFull += config.languages.includes("fr") ? 1 : 0;
+      generatedFrenchShort += config.languages.includes("fr") ? 1 : 0;
+      generatedPortugueseFull += config.languages.includes("pt") ? 1 : 0;
+      generatedPortugueseShort += config.languages.includes("pt") ? 1 : 0;
+      skipped += episodeResult.skippedFiles.length;
+      cacheHits += episodeResult.cacheHit ? 1 : 0;
+      repairAttempts += episodeResult.repairAttempts;
+      totalInputTokens += episodeResult.inputTokens;
+      totalOutputTokens += episodeResult.outputTokens;
+      estimatedTotalCostUsd = episodeResult.estimatedCostUsd ?? estimatedTotalCostUsd;
+    } catch (error) {
+      failures += 1;
+      results.push({
+        episodeNumber: candidate.episodeNumber,
+        slug: candidate.slug,
+        sourceFile: candidate.filePath,
+        generatedFiles: [],
+        skippedFiles: [],
+        cacheHit: false,
+        repairAttempts: 0,
+        inputTokens: 0,
+        outputTokens: 0,
+        estimatedCostUsd: null,
+        failure: error instanceof Error ? error.message : String(error),
+      });
+      logger.error({ episodeId: candidate.slug, error }, "story localization failed");
+    }
+  }
+
+  return {
+    counts: {
+      discovered: selected.length,
+      copiedEnglishFull,
+      generatedEnglishShort,
+      generatedGermanFull,
+      generatedGermanShort,
+      generatedSpanishFull,
+      generatedSpanishShort,
+      generatedFrenchFull,
+      generatedFrenchShort,
+      generatedPortugueseFull,
+      generatedPortugueseShort,
+      skipped,
+      cacheHits,
+      repairAttempts,
+      failures,
+      totalInputTokens,
+      totalOutputTokens,
+      estimatedTotalCostUsd,
+      totalExecutionTimeMs: Date.now() - started,
+    },
+    results,
+  };
 }
 
 export async function commandStoriesLocalize(
@@ -338,15 +448,7 @@ export async function commandStoriesLocalize(
       return;
     }
   }
-  const run = await localizeStories(config, {
-    logger,
-    ...(config.processingMode === "batch" ||
-    config.submit ||
-    config.waitForBatch ||
-    config.autoImport
-      ? { client: createOpenAiStoryClient() }
-      : {}),
-  });
+  const run = await localizeSelectedStories(selected, config, logger);
   process.stdout.write(
     `Story localization summary\n${JSON.stringify(
       {
