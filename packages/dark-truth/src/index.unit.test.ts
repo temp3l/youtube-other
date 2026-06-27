@@ -172,7 +172,7 @@ describe("dark-truth workflow", () => {
 
     const copiedCharacters = JSON.parse(
       await fs.readFile(
-        path.join(outputRoot, episodeSlug, "characters.json"),
+        path.join(outputRoot, episodeSlug, "shared", "characters.json"),
         "utf8"
       )
     ) as { characters: Array<{ id: string }> };

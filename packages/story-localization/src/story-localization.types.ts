@@ -3,13 +3,21 @@ export type LanguageCode = (typeof languageCodes)[number];
 
 export type AdaptationMode = "faithful" | "retention-optimized";
 export type ProcessingMode = "batch" | "sync";
+export type BatchCategory =
+  | "text-localization"
+  | "image-generation"
+  | "image-edit"
+  | "video-generation";
+export type BatchEndpoint = "/v1/responses" | "/v1/images/generations" | "/v1/images/edits";
 export type BatchOperation =
   | "canonical-facts"
   | "english-short"
   | "localization"
   | "character-analysis"
   | "visual-analysis"
-  | "repair";
+  | "repair"
+  | "image-generation"
+  | "image-edit";
 
 export type BatchIndexStatus =
   | "prepared"
@@ -53,6 +61,50 @@ export type LocalBatchManifestItemStatus =
   | "persisted"
   | "skipped-cached";
 
+export type ImageBatchStatus =
+  | "prepared"
+  | "uploading"
+  | "submitted"
+  | "validating"
+  | "in_progress"
+  | "finalizing"
+  | "completed"
+  | "failed"
+  | "expired"
+  | "cancelling"
+  | "cancelled"
+  | "imported"
+  | "imported_with_failures";
+
+export type ImageBatchItemStatus =
+  | "planned"
+  | "submitted"
+  | "api-succeeded"
+  | "api-failed"
+  | "expired"
+  | "policy-rejected"
+  | "decode-failed"
+  | "validation-failed"
+  | "persisted"
+  | "skipped-cached"
+  | "retry-required";
+
+export type ImageBatchFailureClass =
+  | "transient"
+  | "rate-limit"
+  | "expired"
+  | "authentication"
+  | "billing"
+  | "configuration"
+  | "unsupported-parameter"
+  | "policy"
+  | "missing-result"
+  | "invalid-base64"
+  | "decode"
+  | "dimension"
+  | "filesystem"
+  | "unknown";
+
 export interface LanguageProfile {
   readonly code: LanguageCode;
   readonly displayName: string;
@@ -93,6 +145,29 @@ export interface StoryLocalizationConfig {
   readonly validateOnly: boolean;
   readonly verbose: boolean;
   readonly promptVersion: string;
+}
+
+export interface SceneImageJob {
+  readonly episodeNumber: string;
+  readonly episodeSlug: string;
+  readonly language: "en";
+  readonly format: "full";
+  readonly sceneId: string;
+  readonly sceneIndex: number;
+  readonly startTimeSeconds?: number;
+  readonly endTimeSeconds?: number;
+  readonly promptPath?: string;
+  readonly positivePrompt: string;
+  readonly negativePrompt?: string;
+  readonly characterIds: readonly string[];
+  readonly characterReferencePaths: readonly string[];
+  readonly model: string;
+  readonly quality: string;
+  readonly requestedSize: string;
+  readonly outputFormat: "png" | "jpeg" | "webp";
+  readonly expectedOutputPath: string;
+  readonly promptHash: string;
+  readonly generationConfigurationHash: string;
 }
 
 export interface SourceStoryMetadata {
@@ -264,7 +339,7 @@ export interface GeneratedStoryPackage {
     readonly noNewPlotElementsAdded: boolean;
   };
   readonly diagnostics: {
-    readonly fullWordCount: number | undefined;
+    readonly fullWordCount: number;
     readonly shortWordCount: number;
     readonly shortEstimatedDurationSeconds: number;
     readonly removedGenericFiller: readonly string[];
@@ -382,6 +457,7 @@ export interface LocalBatchManifestItem {
 
 export interface LocalBatchManifest {
   readonly schemaVersion: string;
+  readonly category: BatchCategory;
   readonly localBatchId: string;
   readonly rootLocalBatchId: string;
   readonly parentLocalBatchId?: string;
@@ -389,7 +465,7 @@ export interface LocalBatchManifest {
   readonly createdAt: string;
   readonly updatedAt: string;
   readonly mode: "batch";
-  readonly endpoint: "/v1/responses";
+  readonly endpoint: BatchEndpoint;
   readonly model: string;
   readonly completionWindow: "24h";
   readonly inputFilePath: string;
@@ -416,6 +492,7 @@ export interface LocalBatchManifest {
 export interface BatchIndexEntry {
   readonly localBatchId: string;
   readonly openAIBatchId?: string;
+  readonly category: BatchCategory;
   readonly rootLocalBatchId: string;
   readonly parentLocalBatchId?: string;
   readonly retryNumber: number;
@@ -426,7 +503,7 @@ export interface BatchIndexEntry {
   readonly completedAt?: string;
   readonly importedAt?: string;
   readonly model: string;
-  readonly endpoint: "/v1/responses";
+  readonly endpoint: BatchEndpoint;
   readonly completionWindow: "24h";
   readonly operations: readonly BatchOperation[];
   readonly episodeNumbers: readonly string[];
@@ -456,6 +533,21 @@ export interface BatchIndexEntry {
     readonly message: string;
     readonly occurredAt: string;
   };
+  readonly imageDetails?: ImageBatchIndexDetails;
+}
+
+export interface ImageBatchIndexDetails {
+  readonly category: "image-generation";
+  readonly episodeNumbers: readonly string[];
+  readonly sceneCount: number;
+  readonly imageModel: string;
+  readonly imageQuality?: string;
+  readonly outputFormat: string;
+  readonly generatedImageCount: number;
+  readonly invalidImageCount: number;
+  readonly failedImageCount: number;
+  readonly missingImageCount: number;
+  readonly requiresImport: boolean;
 }
 
 export interface BatchIndexFile {
@@ -466,6 +558,7 @@ export interface BatchIndexFile {
 }
 
 export interface BatchIndexFilter {
+  readonly category?: BatchCategory;
   readonly statuses?: readonly BatchIndexStatus[];
   readonly episodeNumbers?: readonly string[];
   readonly languages?: readonly LanguageCode[];
@@ -476,6 +569,97 @@ export interface BatchIndexFilter {
   readonly hasRetryableFailures?: boolean;
   readonly createdAfter?: string;
   readonly createdBefore?: string;
+}
+
+export interface ImageGenerationCostRecord {
+  readonly episodeNumber: string;
+  readonly sceneId: string;
+  readonly mode: ProcessingMode;
+  readonly model: string;
+  readonly quality?: string;
+  readonly size: string;
+  readonly outputFormat: string;
+  readonly localBatchId?: string;
+  readonly openAIBatchId?: string;
+  readonly customId?: string;
+  readonly estimatedCostUsd?: number;
+  readonly pricingKnown: boolean;
+  readonly attempt: number;
+  readonly successful: boolean;
+}
+
+export interface ImageReadinessReport {
+  readonly ready: boolean;
+  readonly expectedSceneCount: number;
+  readonly validImageCount: number;
+  readonly missingSceneIds: readonly string[];
+  readonly failedSceneIds: readonly string[];
+  readonly invalidSceneIds: readonly string[];
+  readonly pendingBatchSceneIds: readonly string[];
+  readonly staleSceneIds: readonly string[];
+}
+
+export interface ImageBatchManifestItem {
+  readonly customId: string;
+  readonly episodeNumber: string;
+  readonly episodeSlug: string;
+  readonly language: "en";
+  readonly format: "full";
+  readonly sceneId: string;
+  readonly sceneIndex: number;
+  readonly promptHash: string;
+  readonly generationConfigurationHash: string;
+  readonly expectedOutputPath: string;
+  readonly characterIds: readonly string[];
+  readonly characterReferenceHashes: readonly string[];
+  readonly requestedSize: string;
+  readonly quality?: string;
+  readonly outputFormat: "png" | "jpeg" | "webp";
+  readonly status: ImageBatchItemStatus;
+  readonly imageHash?: string;
+  readonly actualWidth?: number;
+  readonly actualHeight?: number;
+  readonly actualMimeType?: string;
+  readonly actualByteSize?: number;
+  readonly usage?: {
+    readonly inputTokens: number;
+    readonly cachedInputTokens?: number;
+    readonly outputTokens: number;
+  };
+  readonly estimatedCostUsd?: number;
+  readonly error?: {
+    readonly category: string;
+    readonly code?: string;
+    readonly message: string;
+  };
+}
+
+export interface ImageBatchManifest {
+  readonly schemaVersion: string;
+  readonly category: "image-generation";
+  readonly localBatchId: string;
+  readonly rootLocalBatchId: string;
+  readonly parentLocalBatchId?: string;
+  readonly retryNumber: number;
+  readonly createdAt: string;
+  readonly updatedAt: string;
+  readonly endpoint: "/v1/images/generations" | "/v1/images/edits";
+  readonly model: string;
+  readonly completionWindow: "24h";
+  readonly inputFilePath: string;
+  readonly inputFileHash: string;
+  readonly openAIInputFileId?: string;
+  readonly openAIBatchId?: string;
+  readonly outputFileId?: string;
+  readonly errorFileId?: string;
+  readonly status: ImageBatchStatus;
+  readonly items: readonly ImageBatchManifestItem[];
+  readonly resultFilePath?: string;
+  readonly errorFilePath?: string;
+  readonly reportFilePath?: string;
+  readonly submittedAt?: string;
+  readonly completedAt?: string;
+  readonly importedAt?: string;
 }
 
 export interface BatchIndexRepairReport {

@@ -207,6 +207,40 @@ describe("story localization batch integration", () => {
     expect(latest?.status).toBe("prepared");
   });
 
+  it("persists production artifacts during batch preparation", async () => {
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), "story-batch-production-"));
+    const config = makeConfig(tempDir);
+    await prepareStoryLocalizationBatch([sourceFile], config);
+    const productionDir = path.join(
+      tempDir,
+      "002-even-killers-can-lick",
+      ".localization-cache",
+      "production",
+      "002",
+      "002-even-killers-can-lick"
+    );
+    expect(
+      JSON.parse(
+        await fs.readFile(path.join(productionDir, "source-analysis.json"), "utf8")
+      )
+    ).toHaveProperty("issueSummary");
+    expect(
+      JSON.parse(
+        await fs.readFile(path.join(productionDir, "story-bible.json"), "utf8")
+      )
+    ).toHaveProperty("protagonist");
+    expect(
+      JSON.parse(
+        await fs.readFile(path.join(productionDir, "originality-review.json"), "utf8")
+      )
+    ).toHaveProperty("risk");
+    expect(
+      JSON.parse(
+        await fs.readFile(path.join(productionDir, "production-state.json"), "utf8")
+      )
+    ).toMatchObject({ stage: "retention-plan" });
+  });
+
   it("submits, refreshes, and imports a completed batch", async () => {
     const tempDir = mkdtempSync(path.join(os.tmpdir(), "story-batch-import-"));
     const config = makeConfig(tempDir);
@@ -255,13 +289,25 @@ describe("story localization batch integration", () => {
     expect(imported.failedItemCount).toBe(0);
     expect(
       await fs.readFile(
-        path.join(tempDir, "002-even-killers-can-lick-en-short.md"),
+        path.join(
+          tempDir,
+          "002-even-killers-can-lick",
+          "en",
+          "short",
+          "script.md"
+        ),
         "utf8"
       )
     ).toContain("# Short 002");
     expect(
       await fs.readFile(
-        path.join(tempDir, "002-even-killers-can-lick-de-full.md"),
+        path.join(
+          tempDir,
+          "002-even-killers-can-lick",
+          "de",
+          "full",
+          "script.md"
+        ),
         "utf8"
       )
     ).toContain("# Episode 002");

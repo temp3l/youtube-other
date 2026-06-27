@@ -51,4 +51,6 @@ Clips are sorted by sequence number and distributed by index:
 
 - Remote jobs use an isolated workspace under `/home/box/youtube-render-worker/jobs/<run-id>/`.
 - Shared inputs are uploaded once per run.
+- Reusable image inputs are stored in a shared remote cache under `/home/box/youtube-render-worker/assets/` and are addressed by content hash, so repeated renders can reuse the same uploaded file instead of pushing duplicates.
+- The renderer also records an `asset-manifest.json` for each batch so the reused remote inputs are easy to audit.
 - Fallback to local rendering is enabled by default when remote clips fail.

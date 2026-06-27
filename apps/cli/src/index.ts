@@ -82,6 +82,7 @@ import {
   writeTextAtomic,
 } from "@mediaforge/shared";
 import {
+  loadEpisodeScriptMarkdown,
   loadSpeechVoiceSettings,
   splitEpisodeScriptMarkdown,
   writeEpisodeScriptMarkdown,
@@ -275,6 +276,23 @@ function isEnglishLanguage(language: string): boolean {
   return language.toLowerCase() === "en";
 }
 
+function localizedAudioBaseDir(episodeDir: string, language: string): string {
+  const normalizedEpisodeDir = path.resolve(episodeDir);
+  const safeLanguage = safeBasename(language);
+  const basename = path.basename(normalizedEpisodeDir);
+  const parentBasename = path.basename(path.dirname(normalizedEpisodeDir));
+  if (basename === "full" && parentBasename === safeLanguage) {
+    return normalizedEpisodeDir;
+  }
+  if (basename === safeLanguage) {
+    return path.join(normalizedEpisodeDir, "full");
+  }
+  if (basename === "full") {
+    return path.dirname(normalizedEpisodeDir);
+  }
+  return path.join(normalizedEpisodeDir, safeLanguage, "full");
+}
+
 function localizedSuffix(language: string): string {
   return isEnglishLanguage(language) ? "" : `-${safeBasename(language)}`;
 }
@@ -397,7 +415,10 @@ async function localizedSceneAudioIsComplete(
   language: string,
   expectedCount: number
 ): Promise<boolean> {
-  const segmentsDir = localizedSegmentsDir(episodeDir, language);
+  const segmentsDir = localizedSegmentsDir(
+    localizedAudioBaseDir(episodeDir, language),
+    language
+  );
   const existing = await fs
     .readdir(segmentsDir, { withFileTypes: true })
     .catch(() => []);
@@ -411,22 +432,7 @@ async function loadNarrationScriptMarkdown(
   episodeDir: string,
   language: string
 ): Promise<{ readonly filePath: string; readonly text: string }> {
-  const languageSlug = safeBasename(language);
-  const candidates = [
-    path.join(episodeDir, "script", `rewritten-script-${languageSlug}.md`),
-    path.join(episodeDir, "script", "rewritten-script.md"),
-    path.join(episodeDir, "languages", `script-${languageSlug}.md`),
-    path.join(episodeDir, "script.md"),
-  ];
-  for (const candidate of candidates) {
-    if (await fileExists(candidate)) {
-      return {
-        filePath: candidate,
-        text: await fs.readFile(candidate, "utf8"),
-      };
-    }
-  }
-  throw new Error(`Missing rewritten narration script in ${episodeDir}.`);
+  return loadEpisodeScriptMarkdown(episodeDir, language, "Narration Script");
 }
 
 function balanceScriptChunksForScenes(
@@ -1313,6 +1319,7 @@ async function commandAudioGenerate(
   const language =
     config.scriptLanguage ?? episodeConfig?.scriptLanguage ?? "en";
   const script = await loadNarrationScriptMarkdown(episodeDir, language);
+  const audioBaseDir = localizedAudioBaseDir(episodeDir, language);
   const rewrittenChunks =
     manifest?.rewrittenScript?.sections
       .map((section) => normalizeWhitespace(section.text))
@@ -1334,9 +1341,9 @@ async function commandAudioGenerate(
   if (chunks.length === 0) {
     throw new Error(`No narration text found in ${script.filePath}.`);
   }
-  const audioDir = path.join(episodeDir, "audio");
-  const segmentsDir = localizedSegmentsDir(episodeDir, language);
-  const narrationPath = localizedNarrationPath(episodeDir, language);
+  const audioDir = path.join(audioBaseDir, "audio");
+  const segmentsDir = localizedSegmentsDir(audioBaseDir, language);
+  const narrationPath = localizedNarrationPath(audioBaseDir, language);
   const episodeSlug = manifest?.slug ?? episodeId;
   if (options.dryRun) {
     printJson({
@@ -1368,7 +1375,7 @@ async function commandAudioGenerate(
   await ensureDir(segmentsDir);
   await cleanupStaleAudioTempFiles(audioDir, segmentsDir);
   const scriptSourcePath = await writeEpisodeScriptMarkdown(
-    episodeDir,
+    audioBaseDir,
     script.text,
     language
   );
@@ -1524,11 +1531,12 @@ async function commandClipsGenerate(
   );
   const language =
     config.scriptLanguage ?? episodeConfig?.scriptLanguage ?? "en";
+  const audioBaseDir = localizedAudioBaseDir(episodeDir, language);
   if (options.dryRun) {
     printJson({
       episodeId,
       language,
-      audioDir: localizedSegmentsDir(episodeDir, language),
+      audioDir: localizedSegmentsDir(audioBaseDir, language),
       clipsDir: path.join(
         episodeDir,
         "output",
@@ -1562,7 +1570,7 @@ async function commandClipsGenerate(
       renderProfile,
       captionBurnIn: false,
       clipsDirName: localizedClipsDirName(language),
-      sceneAudioDir: localizedSegmentsDir(episodeDir, language),
+      sceneAudioDir: localizedSegmentsDir(audioBaseDir, language),
       imageDir: path.join(episodeDir, "shared", "images", "generated"),
       trailingSilenceRatio: config.trailingSilenceRatio,
       trailingSilenceBufferSeconds: config.trailingSilenceBufferSeconds,
@@ -2030,6 +2038,7 @@ async function commandRender(
   );
   const language =
     config.scriptLanguage ?? episodeConfig?.scriptLanguage ?? "en";
+  const audioBaseDir = localizedAudioBaseDir(episodeDir, language);
   if (options.dryRun) {
     printJson({
       episodeId,
@@ -2074,7 +2083,7 @@ async function commandRender(
     renderProfile,
     captionBurnIn: Boolean(captionsPath),
     clipsDirName: localizedClipsDirName(language),
-    sceneAudioDir: localizedSegmentsDir(episodeDir, language),
+    sceneAudioDir: localizedSegmentsDir(audioBaseDir, language),
     imageDir: path.join(episodeDir, "shared", "images", "generated"),
     outputSuffix: localizedOutputSuffix(language),
     trailingSilenceRatio: config.trailingSilenceRatio,

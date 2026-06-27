@@ -1,75 +1,60 @@
 ## pr
 
+---
+
+always use parallel remote and local rendering for clips.
+
+there is a drift in the episode 009 english video. the drift gets worse in the later scenes. also please remove the artificially added silence at the end of clip. make sure this never happens again when generating videos. then fix the english full video for 009
+
+---
+
+creeate the character map and reference images for the 007 english episode
+
+force the translation model to stay inside these boundaries:
+Full story: 1,600–1,900 words
+This leaves room for pauses, suspense, sound effects, and slower delivery during important moments.
+YouTube Short: 154–180 words
+A full 180 words often feels rushed once you include pauses and dramatic emphasis.
+
+---
+
+the translated stories contain the whole story a second time under description. why is that ?
+should we remove that to save output tokens ?
+
+---
+
+are the schema fixes, retry handlers and output optimizations also used in the batch-translation processing or only in the synchronous translation pipeline??
+
+---
+
+## commands used
+
+npm run stories:localize -- --episode 004 --source-dir content-ideas/content/dark-truth-episodes-multilingual-production-pack --output-dir content-ideas/content/dark-truth-episodes --mode batch --prepare- batch --submit
+
+1. Check batch status:
+
+npm run stories:batches -- status --batch slb-20260626125836867-001
+
+2. Import results once completed:
+
+npm run stories:batches -- import --batch slb-20260626125836867-001
+
+---
+
+document and commit everything relevant, the push and merge the branch into master
+
+---
+
 add to the translation pipeline:
 I want an image prompt to be generated for every story for creating a thumbnail with openai.
 the thumbnails should be consistent in their look and feel. full stories need a 16:09 thumbnail.
 short stories need a thumbnail in 9:16. wire it up, so thumbnails can be generated on demand per story and language.
 
+---
+
 after the first translation i want the main protagonists to be identified for the character map prepared in the relevant episode output folder with relevant image prompt for generating the reference images
 
 is the darktruthepisode image generation using the reponses api or the correct image api endpoint?
-
----
-
-The drift happens because the dark-truth pipeline is timing scenes from estimated word counts, not from the actual narration timeline. In packages/dark-truth/src/index.ts, scene duration is derived from
-words / 180 wpm, then accumulated across the episode. That compounds error, so the later scenes drift farther out of sync than the early ones.
-
-I fixed it by only regenerating the relevant assets:
-
-- Retimed the episode scene plan in episodes/002-even-killers-can-lick/shared/scenes.json and episodes/002-even-killers-can-lick/en/full/scenes.json
-- Re-sliced the scene audio segments
-- Re-rendered the affected scene clips
-- Rebuilt episodes/002-even-killers-can-lick/en/full/video/002-even-killers-can-lick-en-full-clean.mp4
-
-I did not regenerate images.
-
-Verification:
-
-- Narration duration: 256.300s
-- Final video duration: 256.589s
-
-So yes, the sync issue is fixed by retiming and re-rendering only the dependent audio/video assets. If you want, I can wire this same retiming behavior into both the full and short pipelines so it happens
-automatically instead of relying on estimated timings.
-
----
-
-generate the youtube metadata and upload the video. then generate the german full and short and their relevant metadata and upload the videos.
-
-make sure the drift wont happen again in full or short videos
-
-make sure the shared images will always be built in the way you just solved it.
-
-# prompts
-
-can you use episodes/002-even-killers-can-lick/shared/images/dog-under-bed.png for scene-005**000021-000031**16x9.png ? you might need to change the image size and aspect ratio. please replace scene-005**000021-000031**16x9.png
-
-- i want the character map and character reference images to be shared across all languages and full and short movies. is this already wired in ?
-
----
-
-always use a concurrency of 3 when generating audio files, fallback to lower concurrency in case of errors.
-
-re-generate the audio segments starting from 032, then re-generate the narration.wav
-
-## imagiry
-
-- i want more scenes to be generated and the generated images should match the narration more closely. i want about 100 images per 10 min video. wire it up. recommend strategies
-
----
-
-is the last change effective for the darktruthepisodes video generation?
-
-upload the german full and short video to the german channel. set "ai used to true"
-
----
-
-where are the results saved with cost calculation per episode?
-
-## prompts
-
-regenereate all english audio assets for full and short 001-the-forbidden-village-where-japan-s-laws-do-not-apply. dont use mock providers. then regenerate all downstream assets.
-
-the engliush full narration.wav is silent. i cannot hear anything. i think there was a sandbox network issue when you tried to re-generate it. regenerate the narration.wav now without running into sandbox issues
 
 ---
 

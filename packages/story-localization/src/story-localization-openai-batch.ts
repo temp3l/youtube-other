@@ -5,6 +5,7 @@ import type {
   BatchRequestCounts,
 } from "openai/resources/batches";
 import type { FileObject } from "openai/resources/files";
+import type { BatchEndpoint } from "./story-localization.types.js";
 import {
   StoryLocalizationApiError,
   StoryLocalizationConfigurationError,
@@ -49,7 +50,7 @@ export interface OpenAiStoryClient {
   readonly batches?: {
     create(body: {
       readonly input_file_id: string;
-      readonly endpoint: "/v1/responses";
+      readonly endpoint: BatchEndpoint;
       readonly completion_window: "24h";
       readonly metadata?: Record<string, string>;
     }): Promise<OpenAIBatch>;
@@ -103,6 +104,8 @@ export function createOpenAiStoryClient(): OpenAiStoryClient {
   }
   return new OpenAI({
     apiKey,
+    maxRetries: 5,
+    timeout: 120_000,
     ...(process.env["OPENAI_BASE_URL"]
       ? { baseURL: process.env["OPENAI_BASE_URL"] }
       : {}),

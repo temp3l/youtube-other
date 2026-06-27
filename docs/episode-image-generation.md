@@ -21,10 +21,10 @@ Key behavior:
 - require approved character references unless `--allow-unapproved-character-references` is explicitly supplied;
 - sync a source-pack `characters.json` into the episode workspace with `episode sync-characters`;
 - bootstrap the shared episode character folder and reference images in one pass with `episode bootstrap-characters`;
-- store character state in `episodes/<episode-id>/characters.json`;
+- store character state in `episodes/<episode-id>/shared/characters.json`;
 - store scene manifests in `episodes/<episode-id>/generated-assets/image-manifests/`;
 - store prompts in `episodes/<episode-id>/generated-assets/prompts/`;
-- store character reference images in `episodes/<episode-id>/generated-assets/character-references/`;
+- store character reference images in `episodes/<episode-id>/shared/images/character-references/`;
 - skip already valid outputs unless `--force` is supplied.
 - include the exact narration beat in the image prompt so the generator has a tighter textual anchor for each scene.
 
@@ -118,7 +118,7 @@ If a requested image size is not supported by the selected model, the pipeline r
 Characters are stored per episode in:
 
 ```text
-episodes/<episode-id>/characters.json
+episodes/<episode-id>/shared/characters.json
 ```
 
 Example:
@@ -165,7 +165,7 @@ Example:
         "same backpack",
         "same jacket"
       ],
-      "referenceImagePath": "episodes/001-calhoun-experiment/generated-assets/character-references/daniel-mercer.png",
+      "referenceImagePath": "episodes/001-calhoun-experiment/shared/images/character-references/daniel-mercer.png",
       "referenceStatus": "approved"
     }
   ]

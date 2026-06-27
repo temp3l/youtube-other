@@ -23,6 +23,7 @@
     "@mediaforge/domain": "workspace:*",
     "@mediaforge/observability": "workspace:*",
     "@mediaforge/process-runner": "workspace:*",
+    "@mediaforge/story-localization": "workspace:*",
     "@mediaforge/shared": "workspace:*",
     "openai": "^6.44.0",
     "sharp": "^0.34.3",
