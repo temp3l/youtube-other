@@ -1,0 +1,27 @@
+{
+  "sourceHash": "7e9692b1eaab5b2e5a764e4e935eb93bcaefa7c9e20bdd19a28fd6e7b4e7c4e3",
+  "facts": {
+    "episodeNumber": "004",
+    "primaryTitle": "The Candle That Kept the Werewolf Away",
+    "characters": [
+      {
+        "name": "Nina Falk",
+        "role": "main protagonist"
+      }
+    ],
+    "setting": "The old woman gave Nina one instruction: keep the candle burning until sunrise.",
+    "criticalObjects": [],
+    "criticalEvents": [
+      "The old woman gave Nina one instruction: keep the candle burning until sunrise.",
+      "When the flame died, something outside stood on two legs.",
+      "Nina Falk was a wildlife photographer sheltering from a blizzard when the story began in an isolated mountain cottage in the Carpathians.",
+      "The first reports did not describe an obvious monster or violent attack."
+    ],
+    "writtenMessages": [],
+    "threat": "The old woman gave Nina one instruction: keep the candle burning until sunrise.",
+    "primaryReveal": "The final warning is therefore simple: when the same impossible detail appears twice, do not wait for a third occurrence to prove that it is real.",
+    "finalConsequence": "The final warning is therefore simple: when the same impossible detail appears twice, do not wait for a third occurrence to prove that it is real.",
+    "unresolvedQuestion": "Did Nina Falk defeat the thing at the centre of the story, or did the encounter simply teach it how to remain hidden?"
+  },
+  "generatedAt": "2026-06-26T12:58:36.877Z"
+}

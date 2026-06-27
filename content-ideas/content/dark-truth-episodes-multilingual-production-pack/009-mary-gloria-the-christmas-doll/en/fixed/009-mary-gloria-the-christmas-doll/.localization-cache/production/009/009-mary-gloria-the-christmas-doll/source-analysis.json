@@ -1,0 +1,50 @@
+{
+  "sourceHash": "b9604edd357b151646d9069bb8f4a057107c4ba9a43a50b248f2b467351f66f3",
+  "episodeNumber": "009",
+  "title": "The Christmas Doll Opened Her Eyes",
+  "wordCount": 680,
+  "sentenceCount": 51,
+  "paragraphCount": 14,
+  "issueSummary": [
+    {
+      "code": "WEAK_HOOK",
+      "severity": "warning",
+      "excerpt": "The doll arrived without a sender.",
+      "message": "The opening does not immediately ground the viewer in a concrete impossible detail or contradiction.",
+      "recommendation": "Strengthen the first sentence with a specific action, message, or anomaly."
+    },
+    {
+      "code": "AMBIGUOUS_ALTERNATIVE",
+      "severity": "warning",
+      "excerpt": "or violent attack",
+      "message": "The source contains ambiguous alternatives that can weaken localization fidelity.",
+      "recommendation": "Choose the source-explicit option or preserve the ambiguity only if it is intentional."
+    },
+    {
+      "code": "REPETITIVE_EXPOSITION",
+      "severity": "warning",
+      "excerpt": "repeated generic phrasing",
+      "message": "The source uses generic exposition that should be made concrete in the optimized English master.",
+      "recommendation": "Replace abstract narration with specific actions and outcomes."
+    }
+  ],
+  "synopsisSignals": [
+    "the official account"
+  ],
+  "unresolvedPlaceholders": [],
+  "ambiguousAlternatives": [
+    "or violent attack",
+    "or recording appeared to support part of the account, but it a",
+    "or a simple technical fault",
+    "or object returned whenever the protagonist moved closer to un",
+    "or earlier versions of the same legend",
+    "or familiar place",
+    "or witnesses could verify only fragments of what had happened",
+    "or did the encounter simply teach it how to remain hidden"
+  ],
+  "recommendedFocus": [
+    "Preserve character identities and plot chronology.",
+    "Rewrite abstract narration into concrete scenes.",
+    "Keep the final reveal and emotional meaning intact."
+  ]
+}

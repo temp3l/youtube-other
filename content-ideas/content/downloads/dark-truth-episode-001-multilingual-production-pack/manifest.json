@@ -1,0 +1,30 @@
+[
+  {
+    "episode": 1,
+    "language": "en",
+    "localized_title": "The Forbidden Japanese Village Where No Laws Apply",
+    "full_words": 1577,
+    "short_words": 286
+  },
+  {
+    "episode": 1,
+    "language": "de",
+    "localized_title": "Das verbotene japanische Dorf, in dem keine Gesetze gelten",
+    "full_words": 1556,
+    "short_words": 276
+  },
+  {
+    "episode": 1,
+    "language": "es",
+    "localized_title": "El pueblo japonés prohibido donde no se aplican las leyes",
+    "full_words": 1617,
+    "short_words": 295
+  },
+  {
+    "episode": 1,
+    "language": "fr",
+    "localized_title": "Le village japonais interdit où les lois ne s’appliquent pas",
+    "full_words": 1698,
+    "short_words": 304
+  }
+]

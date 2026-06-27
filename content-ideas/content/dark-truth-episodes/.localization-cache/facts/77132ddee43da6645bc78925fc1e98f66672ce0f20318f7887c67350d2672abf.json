@@ -1,0 +1,30 @@
+{
+  "sourceHash": "77132ddee43da6645bc78925fc1e98f66672ce0f20318f7887c67350d2672abf",
+  "facts": {
+    "episodeNumber": "001",
+    "primaryTitle": "The Forbidden Japanese Village Where No Laws Apply",
+    "characters": [
+      {
+        "name": "Daniel Mercer",
+        "role": "main protagonist"
+      }
+    ],
+    "setting": "At the end of an abandoned mountain road in Japan, Daniel Mercer found a rusted sign tied between two cedar trees.",
+    "criticalObjects": [],
+    "criticalEvents": [
+      "At the end of an abandoned mountain road in Japan, Daniel Mercer found a rusted sign tied between two cedar trees.",
+      "Most of the paint had peeled away, but one sentence remained readable: “Beyond this point, the laws of Japan do not apply.” Daniel photographed the sign and laughed.",
+      "He had travelled for two days to find Kurobane, a village missing from every modern map.",
+      "Online stories claimed the settlement had rejected the government, removed its road signs and declared itself beyond Japanese law."
+    ],
+    "writtenMessages": [
+      "T TRUST THE WOMAN. A",
+      "SHE LET ME IN FIRST.",
+      "LOOK FOR THE ROAD WITH NO STATUES."
+    ],
+    "threat": "At the end of an abandoned mountain road in Japan, Daniel Mercer found a rusted sign tied between two cedar trees.",
+    "primaryReveal": "T TRUST THE WOMAN. A",
+    "finalConsequence": "It is that beyond the sign, even the laws that make you who you are no longer apply."
+  },
+  "generatedAt": "2026-06-26T13:16:30.959Z"
+}

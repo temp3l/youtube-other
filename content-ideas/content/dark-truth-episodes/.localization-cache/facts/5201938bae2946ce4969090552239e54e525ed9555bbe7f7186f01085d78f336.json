@@ -1,0 +1,32 @@
+{
+  "sourceHash": "5201938bae2946ce4969090552239e54e525ed9555bbe7f7186f01085d78f336",
+  "facts": {
+    "episodeNumber": "007",
+    "primaryTitle": "The Save File Knew His Real Name",
+    "characters": [
+      {
+        "name": "Felix Grant",
+        "role": "main protagonist"
+      }
+    ],
+    "setting": "The cartridge had one save file.",
+    "criticalObjects": [],
+    "criticalEvents": [
+      "The cartridge had one save file.",
+      "It used Felix's childhood nickname—a name no one online knew.",
+      "Felix Grant was a software developer restoring an unlabelled game cartridge when the story began in a cramped apartment filled with retro game hardware.",
+      "The first reports did not describe an obvious monster or violent attack."
+    ],
+    "writtenMessages": [
+      "FELIX. A",
+      "FELIX",
+      "CONTINUE",
+      "BEN HAS ALREADY LEFT."
+    ],
+    "threat": "The cartridge had one save file.",
+    "primaryReveal": "FELIX. A",
+    "finalConsequence": "The final warning is therefore simple: when the same impossible detail appears twice, do not wait for a third occurrence to prove that it is real.",
+    "unresolvedQuestion": "The next morning, the FELIX save file reads: CONTINUE?"
+  },
+  "generatedAt": "2026-06-26T13:16:40.030Z"
+}

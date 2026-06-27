@@ -1,0 +1,15 @@
+{
+  "sourceFile": "/home/box/workspace/fehmarn-seo/youtube/other/content-ideas/content/dark-truth-episodes-multilingual-production-pack/018-the-smiling-man/en/018-the-smiling-man-en-full.md",
+  "sourceHash": "ca2dc81f2b4da22a6d6ab4c48c14165e731e943426a525febcb0b3060dda9333",
+  "configurationHash": "2790acf5439bef3839b621c929431ad4951808aed8df91ec802cbb5f33f3173e",
+  "promptVersion": "story-localization-v1",
+  "model": "gpt-4o-mini",
+  "language": "en",
+  "generatedAt": "2026-06-26T13:16:54.445Z",
+  "outputFiles": [
+    "/home/box/workspace/fehmarn-seo/youtube/other/content-ideas/content/dark-truth-episodes/018-the-smiling-man-en-full.md",
+    "/home/box/workspace/fehmarn-seo/youtube/other/content-ideas/content/dark-truth-episodes/018-the-smiling-man-en-short.md"
+  ],
+  "inputTokens": 0,
+  "outputTokens": 0
+}

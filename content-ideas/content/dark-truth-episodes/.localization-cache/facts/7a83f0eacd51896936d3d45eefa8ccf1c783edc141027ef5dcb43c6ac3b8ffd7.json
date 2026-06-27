@@ -1,0 +1,31 @@
+{
+  "sourceHash": "7a83f0eacd51896936d3d45eefa8ccf1c783edc141027ef5dcb43c6ac3b8ffd7",
+  "facts": {
+    "episodeNumber": "019",
+    "primaryTitle": "The Truth Behind the Russian Sleep Experiment",
+    "characters": [
+      {
+        "name": "Anya Volkov",
+        "role": "main protagonist"
+      },
+      {
+        "name": "Cold War",
+        "role": "supporting character"
+      }
+    ],
+    "setting": "The experiment promised freedom if five prisoners stayed awake for thirty days.",
+    "criticalObjects": [],
+    "criticalEvents": [
+      "The experiment promised freedom if five prisoners stayed awake for thirty days.",
+      "On day nine, they stopped asking to be released.",
+      "Dr.",
+      "Anya Volkov was a physician assigned to observe five prisoners when the story began in a fictional Cold War research bunker."
+    ],
+    "writtenMessages": [],
+    "threat": "The experiment promised freedom if five prisoners stayed awake for thirty days.",
+    "primaryReveal": "The final warning is therefore simple: when the same impossible detail appears twice, do not wait for a third occurrence to prove that it is real.",
+    "finalConsequence": "The final warning is therefore simple: when the same impossible detail appears twice, do not wait for a third occurrence to prove that it is real.",
+    "unresolvedQuestion": "Anya Volkov defeat the thing at the centre of the story, or did the encounter simply teach it how to remain hidden?"
+  },
+  "generatedAt": "2026-06-26T13:16:55.389Z"
+}

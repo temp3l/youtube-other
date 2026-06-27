@@ -1,0 +1,15 @@
+{
+  "sourceFile": "/home/box/workspace/fehmarn-seo/youtube/other/content-ideas/content/dark-truth-episodes-multilingual-production-pack/010-the-cleaner-of-death/en/010-the-cleaner-of-death-en-full.md",
+  "sourceHash": "6b5cc47cc8dc216c6d650efb45c3bbf3d0916ca4058b41c0cfc4abfa2ccb4831",
+  "configurationHash": "e21b7ee49d46eb3279e4612078ff79d43dde5ec8f86098e6fc470aac875691ac",
+  "promptVersion": "story-localization-v1",
+  "model": "gpt-4o-mini",
+  "language": "en",
+  "generatedAt": "2026-06-26T13:17:56.637Z",
+  "outputFiles": [
+    "/home/box/workspace/fehmarn-seo/youtube/other/content-ideas/content/dark-truth-episodes/010-the-cleaner-of-death-en-full.md",
+    "/home/box/workspace/fehmarn-seo/youtube/other/content-ideas/content/dark-truth-episodes/010-the-cleaner-of-death-en-short.md"
+  ],
+  "inputTokens": 0,
+  "outputTokens": 0
+}

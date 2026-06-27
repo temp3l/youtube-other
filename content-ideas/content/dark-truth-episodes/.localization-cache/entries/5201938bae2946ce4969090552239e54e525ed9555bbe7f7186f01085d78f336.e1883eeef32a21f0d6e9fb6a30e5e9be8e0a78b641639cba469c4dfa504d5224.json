@@ -1,0 +1,15 @@
+{
+  "sourceFile": "/home/box/workspace/fehmarn-seo/youtube/other/content-ideas/content/dark-truth-episodes-multilingual-production-pack/007-ben-drowned-the-game-that-knew-his-name/en/007-ben-drowned-the-game-that-knew-his-name-en-full.md",
+  "sourceHash": "5201938bae2946ce4969090552239e54e525ed9555bbe7f7186f01085d78f336",
+  "configurationHash": "e1883eeef32a21f0d6e9fb6a30e5e9be8e0a78b641639cba469c4dfa504d5224",
+  "promptVersion": "story-localization-v1",
+  "model": "gpt-4o",
+  "language": "en",
+  "generatedAt": "2026-06-26T15:10:00.472Z",
+  "outputFiles": [
+    "/home/box/workspace/fehmarn-seo/youtube/other/content-ideas/content/dark-truth-episodes/007-ben-drowned-the-game-that-knew-his-name-en-full.md",
+    "/home/box/workspace/fehmarn-seo/youtube/other/content-ideas/content/dark-truth-episodes/007-ben-drowned-the-game-that-knew-his-name-en-short.md"
+  ],
+  "inputTokens": 0,
+  "outputTokens": 0
+}

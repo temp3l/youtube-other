@@ -1,0 +1,15 @@
+{
+  "sourceFile": "/home/box/workspace/fehmarn-seo/youtube/other/content-ideas/content/dark-truth-episodes-multilingual-production-pack/020-teke-teke/en/020-teke-teke-en-full.md",
+  "sourceHash": "700630d86a53b10a84af98325c982f9da851293947e7e2ee21c5cff592cfc12e",
+  "configurationHash": "ba0efd4e95b12f50c494f7999c268f5f82c6c37ffced261338d3385cf8aebf7f",
+  "promptVersion": "story-localization-v1",
+  "model": "gpt-4o-mini",
+  "language": "en",
+  "generatedAt": "2026-06-26T13:16:56.827Z",
+  "outputFiles": [
+    "/home/box/workspace/fehmarn-seo/youtube/other/content-ideas/content/dark-truth-episodes/020-teke-teke-en-full.md",
+    "/home/box/workspace/fehmarn-seo/youtube/other/content-ideas/content/dark-truth-episodes/020-teke-teke-en-short.md"
+  ],
+  "inputTokens": 0,
+  "outputTokens": 0
+}

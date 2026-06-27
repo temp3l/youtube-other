@@ -1,0 +1,31 @@
+{
+  "sourceHash": "c4dd54a7a8362ee1448eb2ecdef9802d4d7f656db8a0a15a22f1370eca0d5993",
+  "facts": {
+    "episodeNumber": "015",
+    "primaryTitle": "The Voice That Haunted the Bell Family",
+    "characters": [
+      {
+        "name": "John Bell",
+        "role": "main protagonist"
+      },
+      {
+        "name": "Bell Witch",
+        "role": "supporting character"
+      }
+    ],
+    "setting": "The voice began as scratching in the walls.",
+    "criticalObjects": [],
+    "criticalEvents": [
+      "The voice began as scratching in the walls.",
+      "Within months, it was speaking to visitors, quoting sermons and promising that John Bell would die.",
+      "John Bell and his family was a farming household at the centre of a famous American haunting legend when the story began in early nineteenth-century Tennessee farmland.",
+      "The first reports did not describe an obvious monster or violent attack."
+    ],
+    "writtenMessages": [],
+    "threat": "The voice began as scratching in the walls.",
+    "primaryReveal": "The final warning is therefore simple: when the same impossible detail appears twice, do not wait for a third occurrence to prove that it is real.",
+    "finalConsequence": "The final warning is therefore simple: when the same impossible detail appears twice, do not wait for a third occurrence to prove that it is real.",
+    "unresolvedQuestion": "Did John Bell and his family defeat the thing at the centre of the story, or did the encounter simply teach it how to remain hidden?"
+  },
+  "generatedAt": "2026-06-26T13:16:50.526Z"
+}

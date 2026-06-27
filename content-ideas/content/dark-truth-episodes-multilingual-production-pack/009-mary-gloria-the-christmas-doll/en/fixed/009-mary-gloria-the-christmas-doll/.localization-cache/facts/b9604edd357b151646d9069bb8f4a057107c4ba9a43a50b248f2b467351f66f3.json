@@ -1,0 +1,35 @@
+{
+  "sourceHash": "b9604edd357b151646d9069bb8f4a057107c4ba9a43a50b248f2b467351f66f3",
+  "facts": {
+    "episodeNumber": "009",
+    "primaryTitle": "The Christmas Doll Opened Her Eyes",
+    "characters": [
+      {
+        "name": "Adrian Cole",
+        "role": "main protagonist"
+      },
+      {
+        "name": "Christmas Eve",
+        "role": "supporting character"
+      },
+      {
+        "name": "Mary Gloria",
+        "role": "important figure"
+      }
+    ],
+    "setting": "The doll arrived without a sender.",
+    "criticalObjects": [],
+    "criticalEvents": [
+      "The doll arrived without a sender.",
+      "Its card said, 'For the daughter who should have been mine.' Adrian Cole was a widowed father raising his eight-year-old daughter when the story began in a snowbound family home on Christmas Eve.",
+      "The first reports did not describe an obvious monster or violent attack.",
+      "They described a music-box version of a Christmas carol playing one note too slowly."
+    ],
+    "writtenMessages": [],
+    "threat": "The doll arrived without a sender.",
+    "primaryReveal": "The final warning is therefore simple: when the same impossible detail appears twice, do not wait for a third occurrence to prove that it is real.",
+    "finalConsequence": "The final warning is therefore simple: when the same impossible detail appears twice, do not wait for a third occurrence to prove that it is real.",
+    "unresolvedQuestion": "Did Adrian Cole defeat the thing at the centre of the story, or did the encounter simply teach it how to remain hidden?"
+  },
+  "generatedAt": "2026-06-26T18:15:59.858Z"
+}

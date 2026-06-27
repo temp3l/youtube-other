@@ -1,0 +1,38 @@
+[
+  {
+    "id": "fact-1",
+    "type": "fact",
+    "value": "The final warning is therefore simple: when the same impossible detail appears twice, do not wait for a third occurrence to prove that it is real.",
+    "mayRephrase": false
+  },
+  {
+    "id": "fact-2",
+    "type": "fact",
+    "value": "The final warning is therefore simple: when the same impossible detail appears twice, do not wait for a third occurrence to prove that it is real.",
+    "mayRephrase": false
+  },
+  {
+    "id": "rule-1",
+    "type": "rule",
+    "value": "The doll arrived without a sender.",
+    "mayRephrase": true
+  },
+  {
+    "id": "rule-2",
+    "type": "rule",
+    "value": "Its card said, 'For the daughter who should have been mine.' Adrian Cole was a widowed father raising his eight-year-old daughter when the story began in a snowbound family home on Christmas Eve.",
+    "mayRephrase": true
+  },
+  {
+    "id": "rule-3",
+    "type": "rule",
+    "value": "The first reports did not describe an obvious monster or violent attack.",
+    "mayRephrase": true
+  },
+  {
+    "id": "ending",
+    "type": "ending",
+    "value": "The final warning is therefore simple: when the same impossible detail appears twice, do not wait for a third occurrence to prove that it is real.",
+    "mayRephrase": false
+  }
+]

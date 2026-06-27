@@ -1,0 +1,15 @@
+{
+  "sourceFile": "/home/box/workspace/fehmarn-seo/youtube/other/content-ideas/content/dark-truth-episodes-multilingual-production-pack/005-never-answer-the-woman-with-the-slit-mouth/en/005-never-answer-the-woman-with-the-slit-mouth-en-full.md",
+  "sourceHash": "25eeef57484626acfd8c759ed2dedbaeb3c6905f37783fca0a4a753a7be2de15",
+  "configurationHash": "8a279005aa190f1774a999d7393ead79e0b5fcc688d1e0e4a802949e732b2861",
+  "promptVersion": "story-localization-v1",
+  "model": "gpt-4o-mini",
+  "language": "es",
+  "generatedAt": "2026-06-26T14:19:40.681Z",
+  "outputFiles": [
+    "/home/box/workspace/fehmarn-seo/youtube/other/content-ideas/content/dark-truth-episodes/005-never-answer-the-woman-with-the-slit-mouth-es-full.md",
+    "/home/box/workspace/fehmarn-seo/youtube/other/content-ideas/content/dark-truth-episodes/005-never-answer-the-woman-with-the-slit-mouth-es-short.md"
+  ],
+  "inputTokens": 5750,
+  "outputTokens": 2431
+}

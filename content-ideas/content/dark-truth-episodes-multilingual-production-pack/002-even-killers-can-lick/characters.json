@@ -1,0 +1,55 @@
+{
+  "episodeId": "002-even-killers-can-lick",
+  "updatedAt": "2026-06-25T00:00:00.000Z",
+  "characters": [
+    {
+      "id": "elena-ward",
+      "name": "Elena Ward",
+      "role": "main protagonist",
+      "physicalDescription": "A university student in her early 20s with a tired but alert face, a practical posture, and a believable late-night house-sitting look.",
+      "ageRange": "20s",
+      "genderPresentation": "woman",
+      "face": {
+        "shape": "oval with soft, tired features",
+        "skinTone": "light",
+        "eyeColor": "brown",
+        "eyebrows": "slightly arched",
+        "nose": "small and straight",
+        "mouth": "neutral, often tense",
+        "distinguishingFeatures": [
+          "subtle under-eye shadows",
+          "slightly messy hairline after a long night",
+          "appears observant and cautious"
+        ]
+      },
+      "hair": {
+        "color": "dark brown",
+        "length": "medium",
+        "style": "slightly messy, practical, and unstyled",
+        "texture": "straight"
+      },
+      "build": "slim and ordinary, not stylized or exaggerated",
+      "defaultWardrobe": {
+        "upperBody": "a dark hoodie or simple long-sleeve top",
+        "lowerBody": "casual jeans",
+        "footwear": "plain sneakers",
+        "accessories": [],
+        "carriedObjects": [
+          "phone"
+        ],
+        "colors": [
+          "dark navy",
+          "grey",
+          "muted indoor tones"
+        ]
+      },
+      "continuityTraits": [
+        "same tired but alert expression",
+        "same practical student appearance",
+        "same dark casual clothing",
+        "same cautious posture"
+      ],
+      "referenceStatus": "missing"
+    }
+  ]
+}

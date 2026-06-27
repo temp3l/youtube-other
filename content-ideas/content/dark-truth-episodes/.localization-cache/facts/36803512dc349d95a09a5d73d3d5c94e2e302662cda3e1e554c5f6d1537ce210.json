@@ -1,0 +1,27 @@
+{
+  "sourceHash": "36803512dc349d95a09a5d73d3d5c94e2e302662cda3e1e554c5f6d1537ce210",
+  "facts": {
+    "episodeNumber": "011",
+    "primaryTitle": "The Children Asked to Come Inside",
+    "characters": [
+      {
+        "name": "Noah Price",
+        "role": "main protagonist"
+      }
+    ],
+    "setting": "Two children stood outside Noah's motel room in freezing rain.",
+    "criticalObjects": [],
+    "criticalEvents": [
+      "Two children stood outside Noah's motel room in freezing rain.",
+      "They did not want shelter.",
+      "They wanted permission.",
+      "Noah Price was a travelling paramedic when the story began in a remote roadside motel during a winter storm."
+    ],
+    "writtenMessages": [],
+    "threat": "Two children stood outside Noah's motel room in freezing rain.",
+    "primaryReveal": "The final warning is therefore simple: when the same impossible detail appears twice, do not wait for a third occurrence to prove that it is real.",
+    "finalConsequence": "The final warning is therefore simple: when the same impossible detail appears twice, do not wait for a third occurrence to prove that it is real.",
+    "unresolvedQuestion": "Did Noah Price defeat the thing at the centre of the story, or did the encounter simply teach it how to remain hidden?"
+  },
+  "generatedAt": "2026-06-26T13:16:44.989Z"
+}

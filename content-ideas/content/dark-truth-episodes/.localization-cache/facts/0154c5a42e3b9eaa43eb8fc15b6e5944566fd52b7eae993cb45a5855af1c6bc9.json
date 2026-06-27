@@ -1,0 +1,27 @@
+{
+  "sourceHash": "0154c5a42e3b9eaa43eb8fc15b6e5944566fd52b7eae993cb45a5855af1c6bc9",
+  "facts": {
+    "episodeNumber": "003",
+    "primaryTitle": "Her Father Disappeared Inside the Dollhouse",
+    "characters": [
+      {
+        "name": "Mara Vale",
+        "role": "main protagonist"
+      }
+    ],
+    "setting": "Every room in Mara's dollhouse matched her home.",
+    "criticalObjects": [],
+    "criticalEvents": [
+      "Every room in Mara's dollhouse matched her home.",
+      "Then a new miniature figure appeared inside it—wearing her father's clothes.",
+      "Mara Vale was a twelve-year-old girl whose father restores antique furniture when the story began in a decaying Victorian townhouse inherited by a young family.",
+      "The first reports did not describe an obvious monster or violent attack."
+    ],
+    "writtenMessages": [],
+    "threat": "Every room in Mara's dollhouse matched her home.",
+    "primaryReveal": "The final warning is therefore simple: when the same impossible detail appears twice, do not wait for a third occurrence to prove that it is real.",
+    "finalConsequence": "The final warning is therefore simple: when the same impossible detail appears twice, do not wait for a third occurrence to prove that it is real.",
+    "unresolvedQuestion": "Did Mara Vale defeat the thing at the centre of the story, or did the encounter simply teach it how to remain hidden?"
+  },
+  "generatedAt": "2026-06-26T12:12:45.380Z"
+}

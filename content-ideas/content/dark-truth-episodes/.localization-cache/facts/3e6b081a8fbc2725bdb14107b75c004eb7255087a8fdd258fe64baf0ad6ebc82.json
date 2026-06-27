@@ -1,0 +1,27 @@
+{
+  "sourceHash": "3e6b081a8fbc2725bdb14107b75c004eb7255087a8fdd258fe64baf0ad6ebc82",
+  "facts": {
+    "episodeNumber": "008",
+    "primaryTitle": "Every Black Rose Predicted a Death",
+    "characters": [
+      {
+        "name": "Sophie Marek",
+        "role": "main protagonist"
+      }
+    ],
+    "setting": "Sophie found a black rose on the counter each morning.",
+    "criticalObjects": [],
+    "criticalEvents": [
+      "Sophie found a black rose on the counter each morning.",
+      "Every person named on its tag died before the flower opened.",
+      "Sophie Marek was a florist returning home after her grandmother's death when the story began in a family-owned flower shop in Prague.",
+      "The first reports did not describe an obvious monster or violent attack."
+    ],
+    "writtenMessages": [],
+    "threat": "Sophie found a black rose on the counter each morning.",
+    "primaryReveal": "The final warning is therefore simple: when the same impossible detail appears twice, do not wait for a third occurrence to prove that it is real.",
+    "finalConsequence": "The final warning is therefore simple: when the same impossible detail appears twice, do not wait for a third occurrence to prove that it is real.",
+    "unresolvedQuestion": "Did Sophie Marek defeat the thing at the centre of the story, or did the encounter simply teach it how to remain hidden?"
+  },
+  "generatedAt": "2026-06-26T13:16:41.288Z"
+}

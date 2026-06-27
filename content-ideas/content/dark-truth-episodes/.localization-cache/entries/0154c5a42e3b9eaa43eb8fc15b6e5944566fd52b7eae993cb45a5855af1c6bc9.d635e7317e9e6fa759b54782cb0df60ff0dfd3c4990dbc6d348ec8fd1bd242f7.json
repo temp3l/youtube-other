@@ -1,0 +1,15 @@
+{
+  "sourceFile": "/home/box/workspace/fehmarn-seo/youtube/other/content-ideas/content/dark-truth-episodes-multilingual-production-pack/003-the-dollhouse-that-swallowed-her-father/en/003-the-dollhouse-that-swallowed-her-father-en-full.md",
+  "sourceHash": "0154c5a42e3b9eaa43eb8fc15b6e5944566fd52b7eae993cb45a5855af1c6bc9",
+  "configurationHash": "d635e7317e9e6fa759b54782cb0df60ff0dfd3c4990dbc6d348ec8fd1bd242f7",
+  "promptVersion": "story-localization-v1",
+  "model": "gpt-4o-mini",
+  "language": "en",
+  "generatedAt": "2026-06-26T13:17:49.923Z",
+  "outputFiles": [
+    "/home/box/workspace/fehmarn-seo/youtube/other/content-ideas/content/dark-truth-episodes/003-the-dollhouse-that-swallowed-her-father-en-full.md",
+    "/home/box/workspace/fehmarn-seo/youtube/other/content-ideas/content/dark-truth-episodes/003-the-dollhouse-that-swallowed-her-father-en-short.md"
+  ],
+  "inputTokens": 0,
+  "outputTokens": 0
+}

@@ -1,0 +1,31 @@
+{
+  "sourceHash": "88ece21a3f150ddf3ef693fa8778165fdd279b9a035acf43bc33a310892e104d",
+  "facts": {
+    "episodeNumber": "006",
+    "primaryTitle": "The Doll Followed Her Home",
+    "characters": [
+      {
+        "name": "Laura Chen",
+        "role": "main protagonist"
+      },
+      {
+        "name": "Key West",
+        "role": "supporting character"
+      }
+    ],
+    "setting": "Laura filmed the doll without asking permission.",
+    "criticalObjects": [],
+    "criticalEvents": [
+      "Laura filmed the doll without asking permission.",
+      "That night, it appeared in the background of a photograph taken inside her locked apartment.",
+      "Laura Chen was a travel videographer researching allegedly haunted objects when the story began in a museum archive in Key West and a nearby rental apartment.",
+      "The first reports did not describe an obvious monster or violent attack."
+    ],
+    "writtenMessages": [],
+    "threat": "Laura filmed the doll without asking permission.",
+    "primaryReveal": "The final warning is therefore simple: when the same impossible detail appears twice, do not wait for a third occurrence to prove that it is real.",
+    "finalConsequence": "The final warning is therefore simple: when the same impossible detail appears twice, do not wait for a third occurrence to prove that it is real.",
+    "unresolvedQuestion": "Did Laura Chen defeat the thing at the centre of the story, or did the encounter simply teach it how to remain hidden?"
+  },
+  "generatedAt": "2026-06-26T13:16:38.744Z"
+}

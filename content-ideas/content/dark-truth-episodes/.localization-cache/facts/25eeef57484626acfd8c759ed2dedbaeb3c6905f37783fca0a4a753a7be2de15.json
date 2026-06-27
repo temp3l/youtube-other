@@ -1,0 +1,27 @@
+{
+  "sourceHash": "25eeef57484626acfd8c759ed2dedbaeb3c6905f37783fca0a4a753a7be2de15",
+  "facts": {
+    "episodeNumber": "005",
+    "primaryTitle": "She Asked, “Am I Beautiful?”",
+    "characters": [
+      {
+        "name": "Paul Reeves",
+        "role": "main protagonist"
+      }
+    ],
+    "setting": "A masked woman asked Paul whether she was beautiful.",
+    "criticalObjects": [],
+    "criticalEvents": [
+      "A masked woman asked Paul whether she was beautiful.",
+      "Every answer he gave changed the street around him.",
+      "Paul Reeves was an English teacher walking home after the last train when the story began in a quiet commuter district outside Tokyo.",
+      "The first reports did not describe an obvious monster or violent attack."
+    ],
+    "writtenMessages": [],
+    "threat": "A masked woman asked Paul whether she was beautiful.",
+    "primaryReveal": "The final warning is therefore simple: when the same impossible detail appears twice, do not wait for a third occurrence to prove that it is real.",
+    "finalConsequence": "The final warning is therefore simple: when the same impossible detail appears twice, do not wait for a third occurrence to prove that it is real.",
+    "unresolvedQuestion": "Did Paul Reeves defeat the thing at the centre of the story, or did the encounter simply teach it how to remain hidden?"
+  },
+  "generatedAt": "2026-06-26T13:16:37.495Z"
+}

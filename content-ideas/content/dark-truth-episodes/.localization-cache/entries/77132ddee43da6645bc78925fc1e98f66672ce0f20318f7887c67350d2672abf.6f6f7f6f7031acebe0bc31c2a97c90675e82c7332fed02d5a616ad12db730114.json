@@ -1,0 +1,15 @@
+{
+  "sourceFile": "/home/box/workspace/fehmarn-seo/youtube/other/content-ideas/content/dark-truth-episodes-multilingual-production-pack/001-the-forbidden-village-where-japan-s-laws-do-not-apply/en/001-the-forbidden-village-where-japan-s-laws-do-not-apply-en-full.md",
+  "sourceHash": "77132ddee43da6645bc78925fc1e98f66672ce0f20318f7887c67350d2672abf",
+  "configurationHash": "6f6f7f6f7031acebe0bc31c2a97c90675e82c7332fed02d5a616ad12db730114",
+  "promptVersion": "story-localization-v1",
+  "model": "gpt-4o-mini",
+  "language": "en",
+  "generatedAt": "2026-06-26T13:17:47.517Z",
+  "outputFiles": [
+    "/home/box/workspace/fehmarn-seo/youtube/other/content-ideas/content/dark-truth-episodes/001-the-forbidden-village-where-japan-s-laws-do-not-apply-en-full.md",
+    "/home/box/workspace/fehmarn-seo/youtube/other/content-ideas/content/dark-truth-episodes/001-the-forbidden-village-where-japan-s-laws-do-not-apply-en-short.md"
+  ],
+  "inputTokens": 0,
+  "outputTokens": 0
+}

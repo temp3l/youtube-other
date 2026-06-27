@@ -1,0 +1,35 @@
+{
+  "sourceHash": "bd6e42b00162bbe39c14cfeee250c43c2ff09ba63537c5cf00875ca66a9705e0",
+  "facts": {
+    "episodeNumber": "013",
+    "primaryTitle": "What Really Happened at Dyatlov Pass?",
+    "characters": [
+      {
+        "name": "Igor Dyatlov",
+        "role": "main protagonist"
+      },
+      {
+        "name": "Ural Mountains",
+        "role": "supporting character"
+      },
+      {
+        "name": "Kholat Syakhl",
+        "role": "important figure"
+      }
+    ],
+    "setting": "Nine experienced hikers cut their tent open from the inside and fled into deadly cold without proper clothing.",
+    "criticalObjects": [],
+    "criticalEvents": [
+      "Nine experienced hikers cut their tent open from the inside and fled into deadly cold without proper clothing.",
+      "The question is not whether they were frightened.",
+      "It is what made the tent feel more dangerous than the storm.",
+      "the nine members of Igor Dyatlov's hiking group was experienced Soviet trekkers when the story began in the northern Ural Mountains in February 1959."
+    ],
+    "writtenMessages": [],
+    "threat": "Nine experienced hikers cut their tent open from the inside and fled into deadly cold without proper clothing.",
+    "primaryReveal": "The final warning is therefore simple: when the same impossible detail appears twice, do not wait for a third occurrence to prove that it is real.",
+    "finalConsequence": "The final warning is therefore simple: when the same impossible detail appears twice, do not wait for a third occurrence to prove that it is real.",
+    "unresolvedQuestion": "Did the nine members of Igor Dyatlov's hiking group defeat the thing at the centre of the story, or did the encounter simply teach it how to remain hidden?"
+  },
+  "generatedAt": "2026-06-26T13:16:47.436Z"
+}

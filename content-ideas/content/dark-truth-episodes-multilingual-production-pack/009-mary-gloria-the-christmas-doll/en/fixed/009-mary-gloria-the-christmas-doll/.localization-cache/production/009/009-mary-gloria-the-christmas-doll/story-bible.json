@@ -1,0 +1,112 @@
+{
+  "title": "The Christmas Doll Opened Her Eyes",
+  "premise": "The doll arrived without a sender. Its card said, 'For the daughter who should have been mine.'",
+  "protagonist": {
+    "id": "protagonist",
+    "name": "Adrian Cole",
+    "role": "main protagonist",
+    "relationships": [],
+    "traits": [],
+    "requiredFacts": [
+      "Adrian Cole",
+      "main protagonist"
+    ]
+  },
+  "supportingCharacters": [
+    {
+      "id": "support-1",
+      "name": "Christmas Eve",
+      "role": "supporting character",
+      "relationships": [],
+      "traits": [],
+      "requiredFacts": [
+        "Christmas Eve",
+        "supporting character"
+      ]
+    },
+    {
+      "id": "support-2",
+      "name": "Mary Gloria",
+      "role": "important figure",
+      "relationships": [],
+      "traits": [],
+      "requiredFacts": [
+        "Mary Gloria",
+        "important figure"
+      ]
+    }
+  ],
+  "threat": {
+    "identity": "The doll arrived without a sender.",
+    "knownCapabilities": [
+      "Creates tension through scene-level contradictions."
+    ],
+    "limitations": [],
+    "rules": [
+      "The doll arrived without a sender.",
+      "Its card said, 'For the daughter who should have been mine.' Adrian Cole was a widowed father raising his eight-year-old daughter when the story began in a snowbound family home on Christmas Eve."
+    ],
+    "unknowns": []
+  },
+  "locations": [
+    {
+      "id": "setting",
+      "name": "Primary location",
+      "description": "The doll arrived without a sender.",
+      "requiredFacts": [
+        "The doll arrived without a sender."
+      ]
+    }
+  ],
+  "timeline": [
+    {
+      "id": "event-1",
+      "sequenceNumber": 1,
+      "description": "The doll arrived without a sender.",
+      "requiredFacts": [
+        "The doll arrived without a sender."
+      ],
+      "consequence": "The doll arrived without a sender."
+    },
+    {
+      "id": "event-2",
+      "sequenceNumber": 2,
+      "description": "Its card said, 'For the daughter who should have been mine.' Adrian Cole was a widowed father raising his eight-year-old daughter when the story began in a snowbound family home on Christmas Eve.",
+      "requiredFacts": [
+        "Its card said, 'For the daughter who should have been mine.' Adrian Cole was a widowed father raising his eight-year-old daughter when the story began in a snowbound family home on Christmas Eve."
+      ],
+      "consequence": "Its card said, 'For the daughter who should have been mine.' Adrian Cole was a widowed father raising his eight-year-old daughter when the story began in a snowbound family home on Christmas Eve."
+    },
+    {
+      "id": "event-3",
+      "sequenceNumber": 3,
+      "description": "The first reports did not describe an obvious monster or violent attack.",
+      "requiredFacts": [
+        "The first reports did not describe an obvious monster or violent attack."
+      ],
+      "consequence": "The first reports did not describe an obvious monster or violent attack."
+    },
+    {
+      "id": "event-4",
+      "sequenceNumber": 4,
+      "description": "They described a music-box version of a Christmas carol playing one note too slowly.",
+      "requiredFacts": [
+        "They described a music-box version of a Christmas carol playing one note too slowly."
+      ],
+      "consequence": "The final warning is therefore simple: when the same impossible detail appears twice, do not wait for a third occurrence to prove that it is real."
+    }
+  ],
+  "immutableFacts": [
+    "The final warning is therefore simple: when the same impossible detail appears twice, do not wait for a third occurrence to prove that it is real.",
+    "The final warning is therefore simple: when the same impossible detail appears twice, do not wait for a third occurrence to prove that it is real."
+  ],
+  "recurringMotifs": [],
+  "supernaturalRules": [
+    "The doll arrived without a sender.",
+    "Its card said, 'For the daughter who should have been mine.' Adrian Cole was a widowed father raising his eight-year-old daughter when the story began in a snowbound family home on Christmas Eve.",
+    "The first reports did not describe an obvious monster or violent attack."
+  ],
+  "requiredReveals": [],
+  "immutableStrings": [],
+  "endingMeaning": "The final warning is therefore simple: when the same impossible detail appears twice, do not wait for a third occurrence to prove that it is real."
+}

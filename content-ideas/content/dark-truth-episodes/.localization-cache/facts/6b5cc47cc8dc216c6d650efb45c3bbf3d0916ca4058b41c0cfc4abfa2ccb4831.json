@@ -1,0 +1,27 @@
+{
+  "sourceHash": "6b5cc47cc8dc216c6d650efb45c3bbf3d0916ca4058b41c0cfc4abfa2ccb4831",
+  "facts": {
+    "episodeNumber": "010",
+    "primaryTitle": "She Cleaned Rooms Before People Died",
+    "characters": [
+      {
+        "name": "Mia Alvarez",
+        "role": "main protagonist"
+      }
+    ],
+    "setting": "Mia was told never to clean a room marked with a black ribbon.",
+    "criticalObjects": [],
+    "criticalEvents": [
+      "Mia was told never to clean a room marked with a black ribbon.",
+      "At 3:10 a.m., the ribbon appeared on her own apartment door.",
+      "Mia Alvarez was a new overnight housekeeper when the story began in a high-rise hotel during the night shift.",
+      "The first reports did not describe an obvious monster or violent attack."
+    ],
+    "writtenMessages": [],
+    "threat": "Mia was told never to clean a room marked with a black ribbon.",
+    "primaryReveal": "The final warning is therefore simple: when the same impossible detail appears twice, do not wait for a third occurrence to prove that it is real.",
+    "finalConsequence": "The final warning is therefore simple: when the same impossible detail appears twice, do not wait for a third occurrence to prove that it is real.",
+    "unresolvedQuestion": "Did Mia Alvarez defeat the thing at the centre of the story, or did the encounter simply teach it how to remain hidden?"
+  },
+  "generatedAt": "2026-06-26T13:16:43.818Z"
+}

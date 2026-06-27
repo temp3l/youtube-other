@@ -1,0 +1,6 @@
+{
+  "failureMessage": "German full story localization failed via OpenAI model gpt-4.1-mini: Connection/transport error while calling OpenAI: Connection error. after 5 attempts",
+  "issues": [
+    "German full story localization failed via OpenAI model gpt-4.1-mini: Connection/transport error while calling OpenAI: Connection error. after 5 attempts"
+  ]
+}
