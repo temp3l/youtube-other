@@ -67,6 +67,9 @@ export interface ImageBatchReadinessReport {
   readonly requiresImportBatches: number;
   readonly importedBatches: number;
   readonly failedBatches: number;
+  readonly mergedWithPreviousScenes: number;
+  readonly mergedWithNextScenes: number;
+  readonly reusedScenes: number;
   readonly readyForRender: boolean;
   readonly episodeNumbers: readonly string[];
   readonly sceneCount: number;
@@ -128,6 +131,15 @@ function computeImageDetails(manifest: ImageBatchManifest) {
     category: "image-generation" as const,
     episodeNumbers: [...new Set(manifest.items.map((item) => item.episodeNumber))],
     sceneCount: manifest.items.length,
+    mergedWithPreviousScenes: manifest.items.filter(
+      (item) => item.renderability === "mergeWithPrevious"
+    ).length,
+    mergedWithNextScenes: manifest.items.filter(
+      (item) => item.renderability === "mergeWithNext"
+    ).length,
+    reusedScenes: manifest.items.filter(
+      (item) => item.reusedFromSceneId !== undefined
+    ).length,
     imageModel: manifest.model,
     ...(manifest.items.find((item) => item.quality)
       ? { imageQuality: manifest.items.find((item) => item.quality)?.quality }
@@ -226,6 +238,19 @@ function imageManifestPath(layout: ImageBatchStorageLayout, localBatchId: string
 }
 
 function sceneManifestPathForOutput(outputPath: string, sceneId: string): string {
+  const normalized = outputPath.replace(/\\/gu, "/");
+  const sharedImagesMarker = "/shared/images/generated/";
+  const sharedMarkerIndex = normalized.indexOf(sharedImagesMarker);
+  if (sharedMarkerIndex >= 0) {
+    const episodeDir = outputPath.slice(0, sharedMarkerIndex);
+    return path.join(
+      episodeDir,
+      "state",
+      "image-generation",
+      "manifests",
+      `${sceneId}.json`
+    );
+  }
   return path.join(
     path.dirname(path.dirname(outputPath)),
     "manifests",
@@ -853,12 +878,36 @@ export async function summarizeImageBatchState(
     (left, right) => left.localeCompare(right)
   );
   const sceneCount = entries.reduce((sum, entry) => sum + entry.itemCount, 0);
+  const manifests = await Promise.all(
+    entries.map(async (entry) => {
+      const manifest = await readImageBatchManifest(entry.manifestPath);
+      return manifest?.items ?? [];
+    })
+  );
+  const mergedWithPreviousScenes = manifests.reduce(
+    (sum, items) =>
+      sum + items.filter((item) => item.renderability === "mergeWithPrevious").length,
+    0
+  );
+  const mergedWithNextScenes = manifests.reduce(
+    (sum, items) =>
+      sum + items.filter((item) => item.renderability === "mergeWithNext").length,
+    0
+  );
+  const reusedScenes = manifests.reduce(
+    (sum, items) =>
+      sum + items.filter((item) => item.reusedFromSceneId !== undefined).length,
+    0
+  );
   return {
     totalBatches,
     pendingBatches,
     requiresImportBatches,
     importedBatches,
     failedBatches,
+    mergedWithPreviousScenes,
+    mergedWithNextScenes,
+    reusedScenes,
     readyForRender,
     episodeNumbers,
     sceneCount,

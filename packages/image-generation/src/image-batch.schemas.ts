@@ -8,6 +8,16 @@ export const imageBatchManifestItemSchema = z.object({
   format: z.literal("full"),
   sceneId: z.string().min(1),
   sceneIndex: z.number().int().nonnegative(),
+  renderability: z
+    .enum([
+      "direct",
+      "requiresInference",
+      "mergeWithPrevious",
+      "mergeWithNext",
+      "skip",
+    ])
+    .optional(),
+  reusedFromSceneId: z.string().min(1).optional(),
   promptHash: z.string().min(1),
   generationConfigurationHash: z.string().min(1),
   expectedOutputPath: z.string().min(1),
@@ -100,6 +110,16 @@ export const sceneImageJobSchema = z.object({
   format: z.literal("full"),
   sceneId: z.string().min(1),
   sceneIndex: z.number().int().nonnegative(),
+  renderability: z
+    .enum([
+      "direct",
+      "requiresInference",
+      "mergeWithPrevious",
+      "mergeWithNext",
+      "skip",
+    ])
+    .optional(),
+  reusedFromSceneId: z.string().min(1).optional(),
   startTimeSeconds: z.number().nonnegative().optional(),
   endTimeSeconds: z.number().nonnegative().optional(),
   promptPath: z.string().min(1).optional(),

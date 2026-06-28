@@ -22,9 +22,11 @@ Key behavior:
 - sync a source-pack `characters.json` into the episode workspace with `episode sync-characters`;
 - bootstrap the shared episode character folder and reference images in one pass with `episode bootstrap-characters`;
 - store character state in `episodes/<episode-id>/shared/characters.json`;
-- store scene manifests in `episodes/<episode-id>/generated-assets/image-manifests/`;
-- store prompts in `episodes/<episode-id>/generated-assets/prompts/`;
+- store scene manifests in `episodes/<episode-id>/state/image-generation/manifests/`;
+- store prompts in `episodes/<episode-id>/state/image-generation/prompts/`;
 - store character reference images in `episodes/<episode-id>/shared/images/character-references/`;
+- store canonical generated scene images in `episodes/<episode-id>/shared/images/generated/`;
+- continue resolving legacy images from `episodes/<episode-id>/state/image-generation/images/` during migration;
 - skip already valid outputs unless `--force` is supplied.
 - include the exact narration beat in the image prompt so the generator has a tighter textual anchor for each scene.
 

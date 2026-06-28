@@ -104,4 +104,17 @@ describe("images resume command", () => {
     expect(second.created).toBe(false);
     expect(second.manifest.scenePlan?.scenes).toHaveLength(1);
   });
+
+  it("documents the canonical singular episode resume command example", async () => {
+    const docsPath = path.resolve("docs/cli.md");
+    const docs = await fs.readFile(docsPath, "utf8");
+
+    expect(docs).toContain("node apps/cli/dist/index.js episode resume-images");
+    expect(docs).not.toContain(
+      "node apps/cli/dist/index.js episodes resume-images"
+    );
+    expect(docs).toContain(
+      "npm run mediaforge -- episode resume-images --episode <episode-id> --concurrency 2"
+    );
+  });
 });

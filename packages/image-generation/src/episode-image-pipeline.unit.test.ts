@@ -8,10 +8,12 @@ import { scenePlanSchema, type ScenePlan } from "@mediaforge/domain";
 import {
   approveEpisodeCharacter,
   buildPromptFromSpec,
+  buildSceneVisualSpec,
   diffSpec,
   generateEpisodeImages,
   isRetryableError,
   loadEpisodeImageGenerationSettings,
+  loadEpisodeSceneVisualPlan,
   planEpisodeImageGeneration,
   OpenAIImageGenerator,
   rewriteForDifference,
@@ -20,6 +22,7 @@ import {
   type CharacterDefinition,
   upsertCharacterRegistry,
   validatePrompt,
+  validateSceneVisualSpec,
 } from "./episode-image-pipeline.js";
 
 function makeScenePlan(
@@ -192,6 +195,41 @@ function createMockClient(
   } as never;
 }
 
+function createSequencedMockClient(
+  calls: Array<{ method: "generate" | "edit"; body: unknown }>,
+  b64s: readonly string[]
+) {
+  let index = 0;
+  return {
+    images: {
+      generate(body: unknown) {
+        calls.push({ method: "generate", body });
+        const next = b64s[Math.min(index, b64s.length - 1)] ?? b64s[0];
+        index += 1;
+        return {
+          withResponse: async () => ({
+            data: { data: [{ b64_json: next }] },
+            response: new Response(null, { status: 200 }),
+            request_id: `req_generate_${index}`,
+          }),
+        };
+      },
+      edit(body: unknown) {
+        calls.push({ method: "edit", body });
+        const next = b64s[Math.min(index, b64s.length - 1)] ?? b64s[0];
+        index += 1;
+        return {
+          withResponse: async () => ({
+            data: { data: [{ b64_json: next }] },
+            response: new Response(null, { status: 200 }),
+            request_id: `req_edit_${index}`,
+          }),
+        };
+      },
+    },
+  } as never;
+}
+
 describe("episode image pipeline helpers", () => {
   it("builds an identity prompt that keeps immutable traits separate from wardrobe continuity", () => {
     const registry = makeRegistry();
@@ -213,13 +251,459 @@ describe("episode image pipeline helpers", () => {
     );
     expect(
       validatePrompt(shownPrompt, { ...spec, visibleAction: "shown" })
-    ).toContain("prompt uses shown or otherwise generic action");
+    ).toContain("visible action is too generic or abstract");
     expect(
       validatePrompt(
         "rough ink collage and photorealistic cinematic horror in the same prompt",
         spec
       )
     ).toContain("prompt contains contradictory style directions");
+  });
+
+  it("prefers a single clean primary event over repeated narration fragments", () => {
+    const spec = {
+      ...makeSceneSpec(),
+      focalSubject: "The next incident removed some",
+      visibleAction:
+        "The next incident removed some of that comfort. Two children knock and ask to use his phone, keeping their faces lowered.",
+      environment: "cinematic documentary background",
+      foreground: "foreground evidence and incidental detail",
+      background: "background context and atmospheric depth",
+      distinctiveAnchor: "two children at the motel door",
+      canonicalNarration:
+        "The next incident removed some of that comfort. Two children knock and ask to use his phone, keeping their faces lowered.",
+    };
+    const prompt = buildPromptFromSpec(spec, undefined, makeRegistry());
+    expect(prompt).toContain(
+      "Two children knock and ask to use his phone, keeping their faces lowered."
+    );
+    expect(
+      prompt.match(/The next incident removed some/gu)?.length ?? 0
+    ).toBeLessThanOrEqual(1);
+  });
+
+  it("emits typed visual-plan issues for placeholder language and repeated narration", () => {
+    const issues = validateSceneVisualSpec(
+      {
+        ...makeSceneSpec(),
+        sourceNarration:
+          "The event happened... The event happened. The event happened...",
+        environment: "a grounded environment suggested by the narration",
+        foreground: "foreground evidence related to the narration",
+        background: "background context reinforcing the narration",
+      },
+      undefined,
+      undefined
+    );
+
+    expect(issues.map((issue) => issue.code)).toContain(
+      "PLACEHOLDER_ENVIRONMENT"
+    );
+    expect(issues.map((issue) => issue.code)).toContain(
+      "DUPLICATED_NARRATION"
+    );
+  });
+
+  it("derives a concrete space from narration when the scene setting is generic", () => {
+    const spec = buildSceneVisualSpec(
+      {
+        id: "scene-001",
+        sequenceNumber: 1,
+        canonicalNarration: "Two children stood outside Noah's motel room in freezing rain.",
+        sourceSegmentIds: ["scene-001"],
+        estimatedDurationSeconds: 4,
+        timing: { startSeconds: 0, endSeconds: 4 },
+        visualPurpose: "introduce the setting",
+        subject: "Two children stood outside Noah's",
+        action: "shown",
+        setting: "cinematic documentary background",
+        composition: "centered",
+        cameraFraming: "wide shot",
+        mood: "tense",
+        continuityReferences: [],
+        onScreenText: "",
+        negativeConstraints: ["no subtitles", "no watermark"],
+        aspectRatios: ["16:9"],
+        imagePrompt: "placeholder",
+        expectedImageFilenames: ["scene-001__000000-000004__16x9.png"],
+        qualityStatus: "draft",
+      } as never,
+      makeRegistry()
+    );
+
+    expect(spec.environment).toContain("motel room");
+    expect(spec.environment).not.toContain("suggested by");
+    expect(spec.foreground).toContain("two children at the threshold");
+    expect(spec.foreground).not.toContain("foreground details centered on");
+    expect(spec.background).not.toContain("background details that echo");
+    expect(spec.background).not.toContain("two children at the threshold");
+  });
+
+  it("marks abstract transition beats as merge candidates in persisted visual plans", async () => {
+    const dir = mkdtempSync(path.join(os.tmpdir(), "mediaforge-renderability-"));
+    const episodeDir = path.join(dir, "episode");
+    await fs.mkdir(episodeDir, { recursive: true });
+    const referencePath = path.join(dir, "daniel-reference.png");
+    await fs.writeFile(
+      referencePath,
+      await sharp({
+        create: { width: 8, height: 8, channels: 3, background: "#223344" },
+      })
+        .png()
+        .toBuffer()
+    );
+    await upsertCharacterRegistry(
+      episodeDir,
+      "episode-fixture",
+      makeRegistry("approved", referencePath).characters
+    );
+    const settings = loadEpisodeImageGenerationSettings({
+      OPENAI_API_KEY: "test-key",
+      OPENAI_IMAGE_MODEL: "gpt-image-2",
+      OPENAI_IMAGE_SIZE: "1536x1024",
+      OPENAI_IMAGE_QUALITY: "medium",
+      OPENAI_IMAGE_CONCURRENCY: "1",
+      OPENAI_IMAGE_MAX_RETRIES: "0",
+      OPENAI_IMAGE_TIMEOUT_MS: "1000",
+      OPENAI_IMAGE_ALLOW_UNAPPROVED_CHARACTER_REFERENCES: "true",
+    });
+    const plan = makeScenePlan([
+      {
+        id: "scene-001",
+        canonicalNarration: "Daniel opens the motel room door.",
+        subject: "Daniel Mercer",
+        action: "opens the motel room door",
+        setting: "motel room doorway",
+      },
+      {
+        id: "scene-002",
+        canonicalNarration:
+          "The discovery changed the meaning of everything that came before.",
+        subject: "the discovery",
+        action: "the discovery changed everything",
+        setting: "cinematic documentary background",
+      },
+    ] as never);
+
+    await planEpisodeImageGeneration(
+      episodeDir,
+      "episode-fixture",
+      plan,
+      settings
+    );
+
+    const visualPlan = await loadEpisodeSceneVisualPlan(episodeDir, "scene-002");
+    expect(visualPlan?.renderability).toBe("requiresInference");
+  });
+
+  it("collapses near-identical exposition beats into merge-with-previous candidates", async () => {
+    const dir = mkdtempSync(path.join(os.tmpdir(), "mediaforge-similarity-merge-"));
+    const episodeDir = path.join(dir, "episode");
+    await fs.mkdir(episodeDir, { recursive: true });
+    const referencePath = path.join(dir, "daniel-reference.png");
+    await fs.writeFile(
+      referencePath,
+      await sharp({
+        create: { width: 8, height: 8, channels: 3, background: "#223344" },
+      })
+        .png()
+        .toBuffer()
+    );
+    await upsertCharacterRegistry(
+      episodeDir,
+      "episode-fixture",
+      makeRegistry("approved", referencePath).characters
+    );
+    const settings = loadEpisodeImageGenerationSettings({
+      OPENAI_API_KEY: "test-key",
+      OPENAI_IMAGE_MODEL: "gpt-image-2",
+      OPENAI_IMAGE_SIZE: "1536x1024",
+      OPENAI_IMAGE_QUALITY: "medium",
+      OPENAI_IMAGE_CONCURRENCY: "1",
+      OPENAI_IMAGE_MAX_RETRIES: "0",
+      OPENAI_IMAGE_TIMEOUT_MS: "1000",
+      OPENAI_IMAGE_ALLOW_UNAPPROVED_CHARACTER_REFERENCES: "true",
+    });
+    const plan = makeScenePlan(
+      Array.from({ length: 10 }, (_, index) => {
+        const sceneNumber = String(index + 1).padStart(3, "0");
+        if (index >= 8) {
+          return {
+            id: `scene-${sceneNumber}`,
+            canonicalNarration: "Daniel studies the corridor on a monitor.",
+            subject: "Daniel Mercer",
+            action: "studies a monitor in the dim corridor",
+            setting: "warehouse hallway with concrete walls",
+          };
+        }
+        return {
+          id: `scene-${sceneNumber}`,
+          canonicalNarration: `Daniel studies a different corridor detail ${index + 1}.`,
+          subject: `Daniel Mercer ${index + 1}`,
+          action: `studies a different corridor detail ${index + 1}`,
+          setting: `warehouse hallway variant ${index + 1}`,
+        };
+      })
+    );
+
+    await planEpisodeImageGeneration(
+      episodeDir,
+      "episode-fixture",
+      plan,
+      settings
+    );
+
+    const visualPlan = await loadEpisodeSceneVisualPlan(episodeDir, "scene-010");
+    expect(visualPlan?.renderability).toBe("direct");
+  });
+
+  it("reuses the previous scene image for merge-with-previous beats", async () => {
+    const dir = mkdtempSync(path.join(os.tmpdir(), "mediaforge-merge-reuse-"));
+    const episodeDir = path.join(dir, "episode");
+    await fs.mkdir(episodeDir, { recursive: true });
+    const referencePath = path.join(dir, "daniel-reference.png");
+    await fs.writeFile(
+      referencePath,
+      await sharp({
+        create: { width: 8, height: 8, channels: 3, background: "#223344" },
+      })
+        .png()
+        .toBuffer()
+    );
+    await upsertCharacterRegistry(
+      episodeDir,
+      "episode-fixture",
+      makeRegistry("approved", referencePath).characters
+    );
+    const settings = loadEpisodeImageGenerationSettings({
+      OPENAI_API_KEY: "test-key",
+      OPENAI_IMAGE_MODEL: "gpt-image-2",
+      OPENAI_IMAGE_SIZE: "1536x1024",
+      OPENAI_IMAGE_QUALITY: "medium",
+      OPENAI_IMAGE_CONCURRENCY: "1",
+      OPENAI_IMAGE_MAX_RETRIES: "0",
+      OPENAI_IMAGE_TIMEOUT_MS: "1000",
+      OPENAI_IMAGE_ALLOW_UNAPPROVED_CHARACTER_REFERENCES: "true",
+    });
+    const plan = makeScenePlan(
+      Array.from({ length: 10 }, (_, index) => {
+        const sceneNumber = String(index + 1).padStart(3, "0");
+        return {
+          id: `scene-${sceneNumber}`,
+          canonicalNarration:
+            index >= 8
+              ? "Daniel opens the motel room door."
+              : `Daniel studies corridor detail ${index + 1}.`,
+          subject: index >= 8 ? "Daniel Mercer" : `Daniel Mercer ${index + 1}`,
+          action:
+            index >= 8
+              ? "opens the motel room door"
+              : `studies corridor detail ${index + 1}`,
+          setting:
+            index >= 8 ? "motel room doorway" : `warehouse hallway ${index + 1}`,
+          expectedImageFilenames: [
+            `scene-${sceneNumber}__${String(index * 4).padStart(6, "0")}-${String(index * 4 + 4).padStart(6, "0")}__16x9.png`,
+          ],
+          timing: { startSeconds: index * 4, endSeconds: index * 4 + 4 },
+        };
+      })
+    );
+    const calls: Array<{ method: "generate" | "edit"; body: unknown }> = [];
+
+    const result = await generateEpisodeImages(
+      episodeDir,
+      "episode-fixture",
+      plan,
+      settings,
+      { client: createMockClient(calls, await createImageBuffer("#446688")) }
+    );
+
+    expect(calls.length).toBeGreaterThanOrEqual(8);
+    expect(result[result.length - 1]?.status).toBe("generated");
+
+    const sceneTenManifest = JSON.parse(
+      await fs.readFile(
+        path.join(
+          episodeDir,
+          "state",
+          "image-generation",
+          "manifests",
+          "scene-010.json"
+        ),
+        "utf8"
+      )
+    ) as Record<string, unknown>;
+    const sceneNineManifest = JSON.parse(
+      await fs.readFile(
+        path.join(
+          episodeDir,
+          "state",
+          "image-generation",
+          "manifests",
+          "scene-009.json"
+        ),
+        "utf8"
+      )
+    ) as Record<string, unknown>;
+    expect(sceneTenManifest["renderability"]).toBe("direct");
+    expect(sceneTenManifest["reusedFromSceneId"]).toBeUndefined();
+
+    const sceneOneOutput = path.join(
+      episodeDir,
+      "shared",
+      "images",
+      "generated",
+      "scene-009__000032-000036__16x9.png"
+    );
+    const sceneTwoOutput = path.join(
+      episodeDir,
+      "shared",
+      "images",
+      "generated",
+      "scene-010__000036-000040__16x9.png"
+    );
+    expect(await fs.stat(sceneOneOutput)).toBeTruthy();
+    expect(await fs.stat(sceneTwoOutput)).toBeTruthy();
+  });
+
+  it("keeps reuse within the episode-level budget after validation", async () => {
+    const dir = mkdtempSync(path.join(os.tmpdir(), "mediaforge-merge-budget-"));
+    const episodeDir = path.join(dir, "episode");
+    await fs.mkdir(episodeDir, { recursive: true });
+    const referencePath = path.join(dir, "daniel-reference.png");
+    await fs.writeFile(
+      referencePath,
+      await sharp({
+        create: { width: 8, height: 8, channels: 3, background: "#334455" },
+      })
+        .png()
+        .toBuffer()
+    );
+    await upsertCharacterRegistry(
+      episodeDir,
+      "episode-fixture",
+      makeRegistry("approved", referencePath).characters
+    );
+    const settings = loadEpisodeImageGenerationSettings({
+      OPENAI_API_KEY: "test-key",
+      OPENAI_IMAGE_MODEL: "gpt-image-2",
+      OPENAI_IMAGE_SIZE: "1536x1024",
+      OPENAI_IMAGE_QUALITY: "medium",
+      OPENAI_IMAGE_CONCURRENCY: "1",
+      OPENAI_IMAGE_MAX_RETRIES: "0",
+      OPENAI_IMAGE_TIMEOUT_MS: "1000",
+      OPENAI_IMAGE_ALLOW_UNAPPROVED_CHARACTER_REFERENCES: "true",
+    });
+    const plan = makeScenePlan(
+      Array.from({ length: 12 }, (_, index) => ({
+        id: `scene-${String(index + 1).padStart(3, "0")}`,
+        canonicalNarration: "Daniel studies the corridor on a monitor.",
+        subject: "Daniel Mercer",
+        action: "studies a monitor in the dim corridor",
+        setting: "warehouse hallway with concrete walls",
+      }))
+    );
+
+    const result = await planEpisodeImageGeneration(
+      episodeDir,
+      "episode-fixture",
+      plan,
+      settings
+    );
+
+    const reusableCount = result.filter(
+      (entry) =>
+        entry.renderability === "mergeWithPrevious" ||
+        entry.renderability === "mergeWithNext" ||
+        entry.renderability === "skip"
+    ).length;
+    expect(reusableCount).toBeLessThanOrEqual(1);
+    expect(
+      result.filter((entry) => entry.renderability === "direct").length
+    ).toBeGreaterThan(0);
+  });
+
+  it("never uses the same generated image in more than three consecutive scenes", async () => {
+    const dir = mkdtempSync(path.join(os.tmpdir(), "mediaforge-reuse-row-limit-"));
+    const episodeDir = path.join(dir, "episode");
+    await fs.mkdir(episodeDir, { recursive: true });
+    const referencePath = path.join(dir, "daniel-reference.png");
+    await fs.writeFile(
+      referencePath,
+      await sharp({
+        create: { width: 8, height: 8, channels: 3, background: "#223344" },
+      })
+        .png()
+        .toBuffer()
+    );
+    await upsertCharacterRegistry(
+      episodeDir,
+      "episode-fixture",
+      makeRegistry("approved", referencePath).characters
+    );
+    const settings = loadEpisodeImageGenerationSettings({
+      OPENAI_API_KEY: "test-key",
+      OPENAI_IMAGE_MODEL: "gpt-image-2",
+      OPENAI_IMAGE_SIZE: "1536x1024",
+      OPENAI_IMAGE_QUALITY: "medium",
+      OPENAI_IMAGE_CONCURRENCY: "1",
+      OPENAI_IMAGE_MAX_RETRIES: "0",
+      OPENAI_IMAGE_TIMEOUT_MS: "1000",
+      OPENAI_IMAGE_ALLOW_UNAPPROVED_CHARACTER_REFERENCES: "true",
+    });
+    const plan = makeScenePlan(
+      Array.from({ length: 30 }, (_, index) => ({
+        id: `scene-${String(index + 1).padStart(3, "0")}`,
+        canonicalNarration: "Daniel studies the corridor on a monitor.",
+        subject: "Daniel Mercer",
+        action: "studies a monitor in the dim corridor",
+        setting: "warehouse hallway with concrete walls",
+      }))
+    );
+    const calls: Array<{ method: "generate" | "edit"; body: unknown }> = [];
+    const colors = Array.from({ length: 40 }, (_, index) =>
+      `#${(0x100000 + index).toString(16)}`
+    );
+    const client = createSequencedMockClient(
+      calls,
+      await Promise.all(colors.map((color) => createImageBuffer(color)))
+    );
+
+    await generateEpisodeImages(episodeDir, "episode-fixture", plan, settings, {
+      client,
+    });
+
+    const outputHashes: string[] = [];
+    for (const scene of plan.scenes) {
+      const manifest = JSON.parse(
+        await fs.readFile(
+          path.join(
+            episodeDir,
+            "state",
+            "image-generation",
+            "manifests",
+            `${scene.id}.json`
+          ),
+          "utf8"
+        )
+      ) as Record<string, unknown>;
+      outputHashes.push(String(manifest["outputSha256"] ?? ""));
+    }
+    let longestRun = 0;
+    let currentRun = 0;
+    let previousHash: string | undefined;
+    for (const hash of outputHashes) {
+      if (hash.length > 0 && hash === previousHash) {
+        currentRun += 1;
+      } else {
+        currentRun = 1;
+        previousHash = hash;
+      }
+      longestRun = Math.max(longestRun, currentRun);
+    }
+
+    expect(longestRun).toBeLessThanOrEqual(3);
+    expect(calls.length).toBeGreaterThan(0);
   });
 
   it("keeps ordinary scenes text-free and allows exact required text without blanket bans", () => {
@@ -278,6 +762,9 @@ describe("episode image pipeline helpers", () => {
     expect(
       validatePrompt(currentPrompt, current, previousPrompt, previous)
     ).not.toContain("prompt overlaps too much with the previous prompt");
+    expect(currentPrompt).not.toContain(
+      "EXPLICIT DIFFERENCES FROM PREVIOUS SCENE"
+    );
   });
 
   it("scores adjacent differences and rewrites repeated shot choices", () => {
@@ -406,6 +893,28 @@ describe("episode image pipeline helpers", () => {
         )
       )
     ).toBeTruthy();
+    expect(
+      await fs.stat(
+        path.join(
+          episodeDir,
+          "state",
+          "image-generation",
+          "visual-plans",
+          "scene-001.json"
+        )
+      )
+    ).toBeTruthy();
+    expect(
+      await fs.stat(
+        path.join(
+          episodeDir,
+          "shared",
+          "images",
+          "generated",
+          "scene-001__000000-000004__16x9.png"
+        )
+      )
+    ).toBeTruthy();
     calls.length = 0;
     const second = await generateEpisodeImages(
       episodeDir,
@@ -416,6 +925,108 @@ describe("episode image pipeline helpers", () => {
     );
     expect(second[0]?.status).toBe("skipped");
     expect(calls).toHaveLength(0);
+  });
+
+  it("hydrates the canonical shared image path from a legacy state image", async () => {
+    const dir = mkdtempSync(path.join(os.tmpdir(), "mediaforge-legacy-image-"));
+    const episodeDir = path.join(dir, "episode");
+    await fs.mkdir(path.join(episodeDir, "state", "image-generation", "images"), {
+      recursive: true,
+    });
+    const referencePath = path.join(dir, "daniel-reference.png");
+    await fs.writeFile(
+      referencePath,
+      await sharp({
+        create: { width: 8, height: 8, channels: 3, background: "#223344" },
+      })
+        .png()
+        .toBuffer()
+    );
+    await upsertCharacterRegistry(
+      episodeDir,
+      "episode-fixture",
+      makeRegistry("approved", referencePath).characters
+    );
+    const plan = makeScenePlan([{ id: "scene-001" }] as never);
+    const settings = loadEpisodeImageGenerationSettings({
+      OPENAI_API_KEY: "test-key",
+      OPENAI_IMAGE_MODEL: "gpt-image-2",
+      OPENAI_IMAGE_SIZE: "1536x1024",
+      OPENAI_IMAGE_QUALITY: "medium",
+      OPENAI_IMAGE_CONCURRENCY: "1",
+      OPENAI_IMAGE_MAX_RETRIES: "0",
+      OPENAI_IMAGE_TIMEOUT_MS: "1000",
+      OPENAI_IMAGE_ALLOW_UNAPPROVED_CHARACTER_REFERENCES: "true",
+    });
+    const legacyOutputPath = path.join(
+      episodeDir,
+      "state",
+      "image-generation",
+      "images",
+      "scene-001.png"
+    );
+    await fs.writeFile(
+      legacyOutputPath,
+      await sharp({
+        create: { width: 8, height: 8, channels: 3, background: "#112233" },
+      })
+        .png()
+        .toBuffer()
+    );
+    await fs.mkdir(path.join(episodeDir, "state", "image-generation", "manifests"), {
+      recursive: true,
+    });
+    await fs.writeFile(
+      path.join(
+        episodeDir,
+        "state",
+        "image-generation",
+        "manifests",
+        "scene-001.json"
+      ),
+      `${JSON.stringify(
+        {
+          sceneId: "scene-001",
+          promptVersion: 1,
+          sceneHash: "stale",
+          finalPrompt: "legacy prompt",
+          promptHash: "stale",
+          materialDifferencesFromPrevious: [],
+          characterIds: ["daniel-mercer"],
+          referenceImages: [],
+          model: "gpt-image-2",
+          size: "1536x1024",
+          quality: "medium",
+          outputPath: legacyOutputPath,
+          outputSha256: "legacy",
+          status: "generated",
+          attempts: 1,
+        },
+        null,
+        2
+      )}\n`
+    );
+
+    const result = await generateEpisodeImages(
+      episodeDir,
+      "episode-fixture",
+      plan,
+      settings,
+      { client: createMockClient([], await createImageBuffer("#112233")) }
+    );
+
+    expect(result[0]?.status).toBe("generated");
+    expect(
+      await fs.stat(
+        path.join(
+          episodeDir,
+          "shared",
+          "images",
+          "generated",
+          "scene-001__000000-000004__16x9.png"
+        )
+      )
+    ).toBeTruthy();
   });
 
   it("regenerates a scene when the scene hash changes", async () => {
@@ -541,6 +1152,73 @@ describe("episode image pipeline helpers", () => {
     );
     await mutateManifest(manifestPath, (value) => {
       value.promptHash = "stale-prompt-hash";
+    });
+    const second = await generateEpisodeImages(
+      episodeDir,
+      "episode-fixture",
+      plan,
+      settings,
+      { client }
+    );
+    expect(second[0]?.status).toBe("generated");
+    expect(calls).toHaveLength(1);
+  });
+
+  it("regenerates a scene when the visual plan hash changes", async () => {
+    const dir = mkdtempSync(path.join(os.tmpdir(), "mediaforge-visual-plan-hash-"));
+    const episodeDir = path.join(dir, "episode");
+    await fs.mkdir(episodeDir, { recursive: true });
+    const referencePath = path.join(dir, "daniel-reference.png");
+    await fs.writeFile(
+      referencePath,
+      await sharp({
+        create: { width: 8, height: 8, channels: 3, background: "#778899" },
+      })
+        .png()
+        .toBuffer()
+    );
+    await upsertCharacterRegistry(
+      episodeDir,
+      "episode-fixture",
+      makeRegistry("approved", referencePath).characters
+    );
+    const plan = makeScenePlan([
+      {
+        sceneId: "scene-001",
+        sequenceNumber: 1,
+      },
+    ] as never);
+    const settings = loadEpisodeImageGenerationSettings({
+      OPENAI_API_KEY: "test-key",
+      OPENAI_IMAGE_MODEL: "gpt-image-2",
+      OPENAI_IMAGE_SIZE: "1536x1024",
+      OPENAI_IMAGE_QUALITY: "medium",
+      OPENAI_IMAGE_CONCURRENCY: "1",
+      OPENAI_IMAGE_MAX_RETRIES: "0",
+      OPENAI_IMAGE_TIMEOUT_MS: "1000",
+      OPENAI_IMAGE_ALLOW_UNAPPROVED_CHARACTER_REFERENCES: "true",
+    });
+    const b64 = await createImageBuffer("#778899");
+    const calls: Array<{ method: "generate" | "edit"; body: unknown }> = [];
+    const client = createMockClient(calls, b64);
+    const first = await generateEpisodeImages(
+      episodeDir,
+      "episode-fixture",
+      plan,
+      settings,
+      { client }
+    );
+    expect(first[0]?.status).toBe("generated");
+    calls.length = 0;
+    const manifestPath = path.join(
+      episodeDir,
+      "state",
+      "image-generation",
+      "manifests",
+      "scene-001.json"
+    );
+    await mutateManifest(manifestPath, (value) => {
+      value.visualPlanHash = "stale-visual-plan-hash";
     });
     const second = await generateEpisodeImages(
       episodeDir,

@@ -29,6 +29,7 @@ import { loadEpisodeConfig } from "@mediaforge/config";
 import {
   buildSrt,
   buildVtt,
+  collapseRepeatedTokenRuns,
   ensureDir,
   fileExists,
   hashFile,
@@ -1191,6 +1192,31 @@ function visualPurposeForScene(index: number, total: number): string {
   return "advance the story";
 }
 
+function normalizeNarrationChunk(chunk: string): string {
+  return collapseRepeatedTokenRuns(normalizeWhitespace(chunk), {
+    minWindowTokens: 3,
+    maxWindowTokens: 12,
+  }).replace(/([.!?])\1+/gu, "$1");
+}
+
+function deriveSceneSeedFields(chunk: string): {
+  readonly narration: string;
+  readonly subject: string;
+  readonly action: string;
+  readonly setting: string;
+} {
+  const narration = normalizeNarrationChunk(chunk);
+  const sentences = splitIntoSentences(narration);
+  const primarySentence = sentences[0] ?? narration;
+  const secondarySentence = sentences[1] ?? primarySentence;
+  return {
+    narration,
+    subject: primarySentence.split(/\s+/u).slice(0, 6).join(" "),
+    action: primarySentence,
+    setting: secondarySentence,
+  };
+}
+
 export function buildScenePlan(
   narration: string,
   episodeId: string,
@@ -1208,6 +1234,7 @@ export function buildScenePlan(
   );
   let cursor = 0;
   const scenes: Scene[] = chunks.map((chunk: string, index: number) => {
+    const sceneSeed = deriveSceneSeedFields(chunk);
     const words = splitIntoWords(chunk).length;
     const estimatedDurationSeconds = Math.max(3, (words / 180) * 60);
     const startSeconds = cursor;
@@ -1219,14 +1246,14 @@ export function buildScenePlan(
     return sceneSchema.parse({
       id: sceneId,
       sequenceNumber: sceneNumber,
-      canonicalNarration: chunk,
+      canonicalNarration: sceneSeed.narration,
       sourceSegmentIds: [sceneId],
       estimatedDurationSeconds,
       timing: { startSeconds, endSeconds },
       visualPurpose: visualPurposeForScene(index, chunks.length),
-      subject: chunk.split(/\s+/u).slice(0, 5).join(" "),
-      action: "shown",
-      setting: "cinematic documentary background",
+      subject: sceneSeed.subject,
+      action: sceneSeed.action,
+      setting: sceneSeed.setting,
       composition: "centered",
       cameraFraming: artifactType === "short" ? "medium shot" : "wide shot",
       mood: index === chunks.length - 1 ? "ominous" : "tense",
@@ -1236,7 +1263,7 @@ export function buildScenePlan(
       textRequirement: inferSceneTextRequirement(chunk),
       negativeConstraints: ["no subtitles", "no watermark"],
       aspectRatios: ["16:9"],
-      imagePrompt: chunk,
+      imagePrompt: sceneSeed.narration,
       expectedImageFilenames: [
         `scene-${String(sceneNumber).padStart(3, "0")}__${String(Math.floor(startSeconds)).padStart(6, "0")}-${String(Math.floor(endSeconds)).padStart(6, "0")}__16x9.png`,
       ],
@@ -1260,6 +1287,7 @@ export function buildLocalizedScenePlan(
   let cursor = 0;
   const scenes = canonical.scenes.map((scene: Scene, index: number) => {
     const chunk = chunks[index] ?? scene.canonicalNarration;
+    const sceneSeed = deriveSceneSeedFields(chunk);
     const words = splitIntoWords(chunk).length;
     const estimatedDurationSeconds = Math.max(3, (words / 180) * 60);
     const startSeconds = cursor;
@@ -1267,10 +1295,13 @@ export function buildLocalizedScenePlan(
     cursor = endSeconds;
     return sceneSchema.parse({
       ...scene,
-      canonicalNarration: chunk,
+      canonicalNarration: sceneSeed.narration,
       estimatedDurationSeconds,
       timing: { startSeconds, endSeconds },
-      imagePrompt: chunk,
+      subject: sceneSeed.subject,
+      action: sceneSeed.action,
+      setting: sceneSeed.setting,
+      imagePrompt: sceneSeed.narration,
     });
   });
   return scenePlanSchema.parse({ sourceId: canonical.sourceId, scenes });

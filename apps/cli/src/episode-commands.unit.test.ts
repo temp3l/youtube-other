@@ -298,6 +298,36 @@ describe("episode commands", () => {
     });
   });
 
+  it("smokes the documented singular resume-images command path", async () => {
+    imagesResumeMocks.commandImagesResumeMock.mockReset();
+    imagesResumeMocks.commandImagesResumeMock.mockResolvedValueOnce(undefined);
+    const program = new Command();
+    registerEpisodeCommands(program);
+
+    await program.parseAsync([
+      "node",
+      "cli",
+      "episode",
+      "resume-images",
+      "--episode",
+      "011-the-black-eyed-children",
+      "--source",
+      "content-ideas/content/dark-truth-episodes-optimized",
+      "--output-root",
+      "episodes",
+      "--concurrency",
+      "2",
+    ]);
+
+    expect(imagesResumeMocks.commandImagesResumeMock).toHaveBeenCalledTimes(1);
+    expect(imagesResumeMocks.commandImagesResumeMock.mock.calls[0]?.[0]).toMatchObject({
+      episode: "011-the-black-eyed-children",
+      source: "content-ideas/content/dark-truth-episodes-optimized",
+      concurrency: 2,
+      workspace: "episodes",
+    });
+  });
+
   it("rejects unsupported language codes", async () => {
     const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "dark-truth-cli-"));
     const outputRoot = path.join(tempDir, "episodes");

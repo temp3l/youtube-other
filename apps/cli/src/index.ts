@@ -25,6 +25,7 @@ import {
   generateOpenAiSceneImages,
   importImageAssets,
   loadEpisodeImageGenerationSettings,
+  loadEpisodeSceneVisualPlan,
   loadOpenAiImageGenerationSettings,
   localSceneNegativePrompt,
   localSceneStyle,
@@ -104,7 +105,14 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { registerEpisodeCommands } from "./episode-commands.js";
+import {
+  buildEpisodeImageSummaryOutput,
+  summarizeEpisodeImageState,
+  type EpisodeImageSummary,
+} from "./episode-image-summary.js";
 import { registerImagesResumeCommand } from "./images-resume-command.js";
+import { registerImagesSyncSharedCommand } from "./images-sync-shared-command.js";
+import { buildSceneInspectOutput } from "./scene-inspect-output.js";
 import { registerStoryLocalizationCommands } from "./story-localization-commands.js";
 
 interface CliOptions {
@@ -648,7 +656,6 @@ async function readManifestForEpisode(options: CliOptions, episodeId: string) {
     const manifest = episodeManifestSchema.parse(
       JSON.parse(await fs.readFile(manifestPath, "utf8")) as unknown
     );
-    console.log({ episodeId: manifest.episodeId, manifestPath });
     if (manifest.episodeId === episodeId) {
       const episodeDir = path.dirname(manifestPath);
       let nextManifest = manifest;
@@ -1348,21 +1355,42 @@ async function commandStatus(
   options: CliOptions,
   episodeId: string
 ): Promise<void> {
-  const { manifest } = await readManifestForEpisode(options, episodeId);
+  const { manifest, episodeDir } = await readManifestForEpisode(options, episodeId);
+  const imageStatus = (await summarizeEpisodeImageState(
+    episodeDir,
+    manifest.scenePlan?.scenes.map((scene) => scene.id) ?? []
+  )) as EpisodeImageSummary;
   if (options.json) {
-    printJson(manifest);
+    printJson({
+      ...manifest,
+      imageGeneration: buildEpisodeImageSummaryOutput(imageStatus),
+    });
     return;
   }
   process.stdout.write(`${manifest.episodeId} ${manifest.slug}\n`);
   process.stdout.write(`${manifest.pipelineRuns.length} pipeline runs\n`);
+  process.stdout.write(
+    [
+      `images ready: ${imageStatus.readyForRender ? "yes" : "no"}`,
+      `images scenes: ${imageStatus.generatedScenes} generated, ${imageStatus.failedScenes} failed, ${imageStatus.missingManifests} missing manifests, ${imageStatus.missingImages} missing images`,
+      `images merges: ${imageStatus.mergeWithPreviousScenes} merged with previous, ${imageStatus.mergeWithNextScenes} merged with next, ${imageStatus.reusedScenes} reused`,
+    ].join("\n") + "\n"
+  );
 }
 
 async function commandInspect(
   options: CliOptions,
   episodeId: string
 ): Promise<void> {
-  const { manifest } = await readManifestForEpisode(options, episodeId);
-  printJson(manifest);
+  const { manifest, episodeDir } = await readManifestForEpisode(options, episodeId);
+  const imageStatus = (await summarizeEpisodeImageState(
+    episodeDir,
+    manifest.scenePlan?.scenes.map((scene) => scene.id) ?? []
+  )) as EpisodeImageSummary;
+  printJson({
+    ...manifest,
+    imageGeneration: buildEpisodeImageSummaryOutput(imageStatus),
+  });
 }
 
 async function commandTranscriptExport(
@@ -1804,12 +1832,13 @@ async function commandScenesInspect(
   episodeId: string,
   sceneId: string
 ): Promise<void> {
-  const { manifest } = await readManifestForEpisode(options, episodeId);
+  const { manifest, episodeDir } = await readManifestForEpisode(options, episodeId);
   const scene = manifest.scenePlan?.scenes.find((item) => item.id === sceneId);
   if (!scene) {
     throw new Error(`Scene not found: ${sceneId}`);
   }
-  printJson(scene);
+  const visualPlan = await loadEpisodeSceneVisualPlan(episodeDir, sceneId);
+  printJson(buildSceneInspectOutput(scene, visualPlan));
 }
 
 async function commandImagesExportOpenArt(
@@ -1836,7 +1865,7 @@ async function commandImagesExportOpenArt(
   });
   if (!options.quiet) {
     process.stdout.write(
-      `Exported scene workbook to ${path.join(episodeDir, "images", "scene-workbook.html")}\n`
+      `Exported scene workbook to ${path.join(episodeDir, "state", "image-generation", "scene-workbook.html")}\n`
     );
   }
 }
@@ -1846,7 +1875,12 @@ async function commandImagesOpenOpenArt(
   episodeId: string
 ): Promise<void> {
   const { episodeDir } = await readManifestForEpisode(options, episodeId);
-  const workbook = path.join(episodeDir, "images", "scene-workbook.html");
+  const workbook = path.join(
+    episodeDir,
+    "state",
+    "image-generation",
+    "scene-workbook.html"
+  );
   const opener = spawnSync("xdg-open", [workbook], { encoding: "utf8" });
   if (opener.status !== 0) {
     process.stdout.write(`${workbook}\n`);
@@ -1887,6 +1921,18 @@ async function commandImagesValidate(
   }
   const validation = validateImageAssets(manifest.scenePlan, manifest.images);
   printJson(validation);
+}
+
+async function commandImagesStatus(
+  options: CliOptions,
+  episodeId: string
+): Promise<void> {
+  const { manifest, episodeDir } = await readManifestForEpisode(options, episodeId);
+  const report = (await summarizeEpisodeImageState(
+    episodeDir,
+    manifest.scenePlan?.scenes.map((scene) => scene.id) ?? []
+  )) as EpisodeImageSummary;
+  printJson(buildEpisodeImageSummaryOutput(report));
 }
 
 async function commandImagesMissing(
@@ -3447,6 +3493,7 @@ const imagesCommand = program
   .command("images")
   .description("Local scene image workflow");
 registerImagesResumeCommand(imagesCommand);
+registerImagesSyncSharedCommand(imagesCommand);
 imagesCommand
   .command("plan")
   .requiredOption("--episode <episode-id>")
@@ -3577,6 +3624,13 @@ imagesCommand
   .requiredOption("--from <directory>")
   .action(async (episodeId: string, opts: { from: string }) => {
     await commandImagesImport(program.opts<CliOptions>(), episodeId, opts.from);
+  });
+imagesCommand
+  .command("status")
+  .argument("<episode-id>")
+  .description("Show image generation readiness")
+  .action(async (episodeId: string) => {
+    await commandImagesStatus(program.opts<CliOptions>(), episodeId);
   });
 imagesCommand
   .command("validate")

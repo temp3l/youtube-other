@@ -55,7 +55,7 @@ Completed work:
 - Added a dedicated image-batch planner in `packages/image-generation/src/image-batch-planner.ts`.
 - Added image-batch storage helpers in `packages/image-generation/src/image-batch-storage.ts`.
 - Added image-batch local types and schemas in `packages/image-generation/src/image-batch.types.ts` and `packages/image-generation/src/image-batch.schemas.ts`.
-- Reused persisted scene prompt files from `generated-assets/prompts/<sceneId>.txt`, falling back to the existing scene manifest prompt only when the prompt file is missing.
+- Reused persisted scene prompt files from `state/image-generation/prompts/<sceneId>.txt`, falling back to the existing scene manifest prompt only when the prompt file is missing.
 - Built deterministic custom IDs and generation configuration hashes for each scene.
 - Skipped reusable scenes when the existing scene manifest and output image already satisfy the current request shape.
 - Wrote JSONL input plus an image-batch manifest into the episode’s `generated-assets/.batch` storage tree.
@@ -168,8 +168,8 @@ Files and discovered exports:
   - exports `planEpisodeImageGeneration`
   - exports `generateEpisodeImages`
   - existing output paths include:
-    - `generated-assets/image-manifests/<sceneId>.json`
-    - `generated-assets/prompts/<sceneId>.txt`
+    - `state/image-generation/manifests/<sceneId>.json`
+    - `state/image-generation/prompts/<sceneId>.txt`
     - `generated-assets/images/<sceneId>.png`
     - `generated-assets/character-references/<characterId>.png`
   - includes reuse logic such as `canReuseSceneImage`, `sceneManifestPath`, `sceneOutputPath`, `loadReferenceImages`, `summarizeReferenceImages`

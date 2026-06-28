@@ -109,6 +109,10 @@ export function createImageBatchManifestItem(args: {
     format: args.job.format,
     sceneId: args.job.sceneId,
     sceneIndex: args.job.sceneIndex,
+    ...(args.job.renderability ? { renderability: args.job.renderability } : {}),
+    ...(args.job.reusedFromSceneId
+      ? { reusedFromSceneId: args.job.reusedFromSceneId }
+      : {}),
     promptHash: args.job.promptHash,
     generationConfigurationHash: args.job.generationConfigurationHash,
     expectedOutputPath: args.job.expectedOutputPath,

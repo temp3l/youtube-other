@@ -1,4 +1,29 @@
-is the image generator using the image api or the responses api?
+- models
+- reasoning
+- retries (multiple version)
+- max-output tokens
+
+---
+
+run this prompt: todo-prompts/codex-image-pipeline-safety-hardening-prompt.md
+analyze this promt and let me know if all topics were successfully handled: todo-prompts/image-hardining.md
+
+---
+
+after running this command: "node apps/cli/dist/index.js episode localized --episode 011-the-black-eyed-children --languages en"
+this file: episodes/011-the-black-eyed-children/en/full/narration.txt
+should contain the narration text from: episodes/011-the-black-eyed-children/script.md
+hwoever it does contain the original story from content-ideas. why is that?
+recommend fixes
+
+---
+
+which cli commands do i need to use to generate the full german video for 011 and its metadata and upload to youtube?
+also tell which cli commands i need to execute in order to generate all audio assets and metadata for spanish video creation and youtube upload
+
+---
+
+is the image generator using the image api or the responses api and is the concurrency wired up correctly?
 
 `npm run episode:english -- --episode 011`
 
@@ -67,7 +92,19 @@ For your preservation-heavy workflow, use approximately 0.4–0.5.
 
 ## pr
 
----
+### Episode check
+
+If you run the CLI through a package script instead, the shape is the same:
+
+npm run mediaforge -- status 011
+npm run mediaforge -- inspect 011
+
+### images
+
+OPENAI_IMAGE_CONCURRENCY=1 node apps/cli/dist/index.js images generate --episode 011-the-black-eyed-children --scene scene-021
+
+`images plan` is the command that rebuilds the prompt/visual-plan artifacts. I’m running that first for the remaining four scenes, then I’ll do a fresh generate pass so the
+manifests are rebuilt from the updated plan instead of the stale cached state.
 
 ### audio
 
@@ -2056,3 +2093,92 @@ At the end:
 ```
 
 ```
+
+use the CLI in this order.
+
+npm run episode:review:approve -- --episode 011 --language en --artifact full --reviewer "steph"
+
+German full video for 011-the-black-eyed-children
+
+# 1) Build the localized German episode workspace
+
+node apps/cli/dist/index.js episode localized \
+ --episode 011-the-black-eyed-children \
+ --languages de
+
+# 2) Generate German narration audio
+
+MEDIAFORGE_SCRIPT_LANGUAGE=de \
+ node apps/cli/dist/index.js audio generate-localized \
+ 011-the-black-eyed-children
+
+# 3) Render the German full video
+
+MEDIAFORGE_SCRIPT_LANGUAGE=de \
+ node apps/cli/dist/index.js render \
+ 011-the-black-eyed-children \
+ --profile youtube
+
+# 4) Generate German YouTube metadata
+
+YOUTUBE_METADATA_LANGUAGE=de \
+ node apps/cli/dist/index.js metadata generate \
+ 011-the-black-eyed-children
+
+# 5) Upload to YouTube
+
+YOUTUBE_REFRESH_TOKEN_GERMAN=... \
+ YOUTUBE_CHANNEL_ID_GERMAN=... \
+ node apps/cli/dist/index.js youtube upload \
+ --episode 011-the-black-eyed-children
+
+If you want metadata regenerated as part of upload, you can replace step 4 and 5 with:
+
+YOUTUBE_METADATA_LANGUAGE=de \
+ YOUTUBE_REFRESH_TOKEN_GERMAN=... \
+ YOUTUBE_CHANNEL_ID_GERMAN=... \
+ node apps/cli/dist/index.js youtube upload \
+ --episode 011-the-black-eyed-children \
+ --generate-metadata
+
+---
+
+Spanish audio assets + metadata for video creation and YouTube upload
+
+# 1) Build the localized Spanish episode workspace
+
+node apps/cli/dist/index.js episode localized \
+ --episode 011-the-black-eyed-children \
+ --languages es
+
+# 2) Generate Spanish narration audio
+
+MEDIAFORGE_SCRIPT_LANGUAGE=es \
+ node apps/cli/dist/index.js audio generate-localized \
+ 011-the-black-eyed-children
+
+# 3) Render the Spanish full video
+
+MEDIAFORGE_SCRIPT_LANGUAGE=es \
+ node apps/cli/dist/index.js render \
+ 011-the-black-eyed-children \
+ --profile youtube
+
+# 4) Generate Spanish YouTube metadata
+
+YOUTUBE_METADATA_LANGUAGE=es \
+ node apps/cli/dist/index.js metadata generate \
+ 011-the-black-eyed-children
+
+# 5) Upload to YouTube
+
+YOUTUBE_REFRESH_TOKEN_SPANISH=... \
+ YOUTUBE_CHANNEL_ID_SPANISH=... \
+ node apps/cli/dist/index.js youtube upload \
+ --episode 011-the-black-eyed-children
+
+Notes:
+
+- render does not have a --language flag, so the language comes from MEDIAFORGE_SCRIPT_LANGUAGE or episode config.
+- metadata generate also does not take a language flag, so use YOUTUBE_METADATA_LANGUAGE or MEDIAFORGE_SCRIPT_LANGUAGE.
+- youtube upload will prefer the matching language-specific refresh token and channel ID if you set YOUTUBE_REFRESH_TOKEN_GERMAN / YOUTUBE_REFRESH_TOKEN_SPANISH and the matching channel IDs.

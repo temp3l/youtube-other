@@ -33,6 +33,8 @@ export interface SceneImageJob {
   readonly format: "full";
   readonly sceneId: string;
   readonly sceneIndex: number;
+  readonly renderability?: "direct" | "requiresInference" | "mergeWithPrevious" | "mergeWithNext" | "skip";
+  readonly reusedFromSceneId?: string;
   readonly startTimeSeconds?: number;
   readonly endTimeSeconds?: number;
   readonly promptPath?: string;
@@ -57,6 +59,8 @@ export interface ImageBatchManifestItem {
   readonly format: "full";
   readonly sceneId: string;
   readonly sceneIndex: number;
+  readonly renderability?: "direct" | "requiresInference" | "mergeWithPrevious" | "mergeWithNext" | "skip";
+  readonly reusedFromSceneId?: string;
   readonly promptHash: string;
   readonly generationConfigurationHash: string;
   readonly expectedOutputPath: string;
@@ -111,4 +115,3 @@ export interface ImageBatchManifest {
   readonly completedAt?: string;
   readonly importedAt?: string;
 }
-

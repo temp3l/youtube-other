@@ -70,7 +70,13 @@ describe("image workflow", () => {
     expect(asset.width).toBe(1920);
     expect(
       await pathExists(
-        path.join(dir, "episode", "images", "scene-workbook.html")
+        path.join(
+          dir,
+          "episode",
+          "state",
+          "image-generation",
+          "scene-workbook.html"
+        )
       )
     ).toBe(true);
     const [r, g, b] = await samplePixel(
@@ -232,8 +238,11 @@ describe("image workflow", () => {
     expect(planned).toHaveLength(2);
     expect(planned[0]?.prompt).not.toBe(planned[1]?.prompt);
     expect(planned[1]?.validationFailures).toHaveLength(0);
-    expect(planned[1]?.prompt).toContain(
+    expect(planned[1]?.prompt).not.toContain(
       "EXPLICIT DIFFERENCES FROM PREVIOUS SCENE"
+    );
+    expect(planned[1]?.prompt).not.toContain(
+      "Daniel stops when he hears the whisper"
     );
 
     const generated = await generateEpisodeImages(
@@ -251,20 +260,33 @@ describe("image workflow", () => {
 
     await expect(
       fs.access(
-        path.join(episodeDir, "generated-assets", "images", "scene-001.png")
-      )
-    ).resolves.toBeUndefined();
-    await expect(
-      fs.access(
-        path.join(episodeDir, "generated-assets", "images", "scene-002.png")
+        path.join(
+          episodeDir,
+          "shared",
+          "images",
+          "generated",
+          "scene-001__000000-000004__16x9.png"
+        )
       )
     ).resolves.toBeUndefined();
     await expect(
       fs.access(
         path.join(
           episodeDir,
-          "generated-assets",
-          "image-manifests",
+          "shared",
+          "images",
+          "generated",
+          "scene-002__000004-000008__16x9.png"
+        )
+      )
+    ).resolves.toBeUndefined();
+    await expect(
+      fs.access(
+        path.join(
+          episodeDir,
+          "state",
+          "image-generation",
+          "visual-plans",
           "scene-001.json"
         )
       )
@@ -273,23 +295,50 @@ describe("image workflow", () => {
       fs.access(
         path.join(
           episodeDir,
-          "generated-assets",
-          "image-manifests",
+          "state",
+          "image-generation",
+          "manifests",
+          "scene-001.json"
+        )
+      )
+    ).resolves.toBeUndefined();
+    await expect(
+      fs.access(
+        path.join(
+          episodeDir,
+          "state",
+          "image-generation",
+          "manifests",
           "scene-002.json"
         )
       )
     ).resolves.toBeUndefined();
 
-    const manifestText = await fs.readFile(
+    const visualPlanText = await fs.readFile(
       path.join(
         episodeDir,
-        "generated-assets",
-        "image-manifests",
+        "state",
+        "image-generation",
+        "visual-plans",
         "scene-002.json"
       ),
       "utf8"
     );
-    expect(manifestText).toContain("EXPLICIT DIFFERENCES FROM PREVIOUS SCENE");
+    expect(visualPlanText).toContain("\"renderability\": \"direct\"");
+
+    const manifestText = await fs.readFile(
+      path.join(
+        episodeDir,
+        "state",
+        "image-generation",
+        "manifests",
+        "scene-002.json"
+      ),
+      "utf8"
+    );
+    expect(manifestText).not.toContain(
+      "EXPLICIT DIFFERENCES FROM PREVIOUS SCENE"
+    );
 
     const resumable = await generateEpisodeImages(
       episodeDir,

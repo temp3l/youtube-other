@@ -141,6 +141,14 @@ export interface EpisodePathResolver {
   renderStateDir(episodeId: EpisodeId): string;
   uploadStateDir(episodeId: EpisodeId): string;
   logsDir(episodeId: EpisodeId): string;
+  sharedGeneratedImagesDir(episodeId: EpisodeId): string;
+  legacyGeneratedImagesDir(episodeId: EpisodeId): string;
+}
+
+export interface SceneImageCandidatePaths {
+  readonly canonical: string;
+  readonly legacyExpected: string;
+  readonly legacySceneId: string;
 }
 
 export function createEpisodePathResolver(workspaceRoot: string): EpisodePathResolver {
@@ -189,6 +197,46 @@ export function createEpisodePathResolver(workspaceRoot: string): EpisodePathRes
     renderStateDir: (episodeId) => path.join(episodeRoot(episodeId), "state", "render"),
     uploadStateDir: (episodeId) => path.join(episodeRoot(episodeId), "state", "upload"),
     logsDir: (episodeId) => path.join(episodeRoot(episodeId), "logs"),
+    sharedGeneratedImagesDir: (episodeId) =>
+      path.join(episodeRoot(episodeId), "shared", "images", "generated"),
+    legacyGeneratedImagesDir: (episodeId) =>
+      path.join(episodeRoot(episodeId), "state", "image-generation", "images"),
+  };
+}
+
+export function resolveSceneImageCandidatePaths(args: {
+  readonly episodeDir: string;
+  readonly sceneId: string;
+  readonly expectedFilename?: string;
+}): SceneImageCandidatePaths {
+  const expectedFilename = args.expectedFilename?.trim();
+  const canonicalFileName =
+    expectedFilename && expectedFilename.length > 0
+      ? expectedFilename
+      : `${args.sceneId}.png`;
+  const legacyExpectedFileName = canonicalFileName;
+  return {
+    canonical: path.join(
+      args.episodeDir,
+      "shared",
+      "images",
+      "generated",
+      canonicalFileName
+    ),
+    legacyExpected: path.join(
+      args.episodeDir,
+      "state",
+      "image-generation",
+      "images",
+      legacyExpectedFileName
+    ),
+    legacySceneId: path.join(
+      args.episodeDir,
+      "state",
+      "image-generation",
+      "images",
+      `${args.sceneId}.png`
+    ),
   };
 }
 

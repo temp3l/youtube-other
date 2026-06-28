@@ -11,14 +11,27 @@ async function writeSceneManifest(args: {
   readonly prompt: string;
   readonly status: "generated" | "planned";
   readonly outputExists?: boolean;
+  readonly renderability?: "direct" | "requiresInference" | "mergeWithPrevious" | "mergeWithNext" | "skip";
+  readonly reusedFromSceneId?: string;
 }): Promise<void> {
   const manifestsDir = path.join(
     args.episodeDir,
-    "generated-assets",
-    "image-manifests"
+    "state",
+    "image-generation",
+    "manifests"
   );
-  const promptsDir = path.join(args.episodeDir, "generated-assets", "prompts");
-  const imagesDir = path.join(args.episodeDir, "generated-assets", "images");
+  const promptsDir = path.join(
+    args.episodeDir,
+    "state",
+    "image-generation",
+    "prompts"
+  );
+  const imagesDir = path.join(
+    args.episodeDir,
+    "shared",
+    "images",
+    "generated"
+  );
   await fs.mkdir(manifestsDir, { recursive: true });
   await fs.mkdir(promptsDir, { recursive: true });
   await fs.mkdir(imagesDir, { recursive: true });
@@ -32,6 +45,10 @@ async function writeSceneManifest(args: {
       {
         sceneId: args.sceneId,
         promptVersion: 1,
+        ...(args.renderability ? { renderability: args.renderability } : {}),
+        ...(args.reusedFromSceneId
+          ? { reusedFromSceneId: args.reusedFromSceneId }
+          : {}),
         finalPrompt: args.prompt,
         promptHash: "prompt-hash",
         materialDifferencesFromPrevious: [],
@@ -48,9 +65,10 @@ async function writeSceneManifest(args: {
         quality: "medium",
         outputPath: path.join(
           args.episodeDir,
-          "generated-assets",
+          "shared",
           "images",
-          `${args.sceneId}.png`
+          "generated",
+          `${args.sceneId}__000000-000004__16x9.png`
         ),
         status: args.status,
         attempts: 0,
@@ -61,7 +79,13 @@ async function writeSceneManifest(args: {
   );
   if (args.outputExists) {
     await fs.writeFile(
-      path.join(args.episodeDir, "generated-assets", "images", `${args.sceneId}.png`),
+      path.join(
+        args.episodeDir,
+        "shared",
+        "images",
+        "generated",
+        `${args.sceneId}__000000-000004__16x9.png`
+      ),
       "png"
     );
   }
@@ -173,5 +197,42 @@ describe("image batch planner", () => {
     expect(planned[0]?.scenePlans).toHaveLength(0);
     expect(planned[0]?.skippedSceneIds).toEqual(["scene-001"]);
   });
-});
 
+  it("propagates renderability and reuse provenance into planned batch jobs", async () => {
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), "image-batch-renderability-"));
+    const episodeDir = path.join(tempDir, "episode");
+    await writeSceneManifest({
+      episodeDir,
+      sceneId: "scene-002",
+      prompt: "A merged abstract transition.",
+      status: "planned",
+      renderability: "mergeWithPrevious",
+      reusedFromSceneId: "scene-001",
+    });
+
+    const planned = await planImageBatchForEpisode({
+      episodeDir,
+      episodeId: "001-demo",
+      scenePlan: {
+        scenes: [{ id: "scene-002", sequenceNumber: 2 }],
+      },
+      settings: {
+        model: "gpt-image-2",
+        requestedSize: "1920x1088",
+        quality: "medium",
+        outputFormat: "png",
+      },
+    });
+
+    expect(planned[0]?.scenePlans[0]?.job.renderability).toBe(
+      "mergeWithPrevious"
+    );
+    expect(planned[0]?.scenePlans[0]?.job.reusedFromSceneId).toBe("scene-001");
+    expect(planned[0]?.scenePlans[0]?.manifestItem.renderability).toBe(
+      "mergeWithPrevious"
+    );
+    expect(planned[0]?.scenePlans[0]?.manifestItem.reusedFromSceneId).toBe(
+      "scene-001"
+    );
+  });
+});

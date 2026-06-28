@@ -164,6 +164,12 @@ async function buildSceneJob(args: {
     format: "full",
     sceneId: args.sceneId,
     sceneIndex: args.sceneIndex,
+    ...(args.sceneManifest.renderability
+      ? { renderability: args.sceneManifest.renderability }
+      : {}),
+    ...(args.sceneManifest.reusedFromSceneId
+      ? { reusedFromSceneId: args.sceneManifest.reusedFromSceneId }
+      : {}),
     promptPath,
     positivePrompt: prompt,
     characterIds: args.sceneManifest.characterIds,

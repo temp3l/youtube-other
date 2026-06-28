@@ -5,6 +5,7 @@ import {
   normalizeContentVariant,
   normalizeEpisodeId,
   normalizeLocaleCode,
+  resolveSceneImageCandidatePaths,
 } from "./episode-filesystem.js";
 
 describe("episode filesystem helpers", () => {
@@ -36,5 +37,28 @@ describe("episode filesystem helpers", () => {
     expect(resolver.canonicalScenesPath(episodeId)).toBe(
       "/workspace/009-mary-gloria-the-christmas-doll/canonical/scenes.json"
     );
+    expect(resolver.sharedGeneratedImagesDir(episodeId)).toBe(
+      "/workspace/009-mary-gloria-the-christmas-doll/shared/images/generated"
+    );
+    expect(resolver.legacyGeneratedImagesDir(episodeId)).toBe(
+      "/workspace/009-mary-gloria-the-christmas-doll/state/image-generation/images"
+    );
+  });
+
+  it("prefers canonical shared images but exposes legacy fallback paths", () => {
+    expect(
+      resolveSceneImageCandidatePaths({
+        episodeDir: "/workspace/009-mary-gloria-the-christmas-doll",
+        sceneId: "scene-001",
+        expectedFilename: "scene-001__000000-000004__16x9.png",
+      })
+    ).toEqual({
+      canonical:
+        "/workspace/009-mary-gloria-the-christmas-doll/shared/images/generated/scene-001__000000-000004__16x9.png",
+      legacyExpected:
+        "/workspace/009-mary-gloria-the-christmas-doll/state/image-generation/images/scene-001__000000-000004__16x9.png",
+      legacySceneId:
+        "/workspace/009-mary-gloria-the-christmas-doll/state/image-generation/images/scene-001.png",
+    });
   });
 });

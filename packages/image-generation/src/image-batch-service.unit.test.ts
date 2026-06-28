@@ -21,14 +21,27 @@ import {
 async function writeSceneManifest(args: {
   readonly episodeDir: string;
   readonly sceneId: string;
+  readonly renderability?: "direct" | "requiresInference" | "mergeWithPrevious" | "mergeWithNext" | "skip";
+  readonly reusedFromSceneId?: string;
 }): Promise<void> {
   const manifestsDir = path.join(
     args.episodeDir,
-    "generated-assets",
-    "image-manifests"
+    "state",
+    "image-generation",
+    "manifests"
   );
-  const promptsDir = path.join(args.episodeDir, "generated-assets", "prompts");
-  const imagesDir = path.join(args.episodeDir, "generated-assets", "images");
+  const promptsDir = path.join(
+    args.episodeDir,
+    "state",
+    "image-generation",
+    "prompts"
+  );
+  const imagesDir = path.join(
+    args.episodeDir,
+    "shared",
+    "images",
+    "generated"
+  );
   await fs.mkdir(manifestsDir, { recursive: true });
   await fs.mkdir(promptsDir, { recursive: true });
   await fs.mkdir(imagesDir, { recursive: true });
@@ -42,6 +55,10 @@ async function writeSceneManifest(args: {
       {
         sceneId: args.sceneId,
         promptVersion: 1,
+        ...(args.renderability ? { renderability: args.renderability } : {}),
+        ...(args.reusedFromSceneId
+          ? { reusedFromSceneId: args.reusedFromSceneId }
+          : {}),
         finalPrompt: `Prompt for ${args.sceneId}.`,
         promptHash: `hash-${args.sceneId}`,
         materialDifferencesFromPrevious: [],
@@ -58,8 +75,9 @@ async function writeSceneManifest(args: {
         quality: "medium",
         outputPath: path.join(
           args.episodeDir,
-          "generated-assets",
+          "shared",
           "images",
+          "generated",
           `${args.sceneId}.png`
         ),
         status: "planned",
@@ -142,7 +160,7 @@ describe("image batch service", () => {
     };
     const client = makeClient();
     const submitted = await submitImageBatch(
-      path.join(episodeDir, "generated-assets"),
+      path.join(episodeDir, "state", "image-generation"),
       group.storagePlan.localBatchId,
       client as never
     );
@@ -155,17 +173,58 @@ describe("image batch service", () => {
     expect(manifestAfterSubmit?.openAIBatchId).toBe("batch_1");
 
     const refreshed = await refreshImageBatch(
-      path.join(episodeDir, "generated-assets"),
+      path.join(episodeDir, "state", "image-generation"),
       group.storagePlan.localBatchId,
       client as never
     );
     expect(refreshed.status).toBe("completed");
     expect(refreshed.outputFileId).toBe("file_out");
 
-    const index = new StoryBatchIndexService(path.join(episodeDir, "generated-assets"));
+    const index = new StoryBatchIndexService(
+      path.join(episodeDir, "state", "image-generation")
+    );
     const latest = await index.getLatest({ category: "image-generation" });
     expect(latest?.openAIBatchId).toBe("batch_1");
     expect(latest?.status).toBe("completed");
+  });
+
+  it("summarizes merge and reuse metadata in the batch readiness report", async () => {
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), "image-batch-summary-"));
+    const episodeDir = path.join(tempDir, "episode");
+    await writeSceneManifest({
+      episodeDir,
+      sceneId: "scene-001",
+      renderability: "mergeWithNext",
+    });
+    await writeSceneManifest({
+      episodeDir,
+      sceneId: "scene-002",
+      renderability: "mergeWithPrevious",
+      reusedFromSceneId: "scene-001",
+    });
+    const prepared = await prepareImageBatchForEpisode({
+      episodeDir,
+      episodeId: "001-demo",
+      scenePlan: { scenes: [{ id: "scene-001", sequenceNumber: 1 }, { id: "scene-002", sequenceNumber: 2 }] },
+      settings: {
+        model: "gpt-image-2",
+        requestedSize: "1920x1088",
+        quality: "medium",
+        outputFormat: "png",
+      },
+    });
+    expect(prepared.groups[0]?.scenePlans).toHaveLength(2);
+    await submitImageBatch(
+      path.join(episodeDir, "state", "image-generation"),
+      prepared.groups[0]?.storagePlan.localBatchId ?? "",
+      makeClient() as never
+    );
+    const readiness = await summarizeImageBatchState(
+      path.join(episodeDir, "state", "image-generation")
+    );
+    expect(readiness.mergedWithNextScenes).toBeGreaterThanOrEqual(1);
+    expect(readiness.mergedWithPreviousScenes).toBeGreaterThanOrEqual(1);
+    expect(readiness.reusedScenes).toBeGreaterThanOrEqual(1);
   });
 
   it("imports completed image batch outputs and persists images atomically", async () => {
@@ -241,18 +300,18 @@ describe("image batch service", () => {
       },
     };
     await submitImageBatch(
-      path.join(episodeDir, "generated-assets"),
+      path.join(episodeDir, "state", "image-generation"),
       group.storagePlan.localBatchId,
       client as never
     );
     await refreshImageBatch(
-      path.join(episodeDir, "generated-assets"),
+      path.join(episodeDir, "state", "image-generation"),
       group.storagePlan.localBatchId,
       client as never
     );
 
     const imported = await importImageBatch(
-      path.join(episodeDir, "generated-assets"),
+      path.join(episodeDir, "state", "image-generation"),
       group.storagePlan.localBatchId,
       client as never
     );
@@ -275,8 +334,9 @@ describe("image batch service", () => {
       await fs.readFile(
         path.join(
           episodeDir,
-          "generated-assets",
-          "image-manifests",
+          "state",
+          "image-generation",
+          "manifests",
           "scene-002.json"
         ),
         "utf8"
@@ -286,7 +346,7 @@ describe("image batch service", () => {
     expect(sceneManifest.outputSha256).toMatch(/^[a-f0-9]{64}$/u);
 
     const readiness = await summarizeImageBatchState(
-      path.join(episodeDir, "generated-assets")
+      path.join(episodeDir, "state", "image-generation")
     );
     expect(readiness.readyForRender).toBe(true);
     expect(readiness.importedBatches).toBe(1);
@@ -377,18 +437,18 @@ describe("image batch service", () => {
       },
     };
     await submitImageBatch(
-      path.join(episodeDir, "generated-assets"),
+      path.join(episodeDir, "state", "image-generation"),
       group.storagePlan.localBatchId,
       client as never
     );
     await refreshImageBatch(
-      path.join(episodeDir, "generated-assets"),
+      path.join(episodeDir, "state", "image-generation"),
       group.storagePlan.localBatchId,
       client as never
     );
 
     const imported = await importImageBatch(
-      path.join(episodeDir, "generated-assets"),
+      path.join(episodeDir, "state", "image-generation"),
       group.storagePlan.localBatchId,
       client as never
     );
@@ -400,7 +460,7 @@ describe("image batch service", () => {
     expect(manifest?.items[1]?.status).toBe("policy-rejected");
 
     const readiness = await summarizeImageBatchState(
-      path.join(episodeDir, "generated-assets")
+      path.join(episodeDir, "state", "image-generation")
     );
     expect(readiness.readyForRender).toBe(false);
     expect(readiness.failedBatches).toBeGreaterThan(0);
@@ -452,7 +512,7 @@ describe("image batch service", () => {
     );
 
     const retried = await retryFailedImageBatch(
-      path.join(episodeDir, "generated-assets"),
+      path.join(episodeDir, "state", "image-generation"),
       group.storagePlan.localBatchId
     );
 

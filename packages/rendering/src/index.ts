@@ -12,6 +12,7 @@ import {
   fileExists,
   hashFile,
   hashText,
+  resolveSceneImageCandidatePaths,
   writeJsonAtomic,
   writeTextAtomic,
 } from "@mediaforge/shared";
@@ -1041,21 +1042,30 @@ async function resolveSceneImagePath(
     throw new MediaValidationError(`Missing scene at index ${sceneIndex}.`);
   }
   const expectedFilename = scene.expectedImageFilenames[0];
-  if (expectedFilename) {
-    const expected = path.join(imageDir, expectedFilename);
-    if (await fileExists(expected)) {
-      return expected;
+  const candidates = [
+    expectedFilename ? path.join(imageDir, expectedFilename) : undefined,
+    ...Object.values(
+      resolveSceneImageCandidatePaths({
+        episodeDir,
+        sceneId: scene.id,
+        expectedFilename,
+      })
+    ),
+  ].filter((candidate): candidate is string => Boolean(candidate));
+  for (const candidate of candidates) {
+    if (await fileExists(candidate)) {
+      return candidate;
     }
   }
-  const candidates = (await fs.readdir(imageDir).catch(() => [])).filter(
+  const directoryMatches = (await fs.readdir(imageDir).catch(() => [])).filter(
     (entry) => entry.startsWith(`${scene.id}__`) && entry.endsWith(".png")
   );
-  if (candidates.length === 1) {
-    return path.join(imageDir, candidates[0] ?? "");
+  if (directoryMatches.length === 1) {
+    return path.join(imageDir, directoryMatches[0] ?? "");
   }
-  if (candidates.length > 1) {
+  if (directoryMatches.length > 1) {
     throw new MediaValidationError(
-      `Multiple image assets found for ${scene.id} in ${imageDir}: ${candidates.join(", ")}`
+      `Multiple image assets found for ${scene.id} in ${imageDir}: ${directoryMatches.join(", ")}`
     );
   }
   throw new MediaValidationError(
