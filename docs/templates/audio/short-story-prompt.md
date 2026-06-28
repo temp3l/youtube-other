@@ -56,5 +56,5 @@ Before returning the result, silently verify:
 - it contains no editorial commentary.
 
 Return exactly one object matching the supplied response schema.
-Place the completed narration in the schema’s narration paragraph array, with one complete paragraph per array element.
+Place the completed narration in the schema’s narration field as a single spoken script string.
 Do not include Markdown fences, commentary, or text outside the schema-defined object.

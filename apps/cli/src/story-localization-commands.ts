@@ -4,6 +4,7 @@ import {
   commandEpisodeBootstrapCharacters,
   commandEpisodeSyncCharacters,
 } from "./episode-commands.js";
+import { commandImagesResume } from "./images-resume-command.js";
 import { registerStoryRewriteShortCommand } from "./story-short-rewrite-command.js";
 import { registerStoryRewriteFullCommand } from "./story-full-rewrite-command.js";
 import {
@@ -773,6 +774,45 @@ export function registerStoryLocalizationCommands(program: Command): void {
 
   registerStoryRewriteShortCommand(stories);
   registerStoryRewriteFullCommand(stories);
+  stories
+    .command("resume-images")
+    .description("Resume partial image generation for an episode and bootstrap manifest.json when needed")
+    .option("--episode <number-or-slug>", "episode number or slug")
+    .option("--source <path>", "source root")
+    .option("--output-root <path>", "output root")
+    .option("--concurrency <number>", "parallel scene generation", (value) =>
+      Number(value)
+    )
+    .option("--allow-unapproved-character-references")
+    .option("--force")
+    .option("--json")
+    .option("--verbose")
+    .action(async (opts: {
+      episode?: string;
+      source?: string;
+      outputRoot?: string;
+      concurrency?: number;
+      allowUnapprovedCharacterReferences?: boolean;
+      force?: boolean;
+      json?: boolean;
+      verbose?: boolean;
+    }) =>
+      commandImagesResume({
+        ...(opts.episode !== undefined ? { episode: opts.episode } : {}),
+        ...(opts.source !== undefined ? { source: opts.source } : {}),
+        ...(opts.outputRoot !== undefined ? { workspace: opts.outputRoot } : {}),
+        ...(opts.concurrency !== undefined ? { concurrency: opts.concurrency } : {}),
+        ...(opts.allowUnapprovedCharacterReferences !== undefined
+          ? {
+              allowUnapprovedCharacterReferences:
+                opts.allowUnapprovedCharacterReferences,
+            }
+          : {}),
+        ...(opts.force !== undefined ? { force: opts.force } : {}),
+        ...(opts.json !== undefined ? { json: opts.json } : {}),
+        ...(opts.verbose !== undefined ? { verbose: opts.verbose } : {}),
+      })
+    );
   stories
     .command("bootstrap-shared")
     .description("Sync the shared character map and generate character reference images for an episode")

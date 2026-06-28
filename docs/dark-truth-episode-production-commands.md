@@ -158,6 +158,10 @@ If you want the shared registry plus reference images in one step, use:
 npm run episode:bootstrap-characters -- --episode <episode-id-or-slug> --approve
 ```
 
+If the source pack does not include `characters.json`, this command synthesizes
+`episodes/<episode-slug>/shared/characters.json` from the episode source before
+generating the reference images.
+
 The story-oriented shortcut is:
 
 ```bash

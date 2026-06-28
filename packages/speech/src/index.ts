@@ -14,7 +14,12 @@ import {
   estimateDurationPricing,
 } from "@mediaforge/observability";
 import { loadSpeechVoiceSettings } from "./voice-settings.js";
-export { loadEpisodeScriptMarkdown, splitEpisodeScriptMarkdown, writeEpisodeScriptMarkdown } from "./script-markdown.js";
+export {
+  listEpisodeScriptLanguages,
+  loadEpisodeScriptMarkdown,
+  splitEpisodeScriptMarkdown,
+  writeEpisodeScriptMarkdown,
+} from "./script-markdown.js";
 export { loadSpeechVoiceSettings, speechVoiceSettings } from "./voice-settings.js";
 
 export interface SpeechSynthesisRequest {

@@ -28,7 +28,15 @@ import {
   approveEpisodeCharacter,
   generateEpisodeImageReferences,
   loadEpisodeImageGenerationSettings,
+  upsertCharacterRegistry,
+  type CharacterDefinition,
+  type CharacterRegistry,
 } from "@mediaforge/image-generation";
+import {
+  extractCanonicalStoryFacts,
+  parseCanonicalSourceStory,
+  type ParsedSourceStory,
+} from "@mediaforge/story-localization";
 import {
   auditShortsImageAssets,
   prepareShortsImageAssets,
@@ -44,6 +52,7 @@ import {
   writeJsonAtomic,
   writeTextAtomic,
 } from "@mediaforge/shared";
+import { commandImagesResume } from "./images-resume-command.js";
 
 export interface EpisodeCommandOptions {
   readonly episode?: string;
@@ -58,6 +67,7 @@ export interface EpisodeCommandOptions {
   readonly continueOnError?: boolean;
   readonly reuseImages?: boolean;
   readonly approve?: boolean;
+  readonly allowUnapprovedCharacterReferences?: boolean;
   readonly noQa?: boolean;
   readonly withTranscriptionQa?: boolean;
   readonly concurrency?: number;
@@ -119,6 +129,118 @@ function resolveEpisodeFilter(
   options: EpisodeCommandOptions
 ): string | undefined {
   return options.episode ? normalizeWhitespace(options.episode) : undefined;
+}
+
+function sanitizeCharacterId(value: string, fallbackIndex: number): string {
+  const slug = slugify(value).replace(/^-+|-+$/gu, "");
+  return slug.length > 0 ? slug : `character-${String(fallbackIndex + 1).padStart(2, "0")}`;
+}
+
+function buildCharacterRegistryFromSource(
+  parsed: ParsedSourceStory,
+  facts: Awaited<ReturnType<typeof extractCanonicalStoryFacts>>
+): CharacterDefinition[] {
+  const setting = normalizeWhitespace(facts.setting ?? parsed.metadata.visualDirection ?? parsed.title);
+  const threat = normalizeWhitespace(facts.threat);
+  const protagonists = facts.characters.length > 0 ? facts.characters : [
+    {
+      name: parsed.title,
+      role: "main protagonist",
+    },
+  ];
+  const registry: CharacterDefinition[] = protagonists.map((character, index) => {
+    const id = sanitizeCharacterId(character.name, index);
+    const protagonistRole = normalizeWhitespace(character.role);
+    const isThreatCharacter =
+      /black[- ]eyed children|children|doll|ghost|entity|monster|stranger|attacker/iu.test(
+        `${character.name} ${protagonistRole} ${threat}`
+      );
+    return {
+      id,
+      name: character.name,
+      role: protagonistRole,
+      physicalDescription: isThreatCharacter
+        ? `${threat}.`
+        : `A believable ${protagonistRole} from ${setting}.`,
+      ageRange: isThreatCharacter
+        ? "child"
+        : index === 0
+          ? "20s-30s"
+          : "adult",
+      genderPresentation: isThreatCharacter ? "child" : "person",
+      face: {
+        shape: isThreatCharacter ? "small" : "oval",
+        skinTone: isThreatCharacter ? "pale" : "light",
+        eyeColor: /black[- ]eyed/u.test(threat) ? "black" : "brown",
+        eyebrows: isThreatCharacter ? "thin" : "natural",
+        nose: isThreatCharacter ? "small" : "straight",
+        mouth: isThreatCharacter ? "flat" : "neutral",
+        distinguishingFeatures: isThreatCharacter
+          ? ["unnatural black eyes"]
+          : ["tired late-night expression"],
+      },
+      hair: {
+        color: isThreatCharacter ? "dark brown" : "brown",
+        length: isThreatCharacter ? "short" : "medium",
+        style: isThreatCharacter ? "messy" : "slightly unkempt",
+      },
+      build: isThreatCharacter ? "slight" : "average",
+      defaultWardrobe: {
+        upperBody: isThreatCharacter ? "dark old-fashioned coat" : "practical travel clothes",
+        lowerBody: isThreatCharacter ? "dark trousers" : "dark pants",
+        footwear: isThreatCharacter ? "black shoes" : "closed-toe shoes",
+        accessories: isThreatCharacter ? [] : ["small bag"],
+        carriedObjects: isThreatCharacter ? [] : ["phone"],
+        colors: isThreatCharacter ? ["dark", "grey"] : ["navy", "grey"],
+      },
+      continuityTraits: isThreatCharacter
+        ? ["black eyes", "quiet, unsettling presence"]
+        : [
+            `same appearance across ${parsed.episodeNumber}`,
+            `consistent with ${setting}`,
+          ],
+      referenceStatus: "missing",
+    };
+  });
+  if (
+    threat.length > 0 &&
+    !registry.some((character) => normalizeWhitespace(character.name).toLowerCase() === threat.toLowerCase())
+  ) {
+    registry.push({
+      id: sanitizeCharacterId(threat, registry.length),
+      name: threat,
+      role: "supernatural antagonist",
+      physicalDescription: threat,
+      ageRange: "unknown",
+      genderPresentation: "unknown",
+      face: {
+        shape: "unknown",
+        skinTone: "pale",
+        eyeColor: /black[- ]eyed/u.test(threat) ? "black" : "dark",
+        eyebrows: "unknown",
+        nose: "unknown",
+        mouth: "neutral",
+        distinguishingFeatures: [threat],
+      },
+      hair: {
+        color: "dark",
+        length: "short",
+        style: "plain",
+      },
+      build: "unknown",
+      defaultWardrobe: {
+        upperBody: "plain dark clothing",
+        lowerBody: "dark clothing",
+        footwear: "dark shoes",
+        accessories: [],
+        carriedObjects: [],
+        colors: ["dark", "grey"],
+      },
+      continuityTraits: [threat],
+      referenceStatus: "missing",
+    });
+  }
+  return registry;
 }
 
 async function resolveSelectedEpisode(
@@ -865,15 +987,35 @@ export async function commandEpisodeSyncCharacters(
 export async function commandEpisodeBootstrapCharacters(
   options: EpisodeCommandOptions
 ): Promise<void> {
-  const { outputRoot, discovery, sourceFile, result } =
-    await syncSelectedEpisodeCharacters(options);
+  const { outputRoot, discovery } = await resolveSelectedEpisode(options);
+  const sourceFile = await resolvePresentSourceFile(discovery);
+  const result = await syncEpisodeCharacters(sourceFile, outputRoot, {
+    ...(options.force !== undefined ? { overwrite: options.force } : {}),
+    required: false,
+  });
   const episodeDir = path.join(outputRoot, discovery.slug);
   const settings = await loadImageGenerationSettings(options.force);
-  let registry = await generateEpisodeImageReferences(
-    episodeDir,
-    discovery.slug,
-    settings
-  );
+  let registry: CharacterRegistry;
+  let bootstrapMode: "copied" | "synthesized" | "kept" = result.copied ? "copied" : "kept";
+  const outputCharactersPath = path.join(episodeDir, "shared", "characters.json");
+  if (!(await fileExists(outputCharactersPath)) || options.force) {
+    const parsedSource = await parseCanonicalSourceStory(sourceFile);
+    const facts = extractCanonicalStoryFacts(parsedSource);
+    const synthesizedCharacters = buildCharacterRegistryFromSource(parsedSource, facts);
+    registry = await upsertCharacterRegistry(episodeDir, discovery.slug, synthesizedCharacters);
+    bootstrapMode = "synthesized";
+    registry = await generateEpisodeImageReferences(
+      episodeDir,
+      discovery.slug,
+      settings
+    );
+  } else {
+    registry = await generateEpisodeImageReferences(
+      episodeDir,
+      discovery.slug,
+      settings
+    );
+  }
   let approvedCharacters = 0;
   if (options.approve) {
     for (const character of registry.characters) {
@@ -891,6 +1033,7 @@ export async function commandEpisodeBootstrapCharacters(
     sourceFile,
     outputRoot,
     sync: result,
+    bootstrapMode,
     registry,
     approvedCharacters,
   };
@@ -901,7 +1044,9 @@ export async function commandEpisodeBootstrapCharacters(
   process.stdout.write(
     [
       `Synced ${result.outputCharactersPath}`,
-      `Generated ${registry.characters.length} character reference(s)`,
+      bootstrapMode === "synthesized"
+        ? `Synthesized ${registry.characters.length} character registry entr${registry.characters.length === 1 ? "y" : "ies"}`
+        : `Generated ${registry.characters.length} character reference(s)`,
       options.approve
         ? `Approved ${approvedCharacters} character reference(s)`
         : null,
@@ -1022,6 +1167,7 @@ export async function commandEpisodeReviewStatus(
 export function registerEpisodeCommands(program: Command): void {
   const episode = program
     .command("episode")
+    .alias("episodes")
     .description("Dark Truth multilingual workflow");
   episode
     .command("inspect")
@@ -1108,6 +1254,35 @@ export function registerEpisodeCommands(program: Command): void {
     .option("--json")
     .action(async (opts: EpisodeCommandOptions) =>
       commandEpisodeBootstrapCharacters(opts)
+    );
+  episode
+    .command("resume-images")
+    .option("--episode <number-or-slug>", "episode number or slug")
+    .option("--source <path>", "source root")
+    .option("--output-root <path>", "output root")
+    .option("--concurrency <number>", "parallel scene generation", (value) =>
+      Number(value)
+    )
+    .option("--allow-unapproved-character-references")
+    .option("--force")
+    .option("--json")
+    .option("--verbose")
+    .action(async (opts: EpisodeCommandOptions) =>
+      commandImagesResume({
+        episode: opts.episode ?? "",
+        ...(opts.source !== undefined ? { source: opts.source } : {}),
+        ...(opts.outputRoot !== undefined ? { workspace: opts.outputRoot } : {}),
+        ...(opts.concurrency !== undefined ? { concurrency: opts.concurrency } : {}),
+        ...(opts.allowUnapprovedCharacterReferences !== undefined
+          ? {
+              allowUnapprovedCharacterReferences:
+                opts.allowUnapprovedCharacterReferences,
+            }
+          : {}),
+        ...(opts.force !== undefined ? { force: opts.force } : {}),
+        ...(opts.json !== undefined ? { json: opts.json } : {}),
+        ...(opts.verbose !== undefined ? { verbose: opts.verbose } : {}),
+      })
     );
   episode
     .command("validate")

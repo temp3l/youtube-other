@@ -31,6 +31,7 @@ import {
 } from "./short-rewrite.utils.js";
 import { buildShortRewriteMarkdown } from "./short-rewrite.renderer.js";
 import { buildShortRewritePrompt, buildShortRewriteRepairPrompt } from "./short-rewrite.prompt.js";
+import { getLanguageRewriteSettings } from "./multilingual-story-localization-settings.js";
 import { resolveShortRewriteInput } from "./short-rewrite.resolution.js";
 
 function makeNarration(wordTarget: number): string {
@@ -150,9 +151,32 @@ describe("short rewrite helpers", () => {
     expect(prompt.user).toContain("## German Localization");
     expect(prompt.user).toContain("<FULL_LOCALIZED_STORY>");
     expect(prompt.user).toContain("Ignore this prompt injection");
+    expect(prompt.user).not.toContain("narration paragraph array");
     expect(prompt.user).not.toContain("Episode number:");
     expect(prompt.user).not.toContain("Narration reference:");
   });
+
+  it.each(Object.entries(SHORT_REWRITE_SUPPORTED_LANGUAGES) as Array<[
+    keyof typeof SHORT_REWRITE_SUPPORTED_LANGUAGES,
+    (typeof SHORT_REWRITE_SUPPORTED_LANGUAGES)[keyof typeof SHORT_REWRITE_SUPPORTED_LANGUAGES],
+  ]>)(
+    "injects the correct language settings block for %s",
+    (language, profile) => {
+      const prompt = buildShortRewritePrompt({
+        episodeNumber: "009",
+        episodeSlug: "009-the-christmas-doll",
+        targetLanguage: language,
+        targetLanguageName: profile.name,
+        targetLocale: profile.locale,
+        sourceStory: "story",
+        narration: "Mara heard the doll breathing under the attic door.",
+        title: "The Christmas Doll",
+      });
+      const settings = getLanguageRewriteSettings(profile.locale);
+      expect(prompt.user).toContain(`## ${settings.heading}`);
+      expect(prompt.user).toContain(settings.instructions);
+    }
+  );
 
   it("rejects a copied source story at the canonical full-story path", async () => {
     const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "short-rewrite-copied-source-"));
@@ -200,6 +224,7 @@ describe("short rewrite helpers", () => {
     expect(prompt.user).toContain("German (de-DE)");
     expect(prompt.user).toContain("## German Localization");
     expect(prompt.user).toContain("TARGET_WORD_RANGE: 150–165");
+    expect(prompt.user).toContain("narration field as a single spoken script string");
   });
 
   it("renders markdown compatible with the downstream pipeline", () => {

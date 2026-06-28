@@ -41,6 +41,7 @@ import {
   validateWrittenMessagesPreserved,
   writeTextAtomicIfChanged,
   StoryLocalizationApiError,
+  getLanguageRewriteSettings,
 } from "./index.js";
 import type { GeneratedStoryPackage, LanguageCode, ParsedSourceStory } from "./index.js";
 
@@ -323,6 +324,25 @@ describe("story localization helpers", () => {
     expect(prompt.user).toContain("Originality review:");
     expect(prompt.user).toContain("Retention plan:");
   });
+
+  it.each(["en", "de", "es", "fr", "pt"] as const)(
+    "injects the correct language settings block for %s",
+    async (language) => {
+      const parsed = await parseCanonicalSourceStory(sourceFile);
+      const facts = extractCanonicalStoryFacts(parsed);
+      const profile = getLanguageProfile(language);
+      const prompt = buildLocalizationPrompt({
+        languageProfile: profile,
+        adaptationMode: "faithful",
+        sourceStory: parsed,
+        canonicalFacts: facts,
+        target: "full",
+      });
+      const settings = getLanguageRewriteSettings(profile.locale);
+      expect(prompt.user).toContain(`## ${settings.heading}`);
+      expect(prompt.user).toContain(settings.instructions);
+    }
+  );
 
   it("retries short-length failures with a targeted short rewrite", async () => {
     const tempDir = mkdtempSync(

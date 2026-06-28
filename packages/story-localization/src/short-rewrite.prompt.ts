@@ -1,5 +1,5 @@
 import { getLanguageProfile } from "./language-profiles.js";
-import { loadMultilingualStoryLocalizationSettings } from "./multilingual-story-localization-settings.js";
+import { getLanguageRewriteSettings } from "./multilingual-story-localization-settings.js";
 import {
   SHORT_REWRITE_PREFERRED_WORD_RANGE,
 } from "./short-rewrite.constants.js";
@@ -26,12 +26,12 @@ function renderShortPrompt(context: ShortRewritePromptContext): string {
     [
       "## Locale settings",
       "",
-      `TARGET LANGUAGE:`,
-      `${languageProfile.displayName} (${context.targetLocale})`,
-      "",
-      loadMultilingualStoryLocalizationSettings(context.targetLocale),
-    ].join("\n")
-  );
+        `TARGET LANGUAGE:`,
+        `${languageProfile.displayName} (${context.targetLocale})`,
+        "",
+        getLanguageRewriteSettings(context.targetLocale).instructions,
+      ].join("\n")
+    );
 }
 
 export function buildShortRewritePrompt(context: ShortRewritePromptContext): {

@@ -444,6 +444,31 @@ function jaccard(left: string, right: string): number {
   return intersection / (leftTokens.size + rightTokens.size - intersection);
 }
 
+function promptSignature(spec: SceneVisualSpec): string {
+  return normalizeWhitespace(
+    [
+      spec.narrativePurpose,
+      spec.focalSubject,
+      spec.visibleAction,
+      spec.environment,
+      spec.foreground,
+      spec.background,
+      spec.shotSize,
+      spec.cameraAngle,
+      spec.composition,
+      spec.lighting,
+      spec.timeOfDay,
+      spec.mood,
+      spec.distinctiveAnchor,
+      spec.characters.map((character) => character.characterId).join(" "),
+      spec.textRequirement.required ? spec.textRequirement.text : "",
+      spec.allowMatchingComposition ? "allow matching composition" : "",
+    ]
+      .filter((value) => value.length > 0)
+      .join(" ")
+  );
+}
+
 function stableHash(value: string): string {
   return crypto.createHash("sha256").update(value, "utf8").digest("hex");
 }
@@ -993,7 +1018,6 @@ export function buildPromptFromSpec(
       "PRIMARY VISUAL EVENT",
       `${spec.sourceNarration}. ${spec.focalSubject}. ${spec.visibleAction}. ${spec.characters.length === 0 ? "Focus on visible evidence, reaction, or environmental consequence rather than narration." : ""}`
     ),
-    promptSection("NARRATION BEAT", spec.sourceNarration),
     promptSection(
       "TEXT REQUIREMENT",
       buildSceneTextPromptSection(spec.textRequirement)
@@ -1034,7 +1058,7 @@ export function buildPromptFromSpec(
 export function validatePrompt(
   prompt: string,
   current: SceneVisualSpec,
-  previousPrompt?: string,
+  _previousPrompt?: string,
   previous?: SceneVisualSpec
 ): string[] {
   const failures: string[] = [];
@@ -1086,16 +1110,11 @@ export function validatePrompt(
     failures.push(
       "prompt repeats the previous scene's camera, action, and dominant subject"
     );
-  const promptTokens = tokenSet(prompt);
-  if (promptTokens.size > 0 && previousPrompt) {
-    const previousTokens = tokenSet(previousPrompt);
-    let overlap = 0;
-    for (const token of promptTokens) {
-      if (previousTokens.has(token)) overlap += 1;
-    }
-    const ratio = overlap / Math.max(promptTokens.size, previousTokens.size);
-    if (ratio > 0.7)
+  if (previous) {
+    const ratio = jaccard(promptSignature(current), promptSignature(previous));
+    if (ratio > 0.95) {
       failures.push("prompt overlaps too much with the previous prompt");
+    }
   }
   if (
     /whisper|sound|audio/i.test(prompt) &&

@@ -253,6 +253,33 @@ describe("episode image pipeline helpers", () => {
     );
   });
 
+  it("does not reject adjacent prompts that differ in scene-specific content", () => {
+    const registry = makeRegistry();
+    const previous = makeSceneSpec();
+    const current = {
+      ...previous,
+      sceneId: "scene-002",
+      sequenceNumber: 2,
+      narrativePurpose: "reaction" as const,
+      focalSubject: "Daniel Mercer at the corridor door",
+      visibleAction: "turns from the monitor to the hallway door",
+      environment: "tight hallway outside the motel room",
+      foreground: "the room key and Daniel's trembling hand",
+      background: "the dark corridor beyond the motel door",
+      shotSize: "medium-close-up" as const,
+      cameraAngle: "over-the-shoulder" as const,
+      lighting: "cold practical light spilling from the room",
+      timeOfDay: "late night",
+      mood: "tense",
+      distinctiveAnchor: "the hallway door starts to open by itself",
+    };
+    const currentPrompt = buildPromptFromSpec(current, previous, registry);
+    const previousPrompt = buildPromptFromSpec(previous, undefined, registry);
+    expect(
+      validatePrompt(currentPrompt, current, previousPrompt, previous)
+    ).not.toContain("prompt overlaps too much with the previous prompt");
+  });
+
   it("scores adjacent differences and rewrites repeated shot choices", () => {
     const previous = makeSceneSpec();
     const next = {
@@ -372,8 +399,9 @@ describe("episode image pipeline helpers", () => {
       await fs.stat(
         path.join(
           episodeDir,
-          "generated-assets",
-          "image-manifests",
+          "state",
+          "image-generation",
+          "manifests",
           "scene-001.json"
         )
       )
@@ -439,8 +467,9 @@ describe("episode image pipeline helpers", () => {
     calls.length = 0;
     const manifestPath = path.join(
       episodeDir,
-      "generated-assets",
-      "image-manifests",
+      "state",
+      "image-generation",
+      "manifests",
       "scene-001.json"
     );
     await mutateManifest(manifestPath, (value) => {
@@ -505,8 +534,9 @@ describe("episode image pipeline helpers", () => {
     calls.length = 0;
     const manifestPath = path.join(
       episodeDir,
-      "generated-assets",
-      "image-manifests",
+      "state",
+      "image-generation",
+      "manifests",
       "scene-001.json"
     );
     await mutateManifest(manifestPath, (value) => {

@@ -42,6 +42,7 @@ English remains the default language and continues to use the non-suffixed paths
 ## Commands
 
 - `mediaforge audio generate <episode-id> --language es`
+- `mediaforge audio generate-localized <episode-id>` to generate audio for all localized scripts found in the episode workspace
 - `mediaforge clips generate <episode-id> --language es`
 - `mediaforge render <episode-id> --language es`
 - `mediaforge metadata generate <episode-id> --language es`

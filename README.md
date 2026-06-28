@@ -1,3 +1,9 @@
+is the image generator using the image api or the responses api?
+
+`npm run episode:english -- --episode 011`
+
+is taking narration.md from wrong script.md. it should extract it from {episode}/script.md
+
 abfuscate names
 
 make rewrite-short use the same resume semantics as rewrite-full, make it more explicitly in its CLI help text so both commands read consistently.
@@ -63,6 +69,20 @@ For your preservation-heavy workflow, use approximately 0.4–0.5.
 
 ---
 
+### audio
+
+Use this for audio only, one language per run:
+
+node apps/cli/dist/index.js audio generate 011-the-black-eyed-children --language de
+node apps/cli/dist/index.js audio generate 011-the-black-eyed-children --language es
+node apps/cli/dist/index.js audio generate 011-the-black-eyed-children --language fr
+node apps/cli/dist/index.js audio generate 011-the-black-eyed-children --language pt
+If you want the full localized episode pipeline, the closer single-command option is:
+
+node apps/cli/dist/index.js episode localized \
+ --episode 011-the-black-eyed-children \
+ --languages de
+
 ### characters
 
 Example commands:
@@ -80,6 +100,12 @@ node apps/cli/dist/index.js episode sync-characters --episode 011-the-black-eyed
 node apps/cli/dist/index.js stories bootstrap-shared --episode 011-the-black-eyed-children --approve
 
 If you want, I can also add a --dry-run mode to stories sync-characters so it prints the resolved output path without writing anything.
+,
+Single command to create shared/characters.json for episode 011:
+
+node apps/cli/dist/index.js episode bootstrap-characters \
+ --episode 011-the-black-eyed-children \
+ --approve
 
 • Use the existing episode bootstrap command:
 
@@ -231,6 +257,12 @@ son_schema] (status 400)","msg":"localized story episode"
 """
 
 ---
+
+If you want the full localized episode pipeline, the closer single-command option is:
+
+node apps/cli/dist/index.js episode localized \
+ --episode 011-the-black-eyed-children \
+ --languages de,es,fr,pt
 
 ## Example CLI Commands
 

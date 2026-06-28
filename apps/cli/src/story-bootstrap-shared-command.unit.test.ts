@@ -3,10 +3,15 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const commandEpisodeBootstrapCharactersMock = vi.hoisted(() => vi.fn());
 const commandEpisodeSyncCharactersMock = vi.hoisted(() => vi.fn());
+const commandImagesResumeMock = vi.hoisted(() => vi.fn());
 
 vi.mock("./episode-commands.js", () => ({
   commandEpisodeBootstrapCharacters: commandEpisodeBootstrapCharactersMock,
   commandEpisodeSyncCharacters: commandEpisodeSyncCharactersMock,
+}));
+
+vi.mock("./images-resume-command.js", () => ({
+  commandImagesResume: commandImagesResumeMock,
 }));
 
 const { registerStoryLocalizationCommands } = await import("./story-localization-commands.js");
@@ -15,6 +20,7 @@ describe("story bootstrap shared command", () => {
   beforeEach(() => {
     commandEpisodeBootstrapCharactersMock.mockReset();
     commandEpisodeSyncCharactersMock.mockReset();
+    commandImagesResumeMock.mockReset();
   });
 
   it("exposes a stories alias for bootstrapping shared character assets", async () => {
@@ -108,6 +114,59 @@ describe("story bootstrap shared command", () => {
       episode: "011-the-black-eyed-children",
       source: "content-ideas/content/dark-truth-episodes-optimized",
       outputRoot: "episodes",
+      force: true,
+      json: true,
+      verbose: true,
+    });
+  });
+
+  it("exposes a stories alias for resuming image generation", async () => {
+    const program = new Command();
+    registerStoryLocalizationCommands(program);
+    const stories = program.commands.find((command) => command.name() === "stories");
+    expect(stories).toBeDefined();
+    const resumeImages = stories?.commands.find((command) => command.name() === "resume-images");
+    expect(resumeImages).toBeDefined();
+    const flags = resumeImages?.options.map((option) => option.flags) ?? [];
+    expect(flags).toContain("--episode <number-or-slug>");
+    expect(flags).toContain("--source <path>");
+    expect(flags).toContain("--output-root <path>");
+    expect(flags).toContain("--concurrency <number>");
+    expect(flags).toContain("--allow-unapproved-character-references");
+    expect(flags).toContain("--verbose");
+  });
+
+  it("forwards options to the image resume implementation", async () => {
+    commandImagesResumeMock.mockResolvedValueOnce(undefined);
+    const program = new Command();
+    registerStoryLocalizationCommands(program);
+
+    await program.parseAsync([
+      "node",
+      "cli",
+      "stories",
+      "resume-images",
+      "--episode",
+      "011-the-black-eyed-children",
+      "--source",
+      "content-ideas/content/dark-truth-episodes-optimized",
+      "--output-root",
+      "episodes",
+      "--concurrency",
+      "2",
+      "--allow-unapproved-character-references",
+      "--force",
+      "--json",
+      "--verbose",
+    ]);
+
+    expect(commandImagesResumeMock).toHaveBeenCalledTimes(1);
+    expect(commandImagesResumeMock.mock.calls[0]?.[0]).toMatchObject({
+      episode: "011-the-black-eyed-children",
+      source: "content-ideas/content/dark-truth-episodes-optimized",
+      workspace: "episodes",
+      concurrency: 2,
+      allowUnapprovedCharacterReferences: true,
       force: true,
       json: true,
       verbose: true,

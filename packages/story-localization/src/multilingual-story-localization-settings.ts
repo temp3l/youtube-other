@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import { type LanguageCode } from "./story-localization.types.js";
 import { resolveRepoPath } from "./story-localization.utils.js";
 
 const settingsCache = new Map<string, string>();
@@ -10,6 +11,13 @@ const localeSectionHeadings = [
   ["fr", "French Localization"],
   ["pt", "Portuguese Localization"],
 ] as const;
+
+export interface LanguageRewriteSettings {
+  readonly language: LanguageCode;
+  readonly locale: string;
+  readonly heading: string;
+  readonly instructions: string;
+}
 
 function normalizeLocale(locale: string): string {
   return locale.trim().toLowerCase();
@@ -23,6 +31,22 @@ function resolveSectionHeading(locale: string): string {
     throw new Error(`Unsupported locale for multilingual settings: ${locale}`);
   }
   return entry[1];
+}
+
+export function getLanguageRewriteSettings(locale: string): LanguageRewriteSettings {
+  const normalized = normalizeLocale(locale);
+  const primary = normalized.split("-", 1)[0];
+  const entry = localeSectionHeadings.find(([code]) => code === primary);
+  if (!entry) {
+    throw new Error(`Unsupported locale for multilingual settings: ${locale}`);
+  }
+  const [language, heading] = entry;
+  return {
+    language,
+    locale: normalized,
+    heading,
+    instructions: loadMultilingualStoryLocalizationSettings(normalized),
+  };
 }
 
 function extractSection(document: string, heading: string): string {

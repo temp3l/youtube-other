@@ -13,6 +13,13 @@ Refactor the story-generation pipeline so every downstream artifact is derived f
 - Short rewrite can still be run against a raw English source story, so it is not strictly downstream of canonical optimized English full.
 - Request/response provenance is not persisted as immutable attempt history for each model invocation.
 - Shared facts are cached heuristically from parsed source content, not persisted as authoritative shared artifacts keyed to canonical English full provenance.
+- The prompt builder already injects the same language-setting sections for the supported locales, but the selection path is duplicated across prompt helpers and benefits from a dedicated resolver.
+- Current language-setting mapping:
+  - `en` -> English Localization
+  - `de` -> German Localization
+  - `es` -> Spanish Localization
+  - `fr` -> French Localization
+  - `pt` -> Portuguese Localization
 
 ## Canonical workflow target
 

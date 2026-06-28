@@ -2,6 +2,76 @@
 
 This repo’s command line surface is the `mediaforge` CLI plus a small set of npm scripts that wrap it with telemetry.
 
+The `episode` command group also accepts the `episodes` alias for compatibility with the newer namespace naming.
+
+## Sample Commands
+
+Use these as the starting point for the common workflow slices.
+
+Rewrite an optimized English source story into the canonical episode workspace:
+
+```bash
+node apps/cli/dist/index.js stories rewrite-full \
+  --input content-ideas/content/dark-truth-episodes-optimized/010-the-cleaner-of-death-en-full-optimized.md \
+  --episode-slug 010-the-cleaner-of-death \
+  --dry-run \
+  --verbose
+```
+
+Run the same command without `--dry-run` to write the canonical English full story and any requested localized full outputs under:
+
+```text
+episodes/010-the-cleaner-of-death/
+```
+
+Generate localized short stories from the canonical English source:
+
+```bash
+node apps/cli/dist/index.js stories rewrite-short \
+  --episode 009 \
+  --languages de,es,fr,pt \
+  --resume
+```
+
+Create or sync the shared character map for an episode:
+
+```bash
+node apps/cli/dist/index.js stories sync-characters \
+  --episode 011-the-black-eyed-children
+```
+
+Bootstrap the shared character map and generate reference images:
+
+```bash
+node apps/cli/dist/index.js stories bootstrap-shared \
+  --episode 011-the-black-eyed-children \
+  --approve
+```
+
+Resume image generation with the episode namespace alias:
+
+```bash
+node apps/cli/dist/index.js episodes resume-images \
+  --episode 011-the-black-eyed-children \
+  --concurrency 2
+```
+
+Generate localized narration audio for every script in the episode workspace:
+
+```bash
+node apps/cli/dist/index.js audio generate-localized \
+  011-the-black-eyed-children \
+  --languages de,es,fr
+```
+
+Upload the final rendered video:
+
+```bash
+node apps/cli/dist/index.js youtube upload \
+  --episode 011-the-black-eyed-children \
+  --generate-metadata
+```
+
 ## Quick Matrix
 
 | Task | Preferred command |
@@ -9,6 +79,8 @@ This repo’s command line surface is the `mediaforge` CLI plus a small set of n
 | Inspect an episode | `npm run doctor` |
 | Plan image prompts | `npm run images:plan -- --episode <episode-id>` |
 | Generate images | `npm run images:generate -- --episode <episode-id>` |
+| Resume image generation and bootstrap a missing manifest | `npm run mediaforge -- images resume --episode <episode-id> --concurrency 2` |
+| Resume image generation via episode alias | `npm run mediaforge -- episodes resume-images --episode <episode-id> --concurrency 2` |
 | Generate one scene | `npm run images:generate -- --episode <episode-id> --scene scene-007` |
 | Regenerate one scene | `npm run images:generate -- --episode <episode-id> --scene scene-007 --force` |
 | Create character references | `npm run mediaforge -- images generate-character-references --episode <episode-id> --character <character-id>` |
@@ -17,6 +89,7 @@ This repo’s command line surface is the `mediaforge` CLI plus a small set of n
 | Sync shared character map from `stories` | `npm run mediaforge -- stories sync-characters --episode <episode-id>` |
 | Bootstrap shared character refs | `npm run episode:bootstrap-characters -- --episode <episode-id> --approve` |
 | Bootstrap shared story assets | `npm run mediaforge -- stories bootstrap-shared --episode <episode-id> --approve` |
+| Generate localized audio for all available scripts | `npm run mediaforge -- audio generate-localized <episode-id>` |
 | Upload a rendered episode | `npm run youtube:upload -- --episode <episode-id>` |
 | Validate generated images | `npm run mediaforge -- images validate <episode-id>` |
 
@@ -63,13 +136,16 @@ The image workflow is grouped under `images`:
 
 - `images plan` - build prompts and scene workbook without making a paid image call.
 - `images generate` - generate episode images, optionally for one `--scene`.
+- `images resume` - resume partial image generation and create `manifest.json` first when the episode folder does not have one yet.
+- `episode resume-images` - episode-scoped alias for `images resume`; it uses the same resumable image state and bootstraps `manifest.json` when missing.
 - `images generate-character-references` - create reference images for a character.
 - `images approve-character` - mark a generated character reference as approved.
 - `images regenerate-character` - regenerate a specific character reference.
 - `episode sync-characters` - copy the canonical source-pack `characters.json` into the shared episode workspace.
 - `stories sync-characters` - story-oriented alias for `episode sync-characters`; it copies only `shared/characters.json` and does not generate reference images.
-- `episode bootstrap-characters` - sync the shared character map, generate all reference images, and optionally approve them.
+- `episode bootstrap-characters` - sync the shared character map, or synthesize `shared/characters.json` from the episode source when the source pack omits one, then generate all reference images and optionally approve them.
 - `stories bootstrap-shared` - story-oriented alias for `episode bootstrap-characters`; it syncs `shared/characters.json` and generates the shared character reference images for the selected episode.
+- `audio generate-localized` - generate narration audio for every localized `script-<lang>.md` file in the episode workspace; use `--languages` to restrict the run.
 - `images export-openart` - export prompts for OpenArt.
 - `images open-openart` - open the OpenArt handoff.
 - `images import --from <dir>` - import generated images from a directory.
@@ -213,6 +289,8 @@ Plan and generate all images for one episode:
 ```bash
 npm run images:plan -- --episode 001-calhoun-experiment
 npm run images:generate -- --episode 001-calhoun-experiment
+npm run mediaforge -- images resume --episode 011-the-black-eyed-children --concurrency 2
+npm run mediaforge -- episode resume-images --episode 011-the-black-eyed-children --concurrency 2
 ```
 
 Regenerate one scene only:

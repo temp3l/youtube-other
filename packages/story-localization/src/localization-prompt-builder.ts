@@ -17,7 +17,7 @@ import {
   loadAudioTemplate,
   renderTemplate,
 } from "./prompt-template-loader.js";
-import { loadMultilingualStoryLocalizationSettings } from "./multilingual-story-localization-settings.js";
+import { getLanguageRewriteSettings } from "./multilingual-story-localization-settings.js";
 
 function lineList(lines: readonly string[]): string {
   return lines.map((line) => `- ${line}`).join("\n");
@@ -88,9 +88,7 @@ export function buildLocalizationPrompt(args: {
   const targetWordMin = Math.max(1, Math.round(sourceWordCount * 0.92));
   const targetWordMax = Math.max(targetWordMin, Math.round(sourceWordCount * 1.08));
   const system = loadAudioTemplate("system-prompt.md");
-  const localeSettings = loadMultilingualStoryLocalizationSettings(
-    args.languageProfile.locale
-  );
+  const localeSettings = getLanguageRewriteSettings(args.languageProfile.locale);
   const user = renderTemplate(loadAudioTemplate("full-story-prompt.md"), {
     SOURCE_LANGUAGE: args.sourceStory.language === "en" ? "English" : args.sourceStory.language,
     TARGET_LANGUAGE: args.languageProfile.displayName,
@@ -109,7 +107,7 @@ export function buildLocalizationPrompt(args: {
     [
       "## Locale settings",
       "",
-      localeSettings,
+      localeSettings.instructions,
     ].join("\n")
   );
   if (!args.productionContext) {

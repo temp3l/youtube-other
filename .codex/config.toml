@@ -7,6 +7,6 @@ network_access = true
 [features.network_proxy]
 enabled = true
 domains = {
-  "api.openai.com" = "allow"
+  "api.openai.com" = "allow",
 	"registry.npmjs.org" = "allow"
 }

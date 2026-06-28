@@ -84,6 +84,7 @@ import {
 } from "@mediaforge/shared";
 import {
   loadEpisodeScriptMarkdown,
+  listEpisodeScriptLanguages,
   loadSpeechVoiceSettings,
   splitEpisodeScriptMarkdown,
   writeEpisodeScriptMarkdown,
@@ -103,6 +104,7 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { registerEpisodeCommands } from "./episode-commands.js";
+import { registerImagesResumeCommand } from "./images-resume-command.js";
 import { registerStoryLocalizationCommands } from "./story-localization-commands.js";
 
 interface CliOptions {
@@ -2295,6 +2297,49 @@ async function commandRender(
   printJson(result);
 }
 
+function parseAudioLanguageList(value: string | undefined): string[] {
+  if (!value) {
+    return [];
+  }
+  const languages: string[] = [];
+  for (const rawEntry of value.split(",")) {
+    const entry = normalizeWhitespace(rawEntry).toLowerCase();
+    if (entry.length === 0) {
+      continue;
+    }
+    if (!languages.includes(entry)) {
+      languages.push(entry);
+    }
+  }
+  return languages;
+}
+
+async function commandAudioGenerateLocalized(
+  options: CliOptions & { readonly languages?: string },
+  episodeId: string
+): Promise<void> {
+  markEpisodeTelemetry(episodeId);
+  const resolved = await readEpisodeWorkspaceForAudio(options, episodeId);
+  const availableLanguages = await listEpisodeScriptLanguages(resolved.episodeDir);
+  const requestedLanguages = parseAudioLanguageList(options.languages);
+  const selectedLanguages =
+    requestedLanguages.length > 0
+      ? requestedLanguages
+      : availableLanguages.filter((language) => language !== "en");
+  if (selectedLanguages.length === 0) {
+    throw new Error(
+      `No localized scripts found in ${resolved.episodeDir}.`
+    );
+  }
+  const languages = selectedLanguages.filter(
+    (language: string, index: number, all: readonly string[]) =>
+      language.length > 0 && all.indexOf(language) === index
+  );
+  for (const language of languages) {
+    await commandAudioGenerate({ ...options, scriptLanguage: language }, episodeId);
+  }
+}
+
 function renderRemoteShellScript(kind: "check" | "cleanup"): string {
   if (kind === "check") {
     return [
@@ -3350,6 +3395,20 @@ audioCommand
   .action(async (episodeId: string) => {
     await commandAudioGenerate(program.opts<CliOptions>(), episodeId);
   });
+audioCommand
+  .command("generate-localized")
+  .description("Generate audio for every localized script available in the episode workspace")
+  .argument("<episode-id>")
+  .option("--languages <comma-separated-languages>", "target languages")
+  .option("--dry-run", "preview actions without writing")
+  .action(async (episodeId: string, opts: { languages?: string; dryRun?: boolean }) => {
+    const cliOptions: CliOptions & { readonly languages?: string } = {
+      ...program.opts<CliOptions>(),
+      ...(opts.dryRun !== undefined ? { dryRun: opts.dryRun } : {}),
+      ...(opts.languages !== undefined ? { languages: opts.languages } : {}),
+    };
+    await commandAudioGenerateLocalized(cliOptions, episodeId);
+  });
 
 const clipsCommand = program
   .command("clips")
@@ -3387,6 +3446,7 @@ program
 const imagesCommand = program
   .command("images")
   .description("Local scene image workflow");
+registerImagesResumeCommand(imagesCommand);
 imagesCommand
   .command("plan")
   .requiredOption("--episode <episode-id>")
