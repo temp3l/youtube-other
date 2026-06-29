@@ -7,7 +7,7 @@ Repository inspection rules:
 - Ignore the root `README.md` for architecture guidance.
 - Treat source code as authoritative when docs conflict.
 - Read only the docs relevant to the current task; do not preload the full docs set.
-- Treat `docs.bak/` as reference material only, never as the source of truth.
+- Ignore docs.bak
 - Exclude large generated trees from routine search: `node_modules/`, `dist/`, `coverage/`, `episodes/**/output/`, `episodes/**/state/`, `episodes/**/generated-assets/`, `audio/`, `video/`, `images/`, `transcripts/`, `logs/`.
 
 Execution and validation:
@@ -35,3 +35,12 @@ Documentation index:
 - [Episode Production Pipeline](docs/architecture/episode-production-pipeline.md)
 - [Story Localization](docs/architecture/story-localization.md)
 - [Media Assets And Delivery](docs/architecture/media-assets-and-delivery.md)
+
+Media pipeline documentation:
+
+- Only load these docs for media-generation and media-pipeline tasks.
+- [Media Implementation Inventory](docs/architecture/media-implementation-inventory.md)
+- [Target Media Architecture](docs/architecture/target-media-architecture.md)
+- [Media Consolidation Plan](docs/migrations/media-consolidation-plan.md)
+- Treat source code and tests as authoritative if these docs conflict with code.
+- Read only the relevant document for the task; do not preload the full set.
