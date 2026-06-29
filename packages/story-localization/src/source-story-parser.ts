@@ -63,8 +63,8 @@ export async function parseCanonicalSourceStory(sourceFile: string): Promise<Par
     const sections = splitSections(lines);
     const narrationSection = sections.get("Narration Script") ?? sections.get("Narration") ?? [];
     const metadataSection = sections.get("Episode Metadata") ?? [];
-    if (narrationSection.length === 0 || metadataSection.length === 0) {
-      throw new Error("Missing required narration or metadata section.");
+    if (narrationSection.length === 0) {
+      throw new Error("Missing required narration section.");
     }
     const audioSection = sections.get("Audio Generation Instructions") ?? [];
     const narrationParagraphs = normalizeParagraphs(

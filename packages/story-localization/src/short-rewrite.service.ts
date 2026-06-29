@@ -1,4 +1,5 @@
 import path from "node:path";
+import fs from "node:fs/promises";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import { zodTextFormat } from "openai/helpers/zod.js";
@@ -79,6 +80,7 @@ import {
   type StoryLanguage,
 } from "./short-rewrite.types.js";
 import { resolveShortRewriteInput } from "./short-rewrite.resolution.js";
+import { parseCanonicalSourceStory } from "./source-story-parser.js";
 import { updateShortRewriteManifestAtomically, writeShortRewriteArtifactFiles } from "./short-rewrite.persistence.js";
 import { withFileLock } from "./story-localization-batch-storage.js";
 import { getRepoRoot } from "./story-localization.utils.js";
@@ -1112,7 +1114,7 @@ export async function rewriteShortStories(
       episodeSlug: resolvedSource.episodeSlug,
     })
   );
-  const source = {
+  let source = {
     ...resolvedSource,
     sourcePath: canonicalSourcePath,
   };
@@ -1121,8 +1123,24 @@ export async function rewriteShortStories(
       sourcePath: resolvedSource.sourcePath,
       targetPath: canonicalSourcePath,
       sourceSha256: resolvedSource.sourceSha256,
+      sourceRole: options.allowSourceInput ? "compatibility-input" : "generated-english-full",
+      resolvedFrom:
+        resolvedSource.resolvedFrom === "manifest"
+          ? "batch-manifest"
+          : resolvedSource.resolvedFrom,
       overwrite: options.overwrite ?? options.force ?? false,
     });
+    const cleanedContent = await fs.readFile(canonicalSourcePath, "utf8");
+    const cleanedParsed = await parseCanonicalSourceStory(canonicalSourcePath);
+    source = {
+      ...source,
+      sourceContent: cleanedContent,
+      sourceSha256: sha256NormalizedSource(cleanedContent),
+      title: cleanedParsed.title,
+      narration: cleanedParsed.narrationParagraphs.join("\n\n"),
+      audioInstructions: cleanedParsed.audioInstructions,
+      metadataSection: {},
+    };
   }
   const client =
     services.client ??

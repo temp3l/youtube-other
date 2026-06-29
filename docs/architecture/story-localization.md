@@ -14,22 +14,24 @@ This subsystem handles structured English full rewrites, localized full rewrites
 
 - `packages/story-localization/src/story-localization.service.ts`
 - `packages/story-localization/src/short-rewrite.service.ts`
-- Supporting modules handle source discovery, prompt building, canonical fact extraction, cache reads and writes, batch manifests, validation, and artifact rendering.
+- Supporting modules handle source discovery, deterministic source cleaning, prompt building, canonical fact extraction, cache reads and writes, batch manifests, validation, and artifact rendering.
 - `packages/story-localization/src/story-artifact-model.ts` adds an additive normalized `StoryIR`, `StoryArtifactVariant`, and `StoryOutputConstraints` model for future migration work. Baseline details live in `docs/plans/story-ir-and-artifact-variant-modeling.md`.
 
 ## Ordered Stages
 
-1. Source discovery and parsing
-   Canonical English sources are discovered, parsed, and normalized into a structured story input.
-2. Canonical fact extraction
+1. Source discovery and cleaning
+   Canonical English sources are discovered, the exact original source is preserved, production-only source contamination is removed conservatively, and `source-cleaning-report.json` records hashes, removed segments, flagged segments, and cleaner versions.
+2. Source parsing
+   Cleaned canonical sources are parsed into structured story input. Metadata sections are no longer required for cleaned narration sources.
+3. Canonical fact extraction
    Fact extraction builds a stable representation used by downstream rewrite and localization prompts.
-3. Prompt construction
+4. Prompt construction
    Prompt builders assemble structured requests for full rewrites, localized rewrites, and short rewrites.
-4. OpenAI structured generation
+5. OpenAI structured generation
    The services call the Responses API with schema-backed output formats and configurable model, reasoning, and token settings.
-5. Validation and repair
+6. Validation and repair
    Generated output is checked for schema validity, message preservation, duration or word-count constraints, and filler or editorial drift; repair prompts can be issued when needed.
-6. Cache writes and artifact materialization
+7. Cache writes and artifact materialization
    Cache entries, production artifacts, markdown outputs, JSON sidecars, and debug artifacts are persisted into episode output directories.
 
 ## Resume and Idempotency

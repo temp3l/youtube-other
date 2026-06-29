@@ -20,6 +20,7 @@ import { detectForbiddenPhrases, detectGenericFiller, validateGeneratedFullStory
 import { createOpenAiStoryClient, type OpenAiStoryClient } from "./story-localization-openai-batch.js";
 import { runStoryLocalizationInBatchMode } from "./story-localization-batch-service.js";
 import { rewriteShortStories } from "./short-rewrite.service.js";
+import { materializeCleanedCanonicalSourceStory } from "./source-cleaning-persistence.js";
 import { resolveBatchStorageLayout, toRepositoryRelativePath } from "./story-localization-batch-storage.js";
 import {
   analyzeStorySource,
@@ -43,6 +44,7 @@ import {
   SHORT_REWRITE_DEFAULT_REASONING_EFFORT,
   SHORT_REWRITE_DEFAULT_TEMPERATURE,
 } from "./short-rewrite.constants.js";
+import { buildCanonicalSourceFileName } from "./short-rewrite.utils.js";
 
 export interface StoryLocalizationOptions {
   readonly client?: OpenAiStoryClient;
@@ -1267,6 +1269,36 @@ async function prepareParsedStory(sourceFile: string): Promise<{ readonly parsed
   return { parsed, facts };
 }
 
+async function prepareCleanedInputStory(
+  sourceFile: string,
+  config: StoryLocalizationConfig
+): Promise<{ readonly sourceFile: string; readonly parsed: ParsedSourceStory; readonly facts: CanonicalStoryFacts }> {
+  const initial = await parseCanonicalSourceStory(sourceFile);
+  const canonicalSourcePath = path.join(
+    config.outputDirectory,
+    initial.slug,
+    "source",
+    buildCanonicalSourceFileName({
+      episodeNumber: initial.episodeNumber,
+      episodeSlug: initial.slug,
+    })
+  );
+  await materializeCleanedCanonicalSourceStory({
+    sourcePath: sourceFile,
+    targetPath: canonicalSourcePath,
+    sourceRole: path.resolve(sourceFile) === path.resolve(canonicalSourcePath)
+      ? "canonical-source-copy"
+      : "raw-author-source",
+    resolvedFrom: "canonical-search",
+    overwrite: config.force,
+  });
+  const prepared = await prepareParsedStory(canonicalSourcePath);
+  return {
+    sourceFile: canonicalSourcePath,
+    ...prepared,
+  };
+}
+
 async function ensureCacheFacts(cacheDir: string, sourceHash: string, facts: CanonicalStoryFacts): Promise<void> {
   const cached = await readCanonicalFactsCache(cacheDir, sourceHash);
   if (!cached) {
@@ -1347,11 +1379,12 @@ export async function localizeStoryEpisode(
 ): Promise<StoryLocalizationEpisodeResult> {
   validateConfiguration(config);
   const logger = options.logger ?? createLogger("info");
+  const preparedInput = await prepareCleanedInputStory(sourceFile, config);
   const client = options.client ?? (await loadOpenAiClient(config));
   if (options.preflightConnectivity ?? false) {
     await preflightOpenAiConnectivity(client, config.model, 60_000);
   }
-  const { parsed, facts } = await prepareParsedStory(sourceFile);
+  const { parsed, facts } = preparedInput;
   const cacheDir = resolveEpisodeCacheDirectory(config.outputDirectory, parsed.slug);
   await ensureDir(cacheDir);
   await ensureCacheFacts(cacheDir, parsed.sourceHash, facts);

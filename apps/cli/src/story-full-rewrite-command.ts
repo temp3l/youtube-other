@@ -118,6 +118,8 @@ export function registerStoryRewriteFullCommand(storiesCommand: Command): void {
           sourcePath: resolved.sourcePath,
           targetPath: canonicalSourcePath,
           sourceSha256: resolved.sourceSha256,
+          sourceRole: "raw-author-source",
+          resolvedFrom: resolved.resolvedFrom,
           overwrite: options.overwrite ?? options.force ?? false,
         });
       }

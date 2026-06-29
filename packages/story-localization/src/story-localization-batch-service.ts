@@ -544,6 +544,8 @@ async function buildBatchItems(
       sourcePath: parsed.sourceFile,
       targetPath: canonicalSourcePath,
       sourceSha256: parsed.sourceHash,
+      sourceRole: "raw-author-source",
+      resolvedFrom: "canonical-search",
       overwrite: config.force,
     });
     const canonicalParsed = await parseCanonicalSourceStory(canonicalSourcePath);
@@ -704,6 +706,8 @@ async function buildRetryBatchItems(args: {
       sourcePath: parsed.sourceFile,
       targetPath: canonicalSourcePath,
       sourceSha256: parsed.sourceHash,
+      sourceRole: "canonical-source-copy",
+      resolvedFrom: "batch-manifest",
       overwrite: args.config.force,
     });
     const canonicalParsed = await parseCanonicalSourceStory(canonicalSourcePath);

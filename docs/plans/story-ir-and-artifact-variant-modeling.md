@@ -67,6 +67,7 @@ The additive model in `packages/story-localization/src/story-artifact-model.ts` 
 - `StoryIR` as a source-truth model for genre, fictionality, entities, immutable facts, chronology, central threat, central rule or mechanism, critical objects, written messages, climax, ending consequence, and allowed invention boundaries
 - typed issue schemas for StoryIR and routing validation
 - additive adapters for canonical facts, story-production artifacts, generated full packages, short rewrite sidecars, and short rewrite artifacts
+- explicit adapter warnings where legacy artifacts lack enough information for the normalized model; generated full packages do not expose a target full-story word range, so that constraint is left absent instead of fabricated
 
 ## Risks And Non-Goals
 
