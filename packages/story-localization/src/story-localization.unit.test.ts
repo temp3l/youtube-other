@@ -404,6 +404,45 @@ describe("story localization helpers", () => {
     ).toContain("# Short 002");
   });
 
+  it("blocks impossible full-story budgets before calling OpenAI", async () => {
+    const tempDir = mkdtempSync(
+      path.join(os.tmpdir(), "story-localization-preflight-block-")
+    );
+    const config = createStoryLocalizationConfig({
+      outputDirectory: tempDir,
+      languages: [],
+      includeEnglishShort: false,
+      processingMode: "sync",
+      force: true,
+      maxOutputTokens: 1,
+      retryMaxOutputTokens: 1,
+    });
+    const client = makeMockClient([
+      {
+        output_text: JSON.stringify({
+          language: "en",
+          full: makeLocalizedPackage("en", 160).full,
+          preservationChecklist: makeLocalizedPackage("en", 160)
+            .preservationChecklist,
+          diagnostics: makeLocalizedPackage("en", 160).diagnostics,
+        }),
+      },
+    ]);
+
+    const result = await localizeStoryEpisode(sourceFile, config, {
+      client: client as never,
+    });
+
+    expect(result.failure).toContain("Story generation preflight blocked");
+    expect(client.responses.create).not.toHaveBeenCalled();
+    await expect(
+      fs.readFile(
+        path.join(tempDir, "002-even-killers-can-lick", "script.md"),
+        "utf8"
+      )
+    ).rejects.toThrow();
+  });
+
   it("falls back to the structured output array when output_text is empty", () => {
     const structuredText = JSON.stringify({
       language: "en",

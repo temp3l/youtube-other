@@ -61,6 +61,7 @@ export type LocalBatchManifestItemStatus =
   | "schema-invalid"
   | "content-invalid"
   | "repair-required"
+  | "preflight-failed"
   | "persisted"
   | "skipped-cached";
 
@@ -492,6 +493,17 @@ export interface LocalBatchManifestItem {
   readonly plannedOutputPaths: readonly string[];
   readonly estimatedInputTokens: number;
   readonly estimatedOutputTokens?: number;
+  readonly preflight?: {
+    readonly policyVersion: string;
+    readonly requestFingerprint: string;
+    readonly status: "allowed" | "blocked";
+    readonly failureCodes?: readonly string[];
+    readonly reason?: string;
+    readonly requestedOutputTokens: number;
+    readonly contextWindowTokens: number;
+    readonly maxModelOutputTokens: number;
+    readonly safetyMarginTokens: number;
+  };
   readonly status: LocalBatchManifestItemStatus;
   readonly resultImportedAt?: string;
   readonly usage?: {

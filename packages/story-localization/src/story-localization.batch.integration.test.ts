@@ -259,6 +259,38 @@ describe("story localization batch integration", () => {
     ).toContain("Bramble");
   });
 
+  it("records preflight-failed batch items without JSONL request lines", async () => {
+    const tempDir = mkdtempSync(
+      path.join(os.tmpdir(), "story-batch-preflight-")
+    );
+    const config = createStoryLocalizationConfig({
+      outputDirectory: tempDir,
+      languages: ["es"],
+      includeEnglishShort: false,
+      processingMode: "batch",
+      submit: false,
+      model: "gpt-3.5-turbo",
+      force: true,
+    });
+
+    const prepared = await prepareStoryLocalizationBatch(
+      [sourceFile],
+      config
+    );
+    const layout = resolveBatchStorageLayout(tempDir);
+    const manifest = await readLocalBatchManifest(
+      layout,
+      prepared.localBatchId
+    );
+    const jsonl = await fs.readFile(prepared.inputFilePath, "utf8");
+
+    expect(prepared.itemCount).toBe(0);
+    expect(jsonl.trim()).toBe("");
+    expect(manifest?.items).toHaveLength(1);
+    expect(manifest?.items[0]?.status).toBe("preflight-failed");
+    expect(manifest?.items[0]?.preflight?.status).toBe("blocked");
+  });
+
   it("persists production artifacts during batch preparation", async () => {
     const tempDir = mkdtempSync(
       path.join(os.tmpdir(), "story-batch-production-")

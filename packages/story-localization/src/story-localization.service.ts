@@ -11,6 +11,7 @@ import {
 import { createLogger, type LoggerContext } from "@mediaforge/observability";
 import { getLanguageProfile, isShortLanguage } from "./language-profiles.js";
 import { buildLocalizationPrompt } from "./localization-prompt-builder.js";
+import { compileFullStoryPrompt } from "./story-prompt-compiler.js";
 import { extractCanonicalStoryFacts } from "./canonical-facts.service.js";
 import {
   discoverCanonicalSourceStories,
@@ -32,6 +33,17 @@ import {
   narrationOnlyFullRewriteResponseSchema,
   type NarrationOnlyFullRewriteResponse,
 } from "./story-prompt-response-schemas.js";
+import {
+  assertStoryPreflightAllowed,
+  estimateStoryComponent,
+  estimateStoryTokens,
+  estimateStructuredRequestWrapperTokens,
+  resolveStoryPreflightDirectory,
+  runAndPersistStoryPreflight,
+  type StoryNarrationVariant,
+  type StoryPreflightComponent,
+  type StoryPreflightRequest,
+} from "./story-generation-preflight.js";
 import {
   renderLocalizedFullStory,
   renderLocalizedShort,
@@ -179,6 +191,16 @@ type StructuredResponsesClient = {
   }>;
   readonly create: OpenAiStoryClient["responses"]["create"];
 };
+type StoryRequestPreflightHook = (args: {
+  readonly system: string;
+  readonly user: string;
+  readonly model: string;
+  readonly maxOutputTokens: number;
+  readonly reasoningEffort: StoryLocalizationConfig["reasoningEffort"];
+  readonly requestLabel: string;
+  readonly attempt: number;
+  readonly isRepair: boolean;
+}) => Promise<void>;
 
 function buildOpenAiStructuredRequest(args: {
   readonly model: string;
@@ -406,15 +428,40 @@ function buildFullPromptConfig(
     readonly originalityReview?: OriginalityReview;
     readonly retentionPlan?: ReadonlyArray<RetentionBeat>;
   }
-): { readonly system: string; readonly user: string } {
-  return buildLocalizationPrompt({
-    languageProfile: getLanguageProfile(language),
+): {
+  readonly system: string;
+  readonly user: string;
+  readonly compilerVersion: string;
+  readonly promptFingerprint: string;
+  readonly responseSchema: {
+    readonly name: string;
+    readonly version: string;
+    readonly fingerprint: string;
+  };
+  readonly selectedModules: readonly {
+    readonly id: string;
+    readonly version: string;
+  }[];
+} {
+  const compiled = compileFullStoryPrompt({
+    language,
     adaptationMode,
     sourceStory,
     canonicalFacts,
-    target: "full",
     ...(productionContext ? { productionContext } : {}),
   });
+  return {
+    system: compiled.system,
+    user: compiled.user,
+    compilerVersion: compiled.compilerVersion,
+    promptFingerprint: compiled.promptFingerprint,
+    responseSchema: {
+      name: compiled.responseSchema.name,
+      version: compiled.responseSchema.version,
+      fingerprint: compiled.responseSchema.fingerprint,
+    },
+    selectedModules: compiled.selectedModules,
+  };
 }
 
 function buildProductionContext(
@@ -907,6 +954,7 @@ async function generateStructuredStoryPackage<T>(
       readonly debugDirectory: string;
       readonly fileBaseName: string;
     };
+    readonly preflight?: StoryRequestPreflightHook;
   }
 ): Promise<{
   readonly value: T;
@@ -936,6 +984,16 @@ async function generateStructuredStoryPackage<T>(
         debugFileBaseName: options.debug.fileBaseName,
       }
     : undefined;
+  await (options?.preflight?.({
+      system,
+      user,
+      model,
+      maxOutputTokens,
+      reasoningEffort,
+      requestLabel,
+      attempt: 1,
+      isRepair: false,
+    }) ?? Promise.resolve());
   const initial = await callOpenAiStructured(
     client,
     model,
@@ -980,6 +1038,16 @@ async function generateStructuredStoryPackage<T>(
     "",
     user,
   ].join("\n");
+  await (options?.preflight?.({
+    system,
+    user: [...(options?.retryInstructions ?? []), "", repairUser].join("\n"),
+    model: repairModel ?? model,
+    maxOutputTokens: repairMaxOutputTokens ?? maxOutputTokens,
+    reasoningEffort: repairReasoningEffort ?? reasoningEffort,
+    requestLabel: options?.retryLabel ?? `${requestLabel} repair`,
+    attempt: 1,
+    isRepair: true,
+  }) ?? Promise.resolve());
   const repair = await callOpenAiStructured(
     client,
     repairModel ?? model,
@@ -1024,6 +1092,16 @@ async function generateStructuredStoryPackage<T>(
         "",
         user,
       ].join("\n");
+      await (options?.preflight?.({
+        system,
+        user: secondRepairUser,
+        model: repairModel ?? model,
+        maxOutputTokens: repairMaxOutputTokens ?? maxOutputTokens,
+        reasoningEffort: repairReasoningEffort ?? reasoningEffort,
+        requestLabel: `${requestLabel} short repair`,
+        attempt: 2,
+        isRepair: true,
+      }) ?? Promise.resolve());
       const secondRepair = await callOpenAiStructured(
         client,
         repairModel ?? model,
@@ -1446,6 +1524,144 @@ function buildCacheKey(args: {
   ]);
 }
 
+function estimateExpectedOutputTokens(args: {
+  readonly profile: LanguageProfile;
+  readonly parsed: ParsedSourceStory;
+  readonly includeShort: boolean;
+}): number {
+  const sourceWords = countWords(args.parsed.narrationParagraphs.join(" "));
+  const fullWords = Math.max(1, Math.ceil(sourceWords * 1.12));
+  const shortWords = args.includeShort ? args.profile.shortWordRange.max : 0;
+  return Math.ceil((fullWords + shortWords) * 1.45) + 650;
+}
+
+function buildPromptComponents(args: {
+  readonly system: string;
+  readonly user: string;
+  readonly schemaName: string;
+  readonly schemaVersion?: string;
+  readonly schemaFingerprint?: string;
+  readonly expectedOutputTokens: number;
+  readonly repair: boolean;
+}): readonly StoryPreflightComponent[] {
+  return [
+    estimateStoryComponent({
+      name: "system-instructions",
+      label: "compiled system instructions",
+      text: args.system,
+    }),
+    estimateStoryComponent({
+      name: args.repair ? "repair-context" : "canonical-source-narration",
+      label: args.repair ? "repair prompt and invalid result context" : "compiled user prompt",
+      text: args.user,
+    }),
+    {
+      name: "response-schema-overhead",
+      label: args.schemaName,
+      estimatedTokens: estimateStructuredRequestWrapperTokens({
+        schemaName: args.schemaName,
+        ...(args.schemaVersion ? { schemaVersion: args.schemaVersion } : {}),
+        ...(args.schemaFingerprint
+          ? { schemaFingerprint: args.schemaFingerprint }
+          : {}),
+      }),
+    },
+    {
+      name: "request-wrapper-overhead",
+      label: "OpenAI Responses request wrapper",
+      estimatedTokens: estimateStoryTokens("responses-json-wrapper", "conservative-fallback"),
+    },
+    {
+      name: "expected-output",
+      label: "minimum feasible structured output",
+      estimatedTokens: args.expectedOutputTokens,
+    },
+  ];
+}
+
+function buildFullStoryPreflightAdapter(args: {
+  readonly cacheDir: string;
+  readonly parsed: ParsedSourceStory;
+  readonly language: LanguageCode;
+  readonly variant: StoryNarrationVariant;
+  readonly config: StoryLocalizationConfig;
+  readonly promptFingerprint: string;
+  readonly schemaName: string;
+  readonly schemaVersion: string;
+  readonly schemaFingerprint: string;
+  readonly profile: LanguageProfile;
+  readonly includeShort: boolean;
+  readonly modelPricing?: ModelPricing;
+}): StoryRequestPreflightHook {
+  const preflightDirectory = resolveStoryPreflightDirectory(args.cacheDir);
+  return async (requestArgs) => {
+    const expectedOutputTokens = requestArgs.isRepair
+      ? Math.ceil(requestArgs.maxOutputTokens * 0.35)
+      : estimateExpectedOutputTokens({
+          profile: args.profile,
+          parsed: args.parsed,
+          includeShort: args.includeShort,
+        });
+    const request: StoryPreflightRequest = {
+      episodeNumber: args.parsed.episodeNumber,
+      episodeSlug: args.parsed.slug,
+      operation: requestArgs.isRepair
+        ? "repair"
+        : args.language === "en"
+          ? "generate"
+          : "localize",
+      variant: requestArgs.isRepair
+        ? "full-repair"
+        : args.variant,
+      language: args.language,
+      locale: args.profile.locale,
+      model: requestArgs.model,
+      ...(requestArgs.reasoningEffort
+        ? { reasoningEffort: requestArgs.reasoningEffort }
+        : {}),
+      maxOutputTokens: requestArgs.maxOutputTokens,
+      retryCap: requestArgs.isRepair ? 1 : 0,
+      promptVersion: args.config.promptVersion,
+      promptFingerprint: args.promptFingerprint,
+      schemaName: args.schemaName,
+      ...(args.schemaVersion ? { schemaVersion: args.schemaVersion } : {}),
+      ...(args.schemaFingerprint ? { schemaFingerprint: args.schemaFingerprint } : {}),
+      sourceHash: args.parsed.sourceHash,
+      targetWordRange: {
+        min: 1,
+        max: Math.max(
+          1,
+          Math.ceil(countWords(args.parsed.narrationParagraphs.join(" ")) * 1.12)
+        ),
+      },
+      components: buildPromptComponents({
+        system: requestArgs.system,
+        user: requestArgs.user,
+        schemaName: args.schemaName,
+        schemaVersion: args.schemaVersion,
+        schemaFingerprint: args.schemaFingerprint,
+        expectedOutputTokens,
+        repair: requestArgs.isRepair,
+      }),
+      minimumOutputTokens: expectedOutputTokens,
+      ...(args.language !== "en"
+        ? {
+            parentArtifact: {
+              kind: "canonical-english-full",
+              sourceHash: args.parsed.sourceHash,
+            },
+          }
+        : {}),
+      ...(args.modelPricing ? { modelPricing: args.modelPricing } : {}),
+    };
+    const result = await runAndPersistStoryPreflight({
+      preflightDirectory,
+      request,
+    });
+    assertStoryPreflightAllowed(result);
+  };
+}
+
 async function prepareParsedStory(
   sourceFile: string
 ): Promise<{
@@ -1731,6 +1947,12 @@ export async function localizeStoryEpisode(
     const englishResponseSchema = config.includeEnglishShort
       ? responseSchemaForLanguage("en")
       : responseSchemaForFullLanguage("en");
+    const englishSchemaVersion = config.includeEnglishShort
+      ? "legacy-english-story-package-v1"
+      : fullNarrationResponseSchemaDescriptor.version;
+    const englishSchemaFingerprint = config.includeEnglishShort
+      ? estimateStoryTokens(englishResponseSchema.name, "conservative-fallback").toString()
+      : fullNarrationResponseSchemaDescriptor.fingerprint;
     try {
       await persistStoryProductionStage(
         cacheDir,
@@ -1801,8 +2023,41 @@ export async function localizeStoryEpisode(
                 debugDirectory,
                 fileBaseName: `${debugPrefix}-en`,
               },
+              preflight: buildFullStoryPreflightAdapter({
+                cacheDir,
+                parsed,
+                language: "en",
+                variant: "canonical-english-full",
+                config,
+                promptFingerprint: englishFullPrompt.promptFingerprint,
+                schemaName: englishResponseSchema.name,
+                schemaVersion: englishSchemaVersion,
+                schemaFingerprint: englishSchemaFingerprint,
+                profile: profileEn,
+                includeShort: config.includeEnglishShort,
+                ...(options.modelPricing?.[config.model]
+                  ? { modelPricing: options.modelPricing[config.model] }
+                  : {}),
+              }),
             }
-          : undefined
+          : {
+              preflight: buildFullStoryPreflightAdapter({
+                cacheDir,
+                parsed,
+                language: "en",
+                variant: "canonical-english-full",
+                config,
+                promptFingerprint: englishFullPrompt.promptFingerprint,
+                schemaName: englishResponseSchema.name,
+                schemaVersion: englishSchemaVersion,
+                schemaFingerprint: englishSchemaFingerprint,
+                profile: profileEn,
+                includeShort: config.includeEnglishShort,
+                ...(options.modelPricing?.[config.model]
+                  ? { modelPricing: options.modelPricing[config.model] }
+                  : {}),
+              }),
+            }
       );
       repairAttempts += generated.repaired ? 1 : 0;
       inputTokens += generated.inputTokens;
@@ -2031,6 +2286,12 @@ export async function localizeStoryEpisode(
     const languageResponseSchema = includeLocalizedShorts
       ? responseSchemaForLanguage(language)
       : responseSchemaForFullLanguage(language);
+    const languageSchemaVersion = includeLocalizedShorts
+      ? "legacy-generated-story-package-v1"
+      : fullNarrationResponseSchemaDescriptor.version;
+    const languageSchemaFingerprint = includeLocalizedShorts
+      ? estimateStoryTokens(languageResponseSchema.name, "conservative-fallback").toString()
+      : fullNarrationResponseSchemaDescriptor.fingerprint;
     try {
       const generated = await generateStructuredStoryPackage<
         GeneratedStoryPackage | NarrationOnlyFullRewriteResponse
@@ -2097,6 +2358,22 @@ export async function localizeStoryEpisode(
                 },
               }
             : {}),
+          preflight: buildFullStoryPreflightAdapter({
+            cacheDir,
+            parsed: canonicalEnglishStory.parsed,
+            language,
+            variant: "localized-full",
+            config,
+            promptFingerprint: languagePrompt.promptFingerprint,
+            schemaName: languageResponseSchema.name,
+            schemaVersion: languageSchemaVersion,
+            schemaFingerprint: languageSchemaFingerprint,
+            profile,
+            includeShort: includeLocalizedShorts,
+            ...(options.modelPricing?.[config.model]
+              ? { modelPricing: options.modelPricing[config.model] }
+              : {}),
+          }),
           ...(includeLocalizedShorts
             ? {
                 retryLabel: `${profile.displayName} full story localization length repair`,

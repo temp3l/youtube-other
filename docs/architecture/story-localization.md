@@ -17,6 +17,7 @@ This subsystem handles structured English full rewrites, localized full rewrites
 - Supporting modules handle source discovery, deterministic source cleaning, prompt building, canonical fact extraction, cache reads and writes, batch manifests, validation, and artifact rendering.
 - `packages/story-localization/src/story-artifact-model.ts` adds an additive normalized `StoryIR`, `StoryArtifactVariant`, and `StoryOutputConstraints` model for future migration work. Baseline details live in `docs/plans/story-ir-and-artifact-variant-modeling.md`.
 - `packages/story-localization/src/genre-policy.ts`, `full-story-contract.ts`, and `stable-json.ts` add additive Task 04 building blocks: centralized typed genre policies, deterministic policy compatibility checks, strict full-story contract construction, explicit contract lineage, and canonical hashing/serialization. These modules do not yet rewire prompt compilation or provider calls.
+- `packages/story-localization/src/story-generation-preflight.ts` owns deterministic token-budget preflight for narration model requests before sync or batch provider submission.
 
 ## Ordered Stages
 
@@ -30,18 +31,29 @@ This subsystem handles structured English full rewrites, localized full rewrites
    Typed genre policies and full-story contracts can now be derived deterministically from validated `StoryIR`, with effective generation boundaries resolved before later prompt-compilation work.
 5. Prompt construction
    Prompt builders assemble structured requests for full rewrites, localized rewrites, and short rewrites.
-6. OpenAI structured generation
+6. Token-budget preflight
+   The compiled request is checked locally against model context limits, model output limits, expected output requirements, schema overhead, and a safety reserve. Blocked requests do not call the provider.
+7. OpenAI structured generation
    The services call the Responses API with schema-backed output formats and configurable model, reasoning, and token settings.
-7. Validation and repair
+8. Validation and repair
    Generated output is checked for schema validity, message preservation, duration or word-count constraints, and filler or editorial drift; repair prompts can be issued when needed.
-8. Cache writes and artifact materialization
+9. Cache writes and artifact materialization
    Cache entries, production artifacts, markdown outputs, JSON sidecars, and debug artifacts are persisted into episode output directories.
+
+## Token-Budget Preflight
+
+- Full generation, localization, short generation, targeted repair, and Task 06-owned batch request construction use one preflight module.
+- Estimates are deterministic and offline. Known model families use the local OpenAI-compatible estimator; unknown models use a conservative fallback and emit diagnostics.
+- Budgets track input estimate, expected output, requested `max_output_tokens`, model context window, model output limit, safety reserve, projected total, and remaining headroom separately.
+- Blocked sync requests write preflight diagnostics under the episode `.localization-cache/preflight/` ledger and preserve existing valid artifacts.
+- Blocked batch requests are recorded as `preflight-failed` manifest items and omitted from the JSONL input file, so they cannot be submitted unchanged.
 
 ## Resume and Idempotency
 
 - Full localization checks cache state and existing outputs before regenerating.
 - Short rewrites support overwrite versus resume semantics and use manifest updates plus file locks around persisted artifact state.
 - Batch mode persists manifests and supports refresh, import, and retry of failed items instead of recomputing whole runs.
+- Preflight fingerprints include model capability definitions, prompt/schema fingerprints, output caps, language, operation, source hash, and policy version; unchanged preflight failures are not retried unchanged.
 
 ## Debug Artifacts
 

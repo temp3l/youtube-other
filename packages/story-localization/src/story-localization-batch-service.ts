@@ -117,6 +117,16 @@ import {
   shouldIncludeTemperatureForModel,
   writeTextAtomicIfChanged,
 } from "./story-localization.utils.js";
+import {
+  estimateStoryComponent,
+  estimateStoryTokens,
+  estimateStructuredRequestWrapperTokens,
+  runStoryGenerationPreflight,
+  STORY_PREFLIGHT_POLICY_VERSION,
+  type StoryPreflightComponent,
+  type StoryPreflightRequest,
+  type StoryPreflightResult,
+} from "./story-generation-preflight.js";
 
 function responseSchemaForLanguage(language: LanguageCode): unknown {
   const schema =
@@ -232,10 +242,6 @@ function buildCacheKey(args: {
     String(args.shortMinSeconds),
     String(args.shortMaxSeconds),
   ]);
-}
-
-function estimatePromptTokens(text: string): number {
-  return Math.max(1, Math.ceil(text.length / 4));
 }
 
 function buildEnglishShortMarkdown(
@@ -415,6 +421,9 @@ function buildManifestItem(args: {
   readonly selectedModules?: LocalBatchManifestItem["selectedModules"];
   readonly plannedOutputPaths: readonly string[];
   readonly estimatedInputTokens: number;
+  readonly estimatedOutputTokens?: number;
+  readonly preflight?: LocalBatchManifestItem["preflight"];
+  readonly status?: LocalBatchManifestItem["status"];
   readonly language?: LanguageCode;
 }): LocalBatchManifestItem {
   return {
@@ -442,8 +451,157 @@ function buildManifestItem(args: {
     configurationHash: args.configurationHash,
     plannedOutputPaths: args.plannedOutputPaths,
     estimatedInputTokens: args.estimatedInputTokens,
-    status: "planned",
+    ...(args.estimatedOutputTokens !== undefined
+      ? { estimatedOutputTokens: args.estimatedOutputTokens }
+      : {}),
+    ...(args.preflight ? { preflight: args.preflight } : {}),
+    status: args.status ?? "planned",
   };
+}
+
+function manifestPreflightSummary(
+  result: StoryPreflightResult
+): LocalBatchManifestItem["preflight"] {
+  return {
+    policyVersion: STORY_PREFLIGHT_POLICY_VERSION,
+    requestFingerprint: result.requestFingerprint,
+    status: result.status,
+    ...(result.status === "blocked"
+      ? {
+          failureCodes: result.failureCodes,
+          reason: result.reason,
+        }
+      : {}),
+    requestedOutputTokens: result.diagnostics.requestedOutputTokens,
+    contextWindowTokens: result.diagnostics.contextWindowTokens,
+    maxModelOutputTokens: result.diagnostics.maxModelOutputTokens,
+    safetyMarginTokens: result.diagnostics.safetyMarginTokens,
+  };
+}
+
+function batchPromptComponents(args: {
+  readonly system: string;
+  readonly user: string;
+  readonly schemaName: string;
+  readonly schemaVersion: string;
+  readonly schemaFingerprint: string;
+  readonly expectedOutputTokens: number;
+}): readonly StoryPreflightComponent[] {
+  return [
+    estimateStoryComponent({
+      name: "system-instructions",
+      label: "batch system instructions",
+      text: args.system,
+    }),
+    estimateStoryComponent({
+      name: "canonical-source-narration",
+      label: "batch user prompt",
+      text: args.user,
+    }),
+    {
+      name: "response-schema-overhead",
+      label: args.schemaName,
+      estimatedTokens: estimateStructuredRequestWrapperTokens(args),
+    },
+    {
+      name: "request-wrapper-overhead",
+      label: "OpenAI batch request wrapper",
+      estimatedTokens: estimateStoryTokens(
+        "batch-responses-json-wrapper",
+        "conservative-fallback"
+      ),
+    },
+    {
+      name: "expected-output",
+      label: "minimum feasible batch output",
+      estimatedTokens: args.expectedOutputTokens,
+    },
+  ];
+}
+
+function extractBatchPrompt(body: Record<string, unknown>): {
+  readonly system: string;
+  readonly user: string;
+} {
+  const input = Array.isArray(body["input"]) ? body["input"] : [];
+  const getText = (role: string): string => {
+    const message = input.find(
+      (entry): entry is { readonly role: string; readonly content: readonly unknown[] } =>
+        Boolean(entry) &&
+        typeof entry === "object" &&
+        (entry as { readonly role?: unknown }).role === role &&
+        Array.isArray((entry as { readonly content?: unknown }).content)
+    );
+    const content = message?.content ?? [];
+    return content
+      .map((entry) =>
+        entry &&
+        typeof entry === "object" &&
+        typeof (entry as { readonly text?: unknown }).text === "string"
+          ? (entry as { readonly text: string }).text
+          : ""
+      )
+      .join("\n");
+  };
+  return {
+    system: getText("system"),
+    user: getText("user"),
+  };
+}
+
+function runBatchPreflight(args: {
+  readonly parsed: Awaited<ReturnType<typeof parseCanonicalSourceStory>>;
+  readonly language: LanguageCode;
+  readonly operation: "generate" | "localize";
+  readonly variant: "canonical-english-short" | "localized-full";
+  readonly config: StoryLocalizationConfig;
+  readonly body: Record<string, unknown>;
+  readonly promptFingerprint: string;
+  readonly schemaName: string;
+  readonly schemaVersion: string;
+  readonly schemaFingerprint: string;
+  readonly sourceHash: string;
+  readonly expectedOutputTokens: number;
+  readonly parentArtifact?: StoryPreflightRequest["parentArtifact"];
+}): StoryPreflightResult {
+  const prompt = extractBatchPrompt(args.body);
+  return runStoryGenerationPreflight({
+    episodeNumber: args.parsed.episodeNumber,
+    episodeSlug: args.parsed.slug,
+    operation: args.operation,
+    variant: args.variant,
+    language: args.language,
+    locale: getLanguageProfile(args.language).locale,
+    model: args.config.model,
+    reasoningEffort: args.config.reasoningEffort,
+    maxOutputTokens:
+      typeof args.body["max_output_tokens"] === "number"
+        ? args.body["max_output_tokens"]
+        : 6000,
+    retryCap: 0,
+    promptVersion: args.config.promptVersion,
+    promptFingerprint: args.promptFingerprint,
+    schemaName: args.schemaName,
+    schemaVersion: args.schemaVersion,
+    schemaFingerprint: args.schemaFingerprint,
+    sourceHash: args.sourceHash,
+    targetWordRange: {
+      min: 1,
+      max: Math.max(
+        1,
+        Math.ceil(countWords(args.parsed.narrationParagraphs.join(" ")) * 1.12)
+      ),
+    },
+    components: batchPromptComponents({
+      ...prompt,
+      schemaName: args.schemaName,
+      schemaVersion: args.schemaVersion,
+      schemaFingerprint: args.schemaFingerprint,
+      expectedOutputTokens: args.expectedOutputTokens,
+    }),
+    minimumOutputTokens: args.expectedOutputTokens,
+    ...(args.parentArtifact ? { parentArtifact: args.parentArtifact } : {}),
+  });
 }
 
 function buildEnglishShortBatchItem(args: {
@@ -463,7 +621,7 @@ function buildEnglishShortBatchItem(args: {
     >;
   };
 }): {
-  readonly requestItem: StoryBatchItem;
+  readonly requestItem?: StoryBatchItem;
   readonly manifestItem: LocalBatchManifestItem;
 } {
   const body = englishShortBody(
@@ -487,6 +645,58 @@ function buildEnglishShortBatchItem(args: {
       ? { retryNumber: args.retryNumber }
       : {}),
   });
+  const schemaVersion = "legacy-english-story-package-v1";
+  const schemaFingerprint = estimateStoryTokens(
+    "english_story_package",
+    "conservative-fallback"
+  ).toString();
+  const promptFingerprint = buildConfigurationHash([
+    args.parsed.sourceHash,
+    args.config.promptVersion,
+    "english-short-batch",
+    JSON.stringify(body),
+  ]);
+  const expectedOutputTokens =
+    Math.ceil(getLanguageProfile("en").shortWordRange.max * 1.45) + 650;
+  const preflight = runBatchPreflight({
+    parsed: args.parsed,
+    language: "en",
+    operation: "generate",
+    variant: "canonical-english-short",
+    config: args.config,
+    body,
+    promptFingerprint,
+    schemaName: "english_story_package",
+    schemaVersion,
+    schemaFingerprint,
+    sourceHash: args.parsed.sourceHash,
+    expectedOutputTokens,
+    parentArtifact: {
+      kind: "canonical-english-full",
+      sourceHash: args.parsed.sourceHash,
+    },
+  });
+  const manifestItem = buildManifestItem({
+    customId,
+    parsed: args.parsed,
+    canonicalSourcePath: args.canonicalSourcePath,
+    language: "en",
+    operation: "english-short",
+    configurationHash: args.configurationHash,
+    promptVersion: args.config.promptVersion,
+    promptFingerprint,
+    plannedOutputPaths: [
+      toRepositoryRelativePath(outputFiles.full),
+      toRepositoryRelativePath(outputFiles.short),
+    ],
+    estimatedInputTokens: preflight.diagnostics.estimatedInputTokens,
+    estimatedOutputTokens: preflight.diagnostics.estimatedMinimumOutputTokens,
+    preflight: manifestPreflightSummary(preflight),
+    status: preflight.status === "blocked" ? "preflight-failed" : "planned",
+  });
+  if (preflight.status === "blocked") {
+    return { manifestItem };
+  }
   return {
     requestItem: {
       customId,
@@ -502,20 +712,7 @@ function buildEnglishShortBatchItem(args: {
         configurationHash: args.configurationHash,
       },
     },
-    manifestItem: buildManifestItem({
-      customId,
-      parsed: args.parsed,
-      canonicalSourcePath: args.canonicalSourcePath,
-      language: "en",
-      operation: "english-short",
-      configurationHash: args.configurationHash,
-      promptVersion: args.config.promptVersion,
-      plannedOutputPaths: [
-        toRepositoryRelativePath(outputFiles.full),
-        toRepositoryRelativePath(outputFiles.short),
-      ],
-      estimatedInputTokens: estimatePromptTokens(JSON.stringify(body)),
-    }),
+    manifestItem,
   };
 }
 
@@ -538,7 +735,7 @@ function buildLocalizationBatchItem(args: {
     >;
   };
 }): {
-  readonly requestItem: StoryBatchItem;
+  readonly requestItem?: StoryBatchItem;
   readonly manifestItem: LocalBatchManifestItem;
 } {
   assertCompiledBatchPrompt(
@@ -561,6 +758,50 @@ function buildLocalizationBatchItem(args: {
       ? { retryNumber: args.retryNumber }
       : {}),
   });
+  const expectedOutputTokens =
+    Math.ceil(countWords(args.parsed.narrationParagraphs.join(" ")) * 1.12 * 1.45) +
+    650;
+  const preflight = runBatchPreflight({
+    parsed: args.parsed,
+    language: args.language,
+    operation: "localize",
+    variant: "localized-full",
+    config: args.config,
+    body,
+    promptFingerprint: args.compiledPrompt.promptFingerprint,
+    schemaName: args.compiledPrompt.responseSchema.name,
+    schemaVersion: args.compiledPrompt.responseSchema.version,
+    schemaFingerprint: args.compiledPrompt.responseSchema.fingerprint,
+    sourceHash: args.parsed.sourceHash,
+    expectedOutputTokens,
+    parentArtifact: {
+      kind: "canonical-english-full",
+      sourceHash: args.parsed.sourceHash,
+    },
+  });
+  const manifestItem = buildManifestItem({
+    customId,
+    parsed: args.parsed,
+    canonicalSourcePath: args.canonicalSourcePath,
+    language: args.language,
+    operation: "localization",
+    configurationHash: args.configurationHash,
+    promptVersion: args.config.promptVersion,
+    compilerVersion: args.compiledPrompt.compilerVersion,
+    promptFingerprint: args.compiledPrompt.promptFingerprint,
+    responseSchemaName: args.compiledPrompt.responseSchema.name,
+    responseSchemaVersion: args.compiledPrompt.responseSchema.version,
+    responseSchemaFingerprint: args.compiledPrompt.responseSchema.fingerprint,
+    selectedModules: args.compiledPrompt.selectedModules,
+    plannedOutputPaths: [toRepositoryRelativePath(outputFiles.full)],
+    estimatedInputTokens: preflight.diagnostics.estimatedInputTokens,
+    estimatedOutputTokens: preflight.diagnostics.estimatedMinimumOutputTokens,
+    preflight: manifestPreflightSummary(preflight),
+    status: preflight.status === "blocked" ? "preflight-failed" : "planned",
+  });
+  if (preflight.status === "blocked") {
+    return { manifestItem };
+  }
   return {
     requestItem: {
       customId,
@@ -583,23 +824,7 @@ function buildLocalizationBatchItem(args: {
         configurationHash: args.configurationHash,
       },
     },
-    manifestItem: buildManifestItem({
-      customId,
-      parsed: args.parsed,
-      canonicalSourcePath: args.canonicalSourcePath,
-      language: args.language,
-      operation: "localization",
-      configurationHash: args.configurationHash,
-      promptVersion: args.config.promptVersion,
-      compilerVersion: args.compiledPrompt.compilerVersion,
-      promptFingerprint: args.compiledPrompt.promptFingerprint,
-      responseSchemaName: args.compiledPrompt.responseSchema.name,
-      responseSchemaVersion: args.compiledPrompt.responseSchema.version,
-      responseSchemaFingerprint: args.compiledPrompt.responseSchema.fingerprint,
-      selectedModules: args.compiledPrompt.selectedModules,
-      plannedOutputPaths: [toRepositoryRelativePath(outputFiles.full)],
-      estimatedInputTokens: estimatePromptTokens(JSON.stringify(body)),
-    }),
+    manifestItem,
   };
 }
 
@@ -727,7 +952,9 @@ async function buildBatchItems(
           configurationHash: configHash,
           productionContext,
         });
-        requestItems.push(item.requestItem);
+        if (item.requestItem) {
+          requestItems.push(item.requestItem);
+        }
         manifestItems.push(item.manifestItem);
       }
     }
@@ -784,7 +1011,9 @@ async function buildBatchItems(
         configurationHash: configHash,
         productionContext,
       });
-      requestItems.push(item.requestItem);
+      if (item.requestItem) {
+        requestItems.push(item.requestItem);
+      }
       manifestItems.push(item.manifestItem);
     }
   }
@@ -891,7 +1120,9 @@ async function buildRetryBatchItems(args: {
         retryNumber: nextRetryNumber,
         productionContext,
       });
-      requestItems.push(item.requestItem);
+      if (item.requestItem) {
+        requestItems.push(item.requestItem);
+      }
       manifestItems.push(item.manifestItem);
       continue;
     }
@@ -941,7 +1172,9 @@ async function buildRetryBatchItems(args: {
         retryNumber: nextRetryNumber,
         productionContext,
       });
-      requestItems.push(item.requestItem);
+      if (item.requestItem) {
+        requestItems.push(item.requestItem);
+      }
       manifestItems.push(item.manifestItem);
     }
   }
@@ -1022,7 +1255,11 @@ export async function submitStoryLocalizationBatch(
     openAIBatchId: created.id,
     status: "submitted",
     submittedAt: new Date().toISOString(),
-    items: manifest.items.map((item) => ({ ...item, status: "submitted" })),
+    items: manifest.items.map((item) =>
+      item.status === "preflight-failed"
+        ? item
+        : { ...item, status: "submitted" }
+    ),
   };
   await saveLocalBatchManifest(layout, nextManifest);
   const index = new StoryBatchIndexService(config.outputDirectory);
@@ -1316,6 +1553,11 @@ export async function importStoryLocalizationBatch(
       let failedItemCount = 0;
       const nextItems: LocalBatchManifestItem[] = [];
       for (const item of refreshed.items) {
+        if (item.status === "preflight-failed") {
+          failedItemCount += 1;
+          nextItems.push(item);
+          continue;
+        }
         const sourceFile = await parseCanonicalSourceStory(
           fromRepositoryRelativePath(item.sourcePath)
         );

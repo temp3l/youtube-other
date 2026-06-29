@@ -25,6 +25,7 @@ import {
   SHORT_REWRITE_DEFAULT_MAX_SOURCE_BYTES,
   SHORT_REWRITE_DEFAULT_TEMPERATURE,
   SHORT_REWRITE_DEFAULT_TIMEOUT_MS,
+  SHORT_REWRITE_HARD_WORD_RANGE,
   SHORT_REWRITE_PROMPT_VERSION,
   SHORT_REWRITE_SUPPORTED_LANGUAGES,
   type ShortRewriteLanguage,
@@ -72,10 +73,21 @@ import {
   sha256NormalizedSource,
 } from "./short-rewrite.utils.js";
 import { shouldIncludeTemperatureForModel } from "./story-localization.utils.js";
+import { resolveEpisodeCacheDirectory } from "./story-localization-cache.js";
 import {
   writeJsonAtomicIfChanged,
   writeTextAtomicIfChanged,
 } from "./story-localization.utils.js";
+import {
+  assertStoryPreflightAllowed,
+  estimateStoryComponent,
+  estimateStoryTokens,
+  estimateStructuredRequestWrapperTokens,
+  resolveStoryPreflightDirectory,
+  runAndPersistStoryPreflight,
+  type StoryPreflightRequest,
+} from "./story-generation-preflight.js";
+import { shortRewriteResponseSchemaDescriptor } from "./story-prompt-response-schemas.js";
 import { materializeCanonicalSourceStory } from "./short-rewrite.bootstrap.js";
 import {
   type ResolvedShortRewriteSource,
@@ -600,6 +612,21 @@ async function requestStructuredShortRewrite(args: {
   readonly signal: AbortSignal | undefined;
   readonly debugDirectory: string;
   readonly debugFileBaseName: string;
+  readonly preflight?: (args: {
+    readonly system: string;
+    readonly user: string;
+    readonly model: string;
+    readonly maxOutputTokens: number;
+    readonly reasoningEffort:
+      | "none"
+      | "minimal"
+      | "low"
+      | "medium"
+      | "high"
+      | "xhigh"
+      | undefined;
+    readonly requestLabel: string;
+  }) => Promise<void>;
 }): Promise<ShortRewriteApiResult> {
   if (!args.client) {
     throw new OpenAIShortRewriteError(
@@ -631,6 +658,14 @@ async function requestStructuredShortRewrite(args: {
       ? { reasoning: { effort: args.reasoningEffort } }
       : {}),
   };
+  await (args.preflight?.({
+    system: args.prompt.system,
+    user: args.prompt.user,
+    model: args.model,
+    maxOutputTokens: args.maxOutputTokens,
+    reasoningEffort: args.reasoningEffort,
+    requestLabel: args.requestLabel,
+  }) ?? Promise.resolve());
   for (let attempt = 0; attempt <= args.maxRetries; attempt += 1) {
     if (args.signal?.aborted) {
       throw createAbortError("Short rewrite was aborted.");
@@ -972,6 +1007,110 @@ async function generateLanguagePayload(
     );
   }
   const promptFingerprint = compiledPrompt.promptFingerprint;
+  const preflightDirectory = resolveStoryPreflightDirectory(
+    resolveEpisodeCacheDirectory(args.outputRoot, args.source.episodeSlug)
+  );
+  const buildShortPreflight = (preflightArgs: {
+    readonly repair: boolean;
+    readonly promptFingerprint: string;
+  }) => {
+    return async (requestArgs: {
+      readonly system: string;
+      readonly user: string;
+      readonly model: string;
+      readonly maxOutputTokens: number;
+      readonly reasoningEffort:
+        | "none"
+        | "minimal"
+        | "low"
+        | "medium"
+        | "high"
+        | "xhigh"
+        | undefined;
+      readonly requestLabel: string;
+    }): Promise<void> => {
+      const expectedOutputTokens = preflightArgs.repair
+        ? Math.ceil(requestArgs.maxOutputTokens * 0.35)
+        : Math.ceil(SHORT_REWRITE_HARD_WORD_RANGE.max * 1.45) + 450;
+      const request: StoryPreflightRequest = {
+        episodeNumber: args.source.episodeNumber,
+        episodeSlug: args.source.episodeSlug,
+        operation: preflightArgs.repair ? "repair" : "generate",
+        variant: preflightArgs.repair
+          ? "short-repair"
+          : args.language === "en"
+            ? "canonical-english-short"
+            : "localized-short",
+        language: args.language,
+        locale: SHORT_REWRITE_SUPPORTED_LANGUAGES[args.language].locale,
+        model: requestArgs.model,
+        ...(requestArgs.reasoningEffort
+          ? { reasoningEffort: requestArgs.reasoningEffort }
+          : {}),
+        maxOutputTokens: requestArgs.maxOutputTokens,
+        retryCap: preflightArgs.repair ? 1 : args.maxRetries,
+        promptVersion: SHORT_REWRITE_PROMPT_VERSION,
+        promptFingerprint: preflightArgs.promptFingerprint,
+        schemaName: shortRewriteResponseSchemaDescriptor.name,
+        schemaVersion: shortRewriteResponseSchemaDescriptor.version,
+        schemaFingerprint: shortRewriteResponseSchemaDescriptor.fingerprint,
+        sourceHash: args.source.sourceSha256,
+        targetWordRange: SHORT_REWRITE_HARD_WORD_RANGE,
+        targetDurationSeconds: {
+          min: 55,
+          max: 65,
+        },
+        parentArtifact: {
+          kind: "canonical-english-full",
+          sourceHash: args.source.sourceSha256,
+        },
+        minimumOutputTokens: expectedOutputTokens,
+        components: [
+          estimateStoryComponent({
+            name: "system-instructions",
+            label: "compiled short system instructions",
+            text: requestArgs.system,
+          }),
+          estimateStoryComponent({
+            name: preflightArgs.repair
+              ? "repair-context"
+              : "canonical-source-narration",
+            label: preflightArgs.repair
+              ? "short repair context"
+              : "compiled short user prompt",
+            text: requestArgs.user,
+          }),
+          {
+            name: "response-schema-overhead",
+            label: shortRewriteResponseSchemaDescriptor.name,
+            estimatedTokens: estimateStructuredRequestWrapperTokens({
+              schemaName: shortRewriteResponseSchemaDescriptor.name,
+              schemaVersion: shortRewriteResponseSchemaDescriptor.version,
+              schemaFingerprint: shortRewriteResponseSchemaDescriptor.fingerprint,
+            }),
+          },
+          {
+            name: "request-wrapper-overhead",
+            label: "OpenAI Responses request wrapper",
+            estimatedTokens: estimateStoryTokens(
+              "responses-json-wrapper",
+              "conservative-fallback"
+            ),
+          },
+          {
+            name: "expected-output",
+            label: "minimum feasible short output",
+            estimatedTokens: expectedOutputTokens,
+          },
+        ],
+      };
+      const result = await runAndPersistStoryPreflight({
+        preflightDirectory,
+        request,
+      });
+      assertStoryPreflightAllowed(result);
+    };
+  };
   if (args.dryRun) {
     const generation: ShortRewriteGeneration = {
       title: `${args.source.title} (${languageDefinition.name})`,
@@ -1084,6 +1223,10 @@ async function generateLanguagePayload(
     requestLabel: `${languageDefinition.name} short rewrite`,
     debugDirectory,
     debugFileBaseName,
+    preflight: buildShortPreflight({
+      repair: false,
+      promptFingerprint,
+    }),
   });
   const initialParsed = parseStructuredResult(initialResponse.outputText);
   const initialAnalysis = analyzeGeneratedPayload({
@@ -1136,6 +1279,10 @@ async function generateLanguagePayload(
       requestLabel: `${languageDefinition.name} short rewrite repair`,
       debugDirectory,
       debugFileBaseName,
+      preflight: buildShortPreflight({
+        repair: true,
+        promptFingerprint: `${promptFingerprint}:repair`,
+      }),
     });
     requestId = repairResponse.id;
     usage = buildUsagePayload({

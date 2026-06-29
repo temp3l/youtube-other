@@ -9,6 +9,7 @@ export * from "./story-prompt-modules.js";
 export * from "./story-prompt-module-registry.js";
 export * from "./story-prompt-response-schemas.js";
 export * from "./story-prompt-compiler.js";
+export * from "./story-generation-preflight.js";
 export * from "./source-cleaning.js";
 export * from "./source-cleaning-persistence.js";
 export * from "./language-profiles.js";

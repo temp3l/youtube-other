@@ -66,6 +66,7 @@ const localBatchManifestItemStatusSchema = z.enum([
   "schema-invalid",
   "content-invalid",
   "repair-required",
+  "preflight-failed",
   "persisted",
   "skipped-cached",
 ]);
@@ -379,6 +380,19 @@ export const localBatchManifestItemSchema = z.object({
   plannedOutputPaths: z.array(z.string().min(1)),
   estimatedInputTokens: z.number().int().nonnegative(),
   estimatedOutputTokens: z.number().int().nonnegative().optional(),
+  preflight: z
+    .object({
+      policyVersion: z.string().min(1),
+      requestFingerprint: z.string().min(1),
+      status: z.enum(["allowed", "blocked"]),
+      failureCodes: z.array(z.string().min(1)).optional(),
+      reason: z.string().min(1).optional(),
+      requestedOutputTokens: z.number().int().nonnegative(),
+      contextWindowTokens: z.number().int().positive(),
+      maxModelOutputTokens: z.number().int().positive(),
+      safetyMarginTokens: z.number().int().positive(),
+    })
+    .optional(),
   status: localBatchManifestItemStatusSchema,
   resultImportedAt: z.string().min(1).optional(),
   usage: z
