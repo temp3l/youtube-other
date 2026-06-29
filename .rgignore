@@ -1,0 +1,11 @@
+node_modules/
+dist/
+coverage/
+episodes/**/output/
+episodes/**/state/
+episodes/**/generated-assets/
+audio/
+video/
+images/
+transcripts/
+logs/
