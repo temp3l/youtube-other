@@ -3,7 +3,30 @@ import os from "node:os";
 import path from "node:path";
 import { mkdtempSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { hashText } from "@mediaforge/shared";
 import { prepareImageBatchForEpisode, planImageBatchForEpisode } from "./image-batch-planner.js";
+
+function providerRequestHashForFixture(args: {
+  readonly prompt: string;
+  readonly model?: string;
+  readonly requestedSize?: string;
+  readonly quality?: string;
+  readonly outputFormat?: string;
+  readonly characterReferenceHashes?: readonly string[];
+}): string {
+  return hashText(
+    JSON.stringify({
+      operation: "image-generation",
+      model: args.model ?? "gpt-image-2",
+      prompt: args.prompt,
+      n: 1,
+      size: args.requestedSize ?? "1920x1088",
+      quality: args.quality ?? "medium",
+      outputFormat: args.outputFormat ?? "png",
+      referenceImages: args.characterReferenceHashes ?? ["ref-hash"],
+    })
+  );
+}
 
 async function writeSceneManifest(args: {
   readonly episodeDir: string;
@@ -51,6 +74,9 @@ async function writeSceneManifest(args: {
           : {}),
         finalPrompt: args.prompt,
         promptHash: "prompt-hash",
+        providerRequestHash: providerRequestHashForFixture({
+          prompt: args.prompt,
+        }),
         materialDifferencesFromPrevious: [],
         characterIds: ["character-1"],
         referenceImages: [
@@ -196,6 +222,40 @@ describe("image batch planner", () => {
     });
     expect(planned[0]?.scenePlans).toHaveLength(0);
     expect(planned[0]?.skippedSceneIds).toEqual(["scene-001"]);
+  });
+
+  it("plans a new batch request when provider settings change", async () => {
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), "image-batch-provider-hash-"));
+    const episodeDir = path.join(tempDir, "episode");
+    await writeSceneManifest({
+      episodeDir,
+      sceneId: "scene-001",
+      prompt: "A reused scene.",
+      status: "generated",
+      outputExists: true,
+    });
+
+    const planned = await planImageBatchForEpisode({
+      episodeDir,
+      episodeId: "001-demo",
+      scenePlan: {
+        scenes: [{ id: "scene-001", sequenceNumber: 1 }],
+      },
+      settings: {
+        model: "gpt-image-2",
+        requestedSize: "1920x1088",
+        quality: "high",
+        outputFormat: "png",
+      },
+    });
+
+    expect(planned[0]?.skippedSceneIds).toEqual([]);
+    expect(planned[0]?.scenePlans).toHaveLength(1);
+    expect(planned[0]?.scenePlans[0]?.providerRequestHash).not.toBe(
+      providerRequestHashForFixture({
+        prompt: "A reused scene.",
+      })
+    );
   });
 
   it("propagates renderability and reuse provenance into planned batch jobs", async () => {

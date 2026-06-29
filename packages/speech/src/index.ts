@@ -445,6 +445,8 @@ export class OpenAiCompatibleSpeechProvider implements SpeechProvider {
     }
     const tempPath = `${request.outputPath}.${process.pid}.tmp`;
     try {
+      await ensureDir(path.dirname(tempPath));
+      await fs.writeFile(tempPath, "");
       const result = await runCurl(
         [
           "--fail-with-body",

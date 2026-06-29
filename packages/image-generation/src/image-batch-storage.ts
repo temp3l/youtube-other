@@ -114,6 +114,7 @@ export function createImageBatchManifestItem(args: {
       ? { reusedFromSceneId: args.job.reusedFromSceneId }
       : {}),
     promptHash: args.job.promptHash,
+    providerRequestHash: args.job.providerRequestHash,
     generationConfigurationHash: args.job.generationConfigurationHash,
     expectedOutputPath: args.job.expectedOutputPath,
     characterIds: args.job.characterIds,

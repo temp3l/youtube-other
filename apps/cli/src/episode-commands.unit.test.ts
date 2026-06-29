@@ -44,6 +44,7 @@ const {
   commandEpisodeBootstrapCharacters,
   commandEpisodeLocalized,
   commandEpisodeShort,
+  resolveEpisodeLanguageSource,
   registerEpisodeCommands,
 } = await import("./episode-commands.js");
 
@@ -425,6 +426,85 @@ describe("episode commands", () => {
         )
         .catch(() => null)
     ).toBeNull();
+  });
+
+  it("allows English-only localized generation without an approval record", async () => {
+    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "dark-truth-cli-"));
+    const outputRoot = path.join(tempDir, "episodes");
+    const episodeDir = path.join(outputRoot, episodeSlug);
+    await fs.mkdir(path.join(episodeDir), { recursive: true });
+    await fs.copyFile(
+      path.join("episodes", "011-the-black-eyed-children", "script.md"),
+      path.join(episodeDir, "script.md")
+    );
+
+    await expect(
+      commandEpisodeLocalized({
+        episode: "001",
+        source: sourceRoot,
+        outputRoot,
+        languages: "en",
+        reuseImages: true,
+        dryRun: true,
+      })
+    ).resolves.toBeUndefined();
+  });
+
+  it("prefers the workspace script for English full localization", async () => {
+    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "dark-truth-cli-"));
+    const outputRoot = path.join(tempDir, "episodes");
+    const episodeDir = path.join(outputRoot, episodeSlug);
+    const workspaceScript = path.join(episodeDir, "script.md");
+    const packSource = englishFullSource;
+    await fs.mkdir(path.dirname(workspaceScript), { recursive: true });
+    await fs.writeFile(workspaceScript, "Workspace narration", "utf8");
+    const result = await resolveEpisodeLanguageSource(
+      outputRoot,
+      {
+        episodeId: episodeSlug,
+        episodeNumber: "011",
+        slug: episodeSlug,
+        sourceDir: path.dirname(path.dirname(packSource)),
+        candidates: [
+          {
+            language: "en",
+            artifactType: "full",
+            filePath: packSource,
+            status: "present",
+          },
+        ],
+      } as unknown as Parameters<typeof resolveEpisodeLanguageSource>[1],
+      "en",
+      "full"
+    );
+    expect(result.sourceFile).toBe(workspaceScript);
+    expect(result.warning).toBeUndefined();
+  });
+
+  it("warns when English full localization falls back to the pack source", async () => {
+    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "dark-truth-cli-"));
+    const outputRoot = path.join(tempDir, "episodes");
+    const result = await resolveEpisodeLanguageSource(
+      outputRoot,
+      {
+        episodeId: episodeSlug,
+        episodeNumber: "011",
+        slug: episodeSlug,
+        sourceDir: path.dirname(path.dirname(englishFullSource)),
+        candidates: [
+          {
+            language: "en",
+            artifactType: "full",
+            filePath: englishFullSource,
+            status: "present",
+          },
+        ],
+      } as unknown as Parameters<typeof resolveEpisodeLanguageSource>[1],
+      "en",
+      "full"
+    );
+    expect(result.sourceFile).toBe(englishFullSource);
+    expect(result.warning).toContain("workspace script.md was missing");
   });
 
   it("requires German approval before the German Short", async () => {

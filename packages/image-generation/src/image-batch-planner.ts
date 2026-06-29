@@ -4,6 +4,9 @@ import {
   fileExists,
   hashText,
   normalizeWhitespace,
+  resolveEpisodeImageManifestPath,
+  resolveEpisodeImagePromptPath,
+  resolveEpisodeImageStateDir,
 } from "@mediaforge/shared";
 import {
   type ImageBatchManifest,
@@ -40,6 +43,7 @@ export interface PlannedImageBatchScene {
   readonly sceneIndex: number;
   readonly promptPath: string;
   readonly promptHash: string;
+  readonly providerRequestHash: string;
   readonly manifestPath: string;
   readonly sceneManifest: SceneGenerationManifest;
   readonly job: SceneImageJob;
@@ -87,11 +91,33 @@ function buildConfigurationHash(args: {
   );
 }
 
+function buildProviderRequestHash(args: {
+  readonly model: string;
+  readonly prompt: string;
+  readonly requestedSize: string;
+  readonly quality: string;
+  readonly outputFormat: string;
+  readonly characterReferenceHashes: readonly string[];
+}): string {
+  return stableHash(
+    JSON.stringify({
+      operation: "image-generation",
+      model: args.model,
+      prompt: args.prompt,
+      n: 1,
+      size: args.requestedSize,
+      quality: args.quality,
+      outputFormat: args.outputFormat,
+      referenceImages: args.characterReferenceHashes,
+    })
+  );
+}
+
 function buildCustomId(args: {
   readonly episodeNumber: string;
   readonly sceneId: string;
   readonly promptHash: string;
-  readonly configurationHash: string;
+  readonly providerRequestHash: string;
 }): string {
   return [
     "dte-img",
@@ -100,12 +126,8 @@ function buildCustomId(args: {
     "full",
     args.sceneId,
     args.promptHash.slice(0, 8),
-    args.configurationHash.slice(0, 8),
+    args.providerRequestHash.slice(0, 8),
   ].join(":");
-}
-
-function promptFilePath(episodeDir: string, sceneId: string): string {
-  return path.join(episodeDir, "state", "image-generation", "prompts", `${sceneId}.txt`);
 }
 
 function normalizePrompt(value: string): string {
@@ -117,7 +139,7 @@ async function readPromptText(
   sceneId: string,
   sceneManifest: SceneGenerationManifest
 ): Promise<{ readonly prompt: string; readonly promptPath: string }> {
-  const promptPath = promptFilePath(episodeDir, sceneId);
+  const promptPath = resolveEpisodeImagePromptPath(episodeDir, sceneId);
   if (await fileExists(promptPath)) {
     const prompt = normalizePrompt(await fs.readFile(promptPath, "utf8"));
     if (prompt.length > 0) {
@@ -151,11 +173,22 @@ async function buildSceneJob(args: {
     quality: args.settings.quality,
     outputFormat: args.settings.outputFormat,
   });
+  const characterReferenceHashes = args.sceneManifest.referenceImages.map(
+    (entry) => entry.sha256
+  );
+  const providerRequestHash = buildProviderRequestHash({
+    model: args.settings.model,
+    prompt,
+    requestedSize: args.settings.requestedSize,
+    quality: args.settings.quality,
+    outputFormat: args.settings.outputFormat,
+    characterReferenceHashes,
+  });
   const customId = buildCustomId({
     episodeNumber: args.episodeId,
     sceneId: args.sceneId,
     promptHash,
-    configurationHash,
+    providerRequestHash,
   });
   const job: SceneImageJob = {
     episodeNumber: args.episodeId,
@@ -182,6 +215,7 @@ async function buildSceneJob(args: {
     outputFormat: args.settings.outputFormat,
     expectedOutputPath: args.sceneManifest.outputPath,
     promptHash,
+    providerRequestHash,
     generationConfigurationHash: configurationHash,
   };
   const requestLine = {
@@ -202,22 +236,15 @@ async function buildSceneJob(args: {
     customId,
     outputFormat: args.settings.outputFormat,
     quality: args.settings.quality,
-    characterReferenceHashes: args.sceneManifest.referenceImages.map(
-      (entry) => entry.sha256
-    ),
+    characterReferenceHashes,
   });
   return {
     sceneId: args.sceneId,
     sceneIndex: args.sceneIndex,
     promptPath,
     promptHash,
-    manifestPath: path.join(
-      args.episodeDir,
-      "state",
-      "image-generation",
-      "manifests",
-      `${args.sceneId}.json`
-    ),
+    providerRequestHash,
+    manifestPath: resolveEpisodeImageManifestPath(args.episodeDir, args.sceneId),
     sceneManifest: args.sceneManifest,
     job,
     requestLine,
@@ -244,7 +271,7 @@ export async function planImageBatchForEpisode(args: {
           .filter((entry) => entry.length > 0)
       )
     : undefined;
-  const batchRoot = path.join(args.episodeDir, "state", "image-generation");
+  const batchRoot = resolveEpisodeImageStateDir(args.episodeDir);
   const storagePlan = await createImageBatchStoragePlan(batchRoot);
   const plannedScenes: PlannedImageBatchScene[] = [];
   const skippedSceneIds: string[] = [];
@@ -259,15 +286,27 @@ export async function planImageBatchForEpisode(args: {
     if (!sceneManifest) {
       throw new Error(`Missing scene manifest for ${scene.id}.`);
     }
+    const { prompt } = await readPromptText(
+      args.episodeDir,
+      scene.id,
+      sceneManifest
+    );
+    const providerRequestHash = buildProviderRequestHash({
+      model: args.settings.model,
+      prompt,
+      requestedSize: args.settings.requestedSize,
+      quality: args.settings.quality,
+      outputFormat: args.settings.outputFormat,
+      characterReferenceHashes: sceneManifest.referenceImages.map(
+        (entry) => entry.sha256
+      ),
+    });
     const outputExists = await fileExists(sceneManifest.outputPath);
     const isReusable =
       !args.settings.force &&
       sceneManifest.status === "generated" &&
       outputExists &&
-      sceneManifest.promptHash.length > 0 &&
-      sceneManifest.model === args.settings.model &&
-      sceneManifest.size === args.settings.requestedSize &&
-      sceneManifest.quality === args.settings.quality;
+      sceneManifest.providerRequestHash === providerRequestHash;
     if (isReusable) {
       skippedSceneIds.push(scene.id);
       continue;

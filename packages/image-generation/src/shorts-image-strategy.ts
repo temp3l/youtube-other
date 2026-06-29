@@ -5,9 +5,9 @@ import { z } from "zod";
 import { type ScenePlan } from "@mediaforge/domain";
 import {
   type CharacterRegistry,
-  resolveCharacterRegistryPath,
   type EpisodeImagePipelineSettings,
   type ImageGenerator,
+  type PreparedImageProviderRequest,
   type SceneVisualSpec,
   buildSceneVisualSpec,
   buildPromptFromSpec,
@@ -18,6 +18,7 @@ import {
   fileExists,
   hashFile,
   hashText,
+  resolveEpisodeCharacterRegistryPath,
   sceneFilename,
   writeJsonAtomic,
 } from "@mediaforge/shared";
@@ -305,7 +306,7 @@ async function loadCharacterRegistry(
   episodeDir: string,
   episodeId: string
 ): Promise<CharacterRegistry> {
-  const registryPath = resolveCharacterRegistryPath(episodeDir);
+  const registryPath = resolveEpisodeCharacterRegistryPath(episodeDir);
   if (!(await fileExists(registryPath))) {
     const legacyRegistryPath = path.join(episodeDir, "characters.json");
     if (await fileExists(legacyRegistryPath)) {
@@ -359,6 +360,64 @@ async function loadReferenceImages(
     });
   }
   return references;
+}
+
+function buildShortsProviderRequest(args: {
+  readonly spec: SceneVisualSpec;
+  readonly previous?: SceneVisualSpec;
+  readonly registry: CharacterRegistry;
+  readonly outputPath: string;
+  readonly referenceImages: Array<{ characterId: string; filePath: string }>;
+}): PreparedImageProviderRequest {
+  const prompt = buildPromptFromSpec(
+    args.spec,
+    args.previous,
+    args.registry,
+    "9:16"
+  );
+  return {
+    sceneId: args.spec.sceneId,
+    scene: args.spec,
+    ...(args.previous ? { previousScene: args.previous } : {}),
+    model: "gpt-image-2",
+    size: "1024x1536",
+    quality: "medium",
+    outputFormat: "png",
+    background: "opaque",
+    outputPath: args.outputPath,
+    operation:
+      args.referenceImages.length > 0 ? "image-edit" : "image-generation",
+    aspectRatio: "9:16",
+    promptVersion: 1,
+    referenceImages: args.referenceImages.map((reference) => ({
+      characterId: reference.characterId,
+      path: reference.filePath,
+      sha256: reference.filePath,
+    })),
+    characterContexts: args.spec.characters.map((usage) => ({
+      characterId: usage.characterId,
+      usage,
+    })),
+    prompt,
+    promptHash: hashText(prompt),
+    providerRequestHash: hashText(
+      JSON.stringify({
+        operation:
+          args.referenceImages.length > 0 ? "image-edit" : "image-generation",
+        model: "gpt-image-2",
+        size: "1024x1536",
+        quality: "medium",
+        outputFormat: "png",
+        background: "opaque",
+        promptVersion: 1,
+        prompt,
+        referenceImages: args.referenceImages.map((reference) => ({
+          characterId: reference.characterId,
+          sha256: reference.filePath,
+        })),
+      })
+    ),
+  };
 }
 
 async function normalizePortraitImage(
@@ -415,13 +474,17 @@ async function createNativeVerticalImage(
   finalHeight: number
 ): Promise<{ outputSha256: string; promptHash: string }> {
   const spec = buildSceneVisualSpec(scene, registry, previous);
-  const prompt = buildPromptFromSpec(spec, previous, registry, "9:16");
   const tempPath = `${outputPath}.native.tmp.png`;
+  const referenceImages = await loadReferenceImages(registry, spec.characters);
   const result = await generator.generate({
-    scene: spec,
-    prompt,
-    referenceImages: await loadReferenceImages(registry, spec.characters),
-    outputPath: tempPath,
+    providerRequest: buildShortsProviderRequest({
+      spec,
+      ...(previous ? { previous } : {}),
+      registry,
+      outputPath: tempPath,
+      referenceImages,
+    }),
+    referenceImages,
   });
   await normalizePortraitImage(tempPath, outputPath, portraitWidth, portraitHeight, "smart-crop");
   if (finalWidth !== portraitWidth || finalHeight !== portraitHeight) {
@@ -596,13 +659,17 @@ export async function prepareShortsImageAssets(
     try {
       if (shouldRegenerate) {
         const spec = buildSceneVisualSpec(scene, registry, previousSpec);
-        const prompt = buildPromptFromSpec(spec, previousSpec, registry, "9:16");
         const tempPath = `${outputPortraitPath}.native.tmp.png`;
+        const referenceImages = await loadReferenceImages(registry, spec.characters);
         const result = await generator.generate({
-          scene: spec,
-          prompt,
-          referenceImages: await loadReferenceImages(registry, spec.characters),
-          outputPath: tempPath,
+          providerRequest: buildShortsProviderRequest({
+            spec,
+            ...(previousSpec ? { previous: previousSpec } : {}),
+            registry,
+            outputPath: tempPath,
+            referenceImages,
+          }),
+          referenceImages,
         });
         await normalizePortraitImage(
           tempPath,

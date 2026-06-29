@@ -1048,7 +1048,7 @@ async function resolveSceneImagePath(
       resolveSceneImageCandidatePaths({
         episodeDir,
         sceneId: scene.id,
-        expectedFilename,
+        ...(expectedFilename ? { expectedFilename } : {}),
       })
     ),
   ].filter((candidate): candidate is string => Boolean(candidate));

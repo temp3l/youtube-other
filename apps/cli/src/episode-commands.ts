@@ -159,6 +159,14 @@ function buildCharacterRegistryFromSource(
       id,
       name: character.name,
       role: protagonistRole,
+      aliases: [
+        character.name,
+        protagonistRole,
+        ...character.name.split(/\s+/u).filter((part) => part.length >= 4),
+      ].filter((alias) => normalizeWhitespace(alias).length > 0),
+      collectiveLabels: isThreatCharacter
+        ? ["children", "kids", "boys", "girls"]
+        : [],
       physicalDescription: isThreatCharacter
         ? `${threat}.`
         : `A believable ${protagonistRole} from ${setting}.`,
@@ -210,6 +218,12 @@ function buildCharacterRegistryFromSource(
       id: sanitizeCharacterId(threat, registry.length),
       name: threat,
       role: "supernatural antagonist",
+      aliases: [threat, "antagonist"].filter(
+        (alias) => normalizeWhitespace(alias).length > 0
+      ),
+      collectiveLabels: /children|kids|boys|girls/iu.test(threat)
+        ? ["children", "kids", "boys", "girls"]
+        : [],
       physicalDescription: threat,
       ageRange: "unknown",
       genderPresentation: "unknown",
@@ -344,6 +358,41 @@ function resolveSourceForLanguage(
     );
   }
   return candidate.filePath;
+}
+
+export async function resolveEpisodeLanguageSource(
+  outputRoot: string,
+  discovery: EpisodeSourceDiscovery,
+  language: SupportedLanguage,
+  artifactType: ArtifactType
+): Promise<{
+  readonly sourceFile: string;
+  readonly warning?: string;
+}> {
+  if (language === "en" && artifactType === "full") {
+    const workspaceCandidates = [
+      path.join(outputRoot, discovery.slug, "script.md"),
+      path.join(outputRoot, discovery.slug, "en", "full", "script.md"),
+    ];
+    for (const candidate of workspaceCandidates) {
+      if (await fileExists(candidate)) {
+        return { sourceFile: candidate };
+      }
+    }
+    const fallbackSourceFile = resolveSourceForLanguage(
+      discovery,
+      language,
+      artifactType
+    );
+    return {
+      sourceFile: fallbackSourceFile,
+      warning:
+        "English localized generation fell back to the production-pack source file because the workspace script.md was missing.",
+    };
+  }
+  return {
+    sourceFile: resolveSourceForLanguage(discovery, language, artifactType),
+  };
 }
 
 async function ensureReviewPackageFiles(
@@ -483,12 +532,33 @@ async function prepareEpisodeLanguage(
   artifactType: ArtifactType,
   options: EpisodeCommandOptions
 ): Promise<Record<string, unknown>> {
-  const sourceFile = resolveSourceForLanguage(
+  const { sourceFile, warning } = await resolveEpisodeLanguageSource(
+    outputRoot,
     discovery,
     language,
     artifactType
   );
-  const loadResult = await buildEpisodeLoadResult(sourceFile, outputRoot);
+  if (warning) {
+    process.stderr.write(`${warning}\n`);
+  }
+  const loadSourceFile =
+    language === "en" &&
+    artifactType === "full" &&
+    path.resolve(sourceFile) ===
+      path.resolve(path.join(outputRoot, discovery.slug, "script.md"))
+      ? await (async () => {
+          const compatSourceFile = path.join(
+            outputRoot,
+            discovery.slug,
+            "en",
+            "script.md"
+          );
+          await ensureDir(path.dirname(compatSourceFile));
+          await fs.copyFile(sourceFile, compatSourceFile);
+          return compatSourceFile;
+        })()
+      : sourceFile;
+  const loadResult = await buildEpisodeLoadResult(loadSourceFile, outputRoot);
   const baseDir = path.join(outputRoot, discovery.slug, language, artifactType);
   await ensureDir(baseDir);
   const canonicalScenePlanPath = path.join(
@@ -881,12 +951,12 @@ export async function commandEpisodeLocalized(
   if (!selected) {
     throw new Error(`No episode found under ${sourceRoot}.`);
   }
-  await requireApproval(outputRoot, selected.slug, "en", "full");
-  const languages = parseLanguageList(options.languages).filter(
-    (language) => language !== "en"
-  );
+  const languages = parseLanguageList(options.languages);
   const selectedLanguages: SupportedLanguage[] =
     languages.length > 0 ? languages : ["de", "es", "fr"];
+  if (selectedLanguages.some((language) => language !== "en")) {
+    await requireApproval(outputRoot, selected.slug, "en", "full");
+  }
   const outputs: Record<string, unknown>[] = [];
   for (const language of selectedLanguages) {
     outputs.push(

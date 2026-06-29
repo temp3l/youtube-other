@@ -5,6 +5,7 @@ import {
   commandEpisodeSyncCharacters,
 } from "./episode-commands.js";
 import { commandImagesResume } from "./images-resume-command.js";
+import { loadRuntimeConfig } from "@mediaforge/config";
 import { registerStoryRewriteShortCommand } from "./story-short-rewrite-command.js";
 import { registerStoryRewriteFullCommand } from "./story-full-rewrite-command.js";
 import {
@@ -28,6 +29,7 @@ import {
   submitStoryLocalizationBatch,
   StoryBatchIndexService,
   SHORT_REWRITE_DEFAULT_MODEL,
+  DEFAULT_SHORT_REWRITE_MAX_OUTPUT_TOKENS as SHORT_REWRITE_DEFAULT_MAX_OUTPUT_TOKENS,
   SHORT_REWRITE_DEFAULT_REASONING_EFFORT,
   SHORT_REWRITE_DEFAULT_TEMPERATURE,
   validateGeneratedStories,
@@ -122,9 +124,10 @@ function resolveSelection(
   return selected;
 }
 
-function buildCommandConfig(
+async function buildCommandConfig(
   options: StoryLocalizationCliOptions
-): ReturnType<typeof createStoryLocalizationConfig> {
+): Promise<ReturnType<typeof createStoryLocalizationConfig>> {
+  const runtimeConfig = await loadRuntimeConfig();
   const rawArgs = new Set(process.argv.slice(2));
   const commandText = [
     process.env["MEDIAFORGE_NPM_SCRIPT_COMMAND"] ?? "",
@@ -145,9 +148,32 @@ function buildCommandConfig(
     shortMaxSeconds: options.shortMaxSeconds ?? 65,
     shortWpm: options.shortWpm ?? 180,
     concurrency: options.concurrency ?? 2,
-    model: options.model ?? SHORT_REWRITE_DEFAULT_MODEL,
+    model:
+      options.model ??
+      runtimeConfig.openAiLocalizationModel ??
+      SHORT_REWRITE_DEFAULT_MODEL,
     temperature: SHORT_REWRITE_DEFAULT_TEMPERATURE,
-    reasoningEffort: SHORT_REWRITE_DEFAULT_REASONING_EFFORT,
+    reasoningEffort:
+      runtimeConfig.openAiLocalizationReasoningEffort ??
+      SHORT_REWRITE_DEFAULT_REASONING_EFFORT,
+    maxOutputTokens:
+      runtimeConfig.openAiLocalizationMaxOutputTokens ??
+      SHORT_REWRITE_DEFAULT_MAX_OUTPUT_TOKENS,
+    retryMaxOutputTokens:
+      runtimeConfig.openAiLocalizationMaxOutputTokens ??
+      SHORT_REWRITE_DEFAULT_MAX_OUTPUT_TOKENS,
+    repairModel:
+      runtimeConfig.openAiValidatorModel ??
+      runtimeConfig.openAiMetadataModel ??
+      SHORT_REWRITE_DEFAULT_MODEL,
+    repairReasoningEffort:
+      runtimeConfig.openAiValidatorReasoningEffort ??
+      runtimeConfig.openAiMetadataReasoningEffort ??
+      SHORT_REWRITE_DEFAULT_REASONING_EFFORT,
+    repairMaxOutputTokens:
+      runtimeConfig.openAiValidatorMaxOutputTokens ??
+      runtimeConfig.openAiMetadataMaxOutputTokens ??
+      SHORT_REWRITE_DEFAULT_MAX_OUTPUT_TOKENS,
     fallbackToSync: options.fallbackToSync ?? false,
     force: options.force ?? false,
     submit: options.submit ?? false,
@@ -409,7 +435,7 @@ async function localizeSelectedStories(
 export async function commandStoriesLocalize(
   options: StoryLocalizationCliOptions
 ): Promise<void> {
-  const config = buildCommandConfig(options);
+  const config = await buildCommandConfig(options);
   const logger = createLogger(config.verbose ? "debug" : "info");
   await ensureDir(config.outputDirectory);
   const discovered = await discoverCanonicalSourceStories(
@@ -487,18 +513,42 @@ export async function commandStoriesLocalize(
   );
 }
 
-function buildBatchConfig(
+async function buildBatchConfig(
   options: StoryBatchCliOptions
-): ReturnType<typeof createStoryLocalizationConfig> {
+): Promise<ReturnType<typeof createStoryLocalizationConfig>> {
+  const runtimeConfig = await loadRuntimeConfig();
   return createStoryLocalizationConfig({
     sourceDirectory: options.sourceDir ?? resolveDefaultSourceDirectory(),
     outputDirectory: options.outputDir ?? resolveDefaultOutputDirectory(),
     languages: parseLanguages(options.languages),
     includeEnglishShort: true,
     processingMode: "batch",
-    model: options.model ?? SHORT_REWRITE_DEFAULT_MODEL,
+    model:
+      options.model ??
+      runtimeConfig.openAiLocalizationModel ??
+      SHORT_REWRITE_DEFAULT_MODEL,
     temperature: SHORT_REWRITE_DEFAULT_TEMPERATURE,
-    reasoningEffort: SHORT_REWRITE_DEFAULT_REASONING_EFFORT,
+    reasoningEffort:
+      runtimeConfig.openAiLocalizationReasoningEffort ??
+      SHORT_REWRITE_DEFAULT_REASONING_EFFORT,
+    maxOutputTokens:
+      runtimeConfig.openAiLocalizationMaxOutputTokens ??
+      SHORT_REWRITE_DEFAULT_MAX_OUTPUT_TOKENS,
+    retryMaxOutputTokens:
+      runtimeConfig.openAiLocalizationMaxOutputTokens ??
+      SHORT_REWRITE_DEFAULT_MAX_OUTPUT_TOKENS,
+    repairModel:
+      runtimeConfig.openAiValidatorModel ??
+      runtimeConfig.openAiMetadataModel ??
+      SHORT_REWRITE_DEFAULT_MODEL,
+    repairReasoningEffort:
+      runtimeConfig.openAiValidatorReasoningEffort ??
+      runtimeConfig.openAiMetadataReasoningEffort ??
+      SHORT_REWRITE_DEFAULT_REASONING_EFFORT,
+    repairMaxOutputTokens:
+      runtimeConfig.openAiValidatorMaxOutputTokens ??
+      runtimeConfig.openAiMetadataMaxOutputTokens ??
+      SHORT_REWRITE_DEFAULT_MAX_OUTPUT_TOKENS,
     verbose: options.verbose ?? false,
   });
 }
@@ -510,7 +560,7 @@ async function printBatchEntries(entries: readonly unknown[]): Promise<void> {
 export async function commandStoriesBatchesList(
   options: StoryBatchCliOptions
 ): Promise<void> {
-  const config = buildBatchConfig(options);
+  const config = await buildBatchConfig(options);
   const index = new StoryBatchIndexService(config.outputDirectory);
   await index.initialize();
   await printBatchEntries(await index.list());
@@ -519,7 +569,7 @@ export async function commandStoriesBatchesList(
 export async function commandStoriesBatchesLatest(
   options: StoryBatchCliOptions
 ): Promise<void> {
-  const config = buildBatchConfig(options);
+  const config = await buildBatchConfig(options);
   const index = new StoryBatchIndexService(config.outputDirectory);
   await index.initialize();
   const latest = await index.getLatest();
@@ -529,7 +579,7 @@ export async function commandStoriesBatchesLatest(
 export async function commandStoriesBatchesPending(
   options: StoryBatchCliOptions
 ): Promise<void> {
-  const config = buildBatchConfig(options);
+  const config = await buildBatchConfig(options);
   const index = new StoryBatchIndexService(config.outputDirectory);
   await index.initialize();
   await printBatchEntries(
@@ -548,7 +598,7 @@ export async function commandStoriesBatchesPending(
 export async function commandStoriesBatchesReady(
   options: StoryBatchCliOptions
 ): Promise<void> {
-  const config = buildBatchConfig(options);
+  const config = await buildBatchConfig(options);
   const index = new StoryBatchIndexService(config.outputDirectory);
   await index.initialize();
   await printBatchEntries(await index.list({ requiresImport: true }));
@@ -557,7 +607,7 @@ export async function commandStoriesBatchesReady(
 export async function commandStoriesBatchesFailed(
   options: StoryBatchCliOptions
 ): Promise<void> {
-  const config = buildBatchConfig(options);
+  const config = await buildBatchConfig(options);
   const index = new StoryBatchIndexService(config.outputDirectory);
   await index.initialize();
   await printBatchEntries(
@@ -570,7 +620,7 @@ export async function commandStoriesBatchesFailed(
 export async function commandStoriesBatchesExpired(
   options: StoryBatchCliOptions
 ): Promise<void> {
-  const config = buildBatchConfig(options);
+  const config = await buildBatchConfig(options);
   const index = new StoryBatchIndexService(config.outputDirectory);
   await index.initialize();
   await printBatchEntries(await index.list({ statuses: ["expired"] }));
@@ -582,7 +632,7 @@ export async function commandStoriesBatchesFind(
   if (!options.episode) {
     throw new Error("--episode is required");
   }
-  const config = buildBatchConfig(options);
+  const config = await buildBatchConfig(options);
   const index = new StoryBatchIndexService(config.outputDirectory);
   await index.initialize();
   await printBatchEntries(await index.findByEpisode(options.episode));
@@ -594,7 +644,7 @@ export async function commandStoriesBatchesShow(
   if (!options.batch) {
     throw new Error("--batch is required");
   }
-  const config = buildBatchConfig(options);
+  const config = await buildBatchConfig(options);
   const index = new StoryBatchIndexService(config.outputDirectory);
   await index.initialize();
   const entry =
@@ -609,7 +659,7 @@ export async function commandStoriesBatchesStatus(
   if (!options.batch) {
     throw new Error("--batch is required");
   }
-  const config = buildBatchConfig(options);
+  const config = await buildBatchConfig(options);
   const refreshed = await refreshStoryLocalizationBatch(
     options.batch,
     config,
@@ -621,7 +671,7 @@ export async function commandStoriesBatchesStatus(
 export async function commandStoriesBatchesRefresh(
   options: StoryBatchCliOptions
 ): Promise<void> {
-  const config = buildBatchConfig(options);
+  const config = await buildBatchConfig(options);
   const refreshed = await refreshActiveStoryBatches(
     config,
     createOpenAiStoryClient()
@@ -635,7 +685,7 @@ export async function commandStoriesBatchesImport(
   if (!options.batch) {
     throw new Error("--batch is required");
   }
-  const config = buildBatchConfig(options);
+  const config = await buildBatchConfig(options);
   const imported = await importStoryLocalizationBatch(
     options.batch,
     config,
@@ -647,7 +697,7 @@ export async function commandStoriesBatchesImport(
 export async function commandStoriesBatchesImportReady(
   options: StoryBatchCliOptions
 ): Promise<void> {
-  const config = buildBatchConfig(options);
+  const config = await buildBatchConfig(options);
   const imported = await importReadyStoryBatches(
     config,
     createOpenAiStoryClient()
@@ -661,7 +711,7 @@ export async function commandStoriesBatchesRetryFailed(
   if (!options.batch) {
     throw new Error("--batch is required");
   }
-  const config = buildBatchConfig(options);
+  const config = await buildBatchConfig(options);
   const retried = await retryFailedStoryBatch(options.batch, config);
   process.stdout.write(`${JSON.stringify(retried, null, 2)}\n`);
 }
@@ -672,7 +722,7 @@ export async function commandStoriesBatchesCancel(
   if (!options.batch) {
     throw new Error("--batch is required");
   }
-  const config = buildBatchConfig(options);
+  const config = await buildBatchConfig(options);
   const cancelled = await cancelStoryBatch(
     options.batch,
     config,
@@ -684,7 +734,7 @@ export async function commandStoriesBatchesCancel(
 export async function commandStoriesBatchesVerifyIndex(
   options: StoryBatchCliOptions
 ): Promise<void> {
-  const config = buildBatchConfig(options);
+  const config = await buildBatchConfig(options);
   const index = new StoryBatchIndexService(config.outputDirectory);
   await index.initialize();
   if (options.repair) {
@@ -699,7 +749,7 @@ export async function commandStoriesBatchesVerifyIndex(
 export async function commandStoriesBatchesRebuildIndex(
   options: StoryBatchCliOptions
 ): Promise<void> {
-  const config = buildBatchConfig(options);
+  const config = await buildBatchConfig(options);
   const index = new StoryBatchIndexService(config.outputDirectory);
   await index.initialize();
   const report = await index.rebuild();

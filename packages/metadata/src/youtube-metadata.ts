@@ -150,6 +150,10 @@ export interface YoutubeMetadataGenerationOptions {
   readonly apiKey: string;
   readonly model: string;
   readonly reasoningEffort?: "none" | "minimal" | "low" | "medium" | "high" | "xhigh" | undefined;
+  readonly maxOutputTokens: number | undefined;
+  readonly repairModel: string | undefined;
+  readonly repairReasoningEffort: "none" | "minimal" | "low" | "medium" | "high" | "xhigh" | undefined;
+  readonly repairMaxOutputTokens: number | undefined;
   readonly fallbackModels?: ReadonlyArray<string>;
   readonly language: string;
   readonly promptText: string;
@@ -996,6 +1000,15 @@ export async function generateYoutubeMetadataForTarget(
   }
   const client = options.client ?? createOpenAiMetadataClient(options.apiKey, options.baseUrl);
   const models = uniqueModels([options.model, ...resolveMetadataFallbackModels(options.model, options.fallbackModels)]);
+  const repairModel = options.repairModel ?? options.model;
+  const repairReasoningEffort =
+    options.repairReasoningEffort ??
+    options.reasoningEffort ??
+    (repairModel.startsWith("gpt-5") ? "low" : undefined);
+  const repairMaxOutputTokens =
+    options.repairMaxOutputTokens ??
+    options.maxOutputTokens ??
+    (repairModel.startsWith("gpt-5") ? 12000 : 4000);
 
   const promptText = options.promptText;
   const languageInstruction = [
@@ -1037,18 +1050,23 @@ export async function generateYoutubeMetadataForTarget(
               instructions: additionalInstruction ? `${promptInstructions}\n\n${additionalInstruction}` : promptInstructions,
               ...(() => {
                 const reasoningEffort =
-                  options.reasoningEffort ?? (model.startsWith("gpt-5") ? "low" : undefined);
+                  model === repairModel
+                    ? repairReasoningEffort
+                    : options.reasoningEffort ?? (model.startsWith("gpt-5") ? "low" : undefined);
                 return reasoningEffort && reasoningEffort !== "none"
                   ? {
                       reasoning: {
                         effort: reasoningEffort,
                       },
-                    }
-                  : {};
+                  }
+                : {};
               })(),
               input: buildRequestInput(upload.id),
               text: { format: schema },
-              max_output_tokens: model.startsWith("gpt-5") ? 12000 : 4000
+              max_output_tokens:
+                model === repairModel
+                  ? repairMaxOutputTokens
+                  : options.maxOutputTokens ?? (model.startsWith("gpt-5") ? 12000 : 4000)
             },
             { signal: AbortSignal.timeout(options.timeoutMs) }
           ),
@@ -1166,7 +1184,7 @@ export async function generateYoutubeMetadataForTarget(
         `Validation errors:\n${JSON.stringify(parsed.error.flatten(), null, 2)}`,
         `Previous JSON:\n${responseText}`
       ].join("\n\n");
-      responseText = await executeRequest(resolvedModel, repairInstruction);
+      responseText = await executeRequest(repairModel, repairInstruction);
       parsed = youtubeMetadataSchema.safeParse(extractResponseJson(responseText));
       repaired = true;
       if (!parsed.success) {
@@ -1203,7 +1221,7 @@ export async function generateYoutubeMetadataForTarget(
         `Previous JSON:\n${responseText}`,
         "Fix only the invalid fields."
       ].join("\n\n");
-      responseText = await executeRequest(resolvedModel, repairInstruction);
+      responseText = await executeRequest(repairModel, repairInstruction);
       parsed = youtubeMetadataSchema.safeParse(extractResponseJson(responseText));
       repaired = true;
       if (!parsed.success) {

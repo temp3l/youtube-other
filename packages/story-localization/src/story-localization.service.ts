@@ -745,6 +745,7 @@ async function writeStructuredOpenAiDebugArtifacts(args: {
 async function generateStructuredStoryPackage<T>(
   client: OpenAiStoryClient,
   model: string,
+  repairModel: string | undefined,
   requestLabel: string,
   system: string,
   user: string,
@@ -754,6 +755,8 @@ async function generateStructuredStoryPackage<T>(
   temperature: number,
   maxOutputTokens: number,
   reasoningEffort: StoryLocalizationConfig["reasoningEffort"],
+  repairMaxOutputTokens: number | undefined,
+  repairReasoningEffort: StoryLocalizationConfig["reasoningEffort"] | undefined,
   validate: (value: T) => string[],
   options?: {
     readonly retryLabel?: string;
@@ -839,7 +842,7 @@ async function generateStructuredStoryPackage<T>(
   ].join("\n");
   const repair = await callOpenAiStructured(
     client,
-    model,
+    repairModel ?? model,
     options?.retryLabel ?? `${requestLabel} repair`,
     system,
     [
@@ -851,8 +854,8 @@ async function generateStructuredStoryPackage<T>(
     schemaName,
     timeoutMs,
     temperature,
-    maxOutputTokens,
-    reasoningEffort,
+    repairMaxOutputTokens ?? maxOutputTokens,
+    repairReasoningEffort ?? reasoningEffort,
     debugOptions
   );
   try {
@@ -880,7 +883,7 @@ async function generateStructuredStoryPackage<T>(
       ].join("\n");
       const secondRepair = await callOpenAiStructured(
         client,
-        model,
+        repairModel ?? model,
         `${requestLabel} short repair`,
         system,
         secondRepairUser,
@@ -888,8 +891,8 @@ async function generateStructuredStoryPackage<T>(
         schemaName,
         timeoutMs,
         temperature,
-        maxOutputTokens,
-        reasoningEffort,
+        repairMaxOutputTokens ?? maxOutputTokens,
+        repairReasoningEffort ?? reasoningEffort,
         debugOptions
       );
       try {
@@ -1444,6 +1447,7 @@ export async function localizeStoryEpisode(
       >(
         client,
         config.model,
+        config.repairModel,
         "English full story localization",
         englishFullPrompt.system,
         englishFullPrompt.user,
@@ -1453,6 +1457,8 @@ export async function localizeStoryEpisode(
         config.temperature,
         config.maxOutputTokens ?? 25_000,
         config.reasoningEffort,
+        config.repairMaxOutputTokens,
+        config.repairReasoningEffort,
         (value) => {
           const issues: string[] = [];
           try {
@@ -1677,6 +1683,7 @@ export async function localizeStoryEpisode(
       >(
         client,
         config.model,
+        config.repairModel,
         `${profile.displayName} full story localization`,
         languagePrompt.system,
         languagePrompt.user,
@@ -1686,6 +1693,8 @@ export async function localizeStoryEpisode(
         config.temperature,
         config.maxOutputTokens ?? 25_000,
         config.reasoningEffort,
+        config.repairMaxOutputTokens,
+        config.repairReasoningEffort,
         (value) => {
           const issues: string[] = [];
           try {
@@ -2035,6 +2044,9 @@ export function createStoryLocalizationConfig(input: Partial<StoryLocalizationCo
     timeoutMs: input.timeoutMs ?? 180_000,
     maxOutputTokens: input.maxOutputTokens ?? 25_000,
     retryMaxOutputTokens: input.retryMaxOutputTokens ?? 25_000,
+    repairModel: input.repairModel,
+    repairReasoningEffort: input.repairReasoningEffort,
+    repairMaxOutputTokens: input.repairMaxOutputTokens,
     concurrency: input.concurrency ?? 2,
     model: input.model ?? SHORT_REWRITE_DEFAULT_MODEL,
     temperature: input.temperature ?? SHORT_REWRITE_DEFAULT_TEMPERATURE,

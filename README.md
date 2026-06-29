@@ -1,7 +1,82 @@
+## prompts
+
+---
+
+### documentation
+
+write extensive documentation for all dark-truth cli commands
+
+### resumer
+
+plan a cli command for resuming video generation for a specific language of an episode
+it should create metadata like scenes.json and visual-plan.json if absent
+it should create character maps and fill .localization-cache if needed
+it should detect existing audio assets and resume audio generation if needed
+it should detect exisiting images and resume image generation if needed
+it should detect existing clips and continue generating if needed
+it should finally create the final video and youtube metadata if needed
+
+---
+
+- 9.31$
+  What is still missing:
+
+  - A single resolver used by all consumers, not just a few.
+  - The canonical scene split and execution-state extraction from scenes.json.
+  - The full locale/variant migration and compatibility reader cleanup.
+  - Migration tooling for old episode layouts.
+  - The observability and cleanup hardening phase.
+  - A repository-wide path audit so callers stop reconstructing paths manually.
+
+---
+
+some cli commands save their output under locales/en/full/locales/en/full/audio/segments
+why is that - how to fix that ?
+
+---
+
+this command: "node apps/cli/dist/index.js audio generate 012-the-elevator-game --language de"
+produced: "/home/box/workspace/fehmarn-seo/youtube/other/episodes/012-the-elevator-game/locales/en/full/locales/en/full/audio/narration.wav"
+
+this command: "npm run images:plan -- --episode 012-the-elevator-game" results in: "Error: Episode not found: 012-the-elevator-game"
+
+## refactored with 5.5:
+
+• IMG-001 is done. I added the architecture review at docs/architecture/image-pipeline-hardening-review.md:1.
+
+- shared/images/generated/ is already the right canonical direction;
+- path ownership is still split and needs to move fully into @mediaforge/shared;
+- typed visual planning exists, but narration still leaks into visual-source fields;
+- scene-difference repair still uses synthetic camera/shot churn;
+- --concurrency is still not truly implemented.
+
+docs/decisions/009-image-artifact-layout.md:1.
+It freezes the image layout and answers the prompt’s storage-contract questions explicitly:
+
+- canonical generated scene images live in shared/images/generated/;
+- state/image-generation/ is for resumability, prompts, visual plans, request/response audit records, checkpoints, and failures;
+- state/image-generation/images/ is legacy compatibility only;
+- full/short and cross-language reuse default to sharing the same canonical scene image unless visible localized text requires a variant.
+
+---
+
 - models
 - reasoning
 - retries (multiple version)
 - max-output tokens
+
+---
+
+1. ode apps/cli/dist/index.js episode plan --episode 012-the-elevator-game --verbose
+
+• Use these commands to go from the current Spanish workspace to the final video without regenerating images or rerunning TTS:
+
+node apps/cli/dist/index.js render 011-the-black-eyed-children --profile youtube
+
+node apps/cli/dist/index.js youtube upload \
+ --episode 011-the-black-eyed-children \
+ --video-path episodes/011-the-black-eyed-children/es/full/renders/youtube/youtube-16x9-es-clean.mp4 \
+ --metadata-path episodes/011-the-black-eyed-children/es/full/metadata.json
 
 ---
 

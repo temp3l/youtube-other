@@ -134,8 +134,11 @@ export interface StoryLocalizationConfig {
   readonly shortMaxSeconds: number;
   readonly shortWpm: number;
   readonly timeoutMs: number;
-  readonly maxOutputTokens?: number;
-  readonly retryMaxOutputTokens?: number;
+  readonly maxOutputTokens: number | undefined;
+  readonly retryMaxOutputTokens: number | undefined;
+  readonly repairModel: string | undefined;
+  readonly repairReasoningEffort: "none" | "minimal" | "low" | "medium" | "high" | "xhigh" | undefined;
+  readonly repairMaxOutputTokens: number | undefined;
   readonly concurrency: number;
   readonly model: string;
   readonly temperature: number;

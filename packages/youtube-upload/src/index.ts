@@ -13,11 +13,15 @@ import {
 } from "@mediaforge/metadata";
 import { currentExecutionTelemetry } from "@mediaforge/observability";
 import {
+  createEpisodePathResolver,
   ensureDir,
   fileExists,
   hashFile,
   hashText,
   normalizeWhitespace,
+  normalizeContentVariant,
+  normalizeEpisodeId,
+  normalizeLocaleCode,
   readJsonIfExists,
   writeJsonAtomic,
   writeTextAtomic,
@@ -131,6 +135,10 @@ export interface YoutubeUploadCommandInput {
     readonly apiKey: string;
     readonly model: string;
     readonly reasoningEffort?: "none" | "minimal" | "low" | "medium" | "high" | "xhigh" | undefined;
+    readonly maxOutputTokens: number | undefined;
+    readonly repairModel: string | undefined;
+    readonly repairReasoningEffort: "none" | "minimal" | "low" | "medium" | "high" | "xhigh" | undefined;
+    readonly repairMaxOutputTokens: number | undefined;
     readonly promptText: string;
     readonly maxRetries: number;
     readonly timeoutMs: number;
@@ -473,8 +481,28 @@ async function resolveFirstExisting(paths: ReadonlyArray<string>): Promise<strin
   return null;
 }
 
+function episodePathsForDir(episodeDir: string) {
+  const episodeRoot = path.resolve(episodeDir);
+  const resolver = createEpisodePathResolver(path.dirname(episodeRoot));
+  const episodeId = normalizeEpisodeId(path.basename(episodeRoot));
+  return { resolver, episodeId };
+}
+
+function localizedEpisodeContext(episodeDir: string, localeName: string) {
+  const { resolver, episodeId } = episodePathsForDir(episodeDir);
+  return {
+    resolver,
+    context: {
+      episodeId,
+      locale: normalizeLocaleCode(localeName),
+      variant: normalizeContentVariant("full"),
+    },
+  };
+}
+
 async function loadEpisodeManifest(episodeDir: string): Promise<EpisodeManifest | null> {
-  const manifestPath = path.join(episodeDir, "manifest.json");
+  const { resolver, episodeId } = episodePathsForDir(episodeDir);
+  const manifestPath = resolver.manifestPath(episodeId);
   return readJsonIfExists(manifestPath, (value) => episodeManifestSchema.parse(value));
 }
 
@@ -505,9 +533,14 @@ async function resolveVideoPath(episodeDir: string, overrides?: YoutubeUploadOve
       .filter((entry) => entry.isDirectory())
       .map((entry) => entry.name)
       .sort((left, right) => left.localeCompare(right))
-      .map((localeName) =>
-        path.join(episodeDir, "locales", localeName, "full", "renders", "youtube")
-      ),
+      .flatMap((localeName) => {
+        try {
+          const { resolver, context } = localizedEpisodeContext(episodeDir, localeName);
+          return [resolver.renderDir(context, "youtube")];
+        } catch {
+          return [];
+        }
+      }),
     path.join(episodeDir, "output"),
   ];
   const mp4Candidates: string[] = [];
@@ -615,7 +648,8 @@ async function prepareThumbnailForUpload(episodeDir: string, sourcePath: string)
   readonly mimeType: "image/png" | "image/jpeg" | "image/webp";
   readonly optimized: boolean;
 }> {
-  const thumbnailDir = path.join(episodeDir, "state", "upload", "thumbnails");
+  const { resolver, episodeId } = episodePathsForDir(episodeDir);
+  const thumbnailDir = path.join(resolver.uploadStateDir(episodeId), "thumbnails");
   await ensureDir(thumbnailDir);
   const stagedPath = path.join(thumbnailDir, "youtube-thumbnail.jpg");
   const originalStats = await fs.stat(sourcePath);
@@ -849,10 +883,18 @@ export async function generateUploadMetadataForEpisode(
     .filter((entry) => entry.isDirectory())
     .map((entry) => entry.name)
     .sort((left, right) => left.localeCompare(right))
-    .flatMap((entry) => [
-      path.join(episodeDir, "locales", entry, "full", "metadata", "youtube.json"),
-      path.join(episodeDir, "locales", entry, "full", "metadata", "youtube-metadata.json"),
-    ]);
+    .flatMap((entry) => {
+      try {
+        const { resolver, context } = localizedEpisodeContext(episodeDir, entry);
+        const metadataDir = resolver.metadataDir(context);
+        return [
+          path.join(metadataDir, "youtube.json"),
+          path.join(metadataDir, "youtube-metadata.json"),
+        ];
+      } catch {
+        return [];
+      }
+    });
   const targetMetadataPath = metadataPath
     ? path.resolve(episodeDir, metadataPath)
     : await resolveFirstExisting([
@@ -886,8 +928,9 @@ export async function generateUploadMetadataForEpisode(
 }
 
 async function resolveScenesFileForEpisode(episodeDir: string): Promise<string> {
+  const { resolver, episodeId } = episodePathsForDir(episodeDir);
   const candidates = [
-    path.join(episodeDir, "canonical", "scenes.json"),
+    resolver.canonicalScenesPath(episodeId),
     path.join(episodeDir, "scenes.json"),
     path.join(episodeDir, "output", "scenes.json"),
   ];
@@ -1006,7 +1049,8 @@ async function validateChannelOwnership(
 export async function uploadYoutubeEpisode(input: YoutubeUploadCommandInput): Promise<YoutubeUploadResult> {
   const startedAt = Date.now();
   const episodeDir = input.episodeDir ?? path.join(input.workspaceDir, input.episodeId);
-  const reportDir = input.reportDir ?? path.join(episodeDir, "state", "upload", "reports");
+  const { resolver, episodeId } = episodePathsForDir(episodeDir);
+  const reportDir = input.reportDir ?? path.join(resolver.uploadStateDir(episodeId), "reports");
   const resolved = await generateUploadMetadataForEpisode(
     episodeDir,
     input.episodeId,
@@ -1046,6 +1090,10 @@ export async function uploadYoutubeEpisode(input: YoutubeUploadCommandInput): Pr
             {
               apiKey: input.metadataGeneration.apiKey,
               model: input.metadataGeneration.model,
+              maxOutputTokens: input.metadataGeneration.maxOutputTokens,
+              repairModel: input.metadataGeneration.repairModel,
+              repairReasoningEffort: input.metadataGeneration.repairReasoningEffort,
+              repairMaxOutputTokens: input.metadataGeneration.repairMaxOutputTokens,
               language: "en",
               promptText: input.metadataGeneration.promptText,
               maxRetries: input.metadataGeneration.maxRetries,

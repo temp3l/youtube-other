@@ -169,6 +169,15 @@ export function registerStoryRewriteFullCommand(storiesCommand: Command): void {
           options.reasoningEffort ??
           runtimeConfig.openAiStoryReasoningEffort ??
           DEFAULT_STORY_REWRITE_REASONING_EFFORT,
+        repairModel:
+          runtimeConfig.openAiValidatorModel ??
+          runtimeConfig.openAiMetadataModel,
+        repairReasoningEffort:
+          runtimeConfig.openAiValidatorReasoningEffort ??
+          runtimeConfig.openAiMetadataReasoningEffort,
+        repairMaxOutputTokens:
+          runtimeConfig.openAiValidatorMaxOutputTokens ??
+          runtimeConfig.openAiMetadataMaxOutputTokens,
         force: options.overwrite ?? options.force ?? false,
         resume: options.resume ?? false,
         dryRun: options.dryRun || hasDryRunFlag,

@@ -134,6 +134,9 @@ export interface ShortRewriteRunOptions {
   readonly reasoningEffort?: "none" | "minimal" | "low" | "medium" | "high" | "xhigh" | undefined;
   readonly maxOutputTokens?: number | undefined;
   readonly retryMaxOutputTokens?: number | undefined;
+  readonly repairModel?: string | undefined;
+  readonly repairReasoningEffort?: "none" | "minimal" | "low" | "medium" | "high" | "xhigh" | undefined;
+  readonly repairMaxOutputTokens?: number | undefined;
   readonly maxConcurrency?: number | undefined;
   readonly timeoutMs?: number | undefined;
   readonly maxRetries?: number | undefined;

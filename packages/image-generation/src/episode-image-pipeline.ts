@@ -22,6 +22,20 @@ import {
   hashText,
   normalizeWhitespace,
   readJsonIfExists,
+  resolveEpisodeImageCheckpointPath,
+  resolveEpisodeImageCheckpointsDir,
+  resolveEpisodeCharacterReferencePath,
+  resolveEpisodeCharacterRegistryPath,
+  resolveEpisodeImageFailurePath,
+  resolveEpisodeImageFailuresDir,
+  resolveEpisodeImageManifestPath,
+  resolveEpisodeImagePromptPath,
+  resolveEpisodeImageProviderRequestPath,
+  resolveEpisodeImageProviderRequestsDir,
+  resolveEpisodeImageProviderResponsePath,
+  resolveEpisodeImageProviderResponsesDir,
+  resolveEpisodeImageVisualPlanPath,
+  resolveEpisodeImageVisualPlansDir,
   resolveSceneImageCandidatePaths,
   writeJsonAtomic,
   writeTextAtomic,
@@ -47,6 +61,8 @@ export interface CharacterDefinition {
   id: CharacterId;
   name: string;
   role: string;
+  aliases?: string[];
+  collectiveLabels?: string[];
   physicalDescription: string;
   ageRange: string;
   genderPresentation: string;
@@ -138,6 +154,7 @@ export interface SceneVisualSpec {
   distinctiveAnchor: string;
   continuityElements: string[];
   characters: SceneCharacterUsage[];
+  unresolvedRecurringCharacterMentions?: string[];
   prohibitedElements: string[];
   allowMatchingComposition?: boolean;
   matchingCompositionReason?: string;
@@ -164,6 +181,7 @@ export type SceneVisualPlanIssueCode =
   | "MISSING_FOCAL_SUBJECT"
   | "MISSING_RECURRING_CHARACTER"
   | "UNKNOWN_CHARACTER_ID"
+  | "UNRESOLVED_RECURRING_CHARACTER"
   | "NON_MATERIAL_SCENE_DIFFERENCE"
   | "PROMPT_TOO_VERBOSE"
   | "CONTRADICTORY_CONSTRAINTS"
@@ -171,7 +189,11 @@ export type SceneVisualPlanIssueCode =
   | "NON_VISUAL_AUDIO_REFERENCE"
   | "REQUIRED_TEXT_MISSING"
   | "BLANKET_NO_TEXT_INSTRUCTION"
-  | "BLANKET_NO_TEXT_INSTRUCTION_MISSING";
+  | "BLANKET_NO_TEXT_INSTRUCTION_MISSING"
+  | "CONTRADICTORY_REQUIRED_FEATURE"
+  | "PREVIOUS_SCENE_TEXT_LEAKAGE"
+  | "EMPTY_LOCATION"
+  | "VISUAL_FIELD_TOO_VERBOSE";
 
 export interface SceneVisualPlanIssue {
   code: SceneVisualPlanIssueCode;
@@ -184,11 +206,42 @@ export interface ReferenceImage {
   mimeType: "image/png" | "image/jpeg" | "image/webp";
 }
 
-export interface ImageGenerationRequest {
+export interface ImageProviderCharacterContext {
+  characterId: CharacterId;
+  usage?: SceneCharacterUsage;
+  definition?: CharacterDefinition;
+}
+
+export interface ImageProviderRequest {
+  sceneId: string;
   scene: SceneVisualSpec;
-  prompt: string;
-  referenceImages: ReferenceImage[];
+  previousScene?: SceneVisualSpec;
+  model: string;
+  size: string;
+  quality: "low" | "medium" | "high" | "auto";
+  outputFormat: "png";
+  background: "opaque";
   outputPath: string;
+  operation: "image-generation" | "image-edit";
+  aspectRatio: "16:9" | "9:16";
+  promptVersion: number;
+  referenceImages: Array<{
+    characterId: CharacterId;
+    path: string;
+    sha256: string;
+  }>;
+  characterContexts: ImageProviderCharacterContext[];
+}
+
+export interface PreparedImageProviderRequest extends ImageProviderRequest {
+  prompt: string;
+  promptHash: string;
+  providerRequestHash: string;
+}
+
+export interface ImageGenerationRequest {
+  providerRequest: PreparedImageProviderRequest;
+  referenceImages: ReferenceImage[];
 }
 
 export interface GeneratedImageResult {
@@ -201,6 +254,7 @@ export interface GeneratedImageResult {
   attempts: number;
   durationMs: number;
   requestId?: string;
+  providerRequestHash: string;
   promptHash: string;
   referenceHashes: Array<{ characterId: CharacterId; sha256: string }>;
 }
@@ -216,6 +270,7 @@ export interface SceneGenerationManifest {
   visualPlanHash?: string;
   renderability?: SceneRenderability;
   finalPrompt: string;
+  providerRequestHash?: string;
   promptHash: string;
   previousSceneId?: string;
   reusedFromSceneId?: string;
@@ -251,6 +306,113 @@ export interface PersistedSceneVisualPlan {
   validationIssues: SceneVisualPlanIssue[];
   materialDifferencesFromPrevious: string[];
   generatedAt: string;
+}
+
+export type SceneCheckpointStatus =
+  | "planned"
+  | "queued_for_next_reuse"
+  | "reused_previous_scene"
+  | "reused_next_scene"
+  | "reused_cached_output"
+  | "validation_failed"
+  | "provider_requested"
+  | "generated"
+  | "provider_failed";
+
+export type SceneFailureStage =
+  | "visual-planning"
+  | "reference-resolution"
+  | "provider"
+  | "filesystem"
+  | "manifest";
+
+export type SceneFailureCategory =
+  | "source-data-error"
+  | "visual-planning-error"
+  | "prompt-validation-error"
+  | "character-continuity-error"
+  | "path-resolution-error"
+  | "cache-error"
+  | "provider-safety-rejection"
+  | "provider-rate-limit"
+  | "provider-transient-error"
+  | "provider-permanent-error"
+  | "filesystem-error"
+  | "manifest-conflict";
+
+export interface PersistedImageProviderRequest {
+  sceneId: string;
+  provider: "openai";
+  operation: "image-generation" | "image-edit";
+  model: string;
+  size: string;
+  quality: "low" | "medium" | "high" | "auto";
+  outputFormat: "png";
+  background: "opaque";
+  prompt: string;
+  providerRequestHash: string;
+  promptHash: string;
+  outputPath: string;
+  referenceImages: Array<{
+    characterId: string;
+    path: string;
+    sha256: string;
+  }>;
+  recordedAt: string;
+}
+
+export interface PersistedImageProviderResponse {
+  sceneId: string;
+  provider: "openai";
+  operation: "image-generation" | "image-edit";
+  model: string;
+  size: string;
+  quality: string;
+  providerRequestHash: string;
+  promptHash: string;
+  outputPath: string;
+  outputSha256: string;
+  attempts: number;
+  durationMs: number;
+  requestId?: string;
+  referenceHashes: Array<{
+    characterId: string;
+    sha256: string;
+  }>;
+  recordedAt: string;
+}
+
+export interface PersistedImageGenerationCheckpoint {
+  sceneId: string;
+  status: SceneCheckpointStatus;
+  outputPath: string;
+  promptHash: string;
+  visualPlanHash?: string;
+  cacheDecision:
+    | "planned"
+    | "queued-for-reuse"
+    | "reused-previous"
+    | "reused-next"
+    | "reused-existing"
+    | "validation-failed"
+    | "provider-requested"
+    | "generated"
+    | "provider-failed";
+  details?: string[];
+  recordedAt: string;
+}
+
+export interface PersistedImageGenerationFailure {
+  sceneId: string;
+  stage: SceneFailureStage;
+  category: SceneFailureCategory;
+  outputPath: string;
+  promptHash?: string;
+  code?: string;
+  message: string;
+  retryable: boolean;
+  attempts?: number;
+  recordedAt: string;
 }
 
 export interface EpisodeImagePipelineSettings {
@@ -299,6 +461,8 @@ const registrySchema = z.object({
       id: z.string().min(1),
       name: z.string().min(1),
       role: z.string().min(1),
+      aliases: z.array(z.string().min(1)).optional(),
+      collectiveLabels: z.array(z.string().min(1)).optional(),
       physicalDescription: z.string().min(1),
       ageRange: z.string().min(1),
       genderPresentation: z.string().min(1),
@@ -353,6 +517,7 @@ const manifestSchema = z.object({
     ])
     .optional(),
   finalPrompt: z.string(),
+  providerRequestHash: z.string().optional(),
   promptHash: z.string(),
   previousSceneId: z.string().optional(),
   reusedFromSceneId: z.string().optional(),
@@ -418,6 +583,7 @@ const sceneVisualSpecSchema = z.object({
       visibleFeatures: z.array(z.string()).optional(),
     })
   ),
+  unresolvedRecurringCharacterMentions: z.array(z.string().min(1)).optional(),
   prohibitedElements: z.array(z.string()),
   allowMatchingComposition: z.boolean().optional(),
   matchingCompositionReason: z.string().optional(),
@@ -442,6 +608,115 @@ const persistedSceneVisualPlanSchema = z.object({
   validationIssues: z.array(sceneVisualPlanIssueSchema),
   materialDifferencesFromPrevious: z.array(z.string()),
   generatedAt: z.string(),
+});
+
+const persistedImageProviderRequestSchema = z.object({
+  sceneId: z.string().min(1),
+  provider: z.literal("openai"),
+  operation: z.enum(["image-generation", "image-edit"]),
+  model: z.string().min(1),
+  size: z.string().min(1),
+  quality: z.enum(["low", "medium", "high", "auto"]),
+  outputFormat: z.literal("png"),
+  background: z.literal("opaque"),
+  prompt: z.string().min(1),
+  providerRequestHash: z.string().min(1),
+  promptHash: z.string().min(1),
+  outputPath: z.string().min(1),
+  referenceImages: z.array(
+    z.object({
+      characterId: z.string().min(1),
+      path: z.string().min(1),
+      sha256: z.string().min(1),
+    })
+  ),
+  recordedAt: z.string(),
+});
+
+const persistedImageProviderResponseSchema = z.object({
+  sceneId: z.string().min(1),
+  provider: z.literal("openai"),
+  operation: z.enum(["image-generation", "image-edit"]),
+  model: z.string().min(1),
+  size: z.string().min(1),
+  quality: z.string().min(1),
+  providerRequestHash: z.string().min(1),
+  promptHash: z.string().min(1),
+  outputPath: z.string().min(1),
+  outputSha256: z.string().min(1),
+  attempts: z.number().int().nonnegative(),
+  durationMs: z.number().int().nonnegative(),
+  requestId: z.string().optional(),
+  referenceHashes: z.array(
+    z.object({
+      characterId: z.string().min(1),
+      sha256: z.string().min(1),
+    })
+  ),
+  recordedAt: z.string(),
+});
+
+const persistedImageGenerationCheckpointSchema = z.object({
+  sceneId: z.string().min(1),
+  status: z.enum([
+    "planned",
+    "queued_for_next_reuse",
+    "reused_previous_scene",
+    "reused_next_scene",
+    "reused_cached_output",
+    "validation_failed",
+    "provider_requested",
+    "generated",
+    "provider_failed",
+  ]),
+  outputPath: z.string().min(1),
+  promptHash: z.string().min(1),
+  visualPlanHash: z.string().optional(),
+  cacheDecision: z.enum([
+    "planned",
+    "queued-for-reuse",
+    "reused-previous",
+    "reused-next",
+    "reused-existing",
+    "validation-failed",
+    "provider-requested",
+    "generated",
+    "provider-failed",
+  ]),
+  details: z.array(z.string()).optional(),
+  recordedAt: z.string(),
+});
+
+const persistedImageGenerationFailureSchema = z.object({
+  sceneId: z.string().min(1),
+  stage: z.enum([
+    "visual-planning",
+    "reference-resolution",
+    "provider",
+    "filesystem",
+    "manifest",
+  ]),
+  category: z.enum([
+    "source-data-error",
+    "visual-planning-error",
+    "prompt-validation-error",
+    "character-continuity-error",
+    "path-resolution-error",
+    "cache-error",
+    "provider-safety-rejection",
+    "provider-rate-limit",
+    "provider-transient-error",
+    "provider-permanent-error",
+    "filesystem-error",
+    "manifest-conflict",
+  ]),
+  outputPath: z.string().min(1),
+  promptHash: z.string().optional(),
+  code: z.string().optional(),
+  message: z.string().min(1),
+  retryable: z.boolean(),
+  attempts: z.number().int().nonnegative().optional(),
+  recordedAt: z.string(),
 });
 
 const generationModeSchema = z.enum(["text-only", "reference-assisted"]);
@@ -513,30 +788,11 @@ const stopWords = new Set([
   "same",
 ]);
 
-const shotRotation: ShotSize[] = [
-  "wide",
-  "medium",
-  "medium-wide",
-  "medium-close-up",
-  "close-up",
-  "insert",
-  "extreme-close-up",
-  "extreme-wide",
-];
-
-const cameraRotation: CameraAngle[] = [
-  "eye-level",
-  "over-the-shoulder",
-  "low-angle",
-  "high-angle",
-  "profile",
-  "rear-three-quarter",
-  "point-of-view",
-  "top-down",
-];
-
 const supportedImageSizes = new Set(["1024x1024", "1536x1024", "1024x1536"]);
 const minimumUniqueSceneFloor = 1;
+const unresolvedFocalSubject = "unresolved visual subject";
+const unresolvedVisibleAction = "unresolved visible action";
+const unresolvedEnvironment = "unresolved environment";
 
 function normalizeToken(token: string): string {
   return token.toLowerCase().replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, "");
@@ -684,6 +940,7 @@ async function canReuseSceneImage(input: {
   readonly existing: SceneGenerationManifest | null;
   readonly currentSceneHash: string;
   readonly currentPromptHash: string;
+  readonly currentProviderRequestHash: string;
   readonly currentVisualPlanHash: string;
   readonly currentRenderability?: SceneRenderability;
   readonly currentReferenceImages: Array<{ readonly characterId: string; readonly sha256: string }>;
@@ -703,6 +960,12 @@ async function canReuseSceneImage(input: {
     return false;
   }
   if (input.existing.promptHash !== input.currentPromptHash) {
+    return false;
+  }
+  if (
+    input.existing.providerRequestHash === undefined ||
+    input.existing.providerRequestHash !== input.currentProviderRequestHash
+  ) {
     return false;
   }
   if (
@@ -781,24 +1044,6 @@ function hashBuffer(buffer: Buffer): string {
   return crypto.createHash("sha256").update(buffer).digest("hex");
 }
 
-function sceneManifestPath(episodeDir: string, sceneId: string): string {
-  return path.join(episodeDir, "state", "image-generation", "manifests", `${sceneId}.json`);
-}
-
-function scenePromptPath(episodeDir: string, sceneId: string): string {
-  return path.join(episodeDir, "state", "image-generation", "prompts", `${sceneId}.txt`);
-}
-
-function sceneVisualPlanPath(episodeDir: string, sceneId: string): string {
-  return path.join(
-    episodeDir,
-    "state",
-    "image-generation",
-    "visual-plans",
-    `${sceneId}.json`
-  );
-}
-
 function sceneOutputPath(episodeDir: string, scene: Scene): string {
   return resolveSceneImageCandidatePaths({
     episodeDir,
@@ -868,6 +1113,7 @@ interface PendingMergeWithNextScene {
   readonly manifestPath: string;
   readonly outputPath: string;
   readonly sceneHash: string;
+  readonly providerRequest: PreparedImageProviderRequest;
   readonly prompt: string;
   readonly promptHash: string;
   readonly visualPlanHash: string;
@@ -877,9 +1123,6 @@ interface PendingMergeWithNextScene {
   readonly validationIssueCodes: readonly SceneVisualPlanIssueCode[];
   readonly characterIds: readonly string[];
   readonly referenceImages: SceneGenerationManifest["referenceImages"];
-  readonly model: string;
-  readonly size: string;
-  readonly quality: string;
   readonly spec: SceneVisualSpec;
 }
 
@@ -908,11 +1151,12 @@ async function materializePendingMergeWithNextScenes(args: {
       await copyAtomic(args.sourceOutputPath, pending.outputPath);
       const manifest: SceneGenerationManifest = {
         sceneId: pending.sceneId,
-        promptVersion: 1,
+        promptVersion: pending.providerRequest.promptVersion,
         sceneHash: pending.sceneHash,
         visualPlanHash: pending.visualPlanHash,
         renderability: pending.renderability,
         finalPrompt: pending.prompt,
+        providerRequestHash: pending.providerRequest.providerRequestHash,
         promptHash: pending.promptHash,
         ...(pending.previousSceneId ? { previousSceneId: pending.previousSceneId } : {}),
         reusedFromSceneId: args.sourceSceneId,
@@ -922,9 +1166,9 @@ async function materializePendingMergeWithNextScenes(args: {
           : {}),
         characterIds: [...pending.characterIds],
         referenceImages: pending.referenceImages,
-        model: pending.model,
-        size: pending.size,
-        quality: pending.quality,
+        model: pending.providerRequest.model,
+        size: pending.providerRequest.size,
+        quality: pending.providerRequest.quality,
         outputPath: pending.outputPath,
         outputSha256: args.sourceOutputSha256,
         status: "generated",
@@ -932,6 +1176,16 @@ async function materializePendingMergeWithNextScenes(args: {
         generatedAt: new Date().toISOString(),
       };
       await writeManifest(pending.manifestPath, manifest);
+      await writeGenerationCheckpoint(args.episodeDir, {
+        sceneId: pending.sceneId,
+        status: "reused_next_scene",
+        outputPath: pending.outputPath,
+        promptHash: pending.promptHash,
+        visualPlanHash: pending.visualPlanHash,
+        cacheDecision: "reused-next",
+        details: [`reused output from ${args.sourceSceneId}`],
+        recordedAt: new Date().toISOString(),
+      });
       results.push({
         episodeId: pending.episodeId,
         sceneId: pending.sceneId,
@@ -944,26 +1198,173 @@ async function materializePendingMergeWithNextScenes(args: {
     return results;
   }
   for (const pending of args.pendingScenes) {
-    const { referenceImages } = await loadReferenceImages(
+    let referenceImages: ReferenceImage[];
+    try {
+      ({ referenceImages } = await loadReferenceImages(
+        args.episodeDir,
+        args.registry,
+        pending.spec,
+        args.settings,
+        args.client
+      ));
+    } catch (error) {
+      const message = formatError(error);
+      const errorCode = parseErrorCode(error);
+      const manifest: SceneGenerationManifest = {
+        sceneId: pending.sceneId,
+        promptVersion: pending.providerRequest.promptVersion,
+        sceneHash: pending.sceneHash,
+        visualPlanHash: pending.visualPlanHash,
+        renderability: pending.renderability,
+        finalPrompt: pending.prompt,
+        providerRequestHash: pending.providerRequest.providerRequestHash,
+        promptHash: pending.promptHash,
+        ...(pending.previousSceneId
+          ? { previousSceneId: pending.previousSceneId }
+          : {}),
+        materialDifferencesFromPrevious: [...pending.materialDifferencesFromPrevious],
+        ...(pending.validationIssueCodes.length > 0
+          ? { validationIssueCodes: [...pending.validationIssueCodes] }
+          : {}),
+        characterIds: [...pending.characterIds],
+        referenceImages: pending.referenceImages,
+        model: pending.providerRequest.model,
+        size: pending.providerRequest.size,
+        quality: pending.providerRequest.quality,
+        outputPath: pending.outputPath,
+        status: "failed",
+        attempts: 0,
+        error: { message, retryable: false },
+      };
+      await writeManifest(pending.manifestPath, manifest);
+      await writeGenerationCheckpoint(args.episodeDir, {
+        sceneId: pending.sceneId,
+        status: "provider_failed",
+        outputPath: pending.outputPath,
+        promptHash: pending.promptHash,
+        visualPlanHash: pending.visualPlanHash,
+        cacheDecision: "provider-failed",
+        details: [message],
+        recordedAt: new Date().toISOString(),
+      });
+      await writeGenerationFailure(args.episodeDir, {
+        sceneId: pending.sceneId,
+        stage: "reference-resolution",
+        category: "character-continuity-error",
+        outputPath: pending.outputPath,
+        promptHash: pending.promptHash,
+        ...(errorCode ? { code: errorCode } : {}),
+        message,
+        retryable: false,
+        attempts: 0,
+        recordedAt: new Date().toISOString(),
+      });
+      results.push({
+        episodeId: pending.episodeId,
+        sceneId: pending.sceneId,
+        manifestPath: pending.manifestPath,
+        outputPath: pending.outputPath,
+        status: "failed",
+      });
+      continue;
+    }
+    await writeProviderRequestArtifact(
       args.episodeDir,
-      args.registry,
-      pending.spec,
-      args.settings,
-      args.client
+      pending.sceneId,
+      buildProviderRequestArtifact({
+        request: pending.providerRequest,
+      })
     );
-    const generation = await args.generator.generate({
-      scene: pending.spec,
-      prompt: pending.prompt,
-      referenceImages,
+    await writeGenerationCheckpoint(args.episodeDir, {
+      sceneId: pending.sceneId,
+      status: "provider_requested",
       outputPath: pending.outputPath,
+      promptHash: pending.promptHash,
+      visualPlanHash: pending.visualPlanHash,
+      cacheDecision: "provider-requested",
+      details: ["materializing pending merge-with-next scene via provider"],
+      recordedAt: new Date().toISOString(),
     });
+    let generation: GeneratedImageResult;
+    try {
+      generation = await args.generator.generate({
+        providerRequest: pending.providerRequest,
+        referenceImages,
+      });
+    } catch (error) {
+      const message = formatError(error);
+      const errorCode = parseErrorCode(error);
+      const retryable = isRetryableError(error);
+      const manifest: SceneGenerationManifest = {
+        sceneId: pending.sceneId,
+        promptVersion: pending.providerRequest.promptVersion,
+        sceneHash: pending.sceneHash,
+        visualPlanHash: pending.visualPlanHash,
+        renderability: pending.renderability,
+        finalPrompt: pending.prompt,
+        providerRequestHash: pending.providerRequest.providerRequestHash,
+        promptHash: pending.promptHash,
+        ...(pending.previousSceneId
+          ? { previousSceneId: pending.previousSceneId }
+          : {}),
+        materialDifferencesFromPrevious: [...pending.materialDifferencesFromPrevious],
+        ...(pending.validationIssueCodes.length > 0
+          ? { validationIssueCodes: [...pending.validationIssueCodes] }
+          : {}),
+        characterIds: [...pending.characterIds],
+        referenceImages: pending.referenceImages,
+        model: pending.providerRequest.model,
+        size: pending.providerRequest.size,
+        quality: pending.providerRequest.quality,
+        outputPath: pending.outputPath,
+        status: "failed",
+        attempts: 0,
+        error: { message, retryable },
+      };
+      await writeManifest(pending.manifestPath, manifest);
+      await writeGenerationCheckpoint(args.episodeDir, {
+        sceneId: pending.sceneId,
+        status: "provider_failed",
+        outputPath: pending.outputPath,
+        promptHash: pending.promptHash,
+        visualPlanHash: pending.visualPlanHash,
+        cacheDecision: "provider-failed",
+        details: [message],
+        recordedAt: new Date().toISOString(),
+      });
+      await writeGenerationFailure(args.episodeDir, {
+        sceneId: pending.sceneId,
+        stage: "provider",
+        category: classifyFailure({
+          stage: "provider",
+          error,
+          retryable,
+        }),
+        outputPath: pending.outputPath,
+        promptHash: pending.promptHash,
+        ...(errorCode ? { code: errorCode } : {}),
+        message,
+        retryable,
+        attempts: 0,
+        recordedAt: new Date().toISOString(),
+      });
+      results.push({
+        episodeId: pending.episodeId,
+        sceneId: pending.sceneId,
+        manifestPath: pending.manifestPath,
+        outputPath: pending.outputPath,
+        status: "failed",
+      });
+      continue;
+    }
     const manifest: SceneGenerationManifest = {
       sceneId: pending.sceneId,
-      promptVersion: 1,
+      promptVersion: pending.providerRequest.promptVersion,
       sceneHash: pending.sceneHash,
       visualPlanHash: pending.visualPlanHash,
       renderability: pending.renderability,
       finalPrompt: pending.prompt,
+      providerRequestHash: generation.providerRequestHash,
       promptHash: generation.promptHash,
       ...(pending.previousSceneId ? { previousSceneId: pending.previousSceneId } : {}),
       materialDifferencesFromPrevious: [...pending.materialDifferencesFromPrevious],
@@ -984,6 +1385,24 @@ async function materializePendingMergeWithNextScenes(args: {
       generatedAt: new Date().toISOString(),
     };
     await writeManifest(pending.manifestPath, manifest);
+    await writeProviderResponseArtifact(
+      args.episodeDir,
+      pending.sceneId,
+      buildProviderResponseArtifact({
+        sceneId: pending.sceneId,
+        generation,
+      })
+    );
+    await writeGenerationCheckpoint(args.episodeDir, {
+      sceneId: pending.sceneId,
+      status: "generated",
+      outputPath: pending.outputPath,
+      promptHash: generation.promptHash,
+      visualPlanHash: pending.visualPlanHash,
+      cacheDecision: "generated",
+      details: ["materialized pending merge-with-next scene"],
+      recordedAt: new Date().toISOString(),
+    });
     results.push({
       episodeId: pending.episodeId,
       sceneId: pending.sceneId,
@@ -1002,22 +1421,6 @@ export function resolveEpisodeSharedDirectory(episodeDir: string): string {
   return path.join(episodeDir, "shared");
 }
 
-export function resolveCharacterRegistryPath(episodeDir: string): string {
-  return path.join(resolveEpisodeSharedDirectory(episodeDir), "characters.json");
-}
-
-export function resolveCharacterReferencePath(
-  episodeDir: string,
-  characterId: string
-): string {
-  return path.join(
-    resolveEpisodeSharedDirectory(episodeDir),
-    "images",
-    "character-references",
-    `${characterId}.png`
-  );
-}
-
 function promptSection(title: string, body: string): string {
   return `${title}:\n${body.trim()}`;
 }
@@ -1031,6 +1434,164 @@ function extractAnchor(value: string, fallback: string): string {
   if (cleaned.length === 0) return fallback;
   const selected = tokens(cleaned).slice(0, 12).join(" ");
   return selected.length > 0 ? selected : fallback;
+}
+
+function formatCharacterSubject(
+  characters: readonly SceneCharacterUsage[],
+  registry: CharacterRegistry
+): string | undefined {
+  if (characters.length === 0) {
+    return undefined;
+  }
+  const names = characters
+    .map((usage) =>
+      registry.characters.find((character) => character.id === usage.characterId)
+    )
+    .filter((character): character is CharacterDefinition => Boolean(character))
+    .map((character) => character.name);
+  if (names.length === 0) {
+    return undefined;
+  }
+  if (names.length === 1) {
+    return names[0];
+  }
+  if (names.length === 2) {
+    return `${names[0]} and ${names[1]}`;
+  }
+  return `${names[0]}, ${names[1]}, and others`;
+}
+
+function inferConcreteSubjectFromNarration(scene: Scene): string | undefined {
+  const narration = normalizePlanText(scene.canonicalNarration).toLowerCase();
+  if (/\bchildren?\b/u.test(narration)) return "two children at the doorway";
+  if (/\bmonitor\b/u.test(narration)) return "the glowing monitor";
+  if (/\bwindow\b/u.test(narration) && /\brain\b/u.test(narration)) {
+    return "the rain-streaked window";
+  }
+  if (/record/i.test(narration)) return "the bedside recorder";
+  if (/\bphone\b/u.test(narration)) return "the phone on the bedside table";
+  if (/\bevidence\b/u.test(narration)) return "the evidence spread across the table";
+  if (/\bdoorway?\b|\bthreshold\b/u.test(narration)) return "the motel doorway";
+  if (/\bcorridor\b|\bhallway\b/u.test(narration)) return "the empty corridor";
+  if (/\blamp\b/u.test(narration)) return "the flickering practical lamp";
+  return undefined;
+}
+
+function inferConcreteActionFromNarration(
+  scene: Scene,
+  subject: string
+): string | undefined {
+  const narration = normalizePlanText(scene.canonicalNarration).toLowerCase();
+  if (/\bchildren?\b/u.test(narration)) {
+    return "wait silently at the threshold";
+  }
+  if (/\bmonitor\b/u.test(narration)) {
+    return subject.toLowerCase().includes("monitor")
+      ? "glows over the desk in the dark"
+      : "stares at the monitor glow";
+  }
+  if (/\bwindow\b/u.test(narration) && /\brain\b/u.test(narration)) {
+    return "collects rain that slides down the glass";
+  }
+  if (/record/i.test(narration)) {
+    return "glows red in the dark room";
+  }
+  if (/\bevidence\b/u.test(narration)) {
+    return "lies scattered across the table";
+  }
+  if (/\bdoorway?\b|\bthreshold\b/u.test(narration)) {
+    return "stands half-open against the dark hallway";
+  }
+  if (/\bcorridor\b|\bhallway\b/u.test(narration)) {
+    return "sits empty under weak practical light";
+  }
+  if (/\blamp\b/u.test(narration) && /\bflicker|\bflickers|\bflickering/u.test(narration)) {
+    return "flickers over the room";
+  }
+  if (/\bphone\b/u.test(narration)) {
+    return "rests within reach on the bedside table";
+  }
+  return undefined;
+}
+
+function inferConcreteEnvironmentFromNarration(
+  scene: Scene,
+  previous?: SceneVisualSpec
+): string | undefined {
+  const narration = normalizePlanText(scene.canonicalNarration).toLowerCase();
+  if (/\bmotel\b/u.test(narration) && /\bwindow\b/u.test(narration)) {
+    return "a worn motel room beside a rain-streaked window";
+  }
+  if (
+    /\bmotel\b/u.test(narration) &&
+    (/\bdoorway?\b/u.test(narration) || /\bthreshold\b/u.test(narration))
+  ) {
+    return "a worn motel room opening onto a narrow hallway";
+  }
+  if (/\bmotel\b/u.test(narration) && /\boutside\b/u.test(narration)) {
+    return "the exterior threshold outside a worn motel room";
+  }
+  if (/\bmotel\b/u.test(narration)) {
+    return "a worn motel room under weak practical light";
+  }
+  if (/\bcorridor\b|\bhallway\b/u.test(narration)) {
+    return "a dim corridor with concrete walls and weak practical light";
+  }
+  if (/record/i.test(narration)) {
+    return "a dark motel room with a bedside table";
+  }
+  if (/\bevidence\b|\btable\b/u.test(narration)) {
+    return "a cramped room with evidence spread across a table";
+  }
+  if (/\blamp\b/u.test(narration)) {
+    return "a dim room lit by a single practical lamp";
+  }
+  if (previous && !isGenericText(previous.environment)) {
+    return previous.environment;
+  }
+  return undefined;
+}
+
+function buildForegroundFallback(
+  subject: string,
+  scene: Scene,
+  previous?: SceneVisualSpec
+): string {
+  const narration = normalizePlanText(scene.canonicalNarration).toLowerCase();
+  if (previous?.foreground && !hasPlaceholderLanguage(previous.foreground)) {
+    return previous.foreground;
+  }
+  if (/record/i.test(narration)) {
+    return "the recorder light and nearby bedside clutter";
+  }
+  if (/\bwindow\b/u.test(narration)) {
+    return "condensation, glass reflections, and nearby frame details";
+  }
+  if (/\bdoorway?\b|\bthreshold\b/u.test(narration)) {
+    return "the doorframe, threshold, and nearby hands";
+  }
+  return `${subject} and the nearest physical props in frame`;
+}
+
+function buildBackgroundFallback(
+  environment: string,
+  scene: Scene,
+  previous?: SceneVisualSpec
+): string {
+  const narration = normalizePlanText(scene.canonicalNarration).toLowerCase();
+  if (previous?.background && !hasPlaceholderLanguage(previous.background)) {
+    return previous.background;
+  }
+  if (/\bcorridor\b|\bhallway\b/u.test(narration)) {
+    return "the corridor receding into shadow";
+  }
+  if (/\bwindow\b/u.test(narration)) {
+    return "the dark exterior beyond the glass";
+  }
+  if (/\bdoorway?\b|\bthreshold\b/u.test(narration)) {
+    return "the hallway beyond the door";
+  }
+  return `the surrounding walls and negative space of ${environment}`;
 }
 
 function deriveNarrativePurpose(
@@ -1059,24 +1620,17 @@ function deriveNarrativePurpose(
   return "transition";
 }
 
-function deriveShotSize(scene: Scene, previous?: SceneVisualSpec): ShotSize {
+function deriveShotSize(scene: Scene): ShotSize {
   const direct = scene.cameraFraming.toLowerCase();
   if (direct.includes("extreme-wide")) return "extreme-wide";
   if (direct.includes("wide")) return "wide";
   if (direct.includes("medium close")) return "medium-close-up";
   if (direct.includes("close")) return "close-up";
   if (direct.includes("insert")) return "insert";
-  if (previous) {
-    const index = shotRotation.indexOf(previous.shotSize);
-    return shotRotation[(index + 1) % shotRotation.length] ?? "medium";
-  }
   return scene.sequenceNumber % 2 === 0 ? "medium-close-up" : "medium";
 }
 
-function deriveCameraAngle(
-  scene: Scene,
-  previous?: SceneVisualSpec
-): CameraAngle {
+function deriveCameraAngle(scene: Scene): CameraAngle {
   const source = `${scene.composition} ${scene.cameraFraming}`.toLowerCase();
   if (source.includes("over-the-shoulder")) return "over-the-shoulder";
   if (source.includes("pov") || source.includes("point of view"))
@@ -1085,24 +1639,35 @@ function deriveCameraAngle(
   if (source.includes("profile")) return "profile";
   if (source.includes("high")) return "high-angle";
   if (source.includes("low")) return "low-angle";
-  if (previous) {
-    const index = cameraRotation.indexOf(previous.cameraAngle);
-    return cameraRotation[(index + 1) % cameraRotation.length] ?? "eye-level";
-  }
   return "eye-level";
 }
 
-function deriveVisibleAction(scene: Scene): string {
-  if (!isGenericText(scene.action)) return normalizeSentence(scene.action);
-  const narration = normalizeSentence(scene.canonicalNarration);
-  return narration.length > 0 ? narration : "reacts to an unseen disturbance";
+function deriveVisibleAction(
+  scene: Scene,
+  subject: string
+): string {
+  if (
+    !isGenericText(scene.action) &&
+    !isLikelyAbstractVisualAction(scene.action)
+  ) {
+    return normalizeSentence(scene.action);
+  }
+  return (
+    inferConcreteActionFromNarration(scene, subject) ?? unresolvedVisibleAction
+  );
 }
 
-function deriveFocalSubject(scene: Scene): string {
+function deriveFocalSubject(
+  scene: Scene,
+  characters: readonly SceneCharacterUsage[],
+  registry: CharacterRegistry
+): string {
   if (!isGenericText(scene.subject)) return normalizeSentence(scene.subject);
-  const narration = normalizeSentence(scene.canonicalNarration);
-  if (narration.length > 0) return narration;
-  return "the central figure";
+  return (
+    formatCharacterSubject(characters, registry) ??
+    inferConcreteSubjectFromNarration(scene) ??
+    unresolvedFocalSubject
+  );
 }
 
 function buildSceneContextFragments(scene: Scene): {
@@ -1140,37 +1705,48 @@ function buildSceneContextFragments(scene: Scene): {
 
 function describeSceneSpace(
   scene: Scene,
+  subject: string,
   previous?: SceneVisualSpec
 ): { environment: string; foreground: string; background: string } {
   const fragments = buildSceneContextFragments(scene);
-  const narration = normalizeSentence(scene.canonicalNarration);
-
   const environment =
     fragments.environment.length > 0
       ? fragments.environment.join(", ")
-      : `a concrete setting anchored by ${extractAnchor(narration, "the immediate scene")}`;
+      : inferConcreteEnvironmentFromNarration(scene, previous) ??
+        unresolvedEnvironment;
   const foreground =
     fragments.foreground.length > 0
       ? fragments.foreground.join(", ")
-      : `a visible foreground detail anchored by ${extractAnchor(narration, "the next beat")}`;
+      : buildForegroundFallback(subject, scene, previous);
   const background =
     fragments.background.length > 0
       ? fragments.background.join(", ")
-      : `a visible background detail anchored by ${extractAnchor(narration, "the next beat")}`;
+      : buildBackgroundFallback(environment, scene, previous);
   return { environment, foreground, background };
 }
 
 function deriveEnvironment(scene: Scene, previous?: SceneVisualSpec): string {
   if (!isGenericText(scene.setting)) return normalizeSentence(scene.setting);
-  return describeSceneSpace(scene, previous).environment;
+  return (
+    inferConcreteEnvironmentFromNarration(scene, previous) ??
+    unresolvedEnvironment
+  );
 }
 
-function deriveForeground(scene: Scene, previous?: SceneVisualSpec): string {
-  return describeSceneSpace(scene, previous).foreground;
+function deriveForeground(
+  scene: Scene,
+  subject: string,
+  previous?: SceneVisualSpec
+): string {
+  return describeSceneSpace(scene, subject, previous).foreground;
 }
 
-function deriveBackground(scene: Scene, previous?: SceneVisualSpec): string {
-  return describeSceneSpace(scene, previous).background;
+function deriveBackground(
+  scene: Scene,
+  subject: string,
+  previous?: SceneVisualSpec
+): string {
+  return describeSceneSpace(scene, subject, previous).background;
 }
 
 function deriveLighting(scene: Scene): string {
@@ -1262,29 +1838,95 @@ function deriveRenderability(
   return "direct";
 }
 
-function inferCharactersForScene(
+interface CharacterResolutionResult {
+  readonly usages: SceneCharacterUsage[];
+  readonly unresolvedMentions: string[];
+}
+
+function wordBoundaryPattern(label: string): RegExp {
+  return new RegExp(
+    `(^|[^\\p{L}\\p{N}])${label.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&")}([^\\p{L}\\p{N}]|$)`,
+    "iu"
+  );
+}
+
+function characterLabels(character: CharacterDefinition): string[] {
+  return [
+    character.name,
+    character.role,
+    ...(character.aliases ?? []),
+    ...(character.collectiveLabels ?? []),
+  ]
+    .map((label) => normalizePlanText(label).toLowerCase())
+    .filter((label) => label.length >= 3);
+}
+
+function likelyNameTokens(character: CharacterDefinition): string[] {
+  return [
+    ...tokens(character.name),
+    ...tokens(character.role),
+    ...(character.aliases ?? []).flatMap((alias) => tokens(alias)),
+  ].filter((token) => token.length >= 4);
+}
+
+function hasCharacterLabelMatch(haystack: string, character: CharacterDefinition): boolean {
+  for (const label of characterLabels(character)) {
+    if (wordBoundaryPattern(label).test(haystack)) {
+      return true;
+    }
+  }
+  for (const token of likelyNameTokens(character)) {
+    if (wordBoundaryPattern(token).test(haystack)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+const recurringCollectiveTerms = [
+  "children",
+  "kids",
+  "boys",
+  "girls",
+  "siblings",
+  "couple",
+  "parents",
+];
+
+function unresolvedRecurringMentions(
+  haystack: string,
+  registry: CharacterRegistry,
+  matchedCharacterIds: ReadonlySet<string>
+): string[] {
+  const unresolved = new Set<string>();
+  for (const term of recurringCollectiveTerms) {
+    if (!wordBoundaryPattern(term).test(haystack)) {
+      continue;
+    }
+    const matched = registry.characters.some(
+      (character) =>
+        matchedCharacterIds.has(character.id) &&
+        (character.collectiveLabels ?? []).some(
+          (label) => normalizePlanText(label).toLowerCase() === term
+        )
+    );
+    if (!matched) {
+      unresolved.add(term);
+    }
+  }
+  return [...unresolved];
+}
+
+function resolveCharactersForScene(
   scene: Scene,
   registry: CharacterRegistry
-): SceneCharacterUsage[] {
+): CharacterResolutionResult {
   const haystack = normalizePlanText(
     `${scene.canonicalNarration} ${scene.subject} ${scene.action} ${scene.setting}`
   ).toLowerCase();
   const usages: SceneCharacterUsage[] = [];
   for (const character of registry.characters) {
-    const aliases = new Set<string>([
-      normalizePlanText(character.name).toLowerCase(),
-      normalizePlanText(character.role).toLowerCase(),
-      ...tokens(character.name),
-      ...tokens(character.role),
-    ]);
-    aliases.delete("");
-    const matched = [...aliases].some((alias) => {
-      if (alias.length < 4) {
-        return false;
-      }
-      return haystack.includes(alias);
-    });
-    if (matched) {
+    if (hasCharacterLabelMatch(haystack, character)) {
       usages.push({
         characterId: character.id,
         expression: haystack.includes("reaction") ? "tense" : undefined,
@@ -1292,7 +1934,15 @@ function inferCharactersForScene(
       } as SceneCharacterUsage);
     }
   }
-  return usages;
+  const matchedCharacterIds = new Set(usages.map((usage) => usage.characterId));
+  return {
+    usages,
+    unresolvedMentions: unresolvedRecurringMentions(
+      haystack,
+      registry,
+      matchedCharacterIds
+    ),
+  };
 }
 
 function buildContinuityElements(
@@ -1357,18 +2007,22 @@ export function buildSceneVisualSpec(
 ): SceneVisualSpec {
   const narrationBeat = normalizedNarrationBeat(scene);
   const textRequirement = scene.textRequirement ?? { required: false };
-  const characters = inferCharactersForScene(scene, registry);
+  const characterResolution = resolveCharactersForScene(scene, registry);
+  const characters = characterResolution.usages;
+  const focalSubject = deriveFocalSubject(scene, characters, registry);
+  const visibleAction = deriveVisibleAction(scene, focalSubject);
+  const environment = deriveEnvironment(scene, previous);
   return {
     sceneId: scene.id,
     sequenceNumber: scene.sequenceNumber,
     narrativePurpose: deriveNarrativePurpose(scene),
-    focalSubject: deriveFocalSubject(scene),
-    visibleAction: deriveVisibleAction(scene),
-    environment: deriveEnvironment(scene, previous),
-    foreground: deriveForeground(scene, previous),
-    background: deriveBackground(scene, previous),
-    shotSize: deriveShotSize(scene, previous),
-    cameraAngle: deriveCameraAngle(scene, previous),
+    focalSubject,
+    visibleAction,
+    environment,
+    foreground: deriveForeground(scene, focalSubject, previous),
+    background: deriveBackground(scene, focalSubject, previous),
+    shotSize: deriveShotSize(scene),
+    cameraAngle: deriveCameraAngle(scene),
     ...(scene.sequenceNumber % 3 === 0
       ? { cameraMovementImpression: "subtle handheld documentary drift" }
       : {}),
@@ -1386,6 +2040,12 @@ export function buildSceneVisualSpec(
     ),
     continuityElements: buildContinuityElements(scene, previous),
     characters,
+    ...(characterResolution.unresolvedMentions.length > 0
+      ? {
+          unresolvedRecurringCharacterMentions:
+            characterResolution.unresolvedMentions,
+        }
+      : {}),
     prohibitedElements: buildProhibitedElements(scene),
   } as SceneVisualSpec;
 }
@@ -1426,16 +2086,6 @@ export function diffSpec(
   }
   if (previous.distinctiveAnchor !== current.distinctiveAnchor) {
     diffs.push("distinctive anchor changes");
-  }
-  if (diffs.length === 0 && previous.shotSize !== current.shotSize) {
-    diffs.push(
-      `shot size changes from ${previous.shotSize} to ${current.shotSize}`
-    );
-  }
-  if (diffs.length === 0 && previous.cameraAngle !== current.cameraAngle) {
-    diffs.push(
-      `camera angle changes from ${previous.cameraAngle} to ${current.cameraAngle}`
-    );
   }
   return diffs;
 }
@@ -1534,32 +2184,148 @@ function compareSceneSemantics(
   };
 }
 
-export function rewriteForDifference(
+function hasUsefulSemanticAnchor(
+  current: SceneVisualSpec,
+  previous: SceneVisualSpec
+): boolean {
+  const anchor = normalizeSentence(current.distinctiveAnchor);
+  return (
+    anchor.length > 0 &&
+    !isGenericText(anchor) &&
+    wordCount(anchor) >= 3 &&
+    overlapRatio(anchor, previous.distinctiveAnchor) < 0.65
+  );
+}
+
+export function repairForSemanticDifference(
   current: SceneVisualSpec,
   previous: SceneVisualSpec
 ): SceneVisualSpec {
+  if (!hasUsefulSemanticAnchor(current, previous)) {
+    return current;
+  }
   const rewritten = { ...current };
-  if (rewritten.shotSize === previous.shotSize) {
-    const currentIndex = shotRotation.indexOf(previous.shotSize);
-    rewritten.shotSize =
-      shotRotation[(currentIndex + 1) % shotRotation.length] ?? "medium";
+  const anchor = normalizeSentence(current.distinctiveAnchor);
+  if (
+    rewritten.visibleAction === previous.visibleAction ||
+    overlapRatio(rewritten.visibleAction, previous.visibleAction) > 0.7
+  ) {
+    rewritten.visibleAction = `reveals ${anchor}`;
   }
-  if (rewritten.cameraAngle === previous.cameraAngle) {
-    const currentIndex = cameraRotation.indexOf(previous.cameraAngle);
-    rewritten.cameraAngle =
-      cameraRotation[(currentIndex + 1) % cameraRotation.length] ?? "eye-level";
+  if (
+    rewritten.focalSubject === previous.focalSubject ||
+    overlapRatio(rewritten.focalSubject, previous.focalSubject) > 0.75
+  ) {
+    rewritten.focalSubject = anchor;
   }
-  if (rewritten.visibleAction === previous.visibleAction) {
-    rewritten.visibleAction = `${rewritten.visibleAction} while emphasizing ${extractAnchor(current.distinctiveAnchor, "a new detail")}`;
-  }
-  if (rewritten.focalSubject === previous.focalSubject) {
-    rewritten.focalSubject = `${rewritten.focalSubject} in a different pose`;
-  }
-  if (rewritten.composition === previous.composition) {
-    rewritten.composition =
-      "reframed to place the subject off-center with stronger visual tension";
+  if (
+    rewritten.foreground === previous.foreground ||
+    overlapRatio(rewritten.foreground, previous.foreground) > 0.75
+  ) {
+    rewritten.foreground = `visible evidence of ${anchor}`;
   }
   return rewritten;
+}
+
+function fieldIsEmptyLocation(value: string): boolean {
+  const normalized = normalizePlanText(value).toLowerCase();
+  return (
+    normalized.length === 0 ||
+    normalized === unresolvedEnvironment ||
+    normalized === "none" ||
+    normalized === "n/a" ||
+    normalized === "unknown" ||
+    normalized === "unspecified"
+  );
+}
+
+function hasContradictoryRequiredFeature(current: SceneVisualSpec): boolean {
+  const requiredText = requiresSceneText(current.textRequirement)
+    ? current.textRequirement.text.toLowerCase()
+    : "";
+  const requiredFeatureText = [
+    current.focalSubject,
+    current.visibleAction,
+    current.distinctiveAnchor,
+    requiredText,
+  ]
+    .join(" ")
+    .toLowerCase();
+  const exclusions = current.prohibitedElements.join(" ").toLowerCase();
+  if (requiresSceneText(current.textRequirement) && /no readable text|no text|no labels|no signs|no lettering/iu.test(exclusions)) {
+    return true;
+  }
+  if (/\bchildren?\b/iu.test(requiredFeatureText) && /\bno children\b|\bno kids\b/iu.test(exclusions)) {
+    return true;
+  }
+  if (/\bdoor\b|\bdoorway\b|\bthreshold\b/iu.test(requiredFeatureText) && /\bno doors?\b|\bno doorway\b/iu.test(exclusions)) {
+    return true;
+  }
+  if (/\bphone\b/iu.test(requiredFeatureText) && /\bno phones?\b/iu.test(exclusions)) {
+    return true;
+  }
+  if (/\bmonitor\b|\bscreen\b/iu.test(requiredFeatureText) && /\bno screens?\b|\bno monitors?\b/iu.test(exclusions)) {
+    return true;
+  }
+  return false;
+}
+
+function hasPreviousSceneTextLeakage(
+  current: SceneVisualSpec,
+  previous?: SceneVisualSpec
+): boolean {
+  if (!previous) {
+    return false;
+  }
+  const currentText = normalizePlanText(
+    [
+      current.focalSubject,
+      current.visibleAction,
+      current.environment,
+      current.foreground,
+      current.background,
+      current.distinctiveAnchor,
+      current.composition,
+    ].join(" ")
+  );
+  const previousNarration = normalizePlanText(previous.sourceNarration);
+  return (
+    previousNarration.length >= 24 &&
+    current.sourceNarration !== previous.sourceNarration &&
+    currentText.toLowerCase().includes(previousNarration.toLowerCase())
+  );
+}
+
+function verboseVisualFields(current: SceneVisualSpec): string[] {
+  const fields: Array<[string, string]> = [
+    ["focalSubject", current.focalSubject],
+    ["visibleAction", current.visibleAction],
+    ["environment", current.environment],
+    ["foreground", current.foreground],
+    ["background", current.background],
+    ["composition", current.composition],
+    ["distinctiveAnchor", current.distinctiveAnchor],
+  ];
+  return fields
+    .filter(([, value]) => wordCount(value) > 36 || value.length > 260)
+    .map(([field]) => field);
+}
+
+function expectsRecurringCharacterContinuity(current: SceneVisualSpec): boolean {
+  const continuityText = normalizePlanText(
+    current.continuityElements.join(" ")
+  ).toLowerCase();
+  if (continuityText.length === 0) {
+    return false;
+  }
+  return (
+    /\b(same|keep|preserve|consistent|continuity)\b/iu.test(
+      continuityText
+    ) &&
+    /\b(character|person|man|woman|child|children|face|facial|hair|hairline|eyes?|skin|build|wardrobe|clothes|clothing|jacket|backpack|accessor(?:y|ies))\b/iu.test(
+      continuityText
+    )
+  );
 }
 
 export function validateSceneVisualSpec(
@@ -1571,21 +2337,51 @@ export function validateSceneVisualSpec(
   const push = (code: SceneVisualPlanIssueCode, message: string): void => {
     issues.push({ code, message });
   };
-  if (isGenericText(current.focalSubject)) {
+  if (
+    isGenericText(current.focalSubject) ||
+    current.focalSubject === unresolvedFocalSubject
+  ) {
     push("MISSING_FOCAL_SUBJECT", "prompt does not identify a concrete visible subject");
   }
   if (
     isGenericText(current.visibleAction) ||
+    current.visibleAction === unresolvedVisibleAction ||
     current.visibleAction.toLowerCase().includes("shown") ||
     isLikelyAbstractVisualAction(current.visibleAction)
   ) {
     push("ABSTRACT_VISIBLE_ACTION", "visible action is too generic or abstract");
   }
-  if (isGenericText(current.environment) || hasPlaceholderLanguage(current.environment)) {
+  if (
+    isGenericText(current.environment) ||
+    current.environment === unresolvedEnvironment ||
+    hasPlaceholderLanguage(current.environment)
+  ) {
     push("PLACEHOLDER_ENVIRONMENT", "environment is too generic or placeholder-driven");
+  }
+  if (fieldIsEmptyLocation(current.environment)) {
+    push("EMPTY_LOCATION", "scene does not establish a usable location");
   }
   if (hasPlaceholderLanguage(current.foreground) || hasPlaceholderLanguage(current.background)) {
     push("PLACEHOLDER_ENVIRONMENT", "foreground or background contains placeholder phrasing");
+  }
+  if (hasContradictoryRequiredFeature(current)) {
+    push(
+      "CONTRADICTORY_REQUIRED_FEATURE",
+      "required visual or text feature is contradicted by the exclusions"
+    );
+  }
+  if (hasPreviousSceneTextLeakage(current, previous)) {
+    push(
+      "PREVIOUS_SCENE_TEXT_LEAKAGE",
+      "current visual plan contains previous-scene narration text"
+    );
+  }
+  const verboseFields = verboseVisualFields(current);
+  if (verboseFields.length > 0) {
+    push(
+      "VISUAL_FIELD_TOO_VERBOSE",
+      `visual plan fields are too verbose: ${verboseFields.join(", ")}`
+    );
   }
   if (isGenericText(current.distinctiveAnchor)) {
     push("TRUNCATED_SENTENCE", "distinctive anchor is missing");
@@ -1621,6 +2417,21 @@ export function validateSceneVisualSpec(
       push("UNKNOWN_CHARACTER_ID", "scene includes an empty character id");
     }
   }
+  if (
+    current.characters.length === 0 &&
+    expectsRecurringCharacterContinuity(current)
+  ) {
+    push(
+      "MISSING_RECURRING_CHARACTER",
+      "continuity requirements mention a recurring character but no character was resolved"
+    );
+  }
+  for (const mention of current.unresolvedRecurringCharacterMentions ?? []) {
+    push(
+      "UNRESOLVED_RECURRING_CHARACTER",
+      `recurring character mention could not be resolved: ${mention}`
+    );
+  }
   return issues;
 }
 
@@ -1650,67 +2461,170 @@ function buildCharacterIdentitySection(
     .join(" ");
 }
 
-export function buildPromptFromSpec(
-  spec: SceneVisualSpec,
-  previous?: SceneVisualSpec,
-  registry?: CharacterRegistry,
-  aspectRatio: "16:9" | "9:16" = "16:9"
-): string {
-  const characterLookup = new Map(
-    (registry?.characters ?? []).map(
-      (character) => [character.id, character] as const
-    )
-  );
+function renderImageProviderPrompt(request: ImageProviderRequest): string {
   const referenceText =
-    spec.characters.length === 0
+    request.characterContexts.length === 0
       ? "Use unnamed incidental figures only when the frame requires them."
-      : spec.characters
-          .map((usage) => {
-            const character = characterLookup.get(usage.characterId);
-            if (!character)
-              return `Use the approved reference image for character \`${usage.characterId}\` and preserve identity continuity.`;
-            return buildCharacterIdentitySection(character, usage);
+      : request.characterContexts
+          .map((context) => {
+            if (!context.definition) {
+              return `Use the approved reference image for character \`${context.characterId}\` and preserve identity continuity.`;
+            }
+            return buildCharacterIdentitySection(
+              context.definition,
+              context.usage
+            );
           })
           .join(" ");
 
   return [
     promptSection(
       "IMAGE TYPE AND STYLE",
-      `Photorealistic cinematic horror documentary still, grounded realism, believable human anatomy, ${aspectRatio}, no illustration, no collage, no stylized cartoon look.`
+      `Photorealistic cinematic horror documentary still, grounded realism, believable human anatomy, ${request.aspectRatio}, no illustration, no collage, no stylized cartoon look.`
     ),
     promptSection(
       "PRIMARY VISUAL EVENT",
-      `${buildPrimaryVisualEvent(spec)}${spec.characters.length === 0 ? " Focus on visible evidence, reaction, or environmental consequence." : ""}`
+      `${buildPrimaryVisualEvent(request.scene)}${request.scene.characters.length === 0 ? " Focus on visible evidence, reaction, or environmental consequence." : ""}`
     ),
     promptSection(
       "TEXT REQUIREMENT",
-      buildSceneTextPromptSection(spec.textRequirement)
+      buildSceneTextPromptSection(request.scene.textRequirement)
     ),
     promptSection("CHARACTER IDENTITY AND CONTINUITY", referenceText),
     promptSection(
       "ENVIRONMENT",
-      `${spec.environment}. Foreground: ${spec.foreground}. Background: ${spec.background}.`
+      `${request.scene.environment}. Foreground: ${request.scene.foreground}. Background: ${request.scene.background}.`
     ),
     promptSection(
       "CAMERA AND COMPOSITION",
-      `${spec.shotSize} shot, ${spec.cameraAngle} angle${spec.cameraMovementImpression ? `, ${spec.cameraMovementImpression}` : ""}. ${spec.composition}.`
+      `${request.scene.shotSize} shot, ${request.scene.cameraAngle} angle${request.scene.cameraMovementImpression ? `, ${request.scene.cameraMovementImpression}` : ""}. ${request.scene.composition}.`
     ),
     promptSection(
       "LIGHTING AND COLOR",
-      `${spec.lighting}. Time of day: ${spec.timeOfDay}. Mood: ${spec.mood}.`
+      `${request.scene.lighting}. Time of day: ${request.scene.timeOfDay}. Mood: ${request.scene.mood}.`
     ),
-    promptSection("DISTINCTIVE SCENE ANCHOR", spec.distinctiveAnchor),
+    promptSection("DISTINCTIVE SCENE ANCHOR", request.scene.distinctiveAnchor),
     promptSection(
       "CONTINUITY REQUIREMENTS",
-      spec.continuityElements.length > 0
-        ? spec.continuityElements.join(" ")
+      request.scene.continuityElements.length > 0
+        ? request.scene.continuityElements.join(" ")
         : "Maintain episode-level continuity for wardrobe, setting logic, and character identity where applicable."
     ),
     promptSection(
       "EXCLUSIONS",
-      buildSceneNegativePrompt(spec.textRequirement, spec.prohibitedElements)
+      buildSceneNegativePrompt(
+        request.scene.textRequirement,
+        request.scene.prohibitedElements
+      )
     ),
   ].join("\n\n");
+}
+
+function buildImageProviderRequest(args: {
+  readonly scene: SceneVisualSpec;
+  readonly previousScene?: SceneVisualSpec;
+  readonly registry?: CharacterRegistry;
+  readonly settings: EpisodeImagePipelineSettings;
+  readonly outputPath: string;
+  readonly referenceImages: readonly {
+    characterId: CharacterId;
+    path: string;
+    sha256: string;
+  }[];
+  readonly aspectRatio?: "16:9" | "9:16";
+}): ImageProviderRequest {
+  const characterLookup = new Map(
+    (args.registry?.characters ?? []).map(
+      (character) => [character.id, character] as const
+    )
+  );
+  return {
+    sceneId: args.scene.sceneId,
+    scene: args.scene,
+    ...(args.previousScene ? { previousScene: args.previousScene } : {}),
+    model: args.settings.model,
+    size: args.settings.resolvedSize,
+    quality: args.settings.quality,
+    outputFormat: "png",
+    background: "opaque",
+    outputPath: args.outputPath,
+    operation:
+      args.referenceImages.length > 0 ? "image-edit" : "image-generation",
+    aspectRatio: args.aspectRatio ?? "16:9",
+    promptVersion: 1,
+    referenceImages: args.referenceImages.map((reference) => ({
+      characterId: reference.characterId,
+      path: reference.path,
+      sha256: reference.sha256,
+    })),
+    characterContexts: args.scene.characters.map((usage) => {
+      const definition = characterLookup.get(usage.characterId);
+      return {
+        characterId: usage.characterId,
+        usage,
+        ...(definition ? { definition } : {}),
+      };
+    }),
+  };
+}
+
+function prepareImageProviderRequest(
+  request: ImageProviderRequest
+): PreparedImageProviderRequest {
+  const prompt = renderImageProviderPrompt(request);
+  const promptHash = hashText(prompt);
+  const providerRequestHash = hashText(
+    JSON.stringify({
+      operation: request.operation,
+      model: request.model,
+      size: request.size,
+      quality: request.quality,
+      outputFormat: request.outputFormat,
+      background: request.background,
+      promptVersion: request.promptVersion,
+      prompt,
+      referenceImages: request.referenceImages.map((reference) => ({
+        characterId: reference.characterId,
+        sha256: reference.sha256,
+      })),
+    })
+  );
+  return {
+    ...request,
+    prompt,
+    promptHash,
+    providerRequestHash,
+  };
+}
+
+export function buildPromptFromSpec(
+  spec: SceneVisualSpec,
+  previous?: SceneVisualSpec,
+  registry?: CharacterRegistry,
+  aspectRatio: "16:9" | "9:16" = "16:9"
+): string {
+  return prepareImageProviderRequest(
+    buildImageProviderRequest({
+      scene: spec,
+      ...(previous ? { previousScene: previous } : {}),
+      ...(registry ? { registry } : {}),
+      settings: {
+        apiKey: "",
+        model: "gpt-image-2",
+        size: "1536x1024",
+        resolvedSize: "1536x1024",
+        quality: "medium",
+        concurrency: 1,
+        maxRetries: 0,
+        timeoutMs: 1000,
+        allowUnapprovedCharacterReferences: true,
+        force: false,
+      },
+      outputPath: "scene-output.png",
+      referenceImages: [],
+      aspectRatio,
+    })
+  ).prompt;
 }
 
 export function validatePrompt(
@@ -1852,7 +2766,7 @@ async function loadRegistry(
   episodeId: string
 ): Promise<CharacterRegistry> {
   const existing = await readJsonIfExists(
-    resolveCharacterRegistryPath(episodeDir),
+    resolveEpisodeCharacterRegistryPath(episodeDir),
     (value) => registrySchema.parse(value) as unknown as CharacterRegistry
   );
   if (existing) return existing;
@@ -1872,7 +2786,7 @@ async function saveRegistry(
   episodeDir: string,
   registry: CharacterRegistry
 ): Promise<void> {
-  await writeJsonAtomic(resolveCharacterRegistryPath(episodeDir), registry);
+  await writeJsonAtomic(resolveEpisodeCharacterRegistryPath(episodeDir), registry);
 }
 
 export function loadEpisodeImageGenerationSettings(
@@ -1924,7 +2838,8 @@ export class OpenAIImageGenerator implements ImageGenerator {
     request: ImageGenerationRequest
   ): Promise<GeneratedImageResult> {
     const start = Date.now();
-    const promptHash = hashText(request.prompt);
+    const promptHash = request.providerRequest.promptHash;
+    const providerRequestHash = request.providerRequest.providerRequestHash;
     const telemetry = currentExecutionTelemetry();
     const generationMode = generationModeSchema.parse(
       request.referenceImages.length > 0 ? "reference-assisted" : "text-only"
@@ -1935,7 +2850,7 @@ export class OpenAIImageGenerator implements ImageGenerator {
         : "image-generation";
     const requestBodyBase = {
       model: this.settings.model,
-      prompt: request.prompt,
+      prompt: request.providerRequest.prompt,
       size: this.settings.resolvedSize,
       quality: this.settings.quality,
       output_format: "png" as const,
@@ -1971,14 +2886,17 @@ export class OpenAIImageGenerator implements ImageGenerator {
             "OpenAI image response did not contain base64 image data."
           );
         }
-        const outputSha256 = await atomicWriteImage(request.outputPath, b64);
+        const outputSha256 = await atomicWriteImage(
+          request.providerRequest.outputPath,
+          b64
+        );
         const referenceHashes = await Promise.all(
           request.referenceImages.map(async (reference) => ({
             characterId: reference.characterId,
             sha256: await hashFile(reference.filePath),
           }))
         );
-        await validateImageFile(request.outputPath);
+        await validateImageFile(request.providerRequest.outputPath);
         const cost = telemetry
           ? estimateImageGenerationCost(telemetry.catalog, {
               provider: "openai",
@@ -2013,8 +2931,8 @@ export class OpenAIImageGenerator implements ImageGenerator {
           warning: cost.warning,
         });
         telemetry?.recordImage({
-          sceneId: request.scene.sceneId,
-          outputPath: request.outputPath,
+          sceneId: request.providerRequest.scene.sceneId,
+          outputPath: request.providerRequest.outputPath,
           model: this.settings.model,
           generationMode,
           attempts,
@@ -2024,7 +2942,7 @@ export class OpenAIImageGenerator implements ImageGenerator {
           costMicros: cost.costMicros,
         });
         return {
-          outputPath: request.outputPath,
+          outputPath: request.providerRequest.outputPath,
           outputSha256,
           model: this.settings.model,
           size: this.settings.resolvedSize,
@@ -2033,6 +2951,7 @@ export class OpenAIImageGenerator implements ImageGenerator {
           attempts,
           durationMs: Date.now() - start,
           ...(request_id ? { requestId: request_id } : {}),
+          providerRequestHash,
           promptHash,
           referenceHashes,
         } as GeneratedImageResult;
@@ -2081,7 +3000,8 @@ async function ensureReferenceImage(
   client?: OpenAI
 ): Promise<{ path: string; sha256: string }> {
   const filePath =
-    character.referenceImagePath ?? resolveCharacterReferencePath(episodeDir, character.id);
+    character.referenceImagePath ??
+    resolveEpisodeCharacterReferencePath(episodeDir, character.id);
   await ensureDir(path.dirname(filePath));
   if (
     character.referenceStatus === "approved" &&
@@ -2123,39 +3043,76 @@ async function ensureReferenceImage(
     "No extra people, no blood, no masks, no hands covering the face, no text, no labels, no watermark, no horror distortion.",
   ].join("\n");
   const result = await generator.generate({
-    scene: {
+    providerRequest: {
       sceneId: `${character.id}-reference`,
-      sequenceNumber: 0,
-      narrativePurpose: "establish",
-      focalSubject: character.name,
-      visibleAction: "holds a neutral identity pose for reference",
-      environment: "plain neutral background",
-      foreground: "none",
-      background: "plain neutral backdrop",
-      shotSize: "medium-close-up",
-      cameraAngle: "eye-level",
-      sourceNarration: "Neutral identity reference for character approval.",
-      textRequirement: { required: false },
-      composition: "reference-sheet layout",
-      lighting: "soft natural light",
-      timeOfDay: "daylight",
-      mood: "neutral",
-      distinctiveAnchor: `Neutral identity reference for ${character.name}`,
-      continuityElements: character.continuityTraits,
-      characters: [
+      scene: {
+        sceneId: `${character.id}-reference`,
+        sequenceNumber: 0,
+        narrativePurpose: "establish",
+        focalSubject: character.name,
+        visibleAction: "holds a neutral identity pose for reference",
+        environment: "plain neutral background",
+        foreground: "none",
+        background: "plain neutral backdrop",
+        shotSize: "medium-close-up",
+        cameraAngle: "eye-level",
+        sourceNarration: "Neutral identity reference for character approval.",
+        textRequirement: { required: false },
+        composition: "reference-sheet layout",
+        lighting: "soft natural light",
+        timeOfDay: "daylight",
+        mood: "neutral",
+        distinctiveAnchor: `Neutral identity reference for ${character.name}`,
+        continuityElements: character.continuityTraits,
+        characters: [
+          {
+            characterId: character.id,
+            expression: "neutral",
+            position: "centered",
+          },
+        ],
+        prohibitedElements: [
+          "No extra people, no blood, no masks, no hands covering the face",
+        ],
+      },
+      model: settings.model,
+      size: settings.resolvedSize,
+      quality: settings.quality,
+      outputFormat: "png",
+      background: "opaque",
+      outputPath: filePath,
+      operation: "image-generation",
+      aspectRatio: "16:9",
+      promptVersion: 1,
+      referenceImages: [],
+      characterContexts: [
         {
           characterId: character.id,
-          expression: "neutral",
-          position: "centered",
+          definition: character,
+          usage: {
+            characterId: character.id,
+            expression: "neutral",
+            position: "centered",
+          },
         },
       ],
-      prohibitedElements: [
-        "No extra people, no blood, no masks, no hands covering the face",
-      ],
+      prompt,
+      promptHash: hashText(prompt),
+      providerRequestHash: hashText(
+        JSON.stringify({
+          operation: "image-generation",
+          model: settings.model,
+          size: settings.resolvedSize,
+          quality: settings.quality,
+          outputFormat: "png",
+          background: "opaque",
+          promptVersion: 1,
+          prompt,
+          referenceImages: [],
+        })
+      ),
     },
-    prompt,
     referenceImages: [],
-    outputPath: filePath,
   });
   character.referenceImagePath = result.outputPath;
   character.referenceStatus = "generated";
@@ -2201,7 +3158,7 @@ async function loadReferenceImages(
     }
     const filePath =
       character.referenceImagePath ??
-      resolveCharacterReferencePath(episodeDir, character.id);
+      resolveEpisodeCharacterReferencePath(episodeDir, character.id);
     if (!(await fileExists(filePath))) {
       throw new Error(`Missing reference image for character ${character.id}.`);
     }
@@ -2241,7 +3198,7 @@ async function summarizeReferenceImages(
     if (!character) continue;
     const filePath =
       character.referenceImagePath ??
-      resolveCharacterReferencePath(episodeDir, character.id);
+      resolveEpisodeCharacterReferencePath(episodeDir, character.id);
     summaries.push({
       characterId: character.id,
       path: filePath,
@@ -2278,8 +3235,145 @@ async function writeSceneVisualPlanArtifact(
   sceneId: string,
   artifact: PersistedSceneVisualPlan
 ): Promise<string> {
-  const filePath = sceneVisualPlanPath(episodeDir, sceneId);
+  const filePath = resolveEpisodeImageVisualPlanPath(episodeDir, sceneId);
   await writeJsonAtomic(filePath, persistedSceneVisualPlanSchema.parse(artifact));
+  return filePath;
+}
+
+function buildProviderRequestArtifact(args: {
+  readonly request: PreparedImageProviderRequest;
+}): PersistedImageProviderRequest {
+  return {
+    sceneId: args.request.sceneId,
+    provider: "openai",
+    operation: args.request.operation,
+    model: args.request.model,
+    size: args.request.size,
+    quality: args.request.quality,
+    outputFormat: "png",
+    background: "opaque",
+    prompt: args.request.prompt,
+    providerRequestHash: args.request.providerRequestHash,
+    promptHash: args.request.promptHash,
+    outputPath: args.request.outputPath,
+    referenceImages: args.request.referenceImages.map((reference) => ({
+      characterId: reference.characterId,
+      path: reference.path,
+      sha256: reference.sha256,
+    })),
+    recordedAt: new Date().toISOString(),
+  };
+}
+
+async function writeProviderRequestArtifact(
+  episodeDir: string,
+  sceneId: string,
+  artifact: PersistedImageProviderRequest
+): Promise<string> {
+  const filePath = resolveEpisodeImageProviderRequestPath(episodeDir, sceneId);
+  await writeJsonAtomic(
+    filePath,
+    persistedImageProviderRequestSchema.parse(artifact)
+  );
+  return filePath;
+}
+
+function buildProviderResponseArtifact(args: {
+  readonly sceneId: string;
+  readonly generation: GeneratedImageResult;
+}): PersistedImageProviderResponse {
+  return {
+    sceneId: args.sceneId,
+    provider: "openai",
+    operation:
+      args.generation.generationMode === "reference-assisted"
+        ? "image-edit"
+        : "image-generation",
+    model: args.generation.model,
+    size: args.generation.size,
+    quality: args.generation.quality,
+    providerRequestHash: args.generation.providerRequestHash,
+    promptHash: args.generation.promptHash,
+    outputPath: args.generation.outputPath,
+    outputSha256: args.generation.outputSha256,
+    attempts: args.generation.attempts,
+    durationMs: args.generation.durationMs,
+    ...(args.generation.requestId ? { requestId: args.generation.requestId } : {}),
+    referenceHashes: args.generation.referenceHashes.map((reference) => ({
+      characterId: reference.characterId,
+      sha256: reference.sha256,
+    })),
+    recordedAt: new Date().toISOString(),
+  };
+}
+
+async function writeProviderResponseArtifact(
+  episodeDir: string,
+  sceneId: string,
+  artifact: PersistedImageProviderResponse
+): Promise<string> {
+  const filePath = resolveEpisodeImageProviderResponsePath(episodeDir, sceneId);
+  await writeJsonAtomic(
+    filePath,
+    persistedImageProviderResponseSchema.parse(artifact)
+  );
+  return filePath;
+}
+
+async function writeGenerationCheckpoint(
+  episodeDir: string,
+  artifact: PersistedImageGenerationCheckpoint
+): Promise<string> {
+  const filePath = resolveEpisodeImageCheckpointPath(episodeDir, artifact.sceneId);
+  await writeJsonAtomic(
+    filePath,
+    persistedImageGenerationCheckpointSchema.parse(artifact)
+  );
+  return filePath;
+}
+
+function classifyFailure(args: {
+  readonly stage: SceneFailureStage;
+  readonly error: unknown;
+  readonly retryable: boolean;
+}): SceneFailureCategory {
+  const code = parseErrorCode(args.error);
+  if (args.stage === "visual-planning") {
+    return "prompt-validation-error";
+  }
+  if (args.stage === "reference-resolution") {
+    return "character-continuity-error";
+  }
+  if (args.stage === "filesystem") {
+    return "filesystem-error";
+  }
+  if (args.stage === "manifest") {
+    return "manifest-conflict";
+  }
+  if (code === "content_policy_violation") {
+    return "provider-safety-rejection";
+  }
+  const status =
+    typeof (args.error as { status?: unknown })?.status === "number"
+      ? ((args.error as { status: number }).status as number)
+      : null;
+  if (status === 429) {
+    return "provider-rate-limit";
+  }
+  return args.retryable
+    ? "provider-transient-error"
+    : "provider-permanent-error";
+}
+
+async function writeGenerationFailure(
+  episodeDir: string,
+  artifact: PersistedImageGenerationFailure
+): Promise<string> {
+  const filePath = resolveEpisodeImageFailurePath(episodeDir, artifact.sceneId);
+  await writeJsonAtomic(
+    filePath,
+    persistedImageGenerationFailureSchema.parse(artifact)
+  );
   return filePath;
 }
 
@@ -2430,6 +3524,7 @@ async function buildEpisodeScenePlans(args: {
   let previousSpec: SceneVisualSpec | undefined;
   let previousPrompt: string | undefined;
   for (const scene of args.scenes) {
+    const outputPath = sceneOutputPath(args.episodeDir, scene);
     let spec = buildSceneVisualSpec(scene, args.registry, previousSpec);
     if (previousSpec) {
       const comparison = compareSceneSemantics(previousSpec, spec);
@@ -2438,10 +3533,25 @@ async function buildEpisodeScenePlans(args: {
         comparison.materialChangeCount < 2 &&
         !spec.allowMatchingComposition
       ) {
-        spec = rewriteForDifference(spec, previousSpec);
+        spec = repairForSemanticDifference(spec, previousSpec);
       }
     }
-    const prompt = buildPromptFromSpec(spec, previousSpec, args.registry);
+    const referenceImages = await summarizeReferenceImages(
+      args.episodeDir,
+      args.registry,
+      spec
+    );
+    const providerRequest = prepareImageProviderRequest(
+      buildImageProviderRequest({
+        scene: spec,
+        ...(previousSpec ? { previousScene: previousSpec } : {}),
+        registry: args.registry,
+        settings: args.settings,
+        outputPath,
+        referenceImages,
+      })
+    );
+    const prompt = providerRequest.prompt;
     const validationIssues = validateSceneVisualSpec(
       spec,
       previousPrompt,
@@ -2451,11 +3561,6 @@ async function buildEpisodeScenePlans(args: {
       ...validationIssues.map((issue) => issue.message),
       ...validatePrompt(prompt, spec, previousPrompt, previousSpec),
     ];
-    const referenceImages = await summarizeReferenceImages(
-      args.episodeDir,
-      args.registry,
-      spec
-    );
     await loadReferenceImages(
       args.episodeDir,
       args.registry,
@@ -2491,9 +3596,11 @@ async function buildEpisodeScenePlans(args: {
     plans.push({
       scene,
       spec,
+      providerRequest,
       prompt,
       sceneHash: currentSceneHash,
-      promptHash: hashText(prompt),
+      promptHash: providerRequest.promptHash,
+      providerRequestHash: providerRequest.providerRequestHash,
       validationIssues,
       validationFailures,
       referenceImages,
@@ -2533,7 +3640,7 @@ export async function loadEpisodeSceneVisualPlan(
   sceneId: string
 ): Promise<PersistedSceneVisualPlan | null> {
   return readJsonIfExists(
-    sceneVisualPlanPath(episodeDir, sceneId),
+    resolveEpisodeImageVisualPlanPath(episodeDir, sceneId),
     (value) =>
       persistedSceneVisualPlanSchema.parse(
         value
@@ -2546,6 +3653,7 @@ export interface EpisodeImagePlanResult {
   sceneId: string;
   prompt: string;
   promptHash: string;
+  providerRequestHash: string;
   manifestPath: string;
   visualPlanPath: string;
   renderability: SceneRenderability;
@@ -2563,9 +3671,11 @@ export interface EpisodeImagePlanResult {
 interface EpisodeScenePlan {
   readonly scene: Scene;
   readonly spec: SceneVisualSpec;
+  readonly providerRequest: PreparedImageProviderRequest;
   readonly prompt: string;
   readonly sceneHash: string;
   readonly promptHash: string;
+  readonly providerRequestHash: string;
   readonly validationIssues: SceneVisualPlanIssue[];
   readonly validationFailures: string[];
   readonly referenceImages: Array<{
@@ -2578,6 +3688,53 @@ interface EpisodeScenePlan {
   readonly materialDifferencesFromPrevious: string[];
   readonly previousSceneId?: string;
   readonly mergeComparison?: SceneSemanticComparison;
+}
+
+function sceneRequiresSequentialReuseHandling(
+  renderability: SceneRenderability
+): boolean {
+  return (
+    renderability === "mergeWithPrevious" ||
+    renderability === "mergeWithNext" ||
+    renderability === "skip"
+  );
+}
+
+function canGenerateScenePlansConcurrently(
+  plans: readonly EpisodeScenePlan[]
+): boolean {
+  return plans.every(
+    (plan) =>
+      !sceneRequiresSequentialReuseHandling(plan.visualPlanArtifact.renderability)
+  );
+}
+
+async function mapWithConcurrency<TInput, TOutput>(
+  items: readonly TInput[],
+  concurrency: number,
+  worker: (item: TInput, index: number) => Promise<TOutput>
+): Promise<TOutput[]> {
+  const limit = Math.max(1, Math.min(concurrency, items.length || 1));
+  const queue = items.map((item, index) => ({ item, index }));
+  const results = new Map<number, TOutput>();
+  async function runWorker(): Promise<void> {
+    while (queue.length > 0) {
+      const next = queue.shift();
+      if (!next) {
+        return;
+      }
+      const result = await worker(next.item, next.index);
+      results.set(next.index, result);
+    }
+  }
+  await Promise.all(Array.from({ length: limit }, () => runWorker()));
+  return items.map((_, index) => {
+    const result = results.get(index);
+    if (result === undefined) {
+      throw new Error(`Missing concurrent scene result for index ${index}.`);
+    }
+    return result;
+  });
 }
 
 export interface EpisodeImageGenerationResult {
@@ -2606,6 +3763,366 @@ export interface SyncEpisodeSharedImageAssetsResult {
   readonly characterReferencePaths: string[];
 }
 
+async function generateIndependentScenePlan(args: {
+  readonly episodeDir: string;
+  readonly episodeId: string;
+  readonly plan: EpisodeScenePlan;
+  readonly settings: EpisodeImagePipelineSettings;
+  readonly registry: CharacterRegistry;
+  readonly generator: OpenAIImageGenerator;
+  readonly force: boolean;
+  readonly client?: OpenAI;
+}): Promise<EpisodeImageGenerationResult> {
+  const manifestPath = resolveEpisodeImageManifestPath(
+    args.episodeDir,
+    args.plan.scene.id
+  );
+  const existing = await readManifest(manifestPath);
+  const outputPath = sceneOutputPath(args.episodeDir, args.plan.scene);
+  await hydrateCanonicalSceneImage(existing?.outputPath, outputPath);
+
+  await writeSceneVisualPlanArtifact(
+    args.episodeDir,
+    args.plan.scene.id,
+    args.plan.visualPlanArtifact
+  );
+
+  if (
+    args.plan.validationFailures.length === 0 &&
+    (await canReuseSceneImage({
+      existing,
+      currentSceneHash: args.plan.sceneHash,
+      currentPromptHash: args.plan.promptHash,
+      currentProviderRequestHash: args.plan.providerRequestHash,
+      currentVisualPlanHash: args.plan.visualPlanHash,
+      currentRenderability: args.plan.visualPlanArtifact.renderability,
+      currentReferenceImages: args.plan.referenceImages,
+      outputPath,
+      force: args.force,
+    }))
+  ) {
+    await writeGenerationCheckpoint(args.episodeDir, {
+      sceneId: args.plan.scene.id,
+      status: "reused_cached_output",
+      outputPath,
+      promptHash: args.plan.promptHash,
+      visualPlanHash: args.plan.visualPlanHash,
+      cacheDecision: "reused-existing",
+      details: ["reused previously generated canonical output"],
+      recordedAt: new Date().toISOString(),
+    });
+    return {
+      episodeId: args.episodeId,
+      sceneId: args.plan.scene.id,
+      manifestPath,
+      outputPath,
+      ...(existing?.outputSha256 ? { outputSha256: existing.outputSha256 } : {}),
+      status: "skipped",
+    };
+  }
+
+  if (args.plan.validationFailures.length > 0) {
+    const manifest: SceneGenerationManifest = {
+      sceneId: args.plan.scene.id,
+      promptVersion: args.plan.providerRequest.promptVersion,
+      sceneHash: args.plan.sceneHash,
+      visualPlanHash: args.plan.visualPlanHash,
+      renderability: args.plan.visualPlanArtifact.renderability,
+      finalPrompt: args.plan.prompt,
+      providerRequestHash: args.plan.providerRequestHash,
+      promptHash: args.plan.promptHash,
+      ...(args.plan.previousSceneId
+        ? { previousSceneId: args.plan.previousSceneId }
+        : {}),
+      materialDifferencesFromPrevious: args.plan.materialDifferencesFromPrevious,
+      ...(args.plan.validationIssues.length > 0
+        ? {
+            validationIssueCodes: args.plan.validationIssues.map(
+              (issue) => issue.code
+            ),
+          }
+        : {}),
+      characterIds: args.plan.spec.characters.map(
+        (character) => character.characterId
+      ),
+      referenceImages: args.plan.referenceImages,
+      model: args.plan.providerRequest.model,
+      size: args.plan.providerRequest.size,
+      quality: args.plan.providerRequest.quality,
+      outputPath,
+      status: "failed",
+      attempts: 0,
+      error: {
+        message: args.plan.validationFailures.join("; "),
+        retryable: false,
+      },
+    };
+    await writeManifest(manifestPath, manifest);
+    await writeGenerationCheckpoint(args.episodeDir, {
+      sceneId: args.plan.scene.id,
+      status: "validation_failed",
+      outputPath,
+      promptHash: args.plan.promptHash,
+      visualPlanHash: args.plan.visualPlanHash,
+      cacheDecision: "validation-failed",
+      details: [...args.plan.validationFailures],
+      recordedAt: new Date().toISOString(),
+    });
+    await writeGenerationFailure(args.episodeDir, {
+      sceneId: args.plan.scene.id,
+      stage: "visual-planning",
+      category: "prompt-validation-error",
+      outputPath,
+      promptHash: args.plan.promptHash,
+      message: args.plan.validationFailures.join("; "),
+      retryable: false,
+      attempts: 0,
+      recordedAt: new Date().toISOString(),
+    });
+    return {
+      episodeId: args.episodeId,
+      sceneId: args.plan.scene.id,
+      manifestPath,
+      outputPath,
+      status: "failed",
+    };
+  }
+
+  let referenceImages: ReferenceImage[];
+  try {
+    ({ referenceImages } = await loadReferenceImages(
+      args.episodeDir,
+      args.registry,
+      args.plan.spec,
+      args.settings,
+      args.client
+    ));
+  } catch (error) {
+    const message = formatError(error);
+    const errorCode = parseErrorCode(error);
+    const manifest: SceneGenerationManifest = {
+      sceneId: args.plan.scene.id,
+      promptVersion: args.plan.providerRequest.promptVersion,
+      sceneHash: args.plan.sceneHash,
+      visualPlanHash: args.plan.visualPlanHash,
+      renderability: args.plan.visualPlanArtifact.renderability,
+      finalPrompt: args.plan.prompt,
+      providerRequestHash: args.plan.providerRequestHash,
+      promptHash: args.plan.promptHash,
+      ...(args.plan.previousSceneId
+        ? { previousSceneId: args.plan.previousSceneId }
+        : {}),
+      materialDifferencesFromPrevious: args.plan.materialDifferencesFromPrevious,
+      ...(args.plan.validationIssues.length > 0
+        ? {
+            validationIssueCodes: args.plan.validationIssues.map(
+              (issue) => issue.code
+            ),
+          }
+        : {}),
+      characterIds: args.plan.spec.characters.map(
+        (character) => character.characterId
+      ),
+      referenceImages: args.plan.referenceImages,
+      model: args.plan.providerRequest.model,
+      size: args.plan.providerRequest.size,
+      quality: args.plan.providerRequest.quality,
+      outputPath,
+      status: "failed",
+      attempts: 0,
+      error: { message, retryable: false },
+    };
+    await writeManifest(manifestPath, manifest);
+    await writeGenerationCheckpoint(args.episodeDir, {
+      sceneId: args.plan.scene.id,
+      status: "provider_failed",
+      outputPath,
+      promptHash: args.plan.promptHash,
+      visualPlanHash: args.plan.visualPlanHash,
+      cacheDecision: "provider-failed",
+      details: [message],
+      recordedAt: new Date().toISOString(),
+    });
+    await writeGenerationFailure(args.episodeDir, {
+      sceneId: args.plan.scene.id,
+      stage: "reference-resolution",
+      category: "character-continuity-error",
+      outputPath,
+      promptHash: args.plan.promptHash,
+      ...(errorCode ? { code: errorCode } : {}),
+      message,
+      retryable: false,
+      attempts: 0,
+      recordedAt: new Date().toISOString(),
+    });
+    return {
+      episodeId: args.episodeId,
+      sceneId: args.plan.scene.id,
+      manifestPath,
+      outputPath,
+      status: "failed",
+    };
+  }
+
+  await writeProviderRequestArtifact(
+    args.episodeDir,
+    args.plan.scene.id,
+    buildProviderRequestArtifact({
+      request: args.plan.providerRequest,
+    })
+  );
+  await writeGenerationCheckpoint(args.episodeDir, {
+    sceneId: args.plan.scene.id,
+    status: "provider_requested",
+    outputPath,
+    promptHash: args.plan.promptHash,
+    visualPlanHash: args.plan.visualPlanHash,
+    cacheDecision: "provider-requested",
+    details: ["provider request persisted"],
+    recordedAt: new Date().toISOString(),
+  });
+
+  let generation: GeneratedImageResult;
+  try {
+    generation = await args.generator.generate({
+      providerRequest: args.plan.providerRequest,
+      referenceImages,
+    });
+  } catch (error) {
+    const message = formatError(error);
+    const errorCode = parseErrorCode(error);
+    const retryable = isRetryableError(error);
+    const manifest: SceneGenerationManifest = {
+      sceneId: args.plan.scene.id,
+      promptVersion: args.plan.providerRequest.promptVersion,
+      sceneHash: args.plan.sceneHash,
+      visualPlanHash: args.plan.visualPlanHash,
+      renderability: args.plan.visualPlanArtifact.renderability,
+      finalPrompt: args.plan.prompt,
+      providerRequestHash: args.plan.providerRequestHash,
+      promptHash: args.plan.promptHash,
+      ...(args.plan.previousSceneId
+        ? { previousSceneId: args.plan.previousSceneId }
+        : {}),
+      materialDifferencesFromPrevious: args.plan.materialDifferencesFromPrevious,
+      ...(args.plan.validationIssues.length > 0
+        ? {
+            validationIssueCodes: args.plan.validationIssues.map(
+              (issue) => issue.code
+            ),
+          }
+        : {}),
+      characterIds: args.plan.spec.characters.map(
+        (character) => character.characterId
+      ),
+      referenceImages: args.plan.referenceImages,
+      model: args.plan.providerRequest.model,
+      size: args.plan.providerRequest.size,
+      quality: args.plan.providerRequest.quality,
+      outputPath,
+      status: "failed",
+      attempts: 0,
+      error: {
+        message,
+        retryable,
+      },
+    };
+    await writeManifest(manifestPath, manifest);
+    await writeGenerationCheckpoint(args.episodeDir, {
+      sceneId: args.plan.scene.id,
+      status: "provider_failed",
+      outputPath,
+      promptHash: args.plan.promptHash,
+      visualPlanHash: args.plan.visualPlanHash,
+      cacheDecision: "provider-failed",
+      details: [message],
+      recordedAt: new Date().toISOString(),
+    });
+    await writeGenerationFailure(args.episodeDir, {
+      sceneId: args.plan.scene.id,
+      stage: "provider",
+      category: classifyFailure({
+        stage: "provider",
+        error,
+        retryable,
+      }),
+      outputPath,
+      promptHash: args.plan.promptHash,
+      ...(errorCode ? { code: errorCode } : {}),
+      message,
+      retryable,
+      attempts: 0,
+      recordedAt: new Date().toISOString(),
+    });
+    return {
+      episodeId: args.episodeId,
+      sceneId: args.plan.scene.id,
+      manifestPath,
+      outputPath,
+      status: "failed",
+    };
+  }
+
+  const manifest: SceneGenerationManifest = {
+    sceneId: args.plan.scene.id,
+    promptVersion: args.plan.providerRequest.promptVersion,
+    sceneHash: args.plan.sceneHash,
+    visualPlanHash: args.plan.visualPlanHash,
+    renderability: args.plan.visualPlanArtifact.renderability,
+    finalPrompt: args.plan.prompt,
+    providerRequestHash: generation.providerRequestHash,
+    promptHash: generation.promptHash,
+    ...(args.plan.previousSceneId ? { previousSceneId: args.plan.previousSceneId } : {}),
+    materialDifferencesFromPrevious: args.plan.materialDifferencesFromPrevious,
+    ...(args.plan.validationIssues.length > 0
+      ? {
+          validationIssueCodes: args.plan.validationIssues.map(
+            (issue) => issue.code
+          ),
+        }
+      : {}),
+    characterIds: args.plan.spec.characters.map(
+      (character) => character.characterId
+    ),
+    referenceImages: args.plan.referenceImages,
+    model: generation.model,
+    size: generation.size,
+    quality: generation.quality,
+    outputPath,
+    ...(generation.outputSha256 ? { outputSha256: generation.outputSha256 } : {}),
+    status: "generated",
+    attempts: generation.attempts,
+    generatedAt: new Date().toISOString(),
+  };
+  await writeManifest(manifestPath, manifest);
+  await writeProviderResponseArtifact(
+    args.episodeDir,
+    args.plan.scene.id,
+    buildProviderResponseArtifact({
+      sceneId: args.plan.scene.id,
+      generation,
+    })
+  );
+  await writeGenerationCheckpoint(args.episodeDir, {
+    sceneId: args.plan.scene.id,
+    status: "generated",
+    outputPath,
+    promptHash: generation.promptHash,
+    visualPlanHash: args.plan.visualPlanHash,
+    cacheDecision: "generated",
+    details: ["provider response persisted"],
+    recordedAt: new Date().toISOString(),
+  });
+  return {
+    episodeId: args.episodeId,
+    sceneId: args.plan.scene.id,
+    manifestPath,
+    outputPath,
+    ...(generation.outputSha256 ? { outputSha256: generation.outputSha256 } : {}),
+    status: "generated",
+  };
+}
+
 export async function planEpisodeImageGeneration(
   episodeDir: string,
   episodeId: string,
@@ -2616,7 +4133,11 @@ export async function planEpisodeImageGeneration(
   const registry = await loadRegistry(episodeDir, episodeId);
   await ensureDir(path.join(episodeDir, "state", "image-generation", "manifests"));
   await ensureDir(path.join(episodeDir, "state", "image-generation", "prompts"));
-  await ensureDir(path.join(episodeDir, "state", "image-generation", "visual-plans"));
+  await ensureDir(resolveEpisodeImageVisualPlansDir(episodeDir));
+  await ensureDir(resolveEpisodeImageProviderRequestsDir(episodeDir));
+  await ensureDir(resolveEpisodeImageProviderResponsesDir(episodeDir));
+  await ensureDir(resolveEpisodeImageCheckpointsDir(episodeDir));
+  await ensureDir(resolveEpisodeImageFailuresDir(episodeDir));
   const scenes = options?.sceneId
     ? scenePlan.scenes.filter((scene) => scene.id === options.sceneId)
     : scenePlan.scenes;
@@ -2648,11 +4169,12 @@ export async function planEpisodeImageGeneration(
     );
     const manifest: SceneGenerationManifest = {
       sceneId: plan.scene.id,
-      promptVersion: 1,
+      promptVersion: plan.providerRequest.promptVersion,
       sceneHash: plan.sceneHash,
       visualPlanHash: plan.visualPlanHash,
       renderability: plan.visualPlanArtifact.renderability,
       finalPrompt: plan.prompt,
+      providerRequestHash: plan.providerRequestHash,
       promptHash: plan.promptHash,
       ...(plan.previousSceneId ? { previousSceneId: plan.previousSceneId } : {}),
       materialDifferencesFromPrevious: plan.materialDifferencesFromPrevious,
@@ -2661,9 +4183,9 @@ export async function planEpisodeImageGeneration(
         : {}),
       characterIds: plan.spec.characters.map((character) => character.characterId),
       referenceImages: plan.referenceImages,
-      model: settings.model,
-      size: settings.resolvedSize,
-      quality: settings.quality,
+      model: plan.providerRequest.model,
+      size: plan.providerRequest.size,
+      quality: plan.providerRequest.quality,
       outputPath: sceneOutputPath(episodeDir, plan.scene),
       status: plan.validationFailures.length > 0 ? "failed" : "planned",
       attempts: 0,
@@ -2676,14 +4198,43 @@ export async function planEpisodeImageGeneration(
           }
         : {}),
     };
-    const manifestPath = sceneManifestPath(episodeDir, plan.scene.id);
+    const manifestPath = resolveEpisodeImageManifestPath(episodeDir, plan.scene.id);
     await writeManifest(manifestPath, manifest);
-    await writeTextAtomic(scenePromptPath(episodeDir, plan.scene.id), `${plan.prompt}\n`);
+    await writeTextAtomic(
+      resolveEpisodeImagePromptPath(episodeDir, plan.scene.id),
+      `${plan.prompt}\n`
+    );
+    await writeGenerationCheckpoint(episodeDir, {
+      sceneId: plan.scene.id,
+      status: plan.validationFailures.length > 0 ? "validation_failed" : "planned",
+      outputPath: manifest.outputPath,
+      promptHash: plan.promptHash,
+      visualPlanHash: plan.visualPlanHash,
+      cacheDecision: plan.validationFailures.length > 0 ? "validation-failed" : "planned",
+      ...(plan.validationFailures.length > 0
+        ? { details: [...plan.validationFailures] }
+        : {}),
+      recordedAt: new Date().toISOString(),
+    });
+    if (plan.validationFailures.length > 0) {
+      await writeGenerationFailure(episodeDir, {
+        sceneId: plan.scene.id,
+        stage: "visual-planning",
+        category: "prompt-validation-error",
+        outputPath: manifest.outputPath,
+        promptHash: plan.promptHash,
+        message: plan.validationFailures.join("; "),
+        retryable: false,
+        attempts: 0,
+        recordedAt: new Date().toISOString(),
+      });
+    }
     results.push({
       episodeId,
       sceneId: plan.scene.id,
       prompt: plan.prompt,
       promptHash: plan.promptHash,
+      providerRequestHash: plan.providerRequestHash,
       manifestPath,
       visualPlanPath,
       renderability: plan.visualPlanArtifact.renderability,
@@ -2781,7 +4332,11 @@ export async function generateEpisodeImages(
   const registry = await loadRegistry(episodeDir, episodeId);
   await ensureDir(path.join(episodeDir, "state", "image-generation", "manifests"));
   await ensureDir(path.join(episodeDir, "shared", "images", "generated"));
-  await ensureDir(path.join(episodeDir, "state", "image-generation", "visual-plans"));
+  await ensureDir(resolveEpisodeImageVisualPlansDir(episodeDir));
+  await ensureDir(resolveEpisodeImageProviderRequestsDir(episodeDir));
+  await ensureDir(resolveEpisodeImageProviderResponsesDir(episodeDir));
+  await ensureDir(resolveEpisodeImageCheckpointsDir(episodeDir));
+  await ensureDir(resolveEpisodeImageFailuresDir(episodeDir));
   const scenes = options?.sceneId
     ? scenePlan.scenes.filter((scene) => scene.id === options.sceneId)
     : scenePlan.scenes;
@@ -2806,6 +4361,34 @@ export async function generateEpisodeImages(
       "Episode image plan exceeded the reuse budget; promoting marginal merge candidates to direct generation."
     );
   }
+  if (
+    settings.concurrency > 1 &&
+    canGenerateScenePlansConcurrently(plans)
+  ) {
+    settings.logger?.info(
+      {
+        episodeId,
+        concurrency: settings.concurrency,
+        sceneCount: plans.length,
+      },
+      "Generating independent episode scenes with bounded concurrency."
+    );
+    return mapWithConcurrency(
+      plans,
+      settings.concurrency,
+      async (plan) =>
+        generateIndependentScenePlan({
+          episodeDir,
+          episodeId,
+          plan,
+          settings,
+          registry,
+          generator,
+          force,
+          ...(options?.client ? { client: options.client } : {}),
+        })
+    );
+  }
   const results: EpisodeImageGenerationResult[] = [];
   let currentImageRunLength = 0;
   let previousResolvedOutput:
@@ -2816,14 +4399,16 @@ export async function generateEpisodeImages(
       | undefined;
   let pendingMergeWithNextScenes: PendingMergeWithNextScene[] = [];
   for (const [sceneIndex, plan] of plans.entries()) {
-    const manifestPath = sceneManifestPath(episodeDir, plan.scene.id);
+    const manifestPath = resolveEpisodeImageManifestPath(episodeDir, plan.scene.id);
     const existing = await readManifest(manifestPath);
     const outputPath = sceneOutputPath(episodeDir, plan.scene);
     await hydrateCanonicalSceneImage(existing?.outputPath, outputPath);
     const spec = plan.spec;
     const prompt = plan.prompt;
+    const providerRequest = plan.providerRequest;
     const currentSceneHash = plan.sceneHash;
     const currentPromptHash = plan.promptHash;
+    const currentProviderRequestHash = plan.providerRequestHash;
     const validationIssues = plan.validationIssues;
     const referenceImagesSummary = plan.referenceImages;
     let visualPlanArtifact = plan.visualPlanArtifact;
@@ -2860,6 +4445,7 @@ export async function generateEpisodeImages(
         manifestPath,
         outputPath,
         sceneHash: currentSceneHash,
+        providerRequest,
         prompt,
         promptHash: currentPromptHash,
         visualPlanHash: currentVisualPlanHash,
@@ -2869,10 +4455,17 @@ export async function generateEpisodeImages(
         validationIssueCodes: validationIssues.map((issue) => issue.code),
         characterIds: spec.characters.map((character) => character.characterId),
         referenceImages: referenceImagesSummary,
-        model: settings.model,
-        size: settings.resolvedSize,
-        quality: settings.quality,
         spec,
+      });
+      await writeGenerationCheckpoint(episodeDir, {
+        sceneId: plan.scene.id,
+        status: "queued_for_next_reuse",
+        outputPath,
+        promptHash: currentPromptHash,
+        visualPlanHash: currentVisualPlanHash,
+        cacheDecision: "queued-for-reuse",
+        details: ["queued to reuse next concrete scene output"],
+        recordedAt: new Date().toISOString(),
       });
       currentImageRunLength = Math.min(3, pendingMergeWithNextScenes.length + 1);
       continue;
@@ -2893,11 +4486,12 @@ export async function generateEpisodeImages(
       if (reused) {
         const manifest: SceneGenerationManifest = {
           sceneId: plan.scene.id,
-          promptVersion: 1,
+          promptVersion: providerRequest.promptVersion,
           sceneHash: currentSceneHash,
           visualPlanHash: currentVisualPlanHash,
           renderability: visualPlanArtifact.renderability,
           finalPrompt: prompt,
+          providerRequestHash: currentProviderRequestHash,
           promptHash: currentPromptHash,
           ...(plan.previousSceneId ? { previousSceneId: plan.previousSceneId } : {}),
           reusedFromSceneId: reused.reusedFromSceneId,
@@ -2909,9 +4503,9 @@ export async function generateEpisodeImages(
             : {}),
           characterIds: spec.characters.map((character) => character.characterId),
           referenceImages: referenceImagesSummary,
-          model: settings.model,
-          size: settings.resolvedSize,
-          quality: settings.quality,
+          model: providerRequest.model,
+          size: providerRequest.size,
+          quality: providerRequest.quality,
           outputPath,
           outputSha256: reused.outputSha256,
           status: "generated",
@@ -2919,6 +4513,16 @@ export async function generateEpisodeImages(
           generatedAt: new Date().toISOString(),
         };
         await writeManifest(manifestPath, manifest);
+        await writeGenerationCheckpoint(episodeDir, {
+          sceneId: plan.scene.id,
+          status: "reused_previous_scene",
+          outputPath,
+          promptHash: currentPromptHash,
+          visualPlanHash: currentVisualPlanHash,
+          cacheDecision: "reused-previous",
+          details: [`reused output from ${reused.reusedFromSceneId}`],
+          recordedAt: new Date().toISOString(),
+        });
         results.push({
           episodeId,
           sceneId: plan.scene.id,
@@ -2942,6 +4546,7 @@ export async function generateEpisodeImages(
         existing,
         currentSceneHash,
         currentPromptHash,
+        currentProviderRequestHash,
         currentVisualPlanHash,
         currentRenderability: visualPlanArtifact.renderability,
         currentReferenceImages: referenceImagesSummary,
@@ -2950,7 +4555,7 @@ export async function generateEpisodeImages(
       }))
       &&
       currentImageRunLength < 3
-    ) {
+      ) {
       if (pendingMergeWithNextScenes.length > 0) {
         const pendingResults = await materializePendingMergeWithNextScenes({
           pendingScenes: pendingMergeWithNextScenes,
@@ -2977,6 +4582,16 @@ export async function generateEpisodeImages(
           : {}),
         status: "skipped",
       });
+      await writeGenerationCheckpoint(episodeDir, {
+        sceneId: plan.scene.id,
+        status: "reused_cached_output",
+        outputPath,
+        promptHash: currentPromptHash,
+        visualPlanHash: currentVisualPlanHash,
+        cacheDecision: "reused-existing",
+        details: ["reused previously generated canonical output"],
+        recordedAt: new Date().toISOString(),
+      });
       previousResolvedOutput = {
         sceneId: plan.scene.id,
         outputPath,
@@ -2987,11 +4602,12 @@ export async function generateEpisodeImages(
     if (validationFailures.length > 0) {
       const manifest: SceneGenerationManifest = {
         sceneId: plan.scene.id,
-        promptVersion: 1,
+        promptVersion: providerRequest.promptVersion,
         sceneHash: currentSceneHash,
         visualPlanHash: currentVisualPlanHash,
         renderability: visualPlanArtifact.renderability,
         finalPrompt: prompt,
+        providerRequestHash: currentProviderRequestHash,
         promptHash: currentPromptHash,
         ...(plan.previousSceneId ? { previousSceneId: plan.previousSceneId } : {}),
         materialDifferencesFromPrevious: plan.materialDifferencesFromPrevious,
@@ -3000,15 +4616,36 @@ export async function generateEpisodeImages(
           : {}),
         characterIds: spec.characters.map((character) => character.characterId),
         referenceImages: referenceImagesSummary,
-        model: settings.model,
-        size: settings.resolvedSize,
-        quality: settings.quality,
+        model: providerRequest.model,
+        size: providerRequest.size,
+        quality: providerRequest.quality,
         outputPath,
         status: "failed",
         attempts: 0,
         error: { message: validationFailures.join("; "), retryable: false },
       };
       await writeManifest(manifestPath, manifest);
+      await writeGenerationCheckpoint(episodeDir, {
+        sceneId: plan.scene.id,
+        status: "validation_failed",
+        outputPath,
+        promptHash: currentPromptHash,
+        visualPlanHash: currentVisualPlanHash,
+        cacheDecision: "validation-failed",
+        details: [...validationFailures],
+        recordedAt: new Date().toISOString(),
+      });
+      await writeGenerationFailure(episodeDir, {
+        sceneId: plan.scene.id,
+        stage: "visual-planning",
+        category: "prompt-validation-error",
+        outputPath,
+        promptHash: currentPromptHash,
+        message: validationFailures.join("; "),
+        retryable: false,
+        attempts: 0,
+        recordedAt: new Date().toISOString(),
+      });
       results.push({
         episodeId,
         sceneId: plan.scene.id,
@@ -3020,31 +4657,26 @@ export async function generateEpisodeImages(
       currentImageRunLength = 0;
       continue;
     }
-    const { referenceImages } = await loadReferenceImages(
-      episodeDir,
-      registry,
-      spec,
-      settings,
-      options?.client
-    );
-    let generation:
-      | Awaited<ReturnType<typeof generator.generate>>
-      | undefined;
+    let referenceImages: ReferenceImage[];
     try {
-      generation = await generator.generate({
-        scene: spec,
-        prompt,
-        referenceImages,
-        outputPath,
-      });
+      ({ referenceImages } = await loadReferenceImages(
+        episodeDir,
+        registry,
+        spec,
+        settings,
+        options?.client
+      ));
     } catch (error) {
+      const message = formatError(error);
+      const errorCode = parseErrorCode(error);
       const manifest: SceneGenerationManifest = {
         sceneId: plan.scene.id,
-        promptVersion: 1,
+        promptVersion: providerRequest.promptVersion,
         sceneHash: currentSceneHash,
         visualPlanHash: currentVisualPlanHash,
         renderability: visualPlanArtifact.renderability,
         finalPrompt: prompt,
+        providerRequestHash: currentProviderRequestHash,
         promptHash: currentPromptHash,
         ...(plan.previousSceneId ? { previousSceneId: plan.previousSceneId } : {}),
         materialDifferencesFromPrevious: plan.materialDifferencesFromPrevious,
@@ -3053,9 +4685,94 @@ export async function generateEpisodeImages(
           : {}),
         characterIds: spec.characters.map((character) => character.characterId),
         referenceImages: referenceImagesSummary,
-        model: settings.model,
-        size: settings.resolvedSize,
-        quality: settings.quality,
+        model: providerRequest.model,
+        size: providerRequest.size,
+        quality: providerRequest.quality,
+        outputPath,
+        status: "failed",
+        attempts: 0,
+        error: { message, retryable: false },
+      };
+      await writeManifest(manifestPath, manifest);
+      await writeGenerationCheckpoint(episodeDir, {
+        sceneId: plan.scene.id,
+        status: "provider_failed",
+        outputPath,
+        promptHash: currentPromptHash,
+        visualPlanHash: currentVisualPlanHash,
+        cacheDecision: "provider-failed",
+        details: [message],
+        recordedAt: new Date().toISOString(),
+      });
+      await writeGenerationFailure(episodeDir, {
+        sceneId: plan.scene.id,
+        stage: "reference-resolution",
+        category: "character-continuity-error",
+        outputPath,
+        promptHash: currentPromptHash,
+        ...(errorCode ? { code: errorCode } : {}),
+        message,
+        retryable: false,
+        attempts: 0,
+        recordedAt: new Date().toISOString(),
+      });
+      results.push({
+        episodeId,
+        sceneId: plan.scene.id,
+        manifestPath,
+        outputPath,
+        status: "failed",
+      });
+      previousResolvedOutput = undefined;
+      currentImageRunLength = 0;
+      continue;
+    }
+    await writeProviderRequestArtifact(
+      episodeDir,
+      plan.scene.id,
+      buildProviderRequestArtifact({
+        request: providerRequest,
+      })
+    );
+    await writeGenerationCheckpoint(episodeDir, {
+      sceneId: plan.scene.id,
+      status: "provider_requested",
+      outputPath,
+      promptHash: currentPromptHash,
+      visualPlanHash: currentVisualPlanHash,
+      cacheDecision: "provider-requested",
+      details: ["provider request persisted"],
+      recordedAt: new Date().toISOString(),
+    });
+    let generation:
+      | Awaited<ReturnType<typeof generator.generate>>
+      | undefined;
+    try {
+      generation = await generator.generate({
+        providerRequest,
+        referenceImages,
+      });
+    } catch (error) {
+      const errorCode = parseErrorCode(error);
+      const manifest: SceneGenerationManifest = {
+        sceneId: plan.scene.id,
+        promptVersion: providerRequest.promptVersion,
+        sceneHash: currentSceneHash,
+        visualPlanHash: currentVisualPlanHash,
+        renderability: visualPlanArtifact.renderability,
+        finalPrompt: prompt,
+        providerRequestHash: currentProviderRequestHash,
+        promptHash: currentPromptHash,
+        ...(plan.previousSceneId ? { previousSceneId: plan.previousSceneId } : {}),
+        materialDifferencesFromPrevious: plan.materialDifferencesFromPrevious,
+        ...(validationIssues.length > 0
+          ? { validationIssueCodes: validationIssues.map((issue) => issue.code) }
+          : {}),
+        characterIds: spec.characters.map((character) => character.characterId),
+        referenceImages: referenceImagesSummary,
+        model: providerRequest.model,
+        size: providerRequest.size,
+        quality: providerRequest.quality,
         outputPath,
         status: "failed",
         attempts: 0,
@@ -3065,6 +4782,32 @@ export async function generateEpisodeImages(
         },
       };
       await writeManifest(manifestPath, manifest);
+      await writeGenerationCheckpoint(episodeDir, {
+        sceneId: plan.scene.id,
+        status: "provider_failed",
+        outputPath,
+        promptHash: currentPromptHash,
+        visualPlanHash: currentVisualPlanHash,
+        cacheDecision: "provider-failed",
+        details: [formatError(error)],
+        recordedAt: new Date().toISOString(),
+      });
+      await writeGenerationFailure(episodeDir, {
+        sceneId: plan.scene.id,
+        stage: "provider",
+        category: classifyFailure({
+          stage: "provider",
+          error,
+          retryable: isRetryableError(error),
+        }),
+        outputPath,
+        promptHash: currentPromptHash,
+        ...(errorCode ? { code: errorCode } : {}),
+        message: formatError(error),
+        retryable: isRetryableError(error),
+        attempts: 0,
+        recordedAt: new Date().toISOString(),
+      });
       results.push({
         episodeId,
         sceneId: plan.scene.id,
@@ -3078,11 +4821,12 @@ export async function generateEpisodeImages(
     }
     const manifest: SceneGenerationManifest = {
       sceneId: plan.scene.id,
-      promptVersion: 1,
+      promptVersion: providerRequest.promptVersion,
       sceneHash: currentSceneHash,
       visualPlanHash: currentVisualPlanHash,
       renderability: visualPlanArtifact.renderability,
       finalPrompt: prompt,
+      providerRequestHash: generation.providerRequestHash,
       promptHash: generation.promptHash,
       ...(plan.previousSceneId ? { previousSceneId: plan.previousSceneId } : {}),
       materialDifferencesFromPrevious: plan.materialDifferencesFromPrevious,
@@ -3103,6 +4847,24 @@ export async function generateEpisodeImages(
       generatedAt: new Date().toISOString(),
     };
     await writeManifest(manifestPath, manifest);
+    await writeProviderResponseArtifact(
+      episodeDir,
+      plan.scene.id,
+      buildProviderResponseArtifact({
+        sceneId: plan.scene.id,
+        generation,
+      })
+    );
+    await writeGenerationCheckpoint(episodeDir, {
+      sceneId: plan.scene.id,
+      status: "generated",
+      outputPath,
+      promptHash: generation.promptHash,
+      visualPlanHash: currentVisualPlanHash,
+      cacheDecision: "generated",
+      details: ["provider response persisted"],
+      recordedAt: new Date().toISOString(),
+    });
     if (pendingMergeWithNextScenes.length > 0) {
       const pendingResults = await materializePendingMergeWithNextScenes({
         pendingScenes: pendingMergeWithNextScenes,
@@ -3249,7 +5011,7 @@ export async function loadEpisodeSceneManifest(
   episodeDir: string,
   sceneId: string
 ): Promise<SceneGenerationManifest | null> {
-  return readManifest(sceneManifestPath(episodeDir, sceneId));
+  return readManifest(resolveEpisodeImageManifestPath(episodeDir, sceneId));
 }
 
 export async function upsertCharacterRegistry(

@@ -5,6 +5,7 @@ import { loadRuntimeConfig } from "@mediaforge/config";
 import { episodeManifestSchema, scenePlanSchema, type EpisodeManifest, type ScenePlan } from "@mediaforge/domain";
 import {
   generateEpisodeImages,
+  loadEpisodeSceneManifest,
   loadEpisodeImageGenerationSettings,
 } from "@mediaforge/image-generation";
 import { createLogger } from "@mediaforge/observability";
@@ -26,6 +27,11 @@ export interface ResolvedEpisodeManifest {
   readonly manifestPath: string;
   readonly manifest: EpisodeManifest & { readonly scenePlan: ScenePlan };
   readonly created: boolean;
+}
+
+interface PersistedFailureResumeStatus {
+  readonly retryable: boolean;
+  readonly category?: string;
 }
 
 function nowIso(): string {
@@ -104,6 +110,89 @@ async function resolveScenePlan(
       ...candidates.map((candidate) => `- ${candidate}`),
     ].join("\n")
   );
+}
+
+async function readFailureResumeStatus(
+  episodeDir: string,
+  sceneId: string
+): Promise<PersistedFailureResumeStatus | null> {
+  const failurePath = path.join(
+    episodeDir,
+    "state",
+    "image-generation",
+    "failures",
+    `${sceneId}.json`
+  );
+  const raw = await readJsonIfExists(failurePath, (value) =>
+    value && typeof value === "object"
+      ? (value as Record<string, unknown>)
+      : null
+  );
+  if (!raw) {
+    return null;
+  }
+  return {
+    retryable:
+      typeof raw["retryable"] === "boolean" ? raw["retryable"] : false,
+    ...(typeof raw["category"] === "string"
+      ? { category: raw["category"] }
+      : {}),
+  };
+}
+
+async function buildResumeEligibleScenePlan(
+  episodeDir: string,
+  scenePlan: ScenePlan,
+  force: boolean
+): Promise<{
+  readonly scenePlan: ScenePlan;
+  readonly skippedNonRetryableFailures: Array<{
+    readonly sceneId: string;
+    readonly category?: string;
+  }>;
+}> {
+  if (force) {
+    return { scenePlan, skippedNonRetryableFailures: [] };
+  }
+  const eligibleScenes: ScenePlan["scenes"] = [];
+  const skippedNonRetryableFailures: Array<{
+    readonly sceneId: string;
+    readonly category?: string;
+  }> = [];
+  for (const scene of scenePlan.scenes) {
+    const manifest = await loadEpisodeSceneManifest(episodeDir, scene.id);
+    if (!manifest) {
+      eligibleScenes.push(scene);
+      continue;
+    }
+    if (manifest.status === "generated") {
+      if (!(await fileExists(manifest.outputPath))) {
+        eligibleScenes.push(scene);
+      }
+      continue;
+    }
+    if (manifest.status === "failed") {
+      const failure = await readFailureResumeStatus(episodeDir, scene.id);
+      const retryable = failure?.retryable ?? manifest.error?.retryable ?? false;
+      if (retryable) {
+        eligibleScenes.push(scene);
+      } else {
+        skippedNonRetryableFailures.push({
+          sceneId: scene.id,
+          ...(failure?.category ? { category: failure.category } : {}),
+        });
+      }
+      continue;
+    }
+    eligibleScenes.push(scene);
+  }
+  return {
+    scenePlan: scenePlanSchema.parse({
+      ...scenePlan,
+      scenes: eligibleScenes,
+    }),
+    skippedNonRetryableFailures,
+  };
 }
 
 export async function loadOrBootstrapEpisodeManifest(
@@ -211,10 +300,15 @@ export async function commandImagesResume(
     options.verbose ? "debug" : "info",
     process.stderr
   );
+  const resumePlan = await buildResumeEligibleScenePlan(
+    episodeDir,
+    manifest.scenePlan,
+    options.force ?? false
+  );
   const results = await generateEpisodeImages(
     episodeDir,
     manifest.episodeId,
-    manifest.scenePlan,
+    resumePlan.scenePlan,
     { ...settings, logger },
     {
       ...(options.force !== undefined ? { force: options.force } : {}),
@@ -227,6 +321,17 @@ export async function commandImagesResume(
     generated: results.filter((result) => result.status === "generated").length,
     skipped: results.filter((result) => result.status === "skipped").length,
     failed: results.filter((result) => result.status === "failed").length,
+    skippedNonRetryableFailures:
+      resumePlan.skippedNonRetryableFailures.length,
+    skippedNonRetryableFailureCategories:
+      resumePlan.skippedNonRetryableFailures.reduce<Record<string, number>>(
+        (counts, failure) => {
+          const category = failure.category ?? "unknown-failure";
+          counts[category] = (counts[category] ?? 0) + 1;
+          return counts;
+        },
+        {}
+      ),
     total: results.length,
   };
   if (options.json) {
@@ -240,6 +345,7 @@ export async function commandImagesResume(
       `Generated: ${summary.generated}`,
       `Skipped: ${summary.skipped}`,
       `Failed: ${summary.failed}`,
+      `Skipped non-retryable failures: ${summary.skippedNonRetryableFailures}`,
       `Total: ${summary.total}`,
     ].join("\n") + "\n"
   );

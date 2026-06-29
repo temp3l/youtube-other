@@ -8,6 +8,8 @@ export interface ImageStatusReport {
   readonly mergedWithNextScenes: number;
   readonly reusedScenes: number;
   readonly readyForRender: boolean;
+  readonly retryableFailedScenes?: number;
+  readonly failureCategories?: Record<string, number>;
   readonly episodeNumbers: readonly string[];
   readonly sceneCount: number;
 }
@@ -24,6 +26,8 @@ export function buildImageStatusOutput(report: ImageStatusReport): Record<string
       failedBatches: report.failedBatches,
     },
     sceneCount: report.sceneCount,
+    retryableFailedScenes: report.retryableFailedScenes ?? 0,
+    failureCategories: report.failureCategories ?? {},
     mergeCounts: {
       mergedWithPreviousScenes: report.mergedWithPreviousScenes,
       mergedWithNextScenes: report.mergedWithNextScenes,

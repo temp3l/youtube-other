@@ -48,6 +48,7 @@ export interface SceneImageJob {
   readonly outputFormat: "png" | "jpeg" | "webp";
   readonly expectedOutputPath: string;
   readonly promptHash: string;
+  readonly providerRequestHash: string;
   readonly generationConfigurationHash: string;
 }
 
@@ -62,6 +63,7 @@ export interface ImageBatchManifestItem {
   readonly renderability?: "direct" | "requiresInference" | "mergeWithPrevious" | "mergeWithNext" | "skip";
   readonly reusedFromSceneId?: string;
   readonly promptHash: string;
+  readonly providerRequestHash: string;
   readonly generationConfigurationHash: string;
   readonly expectedOutputPath: string;
   readonly characterIds: readonly string[];

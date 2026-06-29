@@ -50,6 +50,33 @@ async function writeSceneManifest(
     ),
     "utf8"
   );
+  if (status === "failed") {
+    const failuresDir = path.join(
+      episodeDir,
+      "state",
+      "image-generation",
+      "failures"
+    );
+    await fs.mkdir(failuresDir, { recursive: true });
+    await fs.writeFile(
+      path.join(failuresDir, `${sceneId}.json`),
+      JSON.stringify(
+        {
+          sceneId,
+          stage: "provider",
+          category: "provider-safety-rejection",
+          outputPath,
+          message: "content policy rejected the image",
+          retryable: false,
+          attempts: 1,
+          recordedAt: new Date().toISOString(),
+        },
+        null,
+        2
+      ),
+      "utf8"
+    );
+  }
 }
 
 describe("episode image summary", () => {
@@ -76,6 +103,17 @@ describe("episode image summary", () => {
       missingImages: 1,
       readyForRender: false,
       missingSceneIds: ["scene-002", "scene-004"],
+      retryableFailedScenes: 0,
+      failureCategories: {
+        "provider-safety-rejection": 1,
+      },
     });
+    expect(summary.failures).toEqual([
+      expect.objectContaining({
+        sceneId: "scene-003",
+        category: "provider-safety-rejection",
+        retryable: false,
+      }),
+    ]);
   });
 });

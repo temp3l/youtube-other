@@ -16,7 +16,7 @@ import {
   loadEpisodeSceneVisualPlan,
   planEpisodeImageGeneration,
   OpenAIImageGenerator,
-  rewriteForDifference,
+  repairForSemanticDifference,
   type CharacterRegistry,
   type SceneVisualSpec,
   type CharacterDefinition,
@@ -142,6 +142,26 @@ function makeSceneSpec(): SceneVisualSpec {
   };
 }
 
+interface MalformedSceneRegressionFixture {
+  readonly name: string;
+  readonly previous?: Partial<SceneVisualSpec>;
+  readonly current: Partial<SceneVisualSpec>;
+  readonly expectedIssueCodes?: string[];
+  readonly unexpectedIssueCodes?: string[];
+}
+
+async function loadMalformedSceneRegressionFixtures(): Promise<
+  MalformedSceneRegressionFixture[]
+> {
+  const fixturePath = new URL(
+    "./__fixtures__/malformed-scene-regressions.json",
+    import.meta.url
+  );
+  return JSON.parse(
+    await fs.readFile(fixturePath, "utf8")
+  ) as MalformedSceneRegressionFixture[];
+}
+
 async function createImageBuffer(color: string): Promise<string> {
   return sharp({
     create: {
@@ -224,6 +244,127 @@ function createSequencedMockClient(
             response: new Response(null, { status: 200 }),
             request_id: `req_edit_${index}`,
           }),
+        };
+      },
+    },
+  } as never;
+}
+
+function createFailingMockClient(
+  calls: Array<{ method: "generate" | "edit"; body: unknown }>,
+  error: Error
+) {
+  return {
+    images: {
+      generate(body: unknown) {
+        calls.push({ method: "generate", body });
+        return {
+          withResponse: async () => {
+            throw error;
+          },
+        };
+      },
+      edit(body: unknown) {
+        calls.push({ method: "edit", body });
+        return {
+          withResponse: async () => {
+            throw error;
+          },
+        };
+      },
+    },
+  } as never;
+}
+
+function makePreparedProviderRequest(args: {
+  readonly scene: SceneVisualSpec;
+  readonly prompt: string;
+  readonly outputPath: string;
+  readonly referenceImages?: Array<{
+    characterId: string;
+    path: string;
+    sha256: string;
+  }>;
+}) {
+  const referenceImages = args.referenceImages ?? [];
+  return {
+    sceneId: args.scene.sceneId,
+    scene: args.scene,
+    model: "gpt-image-2",
+    size: "1536x1024",
+    quality: "medium" as const,
+    outputFormat: "png" as const,
+    background: "opaque" as const,
+    outputPath: args.outputPath,
+    operation:
+      referenceImages.length > 0 ? ("image-edit" as const) : ("image-generation" as const),
+    aspectRatio: "16:9" as const,
+    promptVersion: 1,
+    referenceImages,
+    characterContexts: args.scene.characters.map((usage) => ({
+      characterId: usage.characterId,
+      usage,
+    })),
+    prompt: args.prompt,
+    promptHash: `prompt:${args.prompt}`,
+    providerRequestHash: `hash:${args.prompt}`,
+  };
+}
+
+function createConcurrentPromptMockClient(args: {
+  readonly calls: Array<{ method: "generate" | "edit"; body: unknown }>;
+  readonly delaysByPrompt: Readonly<Record<string, number>>;
+  readonly b64ByPrompt: Readonly<Record<string, string>>;
+  readonly failingPrompts?: ReadonlySet<string>;
+  readonly counters: { active: number; maxActive: number };
+}) {
+  return {
+    images: {
+      generate(body: unknown) {
+        args.calls.push({ method: "generate", body });
+        return {
+          withResponse: async () => {
+            const prompt =
+              typeof body === "object" &&
+              body !== null &&
+              "prompt" in body &&
+              typeof (body as { prompt?: unknown }).prompt === "string"
+                ? ((body as { prompt: string }).prompt as string)
+                : "";
+            args.counters.active += 1;
+            args.counters.maxActive = Math.max(
+              args.counters.maxActive,
+              args.counters.active
+            );
+            try {
+              const delayMs = args.delaysByPrompt[prompt] ?? 0;
+              if (delayMs > 0) {
+                await new Promise((resolve) => setTimeout(resolve, delayMs));
+              }
+              if (args.failingPrompts?.has(prompt)) {
+                throw new Error(`forced failure for ${prompt}`);
+              }
+              const b64 = args.b64ByPrompt[prompt];
+              if (!b64) {
+                throw new Error(`missing mock image for prompt ${prompt}`);
+              }
+              return {
+                data: { data: [{ b64_json: b64 }] },
+                response: new Response(null, { status: 200 }),
+                request_id: `req_${prompt}`,
+              };
+            } finally {
+              args.counters.active -= 1;
+            }
+          },
+        };
+      },
+      edit(body: unknown) {
+        args.calls.push({ method: "edit", body });
+        return {
+          withResponse: async () => {
+            throw new Error("unexpected edit request in concurrency test");
+          },
         };
       },
     },
@@ -337,6 +478,347 @@ describe("episode image pipeline helpers", () => {
     expect(spec.foreground).not.toContain("foreground details centered on");
     expect(spec.background).not.toContain("background details that echo");
     expect(spec.background).not.toContain("two children at the threshold");
+  });
+
+  it("repairs generic visual fields with concrete inferred visuals instead of copying narration", () => {
+    const spec = buildSceneVisualSpec(
+      {
+        id: "scene-001",
+        sequenceNumber: 1,
+        canonicalNarration:
+          "Two children stood outside Noah's motel room in freezing rain.",
+        sourceSegmentIds: ["scene-001"],
+        estimatedDurationSeconds: 4,
+        timing: { startSeconds: 0, endSeconds: 4 },
+        visualPurpose: "introduce the setting",
+        subject: "shown",
+        action: "shown",
+        setting: "cinematic documentary background",
+        composition: "centered",
+        cameraFraming: "wide shot",
+        mood: "tense",
+        continuityReferences: [],
+        onScreenText: "",
+        negativeConstraints: ["no subtitles", "no watermark"],
+        aspectRatios: ["16:9"],
+        imagePrompt: "placeholder",
+        expectedImageFilenames: ["scene-001__000000-000004__16x9.png"],
+        qualityStatus: "draft",
+      } as never,
+      makeRegistry()
+    );
+
+    expect(spec.focalSubject).toBe("two children at the doorway");
+    expect(spec.visibleAction).toBe("wait silently at the threshold");
+    expect(spec.environment).toContain("motel room");
+    expect(spec.focalSubject).not.toBe(
+      "Two children stood outside Noah's motel room in freezing rain."
+    );
+    expect(spec.visibleAction).not.toContain("freezing rain");
+  });
+
+  it("surfaces unresolved abstract beats as typed plan issues instead of narration copies", () => {
+    const scene = {
+      id: "scene-001",
+      sequenceNumber: 1,
+      canonicalNarration:
+        "The discovery changed the meaning of everything that came before.",
+      sourceSegmentIds: ["scene-001"],
+      estimatedDurationSeconds: 4,
+      timing: { startSeconds: 0, endSeconds: 4 },
+      visualPurpose: "transition",
+      subject: "shown",
+      action: "shown",
+      setting: "cinematic documentary background",
+      composition: "centered",
+      cameraFraming: "wide shot",
+      mood: "uneasy",
+      continuityReferences: [],
+      onScreenText: "",
+      negativeConstraints: ["no subtitles", "no watermark"],
+      aspectRatios: ["16:9"],
+      imagePrompt: "placeholder",
+      expectedImageFilenames: ["scene-001__000000-000004__16x9.png"],
+      qualityStatus: "draft",
+    } as never;
+    const spec = buildSceneVisualSpec(scene, makeRegistry());
+    const issues = validateSceneVisualSpec(spec, undefined, undefined);
+
+    expect(spec.focalSubject).toBe("unresolved visual subject");
+    expect(spec.visibleAction).toBe("unresolved visible action");
+    expect(spec.environment).toBe("unresolved environment");
+    expect(spec.focalSubject).not.toBe(scene.canonicalNarration);
+    expect(issues.map((issue) => issue.code)).toContain("MISSING_FOCAL_SUBJECT");
+    expect(issues.map((issue) => issue.code)).toContain(
+      "ABSTRACT_VISIBLE_ACTION"
+    );
+    expect(issues.map((issue) => issue.code)).toContain(
+      "PLACEHOLDER_ENVIRONMENT"
+    );
+  });
+
+  it("resolves recurring characters through aliases", () => {
+    const registry = makeRegistry();
+    registry.characters[0] = {
+      ...registry.characters[0]!,
+      aliases: ["Noah"],
+    };
+    const spec = buildSceneVisualSpec(
+      {
+        id: "scene-001",
+        sequenceNumber: 1,
+        canonicalNarration: "Noah opens the motel room door.",
+        sourceSegmentIds: ["scene-001"],
+        estimatedDurationSeconds: 4,
+        timing: { startSeconds: 0, endSeconds: 4 },
+        visualPurpose: "reaction",
+        subject: "Noah",
+        action: "opens the motel room door",
+        setting: "motel room doorway",
+        composition: "medium frame",
+        cameraFraming: "medium shot",
+        mood: "tense",
+        continuityReferences: [],
+        onScreenText: "",
+        negativeConstraints: ["no subtitles", "no watermark"],
+        aspectRatios: ["16:9"],
+        imagePrompt: "placeholder",
+        expectedImageFilenames: ["scene-001__000000-000004__16x9.png"],
+        qualityStatus: "draft",
+      } as never,
+      registry
+    );
+
+    expect(spec.characters.map((character) => character.characterId)).toContain(
+      "daniel-mercer"
+    );
+    expect(spec.unresolvedRecurringCharacterMentions).toBeUndefined();
+  });
+
+  it("resolves collective character labels without requiring literal names", () => {
+    const registry = makeRegistry();
+    registry.characters[0] = {
+      ...registry.characters[0]!,
+      id: "black-eyed-children",
+      name: "Black Eyed Children",
+      role: "supernatural antagonists",
+      aliases: ["the black eyed children"],
+      collectiveLabels: ["children", "kids"],
+    };
+    const spec = buildSceneVisualSpec(
+      {
+        id: "scene-001",
+        sequenceNumber: 1,
+        canonicalNarration: "The children knock softly outside the motel door.",
+        sourceSegmentIds: ["scene-001"],
+        estimatedDurationSeconds: 4,
+        timing: { startSeconds: 0, endSeconds: 4 },
+        visualPurpose: "establish",
+        subject: "the children",
+        action: "knock softly outside the motel door",
+        setting: "motel room doorway",
+        composition: "wide frame",
+        cameraFraming: "wide shot",
+        mood: "tense",
+        continuityReferences: [],
+        onScreenText: "",
+        negativeConstraints: ["no subtitles", "no watermark"],
+        aspectRatios: ["16:9"],
+        imagePrompt: "placeholder",
+        expectedImageFilenames: ["scene-001__000000-000004__16x9.png"],
+        qualityStatus: "draft",
+      } as never,
+      registry
+    );
+
+    expect(spec.characters.map((character) => character.characterId)).toEqual([
+      "black-eyed-children",
+    ]);
+    expect(spec.unresolvedRecurringCharacterMentions).toBeUndefined();
+  });
+
+  it("surfaces unresolved collective character mentions as typed issues", () => {
+    const spec = buildSceneVisualSpec(
+      {
+        id: "scene-001",
+        sequenceNumber: 1,
+        canonicalNarration: "The children knock softly outside the motel door.",
+        sourceSegmentIds: ["scene-001"],
+        estimatedDurationSeconds: 4,
+        timing: { startSeconds: 0, endSeconds: 4 },
+        visualPurpose: "establish",
+        subject: "the children",
+        action: "knock softly outside the motel door",
+        setting: "motel room doorway",
+        composition: "wide frame",
+        cameraFraming: "wide shot",
+        mood: "tense",
+        continuityReferences: [],
+        onScreenText: "",
+        negativeConstraints: ["no subtitles", "no watermark"],
+        aspectRatios: ["16:9"],
+        imagePrompt: "placeholder",
+        expectedImageFilenames: ["scene-001__000000-000004__16x9.png"],
+        qualityStatus: "draft",
+      } as never,
+      makeRegistry()
+    );
+    const issues = validateSceneVisualSpec(spec, undefined, undefined);
+
+    expect(spec.characters).toHaveLength(0);
+    expect(spec.unresolvedRecurringCharacterMentions).toEqual(["children"]);
+    expect(issues.map((issue) => issue.code)).toContain(
+      "UNRESOLVED_RECURRING_CHARACTER"
+    );
+  });
+
+  it("flags contradictions between required visible features and exclusions", () => {
+    const issues = validateSceneVisualSpec(
+      {
+        ...makeSceneSpec(),
+        focalSubject: "two children at the motel door",
+        visibleAction: "two children wait at the threshold",
+        prohibitedElements: ["No children", "No readable text"],
+      },
+      undefined,
+      undefined
+    );
+
+    expect(issues.map((issue) => issue.code)).toContain(
+      "CONTRADICTORY_REQUIRED_FEATURE"
+    );
+  });
+
+  it("flags required text that is contradicted by blanket text exclusions", () => {
+    const issues = validateSceneVisualSpec(
+      {
+        ...makeSceneSpec(),
+        textRequirement: {
+          required: true,
+          text: "ROOM 237",
+          placement: "on the brass door plaque",
+          reason: "The room number is essential to the reveal.",
+        },
+        prohibitedElements: ["No text", "No labels"],
+      },
+      undefined,
+      undefined
+    );
+
+    expect(issues.map((issue) => issue.code)).toContain(
+      "CONTRADICTORY_REQUIRED_FEATURE"
+    );
+  });
+
+  it("flags previous-scene narration leakage in current visual fields", () => {
+    const previous = makeSceneSpec();
+    const current = {
+      ...makeSceneSpec(),
+      sceneId: "scene-002",
+      sourceNarration: "Daniel sees a new shadow by the door.",
+      visibleAction: `reacts while ${previous.sourceNarration}`,
+      distinctiveAnchor: "new shadow by the door",
+    };
+    const issues = validateSceneVisualSpec(current, undefined, previous);
+
+    expect(issues.map((issue) => issue.code)).toContain(
+      "PREVIOUS_SCENE_TEXT_LEAKAGE"
+    );
+  });
+
+  it("flags empty or unresolved locations as typed location issues", () => {
+    const issues = validateSceneVisualSpec(
+      {
+        ...makeSceneSpec(),
+        environment: "unknown",
+      },
+      undefined,
+      undefined
+    );
+
+    expect(issues.map((issue) => issue.code)).toContain("EMPTY_LOCATION");
+  });
+
+  it("flags overly verbose visual plan fields separately from prompt verbosity", () => {
+    const longField = Array.from(
+      { length: 42 },
+      (_, index) => `detail${index}`
+    ).join(" ");
+    const issues = validateSceneVisualSpec(
+      {
+        ...makeSceneSpec(),
+        visibleAction: longField,
+      },
+      undefined,
+      undefined
+    );
+
+    expect(issues.map((issue) => issue.code)).toContain(
+      "VISUAL_FIELD_TOO_VERBOSE"
+    );
+  });
+
+  it("flags character continuity requirements without resolved characters", () => {
+    const issues = validateSceneVisualSpec(
+      {
+        ...makeSceneSpec(),
+        characters: [],
+        continuityElements: [
+          "keep Daniel's jacket, backpack, face, and hair consistent",
+        ],
+      },
+      undefined,
+      undefined
+    );
+
+    expect(issues.map((issue) => issue.code)).toContain(
+      "MISSING_RECURRING_CHARACTER"
+    );
+  });
+
+  it("does not treat generic scene continuity as missing character continuity", () => {
+    const issues = validateSceneVisualSpec(
+      {
+        ...makeSceneSpec(),
+        characters: [],
+        continuityElements: ["continue the episode's visual continuity from scene-001"],
+      },
+      undefined,
+      undefined
+    );
+
+    expect(issues.map((issue) => issue.code)).not.toContain(
+      "MISSING_RECURRING_CHARACTER"
+    );
+  });
+
+  it("covers malformed scene regression fixtures with typed validation issues", async () => {
+    const fixtures = await loadMalformedSceneRegressionFixtures();
+
+    for (const fixture of fixtures) {
+      const previous = fixture.previous
+        ? { ...makeSceneSpec(), ...fixture.previous }
+        : undefined;
+      const current = {
+        ...makeSceneSpec(),
+        ...(fixture.name === "genuine duplicate merge" && previous
+          ? previous
+          : {}),
+        ...fixture.current,
+      };
+      const issueCodes = validateSceneVisualSpec(
+        current,
+        undefined,
+        previous
+      ).map((issue) => issue.code);
+
+      for (const expected of fixture.expectedIssueCodes ?? []) {
+        expect(issueCodes, fixture.name).toContain(expected);
+      }
+      for (const unexpected of fixture.unexpectedIssueCodes ?? []) {
+        expect(issueCodes, fixture.name).not.toContain(unexpected);
+      }
+    }
   });
 
   it("marks abstract transition beats as merge candidates in persisted visual plans", async () => {
@@ -454,7 +936,7 @@ describe("episode image pipeline helpers", () => {
     );
 
     const visualPlan = await loadEpisodeSceneVisualPlan(episodeDir, "scene-010");
-    expect(visualPlan?.renderability).toBe("direct");
+    expect(visualPlan?.renderability).toBe("mergeWithPrevious");
   });
 
   it("reuses the previous scene image for merge-with-previous beats", async () => {
@@ -519,7 +1001,7 @@ describe("episode image pipeline helpers", () => {
     );
 
     expect(calls.length).toBeGreaterThanOrEqual(8);
-    expect(result[result.length - 1]?.status).toBe("generated");
+    expect(result[result.length - 1]?.status).toBe("skipped");
 
     const sceneTenManifest = JSON.parse(
       await fs.readFile(
@@ -545,8 +1027,8 @@ describe("episode image pipeline helpers", () => {
         "utf8"
       )
     ) as Record<string, unknown>;
-    expect(sceneTenManifest["renderability"]).toBe("direct");
-    expect(sceneTenManifest["reusedFromSceneId"]).toBeUndefined();
+    expect(sceneTenManifest["renderability"]).toBe("mergeWithPrevious");
+    expect(sceneTenManifest["reusedFromSceneId"]).toBe("scene-009");
 
     const sceneOneOutput = path.join(
       episodeDir,
@@ -767,23 +1249,45 @@ describe("episode image pipeline helpers", () => {
     );
   });
 
-  it("scores adjacent differences and rewrites repeated shot choices", () => {
+  it("repairs adjacent repetition with semantic anchors without rotating camera fields", () => {
     const previous = makeSceneSpec();
     const next = {
       ...previous,
       sceneId: "scene-002",
       narrativePurpose: "reaction",
-      visibleAction: "searches the hallway",
-      shotSize: "wide",
-      cameraAngle: "high-angle",
-      distinctiveAnchor: "different evidence",
-      composition: "wide overhead frame with more negative space",
+      distinctiveAnchor: "the hallway door starts to open by itself",
     };
     const diffs = diffSpec(previous, next);
-    expect(diffs.length).toBeGreaterThanOrEqual(3);
-    const rewritten = rewriteForDifference(next, previous);
-    expect(rewritten.shotSize).not.toBe(previous.shotSize);
-    expect(rewritten.cameraAngle).not.toBe(previous.cameraAngle);
+    expect(diffs.length).toBeGreaterThanOrEqual(2);
+    const rewritten = repairForSemanticDifference(next, previous);
+    expect(rewritten.visibleAction).toContain(
+      "the hallway door starts to open by itself"
+    );
+    expect(rewritten.focalSubject).toContain(
+      "the hallway door starts to open by itself"
+    );
+    expect(rewritten.shotSize).toBe(previous.shotSize);
+    expect(rewritten.cameraAngle).toBe(previous.cameraAngle);
+    expect(rewritten.composition).toBe(previous.composition);
+  });
+
+  it("surfaces fake differences as non-material instead of manufacturing pose or framing changes", () => {
+    const previous = makeSceneSpec();
+    const next = {
+      ...previous,
+      sceneId: "scene-002",
+      distinctiveAnchor: previous.distinctiveAnchor,
+    };
+    const rewritten = repairForSemanticDifference(next, previous);
+    const prompt = buildPromptFromSpec(rewritten, previous, makeRegistry());
+    const issues = validateSceneVisualSpec(rewritten, undefined, previous);
+
+    expect(rewritten).toEqual(next);
+    expect(prompt).not.toContain("in a different pose");
+    expect(prompt).not.toContain("reframed to place the subject off-center");
+    expect(issues.map((issue) => issue.code)).toContain(
+      "NON_MATERIAL_SCENE_DIFFERENCE"
+    );
   });
 
   it("classifies retryable versus terminal API failures", () => {
@@ -814,14 +1318,26 @@ describe("episode image pipeline helpers", () => {
     );
     const generator = new OpenAIImageGenerator(settings, client);
     await generator.generate({
-      scene: { ...makeSceneSpec(), characters: [] },
-      prompt: "a lonely corridor",
+      providerRequest: makePreparedProviderRequest({
+        scene: { ...makeSceneSpec(), characters: [] },
+        prompt: "a lonely corridor",
+        outputPath: path.join(dir, "text.png"),
+      }),
       referenceImages: [],
-      outputPath: path.join(dir, "text.png"),
     });
     await generator.generate({
-      scene: makeSceneSpec(),
-      prompt: buildPromptFromSpec(makeSceneSpec(), undefined, makeRegistry()),
+      providerRequest: makePreparedProviderRequest({
+        scene: makeSceneSpec(),
+        prompt: buildPromptFromSpec(makeSceneSpec(), undefined, makeRegistry()),
+        outputPath: path.join(dir, "ref.png"),
+        referenceImages: [
+          {
+            characterId: "daniel-mercer",
+            path: path.join(dir, "reference.png"),
+            sha256: "reference-hash",
+          },
+        ],
+      }),
       referenceImages: [
         {
           characterId: "daniel-mercer",
@@ -829,7 +1345,6 @@ describe("episode image pipeline helpers", () => {
           mimeType: "image/png",
         },
       ],
-      outputPath: path.join(dir, "ref.png"),
     });
     expect(calls.map((call) => call.method)).toEqual(["generate", "edit"]);
   });
@@ -915,6 +1430,45 @@ describe("episode image pipeline helpers", () => {
         )
       )
     ).toBeTruthy();
+    const providerRequestPath = path.join(
+      episodeDir,
+      "state",
+      "image-generation",
+      "provider-requests",
+      "scene-001.json"
+    );
+    const providerResponsePath = path.join(
+      episodeDir,
+      "state",
+      "image-generation",
+      "provider-responses",
+      "scene-001.json"
+    );
+    const checkpointPath = path.join(
+      episodeDir,
+      "state",
+      "image-generation",
+      "checkpoints",
+      "scene-001.json"
+    );
+    expect(await fs.stat(providerRequestPath)).toBeTruthy();
+    expect(await fs.stat(providerResponsePath)).toBeTruthy();
+    expect(await fs.stat(checkpointPath)).toBeTruthy();
+    const providerRequest = JSON.parse(
+      await fs.readFile(providerRequestPath, "utf8")
+    ) as Record<string, unknown>;
+    const providerResponse = JSON.parse(
+      await fs.readFile(providerResponsePath, "utf8")
+    ) as Record<string, unknown>;
+    const checkpoint = JSON.parse(
+      await fs.readFile(checkpointPath, "utf8")
+    ) as Record<string, unknown>;
+    expect(providerRequest["sceneId"]).toBe("scene-001");
+    expect(providerRequest["provider"]).toBe("openai");
+    expect(providerResponse["sceneId"]).toBe("scene-001");
+    expect(providerResponse["provider"]).toBe("openai");
+    expect(checkpoint["status"]).toBe("generated");
+    expect(checkpoint["cacheDecision"]).toBe("generated");
     calls.length = 0;
     const second = await generateEpisodeImages(
       episodeDir,
@@ -925,6 +1479,313 @@ describe("episode image pipeline helpers", () => {
     );
     expect(second[0]?.status).toBe("skipped");
     expect(calls).toHaveLength(0);
+    const reusedCheckpoint = JSON.parse(
+      await fs.readFile(checkpointPath, "utf8")
+    ) as Record<string, unknown>;
+    expect(reusedCheckpoint["status"]).toBe("reused_cached_output");
+    expect(reusedCheckpoint["cacheDecision"]).toBe("reused-existing");
+  });
+
+  it("persists failure artifacts when provider generation fails", async () => {
+    const dir = mkdtempSync(path.join(os.tmpdir(), "mediaforge-provider-failure-"));
+    const episodeDir = path.join(dir, "episode");
+    await fs.mkdir(episodeDir, { recursive: true });
+    const referencePath = path.join(dir, "daniel-reference.png");
+    await fs.writeFile(
+      referencePath,
+      await sharp({
+        create: { width: 8, height: 8, channels: 3, background: "#223344" },
+      })
+        .png()
+        .toBuffer()
+    );
+    await upsertCharacterRegistry(
+      episodeDir,
+      "episode-fixture",
+      makeRegistry("approved", referencePath).characters
+    );
+    const plan = makeScenePlan([{ id: "scene-001" }] as never);
+    const settings = loadEpisodeImageGenerationSettings({
+      OPENAI_API_KEY: "test-key",
+      OPENAI_IMAGE_MODEL: "gpt-image-2",
+      OPENAI_IMAGE_SIZE: "1536x1024",
+      OPENAI_IMAGE_QUALITY: "medium",
+      OPENAI_IMAGE_CONCURRENCY: "1",
+      OPENAI_IMAGE_MAX_RETRIES: "0",
+      OPENAI_IMAGE_TIMEOUT_MS: "1000",
+      OPENAI_IMAGE_ALLOW_UNAPPROVED_CHARACTER_REFERENCES: "true",
+    });
+    const calls: Array<{ method: "generate" | "edit"; body: unknown }> = [];
+
+    const result = await generateEpisodeImages(
+      episodeDir,
+      "episode-fixture",
+      plan,
+      settings,
+      {
+        client: createFailingMockClient(calls, new Error("provider offline")),
+      }
+    );
+
+    expect(result[0]?.status).toBe("failed");
+    expect(calls).toHaveLength(1);
+    const providerRequestPath = path.join(
+      episodeDir,
+      "state",
+      "image-generation",
+      "provider-requests",
+      "scene-001.json"
+    );
+    const providerResponsePath = path.join(
+      episodeDir,
+      "state",
+      "image-generation",
+      "provider-responses",
+      "scene-001.json"
+    );
+    const checkpointPath = path.join(
+      episodeDir,
+      "state",
+      "image-generation",
+      "checkpoints",
+      "scene-001.json"
+    );
+    const failurePath = path.join(
+      episodeDir,
+      "state",
+      "image-generation",
+      "failures",
+      "scene-001.json"
+    );
+    expect(await fs.stat(providerRequestPath)).toBeTruthy();
+    await expect(fs.stat(providerResponsePath)).rejects.toThrow();
+    const checkpoint = JSON.parse(
+      await fs.readFile(checkpointPath, "utf8")
+    ) as Record<string, unknown>;
+    const failure = JSON.parse(
+      await fs.readFile(failurePath, "utf8")
+    ) as Record<string, unknown>;
+    expect(checkpoint["status"]).toBe("provider_failed");
+    expect(checkpoint["cacheDecision"]).toBe("provider-failed");
+    expect(failure["stage"]).toBe("provider");
+    expect(failure["category"]).toBe("provider-transient-error");
+    expect(failure["retryable"]).toBe(true);
+  });
+
+  it("bounds independent scene generation with the configured concurrency", async () => {
+    const dir = mkdtempSync(path.join(os.tmpdir(), "mediaforge-concurrency-"));
+    const episodeDir = path.join(dir, "episode");
+    await fs.mkdir(episodeDir, { recursive: true });
+    const referencePath = path.join(dir, "daniel-reference.png");
+    await fs.writeFile(
+      referencePath,
+      await sharp({
+        create: { width: 8, height: 8, channels: 3, background: "#223344" },
+      })
+        .png()
+        .toBuffer()
+    );
+    await upsertCharacterRegistry(
+      episodeDir,
+      "episode-fixture",
+      makeRegistry("approved", referencePath).characters
+    );
+    const plan = makeScenePlan([
+      {
+        id: "scene-001",
+        canonicalNarration: "A motel hallway lamp flickers over an empty corridor.",
+        subject: "An empty motel hallway",
+        action: "a hallway lamp flickers over the carpet",
+        setting: "motel corridor",
+      },
+      {
+        id: "scene-002",
+        canonicalNarration: "Rainwater slides down the motel window beside the door.",
+        subject: "A motel window",
+        action: "rainwater slides down the glass",
+        setting: "motel room window",
+      },
+      {
+        id: "scene-003",
+        canonicalNarration: "A bedside recorder glows red in the dark room.",
+        subject: "A bedside recorder",
+        action: "the recorder glows red in the dark",
+        setting: "dark motel room",
+      },
+    ] as never);
+    const settings = loadEpisodeImageGenerationSettings({
+      OPENAI_API_KEY: "test-key",
+      OPENAI_IMAGE_MODEL: "gpt-image-2",
+      OPENAI_IMAGE_SIZE: "1536x1024",
+      OPENAI_IMAGE_QUALITY: "medium",
+      OPENAI_IMAGE_CONCURRENCY: "2",
+      OPENAI_IMAGE_MAX_RETRIES: "0",
+      OPENAI_IMAGE_TIMEOUT_MS: "1000",
+      OPENAI_IMAGE_ALLOW_UNAPPROVED_CHARACTER_REFERENCES: "true",
+    });
+    const planned = await planEpisodeImageGeneration(
+      episodeDir,
+      "episode-fixture",
+      plan,
+      settings
+    );
+    const colors = ["#112233", "#223344", "#334455"];
+    const b64ByPrompt = Object.fromEntries(
+      await Promise.all(
+        planned.map(async (entry, index) => [
+          entry.prompt,
+          await createImageBuffer(colors[index] ?? "#112233"),
+        ])
+      )
+    );
+    const delaysByPrompt = Object.fromEntries(
+      planned.map((entry, index) => [entry.prompt, 40 + index * 10])
+    );
+    const calls: Array<{ method: "generate" | "edit"; body: unknown }> = [];
+    const counters = { active: 0, maxActive: 0 };
+
+    const result = await generateEpisodeImages(
+      episodeDir,
+      "episode-fixture",
+      plan,
+      settings,
+      {
+        client: createConcurrentPromptMockClient({
+          calls,
+          delaysByPrompt,
+          b64ByPrompt,
+          counters,
+        }),
+      }
+    );
+
+    expect(result.map((entry) => entry.status)).toEqual([
+      "generated",
+      "generated",
+      "generated",
+    ]);
+    expect(calls).toHaveLength(3);
+    expect(calls.every((call) => call.method === "generate")).toBe(true);
+    expect(counters.maxActive).toBe(2);
+  });
+
+  it("continues unrelated concurrent scenes after one provider failure and resumes only the failed scene", async () => {
+    const dir = mkdtempSync(path.join(os.tmpdir(), "mediaforge-concurrency-failure-"));
+    const episodeDir = path.join(dir, "episode");
+    await fs.mkdir(episodeDir, { recursive: true });
+    const referencePath = path.join(dir, "daniel-reference.png");
+    await fs.writeFile(
+      referencePath,
+      await sharp({
+        create: { width: 8, height: 8, channels: 3, background: "#223344" },
+      })
+        .png()
+        .toBuffer()
+    );
+    await upsertCharacterRegistry(
+      episodeDir,
+      "episode-fixture",
+      makeRegistry("approved", referencePath).characters
+    );
+    const plan = makeScenePlan([
+      {
+        id: "scene-001",
+        canonicalNarration: "A motel hallway lamp flickers over an empty corridor.",
+        subject: "An empty motel hallway",
+        action: "a hallway lamp flickers over the carpet",
+        setting: "motel corridor",
+      },
+      {
+        id: "scene-002",
+        canonicalNarration: "Rainwater slides down the motel window beside the door.",
+        subject: "A motel window",
+        action: "rainwater slides down the glass",
+        setting: "motel room window",
+      },
+      {
+        id: "scene-003",
+        canonicalNarration: "A bedside recorder glows red in the dark room.",
+        subject: "A bedside recorder",
+        action: "the recorder glows red in the dark",
+        setting: "dark motel room",
+      },
+    ] as never);
+    const settings = loadEpisodeImageGenerationSettings({
+      OPENAI_API_KEY: "test-key",
+      OPENAI_IMAGE_MODEL: "gpt-image-2",
+      OPENAI_IMAGE_SIZE: "1536x1024",
+      OPENAI_IMAGE_QUALITY: "medium",
+      OPENAI_IMAGE_CONCURRENCY: "2",
+      OPENAI_IMAGE_MAX_RETRIES: "0",
+      OPENAI_IMAGE_TIMEOUT_MS: "1000",
+      OPENAI_IMAGE_ALLOW_UNAPPROVED_CHARACTER_REFERENCES: "true",
+    });
+    const planned = await planEpisodeImageGeneration(
+      episodeDir,
+      "episode-fixture",
+      plan,
+      settings
+    );
+    const failurePrompt = planned[1]?.prompt;
+    expect(failurePrompt).toBeTruthy();
+    const colors = ["#445566", "#556677", "#667788"];
+    const b64ByPrompt = Object.fromEntries(
+      await Promise.all(
+        planned.map(async (entry, index) => [
+          entry.prompt,
+          await createImageBuffer(colors[index] ?? "#445566"),
+        ])
+      )
+    );
+    const delaysByPrompt = Object.fromEntries(
+      planned.map((entry, index) => [entry.prompt, 20 + index * 10])
+    );
+    const firstCalls: Array<{ method: "generate" | "edit"; body: unknown }> = [];
+
+    const first = await generateEpisodeImages(
+      episodeDir,
+      "episode-fixture",
+      plan,
+      settings,
+      {
+        client: createConcurrentPromptMockClient({
+          calls: firstCalls,
+          delaysByPrompt,
+          b64ByPrompt,
+          failingPrompts: new Set([failurePrompt!]),
+          counters: { active: 0, maxActive: 0 },
+        }),
+      }
+    );
+
+    expect(first.map((entry) => entry.status)).toEqual([
+      "generated",
+      "failed",
+      "generated",
+    ]);
+
+    const secondCalls: Array<{ method: "generate" | "edit"; body: unknown }> = [];
+    const resumed = await generateEpisodeImages(
+      episodeDir,
+      "episode-fixture",
+      plan,
+      settings,
+      {
+        client: createConcurrentPromptMockClient({
+          calls: secondCalls,
+          delaysByPrompt,
+          b64ByPrompt,
+          counters: { active: 0, maxActive: 0 },
+        }),
+      }
+    );
+
+    expect(resumed.map((entry) => entry.status)).toEqual([
+      "skipped",
+      "generated",
+      "skipped",
+    ]);
+    expect(secondCalls).toHaveLength(1);
   });
 
   it("hydrates the canonical shared image path from a legacy state image", async () => {
@@ -1152,6 +2013,7 @@ describe("episode image pipeline helpers", () => {
     );
     await mutateManifest(manifestPath, (value) => {
       value.promptHash = "stale-prompt-hash";
+      value.providerRequestHash = "stale-provider-request-hash";
     });
     const second = await generateEpisodeImages(
       episodeDir,
@@ -1162,6 +2024,104 @@ describe("episode image pipeline helpers", () => {
     );
     expect(second[0]?.status).toBe("generated");
     expect(calls).toHaveLength(1);
+  });
+
+  it("keeps diagnostic manifest edits reusable but regenerates provider request changes", async () => {
+    const dir = mkdtempSync(path.join(os.tmpdir(), "mediaforge-provider-request-hash-"));
+    const episodeDir = path.join(dir, "episode");
+    await fs.mkdir(episodeDir, { recursive: true });
+    const referencePath = path.join(dir, "daniel-reference.png");
+    await fs.writeFile(
+      referencePath,
+      await sharp({
+        create: { width: 8, height: 8, channels: 3, background: "#7788aa" },
+      })
+        .png()
+        .toBuffer()
+    );
+    await upsertCharacterRegistry(
+      episodeDir,
+      "episode-fixture",
+      makeRegistry("approved", referencePath).characters
+    );
+    const plan = makeScenePlan([
+      {
+        sceneId: "scene-001",
+        sequenceNumber: 1,
+      },
+    ] as never);
+    const settings = loadEpisodeImageGenerationSettings({
+      OPENAI_API_KEY: "test-key",
+      OPENAI_IMAGE_MODEL: "gpt-image-2",
+      OPENAI_IMAGE_SIZE: "1536x1024",
+      OPENAI_IMAGE_QUALITY: "medium",
+      OPENAI_IMAGE_CONCURRENCY: "1",
+      OPENAI_IMAGE_MAX_RETRIES: "0",
+      OPENAI_IMAGE_TIMEOUT_MS: "1000",
+      OPENAI_IMAGE_ALLOW_UNAPPROVED_CHARACTER_REFERENCES: "true",
+    });
+    const highQualitySettings = loadEpisodeImageGenerationSettings({
+      OPENAI_API_KEY: "test-key",
+      OPENAI_IMAGE_MODEL: "gpt-image-2",
+      OPENAI_IMAGE_SIZE: "1536x1024",
+      OPENAI_IMAGE_QUALITY: "high",
+      OPENAI_IMAGE_CONCURRENCY: "1",
+      OPENAI_IMAGE_MAX_RETRIES: "0",
+      OPENAI_IMAGE_TIMEOUT_MS: "1000",
+      OPENAI_IMAGE_ALLOW_UNAPPROVED_CHARACTER_REFERENCES: "true",
+    });
+    const b64 = await createImageBuffer("#7788aa");
+    const calls: Array<{ method: "generate" | "edit"; body: unknown }> = [];
+    const client = createMockClient(calls, b64);
+    const first = await generateEpisodeImages(
+      episodeDir,
+      "episode-fixture",
+      plan,
+      settings,
+      { client }
+    );
+    expect(first[0]?.status).toBe("generated");
+    calls.length = 0;
+    const manifestPath = path.join(
+      episodeDir,
+      "state",
+      "image-generation",
+      "manifests",
+      "scene-001.json"
+    );
+    let promptHash = "";
+    let providerRequestHash = "";
+    await mutateManifest(manifestPath, (value) => {
+      promptHash = String(value.promptHash);
+      providerRequestHash = String(value.providerRequestHash);
+      value.generatedAt = "diagnostic-only timestamp edit";
+      value.validationIssueCodes = ["NON_VISUAL_AUDIO_REFERENCE"];
+    });
+
+    const reused = await generateEpisodeImages(
+      episodeDir,
+      "episode-fixture",
+      plan,
+      settings,
+      { client }
+    );
+    expect(reused[0]?.status).toBe("skipped");
+    expect(calls).toHaveLength(0);
+
+    const regenerated = await generateEpisodeImages(
+      episodeDir,
+      "episode-fixture",
+      plan,
+      highQualitySettings,
+      { client }
+    );
+    expect(regenerated[0]?.status).toBe("generated");
+    expect(calls).toHaveLength(1);
+    const updated = JSON.parse(
+      await fs.readFile(manifestPath, "utf8")
+    ) as Record<string, unknown>;
+    expect(updated["promptHash"]).toBe(promptHash);
+    expect(updated["providerRequestHash"]).not.toBe(providerRequestHash);
   });
 
   it("regenerates a scene when the visual plan hash changes", async () => {

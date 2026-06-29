@@ -88,6 +88,7 @@ function resolveModel(
 ): string {
   return (
     options.model ??
+    runtimeConfig.openAiShortModel ??
     runtimeConfig.openAiStoryModel ??
     DEFAULT_STORY_REWRITE_MODEL
   );
@@ -184,15 +185,26 @@ export function registerStoryRewriteShortCommand(storiesCommand: Command): void 
             model,
             maxOutputTokens:
               options.maxOutputTokens ??
+              runtimeConfig.openAiShortMaxOutputTokens ??
               runtimeConfig.openAiShortRewriteMaxOutputTokens ??
               DEFAULT_SHORT_REWRITE_MAX_OUTPUT_TOKENS,
             retryMaxOutputTokens:
               options.retryMaxOutputTokens ??
               runtimeConfig.openAiShortRewriteRetryMaxOutputTokens ??
               DEFAULT_SHORT_REWRITE_RETRY_MAX_OUTPUT_TOKENS,
+            repairModel:
+              runtimeConfig.openAiValidatorModel ??
+              runtimeConfig.openAiMetadataModel,
+            repairReasoningEffort:
+              runtimeConfig.openAiValidatorReasoningEffort ??
+              runtimeConfig.openAiMetadataReasoningEffort,
+            repairMaxOutputTokens:
+              runtimeConfig.openAiValidatorMaxOutputTokens ??
+              runtimeConfig.openAiMetadataMaxOutputTokens,
             temperature: options.temperature ?? runtimeConfig.openAiStoryTemperature ?? SHORT_REWRITE_DEFAULT_TEMPERATURE,
             reasoningEffort:
               options.reasoningEffort ??
+              runtimeConfig.openAiShortReasoningEffort ??
               runtimeConfig.openAiStoryReasoningEffort ??
               DEFAULT_STORY_REWRITE_REASONING_EFFORT,
             maxConcurrency: options.maxConcurrency,

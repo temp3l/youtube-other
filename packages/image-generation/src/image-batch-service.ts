@@ -4,6 +4,7 @@ import {
   fileExists,
   hashFile,
   readJsonIfExists,
+  resolveEpisodeImageManifestPathFromSceneOutputPath,
   writeBinaryAtomic,
   writeJsonAtomic,
   writeTextAtomic,
@@ -238,24 +239,10 @@ function imageManifestPath(layout: ImageBatchStorageLayout, localBatchId: string
 }
 
 function sceneManifestPathForOutput(outputPath: string, sceneId: string): string {
-  const normalized = outputPath.replace(/\\/gu, "/");
-  const sharedImagesMarker = "/shared/images/generated/";
-  const sharedMarkerIndex = normalized.indexOf(sharedImagesMarker);
-  if (sharedMarkerIndex >= 0) {
-    const episodeDir = outputPath.slice(0, sharedMarkerIndex);
-    return path.join(
-      episodeDir,
-      "state",
-      "image-generation",
-      "manifests",
-      `${sceneId}.json`
-    );
-  }
-  return path.join(
-    path.dirname(path.dirname(outputPath)),
-    "manifests",
-    `${sceneId}.json`
-  );
+  return resolveEpisodeImageManifestPathFromSceneOutputPath({
+    outputPath,
+    sceneId,
+  });
 }
 
 function decodeBase64Image(value: string): Buffer {

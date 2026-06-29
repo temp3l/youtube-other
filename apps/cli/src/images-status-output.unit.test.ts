@@ -14,6 +14,11 @@ describe("image status output", () => {
         mergedWithNextScenes: 1,
         reusedScenes: 3,
         readyForRender: false,
+        retryableFailedScenes: 2,
+        failureCategories: {
+          "provider-transient-error": 2,
+          "prompt-validation-error": 1,
+        },
         episodeNumbers: ["001", "002"],
         sceneCount: 12,
       })
@@ -28,6 +33,11 @@ describe("image status output", () => {
         failedBatches: 0,
       },
       sceneCount: 12,
+      retryableFailedScenes: 2,
+      failureCategories: {
+        "provider-transient-error": 2,
+        "prompt-validation-error": 1,
+      },
       mergeCounts: {
         mergedWithPreviousScenes: 2,
         mergedWithNextScenes: 1,

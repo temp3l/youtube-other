@@ -28,13 +28,15 @@ Key behavior:
 - store canonical generated scene images in `episodes/<episode-id>/shared/images/generated/`;
 - continue resolving legacy images from `episodes/<episode-id>/state/image-generation/images/` during migration;
 - skip already valid outputs unless `--force` is supplied.
-- include the exact narration beat in the image prompt so the generator has a tighter textual anchor for each scene.
+- render provider prompts from the structured visual spec, character context, text requirements, and continuity constraints rather than copying narration into visual fields.
 
 ## Migration Note
 
 Existing scene manifests created before the scene-hash cache update will self-invalidate the next time the pipeline runs.
 That one-time regeneration is expected: the pipeline now compares both the current scene hash and the prompt hash before reusing an output.
 After the scene is regenerated once, the new manifest will include the hash fields needed for normal resumable reuse.
+Stricter visual-plan validation can also turn previously planned scenes into failures when a scene has unresolved character continuity, contradictory required/excluded features, previous-scene narration leakage, empty locations, or overly verbose visual fields.
+Review the persisted records under `state/image-generation/` before forcing regeneration.
 
 ## CLI Commands
 
@@ -307,3 +309,16 @@ and then later rerun only one scene:
 ```bash
 npm run images:generate -- --episode 001-calhoun-experiment --scene scene-008 --force
 ```
+
+Cache reuse is split into explicit hash layers:
+
+- `sceneHash` covers the source narration beat and scene planning fields.
+- `visualPlanHash` covers the normalized visual plan, renderability, validation issues, and material differences.
+- `promptHash` covers the rendered provider prompt text only.
+- `providerRequestHash` covers the provider-affecting request payload: operation, model, size, quality, output format, prompt version, rendered prompt, and reference image checksums.
+- `outputSha256` covers the generated image bytes.
+
+Changing docs, timestamps, checkpoint text, or other diagnostics does not invalidate an image.
+Changing concrete visual content invalidates the scene, visual-plan, prompt, and provider-request layers as appropriate.
+Changing model, quality, size, output format, or reference image bytes invalidates `providerRequestHash` without pretending the rendered prompt changed.
+Manifests without `providerRequestHash` regenerate once so older prompt-only caches cannot accidentally survive provider setting changes.

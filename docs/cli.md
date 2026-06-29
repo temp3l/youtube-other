@@ -80,7 +80,7 @@ node apps/cli/dist/index.js youtube upload \
 | Plan image prompts | `npm run images:plan -- --episode <episode-id>` |
 | Generate images | `npm run images:generate -- --episode <episode-id>` |
 | Resume image generation and bootstrap a missing manifest | `npm run mediaforge -- images resume --episode <episode-id> --concurrency 2` |
-| Resume image generation via episode namespace | `npm run mediaforge -- episode resume-images --episode <episode-id> --concurrency 2` |
+| Resume image generation compatibility alias | `npm run mediaforge -- episode resume-images --episode <episode-id> --concurrency 2` |
 | Generate one scene | `npm run images:generate -- --episode <episode-id> --scene scene-007` |
 | Regenerate one scene | `npm run images:generate -- --episode <episode-id> --scene scene-007 --force` |
 | Create character references | `npm run mediaforge -- images generate-character-references --episode <episode-id> --character <character-id>` |
@@ -132,12 +132,13 @@ If you want to correlate multiple commands, set `MEDIAFORGE_EXECUTION_ID` yourse
 
 ## Image Commands
 
-The image workflow is grouped under `images`:
+The current image workflow is grouped under `images`.
+Older episode-scoped wrappers are compatibility aliases and should not be used for new automation unless a workflow explicitly depends on them.
 
 - `images plan` - build prompts and scene workbook without making a paid image call.
 - `images generate` - generate episode images, optionally for one `--scene`.
 - `images resume` - resume partial image generation and create `manifest.json` first when the episode folder does not have one yet.
-- `episode resume-images` - canonical episode-scoped wrapper for `images resume`; it uses the same resumable image state and bootstraps `manifest.json` when missing.
+- `episode resume-images` - compatibility alias for `images resume`; it uses the same resumable image state and bootstraps `manifest.json` when missing.
 - `images generate-character-references` - create reference images for a character.
 - `images approve-character` - mark a generated character reference as approved.
 - `images regenerate-character` - regenerate a specific character reference.

@@ -75,7 +75,10 @@ import {
   hashFile,
   hashText,
   createEpisodePathResolver,
+  normalizeContentVariant,
+  normalizeEpisodeId,
   normalizeLocaleCode,
+  resolveSceneImageCandidatePaths,
   slugify,
   type EpisodeId as SharedEpisodeId,
   type LocaleCode,
@@ -298,24 +301,18 @@ function localizedTranscriptArtifactPaths(
   episodeDirPath: string,
   language: string
 ): string[] {
+  const episodeRoot = path.resolve(episodeDirPath);
+  const resolver = createEpisodePathResolver(path.dirname(episodeRoot));
+  const context = {
+    episodeId: normalizeEpisodeId(path.basename(episodeRoot)),
+    locale: normalizeLocaleCode(language),
+    variant: normalizeContentVariant("full"),
+  };
+  const localeTranscriptDir = path.dirname(resolver.transcriptFile(context));
   const safeLanguage = slugify(language);
   return [
-    path.join(
-      episodeDirPath,
-      "locales",
-      safeLanguage,
-      "full",
-      "transcript",
-      "original-transcript.json"
-    ),
-    path.join(
-      episodeDirPath,
-      "locales",
-      safeLanguage,
-      "full",
-      "transcript",
-      "transcript.json"
-    ),
+    path.join(localeTranscriptDir, "original-transcript.json"),
+    resolver.transcriptFile(context),
     path.join(
       episodeDirPath,
       "audio",
@@ -1154,19 +1151,16 @@ export class MediaForgePipeline {
     episodeDirPath: string,
     missingOnly: boolean
   ): Promise<ImageAsset[]> {
-    const generatedDir = path.dirname(
-      this.paths.generatedImage(
-        manifest.episodeId as unknown as SharedEpisodeId,
-        "placeholder"
-      )
-    );
-    await ensureDir(generatedDir);
     const assets: ImageAsset[] = [];
     for (const scene of scenePlan.scenes) {
-      const outputPath = path.join(
-        generatedDir,
-        scene.expectedImageFilenames[0] ?? `${scene.id}.png`
-      );
+      const outputPath = resolveSceneImageCandidatePaths({
+        episodeDir: episodeDirPath,
+        sceneId: scene.id,
+        ...(scene.expectedImageFilenames[0]
+          ? { expectedFilename: scene.expectedImageFilenames[0] }
+          : {}),
+      }).canonical;
+      await ensureDir(path.dirname(outputPath));
       const exists = await fileExists(outputPath);
       if (exists) {
         assets.push({
@@ -1239,6 +1233,13 @@ export class MediaForgePipeline {
           process.env["OPENAI_API_KEY"] ??
           "",
         model: this.environment.config.openAiMetadataModel ?? "gpt-4.1-mini",
+        reasoningEffort: this.environment.config.openAiMetadataReasoningEffort,
+        maxOutputTokens: this.environment.config.openAiMetadataMaxOutputTokens,
+        repairModel: this.environment.config.openAiValidatorModel,
+        repairReasoningEffort:
+          this.environment.config.openAiValidatorReasoningEffort,
+        repairMaxOutputTokens:
+          this.environment.config.openAiValidatorMaxOutputTokens,
         language:
           this.environment.config.youtubeMetadataLanguage ??
           this.environment.config.scriptLanguage ??

@@ -82,10 +82,18 @@ describe("runtime config", () => {
         "MEDIAFORGE_OPENAI_STORY_REASONING_EFFORT=high",
         "MEDIAFORGE_OPENAI_STORY_MAX_OUTPUT_TOKENS=25000",
         "MEDIAFORGE_OPENAI_STORY_RETRY_MAX_OUTPUT_TOKENS=25000",
-        "MEDIAFORGE_OPENAI_SHORT_REWRITE_MAX_OUTPUT_TOKENS=16000",
-        "MEDIAFORGE_OPENAI_SHORT_REWRITE_RETRY_MAX_OUTPUT_TOKENS=25000",
+        "MEDIAFORGE_OPENAI_LOCALIZATION_MODEL=gpt-5.4",
+        "MEDIAFORGE_OPENAI_LOCALIZATION_REASONING_EFFORT=low",
+        "MEDIAFORGE_OPENAI_LOCALIZATION_MAX_OUTPUT_TOKENS=10000",
+        "MEDIAFORGE_OPENAI_SHORT_MODEL=gpt-5.4-mini",
+        "MEDIAFORGE_OPENAI_SHORT_REASONING_EFFORT=low",
+        "MEDIAFORGE_OPENAI_SHORT_MAX_OUTPUT_TOKENS=4000",
+        "MEDIAFORGE_OPENAI_VALIDATOR_MODEL=gpt-5.4-mini",
+        "MEDIAFORGE_OPENAI_VALIDATOR_REASONING_EFFORT=low",
+        "MEDIAFORGE_OPENAI_VALIDATOR_MAX_OUTPUT_TOKENS=2000",
         "MEDIAFORGE_OPENAI_METADATA_MODEL=gpt-5.4-mini",
         "MEDIAFORGE_OPENAI_METADATA_REASONING_EFFORT=low",
+        "MEDIAFORGE_OPENAI_METADATA_MAX_OUTPUT_TOKENS=3000",
         "MEDIAFORGE_OPENAI_SPEECH_MODEL=gpt-4o-mini-tts",
         "MEDIAFORGE_OPENAI_SPEECH_VOICE=onyx"
       ].join("\n")
@@ -100,10 +108,18 @@ describe("runtime config", () => {
       expect(config.openAiStoryReasoningEffort).toBe("high");
       expect(config.openAiStoryMaxOutputTokens).toBe(25000);
       expect(config.openAiStoryRetryMaxOutputTokens).toBe(25000);
-      expect(config.openAiShortRewriteMaxOutputTokens).toBe(16000);
-      expect(config.openAiShortRewriteRetryMaxOutputTokens).toBe(25000);
+      expect(config.openAiLocalizationModel).toBe("gpt-5.4");
+      expect(config.openAiLocalizationReasoningEffort).toBe("low");
+      expect(config.openAiLocalizationMaxOutputTokens).toBe(10000);
+      expect(config.openAiShortModel).toBe("gpt-5.4-mini");
+      expect(config.openAiShortReasoningEffort).toBe("low");
+      expect(config.openAiShortMaxOutputTokens).toBe(4000);
+      expect(config.openAiValidatorModel).toBe("gpt-5.4-mini");
+      expect(config.openAiValidatorReasoningEffort).toBe("low");
+      expect(config.openAiValidatorMaxOutputTokens).toBe(2000);
       expect(config.openAiMetadataModel).toBe("gpt-5.4-mini");
       expect(config.openAiMetadataReasoningEffort).toBe("low");
+      expect(config.openAiMetadataMaxOutputTokens).toBe(3000);
       expect(config.openAiSpeechModel).toBe("gpt-4o-mini-tts");
       expect(config.openAiSpeechVoice).toBe("onyx");
     } finally {

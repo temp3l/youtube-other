@@ -73,16 +73,17 @@ function createGenerator(): ImageGenerator {
         },
       })
         .png()
-        .toFile(request.outputPath);
+        .toFile(request.providerRequest.outputPath);
       return {
-        outputPath: request.outputPath,
-        outputSha256: await hashFile(request.outputPath),
+        outputPath: request.providerRequest.outputPath,
+        outputSha256: await hashFile(request.providerRequest.outputPath),
         model: "stub",
         size: "1088x1920",
         quality: "low",
         generationMode: "text-only",
         attempts: 1,
         durationMs: 1,
+        providerRequestHash: request.providerRequest.providerRequestHash,
         promptHash: "prompt-hash",
         referenceHashes: [],
       };

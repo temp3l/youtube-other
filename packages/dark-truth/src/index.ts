@@ -35,6 +35,7 @@ import {
   hashFile,
   hashText,
   normalizeWhitespace,
+  resolveSceneImageCandidatePaths,
   slugify,
   splitIntoSentences,
   splitIntoWords,
@@ -1341,7 +1342,8 @@ export async function generateCanonicalImages(
   readonly imageManifestPath: string;
   readonly assets: readonly string[];
 }> {
-  const imageDir = path.join(sharedDir, "images");
+  const episodeDir = path.dirname(sharedDir);
+  const imageDir = path.join(sharedDir, "images", "generated");
   await ensureDir(imageDir);
   const prompts = createPromptBatch(
     scenePlan,
@@ -1426,13 +1428,20 @@ export async function generateCanonicalImages(
     await Promise.all(
       results.map(async (result) => {
         const sourcePath = result.renderedPath ?? result.sourcePath;
-        const targetPath = path.join(imageDir, path.basename(sourcePath));
-        if (sourcePath !== targetPath) {
-          await fs.copyFile(sourcePath, targetPath);
-        }
         const scene = scenesById.get(result.sceneId);
         if (!scene) {
           throw new Error(`Missing scene for image result ${result.sceneId}.`);
+        }
+        const targetPath = resolveSceneImageCandidatePaths({
+          episodeDir,
+          sceneId: scene.id,
+          ...(scene.expectedImageFilenames[0]
+            ? { expectedFilename: scene.expectedImageFilenames[0] }
+            : {}),
+        }).canonical;
+        await ensureDir(path.dirname(targetPath));
+        if (sourcePath !== targetPath) {
+          await fs.copyFile(sourcePath, targetPath);
         }
         assetRecordsBySceneId.set(scene.id, {
           assetId: `asset-${String(scene.sequenceNumber).padStart(3, "0")}`,
@@ -1484,7 +1493,14 @@ export async function generateCanonicalImages(
     if (!scene) {
       continue;
     }
-    const imagePath = path.join(imageDir, prompt.expectedFilename);
+    const imagePath = resolveSceneImageCandidatePaths({
+      episodeDir,
+      sceneId: scene.id,
+      ...(prompt.expectedFilename
+        ? { expectedFilename: prompt.expectedFilename }
+        : {}),
+    }).canonical;
+    await ensureDir(path.dirname(imagePath));
     if (await fileExists(imagePath)) {
       const asset = await buildAssetRecord(scene, imagePath, "existing", imagePath);
       assets.push(imagePath);

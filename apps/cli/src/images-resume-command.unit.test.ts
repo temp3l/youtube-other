@@ -7,6 +7,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { scenePlanSchema } from "@mediaforge/domain";
 
 let workspaceDir = "";
+const imageGenerationMocks = vi.hoisted(() => ({
+  generateEpisodeImages: vi.fn(),
+}));
 
 vi.mock("@mediaforge/config", () => ({
   loadRuntimeConfig: vi.fn(async () => ({
@@ -14,7 +17,18 @@ vi.mock("@mediaforge/config", () => ({
   })),
 }));
 
+vi.mock("@mediaforge/image-generation", async () => {
+  const actual = await vi.importActual<typeof import("@mediaforge/image-generation")>(
+    "@mediaforge/image-generation"
+  );
+  return {
+    ...actual,
+    generateEpisodeImages: imageGenerationMocks.generateEpisodeImages,
+  };
+});
+
 const {
+  commandImagesResume,
   loadOrBootstrapEpisodeManifest,
   registerImagesResumeCommand,
 } = await import("./images-resume-command.js");
@@ -55,6 +69,8 @@ function makeScenePlan() {
 describe("images resume command", () => {
   beforeEach(() => {
     workspaceDir = mkdtempSync(path.join(os.tmpdir(), "mediaforge-images-resume-"));
+    imageGenerationMocks.generateEpisodeImages.mockReset();
+    imageGenerationMocks.generateEpisodeImages.mockResolvedValue([]);
   });
 
   it("registers the resume command with concurrency and bootstrap options", () => {
@@ -116,5 +132,173 @@ describe("images resume command", () => {
     expect(docs).toContain(
       "npm run mediaforge -- episode resume-images --episode <episode-id> --concurrency 2"
     );
+  });
+
+  it("runs the resume path with the requested concurrency and reports the summary", async () => {
+    const episodeDir = path.join(workspaceDir, "011-the-black-eyed-children");
+    await fs.mkdir(path.join(episodeDir, "source"), { recursive: true });
+    await fs.mkdir(path.join(episodeDir, "shared"), { recursive: true });
+    await fs.writeFile(
+      path.join(episodeDir, "source", "011-the-black-eyed-children-en-full.md"),
+      "# Episode 011\n\n## Audio Generation Instructions\n\n- Keep the tone restrained.\n\n# Narration Script\n\nTwo children stood outside the door."
+    );
+    await fs.writeFile(
+      path.join(episodeDir, "shared", "scenes.json"),
+      `${JSON.stringify(makeScenePlan(), null, 2)}\n`
+    );
+    imageGenerationMocks.generateEpisodeImages.mockResolvedValueOnce([
+      {
+        episodeId: "011-the-black-eyed-children",
+        sceneId: "scene-001",
+        manifestPath: path.join(
+          episodeDir,
+          "state",
+          "image-generation",
+          "manifests",
+          "scene-001.json"
+        ),
+        outputPath: path.join(
+          episodeDir,
+          "shared",
+          "images",
+          "generated",
+          "scene-001__000000-000004__16x9.png"
+        ),
+        status: "generated",
+      },
+    ]);
+
+    const stdout = vi
+      .spyOn(process.stdout, "write")
+      .mockImplementation(() => true);
+    let output = "";
+
+    try {
+      await commandImagesResume({
+        episode: "011-the-black-eyed-children",
+        concurrency: 2,
+        allowUnapprovedCharacterReferences: true,
+      });
+      output = String(stdout.mock.calls.map((call) => call[0]).join(""));
+    } finally {
+      stdout.mockRestore();
+    }
+
+    expect(imageGenerationMocks.generateEpisodeImages).toHaveBeenCalledTimes(1);
+    expect(imageGenerationMocks.generateEpisodeImages.mock.calls[0]?.[0]).toBe(
+      episodeDir
+    );
+    expect(imageGenerationMocks.generateEpisodeImages.mock.calls[0]?.[1]).toBe(
+      "011-the-black-eyed-children"
+    );
+    expect(imageGenerationMocks.generateEpisodeImages.mock.calls[0]?.[3]).toMatchObject({
+      concurrency: 2,
+      allowUnapprovedCharacterReferences: true,
+    });
+    expect(output).toContain("Generated: 1");
+  });
+
+  it("does not retry non-retryable persisted image failures unless forced", async () => {
+    const episodeDir = path.join(workspaceDir, "011-the-black-eyed-children");
+    await fs.mkdir(path.join(episodeDir, "source"), { recursive: true });
+    await fs.mkdir(path.join(episodeDir, "shared"), { recursive: true });
+    await fs.mkdir(
+      path.join(episodeDir, "state", "image-generation", "manifests"),
+      { recursive: true }
+    );
+    await fs.mkdir(
+      path.join(episodeDir, "state", "image-generation", "failures"),
+      { recursive: true }
+    );
+    await fs.writeFile(
+      path.join(episodeDir, "source", "011-the-black-eyed-children-en-full.md"),
+      "# Episode 011\n\n# Narration Script\n\nTwo children stood outside the door."
+    );
+    await fs.writeFile(
+      path.join(episodeDir, "shared", "scenes.json"),
+      `${JSON.stringify(makeScenePlan(), null, 2)}\n`
+    );
+    const outputPath = path.join(
+      episodeDir,
+      "shared",
+      "images",
+      "generated",
+      "scene-001__000000-000004__16x9.png"
+    );
+    await fs.writeFile(
+      path.join(
+        episodeDir,
+        "state",
+        "image-generation",
+        "manifests",
+        "scene-001.json"
+      ),
+      JSON.stringify(
+        {
+          sceneId: "scene-001",
+          promptVersion: 1,
+          finalPrompt: "failed prompt",
+          promptHash: "prompt-hash",
+          materialDifferencesFromPrevious: [],
+          characterIds: [],
+          referenceImages: [],
+          model: "gpt-image-2",
+          size: "1536x1024",
+          quality: "medium",
+          outputPath,
+          status: "failed",
+          attempts: 1,
+          error: {
+            message: "content policy rejected the image",
+            retryable: false,
+          },
+        },
+        null,
+        2
+      )
+    );
+    await fs.writeFile(
+      path.join(
+        episodeDir,
+        "state",
+        "image-generation",
+        "failures",
+        "scene-001.json"
+      ),
+      JSON.stringify(
+        {
+          sceneId: "scene-001",
+          stage: "provider",
+          category: "provider-safety-rejection",
+          outputPath,
+          message: "content policy rejected the image",
+          retryable: false,
+          attempts: 1,
+          recordedAt: new Date().toISOString(),
+        },
+        null,
+        2
+      )
+    );
+    imageGenerationMocks.generateEpisodeImages.mockResolvedValueOnce([]);
+    const stdout = vi
+      .spyOn(process.stdout, "write")
+      .mockImplementation(() => true);
+    let output = "";
+
+    try {
+      await commandImagesResume({
+        episode: "011-the-black-eyed-children",
+      });
+      output = String(stdout.mock.calls.map((call) => call[0]).join(""));
+    } finally {
+      stdout.mockRestore();
+    }
+
+    expect(imageGenerationMocks.generateEpisodeImages).toHaveBeenCalledTimes(1);
+    expect(
+      imageGenerationMocks.generateEpisodeImages.mock.calls[0]?.[2].scenes
+    ).toHaveLength(0);
+    expect(output).toContain("Skipped non-retryable failures: 1");
   });
 });

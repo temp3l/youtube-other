@@ -47,6 +47,8 @@ English remains the default language and continues to use the non-suffixed paths
 - `mediaforge render <episode-id> --language es`
 - `mediaforge metadata generate <episode-id> --language es`
 
+For English full localization, the episode pipeline now prefers the workspace `script.md` or `en/full/script.md` when present. If those files are missing, it falls back to the multilingual production-pack source file and emits a warning.
+
 ## Chapters
 
 `youtube-metadata.md` contains the OpenAI-generated metadata. `youtube.md` is kept as a compatibility alias and contains the same content.

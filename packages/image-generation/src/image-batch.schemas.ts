@@ -19,6 +19,7 @@ export const imageBatchManifestItemSchema = z.object({
     .optional(),
   reusedFromSceneId: z.string().min(1).optional(),
   promptHash: z.string().min(1),
+  providerRequestHash: z.string().min(1),
   generationConfigurationHash: z.string().min(1),
   expectedOutputPath: z.string().min(1),
   characterIds: z.array(z.string().min(1)),
@@ -133,5 +134,6 @@ export const sceneImageJobSchema = z.object({
   outputFormat: z.enum(["png", "jpeg", "webp"]),
   expectedOutputPath: z.string().min(1),
   promptHash: z.string().min(1),
+  providerRequestHash: z.string().min(1),
   generationConfigurationHash: z.string().min(1),
 });

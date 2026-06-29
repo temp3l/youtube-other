@@ -334,7 +334,7 @@ describe("dark-truth workflow", () => {
       path.join(os.tmpdir(), "dark-truth-shared-images-")
     );
     const sharedDir = path.join(tempDir, "shared");
-    const imageDir = path.join(sharedDir, "images");
+    const imageDir = path.join(sharedDir, "images", "generated");
     await fs.mkdir(imageDir, { recursive: true });
     const scenePlan = scenePlanSchema.parse({
       sourceId: "episode-fixture",
@@ -385,10 +385,16 @@ describe("dark-truth workflow", () => {
     expect(result.assets[0]).toBe(existingPath);
     const manifest = JSON.parse(
       await fs.readFile(result.imageManifestPath, "utf8")
-    ) as { imageCount: number; assets: Array<{ filename: string }> };
+    ) as {
+      imageCount: number;
+      assets: Array<{ filename: string; relativePath: string }>;
+    };
     expect(manifest.imageCount).toBe(1);
     expect(manifest.assets[0]?.filename).toBe(
       "scene-001__000000-000004__16x9.png"
+    );
+    expect(manifest.assets[0]?.relativePath).toBe(
+      "images/generated/scene-001__000000-000004__16x9.png"
     );
   });
 

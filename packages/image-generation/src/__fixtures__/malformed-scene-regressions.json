@@ -1,0 +1,65 @@
+[
+  {
+    "name": "duplicated narration",
+    "current": {
+      "sourceNarration": "Daniel opens the door. Daniel opens the door."
+    },
+    "expectedIssueCodes": ["DUPLICATED_NARRATION"]
+  },
+  {
+    "name": "omitted recurring character",
+    "current": {
+      "characters": [],
+      "continuityElements": ["keep Daniel's jacket, backpack, face, and hair consistent"]
+    },
+    "expectedIssueCodes": ["MISSING_RECURRING_CHARACTER"]
+  },
+  {
+    "name": "fake keyword-soup environment",
+    "current": {
+      "environment": "unresolved environment"
+    },
+    "expectedIssueCodes": ["PLACEHOLDER_ENVIRONMENT", "EMPTY_LOCATION"]
+  },
+  {
+    "name": "copied previous-scene content",
+    "previous": {
+      "sourceNarration": "Daniel studies the corridor on a monitor."
+    },
+    "current": {
+      "sceneId": "scene-002",
+      "sourceNarration": "Daniel notices a new shadow.",
+      "visibleAction": "reacts while Daniel studies the corridor on a monitor."
+    },
+    "expectedIssueCodes": ["PREVIOUS_SCENE_TEXT_LEAKAGE"]
+  },
+  {
+    "name": "abstract forced image",
+    "current": {
+      "visibleAction": "shown as an abstract representation of isolation"
+    },
+    "expectedIssueCodes": ["ABSTRACT_VISIBLE_ACTION"]
+  },
+  {
+    "name": "false overlap rejection",
+    "previous": {
+      "distinctiveAnchor": "Daniel notices the impossible duplicate on the monitor"
+    },
+    "current": {
+      "sceneId": "scene-002",
+      "visibleAction": "reaches for the newly unlocked stairwell door",
+      "focalSubject": "the newly unlocked stairwell door",
+      "foreground": "fresh scrape marks around the lock plate",
+      "distinctiveAnchor": "the stairwell door is suddenly unlocked"
+    },
+    "unexpectedIssueCodes": ["NON_MATERIAL_SCENE_DIFFERENCE"]
+  },
+  {
+    "name": "genuine duplicate merge",
+    "previous": {},
+    "current": {
+      "sceneId": "scene-002"
+    },
+    "expectedIssueCodes": ["NON_MATERIAL_SCENE_DIFFERENCE"]
+  }
+]

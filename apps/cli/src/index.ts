@@ -72,12 +72,16 @@ import {
 import { runCommand } from "@mediaforge/process-runner";
 import {
   buildSrt,
+  createEpisodePathResolver,
   ensureDir,
   ensureWorkspacePath,
   fileExists,
   formatTimestampLabel,
   hashFile,
   normalizeWhitespace,
+  normalizeContentVariant,
+  normalizeEpisodeId,
+  normalizeLocaleCode,
   safeBasename,
   slugify,
   writeJsonAtomic,
@@ -287,8 +291,32 @@ function isEnglishLanguage(language: string): boolean {
   return language.toLowerCase() === "en";
 }
 
+function episodePathContext(episodeDir: string, language: string) {
+  const episodeRoot = path.resolve(episodeDir);
+  const resolver = createEpisodePathResolver(path.dirname(episodeRoot));
+  const context = {
+    episodeId: normalizeEpisodeId(path.basename(episodeRoot)),
+    locale: normalizeLocaleCode(language),
+    variant: normalizeContentVariant("full"),
+  };
+  return { resolver, context };
+}
+
 function localizedAudioBaseDir(episodeDir: string, language: string): string {
-  return path.join(path.resolve(episodeDir), "locales", safeBasename(language), "full");
+  const { resolver, context } = episodePathContext(episodeDir, language);
+  return resolver.localeVariantRoot(context);
+}
+
+function localizedSegmentsDirFromBase(audioBaseDir: string): string {
+  return path.join(audioBaseDir, "audio", "segments");
+}
+
+function localizedNarrationPathFromBase(audioBaseDir: string): string {
+  return path.join(audioBaseDir, "audio", "narration.wav");
+}
+
+function localizedMetadataDirFromBase(audioBaseDir: string): string {
+  return path.join(audioBaseDir, "metadata");
 }
 
 function localizedSuffix(language: string): string {
@@ -296,15 +324,29 @@ function localizedSuffix(language: string): string {
 }
 
 function localizedSegmentsDir(episodeDir: string, language: string): string {
-  return path.join(localizedAudioBaseDir(episodeDir, language), "audio", "segments");
+  return localizedSegmentsDirFromBase(localizedAudioBaseDir(episodeDir, language));
 }
 
 function localizedNarrationPath(episodeDir: string, language: string): string {
-  return path.join(localizedAudioBaseDir(episodeDir, language), "audio", "narration.wav");
+  return localizedNarrationPathFromBase(localizedAudioBaseDir(episodeDir, language));
 }
 
 function localizedMetadataDir(episodeDir: string, language: string): string {
-  return path.join(localizedAudioBaseDir(episodeDir, language), "metadata");
+  return localizedMetadataDirFromBase(localizedAudioBaseDir(episodeDir, language));
+}
+
+function canonicalGeneratedImagesDir(episodeDir: string): string {
+  const episodeRoot = path.resolve(episodeDir);
+  const resolver = createEpisodePathResolver(path.dirname(episodeRoot));
+  return resolver.sharedGeneratedImagesDir(
+    normalizeEpisodeId(path.basename(episodeRoot))
+  );
+}
+
+function episodeManifestPath(episodeDir: string): string {
+  const episodeRoot = path.resolve(episodeDir);
+  const resolver = createEpisodePathResolver(path.dirname(episodeRoot));
+  return resolver.manifestPath(normalizeEpisodeId(path.basename(episodeRoot)));
 }
 
 function localizedClipsDirName(language: string): string {
@@ -399,9 +441,8 @@ async function localizedSceneAudioIsComplete(
   language: string,
   expectedCount: number
 ): Promise<boolean> {
-  const segmentsDir = localizedSegmentsDir(
-    localizedAudioBaseDir(episodeDir, language),
-    language
+  const segmentsDir = localizedSegmentsDirFromBase(
+    localizedAudioBaseDir(episodeDir, language)
   );
   const existing = await fs
     .readdir(segmentsDir, { withFileTypes: true })
@@ -649,7 +690,14 @@ async function readManifestForEpisode(options: CliOptions, episodeId: string) {
     if (!entry.isDirectory()) {
       continue;
     }
-    const manifestPath = path.join(workspace, entry.name, "manifest.json");
+    let manifestPath: string;
+    try {
+      manifestPath = createEpisodePathResolver(workspace).manifestPath(
+        normalizeEpisodeId(entry.name)
+      );
+    } catch {
+      continue;
+    }
     if (!(await fileExists(manifestPath))) {
       continue;
     }
@@ -663,7 +711,9 @@ async function readManifestForEpisode(options: CliOptions, episodeId: string) {
 
       if (!nextManifest.scenePlan) {
         const scenePlanCandidates = [
-          path.join(episodeDir, "canonical", "scenes.json"),
+          createEpisodePathResolver(path.dirname(episodeDir)).canonicalScenesPath(
+            normalizeEpisodeId(path.basename(episodeDir))
+          ),
           path.join(episodeDir, "scenes.json"),
           path.join(episodeDir, "output", "scenes.json"),
         ];
@@ -1471,8 +1521,8 @@ async function commandAudioGenerate(
     throw new Error(`No narration text found in ${script.filePath}.`);
   }
   const audioDir = path.join(audioBaseDir, "audio");
-  const segmentsDir = localizedSegmentsDir(audioBaseDir, language);
-  const narrationPath = localizedNarrationPath(audioBaseDir, language);
+  const segmentsDir = localizedSegmentsDirFromBase(audioBaseDir);
+  const narrationPath = localizedNarrationPathFromBase(audioBaseDir);
   const episodeSlug = manifest?.slug ?? episodeId;
   if (options.dryRun) {
     printJson({
@@ -1635,7 +1685,7 @@ async function commandAudioGenerate(
       ...completeArtifacts,
     ];
     manifest.updatedAt = generatedAt;
-    await writeJsonAtomic(path.join(episodeDir, "manifest.json"), manifest);
+    await writeJsonAtomic(episodeManifestPath(episodeDir), manifest);
   }
   await writeJsonAtomic(path.join(audioDir, "generation-report.json"), {
     episodeId,
@@ -1690,7 +1740,7 @@ async function commandClipsGenerate(
     printJson({
       episodeId,
       language,
-      audioDir: localizedSegmentsDir(audioBaseDir, language),
+      audioDir: localizedSegmentsDirFromBase(audioBaseDir),
       clipsDir: path.join(audioBaseDir, "renders", localizedClipsDirName(language)),
       dryRun: true,
     });
@@ -1720,8 +1770,8 @@ async function commandClipsGenerate(
       renderProfile,
       captionBurnIn: false,
       clipsDirName: localizedClipsDirName(language),
-      sceneAudioDir: localizedSegmentsDir(audioBaseDir, language),
-      imageDir: path.join(episodeDir, "state", "image-generation", "images"),
+      sceneAudioDir: localizedSegmentsDirFromBase(audioBaseDir),
+      imageDir: canonicalGeneratedImagesDir(episodeDir),
       trailingSilenceRatio: config.trailingSilenceRatio,
       trailingSilenceBufferSeconds: config.trailingSilenceBufferSeconds,
     },
@@ -1801,8 +1851,8 @@ async function commandClipsBackfillManifests(
     },
     captionBurnIn: Boolean(captionsPath),
     clipsDirName: localizedClipsDirName(language),
-    sceneAudioDir: localizedSegmentsDir(audioBaseDir, language),
-    imageDir: path.join(episodeRootDir, "state", "image-generation", "images"),
+    sceneAudioDir: localizedSegmentsDirFromBase(audioBaseDir),
+    imageDir: canonicalGeneratedImagesDir(episodeRootDir),
     trailingSilenceRatio: config.trailingSilenceRatio,
     trailingSilenceBufferSeconds: config.trailingSilenceBufferSeconds,
   });
@@ -2329,8 +2379,8 @@ async function commandRender(
     renderProfile,
     captionBurnIn: Boolean(captionsPath),
     clipsDirName: localizedClipsDirName(language),
-    sceneAudioDir: localizedSegmentsDir(audioBaseDir, language),
-    imageDir: path.join(episodeDir, "state", "image-generation", "images"),
+    sceneAudioDir: localizedSegmentsDirFromBase(audioBaseDir),
+    imageDir: canonicalGeneratedImagesDir(episodeDir),
     outputSuffix: localizedOutputSuffix(language),
     trailingSilenceRatio: config.trailingSilenceRatio,
     trailingSilenceBufferSeconds: config.trailingSilenceBufferSeconds,
@@ -2671,7 +2721,18 @@ async function commandMetadataGenerate(
     apiKey:
       config.openAiCompatibleApiKey ?? process.env["OPENAI_API_KEY"] ?? "",
     model: config.openAiMetadataModel ?? "gpt-5.4-mini",
-    reasoningEffort: config.openAiMetadataReasoningEffort ?? "low",
+    reasoningEffort: config.openAiMetadataReasoningEffort,
+    maxOutputTokens: config.openAiMetadataMaxOutputTokens ?? 3000,
+    repairModel:
+      config.openAiValidatorModel ??
+      config.openAiMetadataModel ??
+      "gpt-5.4-mini",
+    repairReasoningEffort:
+      config.openAiValidatorReasoningEffort ??
+      config.openAiMetadataReasoningEffort,
+    repairMaxOutputTokens:
+      config.openAiValidatorMaxOutputTokens ??
+      config.openAiMetadataMaxOutputTokens,
     language,
     promptText: await fs.readFile(
       path.resolve("prompts", "youtube-metadata.prompt.md"),
@@ -2760,7 +2821,7 @@ async function commandMetadataGenerate(
         `${warning.claim}: ${warning.reason}`
     ),
   };
-  await writeJsonAtomic(path.join(episodeDir, "manifest.json"), manifest);
+  await writeJsonAtomic(episodeManifestPath(episodeDir), manifest);
   process.stdout.write(`${path.join(metadataDir, "youtube.md")}\n`);
 }
 
@@ -2920,7 +2981,18 @@ async function commandMetadataYoutube(
         apiKey:
           config.openAiCompatibleApiKey ?? process.env["OPENAI_API_KEY"] ?? "",
         model: config.openAiMetadataModel ?? "gpt-5.4-mini",
-        reasoningEffort: config.openAiMetadataReasoningEffort ?? "low",
+        reasoningEffort: config.openAiMetadataReasoningEffort,
+        maxOutputTokens: config.openAiMetadataMaxOutputTokens,
+        repairModel:
+          config.openAiValidatorModel ??
+          config.openAiMetadataModel ??
+          "gpt-5.4-mini",
+        repairReasoningEffort:
+          config.openAiValidatorReasoningEffort ??
+          config.openAiMetadataReasoningEffort,
+        repairMaxOutputTokens:
+          config.openAiValidatorMaxOutputTokens ??
+          config.openAiMetadataMaxOutputTokens,
         language,
         promptText: prompt.text,
         promptVersion: "youtube-metadata-v1",
@@ -3168,7 +3240,18 @@ async function commandYoutubeUpload(
       apiKey:
         config.openAiCompatibleApiKey ?? process.env["OPENAI_API_KEY"] ?? "",
       model: config.openAiMetadataModel ?? "gpt-5.4-mini",
-      reasoningEffort: config.openAiMetadataReasoningEffort ?? "low",
+      reasoningEffort: config.openAiMetadataReasoningEffort,
+      maxOutputTokens: config.openAiMetadataMaxOutputTokens,
+      repairModel:
+        config.openAiValidatorModel ??
+        config.openAiMetadataModel ??
+        "gpt-5.4-mini",
+      repairReasoningEffort:
+        config.openAiValidatorReasoningEffort ??
+        config.openAiMetadataReasoningEffort,
+      repairMaxOutputTokens:
+        config.openAiValidatorMaxOutputTokens ??
+        config.openAiMetadataMaxOutputTokens,
       promptText: await fs.readFile(
         path.resolve("prompts", "youtube-metadata.prompt.md"),
         "utf8"

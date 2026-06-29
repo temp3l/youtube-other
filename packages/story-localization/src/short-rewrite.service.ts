@@ -110,10 +110,13 @@ interface GenerateLanguageRequest {
   readonly outputRoot: string;
   readonly language: StoryLanguage;
   readonly model: string;
+  readonly repairModel: string | undefined;
   readonly temperature: number;
   readonly reasoningEffort: "none" | "minimal" | "low" | "medium" | "high" | "xhigh" | undefined;
   readonly maxOutputTokens: number;
   readonly retryMaxOutputTokens: number;
+  readonly repairReasoningEffort: "none" | "minimal" | "low" | "medium" | "high" | "xhigh" | undefined;
+  readonly repairMaxOutputTokens: number | undefined;
   readonly timeoutMs: number;
   readonly maxRetries: number;
   readonly overwrite: boolean;
@@ -489,11 +492,14 @@ function buildRequestSchema(): z.ZodTypeAny {
 async function requestStructuredShortRewrite(args: {
   readonly client: Pick<OpenAiStoryClient, "responses">;
   readonly model: string;
+  readonly repairModel: string | undefined;
   readonly requestLabel: string;
   readonly prompt: { readonly system: string; readonly user: string };
   readonly temperature: number;
   readonly reasoningEffort: "none" | "minimal" | "low" | "medium" | "high" | "xhigh" | undefined;
   readonly maxOutputTokens: number;
+  readonly repairReasoningEffort: "none" | "minimal" | "low" | "medium" | "high" | "xhigh" | undefined;
+  readonly repairMaxOutputTokens: number | undefined;
   readonly timeoutMs: number;
   readonly maxRetries: number;
   readonly signal: AbortSignal | undefined;
@@ -830,10 +836,13 @@ async function generateLanguagePayload(args: GenerateLanguageRequest): Promise<G
   const initialResponse = await requestStructuredShortRewrite({
     client,
     model: args.model,
+    repairModel: args.repairModel,
     prompt: initialPrompt,
     temperature: args.temperature,
     reasoningEffort: args.reasoningEffort,
     maxOutputTokens: args.maxOutputTokens,
+    repairReasoningEffort: args.repairReasoningEffort,
+    repairMaxOutputTokens: args.repairMaxOutputTokens,
     timeoutMs: args.timeoutMs,
     maxRetries: args.maxRetries,
     signal: args.signal,
@@ -874,11 +883,14 @@ async function generateLanguagePayload(args: GenerateLanguageRequest): Promise<G
     });
     const repairResponse = await requestStructuredShortRewrite({
       client,
-      model: args.model,
+      model: args.repairModel ?? args.model,
+      repairModel: args.repairModel,
       prompt: repairPrompt,
       temperature: args.temperature,
-      reasoningEffort: args.reasoningEffort,
-      maxOutputTokens: args.retryMaxOutputTokens,
+      reasoningEffort: args.repairReasoningEffort ?? args.reasoningEffort,
+      maxOutputTokens: args.repairMaxOutputTokens ?? args.retryMaxOutputTokens,
+      repairReasoningEffort: args.repairReasoningEffort,
+      repairMaxOutputTokens: args.repairMaxOutputTokens,
       timeoutMs: args.timeoutMs,
       maxRetries: args.maxRetries,
       signal: args.signal,
@@ -1176,12 +1188,15 @@ export async function rewriteShortStories(
           outputRoot,
           language,
           model: options.model,
+          repairModel: options.repairModel,
           temperature: options.temperature ?? SHORT_REWRITE_DEFAULT_TEMPERATURE,
           reasoningEffort: options.reasoningEffort,
           maxOutputTokens:
             options.maxOutputTokens ?? DEFAULT_SHORT_REWRITE_MAX_OUTPUT_TOKENS,
           retryMaxOutputTokens:
             options.retryMaxOutputTokens ?? DEFAULT_SHORT_REWRITE_RETRY_MAX_OUTPUT_TOKENS,
+          repairReasoningEffort: options.repairReasoningEffort,
+          repairMaxOutputTokens: options.repairMaxOutputTokens,
           timeoutMs: options.timeoutMs ?? SHORT_REWRITE_DEFAULT_TIMEOUT_MS,
           maxRetries: options.maxRetries ?? SHORT_REWRITE_DEFAULT_MAX_RETRIES,
           overwrite: options.overwrite ?? false,
@@ -1239,12 +1254,15 @@ export async function rewriteShortStories(
         outputRoot,
         language,
         model: options.model,
+        repairModel: options.repairModel,
         temperature: options.temperature ?? SHORT_REWRITE_DEFAULT_TEMPERATURE,
         reasoningEffort: options.reasoningEffort,
         maxOutputTokens:
           options.maxOutputTokens ?? DEFAULT_SHORT_REWRITE_MAX_OUTPUT_TOKENS,
         retryMaxOutputTokens:
           options.retryMaxOutputTokens ?? DEFAULT_SHORT_REWRITE_RETRY_MAX_OUTPUT_TOKENS,
+        repairReasoningEffort: options.repairReasoningEffort,
+        repairMaxOutputTokens: options.repairMaxOutputTokens,
         timeoutMs: options.timeoutMs ?? SHORT_REWRITE_DEFAULT_TIMEOUT_MS,
         maxRetries: options.maxRetries ?? SHORT_REWRITE_DEFAULT_MAX_RETRIES,
         overwrite: options.overwrite ?? false,
