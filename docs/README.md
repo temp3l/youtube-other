@@ -1,25 +1,16 @@
-# Documentation Index
+# Docs
 
-Start here if you want the shortest path into the repo docs.
+Read only the documents relevant to the current task. Do not load the full docs set by default.
 
-## Core Guides
+CLI and pipeline work should start with the architecture docs. Configuration, debugging, and failure analysis should start with the development docs.
 
-- [CLI guide](./cli.md)
-- [Episode image generation](./episode-image-generation.md)
-- [Pipeline overview](./pipeline.md)
-- [Architecture](./architecture.md)
-- [Development setup](./development.md)
-
-## Workflow-Specific Docs
-
-- [OpenArt workflow](./openart-workflow.md)
-- [YouTube metadata](./youtube-metadata.md)
-- [Uploading episodes](./uploading.md)
-- [Voice settings](./voice-settings.md)
-- [Publishing output](./publishing-output.md)
-- [Troubleshooting](./troubleshooting.md)
-
-## Decisions
-
-- [Architecture decisions](./decisions/001-scene-level-audio-generation.md)
-- [OpenArt-assisted workflow](./decisions/006-openart-assisted-workflow.md)
+| Document                                                                                   | Purpose                                                                            | Read When                                                                              | Subsystem                |
+| ------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- | ------------------------ |
+| [architecture/system-overview.md](architecture/system-overview.md)                         | Stable repo structure, active apps, package ownership, config and state locations  | You need the high-level layout before tracing code                                     | Workspace-wide           |
+| [architecture/episode-production-pipeline.md](architecture/episode-production-pipeline.md) | Main CLI-driven episode production flow from source story to render-ready outputs  | You are working on `episode`, `images`, render, or upload-adjacent production commands | Episode production       |
+| [architecture/story-localization.md](architecture/story-localization.md)                   | Full and short rewrite/localization flow, caching, validation, and debug artifacts | You are working on `stories` commands or story rewrite services                        | Story localization       |
+| [architecture/media-assets-and-delivery.md](architecture/media-assets-and-delivery.md)     | Image ownership, render paths, metadata generation, upload, and telemetry          | You are working on images, rendering, metadata, upload, or operational logging         | Media delivery           |
+| [development/commands.md](development/commands.md)                                         | Exact command forms that exist in this repo, with narrow validation guidance       | You need a runnable command, script form, or filtered validation example               | Tooling and workflow     |
+| [development/configuration.md](development/configuration.md)                               | Runtime and episode config sources, precedence, defaults, and env ownership        | You are changing providers, models, paths, credentials, or per-episode behavior        | Configuration            |
+| [development/error-handling.md](development/error-handling.md)                             | Actual retry, timeout, resume, and redaction behavior across major subsystems      | You are debugging failures or documenting operational recovery                         | Errors and observability |
+| [decisions/README.md](decisions/README.md)                                                 | Indexed implementation decisions labeled as fact, inference, or unresolved         | You need a concise decision inventory without rereading old ADR-style docs             | Decision record          |

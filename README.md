@@ -1,5 +1,32 @@
 ## prompts
 
+check:
+
+- 5.4-mini: todo-prompts/optimize-codex.md
+- gpt-5.4 medium: story-rewrite-pipeline-refactor-codex-prompt.md
+  - Run the full prompt once with GPT-5.4 / medium, asking it to create a plan and task files only.
+  - Start fresh Codex sessions for each task with GPT-5.4 mini / medium.
+  - Escalate an individual task to GPT-5.4 / medium only when mini gets blocked.
+  - Use GPT-5.5 / medium only for unresolved architectural or cross-cutting failures.
+
+gpt-5.4 medium:
+
+Use Plan mode. Inspect the existing story-rewrite pipeline and validate
+**todo-prompts/story-rewrite-pipeline-refactor-codex-prompt.md** against the repository.
+
+Do not implement anything.
+
+Create a concise repository-specific execution plan containing:
+
+- affected files;
+- existing abstractions to reuse;
+- required changes;
+- validation commands;
+- incorrect assumptions in the supplied prompt;
+- independently executable implementation tasks.
+
+Keep the plan under 1,500 words.
+
 ---
 
 ### documentation
@@ -15,6 +42,11 @@ it should detect existing audio assets and resume audio generation if needed
 it should detect exisiting images and resume image generation if needed
 it should detect existing clips and continue generating if needed
 it should finally create the final video and youtube metadata if needed
+
+###
+
+check: "npm run mediaforge -- inspect 012-the-elevator-game"
+"message": "visible action is too generic or abstract; visible action is too generic or abstract"
 
 ---
 
@@ -39,6 +71,8 @@ this command: "node apps/cli/dist/index.js audio generate 012-the-elevator-game 
 produced: "/home/box/workspace/fehmarn-seo/youtube/other/episodes/012-the-elevator-game/locales/en/full/locales/en/full/audio/narration.wav"
 
 this command: "npm run images:plan -- --episode 012-the-elevator-game" results in: "Error: Episode not found: 012-the-elevator-game"
+
+npm run images:plan -- --episode 013-the-dyatlov-pass-incident
 
 ## refactored with 5.5:
 
@@ -68,6 +102,7 @@ It freezes the image layout and answers the prompt’s storage-contract question
 ---
 
 1. ode apps/cli/dist/index.js episode plan --episode 012-the-elevator-game --verbose
+   npm run episode:plan -- --episode 013-the-dyatlov-pass-incident
 
 • Use these commands to go from the current Spanish workspace to the final video without regenerating images or rerunning TTS:
 
