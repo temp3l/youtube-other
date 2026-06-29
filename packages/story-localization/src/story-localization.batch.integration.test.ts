@@ -91,8 +91,8 @@ function makeLocalizedPackage(language: LanguageCode): GeneratedStoryPackage {
       soundMotif: "storm rain and a faint drip",
       narrationParagraphs: [
         `${language.toUpperCase()} version: Elena Ward stayed in the house after dark and kept hearing Bramble breathe from under the bed.`,
-        "She found the same wet tracks in the hallway, the same attic note, and the same impossible message on the mirror.",
-        "By the time she understood the rule, the house had already learned Elena Ward's name and the final choice had become a trap.",
+        "She found the same wet tracks in the hallway, the same attic note, and HUMANS CAN LICK TOO on the mirror.",
+        "By the time she understood the rule, the final page said SHE REACHED DOWN FIRST and the house had already learned Elena Ward's name.",
       ],
       thumbnailText: "NOT THE DOG",
       contentDisclosure: "Fictional horror narration.",
@@ -202,12 +202,33 @@ describe("story localization batch integration", () => {
     expect(await fs.readFile(prepared.inputFilePath, "utf8")).toContain(
       '"custom_id"'
     );
+    const requestLines = (await fs.readFile(prepared.inputFilePath, "utf8"))
+      .trim()
+      .split("\n")
+      .map(
+        (line) =>
+          JSON.parse(line) as {
+            body: { text?: { format?: { name?: string; schema?: unknown } } };
+          }
+      );
+    const localizationRequest = requestLines.find(
+      (line) => line.body.text?.format?.name === "full_narration_story_package"
+    );
+    expect(localizationRequest?.body.text?.format?.name).toBe(
+      "full_narration_story_package"
+    );
+    expect(
+      JSON.stringify(localizationRequest?.body.text?.format?.schema)
+    ).not.toContain("thumbnailText");
     const index = new StoryBatchIndexService(tempDir);
     const latest = await index.getLatest();
     expect(latest?.localBatchId).toBe(prepared.localBatchId);
     expect(latest?.status).toBe("prepared");
     const layout = resolveBatchStorageLayout(tempDir);
-    const manifest = await readLocalBatchManifest(layout, prepared.localBatchId);
+    const manifest = await readLocalBatchManifest(
+      layout,
+      prepared.localBatchId
+    );
     expect(manifest?.items[0]?.sourcePath).toBe(
       toRepositoryRelativePath(
         path.join(
@@ -217,6 +238,13 @@ describe("story localization batch integration", () => {
           "002-even-killers-can-lick-en-full.md"
         )
       )
+    );
+    const localizationItem = manifest?.items.find(
+      (item) => item.operation === "localization"
+    );
+    expect(localizationItem?.promptFingerprint).toBeTruthy();
+    expect(localizationItem?.responseSchemaName).toBe(
+      "full_narration_story_package"
     );
     expect(
       await fs.readFile(
@@ -232,7 +260,9 @@ describe("story localization batch integration", () => {
   });
 
   it("persists production artifacts during batch preparation", async () => {
-    const tempDir = mkdtempSync(path.join(os.tmpdir(), "story-batch-production-"));
+    const tempDir = mkdtempSync(
+      path.join(os.tmpdir(), "story-batch-production-")
+    );
     const config = makeConfig(tempDir);
     await prepareStoryLocalizationBatch([sourceFile], config);
     const productionDir = path.join(
@@ -245,7 +275,10 @@ describe("story localization batch integration", () => {
     );
     expect(
       JSON.parse(
-        await fs.readFile(path.join(productionDir, "source-analysis.json"), "utf8")
+        await fs.readFile(
+          path.join(productionDir, "source-analysis.json"),
+          "utf8"
+        )
       )
     ).toHaveProperty("issueSummary");
     expect(
@@ -255,12 +288,18 @@ describe("story localization batch integration", () => {
     ).toHaveProperty("protagonist");
     expect(
       JSON.parse(
-        await fs.readFile(path.join(productionDir, "originality-review.json"), "utf8")
+        await fs.readFile(
+          path.join(productionDir, "originality-review.json"),
+          "utf8"
+        )
       )
     ).toHaveProperty("risk");
     expect(
       JSON.parse(
-        await fs.readFile(path.join(productionDir, "production-state.json"), "utf8")
+        await fs.readFile(
+          path.join(productionDir, "production-state.json"),
+          "utf8"
+        )
       )
     ).toMatchObject({ stage: "retention-plan" });
   });
@@ -341,6 +380,28 @@ describe("story localization batch integration", () => {
         "utf8"
       )
     ).toContain("# Episode 002");
+    const canonicalResult = JSON.parse(
+      await fs.readFile(
+        path.join(
+          tempDir,
+          "002-even-killers-can-lick",
+          ".localization-cache",
+          "production",
+          "002",
+          "002-even-killers-can-lick",
+          "de-full-narration-result.json"
+        ),
+        "utf8"
+      )
+    ) as {
+      sourceFormat: string;
+      result: { full: Record<string, unknown> };
+      deprecationDiagnostics: readonly string[];
+    };
+    expect(canonicalResult.sourceFormat).toBe("legacy-mixed");
+    expect(canonicalResult.deprecationDiagnostics.length).toBeGreaterThan(0);
+    expect(canonicalResult.result.full).toHaveProperty("narrationParagraphs");
+    expect(canonicalResult.result.full).not.toHaveProperty("thumbnailText");
   });
 
   it("rebuilds and verifies the batch index from manifests", async () => {

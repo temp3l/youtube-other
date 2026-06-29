@@ -8,7 +8,10 @@ export type BatchCategory =
   | "image-generation"
   | "image-edit"
   | "video-generation";
-export type BatchEndpoint = "/v1/responses" | "/v1/images/generations" | "/v1/images/edits";
+export type BatchEndpoint =
+  | "/v1/responses"
+  | "/v1/images/generations"
+  | "/v1/images/edits";
 export type BatchOperation =
   | "canonical-facts"
   | "english-short"
@@ -137,12 +140,25 @@ export interface StoryLocalizationConfig {
   readonly maxOutputTokens: number | undefined;
   readonly retryMaxOutputTokens: number | undefined;
   readonly repairModel: string | undefined;
-  readonly repairReasoningEffort: "none" | "minimal" | "low" | "medium" | "high" | "xhigh" | undefined;
+  readonly repairReasoningEffort:
+    | "none"
+    | "minimal"
+    | "low"
+    | "medium"
+    | "high"
+    | "xhigh"
+    | undefined;
   readonly repairMaxOutputTokens: number | undefined;
   readonly concurrency: number;
   readonly model: string;
   readonly temperature: number;
-  readonly reasoningEffort: "none" | "minimal" | "low" | "medium" | "high" | "xhigh";
+  readonly reasoningEffort:
+    | "none"
+    | "minimal"
+    | "low"
+    | "medium"
+    | "high"
+    | "xhigh";
   readonly fallbackToSync: boolean;
   readonly force: boolean;
   readonly resume: boolean;
@@ -311,20 +327,22 @@ export interface ShortsSceneManifestEntry {
 
 export interface GeneratedStoryPackage {
   readonly language: LanguageCode;
-  readonly full: {
-    readonly title: string;
-    readonly sourceTitle?: string;
-    readonly audioInstructions: readonly string[];
-    readonly soundMotif?: string;
-    readonly narrationParagraphs: readonly string[];
-    readonly thumbnailText: string;
-    readonly contentDisclosure: string;
-    readonly seoDescription: string;
-    readonly tags: readonly string[];
-    readonly hashtags: readonly string[];
-    readonly targetNarrationWpm: number;
-    readonly visualDirection: string;
-  } | undefined;
+  readonly full:
+    | {
+        readonly title: string;
+        readonly sourceTitle?: string;
+        readonly audioInstructions: readonly string[];
+        readonly soundMotif?: string;
+        readonly narrationParagraphs: readonly string[];
+        readonly thumbnailText: string;
+        readonly contentDisclosure: string;
+        readonly seoDescription: string;
+        readonly tags: readonly string[];
+        readonly hashtags: readonly string[];
+        readonly targetNarrationWpm: number;
+        readonly visualDirection: string;
+      }
+    | undefined;
   readonly short: {
     readonly title: string;
     readonly narrationInstructions: readonly string[];
@@ -420,7 +438,9 @@ export interface StoryLocalizationRunResult {
   readonly results: readonly StoryLocalizationEpisodeResult[];
 }
 
-export interface StoryBatchItem<TBody extends object = Record<string, unknown>> {
+export interface StoryBatchItem<
+  TBody extends object = Record<string, unknown>,
+> {
   readonly customId: string;
   readonly method: "POST";
   readonly url: "/v1/responses";
@@ -431,6 +451,15 @@ export interface StoryBatchItem<TBody extends object = Record<string, unknown>> 
     readonly operation: BatchOperation;
     readonly language?: LanguageCode;
     readonly promptVersion: string;
+    readonly compilerVersion?: string;
+    readonly promptFingerprint?: string;
+    readonly responseSchemaName?: string;
+    readonly responseSchemaVersion?: string;
+    readonly responseSchemaFingerprint?: string;
+    readonly selectedModules?: readonly {
+      readonly id: string;
+      readonly version: string;
+    }[];
     readonly configurationHash: string;
   };
 }
@@ -450,6 +479,15 @@ export interface LocalBatchManifestItem {
   readonly sourcePath: string;
   readonly sourceHash: string;
   readonly promptVersion: string;
+  readonly compilerVersion?: string;
+  readonly promptFingerprint?: string;
+  readonly responseSchemaName?: string;
+  readonly responseSchemaVersion?: string;
+  readonly responseSchemaFingerprint?: string;
+  readonly selectedModules?: readonly {
+    readonly id: string;
+    readonly version: string;
+  }[];
   readonly configurationHash: string;
   readonly plannedOutputPaths: readonly string[];
   readonly estimatedInputTokens: number;

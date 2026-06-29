@@ -1,6 +1,4 @@
-import {
-  type BatchCategory,
-} from "./story-localization.types.js";
+import { type BatchCategory } from "./story-localization.types.js";
 import { type ModelPricing } from "@mediaforge/observability";
 import { type OpenAiStoryClient } from "./story-localization-openai-batch.js";
 import {
@@ -70,6 +68,7 @@ export interface ShortRewriteUsage {
 export interface ShortRewriteArtifact {
   readonly schemaVersion: 1;
   readonly promptVersion: string;
+  readonly promptFingerprint?: string | undefined;
   readonly status: "completed" | "failed" | "skipped";
   readonly episodeId: string;
   readonly episodeSlug: string;
@@ -95,6 +94,7 @@ export interface ShortRewriteArtifact {
 export interface ShortRewriteManifest {
   readonly schemaVersion: 1;
   readonly promptVersion: string;
+  readonly promptFingerprint?: string | undefined;
   readonly episodeId: string;
   readonly episodeSlug: string;
   readonly sourceLanguage: "en";
@@ -113,6 +113,7 @@ export interface ShortRewriteJsonSidecar {
   readonly sourceLanguage: "en";
   readonly targetLanguage: StoryLanguage;
   readonly promptVersion: string;
+  readonly promptFingerprint?: string | undefined;
   readonly model: string;
   readonly sourcePath: string;
   readonly sourceSha256: string;
@@ -131,11 +132,25 @@ export interface ShortRewriteRunOptions {
   readonly model: string;
   readonly allowSourceInput?: boolean | undefined;
   readonly temperature?: number | undefined;
-  readonly reasoningEffort?: "none" | "minimal" | "low" | "medium" | "high" | "xhigh" | undefined;
+  readonly reasoningEffort?:
+    | "none"
+    | "minimal"
+    | "low"
+    | "medium"
+    | "high"
+    | "xhigh"
+    | undefined;
   readonly maxOutputTokens?: number | undefined;
   readonly retryMaxOutputTokens?: number | undefined;
   readonly repairModel?: string | undefined;
-  readonly repairReasoningEffort?: "none" | "minimal" | "low" | "medium" | "high" | "xhigh" | undefined;
+  readonly repairReasoningEffort?:
+    | "none"
+    | "minimal"
+    | "low"
+    | "medium"
+    | "high"
+    | "xhigh"
+    | undefined;
   readonly repairMaxOutputTokens?: number | undefined;
   readonly maxConcurrency?: number | undefined;
   readonly timeoutMs?: number | undefined;
@@ -156,6 +171,7 @@ export interface ShortRewriteRunSummary {
   readonly sourcePath: string;
   readonly sourceSha256: string;
   readonly promptVersion: string;
+  readonly promptFingerprint?: string | undefined;
   readonly model: string;
   readonly languagesRequested: readonly StoryLanguage[];
   readonly completed: number;

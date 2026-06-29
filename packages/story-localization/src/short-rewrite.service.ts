@@ -3,9 +3,7 @@ import fs from "node:fs/promises";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import { zodTextFormat } from "openai/helpers/zod.js";
-import {
-  createLogger,
-} from "@mediaforge/observability";
+import { createLogger } from "@mediaforge/observability";
 import { estimateTokenCostMicros } from "@mediaforge/observability";
 import {
   countSpokenWords,
@@ -31,9 +29,20 @@ import {
   SHORT_REWRITE_SUPPORTED_LANGUAGES,
   type ShortRewriteLanguage,
 } from "./short-rewrite.constants.js";
-import { shortRewriteArtifactSchema, shortRewriteGenerationSchema, shortRewriteManifestSchema, shortRewriteResultSchema } from "./short-rewrite.schemas.js";
+import {
+  shortRewriteArtifactSchema,
+  shortRewriteGenerationSchema,
+  shortRewriteManifestSchema,
+  shortRewriteResultSchema,
+} from "./short-rewrite.schemas.js";
 import { buildShortRewriteMarkdown } from "./short-rewrite.renderer.js";
-import { buildShortRewritePrompt, buildShortRewriteRepairPrompt } from "./short-rewrite.prompt.js";
+import {
+  buildShortRewritePrompt,
+  buildShortRewriteRepairPrompt,
+} from "./short-rewrite.prompt.js";
+import { compileShortStoryPrompt } from "./story-prompt-compiler.js";
+import { extractCanonicalStoryFacts } from "./canonical-facts.service.js";
+import { adaptCanonicalStoryFactsToStoryIR } from "./story-artifact-model.js";
 import {
   AmbiguousStoryInputError,
   ExistingArtifactError,
@@ -63,7 +72,10 @@ import {
   sha256NormalizedSource,
 } from "./short-rewrite.utils.js";
 import { shouldIncludeTemperatureForModel } from "./story-localization.utils.js";
-import { writeJsonAtomicIfChanged, writeTextAtomicIfChanged } from "./story-localization.utils.js";
+import {
+  writeJsonAtomicIfChanged,
+  writeTextAtomicIfChanged,
+} from "./story-localization.utils.js";
 import { materializeCanonicalSourceStory } from "./short-rewrite.bootstrap.js";
 import {
   type ResolvedShortRewriteSource,
@@ -81,11 +93,16 @@ import {
 } from "./short-rewrite.types.js";
 import { resolveShortRewriteInput } from "./short-rewrite.resolution.js";
 import { parseCanonicalSourceStory } from "./source-story-parser.js";
-import { updateShortRewriteManifestAtomically, writeShortRewriteArtifactFiles } from "./short-rewrite.persistence.js";
+import {
+  updateShortRewriteManifestAtomically,
+  writeShortRewriteArtifactFiles,
+} from "./short-rewrite.persistence.js";
 import { withFileLock } from "./story-localization-batch-storage.js";
 import { getRepoRoot } from "./story-localization.utils.js";
 
-type ResponseCreateRequest = Parameters<OpenAiStoryClient["responses"]["create"]>[0];
+type ResponseCreateRequest = Parameters<
+  OpenAiStoryClient["responses"]["create"]
+>[0];
 type Logger = ReturnType<typeof createLogger>;
 type StructuredResponsesClient = {
   readonly parse?: (
@@ -114,10 +131,24 @@ interface GenerateLanguageRequest {
   readonly model: string;
   readonly repairModel: string | undefined;
   readonly temperature: number;
-  readonly reasoningEffort: "none" | "minimal" | "low" | "medium" | "high" | "xhigh" | undefined;
+  readonly reasoningEffort:
+    | "none"
+    | "minimal"
+    | "low"
+    | "medium"
+    | "high"
+    | "xhigh"
+    | undefined;
   readonly maxOutputTokens: number;
   readonly retryMaxOutputTokens: number;
-  readonly repairReasoningEffort: "none" | "minimal" | "low" | "medium" | "high" | "xhigh" | undefined;
+  readonly repairReasoningEffort:
+    | "none"
+    | "minimal"
+    | "low"
+    | "medium"
+    | "high"
+    | "xhigh"
+    | undefined;
   readonly repairMaxOutputTokens: number | undefined;
   readonly timeoutMs: number;
   readonly maxRetries: number;
@@ -145,15 +176,36 @@ function isTransientOpenAiError(error: unknown): boolean {
   if (!error || typeof error !== "object") {
     return false;
   }
-  const record = error as { readonly code?: unknown; readonly status?: unknown; readonly message?: unknown };
-  if (typeof record.status === "number" && [408, 409, 425, 429, 500, 502, 503, 504].includes(record.status)) {
+  const record = error as {
+    readonly code?: unknown;
+    readonly status?: unknown;
+    readonly message?: unknown;
+  };
+  if (
+    typeof record.status === "number" &&
+    [408, 409, 425, 429, 500, 502, 503, 504].includes(record.status)
+  ) {
     return true;
   }
-  if (typeof record.code === "string" && ["ECONNRESET", "ETIMEDOUT", "EAI_AGAIN", "ENOTFOUND", "UND_ERR_CONNECT_TIMEOUT", "UND_ERR_SOCKET", "ECONNREFUSED", "EPIPE"].includes(record.code)) {
+  if (
+    typeof record.code === "string" &&
+    [
+      "ECONNRESET",
+      "ETIMEDOUT",
+      "EAI_AGAIN",
+      "ENOTFOUND",
+      "UND_ERR_CONNECT_TIMEOUT",
+      "UND_ERR_SOCKET",
+      "ECONNREFUSED",
+      "EPIPE",
+    ].includes(record.code)
+  ) {
     return true;
   }
   const text = `${typeof record.code === "string" ? record.code : ""} ${typeof record.message === "string" ? record.message : ""}`;
-  return /connection|connect|timeout|timed out|dns|fetch failed|network error|socket hang up/iu.test(text);
+  return /connection|connect|timeout|timed out|dns|fetch failed|network error|socket hang up/iu.test(
+    text
+  );
 }
 
 async function sleep(ms: number): Promise<void> {
@@ -165,7 +217,11 @@ function createAbortError(message: string): Error {
 }
 
 function normalizeValidationErrors(errors: string[]): string[] {
-  return [...new Set(errors.map((entry) => normalizeWhitespace(entry)).filter(Boolean))];
+  return [
+    ...new Set(
+      errors.map((entry) => normalizeWhitespace(entry)).filter(Boolean)
+    ),
+  ];
 }
 
 async function persistShortRewriteDebugArtifacts(args: {
@@ -231,7 +287,8 @@ async function persistShortRewriteDebugArtifacts(args: {
     ),
     writeJsonAtomicIfChanged(
       `${basePath}.response-text.json`,
-      args.response?.responseJson ?? (args.error ? { error: String(args.error) } : null),
+      args.response?.responseJson ??
+        (args.error ? { error: String(args.error) } : null),
       true
     ),
     ...(args.error
@@ -269,6 +326,7 @@ interface ShortRewriteUsagePayload {
 interface ShortRewriteArtifactPayload {
   schemaVersion: 1;
   promptVersion: string;
+  promptFingerprint?: string;
   status: "completed" | "failed" | "skipped";
   episodeId: string;
   episodeSlug: string;
@@ -324,6 +382,7 @@ function buildUsagePayload(args: {
 function buildArtifactPayload(args: {
   readonly schemaVersion: 1;
   readonly promptVersion: string;
+  readonly promptFingerprint?: string;
   readonly status: "completed" | "failed" | "skipped";
   readonly episodeId: string;
   readonly episodeSlug: string;
@@ -348,6 +407,9 @@ function buildArtifactPayload(args: {
   const artifact: ShortRewriteArtifactPayload = {
     schemaVersion: args.schemaVersion,
     promptVersion: args.promptVersion,
+    ...(args.promptFingerprint
+      ? { promptFingerprint: args.promptFingerprint }
+      : {}),
     status: args.status,
     episodeId: args.episodeId,
     episodeSlug: args.episodeSlug,
@@ -386,10 +448,15 @@ function buildArtifactPayload(args: {
   return artifact as unknown;
 }
 
-function cloneArtifactPayload(artifact: ShortRewriteArtifact): ShortRewriteArtifactPayload {
+function cloneArtifactPayload(
+  artifact: ShortRewriteArtifact
+): ShortRewriteArtifactPayload {
   const payload: ShortRewriteArtifactPayload = {
     schemaVersion: artifact.schemaVersion,
     promptVersion: artifact.promptVersion,
+    ...(artifact.promptFingerprint
+      ? { promptFingerprint: artifact.promptFingerprint }
+      : {}),
     status: artifact.status,
     episodeId: artifact.episodeId,
     episodeSlug: artifact.episodeSlug,
@@ -453,22 +520,34 @@ function analyzeGeneratedPayload(args: {
   });
   const warnings = [...validation.warnings];
   if (wordCount >= 145 && wordCount < 150) {
-    warnings.push("Narration is below the preferred range but above the hard minimum.");
+    warnings.push(
+      "Narration is below the preferred range but above the hard minimum."
+    );
   }
   const issues: string[] = [];
   if (!hookMatchesNarration) {
-    issues.push("Hook does not exactly match the first sentence of the narration.");
+    issues.push(
+      "Hook does not exactly match the first sentence of the narration."
+    );
   }
   if (wordCount < 145) {
-    issues.push(`Narration word count ${wordCount} is below the hard minimum of 145.`);
+    issues.push(
+      `Narration word count ${wordCount} is below the hard minimum of 145.`
+    );
   }
   if (wordCount > 170) {
-    issues.push(`Narration word count ${wordCount} exceeds the hard maximum of 170.`);
+    issues.push(
+      `Narration word count ${wordCount} exceeds the hard maximum of 170.`
+    );
   }
   if (countThumbnailWords(args.parsed.thumbnailText) > 4) {
     issues.push("Thumbnail text exceeds the four-word limit.");
   }
-  if (/\b(audio generation instructions|narration script|sound effect|scene change|\[pause\]|\[whisper\]|\[sound effect\]|\[music\])\b/iu.test(args.parsed.narration)) {
+  if (
+    /\b(audio generation instructions|narration script|sound effect|scene change|\[pause\]|\[whisper\]|\[sound effect\]|\[music\])\b/iu.test(
+      args.parsed.narration
+    )
+  ) {
     issues.push("Narration contains production labels.");
   }
   if (detectEditorialCommentary(args.parsed.narration).length > 0) {
@@ -498,9 +577,23 @@ async function requestStructuredShortRewrite(args: {
   readonly requestLabel: string;
   readonly prompt: { readonly system: string; readonly user: string };
   readonly temperature: number;
-  readonly reasoningEffort: "none" | "minimal" | "low" | "medium" | "high" | "xhigh" | undefined;
+  readonly reasoningEffort:
+    | "none"
+    | "minimal"
+    | "low"
+    | "medium"
+    | "high"
+    | "xhigh"
+    | undefined;
   readonly maxOutputTokens: number;
-  readonly repairReasoningEffort: "none" | "minimal" | "low" | "medium" | "high" | "xhigh" | undefined;
+  readonly repairReasoningEffort:
+    | "none"
+    | "minimal"
+    | "low"
+    | "medium"
+    | "high"
+    | "xhigh"
+    | undefined;
   readonly repairMaxOutputTokens: number | undefined;
   readonly timeoutMs: number;
   readonly maxRetries: number;
@@ -509,7 +602,9 @@ async function requestStructuredShortRewrite(args: {
   readonly debugFileBaseName: string;
 }): Promise<ShortRewriteApiResult> {
   if (!args.client) {
-    throw new OpenAIShortRewriteError("Missing OpenAI client for short rewrite.");
+    throw new OpenAIShortRewriteError(
+      "Missing OpenAI client for short rewrite."
+    );
   }
   const start = Date.now();
   let lastError: unknown;
@@ -525,8 +620,12 @@ async function requestStructuredShortRewrite(args: {
         content: [{ type: "input_text", text: args.prompt.user }],
       },
     ],
-    text: { format: zodTextFormat(buildRequestSchema(), "short_rewrite_result") },
-    ...(shouldIncludeTemperatureForModel(args.model) ? { temperature: args.temperature } : {}),
+    text: {
+      format: zodTextFormat(buildRequestSchema(), "short_rewrite_result"),
+    },
+    ...(shouldIncludeTemperatureForModel(args.model)
+      ? { temperature: args.temperature }
+      : {}),
     max_output_tokens: args.maxOutputTokens,
     ...(args.reasoningEffort
       ? { reasoning: { effort: args.reasoningEffort } }
@@ -538,10 +637,14 @@ async function requestStructuredShortRewrite(args: {
     }
     const controller = new AbortController();
     const timeout = setTimeout(
-      () => controller.abort(createAbortError("Short rewrite request timed out.")),
+      () =>
+        controller.abort(createAbortError("Short rewrite request timed out.")),
       args.timeoutMs
     );
-    const abortListener = () => controller.abort(args.signal?.reason ?? createAbortError("Short rewrite was aborted."));
+    const abortListener = () =>
+      controller.abort(
+        args.signal?.reason ?? createAbortError("Short rewrite was aborted.")
+      );
     args.signal?.addEventListener("abort", abortListener, { once: true });
     try {
       await persistShortRewriteDebugArtifacts({
@@ -551,10 +654,15 @@ async function requestStructuredShortRewrite(args: {
         prompt: args.prompt,
         request,
       });
-      const structuredResponses = args.client.responses as StructuredResponsesClient;
+      const structuredResponses = args.client
+        .responses as StructuredResponsesClient;
       const response = structuredResponses.parse
-        ? await structuredResponses.parse(request, { signal: controller.signal })
-        : await structuredResponses.create(request, { signal: controller.signal });
+        ? await structuredResponses.parse(request, {
+            signal: controller.signal,
+          })
+        : await structuredResponses.create(request, {
+            signal: controller.signal,
+          });
       const responseRecord = response as unknown as {
         readonly id: string;
         readonly output_parsed?: unknown | null;
@@ -564,12 +672,19 @@ async function requestStructuredShortRewrite(args: {
           readonly input_tokens?: number;
           readonly output_tokens?: number;
           readonly input_tokens_details?: { readonly cached_tokens?: number };
-          readonly output_tokens_details?: { readonly reasoning_tokens?: number };
+          readonly output_tokens_details?: {
+            readonly reasoning_tokens?: number;
+          };
           readonly total_tokens?: number;
         };
       };
-      if (responseRecord.output_parsed === null || responseRecord.output_parsed === undefined) {
-        const extractedText = responseRecord.output_text ?? extractStructuredResponseText(responseRecord.output);
+      if (
+        responseRecord.output_parsed === null ||
+        responseRecord.output_parsed === undefined
+      ) {
+        const extractedText =
+          responseRecord.output_text ??
+          extractStructuredResponseText(responseRecord.output);
         if (!extractedText) {
           await persistShortRewriteDebugArtifacts({
             debugDirectory: args.debugDirectory,
@@ -577,9 +692,13 @@ async function requestStructuredShortRewrite(args: {
             requestLabel: args.requestLabel,
             prompt: args.prompt,
             request,
-            error: new OpenAIShortRewriteError("OpenAI returned an empty structured response."),
+            error: new OpenAIShortRewriteError(
+              "OpenAI returned an empty structured response."
+            ),
           });
-          throw new OpenAIShortRewriteError("OpenAI returned an empty structured response.");
+          throw new OpenAIShortRewriteError(
+            "OpenAI returned an empty structured response."
+          );
         }
         try {
           const parsed = JSON.parse(extractedText) as unknown;
@@ -588,11 +707,19 @@ async function requestStructuredShortRewrite(args: {
             ...(responseRecord.usage?.input_tokens !== undefined
               ? { inputTokens: responseRecord.usage.input_tokens }
               : {}),
-            ...(responseRecord.usage?.input_tokens_details?.cached_tokens !== undefined
-              ? { cachedInputTokens: responseRecord.usage.input_tokens_details.cached_tokens }
+            ...(responseRecord.usage?.input_tokens_details?.cached_tokens !==
+            undefined
+              ? {
+                  cachedInputTokens:
+                    responseRecord.usage.input_tokens_details.cached_tokens,
+                }
               : {}),
-            ...(responseRecord.usage?.output_tokens_details?.reasoning_tokens !== undefined
-              ? { reasoningTokens: responseRecord.usage.output_tokens_details.reasoning_tokens }
+            ...(responseRecord.usage?.output_tokens_details
+              ?.reasoning_tokens !== undefined
+              ? {
+                  reasoningTokens:
+                    responseRecord.usage.output_tokens_details.reasoning_tokens,
+                }
               : {}),
             ...(responseRecord.usage?.output_tokens !== undefined
               ? { outputTokens: responseRecord.usage.output_tokens }
@@ -616,7 +743,9 @@ async function requestStructuredShortRewrite(args: {
               startedAt: start,
               finishedAt: responseFinishedAt,
               durationMs: responseFinishedAt - start,
-              ...(responseUsage.inputTokens !== undefined ? { usage: responseUsage } : {}),
+              ...(responseUsage.inputTokens !== undefined
+                ? { usage: responseUsage }
+                : {}),
             },
           });
           return {
@@ -631,22 +760,36 @@ async function requestStructuredShortRewrite(args: {
             requestLabel: args.requestLabel,
             prompt: args.prompt,
             request,
-            error: new OpenAIShortRewriteError("OpenAI returned a non-JSON structured response."),
+            error: new OpenAIShortRewriteError(
+              "OpenAI returned a non-JSON structured response."
+            ),
           });
-          throw new OpenAIShortRewriteError("OpenAI returned a non-JSON structured response.");
+          throw new OpenAIShortRewriteError(
+            "OpenAI returned a non-JSON structured response."
+          );
         }
       }
-      const outputText = responseRecord.output_text ?? JSON.stringify(responseRecord.output_parsed);
+      const outputText =
+        responseRecord.output_text ??
+        JSON.stringify(responseRecord.output_parsed);
       const responseFinishedAt = Date.now();
       const responseUsage = {
         ...(responseRecord.usage?.input_tokens !== undefined
           ? { inputTokens: responseRecord.usage.input_tokens }
           : {}),
-        ...(responseRecord.usage?.input_tokens_details?.cached_tokens !== undefined
-          ? { cachedInputTokens: responseRecord.usage.input_tokens_details.cached_tokens }
+        ...(responseRecord.usage?.input_tokens_details?.cached_tokens !==
+        undefined
+          ? {
+              cachedInputTokens:
+                responseRecord.usage.input_tokens_details.cached_tokens,
+            }
           : {}),
-        ...(responseRecord.usage?.output_tokens_details?.reasoning_tokens !== undefined
-          ? { reasoningTokens: responseRecord.usage.output_tokens_details.reasoning_tokens }
+        ...(responseRecord.usage?.output_tokens_details?.reasoning_tokens !==
+        undefined
+          ? {
+              reasoningTokens:
+                responseRecord.usage.output_tokens_details.reasoning_tokens,
+            }
           : {}),
         ...(responseRecord.usage?.output_tokens !== undefined
           ? { outputTokens: responseRecord.usage.output_tokens }
@@ -670,7 +813,9 @@ async function requestStructuredShortRewrite(args: {
           startedAt: start,
           finishedAt: responseFinishedAt,
           durationMs: responseFinishedAt - start,
-          ...(responseUsage.inputTokens !== undefined ? { usage: responseUsage } : {}),
+          ...(responseUsage.inputTokens !== undefined
+            ? { usage: responseUsage }
+            : {}),
         },
       });
       const apiResult: ShortRewriteApiResult = {
@@ -691,7 +836,10 @@ async function requestStructuredShortRewrite(args: {
       });
       if (attempt < args.maxRetries && isTransientOpenAiError(error)) {
         const jitter = 0.75 + Math.random() * 0.5;
-        const backoff = Math.min(8_000, Math.round(500 * 2 ** attempt * jitter));
+        const backoff = Math.min(
+          8_000,
+          Math.round(500 * 2 ** attempt * jitter)
+        );
         await sleep(backoff);
         continue;
       }
@@ -709,12 +857,16 @@ async function requestStructuredShortRewrite(args: {
   );
 }
 
-function parseStructuredResult(outputText: string): z.infer<typeof shortRewriteResultSchema> {
+function parseStructuredResult(
+  outputText: string
+): z.infer<typeof shortRewriteResultSchema> {
   const parsedJson = JSON.parse(outputText) as unknown;
   return shortRewriteResultSchema.parse(parsedJson);
 }
 
-function extractStructuredResponseText(output: readonly unknown[] | undefined): string | null {
+function extractStructuredResponseText(
+  output: readonly unknown[] | undefined
+): string | null {
   if (!output) {
     return null;
   }
@@ -734,8 +886,15 @@ function extractStructuredResponseText(output: readonly unknown[] | undefined): 
       if (!content || typeof content !== "object") {
         continue;
       }
-      const textRecord = content as { readonly type?: unknown; readonly text?: unknown };
-      if (textRecord.type === "output_text" && typeof textRecord.text === "string" && textRecord.text.trim().length > 0) {
+      const textRecord = content as {
+        readonly type?: unknown;
+        readonly text?: unknown;
+      };
+      if (
+        textRecord.type === "output_text" &&
+        typeof textRecord.text === "string" &&
+        textRecord.text.trim().length > 0
+      ) {
         texts.push(textRecord.text);
       }
     }
@@ -744,7 +903,9 @@ function extractStructuredResponseText(output: readonly unknown[] | undefined): 
   return combined.length > 0 ? combined : null;
 }
 
-async function generateLanguagePayload(args: GenerateLanguageRequest): Promise<GeneratedPayload> {
+async function generateLanguagePayload(
+  args: GenerateLanguageRequest
+): Promise<GeneratedPayload> {
   const paths = resolveShortRewriteOutputPaths({
     outputRoot: args.outputRoot,
     episodeSlug: args.source.episodeSlug,
@@ -752,7 +913,11 @@ async function generateLanguagePayload(args: GenerateLanguageRequest): Promise<G
     language: args.language,
   });
   const languageDefinition = SHORT_REWRITE_SUPPORTED_LANGUAGES[args.language];
-  const debugDirectory = path.join(args.outputRoot, args.source.episodeSlug, "debug");
+  const debugDirectory = path.join(
+    args.outputRoot,
+    args.source.episodeSlug,
+    "debug"
+  );
   const debugFileBaseName = `stories-rewrite-short-${args.language}`;
   const promptContext = {
     episodeNumber: args.source.episodeNumber,
@@ -764,14 +929,63 @@ async function generateLanguagePayload(args: GenerateLanguageRequest): Promise<G
     narration: args.source.narration,
     title: args.source.title,
   };
+  const parsedSourceStory = {
+    language: "en" as const,
+    sourceFile: args.source.sourcePath,
+    sourceHash: args.source.sourceSha256,
+    episodeNumber: args.source.episodeNumber,
+    slug: args.source.episodeSlug,
+    title: args.source.title,
+    audioInstructions: [...args.source.audioInstructions],
+    narrationParagraphs: args.source.narration
+      .split(/\n{2,}/u)
+      .map((entry) => normalizeWhitespace(entry))
+      .filter(Boolean),
+    metadata: {
+      episodeNumber: args.source.episodeNumber,
+      primaryTitle: args.source.title,
+      audioInstructions: [...args.source.audioInstructions],
+      narration: args.source.narration
+        .split(/\n{2,}/u)
+        .map((entry) => normalizeWhitespace(entry))
+        .filter(Boolean),
+      tags: [],
+      hashtags: [],
+    },
+    content: args.source.sourceContent,
+  };
+  const promptFacts = extractCanonicalStoryFacts(parsedSourceStory);
+  const compiledPrompt = compileShortStoryPrompt({
+    language: args.language,
+    adaptationMode: "retention-optimized",
+    sourceStory: parsedSourceStory,
+    canonicalFacts: promptFacts,
+    fullStoryText: args.source.sourceContent,
+    storyIr: adaptCanonicalStoryFactsToStoryIR(promptFacts, parsedSourceStory),
+  });
+  if (compiledPrompt.diagnostics.some((entry) => entry.blocking)) {
+    throw new ShortRewriteValidationError(
+      compiledPrompt.diagnostics
+        .filter((entry) => entry.blocking)
+        .map((entry) => entry.message)
+        .join("; ")
+    );
+  }
+  const promptFingerprint = compiledPrompt.promptFingerprint;
   if (args.dryRun) {
     const generation: ShortRewriteGeneration = {
       title: `${args.source.title} (${languageDefinition.name})`,
       hook: firstSentence(args.source.narration),
       narration: args.source.narration,
       wordCount: countSpokenWords(args.source.narration),
-      estimatedDurationSecondsAt175Wpm: estimateDurationSeconds(countSpokenWords(args.source.narration), 175),
-      estimatedDurationSecondsAt180Wpm: estimateDurationSeconds(countSpokenWords(args.source.narration), 180),
+      estimatedDurationSecondsAt175Wpm: estimateDurationSeconds(
+        countSpokenWords(args.source.narration),
+        175
+      ),
+      estimatedDurationSecondsAt180Wpm: estimateDurationSeconds(
+        countSpokenWords(args.source.narration),
+        180
+      ),
       thumbnailText: args.source.title.split(" ").slice(0, 4).join(" "),
       fullVideoBridge: "Read the full episode for the complete story.",
     };
@@ -786,15 +1000,25 @@ async function generateLanguagePayload(args: GenerateLanguageRequest): Promise<G
       buildArtifactPayload({
         schemaVersion: 1,
         promptVersion: SHORT_REWRITE_PROMPT_VERSION,
+        promptFingerprint,
         status: "skipped",
         episodeId: args.source.episodeId,
         episodeSlug: args.source.episodeSlug,
         sourceLanguage: "en",
         targetLanguage: args.language,
-        sourcePath: path.relative(path.join(args.outputRoot, args.source.episodeSlug), args.source.sourcePath),
+        sourcePath: path.relative(
+          path.join(args.outputRoot, args.source.episodeSlug),
+          args.source.sourcePath
+        ),
         sourceSha256: args.source.sourceSha256,
-        markdownOutputPath: path.relative(path.join(args.outputRoot, args.source.episodeSlug), paths.markdownPath),
-        jsonOutputPath: path.relative(path.join(args.outputRoot, args.source.episodeSlug), paths.jsonPath),
+        markdownOutputPath: path.relative(
+          path.join(args.outputRoot, args.source.episodeSlug),
+          paths.markdownPath
+        ),
+        jsonOutputPath: path.relative(
+          path.join(args.outputRoot, args.source.episodeSlug),
+          paths.jsonPath
+        ),
         generatedAt,
         model: args.model,
         generationDurationMs: 0,
@@ -808,8 +1032,12 @@ async function generateLanguagePayload(args: GenerateLanguageRequest): Promise<G
       sourceLanguage: "en",
       targetLanguage: args.language,
       promptVersion: SHORT_REWRITE_PROMPT_VERSION,
+      promptFingerprint,
       model: args.model,
-      sourcePath: path.relative(path.join(args.outputRoot, args.source.episodeSlug), args.source.sourcePath),
+      sourcePath: path.relative(
+        path.join(args.outputRoot, args.source.episodeSlug),
+        args.source.sourcePath
+      ),
       sourceSha256: args.source.sourceSha256,
       generatedAt,
       generation,
@@ -830,10 +1058,15 @@ async function generateLanguagePayload(args: GenerateLanguageRequest): Promise<G
       jsonPath: paths.jsonPath,
     };
   }
-  const initialPrompt = buildShortRewritePrompt(promptContext);
+  const initialPrompt = {
+    system: compiledPrompt.system,
+    user: compiledPrompt.user,
+  };
   const client = args.client;
   if (!client) {
-    throw new OpenAIShortRewriteError("Missing OpenAI client for short rewrite.");
+    throw new OpenAIShortRewriteError(
+      "Missing OpenAI client for short rewrite."
+    );
   }
   const initialResponse = await requestStructuredShortRewrite({
     client,
@@ -860,7 +1093,9 @@ async function generateLanguagePayload(args: GenerateLanguageRequest): Promise<G
   });
   let requestId = initialResponse.id;
   let usage = buildUsagePayload({
-    ...(initialResponse.inputTokens !== undefined ? { inputTokens: initialResponse.inputTokens } : {}),
+    ...(initialResponse.inputTokens !== undefined
+      ? { inputTokens: initialResponse.inputTokens }
+      : {}),
     ...(initialResponse.cachedInputTokens !== undefined
       ? { cachedInputTokens: initialResponse.cachedInputTokens }
       : {}),
@@ -870,7 +1105,9 @@ async function generateLanguagePayload(args: GenerateLanguageRequest): Promise<G
     ...(initialResponse.outputTokens !== undefined
       ? { outputTokens: initialResponse.outputTokens }
       : {}),
-    ...(initialResponse.totalTokens !== undefined ? { totalTokens: initialResponse.totalTokens } : {}),
+    ...(initialResponse.totalTokens !== undefined
+      ? { totalTokens: initialResponse.totalTokens }
+      : {}),
   });
   let generation = initialAnalysis.generation;
   let validation = initialAnalysis.validation;
@@ -903,9 +1140,13 @@ async function generateLanguagePayload(args: GenerateLanguageRequest): Promise<G
     requestId = repairResponse.id;
     usage = buildUsagePayload({
       inputTokens: (usage.inputTokens ?? 0) + (repairResponse.inputTokens ?? 0),
-      cachedInputTokens: (usage.cachedInputTokens ?? 0) + (repairResponse.cachedInputTokens ?? 0),
-      reasoningTokens: (usage.reasoningTokens ?? 0) + (repairResponse.reasoningTokens ?? 0),
-      outputTokens: (usage.outputTokens ?? 0) + (repairResponse.outputTokens ?? 0),
+      cachedInputTokens:
+        (usage.cachedInputTokens ?? 0) +
+        (repairResponse.cachedInputTokens ?? 0),
+      reasoningTokens:
+        (usage.reasoningTokens ?? 0) + (repairResponse.reasoningTokens ?? 0),
+      outputTokens:
+        (usage.outputTokens ?? 0) + (repairResponse.outputTokens ?? 0),
       totalTokens: (usage.totalTokens ?? 0) + (repairResponse.totalTokens ?? 0),
     });
     responsePayload = parseStructuredResult(repairResponse.outputText);
@@ -927,13 +1168,20 @@ async function generateLanguagePayload(args: GenerateLanguageRequest): Promise<G
   }
   const modelPricing = args.modelPricing?.[args.model];
   const cost = estimateTokenCostMicros(modelPricing?.token, {
-    ...(usage.inputTokens !== undefined ? { inputTokens: usage.inputTokens } : {}),
-    ...(usage.cachedInputTokens !== undefined ? { cachedInputTokens: usage.cachedInputTokens } : {}),
-    ...(usage.outputTokens !== undefined ? { outputTokens: usage.outputTokens } : {}),
+    ...(usage.inputTokens !== undefined
+      ? { inputTokens: usage.inputTokens }
+      : {}),
+    ...(usage.cachedInputTokens !== undefined
+      ? { cachedInputTokens: usage.cachedInputTokens }
+      : {}),
+    ...(usage.outputTokens !== undefined
+      ? { outputTokens: usage.outputTokens }
+      : {}),
     audioInputTokens: 0,
     audioOutputTokens: 0,
   });
-  const estimatedCostUsd = cost.costMicros === null ? null : cost.costMicros / 1_000_000;
+  const estimatedCostUsd =
+    cost.costMicros === null ? null : cost.costMicros / 1_000_000;
   const generatedAt = new Date().toISOString();
   const jsonSidecar: ShortRewriteJsonSidecar = {
     schemaVersion: 1,
@@ -942,17 +1190,31 @@ async function generateLanguagePayload(args: GenerateLanguageRequest): Promise<G
     sourceLanguage: "en",
     targetLanguage: args.language,
     promptVersion: SHORT_REWRITE_PROMPT_VERSION,
+    promptFingerprint,
     model: args.model,
-    sourcePath: path.relative(path.join(args.outputRoot, args.source.episodeSlug), args.source.sourcePath),
+    sourcePath: path.relative(
+      path.join(args.outputRoot, args.source.episodeSlug),
+      args.source.sourcePath
+    ),
     sourceSha256: args.source.sourceSha256,
     generatedAt,
     generation,
     usage: buildUsagePayload({
-      ...(usage.inputTokens !== undefined ? { inputTokens: usage.inputTokens } : {}),
-      ...(usage.cachedInputTokens !== undefined ? { cachedInputTokens: usage.cachedInputTokens } : {}),
-      ...(usage.reasoningTokens !== undefined ? { reasoningTokens: usage.reasoningTokens } : {}),
-      ...(usage.outputTokens !== undefined ? { outputTokens: usage.outputTokens } : {}),
-      ...(usage.totalTokens !== undefined ? { totalTokens: usage.totalTokens } : {}),
+      ...(usage.inputTokens !== undefined
+        ? { inputTokens: usage.inputTokens }
+        : {}),
+      ...(usage.cachedInputTokens !== undefined
+        ? { cachedInputTokens: usage.cachedInputTokens }
+        : {}),
+      ...(usage.reasoningTokens !== undefined
+        ? { reasoningTokens: usage.reasoningTokens }
+        : {}),
+      ...(usage.outputTokens !== undefined
+        ? { outputTokens: usage.outputTokens }
+        : {}),
+      ...(usage.totalTokens !== undefined
+        ? { totalTokens: usage.totalTokens }
+        : {}),
       estimatedCostUsd,
     }),
     validation: {
@@ -964,24 +1226,44 @@ async function generateLanguagePayload(args: GenerateLanguageRequest): Promise<G
     buildArtifactPayload({
       schemaVersion: 1,
       promptVersion: SHORT_REWRITE_PROMPT_VERSION,
+      promptFingerprint,
       status: "completed",
       episodeId: args.source.episodeId,
       episodeSlug: args.source.episodeSlug,
       sourceLanguage: "en",
       targetLanguage: args.language,
-      sourcePath: path.relative(path.join(args.outputRoot, args.source.episodeSlug), args.source.sourcePath),
+      sourcePath: path.relative(
+        path.join(args.outputRoot, args.source.episodeSlug),
+        args.source.sourcePath
+      ),
       sourceSha256: args.source.sourceSha256,
-      markdownOutputPath: path.relative(path.join(args.outputRoot, args.source.episodeSlug), paths.markdownPath),
-      jsonOutputPath: path.relative(path.join(args.outputRoot, args.source.episodeSlug), paths.jsonPath),
+      markdownOutputPath: path.relative(
+        path.join(args.outputRoot, args.source.episodeSlug),
+        paths.markdownPath
+      ),
+      jsonOutputPath: path.relative(
+        path.join(args.outputRoot, args.source.episodeSlug),
+        paths.jsonPath
+      ),
       generatedAt,
       model: args.model,
       requestId,
       generationDurationMs: 0,
-      ...(usage.inputTokens !== undefined ? { inputTokens: usage.inputTokens } : {}),
-      ...(usage.cachedInputTokens !== undefined ? { cachedInputTokens: usage.cachedInputTokens } : {}),
-      ...(usage.reasoningTokens !== undefined ? { reasoningTokens: usage.reasoningTokens } : {}),
-      ...(usage.outputTokens !== undefined ? { outputTokens: usage.outputTokens } : {}),
-      ...(usage.totalTokens !== undefined ? { totalTokens: usage.totalTokens } : {}),
+      ...(usage.inputTokens !== undefined
+        ? { inputTokens: usage.inputTokens }
+        : {}),
+      ...(usage.cachedInputTokens !== undefined
+        ? { cachedInputTokens: usage.cachedInputTokens }
+        : {}),
+      ...(usage.reasoningTokens !== undefined
+        ? { reasoningTokens: usage.reasoningTokens }
+        : {}),
+      ...(usage.outputTokens !== undefined
+        ? { outputTokens: usage.outputTokens }
+        : {}),
+      ...(usage.totalTokens !== undefined
+        ? { totalTokens: usage.totalTokens }
+        : {}),
       estimatedCostUsd,
       validation,
     })
@@ -1006,14 +1288,21 @@ async function isResumeEligible(args: {
   readonly language: StoryLanguage;
   readonly outputRoot: string;
   readonly model: string;
-}): Promise<{ readonly eligible: boolean; readonly artifact?: ShortRewriteArtifact }> {
+  readonly promptFingerprint: string;
+}): Promise<{
+  readonly eligible: boolean;
+  readonly artifact?: ShortRewriteArtifact;
+}> {
   const paths = resolveShortRewriteOutputPaths({
     outputRoot: args.outputRoot,
     episodeSlug: args.source.episodeSlug,
     episodeNumber: args.source.episodeNumber,
     language: args.language,
   });
-  if (!(await fileExists(paths.jsonPath)) || !(await fileExists(paths.markdownPath))) {
+  if (
+    !(await fileExists(paths.jsonPath)) ||
+    !(await fileExists(paths.markdownPath))
+  ) {
     return { eligible: false };
   }
   const parsed = await readJsonIfExists(paths.jsonPath, (value) =>
@@ -1024,6 +1313,7 @@ async function isResumeEligible(args: {
   }
   if (
     parsed.sourceSha256 !== args.source.sourceSha256 ||
+    parsed.promptFingerprint !== args.promptFingerprint ||
     parsed.promptVersion !== SHORT_REWRITE_PROMPT_VERSION ||
     parsed.model !== args.model ||
     parsed.targetLanguage !== args.language ||
@@ -1032,32 +1322,57 @@ async function isResumeEligible(args: {
   ) {
     return { eligible: false };
   }
-  if (!parsed.validation.hardWordRangeSatisfied || !parsed.validation.hookMatchesNarration) {
+  if (
+    !parsed.validation.hardWordRangeSatisfied ||
+    !parsed.validation.hookMatchesNarration
+  ) {
     return { eligible: false };
   }
   const artifact = shortRewriteArtifactSchema.parse(
     buildArtifactPayload({
       schemaVersion: 1,
       promptVersion: SHORT_REWRITE_PROMPT_VERSION,
+      promptFingerprint: args.promptFingerprint,
       status: "completed",
       episodeId: args.source.episodeId,
       episodeSlug: args.source.episodeSlug,
       sourceLanguage: "en",
       targetLanguage: args.language,
-      sourcePath: path.relative(path.join(args.outputRoot, args.source.episodeSlug), args.source.sourcePath),
+      sourcePath: path.relative(
+        path.join(args.outputRoot, args.source.episodeSlug),
+        args.source.sourcePath
+      ),
       sourceSha256: args.source.sourceSha256,
-      markdownOutputPath: path.relative(path.join(args.outputRoot, args.source.episodeSlug), paths.markdownPath),
-      jsonOutputPath: path.relative(path.join(args.outputRoot, args.source.episodeSlug), paths.jsonPath),
+      markdownOutputPath: path.relative(
+        path.join(args.outputRoot, args.source.episodeSlug),
+        paths.markdownPath
+      ),
+      jsonOutputPath: path.relative(
+        path.join(args.outputRoot, args.source.episodeSlug),
+        paths.jsonPath
+      ),
       generatedAt: parsed.generatedAt,
       model: args.model,
       generationDurationMs: 0,
       validation: parsed.validation,
-      ...(parsed.usage.inputTokens !== undefined ? { inputTokens: parsed.usage.inputTokens } : {}),
-      ...(parsed.usage.cachedInputTokens !== undefined ? { cachedInputTokens: parsed.usage.cachedInputTokens } : {}),
-      ...(parsed.usage.reasoningTokens !== undefined ? { reasoningTokens: parsed.usage.reasoningTokens } : {}),
-      ...(parsed.usage.outputTokens !== undefined ? { outputTokens: parsed.usage.outputTokens } : {}),
-      ...(parsed.usage.totalTokens !== undefined ? { totalTokens: parsed.usage.totalTokens } : {}),
-      ...(parsed.usage.estimatedCostUsd !== undefined ? { estimatedCostUsd: parsed.usage.estimatedCostUsd } : {}),
+      ...(parsed.usage.inputTokens !== undefined
+        ? { inputTokens: parsed.usage.inputTokens }
+        : {}),
+      ...(parsed.usage.cachedInputTokens !== undefined
+        ? { cachedInputTokens: parsed.usage.cachedInputTokens }
+        : {}),
+      ...(parsed.usage.reasoningTokens !== undefined
+        ? { reasoningTokens: parsed.usage.reasoningTokens }
+        : {}),
+      ...(parsed.usage.outputTokens !== undefined
+        ? { outputTokens: parsed.usage.outputTokens }
+        : {}),
+      ...(parsed.usage.totalTokens !== undefined
+        ? { totalTokens: parsed.usage.totalTokens }
+        : {}),
+      ...(parsed.usage.estimatedCostUsd !== undefined
+        ? { estimatedCostUsd: parsed.usage.estimatedCostUsd }
+        : {}),
     })
   );
   return { eligible: true, artifact };
@@ -1069,19 +1384,25 @@ async function mergeManifest(args: {
   readonly source: ResolvedShortRewriteSource;
   readonly model: string;
   readonly artifact: ShortRewriteArtifact;
+  readonly promptFingerprint: string;
 }): Promise<void> {
   await updateShortRewriteManifestAtomically(args.manifestPath, (current) => {
-    const nextArtifacts = current?.artifacts.filter(
-      (artifact) => artifact.targetLanguage !== args.artifact.targetLanguage
-    ) ?? [];
+    const nextArtifacts =
+      current?.artifacts.filter(
+        (artifact) => artifact.targetLanguage !== args.artifact.targetLanguage
+      ) ?? [];
     nextArtifacts.push(args.artifact);
     return shortRewriteManifestSchema.parse({
       schemaVersion: 1,
       promptVersion: SHORT_REWRITE_PROMPT_VERSION,
+      promptFingerprint: args.promptFingerprint,
       episodeId: args.source.episodeId,
       episodeSlug: args.source.episodeSlug,
       sourceLanguage: "en",
-      sourcePath: path.relative(path.join(args.outputRoot, args.source.episodeSlug), args.source.sourcePath),
+      sourcePath: path.relative(
+        path.join(args.outputRoot, args.source.episodeSlug),
+        args.source.sourcePath
+      ),
       sourceSha256: args.source.sourceSha256,
       model: args.model,
       generatedAt: current?.generatedAt ?? new Date().toISOString(),
@@ -1093,11 +1414,19 @@ async function mergeManifest(args: {
 
 export async function rewriteShortStories(
   options: ShortRewriteRunOptions,
-  services: Partial<ShortRewriteServices & { readonly signal?: AbortSignal; readonly logger?: Logger }> = {}
+  services: Partial<
+    ShortRewriteServices & {
+      readonly signal?: AbortSignal;
+      readonly logger?: Logger;
+    }
+  > = {}
 ): Promise<ShortRewriteRunSummary> {
   const runId = randomUUID();
-  const logger = services.logger ?? createLogger(options.verbose ? "debug" : "info");
-  const outputRoot = path.resolve(options.outputRoot ?? SHORT_REWRITE_DEFAULT_OUTPUT_ROOT);
+  const logger =
+    services.logger ?? createLogger(options.verbose ? "debug" : "info");
+  const outputRoot = path.resolve(
+    options.outputRoot ?? SHORT_REWRITE_DEFAULT_OUTPUT_ROOT
+  );
   const resolvedSource = await resolveShortRewriteInput({
     inputPath: options.inputPath,
     episode: options.episode,
@@ -1123,7 +1452,9 @@ export async function rewriteShortStories(
       sourcePath: resolvedSource.sourcePath,
       targetPath: canonicalSourcePath,
       sourceSha256: resolvedSource.sourceSha256,
-      sourceRole: options.allowSourceInput ? "compatibility-input" : "generated-english-full",
+      sourceRole: options.allowSourceInput
+        ? "compatibility-input"
+        : "generated-english-full",
       resolvedFrom:
         resolvedSource.resolvedFrom === "manifest"
           ? "batch-manifest"
@@ -1153,7 +1484,10 @@ export async function rewriteShortStories(
   const selectedLanguages = options.languages;
   const startedAt = Date.now();
   const artifacts: ShortRewriteArtifact[] = [];
-  const failures: Array<{ readonly language: StoryLanguage; readonly message: string }> = [];
+  const failures: Array<{
+    readonly language: StoryLanguage;
+    readonly message: string;
+  }> = [];
   let completed = 0;
   let skipped = 0;
   let failed = 0;
@@ -1171,11 +1505,16 @@ export async function rewriteShortStories(
       language,
     });
     const episodeRelativeRoot = path.join(outputRoot, source.episodeSlug);
-    const buildFailedArtifact = (message: string, generatedAt: string, durationMs: number): ShortRewriteArtifact =>
+    const buildFailedArtifact = (
+      message: string,
+      generatedAt: string,
+      durationMs: number
+    ): ShortRewriteArtifact =>
       shortRewriteArtifactSchema.parse(
         buildArtifactPayload({
           schemaVersion: 1,
           promptVersion: SHORT_REWRITE_PROMPT_VERSION,
+          promptFingerprint: "unavailable",
           status: "failed",
           episodeId: source.episodeId,
           episodeSlug: source.episodeSlug,
@@ -1183,7 +1522,10 @@ export async function rewriteShortStories(
           targetLanguage: language,
           sourcePath: path.relative(episodeRelativeRoot, source.sourcePath),
           sourceSha256: source.sourceSha256,
-          markdownOutputPath: path.relative(episodeRelativeRoot, paths.markdownPath),
+          markdownOutputPath: path.relative(
+            episodeRelativeRoot,
+            paths.markdownPath
+          ),
           jsonOutputPath: path.relative(episodeRelativeRoot, paths.jsonPath),
           generatedAt,
           model: options.model,
@@ -1212,7 +1554,8 @@ export async function rewriteShortStories(
           maxOutputTokens:
             options.maxOutputTokens ?? DEFAULT_SHORT_REWRITE_MAX_OUTPUT_TOKENS,
           retryMaxOutputTokens:
-            options.retryMaxOutputTokens ?? DEFAULT_SHORT_REWRITE_RETRY_MAX_OUTPUT_TOKENS,
+            options.retryMaxOutputTokens ??
+            DEFAULT_SHORT_REWRITE_RETRY_MAX_OUTPUT_TOKENS,
           repairReasoningEffort: options.repairReasoningEffort,
           repairMaxOutputTokens: options.repairMaxOutputTokens,
           timeoutMs: options.timeoutMs ?? SHORT_REWRITE_DEFAULT_TIMEOUT_MS,
@@ -1233,18 +1576,76 @@ export async function rewriteShortStories(
         language,
         outputRoot,
         model: options.model,
+        promptFingerprint: compileShortStoryPrompt({
+          language,
+          adaptationMode: "retention-optimized",
+          sourceStory: {
+            language: "en",
+            sourceFile: source.sourcePath,
+            sourceHash: source.sourceSha256,
+            episodeNumber: source.episodeNumber,
+            slug: source.episodeSlug,
+            title: source.title,
+            audioInstructions: [...source.audioInstructions],
+            narrationParagraphs: source.narration
+              .split(/\n{2,}/u)
+              .map((entry) => normalizeWhitespace(entry))
+              .filter(Boolean),
+            metadata: {
+              episodeNumber: source.episodeNumber,
+              primaryTitle: source.title,
+              audioInstructions: [...source.audioInstructions],
+              narration: source.narration
+                .split(/\n{2,}/u)
+                .map((entry) => normalizeWhitespace(entry))
+                .filter(Boolean),
+              tags: [],
+              hashtags: [],
+            },
+            content: source.sourceContent,
+          },
+          canonicalFacts: extractCanonicalStoryFacts({
+            language: "en",
+            sourceFile: source.sourcePath,
+            sourceHash: source.sourceSha256,
+            episodeNumber: source.episodeNumber,
+            slug: source.episodeSlug,
+            title: source.title,
+            audioInstructions: [...source.audioInstructions],
+            narrationParagraphs: source.narration
+              .split(/\n{2,}/u)
+              .map((entry) => normalizeWhitespace(entry))
+              .filter(Boolean),
+            metadata: {
+              episodeNumber: source.episodeNumber,
+              primaryTitle: source.title,
+              audioInstructions: [...source.audioInstructions],
+              narration: source.narration
+                .split(/\n{2,}/u)
+                .map((entry) => normalizeWhitespace(entry))
+                .filter(Boolean),
+              tags: [],
+              hashtags: [],
+            },
+            content: source.sourceContent,
+          }),
+          fullStoryText: source.sourceContent,
+        }).promptFingerprint,
       });
       if (existing.eligible && existing.artifact && options.resume) {
         const skippedPayload = cloneArtifactPayload(existing.artifact);
         skippedPayload.status = "skipped";
         skippedPayload.generationDurationMs = 0;
-        const skippedArtifact = shortRewriteArtifactSchema.parse(skippedPayload);
+        const skippedArtifact =
+          shortRewriteArtifactSchema.parse(skippedPayload);
         await mergeManifest({
           manifestPath: paths.manifestPath,
           outputRoot,
           source,
           model: options.model,
           artifact: skippedArtifact,
+          promptFingerprint:
+            existing.artifact.promptFingerprint ?? "unavailable",
         });
         return {
           language,
@@ -1261,8 +1662,7 @@ export async function rewriteShortStories(
             Date.now() - start
           ),
           skipped: false as const,
-          error:
-            `${SHORT_REWRITE_SUPPORTED_LANGUAGES[language].name} output already exists and is valid. Use --resume to skip it or --overwrite to replace it.`,
+          error: `${SHORT_REWRITE_SUPPORTED_LANGUAGES[language].name} output already exists and is valid. Use --resume to skip it or --overwrite to replace it.`,
         };
       }
 
@@ -1278,7 +1678,8 @@ export async function rewriteShortStories(
         maxOutputTokens:
           options.maxOutputTokens ?? DEFAULT_SHORT_REWRITE_MAX_OUTPUT_TOKENS,
         retryMaxOutputTokens:
-          options.retryMaxOutputTokens ?? DEFAULT_SHORT_REWRITE_RETRY_MAX_OUTPUT_TOKENS,
+          options.retryMaxOutputTokens ??
+          DEFAULT_SHORT_REWRITE_RETRY_MAX_OUTPUT_TOKENS,
         repairReasoningEffort: options.repairReasoningEffort,
         repairMaxOutputTokens: options.repairMaxOutputTokens,
         timeoutMs: options.timeoutMs ?? SHORT_REWRITE_DEFAULT_TIMEOUT_MS,
@@ -1312,11 +1713,16 @@ export async function rewriteShortStories(
         source,
         model: options.model,
         artifact,
+        promptFingerprint: payload.artifact.promptFingerprint ?? "unavailable",
       });
       return { language, artifact, skipped: false as const };
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      const failedArtifact = buildFailedArtifact(message, new Date().toISOString(), Date.now() - start);
+      const failedArtifact = buildFailedArtifact(
+        message,
+        new Date().toISOString(),
+        Date.now() - start
+      );
       try {
         await mergeManifest({
           manifestPath: paths.manifestPath,
@@ -1324,6 +1730,7 @@ export async function rewriteShortStories(
           source,
           model: options.model,
           artifact: failedArtifact,
+          promptFingerprint: failedArtifact.promptFingerprint ?? "unavailable",
         });
       } catch {
         // The task already failed; keep the original error path intact.
@@ -1336,7 +1743,10 @@ export async function rewriteShortStories(
       };
     }
   });
-  const concurrency = Math.max(1, options.maxConcurrency ?? SHORT_REWRITE_DEFAULT_CONCURRENCY);
+  const concurrency = Math.max(
+    1,
+    options.maxConcurrency ?? SHORT_REWRITE_DEFAULT_CONCURRENCY
+  );
   const results: Array<{
     readonly language: StoryLanguage;
     readonly artifact: ShortRewriteArtifact;
@@ -1355,7 +1765,9 @@ export async function rewriteShortStories(
     }
   }
   await Promise.all(
-    Array.from({ length: Math.min(concurrency, queue.length || 1) }, () => worker())
+    Array.from({ length: Math.min(concurrency, queue.length || 1) }, () =>
+      worker()
+    )
   );
   for (const result of results) {
     artifacts.push(result.artifact);
@@ -1374,7 +1786,8 @@ export async function rewriteShortStories(
       outputTokens += result.artifact.outputTokens ?? 0;
       totalTokens += result.artifact.totalTokens ?? 0;
       estimatedCostUsd =
-        result.artifact.estimatedCostUsd === null || result.artifact.estimatedCostUsd === undefined
+        result.artifact.estimatedCostUsd === null ||
+        result.artifact.estimatedCostUsd === undefined
           ? estimatedCostUsd
           : (estimatedCostUsd ?? 0) + result.artifact.estimatedCostUsd;
     }
@@ -1392,6 +1805,8 @@ export async function rewriteShortStories(
     sourcePath: source.sourcePath,
     sourceSha256: source.sourceSha256,
     promptVersion: SHORT_REWRITE_PROMPT_VERSION,
+    promptFingerprint: artifacts.find((artifact) => artifact.promptFingerprint)
+      ?.promptFingerprint,
     model: options.model,
     languagesRequested: selectedLanguages,
     completed,

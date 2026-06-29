@@ -1,8 +1,24 @@
 # Multilingual Story Localization Settings
 
-Use the relevant language section when generating or reviewing localized narrated stories.
+Runtime owner: `packages/story-localization/src/multilingual-story-localization-settings.ts`.
+
+Use the relevant language section when generating or reviewing localized narrated stories. The loader extracts exactly one `## <Language> Localization` section for the requested locale; these sections are prompt guidance, not schema definitions and not story facts.
 
 These settings are intended for creative localization, not sentence-by-sentence translation. Preserve story facts, causality, supernatural rules, callbacks, climax, and final payoff while rewriting the narration so it sounds native in the requested locale.
+
+Implemented language codes are `en`, `de`, `es`, `fr`, and `pt`. Current default locale profiles are `en-US`, `de-DE`, `es-419`, `fr-FR`, and `pt-BR`. Unsupported primary language codes fail in the settings resolver and short-rewrite command.
+
+Canonical source language is English. `stories rewrite-full` materializes an English canonical source under `episodes/<episode-slug>/source/<episode-number>-<episode-slug>-en-full.md`, generates or rewrites the English full story to `episodes/<episode-slug>/script.md`, and generates localized full stories only for requested non-English languages. `stories rewrite-short` consumes a validated generated full story by default and writes short-story artifacts separately.
+
+The full-story localization prompt includes only source narration, immutable facts, character map, locale settings, target word/duration values, and optional production context. Metadata, audio generation, image generation, rendering, and upload concerns are separate stages and must not be added to localization prompts except where the response schema explicitly requires story-package metadata fields.
+
+StoryIR and full-story contract validation are handled in TypeScript, not by this Markdown file. The implemented StoryIR includes genre, fictionality, narrative mode, entities, immutable facts, chronology, central threat, central rule mechanism, critical objects, written messages, climax, ending consequence, and allowed invention boundaries. Task 04 full-story contracts add genre-policy identity/version fields, deterministic `storyIrHash`, `contractHash`, `buildFingerprint`, policy registry version, and stable serializer version.
+
+Configuration is resolved from CLI flags where available, then runtime config loaded from `.env` and process environment, then code defaults. Model examples in docs are examples only; use `MEDIAFORGE_OPENAI_STORY_MODEL`, `OPENAI_STORY_MODEL`, `MEDIAFORGE_OPENAI_LOCALIZATION_MODEL`, `OPENAI_LOCALIZATION_MODEL`, `MEDIAFORGE_OPENAI_SHORT_MODEL`, `OPENAI_SHORT_MODEL`, validator keys, and the corresponding reasoning/max-output-token keys to configure generation.
+
+Resume behavior is artifact-aware. Full localization uses `.localization-cache` entries keyed by source hash and configuration hash. Short rewrite uses `episodes/<episode-slug>/manifests/short-rewrite-manifest.json` plus per-language Markdown/JSON sidecars and skips valid outputs when `--resume` is set. Batch localization uses the `stories:batches` commands and persisted batch index/manifests.
+
+Retry and repair behavior is implemented in the services. Full localization can retry with configured retry max-output tokens and validator/repair settings. Short rewrite validates strict schema, word ranges, hook matching, thumbnail word limits, and editorial commentary, then uses a focused repair prompt for invalid results.
 
 ---
 
@@ -237,22 +253,30 @@ For Portuguese localization:
 
 ---
 
-## Codex Integration Requirements
+## Runtime Integration Requirements
 
 When adopting these settings:
 
 1. Select exactly one language section from the requested target locale.
 2. Inject the selected section into the localization prompt without duplicating other language sections.
-3. Resolve regional variants explicitly:
-   - `en-US` or `en-GB`
-   - `de-DE`
-   - `fr-FR` unless another French locale is requested
-   - `es-ES` or neutral international Spanish
-   - `pt-BR` or `pt-PT`
-4. Do not mix locale-specific spelling, vocabulary, pronouns, or forms of address.
-5. Treat these settings as localization guidance, not story facts.
-6. Story facts, rules, critical events, callbacks, and the final reveal must come from the validated canonical English story.
-7. Do not allow these settings to override immutable story facts.
-8. Validate callback consistency, chronology, names, times, room numbers, locations, and supernatural rules after generation.
-9. Calculate word counts and estimated duration programmatically rather than asking the model to self-report them.
-10. Regenerate invalid or overlong thumbnail text; never truncate it mechanically.
+3. Use only implemented primary language codes: `en`, `de`, `es`, `fr`, `pt`.
+4. Treat `en-US`, `de-DE`, `es-419`, `fr-FR`, and `pt-BR` as the current default runtime locale profiles.
+5. Do not document or request additional language support until `languageCodes`, `LANGUAGE_PROFILES`, schemas, CLI normalization, and tests are updated.
+6. Treat these settings as localization guidance, not story facts.
+7. Story facts, rules, critical events, callbacks, and the final reveal must come from the validated canonical English source, StoryIR, or full-story contract.
+8. Do not allow these settings to override immutable facts, source-language provenance, written-message preservation, genre-policy boundaries, or full-story contract constraints.
+9. Validate callback consistency, chronology, names, times, room numbers, locations, written messages, central rules, and ending completeness in code before persistence.
+10. Calculate word counts, estimated duration, hashes, and fingerprints programmatically rather than asking the model to self-report them as authoritative.
+11. Regenerate or repair invalid outputs through the implemented retry/repair flow; do not mechanically truncate story text, thumbnail text, or generated JSON.
+
+## Artifact Conventions
+
+- Canonical materialized source: `episodes/<episode-slug>/source/<episode-number>-<episode-slug>-en-full.md`.
+- Canonical English full story: `episodes/<episode-slug>/script.md`.
+- Localized full stories: `episodes/<episode-slug>/<language>/full/script.md`.
+- Short rewrite canonical Markdown: `episodes/<episode-slug>/<language>/short/<episode-number>-<episode-slug>-<language>-short.md`.
+- Short rewrite canonical JSON: `episodes/<episode-slug>/<language>/short/<episode-number>-<episode-slug>-<language>-short.json`.
+- Short rewrite compatibility Markdown/JSON: `episodes/<episode-slug>/<language>/short/script.md` and adjacent compatibility JSON.
+- Short rewrite manifest: `episodes/<episode-slug>/manifests/short-rewrite-manifest.json`.
+- Full localization cache: `episodes/<episode-slug>/.localization-cache/`.
+- Story production artifacts and stage state: `episodes/<episode-slug>/story-production/`.

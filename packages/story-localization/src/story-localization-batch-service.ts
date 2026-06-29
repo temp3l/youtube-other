@@ -6,22 +6,17 @@ import {
   ensureDir,
   fileExists,
   hashFile,
-  readJsonIfExists,
   writeJsonAtomic,
   writeTextAtomic,
 } from "@mediaforge/shared";
 import { createLogger, type LoggerContext } from "@mediaforge/observability";
 import { extractCanonicalStoryFacts } from "./canonical-facts.service.js";
 import {
-  detectForbiddenPhrases,
-  detectGenericFiller,
   validateGeneratedStoryPackage,
+  validateNarrationOnlyFullRewritePackage,
 } from "./generated-story-validator.js";
 import { getLanguageProfile } from "./language-profiles.js";
-import {
-  buildCompactStorySource,
-  buildLocalizationPrompt,
-} from "./localization-prompt-builder.js";
+import { buildLocalizationPrompt } from "./localization-prompt-builder.js";
 import { materializeCanonicalSourceStory } from "./short-rewrite.bootstrap.js";
 import { buildCanonicalSourceFileName } from "./short-rewrite.utils.js";
 import {
@@ -46,10 +41,19 @@ import {
   requireBatchCapabilities,
 } from "./story-localization-openai-batch.js";
 import {
-  batchIndexFileSchema,
   EnglishGeneratedStoryPackageSchema,
   generatedStoryPackageSchema,
 } from "./story-localization.schemas.js";
+import {
+  compileFullStoryPrompt,
+  type CompiledStoryPrompt,
+} from "./story-prompt-compiler.js";
+import {
+  adaptNarrationOnlyFullToLegacyRendererPackage,
+  fullNarrationResponseSchemaDescriptor,
+  normalizeNarrationOnlyBatchResult,
+  type NarrationOnlyFullRewriteResponse,
+} from "./story-prompt-response-schemas.js";
 import {
   StoryBatchIndexService,
   entryFromLocalBatchManifest,
@@ -88,10 +92,7 @@ import {
   StoryLocalizationSchemaError,
   StoryLocalizationValidationError,
 } from "./story-localization.errors.js";
-import {
-  renderLocalizedFullStory,
-  renderLocalizedShort,
-} from "./story-markdown-renderer.js";
+import { renderLocalizedFullStory } from "./story-markdown-renderer.js";
 import { parseCanonicalSourceStory } from "./source-story-parser.js";
 import {
   type BatchImportResult,
@@ -129,6 +130,80 @@ function responseSchemaForLanguage(language: LanguageCode): unknown {
     schema: z.toJSONSchema(schema),
     strict: true,
   } as const;
+}
+
+function responseSchemaForCompiledPrompt(
+  compiled: CompiledStoryPrompt
+): unknown {
+  return {
+    type: "json_schema",
+    name: compiled.responseSchema.name,
+    schema: z.toJSONSchema(compiled.responseSchema.schema),
+    strict: true,
+  } as const;
+}
+
+function assertCompiledBatchPrompt(
+  compiled: CompiledStoryPrompt,
+  customContext: string
+): void {
+  const blocking = compiled.diagnostics.filter(
+    (diagnostic) => diagnostic.blocking
+  );
+  if (blocking.length > 0 || !compiled.promptFingerprint) {
+    throw new StoryLocalizationConfigurationError(
+      `Unable to compile batch prompt for ${customContext}: ${
+        blocking.map((diagnostic) => diagnostic.code).join(", ") ||
+        "missing prompt fingerprint"
+      }.`
+    );
+  }
+  if (
+    compiled.responseSchema.name !==
+      fullNarrationResponseSchemaDescriptor.name ||
+    compiled.responseSchema.version !==
+      fullNarrationResponseSchemaDescriptor.version
+  ) {
+    throw new StoryLocalizationConfigurationError(
+      `Batch full-story prompt for ${customContext} selected unsupported response schema ${compiled.responseSchema.name}@${compiled.responseSchema.version}.`
+    );
+  }
+}
+
+function buildFullStoryBatchConfigurationHash(args: {
+  readonly sourceHash: string;
+  readonly language: LanguageCode;
+  readonly adaptationMode: StoryLocalizationConfig["adaptationMode"];
+  readonly model: string;
+  readonly temperature: number;
+  readonly reasoningEffort: StoryLocalizationConfig["reasoningEffort"];
+  readonly promptVersion: string;
+  readonly promptFingerprint: string;
+  readonly compilerVersion: string;
+  readonly responseSchemaName: string;
+  readonly responseSchemaVersion: string;
+  readonly responseSchemaFingerprint: string;
+  readonly shortWpm: number;
+  readonly shortMinSeconds: number;
+  readonly shortMaxSeconds: number;
+}): string {
+  return buildConfigurationHash([
+    args.sourceHash,
+    args.language,
+    args.adaptationMode,
+    args.model,
+    String(args.temperature),
+    args.reasoningEffort,
+    args.promptVersion,
+    args.compilerVersion,
+    args.promptFingerprint,
+    args.responseSchemaName,
+    args.responseSchemaVersion,
+    args.responseSchemaFingerprint,
+    String(args.shortWpm),
+    String(args.shortMinSeconds),
+    String(args.shortMaxSeconds),
+  ]);
 }
 
 function buildCacheKey(args: {
@@ -228,19 +303,6 @@ function parseEnglishPackage(json: unknown): {
   return EnglishGeneratedStoryPackageSchema.parse(json);
 }
 
-function parseGeneratedPackage(
-  json: unknown,
-  language: LanguageCode
-): GeneratedStoryPackage {
-  const parsed = generatedStoryPackageSchema.parse(json);
-  if (parsed.language !== language) {
-    throw new StoryLocalizationSchemaError(
-      `Expected language ${language}, received ${parsed.language}.`
-    );
-  }
-  return parsed as GeneratedStoryPackage;
-}
-
 async function ensureCachedFacts(
   cacheDir: string,
   sourceHash: string,
@@ -260,7 +322,9 @@ function buildProductionContext(
   readonly bible: StoryBible;
   readonly originalityReview: OriginalityReview;
   readonly retentionPlan: readonly RetentionBeat[];
-  readonly protectedElements: readonly ReturnType<typeof buildProtectedStoryElements>[number][];
+  readonly protectedElements: readonly ReturnType<
+    typeof buildProtectedStoryElements
+  >[number][];
 } {
   const analysis = analyzeStorySource(parsed, facts);
   const bible = buildStoryBible(parsed, facts, analysis);
@@ -303,7 +367,9 @@ function englishShortBody(
     ],
     text: { format: responseSchemaForLanguage("en") },
     max_output_tokens: 6000,
-    ...(shouldIncludeTemperatureForModel(config.model) ? { temperature: config.temperature } : {}),
+    ...(shouldIncludeTemperatureForModel(config.model)
+      ? { temperature: config.temperature }
+      : {}),
     ...(config.reasoningEffort !== "none"
       ? { reasoning: { effort: config.reasoningEffort } }
       : {}),
@@ -312,36 +378,22 @@ function englishShortBody(
 
 function localizationBody(
   config: StoryLocalizationConfig,
-  language: Exclude<LanguageCode, "en">,
-  sourceFile: Awaited<ReturnType<typeof parseCanonicalSourceStory>>,
-  facts: CanonicalStoryFacts,
-  productionContext?: {
-    readonly analysis?: StorySourceAnalysis;
-    readonly bible?: StoryBible;
-    readonly originalityReview?: OriginalityReview;
-    readonly retentionPlan?: ReadonlyArray<RetentionBeat>;
-  }
+  compiled: CompiledStoryPrompt
 ): Record<string, unknown> {
-  const prompt = buildLocalizationPrompt({
-    languageProfile: getLanguageProfile(language),
-    adaptationMode: config.adaptationMode,
-    sourceStory: sourceFile,
-    canonicalFacts: facts,
-    target: "full",
-    ...(productionContext ? { productionContext } : {}),
-  });
   return {
     model: config.model,
     input: [
       {
         role: "system",
-        content: [{ type: "input_text", text: prompt.system }],
+        content: [{ type: "input_text", text: compiled.system }],
       },
-      { role: "user", content: [{ type: "input_text", text: prompt.user }] },
+      { role: "user", content: [{ type: "input_text", text: compiled.user }] },
     ],
-    text: { format: responseSchemaForLanguage(language) },
+    text: { format: responseSchemaForCompiledPrompt(compiled) },
     max_output_tokens: 6000,
-    ...(shouldIncludeTemperatureForModel(config.model) ? { temperature: config.temperature } : {}),
+    ...(shouldIncludeTemperatureForModel(config.model)
+      ? { temperature: config.temperature }
+      : {}),
     ...(config.reasoningEffort !== "none"
       ? { reasoning: { effort: config.reasoningEffort } }
       : {}),
@@ -355,6 +407,12 @@ function buildManifestItem(args: {
   readonly operation: StoryBatchItem["metadata"]["operation"];
   readonly configurationHash: string;
   readonly promptVersion: string;
+  readonly compilerVersion?: string;
+  readonly promptFingerprint?: string;
+  readonly responseSchemaName?: string;
+  readonly responseSchemaVersion?: string;
+  readonly responseSchemaFingerprint?: string;
+  readonly selectedModules?: LocalBatchManifestItem["selectedModules"];
   readonly plannedOutputPaths: readonly string[];
   readonly estimatedInputTokens: number;
   readonly language?: LanguageCode;
@@ -367,6 +425,20 @@ function buildManifestItem(args: {
     sourcePath: toRepositoryRelativePath(args.canonicalSourcePath),
     sourceHash: args.parsed.sourceHash,
     promptVersion: args.promptVersion,
+    ...(args.compilerVersion ? { compilerVersion: args.compilerVersion } : {}),
+    ...(args.promptFingerprint
+      ? { promptFingerprint: args.promptFingerprint }
+      : {}),
+    ...(args.responseSchemaName
+      ? { responseSchemaName: args.responseSchemaName }
+      : {}),
+    ...(args.responseSchemaVersion
+      ? { responseSchemaVersion: args.responseSchemaVersion }
+      : {}),
+    ...(args.responseSchemaFingerprint
+      ? { responseSchemaFingerprint: args.responseSchemaFingerprint }
+      : {}),
+    ...(args.selectedModules ? { selectedModules: args.selectedModules } : {}),
     configurationHash: args.configurationHash,
     plannedOutputPaths: args.plannedOutputPaths,
     estimatedInputTokens: args.estimatedInputTokens,
@@ -386,7 +458,9 @@ function buildEnglishShortBatchItem(args: {
     readonly bible: StoryBible;
     readonly originalityReview: OriginalityReview;
     readonly retentionPlan: readonly RetentionBeat[];
-    readonly protectedElements: ReadonlyArray<ReturnType<typeof buildProtectedStoryElements>[number]>;
+    readonly protectedElements: ReadonlyArray<
+      ReturnType<typeof buildProtectedStoryElements>[number]
+    >;
   };
 }): {
   readonly requestItem: StoryBatchItem;
@@ -451,6 +525,7 @@ function buildLocalizationBatchItem(args: {
   readonly facts: CanonicalStoryFacts;
   readonly config: StoryLocalizationConfig;
   readonly language: Exclude<LanguageCode, "en">;
+  readonly compiledPrompt: CompiledStoryPrompt;
   readonly configurationHash: string;
   readonly retryNumber?: number;
   readonly productionContext: {
@@ -458,19 +533,19 @@ function buildLocalizationBatchItem(args: {
     readonly bible: StoryBible;
     readonly originalityReview: OriginalityReview;
     readonly retentionPlan: readonly RetentionBeat[];
-    readonly protectedElements: ReadonlyArray<ReturnType<typeof buildProtectedStoryElements>[number]>;
+    readonly protectedElements: ReadonlyArray<
+      ReturnType<typeof buildProtectedStoryElements>[number]
+    >;
   };
 }): {
   readonly requestItem: StoryBatchItem;
   readonly manifestItem: LocalBatchManifestItem;
 } {
-  const body = localizationBody(
-    args.config,
-    args.language,
-    args.parsed,
-    args.facts,
-    args.productionContext
+  assertCompiledBatchPrompt(
+    args.compiledPrompt,
+    `${args.parsed.episodeNumber}:${args.language}`
   );
+  const body = localizationBody(args.config, args.compiledPrompt);
   const outputFiles = buildOutputFiles(
     args.config.outputDirectory,
     args.parsed.slug,
@@ -498,6 +573,13 @@ function buildLocalizationBatchItem(args: {
         operation: "localization",
         language: args.language,
         promptVersion: args.config.promptVersion,
+        compilerVersion: args.compiledPrompt.compilerVersion,
+        promptFingerprint: args.compiledPrompt.promptFingerprint,
+        responseSchemaName: args.compiledPrompt.responseSchema.name,
+        responseSchemaVersion: args.compiledPrompt.responseSchema.version,
+        responseSchemaFingerprint:
+          args.compiledPrompt.responseSchema.fingerprint,
+        selectedModules: args.compiledPrompt.selectedModules,
         configurationHash: args.configurationHash,
       },
     },
@@ -509,10 +591,13 @@ function buildLocalizationBatchItem(args: {
       operation: "localization",
       configurationHash: args.configurationHash,
       promptVersion: args.config.promptVersion,
-      plannedOutputPaths: [
-        toRepositoryRelativePath(outputFiles.full),
-        toRepositoryRelativePath(outputFiles.short),
-      ],
+      compilerVersion: args.compiledPrompt.compilerVersion,
+      promptFingerprint: args.compiledPrompt.promptFingerprint,
+      responseSchemaName: args.compiledPrompt.responseSchema.name,
+      responseSchemaVersion: args.compiledPrompt.responseSchema.version,
+      responseSchemaFingerprint: args.compiledPrompt.responseSchema.fingerprint,
+      selectedModules: args.compiledPrompt.selectedModules,
+      plannedOutputPaths: [toRepositoryRelativePath(outputFiles.full)],
       estimatedInputTokens: estimatePromptTokens(JSON.stringify(body)),
     }),
   };
@@ -548,7 +633,8 @@ async function buildBatchItems(
       resolvedFrom: "canonical-search",
       overwrite: config.force,
     });
-    const canonicalParsed = await parseCanonicalSourceStory(canonicalSourcePath);
+    const canonicalParsed =
+      await parseCanonicalSourceStory(canonicalSourcePath);
     const facts = extractCanonicalStoryFacts(canonicalParsed);
     const cacheDir = resolveEpisodeCacheDirectory(
       config.outputDirectory,
@@ -557,7 +643,9 @@ async function buildBatchItems(
     await ensureDir(cacheDir);
     await ensureCachedFacts(cacheDir, canonicalParsed.sourceHash, facts);
     const productionContext = buildProductionContext(canonicalParsed, facts);
-    await ensureDir(resolveEpisodeStoryProductionDirectory(cacheDir, canonicalParsed));
+    await ensureDir(
+      resolveEpisodeStoryProductionDirectory(cacheDir, canonicalParsed)
+    );
     await persistStoryProductionStage(cacheDir, canonicalParsed, "raw-source");
     await persistStoryProductionArtifact(
       cacheDir,
@@ -565,7 +653,11 @@ async function buildBatchItems(
       "source-analysis.json",
       productionContext.analysis
     );
-    await persistStoryProductionStage(cacheDir, canonicalParsed, "source-analysis");
+    await persistStoryProductionStage(
+      cacheDir,
+      canonicalParsed,
+      "source-analysis"
+    );
     await persistStoryProductionArtifact(
       cacheDir,
       canonicalParsed,
@@ -579,7 +671,11 @@ async function buildBatchItems(
       "originality-review.json",
       productionContext.originalityReview
     );
-    await persistStoryProductionStage(cacheDir, canonicalParsed, "originality-review");
+    await persistStoryProductionStage(
+      cacheDir,
+      canonicalParsed,
+      "originality-review"
+    );
     await persistStoryProductionArtifact(
       cacheDir,
       canonicalParsed,
@@ -592,7 +688,11 @@ async function buildBatchItems(
       "protected-elements.json",
       productionContext.protectedElements
     );
-    await persistStoryProductionStage(cacheDir, canonicalParsed, "retention-plan");
+    await persistStoryProductionStage(
+      cacheDir,
+      canonicalParsed,
+      "retention-plan"
+    );
     if (config.includeEnglishShort) {
       const configHash = buildCacheKey({
         sourceHash: canonicalParsed.sourceHash,
@@ -632,7 +732,18 @@ async function buildBatchItems(
       }
     }
     for (const language of config.languages) {
-      const configHash = buildCacheKey({
+      const compiledPrompt = compileFullStoryPrompt({
+        language,
+        adaptationMode: config.adaptationMode,
+        sourceStory: canonicalParsed,
+        canonicalFacts: facts,
+        productionContext,
+      });
+      assertCompiledBatchPrompt(
+        compiledPrompt,
+        `${canonicalParsed.episodeNumber}:${language}`
+      );
+      const configHash = buildFullStoryBatchConfigurationHash({
         sourceHash: canonicalParsed.sourceHash,
         language,
         adaptationMode: config.adaptationMode,
@@ -640,6 +751,11 @@ async function buildBatchItems(
         temperature: config.temperature,
         reasoningEffort: config.reasoningEffort,
         promptVersion: config.promptVersion,
+        compilerVersion: compiledPrompt.compilerVersion,
+        promptFingerprint: compiledPrompt.promptFingerprint,
+        responseSchemaName: compiledPrompt.responseSchema.name,
+        responseSchemaVersion: compiledPrompt.responseSchema.version,
+        responseSchemaFingerprint: compiledPrompt.responseSchema.fingerprint,
         shortWpm: config.shortWpm,
         shortMinSeconds: config.shortMinSeconds,
         shortMaxSeconds: config.shortMaxSeconds,
@@ -654,11 +770,7 @@ async function buildBatchItems(
         canonicalParsed.sourceHash,
         configHash
       );
-      if (
-        cacheEntry &&
-        (await fileExists(outputFiles.full)) &&
-        (await fileExists(outputFiles.short))
-      ) {
+      if (cacheEntry && (await fileExists(outputFiles.full))) {
         skippedCachedItemCount += 1;
         continue;
       }
@@ -668,6 +780,7 @@ async function buildBatchItems(
         facts,
         config,
         language,
+        compiledPrompt,
         configurationHash: configHash,
         productionContext,
       });
@@ -710,14 +823,17 @@ async function buildRetryBatchItems(args: {
       resolvedFrom: "batch-manifest",
       overwrite: args.config.force,
     });
-    const canonicalParsed = await parseCanonicalSourceStory(canonicalSourcePath);
+    const canonicalParsed =
+      await parseCanonicalSourceStory(canonicalSourcePath);
     const facts = extractCanonicalStoryFacts(canonicalParsed);
     const cacheDir = resolveEpisodeCacheDirectory(
       args.config.outputDirectory,
       canonicalParsed.slug
     );
     const productionContext = buildProductionContext(canonicalParsed, facts);
-    await ensureDir(resolveEpisodeStoryProductionDirectory(cacheDir, canonicalParsed));
+    await ensureDir(
+      resolveEpisodeStoryProductionDirectory(cacheDir, canonicalParsed)
+    );
     await persistStoryProductionStage(cacheDir, canonicalParsed, "raw-source");
     await persistStoryProductionArtifact(
       cacheDir,
@@ -725,7 +841,11 @@ async function buildRetryBatchItems(args: {
       "source-analysis.json",
       productionContext.analysis
     );
-    await persistStoryProductionStage(cacheDir, canonicalParsed, "source-analysis");
+    await persistStoryProductionStage(
+      cacheDir,
+      canonicalParsed,
+      "source-analysis"
+    );
     await persistStoryProductionArtifact(
       cacheDir,
       canonicalParsed,
@@ -739,7 +859,11 @@ async function buildRetryBatchItems(args: {
       "originality-review.json",
       productionContext.originalityReview
     );
-    await persistStoryProductionStage(cacheDir, canonicalParsed, "originality-review");
+    await persistStoryProductionStage(
+      cacheDir,
+      canonicalParsed,
+      "originality-review"
+    );
     await persistStoryProductionArtifact(
       cacheDir,
       canonicalParsed,
@@ -752,7 +876,11 @@ async function buildRetryBatchItems(args: {
       "protected-elements.json",
       productionContext.protectedElements
     );
-    await persistStoryProductionStage(cacheDir, canonicalParsed, "retention-plan");
+    await persistStoryProductionStage(
+      cacheDir,
+      canonicalParsed,
+      "retention-plan"
+    );
     if (retryItem.operation === "english-short") {
       const item = buildEnglishShortBatchItem({
         parsed: canonicalParsed,
@@ -768,13 +896,48 @@ async function buildRetryBatchItems(args: {
       continue;
     }
     if (retryItem.language && retryItem.language !== "en") {
+      const compiledPrompt = compileFullStoryPrompt({
+        language: retryItem.language,
+        adaptationMode: args.config.adaptationMode,
+        sourceStory: canonicalParsed,
+        canonicalFacts: facts,
+        productionContext,
+      });
+      assertCompiledBatchPrompt(
+        compiledPrompt,
+        `${canonicalParsed.episodeNumber}:${retryItem.language}`
+      );
+      const configurationHash =
+        retryItem.promptFingerprint === compiledPrompt.promptFingerprint &&
+        retryItem.responseSchemaFingerprint ===
+          compiledPrompt.responseSchema.fingerprint
+          ? retryItem.configurationHash
+          : buildFullStoryBatchConfigurationHash({
+              sourceHash: canonicalParsed.sourceHash,
+              language: retryItem.language,
+              adaptationMode: args.config.adaptationMode,
+              model: args.config.model,
+              temperature: args.config.temperature,
+              reasoningEffort: args.config.reasoningEffort,
+              promptVersion: args.config.promptVersion,
+              compilerVersion: compiledPrompt.compilerVersion,
+              promptFingerprint: compiledPrompt.promptFingerprint,
+              responseSchemaName: compiledPrompt.responseSchema.name,
+              responseSchemaVersion: compiledPrompt.responseSchema.version,
+              responseSchemaFingerprint:
+                compiledPrompt.responseSchema.fingerprint,
+              shortWpm: args.config.shortWpm,
+              shortMinSeconds: args.config.shortMinSeconds,
+              shortMaxSeconds: args.config.shortMaxSeconds,
+            });
       const item = buildLocalizationBatchItem({
         parsed: canonicalParsed,
         canonicalSourcePath,
         facts,
         config: args.config,
         language: retryItem.language,
-        configurationHash: retryItem.configurationHash,
+        compiledPrompt,
+        configurationHash,
         retryNumber: nextRetryNumber,
         productionContext,
       });
@@ -995,7 +1158,9 @@ async function importEnglishShortResult(args: {
 
 async function importLocalizationResult(args: {
   readonly manifestItem: LocalBatchManifestItem;
-  readonly packageValue: GeneratedStoryPackage;
+  readonly response: NarrationOnlyFullRewriteResponse;
+  readonly detectedFormat: "narration-only" | "legacy-mixed";
+  readonly deprecationDiagnostics: readonly string[];
   readonly sourceFile: Awaited<ReturnType<typeof parseCanonicalSourceStory>>;
   readonly facts: CanonicalStoryFacts;
   readonly config: StoryLocalizationConfig;
@@ -1004,48 +1169,52 @@ async function importLocalizationResult(args: {
   if (!language || language === "en") {
     throw new Error("Localization import requires a non-English language.");
   }
-  const issues = validateGeneratedStoryPackage(
-    args.packageValue,
+  const issues = validateNarrationOnlyFullRewritePackage(
+    args.response,
     args.facts,
     getLanguageProfile(language),
-    args.sourceFile,
     language
   );
   if (issues.length > 0) {
     throw new StoryLocalizationValidationError(issues.join("; "));
-  }
-  if (!args.packageValue.full) {
-    throw new StoryLocalizationSchemaError(
-      `Missing full story payload for ${language}.`
-    );
   }
   const outputFiles = buildOutputFiles(
     args.config.outputDirectory,
     args.sourceFile.slug,
     language
   );
+  const cacheDir = resolveEpisodeCacheDirectory(
+    args.config.outputDirectory,
+    args.sourceFile.slug
+  );
+  const rendererPackage = adaptNarrationOnlyFullToLegacyRendererPackage({
+    sourceStory: args.sourceFile,
+    response: args.response,
+  });
   const fullWrite = await writeTextAtomicIfChanged(
     outputFiles.full,
     renderLocalizedFullStory(
       args.sourceFile.episodeNumber,
-      args.packageValue.full,
+      rendererPackage,
       language,
       args.sourceFile.sourceHash
     ),
     true
   );
-  const shortWrite = await writeTextAtomicIfChanged(
-    outputFiles.short,
-    renderLocalizedShort(
-      args.sourceFile.episodeNumber,
-      args.packageValue.short,
-      language
-    ),
-    true
-  );
-  const cacheDir = resolveEpisodeCacheDirectory(
-    args.config.outputDirectory,
-    args.sourceFile.slug
+  await persistStoryProductionArtifact(
+    cacheDir,
+    args.sourceFile,
+    `${language}-full-narration-result.json`,
+    {
+      schemaVersion: fullNarrationResponseSchemaDescriptor.version,
+      sourceFormat: args.detectedFormat,
+      deprecationDiagnostics: args.deprecationDiagnostics,
+      promptFingerprint: args.manifestItem.promptFingerprint,
+      responseSchemaName: args.manifestItem.responseSchemaName,
+      responseSchemaVersion: args.manifestItem.responseSchemaVersion,
+      responseSchemaFingerprint: args.manifestItem.responseSchemaFingerprint,
+      result: args.response,
+    }
   );
   await writeLocalizationCacheEntry(cacheDir, {
     sourceFile: args.sourceFile.sourceFile,
@@ -1055,18 +1224,29 @@ async function importLocalizationResult(args: {
     model: args.config.model,
     language,
     generatedAt: new Date().toISOString(),
-    outputFiles: [outputFiles.full, outputFiles.short],
+    outputFiles: [outputFiles.full],
   });
-  return [
-    ...(fullWrite === "written" ? [outputFiles.full] : []),
-    ...(shortWrite === "written" ? [outputFiles.short] : []),
-  ];
+  return [...(fullWrite === "written" ? [outputFiles.full] : [])];
 }
 
 function lineByCustomId(
   lines: readonly OpenAiBatchOutputLine[]
 ): Map<string, OpenAiBatchOutputLine> {
-  return new Map(lines.map((line) => [line.custom_id, line]));
+  const mapped = new Map<string, OpenAiBatchOutputLine>();
+  const duplicates: string[] = [];
+  for (const line of lines) {
+    if (mapped.has(line.custom_id)) {
+      duplicates.push(line.custom_id);
+      continue;
+    }
+    mapped.set(line.custom_id, line);
+  }
+  if (duplicates.length > 0) {
+    throw new StoryLocalizationSchemaError(
+      `Duplicate batch result custom IDs: ${duplicates.join(", ")}.`
+    );
+  }
+  return mapped;
 }
 
 export async function importStoryLocalizationBatch(
@@ -1113,6 +1293,25 @@ export async function importStoryLocalizationBatch(
       }
       const successLines = lineByCustomId(parseBatchOutputJsonl(outputText));
       const errorLines = lineByCustomId(parseBatchOutputJsonl(errorText));
+      const duplicatedAcrossFiles = [...successLines.keys()].filter(
+        (customId) => errorLines.has(customId)
+      );
+      if (duplicatedAcrossFiles.length > 0) {
+        throw new StoryLocalizationSchemaError(
+          `Duplicate batch result custom IDs across output and error files: ${duplicatedAcrossFiles.join(", ")}.`
+        );
+      }
+      const expectedCustomIds = new Set(
+        refreshed.items.map((item) => item.customId)
+      );
+      const unexpectedCustomIds = [
+        ...[...successLines.keys()].filter(
+          (customId) => !expectedCustomIds.has(customId)
+        ),
+        ...[...errorLines.keys()].filter(
+          (customId) => !expectedCustomIds.has(customId)
+        ),
+      ].sort((left, right) => left.localeCompare(right));
       const persistedFiles: string[] = [];
       let failedItemCount = 0;
       const nextItems: LocalBatchManifestItem[] = [];
@@ -1138,6 +1337,15 @@ export async function importStoryLocalizationBatch(
               line.error.message ?? `Batch item failed: ${item.customId}`
             );
           }
+          if (
+            line.response?.status_code !== undefined &&
+            (line.response.status_code < 200 ||
+              line.response.status_code >= 300)
+          ) {
+            throw new StoryLocalizationApiError(
+              `Batch item ${item.customId} returned HTTP ${line.response.status_code}.`
+            );
+          }
           const outputTextValue = line.response?.body.output_text;
           if (!outputTextValue) {
             throw new StoryLocalizationSchemaError(
@@ -1145,25 +1353,46 @@ export async function importStoryLocalizationBatch(
             );
           }
           const parsedJson = JSON.parse(outputTextValue) as unknown;
-          const persisted =
-            item.operation === "english-short"
-              ? await importEnglishShortResult({
-                  manifestItem: item,
-                  payload: parseEnglishPackage(parsedJson),
-                  sourceFile,
-                  facts,
-                  config,
-                })
-              : await importLocalizationResult({
-                  manifestItem: item,
-                  packageValue: parseGeneratedPackage(
-                    parsedJson,
-                    item.language ?? "en"
-                  ),
-                  sourceFile,
-                  facts,
-                  config,
-              });
+          let persisted: readonly string[];
+          if (item.operation === "english-short") {
+            persisted = await importEnglishShortResult({
+              manifestItem: item,
+              payload: parseEnglishPackage(parsedJson),
+              sourceFile,
+              facts,
+              config,
+            });
+          } else {
+            const normalized = normalizeNarrationOnlyBatchResult(parsedJson);
+            if (
+              item.promptFingerprint &&
+              item.responseSchemaFingerprint &&
+              item.responseSchemaFingerprint !==
+                fullNarrationResponseSchemaDescriptor.fingerprint
+            ) {
+              throw new StoryLocalizationSchemaError(
+                `Batch item ${item.customId} response schema fingerprint mismatch.`
+              );
+            }
+            if (
+              item.responseSchemaVersion &&
+              item.responseSchemaVersion !==
+                fullNarrationResponseSchemaDescriptor.version
+            ) {
+              throw new StoryLocalizationSchemaError(
+                `Batch item ${item.customId} has unsupported response schema version ${item.responseSchemaVersion}.`
+              );
+            }
+            persisted = await importLocalizationResult({
+              manifestItem: item,
+              response: normalized.normalized,
+              detectedFormat: normalized.detectedFormat,
+              deprecationDiagnostics: normalized.deprecationDiagnostics,
+              sourceFile,
+              facts,
+              config,
+            });
+          }
           persistedFiles.push(...persisted);
           await persistStoryProductionStage(cacheDir, sourceFile, "completed");
           nextItems.push({
@@ -1209,6 +1438,7 @@ export async function importStoryLocalizationBatch(
         importedAt: new Date().toISOString(),
         totalItems: refreshed.items.length,
         failedItemCount,
+        unexpectedCustomIds,
         persistedFiles: persistedFiles.map((filePath) =>
           toRepositoryRelativePath(filePath)
         ),

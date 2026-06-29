@@ -1,10 +1,10 @@
 import { z } from "zod";
-import { SHORT_REWRITE_HARD_WORD_RANGE, SHORT_REWRITE_THUMBNAIL_WORD_LIMIT } from "./short-rewrite.constants.js";
+import {
+  SHORT_REWRITE_HARD_WORD_RANGE,
+  SHORT_REWRITE_THUMBNAIL_WORD_LIMIT,
+} from "./short-rewrite.constants.js";
 
-const finitePositiveNumber = z
-  .number()
-  .finite()
-  .nonnegative();
+const finitePositiveNumber = z.number().finite().nonnegative();
 
 export const shortRewriteResultSchema = z
   .object({
@@ -27,6 +27,7 @@ export const shortRewriteGenerationSchema = z
     sourceLanguage: z.literal("en"),
     targetLanguage: z.enum(["en", "de", "es", "fr", "pt"]),
     promptVersion: z.string().min(1),
+    promptFingerprint: z.string().min(1).optional(),
     model: z.string().min(1),
     sourcePath: z.string().min(1),
     sourceSha256: z.string().regex(/^[a-f0-9]{64}$/iu),
@@ -39,7 +40,12 @@ export const shortRewriteGenerationSchema = z
         reasoningTokens: z.number().int().nonnegative().optional(),
         outputTokens: z.number().int().nonnegative().optional(),
         totalTokens: z.number().int().nonnegative().optional(),
-        estimatedCostUsd: z.number().finite().nonnegative().nullable().optional(),
+        estimatedCostUsd: z
+          .number()
+          .finite()
+          .nonnegative()
+          .nullable()
+          .optional(),
       })
       .strict(),
     validation: z
@@ -47,7 +53,11 @@ export const shortRewriteGenerationSchema = z
         preferredWordRangeSatisfied: z.boolean(),
         hardWordRangeSatisfied: z.boolean(),
         hookMatchesNarration: z.boolean(),
-        thumbnailWordCount: z.number().int().min(0).max(SHORT_REWRITE_THUMBNAIL_WORD_LIMIT),
+        thumbnailWordCount: z
+          .number()
+          .int()
+          .min(0)
+          .max(SHORT_REWRITE_THUMBNAIL_WORD_LIMIT),
         warnings: z.array(z.string()),
       })
       .strict(),
@@ -58,6 +68,7 @@ export const shortRewriteArtifactSchema = z
   .object({
     schemaVersion: z.literal(1),
     promptVersion: z.string().min(1),
+    promptFingerprint: z.string().min(1).optional(),
     status: z.enum(["completed", "failed", "skipped"]),
     episodeId: z.string().min(1),
     episodeSlug: z.string().min(1),
@@ -82,7 +93,11 @@ export const shortRewriteArtifactSchema = z
         preferredWordRangeSatisfied: z.boolean(),
         hardWordRangeSatisfied: z.boolean(),
         hookMatchesNarration: z.boolean(),
-        thumbnailWordCount: z.number().int().min(0).max(SHORT_REWRITE_THUMBNAIL_WORD_LIMIT),
+        thumbnailWordCount: z
+          .number()
+          .int()
+          .min(0)
+          .max(SHORT_REWRITE_THUMBNAIL_WORD_LIMIT),
         warnings: z.array(z.string()),
       })
       .strict(),
@@ -93,6 +108,7 @@ export const shortRewriteManifestSchema = z
   .object({
     schemaVersion: z.literal(1),
     promptVersion: z.string().min(1),
+    promptFingerprint: z.string().min(1).optional(),
     episodeId: z.string().min(1),
     episodeSlug: z.string().min(1),
     sourceLanguage: z.literal("en"),
@@ -104,4 +120,3 @@ export const shortRewriteManifestSchema = z
     artifacts: z.array(shortRewriteArtifactSchema),
   })
   .strict();
-

@@ -1,250 +1,364 @@
 # CLI
 
-This repo’s command line surface is the `mediaforge` CLI plus a small set of npm scripts that wrap it with telemetry.
+The primary CLI is `mediaforge`, implemented in `apps/cli/src/index.ts` and built to `apps/cli/dist/index.js`. Root npm scripts wrap selected commands with `scripts/run-with-telemetry.mjs`.
 
-The `episode` command group also accepts the `episodes` alias for compatibility with the newer namespace naming.
-
-## Sample Commands
-
-Use these as the starting point for the common workflow slices.
-
-Rewrite an optimized English source story into the canonical episode workspace:
+Run commands from the repository root after building the CLI:
 
 ```bash
-node apps/cli/dist/index.js stories rewrite-full \
+pnpm build
+npm run mediaforge -- --help
+node apps/cli/dist/index.js --help
+```
+
+Global options registered on the root command:
+
+- `--json`
+- `--quiet`
+- `--verbose`
+- `--dry-run`
+- `--tts-provider <provider>`
+- `--openai-base-url <url>`
+- `--openai-api-key <key>`
+- `--openai-speech-model <model>`
+- `--openai-speech-voice <voice>`
+- `--speech-voice-preset <preset>`
+- `--language <code>`
+
+## Registered Commands
+
+Top-level command groups and commands:
+
+- `doctor`
+- `init`
+- `create --file <path> --url <url> --transcript <path> --title <title> --slug <slug>`
+- `run <episode-id> --from <stage> --until <stage> --scene-limit <n>`
+- `status <episode-id>`
+- `inspect <episode-id>`
+- `retry <episode-id>`
+- `clean <episode-id> --generated-only`
+- `transcript generate --episode <episode-id>`
+- `transcript normalize --episode <episode-id>`
+- `transcript validate --episode <episode-id>`
+- `transcript export <episode-id>`
+- `scenes list <episode-id>`
+- `scenes inspect <episode-id> --scene <scene-id>`
+- `audio generate <episode-id>`
+- `audio generate-localized <episode-id> --languages <comma-separated-languages> --dry-run`
+- `clips generate <episode-id> --scene-limit <n>`
+- `clips backfill-manifests <episode-id>`
+- `align <episode-id>`
+- `images ...`
+- `render <episode-id> --profile <youtube|vertical> --no-captions`
+- `render remote check`
+- `render remote cleanup`
+- `render remote test`
+- `metadata generate <episode-id>`
+- `metadata youtube [source] --episode <episode-slug> --all --force`
+- `package <episode-id>`
+- `db migrate`
+- `youtube upload --episode <episode-id>`
+- `episode ...`
+- `stories ...`
+- `stories:batches ...`
+
+## Npm Scripts
+
+Root scripts that directly wrap CLI commands:
+
+- `npm run doctor`
+- `npm run mediaforge -- <args>`
+- `npm run episode:inspect -- --episode <id>`
+- `npm run episode:dry-run -- --episode <id>`
+- `npm run episode:analyze -- --episode <id>`
+- `npm run episode:plan -- --episode <id>`
+- `npm run episode:english -- --episode <id>`
+- `npm run episode:localized -- --episode <id>`
+- `npm run episode:short -- --episode <id>`
+- `npm run episode:status -- --episode <id>`
+- `npm run episode:validate -- --episode <id>`
+- `npm run episode:bootstrap-characters -- --episode <id>`
+- `npm run episode:review:prepare -- --episode <id>`
+- `npm run episode:review:approve -- --episode <id>`
+- `npm run episode:review:reject -- --episode <id>`
+- `npm run episode:review:status -- --episode <id>`
+- `npm run stories:localize -- <args>`
+- `npm run stories:batches -- <args>`
+- `npm run render -- <episode-id>`
+- `npm run render:remote:check`
+- `npm run render:remote:cleanup`
+- `npm run render:remote:test`
+- `npm run transcript:generate -- --episode <id>`
+- `npm run transcript:normalize -- --episode <id>`
+- `npm run transcript:validate -- --episode <id>`
+- `npm run metadata:youtube -- <args>`
+- `npm run youtube:upload -- --episode <id>`
+- `npm run images:plan -- --episode <id>`
+- `npm run images:generate -- --episode <id>`
+
+## Story Commands
+
+`stories localize` is the older batch/sync localization workflow. It discovers canonical English full stories and can generate English short plus localized full/short outputs.
+
+```bash
+npm run stories:localize -- --episode 002 --languages de,es,fr,pt --mode sync
+```
+
+Options:
+
+- `--all`
+- `--file <path>`
+- `--episode <number-or-slug>`
+- `--source-dir <path>`
+- `--output-dir <path>`
+- `--languages <comma-separated-languages>`
+- `--include-english-short`
+- `--mode <batch|sync>`
+- `--adaptation-mode <faithful|retention-optimized>`
+- `--short-min-seconds <number>`
+- `--short-max-seconds <number>`
+- `--short-wpm <number>`
+- `--concurrency <number>`
+- `--model <model>`
+- `--fallback-to-sync`
+- `--force`
+- `--submit`
+- `--prepare-batch`
+- `--wait`
+- `--auto-import`
+- `--poll-interval-seconds <number>`
+- `--dry-run`
+- `--validate-only`
+- `--verbose`
+
+`stories rewrite-full` is the current focused full-story rewrite command. It requires either `--episode` or `--input`, not both.
+
+```bash
+npm run mediaforge -- stories rewrite-full \
   --input content-ideas/content/dark-truth-episodes-optimized/010-the-cleaner-of-death-en-full-optimized.md \
   --episode-slug 010-the-cleaner-of-death \
+  --languages de,es,fr,pt \
   --dry-run \
   --verbose
 ```
 
-Run the same command without `--dry-run` to write the canonical English full story and any requested localized full outputs under:
+Options:
 
-```text
-episodes/010-the-cleaner-of-death/
-```
+- `--episode <id-or-slug>`
+- `--input <path>`
+- `--episode-slug <slug>`
+- `--language <code>`
+- `--languages <comma-separated-codes>`
+- `--model <model>`
+- `--output-root <path>`
+- `--temperature <number>`
+- `--reasoning-effort <value>`
+- `--max-output-tokens <number>`
+- `--retry-max-output-tokens <number>`
+- `--max-concurrency <number>`
+- `--timeout-ms <number>`
+- `--max-retries <number>`
+- `--overwrite`
+- `--resume`
+- `--dry-run`
+- `--force`
+- `--json`
+- `--verbose`
 
-Generate localized short stories from the canonical English source:
+`stories rewrite-short` generates short-story artifacts from a validated generated full story by default.
 
 ```bash
-node apps/cli/dist/index.js stories rewrite-short \
+npm run mediaforge -- stories rewrite-short \
   --episode 009 \
-  --languages de,es,fr,pt \
+  --languages en,de,es,fr,pt \
   --resume
 ```
 
-Create or sync the shared character map for an episode:
+Options:
 
-```bash
-node apps/cli/dist/index.js stories sync-characters \
-  --episode 011-the-black-eyed-children
-```
+- `--episode <id-or-slug>`
+- `--input <path>`
+- `--episode-slug <slug>`
+- `--language <code>`
+- `--languages <comma-separated-codes>`
+- `--model <model>`
+- `--output-root <path>`
+- `--temperature <number>`
+- `--reasoning-effort <value>`
+- `--max-output-tokens <number>`
+- `--retry-max-output-tokens <number>`
+- `--max-concurrency <number>`
+- `--timeout-ms <number>`
+- `--max-retries <number>`
+- `--overwrite`
+- `--resume`
+- `--dry-run`
+- `--compatibility-source`
+- `--force`
+- `--json`
+- `--verbose`
 
-Bootstrap the shared character map and generate reference images:
+Supported story language codes are `en`, `de`, `es`, `fr`, and `pt`. Full localization command defaults for non-English languages are `de,es,fr,pt`; short rewrite defaults to `en` when no language is provided.
 
-```bash
-node apps/cli/dist/index.js stories bootstrap-shared \
-  --episode 011-the-black-eyed-children \
-  --approve
-```
+Story artifact paths:
 
-Resume image generation with the canonical episode namespace:
+- Materialized canonical source: `episodes/<episode-slug>/source/<episode-number>-<episode-slug>-en-full.md`
+- Canonical English full story: `episodes/<episode-slug>/script.md`
+- Localized full story: `episodes/<episode-slug>/<language>/full/script.md`
+- Short Markdown: `episodes/<episode-slug>/<language>/short/<episode-number>-<episode-slug>-<language>-short.md`
+- Short JSON: `episodes/<episode-slug>/<language>/short/<episode-number>-<episode-slug>-<language>-short.json`
+- Short compatibility script: `episodes/<episode-slug>/<language>/short/script.md`
+- Short manifest: `episodes/<episode-slug>/manifests/short-rewrite-manifest.json`
+- Full localization cache: `episodes/<episode-slug>/.localization-cache/`
+- Story production artifacts: `episodes/<episode-slug>/story-production/`
 
-```bash
-node apps/cli/dist/index.js episode resume-images \
-  --episode 011-the-black-eyed-children \
-  --concurrency 2
-```
+## Story Batch Commands
 
-Generate localized narration audio for every script in the episode workspace:
+`stories:batches` commands operate on persisted localization batch state:
 
-```bash
-node apps/cli/dist/index.js audio generate-localized \
-  011-the-black-eyed-children \
-  --languages de,es,fr
-```
+- `stories:batches list --output-dir <path> --verbose`
+- `stories:batches latest --output-dir <path> --verbose`
+- `stories:batches pending --output-dir <path> --verbose`
+- `stories:batches ready --output-dir <path> --verbose`
+- `stories:batches completed --output-dir <path> --verbose`
+- `stories:batches failed --output-dir <path> --verbose`
+- `stories:batches expired --output-dir <path> --verbose`
+- `stories:batches find --episode <episode> --output-dir <path> --verbose`
+- `stories:batches show --batch <id> --output-dir <path> --verbose`
+- `stories:batches status --batch <id> --output-dir <path> --verbose`
+- `stories:batches refresh --output-dir <path> --verbose`
+- `stories:batches import --batch <id> --output-dir <path> --verbose`
+- `stories:batches import-ready --output-dir <path> --verbose`
+- `stories:batches retry-failed --batch <id> --output-dir <path> --verbose`
+- `stories:batches cancel --batch <id> --output-dir <path> --verbose`
+- `stories:batches verify-index --output-dir <path> --repair --verbose`
+- `stories:batches rebuild-index --output-dir <path> --verbose`
 
-Upload the final rendered video:
+## Episode Commands
 
-```bash
-node apps/cli/dist/index.js youtube upload \
-  --episode 011-the-black-eyed-children \
-  --generate-metadata
-```
+The canonical namespace is singular `episode`. The `episodes` alias is registered for compatibility.
 
-## Quick Matrix
+Common production/review commands:
 
-| Task | Preferred command |
-| --- | --- |
-| Inspect an episode | `npm run doctor` |
-| Plan image prompts | `npm run images:plan -- --episode <episode-id>` |
-| Generate images | `npm run images:generate -- --episode <episode-id>` |
-| Resume image generation and bootstrap a missing manifest | `npm run mediaforge -- images resume --episode <episode-id> --concurrency 2` |
-| Resume image generation compatibility alias | `npm run mediaforge -- episode resume-images --episode <episode-id> --concurrency 2` |
-| Generate one scene | `npm run images:generate -- --episode <episode-id> --scene scene-007` |
-| Regenerate one scene | `npm run images:generate -- --episode <episode-id> --scene scene-007 --force` |
-| Create character references | `npm run mediaforge -- images generate-character-references --episode <episode-id> --character <character-id>` |
-| Approve a character reference | `npm run mediaforge -- images approve-character --episode <episode-id> --character <character-id>` |
-| Sync shared character map | `npm run mediaforge -- episode sync-characters --episode <episode-id>` |
-| Sync shared character map from `stories` | `npm run mediaforge -- stories sync-characters --episode <episode-id>` |
-| Bootstrap shared character refs | `npm run episode:bootstrap-characters -- --episode <episode-id> --approve` |
-| Bootstrap shared story assets | `npm run mediaforge -- stories bootstrap-shared --episode <episode-id> --approve` |
-| Generate localized audio for all available scripts | `npm run mediaforge -- audio generate-localized <episode-id>` |
-| Upload a rendered episode | `npm run youtube:upload -- --episode <episode-id>` |
-| Validate generated images | `npm run mediaforge -- images validate <episode-id>` |
+- `episode inspect --episode <number-or-slug> --source <path> --output-root <path> --json --verbose`
+- `episode dry-run --episode <number-or-slug> --language <code> --artifact <full|short>`
+- `episode analyze --episode <number-or-slug>`
+- `episode plan --episode <number-or-slug>`
+- `episode english --episode <number-or-slug>`
+- `episode localized --episode <number-or-slug> --languages <en|de|es|fr>`
+- `episode short --episode <number-or-slug> --language <en|de|es|fr>`
+- `episode status --episode <number-or-slug>`
+- `episode validate --episode <number-or-slug>`
+- `episode sync-characters --episode <number-or-slug> --force --json --verbose`
+- `episode bootstrap-characters --episode <number-or-slug> --approve --force --json --verbose`
+- `episode resume-images --episode <number-or-slug> --concurrency <number> --allow-unapproved-character-references --force --json --verbose`
+- `episode review prepare --episode <number-or-slug>`
+- `episode review approve --episode <number-or-slug> --language <code> --artifact <full|short> --reviewer <name> --notes <text>`
+- `episode review reject --episode <number-or-slug> --language <code> --artifact <full|short> --reviewer <name> --reason <text> --notes <text>`
+- `episode review status --episode <number-or-slug>`
 
-## Running It
-
-Use the root scripts for the common flows:
-
-```bash
-npm run doctor
-npm run images:plan -- --episode 001-calhoun-experiment
-npm run images:generate -- --episode 001-calhoun-experiment
-npm run youtube:upload -- --episode 001-calhoun-experiment
-```
-
-If you already have a built CLI, you can also call it directly:
-
-```bash
-node apps/cli/dist/index.js images generate --episode 001-calhoun-experiment
-```
-
-## Telemetry Wrapper
-
-`scripts/run-with-telemetry.mjs` wraps selected npm scripts and forwards the actual command after `--`.
-
-It does three things:
-
-1. emits JSON start/end events to stderr;
-2. generates or reuses a `MEDIAFORGE_EXECUTION_ID`;
-3. passes execution metadata into the child process.
-
-The wrapper sets these environment variables for the child:
-
-- `MEDIAFORGE_EXECUTION_ID`
-- `MEDIAFORGE_EXECUTION_STARTED_AT`
-- `MEDIAFORGE_NPM_SCRIPT`
-- `MEDIAFORGE_NPM_SCRIPT_COMMAND`
-- `MEDIAFORGE_NPM_SCRIPT_ARGS`
-
-If you want to correlate multiple commands, set `MEDIAFORGE_EXECUTION_ID` yourself before running them.
+`stories sync-characters`, `stories bootstrap-shared`, and `stories resume-images` are story-oriented aliases around the same character/image workflows.
 
 ## Image Commands
 
-The current image workflow is grouped under `images`.
-Older episode-scoped wrappers are compatibility aliases and should not be used for new automation unless a workflow explicitly depends on them.
+Primary image workflow:
 
-- `images plan` - build prompts and scene workbook without making a paid image call.
-- `images generate` - generate episode images, optionally for one `--scene`.
-- `images resume` - resume partial image generation and create `manifest.json` first when the episode folder does not have one yet.
-- `episode resume-images` - compatibility alias for `images resume`; it uses the same resumable image state and bootstraps `manifest.json` when missing.
-- `images generate-character-references` - create reference images for a character.
-- `images approve-character` - mark a generated character reference as approved.
-- `images regenerate-character` - regenerate a specific character reference.
-- `episode sync-characters` - copy the canonical source-pack `characters.json` into the shared episode workspace.
-- `stories sync-characters` - story-oriented alias for `episode sync-characters`; it copies only `shared/characters.json` and does not generate reference images.
-- `episode bootstrap-characters` - sync the shared character map, or synthesize `shared/characters.json` from the episode source when the source pack omits one, then generate all reference images and optionally approve them.
-- `stories bootstrap-shared` - story-oriented alias for `episode bootstrap-characters`; it syncs `shared/characters.json` and generates the shared character reference images for the selected episode.
-- `audio generate-localized` - generate narration audio for every localized `script-<lang>.md` file in the episode workspace; use `--languages` to restrict the run.
-- `images export-openart` - export prompts for OpenArt.
-- `images open-openart` - open the OpenArt handoff.
-- `images import --from <dir>` - import generated images from a directory.
-- `images validate` - validate generated image assets against the scene plan.
-- `images missing` - print missing scenes as JSON.
-- `images reject --scene <id> --reason <text>` - record a rejection note.
-- `images regenerate-workbook [--missing-only]` - rebuild the workbook, optionally only for missing scenes.
-- `images assign --scene <id> --file <path>` - assign a local file to a scene.
-- `images generate-openai [--scene <id>]` - call the OpenAI image pipeline directly.
+- `images plan --episode <episode-id> --scene <scene-id> --allow-unapproved-character-references --force`
+- `images generate --episode <episode-id> --scene <scene-id> --allow-unapproved-character-references --force`
+- `images resume --episode <episode-id> --source <path> --concurrency <number> --allow-unapproved-character-references --force --json --verbose`
+- `images sync-shared --episode <episode-id> --source <path> --output-root <path> --force --json --verbose`
+- `images generate-character-references --episode <episode-id> --character <character-id> --force`
+- `images approve-character --episode <episode-id> --character <character-id>`
+- `images regenerate-character --episode <episode-id> --character <character-id> --force`
+- `images export-openart <episode-id>`
+- `images open-openart <episode-id>`
+- `images import <episode-id> --from <directory>`
+- `images status <episode-id>`
+- `images validate <episode-id>`
+- `images missing <episode-id>`
+- `images reject <episode-id> --scene <scene-id> --reason <reason>`
+- `images regenerate-workbook <episode-id> --missing-only`
+- `images assign <episode-id> --scene <scene-id> --file <path>`
+- `images generate-openai <episode-id> --scene <scene-id>`
 
-Useful flags:
+Canonical singular episode resume example:
 
-- `--allow-unapproved-character-references` to override reference gating.
-- `--force` to regenerate instead of reusing existing outputs.
-- `--scene <scene-id>` to scope a command to one scene.
+```bash
+npm run mediaforge -- episode resume-images --episode <episode-id> --concurrency 2
+node apps/cli/dist/index.js episode resume-images --episode 011-the-black-eyed-children --concurrency 2
+```
 
-## Story Rewrite Commands
+Do not use `episodes resume-images` in new docs or automation; it exists only through the compatibility alias.
 
-The story localization workflow now exposes two focused commands under `stories`:
+## Audio, Metadata, Render, Upload
 
-- `stories rewrite-full` - rewrite an English full-length horror story into an optimized English full story plus localized full/short outputs.
-- `stories rewrite-short` - rewrite an English full story into localized YouTube Short narration.
+Audio generation is separate from story rewriting. The speech package reads finalized `script.md` files and voice settings from `docs/voice-settings.md`; it does not read `docs/templates/audio/system-prompt.md` or `docs/templates/audio/short-story-prompt.md`.
 
-Useful flags:
+```bash
+npm run mediaforge -- audio generate-localized 011-the-black-eyed-children --languages de,es,fr
+```
 
-- `--episode <id-or-slug>` to select an existing episode.
-- `--input <path>` to bootstrap from an external English Markdown file.
-- `--episode-slug <slug>` to pin the output episode slug when bootstrapping a new episode from an external input file.
-- `--languages <comma-separated-codes>` to select target languages.
-- `--overwrite` to replace existing generated outputs.
-- `--resume` to reuse already validated outputs when available.
-- `--dry-run` to plan the rewrite without writing files or calling OpenAI.
-- `--json` to emit machine-readable output.
+Localized audio outputs are written below each language/artifact workspace, including `audio/segments`, `audio/narration.wav`, `audio/generation-report.json`, and `audio/script-source-<language>.md`.
 
-The generated files live under the episode workspace:
+Metadata, render, and upload commands are distinct stages:
 
-- `episodes/<episode-slug>/source/<episode-number>-<episode-slug>-en-full.md`
-- `episodes/<episode-slug>/script.md`
-- `episodes/<episode-slug>/<lang>/full/script.md`
-- `episodes/<episode-slug>/<lang>/short/script.md`
-- `episodes/<episode-slug>/shared/characters.json`
+- `metadata generate <episode-id>`
+- `metadata youtube [source] --episode <episode-slug> --all --force`
+- `render <episode-id> --profile youtube`
+- `render <episode-id> --profile vertical --no-captions`
+- `youtube upload --episode <episode-id> --generate-metadata --metadata-path <path> --video-path <path> --thumbnail-path <path> --playlist-id <id> --privacy-status <private|public|unlisted> --publish-at <timestamp> --notify-subscribers --force`
 
-## YouTube Upload
-
-`npm run youtube:upload -- --episode <episode-id>` uploads the rendered episode video and thumbnail using the metadata already written by the pipeline.
-
-The command is resumable:
-
-- it records a planned upload report before the API call;
-- it skips already uploaded episodes when the video, thumbnail, and source metadata hashes still match;
-- it writes a final report after the upload, thumbnail update, and playlist step complete.
-
-Useful flags:
-
-- `--generate-metadata` to regenerate YouTube metadata from the episode scenes before upload.
-- `--metadata-path <path>` to use a specific metadata JSON file.
-- `--video-path <path>` to override the rendered video file.
-- `--thumbnail-path <path>` to override the thumbnail file.
-- `--playlist-id <id>` to add the video to a playlist.
-- `--privacy-status <private|public|unlisted>` to set the upload visibility.
-- `--publish-at <iso-timestamp>` to schedule a future release.
-- `--notify-subscribers` to toggle subscriber notifications.
-- `--force` to ignore an existing successful upload report and re-run the upload.
-
-The uploader writes reports to:
+YouTube upload reports are written to:
 
 ```text
 episodes/<episode-id>/generated-assets/upload-reports/youtube-upload.json
 episodes/<episode-id>/generated-assets/upload-reports/youtube-upload.md
 ```
 
-## Common Environment Variables
+## Configuration
 
-The CLI reads standard workspace and runtime settings from `.env` or the process environment.
+Runtime config is loaded from `.env` in the current working directory and process environment, with CLI flags overriding where command code supports them. Do not hard-code model names in automation; configure the relevant keys.
 
-General runtime:
+Story generation keys:
 
-- `MEDIAFORGE_WORKSPACE`
-- `MEDIAFORGE_DB_PATH`
-- `MEDIAFORGE_LOG_LEVEL`
-- `MEDIAFORGE_OPENART_BATCH_SIZE`
-- `MEDIAFORGE_TTS_PROVIDER`
-- `MEDIAFORGE_TRANSCRIPTION_PROVIDER`
-- `MEDIAFORGE_IMAGE_PROVIDER`
-- `MEDIAFORGE_TEXT_PROVIDER`
-- `MEDIAFORGE_SCRIPT_LANGUAGE`
-- `MEDIAFORGE_SPEECH_VOICE_PRESET`
-- `MEDIAFORGE_OPENAI_COMPATIBLE_BASE_URL`
-- `MEDIAFORGE_OPENAI_COMPATIBLE_API_KEY`
-- `MEDIAFORGE_OPENAI_SPEECH_MODEL`
-- `MEDIAFORGE_OPENAI_SPEECH_VOICE`
+- `MEDIAFORGE_OPENAI_STORY_MODEL` or `OPENAI_STORY_MODEL`
+- `MEDIAFORGE_OPENAI_STORY_TEMPERATURE` or `OPENAI_STORY_TEMPERATURE`
+- `MEDIAFORGE_OPENAI_STORY_REASONING_EFFORT` or `OPENAI_STORY_REASONING_EFFORT`
+- `MEDIAFORGE_OPENAI_STORY_MAX_OUTPUT_TOKENS` or `OPENAI_STORY_MAX_OUTPUT_TOKENS`
+- `MEDIAFORGE_OPENAI_STORY_RETRY_MAX_OUTPUT_TOKENS` or `OPENAI_STORY_RETRY_MAX_OUTPUT_TOKENS`
+- `MEDIAFORGE_OPENAI_LOCALIZATION_MODEL` or `OPENAI_LOCALIZATION_MODEL`
+- `MEDIAFORGE_OPENAI_LOCALIZATION_REASONING_EFFORT` or `OPENAI_LOCALIZATION_REASONING_EFFORT`
+- `MEDIAFORGE_OPENAI_LOCALIZATION_MAX_OUTPUT_TOKENS` or `OPENAI_LOCALIZATION_MAX_OUTPUT_TOKENS`
+- `MEDIAFORGE_OPENAI_SHORT_MODEL` or `OPENAI_SHORT_MODEL`
+- `MEDIAFORGE_OPENAI_SHORT_REASONING_EFFORT` or `OPENAI_SHORT_REASONING_EFFORT`
+- `MEDIAFORGE_OPENAI_SHORT_MAX_OUTPUT_TOKENS` or `OPENAI_SHORT_MAX_OUTPUT_TOKENS`
+- `MEDIAFORGE_OPENAI_SHORT_REWRITE_MAX_OUTPUT_TOKENS` or `OPENAI_SHORT_REWRITE_MAX_OUTPUT_TOKENS`
+- `MEDIAFORGE_OPENAI_SHORT_REWRITE_RETRY_MAX_OUTPUT_TOKENS` or `OPENAI_SHORT_REWRITE_RETRY_MAX_OUTPUT_TOKENS`
+- `MEDIAFORGE_OPENAI_VALIDATOR_MODEL` or `OPENAI_VALIDATOR_MODEL`
+- `MEDIAFORGE_OPENAI_VALIDATOR_REASONING_EFFORT` or `OPENAI_VALIDATOR_REASONING_EFFORT`
+- `MEDIAFORGE_OPENAI_VALIDATOR_MAX_OUTPUT_TOKENS` or `OPENAI_VALIDATOR_MAX_OUTPUT_TOKENS`
 
-OpenAI image settings used by the image workflow:
+Shared OpenAI-compatible keys:
 
 - `OPENAI_API_KEY`
 - `OPENAI_BASE_URL`
-- `OPENAI_ORGANIZATION` or `OPENAI_ORG_ID`
+- `OPENAI_ORGANIZATION`
 - `OPENAI_PROJECT`
+- `MEDIAFORGE_OPENAI_COMPATIBLE_API_KEY`
+- `MEDIAFORGE_OPENAI_COMPATIBLE_BASE_URL`
+- `MEDIAFORGE_OPENAI_COMPATIBLE_ORGANIZATION`
+- `MEDIAFORGE_OPENAI_COMPATIBLE_PROJECT`
+
+Speech keys:
+
+- `MEDIAFORGE_TTS_PROVIDER`
+- `MEDIAFORGE_OPENAI_SPEECH_MODEL` or `OPENAI_SPEECH_MODEL`
+- `MEDIAFORGE_OPENAI_SPEECH_VOICE` or `OPENAI_SPEECH_VOICE`
+- `MEDIAFORGE_OPENAI_COMPATIBLE_TTS_VOICE`
+- `MEDIAFORGE_SPEECH_VOICE_PRESET`
+- `TTS_CONCURRENCY` or `OPENAI_TTS_CONCURRENCY`
+
+Image keys:
+
 - `OPENAI_IMAGE_MODEL`
 - `OPENAI_IMAGE_SIZE`
 - `OPENAI_IMAGE_QUALITY`
@@ -255,8 +369,20 @@ OpenAI image settings used by the image workflow:
 - `OPENAI_IMAGE_DEBUG`
 - `OPENAI_IMAGE_ALLOW_UNAPPROVED_CHARACTER_REFERENCES`
 - `OPENAI_IMAGE_FORCE`
+- `VISUAL_SCENE_TARGET_PER_10_MINUTES`
+- `VISUAL_SCENE_MIN_SECONDS`
+- `VISUAL_SCENE_MAX_SECONDS`
 
-YouTube upload settings:
+Workspace and script-language keys:
+
+- `MEDIAFORGE_WORKSPACE`
+- `MEDIAFORGE_DB_PATH`
+- `MEDIAFORGE_LOG_LEVEL`
+- `MEDIAFORGE_SCRIPT_LANGUAGE`
+- `EPISODES_SOURCE_ROOT`
+- `EPISODES_OUTPUT_ROOT`
+
+YouTube keys:
 
 - `YOUTUBE_CLIENT_ID`
 - `YOUTUBE_CLIENT_SECRET`
@@ -270,74 +396,12 @@ YouTube upload settings:
 - `YOUTUBE_CHANNEL_ID_SPANISH`
 - `YOUTUBE_CHANNEL_ID_FRENCH`
 
-Defaults worth knowing:
-
-- `OPENAI_IMAGE_SIZE` defaults to `1024x1024`.
-- `OPENAI_IMAGE_MODEL` defaults to `gpt-image-1-mini` for direct OpenAI image calls.
-- `OPENAI_IMAGE_QUALITY` defaults to `low`.
-- `OPENAI_IMAGE_CONCURRENCY` defaults to `2`.
-- `OPENAI_IMAGE_MAX_RETRIES` defaults to `2`.
-- `OPENAI_IMAGE_TIMEOUT_MS` defaults to `180000`.
-- `VISUAL_SCENE_TARGET_PER_10_MINUTES` defaults to `100`.
-- `VISUAL_SCENE_MIN_SECONDS` defaults to `5`.
-- `VISUAL_SCENE_MAX_SECONDS` defaults to `6`.
-- The target setting is the primary density knob. The seconds-based values remain available as fallback bounds.
-
-## Examples
-
-Plan and generate all images for one episode:
-
-```bash
-npm run images:plan -- --episode 001-calhoun-experiment
-npm run images:generate -- --episode 001-calhoun-experiment
-npm run mediaforge -- images resume --episode 011-the-black-eyed-children --concurrency 2
-npm run mediaforge -- episode resume-images --episode 011-the-black-eyed-children --concurrency 2
-```
-
-Regenerate one scene only:
-
-```bash
-npm run images:generate -- --episode 001-calhoun-experiment --scene scene-008 --force
-```
-
-Generate a character reference:
-
-```bash
-npm run mediaforge -- images generate-character-references --episode 001-calhoun-experiment --character daniel-mercer
-```
-
-Bootstrap the shared character registry and reference images for a new episode:
-
-```bash
-npm run episode:bootstrap-characters -- --episode 002-even-killers-can-lick --approve
-```
-
-Validate the generated assets:
-
-```bash
-npm run mediaforge -- images validate 001-calhoun-experiment
-```
-
-Upload a rendered episode:
-
-```bash
-npm run youtube:upload -- --episode 001-calhoun-experiment
-```
-
 ## Execution Reports
 
-Every CLI run writes a JSON report to:
+Telemetry-wrapped npm scripts write JSON execution reports to:
 
 ```text
 .mediaforge/execution-reports/<executionId>.json
 ```
 
-The report includes:
-
-- the command, argv, cwd, start/end timestamps, and duration;
-- success, exit code, signal, and episode ID when available;
-- API calls, process executions, and generated images;
-- totals for calls, retries, image count, and estimated costs;
-- aggregates by provider, model, and operation.
-
-The wrapper also emits `npm_script_start` and `npm_script_end` events, and the CLI writes a per-run JSON execution report for resumability and cost tracking.
+Reports include command argv, cwd, start/end timestamps, duration, success state, exit code, episode ID when available, API calls, process executions, generated images, retry counts, and estimated costs.

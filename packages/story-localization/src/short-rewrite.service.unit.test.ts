@@ -4,7 +4,10 @@ import path from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { countSpokenWords } from "@mediaforge/shared";
 import { rewriteShortStories } from "./short-rewrite.service.js";
-import { FULL_STORY_PROVENANCE_MARKER, SHORT_REWRITE_PROMPT_VERSION } from "./short-rewrite.constants.js";
+import {
+  FULL_STORY_PROVENANCE_MARKER,
+  SHORT_REWRITE_PROMPT_VERSION,
+} from "./short-rewrite.constants.js";
 
 type MockResponse = {
   readonly id?: string;
@@ -124,7 +127,9 @@ async function createRawCompatibilitySource(tempRoot: string): Promise<string> {
 
 describe("short rewrite service", () => {
   it("writes localized markdown and JSON for a successful generation", async () => {
-    const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "short-rewrite-success-"));
+    const tempRoot = await fs.mkdtemp(
+      path.join(os.tmpdir(), "short-rewrite-success-")
+    );
     const sourcePath = await createSourceStory(tempRoot);
     const client = makeMockClient([
       {
@@ -173,7 +178,9 @@ describe("short rewrite service", () => {
       "short",
       "009-the-christmas-doll-de-short.json"
     );
-    expect(await fs.readFile(markdownPath, "utf8")).toContain("# Narration Script");
+    expect(await fs.readFile(markdownPath, "utf8")).toContain(
+      "# Narration Script"
+    );
     const sidecar = JSON.parse(await fs.readFile(jsonPath, "utf8")) as {
       readonly generation: { readonly wordCount: number };
     };
@@ -181,7 +188,9 @@ describe("short rewrite service", () => {
   });
 
   it("repairs a narration that exceeds the hard word limit", async () => {
-    const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "short-rewrite-repair-"));
+    const tempRoot = await fs.mkdtemp(
+      path.join(os.tmpdir(), "short-rewrite-repair-")
+    );
     const sourcePath = await createSourceStory(tempRoot);
     const client = makeMockClient([
       {
@@ -236,7 +245,9 @@ describe("short rewrite service", () => {
   });
 
   it("repairs a narration that contains editorial commentary", async () => {
-    const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "short-rewrite-editorial-"));
+    const tempRoot = await fs.mkdtemp(
+      path.join(os.tmpdir(), "short-rewrite-editorial-")
+    );
     const sourcePath = await createSourceStory(tempRoot);
     const editorialNarration = buildNarration(155).replace(
       "When she opened it, the doll sat on the nursery chair",
@@ -285,7 +296,9 @@ describe("short rewrite service", () => {
   });
 
   it("does not call OpenAI during dry-run", async () => {
-    const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "short-rewrite-dry-run-"));
+    const tempRoot = await fs.mkdtemp(
+      path.join(os.tmpdir(), "short-rewrite-dry-run-")
+    );
     const sourcePath = await createSourceStory(tempRoot);
     const client = makeMockClient();
 
@@ -310,7 +323,9 @@ describe("short rewrite service", () => {
   });
 
   it("materializes the canonical source before generating when compatibility mode is enabled", async () => {
-    const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "short-rewrite-compat-source-"));
+    const tempRoot = await fs.mkdtemp(
+      path.join(os.tmpdir(), "short-rewrite-compat-source-")
+    );
     const rawSource = await createRawCompatibilitySource(tempRoot);
     const client = makeMockClient([
       {
@@ -365,7 +380,9 @@ describe("short rewrite service", () => {
   });
 
   it("skips valid artifacts on resume and regenerates stale hashes", async () => {
-    const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "short-rewrite-resume-"));
+    const tempRoot = await fs.mkdtemp(
+      path.join(os.tmpdir(), "short-rewrite-resume-")
+    );
     const sourcePath = await createSourceStory(tempRoot);
     const initialClient = makeMockClient([
       {
@@ -403,7 +420,10 @@ describe("short rewrite service", () => {
       "short",
       "009-the-christmas-doll-de-short.json"
     );
-    const stale = JSON.parse(await fs.readFile(jsonPath, "utf8")) as Record<string, unknown>;
+    const stale = JSON.parse(await fs.readFile(jsonPath, "utf8")) as Record<
+      string,
+      unknown
+    >;
     stale.sourceSha256 = "0".repeat(64);
     await fs.writeFile(jsonPath, `${JSON.stringify(stale, null, 2)}\n`, "utf8");
 
@@ -424,9 +444,10 @@ describe("short rewrite service", () => {
         outputRoot: tempRoot,
         languages: ["de"],
         model: "gpt-5-mini",
+        allowSourceInput: true,
         dryRun: false,
         resume: true,
-        overwrite: false,
+        overwrite: true,
         maxRetries: 0,
       },
       {
@@ -439,7 +460,9 @@ describe("short rewrite service", () => {
   });
 
   it("keeps completed languages isolated when one request fails", async () => {
-    const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "short-rewrite-partial-"));
+    const tempRoot = await fs.mkdtemp(
+      path.join(os.tmpdir(), "short-rewrite-partial-")
+    );
     const sourcePath = await createSourceStory(tempRoot);
     const client = {
       responses: {
@@ -485,11 +508,17 @@ describe("short rewrite service", () => {
     expect(client.responses.create).toHaveBeenCalledTimes(2);
     const debugDir = path.join(tempRoot, "009-the-christmas-doll", "debug");
     expect(
-      await fs.readFile(path.join(debugDir, "stories-rewrite-short-es.request.json"), "utf8")
+      await fs.readFile(
+        path.join(debugDir, "stories-rewrite-short-es.request.json"),
+        "utf8"
+      )
     ).toContain("short_rewrite_result");
     expect(
       JSON.parse(
-        await fs.readFile(path.join(debugDir, "stories-rewrite-short-es.response.json"), "utf8")
+        await fs.readFile(
+          path.join(debugDir, "stories-rewrite-short-es.response.json"),
+          "utf8"
+        )
       )
     ).toHaveProperty("status", "failed");
   });

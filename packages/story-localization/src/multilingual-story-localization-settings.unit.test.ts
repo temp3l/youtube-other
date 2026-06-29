@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { getLanguageProfile } from "./language-profiles.js";
+import { languageCodes } from "./story-localization.types.js";
 import {
   getLanguageRewriteSettings,
   loadMultilingualStoryLocalizationSettings,
@@ -27,5 +28,21 @@ describe("multilingual story localization settings", () => {
     expect(() => getLanguageRewriteSettings("it-IT")).toThrow(
       "Unsupported locale for multilingual settings: it-IT"
     );
+  });
+
+  it("documents only implemented language sections and runtime artifact conventions", () => {
+    expect(supportedLanguages).toEqual(languageCodes);
+    const english = loadMultilingualStoryLocalizationSettings("en-US");
+    expect(english).toContain("## English Localization");
+    expect(english).not.toContain("## German Localization");
+
+    const portuguese = loadMultilingualStoryLocalizationSettings("pt-BR");
+    expect(portuguese).toContain("## Portuguese Localization");
+    expect(portuguese).toContain("pt-BR");
+
+    for (const language of supportedLanguages) {
+      const profile = getLanguageProfile(language);
+      expect(() => getLanguageRewriteSettings(profile.locale)).not.toThrow();
+    }
   });
 });

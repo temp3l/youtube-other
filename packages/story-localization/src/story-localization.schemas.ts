@@ -287,7 +287,9 @@ export const imageBatchManifestSchema = z.object({
   importedAt: z.string().min(1).optional(),
 });
 
-export type GeneratedStoryPackageShape = z.infer<typeof generatedStoryPackageSchema>;
+export type GeneratedStoryPackageShape = z.infer<
+  typeof generatedStoryPackageSchema
+>;
 
 export const generatedFullStoryPackageSchema = z.object({
   language: z.enum(languageCodes),
@@ -296,23 +298,27 @@ export const generatedFullStoryPackageSchema = z.object({
   diagnostics: diagnosticsSchema,
 });
 
-export type GeneratedFullStoryPackageShape = z.infer<typeof generatedFullStoryPackageSchema>;
+export type GeneratedFullStoryPackageShape = z.infer<
+  typeof generatedFullStoryPackageSchema
+>;
 
 export const localizedFullRewriteResponseSchema = z
   .object({
     language: z.enum(languageCodes),
-    full: z.object({
-      title: z.string().min(1),
-      audioInstructions: z.array(z.string().min(1)).min(1),
-      narrationParagraphs: z.array(z.string().min(1)).min(1),
-      thumbnailText: z.string().min(1).max(50),
-      contentDisclosure: z.string().min(1),
-      seoDescription: z.string().min(1),
-      tags: z.array(z.string().min(1)).min(3).max(20),
-      hashtags: z.array(z.string().regex(/^#/u)).min(1).max(8),
-      targetNarrationWpm: z.number().int().min(120).max(220),
-      visualDirection: z.string().min(1),
-    }).strict(),
+    full: z
+      .object({
+        title: z.string().min(1),
+        audioInstructions: z.array(z.string().min(1)).min(1),
+        narrationParagraphs: z.array(z.string().min(1)).min(1),
+        thumbnailText: z.string().min(1).max(50),
+        contentDisclosure: z.string().min(1),
+        seoDescription: z.string().min(1),
+        tags: z.array(z.string().min(1)).min(3).max(20),
+        hashtags: z.array(z.string().regex(/^#/u)).min(1).max(8),
+        targetNarrationWpm: z.number().int().min(120).max(220),
+        visualDirection: z.string().min(1),
+      })
+      .strict(),
     preservationChecklist: preservationChecklistSchema,
     diagnostics: fullRewriteGenerationDiagnosticsSchema,
   })
@@ -328,11 +334,14 @@ export const EnglishGeneratedStoryPackageSchema = z.object({
   diagnostics: diagnosticsSchema,
 });
 
-export type EnglishGeneratedStoryPackageShape = z.infer<typeof EnglishGeneratedStoryPackageSchema>;
+export type EnglishGeneratedStoryPackageShape = z.infer<
+  typeof EnglishGeneratedStoryPackageSchema
+>;
 
-export const EnglishFullGeneratedStoryPackageSchema = generatedStoryPackageSchema.extend({
-  full: generatedStoryPackageSchema.shape.full.unwrap(),
-});
+export const EnglishFullGeneratedStoryPackageSchema =
+  generatedStoryPackageSchema.extend({
+    full: generatedStoryPackageSchema.shape.full.unwrap(),
+  });
 
 export type EnglishFullGeneratedStoryPackageShape = z.infer<
   typeof EnglishFullGeneratedStoryPackageSchema
@@ -353,6 +362,19 @@ export const localBatchManifestItemSchema = z.object({
   sourcePath: z.string().min(1),
   sourceHash: z.string().min(8),
   promptVersion: z.string().min(1),
+  compilerVersion: z.string().min(1).optional(),
+  promptFingerprint: z.string().min(1).optional(),
+  responseSchemaName: z.string().min(1).optional(),
+  responseSchemaVersion: z.string().min(1).optional(),
+  responseSchemaFingerprint: z.string().min(1).optional(),
+  selectedModules: z
+    .array(
+      z.object({
+        id: z.string().min(1),
+        version: z.string().min(1),
+      })
+    )
+    .optional(),
   configurationHash: z.string().min(8),
   plannedOutputPaths: z.array(z.string().min(1)),
   estimatedInputTokens: z.number().int().nonnegative(),
