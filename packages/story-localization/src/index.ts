@@ -1,6 +1,7 @@
 export * from "./story-localization.types.js";
 export * from "./story-localization.errors.js";
 export * from "./story-localization.schemas.js";
+export * from "./story-artifact-model.js";
 export * from "./language-profiles.js";
 export * from "./story-localization.utils.js";
 export * from "./source-story-discovery.js";

@@ -15,6 +15,7 @@ This subsystem handles structured English full rewrites, localized full rewrites
 - `packages/story-localization/src/story-localization.service.ts`
 - `packages/story-localization/src/short-rewrite.service.ts`
 - Supporting modules handle source discovery, prompt building, canonical fact extraction, cache reads and writes, batch manifests, validation, and artifact rendering.
+- `packages/story-localization/src/story-artifact-model.ts` adds an additive normalized `StoryIR`, `StoryArtifactVariant`, and `StoryOutputConstraints` model for future migration work. Baseline details live in `docs/plans/story-ir-and-artifact-variant-modeling.md`.
 
 ## Ordered Stages
 

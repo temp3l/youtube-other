@@ -1,6 +1,7 @@
 # refactor
 
 - done: docs/plans/story-rewrite-repository-analysis-and-baseline-plan.md
+- done: docs/plans/story-ir-and-artifact-variant-modeling-plan.md
 
 1. 5.5 medium
 2. /plan
@@ -10,7 +11,7 @@
 
 Follow only the task defined in:
 
-`story-rewrite-refactor-codex-prompts/02-story-ir-and-artifact-variant-modeling`
+`todo-prompts/story-rewrite-refactor-codex-prompts/03-source-cleaning-and-provenance.md`
 
 Read that file completely and treat it as the authoritative task specification.
 
@@ -45,16 +46,14 @@ After I approve the plan, implement only this task, run the relevant checks, and
 
 ---
 
-Exit Plan mode and create only:
+Create the plans under: ./docs/plans
 
-docs/plans/story-rewrite-repository-analysis-and-baseline-plan.md
+Copy the complete approved plans into that folder.
 
-Write the complete approved plan into that file.
-
-Do not implement the plan.
+Do not implement the plans.
 Do not modify production code.
 Do not create or update any other files.
-Stop immediately after writing the plan file and report the exact file changed.
+Stop after writing the plan files.
 
 ---
 
@@ -62,29 +61,73 @@ Stop immediately after writing the plan file and report the exact file changed.
 
 ---
 
-Implement the approved plan in:
+ask codex for a prompt
 
-`docs/plans/story-rewrite-repository-analysis-and-baseline-plan.md`
+---
 
-Also read and follow:
+## https://chatgpt.com/g/g-p-6a317d326e30819183556eca604b770c-youtube/c/6a420672-1554-83ed-922a-9f5aa3075447
 
-`story-rewrite-refactor-codex-prompts/01-repository-analysis-and-baseline.md`
+### Batches
 
-Implement only task 01. Do not start later tasks.
+I defined these batches the tasks in from todo-prompts/story-rewrite-refactor-codex-prompts:
 
-Preserve existing CLI commands, external interfaces, artifact paths, resume behaviour, and `.env` configuration precedence.
+- Planning batch 1: StoryIR, artifact variants, source cleaning, genre policies
+- Planning batch 2: full generation, localization, short adaptation and generation
+- Planning batch 3: validation, repair, incomplete responses, retries
+- Planning batch 4: metadata, audio, scenes, rendering
+- Planning batch 5: costs, persistence, resume, tests, migration
 
-Do not issue paid API calls. Prefer existing logs, manifests, persisted responses, fixtures, and deterministic token estimation.
+find the relevant tasks and provide me a prompt to plan all tasks of batch 2
+write the prompt to todo-prompts/story-rewrite-refactor-codex-prompts/batches/planning-batch-2.md" make it "strictly planning-only" and opinionated with exact instructions
 
-Run the repository’s actual relevant checks and finish with:
+## Prompt for Batch 1 GPT-5.5 in PLAN MODE
 
-- files changed;
-- documentation created;
-- instrumentation added, if any;
-- verification results;
-- unresolved findings;
-- risks and recommended next task.
+---
 
-Do not implement StoryIR, prompt compiler, generation, localization, repair, or other later-phase production changes.
+Plan the remaining work for batch 1 only. Assume prompts 01 and 02 are already complete. Do not implement yet.
+
+Scope:
+
+- remaining batch-1 work from:
+  - `todo-prompts/story-rewrite-refactor-codex-prompts/03-source-cleaning-and-provenance.md`
+  - `todo-prompts/story-rewrite-refactor-codex-prompts/04-genre-policies-and-full-story-contract.md`
+
+Repo rules:
+
+- inspect source first
+- ignore root `README.md`
+- ignore `docs.bak`
+- use targeted reads and `rg`
+- treat source as authoritative
+- preserve public CLI/artifact compatibility unless a required change is justified
+- no paid API calls
+- no code edits
+
+What to do:
+
+1. inspect the current code in `packages/story-localization`, `apps/cli`, and any directly relevant shared/config modules
+2. determine what is already done vs missing for:
+   - deterministic source cleaning and provenance
+   - centralized genre policies
+   - compact full-story contract boundaries
+3. produce a repo-grounded plan for the remaining unfinished work only
+
+Output:
+
+- `Current state`: what already exists, with exact files/functions/types
+- `Gaps`: what is still missing or insufficient
+- `Remaining tasks`: ordered plan with likely files, dependencies, validation, and compatibility risks
+- `Decision points`: any architecture choices to settle before implementation
+- `Done criteria`: map remaining work to prompts 03 and 04 acceptance criteria
+
+Important:
+
+- keep scope limited to batch 1
+- do not plan batch 2+ except for brief downstream impact notes
+- explicitly state whether source cleaning is deterministic, versioned, and provenance-preserving today
+- explicitly state whether genre policy is centralized or scattered today
+- explicitly state whether the full-story contract is separated from metadata/audio/scene/image/render/publication concerns today
+- assume StoryIR and artifact variant modeling from 02 already exists
+- focus on the delta from that baseline
 
 ---
