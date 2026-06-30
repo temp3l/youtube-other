@@ -216,6 +216,16 @@ export interface YoutubeUploadCommandInput {
   } | undefined;
 }
 
+export interface ResolvedYoutubeUploadInputs {
+  readonly metadata: YoutubeMetadata;
+  readonly metadataPath: string;
+  readonly metadataSha256: string;
+  readonly resolvedVideoPath: string;
+  readonly resolvedLanguage: string;
+  readonly resolvedLocale: string;
+  readonly resolvedVariant: "full" | "short";
+}
+
 export class YoutubeUploadError extends Error {
   public readonly code: string = "youtube_upload_error";
   public readonly retryable: boolean;
@@ -1107,12 +1117,12 @@ export async function loadYoutubeUploadConfig(): Promise<RuntimeConfig> {
   return loadRuntimeConfig();
 }
 
-export async function generateUploadMetadataForEpisode(
+export async function resolveUploadInputsForEpisode(
   episodeDir: string,
   episodeId: string,
   overrides: YoutubeUploadOverrides = {},
   metadataPath?: string
-): Promise<{ readonly metadata: YoutubeMetadata; readonly metadataPath: string; readonly metadataSha256: string; readonly resolvedVideoPath: string; readonly resolvedThumbnailPath: string }> {
+): Promise<ResolvedYoutubeUploadInputs> {
   const manifest = await loadEpisodeManifest(episodeDir);
   const resolvedMetadata = await resolveYoutubeMetadataFile({
     episodeDir,
@@ -1123,16 +1133,39 @@ export async function generateUploadMetadataForEpisode(
     throw new YoutubeUploadValidationError(`Missing generated YouTube metadata for episode ${episodeId}.`);
   }
   const resolvedVideoPath = await resolveVideoPath(episodeDir, overrides, manifest);
-  const resolvedThumbnailPath = await resolveThumbnailPath(
-    episodeDir,
-    resolvedMetadata.metadata.source.language,
-    overrides
-  );
   return {
     metadata: resolvedMetadata.metadata,
     metadataPath: resolvedMetadata.metadataPath,
     metadataSha256: hashText(JSON.stringify(resolvedMetadata.metadata)),
     resolvedVideoPath,
+    resolvedLanguage: resolvedMetadata.metadata.source.language,
+    resolvedLocale:
+      resolvedMetadata.metadata.source.language === "en"
+        ? "en-US"
+        : resolvedMetadata.metadata.source.language,
+    resolvedVariant: inferPublicationVariantFromVideoPath(resolvedVideoPath),
+  };
+}
+
+export async function generateUploadMetadataForEpisode(
+  episodeDir: string,
+  episodeId: string,
+  overrides: YoutubeUploadOverrides = {},
+  metadataPath?: string
+): Promise<ResolvedYoutubeUploadInputs & { readonly resolvedThumbnailPath: string }> {
+  const resolved = await resolveUploadInputsForEpisode(
+    episodeDir,
+    episodeId,
+    overrides,
+    metadataPath
+  );
+  const resolvedThumbnailPath = await resolveThumbnailPath(
+    episodeDir,
+    resolved.resolvedLanguage,
+    overrides
+  );
+  return {
+    ...resolved,
     resolvedThumbnailPath,
   };
 }

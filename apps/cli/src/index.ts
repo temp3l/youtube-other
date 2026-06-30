@@ -55,6 +55,7 @@ import {
   type VideoRenderRequest,
 } from "@mediaforge/rendering";
 import {
+  generateUploadMetadataForEpisode,
   uploadYoutubeEpisode,
   type YoutubeUploadCommandInput,
   type YoutubeUploadOverrides,
@@ -141,6 +142,7 @@ import { buildRemoteRenderShellScript } from "./render-remote-shell.js";
 import { buildSceneInspectOutput } from "./scene-inspect-output.js";
 import { registerStoryLocalizationCommands } from "./story-localization-commands.js";
 import { registerThumbnailCommands } from "./thumbnail-commands.js";
+import { resolveUploadThumbnailPath } from "./youtube-upload-thumbnail.js";
 
 interface CliOptions {
   json?: boolean;
@@ -3737,6 +3739,14 @@ function resolveYoutubeAuthSettings(
   return authBase;
 }
 
+function inferThumbnailFormatFromVideoPath(
+  videoPath: string
+): "full" | "short" {
+  return /(?:^|[\\/])vertical(?:[\\/]|$)|9x16/u.test(videoPath)
+    ? "short"
+    : "full";
+}
+
 async function commandYoutubeUpload(
   options: CliOptions,
   uploadOptions: {
@@ -3805,14 +3815,87 @@ async function commandYoutubeUpload(
       metadataGeneration = { ...metadataGeneration, baseUrl };
     }
   }
+  let effectiveGenerateMetadata = uploadOptions.generateMetadata;
+  let effectiveMetadataPath = uploadOptions.metadataPath;
+  let effectiveThumbnailPath = uploadOptions.thumbnailPath;
+  if (!effectiveThumbnailPath) {
+    let resolvedUploadInputs;
+    const uploadResolutionOverrides = {
+      languageHint: uploadLanguage,
+      ...(uploadOptions.videoPath
+        ? { videoPath: uploadOptions.videoPath }
+        : {}),
+      thumbnailPath: path.join(episodeDir, ".thumbnail-resolution-placeholder.png"),
+    } as YoutubeUploadOverrides;
+    if (uploadOptions.generateMetadata) {
+      if (!metadataGeneration) {
+        throw new Error(
+          "--generate-metadata requires metadata generation settings."
+        );
+      }
+      const scenesFilePath = await findEpisodeScenesFile(
+        config.workspaceDir,
+        uploadOptions.episode
+      );
+      const generatedMetadata = await generateYoutubeMetadataFromScenesFile(
+        scenesFilePath,
+        {
+          apiKey: metadataGeneration.apiKey,
+          model: metadataGeneration.model,
+          reasoningEffort: metadataGeneration.reasoningEffort,
+          maxOutputTokens: metadataGeneration.maxOutputTokens,
+          repairModel: metadataGeneration.repairModel,
+          repairReasoningEffort: metadataGeneration.repairReasoningEffort,
+          repairMaxOutputTokens: metadataGeneration.repairMaxOutputTokens,
+          language: uploadLanguage,
+          promptText: metadataGeneration.promptText,
+          maxRetries: metadataGeneration.maxRetries,
+          timeoutMs: metadataGeneration.timeoutMs,
+          keepFile: metadataGeneration.keepFile,
+          ...(metadataGeneration.baseUrl
+            ? { baseUrl: metadataGeneration.baseUrl }
+            : {}),
+        }
+      );
+      effectiveGenerateMetadata = false;
+      effectiveMetadataPath = generatedMetadata.outputs.jsonPath;
+      resolvedUploadInputs = await generateUploadMetadataForEpisode(
+        episodeDir,
+        uploadOptions.episode,
+        uploadResolutionOverrides,
+        effectiveMetadataPath
+      );
+    } else {
+      resolvedUploadInputs = await generateUploadMetadataForEpisode(
+        episodeDir,
+        uploadOptions.episode,
+        uploadResolutionOverrides,
+        effectiveMetadataPath
+      );
+    }
+    effectiveThumbnailPath = await resolveUploadThumbnailPath({
+      workspaceRoot: config.workspaceDir,
+      episodeDir,
+      resolvedUpload: {
+        metadata: resolvedUploadInputs.metadata,
+        resolvedLanguage: resolvedUploadInputs.metadata.source.language,
+        resolvedVariant: inferThumbnailFormatFromVideoPath(
+          resolvedUploadInputs.resolvedVideoPath
+        ),
+      },
+      ...(uploadOptions.force !== undefined
+        ? { force: uploadOptions.force }
+        : {}),
+    });
+  }
   const result = await uploadYoutubeEpisode({
     workspaceDir: config.workspaceDir,
     episodeId: uploadOptions.episode,
     episodeDir,
     auth,
     force: uploadOptions.force,
-    generateMetadata: uploadOptions.generateMetadata,
-    metadataPath: uploadOptions.metadataPath,
+    generateMetadata: effectiveGenerateMetadata,
+    metadataPath: effectiveMetadataPath,
     overrides: {
       languageHint: uploadLanguage,
       ...(uploadOptions.playlistId
@@ -3830,10 +3913,10 @@ async function commandYoutubeUpload(
       ...(uploadOptions.videoPath
         ? { videoPath: uploadOptions.videoPath }
         : {}),
-      ...(uploadOptions.thumbnailPath
-        ? { thumbnailPath: uploadOptions.thumbnailPath }
+      ...(effectiveThumbnailPath
+        ? { thumbnailPath: effectiveThumbnailPath }
         : {}),
-    },
+    } as YoutubeUploadOverrides,
     metadataGeneration,
     logger: createLogger(options.verbose ? "debug" : config.logLevel),
   });

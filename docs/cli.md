@@ -100,6 +100,8 @@ Root scripts that directly wrap CLI commands:
 
 `thumbnails generate` creates exact localized full or short thumbnail artifacts and keeps them independent from render or upload steps.
 
+`youtube upload` now reuses that generator automatically when `--thumbnail-path` is omitted. The upload command resolves the target variant from the selected video, uses the metadata `thumbnail.recommendedText` hook, and reads `episodes/<episode-slug>/story-production/thumbnail-story.json`.
+
 ```bash
 npm run mediaforge -- thumbnails generate \
   --episode 014-hachishakusama-the-eight-foot-woman \
