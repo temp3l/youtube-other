@@ -63,7 +63,7 @@ describe("runtime config", () => {
     expect(config.visualSceneTargetPer10Minutes).toBe(100);
     expect(config.visualSceneMinSeconds).toBe(5);
     expect(config.visualSceneMaxSeconds).toBe(6);
-    expect(config.trailingSilenceRatio).toBe(0.8);
+    expect(config.trailingSilenceRatio).toBe(1);
     expect(config.trailingSilenceBufferSeconds).toBe(0);
   });
 
