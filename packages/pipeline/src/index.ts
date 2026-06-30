@@ -1387,6 +1387,9 @@ export class MediaForgePipeline {
         scenePlan: plan,
         captionsPath: this.paths.captionsFile(renderContext, "ass"),
         outputDir: this.paths.renderDir(renderContext, renderProfile.id),
+        clipsOutputDir: path.dirname(
+          this.paths.renderDir(renderContext, renderProfile.id)
+        ),
         renderProfile,
         captionBurnIn: true,
         trailingSilenceRatio: this.environment.config.trailingSilenceRatio,

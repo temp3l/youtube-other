@@ -106,7 +106,16 @@ export async function runCommand(executable: string, args: ReadonlyArray<string>
         stderrBytes: Buffer.byteLength(stderr)
       });
       if (exitCode !== 0 && !options.allowNonZeroExit) {
-        reject(new ProcessExecutionError(`Command exited with code ${String(exitCode)}: ${executable}`));
+        const stderrPreview = stderr.trim();
+        reject(
+          new ProcessExecutionError(
+            `Command exited with code ${String(exitCode)}: ${executable}${
+              stderrPreview.length > 0
+                ? `\nStderr:\n${stderrPreview.slice(0, 4000)}`
+                : ""
+            }`
+          )
+        );
         return;
       }
       resolve({

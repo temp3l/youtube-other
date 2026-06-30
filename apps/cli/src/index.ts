@@ -2604,6 +2604,7 @@ async function commandRender(
     episodeDir,
     scenePlan: manifest.scenePlan,
     outputDir: path.join(audioBaseDir, "renders", profile),
+    clipsOutputDir: path.join(audioBaseDir, "renders"),
     renderProfile,
     captionBurnIn: Boolean(captionsPath),
     clipsDirName: localizedClipsDirName(language),

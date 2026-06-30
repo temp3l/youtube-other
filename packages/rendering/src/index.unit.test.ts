@@ -497,4 +497,68 @@ describe("FFmpegVideoRenderer", () => {
       "episode-fixture-en-full-clean.mp4"
     );
   }, 120000);
+
+  it("reuses a shared clips directory during full renders", async () => {
+    const baseDir = mkdtempSync(
+      path.join(os.tmpdir(), "mediaforge-rendering-shared-clips-")
+    );
+    const episodeDir = path.join(baseDir, "episode");
+    const outputDir = path.join(episodeDir, "renders", "youtube");
+    const sharedRenderDir = path.join(episodeDir, "renders");
+    const imageDir = path.join(episodeDir, "images", "generated");
+    const audioDir = path.join(episodeDir, "audio", "segments");
+    await fs.mkdir(imageDir, { recursive: true });
+    await fs.mkdir(audioDir, { recursive: true });
+    await fs.writeFile(
+      path.join(imageDir, "scene-001__000000-000003__16x9.png"),
+      await sharp({
+        create: { width: 32, height: 32, channels: 3, background: "#223344" },
+      })
+        .png()
+        .toBuffer()
+    );
+    execFileSync(
+      "ffmpeg",
+      [
+        "-y",
+        "-f",
+        "lavfi",
+        "-i",
+        "anullsrc=r=24000:cl=mono",
+        "-t",
+        "3",
+        path.join(audioDir, "scene-001.wav"),
+      ],
+      { stdio: "ignore" }
+    );
+
+    const renderer = new FFmpegVideoRenderer();
+    await renderer.render(
+      {
+        episodeDir,
+        scenePlan: makeScenePlan(),
+        outputDir,
+        clipsOutputDir: sharedRenderDir,
+        renderProfile: {
+          id: "youtube",
+          label: "youtube",
+          aspectRatio: "16:9",
+          width: 1080,
+          height: 1920,
+          fps: 30,
+        },
+        captionBurnIn: false,
+        imageDir,
+        sceneAudioDir: audioDir,
+      },
+      new AbortController().signal
+    );
+
+    await expect(
+      fs.access(path.join(sharedRenderDir, "clips", "scene-001.mp4"))
+    ).resolves.toBeUndefined();
+    await expect(
+      fs.access(path.join(outputDir, "clips", "scene-001.mp4"))
+    ).rejects.toThrow();
+  }, 120000);
 });

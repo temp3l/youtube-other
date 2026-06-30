@@ -103,6 +103,7 @@ export interface VideoRenderRequest {
   readonly scenePlan: ScenePlan;
   readonly captionsPath?: string;
   readonly outputDir: string;
+  readonly clipsOutputDir?: string;
   readonly renderProfile: RenderProfile;
   readonly captionBurnIn: boolean;
   readonly clipsDirName?: string;
@@ -519,6 +520,17 @@ export async function backfillSceneClipManifests(
     written,
     skipped,
   };
+}
+
+function resolveClipsDir(request: {
+  readonly outputDir: string;
+  readonly clipsOutputDir?: string;
+  readonly clipsDirName?: string;
+}): string {
+  return path.join(
+    request.clipsOutputDir ?? request.outputDir,
+    request.clipsDirName ?? "clips"
+  );
 }
 
 export interface ClipRenderRequest {
@@ -2007,10 +2019,7 @@ export class FFmpegVideoRenderer implements VideoRenderer {
   ): Promise<SceneClipRenderResult> {
     signal.throwIfAborted();
     await ensureDir(request.outputDir);
-    const clipsDir = path.join(
-      request.outputDir,
-      request.clipsDirName ?? "clips"
-    );
+    const clipsDir = resolveClipsDir(request);
     await ensureDir(clipsDir);
     const imageDir =
       request.imageDir ?? path.join(request.episodeDir, "images", "generated");
@@ -2287,10 +2296,7 @@ export class HybridFFmpegVideoRenderer extends FFmpegVideoRenderer {
     }
     signal.throwIfAborted();
     await ensureDir(request.outputDir);
-    const clipsDir = path.join(
-      request.outputDir,
-      request.clipsDirName ?? "clips"
-    );
+    const clipsDir = resolveClipsDir(request);
     await ensureDir(clipsDir);
     const imageDir =
       request.imageDir ?? path.join(request.episodeDir, "images", "generated");
