@@ -89,6 +89,13 @@ import {
   type StoryPreflightRequest,
 } from "./story-generation-preflight.js";
 import {
+  buildPersistedFailedRequestMetadata,
+  decideRetryRoute,
+  normalizeIncompleteReason,
+  StoryRetryableRequestError,
+  type PersistedFailedRequestMetadata,
+} from "./story-retry-routing.js";
+import {
   shortNarrationResponseSchema,
   shortNarrationResponseSchemaDescriptor,
   type ShortNarrationResponse,
@@ -267,6 +274,42 @@ function normalizeValidationErrors(errors: string[]): string[] {
   ];
 }
 
+function buildFailedRequestMetadata(args: {
+  readonly model: string;
+  readonly reasoningEffort?:
+    | "none"
+    | "minimal"
+    | "low"
+    | "medium"
+    | "high"
+    | "xhigh";
+  readonly maxOutputTokens: number;
+  readonly attemptNumber: number;
+  readonly requestFingerprint?: string;
+  readonly incompleteReason?: string;
+  readonly usage?: ShortRewriteUsagePayload;
+  readonly estimatedCostUsd?: number | null;
+}): PersistedFailedRequestMetadata {
+  return buildPersistedFailedRequestMetadata({
+    model: args.model,
+    ...(args.reasoningEffort !== undefined
+      ? { reasoningEffort: args.reasoningEffort }
+      : {}),
+    outputCap: args.maxOutputTokens,
+    attemptNumber: args.attemptNumber,
+    ...(args.requestFingerprint !== undefined
+      ? { requestFingerprint: args.requestFingerprint }
+      : {}),
+    ...(args.incompleteReason !== undefined
+      ? { incompleteReason: args.incompleteReason }
+      : {}),
+    ...(args.usage !== undefined ? { usage: buildUsagePayload(args.usage) } : {}),
+    ...(args.estimatedCostUsd !== undefined
+      ? { estimatedCostUsd: args.estimatedCostUsd }
+      : {}),
+  });
+}
+
 function shouldUseTargetedShortRepair(errors: readonly string[]): boolean {
   return errors.every((entry) =>
     /hook|word count|production labels|editorial commentary|thumbnail/iu.test(
@@ -409,6 +452,7 @@ interface ShortRewriteArtifactPayload {
   outputTokens?: number;
   totalTokens?: number;
   estimatedCostUsd?: number | null;
+  failedRequest?: PersistedFailedRequestMetadata;
   repairHistory?: ShortRewriteArtifact["repairHistory"];
   promptLineage?: ShortRewriteArtifact["promptLineage"];
   validation: ShortRewriteArtifact["validation"];
@@ -479,6 +523,7 @@ function buildArtifactPayload(args: {
   readonly outputTokens?: number;
   readonly totalTokens?: number;
   readonly estimatedCostUsd?: number | null;
+  readonly failedRequest?: PersistedFailedRequestMetadata | undefined;
   readonly repairHistory?: ShortRewriteArtifact["repairHistory"] | undefined;
   readonly promptLineage?: ShortRewriteArtifact["promptLineage"] | undefined;
   readonly validation: ShortRewriteArtifact["validation"];
@@ -539,6 +584,9 @@ function buildArtifactPayload(args: {
   }
   if (args.estimatedCostUsd !== undefined) {
     artifact.estimatedCostUsd = args.estimatedCostUsd;
+  }
+  if (args.failedRequest !== undefined) {
+    artifact.failedRequest = args.failedRequest;
   }
   if (args.repairHistory !== undefined) {
     artifact.repairHistory = args.repairHistory;
@@ -608,6 +656,58 @@ function cloneArtifactPayload(
   }
   if (artifact.estimatedCostUsd !== undefined) {
     payload.estimatedCostUsd = artifact.estimatedCostUsd;
+  }
+  if (artifact.failedRequest !== undefined) {
+    payload.failedRequest = buildPersistedFailedRequestMetadata({
+      model: artifact.failedRequest.model,
+      ...(artifact.failedRequest.reasoningEffort !== undefined
+        ? { reasoningEffort: artifact.failedRequest.reasoningEffort }
+        : {}),
+      outputCap: artifact.failedRequest.outputCap,
+      attemptNumber: artifact.failedRequest.attemptNumber,
+      ...(artifact.failedRequest.requestFingerprint !== undefined
+        ? { requestFingerprint: artifact.failedRequest.requestFingerprint }
+        : {}),
+      ...(artifact.failedRequest.incompleteReason !== undefined
+        ? { incompleteReason: artifact.failedRequest.incompleteReason }
+        : {}),
+      ...(artifact.failedRequest.usage !== undefined
+        ? {
+            usage: buildUsagePayload({
+              ...(artifact.failedRequest.usage.inputTokens !== undefined
+                ? { inputTokens: artifact.failedRequest.usage.inputTokens }
+                : {}),
+              ...(artifact.failedRequest.usage.cachedInputTokens !== undefined
+                ? {
+                    cachedInputTokens:
+                      artifact.failedRequest.usage.cachedInputTokens,
+                  }
+                : {}),
+              ...(artifact.failedRequest.usage.reasoningTokens !== undefined
+                ? {
+                    reasoningTokens:
+                      artifact.failedRequest.usage.reasoningTokens,
+                  }
+                : {}),
+              ...(artifact.failedRequest.usage.outputTokens !== undefined
+                ? { outputTokens: artifact.failedRequest.usage.outputTokens }
+                : {}),
+              ...(artifact.failedRequest.usage.totalTokens !== undefined
+                ? { totalTokens: artifact.failedRequest.usage.totalTokens }
+                : {}),
+              ...(artifact.failedRequest.usage.estimatedCostUsd !== undefined
+                ? {
+                    estimatedCostUsd:
+                      artifact.failedRequest.usage.estimatedCostUsd,
+                  }
+                : {}),
+            }),
+          }
+        : {}),
+      ...(artifact.failedRequest.estimatedCostUsd !== undefined
+        ? { estimatedCostUsd: artifact.failedRequest.estimatedCostUsd }
+        : {}),
+    });
   }
   if (artifact.repairHistory !== undefined) {
     payload.repairHistory = artifact.repairHistory;
@@ -1038,6 +1138,8 @@ async function requestStructuredShortRewrite(args: {
         readonly output_parsed?: unknown | null;
         readonly output_text?: string;
         readonly output?: readonly unknown[];
+        readonly status?: string;
+        readonly incomplete_details?: { readonly reason?: string } | null;
         readonly usage?: {
           readonly input_tokens?: number;
           readonly output_tokens?: number;
@@ -1052,22 +1154,80 @@ async function requestStructuredShortRewrite(args: {
         responseRecord.output_parsed === null ||
         responseRecord.output_parsed === undefined
       ) {
+        const responseUsage = {
+          ...(responseRecord.usage?.input_tokens !== undefined
+            ? { inputTokens: responseRecord.usage.input_tokens }
+            : {}),
+          ...(responseRecord.usage?.input_tokens_details?.cached_tokens !==
+          undefined
+            ? {
+                cachedInputTokens:
+                  responseRecord.usage.input_tokens_details.cached_tokens,
+              }
+            : {}),
+          ...(responseRecord.usage?.output_tokens_details?.reasoning_tokens !==
+          undefined
+            ? {
+                reasoningTokens:
+                  responseRecord.usage.output_tokens_details.reasoning_tokens,
+              }
+            : {}),
+          ...(responseRecord.usage?.output_tokens !== undefined
+            ? { outputTokens: responseRecord.usage.output_tokens }
+            : {}),
+          ...(responseRecord.usage?.total_tokens !== undefined
+            ? { totalTokens: responseRecord.usage.total_tokens }
+            : {}),
+        };
         const extractedText =
           responseRecord.output_text ??
           extractStructuredResponseText(responseRecord.output);
+        const incompleteReason = normalizeIncompleteReason(responseRecord);
         if (!extractedText) {
+          const responseFinishedAt = Date.now();
           await persistShortRewriteDebugArtifacts({
             debugDirectory: args.debugDirectory,
             fileBaseName: args.debugFileBaseName,
             requestLabel: args.requestLabel,
             prompt: args.prompt,
             request,
+            response: {
+              requestId: responseRecord.id,
+              status: "failed",
+              responseId: responseRecord.id,
+              ...(responseRecord.output_text !== undefined
+                ? { outputText: responseRecord.output_text }
+                : {}),
+              responseJson: null,
+              startedAt: start,
+              finishedAt: responseFinishedAt,
+              durationMs: responseFinishedAt - start,
+              ...(Object.keys(responseUsage).length > 0
+                ? { usage: responseUsage }
+                : {}),
+            },
             error: new OpenAIShortRewriteError(
-              "OpenAI returned an empty structured response."
+              incompleteReason === "max_output_tokens"
+                ? "OpenAI short rewrite was incomplete because max_output_tokens was exhausted."
+                : "OpenAI returned an empty structured response."
             ),
           });
-          throw new OpenAIShortRewriteError(
-            "OpenAI returned an empty structured response."
+          throw new StoryRetryableRequestError(
+            incompleteReason === "max_output_tokens"
+              ? "OpenAI short rewrite was incomplete because max_output_tokens was exhausted."
+              : "OpenAI returned an empty structured response.",
+            buildFailedRequestMetadata({
+              model: args.model,
+              ...(args.reasoningEffort !== undefined
+                ? { reasoningEffort: args.reasoningEffort }
+                : {}),
+              maxOutputTokens: args.maxOutputTokens,
+              attemptNumber: attempt + 1,
+              ...(incompleteReason !== null
+                ? { incompleteReason }
+                : {}),
+              usage: responseUsage,
+            })
           );
         }
         try {
@@ -1204,6 +1364,9 @@ async function requestStructuredShortRewrite(args: {
         request,
         error,
       });
+      if (error instanceof StoryRetryableRequestError) {
+        throw error;
+      }
       if (attempt < args.maxRetries && isTransientOpenAiError(error)) {
         const jitter = 0.75 + Math.random() * 0.5;
         const backoff = Math.min(
@@ -1603,27 +1766,67 @@ async function generateLanguagePayload(
       "Missing OpenAI client for short rewrite."
     );
   }
-  const initialResponse = await requestStructuredShortRewrite({
-    client,
-    model: args.model,
-    repairModel: args.repairModel,
-    prompt: initialPrompt,
-    temperature: args.temperature,
-    reasoningEffort: args.reasoningEffort,
-    maxOutputTokens: args.maxOutputTokens,
-    repairReasoningEffort: args.repairReasoningEffort,
-    repairMaxOutputTokens: args.repairMaxOutputTokens,
-    timeoutMs: args.timeoutMs,
-    maxRetries: args.maxRetries,
-    signal: args.signal,
-    requestLabel: `${languageDefinition.name} short rewrite`,
-    debugDirectory,
-    debugFileBaseName,
-    preflight: buildShortPreflight({
-      repair: false,
-      promptFingerprint,
-    }),
-  });
+  let failedRequest: PersistedFailedRequestMetadata | undefined;
+  let initialResponse: ShortRewriteApiResult;
+  try {
+    initialResponse = await requestStructuredShortRewrite({
+      client,
+      model: args.model,
+      repairModel: args.repairModel,
+      prompt: initialPrompt,
+      temperature: args.temperature,
+      reasoningEffort: args.reasoningEffort,
+      maxOutputTokens: args.maxOutputTokens,
+      repairReasoningEffort: args.repairReasoningEffort,
+      repairMaxOutputTokens: args.repairMaxOutputTokens,
+      timeoutMs: args.timeoutMs,
+      maxRetries: args.maxRetries,
+      signal: args.signal,
+      requestLabel: `${languageDefinition.name} short rewrite`,
+      debugDirectory,
+      debugFileBaseName,
+      preflight: buildShortPreflight({
+        repair: false,
+        promptFingerprint,
+      }),
+    });
+  } catch (error) {
+    if (!(error instanceof StoryRetryableRequestError)) {
+      throw error;
+    }
+    failedRequest = error.metadata;
+    const purpose = args.language === "en" ? "canonical-short" : "localized-short";
+    const retryDecision = decideRetryRoute({
+      purpose,
+      incompleteReason: error.metadata.incompleteReason ?? null,
+      currentOutputCap: args.maxOutputTokens,
+      nextOutputCap: args.retryMaxOutputTokens,
+    });
+    if (retryDecision.action !== "regenerate") {
+      throw error;
+    }
+    initialResponse = await requestStructuredShortRewrite({
+      client,
+      model: args.model,
+      repairModel: args.repairModel,
+      prompt: initialPrompt,
+      temperature: args.temperature,
+      reasoningEffort: args.reasoningEffort,
+      maxOutputTokens: args.retryMaxOutputTokens,
+      repairReasoningEffort: args.repairReasoningEffort,
+      repairMaxOutputTokens: args.repairMaxOutputTokens,
+      timeoutMs: args.timeoutMs,
+      maxRetries: args.maxRetries,
+      signal: args.signal,
+      requestLabel: `${languageDefinition.name} short rewrite regenerate`,
+      debugDirectory,
+      debugFileBaseName,
+      preflight: buildShortPreflight({
+        repair: false,
+        promptFingerprint: `${promptFingerprint}:regenerate`,
+      }),
+    });
+  }
   const initialParsed = parseStructuredResult(initialResponse.outputText);
   const initialAnalysis = analyzeGeneratedPayload({
     parsed: initialParsed,
@@ -1660,9 +1863,23 @@ async function generateLanguagePayload(
     readonly stage: "repair" | "regenerate";
     readonly issues: readonly string[];
   }> = [];
+  if (failedRequest?.incompleteReason === "max_output_tokens") {
+    repairHistory.push({
+      stage: "regenerate",
+      issues: ["Initial short response exhausted max_output_tokens."],
+    });
+  }
   if (issues.length > 0) {
     const normalizedIssues = normalizeValidationErrors(issues);
-    if (shouldUseTargetedShortRepair(normalizedIssues)) {
+    const retryDecision = decideRetryRoute({
+      purpose: args.language === "en" ? "canonical-short" : "localized-short",
+      issues: normalizedIssues,
+      allowTargetedRepair: shouldUseTargetedShortRepair(normalizedIssues),
+    });
+    if (retryDecision.action === "block") {
+      throw new ShortRewriteValidationError(normalizedIssues.join("; "));
+    }
+    if (retryDecision.action === "repair") {
       const repairPrompt = buildShortRewriteRepairPrompt({
         context: promptContext,
         invalidResult: responsePayload,
@@ -1798,6 +2015,33 @@ async function generateLanguagePayload(
   });
   const estimatedCostUsd =
     cost.costMicros === null ? null : cost.costMicros / 1_000_000;
+  const failedRequestCostMicros =
+    failedRequest && args.modelPricing?.[failedRequest.model]
+      ? estimateTokenCostMicros(args.modelPricing[failedRequest.model]?.token, {
+          ...(failedRequest.usage?.inputTokens !== undefined
+            ? { inputTokens: failedRequest.usage.inputTokens }
+            : {}),
+          ...(failedRequest.usage?.cachedInputTokens !== undefined
+            ? { cachedInputTokens: failedRequest.usage.cachedInputTokens }
+            : {}),
+          ...(failedRequest.usage?.outputTokens !== undefined
+            ? { outputTokens: failedRequest.usage.outputTokens }
+            : {}),
+          audioInputTokens: 0,
+          audioOutputTokens: 0,
+        }).costMicros
+      : null;
+  const failedRequestWithCost =
+    failedRequest
+      ? buildPersistedFailedRequestMetadata({
+          ...failedRequest,
+          ...(failedRequestCostMicros !== null
+            ? { estimatedCostUsd: failedRequestCostMicros / 1_000_000 }
+            : failedRequest.estimatedCostUsd !== undefined
+              ? { estimatedCostUsd: failedRequest.estimatedCostUsd }
+              : {}),
+        })
+      : failedRequest;
   const generatedAt = new Date().toISOString();
   const jsonSidecar: ShortRewriteJsonSidecar = {
     schemaVersion: 2,
@@ -1918,6 +2162,7 @@ async function generateLanguagePayload(
         ? { totalTokens: usage.totalTokens }
         : {}),
       estimatedCostUsd,
+      ...(failedRequestWithCost ? { failedRequest: failedRequestWithCost } : {}),
       promptLineage: {
         compilerVersion: compiledPrompt.compilerVersion,
         promptFingerprint,
@@ -2263,7 +2508,8 @@ export async function rewriteShortStories(
     const buildFailedArtifact = (
       message: string,
       generatedAt: string,
-      durationMs: number
+      durationMs: number,
+      failedRequest?: PersistedFailedRequestMetadata
     ): ShortRewriteArtifact =>
       shortRewriteArtifactSchema.parse(
         buildArtifactPayload({
@@ -2302,6 +2548,7 @@ export async function rewriteShortStories(
           maxOutputTokens:
             options.maxOutputTokens ?? DEFAULT_SHORT_REWRITE_MAX_OUTPUT_TOKENS,
           generationDurationMs: durationMs,
+          ...(failedRequest ? { failedRequest } : {}),
           promptLineage: {
             promptFingerprint,
           },
@@ -2453,7 +2700,8 @@ export async function rewriteShortStories(
       const failedArtifact = buildFailedArtifact(
         message,
         new Date().toISOString(),
-        Date.now() - start
+        Date.now() - start,
+        error instanceof StoryRetryableRequestError ? error.metadata : undefined
       );
       try {
         await mergeManifest({

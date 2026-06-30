@@ -75,6 +75,23 @@ function makeMockClient(responses: readonly MockResponse[] = []) {
   };
 }
 
+function makeRawResponseClient(responses: readonly unknown[]) {
+  const queue = [...responses];
+  const responseFn = vi.fn(async () => {
+    const next = queue.shift();
+    if (!next) {
+      throw new Error("No mock raw response available.");
+    }
+    return next;
+  });
+  return {
+    responses: {
+      create: responseFn,
+      parse: responseFn,
+    },
+  };
+}
+
 function buildResponseJson(args: {
   readonly title: string;
   readonly wordCount: number;
@@ -713,11 +730,141 @@ describe("short rewrite service", () => {
     expect(
       JSON.parse(
         await fs.readFile(
-          path.join(debugDir, "stories-rewrite-short-es.response.json"),
+          path.join(debugDir, "stories-rewrite-short-es.error.json"),
           "utf8"
         )
       )
-    ).toHaveProperty("status", "failed");
+    ).toHaveProperty("error.message");
+  });
+
+  it("regenerates short narration after max_output_tokens exhaustion and persists failed usage metadata", async () => {
+    const tempRoot = await fs.mkdtemp(
+      path.join(os.tmpdir(), "short-rewrite-max-output-")
+    );
+    const sourcePath = await createSourceStory(tempRoot);
+    const client = makeRawResponseClient([
+      {
+        id: "resp-incomplete",
+        output_parsed: null,
+        output_text: "",
+        status: "incomplete",
+        incomplete_details: { reason: "max_output_tokens" },
+        usage: {
+          input_tokens: 90,
+          output_tokens: 40,
+          total_tokens: 130,
+          input_tokens_details: { cached_tokens: 0 },
+          output_tokens_details: { reasoning_tokens: 4 },
+        },
+      },
+      {
+        id: "resp-regenerated",
+        output_text: buildResponseJson({
+          title: "Das Puppenhaus",
+          wordCount: 165,
+          thumbnailText: "Nasse Hände",
+          fullVideoBridge: "Sieh dir die ganze Episode an.",
+          language: "de",
+        }),
+        output_parsed: JSON.parse(
+          buildResponseJson({
+            title: "Das Puppenhaus",
+            wordCount: 165,
+            thumbnailText: "Nasse Hände",
+            fullVideoBridge: "Sieh dir die ganze Episode an.",
+            language: "de",
+          })
+        ),
+        usage: {
+          input_tokens: 120,
+          output_tokens: 80,
+          total_tokens: 200,
+          input_tokens_details: { cached_tokens: 0 },
+          output_tokens_details: { reasoning_tokens: 5 },
+        },
+      },
+    ]);
+
+    const summary = await rewriteShortStories(
+      {
+        inputPath: sourcePath,
+        outputRoot: tempRoot,
+        languages: ["de"],
+        model: "gpt-5-mini",
+        dryRun: false,
+        resume: false,
+        overwrite: false,
+        maxRetries: 0,
+        maxOutputTokens: 700,
+        retryMaxOutputTokens: 900,
+      },
+      {
+        client,
+      }
+    );
+
+    expect(summary.completed).toBe(1);
+    expect(client.responses.create).toHaveBeenCalledTimes(2);
+    const firstRequest = client.responses.create.mock.calls[0]?.[0] as {
+      readonly input: readonly { readonly content: readonly { readonly text: string }[] }[];
+    };
+    const secondRequest = client.responses.create.mock.calls[1]?.[0] as {
+      readonly input: readonly { readonly content: readonly { readonly text: string }[] }[];
+      readonly max_output_tokens: number;
+    };
+    expect(firstRequest.input[1]?.content[0]?.text).not.toContain(
+      "Validation errors:"
+    );
+    expect(secondRequest.input[1]?.content[0]?.text).not.toContain(
+      "Validation errors:"
+    );
+    expect(secondRequest.max_output_tokens).toBe(900);
+    expect(summary.artifacts[0]?.repairHistory?.[0]?.stage).toBe("regenerate");
+    expect(summary.artifacts[0]?.failedRequest).toMatchObject({
+      incompleteReason: "max_output_tokens",
+      outputCap: 700,
+      attemptNumber: 1,
+      usage: {
+        inputTokens: 90,
+        outputTokens: 40,
+      },
+    });
+  });
+
+  it("blocks deterministic non-repairable validation failures without retrying", async () => {
+    const tempRoot = await fs.mkdtemp(
+      path.join(os.tmpdir(), "short-rewrite-deterministic-block-")
+    );
+    const sourcePath = await createSourceStory(tempRoot);
+    const client = makeMockClient([
+      {
+        id: "resp-invalid",
+        output_text: JSON.stringify({
+          narration:
+            "This story follows Mara through a strange night and summarizes the attic mystery without preserving the threat, the notebook warning, or the final consequence.",
+        }),
+      },
+    ]);
+
+    const summary = await rewriteShortStories(
+      {
+        inputPath: sourcePath,
+        outputRoot: tempRoot,
+        languages: ["de"],
+        model: "gpt-5-mini",
+        dryRun: false,
+        resume: false,
+        overwrite: false,
+        maxRetries: 0,
+      },
+      {
+        client,
+      }
+    );
+
+    expect(summary.failed).toBe(1);
+    expect(client.responses.create).toHaveBeenCalledTimes(1);
+    expect(summary.artifacts[0]?.status).toBe("failed");
   });
 
   it("requires a validated canonical full parent for English shorts", async () => {

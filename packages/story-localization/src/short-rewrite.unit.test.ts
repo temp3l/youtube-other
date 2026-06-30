@@ -248,7 +248,19 @@ describe("short rewrite helpers", () => {
         narration: "hook",
         title: "The Christmas Doll",
       },
-      invalidResult: { title: "bad" },
+      invalidResult: {
+        title: "bad",
+        narration: "hook then panic",
+        full: {
+          narrationParagraphs: ["full story should not appear"],
+        },
+        metadata: {
+          tags: ["metadata should not appear"],
+        },
+        audioInstructions: ["audio should not appear"],
+        visualGuidance: "visual should not appear",
+        repairHistory: [{ stage: "repair", issues: ["old"] }],
+      },
       validationErrors: ["Hook mismatch", "Too long"],
     });
     expect(prompt.user).toContain("Validation errors:");
@@ -258,6 +270,11 @@ describe("short rewrite helpers", () => {
     expect(prompt.user).toContain("## German Localization");
     expect(prompt.user).toContain("150-165 words");
     expect(prompt.user).toContain("schema short_narration_result");
+    expect(prompt.user).not.toContain("full story should not appear");
+    expect(prompt.user).not.toContain("metadata should not appear");
+    expect(prompt.user).not.toContain("audio should not appear");
+    expect(prompt.user).not.toContain("visual should not appear");
+    expect(prompt.user).not.toContain("repairHistory");
   });
 
   it("renders markdown compatible with the downstream pipeline", () => {

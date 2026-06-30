@@ -111,6 +111,10 @@ export interface OpenAiBatchOutputLine {
     readonly status_code: number;
     readonly body: {
       readonly id?: string;
+      readonly status?: string;
+      readonly incomplete_details?: {
+        readonly reason?: string;
+      } | null;
       readonly output_text?: string;
       readonly usage?: {
         readonly input_tokens?: number;

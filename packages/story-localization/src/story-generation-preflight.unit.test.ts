@@ -237,4 +237,58 @@ describe("story generation preflight", () => {
       expect(result.failureCodes).toContain("DUPLICATE_FAILED_REQUEST");
     }
   });
+
+  it("changes the request fingerprint when parent hash, prompt fingerprint, model, or output cap changes", () => {
+    const base = runStoryGenerationPreflight(
+      baseRequest({
+        operation: "localize",
+        variant: "localized-full",
+        language: "es",
+        locale: "es-419",
+        parentArtifact: {
+          kind: "canonical-english-full",
+          fingerprint: "c".repeat(64),
+          sourceHash: "a".repeat(64),
+          language: "en",
+          locale: "en-US",
+          variant: "full",
+          storyIrHash: "d".repeat(64),
+          contractHash: "e".repeat(64),
+          contractBuildFingerprint: "f".repeat(64),
+        },
+      })
+    );
+    const changedParent = runStoryGenerationPreflight(
+      baseRequest({
+        operation: "localize",
+        variant: "localized-full",
+        language: "es",
+        locale: "es-419",
+        parentArtifact: {
+          kind: "canonical-english-full",
+          fingerprint: "9".repeat(64),
+          sourceHash: "a".repeat(64),
+          language: "en",
+          locale: "en-US",
+          variant: "full",
+          storyIrHash: "d".repeat(64),
+          contractHash: "e".repeat(64),
+          contractBuildFingerprint: "f".repeat(64),
+        },
+      })
+    );
+    const changedPrompt = runStoryGenerationPreflight(
+      baseRequest({ promptFingerprint: "other-prompt" })
+    );
+    const changedModel = runStoryGenerationPreflight(
+      baseRequest({ model: "gpt-5-mini" })
+    );
+    const changedOutputCap = runStoryGenerationPreflight(
+      baseRequest({ maxOutputTokens: 2200 })
+    );
+    expect(changedParent.requestFingerprint).not.toBe(base.requestFingerprint);
+    expect(changedPrompt.requestFingerprint).not.toBe(base.requestFingerprint);
+    expect(changedModel.requestFingerprint).not.toBe(base.requestFingerprint);
+    expect(changedOutputCap.requestFingerprint).not.toBe(base.requestFingerprint);
+  });
 });

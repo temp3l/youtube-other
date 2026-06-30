@@ -248,6 +248,34 @@ export const shortRewriteArtifactSchema = z
     outputTokens: z.number().int().nonnegative().optional(),
     totalTokens: z.number().int().nonnegative().optional(),
     estimatedCostUsd: z.number().finite().nonnegative().nullable().optional(),
+    failedRequest: z
+      .object({
+        model: z.string().min(1),
+        reasoningEffort: z.string().min(1).optional(),
+        outputCap: z.number().int().positive(),
+        attemptNumber: z.number().int().positive(),
+        requestFingerprint: z.string().min(1).optional(),
+        incompleteReason: z.string().min(1).optional(),
+        usage: z
+          .object({
+            inputTokens: z.number().int().nonnegative().optional(),
+            cachedInputTokens: z.number().int().nonnegative().optional(),
+            reasoningTokens: z.number().int().nonnegative().optional(),
+            outputTokens: z.number().int().nonnegative().optional(),
+            totalTokens: z.number().int().nonnegative().optional(),
+            estimatedCostUsd: z
+              .number()
+              .finite()
+              .nonnegative()
+              .nullable()
+              .optional(),
+          })
+          .strict()
+          .optional(),
+        estimatedCostUsd: z.number().finite().nonnegative().nullable().optional(),
+      })
+      .strict()
+      .optional(),
     repairHistory: z
       .array(
         z

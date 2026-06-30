@@ -95,6 +95,23 @@ function makeMockClient(responses: readonly MockResponse[]) {
   };
 }
 
+function makeRawClient(responses: readonly unknown[]) {
+  const queue = [...responses];
+  const responseFn = vi.fn(async () => {
+    const next = queue.shift();
+    if (!next) {
+      throw new Error("No mock raw response left.");
+    }
+    return next;
+  });
+  return {
+    responses: {
+      create: responseFn,
+      parse: responseFn,
+    },
+  };
+}
+
 function buildLocalizedNarration(wordCount: number): string[] {
   const base = [
     "Elena Ward escuchó a Bramble respirar bajo la cama durante la tormenta.",
@@ -503,6 +520,113 @@ describe("story localization helpers", () => {
         "utf8"
       )
     ).rejects.toThrow();
+  });
+
+  it("regenerates localized full narration after max_output_tokens exhaustion without using short repair prompts", async () => {
+    const tempDir = mkdtempSync(
+      path.join(os.tmpdir(), "story-localization-full-regenerate-")
+    );
+    const config = createStoryLocalizationConfig({
+      outputDirectory: tempDir,
+      languages: ["es"],
+      includeEnglishShort: false,
+      includeLocalizedShorts: false,
+      processingMode: "sync",
+      force: true,
+      maxOutputTokens: 6000,
+      retryMaxOutputTokens: 9000,
+    });
+    const localizedFull = {
+      language: "es",
+      full: {
+        narrationParagraphs: [
+          "Elena Ward oyó a Bramble respirar bajo la cama mientras la tormenta golpeaba la casa.",
+          "A la mañana siguiente encontró las huellas mojadas en el pasillo, HUMANS CAN LICK TOO en el espejo y la libreta del ático con la frase SHE REACHED DOWN FIRST.",
+          "Cuando la alarma del vecino rompió el silencio, Elena vio al intruso huir por la trampilla y comprendió que el asesino había estado dentro toda la noche.",
+        ],
+      },
+      targetNarrationWpm: 170,
+      preservationChecklist: makeLocalizedPackage("es", 160).preservationChecklist,
+      diagnostics: {
+        removedGenericFiller: [],
+        adaptationNotes: [],
+      },
+    };
+    const client = makeRawClient([
+      {
+        id: "resp-en",
+        output_text: JSON.stringify({
+          language: "en",
+          full: {
+            narrationParagraphs: buildRetrySafeEnglishFullNarration(),
+          },
+          targetNarrationWpm: 170,
+          preservationChecklist: makeLocalizedPackage("en", 160)
+            .preservationChecklist,
+          diagnostics: {
+            removedGenericFiller: [],
+            adaptationNotes: [],
+          },
+        }),
+        output_parsed: JSON.parse(
+          JSON.stringify({
+            language: "en",
+            full: {
+              narrationParagraphs: buildRetrySafeEnglishFullNarration(),
+            },
+            targetNarrationWpm: 170,
+            preservationChecklist: makeLocalizedPackage("en", 160)
+              .preservationChecklist,
+            diagnostics: {
+              removedGenericFiller: [],
+              adaptationNotes: [],
+            },
+          })
+        ),
+        usage: { input_tokens: 100, output_tokens: 50, input_tokens_details: { cached_tokens: 0 } },
+      },
+      {
+        id: "resp-es-incomplete",
+        output_parsed: null,
+        output_text: "",
+        status: "incomplete",
+        incomplete_details: { reason: "max_output_tokens" },
+        usage: {
+          input_tokens: 110,
+          output_tokens: 55,
+          input_tokens_details: { cached_tokens: 0 },
+          output_tokens_details: { reasoning_tokens: 4 },
+          total_tokens: 165,
+        },
+      },
+      {
+        id: "resp-es-regenerated",
+        output_text: JSON.stringify(localizedFull),
+        output_parsed: localizedFull,
+        usage: { input_tokens: 120, output_tokens: 60, input_tokens_details: { cached_tokens: 0 } },
+      },
+    ]);
+
+    const result = await localizeStoryEpisode(sourceFile, config, {
+      client: client as never,
+    });
+
+    expect(result.failure).toBeUndefined();
+    expect(client.responses.create).toHaveBeenCalledTimes(3);
+    const secondRequest = client.responses.create.mock.calls[1]?.[0] as {
+      readonly input: readonly { readonly content: readonly { readonly text: string }[] }[];
+    };
+    const thirdRequest = client.responses.create.mock.calls[2]?.[0] as {
+      readonly input: readonly { readonly content: readonly { readonly text: string }[] }[];
+      readonly max_output_tokens: number;
+    };
+    expect(secondRequest.input[1]?.content[0]?.text).not.toContain(
+      "Validation errors:"
+    );
+    expect(thirdRequest.input[1]?.content[0]?.text).not.toContain(
+      "Validation errors:"
+    );
+    expect(thirdRequest.max_output_tokens).toBe(9000);
   });
 
   it("falls back to the structured output array when output_text is empty", () => {

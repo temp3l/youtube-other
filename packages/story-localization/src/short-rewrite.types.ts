@@ -222,6 +222,18 @@ export interface ShortRewriteArtifact {
   readonly outputTokens?: number | undefined;
   readonly totalTokens?: number | undefined;
   readonly estimatedCostUsd?: number | null | undefined;
+  readonly failedRequest?:
+    | {
+        readonly model: string;
+        readonly reasoningEffort?: string | undefined;
+        readonly outputCap: number;
+        readonly attemptNumber: number;
+        readonly requestFingerprint?: string | undefined;
+        readonly incompleteReason?: string | undefined;
+        readonly usage?: ShortRewriteUsage | undefined;
+        readonly estimatedCostUsd?: number | null | undefined;
+      }
+    | undefined;
   readonly repairHistory?:
     | readonly {
         readonly stage: "repair" | "regenerate";

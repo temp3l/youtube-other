@@ -56,6 +56,7 @@ import {
   readRemoteFileText,
   requireBatchCapabilities,
 } from "./story-localization-openai-batch.js";
+import { normalizeIncompleteReason } from "./story-retry-routing.js";
 import {
   EnglishGeneratedStoryPackageSchema,
   generatedStoryPackageSchema,
@@ -2347,6 +2348,14 @@ export async function importStoryLocalizationBatch(
           ) {
             throw new StoryLocalizationApiError(
               `Batch item ${item.customId} returned HTTP ${line.response.status_code}.`
+            );
+          }
+          const incompleteReason = normalizeIncompleteReason(line);
+          if (incompleteReason) {
+            throw new StoryLocalizationApiError(
+              incompleteReason === "max_output_tokens"
+                ? `Batch item ${item.customId} was incomplete because max_output_tokens was exhausted.`
+                : `Batch item ${item.customId} was incomplete (${incompleteReason}).`
             );
           }
           const outputTextValue = line.response?.body.output_text;

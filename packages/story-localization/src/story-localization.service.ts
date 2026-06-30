@@ -145,6 +145,12 @@ import {
   SHORT_REWRITE_DEFAULT_TEMPERATURE,
 } from "./short-rewrite.constants.js";
 import { buildCanonicalSourceFileName } from "./short-rewrite.utils.js";
+import {
+  buildPersistedFailedRequestMetadata,
+  decideRetryRoute,
+  StoryRetryableRequestError,
+  type StoryRetryPurpose,
+} from "./story-retry-routing.js";
 
 export interface StoryLocalizationOptions {
   readonly client?: OpenAiStoryClient;
@@ -1080,7 +1086,49 @@ async function callOpenAiStructured(
               : refusal
                 ? `${requestLabel} was refused by the model: ${refusal}`
                 : `${requestLabel} returned no parsed output.`;
-        throw new StoryLocalizationApiError(message);
+        throw new StoryRetryableRequestError(
+          message,
+          buildPersistedFailedRequestMetadata({
+            model,
+            ...(reasoningEffort !== undefined
+              ? { reasoningEffort }
+              : {}),
+            outputCap: maxOutputTokens,
+            attemptNumber: attempt,
+            ...(incompleteReason !== undefined
+              ? { incompleteReason }
+              : {}),
+            ...(response.usage
+              ? {
+                  usage: {
+                    ...(response.usage.input_tokens !== undefined
+                      ? { inputTokens: response.usage.input_tokens }
+                      : {}),
+                    ...(response.usage.input_tokens_details?.cached_tokens !==
+                    undefined
+                      ? {
+                          cachedInputTokens:
+                            response.usage.input_tokens_details.cached_tokens,
+                        }
+                      : {}),
+                    ...(response.usage.output_tokens_details?.reasoning_tokens !==
+                    undefined
+                      ? {
+                          reasoningTokens:
+                            response.usage.output_tokens_details.reasoning_tokens,
+                        }
+                      : {}),
+                    ...(response.usage.output_tokens !== undefined
+                      ? { outputTokens: response.usage.output_tokens }
+                      : {}),
+                    ...(response.usage.total_tokens !== undefined
+                      ? { totalTokens: response.usage.total_tokens }
+                      : {}),
+                  },
+                }
+              : {}),
+          })
+        );
       }
       const outputText =
         extractStructuredResponseText(responseRecord) ??
@@ -1132,6 +1180,10 @@ async function callOpenAiStructured(
       };
     } catch (error) {
       lastError = error;
+      if (error instanceof StoryRetryableRequestError) {
+        await persistDebugFailure(error);
+        throw error;
+      }
       if (attempt < maxAttempts && isRetryableOpenAiRequestError(error)) {
         const delayMs = Math.min(
           8_000,
@@ -1206,7 +1258,10 @@ async function generateStructuredStoryPackage<T>(
   repairReasoningEffort: StoryLocalizationConfig["reasoningEffort"] | undefined,
   validate: (value: T) => string[],
   options?: {
+    readonly purpose?: StoryRetryPurpose;
+    readonly regenerationMaxOutputTokens?: number;
     readonly retryLabel?: string;
+    readonly canRepair?: (issues: readonly string[]) => boolean;
     readonly shouldRetry?: (issues: readonly string[]) => boolean;
     readonly retryInstructions?: readonly string[];
     readonly fallbackTransform?: (args: {
@@ -1257,20 +1312,62 @@ async function generateStructuredStoryPackage<T>(
       attempt: 1,
       isRepair: false,
     }) ?? Promise.resolve());
-  const initial = await callOpenAiStructured(
-    client,
-    model,
-    requestLabel,
-    system,
-    user,
-    schema,
-    schemaName,
-    timeoutMs,
-    temperature,
-    maxOutputTokens,
-    reasoningEffort,
-    debugOptions
-  );
+  let initial: StructuredOpenAiCallResult;
+  try {
+    initial = await callOpenAiStructured(
+      client,
+      model,
+      requestLabel,
+      system,
+      user,
+      schema,
+      schemaName,
+      timeoutMs,
+      temperature,
+      maxOutputTokens,
+      reasoningEffort,
+      debugOptions
+    );
+  } catch (error) {
+    if (!(error instanceof StoryRetryableRequestError) || !options?.purpose) {
+      throw error;
+    }
+    const decision = decideRetryRoute({
+      purpose: options.purpose,
+      incompleteReason: error.metadata.incompleteReason ?? null,
+      currentOutputCap: maxOutputTokens,
+      ...(options.regenerationMaxOutputTokens !== undefined
+        ? { nextOutputCap: options.regenerationMaxOutputTokens }
+        : {}),
+    });
+    if (decision.action !== "regenerate") {
+      throw error;
+    }
+    await (options?.preflight?.({
+      system,
+      user,
+      model,
+      maxOutputTokens: options.regenerationMaxOutputTokens ?? maxOutputTokens,
+      reasoningEffort,
+      requestLabel: `${requestLabel} regenerate`,
+      attempt: 2,
+      isRepair: false,
+    }) ?? Promise.resolve());
+    initial = await callOpenAiStructured(
+      client,
+      model,
+      `${requestLabel} regenerate`,
+      system,
+      user,
+      schema,
+      schemaName,
+      timeoutMs,
+      temperature,
+      options.regenerationMaxOutputTokens ?? maxOutputTokens,
+      reasoningEffort,
+      debugOptions
+    );
+  }
   let value: T;
   try {
     value = initial.json as T;
@@ -1289,6 +1386,10 @@ async function generateStructuredStoryPackage<T>(
       outputTokens: initial.response.usage?.outputTokens ?? 0,
       repaired: false,
     };
+  }
+  const canRepair = options?.canRepair?.(initialIssues) ?? true;
+  if (!canRepair) {
+    throw new StoryLocalizationValidationError(initialIssues.join("; "));
   }
   const repairUser = [
     "The previous JSON result was invalid for the following reasons:",
@@ -2354,6 +2455,13 @@ export async function localizeStoryEpisode(
         },
         debugDirectory
           ? {
+              purpose: "canonical-full" as const,
+              ...(config.retryMaxOutputTokens !== undefined
+                ? {
+                    regenerationMaxOutputTokens: config.retryMaxOutputTokens,
+                  }
+                : {}),
+              canRepair: () => false,
               debug: {
                 debugDirectory,
                 fileBaseName: `${debugPrefix}-en`,
@@ -2377,6 +2485,13 @@ export async function localizeStoryEpisode(
               }),
             }
           : {
+              purpose: "canonical-full" as const,
+              ...(config.retryMaxOutputTokens !== undefined
+                ? {
+                    regenerationMaxOutputTokens: config.retryMaxOutputTokens,
+                  }
+                : {}),
+              canRepair: () => false,
               preflight: buildFullStoryPreflightAdapter({
                 cacheDir,
                 parsed,
@@ -2854,6 +2969,13 @@ export async function localizeStoryEpisode(
           return issues;
         },
         {
+          purpose: "localized-full",
+          ...(config.retryMaxOutputTokens !== undefined
+            ? {
+                regenerationMaxOutputTokens: config.retryMaxOutputTokens,
+              }
+            : {}),
+          canRepair: includeLocalizedShorts ? hasShortLengthIssue : () => false,
           ...(debugDirectory
             ? {
                 debug: {

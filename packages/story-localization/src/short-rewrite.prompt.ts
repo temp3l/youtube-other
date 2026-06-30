@@ -122,6 +122,7 @@ export function buildShortRewriteRepairPrompt(args: {
   readonly validationErrors: readonly string[];
 }): { readonly system: string; readonly user: string } {
   const basePrompt = buildShortRewritePrompt(args.context);
+  const sanitizedInvalidResult = sanitizeRepairPayload(args.invalidResult);
   const repairSection = [
     "The previous result was invalid.",
     "Fix only the problems described below and return the complete JSON again.",
@@ -129,8 +130,8 @@ export function buildShortRewriteRepairPrompt(args: {
     "Validation errors:",
     ...args.validationErrors.map((entry) => `- ${entry}`),
     "",
-    "Invalid result:",
-    JSON.stringify(args.invalidResult, null, 2),
+    "Invalid short result:",
+    JSON.stringify(sanitizedInvalidResult, null, 2),
     "",
     "Do not repeat the errors in prose.",
   ].join("\n");
@@ -142,6 +143,28 @@ export function buildShortRewriteRepairPrompt(args: {
       repairSection
     ),
   };
+}
+
+function sanitizeRepairPayload(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map((entry) => sanitizeRepairPayload(entry));
+  }
+  if (!value || typeof value !== "object") {
+    return value;
+  }
+  const blockedKeys = new Set([
+    "audioInstructions",
+    "visualDirection",
+    "visualGuidance",
+    "metadata",
+    "repairHistory",
+    "full",
+  ]);
+  return Object.fromEntries(
+    Object.entries(value)
+      .filter(([key]) => !blockedKeys.has(key))
+      .map(([key, entry]) => [key, sanitizeRepairPayload(entry)])
+  );
 }
 
 export function buildShortRewriteRegenerationPrompt(args: {

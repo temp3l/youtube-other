@@ -500,13 +500,17 @@ describe("story localization batch integration", () => {
       model: "gpt-5.5",
     })
     );
-    expect(prepared.itemCount).toBe(2);
+    expect(prepared.itemCount).toBe(3);
     const manifest = await readLocalBatchManifest(
       resolveBatchStorageLayout(tempDir),
       prepared.localBatchId
     );
-    expect(manifest?.items).toHaveLength(2);
-    expect(manifest?.items.map((item) => item.language)).toEqual(["en", "es"]);
+    expect(manifest?.items).toHaveLength(3);
+    expect(manifest?.items.map((item) => item.language)).toEqual([
+      "en",
+      "de",
+      "es",
+    ]);
   });
 
   it("re-enqueues canonical English full work when prompt settings become stale", async () => {
