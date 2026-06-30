@@ -4,14 +4,14 @@
   "private": true,
   "type": "module",
   "bin": {
-    "mediaforge": "./dist/index.js"
+    "mediaforge": "./bin/mediaforge.js"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "mediaforge": "node ./dist/index.js",
-    "doctor": "node ./dist/index.js doctor",
-    "db:migrate": "node ./dist/index.js db migrate"
+    "mediaforge": "node ./bin/mediaforge.js",
+    "doctor": "node ./bin/mediaforge.js doctor",
+    "db:migrate": "node ./bin/mediaforge.js db migrate"
   },
   "dependencies": {
     "@mediaforge/alignment": "workspace:*",
