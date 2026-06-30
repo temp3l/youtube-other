@@ -730,7 +730,7 @@ describe("short rewrite service", () => {
     expect(
       JSON.parse(
         await fs.readFile(
-          path.join(debugDir, "stories-rewrite-short-es.error.json"),
+          path.join(debugDir, "stories-rewrite-short-es.response.json"),
           "utf8"
         )
       )

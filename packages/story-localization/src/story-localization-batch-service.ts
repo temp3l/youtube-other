@@ -56,7 +56,7 @@ import {
   readRemoteFileText,
   requireBatchCapabilities,
 } from "./story-localization-openai-batch.js";
-import { normalizeIncompleteReason } from "./story-retry-routing.js";
+import { normalizeIncompleteResponse } from "./story-retry-routing.js";
 import {
   EnglishGeneratedStoryPackageSchema,
   generatedStoryPackageSchema,
@@ -2350,12 +2350,12 @@ export async function importStoryLocalizationBatch(
               `Batch item ${item.customId} returned HTTP ${line.response.status_code}.`
             );
           }
-          const incompleteReason = normalizeIncompleteReason(line);
-          if (incompleteReason) {
+          const normalizedIncomplete = normalizeIncompleteResponse(line);
+          if (normalizedIncomplete) {
             throw new StoryLocalizationApiError(
-              incompleteReason === "max_output_tokens"
+              normalizedIncomplete.reason === "max_output_tokens"
                 ? `Batch item ${item.customId} was incomplete because max_output_tokens was exhausted.`
-                : `Batch item ${item.customId} was incomplete (${incompleteReason}).`
+                : `Batch item ${item.customId} was incomplete (${normalizedIncomplete.reason}).`
             );
           }
           const outputTextValue = line.response?.body.output_text;
@@ -2443,21 +2443,45 @@ export async function importStoryLocalizationBatch(
           }
           persistedFiles.push(...persisted);
           await persistStoryProductionStage(cacheDir, sourceFile, "completed");
+          const persistedUsage = line.response?.body.usage as
+            | {
+                readonly input_tokens?: number;
+                readonly output_tokens?: number;
+                readonly total_tokens?: number;
+                readonly input_tokens_details?: {
+                  readonly cached_tokens?: number;
+                };
+                readonly output_tokens_details?: {
+                  readonly reasoning_tokens?: number;
+                };
+              }
+            | undefined;
           nextItems.push({
             ...item,
             status: "persisted",
             resultImportedAt: new Date().toISOString(),
-            ...(line.response?.body.usage
+            ...(persistedUsage
               ? {
                   usage: {
-                    inputTokens: line.response.body.usage.input_tokens ?? 0,
-                    outputTokens: line.response.body.usage.output_tokens ?? 0,
-                    ...(line.response.body.usage.input_tokens_details
-                      ?.cached_tokens !== undefined
+                    inputTokens: persistedUsage.input_tokens ?? 0,
+                    outputTokens: persistedUsage.output_tokens ?? 0,
+                    ...(persistedUsage.input_tokens_details?.cached_tokens !==
+                    undefined
                       ? {
                           cachedInputTokens:
-                            line.response.body.usage.input_tokens_details
-                              .cached_tokens,
+                            persistedUsage.input_tokens_details.cached_tokens,
+                        }
+                      : {}),
+                    ...(persistedUsage.output_tokens_details?.reasoning_tokens !==
+                    undefined
+                      ? {
+                          reasoningTokens: persistedUsage.output_tokens_details
+                            .reasoning_tokens,
+                        }
+                      : {}),
+                    ...(persistedUsage.total_tokens !== undefined
+                      ? {
+                          totalTokens: persistedUsage.total_tokens,
                         }
                       : {}),
                   },
@@ -2467,6 +2491,33 @@ export async function importStoryLocalizationBatch(
         } catch (error) {
           failedItemCount += 1;
           await persistStoryProductionStage(cacheDir, sourceFile, "failed");
+          const normalizedIncomplete = normalizeIncompleteResponse(
+            successLines.get(item.customId) ?? errorLines.get(item.customId)
+          );
+          const failedRequest = normalizedIncomplete
+            ? {
+                ...(item.preflight?.requestFingerprint
+                  ? { requestFingerprint: item.preflight.requestFingerprint }
+                  : {}),
+                ...(item.promptFingerprint
+                  ? { promptFingerprint: item.promptFingerprint }
+                  : {}),
+                ...(item.responseSchemaFingerprint
+                  ? {
+                      responseSchemaFingerprint: item.responseSchemaFingerprint,
+                    }
+                  : {}),
+                ...(item.parentArtifact?.fingerprint
+                  ? {
+                      parentArtifactFingerprint: item.parentArtifact.fingerprint,
+                    }
+                  : {}),
+                incompleteReason: normalizedIncomplete.reason,
+                ...(normalizedIncomplete.usage
+                  ? { usage: normalizedIncomplete.usage }
+                  : {}),
+              }
+            : undefined;
           nextItems.push({
             ...item,
             status:
@@ -2475,7 +2526,13 @@ export async function importStoryLocalizationBatch(
                 : error instanceof StoryLocalizationValidationError
                   ? "content-invalid"
                   : "api-failed",
+            ...(failedRequest
+              ? {
+                  failedRequest,
+                }
+              : {}),
             error: {
+              ...(normalizedIncomplete ? { code: "INCOMPLETE_PROVIDER_RESPONSE" } : {}),
               message: error instanceof Error ? error.message : String(error),
             },
           });

@@ -415,6 +415,34 @@ export const localBatchManifestItemSchema = z.object({
       inputTokens: z.number().int().nonnegative(),
       cachedInputTokens: z.number().int().nonnegative().optional(),
       outputTokens: z.number().int().nonnegative(),
+      reasoningTokens: z.number().int().nonnegative().optional(),
+      totalTokens: z.number().int().nonnegative().optional(),
+      estimatedCostUsd: z.number().finite().nonnegative().nullable().optional(),
+    })
+    .optional(),
+  failedRequest: z
+    .object({
+      requestFingerprint: z.string().min(1).optional(),
+      promptFingerprint: z.string().min(1).optional(),
+      responseSchemaFingerprint: z.string().min(1).optional(),
+      parentArtifactFingerprint: z.string().min(1).optional(),
+      incompleteReason: z.string().min(1).optional(),
+      outputCap: z.number().int().positive().optional(),
+      usage: z
+        .object({
+          inputTokens: z.number().int().nonnegative().optional(),
+          cachedInputTokens: z.number().int().nonnegative().optional(),
+          reasoningTokens: z.number().int().nonnegative().optional(),
+          outputTokens: z.number().int().nonnegative().optional(),
+          totalTokens: z.number().int().nonnegative().optional(),
+          estimatedCostUsd: z
+            .number()
+            .finite()
+            .nonnegative()
+            .nullable()
+            .optional(),
+        })
+        .optional(),
     })
     .optional(),
   error: z

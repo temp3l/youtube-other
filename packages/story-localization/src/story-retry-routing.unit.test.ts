@@ -1,9 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
+  assertRouteCompatible,
   decideRetryRoute,
+  inferRepairScopeFromIssueCodes,
+  normalizeIncompleteResponse,
   normalizeIncompleteReason,
   purposeFromVariant,
 } from "./story-retry-routing.js";
+import { GENERATED_STORY_VALIDATION_ISSUE_CODES } from "./generated-story-validator.js";
 
 describe("story retry routing", () => {
   it("routes localized full token exhaustion to full regeneration", () => {
@@ -74,6 +78,25 @@ describe("story retry routing", () => {
         },
       })
     ).toBe("max_output_tokens");
+    expect(
+      normalizeIncompleteResponse({
+        status: "incomplete",
+        incomplete_details: { reason: "content_filter" },
+        usage: {
+          input_tokens: 12,
+          output_tokens: 0,
+          total_tokens: 12,
+        },
+      })
+    ).toMatchObject({
+      status: "incomplete",
+      reason: "content_filter",
+      usage: {
+        inputTokens: 12,
+        outputTokens: 0,
+        totalTokens: 12,
+      },
+    });
   });
 
   it("maps repository variants to retry purposes", () => {
@@ -83,5 +106,25 @@ describe("story retry routing", () => {
       "canonical-short"
     );
     expect(purposeFromVariant("localized-short")).toBe("localized-short");
+  });
+
+  it("uses typed short issue codes to select a narrow repair scope", () => {
+    expect(
+      inferRepairScopeFromIssueCodes({
+        purpose: "localized-short",
+        issueCodes: [
+          GENERATED_STORY_VALIDATION_ISSUE_CODES.SHORT_HOOK_TOO_LATE,
+        ],
+      })
+    ).toBe("hook");
+  });
+
+  it("rejects invalid full-to-short route combinations", () => {
+    expect(() =>
+      assertRouteCompatible({
+        purpose: "localized-full",
+        scope: "short-regeneration",
+      })
+    ).toThrow(/Incompatible full-story retry route/);
   });
 });

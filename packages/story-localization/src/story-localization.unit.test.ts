@@ -438,7 +438,7 @@ describe("story localization helpers", () => {
     }
   );
 
-  it("retries short-length failures with a targeted short rewrite", async () => {
+  it("rejects localized full outputs that would require short-specific repair", async () => {
     const tempDir = mkdtempSync(
       path.join(os.tmpdir(), "story-localization-short-retry-")
     );
@@ -467,10 +467,10 @@ describe("story localization helpers", () => {
       client: client as never,
     });
 
-    expect(result.failure).toBeUndefined();
-    expect(client.responses.create).toHaveBeenCalledTimes(3);
-    expect(
-      await fs.readFile(
+    expect(result.failure).toContain("Short word count");
+    expect(client.responses.create).toHaveBeenCalledTimes(2);
+    await expect(
+      fs.readFile(
         path.join(
           tempDir,
           "002-even-killers-can-lick",
@@ -480,7 +480,7 @@ describe("story localization helpers", () => {
         ),
         "utf8"
       )
-    ).toContain("# Short 002");
+    ).rejects.toThrow();
   });
 
   it("blocks impossible full-story budgets before calling OpenAI", async () => {

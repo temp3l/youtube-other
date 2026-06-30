@@ -106,7 +106,7 @@ import {
 import {
   detectForbiddenPhrases,
   detectGenericFiller,
-  validateGeneratedFullStoryPackage,
+  validateFullNarrationArtifact,
   validateGeneratedStoryPackage,
   validateNarrationOnlyFullRewritePackage,
   validateWrittenMessagesPreserved,
@@ -148,6 +148,7 @@ import { buildCanonicalSourceFileName } from "./short-rewrite.utils.js";
 import {
   buildPersistedFailedRequestMetadata,
   decideRetryRoute,
+  normalizeIncompleteResponse,
   StoryRetryableRequestError,
   type StoryRetryPurpose,
 } from "./story-retry-routing.js";
@@ -637,6 +638,7 @@ function buildCanonicalEnglishFullPlan(args: {
   readonly profile: LanguageProfile;
 }): {
   readonly compiledPrompt: ReturnType<typeof buildFullPromptConfig>;
+  readonly storyIr: ReturnType<typeof adaptStoryProductionArtifactsToStoryIR>;
   readonly storyIrHash: string;
   readonly contractHash: string;
   readonly contractBuildFingerprint: string;
@@ -715,6 +717,7 @@ function buildCanonicalEnglishFullPlan(args: {
   });
   return {
     compiledPrompt,
+    storyIr,
     storyIrHash,
     contractHash,
     contractBuildFingerprint,
@@ -1077,7 +1080,8 @@ async function callOpenAiStructured(
           (content) =>
             content?.type === "refusal" && typeof content.refusal === "string"
         )?.refusal;
-        const incompleteReason = responseRecord.incomplete_details?.reason;
+        const normalizedIncomplete = normalizeIncompleteResponse(responseRecord);
+        const incompleteReason = normalizedIncomplete?.reason;
         const message =
           incompleteReason === "max_output_tokens"
             ? `${requestLabel} was incomplete because max_output_tokens was exhausted.`
@@ -1098,33 +1102,35 @@ async function callOpenAiStructured(
             ...(incompleteReason !== undefined
               ? { incompleteReason }
               : {}),
-            ...(response.usage
+            ...((normalizedIncomplete?.usage ?? response.usage)
               ? {
-                  usage: {
-                    ...(response.usage.input_tokens !== undefined
-                      ? { inputTokens: response.usage.input_tokens }
-                      : {}),
-                    ...(response.usage.input_tokens_details?.cached_tokens !==
-                    undefined
-                      ? {
-                          cachedInputTokens:
-                            response.usage.input_tokens_details.cached_tokens,
-                        }
-                      : {}),
-                    ...(response.usage.output_tokens_details?.reasoning_tokens !==
-                    undefined
-                      ? {
-                          reasoningTokens:
-                            response.usage.output_tokens_details.reasoning_tokens,
-                        }
-                      : {}),
-                    ...(response.usage.output_tokens !== undefined
-                      ? { outputTokens: response.usage.output_tokens }
-                      : {}),
-                    ...(response.usage.total_tokens !== undefined
-                      ? { totalTokens: response.usage.total_tokens }
-                      : {}),
-                  },
+                  usage:
+                    normalizedIncomplete?.usage ??
+                    {
+                      ...(response.usage?.input_tokens !== undefined
+                        ? { inputTokens: response.usage.input_tokens }
+                        : {}),
+                      ...(response.usage?.input_tokens_details?.cached_tokens !==
+                      undefined
+                        ? {
+                            cachedInputTokens:
+                              response.usage.input_tokens_details.cached_tokens,
+                          }
+                        : {}),
+                      ...(response.usage?.output_tokens_details
+                        ?.reasoning_tokens !== undefined
+                        ? {
+                            reasoningTokens:
+                              response.usage.output_tokens_details.reasoning_tokens,
+                          }
+                        : {}),
+                      ...(response.usage?.output_tokens !== undefined
+                        ? { outputTokens: response.usage.output_tokens }
+                        : {}),
+                      ...(response.usage?.total_tokens !== undefined
+                        ? { totalTokens: response.usage.total_tokens }
+                        : {}),
+                    },
                 }
               : {}),
           })
@@ -2434,24 +2440,33 @@ export async function localizeStoryEpisode(
         config.repairMaxOutputTokens,
         config.repairReasoningEffort,
         (value) => {
-          const issues: string[] = [];
           try {
             const packageValue = parseLocalizedFullRewritePackage(
               value as unknown,
               "en"
             );
-            issues.push(
-              ...validateNarrationOnlyFullRewritePackage(
-                packageValue,
-                facts,
-                profileEn,
-                "en"
-              )
+            void validateFullNarrationArtifact({
+              language: "en",
+              profile: profileEn,
+              storyIr: canonicalEnglishPlan.storyIr,
+              outputConstraints: canonicalEnglishPlan.outputConstraints,
+              narrationParagraphs: packageValue.full.narrationParagraphs,
+              preservationChecklist: {
+                primaryRevealPreserved:
+                  packageValue.preservationChecklist.primaryRevealPreserved,
+                endingPreserved:
+                  packageValue.preservationChecklist.endingPreserved,
+              },
+            });
+            return validateNarrationOnlyFullRewritePackage(
+              packageValue,
+              facts,
+              profileEn,
+              "en"
             );
           } catch (error) {
-            issues.push(error instanceof Error ? error.message : String(error));
+            return [error instanceof Error ? error.message : String(error)];
           }
-          return issues;
         },
         debugDirectory
           ? {
@@ -2930,43 +2945,63 @@ export async function localizeStoryEpisode(
         config.repairMaxOutputTokens,
         config.repairReasoningEffort,
         (value) => {
-          const issues: string[] = [];
           try {
             if (includeLocalizedShorts) {
               const packageValue = parseGeneratedPackage(
                 value as unknown,
                 language
               );
-              issues.push(
-                ...validateGeneratedStoryPackage(
-                  packageValue,
-                  facts,
-                  profile,
-                  parsed,
-                  language
-                )
+              void validateFullNarrationArtifact({
+                language,
+                profile,
+                storyIr: canonicalEnglishPlan.storyIr,
+                outputConstraints: canonicalEnglishPlan.outputConstraints,
+                narrationParagraphs: packageValue.full?.narrationParagraphs ?? [],
+                preservationChecklist: {
+                  primaryRevealPreserved:
+                    packageValue.preservationChecklist.primaryRevealPreserved,
+                  endingPreserved:
+                    packageValue.preservationChecklist.endingPreserved,
+                },
+              });
+              const issues = validateGeneratedStoryPackage(
+                packageValue,
+                facts,
+                profile,
+                parsed,
+                language
               );
               if (!packageValue.full) {
                 issues.push(`Missing full story payload for ${language}.`);
               }
-            } else {
-              const packageValue = parseLocalizedFullRewritePackage(
-                value as unknown,
-                language
-              );
-              issues.push(
-                ...validateNarrationOnlyFullRewritePackage(
-                  packageValue,
-                  facts,
-                  profile,
-                  language
-                )
-              );
+              return issues;
             }
+            const packageValue = parseLocalizedFullRewritePackage(
+              value as unknown,
+              language
+            );
+            void validateFullNarrationArtifact({
+              language,
+              profile,
+              storyIr: canonicalEnglishPlan.storyIr,
+              outputConstraints: canonicalEnglishPlan.outputConstraints,
+              narrationParagraphs: packageValue.full.narrationParagraphs,
+              preservationChecklist: {
+                primaryRevealPreserved:
+                  packageValue.preservationChecklist.primaryRevealPreserved,
+                endingPreserved:
+                  packageValue.preservationChecklist.endingPreserved,
+              },
+            });
+            return validateNarrationOnlyFullRewritePackage(
+              packageValue,
+              facts,
+              profile,
+              language
+            );
           } catch (error) {
-            issues.push(error instanceof Error ? error.message : String(error));
+            return [error instanceof Error ? error.message : String(error)];
           }
-          return issues;
         },
         {
           purpose: "localized-full",
@@ -2975,7 +3010,7 @@ export async function localizeStoryEpisode(
                 regenerationMaxOutputTokens: config.retryMaxOutputTokens,
               }
             : {}),
-          canRepair: includeLocalizedShorts ? hasShortLengthIssue : () => false,
+          canRepair: () => false,
           ...(debugDirectory
             ? {
                 debug: {
@@ -3001,51 +3036,6 @@ export async function localizeStoryEpisode(
               ? { modelPricing: options.modelPricing[config.model] }
               : {}),
           }),
-          ...(includeLocalizedShorts
-            ? {
-                retryLabel: `${profile.displayName} full story localization length repair`,
-                shouldRetry: hasShortLengthIssue,
-                retryInstructions: shortRewriteRetryInstructions,
-                fallbackTransform: (args) => {
-                  const parsedPackage = parseGeneratedPackage(
-                    args.value as unknown,
-                    language
-                  );
-                  const derivedShort = hasShortLengthIssue(args.issues)
-                    ? buildLocalizedShortNarrationFromFull(
-                        parsedPackage,
-                        profile
-                      )
-                    : null;
-                  const nextShortNarration =
-                    buildLocalizedShortNarrationWithExactMessages({
-                      baseNarrationParagraphs:
-                        derivedShort ?? parsedPackage.short.narrationParagraphs,
-                      language,
-                      facts,
-                      profile,
-                    }) ?? derivedShort;
-                  if (!nextShortNarration) {
-                    return null;
-                  }
-                  return {
-                    ...parsedPackage,
-                    short: {
-                      ...parsedPackage.short,
-                      narrationParagraphs: nextShortNarration,
-                    },
-                    diagnostics: {
-                      ...parsedPackage.diagnostics,
-                      shortWordCount: countWords(nextShortNarration.join(" ")),
-                      shortEstimatedDurationSeconds: estimateDurationSeconds(
-                        countWords(nextShortNarration.join(" ")),
-                        parsedPackage.short.targetNarrationWpm
-                      ),
-                    },
-                  };
-                },
-              }
-            : {}),
         }
       );
       repairAttempts += generated.repaired ? 1 : 0;

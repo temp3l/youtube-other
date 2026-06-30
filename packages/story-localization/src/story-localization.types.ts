@@ -546,6 +546,25 @@ export interface LocalBatchManifestItem {
     readonly inputTokens: number;
     readonly cachedInputTokens?: number;
     readonly outputTokens: number;
+    readonly reasoningTokens?: number;
+    readonly totalTokens?: number;
+    readonly estimatedCostUsd?: number | null;
+  };
+  readonly failedRequest?: {
+    readonly requestFingerprint?: string;
+    readonly promptFingerprint?: string;
+    readonly responseSchemaFingerprint?: string;
+    readonly parentArtifactFingerprint?: string;
+    readonly incompleteReason?: string;
+    readonly outputCap?: number;
+    readonly usage?: {
+      readonly inputTokens?: number;
+      readonly cachedInputTokens?: number;
+      readonly reasoningTokens?: number;
+      readonly outputTokens?: number;
+      readonly totalTokens?: number;
+      readonly estimatedCostUsd?: number | null;
+    };
   };
   readonly error?: {
     readonly code?: string;

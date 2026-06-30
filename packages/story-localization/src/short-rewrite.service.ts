@@ -91,7 +91,7 @@ import {
 import {
   buildPersistedFailedRequestMetadata,
   decideRetryRoute,
-  normalizeIncompleteReason,
+  normalizeIncompleteResponse,
   StoryRetryableRequestError,
   type PersistedFailedRequestMetadata,
 } from "./story-retry-routing.js";
@@ -145,7 +145,10 @@ import {
 } from "./story-prompt-response-schemas.js";
 import { renderLocalizedFullStory } from "./story-markdown-renderer.js";
 import { resolveEpisodeStoryProductionDirectory } from "./story-production.js";
-import { validateShortNarrationArtifact } from "./generated-story-validator.js";
+import {
+  type GeneratedStoryValidationIssueCode,
+  validateShortNarrationArtifact,
+} from "./generated-story-validator.js";
 
 type ResponseCreateRequest = Parameters<
   OpenAiStoryClient["responses"]["create"]
@@ -957,6 +960,7 @@ function analyzeGeneratedPayload(args: {
   readonly validation: ReturnType<typeof buildValidationSummary>;
   readonly warnings: string[];
   readonly issues: string[];
+  readonly issueCodes: readonly GeneratedStoryValidationIssueCode[];
 } {
   const narration = normalizeWhitespace(args.parsed.narration);
   const wordCount = countSpokenWords(narration);
@@ -1000,6 +1004,7 @@ function analyzeGeneratedPayload(args: {
     },
   });
   const issues = [...validationResult.messages];
+  const issueCodes = validationResult.issues.map((issue) => issue.code);
   const generation: ShortRewriteGeneration = {
     title: normalizeWhitespace(args.parentTitle),
     hook: firstSentence(narration),
@@ -1010,7 +1015,7 @@ function analyzeGeneratedPayload(args: {
     thumbnailText: args.parentTitle.split(" ").slice(0, 4).join(" "),
     fullVideoBridge: "Watch the full episode for the complete story.",
   };
-  return { generation, validation, warnings, issues };
+  return { generation, validation, warnings, issues, issueCodes };
 }
 
 function buildRequestSchema(): z.ZodTypeAny {
@@ -1182,7 +1187,8 @@ async function requestStructuredShortRewrite(args: {
         const extractedText =
           responseRecord.output_text ??
           extractStructuredResponseText(responseRecord.output);
-        const incompleteReason = normalizeIncompleteReason(responseRecord);
+        const normalizedIncomplete = normalizeIncompleteResponse(responseRecord);
+        const incompleteReason = normalizedIncomplete?.reason ?? null;
         if (!extractedText) {
           const responseFinishedAt = Date.now();
           await persistShortRewriteDebugArtifacts({
@@ -1226,7 +1232,7 @@ async function requestStructuredShortRewrite(args: {
               ...(incompleteReason !== null
                 ? { incompleteReason }
                 : {}),
-              usage: responseUsage,
+              usage: normalizedIncomplete?.usage ?? responseUsage,
             })
           );
         }
@@ -1858,6 +1864,7 @@ async function generateLanguagePayload(
   let validation = initialAnalysis.validation;
   let responsePayload = initialParsed;
   let issues = initialAnalysis.issues;
+  let issueCodes = initialAnalysis.issueCodes;
   let warnings = [...initialAnalysis.warnings];
   const repairHistory: Array<{
     readonly stage: "repair" | "regenerate";
@@ -1873,6 +1880,7 @@ async function generateLanguagePayload(
     const normalizedIssues = normalizeValidationErrors(issues);
     const retryDecision = decideRetryRoute({
       purpose: args.language === "en" ? "canonical-short" : "localized-short",
+      issueCodes,
       issues: normalizedIssues,
       allowTargetedRepair: shouldUseTargetedShortRepair(normalizedIssues),
     });
@@ -1932,6 +1940,7 @@ async function generateLanguagePayload(
       validation = repairedAnalysis.validation;
       warnings = [...repairedAnalysis.warnings];
       issues = repairedAnalysis.issues;
+      issueCodes = repairedAnalysis.issueCodes;
     }
     if (issues.length > 0) {
       const regenerationPrompt = buildShortRewriteRegenerationPrompt({
@@ -1991,6 +2000,7 @@ async function generateLanguagePayload(
       validation = regeneratedAnalysis.validation;
       warnings = [...regeneratedAnalysis.warnings];
       issues = regeneratedAnalysis.issues;
+      issueCodes = regeneratedAnalysis.issueCodes;
     }
     if (issues.length > 0) {
       throw new ShortRewriteValidationError(issues.join("; "));
