@@ -91,12 +91,17 @@ import {
   writeTextAtomic,
 } from "@mediaforge/shared";
 import {
+  getLanguageProfile,
+  type LanguageCode,
+} from "@mediaforge/story-localization";
+import {
   buildAudioInstructionArtifact,
   computeTtsDependencyFingerprint,
   computeSpeechModelConfigFingerprint,
   computeSpeechVoiceConfigFingerprint,
   type AudioInstructionArtifact,
   type SpeechNarrationDependency,
+  type SpeechVoicePreset,
   type TtsGenerationRecord,
   loadEpisodeScriptMarkdown,
   listEpisodeScriptLanguages,
@@ -483,6 +488,45 @@ function localeForLanguage(language: string): string {
     default:
       return "en-US";
   }
+}
+
+function isLanguageCode(language: string): language is LanguageCode {
+  return (
+    language === "en" ||
+    language === "de" ||
+    language === "es" ||
+    language === "fr" ||
+    language === "pt"
+  );
+}
+
+function defaultPaceWpmForPreset(preset: SpeechVoicePreset): number {
+  if (preset === "very-fast") {
+    return 190;
+  }
+  if (preset === "slow") {
+    return 145;
+  }
+  return 180;
+}
+
+function resolveNarrationTempoSettings(
+  language: string,
+  variant: "full" | "short",
+  preset: SpeechVoicePreset
+): { readonly paceWpm?: number; readonly speed?: number } {
+  if (!isLanguageCode(language)) {
+    return {};
+  }
+  const profile = getLanguageProfile(language);
+  const paceWpm =
+    variant === "short" ? profile.shortNarrationWpm : profile.fullNarrationWpm;
+  const basePaceWpm = defaultPaceWpmForPreset(preset);
+  const speed = Number((paceWpm / Math.max(1, basePaceWpm)).toFixed(3));
+  return {
+    paceWpm,
+    ...(Number.isFinite(speed) && speed > 0 ? { speed } : {}),
+  };
 }
 
 async function loadValidatedNarrationDependency(
@@ -1564,15 +1608,18 @@ async function commandAudioGenerate(
       .map((scene) => normalizeWhitespace(scene.canonicalNarration))
       .filter((chunk) => chunk.length > 0) ?? [];
   const sceneCount = manifest?.scenePlan?.scenes.length;
+  const localizedNarrationChunks = balanceScriptChunksForScenes(
+    splitEpisodeScriptMarkdown(narrationDependency.narrationText),
+    sceneCount
+  );
   const chunks =
-    sceneChunks.length > 0
-      ? sceneChunks
-      : rewrittenChunks.length > 0
-        ? balanceScriptChunksForScenes(rewrittenChunks, sceneCount)
-        : balanceScriptChunksForScenes(
-            splitEpisodeScriptMarkdown(narrationDependency.narrationText),
-            sceneCount
-          );
+    language !== "en"
+      ? localizedNarrationChunks
+      : sceneChunks.length > 0
+        ? sceneChunks
+        : rewrittenChunks.length > 0
+          ? balanceScriptChunksForScenes(rewrittenChunks, sceneCount)
+          : localizedNarrationChunks;
   if (chunks.length === 0) {
     throw new Error(`No narration text found in ${narrationDependency.filePath}.`);
   }
@@ -1601,13 +1648,25 @@ async function commandAudioGenerate(
       ? compactConfigOverrides(episodeConfig)
       : emptyEpisodeOverrides
   );
+  const speechVoicePreset: SpeechVoicePreset =
+    config.speechVoicePreset ??
+    episodeConfig?.speechVoicePreset ??
+    "fast";
+  const narrationTempo = resolveNarrationTempoSettings(
+    language,
+    "full",
+    speechVoicePreset
+  );
   const speechSettings = loadSpeechVoiceSettings({
-    ...(config.speechVoicePreset
-      ? { preset: config.speechVoicePreset }
-      : episodeConfig?.speechVoicePreset
-        ? { preset: episodeConfig.speechVoicePreset }
-        : {}),
+    preset: speechVoicePreset,
     ...(language ? { language } : {}),
+    artifactType: "full",
+    ...(narrationTempo.paceWpm !== undefined
+      ? { paceWpm: narrationTempo.paceWpm }
+      : {}),
+    ...(narrationTempo.speed !== undefined
+      ? { speed: narrationTempo.speed }
+      : {}),
   });
   await ensureDir(segmentsDir);
   await cleanupStaleAudioTempFiles(audioDir, segmentsDir);

@@ -20,7 +20,14 @@ export {
   splitEpisodeScriptMarkdown,
   writeEpisodeScriptMarkdown,
 } from "./script-markdown.js";
-export { loadSpeechVoiceSettings, speechVoiceSettings } from "./voice-settings.js";
+export {
+  loadSpeechVoiceInstructionTemplate,
+  loadSpeechVoiceSettings,
+  resolveSpeechVoiceInstructionPath,
+  speechVoiceSettings,
+  type SpeechArtifactType,
+  type SpeechVoicePreset,
+} from "./voice-settings.js";
 export * from "./audio-instructions.js";
 
 export interface SpeechSynthesisRequest {

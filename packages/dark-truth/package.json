@@ -17,6 +17,7 @@
     "@mediaforge/process-runner": "workspace:*",
     "@mediaforge/shared": "workspace:*",
     "@mediaforge/speech": "workspace:*",
+    "@mediaforge/story-localization": "workspace:*",
     "zod": "^4.0.14"
   }
 }

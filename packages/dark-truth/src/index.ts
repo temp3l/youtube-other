@@ -22,9 +22,11 @@ import { FFmpegVideoRenderer } from "@mediaforge/rendering";
 import { runCommand } from "@mediaforge/process-runner";
 import {
   OpenAiCompatibleSpeechProvider,
+  loadSpeechVoiceInstructionTemplate,
   loadSpeechVoiceSettings,
   MockSpeechProvider,
 } from "@mediaforge/speech";
+import { getLanguageProfile } from "@mediaforge/story-localization";
 import { loadEpisodeConfig } from "@mediaforge/config";
 import {
   buildSrt,
@@ -421,6 +423,33 @@ function normalizeSpeechVoicePreset(
   return undefined;
 }
 
+function defaultPaceWpmForPreset(preset: SpeechVoicePreset): number {
+  if (preset === "very-fast") {
+    return 190;
+  }
+  if (preset === "slow") {
+    return 145;
+  }
+  return 180;
+}
+
+function resolveNarrationTempoSettings(
+  language: SupportedLanguage,
+  artifactType: ArtifactType,
+  preset: SpeechVoicePreset
+): { readonly paceWpm: number; readonly speed: number } {
+  const profile = getLanguageProfile(language);
+  const paceWpm =
+    artifactType === "short"
+      ? profile.shortNarrationWpm
+      : profile.fullNarrationWpm;
+  const basePaceWpm = defaultPaceWpmForPreset(preset);
+  return {
+    paceWpm,
+    speed: Number((paceWpm / Math.max(1, basePaceWpm)).toFixed(3)),
+  };
+}
+
 async function resolveSpeechVoicePreset(
   episodeRootDir: string,
   fallback: SpeechVoicePreset
@@ -443,9 +472,17 @@ function createSpeechProvider(
   const fallbackPreset: SpeechVoicePreset = artifactType === "short" ? "very-fast" : "fast";
   const configuredVoice = resolveTtsVoice(language, artifactType);
   return resolveSpeechVoicePreset(episodeRootDir, fallbackPreset).then((preset) => {
+    const narrationTempo = resolveNarrationTempoSettings(
+      language,
+      artifactType,
+      preset
+    );
     const voiceSettings = loadSpeechVoiceSettings({
       preset,
       language,
+      artifactType,
+      paceWpm: narrationTempo.paceWpm,
+      speed: narrationTempo.speed,
       ...(configuredVoice ? { voice: configuredVoice } : {}),
       ...(process.env["OPENAI_TTS_MODEL"]
         ? { model: process.env["OPENAI_TTS_MODEL"] }
@@ -1645,20 +1682,22 @@ async function loadVoiceProfile(
       : artifactType === "short"
         ? "very-fast"
         : "fast";
-  const suffix = artifactType === "short" ? "short" : "v1";
+  const suffix = artifactType === "short" ? "short-v1" : "v1";
   const filePath = path.resolve(
     "config",
     "voices",
     "dark-truth-documentary",
     `${language}-${suffix}.txt`
   );
-  const fallback = loadSpeechVoiceSettings({ preset: safePreset, language }).instructions;
-  const text = (await fileExists(filePath))
-    ? await fs.readFile(filePath, "utf8")
-    : fallback;
+  const template = loadSpeechVoiceInstructionTemplate({
+    preset: safePreset,
+    language,
+    artifactType,
+  });
+  const text = template.instructions;
   return {
     text,
-    path: filePath,
+    path: template.path ?? filePath,
     sha256: hashText(text),
     preset: safePreset,
   };

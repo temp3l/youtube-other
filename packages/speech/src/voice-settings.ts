@@ -11,6 +11,7 @@ export const speechVoicePresetSchema = {
   values: ["slow", "fast", "very-fast"] as const
 } as const;
 export type SpeechVoicePreset = (typeof speechVoicePresetSchema.values)[number];
+export type SpeechArtifactType = "full" | "short";
 
 const fallbackVoiceInstructions: Record<SpeechVoicePreset, string> = {
   slow: [
@@ -117,13 +118,68 @@ function buildLanguageAdjustment(languageCode?: string): string {
   ].join(" ");
 }
 
+function defaultPaceWpmForPreset(preset: SpeechVoicePreset): number {
+  if (preset === "very-fast") {
+    return 190;
+  }
+  if (preset === "slow") {
+    return 145;
+  }
+  return 180;
+}
+
+function defaultSpeedForPreset(preset: SpeechVoicePreset): number | undefined {
+  return preset === "very-fast" ? 1.5 : undefined;
+}
+
+export function resolveSpeechVoiceInstructionPath(
+  language: string,
+  artifactType: SpeechArtifactType = "full"
+): string {
+  const suffix = artifactType === "short" ? "short-v1" : "v1";
+  return path.join(
+    repoRoot,
+    "config",
+    "voices",
+    "dark-truth-documentary",
+    `${language.toLowerCase()}-${suffix}.txt`
+  );
+}
+
+export interface SpeechVoiceInstructionTemplate {
+  readonly instructions: string;
+  readonly path?: string;
+}
+
+export function loadSpeechVoiceInstructionTemplate(input: {
+  readonly preset: SpeechVoicePreset;
+  readonly language?: string;
+  readonly artifactType?: SpeechArtifactType;
+}): SpeechVoiceInstructionTemplate {
+  const { preset, language } = input;
+  if (language) {
+    const path = resolveSpeechVoiceInstructionPath(language, input.artifactType);
+    try {
+      const instructions = fs.readFileSync(path, "utf8").trim();
+      if (instructions.length > 0) {
+        return { instructions, path };
+      }
+    } catch {}
+  }
+  return {
+    instructions: instructionsForPreset(readVoiceSettingsFile(), preset)
+  };
+}
+
 export interface SpeechVoiceSettings {
   readonly preset: SpeechVoicePreset;
   readonly language?: string;
+  readonly artifactType?: SpeechArtifactType;
   readonly instructions: string;
   readonly profile: VoiceProfile;
   readonly model: string;
   readonly voice: string;
+  readonly paceWpm: number;
   readonly speed?: number;
 }
 
@@ -138,14 +194,28 @@ function readVoiceSettingsFile(): string {
 export interface SpeechVoiceSettingsOverrides {
   readonly preset?: SpeechVoicePreset;
   readonly language?: string;
+  readonly artifactType?: SpeechArtifactType;
   readonly model?: string;
   readonly voice?: string;
+  readonly paceWpm?: number;
+  readonly speed?: number;
 }
 
 export function loadSpeechVoiceSettings(overrides: SpeechVoiceSettingsOverrides = {}): SpeechVoiceSettings {
   const preset = overrides.preset ?? "fast";
   const language = overrides.language;
-  const instructions = [buildLanguageAdjustment(language), instructionsForPreset(readVoiceSettingsFile(), preset)].filter((part) => part.length > 0).join(" ");
+  const artifactType = overrides.artifactType;
+  const template = loadSpeechVoiceInstructionTemplate({
+    preset,
+    ...(language ? { language } : {}),
+    ...(artifactType ? { artifactType } : {}),
+  });
+  const paceWpm = overrides.paceWpm ?? defaultPaceWpmForPreset(preset);
+  const speed = overrides.speed ?? defaultSpeedForPreset(preset);
+  const instructions = [
+    buildLanguageAdjustment(language),
+    template.instructions,
+  ].filter((part) => part.length > 0).join(" ");
   const profile =
     preset === "very-fast"
       ? {
@@ -153,7 +223,7 @@ export function loadSpeechVoiceSettings(overrides: SpeechVoiceSettingsOverrides 
           label: "ChatGPT very-fast male documentary",
           gender: "male" as const,
           style: "very brisk, focused, clear, informative, documentary-like",
-          paceWpm: 190
+          paceWpm
         }
       : preset === "fast"
         ? {
@@ -161,23 +231,25 @@ export function loadSpeechVoiceSettings(overrides: SpeechVoiceSettingsOverrides 
             label: "ChatGPT fast male documentary",
             gender: "male" as const,
             style: "brisk, confident, clear, informative, documentary-like",
-            paceWpm: 180
+            paceWpm
           }
         : {
             id: "chatgpt-calm-male-documentary",
             label: "ChatGPT calm male documentary",
             gender: "male" as const,
             style: "calm, mature, clear, informative, warm but not theatrical",
-            paceWpm: 145
+            paceWpm
           };
   return {
     preset,
     ...(language ? { language } : {}),
+    ...(artifactType ? { artifactType } : {}),
     instructions,
     model: overrides.model ?? "gpt-4o-mini-tts",
     voice: overrides.voice ?? "onyx",
     profile,
-    ...(preset === "very-fast" ? { speed: 1.5 } : {})
+    paceWpm,
+    ...(speed !== undefined ? { speed } : {})
   };
 }
 

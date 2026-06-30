@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { loadSpeechVoiceSettings } from "./voice-settings.js";
+import {
+  loadSpeechVoiceInstructionTemplate,
+  loadSpeechVoiceSettings,
+  resolveSpeechVoiceInstructionPath,
+} from "./voice-settings.js";
 
 describe("speech voice settings", () => {
   it("loads the fast preset by default", () => {
@@ -29,5 +33,38 @@ describe("speech voice settings", () => {
     expect(settings.language).toBe("es");
     expect(settings.instructions).toContain("Spanish");
     expect(settings.instructions).toContain("es");
+    expect(settings.instructions).toContain("Mantén un ritmo aproximado de 175 palabras por minuto.");
+  });
+
+  it("loads artifact-specific voice templates from config", () => {
+    const fullTemplate = loadSpeechVoiceInstructionTemplate({
+      preset: "fast",
+      language: "de",
+      artifactType: "full",
+    });
+    const shortTemplate = loadSpeechVoiceInstructionTemplate({
+      preset: "very-fast",
+      language: "de",
+      artifactType: "short",
+    });
+
+    expect(fullTemplate.path).toBe(resolveSpeechVoiceInstructionPath("de", "full"));
+    expect(fullTemplate.instructions).toContain("168 Wörter pro Minute");
+    expect(shortTemplate.path).toBe(resolveSpeechVoiceInstructionPath("de", "short"));
+    expect(shortTemplate.instructions).toContain("170 Wörter pro Minute");
+  });
+
+  it("applies explicit pace and speed overrides", () => {
+    const settings = loadSpeechVoiceSettings({
+      preset: "fast",
+      language: "de",
+      artifactType: "full",
+      paceWpm: 168,
+      speed: 0.933,
+    });
+
+    expect(settings.paceWpm).toBe(168);
+    expect(settings.profile.paceWpm).toBe(168);
+    expect(settings.speed).toBe(0.933);
   });
 });
