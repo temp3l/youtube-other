@@ -24,6 +24,7 @@ export type StoryArtifactVariant = z.infer<typeof storyArtifactVariantSchema>;
 
 export const STORY_ARTIFACT_OWNERS = [
   "narration",
+  "analysis",
   "metadata",
   "audio",
   "scene-plan",

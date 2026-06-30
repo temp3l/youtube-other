@@ -9,6 +9,7 @@ This subsystem handles structured English full rewrites, localized full rewrites
 - `apps/cli/src/story-localization-commands.ts`
 - `apps/cli/src/story-full-rewrite-command.ts`
 - `apps/cli/src/story-short-rewrite-command.ts`
+- `apps/cli/src/story-analysis-command.ts`
 
 ## Main Services
 
@@ -40,6 +41,9 @@ This subsystem handles structured English full rewrites, localized full rewrites
    Generated output is checked for schema validity, message preservation, duration or word-count constraints, and filler or editorial drift; repair prompts can be issued when needed.
 9. Cache writes and artifact materialization
    Cache entries, production artifacts, narration-only canonical JSON artifacts, compatibility markdown, JSON sidecars, and debug artifacts are persisted into episode output directories.
+
+10. Production analysis
+   `stories analyze` reads a persisted full story artifact, evaluates production readiness, writes `story-production-analysis.json` beside the target story, and exposes the current or stale state through inspect/status surfaces without regenerating story content.
 
 ## Downstream Ownership Boundaries
 

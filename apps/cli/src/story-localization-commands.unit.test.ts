@@ -41,11 +41,14 @@ describe("story localization command registration", () => {
     expect(stories).toBeDefined();
     expect(batches).toBeDefined();
     expect(commandNames(stories as Command)).toEqual([
+      "analyze",
       "bootstrap-shared",
+      "inspect",
       "localize",
       "resume-images",
       "rewrite-full",
       "rewrite-short",
+      "status",
       "sync-characters",
     ]);
     expect(commandNames(batches as Command)).toEqual([
@@ -71,6 +74,7 @@ describe("story localization command registration", () => {
     const docs = await fs.readFile(path.resolve("docs/cli.md"), "utf8");
     expect(docs).toContain("stories rewrite-full");
     expect(docs).toContain("stories rewrite-short");
+    expect(docs).toContain("stories analyze");
     expect(docs).toContain("stories:batches verify-index");
     expect(docs).toContain("node apps/cli/dist/index.js episode resume-images");
     expect(docs).not.toContain(

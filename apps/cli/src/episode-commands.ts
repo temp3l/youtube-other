@@ -35,6 +35,7 @@ import {
 import {
   extractCanonicalStoryFacts,
   parseCanonicalSourceStory,
+  resolveStoryProductionAnalysisStatus,
   type ParsedSourceStory,
 } from "@mediaforge/story-localization";
 import {
@@ -865,14 +866,34 @@ async function handleReviewApproval(
 export async function commandEpisodeInspect(
   options: EpisodeCommandOptions
 ): Promise<void> {
+  const outputRoot = resolveOutputRoot(options);
   const discoveries = filterDiscoveries(
     await discoverEpisodeSources(resolveSourceRoot(options)),
     resolveEpisodeFilter(options)
   );
+  const episodes = await Promise.all(
+    discoveries.map(async (discovery) => ({
+      ...discovery,
+      storyProductionAnalysis: await resolveStoryProductionAnalysisStatus({
+        outputRoot,
+        episodeSlug: discovery.slug,
+        language: "en",
+        format: "full",
+      }).catch(() => ({
+        analysisPresent: false,
+        analysisCurrent: false,
+        analysisFingerprintMatches: false,
+        analysisState: "MISSING" as const,
+        failedProductionGates: [],
+        blockingIssueCount: 0,
+        requiredChangeCount: 0,
+      })),
+    }))
+  );
   const payload = {
     sourceRoot: resolveSourceRoot(options),
-    outputRoot: resolveOutputRoot(options),
-    episodes: discoveries,
+    outputRoot,
+    episodes,
   };
   process.stdout.write(`${JSON.stringify(payload, null, 2)}\n`);
 }
@@ -1033,6 +1054,20 @@ export async function commandEpisodeStatus(
         slug: discovery.slug,
         englishApproval: englishApproval?.approvalState ?? "not-started",
         staleEnglishApproval: stale,
+        storyProductionAnalysis: await resolveStoryProductionAnalysisStatus({
+          outputRoot,
+          episodeSlug: discovery.slug,
+          language: "en",
+          format: "full",
+        }).catch(() => ({
+          analysisPresent: false,
+          analysisCurrent: false,
+          analysisFingerprintMatches: false,
+          analysisState: "MISSING" as const,
+          failedProductionGates: [],
+          blockingIssueCount: 0,
+          requiredChangeCount: 0,
+        })),
       };
     })
   );

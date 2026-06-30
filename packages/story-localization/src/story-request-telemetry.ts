@@ -10,6 +10,7 @@ export type StoryTelemetryStage =
   | "full-repair"
   | "short-repair"
   | "semantic-validation"
+  | "production-analysis"
   | "metadata"
   | "audio-instructions"
   | "tts"
@@ -42,7 +43,15 @@ interface StoryRequestFingerprintCommon {
   readonly language: LanguageCode;
   readonly locale: string;
   readonly variant: "full" | "short";
-  readonly owner: "narration" | "metadata" | "audio" | "scene-plan" | "image-plan" | "render" | "publication";
+  readonly owner:
+    | "narration"
+    | "analysis"
+    | "metadata"
+    | "audio"
+    | "scene-plan"
+    | "image-plan"
+    | "render"
+    | "publication";
   readonly provider: string;
   readonly model: string;
   readonly stage: StoryTelemetryStage;
@@ -133,6 +142,12 @@ export type StoryRequestFingerprintInput =
       readonly purpose: "validation";
       readonly owner: "narration";
       readonly parent?: StoryRequestFingerprintParent | undefined;
+    })
+  | (StoryRequestFingerprintCommon & {
+      readonly stage: "production-analysis";
+      readonly purpose: "validation";
+      readonly owner: "analysis";
+      readonly configurationFingerprint: string;
     })
   | (StoryRequestFingerprintCommon & {
       readonly stage: "metadata";

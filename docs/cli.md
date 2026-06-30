@@ -248,6 +248,34 @@ Options:
 
 Supported story language codes are `en`, `de`, `es`, `fr`, and `pt`. Full localization command defaults for non-English languages are `de,es,fr,pt`; short rewrite defaults to `en` when no language is provided.
 
+`stories analyze` evaluates a persisted full story artifact and persists `episodes/<episode-slug>/<language>/full/story-production-analysis.json`.
+
+```bash
+npm run mediaforge -- stories analyze \
+  --episode 014-hachishakusama-the-eight-foot-woman \
+  --language en \
+  --format full \
+  --json
+```
+
+Options:
+
+- `--episode <slug-or-number>`
+- `--language <code>`
+- `--format <full>`
+- `--output-root <path>`
+- `--force`
+- `--refresh`
+- `--model <model>`
+- `--reasoning-effort <low|medium|high>`
+- `--json`
+- `--verbose`
+
+Related analysis state surfaces:
+
+- `stories inspect --episode <slug-or-number> --language <code> --format full`
+- `stories status --episode <slug-or-number> --language <code> --format full`
+
 Story artifact paths:
 
 - Materialized canonical source: `episodes/<episode-slug>/source/<episode-number>-<episode-slug>-en-full.md`
