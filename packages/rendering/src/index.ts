@@ -920,6 +920,51 @@ function sceneHash(scene: ScenePlan["scenes"][number]): string {
   );
 }
 
+function parseSceneImageFilename(
+  filename: string
+): {
+  readonly sceneId: string;
+  readonly startSeconds: number;
+  readonly endSeconds: number;
+  readonly aspectRatio: string;
+} | null {
+  const match = /^(.+?)__(\d{6})-(\d{6})__([0-9]+:[0-9]+)\.png$/u.exec(filename);
+  if (!match) {
+    return null;
+  }
+  const startSeconds = Number.parseInt(match[2] ?? "", 10);
+  const endSeconds = Number.parseInt(match[3] ?? "", 10);
+  if (!Number.isFinite(startSeconds) || !Number.isFinite(endSeconds)) {
+    return null;
+  }
+  return {
+    sceneId: match[1] ?? "",
+    startSeconds,
+    endSeconds,
+    aspectRatio: match[4] ?? "",
+  };
+}
+
+function scoreSceneImageFilenameMatch(
+  expectedFilename: string,
+  candidateFilename: string
+): number | null {
+  const expected = parseSceneImageFilename(expectedFilename);
+  const candidate = parseSceneImageFilename(candidateFilename);
+  if (
+    !expected ||
+    !candidate ||
+    expected.sceneId !== candidate.sceneId ||
+    expected.aspectRatio !== candidate.aspectRatio
+  ) {
+    return null;
+  }
+  return (
+    Math.abs(candidate.startSeconds - expected.startSeconds) * 1000 +
+    Math.abs(candidate.endSeconds - expected.endSeconds)
+  );
+}
+
 async function loadSceneClipManifest(
   manifestPath: string
 ): Promise<SceneClipManifest | null> {
@@ -1257,6 +1302,28 @@ async function resolveSceneImagePath(
     return path.join(imageDir, directoryMatches[0] ?? "");
   }
   if (directoryMatches.length > 1) {
+    const rankedMatches = expectedFilename
+      ? directoryMatches
+          .map((entry) => ({
+            entry,
+            score: scoreSceneImageFilenameMatch(expectedFilename, entry),
+          }))
+          .filter(
+            (
+              item
+            ): item is { readonly entry: string; readonly score: number } =>
+              item.score !== null
+          )
+          .sort((left, right) => {
+            if (left.score !== right.score) {
+              return left.score - right.score;
+            }
+            return left.entry.localeCompare(right.entry);
+          })
+      : [];
+    if (rankedMatches.length > 0) {
+      return path.join(imageDir, rankedMatches[0]?.entry ?? "");
+    }
     throw new MediaValidationError(
       `Multiple image assets found for ${scene.id} in ${imageDir}: ${directoryMatches.join(", ")}`
     );

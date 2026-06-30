@@ -163,6 +163,80 @@ describe("FFmpegVideoRenderer", () => {
     expect(validation.valid).toBe(true);
   }, 60000);
 
+  it("prefers the scene plan matching image filename when duplicates exist", async () => {
+    const baseDir = mkdtempSync(
+      path.join(os.tmpdir(), "mediaforge-rendering-duplicate-")
+    );
+    const episodeDir = path.join(baseDir, "episode");
+    const outputDir = path.join(episodeDir, "video");
+    const imageDir = path.join(episodeDir, "images", "generated");
+    const audioDir = path.join(episodeDir, "audio", "segments");
+    await fs.mkdir(imageDir, { recursive: true });
+    await fs.mkdir(audioDir, { recursive: true });
+    const exactImage = await sharp({
+      create: { width: 32, height: 32, channels: 3, background: "#335577" },
+    })
+      .png()
+      .toBuffer();
+    const staleImage = await sharp({
+      create: { width: 32, height: 32, channels: 3, background: "#775533" },
+    })
+      .png()
+      .toBuffer();
+    await fs.writeFile(
+      path.join(imageDir, "scene-001__000000-000003__16x9.png"),
+      exactImage
+    );
+    await fs.writeFile(
+      path.join(imageDir, "scene-001__000001-000003__16x9.png"),
+      staleImage
+    );
+    execFileSync(
+      "ffmpeg",
+      [
+        "-y",
+        "-f",
+        "lavfi",
+        "-i",
+        "anullsrc=r=24000:cl=mono",
+        "-t",
+        "3",
+        path.join(audioDir, "scene-001.wav"),
+      ],
+      { stdio: "ignore" }
+    );
+
+    const renderer = new FFmpegVideoRenderer();
+    const result = await renderer.renderSceneClips(
+      {
+        episodeDir,
+        scenePlan: makeScenePlan(),
+        outputDir,
+        renderProfile: {
+          id: "youtube",
+          label: "youtube",
+          aspectRatio: "16:9",
+          width: 1080,
+          height: 1920,
+          fps: 30,
+        },
+        captionBurnIn: false,
+        imageDir,
+        sceneAudioDir: audioDir,
+      },
+      new AbortController().signal
+    );
+
+    expect(result.clipPaths).toHaveLength(1);
+    expect((await fs.stat(result.clipPaths[0] as string)).size).toBeGreaterThan(
+      48
+    );
+    const validation = await validateRenderedVideo(
+      result.clipPaths[0] as string
+    );
+    expect(validation.valid).toBe(true);
+  }, 60000);
+
   it("rebuilds cached scene clips when the source audio changes", async () => {
     const baseDir = mkdtempSync(
       path.join(os.tmpdir(), "mediaforge-rendering-audio-")
