@@ -57,3 +57,11 @@ Media pipeline documentation:
 - [Media Consolidation Plan](docs/migrations/media-consolidation-plan.md)
 - Treat source code and tests as authoritative if these docs conflict with code.
 - Read only the relevant document for the task; do not preload the full set.
+
+## Output and token-efficiency policy
+
+- Never print full diffs or complete modified files unless explicitly requested.
+- Keep progress messages to blockers only.
+- Use concise command output and summarize long logs.
+- Final reports must be under 200 words and include only summary, changed paths,
+  tests, commit hash, and unresolved risks.
