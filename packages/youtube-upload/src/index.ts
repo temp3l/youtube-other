@@ -1126,8 +1126,8 @@ export async function resolveUploadInputsForEpisode(
   const manifest = await loadEpisodeManifest(episodeDir);
   const resolvedMetadata = await resolveYoutubeMetadataFile({
     episodeDir,
-    metadataPath,
-    preferredLanguage: overrides.languageHint,
+    ...(metadataPath ? { metadataPath } : {}),
+    ...(overrides.languageHint ? { preferredLanguage: overrides.languageHint } : {}),
   });
   if (!resolvedMetadata) {
     throw new YoutubeUploadValidationError(`Missing generated YouTube metadata for episode ${episodeId}.`);
@@ -1310,7 +1310,7 @@ export async function uploadYoutubeEpisode(input: YoutubeUploadCommandInput): Pr
     input.episodeId,
     {
       ...input.overrides,
-      languageHint: input.overrides?.languageHint,
+      ...(input.overrides?.languageHint ? { languageHint: input.overrides.languageHint } : {}),
     },
     input.metadataPath
   );

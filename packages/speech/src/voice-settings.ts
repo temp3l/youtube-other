@@ -164,7 +164,9 @@ export function loadSpeechVoiceInstructionTemplate(input: {
       if (instructions.length > 0) {
         return { instructions, path };
       }
-    } catch {}
+    } catch {
+      // Fall back to preset instructions when a language-specific file is missing or unreadable.
+    }
   }
   return {
     instructions: instructionsForPreset(readVoiceSettingsFile(), preset)

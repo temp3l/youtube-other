@@ -24,23 +24,6 @@ function safeResolve(root, target) {
   return resolvedTarget;
 }
 
-async function waitForFile(filePath, timeoutMs = 30 * 60 * 1000) {
-  const startedAt = Date.now();
-  while (!abortRequested) {
-    try {
-      await fs.access(filePath);
-      return;
-    } catch {
-      // Keep waiting until rsync uploads the input file.
-    }
-    if (Date.now() - startedAt > timeoutMs) {
-      throw new Error(`Timed out waiting for input file: ${filePath}`);
-    }
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-  }
-  throw new Error(`Aborted while waiting for input file: ${filePath}`);
-}
-
 function createLifecycleMetadata(job, status, extra = {}) {
   return {
     clipId: job.clipId,
