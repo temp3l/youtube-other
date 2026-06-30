@@ -1149,6 +1149,9 @@ function buildLocalizationBatchItem(args: {
   readonly compiledPrompt: CompiledStoryPrompt;
   readonly configurationHash: string;
   readonly parentFingerprint: string;
+  readonly parentStoryIrHash: string;
+  readonly parentContractHash: string;
+  readonly parentContractBuildFingerprint: string;
   readonly retryNumber?: number;
   readonly productionContext: {
     readonly analysis: StorySourceAnalysis;
@@ -1203,6 +1206,12 @@ function buildLocalizationBatchItem(args: {
       kind: "canonical-english-full",
       fingerprint: args.parentFingerprint,
       sourceHash: args.parsed.sourceHash,
+      language: "en",
+      locale: "en-US",
+      variant: "full",
+      storyIrHash: args.parentStoryIrHash,
+      contractHash: args.parentContractHash,
+      contractBuildFingerprint: args.parentContractBuildFingerprint,
     },
   });
   const manifestItem = buildManifestItem({
@@ -1222,6 +1231,12 @@ function buildLocalizationBatchItem(args: {
       kind: "canonical-english-full",
       fingerprint: args.parentFingerprint,
       sourceHash: args.parsed.sourceHash,
+      language: "en",
+      locale: "en-US",
+      variant: "full",
+      storyIrHash: args.parentStoryIrHash,
+      contractHash: args.parentContractHash,
+      contractBuildFingerprint: args.parentContractBuildFingerprint,
     },
     selectedModules: [...args.compiledPrompt.selectedModules],
     plannedOutputPaths: [toRepositoryRelativePath(outputFiles.full)],
@@ -1255,6 +1270,12 @@ function buildLocalizationBatchItem(args: {
           kind: "canonical-english-full",
           fingerprint: args.parentFingerprint,
           sourceHash: args.parsed.sourceHash,
+          language: "en",
+          locale: "en-US",
+          variant: "full",
+          storyIrHash: args.parentStoryIrHash,
+          contractHash: args.parentContractHash,
+          contractBuildFingerprint: args.parentContractBuildFingerprint,
         },
         selectedModules: [...args.compiledPrompt.selectedModules],
         configurationHash: args.configurationHash,
@@ -1502,6 +1523,10 @@ async function buildBatchItems(
         compiledPrompt,
         configurationHash: configHash,
         parentFingerprint: canonicalFingerprint,
+        parentStoryIrHash: canonicalPlan.storyIrHash,
+        parentContractHash: canonicalPlan.contractHash,
+        parentContractBuildFingerprint:
+          canonicalPlan.contractBuildFingerprint,
         productionContext: downstreamProductionContext,
       });
       if (item.requestItem) {
@@ -1737,6 +1762,10 @@ async function buildRetryBatchItems(args: {
         compiledPrompt,
         configurationHash,
         parentFingerprint: canonicalFingerprint,
+        parentStoryIrHash: canonicalPlan.storyIrHash,
+        parentContractHash: canonicalPlan.contractHash,
+        parentContractBuildFingerprint:
+          canonicalPlan.contractBuildFingerprint,
         retryNumber: nextRetryNumber,
         productionContext: downstreamProductionContext,
       });
@@ -2147,6 +2176,8 @@ async function importLocalizationResult(args: {
       responseSchemaName: args.manifestItem.responseSchemaName,
       responseSchemaVersion: args.manifestItem.responseSchemaVersion,
       responseSchemaFingerprint: args.manifestItem.responseSchemaFingerprint,
+      lineage: args.manifestItem.parentArtifact,
+      validationIssues: [],
       result: args.response,
     }
   );
@@ -2163,6 +2194,14 @@ async function importLocalizationResult(args: {
       ? {
           parentArtifactFingerprint: args.manifestItem.parentArtifact.fingerprint,
           canonicalFingerprint: args.manifestItem.parentArtifact.fingerprint,
+          parentArtifactSourceHash: args.manifestItem.parentArtifact.sourceHash,
+          parentArtifactStoryIrHash: args.manifestItem.parentArtifact.storyIrHash,
+          parentArtifactContractHash:
+            args.manifestItem.parentArtifact.contractHash,
+          parentArtifactContractBuildFingerprint:
+            args.manifestItem.parentArtifact.contractBuildFingerprint,
+          parentArtifactLocale: args.manifestItem.parentArtifact.locale,
+          parentArtifactVariant: args.manifestItem.parentArtifact.variant,
         }
       : {}),
     ...(args.manifestItem.compilerVersion

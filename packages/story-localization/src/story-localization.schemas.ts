@@ -374,6 +374,12 @@ export const localBatchManifestItemSchema = z.object({
       kind: z.literal("canonical-english-full"),
       fingerprint: z.string().min(1),
       sourceHash: z.string().min(1),
+      language: z.literal("en").optional(),
+      locale: z.literal("en-US").optional(),
+      variant: z.literal("full").optional(),
+      storyIrHash: z.string().min(1).optional(),
+      contractHash: z.string().min(1).optional(),
+      contractBuildFingerprint: z.string().min(1).optional(),
     })
     .strict()
     .optional(),

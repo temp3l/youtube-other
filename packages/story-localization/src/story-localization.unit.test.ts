@@ -36,6 +36,7 @@ import {
   shouldIncludeTemperatureForModel,
   validateHashtags,
   validateGeneratedFullStoryPackage,
+  validateNarrationOnlyFullRewritePackage,
   validatePreservationChecklist,
   validateTitleAndThumbnail,
   validateWrittenMessagesPreserved,
@@ -913,5 +914,102 @@ describe("story localization helpers", () => {
     expect(issues.some((issue) => issue.includes("Short word count"))).toBe(
       false
     );
+  });
+
+  it("detects wrong localized language or locale leakage in narration-only full validation", async () => {
+    const parsed = await parseCanonicalSourceStory(sourceFile);
+    const facts = extractCanonicalStoryFacts(parsed);
+    const issues = validateNarrationOnlyFullRewritePackage(
+      {
+        language: "es",
+        full: {
+          narrationParagraphs: [
+            "The final warning is therefore simple...",
+            "The final warning is therefore simple...",
+            "The final warning is therefore simple...",
+          ],
+        },
+        preservationChecklist: {
+          charactersPreserved: true,
+          relationshipsPreserved: true,
+          chronologyPreserved: true,
+          criticalObjectsPreserved: true,
+          cluesPreserved: true,
+          writtenMessagesPreserved: true,
+          primaryRevealPreserved: true,
+          endingPreserved: true,
+          noNewPlotElementsAdded: true,
+        },
+        diagnostics: {
+          removedGenericFiller: [],
+          adaptationNotes: [],
+        },
+      },
+      facts,
+      getLanguageProfile("es"),
+      "es"
+    );
+    expect(issues).toContain("Localized full wrong language/locale.");
+    expect(issues).toContain("Localized full source-language leakage.");
+    expect(issues).toContain("Localized full duplicated sections.");
+  });
+
+  it("keeps sibling locales valid when one localized full fails validation", async () => {
+    const tempDir = mkdtempSync(
+      path.join(os.tmpdir(), "story-localization-sibling-locale-")
+    );
+    const config = createStoryLocalizationConfig({
+      outputDirectory: tempDir,
+      languages: ["de", "es"],
+      includeEnglishShort: false,
+      processingMode: "sync",
+      force: true,
+    });
+    const badSpanish = makeLocalizedPackage("es", 165);
+    if (!badSpanish.full) {
+      throw new Error("Expected localized full payload.");
+    }
+    const invalidSpanish = {
+      ...badSpanish,
+      full: {
+        ...badSpanish.full,
+        narrationParagraphs: [
+          "The warning stayed in English and never localized correctly.",
+          "The warning stayed in English and never localized correctly.",
+          "The warning stayed in English and never localized correctly...",
+        ],
+      },
+    };
+    const client = makeMockClient([
+      {
+        output_text: JSON.stringify({
+          language: "en",
+          full: makeLocalizedPackage("en", 160).full,
+          preservationChecklist: makeLocalizedPackage("en", 160)
+            .preservationChecklist,
+          diagnostics: makeLocalizedPackage("en", 160).diagnostics,
+        }),
+      },
+      { output_text: JSON.stringify(makeLocalizedPackage("de", 165)) },
+      { output_text: JSON.stringify(invalidSpanish) },
+    ]);
+
+    const result = await localizeStoryEpisode(sourceFile, config, {
+      client: client as never,
+    });
+
+    expect(result.failure).toContain("es:");
+    await expect(
+      fs.readFile(
+        path.join(
+          tempDir,
+          "002-even-killers-can-lick",
+          "de",
+          "full",
+          "script.md"
+        ),
+        "utf8"
+      )
+    ).resolves.toContain("# Episode 002");
   });
 });

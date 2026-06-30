@@ -145,8 +145,8 @@ describe("story generation preflight", () => {
     expect(result.diagnostics.estimatedInputTokens).toBe(expected);
   });
 
-  it("supports Spanish, German, and Portuguese localization preflight", () => {
-    for (const language of ["es", "de", "pt"] as const) {
+  it("supports Spanish, German, Portuguese, and French localization preflight", () => {
+    for (const language of ["es", "de", "pt", "fr"] as const) {
       const result = runStoryGenerationPreflight(
         baseRequest({
           operation: "localize",
@@ -157,14 +157,64 @@ describe("story generation preflight", () => {
               ? "es-419"
               : language === "de"
                 ? "de-DE"
-                : "pt-BR",
+                : language === "pt"
+                  ? "pt-BR"
+                  : "fr-FR",
           parentArtifact: {
             kind: "canonical-english-full",
-            sourceHash: "b".repeat(64),
+            fingerprint: "c".repeat(64),
+            sourceHash: "a".repeat(64),
+            language: "en",
+            locale: "en-US",
+            variant: "full",
+            storyIrHash: "d".repeat(64),
+            contractHash: "e".repeat(64),
+            contractBuildFingerprint: "f".repeat(64),
           },
         })
       );
       expect(result.status).toBe("allowed");
+    }
+  });
+
+  it("rejects localized full requests without a validated canonical parent", () => {
+    const result = runStoryGenerationPreflight(
+      baseRequest({
+        operation: "localize",
+        variant: "localized-full",
+        language: "es",
+        locale: "es-419",
+      })
+    );
+    expect(result.status).toBe("blocked");
+    if (result.status === "blocked") {
+      expect(result.failureCodes).toContain("MISSING_PARENT_FULL_STORY");
+    }
+  });
+
+  it("rejects raw or sibling-locale parent descriptors for localized full requests", () => {
+    const rawLike = runStoryGenerationPreflight(
+      baseRequest({
+        operation: "localize",
+        variant: "localized-full",
+        language: "es",
+        locale: "es-419",
+        parentArtifact: {
+          kind: "canonical-english-full",
+          fingerprint: "c".repeat(64),
+          sourceHash: "a".repeat(64),
+          language: "en",
+          locale: "de-DE" as "en-US",
+          variant: "full",
+          storyIrHash: "d".repeat(64),
+          contractHash: "e".repeat(64),
+          contractBuildFingerprint: "f".repeat(64),
+        },
+      })
+    );
+    expect(rawLike.status).toBe("blocked");
+    if (rawLike.status === "blocked") {
+      expect(rawLike.failureCodes).toContain("INVALID_PARENT_FULL_STORY");
     }
   });
 

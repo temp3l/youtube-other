@@ -52,6 +52,7 @@ export type StoryPreflightFailureCode =
   | "COST_CEILING_EXCEEDED"
   | "DUPLICATE_FAILED_REQUEST"
   | "MISSING_PARENT_FULL_STORY"
+  | "INVALID_PARENT_FULL_STORY"
   | "INVALID_TARGET_RANGE"
   | "INVALID_TOKEN_BUDGET";
 
@@ -120,6 +121,12 @@ export interface StoryPreflightRequest {
     readonly kind: "canonical-english-full";
     readonly fingerprint?: string;
     readonly sourceHash: string;
+    readonly language?: "en";
+    readonly locale?: "en-US";
+    readonly variant?: "full";
+    readonly storyIrHash?: string;
+    readonly contractHash?: string;
+    readonly contractBuildFingerprint?: string;
   };
   readonly costCeilingUsd?: number;
   readonly modelPricing?: ModelPricing;
@@ -225,6 +232,7 @@ export const storyPreflightResultSchema: z.ZodType<StoryPreflightResult> =
           "COST_CEILING_EXCEEDED",
           "DUPLICATE_FAILED_REQUEST",
           "MISSING_PARENT_FULL_STORY",
+          "INVALID_PARENT_FULL_STORY",
           "INVALID_TARGET_RANGE",
           "INVALID_TOKEN_BUDGET",
         ])
@@ -536,10 +544,26 @@ export function runStoryGenerationPreflight(
   }
   if (
     (request.variant === "canonical-english-short" ||
-      request.variant === "localized-short") &&
+      request.variant === "localized-short" ||
+      request.variant === "localized-full") &&
     !request.parentArtifact
   ) {
     failureCodes.push("MISSING_PARENT_FULL_STORY");
+  }
+  if (request.variant === "localized-full" && request.parentArtifact) {
+    if (
+      request.parentArtifact.kind !== "canonical-english-full" ||
+      !request.parentArtifact.fingerprint ||
+      request.parentArtifact.language !== "en" ||
+      request.parentArtifact.locale !== "en-US" ||
+      request.parentArtifact.variant !== "full" ||
+      request.parentArtifact.sourceHash !== request.sourceHash ||
+      (request.parentArtifact.storyIrHash?.length ?? 0) < 64 ||
+      (request.parentArtifact.contractHash?.length ?? 0) < 64 ||
+      (request.parentArtifact.contractBuildFingerprint?.length ?? 0) < 64
+    ) {
+      failureCodes.push("INVALID_PARENT_FULL_STORY");
+    }
   }
   if (request.existingFailedFingerprint) {
     failureCodes.push("DUPLICATE_FAILED_REQUEST");
@@ -582,7 +606,11 @@ export function runStoryGenerationPreflight(
         )
       ? "invalid-configuration"
       : failureCodes.some((code) =>
-            ["MISSING_PARENT_FULL_STORY", "UNSUPPORTED_LANGUAGE"].includes(code)
+            [
+              "MISSING_PARENT_FULL_STORY",
+              "INVALID_PARENT_FULL_STORY",
+              "UNSUPPORTED_LANGUAGE",
+            ].includes(code)
           )
         ? "operation-minimum-requirements"
         : "input-context-size";

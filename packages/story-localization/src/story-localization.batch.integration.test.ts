@@ -369,6 +369,15 @@ describe("story localization batch integration", () => {
     expect(localizationItem?.responseSchemaName).toBe(
       "full_narration_story_package"
     );
+    expect(localizationItem?.parentArtifact).toMatchObject({
+      kind: "canonical-english-full",
+      language: "en",
+      locale: "en-US",
+      variant: "full",
+    });
+    expect(localizationItem?.parentArtifact?.fingerprint).toHaveLength(64);
+    expect(localizationItem?.parentArtifact?.storyIrHash).toHaveLength(64);
+    expect(localizationItem?.parentArtifact?.contractHash).toHaveLength(64);
     expect(
       await fs.readFile(
         path.join(
@@ -575,7 +584,11 @@ describe("story localization batch integration", () => {
             output_text: JSON.stringify({
               language: "de",
               full: {
-                narrationParagraphs: buildFullNarration("de"),
+                narrationParagraphs: [
+                  "Elena Ward blieb nach Einbruch der Dunkelheit im Haus und hoerte Bramble unter dem Bett atmen, waehrend draussen der Sturm gegen die Fenster schlug.",
+                  'Im Flur sah sie dieselben nassen Spuren wieder, auf dem Spiegel stand weiter HUMANS CAN LICK TOO, und im Notizbuch stand noch immer SHE REACHED DOWN FIRST.',
+                  "Am Ende verstand Elena endlich, dass der Eindringling schon die ganze Nacht im Haus gewesen war, und diese letzte Gewissheit liess sie ohne sicheren Ausweg zurueck.",
+                ],
               },
               targetNarrationWpm: 170,
               preservationChecklist: {
@@ -678,9 +691,23 @@ describe("story localization batch integration", () => {
       sourceFormat: string;
       result: { full: Record<string, unknown> };
       deprecationDiagnostics: readonly string[];
+      lineage: {
+        kind: string;
+        language: string;
+        locale: string;
+        variant: string;
+        fingerprint: string;
+      };
     };
     expect(canonicalResult.sourceFormat).toBe("narration-only");
     expect(canonicalResult.deprecationDiagnostics.length).toBe(0);
+    expect(canonicalResult.lineage).toMatchObject({
+      kind: "canonical-english-full",
+      language: "en",
+      locale: "en-US",
+      variant: "full",
+    });
+    expect(canonicalResult.lineage.fingerprint).toHaveLength(64);
     expect(canonicalResult.result.full).toHaveProperty("narrationParagraphs");
     expect(canonicalResult.result.full).not.toHaveProperty("thumbnailText");
   });

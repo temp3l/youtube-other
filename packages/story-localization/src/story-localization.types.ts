@@ -395,6 +395,12 @@ export interface StoryLocalizationCacheEntry {
   readonly responseSchemaFingerprint?: string;
   readonly parentArtifactFingerprint?: string;
   readonly canonicalFingerprint?: string;
+  readonly parentArtifactSourceHash?: string;
+  readonly parentArtifactStoryIrHash?: string;
+  readonly parentArtifactContractHash?: string;
+  readonly parentArtifactContractBuildFingerprint?: string;
+  readonly parentArtifactLocale?: string;
+  readonly parentArtifactVariant?: "full";
   readonly inputTokens?: number;
   readonly outputTokens?: number;
 }
@@ -469,6 +475,12 @@ export interface StoryBatchItem<
       readonly kind: "canonical-english-full";
       readonly fingerprint: string;
       readonly sourceHash: string;
+      readonly language?: "en";
+      readonly locale?: "en-US";
+      readonly variant?: "full";
+      readonly storyIrHash?: string;
+      readonly contractHash?: string;
+      readonly contractBuildFingerprint?: string;
     };
     readonly selectedModules?: readonly {
       readonly id: string;
@@ -502,6 +514,12 @@ export interface LocalBatchManifestItem {
     readonly kind: "canonical-english-full";
     readonly fingerprint: string;
     readonly sourceHash: string;
+    readonly language?: "en";
+    readonly locale?: "en-US";
+    readonly variant?: "full";
+    readonly storyIrHash?: string;
+    readonly contractHash?: string;
+    readonly contractBuildFingerprint?: string;
   };
   readonly selectedModules?: readonly {
     readonly id: string;

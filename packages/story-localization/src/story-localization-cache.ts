@@ -21,6 +21,12 @@ const cacheEntrySchema = z.object({
   responseSchemaFingerprint: z.string().min(1).optional(),
   parentArtifactFingerprint: z.string().min(1).optional(),
   canonicalFingerprint: z.string().min(1).optional(),
+  parentArtifactSourceHash: z.string().min(1).optional(),
+  parentArtifactStoryIrHash: z.string().min(1).optional(),
+  parentArtifactContractHash: z.string().min(1).optional(),
+  parentArtifactContractBuildFingerprint: z.string().min(1).optional(),
+  parentArtifactLocale: z.string().min(1).optional(),
+  parentArtifactVariant: z.literal("full").optional(),
   inputTokens: z.number().int().nonnegative().optional(),
   outputTokens: z.number().int().nonnegative().optional(),
 });

@@ -540,6 +540,7 @@ function buildFullStoryPreflightRequest(args: {
   readonly maxOutputTokens: number;
   readonly reasoningEffort: StoryLocalizationConfig["reasoningEffort"];
   readonly repair?: boolean;
+  readonly parentArtifact?: StoryPreflightRequest["parentArtifact"];
 }): StoryPreflightRequest {
   const expectedOutputTokens = estimateExpectedOutputTokens({
     profile: args.profile,
@@ -584,15 +585,38 @@ function buildFullStoryPreflightRequest(args: {
       repair: Boolean(args.repair),
     }),
     minimumOutputTokens: expectedOutputTokens,
-    ...(args.language !== "en"
-      ? {
-          parentArtifact: {
-            kind: "canonical-english-full",
-            sourceHash: args.parsed.sourceHash,
-          },
-        }
-      : {}),
+    ...(args.parentArtifact ? { parentArtifact: args.parentArtifact } : {}),
     ...(args.modelPricing ? { modelPricing: args.modelPricing } : {}),
+  };
+}
+
+function buildLocalizedFullParentArtifact(args: {
+  readonly sourceHash: string;
+  readonly canonicalFingerprint: string;
+  readonly storyIrHash: string;
+  readonly contractHash: string;
+  readonly contractBuildFingerprint: string;
+}): {
+  readonly kind: "canonical-english-full";
+  readonly fingerprint: string;
+  readonly sourceHash: string;
+  readonly language: "en";
+  readonly locale: "en-US";
+  readonly variant: "full";
+  readonly storyIrHash: string;
+  readonly contractHash: string;
+  readonly contractBuildFingerprint: string;
+} {
+  return {
+    kind: "canonical-english-full",
+    fingerprint: args.canonicalFingerprint,
+    sourceHash: args.sourceHash,
+    language: "en",
+    locale: "en-US",
+    variant: "full",
+    storyIrHash: args.storyIrHash,
+    contractHash: args.contractHash,
+    contractBuildFingerprint: args.contractBuildFingerprint,
   };
 }
 
@@ -1884,6 +1908,7 @@ function buildFullStoryPreflightAdapter(args: {
   readonly profile: LanguageProfile;
   readonly includeShort: boolean;
   readonly modelPricing?: ModelPricing;
+  readonly parentArtifact?: StoryPreflightRequest["parentArtifact"];
 }): StoryRequestPreflightHook {
   const preflightDirectory = resolveStoryPreflightDirectory(args.cacheDir);
   return async (requestArgs) => {
@@ -1936,14 +1961,7 @@ function buildFullStoryPreflightAdapter(args: {
         repair: requestArgs.isRepair,
       }),
       minimumOutputTokens: expectedOutputTokens,
-      ...(args.language !== "en"
-        ? {
-            parentArtifact: {
-              kind: "canonical-english-full",
-              sourceHash: args.parsed.sourceHash,
-            },
-          }
-        : {}),
+      ...(args.parentArtifact ? { parentArtifact: args.parentArtifact } : {}),
       ...(args.modelPricing ? { modelPricing: args.modelPricing } : {}),
     };
     const result = await runAndPersistStoryPreflight({
@@ -2602,7 +2620,8 @@ export async function localizeStoryEpisode(
         }
       }
       const englishShortArtifact = shortSummary.artifacts.find(
-        (artifact) => artifact.language === "en" && artifact.status === "completed"
+        (artifact) =>
+          artifact.targetLanguage === "en" && artifact.status === "completed"
       );
       if (englishShortArtifact) {
         const compatibilitySource = path.join(
@@ -2735,6 +2754,16 @@ export async function localizeStoryEpisode(
         canonicalEnglishFingerprint ??
         canonicalEnglishPlan.expectedCanonicalFingerprint,
     });
+    const localizedParentArtifact = buildLocalizedFullParentArtifact({
+      sourceHash: canonicalEnglishStory.parsed.sourceHash,
+      canonicalFingerprint:
+        canonicalEnglishFingerprint ??
+        canonicalEnglishPlan.expectedCanonicalFingerprint,
+      storyIrHash: canonicalEnglishPlan.storyIrHash,
+      contractHash: canonicalEnglishPlan.contractHash,
+      contractBuildFingerprint:
+        canonicalEnglishPlan.contractBuildFingerprint,
+    });
     const localizedResume = resumeEnabled
       ? await resolveResumableFullStoryOutput({
           cacheDir,
@@ -2845,6 +2874,7 @@ export async function localizeStoryEpisode(
             schemaFingerprint: languageSchemaFingerprint,
             profile,
             includeShort: includeLocalizedShorts,
+            parentArtifact: localizedParentArtifact,
             ...(options.modelPricing?.[config.model]
               ? { modelPricing: options.modelPricing[config.model] }
               : {}),
@@ -2927,6 +2957,26 @@ export async function localizeStoryEpisode(
         } else {
           skippedFiles.push(localizedOutputFiles.full);
         }
+        await persistStoryProductionArtifact(
+          cacheDir,
+          canonicalEnglishStory.parsed,
+          `${language}-full-narration-result.json`,
+          {
+            schemaVersion: fullNarrationResponseSchemaDescriptor.version,
+            sourceFormat: "legacy-mixed",
+            deprecationDiagnostics: [
+              "legacy-mixed localized full payload retained for compatibility",
+            ],
+            promptFingerprint: languagePrompt.promptFingerprint,
+            responseSchemaName: languagePrompt.responseSchema.name,
+            responseSchemaVersion: languagePrompt.responseSchema.version,
+            responseSchemaFingerprint:
+              languagePrompt.responseSchema.fingerprint,
+            lineage: localizedParentArtifact,
+            validationIssues: [],
+            result: normalizeNarrationOnlyBatchResult(generated.value).normalized,
+          }
+        );
         await persistStoryProductionStage(
           cacheDir,
           parsed,
@@ -2981,6 +3031,24 @@ export async function localizeStoryEpisode(
         } else {
           skippedFiles.push(localizedOutputFiles.full);
         }
+        await persistStoryProductionArtifact(
+          cacheDir,
+          canonicalEnglishStory.parsed,
+          `${language}-full-narration-result.json`,
+          {
+            schemaVersion: fullNarrationResponseSchemaDescriptor.version,
+            sourceFormat: "narration-only",
+            deprecationDiagnostics: [],
+            promptFingerprint: languagePrompt.promptFingerprint,
+            responseSchemaName: languagePrompt.responseSchema.name,
+            responseSchemaVersion: languagePrompt.responseSchema.version,
+            responseSchemaFingerprint:
+              languagePrompt.responseSchema.fingerprint,
+            lineage: localizedParentArtifact,
+            validationIssues: [],
+            result: generatedPackage,
+          }
+        );
         await persistStoryProductionStage(
           cacheDir,
           parsed,
@@ -3011,6 +3079,13 @@ export async function localizeStoryEpisode(
         canonicalFingerprint:
           canonicalEnglishFingerprint ??
           canonicalEnglishPlan.expectedCanonicalFingerprint,
+        parentArtifactSourceHash: localizedParentArtifact.sourceHash,
+        parentArtifactStoryIrHash: localizedParentArtifact.storyIrHash,
+        parentArtifactContractHash: localizedParentArtifact.contractHash,
+        parentArtifactContractBuildFingerprint:
+          localizedParentArtifact.contractBuildFingerprint,
+        parentArtifactLocale: localizedParentArtifact.locale,
+        parentArtifactVariant: localizedParentArtifact.variant,
         inputTokens,
         outputTokens,
       });
@@ -3055,6 +3130,13 @@ export async function localizeStoryEpisode(
         canonicalFingerprint:
           canonicalEnglishFingerprint ??
           canonicalEnglishPlan.expectedCanonicalFingerprint,
+        parentArtifactSourceHash: localizedParentArtifact.sourceHash,
+        parentArtifactStoryIrHash: localizedParentArtifact.storyIrHash,
+        parentArtifactContractHash: localizedParentArtifact.contractHash,
+        parentArtifactContractBuildFingerprint:
+          localizedParentArtifact.contractBuildFingerprint,
+        parentArtifactLocale: localizedParentArtifact.locale,
+        parentArtifactVariant: localizedParentArtifact.variant,
         inputTokens,
         outputTokens,
       });

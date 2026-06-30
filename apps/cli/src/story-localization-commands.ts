@@ -28,9 +28,10 @@ import {
   selectSourceCandidates,
   submitStoryLocalizationBatch,
   StoryBatchIndexService,
-  SHORT_REWRITE_DEFAULT_MODEL,
-  DEFAULT_SHORT_REWRITE_MAX_OUTPUT_TOKENS as SHORT_REWRITE_DEFAULT_MAX_OUTPUT_TOKENS,
-  SHORT_REWRITE_DEFAULT_REASONING_EFFORT,
+  DEFAULT_STORY_REWRITE_MODEL,
+  DEFAULT_FULL_REWRITE_MAX_OUTPUT_TOKENS,
+  DEFAULT_FULL_REWRITE_RETRY_MAX_OUTPUT_TOKENS,
+  DEFAULT_STORY_REWRITE_REASONING_EFFORT,
   SHORT_REWRITE_DEFAULT_TEMPERATURE,
   validateGeneratedStories,
   type LanguageCode,
@@ -124,7 +125,7 @@ function resolveSelection(
   return selected;
 }
 
-async function buildCommandConfig(
+export async function buildCommandConfig(
   options: StoryLocalizationCliOptions
 ): Promise<ReturnType<typeof createStoryLocalizationConfig>> {
   const runtimeConfig = await loadRuntimeConfig();
@@ -151,29 +152,27 @@ async function buildCommandConfig(
     model:
       options.model ??
       runtimeConfig.openAiLocalizationModel ??
-      SHORT_REWRITE_DEFAULT_MODEL,
+      DEFAULT_STORY_REWRITE_MODEL,
     temperature: SHORT_REWRITE_DEFAULT_TEMPERATURE,
     reasoningEffort:
       runtimeConfig.openAiLocalizationReasoningEffort ??
-      SHORT_REWRITE_DEFAULT_REASONING_EFFORT,
+      DEFAULT_STORY_REWRITE_REASONING_EFFORT,
     maxOutputTokens:
       runtimeConfig.openAiLocalizationMaxOutputTokens ??
-      SHORT_REWRITE_DEFAULT_MAX_OUTPUT_TOKENS,
+      DEFAULT_FULL_REWRITE_MAX_OUTPUT_TOKENS,
     retryMaxOutputTokens:
       runtimeConfig.openAiLocalizationMaxOutputTokens ??
-      SHORT_REWRITE_DEFAULT_MAX_OUTPUT_TOKENS,
+      DEFAULT_FULL_REWRITE_RETRY_MAX_OUTPUT_TOKENS,
     repairModel:
-      runtimeConfig.openAiValidatorModel ??
-      runtimeConfig.openAiMetadataModel ??
-      SHORT_REWRITE_DEFAULT_MODEL,
+      options.model ??
+      runtimeConfig.openAiLocalizationModel ??
+      DEFAULT_STORY_REWRITE_MODEL,
     repairReasoningEffort:
-      runtimeConfig.openAiValidatorReasoningEffort ??
-      runtimeConfig.openAiMetadataReasoningEffort ??
-      SHORT_REWRITE_DEFAULT_REASONING_EFFORT,
+      runtimeConfig.openAiLocalizationReasoningEffort ??
+      DEFAULT_STORY_REWRITE_REASONING_EFFORT,
     repairMaxOutputTokens:
-      runtimeConfig.openAiValidatorMaxOutputTokens ??
-      runtimeConfig.openAiMetadataMaxOutputTokens ??
-      SHORT_REWRITE_DEFAULT_MAX_OUTPUT_TOKENS,
+      runtimeConfig.openAiLocalizationMaxOutputTokens ??
+      DEFAULT_FULL_REWRITE_RETRY_MAX_OUTPUT_TOKENS,
     fallbackToSync: options.fallbackToSync ?? false,
     force: options.force ?? false,
     submit: options.submit ?? false,
@@ -514,7 +513,7 @@ export async function commandStoriesLocalize(
   );
 }
 
-async function buildBatchConfig(
+export async function buildBatchConfig(
   options: StoryBatchCliOptions
 ): Promise<ReturnType<typeof createStoryLocalizationConfig>> {
   const runtimeConfig = await loadRuntimeConfig();
@@ -527,29 +526,27 @@ async function buildBatchConfig(
     model:
       options.model ??
       runtimeConfig.openAiLocalizationModel ??
-      SHORT_REWRITE_DEFAULT_MODEL,
+      DEFAULT_STORY_REWRITE_MODEL,
     temperature: SHORT_REWRITE_DEFAULT_TEMPERATURE,
     reasoningEffort:
       runtimeConfig.openAiLocalizationReasoningEffort ??
-      SHORT_REWRITE_DEFAULT_REASONING_EFFORT,
+      DEFAULT_STORY_REWRITE_REASONING_EFFORT,
     maxOutputTokens:
       runtimeConfig.openAiLocalizationMaxOutputTokens ??
-      SHORT_REWRITE_DEFAULT_MAX_OUTPUT_TOKENS,
+      DEFAULT_FULL_REWRITE_MAX_OUTPUT_TOKENS,
     retryMaxOutputTokens:
       runtimeConfig.openAiLocalizationMaxOutputTokens ??
-      SHORT_REWRITE_DEFAULT_MAX_OUTPUT_TOKENS,
+      DEFAULT_FULL_REWRITE_RETRY_MAX_OUTPUT_TOKENS,
     repairModel:
-      runtimeConfig.openAiValidatorModel ??
-      runtimeConfig.openAiMetadataModel ??
-      SHORT_REWRITE_DEFAULT_MODEL,
+      options.model ??
+      runtimeConfig.openAiLocalizationModel ??
+      DEFAULT_STORY_REWRITE_MODEL,
     repairReasoningEffort:
-      runtimeConfig.openAiValidatorReasoningEffort ??
-      runtimeConfig.openAiMetadataReasoningEffort ??
-      SHORT_REWRITE_DEFAULT_REASONING_EFFORT,
+      runtimeConfig.openAiLocalizationReasoningEffort ??
+      DEFAULT_STORY_REWRITE_REASONING_EFFORT,
     repairMaxOutputTokens:
-      runtimeConfig.openAiValidatorMaxOutputTokens ??
-      runtimeConfig.openAiMetadataMaxOutputTokens ??
-      SHORT_REWRITE_DEFAULT_MAX_OUTPUT_TOKENS,
+      runtimeConfig.openAiLocalizationMaxOutputTokens ??
+      DEFAULT_FULL_REWRITE_RETRY_MAX_OUTPUT_TOKENS,
     verbose: options.verbose ?? false,
   });
 }

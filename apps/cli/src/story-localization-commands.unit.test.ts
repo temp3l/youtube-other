@@ -1,8 +1,27 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { Command } from "commander";
-import { describe, expect, it } from "vitest";
-import { registerStoryLocalizationCommands } from "./story-localization-commands.js";
+import { describe, expect, it, vi } from "vitest";
+
+vi.mock("@mediaforge/config", () => ({
+  loadRuntimeConfig: vi.fn(async () => ({
+    openAiLocalizationModel: "gpt-5.4-localize",
+    openAiLocalizationReasoningEffort: "low",
+    openAiLocalizationMaxOutputTokens: 12345,
+    openAiValidatorModel: "gpt-5-validator",
+    openAiValidatorReasoningEffort: "medium",
+    openAiValidatorMaxOutputTokens: 9999,
+    openAiMetadataModel: "gpt-5-metadata",
+    openAiMetadataReasoningEffort: "high",
+    openAiMetadataMaxOutputTokens: 8888,
+  })),
+}));
+
+import {
+  buildBatchConfig,
+  buildCommandConfig,
+  registerStoryLocalizationCommands,
+} from "./story-localization-commands.js";
 
 function commandNames(command: Command): string[] {
   return command.commands.map((entry) => entry.name()).sort();
@@ -57,5 +76,24 @@ describe("story localization command registration", () => {
     expect(docs).not.toContain(
       "node apps/cli/dist/index.js episodes resume-images"
     );
+  });
+
+  it("routes localized full model and repair config through localization settings only", async () => {
+    const config = await buildCommandConfig({});
+    expect(config.model).toBe("gpt-5.4-localize");
+    expect(config.reasoningEffort).toBe("low");
+    expect(config.maxOutputTokens).toBe(12345);
+    expect(config.retryMaxOutputTokens).toBe(12345);
+    expect(config.repairModel).toBe("gpt-5.4-localize");
+    expect(config.repairReasoningEffort).toBe("low");
+    expect(config.repairMaxOutputTokens).toBe(12345);
+  });
+
+  it("keeps batch localized full config on the localization fallback family", async () => {
+    const config = await buildBatchConfig({});
+    expect(config.model).toBe("gpt-5.4-localize");
+    expect(config.repairModel).toBe("gpt-5.4-localize");
+    expect(config.maxOutputTokens).toBe(12345);
+    expect(config.repairMaxOutputTokens).toBe(12345);
   });
 });

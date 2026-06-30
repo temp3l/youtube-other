@@ -24,6 +24,80 @@ const forbiddenPhrases = [
   "The user requested",
 ];
 
+const localeValidationHints = {
+  "es-419": {
+    requiredAny: [" el ", " la ", " que ", " de ", " y "],
+    forbidden: [" vosotros ", " vosotras ", " ordenador ", " coche "],
+  },
+  "de-DE": {
+    requiredAny: [" der ", " die ", " das ", " und ", " nicht "],
+    forbidden: [" vocês ", " vocês ", " você ", " vocês "],
+  },
+  "fr-FR": {
+    requiredAny: [" le ", " la ", " les ", " et ", " dans "],
+    forbidden: [" vocês ", " você ", " vosotros "],
+  },
+  "pt-BR": {
+    requiredAny: [" o ", " a ", " que ", " e ", " não "],
+    forbidden: [" vosotros ", " vosotras ", " ordinateur ", " vosotros "],
+  },
+} as const;
+
+function normalizeForLeakage(text: string): string {
+  return ` ${normalizeWhitespace(text).toLowerCase()} `;
+}
+
+function detectDuplicateNarrationParagraphs(
+  paragraphs: readonly string[]
+): boolean {
+  const normalized = paragraphs
+    .map((entry) => normalizeWhitespace(entry).toLowerCase())
+    .filter((entry) => entry.length > 0);
+  return new Set(normalized).size !== normalized.length;
+}
+
+function detectTruncation(text: string): boolean {
+  const trimmed = normalizeWhitespace(text);
+  if (trimmed.length === 0) {
+    return false;
+  }
+  return /(?:\.\.\.|[\(\[\{]|and\s*$|or\s*$|que\s*$|und\s*$|et\s*$|e\s*$)$/iu.test(
+    trimmed
+  );
+}
+
+function validateLocaleSpecificNarration(
+  text: string,
+  profile: LanguageProfile
+): string[] {
+  const issues: string[] = [];
+  const normalized = normalizeForLeakage(text);
+  const hints =
+    localeValidationHints[
+      profile.locale as keyof typeof localeValidationHints
+    ];
+  if (!hints) {
+    return issues;
+  }
+  if (!hints.requiredAny.some((entry) => normalized.includes(entry))) {
+    issues.push("Localized full wrong language/locale.");
+  }
+  if (hints.forbidden.some((entry) => normalized.includes(entry))) {
+    issues.push("Localized full locale leakage.");
+  }
+  if (/\b(the|and|with|from|warning)\b/iu.test(normalized)) {
+    issues.push("Localized full source-language leakage.");
+  }
+  if (
+    /(?:here is the translation|exact written messages are|keep each message exactly as written)/iu.test(
+      text
+    )
+  ) {
+    issues.push("Localized full untranslated boilerplate.");
+  }
+  return [...new Set(issues)];
+}
+
 export function detectGenericFiller(text: string): string[] {
   const phrases = [
     "Most frightening stories become exaggerated after they are repeated.",
@@ -383,6 +457,26 @@ export function validateNarrationOnlyFullRewritePackage(
   }
   if (validateWrittenMessagesPreserved(facts, fullText).length > 0) {
     issues.push("Written messages are not preserved.");
+  }
+  issues.push(...validateLocaleSpecificNarration(fullText, profile));
+  if (detectDuplicateNarrationParagraphs(packageValue.full.narrationParagraphs)) {
+    issues.push("Localized full duplicated sections.");
+  }
+  if (detectTruncation(fullText)) {
+    issues.push("Localized full truncated.");
+  }
+  if (
+    /\b(?:thumbnail|seo description|visual direction|audio instructions?)\b/iu.test(
+      fullText
+    )
+  ) {
+    issues.push("Localized full metadata leakage.");
+  }
+  if (!packageValue.preservationChecklist.primaryRevealPreserved) {
+    issues.push("Missing climax.");
+  }
+  if (!packageValue.preservationChecklist.endingPreserved) {
+    issues.push("Missing ending.");
   }
   return issues;
 }
