@@ -3813,6 +3813,7 @@ async function commandYoutubeUpload(
     generateMetadata: uploadOptions.generateMetadata,
     metadataPath: uploadOptions.metadataPath,
     overrides: {
+      languageHint: uploadLanguage,
       ...(uploadOptions.playlistId
         ? { playlistId: uploadOptions.playlistId }
         : {}),

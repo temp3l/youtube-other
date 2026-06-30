@@ -97,6 +97,7 @@ export interface YoutubeAuthSettings {
 }
 
 export interface YoutubeUploadOverrides {
+  readonly languageHint?: string;
   readonly playlistId?: string;
   readonly privacyStatus?: z.infer<typeof privacyStatusSchema>;
   readonly publishAt?: string;
@@ -621,6 +622,63 @@ async function resolveFirstExisting(paths: ReadonlyArray<string>): Promise<strin
   return null;
 }
 
+async function resolveYoutubeMetadataFile(args: {
+  readonly episodeDir: string;
+  readonly metadataPath?: string;
+  readonly preferredLanguage?: string;
+}): Promise<{ readonly metadata: YoutubeMetadata; readonly metadataPath: string } | null> {
+  const localeRoots = await fs.readdir(path.join(args.episodeDir, "locales"), {
+    withFileTypes: true,
+  }).catch(() => []);
+  const localizedMetadataCandidates = localeRoots
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => entry.name);
+  const targetLocaleNames = localeNamesForPreferredLanguage(
+    localizedMetadataCandidates,
+    args.preferredLanguage
+  );
+  const candidatePaths = args.metadataPath
+    ? [path.resolve(args.episodeDir, args.metadataPath)]
+    : [
+        ...targetLocaleNames.flatMap((entry) => {
+          try {
+            const { resolver, context } = localizedEpisodeContext(args.episodeDir, entry);
+            const metadataDir = resolver.metadataDir(context);
+            return [
+              path.join(metadataDir, "youtube.json"),
+              path.join(metadataDir, "youtube-metadata.json"),
+            ];
+          } catch {
+            return [];
+          }
+        }),
+        path.join(args.episodeDir, "metadata", "youtube.json"),
+        path.join(args.episodeDir, "metadata", "youtube-metadata.json"),
+        path.join(args.episodeDir, "output", "youtube.json"),
+        path.join(args.episodeDir, "output", "youtube-metadata.json"),
+      ];
+  const preferredPrefix = normalizeLanguageHint(args.preferredLanguage);
+  let fallback: { readonly metadata: YoutubeMetadata; readonly metadataPath: string } | null = null;
+  for (const candidatePath of candidatePaths) {
+    if (!(await fileExists(candidatePath))) {
+      continue;
+    }
+    const metadata = youtubeMetadataSchema.parse(
+      JSON.parse(await fs.readFile(candidatePath, "utf8")) as unknown
+    );
+    if (!fallback) {
+      fallback = { metadata, metadataPath: candidatePath };
+    }
+    if (!preferredPrefix) {
+      return { metadata, metadataPath: candidatePath };
+    }
+    if (normalizeLanguageHint(metadata.source.language) === preferredPrefix) {
+      return { metadata, metadataPath: candidatePath };
+    }
+  }
+  return fallback;
+}
+
 function episodePathsForDir(episodeDir: string) {
   const episodeRoot = path.resolve(episodeDir);
   const resolver = createEpisodePathResolver(path.dirname(episodeRoot));
@@ -640,13 +698,43 @@ function localizedEpisodeContext(episodeDir: string, localeName: string) {
   };
 }
 
+function normalizeLanguageHint(language: string | undefined): string | undefined {
+  const trimmed = (language ?? "").trim();
+  if (!trimmed) {
+    return undefined;
+  }
+  const normalized = normalizeLocaleCode(trimmed).trim().toLowerCase();
+  return normalized.split("-")[0];
+}
+
+function localeNamesForPreferredLanguage(
+  localeNames: readonly string[],
+  preferredLanguage: string | undefined
+): string[] {
+  const preferredPrefix = normalizeLanguageHint(preferredLanguage);
+  const sorted = [...localeNames].sort((left, right) => left.localeCompare(right));
+  if (!preferredPrefix) {
+    return sorted;
+  }
+  const matching = sorted.filter((localeName) => {
+    const normalized = normalizeLocaleCode(localeName).toLowerCase();
+    return normalized === preferredPrefix || normalized.startsWith(`${preferredPrefix}-`);
+  });
+  const remaining = sorted.filter((localeName) => !matching.includes(localeName));
+  return [...matching, ...remaining];
+}
+
 async function loadEpisodeManifest(episodeDir: string): Promise<EpisodeManifest | null> {
   const { resolver, episodeId } = episodePathsForDir(episodeDir);
   const manifestPath = resolver.manifestPath(episodeId);
   return readJsonIfExists(manifestPath, (value) => episodeManifestSchema.parse(value));
 }
 
-async function resolveVideoPath(episodeDir: string, overrides?: YoutubeUploadOverrides, manifest?: EpisodeManifest | null): Promise<string> {
+async function resolveVideoPath(
+  episodeDir: string,
+  overrides?: YoutubeUploadOverrides,
+  manifest?: EpisodeManifest | null
+): Promise<string> {
   const resolveEpisodePath = (candidate: string | undefined): string | undefined =>
     candidate
       ? path.isAbsolute(candidate)
@@ -660,19 +748,24 @@ async function resolveVideoPath(episodeDir: string, overrides?: YoutubeUploadOve
     }
     return absolute;
   }
-  const manifestVideo = manifest?.artifacts.find((artifact) => artifact.kind === "video" && artifact.mimeType === "video/mp4");
-  const manifestVideoPath = resolveEpisodePath(manifestVideo?.path);
-  if (manifestVideoPath && (await fileExists(manifestVideoPath))) {
-    return manifestVideoPath;
+  const preferredLanguage = normalizeLanguageHint(overrides?.languageHint);
+  if (!preferredLanguage) {
+    const manifestVideo = manifest?.artifacts.find((artifact) => artifact.kind === "video" && artifact.mimeType === "video/mp4");
+    const manifestVideoPath = resolveEpisodePath(manifestVideo?.path);
+    if (manifestVideoPath && (await fileExists(manifestVideoPath))) {
+      return manifestVideoPath;
+    }
   }
   const localeRoots = await fs.readdir(path.join(episodeDir, "locales"), {
     withFileTypes: true,
   }).catch(() => []);
   const candidateDirs = [
-    ...localeRoots
-      .filter((entry) => entry.isDirectory())
-      .map((entry) => entry.name)
-      .sort((left, right) => left.localeCompare(right))
+    ...localeNamesForPreferredLanguage(
+      localeRoots
+        .filter((entry) => entry.isDirectory())
+        .map((entry) => entry.name),
+      preferredLanguage
+    )
       .flatMap((localeName) => {
         try {
           const { resolver, context } = localizedEpisodeContext(episodeDir, localeName);
@@ -1021,52 +1114,24 @@ export async function generateUploadMetadataForEpisode(
   metadataPath?: string
 ): Promise<{ readonly metadata: YoutubeMetadata; readonly metadataPath: string; readonly metadataSha256: string; readonly resolvedVideoPath: string; readonly resolvedThumbnailPath: string }> {
   const manifest = await loadEpisodeManifest(episodeDir);
-  const localeRoots = await fs.readdir(path.join(episodeDir, "locales"), {
-    withFileTypes: true,
-  }).catch(() => []);
-  const localizedMetadataCandidates = localeRoots
-    .filter((entry) => entry.isDirectory())
-    .map((entry) => entry.name)
-    .sort((left, right) => left.localeCompare(right))
-    .flatMap((entry) => {
-      try {
-        const { resolver, context } = localizedEpisodeContext(episodeDir, entry);
-        const metadataDir = resolver.metadataDir(context);
-        return [
-          path.join(metadataDir, "youtube.json"),
-          path.join(metadataDir, "youtube-metadata.json"),
-        ];
-      } catch {
-        return [];
-      }
-    });
-  const targetMetadataPath = metadataPath
-    ? path.resolve(episodeDir, metadataPath)
-    : await resolveFirstExisting([
-        ...localizedMetadataCandidates,
-        path.join(episodeDir, "metadata", "youtube.json"),
-        path.join(episodeDir, "metadata", "youtube-metadata.json"),
-        path.join(episodeDir, "output", "youtube.json"),
-        path.join(episodeDir, "output", "youtube-metadata.json"),
-      ]);
-  let metadata: YoutubeMetadata | null = null;
-  let resolvedMetadataPath = targetMetadataPath ?? "";
-  if (targetMetadataPath && (await fileExists(targetMetadataPath))) {
-    metadata = youtubeMetadataSchema.parse(JSON.parse(await fs.readFile(targetMetadataPath, "utf8")) as unknown);
-  }
-  if (!metadata) {
+  const resolvedMetadata = await resolveYoutubeMetadataFile({
+    episodeDir,
+    metadataPath,
+    preferredLanguage: overrides.languageHint,
+  });
+  if (!resolvedMetadata) {
     throw new YoutubeUploadValidationError(`Missing generated YouTube metadata for episode ${episodeId}.`);
   }
   const resolvedVideoPath = await resolveVideoPath(episodeDir, overrides, manifest);
   const resolvedThumbnailPath = await resolveThumbnailPath(
     episodeDir,
-    metadata.source.language,
+    resolvedMetadata.metadata.source.language,
     overrides
   );
   return {
-    metadata,
-    metadataPath: resolvedMetadataPath,
-    metadataSha256: hashText(JSON.stringify(metadata)),
+    metadata: resolvedMetadata.metadata,
+    metadataPath: resolvedMetadata.metadataPath,
+    metadataSha256: hashText(JSON.stringify(resolvedMetadata.metadata)),
     resolvedVideoPath,
     resolvedThumbnailPath,
   };
@@ -1210,7 +1275,10 @@ export async function uploadYoutubeEpisode(input: YoutubeUploadCommandInput): Pr
   const resolved = await generateUploadMetadataForEpisode(
     episodeDir,
     input.episodeId,
-    input.overrides,
+    {
+      ...input.overrides,
+      languageHint: input.overrides?.languageHint,
+    },
     input.metadataPath
   );
   const uploadThumbnail = await prepareThumbnailForUpload(

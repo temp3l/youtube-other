@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import sharp from "sharp";
 import { scenePlanSchema } from "@mediaforge/domain";
-import { writeJsonAtomic } from "@mediaforge/shared";
+import { createEpisodePathResolver, writeJsonAtomic } from "@mediaforge/shared";
 import {
   generateUploadMetadataForEpisode,
   uploadYoutubeEpisode,
@@ -172,6 +172,69 @@ async function prepareEpisode(episodeDir: string): Promise<void> {
   await writeJsonAtomic(path.join(episodeDir, "metadata", "youtube.json"), metadata);
 }
 
+async function prepareLocalizedEpisode(episodeDir: string): Promise<void> {
+  await prepareEpisode(episodeDir);
+  const resolver = createEpisodePathResolver(path.dirname(episodeDir));
+  const enContext = {
+    episodeId: "episode-fixture",
+    locale: "en",
+    variant: "full" as const,
+  };
+  const deContext = {
+    episodeId: "episode-fixture",
+    locale: "de",
+    variant: "full" as const,
+  };
+  await fs.mkdir(resolver.metadataDir(enContext), { recursive: true });
+  await fs.mkdir(resolver.metadataDir(deContext), { recursive: true });
+  await fs.mkdir(resolver.renderDir(enContext, "youtube"), { recursive: true });
+  await fs.mkdir(resolver.renderDir(deContext, "youtube"), { recursive: true });
+  const baseMetadata = JSON.parse(
+    await fs.readFile(path.join(episodeDir, "metadata", "youtube.json"), "utf8")
+  ) as Record<string, unknown>;
+  await writeJsonAtomic(path.join(resolver.metadataDir(enContext), "youtube.json"), {
+    ...baseMetadata,
+    source: { ...(baseMetadata.source as Record<string, unknown>), language: "en" },
+    title: {
+      ...((baseMetadata.title as Record<string, unknown>) ?? {}),
+      recommended: "English Upload",
+    },
+    uploadSettings: {
+      ...((baseMetadata.uploadSettings as Record<string, unknown>) ?? {}),
+      videoLanguage: "en",
+      captionLanguage: "en",
+    },
+  });
+  await writeJsonAtomic(path.join(resolver.metadataDir(deContext), "youtube.json"), {
+    ...baseMetadata,
+    source: { ...(baseMetadata.source as Record<string, unknown>), language: "de" },
+    title: {
+      ...((baseMetadata.title as Record<string, unknown>) ?? {}),
+      recommended: "German Upload",
+    },
+    uploadSettings: {
+      ...((baseMetadata.uploadSettings as Record<string, unknown>) ?? {}),
+      videoLanguage: "de",
+      captionLanguage: "de",
+    },
+  });
+  await fs.writeFile(
+    path.join(resolver.renderDir(enContext, "youtube"), "youtube-16x9-clean-en.mp4"),
+    Buffer.from("english-video")
+  );
+  await fs.writeFile(
+    path.join(resolver.renderDir(deContext, "youtube"), "youtube-16x9-clean-de.mp4"),
+    Buffer.from("german-video")
+  );
+  await fs.mkdir(path.join("content-ideas", "audio-ready-thumbnails", "de"), { recursive: true });
+  await fs.writeFile(
+    path.join("content-ideas", "audio-ready-thumbnails", "de", "episode-fixture.png"),
+    await sharp({ create: { width: 1200, height: 675, channels: 3, background: "#444444" } })
+      .png()
+      .toBuffer()
+  );
+}
+
 function createMockYoutubeClient() {
   const requests: string[] = [];
   const response = <T,>(data: T, headers: Record<string, string> = {}): { data: T; headers: Record<string, string> } => ({
@@ -218,9 +281,16 @@ describe("youtube upload", () => {
     "en",
     "episode-fixture.png"
   );
+  const germanThumbnailFixturePath = path.join(
+    "content-ideas",
+    "audio-ready-thumbnails",
+    "de",
+    "episode-fixture.png"
+  );
 
   afterEach(async () => {
     await fs.rm(thumbnailFixturePath, { force: true }).catch(() => undefined);
+    await fs.rm(germanThumbnailFixturePath, { force: true }).catch(() => undefined);
   });
 
   it("resolves episode assets and upload metadata", async () => {
@@ -274,5 +344,20 @@ describe("youtube upload", () => {
       "videos.list",
     ]);
     expect(await fs.readFile(result.reportPath, "utf8")).toContain("\"status\": \"uploaded\"");
+  });
+
+  it("prefers localized metadata and video matching the language hint", async () => {
+    const workspace = createWorkspace();
+    const episodeDir = path.join(workspace, "episode-fixture");
+    await prepareLocalizedEpisode(episodeDir);
+    const resolved = await generateUploadMetadataForEpisode(episodeDir, "episode-fixture", {
+      languageHint: "de",
+    });
+    expect(resolved.metadata.source.language).toBe("de");
+    expect(resolved.metadata.title.recommended).toBe("German Upload");
+    expect(resolved.resolvedVideoPath).toContain("youtube-16x9-clean-de.mp4");
+    expect(resolved.resolvedThumbnailPath).toContain(
+      path.join("content-ideas", "audio-ready-thumbnails", "de", "episode-fixture.png")
+    );
   });
 });
