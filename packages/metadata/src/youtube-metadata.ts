@@ -464,6 +464,9 @@ function resolveEpisodeDirFromScenesFile(sourceFilePath: string): string {
   if (parent === "canonical") {
     return path.dirname(path.dirname(resolved));
   }
+  if (parent === "shared") {
+    return path.dirname(path.dirname(resolved));
+  }
   if (parent === "output") {
     return path.dirname(path.dirname(resolved));
   }
@@ -1005,6 +1008,10 @@ export async function findEpisodeScenesFile(workspaceDir: string, episodeSlug: s
   if (await fileExists(canonicalScenes)) {
     return canonicalScenes;
   }
+  const sharedScenes = path.join(episodeDir, "shared", "scenes.json");
+  if (await fileExists(sharedScenes)) {
+    return sharedScenes;
+  }
   const rootScenes = path.join(episodeDir, "scenes.json");
   if (await fileExists(rootScenes)) {
     return rootScenes;
@@ -1027,6 +1034,11 @@ export async function listEpisodeSceneFiles(workspaceDir: string): Promise<Array
     const canonicalScenes = path.join(workspaceDir, episodeSlug, "canonical", "scenes.json");
     if (await fileExists(canonicalScenes)) {
       results.push({ episodeSlug, sourceFilePath: canonicalScenes });
+      continue;
+    }
+    const sharedScenes = path.join(workspaceDir, episodeSlug, "shared", "scenes.json");
+    if (await fileExists(sharedScenes)) {
+      results.push({ episodeSlug, sourceFilePath: sharedScenes });
       continue;
     }
     const rootScenes = path.join(workspaceDir, episodeSlug, "scenes.json");

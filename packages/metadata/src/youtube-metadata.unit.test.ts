@@ -22,6 +22,9 @@ import {
   computeYoutubeMetadataPromptSchemaFingerprint,
   extractResponseText,
   generateYoutubeMetadataForTarget,
+  findEpisodeScenesFile,
+  listEpisodeSceneFiles,
+  readAndValidateScenesFile,
   parseScenesFile,
   youtubeMetadataSchema,
   type OpenAiMetadataClient,
@@ -264,6 +267,23 @@ function runWithMetadata(metadata: ReturnType<typeof makeValidMetadata>, overrid
 }
 
 describe("youtube metadata helpers", () => {
+  it("finds shared scenes files and lists them for episode discovery", async () => {
+    const workspaceDir = createWorkspace();
+    const episodeDir = path.join(workspaceDir, "episode-001");
+    await fs.mkdir(path.join(episodeDir, "shared"), { recursive: true });
+    const scenesPath = path.join(episodeDir, "shared", "scenes.json");
+    await fs.writeFile(scenesPath, makeScenariosJson(), "utf8");
+
+    await expect(findEpisodeScenesFile(workspaceDir, "episode-001")).resolves.toBe(scenesPath);
+    await expect(listEpisodeSceneFiles(workspaceDir)).resolves.toEqual([
+      { episodeSlug: "episode-001", sourceFilePath: scenesPath }
+    ]);
+    await expect(readAndValidateScenesFile(scenesPath, "en")).resolves.toMatchObject({
+      episodeDir,
+      outputDir: path.join(episodeDir, "locales", "en", "full", "metadata")
+    });
+  });
+
   it("parses a valid scenes file and calculates duration from the last scene end", () => {
     const target = parseScenesFile(makeScenariosJson(), "/workspace/episodes/episode-001/scenes.json");
     expect(target.durationSeconds).toBe(15);
