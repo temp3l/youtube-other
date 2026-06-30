@@ -69,6 +69,7 @@ import {
 } from "./story-markdown-renderer.js";
 import {
   buildConfigurationHash,
+  buildStoryArtifactCacheKey,
   readCanonicalFactsCache,
   readLocalizationCacheEntry,
   resolveEpisodeCacheDirectory,
@@ -2039,6 +2040,7 @@ async function persistFailedLocalizedOutput(args: {
 }
 
 function buildCacheKey(args: {
+  readonly episodeSlug: string;
   readonly sourceHash: string;
   readonly language: LanguageCode;
   readonly adaptationMode: StoryLocalizationConfig["adaptationMode"];
@@ -2055,26 +2057,35 @@ function buildCacheKey(args: {
   readonly responseSchemaFingerprint?: string;
   readonly parentFingerprint?: string;
 }): string {
-  return buildConfigurationHash([
-    args.sourceHash,
-    args.language,
-    args.adaptationMode,
-    args.model,
-    String(args.temperature),
-    args.reasoningEffort,
-    args.promptVersion,
-    args.compilerVersion ?? "",
-    args.promptFingerprint ?? "",
-    args.responseSchemaFingerprint ?? "",
-    args.parentFingerprint ?? "",
-    JSON.stringify(args.profile.shortWordRange),
-    String(args.shortWpm),
-    String(args.shortMinSeconds),
-    String(args.shortMaxSeconds),
-  ]);
+  return buildStoryArtifactCacheKey({
+    episodeSlug: args.episodeSlug,
+    sourceHash: args.sourceHash,
+    language: args.language,
+    locale: args.profile.locale,
+    variant: "short",
+    owner: "narration",
+    adaptationMode: args.adaptationMode,
+    model: args.model,
+    temperature: args.temperature,
+    reasoningEffort: args.reasoningEffort,
+    promptVersion: args.promptVersion,
+    ...(args.compilerVersion ? { compilerVersion: args.compilerVersion } : {}),
+    ...(args.promptFingerprint ? { promptFingerprint: args.promptFingerprint } : {}),
+    ...(args.responseSchemaFingerprint
+      ? { responseSchemaFingerprint: args.responseSchemaFingerprint }
+      : {}),
+    ...(args.parentFingerprint ? { parentFingerprint: args.parentFingerprint } : {}),
+    targetWordRange: args.profile.shortWordRange,
+    targetShortTiming: {
+      shortWpm: args.shortWpm,
+      shortMinSeconds: args.shortMinSeconds,
+      shortMaxSeconds: args.shortMaxSeconds,
+    },
+  });
 }
 
 function buildBatchCompatibleConfigurationHash(args: {
+  readonly episodeSlug: string;
   readonly sourceHash: string;
   readonly language: LanguageCode;
   readonly adaptationMode: StoryLocalizationConfig["adaptationMode"];
@@ -2092,24 +2103,30 @@ function buildBatchCompatibleConfigurationHash(args: {
   readonly shortMaxSeconds: number;
   readonly parentFingerprint: string;
 }): string {
-  return buildConfigurationHash([
-    args.sourceHash,
-    args.language,
-    args.adaptationMode,
-    args.model,
-    String(args.temperature),
-    args.reasoningEffort,
-    args.promptVersion,
-    args.compilerVersion,
-    args.promptFingerprint,
-    args.responseSchemaName,
-    args.responseSchemaVersion,
-    args.responseSchemaFingerprint,
-    args.parentFingerprint,
-    String(args.shortWpm),
-    String(args.shortMinSeconds),
-    String(args.shortMaxSeconds),
-  ]);
+  return buildStoryArtifactCacheKey({
+    episodeSlug: args.episodeSlug,
+    sourceHash: args.sourceHash,
+    language: args.language,
+    locale: getLanguageProfile(args.language).locale,
+    variant: "short",
+    owner: "narration",
+    adaptationMode: args.adaptationMode,
+    model: args.model,
+    temperature: args.temperature,
+    reasoningEffort: args.reasoningEffort,
+    promptVersion: args.promptVersion,
+    compilerVersion: args.compilerVersion,
+    promptFingerprint: args.promptFingerprint,
+    responseSchemaName: args.responseSchemaName,
+    responseSchemaVersion: args.responseSchemaVersion,
+    responseSchemaFingerprint: args.responseSchemaFingerprint,
+    parentFingerprint: args.parentFingerprint,
+    targetShortTiming: {
+      shortWpm: args.shortWpm,
+      shortMinSeconds: args.shortMinSeconds,
+      shortMaxSeconds: args.shortMaxSeconds,
+    },
+  });
 }
 
 function estimateExpectedOutputTokens(args: {
@@ -2540,6 +2557,7 @@ export async function localizeStoryEpisode(
   let canonicalEnglishFingerprint: string | undefined;
   const resumeEnabled = config.resume && !config.force;
   const englishFullCacheKey = buildCacheKey({
+    episodeSlug: parsed.slug,
     sourceHash: parsed.sourceHash,
     language: "en",
     adaptationMode: config.adaptationMode,
@@ -3017,6 +3035,7 @@ export async function localizeStoryEpisode(
         sourceFile: parsed.sourceFile,
         sourceHash: parsed.sourceHash,
         configurationHash: buildCacheKey({
+          episodeSlug: parsed.slug,
           sourceHash: parsed.sourceHash,
           language: "en",
           adaptationMode: config.adaptationMode,
@@ -3084,6 +3103,7 @@ export async function localizeStoryEpisode(
       }
     );
     const localizedCacheKey = buildCacheKey({
+      episodeSlug: parsed.slug,
       sourceHash: canonicalEnglishStory.parsed.sourceHash,
       language,
       adaptationMode: config.adaptationMode,
@@ -3430,6 +3450,7 @@ export async function localizeStoryEpisode(
         sourceFile: parsed.sourceFile,
         sourceHash: parsed.sourceHash,
         configurationHash: buildBatchCompatibleConfigurationHash({
+          episodeSlug: parsed.slug,
           sourceHash: parsed.sourceHash,
           language,
           adaptationMode: config.adaptationMode,

@@ -2,16 +2,21 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { z } from "zod";
 import { ensureDir, fileExists, hashText, readJsonIfExists, writeJsonAtomic } from "@mediaforge/shared";
+import { stableSerialize } from "./stable-json.js";
 import { resolveCanonicalEnglishFullPaths } from "./canonical-full-story.persistence.js";
 import { type CanonicalStoryFacts, type LanguageCode, type StoryLocalizationCacheEntry } from "./story-localization.types.js";
 
 const cacheEntrySchema = z.object({
+  schemaVersion: z.literal("story-localization-cache-entry-v2").optional(),
   sourceFile: z.string().min(1),
   sourceHash: z.string().min(64),
   configurationHash: z.string().min(64),
   promptVersion: z.string().min(1),
   model: z.string().min(1),
   language: z.enum(["en", "de", "es", "fr", "pt"]),
+  locale: z.string().min(1).optional(),
+  variant: z.enum(["full", "short"]).optional(),
+  owner: z.literal("narration").optional(),
   generatedAt: z.string().min(1),
   outputFiles: z.array(z.string().min(1)),
   compilerVersion: z.string().min(1).optional(),
@@ -136,4 +141,46 @@ export async function writeCanonicalFactsCache(
 
 export function buildConfigurationHash(parts: ReadonlyArray<string>): string {
   return hashText(parts.join("\u0000"));
+}
+
+export interface StoryArtifactCacheKeyInput {
+  readonly episodeSlug: string;
+  readonly sourceHash: string;
+  readonly language: LanguageCode;
+  readonly locale: string;
+  readonly variant: "full" | "short";
+  readonly owner: "narration";
+  readonly adaptationMode: string;
+  readonly model: string;
+  readonly temperature: number;
+  readonly reasoningEffort: string;
+  readonly promptVersion: string;
+  readonly compilerVersion?: string;
+  readonly promptFingerprint?: string;
+  readonly responseSchemaName?: string;
+  readonly responseSchemaVersion?: string;
+  readonly responseSchemaFingerprint?: string;
+  readonly parentFingerprint?: string;
+  readonly parentSourceHash?: string;
+  readonly parentStoryIrHash?: string;
+  readonly parentContractHash?: string;
+  readonly parentLocale?: string;
+  readonly parentVariant?: "full" | "short";
+  readonly targetWordRange?: Readonly<Record<string, number>>;
+  readonly targetShortTiming?: {
+    readonly shortWpm: number;
+    readonly shortMinSeconds: number;
+    readonly shortMaxSeconds: number;
+  };
+}
+
+export function buildStoryArtifactCacheKey(
+  input: StoryArtifactCacheKeyInput
+): string {
+  return hashText(
+    stableSerialize({
+      cacheKeyVersion: "story-artifact-cache-key-v2",
+      ...input,
+    })
+  );
 }

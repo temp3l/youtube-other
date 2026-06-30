@@ -380,12 +380,16 @@ export interface GeneratedStoryPackage {
 }
 
 export interface StoryLocalizationCacheEntry {
+  readonly schemaVersion?: "story-localization-cache-entry-v2";
   readonly sourceFile: string;
   readonly sourceHash: string;
   readonly configurationHash: string;
   readonly promptVersion: string;
   readonly model: string;
   readonly language: LanguageCode;
+  readonly locale?: string;
+  readonly variant?: "full" | "short";
+  readonly owner?: "narration";
   readonly generatedAt: string;
   readonly outputFiles: readonly string[];
   readonly compilerVersion?: string;

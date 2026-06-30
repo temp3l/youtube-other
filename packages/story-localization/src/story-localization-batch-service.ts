@@ -97,6 +97,7 @@ import {
 } from "./story-localization-batch-storage.js";
 import { estimateStoryLocalizationCost } from "./story-localization.cost-tracker.js";
 import {
+  buildStoryArtifactCacheKey,
   readCanonicalFactsCache,
   readLocalizationCacheEntry,
   resolveEpisodeCacheDirectory,
@@ -199,6 +200,7 @@ function assertCompiledBatchPrompt(
 }
 
 function buildFullStoryBatchConfigurationHash(args: {
+  readonly episodeSlug: string;
   readonly sourceHash: string;
   readonly language: LanguageCode;
   readonly adaptationMode: StoryLocalizationConfig["adaptationMode"];
@@ -216,27 +218,34 @@ function buildFullStoryBatchConfigurationHash(args: {
   readonly shortMaxSeconds: number;
   readonly parentFingerprint?: string;
 }): string {
-  return buildConfigurationHash([
-    args.sourceHash,
-    args.language,
-    args.adaptationMode,
-    args.model,
-    String(args.temperature),
-    args.reasoningEffort,
-    args.promptVersion,
-    args.compilerVersion,
-    args.promptFingerprint,
-    args.responseSchemaName,
-    args.responseSchemaVersion,
-    args.responseSchemaFingerprint,
-    args.parentFingerprint ?? "",
-    String(args.shortWpm),
-    String(args.shortMinSeconds),
-    String(args.shortMaxSeconds),
-  ]);
+  return buildStoryArtifactCacheKey({
+    episodeSlug: args.episodeSlug,
+    sourceHash: args.sourceHash,
+    language: args.language,
+    locale: getLanguageProfile(args.language).locale,
+    variant: "short",
+    owner: "narration",
+    adaptationMode: args.adaptationMode,
+    model: args.model,
+    temperature: args.temperature,
+    reasoningEffort: args.reasoningEffort,
+    promptVersion: args.promptVersion,
+    compilerVersion: args.compilerVersion,
+    promptFingerprint: args.promptFingerprint,
+    responseSchemaName: args.responseSchemaName,
+    responseSchemaVersion: args.responseSchemaVersion,
+    responseSchemaFingerprint: args.responseSchemaFingerprint,
+    ...(args.parentFingerprint ? { parentFingerprint: args.parentFingerprint } : {}),
+    targetShortTiming: {
+      shortWpm: args.shortWpm,
+      shortMinSeconds: args.shortMinSeconds,
+      shortMaxSeconds: args.shortMaxSeconds,
+    },
+  });
 }
 
 function buildCacheKey(args: {
+  readonly episodeSlug: string;
   readonly sourceHash: string;
   readonly language: LanguageCode;
   readonly adaptationMode: StoryLocalizationConfig["adaptationMode"];
@@ -253,23 +262,31 @@ function buildCacheKey(args: {
   readonly parentFingerprint?: string;
 }): string {
   const profile = getLanguageProfile(args.language);
-  return buildConfigurationHash([
-    args.sourceHash,
-    args.language,
-    args.adaptationMode,
-    args.model,
-    String(args.temperature),
-    args.reasoningEffort,
-    args.promptVersion,
-    args.compilerVersion ?? "",
-    args.promptFingerprint ?? "",
-    args.responseSchemaFingerprint ?? "",
-    args.parentFingerprint ?? "",
-    JSON.stringify(profile.shortWordRange),
-    String(args.shortWpm),
-    String(args.shortMinSeconds),
-    String(args.shortMaxSeconds),
-  ]);
+  return buildStoryArtifactCacheKey({
+    episodeSlug: args.episodeSlug,
+    sourceHash: args.sourceHash,
+    language: args.language,
+    locale: profile.locale,
+    variant: "short",
+    owner: "narration",
+    adaptationMode: args.adaptationMode,
+    model: args.model,
+    temperature: args.temperature,
+    reasoningEffort: args.reasoningEffort,
+    promptVersion: args.promptVersion,
+    ...(args.compilerVersion ? { compilerVersion: args.compilerVersion } : {}),
+    ...(args.promptFingerprint ? { promptFingerprint: args.promptFingerprint } : {}),
+    ...(args.responseSchemaFingerprint
+      ? { responseSchemaFingerprint: args.responseSchemaFingerprint }
+      : {}),
+    ...(args.parentFingerprint ? { parentFingerprint: args.parentFingerprint } : {}),
+    targetWordRange: profile.shortWordRange,
+    targetShortTiming: {
+      shortWpm: args.shortWpm,
+      shortMinSeconds: args.shortMinSeconds,
+      shortMaxSeconds: args.shortMaxSeconds,
+    },
+  });
 }
 
 function buildEnglishShortMarkdown(
@@ -1567,6 +1584,7 @@ async function buildBatchItems(
     }
     if (config.includeEnglishShort) {
       const configHash = buildCacheKey({
+        episodeSlug: canonicalParsed.slug,
         sourceHash: canonicalParsed.sourceHash,
         language: "en",
         adaptationMode: config.adaptationMode,
@@ -1624,6 +1642,7 @@ async function buildBatchItems(
         `${canonicalParsed.episodeNumber}:${language}`
       );
       const configHash = buildFullStoryBatchConfigurationHash({
+        episodeSlug: canonicalParsed.slug,
         sourceHash: canonicalParsed.sourceHash,
         language,
         adaptationMode: config.adaptationMode,
@@ -1825,6 +1844,7 @@ async function buildRetryBatchItems(args: {
     }
     if (retryItem.operation === "english-short") {
       const configurationHash = buildCacheKey({
+        episodeSlug: canonicalParsed.slug,
         sourceHash: canonicalParsed.sourceHash,
         language: "en",
         adaptationMode: args.config.adaptationMode,
@@ -1876,6 +1896,7 @@ async function buildRetryBatchItems(args: {
         retryItem.parentArtifact?.fingerprint === canonicalFingerprint
           ? retryItem.configurationHash
           : buildFullStoryBatchConfigurationHash({
+              episodeSlug: canonicalParsed.slug,
               sourceHash: canonicalParsed.sourceHash,
               language: retryItem.language,
               adaptationMode: args.config.adaptationMode,
