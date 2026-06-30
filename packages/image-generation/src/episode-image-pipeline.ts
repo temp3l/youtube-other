@@ -45,6 +45,88 @@ import {
   buildSceneTextPromptSection,
 } from "./scene-text.js";
 
+const mediaStageVariantSchema = z.enum(["full", "short"]);
+export type MediaStageVariant = z.infer<typeof mediaStageVariantSchema>;
+
+const mediaStageOwnerSchema = z.enum([
+  "narration",
+  "scene-plan",
+  "image-plan",
+  "image-generation",
+  "render",
+  "thumbnail",
+  "publication",
+]);
+type MediaStageOwner = z.infer<typeof mediaStageOwnerSchema>;
+
+const mediaStageStatusSchema = z.enum([
+  "planned",
+  "ready",
+  "generated",
+  "reused",
+  "uploaded",
+  "failed",
+]);
+type MediaStageStatus = z.infer<typeof mediaStageStatusSchema>;
+
+export const mediaStageIdentitySchema = z
+  .object({
+    episodeId: z.string().min(1),
+    language: z.string().min(1),
+    locale: z.string().min(1),
+    variant: mediaStageVariantSchema,
+    owner: mediaStageOwnerSchema,
+  })
+  .strict();
+export type MediaStageIdentity = z.infer<typeof mediaStageIdentitySchema>;
+
+export const mediaStageDependencySchema = z
+  .object({
+    owner: mediaStageOwnerSchema,
+    episodeId: z.string().min(1),
+    language: z.string().min(1),
+    locale: z.string().min(1),
+    variant: mediaStageVariantSchema,
+    fingerprint: z.string().min(1),
+    path: z.string().min(1).optional(),
+    status: mediaStageStatusSchema.optional(),
+  })
+  .strict();
+export type MediaStageDependency = z.infer<typeof mediaStageDependencySchema>;
+
+export const shortMediaRequirementsSchema = z
+  .object({
+    aspectRatio: z.literal("9:16"),
+    durationSeconds: z.number().positive().optional(),
+    targetDurationSeconds: z.number().positive().optional(),
+    targetSceneCount: z.number().int().positive().optional(),
+    safeVerticalComposition: z.boolean(),
+    focalSubjectPlacement: z.string().min(1),
+    textSafeArea: z.string().min(1),
+    parentFullFingerprint: z.string().min(1).optional(),
+  })
+  .strict();
+export type ShortMediaRequirements = z.infer<typeof shortMediaRequirementsSchema>;
+
+export interface MediaStageContext {
+  readonly identity: MediaStageIdentity;
+  readonly narration: MediaStageDependency;
+  readonly parentFullNarration?: MediaStageDependency;
+}
+
+export function buildMediaStageDependency(input: {
+  readonly owner: MediaStageOwner;
+  readonly episodeId: string;
+  readonly language: string;
+  readonly locale: string;
+  readonly variant: MediaStageVariant;
+  readonly fingerprint: string;
+  readonly path?: string;
+  readonly status?: MediaStageStatus;
+}): MediaStageDependency {
+  return mediaStageDependencySchema.parse(input);
+}
+
 export type CharacterId = string;
 
 export interface WardrobeDefinition {
@@ -265,6 +347,13 @@ export interface ImageGenerator {
 
 export interface SceneGenerationManifest {
   sceneId: string;
+  stageIdentity?: MediaStageIdentity;
+  narrationDependency?: MediaStageDependency;
+  scenePlanDependency?: MediaStageDependency;
+  imagePlanDependency?: MediaStageDependency;
+  stageVersion?: string;
+  configFingerprint?: string;
+  aspectRatio?: "16:9" | "9:16";
   promptVersion: number;
   sceneHash?: string;
   visualPlanHash?: string;
@@ -299,6 +388,12 @@ export interface SceneGenerationManifest {
 
 export interface PersistedSceneVisualPlan {
   sceneId: string;
+  stageIdentity?: MediaStageIdentity;
+  narrationDependency?: MediaStageDependency;
+  scenePlanFingerprint?: string;
+  scenePlanningConfigFingerprint?: string;
+  scenePlanVersion?: string;
+  shortMediaRequirements?: ShortMediaRequirements;
   previousSceneId?: string;
   narrationBeat: SceneNarrativeBeat;
   visualSpec: SceneVisualSpec;
@@ -342,6 +437,8 @@ export type SceneFailureCategory =
 
 export interface PersistedImageProviderRequest {
   sceneId: string;
+  stageIdentity?: MediaStageIdentity;
+  imagePlanDependency?: MediaStageDependency;
   provider: "openai";
   operation: "image-generation" | "image-edit";
   model: string;
@@ -363,6 +460,8 @@ export interface PersistedImageProviderRequest {
 
 export interface PersistedImageProviderResponse {
   sceneId: string;
+  stageIdentity?: MediaStageIdentity;
+  imagePlanDependency?: MediaStageDependency;
   provider: "openai";
   operation: "image-generation" | "image-edit";
   model: string;
@@ -384,6 +483,8 @@ export interface PersistedImageProviderResponse {
 
 export interface PersistedImageGenerationCheckpoint {
   sceneId: string;
+  stageIdentity?: MediaStageIdentity;
+  imagePlanDependency?: MediaStageDependency;
   status: SceneCheckpointStatus;
   outputPath: string;
   promptHash: string;
@@ -404,6 +505,8 @@ export interface PersistedImageGenerationCheckpoint {
 
 export interface PersistedImageGenerationFailure {
   sceneId: string;
+  stageIdentity?: MediaStageIdentity;
+  imagePlanDependency?: MediaStageDependency;
   stage: SceneFailureStage;
   category: SceneFailureCategory;
   outputPath: string;
@@ -504,6 +607,13 @@ const registrySchema = z.object({
 
 const manifestSchema = z.object({
   sceneId: z.string().min(1),
+  stageIdentity: mediaStageIdentitySchema.optional(),
+  narrationDependency: mediaStageDependencySchema.optional(),
+  scenePlanDependency: mediaStageDependencySchema.optional(),
+  imagePlanDependency: mediaStageDependencySchema.optional(),
+  stageVersion: z.string().min(1).optional(),
+  configFingerprint: z.string().min(1).optional(),
+  aspectRatio: z.enum(["16:9", "9:16"]).optional(),
   promptVersion: z.number().int().positive(),
   sceneHash: z.string().optional(),
   visualPlanHash: z.string().optional(),
@@ -591,6 +701,12 @@ const sceneVisualSpecSchema = z.object({
 
 const persistedSceneVisualPlanSchema = z.object({
   sceneId: z.string().min(1),
+  stageIdentity: mediaStageIdentitySchema.optional(),
+  narrationDependency: mediaStageDependencySchema.optional(),
+  scenePlanFingerprint: z.string().min(1).optional(),
+  scenePlanningConfigFingerprint: z.string().min(1).optional(),
+  scenePlanVersion: z.string().min(1).optional(),
+  shortMediaRequirements: shortMediaRequirementsSchema.optional(),
   previousSceneId: z.string().optional(),
   narrationBeat: z.object({
     sceneId: z.string().min(1),
@@ -612,6 +728,8 @@ const persistedSceneVisualPlanSchema = z.object({
 
 const persistedImageProviderRequestSchema = z.object({
   sceneId: z.string().min(1),
+  stageIdentity: mediaStageIdentitySchema.optional(),
+  imagePlanDependency: mediaStageDependencySchema.optional(),
   provider: z.literal("openai"),
   operation: z.enum(["image-generation", "image-edit"]),
   model: z.string().min(1),
@@ -635,6 +753,8 @@ const persistedImageProviderRequestSchema = z.object({
 
 const persistedImageProviderResponseSchema = z.object({
   sceneId: z.string().min(1),
+  stageIdentity: mediaStageIdentitySchema.optional(),
+  imagePlanDependency: mediaStageDependencySchema.optional(),
   provider: z.literal("openai"),
   operation: z.enum(["image-generation", "image-edit"]),
   model: z.string().min(1),
@@ -658,6 +778,8 @@ const persistedImageProviderResponseSchema = z.object({
 
 const persistedImageGenerationCheckpointSchema = z.object({
   sceneId: z.string().min(1),
+  stageIdentity: mediaStageIdentitySchema.optional(),
+  imagePlanDependency: mediaStageDependencySchema.optional(),
   status: z.enum([
     "planned",
     "queued_for_next_reuse",
@@ -689,6 +811,8 @@ const persistedImageGenerationCheckpointSchema = z.object({
 
 const persistedImageGenerationFailureSchema = z.object({
   sceneId: z.string().min(1),
+  stageIdentity: mediaStageIdentitySchema.optional(),
+  imagePlanDependency: mediaStageDependencySchema.optional(),
   stage: z.enum([
     "visual-planning",
     "reference-resolution",
@@ -720,6 +844,173 @@ const persistedImageGenerationFailureSchema = z.object({
 });
 
 const generationModeSchema = z.enum(["text-only", "reference-assisted"]);
+
+const SCENE_PLAN_VERSION = "scene-plan-v1";
+const IMAGE_PLAN_STAGE_VERSION = "image-plan-v1";
+
+export interface EpisodeImageMediaContext extends MediaStageContext {
+  readonly scenePlanningConfigFingerprint?: string;
+  readonly imagePlanningConfigFingerprint?: string;
+  readonly shortMediaRequirements?: ShortMediaRequirements;
+}
+
+function defaultEpisodeImageMediaContext(episodeId: string): EpisodeImageMediaContext {
+  const narrationFingerprint = hashText(`${episodeId}:narration:en:en-US:full`);
+  return {
+    identity: mediaStageIdentitySchema.parse({
+      episodeId,
+      language: "en",
+      locale: "en-US",
+      variant: "full",
+      owner: "image-plan",
+    }),
+    narration: buildMediaStageDependency({
+      owner: "narration",
+      episodeId,
+      language: "en",
+      locale: "en-US",
+      variant: "full",
+      fingerprint: narrationFingerprint,
+      status: "ready",
+    }),
+  };
+}
+
+function resolveEpisodeImageMediaContext(
+  episodeId: string,
+  context?: EpisodeImageMediaContext
+): EpisodeImageMediaContext {
+  return context ?? defaultEpisodeImageMediaContext(episodeId);
+}
+
+function scenePlanIdentity(context: EpisodeImageMediaContext): MediaStageIdentity {
+  return mediaStageIdentitySchema.parse({
+    ...context.identity,
+    owner: "scene-plan",
+  });
+}
+
+function imagePlanIdentity(context: EpisodeImageMediaContext): MediaStageIdentity {
+  return mediaStageIdentitySchema.parse({
+    ...context.identity,
+    owner: "image-plan",
+  });
+}
+
+function imageGenerationIdentity(context: EpisodeImageMediaContext): MediaStageIdentity {
+  return mediaStageIdentitySchema.parse({
+    ...context.identity,
+    owner: "image-generation",
+  });
+}
+
+function buildScenePlanningConfigFingerprint(
+  context: EpisodeImageMediaContext,
+  scene: Scene
+): string {
+  return hashText(
+    JSON.stringify({
+      version: SCENE_PLAN_VERSION,
+      variant: context.identity.variant,
+      locale: context.identity.locale,
+      narrationFingerprint: context.narration.fingerprint,
+      targetSceneCount: scene.sequenceNumber,
+      targetDurationSeconds: scene.timing.endSeconds - scene.timing.startSeconds,
+      explicitConfigFingerprint: context.scenePlanningConfigFingerprint ?? null,
+      shortMediaRequirements: context.shortMediaRequirements ?? null,
+    })
+  );
+}
+
+function buildScenePlanFingerprint(args: {
+  readonly context: EpisodeImageMediaContext;
+  readonly scene: Scene;
+  readonly spec: SceneVisualSpec;
+}): string {
+  return hashText(
+    JSON.stringify({
+      version: SCENE_PLAN_VERSION,
+      identity: scenePlanIdentity(args.context),
+      narrationFingerprint: args.context.narration.fingerprint,
+      sceneHash: sceneHash(args.scene),
+      spec: args.spec,
+      shortMediaRequirements: args.context.shortMediaRequirements ?? null,
+      configFingerprint: buildScenePlanningConfigFingerprint(
+        args.context,
+        args.scene
+      ),
+    })
+  );
+}
+
+function buildImagePlanningConfigFingerprint(
+  context: EpisodeImageMediaContext,
+  providerRequest: PreparedImageProviderRequest
+): string {
+  return hashText(
+    JSON.stringify({
+      version: IMAGE_PLAN_STAGE_VERSION,
+      variant: context.identity.variant,
+      locale: context.identity.locale,
+      model: providerRequest.model,
+      size: providerRequest.size,
+      quality: providerRequest.quality,
+      aspectRatio: providerRequest.aspectRatio,
+      explicitConfigFingerprint: context.imagePlanningConfigFingerprint ?? null,
+      promptVersion: providerRequest.promptVersion,
+    })
+  );
+}
+
+function buildScenePlanDependency(
+  context: EpisodeImageMediaContext,
+  visualPlanArtifact: PersistedSceneVisualPlan,
+  scenePlanPath?: string
+): MediaStageDependency {
+  return buildMediaStageDependency({
+    owner: "scene-plan",
+    episodeId: context.identity.episodeId,
+    language: context.identity.language,
+    locale: context.identity.locale,
+    variant: context.identity.variant,
+    fingerprint:
+      visualPlanArtifact.scenePlanFingerprint ??
+      hashText(`${context.identity.episodeId}:scene-plan`),
+    ...(scenePlanPath ? { path: scenePlanPath } : {}),
+    status: "ready",
+  });
+}
+
+function buildImagePlanDependency(args: {
+  readonly context: EpisodeImageMediaContext;
+  readonly scenePlanDependency: MediaStageDependency;
+  readonly providerRequest: PreparedImageProviderRequest;
+  readonly promptHash: string;
+  readonly promptPath?: string;
+}): MediaStageDependency {
+  const configFingerprint = buildImagePlanningConfigFingerprint(
+    args.context,
+    args.providerRequest
+  );
+  return buildMediaStageDependency({
+    owner: "image-plan",
+    episodeId: args.context.identity.episodeId,
+    language: args.context.identity.language,
+    locale: args.context.identity.locale,
+    variant: args.context.identity.variant,
+    fingerprint: hashText(
+      JSON.stringify({
+        version: IMAGE_PLAN_STAGE_VERSION,
+        scenePlanFingerprint: args.scenePlanDependency.fingerprint,
+        promptHash: args.promptHash,
+        providerRequestHash: args.providerRequest.providerRequestHash,
+        configFingerprint,
+      })
+    ),
+    ...(args.promptPath ? { path: args.promptPath } : {}),
+    status: "ready",
+  });
+}
 
 const genericTokens = new Set([
   "shown",
@@ -3209,13 +3500,30 @@ async function summarizeReferenceImages(
 }
 
 function buildPersistedSceneVisualPlan(args: {
+  readonly context: EpisodeImageMediaContext;
   readonly scene: Scene;
   readonly spec: SceneVisualSpec;
   readonly previousSpec?: SceneVisualSpec;
   readonly validationIssues: readonly SceneVisualPlanIssue[];
 }): PersistedSceneVisualPlan {
+  const scenePlanFingerprint = buildScenePlanFingerprint({
+    context: args.context,
+    scene: args.scene,
+    spec: args.spec,
+  });
   return {
     sceneId: args.scene.id,
+    stageIdentity: scenePlanIdentity(args.context),
+    narrationDependency: args.context.narration,
+    scenePlanFingerprint,
+    scenePlanningConfigFingerprint: buildScenePlanningConfigFingerprint(
+      args.context,
+      args.scene
+    ),
+    scenePlanVersion: SCENE_PLAN_VERSION,
+    ...(args.context.shortMediaRequirements
+      ? { shortMediaRequirements: args.context.shortMediaRequirements }
+      : {}),
     ...(args.previousSpec ? { previousSceneId: args.previousSpec.sceneId } : {}),
     narrationBeat: normalizedNarrationBeat(args.scene),
     visualSpec: args.spec,
@@ -3241,10 +3549,18 @@ async function writeSceneVisualPlanArtifact(
 }
 
 function buildProviderRequestArtifact(args: {
+  readonly context?: EpisodeImageMediaContext;
+  readonly imagePlanDependency?: MediaStageDependency;
   readonly request: PreparedImageProviderRequest;
 }): PersistedImageProviderRequest {
   return {
     sceneId: args.request.sceneId,
+    ...(args.context
+      ? { stageIdentity: imageGenerationIdentity(args.context) }
+      : {}),
+    ...(args.imagePlanDependency
+      ? { imagePlanDependency: args.imagePlanDependency }
+      : {}),
     provider: "openai",
     operation: args.request.operation,
     model: args.request.model,
@@ -3279,11 +3595,19 @@ async function writeProviderRequestArtifact(
 }
 
 function buildProviderResponseArtifact(args: {
+  readonly context?: EpisodeImageMediaContext;
+  readonly imagePlanDependency?: MediaStageDependency;
   readonly sceneId: string;
   readonly generation: GeneratedImageResult;
 }): PersistedImageProviderResponse {
   return {
     sceneId: args.sceneId,
+    ...(args.context
+      ? { stageIdentity: imageGenerationIdentity(args.context) }
+      : {}),
+    ...(args.imagePlanDependency
+      ? { imagePlanDependency: args.imagePlanDependency }
+      : {}),
     provider: "openai",
     operation:
       args.generation.generationMode === "reference-assisted"
@@ -3517,6 +3841,7 @@ async function buildEpisodeScenePlans(args: {
   readonly registry: CharacterRegistry;
   readonly scenes: readonly Scene[];
   readonly settings: EpisodeImagePipelineSettings;
+  readonly context: EpisodeImageMediaContext;
   readonly client?: OpenAI;
 }): Promise<EpisodeScenePlan[]> {
   const plans: EpisodeScenePlan[] = [];
@@ -3573,6 +3898,7 @@ async function buildEpisodeScenePlans(args: {
     });
     const currentSceneHash = sceneHash(scene);
     let visualPlanArtifact = buildPersistedSceneVisualPlan({
+      context: args.context,
       scene,
       spec,
       ...(previousSpec ? { previousSpec } : {}),
@@ -3651,6 +3977,12 @@ export async function loadEpisodeSceneVisualPlan(
 export interface EpisodeImagePlanResult {
   episodeId: string;
   sceneId: string;
+  variant?: MediaStageVariant;
+  language?: string;
+  locale?: string;
+  narrationFingerprint?: string;
+  scenePlanFingerprint?: string;
+  imagePlanFingerprint?: string;
   prompt: string;
   promptHash: string;
   providerRequestHash: string;
@@ -3767,6 +4099,7 @@ async function generateIndependentScenePlan(args: {
   readonly episodeDir: string;
   readonly episodeId: string;
   readonly plan: EpisodeScenePlan;
+  readonly context: EpisodeImageMediaContext;
   readonly settings: EpisodeImagePipelineSettings;
   readonly registry: CharacterRegistry;
   readonly generator: OpenAIImageGenerator;
@@ -3786,6 +4119,26 @@ async function generateIndependentScenePlan(args: {
     args.plan.scene.id,
     args.plan.visualPlanArtifact
   );
+  const scenePlanPath = resolveEpisodeImageVisualPlanPath(
+    args.episodeDir,
+    args.plan.scene.id
+  );
+  const scenePlanDependency = buildScenePlanDependency(
+    args.context,
+    args.plan.visualPlanArtifact,
+    scenePlanPath
+  );
+  const promptPath = resolveEpisodeImagePromptPath(
+    args.episodeDir,
+    args.plan.scene.id
+  );
+  const imagePlanDependency = buildImagePlanDependency({
+    context: args.context,
+    scenePlanDependency,
+    providerRequest: args.plan.providerRequest,
+    promptHash: args.plan.promptHash,
+    promptPath,
+  });
 
   if (
     args.plan.validationFailures.length === 0 &&
@@ -3824,6 +4177,16 @@ async function generateIndependentScenePlan(args: {
   if (args.plan.validationFailures.length > 0) {
     const manifest: SceneGenerationManifest = {
       sceneId: args.plan.scene.id,
+      stageIdentity: imageGenerationIdentity(args.context),
+      narrationDependency: args.context.narration,
+      scenePlanDependency,
+      imagePlanDependency,
+      stageVersion: IMAGE_PLAN_STAGE_VERSION,
+      configFingerprint: buildImagePlanningConfigFingerprint(
+        args.context,
+        args.plan.providerRequest
+      ),
+      aspectRatio: args.plan.providerRequest.aspectRatio,
       promptVersion: args.plan.providerRequest.promptVersion,
       sceneHash: args.plan.sceneHash,
       visualPlanHash: args.plan.visualPlanHash,
@@ -3860,6 +4223,8 @@ async function generateIndependentScenePlan(args: {
     await writeManifest(manifestPath, manifest);
     await writeGenerationCheckpoint(args.episodeDir, {
       sceneId: args.plan.scene.id,
+      stageIdentity: imageGenerationIdentity(args.context),
+      imagePlanDependency,
       status: "validation_failed",
       outputPath,
       promptHash: args.plan.promptHash,
@@ -3870,6 +4235,8 @@ async function generateIndependentScenePlan(args: {
     });
     await writeGenerationFailure(args.episodeDir, {
       sceneId: args.plan.scene.id,
+      stageIdentity: imageGenerationIdentity(args.context),
+      imagePlanDependency,
       stage: "visual-planning",
       category: "prompt-validation-error",
       outputPath,
@@ -3902,6 +4269,16 @@ async function generateIndependentScenePlan(args: {
     const errorCode = parseErrorCode(error);
     const manifest: SceneGenerationManifest = {
       sceneId: args.plan.scene.id,
+      stageIdentity: imageGenerationIdentity(args.context),
+      narrationDependency: args.context.narration,
+      scenePlanDependency,
+      imagePlanDependency,
+      stageVersion: IMAGE_PLAN_STAGE_VERSION,
+      configFingerprint: buildImagePlanningConfigFingerprint(
+        args.context,
+        args.plan.providerRequest
+      ),
+      aspectRatio: args.plan.providerRequest.aspectRatio,
       promptVersion: args.plan.providerRequest.promptVersion,
       sceneHash: args.plan.sceneHash,
       visualPlanHash: args.plan.visualPlanHash,
@@ -3935,6 +4312,8 @@ async function generateIndependentScenePlan(args: {
     await writeManifest(manifestPath, manifest);
     await writeGenerationCheckpoint(args.episodeDir, {
       sceneId: args.plan.scene.id,
+      stageIdentity: imageGenerationIdentity(args.context),
+      imagePlanDependency,
       status: "provider_failed",
       outputPath,
       promptHash: args.plan.promptHash,
@@ -3945,6 +4324,8 @@ async function generateIndependentScenePlan(args: {
     });
     await writeGenerationFailure(args.episodeDir, {
       sceneId: args.plan.scene.id,
+      stageIdentity: imageGenerationIdentity(args.context),
+      imagePlanDependency,
       stage: "reference-resolution",
       category: "character-continuity-error",
       outputPath,
@@ -3968,11 +4349,15 @@ async function generateIndependentScenePlan(args: {
     args.episodeDir,
     args.plan.scene.id,
     buildProviderRequestArtifact({
+      context: args.context,
+      imagePlanDependency,
       request: args.plan.providerRequest,
     })
   );
   await writeGenerationCheckpoint(args.episodeDir, {
     sceneId: args.plan.scene.id,
+    stageIdentity: imageGenerationIdentity(args.context),
+    imagePlanDependency,
     status: "provider_requested",
     outputPath,
     promptHash: args.plan.promptHash,
@@ -3994,6 +4379,16 @@ async function generateIndependentScenePlan(args: {
     const retryable = isRetryableError(error);
     const manifest: SceneGenerationManifest = {
       sceneId: args.plan.scene.id,
+      stageIdentity: imageGenerationIdentity(args.context),
+      narrationDependency: args.context.narration,
+      scenePlanDependency,
+      imagePlanDependency,
+      stageVersion: IMAGE_PLAN_STAGE_VERSION,
+      configFingerprint: buildImagePlanningConfigFingerprint(
+        args.context,
+        args.plan.providerRequest
+      ),
+      aspectRatio: args.plan.providerRequest.aspectRatio,
       promptVersion: args.plan.providerRequest.promptVersion,
       sceneHash: args.plan.sceneHash,
       visualPlanHash: args.plan.visualPlanHash,
@@ -4030,6 +4425,8 @@ async function generateIndependentScenePlan(args: {
     await writeManifest(manifestPath, manifest);
     await writeGenerationCheckpoint(args.episodeDir, {
       sceneId: args.plan.scene.id,
+      stageIdentity: imageGenerationIdentity(args.context),
+      imagePlanDependency,
       status: "provider_failed",
       outputPath,
       promptHash: args.plan.promptHash,
@@ -4040,6 +4437,8 @@ async function generateIndependentScenePlan(args: {
     });
     await writeGenerationFailure(args.episodeDir, {
       sceneId: args.plan.scene.id,
+      stageIdentity: imageGenerationIdentity(args.context),
+      imagePlanDependency,
       stage: "provider",
       category: classifyFailure({
         stage: "provider",
@@ -4065,6 +4464,16 @@ async function generateIndependentScenePlan(args: {
 
   const manifest: SceneGenerationManifest = {
     sceneId: args.plan.scene.id,
+    stageIdentity: imageGenerationIdentity(args.context),
+    narrationDependency: args.context.narration,
+    scenePlanDependency,
+    imagePlanDependency,
+    stageVersion: IMAGE_PLAN_STAGE_VERSION,
+    configFingerprint: buildImagePlanningConfigFingerprint(
+      args.context,
+      args.plan.providerRequest
+    ),
+    aspectRatio: args.plan.providerRequest.aspectRatio,
     promptVersion: args.plan.providerRequest.promptVersion,
     sceneHash: args.plan.sceneHash,
     visualPlanHash: args.plan.visualPlanHash,
@@ -4099,12 +4508,16 @@ async function generateIndependentScenePlan(args: {
     args.episodeDir,
     args.plan.scene.id,
     buildProviderResponseArtifact({
+      context: args.context,
+      imagePlanDependency,
       sceneId: args.plan.scene.id,
       generation,
     })
   );
   await writeGenerationCheckpoint(args.episodeDir, {
     sceneId: args.plan.scene.id,
+    stageIdentity: imageGenerationIdentity(args.context),
+    imagePlanDependency,
     status: "generated",
     outputPath,
     promptHash: generation.promptHash,
@@ -4128,8 +4541,13 @@ export async function planEpisodeImageGeneration(
   episodeId: string,
   scenePlan: ScenePlan,
   settings: EpisodeImagePipelineSettings,
-  options?: { sceneId?: string; client?: OpenAI }
+  options?: {
+    sceneId?: string;
+    client?: OpenAI;
+    context?: EpisodeImageMediaContext;
+  }
 ): Promise<EpisodeImagePlanResult[]> {
+  const context = resolveEpisodeImageMediaContext(episodeId, options?.context);
   const registry = await loadRegistry(episodeDir, episodeId);
   await ensureDir(path.join(episodeDir, "state", "image-generation", "manifests"));
   await ensureDir(path.join(episodeDir, "state", "image-generation", "prompts"));
@@ -4146,6 +4564,7 @@ export async function planEpisodeImageGeneration(
     registry,
     scenes,
     settings,
+    context,
     ...(options?.client ? { client: options.client } : {}),
   });
   const { plans, promotedSceneIds } = rebalanceEpisodeScenePlans(draftPlans);
@@ -4167,8 +4586,31 @@ export async function planEpisodeImageGeneration(
       plan.scene.id,
       plan.visualPlanArtifact
     );
+    const scenePlanDependency = buildScenePlanDependency(
+      context,
+      plan.visualPlanArtifact,
+      visualPlanPath
+    );
+    const promptPath = resolveEpisodeImagePromptPath(episodeDir, plan.scene.id);
+    const imagePlanDependency = buildImagePlanDependency({
+      context,
+      scenePlanDependency,
+      providerRequest: plan.providerRequest,
+      promptHash: plan.promptHash,
+      promptPath,
+    });
     const manifest: SceneGenerationManifest = {
       sceneId: plan.scene.id,
+      stageIdentity: imageGenerationIdentity(context),
+      narrationDependency: context.narration,
+      scenePlanDependency,
+      imagePlanDependency,
+      stageVersion: IMAGE_PLAN_STAGE_VERSION,
+      configFingerprint: buildImagePlanningConfigFingerprint(
+        context,
+        plan.providerRequest
+      ),
+      aspectRatio: plan.providerRequest.aspectRatio,
       promptVersion: plan.providerRequest.promptVersion,
       sceneHash: plan.sceneHash,
       visualPlanHash: plan.visualPlanHash,
@@ -4206,6 +4648,8 @@ export async function planEpisodeImageGeneration(
     );
     await writeGenerationCheckpoint(episodeDir, {
       sceneId: plan.scene.id,
+      stageIdentity: imageGenerationIdentity(context),
+      imagePlanDependency,
       status: plan.validationFailures.length > 0 ? "validation_failed" : "planned",
       outputPath: manifest.outputPath,
       promptHash: plan.promptHash,
@@ -4219,6 +4663,8 @@ export async function planEpisodeImageGeneration(
     if (plan.validationFailures.length > 0) {
       await writeGenerationFailure(episodeDir, {
         sceneId: plan.scene.id,
+        stageIdentity: imageGenerationIdentity(context),
+        imagePlanDependency,
         stage: "visual-planning",
         category: "prompt-validation-error",
         outputPath: manifest.outputPath,
@@ -4232,6 +4678,12 @@ export async function planEpisodeImageGeneration(
     results.push({
       episodeId,
       sceneId: plan.scene.id,
+      variant: context.identity.variant,
+      language: context.identity.language,
+      locale: context.identity.locale,
+      narrationFingerprint: context.narration.fingerprint,
+      scenePlanFingerprint: scenePlanDependency.fingerprint,
+      imagePlanFingerprint: imagePlanDependency.fingerprint,
       prompt: plan.prompt,
       promptHash: plan.promptHash,
       providerRequestHash: plan.providerRequestHash,
@@ -4327,8 +4779,14 @@ export async function generateEpisodeImages(
   episodeId: string,
   scenePlan: ScenePlan,
   settings: EpisodeImagePipelineSettings,
-  options?: { sceneId?: string; force?: boolean; client?: OpenAI }
+  options?: {
+    sceneId?: string;
+    force?: boolean;
+    client?: OpenAI;
+    context?: EpisodeImageMediaContext;
+  }
 ): Promise<EpisodeImageGenerationResult[]> {
+  const context = resolveEpisodeImageMediaContext(episodeId, options?.context);
   const registry = await loadRegistry(episodeDir, episodeId);
   await ensureDir(path.join(episodeDir, "state", "image-generation", "manifests"));
   await ensureDir(path.join(episodeDir, "shared", "images", "generated"));
@@ -4347,6 +4805,7 @@ export async function generateEpisodeImages(
     registry,
     scenes,
     settings,
+    context,
     ...(options?.client ? { client: options.client } : {}),
   });
   const { plans, promotedSceneIds } = rebalanceEpisodeScenePlans(draftPlans);
@@ -4381,6 +4840,7 @@ export async function generateEpisodeImages(
           episodeDir,
           episodeId,
           plan,
+          context,
           settings,
           registry,
           generator,

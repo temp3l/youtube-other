@@ -7,11 +7,17 @@ import {
   type CharacterRegistry,
   type EpisodeImagePipelineSettings,
   type ImageGenerator,
+  type MediaStageDependency,
+  type MediaStageIdentity,
   type PreparedImageProviderRequest,
   type SceneVisualSpec,
+  buildMediaStageDependency,
   buildSceneVisualSpec,
   buildPromptFromSpec,
+  mediaStageDependencySchema,
+  mediaStageIdentitySchema,
   OpenAIImageGenerator,
+  shortMediaRequirementsSchema,
 } from "./episode-image-pipeline.js";
 import {
   ensureDir,
@@ -65,6 +71,11 @@ export interface ShortsScenePlan {
 export interface ShortsSceneManifestEntry {
   sceneId: string;
   sequenceNumber: number;
+  stageIdentity?: MediaStageIdentity;
+  narrationDependency?: MediaStageDependency;
+  parentFullNarrationDependency?: MediaStageDependency;
+  aspectRatio?: "9:16";
+  imagePlanFingerprint?: string;
   strategy: ShortsImageStrategy;
   sourceImagePath?: string;
   outputImagePath: string;
@@ -78,6 +89,22 @@ export interface ShortsSceneManifestEntry {
   outputImageSha256?: string;
   promptHash?: string;
   generatedAt?: string;
+  shortMediaRequirements?: {
+    aspectRatio: "9:16";
+    safeVerticalComposition: true;
+    focalSubjectPlacement: string;
+    textSafeArea: string;
+    targetSceneCount?: number;
+    targetDurationSeconds?: number;
+    parentFullFingerprint?: string;
+  };
+}
+
+export interface ShortsMediaContext {
+  readonly identity: MediaStageIdentity;
+  readonly narration: MediaStageDependency;
+  readonly parentFullNarration?: MediaStageDependency;
+  readonly targetDurationSeconds?: number;
 }
 
 export interface PreparedShortsImagesResult {
@@ -149,6 +176,11 @@ const registrySchema = z.object({
 const manifestEntrySchema = z.object({
   sceneId: z.string().min(1),
   sequenceNumber: z.number().int().positive(),
+  stageIdentity: mediaStageIdentitySchema.optional(),
+  narrationDependency: mediaStageDependencySchema.optional(),
+  parentFullNarrationDependency: mediaStageDependencySchema.optional(),
+  aspectRatio: z.literal("9:16").optional(),
+  imagePlanFingerprint: z.string().min(1).optional(),
   strategy: z.enum(["regenerate", "smart-crop", "pan-and-scan", "blurred-fill"]),
   sourceImagePath: z.string().optional(),
   outputImagePath: z.string().min(1),
@@ -162,7 +194,40 @@ const manifestEntrySchema = z.object({
   outputImageSha256: z.string().optional(),
   promptHash: z.string().optional(),
   generatedAt: z.string().optional(),
+  shortMediaRequirements: shortMediaRequirementsSchema.optional(),
 });
+
+function resolveShortsMediaContext(
+  episodeId: string,
+  scenePlan: ScenePlan,
+  context?: ShortsMediaContext
+): ShortsMediaContext {
+  if (context) {
+    return context;
+  }
+  const parentFingerprint = hashText(`${episodeId}:narration:en:en-US:short`);
+  const targetDurationSeconds =
+    scenePlan.scenes[scenePlan.scenes.length - 1]?.timing.endSeconds;
+  return {
+    identity: mediaStageIdentitySchema.parse({
+      episodeId,
+      language: "en",
+      locale: "en-US",
+      variant: "short",
+      owner: "image-generation",
+    }),
+    narration: buildMediaStageDependency({
+      owner: "narration",
+      episodeId,
+      language: "en",
+      locale: "en-US",
+      variant: "short",
+      fingerprint: parentFingerprint,
+      status: "ready",
+    }),
+    ...(targetDurationSeconds !== undefined ? { targetDurationSeconds } : {}),
+  };
+}
 
 function sceneHash(scene: ScenePlan["scenes"][number]): string {
   return hashText(
@@ -578,6 +643,7 @@ export async function prepareShortsImageAssets(
     readonly force?: boolean;
     readonly client?: ConstructorParameters<typeof OpenAIImageGenerator>[1];
     readonly generator?: ImageGenerator;
+    readonly context?: ShortsMediaContext;
   }
 ): Promise<PreparedShortsImagesResult> {
   if (!config.enabled) {
@@ -597,6 +663,11 @@ export async function prepareShortsImageAssets(
   await removeStalePortraitAssets(outputDir, scenePlan);
   const existingEntries = new Map(
     (await loadExistingManifest(manifestPath) ?? []).map((entry) => [entry.sceneId, entry] as const)
+  );
+  const context = resolveShortsMediaContext(
+    episodeId,
+    scenePlan,
+    options?.context
   );
   const registry = await loadCharacterRegistry(episodeDir, episodeId);
   const keySceneIds = resolveKeySceneIds(scenePlan, config);
@@ -624,10 +695,39 @@ export async function prepareShortsImageAssets(
           ? "blurred-fill"
           : "smart-crop";
     const cached = existingEntries.get(scene.id);
+    const imagePlanFingerprint = hashText(
+      JSON.stringify({
+        narrationFingerprint: context.narration.fingerprint,
+        sceneHash: currentSceneHash,
+        strategy,
+        aspectRatio: "9:16",
+        output: portraitFilename(scene),
+      })
+    );
+    const shortMediaRequirements = {
+      aspectRatio: "9:16" as const,
+      safeVerticalComposition: true as const,
+      focalSubjectPlacement: "center third",
+      textSafeArea: "top and bottom 12 percent",
+      targetSceneCount: scenePlan.scenes.length,
+      ...(context.targetDurationSeconds
+        ? { targetDurationSeconds: context.targetDurationSeconds }
+        : {}),
+      ...(context.parentFullNarration
+        ? { parentFullFingerprint: context.parentFullNarration.fingerprint }
+        : {}),
+    };
     if (await fileExists(outputPortraitPath)) {
       const entry: ShortsSceneManifestEntry = {
         sceneId: scene.id,
         sequenceNumber: scene.sequenceNumber,
+        stageIdentity: context.identity,
+        narrationDependency: context.narration,
+        ...(context.parentFullNarration
+          ? { parentFullNarrationDependency: context.parentFullNarration }
+          : {}),
+        aspectRatio: "9:16",
+        imagePlanFingerprint,
         strategy: cached?.strategy ?? strategy,
         outputImagePath: outputPortraitPath,
         reusedExistingImage: true,
@@ -637,6 +737,7 @@ export async function prepareShortsImageAssets(
         error: null,
         sceneHash: currentSceneHash,
         outputImageSha256: await hashFile(outputPortraitPath),
+        shortMediaRequirements,
       };
       const sourceImagePath = cached?.sourceImagePath ?? landscapePath;
       if (sourceImagePath) {
@@ -698,6 +799,13 @@ export async function prepareShortsImageAssets(
         const entry: ShortsSceneManifestEntry = {
           sceneId: scene.id,
           sequenceNumber: scene.sequenceNumber,
+          stageIdentity: context.identity,
+          narrationDependency: context.narration,
+          ...(context.parentFullNarration
+            ? { parentFullNarrationDependency: context.parentFullNarration }
+            : {}),
+          aspectRatio: "9:16",
+          imagePlanFingerprint,
           strategy: "regenerate",
           outputImagePath: outputPortraitPath,
           reusedExistingImage: false,
@@ -709,6 +817,7 @@ export async function prepareShortsImageAssets(
           outputImageSha256: await hashFile(outputPortraitPath),
           promptHash: result.promptHash,
           generatedAt: new Date().toISOString(),
+          shortMediaRequirements,
         };
         entries.push(entry);
         previousSpec = spec;
@@ -727,6 +836,13 @@ export async function prepareShortsImageAssets(
       const entry: ShortsSceneManifestEntry = {
         sceneId: scene.id,
         sequenceNumber: scene.sequenceNumber,
+        stageIdentity: context.identity,
+        narrationDependency: context.narration,
+        ...(context.parentFullNarration
+          ? { parentFullNarrationDependency: context.parentFullNarration }
+          : {}),
+        aspectRatio: "9:16",
+        imagePlanFingerprint,
         strategy,
         outputImagePath: outputPortraitPath,
         reusedExistingImage: true,
@@ -736,6 +852,7 @@ export async function prepareShortsImageAssets(
         error: null,
         sceneHash: currentSceneHash,
         outputImageSha256: await hashFile(outputPortraitPath),
+        shortMediaRequirements,
       };
       if (landscapePath) {
         entry.sourceImagePath = landscapePath;
@@ -748,6 +865,13 @@ export async function prepareShortsImageAssets(
       const entry: ShortsSceneManifestEntry = {
         sceneId: scene.id,
         sequenceNumber: scene.sequenceNumber,
+        stageIdentity: context.identity,
+        narrationDependency: context.narration,
+        ...(context.parentFullNarration
+          ? { parentFullNarrationDependency: context.parentFullNarration }
+          : {}),
+        aspectRatio: "9:16",
+        imagePlanFingerprint,
         strategy,
         outputImagePath: outputPortraitPath,
         reusedExistingImage: !shouldRegenerate,
@@ -756,6 +880,7 @@ export async function prepareShortsImageAssets(
         status: "failed",
         error: error instanceof Error ? error.message : String(error),
         sceneHash: currentSceneHash,
+        shortMediaRequirements,
       };
       if (landscapePath) {
         entry.sourceImagePath = landscapePath;

@@ -180,8 +180,16 @@ describe("shorts image strategy", () => {
     const tailImage = await sharp(result.entries[5]!.outputImagePath).metadata();
     expect(tailImage.width).toBe(1080);
     expect(tailImage.height).toBe(1920);
-    const manifest = JSON.parse(await fs.readFile(result.manifestPath, "utf8")) as unknown[];
+    const manifest = JSON.parse(await fs.readFile(result.manifestPath, "utf8")) as Array<Record<string, unknown>>;
     expect(manifest).toHaveLength(6);
+    expect(result.entries[0]).toMatchObject({
+      aspectRatio: "9:16",
+      shortMediaRequirements: {
+        aspectRatio: "9:16",
+        safeVerticalComposition: true,
+      },
+    });
+    expect(manifest[0]?.["imagePlanFingerprint"]).toMatch(/^[a-f0-9]{64}$/u);
     await fs.rm(tempDir, { recursive: true, force: true });
   }, 15_000);
 

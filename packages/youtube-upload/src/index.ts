@@ -31,6 +31,60 @@ const uploadStatusSchema = z.enum(["planned", "uploaded", "failed", "skipped"]);
 const privacyStatusSchema = z.enum(["private", "public", "unlisted"]);
 const licenseSchema = z.enum(["youtube", "creativeCommon"]);
 const YOUTUBE_THUMBNAIL_MAX_BYTES = 2 * 1024 * 1024;
+const mediaStageVariantSchema = z.enum(["full", "short"]);
+type MediaStageVariant = z.infer<typeof mediaStageVariantSchema>;
+const mediaStageOwnerSchema = z.enum([
+  "narration",
+  "scene-plan",
+  "image-plan",
+  "image-generation",
+  "render",
+  "thumbnail",
+  "publication",
+]);
+const mediaStageStatusSchema = z.enum([
+  "planned",
+  "ready",
+  "generated",
+  "reused",
+  "uploaded",
+  "failed",
+]);
+const mediaStageIdentitySchema = z
+  .object({
+    episodeId: z.string().min(1),
+    language: z.string().min(1),
+    locale: z.string().min(1),
+    variant: mediaStageVariantSchema,
+    owner: mediaStageOwnerSchema,
+  })
+  .strict();
+type MediaStageIdentity = z.infer<typeof mediaStageIdentitySchema>;
+const mediaStageDependencySchema = z
+  .object({
+    owner: mediaStageOwnerSchema,
+    episodeId: z.string().min(1),
+    language: z.string().min(1),
+    locale: z.string().min(1),
+    variant: mediaStageVariantSchema,
+    fingerprint: z.string().min(1),
+    path: z.string().min(1).optional(),
+    status: mediaStageStatusSchema.optional(),
+  })
+  .strict();
+type MediaStageDependency = z.infer<typeof mediaStageDependencySchema>;
+function buildMediaStageDependency(input: {
+  readonly owner: z.infer<typeof mediaStageOwnerSchema>;
+  readonly episodeId: string;
+  readonly language: string;
+  readonly locale: string;
+  readonly variant: MediaStageVariant;
+  readonly fingerprint: string;
+  readonly path?: string;
+  readonly status?: z.infer<typeof mediaStageStatusSchema>;
+}): MediaStageDependency {
+  return mediaStageDependencySchema.parse(input);
+}
 
 export type YoutubeUploadStatus = z.infer<typeof uploadStatusSchema>;
 
@@ -62,6 +116,14 @@ export interface YoutubeUploadOverrides {
 export interface YoutubeUploadReport {
   readonly episodeId: string;
   readonly episodeDir: string;
+  readonly publication?: {
+    readonly stageIdentity: MediaStageIdentity;
+    readonly renderDependency: MediaStageDependency;
+    readonly thumbnailDependency: MediaStageDependency;
+    readonly metadataFingerprint: string;
+    readonly channelTarget?: string | undefined;
+    readonly requestFingerprint: string;
+  };
   readonly status: YoutubeUploadStatus;
   readonly generatedAt: string;
   readonly completedAt?: string | undefined;
@@ -220,7 +282,85 @@ const uploadMetadataSchema = z.object({
   episodeDir: z.string().min(1),
 });
 
+const publicationReportSchema = z.object({
+  stageIdentity: mediaStageIdentitySchema,
+  renderDependency: mediaStageDependencySchema,
+  thumbnailDependency: mediaStageDependencySchema,
+  metadataFingerprint: z.string().min(1),
+  channelTarget: z.string().min(1).optional(),
+  requestFingerprint: z.string().min(1),
+});
+
 type UploadMetadata = z.infer<typeof uploadMetadataSchema>;
+
+function inferPublicationVariantFromVideoPath(videoPath: string): MediaStageVariant {
+  return /(?:^|[\\/])vertical(?:[\\/]|$)|9x16/u.test(videoPath) ? "short" : "full";
+}
+
+function inferPublicationIdentity(args: {
+  readonly episodeId: string;
+  readonly metadata: UploadMetadata;
+  readonly videoPath: string;
+}): MediaStageIdentity {
+  const variant = inferPublicationVariantFromVideoPath(args.videoPath);
+  const language = args.metadata.defaultLanguage ?? "en";
+  return mediaStageIdentitySchema.parse({
+    episodeId: args.episodeId,
+    language,
+    locale: language === "en" ? "en-US" : language,
+    variant,
+    owner: "publication",
+  });
+}
+
+function buildPublicationSection(args: {
+  readonly episodeId: string;
+  readonly metadata: UploadMetadata;
+  readonly metadataSha256: string;
+  readonly videoPath: string;
+  readonly videoSha256: string;
+  readonly thumbnailPath: string;
+  readonly thumbnailSha256: string;
+  readonly channelTarget?: string;
+}): NonNullable<YoutubeUploadReport["publication"]> {
+  const stageIdentity = inferPublicationIdentity(args);
+  const renderDependency = buildMediaStageDependency({
+    owner: "render",
+    episodeId: stageIdentity.episodeId,
+    language: stageIdentity.language,
+    locale: stageIdentity.locale,
+    variant: stageIdentity.variant,
+    fingerprint: args.videoSha256,
+    path: args.videoPath,
+    status: "generated",
+  });
+  const thumbnailDependency = buildMediaStageDependency({
+    owner: "thumbnail",
+    episodeId: stageIdentity.episodeId,
+    language: stageIdentity.language,
+    locale: stageIdentity.locale,
+    variant: stageIdentity.variant,
+    fingerprint: args.thumbnailSha256,
+    path: args.thumbnailPath,
+    status: "generated",
+  });
+  return publicationReportSchema.parse({
+    stageIdentity,
+    renderDependency,
+    thumbnailDependency,
+    metadataFingerprint: args.metadataSha256,
+    ...(args.channelTarget ? { channelTarget: args.channelTarget } : {}),
+    requestFingerprint: hashText(
+      JSON.stringify({
+        renderFingerprint: renderDependency.fingerprint,
+        thumbnailFingerprint: thumbnailDependency.fingerprint,
+        metadataFingerprint: args.metadataSha256,
+        channelTarget: args.channelTarget ?? null,
+        variant: stageIdentity.variant,
+      })
+    ),
+  });
+}
 
 const CATEGORY_NAME_TO_ID: Record<string, string> = {
   entertainment: "24",
@@ -385,7 +525,7 @@ function validateChapters(chapters: UploadMetadata["chapters"]): UploadMetadata[
 function normalizeUploadMetadata(metadata: YoutubeMetadata, overrides: YoutubeUploadOverrides & { readonly episodeId: string; readonly episodeDir: string; readonly sourceMetadataPath: string; readonly sourceMetadataSha256: string }): UploadMetadata {
   const categories = normalizeCategoryId(metadata.uploadSettings.category);
   const chapters = validateChapters(
-    metadata.chapters.items.map((chapter) => ({
+    metadata.chapters.items.map((chapter: YoutubeMetadata["chapters"]["items"][number]) => ({
       timestamp: chapter.timestamp,
       startSeconds: chapter.startSeconds,
       title: chapter.title,
@@ -838,9 +978,14 @@ async function loadPreviousReport(reportDir: string): Promise<YoutubeUploadRepor
   return readJsonIfExists(reportPath, (value) => {
     const parsed = value as Record<string, unknown>;
     const status = uploadStatusSchema.parse(parsed["status"]);
+    const publication =
+      typeof parsed["publication"] === "object" && parsed["publication"] !== null
+        ? publicationReportSchema.parse(parsed["publication"])
+        : null;
     return {
       episodeId: String(parsed["episodeId"] ?? ""),
       episodeDir: String(parsed["episodeDir"] ?? ""),
+      ...(publication ? { publication } : {}),
       status,
       generatedAt: String(parsed["generatedAt"] ?? ""),
       completedAt: typeof parsed["completedAt"] === "string" ? parsed["completedAt"] : undefined,
@@ -954,6 +1099,7 @@ function toUploadReport(input: {
   readonly thumbnailSha256: string;
   readonly generatedAt: string;
   readonly status: YoutubeUploadStatus;
+  readonly channelTarget?: string | undefined;
   readonly requestIds?: YoutubeUploadReport["requestIds"];
   readonly youtubeVideoId?: string | undefined;
   readonly youtubeChannelId?: string | undefined;
@@ -965,6 +1111,16 @@ function toUploadReport(input: {
   return {
     episodeId: input.episodeId,
     episodeDir: input.episodeDir,
+    publication: buildPublicationSection({
+      episodeId: input.episodeId,
+      metadata: input.metadata,
+      metadataSha256: input.metadataSha256,
+      videoPath: input.videoPath,
+      videoSha256: input.videoSha256,
+      thumbnailPath: input.thumbnailPath,
+      thumbnailSha256: input.thumbnailSha256,
+      ...(input.channelTarget ? { channelTarget: input.channelTarget } : {}),
+    }),
     status: input.status,
     generatedAt: input.generatedAt,
     completedAt: input.completedAt,
@@ -1134,30 +1290,43 @@ export async function uploadYoutubeEpisode(input: YoutubeUploadCommandInput): Pr
     thumbnailSha256,
     generatedAt: new Date().toISOString(),
     status: "planned",
+    channelTarget: input.auth.channelId,
     warnings: [],
   });
   const plannedPaths = await writeUploadReport(reportDir, plannedReport);
-  const youtube = input.client ?? input.clientFactory?.(input.auth) ?? createYoutubeClient(input.auth);
-  const authChannelId = await validateChannelOwnership(youtube, input.auth.channelId, telemetry);
-  const requestBody: youtube_v3.Schema$Video = {
-    snippet: {
-      title: metadata.title,
-      description: metadata.description,
-      tags: metadata.tags,
-      categoryId: metadata.categoryId,
-      ...(metadata.defaultLanguage ? { defaultLanguage: metadata.defaultLanguage } : {}),
-      ...(metadata.defaultAudioLanguage ? { defaultAudioLanguage: metadata.defaultAudioLanguage } : {}),
-    },
-    status: {
-      privacyStatus: metadata.privacyStatus,
-      selfDeclaredMadeForKids: metadata.madeForKids,
-      embeddable: metadata.embeddable,
-      publicStatsViewable: metadata.publicStatsViewable,
-      license: metadata.license,
-      ...(metadata.publishAt ? { publishAt: metadata.publishAt } : {}),
-    },
-  };
-  const uploadResponse = await withRetry(
+  try {
+    const youtube =
+      input.client ??
+      input.clientFactory?.(input.auth) ??
+      createYoutubeClient(input.auth);
+    const authChannelId = await validateChannelOwnership(
+      youtube,
+      input.auth.channelId,
+      telemetry
+    );
+    const requestBody: youtube_v3.Schema$Video = {
+      snippet: {
+        title: metadata.title,
+        description: metadata.description,
+        tags: metadata.tags,
+        categoryId: metadata.categoryId,
+        ...(metadata.defaultLanguage
+          ? { defaultLanguage: metadata.defaultLanguage }
+          : {}),
+        ...(metadata.defaultAudioLanguage
+          ? { defaultAudioLanguage: metadata.defaultAudioLanguage }
+          : {}),
+      },
+      status: {
+        privacyStatus: metadata.privacyStatus,
+        selfDeclaredMadeForKids: metadata.madeForKids,
+        embeddable: metadata.embeddable,
+        publicStatsViewable: metadata.publicStatsViewable,
+        license: metadata.license,
+        ...(metadata.publishAt ? { publishAt: metadata.publishAt } : {}),
+      },
+    };
+    const uploadResponse = await withRetry(
     async () =>
       youtube.videos.insert(
         {
@@ -1173,15 +1342,23 @@ export async function uploadYoutubeEpisode(input: YoutubeUploadCommandInput): Pr
         { timeout: input.metadataGeneration?.timeoutMs ?? 180000 }
       ),
     { maxRetries: 2, label: "videos.insert", logger: input.logger }
-  ).catch((error: unknown) => {
-    throw new YoutubeUploadError(describeYoutubeError(error), isRetryableYoutubeError(error), error);
-  });
-  const videoId = uploadResponse.data.id;
-  if (!videoId) {
-    throw new YoutubeUploadError("YouTube upload succeeded but did not return a video ID.");
-  }
-  const uploadRequestId = readRequestId(uploadResponse as { readonly headers?: Record<string, unknown> });
-  telemetry?.recordApiCall({
+    ).catch((error: unknown) => {
+      throw new YoutubeUploadError(
+        describeYoutubeError(error),
+        isRetryableYoutubeError(error),
+        error
+      );
+    });
+    const videoId = uploadResponse.data.id;
+    if (!videoId) {
+      throw new YoutubeUploadError(
+        "YouTube upload succeeded but did not return a video ID."
+      );
+    }
+    const uploadRequestId = readRequestId(uploadResponse as {
+      readonly headers?: Record<string, unknown>;
+    });
+    telemetry?.recordApiCall({
     provider: "googleapis",
     model: "youtube.v3",
     operation: "youtube-upload",
@@ -1197,7 +1374,7 @@ export async function uploadYoutubeEpisode(input: YoutubeUploadCommandInput): Pr
       videoPath: resolved.resolvedVideoPath,
     },
   });
-  const thumbnailResponse = await withRetry(
+    const thumbnailResponse = await withRetry(
     async () =>
       youtube.thumbnails.set(
         {
@@ -1210,11 +1387,17 @@ export async function uploadYoutubeEpisode(input: YoutubeUploadCommandInput): Pr
         { timeout: input.metadataGeneration?.timeoutMs ?? 120000 }
       ),
     { maxRetries: 2, label: "thumbnails.set", logger: input.logger }
-  ).catch((error: unknown) => {
-    throw new YoutubeUploadError(describeYoutubeError(error), isRetryableYoutubeError(error), error);
-  });
-  const thumbnailRequestId = readRequestId(thumbnailResponse as { readonly headers?: Record<string, unknown> });
-  telemetry?.recordApiCall({
+    ).catch((error: unknown) => {
+      throw new YoutubeUploadError(
+        describeYoutubeError(error),
+        isRetryableYoutubeError(error),
+        error
+      );
+    });
+    const thumbnailRequestId = readRequestId(thumbnailResponse as {
+      readonly headers?: Record<string, unknown>;
+    });
+    telemetry?.recordApiCall({
     provider: "googleapis",
     model: "youtube.v3",
     operation: "youtube-upload",
@@ -1230,8 +1413,8 @@ export async function uploadYoutubeEpisode(input: YoutubeUploadCommandInput): Pr
       thumbnailPath: resolved.resolvedThumbnailPath,
     },
   });
-  let playlistRequestId: string | undefined;
-  if (metadata.playlistId) {
+    let playlistRequestId: string | undefined;
+    if (metadata.playlistId) {
     const playlistSnippet: youtube_v3.Schema$PlaylistItemSnippet = {
       resourceId: {
         kind: "youtube#video",
@@ -1271,9 +1454,9 @@ export async function uploadYoutubeEpisode(input: YoutubeUploadCommandInput): Pr
         playlistId: metadata.playlistId,
       },
     });
-  }
-  let verificationRequestId: string | undefined;
-  try {
+    }
+    let verificationRequestId: string | undefined;
+    try {
     const verificationResponse = await withRetry(
       async () =>
         youtube.videos.list({
@@ -1298,20 +1481,24 @@ export async function uploadYoutubeEpisode(input: YoutubeUploadCommandInput): Pr
         videoId,
       },
     });
-  } catch (error: unknown) {
-    if (!isMissingYoutubeScopeError(error)) {
-      throw new YoutubeUploadError(describeYoutubeError(error), isRetryableYoutubeError(error), error);
-    }
-    input.logger?.warn(
+    } catch (error: unknown) {
+      if (!isMissingYoutubeScopeError(error)) {
+        throw new YoutubeUploadError(
+          describeYoutubeError(error),
+          isRetryableYoutubeError(error),
+          error
+        );
+      }
+      input.logger?.warn(
       {
         episodeId: input.episodeId,
         videoId,
         error: describeYoutubeError(error),
       },
       "Skipping video verification because the OAuth token does not grant videos.list scope"
-    );
-  }
-  const finalReport = toUploadReport({
+      );
+    }
+    const finalReport = toUploadReport({
     episodeId: input.episodeId,
     episodeDir,
     metadata,
@@ -1326,6 +1513,7 @@ export async function uploadYoutubeEpisode(input: YoutubeUploadCommandInput): Pr
     completedAt: new Date().toISOString(),
     durationMs: Date.now() - startedAt,
     status: "uploaded",
+    channelTarget: authChannelId,
     requestIds: {
       upload: readRequestId(uploadResponse),
       thumbnail: readRequestId(thumbnailResponse),
@@ -1335,12 +1523,47 @@ export async function uploadYoutubeEpisode(input: YoutubeUploadCommandInput): Pr
     youtubeVideoId: videoId,
     youtubeChannelId: authChannelId,
     warnings: [],
-  });
-  const finalPaths = await writeUploadReport(reportDir, finalReport);
-  return {
-    report: finalReport,
-    reportPath: finalPaths.jsonPath,
-    markdownPath: finalPaths.markdownPath,
-    skipped: false,
-  };
+    });
+    const finalPaths = await writeUploadReport(reportDir, finalReport);
+    return {
+      report: finalReport,
+      reportPath: finalPaths.jsonPath,
+      markdownPath: finalPaths.markdownPath,
+      skipped: false,
+    };
+  } catch (error) {
+    const uploadError =
+      error instanceof YoutubeUploadError
+        ? error
+        : new YoutubeUploadError(
+            error instanceof Error ? error.message : String(error),
+            false,
+            error
+          );
+    const failedReport = toUploadReport({
+      episodeId: input.episodeId,
+      episodeDir,
+      metadata,
+      metadataPath: resolved.metadataPath,
+      metadataSha256: resolved.metadataSha256,
+      videoPath: resolved.resolvedVideoPath,
+      videoSha256,
+      thumbnailPath: uploadThumbnail.path,
+      thumbnailSourcePath: uploadThumbnail.sourcePath,
+      thumbnailSha256,
+      generatedAt: plannedReport.generatedAt,
+      completedAt: new Date().toISOString(),
+      durationMs: Date.now() - startedAt,
+      status: "failed",
+      channelTarget: input.auth.channelId,
+      warnings: [],
+      error: {
+        code: uploadError.code,
+        message: uploadError.message,
+        retryable: uploadError.retryable,
+      },
+    });
+    await writeUploadReport(reportDir, failedReport);
+    throw uploadError;
+  }
 }

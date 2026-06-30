@@ -1103,6 +1103,13 @@ describe("episode image pipeline helpers", () => {
     expect(
       result.filter((entry) => entry.renderability === "direct").length
     ).toBeGreaterThan(0);
+    expect(result[0]).toMatchObject({
+      variant: "full",
+      language: "en",
+      locale: "en-US",
+    });
+    expect(result[0]?.scenePlanFingerprint).toMatch(/^[a-f0-9]{64}$/u);
+    expect(result[0]?.imagePlanFingerprint).toMatch(/^[a-f0-9]{64}$/u);
   });
 
   it("never uses the same generated image in more than three consecutive scenes", async () => {

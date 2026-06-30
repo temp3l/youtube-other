@@ -21,8 +21,82 @@ import { randomUUID } from "node:crypto";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+import { z } from "zod";
 
 type ProcessEnv = Readonly<Record<string, string | undefined>>;
+
+const mediaStageVariantSchema = z.enum(["full", "short"]);
+type MediaStageVariant = z.infer<typeof mediaStageVariantSchema>;
+const mediaStageOwnerSchema = z.enum([
+  "narration",
+  "scene-plan",
+  "image-plan",
+  "image-generation",
+  "render",
+  "thumbnail",
+  "publication",
+]);
+const mediaStageStatusSchema = z.enum([
+  "planned",
+  "ready",
+  "generated",
+  "reused",
+  "uploaded",
+  "failed",
+]);
+const mediaStageIdentitySchema = z
+  .object({
+    episodeId: z.string().min(1),
+    language: z.string().min(1),
+    locale: z.string().min(1),
+    variant: mediaStageVariantSchema,
+    owner: mediaStageOwnerSchema,
+  })
+  .strict();
+type MediaStageIdentity = z.infer<typeof mediaStageIdentitySchema>;
+const mediaStageDependencySchema = z
+  .object({
+    owner: mediaStageOwnerSchema,
+    episodeId: z.string().min(1),
+    language: z.string().min(1),
+    locale: z.string().min(1),
+    variant: mediaStageVariantSchema,
+    fingerprint: z.string().min(1),
+    path: z.string().min(1).optional(),
+    status: mediaStageStatusSchema.optional(),
+  })
+  .strict();
+type MediaStageDependency = z.infer<typeof mediaStageDependencySchema>;
+const shortMediaRequirementsSchema = z
+  .object({
+    aspectRatio: z.literal("9:16"),
+    durationSeconds: z.number().positive().optional(),
+    targetDurationSeconds: z.number().positive().optional(),
+    targetSceneCount: z.number().int().positive().optional(),
+    safeVerticalComposition: z.boolean(),
+    focalSubjectPlacement: z.string().min(1),
+    textSafeArea: z.string().min(1),
+    parentFullFingerprint: z.string().min(1).optional(),
+  })
+  .strict();
+type ShortMediaRequirements = z.infer<typeof shortMediaRequirementsSchema>;
+interface MediaStageContext {
+  readonly identity: MediaStageIdentity;
+  readonly narration: MediaStageDependency;
+  readonly parentFullNarration?: MediaStageDependency;
+}
+function buildMediaStageDependency(input: {
+  readonly owner: z.infer<typeof mediaStageOwnerSchema>;
+  readonly episodeId: string;
+  readonly language: string;
+  readonly locale: string;
+  readonly variant: MediaStageVariant;
+  readonly fingerprint: string;
+  readonly path?: string;
+  readonly status?: z.infer<typeof mediaStageStatusSchema>;
+}): MediaStageDependency {
+  return mediaStageDependencySchema.parse(input);
+}
 
 export interface VideoRenderRequest {
   readonly episodeDir: string;
@@ -38,6 +112,13 @@ export interface VideoRenderRequest {
   readonly outputBasename?: string;
   readonly trailingSilenceRatio?: number;
   readonly trailingSilenceBufferSeconds?: number;
+  readonly mediaContext?: MediaStageContext & {
+    readonly scenePlanDependency?: MediaStageDependency;
+    readonly imagePlanDependency?: MediaStageDependency;
+    readonly audioDependency?: MediaStageDependency;
+    readonly subtitleDependency?: MediaStageDependency;
+    readonly shortMediaRequirements?: ShortMediaRequirements;
+  };
 }
 
 export interface VideoRenderResult {
@@ -80,6 +161,23 @@ interface SceneClipManifest {
   readonly generatedAt: string;
 }
 
+interface RenderManifest {
+  readonly stageIdentity: MediaStageIdentity;
+  readonly narrationDependency?: MediaStageDependency;
+  readonly scenePlanDependency?: MediaStageDependency;
+  readonly imagePlanDependency?: MediaStageDependency;
+  readonly audioDependency?: MediaStageDependency;
+  readonly subtitleDependency?: MediaStageDependency;
+  readonly renderFingerprint: string;
+  readonly renderProfile: RenderProfile;
+  readonly shortMediaRequirements?: ShortMediaRequirements;
+  readonly cleanPath: string;
+  readonly captionedPath?: string;
+  readonly validation: RenderValidation;
+  readonly status: "generated";
+  readonly generatedAt: string;
+}
+
 interface SpawnedProcessResult {
   readonly stdout: string;
   readonly stderr: string;
@@ -89,6 +187,100 @@ interface SpawnedProcessResult {
 interface SpawnedBackgroundProcess {
   readonly child: ReturnType<typeof spawn>;
   readonly promise: Promise<SpawnedProcessResult>;
+}
+
+const renderManifestSchema = z.object({
+  stageIdentity: mediaStageIdentitySchema,
+  narrationDependency: mediaStageDependencySchema.optional(),
+  scenePlanDependency: mediaStageDependencySchema.optional(),
+  imagePlanDependency: mediaStageDependencySchema.optional(),
+  audioDependency: mediaStageDependencySchema.optional(),
+  subtitleDependency: mediaStageDependencySchema.optional(),
+  renderFingerprint: z.string().min(1),
+  renderProfile: z.object({
+    id: z.string().min(1),
+    label: z.string().min(1),
+    width: z.number().positive(),
+    height: z.number().positive(),
+    fps: z.number().positive(),
+    aspectRatio: z.enum(["16:9", "9:16"]),
+    burnCaptions: z.boolean().optional(),
+  }),
+  shortMediaRequirements: shortMediaRequirementsSchema.optional(),
+  cleanPath: z.string().min(1),
+  captionedPath: z.string().min(1).optional(),
+  validation: z.object({
+    valid: z.boolean(),
+    width: z.number(),
+    height: z.number(),
+    durationSeconds: z.number(),
+    videoCodec: z.string(),
+    audioCodec: z.string(),
+    pixelFormat: z.string(),
+    issues: z.array(z.string()),
+  }),
+  status: z.literal("generated"),
+  generatedAt: z.string().min(1),
+});
+
+function defaultRenderContext(request: VideoRenderRequest): MediaStageContext {
+  const variant: MediaStageVariant =
+    request.renderProfile.aspectRatio === "9:16" ? "short" : "full";
+  const fingerprint = hashText(
+    `${request.scenePlan.sourceId}:narration:${variant}:en:en-US`
+  );
+  return {
+    identity: mediaStageIdentitySchema.parse({
+      episodeId: request.scenePlan.sourceId,
+      language: "en",
+      locale: "en-US",
+      variant,
+      owner: "render",
+    }),
+    narration: buildMediaStageDependency({
+      owner: "narration",
+      episodeId: request.scenePlan.sourceId,
+      language: "en",
+      locale: "en-US",
+      variant,
+      fingerprint,
+      status: "ready",
+    }),
+  };
+}
+
+function resolveRenderContext(
+  request: VideoRenderRequest
+): NonNullable<VideoRenderRequest["mediaContext"]> {
+  return request.mediaContext ?? defaultRenderContext(request);
+}
+
+function validateVariantSpecificRenderRequest(
+  request: VideoRenderRequest,
+  context: NonNullable<VideoRenderRequest["mediaContext"]>
+): void {
+  const expectedVariant =
+    request.renderProfile.aspectRatio === "9:16" ? "short" : "full";
+  if (context.identity.variant !== expectedVariant) {
+    throw new MediaValidationError(
+      `Render profile ${request.renderProfile.id} requires ${expectedVariant} media inputs, received ${context.identity.variant}.`
+    );
+  }
+  if (context.identity.variant === "short") {
+    if (request.renderProfile.width >= request.renderProfile.height) {
+      throw new MediaValidationError(
+        "Short render profile must be portrait 9:16."
+      );
+    }
+    if (
+      context.shortMediaRequirements &&
+      context.shortMediaRequirements.aspectRatio !== "9:16"
+    ) {
+      throw new MediaValidationError(
+        "Short media requirements must preserve a 9:16 aspect ratio."
+      );
+    }
+  }
 }
 
 function buildSceneClipManifest(
@@ -1886,6 +2078,8 @@ export class FFmpegVideoRenderer implements VideoRenderer {
     signal: AbortSignal
   ): Promise<VideoRenderResult> {
     signal.throwIfAborted();
+    const context = resolveRenderContext(request);
+    validateVariantSpecificRenderRequest(request, context);
     const { clipPaths } = await this.renderSceneClips(request, signal);
     const concatListPath = path.join(request.outputDir, "concat.txt");
     await writeTextAtomic(
@@ -1949,6 +2143,41 @@ export class FFmpegVideoRenderer implements VideoRenderer {
         `Rendered media is shorter than the planned scene duration. Expected at least ${expectedDurationSeconds.toFixed(3)}s but got ${validation.durationSeconds.toFixed(3)}s.`
       );
     }
+    const renderFingerprint = hashText(
+      JSON.stringify({
+        variant: context.identity.variant,
+        narrationFingerprint: context.narration.fingerprint,
+        scenePlanFingerprint: context.scenePlanDependency?.fingerprint ?? null,
+        imagePlanFingerprint: context.imagePlanDependency?.fingerprint ?? null,
+        audioFingerprint: context.audioDependency?.fingerprint ?? null,
+        subtitleFingerprint: context.subtitleDependency?.fingerprint ?? null,
+        renderProfile: request.renderProfile,
+        clipPaths,
+        captionsPath: request.captionsPath ?? null,
+      })
+    );
+    await writeJsonAtomic(
+      path.join(request.outputDir, "render.json"),
+      renderManifestSchema.parse({
+        stageIdentity: {
+          ...context.identity,
+          owner: "render",
+        },
+        narrationDependency: context.narration,
+        scenePlanDependency: context.scenePlanDependency,
+        imagePlanDependency: context.imagePlanDependency,
+        audioDependency: context.audioDependency,
+        subtitleDependency: context.subtitleDependency,
+        renderFingerprint,
+        renderProfile: request.renderProfile,
+        shortMediaRequirements: context.shortMediaRequirements,
+        cleanPath,
+        ...(captionedPath ? { captionedPath } : {}),
+        validation,
+        status: "generated",
+        generatedAt: new Date().toISOString(),
+      })
+    );
     return captionedPath
       ? {
           cleanPath,

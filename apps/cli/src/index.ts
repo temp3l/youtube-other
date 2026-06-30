@@ -2338,9 +2338,15 @@ async function commandRender(
     config.scriptLanguage ?? episodeConfig?.scriptLanguage ?? "en";
   const audioBaseDir = localizedAudioBaseDir(episodeDir, language);
   if (options.dryRun) {
+    const variant = profile === "vertical" ? "short" : "full";
     printJson({
       episodeId,
       language,
+      locale: language === "en" ? "en-US" : language,
+      variant,
+      parentFingerprint: `dry-run:${episodeId}:${language}:${variant}:narration`,
+      selectedRenderProfile: profile,
+      stageReuseDecision: "dry-run-no-render",
       clipsDir: path.join(audioBaseDir, "renders", localizedClipsDirName(language)),
       cleanPath: path.join(
         audioBaseDir,
@@ -2384,6 +2390,36 @@ async function commandRender(
     outputSuffix: localizedOutputSuffix(language),
     trailingSilenceRatio: config.trailingSilenceRatio,
     trailingSilenceBufferSeconds: config.trailingSilenceBufferSeconds,
+    mediaContext: {
+      identity: {
+        episodeId,
+        language,
+        locale: language === "en" ? "en-US" : language,
+        variant: profile === "vertical" ? "short" : "full",
+        owner: "render" as const,
+      },
+      narration: {
+        owner: "narration",
+        episodeId,
+        language,
+        locale: language === "en" ? "en-US" : language,
+        variant: profile === "vertical" ? "short" : "full",
+        fingerprint: `cli:${episodeId}:${language}:${profile}:narration`,
+        status: "ready",
+      },
+      shortMediaRequirements:
+        profile === "vertical"
+          ? {
+              aspectRatio: "9:16" as const,
+              durationSeconds:
+                manifest.scenePlan.scenes[manifest.scenePlan.scenes.length - 1]
+                  ?.timing.endSeconds,
+              safeVerticalComposition: true,
+              focalSubjectPlacement: "center third",
+              textSafeArea: "top and bottom 12 percent",
+            }
+          : undefined,
+    },
     ...(captionsPath ? { captionsPath } : {}),
   };
   const result = await pipeline.renderer.render(
