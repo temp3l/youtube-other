@@ -26,6 +26,7 @@ import {
   buildFullStoryContract,
   computeFullStoryContractContentHash,
   computeStoryIrContentHash,
+  FULL_STORY_CONTRACT_VERSION,
 } from "./full-story-contract.js";
 import {
   validateGeneratedStoryPackage,
@@ -57,6 +58,7 @@ import {
   requireBatchCapabilities,
 } from "./story-localization-openai-batch.js";
 import { normalizeIncompleteResponse } from "./story-retry-routing.js";
+import { type StoryRequestFingerprintInput } from "./story-request-telemetry.js";
 import {
   EnglishGeneratedStoryPackageSchema,
   generatedStoryPackageSchema,
@@ -534,6 +536,31 @@ function buildCanonicalEnglishFullBatchPlan(args: {
       },
     ],
     minimumOutputTokens: expectedOutputTokens,
+    fingerprint: {
+      episodeSlug: args.parsed.slug,
+      language: "en",
+      locale: args.profile.locale,
+      variant: "full",
+      owner: "narration",
+      provider: "openai",
+      model: args.config.model,
+      stage: "canonical-full",
+      purpose: "initial-generation",
+      promptCompilerVersion: compiledPrompt.compilerVersion,
+      promptFingerprint: compiledPrompt.promptFingerprint,
+      promptModuleFingerprints: compiledPrompt.selectedModules.map((entry) =>
+        buildConfigurationHash([entry.id, entry.version])
+      ),
+      responseSchemaName: compiledPrompt.responseSchema.name,
+      responseSchemaVersion: compiledPrompt.responseSchema.version,
+      responseSchemaFingerprint: compiledPrompt.responseSchema.fingerprint,
+      reasoningEffort: args.config.reasoningEffort,
+      maxOutputTokens: args.config.maxOutputTokens ?? 25_000,
+      storyIrHash,
+      fullContractHash: contractHash,
+      fullContractVersion: FULL_STORY_CONTRACT_VERSION,
+      targetWordRange: outputConstraints.targetWordRange,
+    } satisfies StoryRequestFingerprintInput,
   };
   const preflight = runStoryGenerationPreflight(preflightRequest);
   return {
@@ -980,6 +1007,118 @@ function runBatchPreflight(args: {
   readonly parentArtifact?: StoryPreflightRequest["parentArtifact"];
 }): StoryPreflightResult {
   const prompt = extractBatchPrompt(args.body);
+  const fingerprint: StoryRequestFingerprintInput =
+    args.variant === "canonical-english-short"
+      ? {
+          episodeSlug: args.parsed.slug,
+          language: args.language,
+          locale: getLanguageProfile(args.language).locale,
+          variant: "short",
+          owner: "narration",
+          provider: "openai",
+          model: args.config.model,
+          stage: "canonical-short",
+          purpose: "initial-generation",
+          promptCompilerVersion: "batch-import",
+          promptFingerprint: args.promptFingerprint,
+          responseSchemaName: args.schemaName,
+          responseSchemaVersion: args.schemaVersion,
+          responseSchemaFingerprint: args.schemaFingerprint,
+          reasoningEffort: args.config.reasoningEffort,
+          maxOutputTokens:
+            typeof args.body["max_output_tokens"] === "number"
+              ? args.body["max_output_tokens"]
+              : 6000,
+          storyIrHash: args.sourceHash,
+          shortContractHash: args.parentArtifact?.fingerprint ?? args.sourceHash,
+          shortContractVersion: "batch-import",
+          parent: {
+            kind: "canonical-english-full",
+            language: "en",
+            locale: "en-US",
+            variant: "full",
+            fingerprint: args.parentArtifact?.fingerprint ?? args.sourceHash,
+            sourceHash: args.parentArtifact?.sourceHash ?? args.sourceHash,
+          },
+          targetWordRange: {
+            min: 1,
+            max: Math.max(
+              1,
+              Math.ceil(countWords(args.parsed.narrationParagraphs.join(" ")) * 1.12)
+            ),
+          },
+        }
+      : args.language === "en"
+        ? {
+            episodeSlug: args.parsed.slug,
+            language: "en",
+            locale: getLanguageProfile("en").locale,
+            variant: "full",
+            owner: "narration",
+            provider: "openai",
+            model: args.config.model,
+            stage: "canonical-full",
+            purpose: "initial-generation",
+            promptCompilerVersion: "batch-import",
+            promptFingerprint: args.promptFingerprint,
+            responseSchemaName: args.schemaName,
+            responseSchemaVersion: args.schemaVersion,
+            responseSchemaFingerprint: args.schemaFingerprint,
+            reasoningEffort: args.config.reasoningEffort,
+            maxOutputTokens:
+              typeof args.body["max_output_tokens"] === "number"
+                ? args.body["max_output_tokens"]
+                : 6000,
+            storyIrHash: args.sourceHash,
+            fullContractHash: args.sourceHash,
+            fullContractVersion: FULL_STORY_CONTRACT_VERSION,
+            targetWordRange: {
+              min: 1,
+              max: Math.max(
+                1,
+                Math.ceil(countWords(args.parsed.narrationParagraphs.join(" ")) * 1.12)
+              ),
+            },
+          }
+        : {
+            episodeSlug: args.parsed.slug,
+            language: args.language,
+            locale: getLanguageProfile(args.language).locale,
+            variant: "full",
+            owner: "narration",
+            provider: "openai",
+            model: args.config.model,
+            stage: "localized-full",
+            purpose: "localization",
+            promptCompilerVersion: "batch-import",
+            promptFingerprint: args.promptFingerprint,
+            responseSchemaName: args.schemaName,
+            responseSchemaVersion: args.schemaVersion,
+            responseSchemaFingerprint: args.schemaFingerprint,
+            reasoningEffort: args.config.reasoningEffort,
+            maxOutputTokens:
+              typeof args.body["max_output_tokens"] === "number"
+                ? args.body["max_output_tokens"]
+                : 6000,
+            storyIrHash: args.sourceHash,
+            fullContractHash: args.sourceHash,
+            fullContractVersion: FULL_STORY_CONTRACT_VERSION,
+            parent: {
+              kind: "canonical-english-full",
+              language: "en",
+              locale: "en-US",
+              variant: "full",
+              fingerprint: args.parentArtifact?.fingerprint ?? args.sourceHash,
+              sourceHash: args.parentArtifact?.sourceHash ?? args.sourceHash,
+            },
+            targetWordRange: {
+              min: 1,
+              max: Math.max(
+                1,
+                Math.ceil(countWords(args.parsed.narrationParagraphs.join(" ")) * 1.12)
+              ),
+            },
+          };
   return runStoryGenerationPreflight({
     episodeNumber: args.parsed.episodeNumber,
     episodeSlug: args.parsed.slug,
@@ -1016,6 +1155,7 @@ function runBatchPreflight(args: {
     }),
     minimumOutputTokens: args.expectedOutputTokens,
     ...(args.parentArtifact ? { parentArtifact: args.parentArtifact } : {}),
+    fingerprint,
   });
 }
 

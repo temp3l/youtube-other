@@ -6,6 +6,8 @@ import {
   STORY_PREFLIGHT_POLICY_VERSION,
   type StoryPreflightRequest,
 } from "./story-generation-preflight.js";
+import { buildConfigurationHash } from "./story-localization-cache.js";
+import { type StoryRequestFingerprintInput } from "./story-request-telemetry.js";
 
 function baseRequest(
   overrides: Partial<StoryPreflightRequest> = {}
@@ -20,7 +22,7 @@ function baseRequest(
     label: "source",
     text: "A compact source story with stable facts.",
   });
-  return {
+  const base: StoryPreflightRequest = {
     episodeNumber: "001",
     episodeSlug: "episode-one",
     operation: "generate",
@@ -58,8 +60,89 @@ function baseRequest(
       },
     ],
     minimumOutputTokens: 1_500,
-    ...overrides,
   };
+  const merged = { ...base, ...overrides };
+  const fingerprint =
+    overrides.fingerprint ??
+    ({
+      episodeSlug: merged.episodeSlug,
+      language: merged.language,
+      locale: merged.locale ?? "en-US",
+      variant:
+        merged.variant === "canonical-english-short" ||
+        merged.variant === "localized-short" ||
+        merged.variant === "short-repair"
+          ? "short"
+          : "full",
+      owner: "narration",
+      provider: "openai",
+      model: merged.model,
+      stage:
+        merged.variant === "localized-full"
+          ? "localized-full"
+          : merged.variant === "canonical-english-short"
+            ? "canonical-short"
+            : merged.variant === "localized-short"
+              ? "localized-short"
+              : merged.variant === "full-repair"
+                ? "full-repair"
+                : merged.variant === "short-repair"
+                  ? "short-repair"
+                  : merged.variant === "semantic-validation"
+                    ? "semantic-validation"
+                    : "canonical-full",
+      purpose:
+        merged.operation === "repair"
+          ? "repair"
+          : merged.operation === "localize"
+            ? "localization"
+            : merged.operation === "validate"
+              ? "validation"
+              : "initial-generation",
+      promptCompilerVersion: "story-prompt-compiler-v1",
+      promptFingerprint: merged.promptFingerprint,
+      promptModuleFingerprints: [buildConfigurationHash(["base", "v1"])],
+      responseSchemaName: merged.schemaName,
+      responseSchemaVersion: merged.schemaVersion,
+      responseSchemaFingerprint: merged.schemaFingerprint,
+      reasoningEffort: merged.reasoningEffort,
+      maxOutputTokens: merged.maxOutputTokens,
+      storyIrHash: "b".repeat(64),
+      fullContractHash: "c".repeat(64),
+      fullContractVersion: "full-story-contract-v1",
+      ...(merged.variant === "canonical-english-short" ||
+      merged.variant === "localized-short"
+        ? {
+            shortContractHash: "d".repeat(64),
+            shortContractVersion: "short-adaptation-contract-v1",
+            parent: {
+              kind: "canonical-english-full",
+              language: "en",
+              locale: "en-US",
+              variant: "full",
+              fingerprint: merged.parentArtifact?.fingerprint ?? "c".repeat(64),
+              sourceHash: merged.parentArtifact?.sourceHash,
+              storyIrHash: merged.parentArtifact?.storyIrHash,
+              contractHash: merged.parentArtifact?.contractHash,
+            },
+          }
+        : merged.variant === "localized-full"
+          ? {
+              parent: {
+                kind: "canonical-english-full",
+                language: "en",
+                locale: "en-US",
+                variant: "full",
+                fingerprint: merged.parentArtifact?.fingerprint ?? "c".repeat(64),
+                sourceHash: merged.parentArtifact?.sourceHash,
+                storyIrHash: merged.parentArtifact?.storyIrHash,
+                contractHash: merged.parentArtifact?.contractHash,
+              },
+            }
+          : {}),
+      targetWordRange: merged.targetWordRange,
+    } satisfies StoryRequestFingerprintInput);
+  return { ...merged, fingerprint };
 }
 
 describe("story generation preflight", () => {
@@ -236,6 +319,40 @@ describe("story generation preflight", () => {
     if (result.status === "blocked") {
       expect(result.failureCodes).toContain("DUPLICATE_FAILED_REQUEST");
     }
+  });
+
+  it("blocks requests above a configured cost ceiling and allows those below it", () => {
+    const blocked = runStoryGenerationPreflight(
+      baseRequest({
+        modelPricing: {
+          inputUsdPerMillionTokens: 10,
+          outputUsdPerMillionTokens: 20,
+        },
+        costCeilingUsd: 0.001,
+      })
+    );
+    expect(blocked.status).toBe("blocked");
+    if (blocked.status === "blocked") {
+      expect(blocked.failureCodes).toContain("COST_CEILING_EXCEEDED");
+    }
+    const allowed = runStoryGenerationPreflight(
+      baseRequest({
+        modelPricing: {
+          inputUsdPerMillionTokens: 1,
+          outputUsdPerMillionTokens: 1,
+        },
+        costCeilingUsd: 1,
+      })
+    );
+    expect(allowed.status).toBe("allowed");
+  });
+
+  it("does not block when a ceiling exists but pricing is unavailable", () => {
+    const result = runStoryGenerationPreflight(
+      baseRequest({ costCeilingUsd: 0.001 })
+    );
+    expect(result.diagnostics.warnings.join(" ")).toContain("Cost ceiling");
+    expect(result.status).toBe("allowed");
   });
 
   it("changes the request fingerprint when parent hash, prompt fingerprint, model, or output cap changes", () => {

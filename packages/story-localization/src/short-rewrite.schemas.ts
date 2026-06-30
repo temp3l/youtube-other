@@ -184,6 +184,7 @@ export const shortRewriteGenerationSchema = z
           .nonnegative()
           .nullable()
           .optional(),
+        pricingVersion: z.string().min(1).optional(),
       })
       .strict(),
     repairHistory: z
@@ -269,6 +270,7 @@ export const shortRewriteArtifactSchema = z
               .nonnegative()
               .nullable()
               .optional(),
+            pricingVersion: z.string().min(1).optional(),
           })
           .strict()
           .optional(),

@@ -8,6 +8,10 @@ import {
 } from "@mediaforge/shared";
 import { stableSerialize } from "./stable-json.js";
 import {
+  buildStoryRequestFingerprint,
+  type StoryRequestFingerprintInput,
+} from "./story-request-telemetry.js";
+import {
   languageCodes,
   type LanguageCode,
   type ModelPricing,
@@ -132,6 +136,7 @@ export interface StoryPreflightRequest {
   readonly modelPricing?: ModelPricing;
   readonly attempt?: number;
   readonly existingFailedFingerprint?: boolean;
+  readonly fingerprint: StoryRequestFingerprintInput;
 }
 
 export interface StoryPreflightDiagnostics {
@@ -405,8 +410,6 @@ function fingerprintModelCapabilities(capabilities: StoryModelCapabilities): str
 function buildRequestFingerprint(args: {
   readonly request: StoryPreflightRequest;
   readonly capabilities: StoryModelCapabilities;
-  readonly estimatedInputTokens: number;
-  readonly estimatedOutputTokens: number;
 }): string {
   return hashText(
     stableSerialize({
@@ -414,39 +417,9 @@ function buildRequestFingerprint(args: {
       modelCapabilityFingerprint: fingerprintModelCapabilities(
         args.capabilities
       ),
-      operation: args.request.operation,
-      variant: args.request.variant,
-      language: args.request.language,
-      ...(args.request.locale ? { locale: args.request.locale } : {}),
-      model: args.request.model,
-      ...(args.request.reasoningEffort
-        ? { reasoningEffort: args.request.reasoningEffort }
-        : {}),
-      maxOutputTokens: args.request.maxOutputTokens,
-      ...(args.request.retryCap !== undefined
-        ? { retryCap: args.request.retryCap }
-        : {}),
-      promptVersion: args.request.promptVersion,
-      promptFingerprint: args.request.promptFingerprint,
-      ...(args.request.schemaName ? { schemaName: args.request.schemaName } : {}),
-      ...(args.request.schemaVersion
-        ? { schemaVersion: args.request.schemaVersion }
-        : {}),
-      ...(args.request.schemaFingerprint
-        ? { schemaFingerprint: args.request.schemaFingerprint }
-        : {}),
-      sourceHash: args.request.sourceHash,
-      ...(args.request.targetWordRange
-        ? { targetWordRange: args.request.targetWordRange }
-        : {}),
-      ...(args.request.targetDurationSeconds
-        ? { targetDurationSeconds: args.request.targetDurationSeconds }
-        : {}),
-      ...(args.request.parentArtifact
-        ? { parentArtifact: args.request.parentArtifact }
-        : {}),
-      estimatedInputTokens: args.estimatedInputTokens,
-      estimatedOutputTokens: args.estimatedOutputTokens,
+      canonicalRequestFingerprint: buildStoryRequestFingerprint(
+        args.request.fingerprint
+      ),
     })
   );
 }
@@ -482,8 +455,6 @@ export function runStoryGenerationPreflight(
   const requestFingerprint = buildRequestFingerprint({
     request,
     capabilities,
-    estimatedInputTokens,
-    estimatedOutputTokens: estimatedMinimumOutputTokens,
   });
   const warnings = [...modelResolution.warnings];
   if (estimatedCostUsd === null && request.costCeilingUsd !== undefined) {

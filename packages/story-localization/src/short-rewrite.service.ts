@@ -96,6 +96,9 @@ import {
   type PersistedFailedRequestMetadata,
 } from "./story-retry-routing.js";
 import {
+  type StoryRequestFingerprintInput,
+} from "./story-request-telemetry.js";
+import {
   shortNarrationResponseSchema,
   shortNarrationResponseSchemaDescriptor,
   type ShortNarrationResponse,
@@ -418,6 +421,7 @@ interface ShortRewriteUsagePayload {
   outputTokens?: number;
   totalTokens?: number;
   estimatedCostUsd?: number | null;
+  pricingVersion?: string;
 }
 
 interface ShortRewriteArtifactPayload {
@@ -468,6 +472,7 @@ function buildUsagePayload(args: {
   readonly outputTokens?: number;
   readonly totalTokens?: number;
   readonly estimatedCostUsd?: number | null;
+  readonly pricingVersion?: string;
 }): ShortRewriteUsagePayload {
   const usage: ShortRewriteUsagePayload = {};
   if (args.inputTokens !== undefined) {
@@ -487,6 +492,9 @@ function buildUsagePayload(args: {
   }
   if (args.estimatedCostUsd !== undefined) {
     usage.estimatedCostUsd = args.estimatedCostUsd;
+  }
+  if (args.pricingVersion !== undefined) {
+    usage.pricingVersion = args.pricingVersion;
   }
   return usage;
 }
@@ -1545,6 +1553,80 @@ async function generateLanguagePayload(
       const expectedOutputTokens = preflightArgs.repair
         ? Math.ceil(requestArgs.maxOutputTokens * 0.35)
         : Math.ceil(SHORT_REWRITE_HARD_WORD_RANGE.max * 1.45) + 450;
+      const fingerprint: StoryRequestFingerprintInput = preflightArgs.repair
+        ? {
+            episodeSlug: args.source.episodeSlug,
+            language: args.language,
+            locale: SHORT_REWRITE_SUPPORTED_LANGUAGES[args.language].locale,
+            variant: "short",
+            owner: "narration",
+            provider: "openai",
+            model: requestArgs.model,
+            stage: "short-repair",
+            purpose: "repair",
+            promptCompilerVersion: compiledPrompt.compilerVersion,
+            promptFingerprint: preflightArgs.promptFingerprint,
+            responseSchemaName: shortNarrationResponseSchemaDescriptor.name,
+            responseSchemaVersion: shortNarrationResponseSchemaDescriptor.version,
+            responseSchemaFingerprint:
+              shortNarrationResponseSchemaDescriptor.fingerprint,
+            reasoningEffort: requestArgs.reasoningEffort,
+            maxOutputTokens: requestArgs.maxOutputTokens,
+            storyIrHash: args.parent.storyIrHash,
+            shortContractHash: args.adaptationContract.contractHash,
+            shortContractVersion: args.adaptationContract.contractVersion,
+            repairRoute: "validation-repair",
+            repairScope: "short-regeneration",
+            attemptSemantics: "repair-attempt",
+            parent: {
+              kind: "canonical-english-full",
+              language: "en",
+              locale: "en-US",
+              variant: "full",
+              fingerprint: args.adaptationContract.contractHash,
+              sourceHash: args.parent.sourceSha256,
+              storyIrHash: args.parent.storyIrHash,
+              contractHash: args.parent.contractHash,
+            },
+            targetWordRange: SHORT_REWRITE_HARD_WORD_RANGE,
+            targetDurationSeconds: { min: 55, max: 65 },
+          }
+        : {
+            episodeSlug: args.source.episodeSlug,
+            language: args.language,
+            locale: SHORT_REWRITE_SUPPORTED_LANGUAGES[args.language].locale,
+            variant: "short",
+            owner: "narration",
+            provider: "openai",
+            model: requestArgs.model,
+            stage:
+              args.language === "en" ? "canonical-short" : "localized-short",
+            purpose:
+              args.language === "en" ? "initial-generation" : "localization",
+            promptCompilerVersion: compiledPrompt.compilerVersion,
+            promptFingerprint: preflightArgs.promptFingerprint,
+            responseSchemaName: shortNarrationResponseSchemaDescriptor.name,
+            responseSchemaVersion: shortNarrationResponseSchemaDescriptor.version,
+            responseSchemaFingerprint:
+              shortNarrationResponseSchemaDescriptor.fingerprint,
+            reasoningEffort: requestArgs.reasoningEffort,
+            maxOutputTokens: requestArgs.maxOutputTokens,
+            storyIrHash: args.parent.storyIrHash,
+            shortContractHash: args.adaptationContract.contractHash,
+            shortContractVersion: args.adaptationContract.contractVersion,
+            parent: {
+              kind: "canonical-english-full",
+              language: "en",
+              locale: "en-US",
+              variant: "full",
+              fingerprint: args.adaptationContract.contractHash,
+              sourceHash: args.parent.sourceSha256,
+              storyIrHash: args.parent.storyIrHash,
+              contractHash: args.parent.contractHash,
+            },
+            targetWordRange: SHORT_REWRITE_HARD_WORD_RANGE,
+            targetDurationSeconds: { min: 55, max: 65 },
+          };
       const request: StoryPreflightRequest = {
         episodeNumber: args.source.episodeNumber,
         episodeSlug: args.source.episodeSlug,
@@ -1625,6 +1707,7 @@ async function generateLanguagePayload(
             estimatedTokens: expectedOutputTokens,
           },
         ],
+        fingerprint,
       };
       const result = await runAndPersistStoryPreflight({
         preflightDirectory,
@@ -2106,6 +2189,7 @@ async function generateLanguagePayload(
         ? { totalTokens: usage.totalTokens }
         : {}),
       estimatedCostUsd,
+      pricingVersion: cost.pricingVersion,
     }),
     ...(repairHistory.length > 0 ? { repairHistory } : {}),
     validation: {

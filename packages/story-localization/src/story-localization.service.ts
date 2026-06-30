@@ -35,6 +35,7 @@ import {
   computeFullStoryContractBuildFingerprint,
   computeFullStoryContractContentHash,
   computeStoryIrContentHash,
+  FULL_STORY_CONTRACT_VERSION,
 } from "./full-story-contract.js";
 import {
   generatedFullStoryPackageSchema,
@@ -75,6 +76,7 @@ import {
   writeLocalizationCacheEntry,
 } from "./story-localization-cache.js";
 import { estimateStoryLocalizationCost } from "./story-localization.cost-tracker.js";
+import { type StoryRequestFingerprintInput } from "./story-request-telemetry.js";
 import {
   StoryLocalizationApiError,
   StoryLocalizationConfigurationError,
@@ -544,16 +546,168 @@ function buildFullStoryPreflightRequest(args: {
   readonly profile: LanguageProfile;
   readonly includeShort: boolean;
   readonly modelPricing?: ModelPricing;
+  readonly model?: string;
   readonly maxOutputTokens: number;
   readonly reasoningEffort: StoryLocalizationConfig["reasoningEffort"];
   readonly repair?: boolean;
+  readonly storyIrHash: string;
+  readonly fullContractHash: string;
+  readonly fullContractVersion: string;
+  readonly promptCompilerVersion: string;
+  readonly promptModuleFingerprints?: readonly string[] | undefined;
   readonly parentArtifact?: StoryPreflightRequest["parentArtifact"];
+  readonly costCeilingUsd?: number;
 }): StoryPreflightRequest {
+  const parentFingerprint =
+    args.parentArtifact
+      ? {
+          kind: args.parentArtifact.kind,
+          language: args.parentArtifact.language ?? "en",
+          locale: args.parentArtifact.locale ?? "en-US",
+          variant: args.parentArtifact.variant ?? "full",
+          ...(args.parentArtifact.fingerprint
+            ? { fingerprint: args.parentArtifact.fingerprint }
+            : {}),
+          ...(args.parentArtifact.sourceHash
+            ? { sourceHash: args.parentArtifact.sourceHash }
+            : {}),
+          ...(args.parentArtifact.storyIrHash
+            ? { storyIrHash: args.parentArtifact.storyIrHash }
+            : {}),
+          ...(args.parentArtifact.contractHash
+            ? { contractHash: args.parentArtifact.contractHash }
+            : {}),
+        }
+      : undefined;
   const expectedOutputTokens = estimateExpectedOutputTokens({
     profile: args.profile,
     parsed: args.parsed,
     includeShort: args.includeShort,
   });
+  const fingerprint: StoryRequestFingerprintInput =
+    args.repair
+      ? {
+          episodeSlug: args.parsed.slug,
+          language: args.language,
+          locale: args.profile.locale,
+          variant: "full",
+          owner: "narration",
+          provider: "openai",
+          model: args.model ?? args.config.model,
+          stage: "full-repair",
+          purpose: "repair",
+          promptCompilerVersion: args.promptCompilerVersion,
+          promptFingerprint: args.promptFingerprint,
+          ...(args.promptModuleFingerprints
+            ? { promptModuleFingerprints: args.promptModuleFingerprints }
+            : {}),
+          responseSchemaName: args.schemaName,
+          responseSchemaVersion: args.schemaVersion,
+          responseSchemaFingerprint: args.schemaFingerprint,
+          ...(args.reasoningEffort ? { reasoningEffort: args.reasoningEffort } : {}),
+          maxOutputTokens: args.maxOutputTokens,
+          storyIrHash: args.storyIrHash,
+          fullContractHash: args.fullContractHash,
+          fullContractVersion: args.fullContractVersion,
+          repairRoute: "validation-repair",
+          repairScope: "full-regeneration",
+          attemptSemantics: "repair-attempt",
+          targetWordRange: {
+            min: 1,
+            max: Math.max(
+              1,
+              Math.ceil(countWords(args.parsed.narrationParagraphs.join(" ")) * 1.12)
+            ),
+          },
+          ...(parentFingerprint
+            ? {
+                parent: parentFingerprint,
+              }
+            : {}),
+        }
+      : args.language === "en"
+        ? {
+            episodeSlug: args.parsed.slug,
+            language: args.language,
+            locale: args.profile.locale,
+            variant: "full",
+            owner: "narration",
+            provider: "openai",
+            model: args.model ?? args.config.model,
+            stage: "canonical-full",
+            purpose: "initial-generation",
+            promptCompilerVersion: args.promptCompilerVersion,
+            promptFingerprint: args.promptFingerprint,
+            ...(args.promptModuleFingerprints
+              ? { promptModuleFingerprints: args.promptModuleFingerprints }
+              : {}),
+            responseSchemaName: args.schemaName,
+            responseSchemaVersion: args.schemaVersion,
+            responseSchemaFingerprint: args.schemaFingerprint,
+            ...(args.reasoningEffort
+              ? { reasoningEffort: args.reasoningEffort }
+              : {}),
+            maxOutputTokens: args.maxOutputTokens,
+            storyIrHash: args.storyIrHash,
+            fullContractHash: args.fullContractHash,
+            fullContractVersion: args.fullContractVersion,
+            targetWordRange: {
+              min: 1,
+              max: Math.max(
+                1,
+                Math.ceil(countWords(args.parsed.narrationParagraphs.join(" ")) * 1.12)
+              ),
+            },
+          }
+        : {
+            episodeSlug: args.parsed.slug,
+            language: args.language,
+            locale: args.profile.locale,
+            variant: "full",
+            owner: "narration",
+            provider: "openai",
+            model: args.model ?? args.config.model,
+            stage: "localized-full",
+            purpose: "localization",
+            promptCompilerVersion: args.promptCompilerVersion,
+            promptFingerprint: args.promptFingerprint,
+            ...(args.promptModuleFingerprints
+              ? { promptModuleFingerprints: args.promptModuleFingerprints }
+              : {}),
+            responseSchemaName: args.schemaName,
+            responseSchemaVersion: args.schemaVersion,
+            responseSchemaFingerprint: args.schemaFingerprint,
+            ...(args.reasoningEffort
+              ? { reasoningEffort: args.reasoningEffort }
+              : {}),
+            maxOutputTokens: args.maxOutputTokens,
+            storyIrHash: args.storyIrHash,
+            fullContractHash: args.fullContractHash,
+            fullContractVersion: args.fullContractVersion,
+            parent: {
+              kind: "canonical-english-full",
+              language: "en",
+              locale: "en-US",
+              variant: "full",
+              fingerprint: args.parentArtifact?.fingerprint ?? "",
+              ...(args.parentArtifact?.sourceHash
+                ? { sourceHash: args.parentArtifact.sourceHash }
+                : {}),
+              ...(args.parentArtifact?.storyIrHash
+                ? { storyIrHash: args.parentArtifact.storyIrHash }
+                : {}),
+              ...(args.parentArtifact?.contractHash
+                ? { contractHash: args.parentArtifact.contractHash }
+                : {}),
+            },
+            targetWordRange: {
+              min: 1,
+              max: Math.max(
+                1,
+                Math.ceil(countWords(args.parsed.narrationParagraphs.join(" ")) * 1.12)
+              ),
+            },
+          };
   return {
     episodeNumber: args.parsed.episodeNumber,
     episodeSlug: args.parsed.slug,
@@ -565,7 +719,7 @@ function buildFullStoryPreflightRequest(args: {
     variant: args.repair ? "full-repair" : args.variant,
     language: args.language,
     locale: args.profile.locale,
-    model: args.config.model,
+    model: args.model ?? args.config.model,
     reasoningEffort: args.reasoningEffort,
     maxOutputTokens: args.maxOutputTokens,
     retryCap: 0,
@@ -594,6 +748,10 @@ function buildFullStoryPreflightRequest(args: {
     minimumOutputTokens: expectedOutputTokens,
     ...(args.parentArtifact ? { parentArtifact: args.parentArtifact } : {}),
     ...(args.modelPricing ? { modelPricing: args.modelPricing } : {}),
+    ...(args.costCeilingUsd !== undefined
+      ? { costCeilingUsd: args.costCeilingUsd }
+      : {}),
+    fingerprint,
   };
 }
 
@@ -714,6 +872,13 @@ function buildCanonicalEnglishFullPlan(args: {
     includeShort: false,
     maxOutputTokens: args.config.maxOutputTokens ?? 25_000,
     reasoningEffort: args.config.reasoningEffort,
+    storyIrHash,
+    fullContractHash: contractHash,
+    fullContractVersion: FULL_STORY_CONTRACT_VERSION,
+    promptCompilerVersion: compiledPrompt.compilerVersion,
+    promptModuleFingerprints: compiledPrompt.selectedModules.map((entry) =>
+      buildConfigurationHash([entry.id, entry.version])
+    ),
   });
   return {
     compiledPrompt,
@@ -2016,6 +2181,12 @@ function buildFullStoryPreflightAdapter(args: {
   readonly includeShort: boolean;
   readonly modelPricing?: ModelPricing;
   readonly parentArtifact?: StoryPreflightRequest["parentArtifact"];
+  readonly storyIrHash: string;
+  readonly fullContractHash: string;
+  readonly fullContractVersion: string;
+  readonly promptCompilerVersion: string;
+  readonly promptModuleFingerprints?: readonly string[] | undefined;
+  readonly costCeilingUsd?: number;
 }): StoryRequestPreflightHook {
   const preflightDirectory = resolveStoryPreflightDirectory(args.cacheDir);
   return async (requestArgs) => {
@@ -2070,6 +2241,35 @@ function buildFullStoryPreflightAdapter(args: {
       minimumOutputTokens: expectedOutputTokens,
       ...(args.parentArtifact ? { parentArtifact: args.parentArtifact } : {}),
       ...(args.modelPricing ? { modelPricing: args.modelPricing } : {}),
+      ...(args.costCeilingUsd !== undefined
+        ? { costCeilingUsd: args.costCeilingUsd }
+        : {}),
+      fingerprint: buildFullStoryPreflightRequest({
+        parsed: args.parsed,
+        language: args.language,
+        variant: args.variant,
+        config: args.config,
+        system: requestArgs.system,
+        user: requestArgs.user,
+        promptFingerprint: args.promptFingerprint,
+        schemaName: args.schemaName,
+        schemaVersion: args.schemaVersion,
+        schemaFingerprint: args.schemaFingerprint,
+        profile: args.profile,
+        includeShort: args.includeShort,
+        ...(args.modelPricing ? { modelPricing: args.modelPricing } : {}),
+        model: requestArgs.model,
+        maxOutputTokens: requestArgs.maxOutputTokens,
+        reasoningEffort:
+          requestArgs.reasoningEffort ?? args.config.reasoningEffort,
+        repair: requestArgs.isRepair,
+        ...(args.parentArtifact ? { parentArtifact: args.parentArtifact } : {}),
+        storyIrHash: args.storyIrHash,
+        fullContractHash: args.fullContractHash,
+        fullContractVersion: args.fullContractVersion,
+        promptCompilerVersion: args.promptCompilerVersion,
+        promptModuleFingerprints: args.promptModuleFingerprints,
+      }).fingerprint,
     };
     const result = await runAndPersistStoryPreflight({
       preflightDirectory,
@@ -2494,6 +2694,15 @@ export async function localizeStoryEpisode(
                 schemaFingerprint: englishSchemaFingerprint,
                 profile: profileEn,
                 includeShort: false,
+                storyIrHash: canonicalEnglishPlan.storyIrHash,
+                fullContractHash: canonicalEnglishPlan.contractHash,
+                fullContractVersion: FULL_STORY_CONTRACT_VERSION,
+                promptCompilerVersion:
+                  canonicalEnglishPlan.compiledPrompt.compilerVersion,
+                promptModuleFingerprints:
+                  canonicalEnglishPlan.compiledPrompt.selectedModules.map(
+                    (entry) => buildConfigurationHash([entry.id, entry.version])
+                  ),
                 ...(options.modelPricing?.[config.model]
                   ? { modelPricing: options.modelPricing[config.model] }
                   : {}),
@@ -2520,6 +2729,15 @@ export async function localizeStoryEpisode(
                 schemaFingerprint: englishSchemaFingerprint,
                 profile: profileEn,
                 includeShort: false,
+                storyIrHash: canonicalEnglishPlan.storyIrHash,
+                fullContractHash: canonicalEnglishPlan.contractHash,
+                fullContractVersion: FULL_STORY_CONTRACT_VERSION,
+                promptCompilerVersion:
+                  canonicalEnglishPlan.compiledPrompt.compilerVersion,
+                promptModuleFingerprints:
+                  canonicalEnglishPlan.compiledPrompt.selectedModules.map(
+                    (entry) => buildConfigurationHash([entry.id, entry.version])
+                  ),
                 ...(options.modelPricing?.[config.model]
                   ? { modelPricing: options.modelPricing[config.model] }
                   : {}),
@@ -3032,6 +3250,13 @@ export async function localizeStoryEpisode(
             profile,
             includeShort: includeLocalizedShorts,
             parentArtifact: localizedParentArtifact,
+            storyIrHash: canonicalEnglishPlan.storyIrHash,
+            fullContractHash: canonicalEnglishPlan.contractHash,
+            fullContractVersion: FULL_STORY_CONTRACT_VERSION,
+            promptCompilerVersion: languagePrompt.compilerVersion,
+            promptModuleFingerprints: languagePrompt.selectedModules.map(
+              (entry) => buildConfigurationHash([entry.id, entry.version])
+            ),
             ...(options.modelPricing?.[config.model]
               ? { modelPricing: options.modelPricing[config.model] }
               : {}),
