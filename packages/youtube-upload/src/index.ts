@@ -1,5 +1,6 @@
 import fs from "node:fs/promises";
 import { createReadStream } from "node:fs";
+import { spawn } from "node:child_process";
 import path from "node:path";
 import { google, youtube_v3 } from "googleapis";
 import { z } from "zod";
@@ -31,6 +32,9 @@ const uploadStatusSchema = z.enum(["planned", "uploaded", "failed", "skipped"]);
 const privacyStatusSchema = z.enum(["private", "public", "unlisted"]);
 const licenseSchema = z.enum(["youtube", "creativeCommon"]);
 const YOUTUBE_THUMBNAIL_MAX_BYTES = 2 * 1024 * 1024;
+const SHORT_THUMBNAIL_INTRO_SECONDS = 0.5;
+const SHORT_THUMBNAIL_INTRO_WIDTH = 1080;
+const SHORT_THUMBNAIL_INTRO_HEIGHT = 1920;
 const mediaStageVariantSchema = z.enum(["full", "short"]);
 type MediaStageVariant = z.infer<typeof mediaStageVariantSchema>;
 const mediaStageOwnerSchema = z.enum([
@@ -194,6 +198,11 @@ export interface YoutubeUploadCommandInput {
   readonly auth: YoutubeAuthSettings;
   readonly client?: youtube_v3.Youtube | undefined;
   readonly clientFactory?: ((auth: YoutubeAuthSettings) => youtube_v3.Youtube) | undefined;
+  readonly shortThumbnailIntroRenderer?: ((input: {
+    readonly videoPath: string;
+    readonly thumbnailPath: string;
+    readonly outputPath: string;
+  }) => Promise<string>) | undefined;
   readonly metadataGeneration?: {
     readonly apiKey: string;
     readonly model: string;
@@ -941,6 +950,118 @@ async function prepareThumbnailForUpload(episodeDir: string, sourcePath: string)
   );
 }
 
+function shortThumbnailIntroPath(videoPath: string): string {
+  const extension = path.extname(videoPath) || ".mp4";
+  const basename = path.basename(videoPath, extension);
+  return path.join(path.dirname(videoPath), `${basename}-with-thumbnail-intro.mp4`);
+}
+
+async function renderShortThumbnailIntro(input: {
+  readonly videoPath: string;
+  readonly thumbnailPath: string;
+  readonly outputPath: string;
+}): Promise<string> {
+  await ensureDir(path.dirname(input.outputPath));
+  const tempPath = path.join(
+    path.dirname(input.outputPath),
+    `.${path.basename(input.outputPath)}.${process.pid}.tmp.mp4`
+  );
+  await fs.rm(tempPath, { force: true }).catch(() => undefined);
+  const filter = [
+    [
+      `[1:v]scale=${SHORT_THUMBNAIL_INTRO_WIDTH}:${SHORT_THUMBNAIL_INTRO_HEIGHT}:force_original_aspect_ratio=decrease`,
+      `pad=${SHORT_THUMBNAIL_INTRO_WIDTH}:${SHORT_THUMBNAIL_INTRO_HEIGHT}:(ow-iw)/2:(oh-ih)/2`,
+      "setsar=1",
+      "fps=30",
+      "format=yuv420p[thumbv]",
+    ].join(","),
+    [
+      `[2:v]scale=${SHORT_THUMBNAIL_INTRO_WIDTH}:${SHORT_THUMBNAIL_INTRO_HEIGHT}:force_original_aspect_ratio=decrease`,
+      `pad=${SHORT_THUMBNAIL_INTRO_WIDTH}:${SHORT_THUMBNAIL_INTRO_HEIGHT}:(ow-iw)/2:(oh-ih)/2`,
+      "setsar=1",
+      "fps=30",
+      "format=yuv420p[mainv]",
+    ].join(","),
+    "[thumbv][0:a][mainv][2:a]concat=n=2:v=1:a=1[outv][outa]",
+  ].join(";");
+  const args = [
+    "-y",
+    "-f",
+    "lavfi",
+    "-t",
+    String(SHORT_THUMBNAIL_INTRO_SECONDS),
+    "-i",
+    "anullsrc=channel_layout=stereo:sample_rate=48000",
+    "-loop",
+    "1",
+    "-t",
+    String(SHORT_THUMBNAIL_INTRO_SECONDS),
+    "-i",
+    input.thumbnailPath,
+    "-i",
+    input.videoPath,
+    "-filter_complex",
+    filter,
+    "-map",
+    "[outv]",
+    "-map",
+    "[outa]",
+    "-c:v",
+    "libx264",
+    "-preset",
+    "veryfast",
+    "-crf",
+    "18",
+    "-c:a",
+    "aac",
+    "-b:a",
+    "192k",
+    "-movflags",
+    "+faststart",
+    tempPath,
+  ];
+  await new Promise<void>((resolve, reject) => {
+    const child = spawn("ffmpeg", args, { stdio: ["ignore", "ignore", "pipe"] });
+    const stderr: Buffer[] = [];
+    child.stderr.on("data", (chunk: Buffer) => {
+      stderr.push(chunk);
+    });
+    child.on("error", reject);
+    child.on("close", (code) => {
+      if (code === 0) {
+        resolve();
+        return;
+      }
+      reject(
+        new YoutubeUploadError(
+          `Failed to render short thumbnail intro with ffmpeg: ${Buffer.concat(stderr).toString("utf8").trim()}`,
+          false
+        )
+      );
+    });
+  });
+  await fs.rename(tempPath, input.outputPath);
+  return input.outputPath;
+}
+
+async function prepareVideoForUpload(input: {
+  readonly videoPath: string;
+  readonly thumbnailPath: string;
+  readonly variant: MediaStageVariant;
+  readonly renderer?: YoutubeUploadCommandInput["shortThumbnailIntroRenderer"];
+}): Promise<string> {
+  if (input.variant !== "short") {
+    return input.videoPath;
+  }
+  const outputPath = shortThumbnailIntroPath(input.videoPath);
+  const renderer = input.renderer ?? renderShortThumbnailIntro;
+  return renderer({
+    videoPath: input.videoPath,
+    thumbnailPath: input.thumbnailPath,
+    outputPath,
+  });
+}
+
 function createYoutubeClient(auth: YoutubeAuthSettings): youtube_v3.Youtube {
   const oauth2Client = new google.auth.OAuth2(
     auth.clientId,
@@ -1308,23 +1429,27 @@ export async function uploadYoutubeEpisode(input: YoutubeUploadCommandInput): Pr
   const resolved = await generateUploadMetadataForEpisode(
     episodeDir,
     input.episodeId,
-    {
-      ...input.overrides,
-      ...(input.overrides?.languageHint ? { languageHint: input.overrides.languageHint } : {}),
-    },
+    input.overrides,
     input.metadataPath
   );
   const uploadThumbnail = await prepareThumbnailForUpload(
     episodeDir,
     resolved.resolvedThumbnailPath
   );
+  const uploadVariant = inferPublicationVariantFromVideoPath(resolved.resolvedVideoPath);
+  const uploadVideoPath = await prepareVideoForUpload({
+    videoPath: resolved.resolvedVideoPath,
+    thumbnailPath: resolved.resolvedThumbnailPath,
+    variant: uploadVariant,
+    renderer: input.shortThumbnailIntroRenderer,
+  });
   const previousReport = await loadPreviousReport(reportDir);
   if (
     !input.force &&
     previousReport &&
     previousReport.status === "uploaded"
   ) {
-    const videoSha = await hashFile(resolved.resolvedVideoPath);
+    const videoSha = await hashFile(uploadVideoPath);
     const thumbnailSha = await hashFile(uploadThumbnail.path);
     if (
       previousReport.video.sha256 === videoSha &&
@@ -1372,10 +1497,10 @@ export async function uploadYoutubeEpisode(input: YoutubeUploadCommandInput): Pr
     episodeDir,
     sourceMetadataPath: resolved.metadataPath,
     sourceMetadataSha256: resolved.metadataSha256,
-    videoPath: resolved.resolvedVideoPath,
+    videoPath: uploadVideoPath,
     thumbnailPath: uploadThumbnail.path,
   });
-  const videoSha256 = await hashFile(resolved.resolvedVideoPath);
+  const videoSha256 = await hashFile(uploadVideoPath);
   const thumbnailSha256 = await hashFile(uploadThumbnail.path);
   const telemetry = currentExecutionTelemetry();
   const plannedReport = toUploadReport({
@@ -1384,7 +1509,7 @@ export async function uploadYoutubeEpisode(input: YoutubeUploadCommandInput): Pr
     metadata,
     metadataPath: resolved.metadataPath,
     metadataSha256: resolved.metadataSha256,
-    videoPath: resolved.resolvedVideoPath,
+    videoPath: uploadVideoPath,
     videoSha256,
     thumbnailPath: uploadThumbnail.path,
     thumbnailSourcePath: uploadThumbnail.sourcePath,
@@ -1436,7 +1561,7 @@ export async function uploadYoutubeEpisode(input: YoutubeUploadCommandInput): Pr
           requestBody,
           media: {
             mimeType: "video/mp4",
-            body: createReadStream(resolved.resolvedVideoPath),
+            body: createReadStream(uploadVideoPath),
           },
           uploadType: "resumable",
         },
@@ -1472,33 +1597,37 @@ export async function uploadYoutubeEpisode(input: YoutubeUploadCommandInput): Pr
     details: {
       endpoint: "videos.insert",
       videoId,
-      videoPath: resolved.resolvedVideoPath,
+      videoPath: uploadVideoPath,
     },
   });
-    const thumbnailResponse = await withRetry(
-    async () =>
-      youtube.thumbnails.set(
-        {
-          videoId,
-          media: {
-            mimeType: uploadThumbnail.mimeType,
-            body: createReadStream(uploadThumbnail.path),
-          },
-        },
-        { timeout: input.metadataGeneration?.timeoutMs ?? 120000 }
-      ),
-    { maxRetries: 2, label: "thumbnails.set", logger: input.logger }
-    ).catch((error: unknown) => {
-      throw new YoutubeUploadError(
-        describeYoutubeError(error),
-        isRetryableYoutubeError(error),
-        error
-      );
-    });
-    const thumbnailRequestId = readRequestId(thumbnailResponse as {
+    const thumbnailResponse =
+      uploadVariant === "short"
+        ? undefined
+        : await withRetry(
+            async () =>
+              youtube.thumbnails.set(
+                {
+                  videoId,
+                  media: {
+                    mimeType: uploadThumbnail.mimeType,
+                    body: createReadStream(uploadThumbnail.path),
+                  },
+                },
+                { timeout: input.metadataGeneration?.timeoutMs ?? 120000 }
+              ),
+            { maxRetries: 2, label: "thumbnails.set", logger: input.logger }
+          ).catch((error: unknown) => {
+            throw new YoutubeUploadError(
+              describeYoutubeError(error),
+              isRetryableYoutubeError(error),
+              error
+            );
+          });
+    const thumbnailRequestId = thumbnailResponse ? readRequestId(thumbnailResponse as {
       readonly headers?: Record<string, unknown>;
-    });
-    telemetry?.recordApiCall({
+    }) : undefined;
+    if (thumbnailResponse) {
+      telemetry?.recordApiCall({
     provider: "googleapis",
     model: "youtube.v3",
     operation: "youtube-upload",
@@ -1514,6 +1643,7 @@ export async function uploadYoutubeEpisode(input: YoutubeUploadCommandInput): Pr
       thumbnailPath: resolved.resolvedThumbnailPath,
     },
   });
+    }
     let playlistRequestId: string | undefined;
     if (metadata.playlistId) {
     const playlistSnippet: youtube_v3.Schema$PlaylistItemSnippet = {
@@ -1605,7 +1735,7 @@ export async function uploadYoutubeEpisode(input: YoutubeUploadCommandInput): Pr
     metadata,
     metadataPath: resolved.metadataPath,
     metadataSha256: resolved.metadataSha256,
-    videoPath: resolved.resolvedVideoPath,
+    videoPath: uploadVideoPath,
     videoSha256,
     thumbnailPath: uploadThumbnail.path,
     thumbnailSourcePath: uploadThumbnail.sourcePath,
@@ -1617,7 +1747,7 @@ export async function uploadYoutubeEpisode(input: YoutubeUploadCommandInput): Pr
     channelTarget: authChannelId,
     requestIds: {
       upload: readRequestId(uploadResponse),
-      thumbnail: readRequestId(thumbnailResponse),
+      thumbnail: thumbnailRequestId,
       playlist: playlistRequestId,
       verification: verificationRequestId,
     },
@@ -1647,7 +1777,7 @@ export async function uploadYoutubeEpisode(input: YoutubeUploadCommandInput): Pr
       metadata,
       metadataPath: resolved.metadataPath,
       metadataSha256: resolved.metadataSha256,
-      videoPath: resolved.resolvedVideoPath,
+      videoPath: uploadVideoPath,
       videoSha256,
       thumbnailPath: uploadThumbnail.path,
       thumbnailSourcePath: uploadThumbnail.sourcePath,

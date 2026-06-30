@@ -346,6 +346,60 @@ describe("youtube upload", () => {
     expect(await fs.readFile(result.reportPath, "utf8")).toContain("\"status\": \"uploaded\"");
   });
 
+  it("renders thumbnail into short uploads and skips the unsupported thumbnail API call", async () => {
+    const workspace = createWorkspace();
+    const episodeDir = path.join(workspace, "episode-fixture");
+    await prepareEpisode(episodeDir);
+    const shortVideoPath = path.join(episodeDir, "output", "youtube-9x16-clean.mp4");
+    await fs.writeFile(shortVideoPath, Buffer.from("short-video"));
+    const client = createMockYoutubeClient();
+    const auth: YoutubeAuthSettings = {
+      clientId: "client-id",
+      clientSecret: "client-secret",
+      refreshToken: "refresh-token",
+      channelId: "channel-id",
+    };
+    const result = await uploadYoutubeEpisode({
+      workspaceDir: workspace,
+      episodeId: "episode-fixture",
+      auth,
+      client: client as never,
+      overrides: {
+        videoPath: path.join("output", "youtube-9x16-clean.mp4"),
+      },
+      shortThumbnailIntroRenderer: async ({ videoPath, thumbnailPath, outputPath }) => {
+        expect(videoPath).toBe(shortVideoPath);
+        expect(thumbnailPath).toContain(
+          path.join("content-ideas", "audio-ready-thumbnails", "en", "episode-fixture.png")
+        );
+        await fs.writeFile(outputPath, Buffer.from("short-video-with-thumbnail-intro"));
+        return outputPath;
+      },
+      logger: {
+        info: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
+        debug: vi.fn(),
+      },
+      force: true,
+    });
+    expect(result.report.status).toBe("uploaded");
+    expect(result.report.video.path).toBe(
+      path.join(episodeDir, "output", "youtube-9x16-clean-with-thumbnail-intro.mp4")
+    );
+    expect(client.requests).toEqual([
+      "channels.list",
+      "videos.insert",
+      "videos.list",
+    ]);
+    const uploadRequest = client.videos.insert.mock.calls[0]?.[0] as {
+      readonly media?: { readonly body?: { readonly path?: unknown } };
+    };
+    expect(String(uploadRequest.media?.body?.path)).toContain(
+      "youtube-9x16-clean-with-thumbnail-intro.mp4"
+    );
+  });
+
   it("prefers localized metadata and video matching the language hint", async () => {
     const workspace = createWorkspace();
     const episodeDir = path.join(workspace, "episode-fixture");
