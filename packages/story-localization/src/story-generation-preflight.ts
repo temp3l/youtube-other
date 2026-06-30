@@ -330,7 +330,12 @@ export function estimateStoryTokens(
   if (strategy === "conservative-fallback") {
     return Math.max(1, Math.ceil(normalized.length / 2.5));
   }
-  const ascii = (normalized.match(/[\x00-\x7F]/gu) ?? []).length;
+  let ascii = 0;
+  for (const character of normalized) {
+    if (character.charCodeAt(0) <= 0x7f) {
+      ascii += 1;
+    }
+  }
   const nonAscii = normalized.length - ascii;
   const wordish = (normalized.match(/[\p{L}\p{N}_]+/gu) ?? []).length;
   const punctuation = (normalized.match(/[^\s\p{L}\p{N}_]/gu) ?? []).length;

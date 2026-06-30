@@ -207,7 +207,7 @@ function detectTruncation(text: string): boolean {
   if (trimmed.length === 0) {
     return false;
   }
-  return /(?:\.\.\.|[\(\[\{]|\b(?:and|or|que|und|et|e)\s*$)$/iu.test(
+  return /(?:\.\.\.|[[({]|\b(?:and|or|que|und|et|e)\s*$)$/iu.test(
     trimmed
   );
 }

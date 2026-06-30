@@ -1209,6 +1209,14 @@ export class MediaForgePipeline {
     const sourceText = await fs
       .readFile(scenesFilePath, "utf8")
       .catch(() => JSON.stringify(plan));
+    const language =
+      this.environment.config.youtubeMetadataLanguage ??
+      this.environment.config.scriptLanguage ??
+      "en";
+    const locale = this.episodeLocale();
+    const narrationText = plan.scenes
+      .map((scene) => scene.canonicalNarration)
+      .join("\n\n");
     const generated = await generateYoutubeMetadataForTarget(
       {
         sourceFilePath: scenesFilePath,
@@ -1216,16 +1224,24 @@ export class MediaForgePipeline {
         outputDir: metadataDir,
         episodeSlug: manifest.slug,
         sourceId: manifest.episodeId,
-        language:
-          this.environment.config.youtubeMetadataLanguage ??
-          this.environment.config.scriptLanguage ??
-          "en",
+        language,
+        locale,
+        variant: "full",
         scenePlan: plan,
         sourceSha256: hashText(sourceText),
         durationSeconds: Math.max(
           ...plan.scenes.map((scene) => scene.timing.endSeconds),
           0
         ),
+        narration: {
+          episodeNumber: manifest.slug.split("-")[0] ?? manifest.slug,
+          episodeSlug: manifest.slug,
+          language,
+          locale,
+          variant: "full",
+          narrationText,
+          narrationFingerprint: hashText(narrationText),
+        },
       },
       {
         apiKey:

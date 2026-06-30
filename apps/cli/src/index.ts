@@ -52,6 +52,7 @@ import {
   backfillSceneClipManifests,
   validateRenderedVideo,
   type RemoteRenderSettings,
+  type VideoRenderRequest,
 } from "@mediaforge/rendering";
 import {
   uploadYoutubeEpisode,
@@ -2508,7 +2509,39 @@ async function commandRender(
     burnCaptions: true,
   } as const;
   const pipeline = await loadPipeline(options, episodeDir);
-  const renderRequest = {
+  const variant: "full" | "short" = profile === "vertical" ? "short" : "full";
+  const mediaContext: NonNullable<VideoRenderRequest["mediaContext"]> = {
+    identity: {
+      episodeId,
+      language,
+      locale: language === "en" ? "en-US" : language,
+      variant,
+      owner: "render",
+    },
+    narration: {
+      owner: "narration",
+      episodeId,
+      language,
+      locale: language === "en" ? "en-US" : language,
+      variant,
+      fingerprint: `cli:${episodeId}:${language}:${profile}:narration`,
+      status: "ready",
+    },
+    ...(profile === "vertical"
+      ? {
+          shortMediaRequirements: {
+            aspectRatio: "9:16" as const,
+            durationSeconds:
+              manifest.scenePlan.scenes[manifest.scenePlan.scenes.length - 1]
+                ?.timing.endSeconds,
+            safeVerticalComposition: true,
+            focalSubjectPlacement: "center third",
+            textSafeArea: "top and bottom 12 percent",
+          },
+        }
+      : {}),
+  };
+  const renderRequest: VideoRenderRequest = {
     episodeDir,
     scenePlan: manifest.scenePlan,
     outputDir: path.join(audioBaseDir, "renders", profile),
@@ -2520,36 +2553,7 @@ async function commandRender(
     outputSuffix: localizedOutputSuffix(language),
     trailingSilenceRatio: config.trailingSilenceRatio,
     trailingSilenceBufferSeconds: config.trailingSilenceBufferSeconds,
-    mediaContext: {
-      identity: {
-        episodeId,
-        language,
-        locale: language === "en" ? "en-US" : language,
-        variant: profile === "vertical" ? "short" : "full",
-        owner: "render" as const,
-      },
-      narration: {
-        owner: "narration",
-        episodeId,
-        language,
-        locale: language === "en" ? "en-US" : language,
-        variant: profile === "vertical" ? "short" : "full",
-        fingerprint: `cli:${episodeId}:${language}:${profile}:narration`,
-        status: "ready",
-      },
-      shortMediaRequirements:
-        profile === "vertical"
-          ? {
-              aspectRatio: "9:16" as const,
-              durationSeconds:
-                manifest.scenePlan.scenes[manifest.scenePlan.scenes.length - 1]
-                  ?.timing.endSeconds,
-              safeVerticalComposition: true,
-              focalSubjectPlacement: "center third",
-              textSafeArea: "top and bottom 12 percent",
-            }
-          : undefined,
-    },
+    mediaContext,
     ...(captionsPath ? { captionsPath } : {}),
   };
   const result = await pipeline.renderer.render(
