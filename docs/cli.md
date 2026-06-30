@@ -48,6 +48,7 @@ Top-level command groups and commands:
 - `clips backfill-manifests <episode-id>`
 - `align <episode-id>`
 - `images ...`
+- `thumbnails generate --episode <slug> --locale <locale> --format <full|short> --hook-text <text> --story-file <path>`
 - `render <episode-id> --profile <youtube|vertical> --no-captions`
 - `render remote check`
 - `render remote cleanup`
@@ -94,6 +95,52 @@ Root scripts that directly wrap CLI commands:
 - `npm run youtube:upload -- --episode <id>`
 - `npm run images:plan -- --episode <id>`
 - `npm run images:generate -- --episode <id>`
+
+## Thumbnail Commands
+
+`thumbnails generate` creates exact localized full or short thumbnail artifacts and keeps them independent from render or upload steps.
+
+```bash
+npm run mediaforge -- thumbnails generate \
+  --episode 014-hachishakusama-the-eight-foot-woman \
+  --locale en \
+  --format full \
+  --hook-text "SHE CALLED HER NAME" \
+  --story-file episodes/014-hachishakusama-the-eight-foot-woman/story-production/thumbnail-story.json \
+  --dry-run
+```
+
+Story input is JSON with:
+
+- `title`
+- `summary`
+- `protagonistDescription` or `protagonist`
+- `threatDescription` or `threat`
+- `settingDescription` or `setting`
+- optional `emphasisWord`
+- optional `referenceImagePath`
+
+Options:
+
+- `--episode <slug>`
+- `--locale <locale>`
+- `--format <full|short>`
+- `--hook-text <text>`
+- `--story-file <path>`
+- `--emphasis-word <word>`
+- `--quality <low|medium|high|auto>`
+- `--text-strategy <post-rendered|model-rendered>`
+- `--reference-image <path>`
+- `--force`
+- `--dry-run`
+- `--verbose`
+- `--json`
+
+Artifacts:
+
+- Full thumbnail: `episodes/<episode-slug>/locales/<locale>/full/thumbnails/thumbnail.png`
+- Short thumbnail: `episodes/<episode-slug>/locales/<locale>/short/thumbnails/thumbnail.png`
+- Manifest: `episodes/<episode-slug>/locales/<locale>/<full|short>/thumbnails/thumbnail.manifest.json`
 
 ## Story Commands
 

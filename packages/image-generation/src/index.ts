@@ -39,6 +39,7 @@ export * from "./image-batch.schemas.js";
 export * from "./image-batch-storage.js";
 export * from "./image-batch-planner.js";
 export * from "./image-batch-service.js";
+export * from "./story-thumbnail.js";
 
 export interface PromptTemplateContext {
   readonly GLOBAL_STYLE: string;

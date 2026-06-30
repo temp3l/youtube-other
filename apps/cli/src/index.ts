@@ -140,6 +140,7 @@ import {
 import { buildRemoteRenderShellScript } from "./render-remote-shell.js";
 import { buildSceneInspectOutput } from "./scene-inspect-output.js";
 import { registerStoryLocalizationCommands } from "./story-localization-commands.js";
+import { registerThumbnailCommands } from "./thumbnail-commands.js";
 
 interface CliOptions {
   json?: boolean;
@@ -4460,6 +4461,7 @@ youtubeCommand
 
 registerEpisodeCommands(program);
 registerStoryLocalizationCommands(program);
+registerThumbnailCommands(program);
 
 const executionId = process.env["MEDIAFORGE_EXECUTION_ID"] ?? randomUUID();
 const startedAt =

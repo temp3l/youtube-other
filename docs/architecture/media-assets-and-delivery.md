@@ -33,6 +33,9 @@ Full and short media stay separate. Metadata and audio remain sibling or downstr
 - Rendering is `ffmpeg`-based and can operate locally or through a remote SSH plus `rsync` worker.
 - Scene clip manifests record hashes, render profile details, and renderer provenance for resumability and validation.
 - Final render manifests are explicit downstream `render` artifacts. They are variant-aware, preserve upstream dependency fingerprints, and enforce `youtube` for full outputs versus portrait `vertical` for shorts.
+- Thumbnail generation is a separate `thumbnail` ownership stage under locale plus variant roots. Full thumbnails are exact `1536x864`; short thumbnails are exact `864x1536`.
+- Thumbnail manifests sit beside the image output at `locales/<locale>/<full|short>/thumbnails/thumbnail.manifest.json` and record prompt plus source fingerprints, quality, model, text strategy, output hash, request id, and estimated cost metadata.
+- Default thumbnail text handling is post-rendered localized typography, so operator-supplied hook text stays exact and deterministic even when the base image is model-generated.
 - Remote rendering is optional. When enabled, the hybrid renderer can retry remote work and fall back to local rendering if configured.
 - Final outputs are validated for expected media characteristics before the pipeline treats them as complete.
 - Render failures do not invalidate narration, scene plans, or completed image artifacts.
