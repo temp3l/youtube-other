@@ -2,6 +2,7 @@ import { z } from "zod";
 import { languageCodes } from "./story-localization.types.js";
 
 const batchOperationSchema = z.enum([
+  "canonical-english-full",
   "canonical-facts",
   "english-short",
   "localization",
@@ -368,6 +369,14 @@ export const localBatchManifestItemSchema = z.object({
   responseSchemaName: z.string().min(1).optional(),
   responseSchemaVersion: z.string().min(1).optional(),
   responseSchemaFingerprint: z.string().min(1).optional(),
+  parentArtifact: z
+    .object({
+      kind: z.literal("canonical-english-full"),
+      fingerprint: z.string().min(1),
+      sourceHash: z.string().min(1),
+    })
+    .strict()
+    .optional(),
   selectedModules: z
     .array(
       z.object({

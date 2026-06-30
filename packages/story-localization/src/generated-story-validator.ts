@@ -89,7 +89,8 @@ export function validateWrittenMessagesPreserved(
 
 function validateFullStoryPackageNarration(
   packageValue: Pick<GeneratedStoryPackage, "full">,
-  profile: LanguageProfile
+  profile: LanguageProfile,
+  facts?: CanonicalStoryFacts
 ): string[] {
   const issues: string[] = [];
   if (packageValue.full) {
@@ -126,6 +127,23 @@ function validateFullStoryPackageNarration(
     ) {
       issues.push("Full contains generic filler.");
     }
+    if (facts) {
+      const normalizedText = normalizeWhitespace(fullText).toLowerCase();
+      if (
+        !normalizedText.includes(
+          normalizeWhitespace(facts.primaryReveal).toLowerCase()
+        )
+      ) {
+        issues.push("Missing climax.");
+      }
+      if (
+        !normalizedText.includes(
+          normalizeWhitespace(facts.finalConsequence).toLowerCase()
+        )
+      ) {
+        issues.push("Missing ending.");
+      }
+    }
   }
   return issues;
 }
@@ -152,7 +170,7 @@ export function validateGeneratedStoryPackage(
       (tag) => `short:invalid hashtag ${tag}`
     )
   );
-  issues.push(...validateFullStoryPackageNarration(packageValue, profile));
+  issues.push(...validateFullStoryPackageNarration(packageValue, profile, facts));
   issues.push(
     ...validatePreservationChecklist(packageValue.preservationChecklist).map(
       (entry) => `preservation:${entry}`
@@ -230,7 +248,7 @@ export function validateGeneratedFullStoryPackage(
   if (packageValue.language !== language) {
     issues.push("Language mismatch.");
   }
-  issues.push(...validateFullStoryPackageNarration(packageValue, profile));
+  issues.push(...validateFullStoryPackageNarration(packageValue, profile, facts));
   issues.push(
     ...validatePreservationChecklist(packageValue.preservationChecklist).map(
       (entry) => `preservation:${entry}`

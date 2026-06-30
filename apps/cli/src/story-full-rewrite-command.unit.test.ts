@@ -137,4 +137,64 @@ describe("story full rewrite command", () => {
     });
     expect(localizeStoryEpisodeMock).toHaveBeenCalledTimes(1);
   });
+
+  it("reports canonical and compatibility English full paths during dry-run planning", async () => {
+    const sourcePath = path.resolve(
+      import.meta.dirname,
+      "../../..",
+      "content-ideas",
+      "content",
+      "dark-truth-episodes-multilingual-production-pack",
+      "002-even-killers-can-lick",
+      "en",
+      "002-even-killers-can-lick-en-full.md"
+    );
+    const writes: string[] = [];
+    const stdoutSpy = vi
+      .spyOn(process.stdout, "write")
+      .mockImplementation((chunk: string | Uint8Array) => {
+        writes.push(typeof chunk === "string" ? chunk : chunk.toString());
+        return true;
+      });
+
+    const program = new Command();
+    registerStoryRewriteFullCommand(program.command("stories"));
+
+    await program.parseAsync([
+      "node",
+      "cli",
+      "stories",
+      "rewrite-full",
+      "--input",
+      sourcePath,
+      "--episode-slug",
+      "the-christmas-doll",
+      "--languages",
+      "de",
+      "--dry-run",
+    ]);
+
+    stdoutSpy.mockRestore();
+    const payload = JSON.parse(writes.join(""));
+    expect(payload).toMatchObject({
+      dryRun: true,
+      plannedOutputs: {
+        englishFull: {
+          canonical: path.join(
+            "/tmp/workspace",
+            "002-the-christmas-doll",
+            "en",
+            "full",
+            "script.md"
+          ),
+          compatibility: path.join(
+            "/tmp/workspace",
+            "002-the-christmas-doll",
+            "script.md"
+          ),
+        },
+      },
+    });
+    expect(localizeStoryEpisodeMock).not.toHaveBeenCalled();
+  });
 });

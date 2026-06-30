@@ -118,6 +118,7 @@ export interface StoryPreflightRequest {
   readonly minimumInputTokens?: number;
   readonly parentArtifact?: {
     readonly kind: "canonical-english-full";
+    readonly fingerprint?: string;
     readonly sourceHash: string;
   };
   readonly costCeilingUsd?: number;

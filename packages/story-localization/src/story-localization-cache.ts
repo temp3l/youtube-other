@@ -2,6 +2,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { z } from "zod";
 import { ensureDir, fileExists, hashText, readJsonIfExists, writeJsonAtomic } from "@mediaforge/shared";
+import { resolveCanonicalEnglishFullPaths } from "./canonical-full-story.persistence.js";
 import { type CanonicalStoryFacts, type LanguageCode, type StoryLocalizationCacheEntry } from "./story-localization.types.js";
 
 const cacheEntrySchema = z.object({
@@ -13,6 +14,13 @@ const cacheEntrySchema = z.object({
   language: z.enum(["en", "de", "es", "fr", "pt"]),
   generatedAt: z.string().min(1),
   outputFiles: z.array(z.string().min(1)),
+  compilerVersion: z.string().min(1).optional(),
+  promptFingerprint: z.string().min(1).optional(),
+  responseSchemaName: z.string().min(1).optional(),
+  responseSchemaVersion: z.string().min(1).optional(),
+  responseSchemaFingerprint: z.string().min(1).optional(),
+  parentArtifactFingerprint: z.string().min(1).optional(),
+  canonicalFingerprint: z.string().min(1).optional(),
   inputTokens: z.number().int().nonnegative().optional(),
   outputTokens: z.number().int().nonnegative().optional(),
 });
@@ -53,13 +61,19 @@ export function resolveEpisodeStoryOutputFiles(
 } {
   const episodeDir = resolveEpisodeOutputDirectory(outputDirectory, episodeSlug);
   const languageDir = path.join(episodeDir, language);
+  if (language === "en") {
+    const canonical = resolveCanonicalEnglishFullPaths(outputDirectory, episodeSlug);
+    return {
+      episodeDir,
+      rootScript: canonical.rootCompatibilityMarkdownPath,
+      full: canonical.canonicalMarkdownPath,
+      short: path.join(languageDir, "short", "script.md"),
+    };
+  }
   return {
     episodeDir,
     rootScript: path.join(episodeDir, "script.md"),
-    full:
-      language === "en"
-        ? path.join(episodeDir, "script.md")
-        : path.join(languageDir, "full", "script.md"),
+    full: path.join(languageDir, "full", "script.md"),
     short: path.join(languageDir, "short", "script.md"),
   };
 }

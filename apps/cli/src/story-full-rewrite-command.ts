@@ -132,7 +132,20 @@ export function registerStoryRewriteFullCommand(storiesCommand: Command): void {
           episodeSlug: resolved.episodeSlug,
           sourceFile: canonicalSourcePath,
           plannedOutputs: {
-            englishFull: path.join(outputRoot, resolved.episodeSlug, "script.md"),
+            englishFull: {
+              canonical: path.join(
+                outputRoot,
+                resolved.episodeSlug,
+                "en",
+                "full",
+                "script.md"
+              ),
+              compatibility: path.join(
+                outputRoot,
+                resolved.episodeSlug,
+                "script.md"
+              ),
+            },
             localized: requestedLanguages.map((language) =>
               ({
                 language,

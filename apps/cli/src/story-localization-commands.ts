@@ -201,6 +201,7 @@ async function printDryRunSummary(
       `${candidate.episodeNumber}-${candidate.slug}`
     );
     const files = [
+      path.join(episodeRoot, "en", "full", "script.md"),
       path.join(episodeRoot, "script.md"),
       ...(config.includeEnglishShort
         ? [path.join(episodeRoot, "en", "short", "script.md")]

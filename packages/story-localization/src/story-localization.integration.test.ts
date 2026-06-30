@@ -79,10 +79,20 @@ function buildShortNarration(includeNames = true, includeMessage = true, include
 }
 
 function buildFullNarration(language: LanguageCode): string[] {
+  const filler =
+    "The house stayed wet and silent while Elena counted each step and listened for the next breath.";
+  let first =
+    `${language.toUpperCase()} version: Elena Ward stayed in the house after dark and kept hearing Bramble breathe from under the bed. ` +
+    "A storm rolled in, the power failed, and Elena checked the hallway, the kitchen, and the attic for anything that could explain the sound.";
+  let second =
+    "She found the same wet tracks in the hallway, the same attic note, HUMANS CAN LICK TOO. was written on the mirror, and the notebook still said SHE REACHED DOWN FIRST. The car alarm drew the neighbor out and the intruder fled through the loft hatch.";
+  while (countWords(`${first} ${second}`) < 155) {
+    second = `${second} ${filler}`;
+  }
   return [
-    `${language.toUpperCase()} version: Elena Ward stayed in the house after dark and kept hearing Bramble breathe from under the bed.`,
-    "She found the same wet tracks in the hallway, the same attic note, HUMANS CAN LICK TOO was written on the mirror, and the notebook still said SHE REACHED DOWN FIRST.",
-    "By the time she understood the rule, the house had already learned Elena Ward's name and the final choice had become a trap.",
+    first,
+    second,
+    "The final warning is therefore simple: when the same impossible detail appears twice, do not wait for a third occurrence to prove that it is real.",
   ];
 }
 
@@ -198,7 +208,7 @@ function makeConfig(outputDir: string, languages: readonly Exclude<LanguageCode,
     languages,
     includeEnglishShort: true,
     force: true,
-    model: "gpt-4o-mini",
+    model: "gpt-5.5",
   });
 }
 
@@ -220,12 +230,12 @@ function makeFullOnlyConfig(
     debugOutputs: true,
     debugPrefix: "stories-rewrite-full",
     force: true,
-    model: "gpt-4o-mini",
+    model: "gpt-5.5",
   });
 }
 
 describe("story localization integration", () => {
-  it("generates the English short and copies the English full story", async () => {
+  it("generates the canonical English full story and English short", async () => {
     const tempDir = mkdtempSync(path.join(os.tmpdir(), "story-localization-en-"));
     const client = makeMockClient([
       {
@@ -240,10 +250,16 @@ describe("story localization integration", () => {
     expect(client.responses.create).toHaveBeenCalledTimes(2);
     expect(
       await fs.readFile(
+        path.join(tempDir, "002-even-killers-can-lick", "en", "full", "script.md"),
+        "utf8"
+      )
+    ).toContain("# Episode 002");
+    expect(
+      await fs.readFile(
         path.join(tempDir, "002-even-killers-can-lick", "script.md"),
         "utf8"
       )
-    ).toContain("EN House of Licking Shadows");
+    ).toContain("# Episode 002");
   });
 
   it("persists production artifacts and stage state", async () => {
@@ -290,6 +306,8 @@ describe("story localization integration", () => {
     const englishFullPath = path.join(
       tempDir,
       "002-even-killers-can-lick",
+      "en",
+      "full",
       "script.md"
     );
     const parsedEnglishFull = await parseCanonicalSourceStory(englishFullPath);
@@ -380,7 +398,7 @@ describe("story localization integration", () => {
           "utf8"
         )
       )
-    ).toHaveProperty("model", "gpt-4o-mini");
+    ).toHaveProperty("model", "gpt-5.5");
     expect(
       JSON.parse(
         await fs.readFile(
@@ -420,7 +438,7 @@ describe("story localization integration", () => {
           "utf8"
         )
       )
-    ).toHaveProperty("model", "gpt-4o-mini");
+    ).toHaveProperty("model", "gpt-5.5");
     expect(
       JSON.parse(
         await fs.readFile(
@@ -472,7 +490,7 @@ describe("story localization integration", () => {
       debugPrefix: "stories-rewrite-full",
       force: false,
       resume: true,
-      model: "gpt-4o-mini",
+      model: "gpt-5.5",
     }), {
       client: resumeClient as never,
     });

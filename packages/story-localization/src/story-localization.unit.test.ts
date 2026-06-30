@@ -39,6 +39,7 @@ import {
   validatePreservationChecklist,
   validateTitleAndThumbnail,
   validateWrittenMessagesPreserved,
+  resolveEpisodeStoryOutputFiles,
   writeTextAtomicIfChanged,
   StoryLocalizationApiError,
   getLanguageRewriteSettings,
@@ -107,6 +108,24 @@ function buildLocalizedNarration(wordCount: number): string[] {
   return [text];
 }
 
+function buildFullNarration(language: LanguageCode): string[] {
+  const filler =
+    "The house stayed wet and silent while Elena counted each step and listened for the next breath.";
+  let first =
+    `${language.toUpperCase()} version: Elena Ward stayed in the house after dark and kept hearing Bramble breathe from under the bed. ` +
+    "A storm rolled in, the power failed, and Elena checked the hallway, the kitchen, and the attic for anything that could explain the sound.";
+  let second =
+    "She found the same wet tracks in the hallway, the same attic note, HUMANS CAN LICK TOO. was written on the mirror, and the notebook still said SHE REACHED DOWN FIRST. The car alarm drew the neighbor out and the intruder fled through the loft hatch.";
+  while (countWords(`${first} ${second}`) < 155) {
+    second = `${second} ${filler}`;
+  }
+  return [
+    first,
+    second,
+    "The final warning is therefore simple: when the same impossible detail appears twice, do not wait for a third occurrence to prove that it is real.",
+  ];
+}
+
 function makeLocalizedPackage(
   language: LanguageCode,
   shortWordCount: number
@@ -119,11 +138,7 @@ function makeLocalizedPackage(
         "Use a steady narrator.",
         "Keep the tone restrained.",
       ],
-      narrationParagraphs: [
-        `${language.toUpperCase()} version: Elena Ward stayed in the house after dark and kept hearing Bramble breathe from under the bed.`,
-        "She found the same wet tracks in the hallway, the same attic note, HUMANS CAN LICK TOO was written on the mirror, and the notebook still said SHE REACHED DOWN FIRST.",
-        "By the time she understood the rule, the house had already learned Elena Ward's name and the final choice had become a trap.",
-      ],
+      narrationParagraphs: buildFullNarration(language),
       thumbnailText: "NOT THE DOG",
       contentDisclosure: "Fictional horror narration.",
       seoDescription: "A house learns the wrong name.",
@@ -188,6 +203,13 @@ describe("story localization helpers", () => {
   });
 
   it("builds episode-prefixed output filenames", () => {
+    expect(buildOutputFiles("/out", "002-even-killers-can-lick", "en")).toEqual(
+      {
+        full: "/out/002-even-killers-can-lick/en/full/script.md",
+        short: "/out/002-even-killers-can-lick/en/short/script.md",
+        rootScript: "/out/002-even-killers-can-lick/script.md",
+      }
+    );
     expect(buildOutputFiles("/out", "002-even-killers-can-lick", "de")).toEqual(
       {
         full: "/out/002-even-killers-can-lick/de/full/script.md",
@@ -195,6 +217,17 @@ describe("story localization helpers", () => {
         rootScript: "/out/002-even-killers-can-lick/script.md",
       }
     );
+  });
+
+  it("resolves canonical English output files for readers and compatibility reads", () => {
+    expect(
+      resolveEpisodeStoryOutputFiles("/out", "002-even-killers-can-lick", "en")
+    ).toEqual({
+      episodeDir: "/out/002-even-killers-can-lick",
+      rootScript: "/out/002-even-killers-can-lick/script.md",
+      full: "/out/002-even-killers-can-lick/en/full/script.md",
+      short: "/out/002-even-killers-can-lick/en/short/script.md",
+    });
   });
 
   it("discovers only canonical English full stories", async () => {
@@ -658,36 +691,9 @@ describe("story localization helpers", () => {
             output_text: JSON.stringify({
               language: "en",
               full: {
-                title: "The Doll in the Attic",
-                audioInstructions: [
-                  "Use the same narrator as the full episode.",
-                ],
-                narrationParagraphs: [
-                  "Mara heard the doll breathing under the attic door.",
-                  "When she opened it, the doll sat on the nursery chair with wet hands and her own name scratched across the glass.",
-                  "She burned the dress, locked the trunk, and thought the house had gone quiet, but the final photograph on the stairs showed the doll behind her brother.",
-                ],
-                thumbnailText: "IT WASN'T THE DOLL",
-                contentDisclosure: "Fictional horror narration.",
-                seoDescription: "A doll keeps moving after dark.",
-                tags: ["horror", "story", "doll"],
-                hashtags: ["#HorrorStory", "#DarkTruthEpisodes"],
-                targetNarrationWpm: 170,
-                visualDirection: "Dark stairs, attic door, nursery chair.",
+                narrationParagraphs: buildFullNarration("en"),
               },
-              short: {
-                title: "The Killer Was Already Inside the House",
-                narrationInstructions: [
-                  "Use the same narrator as the full episode.",
-                ],
-                narrationParagraphs: buildLocalizedNarration(165),
-                thumbnailText: "IT WASN'T THE DOG",
-                description: "Elena hears something under the bed.",
-                hashtags: ["#Shorts", "#Horror", "#DarkTruthEpisodes"],
-                targetNarrationWpm: 180,
-                recommendedDurationSeconds: { min: 55, max: 65 },
-                visualGuidance: "Mirror, hallway, attic.",
-              },
+              targetNarrationWpm: 170,
               preservationChecklist: {
                 charactersPreserved: true,
                 relationshipsPreserved: true,
@@ -700,9 +706,6 @@ describe("story localization helpers", () => {
                 noNewPlotElementsAdded: true,
               },
               diagnostics: {
-                fullWordCount: 100,
-                shortWordCount: 165,
-                shortEstimatedDurationSeconds: 55,
                 removedGenericFiller: [],
                 adaptationNotes: ["Derived from the English full story."],
               },

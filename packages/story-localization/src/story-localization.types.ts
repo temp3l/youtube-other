@@ -13,6 +13,7 @@ export type BatchEndpoint =
   | "/v1/images/generations"
   | "/v1/images/edits";
 export type BatchOperation =
+  | "canonical-english-full"
   | "canonical-facts"
   | "english-short"
   | "localization"
@@ -387,6 +388,13 @@ export interface StoryLocalizationCacheEntry {
   readonly language: LanguageCode;
   readonly generatedAt: string;
   readonly outputFiles: readonly string[];
+  readonly compilerVersion?: string;
+  readonly promptFingerprint?: string;
+  readonly responseSchemaName?: string;
+  readonly responseSchemaVersion?: string;
+  readonly responseSchemaFingerprint?: string;
+  readonly parentArtifactFingerprint?: string;
+  readonly canonicalFingerprint?: string;
   readonly inputTokens?: number;
   readonly outputTokens?: number;
 }
@@ -457,6 +465,11 @@ export interface StoryBatchItem<
     readonly responseSchemaName?: string;
     readonly responseSchemaVersion?: string;
     readonly responseSchemaFingerprint?: string;
+    readonly parentArtifact?: {
+      readonly kind: "canonical-english-full";
+      readonly fingerprint: string;
+      readonly sourceHash: string;
+    };
     readonly selectedModules?: readonly {
       readonly id: string;
       readonly version: string;
@@ -485,6 +498,11 @@ export interface LocalBatchManifestItem {
   readonly responseSchemaName?: string;
   readonly responseSchemaVersion?: string;
   readonly responseSchemaFingerprint?: string;
+  readonly parentArtifact?: {
+    readonly kind: "canonical-english-full";
+    readonly fingerprint: string;
+    readonly sourceHash: string;
+  };
   readonly selectedModules?: readonly {
     readonly id: string;
     readonly version: string;

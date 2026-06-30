@@ -117,6 +117,19 @@ export function renderLocalizedFullStory(
     .join("\n");
 }
 
+export function renderCanonicalEnglishFullStory(
+  episodeNumber: string,
+  packageValue: NonNullable<GeneratedStoryPackage["full"]>,
+  sourceSha256?: string
+): string {
+  return renderLocalizedFullStory(
+    episodeNumber,
+    packageValue,
+    "en",
+    sourceSha256
+  );
+}
+
 export function renderLocalizedShort(
   episodeNumber: string,
   packageValue: GeneratedStoryPackage["short"],
