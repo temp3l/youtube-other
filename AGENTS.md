@@ -17,6 +17,19 @@ Execution and validation:
 - Do not default to `pnpm build`, `pnpm test`, full lint, or full typecheck for docs-only work.
 - If validation fails, repair and retry at most two times, then report the remaining issue clearly.
 
+Cost- and Time-Bounded Verification:
+
+- Run the directly affected test file first, then narrow further with an exact test-name filter only when debugging one failure.
+- Inspect scripts and Vitest config before choosing a command, and confirm wrappers honor file filters before trusting them.
+- Prefer `pnpm test:focused -- <test-file>` or direct `pnpm exec vitest run -c <config> --bail=1 <test-file>` when broader wrappers would fan out.
+- Do not run repository-wide tests, builds, snapshot updates, or fixture regeneration unless the human explicitly authorizes broad verification for the active task.
+- Stay within one implementation-context budget: at most three distinct test commands, at most two repair reruns of the same failing command, no rerun of an unchanged failing command, and at most one affected-package typecheck after focused tests pass.
+- Stop test repair when the same focused failure survives two targeted fixes, more than three fixtures appear to need edits, assertions would need to be weakened, or a broad command exposes unrelated failures.
+- Classify fixture failures before editing them: production defect, intentional contract change, stale fixture from that contract change, or unrelated pre-existing failure. Only change fixtures for intentional approved contract changes.
+- When the budget is exhausted or failures stop converging, report the exact command, exact test name, concise failure, classification, likely owning module, and smallest follow-up instead of continuing to experiment.
+- Prefer semantic assertions over full-object snapshots and avoid broad snapshot or fixture regeneration.
+- Keep the root policy concise here and use `docs/development/codex-verification-guardrails.md` for command examples, retry limits, fixture policy, and hook details.
+
 Progress and completion output:
 
 - State what you are inspecting before substantial work.
