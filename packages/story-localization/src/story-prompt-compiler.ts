@@ -23,11 +23,13 @@ import { stableSerialize } from "./stable-json.js";
 import {
   STORY_PROMPT_COMPILER_VERSION,
   type FullStoryPromptInput,
+  isNarrationOwner,
   type SelectedStoryPromptModule,
   type ShortStoryPromptInput,
   type StoryPromptClassificationOutcome,
   type StoryPromptDiagnostic,
   type StoryPromptModuleContext,
+  type StoryPromptModuleDescriptor,
   type StoryPromptModuleId,
   validationIssuesToDiagnostics,
 } from "./story-prompt-modules.js";
@@ -196,6 +198,10 @@ function compileFromContext(
   const diagnostics: StoryPromptDiagnostic[] = [];
   const selected: SelectedStoryPromptModule[] = [];
   const selectedIds = new Set<StoryPromptModuleId>();
+  const ownershipDiagnostics = validateNarrationPromptModuleOwnership(
+    STORY_PROMPT_MODULE_REGISTRY
+  );
+  diagnostics.push(...ownershipDiagnostics);
   for (const module of STORY_PROMPT_MODULE_REGISTRY) {
     if (!module.variants.includes(context.variant)) {
       diagnostics.push({
@@ -222,7 +228,7 @@ function compileFromContext(
       diagnostics.push(applicability.diagnostic);
       continue;
     }
-    if (module.owner !== "narration") {
+    if (!isNarrationOwner(module.owner)) {
       diagnostics.push({
         code: "CROSS_OWNER_MODULE_REJECTED",
         severity: "error",
@@ -412,6 +418,24 @@ function compileFromContext(
     })),
     diagnostics,
   };
+}
+
+export function validateNarrationPromptModuleOwnership(
+  modules: readonly StoryPromptModuleDescriptor[]
+): readonly StoryPromptDiagnostic[] {
+  return modules.flatMap((module) =>
+    isNarrationOwner(module.owner)
+      ? []
+      : [
+          {
+            code: "CROSS_OWNER_MODULE_REJECTED",
+            severity: "error" as const,
+            message: `Module ${module.id} is owned by ${module.owner} and cannot be compiled into the narration stage.`,
+            moduleId: module.id,
+            blocking: true,
+          },
+        ]
+  );
 }
 
 export function compileFullStoryPrompt(

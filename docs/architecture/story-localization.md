@@ -30,7 +30,7 @@ This subsystem handles structured English full rewrites, localized full rewrites
 4. StoryIR policy and contract modeling
    Typed genre policies and full-story contracts can now be derived deterministically from validated `StoryIR`, with effective generation boundaries resolved before later prompt-compilation work.
 5. Prompt construction
-   Prompt builders assemble structured requests for full rewrites, localized rewrites, and short rewrites.
+   Prompt builders assemble narration-only structured requests for full rewrites, localized rewrites, and short rewrites. Typed module ownership checks reject metadata, audio/TTS, scene, image, render, thumbnail, and publication-owned prompt modules before any provider call.
 6. Token-budget preflight
    The compiled request is checked locally against model context limits, model output limits, expected output requirements, schema overhead, and a safety reserve. Blocked requests do not call the provider.
 7. OpenAI structured generation
@@ -38,7 +38,21 @@ This subsystem handles structured English full rewrites, localized full rewrites
 8. Validation and repair
    Generated output is checked for schema validity, message preservation, duration or word-count constraints, and filler or editorial drift; repair prompts can be issued when needed.
 9. Cache writes and artifact materialization
-   Cache entries, production artifacts, markdown outputs, JSON sidecars, and debug artifacts are persisted into episode output directories.
+   Cache entries, production artifacts, narration-only canonical JSON artifacts, compatibility markdown, JSON sidecars, and debug artifacts are persisted into episode output directories.
+
+## Downstream Ownership Boundaries
+
+- Validated narration is the upstream owner for downstream metadata and audio stages.
+- Metadata is owned by `@mediaforge/metadata` and persists its own parent narration fingerprint, model/config fingerprint, prompt/schema fingerprint, status, and failure metadata.
+- Audio instructions and TTS are owned by `@mediaforge/speech` and persist their own narration fingerprint, voice/config fingerprints, dependency fingerprint, and failure metadata.
+- Metadata or audio failures do not invalidate narration and do not route through narration repair policy.
+- Scene/image/render/publication remain separate downstream owners; Task 14 owns their boundary work.
+
+## Compatibility Markdown
+
+- Canonical English full persistence now writes narration-only canonical markdown under `en/full/script.md`.
+- Legacy combined markdown remains supported through compatibility rendering at the episode root and existing localized compatibility files.
+- Compatibility rendering can combine independently persisted narration, metadata, and audio artifacts, but those combined markdown files are not the canonical persistence source.
 
 ## Token-Budget Preflight
 

@@ -2,7 +2,14 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import os from "node:os";
 import { describe, expect, it } from "vitest";
-import { OpenAiCompatibleSpeechProvider, loadSpeechVoiceSettings } from "./index.js";
+import {
+  buildAudioInstructionArtifact,
+  computeSpeechModelConfigFingerprint,
+  computeSpeechVoiceConfigFingerprint,
+  computeTtsDependencyFingerprint,
+  OpenAiCompatibleSpeechProvider,
+  loadSpeechVoiceSettings,
+} from "./index.js";
 import { sceneIdSchema } from "@mediaforge/domain";
 
 function makeChunk(id: string, payload: Buffer): Buffer {
@@ -66,6 +73,53 @@ describe("speech voice settings", () => {
 });
 
 describe("OpenAiCompatibleSpeechProvider", () => {
+  it("computes audio instruction and tts fingerprints from narration and speech config only", () => {
+    const speechSettings = loadSpeechVoiceSettings();
+    const audioInstruction = buildAudioInstructionArtifact({
+      narration: {
+        episodeNumber: "001",
+        episodeSlug: "episode-001",
+        language: "en",
+        locale: "en-US",
+        variant: "full",
+        narrationText: "Validated narration only.",
+        narrationFingerprint: "a".repeat(64),
+      },
+      speechConfig: {
+        model: "gpt-4o-mini-tts",
+        voice: "onyx",
+        baseInstructions: speechSettings.instructions,
+        speed: speechSettings.speed,
+      },
+    });
+    const voiceConfigFingerprint = computeSpeechVoiceConfigFingerprint({
+      voice: "onyx",
+      speed: speechSettings.speed,
+    });
+    const modelConfigFingerprint = computeSpeechModelConfigFingerprint({
+      model: "gpt-4o-mini-tts",
+      voice: "onyx",
+      baseInstructions: speechSettings.instructions,
+      speed: speechSettings.speed,
+    });
+    const first = computeTtsDependencyFingerprint({
+      narrationFingerprint: "a".repeat(64),
+      voiceConfigFingerprint,
+      speechModelConfigFingerprint: modelConfigFingerprint,
+      audioInstructionFingerprint: audioInstruction.instructionFingerprint,
+    });
+    const second = computeTtsDependencyFingerprint({
+      narrationFingerprint: "a".repeat(64),
+      voiceConfigFingerprint: computeSpeechVoiceConfigFingerprint({
+        voice: "alloy",
+        speed: speechSettings.speed,
+      }),
+      speechModelConfigFingerprint: modelConfigFingerprint,
+      audioInstructionFingerprint: audioInstruction.instructionFingerprint,
+    });
+    expect(first).not.toBe(second);
+  });
+
   it("writes the audio returned by the OpenAI speech client", async () => {
     const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "mediaforge-speech-"));
     const outputPath = path.join(tempDir, "scene-001.wav");
@@ -88,7 +142,8 @@ describe("OpenAiCompatibleSpeechProvider", () => {
         sceneId: sceneIdSchema.parse("scene-001"),
         text: "Hello from the narrator.",
         voiceProfile: loadSpeechVoiceSettings().profile,
-        outputPath
+        outputPath,
+        instructions: "Narration-only TTS instructions."
       },
       new AbortController().signal
     );

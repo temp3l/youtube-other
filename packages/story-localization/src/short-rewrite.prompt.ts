@@ -4,7 +4,6 @@ import { type ShortRewritePromptContext } from "./short-rewrite.types.js";
 import { compileShortStoryPrompt } from "./story-prompt-compiler.js";
 import { adaptCanonicalStoryFactsToStoryIR } from "./story-artifact-model.js";
 import { extractCanonicalStoryFacts } from "./canonical-facts.service.js";
-import { loadAudioTemplate } from "./prompt-template-loader.js";
 import { parseCanonicalSourceStory } from "./source-story-parser.js";
 import { insertSectionBeforeMarker } from "./prompt-template-loader.js";
 import { normalizeWhitespace } from "@mediaforge/shared";

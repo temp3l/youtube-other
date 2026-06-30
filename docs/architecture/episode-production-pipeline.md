@@ -15,16 +15,18 @@ The active production path is CLI-driven episode generation: start from source s
    Source files are discovered from the configured source root and parsed into episode-specific metadata, narration, and production instructions.
 2. Canonical story facts and character bootstrap
    Canonical facts are extracted, shared character registries can be bootstrapped or synchronized, and approval state is recorded for reusable character references.
-3. Narration, script, and scene planning
-   Full or localized episode script material is prepared, scene plans are generated or localized, and review packages can be written.
-4. Audio generation and slicing
-   Narration audio is generated, durations inspected, and per-scene audio segments sliced for downstream timing and rendering.
-5. Image planning, generation, import, and resume
+3. Narration generation
+   Full or localized episode narration is generated and validated as its own upstream artifact before downstream media owners run.
+4. Metadata and audio downstream stages
+   Validated narration can independently feed metadata generation and audio-instruction generation. Audio synthesis then consumes validated narration plus the persisted audio-instruction and speech configuration artifacts.
+5. Scene planning and review packages
+   Scene plans are generated or localized from narration and review packages can be written. Scene/image/render/publication remain separate downstream owners.
+6. Image planning, generation, import, and resume
    Scene prompts, workbooks, and manifests are created; images can be generated directly, imported from external work, or resumed from persisted state.
-6. Render and validation
+7. Render and validation
    Scene clips and final videos are rendered locally or remotely, then validated against expected dimensions, codecs, and duration.
-7. Metadata and upload handoff
-   Scenes-derived metadata and upload inputs are prepared for the final publication boundary.
+8. Upload handoff
+   Metadata artifacts and publication inputs are prepared for the final publication boundary.
 
 ## Inputs and Outputs
 
@@ -35,12 +37,16 @@ The active production path is CLI-driven episode generation: start from source s
 ## Persistence and Resumability
 
 - Filesystem artifacts are the main resume boundary: manifests, scripts, audio, scenes, images, renders, and review files are all persisted into episode directories.
+- Metadata and audio stage records persist their own dependency fingerprints so narration changes invalidate downstream work, while metadata-only and audio-only changes do not invalidate narration.
 - SQLite stores episode manifests and pipeline run history where those flows use `@mediaforge/persistence`.
 - Image resume is selective: scenes with successful outputs are skipped, retryable failures can be retried, and non-retryable failures stay skipped unless forced.
 
 ## Retry and Failure Behavior
 
 - The CLI favors resumable reruns over global rollback.
+- Narration failure blocks downstream metadata and audio creation.
+- Metadata failure does not trigger narration repair or TTS invalidation.
+- Audio-instruction or TTS failure does not trigger narration repair or metadata regeneration.
 - Render flows can retry remote execution and optionally fall back to local rendering.
 - Image state persists failure metadata, including retryability, so later resumes can avoid repeating terminal failures.
 

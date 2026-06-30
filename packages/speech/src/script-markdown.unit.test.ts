@@ -38,6 +38,17 @@ describe("loadEpisodeScriptMarkdown", () => {
     expect(script.filePath).toBe(path.join(tempDir, "en", "full", "script.md"));
     expect(script.text).toBe("First paragraph.\n\nSecond paragraph.");
   });
+
+  it("keeps narration readable when canonical markdown contains only narration", async () => {
+    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "mediaforge-script-"));
+    await fs.mkdir(path.join(tempDir, "en", "full"), { recursive: true });
+    await fs.writeFile(
+      path.join(tempDir, "en", "full", "script.md"),
+      "# Episode 009\n\n# Narration Script\n\nNarration only."
+    );
+    const script = await loadEpisodeScriptMarkdown(tempDir, "en", "Narration Script");
+    expect(script.text).toBe("Narration only.");
+  });
 });
 
 describe("splitEpisodeScriptMarkdown", () => {

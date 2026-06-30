@@ -12,7 +12,10 @@ import {
   type NarrationOnlyFullRewriteResponse,
 } from "./story-prompt-response-schemas.js";
 import { adaptNarrationOnlyFullToLegacyRendererPackage } from "./story-prompt-response-schemas.js";
-import { renderCanonicalEnglishFullStory } from "./story-markdown-renderer.js";
+import {
+  renderCanonicalEnglishFullStory,
+  renderNarrationOnlyStoryMarkdown,
+} from "./story-markdown-renderer.js";
 import { writeTextAtomicIfChanged } from "./story-localization.utils.js";
 import { getLanguageProfile } from "./language-profiles.js";
 import { type StoryPreflightResult } from "./story-generation-preflight.js";
@@ -198,7 +201,19 @@ export function resolveCanonicalEnglishFullPaths(
   };
 }
 
-function buildCanonicalResponseMarkdown(args: {
+function buildCanonicalNarrationMarkdown(args: {
+  readonly sourceStory: ParsedSourceStory;
+  readonly response: NarrationOnlyFullRewriteResponse;
+}): string {
+  return renderNarrationOnlyStoryMarkdown({
+    episodeNumber: args.sourceStory.episodeNumber,
+    title: args.sourceStory.title,
+    narrationParagraphs: args.response.full.narrationParagraphs,
+    sourceSha256: args.sourceStory.sourceHash,
+  });
+}
+
+function buildCompatibilityResponseMarkdown(args: {
   readonly sourceStory: ParsedSourceStory;
   readonly response: NarrationOnlyFullRewriteResponse;
 }): string {
@@ -396,12 +411,16 @@ export async function persistCanonicalEnglishFullStory(args: {
   readonly manifest: CanonicalEnglishFullManifest;
 }> {
   await ensureDir(args.canonicalPaths.canonicalDir);
-  const canonicalMarkdown = buildCanonicalResponseMarkdown({
+  const canonicalMarkdown = buildCanonicalNarrationMarkdown({
+    sourceStory: args.sourceStory,
+    response: args.artifact.response,
+  });
+  const compatibilityMarkdown = buildCompatibilityResponseMarkdown({
     sourceStory: args.sourceStory,
     response: args.artifact.response,
   });
   const canonicalMarkdownHash = hashText(canonicalMarkdown);
-  const rootCompatibilityMarkdownHash = canonicalMarkdownHash;
+  const rootCompatibilityMarkdownHash = hashText(compatibilityMarkdown);
   const manifest = buildCanonicalEnglishFullManifest({
     artifact: args.artifact,
     canonicalPaths: args.canonicalPaths,
@@ -418,7 +437,7 @@ export async function persistCanonicalEnglishFullStory(args: {
   );
   await writeTextAtomicIfChanged(
     args.canonicalPaths.compatibilityMarkdownPath,
-    canonicalMarkdown,
+    compatibilityMarkdown,
     true
   );
   await writeJsonAtomic(

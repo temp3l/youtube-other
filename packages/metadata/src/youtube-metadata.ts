@@ -20,20 +20,45 @@ import {
 
 export const YOUTUBE_METADATA_PROMPT_VERSION = "youtube-metadata-v1";
 export const YOUTUBE_METADATA_SCHEMA_VERSION = "1.0" as const;
+export const YOUTUBE_METADATA_OWNER = "metadata" as const;
+export const YOUTUBE_METADATA_OWNER_VERSION = "youtube-metadata-owner-v1";
 
 const chapterTimestampPattern = /^(?:\d{2}:)?\d{2}:\d{2}$/u;
+const metadataArtifactStatusSchema = z.enum(["completed", "failed"]);
+const narrationDependencySchema = z
+  .object({
+    episodeNumber: z.string().min(1),
+    episodeSlug: z.string().min(1),
+    language: z.string().min(1),
+    locale: z.string().min(1),
+    variant: z.enum(["full", "short"]),
+    narrationText: z.string().min(1),
+    narrationFingerprint: z.string().regex(/^[a-f0-9]{64}$/iu),
+  })
+  .strict();
 const generationInfoSchema = z.object({
   generatedAt: z.string().min(1),
   sourceFile: z.string().min(1),
   sourceSha256: z.string().regex(/^[a-f0-9]{64}$/iu),
   promptVersion: z.string().min(1),
   model: z.string().min(1),
-  openaiResponseId: z.string().min(1),
+  openaiResponseId: z.string().min(1).optional(),
   attemptCount: z.number().int().positive(),
   chapterCharacterCount: z.number().int().nonnegative(),
   tagCharacterCount: z.number().int().nonnegative(),
   cacheKey: z.string().min(1),
-  language: z.string().min(1)
+  language: z.string().min(1),
+  locale: z.string().min(1),
+  variant: z.enum(["full", "short"]),
+  owner: z.literal(YOUTUBE_METADATA_OWNER),
+  ownerVersion: z.literal(YOUTUBE_METADATA_OWNER_VERSION),
+  status: metadataArtifactStatusSchema,
+  parentNarrationFingerprint: z.string().regex(/^[a-f0-9]{64}$/iu),
+  modelConfigFingerprint: z.string().regex(/^[a-f0-9]{64}$/iu),
+  promptSchemaFingerprint: z.string().regex(/^[a-f0-9]{64}$/iu),
+  narration: narrationDependencySchema.omit({ narrationText: true }),
+  failureCode: z.string().min(1).optional(),
+  failureMessage: z.string().min(1).optional()
 });
 
 export const youtubeMetadataSchema = z.object({
@@ -115,12 +140,23 @@ export interface YoutubeMetadataGenerationInfo {
   readonly sourceSha256: string;
   readonly promptVersion: string;
   readonly model: string;
-  readonly openaiResponseId: string;
+  readonly openaiResponseId?: string | undefined;
   readonly attemptCount: number;
   readonly chapterCharacterCount: number;
   readonly tagCharacterCount: number;
   readonly cacheKey: string;
   readonly language: string;
+  readonly locale: string;
+  readonly variant: "full" | "short";
+  readonly owner: typeof YOUTUBE_METADATA_OWNER;
+  readonly ownerVersion: typeof YOUTUBE_METADATA_OWNER_VERSION;
+  readonly status: "completed" | "failed";
+  readonly parentNarrationFingerprint: string;
+  readonly modelConfigFingerprint: string;
+  readonly promptSchemaFingerprint: string;
+  readonly narration: Omit<YoutubeMetadataNarrationDependency, "narrationText">;
+  readonly failureCode?: string | undefined;
+  readonly failureMessage?: string | undefined;
 }
 
 export interface YoutubeMetadataOutputs {
@@ -141,9 +177,22 @@ export interface YoutubeMetadataTarget {
   readonly episodeSlug: string;
   readonly sourceId: string | null;
   readonly language: string;
+  readonly locale: string;
+  readonly variant: "full" | "short";
   readonly scenePlan: ScenePlan;
   readonly sourceSha256: string;
   readonly durationSeconds: number;
+  readonly narration: YoutubeMetadataNarrationDependency;
+}
+
+export interface YoutubeMetadataNarrationDependency {
+  readonly episodeNumber: string;
+  readonly episodeSlug: string;
+  readonly language: string;
+  readonly locale: string;
+  readonly variant: "full" | "short";
+  readonly narrationText: string;
+  readonly narrationFingerprint: string;
 }
 
 export interface YoutubeMetadataGenerationOptions {
@@ -821,7 +870,7 @@ function describeLanguage(language: string): string {
   return language;
 }
 
-function buildRequestInput(fileId: string): Array<{ readonly role: "user"; readonly content: ReadonlyArray<{ readonly type: "input_file"; readonly file_id: string } | { readonly type: "input_text"; readonly text: string }> }> {
+function buildRequestInput(fileId: string, narration: YoutubeMetadataNarrationDependency): Array<{ readonly role: "user"; readonly content: ReadonlyArray<{ readonly type: "input_file"; readonly file_id: string } | { readonly type: "input_text"; readonly text: string }> }> {
   return [
     {
       role: "user",
@@ -833,10 +882,60 @@ function buildRequestInput(fileId: string): Array<{ readonly role: "user"; reado
         {
           type: "input_text",
           text: "Generate the JSON metadata described in the instructions."
+        },
+        {
+          type: "input_text",
+          text: buildNarrationInputText(narration)
         }
       ]
     }
   ];
+}
+
+function buildNarrationInputText(
+  narration: YoutubeMetadataNarrationDependency
+): string {
+  return [
+    "Use this validated narration as the primary source of titles, summaries, tags, hashtags, thumbnail copy, pinned comment, and descriptive language.",
+    "Do not overwrite or reinterpret the narration facts.",
+    `<VALIDATED_NARRATION language="${narration.language}" locale="${narration.locale}" variant="${narration.variant}" fingerprint="${narration.narrationFingerprint}">`,
+    narration.narrationText,
+    "</VALIDATED_NARRATION>",
+  ].join("\n");
+}
+
+export function computeYoutubeMetadataModelConfigFingerprint(input: {
+  readonly model: string;
+  readonly reasoningEffort?: string | undefined;
+  readonly maxOutputTokens?: number | undefined;
+  readonly repairModel?: string | undefined;
+  readonly repairReasoningEffort?: string | undefined;
+  readonly repairMaxOutputTokens?: number | undefined;
+}): string {
+  return hashText(
+    JSON.stringify({
+      model: input.model,
+      reasoningEffort: input.reasoningEffort ?? null,
+      maxOutputTokens: input.maxOutputTokens ?? null,
+      repairModel: input.repairModel ?? null,
+      repairReasoningEffort: input.repairReasoningEffort ?? null,
+      repairMaxOutputTokens: input.repairMaxOutputTokens ?? null,
+    })
+  );
+}
+
+export function computeYoutubeMetadataPromptSchemaFingerprint(input: {
+  readonly promptText: string;
+  readonly promptVersion: string;
+  readonly schemaVersion: string;
+}): string {
+  return hashText(
+    JSON.stringify({
+      promptText: input.promptText,
+      promptVersion: input.promptVersion,
+      schemaVersion: input.schemaVersion,
+    })
+  );
 }
 
 function extractResponseJson(responseText: string): unknown {
@@ -857,9 +956,26 @@ export function parseScenesFile(rawJson: string, sourceFilePath: string): Youtub
     episodeSlug,
     sourceId,
     language: "en",
+    locale: "en-US",
+    variant: "full",
     scenePlan,
     sourceSha256: hashText(rawJson),
-    durationSeconds
+    durationSeconds,
+    narration: {
+      episodeNumber: episodeSlug.split("-")[0] ?? episodeSlug,
+      episodeSlug,
+      language: "en",
+      locale: "en-US",
+      variant: "full",
+      narrationText: scenePlan.scenes
+        .map((scene) => normalizeWhitespace(scene.canonicalNarration))
+        .join("\n\n"),
+      narrationFingerprint: hashText(
+        scenePlan.scenes
+          .map((scene) => normalizeWhitespace(scene.canonicalNarration))
+          .join("\n\n")
+      ),
+    },
   };
 }
 
@@ -872,6 +988,7 @@ export async function readAndValidateScenesFile(sourceFilePath: string, language
   return {
     ...target,
     language,
+    locale: language === "en" ? "en-US" : language,
     outputDir: path.join(
       target.episodeDir,
       "locales",
@@ -927,19 +1044,25 @@ export async function listEpisodeSceneFiles(workspaceDir: string): Promise<Array
 
 export function computeYoutubeMetadataCacheKey(input: {
   readonly sourceSha256: string;
+  readonly parentNarrationFingerprint: string;
   readonly promptText: string;
   readonly promptVersion: string;
   readonly model: string;
   readonly schemaVersion: string;
   readonly language: string;
+  readonly modelConfigFingerprint: string;
+  readonly promptSchemaFingerprint: string;
 }): string {
   return hashText([
     input.sourceSha256,
+    input.parentNarrationFingerprint,
     hashText(input.promptText),
     input.promptVersion,
     input.model,
     input.schemaVersion,
-    input.language
+    input.language,
+    input.modelConfigFingerprint,
+    input.promptSchemaFingerprint,
   ].join("\u0000"));
 }
 
@@ -971,13 +1094,29 @@ export async function generateYoutubeMetadataForTarget(
     generationPath: path.join(outputDir, "youtube-metadata-generation.json")
   };
   const promptVersion = options.promptVersion ?? YOUTUBE_METADATA_PROMPT_VERSION;
+  const modelConfigFingerprint = computeYoutubeMetadataModelConfigFingerprint({
+    model: options.model,
+    reasoningEffort: options.reasoningEffort,
+    maxOutputTokens: options.maxOutputTokens,
+    repairModel: options.repairModel,
+    repairReasoningEffort: options.repairReasoningEffort,
+    repairMaxOutputTokens: options.repairMaxOutputTokens,
+  });
+  const promptSchemaFingerprint = computeYoutubeMetadataPromptSchemaFingerprint({
+    promptText: options.promptText,
+    promptVersion,
+    schemaVersion: YOUTUBE_METADATA_SCHEMA_VERSION,
+  });
   const cacheKey = computeYoutubeMetadataCacheKey({
     sourceSha256: target.sourceSha256,
+    parentNarrationFingerprint: target.narration.narrationFingerprint,
     promptText: options.promptText,
     promptVersion,
     model: options.model,
     schemaVersion: YOUTUBE_METADATA_SCHEMA_VERSION,
-    language: options.language
+    language: options.language,
+    modelConfigFingerprint,
+    promptSchemaFingerprint,
   });
   const cachedGeneration = await loadCachedGeneration(outputs.generationPath);
   const cacheHit = Boolean(!options.force && cachedGeneration?.cacheKey === cacheKey && (await fileExists(outputs.jsonPath)));
@@ -994,6 +1133,7 @@ export async function generateYoutubeMetadataForTarget(
     throw new OutputWriteError("Dry run does not generate outputs.");
   }
   await ensureDir(outputDir);
+  narrationDependencySchema.parse(target.narration);
 
   if (!options.apiKey) {
     throw new ConfigurationError("OPENAI_API_KEY is required.");
@@ -1050,7 +1190,7 @@ export async function generateYoutubeMetadataForTarget(
               instructions: additionalInstruction ? `${promptInstructions}\n\n${additionalInstruction}` : promptInstructions,
               ...(() => {
                 const reasoningEffort =
-                  model === repairModel
+              model === repairModel
                     ? repairReasoningEffort
                     : options.reasoningEffort ?? (model.startsWith("gpt-5") ? "low" : undefined);
                 return reasoningEffort && reasoningEffort !== "none"
@@ -1061,7 +1201,7 @@ export async function generateYoutubeMetadataForTarget(
                   }
                 : {};
               })(),
-              input: buildRequestInput(upload.id),
+              input: buildRequestInput(upload.id, target.narration),
               text: { format: schema },
               max_output_tokens:
                 model === repairModel
@@ -1244,7 +1384,23 @@ export async function generateYoutubeMetadataForTarget(
       chapterCharacterCount: [...finalMetadata.chapters.text].length,
       tagCharacterCount: [...finalMetadata.tags.text].length,
       cacheKey,
-      language: options.language
+      language: options.language,
+      locale: target.locale,
+      variant: target.variant,
+      owner: YOUTUBE_METADATA_OWNER,
+      ownerVersion: YOUTUBE_METADATA_OWNER_VERSION,
+      status: "completed",
+      parentNarrationFingerprint: target.narration.narrationFingerprint,
+      modelConfigFingerprint,
+      promptSchemaFingerprint,
+      narration: {
+        episodeNumber: target.narration.episodeNumber,
+        episodeSlug: target.narration.episodeSlug,
+        language: target.narration.language,
+        locale: target.narration.locale,
+        variant: target.narration.variant,
+        narrationFingerprint: target.narration.narrationFingerprint,
+      },
     };
 
     await writeJsonAtomic(outputs.jsonPath, finalMetadata);
@@ -1261,6 +1417,45 @@ export async function generateYoutubeMetadataForTarget(
       outputs,
       cacheHit: false
     };
+  } catch (error: unknown) {
+    const failedGeneration: YoutubeMetadataGenerationInfo = {
+      generatedAt: new Date().toISOString(),
+      sourceFile: path.relative(process.cwd(), target.sourceFilePath),
+      sourceSha256: target.sourceSha256,
+      promptVersion,
+      model: options.model,
+      openaiResponseId: openAiResponseId,
+      attemptCount: Math.max(1, attemptCount),
+      chapterCharacterCount: 0,
+      tagCharacterCount: 0,
+      cacheKey,
+      language: options.language,
+      locale: target.locale,
+      variant: target.variant,
+      owner: YOUTUBE_METADATA_OWNER,
+      ownerVersion: YOUTUBE_METADATA_OWNER_VERSION,
+      status: "failed",
+      parentNarrationFingerprint: target.narration.narrationFingerprint,
+      modelConfigFingerprint,
+      promptSchemaFingerprint,
+      narration: {
+        episodeNumber: target.narration.episodeNumber,
+        episodeSlug: target.narration.episodeSlug,
+        language: target.narration.language,
+        locale: target.narration.locale,
+        variant: target.narration.variant,
+        narrationFingerprint: target.narration.narrationFingerprint,
+      },
+      failureCode:
+        error instanceof Error && "code" in error && typeof error.code === "string"
+          ? error.code
+          : "metadata_generation_failed",
+      failureMessage: error instanceof Error ? error.message : String(error),
+    };
+    await writeJsonAtomic(outputs.generationPath, failedGeneration).catch(() => {
+      return undefined;
+    });
+    throw error;
   } finally {
     if (!options.keepFile) {
       await client.files.delete(upload.id).catch((error: unknown) => {

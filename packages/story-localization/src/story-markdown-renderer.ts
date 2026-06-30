@@ -55,6 +55,26 @@ function joinParagraphs(paragraphs: readonly string[]): string {
   return paragraphs.map((paragraph) => normalizeWhitespace(paragraph)).filter(Boolean).join("\n\n");
 }
 
+export function renderNarrationOnlyStoryMarkdown(args: {
+  readonly episodeNumber: string;
+  readonly title: string;
+  readonly narrationParagraphs: readonly string[];
+  readonly sourceSha256?: string;
+}): string {
+  return [
+    `# Episode ${args.episodeNumber} — ${args.title}`,
+    "",
+    "# Narration Script",
+    "",
+    joinParagraphs(args.narrationParagraphs),
+    "",
+    FULL_STORY_PROVENANCE_MARKER,
+    args.sourceSha256 ? `<!-- source-sha256: ${args.sourceSha256} -->` : "",
+  ]
+    .filter((line) => line.length > 0)
+    .join("\n");
+}
+
 export function renderEnglishSourceCopy(content: string): string {
   return content;
 }

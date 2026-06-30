@@ -13,9 +13,13 @@ import {
   OutputWriteError,
   SourceFileError,
   SourceValidationError,
+  YOUTUBE_METADATA_OWNER,
+  YOUTUBE_METADATA_OWNER_VERSION,
   YOUTUBE_METADATA_PROMPT_VERSION,
   YOUTUBE_METADATA_SCHEMA_VERSION,
   computeYoutubeMetadataCacheKey,
+  computeYoutubeMetadataModelConfigFingerprint,
+  computeYoutubeMetadataPromptSchemaFingerprint,
   extractResponseText,
   generateYoutubeMetadataForTarget,
   parseScenesFile,
@@ -109,6 +113,9 @@ function makeScenariosJson(scenePlan = makeScenePlan()): string {
 function makeTarget(workspaceDir: string): YoutubeMetadataTarget {
   const sourceFilePath = path.join(workspaceDir, "episode-001", "scenes.json");
   const scenePlan = makeScenePlan();
+  const narrationText = scenePlan.scenes
+    .map((scene) => scene.canonicalNarration)
+    .join("\n\n");
   return {
     sourceFilePath,
     episodeDir: path.dirname(sourceFilePath),
@@ -116,9 +123,20 @@ function makeTarget(workspaceDir: string): YoutubeMetadataTarget {
     episodeSlug: "episode-001",
     sourceId: "episode-fixture",
     language: "en",
+    locale: "en-US",
+    variant: "full",
     scenePlan,
     sourceSha256: hashText(makeScenariosJson(scenePlan)),
-    durationSeconds: 15
+    durationSeconds: 15,
+    narration: {
+      episodeNumber: "001",
+      episodeSlug: "episode-001",
+      language: "en",
+      locale: "en-US",
+      variant: "full",
+      narrationText,
+      narrationFingerprint: hashText(narrationText),
+    }
   };
 }
 
@@ -250,6 +268,7 @@ describe("youtube metadata helpers", () => {
     const target = parseScenesFile(makeScenariosJson(), "/workspace/episodes/episode-001/scenes.json");
     expect(target.durationSeconds).toBe(15);
     expect(target.scenePlan.scenes).toHaveLength(3);
+    expect(target.narration.narrationText).toContain("The problem was simple.");
   });
 
   it.each([
@@ -271,13 +290,52 @@ describe("youtube metadata helpers", () => {
   it("keeps cache keys stable for identical inputs", () => {
     const input = {
       sourceSha256: "a".repeat(64),
+      parentNarrationFingerprint: "b".repeat(64),
       promptText: "prompt",
       promptVersion: YOUTUBE_METADATA_PROMPT_VERSION,
       model: "gpt-4o-mini",
       schemaVersion: YOUTUBE_METADATA_SCHEMA_VERSION,
-      language: "en"
+      language: "en",
+      modelConfigFingerprint: "c".repeat(64),
+      promptSchemaFingerprint: "d".repeat(64),
     };
     expect(computeYoutubeMetadataCacheKey(input)).toBe(computeYoutubeMetadataCacheKey(input));
+  });
+
+  it("invalidates cache keys when the validated narration changes", () => {
+    const modelConfigFingerprint = computeYoutubeMetadataModelConfigFingerprint({
+      model: "gpt-4o-mini",
+      reasoningEffort: "low",
+      maxOutputTokens: 3000,
+    });
+    const promptSchemaFingerprint = computeYoutubeMetadataPromptSchemaFingerprint({
+      promptText: "prompt",
+      promptVersion: YOUTUBE_METADATA_PROMPT_VERSION,
+      schemaVersion: YOUTUBE_METADATA_SCHEMA_VERSION,
+    });
+    const first = computeYoutubeMetadataCacheKey({
+      sourceSha256: "a".repeat(64),
+      parentNarrationFingerprint: "b".repeat(64),
+      promptText: "prompt",
+      promptVersion: YOUTUBE_METADATA_PROMPT_VERSION,
+      model: "gpt-4o-mini",
+      schemaVersion: YOUTUBE_METADATA_SCHEMA_VERSION,
+      language: "en",
+      modelConfigFingerprint,
+      promptSchemaFingerprint,
+    });
+    const second = computeYoutubeMetadataCacheKey({
+      sourceSha256: "a".repeat(64),
+      parentNarrationFingerprint: "c".repeat(64),
+      promptText: "prompt",
+      promptVersion: YOUTUBE_METADATA_PROMPT_VERSION,
+      model: "gpt-4o-mini",
+      schemaVersion: YOUTUBE_METADATA_SCHEMA_VERSION,
+      language: "en",
+      modelConfigFingerprint,
+      promptSchemaFingerprint,
+    });
+    expect(first).not.toBe(second);
   });
 
   it("extracts response text from the structured output", () => {
@@ -339,6 +397,12 @@ describe("youtube metadata generation", () => {
     const metadata = makeValidMetadata(chapterText, tagText);
     const { result, client } = await runWithMetadata(metadata);
     expect(result.cacheHit).toBe(false);
+    expect(result.generation.owner).toBe(YOUTUBE_METADATA_OWNER);
+    expect(result.generation.ownerVersion).toBe(YOUTUBE_METADATA_OWNER_VERSION);
+    expect(result.generation.status).toBe("completed");
+    expect(result.generation.parentNarrationFingerprint).toBe(
+      result.generation.narration.narrationFingerprint
+    );
     expect(await fs.readFile(result.outputs.jsonPath, "utf8")).toContain("The Simple Problem");
     expect(client.files.delete).toHaveBeenCalledWith("file_123");
   });

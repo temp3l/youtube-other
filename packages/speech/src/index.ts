@@ -21,6 +21,7 @@ export {
   writeEpisodeScriptMarkdown,
 } from "./script-markdown.js";
 export { loadSpeechVoiceSettings, speechVoiceSettings } from "./voice-settings.js";
+export * from "./audio-instructions.js";
 
 export interface SpeechSynthesisRequest {
   readonly sceneId: SceneId;
@@ -28,6 +29,7 @@ export interface SpeechSynthesisRequest {
   readonly voiceProfile: VoiceProfile;
   readonly outputPath: string;
   readonly targetDurationSeconds?: number;
+  readonly instructions?: string;
 }
 
 export interface SpeechSynthesisResult extends AudioSegment {
@@ -393,7 +395,7 @@ export class OpenAiCompatibleSpeechProvider implements SpeechProvider {
         input: request.text,
         model,
         voice: request.voiceProfile.providerVoiceId ?? this.voice,
-        instructions: this.instructions,
+        instructions: request.instructions ?? this.instructions,
         response_format: this.responseFormat,
         ...(this.speed !== undefined ? { speed: this.speed } : {})
       } satisfies Parameters<SpeechClientLike["audio"]["speech"]["create"]>[0];
@@ -462,7 +464,7 @@ export class OpenAiCompatibleSpeechProvider implements SpeechProvider {
             input: request.text,
             model,
             voice: request.voiceProfile.providerVoiceId ?? this.voice,
-            instructions: this.instructions,
+            instructions: request.instructions ?? this.instructions,
             response_format: this.responseFormat,
             ...(this.speed !== undefined ? { speed: this.speed } : {})
           }),

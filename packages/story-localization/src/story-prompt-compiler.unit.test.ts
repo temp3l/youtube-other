@@ -5,6 +5,7 @@ import { extractCanonicalStoryFacts } from "./canonical-facts.service.js";
 import {
   compileFullStoryPrompt,
   compileShortStoryPrompt,
+  validateNarrationPromptModuleOwnership,
 } from "./story-prompt-compiler.js";
 import { STORY_PROMPT_MODULE_REGISTRY } from "./story-prompt-module-registry.js";
 import {
@@ -155,9 +156,117 @@ describe("story prompt compiler", () => {
   });
 
   it("rejects non-narration ownership before provider handoff", async () => {
-    const metadataModule = STORY_PROMPT_MODULE_REGISTRY.find(
-      (entry) => entry.id === "metadata-forbidden"
-    );
-    expect(metadataModule).toBeUndefined();
+    const diagnostics = validateNarrationPromptModuleOwnership([
+      {
+        ...STORY_PROMPT_MODULE_REGISTRY[0],
+        id: "metadata-forbidden",
+        owner: "metadata",
+      },
+      {
+        ...STORY_PROMPT_MODULE_REGISTRY[0],
+        id: "audio-forbidden",
+        owner: "audio",
+      },
+    ]);
+    expect(diagnostics).toEqual([
+      expect.objectContaining({
+        code: "CROSS_OWNER_MODULE_REJECTED",
+        moduleId: "metadata-forbidden",
+        blocking: true,
+      }),
+      expect.objectContaining({
+        code: "CROSS_OWNER_MODULE_REJECTED",
+        moduleId: "audio-forbidden",
+        blocking: true,
+      }),
+    ]);
+  });
+
+  it("keeps full narration prompts free of metadata, audio, scene, render, and publication instructions", async () => {
+    const parsed = await parseCanonicalSourceStory(sourceFile);
+    const facts = extractCanonicalStoryFacts(parsed);
+    const compiled = compileFullStoryPrompt({
+      language: "es",
+      adaptationMode: "retention-optimized",
+      sourceStory: parsed,
+      canonicalFacts: facts,
+    });
+    expect(compiled.system).not.toContain("OpenAI speech");
+    expect(compiled.user).not.toContain("voice selection");
+    expect(compiled.user).not.toContain("speech model");
+    expect(compiled.user).not.toContain("sound-effect");
+    expect(compiled.user).not.toContain("**Primary title:**");
+    expect(compiled.user).not.toContain("**SEO description:**");
+    expect(compiled.user).not.toContain("**Hashtags:**");
+    expect(compiled.user).not.toContain("### Image-generation prompt");
+    expect(compiled.user).not.toContain("Automatic chapters");
+    expect(compiled.user).toContain("narration only");
+  });
+
+  it("keeps short narration prompts free of metadata and synthesis instructions", async () => {
+    const parsed = await parseCanonicalSourceStory(sourceFile);
+    const facts = extractCanonicalStoryFacts(parsed);
+    const storyIr = adaptCanonicalStoryFactsToStoryIR(facts, parsed);
+    const parent = {
+      identity: {
+        episodeId: parsed.episodeNumber,
+        episodeSlug: parsed.slug,
+        language: "de" as const,
+        locale: "de-DE",
+        variant: "full" as const,
+      },
+      title: parsed.title,
+      sourcePath: parsed.sourceFile,
+      sourceSha256: "a".repeat(64),
+      parentFullHash: "b".repeat(64),
+      storyIrHash: "c".repeat(64),
+      contractHash: "d".repeat(64),
+      narrationParagraphs: parsed.narrationParagraphs,
+      canonical: true,
+      provenance: "localized-full-artifact" as const,
+    };
+    const outputConstraints = {
+      variant: "short" as const,
+      targetWordRange: { min: 145, max: 170 },
+      targetNarrationWpm: 178,
+      targetDuration: { minSeconds: 55, maxSeconds: 65 },
+      hookDeadlineSeconds: 8,
+      fullVideoBridgeRequired: true,
+    };
+    const sourceExtraction = buildShortSourceExtraction({
+      parent,
+      storyIr,
+      outputConstraints,
+    });
+    const adaptationContract = buildShortAdaptationContract({
+      identity: {
+        episodeId: parsed.episodeNumber,
+        episodeSlug: parsed.slug,
+        language: "de",
+        locale: "de-DE",
+        variant: "short",
+      },
+      parent,
+      storyIr,
+      extraction: sourceExtraction,
+      outputConstraints,
+    });
+    const compiled = compileShortStoryPrompt({
+      language: "de",
+      adaptationMode: "retention-optimized",
+      sourceStory: parsed,
+      canonicalFacts: facts,
+      storyIr,
+      sourceExtraction,
+      adaptationContract,
+    });
+    expect(compiled.user).not.toContain("**Thumbnail text:**");
+    expect(compiled.user).not.toContain("**Hashtags:**");
+    expect(compiled.user).not.toContain("voice selection");
+    expect(compiled.user).not.toContain("speech model");
+    expect(compiled.user).not.toContain("sound-effect");
+    expect(compiled.user).not.toContain("## Audio Generation Instructions");
+    expect(compiled.user).not.toContain("## Short Metadata");
+    expect(compiled.user).toContain("narration-only");
   });
 });

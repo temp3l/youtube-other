@@ -36,6 +36,7 @@ import {
 } from "@mediaforge/image-generation";
 import {
   findEpisodeScenesFile,
+  generateYoutubeMetadataForTarget,
   generateYoutubeMetadataFromScenesFile,
   listEpisodeSceneFiles,
   readAndValidateScenesFile,
@@ -78,6 +79,7 @@ import {
   fileExists,
   formatTimestampLabel,
   hashFile,
+  hashText,
   normalizeWhitespace,
   normalizeContentVariant,
   normalizeEpisodeId,
@@ -88,6 +90,13 @@ import {
   writeTextAtomic,
 } from "@mediaforge/shared";
 import {
+  buildAudioInstructionArtifact,
+  computeTtsDependencyFingerprint,
+  computeSpeechModelConfigFingerprint,
+  computeSpeechVoiceConfigFingerprint,
+  type AudioInstructionArtifact,
+  type SpeechNarrationDependency,
+  type TtsGenerationRecord,
   loadEpisodeScriptMarkdown,
   listEpisodeScriptLanguages,
   loadSpeechVoiceSettings,
@@ -458,6 +467,47 @@ async function loadNarrationScriptMarkdown(
   language: string
 ): Promise<{ readonly filePath: string; readonly text: string }> {
   return loadEpisodeScriptMarkdown(episodeDir, language, "Narration Script");
+}
+
+function localeForLanguage(language: string): string {
+  switch (language) {
+    case "de":
+      return "de-DE";
+    case "es":
+      return "es-ES";
+    case "fr":
+      return "fr-FR";
+    case "pt":
+      return "pt-BR";
+    default:
+      return "en-US";
+  }
+}
+
+async function loadValidatedNarrationDependency(
+  episodeDir: string,
+  language: string,
+  variant: "full" | "short" = "full"
+): Promise<
+  SpeechNarrationDependency & {
+    readonly filePath: string;
+  }
+> {
+  const script = await loadNarrationScriptMarkdown(episodeDir, language);
+  const narrationText = normalizeWhitespace(script.text);
+  const episodeSlug = path.basename(episodeDir);
+  const episodeNumber = episodeSlug.split("-")[0] ?? episodeSlug;
+  const locale = localeForLanguage(language);
+  return {
+    episodeNumber,
+    episodeSlug,
+    language,
+    locale,
+    variant,
+    narrationText,
+    narrationFingerprint: hashText(narrationText),
+    filePath: script.filePath,
+  };
 }
 
 function balanceScriptChunksForScenes(
@@ -988,6 +1038,7 @@ async function synthesizeSpeechChunks(
   pipeline: Awaited<ReturnType<typeof loadPipeline>>,
   chunks: ReadonlyArray<string>,
   speechSettings: Awaited<ReturnType<typeof loadSpeechVoiceSettings>>,
+  audioInstruction: AudioInstructionArtifact,
   segmentsDir: string,
   episodeSlug: string,
   language: string,
@@ -1030,6 +1081,7 @@ async function synthesizeSpeechChunks(
           text: chunk,
           voiceProfile: speechSettings.profile,
           outputPath,
+          instructions: audioInstruction.instructions,
         },
         new AbortController().signal
       );
@@ -1081,7 +1133,7 @@ async function writeAudioPromptLogs(args: {
   readonly episodeSlug: string;
   readonly language: string;
   readonly chunks: ReadonlyArray<string>;
-  readonly speechSettings: Awaited<ReturnType<typeof loadSpeechVoiceSettings>>;
+  readonly audioInstruction: AudioInstructionArtifact;
   readonly model: string;
   readonly voice: string;
   readonly generatedAt: string;
@@ -1100,7 +1152,7 @@ async function writeAudioPromptLogs(args: {
   const payloadBase = {
     model: args.model,
     voice: args.voice,
-    instructions: args.speechSettings.instructions,
+    instructions: args.audioInstruction.instructions,
     responseFormat: "wav" as const,
   };
   const promptRecords = args.chunks.map((chunk, index) => {
@@ -1497,7 +1549,10 @@ async function commandAudioGenerate(
   }
   const language =
     config.scriptLanguage ?? episodeConfig?.scriptLanguage ?? "en";
-  const script = await loadNarrationScriptMarkdown(episodeDir, language);
+  const narrationDependency = await loadValidatedNarrationDependency(
+    episodeDir,
+    language
+  );
   const audioBaseDir = localizedAudioBaseDir(episodeDir, language);
   const rewrittenChunks =
     manifest?.rewrittenScript?.sections
@@ -1514,21 +1569,23 @@ async function commandAudioGenerate(
       : rewrittenChunks.length > 0
         ? balanceScriptChunksForScenes(rewrittenChunks, sceneCount)
         : balanceScriptChunksForScenes(
-            splitEpisodeScriptMarkdown(script.text),
+            splitEpisodeScriptMarkdown(narrationDependency.narrationText),
             sceneCount
           );
   if (chunks.length === 0) {
-    throw new Error(`No narration text found in ${script.filePath}.`);
+    throw new Error(`No narration text found in ${narrationDependency.filePath}.`);
   }
   const audioDir = path.join(audioBaseDir, "audio");
   const segmentsDir = localizedSegmentsDirFromBase(audioBaseDir);
   const narrationPath = localizedNarrationPathFromBase(audioBaseDir);
+  const audioInstructionPath = path.join(audioDir, "audio-instructions.json");
+  const ttsGenerationPath = path.join(audioDir, "tts-generation.json");
   const episodeSlug = manifest?.slug ?? episodeId;
   if (options.dryRun) {
     printJson({
       episodeId,
       language,
-      scriptPath: script.filePath,
+      scriptPath: narrationDependency.filePath,
       outputDir: audioDir,
       narrationPath,
       segmentsDir,
@@ -1556,7 +1613,7 @@ async function commandAudioGenerate(
   await cleanupAudioGenerationArtifacts(audioDir, segmentsDir, narrationPath);
   const scriptSourcePath = await writeEpisodeScriptMarkdown(
     audioBaseDir,
-    script.text,
+    narrationDependency.narrationText,
     language
   );
   const generatedAt = new Date().toISOString();
@@ -1572,147 +1629,220 @@ async function commandAudioGenerate(
     config.openAiSpeechVoice ??
     config.openAiCompatibleTtsVoice ??
     "onyx";
+  const audioInstruction = buildAudioInstructionArtifact({
+    narration: narrationDependency,
+    speechConfig: {
+      model,
+      voice,
+      baseInstructions: speechSettings.instructions,
+      ...(speechSettings.speed !== undefined
+        ? { speed: speechSettings.speed }
+        : {}),
+    },
+  });
+  const voiceConfigFingerprint = computeSpeechVoiceConfigFingerprint({
+    voice,
+    speed: speechSettings.speed,
+  });
+  const speechModelConfigFingerprint = computeSpeechModelConfigFingerprint({
+    model,
+    voice,
+    baseInstructions: speechSettings.instructions,
+    ...(speechSettings.speed !== undefined
+      ? { speed: speechSettings.speed }
+      : {}),
+  });
+  const dependencyFingerprint = computeTtsDependencyFingerprint({
+    narrationFingerprint: narrationDependency.narrationFingerprint,
+    voiceConfigFingerprint,
+    speechModelConfigFingerprint,
+    audioInstructionFingerprint: audioInstruction.instructionFingerprint,
+  });
   await writeAudioPromptLogs({
     episodeDir,
     episodeSlug,
     language,
     chunks,
-    speechSettings,
+    audioInstruction,
     model,
     voice,
     generatedAt,
   });
-  let generated;
   try {
-    generated = await synthesizeSpeechChunks(
-      pipeline,
-      chunks,
-      speechSettings,
-      segmentsDir,
-      episodeSlug,
-      language,
-      generatedAt,
-      preferredConcurrency
-    );
-  } catch (error) {
-    if (chunks.length <= 1 || preferredConcurrency <= 1) {
-      throw error;
+    let generated;
+    try {
+      await writeJsonAtomic(audioInstructionPath, audioInstruction);
+      generated = await synthesizeSpeechChunks(
+        pipeline,
+        chunks,
+        speechSettings,
+        audioInstruction,
+        segmentsDir,
+        episodeSlug,
+        language,
+        generatedAt,
+        preferredConcurrency
+      );
+    } catch (error) {
+      if (chunks.length <= 1 || preferredConcurrency <= 1) {
+        throw error;
+      }
+      await cleanupAudioGenerationArtifacts(audioDir, segmentsDir, narrationPath);
+      generated = await synthesizeSpeechChunks(
+        pipeline,
+        chunks,
+        speechSettings,
+        audioInstruction,
+        segmentsDir,
+        episodeSlug,
+        language,
+        generatedAt,
+        1
+      );
     }
-    await cleanupAudioGenerationArtifacts(audioDir, segmentsDir, narrationPath);
-    generated = await synthesizeSpeechChunks(
-      pipeline,
-      chunks,
-      speechSettings,
-      segmentsDir,
-      episodeSlug,
-      language,
-      generatedAt,
-      1
+    const { segmentPaths, artifacts } = generated;
+    const completeSegmentPaths = segmentPaths.filter(
+      (segmentPath): segmentPath is string => segmentPath.length > 0
     );
-  }
-  const { segmentPaths, artifacts } = generated;
-  const completeSegmentPaths = segmentPaths.filter(
-    (segmentPath): segmentPath is string => segmentPath.length > 0
-  );
-  const completeArtifacts = artifacts.filter(
-    (artifact): artifact is ArtifactReference => artifact !== undefined
-  );
-  const segmentsListPath = path.join(audioDir, "segments.txt");
-  await writeTextAtomic(
-    segmentsListPath,
-    completeSegmentPaths
-      .map((segmentPath) => `file '${segmentPath.replace(/'/g, "'\\''")}'`)
-      .join("\n")
-  );
-  const concat = spawnSync(
-    "ffmpeg",
-    [
-      "-y",
-      "-f",
-      "concat",
-      "-safe",
-      "0",
-      "-i",
+    const completeArtifacts = artifacts.filter(
+      (artifact): artifact is ArtifactReference => artifact !== undefined
+    );
+    const segmentsListPath = path.join(audioDir, "segments.txt");
+    await writeTextAtomic(
       segmentsListPath,
-      "-c",
-      "copy",
-      narrationPath,
-    ],
-    { encoding: "utf8" }
-  );
-  if (concat.status !== 0) {
-    throw new Error(concat.stderr || "Failed to concatenate narration audio.");
-  }
-  const narrationStats = await fs.stat(narrationPath);
-  completeArtifacts.push({
-    id: artifactIdSchema.parse(
-      `artifact-${slugify(`${episodeSlug}-narration-${language}`)}`
-    ),
-    kind: language === "en" ? "audio.narration" : `audio.narration.${language}`,
-    path: narrationPath,
-    mimeType: "audio/wav",
-    sizeBytes: narrationStats.size,
-    checksumSha256: await hashFile(narrationPath),
-    createdAt: generatedAt,
-  });
-  completeArtifacts.push({
-    id: artifactIdSchema.parse(
-      `artifact-${slugify(`${episodeSlug}-script-source-${language}`)}`
-    ),
-    kind:
-      language === "en"
-        ? "audio.script-source"
-        : `audio.script-source.${language}`,
-    path: scriptSourcePath,
-    mimeType: "text/markdown",
-    sizeBytes: (await fs.stat(scriptSourcePath)).size,
-    checksumSha256: await hashFile(scriptSourcePath),
-    createdAt: generatedAt,
-  });
-  if (manifest) {
-    manifest.artifacts = [
-      ...manifest.artifacts.filter((artifact) => {
-        const kinds =
-          language === "en"
-            ? ["audio.segment", "audio.narration", "audio.script-source"]
-            : [
-                `audio.segment.${language}`,
-                `audio.narration.${language}`,
-                `audio.script-source.${language}`,
-              ];
-        return !kinds.includes(artifact.kind);
-      }),
-      ...completeArtifacts,
-    ];
-    manifest.updatedAt = generatedAt;
-    await writeJsonAtomic(episodeManifestPath(episodeDir), manifest);
-  }
-  await writeJsonAtomic(path.join(audioDir, "generation-report.json"), {
-    episodeId,
-    slug: episodeSlug,
-    language,
-    scriptPath: script.filePath,
-    narrationPath,
-    segmentsDir,
-    segmentCount: chunks.length,
-    generatedAt,
-  });
-  if (options.json) {
-    printJson({
+      completeSegmentPaths
+        .map((segmentPath) => `file '${segmentPath.replace(/'/g, "'\\''")}'`)
+        .join("\n")
+    );
+    const concat = spawnSync(
+      "ffmpeg",
+      [
+        "-y",
+        "-f",
+        "concat",
+        "-safe",
+        "0",
+        "-i",
+        segmentsListPath,
+        "-c",
+        "copy",
+        narrationPath,
+      ],
+      { encoding: "utf8" }
+    );
+    if (concat.status !== 0) {
+      throw new Error(concat.stderr || "Failed to concatenate narration audio.");
+    }
+    const narrationStats = await fs.stat(narrationPath);
+    completeArtifacts.push({
+      id: artifactIdSchema.parse(
+        `artifact-${slugify(`${episodeSlug}-narration-${language}`)}`
+      ),
+      kind:
+        language === "en" ? "audio.narration" : `audio.narration.${language}`,
+      path: narrationPath,
+      mimeType: "audio/wav",
+      sizeBytes: narrationStats.size,
+      checksumSha256: await hashFile(narrationPath),
+      createdAt: generatedAt,
+    });
+    completeArtifacts.push({
+      id: artifactIdSchema.parse(
+        `artifact-${slugify(`${episodeSlug}-script-source-${language}`)}`
+      ),
+      kind:
+        language === "en"
+          ? "audio.script-source"
+          : `audio.script-source.${language}`,
+      path: scriptSourcePath,
+      mimeType: "text/markdown",
+      sizeBytes: (await fs.stat(scriptSourcePath)).size,
+      checksumSha256: await hashFile(scriptSourcePath),
+      createdAt: generatedAt,
+    });
+    if (manifest) {
+      manifest.artifacts = [
+        ...manifest.artifacts.filter((artifact) => {
+          const kinds =
+            language === "en"
+              ? ["audio.segment", "audio.narration", "audio.script-source"]
+              : [
+                  `audio.segment.${language}`,
+                  `audio.narration.${language}`,
+                  `audio.script-source.${language}`,
+                ];
+          return !kinds.includes(artifact.kind);
+        }),
+        ...completeArtifacts,
+      ];
+      manifest.updatedAt = generatedAt;
+      await writeJsonAtomic(episodeManifestPath(episodeDir), manifest);
+    }
+    await writeJsonAtomic(path.join(audioDir, "generation-report.json"), {
       episodeId,
+      slug: episodeSlug,
       language,
-      scriptPath: script.filePath,
+      scriptPath: narrationDependency.filePath,
       narrationPath,
       segmentsDir,
       segmentCount: chunks.length,
-      segmentPaths: completeSegmentPaths,
+      narrationFingerprint: narrationDependency.narrationFingerprint,
+      dependencyFingerprint,
+      audioInstructionPath,
+      generatedAt,
     });
-    return;
-  }
-  if (!options.quiet) {
-    process.stdout.write(
-      `Generated narration for ${episodeId} (${language})\n${narrationPath}\n`
-    );
+    const ttsGenerationRecord: TtsGenerationRecord = {
+      schemaVersion: "tts-generation-record-v1",
+      owner: "audio",
+      status: "completed",
+      episodeSlug,
+      language,
+      variant: narrationDependency.variant,
+      narrationFingerprint: narrationDependency.narrationFingerprint,
+      voiceConfigFingerprint,
+      speechModelConfigFingerprint,
+      audioInstructionFingerprint: audioInstruction.instructionFingerprint,
+      dependencyFingerprint,
+      narrationPath,
+      segmentCount: chunks.length,
+      generatedAt,
+    };
+    await writeJsonAtomic(ttsGenerationPath, ttsGenerationRecord);
+    if (options.json) {
+      printJson({
+        episodeId,
+        language,
+        scriptPath: narrationDependency.filePath,
+        narrationPath,
+        segmentsDir,
+        segmentCount: chunks.length,
+        segmentPaths: completeSegmentPaths,
+      });
+      return;
+    }
+    if (!options.quiet) {
+      process.stdout.write(
+        `Generated narration for ${episodeId} (${language})\n${narrationPath}\n`
+      );
+    }
+  } catch (error) {
+    await writeJsonAtomic(ttsGenerationPath, {
+      schemaVersion: "tts-generation-record-v1",
+      owner: "audio",
+      status: "failed",
+      episodeSlug,
+      language,
+      variant: narrationDependency.variant,
+      narrationFingerprint: narrationDependency.narrationFingerprint,
+      voiceConfigFingerprint,
+      speechModelConfigFingerprint,
+      audioInstructionFingerprint: audioInstruction.instructionFingerprint,
+      dependencyFingerprint,
+      segmentCount: 0,
+      generatedAt,
+      failureMessage: error instanceof Error ? error.message : String(error),
+    } satisfies TtsGenerationRecord);
+    throw error;
   }
 }
 
@@ -2751,6 +2881,7 @@ async function commandMetadataGenerate(
     episodeId
   );
   const target = await readAndValidateScenesFile(scenesFilePath, language);
+  const narration = await loadValidatedNarrationDependency(episodeDir, language);
   const generationOptions: Omit<YoutubeMetadataGenerationOptions, "baseUrl"> & {
     baseUrl?: string;
   } = {
@@ -2795,6 +2926,7 @@ async function commandMetadataGenerate(
       promptVersion: generationOptions.promptVersion,
       sceneCount: target.scenePlan.scenes.length,
       durationSeconds: target.durationSeconds,
+      parentNarrationFingerprint: narration.narrationFingerprint,
       youtubeMarkdownPath: path.join(metadataDir, "youtube.md"),
       youtubeJsonPath: path.join(metadataDir, "youtube-metadata.json"),
       dryRun: true,
@@ -2809,6 +2941,17 @@ async function commandMetadataGenerate(
       outputDir: metadataDir,
       sourceId: manifest.episodeId,
       language,
+      locale: narration.locale,
+      variant: narration.variant,
+      narration: {
+        episodeNumber: narration.episodeNumber,
+        episodeSlug: narration.episodeSlug,
+        language: narration.language,
+        locale: narration.locale,
+        variant: narration.variant,
+        narrationText: narration.narrationText,
+        narrationFingerprint: narration.narrationFingerprint,
+      },
     },
     generationOptions
   );
@@ -2873,6 +3016,7 @@ interface YoutubeMetadataRunSummary {
   readonly language: string;
   readonly model: string;
   readonly promptVersion: string;
+  readonly parentNarrationFingerprint?: string;
 }
 
 function youtubeMetadataPromptPath(): string {
@@ -2986,6 +3130,10 @@ async function commandMetadataYoutube(
           target.sourceFilePath,
           language
         );
+        const narration = await loadValidatedNarrationDependency(
+          targetData.episodeDir,
+          language
+        );
         const outputs = youtubeMetadataOutputsForEpisode(targetData.episodeDir);
         return {
           episodeSlug: target.episodeSlug,
@@ -2997,6 +3145,7 @@ async function commandMetadataYoutube(
           language,
           model: config.openAiMetadataModel ?? "gpt-5.4-mini",
           promptVersion: "youtube-metadata-v1",
+          parentNarrationFingerprint: narration.narrationFingerprint,
         } satisfies YoutubeMetadataRunSummary;
       })
     );
@@ -3041,8 +3190,29 @@ async function commandMetadataYoutube(
       if (baseUrl !== undefined) {
         generationOptions.baseUrl = baseUrl;
       }
-      const generation = await generateYoutubeMetadataFromScenesFile(
+      const targetData = await readAndValidateScenesFile(
         target.sourceFilePath,
+        language
+      );
+      const narration = await loadValidatedNarrationDependency(
+        targetData.episodeDir,
+        language
+      );
+      const generation = await generateYoutubeMetadataForTarget(
+        {
+          ...targetData,
+          locale: narration.locale,
+          variant: narration.variant,
+          narration: {
+            episodeNumber: narration.episodeNumber,
+            episodeSlug: narration.episodeSlug,
+            language: narration.language,
+            locale: narration.locale,
+            variant: narration.variant,
+            narrationText: narration.narrationText,
+            narrationFingerprint: narration.narrationFingerprint,
+          },
+        },
         generationOptions
       );
       results.push({
