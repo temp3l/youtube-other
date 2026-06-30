@@ -139,6 +139,8 @@ describe("FFmpegVideoRenderer", () => {
         scenePlan: makeScenePlan(),
         outputDir,
         renderProfile: {
+          id: "youtube",
+          label: "youtube",
           aspectRatio: "16:9",
           width: 1080,
           height: 1920,
@@ -280,6 +282,8 @@ describe("FFmpegVideoRenderer", () => {
         scenePlan: makeScenePlan(),
         outputDir,
         renderProfile: {
+          id: "youtube",
+          label: "youtube",
           aspectRatio: "16:9",
           width: 1080,
           height: 1920,
@@ -298,6 +302,66 @@ describe("FFmpegVideoRenderer", () => {
       result.clipPaths[0] as string
     );
     expect(validation.durationSeconds).toBeGreaterThanOrEqual(2.95);
+  }, 120000);
+
+  it("pads scene clips so final audio does not land on the cut point", async () => {
+    const baseDir = mkdtempSync(
+      path.join(os.tmpdir(), "mediaforge-rendering-tail-")
+    );
+    const episodeDir = path.join(baseDir, "episode");
+    const outputDir = path.join(episodeDir, "video");
+    const imageDir = path.join(episodeDir, "images", "generated");
+    const audioDir = path.join(episodeDir, "audio", "segments");
+    await fs.mkdir(imageDir, { recursive: true });
+    await fs.mkdir(audioDir, { recursive: true });
+    await fs.writeFile(
+      path.join(imageDir, "scene-001__000000-000003__16x9.png"),
+      await sharp({
+        create: { width: 32, height: 32, channels: 3, background: "#445566" },
+      })
+        .png()
+        .toBuffer()
+    );
+    execFileSync(
+      "ffmpeg",
+      [
+        "-y",
+        "-f",
+        "lavfi",
+        "-i",
+        "sine=frequency=440:sample_rate=24000:duration=11.4",
+        path.join(audioDir, "scene-001.wav"),
+      ],
+      { stdio: "ignore" }
+    );
+
+    const renderer = new FFmpegVideoRenderer();
+    const result = await renderer.renderSceneClips(
+      {
+        episodeDir,
+        scenePlan: makeScenePlan(),
+        outputDir,
+        renderProfile: {
+          id: "youtube",
+          label: "youtube",
+          aspectRatio: "16:9",
+          width: 1080,
+          height: 1920,
+          fps: 30,
+        },
+        captionBurnIn: false,
+        imageDir,
+        sceneAudioDir: audioDir,
+        trailingSilenceRatio: 0,
+        trailingSilenceBufferSeconds: 0,
+      },
+      new AbortController().signal
+    );
+
+    const validation = await validateRenderedVideo(
+      result.clipPaths[0] as string
+    );
+    expect(validation.durationSeconds).toBeGreaterThanOrEqual(11.36);
   }, 120000);
 
   it("uses an explicit output basename for final renders", async () => {
@@ -340,6 +404,8 @@ describe("FFmpegVideoRenderer", () => {
         scenePlan: makeScenePlan(),
         outputDir,
         renderProfile: {
+          id: "youtube",
+          label: "youtube",
           aspectRatio: "16:9",
           width: 1080,
           height: 1920,

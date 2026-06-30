@@ -1060,10 +1060,11 @@ export async function buildSceneClipRenderRequest(request: {
     request.trailingSilenceRatio ?? 0.8,
     request.trailingSilenceBufferSeconds ?? 0
   );
+  const framePaddingSeconds = 1 / request.fps;
   const targetDurationSeconds = Math.max(
     request.minimumDurationSeconds,
     clipDurationSeconds
-  );
+  ) + framePaddingSeconds;
   const ffmpegArguments = [
     "-y",
     "-loop",
