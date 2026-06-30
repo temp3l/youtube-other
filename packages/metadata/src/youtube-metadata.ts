@@ -945,6 +945,10 @@ function extractResponseJson(responseText: string): unknown {
   return JSON.parse(responseText) as unknown;
 }
 
+function isJsonParseError(error: unknown): boolean {
+  return error instanceof SyntaxError;
+}
+
 export function parseScenesFile(rawJson: string, sourceFilePath: string): YoutubeMetadataTarget {
   const parsedUnknown = JSON.parse(rawJson) as unknown;
   const scenePlan = scenePlanSchema.parse(parsedUnknown);
@@ -1294,6 +1298,16 @@ export async function generateYoutubeMetadataForTarget(
       return extractResponseText(response);
     };
 
+    const repairMalformedJson = async (rawResponseText: string): Promise<string> => {
+      const repairInstruction = [
+        "The previous response was not valid JSON.",
+        "Fix the JSON syntax without changing the intended content.",
+        "Return only valid JSON.",
+        `Previous response:\n${rawResponseText}`,
+      ].join("\n\n");
+      return executeRequest(repairModel, repairInstruction);
+    };
+
     let lastRetryableError: unknown = null;
     for (const model of models) {
       try {
@@ -1327,7 +1341,25 @@ export async function generateYoutubeMetadataForTarget(
         lastRetryableError
       );
     }
-    let parsed = youtubeMetadataSchema.safeParse(extractResponseJson(responseText));
+    let parsed;
+    try {
+      parsed = youtubeMetadataSchema.safeParse(extractResponseJson(responseText));
+    } catch (error: unknown) {
+      if (!isJsonParseError(error)) {
+        throw error;
+      }
+      responseText = await repairMalformedJson(responseText);
+      try {
+        parsed = youtubeMetadataSchema.safeParse(extractResponseJson(responseText));
+      } catch (repairError: unknown) {
+        if (isJsonParseError(repairError)) {
+          throw new MetadataValidationError(
+            "OpenAI response could not be parsed as JSON even after repair."
+          );
+        }
+        throw repairError;
+      }
+    }
     let repaired = false;
     if (!parsed.success) {
       const repairInstruction = [

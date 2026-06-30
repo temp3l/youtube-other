@@ -1789,12 +1789,6 @@ class RemoteClipRenderer implements ClipRenderer {
       backgroundUpload.child.kill("SIGTERM");
       throw error;
     });
-    if (runResult.exitCode !== 0) {
-      backgroundUpload.child.kill("SIGTERM");
-      throw new ProcessExecutionError(
-        `Remote render worker exited with code ${runResult.exitCode}: ${runResult.stderr.slice(0, 400)}`
-      );
-    }
     const uploadResult = await backgroundUpload.promise.catch(
       (error: unknown) => {
         worker.child.kill("SIGTERM");
@@ -1833,6 +1827,18 @@ class RemoteClipRenderer implements ClipRenderer {
       `${this.settings.user}@${this.settings.host}:${workspace.remoteRoot}/metadata/`,
       `${workspace.metadataDir}/`,
     ]);
+    if (runResult.exitCode !== 0) {
+      const resultFiles = await Promise.all(
+        requests.map((request) =>
+          fileExists(path.join(workspace.metadataDir, `${request.clipId}.json`))
+        )
+      );
+      if (resultFiles.every((exists) => !exists)) {
+        throw new ProcessExecutionError(
+          `Remote render worker exited with code ${runResult.exitCode}: ${runResult.stderr.slice(0, 400)}`
+        );
+      }
+    }
     const results: ClipRenderResult[] = [];
     for (const request of requests) {
       const localResultPath = path.join(
