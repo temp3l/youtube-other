@@ -19,6 +19,8 @@ export const FULL_NARRATION_RESPONSE_SCHEMA_VERSION =
   "full-narration-response-schema-v1";
 export const SHORT_REWRITE_RESPONSE_SCHEMA_VERSION =
   "short-rewrite-response-schema-v1";
+export const SHORT_NARRATION_RESPONSE_SCHEMA_VERSION =
+  "short-narration-response-schema-v1";
 
 export const narrationOnlyFullRewriteResponseSchema = z
   .object({
@@ -37,6 +39,14 @@ export const narrationOnlyFullRewriteResponseSchema = z
 export type NarrationOnlyFullRewriteResponse = z.infer<
   typeof narrationOnlyFullRewriteResponseSchema
 >;
+
+export const shortNarrationResponseSchema = z
+  .object({
+    narration: z.string().min(1),
+  })
+  .strict();
+
+export type ShortNarrationResponse = z.infer<typeof shortNarrationResponseSchema>;
 
 export const legacyMixedBatchStoryResultSchema = z
   .object({
@@ -111,6 +121,18 @@ export const shortRewriteResponseSchemaDescriptor: StoryPromptSchemaDescriptor =
       "short_rewrite_result",
       SHORT_REWRITE_RESPONSE_SCHEMA_VERSION,
       shortRewriteResultSchema
+    ),
+  };
+
+export const shortNarrationResponseSchemaDescriptor: StoryPromptSchemaDescriptor =
+  {
+    name: "short_narration_result",
+    version: SHORT_NARRATION_RESPONSE_SCHEMA_VERSION,
+    schema: shortNarrationResponseSchema,
+    fingerprint: descriptorFingerprint(
+      "short_narration_result",
+      SHORT_NARRATION_RESPONSE_SCHEMA_VERSION,
+      shortNarrationResponseSchema
     ),
   };
 

@@ -7,6 +7,11 @@ import {
   compileShortStoryPrompt,
 } from "./story-prompt-compiler.js";
 import { STORY_PROMPT_MODULE_REGISTRY } from "./story-prompt-module-registry.js";
+import {
+  buildShortAdaptationContract,
+  buildShortSourceExtraction,
+} from "./short-adaptation-contract.js";
+import { adaptCanonicalStoryFactsToStoryIR } from "./story-artifact-model.js";
 
 const repoRoot = path.resolve(import.meta.dirname, "../../..");
 const sourceFile = path.join(
@@ -83,12 +88,59 @@ describe("story prompt compiler", () => {
   it("includes conditional written-message modules and omits irrelevant nonfiction rules", async () => {
     const parsed = await parseCanonicalSourceStory(sourceFile);
     const facts = extractCanonicalStoryFacts(parsed);
+    const storyIr = adaptCanonicalStoryFactsToStoryIR(facts, parsed);
+    const parent = {
+      identity: {
+        episodeId: parsed.episodeNumber,
+        episodeSlug: parsed.slug,
+        language: "fr" as const,
+        locale: "fr-FR",
+        variant: "full" as const,
+      },
+      title: parsed.title,
+      sourcePath: parsed.sourceFile,
+      sourceSha256: "a".repeat(64),
+      parentFullHash: "b".repeat(64),
+      storyIrHash: "c".repeat(64),
+      contractHash: "d".repeat(64),
+      narrationParagraphs: parsed.narrationParagraphs,
+      canonical: true,
+      provenance: "localized-full-artifact" as const,
+    };
+    const outputConstraints = {
+      variant: "short" as const,
+      targetWordRange: { min: 145, max: 170 },
+      targetNarrationWpm: 178,
+      targetDuration: { minSeconds: 55, maxSeconds: 65 },
+      hookDeadlineSeconds: 8,
+      fullVideoBridgeRequired: true,
+    };
+    const sourceExtraction = buildShortSourceExtraction({
+      parent,
+      storyIr,
+      outputConstraints,
+    });
+    const adaptationContract = buildShortAdaptationContract({
+      identity: {
+        episodeId: parsed.episodeNumber,
+        episodeSlug: parsed.slug,
+        language: "fr",
+        locale: "fr-FR",
+        variant: "short",
+      },
+      parent,
+      storyIr,
+      extraction: sourceExtraction,
+      outputConstraints,
+    });
     const compiled = compileShortStoryPrompt({
       language: "fr",
       adaptationMode: "retention-optimized",
       sourceStory: parsed,
       canonicalFacts: facts,
-      fullStoryText: parsed.content,
+      storyIr,
+      sourceExtraction,
+      adaptationContract,
     });
     expect(
       compiled.selectedModules.some(

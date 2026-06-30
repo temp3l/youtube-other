@@ -257,7 +257,7 @@ describe("short rewrite helpers", () => {
     expect(prompt.user).toContain("## Locale settings");
     expect(prompt.user).toContain("## German Localization");
     expect(prompt.user).toContain("150-165 words");
-    expect(prompt.user).toContain("schema short_rewrite_result");
+    expect(prompt.user).toContain("schema short_narration_result");
   });
 
   it("renders markdown compatible with the downstream pipeline", () => {

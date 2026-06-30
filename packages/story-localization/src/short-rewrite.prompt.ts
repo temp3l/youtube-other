@@ -143,3 +143,25 @@ export function buildShortRewriteRepairPrompt(args: {
     ),
   };
 }
+
+export function buildShortRewriteRegenerationPrompt(args: {
+  readonly context: ShortRewritePromptContext;
+  readonly validationErrors: readonly string[];
+}): { readonly system: string; readonly user: string } {
+  const basePrompt = buildShortRewritePrompt(args.context);
+  const regenerationSection = [
+    "Regenerate the short narration from scratch.",
+    "Keep the same short-only contract and source beats.",
+    "Fix these issues in the new result:",
+    ...args.validationErrors.map((entry) => `- ${entry}`),
+    "Return only the structured schema result.",
+  ].join("\n");
+  return {
+    system: basePrompt.system,
+    user: insertSectionBeforeMarker(
+      basePrompt.user,
+      "<SHORT_ADAPTATION_SOURCE>",
+      `${regenerationSection}\n`
+    ),
+  };
+}

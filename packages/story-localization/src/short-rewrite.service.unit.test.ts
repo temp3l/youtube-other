@@ -66,18 +66,7 @@ function buildResponseJson(args: {
 }): string {
   const narration = args.narration ?? buildNarration(args.wordCount);
   return JSON.stringify(
-    {
-      title: args.title,
-      hook: narration.split(". ")[0]?.endsWith(".")
-        ? narration.split(". ")[0]
-        : `${narration.split(". ")[0] ?? ""}.`,
-      narration,
-      wordCount: 1,
-      estimatedDurationSecondsAt175Wpm: 1,
-      estimatedDurationSecondsAt180Wpm: 1,
-      thumbnailText: args.thumbnailText,
-      fullVideoBridge: args.fullVideoBridge,
-    },
+    { narration },
     null,
     2
   );
@@ -672,7 +661,7 @@ describe("short rewrite service", () => {
         path.join(debugDir, "stories-rewrite-short-es.request.json"),
         "utf8"
       )
-    ).toContain("short_rewrite_result");
+    ).toContain("short_narration_result");
     expect(
       JSON.parse(
         await fs.readFile(

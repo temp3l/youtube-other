@@ -9,6 +9,7 @@ import {
   countSpokenWords,
   ensureDir,
   fileExists,
+  hashText,
   normalizeWhitespace,
 } from "@mediaforge/shared";
 import {
@@ -34,11 +35,11 @@ import {
   shortRewriteArtifactSchema,
   shortRewriteGenerationSchema,
   shortRewriteManifestSchema,
-  shortRewriteResultSchema,
 } from "./short-rewrite.schemas.js";
 import { buildShortRewriteMarkdown } from "./short-rewrite.renderer.js";
 import {
   buildShortRewritePrompt,
+  buildShortRewriteRegenerationPrompt,
   buildShortRewriteRepairPrompt,
 } from "./short-rewrite.prompt.js";
 import { compileShortStoryPrompt } from "./story-prompt-compiler.js";
@@ -87,7 +88,11 @@ import {
   runAndPersistStoryPreflight,
   type StoryPreflightRequest,
 } from "./story-generation-preflight.js";
-import { shortRewriteResponseSchemaDescriptor } from "./story-prompt-response-schemas.js";
+import {
+  shortNarrationResponseSchema,
+  shortNarrationResponseSchemaDescriptor,
+  type ShortNarrationResponse,
+} from "./story-prompt-response-schemas.js";
 import { materializeCanonicalSourceStory } from "./short-rewrite.bootstrap.js";
 import {
   type ResolvedShortRewriteSource,
@@ -114,6 +119,7 @@ import {
 } from "./short-rewrite.persistence.js";
 import { withFileLock } from "./story-localization-batch-storage.js";
 import { getRepoRoot } from "./story-localization.utils.js";
+import { stableSerialize } from "./stable-json.js";
 import {
   buildShortAdaptationContract,
   buildShortSourceExtraction,
@@ -257,6 +263,14 @@ function normalizeValidationErrors(errors: string[]): string[] {
       errors.map((entry) => normalizeWhitespace(entry)).filter(Boolean)
     ),
   ];
+}
+
+function shouldUseTargetedShortRepair(errors: readonly string[]): boolean {
+  return errors.every((entry) =>
+    /hook|word count|production labels|editorial commentary|thumbnail/iu.test(
+      entry
+    )
+  );
 }
 
 async function persistShortRewriteDebugArtifacts(args: {
@@ -606,6 +620,42 @@ function hashNarrationParagraphs(paragraphs: readonly string[]): string {
   return sha256NormalizedSource(paragraphs.map((entry) => normalizeWhitespace(entry)).join("\n\n"));
 }
 
+function buildShortRequestFingerprint(args: {
+  readonly compiledPromptFingerprint: string;
+  readonly compilerVersion: string;
+  readonly responseSchemaName: string;
+  readonly responseSchemaVersion: string;
+  readonly responseSchemaFingerprint: string;
+  readonly model: string;
+  readonly reasoningEffort?: string | undefined;
+  readonly maxOutputTokens: number;
+  readonly language: StoryLanguage;
+  readonly locale: string;
+  readonly parentFullHash: string;
+  readonly storyIrHash: string;
+  readonly shortContractHash: string;
+}): string {
+  return hashText(
+    stableSerialize({
+      variant: args.language === "en" ? "canonical-english-short" : "localized-short",
+      locale: args.locale,
+      compilerVersion: args.compilerVersion,
+      compiledPromptFingerprint: args.compiledPromptFingerprint,
+      responseSchema: {
+        name: args.responseSchemaName,
+        version: args.responseSchemaVersion,
+        fingerprint: args.responseSchemaFingerprint,
+      },
+      model: args.model,
+      reasoningEffort: args.reasoningEffort ?? "default",
+      maxOutputTokens: args.maxOutputTokens,
+      parentFullHash: args.parentFullHash,
+      storyIrHash: args.storyIrHash,
+      shortContractHash: args.shortContractHash,
+    })
+  );
+}
+
 async function resolveCanonicalEnglishParent(args: {
   readonly outputRoot: string;
   readonly source: ResolvedShortRewriteSource;
@@ -794,27 +844,29 @@ async function resolveShortRewriteParent(args: {
 }
 
 function analyzeGeneratedPayload(args: {
-  readonly parsed: z.infer<typeof shortRewriteResultSchema>;
+  readonly parsed: ShortNarrationResponse;
   readonly language: StoryLanguage;
   readonly source: ResolvedShortRewriteSource;
+  readonly parentTitle: string;
 }): {
   readonly generation: ShortRewriteGeneration;
   readonly validation: ReturnType<typeof buildValidationSummary>;
   readonly warnings: string[];
   readonly issues: string[];
 } {
-  const wordCount = countSpokenWords(args.parsed.narration);
+  const narration = normalizeWhitespace(args.parsed.narration);
+  const wordCount = countSpokenWords(narration);
   const duration175 = estimateDurationSeconds(wordCount, 175);
   const duration180 = estimateDurationSeconds(wordCount, 180);
   const hookMatchesNarration = matchesFirstSentence(
-    args.parsed.hook,
-    args.parsed.narration
+    firstSentence(narration),
+    narration
   );
   const validation = buildValidationSummary({
     wordCount,
     hookMatchesNarration,
-    thumbnailText: args.parsed.thumbnailText,
-    narration: args.parsed.narration,
+    thumbnailText: args.parentTitle.split(" ").slice(0, 4).join(" "),
+    narration,
   });
   const warnings = [...validation.warnings];
   if (wordCount >= 145 && wordCount < 150) {
@@ -838,34 +890,31 @@ function analyzeGeneratedPayload(args: {
       `Narration word count ${wordCount} exceeds the hard maximum of 170.`
     );
   }
-  if (countThumbnailWords(args.parsed.thumbnailText) > 4) {
-    issues.push("Thumbnail text exceeds the four-word limit.");
-  }
   if (
     /\b(audio generation instructions|narration script|sound effect|scene change|\[pause\]|\[whisper\]|\[sound effect\]|\[music\])\b/iu.test(
-      args.parsed.narration
+      narration
     )
   ) {
     issues.push("Narration contains production labels.");
   }
-  if (detectEditorialCommentary(args.parsed.narration).length > 0) {
+  if (detectEditorialCommentary(narration).length > 0) {
     issues.push("Narration contains editorial commentary.");
   }
   const generation: ShortRewriteGeneration = {
-    title: normalizeWhitespace(args.parsed.title),
-    hook: normalizeWhitespace(args.parsed.hook),
-    narration: normalizeWhitespace(args.parsed.narration),
+    title: normalizeWhitespace(args.parentTitle),
+    hook: firstSentence(narration),
+    narration,
     wordCount,
     estimatedDurationSecondsAt175Wpm: duration175,
     estimatedDurationSecondsAt180Wpm: duration180,
-    thumbnailText: normalizeWhitespace(args.parsed.thumbnailText),
-    fullVideoBridge: normalizeWhitespace(args.parsed.fullVideoBridge),
+    thumbnailText: args.parentTitle.split(" ").slice(0, 4).join(" "),
+    fullVideoBridge: "Watch the full episode for the complete story.",
   };
   return { generation, validation, warnings, issues };
 }
 
 function buildRequestSchema(): z.ZodTypeAny {
-  return shortRewriteResultSchema;
+  return shortNarrationResponseSchema;
 }
 
 async function requestStructuredShortRewrite(args: {
@@ -1180,9 +1229,9 @@ async function requestStructuredShortRewrite(args: {
 
 function parseStructuredResult(
   outputText: string
-): z.infer<typeof shortRewriteResultSchema> {
+): ShortNarrationResponse {
   const parsedJson = JSON.parse(outputText) as unknown;
-  return shortRewriteResultSchema.parse(parsedJson);
+  return shortNarrationResponseSchema.parse(parsedJson);
 }
 
 function extractStructuredResponseText(
@@ -1287,7 +1336,21 @@ async function generateLanguagePayload(
         .join("; ")
     );
   }
-  const promptFingerprint = compiledPrompt.promptFingerprint;
+  const promptFingerprint = buildShortRequestFingerprint({
+    compiledPromptFingerprint: compiledPrompt.promptFingerprint,
+    compilerVersion: compiledPrompt.compilerVersion,
+    responseSchemaName: compiledPrompt.responseSchema.name,
+    responseSchemaVersion: compiledPrompt.responseSchema.version,
+    responseSchemaFingerprint: compiledPrompt.responseSchema.fingerprint,
+    model: args.model,
+    reasoningEffort: args.reasoningEffort,
+    maxOutputTokens: args.maxOutputTokens,
+    language: args.language,
+    locale: languageDefinition.locale,
+    parentFullHash: args.parent.parentFullHash,
+    storyIrHash: args.parent.storyIrHash,
+    shortContractHash: args.adaptationContract.contractHash,
+  });
   const preflightDirectory = resolveStoryPreflightDirectory(
     resolveEpisodeCacheDirectory(args.outputRoot, args.source.episodeSlug)
   );
@@ -1332,9 +1395,9 @@ async function generateLanguagePayload(
         retryCap: preflightArgs.repair ? 1 : args.maxRetries,
         promptVersion: SHORT_REWRITE_PROMPT_VERSION,
         promptFingerprint: preflightArgs.promptFingerprint,
-        schemaName: shortRewriteResponseSchemaDescriptor.name,
-        schemaVersion: shortRewriteResponseSchemaDescriptor.version,
-        schemaFingerprint: shortRewriteResponseSchemaDescriptor.fingerprint,
+        schemaName: shortNarrationResponseSchemaDescriptor.name,
+        schemaVersion: shortNarrationResponseSchemaDescriptor.version,
+        schemaFingerprint: shortNarrationResponseSchemaDescriptor.fingerprint,
         sourceHash: args.source.sourceSha256,
         targetWordRange: SHORT_REWRITE_HARD_WORD_RANGE,
         targetDurationSeconds: {
@@ -1372,11 +1435,11 @@ async function generateLanguagePayload(
           }),
           {
             name: "response-schema-overhead",
-            label: shortRewriteResponseSchemaDescriptor.name,
+            label: shortNarrationResponseSchemaDescriptor.name,
             estimatedTokens: estimateStructuredRequestWrapperTokens({
-              schemaName: shortRewriteResponseSchemaDescriptor.name,
-              schemaVersion: shortRewriteResponseSchemaDescriptor.version,
-              schemaFingerprint: shortRewriteResponseSchemaDescriptor.fingerprint,
+              schemaName: shortNarrationResponseSchemaDescriptor.name,
+              schemaVersion: shortNarrationResponseSchemaDescriptor.version,
+              schemaFingerprint: shortNarrationResponseSchemaDescriptor.fingerprint,
             }),
           },
           {
@@ -1566,6 +1629,7 @@ async function generateLanguagePayload(
     parsed: initialParsed,
     language: args.language,
     source: args.source,
+    parentTitle: args.parent.title,
   });
   let requestId = initialResponse.id;
   let usage = buildUsagePayload({
@@ -1590,55 +1654,121 @@ async function generateLanguagePayload(
   let responsePayload = initialParsed;
   let issues = initialAnalysis.issues;
   let warnings = [...initialAnalysis.warnings];
+  const repairHistory: Array<{
+    readonly stage: "repair" | "regenerate";
+    readonly issues: readonly string[];
+  }> = [];
   if (issues.length > 0) {
-    const repairPrompt = buildShortRewriteRepairPrompt({
-      context: promptContext,
-      invalidResult: responsePayload,
-      validationErrors: normalizeValidationErrors(issues),
-    });
-    const repairResponse = await requestStructuredShortRewrite({
-      client,
-      model: args.repairModel ?? args.model,
-      repairModel: args.repairModel,
-      prompt: repairPrompt,
-      temperature: args.temperature,
-      reasoningEffort: args.repairReasoningEffort ?? args.reasoningEffort,
-      maxOutputTokens: args.repairMaxOutputTokens ?? args.retryMaxOutputTokens,
-      repairReasoningEffort: args.repairReasoningEffort,
-      repairMaxOutputTokens: args.repairMaxOutputTokens,
-      timeoutMs: args.timeoutMs,
-      maxRetries: args.maxRetries,
-      signal: args.signal,
-      requestLabel: `${languageDefinition.name} short rewrite repair`,
-      debugDirectory,
-      debugFileBaseName,
-      preflight: buildShortPreflight({
-        repair: true,
-        promptFingerprint: `${promptFingerprint}:repair`,
-      }),
-    });
-    requestId = repairResponse.id;
-    usage = buildUsagePayload({
-      inputTokens: (usage.inputTokens ?? 0) + (repairResponse.inputTokens ?? 0),
-      cachedInputTokens:
-        (usage.cachedInputTokens ?? 0) +
-        (repairResponse.cachedInputTokens ?? 0),
-      reasoningTokens:
-        (usage.reasoningTokens ?? 0) + (repairResponse.reasoningTokens ?? 0),
-      outputTokens:
-        (usage.outputTokens ?? 0) + (repairResponse.outputTokens ?? 0),
-      totalTokens: (usage.totalTokens ?? 0) + (repairResponse.totalTokens ?? 0),
-    });
-    responsePayload = parseStructuredResult(repairResponse.outputText);
-    const repairedAnalysis = analyzeGeneratedPayload({
-      parsed: responsePayload,
-      language: args.language,
-      source: args.source,
-    });
-    generation = repairedAnalysis.generation;
-    validation = repairedAnalysis.validation;
-    warnings = [...repairedAnalysis.warnings];
-    issues = repairedAnalysis.issues;
+    const normalizedIssues = normalizeValidationErrors(issues);
+    if (shouldUseTargetedShortRepair(normalizedIssues)) {
+      const repairPrompt = buildShortRewriteRepairPrompt({
+        context: promptContext,
+        invalidResult: responsePayload,
+        validationErrors: normalizedIssues,
+      });
+      const repairResponse = await requestStructuredShortRewrite({
+        client,
+        model: args.repairModel ?? args.model,
+        repairModel: args.repairModel,
+        prompt: repairPrompt,
+        temperature: args.temperature,
+        reasoningEffort: args.repairReasoningEffort ?? args.reasoningEffort,
+        maxOutputTokens: args.repairMaxOutputTokens ?? args.retryMaxOutputTokens,
+        repairReasoningEffort: args.repairReasoningEffort,
+        repairMaxOutputTokens: args.repairMaxOutputTokens,
+        timeoutMs: args.timeoutMs,
+        maxRetries: args.maxRetries,
+        signal: args.signal,
+        requestLabel: `${languageDefinition.name} short rewrite repair`,
+        debugDirectory,
+        debugFileBaseName,
+        preflight: buildShortPreflight({
+          repair: true,
+          promptFingerprint: `${promptFingerprint}:repair`,
+        }),
+      });
+      repairHistory.push({ stage: "repair", issues: normalizedIssues });
+      requestId = repairResponse.id;
+      usage = buildUsagePayload({
+        inputTokens: (usage.inputTokens ?? 0) + (repairResponse.inputTokens ?? 0),
+        cachedInputTokens:
+          (usage.cachedInputTokens ?? 0) +
+          (repairResponse.cachedInputTokens ?? 0),
+        reasoningTokens:
+          (usage.reasoningTokens ?? 0) + (repairResponse.reasoningTokens ?? 0),
+        outputTokens:
+          (usage.outputTokens ?? 0) + (repairResponse.outputTokens ?? 0),
+        totalTokens: (usage.totalTokens ?? 0) + (repairResponse.totalTokens ?? 0),
+      });
+      responsePayload = parseStructuredResult(repairResponse.outputText);
+      const repairedAnalysis = analyzeGeneratedPayload({
+        parsed: responsePayload,
+        language: args.language,
+        source: args.source,
+        parentTitle: args.parent.title,
+      });
+      generation = repairedAnalysis.generation;
+      validation = repairedAnalysis.validation;
+      warnings = [...repairedAnalysis.warnings];
+      issues = repairedAnalysis.issues;
+    }
+    if (issues.length > 0) {
+      const regenerationPrompt = buildShortRewriteRegenerationPrompt({
+        context: promptContext,
+        validationErrors: normalizeValidationErrors(issues),
+      });
+      const regenerationResponse = await requestStructuredShortRewrite({
+        client,
+        model: args.model,
+        repairModel: args.repairModel,
+        prompt: regenerationPrompt,
+        temperature: args.temperature,
+        reasoningEffort: args.reasoningEffort,
+        maxOutputTokens: args.retryMaxOutputTokens,
+        repairReasoningEffort: args.repairReasoningEffort,
+        repairMaxOutputTokens: args.repairMaxOutputTokens,
+        timeoutMs: args.timeoutMs,
+        maxRetries: args.maxRetries,
+        signal: args.signal,
+        requestLabel: `${languageDefinition.name} short rewrite regenerate`,
+        debugDirectory,
+        debugFileBaseName,
+        preflight: buildShortPreflight({
+          repair: false,
+          promptFingerprint: `${promptFingerprint}:regenerate`,
+        }),
+      });
+      repairHistory.push({
+        stage: "regenerate",
+        issues: normalizeValidationErrors(issues),
+      });
+      requestId = regenerationResponse.id;
+      usage = buildUsagePayload({
+        inputTokens:
+          (usage.inputTokens ?? 0) + (regenerationResponse.inputTokens ?? 0),
+        cachedInputTokens:
+          (usage.cachedInputTokens ?? 0) +
+          (regenerationResponse.cachedInputTokens ?? 0),
+        reasoningTokens:
+          (usage.reasoningTokens ?? 0) +
+          (regenerationResponse.reasoningTokens ?? 0),
+        outputTokens:
+          (usage.outputTokens ?? 0) + (regenerationResponse.outputTokens ?? 0),
+        totalTokens:
+          (usage.totalTokens ?? 0) + (regenerationResponse.totalTokens ?? 0),
+      });
+      responsePayload = parseStructuredResult(regenerationResponse.outputText);
+      const regeneratedAnalysis = analyzeGeneratedPayload({
+        parsed: responsePayload,
+        language: args.language,
+        source: args.source,
+        parentTitle: args.parent.title,
+      });
+      generation = regeneratedAnalysis.generation;
+      validation = regeneratedAnalysis.validation;
+      warnings = [...regeneratedAnalysis.warnings];
+      issues = regeneratedAnalysis.issues;
+    }
     if (issues.length > 0) {
       throw new ShortRewriteValidationError(issues.join("; "));
     }
@@ -1717,10 +1847,7 @@ async function generateLanguagePayload(
         : {}),
       estimatedCostUsd,
     }),
-    repairHistory:
-      issues.length > 0
-        ? [{ stage: "repair" as const, issues: normalizeValidationErrors(issues) }]
-        : undefined,
+    ...(repairHistory.length > 0 ? { repairHistory } : {}),
     validation: {
       ...validation,
       warnings,
@@ -1792,6 +1919,7 @@ async function generateLanguagePayload(
         responseSchemaVersion: compiledPrompt.responseSchema.version,
         responseSchemaFingerprint: compiledPrompt.responseSchema.fingerprint,
       },
+      ...(repairHistory.length > 0 ? { repairHistory } : {}),
       validation,
     })
   );
@@ -2111,7 +2239,7 @@ export async function rewriteShortStories(
       extraction: sourceExtraction,
       outputConstraints,
     });
-    const promptFingerprint = compileShortStoryPrompt({
+    const compiledPrompt = compileShortStoryPrompt({
       language,
       adaptationMode: "retention-optimized",
       sourceStory: canonicalParsed,
@@ -2119,7 +2247,23 @@ export async function rewriteShortStories(
       storyIr: canonicalStoryIr,
       sourceExtraction,
       adaptationContract,
-    }).promptFingerprint;
+    });
+    const promptFingerprint = buildShortRequestFingerprint({
+      compiledPromptFingerprint: compiledPrompt.promptFingerprint,
+      compilerVersion: compiledPrompt.compilerVersion,
+      responseSchemaName: compiledPrompt.responseSchema.name,
+      responseSchemaVersion: compiledPrompt.responseSchema.version,
+      responseSchemaFingerprint: compiledPrompt.responseSchema.fingerprint,
+      model: options.model,
+      reasoningEffort: options.reasoningEffort,
+      maxOutputTokens:
+        options.maxOutputTokens ?? DEFAULT_SHORT_REWRITE_MAX_OUTPUT_TOKENS,
+      language,
+      locale: SHORT_REWRITE_SUPPORTED_LANGUAGES[language].locale,
+      parentFullHash: parent.parentFullHash,
+      storyIrHash: parent.storyIrHash,
+      shortContractHash: adaptationContract.contractHash,
+    });
     const buildFailedArtifact = (
       message: string,
       generatedAt: string,

@@ -4,6 +4,7 @@ import {
   fullNarrationResponseSchemaDescriptor,
   normalizeNarrationOnlyBatchResult,
   narrationOnlyFullRewriteResponseSchema,
+  shortNarrationResponseSchemaDescriptor,
   shortRewriteResponseSchemaDescriptor,
 } from "./story-prompt-response-schemas.js";
 
@@ -35,8 +36,8 @@ describe("story prompt response schemas", () => {
     expect(fullNarrationResponseSchemaDescriptor.version).toMatch(
       /^full-narration/u
     );
-    expect(shortRewriteResponseSchemaDescriptor.version).toMatch(
-      /^short-rewrite/u
+    expect(shortNarrationResponseSchemaDescriptor.version).toMatch(
+      /^short-narration/u
     );
   });
 

@@ -37,7 +37,7 @@ import {
 } from "./story-prompt-module-registry.js";
 import {
   fullNarrationResponseSchemaDescriptor,
-  shortRewriteResponseSchemaDescriptor,
+  shortNarrationResponseSchemaDescriptor,
   type NarrationOnlyFullRewriteResponse,
 } from "./story-prompt-response-schemas.js";
 import {
@@ -66,7 +66,7 @@ export interface CompiledStoryPrompt {
   readonly user: string;
   readonly responseSchema:
     | typeof fullNarrationResponseSchemaDescriptor
-    | typeof shortRewriteResponseSchemaDescriptor;
+    | typeof shortNarrationResponseSchemaDescriptor;
   readonly promptFingerprint: string;
   readonly selectedModules: readonly {
     readonly id: StoryPromptModuleId;
@@ -330,6 +330,19 @@ function compileFromContext(
     userSections.join("\n\n"),
     context.variant === "short"
       ? [
+          "## Short Adaptation Contract",
+          `- Preserve the core identity in ${context.adaptationContract.identity.locale}.`,
+          `- Central threat: ${context.adaptationContract.centralThreat}`,
+          `- Rule or mechanism: ${context.adaptationContract.centralRuleOrMechanism}`,
+          `- Critical object: ${context.adaptationContract.criticalObject}`,
+          `- Climax or irreversible turn: ${context.adaptationContract.climaxOrIrreversibleTurn}`,
+          `- Final consequence or sting: ${context.adaptationContract.finalConsequenceOrSting}`,
+          `- Hook deadline: ${context.adaptationContract.constraints.hookDeadlineSeconds} seconds`,
+          `- Target word range: ${context.adaptationContract.constraints.targetWordRange.min}-${context.adaptationContract.constraints.targetWordRange.max}`,
+          `- Target narration pace: ${context.adaptationContract.constraints.targetNarrationWpm} WPM`,
+          `- Maximum beats: ${context.adaptationContract.constraints.maximumBeats}`,
+          `- Forbidden omissions: ${context.adaptationContract.forbiddenOmissions.join(" | ")}`,
+          "",
           "<SHORT_ADAPTATION_SOURCE>",
           ...context.sourceExtraction.beats
             .filter((beat) => beat.retained)
@@ -545,7 +558,7 @@ export function compileShortStoryPrompt(
       variant: "short",
       system: "",
       user: "",
-      responseSchema: shortRewriteResponseSchemaDescriptor,
+      responseSchema: shortNarrationResponseSchemaDescriptor,
       promptFingerprint: "",
       selectedModules: [],
       diagnostics,
@@ -573,7 +586,7 @@ export function compileShortStoryPrompt(
     genrePolicy: policyResolution.policy as GenrePolicy,
     classificationOutcome,
     outputConstraints,
-    responseSchema: shortRewriteResponseSchemaDescriptor,
+    responseSchema: shortNarrationResponseSchemaDescriptor,
     sourceExtraction: input.sourceExtraction,
     adaptationContract: input.adaptationContract,
     localeModuleVersion: STORY_PROMPT_LOCALE_MODULE_VERSION,
