@@ -41,10 +41,82 @@ async function waitForFile(filePath, timeoutMs = 30 * 60 * 1000) {
   throw new Error(`Aborted while waiting for input file: ${filePath}`);
 }
 
-async function waitForInputs(workspaceRoot, inputPaths) {
-  for (const inputPath of inputPaths ?? []) {
-    const resolved = safeResolve(workspaceRoot, inputPath);
-    await waitForFile(resolved);
+function createLifecycleMetadata(job, status, extra = {}) {
+  return {
+    clipId: job.clipId,
+    sequenceNumber: job.sequenceNumber,
+    attempt: 1,
+    status,
+    ...extra,
+  };
+}
+
+async function writeLifecycleMetadata(workspaceRoot, job, status, extra = {}) {
+  const metadataPath = safeResolve(workspaceRoot, job.metadataPath);
+  await fs.mkdir(path.dirname(metadataPath), { recursive: true });
+  await fs.writeFile(
+    metadataPath,
+    `${JSON.stringify(createLifecycleMetadata(job, status, extra), null, 2)}\n`,
+    "utf8"
+  );
+}
+
+function isValidReadyMarker(job, marker) {
+  if (!marker || typeof marker !== "object") {
+    return false;
+  }
+  if (marker.clipId !== job.clipId || !Array.isArray(marker.inputPaths)) {
+    return false;
+  }
+  if (!Array.isArray(marker.dependencies)) {
+    return false;
+  }
+  return job.inputPaths.every((inputPath) => marker.inputPaths.includes(inputPath));
+}
+
+async function tryClaimReadyJob(workspaceRoot, pendingJobs) {
+  for (const [clipId, job] of pendingJobs) {
+    const metadataPath = safeResolve(workspaceRoot, job.metadataPath);
+    const existingMetadata = await fs.readFile(metadataPath, "utf8").then((raw) => JSON.parse(raw)).catch(() => null);
+    if (existingMetadata?.status === "failed" || existingMetadata?.status === "succeeded") {
+      pendingJobs.delete(clipId);
+      continue;
+    }
+    const readyPath = safeResolve(workspaceRoot, job.readyPath ?? path.join("ready", `${clipId}.json`));
+    try {
+      const rawReady = JSON.parse(await fs.readFile(readyPath, "utf8"));
+      if (!isValidReadyMarker(job, rawReady)) {
+        continue;
+      }
+      if (!pendingJobs.has(clipId)) {
+        continue;
+      }
+      pendingJobs.delete(clipId);
+      return { job, readyMarker: rawReady };
+    } catch (error) {
+      if (error && typeof error === "object" && "code" in error && error.code === "ENOENT") {
+        continue;
+      }
+      continue;
+    }
+  }
+  return null;
+}
+
+async function waitForClaimableJob(workspaceRoot, pendingJobs, timeoutMs = 30 * 60 * 1000) {
+  const startedAt = Date.now();
+  while (!abortRequested) {
+    const claim = await tryClaimReadyJob(workspaceRoot, pendingJobs);
+    if (claim) {
+      return claim;
+    }
+    if (pendingJobs.size === 0) {
+      return null;
+    }
+    if (Date.now() - startedAt > timeoutMs) {
+      throw new Error(`Timed out waiting for clip readiness: ${[...pendingJobs.keys()].join(", ")}`);
+    }
+    await new Promise((resolve) => setTimeout(resolve, 1000));
   }
 }
 
@@ -107,15 +179,21 @@ async function validateOutput(filePath, options = {}) {
   };
 }
 
-async function renderClip(workspaceRoot, job) {
+async function renderClip(workspaceRoot, job, readyMarker) {
   const outputPath = safeResolve(workspaceRoot, job.outputPath);
   const logPath = safeResolve(workspaceRoot, job.logPath);
   const metadataPath = safeResolve(workspaceRoot, job.metadataPath);
-  await waitForInputs(workspaceRoot, job.inputPaths);
   await fs.mkdir(path.dirname(outputPath), { recursive: true });
   await fs.mkdir(path.dirname(logPath), { recursive: true });
   await fs.mkdir(path.dirname(metadataPath), { recursive: true });
+  await writeLifecycleMetadata(workspaceRoot, job, "queued", {
+    readyAt: readyMarker.generatedAt ?? new Date().toISOString(),
+  });
   const startedAt = Date.now();
+  await writeLifecycleMetadata(workspaceRoot, job, "rendering", {
+    readyAt: readyMarker.generatedAt ?? new Date().toISOString(),
+    startedAt: new Date(startedAt).toISOString(),
+  });
   const stderr = [];
   const child = spawn("ffmpeg", job.ffmpegArguments, {
     cwd: workspaceRoot,
@@ -133,15 +211,14 @@ async function renderClip(workspaceRoot, job) {
     activeChildren.delete(child);
   });
   await fs.writeFile(logPath, stderr.join(""), "utf8");
-  const result = {
-    clipId: job.clipId,
-    sequenceNumber: job.sequenceNumber,
-    attempt: 1,
+  const result = createLifecycleMetadata(job, "failed", {
     exitCode,
     durationMs: Date.now() - startedAt,
     outputSizeBytes: 0,
-    status: "failed",
-  };
+    readyAt: readyMarker.generatedAt ?? new Date().toISOString(),
+    startedAt: new Date(startedAt).toISOString(),
+    completedAt: new Date().toISOString(),
+  });
   if (exitCode === 0 && await fs.stat(outputPath).then((stats) => stats.size > 0).catch(() => false)) {
     const validation = await validateOutput(outputPath, job);
     result.outputSizeBytes = (await fs.stat(outputPath)).size;
@@ -173,17 +250,18 @@ async function main() {
   }
   const jobs = rawManifest.jobs;
   const concurrency = Number.isInteger(rawManifest.concurrency) && rawManifest.concurrency > 0 ? rawManifest.concurrency : 1;
-  const queue = [...jobs];
+  const pendingJobs = new Map(jobs.map((job) => [job.clipId, job]));
   const results = [];
   let failed = false;
   const pool = Array.from({ length: Math.max(1, concurrency) }, async () => {
-    while (queue.length > 0) {
-      const job = queue.shift();
-      if (!job) {
+    while (pendingJobs.size > 0) {
+      const claim = await waitForClaimableJob(workspaceRoot, pendingJobs);
+      if (!claim) {
         return;
       }
+      const { job, readyMarker } = claim;
       try {
-        const result = await renderClip(workspaceRoot, job);
+        const result = await renderClip(workspaceRoot, job, readyMarker);
         results.push(result);
         if (result.status !== "succeeded") {
           failed = true;
@@ -201,11 +279,13 @@ async function main() {
           errorMessage: error instanceof Error ? error.message : String(error),
         };
         results.push(failure);
-        await fs.writeFile(
-          safeResolve(workspaceRoot, job.metadataPath),
-          `${JSON.stringify(failure, null, 2)}\n`,
-          "utf8"
-        ).catch(() => {});
+        await writeLifecycleMetadata(workspaceRoot, job, "failed", {
+          exitCode: 1,
+          durationMs: 0,
+          outputSizeBytes: 0,
+          errorMessage: failure.errorMessage,
+          completedAt: new Date().toISOString(),
+        }).catch(() => {});
       }
     }
   });
@@ -218,9 +298,17 @@ async function main() {
   process.on("SIGINT", shutdown);
   process.on("SIGTERM", shutdown);
   await Promise.all(pool);
+  const summaryResults = await Promise.all(
+    jobs.map(async (job) => {
+      const metadataPath = safeResolve(workspaceRoot, job.metadataPath);
+      return await fs.readFile(metadataPath, "utf8").then((raw) => JSON.parse(raw)).catch(() => {
+        return results.find((result) => result.clipId === job.clipId) ?? null;
+      });
+    })
+  );
   await fs.writeFile(
     path.join(path.dirname(manifestPath), "results.json"),
-    `${JSON.stringify(results, null, 2)}\n`,
+    `${JSON.stringify(summaryResults.filter(Boolean), null, 2)}\n`,
     "utf8"
   );
   if (failed || abortRequested) {

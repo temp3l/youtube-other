@@ -8,9 +8,11 @@ import { describe, expect, it } from "vitest";
 import { scenePlanSchema } from "@mediaforge/domain";
 import {
   assignClipRenderers,
+  buildRemoteReadyMarker,
   FFmpegVideoRenderer,
   remoteAssetFileName,
   remoteAssetRemotePath,
+  remoteReadyPathForClip,
   validateRenderedVideo,
 } from "./index.js";
 
@@ -94,6 +96,58 @@ describe("FFmpegVideoRenderer", () => {
     expect(
       remoteAssetRemotePath("/var/mediaforge/jobs", hash)
     ).toBe(remoteAssetRemotePath("/var/mediaforge/jobs", hash));
+  });
+
+  it("builds deterministic remote ready marker paths", () => {
+    expect(remoteReadyPathForClip("/var/mediaforge/jobs/run-001", "scene-002")).toBe(
+      "/var/mediaforge/jobs/run-001/ready/scene-002.json"
+    );
+  });
+
+  it("captures clip dependency metadata in ready markers", () => {
+    const marker = buildRemoteReadyMarker({
+      clipId: "scene-002",
+      inputPaths: [
+        "/remote/assets/a".repeat(1),
+        "/remote/assets/b".repeat(1),
+      ],
+      dependencies: [
+        {
+          sourcePath: "/tmp/image.png",
+          contentHash: "a".repeat(64),
+          remotePath: "/remote/assets/a",
+          sizeBytes: 10,
+        },
+        {
+          sourcePath: "/tmp/audio.wav",
+          contentHash: "b".repeat(64),
+          remotePath: "/remote/assets/b",
+          sizeBytes: 20,
+        },
+      ],
+    });
+
+    expect(marker).toMatchObject({
+      schemaVersion: 1,
+      clipId: "scene-002",
+      inputPaths: ["/remote/assets/a", "/remote/assets/b"],
+      dependencyHashes: ["a".repeat(64), "b".repeat(64)],
+      dependencies: [
+        {
+          sourcePath: "/tmp/image.png",
+          contentHash: "a".repeat(64),
+          remotePath: "/remote/assets/a",
+          sizeBytes: 10,
+        },
+        {
+          sourcePath: "/tmp/audio.wav",
+          contentHash: "b".repeat(64),
+          remotePath: "/remote/assets/b",
+          sizeBytes: 20,
+        },
+      ],
+    });
+    expect(Date.parse(marker.generatedAt)).not.toBeNaN();
   });
 
   it("rebuilds placeholder-sized scene clips before concat", async () => {

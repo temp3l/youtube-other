@@ -1515,6 +1515,48 @@ function remoteResultPathForClip(baseDir: string, clipId: string): string {
   return path.join(baseDir, "metadata", `${clipId}.json`);
 }
 
+export function remoteReadyPathForClip(baseDir: string, clipId: string): string {
+  return path.posix.join(baseDir, "ready", `${clipId}.json`);
+}
+
+export interface RemoteClipDependencyRecord {
+  readonly sourcePath: string;
+  readonly contentHash: string;
+  readonly remotePath: string;
+  readonly sizeBytes: number;
+}
+
+export interface RemoteReadyMarker {
+  readonly schemaVersion: 1;
+  readonly clipId: string;
+  readonly inputPaths: readonly string[];
+  readonly dependencyHashes: readonly string[];
+  readonly dependencies: readonly RemoteClipDependencyRecord[];
+  readonly generatedAt: string;
+}
+
+export function buildRemoteReadyMarker(input: {
+  readonly clipId: string;
+  readonly inputPaths: readonly string[];
+  readonly dependencies: readonly RemoteClipDependencyRecord[];
+}): RemoteReadyMarker {
+  return {
+    schemaVersion: 1,
+    clipId: input.clipId,
+    inputPaths: [...input.inputPaths],
+    dependencyHashes: input.dependencies.map(
+      (dependency) => dependency.contentHash
+    ),
+    dependencies: input.dependencies.map((dependency) => ({
+      sourcePath: dependency.sourcePath,
+      contentHash: dependency.contentHash,
+      remotePath: dependency.remotePath,
+      sizeBytes: dependency.sizeBytes,
+    })),
+    generatedAt: new Date().toISOString(),
+  };
+}
+
 class RemoteWorkspaceManager {
   public constructor(private readonly settings: RemoteRenderSettings) {}
 
@@ -1526,6 +1568,7 @@ class RemoteWorkspaceManager {
     readonly outputDir: string;
     readonly logsDir: string;
     readonly metadataDir: string;
+    readonly readyDir: string;
   } {
     const runId = createRemoteRunId(episodeId);
     const localRoot = path.join(os.tmpdir(), "mediaforge-remote", runId);
@@ -1538,6 +1581,7 @@ class RemoteWorkspaceManager {
       outputDir: path.join(localRoot, "output"),
       logsDir: path.join(localRoot, "logs"),
       metadataDir: path.join(localRoot, "metadata"),
+      readyDir: path.join(localRoot, "ready"),
     };
   }
 
@@ -1598,12 +1642,14 @@ class RemoteClipRenderer implements ClipRenderer {
     await ensureDir(workspace.outputDir);
     await ensureDir(workspace.logsDir);
     await ensureDir(workspace.metadataDir);
+    await ensureDir(workspace.readyDir);
     const localAssetCacheDir = path.join(
       os.tmpdir(),
       "mediaforge-remote-assets"
     );
     await ensureDir(localAssetCacheDir);
     const inputPathMap = new Map<string, string>();
+    const inputAssetMap = new Map<string, RemoteAssetRecord>();
     const assetFiles = new Map<string, RemoteAssetRecord>();
     const seenContentHashes = new Set<string>();
     for (const request of requests) {
@@ -1634,13 +1680,17 @@ class RemoteClipRenderer implements ClipRenderer {
             sizeBytes,
           });
         }
+        const assetRecord = assetFiles.get(contentHash);
+        if (assetRecord) {
+          inputAssetMap.set(resolved, assetRecord);
+        }
       }
     }
     const bootstrapRelativePaths = [
       "metadata/job-manifest.json",
       "metadata/remote-render-worker.mjs",
     ];
-    const remoteRequests = await Promise.all(
+    const requestPlans = await Promise.all(
       requests.map(async (request) => {
         const mappedArgs = mapCommandPaths(
           request.ffmpegArguments,
@@ -1660,7 +1710,21 @@ class RemoteClipRenderer implements ClipRenderer {
           }
           return mapped;
         });
-        return {
+        const dependencies = request.inputPaths.map((inputPath) => {
+          const dependency = inputAssetMap.get(path.resolve(inputPath));
+          if (!dependency) {
+            throw new ProcessExecutionError(
+              `Missing remote dependency mapping for ${inputPath} in ${request.clipId}.`
+            );
+          }
+          return {
+            sourcePath: dependency.sourcePath,
+            contentHash: dependency.contentHash,
+            remotePath: dependency.remotePath,
+            sizeBytes: dependency.sizeBytes,
+          };
+        });
+        const remoteRequest = {
           ...request,
           inputPaths: remoteInputPaths,
           outputPath: remoteOutputPath,
@@ -1672,18 +1736,30 @@ class RemoteClipRenderer implements ClipRenderer {
           expectedWidth: request.expectedWidth,
           expectedHeight: request.expectedHeight,
         };
+        return {
+          request,
+          remoteRequest,
+          dependencies,
+          readyMarker: buildRemoteReadyMarker({
+            clipId: request.clipId,
+            inputPaths: remoteInputPaths,
+            dependencies,
+          }),
+        };
       })
     );
     const manifest = {
-      schemaVersion: 1,
+      schemaVersion: 2,
       runId: workspace.runId,
       episodeId: requests[0]?.episodeId ?? "episode",
       concurrency: this.settings.concurrency,
-      jobs: remoteRequests.map((request) => ({
+      jobs: requestPlans.map(({ request, remoteRequest, dependencies }) => ({
         clipId: request.clipId,
         sequenceNumber: request.sequenceNumber,
-        inputPaths: request.inputPaths,
-        outputPath: request.outputPath,
+        inputPaths: remoteRequest.inputPaths,
+        readyPath: remoteReadyPathForClip(workspace.remoteRoot, request.clipId),
+        dependencies,
+        outputPath: remoteRequest.outputPath,
         metadataPath: remoteResultPathForClip(
           workspace.remoteRoot,
           request.clipId
@@ -1693,10 +1769,10 @@ class RemoteClipRenderer implements ClipRenderer {
           "logs",
           `${request.clipId}.log`
         ),
-        ffmpegArguments: request.ffmpegArguments,
-        expectedDurationSeconds: request.expectedDurationSeconds,
-        expectedWidth: request.expectedWidth,
-        expectedHeight: request.expectedHeight,
+        ffmpegArguments: remoteRequest.ffmpegArguments,
+        expectedDurationSeconds: remoteRequest.expectedDurationSeconds,
+        expectedWidth: remoteRequest.expectedWidth,
+        expectedHeight: remoteRequest.expectedHeight,
       })),
       generatedAt: new Date().toISOString(),
     };
@@ -1715,6 +1791,10 @@ class RemoteClipRenderer implements ClipRenderer {
       "mkdir",
       "-p",
       workspace.remoteRoot,
+      this.workspaceManager.remotePath(workspace.remoteRoot, "output"),
+      this.workspaceManager.remotePath(workspace.remoteRoot, "logs"),
+      this.workspaceManager.remotePath(workspace.remoteRoot, "metadata"),
+      this.workspaceManager.remotePath(workspace.remoteRoot, "ready"),
       remoteAssetRoot(this.settings.baseDir),
     ]);
     const remoteTarget = `${this.settings.user}@${this.settings.host}:${workspace.remoteRoot}/`;
@@ -1733,28 +1813,6 @@ class RemoteClipRenderer implements ClipRenderer {
       bootstrapListPath,
       `${workspace.localRoot}/`,
       remoteTarget,
-    ]);
-    const assetListPath = path.join(workspace.metadataDir, "asset-files.txt");
-    await writeTextAtomic(
-      assetListPath,
-      [...assetFiles.values()]
-        .map((assetFile) =>
-          path
-            .relative(localAssetCacheDir, assetFile.localPath)
-            .replace(/\\/gu, "/")
-        )
-        .join("\n")
-    );
-    const backgroundUpload = spawnBackgroundProcess("rsync", [
-      "-a",
-      "--partial",
-      "--append-verify",
-      "-e",
-      ["ssh", ...buildSshArgs(this.settings)].join(" "),
-      "--files-from",
-      assetListPath,
-      `${localAssetCacheDir}/`,
-      `${this.settings.user}@${this.settings.host}:${remoteAssetRoot(this.settings.baseDir)}/`,
     ]);
     await writeJsonAtomic(
       path.join(workspace.metadataDir, "asset-manifest.json"),
@@ -1785,106 +1843,80 @@ class RemoteClipRenderer implements ClipRenderer {
     const worker = spawnBackgroundProcess("ssh", sshArgs, {
       timeoutMs: Math.max(1, this.settings.commandTimeoutSeconds) * 1000,
     });
-    const runResult = await worker.promise.catch((error: unknown) => {
-      backgroundUpload.child.kill("SIGTERM");
-      throw error;
-    });
-    const uploadResult = await backgroundUpload.promise.catch(
-      (error: unknown) => {
-        worker.child.kill("SIGTERM");
-        throw error;
-      }
-    );
-    if (uploadResult.exitCode !== 0) {
-      throw new ProcessExecutionError(
-        `Background remote upload exited with code ${uploadResult.exitCode}: ${uploadResult.stderr.slice(0, 400)}`
-      );
-    }
-    await spawnWithResult("rsync", [
-      "-a",
-      "--partial",
-      "--append-verify",
-      "-e",
-      ["ssh", ...buildSshArgs(this.settings)].join(" "),
-      `${this.settings.user}@${this.settings.host}:${workspace.remoteRoot}/output/`,
-      `${workspace.outputDir}/`,
-    ]);
-    await spawnWithResult("rsync", [
-      "-a",
-      "--partial",
-      "--append-verify",
-      "-e",
-      ["ssh", ...buildSshArgs(this.settings)].join(" "),
-      `${this.settings.user}@${this.settings.host}:${workspace.remoteRoot}/logs/`,
-      `${workspace.logsDir}/`,
-    ]);
-    await spawnWithResult("rsync", [
-      "-a",
-      "--partial",
-      "--append-verify",
-      "-e",
-      ["ssh", ...buildSshArgs(this.settings)].join(" "),
-      `${this.settings.user}@${this.settings.host}:${workspace.remoteRoot}/metadata/`,
-      `${workspace.metadataDir}/`,
-    ]);
-    if (runResult.exitCode !== 0) {
-      const resultFiles = await Promise.all(
-        requests.map((request) =>
-          fileExists(path.join(workspace.metadataDir, `${request.clipId}.json`))
-        )
-      );
-      if (resultFiles.every((exists) => !exists)) {
-        throw new ProcessExecutionError(
-          `Remote render worker exited with code ${runResult.exitCode}: ${runResult.stderr.slice(0, 400)}`
-        );
-      }
-    }
-    const results: ClipRenderResult[] = [];
-    for (const request of requests) {
-      const localResultPath = path.join(
+    const uploadedContentHashes = new Set<string>();
+    const clipUploadErrors = new Map<string, string>();
+    const rsyncShell = ["ssh", ...buildSshArgs(this.settings)].join(" ");
+    const syncRemoteDirectory = async (
+      remoteDirectory: string,
+      localDirectory: string
+    ): Promise<void> => {
+      await spawnWithResult("rsync", [
+        "-a",
+        "--partial",
+        "--append-verify",
+        "-e",
+        rsyncShell,
+        `${this.settings.user}@${this.settings.host}:${remoteDirectory}/`,
+        `${localDirectory}/`,
+      ]);
+    };
+    const writeFailedRemoteMetadata = async (
+      request: ClipRenderRequest,
+      errorMessage: string
+    ): Promise<void> => {
+      const metadataPath = path.join(
         workspace.metadataDir,
         `${request.clipId}.json`
       );
-      if (!(await fileExists(localResultPath))) {
-        const fallbackResult = await this.localRenderer.render(request);
-        results.push({
-          ...fallbackResult,
-          renderer: "local",
-          fallbackUsed: true,
-        });
-        continue;
-      }
-      const remoteResult = JSON.parse(
-        await fs.readFile(localResultPath, "utf8")
-      ) as {
+      await writeJsonAtomic(metadataPath, {
+        clipId: request.clipId,
+        sequenceNumber: request.sequenceNumber,
+        attempt: 1,
+        status: "failed",
+        outputSizeBytes: 0,
+        durationMs: 0,
+        errorMessage,
+        completedAt: new Date().toISOString(),
+      });
+      await spawnWithResult("rsync", [
+        "-a",
+        "--partial",
+        "--append-verify",
+        "-e",
+        rsyncShell,
+        metadataPath,
+        `${this.settings.user}@${this.settings.host}:${this.workspaceManager.remotePath(workspace.remoteRoot, "metadata")}/`,
+      ]).catch(() => {});
+    };
+    const finalizeRemoteClip = async (
+      request: ClipRenderRequest,
+      remoteResult: {
         status?: string;
-        outputPath?: string;
         outputSizeBytes?: number;
         durationMs?: number;
         attempt?: number;
-        errorMessage?: string;
-      };
-      const localOutputPath = request.outputPath;
-      const partialPath = `${localOutputPath}.partial`;
-      if (remoteResult.status !== "succeeded") {
-        if (!this.settings.fallbackToLocal) {
-          throw new MediaValidationError(
-            `Remote clip ${request.clipId} failed: ${remoteResult.errorMessage ?? "unknown error"}`
-          );
-        }
-        const fallbackResult = await this.localRenderer.render(request);
-        results.push({
-          ...fallbackResult,
-          renderer: "local",
-          fallbackUsed: true,
-        });
-        continue;
       }
-      await ensureDir(path.dirname(localOutputPath));
-      await fs.copyFile(
-        path.join(workspace.outputDir, path.basename(localOutputPath)),
-        partialPath
+    ): Promise<ClipRenderResult | undefined> => {
+      const localOutputPath = request.outputPath;
+      const remoteOutputPath = path.join(
+        workspace.outputDir,
+        path.basename(localOutputPath)
       );
+      if (!(await fileExists(remoteOutputPath))) {
+        return undefined;
+      }
+      if (
+        typeof remoteResult.outputSizeBytes === "number" &&
+        remoteResult.outputSizeBytes > 0
+      ) {
+        const stats = await fs.stat(remoteOutputPath).catch(() => undefined);
+        if (!stats || stats.size < remoteResult.outputSizeBytes) {
+          return undefined;
+        }
+      }
+      const partialPath = `${localOutputPath}.partial`;
+      await ensureDir(path.dirname(localOutputPath));
+      await fs.copyFile(remoteOutputPath, partialPath);
       const validation = await validateRenderOutput(partialPath, {
         ...(request.expectedDurationSeconds !== undefined
           ? { expectedDurationSeconds: request.expectedDurationSeconds }
@@ -1897,19 +1929,8 @@ class RemoteClipRenderer implements ClipRenderer {
           : {}),
       });
       if (!validation.valid) {
-        if (!this.settings.fallbackToLocal) {
-          throw new MediaValidationError(
-            `Remote clip ${request.clipId} failed validation: ${validation.issues.join("; ")}`
-          );
-        }
-        const fallbackResult = await this.localRenderer.render(request);
-        results.push({
-          ...fallbackResult,
-          renderer: "local",
-          fallbackUsed: true,
-        });
         await fs.rm(partialPath, { force: true }).catch(() => {});
-        continue;
+        return undefined;
       }
       await fs.rename(partialPath, localOutputPath);
       await writeSceneClipManifestFromRequest(
@@ -1917,11 +1938,11 @@ class RemoteClipRenderer implements ClipRenderer {
         await hashFile(localOutputPath),
         "remote"
       );
-        results.push({
-          clipId: request.clipId,
-          sequenceNumber: request.sequenceNumber,
-          renderer: "remote",
-          outputPath: localOutputPath,
+      return {
+        clipId: request.clipId,
+        sequenceNumber: request.sequenceNumber,
+        renderer: "remote",
+        outputPath: localOutputPath,
         durationMs:
           typeof remoteResult.durationMs === "number"
             ? remoteResult.durationMs
@@ -1932,8 +1953,233 @@ class RemoteClipRenderer implements ClipRenderer {
           [...assetFiles.values()].reduce((sum, file) => sum + file.sizeBytes, 0) +
           (await fs.stat(localOutputPath)).size,
         fallbackUsed: false,
-      });
+      };
+    };
+    const resultsByClipId = new Map<string, ClipRenderResult>();
+    const reconcileRequest = async (
+      request: ClipRenderRequest,
+      options: { readonly finalPass: boolean }
+    ): Promise<void> => {
+      if (resultsByClipId.has(request.clipId)) {
+        return;
+      }
+      const uploadError = clipUploadErrors.get(request.clipId);
+      if (uploadError) {
+        if (!this.settings.fallbackToLocal) {
+          throw new MediaValidationError(
+            `Remote clip ${request.clipId} upload failed: ${uploadError}`
+          );
+        }
+        const fallbackResult = await this.localRenderer.render(request);
+        resultsByClipId.set(request.clipId, {
+          ...fallbackResult,
+          renderer: "local",
+          fallbackUsed: true,
+        });
+        return;
+      }
+      const localResultPath = path.join(
+        workspace.metadataDir,
+        `${request.clipId}.json`
+      );
+      if (!(await fileExists(localResultPath))) {
+        if (options.finalPass) {
+          if (!this.settings.fallbackToLocal) {
+            throw new ProcessExecutionError(
+              `Remote render produced no metadata for ${request.clipId}.`
+            );
+          }
+          const fallbackResult = await this.localRenderer.render(request);
+          resultsByClipId.set(request.clipId, {
+            ...fallbackResult,
+            renderer: "local",
+            fallbackUsed: true,
+          });
+        }
+        return;
+      }
+      const remoteResult = JSON.parse(
+        await fs.readFile(localResultPath, "utf8")
+      ) as {
+        status?: string;
+        outputPath?: string;
+        outputSizeBytes?: number;
+        durationMs?: number;
+        attempt?: number;
+        errorMessage?: string;
+      };
+      if (remoteResult.status === "succeeded") {
+        const finalized = await finalizeRemoteClip(request, remoteResult);
+        if (finalized) {
+          resultsByClipId.set(request.clipId, finalized);
+          return;
+        }
+        if (!options.finalPass) {
+          return;
+        }
+        if (!this.settings.fallbackToLocal) {
+          throw new MediaValidationError(
+            `Remote clip ${request.clipId} failed validation or sync completion.`
+          );
+        }
+        const fallbackResult = await this.localRenderer.render(request);
+        resultsByClipId.set(request.clipId, {
+          ...fallbackResult,
+          renderer: "local",
+          fallbackUsed: true,
+        });
+        return;
+      }
+      if (remoteResult.status === "failed") {
+        if (!this.settings.fallbackToLocal) {
+          throw new MediaValidationError(
+            `Remote clip ${request.clipId} failed: ${remoteResult.errorMessage ?? "unknown error"}`
+          );
+        }
+        const fallbackResult = await this.localRenderer.render(request);
+        resultsByClipId.set(request.clipId, {
+          ...fallbackResult,
+          renderer: "local",
+          fallbackUsed: true,
+        });
+        return;
+      }
+      if (
+        options.finalPass &&
+        remoteResult.status !== "queued" &&
+        remoteResult.status !== "rendering"
+      ) {
+        if (!this.settings.fallbackToLocal) {
+          throw new ProcessExecutionError(
+            `Remote clip ${request.clipId} ended without a final status.`
+          );
+        }
+        const fallbackResult = await this.localRenderer.render(request);
+        resultsByClipId.set(request.clipId, {
+          ...fallbackResult,
+          renderer: "local",
+          fallbackUsed: true,
+        });
+      }
+    };
+    let workerCompleted = false;
+    const uploadTask = (async (): Promise<void> => {
+      for (const { request, dependencies, readyMarker } of requestPlans) {
+        try {
+          const newDependencies = dependencies.filter((dependency) => {
+            if (uploadedContentHashes.has(dependency.contentHash)) {
+              return false;
+            }
+            uploadedContentHashes.add(dependency.contentHash);
+            return true;
+          });
+          for (const dependency of newDependencies) {
+            const sourceAsset = assetFiles.get(dependency.contentHash);
+            if (!sourceAsset) {
+              throw new ProcessExecutionError(
+                `Missing cached asset ${dependency.contentHash} for ${request.clipId}.`
+              );
+            }
+            const uploadResult = await spawnWithResult("rsync", [
+              "-a",
+              "--partial",
+              "--append-verify",
+              "-e",
+              rsyncShell,
+              sourceAsset.localPath,
+              `${this.settings.user}@${this.settings.host}:${remoteAssetRoot(this.settings.baseDir)}/`,
+            ]);
+            if (uploadResult.exitCode !== 0) {
+              throw new ProcessExecutionError(uploadResult.stderr.slice(0, 400));
+            }
+          }
+          const readyMarkerPath = path.join(
+            workspace.readyDir,
+            `${request.clipId}.json`
+          );
+          await writeJsonAtomic(readyMarkerPath, readyMarker);
+          const readyUploadResult = await spawnWithResult("rsync", [
+            "-a",
+            "--partial",
+            "--append-verify",
+            "-e",
+            rsyncShell,
+            readyMarkerPath,
+            `${this.settings.user}@${this.settings.host}:${this.workspaceManager.remotePath(workspace.remoteRoot, "ready")}/`,
+          ]);
+          if (readyUploadResult.exitCode !== 0) {
+            throw new ProcessExecutionError(
+              readyUploadResult.stderr.slice(0, 400)
+            );
+          }
+        } catch (error) {
+          const message =
+            error instanceof Error ? error.message : String(error);
+          clipUploadErrors.set(
+            request.clipId,
+            message
+          );
+          await writeFailedRemoteMetadata(request, message);
+          await reconcileRequest(request, { finalPass: false });
+        }
+      }
+    })();
+    const workerPromise = worker.promise.finally(() => {
+      workerCompleted = true;
+    });
+    const syncTask = (async (): Promise<void> => {
+      while (!workerCompleted) {
+        await syncRemoteDirectory(
+          this.workspaceManager.remotePath(workspace.remoteRoot, "output"),
+          workspace.outputDir
+        );
+        await syncRemoteDirectory(
+          this.workspaceManager.remotePath(workspace.remoteRoot, "logs"),
+          workspace.logsDir
+        );
+        await syncRemoteDirectory(
+          this.workspaceManager.remotePath(workspace.remoteRoot, "metadata"),
+          workspace.metadataDir
+        );
+        for (const { request } of requestPlans) {
+          await reconcileRequest(request, { finalPass: false });
+        }
+        if (!workerCompleted) {
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+        }
+      }
+      await syncRemoteDirectory(
+        this.workspaceManager.remotePath(workspace.remoteRoot, "output"),
+        workspace.outputDir
+      );
+      await syncRemoteDirectory(
+        this.workspaceManager.remotePath(workspace.remoteRoot, "logs"),
+        workspace.logsDir
+      );
+      await syncRemoteDirectory(
+        this.workspaceManager.remotePath(workspace.remoteRoot, "metadata"),
+        workspace.metadataDir
+      );
+    })();
+    const [runResult] = await Promise.all([workerPromise, uploadTask, syncTask]);
+    if (runResult.exitCode !== 0) {
+      const resultFiles = await Promise.all(
+        requests.map((request) =>
+          fileExists(path.join(workspace.metadataDir, `${request.clipId}.json`))
+        )
+      );
+      if (resultFiles.every((exists) => !exists)) {
+        throw new ProcessExecutionError(
+          `Remote render worker exited with code ${runResult.exitCode}: ${runResult.stderr.slice(0, 400)}`
+        );
+      }
     }
+    for (const { request } of requestPlans) {
+      await reconcileRequest(request, { finalPass: true });
+    }
+    const results = requests
+      .map((request) => resultsByClipId.get(request.clipId))
+      .filter((result): result is ClipRenderResult => result !== undefined);
     if (!this.settings.keepFiles) {
       await spawnWithResult("ssh", [
         ...buildSshArgs(this.settings),
