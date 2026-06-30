@@ -127,6 +127,7 @@ import {
   SHORT_ADAPTATION_CONTRACT_VERSION,
   SHORT_SOURCE_EXTRACTION_VERSION,
 } from "./short-adaptation-contract.js";
+import { getLanguageProfile } from "./language-profiles.js";
 import {
   canonicalEnglishFullArtifactSchema,
   resolveCanonicalEnglishFullPaths,
@@ -137,6 +138,7 @@ import {
 } from "./story-prompt-response-schemas.js";
 import { renderLocalizedFullStory } from "./story-markdown-renderer.js";
 import { resolveEpisodeStoryProductionDirectory } from "./story-production.js";
+import { validateShortNarrationArtifact } from "./generated-story-validator.js";
 
 type ResponseCreateRequest = Parameters<
   OpenAiStoryClient["responses"]["create"]
@@ -848,6 +850,8 @@ function analyzeGeneratedPayload(args: {
   readonly language: StoryLanguage;
   readonly source: ResolvedShortRewriteSource;
   readonly parentTitle: string;
+  readonly parent: ShortRewriteResolvedParent;
+  readonly adaptationContract: ShortRewriteAdaptationContract;
 }): {
   readonly generation: ShortRewriteGeneration;
   readonly validation: ReturnType<typeof buildValidationSummary>;
@@ -874,32 +878,28 @@ function analyzeGeneratedPayload(args: {
       "Narration is below the preferred range but above the hard minimum."
     );
   }
-  const issues: string[] = [];
-  if (!hookMatchesNarration) {
-    issues.push(
-      "Hook does not exactly match the first sentence of the narration."
-    );
-  }
-  if (wordCount < 145) {
-    issues.push(
-      `Narration word count ${wordCount} is below the hard minimum of 145.`
-    );
-  }
-  if (wordCount > 170) {
-    issues.push(
-      `Narration word count ${wordCount} exceeds the hard maximum of 170.`
-    );
-  }
-  if (
-    /\b(audio generation instructions|narration script|sound effect|scene change|\[pause\]|\[whisper\]|\[sound effect\]|\[music\])\b/iu.test(
-      narration
-    )
-  ) {
-    issues.push("Narration contains production labels.");
-  }
-  if (detectEditorialCommentary(narration).length > 0) {
-    issues.push("Narration contains editorial commentary.");
-  }
+  const validationResult = validateShortNarrationArtifact({
+    language: args.language,
+    profile: getLanguageProfile(args.language),
+    narration,
+    parent: {
+      ...args.parent,
+      validated: true,
+    },
+    adaptationContract: args.adaptationContract,
+    outputConstraints: {
+      variant: "short",
+      targetWordRange: args.adaptationContract.constraints.targetWordRange,
+      targetNarrationWpm: args.adaptationContract.constraints.targetNarrationWpm,
+      targetDuration: {
+        minSeconds: args.adaptationContract.constraints.targetDurationSeconds.min,
+        maxSeconds: args.adaptationContract.constraints.targetDurationSeconds.max,
+      },
+      hookDeadlineSeconds: args.adaptationContract.constraints.hookDeadlineSeconds,
+      fullVideoBridgeRequired: true,
+    },
+  });
+  const issues = [...validationResult.messages];
   const generation: ShortRewriteGeneration = {
     title: normalizeWhitespace(args.parentTitle),
     hook: firstSentence(narration),
@@ -1630,6 +1630,8 @@ async function generateLanguagePayload(
     language: args.language,
     source: args.source,
     parentTitle: args.parent.title,
+    parent: args.parent,
+    adaptationContract: args.adaptationContract,
   });
   let requestId = initialResponse.id;
   let usage = buildUsagePayload({
@@ -1706,6 +1708,8 @@ async function generateLanguagePayload(
         language: args.language,
         source: args.source,
         parentTitle: args.parent.title,
+        parent: args.parent,
+        adaptationContract: args.adaptationContract,
       });
       generation = repairedAnalysis.generation;
       validation = repairedAnalysis.validation;
@@ -1763,6 +1767,8 @@ async function generateLanguagePayload(
         language: args.language,
         source: args.source,
         parentTitle: args.parent.title,
+        parent: args.parent,
+        adaptationContract: args.adaptationContract,
       });
       generation = regeneratedAnalysis.generation;
       validation = regeneratedAnalysis.validation;
@@ -2216,16 +2222,6 @@ export async function rewriteShortStories(
       storyIr: canonicalStoryIr,
       outputConstraints,
     });
-    if (
-      sourceExtraction.orphanedReferences.length > 0 &&
-      !(options.allowSourceInput ?? false)
-    ) {
-      throw new ShortRewriteValidationError(
-        `Short extraction removed prerequisite beats for ${sourceExtraction.orphanedReferences
-          .map((entry) => entry.reference)
-          .join(", ")}.`
-      );
-    }
     const adaptationContract = buildShortAdaptationContract({
       identity: {
         episodeId: source.episodeId,

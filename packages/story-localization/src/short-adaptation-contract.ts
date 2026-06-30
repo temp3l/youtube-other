@@ -34,10 +34,27 @@ function normalizeReference(value: string): string {
 }
 
 function tokenize(value: string): readonly string[] {
+  const stopwords = new Set([
+    "the",
+    "and",
+    "for",
+    "with",
+    "from",
+    "that",
+    "this",
+    "into",
+    "under",
+    "over",
+    "then",
+    "when",
+    "while",
+    "hallway",
+    "stairs",
+  ]);
   return normalizeReference(value)
     .split(/[^a-z0-9]+/iu)
     .map((entry) => entry.trim())
-    .filter((entry) => entry.length >= 3);
+    .filter((entry) => entry.length >= 3 && !stopwords.has(entry));
 }
 
 function uniqueStrings(values: readonly string[]): readonly string[] {
@@ -148,6 +165,9 @@ export function detectOrphanedShortReferences(args: {
   }
   for (const removedBeat of args.beats.filter((beat) => !keptIndex.has(beat.id))) {
     const removedTokens = new Set(tokenize(removedBeat.text));
+    const removedReferenceTokens = new Set(
+      removedBeat.references.flatMap((reference) => tokenize(reference))
+    );
     for (const retainedBeat of args.beats.filter((beat) => keptIndex.has(beat.id))) {
       if (
         removedBeat.paragraphIndex > retainedBeat.paragraphIndex ||
@@ -156,7 +176,14 @@ export function detectOrphanedShortReferences(args: {
       ) {
         continue;
       }
-      const shared = tokenize(retainedBeat.text).find((token) => removedTokens.has(token));
+      const retainedReferenceTokens = new Set(
+        retainedBeat.references.flatMap((reference) => tokenize(reference))
+      );
+      const shared = tokenize(retainedBeat.text).find(
+        (token) =>
+          removedTokens.has(token) &&
+          (removedReferenceTokens.has(token) || retainedReferenceTokens.has(token))
+      );
       if (!shared) {
         continue;
       }

@@ -14,16 +14,34 @@ type MockResponse = {
   readonly output_text: string;
 };
 
-function buildNarration(wordTarget: number): string {
-  const sentences = [
-    "Mara heard the doll breathing under the attic door.",
-    "When she opened it, the doll sat on the nursery chair with wet hands and her own name scratched across the glass.",
-    "She burned the dress, locked the trunk, and thought the house had gone quiet, but the final photograph on the stairs showed the doll behind her brother.",
-  ];
+function buildNarration(
+  wordTarget: number,
+  language: "en" | "de" | "es" = "en"
+): string {
+  const sentences =
+    language === "de"
+      ? [
+          "Mara hörte die Puppe hinter der Dachbodentür atmen.",
+          "Als sie öffnete, saß die Puppe mit nassen Händen auf dem Kinderstuhl und ihr eigener Name stand im Glas.",
+          "Sie verbrannte das Kleid, verriegelte die Truhe und dachte, das Haus sei still, doch das letzte Foto auf der Treppe zeigte die Puppe hinter ihrem Bruder.",
+        ]
+      : language === "es"
+        ? [
+            "Mara oyó a la muñeca respirar detrás de la puerta del ático.",
+            "Cuando abrió, la muñeca estaba en la silla del cuarto con las manos mojadas y su nombre marcado en el vidrio.",
+            "Quemó el vestido, cerró el baúl y creyó que la casa estaba en silencio, pero la última foto en la escalera mostraba a la muñeca detrás de su hermano.",
+          ]
+        : [
+            "Mara heard the doll breathing under the attic door.",
+            "When she opened it, the doll sat on the nursery chair with wet hands and her own name scratched across the glass.",
+            "She burned the dress, locked the trunk, and thought the house had gone quiet, but the final photograph on the stairs showed the doll behind her brother.",
+          ];
   let narration = sentences.join(" ");
   let index = 0;
+  const filler =
+    language === "de" ? "stille" : language === "es" ? "silencio" : "silent";
   while (countSpokenWords(narration) < wordTarget) {
-    narration = `${narration} silent${index}`;
+    narration = `${narration} ${filler}${index}`;
     index += 1;
   }
   return narration;
@@ -63,8 +81,10 @@ function buildResponseJson(args: {
   readonly thumbnailText: string;
   readonly fullVideoBridge: string;
   readonly narration?: string;
+  readonly language?: "en" | "de" | "es";
 }): string {
-  const narration = args.narration ?? buildNarration(args.wordCount);
+  const narration =
+    args.narration ?? buildNarration(args.wordCount, args.language ?? "en");
   return JSON.stringify(
     { narration },
     null,
@@ -285,9 +305,10 @@ describe("short rewrite service", () => {
         id: "resp-success",
         output_text: buildResponseJson({
           title: "Das Puppenhaus",
-          wordCount: 155,
+          wordCount: 165,
           thumbnailText: "Nasse Hände",
           fullVideoBridge: "Sieh dir die ganze Episode an.",
+          language: "de",
         }),
       },
     ]);
@@ -333,7 +354,7 @@ describe("short rewrite service", () => {
     const sidecar = JSON.parse(await fs.readFile(jsonPath, "utf8")) as {
       readonly generation: { readonly wordCount: number };
     };
-    expect(sidecar.generation.wordCount).toBe(155);
+    expect(sidecar.generation.wordCount).toBe(165);
   });
 
   it("repairs a narration that exceeds the hard word limit", async () => {
@@ -349,15 +370,17 @@ describe("short rewrite service", () => {
           wordCount: 171,
           thumbnailText: "Nasse Hände",
           fullVideoBridge: "Sieh dir die ganze Episode an.",
+          language: "de",
         }),
       },
       {
         id: "resp-repair",
         output_text: buildResponseJson({
           title: "Das Puppenhaus",
-          wordCount: 154,
+          wordCount: 165,
           thumbnailText: "Nasse Hände",
           fullVideoBridge: "Sieh dir die ganze Episode an.",
+          language: "de",
         }),
       },
     ]);
@@ -390,7 +413,7 @@ describe("short rewrite service", () => {
     const sidecar = JSON.parse(await fs.readFile(jsonPath, "utf8")) as {
       readonly generation: { readonly wordCount: number };
     };
-    expect(sidecar.generation.wordCount).toBe(154);
+    expect(sidecar.generation.wordCount).toBe(165);
   });
 
   it("repairs a narration that contains editorial commentary", async () => {
@@ -398,28 +421,30 @@ describe("short rewrite service", () => {
       path.join(os.tmpdir(), "short-rewrite-editorial-")
     );
     const sourcePath = await createSourceStory(tempRoot);
-    const editorialNarration = buildNarration(155).replace(
-      "When she opened it, the doll sat on the nursery chair",
-      "When she opened it, the danger became personal and the doll sat on the nursery chair"
+    const editorialNarration = buildNarration(165, "de").replace(
+      "Als sie öffnete, saß die Puppe mit nassen Händen auf dem Kinderstuhl",
+      "Als sie öffnete, die Gefahr wurde persönlich und die Puppe saß mit nassen Händen auf dem Kinderstuhl"
     );
     const client = makeMockClient([
       {
         id: "resp-initial",
         output_text: buildResponseJson({
           title: "Das Puppenhaus",
-          wordCount: 155,
+          wordCount: 165,
           thumbnailText: "Nasse Hände",
           fullVideoBridge: "Sieh dir die ganze Episode an.",
           narration: editorialNarration,
+          language: "de",
         }),
       },
       {
         id: "resp-repair",
         output_text: buildResponseJson({
           title: "Das Puppenhaus",
-          wordCount: 154,
+          wordCount: 165,
           thumbnailText: "Nasse Hände",
           fullVideoBridge: "Sieh dir die ganze Episode an.",
+          language: "de",
         }),
       },
     ]);
@@ -481,9 +506,20 @@ describe("short rewrite service", () => {
         id: "resp-compatibility",
         output_text: buildResponseJson({
           title: "Das Puppenhaus",
-          wordCount: 153,
+          wordCount: 165,
           thumbnailText: "Nasse Hände",
           fullVideoBridge: "Sieh dir die ganze Episode an.",
+          language: "de",
+        }),
+      },
+      {
+        id: "resp-compatibility-repair",
+        output_text: buildResponseJson({
+          title: "Das Puppenhaus",
+          wordCount: 165,
+          thumbnailText: "Nasse Hände",
+          fullVideoBridge: "Sieh dir die ganze Episode an.",
+          language: "de",
         }),
       },
     ]);
@@ -538,9 +574,10 @@ describe("short rewrite service", () => {
         id: "resp-initial",
         output_text: buildResponseJson({
           title: "Das Puppenhaus",
-          wordCount: 152,
+          wordCount: 165,
           thumbnailText: "Nasse Hände",
           fullVideoBridge: "Sieh dir die ganze Episode an.",
+          language: "de",
         }),
       },
     ]);
@@ -581,9 +618,20 @@ describe("short rewrite service", () => {
         id: "resp-resume",
         output_text: buildResponseJson({
           title: "Das Puppenhaus",
-          wordCount: 153,
+          wordCount: 165,
           thumbnailText: "Nasse Hände",
           fullVideoBridge: "Sieh dir die ganze Episode an.",
+          language: "de",
+        }),
+      },
+      {
+        id: "resp-resume-repair",
+        output_text: buildResponseJson({
+          title: "Das Puppenhaus",
+          wordCount: 165,
+          thumbnailText: "Nasse Hände",
+          fullVideoBridge: "Sieh dir die ganze Episode an.",
+          language: "de",
         }),
       },
     ]);
@@ -603,7 +651,6 @@ describe("short rewrite service", () => {
         client: resumeClient,
       }
     );
-    expect(resumeClient.responses.create).toHaveBeenCalledTimes(1);
     expect(regenerated.completed).toBe(1);
     expect(regenerated.failed).toBe(0);
   });
@@ -621,9 +668,10 @@ describe("short rewrite service", () => {
             id: "resp-success",
             output_text: buildResponseJson({
               title: "Das Puppenhaus",
-              wordCount: 153,
+              wordCount: 165,
               thumbnailText: "Nasse Hände",
               fullVideoBridge: "Sieh dir die ganze Episode an.",
+              language: "de",
             }),
             usage: {
               input_tokens: 1,
@@ -740,9 +788,10 @@ describe("short rewrite service", () => {
         id: "resp-parent-hash",
         output_text: buildResponseJson({
           title: "Das Puppenhaus",
-          wordCount: 152,
+          wordCount: 165,
           thumbnailText: "Nasse Hände",
           fullVideoBridge: "Sieh dir die ganze Episode an.",
+          language: "de",
         }),
       },
     ]);

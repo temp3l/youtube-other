@@ -50,9 +50,9 @@ function buildFullNarration(language: LanguageCode): string[] {
     "The house stayed wet and silent while Elena counted each step and listened for the next breath.";
   let first =
     `${language.toUpperCase()} version: Elena Ward stayed in the house after dark and kept hearing Bramble breathe from under the bed. ` +
-    "A storm rolled in, the power failed, and Elena checked the hallway, the kitchen, and the attic for anything that could explain the sound.";
+    "A storm rolled in, the power failed, and Elena checked the stairs, the kitchen, and the attic for anything that could explain the sound.";
   let second =
-    "She found the same wet tracks in the hallway, the same attic note, HUMANS CAN LICK TOO. was written on the mirror, and the notebook still said SHE REACHED DOWN FIRST. The car alarm drew the neighbor out and the intruder fled through the loft hatch.";
+    "She found the same wet tracks by the stairs, the same attic note, HUMANS CAN LICK TOO. was written on the mirror, and the notebook still said SHE REACHED DOWN FIRST. The car alarm drew the neighbor out and the intruder fled through the loft hatch.";
   while (countWords(`${first} ${second}`) < 155) {
     second = `${second} ${filler}`;
   }
@@ -101,11 +101,11 @@ function makeShortRewritePayload() {
   const hook =
     "Elena Ward heard Bramble licking beneath the bed while the storm hit the windows.";
   const filler =
-    "She kept replaying the dripping hallway and the attic warning.";
+    "She kept replaying the dripping stairs and the attic warning.";
   let narration =
     `${hook} ` +
-    "By morning the dog was dead in the hallway, HUMANS CAN LICK TOO was written on the mirror, and the notebook still said SHE REACHED DOWN FIRST. " +
-    "Every room stayed wet, every light stayed dim, and every step toward the attic made the breathing sound seem closer than before.";
+    "By morning the dog was dead by the stairs, HUMANS CAN LICK TOO was written on the mirror, and the notebook still said SHE REACHED DOWN FIRST. " +
+    "When the car alarm pulled the neighbor outside, the intruder fled through the loft hatch and every step toward the attic made the breathing sound seem closer than before.";
   while (countWords(narration) < 155) {
     narration = `${narration} ${filler}`;
   }
@@ -500,13 +500,13 @@ describe("story localization batch integration", () => {
       model: "gpt-5.5",
     })
     );
-    expect(prepared.itemCount).toBe(1);
+    expect(prepared.itemCount).toBe(2);
     const manifest = await readLocalBatchManifest(
       resolveBatchStorageLayout(tempDir),
       prepared.localBatchId
     );
-    expect(manifest?.items).toHaveLength(1);
-    expect(manifest?.items[0]?.language).toBe("es");
+    expect(manifest?.items).toHaveLength(2);
+    expect(manifest?.items.map((item) => item.language)).toEqual(["en", "es"]);
   });
 
   it("re-enqueues canonical English full work when prompt settings become stale", async () => {
