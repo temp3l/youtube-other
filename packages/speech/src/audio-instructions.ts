@@ -134,7 +134,15 @@ export function buildAudioInstructionArtifact(input: {
   readonly speechConfig: SpeechConfigSnapshot;
   readonly generatedAt?: string;
 }): AudioInstructionArtifact {
-  speechNarrationDependencySchema.parse(input.narration);
+  const narration = speechNarrationDependencySchema.parse({
+    episodeNumber: input.narration.episodeNumber,
+    episodeSlug: input.narration.episodeSlug,
+    language: input.narration.language,
+    locale: input.narration.locale,
+    variant: input.narration.variant,
+    narrationText: input.narration.narrationText,
+    narrationFingerprint: input.narration.narrationFingerprint,
+  });
   speechConfigSnapshotSchema.parse(input.speechConfig);
   const voiceConfigFingerprint = computeSpeechVoiceConfigFingerprint({
     voice: input.speechConfig.voice,
@@ -160,13 +168,13 @@ export function buildAudioInstructionArtifact(input: {
     owner: AUDIO_INSTRUCTION_OWNER,
     status: "completed",
     identity: {
-      episodeNumber: input.narration.episodeNumber,
-      episodeSlug: input.narration.episodeSlug,
-      language: input.narration.language,
-      locale: input.narration.locale,
-      variant: input.narration.variant,
+      episodeNumber: narration.episodeNumber,
+      episodeSlug: narration.episodeSlug,
+      language: narration.language,
+      locale: narration.locale,
+      variant: narration.variant,
     },
-    parentNarrationFingerprint: input.narration.narrationFingerprint,
+    parentNarrationFingerprint: narration.narrationFingerprint,
     voiceConfigFingerprint,
     speechModelConfigFingerprint,
     instructionFingerprint,
@@ -179,4 +187,3 @@ export function buildAudioInstructionArtifact(input: {
     generatedAt: input.generatedAt ?? new Date().toISOString(),
   });
 }
-

@@ -11,6 +11,8 @@ codex resume 019f143b-598d-73a3-8c9f-c52b689814e5
 
 ---
 
+EOO0-A560I0
+EPOB-O947Q OO
 Follow only the task defined in:
 
 `todo-prompts/story-rewrite-refactor-codex-prompts/03-source-cleaning-and-provenance.md`

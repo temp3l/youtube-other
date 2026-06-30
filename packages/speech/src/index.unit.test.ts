@@ -120,6 +120,31 @@ describe("OpenAiCompatibleSpeechProvider", () => {
     expect(first).not.toBe(second);
   });
 
+  it("ignores non-narration fields when building audio instructions", () => {
+    const speechSettings = loadSpeechVoiceSettings();
+    const audioInstruction = buildAudioInstructionArtifact({
+      narration: {
+        episodeNumber: "001",
+        episodeSlug: "episode-001",
+        language: "en",
+        locale: "en-US",
+        variant: "full",
+        narrationText: "Validated narration only.",
+        narrationFingerprint: "a".repeat(64),
+        filePath: "/tmp/episode-001/script.md",
+      } as never,
+      speechConfig: {
+        model: "gpt-4o-mini-tts",
+        voice: "onyx",
+        baseInstructions: speechSettings.instructions,
+        speed: speechSettings.speed,
+      },
+    });
+
+    expect(audioInstruction.identity.episodeSlug).toBe("episode-001");
+    expect(audioInstruction.parentNarrationFingerprint).toBe("a".repeat(64));
+  });
+
   it("writes the audio returned by the OpenAI speech client", async () => {
     const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "mediaforge-speech-"));
     const outputPath = path.join(tempDir, "scene-001.wav");

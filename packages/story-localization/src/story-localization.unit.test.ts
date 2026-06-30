@@ -8,6 +8,7 @@ import {
   buildConfigurationHash,
   buildOutputFiles,
   buildLocalizationPrompt,
+  buildCanonicalSourceFileName,
   countWords,
   copyFileAtomicIfChanged,
   detectForbiddenPhrases,
@@ -44,12 +45,14 @@ import {
   writeTextAtomicIfChanged,
   StoryLocalizationApiError,
   getLanguageRewriteSettings,
+  materializeCanonicalSourceStory,
 } from "./index.js";
 import type {
   GeneratedStoryPackage,
   LanguageCode,
   ParsedSourceStory,
 } from "./index.js";
+import { hashText } from "@mediaforge/shared";
 
 const repoRoot = path.resolve(import.meta.dirname, "../../..");
 const sourceFile = path.join(
@@ -520,6 +523,56 @@ describe("story localization helpers", () => {
         "utf8"
       )
     ).rejects.toThrow();
+  });
+
+  it("reuses a pre-materialized canonical source without requiring overwrite", async () => {
+    const tempDir = mkdtempSync(
+      path.join(os.tmpdir(), "story-localization-canonical-reuse-")
+    );
+    const sourceText = await fs.readFile(sourceFile, "utf8");
+    const canonicalSourcePath = path.join(
+      tempDir,
+      "002-even-killers-can-lick",
+      "source",
+      buildCanonicalSourceFileName({
+        episodeNumber: "002",
+        episodeSlug: "002-even-killers-can-lick",
+      })
+    );
+    await materializeCanonicalSourceStory({
+      sourcePath: sourceFile,
+      targetPath: canonicalSourcePath,
+      sourceSha256: hashText(sourceText),
+      overwrite: false,
+      sourceRole: "raw-author-source",
+      resolvedFrom: "explicit-input",
+    });
+    const config = createStoryLocalizationConfig({
+      outputDirectory: tempDir,
+      languages: [],
+      includeEnglishShort: false,
+      includeLocalizedShorts: false,
+      processingMode: "sync",
+      force: false,
+    });
+    const client = makeMockClient([
+      {
+        output_text: JSON.stringify({
+          language: "en",
+          full: makeLocalizedPackage("en", 160).full,
+          preservationChecklist: makeLocalizedPackage("en", 160)
+            .preservationChecklist,
+          diagnostics: makeLocalizedPackage("en", 160).diagnostics,
+        }),
+      },
+    ]);
+
+    const result = await localizeStoryEpisode(canonicalSourcePath, config, {
+      client: client as never,
+    });
+
+    expect(result.failure).toBeUndefined();
+    expect(client.responses.create).toHaveBeenCalledTimes(1);
   });
 
   it("regenerates localized full narration after max_output_tokens exhaustion without using short repair prompts", async () => {

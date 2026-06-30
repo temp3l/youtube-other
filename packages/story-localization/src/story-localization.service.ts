@@ -2325,15 +2325,18 @@ async function prepareCleanedInputStory(
       episodeSlug: initial.slug,
     })
   );
+  const sourceAlreadyCanonical =
+    path.resolve(sourceFile) === path.resolve(canonicalSourcePath);
   await materializeCleanedCanonicalSourceStory({
     sourcePath: sourceFile,
     targetPath: canonicalSourcePath,
-    sourceRole:
-      path.resolve(sourceFile) === path.resolve(canonicalSourcePath)
-        ? "canonical-source-copy"
-        : "raw-author-source",
-    resolvedFrom: "canonical-search",
-    overwrite: config.force,
+    sourceRole: sourceAlreadyCanonical
+      ? "canonical-source-copy"
+      : "raw-author-source",
+    resolvedFrom: sourceAlreadyCanonical
+      ? "canonical-path"
+      : "canonical-search",
+    overwrite: config.force || sourceAlreadyCanonical,
   });
   const prepared = await prepareParsedStory(canonicalSourcePath);
   return {
