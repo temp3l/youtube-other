@@ -198,6 +198,9 @@ importers:
       '@mediaforge/speech':
         specifier: workspace:*
         version: link:../speech
+      '@mediaforge/story-localization':
+        specifier: workspace:*
+        version: link:../story-localization
       zod:
         specifier: ^4.0.14
         version: 4.4.3

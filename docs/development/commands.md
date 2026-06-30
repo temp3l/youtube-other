@@ -48,6 +48,11 @@ Use the root Vitest configs with explicit file paths.
 - `pnpm mediaforge -- images generate --episode <episode-id>`
 - `pnpm mediaforge -- images resume --episode <episode-id>`
 - `pnpm mediaforge -- render --episode <episode-id>`
+- `pnpm mediaforge -- render remote check`
+- `pnpm mediaforge -- render remote verify`
+- `pnpm mediaforge -- render remote status [--job <job-id>] [--limit <count>] [--all] [--include-logs]`
+- `pnpm mediaforge -- render remote logs <job-id> [--clip <clip-id>] [--tail <lines>]`
+- `pnpm mediaforge -- render remote cleanup`
 - `pnpm mediaforge -- metadata youtube --episode <episode-id>`
 - `pnpm mediaforge -- youtube upload --episode <episode-id>`
 

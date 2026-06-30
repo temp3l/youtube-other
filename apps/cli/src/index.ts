@@ -131,6 +131,12 @@ import {
 } from "./episode-image-summary.js";
 import { registerImagesResumeCommand } from "./images-resume-command.js";
 import { registerImagesSyncSharedCommand } from "./images-sync-shared-command.js";
+import {
+  summarizeRemoteStatusJob,
+  type RawRemoteLogEntry,
+  type RawRemoteStatusJob,
+  type RemoteStatusJobSummary,
+} from "./render-remote-inspection.js";
 import { buildSceneInspectOutput } from "./scene-inspect-output.js";
 import { registerStoryLocalizationCommands } from "./story-localization-commands.js";
 
@@ -300,6 +306,199 @@ function buildRemoteRenderSettings(
       : {}),
     cleanupMaxAgeHours: config.remoteRenderCleanupMaxAgeHours,
   };
+}
+
+function buildRemoteSshArgs(remote: RemoteRenderSettings): string[] {
+  return [
+    "-p",
+    String(remote.port),
+    "-o",
+    "BatchMode=yes",
+    "-o",
+    `ConnectTimeout=${remote.connectTimeoutSeconds}`,
+    "-o",
+    `StrictHostKeyChecking=${remote.verifyHostKey ? "yes" : "no"}`,
+    ...(remote.knownHostsFile
+      ? ["-o", `UserKnownHostsFile=${remote.knownHostsFile}`]
+      : []),
+    ...(remote.sshPrivateKey ? ["-i", remote.sshPrivateKey] : []),
+  ];
+}
+
+function spawnRemoteCommand(
+  remote: RemoteRenderSettings,
+  command: readonly string[]
+): ReturnType<typeof spawnSync> {
+  return spawnSync(
+    "ssh",
+    [
+      ...buildRemoteSshArgs(remote),
+      `${remote.user}@${remote.host}`,
+      ...command,
+    ],
+    {
+      encoding: "utf8",
+      maxBuffer: 10 * 1024 * 1024,
+    }
+  );
+}
+
+function spawnSyncStderr(result: ReturnType<typeof spawnSync>): string {
+  return typeof result.stderr === "string" ? result.stderr : result.stderr.toString("utf8");
+}
+
+function spawnSyncStdout(result: ReturnType<typeof spawnSync>): string {
+  return typeof result.stdout === "string" ? result.stdout : result.stdout.toString("utf8");
+}
+
+function buildRemoteInspectNodeScript(): string {
+  return [
+    "const fs=require('node:fs/promises');",
+    "const path=require('node:path');",
+    "async function readJson(filePath){try{return JSON.parse(await fs.readFile(filePath,'utf8'));}catch{return undefined;}}",
+    "async function readDir(dirPath){try{return await fs.readdir(dirPath,{withFileTypes:true});}catch{return [];}}",
+    "function tailText(text,lines){const value=Number.parseInt(lines,10);const count=Number.isFinite(value)&&value>0?value:40;return text.split(/\\r?\\n/u).slice(-count).join('\\n').trim();}",
+    "async function inspectStatus(baseDir,jobId,limitArg,includeLogsArg,tailArg,allArg){",
+    "const jobsRoot=path.join(baseDir,'jobs');",
+    "const includeLogs=includeLogsArg==='true';",
+    "const includeAll=allArg==='true';",
+    "const rawLimit=Number.parseInt(limitArg,10);",
+    "const limit=Number.isFinite(rawLimit)&&rawLimit>0?rawLimit:10;",
+    "let jobs=(await readDir(jobsRoot)).filter((entry)=>entry.isDirectory()).map((entry)=>entry.name);",
+    "const stats=await Promise.all(jobs.map(async(name)=>({name,stat:await fs.stat(path.join(jobsRoot,name)).catch(()=>undefined)})));",
+    "stats.sort((left,right)=>(right.stat?.mtimeMs??0)-(left.stat?.mtimeMs??0));",
+    "jobs=stats.map((entry)=>entry.name);",
+    "if(jobId){jobs=jobs.filter((name)=>name===jobId);}else if(!includeAll){jobs=jobs.slice(0,limit);}",
+    "const payload=[];",
+    "for(const name of jobs){",
+    "const jobRoot=path.join(jobsRoot,name);",
+    "const metadataRoot=path.join(jobRoot,'metadata');",
+    "const logsRoot=path.join(jobRoot,'logs');",
+    "const manifest=await readJson(path.join(metadataRoot,'job-manifest.json'));",
+    "const metadataEntries=await readDir(metadataRoot);",
+    "const clipResults=[];",
+    "const parseErrors=[];",
+    "for(const entry of metadataEntries){",
+    "if(!entry.isFile()||!entry.name.endsWith('.json')||entry.name==='job-manifest.json'||entry.name==='results.json'){continue;}",
+    "const result=await readJson(path.join(metadataRoot,entry.name));",
+    "if(result&&typeof result==='object'){clipResults.push(result);}else{parseErrors.push(entry.name);}",
+    "}",
+    "const logEntries=await readDir(logsRoot);",
+    "const logs=[];",
+    "if(includeLogs){",
+    "for(const entry of logEntries){",
+    "if(!entry.isFile()||!entry.name.endsWith('.log')){continue;}",
+    "const text=await fs.readFile(path.join(logsRoot,entry.name),'utf8').catch(()=>undefined);",
+    "if(typeof text==='string'){logs.push({clipId:entry.name.replace(/\\.log$/u,''),text:tailText(text,tailArg)});}",
+    "}",
+    "}",
+    "payload.push({",
+    "jobId:name,",
+    "episodeId:typeof manifest?.episodeId==='string'?manifest.episodeId:undefined,",
+    "generatedAt:typeof manifest?.generatedAt==='string'?manifest.generatedAt:undefined,",
+    "totalClips:Array.isArray(manifest?.jobs)?manifest.jobs.length:undefined,",
+    "clipIds:Array.isArray(manifest?.jobs)?manifest.jobs.map((job)=>job?.clipId).filter((clipId)=>typeof clipId==='string'):undefined,",
+    "clipResults,",
+    "logCount:logEntries.filter((entry)=>entry.isFile()&&entry.name.endsWith('.log')).length,",
+    "logs,",
+    "updatedAtMs:(await fs.stat(jobRoot).catch(()=>undefined))?.mtimeMs,",
+    "parseErrors",
+    "});",
+    "}",
+    "process.stdout.write(JSON.stringify({jobs:payload},null,2));",
+    "}",
+    "async function inspectLogs(baseDir,jobId,clipId,tailArg){",
+    "if(!jobId){throw new Error('A job id is required.');}",
+    "const logsRoot=path.join(baseDir,'jobs',jobId,'logs');",
+    "const entries=await readDir(logsRoot);",
+    "if(entries.length===0){throw new Error(`No logs found for remote job ${jobId}.`);}",
+    "const logs=[];",
+    "for(const entry of entries){",
+    "if(!entry.isFile()||!entry.name.endsWith('.log')){continue;}",
+    "const currentClipId=entry.name.replace(/\\.log$/u,'');",
+    "if(clipId&&clipId!==currentClipId){continue;}",
+    "const text=await fs.readFile(path.join(logsRoot,entry.name),'utf8').catch(()=>undefined);",
+    "if(typeof text==='string'){logs.push({clipId:currentClipId,text:tailText(text,tailArg)});}",
+    "}",
+    "if(logs.length===0){throw new Error(clipId?`No logs found for clip ${clipId} in remote job ${jobId}.`:`No logs found for remote job ${jobId}.`);}",
+    "process.stdout.write(JSON.stringify({jobId,entries:logs},null,2));",
+    "}",
+    "async function main(){",
+    "const mode=process.argv[2];",
+    "const baseDir=process.argv[3];",
+    "if(!mode||!baseDir){throw new Error('Usage: node -e <script> <mode> <baseDir>');}",
+    "if(mode==='status'){await inspectStatus(baseDir,process.argv[4]??'',process.argv[5]??'10',process.argv[6]??'false',process.argv[7]??'40',process.argv[8]??'false');return;}",
+    "if(mode==='logs'){await inspectLogs(baseDir,process.argv[4]??'',process.argv[5]??'',process.argv[6]??'40');return;}",
+    "throw new Error(`Unsupported mode: ${mode}`);",
+    "}",
+    "main().catch((error)=>{process.stderr.write(`${error instanceof Error?error.message:String(error)}\\n`);process.exit(1);});",
+  ].join("");
+}
+
+interface RemoteStatusOptions {
+  readonly job?: string;
+  readonly limit?: string;
+  readonly all?: boolean;
+  readonly includeLogs?: boolean;
+  readonly tail?: string;
+}
+
+interface RemoteLogsOptions {
+  readonly clip?: string;
+  readonly tail?: string;
+}
+
+function parsePositiveIntegerOption(
+  value: string | undefined,
+  label: string,
+  fallback: number
+): number {
+  if (!value) {
+    return fallback;
+  }
+  const parsed = Number.parseInt(value, 10);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    throw new Error(`${label} must be a positive integer.`);
+  }
+  return parsed;
+}
+
+function parseRemoteStatusResponse(stdout: string): RemoteStatusJobSummary[] {
+  const parsed = JSON.parse(stdout) as { jobs?: RawRemoteStatusJob[] };
+  return (parsed.jobs ?? []).map((job) => summarizeRemoteStatusJob(job));
+}
+
+function formatRemoteStatusSummary(jobs: readonly RemoteStatusJobSummary[]): string {
+  if (jobs.length === 0) {
+    return "No remote render jobs found.\n";
+  }
+  const lines = jobs.flatMap((job) => {
+    const timestamp = job.generatedAt ?? "unknown-time";
+    const summary = [
+      job.jobId,
+      job.state,
+      job.episodeId ?? "unknown-episode",
+      `${job.counts.succeeded}/${job.counts.total} ok`,
+      `${job.counts.failed} failed`,
+      `${job.counts.missing} missing`,
+      timestamp,
+    ].join(" | ");
+    const excerpts = (job.logs ?? []).map(
+      (entry) =>
+        `  log:${entry.clipId} ${entry.text.split(/\r?\n/u)[0] ?? ""}`.trimEnd()
+    );
+    return [summary, ...excerpts];
+  });
+  return `${lines.join("\n")}\n`;
+}
+
+function formatRemoteLogOutput(
+  jobId: string,
+  entries: readonly RawRemoteLogEntry[]
+): string {
+  return `${entries
+    .map((entry) => `# ${jobId}:${entry.clipId}\n${entry.text.trim()}`)
+    .join("\n\n")}\n`;
 }
 
 function isEnglishLanguage(language: string): boolean {
@@ -2700,29 +2899,15 @@ async function commandRenderRemoteCheck(options: CliOptions): Promise<void> {
     process.stdout.write("Remote rendering is disabled.\n");
     return;
   }
-  const sshArgs = [
-    "-p",
-    String(remote.port),
-    "-o",
-    "BatchMode=yes",
-    "-o",
-    `ConnectTimeout=${remote.connectTimeoutSeconds}`,
-    "-o",
-    `StrictHostKeyChecking=${remote.verifyHostKey ? "yes" : "no"}`,
-    ...(remote.knownHostsFile
-      ? ["-o", `UserKnownHostsFile=${remote.knownHostsFile}`]
-      : []),
-    ...(remote.sshPrivateKey ? ["-i", remote.sshPrivateKey] : []),
-    `${remote.user}@${remote.host}`,
+  const result = spawnRemoteCommand(remote, [
     "bash",
     "-lc",
     renderRemoteShellScript("check"),
     "--",
     remote.baseDir,
-  ];
-  const result = spawnSync("ssh", sshArgs, { encoding: "utf8" });
+  ]);
   if (result.status !== 0) {
-    throw new Error(result.stderr || "Remote preflight failed.");
+    throw new Error(spawnSyncStderr(result) || "Remote preflight failed.");
   }
   process.stdout.write(
     `Remote render preflight succeeded for ${remote.user}@${remote.host}\n`
@@ -2737,46 +2922,32 @@ async function commandRenderRemoteCleanup(options: CliOptions): Promise<void> {
     return;
   }
   const cutoffMinutes = Math.max(1, remote.cleanupMaxAgeHours * 60);
-  const sshArgs = [
-    "-p",
-    String(remote.port),
-    "-o",
-    "BatchMode=yes",
-    "-o",
-    `ConnectTimeout=${remote.connectTimeoutSeconds}`,
-    "-o",
-    `StrictHostKeyChecking=${remote.verifyHostKey ? "yes" : "no"}`,
-    ...(remote.knownHostsFile
-      ? ["-o", `UserKnownHostsFile=${remote.knownHostsFile}`]
-      : []),
-    ...(remote.sshPrivateKey ? ["-i", remote.sshPrivateKey] : []),
-    `${remote.user}@${remote.host}`,
+  const result = spawnRemoteCommand(remote, [
     "bash",
     "-lc",
     renderRemoteShellScript("cleanup"),
     "--",
     remote.baseDir,
     String(cutoffMinutes),
-  ];
-  const result = spawnSync("ssh", sshArgs, { encoding: "utf8" });
+  ]);
   if (result.status !== 0) {
-    throw new Error(result.stderr || "Remote cleanup failed.");
+    throw new Error(spawnSyncStderr(result) || "Remote cleanup failed.");
   }
   process.stdout.write(
     `Cleaned remote jobs older than ${remote.cleanupMaxAgeHours}h.\n`
   );
 }
 
-async function commandRenderRemoteTest(options: CliOptions): Promise<void> {
+async function commandRenderRemoteVerify(options: CliOptions): Promise<void> {
   const config = await loadRuntimeConfig(configOverridesFromCli(options));
   const remote = buildRemoteRenderSettings(config);
   if (!remote.enabled) {
     throw new Error(
-      "REMOTE_RENDER_ENABLED must be true for the remote render test."
+      "REMOTE_RENDER_ENABLED must be true for the remote render verify command."
     );
   }
   const tmpDir = await fs.mkdtemp(
-    path.join(os.tmpdir(), "mediaforge-remote-test-")
+    path.join(os.tmpdir(), "mediaforge-remote-verify-")
   );
   const episodeDir = path.join(tmpDir, "episode");
   const imageDir = path.join(episodeDir, "images", "generated");
@@ -2843,7 +3014,7 @@ async function commandRenderRemoteTest(options: CliOptions): Promise<void> {
         sourceSegmentIds: ["scene-001"],
         estimatedDurationSeconds: 1,
         timing: { startSeconds: 0, endSeconds: 1 },
-        visualPurpose: "local render test",
+        visualPurpose: "local render verify",
         textRequirement: { required: false },
         subject: "red frame",
         action: "shown",
@@ -2866,7 +3037,7 @@ async function commandRenderRemoteTest(options: CliOptions): Promise<void> {
         sourceSegmentIds: ["scene-002"],
         estimatedDurationSeconds: 1,
         timing: { startSeconds: 1, endSeconds: 2 },
-        visualPurpose: "remote render test",
+        visualPurpose: "remote render verify",
         textRequirement: { required: false },
         subject: "blue frame",
         action: "shown",
@@ -2914,10 +3085,133 @@ async function commandRenderRemoteTest(options: CliOptions): Promise<void> {
       validation: await validateRenderedVideo(clipPath),
     }))
   );
-  printJson({
+  const clipManifests = await Promise.all(
+    scenePlan.scenes.map(async (scene) => {
+      const manifestPath = path.join(result.clipsDir, `${scene.id}.json`);
+      const manifest = JSON.parse(
+        await fs.readFile(manifestPath, "utf8")
+      ) as {
+        renderer?: "local" | "remote";
+      };
+      const expectedRenderer = scene.id === "scene-002" ? "remote" : "local";
+      return {
+        clipId: scene.id,
+        expectedRenderer,
+        renderer: manifest.renderer ?? "local",
+        fallbackUsed:
+          expectedRenderer === "remote" &&
+          (manifest.renderer ?? "local") !== "remote",
+      };
+    })
+  );
+  const payload = {
+    ok:
+      outputs.every((output) => output.validation.valid) &&
+      clipManifests.some(
+        (clip) => clip.renderer === "remote" && clip.fallbackUsed === false
+      ) &&
+      clipManifests.every((clip) => clip.fallbackUsed === false),
     episodeDir,
+    remoteEnabled: remote.enabled,
+    sceneClips: clipManifests,
     outputs,
-  });
+  };
+  if (options.json) {
+    printJson(payload);
+  } else {
+    process.stdout.write(
+      [
+        `Remote render verify ${payload.ok ? "passed" : "failed"}.`,
+        ...payload.sceneClips.map(
+          (clip) =>
+            `${clip.clipId}: renderer=${clip.renderer} fallback=${clip.fallbackUsed ? "yes" : "no"}`
+        ),
+      ].join("\n") + "\n"
+    );
+  }
+  if (!payload.ok) {
+    const error = new Error("Remote render verify failed.");
+    (
+      error as Error & {
+        verify?: typeof payload;
+      }
+    ).verify = payload;
+    throw error;
+  }
+}
+
+async function commandRenderRemoteStatus(
+  options: CliOptions,
+  statusOptions: RemoteStatusOptions
+): Promise<void> {
+  const config = await loadRuntimeConfig(configOverridesFromCli(options));
+  const remote = buildRemoteRenderSettings(config);
+  if (!remote.enabled) {
+    if (options.json) {
+      printJson({ enabled: false, jobs: [] });
+    } else {
+      process.stdout.write("Remote rendering is disabled.\n");
+    }
+    return;
+  }
+  const limit = parsePositiveIntegerOption(statusOptions.limit, "limit", 10);
+  const tail = parsePositiveIntegerOption(statusOptions.tail, "tail", 40);
+  const result = spawnRemoteCommand(remote, [
+    "node",
+    "-e",
+    buildRemoteInspectNodeScript(),
+    "status",
+    remote.baseDir,
+    statusOptions.job ?? "",
+    String(limit),
+    statusOptions.includeLogs ? "true" : "false",
+    String(tail),
+    statusOptions.all ? "true" : "false",
+  ]);
+  if (result.status !== 0) {
+    throw new Error(spawnSyncStderr(result) || "Remote status inspection failed.");
+  }
+  const jobs = parseRemoteStatusResponse(spawnSyncStdout(result));
+  if (options.json) {
+    printJson({ enabled: true, jobs });
+    return;
+  }
+  process.stdout.write(formatRemoteStatusSummary(jobs));
+}
+
+async function commandRenderRemoteLogs(
+  options: CliOptions,
+  jobId: string,
+  logOptions: RemoteLogsOptions
+): Promise<void> {
+  const config = await loadRuntimeConfig(configOverridesFromCli(options));
+  const remote = buildRemoteRenderSettings(config);
+  if (!remote.enabled) {
+    throw new Error("REMOTE_RENDER_ENABLED must be true for remote logs.");
+  }
+  const tail = parsePositiveIntegerOption(logOptions.tail, "tail", 40);
+  const result = spawnRemoteCommand(remote, [
+    "node",
+    "-e",
+    buildRemoteInspectNodeScript(),
+    "logs",
+    remote.baseDir,
+    jobId,
+    logOptions.clip ?? "",
+    String(tail),
+  ]);
+  if (result.status !== 0) {
+    throw new Error(spawnSyncStderr(result) || `Failed to fetch logs for ${jobId}.`);
+  }
+  const payload = JSON.parse(spawnSyncStdout(result)) as {
+    jobId: string;
+    entries: RawRemoteLogEntry[];
+  };
+  if (options.json) {
+    printJson(payload);
+    return;
+  }
+  process.stdout.write(formatRemoteLogOutput(payload.jobId, payload.entries));
 }
 
 async function commandMetadataGenerate(
@@ -4085,7 +4379,41 @@ renderRemoteCommand
   .command("test")
   .description("Render a deterministic local and remote clip pair")
   .action(async () => {
-    await commandRenderRemoteTest(program.opts<CliOptions>());
+    await commandRenderRemoteVerify(program.opts<CliOptions>());
+  });
+renderRemoteCommand
+  .command("verify")
+  .description("Run a deterministic end-to-end remote render verification")
+  .action(async () => {
+    await commandRenderRemoteVerify(program.opts<CliOptions>());
+  });
+renderRemoteCommand
+  .command("status")
+  .description("Inspect remote render jobs")
+  .option("--job <job-id>", "inspect one exact remote job id")
+  .option("--limit <count>", "limit job summaries when --all is not set")
+  .option("--all", "include all remote jobs")
+  .option("--include-logs", "include tailed log excerpts in the output")
+  .option("--tail <lines>", "number of log lines to include when logs are requested")
+  .action(
+    async (opts: {
+      job?: string;
+      limit?: string;
+      all?: boolean;
+      includeLogs?: boolean;
+      tail?: string;
+    }) => {
+      await commandRenderRemoteStatus(program.opts<CliOptions>(), opts);
+    }
+  );
+renderRemoteCommand
+  .command("logs")
+  .argument("<job-id>")
+  .description("Fetch logs for a remote render job")
+  .option("--clip <clip-id>", "fetch logs for a single clip id")
+  .option("--tail <lines>", "number of log lines to return", "40")
+  .action(async (jobId: string, opts: { clip?: string; tail?: string }) => {
+    await commandRenderRemoteLogs(program.opts<CliOptions>(), jobId, opts);
   });
 const metadataCommand = program
   .command("metadata")

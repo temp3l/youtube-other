@@ -36,6 +36,9 @@ Full and short media stay separate. Metadata and audio remain sibling or downstr
 - Remote rendering is optional. When enabled, the hybrid renderer can retry remote work and fall back to local rendering if configured.
 - Final outputs are validated for expected media characteristics before the pipeline treats them as complete.
 - Render failures do not invalidate narration, scene plans, or completed image artifacts.
+- The CLI exposes `render remote check` for remote host preflight, `render remote verify` and `render remote test` for a deterministic remote render probe, `render remote status` for job summaries, `render remote logs` for per-job or per-clip log retrieval, and `render remote cleanup` for stale workspace removal.
+- `render remote status` reads remote job state from `<REMOTE_RENDER_BASE_DIR>/jobs` over SSH and summarizes clip metadata, counts, and optional tailed log excerpts.
+- `render remote logs` expects a job id and can narrow output to a single clip with `--clip` and a tail length with `--tail`.
 
 ## Metadata
 
