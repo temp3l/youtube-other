@@ -15,8 +15,12 @@ export async function readShortRewriteManifest(
   if (!(await fileExists(manifestPath))) {
     return null;
   }
-  const raw = JSON.parse(await fs.readFile(manifestPath, "utf8")) as unknown;
-  return shortRewriteManifestSchema.parse(raw) as ShortRewriteManifest;
+  try {
+    const raw = JSON.parse(await fs.readFile(manifestPath, "utf8")) as unknown;
+    return shortRewriteManifestSchema.parse(raw) as ShortRewriteManifest;
+  } catch {
+    return null;
+  }
 }
 
 export async function writeShortRewriteArtifactFiles(args: {

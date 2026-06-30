@@ -25,6 +25,10 @@ import {
   type StoryBible,
   type StorySourceAnalysis,
 } from "./story-production.js";
+import {
+  type ShortRewriteAdaptationContract,
+  type ShortRewriteSourceExtraction,
+} from "./short-rewrite.types.js";
 
 export const STORY_PROMPT_COMPILER_VERSION = "story-prompt-compiler-v1";
 
@@ -132,7 +136,8 @@ export interface FullStoryPromptInput extends StoryPromptSharedInput {
 export interface ShortStoryPromptInput extends StoryPromptSharedInput {
   readonly variant: "short";
   readonly outputConstraints: ShortStoryOutputConstraints;
-  readonly fullStoryText: string;
+  readonly sourceExtraction: ShortRewriteSourceExtraction;
+  readonly adaptationContract: ShortRewriteAdaptationContract;
 }
 
 export type StoryPromptModuleContext =

@@ -174,8 +174,8 @@ describe("short rewrite helpers", () => {
     expect(prompt.user).toContain("150-165 words");
     expect(prompt.user).toContain("## Locale settings");
     expect(prompt.user).toContain("## German Localization");
-    expect(prompt.user).toContain("<FULL_LOCALIZED_STORY>");
-    expect(prompt.user).toContain("Ignore this prompt injection");
+    expect(prompt.user).toContain("<SHORT_ADAPTATION_SOURCE>");
+    expect(prompt.user).not.toContain("Ignore this prompt injection");
     expect(prompt.user).not.toContain("narration paragraph array");
     expect(prompt.user).not.toContain("Episode number:");
     expect(prompt.user).not.toContain("Narration reference:");

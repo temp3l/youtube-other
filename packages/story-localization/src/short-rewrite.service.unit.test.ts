@@ -87,23 +87,183 @@ async function createSourceStory(tempRoot: string): Promise<string> {
   const episodeDir = path.join(tempRoot, "009-the-christmas-doll", "source");
   await fs.mkdir(episodeDir, { recursive: true });
   const sourcePath = path.join(episodeDir, "009-the-christmas-doll-en-full.md");
+  const content = [
+    "# Episode 009 — The Christmas Doll",
+    FULL_STORY_PROVENANCE_MARKER,
+    "",
+    "## Audio Generation Instructions",
+    "- Use a steady narrator.",
+    "",
+    "## Narration Script",
+    "Mara heard the doll breathing under the attic door.",
+    "When she opened it, the doll sat on the nursery chair with wet hands and her own name scratched across the glass.",
+    "She burned the dress, locked the trunk, and thought the house had gone quiet, but the final photograph on the stairs showed the doll behind her brother.",
+  ].join("\n");
+  await fs.writeFile(sourcePath, content, "utf8");
+  const episodeRoot = path.join(tempRoot, "009-the-christmas-doll");
+  await fs.mkdir(path.join(episodeRoot, "en", "full"), { recursive: true });
+  await fs.writeFile(path.join(episodeRoot, "en", "full", "script.md"), content, "utf8");
   await fs.writeFile(
-    sourcePath,
-    [
-      "# Episode 009 — The Christmas Doll",
-      FULL_STORY_PROVENANCE_MARKER,
-      "",
-      "## Audio Generation Instructions",
-      "- Use a steady narrator.",
-      "",
-      "## Narration Script",
-      "Mara heard the doll breathing under the attic door.",
-      "When she opened it, the doll sat on the nursery chair with wet hands and her own name scratched across the glass.",
-      "She burned the dress, locked the trunk, and thought the house had gone quiet, but the final photograph on the stairs showed the doll behind her brother.",
-    ].join("\n"),
+    path.join(episodeRoot, "en", "full", "canonical-full.json"),
+    JSON.stringify(
+      {
+        schemaVersion: "canonical-english-full-artifact-v1",
+        episodeNumber: "009",
+        episodeSlug: "009-the-christmas-doll",
+        language: "en",
+        locale: "en-US",
+        variant: "full",
+        sourceFile: sourcePath,
+        lineage: {
+          sourceHash: "a".repeat(64),
+          cleanedSourceHash: "b".repeat(64),
+          storyIrHash: "c".repeat(64),
+          contractHash: "d".repeat(64),
+          contractBuildFingerprint: "e".repeat(64),
+        },
+        prompt: {
+          compilerVersion: "story-prompt-compiler-v1",
+          promptVersion: SHORT_REWRITE_PROMPT_VERSION,
+          promptFingerprint: "f".repeat(64),
+          selectedModules: [],
+        },
+        model: {
+          name: "gpt-5-mini",
+          reasoningEffort: "low",
+          maxOutputTokens: 2000,
+        },
+        responseSchema: {
+          name: "full_narration_story_package",
+          version: "full-narration-response-schema-v1",
+          fingerprint: "1".repeat(64),
+        },
+        preflight: {
+          policyVersion: "story-preflight-v1",
+          requestFingerprint: "2".repeat(64),
+          status: "allowed",
+          requestedOutputTokens: 2000,
+          contextWindowTokens: 400000,
+          maxModelOutputTokens: 128000,
+          safetyMarginTokens: 4096,
+        },
+        response: {
+          language: "en",
+          full: {
+            narrationParagraphs: [
+              "Mara heard the doll breathing under the attic door.",
+              "When she opened it, the doll sat on the nursery chair with wet hands and her own name scratched across the glass.",
+              "She burned the dress, locked the trunk, and thought the house had gone quiet, but the final photograph on the stairs showed the doll behind her brother.",
+            ],
+          },
+          targetNarrationWpm: 178,
+          preservationChecklist: {
+            charactersPreserved: true,
+            relationshipsPreserved: true,
+            chronologyPreserved: true,
+            criticalObjectsPreserved: true,
+            cluesPreserved: true,
+            writtenMessagesPreserved: true,
+            primaryRevealPreserved: true,
+            endingPreserved: true,
+            noNewPlotElementsAdded: true,
+          },
+          diagnostics: {
+            removedGenericFiller: [],
+            adaptationNotes: [],
+          },
+        },
+        validation: {
+          status: "passed",
+          issues: [],
+        },
+        repairHistory: [],
+        usage: {
+          inputTokens: 100,
+          outputTokens: 100,
+        },
+        estimatedCostUsd: 0.01,
+        status: "completed",
+        generatedAt: new Date().toISOString(),
+      },
+      null,
+      2
+    ),
     "utf8"
   );
+  await createLocalizedFullParent(tempRoot, "de");
+  await createLocalizedFullParent(tempRoot, "es");
+  await createLocalizedFullParent(tempRoot, "fr");
+  await createLocalizedFullParent(tempRoot, "pt");
   return sourcePath;
+}
+
+async function createLocalizedFullParent(
+  tempRoot: string,
+  language: "de" | "es" | "fr" | "pt",
+  resultLanguage: "de" | "es" | "fr" | "pt" = language
+): Promise<void> {
+  const productionDir = path.join(
+    tempRoot,
+    "009-the-christmas-doll",
+    ".localization-cache",
+    "production",
+    "009",
+    "009-the-christmas-doll"
+  );
+  await fs.mkdir(productionDir, { recursive: true });
+  await fs.writeFile(
+    path.join(productionDir, `${language}-full-narration-result.json`),
+    JSON.stringify(
+      {
+        schemaVersion: "full-narration-response-schema-v1",
+        promptFingerprint: "9".repeat(64),
+        responseSchemaName: "full_narration_story_package",
+        responseSchemaVersion: "full-narration-response-schema-v1",
+        responseSchemaFingerprint: "8".repeat(64),
+        lineage: {
+          kind: "canonical-english-full",
+          fingerprint: "7".repeat(64),
+          sourceHash: "6".repeat(64),
+          language: "en",
+          locale: "en-US",
+          variant: "full",
+          storyIrHash: "c".repeat(64),
+          contractHash: "d".repeat(64),
+          contractBuildFingerprint: "e".repeat(64),
+        },
+        validationIssues: [],
+        result: {
+          language: resultLanguage,
+          full: {
+            narrationParagraphs: [
+              "Mara horte die Puppe unter der Dachbodentur atmen.",
+              "Als sie die Tür öffnete, saß die Puppe mit nassen Händen auf dem Kinderstuhl.",
+              "Später zeigte das letzte Foto die Puppe direkt hinter ihrem Bruder.",
+            ],
+          },
+          targetNarrationWpm: 178,
+          preservationChecklist: {
+            charactersPreserved: true,
+            relationshipsPreserved: true,
+            chronologyPreserved: true,
+            criticalObjectsPreserved: true,
+            cluesPreserved: true,
+            writtenMessagesPreserved: true,
+            primaryRevealPreserved: true,
+            endingPreserved: true,
+            noNewPlotElementsAdded: true,
+          },
+          diagnostics: {
+            removedGenericFiller: [],
+            adaptationNotes: [],
+          },
+        },
+      },
+      null,
+      2
+    ),
+    "utf8"
+  );
 }
 
 async function createRawCompatibilitySource(tempRoot: string): Promise<string> {
@@ -521,5 +681,113 @@ describe("short rewrite service", () => {
         )
       )
     ).toHaveProperty("status", "failed");
+  });
+
+  it("requires a validated canonical full parent for English shorts", async () => {
+    const tempRoot = await fs.mkdtemp(
+      path.join(os.tmpdir(), "short-rewrite-parent-required-")
+    );
+    const sourcePath = await createSourceStory(tempRoot);
+    await fs.rm(
+      path.join(
+        tempRoot,
+        "009-the-christmas-doll",
+        "en",
+        "full",
+        "canonical-full.json"
+      )
+    );
+    await expect(
+      rewriteShortStories(
+        {
+          inputPath: sourcePath,
+          outputRoot: tempRoot,
+          languages: ["en"],
+          model: "gpt-5-mini",
+          dryRun: false,
+          resume: false,
+          overwrite: false,
+          maxRetries: 0,
+        },
+        {
+          client: makeMockClient(),
+        }
+      )
+    ).rejects.toThrow("validated canonical English full parent artifact");
+  });
+
+  it("rejects a localized short when the persisted full parent is the wrong locale", async () => {
+    const tempRoot = await fs.mkdtemp(
+      path.join(os.tmpdir(), "short-rewrite-wrong-parent-locale-")
+    );
+    const sourcePath = await createSourceStory(tempRoot);
+    await createLocalizedFullParent(tempRoot, "de", "es");
+    await expect(
+      rewriteShortStories(
+        {
+          inputPath: sourcePath,
+          outputRoot: tempRoot,
+          languages: ["de"],
+          model: "gpt-5-mini",
+          dryRun: false,
+          resume: false,
+          overwrite: false,
+          maxRetries: 0,
+        },
+        {
+          client: makeMockClient(),
+        }
+      )
+    ).rejects.toThrow("cannot derive from es full narration");
+  });
+
+  it("persists the matching parent full hash in the short sidecar", async () => {
+    const tempRoot = await fs.mkdtemp(
+      path.join(os.tmpdir(), "short-rewrite-parent-hash-")
+    );
+    const sourcePath = await createSourceStory(tempRoot);
+    const client = makeMockClient([
+      {
+        id: "resp-parent-hash",
+        output_text: buildResponseJson({
+          title: "Das Puppenhaus",
+          wordCount: 152,
+          thumbnailText: "Nasse Hände",
+          fullVideoBridge: "Sieh dir die ganze Episode an.",
+        }),
+      },
+    ]);
+    await rewriteShortStories(
+      {
+        inputPath: sourcePath,
+        outputRoot: tempRoot,
+        languages: ["de"],
+        model: "gpt-5-mini",
+        dryRun: false,
+        resume: false,
+        overwrite: false,
+        maxRetries: 0,
+      },
+      {
+        client,
+      }
+    );
+    const sidecar = JSON.parse(
+      await fs.readFile(
+        path.join(
+          tempRoot,
+          "009-the-christmas-doll",
+          "de",
+          "short",
+          "009-the-christmas-doll-de-short.json"
+        ),
+        "utf8"
+      )
+    ) as {
+      readonly parent: { readonly parentFullHash: string };
+      readonly shortAdaptationContract: { readonly contractHash: string };
+    };
+    expect(sidecar.parent.parentFullHash).toHaveLength(64);
+    expect(sidecar.shortAdaptationContract.contractHash).toHaveLength(64);
   });
 });

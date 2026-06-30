@@ -91,16 +91,19 @@ import { shortRewriteResponseSchemaDescriptor } from "./story-prompt-response-sc
 import { materializeCanonicalSourceStory } from "./short-rewrite.bootstrap.js";
 import {
   type ResolvedShortRewriteSource,
+  type ShortRewriteAdaptationContract,
   type ShortRewriteApiResult,
   type ShortRewriteArtifact,
   type ShortRewriteGeneration,
   type ShortRewriteGenerationResult,
   type ShortRewriteJsonSidecar,
   type ShortRewriteManifest,
+  type ShortRewriteResolvedParent,
   type ShortRewriteResolvedInput,
   type ShortRewriteRunOptions,
   type ShortRewriteRunSummary,
   type ShortRewriteServices,
+  type ShortRewriteSourceExtraction,
   type StoryLanguage,
 } from "./short-rewrite.types.js";
 import { resolveShortRewriteInput } from "./short-rewrite.resolution.js";
@@ -111,6 +114,23 @@ import {
 } from "./short-rewrite.persistence.js";
 import { withFileLock } from "./story-localization-batch-storage.js";
 import { getRepoRoot } from "./story-localization.utils.js";
+import {
+  buildShortAdaptationContract,
+  buildShortSourceExtraction,
+  SHORT_ADAPTATION_CONTRACT_SCHEMA_VERSION,
+  SHORT_ADAPTATION_CONTRACT_VERSION,
+  SHORT_SOURCE_EXTRACTION_VERSION,
+} from "./short-adaptation-contract.js";
+import {
+  canonicalEnglishFullArtifactSchema,
+  resolveCanonicalEnglishFullPaths,
+} from "./canonical-full-story.persistence.js";
+import {
+  adaptNarrationOnlyFullToLegacyRendererPackage,
+  narrationOnlyFullRewriteResponseSchema,
+} from "./story-prompt-response-schemas.js";
+import { renderLocalizedFullStory } from "./story-markdown-renderer.js";
+import { resolveEpisodeStoryProductionDirectory } from "./story-production.js";
 
 type ResponseCreateRequest = Parameters<
   OpenAiStoryClient["responses"]["create"]
@@ -138,6 +158,9 @@ type StructuredResponsesClient = {
 
 interface GenerateLanguageRequest {
   readonly source: ResolvedShortRewriteSource;
+  readonly parent: ShortRewriteResolvedParent;
+  readonly sourceExtraction: ShortRewriteSourceExtraction;
+  readonly adaptationContract: ShortRewriteAdaptationContract;
   readonly outputRoot: string;
   readonly language: StoryLanguage;
   readonly model: string;
@@ -336,7 +359,7 @@ interface ShortRewriteUsagePayload {
 }
 
 interface ShortRewriteArtifactPayload {
-  schemaVersion: 1;
+  schemaVersion: 2;
   promptVersion: string;
   promptFingerprint?: string;
   status: "completed" | "failed" | "skipped";
@@ -346,10 +369,22 @@ interface ShortRewriteArtifactPayload {
   targetLanguage: ShortRewriteLanguage;
   sourcePath: string;
   sourceSha256: string;
+  locale: string;
+  variant: "short";
+  parent: ShortRewriteArtifact["parent"];
+  storyIrHash: string;
+  shortContractHash: string;
+  shortContractVersion: string;
+  shortContractSchemaVersion: string;
+  shortSourceExtractionHash: string;
+  shortSourceExtractionVersion: string;
+  canonical: boolean;
   markdownOutputPath: string;
   jsonOutputPath: string;
   generatedAt: string;
   model: string;
+  reasoningEffort?: string;
+  maxOutputTokens?: number;
   requestId?: string;
   generationDurationMs: number;
   inputTokens?: number;
@@ -358,6 +393,8 @@ interface ShortRewriteArtifactPayload {
   outputTokens?: number;
   totalTokens?: number;
   estimatedCostUsd?: number | null;
+  repairHistory?: ShortRewriteArtifact["repairHistory"];
+  promptLineage?: ShortRewriteArtifact["promptLineage"];
   validation: ShortRewriteArtifact["validation"];
 }
 
@@ -392,7 +429,7 @@ function buildUsagePayload(args: {
 }
 
 function buildArtifactPayload(args: {
-  readonly schemaVersion: 1;
+  readonly schemaVersion: 2;
   readonly promptVersion: string;
   readonly promptFingerprint?: string;
   readonly status: "completed" | "failed" | "skipped";
@@ -402,11 +439,23 @@ function buildArtifactPayload(args: {
   readonly targetLanguage: ShortRewriteLanguage;
   readonly sourcePath: string;
   readonly sourceSha256: string;
+  readonly locale: string;
+  readonly variant: "short";
+  readonly parent: ShortRewriteArtifact["parent"];
+  readonly storyIrHash: string;
+  readonly shortContractHash: string;
+  readonly shortContractVersion: string;
+  readonly shortContractSchemaVersion: string;
+  readonly shortSourceExtractionHash: string;
+  readonly shortSourceExtractionVersion: string;
+  readonly canonical: boolean;
   readonly markdownOutputPath: string;
   readonly jsonOutputPath: string;
   readonly generatedAt: string;
   readonly model: string;
-  readonly requestId?: string;
+  readonly reasoningEffort?: string | undefined;
+  readonly maxOutputTokens?: number | undefined;
+  readonly requestId?: string | undefined;
   readonly generationDurationMs: number;
   readonly inputTokens?: number;
   readonly cachedInputTokens?: number;
@@ -414,6 +463,8 @@ function buildArtifactPayload(args: {
   readonly outputTokens?: number;
   readonly totalTokens?: number;
   readonly estimatedCostUsd?: number | null;
+  readonly repairHistory?: ShortRewriteArtifact["repairHistory"] | undefined;
+  readonly promptLineage?: ShortRewriteArtifact["promptLineage"] | undefined;
   readonly validation: ShortRewriteArtifact["validation"];
 }): unknown {
   const artifact: ShortRewriteArtifactPayload = {
@@ -429,6 +480,16 @@ function buildArtifactPayload(args: {
     targetLanguage: args.targetLanguage,
     sourcePath: args.sourcePath,
     sourceSha256: args.sourceSha256,
+    locale: args.locale,
+    variant: args.variant,
+    parent: args.parent,
+    storyIrHash: args.storyIrHash,
+    shortContractHash: args.shortContractHash,
+    shortContractVersion: args.shortContractVersion,
+    shortContractSchemaVersion: args.shortContractSchemaVersion,
+    shortSourceExtractionHash: args.shortSourceExtractionHash,
+    shortSourceExtractionVersion: args.shortSourceExtractionVersion,
+    canonical: args.canonical,
     markdownOutputPath: args.markdownOutputPath,
     jsonOutputPath: args.jsonOutputPath,
     generatedAt: args.generatedAt,
@@ -436,6 +497,12 @@ function buildArtifactPayload(args: {
     generationDurationMs: args.generationDurationMs,
     validation: args.validation,
   };
+  if (args.reasoningEffort !== undefined) {
+    artifact.reasoningEffort = args.reasoningEffort;
+  }
+  if (args.maxOutputTokens !== undefined) {
+    artifact.maxOutputTokens = args.maxOutputTokens;
+  }
   if (args.requestId !== undefined) {
     artifact.requestId = args.requestId;
   }
@@ -457,6 +524,12 @@ function buildArtifactPayload(args: {
   if (args.estimatedCostUsd !== undefined) {
     artifact.estimatedCostUsd = args.estimatedCostUsd;
   }
+  if (args.repairHistory !== undefined) {
+    artifact.repairHistory = args.repairHistory;
+  }
+  if (args.promptLineage !== undefined) {
+    artifact.promptLineage = args.promptLineage;
+  }
   return artifact as unknown;
 }
 
@@ -476,6 +549,16 @@ function cloneArtifactPayload(
     targetLanguage: artifact.targetLanguage,
     sourcePath: artifact.sourcePath,
     sourceSha256: artifact.sourceSha256,
+    locale: artifact.locale,
+    variant: artifact.variant,
+    parent: artifact.parent,
+    storyIrHash: artifact.storyIrHash,
+    shortContractHash: artifact.shortContractHash,
+    shortContractVersion: artifact.shortContractVersion,
+    shortContractSchemaVersion: artifact.shortContractSchemaVersion,
+    shortSourceExtractionHash: artifact.shortSourceExtractionHash,
+    shortSourceExtractionVersion: artifact.shortSourceExtractionVersion,
+    canonical: artifact.canonical,
     markdownOutputPath: artifact.markdownOutputPath,
     jsonOutputPath: artifact.jsonOutputPath,
     generatedAt: artifact.generatedAt,
@@ -483,6 +566,12 @@ function cloneArtifactPayload(
     generationDurationMs: artifact.generationDurationMs,
     validation: artifact.validation,
   };
+  if (artifact.reasoningEffort !== undefined) {
+    payload.reasoningEffort = artifact.reasoningEffort;
+  }
+  if (artifact.maxOutputTokens !== undefined) {
+    payload.maxOutputTokens = artifact.maxOutputTokens;
+  }
   if (artifact.requestId !== undefined) {
     payload.requestId = artifact.requestId;
   }
@@ -504,7 +593,204 @@ function cloneArtifactPayload(
   if (artifact.estimatedCostUsd !== undefined) {
     payload.estimatedCostUsd = artifact.estimatedCostUsd;
   }
+  if (artifact.repairHistory !== undefined) {
+    payload.repairHistory = artifact.repairHistory;
+  }
+  if (artifact.promptLineage !== undefined) {
+    payload.promptLineage = artifact.promptLineage;
+  }
   return payload;
+}
+
+function hashNarrationParagraphs(paragraphs: readonly string[]): string {
+  return sha256NormalizedSource(paragraphs.map((entry) => normalizeWhitespace(entry)).join("\n\n"));
+}
+
+async function resolveCanonicalEnglishParent(args: {
+  readonly outputRoot: string;
+  readonly source: ResolvedShortRewriteSource;
+}): Promise<ShortRewriteResolvedParent> {
+  const canonicalPaths = resolveCanonicalEnglishFullPaths(
+    args.outputRoot,
+    args.source.episodeSlug
+  );
+  const artifact = await readJsonIfExists(canonicalPaths.canonicalArtifactPath, (value) =>
+    canonicalEnglishFullArtifactSchema.parse(value)
+  );
+  if (!artifact || artifact.status !== "completed" || artifact.validation.status !== "passed") {
+    throw new ShortRewriteValidationError(
+      "English short requires a validated canonical English full parent artifact."
+    );
+  }
+  const narrationParagraphs = artifact.response.full.narrationParagraphs.map((entry) =>
+    normalizeWhitespace(entry)
+  );
+  return {
+    identity: {
+      episodeId: args.source.episodeId,
+      episodeSlug: args.source.episodeSlug,
+      language: "en",
+      locale: artifact.locale,
+      variant: "full",
+    },
+    title: args.source.title,
+    sourcePath: canonicalPaths.canonicalMarkdownPath,
+    sourceSha256: args.source.sourceSha256,
+    parentFullHash: hashNarrationParagraphs(narrationParagraphs),
+    storyIrHash: artifact.lineage.storyIrHash,
+    contractHash: artifact.lineage.contractHash,
+    contractBuildFingerprint: artifact.lineage.contractBuildFingerprint,
+    narrationParagraphs,
+    canonical: true,
+    provenance: "canonical-full-artifact",
+  };
+}
+
+async function resolveLocalizedFullParent(args: {
+  readonly outputRoot: string;
+  readonly source: ResolvedShortRewriteSource;
+  readonly language: StoryLanguage;
+}): Promise<ShortRewriteResolvedParent> {
+  const languageProfile = SHORT_REWRITE_SUPPORTED_LANGUAGES[args.language];
+  const cacheDirectory = resolveEpisodeCacheDirectory(
+    args.outputRoot,
+    args.source.episodeSlug
+  );
+  const productionDirectory = resolveEpisodeStoryProductionDirectory(cacheDirectory, {
+    episodeNumber: args.source.episodeNumber,
+    slug: args.source.episodeSlug,
+  });
+  const artifactPath = path.join(
+    productionDirectory,
+    `${args.language}-full-narration-result.json`
+  );
+  const localizedArtifact = await readJsonIfExists(artifactPath, (value) =>
+    z
+      .object({
+        schemaVersion: z.string().min(1),
+        promptFingerprint: z.string().min(1).optional(),
+        responseSchemaName: z.string().min(1).optional(),
+        responseSchemaVersion: z.string().min(1).optional(),
+        responseSchemaFingerprint: z.string().min(1).optional(),
+        lineage: z
+          .object({
+            kind: z.literal("canonical-english-full"),
+            fingerprint: z.string().min(1),
+            sourceHash: z.string().min(1),
+            language: z.literal("en").optional(),
+            locale: z.literal("en-US").optional(),
+            variant: z.literal("full").optional(),
+            storyIrHash: z.string().min(1).optional(),
+            contractHash: z.string().min(1).optional(),
+            contractBuildFingerprint: z.string().min(1).optional(),
+          })
+          .strict(),
+        validationIssues: z.array(z.string().min(1)),
+        result: narrationOnlyFullRewriteResponseSchema,
+      })
+      .strict()
+      .parse(value)
+  );
+  if (!localizedArtifact || localizedArtifact.validationIssues.length > 0) {
+    throw new ShortRewriteValidationError(
+      `${languageProfile.name} short requires a validated matching-locale full parent artifact.`
+    );
+  }
+  if (localizedArtifact.result.language !== args.language) {
+    throw new ShortRewriteValidationError(
+      `${languageProfile.name} short cannot derive from ${localizedArtifact.result.language} full narration.`
+    );
+  }
+  const compatibilityFull = adaptNarrationOnlyFullToLegacyRendererPackage({
+    sourceStory: await parseCanonicalSourceStory(
+      path.join(
+        args.outputRoot,
+        args.source.episodeSlug,
+        "source",
+        buildCanonicalSourceFileName({
+          episodeNumber: args.source.episodeNumber,
+          episodeSlug: args.source.episodeSlug,
+        })
+      )
+    ),
+    response: localizedArtifact.result,
+  });
+  const localizedMarkdown = renderLocalizedFullStory(
+    args.source.episodeNumber,
+    compatibilityFull,
+    args.language,
+    args.source.sourceSha256
+  );
+  const narrationParagraphs = localizedArtifact.result.full.narrationParagraphs.map((entry) =>
+    normalizeWhitespace(entry)
+  );
+  return {
+    identity: {
+      episodeId: args.source.episodeId,
+      episodeSlug: args.source.episodeSlug,
+      language: args.language,
+      locale: languageProfile.locale,
+      variant: "full",
+    },
+    title: compatibilityFull.title,
+    sourcePath: path.join(args.outputRoot, args.source.episodeSlug, args.language, "full", "script.md"),
+    sourceSha256: sha256NormalizedSource(localizedMarkdown),
+    parentFullHash: hashNarrationParagraphs(narrationParagraphs),
+    storyIrHash: localizedArtifact.lineage.storyIrHash ?? "0".repeat(64),
+    contractHash: localizedArtifact.lineage.contractHash ?? "0".repeat(64),
+    contractBuildFingerprint: localizedArtifact.lineage.contractBuildFingerprint,
+    narrationParagraphs,
+    canonical: true,
+    provenance: "localized-full-artifact",
+  };
+}
+
+function buildCompatibilityParent(args: {
+  readonly source: ResolvedShortRewriteSource;
+  readonly language: StoryLanguage;
+}): ShortRewriteResolvedParent {
+  const languageProfile = SHORT_REWRITE_SUPPORTED_LANGUAGES[args.language];
+  const narrationParagraphs = args.source.narration
+    .split(/\n{2,}/u)
+    .map((entry) => normalizeWhitespace(entry))
+    .filter(Boolean);
+  const hash = hashNarrationParagraphs(narrationParagraphs);
+  return {
+    identity: {
+      episodeId: args.source.episodeId,
+      episodeSlug: args.source.episodeSlug,
+      language: "en",
+      locale: "en-US",
+      variant: "full",
+    },
+    title: args.source.title,
+    sourcePath: args.source.sourcePath,
+    sourceSha256: args.source.sourceSha256,
+    parentFullHash: hash,
+    storyIrHash: hash,
+    contractHash: hash,
+    narrationParagraphs,
+    canonical: false,
+    provenance: "compatibility-source",
+  };
+}
+
+async function resolveShortRewriteParent(args: {
+  readonly outputRoot: string;
+  readonly source: ResolvedShortRewriteSource;
+  readonly language: StoryLanguage;
+  readonly allowSourceInput: boolean;
+}): Promise<ShortRewriteResolvedParent> {
+  if (args.language === "en") {
+    if (!args.allowSourceInput) {
+      return resolveCanonicalEnglishParent(args);
+    }
+    return buildCompatibilityParent(args);
+  }
+  if (args.allowSourceInput) {
+    return buildCompatibilityParent(args);
+  }
+  return resolveLocalizedFullParent(args);
 }
 
 function analyzeGeneratedPayload(args: {
@@ -960,34 +1246,28 @@ async function generateLanguagePayload(
     targetLanguage: args.language,
     targetLanguageName: languageDefinition.name,
     targetLocale: languageDefinition.locale,
-    sourceStory: args.source.sourceContent,
-    narration: args.source.narration,
-    title: args.source.title,
+    sourceStory: args.parent.narrationParagraphs.join("\n\n"),
+    narration: args.parent.narrationParagraphs.join("\n\n"),
+    title: args.parent.title,
   };
   const parsedSourceStory = {
     language: "en" as const,
-    sourceFile: args.source.sourcePath,
-    sourceHash: args.source.sourceSha256,
+    sourceFile: args.parent.sourcePath,
+    sourceHash: args.parent.sourceSha256,
     episodeNumber: args.source.episodeNumber,
     slug: args.source.episodeSlug,
-    title: args.source.title,
-    audioInstructions: [...args.source.audioInstructions],
-    narrationParagraphs: args.source.narration
-      .split(/\n{2,}/u)
-      .map((entry) => normalizeWhitespace(entry))
-      .filter(Boolean),
+    title: args.parent.title,
+    audioInstructions: [],
+    narrationParagraphs: [...args.parent.narrationParagraphs],
     metadata: {
       episodeNumber: args.source.episodeNumber,
-      primaryTitle: args.source.title,
-      audioInstructions: [...args.source.audioInstructions],
-      narration: args.source.narration
-        .split(/\n{2,}/u)
-        .map((entry) => normalizeWhitespace(entry))
-        .filter(Boolean),
+      primaryTitle: args.parent.title,
+      audioInstructions: [],
+      narration: [...args.parent.narrationParagraphs],
       tags: [],
       hashtags: [],
     },
-    content: args.source.sourceContent,
+    content: args.parent.narrationParagraphs.join("\n\n"),
   };
   const promptFacts = extractCanonicalStoryFacts(parsedSourceStory);
   const compiledPrompt = compileShortStoryPrompt({
@@ -995,8 +1275,9 @@ async function generateLanguagePayload(
     adaptationMode: "retention-optimized",
     sourceStory: parsedSourceStory,
     canonicalFacts: promptFacts,
-    fullStoryText: args.source.sourceContent,
     storyIr: adaptCanonicalStoryFactsToStoryIR(promptFacts, parsedSourceStory),
+    sourceExtraction: args.sourceExtraction,
+    adaptationContract: args.adaptationContract,
   });
   if (compiledPrompt.diagnostics.some((entry) => entry.blocking)) {
     throw new ShortRewriteValidationError(
@@ -1062,7 +1343,16 @@ async function generateLanguagePayload(
         },
         parentArtifact: {
           kind: "canonical-english-full",
-          sourceHash: args.source.sourceSha256,
+          fingerprint: args.adaptationContract.contractHash,
+          sourceHash: args.parent.sourceSha256,
+          language: "en",
+          locale: "en-US",
+          variant: "full",
+          storyIrHash: args.parent.storyIrHash,
+          contractHash: args.parent.contractHash,
+          ...(args.parent.contractBuildFingerprint
+            ? { contractBuildFingerprint: args.parent.contractBuildFingerprint }
+            : {}),
         },
         minimumOutputTokens: expectedOutputTokens,
         components: [
@@ -1113,19 +1403,19 @@ async function generateLanguagePayload(
   };
   if (args.dryRun) {
     const generation: ShortRewriteGeneration = {
-      title: `${args.source.title} (${languageDefinition.name})`,
-      hook: firstSentence(args.source.narration),
-      narration: args.source.narration,
-      wordCount: countSpokenWords(args.source.narration),
+      title: `${args.parent.title} (${languageDefinition.name})`,
+      hook: firstSentence(args.parent.narrationParagraphs.join(" ")),
+      narration: args.parent.narrationParagraphs.join("\n\n"),
+      wordCount: countSpokenWords(args.parent.narrationParagraphs.join(" ")),
       estimatedDurationSecondsAt175Wpm: estimateDurationSeconds(
-        countSpokenWords(args.source.narration),
+        countSpokenWords(args.parent.narrationParagraphs.join(" ")),
         175
       ),
       estimatedDurationSecondsAt180Wpm: estimateDurationSeconds(
-        countSpokenWords(args.source.narration),
+        countSpokenWords(args.parent.narrationParagraphs.join(" ")),
         180
       ),
-      thumbnailText: args.source.title.split(" ").slice(0, 4).join(" "),
+      thumbnailText: args.parent.title.split(" ").slice(0, 4).join(" "),
       fullVideoBridge: "Read the full episode for the complete story.",
     };
     const validation = buildValidationSummary({
@@ -1137,7 +1427,7 @@ async function generateLanguagePayload(
     const generatedAt = new Date().toISOString();
     const artifact = shortRewriteArtifactSchema.parse(
       buildArtifactPayload({
-        schemaVersion: 1,
+        schemaVersion: 2,
         promptVersion: SHORT_REWRITE_PROMPT_VERSION,
         promptFingerprint,
         status: "skipped",
@@ -1150,6 +1440,20 @@ async function generateLanguagePayload(
           args.source.sourcePath
         ),
         sourceSha256: args.source.sourceSha256,
+        locale: languageDefinition.locale,
+        variant: "short",
+        parent: {
+          ...args.parent.identity,
+          parentFullHash: args.parent.parentFullHash,
+          sourceSha256: args.parent.sourceSha256,
+        },
+        storyIrHash: args.parent.storyIrHash,
+        shortContractHash: args.adaptationContract.contractHash,
+        shortContractVersion: args.adaptationContract.contractVersion,
+        shortContractSchemaVersion: args.adaptationContract.schemaVersion,
+        shortSourceExtractionHash: args.sourceExtraction.extractionHash,
+        shortSourceExtractionVersion: args.sourceExtraction.version,
+        canonical: args.parent.canonical,
         markdownOutputPath: path.relative(
           path.join(args.outputRoot, args.source.episodeSlug),
           paths.markdownPath
@@ -1160,24 +1464,53 @@ async function generateLanguagePayload(
         ),
         generatedAt,
         model: args.model,
+        reasoningEffort: args.reasoningEffort,
+        maxOutputTokens: args.maxOutputTokens,
         generationDurationMs: 0,
+        promptLineage: {
+          compilerVersion: compiledPrompt.compilerVersion,
+          promptFingerprint,
+          responseSchemaName: compiledPrompt.responseSchema.name,
+          responseSchemaVersion: compiledPrompt.responseSchema.version,
+          responseSchemaFingerprint: compiledPrompt.responseSchema.fingerprint,
+        },
         validation,
       })
     );
     const jsonSidecar: ShortRewriteJsonSidecar = {
-      schemaVersion: 1,
+      schemaVersion: 2,
       episodeId: args.source.episodeId,
       episodeSlug: args.source.episodeSlug,
       sourceLanguage: "en",
       targetLanguage: args.language,
+      locale: languageDefinition.locale,
+      variant: "short",
       promptVersion: SHORT_REWRITE_PROMPT_VERSION,
       promptFingerprint,
       model: args.model,
+      reasoningEffort: args.reasoningEffort,
+      maxOutputTokens: args.maxOutputTokens,
       sourcePath: path.relative(
         path.join(args.outputRoot, args.source.episodeSlug),
         args.source.sourcePath
       ),
       sourceSha256: args.source.sourceSha256,
+      parent: {
+        ...args.parent.identity,
+        parentFullHash: args.parent.parentFullHash,
+        sourceSha256: args.parent.sourceSha256,
+      },
+      storyIrHash: args.parent.storyIrHash,
+      shortSourceExtraction: args.sourceExtraction,
+      shortAdaptationContract: args.adaptationContract,
+      promptLineage: {
+        compilerVersion: compiledPrompt.compilerVersion,
+        promptFingerprint,
+        responseSchemaName: compiledPrompt.responseSchema.name,
+        responseSchemaVersion: compiledPrompt.responseSchema.version,
+        responseSchemaFingerprint: compiledPrompt.responseSchema.fingerprint,
+      },
+      canonical: args.parent.canonical,
       generatedAt,
       generation,
       usage: buildUsagePayload({}),
@@ -1331,19 +1664,39 @@ async function generateLanguagePayload(
     cost.costMicros === null ? null : cost.costMicros / 1_000_000;
   const generatedAt = new Date().toISOString();
   const jsonSidecar: ShortRewriteJsonSidecar = {
-    schemaVersion: 1,
+    schemaVersion: 2,
     episodeId: args.source.episodeId,
     episodeSlug: args.source.episodeSlug,
     sourceLanguage: "en",
     targetLanguage: args.language,
+    locale: languageDefinition.locale,
+    variant: "short",
     promptVersion: SHORT_REWRITE_PROMPT_VERSION,
     promptFingerprint,
     model: args.model,
+    reasoningEffort: args.reasoningEffort,
+    maxOutputTokens: args.maxOutputTokens,
     sourcePath: path.relative(
       path.join(args.outputRoot, args.source.episodeSlug),
       args.source.sourcePath
     ),
     sourceSha256: args.source.sourceSha256,
+    parent: {
+      ...args.parent.identity,
+      parentFullHash: args.parent.parentFullHash,
+      sourceSha256: args.parent.sourceSha256,
+    },
+    storyIrHash: args.parent.storyIrHash,
+    shortSourceExtraction: args.sourceExtraction,
+    shortAdaptationContract: args.adaptationContract,
+    promptLineage: {
+      compilerVersion: compiledPrompt.compilerVersion,
+      promptFingerprint,
+      responseSchemaName: compiledPrompt.responseSchema.name,
+      responseSchemaVersion: compiledPrompt.responseSchema.version,
+      responseSchemaFingerprint: compiledPrompt.responseSchema.fingerprint,
+    },
+    canonical: args.parent.canonical,
     generatedAt,
     generation,
     usage: buildUsagePayload({
@@ -1364,6 +1717,10 @@ async function generateLanguagePayload(
         : {}),
       estimatedCostUsd,
     }),
+    repairHistory:
+      issues.length > 0
+        ? [{ stage: "repair" as const, issues: normalizeValidationErrors(issues) }]
+        : undefined,
     validation: {
       ...validation,
       warnings,
@@ -1371,7 +1728,7 @@ async function generateLanguagePayload(
   };
   const artifact = shortRewriteArtifactSchema.parse(
     buildArtifactPayload({
-      schemaVersion: 1,
+      schemaVersion: 2,
       promptVersion: SHORT_REWRITE_PROMPT_VERSION,
       promptFingerprint,
       status: "completed",
@@ -1384,6 +1741,20 @@ async function generateLanguagePayload(
         args.source.sourcePath
       ),
       sourceSha256: args.source.sourceSha256,
+      locale: languageDefinition.locale,
+      variant: "short",
+      parent: {
+        ...args.parent.identity,
+        parentFullHash: args.parent.parentFullHash,
+        sourceSha256: args.parent.sourceSha256,
+      },
+      storyIrHash: args.parent.storyIrHash,
+      shortContractHash: args.adaptationContract.contractHash,
+      shortContractVersion: args.adaptationContract.contractVersion,
+      shortContractSchemaVersion: args.adaptationContract.schemaVersion,
+      shortSourceExtractionHash: args.sourceExtraction.extractionHash,
+      shortSourceExtractionVersion: args.sourceExtraction.version,
+      canonical: args.parent.canonical,
       markdownOutputPath: path.relative(
         path.join(args.outputRoot, args.source.episodeSlug),
         paths.markdownPath
@@ -1394,6 +1765,8 @@ async function generateLanguagePayload(
       ),
       generatedAt,
       model: args.model,
+      reasoningEffort: args.reasoningEffort,
+      maxOutputTokens: args.maxOutputTokens,
       requestId,
       generationDurationMs: 0,
       ...(usage.inputTokens !== undefined
@@ -1412,6 +1785,13 @@ async function generateLanguagePayload(
         ? { totalTokens: usage.totalTokens }
         : {}),
       estimatedCostUsd,
+      promptLineage: {
+        compilerVersion: compiledPrompt.compilerVersion,
+        promptFingerprint,
+        responseSchemaName: compiledPrompt.responseSchema.name,
+        responseSchemaVersion: compiledPrompt.responseSchema.version,
+        responseSchemaFingerprint: compiledPrompt.responseSchema.fingerprint,
+      },
       validation,
     })
   );
@@ -1432,10 +1812,13 @@ async function generateLanguagePayload(
 
 async function isResumeEligible(args: {
   readonly source: ResolvedShortRewriteSource;
+  readonly parent: ShortRewriteResolvedParent;
   readonly language: StoryLanguage;
   readonly outputRoot: string;
   readonly model: string;
   readonly promptFingerprint: string;
+  readonly shortContractHash: string;
+  readonly shortSourceExtractionHash: string;
 }): Promise<{
   readonly eligible: boolean;
   readonly artifact?: ShortRewriteArtifact;
@@ -1460,6 +1843,11 @@ async function isResumeEligible(args: {
   }
   if (
     parsed.sourceSha256 !== args.source.sourceSha256 ||
+    parsed.parent.parentFullHash !== args.parent.parentFullHash ||
+    parsed.parent.language !== args.parent.identity.language ||
+    parsed.parent.locale !== args.parent.identity.locale ||
+    parsed.shortAdaptationContract.contractHash !== args.shortContractHash ||
+    parsed.shortSourceExtraction.extractionHash !== args.shortSourceExtractionHash ||
     parsed.promptFingerprint !== args.promptFingerprint ||
     parsed.promptVersion !== SHORT_REWRITE_PROMPT_VERSION ||
     parsed.model !== args.model ||
@@ -1477,7 +1865,7 @@ async function isResumeEligible(args: {
   }
   const artifact = shortRewriteArtifactSchema.parse(
     buildArtifactPayload({
-      schemaVersion: 1,
+      schemaVersion: 2,
       promptVersion: SHORT_REWRITE_PROMPT_VERSION,
       promptFingerprint: args.promptFingerprint,
       status: "completed",
@@ -1490,6 +1878,17 @@ async function isResumeEligible(args: {
         args.source.sourcePath
       ),
       sourceSha256: args.source.sourceSha256,
+      locale: parsed.locale,
+      variant: "short",
+      parent: parsed.parent,
+      storyIrHash: parsed.storyIrHash,
+      shortContractHash: parsed.shortAdaptationContract.contractHash,
+      shortContractVersion: parsed.shortAdaptationContract.contractVersion,
+      shortContractSchemaVersion:
+        parsed.shortAdaptationContract.schemaVersion,
+      shortSourceExtractionHash: parsed.shortSourceExtraction.extractionHash,
+      shortSourceExtractionVersion: parsed.shortSourceExtraction.version,
+      canonical: parsed.canonical,
       markdownOutputPath: path.relative(
         path.join(args.outputRoot, args.source.episodeSlug),
         paths.markdownPath
@@ -1500,7 +1899,11 @@ async function isResumeEligible(args: {
       ),
       generatedAt: parsed.generatedAt,
       model: args.model,
+      reasoningEffort: parsed.reasoningEffort,
+      maxOutputTokens: parsed.maxOutputTokens,
       generationDurationMs: 0,
+      promptLineage: parsed.promptLineage,
+      repairHistory: parsed.repairHistory,
       validation: parsed.validation,
       ...(parsed.usage.inputTokens !== undefined
         ? { inputTokens: parsed.usage.inputTokens }
@@ -1532,6 +1935,7 @@ async function mergeManifest(args: {
   readonly model: string;
   readonly artifact: ShortRewriteArtifact;
   readonly promptFingerprint: string;
+  readonly canonical: boolean;
 }): Promise<void> {
   await updateShortRewriteManifestAtomically(args.manifestPath, (current) => {
     const nextArtifacts =
@@ -1540,7 +1944,7 @@ async function mergeManifest(args: {
       ) ?? [];
     nextArtifacts.push(args.artifact);
     return shortRewriteManifestSchema.parse({
-      schemaVersion: 1,
+      schemaVersion: 2,
       promptVersion: SHORT_REWRITE_PROMPT_VERSION,
       promptFingerprint: args.promptFingerprint,
       episodeId: args.source.episodeId,
@@ -1551,6 +1955,7 @@ async function mergeManifest(args: {
         args.source.sourcePath
       ),
       sourceSha256: args.source.sourceSha256,
+      canonical: args.canonical,
       model: args.model,
       generatedAt: current?.generatedAt ?? new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -1652,6 +2057,69 @@ export async function rewriteShortStories(
       language,
     });
     const episodeRelativeRoot = path.join(outputRoot, source.episodeSlug);
+    const canonicalParsed = await parseCanonicalSourceStory(canonicalSourcePath);
+    const canonicalFacts = extractCanonicalStoryFacts(canonicalParsed);
+    const canonicalStoryIr = adaptCanonicalStoryFactsToStoryIR(
+      canonicalFacts,
+      canonicalParsed
+    );
+    const parent = await resolveShortRewriteParent({
+      outputRoot,
+      source,
+      language,
+      allowSourceInput: options.allowSourceInput ?? false,
+    });
+    const outputConstraints = {
+      variant: "short" as const,
+      targetWordRange: {
+        min: SHORT_REWRITE_HARD_WORD_RANGE.min,
+        max: SHORT_REWRITE_HARD_WORD_RANGE.max,
+      },
+      targetNarrationWpm: 178,
+      targetDuration: {
+        minSeconds: 55,
+        maxSeconds: 65,
+      },
+      hookDeadlineSeconds: 8,
+      fullVideoBridgeRequired: true,
+    };
+    const sourceExtraction = buildShortSourceExtraction({
+      parent,
+      storyIr: canonicalStoryIr,
+      outputConstraints,
+    });
+    if (
+      sourceExtraction.orphanedReferences.length > 0 &&
+      !(options.allowSourceInput ?? false)
+    ) {
+      throw new ShortRewriteValidationError(
+        `Short extraction removed prerequisite beats for ${sourceExtraction.orphanedReferences
+          .map((entry) => entry.reference)
+          .join(", ")}.`
+      );
+    }
+    const adaptationContract = buildShortAdaptationContract({
+      identity: {
+        episodeId: source.episodeId,
+        episodeSlug: source.episodeSlug,
+        language,
+        locale: SHORT_REWRITE_SUPPORTED_LANGUAGES[language].locale,
+        variant: "short",
+      },
+      parent,
+      storyIr: canonicalStoryIr,
+      extraction: sourceExtraction,
+      outputConstraints,
+    });
+    const promptFingerprint = compileShortStoryPrompt({
+      language,
+      adaptationMode: "retention-optimized",
+      sourceStory: canonicalParsed,
+      canonicalFacts,
+      storyIr: canonicalStoryIr,
+      sourceExtraction,
+      adaptationContract,
+    }).promptFingerprint;
     const buildFailedArtifact = (
       message: string,
       generatedAt: string,
@@ -1659,9 +2127,9 @@ export async function rewriteShortStories(
     ): ShortRewriteArtifact =>
       shortRewriteArtifactSchema.parse(
         buildArtifactPayload({
-          schemaVersion: 1,
+          schemaVersion: 2,
           promptVersion: SHORT_REWRITE_PROMPT_VERSION,
-          promptFingerprint: "unavailable",
+          promptFingerprint: promptFingerprint || "unavailable",
           status: "failed",
           episodeId: source.episodeId,
           episodeSlug: source.episodeSlug,
@@ -1669,6 +2137,20 @@ export async function rewriteShortStories(
           targetLanguage: language,
           sourcePath: path.relative(episodeRelativeRoot, source.sourcePath),
           sourceSha256: source.sourceSha256,
+          locale: SHORT_REWRITE_SUPPORTED_LANGUAGES[language].locale,
+          variant: "short",
+          parent: {
+            ...parent.identity,
+            parentFullHash: parent.parentFullHash,
+            sourceSha256: parent.sourceSha256,
+          },
+          storyIrHash: parent.storyIrHash,
+          shortContractHash: adaptationContract.contractHash,
+          shortContractVersion: adaptationContract.contractVersion,
+          shortContractSchemaVersion: adaptationContract.schemaVersion,
+          shortSourceExtractionHash: sourceExtraction.extractionHash,
+          shortSourceExtractionVersion: sourceExtraction.version,
+          canonical: parent.canonical,
           markdownOutputPath: path.relative(
             episodeRelativeRoot,
             paths.markdownPath
@@ -1676,7 +2158,13 @@ export async function rewriteShortStories(
           jsonOutputPath: path.relative(episodeRelativeRoot, paths.jsonPath),
           generatedAt,
           model: options.model,
+          reasoningEffort: options.reasoningEffort,
+          maxOutputTokens:
+            options.maxOutputTokens ?? DEFAULT_SHORT_REWRITE_MAX_OUTPUT_TOKENS,
           generationDurationMs: durationMs,
+          promptLineage: {
+            promptFingerprint,
+          },
           validation: {
             preferredWordRangeSatisfied: false,
             hardWordRangeSatisfied: false,
@@ -1692,6 +2180,9 @@ export async function rewriteShortStories(
       if (options.dryRun) {
         const payload = await generateLanguagePayload({
           source,
+          parent,
+          sourceExtraction,
+          adaptationContract,
           outputRoot,
           language,
           model: options.model,
@@ -1720,64 +2211,13 @@ export async function rewriteShortStories(
 
       const existing = await isResumeEligible({
         source,
+        parent,
         language,
         outputRoot,
         model: options.model,
-        promptFingerprint: compileShortStoryPrompt({
-          language,
-          adaptationMode: "retention-optimized",
-          sourceStory: {
-            language: "en",
-            sourceFile: source.sourcePath,
-            sourceHash: source.sourceSha256,
-            episodeNumber: source.episodeNumber,
-            slug: source.episodeSlug,
-            title: source.title,
-            audioInstructions: [...source.audioInstructions],
-            narrationParagraphs: source.narration
-              .split(/\n{2,}/u)
-              .map((entry) => normalizeWhitespace(entry))
-              .filter(Boolean),
-            metadata: {
-              episodeNumber: source.episodeNumber,
-              primaryTitle: source.title,
-              audioInstructions: [...source.audioInstructions],
-              narration: source.narration
-                .split(/\n{2,}/u)
-                .map((entry) => normalizeWhitespace(entry))
-                .filter(Boolean),
-              tags: [],
-              hashtags: [],
-            },
-            content: source.sourceContent,
-          },
-          canonicalFacts: extractCanonicalStoryFacts({
-            language: "en",
-            sourceFile: source.sourcePath,
-            sourceHash: source.sourceSha256,
-            episodeNumber: source.episodeNumber,
-            slug: source.episodeSlug,
-            title: source.title,
-            audioInstructions: [...source.audioInstructions],
-            narrationParagraphs: source.narration
-              .split(/\n{2,}/u)
-              .map((entry) => normalizeWhitespace(entry))
-              .filter(Boolean),
-            metadata: {
-              episodeNumber: source.episodeNumber,
-              primaryTitle: source.title,
-              audioInstructions: [...source.audioInstructions],
-              narration: source.narration
-                .split(/\n{2,}/u)
-                .map((entry) => normalizeWhitespace(entry))
-                .filter(Boolean),
-              tags: [],
-              hashtags: [],
-            },
-            content: source.sourceContent,
-          }),
-          fullStoryText: source.sourceContent,
-        }).promptFingerprint,
+        promptFingerprint,
+        shortContractHash: adaptationContract.contractHash,
+        shortSourceExtractionHash: sourceExtraction.extractionHash,
       });
       if (existing.eligible && existing.artifact && options.resume) {
         const skippedPayload = cloneArtifactPayload(existing.artifact);
@@ -1793,6 +2233,7 @@ export async function rewriteShortStories(
           artifact: skippedArtifact,
           promptFingerprint:
             existing.artifact.promptFingerprint ?? "unavailable",
+          canonical: parent.canonical,
         });
         return {
           language,
@@ -1816,6 +2257,9 @@ export async function rewriteShortStories(
       await ensureDir(path.dirname(paths.markdownPath));
       const payload = await generateLanguagePayload({
         source,
+        parent,
+        sourceExtraction,
+        adaptationContract,
         outputRoot,
         language,
         model: options.model,
@@ -1861,6 +2305,7 @@ export async function rewriteShortStories(
         model: options.model,
         artifact,
         promptFingerprint: payload.artifact.promptFingerprint ?? "unavailable",
+        canonical: parent.canonical,
       });
       return { language, artifact, skipped: false as const };
     } catch (error) {
@@ -1878,6 +2323,7 @@ export async function rewriteShortStories(
           model: options.model,
           artifact: failedArtifact,
           promptFingerprint: failedArtifact.promptFingerprint ?? "unavailable",
+          canonical: parent.canonical,
         });
       } catch {
         // The task already failed; keep the original error path intact.

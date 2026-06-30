@@ -54,6 +54,10 @@ import {
   type StorySourceAnalysis,
 } from "./story-production.js";
 import { type SourceCleaningReport } from "./source-cleaning.js";
+import {
+  type ShortRewriteAdaptationContract,
+  type ShortRewriteSourceExtraction,
+} from "./short-rewrite.types.js";
 
 export interface CompiledStoryPrompt {
   readonly compilerVersion: string;
@@ -92,7 +96,8 @@ export interface CompileShortStoryPromptInput {
   readonly adaptationMode: AdaptationMode;
   readonly sourceStory: ParsedSourceStory;
   readonly canonicalFacts: CanonicalStoryFacts;
-  readonly fullStoryText: string;
+  readonly sourceExtraction: ShortRewriteSourceExtraction;
+  readonly adaptationContract: ShortRewriteAdaptationContract;
   readonly productionContext?: {
     readonly analysis?: StorySourceAnalysis;
     readonly bible?: StoryBible;
@@ -324,7 +329,13 @@ function compileFromContext(
   const user = [
     userSections.join("\n\n"),
     context.variant === "short"
-      ? `<FULL_LOCALIZED_STORY>\n${context.fullStoryText}\n</FULL_LOCALIZED_STORY>`
+      ? [
+          "<SHORT_ADAPTATION_SOURCE>",
+          ...context.sourceExtraction.beats
+            .filter((beat) => beat.retained)
+            .map((beat) => `- [${beat.id}] ${beat.text}`),
+          "</SHORT_ADAPTATION_SOURCE>",
+        ].join("\n")
       : `<SOURCE_NARRATION>\n${context.sourceStory.narrationParagraphs.join("\n\n")}\n</SOURCE_NARRATION>`,
   ].join("\n\n");
   const fingerprintPayload = {
@@ -356,6 +367,9 @@ function compileFromContext(
           outputConstraints: context.outputConstraints,
         }
       : {
+          parentFullHash: context.adaptationContract.parent.parentFullHash,
+          shortContractHash: context.adaptationContract.contractHash,
+          shortSourceExtractionHash: context.sourceExtraction.extractionHash,
           outputConstraints: context.outputConstraints,
         }),
     ...(context.sourceCleaningReport
@@ -560,7 +574,8 @@ export function compileShortStoryPrompt(
     classificationOutcome,
     outputConstraints,
     responseSchema: shortRewriteResponseSchemaDescriptor,
-    fullStoryText: input.fullStoryText,
+    sourceExtraction: input.sourceExtraction,
+    adaptationContract: input.adaptationContract,
     localeModuleVersion: STORY_PROMPT_LOCALE_MODULE_VERSION,
     selectedLocale: profile.locale,
     ...(input.productionContext

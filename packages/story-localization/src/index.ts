@@ -38,6 +38,7 @@ export * from "./short-rewrite.renderer.js";
 export * from "./short-rewrite.prompt.js";
 export * from "./short-rewrite.persistence.js";
 export * from "./short-rewrite.bootstrap.js";
+export * from "./short-adaptation-contract.js";
 export * from "./full-rewrite.resolution.js";
 export {
   buildCanonicalEpisodeSlug,
