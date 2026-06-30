@@ -144,6 +144,38 @@ describe("story short rewrite command", () => {
     });
   });
 
+  it("inherits overlapping global flags from the parent program", async () => {
+    rewriteShortStoriesMock.mockResolvedValueOnce(makeSummary({ languagesRequested: ["de"] }));
+    const program = new Command();
+    program.option("--json").option("--verbose").option("--dry-run").option("--language <code>");
+    registerStoryRewriteShortCommand(program.command("stories"));
+
+    await program.parseAsync([
+      "node",
+      "cli",
+      "--json",
+      "--verbose",
+      "--dry-run",
+      "--language",
+      "de",
+      "stories",
+      "rewrite-short",
+      "--input",
+      "/tmp/009-the-christmas-doll/source/009-the-christmas-doll-en-full.md",
+      "--episode-slug",
+      "the-christmas-doll",
+    ]);
+
+    expect(rewriteShortStoriesMock).toHaveBeenCalledTimes(1);
+    expect(rewriteShortStoriesMock.mock.calls[0]?.[0]).toMatchObject({
+      episodeSlug: "the-christmas-doll",
+      languages: ["de"],
+      dryRun: true,
+      json: true,
+      verbose: true,
+    });
+  });
+
   it("rejects mutually exclusive input selectors", async () => {
     const program = new Command();
     registerStoryRewriteShortCommand(program.command("stories"));

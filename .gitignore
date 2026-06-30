@@ -17,3 +17,4 @@ ws-*.tgz
 out.png
 scene-*.png
 test.mp3
+.trash/

@@ -43,6 +43,31 @@ export interface StoryRewriteShortCliOptions {
   readonly verbose?: boolean;
 }
 
+function resolveInheritedCliOptions(
+  command: Command,
+  options: StoryRewriteShortCliOptions
+): StoryRewriteShortCliOptions {
+  const inherited = command.optsWithGlobals() as StoryRewriteShortCliOptions;
+  return {
+    ...options,
+    ...(options.language ?? inherited.language
+      ? { language: options.language ?? inherited.language }
+      : {}),
+    ...(options.languages ?? inherited.languages
+      ? { languages: options.languages ?? inherited.languages }
+      : {}),
+    ...(options.dryRun ?? inherited.dryRun) !== undefined
+      ? { dryRun: options.dryRun ?? inherited.dryRun }
+      : {},
+    ...(options.json ?? inherited.json) !== undefined
+      ? { json: options.json ?? inherited.json }
+      : {},
+    ...(options.verbose ?? inherited.verbose) !== undefined
+      ? { verbose: options.verbose ?? inherited.verbose }
+      : {},
+  };
+}
+
 function printJson(value: unknown): void {
   process.stdout.write(`${JSON.stringify(value, null, 2)}\n`);
 }
@@ -134,7 +159,8 @@ export function registerStoryRewriteShortCommand(storiesCommand: Command): void 
     .option("--force", "alias for overwrite")
     .option("--json", "print machine-readable output")
     .option("--verbose", "enable verbose logging")
-    .action(async (options: StoryRewriteShortCliOptions) => {
+    .action(async function (this: Command, rawOptions: StoryRewriteShortCliOptions) {
+      const options = resolveInheritedCliOptions(this, rawOptions);
       const rawArgs = new Set(process.argv.slice(2));
       const commandText = [
         process.env["MEDIAFORGE_NPM_SCRIPT_COMMAND"] ?? "",

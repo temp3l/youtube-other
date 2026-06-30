@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const localizeStoryEpisodeMock = vi.hoisted(() => vi.fn());
 const createStoryLocalizationConfigMock = vi.hoisted(() => vi.fn((config) => config));
 const createOpenAiStoryClientWithOptionsMock = vi.hoisted(() => vi.fn());
+const materializeCanonicalSourceStoryMock = vi.hoisted(() => vi.fn());
 const createLoggerMock = vi.hoisted(() => {
   const logger = {
     debug: vi.fn(),
@@ -54,6 +55,7 @@ vi.mock("@mediaforge/story-localization", async () => {
     createStoryLocalizationConfig: createStoryLocalizationConfigMock,
     createOpenAiStoryClientWithOptions: createOpenAiStoryClientWithOptionsMock,
     localizeStoryEpisode: localizeStoryEpisodeMock,
+    materializeCanonicalSourceStory: materializeCanonicalSourceStoryMock,
   };
 });
 
@@ -64,6 +66,7 @@ describe("story full rewrite command", () => {
     localizeStoryEpisodeMock.mockReset();
     createStoryLocalizationConfigMock.mockClear();
     createOpenAiStoryClientWithOptionsMock.mockClear();
+    materializeCanonicalSourceStoryMock.mockReset();
   });
 
   it("includes the full rewrite command and slug bootstrap flag", () => {
@@ -136,6 +139,58 @@ describe("story full rewrite command", () => {
       reasoningEffort: "high",
     });
     expect(localizeStoryEpisodeMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("inherits overlapping global flags from the parent program", async () => {
+    const sourcePath = path.resolve(
+      import.meta.dirname,
+      "../../..",
+      "content-ideas",
+      "content",
+      "dark-truth-episodes-multilingual-production-pack",
+      "002-even-killers-can-lick",
+      "en",
+      "002-even-killers-can-lick-en-full.md"
+    );
+    const program = new Command();
+    program.option("--json").option("--verbose").option("--dry-run").option("--language <code>");
+    registerStoryRewriteFullCommand(program.command("stories"));
+    const writes: string[] = [];
+    const stdoutSpy = vi
+      .spyOn(process.stdout, "write")
+      .mockImplementation((chunk: string | Uint8Array) => {
+        writes.push(typeof chunk === "string" ? chunk : chunk.toString());
+        return true;
+      });
+
+    await program.parseAsync([
+      "node",
+      "cli",
+      "--json",
+      "--verbose",
+      "--dry-run",
+      "--language",
+      "de",
+      "stories",
+      "rewrite-full",
+      "--input",
+      sourcePath,
+      "--episode-slug",
+      "the-christmas-doll",
+    ]);
+
+    stdoutSpy.mockRestore();
+    const payload = JSON.parse(writes.join(""));
+    expect(payload).toMatchObject({
+      dryRun: true,
+      plannedOutputs: {
+        localized: [
+          {
+            language: "de",
+          },
+        ],
+      },
+    });
   });
 
   it("reports canonical and compatibility English full paths during dry-run planning", async () => {
