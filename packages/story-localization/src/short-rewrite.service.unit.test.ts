@@ -8,6 +8,7 @@ import {
   FULL_STORY_PROVENANCE_MARKER,
   SHORT_REWRITE_PROMPT_VERSION,
 } from "./short-rewrite.constants.js";
+import { cleanSourceText } from "./source-cleaning.js";
 
 type MockResponse = {
   readonly id?: string;
@@ -579,6 +580,95 @@ describe("short rewrite service", () => {
         "utf8"
       )
     ).toContain("Mara heard the doll breathing under the attic door.");
+  });
+
+  it("writes short-story cleaning sidecars without colliding with canonical source sidecars", async () => {
+    const tempRoot = await fs.mkdtemp(
+      path.join(os.tmpdir(), "short-rewrite-sidecars-")
+    );
+    await createSourceStory(tempRoot);
+    const episodeRoot = path.join(tempRoot, "009-the-christmas-doll");
+    const canonicalSourceDir = path.join(episodeRoot, "source");
+    const generatedFullPath = path.join(episodeRoot, "en", "full", "script.md");
+    const generatedFullContent = await fs.readFile(generatedFullPath, "utf8");
+    const cleanedGeneratedFull = cleanSourceText({
+      sourcePath: generatedFullPath,
+      text: generatedFullContent,
+      sourceRole: "generated-english-full",
+      resolvedFrom: "explicit-input",
+    }).cleanedText;
+    await fs.writeFile(
+      path.join(canonicalSourceDir, "009-the-christmas-doll-en-full.md"),
+      cleanedGeneratedFull,
+      "utf8"
+    );
+    await fs.writeFile(
+      path.join(canonicalSourceDir, "source-cleaned.md"),
+      "canonical cleaned source\n",
+      "utf8"
+    );
+    await fs.writeFile(
+      path.join(canonicalSourceDir, "source-original.md"),
+      "canonical original source\n",
+      "utf8"
+    );
+    await fs.writeFile(
+      path.join(canonicalSourceDir, "source-cleaning-report.json"),
+      `${JSON.stringify({ preserved: "canonical" }, null, 2)}\n`,
+      "utf8"
+    );
+
+    const client = makeMockClient([
+      {
+        id: "resp-sidecars",
+        output_text: buildResponseJson({
+          title: "Das Puppenhaus",
+          wordCount: 165,
+          thumbnailText: "Nasse Hände",
+          fullVideoBridge: "Sieh dir die ganze Episode an.",
+          language: "de",
+        }),
+      },
+    ]);
+
+    const summary = await rewriteShortStories(
+      {
+        inputPath: generatedFullPath,
+        outputRoot: tempRoot,
+        languages: ["de"],
+        model: "gpt-5-mini",
+        dryRun: false,
+        resume: false,
+        overwrite: false,
+        maxRetries: 0,
+      },
+      {
+        client,
+      }
+    );
+
+    expect(summary.completed).toBe(1);
+    await expect(
+      fs.readFile(path.join(canonicalSourceDir, "source-cleaned.md"), "utf8")
+    ).resolves.toBe("canonical cleaned source\n");
+    await expect(
+      fs.readFile(path.join(canonicalSourceDir, "source-original.md"), "utf8")
+    ).resolves.toBe("canonical original source\n");
+    await expect(
+      fs.readFile(path.join(canonicalSourceDir, "source-cleaning-report.json"), "utf8")
+    ).resolves.toBe(`${JSON.stringify({ preserved: "canonical" }, null, 2)}\n`);
+    await expect(
+      fs.readFile(path.join(canonicalSourceDir, "cleaned-short-story.md"), "utf8")
+    ).resolves.toContain("Mara heard the doll breathing under the attic door.");
+    await expect(
+      fs.readFile(path.join(canonicalSourceDir, "original-short-story.md"), "utf8")
+    ).resolves.toContain("# Episode 009");
+    await expect(
+      fs.readFile(
+        path.join(canonicalSourceDir, "short-story-cleaning-report.json"),
+        "utf8"
+      )
+    ).resolves.toContain("\"sourceRole\": \"generated-english-full\"");
   });
 
   it("skips valid artifacts on resume and regenerates stale hashes", async () => {

@@ -23,6 +23,7 @@ This subsystem handles structured English full rewrites, localized full rewrites
 
 1. Source discovery and cleaning
    Canonical English sources are discovered, the exact original source is preserved, production-only source contamination is removed conservatively, and `source-cleaning-report.json` records hashes, removed segments, flagged segments, and cleaner versions.
+   Short rewrites that derive from generated full-story markdown persist their cleaning sidecars separately as `cleaned-short-story.md`, `original-short-story.md`, and `short-story-cleaning-report.json` so they do not overwrite canonical source-cleaning artifacts.
 2. Source parsing
    Cleaned canonical sources are parsed into structured story input. Metadata sections are no longer required for cleaned narration sources.
 3. Canonical fact extraction

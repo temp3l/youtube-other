@@ -25,20 +25,37 @@ export interface SourceCleaningPaths {
   readonly reportPath: string;
 }
 
+export type SourceCleaningArtifactSet = "canonical-source" | "short-story";
+
 export interface MaterializedCleanedSourceStory {
   readonly paths: SourceCleaningPaths;
   readonly cleaning: SourceCleaningResult;
   readonly status: "written" | "skipped";
 }
 
-export function resolveSourceCleaningPaths(canonicalSourcePath: string): SourceCleaningPaths {
+export function resolveSourceCleaningPaths(
+  canonicalSourcePath: string,
+  artifactSet: SourceCleaningArtifactSet = "canonical-source"
+): SourceCleaningPaths {
   const sourceDirectory = path.dirname(canonicalSourcePath);
+  const sidecarFileNames =
+    artifactSet === "short-story"
+      ? {
+          originalSourcePath: "original-short-story.md",
+          cleanedSourcePath: "cleaned-short-story.md",
+          reportPath: "short-story-cleaning-report.json",
+        }
+      : {
+          originalSourcePath: "source-original.md",
+          cleanedSourcePath: "source-cleaned.md",
+          reportPath: "source-cleaning-report.json",
+        };
   return {
     sourceDirectory,
     canonicalSourcePath,
-    originalSourcePath: path.join(sourceDirectory, "source-original.md"),
-    cleanedSourcePath: path.join(sourceDirectory, "source-cleaned.md"),
-    reportPath: path.join(sourceDirectory, "source-cleaning-report.json"),
+    originalSourcePath: path.join(sourceDirectory, sidecarFileNames.originalSourcePath),
+    cleanedSourcePath: path.join(sourceDirectory, sidecarFileNames.cleanedSourcePath),
+    reportPath: path.join(sourceDirectory, sidecarFileNames.reportPath),
   };
 }
 
@@ -100,6 +117,7 @@ export async function materializeCleanedCanonicalSourceStory(args: {
   readonly targetPath: string;
   readonly sourceRole: SourceRole;
   readonly resolvedFrom: SourceResolvedFrom;
+  readonly artifactSet?: SourceCleaningArtifactSet | undefined;
   readonly overwrite: boolean;
   readonly expectedSourceSha256?: string | undefined;
 }): Promise<MaterializedCleanedSourceStory> {
@@ -123,7 +141,7 @@ export async function materializeCleanedCanonicalSourceStory(args: {
       `${cleaning.report.fatal.message} Source: ${args.sourcePath}`
     );
   }
-  const paths = resolveSourceCleaningPaths(args.targetPath);
+  const paths = resolveSourceCleaningPaths(args.targetPath, args.artifactSet);
   await ensureDir(paths.sourceDirectory);
   const inPlaceCanonicalSource = path.resolve(args.sourcePath) === path.resolve(args.targetPath);
   const writes = await Promise.all([

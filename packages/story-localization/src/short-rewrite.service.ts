@@ -2484,6 +2484,7 @@ export async function rewriteShortStories(
         resolvedSource.resolvedFrom === "manifest"
           ? "batch-manifest"
           : resolvedSource.resolvedFrom,
+      artifactSet: "short-story",
       overwrite: options.overwrite ?? options.force ?? false,
     });
     const cleanedContent = await fs.readFile(canonicalSourcePath, "utf8");

@@ -15,12 +15,14 @@ export async function materializeCanonicalSourceStory(args: {
   readonly overwrite: boolean;
   readonly sourceRole?: SourceRole | undefined;
   readonly resolvedFrom?: SourceResolvedFrom | undefined;
+  readonly artifactSet?: "canonical-source" | "short-story" | undefined;
 }): Promise<"written" | "skipped"> {
   const materialized = await materializeCleanedCanonicalSourceStory({
     sourcePath: args.sourcePath,
     targetPath: args.targetPath,
     sourceRole: args.sourceRole ?? "raw-author-source",
     resolvedFrom: args.resolvedFrom ?? "unknown",
+    artifactSet: args.artifactSet,
     expectedSourceSha256: args.sourceSha256,
     overwrite: args.overwrite,
   });
