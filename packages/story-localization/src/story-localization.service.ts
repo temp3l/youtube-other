@@ -5,6 +5,7 @@ import { zodTextFormat } from "openai/helpers/zod.js";
 import {
   ensureDir,
   fileExists,
+  normalizeLocaleCode,
   normalizeWhitespace,
   splitIntoSentences,
 } from "@mediaforge/shared";
@@ -3736,15 +3737,21 @@ export function createStoryLocalizationConfig(
   const outputDirectory = path.resolve(
     input.outputDirectory ?? resolveDefaultOutputDirectory()
   );
+  const normalizedLanguages: Exclude<LanguageCode, "en">[] = [
+    ...(input.languages ?? ["de", "es", "fr", "pt"]),
+  ].map((language) => {
+    const normalized = normalizeLocaleCode(language);
+    if (!isShortLanguage(normalized)) {
+      throw new Error(
+        `Invalid localized story language: ${language}. Supported values: de, es, fr, pt.`
+      );
+    }
+    return normalized;
+  });
   return {
     sourceDirectory,
     outputDirectory,
-    languages: (input.languages ?? [
-      "de",
-      "es",
-      "fr",
-      "pt",
-    ]) as readonly Exclude<LanguageCode, "en">[],
+    languages: [...new Set(normalizedLanguages)],
     includeEnglishShort: input.includeEnglishShort ?? true,
     includeLocalizedShorts: input.includeLocalizedShorts ?? true,
     processingMode: input.processingMode ?? "batch",

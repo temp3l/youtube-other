@@ -40,7 +40,12 @@ import {
   type StoryLocalizationRunCounts,
 } from "@mediaforge/story-localization";
 import { createLogger } from "@mediaforge/observability";
-import { ensureDir, fileExists, normalizeWhitespace } from "@mediaforge/shared";
+import {
+  ensureDir,
+  fileExists,
+  normalizeLocaleCode,
+  normalizeWhitespace,
+} from "@mediaforge/shared";
 import fs from "node:fs/promises";
 
 export interface StoryLocalizationCliOptions {
@@ -101,6 +106,7 @@ function parseLanguages(
     .split(",")
     .map((entry) => normalizeWhitespace(entry).toLowerCase())
     .filter(Boolean)
+    .map((entry) => normalizeLocaleCode(entry))
     .filter((entry): entry is Exclude<LanguageCode, "en"> =>
       isShortLanguage(entry)
     );

@@ -17,6 +17,7 @@ import {
   type StoryLanguage,
 } from "@mediaforge/story-localization";
 import {
+  normalizeLocaleCode,
   normalizeWhitespace,
 } from "@mediaforge/shared";
 
@@ -229,7 +230,7 @@ function normalizeRequestedLanguages(options: StoryRewriteShortCliOptions): Stor
     return normalized;
   }
   for (const entry of raw) {
-    const primary = entry.split("-", 1)[0] as StoryLanguage;
+    const primary = normalizeLocaleCode(entry) as StoryLanguage;
     if (supported.has(primary)) {
       normalized.push(primary);
     } else {

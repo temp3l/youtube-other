@@ -19,7 +19,14 @@ describe("episode filesystem helpers", () => {
   it("normalizes episode ids, locales, and variants", () => {
     expect(normalizeEpisodeId(" 009-mary-gloria ")).toBe("009-mary-gloria");
     expect(normalizeLocaleCode("DE")).toBe("de");
+    expect(normalizeLocaleCode("es")).toBe("es");
+    expect(normalizeLocaleCode("es-419")).toBe("es");
     expect(normalizeContentVariant("SHORT")).toBe("short");
+  });
+
+  it("rejects legacy sp locale tokens with an actionable error", () => {
+    expect(() => normalizeLocaleCode("sp")).toThrow('Use "es" for Spanish.');
+    expect(() => normalizeLocaleCode("sp-SP")).toThrow('Use "es" for Spanish.');
   });
 
   it("rejects unsafe portable paths", () => {

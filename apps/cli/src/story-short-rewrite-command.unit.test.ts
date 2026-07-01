@@ -191,6 +191,53 @@ describe("story short rewrite command", () => {
     });
   });
 
+  it("accepts regional Spanish tags and normalizes them to es", async () => {
+    rewriteShortStoriesMock.mockResolvedValueOnce(makeSummary({ languagesRequested: ["es"] }));
+    const program = new Command();
+    registerStoryRewriteShortCommand(program.command("stories"));
+
+    await program.parseAsync([
+      "node",
+      "cli",
+      "stories",
+      "rewrite-short",
+      "--input",
+      "/tmp/009-the-christmas-doll/source/009-the-christmas-doll-en-full.md",
+      "--episode-slug",
+      "the-christmas-doll",
+      "--languages",
+      "es-419",
+      "--dry-run",
+    ]);
+
+    expect(rewriteShortStoriesMock.mock.calls[0]?.[0]).toMatchObject({
+      languages: ["es"],
+    });
+  });
+
+  it("rejects legacy sp locale tokens even when mixed with es", async () => {
+    const program = new Command();
+    registerStoryRewriteShortCommand(program.command("stories"));
+
+    await expect(
+      program.parseAsync([
+        "node",
+        "cli",
+        "stories",
+        "rewrite-short",
+        "--input",
+        "/tmp/009-the-christmas-doll/source/009-the-christmas-doll-en-full.md",
+        "--episode-slug",
+        "the-christmas-doll",
+        "--languages",
+        "es,sp",
+        "--dry-run",
+      ])
+    ).rejects.toThrow('Use "es" for Spanish.');
+
+    expect(rewriteShortStoriesMock).not.toHaveBeenCalled();
+  });
+
   it("omits temperature from the OpenAI connectivity preflight request", async () => {
     rewriteShortStoriesMock.mockResolvedValueOnce(makeSummary());
     const preflightClient = {

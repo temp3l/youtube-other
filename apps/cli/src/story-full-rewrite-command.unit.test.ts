@@ -252,4 +252,82 @@ describe("story full rewrite command", () => {
     });
     expect(localizeStoryEpisodeMock).not.toHaveBeenCalled();
   });
+
+  it("normalizes regional Spanish locale input to es", async () => {
+    const sourcePath = path.resolve(
+      import.meta.dirname,
+      "../../..",
+      "content-ideas",
+      "content",
+      "dark-truth-episodes-multilingual-production-pack",
+      "002-even-killers-can-lick",
+      "en",
+      "002-even-killers-can-lick-en-full.md"
+    );
+    localizeStoryEpisodeMock.mockResolvedValueOnce({
+      episodeNumber: "002",
+      slug: "002-even-killers-can-lick",
+      sourceFile: sourcePath,
+      copiedEnglishFull: "/tmp/workspace/002-even-killers-can-lick/script.md",
+      generatedFiles: ["/tmp/workspace/002-even-killers-can-lick/script.md"],
+      skippedFiles: [],
+      cacheHit: false,
+      repairAttempts: 0,
+      inputTokens: 0,
+      outputTokens: 0,
+      estimatedCostUsd: null,
+    });
+
+    const program = new Command();
+    registerStoryRewriteFullCommand(program.command("stories"));
+
+    await program.parseAsync([
+      "node",
+      "cli",
+      "stories",
+      "rewrite-full",
+      "--input",
+      sourcePath,
+      "--episode-slug",
+      "the-christmas-doll",
+      "--languages",
+      "es-419",
+    ]);
+
+    expect(createStoryLocalizationConfigMock.mock.calls[0]?.[0]).toMatchObject({
+      languages: ["es"],
+    });
+  });
+
+  it("rejects legacy sp locale input with an actionable error", async () => {
+    const sourcePath = path.resolve(
+      import.meta.dirname,
+      "../../..",
+      "content-ideas",
+      "content",
+      "dark-truth-episodes-multilingual-production-pack",
+      "002-even-killers-can-lick",
+      "en",
+      "002-even-killers-can-lick-en-full.md"
+    );
+    const program = new Command();
+    registerStoryRewriteFullCommand(program.command("stories"));
+
+    await expect(
+      program.parseAsync([
+        "node",
+        "cli",
+        "stories",
+        "rewrite-full",
+        "--input",
+        sourcePath,
+        "--episode-slug",
+        "the-christmas-doll",
+        "--languages",
+        "sp-SP",
+      ])
+    ).rejects.toThrow('Use "es" for Spanish.');
+
+    expect(createStoryLocalizationConfigMock).not.toHaveBeenCalled();
+  });
 });

@@ -17,7 +17,7 @@ import {
   localizeStoryEpisode,
   materializeCanonicalSourceStory,
 } from "@mediaforge/story-localization";
-import { normalizeWhitespace } from "@mediaforge/shared";
+import { normalizeLocaleCode, normalizeWhitespace } from "@mediaforge/shared";
 
 export interface StoryRewriteFullCliOptions {
   readonly episode?: string;
@@ -79,7 +79,14 @@ function parseLanguageList(value: string | undefined): string[] {
 
 function normalizeTargetLanguages(value: string | undefined, singleLanguage?: string): string[] {
   const values = [...parseLanguageList(singleLanguage), ...parseLanguageList(value)];
-  return [...new Set(values.filter((entry) => entry !== "en"))];
+  const normalized: string[] = [];
+  for (const entry of values) {
+    const locale = normalizeLocaleCode(entry);
+    if (locale !== "en") {
+      normalized.push(locale);
+    }
+  }
+  return [...new Set(normalized)];
 }
 
 export function registerStoryRewriteFullCommand(storiesCommand: Command): void {

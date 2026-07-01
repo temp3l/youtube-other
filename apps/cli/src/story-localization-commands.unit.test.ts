@@ -100,4 +100,15 @@ describe("story localization command registration", () => {
     expect(config.maxOutputTokens).toBe(12345);
     expect(config.repairMaxOutputTokens).toBe(12345);
   });
+
+  it("normalizes regional Spanish locale input to es", async () => {
+    const config = await buildCommandConfig({ languages: "es-419" });
+    expect(config.languages).toEqual(["es"]);
+  });
+
+  it("rejects legacy sp locale input with an actionable error", async () => {
+    await expect(buildCommandConfig({ languages: "sp" })).rejects.toThrow(
+      'Use "es" for Spanish.'
+    );
+  });
 });

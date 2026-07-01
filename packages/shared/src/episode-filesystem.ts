@@ -14,6 +14,7 @@ export type RelativePath = string & { readonly __brand: "RelativePath" };
 
 const episodeIdPattern = /^[a-z0-9][a-z0-9-]*$/u;
 const localeCodePattern = /^(en|de|es|fr|pt)(?:-[a-z0-9]{2,8})*$/iu;
+const legacySpanishLocaleCodePattern = /^sp(?:-[a-z0-9]{2,8})*$/iu;
 
 export function normalizeEpisodeId(value: string): EpisodeId {
   const normalized = value.trim().toLowerCase();
@@ -25,6 +26,9 @@ export function normalizeEpisodeId(value: string): EpisodeId {
 
 export function normalizeLocaleCode(value: string): LocaleCode {
   const normalized = value.trim().toLowerCase();
+  if (legacySpanishLocaleCodePattern.test(normalized)) {
+    throw new Error(`Invalid locale code: ${value}. Use "es" for Spanish.`);
+  }
   const [primary] = normalized.split("-", 1);
   if (!primary || !localeCodePattern.test(normalized) || !localeCodes.includes(primary as LocaleCode)) {
     throw new Error(`Invalid locale code: ${value}`);
