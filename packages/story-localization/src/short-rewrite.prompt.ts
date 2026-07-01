@@ -169,13 +169,22 @@ function sanitizeRepairPayload(value: unknown): unknown {
 export function buildShortRewriteRegenerationPrompt(args: {
   readonly context: ShortRewritePromptContext;
   readonly validationErrors: readonly string[];
+  readonly invalidResult?: unknown;
 }): { readonly system: string; readonly user: string } {
   const basePrompt = buildShortRewritePrompt(args.context);
+  const invalidResultSection =
+    args.invalidResult === undefined
+      ? []
+      : [
+          "Previous invalid short result:",
+          JSON.stringify(sanitizeRepairPayload(args.invalidResult), null, 2),
+        ];
   const regenerationSection = [
     "Regenerate the short narration from scratch.",
     "Keep the same short-only contract and source beats.",
     "Fix these issues in the new result:",
     ...args.validationErrors.map((entry) => `- ${entry}`),
+    ...invalidResultSection,
     "Return only the structured schema result.",
   ].join("\n");
   return {

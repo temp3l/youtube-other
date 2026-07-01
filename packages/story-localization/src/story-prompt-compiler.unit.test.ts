@@ -269,4 +269,72 @@ describe("story prompt compiler", () => {
     expect(compiled.user).not.toContain("## Short Metadata");
     expect(compiled.user).toContain("narration-only");
   });
+
+  it("adds explicit grounding checks to short narration prompts", async () => {
+    const parsed = await parseCanonicalSourceStory(sourceFile);
+    const facts = extractCanonicalStoryFacts(parsed);
+    const storyIr = adaptCanonicalStoryFactsToStoryIR(facts, parsed);
+    const parent = {
+      identity: {
+        episodeId: parsed.episodeNumber,
+        episodeSlug: parsed.slug,
+        language: "en" as const,
+        locale: "en-US",
+        variant: "full" as const,
+      },
+      title: parsed.title,
+      sourcePath: parsed.sourceFile,
+      sourceSha256: "a".repeat(64),
+      parentFullHash: "b".repeat(64),
+      storyIrHash: "c".repeat(64),
+      contractHash: "d".repeat(64),
+      narrationParagraphs: parsed.narrationParagraphs,
+      canonical: true,
+      provenance: "localized-full-artifact" as const,
+    };
+    const outputConstraints = {
+      variant: "short" as const,
+      targetWordRange: { min: 145, max: 170 },
+      targetNarrationWpm: 178,
+      targetDuration: { minSeconds: 55, maxSeconds: 65 },
+      hookDeadlineSeconds: 8,
+      fullVideoBridgeRequired: true,
+    };
+    const sourceExtraction = buildShortSourceExtraction({
+      parent,
+      storyIr,
+      outputConstraints,
+    });
+    const adaptationContract = buildShortAdaptationContract({
+      identity: {
+        episodeId: parsed.episodeNumber,
+        episodeSlug: parsed.slug,
+        language: "en",
+        locale: "en-US",
+        variant: "short",
+      },
+      parent,
+      storyIr,
+      extraction: sourceExtraction,
+      outputConstraints,
+    });
+    const compiled = compileShortStoryPrompt({
+      language: "en",
+      adaptationMode: "retention-optimized",
+      sourceStory: parsed,
+      canonicalFacts: facts,
+      storyIr,
+      sourceExtraction,
+      adaptationContract,
+    });
+    expect(compiled.user).toContain("Immutable facts that remain grounded:");
+    expect(compiled.user).toContain("Invention boundaries:");
+    expect(compiled.user).toContain("Before returning the result, silently verify:");
+    expect(compiled.user).toContain(
+      "Every concrete action, object, timing detail, reveal, and relationship is supported"
+    );
+    expect(compiled.user).toContain(
+      "Remove any unsupported object, place, call, note, injury, motive, or reveal"
+    );
+  });
 });

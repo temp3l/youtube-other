@@ -4,6 +4,7 @@ import { loadRuntimeConfig } from "@mediaforge/config";
 import { createLogger } from "@mediaforge/observability";
 import {
   createOpenAiStoryClientWithOptions,
+  StoryLocalizationApiError,
   rewriteShortStories,
   DEFAULT_SHORT_REWRITE_MAX_OUTPUT_TOKENS,
   DEFAULT_SHORT_REWRITE_RETRY_MAX_OUTPUT_TOKENS,
@@ -72,6 +73,142 @@ function printJson(value: unknown): void {
   process.stdout.write(`${JSON.stringify(value, null, 2)}\n`);
 }
 
+function describeOpenAiStoryLocalizationError(error: unknown): string {
+  const isConnectivityError = (value: unknown): boolean => {
+    if (!value) {
+      return false;
+    }
+    if (typeof value === "string") {
+      return /connection|connect|timeout|timed out|dns|eai_again|enotfound|econnreset|etimedout|fetch failed|network error|socket hang up/iu.test(
+        value
+      );
+    }
+    if (typeof value === "object") {
+      const record = value as {
+        readonly code?: unknown;
+        readonly message?: unknown;
+        readonly name?: unknown;
+      };
+      const code = typeof record.code === "string" ? record.code : "";
+      const message = typeof record.message === "string" ? record.message : "";
+      const name = typeof record.name === "string" ? record.name : "";
+      return (
+        /^(ECONNRESET|ETIMEDOUT|EAI_AGAIN|ENOTFOUND|UND_ERR_CONNECT_TIMEOUT|UND_ERR_SOCKET)$/u.test(
+          code
+        ) ||
+        /connection|connect|timeout|timed out|dns|fetch failed|network error|socket hang up/iu.test(
+          `${name} ${code} ${message}`
+        )
+      );
+    }
+    return false;
+  };
+  if (error && typeof error === "object") {
+    const record = error as {
+      readonly message?: unknown;
+      readonly status?: unknown;
+      readonly code?: unknown;
+      readonly error?: {
+        readonly message?: unknown;
+        readonly code?: unknown;
+      };
+      readonly cause?: unknown;
+    };
+    const nestedCode =
+      typeof record.error?.code === "string" ? record.error.code : undefined;
+    const code = typeof record.code === "string" ? record.code : nestedCode;
+    const nestedMessage =
+      typeof record.error?.message === "string"
+        ? record.error.message
+        : undefined;
+    const message =
+      nestedMessage ??
+      (typeof record.message === "string"
+        ? record.message
+        : "OpenAI request failed.");
+    const status =
+      typeof record.status === "number" ? ` (status ${record.status})` : "";
+    const codeSuffix = code ? ` [${code}]` : "";
+    if (code === "insufficient_quota") {
+      return `${message}${codeSuffix}${status}. Check API billing, project selection, and key scope.`;
+    }
+    if (
+      isConnectivityError(record) ||
+      isConnectivityError(record.error) ||
+      isConnectivityError(record.cause) ||
+      isConnectivityError(record.message)
+    ) {
+      return `Connection/transport error while calling OpenAI${codeSuffix}${status}: ${message}`;
+    }
+    return `${message}${codeSuffix}${status}`;
+  }
+  if (error instanceof Error) {
+    if (
+      isConnectivityError(error.message) ||
+      isConnectivityError(error.cause)
+    ) {
+      return `Connection/transport error while calling OpenAI: ${error.message}`;
+    }
+    return error.message;
+  }
+  return String(error);
+}
+
+async function preflightOpenAiConnectivity(
+  client: Awaited<ReturnType<typeof createOpenAiStoryClientWithOptions>>,
+  model: string,
+  timeoutMs: number
+): Promise<void> {
+  const controller = new AbortController();
+  const timeout = setTimeout(
+    () =>
+      controller.abort(new Error("OpenAI connectivity preflight timed out.")),
+    timeoutMs
+  );
+  try {
+    await client.responses.create(
+      {
+        model,
+        input: [
+          {
+            role: "system",
+            content: [
+              {
+                type: "input_text",
+                text: "Connectivity preflight. Reply with ok.",
+              },
+            ],
+          },
+          {
+            role: "user",
+            content: [
+              {
+                type: "input_text",
+                text: "ok",
+              },
+            ],
+          },
+        ],
+        max_output_tokens: 16,
+      },
+      { signal: controller.signal }
+    );
+  } catch (error) {
+    if (controller.signal.aborted) {
+      throw new StoryLocalizationApiError(
+        `Unable to reach OpenAI before short rewrite started. OpenAI connectivity preflight timed out after ${Math.round(timeoutMs / 1000)} seconds. Check network access, VPN/proxy/firewall settings, OPENAI_BASE_URL, and API credentials. If you are in a restricted sandbox, rerun with outbound network access enabled.`,
+        error
+      );
+    }
+    throw new StoryLocalizationApiError(
+      `Unable to reach OpenAI before short rewrite started. Check network access, VPN/proxy/firewall settings, OPENAI_BASE_URL, and API credentials. If you are in a restricted sandbox, rerun with outbound network access enabled. Original error: ${describeOpenAiStoryLocalizationError(error)}`,
+      error
+    );
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 function parseLanguageList(value: string | undefined): string[] {
   if (!value) {
     return [];
@@ -120,7 +257,7 @@ function resolveModel(
 }
 
 function formatSummary(summary: Awaited<ReturnType<typeof rewriteShortStories>>): string {
-  return [
+  const lines = [
     `Episode: ${summary.episodeId} — ${summary.episodeSlug}`,
     `Source: ${summary.sourcePath}`,
     `Languages requested: ${summary.languagesRequested.join(", ")}`,
@@ -131,7 +268,16 @@ function formatSummary(summary: Awaited<ReturnType<typeof rewriteShortStories>>)
     `Output tokens: ${summary.outputTokens}`,
     `Estimated cost: ${summary.estimatedCostUsd === null ? "n/a" : `$${summary.estimatedCostUsd.toFixed(4)}`}`,
     `Duration: ${Math.round(summary.generationDurationMs / 1000)}s`,
-  ].join("\n");
+  ];
+  if (summary.failures.length > 0) {
+    lines.push("Failures:");
+    lines.push(
+      ...summary.failures.map(
+        (failure) => `- ${failure.language}: ${failure.message}`
+      )
+    );
+  }
+  return lines.join("\n");
 }
 
 export function registerStoryRewriteShortCommand(storiesCommand: Command): void {
@@ -180,7 +326,7 @@ export function registerStoryRewriteShortCommand(storiesCommand: Command): void 
       const timeoutMs = options.timeoutMs ?? SHORT_REWRITE_DEFAULT_TIMEOUT_MS;
       const maxRetries = options.maxRetries ?? 2;
       const model = resolveModel(options, runtimeConfig);
-      const client = options.dryRun
+      const client = options.dryRun || hasDryRunFlag
         ? undefined
         : createOpenAiStoryClientWithOptions({
             apiKey: runtimeConfig.openAiCompatibleApiKey ?? undefined,
@@ -196,6 +342,9 @@ export function registerStoryRewriteShortCommand(storiesCommand: Command): void 
       process.once("SIGINT", abort);
       process.once("SIGTERM", abort);
       try {
+        if (client) {
+          await preflightOpenAiConnectivity(client, model, 60_000);
+        }
         const serviceOptions = {
           logger,
           signal: controller.signal,

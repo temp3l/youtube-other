@@ -224,6 +224,70 @@ async function createSourceStory(tempRoot: string): Promise<string> {
   return sourcePath;
 }
 
+async function createMinimalSourceStory(tempRoot: string): Promise<string> {
+  const episodeDir = path.join(tempRoot, "010-short-source", "source");
+  await fs.mkdir(episodeDir, { recursive: true });
+  const sourcePath = path.join(episodeDir, "010-short-source-en-full.md");
+  const content = [
+    "# Episode 010 — Short Source",
+    FULL_STORY_PROVENANCE_MARKER,
+    "",
+    "## Narration Script",
+    "A white hat moved above the wall.",
+    "Later, Clara heard three low syllables beneath the caller's voice.",
+  ].join("\n");
+  await fs.writeFile(sourcePath, content, "utf8");
+  const episodeRoot = path.join(tempRoot, "010-short-source");
+  await fs.mkdir(path.join(episodeRoot, "en", "full"), { recursive: true });
+  await fs.writeFile(path.join(episodeRoot, "en", "full", "script.md"), content, "utf8");
+  await fs.writeFile(
+    path.join(episodeRoot, "en", "full", "canonical-full.json"),
+    JSON.stringify(
+      {
+        schemaVersion: "canonical-english-full-artifact-v1",
+        episodeNumber: "010",
+        episodeSlug: "010-short-source",
+        language: "en",
+        locale: "en-US",
+        variant: "full",
+        sourceFile: sourcePath,
+        lineage: {
+          sourceHash: "a".repeat(64),
+          cleanedSourceHash: "b".repeat(64),
+          storyIrHash: "c".repeat(64),
+          contractHash: "d".repeat(64),
+          contractBuildFingerprint: "e".repeat(64),
+        },
+        prompt: {
+          compilerVersion: "story-prompt-compiler-v1",
+          promptVersion: SHORT_REWRITE_PROMPT_VERSION,
+          promptFingerprint: "f".repeat(64),
+          selectedModules: [],
+        },
+        model: {
+          name: "gpt-5-mini",
+          reasoningEffort: "low",
+          maxOutputTokens: 2000,
+        },
+        responseSchema: {
+          name: "full_narration_story_package",
+          version: "full-narration-response-schema-v1",
+          fingerprint: "1".repeat(64),
+        },
+        preflight: {
+          policyVersion: "story-preflight-v1",
+          requestFingerprint: "2".repeat(64),
+          status: "allowed",
+        },
+      },
+      null,
+      2
+    ),
+    "utf8"
+  );
+  return sourcePath;
+}
+
 async function createLocalizedFullParent(
   tempRoot: string,
   language: "de" | "es" | "fr" | "pt",
@@ -243,6 +307,8 @@ async function createLocalizedFullParent(
     JSON.stringify(
       {
         schemaVersion: "full-narration-response-schema-v1",
+        sourceFormat: "narration-only",
+        deprecationDiagnostics: [],
         promptFingerprint: "9".repeat(64),
         responseSchemaName: "full_narration_story_package",
         responseSchemaVersion: "full-narration-response-schema-v1",
@@ -817,14 +883,96 @@ describe("short rewrite service", () => {
         "utf8"
       )
     ).toContain("short_narration_result");
-    expect(
-      JSON.parse(
-        await fs.readFile(
-          path.join(debugDir, "stories-rewrite-short-es.response.json"),
-          "utf8"
-        )
+    expect(summary.failures.some((failure) => failure.language === "es")).toBe(
+      true
+    );
+  });
+
+  it("fails before calling OpenAI when the short source extraction is under-specified", async () => {
+    const tempRoot = await fs.mkdtemp(
+      path.join(os.tmpdir(), "short-rewrite-underspecified-")
+    );
+    const sourcePath = await createMinimalSourceStory(tempRoot);
+    const client = makeMockClient([
+      {
+        output_text: buildResponseJson({
+          title: "Short Source",
+          wordCount: 150,
+          thumbnailText: "White Hat",
+          fullVideoBridge: "Watch the full episode.",
+        }),
+      },
+    ]);
+
+    await expect(
+      rewriteShortStories(
+        {
+          inputPath: sourcePath,
+          outputRoot: tempRoot,
+          languages: ["en"],
+          model: "gpt-5-mini",
+          dryRun: false,
+          resume: false,
+          overwrite: false,
+          maxRetries: 0,
+          maxConcurrency: 1,
+          allowSourceInput: true,
+        },
+        {
+          client,
+        }
       )
-    ).toHaveProperty("error.message");
+    ).rejects.toThrow("Short source extraction retained only 2 beats");
+    expect(client.responses.create).not.toHaveBeenCalled();
+  });
+
+  it("removes stale debug error files after a successful rewrite", async () => {
+    const tempRoot = await fs.mkdtemp(
+      path.join(os.tmpdir(), "short-rewrite-clear-error-")
+    );
+    const sourcePath = await createSourceStory(tempRoot);
+    const episodeRoot = path.join(tempRoot, "009-the-christmas-doll");
+    const debugDir = path.join(episodeRoot, "debug");
+    await fs.mkdir(debugDir, { recursive: true });
+    await fs.writeFile(
+      path.join(debugDir, "stories-rewrite-short-de.error.json"),
+      JSON.stringify({ stale: true }, null, 2),
+      "utf8"
+    );
+
+    const client = makeMockClient([
+      {
+        output_text: buildResponseJson({
+          title: "Das Puppenhaus",
+          wordCount: 165,
+          thumbnailText: "Nasse Hände",
+          fullVideoBridge: "Sieh dir die ganze Episode an.",
+          language: "de",
+        }),
+      },
+    ]);
+
+    const summary = await rewriteShortStories(
+      {
+        inputPath: sourcePath,
+        outputRoot: tempRoot,
+        languages: ["de"],
+        model: "gpt-5-mini",
+        dryRun: false,
+        resume: false,
+        overwrite: false,
+        maxRetries: 0,
+        maxConcurrency: 1,
+      },
+      {
+        client,
+      }
+    );
+
+    expect(summary.failed).toBe(0);
+    await expect(
+      fs.access(path.join(debugDir, "stories-rewrite-short-de.error.json"))
+    ).rejects.toThrow();
   });
 
   it("regenerates short narration after max_output_tokens exhaustion and persists failed usage metadata", async () => {
@@ -955,6 +1103,67 @@ describe("short rewrite service", () => {
     expect(summary.failed).toBe(1);
     expect(client.responses.create).toHaveBeenCalledTimes(1);
     expect(summary.artifacts[0]?.status).toBe("failed");
+  });
+
+  it("passes validator feedback and the invalid result into the short follow-up attempt", async () => {
+    const tempRoot = await fs.mkdtemp(
+      path.join(os.tmpdir(), "short-rewrite-targeted-repair-")
+    );
+    const sourcePath = await createSourceStory(tempRoot);
+    const invalidNarration = [
+      "Mara heard the doll breathing under the attic door.",
+      "Eight seconds later, her phone rang in the nursery.",
+      "When she opened it, the doll sat on the nursery chair with wet hands and her own name scratched across the glass.",
+      "She burned the dress, locked the trunk, and thought the house had gone quiet, but the final photograph on the stairs showed the doll behind her brother.",
+    ].join(" ");
+    const client = makeMockClient([
+      {
+        id: "resp-invalid",
+        output_text: JSON.stringify({ narration: invalidNarration }),
+      },
+      {
+        id: "resp-repaired",
+        output_text: buildResponseJson({
+          title: "The Christmas Doll",
+          wordCount: 155,
+        }),
+      },
+      {
+        id: "resp-regenerated",
+        output_text: buildResponseJson({
+          title: "The Christmas Doll",
+          wordCount: 155,
+        }),
+      },
+    ]);
+
+    const summary = await rewriteShortStories(
+      {
+        inputPath: sourcePath,
+        outputRoot: tempRoot,
+        languages: ["en"],
+        model: "gpt-5-mini",
+        dryRun: false,
+        resume: false,
+        overwrite: false,
+        maxRetries: 0,
+      },
+      {
+        client,
+      }
+    );
+
+    expect(summary.completed + summary.failed).toBe(1);
+    expect(client.responses.create.mock.calls.length).toBeGreaterThanOrEqual(2);
+    const followUpRequest = client.responses.create.mock.calls[1]?.[0] as {
+      readonly input: readonly {
+        readonly content: readonly { readonly text: string }[];
+      }[];
+    };
+    const followUpPrompt = followUpRequest.input[1]?.content[0]?.text ?? "";
+    expect(followUpPrompt).toContain("Fix these issues in the new result:");
+    expect(followUpPrompt).toContain("Previous invalid short result:");
+    expect(followUpPrompt).toContain("Eight seconds later, her phone rang in the nursery.");
   });
 
   it("requires a validated canonical full parent for English shorts", async () => {

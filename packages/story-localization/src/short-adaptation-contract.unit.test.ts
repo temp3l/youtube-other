@@ -4,6 +4,7 @@ import {
   buildShortAdaptationContract,
   buildShortSourceExtraction,
   detectOrphanedShortReferences,
+  validateShortSourceExtraction,
 } from "./short-adaptation-contract.js";
 import { stableSerialize } from "./stable-json.js";
 import { type ShortRewriteResolvedParent } from "./short-rewrite.types.js";
@@ -138,6 +139,32 @@ describe("short adaptation contract", () => {
     expect(orphaned.some((entry) => entry.reference === "photograph")).toBe(true);
   });
 
+  it("ignores non-specific pronoun-only references in orphan detection", () => {
+    const orphaned = detectOrphanedShortReferences({
+      beats: [
+        {
+          id: "b01",
+          paragraphIndex: 0,
+          sentenceIndex: 0,
+          text: "Her name came from the hallway.",
+          references: ["her"],
+          retained: false,
+        },
+        {
+          id: "b02",
+          paragraphIndex: 1,
+          sentenceIndex: 0,
+          text: "Her hand shook when the call came again.",
+          references: ["her"],
+          retained: true,
+        },
+      ],
+      selectedBeatIds: ["b02"],
+    });
+
+    expect(orphaned).toEqual([]);
+  });
+
   it("builds a compact contract without duplicating the full story or full StoryIR", () => {
     const storyIr = makeStoryIr();
     const parent = makeParent();
@@ -162,6 +189,87 @@ describe("short adaptation contract", () => {
     const serialized = stableSerialize(contract);
     expect(serialized).not.toContain('"entities"');
     expect(serialized).not.toContain(parent.narrationParagraphs.join("\\n\\n"));
+  });
+
+  it("retains enough beats for the configured short target", () => {
+    const storyIr = makeStoryIr();
+    const extraction = buildShortSourceExtraction({
+      parent: makeParent(),
+      storyIr,
+      outputConstraints,
+    });
+
+    expect(extraction.selectedBeatIds.length).toBeGreaterThanOrEqual(3);
+    expect(validateShortSourceExtraction({ extraction, outputConstraints })).toEqual([]);
+  });
+
+  it("adds a bridge beat when the opening and ending are otherwise isolated", () => {
+    const extraction = buildShortSourceExtraction({
+      parent: {
+        ...makeParent(),
+        narrationParagraphs: [
+          "A white hat moved above the wall.",
+          "Clara told herself it was only a trick of the light.",
+          "Her grandfather locked every window before dark.",
+          "Sometimes, before the caller speaks again, she hears three low syllables beneath the voice.",
+        ],
+      },
+      storyIr: {
+        ...makeStoryIr(),
+        centralThreat: {
+          type: "supernatural",
+          description: "A white hat moved above the wall.",
+          intelligent: true,
+        },
+        centralRuleMechanism: {
+          description:
+            "Sometimes, before the caller speaks again, she hears three low syllables beneath the voice.",
+          supernatural: true,
+        },
+        climax:
+          "Sometimes, before the caller speaks again, she hears three low syllables beneath the voice.",
+        endingConsequence:
+          "Sometimes, before the caller speaks again, she hears three low syllables beneath the voice.",
+        criticalObjects: [],
+        writtenMessages: [],
+        immutableFacts: [],
+      },
+      outputConstraints,
+    });
+
+    expect(extraction.selectedBeatIds.length).toBeGreaterThanOrEqual(3);
+    expect(extraction.selectedBeatIds).toContain("b02");
+    expect(validateShortSourceExtraction({ extraction, outputConstraints })).toEqual([]);
+  });
+
+  it("flags under-specified short source extraction before generation", () => {
+    const issues = validateShortSourceExtraction({
+      extraction: {
+        version: "short-source-extraction-v1",
+        parentFullHash: "a".repeat(64),
+        storyIrHash: "b".repeat(64),
+        locale: "en-US",
+        targetVariant: "short",
+        maximumBeats: 6,
+        selectedBeatIds: ["b01", "b82"],
+        removedBeatIds: [],
+        beats: [],
+        orphanedReferences: [
+          {
+            reference: "voice",
+            introducedByBeatId: "b02",
+            firstRetainedBeatId: "b82",
+          },
+        ],
+        extractionHash: "c".repeat(64),
+      },
+      outputConstraints,
+    });
+
+    expect(issues).toEqual([
+      "Short source extraction retained only 2 beats; at least 3 are required for the configured short target.",
+      "Short source extraction contains orphaned references: voice",
+    ]);
   });
 
   it("produces a deterministic contract hash and invalidates it when the parent hash changes", () => {

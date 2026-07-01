@@ -294,9 +294,7 @@ export function shouldAllowDeterministicRepair(
     [
       "routed to short generator",
       "routed to full regeneration",
-      "unsupported fact",
       "contradicts parent full",
-      "orphaned reference",
       "missing climax",
       "missing final consequence",
       "missing central threat",
@@ -334,6 +332,10 @@ export function inferRepairScopeFromIssueCodes(args: {
   }
   if (
     codes.has(GENERATED_STORY_VALIDATION_ISSUE_CODES.SHORT_WORD_RANGE_INVALID) ||
+    codes.has(GENERATED_STORY_VALIDATION_ISSUE_CODES.SHORT_UNSUPPORTED_FACT) ||
+    codes.has(
+      GENERATED_STORY_VALIDATION_ISSUE_CODES.SHORT_ORPHANED_REFERENCE
+    ) ||
     codes.has(
       GENERATED_STORY_VALIDATION_ISSUE_CODES.SHORT_STRUCTURAL_COMMENTARY
     ) ||

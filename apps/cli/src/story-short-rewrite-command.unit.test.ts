@@ -3,6 +3,17 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ShortRewriteRunSummary } from "@mediaforge/story-localization";
 
 const rewriteShortStoriesMock = vi.hoisted(() => vi.fn());
+const createOpenAiStoryClientWithOptionsMock = vi.hoisted(() =>
+  vi.fn(() => ({
+    responses: {
+      create: vi.fn(async () => ({
+        id: "preflight-response",
+        output_text: "{\"ok\":true}",
+        output_parsed: { ok: true },
+      })),
+    },
+  }))
+);
 const createLoggerMock = vi.hoisted(() => {
   const logger = {
     debug: vi.fn(),
@@ -51,7 +62,7 @@ vi.mock("@mediaforge/story-localization", async () => {
     DEFAULT_STORY_REWRITE_REASONING_EFFORT: "high",
     SUPPORTED_STORY_LANGUAGES: actual.SUPPORTED_STORY_LANGUAGES,
     rewriteShortStories: rewriteShortStoriesMock,
-    createOpenAiStoryClientWithOptions: vi.fn(),
+    createOpenAiStoryClientWithOptions: createOpenAiStoryClientWithOptionsMock,
   };
 });
 
@@ -88,6 +99,7 @@ function makeSummary(overrides: Partial<ShortRewriteRunSummary> = {}): ShortRewr
 describe("story short rewrite command", () => {
   beforeEach(() => {
     rewriteShortStoriesMock.mockReset();
+    createOpenAiStoryClientWithOptionsMock.mockClear();
   });
 
   it("includes the new command and flags in help output", () => {
@@ -104,6 +116,41 @@ describe("story short rewrite command", () => {
     expect(flags).toContain("--max-output-tokens <number>");
     expect(flags).toContain("--retry-max-output-tokens <number>");
     expect(rewriteShort?.description()).toContain("Rewrite an English full-length horror story");
+  });
+
+  it("fails fast on OpenAI connectivity problems before rewriting", async () => {
+    const failingClient = {
+      responses: {
+        create: vi.fn(async () => {
+          throw {
+            name: "Error",
+            code: "ECONNREFUSED",
+            message: "connect ECONNREFUSED 127.0.0.1:443",
+          };
+        }),
+      },
+    };
+    createOpenAiStoryClientWithOptionsMock.mockReturnValueOnce(
+      failingClient as typeof failingClient
+    );
+    const program = new Command();
+    registerStoryRewriteShortCommand(program.command("stories"));
+
+    await expect(
+      program.parseAsync([
+        "node",
+        "cli",
+        "stories",
+        "rewrite-short",
+        "--input",
+        "/tmp/009-the-christmas-doll/source/009-the-christmas-doll-en-full.md",
+        "--episode-slug",
+        "the-christmas-doll",
+      ])
+    ).rejects.toThrow("Unable to reach OpenAI before short rewrite started");
+
+    expect(rewriteShortStoriesMock).not.toHaveBeenCalled();
+    expect(failingClient.responses.create).toHaveBeenCalledTimes(1);
   });
 
   it("forwards normalized languages to the rewrite service", async () => {
@@ -142,6 +189,42 @@ describe("story short rewrite command", () => {
       overwrite: false,
       resume: false,
     });
+  });
+
+  it("omits temperature from the OpenAI connectivity preflight request", async () => {
+    rewriteShortStoriesMock.mockResolvedValueOnce(makeSummary());
+    const preflightClient = {
+      responses: {
+        create: vi.fn(async () => ({
+          id: "preflight-response",
+          output_text: "{\"ok\":true}",
+          output_parsed: { ok: true },
+        })),
+      },
+    };
+    createOpenAiStoryClientWithOptionsMock.mockReturnValueOnce(
+      preflightClient as typeof preflightClient
+    );
+    const program = new Command();
+    registerStoryRewriteShortCommand(program.command("stories"));
+
+    await program.parseAsync([
+      "node",
+      "cli",
+      "stories",
+      "rewrite-short",
+      "--input",
+      "/tmp/009-the-christmas-doll/source/009-the-christmas-doll-en-full.md",
+      "--episode-slug",
+      "the-christmas-doll",
+    ]);
+
+    const preflightRequest = preflightClient.responses.create.mock.calls[0]?.[0];
+    expect(preflightRequest).toMatchObject({
+      model: "gpt-5.5",
+      max_output_tokens: 16,
+    });
+    expect(preflightRequest).not.toHaveProperty("temperature");
   });
 
   it("inherits overlapping global flags from the parent program", async () => {
@@ -192,5 +275,42 @@ describe("story short rewrite command", () => {
         "--dry-run",
       ])
     ).rejects.toThrow("--episode and --input are mutually exclusive");
+  });
+
+  it("prints per-language failures in the human summary", async () => {
+    rewriteShortStoriesMock.mockResolvedValueOnce(
+      makeSummary({
+        completed: 0,
+        failed: 1,
+        failures: [
+          {
+            language: "en",
+            message: "Short source extraction retained only 2 beats.",
+          },
+        ],
+      })
+    );
+    const writeSpy = vi
+      .spyOn(process.stdout, "write")
+      .mockImplementation(() => true);
+    const program = new Command();
+    registerStoryRewriteShortCommand(program.command("stories"));
+
+    await program.parseAsync([
+      "node",
+      "cli",
+      "stories",
+      "rewrite-short",
+      "--input",
+      "/tmp/009-the-christmas-doll/source/009-the-christmas-doll-en-full.md",
+      "--episode-slug",
+      "the-christmas-doll",
+      "--dry-run",
+    ]);
+
+    const output = writeSpy.mock.calls.map(([chunk]) => String(chunk)).join("");
+    expect(output).toContain("Failures:");
+    expect(output).toContain("- en: Short source extraction retained only 2 beats.");
+    writeSpy.mockRestore();
   });
 });

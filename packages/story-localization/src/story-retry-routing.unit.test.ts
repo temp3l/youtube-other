@@ -50,6 +50,26 @@ describe("story retry routing", () => {
     });
   });
 
+  it("allows targeted repair for unsupported-fact short failures", () => {
+    const decision = decideRetryRoute({
+      purpose: "localized-short",
+      issues: [
+        "Short introduces unsupported facts.",
+        "Short contains orphaned references.",
+      ],
+      issueCodes: [
+        GENERATED_STORY_VALIDATION_ISSUE_CODES.SHORT_UNSUPPORTED_FACT,
+        GENERATED_STORY_VALIDATION_ISSUE_CODES.SHORT_ORPHANED_REFERENCE,
+      ],
+      allowTargetedRepair: true,
+    });
+    expect(decision).toEqual({
+      action: "repair",
+      purpose: "localized-short",
+      scope: "sentence",
+    });
+  });
+
   it("suppresses unchanged exhausted retries", () => {
     const decision = decideRetryRoute({
       purpose: "localized-full",

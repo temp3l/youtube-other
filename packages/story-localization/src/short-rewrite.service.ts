@@ -133,6 +133,7 @@ import { stableSerialize } from "./stable-json.js";
 import {
   buildShortAdaptationContract,
   buildShortSourceExtraction,
+  validateShortSourceExtraction,
   SHORT_ADAPTATION_CONTRACT_SCHEMA_VERSION,
   SHORT_ADAPTATION_CONTRACT_VERSION,
   SHORT_SOURCE_EXTRACTION_VERSION,
@@ -318,7 +319,7 @@ function buildFailedRequestMetadata(args: {
 
 function shouldUseTargetedShortRepair(errors: readonly string[]): boolean {
   return errors.every((entry) =>
-    /hook|word count|production labels|editorial commentary|thumbnail/iu.test(
+    /hook|word count|duration estimate|production labels|editorial commentary|thumbnail|unsupported facts?|orphaned references?/iu.test(
       entry
     )
   );
@@ -351,6 +352,10 @@ async function persistShortRewriteDebugArtifacts(args: {
 }): Promise<void> {
   await ensureDir(args.debugDirectory);
   const basePath = path.join(args.debugDirectory, args.fileBaseName);
+  const errorPath = `${basePath}.error.json`;
+  if (!args.error) {
+    await fs.rm(errorPath, { force: true });
+  }
   await Promise.all([
     writeTextAtomicIfChanged(
       `${basePath}.prompt.md`,
@@ -831,6 +836,8 @@ async function resolveLocalizedFullParent(args: {
     z
       .object({
         schemaVersion: z.string().min(1),
+        sourceFormat: z.enum(["narration-only", "legacy-mixed"]),
+        deprecationDiagnostics: z.array(z.string().min(1)),
         promptFingerprint: z.string().min(1).optional(),
         responseSchemaName: z.string().min(1).optional(),
         responseSchemaVersion: z.string().min(1).optional(),
@@ -2029,6 +2036,7 @@ async function generateLanguagePayload(
       const regenerationPrompt = buildShortRewriteRegenerationPrompt({
         context: promptContext,
         validationErrors: normalizeValidationErrors(issues),
+        invalidResult: responsePayload,
       });
       const regenerationResponse = await requestStructuredShortRewrite({
         client,
@@ -2562,6 +2570,13 @@ export async function rewriteShortStories(
       storyIr: canonicalStoryIr,
       outputConstraints,
     });
+    const sourceExtractionIssues = validateShortSourceExtraction({
+      extraction: sourceExtraction,
+      outputConstraints,
+    });
+    if (sourceExtractionIssues.length > 0) {
+      throw new ShortRewriteValidationError(sourceExtractionIssues.join("; "));
+    }
     const adaptationContract = buildShortAdaptationContract({
       identity: {
         episodeId: source.episodeId,

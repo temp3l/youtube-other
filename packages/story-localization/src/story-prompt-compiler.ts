@@ -343,6 +343,14 @@ function compileFromContext(
           `- Critical object: ${context.adaptationContract.criticalObject}`,
           `- Climax or irreversible turn: ${context.adaptationContract.climaxOrIrreversibleTurn}`,
           `- Final consequence or sting: ${context.adaptationContract.finalConsequenceOrSting}`,
+          `- Immutable facts that remain grounded: ${
+            context.adaptationContract.immutableFacts.length > 0
+              ? context.adaptationContract.immutableFacts
+                  .map((fact) => fact.statement)
+                  .join(" | ")
+              : "none"
+          }`,
+          `- Invention boundaries: ${context.adaptationContract.inventionBoundaries.join(" | ")}`,
           `- Hook deadline: ${context.adaptationContract.constraints.hookDeadlineSeconds} seconds`,
           `- Target word range: ${context.adaptationContract.constraints.targetWordRange.min}-${context.adaptationContract.constraints.targetWordRange.max}`,
           `- Target narration pace: ${context.adaptationContract.constraints.targetNarrationWpm} WPM`,
@@ -354,6 +362,11 @@ function compileFromContext(
             .filter((beat) => beat.retained)
             .map((beat) => `- [${beat.id}] ${beat.text}`),
           "</SHORT_ADAPTATION_SOURCE>",
+          "",
+          "Before returning the result, silently verify:",
+          "- Every concrete action, object, timing detail, reveal, and relationship is supported by the retained source beats or the immutable facts listed above.",
+          "- Remove any unsupported object, place, call, note, injury, motive, or reveal that is not grounded in the source package above.",
+          "- Keep the same ending consequence without inventing a bridge event or a new reveal.",
         ].join("\n")
       : `<SOURCE_NARRATION>\n${context.sourceStory.narrationParagraphs.join("\n\n")}\n</SOURCE_NARRATION>`,
   ].join("\n\n");
