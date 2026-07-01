@@ -1145,6 +1145,36 @@ function isMissingYoutubeScopeError(error: unknown): boolean {
   );
 }
 
+function isThumbnailUploadRateLimitError(error: unknown): boolean {
+  if (!error || typeof error !== "object") {
+    return false;
+  }
+  const value = error as {
+    readonly cause?: unknown;
+    readonly response?: {
+      readonly status?: unknown;
+      readonly data?: {
+        readonly error?: {
+          readonly errors?: ReadonlyArray<{ readonly reason?: unknown }>;
+        };
+      };
+    };
+    readonly message?: unknown;
+  };
+  if (
+    value.response?.status === 429 &&
+    value.response.data?.error?.errors?.some(
+      (entry) => entry.reason === "uploadRateLimitExceeded"
+    )
+  ) {
+    return true;
+  }
+  if (typeof value.message === "string" && value.message.includes("too many thumbnails")) {
+    return true;
+  }
+  return isThumbnailUploadRateLimitError(value.cause);
+}
+
 function describeYoutubeError(error: unknown): string {
   if (error && typeof error === "object") {
     const value = error as {
@@ -1426,6 +1456,7 @@ export async function uploadYoutubeEpisode(input: YoutubeUploadCommandInput): Pr
   const episodeDir = input.episodeDir ?? path.join(input.workspaceDir, input.episodeId);
   const { resolver, episodeId } = episodePathsForDir(episodeDir);
   const reportDir = input.reportDir ?? path.join(resolver.uploadStateDir(episodeId), "reports");
+  const warnings: string[] = [];
   const resolved = await generateUploadMetadataForEpisode(
     episodeDir,
     input.episodeId,
@@ -1617,6 +1648,19 @@ export async function uploadYoutubeEpisode(input: YoutubeUploadCommandInput): Pr
               ),
             { maxRetries: 2, label: "thumbnails.set", logger: input.logger }
           ).catch((error: unknown) => {
+            if (isThumbnailUploadRateLimitError(error)) {
+              const warning = `Skipping thumbnail update because YouTube rate limited thumbnail uploads: ${describeYoutubeError(error)}`;
+              warnings.push(warning);
+              input.logger?.warn(
+                {
+                  episodeId: input.episodeId,
+                  videoId,
+                  error: describeYoutubeError(error),
+                },
+                "Skipping thumbnail update because YouTube rate limited thumbnail uploads"
+              );
+              return undefined;
+            }
             throw new YoutubeUploadError(
               describeYoutubeError(error),
               isRetryableYoutubeError(error),
@@ -1753,7 +1797,7 @@ export async function uploadYoutubeEpisode(input: YoutubeUploadCommandInput): Pr
     },
     youtubeVideoId: videoId,
     youtubeChannelId: authChannelId,
-    warnings: [],
+    warnings,
     });
     const finalPaths = await writeUploadReport(reportDir, finalReport);
     return {
@@ -1787,7 +1831,7 @@ export async function uploadYoutubeEpisode(input: YoutubeUploadCommandInput): Pr
       durationMs: Date.now() - startedAt,
       status: "failed",
       channelTarget: input.auth.channelId,
-      warnings: [],
+      warnings,
       error: {
         code: uploadError.code,
         message: uploadError.message,

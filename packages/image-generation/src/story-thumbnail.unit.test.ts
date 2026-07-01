@@ -1,4 +1,5 @@
 import fs from "node:fs/promises";
+import { File } from "node:buffer";
 import os from "node:os";
 import path from "node:path";
 import { mkdtempSync } from "node:fs";
@@ -225,7 +226,9 @@ describe("thumbnail adapter and compositor", () => {
     expect(body.output_format).toBe("png");
     expect(body.background).toBe("opaque");
     expect(body.n).toBe(1);
-    expect(body.input_fidelity).toBe("high");
+    expect(body.image).toBeInstanceOf(File);
+    expect(body.image.name).toBe("reference.png");
+    expect(body.image.type).toBe("image/png");
   });
 
   it("normalizes backgrounds and composes exact localized text at final dimensions", async () => {

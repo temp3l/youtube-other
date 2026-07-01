@@ -1,4 +1,6 @@
-import { createReadStream } from "node:fs";
+import { readFileSync } from "node:fs";
+import { File } from "node:buffer";
+import path from "node:path";
 import sharp from "sharp";
 import OpenAI from "openai";
 import {
@@ -38,14 +40,13 @@ export interface ThumbnailOpenAiClientLike {
     edit(
       body: {
         readonly model: string;
-        readonly image: ReturnType<typeof createReadStream>;
+        readonly image: File;
         readonly prompt: string;
         readonly size: string;
         readonly quality: ThumbnailQuality;
         readonly output_format: "png";
         readonly background: "opaque";
         readonly n: 1;
-        readonly input_fidelity: "high";
       },
       options?: { readonly signal?: AbortSignal }
     ): Promise<ThumbnailOpenAiImageResponse>;
@@ -148,25 +149,27 @@ export function buildOpenAiThumbnailEditRequest(args: {
   readonly reference: ResolvedThumbnailReference;
 }): {
   readonly model: string;
-  readonly image: ReturnType<typeof createReadStream>;
+  readonly image: File;
   readonly prompt: string;
   readonly size: string;
   readonly quality: ThumbnailQuality;
   readonly output_format: "png";
   readonly background: "opaque";
   readonly n: 1;
-  readonly input_fidelity: "high";
 } {
   return {
     model: args.config.model,
-    image: createReadStream(args.reference.path),
+    image: new File(
+      [readFileSync(args.reference.path)],
+      path.basename(args.reference.path),
+      { type: args.reference.mimeType }
+    ),
     prompt: args.prompt.prompt,
     size: THUMBNAIL_OUTPUTS[args.input.format].generationSize,
     quality: args.input.quality ?? args.config.quality,
     output_format: "png",
     background: "opaque",
     n: 1,
-    input_fidelity: "high",
   };
 }
 
