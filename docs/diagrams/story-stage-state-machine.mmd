@@ -1,0 +1,52 @@
+stateDiagram-v2
+  [*] --> discovered
+  discovered --> parsed
+  parsed --> cleaned
+  cleaned --> preflight_allowed
+  cleaned --> blocked_preflight
+  preflight_allowed --> rewriting
+  rewriting --> cached
+  rewriting --> valid
+  rewriting --> repairable
+  rewriting --> failed
+  repairable --> rewriting
+  valid --> analyzed
+  analyzed --> ready
+  analyzed --> ready_with_minor_edits
+  analyzed --> revision_required
+  analyzed --> rewrite_required
+  analyzed --> blocked
+  revision_required --> rewriting
+  rewrite_required --> rewriting
+  ready --> review_pending
+  ready_with_minor_edits --> review_pending
+  review_pending --> human_approved
+  review_pending --> human_rejected
+  human_approved --> audio_generated
+  audio_generated --> scenes_planned
+  scenes_planned --> images_generated
+  images_generated --> rendered
+  rendered --> metadata_generated
+  metadata_generated --> published
+  images_generated --> retrying
+  retrying --> images_generated
+  retrying --> failed
+  rendered --> failed
+  blocked_preflight --> [*]
+  blocked --> [*]
+  failed --> [*]
+  published --> [*]
+
+  note right of cached
+    Implemented state:
+    cache hits in story analysis,
+    rewrite caches,
+    narration manifest reuse,
+    scene clip reuse
+  end note
+
+  note right of ready
+    Actual verdicts from
+    story-production-analysis.ts
+  end note
+

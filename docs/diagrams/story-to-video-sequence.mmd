@@ -1,0 +1,71 @@
+sequenceDiagram
+  participant CLI as CLI
+  participant Rewrite as story-localization.service
+  participant Validate as generated-story-validator
+  participant Analyze as story-production-analysis.service
+  participant LLM as OpenAI
+  participant Persist as workspace artifacts
+  participant Episode as episode-commands
+  participant TTS as speech provider
+  participant Images as image-generation
+  participant Render as renderer
+  participant Meta as metadata service
+  participant Publish as youtube-upload
+
+  CLI->>Rewrite: stories rewrite-full --episode ...
+  Rewrite->>Persist: materialize cleaned source
+  Rewrite->>Persist: read/write facts cache
+  Rewrite->>LLM: canonical full rewrite request
+  alt cache hit
+    Rewrite-->>CLI: reuse current artifact
+  else cache miss
+    LLM-->>Rewrite: structured rewrite response
+    Rewrite->>Validate: validate narration package
+    alt validation repair
+      Validate-->>Rewrite: issues
+      Rewrite->>LLM: repair or regenerate
+      LLM-->>Rewrite: repaired response
+    end
+    Rewrite->>Persist: write canonical-full.json + script.md
+  end
+
+  CLI->>Analyze: stories analyze --episode ...
+  Analyze->>Persist: resolve script + lineage
+  Analyze->>LLM: structured production analysis
+  LLM-->>Analyze: scores + findings
+  Analyze->>Persist: write story-production-analysis.json
+  alt BLOCKED
+    Analyze-->>CLI: exit 1 with BLOCKED verdict
+  else READY / READY_WITH_MINOR_EDITS
+    Analyze-->>CLI: exit 0
+  end
+
+  CLI->>Episode: episode english|localized|short
+  Episode->>Persist: parse source / write analysis artifacts
+  Episode->>TTS: synthesize segment audio
+  TTS-->>Episode: narration.wav
+  Episode->>Persist: write narration-manifest + subtitles
+  Episode->>Persist: write scenes.json
+  Episode->>Images: generate/reuse scene images
+  alt retryable provider failure
+    Images->>LLM: image retry
+    LLM-->>Images: image response
+  end
+  Images->>Persist: image manifests / checkpoints
+  Episode->>Render: render clean video
+  Render->>Persist: write render.json + mp4
+
+  CLI->>Meta: metadata youtube
+  Meta->>Persist: load scenes + narration dependency
+  Meta->>LLM: metadata request
+  LLM-->>Meta: metadata JSON
+  Meta->>Persist: write youtube metadata outputs
+
+  CLI->>Publish: youtube upload
+  Publish->>Persist: resolve video + thumbnail + metadata
+  Publish->>Publish: upload report idempotency check
+  Publish->>LLM: optional metadata generation when --generate-metadata
+  Publish->>Publish: call YouTube API
+  Publish->>Persist: write youtube-upload.json
+  Publish-->>CLI: uploaded / failed
+

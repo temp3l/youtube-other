@@ -1,0 +1,48 @@
+flowchart LR
+  classDef cli fill:#d9ecff,stroke:#245b8f,color:#123;
+  classDef stage fill:#f9f4dd,stroke:#8f7a24,color:#222;
+  classDef gate fill:#ffe3c2,stroke:#b36b00,color:#222;
+  classDef artifact fill:#e7f7e7,stroke:#2d7a2d,color:#163;
+  classDef api fill:#f6e3ff,stroke:#7b3fb3,color:#222;
+  classDef terminal fill:#dff3e4,stroke:#1f7a4d,color:#123;
+  classDef fail fill:#ffe0e0,stroke:#b33a3a,color:#300;
+
+  CLI1["stories rewrite-full/localize"]:::cli --> S1["Source Story"]:::stage
+  S1 --> S2["Cleanup"]:::stage
+  S2 --> A1["source-cleaned.md"]:::artifact
+  A1 --> S3["Facts / Story IR"]:::stage
+  S3 --> S4["Rewrite"]:::stage
+  S4 --> A2["script.md / canonical-full.json"]:::artifact
+  A2 --> S5["Validation"]:::gate
+  S5 -->|cache hit| A2
+  S5 -->|cache miss| S6["Readiness Gate"]:::gate
+  S6 -->|READY / READY_WITH_MINOR_EDITS| S7["Localization"]:::stage
+  S6 -->|REVISION_REQUIRED| R1["Repair"]:::stage
+  R1 --> S4
+  S6 -->|REWRITE_REQUIRED| R2["Rewrite Route"]:::stage
+  R2 --> S4
+  S6 -->|BLOCKED| F1["Blocked"]:::fail
+  S6 -->|failed| F2["Failed"]:::fail
+  S7 --> S8["Short Adaptation"]:::stage
+  S7 --> S9["Narration"]:::stage
+  S8 --> S9
+  S9 --> S10["TTS"]:::stage
+  S10 --> A3["audio + subtitles"]:::artifact
+  A3 --> S11["Transcript / Timing"]:::stage
+  S11 --> S12["Scene Planning"]:::stage
+  S12 --> S13["Images"]:::stage
+  S13 -->|retry| S13
+  S13 --> S14["Asset Preparation"]:::stage
+  S14 --> S15["Rendering"]:::stage
+  S15 --> S16["Render Validation"]:::gate
+  S16 -->|failed| F2
+  S16 --> S17["Thumbnail"]:::stage
+  S17 --> S18["Metadata"]:::stage
+  S18 --> S19["Publishing"]:::stage
+  S19 -->|published| T1["Published"]:::terminal
+  S19 -->|resumed| S19
+  S4 --> API1["OpenAI LLM"]:::api
+  S10 --> API2["OpenAI-compatible TTS"]:::api
+  S13 --> API3["OpenAI Images"]:::api
+  S19 --> API4["YouTube API"]:::api
+

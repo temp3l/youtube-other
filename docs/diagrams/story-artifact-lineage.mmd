@@ -1,0 +1,54 @@
+flowchart TD
+  classDef stage fill:#f9f4dd,stroke:#8f7a24,color:#222;
+  classDef artifact fill:#e7f7e7,stroke:#2d7a2d,color:#163;
+
+  S1["source discovery + parse"]:::stage --> A1["source/<episode>-en-full.md"]:::artifact
+  A1 --> S2["source cleaning"]:::stage
+  S2 --> A2["source/source-original.md"]:::artifact
+  S2 --> A3["source/source-cleaned.md"]:::artifact
+  S2 --> A4["source/source-cleaning-report.json"]:::artifact
+  A3 --> S3["fact extraction / story IR"]:::stage
+  S3 --> A5[".localization-cache/facts/<hash>.json"]:::artifact
+  S3 --> S4["canonical full rewrite"]:::stage
+  S4 --> A6["en/full/canonical-full.json"]:::artifact
+  S4 --> A7["en/full/script.md"]:::artifact
+  S4 --> A8["script.md"]:::artifact
+  A6 --> S5["localized full rewrite"]:::stage
+  S5 --> A9["<lang>/full/script.md"]:::artifact
+  A6 --> S6["short rewrite"]:::stage
+  S6 --> A10["<lang>/short/script.md"]:::artifact
+  A7 --> S7["production analysis"]:::stage
+  A9 --> S7
+  S7 --> A11["<lang>/full/story-production-analysis.json"]:::artifact
+  A7 --> S8["speech planning"]:::stage
+  A9 --> S8
+  A10 --> S8
+  S8 --> A12["analysis.json / metadata.json / speech-plan.json"]:::artifact
+  S8 --> A13["subtitles/*.srt|vtt"]:::artifact
+  S8 --> S9["tts generation"]:::stage
+  S9 --> A14["audio/narration.wav"]:::artifact
+  S9 --> A15["audio/narration-manifest.json"]:::artifact
+  A14 --> S10["scene planning + retiming"]:::stage
+  S10 --> A16["shared/scenes.json or <lang>/<variant>/scenes.json"]:::artifact
+  S10 --> A17["shared/visual-plan.json"]:::artifact
+  A16 --> S11["image generation"]:::stage
+  S11 --> A18["shared/images/generated/*.png"]:::artifact
+  S11 --> A19["state/image-generation/*"]:::artifact
+  S11 --> A20["shared/short/images/shorts-image-manifest.json"]:::artifact
+  A16 --> S12["rendering"]:::stage
+  A14 --> S12
+  A18 --> S12
+  A20 --> S12
+  S12 --> A21["render.json"]:::artifact
+  S12 --> A22["video mp4 outputs"]:::artifact
+  A16 --> S13["metadata generation"]:::stage
+  A14 --> S13
+  S13 --> A23["youtube-metadata.json + text outputs"]:::artifact
+  S13 --> S14["thumbnail generation"]:::stage
+  S14 --> A24["thumbnail png + manifest"]:::artifact
+  A22 --> S15["publish"]:::stage
+  A23 --> S15
+  A24 --> S15
+  S15 --> A25["state/upload/reports/youtube-upload.json"]:::artifact
+  S15 --> A26["execution report"]:::artifact
+

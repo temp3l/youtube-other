@@ -1,0 +1,140 @@
+flowchart TD
+  classDef cli fill:#d9ecff,stroke:#245b8f,color:#123;
+  classDef stage fill:#f9f4dd,stroke:#8f7a24,color:#222;
+  classDef gate fill:#ffe3c2,stroke:#b36b00,color:#222;
+  classDef artifact fill:#e7f7e7,stroke:#2d7a2d,color:#163;
+  classDef api fill:#f6e3ff,stroke:#7b3fb3,color:#222;
+  classDef terminal fill:#dff3e4,stroke:#1f7a4d,color:#123;
+  classDef fail fill:#ffe0e0,stroke:#b33a3a,color:#300;
+
+  subgraph SourceAndRewrite["source and rewrite"]
+    C1["stories rewrite-full"]:::cli --> D1["discoverCanonicalSourceStories"]:::stage
+    D1 --> P1["parseCanonicalSourceStory"]:::stage
+    P1 --> C2["materializeCleanedCanonicalSourceStory"]:::stage
+    C2 --> A1["source/source-cleaned.md"]:::artifact
+    C2 --> A2["source/source-cleaning-report.json"]:::artifact
+    A1 --> F1["extractCanonicalStoryFacts"]:::stage
+    F1 --> IR1["story-artifact-model + full-story-contract"]:::stage
+    IR1 --> PF1["runAndPersistStoryPreflight"]:::gate
+    PF1 -->|blocked-preflight| X1["blocked-preflight"]:::fail
+    PF1 --> LLM1["localizeStoryEpisode"]:::stage
+    LLM1 --> API1["OpenAI responses"]:::api
+    LLM1 --> A3["en/full/canonical-full.json"]:::artifact
+    LLM1 --> A4["en/full/script.md"]:::artifact
+    LLM1 --> A5["script.md"]:::artifact
+    LLM1 --> A6[".localization-cache/entries/*.json"]:::artifact
+  end
+
+  subgraph Validation["validation"]
+    A4 --> V1["generated-story-validator"]:::gate
+    V1 -->|repair| RR1["story-retry-routing"]:::stage
+    RR1 --> LLM1
+    V1 --> AN1["stories analyze"]:::cli
+    AN1 --> AS1["analyzeStoryProduction"]:::stage
+    AS1 --> API2["OpenAI structured analysis"]:::api
+    AS1 --> A7["story-production-analysis.json"]:::artifact
+    A7 --> G1["deriveStoryProductionVerdict"]:::gate
+    G1 -->|READY / READY_WITH_MINOR_EDITS| OK1["ready for media"]:::terminal
+    G1 -->|REVISION_REQUIRED| X2["revision required"]:::fail
+    G1 -->|REWRITE_REQUIRED| X3["rewrite required"]:::fail
+    G1 -->|BLOCKED| X4["blocked"]:::fail
+  end
+
+  subgraph Localization["localization"]
+    C3["stories localize / stories rewrite-full --languages"]:::cli --> L1["localized full generation"]:::stage
+    A3 --> L1
+    L1 --> API3["OpenAI sync or batch"]:::api
+    L1 --> A8["<lang>/full/script.md"]:::artifact
+    L1 --> B1[".batch/manifests + batch-index.json"]:::artifact
+    C4["stories:batches *"]:::cli --> B1
+  end
+
+  subgraph ShortAdaptation["short adaptation"]
+    C5["stories rewrite-short"]:::cli --> S1["rewriteShortStories"]:::stage
+    A3 --> S1
+    S1 --> A9["<lang>/short/script.md"]:::artifact
+    S1 --> A10["short manifests / sidecars"]:::artifact
+    S1 --> API4["OpenAI short rewrite"]:::api
+  end
+
+  subgraph Audio["audio"]
+    C6["episode english/localized/short"]:::cli --> E1["prepareEpisodeLanguage"]:::stage
+    A4 --> E1
+    A8 --> E1
+    A9 --> E1
+    E1 --> P2["parseEpisodeSourceFile / buildEpisodeLoadResult"]:::stage
+    P2 --> A11["analysis.json / metadata.json / speech-plan.json"]:::artifact
+    P2 --> T1["subtitles/*.srt|vtt"]:::artifact
+    E1 --> TTS1["generateNarrationAudio"]:::stage
+    TTS1 --> API5["OpenAI-compatible TTS / MockSpeechProvider"]:::api
+    TTS1 --> A12["audio/narration.wav"]:::artifact
+    TTS1 --> A13["audio/narration-manifest.json"]:::artifact
+    C7["audio generate"]:::cli --> TTS2["generic audio CLI"]:::stage
+    TTS2 --> A14["audio/prompts/*.json + tts-generation.json"]:::artifact
+  end
+
+  subgraph Scenes["scenes"]
+    E1 --> SC1["buildScenePlan / buildLocalizedScenePlan"]:::stage
+    A12 --> SC2["retimeScenePlan"]:::stage
+    SC1 --> A15["shared/scenes.json or <lang>/<variant>/scenes.json"]:::artifact
+    SC2 --> A15
+    SC2 --> SC3["sliceSceneAudioFiles"]:::stage
+    SC3 --> A16["audio/segments/*.wav"]:::artifact
+  end
+
+  subgraph Images["images"]
+    A15 --> IM1["createPromptBatch / buildSceneVisualSpec"]:::stage
+    IM1 --> A17["visual-plan.json / prompt batches"]:::artifact
+    E1 --> IM2["generateCanonicalImages"]:::stage
+    C8["images plan|generate|resume"]:::cli --> IM3["generateEpisodeImages"]:::stage
+    IM2 --> API6["OpenAI Images or placeholders"]:::api
+    IM3 --> API6
+    IM2 --> A18["shared/images/generated/*.png"]:::artifact
+    IM3 --> A19["state/image-generation/*"]:::artifact
+    E1 --> IM4["prepareShortsImageAssets"]:::stage
+    IM4 --> A20["shared/short/images/shorts-image-manifest.json"]:::artifact
+    IM4 --> A21["shared/short/images/generated/*.png"]:::artifact
+  end
+
+  subgraph Rendering["rendering"]
+    A16 --> R1["FFmpegVideoRenderer.render"]:::stage
+    A18 --> R1
+    A21 --> R1
+    C9["render <episode>"]:::cli --> R1
+    R1 --> A22["render.json"]:::artifact
+    R1 --> A23["*-clean.mp4 / *-captioned.mp4"]:::artifact
+    R1 --> G2["validateRenderedVideo"]:::gate
+    G2 -->|failed| X5["render failed"]:::fail
+  end
+
+  subgraph Metadata["metadata"]
+    C10["thumbnails generate"]:::cli --> TH1["generateStoryThumbnail"]:::stage
+    TH1 --> API7["OpenAI thumbnail image"]:::api
+    TH1 --> A24["thumbnail png + manifest"]:::artifact
+    C11["metadata youtube"]:::cli --> M1["generateYoutubeMetadataForTarget"]:::stage
+    A15 --> M1
+    A12 --> M1
+    M1 --> API8["OpenAI metadata"]:::api
+    M1 --> A25["youtube-metadata.json + text outputs"]:::artifact
+  end
+
+  subgraph Publishing["publishing"]
+    C12["youtube upload"]:::cli --> U1["uploadYoutubeEpisode"]:::stage
+    A23 --> U1
+    A24 --> U1
+    A25 --> U1
+    U1 --> API9["YouTube Data API"]:::api
+    U1 --> A26["state/upload/reports/youtube-upload.json"]:::artifact
+    U1 --> DONE["uploaded"]:::terminal
+  end
+
+  click C1 "../apps/cli/src/story-full-rewrite-command.ts"
+  click C3 "../apps/cli/src/story-localization-commands.ts"
+  click C5 "../apps/cli/src/story-short-rewrite-command.ts"
+  click AN1 "../apps/cli/src/story-analysis-command.ts"
+  click E1 "../apps/cli/src/episode-commands.ts"
+  click TTS2 "../apps/cli/src/index.ts"
+  click IM3 "../apps/cli/src/images-resume-command.ts"
+  click R1 "../packages/rendering/src/index.ts"
+  click U1 "../packages/youtube-upload/src/index.ts"
+
