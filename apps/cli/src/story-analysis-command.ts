@@ -55,6 +55,10 @@ async function buildStoryInspectPayload(
   if (format !== "full") {
     throw new Error("Story production analysis supports --format full only in v1.");
   }
+  const statusModel =
+    options.model ??
+    runtimeConfig.openAiValidatorModel ??
+    runtimeConfig.openAiStoryModel;
   const source = await resolveStoryProductionAnalysisSource({
     outputRoot,
     episodeSlug: options.episode,
@@ -66,14 +70,11 @@ async function buildStoryInspectPayload(
     episodeSlug: source.episodeSlug,
     language,
     format,
-    model:
-      options.model ??
-      runtimeConfig.openAiValidatorModel ??
-      runtimeConfig.openAiStoryModel,
     reasoningEffort:
       options.reasoningEffort ??
       runtimeConfig.openAiValidatorReasoningEffort ??
       "medium",
+    ...(statusModel !== undefined ? { model: statusModel } : {}),
   });
   return buildStoryProductionInspectPayload({ source, status });
 }
@@ -121,14 +122,13 @@ export function registerStoryAnalysisCommand(storiesCommand: Command): void {
         language: options.language ?? "en",
         format: "full",
         outputRoot,
-        force: options.force,
-        refresh: options.refresh,
         model,
         reasoningEffort,
         maxOutputTokens,
-        runtimeConfig,
         client,
-        verbose: options.verbose,
+        ...(options.force !== undefined ? { force: options.force } : {}),
+        ...(options.refresh !== undefined ? { refresh: options.refresh } : {}),
+        ...(options.verbose !== undefined ? { verbose: options.verbose } : {}),
       });
       logger.debug(
         {

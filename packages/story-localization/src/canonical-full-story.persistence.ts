@@ -114,6 +114,16 @@ export const canonicalEnglishFullArtifactSchema = z
     preflight: canonicalPreflightSchema,
     response: narrationOnlyFullRewriteResponseSchema,
     validation: canonicalValidationSchema,
+    provenance: z.enum(["generated", "source-fallback"]).optional(),
+    fallback: z
+      .object({
+        accepted: z.boolean(),
+        originalFailureCategory: z.string().min(1),
+        originalFailureMessage: z.string().min(1),
+        qualityStatus: z.string().min(1).optional(),
+      })
+      .strict()
+      .optional(),
     repairHistory: z.array(canonicalAttemptSchema),
     usage: z
       .object({
@@ -318,6 +328,7 @@ export function buildCanonicalEnglishFullArtifact(args: {
         ? { semanticIssues: [...args.semanticValidationIssues] }
         : {}),
     },
+    provenance: "generated",
     repairHistory: args.repairHistory,
     usage: {
       inputTokens: args.inputTokens,

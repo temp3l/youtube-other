@@ -9,6 +9,7 @@ import { loadRuntimeConfig } from "@mediaforge/config";
 import { registerStoryRewriteShortCommand } from "./story-short-rewrite-command.js";
 import { registerStoryRewriteFullCommand } from "./story-full-rewrite-command.js";
 import { registerStoryAnalysisCommand } from "./story-analysis-command.js";
+import { registerStoryPipelineCommand } from "./story-pipeline-command.js";
 import {
   cancelStoryBatch,
   createOpenAiStoryClient,
@@ -830,6 +831,7 @@ export function registerStoryLocalizationCommands(program: Command): void {
   registerStoryRewriteShortCommand(stories);
   registerStoryRewriteFullCommand(stories);
   registerStoryAnalysisCommand(stories);
+  registerStoryPipelineCommand(stories);
   stories
     .command("resume-images")
     .description("Resume partial image generation for an episode and bootstrap manifest.json when needed")

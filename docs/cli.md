@@ -179,6 +179,47 @@ Options:
 - `--validate-only`
 - `--verbose`
 
+`stories pipeline` plans the durable story workflow without running stages. The current implementation is a dry-run skeleton that emits a schema-validated planned manifest.
+
+```bash
+npm run mediaforge -- stories pipeline \
+  --episode 009-the-christmas-doll \
+  --locales en,es,fr \
+  --formats full,short \
+  --dry-run \
+  --json
+```
+
+Options:
+
+- `--episode <slug-or-number>`
+- `--locales <comma-separated-locales>`
+- `--formats <comma-separated-formats>`
+- `--output-root <path>`
+- `--resume [workflow-id]`
+- `--dry-run`
+- `--cost-estimate`
+- `--batch-mode <sync|batch|hybrid>`
+- `--json`
+- `--verbose`
+
+`stories pipeline status` reads a persisted workflow manifest and reports partial success by locale and stage state.
+
+```bash
+npm run mediaforge -- stories pipeline status \
+  --episode 009-the-christmas-doll \
+  --workflow wf_009-the-christmas-doll_20260701T000000Z_deadbeef \
+  --json
+```
+
+`stories pipeline inspect` prints the persisted workflow manifest as JSON.
+
+```bash
+npm run mediaforge -- stories pipeline inspect \
+  --episode 009-the-christmas-doll \
+  --workflow wf_009-the-christmas-doll_20260701T000000Z_deadbeef
+```
+
 `stories rewrite-full` is the current focused full-story rewrite command. It requires either `--episode` or `--input`, not both.
 
 ```bash

@@ -45,6 +45,7 @@ describe("story localization command registration", () => {
       "bootstrap-shared",
       "inspect",
       "localize",
+      "pipeline",
       "resume-images",
       "rewrite-full",
       "rewrite-short",
