@@ -1,19 +1,4 @@
-# Episode 016 — Der Zug hielt an einem Bahnhof, den es nicht gibt
-
-## Anweisungen zur Audiogenerierung
-
-> Production directions only. Do not narrate this section.
-
-- Verwende durchgehend dieselbe erwachsene männliche Erzählerstimme.
-- Sprich natürliches Deutsch mit einem zurückhaltenden, düsteren Dokumentarton.
-- Zieltempo: ungefähr 175 bis 185 Wörter pro Minute.
-- Lies keine Überschriften, Metadaten oder Produktionshinweise vor.
-
-### Sound design
-
-Use a subtle recurring sound linked to the central object or location. Keep it below the narration and cut briefly to silence before the final reveal.
-
-# Sprechtext
+# Kisaragi Station — Lange YouTube-Horrorgeschichte
 
 Mara Lewis wusste, dass sie ihre Haltestelle verpasst hatte, noch bevor die Ansage es bestätigte.
 
@@ -160,24 +145,3 @@ Mara öffnete nicht.
 Im Flur klopfte es dreimal langsam.
 
 Dann noch dreimal—direkt unter ihren Füßen.
----
-
-## Episoden-Metadaten
-
-**Episode:** 016
-
-**Primary title:** Der Zug hielt an einem Bahnhof, den es nicht gibt
-
-**Thumbnail text:** ES WAR SCHON DRIN
-
-**Description:** Der Zug hielt an einem Bahnhof, den es nicht gibt. Was zunächst wie ein einzelner, erklärbarer Vorfall wirkte, entwickelte sich zu einem Muster, das immer näher kam und auf jede Entscheidung reagierte. An original localized production draft for Dark Truth Episodes.
-
-**Content disclosure:** Originale fiktionale Horrorgeschichte beziehungsweise deutlich gekennzeichnete dramatisierte Folklore.
-
-**Hashtags:** #Horrorgeschichte #Gruselgeschichten #DarkTruthEpisodes
-
-**Narration pace:** 175–185 words per minute
-
-**Target duration:** approximately 6–8 minutes with natural pauses and sound design
-
-**Format:** 16:9, 1920 × 1080

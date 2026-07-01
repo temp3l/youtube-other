@@ -1,5 +1,144 @@
 ## prompts
 
+mkdir -p content-ideas/content/youtube-horror-rewrites/019-the-russian-sleep-experiment/en
+cp content-ideas/content/youtube-horror-rewrites/19.1-Russian-Sleep-Experiment/en-long.md content-ideas/content/youtube-horror-rewrites/019-the-russian-sleep-experiment/en/019-the-russian-sleep-experiment-en-full.md
+cp content-ideas/content/youtube-horror-rewrites/19.1-Russian-Sleep-Experiment/en-short.md content-ideas/content/youtube-horror-rewrites/019-the-russian-sleep-experiment/en/019-the-russian-sleep-experiment-en-short.md
+
+pnpm --filter @mediaforge/cli exec mediaforge episode english --source content-ideas/content/youtube-horror-rewrites --episode 019
+pnpm --filter @mediaforge/cli exec mediaforge episode short --source content-ideas/content/youtube-horror-rewrites --episode 019 --language en
+
+For all four story packs and all four video variants, run:
+
+export EPISODES_SOURCE_ROOT=content-ideas/content/youtube-horror-rewrites
+export EPISODES_OUTPUT_ROOT=./episodes
+export DARK_TRUTH_ENABLE_PAID_PROVIDERS=true
+
+for episode in \
+ 015-the-bell-witch-rewritten \
+ 016-kisaragi-station-rewritten \
+ 018-the-smiling-man-rewritten \
+ 019-the-russian-sleep-experiment-rewritten
+do
+pnpm --filter @mediaforge/cli exec mediaforge episode english \
+ --source "$EPISODES_SOURCE_ROOT" \
+      --output-root "$EPISODES_OUTPUT_ROOT" \
+ --episode "$episode"
+
+    pnpm --filter @mediaforge/cli exec mediaforge episode localized \
+      --source "$EPISODES_SOURCE_ROOT" \
+      --output-root "$EPISODES_OUTPUT_ROOT" \
+      --episode "$episode" \
+      --languages de
+
+    pnpm --filter @mediaforge/cli exec mediaforge episode short \
+      --source "$EPISODES_SOURCE_ROOT" \
+      --output-root "$EPISODES_OUTPUT_ROOT" \
+      --episode "$episode" \
+      --language en
+
+    pnpm --filter @mediaforge/cli exec mediaforge episode short \
+      --source "$EPISODES_SOURCE_ROOT" \
+      --output-root "$EPISODES_OUTPUT_ROOT" \
+      --episode "$episode" \
+      --language de
+
+done
+
+## 16
+
+• Produced all four deliverables for episode 016-kisaragi-station.
+
+- English full: 6.8/10 — LONG — REVISION_REQUIRED
+- German synopsis: 6.9/10 — SHORT — good outline, too compressed for a full video
+- German generic: 4.1/10 — LONG — REWRITE_REQUIRED
+  Summary:
+
+- Full videos are complete in English and German.
+- Short videos are complete in English and German.
+
+Changed paths:
+
+- episodes/016-kisaragi-station/en/full/video/016-kisaragi-station-en-full-clean.mp4
+- episodes/016-kisaragi-station/de/full/video/016-kisaragi-station-de-full-clean.mp4
+- episodes/016-kisaragi-station/en/short/video/016-kisaragi-station-en-short-clean.mp4
+- episodes/016-kisaragi-station/de/short/video/016-kisaragi-station-de-short-clean.mp4
+- episodes/016-kisaragi-station/reviews/de/full/approval.json
+- episodes/016-kisaragi-station/shared/short/images/generated/\*.png for the German short asset seeding
+
+## 17
+
+• Produced the short videos for 017 in both languages and validated them with the renderer.
+
+- English synopsis: 7.4/10 — SHORT — strong concept summary, suitable as an outline or description
+- English full: 5.9/10 — LONG — REVISION_REQUIRED
+- German synopsis: 5.6/10 — SHORT — too generic and barely connected to the Bell Witch legend
+- German generic: 3.8/10 — LONG — REWRITE_REQUIRED
+
+- English short: /home/box/workspace/fehmarn-seo/youtube/other/episodes/017-the-midnight-man/en/short/video/017-the-midnight-man-en-short-clean.mp4
+- German short: /home/box/workspace/fehmarn-seo/youtube/other/episodes/017-the-midnight-man/de/short/video/017-the-midnight-man-de-short-clean.mp4
+- Full videos were already present and left intact:
+  - /home/box/workspace/fehmarn-seo/youtube/other/episodes/017-the-midnight-man/en/full/video/017-the-midnight-man-en-full-clean.mp4
+  - /home/box/workspace/fehmarn-seo/youtube/other/episodes/017-the-midnight-man/de/full/video/017-the-midnight-man-de-full-clean.mp4
+
+Tests:
+
+- Direct renderCleanVideo validation passed for both shorts:
+  - EN: 1080x1920, valid: true
+  - DE: 1080x1920, valid: true
+
+## 18
+
+• Generated the English full render for episode 018-the-smiling-man and approved it. German full render started but failed on a real asset collision: episodes/018-the-smiling-man/shared/images/generated/scene-010**000050-000060**16x9.png vs scene-010**000050-000100**16x9.png. English short could not be completed
+because the short-rewrite preflight hit DNS/network failure, and retrying escalated access was blocked by the workspace credit gate.
+
+Changed paths:
+
+- episodes/018-the-smiling-man/en/full/\*
+- episodes/018-the-smiling-man/reviews/en/full/\*
+- episodes/018-the-smiling-man/de/full/\* partially written before render failure
+
+Tests/validation:
+
+- node apps/cli/bin/mediaforge.js episode english --episode 018
+- node apps/cli/bin/mediaforge.js episode review approve --episode 018 --language en --artifact full --reviewer codex
+- node apps/cli/bin/mediaforge.js episode localized --episode 018 --languages de failed on duplicate scene-010 image
+- node apps/cli/bin/mediaforge.js episode short --episode 018 --language en failed on missing short source headings
+- node apps/cli/bin/mediaforge.js stories rewrite-short --episode 018 --languages en,de failed on OpenAI DNS preflight
+
+### 19
+
+• Partial completion only.
+
+- German generic: 3.7/10 — LONG — REWRITE_REQUIRED
+- English full: 6.4/10 — LONG — REVISION_REQUIRED
+- German generic: 3.5/10 — LONG — REWRITE_REQUIRED
+- English full: 6.7/10 — LONG — REVISION_REQUIRED
+- English synopsis: 8.1/10 — SHORT — strong hook, clear escalation, memorable twist, suitable for a YouTube Short or full-story outline
+
+- English full for 019 was generated and approved successfully.
+- I patched the English short source headings so the parser can read it: content-ideas/content/dark-truth-episodes-multilingual-production-pack/019-the-russian-sleep-experiment/en/019-the-russian-sleep-experiment-en-short.md
+- English short generation still failed twice on OpenAI image-generation connection errors.
+- German localized generation failed on a render validation error: duplicate scene-010 image assets in episodes/019-the-russian-sleep-experiment/shared/images/generated.
+- I could not delete the stale duplicate file because the approval review rejected the delete due workspace credit exhaustion.
+
+---
+
+Safest first task: 01-locale-guard-and-sp-audit.md.
+
+First parallelizable batch: CLI skeleton, batch adapter prep, and cost schema prep after schema/store tasks.
+
+GPT-5.4 Medium tasks: 01, 02, 04, 14.
+
+GPT-5.5 Medium tasks: 03, 05-13, 15, 17.
+
+GPT-5.5 High task: 16 legacy command delegation.
+
+Major deprecation candidates: legacy mixed localized full+short generation, legacy-only compatibility markdown as fresh cache, duplicated media dependency schemas, old command orchestration once delegation is proven.
+
+Legacy sp usage: no exact locale usage found in inspected canonical source/docs; plan includes required audit and tests to reject/migrate it.
+
+Unresolved questions: JSON manifest vs SQLite as final source of truth; manual localized fallback contract; short production-analysis implementation shape; exact scene extraction boundary.
+
 check:
 
 - 5.4-mini: todo-prompts/optimize-codex.md

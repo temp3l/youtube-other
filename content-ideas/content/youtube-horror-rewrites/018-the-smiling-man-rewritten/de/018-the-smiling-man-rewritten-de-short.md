@@ -1,13 +1,4 @@
-# Short 018 — Der lächelnde Mann folgte ihr nach Hause
-
-## Anweisungen zur Audiogenerierung
-
-- Verwende dieselbe Stimme wie in der langen Episode.
-- Beginne sofort ohne Einleitung.
-- Sprich ungefähr 180 Wörter pro Minute.
-- Sprich den letzten Satz etwas langsamer.
-
-# Sprechtext
+# Der lächelnde Mann — Deutscher YouTube Short
 
 Elena sah ihn um 3:17 Uhr unter einer Straßenlaterne tanzen.
 
@@ -38,20 +29,3 @@ Sie lebte im obersten Stock.
 Ihre eigene Stimme flüsterte vor der Tür:
 
 „Ich weiß, was du als Nächstes tun wirst.“
----
-
-## Episoden-Metadaten
-
-**Episode:** 018
-
-**Primary title:** Der lächelnde Mann folgte ihr nach Hause
-
-**Thumbnail text:** ES KAM ZURÜCK
-
-**Description:** Der lächelnde Mann folgte ihr nach Hause. Was zunächst wie ein einzelner, erklärbarer Vorfall wirkte, entwickelte sich zu einem Muster, das immer näher kam und auf jede Entscheidung reagierte.
-
-**Hashtags:** #Shorts #Horrorgeschichte #Gruselgeschichten #DarkTruthEpisodes
-
-**Target duration:** approximately 50–70 seconds
-
-**Format:** 9:16, 1080 × 1920

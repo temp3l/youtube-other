@@ -1,13 +1,4 @@
-# Short 015 — Die Stimme, die die Familie Bell heimsuchte
-
-## Anweisungen zur Audiogenerierung
-
-- Verwende dieselbe Stimme wie in der langen Episode.
-- Beginne sofort ohne Einleitung.
-- Sprich ungefähr 180 Wörter pro Minute.
-- Sprich den letzten Satz etwas langsamer.
-
-# Sprechtext
+# Die Bell Witch — Deutscher YouTube Short
 
 Es begann mit Kratzen in den Wänden.
 
@@ -32,20 +23,3 @@ Vielleicht war sie ein Geist. Vielleicht Betrug oder kollektive Angst.
 Doch seit über zweihundert Jahren wird die Geschichte erzählt.
 
 Und mit jeder Wiederholung spricht die Stimme erneut.
----
-
-## Episoden-Metadaten
-
-**Episode:** 015
-
-**Primary title:** Die Stimme, die die Familie Bell heimsuchte
-
-**Thumbnail text:** NICHT ÖFFNEN
-
-**Description:** Die Stimme, die die Familie Bell heimsuchte. Was zunächst wie ein einzelner, erklärbarer Vorfall wirkte, entwickelte sich zu einem Muster, das immer näher kam und auf jede Entscheidung reagierte.
-
-**Hashtags:** #Shorts #Horrorgeschichte #Gruselgeschichten #DarkTruthEpisodes
-
-**Target duration:** approximately 50–70 seconds
-
-**Format:** 9:16, 1080 × 1920

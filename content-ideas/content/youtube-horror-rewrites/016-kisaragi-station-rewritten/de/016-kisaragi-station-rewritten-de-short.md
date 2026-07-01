@@ -1,13 +1,4 @@
-# Short 016 — Der Zug hielt an einem Bahnhof, den es nicht gibt
-
-## Anweisungen zur Audiogenerierung
-
-- Verwende dieselbe Stimme wie in der langen Episode.
-- Beginne sofort ohne Einleitung.
-- Sprich ungefähr 180 Wörter pro Minute.
-- Sprich den letzten Satz etwas langsamer.
-
-# Sprechtext
+# Kisaragi Station — Deutscher YouTube Short
 
 Maras Zug fuhr an ihrer Haltestelle vorbei und hielt zwanzig Minuten lang nirgends.
 
@@ -32,20 +23,3 @@ Die Zeitstempel umfassten neun Jahre.
 Monate später sagte ihre Gegensprechanlage:
 
 „Nächster Halt: Kisaragi.“
----
-
-## Episoden-Metadaten
-
-**Episode:** 016
-
-**Primary title:** Der Zug hielt an einem Bahnhof, den es nicht gibt
-
-**Thumbnail text:** ES WAR SCHON DRIN
-
-**Description:** Der Zug hielt an einem Bahnhof, den es nicht gibt. Was zunächst wie ein einzelner, erklärbarer Vorfall wirkte, entwickelte sich zu einem Muster, das immer näher kam und auf jede Entscheidung reagierte.
-
-**Hashtags:** #Shorts #Horrorgeschichte #Gruselgeschichten #DarkTruthEpisodes
-
-**Target duration:** approximately 50–70 seconds
-
-**Format:** 9:16, 1080 × 1920

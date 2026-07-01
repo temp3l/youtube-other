@@ -1,23 +1,4 @@
-# Episode 016 — The Train Stopped at a Station That Doesn't Exist
-
-## Audio Generation Instructions
-
-> Production directions only. Do not narrate headings, Markdown, metadata, or sound-effect labels.
-
-- Use one consistent adult male narrator.
-- Speak in natural English with a restrained dark-documentary tone.
-- Target approximately 175–185 words per minute.
-- Begin calmly and build tension steadily.
-- Keep dialogue grounded and believable.
-- Use only a subtle pitch shift and light room reverb for supernatural voices.
-- Keep sound effects below narration and avoid loud jump scares.
-- Use silence briefly before the final reveal.
-
-### Episode-specific sound motif
-
-Use train rails, distorted announcement, and distant festival drums. Keep the motif subtle and repeat it only at major escalation points.
-
-# Narration Script
+# Kisaragi Station — Full YouTube Horror Story
 
 Mara Lewis knew she had missed her stop before the train announcement confirmed it.
 
@@ -190,28 +171,3 @@ Mara never opened the door.
 But from the hallway came three slow knocks.
 
 Then three more, directly beneath her feet.
----
-
-## Episode Metadata
-
-**Episode number:** 016
-
-**Primary title:** The Train Stopped at a Station That Doesn't Exist
-
-**Source title:** Kisaragi Station
-
-**Suggested thumbnail text:** NO SUCH STATION
-
-**Content disclosure:** Original fictional story inspired by the Japanese internet legend of Kisaragi Station.
-
-**SEO description:** Mara's train passed her stop and continued for twenty minutes without slowing. Then it arrived at Kisaragi Station—a place missing from every map. A production-ready horror narration for Dark Truth Episodes with restrained sound design, a clear escalation arc, and an original final reveal.
-
-**Suggested tags:** train, stopped, station, that, doesn, exist, horror story, scary story, narrated horror, dark truth episodes, creepy story
-
-**Hashtags:** #HorrorStory #ScaryStories #DarkTruthEpisodes
-
-**Target narration pace:** 175–185 words per minute
-
-**Target duration:** approximately 6–8 minutes after natural pauses and sound design
-
-**Visual direction:** static cinematic illustrations with slow pans, push-ins, parallax, restrained overlays, and consistent character design

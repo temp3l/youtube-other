@@ -1,19 +1,4 @@
-# Episode 019 — Die Wahrheit über das russische Schlafexperiment
-
-## Anweisungen zur Audiogenerierung
-
-> Production directions only. Do not narrate this section.
-
-- Verwende durchgehend dieselbe erwachsene männliche Erzählerstimme.
-- Sprich natürliches Deutsch mit einem zurückhaltenden, düsteren Dokumentarton.
-- Zieltempo: ungefähr 175 bis 185 Wörter pro Minute.
-- Lies keine Überschriften, Metadaten oder Produktionshinweise vor.
-
-### Sound design
-
-Use a subtle recurring sound linked to the central object or location. Keep it below the narration and cut briefly to silence before the final reveal.
-
-# Sprechtext
+# Das russische Schlafexperiment — Lange YouTube-Horrorgeschichte
 
 Fünf Gefangene sollten freikommen, wenn sie dreißig Tage wach blieben.
 
@@ -116,24 +101,3 @@ Ihre Stimme liest ruhig ein neues Protokoll:
 „Tag eins. Fünf Forscher bleiben wach. Die Gefangenen beobachten sie.“
 
 Im Hintergrund wird der Lüfter immer langsamer.
----
-
-## Episoden-Metadaten
-
-**Episode:** 019
-
-**Primary title:** Die Wahrheit über das russische Schlafexperiment
-
-**Thumbnail text:** SIEH NICHT HIN
-
-**Description:** Die Wahrheit über das russische Schlafexperiment. Was zunächst wie ein einzelner, erklärbarer Vorfall wirkte, entwickelte sich zu einem Muster, das immer näher kam und auf jede Entscheidung reagierte. An original localized production draft for Dark Truth Episodes.
-
-**Content disclosure:** Originale fiktionale Horrorgeschichte beziehungsweise deutlich gekennzeichnete dramatisierte Folklore.
-
-**Hashtags:** #Horrorgeschichte #Gruselgeschichten #DarkTruthEpisodes
-
-**Narration pace:** 175–185 words per minute
-
-**Target duration:** approximately 6–8 minutes with natural pauses and sound design
-
-**Format:** 16:9, 1920 × 1080

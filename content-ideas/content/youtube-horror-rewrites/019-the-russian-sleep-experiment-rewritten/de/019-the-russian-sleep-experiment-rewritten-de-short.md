@@ -1,13 +1,4 @@
-# Short 019 — Die Wahrheit über das russische Schlafexperiment
-
-## Anweisungen zur Audiogenerierung
-
-- Verwende dieselbe Stimme wie in der langen Episode.
-- Beginne sofort ohne Einleitung.
-- Sprich ungefähr 180 Wörter pro Minute.
-- Sprich den letzten Satz etwas langsamer.
-
-# Sprechtext
+# Das russische Schlafexperiment — Deutscher YouTube Short
 
 Fünf Gefangene sollten freikommen, wenn sie dreißig Tage wach blieben.
 
@@ -36,20 +27,3 @@ Ihre Stimme sagt:
 „Tag eins. Fünf Forscher bleiben wach. Die Gefangenen beobachten sie.“
 
 Dann wird der Lüfter langsamer.
----
-
-## Episoden-Metadaten
-
-**Episode:** 019
-
-**Primary title:** Die Wahrheit über das russische Schlafexperiment
-
-**Thumbnail text:** SIEH NICHT HIN
-
-**Description:** Die Wahrheit über das russische Schlafexperiment. Was zunächst wie ein einzelner, erklärbarer Vorfall wirkte, entwickelte sich zu einem Muster, das immer näher kam und auf jede Entscheidung reagierte.
-
-**Hashtags:** #Shorts #Horrorgeschichte #Gruselgeschichten #DarkTruthEpisodes
-
-**Target duration:** approximately 50–70 seconds
-
-**Format:** 9:16, 1080 × 1920

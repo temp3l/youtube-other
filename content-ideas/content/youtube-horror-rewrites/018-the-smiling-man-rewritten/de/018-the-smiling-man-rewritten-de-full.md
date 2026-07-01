@@ -1,19 +1,4 @@
-# Episode 018 — Der lächelnde Mann folgte ihr nach Hause
-
-## Anweisungen zur Audiogenerierung
-
-> Production directions only. Do not narrate this section.
-
-- Verwende durchgehend dieselbe erwachsene männliche Erzählerstimme.
-- Sprich natürliches Deutsch mit einem zurückhaltenden, düsteren Dokumentarton.
-- Zieltempo: ungefähr 175 bis 185 Wörter pro Minute.
-- Lies keine Überschriften, Metadaten oder Produktionshinweise vor.
-
-### Sound design
-
-Use a subtle recurring sound linked to the central object or location. Keep it below the narration and cut briefly to silence before the final reveal.
-
-# Sprechtext
+# Der lächelnde Mann folgte ihr nach Hause — Lange YouTube-Horrorgeschichte
 
 Elena Brooks sah ihn um 3:17 Uhr unter einer defekten Straßenlaterne.
 
@@ -134,24 +119,3 @@ Ihre eigene Stimme flüsterte aus dem Flur:
 Die Tür öffnete sich langsam.
 
 Elena lächelte zuerst.
----
-
-## Episoden-Metadaten
-
-**Episode:** 018
-
-**Primary title:** Der lächelnde Mann folgte ihr nach Hause
-
-**Thumbnail text:** ES KAM ZURÜCK
-
-**Description:** Der lächelnde Mann folgte ihr nach Hause. Was zunächst wie ein einzelner, erklärbarer Vorfall wirkte, entwickelte sich zu einem Muster, das immer näher kam und auf jede Entscheidung reagierte. An original localized production draft for Dark Truth Episodes.
-
-**Content disclosure:** Originale fiktionale Horrorgeschichte beziehungsweise deutlich gekennzeichnete dramatisierte Folklore.
-
-**Hashtags:** #Horrorgeschichte #Gruselgeschichten #DarkTruthEpisodes
-
-**Narration pace:** 175–185 words per minute
-
-**Target duration:** approximately 6–8 minutes with natural pauses and sound design
-
-**Format:** 16:9, 1920 × 1080

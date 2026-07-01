@@ -1,23 +1,4 @@
-# Episode 019 — The Truth Behind the Russian Sleep Experiment
-
-## Audio Generation Instructions
-
-> Production directions only. Do not narrate headings, Markdown, metadata, or sound-effect labels.
-
-- Use one consistent adult male narrator.
-- Speak in natural English with a restrained dark-documentary tone.
-- Target approximately 175–185 words per minute.
-- Begin calmly and build tension steadily.
-- Keep dialogue grounded and believable.
-- Use only a subtle pitch shift and light room reverb for supernatural voices.
-- Keep sound effects below narration and avoid loud jump scares.
-- Use silence briefly before the final reveal.
-
-### Episode-specific sound motif
-
-Use ventilation fan, microphone static, and a medical monitor. Keep the motif subtle and repeat it only at major escalation points.
-
-# Narration Script
+# The Russian Sleep Experiment — Full YouTube Horror Story
 
 The experiment promised freedom if five prisoners stayed awake for thirty days.
 
@@ -128,28 +109,3 @@ Her voice calmly reads a new observation log.
 “Day one,” she says. “Five researchers remain awake. The prisoners are watching.”
 
 In the background, a ventilation fan begins to slow.
----
-
-## Episode Metadata
-
-**Episode number:** 019
-
-**Primary title:** The Truth Behind the Russian Sleep Experiment
-
-**Source title:** The Russian Sleep Experiment
-
-**Suggested thumbnail text:** THEY STOPPED SLEEPING
-
-**Content disclosure:** Original fictional treatment of a well-known internet creepypasta concept; explicitly presented as fiction, not Soviet history.
-
-**SEO description:** The experiment promised freedom if five prisoners stayed awake for thirty days. On day nine, they stopped asking to be released. A production-ready horror narration for Dark Truth Episodes with restrained sound design, a clear escalation arc, and an original final reveal.
-
-**Suggested tags:** truth, behind, russian, sleep, experiment, horror story, scary story, narrated horror, dark truth episodes, creepy story
-
-**Hashtags:** #HorrorStory #ScaryStories #DarkTruthEpisodes
-
-**Target narration pace:** 175–185 words per minute
-
-**Target duration:** approximately 6–8 minutes after natural pauses and sound design
-
-**Visual direction:** static cinematic illustrations with slow pans, push-ins, parallax, restrained overlays, and consistent character design

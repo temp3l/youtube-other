@@ -1,6 +1,6 @@
 # Short 019 — The Truth Behind the Russian Sleep Experiment
 
-## Narration Instructions
+## Audio Generation Instructions
 
 - Use the same narrator as the full episode.
 - Speak at approximately 180 words per minute.
@@ -11,15 +11,34 @@
 
 ## Narration Script
 
-The experiment promised freedom if five prisoners stayed awake for thirty days. On day nine,
-they stopped asking to be released. Researchers introduce an experimental stimulant gas into a
-sealed chamber. One prisoner screams for hours while the others remain silent. Dr. Volkov
-discovers the gas is not preventing sleep; it is suppressing the brain's ability to wake from a
-shared nightmare. All but one subject die peacefully; the final subject whispers that the
-researchers were the sleeping ones. Years later, declassified audio contains Volkov's voice
-continuing the experiment after official records say she died.
+Five prisoners were promised freedom if they stayed awake for thirty days.
 
-## Short Metadata
+On day nine, they stopped asking to leave.
+
+A stimulant gas kept them conscious inside a sealed bunker. Soon they covered the windows, whispered secrets they could not know and begged for more gas.
+
+Dr. Anya Volkov discovered the truth:
+
+The gas was not preventing sleep.
+
+It was stopping their brains from waking from a shared nightmare.
+
+When one prisoner lost consciousness for three seconds, every light failed—and a sixth voice spoke through all five men:
+
+“Open your eyes.”
+
+Volkov sedated them one by one. The last prisoner smiled and whispered:
+
+“You still think we were the experiment.”
+
+Years later, declassified audio was found recorded after Volkov’s official death.
+
+Her voice says:
+
+“Day one. Five researchers remain awake. The prisoners are watching.”
+
+Then the ventilation fan begins to slow.
+## Episode Metadata
 
 **Primary title:** The Truth Behind the Russian Sleep Experiment
 

@@ -1,23 +1,4 @@
-# Episode 015 — The Voice That Haunted the Bell Family
-
-## Audio Generation Instructions
-
-> Production directions only. Do not narrate headings, Markdown, metadata, or sound-effect labels.
-
-- Use one consistent adult male narrator.
-- Speak in natural English with a restrained dark-documentary tone.
-- Target approximately 175–185 words per minute.
-- Begin calmly and build tension steadily.
-- Keep dialogue grounded and believable.
-- Use only a subtle pitch shift and light room reverb for supernatural voices.
-- Keep sound effects below narration and avoid loud jump scares.
-- Use silence briefly before the final reveal.
-
-### Episode-specific sound motif
-
-Use wood scratching, distant hymn, and a glass vial touching a table. Keep the motif subtle and repeat it only at major escalation points.
-
-# Narration Script
+# The Bell Witch — Full YouTube Horror Story
 
 The first sound was so small that John Bell blamed the rats.
 
@@ -134,28 +115,3 @@ Or perhaps the voice told the truth when it said it did not live in the house.
 Perhaps it lived in the attention.
 
 And every time someone repeats the legend, it speaks again.
----
-
-## Episode Metadata
-
-**Episode number:** 015
-
-**Primary title:** The Voice That Haunted the Bell Family
-
-**Source title:** The Bell Witch
-
-**Suggested thumbnail text:** IT KNEW THEIR SECRETS
-
-**Content disclosure:** Dramatized folklore episode inspired by the historic Bell Witch legend; details are presented as legend, not verified fact.
-
-**SEO description:** The voice began as scratching in the walls. Within months, it was speaking to visitors, quoting sermons and promising that John Bell would die. A production-ready horror narration for Dark Truth Episodes with restrained sound design, a clear escalation arc, and an original final reveal.
-
-**Suggested tags:** voice, that, haunted, bell, family, horror story, scary story, narrated horror, dark truth episodes, creepy story
-
-**Hashtags:** #HorrorStory #ScaryStories #DarkTruthEpisodes
-
-**Target narration pace:** 175–185 words per minute
-
-**Target duration:** approximately 6–8 minutes after natural pauses and sound design
-
-**Visual direction:** static cinematic illustrations with slow pans, push-ins, parallax, restrained overlays, and consistent character design

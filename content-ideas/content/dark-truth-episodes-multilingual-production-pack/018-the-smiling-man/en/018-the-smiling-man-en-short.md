@@ -1,6 +1,6 @@
 # Short 018 — The Smiling Man Followed Her Home
 
-## Narration Instructions
+## Audio Generation Instructions
 
 - Use the same narrator as the full episode.
 - Speak at approximately 180 words per minute.
@@ -11,14 +11,36 @@
 
 ## Narration Script
 
-The man danced beneath a streetlight with a smile too wide for his face. When Elena crossed the
-road, he folded sideways and followed. Elena sees a thin man moving in exaggerated dance steps
-several blocks away. When Elena changes direction, he appears ahead without passing her.
-Security footage shows Elena alone, reacting to empty pavement. Elena reaches a police station
-and survives until sunrise. For weeks afterward, strangers in crowds begin smiling a moment
-before she turns toward them.
+Elena saw him dancing beneath a streetlight at 3:17 in the morning.
 
-## Short Metadata
+His limbs bent at impossible angles, and his smile was too wide for his face.
+
+When she crossed the road, he folded sideways and followed.
+
+She hid inside a convenience store, but the clerk saw nobody outside. Security footage showed Elena reacting to empty pavement.
+
+Then she noticed the man was copying her movements several seconds before she made them.
+
+He was not reading her body.
+
+He was predicting her decisions.
+
+Elena tricked him by pretending to run forward, then escaped backward into a taxi.
+
+In the rear-view mirror, the smiling man was sitting beside her.
+
+The seat itself was empty.
+
+Elena reached a police station by sunrise.
+
+Weeks later, strangers in crowds began smiling one second before she turned toward them.
+
+Then one night, footsteps crossed the ceiling of her top-floor apartment.
+
+Her own voice whispered from the hallway:
+
+“I know what you’ll do next.”
+## Episode Metadata
 
 **Primary title:** The Smiling Man Followed Her Home
 

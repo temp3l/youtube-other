@@ -1,6 +1,6 @@
 # Short 017 — They Invited the Midnight Man Inside
 
-## Narration Instructions
+## Audio Generation Instructions
 
 - Use the same narrator as the full episode.
 - Speak at approximately 180 words per minute.
@@ -18,7 +18,7 @@ friend breaks the salt-circle rule and hears a dead relative calling from upstai
 the candle alive until 3:33, but the livestream timestamp remains 12:00. The archived video
 later shows a fourth participant standing behind the camera from the beginning.
 
-## Short Metadata
+## Episode Metadata
 
 **Primary title:** They Invited the Midnight Man Inside
 
