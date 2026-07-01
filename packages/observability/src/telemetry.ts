@@ -105,6 +105,11 @@ export interface ExecutionReport {
     readonly outputSha256?: string;
     readonly costMicros?: MoneyMicros | null;
   }>;
+  readonly events: ReadonlyArray<{
+    readonly name: string;
+    readonly at: string;
+    readonly details?: Record<string, unknown>;
+  }>;
   readonly totals: {
     readonly apiCalls: number;
     readonly retries: number;
@@ -132,6 +137,12 @@ interface RecordedImage {
   readonly promptHash?: string;
   readonly outputSha256?: string;
   readonly costMicros?: MoneyMicros | null;
+}
+
+interface RecordedEvent {
+  readonly name: string;
+  readonly at: string;
+  readonly details?: Record<string, unknown>;
 }
 
 interface RecordedCostEntry {
@@ -185,6 +196,7 @@ export class ExecutionTelemetry {
   private readonly apiCallsInternal: ApiCallEvent[] = [];
   private readonly processExecutionsInternal: ProcessExecutionEvent[] = [];
   private readonly imagesInternal: RecordedImage[] = [];
+  private readonly eventsInternal: RecordedEvent[] = [];
   private readonly costEntriesInternal: RecordedCostEntry[] = [];
   private readonly warningsInternal = new Set<string>();
   private success = true;
@@ -245,6 +257,19 @@ export class ExecutionTelemetry {
     this.imagesInternal.push(image);
   }
 
+  public recordEvent(event: RecordedEvent): void {
+    this.eventsInternal.push(event);
+    this.logger.info(
+      {
+        executionId: this.context.executionId,
+        event: event.name,
+        at: event.at,
+        details: event.details,
+      },
+      "execution_event"
+    );
+  }
+
   public recordCost(entry: RecordedCostEntry): void {
     this.costEntriesInternal.push(entry);
     recordWarningSet(this.warningsInternal, entry.warning);
@@ -286,6 +311,7 @@ export class ExecutionTelemetry {
       apiCalls: this.apiCallsInternal,
       processExecutions: this.processExecutionsInternal,
       generatedImages: this.imagesInternal.map((item) => ({ ...item })),
+      events: this.eventsInternal.map((event) => ({ ...event })),
       totals: {
         apiCalls: this.apiCallsInternal.length,
         retries: this.apiCallsInternal.filter((item) => item.attempt > 1).length,

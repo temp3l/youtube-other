@@ -745,7 +745,7 @@ TikTok-style metadata is implemented heuristically in [`packages/metadata/src/in
 
 ### Stage 23: Thumbnail generation
 
-- Purpose: generate per-episode PNG thumbnails from structured story-summary input.
+- Purpose: generate per-episode reference-driven PNG thumbnails from structured story-summary input plus localized hook text.
 - Trigger: `mediaforge thumbnails generate`
 - Implementation:
   - CLI: [`apps/cli/src/thumbnail-commands.ts`](../apps/cli/src/thumbnail-commands.ts)
@@ -754,21 +754,26 @@ TikTok-style metadata is implemented heuristically in [`packages/metadata/src/in
   - episode slug
   - locale
   - `full|short`
-  - `hookText`
-  - story summary JSON file
-  - optional reference image and emphasis word
+  - optional `hookText` override; otherwise the CLI resolves the localized hook from `locales/<locale>/<format>/metadata/youtube-metadata.json`
+  - story summary JSON file, defaulting to `story-production/thumbnail-story.json`
+  - optional style, reference image override, emphasis word, and quality override
 - Outputs:
-  - PNG thumbnail
-  - thumbnail manifest
+  - normalized text-free background PNG
+  - final PNG thumbnail
+  - background manifest
+  - final manifest
 - Persisted artifacts:
-  - service uses episode-path resolution under the workspace
-  - sample repo artifact: `thumbnails/thumbnail-en.png`
+  - `<episode>/thumbnails/backgrounds/<format>-<locale>.png`
+  - `<episode>/thumbnails/<format>/<locale>.png`
+  - `<episode>/thumbnails/manifests/background-<format>-<locale>.json`
+  - `<episode>/thumbnails/manifests/<format>-<locale>.json`
 - Validation:
-  - locale schema
-  - workspace-safe reference path
-  - manifest fingerprint matching
+  - repository-root reference-path safety and orientation checks
+  - exact final dimensions (`1920x1080` full, `1080x1920` short)
+  - background and final fingerprint/hash matching
+  - deterministic post-rendered localized typography
 - External API:
-  - OpenAI Images when not dry-run
+  - OpenAI Images `images.edit` with a supplied reference image when not dry-run
 
 ### Stage 24: Metadata generation
 
@@ -1109,16 +1114,21 @@ TikTok-style metadata is implemented heuristically in [`packages/metadata/src/in
 ## 16. Thumbnail Generation
 
 - Full and short thumbnail dimensions:
-  - full `1536x864`
-  - short `864x1536`
+  - full background output `1920x1080`
+  - short background output `1080x1920`
+- Intermediate OpenAI generation sizes:
+  - full `1536x1024`
+  - short `1024x1536`
 - Locale-specific text:
   - locale is a required input to the thumbnail service
+  - hook text is rendered after image generation and can reuse a cached background when only typography changes
 - Provider:
-  - OpenAI Images
+  - OpenAI Images `images.edit` with a format-specific reference image (`reference-thumbnails/thumbnail-full.png` or `reference-thumbnails/thumbnail-short.png`)
 - Persistence:
-  - PNG thumbnail + manifest
+  - background PNG + background manifest
+  - final PNG + final manifest
 - Validation:
-  - input schema, workspace-safe reference paths, fingerprint reuse
+  - input schema, repository-safe reference paths, exact dimensions, fingerprint reuse, and locale/format-specific invalidation
 
 ## 17. Metadata Generation
 

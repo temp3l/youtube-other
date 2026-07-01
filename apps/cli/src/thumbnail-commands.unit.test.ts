@@ -31,17 +31,52 @@ vi.mock("@mediaforge/image-generation", async () => {
 const { registerThumbnailCommands } = await import("./thumbnail-commands.js");
 
 describe("thumbnail commands", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     workspaceDir = mkdtempSync(path.join(os.tmpdir(), "mediaforge-thumbnail-cli-"));
     thumbnailMocks.generateStoryThumbnail.mockReset();
     thumbnailMocks.readThumbnailStoryFile.mockReset();
     thumbnailMocks.readThumbnailStoryFile.mockResolvedValue({
-      title: "Hachishakusama",
-      summary: "A woman hears her name called before the threat closes in.",
+      episodeNumber: 18,
+      storyTitle: "The Smiling Man",
+      storySummary: "A woman hears someone following her home.",
       protagonistDescription: "an adult woman frozen in fear",
-      threatDescription: "a towering supernatural woman in the distance",
-      settingDescription: "a narrow village road at night",
+      threatDescription: "a smiling man in the darkness",
+      settingDescription: "an empty street at night",
+      moodDescription: "dread",
+      keyVisualMoment: "she realizes the smiling man is still behind her",
     });
+    await fs.mkdir(path.join(workspaceDir, "018-the-smiling-man", "story-production"), {
+      recursive: true,
+    });
+    await fs.writeFile(
+      path.join(workspaceDir, "018-the-smiling-man", "story-production", "thumbnail-story.json"),
+      "{}"
+    );
+    await fs.mkdir(
+      path.join(
+        workspaceDir,
+        "018-the-smiling-man",
+        "locales",
+        "en",
+        "short",
+        "metadata"
+      ),
+      { recursive: true }
+    );
+    await fs.writeFile(
+      path.join(
+        workspaceDir,
+        "018-the-smiling-man",
+        "locales",
+        "en",
+        "short",
+        "metadata",
+        "youtube-metadata.json"
+      ),
+      JSON.stringify({
+        thumbnail: { recommendedText: "HE KEPT SMILING" },
+      })
+    );
   });
 
   it("registers the thumbnails generate command with the expected flags", () => {
@@ -51,32 +86,41 @@ describe("thumbnail commands", () => {
     const generate = thumbnails?.commands.find((command) => command.name() === "generate");
     expect(generate).toBeDefined();
     const flags = generate?.options.map((option) => option.flags) ?? [];
-    expect(flags).toContain("--episode <slug>");
+    expect(flags).toContain("--episode-slug <slug>");
     expect(flags).toContain("--locale <locale>");
     expect(flags).toContain("--format <full|short>");
-    expect(flags).toContain("--story-file <path>");
+    expect(flags).toContain("--style <cinematic-horror|editorial-card>");
     expect(flags).toContain("--dry-run");
   });
 
-  it("parses full and short formats and preserves dry-run behavior", async () => {
+  it("defaults to cinematic-horror and resolves hook text from metadata when omitted", async () => {
     thumbnailMocks.generateStoryThumbnail.mockResolvedValue({
-      episodeSlug: "014-hachishakusama-the-eight-foot-woman",
+      episodeSlug: "018-the-smiling-man",
       locale: "en",
       format: "short",
-      outputPath: path.join(workspaceDir, "014-hachishakusama-the-eight-foot-woman", "locales", "en", "short", "thumbnails", "thumbnail.png"),
-      manifestPath: path.join(workspaceDir, "014-hachishakusama-the-eight-foot-woman", "locales", "en", "short", "thumbnails", "thumbnail.manifest.json"),
+      style: "cinematic-horror",
+      outputPath: path.join(workspaceDir, "018-the-smiling-man", "thumbnails", "short", "en.png"),
+      manifestPath: path.join(workspaceDir, "018-the-smiling-man", "thumbnails", "manifests", "short-en.json"),
+      backgroundPath: path.join(workspaceDir, "018-the-smiling-man", "thumbnails", "backgrounds", "short-en.png"),
+      backgroundManifestPath: path.join(workspaceDir, "018-the-smiling-man", "thumbnails", "manifests", "background-short-en.json"),
       model: "gpt-image-2",
       quality: "high",
-      textStrategy: "post-rendered",
-      width: 864,
-      height: 1536,
-      promptVersion: "horror-thumbnail-v1",
+      width: 1080,
+      height: 1920,
+      generationSize: "1024x1536",
+      promptVersion: "cinematic-horror-reference-v2",
       promptFingerprint: "p".repeat(64),
       sourceFingerprint: "s".repeat(64),
-      hookText: "SHE CALLED HER NAME",
-      emphasisWord: "CALLED",
+      backgroundFingerprint: "b".repeat(64),
+      compositionFingerprint: "c".repeat(64),
+      hookText: "HE KEPT SMILING",
+      emphasisWord: "KEPT",
+      referencePath: "reference-thumbnails/thumbnail-short.png",
+      referenceSha256: "r".repeat(64),
       dryRun: true,
       reused: false,
+      backgroundReused: false,
+      compositionReused: false,
       generated: false,
     });
     const program = new Command();
@@ -87,59 +131,64 @@ describe("thumbnail commands", () => {
       "cli",
       "thumbnails",
       "generate",
-      "--episode",
-      "014-hachishakusama-the-eight-foot-woman",
+      "--episode-slug",
+      "018-the-smiling-man",
       "--locale",
       "en",
       "--format",
       "short",
-      "--hook-text",
-      "She called her name",
-      "--story-file",
-      path.join(workspaceDir, "story.json"),
       "--dry-run",
     ]);
 
     expect(thumbnailMocks.readThumbnailStoryFile).toHaveBeenCalledTimes(1);
-    expect(thumbnailMocks.generateStoryThumbnail).toHaveBeenCalledTimes(1);
-    expect(thumbnailMocks.generateStoryThumbnail.mock.calls[0]?.[0]).toMatchObject({
-      workspaceRoot: workspaceDir,
-      episodeSlug: "014-hachishakusama-the-eight-foot-woman",
-      locale: "en",
-      format: "short",
-      hookText: "She called her name",
-      dryRun: true,
-    });
+    expect(thumbnailMocks.generateStoryThumbnail).toHaveBeenCalledWith(
+      expect.objectContaining({
+        workspaceRoot: workspaceDir,
+        episodeSlug: "018-the-smiling-man",
+        locale: "en",
+        format: "short",
+        style: undefined,
+        hookText: "HE KEPT SMILING",
+        dryRun: true,
+      })
+    );
   });
 
   it("reports the output path on success", async () => {
     const outputPath = path.join(
       workspaceDir,
-      "014-hachishakusama-the-eight-foot-woman",
-      "locales",
-      "de",
-      "full",
+      "018-the-smiling-man",
       "thumbnails",
-      "thumbnail.png"
+      "full",
+      "de.png"
     );
     thumbnailMocks.generateStoryThumbnail.mockResolvedValue({
-      episodeSlug: "014-hachishakusama-the-eight-foot-woman",
+      episodeSlug: "018-the-smiling-man",
       locale: "de",
       format: "full",
+      style: "editorial-card",
       outputPath,
       manifestPath: `${outputPath}.manifest.json`,
+      backgroundPath: path.join(workspaceDir, "018-the-smiling-man", "thumbnails", "backgrounds", "full-de.png"),
+      backgroundManifestPath: path.join(workspaceDir, "018-the-smiling-man", "thumbnails", "manifests", "background-full-de.json"),
       model: "gpt-image-2",
       quality: "high",
-      textStrategy: "post-rendered",
-      width: 1536,
-      height: 864,
-      promptVersion: "horror-thumbnail-v1",
+      width: 1920,
+      height: 1080,
+      generationSize: "1536x1024",
+      promptVersion: "cinematic-horror-reference-v2",
       promptFingerprint: "p".repeat(64),
       sourceFingerprint: "s".repeat(64),
-      hookText: "SIE RIEF IHREN NAMEN",
-      emphasisWord: "RIEF",
+      backgroundFingerprint: "b".repeat(64),
+      compositionFingerprint: "c".repeat(64),
+      hookText: "ER FOLGTE IHR NACH HAUSE",
+      emphasisWord: "FOLGTE",
+      referencePath: "reference-thumbnails/thumbnail-full.png",
+      referenceSha256: "r".repeat(64),
       dryRun: false,
       reused: false,
+      backgroundReused: false,
+      compositionReused: false,
       generated: true,
     });
     const writes: string[] = [];
@@ -152,21 +201,44 @@ describe("thumbnail commands", () => {
     try {
       const program = new Command();
       registerThumbnailCommands(program);
+      await fs.mkdir(
+        path.join(
+          workspaceDir,
+          "018-the-smiling-man",
+          "locales",
+          "de",
+          "full",
+          "metadata"
+        ),
+        { recursive: true }
+      );
+      await fs.writeFile(
+        path.join(
+          workspaceDir,
+          "018-the-smiling-man",
+          "locales",
+          "de",
+          "full",
+          "metadata",
+          "youtube-metadata.json"
+        ),
+        JSON.stringify({
+          thumbnail: { recommendedText: "ER FOLGTE IHR NACH HAUSE" },
+        })
+      );
       await program.parseAsync([
         "node",
         "cli",
         "thumbnails",
         "generate",
-        "--episode",
-        "014-hachishakusama-the-eight-foot-woman",
+        "--episode-slug",
+        "018-the-smiling-man",
         "--locale",
         "de",
         "--format",
         "full",
-        "--hook-text",
-        "Sie rief ihren Namen",
-        "--story-file",
-        path.join(workspaceDir, "story.json"),
+        "--style",
+        "editorial-card",
       ]);
     } finally {
       stdoutSpy.mockRestore();
@@ -186,16 +258,12 @@ describe("thumbnail commands", () => {
         "cli",
         "thumbnails",
         "generate",
-        "--episode",
-        "014-hachishakusama-the-eight-foot-woman",
+        "--episode-slug",
+        "018-the-smiling-man",
         "--locale",
         "en",
         "--format",
-        "full",
-        "--hook-text",
-        "She called her name",
-        "--story-file",
-        path.join(workspaceDir, "story.json"),
+        "short",
       ])
     ).rejects.toThrow(/generation failed/i);
   });

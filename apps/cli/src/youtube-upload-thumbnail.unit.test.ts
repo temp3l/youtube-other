@@ -24,8 +24,8 @@ describe("resolveUploadThumbnailPath", () => {
     thumbnailMocks.generateStoryThumbnail.mockReset();
     thumbnailMocks.readThumbnailStoryFile.mockReset();
     thumbnailMocks.readThumbnailStoryFile.mockResolvedValue({
-      title: "Hachishakusama",
-      summary: "A woman hears her name called before the threat closes in.",
+      storyTitle: "Hachishakusama",
+      storySummary: "A woman hears her name called before the threat closes in.",
       protagonistDescription: "an adult woman frozen in fear",
       threatDescription: "a towering supernatural woman in the distance",
       settingDescription: "a narrow village road at night",
@@ -59,11 +59,9 @@ describe("resolveUploadThumbnailPath", () => {
       outputPath: path.join(
         workspaceRoot,
         "episode-fixture",
-        "locales",
-        "en",
-        "short",
         "thumbnails",
-        "thumbnail.png"
+        "short",
+        "en.png"
       ),
     });
     const outputPath = await resolveUploadThumbnailPath({
@@ -81,7 +79,7 @@ describe("resolveUploadThumbnailPath", () => {
       force: true,
     });
 
-    expect(outputPath).toContain(path.join("short", "thumbnails", "thumbnail.png"));
+    expect(outputPath).toContain(path.join("thumbnails", "short", "en.png"));
     expect(thumbnailMocks.readThumbnailStoryFile).toHaveBeenCalledWith({
       workspaceRoot,
       storyFilePath: path.join(
@@ -96,6 +94,7 @@ describe("resolveUploadThumbnailPath", () => {
         episodeSlug: "episode-fixture",
         locale: "en",
         format: "short",
+        style: "cinematic-horror",
         hookText: "SHE CALLED HER NAME",
         force: true,
       })

@@ -5,293 +5,338 @@ import { mkdtempSync } from "node:fs";
 import sharp from "sharp";
 import { describe, expect, it, vi } from "vitest";
 import {
-  THUMBNAIL_DIMENSIONS,
+  THUMBNAIL_DEFAULT_STYLE,
+  THUMBNAIL_FONT_FAMILY,
+  THUMBNAIL_OUTPUTS,
+  THUMBNAIL_TEXT_LAYOUT_VERSION,
   buildOpenAiThumbnailRequestBody,
   compileStoryThumbnailPrompt,
   compositeStoryThumbnailText,
+  computeBackgroundFingerprint,
+  computeCompositionFingerprint,
   generateStoryThumbnail,
-  loadOpenAiThumbnailGenerationSettings,
+  loadThumbnailGenerationConfig,
+  normalizeThumbnailBackground,
   readThumbnailStoryFile,
+  resolveThumbnailReference,
   selectThumbnailEmphasisWord,
   ThumbnailArtifactConflictError,
-  ThumbnailDimensionMismatchError,
-  ThumbnailResponseError,
+  ThumbnailReferenceValidationError,
 } from "./story-thumbnail.js";
 
 function makeInput(workspaceRoot: string) {
   return {
     workspaceRoot,
-    episodeSlug: "014-hachishakusama-the-eight-foot-woman",
-    locale: "de-DE",
+    episodeSlug: "018-the-smiling-man",
+    episodeNumber: 18,
+    locale: "de",
     format: "full" as const,
-    hookText: "Sie rief ihren Namen",
-    title: "Hachishakusama",
-    summary: "A woman hears her name called before the threat closes in.",
-    protagonistDescription: "an adult woman frozen in fear",
-    threatDescription: "a towering supernatural woman in the distance",
-    settingDescription: "a narrow village road at night",
+    style: "cinematic-horror" as const,
+    hookText: "ER FOLGTE IHR NACH HAUSE",
+    storyTitle: "The Smiling Man",
+    storySummary: "A woman notices a smiling stranger pacing under moonlight.",
+    protagonistDescription: "an adult woman backing away in fear",
+    threatDescription: "a tall smiling man lurking deeper in the street",
+    settingDescription: "an empty suburban road at night",
+    moodDescription: "dread and rising panic",
+    keyVisualMoment: "she realizes the smiling figure is following her home",
   };
 }
 
-async function createPng(width: number, height: number): Promise<Buffer> {
+async function createPng(
+  width: number,
+  height: number,
+  color = "#101820"
+): Promise<Buffer> {
   return sharp({
     create: {
       width,
       height,
       channels: 3,
-      background: "#101820",
+      background: color,
     },
   })
     .png()
     .toBuffer();
 }
 
-describe("story thumbnail prompt compiler", () => {
-  it("is deterministic and differentiates full and short composition", () => {
-    const settings = loadOpenAiThumbnailGenerationSettings({
+describe("thumbnail reference resolver", () => {
+  it("resolves repository-root defaults and validates orientation", async () => {
+    const repoRoot = path.resolve(import.meta.dirname, "../../..");
+    const config = loadThumbnailGenerationConfig({
       OPENAI_API_KEY: "test-key",
     });
-    const workspaceRoot = mkdtempSync(path.join(os.tmpdir(), "thumb-prompt-"));
-    const fullInput = makeInput(workspaceRoot);
-    const shortInput = { ...fullInput, format: "short" as const };
-    const first = compileStoryThumbnailPrompt(fullInput, settings);
-    const second = compileStoryThumbnailPrompt(fullInput, settings);
-    const shortPrompt = compileStoryThumbnailPrompt(shortInput, settings);
-
-    expect(first).toEqual(second);
-    expect(first.promptText).toContain("left text-safe area");
-    expect(shortPrompt.promptText).toContain("upper-left stacked text-safe area");
-    expect(first.normalizedHookText).toContain("SIE RIEF IHREN NAMEN");
+    const full = await resolveThumbnailReference({
+      repoRoot,
+      format: "full",
+      config,
+    });
+    const short = await resolveThumbnailReference({
+      repoRoot,
+      format: "short",
+      config,
+    });
+    expect(full.repoRelativePath).toBe("reference-thumbnails/thumbnail-full.png");
+    expect(short.repoRelativePath).toBe("reference-thumbnails/thumbnail-short.png");
+    expect(full.width).toBeGreaterThan(full.height);
+    expect(short.height).toBeGreaterThan(short.width);
+    expect(full.sha256).not.toBe(short.sha256);
   });
 
-  it("changes source fingerprint on relevant input and ignores object key ordering", () => {
-    const settings = loadOpenAiThumbnailGenerationSettings({
+  it("rejects paths outside the repo and wrong orientation", async () => {
+    const repoRoot = path.resolve(import.meta.dirname, "../../..");
+    const config = loadThumbnailGenerationConfig({
       OPENAI_API_KEY: "test-key",
     });
-    const workspaceRoot = mkdtempSync(path.join(os.tmpdir(), "thumb-fingerprint-"));
-    const input = makeInput(workspaceRoot);
-    const first = compileStoryThumbnailPrompt(input, settings);
-    const reordered = compileStoryThumbnailPrompt(
-      {
-        workspaceRoot,
-        locale: "de-DE",
-        episodeSlug: "014-hachishakusama-the-eight-foot-woman",
+    await expect(
+      resolveThumbnailReference({
+        repoRoot,
         format: "full",
-        hookText: "Sie rief ihren Namen",
-        summary: "A woman hears her name called before the threat closes in.",
-        title: "Hachishakusama",
-        threatDescription: "a towering supernatural woman in the distance",
-        protagonistDescription: "an adult woman frozen in fear",
-        settingDescription: "a narrow village road at night",
-      },
-      settings
-    );
-    const changed = compileStoryThumbnailPrompt(
-      { ...input, hookText: "Sie kam fuer mich" },
-      settings
-    );
+        overridePath: "/tmp/outside.png",
+        config,
+      })
+    ).rejects.toBeInstanceOf(ThumbnailReferenceValidationError);
 
-    expect(first.sourceFingerprint).toBe(reordered.sourceFingerprint);
-    expect(first.sourceFingerprint).not.toBe(changed.sourceFingerprint);
-  });
-
-  it("selects a deterministic emphasis word", () => {
-    expect(selectThumbnailEmphasisWord("She called her name", "en")).toBe("CALLED");
-    expect(selectThumbnailEmphasisWord("Sie rief ihren Namen", "de-DE")).toBe("RIEF");
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), "thumb-ref-invalid-"));
+    const portraitPath = path.join(tempDir, "portrait.png");
+    await fs.writeFile(portraitPath, await createPng(600, 900));
+    await expect(
+      resolveThumbnailReference({
+        repoRoot: tempDir,
+        format: "full",
+        overridePath: portraitPath,
+        config,
+      })
+    ).rejects.toBeInstanceOf(ThumbnailReferenceValidationError);
   });
 });
 
-describe("story thumbnail adapter and compositor", () => {
-  it("sends configured model, exact dimensions, quality, output format, and one image", () => {
-    const settings = loadOpenAiThumbnailGenerationSettings({
+describe("thumbnail prompt compiler", () => {
+  it("is deterministic and differentiates full versus short composition", async () => {
+    const settings = loadThumbnailGenerationConfig({
+      OPENAI_API_KEY: "test-key",
+    });
+    const repoRoot = path.resolve(import.meta.dirname, "../../..");
+    const workspaceRoot = mkdtempSync(path.join(os.tmpdir(), "thumb-prompt-"));
+    const fullInput = makeInput(workspaceRoot);
+    const fullReference = await resolveThumbnailReference({
+      repoRoot,
+      format: "full",
+      config: settings,
+    });
+    const shortReference = await resolveThumbnailReference({
+      repoRoot,
+      format: "short",
+      config: settings,
+    });
+    const first = compileStoryThumbnailPrompt(fullInput, settings, fullReference);
+    const second = compileStoryThumbnailPrompt(fullInput, settings, fullReference);
+    const shortPrompt = compileStoryThumbnailPrompt(
+      { ...fullInput, format: "short" as const },
+      settings,
+      shortReference
+    );
+    expect(first).toEqual(second);
+    expect(first.prompt).toContain("Use the supplied image only as a visual style and composition reference.");
+    expect(first.prompt).toContain("Do not copy:");
+    expect(first.prompt).toContain("Do not render any text");
+    expect(first.prompt).toContain("reserve natural dark negative space on the left 35% to 42%");
+    expect(shortPrompt.prompt).toContain("dedicated portrait composition");
+  });
+
+  it("changes only the relevant fingerprints", () => {
+    const workspaceRoot = mkdtempSync(path.join(os.tmpdir(), "thumb-fp-"));
+    const input = makeInput(workspaceRoot);
+    const background = computeBackgroundFingerprint({
+      input,
+      style: THUMBNAIL_DEFAULT_STYLE,
+      prompt: {
+        prompt: "x",
+        version: "v",
+        fingerprint: "p",
+        sourceFingerprint: "s",
+        format: "full",
+        style: "cinematic-horror",
+        referencePath: "reference-thumbnails/thumbnail-full.png",
+        referenceSha256: "a".repeat(64),
+      },
+      config: { model: "gpt-image-2", quality: "high" },
+    });
+    const changedTextBackground = computeBackgroundFingerprint({
+      input: { ...input, hookText: "ER LÄCHELTE WEITER" },
+      style: THUMBNAIL_DEFAULT_STYLE,
+      prompt: {
+        prompt: "x",
+        version: "v",
+        fingerprint: "p",
+        sourceFingerprint: "s",
+        format: "full",
+        style: "cinematic-horror",
+        referencePath: "reference-thumbnails/thumbnail-full.png",
+        referenceSha256: "a".repeat(64),
+      },
+      config: { model: "gpt-image-2", quality: "high" },
+    });
+    const composition = computeCompositionFingerprint({
+      input,
+      style: THUMBNAIL_DEFAULT_STYLE,
+      backgroundFingerprint: background,
+      emphasisWord: "FOLGTE",
+      fontFamily: THUMBNAIL_FONT_FAMILY,
+      textLayoutVersion: THUMBNAIL_TEXT_LAYOUT_VERSION,
+    });
+    const changedComposition = computeCompositionFingerprint({
+      input: { ...input, hookText: "ER LÄCHELTE WEITER" },
+      style: THUMBNAIL_DEFAULT_STYLE,
+      backgroundFingerprint: background,
+      emphasisWord: "LÄCHELTE",
+      fontFamily: THUMBNAIL_FONT_FAMILY,
+      textLayoutVersion: THUMBNAIL_TEXT_LAYOUT_VERSION,
+    });
+    expect(changedTextBackground).toBe(background);
+    expect(changedComposition).not.toBe(composition);
+  });
+
+  it("selects a deterministic emphasis word", () => {
+    expect(selectThumbnailEmphasisWord("HE FOLLOWED HER HOME", "en")).toBe("FOLLOWED");
+    expect(selectThumbnailEmphasisWord("ER FOLGTE IHR NACH HAUSE", "de")).toBe("FOLGTE");
+  });
+});
+
+describe("thumbnail adapter and compositor", () => {
+  it("builds an OpenAI edit request with the reference attachment", async () => {
+    const settings = loadThumbnailGenerationConfig({
       OPENAI_API_KEY: "test-key",
       OPENAI_THUMBNAIL_MODEL: "gpt-image-2",
       OPENAI_THUMBNAIL_QUALITY: "high",
     });
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), "thumb-request-"));
+    const referencePath = path.join(tempDir, "reference.png");
+    await fs.writeFile(referencePath, Buffer.from("placeholder"));
     const body = buildOpenAiThumbnailRequestBody({
       input: makeInput("/tmp/workspace"),
       settings,
       promptText: "Prompt",
+      referenceImagePath: referencePath,
     });
-    expect(body).toEqual({
-      model: "gpt-image-2",
-      prompt: "Prompt",
-      size: "1536x864",
-      quality: "high",
-      output_format: "png",
-      background: "opaque",
-      n: 1,
-    });
+    expect(body.model).toBe("gpt-image-2");
+    expect(body.size).toBe("1536x1024");
+    expect(body.quality).toBe("high");
+    expect(body.output_format).toBe("png");
+    expect(body.background).toBe("opaque");
+    expect(body.n).toBe(1);
+    expect(body.input_fidelity).toBe("high");
   });
 
-  it("renders exact text onto a full-size thumbnail and preserves dimensions", async () => {
-    const imageBuffer = await createPng(1536, 864);
+  it("normalizes backgrounds and composes exact localized text at final dimensions", async () => {
+    const normalized = await normalizeThumbnailBackground({
+      imageBuffer: await createPng(1536, 1024, "#1a2233"),
+      format: "full",
+    });
     const output = await compositeStoryThumbnailText({
+      background: normalized,
       input: {
         format: "full",
-        locale: "de-DE",
-        hookText: "Sie rief ihren Namen",
-        emphasisWord: "RIEF",
+        locale: "de",
+        hookText: "ER FOLGTE IHR NACH HAUSE",
+        style: "cinematic-horror",
       },
-      imageBuffer,
+      emphasisWord: "FOLGTE",
     });
     const metadata = await sharp(output).metadata();
-    expect(metadata.width).toBe(1536);
-    expect(metadata.height).toBe(864);
-  });
-
-  it("rejects invalid payloads and exact dimension mismatches", async () => {
-    const workspaceRoot = mkdtempSync(path.join(os.tmpdir(), "thumb-invalid-"));
-    const settings = loadOpenAiThumbnailGenerationSettings({
-      OPENAI_API_KEY: "test-key",
-      OPENAI_THUMBNAIL_MAX_RETRIES: "0",
-    });
-    await expect(
-      generateStoryThumbnail(makeInput(workspaceRoot), {
-        settings,
-        client: {
-          images: {
-            generate: async () => ({
-              data: [{ b64_json: "not-base64" }],
-            }),
-          },
-        },
-      })
-    ).rejects.toBeInstanceOf(ThumbnailResponseError);
-
-    const wrongImage = await createPng(1024, 1024);
-    await expect(
-      generateStoryThumbnail(makeInput(workspaceRoot), {
-        settings,
-        client: {
-          images: {
-            generate: async () => ({
-              data: [{ b64_json: wrongImage.toString("base64") }],
-            }),
-          },
-        },
-      })
-    ).rejects.toBeInstanceOf(ThumbnailDimensionMismatchError);
-  });
-
-  it("retries transient failures and stops on permanent ones", async () => {
-    const workspaceRoot = mkdtempSync(path.join(os.tmpdir(), "thumb-retry-"));
-    const settings = loadOpenAiThumbnailGenerationSettings({
-      OPENAI_API_KEY: "test-key",
-      OPENAI_THUMBNAIL_MAX_RETRIES: "1",
-    });
-    const goodImage = await createPng(1536, 864);
-    const transientClient = {
-      images: {
-        generate: vi
-          .fn()
-          .mockRejectedValueOnce({ status: 429, message: "rate limited" })
-          .mockResolvedValueOnce({
-            data: [{ b64_json: goodImage.toString("base64") }],
-            request_id: "req_123",
-          }),
-      },
-    };
-    const transient = await generateStoryThumbnail(makeInput(workspaceRoot), {
-      settings,
-      client: transientClient,
-    });
-    expect(transient.generated).toBe(true);
-    expect(transientClient.images.generate).toHaveBeenCalledTimes(2);
-
-    const permanentClient = {
-      images: {
-        generate: vi.fn().mockRejectedValue({ status: 401, message: "bad key" }),
-      },
-    };
-    await expect(
-      generateStoryThumbnail(
-        { ...makeInput(workspaceRoot), format: "short" },
-        { settings, client: permanentClient }
-      )
-    ).rejects.toThrow(/bad key/i);
-    expect(permanentClient.images.generate).toHaveBeenCalledTimes(1);
+    expect(metadata.width).toBe(THUMBNAIL_OUTPUTS.full.width);
+    expect(metadata.height).toBe(THUMBNAIL_OUTPUTS.full.height);
   });
 });
 
-describe("story thumbnail persistence and story input", () => {
-  it("reads the story file schema and writes a manifest, then reuses matching artifacts", async () => {
+describe("thumbnail persistence and reuse", () => {
+  it("writes background and final manifests, then reuses the background on text-only changes", async () => {
     const workspaceRoot = mkdtempSync(path.join(os.tmpdir(), "thumb-persist-"));
+    const settings = loadThumbnailGenerationConfig({
+      OPENAI_API_KEY: "test-key",
+      THUMBNAIL_MAX_RETRIES: "0",
+    });
+    const generatorImage = await createPng(1536, 1024, "#20263a");
+    const client = {
+      images: {
+        edit: vi.fn(async () => ({
+          data: [{ b64_json: generatorImage.toString("base64") }],
+        })),
+      },
+    };
+    const first = await generateStoryThumbnail(makeInput(workspaceRoot), {
+      settings,
+      client,
+    });
+    expect(first.generated).toBe(true);
+    expect(await fs.stat(first.backgroundPath)).toBeTruthy();
+    expect(await fs.stat(first.outputPath)).toBeTruthy();
+
+    const second = await generateStoryThumbnail(
+      {
+        ...makeInput(workspaceRoot),
+        hookText: "ER LÄCHELTE WEITER",
+        force: true,
+      },
+      { settings, client }
+    );
+    expect(second.backgroundReused).toBe(true);
+    expect(second.generated).toBe(true);
+    expect(client.images.edit).toHaveBeenCalledTimes(1);
+  });
+
+  it("throws a conflict when the targeted final artifact changes without force", async () => {
+    const workspaceRoot = mkdtempSync(path.join(os.tmpdir(), "thumb-conflict-"));
+    const settings = loadThumbnailGenerationConfig({
+      OPENAI_API_KEY: "test-key",
+    });
+    const generatorImage = await createPng(1536, 1024, "#18202d");
+    const client = {
+      images: {
+        edit: vi.fn(async () => ({
+          data: [{ b64_json: generatorImage.toString("base64") }],
+        })),
+      },
+    };
+    await generateStoryThumbnail(makeInput(workspaceRoot), {
+      settings,
+      client,
+    });
+    await expect(
+      generateStoryThumbnail(
+        { ...makeInput(workspaceRoot), hookText: "ER LÄCHELTE WEITER" },
+        {
+          settings,
+          client,
+        }
+      )
+    ).rejects.toBeInstanceOf(ThumbnailArtifactConflictError);
+  });
+});
+
+describe("thumbnail story file", () => {
+  it("reads the expanded story schema", async () => {
+    const workspaceRoot = mkdtempSync(path.join(os.tmpdir(), "thumb-story-"));
     const storyPath = path.join(workspaceRoot, "story.json");
     await fs.writeFile(
       storyPath,
       JSON.stringify({
-        title: "Hachishakusama",
-        summary: "A woman hears her name called before the threat closes in.",
-        protagonist: "an adult woman frozen in fear",
-        threat: "a towering supernatural woman in the distance",
-        setting: "a narrow village road at night",
+        episodeNumber: 18,
+        title: "The Smiling Man",
+        summary: "A smiling figure keeps following her.",
+        protagonist: "an adult woman in fear",
+        threat: "a smiling man in shadow",
+        setting: "a dark street",
+        mood: "dread",
+        thumbnailConcept: "the woman looks back and sees him still smiling",
       })
     );
     const story = await readThumbnailStoryFile({
       workspaceRoot,
       storyFilePath: storyPath,
     });
-    expect(story.protagonistDescription).toBe("an adult woman frozen in fear");
-
-    const imageBuffer = await createPng(1536, 864);
-    const settings = loadOpenAiThumbnailGenerationSettings({
-      OPENAI_API_KEY: "test-key",
-      OPENAI_THUMBNAIL_MAX_RETRIES: "0",
-    });
-    const input = makeInput(workspaceRoot);
-    const first = await generateStoryThumbnail(input, {
-      settings,
-      client: {
-        images: {
-          generate: async () => ({
-            data: [{ b64_json: imageBuffer.toString("base64") }],
-            request_id: "req_456",
-          }),
-        },
-      },
-    });
-    expect(first.generated).toBe(true);
-    expect(first.reused).toBe(false);
-    expect(await fs.stat(first.outputPath)).toBeTruthy();
-    expect(await fs.stat(first.manifestPath)).toBeTruthy();
-
-    const second = await generateStoryThumbnail(input, {
-      settings,
-      client: {
-        images: {
-          generate: vi.fn(async () => ({
-            data: [{ b64_json: imageBuffer.toString("base64") }],
-          })),
-        },
-      },
-    });
-    expect(second.reused).toBe(true);
-    expect(second.generated).toBe(false);
-  });
-
-  it("throws a conflict when an existing artifact differs without force", async () => {
-    const workspaceRoot = mkdtempSync(path.join(os.tmpdir(), "thumb-conflict-"));
-    const settings = loadOpenAiThumbnailGenerationSettings({
-      OPENAI_API_KEY: "test-key",
-      OPENAI_THUMBNAIL_MAX_RETRIES: "0",
-    });
-    const imageBuffer = await createPng(THUMBNAIL_DIMENSIONS.full.width, THUMBNAIL_DIMENSIONS.full.height);
-    await generateStoryThumbnail(makeInput(workspaceRoot), {
-      settings,
-      client: {
-        images: {
-          generate: async () => ({
-            data: [{ b64_json: imageBuffer.toString("base64") }],
-          }),
-        },
-      },
-    });
-    await expect(
-      generateStoryThumbnail(
-        { ...makeInput(workspaceRoot), hookText: "Sie kam zurueck" },
-        { settings }
-      )
-    ).rejects.toBeInstanceOf(ThumbnailArtifactConflictError);
+    expect(story.storyTitle).toBe("The Smiling Man");
+    expect(story.keyVisualMoment).toContain("still smiling");
+    expect(story.protagonistDescription).toContain("adult woman");
   });
 });
