@@ -1,5 +1,6 @@
 import type {
   CameraMotion,
+  CaptionPlan as DomainCaptionPlan,
   EpisodeFocalMetadata,
   FocalRegion,
   NormalizedCrop,
@@ -30,7 +31,9 @@ import {
 export type FocalMetadataArtifact = EpisodeFocalMetadata;
 export type ShotTreatmentCatalog = readonly ReadonlyTreatmentCatalogEntry[];
 
-export interface CaptionPlan {
+export type CaptionPlan = DomainCaptionPlan | LegacyCaptionPlan;
+
+export interface LegacyCaptionPlan {
   readonly regions: readonly CaptionLayoutRegion[];
   readonly brandingSafeAreas?: readonly CaptionProtectedRegion[];
 }
@@ -1015,7 +1018,7 @@ function validateCaptionCollisions(
     return [];
   }
   const issues: ShotPlanValidationIssue[] = [];
-  for (const caption of input.captionPlan.regions) {
+  for (const caption of captionLayoutRegionsForPlan(input.captionPlan)) {
     const shots = shotsForTimedArtifact(caption, analysis);
     for (const shot of shots) {
       for (const protectedRegion of protectedRegionsForShot(input, analysis, shot)) {
@@ -1359,7 +1362,8 @@ function protectedRegionsForShot(
     ...focalRegionsForShot(input, analysis, shot)
       .filter((region) => region.kind === "evidence-object")
       .map((region) => ({ id: region.id, bounds: region.bounds })),
-    ...(input.captionPlan?.brandingSafeAreas ?? []),
+    ...legacyBrandingSafeAreasForCaptionPlan(input.captionPlan),
+    ...brandingSafeAreasForCaptionPlan(input.captionPlan),
   ];
   for (const insert of input.evidenceInserts ?? []) {
     if (insert.bounds !== undefined && artifactAppliesToShot(insert, shot)) {
@@ -1416,6 +1420,41 @@ function shotsForTimedArtifact(
   analysis: Analysis,
 ): readonly RenderShot[] {
   return analysis.shots.filter((shot) => artifactAppliesToShot(artifact, shot));
+}
+
+function captionLayoutRegionsForPlan(
+  captionPlan: CaptionPlan,
+): readonly CaptionLayoutRegion[] {
+  if ("regions" in captionPlan) {
+    return captionPlan.regions;
+  }
+  return captionPlan.segments.map((segment) => ({
+    id: segment.id,
+    startMs: segment.startMs,
+    endMs: segment.endMs,
+    bounds: segment.layoutRegion,
+  }));
+}
+
+function brandingSafeAreasForCaptionPlan(
+  captionPlan: CaptionPlan | undefined,
+): readonly CaptionProtectedRegion[] {
+  if (captionPlan === undefined || "regions" in captionPlan) {
+    return [];
+  }
+  return captionPlan.brandingSafeAreas.map((bounds, index) => ({
+    id: `branding-safe-area-${String(index + 1).padStart(2, "0")}`,
+    bounds,
+  }));
+}
+
+function legacyBrandingSafeAreasForCaptionPlan(
+  captionPlan: CaptionPlan | undefined,
+): readonly CaptionProtectedRegion[] {
+  if (captionPlan === undefined || !("regions" in captionPlan)) {
+    return [];
+  }
+  return captionPlan.brandingSafeAreas ?? [];
 }
 
 function shotForArtifact(

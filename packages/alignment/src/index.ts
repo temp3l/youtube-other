@@ -9,6 +9,14 @@ import {
 } from "@mediaforge/domain";
 import { buildAss, buildSrt, buildVtt, splitIntoWords } from "@mediaforge/shared";
 
+export {
+  chooseEmphasis,
+  defaultCaptionAnchor,
+  planPhraseCaptions,
+  wrapCaptionLines,
+  type PlanPhraseCaptionsInput,
+} from "./caption-plan.js";
+
 export interface CaptionPack {
   readonly alignment: AlignmentResult;
   readonly segments: CaptionSegment[];

@@ -1474,6 +1474,91 @@ export const captionSegmentSchema = z.object({
 });
 export type CaptionSegment = z.infer<typeof captionSegmentSchema>;
 
+export const captionAnchorSchema = z.enum([
+  "lower-middle",
+  "center-lower",
+  "upper-middle",
+  "safe-left",
+  "safe-right",
+]);
+export type CaptionAnchor = z.infer<typeof captionAnchorSchema>;
+
+export const captionPlanSourceReferenceSchema = z.discriminatedUnion("kind", [
+  z.object({
+    kind: z.literal("word-alignment"),
+    wordStartIndex: nonNegativeIntegerSchema,
+    wordEndIndex: nonNegativeIntegerSchema,
+  }),
+  z.object({
+    kind: z.literal("transcript-segment"),
+    segmentId: transcriptSegmentIdSchema.optional(),
+    segmentIndex: nonNegativeIntegerSchema,
+  }),
+  z.object({
+    kind: z.literal("scene"),
+    sceneId: sceneIdSchema,
+  }),
+]);
+export type CaptionPlanSourceReference = z.infer<
+  typeof captionPlanSourceReferenceSchema
+>;
+
+export const captionPlanSegmentSchema = z
+  .object({
+    id: createVisualRetentionIdSchema("CaptionPlanSegmentId"),
+    locale: z.string().trim().min(1),
+    startMs: nonNegativeIntegerSchema,
+    endMs: nonNegativeIntegerSchema,
+    text: z.string().trim().min(1),
+    lines: z.array(z.string().trim().min(1)).min(1).max(2),
+    emphasizedText: z.string().trim().min(1).optional(),
+    maxLineCount: z.literal(2),
+    layoutRegion: normalizedCropSchema,
+    anchor: captionAnchorSchema,
+    safeAreaRefs: z.array(z.string().trim().min(1)).default([]),
+    shotIds: z.array(shotIdSchema).default([]),
+    source: captionPlanSourceReferenceSchema,
+    collision: z
+      .object({
+        status: z.enum(["clear", "resolved", "unresolved"]),
+        reason: z.string().trim().min(1).optional(),
+      })
+      .strict()
+      .optional(),
+  })
+  .strict()
+  .superRefine((value, ctx) => {
+    if (value.endMs <= value.startMs) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["endMs"],
+        message: "Caption plan segment must end after it starts.",
+      });
+    }
+    if (value.lines.join(" ").replace(/\s+/gu, " ").trim() !== value.text.replace(/\s+/gu, " ").trim()) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["lines"],
+        message: "Caption plan lines must preserve the segment text.",
+      });
+    }
+  });
+export type CaptionPlanSegment = z.infer<typeof captionPlanSegmentSchema>;
+
+export const captionPlanSchema = z
+  .object({
+    schemaVersion: z.literal(1),
+    locale: z.string().trim().min(1),
+    variant: contentVariantSchema,
+    maxLineCount: z.literal(2),
+    layoutVersion: z.string().trim().min(1),
+    segments: z.array(captionPlanSegmentSchema),
+    brandingSafeAreas: z.array(normalizedCropSchema).default([]),
+    platformSafeAreas: z.array(normalizedCropSchema).default([]),
+  })
+  .strict();
+export type CaptionPlan = z.infer<typeof captionPlanSchema>;
+
 export const imageAssetSchema = z.object({
   sceneId: sceneIdSchema,
   sourcePath: z.string(),

@@ -56,3 +56,14 @@ export {
   type EvidenceInsertValidationResult,
   type EvidenceSourceFact,
 } from "./evidence-inserts.js";
+
+export {
+  captionCollisions,
+  collectProtectedRegionsForCaption,
+  resolveCaptionPlacements,
+  type CaptionCollision,
+  type CaptionCollisionIssue,
+  type CaptionPlacementResult,
+  type CaptionProtectedRegion as CaptionCollisionProtectedRegion,
+  type ResolveCaptionPlacementInput,
+} from "./caption-collision.js";
