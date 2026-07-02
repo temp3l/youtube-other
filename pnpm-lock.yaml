@@ -472,6 +472,15 @@ importers:
         specifier: ^4.0.14
         version: 4.4.3
 
+  packages/visual-planning:
+    dependencies:
+      '@mediaforge/domain':
+        specifier: workspace:*
+        version: link:../domain
+      '@mediaforge/shared':
+        specifier: workspace:*
+        version: link:../shared
+
   packages/transcript-cleaning:
     dependencies:
       '@mediaforge/domain':
