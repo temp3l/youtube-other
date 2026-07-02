@@ -7,7 +7,7 @@ Task 05 introduces a typed modular compiler for story-rewrite prompts in `packag
 - Owns narration-stage prompt compilation only.
 - Supports shared module selection for full-story and short-story rewrite prompts.
 - Keeps provider transport, model selection, retry policy, and `.env` precedence outside the compiler.
-- Preserves legacy `docs/templates/audio/` paths only as compatibility references. They are no longer the authoritative prompt source.
+- Applies the persisted character rename contract before model-facing source, fact, and StoryIR content is rendered.
 
 ## Module model
 
@@ -33,15 +33,16 @@ The compiler follows a fixed order:
 2. StoryIR construction and validation
 3. full-story contract validation for full variants
 4. genre-policy resolution
-5. locale resolution
-6. conditional module evaluation
-7. ownership, dependency, and conflict checks
-8. universal-rule deduplication
-9. deterministic module ordering
-10. rendering
-11. response schema attachment
-12. prompt fingerprint calculation
-13. diagnostics emission
+5. deterministic character pseudonymization
+6. locale resolution
+7. conditional module evaluation
+8. ownership, dependency, and conflict checks
+9. universal-rule deduplication
+10. deterministic module ordering
+11. rendering
+12. response schema attachment
+13. prompt fingerprint calculation
+14. diagnostics emission
 
 The same semantic inputs must produce the same prompt bytes and fingerprint unless a declared semantic version changes.
 
@@ -61,6 +62,7 @@ Prompt fingerprints are deterministic hashes over semantic inputs including:
 - genre policy id and version
 - classification outcome
 - full-story contract fingerprint when present
+- character rename map hash
 - response schema name, version, and fingerprint
 - source hash and source-cleaning fingerprint when present
 - output constraints

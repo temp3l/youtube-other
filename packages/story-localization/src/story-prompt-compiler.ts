@@ -1,5 +1,12 @@
 import { countSpokenWords, hashText } from "@mediaforge/shared";
 import {
+  applyCharacterRenameMapToCanonicalFacts,
+  applyCharacterRenameMapToParsedSource,
+  applyCharacterRenameMapToStoryIr,
+  buildCharacterRenameMap,
+  type CharacterRenameMap,
+} from "./character-rename.service.js";
+import {
   adaptStoryProductionArtifactsToStoryIR,
   fullStoryOutputConstraintsSchema,
   shortStoryOutputConstraintsSchema,
@@ -19,6 +26,10 @@ import {
   type FullStoryContractEnvelope,
 } from "./full-story-contract.js";
 import { getLanguageProfile, LANGUAGE_PROFILES } from "./language-profiles.js";
+import {
+  DEFAULT_SHORT_DURATION_WINDOW,
+  resolveShortNarrationWordRange,
+} from "./narration-constraints.js";
 import { stableSerialize } from "./stable-json.js";
 import {
   STORY_PROMPT_COMPILER_VERSION,
@@ -91,6 +102,7 @@ export interface CompileFullStoryPromptInput {
   readonly outputConstraints?: FullStoryOutputConstraints;
   readonly sourceCleaningReport?: SourceCleaningReport;
   readonly storyIr?: StoryIR;
+  readonly characterRenameMap?: CharacterRenameMap;
 }
 
 export interface CompileShortStoryPromptInput {
@@ -109,6 +121,7 @@ export interface CompileShortStoryPromptInput {
   readonly outputConstraints?: ShortStoryOutputConstraints;
   readonly sourceCleaningReport?: SourceCleaningReport;
   readonly storyIr?: StoryIR;
+  readonly characterRenameMap?: CharacterRenameMap;
 }
 
 function resolveClassificationOutcome(
@@ -144,16 +157,21 @@ function defaultFullOutputConstraints(
 function defaultShortOutputConstraints(
   profile: LanguageProfile
 ): ShortStoryOutputConstraints {
+  const range = resolveShortNarrationWordRange({
+    language: profile.code,
+    pace: profile.defaultNarrationPace,
+    duration: DEFAULT_SHORT_DURATION_WINDOW,
+  });
   return shortStoryOutputConstraintsSchema.parse({
     variant: "short",
     targetWordRange: {
-      min: Math.max(1, profile.shortWordRange.min),
-      max: Math.max(1, profile.shortWordRange.max),
+      min: Math.max(1, range.min),
+      max: Math.max(1, range.max),
     },
     targetNarrationWpm: profile.shortNarrationWpm,
     targetDuration: {
-      minSeconds: 55,
-      maxSeconds: 65,
+      minSeconds: DEFAULT_SHORT_DURATION_WINDOW.minSeconds,
+      maxSeconds: DEFAULT_SHORT_DURATION_WINDOW.maxSeconds,
     },
     hookDeadlineSeconds: 8,
     fullVideoBridgeRequired: true,
@@ -338,6 +356,7 @@ function compileFromContext(
       ? [
           "## Short Adaptation Contract",
           `- Preserve the core identity in ${context.adaptationContract.identity.locale}.`,
+          `- Reuse the same fictional character names exactly: ${context.characterRenameMap.entries.map((entry) => entry.fictionalName).join(", ") || "none"}`,
           `- Central threat: ${context.adaptationContract.centralThreat}`,
           `- Rule or mechanism: ${context.adaptationContract.centralRuleOrMechanism}`,
           `- Critical object: ${context.adaptationContract.criticalObject}`,
@@ -356,6 +375,7 @@ function compileFromContext(
           `- Target narration pace: ${context.adaptationContract.constraints.targetNarrationWpm} WPM`,
           `- Maximum beats: ${context.adaptationContract.constraints.maximumBeats}`,
           `- Forbidden omissions: ${context.adaptationContract.forbiddenOmissions.join(" | ")}`,
+          "- Narrative functions to cover naturally: early hook, minimal setup, understandable threat or rule, concrete proof, personal escalation, consequence, and a concrete final callback.",
           "",
           "<SHORT_ADAPTATION_SOURCE>",
           ...context.sourceExtraction.beats
@@ -367,6 +387,7 @@ function compileFromContext(
           "- Every concrete action, object, timing detail, reveal, and relationship is supported by the retained source beats or the immutable facts listed above.",
           "- Remove any unsupported object, place, call, note, injury, motive, or reveal that is not grounded in the source package above.",
           "- Keep the same ending consequence without inventing a bridge event or a new reveal.",
+          "- Do not append the full-video bridge to the spoken narration after the final horror image.",
         ].join("\n")
       : `<SOURCE_NARRATION>\n${context.sourceStory.narrationParagraphs.join("\n\n")}\n</SOURCE_NARRATION>`,
   ].join("\n\n");
@@ -392,6 +413,7 @@ function compileFromContext(
       registryVersion: DEFAULT_GENRE_POLICY_REGISTRY.registryVersion,
     },
     sourceHash: context.sourceStory.sourceHash,
+    characterRenameMapHash: context.characterRenameMap.hash,
     adaptationMode: context.adaptationMode,
     ...(context.variant === "full"
       ? {
@@ -461,7 +483,27 @@ export function compileFullStoryPrompt(
       `Unsupported locale resolution for language ${input.language}.`
     );
   }
-  const storyIr = buildStoryIr(input);
+  const originalStoryIr = buildStoryIr(input);
+  const characterRenameMap =
+    input.characterRenameMap ??
+    buildCharacterRenameMap({
+      episodeId: input.sourceStory.episodeNumber,
+      sourceHash: input.sourceStory.sourceHash,
+      canonicalFacts: input.canonicalFacts,
+      storyIr: originalStoryIr,
+    });
+  const sourceStory = applyCharacterRenameMapToParsedSource(
+    input.sourceStory,
+    characterRenameMap
+  );
+  const canonicalFacts = applyCharacterRenameMapToCanonicalFacts(
+    input.canonicalFacts,
+    characterRenameMap
+  );
+  const storyIr = applyCharacterRenameMapToStoryIr(
+    originalStoryIr,
+    characterRenameMap
+  );
   const classificationOutcome = resolveClassificationOutcome(storyIr);
   const policyResolution = resolveGenrePolicy({
     genre: storyIr.genre,
@@ -501,21 +543,22 @@ export function compileFullStoryPrompt(
   }
   const outputConstraints =
     input.outputConstraints ??
-    defaultFullOutputConstraints(profile, input.sourceStory);
+    defaultFullOutputConstraints(profile, sourceStory);
   const contractResult = buildFullStoryContract({
     storyIr,
     artifactIdentity: {
-      episodeNumber: input.sourceStory.episodeNumber,
-      episodeSlug: input.sourceStory.slug,
+      episodeNumber: sourceStory.episodeNumber,
+      episodeSlug: sourceStory.slug,
       language: input.language,
       locale: profile.locale,
       variant: "full",
     },
     outputConstraints,
+    characterRenameMap,
     lineage: input.sourceCleaningReport
       ? {
           kind: "cleaned-source",
-          originalSourceHash: input.sourceStory.sourceHash,
+          originalSourceHash: sourceStory.sourceHash,
           cleanedSourceHash: input.sourceCleaningReport.cleanedTextHash,
           cleanerVersion: input.sourceCleaningReport.cleanerVersion,
           cleaningReportVersion: input.sourceCleaningReport.schemaVersion,
@@ -548,8 +591,8 @@ export function compileFullStoryPrompt(
     language: input.language,
     languageProfile: profile,
     adaptationMode: input.adaptationMode,
-    sourceStory: input.sourceStory,
-    canonicalFacts: input.canonicalFacts,
+    sourceStory,
+    canonicalFacts,
     storyIr,
     genrePolicy: policyResolution.policy,
     classificationOutcome,
@@ -559,6 +602,7 @@ export function compileFullStoryPrompt(
     responseSchema: fullNarrationResponseSchemaDescriptor,
     localeModuleVersion: STORY_PROMPT_LOCALE_MODULE_VERSION,
     selectedLocale: profile.locale,
+    characterRenameMap,
     ...(input.productionContext
       ? { productionContext: input.productionContext }
       : {}),
@@ -578,7 +622,27 @@ export function compileShortStoryPrompt(
 ): CompiledStoryPrompt {
   const diagnostics: StoryPromptDiagnostic[] = [];
   const profile = getLanguageProfile(input.language);
-  const storyIr = buildStoryIr(input);
+  const originalStoryIr = buildStoryIr(input);
+  const characterRenameMap =
+    input.characterRenameMap ??
+    buildCharacterRenameMap({
+      episodeId: input.sourceStory.episodeNumber,
+      sourceHash: input.sourceStory.sourceHash,
+      canonicalFacts: input.canonicalFacts,
+      storyIr: originalStoryIr,
+    });
+  const sourceStory = applyCharacterRenameMapToParsedSource(
+    input.sourceStory,
+    characterRenameMap
+  );
+  const canonicalFacts = applyCharacterRenameMapToCanonicalFacts(
+    input.canonicalFacts,
+    characterRenameMap
+  );
+  const storyIr = applyCharacterRenameMapToStoryIr(
+    originalStoryIr,
+    characterRenameMap
+  );
   const initialClassificationOutcome = resolveClassificationOutcome(storyIr);
   const classificationOutcome =
     initialClassificationOutcome === "unknown-unsafe"
@@ -617,8 +681,8 @@ export function compileShortStoryPrompt(
     language: input.language,
     languageProfile: profile,
     adaptationMode: input.adaptationMode,
-    sourceStory: input.sourceStory,
-    canonicalFacts: input.canonicalFacts,
+    sourceStory,
+    canonicalFacts,
     storyIr,
     genrePolicy: policyResolution.policy as GenrePolicy,
     classificationOutcome,
@@ -628,6 +692,7 @@ export function compileShortStoryPrompt(
     adaptationContract: input.adaptationContract,
     localeModuleVersion: STORY_PROMPT_LOCALE_MODULE_VERSION,
     selectedLocale: profile.locale,
+    characterRenameMap,
     ...(input.productionContext
       ? { productionContext: input.productionContext }
       : {}),

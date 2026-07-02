@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { type CharacterRenameMap } from "./character-rename.service.js";
 import { type GenrePolicy } from "./genre-policy.js";
 import {
   type FullStoryContract,
@@ -124,6 +125,7 @@ export interface StoryPromptSharedInput {
   readonly sourceCleaningReport?: SourceCleaningReport;
   readonly localeModuleVersion: string;
   readonly selectedLocale: string;
+  readonly characterRenameMap: CharacterRenameMap;
 }
 
 export interface FullStoryPromptInput extends StoryPromptSharedInput {

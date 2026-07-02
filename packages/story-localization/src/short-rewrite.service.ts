@@ -150,6 +150,10 @@ import {
 import { renderLocalizedFullStory } from "./story-markdown-renderer.js";
 import { resolveEpisodeStoryProductionDirectory } from "./story-production.js";
 import {
+  buildCharacterRenameMap,
+  characterRenameMapSchema,
+} from "./character-rename.service.js";
+import {
   type GeneratedStoryValidationIssueCode,
   validateShortNarrationArtifact,
 } from "./generated-story-validator.js";
@@ -809,6 +813,7 @@ async function resolveCanonicalEnglishParent(args: {
     contractHash: artifact.lineage.contractHash,
     contractBuildFingerprint: artifact.lineage.contractBuildFingerprint,
     narrationParagraphs,
+    characterRenameMap: artifact.characterRenameMap,
     canonical: true,
     provenance: "canonical-full-artifact",
   };
@@ -894,6 +899,19 @@ async function resolveLocalizedFullParent(args: {
   const narrationParagraphs = localizedArtifact.result.full.narrationParagraphs.map((entry) =>
     normalizeWhitespace(entry)
   );
+  const canonicalPaths = resolveCanonicalEnglishFullPaths(
+    args.outputRoot,
+    args.source.episodeSlug
+  );
+  const canonicalArtifact = await readJsonIfExists(
+    canonicalPaths.canonicalArtifactPath,
+    (value) => canonicalEnglishFullArtifactSchema.parse(value)
+  );
+  if (!canonicalArtifact?.characterRenameMap) {
+    throw new ShortRewriteValidationError(
+      `${languageProfile.name} short requires a canonical full artifact with a persisted character rename map.`
+    );
+  }
   return {
     identity: {
       episodeId: args.source.episodeId,
@@ -910,6 +928,7 @@ async function resolveLocalizedFullParent(args: {
     contractHash: localizedArtifact.lineage.contractHash ?? "0".repeat(64),
     contractBuildFingerprint: localizedArtifact.lineage.contractBuildFingerprint,
     narrationParagraphs,
+    characterRenameMap: canonicalArtifact.characterRenameMap,
     canonical: true,
     provenance: "localized-full-artifact",
   };
@@ -919,12 +938,35 @@ function buildCompatibilityParent(args: {
   readonly source: ResolvedShortRewriteSource;
   readonly language: StoryLanguage;
 }): ShortRewriteResolvedParent {
-  const languageProfile = SHORT_REWRITE_SUPPORTED_LANGUAGES[args.language];
   const narrationParagraphs = args.source.narration
     .split(/\n{2,}/u)
     .map((entry) => normalizeWhitespace(entry))
     .filter(Boolean);
   const hash = hashNarrationParagraphs(narrationParagraphs);
+  const parsedSourceStory = {
+    language: "en" as const,
+    sourceFile: args.source.sourcePath,
+    sourceHash: args.source.sourceSha256,
+    episodeNumber: args.source.episodeNumber,
+    slug: args.source.episodeSlug,
+    title: args.source.title,
+    audioInstructions: [],
+    narrationParagraphs,
+    metadata: {
+      episodeNumber: args.source.episodeNumber,
+      primaryTitle: args.source.title,
+      audioInstructions: [],
+      narration: narrationParagraphs,
+      tags: [],
+      hashtags: [],
+    },
+    content: narrationParagraphs.join("\n\n"),
+  };
+  const promptFacts = extractCanonicalStoryFacts(parsedSourceStory);
+  const promptStoryIr = adaptCanonicalStoryFactsToStoryIR(
+    promptFacts,
+    parsedSourceStory
+  );
   return {
     identity: {
       episodeId: args.source.episodeId,
@@ -940,6 +982,14 @@ function buildCompatibilityParent(args: {
     storyIrHash: hash,
     contractHash: hash,
     narrationParagraphs,
+    characterRenameMap: characterRenameMapSchema.parse(
+      buildCharacterRenameMap({
+        episodeId: args.source.episodeId,
+        sourceHash: args.source.sourceSha256,
+        canonicalFacts: promptFacts,
+        storyIr: promptStoryIr,
+      })
+    ),
     canonical: false,
     provenance: "compatibility-source",
   };
@@ -1017,6 +1067,7 @@ function analyzeGeneratedPayload(args: {
       hookDeadlineSeconds: args.adaptationContract.constraints.hookDeadlineSeconds,
       fullVideoBridgeRequired: true,
     },
+    characterRenameMap: args.parent.characterRenameMap,
   });
   const issues = [...validationResult.messages];
   const issueCodes = validationResult.issues.map((issue) => issue.code);
@@ -1473,16 +1524,6 @@ async function generateLanguagePayload(
     "debug"
   );
   const debugFileBaseName = `stories-rewrite-short-${args.language}`;
-  const promptContext = {
-    episodeNumber: args.source.episodeNumber,
-    episodeSlug: args.source.episodeSlug,
-    targetLanguage: args.language,
-    targetLanguageName: languageDefinition.name,
-    targetLocale: languageDefinition.locale,
-    sourceStory: args.parent.narrationParagraphs.join("\n\n"),
-    narration: args.parent.narrationParagraphs.join("\n\n"),
-    title: args.parent.title,
-  };
   const parsedSourceStory = {
     language: "en" as const,
     sourceFile: args.parent.sourcePath,
@@ -1503,14 +1544,41 @@ async function generateLanguagePayload(
     content: args.parent.narrationParagraphs.join("\n\n"),
   };
   const promptFacts = extractCanonicalStoryFacts(parsedSourceStory);
+  const promptStoryIr = adaptCanonicalStoryFactsToStoryIR(
+    promptFacts,
+    parsedSourceStory
+  );
+  const promptContext = {
+    targetLanguage: args.language,
+    targetLocale: languageDefinition.locale,
+    sourceStory: parsedSourceStory,
+    canonicalFacts: promptFacts,
+    storyIr: promptStoryIr,
+    outputConstraints: {
+      variant: "short" as const,
+      targetWordRange: args.adaptationContract.constraints.targetWordRange,
+      targetNarrationWpm: args.adaptationContract.constraints.targetNarrationWpm,
+      targetDuration: {
+        minSeconds: args.adaptationContract.constraints.targetDurationSeconds.min,
+        maxSeconds: args.adaptationContract.constraints.targetDurationSeconds.max,
+      },
+      hookDeadlineSeconds: args.adaptationContract.constraints.hookDeadlineSeconds,
+      fullVideoBridgeRequired: true,
+    },
+    sourceExtraction: args.sourceExtraction,
+    adaptationContract: args.adaptationContract,
+    characterRenameMap: args.parent.characterRenameMap,
+  };
   const compiledPrompt = compileShortStoryPrompt({
     language: args.language,
     adaptationMode: "retention-optimized",
     sourceStory: parsedSourceStory,
     canonicalFacts: promptFacts,
-    storyIr: adaptCanonicalStoryFactsToStoryIR(promptFacts, parsedSourceStory),
+    storyIr: promptStoryIr,
     sourceExtraction: args.sourceExtraction,
     adaptationContract: args.adaptationContract,
+    outputConstraints: promptContext.outputConstraints,
+    characterRenameMap: args.parent.characterRenameMap,
   });
   if (compiledPrompt.diagnostics.some((entry) => entry.blocking)) {
     throw new ShortRewriteValidationError(
@@ -1559,7 +1627,9 @@ async function generateLanguagePayload(
     }): Promise<void> => {
       const expectedOutputTokens = preflightArgs.repair
         ? Math.ceil(requestArgs.maxOutputTokens * 0.35)
-        : Math.ceil(SHORT_REWRITE_HARD_WORD_RANGE.max * 1.45) + 450;
+        : Math.ceil(
+            args.adaptationContract.constraints.targetWordRange.max * 1.45
+          ) + 450;
       const fingerprint: StoryRequestFingerprintInput = preflightArgs.repair
         ? {
             episodeSlug: args.source.episodeSlug,
@@ -1587,16 +1657,19 @@ async function generateLanguagePayload(
             attemptSemantics: "repair-attempt",
             parent: {
               kind: "canonical-english-full",
-              language: "en",
-              locale: "en-US",
+              language: args.parent.identity.language,
+              locale: args.parent.identity.locale,
               variant: "full",
               fingerprint: args.adaptationContract.contractHash,
               sourceHash: args.parent.sourceSha256,
               storyIrHash: args.parent.storyIrHash,
               contractHash: args.parent.contractHash,
             },
-            targetWordRange: SHORT_REWRITE_HARD_WORD_RANGE,
-            targetDurationSeconds: { min: 55, max: 65 },
+            targetWordRange: args.adaptationContract.constraints.targetWordRange,
+            targetDurationSeconds: {
+              min: args.adaptationContract.constraints.targetDurationSeconds.min,
+              max: args.adaptationContract.constraints.targetDurationSeconds.max,
+            },
           }
         : {
             episodeSlug: args.source.episodeSlug,
@@ -1623,16 +1696,19 @@ async function generateLanguagePayload(
             shortContractVersion: args.adaptationContract.contractVersion,
             parent: {
               kind: "canonical-english-full",
-              language: "en",
-              locale: "en-US",
+              language: args.parent.identity.language,
+              locale: args.parent.identity.locale,
               variant: "full",
               fingerprint: args.adaptationContract.contractHash,
               sourceHash: args.parent.sourceSha256,
               storyIrHash: args.parent.storyIrHash,
               contractHash: args.parent.contractHash,
             },
-            targetWordRange: SHORT_REWRITE_HARD_WORD_RANGE,
-            targetDurationSeconds: { min: 55, max: 65 },
+            targetWordRange: args.adaptationContract.constraints.targetWordRange,
+            targetDurationSeconds: {
+              min: args.adaptationContract.constraints.targetDurationSeconds.min,
+              max: args.adaptationContract.constraints.targetDurationSeconds.max,
+            },
           };
       const request: StoryPreflightRequest = {
         episodeNumber: args.source.episodeNumber,
@@ -1657,10 +1733,10 @@ async function generateLanguagePayload(
         schemaVersion: shortNarrationResponseSchemaDescriptor.version,
         schemaFingerprint: shortNarrationResponseSchemaDescriptor.fingerprint,
         sourceHash: args.source.sourceSha256,
-        targetWordRange: SHORT_REWRITE_HARD_WORD_RANGE,
+        targetWordRange: args.adaptationContract.constraints.targetWordRange,
         targetDurationSeconds: {
-          min: 55,
-          max: 65,
+          min: args.adaptationContract.constraints.targetDurationSeconds.min,
+          max: args.adaptationContract.constraints.targetDurationSeconds.max,
         },
         parentArtifact: {
           kind: "canonical-english-full",

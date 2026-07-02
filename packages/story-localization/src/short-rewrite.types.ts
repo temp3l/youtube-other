@@ -1,6 +1,15 @@
 import { type BatchCategory } from "./story-localization.types.js";
 import { type ModelPricing } from "@mediaforge/observability";
 import { type OpenAiStoryClient } from "./story-localization-openai-batch.js";
+import { type CharacterRenameMap } from "./character-rename.service.js";
+import {
+  type ShortStoryOutputConstraints,
+  type StoryIR,
+} from "./story-artifact-model.js";
+import {
+  type CanonicalStoryFacts,
+  type ParsedSourceStory,
+} from "./story-localization.types.js";
 import {
   SHORT_REWRITE_SUPPORTED_LANGUAGES,
   type ShortRewriteLanguage,
@@ -62,6 +71,7 @@ export interface ShortRewriteResolvedParent {
   readonly contractHash: string;
   readonly contractBuildFingerprint?: string | undefined;
   readonly narrationParagraphs: readonly string[];
+  readonly characterRenameMap: CharacterRenameMap;
   readonly canonical: boolean;
   readonly provenance:
     | "canonical-full-artifact"
@@ -391,14 +401,19 @@ export interface ShortRewriteResolvedInput {
 }
 
 export interface ShortRewritePromptContext {
-  readonly episodeNumber: string;
-  readonly episodeSlug: string;
   readonly targetLanguage: StoryLanguage;
-  readonly targetLanguageName: string;
   readonly targetLocale: string;
-  readonly sourceStory: string;
-  readonly narration: string;
-  readonly title: string;
+  readonly sourceStory: ParsedSourceStory | string;
+  readonly canonicalFacts?: CanonicalStoryFacts;
+  readonly storyIr?: StoryIR;
+  readonly outputConstraints?: ShortStoryOutputConstraints;
+  readonly sourceExtraction?: ShortRewriteSourceExtraction;
+  readonly adaptationContract?: ShortRewriteAdaptationContract;
+  readonly characterRenameMap?: CharacterRenameMap;
+  readonly episodeNumber?: string;
+  readonly episodeSlug?: string;
+  readonly narration?: string;
+  readonly title?: string;
 }
 
 export interface ShortRewriteApiResult {

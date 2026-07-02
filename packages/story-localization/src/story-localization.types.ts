@@ -1,5 +1,6 @@
 export const languageCodes = ["en", "de", "es", "fr", "pt"] as const;
 export type LanguageCode = (typeof languageCodes)[number];
+export type NarrationPace = "normal" | "fast";
 
 export type AdaptationMode = "faithful" | "retention-optimized";
 export type ProcessingMode = "batch" | "sync";
@@ -115,6 +116,10 @@ export interface LanguageProfile {
   readonly displayName: string;
   readonly locale: string;
   readonly narratorLanguageName: string;
+  readonly defaultNarrationPace: NarrationPace;
+  readonly narrationPaces: Readonly<
+    Record<NarrationPace, Readonly<{ readonly full: number; readonly short: number }>>
+  >;
   readonly fullNarrationWpm: number;
   readonly shortNarrationWpm: number;
   readonly shortWordRange: {

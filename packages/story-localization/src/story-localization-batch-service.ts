@@ -9,6 +9,7 @@ import {
   writeTextAtomic,
 } from "@mediaforge/shared";
 import { createLogger, type LoggerContext } from "@mediaforge/observability";
+import { buildCharacterRenameMap } from "./character-rename.service.js";
 import { extractCanonicalStoryFacts } from "./canonical-facts.service.js";
 import {
   buildCanonicalEnglishFullArtifact,
@@ -433,6 +434,7 @@ function buildCanonicalEnglishFullBatchPlan(args: {
   };
 }): {
   readonly compiledPrompt: ReturnType<typeof compileFullStoryPrompt>;
+  readonly characterRenameMap: ReturnType<typeof buildCharacterRenameMap>;
   readonly storyIrHash: string;
   readonly contractHash: string;
   readonly contractBuildFingerprint: string;
@@ -440,18 +442,6 @@ function buildCanonicalEnglishFullBatchPlan(args: {
   readonly preflightRequest: StoryPreflightRequest;
   readonly expectedCanonicalFingerprint: string;
 } {
-  const compiledPrompt = compileFullStoryPrompt({
-    language: "en",
-    adaptationMode: args.config.adaptationMode,
-    sourceStory: args.parsed,
-    canonicalFacts: args.facts,
-    productionContext: {
-      analysis: args.productionContext.analysis,
-      bible: args.productionContext.bible,
-      originalityReview: args.productionContext.originalityReview,
-      retentionPlan: args.productionContext.retentionPlan,
-    },
-  });
   const storyIr = adaptStoryProductionArtifactsToStoryIR({
     parsed: args.parsed,
     facts: args.facts,
@@ -459,6 +449,25 @@ function buildCanonicalEnglishFullBatchPlan(args: {
     bible: args.productionContext.bible,
     originalityReview: args.productionContext.originalityReview,
     retentionPlan: args.productionContext.retentionPlan,
+  });
+  const characterRenameMap = buildCharacterRenameMap({
+    episodeId: args.parsed.episodeNumber,
+    sourceHash: args.parsed.sourceHash,
+    canonicalFacts: args.facts,
+    storyIr,
+  });
+  const compiledPrompt = compileFullStoryPrompt({
+    language: "en",
+    adaptationMode: args.config.adaptationMode,
+    sourceStory: args.parsed,
+    canonicalFacts: args.facts,
+    characterRenameMap,
+    productionContext: {
+      analysis: args.productionContext.analysis,
+      bible: args.productionContext.bible,
+      originalityReview: args.productionContext.originalityReview,
+      retentionPlan: args.productionContext.retentionPlan,
+    },
   });
   const storyIrHash = computeStoryIrContentHash(storyIr);
   const outputConstraints = deriveFullOutputConstraints({
@@ -475,6 +484,7 @@ function buildCanonicalEnglishFullBatchPlan(args: {
       variant: "full",
     },
     outputConstraints,
+    characterRenameMap,
     lineage: {
       kind: "cleaned-source",
       originalSourceHash: args.parsed.sourceHash,
@@ -582,6 +592,7 @@ function buildCanonicalEnglishFullBatchPlan(args: {
   const preflight = runStoryGenerationPreflight(preflightRequest);
   return {
     compiledPrompt,
+    characterRenameMap,
     storyIrHash,
     contractHash,
     contractBuildFingerprint,
@@ -594,6 +605,7 @@ function buildCanonicalEnglishFullBatchPlan(args: {
         storyIrHash,
         contractHash,
         contractBuildFingerprint,
+        characterRenameMapHash: characterRenameMap.hash,
       },
       prompt: {
         compilerVersion: compiledPrompt.compilerVersion,
@@ -2116,6 +2128,7 @@ async function importCanonicalEnglishFullResult(args: {
     storyIrHash: plan.storyIrHash,
     contractHash: plan.contractHash,
     contractBuildFingerprint: plan.contractBuildFingerprint,
+    characterRenameMap: plan.characterRenameMap,
     prompt: {
       compilerVersion: plan.compiledPrompt.compilerVersion,
       promptVersion: args.config.promptVersion,

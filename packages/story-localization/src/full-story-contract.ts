@@ -1,6 +1,10 @@
 import { contentHash, hashText } from "@mediaforge/shared";
 import { z } from "zod";
 import {
+  characterRenameMapSchema,
+  type CharacterRenameMap,
+} from "./character-rename.service.js";
+import {
   DEFAULT_GENRE_POLICY_REGISTRY,
   type GenrePolicy,
   type GenrePolicyId,
@@ -107,6 +111,7 @@ export const fullStoryContractSchema = z
     generationBoundaries: effectiveGenerationBoundariesSchema,
     sourceSummary: sourceSummarySchema.optional(),
     fullOutputConstraints: fullStoryOutputConstraintsSchema,
+    characterRenameMap: characterRenameMapSchema,
   })
   .strict();
 export type FullStoryContract = z.infer<typeof fullStoryContractSchema>;
@@ -382,6 +387,7 @@ export function buildFullStoryContract(input: {
   readonly storyIr: StoryIR;
   readonly artifactIdentity: StoryArtifactIdentity;
   readonly outputConstraints: FullStoryOutputConstraints;
+  readonly characterRenameMap?: CharacterRenameMap;
   readonly policyRegistry?: GenrePolicyRegistry;
   readonly lineage: FullStoryContractLineage;
 }): FullStoryContractBuildResult {
@@ -410,6 +416,9 @@ export function buildFullStoryContract(input: {
   if (!identityResult.success) {
     issues.push(issueFromSchemaFailure(["artifactIdentity"], identityResult.error.message));
   }
+  const artifactIdentity = identityResult.success
+    ? identityResult.data
+    : fullStoryArtifactIdentitySchema.parse(input.artifactIdentity);
 
   const constraintsResult = fullStoryOutputConstraintsSchema.safeParse(
     input.outputConstraints
@@ -482,11 +491,12 @@ export function buildFullStoryContract(input: {
       policyResolution: resolution,
     };
   }
+  const storyIrHash = computeStoryIrContentHash(nativeStoryIr);
 
   const contract = fullStoryContractSchema.parse({
     schemaVersion: FULL_STORY_CONTRACT_SCHEMA_VERSION,
     contractVersion: FULL_STORY_CONTRACT_VERSION,
-    identity: identityResult.data,
+    identity: artifactIdentity,
     classification: {
       genre: nativeStoryIr.genre,
       fictionality: nativeStoryIr.fictionality,
@@ -510,9 +520,18 @@ export function buildFullStoryContract(input: {
     generationBoundaries: effectiveBoundaries,
     sourceSummary: buildSourceSummary(nativeStoryIr),
     fullOutputConstraints: constraintsResult.data,
+    characterRenameMap:
+      input.characterRenameMap ??
+      characterRenameMapSchema.parse({
+        version: 1,
+        episodeId: artifactIdentity.episodeNumber,
+        sourceHash: storyIrHash,
+        poolId: "contract-fallback",
+        entries: [],
+        hash: hashText(`${artifactIdentity.episodeNumber}\u0000${storyIrHash}`),
+      }),
   });
 
-  const storyIrHash = computeStoryIrContentHash(nativeStoryIr);
   const lineage = fullStoryContractLineageSchema.parse(
     input.lineage.kind === "cleaned-source"
       ? { ...input.lineage, storyIrHash }

@@ -1,5 +1,9 @@
 import { countSpokenWords, normalizeWhitespace } from "@mediaforge/shared";
 import {
+  detectOriginalCharacterNameLeaks,
+  type CharacterRenameMap,
+} from "./character-rename.service.js";
+import {
   type FullStoryOutputConstraints,
   type ShortStoryOutputConstraints,
   type StoryIR,
@@ -98,6 +102,8 @@ export const GENERATED_STORY_VALIDATION_ISSUE_CODES = {
   SHORT_TRUNCATED: "SHORT_TRUNCATED",
   SHORT_STORY_ROUTED_TO_FULL_REGENERATION:
     "SHORT_STORY_ROUTED_TO_FULL_REGENERATION",
+  ORIGINAL_CHARACTER_NAME_LEAK: "ORIGINAL_CHARACTER_NAME_LEAK",
+  MISSING_CHARACTER_RENAME: "MISSING_CHARACTER_RENAME",
 } as const;
 
 export type GeneratedStoryValidationIssueCode =
@@ -143,6 +149,7 @@ export interface FullNarrationValidationInput {
   };
   readonly semanticValidator?: GeneratedStorySemanticValidationAdapter;
   readonly generatorVariant?: "full" | "short";
+  readonly characterRenameMap?: CharacterRenameMap;
 }
 
 export interface ShortNarrationValidationInput {
@@ -159,6 +166,7 @@ export interface ShortNarrationValidationInput {
   readonly outputConstraints: ShortStoryOutputConstraints;
   readonly semanticValidator?: GeneratedStorySemanticValidationAdapter;
   readonly generatorVariant?: "full" | "short";
+  readonly characterRenameMap?: CharacterRenameMap;
 }
 
 function normalizeForLeakage(text: string): string {
@@ -522,6 +530,18 @@ export function validateFullNarrationArtifact(
   );
   const narration = narrationParagraphs.join(" ").trim();
   const issues: GeneratedStoryValidationIssue[] = [];
+  if (
+    args.storyIr.entities.some((entry) => entry.type === "person") &&
+    !args.characterRenameMap
+  ) {
+    issues.push(
+      issue(
+        GENERATED_STORY_VALIDATION_ISSUE_CODES.MISSING_CHARACTER_RENAME,
+        "full",
+        "Character rename map missing for named human characters."
+      )
+    );
+  }
   const wordCount = countSpokenWords(narration);
   if (args.generatorVariant === "short") {
     issues.push(
@@ -694,6 +714,21 @@ export function validateFullNarrationArtifact(
       )
     );
   }
+  if (args.characterRenameMap) {
+    const leaks = detectOriginalCharacterNameLeaks({
+      text: narration,
+      renameMap: args.characterRenameMap,
+    });
+    if (leaks.length > 0) {
+      issues.push(
+        issue(
+          GENERATED_STORY_VALIDATION_ISSUE_CODES.ORIGINAL_CHARACTER_NAME_LEAK,
+          "full",
+          `Original character name leak detected: ${leaks[0]}.`
+        )
+      );
+    }
+  }
   if (args.preservationChecklist?.primaryRevealPreserved === false) {
     issues.push(
       issue(
@@ -782,6 +817,18 @@ export function validateShortNarrationArtifact(
         GENERATED_STORY_VALIDATION_ISSUE_CODES.SHORT_STORY_ROUTED_TO_FULL_REGENERATION,
         "short",
         "Short story routed to full regeneration."
+      )
+    );
+  }
+  if (
+    args.adaptationContract.immutableFacts.length > 0 &&
+    !args.characterRenameMap
+  ) {
+    issues.push(
+      issue(
+        GENERATED_STORY_VALIDATION_ISSUE_CODES.MISSING_CHARACTER_RENAME,
+        "short",
+        "Character rename map missing for short rewrite validation."
       )
     );
   }
@@ -1034,6 +1081,21 @@ export function validateShortNarrationArtifact(
         "Short appears truncated."
       )
     );
+  }
+  if (args.characterRenameMap) {
+    const leaks = detectOriginalCharacterNameLeaks({
+      text: narration,
+      renameMap: args.characterRenameMap,
+    });
+    if (leaks.length > 0) {
+      issues.push(
+        issue(
+          GENERATED_STORY_VALIDATION_ISSUE_CODES.ORIGINAL_CHARACTER_NAME_LEAK,
+          "short",
+          `Original character name leak detected: ${leaks[0]}.`
+        )
+      );
+    }
   }
   if (args.semanticValidator?.validateShort) {
     issues.push(

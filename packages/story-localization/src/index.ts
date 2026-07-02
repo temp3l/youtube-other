@@ -29,6 +29,8 @@ export * from "./story-request-telemetry.js";
 export * from "./source-cleaning.js";
 export * from "./source-cleaning-persistence.js";
 export * from "./language-profiles.js";
+export * from "./narration-constraints.js";
+export * from "./character-rename.service.js";
 export * from "./story-localization.utils.js";
 export * from "./source-story-discovery.js";
 export * from "./source-story-parser.js";

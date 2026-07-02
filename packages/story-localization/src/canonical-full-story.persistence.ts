@@ -3,6 +3,7 @@ import { hashText, readJsonIfExists, writeJsonAtomic } from "@mediaforge/shared"
 import { z } from "zod";
 import { ensureDir } from "@mediaforge/shared";
 import { stableSerialize } from "./stable-json.js";
+import { characterRenameMapSchema } from "./character-rename.service.js";
 import {
   type CanonicalStoryFacts,
   type ParsedSourceStory,
@@ -57,6 +58,7 @@ const canonicalLineageSchema = z
     storyIrHash: z.string().min(64),
     contractHash: z.string().min(64),
     contractBuildFingerprint: z.string().min(64),
+    characterRenameMapHash: z.string().min(64),
   })
   .strict();
 
@@ -112,6 +114,7 @@ export const canonicalEnglishFullArtifactSchema = z
     model: canonicalModelSchema,
     responseSchema: canonicalSchemaSchema,
     preflight: canonicalPreflightSchema,
+    characterRenameMap: characterRenameMapSchema,
     response: narrationOnlyFullRewriteResponseSchema,
     validation: canonicalValidationSchema,
     provenance: z.enum(["generated", "source-fallback"]).optional(),
@@ -266,6 +269,7 @@ export function buildCanonicalEnglishFullArtifact(args: {
   readonly storyIrHash: string;
   readonly contractHash: string;
   readonly contractBuildFingerprint: string;
+  readonly characterRenameMap: CanonicalEnglishFullArtifact["characterRenameMap"];
   readonly prompt: CanonicalEnglishFullArtifact["prompt"];
   readonly model: CanonicalEnglishFullArtifact["model"];
   readonly responseSchema: CanonicalEnglishFullArtifact["responseSchema"];
@@ -294,6 +298,7 @@ export function buildCanonicalEnglishFullArtifact(args: {
       storyIrHash: args.storyIrHash,
       contractHash: args.contractHash,
       contractBuildFingerprint: args.contractBuildFingerprint,
+      characterRenameMapHash: args.characterRenameMap.hash,
     },
     prompt: args.prompt,
     model: args.model,
@@ -315,6 +320,7 @@ export function buildCanonicalEnglishFullArtifact(args: {
       maxModelOutputTokens: args.preflight.diagnostics.maxModelOutputTokens,
       safetyMarginTokens: args.preflight.diagnostics.safetyMarginTokens,
     }),
+    characterRenameMap: args.characterRenameMap,
     response: args.response,
     validation: {
       status:

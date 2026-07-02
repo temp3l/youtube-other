@@ -151,7 +151,6 @@ describe("short rewrite helpers", () => {
       episodeNumber: "009",
       episodeSlug: "009-the-christmas-doll",
       targetLanguage: "de",
-      targetLanguageName: "German",
       targetLocale: "de-DE",
       sourceStory,
       narration: "Mara heard the doll breathing under the attic door.",
@@ -170,7 +169,7 @@ describe("short rewrite helpers", () => {
       "Transform the following validated full-length de-DE horror narration"
     );
     expect(prompt.user).toContain("not an audio/TTS prompt");
-    expect(prompt.user).toContain("150-165 words");
+    expect(prompt.user).toContain("178-212 words");
     expect(prompt.user).toContain("## Locale settings");
     expect(prompt.user).toContain("## German Localization");
     expect(prompt.user).toContain("<SHORT_ADAPTATION_SOURCE>");
@@ -269,7 +268,7 @@ describe("short rewrite helpers", () => {
     expect(prompt.user).toContain('"title": "bad"');
     expect(prompt.user).toContain("## Locale settings");
     expect(prompt.user).toContain("## German Localization");
-    expect(prompt.user).toContain("150-165 words");
+    expect(prompt.user).toContain("178-212 words");
     expect(prompt.user).toContain("schema short_narration_result");
     expect(prompt.user).not.toContain("full story should not appear");
     expect(prompt.user).not.toContain("metadata should not appear");

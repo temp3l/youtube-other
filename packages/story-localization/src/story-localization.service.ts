@@ -10,6 +10,10 @@ import {
   splitIntoSentences,
 } from "@mediaforge/shared";
 import { createLogger, type LoggerContext } from "@mediaforge/observability";
+import {
+  buildCharacterRenameMap,
+  type CharacterRenameMap,
+} from "./character-rename.service.js";
 import { getLanguageProfile, isShortLanguage } from "./language-profiles.js";
 import { buildLocalizationPrompt } from "./localization-prompt-builder.js";
 import { compileFullStoryPrompt } from "./story-prompt-compiler.js";
@@ -451,6 +455,7 @@ function buildFullPromptConfig(
   sourceStory: ParsedSourceStory,
   canonicalFacts: CanonicalStoryFacts,
   adaptationMode: StoryLocalizationConfig["adaptationMode"],
+  characterRenameMap: CharacterRenameMap,
   productionContext?: {
     readonly analysis?: StorySourceAnalysis;
     readonly bible?: StoryBible;
@@ -477,6 +482,7 @@ function buildFullPromptConfig(
     adaptationMode,
     sourceStory,
     canonicalFacts,
+    characterRenameMap,
     ...(productionContext ? { productionContext } : {}),
   });
   return {
@@ -799,6 +805,7 @@ function buildCanonicalEnglishFullPlan(args: {
 }): {
   readonly compiledPrompt: ReturnType<typeof buildFullPromptConfig>;
   readonly storyIr: ReturnType<typeof adaptStoryProductionArtifactsToStoryIR>;
+  readonly characterRenameMap: CharacterRenameMap;
   readonly storyIrHash: string;
   readonly contractHash: string;
   readonly contractBuildFingerprint: string;
@@ -806,18 +813,6 @@ function buildCanonicalEnglishFullPlan(args: {
   readonly preflightRequest: StoryPreflightRequest;
   readonly expectedCanonicalFingerprint: string;
 } {
-  const compiledPrompt = buildFullPromptConfig(
-    "en",
-    args.parsed,
-    args.facts,
-    args.config.adaptationMode,
-    {
-      analysis: args.analysis,
-      bible: args.bible,
-      originalityReview: args.originalityReview,
-      retentionPlan: args.retentionPlan,
-    }
-  );
   const storyIr = adaptStoryProductionArtifactsToStoryIR({
     parsed: args.parsed,
     facts: args.facts,
@@ -826,6 +821,25 @@ function buildCanonicalEnglishFullPlan(args: {
     originalityReview: args.originalityReview,
     retentionPlan: args.retentionPlan,
   });
+  const characterRenameMap = buildCharacterRenameMap({
+    episodeId: args.parsed.episodeNumber,
+    sourceHash: args.parsed.sourceHash,
+    canonicalFacts: args.facts,
+    storyIr,
+  });
+  const compiledPrompt = buildFullPromptConfig(
+    "en",
+    args.parsed,
+    args.facts,
+    args.config.adaptationMode,
+    characterRenameMap,
+    {
+      analysis: args.analysis,
+      bible: args.bible,
+      originalityReview: args.originalityReview,
+      retentionPlan: args.retentionPlan,
+    }
+  );
   const storyIrHash = computeStoryIrContentHash(storyIr);
   const outputConstraints = deriveFullOutputConstraints({
     profile: args.profile,
@@ -841,6 +855,7 @@ function buildCanonicalEnglishFullPlan(args: {
       variant: "full",
     },
     outputConstraints,
+    characterRenameMap,
     lineage: {
       kind: "cleaned-source",
       originalSourceHash: args.parsed.sourceHash,
@@ -885,6 +900,7 @@ function buildCanonicalEnglishFullPlan(args: {
   return {
     compiledPrompt,
     storyIr,
+    characterRenameMap,
     storyIrHash,
     contractHash,
     contractBuildFingerprint,
@@ -897,6 +913,7 @@ function buildCanonicalEnglishFullPlan(args: {
         storyIrHash,
         contractHash,
         contractBuildFingerprint,
+        characterRenameMapHash: characterRenameMap.hash,
       },
       prompt: {
         compilerVersion: compiledPrompt.compilerVersion,
@@ -2673,6 +2690,7 @@ export async function localizeStoryEpisode(
               storyIr: canonicalEnglishPlan.storyIr,
               outputConstraints: canonicalEnglishPlan.outputConstraints,
               narrationParagraphs: packageValue.full.narrationParagraphs,
+              characterRenameMap: canonicalEnglishPlan.characterRenameMap,
               preservationChecklist: {
                 primaryRevealPreserved:
                   packageValue.preservationChecklist.primaryRevealPreserved,
@@ -2781,6 +2799,7 @@ export async function localizeStoryEpisode(
         contractHash: canonicalEnglishPlan.contractHash,
         contractBuildFingerprint:
           canonicalEnglishPlan.contractBuildFingerprint,
+        characterRenameMap: canonicalEnglishPlan.characterRenameMap,
         prompt: {
           compilerVersion: canonicalEnglishPlan.compiledPrompt.compilerVersion,
           promptVersion: config.promptVersion,
@@ -3099,6 +3118,7 @@ export async function localizeStoryEpisode(
       canonicalEnglishStory.parsed,
       canonicalEnglishStory.facts,
       config.adaptationMode,
+      canonicalEnglishPlan.characterRenameMap,
       {
         analysis: canonicalProductionContext.analysis,
         bible: canonicalProductionContext.bible,
@@ -3199,6 +3219,7 @@ export async function localizeStoryEpisode(
                 storyIr: canonicalEnglishPlan.storyIr,
                 outputConstraints: canonicalEnglishPlan.outputConstraints,
                 narrationParagraphs: packageValue.full?.narrationParagraphs ?? [],
+                characterRenameMap: canonicalEnglishPlan.characterRenameMap,
                 preservationChecklist: {
                   primaryRevealPreserved:
                     packageValue.preservationChecklist.primaryRevealPreserved,
@@ -3228,6 +3249,7 @@ export async function localizeStoryEpisode(
               storyIr: canonicalEnglishPlan.storyIr,
               outputConstraints: canonicalEnglishPlan.outputConstraints,
               narrationParagraphs: packageValue.full.narrationParagraphs,
+              characterRenameMap: canonicalEnglishPlan.characterRenameMap,
               preservationChecklist: {
                 primaryRevealPreserved:
                   packageValue.preservationChecklist.primaryRevealPreserved,
