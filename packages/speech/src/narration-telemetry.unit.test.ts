@@ -1,6 +1,7 @@
 import os from "node:os";
 import path from "node:path";
 import { Writable } from "node:stream";
+import type { BufferEncoding } from "node:buffer";
 import {
   createExecutionTelemetry,
   createLogger,
