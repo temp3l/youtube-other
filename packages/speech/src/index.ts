@@ -41,6 +41,7 @@ export * from "./audio-validation.js";
 export * from "./wav-analysis.js";
 export * from "./narration-assembly.js";
 export * from "./mastering.js";
+export * from "./narration-quality-gate.js";
 export {
   loadSpeechVoiceInstructionTemplate,
   loadSpeechVoiceSettings,
