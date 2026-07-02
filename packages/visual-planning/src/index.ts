@@ -13,3 +13,33 @@ export {
   type VisualPlatform,
   type AspectRatio,
 } from "./shot-planner.js";
+
+export {
+  calculateEffectiveCropResolution,
+  cropContainsRectangleWithMargin,
+  normalizedCropIou,
+  rectangleIntersectionArea,
+  rectanglesOverlap,
+  type EffectiveCropResolution,
+  type NormalizedRectangle,
+} from "./crop-overlap.js";
+
+export {
+  classifyMeaningfulVisualChange,
+  isVisiblyMovingShot,
+  validateShotPlan,
+  type CaptionLayoutRegion,
+  type CaptionPlan,
+  type CaptionProtectedRegion,
+  type EvidenceInsert,
+  type FocalMetadataArtifact,
+  type MeaningfulVisualChange,
+  type ShotPlanValidationResult,
+  type ShotTreatmentCatalog,
+  type ValidateShotPlanInput,
+} from "./shot-validation.js";
+
+export {
+  emptyShotPlanValidationMetrics,
+  type ShotPlanValidationMetrics,
+} from "./shot-validation-metrics.js";
