@@ -35,6 +35,7 @@ export * from "./spoken-narration.js";
 export * from "./narration-segmentation.js";
 export * from "./performance-direction.js";
 export * from "./pronunciation.js";
+export * from "./openai-tts-request.js";
 export * from "./audio-validation.js";
 export * from "./wav-analysis.js";
 export {
@@ -54,6 +55,7 @@ export interface SpeechSynthesisRequest {
   readonly outputPath: string;
   readonly targetDurationSeconds?: number;
   readonly instructions?: string;
+  readonly requestFingerprint?: string;
 }
 
 export interface SpeechSynthesisResult extends AudioSegment {
