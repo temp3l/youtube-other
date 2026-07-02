@@ -73,6 +73,7 @@ import {
 import {
   runNarrationQualityGate,
 } from "./narration-quality-gate.js";
+import { recordNarrationTelemetry } from "./narration-telemetry.js";
 
 export const narrationPipelineModeSchema = z.enum(["legacy", "shadow", "new"]);
 export type NarrationPipelineMode = z.infer<typeof narrationPipelineModeSchema>;
@@ -651,7 +652,8 @@ export class NarrationPipeline {
       pronunciationHints: [],
     });
     const outputPath = path.join(input.paths.chunkAudioDir, `${input.chunk.chunkId}.${input.outputFormat}`);
-    return generateNarrationChunkWithCache({
+    const startedAt = Date.now();
+    const decision = await generateNarrationChunkWithCache({
       narrationRoot: input.paths.narrationRoot,
       chunkId: input.chunk.chunkId,
       chunkFingerprint,
@@ -693,6 +695,37 @@ export class NarrationPipeline {
         return { validationReport };
       },
     });
+    let outputBytes = 0;
+    if (decision.outputPath) {
+      outputBytes = (await fs.stat(decision.outputPath).catch(() => ({ size: 0 }))).size;
+    }
+    recordNarrationTelemetry({
+      episodeId: input.request.episodeId,
+      language: input.request.language,
+      variant: input.request.variant,
+      chunkId: input.chunk.chunkId,
+      stage: "generate",
+      model: input.model,
+      voice: input.voice,
+      attempt: 1,
+      latencyMs: Math.max(0, Date.now() - startedAt),
+      inputCharacters: requestBuild.request.input.length,
+      outputBytes,
+      ...(decision.record?.durationMs !== undefined ? { generatedSeconds: decision.record.durationMs / 1000 } : {}),
+      cacheDecision: decision.reason,
+      validationResult:
+        decision.reason === "provider_failure"
+          ? "failed"
+          : decision.record?.validationStatus ?? (decision.reason === "hit" ? "passed" : "skipped"),
+      failureClass: decision.reason === "provider_failure" ? "provider_failure" : undefined,
+      regeneration: decision.reason !== "hit" && decision.reason !== "miss",
+      fallbackUsed: false,
+      details: {
+        requestFingerprint: requestBuild.requestFingerprint,
+        instructionHash: requestBuild.promptLogMetadata.instructionHash,
+      },
+    });
+    return decision;
   }
 
   private async assemble(

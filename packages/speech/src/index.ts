@@ -18,6 +18,7 @@ import {
   makeWavHeader,
   validateSpeechAudioPayload,
 } from "./wav-analysis.js";
+import { recordNarrationTelemetry } from "./narration-telemetry.js";
 export {
   listEpisodeScriptLanguages,
   loadEpisodeScriptMarkdown,
@@ -44,6 +45,7 @@ export * from "./mastering.js";
 export * from "./narration-quality-gate.js";
 export * from "./narration-pipeline.js";
 export * from "./voice-benchmark.js";
+export * from "./narration-telemetry.js";
 export {
   loadSpeechVoiceInstructionTemplate,
   loadSpeechVoiceSettings,
@@ -209,6 +211,7 @@ export class OpenAiCompatibleSpeechProvider implements SpeechProvider {
     telemetry: ReturnType<typeof currentExecutionTelemetry>,
     model: string
   ): Promise<SpeechSynthesisResult> {
+    const startedAt = new Date();
     const headers = [
       "--header",
       `Authorization: Bearer ${this.options.apiKey}`,
@@ -252,9 +255,9 @@ export class OpenAiCompatibleSpeechProvider implements SpeechProvider {
           provider: "openai",
           model,
           operation: "speech-generation",
-          startedAt: new Date().toISOString(),
+          startedAt: startedAt.toISOString(),
           endedAt: new Date().toISOString(),
-          durationMs: 0,
+          durationMs: Math.max(0, Date.now() - startedAt.getTime()),
           attempt: 1,
           success: true,
           usage: { durationSeconds: metadata.durationSeconds },
@@ -266,6 +269,24 @@ export class OpenAiCompatibleSpeechProvider implements SpeechProvider {
           costMicros: cost.costMicros,
           warning: cost.warning,
         });
+        recordNarrationTelemetry({
+          stage: "provider",
+          chunkId: request.sceneId,
+          model,
+          voice: request.voiceProfile.providerVoiceId ?? this.voice,
+          attempt: 1,
+          latencyMs: Math.max(0, Date.now() - startedAt.getTime()),
+          inputCharacters: request.text.length,
+          outputBytes: data.byteLength,
+          generatedSeconds: metadata.durationSeconds,
+          validationResult: "passed",
+          regeneration: false,
+          fallbackUsed: false,
+          details: {
+            requestFingerprint: request.requestFingerprint,
+            responseFormat: this.responseFormat,
+          },
+        });
         return {
           sceneId: request.sceneId,
           filePath: request.outputPath,
@@ -273,6 +294,26 @@ export class OpenAiCompatibleSpeechProvider implements SpeechProvider {
           sampleRate: metadata.sampleRate,
           channels: metadata.channels
         };
+      } catch (error) {
+        recordNarrationTelemetry({
+          stage: "provider",
+          chunkId: request.sceneId,
+          model,
+          voice: request.voiceProfile.providerVoiceId ?? this.voice,
+          attempt: 1,
+          latencyMs: Math.max(0, Date.now() - startedAt.getTime()),
+          inputCharacters: request.text.length,
+          outputBytes: 0,
+          validationResult: "failed",
+          failureClass: error instanceof Error ? error.name : "UnknownError",
+          regeneration: false,
+          fallbackUsed: false,
+          details: {
+            requestFingerprint: request.requestFingerprint,
+            responseFormat: this.responseFormat,
+          },
+        });
+        throw error;
       } finally {
         await fs.rm(tempPath, { force: true }).catch(() => {});
       }
@@ -331,9 +372,9 @@ export class OpenAiCompatibleSpeechProvider implements SpeechProvider {
         provider: "openai",
         model,
         operation: "speech-generation",
-        startedAt: new Date().toISOString(),
+        startedAt: startedAt.toISOString(),
         endedAt: new Date().toISOString(),
-        durationMs: 0,
+        durationMs: Math.max(0, Date.now() - startedAt.getTime()),
         attempt: 1,
         success: true,
         usage: { durationSeconds: metadata.durationSeconds },
@@ -345,6 +386,24 @@ export class OpenAiCompatibleSpeechProvider implements SpeechProvider {
         costMicros: cost.costMicros,
         warning: cost.warning,
       });
+      recordNarrationTelemetry({
+        stage: "provider",
+        chunkId: request.sceneId,
+        model,
+        voice: request.voiceProfile.providerVoiceId ?? this.voice,
+        attempt: 1,
+        latencyMs: Math.max(0, Date.now() - startedAt.getTime()),
+        inputCharacters: request.text.length,
+        outputBytes: data.byteLength,
+        generatedSeconds: metadata.durationSeconds,
+        validationResult: "passed",
+        regeneration: false,
+        fallbackUsed: false,
+        details: {
+          requestFingerprint: request.requestFingerprint,
+          responseFormat: this.responseFormat,
+        },
+      });
       return {
         sceneId: request.sceneId,
         filePath: request.outputPath,
@@ -352,6 +411,26 @@ export class OpenAiCompatibleSpeechProvider implements SpeechProvider {
         sampleRate: metadata.sampleRate,
         channels: metadata.channels
       };
+    } catch (error) {
+      recordNarrationTelemetry({
+        stage: "provider",
+        chunkId: request.sceneId,
+        model,
+        voice: request.voiceProfile.providerVoiceId ?? this.voice,
+        attempt: 1,
+        latencyMs: Math.max(0, Date.now() - startedAt.getTime()),
+        inputCharacters: request.text.length,
+        outputBytes: 0,
+        validationResult: "failed",
+        failureClass: error instanceof Error ? error.name : "UnknownError",
+        regeneration: false,
+        fallbackUsed: false,
+        details: {
+          requestFingerprint: request.requestFingerprint,
+          responseFormat: this.responseFormat,
+        },
+      });
+      throw error;
     } finally {
       await fs.rm(tempPath, { force: true }).catch(() => {});
     }
