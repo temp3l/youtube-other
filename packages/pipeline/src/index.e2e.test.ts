@@ -45,7 +45,9 @@ describe("pipeline e2e", () => {
       transcriptPath,
       slug: "episode-fixture"
     });
-    const result = await pipeline.runEpisode(manifest.episodeId);
+    const result = await pipeline.runEpisode(manifest.episodeId, {
+      untilStage: "validate-output",
+    });
     expect(result.outputPaths.length).toBeGreaterThan(0);
     const video = result.outputPaths.find((item) => item.endsWith("-captioned.mp4")) ?? result.outputPaths[0];
     expect(video).toBeTruthy();

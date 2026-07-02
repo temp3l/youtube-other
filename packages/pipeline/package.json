@@ -26,6 +26,7 @@
     "@mediaforge/speech": "workspace:*",
     "@mediaforge/transcript-cleaning": "workspace:*",
     "@mediaforge/transcription": "workspace:*",
+    "@mediaforge/visual-planning": "workspace:*",
     "zod": "^4.0.14"
   }
 }

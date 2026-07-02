@@ -10,6 +10,10 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
+    "./focal-metadata.js": {
+      "types": "./dist/focal-metadata.d.ts",
+      "default": "./dist/focal-metadata.js"
+    },
     "./shorts-image-strategy.js": {
       "types": "./dist/shorts-image-strategy.d.ts",
       "default": "./dist/shorts-image-strategy.js"

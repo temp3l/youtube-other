@@ -12,12 +12,30 @@ import {
   type PublishingMetadata,
   type RewrittenScript,
   type ScenePlan,
+  sourceImageIdSchema,
+  sourceSceneIdSchema,
+  shotPlanSchema,
   type SourceMedia,
   type SourceMetadata,
   type Transcript,
+  visualSourceSceneSchema,
+  type EpisodeFocalMetadata,
+  type ShotPlan,
+  type ShotPlanValidationIssue,
+  type VisualBudget,
+  type VisualNarrativePhase,
+  type VisualPacingProfile,
+  type VisualPacingProfileId,
+  type VisualSourceScene,
+  type SourceImageId,
+  type SourceSceneId,
   normalizedTranscriptSchema,
   transcriptSchema,
 } from "@mediaforge/domain";
+import {
+  shotTreatmentCatalog,
+  shotTreatmentCatalogVersion,
+} from "@mediaforge/domain/visual-retention/treatment-catalog.js";
 import {
   loadRuntimeConfig,
   type RuntimeConfig,
@@ -57,6 +75,10 @@ import {
   validateImageAssets,
 } from "@mediaforge/image-generation";
 import {
+  ensureEpisodeFocalMetadataForImages,
+  loadEpisodeFocalMetadata,
+} from "@mediaforge/image-generation/focal-metadata.js";
+import {
   generateYoutubeMetadataForTarget,
   YOUTUBE_METADATA_PROMPT_VERSION,
   type YoutubeMetadata,
@@ -66,7 +88,14 @@ import {
   HybridFFmpegVideoRenderer,
   type RemoteRenderSettings,
   validateRenderedVideo,
+  type ShotSourceImage,
 } from "@mediaforge/rendering";
+import {
+  deterministicShotPlanner,
+  serializeShotPlan,
+  validateShotPlan,
+  type ShotPlanValidationResult,
+} from "@mediaforge/visual-planning";
 import {
   buildSrt,
   ensureDir,
@@ -111,6 +140,7 @@ export type PipelineStage =
   | "export-openart-batches"
   | "import-image-assets"
   | "validate-image-assets"
+  | "plan-shots"
   | "generate-publishing-metadata"
   | "render-video"
   | "validate-output"
@@ -132,6 +162,13 @@ export interface RunPipelineOptions {
   readonly missingScenesOnly?: boolean;
   readonly outputProfile?: "youtube" | "vertical";
   readonly json?: boolean;
+  readonly visualRetention?: VisualRetentionPipelineOptions;
+}
+
+export interface VisualRetentionPipelineOptions {
+  readonly enabled: boolean;
+  readonly profile?: VisualPacingProfileId;
+  readonly strictValidation?: boolean;
 }
 
 export interface PipelineSummary {
@@ -166,6 +203,7 @@ const stageOrder: PipelineStage[] = [
   "export-openart-batches",
   "import-image-assets",
   "validate-image-assets",
+  "plan-shots",
   "render-video",
   "validate-output",
   "generate-publishing-metadata",
@@ -380,6 +418,168 @@ function resolveEpisodeRelativePath(
   return path.isAbsolute(candidatePath)
     ? candidatePath
     : path.resolve(episodeDirPath, candidatePath);
+}
+
+interface VisualRetentionPipelineArtifacts {
+  readonly sourceScenesPath: string;
+  readonly focalMetadataPath: string;
+  readonly shotPlanPath: string;
+  readonly validationPath: string;
+  readonly sourceScenes: readonly VisualSourceScene[];
+  readonly focalMetadata: EpisodeFocalMetadata | null;
+  readonly shotPlan: ShotPlan;
+  readonly validation: ShotPlanValidationResult;
+  readonly sourceImages: readonly ShotSourceImage[];
+}
+
+interface PersistedShotValidationArtifact {
+  readonly schemaVersion: 1;
+  readonly valid: boolean;
+  readonly issues: readonly ShotPlanValidationIssue[];
+  readonly metrics: ShotPlanValidationResult["metrics"];
+}
+
+class PipelineStageError extends Error {
+  public constructor(
+    public readonly stage: PipelineStage,
+    message: string,
+    public readonly diagnostics: Readonly<Record<string, string | number | boolean>> = {}
+  ) {
+    super(message);
+    this.name = "PipelineStageError";
+  }
+}
+
+function resolveVisualRetentionMode(
+  options: RunPipelineOptions
+): VisualRetentionPipelineOptions {
+  return {
+    enabled: options.visualRetention?.enabled ?? false,
+    ...(options.visualRetention?.profile
+      ? { profile: options.visualRetention.profile }
+      : {}),
+    ...(options.visualRetention?.strictValidation !== undefined
+      ? { strictValidation: options.visualRetention.strictValidation }
+      : {}),
+  };
+}
+
+function sourceImageIdForScene(sceneId: string): SourceImageId {
+  return sourceImageIdSchema.parse(`source-image-${sceneId}`);
+}
+
+function sourceSceneIdForScene(sceneId: string): SourceSceneId {
+  return sourceSceneIdSchema.parse(`source-scene-${sceneId}`);
+}
+
+function narrationPhaseForScene(
+  index: number,
+  totalScenes: number
+): VisualNarrativePhase {
+  if (index === 0) {
+    return "hook";
+  }
+  if (index === totalScenes - 1) {
+    return "aftermath";
+  }
+  const progress = totalScenes <= 1 ? 1 : index / (totalScenes - 1);
+  if (progress < 0.3) {
+    return "setup";
+  }
+  if (progress < 0.55) {
+    return "evidence";
+  }
+  if (progress < 0.8) {
+    return "escalation";
+  }
+  return "climax";
+}
+
+function selectVisualRetentionPacingProfile(
+  config: RuntimeConfig,
+  profileId: VisualPacingProfileId
+): VisualPacingProfile {
+  switch (profileId) {
+    case "atmospheric":
+      return config.visualRetention.pacingProfiles.atmospheric;
+    case "balanced":
+      return config.visualRetention.pacingProfiles.balanced;
+    case "high-retention":
+      return config.visualRetention.pacingProfiles["high-retention"];
+    case "shorts-aggressive":
+      return config.visualRetention.pacingProfiles["shorts-aggressive"];
+  }
+}
+
+function selectVisualRetentionPreset(args: {
+  readonly config: RuntimeConfig;
+  readonly variant: "full" | "short";
+  readonly sourceScenes: readonly VisualSourceScene[];
+  readonly requestedProfile?: VisualPacingProfileId;
+}): {
+  readonly pacingProfile: VisualPacingProfile;
+  readonly visualBudget: VisualBudget;
+} {
+  const durationMs = args.sourceScenes.at(-1)?.narrationEndMs ?? 0;
+  const presets = args.config.visualRetention.defaults[args.variant];
+  const matching =
+    presets.find(
+      (preset) =>
+        durationMs >= preset.narrationDurationMs.minMs &&
+        durationMs <= preset.narrationDurationMs.maxMs
+    ) ??
+    [...presets].sort((left, right) => {
+      const leftDistance = presetDistance(left.narrationDurationMs, durationMs);
+      const rightDistance = presetDistance(
+        right.narrationDurationMs,
+        durationMs
+      );
+      return leftDistance - rightDistance;
+    })[0];
+  if (!matching) {
+    throw new PipelineStageError(
+      "plan-shots",
+      `No visual-retention defaults configured for ${args.variant}.`,
+      { variant: args.variant }
+    );
+  }
+  const profileId = args.requestedProfile ?? matching.pacingProfileId;
+  return {
+    pacingProfile: selectVisualRetentionPacingProfile(args.config, profileId),
+    visualBudget: matching.budget,
+  };
+}
+
+function presetDistance(
+  range: { readonly minMs: number; readonly maxMs: number },
+  durationMs: number
+): number {
+  if (durationMs < range.minMs) {
+    return range.minMs - durationMs;
+  }
+  if (durationMs > range.maxMs) {
+    return durationMs - range.maxMs;
+  }
+  return 0;
+}
+
+function summarizeShotValidationErrors(
+  validation: ShotPlanValidationResult
+): string {
+  return validation.issues
+    .filter((issue) => issue.severity === "error")
+    .slice(0, 3)
+    .map((issue) =>
+      [
+        issue.code,
+        issue.sceneId ? `scene=${issue.sceneId}` : "",
+        issue.shotId ? `shot=${issue.shotId}` : "",
+        issue.message,
+      ]
+        .filter((part) => part.length > 0)
+        .join(" ")
+    )
+    .join("; ");
 }
 
 export class MediaForgePipeline {
@@ -689,18 +889,79 @@ export class MediaForgePipeline {
         warnings,
       };
     }
+    const visualRetentionMode = resolveVisualRetentionMode(options);
+    const visualRetentionArtifacts = visualRetentionMode.enabled
+      ? await this.planVisualRetention(
+          manifest,
+          episodeDirPath,
+          limitedScenes,
+          imported,
+          options.outputProfile ?? "youtube",
+          visualRetentionMode
+        )
+      : undefined;
+    if (visualRetentionArtifacts) {
+      const validationErrors =
+        visualRetentionArtifacts.validation.issues.filter(
+          (issue) => issue.severity === "error"
+        );
+      const strictValidationFailures =
+        visualRetentionMode.strictValidation === true
+          ? visualRetentionArtifacts.validation.issues
+          : [];
+      if (
+        validationErrors.length > 0 ||
+        strictValidationFailures.length > 0
+      ) {
+        throw new PipelineStageError(
+          "plan-shots",
+          `Shot validation failed; refusing shot-aware rendering: ${
+            validationErrors.length > 0
+              ? summarizeShotValidationErrors(visualRetentionArtifacts.validation)
+              : "strict validation rejected warnings"
+          }`,
+          {
+            variant: "full",
+            locale: this.episodeLocale(),
+            validationErrors: validationErrors.length,
+            strictValidationFailures: strictValidationFailures.length,
+          }
+        );
+      }
+      warnings.push(
+        ...visualRetentionArtifacts.validation.issues
+          .filter((issue) => issue.severity === "warning")
+          .map((issue) => `Shot validation warning ${issue.code}: ${issue.message}`)
+      );
+    }
     const renderResult = await this.render(
       manifest,
       episodeDirPath,
       limitedScenes,
       captions,
-      options.outputProfile ?? "youtube"
+      options.outputProfile ?? "youtube",
+      visualRetentionArtifacts
     );
     const outputValidation = await validateRenderedVideo(
       renderResult.captionedPath ?? renderResult.cleanPath
     );
     if (!outputValidation.valid) {
       warnings.push(...outputValidation.issues);
+    }
+    if (
+      options.untilStage === "render-video" ||
+      options.untilStage === "validate-output"
+    ) {
+      return {
+        episodeId,
+        slug: manifest.slug,
+        manifestPath,
+        outputPaths: [
+          renderResult.cleanPath,
+          ...(renderResult.captionedPath ? [renderResult.captionedPath] : []),
+        ],
+        warnings,
+      };
     }
     const metadata = await this.generateMetadata(
       manifest,
@@ -719,7 +980,8 @@ export class MediaForgePipeline {
       captions,
       imported,
       metadata,
-      renderResult
+      renderResult,
+      visualRetentionArtifacts
     );
     await saveManifest(manifestPath, finalManifest);
     this.environment.db.saveEpisodeManifest(finalManifest);
@@ -1314,6 +1576,192 @@ export class MediaForgePipeline {
     );
   }
 
+  private async planVisualRetention(
+    manifest: EpisodeManifest,
+    episodeDirPath: string,
+    plan: ScenePlan,
+    images: readonly ImageAsset[],
+    profileName: "youtube" | "vertical",
+    mode: VisualRetentionPipelineOptions
+  ): Promise<VisualRetentionPipelineArtifacts> {
+    const episodeId = manifest.episodeId as unknown as SharedEpisodeId;
+    const context = this.episodeContext(episodeId, "full");
+    const aspectRatio = profileName === "youtube" ? "16:9" : "9:16";
+    const imageBySceneId = new Map(images.map((image) => [image.sceneId, image]));
+    const imageReferences: Array<{
+      sceneId: ScenePlan["scenes"][number]["id"];
+      outputPath: string;
+      outputSha256: string;
+    }> = [];
+
+    for (const scene of plan.scenes) {
+      const image = imageBySceneId.get(scene.id);
+      if (!image) {
+        throw new PipelineStageError(
+          "plan-shots",
+          `Missing source image for visual-retention scene ${scene.id}.`,
+          { sceneId: scene.id, variant: "full", locale: this.episodeLocale() }
+        );
+      }
+      const sourceImagePath = resolveEpisodeRelativePath(
+        episodeDirPath,
+        image.renderedPath
+      );
+      if (!sourceImagePath || !(await fileExists(sourceImagePath))) {
+        throw new PipelineStageError(
+          "plan-shots",
+          `Missing source image file for visual-retention scene ${scene.id}.`,
+          { sceneId: scene.id, variant: "full", locale: this.episodeLocale() }
+        );
+      }
+      imageReferences.push({
+        sceneId: scene.id,
+        outputPath: sourceImagePath,
+        outputSha256: await hashFile(sourceImagePath),
+      });
+    }
+
+    const focalMetadata =
+      (await ensureEpisodeFocalMetadataForImages({
+        episodeDir: episodeDirPath,
+        episodeId: manifest.episodeId,
+        images: imageReferences,
+      })) ?? (await loadEpisodeFocalMetadata(episodeDirPath, manifest.episodeId));
+
+    const focalMetadataByImageId = new Map(
+      focalMetadata?.images.map((entry) => [entry.sourceImageId, entry]) ?? []
+    );
+    const sourceScenes = visualSourceSceneSchema.array().parse(
+      await Promise.all(
+        plan.scenes.map(async (scene, index) => {
+          const sourceImageId = sourceImageIdForScene(scene.id);
+          const imageReference = imageReferences.find(
+            (reference) => reference.sceneId === scene.id
+          );
+          if (!imageReference) {
+            throw new PipelineStageError(
+              "plan-shots",
+              `Missing source image reference for visual-retention scene ${scene.id}.`,
+              {
+                sceneId: scene.id,
+                variant: "full",
+                locale: this.episodeLocale(),
+              }
+            );
+          }
+          return {
+            sourceSceneId: sourceSceneIdForScene(scene.id),
+            sceneId: scene.id,
+            narrationStartMs: Math.round(scene.timing.startSeconds * 1000),
+            narrationEndMs: Math.round(scene.timing.endSeconds * 1000),
+            sourceImageId,
+            sourceImagePath: path.relative(episodeDirPath, imageReference.outputPath),
+            sourceImageSha256: imageReference.outputSha256,
+            importance: narrationPhaseForScene(index, plan.scenes.length),
+            focalRegions:
+              focalMetadataByImageId.get(sourceImageId)?.focalRegions ?? [],
+          };
+        })
+      )
+    );
+    await this.writeJsonIfChanged(this.paths.visualSourceScenes(episodeId), sourceScenes);
+
+    const preset = selectVisualRetentionPreset({
+      config: this.environment.config,
+      variant: "full",
+      sourceScenes,
+      ...(mode.profile ? { requestedProfile: mode.profile } : {}),
+    });
+    const seed = hashText(
+      JSON.stringify({
+        episodeId: manifest.episodeId,
+        variant: "full",
+        locale: this.episodeLocale(),
+        profile: preset.pacingProfile.id,
+        aspectRatio,
+      })
+    );
+    const planned = deterministicShotPlanner.plan({
+      sourceId: manifest.episodeId,
+      locale: this.episodeLocale(),
+      platform: "full",
+      aspectRatio,
+      sourceScenes,
+      pacingProfile: preset.pacingProfile,
+      visualBudget: preset.visualBudget,
+      treatmentCatalogVersion: shotTreatmentCatalogVersion,
+      seed,
+    });
+    const shotPlanPath = this.paths.shotPlan(context);
+    const currentShotPlan = await this.loadShotPlanIfValid(shotPlanPath);
+    const shotPlan =
+      currentShotPlan &&
+      serializeShotPlan(currentShotPlan) === serializeShotPlan(planned)
+        ? currentShotPlan
+        : planned;
+    if (shotPlan !== currentShotPlan) {
+      await writeJsonAtomic(shotPlanPath, shotPlan);
+    }
+
+    const validation = validateShotPlan({
+      shotPlan,
+      pacingProfile: preset.pacingProfile,
+      visualBudget: preset.visualBudget,
+      treatmentCatalog: shotTreatmentCatalog,
+      ...(focalMetadata === null ? {} : { focalMetadata }),
+    });
+    const validationPath = this.paths.shotValidation(context);
+    const validationArtifact: PersistedShotValidationArtifact = {
+      schemaVersion: 1,
+      valid: validation.valid,
+      issues: validation.issues,
+      metrics: validation.metrics,
+    };
+    await writeJsonAtomic(validationPath, validationArtifact);
+
+    return {
+      sourceScenesPath: this.paths.visualSourceScenes(episodeId),
+      focalMetadataPath: this.paths.focalMetadata(episodeId),
+      shotPlanPath,
+      validationPath,
+      sourceScenes,
+      focalMetadata,
+      shotPlan,
+      validation,
+      sourceImages: sourceScenes.map((sourceScene) => ({
+        sourceImageId: sourceScene.sourceImageId,
+        sourceSceneId: sourceScene.sourceSceneId,
+        sceneId: sourceScene.sceneId,
+        path: sourceScene.sourceImagePath,
+        sha256: sourceScene.sourceImageSha256,
+      })),
+    };
+  }
+
+  private async loadShotPlanIfValid(filePath: string): Promise<ShotPlan | null> {
+    const raw = await fs.readFile(filePath, "utf8").catch(() => null);
+    if (raw === null) {
+      return null;
+    }
+    try {
+      return shotPlanSchema.parse(JSON.parse(raw) as unknown);
+    } catch {
+      return null;
+    }
+  }
+
+  private async writeJsonIfChanged(
+    filePath: string,
+    value: unknown
+  ): Promise<void> {
+    const next = `${JSON.stringify(value, null, 2)}\n`;
+    const current = await fs.readFile(filePath, "utf8").catch(() => null);
+    if (current === next) {
+      return;
+    }
+    await writeJsonAtomic(filePath, value);
+  }
+
   private convertYoutubeMetadataForPlatform(
     youtube: YoutubeMetadata,
     plan: ScenePlan,
@@ -1365,7 +1813,8 @@ export class MediaForgePipeline {
     episodeDirPath: string,
     plan: ScenePlan,
     captions: Awaited<ReturnType<typeof buildCaptionPack>>,
-    profileName: "youtube" | "vertical"
+    profileName: "youtube" | "vertical",
+    visualRetentionArtifacts?: VisualRetentionPipelineArtifacts
   ) {
     const renderContext = this.episodeContext(
       manifest.episodeId as unknown as SharedEpisodeId,
@@ -1392,6 +1841,27 @@ export class MediaForgePipeline {
         ),
         renderProfile,
         captionBurnIn: true,
+        sceneAudioDir: this.paths.audioSegmentsDir(renderContext),
+        imageDir: this.paths.sharedGeneratedImagesDir(
+          manifest.episodeId as unknown as SharedEpisodeId
+        ),
+        ...(visualRetentionArtifacts
+          ? {
+              shotPlan: visualRetentionArtifacts.shotPlan,
+              sourceImages: visualRetentionArtifacts.sourceImages,
+              shotValidationResult: {
+                issues: visualRetentionArtifacts.validation.issues.map(
+                  (issue) => ({
+                    severity: issue.severity,
+                    code: issue.code,
+                    message: issue.message,
+                    ...(issue.shotId ? { shotId: issue.shotId } : {}),
+                    ...(issue.sceneId ? { sceneId: issue.sceneId } : {}),
+                  })
+                ),
+              },
+            }
+          : {}),
         trailingSilenceRatio: this.environment.config.trailingSilenceRatio,
         trailingSilenceBufferSeconds:
           this.environment.config.trailingSilenceBufferSeconds,
@@ -1411,7 +1881,8 @@ export class MediaForgePipeline {
     captions: Awaited<ReturnType<typeof buildCaptionPack>>,
     images: ImageAsset[],
     metadata: PublishingMetadata,
-    renderResult: Awaited<ReturnType<FFmpegVideoRenderer["render"]>>
+    renderResult: Awaited<ReturnType<FFmpegVideoRenderer["render"]>>,
+    visualRetentionArtifacts?: VisualRetentionPipelineArtifacts
   ): Promise<EpisodeManifest> {
     const context = this.episodeContext(
       manifest.episodeId as unknown as SharedEpisodeId,
@@ -1459,6 +1930,30 @@ export class MediaForgePipeline {
           checksumSha256: await hashFile(renderResult.cleanPath),
           createdAt: nowIso(),
         },
+        ...(visualRetentionArtifacts
+          ? [
+              await this.buildArtifactReference(
+                episodeDirPath,
+                visualRetentionArtifacts.sourceScenesPath,
+                "visual-source-scenes"
+              ),
+              await this.buildArtifactReference(
+                episodeDirPath,
+                visualRetentionArtifacts.focalMetadataPath,
+                "focal-metadata"
+              ),
+              await this.buildArtifactReference(
+                episodeDirPath,
+                visualRetentionArtifacts.shotPlanPath,
+                "shot-plan"
+              ),
+              await this.buildArtifactReference(
+                episodeDirPath,
+                visualRetentionArtifacts.validationPath,
+                "shot-validation"
+              ),
+            ]
+          : []),
       ],
       pipelineRuns: manifest.pipelineRuns,
       updatedAt: nowIso(),
@@ -1468,6 +1963,22 @@ export class MediaForgePipeline {
       nextManifest
     );
     return nextManifest;
+  }
+
+  private async buildArtifactReference(
+    episodeDirPath: string,
+    filePath: string,
+    kind: string
+  ): Promise<EpisodeManifest["artifacts"][number]> {
+    return {
+      id: `artifact-${slugify(kind)}` as never,
+      kind,
+      path: path.relative(episodeDirPath, filePath),
+      mimeType: "application/json",
+      sizeBytes: (await fs.stat(filePath)).size,
+      checksumSha256: await hashFile(filePath),
+      createdAt: nowIso(),
+    };
   }
 }
 

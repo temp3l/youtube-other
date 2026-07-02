@@ -41,6 +41,10 @@ export * from "./image-batch-planner.js";
 export * from "./image-batch-service.js";
 export * from "./thumbnail-contracts.js";
 export * from "./story-thumbnail.js";
+export {
+  ensureEpisodeFocalMetadataForImages,
+  loadEpisodeFocalMetadata,
+} from "./focal-metadata.js";
 
 export interface PromptTemplateContext {
   readonly GLOBAL_STYLE: string;
