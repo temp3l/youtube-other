@@ -104,6 +104,7 @@ import {
   narrationPipelineExitCode,
   narrationPipelineModeSchema,
   narrationPipelineStageSchema,
+  runVoiceBenchmark,
   type AudioInstructionArtifact,
   type NarrationPipelineMode,
   type NarrationPipelineResult,
@@ -3020,6 +3021,16 @@ interface AudioNarrationCommandOptions {
   readonly concurrency?: string;
 }
 
+interface VoiceBenchmarkCommandOptions {
+  readonly voices?: string;
+  readonly maxSamples?: string;
+  readonly language?: string;
+  readonly variant?: "full" | "short";
+  readonly outputDir?: string;
+  readonly benchmarkLabelMode?: "anonymous" | "voice";
+  readonly json?: boolean;
+}
+
 function parseNarrationVariant(value: string | undefined): "full" | "short" {
   if (value === undefined) {
     return "full";
@@ -3160,6 +3171,64 @@ async function runAudioNarrationPipeline(
     process.exitCode = exitCode;
   }
   return results;
+}
+
+function parseVoiceList(value: string | undefined): readonly string[] | undefined {
+  if (!value) {
+    return undefined;
+  }
+  const voices = value.split(",").map((item) => item.trim()).filter((item) => item.length > 0);
+  return voices.length > 0 ? voices : undefined;
+}
+
+function parseBenchmarkLabelMode(value: string | undefined): "anonymous" | "voice" {
+  if (value === undefined || value === "anonymous") {
+    return "anonymous";
+  }
+  if (value === "voice") {
+    return "voice";
+  }
+  throw new Error("--benchmark-label-mode must be anonymous or voice.");
+}
+
+async function commandAudioNarrationBenchmarkVoices(
+  options: CliOptions,
+  commandOptions: VoiceBenchmarkCommandOptions
+): Promise<void> {
+  const config = await loadRuntimeConfig(configOverridesFromCli(options));
+  if (config.ttsProvider !== "openai-compatible") {
+    throw new Error("Voice benchmarking requires --tts-provider openai-compatible.");
+  }
+  const pipeline = await loadPipeline(options);
+  const language = commandOptions.language ?? options.scriptLanguage ?? config.scriptLanguage ?? "en";
+  const variant = parseNarrationVariant(commandOptions.variant);
+  const outputDir = path.resolve(
+    commandOptions.outputDir ?? path.join(config.workspaceDir, "state", "voice-benchmarks", language, variant)
+  );
+  const voices = parseVoiceList(commandOptions.voices);
+  const result = await runVoiceBenchmark({
+    outputDir,
+    provider: pipeline.speech,
+    ...(voices ? { voices } : {}),
+    maxSamples: parsePositiveIntegerOption(commandOptions.maxSamples, "--max-samples", 4),
+    labelMode: parseBenchmarkLabelMode(commandOptions.benchmarkLabelMode),
+    model: config.openAiSpeechModel ?? config.openAiCompatibleModel ?? "gpt-4o-mini-tts",
+    language,
+    variant,
+    ...(config.speechVoicePreset ? { preset: config.speechVoicePreset } : {}),
+  });
+  if (commandOptions.json ?? options.json) {
+    printJson(result);
+    return;
+  }
+  process.stdout.write(
+    [
+      `Voice benchmark: ${path.join(outputDir, "voice-benchmark.json")}`,
+      `Samples: ${result.samples.length}`,
+      `Completed: ${result.samples.filter((sample) => sample.status === "completed").length}`,
+      `Failed: ${result.samples.filter((sample) => sample.status === "failed").length}`,
+    ].join("\n") + "\n"
+  );
 }
 
 async function commandAudioGenerateLocalized(
@@ -4547,6 +4616,24 @@ for (const stage of [
     await runAudioNarrationPipeline(cliOptions, opts.episode ?? "", parsedStage, opts);
   });
 }
+
+audioNarrationCommand
+  .command("benchmark-voices")
+  .description("Generate anonymized OpenAI voice benchmark samples")
+  .option("--voices <comma-separated-voices>", "OpenAI voices to benchmark")
+  .option("--max-samples <n>", "maximum samples to generate", "4")
+  .option("--language <code>", "benchmark language")
+  .option("--variant <full|short>", "narration variant", "full")
+  .option("--output-dir <path>", "benchmark artifact directory")
+  .option("--benchmark-label-mode <anonymous|voice>", "sample label mode", "anonymous")
+  .option("--json", "print machine-readable output")
+  .action(async (opts: VoiceBenchmarkCommandOptions) => {
+    const cliOptions: CliOptions = {
+      ...program.opts<CliOptions>(),
+      ...(opts.json !== undefined ? { json: opts.json } : {}),
+    };
+    await commandAudioNarrationBenchmarkVoices(cliOptions, opts);
+  });
 
 const clipsCommand = program
   .command("clips")

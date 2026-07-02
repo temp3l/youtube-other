@@ -43,6 +43,7 @@ export * from "./narration-assembly.js";
 export * from "./mastering.js";
 export * from "./narration-quality-gate.js";
 export * from "./narration-pipeline.js";
+export * from "./voice-benchmark.js";
 export {
   loadSpeechVoiceInstructionTemplate,
   loadSpeechVoiceSettings,
