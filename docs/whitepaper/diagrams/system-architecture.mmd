@@ -1,0 +1,21 @@
+flowchart TB
+    CLI[MediaForge CLI] --> Config[Runtime config and episode config]
+    CLI --> Story[Story localization services]
+    CLI --> Episode[Episode production commands]
+    CLI --> Media[Media utilities]
+    Story --> Cache[Filesystem cache and manifests]
+    Story --> Models[OpenAI-compatible APIs]
+    Episode --> Speech[Speech and narration]
+    Episode --> Images[Image generation]
+    Episode --> Visual[Visual and shot planning]
+    Media --> Render[FFmpeg local or remote rendering]
+    Media --> Metadata[YouTube metadata]
+    Media --> Upload[YouTube upload]
+    Speech --> Models
+    Images --> Models
+    Metadata --> Models
+    Cache --> Workspace[Episode workspace]
+    Render --> Workspace
+    Upload --> YouTube[YouTube API]
+    CLI --> SQLite[SQLite run state]
+    CLI --> Telemetry[Telemetry, logs, and cost reports]

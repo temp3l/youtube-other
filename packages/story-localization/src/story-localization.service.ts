@@ -2702,7 +2702,8 @@ export async function localizeStoryEpisode(
               packageValue,
               facts,
               profileEn,
-              "en"
+              "en",
+              canonicalEnglishPlan.characterRenameMap
             );
           } catch (error) {
             return [error instanceof Error ? error.message : String(error)];
@@ -3261,7 +3262,8 @@ export async function localizeStoryEpisode(
               packageValue,
               facts,
               profile,
-              language
+              language,
+              canonicalEnglishPlan.characterRenameMap
             );
           } catch (error) {
             return [error instanceof Error ? error.message : String(error)];

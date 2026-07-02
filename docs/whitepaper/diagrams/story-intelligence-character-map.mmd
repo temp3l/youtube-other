@@ -1,0 +1,13 @@
+flowchart LR
+    A[Source story] --> B[Cleaned source]
+    B --> C[Canonical facts]
+    C --> D[StoryIR entities]
+    D --> E[Story bible and protected elements]
+    D --> F[Character rename map]
+    E --> G[Episode character registry]
+    G --> H[Reference images and approval]
+    D --> I[Scene and beat coverage]
+    H --> J[Prompt-ready visual context]
+    I --> J
+    J --> K[Scene image prompts]
+    K --> L[Generated or reused media]

@@ -1,0 +1,12 @@
+flowchart LR
+    A[Canonical characters] --> B[Shared character registry]
+    C[Locations, objects, messages] --> D[StoryIR and protected elements]
+    B --> E[Reference image generation]
+    E --> F[Human approval state]
+    F --> G[Reference-assisted prompts]
+    D --> G
+    H[Prior scene images] --> I[Reuse and missing-scene checks]
+    G --> I
+    I --> J[Generated or reused assets]
+    J --> K[Validation and manifests]
+    K --> L[Linked episode outputs]

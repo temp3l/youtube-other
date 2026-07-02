@@ -1,0 +1,18 @@
+flowchart TB
+    A[English canonical full story] --> B[English full output]
+    A --> C[Localized full outputs]
+    A --> D[English short output]
+    C --> E[Localized short outputs]
+    B --> F[English narration]
+    C --> G[Localized narration]
+    D --> H[Short narration]
+    E --> I[Localized short narration]
+    F --> J[Full video]
+    G --> J
+    H --> K[Short video]
+    I --> K
+    B --> L[YouTube metadata]
+    C --> L
+    D --> L
+    E --> L
+    L --> M[Localized thumbnails and upload package]

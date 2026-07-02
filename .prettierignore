@@ -1,0 +1,16 @@
+node_modules
+dist
+build
+coverage
+.cache
+.turbo
+.vite
+episodes
+audio
+video
+images
+transcripts
+logs
+docs.bak
+content-ideas
+tools/whisper.cpp

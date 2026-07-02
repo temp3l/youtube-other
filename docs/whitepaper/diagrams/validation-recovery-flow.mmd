@@ -1,0 +1,18 @@
+flowchart TD
+    A[Local preflight] -->|allowed| B[Structured model request]
+    A -->|blocked| C[Persist diagnostics]
+    B --> D[Schema validation]
+    D -->|valid| E[Semantic and locale checks]
+    D -->|invalid| F[Retry or repair route]
+    E -->|passed| G[Quality gate]
+    E -->|failed| F
+    F --> H[Retry same model]
+    F --> I[Repair model or changed model]
+    F --> J[Partial localization failure]
+    J --> K[English or source fallback when configured]
+    H --> B
+    I --> B
+    K --> L[Resume manifest]
+    G --> M[Review approval]
+    L --> G
+    M --> N[Final production gate]

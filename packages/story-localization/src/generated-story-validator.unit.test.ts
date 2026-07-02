@@ -4,12 +4,15 @@ import {
   GENERATED_STORY_VALIDATION_ISSUE_CODES,
   formatValidationIssues,
   validateFullNarrationArtifact,
+  validateNarrationOnlyFullRewritePackage,
   validateShortNarrationArtifact,
 } from "./generated-story-validator.js";
 import type {
   ShortStoryOutputConstraints,
   StoryIR,
 } from "./story-artifact-model.js";
+import type { CharacterRenameMap } from "./character-rename.service.js";
+import type { CanonicalStoryFacts } from "./story-localization.types.js";
 import type {
   ShortRewriteAdaptationContract,
   ShortRewriteResolvedParent,
@@ -185,9 +188,30 @@ function buildShortParent(language: SupportedLanguage): ShortRewriteResolvedPare
     storyIrHash: "c".repeat(64),
     contractHash: "d".repeat(64),
     narrationParagraphs: narration,
+    characterRenameMap: buildRenameMap("Morgan Reed"),
     canonical: language === "en",
     provenance:
       language === "en" ? "canonical-full-artifact" : "localized-full-artifact",
+  };
+}
+
+function buildRenameMap(originalName: string): CharacterRenameMap {
+  const originalFirst = originalName.split(" ")[0] ?? originalName;
+  return {
+    version: 1,
+    episodeId: "001",
+    sourceHash: "a".repeat(64),
+    poolId: "test-pool",
+    hash: "b".repeat(64),
+    entries: [
+      {
+        characterId: "character-1",
+        originalName,
+        fictionalName: "Petra Vale",
+        originalAliases: [originalName, originalFirst],
+        fictionalAliases: ["Petra Vale", "Petra"],
+      },
+    ],
   };
 }
 
@@ -293,6 +317,7 @@ describe("generated story validator", () => {
         language,
         profile,
         storyIr,
+        characterRenameMap: buildRenameMap("Morgan Reed"),
         outputConstraints: {
           variant: "full",
           targetWordRange: { min: 60, max: 220 },
@@ -328,6 +353,7 @@ describe("generated story validator", () => {
         },
         adaptationContract: contract,
         outputConstraints: buildShortConstraints(language),
+        characterRenameMap: parent.characterRenameMap,
       });
       if (result.status !== "passed") {
         throw new Error(`${language}: ${result.messages.join(" | ")}`);
@@ -535,9 +561,78 @@ describe("generated story validator", () => {
       parent: { ...buildShortParent("en"), validated: true },
       adaptationContract: buildShortContract("en"),
       outputConstraints: buildShortConstraints("en"),
+      characterRenameMap: buildShortParent("en").characterRenameMap,
     });
-    expect(formatValidationIssues(result.issues)).toContain(
-      "Narration word count 2 is outside the allowed short range 160-190."
+    expect(
+      formatValidationIssues(result.issues).some((message) =>
+        message.startsWith("Narration word count 2 is outside the allowed short range")
+      )
+    ).toBe(true);
+  });
+
+  it("accepts fictionalized character names when a rename map is supplied", () => {
+    const facts: CanonicalStoryFacts = {
+      episodeNumber: "021",
+      primaryTitle: "Something at the Window",
+      characters: [{ name: "Paul Mercer", role: "main protagonist" }],
+      setting: "remote farmhouse",
+      criticalObjects: [],
+      criticalEvents: ["Paul Mercer heard tapping at the bedroom window."],
+      writtenMessages: [],
+      threat: "A pale figure tapped on the bedroom window.",
+      primaryReveal:
+        "Behind him, something pale was wearing Petra Marlow's expression.",
+      finalConsequence:
+        "The upstairs window sometimes shows a man tapping from inside.",
+    };
+    const renameMap: CharacterRenameMap = {
+      version: 1,
+      episodeId: "021",
+      sourceHash: "a".repeat(64),
+      poolId: "test-pool",
+      hash: "b".repeat(64),
+      entries: [
+        {
+          characterId: "character-1",
+          originalName: "Paul Mercer",
+          fictionalName: "Petra Marlow",
+          originalAliases: ["Paul Mercer", "Paul", "Mercer"],
+          fictionalAliases: ["Petra Marlow", "Petra", "Marlow"],
+          role: "main protagonist",
+        },
+      ],
+    };
+    const issues = validateNarrationOnlyFullRewritePackage(
+      {
+        language: "en",
+        full: {
+          narrationParagraphs: [
+            "Petra Marlow heard tapping at the bedroom window in the remote farmhouse.",
+            "Petra Marlow found the pale figure waiting behind the glass.",
+            "Behind him, something pale was wearing Petra Marlow's expression. The upstairs window sometimes shows a man tapping from inside.",
+          ],
+        },
+        preservationChecklist: {
+          charactersPreserved: true,
+          relationshipsPreserved: true,
+          chronologyPreserved: true,
+          criticalObjectsPreserved: true,
+          cluesPreserved: true,
+          writtenMessagesPreserved: true,
+          primaryRevealPreserved: true,
+          endingPreserved: true,
+          noNewPlotElementsAdded: true,
+        },
+        diagnostics: {
+          removedGenericFiller: [],
+          adaptationNotes: [],
+        },
+      },
+      facts,
+      getLanguageProfile("en"),
+      "en",
+      renameMap
     );
+    expect(issues).not.toContain("Character names are missing.");
   });
 });

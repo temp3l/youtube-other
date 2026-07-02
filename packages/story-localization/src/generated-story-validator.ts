@@ -1,5 +1,6 @@
 import { countSpokenWords, normalizeWhitespace } from "@mediaforge/shared";
 import {
+  applyCharacterRenameMapToCanonicalFacts,
   detectOriginalCharacterNameLeaks,
   type CharacterRenameMap,
 } from "./character-rename.service.js";
@@ -416,6 +417,15 @@ function hasRequiredEntities(text: string, storyIr: StoryIR): boolean {
 function hasImmutableFacts(text: string, storyIr: StoryIR): boolean {
   const immutableFacts = storyIr.immutableFacts.filter((fact) => fact.immutable);
   return immutableFacts.every((fact) => includesPhrase(text, fact.statement));
+}
+
+function resolveValidationFacts(
+  facts: CanonicalStoryFacts,
+  characterRenameMap?: CharacterRenameMap
+): CanonicalStoryFacts {
+  return characterRenameMap
+    ? applyCharacterRenameMapToCanonicalFacts(facts, characterRenameMap)
+    : facts;
 }
 
 function hasImmediateStoryIdentification(
@@ -1174,9 +1184,11 @@ export function validateGeneratedStoryPackage(
   facts: CanonicalStoryFacts,
   profile: LanguageProfile,
   source: ParsedSourceStory,
-  language: LanguageCode
+  language: LanguageCode,
+  characterRenameMap?: CharacterRenameMap
 ): string[] {
   const issues: string[] = [];
+  const effectiveFacts = resolveValidationFacts(facts, characterRenameMap);
   if (packageValue.language !== language) {
     issues.push("Language mismatch.");
   }
@@ -1191,7 +1203,9 @@ export function validateGeneratedStoryPackage(
       (tag) => `short:invalid hashtag ${tag}`
     )
   );
-  issues.push(...validateFullStoryPackageNarration(packageValue, profile, facts));
+  issues.push(
+    ...validateFullStoryPackageNarration(packageValue, profile, effectiveFacts)
+  );
   issues.push(
     ...validatePreservationChecklist(packageValue.preservationChecklist).map(
       (entry) => `preservation:${entry}`
@@ -1229,11 +1243,11 @@ export function validateGeneratedStoryPackage(
   if (detectGenericFiller(shortText).length > 0) {
     issues.push("Short contains generic filler.");
   }
-  if (validateWrittenMessagesPreserved(facts, shortText).length > 0) {
+  if (validateWrittenMessagesPreserved(effectiveFacts, shortText).length > 0) {
     issues.push("Written messages are not preserved.");
   }
   if (
-    !facts.characters.every(
+    !effectiveFacts.characters.every(
       (character) =>
         shortText.includes(character.name) ||
         packageValue.full?.narrationParagraphs.join(" ").includes(character.name)
@@ -1258,13 +1272,17 @@ export function validateGeneratedFullStoryPackage(
   >,
   facts: CanonicalStoryFacts,
   profile: LanguageProfile,
-  language: LanguageCode
+  language: LanguageCode,
+  characterRenameMap?: CharacterRenameMap
 ): string[] {
   const issues: string[] = [];
+  const effectiveFacts = resolveValidationFacts(facts, characterRenameMap);
   if (packageValue.language !== language) {
     issues.push("Language mismatch.");
   }
-  issues.push(...validateFullStoryPackageNarration(packageValue, profile, facts));
+  issues.push(
+    ...validateFullStoryPackageNarration(packageValue, profile, effectiveFacts)
+  );
   issues.push(
     ...validatePreservationChecklist(packageValue.preservationChecklist).map(
       (entry) => `preservation:${entry}`
@@ -1275,10 +1293,14 @@ export function validateGeneratedFullStoryPackage(
     if (countWords(fullText) < 1) {
       issues.push("Full story narration is empty.");
     }
-    if (!facts.characters.every((character) => fullText.includes(character.name))) {
+    if (
+      !effectiveFacts.characters.every((character) =>
+        fullText.includes(character.name)
+      )
+    ) {
       issues.push("Character names are missing.");
     }
-    if (validateWrittenMessagesPreserved(facts, fullText).length > 0) {
+    if (validateWrittenMessagesPreserved(effectiveFacts, fullText).length > 0) {
       issues.push("Written messages are not preserved.");
     }
   }
@@ -1292,9 +1314,11 @@ export function validateGeneratedLocalizedFullRewritePackage(
   >,
   facts: CanonicalStoryFacts,
   profile: LanguageProfile,
-  language: LanguageCode
+  language: LanguageCode,
+  characterRenameMap?: CharacterRenameMap
 ): string[] {
   const issues: string[] = [];
+  const effectiveFacts = resolveValidationFacts(facts, characterRenameMap);
   if (packageValue.language !== language) {
     issues.push("Language mismatch.");
   }
@@ -1336,10 +1360,14 @@ export function validateGeneratedLocalizedFullRewritePackage(
   if (countSpokenWords(fullText) < 1) {
     issues.push("Full story narration is empty.");
   }
-  if (!facts.characters.every((character) => fullText.includes(character.name))) {
+  if (
+    !effectiveFacts.characters.every((character) =>
+      fullText.includes(character.name)
+    )
+  ) {
     issues.push("Character names are missing.");
   }
-  if (validateWrittenMessagesPreserved(facts, fullText).length > 0) {
+  if (validateWrittenMessagesPreserved(effectiveFacts, fullText).length > 0) {
     issues.push("Written messages are not preserved.");
   }
   return issues;
@@ -1349,9 +1377,11 @@ export function validateNarrationOnlyFullRewritePackage(
   packageValue: NarrationOnlyFullRewriteResponse,
   facts: CanonicalStoryFacts,
   profile: LanguageProfile,
-  language: LanguageCode
+  language: LanguageCode,
+  characterRenameMap?: CharacterRenameMap
 ): string[] {
   const issues: string[] = [];
+  const effectiveFacts = resolveValidationFacts(facts, characterRenameMap);
   if (packageValue.language !== language) {
     issues.push("Language mismatch.");
   }
@@ -1382,10 +1412,14 @@ export function validateNarrationOnlyFullRewritePackage(
   if (countSpokenWords(fullText) < 1) {
     issues.push("Full story narration is empty.");
   }
-  if (!facts.characters.every((character) => fullText.includes(character.name))) {
+  if (
+    !effectiveFacts.characters.every((character) =>
+      fullText.includes(character.name)
+    )
+  ) {
     issues.push("Character names are missing.");
   }
-  if (validateWrittenMessagesPreserved(facts, fullText).length > 0) {
+  if (validateWrittenMessagesPreserved(effectiveFacts, fullText).length > 0) {
     issues.push("Written messages are not preserved.");
   }
   issues.push(...validateLocaleSpecificNarration(fullText, profile, "full"));

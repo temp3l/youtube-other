@@ -1,0 +1,18 @@
+flowchart LR
+    A[English source story] --> B[Source cleaning and parsing]
+    B --> C[Canonical facts and StoryIR]
+    C --> D[Full English rewrite]
+    D --> E[Validation and production analysis]
+    E --> F[Localized full stories]
+    E --> G[Short adaptations]
+    F --> H[Narration planning and TTS]
+    G --> H
+    H --> I[Captions and timing]
+    C --> J[Scene and visual planning]
+    J --> K[Images and references]
+    K --> L[Shot planning and motion]
+    I --> M[Video rendering]
+    L --> M
+    M --> N[Metadata and thumbnails]
+    N --> O[Review and approval]
+    O --> P[Publishing preparation]

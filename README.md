@@ -1,5 +1,30 @@
 # prompts
 
+## Billing
+
+* $21.66 -- Thu Jul  2 08:38:56 PM CEST 2026
+
+
+
+## time
+
+### time pnpm lint;
+
+real 0m15.548s
+user 0m28.714s
+sys 0m1.072s
+
+### time pnpm build
+
+apps/cli build$ tsc -p tsconfig.json
+└─ Done in 19.1s
+
+real 1m18.698s
+user 2m51.555s
+sys 0m9.309s
+
+---
+
 - task docs/plans/visual-retention-shot-architecture/tasks/17-legacy-episode-migration.md was implemented
 - check if we should run any migration commands or should fill any caches
 - i dont want to re-generate any videos or images or sound assets from old episodes

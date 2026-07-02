@@ -1,0 +1,14 @@
+flowchart LR
+    A[Narrative beats] --> B[Scene plan]
+    C[Characters and entities] --> B
+    D[Narration timing] --> B
+    B --> E[Scene visual specs]
+    C --> F[Reference assets]
+    F --> G[Image prompt context]
+    E --> G
+    G --> H[Image generation or reuse]
+    H --> I[Source scenes]
+    D --> J[Shot plan]
+    I --> J
+    J --> K[Crops, pans, zooms, overlays]
+    K --> L[Rendered full or short video]
