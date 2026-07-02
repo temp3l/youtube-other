@@ -17,6 +17,8 @@ import {
   fileExists,
   hashFile,
   hashText,
+  resolveEpisodeDerivedShotClipPath,
+  resolveEpisodeDerivedShotManifestPath,
   resolveSceneImageCandidatePaths,
   writeJsonAtomic,
   writeTextAtomic,
@@ -180,6 +182,51 @@ export interface ShotRenderSummary {
     readonly sceneId?: string;
     readonly message?: string;
   }[];
+  readonly derivedShotCache?: DerivedShotCacheSummary;
+}
+
+export type DerivedShotCacheMissReason =
+  | "MANIFEST_MISSING"
+  | "CLIP_MISSING"
+  | "MANIFEST_INVALID"
+  | "FINGERPRINT_MISMATCH"
+  | "OUTPUT_HASH_MISMATCH"
+  | "DEPENDENCY_MISMATCH"
+  | "MEDIA_VALIDATION_FAILED"
+  | "RENDER_REQUIRED"
+  | "UNSUPPORTED_SCHEMA_VERSION";
+
+export interface DerivedShotCacheSummary {
+  readonly hits: number;
+  readonly misses: number;
+  readonly writes: number;
+  readonly invalidEntries: number;
+  readonly resumedShots: readonly string[];
+  readonly renderedShots: readonly string[];
+  readonly missReasons: readonly {
+    readonly shotId: string;
+    readonly fingerprint: string;
+    readonly reason: DerivedShotCacheMissReason;
+  }[];
+}
+
+export interface DerivedShotManifest {
+  readonly schemaVersion: 1;
+  readonly fingerprint: string;
+  readonly shotId: string;
+  readonly sceneId: string;
+  readonly sourceImageSha256: string;
+  readonly normalizedShotHash: string;
+  readonly renderOperationFingerprint: string;
+  readonly rendererVersion: string;
+  readonly treatmentCatalogVersion: string;
+  readonly outputProfile: ShotOutputProfile;
+  readonly overlayHashes: readonly string[];
+  readonly captionHash?: string | undefined;
+  readonly outputPath: string;
+  readonly outputSha256: string;
+  readonly outputSizeBytes: number;
+  readonly durationMs: number;
 }
 
 export interface RemoteAssetRecord {
@@ -259,6 +306,8 @@ interface ShotClipRenderRequest {
   readonly shotDurationMs: number;
   readonly shotFingerprint: string;
   readonly renderOperationFingerprint: string;
+  readonly derivedShotFingerprint: string;
+  readonly outputProfile: ShotOutputProfile;
   readonly operations: readonly VideoFilterOperation[];
   readonly overlayHashes: readonly string[];
 }
@@ -272,6 +321,37 @@ interface ResolvedShotSourceImage {
 }
 
 const rendererOperationVersion = "shot-renderer-v1";
+const derivedShotCacheSchemaVersion = 1;
+
+const sha256HexSchema = z.string().regex(/^[a-f0-9]{64}$/u);
+const derivedShotManifestSchema = z
+  .object({
+    schemaVersion: z.literal(1),
+    fingerprint: sha256HexSchema,
+    shotId: z.string().regex(/^scene-[0-9]{3}-shot-[0-9]{3}$/u),
+    sceneId: z.string().regex(/^scene-[0-9]{3}$/u),
+    sourceImageSha256: sha256HexSchema,
+    normalizedShotHash: sha256HexSchema,
+    renderOperationFingerprint: sha256HexSchema,
+    rendererVersion: z.string().min(1),
+    treatmentCatalogVersion: z.string().min(1),
+    outputProfile: z
+      .object({
+        aspectRatio: z.string().min(1),
+        width: z.number().positive(),
+        height: z.number().positive(),
+        fps: z.number().positive(),
+        pixelFormat: z.literal("yuv420p"),
+      })
+      .strict(),
+    overlayHashes: z.array(sha256HexSchema),
+    captionHash: sha256HexSchema.optional(),
+    outputPath: z.string().min(1),
+    outputSha256: sha256HexSchema,
+    outputSizeBytes: z.number().int().nonnegative(),
+    durationMs: z.number().positive(),
+  })
+  .strict();
 
 interface RenderManifest {
   readonly stageIdentity: MediaStageIdentity;
@@ -1506,6 +1586,59 @@ export function buildShotRenderOperationFingerprint(input: {
   });
 }
 
+export function buildShotPlanFingerprint(input: {
+  readonly shotPlan: ShotPlan;
+  readonly narrationTimingHash?: string;
+  readonly focalMetadataHash?: string;
+  readonly plannerVersion?: string;
+}): string {
+  return stableHash({
+    schemaVersion: input.shotPlan.schemaVersion,
+    sourceId: input.shotPlan.sourceId,
+    locale: input.shotPlan.locale ?? null,
+    variant: input.shotPlan.variant,
+    aspectRatio: input.shotPlan.aspectRatio,
+    sourceScenes: input.shotPlan.sourceScenes.map((sourceScene) => ({
+      sourceSceneId: sourceScene.sourceSceneId,
+      sceneId: sourceScene.sceneId,
+      narrationStartMs: sourceScene.narrationStartMs,
+      narrationEndMs: sourceScene.narrationEndMs,
+      sourceImageId: sourceScene.sourceImageId,
+      sourceImageSha256: sourceScene.sourceImageSha256,
+      importance: sourceScene.importance,
+      focalRegionHash: stableHash(sourceScene.focalRegions),
+    })),
+    pacingProfile: input.shotPlan.pacingProfile,
+    visualBudget: input.shotPlan.visualBudget,
+    planningSeed: input.shotPlan.planningSeed,
+    narrationTimingHash: input.narrationTimingHash ?? null,
+    focalMetadataHash: input.focalMetadataHash ?? null,
+    treatmentCatalogVersion: shotTreatmentCatalogVersion,
+    plannerVersion: input.plannerVersion ?? null,
+  });
+}
+
+export function buildDerivedShotFingerprint(input: {
+  readonly shot: RenderShot;
+  readonly sourceImageSha256: string;
+  readonly renderOperationFingerprint: string;
+  readonly outputProfile: ShotOutputProfile;
+  readonly overlayHashes: readonly string[];
+  readonly captionHash?: string;
+}): string {
+  return stableHash({
+    rendererOperationVersion,
+    rendererVersion: rendererOperationVersion,
+    treatmentCatalogVersion: shotTreatmentCatalogVersion,
+    normalizedShotHash: stableHash(normalizeShotForFingerprint(input.shot)),
+    sourceImageSha256: input.sourceImageSha256,
+    renderOperationFingerprint: input.renderOperationFingerprint,
+    outputProfile: input.outputProfile,
+    overlayHashes: [...input.overlayHashes].sort(),
+    captionHash: input.captionHash ?? null,
+  });
+}
+
 function ensureSupportedShotTransition(shot: RenderShot): void {
   if (!shot.transition || shot.transition.kind === "hard-cut") {
     return;
@@ -1902,6 +2035,13 @@ export async function buildShotClipRenderRequest(request: {
     outputProfile,
     overlayHashes: overlayInputs.hashes,
   });
+  const derivedShotFingerprint = buildDerivedShotFingerprint({
+    shot: request.shot,
+    sourceImageSha256: request.sourceImage.sha256,
+    renderOperationFingerprint,
+    outputProfile,
+    overlayHashes: overlayInputs.hashes,
+  });
   const ffmpegArguments = [
     "-y",
     "-loop",
@@ -1949,6 +2089,8 @@ export async function buildShotClipRenderRequest(request: {
     shotDurationMs: durationMs,
     shotFingerprint,
     renderOperationFingerprint,
+    derivedShotFingerprint,
+    outputProfile,
     operations,
     overlayHashes: overlayInputs.hashes,
   };
@@ -2244,7 +2386,6 @@ function buildShotClipManifest(input: {
   readonly request: ShotClipRenderRequest;
   readonly outputSha256: string;
   readonly outputPath: string;
-  readonly outputProfile: ShotOutputProfile;
   readonly validationWarnings: ShotRenderSummary["validationWarnings"];
 }): ShotClipManifest {
   return {
@@ -2263,7 +2404,7 @@ function buildShotClipManifest(input: {
     renderOperationFingerprint: input.request.renderOperationFingerprint,
     rendererVersion: rendererOperationVersion,
     treatmentCatalogVersion: shotTreatmentCatalogVersion,
-    outputProfile: input.outputProfile,
+    outputProfile: input.request.outputProfile,
     outputPath: input.outputPath,
     outputSha256: input.outputSha256,
     overlayHashes: input.request.overlayHashes,
@@ -2305,30 +2446,249 @@ async function renderShotClip(
     );
   }
   const outputSha256 = await hashFile(request.clipRequest.outputPath);
-  const outputProfile: ShotOutputProfile = {
-    aspectRatio:
-      (request.clipRequest.expectedWidth ?? 0) <
-      (request.clipRequest.expectedHeight ?? 0)
-        ? "9:16"
-        : "16:9",
-    width: request.clipRequest.expectedWidth ?? 0,
-    height: request.clipRequest.expectedHeight ?? 0,
-    fps:
-      request.clipRequest.expectedDurationSeconds &&
-      request.clipRequest.expectedDurationSeconds > 0
-        ? request.frameCount / request.clipRequest.expectedDurationSeconds
-        : 0,
-    pixelFormat: "yuv420p",
-  };
   const manifest = buildShotClipManifest({
     request,
     outputSha256,
     outputPath: request.clipRequest.outputPath,
-    outputProfile,
     validationWarnings: warnings,
   });
   await writeShotClipManifest(request.manifestPath, manifest);
   return manifest;
+}
+
+function derivedShotManifestFromRequest(input: {
+  readonly request: ShotClipRenderRequest;
+  readonly outputPath: string;
+  readonly outputSha256: string;
+  readonly outputSizeBytes: number;
+}): DerivedShotManifest {
+  return {
+    schemaVersion: derivedShotCacheSchemaVersion,
+    fingerprint: input.request.derivedShotFingerprint,
+    shotId: input.request.shot.shotId,
+    sceneId: input.request.shot.sceneId,
+    sourceImageSha256: input.request.sourceImage.sha256,
+    normalizedShotHash: stableHash(normalizeShotForFingerprint(input.request.shot)),
+    renderOperationFingerprint: input.request.renderOperationFingerprint,
+    rendererVersion: rendererOperationVersion,
+    treatmentCatalogVersion: shotTreatmentCatalogVersion,
+    outputProfile: input.request.outputProfile,
+    overlayHashes: input.request.overlayHashes,
+    outputPath: input.outputPath,
+    outputSha256: input.outputSha256,
+    outputSizeBytes: input.outputSizeBytes,
+    durationMs: input.request.frameDurationMs,
+  };
+}
+
+function cacheSummary(): {
+  hits: number;
+  misses: number;
+  writes: number;
+  invalidEntries: number;
+  resumedShots: string[];
+  renderedShots: string[];
+  missReasons: Array<{
+    readonly shotId: string;
+    readonly fingerprint: string;
+    readonly reason: DerivedShotCacheMissReason;
+  }>;
+} {
+  return {
+    hits: 0,
+    misses: 0,
+    writes: 0,
+    invalidEntries: 0,
+    resumedShots: [],
+    renderedShots: [],
+    missReasons: [],
+  };
+}
+
+function recordCacheMiss(
+  summary: ReturnType<typeof cacheSummary>,
+  input: {
+    readonly shotId: string;
+    readonly fingerprint: string;
+    readonly reason: DerivedShotCacheMissReason;
+    readonly invalid?: boolean;
+  }
+): void {
+  summary.misses += 1;
+  if (input.invalid) {
+    summary.invalidEntries += 1;
+  }
+  summary.missReasons.push({
+    shotId: input.shotId,
+    fingerprint: input.fingerprint,
+    reason: input.reason,
+  });
+}
+
+function cacheSummaryResult(
+  summary: ReturnType<typeof cacheSummary>
+): DerivedShotCacheSummary {
+  return {
+    hits: summary.hits,
+    misses: summary.misses,
+    writes: summary.writes,
+    invalidEntries: summary.invalidEntries,
+    resumedShots: summary.resumedShots,
+    renderedShots: summary.renderedShots,
+    missReasons: summary.missReasons,
+  };
+}
+
+function withShotClipOutputPath(
+  request: ShotClipRenderRequest,
+  outputPath: string
+): ShotClipRenderRequest {
+  const args = [...request.clipRequest.ffmpegArguments];
+  args[args.length - 1] = outputPath;
+  return {
+    ...request,
+    clipRequest: {
+      ...request.clipRequest,
+      outputPath,
+      ffmpegArguments: args,
+    },
+  };
+}
+
+function dependenciesMatch(
+  manifest: DerivedShotManifest,
+  request: ShotClipRenderRequest
+): boolean {
+  return (
+    manifest.fingerprint === request.derivedShotFingerprint &&
+    manifest.shotId === request.shot.shotId &&
+    manifest.sceneId === request.shot.sceneId &&
+    manifest.sourceImageSha256 === request.sourceImage.sha256 &&
+    manifest.normalizedShotHash ===
+      stableHash(normalizeShotForFingerprint(request.shot)) &&
+    manifest.renderOperationFingerprint === request.renderOperationFingerprint &&
+    manifest.rendererVersion === rendererOperationVersion &&
+    manifest.treatmentCatalogVersion === shotTreatmentCatalogVersion &&
+    stableSerialize(manifest.outputProfile) === stableSerialize(request.outputProfile) &&
+    stableSerialize([...manifest.overlayHashes].sort()) ===
+      stableSerialize([...request.overlayHashes].sort())
+  );
+}
+
+async function readDerivedShotManifest(
+  manifestPath: string
+): Promise<DerivedShotManifest | null> {
+  if (!(await fileExists(manifestPath))) {
+    return null;
+  }
+  try {
+    return derivedShotManifestSchema.parse(
+      JSON.parse(await fs.readFile(manifestPath, "utf8")) as unknown
+    );
+  } catch {
+    return null;
+  }
+}
+
+async function lookupDerivedShotCache(input: {
+  readonly request: ShotClipRenderRequest;
+  readonly clipPath: string;
+  readonly manifestPath: string;
+}): Promise<
+  | { readonly hit: true; readonly manifest: DerivedShotManifest }
+  | { readonly hit: false; readonly reason: DerivedShotCacheMissReason; readonly invalid: boolean }
+> {
+  if (!(await fileExists(input.manifestPath))) {
+    return { hit: false, reason: "MANIFEST_MISSING", invalid: false };
+  }
+  if (!(await fileExists(input.clipPath))) {
+    return { hit: false, reason: "CLIP_MISSING", invalid: true };
+  }
+  let rawManifest: unknown;
+  try {
+    rawManifest = JSON.parse(await fs.readFile(input.manifestPath, "utf8")) as unknown;
+  } catch {
+    return { hit: false, reason: "MANIFEST_INVALID", invalid: true };
+  }
+  if (
+    rawManifest !== null &&
+    typeof rawManifest === "object" &&
+    "schemaVersion" in rawManifest &&
+    rawManifest.schemaVersion !== derivedShotCacheSchemaVersion
+  ) {
+    return { hit: false, reason: "UNSUPPORTED_SCHEMA_VERSION", invalid: true };
+  }
+  const manifest = derivedShotManifestSchema.safeParse(rawManifest);
+  if (!manifest.success) {
+    return { hit: false, reason: "MANIFEST_INVALID", invalid: true };
+  }
+  const manifestValue = manifest.data;
+  if (manifestValue.fingerprint !== input.request.derivedShotFingerprint) {
+    return { hit: false, reason: "FINGERPRINT_MISMATCH", invalid: true };
+  }
+  if (!dependenciesMatch(manifestValue, input.request)) {
+    return { hit: false, reason: "DEPENDENCY_MISMATCH", invalid: true };
+  }
+  const outputSha256 = await hashFile(input.clipPath).catch(() => "");
+  if (outputSha256 !== manifestValue.outputSha256) {
+    return { hit: false, reason: "OUTPUT_HASH_MISMATCH", invalid: true };
+  }
+  const validation = await validateRenderOutput(input.clipPath, {
+    expectedDurationSeconds: input.request.frameDurationMs / 1000,
+    expectedWidth: input.request.outputProfile.width,
+    expectedHeight: input.request.outputProfile.height,
+    requireAudio: false,
+  }).catch(() => null);
+  if (!validation?.valid) {
+    return { hit: false, reason: "MEDIA_VALIDATION_FAILED", invalid: true };
+  }
+  return { hit: true, manifest: manifestValue };
+}
+
+async function renderDerivedShotCacheEntry(input: {
+  readonly request: ShotClipRenderRequest;
+  readonly clipPath: string;
+  readonly manifestPath: string;
+}): Promise<DerivedShotManifest> {
+  await ensureDir(path.dirname(input.clipPath));
+  const tempClipPath = path.join(
+    path.dirname(input.clipPath),
+    `${path.basename(input.clipPath, ".mp4")}.${process.pid}.${Date.now()}.tmp.mp4`
+  );
+  const tempRequest = withShotClipOutputPath(input.request, tempClipPath);
+  try {
+    await runCommand("ffmpeg", tempRequest.clipRequest.ffmpegArguments, {
+      timeoutMs: 600000,
+    });
+    const validation = await validateRenderOutput(tempClipPath, {
+      expectedDurationSeconds: input.request.frameDurationMs / 1000,
+      expectedWidth: input.request.outputProfile.width,
+      expectedHeight: input.request.outputProfile.height,
+      requireAudio: false,
+    });
+    if (!validation.valid) {
+      throw new MediaValidationError(
+        `Rendered shot ${input.request.shot.shotId} failed validation: ${validation.issues.join("; ")}`
+      );
+    }
+    const outputSha256 = await hashFile(tempClipPath);
+    const outputSizeBytes = (await fs.stat(tempClipPath)).size;
+    const manifest = derivedShotManifestSchema.parse(
+      derivedShotManifestFromRequest({
+        request: input.request,
+        outputPath: input.clipPath,
+        outputSha256,
+        outputSizeBytes,
+      })
+    );
+    await fs.rename(tempClipPath, input.clipPath);
+    await writeJsonAtomic(input.manifestPath, manifest);
+    return manifest;
+  } catch (error) {
+    await fs.rm(tempClipPath, { force: true }).catch(() => {});
+    await fs.rm(input.manifestPath, { force: true }).catch(() => {});
+    throw error;
+  }
 }
 
 async function resolveShotNarrationAudioPath(
@@ -3259,10 +3619,10 @@ export class FFmpegVideoRenderer implements VideoRenderer {
     await ensureDir(clipsDir);
     const sourceImages = await resolveShotSourceImages(request, shotPlan);
     const shots = orderedShotPlanShots(shotPlan);
-    const manifests: ShotClipManifest[] = [];
     const clipPaths: string[] = [];
     const renderedShotIds: string[] = [];
     const failedShotIds: string[] = [];
+    const cache = cacheSummary();
     for (const [index, shot] of shots.entries()) {
       signal.throwIfAborted();
       const sourceImage = sourceImages.get(shot.sourceImageId);
@@ -3299,9 +3659,40 @@ export class FFmpegVideoRenderer implements VideoRenderer {
           width: request.renderProfile.width,
           height: request.renderProfile.height,
         });
-        const manifest = await renderShotClip(clipRequest, warnings);
-        manifests.push(manifest);
-        clipPaths.push(outputPath);
+        const cacheClipPath = resolveEpisodeDerivedShotClipPath(
+          request.episodeDir,
+          clipRequest.derivedShotFingerprint
+        );
+        const cacheManifestPath = resolveEpisodeDerivedShotManifestPath(
+          request.episodeDir,
+          clipRequest.derivedShotFingerprint
+        );
+        const lookup = await lookupDerivedShotCache({
+          request: clipRequest,
+          clipPath: cacheClipPath,
+          manifestPath: cacheManifestPath,
+        });
+        if (lookup.hit) {
+          cache.hits += 1;
+          cache.resumedShots.push(shot.shotId);
+          clipPaths.push(cacheClipPath);
+          renderedShotIds.push(shot.shotId);
+          continue;
+        }
+        recordCacheMiss(cache, {
+          shotId: shot.shotId,
+          fingerprint: clipRequest.derivedShotFingerprint,
+          reason: lookup.reason,
+          invalid: lookup.invalid,
+        });
+        await renderDerivedShotCacheEntry({
+          request: clipRequest,
+          clipPath: cacheClipPath,
+          manifestPath: cacheManifestPath,
+        });
+        cache.writes += 1;
+        cache.renderedShots.push(shot.shotId);
+        clipPaths.push(cacheClipPath);
         renderedShotIds.push(shot.shotId);
       } catch (error) {
         failedShotIds.push(shot.shotId);
@@ -3312,11 +3703,11 @@ export class FFmpegVideoRenderer implements VideoRenderer {
     return {
       clipsDir,
       clipPaths,
-      shotManifests: manifests,
       shotRenderSummary: {
         renderedShotIds,
         failedShotIds,
         validationWarnings: warnings,
+        derivedShotCache: cacheSummaryResult(cache),
       },
     };
   }

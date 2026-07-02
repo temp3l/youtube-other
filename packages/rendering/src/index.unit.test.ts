@@ -442,18 +442,24 @@ describe("FFmpegVideoRenderer", () => {
       new AbortController().signal
     );
 
-    expect(result.clipPaths.map((clipPath) => path.basename(clipPath))).toEqual([
-      "scene-001-shot-001.mp4",
-      "scene-001-shot-002.mp4",
+    expect(result.clipPaths.map((clipPath) => path.dirname(clipPath))).toEqual([
+      path.join(episodeDir, "state", "render", "derived-shots"),
+      path.join(episodeDir, "state", "render", "derived-shots"),
     ]);
     expect(result.shotRenderSummary?.renderedShotIds).toEqual([
       "scene-001-shot-001",
       "scene-001-shot-002",
     ]);
+    expect(result.shotRenderSummary?.derivedShotCache).toMatchObject({
+      hits: 0,
+      misses: 2,
+      writes: 2,
+      renderedShots: ["scene-001-shot-001", "scene-001-shot-002"],
+    });
     const manifests = await Promise.all(
-      ["scene-001-shot-001", "scene-001-shot-002"].map((shotId) =>
+      result.clipPaths.map((clipPath) =>
         fs
-          .readFile(path.join(result.clipsDir, `${shotId}.json`), "utf8")
+          .readFile(clipPath.replace(/\.mp4$/u, ".json"), "utf8")
           .then((raw) => JSON.parse(raw) as Record<string, unknown>)
       )
     );
