@@ -2027,9 +2027,10 @@ export async function renderCleanVideo(
   );
   const renderer = new FFmpegVideoRenderer();
   const imageDir = options?.imageDir ?? path.join(episodeDir, "shared", "images", "generated");
+  const visualRetentionOptions = options?.visualRetention;
   const visualRetentionMode =
-    options?.visualRetention?.mode ??
-    (options?.visualRetention?.enabled === true ? "enabled" : "disabled");
+    visualRetentionOptions?.mode ??
+    (visualRetentionOptions?.enabled === true ? "enabled" : "disabled");
   const plannedVisualRetention =
     visualRetentionMode !== "disabled"
       ? await prepareDarkTruthVisualRetention({
@@ -2037,7 +2038,7 @@ export async function renderCleanVideo(
           scenePlan,
           artifactType,
           imageManifestPath:
-            options.imageManifestPath ??
+            options?.imageManifestPath ??
             path.join(
               path.dirname(path.dirname(episodeDir)),
               "shared",
@@ -2045,7 +2046,7 @@ export async function renderCleanVideo(
                 ? path.join("short", "images", "shorts-image-manifest.json")
                 : "image-manifest.json"
             ),
-          options: options.visualRetention,
+          options: visualRetentionOptions ?? {},
         })
       : undefined;
   const visualRetention =
