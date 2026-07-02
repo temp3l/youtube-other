@@ -22,6 +22,13 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { z } from "zod";
+import {
+  buildFilterChain,
+  escapeSubtitlePathForSceneCompatibility,
+  type VideoFilterOperation,
+} from "./filter-builders/index.js";
+
+export * from "./filter-builders/index.js";
 
 type ProcessEnv = Readonly<Record<string, string | undefined>>;
 
@@ -1078,17 +1085,49 @@ async function calculateClipDurationSeconds(
   return Math.max(0.1, Math.min(duration, trimmedDuration));
 }
 
-function buildSceneClipFilterGraph(
+export function buildSceneClipFilterGraph(
   width: number,
   height: number,
   captionsPath?: string
 ): string {
-  const scaleFilter =
+  const operations: VideoFilterOperation[] =
     width < height
-      ? `scale=${width}:${height}:force_original_aspect_ratio=increase,crop=${width}:${height},format=yuv420p`
-      : `scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2,format=yuv420p`;
+      ? [
+          {
+            kind: "scale",
+            mode: "cover",
+            widthPx: width,
+            heightPx: height,
+          },
+          {
+            kind: "crop",
+            widthPx: width,
+            heightPx: height,
+            position: { mode: "center" },
+          },
+          { kind: "format", pixelFormat: "yuv420p" },
+        ]
+      : [
+          {
+            kind: "scale",
+            mode: "contain",
+            widthPx: width,
+            heightPx: height,
+          },
+          {
+            kind: "pad",
+            widthPx: width,
+            heightPx: height,
+            x: "center",
+            y: "center",
+          },
+          { kind: "format", pixelFormat: "yuv420p" },
+        ];
+  const scaleFilter = buildFilterChain(operations);
   return captionsPath
-    ? `subtitles=${captionsPath.replace(/:/g, "\\:")},${scaleFilter}`
+    ? `subtitles=${escapeSubtitlePathForSceneCompatibility(
+        captionsPath
+      )},${scaleFilter}`
     : scaleFilter;
 }
 
