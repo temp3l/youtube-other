@@ -1061,6 +1061,261 @@ export type ShotPlanValidationIssue = z.infer<
   typeof shotPlanValidationIssueSchema
 >;
 
+const evidenceInsertIdPattern = /^evidence-insert-[a-z0-9][a-z0-9-]*$/;
+const localeTagPattern = /^[a-z]{2}(?:-[a-z0-9]{2,8})*$/iu;
+
+export const evidenceInsertIdSchema = z
+  .string()
+  .regex(evidenceInsertIdPattern)
+  .brand<"EvidenceInsertId">();
+export type EvidenceInsertId = z.infer<typeof evidenceInsertIdSchema>;
+
+export const sourceFactIdSchema =
+  createVisualRetentionIdSchema("SourceFactId");
+export type SourceFactId = z.infer<typeof sourceFactIdSchema>;
+
+export const evidenceInsertLocaleSchema = z
+  .string()
+  .trim()
+  .regex(localeTagPattern)
+  .brand<"EvidenceInsertLocale">();
+export type EvidenceInsertLocale = z.infer<typeof evidenceInsertLocaleSchema>;
+
+export const evidenceInsertKindSchema = z.enum([
+  "clock",
+  "date",
+  "document",
+  "recording",
+  "audio-waveform",
+  "message",
+  "timestamp",
+  "location-label",
+  "room-number",
+  "terminal-log",
+  "medical-reading",
+  "handwritten-note",
+  "newspaper-heading",
+]);
+export type EvidenceInsertKind = z.infer<typeof evidenceInsertKindSchema>;
+
+export const evidenceInsertAnchorSchema = z.enum([
+  "top-left",
+  "top-center",
+  "top-right",
+  "center-left",
+  "center",
+  "center-right",
+  "bottom-left",
+  "bottom-center",
+  "bottom-right",
+]);
+export type EvidenceInsertAnchor = z.infer<typeof evidenceInsertAnchorSchema>;
+
+export const evidenceInsertDimensionsSchema = z
+  .object({
+    widthPx: positiveIntegerSchema,
+    heightPx: positiveIntegerSchema,
+    aspectRatio: aspectRatioSchema,
+  })
+  .strict();
+export type EvidenceInsertDimensions = z.infer<
+  typeof evidenceInsertDimensionsSchema
+>;
+
+export const evidenceInsertLayoutSchema = z
+  .object({
+    bounds: normalizedCropSchema,
+    preferredAnchor: evidenceInsertAnchorSchema,
+    captionSafeExclusion: normalizedCropSchema.optional(),
+    textSafePadding: normalizedUnitIntervalSchema,
+    minReadableHeight: normalizedUnitIntervalSchema,
+    protectedSubregions: z.array(normalizedCropSchema).default([]),
+    compatibleAspectRatios: z.array(aspectRatioSchema).min(1),
+  })
+  .strict();
+export type EvidenceInsertLayout = z.infer<typeof evidenceInsertLayoutSchema>;
+
+const evidenceInsertBaseSchema = z
+  .object({
+    id: evidenceInsertIdSchema,
+    sourceFactId: sourceFactIdSchema,
+    locale: evidenceInsertLocaleSchema,
+    sourceSceneId: sourceSceneIdSchema.optional(),
+    shotId: shotIdSchema.optional(),
+    startMs: nonNegativeIntegerSchema.optional(),
+    endMs: nonNegativeIntegerSchema.optional(),
+    templateVersion: z.string().trim().min(1),
+    dimensions: evidenceInsertDimensionsSchema,
+    layout: evidenceInsertLayoutSchema,
+  })
+  .strict()
+  .superRefine((value, ctx) => {
+    if (
+      value.startMs !== undefined &&
+      value.endMs !== undefined &&
+      value.endMs <= value.startMs
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["endMs"],
+        message: "Evidence insert end time must be after start time.",
+      });
+    }
+  });
+
+export const clockEvidenceInsertSchema = evidenceInsertBaseSchema.extend({
+  kind: z.literal("clock"),
+  content: z
+    .object({
+      timeText: z.string().trim().min(1),
+      label: z.string().trim().min(1).optional(),
+    })
+    .strict(),
+});
+export const dateEvidenceInsertSchema = evidenceInsertBaseSchema.extend({
+  kind: z.literal("date"),
+  content: z
+    .object({
+      dateText: z.string().trim().min(1),
+      calendar: z.string().trim().min(1).optional(),
+    })
+    .strict(),
+});
+export const documentEvidenceInsertSchema = evidenceInsertBaseSchema.extend({
+  kind: z.literal("document"),
+  content: z
+    .object({
+      heading: z.string().trim().min(1),
+      body: z.string().trim().min(1).optional(),
+      classification: z.string().trim().min(1).optional(),
+    })
+    .strict(),
+});
+export const recordingEvidenceInsertSchema = evidenceInsertBaseSchema.extend({
+  kind: z.literal("recording"),
+  content: z
+    .object({
+      label: z.string().trim().min(1),
+      timecode: z.string().trim().min(1).optional(),
+    })
+    .strict(),
+});
+export const audioWaveformEvidenceInsertSchema = evidenceInsertBaseSchema.extend({
+  kind: z.literal("audio-waveform"),
+  content: z
+    .object({
+      label: z.string().trim().min(1),
+      sampleBuckets: z.array(normalizedUnitIntervalSchema).min(4).max(64),
+    })
+    .strict(),
+});
+export const messageEvidenceInsertSchema = evidenceInsertBaseSchema.extend({
+  kind: z.literal("message"),
+  content: z
+    .object({
+      sender: z.string().trim().min(1).optional(),
+      messageText: z.string().trim().min(1),
+      timestampText: z.string().trim().min(1).optional(),
+    })
+    .strict(),
+});
+export const timestampEvidenceInsertSchema = evidenceInsertBaseSchema.extend({
+  kind: z.literal("timestamp"),
+  content: z
+    .object({
+      timestampText: z.string().trim().min(1),
+      label: z.string().trim().min(1).optional(),
+    })
+    .strict(),
+});
+export const locationLabelEvidenceInsertSchema = evidenceInsertBaseSchema.extend({
+  kind: z.literal("location-label"),
+  content: z
+    .object({
+      label: z.string().trim().min(1),
+      coordinatesText: z.string().trim().min(1).optional(),
+    })
+    .strict(),
+});
+export const roomNumberEvidenceInsertSchema = evidenceInsertBaseSchema.extend({
+  kind: z.literal("room-number"),
+  content: z
+    .object({
+      roomNumber: z.string().trim().min(1),
+      label: z.string().trim().min(1).optional(),
+    })
+    .strict(),
+});
+export const terminalLogEvidenceInsertSchema = evidenceInsertBaseSchema.extend({
+  kind: z.literal("terminal-log"),
+  content: z
+    .object({
+      command: z.string().trim().min(1).optional(),
+      outputLine: z.string().trim().min(1),
+    })
+    .strict(),
+});
+export const medicalReadingEvidenceInsertSchema = evidenceInsertBaseSchema.extend({
+  kind: z.literal("medical-reading"),
+  content: z
+    .object({
+      metric: z.string().trim().min(1),
+      value: z.string().trim().min(1),
+      unit: z.string().trim().min(1).optional(),
+    })
+    .strict(),
+});
+export const handwrittenNoteEvidenceInsertSchema = evidenceInsertBaseSchema.extend({
+  kind: z.literal("handwritten-note"),
+  content: z
+    .object({
+      noteText: z.string().trim().min(1),
+      attribution: z.string().trim().min(1).optional(),
+    })
+    .strict(),
+});
+export const newspaperHeadingEvidenceInsertSchema =
+  evidenceInsertBaseSchema.extend({
+    kind: z.literal("newspaper-heading"),
+    content: z
+      .object({
+        headline: z.string().trim().min(1),
+        publication: z.string().trim().min(1).optional(),
+        dateText: z.string().trim().min(1).optional(),
+      })
+      .strict(),
+  });
+
+export const evidenceInsertSchema = z.discriminatedUnion("kind", [
+  clockEvidenceInsertSchema,
+  dateEvidenceInsertSchema,
+  documentEvidenceInsertSchema,
+  recordingEvidenceInsertSchema,
+  audioWaveformEvidenceInsertSchema,
+  messageEvidenceInsertSchema,
+  timestampEvidenceInsertSchema,
+  locationLabelEvidenceInsertSchema,
+  roomNumberEvidenceInsertSchema,
+  terminalLogEvidenceInsertSchema,
+  medicalReadingEvidenceInsertSchema,
+  handwrittenNoteEvidenceInsertSchema,
+  newspaperHeadingEvidenceInsertSchema,
+]);
+export type EvidenceInsert = z.infer<typeof evidenceInsertSchema>;
+
+export const evidenceInsertArtifactSchema = z
+  .object({
+    schemaVersion: z.literal(1),
+    sourceId: episodeIdSchema,
+    locale: evidenceInsertLocaleSchema,
+    variant: contentVariantSchema,
+    inserts: z.array(evidenceInsertSchema),
+  })
+  .strict();
+export type EvidenceInsertArtifact = z.infer<
+  typeof evidenceInsertArtifactSchema
+>;
+
 export const shotPlanSchema = z
   .object({
     schemaVersion: z.literal(1),

@@ -43,3 +43,16 @@ export {
   emptyShotPlanValidationMetrics,
   type ShotPlanValidationMetrics,
 } from "./shot-validation-metrics.js";
+
+export {
+  buildEvidenceInsertCacheIdentity,
+  renderEvidenceInsertSvg,
+  validateEvidenceInsertAgainstFacts,
+  validateEvidenceInsertsAgainstFacts,
+  type EvidenceInsertCacheIdentity,
+  type EvidenceInsertCacheInputs,
+  type EvidenceInsertSvgAsset,
+  type EvidenceInsertValidationIssue,
+  type EvidenceInsertValidationResult,
+  type EvidenceSourceFact,
+} from "./evidence-inserts.js";

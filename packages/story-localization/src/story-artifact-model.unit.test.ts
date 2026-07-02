@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
   adaptCanonicalStoryFactsToStoryIR,
+  buildLocalizedStoryFactDisplay,
   fullStoryOutputConstraintsSchema,
+  localizedStoryFactDisplaySchema,
   normalizeStoryIRCompatibility,
   storyArtifactIdentitySchema,
   storyIrSchema,
@@ -227,6 +229,66 @@ describe("story artifact model", () => {
       },
     });
     expect(storyIr.narrativeMode).toBe("unknown");
+  });
+
+  it("preserves source-fact identity for localized evidence display text", () => {
+    const sourceFact = storyIrSchema.parse({
+      genre: "documentary",
+      fictionality: "nonfiction",
+      narrativeMode: "evidence-led",
+      entities: [],
+      immutableFacts: [
+        {
+          id: "fact-clock",
+          statement: "The clock stopped at 03:17.",
+          confidence: "confirmed",
+          immutable: true,
+        },
+      ],
+      chronology: ["The clock stopped."],
+      centralThreat: {
+        type: "unknown",
+        description: "A reported anomaly",
+        intelligent: false,
+      },
+      centralRuleMechanism: {
+        description: "The evidence remains incomplete.",
+        supernatural: false,
+      },
+      criticalObjects: [],
+      writtenMessages: [],
+      climax: "Investigators recovered the clock.",
+      endingConsequence: "The time remained unexplained.",
+      allowedInventionBoundaries: {
+        dialogue: false,
+        internalThoughts: false,
+        connectiveDetails: true,
+        motives: false,
+        undocumentedActions: false,
+      },
+    }).immutableFacts[0];
+
+    expect(sourceFact).toBeDefined();
+    if (sourceFact === undefined) {
+      return;
+    }
+    const localized = buildLocalizedStoryFactDisplay({
+      sourceFact,
+      locale: "de-DE",
+      displayText: "Die Uhr blieb um 03:17 stehen.",
+    });
+
+    expect(localized).toEqual({
+      sourceFactId: "fact-clock",
+      locale: "de-DE",
+      displayText: "Die Uhr blieb um 03:17 stehen.",
+    });
+    expect(
+      localizedStoryFactDisplaySchema.safeParse({
+        ...localized,
+        locale: "not a locale",
+      }).success,
+    ).toBe(false);
   });
 
   it("preserves existing task-02 issue behavior for location and supernatural nonfiction checks", () => {

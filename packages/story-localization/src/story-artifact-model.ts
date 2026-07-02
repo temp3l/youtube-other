@@ -180,6 +180,29 @@ export const storyFactSchema = z
   .strict();
 export type StoryFact = z.infer<typeof storyFactSchema>;
 
+export const localizedStoryFactDisplaySchema = z
+  .object({
+    sourceFactId: z.string().trim().min(1),
+    locale: z.string().trim().regex(localePattern),
+    displayText: z.string().trim().min(1),
+  })
+  .strict();
+export type LocalizedStoryFactDisplay = z.infer<
+  typeof localizedStoryFactDisplaySchema
+>;
+
+export function buildLocalizedStoryFactDisplay(args: {
+  readonly sourceFact: StoryFact;
+  readonly locale: string;
+  readonly displayText?: string;
+}): LocalizedStoryFactDisplay {
+  return localizedStoryFactDisplaySchema.parse({
+    sourceFactId: args.sourceFact.id,
+    locale: args.locale,
+    displayText: args.displayText ?? args.sourceFact.statement,
+  });
+}
+
 export const centralThreatSchema = z
   .object({
     type: z.enum([
