@@ -352,8 +352,8 @@ function compileFromContext(
   const system = systemSections.join("\n\n");
   const user = [
     userSections.join("\n\n"),
-    context.variant === "short"
-      ? [
+        context.variant === "short"
+          ? [
           "## Short Adaptation Contract",
           `- Preserve the core identity in ${context.adaptationContract.identity.locale}.`,
           `- Reuse the same fictional character names exactly: ${context.characterRenameMap.entries.map((entry) => entry.fictionalName).join(", ") || "none"}`,
@@ -375,19 +375,42 @@ function compileFromContext(
           `- Target narration pace: ${context.adaptationContract.constraints.targetNarrationWpm} WPM`,
           `- Maximum beats: ${context.adaptationContract.constraints.maximumBeats}`,
           `- Forbidden omissions: ${context.adaptationContract.forbiddenOmissions.join(" | ")}`,
-          "- Narrative functions to cover naturally: early hook, minimal setup, understandable threat or rule, concrete proof, personal escalation, consequence, and a concrete final callback.",
+          `- Selected event IDs: ${context.sourceExtraction.selectedEventIds?.join(", ") || "none"}`,
+          `- Beat plan ending strategy: ${context.sourceExtraction.beatPlan?.endingStrategy ?? "unspecified"}`,
+          "- Narrative functions to cover naturally: early hook, setup, evidence, escalation, reversal, reveal, consequence, and sting when the beat plan requires them.",
           "",
-          "<SHORT_ADAPTATION_SOURCE>",
-          ...context.sourceExtraction.beats
-            .filter((beat) => beat.retained)
-            .map((beat) => `- [${beat.id}] ${beat.text}`),
-          "</SHORT_ADAPTATION_SOURCE>",
+          "<SHORT_ADAPTATION_EVENTS>",
+          ...(context.sourceExtraction.events ?? [])
+            .map((event) => {
+              const roles = event.narrativeRoles.join(", ");
+              const dependencies = event.causalDependencyIds.join(", ") || "none";
+              const sourceBeats = event.sourceBeatIds.join(", ") || "none";
+              return [
+                `- [${event.id}] #${event.chronologyIndex} ${event.statement}`,
+                `  roles: ${roles || "none"}`,
+                `  depends-on: ${dependencies}`,
+                `  source-beats: ${sourceBeats}`,
+                `  facts: ${event.mandatoryFacts.join(" | ") || "none"}`,
+              ].join("\n");
+            }),
+          "</SHORT_ADAPTATION_EVENTS>",
+          "",
+          "<SHORT_ADAPTATION_BEAT_PLAN>",
+          ...(context.sourceExtraction.beatPlan?.beats ?? []).map((beat) =>
+            [
+              `- [${beat.id}] ${beat.role} ${beat.targetStartSecond}-${beat.targetEndSecond}s`,
+              `  event-ids: ${beat.eventIds.join(", ") || "none"}`,
+              `  purpose: ${beat.purpose}`,
+            ].join("\n")
+          ),
+          "</SHORT_ADAPTATION_BEAT_PLAN>",
           "",
           "Before returning the result, silently verify:",
-          "- Every concrete action, object, timing detail, reveal, and relationship is supported by the retained source beats or the immutable facts listed above.",
-          "- Remove any unsupported object, place, call, note, injury, motive, or reveal that is not grounded in the source package above.",
-          "- Keep the same ending consequence without inventing a bridge event or a new reveal.",
-          "- Do not append the full-video bridge to the spoken narration after the final horror image.",
+          "- Use only the supplied events, beat plan, immutable facts, and forbidden omissions.",
+          "- Preserve event chronology and keep every sentence advancing the story.",
+          "- Prefer physical action, observable evidence, sensory detail, decisions, rules, reversals, and consequences over commentary.",
+          "- Do not repeat a location or event unless its meaning changes.",
+          "- Do not invent unsupported mechanics, extra reveal logic, or a bridge to the full video.",
         ].join("\n")
       : `<SOURCE_NARRATION>\n${context.sourceStory.narrationParagraphs.join("\n\n")}\n</SOURCE_NARRATION>`,
   ].join("\n\n");

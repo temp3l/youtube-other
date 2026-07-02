@@ -6,6 +6,108 @@ import {
 
 const finitePositiveNumber = z.number().finite().nonnegative();
 const hashSchema = z.string().regex(/^[a-f0-9]{64}$/iu);
+const shortNarrativeRoleSchema = z.enum([
+  "hook",
+  "setup",
+  "evidence",
+  "decision",
+  "escalation",
+  "rule",
+  "reversal",
+  "reveal",
+  "consequence",
+  "sting",
+]);
+const storyEventScoreSchema = z.union([
+  z.literal(1),
+  z.literal(2),
+  z.literal(3),
+  z.literal(4),
+  z.literal(5),
+]);
+const narrationTimingEstimateSchema = z
+  .object({
+    spokenWordDurationMs: z.number().int().positive(),
+    punctuationPauseMs: z.number().int().nonnegative(),
+    suspensePauseMs: z.number().int().nonnegative(),
+    revealPauseMs: z.number().int().nonnegative(),
+    paragraphPauseMs: z.number().int().nonnegative(),
+    totalDurationMs: z.number().int().positive(),
+  })
+  .strict();
+const shortNarrationQualityIssueSchema = z
+  .object({
+    code: z.string().min(1),
+    message: z.string().min(1),
+    severity: z.enum(["warning", "error"]),
+    sentenceRefs: z.array(z.number().int().nonnegative()).optional(),
+    eventIds: z.array(z.string().min(1)).optional(),
+  })
+  .strict();
+const storyEventSchema = z
+  .object({
+    id: z.string().min(1),
+    chronologyIndex: z.number().int().nonnegative(),
+    statement: z.string().min(1),
+    actor: z.string().min(1).optional(),
+    action: z.string().min(1),
+    object: z.string().min(1).optional(),
+    location: z.string().min(1).optional(),
+    narrativeRoles: z.array(shortNarrativeRoleSchema),
+    visualStrength: storyEventScoreSchema,
+    horrorIntensity: storyEventScoreSchema,
+    informationValue: storyEventScoreSchema,
+    causalDependencyIds: z.array(z.string().min(1)),
+    mandatoryFacts: z.array(z.string().min(1)),
+    optionalDetails: z.array(z.string().min(1)),
+    sourceBeatIds: z.array(z.string().min(1)),
+  })
+  .strict();
+const shortBeatPlanBeatSchema = z
+  .object({
+    id: z.string().min(1),
+    role: shortNarrativeRoleSchema,
+    eventIds: z.array(z.string().min(1)),
+    targetStartSecond: z.number().finite().nonnegative(),
+    targetEndSecond: z.number().finite().nonnegative(),
+    purpose: z.string().min(1),
+  })
+  .strict();
+const shortBeatPlanSchema = z
+  .object({
+    targetDurationSeconds: z.union([
+      z.literal(30),
+      z.literal(45),
+      z.literal(60),
+      z.literal(75),
+    ]),
+    selectedEventIds: z.array(z.string().min(1)),
+    beats: z.array(shortBeatPlanBeatSchema),
+    endingStrategy: z.enum([
+      "single-scare",
+      "mid-story-reversal",
+      "main-reveal",
+      "full-ending",
+    ]),
+  })
+  .strict();
+const shortNarrationQualitySummarySchema = z
+  .object({
+    eventCount: z.number().int().nonnegative(),
+    selectedEventCount: z.number().int().nonnegative(),
+    selectedEventIds: z.array(z.string().min(1)),
+    beatRoles: z.array(shortNarrativeRoleSchema),
+    causalDependencyFailures: z.array(z.string().min(1)),
+    eventDensity: z.number().finite().nonnegative(),
+    abstractCommentaryRatio: z.number().finite().min(0).max(1),
+    visualizabilityRatio: z.number().finite().min(0).max(1),
+    storyStateCount: z.number().int().nonnegative(),
+    localeFluencyScore: z.number().finite().min(0).max(1),
+    estimatedDurationSeconds: z.number().finite().nonnegative(),
+    timingEstimate: narrationTimingEstimateSchema,
+    issues: z.array(shortNarrationQualityIssueSchema),
+  })
+  .strict();
 
 const shortRewriteParentIdentitySchema = z
   .object({
@@ -47,9 +149,20 @@ export const shortRewriteSourceExtractionSchema = z
     targetVariant: z.literal("short"),
     maximumBeats: z.number().int().positive(),
     selectedBeatIds: z.array(z.string().min(1)),
+    selectedEventIds: z.array(z.string().min(1)).optional(),
     removedBeatIds: z.array(z.string().min(1)),
     beats: z.array(shortRewriteBeatSchema),
     orphanedReferences: z.array(shortRewriteOrphanedReferenceSchema),
+    events: z.array(storyEventSchema).optional(),
+    beatPlan: shortBeatPlanSchema.optional(),
+    timingEstimate: narrationTimingEstimateSchema.optional(),
+    causalValidation: z
+      .object({
+        status: z.enum(["passed", "failed"]),
+        issues: z.array(z.string().min(1)),
+      })
+      .strict()
+      .optional(),
     extractionHash: hashSchema,
   })
   .strict();
@@ -118,6 +231,16 @@ export const shortRewriteAdaptationContractSchema = z
         extractionHash: hashSchema,
         selectedBeatIds: z.array(z.string().min(1)),
         orphanedReferences: z.array(shortRewriteOrphanedReferenceSchema),
+        selectedEventIds: z.array(z.string().min(1)).optional(),
+        events: z.array(storyEventSchema).optional(),
+        beatPlan: shortBeatPlanSchema.optional(),
+        causalValidation: z
+          .object({
+            status: z.enum(["passed", "failed"]),
+            issues: z.array(z.string().min(1)),
+          })
+          .strict()
+          .optional(),
       })
       .strict(),
     contractHash: hashSchema,
@@ -208,6 +331,7 @@ export const shortRewriteGenerationSchema = z
           .min(0)
           .max(SHORT_REWRITE_THUMBNAIL_WORD_LIMIT),
         warnings: z.array(z.string()),
+        quality: shortNarrationQualitySummarySchema.optional(),
       })
       .strict(),
   })
@@ -300,6 +424,7 @@ export const shortRewriteArtifactSchema = z
           .min(0)
           .max(SHORT_REWRITE_THUMBNAIL_WORD_LIMIT),
         warnings: z.array(z.string()),
+        quality: shortNarrationQualitySummarySchema.optional(),
       })
       .strict(),
   })

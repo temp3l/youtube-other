@@ -705,6 +705,7 @@ function validateFinalMetadata(metadata: YoutubeMetadata, expected: { readonly s
   if (metadata.source.language !== expected.language) {
     throw new MetadataValidationError("Language does not match the configured output language.");
   }
+  validateLocalizedMetadataCopy(metadata, expected);
   if (new Set(metadata.title.alternatives.concat(metadata.title.recommended)).size !== 6) {
     throw new MetadataValidationError("Titles must be unique.");
   }
@@ -770,6 +771,77 @@ function validateFinalMetadata(metadata: YoutubeMetadata, expected: { readonly s
       items: tags,
       characterCount: tagCharacterCount
     }
+  };
+}
+
+function validateLocalizedMetadataCopy(
+  metadata: YoutubeMetadata,
+  expected: { readonly language: string; readonly locale?: string | undefined }
+): void {
+  if (expected.language === "en") {
+    return;
+  }
+  const combinedText = [
+    metadata.title.recommended,
+    ...metadata.title.alternatives,
+    metadata.description,
+    metadata.thumbnail.recommendedText,
+    ...metadata.thumbnail.alternativeTexts,
+    metadata.pinnedComment,
+    metadata.socialTeaser,
+    metadata.contentSummary,
+    ...metadata.chapters.items.map((chapter) => chapter.title),
+  ]
+    .map((entry) => normalizeWhitespace(entry).toLowerCase())
+    .join(" ");
+  const localeHints = getMetadataLocaleHints(expected.language, expected.locale);
+  if (!localeHints.requiredAny.some((entry) => combinedText.includes(entry))) {
+    throw new MetadataValidationError(
+      `Metadata does not appear localized for ${expected.language}.`
+    );
+  }
+  const forbiddenHits = localeHints.forbidden.filter((entry) =>
+    combinedText.includes(entry)
+  );
+  if (forbiddenHits.length > 0) {
+    throw new MetadataValidationError(
+      `Metadata contains likely source-language leakage: ${forbiddenHits[0]}.`
+    );
+  }
+}
+
+function getMetadataLocaleHints(
+  language: string,
+  locale?: string
+): { readonly requiredAny: readonly string[]; readonly forbidden: readonly string[] } {
+  const normalizedLocale = (locale ?? language).toLowerCase();
+  if (normalizedLocale.startsWith("de")) {
+    return {
+      requiredAny: [" der ", " die ", " das ", " und ", " nicht ", " mit "],
+      forbidden: [" the ", " and ", " because ", " here is ", " story "],
+    };
+  }
+  if (normalizedLocale.startsWith("es")) {
+    return {
+      requiredAny: [" el ", " la ", " que ", " de ", " y "],
+      forbidden: [" the ", " and ", " because ", " here is "],
+    };
+  }
+  if (normalizedLocale.startsWith("fr")) {
+    return {
+      requiredAny: [" le ", " la ", " les ", " et ", " dans "],
+      forbidden: [" the ", " and ", " because ", " here is "],
+    };
+  }
+  if (normalizedLocale.startsWith("pt")) {
+    return {
+      requiredAny: [" o ", " a ", " que ", " e ", " não "],
+      forbidden: [" the ", " and ", " because ", " here is "],
+    };
+  }
+  return {
+    requiredAny: [" the ", " and ", " of ", " to ", " in "],
+    forbidden: [],
   };
 }
 
@@ -1393,7 +1465,8 @@ export async function generateYoutubeMetadataForTarget(
       finalMetadata = validateFinalMetadata(normalizeMetadata(parsed.data), {
         sceneCount: target.scenePlan.scenes.length,
         durationSeconds: target.durationSeconds,
-        language: options.language
+        language: options.language,
+        locale: target.locale
       });
     } catch (error: unknown) {
       if (repaired || !(error instanceof MetadataValidationError)) {
@@ -1414,7 +1487,8 @@ export async function generateYoutubeMetadataForTarget(
       finalMetadata = validateFinalMetadata(normalizeMetadata(parsed.data), {
         sceneCount: target.scenePlan.scenes.length,
         durationSeconds: target.durationSeconds,
-        language: options.language
+        language: options.language,
+        locale: target.locale
       });
     }
     const generation: YoutubeMetadataGenerationInfo = {

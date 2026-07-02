@@ -7,6 +7,10 @@ import {
   type StoryIR,
 } from "./story-artifact-model.js";
 import {
+  type NarrationTimingEstimate,
+  type ShortTargetDurationSeconds,
+} from "./narration-constraints.js";
+import {
   type CanonicalStoryFacts,
   type ParsedSourceStory,
 } from "./story-localization.types.js";
@@ -94,6 +98,80 @@ export interface ShortRewriteOrphanedReference {
   readonly firstRetainedBeatId: string;
 }
 
+export type ShortNarrativeRole =
+  | "hook"
+  | "setup"
+  | "evidence"
+  | "decision"
+  | "escalation"
+  | "rule"
+  | "reversal"
+  | "reveal"
+  | "consequence"
+  | "sting";
+
+export interface StoryEvent {
+  readonly id: string;
+  readonly chronologyIndex: number;
+  readonly statement: string;
+  readonly actor?: string | undefined;
+  readonly action: string;
+  readonly object?: string | undefined;
+  readonly location?: string | undefined;
+  readonly narrativeRoles: readonly ShortNarrativeRole[];
+  readonly visualStrength: 1 | 2 | 3 | 4 | 5;
+  readonly horrorIntensity: 1 | 2 | 3 | 4 | 5;
+  readonly informationValue: 1 | 2 | 3 | 4 | 5;
+  readonly causalDependencyIds: readonly string[];
+  readonly mandatoryFacts: readonly string[];
+  readonly optionalDetails: readonly string[];
+  readonly sourceBeatIds: readonly string[];
+}
+
+export interface ShortBeatPlanBeat {
+  readonly id: string;
+  readonly role: ShortNarrativeRole;
+  readonly eventIds: readonly string[];
+  readonly targetStartSecond: number;
+  readonly targetEndSecond: number;
+  readonly purpose: string;
+}
+
+export interface ShortBeatPlan {
+  readonly targetDurationSeconds: 30 | 45 | 60 | 75;
+  readonly selectedEventIds: readonly string[];
+  readonly beats: readonly ShortBeatPlanBeat[];
+  readonly endingStrategy:
+    | "single-scare"
+    | "mid-story-reversal"
+    | "main-reveal"
+    | "full-ending";
+}
+
+export interface ShortNarrationQualityIssue {
+  readonly code: string;
+  readonly message: string;
+  readonly severity: "warning" | "error";
+  readonly sentenceRefs?: readonly number[] | undefined;
+  readonly eventIds?: readonly string[] | undefined;
+}
+
+export interface ShortNarrationQualitySummary {
+  readonly eventCount: number;
+  readonly selectedEventCount: number;
+  readonly selectedEventIds: readonly string[];
+  readonly beatRoles: readonly ShortNarrativeRole[];
+  readonly causalDependencyFailures: readonly string[];
+  readonly eventDensity: number;
+  readonly abstractCommentaryRatio: number;
+  readonly visualizabilityRatio: number;
+  readonly storyStateCount: number;
+  readonly localeFluencyScore: number;
+  readonly estimatedDurationSeconds: number;
+  readonly timingEstimate: NarrationTimingEstimate;
+  readonly issues: readonly ShortNarrationQualityIssue[];
+}
+
 export interface ShortRewriteSourceExtraction {
   readonly version: string;
   readonly parentFullHash: string;
@@ -102,9 +180,17 @@ export interface ShortRewriteSourceExtraction {
   readonly targetVariant: "short";
   readonly maximumBeats: number;
   readonly selectedBeatIds: readonly string[];
+  readonly selectedEventIds?: readonly string[] | undefined;
   readonly removedBeatIds: readonly string[];
   readonly beats: readonly ShortRewriteSourceBeat[];
   readonly orphanedReferences: readonly ShortRewriteOrphanedReference[];
+  readonly events?: readonly StoryEvent[] | undefined;
+  readonly beatPlan?: ShortBeatPlan | undefined;
+  readonly timingEstimate?: NarrationTimingEstimate | undefined;
+  readonly causalValidation?: {
+    readonly status: "passed" | "failed";
+    readonly issues: readonly string[];
+  } | undefined;
   readonly extractionHash: string;
 }
 
@@ -152,7 +238,16 @@ export interface ShortRewriteAdaptationContract {
   readonly sourceExtraction: {
     readonly extractionHash: string;
     readonly selectedBeatIds: readonly string[];
+    readonly selectedEventIds?: readonly string[] | undefined;
+    readonly events?: readonly StoryEvent[] | undefined;
     readonly orphanedReferences: readonly ShortRewriteOrphanedReference[];
+    readonly beatPlan?: ShortBeatPlan | undefined;
+    readonly causalValidation?:
+      | {
+          readonly status: "passed" | "failed";
+          readonly issues: readonly string[];
+        }
+      | undefined;
   };
   readonly contractHash: string;
 }
@@ -182,6 +277,7 @@ export interface ShortRewriteValidation {
   readonly hookMatchesNarration: boolean;
   readonly thumbnailWordCount: number;
   readonly warnings: readonly string[];
+  readonly quality?: ShortNarrationQualitySummary | undefined;
 }
 
 export interface ShortRewriteUsage {
@@ -304,6 +400,7 @@ export interface ShortRewriteJsonSidecar {
       }[]
     | undefined;
   readonly validation: ShortRewriteValidation;
+  readonly quality?: ShortNarrationQualitySummary | undefined;
 }
 
 export interface ShortRewriteRunOptions {
@@ -311,6 +408,7 @@ export interface ShortRewriteRunOptions {
   readonly episode?: string | undefined;
   readonly episodeSlug?: string | undefined;
   readonly outputRoot?: string | undefined;
+  readonly targetDurationSeconds?: ShortTargetDurationSeconds | undefined;
   readonly languages: readonly StoryLanguage[];
   readonly model: string;
   readonly allowSourceInput?: boolean | undefined;

@@ -99,7 +99,8 @@ const modules = [
                 "Do not produce YouTube metadata, tags, chapters, scene plans, image prompts, rendering instructions, thumbnails, audio/TTS instructions, or provider operational notes.",
               ].join("\n")
             : [
-                `Transform the following validated full-length ${context.selectedLocale} horror narration into a short-form narration in ${context.languageProfile.displayName}.`,
+                `Transform the validated short-event plan into short-form narration in ${context.languageProfile.displayName}.`,
+                "Use the supplied atomic events and beat plan, not sentence fragments, as the source of truth for structure.",
                 "Actively improve compression, rhythm, tension, and clarity while preserving the same facts and the same fictional character names.",
                 "Keep the result narration-only and not an audio/TTS prompt.",
                 "Do not produce YouTube metadata, tags, scene plans, image prompts, thumbnails, or provider operational notes.",

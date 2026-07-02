@@ -98,6 +98,9 @@ For German localization:
 - Avoid repeated “doch,” “dann,” “plötzlich,” “für einen Moment,” and “schwer.”
 - Avoid excessive repetition of words such as “seltsam,” “dunkel,” “unheimlich,” “schwer,” and “Stille.”
 - Avoid dense subordinate clauses and excessive nesting.
+- Avoid editorial filler such as “Damit endet die Geschichte nicht,” “Die Angst wurde genauer,” and “Die Geschichte blieb bestehen, weil ...”.
+- After the first full-name mention, prefer the first name unless clarity requires the full name again.
+- Prefer concrete verbs and observable action over abstract explanation.
 - Ensure every pronoun has an unambiguous antecedent.
 - Keep singular and plural references consistent.
 - Maintain consistent forms of address and do not switch arbitrarily between “du” and “Sie.”

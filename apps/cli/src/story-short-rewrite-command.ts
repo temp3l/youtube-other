@@ -29,6 +29,7 @@ export interface StoryRewriteShortCliOptions {
   readonly languages?: string;
   readonly model?: string;
   readonly outputRoot?: string;
+  readonly duration?: 30 | 45 | 60 | 75;
   readonly temperature?: number;
   readonly reasoningEffort?: "none" | "minimal" | "low" | "medium" | "high" | "xhigh";
   readonly maxOutputTokens?: number;
@@ -257,6 +258,20 @@ function resolveModel(
   );
 }
 
+function normalizeTargetDuration(
+  value: number | undefined
+): 30 | 45 | 60 | 75 | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  if (value === 30 || value === 45 || value === 60 || value === 75) {
+    return value;
+  }
+  throw new Error(
+    `Unsupported short duration ${String(value)}. Supported values: 30, 45, 60, 75.`
+  );
+}
+
 function formatSummary(summary: Awaited<ReturnType<typeof rewriteShortStories>>): string {
   const lines = [
     `Episode: ${summary.episodeId} — ${summary.episodeSlug}`,
@@ -292,6 +307,7 @@ export function registerStoryRewriteShortCommand(storiesCommand: Command): void 
     .option("--languages <comma-separated-codes>", "target languages")
     .option("--model <model>", "OpenAI model")
     .option("--output-root <path>", "output root directory")
+    .option("--duration <seconds>", "target short duration in seconds (30, 45, 60, 75)", (value) => Number(value))
     .option("--temperature <number>", "sampling temperature", (value) => Number(value))
     .option("--reasoning-effort <value>", "reasoning effort")
     .option("--max-output-tokens <number>", "maximum output tokens", (value) => Number(value))
@@ -357,6 +373,7 @@ export function registerStoryRewriteShortCommand(storiesCommand: Command): void 
             episode: options.episode,
             episodeSlug: options.episodeSlug,
             outputRoot,
+            targetDurationSeconds: normalizeTargetDuration(options.duration),
             languages,
             model,
             maxOutputTokens:

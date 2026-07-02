@@ -1,8 +1,7 @@
 import {
-  DEFAULT_SHORT_DURATION_WINDOW,
   FAST_NARRATION_WPM,
   NORMAL_NARRATION_WPM,
-  resolveShortNarrationWordRange,
+  resolveShortDurationProfile,
 } from "./narration-constraints.js";
 import { type LanguageCode, type LanguageProfile } from "./story-localization.types.js";
 
@@ -15,12 +14,14 @@ export const LANGUAGE_PROFILES: Readonly<Record<LanguageCode, LanguageProfile>> 
     defaultNarrationPace: "fast",
     narrationPaces: { normal: NORMAL_NARRATION_WPM.en, fast: FAST_NARRATION_WPM.en },
     fullNarrationWpm: FAST_NARRATION_WPM.en.full,
-    shortNarrationWpm: FAST_NARRATION_WPM.en.short,
-    shortWordRange: resolveShortNarrationWordRange({
+    shortNarrationWpm: resolveShortDurationProfile({
       language: "en",
-      pace: "fast",
-      duration: DEFAULT_SHORT_DURATION_WINDOW,
-    }),
+      durationSeconds: 60,
+    }).targetNarrationWpm,
+    shortWordRange: resolveShortDurationProfile({
+      language: "en",
+      durationSeconds: 60,
+    }).targetWordRange,
     stylisticGuidance: [
       "Use natural international English.",
       "Keep spoken narration clear and direct.",
@@ -40,12 +41,14 @@ export const LANGUAGE_PROFILES: Readonly<Record<LanguageCode, LanguageProfile>> 
     defaultNarrationPace: "fast",
     narrationPaces: { normal: NORMAL_NARRATION_WPM.de, fast: FAST_NARRATION_WPM.de },
     fullNarrationWpm: FAST_NARRATION_WPM.de.full,
-    shortNarrationWpm: FAST_NARRATION_WPM.de.short,
-    shortWordRange: resolveShortNarrationWordRange({
+    shortNarrationWpm: resolveShortDurationProfile({
       language: "de",
-      pace: "fast",
-      duration: DEFAULT_SHORT_DURATION_WINDOW,
-    }),
+      durationSeconds: 60,
+    }).targetNarrationWpm,
+    shortWordRange: resolveShortDurationProfile({
+      language: "de",
+      durationSeconds: 60,
+    }).targetWordRange,
     stylisticGuidance: [
       "Use natural standard German.",
       "Avoid bureaucratic wording and nested clauses.",
@@ -64,12 +67,14 @@ export const LANGUAGE_PROFILES: Readonly<Record<LanguageCode, LanguageProfile>> 
     defaultNarrationPace: "fast",
     narrationPaces: { normal: NORMAL_NARRATION_WPM.es, fast: FAST_NARRATION_WPM.es },
     fullNarrationWpm: FAST_NARRATION_WPM.es.full,
-    shortNarrationWpm: FAST_NARRATION_WPM.es.short,
-    shortWordRange: resolveShortNarrationWordRange({
+    shortNarrationWpm: resolveShortDurationProfile({
       language: "es",
-      pace: "fast",
-      duration: DEFAULT_SHORT_DURATION_WINDOW,
-    }),
+      durationSeconds: 60,
+    }).targetNarrationWpm,
+    shortWordRange: resolveShortDurationProfile({
+      language: "es",
+      durationSeconds: 60,
+    }).targetWordRange,
     stylisticGuidance: [
       "Use neutral international Spanish.",
       "Keep the language simple and natural for speech.",
@@ -88,12 +93,14 @@ export const LANGUAGE_PROFILES: Readonly<Record<LanguageCode, LanguageProfile>> 
     defaultNarrationPace: "fast",
     narrationPaces: { normal: NORMAL_NARRATION_WPM.fr, fast: FAST_NARRATION_WPM.fr },
     fullNarrationWpm: FAST_NARRATION_WPM.fr.full,
-    shortNarrationWpm: FAST_NARRATION_WPM.fr.short,
-    shortWordRange: resolveShortNarrationWordRange({
+    shortNarrationWpm: resolveShortDurationProfile({
       language: "fr",
-      pace: "fast",
-      duration: DEFAULT_SHORT_DURATION_WINDOW,
-    }),
+      durationSeconds: 60,
+    }).targetNarrationWpm,
+    shortWordRange: resolveShortDurationProfile({
+      language: "fr",
+      durationSeconds: 60,
+    }).targetWordRange,
     stylisticGuidance: [
       "Use natural international French.",
       "Keep sentences direct and easy to speak.",
@@ -112,12 +119,14 @@ export const LANGUAGE_PROFILES: Readonly<Record<LanguageCode, LanguageProfile>> 
     defaultNarrationPace: "fast",
     narrationPaces: { normal: NORMAL_NARRATION_WPM.pt, fast: FAST_NARRATION_WPM.pt },
     fullNarrationWpm: FAST_NARRATION_WPM.pt.full,
-    shortNarrationWpm: FAST_NARRATION_WPM.pt.short,
-    shortWordRange: resolveShortNarrationWordRange({
+    shortNarrationWpm: resolveShortDurationProfile({
       language: "pt",
-      pace: "fast",
-      duration: DEFAULT_SHORT_DURATION_WINDOW,
-    }),
+      durationSeconds: 60,
+    }).targetNarrationWpm,
+    shortWordRange: resolveShortDurationProfile({
+      language: "pt",
+      durationSeconds: 60,
+    }).targetWordRange,
     stylisticGuidance: [
       "Use Brazilian Portuguese.",
       "Keep the narration natural and broadly understandable.",

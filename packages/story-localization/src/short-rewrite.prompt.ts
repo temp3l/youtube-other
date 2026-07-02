@@ -185,8 +185,8 @@ export function buildShortRewriteRepairPrompt(args: {
   readonly invalidResult: unknown;
   readonly validationErrors: readonly string[];
 }): { readonly system: string; readonly user: string } {
+  void args.invalidResult;
   const basePrompt = buildShortRewritePrompt(args.context);
-  const sanitizedInvalidResult = sanitizeRepairPayload(args.invalidResult);
   const repairSection = [
     "The previous result was invalid.",
     "Fix only the problems described below and return the complete JSON again.",
@@ -194,9 +194,6 @@ export function buildShortRewriteRepairPrompt(args: {
     "",
     "Validation errors:",
     ...args.validationErrors.map((entry) => `- ${entry}`),
-    "",
-    "Invalid short result:",
-    JSON.stringify(sanitizedInvalidResult, null, 2),
     "",
     "Do not repeat the errors in prose.",
   ].join("\n");
@@ -211,54 +208,25 @@ export function buildShortRewriteRepairPrompt(args: {
   };
 }
 
-function sanitizeRepairPayload(value: unknown): unknown {
-  if (Array.isArray(value)) {
-    return value.map((entry) => sanitizeRepairPayload(entry));
-  }
-  if (!value || typeof value !== "object") {
-    return value;
-  }
-  const blockedKeys = new Set([
-    "audioInstructions",
-    "visualDirection",
-    "visualGuidance",
-    "metadata",
-    "repairHistory",
-    "full",
-  ]);
-  return Object.fromEntries(
-    Object.entries(value)
-      .filter(([key]) => !blockedKeys.has(key))
-      .map(([key, entry]) => [key, sanitizeRepairPayload(entry)])
-  );
-}
-
 export function buildShortRewriteRegenerationPrompt(args: {
   readonly context: ShortRewritePromptContext;
   readonly validationErrors: readonly string[];
   readonly invalidResult?: unknown;
 }): { readonly system: string; readonly user: string } {
+  void args.invalidResult;
   const basePrompt = buildShortRewritePrompt(args.context);
-  const invalidResultSection =
-    args.invalidResult === undefined
-      ? []
-      : [
-          "Previous invalid short result:",
-          JSON.stringify(sanitizeRepairPayload(args.invalidResult), null, 2),
-        ];
   const regenerationSection = [
     "Regenerate the short narration from scratch.",
-    "Keep the same parent, source beats, target pace, target duration, target word range, and fictional character map.",
+    "Keep the same parent facts, selected events, validated beat plan, target pace, target duration, target word range, and fictional character map.",
     "Fix these issues in the new result:",
     ...args.validationErrors.map((entry) => `- ${entry}`),
-    ...invalidResultSection,
     "Return only the structured schema result.",
   ].join("\n");
   return {
     system: basePrompt.system,
     user: insertSectionBeforeMarker(
       basePrompt.user,
-      "<SHORT_ADAPTATION_SOURCE>",
+      "<SHORT_ADAPTATION_EVENTS>",
       `${regenerationSection}\n`,
       { strict: true, fileName: "short-rewrite-regenerate" }
     ),

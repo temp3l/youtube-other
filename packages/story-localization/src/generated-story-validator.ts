@@ -4,6 +4,8 @@ import {
   detectOriginalCharacterNameLeaks,
   type CharacterRenameMap,
 } from "./character-rename.service.js";
+import { assessShortNarrationQuality } from "./short-story-event-planner.js";
+import { estimateNarrationDurationSeconds } from "./narration-constraints.js";
 import {
   type FullStoryOutputConstraints,
   type ShortStoryOutputConstraints,
@@ -36,6 +38,7 @@ import {
   type ShortRewriteAdaptationContract,
   type ShortRewriteResolvedParent,
 } from "./short-rewrite.types.js";
+import { type ShortNarrationQualitySummary } from "./short-rewrite.types.js";
 
 const forbiddenPhrases = [
   "Here is the translation",
@@ -99,6 +102,18 @@ export const GENERATED_STORY_VALIDATION_ISSUE_CODES = {
   SHORT_METADATA_AUDIO_VISUAL_LEAKAGE: "SHORT_METADATA_AUDIO_VISUAL_LEAKAGE",
   SHORT_READS_AS_SYNOPSIS: "SHORT_READS_AS_SYNOPSIS",
   SHORT_STRUCTURAL_COMMENTARY: "SHORT_STRUCTURAL_COMMENTARY",
+  SHORT_EVENT_DENSITY_LOW: "SHORT_EVENT_DENSITY_LOW",
+  SHORT_ABSTRACT_COMMENTARY_HIGH: "SHORT_ABSTRACT_COMMENTARY_HIGH",
+  SHORT_SEMANTIC_REPETITION_HIGH: "SHORT_SEMANTIC_REPETITION_HIGH",
+  SHORT_STORY_STATE_PROGRESSION_LOW: "SHORT_STORY_STATE_PROGRESSION_LOW",
+  SHORT_VISUALIZABILITY_LOW: "SHORT_VISUALIZABILITY_LOW",
+  SHORT_SELECTED_EVENT_COVERAGE_LOW: "SHORT_SELECTED_EVENT_COVERAGE_LOW",
+  SHORT_CAUSAL_COMPLETENESS_FAILED: "SHORT_CAUSAL_COMPLETENESS_FAILED",
+  SHORT_LOCALE_FLUENCY_LOW: "SHORT_LOCALE_FLUENCY_LOW",
+  SHORT_DUPLICATE_BEAT_ID: "SHORT_DUPLICATE_BEAT_ID",
+  SHORT_MISSING_EVENT_ID: "SHORT_MISSING_EVENT_ID",
+  SHORT_CHRONOLOGY_INVALID: "SHORT_CHRONOLOGY_INVALID",
+  SHORT_CAUSAL_DEPENDENCY_MISSING: "SHORT_CAUSAL_DEPENDENCY_MISSING",
   SHORT_LANGUAGE_OR_LOCALE_INVALID: "SHORT_LANGUAGE_OR_LOCALE_INVALID",
   SHORT_TRUNCATED: "SHORT_TRUNCATED",
   SHORT_STORY_ROUTED_TO_FULL_REGENERATION:
@@ -114,12 +129,14 @@ export interface GeneratedStoryValidationIssue {
   readonly code: GeneratedStoryValidationIssueCode;
   readonly variant: "full" | "short";
   readonly message: string;
+  readonly severity: "warning" | "error";
 }
 
 export interface GeneratedStoryValidationResult {
   readonly status: "passed" | "failed";
   readonly issues: readonly GeneratedStoryValidationIssue[];
   readonly messages: readonly string[];
+  readonly quality?: ShortNarrationQualitySummary | undefined;
 }
 
 export interface GeneratedStorySemanticValidationAdapter {
@@ -277,11 +294,15 @@ function buildResult(
     (issue, index, array) =>
       array.findIndex(
         (candidate) =>
-          candidate.code === issue.code && candidate.message === issue.message
+          candidate.code === issue.code &&
+          candidate.message === issue.message &&
+          candidate.severity === issue.severity
       ) === index
   );
   return {
-    status: unique.length === 0 ? "passed" : "failed",
+    status: unique.some((issue) => issue.severity === "error")
+      ? "failed"
+      : "passed",
     issues: unique,
     messages: unique.map((issue) => issue.message),
   };
@@ -290,9 +311,10 @@ function buildResult(
 function issue(
   code: GeneratedStoryValidationIssueCode,
   variant: "full" | "short",
-  message: string
+  message: string,
+  severity: "warning" | "error" = "error"
 ): GeneratedStoryValidationIssue {
-  return { code, variant, message };
+  return { code, variant, message, severity };
 }
 
 function firstIndexOfPhrase(text: string, phrase: string): number {
@@ -776,10 +798,10 @@ export function validateShortNarrationArtifact(
   const narration = normalizeWhitespace(args.narration);
   const issues: GeneratedStoryValidationIssue[] = [];
   const wordCount = countSpokenWords(narration);
-  const duration = estimateDurationSeconds(
-    wordCount,
-    args.outputConstraints.targetNarrationWpm
-  );
+  const duration = estimateNarrationDurationSeconds({
+    language: args.language,
+    narrationText: narration,
+  });
   const parentNarration = args.parent.narrationParagraphs.join(" ");
   const openingSeconds =
     estimateDurationSeconds(
@@ -1083,6 +1105,98 @@ export function validateShortNarrationArtifact(
       )
     );
   }
+  const shortExtraction = args.adaptationContract.sourceExtraction;
+  const beatPlan = shortExtraction.beatPlan;
+  const selectedEventIds = shortExtraction.selectedEventIds ?? beatPlan?.selectedEventIds ?? [];
+  const selectedEventLookup = new Set(selectedEventIds);
+  const selectedEvents =
+    shortExtraction.events?.filter((event) => selectedEventLookup.has(event.id)) ?? [];
+  let quality: ShortNarrationQualitySummary | undefined;
+  if (beatPlan) {
+    const duplicateBeatIds = beatPlan.beats
+      .map((beat) => beat.id)
+      .filter((beatId, index, array) => array.indexOf(beatId) !== index);
+    if (duplicateBeatIds.length > 0) {
+      issues.push(
+        issue(
+          GENERATED_STORY_VALIDATION_ISSUE_CODES.SHORT_DUPLICATE_BEAT_ID,
+          "short",
+          `Duplicate beat IDs found in short beat plan: ${duplicateBeatIds[0]}.`
+        )
+      );
+    }
+    const missingEventIds = beatPlan.beats.flatMap((beat) => beat.eventIds).filter((eventId) =>
+      shortExtraction.events?.some((event) => event.id === eventId) === false
+    );
+    if (missingEventIds.length > 0) {
+      issues.push(
+        issue(
+          GENERATED_STORY_VALIDATION_ISSUE_CODES.SHORT_MISSING_EVENT_ID,
+          "short",
+          `Beat plan references missing event IDs: ${missingEventIds.slice(0, 3).join(", ")}.`
+        )
+      );
+    }
+    const chronologyInvalid = beatPlan.beats.some((beat, index) => {
+      if (index === 0) {
+        return false;
+      }
+      const previous = beatPlan.beats[index - 1];
+      if (!previous) {
+        return false;
+      }
+      return (
+        beat.targetStartSecond < previous.targetStartSecond ||
+        beat.targetEndSecond < beat.targetStartSecond ||
+        previous.targetEndSecond > beat.targetStartSecond + 5
+      );
+    });
+    if (chronologyInvalid) {
+      issues.push(
+        issue(
+          GENERATED_STORY_VALIDATION_ISSUE_CODES.SHORT_CHRONOLOGY_INVALID,
+          "short",
+          "Short beat plan chronology is invalid."
+        )
+      );
+    }
+    const missingDependencies = selectedEvents.flatMap((event) =>
+      event.causalDependencyIds.filter((dependencyId) => !selectedEventLookup.has(dependencyId))
+    );
+    if (missingDependencies.length > 0) {
+      issues.push(
+        issue(
+          GENERATED_STORY_VALIDATION_ISSUE_CODES.SHORT_CAUSAL_DEPENDENCY_MISSING,
+          "short",
+          `Selected events are missing causal dependencies: ${missingDependencies.slice(0, 3).join(", ")}.`
+        )
+      );
+    }
+    quality = assessShortNarrationQuality({
+      narrationText: narration,
+      selectedEvents,
+      beatPlan,
+      causalValidation: shortExtraction.causalValidation ?? {
+        status: "failed",
+        issues: ["Missing short causal validation."],
+      },
+      language: args.language,
+      targetDurationSeconds: beatPlan.targetDurationSeconds,
+      ...(shortExtraction.events !== undefined
+        ? { totalEventCount: shortExtraction.events.length }
+        : {}),
+    });
+    issues.push(
+      ...quality.issues.map((entry) =>
+        issue(
+          entry.code as GeneratedStoryValidationIssueCode,
+          "short",
+          entry.message,
+          entry.severity
+        )
+      )
+    );
+  }
   if (detectTruncation(narration)) {
     issues.push(
       issue(
@@ -1099,11 +1213,11 @@ export function validateShortNarrationArtifact(
     });
     if (leaks.length > 0) {
       issues.push(
-        issue(
-          GENERATED_STORY_VALIDATION_ISSUE_CODES.ORIGINAL_CHARACTER_NAME_LEAK,
-          "short",
-          `Original character name leak detected: ${leaks[0]}.`
-        )
+      issue(
+        GENERATED_STORY_VALIDATION_ISSUE_CODES.ORIGINAL_CHARACTER_NAME_LEAK,
+        "short",
+        `Original character name leak detected: ${leaks[0]}.`
+      )
       );
     }
   }
@@ -1118,7 +1232,8 @@ export function validateShortNarrationArtifact(
       })
     );
   }
-  return buildResult(issues);
+  const result = buildResult(issues);
+  return quality ? { ...result, quality } : result;
 }
 
 function validateFullStoryPackageNarration(

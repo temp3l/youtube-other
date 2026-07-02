@@ -19,6 +19,7 @@ import { buildLocalizationPrompt } from "./localization-prompt-builder.js";
 import { compileFullStoryPrompt } from "./story-prompt-compiler.js";
 import { extractCanonicalStoryFacts } from "./canonical-facts.service.js";
 import {
+  assertSupportedStoryOutputDirectory,
   discoverCanonicalSourceStories,
   resolveDefaultOutputDirectory,
   resolveDefaultSourceDirectory,
@@ -3772,7 +3773,7 @@ export function createStoryLocalizationConfig(
   const sourceDirectory = path.resolve(
     input.sourceDirectory ?? resolveDefaultSourceDirectory()
   );
-  const outputDirectory = path.resolve(
+  const outputDirectory = assertSupportedStoryOutputDirectory(
     input.outputDirectory ?? resolveDefaultOutputDirectory()
   );
   const normalizedLanguages: Exclude<LanguageCode, "en">[] = [

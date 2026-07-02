@@ -242,6 +242,19 @@ describe("story localization helpers", () => {
     );
   });
 
+  it("rejects the legacy youtube-horror-rewrites output root", () => {
+    expect(() =>
+      createStoryLocalizationConfig({
+        outputDirectory: path.join(
+          repoRoot,
+          "content-ideas",
+          "content",
+          "youtube-horror-rewrites"
+        ),
+      })
+    ).toThrow("Legacy rewrite output path is not supported");
+  });
+
   it("parses canonical source filenames", () => {
     expect(
       parseCanonicalSourceFilename("002-even-killers-can-lick-en-full.md")
@@ -551,7 +564,6 @@ describe("story localization helpers", () => {
       outputDirectory: tempDir,
       languages: [],
       includeEnglishShort: false,
-      includeLocalizedShorts: false,
       processingMode: "sync",
       force: false,
     });
@@ -583,7 +595,6 @@ describe("story localization helpers", () => {
       outputDirectory: tempDir,
       languages: ["es"],
       includeEnglishShort: false,
-      includeLocalizedShorts: false,
       processingMode: "sync",
       force: true,
       maxOutputTokens: 6000,

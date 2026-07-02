@@ -30,6 +30,7 @@ export * from "./source-cleaning.js";
 export * from "./source-cleaning-persistence.js";
 export * from "./language-profiles.js";
 export * from "./narration-constraints.js";
+export * from "./short-story-event-planner.js";
 export * from "./character-rename.service.js";
 export * from "./story-localization.utils.js";
 export * from "./source-story-discovery.js";

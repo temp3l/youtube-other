@@ -16,6 +16,9 @@ export const DEFAULT_SOURCE_DIRECTORY =
 export const DEFAULT_OUTPUT_DIRECTORY =
   "./content-ideas/content/dark-truth-episodes";
 
+export const LEGACY_REWRITE_OUTPUT_DIRECTORY =
+  "./content-ideas/content/youtube-horror-rewrites";
+
 const canonicalSourceFilePattern =
   /^(?<episodeNumber>\d{3})-(?<slug>.+)-en-full\.md$/u;
 
@@ -48,6 +51,20 @@ export function resolveDefaultSourceDirectory(): string {
 
 export function resolveDefaultOutputDirectory(): string {
   return path.resolve(getRepoRoot(), DEFAULT_OUTPUT_DIRECTORY);
+}
+
+export function assertSupportedStoryOutputDirectory(directory: string): string {
+  const resolved = path.resolve(directory);
+  const legacyRoot = path.resolve(getRepoRoot(), LEGACY_REWRITE_OUTPUT_DIRECTORY);
+  if (
+    resolved === legacyRoot ||
+    resolved.startsWith(`${legacyRoot}${path.sep}`)
+  ) {
+    throw new StorySourceDiscoveryError(
+      `Legacy rewrite output path is not supported for generated stories: ${resolved}. Use ${resolveDefaultOutputDirectory()} or an episode workspace root instead.`
+    );
+  }
+  return resolved;
 }
 
 export function parseCanonicalSourceFilename(fileName: string): SourceStoryCandidate {

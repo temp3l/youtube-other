@@ -13,6 +13,7 @@ import {
   DEFAULT_STORY_REWRITE_REASONING_EFFORT,
   SHORT_REWRITE_DEFAULT_TEMPERATURE,
   type LanguageCode,
+  assertSupportedStoryOutputDirectory,
   resolveFullRewriteInput,
   localizeStoryEpisode,
   materializeCanonicalSourceStory,
@@ -130,7 +131,9 @@ export function registerStoryRewriteFullCommand(storiesCommand: Command): void {
       }
 
       const runtimeConfig = await loadRuntimeConfig();
-      const outputRoot = path.resolve(options.outputRoot ?? runtimeConfig.workspaceDir);
+      const outputRoot = assertSupportedStoryOutputDirectory(
+        path.resolve(options.outputRoot ?? runtimeConfig.workspaceDir)
+      );
       const resolved = await resolveFullRewriteInput({
         inputPath: options.input,
         episode: options.episode,

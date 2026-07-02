@@ -26,9 +26,9 @@ import {
   SHORT_REWRITE_DEFAULT_MAX_SOURCE_BYTES,
   SHORT_REWRITE_DEFAULT_TEMPERATURE,
   SHORT_REWRITE_DEFAULT_TIMEOUT_MS,
-  SHORT_REWRITE_HARD_WORD_RANGE,
   SHORT_REWRITE_PROMPT_VERSION,
   SHORT_REWRITE_SUPPORTED_LANGUAGES,
+  SHORT_REWRITE_THUMBNAIL_WORD_LIMIT,
   type ShortRewriteLanguage,
 } from "./short-rewrite.constants.js";
 import {
@@ -43,8 +43,13 @@ import {
   buildShortRewriteRepairPrompt,
 } from "./short-rewrite.prompt.js";
 import { compileShortStoryPrompt } from "./story-prompt-compiler.js";
+import { assessShortNarrationQuality } from "./short-story-event-planner.js";
 import { extractCanonicalStoryFacts } from "./canonical-facts.service.js";
 import { adaptCanonicalStoryFactsToStoryIR } from "./story-artifact-model.js";
+import {
+  resolveShortDurationProfile,
+  type ShortTargetDurationSeconds,
+} from "./narration-constraints.js";
 import {
   AmbiguousStoryInputError,
   ExistingArtifactError,
@@ -118,6 +123,7 @@ import {
   type ShortRewriteRunOptions,
   type ShortRewriteRunSummary,
   type ShortRewriteServices,
+  type ShortNarrationQualitySummary,
   type ShortRewriteSourceExtraction,
   type StoryLanguage,
 } from "./short-rewrite.types.js";
@@ -323,7 +329,7 @@ function buildFailedRequestMetadata(args: {
 
 function shouldUseTargetedShortRepair(errors: readonly string[]): boolean {
   return errors.every((entry) =>
-    /hook|word count|duration estimate|production labels|editorial commentary|thumbnail|unsupported facts?|orphaned references?/iu.test(
+    /production labels|editorial commentary|locale fluency|wrong language|language\/locale|metadata|thumbnail/i.test(
       entry
     )
   );
@@ -995,6 +1001,120 @@ function buildCompatibilityParent(args: {
   };
 }
 
+function resolveRequestedShortDurationSeconds(
+  value: ShortTargetDurationSeconds | undefined
+): ShortTargetDurationSeconds {
+  return value ?? 60;
+}
+
+function buildShortOutputConstraints(args: {
+  readonly language: StoryLanguage;
+  readonly targetDurationSeconds: ShortTargetDurationSeconds;
+}) {
+  const durationProfile = resolveShortDurationProfile({
+    language: args.language,
+    durationSeconds: args.targetDurationSeconds,
+  });
+  return {
+    variant: "short" as const,
+    targetWordRange: {
+      min: durationProfile.targetWordRange.min,
+      max: durationProfile.targetWordRange.max,
+    },
+    targetNarrationWpm: durationProfile.targetNarrationWpm,
+    targetDuration: {
+      minSeconds: durationProfile.targetDuration.minSeconds,
+      maxSeconds: durationProfile.targetDuration.maxSeconds,
+    },
+    hookDeadlineSeconds: 8,
+    fullVideoBridgeRequired: true,
+  };
+}
+
+function localizedFullVideoBridge(language: StoryLanguage): string {
+  switch (language) {
+    case "de":
+      return "Die ganze Episode zeigt die vollständige Geschichte.";
+    case "es":
+      return "El episodio completo cuenta toda la historia.";
+    case "fr":
+      return "L'episode complet raconte toute l'histoire.";
+    case "pt":
+      return "O episodio completo mostra a historia inteira.";
+    case "en":
+    default:
+      return "The full episode tells the complete story.";
+  }
+}
+
+function buildLocalizedShortMetadata(args: {
+  readonly language: StoryLanguage;
+  readonly narration: string;
+  readonly parentTitle: string;
+}): Pick<ShortRewriteGeneration, "title" | "thumbnailText" | "fullVideoBridge"> {
+  const narration = normalizeWhitespace(args.narration);
+  const openingSentence = normalizeWhitespace(firstSentence(narration));
+  const title =
+    openingSentence.length > 0
+      ? openingSentence.slice(0, 90)
+      : normalizeWhitespace(args.parentTitle);
+  const thumbnailSource = openingSentence.length > 0 ? openingSentence : title;
+  const thumbnailText = thumbnailSource
+    .split(/\s+/u)
+    .slice(0, SHORT_REWRITE_THUMBNAIL_WORD_LIMIT)
+    .join(" ");
+  return {
+    title,
+    thumbnailText: normalizeWhitespace(thumbnailText) || normalizeWhitespace(args.parentTitle),
+    fullVideoBridge: localizedFullVideoBridge(args.language),
+  };
+}
+
+function validateLocalizedShortMetadata(args: {
+  readonly language: StoryLanguage;
+  readonly generation: Pick<ShortRewriteGeneration, "title" | "thumbnailText" | "fullVideoBridge">;
+}): string[] {
+  const values = [
+    args.generation.title,
+    args.generation.thumbnailText,
+    args.generation.fullVideoBridge,
+  ]
+    .map((value) => ` ${normalizeWhitespace(value).toLowerCase()} `)
+    .join(" ");
+  const rules: Record<StoryLanguage, { readonly requiredAny: readonly string[]; readonly forbidden: readonly string[] }> = {
+    en: {
+      requiredAny: [" the ", " and ", " of ", " to ", " in "],
+      forbidden: [],
+    },
+    de: {
+      requiredAny: [" der ", " die ", " das ", " und ", " nicht ", " mit "],
+      forbidden: [" the ", " and ", " because ", " here is ", " watch the full episode "],
+    },
+    es: {
+      requiredAny: [" el ", " la ", " que ", " de ", " y "],
+      forbidden: [" the ", " and ", " watch the full episode "],
+    },
+    fr: {
+      requiredAny: [" le ", " la ", " les ", " et ", " dans "],
+      forbidden: [" the ", " and ", " watch the full episode "],
+    },
+    pt: {
+      requiredAny: [" o ", " a ", " que ", " e ", " não "],
+      forbidden: [" the ", " and ", " watch the full episode "],
+    },
+  };
+  const profile = rules[args.language];
+  const issues: string[] = [];
+  if (!profile.requiredAny.some((entry) => values.includes(entry))) {
+    issues.push(`Short metadata does not appear localized for ${args.language}.`);
+  }
+  const forbidden = profile.forbidden.find((entry) => values.includes(entry));
+  if (forbidden) {
+    issues.push(`Short metadata contains source-language leakage: ${forbidden.trim()}.`);
+  }
+  return issues;
+}
+
 async function resolveShortRewriteParent(args: {
   readonly outputRoot: string;
   readonly source: ResolvedShortRewriteSource;
@@ -1020,9 +1140,22 @@ function analyzeGeneratedPayload(args: {
   readonly parentTitle: string;
   readonly parent: ShortRewriteResolvedParent;
   readonly adaptationContract: ShortRewriteAdaptationContract;
+  readonly outputConstraints: {
+    readonly targetNarrationWpm: number;
+    readonly targetDuration: {
+      readonly minSeconds: number;
+      readonly maxSeconds: number;
+    };
+    readonly targetWordRange: {
+      readonly min: number;
+      readonly max: number;
+    };
+    readonly hookDeadlineSeconds: number;
+  };
 }): {
   readonly generation: ShortRewriteGeneration;
   readonly validation: ReturnType<typeof buildValidationSummary>;
+  readonly quality: ShortNarrationQualitySummary | undefined;
   readonly warnings: string[];
   readonly issues: string[];
   readonly issueCodes: readonly GeneratedStoryValidationIssueCode[];
@@ -1035,18 +1168,19 @@ function analyzeGeneratedPayload(args: {
     firstSentence(narration),
     narration
   );
+  const localizedMetadata = buildLocalizedShortMetadata({
+    language: args.language,
+    narration,
+    parentTitle: args.parentTitle,
+  });
   const validation = buildValidationSummary({
     wordCount,
     hookMatchesNarration,
-    thumbnailText: args.parentTitle.split(" ").slice(0, 4).join(" "),
+    thumbnailText: localizedMetadata.thumbnailText,
     narration,
+    targetWordRange: args.outputConstraints.targetWordRange,
   });
   const warnings = [...validation.warnings];
-  if (wordCount >= 145 && wordCount < 150) {
-    warnings.push(
-      "Narration is below the preferred range but above the hard minimum."
-    );
-  }
   const validationResult = validateShortNarrationArtifact({
     language: args.language,
     profile: getLanguageProfile(args.language),
@@ -1058,30 +1192,58 @@ function analyzeGeneratedPayload(args: {
     adaptationContract: args.adaptationContract,
     outputConstraints: {
       variant: "short",
-      targetWordRange: args.adaptationContract.constraints.targetWordRange,
-      targetNarrationWpm: args.adaptationContract.constraints.targetNarrationWpm,
+      targetWordRange: args.outputConstraints.targetWordRange,
+      targetNarrationWpm: args.outputConstraints.targetNarrationWpm,
       targetDuration: {
-        minSeconds: args.adaptationContract.constraints.targetDurationSeconds.min,
-        maxSeconds: args.adaptationContract.constraints.targetDurationSeconds.max,
+        minSeconds: args.outputConstraints.targetDuration.minSeconds,
+        maxSeconds: args.outputConstraints.targetDuration.maxSeconds,
       },
-      hookDeadlineSeconds: args.adaptationContract.constraints.hookDeadlineSeconds,
+      hookDeadlineSeconds: args.outputConstraints.hookDeadlineSeconds,
       fullVideoBridgeRequired: true,
     },
     characterRenameMap: args.parent.characterRenameMap,
   });
+  const selectedEvents =
+    args.adaptationContract.sourceExtraction.events?.filter((event) =>
+      args.adaptationContract.sourceExtraction.selectedEventIds?.includes(event.id)
+    ) ?? [];
+  const quality =
+    args.adaptationContract.sourceExtraction.beatPlan &&
+    args.adaptationContract.sourceExtraction.causalValidation
+      ? assessShortNarrationQuality({
+          narrationText: narration,
+          selectedEvents,
+          beatPlan: args.adaptationContract.sourceExtraction.beatPlan,
+          causalValidation: args.adaptationContract.sourceExtraction.causalValidation,
+          language: args.language,
+          targetDurationSeconds:
+            args.adaptationContract.sourceExtraction.beatPlan.targetDurationSeconds,
+          ...(args.adaptationContract.sourceExtraction.events !== undefined
+            ? {
+                totalEventCount:
+                  args.adaptationContract.sourceExtraction.events.length,
+              }
+            : {}),
+        })
+      : undefined;
+  const metadataIssues = validateLocalizedShortMetadata({
+    language: args.language,
+    generation: localizedMetadata,
+  });
   const issues = [...validationResult.messages];
   const issueCodes = validationResult.issues.map((issue) => issue.code);
+  issues.push(...metadataIssues);
   const generation: ShortRewriteGeneration = {
-    title: normalizeWhitespace(args.parentTitle),
+    title: localizedMetadata.title,
     hook: firstSentence(narration),
     narration,
     wordCount,
     estimatedDurationSecondsAt175Wpm: duration175,
     estimatedDurationSecondsAt180Wpm: duration180,
-    thumbnailText: args.parentTitle.split(" ").slice(0, 4).join(" "),
-    fullVideoBridge: "Watch the full episode for the complete story.",
+    thumbnailText: localizedMetadata.thumbnailText,
+    fullVideoBridge: localizedMetadata.fullVideoBridge,
   };
-  return { generation, validation, warnings, issues, issueCodes };
+  return { generation, validation, quality, warnings, issues, issueCodes };
 }
 
 function buildRequestSchema(): z.ZodTypeAny {
@@ -1800,8 +1962,13 @@ async function generateLanguagePayload(
     };
   };
   if (args.dryRun) {
+    const dryRunMetadata = buildLocalizedShortMetadata({
+      language: args.language,
+      narration: args.parent.narrationParagraphs.join("\n\n"),
+      parentTitle: args.parent.title,
+    });
     const generation: ShortRewriteGeneration = {
-      title: `${args.parent.title} (${languageDefinition.name})`,
+      title: dryRunMetadata.title,
       hook: firstSentence(args.parent.narrationParagraphs.join(" ")),
       narration: args.parent.narrationParagraphs.join("\n\n"),
       wordCount: countSpokenWords(args.parent.narrationParagraphs.join(" ")),
@@ -1813,14 +1980,15 @@ async function generateLanguagePayload(
         countSpokenWords(args.parent.narrationParagraphs.join(" ")),
         180
       ),
-      thumbnailText: args.parent.title.split(" ").slice(0, 4).join(" "),
-      fullVideoBridge: "Read the full episode for the complete story.",
+      thumbnailText: dryRunMetadata.thumbnailText,
+      fullVideoBridge: dryRunMetadata.fullVideoBridge,
     };
     const validation = buildValidationSummary({
       wordCount: generation.wordCount,
       hookMatchesNarration: true,
       thumbnailText: generation.thumbnailText,
       narration: generation.narration,
+      targetWordRange: args.adaptationContract.constraints.targetWordRange,
     });
     const generatedAt = new Date().toISOString();
     const artifact = shortRewriteArtifactSchema.parse(
@@ -2007,6 +2175,15 @@ async function generateLanguagePayload(
     parentTitle: args.parent.title,
     parent: args.parent,
     adaptationContract: args.adaptationContract,
+    outputConstraints: {
+      targetNarrationWpm: args.adaptationContract.constraints.targetNarrationWpm,
+      targetDuration: {
+        minSeconds: args.adaptationContract.constraints.targetDurationSeconds.min,
+        maxSeconds: args.adaptationContract.constraints.targetDurationSeconds.max,
+      },
+      targetWordRange: args.adaptationContract.constraints.targetWordRange,
+      hookDeadlineSeconds: args.adaptationContract.constraints.hookDeadlineSeconds,
+    },
   });
   let requestId = initialResponse.id;
   let usage = buildUsagePayload({
@@ -2028,6 +2205,7 @@ async function generateLanguagePayload(
   });
   let generation = initialAnalysis.generation;
   let validation = initialAnalysis.validation;
+  let quality = initialAnalysis.quality;
   let responsePayload = initialParsed;
   let issues = initialAnalysis.issues;
   let issueCodes = initialAnalysis.issueCodes;
@@ -2101,9 +2279,19 @@ async function generateLanguagePayload(
         parentTitle: args.parent.title,
         parent: args.parent,
         adaptationContract: args.adaptationContract,
+        outputConstraints: {
+          targetNarrationWpm: args.adaptationContract.constraints.targetNarrationWpm,
+          targetDuration: {
+            minSeconds: args.adaptationContract.constraints.targetDurationSeconds.min,
+            maxSeconds: args.adaptationContract.constraints.targetDurationSeconds.max,
+          },
+          targetWordRange: args.adaptationContract.constraints.targetWordRange,
+          hookDeadlineSeconds: args.adaptationContract.constraints.hookDeadlineSeconds,
+        },
       });
       generation = repairedAnalysis.generation;
       validation = repairedAnalysis.validation;
+      quality = repairedAnalysis.quality;
       warnings = [...repairedAnalysis.warnings];
       issues = repairedAnalysis.issues;
       issueCodes = repairedAnalysis.issueCodes;
@@ -2162,9 +2350,19 @@ async function generateLanguagePayload(
         parentTitle: args.parent.title,
         parent: args.parent,
         adaptationContract: args.adaptationContract,
+        outputConstraints: {
+          targetNarrationWpm: args.adaptationContract.constraints.targetNarrationWpm,
+          targetDuration: {
+            minSeconds: args.adaptationContract.constraints.targetDurationSeconds.min,
+            maxSeconds: args.adaptationContract.constraints.targetDurationSeconds.max,
+          },
+          targetWordRange: args.adaptationContract.constraints.targetWordRange,
+          hookDeadlineSeconds: args.adaptationContract.constraints.hookDeadlineSeconds,
+        },
       });
       generation = regeneratedAnalysis.generation;
       validation = regeneratedAnalysis.validation;
+      quality = regeneratedAnalysis.quality;
       warnings = [...regeneratedAnalysis.warnings];
       issues = regeneratedAnalysis.issues;
       issueCodes = regeneratedAnalysis.issueCodes;
@@ -2279,6 +2477,7 @@ async function generateLanguagePayload(
     validation: {
       ...validation,
       warnings,
+      ...(quality ? { quality } : {}),
     },
   };
   const artifact = shortRewriteArtifactSchema.parse(
@@ -2349,7 +2548,10 @@ async function generateLanguagePayload(
         responseSchemaFingerprint: compiledPrompt.responseSchema.fingerprint,
       },
       ...(repairHistory.length > 0 ? { repairHistory } : {}),
-      validation,
+      validation: {
+        ...validation,
+        ...(quality ? { quality } : {}),
+      },
     })
   );
   const markdown = buildShortRewriteMarkdown({
@@ -2531,6 +2733,9 @@ export async function rewriteShortStories(
   > = {}
 ): Promise<ShortRewriteRunSummary> {
   const runId = randomUUID();
+  const targetDurationSeconds = resolveRequestedShortDurationSeconds(
+    options.targetDurationSeconds
+  );
   const logger =
     services.logger ?? createLogger(options.verbose ? "debug" : "info");
   const outputRoot = path.resolve(
@@ -2627,20 +2832,10 @@ export async function rewriteShortStories(
       language,
       allowSourceInput: options.allowSourceInput ?? false,
     });
-    const outputConstraints = {
-      variant: "short" as const,
-      targetWordRange: {
-        min: SHORT_REWRITE_HARD_WORD_RANGE.min,
-        max: SHORT_REWRITE_HARD_WORD_RANGE.max,
-      },
-      targetNarrationWpm: 178,
-      targetDuration: {
-        minSeconds: 55,
-        maxSeconds: 65,
-      },
-      hookDeadlineSeconds: 8,
-      fullVideoBridgeRequired: true,
-    };
+    const outputConstraints = buildShortOutputConstraints({
+      language,
+      targetDurationSeconds,
+    });
     const sourceExtraction = buildShortSourceExtraction({
       parent,
       storyIr: canonicalStoryIr,

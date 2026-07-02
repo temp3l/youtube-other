@@ -66,7 +66,7 @@ const fallbackVoiceSettingsDocument = [
   fallbackVoiceInstructions["very-fast"]
 ].join("\n");
 
-export const DEFAULT_SPEECH_VOICE = "ash";
+export const DEFAULT_SPEECH_VOICE = "onyx";
 
 function inferPresetFromHeading(heading: string): SpeechVoicePreset | null {
   const normalized = heading.trim().toLowerCase();

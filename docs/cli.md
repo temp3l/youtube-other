@@ -259,6 +259,7 @@ Options:
 ```bash
 npm run mediaforge -- stories rewrite-short \
   --episode 009 \
+  --duration 60 \
   --languages en,de,es,fr,pt \
   --resume
 ```
@@ -272,6 +273,7 @@ Options:
 - `--languages <comma-separated-codes>`
 - `--model <model>`
 - `--output-root <path>`
+- `--duration <30|45|60|75>`
 - `--temperature <number>`
 - `--reasoning-effort <value>`
 - `--max-output-tokens <number>`
@@ -288,6 +290,16 @@ Options:
 - `--verbose`
 
 Supported story language codes are `en`, `de`, `es`, `fr`, and `pt`. Full localization command defaults for non-English languages are `de,es,fr,pt`; short rewrite defaults to `en` when no language is provided.
+
+`story-short-evaluate` inspects a persisted short artifact and reports the selected events, beat plan, duration alignment, and quality signals without regenerating the story.
+
+```bash
+npm run mediaforge -- story-short-evaluate \
+  --episode 021-the-rake-at-the-bedroom-window \
+  --language de \
+  --duration 60 \
+  --json
+```
 
 `stories analyze` evaluates a persisted full story artifact and persists `episodes/<episode-slug>/<language>/full/story-production-analysis.json`.
 

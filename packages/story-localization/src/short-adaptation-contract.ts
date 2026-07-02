@@ -4,6 +4,7 @@ import {
   type ShortStoryOutputConstraints,
   type StoryIR,
 } from "./story-artifact-model.js";
+import { buildShortStoryEventPlan } from "./short-story-event-planner.js";
 import {
   shortRewriteAdaptationContractSchema,
   shortRewriteSourceExtractionSchema,
@@ -94,6 +95,41 @@ function isMeaningfulOrphanedReference(reference: string): boolean {
 
 function uniqueStrings(values: readonly string[]): readonly string[] {
   return [...new Set(values.map((entry) => normalizeWhitespace(entry)).filter(Boolean))];
+}
+
+function buildPlannerCanonicalFacts(args: {
+  readonly storyIr: StoryIR;
+  readonly episodeId: string;
+  readonly title: string;
+}): {
+  readonly episodeNumber: string;
+  readonly primaryTitle: string;
+  readonly characters: readonly {
+    readonly name: string;
+    readonly role: string;
+  }[];
+  readonly setting?: string;
+  readonly criticalObjects: readonly string[];
+  readonly criticalEvents: readonly string[];
+  readonly writtenMessages: readonly string[];
+  readonly threat: string;
+  readonly primaryReveal: string;
+  readonly finalConsequence: string;
+} {
+  return {
+    episodeNumber: args.episodeId,
+    primaryTitle: args.title,
+    characters: [] as const,
+    ...(args.storyIr.centralThreat.description
+      ? { setting: args.storyIr.centralThreat.description }
+      : {}),
+    criticalObjects: args.storyIr.criticalObjects.map((object) => object.name),
+    criticalEvents: args.storyIr.chronology.slice(0, 6),
+    writtenMessages: args.storyIr.writtenMessages.map((message) => message.text),
+    threat: args.storyIr.centralThreat.description,
+    primaryReveal: args.storyIr.climax,
+    finalConsequence: args.storyIr.endingConsequence,
+  };
 }
 
 function collectStandaloneReferenceTokens(
@@ -528,12 +564,40 @@ export function buildShortSourceExtraction(args: {
     args.outputConstraints,
     maximumBeats
   );
-  const selectedBeatIds = selectRetainedBeatIds({
+  const initiallySelectedBeatIds = selectRetainedBeatIds({
     beats,
     storyIr: args.storyIr,
     maximumBeats,
     minimumBeats,
   });
+  const initiallyRetainedBeats = beats.map((beat) => ({
+    ...beat,
+    retained: initiallySelectedBeatIds.includes(beat.id),
+  }));
+  const eventPlan = buildShortStoryEventPlan({
+    language: args.parent.identity.language,
+    locale: args.parent.identity.locale,
+    storyIr: args.storyIr,
+    canonicalFacts: buildPlannerCanonicalFacts({
+      storyIr: args.storyIr,
+      episodeId: args.parent.identity.episodeId,
+      title: args.parent.title,
+    }),
+    sourceBeats: initiallyRetainedBeats,
+    outputConstraints: args.outputConstraints,
+  });
+  const eventSelectedBeatIds = [
+    ...new Set(
+      eventPlan.selectedEventIds.flatMap((eventId) =>
+        eventPlan.events
+          .find((event) => event.id === eventId)
+          ?.sourceBeatIds.filter((beatId) => beatId.length > 0) ?? []
+      )
+    ),
+  ];
+  const selectedBeatIds = [
+    ...new Set([...initiallySelectedBeatIds, ...eventSelectedBeatIds]),
+  ].slice(0, maximumBeats);
   const beatsWithRetention = beats.map((beat) => ({
     ...beat,
     retained: selectedBeatIds.includes(beat.id),
@@ -556,6 +620,11 @@ export function buildShortSourceExtraction(args: {
     removedBeatIds,
     beats: beatsWithRetention,
     orphanedReferences,
+    events: eventPlan.events,
+    selectedEventIds: eventPlan.selectedEventIds,
+    beatPlan: eventPlan.beatPlan,
+    timingEstimate: eventPlan.timingEstimate,
+    causalValidation: eventPlan.causalValidation,
   };
   const extraction = {
     ...payload,
@@ -640,7 +709,11 @@ export function buildShortAdaptationContract(args: {
     sourceExtraction: {
       extractionHash: args.extraction.extractionHash,
       selectedBeatIds: args.extraction.selectedBeatIds,
+      selectedEventIds: args.extraction.selectedEventIds,
+      events: args.extraction.events,
       orphanedReferences: args.extraction.orphanedReferences,
+      beatPlan: args.extraction.beatPlan,
+      causalValidation: args.extraction.causalValidation,
     },
   };
   const contract = {

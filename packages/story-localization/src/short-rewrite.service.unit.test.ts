@@ -15,6 +15,26 @@ type MockResponse = {
   readonly output_text: string;
 };
 
+function buildCharacterRenameMapFixture() {
+  return {
+    version: 1 as const,
+    episodeId: "009-the-christmas-doll",
+    sourceHash: "a".repeat(64),
+    poolId: "character-name-pool-v1",
+    entries: [
+      {
+        characterId: "mara",
+        originalName: "Mara",
+        fictionalName: "Lena",
+        originalAliases: ["Mara"],
+        fictionalAliases: ["Lena"],
+        role: "main protagonist",
+      },
+    ],
+    hash: "9".repeat(64),
+  };
+}
+
 function buildNarration(
   wordTarget: number,
   language: "en" | "de" | "es" = "en"
@@ -22,20 +42,38 @@ function buildNarration(
   const sentences =
     language === "de"
       ? [
-          "Mara hörte die Puppe hinter der Dachbodentür atmen.",
-          "Als sie öffnete, saß die Puppe mit nassen Händen auf dem Kinderstuhl und ihr eigener Name stand im Glas.",
-          "Sie verbrannte das Kleid, verriegelte die Truhe und dachte, das Haus sei still, doch das letzte Foto auf der Treppe zeigte die Puppe hinter ihrem Bruder.",
+          "Lena hörte die Puppe hinter der Dachbodentür atmen.",
+          "Als sie die Tür öffnete, saß die Puppe auf dem Kinderstuhl.",
+          "Ihre Hände waren nass.",
+          "Ihr eigener Name stand im Glas.",
+          "Lena riss der Puppe das Kleid herunter.",
+          "Sie verbrannte das Kleid im Waschbecken.",
+          "Danach verriegelte sie die Truhe.",
+          "Für einen Moment wurde das Haus still.",
+          "Das letzte Foto auf der Treppe zeigte die Puppe hinter ihrem Bruder.",
         ]
       : language === "es"
         ? [
-            "Mara oyó a la muñeca respirar detrás de la puerta del ático.",
-            "Cuando abrió, la muñeca estaba en la silla del cuarto con las manos mojadas y su nombre marcado en el vidrio.",
-            "Quemó el vestido, cerró el baúl y creyó que la casa estaba en silencio, pero la última foto en la escalera mostraba a la muñeca detrás de su hermano.",
+            "Lena oyó a la muñeca respirar detrás de la puerta del ático.",
+            "Cuando abrió la puerta, la muñeca estaba en la silla del cuarto.",
+            "Tenía las manos mojadas.",
+            "Su propio nombre estaba marcado en el vidrio.",
+            "Lena le arrancó el vestido a la muñeca.",
+            "Quemó el vestido en el lavabo.",
+            "Después cerró el baúl con llave.",
+            "Por un momento la casa quedó en silencio.",
+            "La última foto en la escalera mostraba a la muñeca detrás de su hermano.",
           ]
         : [
-            "Mara heard the doll breathing under the attic door.",
-            "When she opened it, the doll sat on the nursery chair with wet hands and her own name scratched across the glass.",
-            "She burned the dress, locked the trunk, and thought the house had gone quiet, but the final photograph on the stairs showed the doll behind her brother.",
+            "Lena heard the doll breathing under the attic door.",
+            "When she opened the door, the doll sat on the nursery chair.",
+            "Its hands were wet.",
+            "Her own name was scratched across the glass.",
+            "Lena tore the dress off the doll.",
+            "She burned the dress in the sink.",
+            "After that, she locked the trunk.",
+            "For a moment, the house went quiet.",
+            "The final photograph on the stairs showed the doll behind her brother.",
           ];
   let narration = sentences.join(" ");
   let index = 0;
@@ -123,8 +161,14 @@ async function createSourceStory(tempRoot: string): Promise<string> {
     "",
     "## Narration Script",
     "Mara heard the doll breathing under the attic door.",
-    "When she opened it, the doll sat on the nursery chair with wet hands and her own name scratched across the glass.",
-    "She burned the dress, locked the trunk, and thought the house had gone quiet, but the final photograph on the stairs showed the doll behind her brother.",
+    "When she opened the door, the doll sat on the nursery chair.",
+    "Its hands were wet.",
+    "Her own name was scratched across the glass.",
+    "Mara tore the dress off the doll.",
+    "She burned the dress in the sink.",
+    "After that, she locked the trunk.",
+    "For a moment, the house went quiet.",
+    "The final photograph on the stairs showed the doll behind her brother.",
   ].join("\n");
   await fs.writeFile(sourcePath, content, "utf8");
   const episodeRoot = path.join(tempRoot, "009-the-christmas-doll");
@@ -147,6 +191,7 @@ async function createSourceStory(tempRoot: string): Promise<string> {
           storyIrHash: "c".repeat(64),
           contractHash: "d".repeat(64),
           contractBuildFingerprint: "e".repeat(64),
+          characterRenameMapHash: "9".repeat(64),
         },
         prompt: {
           compilerVersion: "story-prompt-compiler-v1",
@@ -173,13 +218,20 @@ async function createSourceStory(tempRoot: string): Promise<string> {
           maxModelOutputTokens: 128000,
           safetyMarginTokens: 4096,
         },
+        characterRenameMap: buildCharacterRenameMapFixture(),
         response: {
           language: "en",
           full: {
             narrationParagraphs: [
               "Mara heard the doll breathing under the attic door.",
-              "When she opened it, the doll sat on the nursery chair with wet hands and her own name scratched across the glass.",
-              "She burned the dress, locked the trunk, and thought the house had gone quiet, but the final photograph on the stairs showed the doll behind her brother.",
+              "When she opened the door, the doll sat on the nursery chair.",
+              "Its hands were wet.",
+              "Her own name was scratched across the glass.",
+              "Mara tore the dress off the doll.",
+              "She burned the dress in the sink.",
+              "After that, she locked the trunk.",
+              "For a moment, the house went quiet.",
+              "The final photograph on the stairs showed the doll behind her brother.",
             ],
           },
           targetNarrationWpm: 178,
@@ -257,6 +309,7 @@ async function createMinimalSourceStory(tempRoot: string): Promise<string> {
           storyIrHash: "c".repeat(64),
           contractHash: "d".repeat(64),
           contractBuildFingerprint: "e".repeat(64),
+          characterRenameMapHash: "9".repeat(64),
         },
         prompt: {
           compilerVersion: "story-prompt-compiler-v1",
@@ -279,6 +332,7 @@ async function createMinimalSourceStory(tempRoot: string): Promise<string> {
           requestFingerprint: "2".repeat(64),
           status: "allowed",
         },
+        characterRenameMap: buildCharacterRenameMapFixture(),
       },
       null,
       2
@@ -330,8 +384,14 @@ async function createLocalizedFullParent(
           full: {
             narrationParagraphs: [
               "Mara horte die Puppe unter der Dachbodentur atmen.",
-              "Als sie die Tür öffnete, saß die Puppe mit nassen Händen auf dem Kinderstuhl.",
-              "Später zeigte das letzte Foto die Puppe direkt hinter ihrem Bruder.",
+              "Als sie die Tür öffnete, saß die Puppe auf dem Kinderstuhl.",
+              "Ihre Hände waren nass.",
+              "Ihr eigener Name stand im Glas.",
+              "Mara riss der Puppe das Kleid herunter.",
+              "Sie verbrannte das Kleid im Waschbecken.",
+              "Danach verriegelte sie die Truhe.",
+              "Für einen Moment wurde das Haus still.",
+              "Das letzte Foto auf der Treppe zeigte die Puppe hinter ihrem Bruder.",
             ],
           },
           targetNarrationWpm: 178,
@@ -370,12 +430,31 @@ async function createRawCompatibilitySource(tempRoot: string): Promise<string> {
       "",
       "## Narration Script",
       "Mara heard the doll breathing under the attic door.",
-      "When she opened it, the doll sat on the nursery chair with wet hands and her own name scratched across the glass.",
-      "She burned the dress, locked the trunk, and thought the house had gone quiet, but the final photograph on the stairs showed the doll behind her brother.",
+      "When she opened the door, the doll sat on the nursery chair.",
+      "Its hands were wet.",
+      "Her own name was scratched across the glass.",
+      "Mara tore the dress off the doll.",
+      "She burned the dress in the sink.",
+      "After that, she locked the trunk.",
+      "For a moment, the house went quiet.",
+      "The final photograph on the stairs showed the doll behind her brother.",
     ].join("\n"),
     "utf8"
   );
   return sourcePath;
+}
+
+async function rewriteTestShortStories(
+  options: Parameters<typeof rewriteShortStories>[0],
+  services?: Parameters<typeof rewriteShortStories>[1]
+) {
+  return rewriteShortStories(
+    {
+      targetDurationSeconds: 30,
+      ...options,
+    },
+    services
+  );
 }
 
 describe("short rewrite service", () => {
@@ -389,7 +468,7 @@ describe("short rewrite service", () => {
         id: "resp-success",
         output_text: buildResponseJson({
           title: "Das Puppenhaus",
-          wordCount: 165,
+          wordCount: 66,
           thumbnailText: "Nasse Hände",
           fullVideoBridge: "Sieh dir die ganze Episode an.",
           language: "de",
@@ -397,7 +476,7 @@ describe("short rewrite service", () => {
       },
     ]);
 
-    const summary = await rewriteShortStories(
+    const summary = await rewriteTestShortStories(
       {
         inputPath: sourcePath,
         outputRoot: tempRoot,
@@ -438,7 +517,7 @@ describe("short rewrite service", () => {
     const sidecar = JSON.parse(await fs.readFile(jsonPath, "utf8")) as {
       readonly generation: { readonly wordCount: number };
     };
-    expect(sidecar.generation.wordCount).toBe(165);
+    expect(sidecar.generation.wordCount).toBe(66);
   });
 
   it("repairs a narration that exceeds the hard word limit", async () => {
@@ -451,7 +530,7 @@ describe("short rewrite service", () => {
         id: "resp-initial",
         output_text: buildResponseJson({
           title: "Das Puppenhaus",
-          wordCount: 171,
+          wordCount: 80,
           thumbnailText: "Nasse Hände",
           fullVideoBridge: "Sieh dir die ganze Episode an.",
           language: "de",
@@ -461,7 +540,7 @@ describe("short rewrite service", () => {
         id: "resp-repair",
         output_text: buildResponseJson({
           title: "Das Puppenhaus",
-          wordCount: 165,
+          wordCount: 66,
           thumbnailText: "Nasse Hände",
           fullVideoBridge: "Sieh dir die ganze Episode an.",
           language: "de",
@@ -469,7 +548,7 @@ describe("short rewrite service", () => {
       },
     ]);
 
-    const summary = await rewriteShortStories(
+    const summary = await rewriteTestShortStories(
       {
         inputPath: sourcePath,
         outputRoot: tempRoot,
@@ -497,7 +576,7 @@ describe("short rewrite service", () => {
     const sidecar = JSON.parse(await fs.readFile(jsonPath, "utf8")) as {
       readonly generation: { readonly wordCount: number };
     };
-    expect(sidecar.generation.wordCount).toBe(165);
+    expect(sidecar.generation.wordCount).toBe(66);
   });
 
   it("repairs a narration that contains editorial commentary", async () => {
@@ -505,7 +584,7 @@ describe("short rewrite service", () => {
       path.join(os.tmpdir(), "short-rewrite-editorial-")
     );
     const sourcePath = await createSourceStory(tempRoot);
-    const editorialNarration = buildNarration(165, "de").replace(
+    const editorialNarration = buildNarration(126, "de").replace(
       "Als sie öffnete, saß die Puppe mit nassen Händen auf dem Kinderstuhl",
       "Als sie öffnete, die Gefahr wurde persönlich und die Puppe saß mit nassen Händen auf dem Kinderstuhl"
     );
@@ -514,7 +593,7 @@ describe("short rewrite service", () => {
         id: "resp-initial",
         output_text: buildResponseJson({
           title: "Das Puppenhaus",
-          wordCount: 165,
+          wordCount: 66,
           thumbnailText: "Nasse Hände",
           fullVideoBridge: "Sieh dir die ganze Episode an.",
           narration: editorialNarration,
@@ -525,7 +604,7 @@ describe("short rewrite service", () => {
         id: "resp-repair",
         output_text: buildResponseJson({
           title: "Das Puppenhaus",
-          wordCount: 165,
+          wordCount: 66,
           thumbnailText: "Nasse Hände",
           fullVideoBridge: "Sieh dir die ganze Episode an.",
           language: "de",
@@ -533,7 +612,7 @@ describe("short rewrite service", () => {
       },
     ]);
 
-    const summary = await rewriteShortStories(
+    const summary = await rewriteTestShortStories(
       {
         inputPath: sourcePath,
         outputRoot: tempRoot,
@@ -560,7 +639,7 @@ describe("short rewrite service", () => {
     const sourcePath = await createSourceStory(tempRoot);
     const client = makeMockClient();
 
-    const summary = await rewriteShortStories(
+    const summary = await rewriteTestShortStories(
       {
         inputPath: sourcePath,
         outputRoot: tempRoot,
@@ -590,7 +669,7 @@ describe("short rewrite service", () => {
         id: "resp-compatibility",
         output_text: buildResponseJson({
           title: "Das Puppenhaus",
-          wordCount: 165,
+          wordCount: 66,
           thumbnailText: "Nasse Hände",
           fullVideoBridge: "Sieh dir die ganze Episode an.",
           language: "de",
@@ -600,7 +679,7 @@ describe("short rewrite service", () => {
         id: "resp-compatibility-repair",
         output_text: buildResponseJson({
           title: "Das Puppenhaus",
-          wordCount: 165,
+          wordCount: 66,
           thumbnailText: "Nasse Hände",
           fullVideoBridge: "Sieh dir die ganze Episode an.",
           language: "de",
@@ -608,7 +687,7 @@ describe("short rewrite service", () => {
       },
     ]);
 
-    const summary = await rewriteShortStories(
+    const summary = await rewriteTestShortStories(
       {
         inputPath: rawSource,
         outputRoot: tempRoot,
@@ -689,7 +768,7 @@ describe("short rewrite service", () => {
         id: "resp-sidecars",
         output_text: buildResponseJson({
           title: "Das Puppenhaus",
-          wordCount: 165,
+          wordCount: 66,
           thumbnailText: "Nasse Hände",
           fullVideoBridge: "Sieh dir die ganze Episode an.",
           language: "de",
@@ -697,7 +776,7 @@ describe("short rewrite service", () => {
       },
     ]);
 
-    const summary = await rewriteShortStories(
+    const summary = await rewriteTestShortStories(
       {
         inputPath: generatedFullPath,
         outputRoot: tempRoot,
@@ -747,7 +826,7 @@ describe("short rewrite service", () => {
         id: "resp-initial",
         output_text: buildResponseJson({
           title: "Das Puppenhaus",
-          wordCount: 165,
+          wordCount: 66,
           thumbnailText: "Nasse Hände",
           fullVideoBridge: "Sieh dir die ganze Episode an.",
           language: "de",
@@ -755,7 +834,7 @@ describe("short rewrite service", () => {
       },
     ]);
 
-    const initial = await rewriteShortStories(
+    const initial = await rewriteTestShortStories(
       {
         inputPath: sourcePath,
         outputRoot: tempRoot,
@@ -791,7 +870,7 @@ describe("short rewrite service", () => {
         id: "resp-resume",
         output_text: buildResponseJson({
           title: "Das Puppenhaus",
-          wordCount: 165,
+          wordCount: 66,
           thumbnailText: "Nasse Hände",
           fullVideoBridge: "Sieh dir die ganze Episode an.",
           language: "de",
@@ -801,14 +880,14 @@ describe("short rewrite service", () => {
         id: "resp-resume-repair",
         output_text: buildResponseJson({
           title: "Das Puppenhaus",
-          wordCount: 165,
+          wordCount: 66,
           thumbnailText: "Nasse Hände",
           fullVideoBridge: "Sieh dir die ganze Episode an.",
           language: "de",
         }),
       },
     ]);
-    const regenerated = await rewriteShortStories(
+    const regenerated = await rewriteTestShortStories(
       {
         inputPath: sourcePath,
         outputRoot: tempRoot,
@@ -841,7 +920,7 @@ describe("short rewrite service", () => {
             id: "resp-success",
             output_text: buildResponseJson({
               title: "Das Puppenhaus",
-              wordCount: 165,
+              wordCount: 66,
               thumbnailText: "Nasse Hände",
               fullVideoBridge: "Sieh dir die ganze Episode an.",
               language: "de",
@@ -856,7 +935,7 @@ describe("short rewrite service", () => {
       },
     };
 
-    const summary = await rewriteShortStories(
+    const summary = await rewriteTestShortStories(
       {
         inputPath: sourcePath,
         outputRoot: tempRoot,
@@ -905,7 +984,7 @@ describe("short rewrite service", () => {
     ]);
 
     await expect(
-      rewriteShortStories(
+      rewriteTestShortStories(
         {
           inputPath: sourcePath,
           outputRoot: tempRoot,
@@ -944,7 +1023,7 @@ describe("short rewrite service", () => {
       {
         output_text: buildResponseJson({
           title: "Das Puppenhaus",
-          wordCount: 165,
+          wordCount: 66,
           thumbnailText: "Nasse Hände",
           fullVideoBridge: "Sieh dir die ganze Episode an.",
           language: "de",
@@ -952,7 +1031,7 @@ describe("short rewrite service", () => {
       },
     ]);
 
-    const summary = await rewriteShortStories(
+    const summary = await rewriteTestShortStories(
       {
         inputPath: sourcePath,
         outputRoot: tempRoot,
@@ -999,7 +1078,7 @@ describe("short rewrite service", () => {
         id: "resp-regenerated",
         output_text: buildResponseJson({
           title: "Das Puppenhaus",
-          wordCount: 165,
+          wordCount: 66,
           thumbnailText: "Nasse Hände",
           fullVideoBridge: "Sieh dir die ganze Episode an.",
           language: "de",
@@ -1007,7 +1086,7 @@ describe("short rewrite service", () => {
         output_parsed: JSON.parse(
           buildResponseJson({
             title: "Das Puppenhaus",
-            wordCount: 165,
+            wordCount: 66,
             thumbnailText: "Nasse Hände",
             fullVideoBridge: "Sieh dir die ganze Episode an.",
             language: "de",
@@ -1023,7 +1102,7 @@ describe("short rewrite service", () => {
       },
     ]);
 
-    const summary = await rewriteShortStories(
+    const summary = await rewriteTestShortStories(
       {
         inputPath: sourcePath,
         outputRoot: tempRoot,
@@ -1084,7 +1163,7 @@ describe("short rewrite service", () => {
       },
     ]);
 
-    const summary = await rewriteShortStories(
+    const summary = await rewriteTestShortStories(
       {
         inputPath: sourcePath,
         outputRoot: tempRoot,
@@ -1125,19 +1204,19 @@ describe("short rewrite service", () => {
         id: "resp-repaired",
         output_text: buildResponseJson({
           title: "The Christmas Doll",
-          wordCount: 155,
+          wordCount: 72,
         }),
       },
       {
         id: "resp-regenerated",
         output_text: buildResponseJson({
           title: "The Christmas Doll",
-          wordCount: 155,
+          wordCount: 72,
         }),
       },
     ]);
 
-    const summary = await rewriteShortStories(
+    const summary = await rewriteTestShortStories(
       {
         inputPath: sourcePath,
         outputRoot: tempRoot,
@@ -1181,7 +1260,7 @@ describe("short rewrite service", () => {
       )
     );
     await expect(
-      rewriteShortStories(
+      rewriteTestShortStories(
         {
           inputPath: sourcePath,
           outputRoot: tempRoot,
@@ -1206,7 +1285,7 @@ describe("short rewrite service", () => {
     const sourcePath = await createSourceStory(tempRoot);
     await createLocalizedFullParent(tempRoot, "de", "es");
     await expect(
-      rewriteShortStories(
+      rewriteTestShortStories(
         {
           inputPath: sourcePath,
           outputRoot: tempRoot,
@@ -1234,14 +1313,14 @@ describe("short rewrite service", () => {
         id: "resp-parent-hash",
         output_text: buildResponseJson({
           title: "Das Puppenhaus",
-          wordCount: 165,
+          wordCount: 66,
           thumbnailText: "Nasse Hände",
           fullVideoBridge: "Sieh dir die ganze Episode an.",
           language: "de",
         }),
       },
     ]);
-    await rewriteShortStories(
+    await rewriteTestShortStories(
       {
         inputPath: sourcePath,
         outputRoot: tempRoot,

@@ -40,6 +40,9 @@ describe("story localization command registration", () => {
     );
     expect(stories).toBeDefined();
     expect(batches).toBeDefined();
+    expect(
+      program.commands.some((command) => command.name() === "story-short-evaluate")
+    ).toBe(true);
     expect(commandNames(stories as Command)).toEqual([
       "analyze",
       "bootstrap-shared",

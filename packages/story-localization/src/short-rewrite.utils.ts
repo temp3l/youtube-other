@@ -265,19 +265,23 @@ export function buildValidationSummary(args: {
   readonly hookMatchesNarration: boolean;
   readonly thumbnailText: string;
   readonly narration: string;
+  readonly targetWordRange: {
+    readonly min: number;
+    readonly max: number;
+  };
 }): ShortRewriteValidation {
   const thumbnailWordCount = countThumbnailWords(args.thumbnailText);
   const warnings: string[] = [];
-  if (args.wordCount < 150) {
+  if (args.wordCount < args.targetWordRange.min) {
     warnings.push("Narration is below the preferred word range.");
   }
-  if (args.wordCount > 165) {
+  if (args.wordCount > args.targetWordRange.max) {
     warnings.push("Narration exceeds the preferred word range.");
   }
-  if (args.wordCount < SHORT_REWRITE_HARD_WORD_RANGE.min) {
+  if (args.wordCount < args.targetWordRange.min) {
     warnings.push("Narration is below the hard minimum.");
   }
-  if (args.wordCount > SHORT_REWRITE_HARD_WORD_RANGE.max) {
+  if (args.wordCount > args.targetWordRange.max) {
     warnings.push("Narration exceeds the hard maximum.");
   }
   if (thumbnailWordCount > SHORT_REWRITE_THUMBNAIL_WORD_LIMIT) {
@@ -293,10 +297,12 @@ export function buildValidationSummary(args: {
     warnings.push("Narration contains editorial commentary.");
   }
   return {
-    preferredWordRangeSatisfied: args.wordCount >= 150 && args.wordCount <= 165,
+    preferredWordRangeSatisfied:
+      args.wordCount >= args.targetWordRange.min &&
+      args.wordCount <= args.targetWordRange.max,
     hardWordRangeSatisfied:
-      args.wordCount >= SHORT_REWRITE_HARD_WORD_RANGE.min &&
-      args.wordCount <= SHORT_REWRITE_HARD_WORD_RANGE.max,
+      args.wordCount >= args.targetWordRange.min &&
+      args.wordCount <= args.targetWordRange.max,
     hookMatchesNarration: args.hookMatchesNarration,
     thumbnailWordCount,
     warnings,

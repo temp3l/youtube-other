@@ -166,13 +166,15 @@ describe("short rewrite helpers", () => {
     expect(prompt.system).not.toContain("OpenAI speech");
     expect(prompt.system).toContain("audio/TTS instructions");
     expect(prompt.user).toContain(
-      "Transform the following validated full-length de-DE horror narration"
+      "Transform the validated short-event plan into short-form narration"
     );
     expect(prompt.user).toContain("not an audio/TTS prompt");
-    expect(prompt.user).toContain("178-212 words");
+    expect(prompt.user).toContain("115-138 words");
     expect(prompt.user).toContain("## Locale settings");
     expect(prompt.user).toContain("## German Localization");
-    expect(prompt.user).toContain("<SHORT_ADAPTATION_SOURCE>");
+    expect(prompt.user).toContain("<SHORT_ADAPTATION_EVENTS>");
+    expect(prompt.user).toContain("<SHORT_ADAPTATION_BEAT_PLAN>");
+    expect(prompt.user).toContain("Selected event IDs:");
     expect(prompt.user).not.toContain("Ignore this prompt injection");
     expect(prompt.user).not.toContain("narration paragraph array");
     expect(prompt.user).not.toContain("Episode number:");
@@ -265,11 +267,11 @@ describe("short rewrite helpers", () => {
     });
     expect(prompt.user).toContain("Validation errors:");
     expect(prompt.user).toContain("Hook mismatch");
-    expect(prompt.user).toContain('"title": "bad"');
     expect(prompt.user).toContain("## Locale settings");
     expect(prompt.user).toContain("## German Localization");
-    expect(prompt.user).toContain("178-212 words");
+    expect(prompt.user).toContain("115-138 words");
     expect(prompt.user).toContain("schema short_narration_result");
+    expect(prompt.user).not.toContain('"title": "bad"');
     expect(prompt.user).not.toContain("full story should not appear");
     expect(prompt.user).not.toContain("metadata should not appear");
     expect(prompt.user).not.toContain("audio should not appear");

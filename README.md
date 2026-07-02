@@ -1,10 +1,30 @@
 # prompts
 
+• I found a concrete compatibility issue in the episode workspace layout: episode english expects episodes/<slug>/script.md for English full, not en/full/script.md. I’m adding that canonical workspace script file so the
+existing episode pipeline can run cleanly.
+
+## batch api
+
+1. Create the canonical scene plan for 022 without mutating paid-provider outputs.
+2. Prepare and run the image Batch API job against that scene plan, then import the shared images into the episode workspace.
+3. Use the existing episode pipeline to render English and German full videos reusing those shared images, avoiding the legacy story paths.
+
+---
+
+geschriebne:
+kasse total: 1085
+
+- 170 wechselgeld
+  = 915
+
+sumup eingang: 2550
+
+sumip:
+bar eingang: 940€
+
 ## Billing
 
-* $21.66 -- Thu Jul  2 08:38:56 PM CEST 2026
-
-
+- $21.66 -- Thu Jul 2 08:38:56 PM CEST 2026
 
 ## time
 

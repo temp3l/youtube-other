@@ -6,6 +6,9 @@ const localizeStoryEpisodeMock = vi.hoisted(() => vi.fn());
 const createStoryLocalizationConfigMock = vi.hoisted(() => vi.fn((config) => config));
 const createOpenAiStoryClientWithOptionsMock = vi.hoisted(() => vi.fn());
 const materializeCanonicalSourceStoryMock = vi.hoisted(() => vi.fn());
+const assertSupportedStoryOutputDirectoryMock = vi.hoisted(() =>
+  vi.fn((value: string) => value)
+);
 const createLoggerMock = vi.hoisted(() => {
   const logger = {
     debug: vi.fn(),
@@ -52,6 +55,7 @@ vi.mock("@mediaforge/story-localization", async () => {
     DEFAULT_FULL_REWRITE_RETRY_MAX_OUTPUT_TOKENS: 25_000,
     DEFAULT_STORY_REWRITE_MODEL: "gpt-5.5",
     DEFAULT_STORY_REWRITE_REASONING_EFFORT: "high",
+    assertSupportedStoryOutputDirectory: assertSupportedStoryOutputDirectoryMock,
     createStoryLocalizationConfig: createStoryLocalizationConfigMock,
     createOpenAiStoryClientWithOptions: createOpenAiStoryClientWithOptionsMock,
     localizeStoryEpisode: localizeStoryEpisodeMock,
@@ -67,6 +71,10 @@ describe("story full rewrite command", () => {
     createStoryLocalizationConfigMock.mockClear();
     createOpenAiStoryClientWithOptionsMock.mockClear();
     materializeCanonicalSourceStoryMock.mockReset();
+    assertSupportedStoryOutputDirectoryMock.mockReset();
+    assertSupportedStoryOutputDirectoryMock.mockImplementation(
+      (value: string) => value
+    );
   });
 
   it("includes the full rewrite command and slug bootstrap flag", () => {
@@ -329,5 +337,46 @@ describe("story full rewrite command", () => {
     ).rejects.toThrow('Use "es" for Spanish.');
 
     expect(createStoryLocalizationConfigMock).not.toHaveBeenCalled();
+  });
+
+  it("rejects the legacy rewrite output root before generating files", async () => {
+    const sourcePath = path.resolve(
+      import.meta.dirname,
+      "../../..",
+      "content-ideas",
+      "content",
+      "dark-truth-episodes-multilingual-production-pack",
+      "002-even-killers-can-lick",
+      "en",
+      "002-even-killers-can-lick-en-full.md"
+    );
+    const program = new Command();
+    registerStoryRewriteFullCommand(program.command("stories"));
+    assertSupportedStoryOutputDirectoryMock.mockImplementationOnce(() => {
+      throw new Error("Legacy rewrite output path is not supported");
+    });
+
+    await expect(
+      program.parseAsync([
+        "node",
+        "cli",
+        "stories",
+        "rewrite-full",
+        "--input",
+        sourcePath,
+        "--episode-slug",
+        "the-christmas-doll",
+        "--output-root",
+        path.join(
+          "/tmp/workspace",
+          "content-ideas",
+          "content",
+          "youtube-horror-rewrites"
+        ),
+      ])
+    ).rejects.toThrow("Legacy rewrite output path is not supported");
+
+    expect(materializeCanonicalSourceStoryMock).not.toHaveBeenCalled();
+    expect(localizeStoryEpisodeMock).not.toHaveBeenCalled();
   });
 });
