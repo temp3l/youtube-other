@@ -36,6 +36,7 @@ export * from "./narration-segmentation.js";
 export * from "./performance-direction.js";
 export * from "./pronunciation.js";
 export * from "./openai-tts-request.js";
+export * from "./narration-cache.js";
 export * from "./audio-validation.js";
 export * from "./wav-analysis.js";
 export {
