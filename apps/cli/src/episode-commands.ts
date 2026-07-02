@@ -88,6 +88,25 @@ function nowIso(): string {
   return new Date().toISOString();
 }
 
+function resolveShortVisualSceneTargetPer10Minutes(): number {
+  return Number(
+    process.env["SHORTS_VISUAL_SCENE_TARGET_PER_10_MINUTES"] ?? 150
+  );
+}
+
+function resolveShortKeySceneCount(sceneCount: number): number {
+  const configuredCount = Number(process.env["SHORTS_KEY_SCENE_COUNT"] ?? 8);
+  const configuredRatio = Number(process.env["SHORTS_KEY_SCENE_RATIO"] ?? 0.8);
+  const ratioCount =
+    Number.isFinite(configuredRatio) && configuredRatio > 0
+      ? Math.ceil(sceneCount * configuredRatio)
+      : 0;
+  return Math.max(
+    0,
+    Math.min(sceneCount, Math.max(configuredCount, ratioCount))
+  );
+}
+
 function parseLanguageList(value: string | undefined): SupportedLanguage[] {
   if (!value) {
     return [];
@@ -583,7 +602,13 @@ async function prepareEpisodeLanguage(
       : buildScenePlan(
           loadResult.source.narration,
           discovery.slug,
-          artifactType
+          artifactType,
+          artifactType === "short"
+            ? {
+                visualSceneTargetPer10Minutes:
+                  resolveShortVisualSceneTargetPer10Minutes(),
+              }
+            : undefined
         );
   const scenePlanDir =
     language === "en" && artifactType === "full"
@@ -614,7 +639,7 @@ async function prepareEpisodeLanguage(
   );
   const shortsImageConfig: ShortsImageConfig = {
     enabled: artifactType === "short",
-    keySceneCount: Number(process.env["SHORTS_KEY_SCENE_COUNT"] ?? 5),
+    keySceneCount: resolveShortKeySceneCount(scenePlan.scenes.length),
     portraitWidth: Number(process.env["SHORTS_PORTRAIT_WIDTH"] ?? 1088),
     portraitHeight: Number(process.env["SHORTS_PORTRAIT_HEIGHT"] ?? 1920),
     finalWidth: Number(process.env["SHORTS_FINAL_WIDTH"] ?? 1080),
@@ -630,7 +655,7 @@ async function prepareEpisodeLanguage(
       (process.env["SHORTS_SELECTION_MODE"] as
         | "first-n"
         | "importance-based"
-        | undefined) ?? "first-n",
+        | undefined) ?? "importance-based",
   };
   if (process.env["SHORTS_IMPORTANCE_SCENE_IDS"]) {
     shortsImageConfig.importanceSceneIds = process.env[
