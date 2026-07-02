@@ -4,6 +4,10 @@ const episodeIdPattern = /^[a-z0-9][a-z0-9-]*$/;
 const sceneIdPattern = /^scene-[0-9]{3}$/;
 const artifactIdPattern = /^artifact-[a-z0-9][a-z0-9-]*$/;
 const pipelineRunIdPattern = /^run-[a-z0-9][a-z0-9-]*$/;
+const sha256Pattern = /^[a-f0-9]{64}$/;
+const shotIdPattern = /^scene-[0-9]{3}-shot-[0-9]{3}$/;
+const visualRetentionIdPattern =
+  /^[a-z0-9][a-z0-9-]*$/;
 
 export const episodeIdSchema = z
   .string()
@@ -27,6 +31,54 @@ export const pipelineRunIdSchema = z
   .regex(pipelineRunIdPattern)
   .brand<"PipelineRunId">();
 export type PipelineRunId = z.infer<typeof pipelineRunIdSchema>;
+
+function createVisualRetentionIdSchema<TBrand extends string>(brand: TBrand) {
+  return z.string().regex(visualRetentionIdPattern).brand<TBrand>();
+}
+
+const normalizedUnitIntervalSchema = z.number().finite().min(0).max(1);
+const nonNegativeFiniteNumberSchema = z.number().finite().nonnegative();
+const positiveFiniteNumberSchema = z.number().finite().positive();
+const nonNegativeIntegerSchema = z.number().int().nonnegative();
+const positiveIntegerSchema = z.number().int().positive();
+const aspectRatioSchema = z.enum(["16:9", "9:16"]);
+const contentVariantSchema = z.enum(["full", "short"]);
+const sha256Schema = z.string().regex(sha256Pattern);
+
+const normalizedPointSchema = z.object({
+  x: normalizedUnitIntervalSchema,
+  y: normalizedUnitIntervalSchema,
+});
+
+const durationRangeSchema = z
+  .object({
+    minMs: nonNegativeIntegerSchema,
+    maxMs: nonNegativeIntegerSchema,
+  })
+  .superRefine((value, ctx) => {
+    if (value.minMs > value.maxMs) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["minMs"],
+        message: "Minimum duration must not exceed maximum duration.",
+      });
+    }
+  });
+
+const integerRangeSchema = z
+  .object({
+    min: nonNegativeIntegerSchema,
+    max: nonNegativeIntegerSchema,
+  })
+  .superRefine((value, ctx) => {
+    if (value.min > value.max) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["min"],
+        message: "Minimum value must not exceed maximum value.",
+      });
+    }
+  });
 
 export const sourcePlatformSchema = z.enum(["youtube", "tiktok", "local-file"]);
 export type SourcePlatform = z.infer<typeof sourcePlatformSchema>;
@@ -389,6 +441,559 @@ export const scenePlanSchema = z.object({
   scenes: z.array(sceneSchema)
 });
 export type ScenePlan = z.infer<typeof scenePlanSchema>;
+
+export const shotIdSchema = z.string().regex(shotIdPattern).brand<"ShotId">();
+export type ShotId = z.infer<typeof shotIdSchema>;
+
+export const sourceSceneIdSchema =
+  createVisualRetentionIdSchema("SourceSceneId");
+export type SourceSceneId = z.infer<typeof sourceSceneIdSchema>;
+
+export const sourceImageIdSchema =
+  createVisualRetentionIdSchema("SourceImageId");
+export type SourceImageId = z.infer<typeof sourceImageIdSchema>;
+
+export const focalRegionIdSchema =
+  createVisualRetentionIdSchema("FocalRegionId");
+export type FocalRegionId = z.infer<typeof focalRegionIdSchema>;
+
+export const shotOverlayIdSchema =
+  createVisualRetentionIdSchema("ShotOverlayId");
+export type ShotOverlayId = z.infer<typeof shotOverlayIdSchema>;
+
+export const shotTreatmentIdSchema =
+  createVisualRetentionIdSchema("ShotTreatmentId");
+export type ShotTreatmentId = z.infer<typeof shotTreatmentIdSchema>;
+
+export const normalizedCropSchema = z
+  .object({
+    // Normalized left coordinate in the inclusive [0, 1] source-image range.
+    x: normalizedUnitIntervalSchema,
+    // Normalized top coordinate in the inclusive [0, 1] source-image range.
+    y: normalizedUnitIntervalSchema,
+    // Normalized crop width as a fraction of the source image.
+    width: positiveFiniteNumberSchema.max(1),
+    // Normalized crop height as a fraction of the source image.
+    height: positiveFiniteNumberSchema.max(1),
+  })
+  .superRefine((value, ctx) => {
+    if (value.x + value.width > 1) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["width"],
+        message: "Crop width must stay within the normalized source bounds.",
+      });
+    }
+    if (value.y + value.height > 1) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["height"],
+        message: "Crop height must stay within the normalized source bounds.",
+      });
+    }
+  });
+export type NormalizedCrop = z.infer<typeof normalizedCropSchema>;
+
+export const focalRegionKindSchema = z.enum([
+  "primary-subject",
+  "secondary-subject",
+  "face",
+  "evidence-object",
+  "safe-crop-region",
+  "caption-safe-negative-space",
+  "foreground",
+  "background",
+  "depth-hint",
+]);
+export type FocalRegionKind = z.infer<typeof focalRegionKindSchema>;
+
+export const focalRegionSchema = z.object({
+  id: focalRegionIdSchema,
+  kind: focalRegionKindSchema,
+  bounds: normalizedCropSchema,
+  confidence: z.number().finite().min(0).max(1).optional(),
+  label: z.string().min(1).optional(),
+  depthLayer: z.enum(["foreground", "midground", "background"]).optional(),
+});
+export type FocalRegion = z.infer<typeof focalRegionSchema>;
+
+export const cameraMotionSchema = z.discriminatedUnion("kind", [
+  z.object({
+    kind: z.literal("none"),
+  }),
+  z
+    .object({
+      kind: z.literal("push-in"),
+      startScale: positiveFiniteNumberSchema,
+      endScale: positiveFiniteNumberSchema,
+      anchor: normalizedPointSchema.optional(),
+    })
+    .superRefine((value, ctx) => {
+      if (value.endScale <= value.startScale) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["endScale"],
+          message: "Push-in motion must end at a larger scale than it starts.",
+        });
+      }
+    }),
+  z
+    .object({
+      kind: z.literal("pull-out"),
+      startScale: positiveFiniteNumberSchema,
+      endScale: positiveFiniteNumberSchema,
+      anchor: normalizedPointSchema.optional(),
+    })
+    .superRefine((value, ctx) => {
+      if (value.endScale >= value.startScale) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["endScale"],
+          message: "Pull-out motion must end at a smaller scale than it starts.",
+        });
+      }
+    }),
+  z.object({
+    kind: z.literal("pan"),
+    startCenter: normalizedPointSchema,
+    endCenter: normalizedPointSchema,
+  }),
+  z.object({
+    kind: z.literal("pan-and-zoom"),
+    startCenter: normalizedPointSchema,
+    endCenter: normalizedPointSchema,
+    startScale: positiveFiniteNumberSchema,
+    endScale: positiveFiniteNumberSchema,
+  }),
+  z.object({
+    kind: z.literal("drift"),
+    deltaX: z.number().finite().min(-1).max(1),
+    deltaY: z.number().finite().min(-1).max(1),
+    rotationDegrees: z.number().finite().optional(),
+  }),
+]);
+export type CameraMotion = z.infer<typeof cameraMotionSchema>;
+
+export const shotTreatmentFamilySchema = z.enum([
+  "framing",
+  "adaptation",
+  "style",
+  "depth",
+]);
+export type ShotTreatmentFamily = z.infer<typeof shotTreatmentFamilySchema>;
+
+export const shotTreatmentSchema = z.discriminatedUnion("family", [
+  z.object({
+    family: z.literal("framing"),
+    catalogVersion: z.string().min(1),
+    treatmentId: shotTreatmentIdSchema,
+    variant: z.enum([
+      "establishing-wide-crop",
+      "medium-crop",
+      "face-close-up",
+      "object-detail-crop",
+      "caption-safe-negative-space-crop",
+    ]),
+    preserveCaptionSafeArea: z.boolean().optional(),
+  }),
+  z.object({
+    family: z.literal("adaptation"),
+    catalogVersion: z.string().min(1),
+    treatmentId: shotTreatmentIdSchema,
+    variant: z.enum([
+      "smart-crop",
+      "pan-and-scan",
+      "blurred-fill",
+      "mirrored-edge-fill",
+      "split-framing",
+    ]),
+    fallbackBehavior: z.enum(["none", "widen-crop", "blurred-fill"]).optional(),
+  }),
+  z.object({
+    family: z.literal("style"),
+    catalogVersion: z.string().min(1),
+    treatmentId: shotTreatmentIdSchema,
+    variant: z.enum([
+      "standard",
+      "surveillance",
+      "archive-photo",
+      "recording-ui",
+      "declassified-file",
+      "blackout",
+      "exposure-flash",
+    ]),
+    intensity: normalizedUnitIntervalSchema.optional(),
+  }),
+  z.object({
+    family: z.literal("depth"),
+    catalogVersion: z.string().min(1),
+    treatmentId: shotTreatmentIdSchema,
+    variant: z.enum([
+      "background-drift",
+      "focus-breathing",
+      "parallax",
+      "rack-focus",
+    ]),
+    cacheRequired: z.boolean().optional(),
+  }),
+]);
+export type ShotTreatment = z.infer<typeof shotTreatmentSchema>;
+
+export const overlayPlacementSchema = z.object({
+  anchor: z.enum([
+    "top-left",
+    "top-right",
+    "bottom-left",
+    "bottom-right",
+    "center",
+  ]),
+  safeAreaAware: z.boolean(),
+});
+export type OverlayPlacement = z.infer<typeof overlayPlacementSchema>;
+
+export const overlayAssetReferenceSchema = z.object({
+  assetId: createVisualRetentionIdSchema("OverlayAssetId"),
+  path: z.string().optional(),
+  checksumSha256: sha256Schema.optional(),
+});
+export type OverlayAssetReference = z.infer<typeof overlayAssetReferenceSchema>;
+
+export const shotOverlaySchema = z.discriminatedUnion("kind", [
+  z.object({
+    id: shotOverlayIdSchema,
+    kind: z.literal("evidence-insert"),
+    asset: overlayAssetReferenceSchema,
+    placement: overlayPlacementSchema.optional(),
+    sourceFactId: z.string().min(1).optional(),
+  }),
+  z.object({
+    id: shotOverlayIdSchema,
+    kind: z.literal("recording-ui"),
+    style: z.enum(["timestamp", "surveillance", "camcorder"]),
+    asset: overlayAssetReferenceSchema.optional(),
+    timestampText: z.string().min(1).optional(),
+    placement: overlayPlacementSchema.optional(),
+  }),
+  z.object({
+    id: shotOverlayIdSchema,
+    kind: z.literal("texture"),
+    asset: overlayAssetReferenceSchema,
+    blendMode: z.enum(["overlay", "screen", "multiply"]).optional(),
+    opacity: normalizedUnitIntervalSchema.optional(),
+  }),
+  z.object({
+    id: shotOverlayIdSchema,
+    kind: z.literal("branding"),
+    asset: overlayAssetReferenceSchema,
+    placement: overlayPlacementSchema,
+  }),
+]);
+export type ShotOverlay = z.infer<typeof shotOverlaySchema>;
+
+export const shotTransitionSchema = z.discriminatedUnion("kind", [
+  z.object({
+    kind: z.literal("hard-cut"),
+    durationMs: z.literal(0),
+  }),
+  z.object({
+    kind: z.literal("dissolve"),
+    durationMs: positiveIntegerSchema,
+  }),
+  z.object({
+    kind: z.literal("fade"),
+    durationMs: positiveIntegerSchema,
+    mode: z.enum(["fade-to-black", "fade-from-black", "dip-to-black"]),
+  }),
+]);
+export type ShotTransition = z.infer<typeof shotTransitionSchema>;
+
+export const visualPacingProfileSchema = z.object({
+  id: createVisualRetentionIdSchema("VisualPacingProfileId"),
+  shotDurationMs: durationRangeSchema,
+  staticShotDurationMs: durationRangeSchema,
+  movingShotDurationMs: durationRangeSchema,
+  openingCadenceMs: durationRangeSchema,
+  climaxCadenceMs: durationRangeSchema,
+});
+export type VisualPacingProfile = z.infer<typeof visualPacingProfileSchema>;
+
+export const visualEffectCapSchema = z
+  .object({
+    effect: z.enum([
+      "blurred-fill",
+      "surveillance",
+      "glitch",
+      "parallax",
+      "exposure-flash",
+      "blackout",
+      "fast-zoom",
+    ]),
+    maxCount: nonNegativeIntegerSchema.optional(),
+    maxShare: z.number().finite().min(0).max(1).optional(),
+  })
+  .superRefine((value, ctx) => {
+    if (value.maxCount === undefined && value.maxShare === undefined) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["effect"],
+        message: "Effect caps require at least one count or share limit.",
+      });
+    }
+  });
+export type VisualEffectCap = z.infer<typeof visualEffectCapSchema>;
+
+export const visualBudgetSchema = z.object({
+  sourceImageCount: integerRangeSchema,
+  shotCount: integerRangeSchema,
+  shotsPerImage: integerRangeSchema.optional(),
+  maxConsecutiveSourceImageUses: nonNegativeIntegerSchema,
+  maxTotalSourceImageUses: nonNegativeIntegerSchema,
+  effectCaps: z.array(visualEffectCapSchema),
+});
+export type VisualBudget = z.infer<typeof visualBudgetSchema>;
+
+export const visualNarrativePhaseSchema = z.enum([
+  "hook",
+  "setup",
+  "evidence",
+  "escalation",
+  "climax",
+  "callback",
+  "aftermath",
+]);
+export type VisualNarrativePhase = z.infer<typeof visualNarrativePhaseSchema>;
+
+export const visualSourceSceneSchema = z
+  .object({
+    sourceSceneId: sourceSceneIdSchema,
+    sceneId: sceneIdSchema,
+    // Narration timing in milliseconds for shot-planning and render alignment.
+    narrationStartMs: nonNegativeIntegerSchema,
+    // Narration timing in milliseconds for shot-planning and render alignment.
+    narrationEndMs: nonNegativeIntegerSchema,
+    sourceImageId: sourceImageIdSchema,
+    sourceImagePath: z.string(),
+    sourceImageSha256: sha256Schema,
+    importance: visualNarrativePhaseSchema,
+    focalRegions: z.array(focalRegionSchema),
+  })
+  .superRefine((value, ctx) => {
+    if (value.narrationEndMs <= value.narrationStartMs) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["narrationEndMs"],
+        message:
+          "Visual source scenes must end after their narration start time.",
+      });
+    }
+  });
+export type VisualSourceScene = z.infer<typeof visualSourceSceneSchema>;
+
+export const renderShotSchema = z
+  .object({
+    shotId: shotIdSchema,
+    sourceSceneId: sourceSceneIdSchema,
+    sceneId: sceneIdSchema,
+    sourceImageId: sourceImageIdSchema,
+    // Absolute render timing in milliseconds.
+    startMs: nonNegativeIntegerSchema,
+    // Absolute render timing in milliseconds.
+    endMs: nonNegativeIntegerSchema,
+    treatment: shotTreatmentSchema,
+    crop: normalizedCropSchema.optional(),
+    motion: cameraMotionSchema.optional(),
+    overlays: z.array(shotOverlaySchema).default([]),
+    transition: shotTransitionSchema.optional(),
+  })
+  .superRefine((value, ctx) => {
+    if (value.endMs <= value.startMs) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["endMs"],
+        message: "Render shots must end after they start.",
+      });
+    }
+  });
+export type RenderShot = z.infer<typeof renderShotSchema>;
+
+export const shotPlanPacingProfileSchema = z.discriminatedUnion("mode", [
+  z.object({
+    mode: z.literal("reference"),
+    profileId: createVisualRetentionIdSchema("VisualPacingProfileReferenceId"),
+  }),
+  z.object({
+    mode: z.literal("inline"),
+    profile: visualPacingProfileSchema,
+  }),
+]);
+export type ShotPlanPacingProfile = z.infer<typeof shotPlanPacingProfileSchema>;
+
+export const shotPlanValidationIssueCodeSchema = z.enum([
+  "VISUAL_CHANGE_RATE_TOO_LOW",
+  "OPENING_VISUAL_VARIETY_TOO_LOW",
+  "STATIC_SHOT_TOO_LONG",
+  "SOURCE_IMAGE_OVERUSED",
+  "CONSECUTIVE_SOURCE_IMAGE_REUSE_TOO_HIGH",
+  "CONSECUTIVE_CROP_TOO_SIMILAR",
+  "REPEATED_MOTION_PATTERN",
+  "CLIMAX_PACING_TOO_SLOW",
+  "SHOT_BUDGET_EXCEEDED",
+  "SOURCE_IMAGE_BUDGET_EXCEEDED",
+  "FINAL_CALLBACK_SHOT_MISSING",
+  "BLURRED_FILL_OVERUSED",
+  "SURVEILLANCE_EFFECT_OVERUSED",
+  "PARALLAX_EFFECT_OVERUSED",
+  "CAPTION_VISUAL_COLLISION",
+  "EVIDENCE_PROVENANCE_MISSING",
+  "LOW_RESOLUTION_CROP_RISK",
+  "FACE_CLIPPING_RISK",
+]);
+export type ShotPlanValidationIssueCode = z.infer<
+  typeof shotPlanValidationIssueCodeSchema
+>;
+
+export const shotPlanValidationIssueSeveritySchema = z.enum([
+  "warning",
+  "error",
+]);
+export type ShotPlanValidationIssueSeverity = z.infer<
+  typeof shotPlanValidationIssueSeveritySchema
+>;
+
+type JsonValue =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: JsonValue }
+  | JsonValue[];
+
+const jsonValueSchema: z.ZodType<JsonValue> = z.lazy(() =>
+  z.union([
+    z.string(),
+    z.number().finite(),
+    z.boolean(),
+    z.null(),
+    z.array(jsonValueSchema),
+    z.record(z.string(), jsonValueSchema),
+  ]),
+);
+
+export const shotPlanValidationIssueSchema = z.object({
+  code: shotPlanValidationIssueCodeSchema,
+  severity: shotPlanValidationIssueSeveritySchema,
+  message: z.string().min(1),
+  shotId: shotIdSchema.optional(),
+  sceneId: sceneIdSchema.optional(),
+  details: z.record(z.string(), jsonValueSchema).optional(),
+});
+export type ShotPlanValidationIssue = z.infer<
+  typeof shotPlanValidationIssueSchema
+>;
+
+export const shotPlanSchema = z
+  .object({
+    schemaVersion: z.literal(1),
+    sourceId: episodeIdSchema,
+    locale: z.string().min(1).optional(),
+    variant: contentVariantSchema,
+    aspectRatio: aspectRatioSchema,
+    sourceScenes: z.array(visualSourceSceneSchema),
+    shots: z.array(renderShotSchema),
+    pacingProfile: shotPlanPacingProfileSchema,
+    visualBudget: visualBudgetSchema,
+    planningSeed: z.string().min(1),
+  })
+  .superRefine((value, ctx) => {
+    const sourceSceneIds = new Set<string>();
+    for (const [index, sourceScene] of value.sourceScenes.entries()) {
+      if (sourceSceneIds.has(sourceScene.sourceSceneId)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["sourceScenes", index, "sourceSceneId"],
+          message: "Shot plans require unique source scene identifiers.",
+        });
+      }
+      sourceSceneIds.add(sourceScene.sourceSceneId);
+    }
+
+    const sourceSceneMap = new Map(
+      value.sourceScenes.map((sourceScene) => [
+        sourceScene.sourceSceneId,
+        sourceScene,
+      ]),
+    );
+
+    const shotIds = new Set<string>();
+    let previousShot: RenderShot | undefined;
+    for (const [index, shot] of value.shots.entries()) {
+      if (shotIds.has(shot.shotId)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["shots", index, "shotId"],
+          message: "Shot plans require unique shot identifiers.",
+        });
+      }
+      shotIds.add(shot.shotId);
+
+      const sourceScene = sourceSceneMap.get(shot.sourceSceneId);
+      if (!sourceScene) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["shots", index, "sourceSceneId"],
+          message:
+            "Each render shot must reference an existing visual source scene.",
+        });
+        continue;
+      }
+      if (shot.sceneId !== sourceScene.sceneId) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["shots", index, "sceneId"],
+          message:
+            "Render shot scene ownership must match its referenced source scene.",
+        });
+      }
+      if (shot.sourceImageId !== sourceScene.sourceImageId) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["shots", index, "sourceImageId"],
+          message:
+            "Render shot source-image ownership must match its referenced source scene.",
+        });
+      }
+
+      if (previousShot) {
+        if (shot.startMs < previousShot.startMs) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["shots", index, "startMs"],
+            message: "Render shots must be ordered by ascending start time.",
+          });
+        }
+
+        const overlapMs = previousShot.endMs - shot.startMs;
+        if (overlapMs > 0) {
+          const transition = previousShot.transition;
+          const allowsOverlap =
+            transition !== undefined &&
+            transition.kind !== "hard-cut" &&
+            transition.durationMs === overlapMs;
+          if (!allowsOverlap) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              path: ["shots", index, "startMs"],
+              message:
+                "Render shots must not overlap unless the previous shot declares a matching transition overlap.",
+            });
+          }
+        }
+      }
+
+      previousShot = shot;
+    }
+  });
+export type ShotPlan = z.infer<typeof shotPlanSchema>;
 
 export const visualSceneSchema = z.object({
   id: sceneIdSchema,
