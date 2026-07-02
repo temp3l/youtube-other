@@ -1,8 +1,317 @@
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+import {
+  visualBudgetSchema,
+  visualPacingProfileIdSchema,
+  visualPacingProfileSchema,
+} from "@mediaforge/domain";
 import { z } from "zod";
 import { configurationErrorFromUnknown } from "./internal.js";
+
+const visualRetentionPresetSchema = z.strictObject({
+  id: z.enum(["short-45-60", "short-60-75", "full-4-6m"]),
+  pacingProfileId: visualPacingProfileIdSchema,
+  narrationDurationMs: z.object({
+    minMs: z.number().int().nonnegative(),
+    maxMs: z.number().int().nonnegative(),
+  }).superRefine((value, ctx) => {
+    if (value.minMs > value.maxMs) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["minMs"],
+        message: "Minimum duration must not exceed maximum duration.",
+      });
+    }
+  }),
+  budget: visualBudgetSchema,
+});
+
+const visualRetentionPresetOverrideSchema =
+  visualRetentionPresetSchema.partial();
+
+const visualRetentionConfigSchema = z.strictObject({
+  pacingProfiles: z
+    .strictObject({
+      atmospheric: visualPacingProfileSchema,
+      balanced: visualPacingProfileSchema,
+      "high-retention": visualPacingProfileSchema,
+      "shorts-aggressive": visualPacingProfileSchema,
+    })
+    .superRefine((value, ctx) => {
+      for (const [profileId, profile] of Object.entries(value)) {
+        if (profile.id !== profileId) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: [profileId, "id"],
+            message: "Pacing profile ids must match their configuration key.",
+          });
+        }
+      }
+    }),
+  defaults: z.strictObject({
+    short: z.array(visualRetentionPresetSchema).min(1),
+    full: z.array(visualRetentionPresetSchema).min(1),
+  }),
+});
+
+const visualRetentionConfigOverrideSchema = z.strictObject({
+  pacingProfiles: z
+    .strictObject({
+      atmospheric: visualPacingProfileSchema.partial().optional(),
+      balanced: visualPacingProfileSchema.partial().optional(),
+      "high-retention": visualPacingProfileSchema.partial().optional(),
+      "shorts-aggressive": visualPacingProfileSchema.partial().optional(),
+    })
+    .optional(),
+  defaults: z
+    .strictObject({
+      short: z.array(visualRetentionPresetOverrideSchema).optional(),
+      full: z.array(visualRetentionPresetOverrideSchema).optional(),
+    })
+    .optional(),
+});
+
+const defaultVisualRetentionConfig = visualRetentionConfigSchema.parse({
+  pacingProfiles: {
+    atmospheric: {
+      id: "atmospheric",
+      shotDurationMs: { minMs: 2_000, maxMs: 12_000 },
+      staticShotDurationMs: { minMs: 2_000, maxMs: 5_000 },
+      movingShotDurationMs: { minMs: 2_000, maxMs: 12_000 },
+      openingCadenceMs: { minMs: 3_000, maxMs: 6_000 },
+      climaxCadenceMs: { minMs: 2_000, maxMs: 5_000 },
+    },
+    balanced: {
+      id: "balanced",
+      shotDurationMs: { minMs: 2_000, maxMs: 8_000 },
+      staticShotDurationMs: { minMs: 2_000, maxMs: 5_000 },
+      movingShotDurationMs: { minMs: 2_000, maxMs: 10_000 },
+      openingCadenceMs: { minMs: 3_000, maxMs: 6_000 },
+      climaxCadenceMs: { minMs: 2_000, maxMs: 5_000 },
+    },
+    "high-retention": {
+      id: "high-retention",
+      shotDurationMs: { minMs: 1_500, maxMs: 6_000 },
+      staticShotDurationMs: { minMs: 1_500, maxMs: 4_000 },
+      movingShotDurationMs: { minMs: 1_500, maxMs: 8_000 },
+      openingCadenceMs: { minMs: 1_500, maxMs: 4_000 },
+      climaxCadenceMs: { minMs: 1_500, maxMs: 3_500 },
+    },
+    "shorts-aggressive": {
+      id: "shorts-aggressive",
+      shotDurationMs: { minMs: 1_000, maxMs: 5_000 },
+      staticShotDurationMs: { minMs: 1_000, maxMs: 3_000 },
+      movingShotDurationMs: { minMs: 1_000, maxMs: 6_000 },
+      openingCadenceMs: { minMs: 1_500, maxMs: 3_500 },
+      climaxCadenceMs: { minMs: 1_000, maxMs: 3_000 },
+    },
+  },
+  defaults: {
+    short: [
+      {
+        id: "short-45-60",
+        pacingProfileId: "shorts-aggressive",
+        narrationDurationMs: { minMs: 45_000, maxMs: 60_000 },
+        budget: {
+          sourceImageCount: { min: 5, max: 9 },
+          shotCount: { min: 15, max: 28 },
+          shotsPerImage: { min: 2, max: 4 },
+          maxConsecutiveSourceImageUses: 3,
+          maxTotalSourceImageUses: 5,
+          cropLimits: {
+            minCropArea: 0.35,
+            minFaceMargin: 0.08,
+            maxCropZoom: 2,
+            minOutputHeightPx: 1080,
+            maxAdjacentSameImageCropIou: 0.82,
+          },
+          motionLimits: {
+            minShotDurationMs: 1_000,
+            pushInScaleRange: { min: 1.03, max: 1.14 },
+            fastPushInScaleRange: { min: 1.08, max: 1.22 },
+            panTravelFractionOfImage: { min: 0.03, max: 0.12 },
+            rotationDegreesRange: { min: -1, max: 1 },
+            dissolveDurationMs: { minMs: 120, maxMs: 250 },
+            dipToBlackDurationMs: { minMs: 100, maxMs: 500 },
+          },
+          effectCaps: [
+            { effect: "blurred-fill", maxShare: 0.2, scope: "video" },
+            {
+              effect: "surveillance-glitch-static-combined",
+              maxShare: 0.15,
+              scope: "video",
+            },
+            { effect: "parallax", maxCount: 1, scope: "video" },
+            { effect: "exposure-flash", maxCount: 3, scope: "video" },
+            { effect: "blackout", maxCount: 2, scope: "video" },
+            { effect: "fast-zoom", maxCount: 3, scope: "video" },
+          ],
+        },
+      },
+      {
+        id: "short-60-75",
+        pacingProfileId: "shorts-aggressive",
+        narrationDurationMs: { minMs: 60_000, maxMs: 75_000 },
+        budget: {
+          sourceImageCount: { min: 7, max: 12 },
+          shotCount: { min: 20, max: 35 },
+          shotsPerImage: { min: 2, max: 4 },
+          maxConsecutiveSourceImageUses: 3,
+          maxTotalSourceImageUses: 5,
+          cropLimits: {
+            minCropArea: 0.35,
+            minFaceMargin: 0.08,
+            maxCropZoom: 2,
+            minOutputHeightPx: 1080,
+            maxAdjacentSameImageCropIou: 0.82,
+          },
+          motionLimits: {
+            minShotDurationMs: 1_000,
+            pushInScaleRange: { min: 1.03, max: 1.14 },
+            fastPushInScaleRange: { min: 1.08, max: 1.22 },
+            panTravelFractionOfImage: { min: 0.03, max: 0.12 },
+            rotationDegreesRange: { min: -1, max: 1 },
+            dissolveDurationMs: { minMs: 120, maxMs: 250 },
+            dipToBlackDurationMs: { minMs: 100, maxMs: 500 },
+          },
+          effectCaps: [
+            { effect: "blurred-fill", maxShare: 0.2, scope: "video" },
+            {
+              effect: "surveillance-glitch-static-combined",
+              maxShare: 0.15,
+              scope: "video",
+            },
+            { effect: "parallax", maxCount: 1, scope: "video" },
+            { effect: "exposure-flash", maxCount: 3, scope: "video" },
+            { effect: "blackout", maxCount: 2, scope: "video" },
+            { effect: "fast-zoom", maxCount: 3, scope: "video" },
+          ],
+        },
+      },
+    ],
+    full: [
+      {
+        id: "full-4-6m",
+        pacingProfileId: "balanced",
+        narrationDurationMs: { minMs: 240_000, maxMs: 360_000 },
+        budget: {
+          sourceImageCount: { min: 18, max: 35 },
+          shotCount: { min: 45, max: 85 },
+          shotsPerImage: { min: 2, max: 3 },
+          maxConsecutiveSourceImageUses: 3,
+          maxTotalSourceImageUses: 6,
+          cropLimits: {
+            minCropArea: 0.35,
+            minFaceMargin: 0.08,
+            maxCropZoom: 1.7,
+            minOutputHeightPx: 1080,
+            maxAdjacentSameImageCropIou: 0.82,
+          },
+          motionLimits: {
+            minShotDurationMs: 2_000,
+            pushInScaleRange: { min: 1.02, max: 1.1 },
+            fastPushInScaleRange: { min: 1.06, max: 1.16 },
+            panTravelFractionOfImage: { min: 0.02, max: 0.08 },
+            rotationDegreesRange: { min: -0.5, max: 0.5 },
+            dissolveDurationMs: { minMs: 200, maxMs: 500 },
+            dipToBlackDurationMs: { minMs: 200, maxMs: 800 },
+          },
+          effectCaps: [
+            { effect: "blurred-fill", maxShare: 0.15, scope: "video" },
+            {
+              effect: "surveillance-glitch-static-combined",
+              maxShare: 0.1,
+              scope: "video",
+            },
+            { effect: "parallax", maxCount: 3, scope: "video" },
+            {
+              effect: "exposure-flash",
+              maxCount: 1,
+              scope: "rolling-duration",
+              scopeDurationMs: 60_000,
+            },
+            {
+              effect: "blackout",
+              maxCount: 1,
+              scope: "intense-sequence",
+            },
+            {
+              effect: "fast-zoom",
+              maxCount: 1,
+              scope: "rolling-duration",
+              scopeDurationMs: 60_000,
+            },
+          ],
+        },
+      },
+    ],
+  },
+});
+
+type VisualRetentionConfig = z.infer<typeof visualRetentionConfigSchema>;
+type VisualRetentionConfigOverride = z.infer<
+  typeof visualRetentionConfigOverrideSchema
+>;
+type VisualRetentionPacingProfiles = VisualRetentionConfig["pacingProfiles"];
+type VisualRetentionPacingProfilesOverride = NonNullable<
+  VisualRetentionConfigOverride["pacingProfiles"]
+>;
+type VisualRetentionProfile = VisualRetentionPacingProfiles["atmospheric"];
+type VisualRetentionProfileOverride =
+  VisualRetentionPacingProfilesOverride["atmospheric"];
+
+function mergeVisualRetentionProfile(
+  baseProfile: VisualRetentionProfile,
+  override: VisualRetentionProfileOverride | undefined,
+) {
+  return override === undefined ? baseProfile : { ...baseProfile, ...override };
+}
+
+function mergeVisualRetentionConfig(
+  overrides: VisualRetentionConfigOverride | undefined,
+  episodeOverrides: VisualRetentionConfigOverride | undefined,
+) {
+  const merged =
+    episodeOverrides === undefined && overrides === undefined
+      ? defaultVisualRetentionConfig
+      : {
+          pacingProfiles: {
+            atmospheric: mergeVisualRetentionProfile(
+              defaultVisualRetentionConfig.pacingProfiles.atmospheric,
+              overrides?.pacingProfiles?.atmospheric ??
+                episodeOverrides?.pacingProfiles?.atmospheric,
+            ),
+            balanced: mergeVisualRetentionProfile(
+              defaultVisualRetentionConfig.pacingProfiles.balanced,
+              overrides?.pacingProfiles?.balanced ??
+                episodeOverrides?.pacingProfiles?.balanced,
+            ),
+            "high-retention": mergeVisualRetentionProfile(
+              defaultVisualRetentionConfig.pacingProfiles["high-retention"],
+              overrides?.pacingProfiles?.["high-retention"] ??
+                episodeOverrides?.pacingProfiles?.["high-retention"],
+            ),
+            "shorts-aggressive": mergeVisualRetentionProfile(
+              defaultVisualRetentionConfig.pacingProfiles["shorts-aggressive"],
+              overrides?.pacingProfiles?.["shorts-aggressive"] ??
+                episodeOverrides?.pacingProfiles?.["shorts-aggressive"],
+            ),
+          },
+          defaults: {
+            short:
+              overrides?.defaults?.short ??
+              episodeOverrides?.defaults?.short ??
+              defaultVisualRetentionConfig.defaults.short,
+            full:
+              overrides?.defaults?.full ??
+              episodeOverrides?.defaults?.full ??
+              defaultVisualRetentionConfig.defaults.full,
+          },
+        };
+
+  return visualRetentionConfigSchema.parse(merged);
+}
 
 const configSchema = z.object({
   workspaceDir: z.string().min(1),
@@ -97,13 +406,16 @@ const configSchema = z.object({
   remoteRenderSshPrivateKey: z.string().optional(),
   remoteRenderUploadMethod: z.enum(["rsync"]),
   localRenderConcurrency: z.number().int().positive().optional(),
-  remoteRenderCleanupMaxAgeHours: z.number().int().positive()
+  remoteRenderCleanupMaxAgeHours: z.number().int().positive(),
+  visualRetention: visualRetentionConfigSchema,
 });
 export type RuntimeConfig = z.infer<typeof configSchema>;
-export type RuntimeConfigOverrides = {
-  [K in keyof RuntimeConfig]?: RuntimeConfig[K] | undefined;
-};
-export const episodeConfigSchema: z.ZodType<RuntimeConfigOverrides> = configSchema.partial();
+export const runtimeConfigOverridesSchema = configSchema.partial().extend({
+  visualRetention: visualRetentionConfigOverrideSchema.optional(),
+});
+export type RuntimeConfigOverrides = z.infer<typeof runtimeConfigOverridesSchema>;
+export const episodeConfigSchema: z.ZodType<RuntimeConfigOverrides> =
+  runtimeConfigOverridesSchema;
 export type EpisodeConfig = z.infer<typeof episodeConfigSchema>;
 
 function parseDotEnv(content: string): Record<string, string> {
@@ -676,7 +988,11 @@ export async function loadRuntimeConfig(
       overrides.remoteRenderCleanupMaxAgeHours ??
       episodeOverrides.remoteRenderCleanupMaxAgeHours ??
       env.REMOTE_RENDER_CLEANUP_MAX_AGE_HOURS ??
-      24
+      24,
+    visualRetention: mergeVisualRetentionConfig(
+      overrides.visualRetention,
+      episodeOverrides.visualRetention,
+    ),
   });
   return config;
 }

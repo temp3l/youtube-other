@@ -11,6 +11,7 @@ import {
   shotPlanSchema,
   shotPlanValidationIssueSchema,
   visualBudgetSchema,
+  visualPacingProfileSchema,
   visualSourceSceneSchema,
 } from "./index.js";
 
@@ -132,7 +133,23 @@ function makeShotPlan(overrides: Record<string, unknown> = {}) {
       shotsPerImage: { min: 1, max: 4 },
       maxConsecutiveSourceImageUses: 3,
       maxTotalSourceImageUses: 5,
-      effectCaps: [{ effect: "blurred-fill", maxShare: 0.2 }],
+      cropLimits: {
+        minCropArea: 0.35,
+        minFaceMargin: 0.08,
+        maxCropZoom: 2,
+        minOutputHeightPx: 1080,
+        maxAdjacentSameImageCropIou: 0.82,
+      },
+      motionLimits: {
+        minShotDurationMs: 1000,
+        pushInScaleRange: { min: 1.03, max: 1.14 },
+        fastPushInScaleRange: { min: 1.08, max: 1.22 },
+        panTravelFractionOfImage: { min: 0.03, max: 0.12 },
+        rotationDegreesRange: { min: -1, max: 1 },
+        dissolveDurationMs: { minMs: 120, maxMs: 250 },
+        dipToBlackDurationMs: { minMs: 100, maxMs: 500 },
+      },
+      effectCaps: [{ effect: "blurred-fill", maxShare: 0.2, scope: "video" }],
     },
     planningSeed: "seed-001",
     ...overrides,
@@ -372,7 +389,23 @@ describe("visual shot planning schemas", () => {
         shotCount: { min: 1, max: 4 },
         maxConsecutiveSourceImageUses: 3,
         maxTotalSourceImageUses: 5,
-        effectCaps: [{ effect: "blurred-fill", maxCount: 1 }],
+        cropLimits: {
+          minCropArea: 0.35,
+          minFaceMargin: 0.08,
+          maxCropZoom: 2,
+          minOutputHeightPx: 1080,
+          maxAdjacentSameImageCropIou: 0.82,
+        },
+        motionLimits: {
+          minShotDurationMs: 1000,
+          pushInScaleRange: { min: 1.03, max: 1.14 },
+          fastPushInScaleRange: { min: 1.08, max: 1.22 },
+          panTravelFractionOfImage: { min: 0.03, max: 0.12 },
+          rotationDegreesRange: { min: -1, max: 1 },
+          dissolveDurationMs: { minMs: 120, maxMs: 250 },
+          dipToBlackDurationMs: { minMs: 100, maxMs: 500 },
+        },
+        effectCaps: [{ effect: "blurred-fill", maxCount: 1, scope: "video" }],
       }).success,
     ).toBe(false);
 
@@ -381,6 +414,63 @@ describe("visual shot planning schemas", () => {
         code: "NOT_A_REAL_CODE",
         severity: "warning",
         message: "bad code",
+      }).success,
+    ).toBe(false);
+  });
+
+  it("accepts known pacing profile ids and rejects malformed pacing or budget constraints", () => {
+    expect(
+      visualPacingProfileSchema.safeParse({
+        id: "balanced",
+        shotDurationMs: { minMs: 2000, maxMs: 8000 },
+        staticShotDurationMs: { minMs: 2000, maxMs: 5000 },
+        movingShotDurationMs: { minMs: 2000, maxMs: 10000 },
+        openingCadenceMs: { minMs: 3000, maxMs: 6000 },
+        climaxCadenceMs: { minMs: 2000, maxMs: 5000 },
+      }).success,
+    ).toBe(true);
+
+    expect(
+      visualPacingProfileSchema.safeParse({
+        id: "custom-profile",
+        shotDurationMs: { minMs: 2000, maxMs: 8000 },
+        staticShotDurationMs: { minMs: 2000, maxMs: 5000 },
+        movingShotDurationMs: { minMs: 2000, maxMs: 10000 },
+        openingCadenceMs: { minMs: 3000, maxMs: 6000 },
+        climaxCadenceMs: { minMs: 2000, maxMs: 5000 },
+      }).success,
+    ).toBe(false);
+
+    expect(
+      visualBudgetSchema.safeParse({
+        sourceImageCount: { min: 2, max: 5 },
+        shotCount: { min: 3, max: 8 },
+        shotsPerImage: { min: 1, max: 4 },
+        maxConsecutiveSourceImageUses: 6,
+        maxTotalSourceImageUses: 5,
+        cropLimits: {
+          minCropArea: 1.2,
+          minFaceMargin: 0.08,
+          maxCropZoom: 2,
+          minOutputHeightPx: 1080,
+          maxAdjacentSameImageCropIou: 0.82,
+        },
+        motionLimits: {
+          minShotDurationMs: 1000,
+          pushInScaleRange: { min: 1.14, max: 1.03 },
+          fastPushInScaleRange: { min: 1.08, max: 1.22 },
+          panTravelFractionOfImage: { min: 0.03, max: 0.12 },
+          rotationDegreesRange: { min: 1, max: -1 },
+          dissolveDurationMs: { minMs: 250, maxMs: 120 },
+          dipToBlackDurationMs: { minMs: 100, maxMs: 500 },
+        },
+        effectCaps: [
+          {
+            effect: "fast-zoom",
+            maxShare: 0.25,
+            scope: "rolling-duration",
+          },
+        ],
       }).success,
     ).toBe(false);
   });

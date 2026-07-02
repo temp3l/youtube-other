@@ -80,6 +80,36 @@ const integerRangeSchema = z
     }
   });
 
+const positiveNumberRangeSchema = z
+  .object({
+    min: positiveFiniteNumberSchema,
+    max: positiveFiniteNumberSchema,
+  })
+  .superRefine((value, ctx) => {
+    if (value.min > value.max) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["min"],
+        message: "Minimum value must not exceed maximum value.",
+      });
+    }
+  });
+
+const signedNumberRangeSchema = z
+  .object({
+    min: z.number().finite(),
+    max: z.number().finite(),
+  })
+  .superRefine((value, ctx) => {
+    if (value.min > value.max) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["min"],
+        message: "Minimum value must not exceed maximum value.",
+      });
+    }
+  });
+
 export const sourcePlatformSchema = z.enum(["youtube", "tiktok", "local-file"]);
 export type SourcePlatform = z.infer<typeof sourcePlatformSchema>;
 
@@ -465,6 +495,16 @@ export const shotTreatmentIdSchema =
   createVisualRetentionIdSchema("ShotTreatmentId");
 export type ShotTreatmentId = z.infer<typeof shotTreatmentIdSchema>;
 
+export const visualPacingProfileIdSchema = z.enum([
+  "atmospheric",
+  "balanced",
+  "high-retention",
+  "shorts-aggressive",
+]);
+export type VisualPacingProfileId = z.infer<
+  typeof visualPacingProfileIdSchema
+>;
+
 export const normalizedCropSchema = z
   .object({
     // Normalized left coordinate in the inclusive [0, 1] source-image range.
@@ -707,51 +747,6 @@ export const shotTransitionSchema = z.discriminatedUnion("kind", [
 ]);
 export type ShotTransition = z.infer<typeof shotTransitionSchema>;
 
-export const visualPacingProfileSchema = z.object({
-  id: createVisualRetentionIdSchema("VisualPacingProfileId"),
-  shotDurationMs: durationRangeSchema,
-  staticShotDurationMs: durationRangeSchema,
-  movingShotDurationMs: durationRangeSchema,
-  openingCadenceMs: durationRangeSchema,
-  climaxCadenceMs: durationRangeSchema,
-});
-export type VisualPacingProfile = z.infer<typeof visualPacingProfileSchema>;
-
-export const visualEffectCapSchema = z
-  .object({
-    effect: z.enum([
-      "blurred-fill",
-      "surveillance",
-      "glitch",
-      "parallax",
-      "exposure-flash",
-      "blackout",
-      "fast-zoom",
-    ]),
-    maxCount: nonNegativeIntegerSchema.optional(),
-    maxShare: z.number().finite().min(0).max(1).optional(),
-  })
-  .superRefine((value, ctx) => {
-    if (value.maxCount === undefined && value.maxShare === undefined) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["effect"],
-        message: "Effect caps require at least one count or share limit.",
-      });
-    }
-  });
-export type VisualEffectCap = z.infer<typeof visualEffectCapSchema>;
-
-export const visualBudgetSchema = z.object({
-  sourceImageCount: integerRangeSchema,
-  shotCount: integerRangeSchema,
-  shotsPerImage: integerRangeSchema.optional(),
-  maxConsecutiveSourceImageUses: nonNegativeIntegerSchema,
-  maxTotalSourceImageUses: nonNegativeIntegerSchema,
-  effectCaps: z.array(visualEffectCapSchema),
-});
-export type VisualBudget = z.infer<typeof visualBudgetSchema>;
-
 export const visualNarrativePhaseSchema = z.enum([
   "hook",
   "setup",
@@ -762,6 +757,120 @@ export const visualNarrativePhaseSchema = z.enum([
   "aftermath",
 ]);
 export type VisualNarrativePhase = z.infer<typeof visualNarrativePhaseSchema>;
+
+export const visualPacingProfileSchema = z.object({
+  id: visualPacingProfileIdSchema,
+  shotDurationMs: durationRangeSchema,
+  staticShotDurationMs: durationRangeSchema,
+  movingShotDurationMs: durationRangeSchema,
+  openingCadenceMs: durationRangeSchema,
+  climaxCadenceMs: durationRangeSchema,
+});
+export type VisualPacingProfile = z.infer<typeof visualPacingProfileSchema>;
+
+export const visualEffectScopeSchema = z.enum([
+  "video",
+  "rolling-duration",
+  "intense-sequence",
+]);
+export type VisualEffectScope = z.infer<typeof visualEffectScopeSchema>;
+
+export const visualEffectCapSchema = z
+  .object({
+    effect: z.enum([
+      "blurred-fill",
+      "surveillance",
+      "glitch",
+      "surveillance-glitch-static-combined",
+      "parallax",
+      "exposure-flash",
+      "blackout",
+      "fast-zoom",
+    ]),
+    maxCount: nonNegativeIntegerSchema.optional(),
+    maxShare: z.number().finite().min(0).max(1).optional(),
+    scope: visualEffectScopeSchema.default("video"),
+    scopeDurationMs: positiveIntegerSchema.optional(),
+  })
+  .superRefine((value, ctx) => {
+    if (value.maxCount === undefined && value.maxShare === undefined) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["effect"],
+        message: "Effect caps require at least one count or share limit.",
+      });
+    }
+    if (value.scope === "rolling-duration") {
+      if (value.maxCount === undefined) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["maxCount"],
+          message: "Rolling-duration effect caps require a count limit.",
+        });
+      }
+      if (value.scopeDurationMs === undefined) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["scopeDurationMs"],
+          message:
+            "Rolling-duration effect caps require a duration window in milliseconds.",
+        });
+      }
+    } else if (value.scopeDurationMs !== undefined) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["scopeDurationMs"],
+        message:
+          "Effect cap duration windows are only valid for rolling-duration scopes.",
+      });
+    }
+  });
+export type VisualEffectCap = z.infer<typeof visualEffectCapSchema>;
+
+export const visualCropLimitsSchema = z.object({
+  minCropArea: positiveFiniteNumberSchema.max(1),
+  minFaceMargin: normalizedUnitIntervalSchema,
+  maxCropZoom: positiveFiniteNumberSchema,
+  minOutputHeightPx: positiveIntegerSchema,
+  maxAdjacentSameImageCropIou: normalizedUnitIntervalSchema,
+});
+export type VisualCropLimits = z.infer<typeof visualCropLimitsSchema>;
+
+export const visualMotionLimitsSchema = z.object({
+  minShotDurationMs: positiveIntegerSchema,
+  pushInScaleRange: positiveNumberRangeSchema,
+  fastPushInScaleRange: positiveNumberRangeSchema,
+  panTravelFractionOfImage: positiveNumberRangeSchema,
+  rotationDegreesRange: signedNumberRangeSchema,
+  dissolveDurationMs: durationRangeSchema,
+  dipToBlackDurationMs: durationRangeSchema,
+});
+export type VisualMotionLimits = z.infer<typeof visualMotionLimitsSchema>;
+
+export const visualBudgetSchema = z
+  .object({
+    sourceImageCount: integerRangeSchema,
+    shotCount: integerRangeSchema,
+    shotsPerImage: integerRangeSchema.optional(),
+    maxConsecutiveSourceImageUses: nonNegativeIntegerSchema,
+    maxTotalSourceImageUses: nonNegativeIntegerSchema,
+    cropLimits: visualCropLimitsSchema,
+    motionLimits: visualMotionLimitsSchema,
+    effectCaps: z.array(visualEffectCapSchema),
+  })
+  .superRefine((value, ctx) => {
+    if (
+      value.maxConsecutiveSourceImageUses > value.maxTotalSourceImageUses
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["maxConsecutiveSourceImageUses"],
+        message:
+          "Maximum consecutive source-image reuse must not exceed the total reuse cap.",
+      });
+    }
+  });
+export type VisualBudget = z.infer<typeof visualBudgetSchema>;
 
 export const visualSourceSceneSchema = z
   .object({

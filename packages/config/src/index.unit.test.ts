@@ -65,6 +65,299 @@ describe("runtime config", () => {
     expect(config.visualSceneMaxSeconds).toBe(6);
     expect(config.trailingSilenceRatio).toBe(1);
     expect(config.trailingSilenceBufferSeconds).toBe(0);
+    expect(Object.keys(config.visualRetention.pacingProfiles)).toEqual([
+      "atmospheric",
+      "balanced",
+      "high-retention",
+      "shorts-aggressive",
+    ]);
+    expect(config.visualRetention.defaults.short).toHaveLength(2);
+    expect(config.visualRetention.defaults.full).toHaveLength(1);
+  });
+
+  it("loads visual retention production defaults when no config overrides are present", async () => {
+    const config = await loadRuntimeConfig();
+
+    expect(config.visualRetention.pacingProfiles["shorts-aggressive"]).toMatchObject({
+      id: "shorts-aggressive",
+      staticShotDurationMs: { maxMs: 3000 },
+      movingShotDurationMs: { maxMs: 6000 },
+      openingCadenceMs: { minMs: 1500, maxMs: 3500 },
+      climaxCadenceMs: { minMs: 1000, maxMs: 3000 },
+    });
+    expect(config.visualRetention.pacingProfiles["high-retention"]).toMatchObject({
+      id: "high-retention",
+      staticShotDurationMs: { maxMs: 4000 },
+      movingShotDurationMs: { maxMs: 8000 },
+    });
+    expect(config.visualRetention.pacingProfiles.balanced).toMatchObject({
+      id: "balanced",
+      staticShotDurationMs: { maxMs: 5000 },
+      movingShotDurationMs: { maxMs: 10000 },
+      openingCadenceMs: { minMs: 3000, maxMs: 6000 },
+    });
+    expect(config.visualRetention.pacingProfiles.atmospheric).toMatchObject({
+      id: "atmospheric",
+      staticShotDurationMs: { maxMs: 5000 },
+      movingShotDurationMs: { maxMs: 12000 },
+    });
+
+    expect(config.visualRetention.defaults.short).toEqual([
+      expect.objectContaining({
+        id: "short-45-60",
+        pacingProfileId: "shorts-aggressive",
+        narrationDurationMs: { minMs: 45000, maxMs: 60000 },
+        budget: expect.objectContaining({
+          sourceImageCount: { min: 5, max: 9 },
+          shotCount: { min: 15, max: 28 },
+          shotsPerImage: { min: 2, max: 4 },
+          maxConsecutiveSourceImageUses: 3,
+          maxTotalSourceImageUses: 5,
+          cropLimits: expect.objectContaining({
+            minCropArea: 0.35,
+            minFaceMargin: 0.08,
+            maxCropZoom: 2,
+            minOutputHeightPx: 1080,
+            maxAdjacentSameImageCropIou: 0.82,
+          }),
+          motionLimits: expect.objectContaining({
+            minShotDurationMs: 1000,
+            pushInScaleRange: { min: 1.03, max: 1.14 },
+            fastPushInScaleRange: { min: 1.08, max: 1.22 },
+            panTravelFractionOfImage: { min: 0.03, max: 0.12 },
+            rotationDegreesRange: { min: -1, max: 1 },
+            dissolveDurationMs: { minMs: 120, maxMs: 250 },
+            dipToBlackDurationMs: { minMs: 100, maxMs: 500 },
+          }),
+          effectCaps: [
+            { effect: "blurred-fill", maxShare: 0.2, scope: "video" },
+            {
+              effect: "surveillance-glitch-static-combined",
+              maxShare: 0.15,
+              scope: "video",
+            },
+            { effect: "parallax", maxCount: 1, scope: "video" },
+            { effect: "exposure-flash", maxCount: 3, scope: "video" },
+            { effect: "blackout", maxCount: 2, scope: "video" },
+            { effect: "fast-zoom", maxCount: 3, scope: "video" },
+          ],
+        }),
+      }),
+      expect.objectContaining({
+        id: "short-60-75",
+        narrationDurationMs: { minMs: 60000, maxMs: 75000 },
+        budget: expect.objectContaining({
+          sourceImageCount: { min: 7, max: 12 },
+          shotCount: { min: 20, max: 35 },
+        }),
+      }),
+    ]);
+
+    expect(config.visualRetention.defaults.full).toEqual([
+      expect.objectContaining({
+        id: "full-4-6m",
+        pacingProfileId: "balanced",
+        narrationDurationMs: { minMs: 240000, maxMs: 360000 },
+        budget: expect.objectContaining({
+          sourceImageCount: { min: 18, max: 35 },
+          shotCount: { min: 45, max: 85 },
+          shotsPerImage: { min: 2, max: 3 },
+          maxConsecutiveSourceImageUses: 3,
+          maxTotalSourceImageUses: 6,
+          cropLimits: expect.objectContaining({
+            maxCropZoom: 1.7,
+          }),
+          motionLimits: expect.objectContaining({
+            minShotDurationMs: 2000,
+            pushInScaleRange: { min: 1.02, max: 1.1 },
+            fastPushInScaleRange: { min: 1.06, max: 1.16 },
+            panTravelFractionOfImage: { min: 0.02, max: 0.08 },
+            rotationDegreesRange: { min: -0.5, max: 0.5 },
+            dissolveDurationMs: { minMs: 200, maxMs: 500 },
+            dipToBlackDurationMs: { minMs: 200, maxMs: 800 },
+          }),
+          effectCaps: [
+            { effect: "blurred-fill", maxShare: 0.15, scope: "video" },
+            {
+              effect: "surveillance-glitch-static-combined",
+              maxShare: 0.1,
+              scope: "video",
+            },
+            { effect: "parallax", maxCount: 3, scope: "video" },
+            {
+              effect: "exposure-flash",
+              maxCount: 1,
+              scope: "rolling-duration",
+              scopeDurationMs: 60000,
+            },
+            { effect: "blackout", maxCount: 1, scope: "intense-sequence" },
+            {
+              effect: "fast-zoom",
+              maxCount: 1,
+              scope: "rolling-duration",
+              scopeDurationMs: 60000,
+            },
+          ],
+        }),
+      }),
+    ]);
+  });
+
+  it("deep-merges partial visual retention overrides without breaking existing config loading", async () => {
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "mediaforge-visual-retention-"));
+    const episodeDir = path.join(dir, "episode");
+    await fs.mkdir(episodeDir, { recursive: true });
+    await fs.writeFile(
+      path.join(episodeDir, "episode.config.json"),
+      JSON.stringify(
+        {
+          visualRetention: {
+            pacingProfiles: {
+              balanced: {
+                movingShotDurationMs: { minMs: 2500, maxMs: 9000 },
+              },
+            },
+          },
+        },
+        null,
+        2
+      )
+    );
+
+    const episodeConfig = await loadEpisodeConfig(episodeDir);
+    expect(episodeConfig?.visualRetention?.pacingProfiles?.balanced).toEqual({
+      movingShotDurationMs: { minMs: 2500, maxMs: 9000 },
+    });
+
+    const config = await loadRuntimeConfig(
+      {
+        ttsProvider: "mock",
+        visualRetention: {
+          defaults: {
+            short: [
+              {
+                id: "short-45-60",
+                budget: {
+                  sourceImageCount: { min: 6, max: 10 },
+                  shotCount: { min: 16, max: 28 },
+                  shotsPerImage: { min: 2, max: 4 },
+                  maxConsecutiveSourceImageUses: 3,
+                  maxTotalSourceImageUses: 5,
+                  cropLimits: {
+                    minCropArea: 0.35,
+                    minFaceMargin: 0.08,
+                    maxCropZoom: 2,
+                    minOutputHeightPx: 1080,
+                    maxAdjacentSameImageCropIou: 0.82,
+                  },
+                  motionLimits: {
+                    minShotDurationMs: 1000,
+                    pushInScaleRange: { min: 1.03, max: 1.14 },
+                    fastPushInScaleRange: { min: 1.08, max: 1.22 },
+                    panTravelFractionOfImage: { min: 0.03, max: 0.12 },
+                    rotationDegreesRange: { min: -1, max: 1 },
+                    dissolveDurationMs: { minMs: 120, maxMs: 250 },
+                    dipToBlackDurationMs: { minMs: 100, maxMs: 500 },
+                  },
+                  effectCaps: [{ effect: "blurred-fill", maxShare: 0.2 }],
+                },
+                pacingProfileId: "shorts-aggressive",
+                narrationDurationMs: { minMs: 45000, maxMs: 60000 },
+              },
+            ],
+          },
+        },
+      },
+      episodeConfig ?? {}
+    );
+
+    expect(config.visualRetention.pacingProfiles.balanced.movingShotDurationMs).toEqual({
+      minMs: 2500,
+      maxMs: 9000,
+    });
+    expect(config.visualRetention.pacingProfiles.balanced.staticShotDurationMs).toEqual({
+      minMs: 2000,
+      maxMs: 5000,
+    });
+    expect(config.visualRetention.defaults.short).toEqual([
+      expect.objectContaining({
+        id: "short-45-60",
+        budget: expect.objectContaining({
+          sourceImageCount: { min: 6, max: 10 },
+        }),
+      }),
+    ]);
+    expect(config.visualRetention.defaults.full).toHaveLength(1);
+  });
+
+  it("rejects malformed visual retention configuration files", async () => {
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "mediaforge-invalid-visual-retention-"));
+    const episodeDir = path.join(dir, "episode");
+    await fs.mkdir(episodeDir, { recursive: true });
+
+    for (const visualRetention of [
+      {
+        pacingProfiles: {
+          unknown: {
+            id: "unknown",
+            shotDurationMs: { minMs: 1000, maxMs: 2000 },
+            staticShotDurationMs: { minMs: 1000, maxMs: 2000 },
+            movingShotDurationMs: { minMs: 1000, maxMs: 2000 },
+            openingCadenceMs: { minMs: 1000, maxMs: 2000 },
+            climaxCadenceMs: { minMs: 1000, maxMs: 2000 },
+          },
+        },
+      },
+      {
+        pacingProfiles: {
+          balanced: {
+            movingShotDurationMs: { minMs: 9000, maxMs: 2500 },
+          },
+        },
+      },
+      {
+        defaults: {
+          short: [
+            {
+              id: "short-45-60",
+              pacingProfileId: "shorts-aggressive",
+              narrationDurationMs: { minMs: 45000, maxMs: 60000 },
+              budget: {
+                sourceImageCount: { min: 5.2, max: 9 },
+                shotCount: { min: 15, max: 28 },
+                shotsPerImage: { min: 2, max: 4 },
+                maxConsecutiveSourceImageUses: 3,
+                maxTotalSourceImageUses: 5,
+                cropLimits: {
+                  minCropArea: 0.35,
+                  minFaceMargin: 0.08,
+                  maxCropZoom: 2,
+                  minOutputHeightPx: 1080,
+                  maxAdjacentSameImageCropIou: 0.82,
+                },
+                motionLimits: {
+                  minShotDurationMs: 1000,
+                  pushInScaleRange: { min: 1.03, max: 1.14 },
+                  fastPushInScaleRange: { min: 1.08, max: 1.22 },
+                  panTravelFractionOfImage: { min: 0.03, max: 0.12 },
+                  rotationDegreesRange: { min: -1, max: 1 },
+                  dissolveDurationMs: { minMs: 120, maxMs: 250 },
+                  dipToBlackDurationMs: { minMs: 100, maxMs: 500 },
+                },
+                effectCaps: [{ effect: "blurred-fill", maxShare: -0.2 }],
+              },
+            },
+          ],
+        },
+      },
+    ]) {
+      await fs.writeFile(
+        path.join(episodeDir, "episode.config.json"),
+        JSON.stringify({ visualRetention }, null, 2)
+      );
+
+      await expect(loadEpisodeConfig(episodeDir)).rejects.toThrow();
+    }
   });
 
   it("lets .env override inherited process env values for OpenAI credentials", async () => {
