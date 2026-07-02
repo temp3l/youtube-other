@@ -373,6 +373,68 @@ const pronunciationSkippedEntrySchema = z
   })
   .strict();
 
+const pronunciationScopeSchema = z.enum(["global", "language", "profile", "episode"]);
+const pronunciationLiteralSchema = z
+  .string()
+  .min(1)
+  .max(500)
+  .refine((value) => !/[\\^$.*+?()[\]{}|]/u.test(value), {
+    message: "Pronunciation entries support literal text only.",
+  });
+
+export const pronunciationEntrySchema = z
+  .object({
+    entryId: boundedString(128),
+    scope: pronunciationScopeSchema,
+    language: z.union([localeSchema, z.literal("global")]),
+    profileId: boundedString(128).optional(),
+    episodeId: episodeIdSchema.optional(),
+    phrase: pronunciationLiteralSchema,
+    replacement: boundedString(500),
+    mandatory: z.boolean().default(false),
+    enabled: z.boolean().default(true),
+    note: optionalNote,
+  })
+  .strict()
+  .superRefine((value, ctx) => {
+    if (value.scope === "episode" && value.episodeId === undefined) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["episodeId"],
+        message: "Episode pronunciation entries require episodeId.",
+      });
+    }
+    if (value.scope === "profile" && value.profileId === undefined) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["profileId"],
+        message: "Profile pronunciation entries require profileId.",
+      });
+    }
+  });
+export type PronunciationEntry = z.infer<typeof pronunciationEntrySchema>;
+
+export const pronunciationDictionarySchema = z
+  .object({
+    schemaVersion: z.literal(NARRATION_ARTIFACT_SCHEMA_VERSION).optional(),
+    language: z.union([localeSchema, z.literal("global")]),
+    profileId: boundedString(128).optional(),
+    episodeId: episodeIdSchema.optional(),
+    entries: z.array(pronunciationEntrySchema).max(1000),
+    dictionaryFingerprint: sha256Schema.optional(),
+  })
+  .strict()
+  .superRefine((value, ctx) => {
+    if (!uniqueStrings(value.entries.map((entry) => entry.entryId))) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["entries"],
+        message: "Pronunciation entry IDs must be unique.",
+      });
+    }
+  });
+export type PronunciationDictionary = z.infer<typeof pronunciationDictionarySchema>;
+
 /** Audit report for TTS-only pronunciation text transformations. */
 export const pronunciationTransformationReportSchema = z
   .object({
