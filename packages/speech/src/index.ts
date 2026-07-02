@@ -45,6 +45,7 @@ export * from "./mastering.js";
 export * from "./narration-quality-gate.js";
 export * from "./narration-pipeline.js";
 export * from "./narration-status.js";
+export * from "./dark-truth-adapter.js";
 export * from "./voice-benchmark.js";
 export * from "./narration-telemetry.js";
 export {

@@ -46,6 +46,7 @@ import {
 import { runCommand } from "@mediaforge/process-runner";
 import {
   OpenAiCompatibleSpeechProvider,
+  runDarkTruthNarrationAdapter,
   loadSpeechVoiceInstructionTemplate,
   loadSpeechVoiceSettings,
   MockSpeechProvider,
@@ -2518,6 +2519,10 @@ function narrationAudioManifestPath(narrationDir: string): string {
   return path.join(narrationDir, "narration-manifest.json");
 }
 
+function narrationAdapterStatusPath(narrationDir: string): string {
+  return path.join(narrationDir, "narration-adapter-status.json");
+}
+
 function buildSpeechPlanHash(speechPlan: SpeechPlan): string {
   return hashText(
     JSON.stringify({
@@ -2541,6 +2546,43 @@ function buildSpeechPlanHash(speechPlan: SpeechPlan): string {
       })),
     })
   );
+}
+
+function sanitizeAdapterFailureReason(error: unknown): string {
+  const raw = error instanceof Error ? error.message : String(error);
+  const redacted = raw
+    .replace(/\b(?:sk-[a-zA-Z0-9_-]+|Bearer\s+[a-zA-Z0-9._-]+)\b/gu, "[redacted]")
+    .replace(/\s+/gu, " ")
+    .trim();
+  return redacted.length > 240 ? `${redacted.slice(0, 237)}...` : redacted;
+}
+
+async function useDarkTruthNarrationAdapter(episodeDir: string): Promise<boolean> {
+  const episodeConfig = await loadEpisodeConfig(resolveEpisodeRootDir(episodeDir));
+  const runtimeConfig = await loadRuntimeConfig({}, episodeConfig ?? {});
+  return runtimeConfig.narrationPipelineMode === "new";
+}
+
+async function writeNarrationAdapterStatus(
+  narrationDir: string,
+  status: {
+    readonly adapterMode: "new";
+    readonly speechPlanHash: string;
+    readonly outputManifestHash?: string;
+    readonly fallbackUsed: boolean;
+    readonly fallbackReason?: string;
+  }
+): Promise<void> {
+  await writeJsonAtomic(narrationAdapterStatusPath(narrationDir), {
+    schemaVersion: 1,
+    adapter: "dark-truth-compatibility-adapter",
+    adapterMode: status.adapterMode,
+    speechPlanHash: status.speechPlanHash,
+    ...(status.outputManifestHash ? { outputManifestHash: status.outputManifestHash } : {}),
+    fallbackUsed: status.fallbackUsed,
+    ...(status.fallbackReason ? { fallbackReason: status.fallbackReason } : {}),
+    generatedAt: nowIso(),
+  });
 }
 
 async function loadNarrationAudioManifest(
@@ -2617,6 +2659,42 @@ export async function generateMockNarrationAudio(
   const manifestPath = narrationAudioManifestPath(narrationDir);
   const speechPlanHash = buildSpeechPlanHash(speechPlan);
   const voiceProfileHash = speechPlan.canonicalVoiceProfileHash;
+  let adapterFallbackReason: string | undefined;
+  if (await useDarkTruthNarrationAdapter(episodeDir)) {
+    try {
+      const adapterResult = await runDarkTruthNarrationAdapter({
+        episodeDir,
+        speechPlan,
+        baseVoiceInstructions: speechPlan.canonicalVoiceProfile,
+        synthesizeChunk: async (request) => {
+          const idMatch = request.chunkId.match(/([0-9]+)$/u);
+          const sceneNumber = idMatch?.[1] ?? "001";
+          await provider.synthesize(
+            {
+              sceneId: sceneIdSchema.parse(`scene-${sceneNumber.padStart(3, "0")}`),
+              text: request.text,
+              voiceProfile,
+              outputPath: request.outputPath,
+              ...(request.targetDurationSeconds !== undefined
+                ? { targetDurationSeconds: request.targetDurationSeconds }
+                : {}),
+              instructions: request.instructions,
+            },
+            new AbortController().signal
+          );
+        },
+      });
+      await writeNarrationAdapterStatus(narrationDir, {
+        adapterMode: "new",
+        speechPlanHash,
+        outputManifestHash: adapterResult.outputManifestHash,
+        fallbackUsed: false,
+      });
+      return adapterResult.narrationPath;
+    } catch (error) {
+      adapterFallbackReason = sanitizeAdapterFailureReason(error);
+    }
+  }
   const expectedSegmentPaths = speechPlan.segments.map((segment) =>
     path.join(segmentsDir, `${segment.id}.wav`)
   );
@@ -2649,6 +2727,14 @@ export async function generateMockNarrationAudio(
       }
     }
     if (segmentsValid) {
+      if (adapterFallbackReason) {
+        await writeNarrationAdapterStatus(narrationDir, {
+          adapterMode: "new",
+          speechPlanHash,
+          fallbackUsed: true,
+          fallbackReason: adapterFallbackReason,
+        });
+      }
       return narrationPath;
     }
   }
@@ -2711,6 +2797,14 @@ export async function generateMockNarrationAudio(
     narrationSha256,
     generatedAt: nowIso(),
   } satisfies NarrationAudioManifest);
+  if (adapterFallbackReason) {
+    await writeNarrationAdapterStatus(narrationDir, {
+      adapterMode: "new",
+      speechPlanHash,
+      fallbackUsed: true,
+      fallbackReason: adapterFallbackReason,
+    });
+  }
   return narrationPath;
 }
 

@@ -320,6 +320,68 @@ describe("dark-truth workflow", () => {
     expect(manifest.speechPlanHash).toHaveLength(64);
   }, 120000);
 
+  it("adapts SpeechPlan narration through the staged pipeline while preserving compatibility outputs", async () => {
+    const tempDir = await fs.mkdtemp(
+      path.join(os.tmpdir(), "dark-truth-narration-adapter-")
+    );
+    const outputRoot = path.join(tempDir, "episodes");
+    const result = await buildEpisodeLoadResult(
+      episode001EnglishShort,
+      outputRoot
+    );
+    const episodeDir = path.join(
+      outputRoot,
+      "001-the-forbidden-village-where-japan-s-laws-do-not-apply",
+      "en",
+      "short"
+    );
+    try {
+      vi.stubEnv("MEDIAFORGE_NARRATION_PIPELINE_MODE", "new");
+      const narrationPath = await generateMockNarrationAudio(
+        episodeDir,
+        result.speechPlan
+      );
+      expect((await fs.stat(narrationPath)).size).toBeGreaterThan(0);
+      const compatibilityManifest = JSON.parse(
+        await fs.readFile(
+          path.join(episodeDir, "audio", "narration-manifest.json"),
+          "utf8"
+        )
+      ) as {
+        adapterMode?: string;
+        segmentCount?: number;
+        canonicalManifestHash?: string;
+      };
+      expect(compatibilityManifest.adapterMode).toBe("new");
+      expect(compatibilityManifest.segmentCount).toBe(result.speechPlan.segments.length);
+      expect(compatibilityManifest.canonicalManifestHash).toHaveLength(64);
+      await expect(
+        fs.stat(
+          path.join(
+            outputRoot,
+            "001-the-forbidden-village-where-japan-s-laws-do-not-apply",
+            "locales",
+            "en",
+            "short",
+            "audio",
+            "narration",
+            "chunk-manifest.json"
+          )
+        )
+      ).resolves.toBeTruthy();
+      const adapterStatus = JSON.parse(
+        await fs.readFile(
+          path.join(episodeDir, "audio", "narration-adapter-status.json"),
+          "utf8"
+        )
+      ) as { fallbackUsed?: boolean; outputManifestHash?: string };
+      expect(adapterStatus.fallbackUsed).toBe(false);
+      expect(adapterStatus.outputManifestHash).toHaveLength(64);
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  }, 120000);
+
   it("keeps canonical image generation local unless paid providers are explicitly enabled", async () => {
     const tempDir = await fs.mkdtemp(
       path.join(os.tmpdir(), "dark-truth-paid-images-")

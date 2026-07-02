@@ -292,12 +292,10 @@ function buildGenerationMetadata(input: {
     },
     artifactFingerprints: [
       {
-        owner: "audio",
         artifactType: "chunk-manifest",
         fingerprint: input.chunkManifest.manifestFingerprint,
       },
       ...input.records.map((record) => ({
-        owner: "audio" as const,
         artifactType: "tts-chunk",
         fingerprint: record.chunkFingerprint,
       })),
@@ -337,10 +335,10 @@ function buildGenerationMetadata(input: {
     startedAt: input.startedAt,
     completedAt: input.completedAt,
     finalOutputs: {
-      cleanNarrationPath: path.relative(input.paths.narrationRoot, input.paths.cleanNarration),
-      masteredNarrationPath: path.relative(input.paths.narrationRoot, input.paths.masteredNarration),
-      compatibilityNarrationPath: path.relative(input.paths.narrationRoot, input.paths.compatibilityNarration),
-      rootCompatibilityNarrationPath: path.relative(input.paths.narrationRoot, input.paths.rootCompatibilityNarration),
+      cleanNarrationPath: path.relative(input.paths.localeVariantRoot, input.paths.cleanNarration),
+      masteredNarrationPath: path.relative(input.paths.localeVariantRoot, input.paths.masteredNarration),
+      compatibilityNarrationPath: path.relative(input.paths.localeVariantRoot, input.paths.compatibilityNarration),
+      rootCompatibilityNarrationPath: path.relative(input.paths.episodeRoot, input.paths.rootCompatibilityNarration),
     },
   });
 }
