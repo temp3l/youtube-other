@@ -453,6 +453,9 @@ importers:
       '@mediaforge/shared':
         specifier: workspace:*
         version: link:../shared
+      '@mediaforge/story-localization':
+        specifier: workspace:*
+        version: link:../story-localization
       openai:
         specifier: ^6.44.0
         version: 6.45.0(ws@8.21.0)(zod@4.4.3)
