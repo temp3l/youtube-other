@@ -4,7 +4,11 @@ import os from "node:os";
 import path from "node:path";
 import sharp from "sharp";
 import { describe, expect, it } from "vitest";
-import { scenePlanSchema, type ScenePlan } from "@mediaforge/domain";
+import {
+  scenePlanSchema,
+  type ScenePlan,
+} from "@mediaforge/domain";
+import { resolveEpisodeFocalMetadataPath } from "@mediaforge/shared";
 import {
   approveEpisodeCharacter,
   buildPromptFromSpec,
@@ -24,6 +28,7 @@ import {
   validatePrompt,
   validateSceneVisualSpec,
 } from "./episode-image-pipeline.js";
+import { loadEpisodeFocalMetadata } from "./focal-metadata.js";
 
 function makeScenePlan(
   sceneOverrides: Array<Partial<ScenePlan["scenes"][number]>>
@@ -876,6 +881,84 @@ describe("episode image pipeline helpers", () => {
 
     const visualPlan = await loadEpisodeSceneVisualPlan(episodeDir, "scene-002");
     expect(visualPlan?.renderability).toBe("requiresInference");
+  });
+
+  it("recreates missing focal metadata without triggering image regeneration", async () => {
+    const dir = mkdtempSync(path.join(os.tmpdir(), "mediaforge-focal-recreate-"));
+    const episodeDir = path.join(dir, "episode");
+    await fs.mkdir(episodeDir, { recursive: true });
+    const referencePath = path.join(dir, "daniel-reference.png");
+    await fs.writeFile(
+      referencePath,
+      await sharp({
+        create: { width: 8, height: 8, channels: 3, background: "#223344" },
+      })
+        .png()
+        .toBuffer(),
+    );
+    await upsertCharacterRegistry(
+      episodeDir,
+      "episode-fixture",
+      makeRegistry("approved", referencePath).characters,
+    );
+    const settings = loadEpisodeImageGenerationSettings({
+      OPENAI_API_KEY: "test-key",
+      OPENAI_IMAGE_MODEL: "gpt-image-2",
+      OPENAI_IMAGE_SIZE: "1536x1024",
+      OPENAI_IMAGE_QUALITY: "medium",
+      OPENAI_IMAGE_CONCURRENCY: "1",
+      OPENAI_IMAGE_MAX_RETRIES: "0",
+      OPENAI_IMAGE_TIMEOUT_MS: "1000",
+      OPENAI_IMAGE_ALLOW_UNAPPROVED_CHARACTER_REFERENCES: "true",
+    });
+    const plan = makeScenePlan([
+      {
+        id: "scene-001",
+        canonicalNarration: "Daniel opens the motel room door.",
+        subject: "Daniel Mercer",
+        action: "opens the motel room door",
+        setting: "motel room doorway",
+      },
+    ] as never);
+    const firstCalls: Array<{ method: "generate" | "edit"; body: unknown }> = [];
+
+    const first = await generateEpisodeImages(
+      episodeDir,
+      "episode-fixture",
+      plan,
+      settings,
+      { client: createMockClient(firstCalls, await createImageBuffer("#446688")) },
+    );
+    const focalMetadataPath = resolveEpisodeFocalMetadataPath(episodeDir);
+
+    expect(first[0]?.status).toBe("generated");
+    expect(firstCalls).toHaveLength(1);
+    expect(await loadEpisodeFocalMetadata(episodeDir, "episode-fixture")).not.toBe(
+      null,
+    );
+
+    await fs.unlink(focalMetadataPath);
+
+    const secondCalls: Array<{ method: "generate" | "edit"; body: unknown }> = [];
+    const second = await generateEpisodeImages(
+      episodeDir,
+      "episode-fixture",
+      plan,
+      settings,
+      {
+        client: createMockClient(secondCalls, await createImageBuffer("#446688")),
+      },
+    );
+
+    expect(second[0]?.status).toBe("skipped");
+    expect(secondCalls).toHaveLength(0);
+    expect(await loadEpisodeFocalMetadata(episodeDir, "episode-fixture")).toMatchObject({
+      images: [
+        expect.objectContaining({
+          sourceImageId: "source-image-scene-001",
+        }),
+      ],
+    });
   });
 
   it("collapses near-identical exposition beats into merge-with-previous candidates", async () => {

@@ -557,6 +557,67 @@ export const focalRegionSchema = z.object({
 });
 export type FocalRegion = z.infer<typeof focalRegionSchema>;
 
+export const focalMetadataOriginSchema = z.enum([
+  "planner-provided",
+  "imported",
+  "local-fallback",
+  "legacy-unknown",
+]);
+export type FocalMetadataOrigin = z.infer<typeof focalMetadataOriginSchema>;
+
+export const sourceImageFocalMetadataSchema = z
+  .object({
+    schemaVersion: z.literal(1),
+    analysisVersion: z.string().min(1),
+    sourceImageId: sourceImageIdSchema,
+    sourceImagePath: z.string().min(1),
+    sourceImageSha256: sha256Schema.optional(),
+    imageWidth: positiveIntegerSchema,
+    imageHeight: positiveIntegerSchema,
+    origin: focalMetadataOriginSchema,
+    focalRegions: z.array(focalRegionSchema),
+    warnings: z.array(z.string().min(1)).default([]),
+    limitations: z.array(z.string().min(1)).default([]),
+  })
+  .superRefine((value, ctx) => {
+    const regionIds = new Set<string>();
+    for (const [index, region] of value.focalRegions.entries()) {
+      if (regionIds.has(region.id)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["focalRegions", index, "id"],
+          message: "Focal metadata requires unique region identifiers.",
+        });
+      }
+      regionIds.add(region.id);
+    }
+  });
+export type SourceImageFocalMetadata = z.infer<
+  typeof sourceImageFocalMetadataSchema
+>;
+
+export const episodeFocalMetadataSchema = z
+  .object({
+    schemaVersion: z.literal(1),
+    analysisVersion: z.string().min(1),
+    images: z.array(sourceImageFocalMetadataSchema),
+  })
+  .superRefine((value, ctx) => {
+    const sourceImageIds = new Set<string>();
+    for (const [index, image] of value.images.entries()) {
+      if (sourceImageIds.has(image.sourceImageId)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["images", index, "sourceImageId"],
+          message:
+            "Episode focal metadata requires unique source-image identifiers.",
+        });
+      }
+      sourceImageIds.add(image.sourceImageId);
+    }
+  });
+export type EpisodeFocalMetadata = z.infer<typeof episodeFocalMetadataSchema>;
+
 export const cameraMotionSchema = z.discriminatedUnion("kind", [
   z.object({
     kind: z.literal("none"),

@@ -6,6 +6,7 @@ import sharp from "sharp";
 import { z } from "zod";
 import {
   requiresSceneText,
+  sceneIdSchema,
   type Scene,
   type ScenePlan,
 } from "@mediaforge/domain";
@@ -44,6 +45,7 @@ import {
   buildSceneNegativePrompt,
   buildSceneTextPromptSection,
 } from "./scene-text.js";
+import { ensureEpisodeFocalMetadataForImages } from "./focal-metadata.js";
 
 const mediaStageVariantSchema = z.enum(["full", "short"]);
 export type MediaStageVariant = z.infer<typeof mediaStageVariantSchema>;
@@ -4095,6 +4097,24 @@ export interface SyncEpisodeSharedImageAssetsResult {
   readonly characterReferencePaths: string[];
 }
 
+async function persistEpisodeFocalMetadataForResults(
+  episodeDir: string,
+  episodeId: string,
+  results: readonly EpisodeImageGenerationResult[],
+): Promise<void> {
+  await ensureEpisodeFocalMetadataForImages({
+    episodeDir,
+    episodeId,
+    images: results
+      .filter((result) => result.status !== "failed")
+      .map((result) => ({
+        sceneId: sceneIdSchema.parse(result.sceneId),
+        outputPath: result.outputPath,
+        ...(result.outputSha256 ? { outputSha256: result.outputSha256 } : {}),
+      })),
+  });
+}
+
 async function generateIndependentScenePlan(args: {
   readonly episodeDir: string;
   readonly episodeId: string;
@@ -4847,7 +4867,10 @@ export async function generateEpisodeImages(
           force,
           ...(options?.client ? { client: options.client } : {}),
         })
-    );
+    ).then(async (results) => {
+      await persistEpisodeFocalMetadataForResults(episodeDir, episodeId, results);
+      return results;
+    });
   }
   const results: EpisodeImageGenerationResult[] = [];
   let currentImageRunLength = 0;
@@ -5370,6 +5393,7 @@ export async function generateEpisodeImages(
       }))
     );
   }
+  await persistEpisodeFocalMetadataForResults(episodeDir, episodeId, results);
   return results;
 }
 
