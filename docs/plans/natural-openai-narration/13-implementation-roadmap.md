@@ -24,6 +24,14 @@ all -> 18
 5. CLI, benchmark, batch status: tasks 13-15.
 6. Compatibility, observability, migration docs: tasks 16-18.
 
+## Implemented Status Notes
+
+- Staged narration commands were implemented under `audio narration <stage>` with public stages `prepare`, `plan`, `generate`, `assemble`, `validate`, `status`, and `inspect`. The aggregate `all` stage is internal and is used by adapter code such as `audio generate-localized` in `new` mode.
+- Rollout mode is the global `--narration-pipeline-mode <legacy|shadow|new>` option. `legacy` remains the default; `shadow` writes staged artifacts without compatibility promotion; `new` promotes mastered output to compatibility `narration.wav`.
+- `audio generate-localized` switches to the staged `all` path only in `new` mode. `audio generate` keeps legacy behavior unless the runtime config is already `new`.
+- Voice benchmarking writes `voice-benchmark.json` through `audio narration benchmark-voices`.
+- No legacy paths are deleted by Task 18; removal requires the documented deletion criteria and a separate approved task.
+
 ## Roadmap Table
 
 | Task | Depends on | Parallel-safe with | Risk | Cost impact | Minimum model | Best model |

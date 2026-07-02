@@ -50,6 +50,7 @@ This subsystem handles structured English full rewrites, localized full rewrites
 ## Downstream Ownership Boundaries
 
 - Validated narration is the upstream owner for downstream metadata and audio stages.
+- OpenAI speech generation is now split into a staged narration owner under `audio narration`. It consumes localized story markdown, writes target-specific artifacts under `locales/<locale>/<variant>/audio/narration/`, and publishes only compatibility audio outputs when rollout mode is `new`.
 - Metadata is owned by `@mediaforge/metadata` and persists its own parent narration fingerprint, model/config fingerprint, prompt/schema fingerprint, status, and failure metadata.
 - Audio instructions and TTS are owned by `@mediaforge/speech` and persist their own narration fingerprint, voice/config fingerprints, dependency fingerprint, and failure metadata.
 - Metadata or audio failures do not invalidate narration and do not route through narration repair policy.
@@ -60,6 +61,14 @@ This subsystem handles structured English full rewrites, localized full rewrites
 - Canonical English full persistence now writes narration-only canonical markdown under `en/full/script.md`.
 - Legacy combined markdown remains supported through compatibility rendering at the episode root and existing localized compatibility files.
 - Compatibility rendering can combine independently persisted narration, metadata, and audio artifacts, but those combined markdown files are not the canonical persistence source.
+- For already-generated episodes, migrate audio by keeping the existing story markdown unchanged, running `audio narration prepare`, `plan`, `generate`, `assemble`, and `validate` first in `shadow` for the target locale and variant, inspecting `quality-gate.json`, then rerunning the same stages in `new` with `--resume` to promote `mastered-narration.wav` to `audio/narration.wav`. Existing compatibility markdown remains valid and does not need regeneration unless the story text changes.
+
+## Staged Narration Observability
+
+- Narration telemetry events include `episodeId`, `language`, `variant`, `chunkId`, `stage`, `model`, `voice`, `attempt`, `latencyMs`, `inputCharacters`, `outputBytes`, optional `generatedSeconds`, `cacheDecision`, `validationResult`, `retryClass`, `failureClass`, `regeneration`, `fallbackUsed`, and a cost estimate when telemetry pricing is configured.
+- Detail fields redact secret-like keys, raw audio keys, story text, full text, and chunk text. Batch status also redacts API keys, bearer tokens, credentials, and text-bearing error fragments.
+- Cost controls are cache-first: `--resume` reuses completed staged artifacts, chunk cache hits avoid provider calls, `--dry-run` writes nothing, `--validation-only` avoids generation and assembly, `--concurrency <n>` bounds local chunk synthesis, and voice benchmarking is capped with `--max-samples`.
+- Operator reports live beside the staged target: `quality-gate.json`, `quality-gate.md`, `generation-metadata.json`, chunk validation reports under `chunks/`, and cache records under the narration root. Voice benchmark reports live in `voice-benchmark.json`.
 
 ## Narration Pace
 
