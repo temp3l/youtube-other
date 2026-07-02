@@ -210,6 +210,9 @@ importers:
       '@mediaforge/story-localization':
         specifier: workspace:*
         version: link:../story-localization
+      '@mediaforge/visual-planning':
+        specifier: workspace:*
+        version: link:../visual-planning
       zod:
         specifier: ^4.0.14
         version: 4.4.3

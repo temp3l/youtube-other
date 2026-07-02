@@ -78,6 +78,9 @@ export interface EpisodeCommandOptions {
   readonly notes?: string;
   readonly json?: boolean;
   readonly verbose?: boolean;
+  readonly visualRetention?: boolean;
+  readonly visualProfile?: string;
+  readonly strictShotValidation?: boolean;
 }
 
 const defaultSourceRoot =
@@ -129,6 +132,30 @@ function assertReuseImagesEnabled(reuseImages: boolean | undefined): void {
   if (reuseImages === false) {
     throw new Error("This pipeline requires --reuse-images to remain enabled.");
   }
+}
+
+function resolveVisualRetentionOptions(options: EpisodeCommandOptions): {
+  readonly enabled: boolean;
+  readonly profile?: "atmospheric" | "balanced" | "high-retention" | "shorts-aggressive";
+  readonly strictValidation?: boolean;
+} {
+  const profile = options.visualProfile;
+  if (
+    profile !== undefined &&
+    profile !== "atmospheric" &&
+    profile !== "balanced" &&
+    profile !== "high-retention" &&
+    profile !== "shorts-aggressive"
+  ) {
+    throw new Error(`Unsupported visual-retention profile: ${profile}`);
+  }
+  return {
+    enabled: options.visualRetention === true,
+    ...(profile ? { profile } : {}),
+    ...(options.strictShotValidation !== undefined
+      ? { strictValidation: options.strictShotValidation }
+      : {}),
+  };
 }
 
 function resolveSourceRoot(options: EpisodeCommandOptions): string {
@@ -675,6 +702,16 @@ async function prepareEpisodeLanguage(
   );
   let narrationPath: string | undefined;
   let shortsWarnings: string[] = [];
+  let visualRetentionReview:
+    | {
+        readonly shotPlanPath: string;
+        readonly validationPath: string;
+        readonly sourceScenesPath: string;
+        readonly focalMetadataPath: string;
+        readonly validationWarnings: readonly unknown[];
+        readonly derivedShotCache?: unknown;
+      }
+    | undefined;
   if (!options.dryRun) {
     narrationPath = await generateNarrationAudio(
       baseDir,
@@ -753,9 +790,31 @@ async function prepareEpisodeLanguage(
       artifactType,
       {
         imageDir: artifactType === "short" ? sharedShortImageDir : sharedImageDir,
+        imageManifestPath:
+          artifactType === "short"
+            ? shortsImageManifestPath
+            : path.join(outputRoot, discovery.slug, "shared", "image-manifest.json"),
+        visualRetention: resolveVisualRetentionOptions(options),
       }
     );
     reviewVideoPath = renderResult.cleanPath;
+    const visualRetentionManifest =
+      renderResult.visualRetention === undefined
+        ? undefined
+        : {
+            sourceScenesPath: renderResult.visualRetention.sourceScenesPath,
+            focalMetadataPath: renderResult.visualRetention.focalMetadataPath,
+            shotPlanPath: renderResult.visualRetention.shotPlanPath,
+            validationPath: renderResult.visualRetention.validationPath,
+            validationWarnings:
+              renderResult.visualRetention.validation.issues.filter(
+                (issue) => issue.severity === "warning"
+              ),
+            ...(renderResult.visualRetention.derivedShotCache
+              ? { derivedShotCache: renderResult.visualRetention.derivedShotCache }
+              : {}),
+          };
+    visualRetentionReview = visualRetentionManifest;
     await writeJsonAtomic(path.join(baseDir, "generation-manifest.json"), {
       episodeId: discovery.slug,
       language,
@@ -773,6 +832,9 @@ async function prepareEpisodeLanguage(
       subtitleSidecars: loadResult.subtitleManifest.sidecarFiles,
       audioPath: narrationPath,
       videoPath: renderResult.cleanPath,
+      ...(visualRetentionManifest
+        ? { visualRetention: visualRetentionManifest }
+        : {}),
       generatedAt: nowIso(),
     });
   }
@@ -805,6 +867,9 @@ async function prepareEpisodeLanguage(
       artifactType === "short"
         ? shortsImageManifestPath
         : path.join(outputRoot, discovery.slug, "shared", "image-manifest.json"),
+    ...(visualRetentionReview
+      ? { visualRetention: visualRetentionReview }
+      : {}),
     checklistPath: path.join(reviewDir, "checklist.md"),
     approvalState: "awaiting-human-review",
     rejectionNotesPath: path.join(reviewDir, "rejection-notes.md"),
@@ -1337,6 +1402,10 @@ export function registerEpisodeCommands(program: Command): void {
     .option("--source <path>", "source root")
     .option("--output-root <path>", "output root")
     .option("--dry-run", "do not execute paid providers")
+    .option("--visual-retention", "enable shot-aware visual retention")
+    .option("--no-visual-retention", "disable shot-aware visual retention")
+    .option("--visual-profile <profile>", "visual-retention pacing profile")
+    .option("--strict-shot-validation", "fail on shot validation warnings")
     .action(async (opts: EpisodeCommandOptions) => commandEpisodeEnglish(opts));
   episode
     .command("localized")
@@ -1346,6 +1415,10 @@ export function registerEpisodeCommands(program: Command): void {
     .option("--output-root <path>", "output root")
     .option("--reuse-images", "reuse canonical images", true)
     .option("--dry-run", "do not execute paid providers")
+    .option("--visual-retention", "enable shot-aware visual retention")
+    .option("--no-visual-retention", "disable shot-aware visual retention")
+    .option("--visual-profile <profile>", "visual-retention pacing profile")
+    .option("--strict-shot-validation", "fail on shot validation warnings")
     .action(async (opts: EpisodeCommandOptions) =>
       commandEpisodeLocalized(opts)
     );
@@ -1357,6 +1430,10 @@ export function registerEpisodeCommands(program: Command): void {
     .option("--output-root <path>", "output root")
     .option("--reuse-images", "reuse canonical images", true)
     .option("--dry-run", "do not execute paid providers")
+    .option("--visual-retention", "enable shot-aware visual retention")
+    .option("--no-visual-retention", "disable shot-aware visual retention")
+    .option("--visual-profile <profile>", "visual-retention pacing profile")
+    .option("--strict-shot-validation", "fail on shot validation warnings")
     .action(async (opts: EpisodeCommandOptions) => commandEpisodeShort(opts));
   episode
     .command("status")
@@ -1433,6 +1510,10 @@ export function registerEpisodeCommands(program: Command): void {
     .option("--artifact <full|short>", "artifact type", "full")
     .option("--output-root <path>", "output root")
     .option("--dry-run", "do not execute paid providers")
+    .option("--visual-retention", "enable shot-aware visual retention")
+    .option("--no-visual-retention", "disable shot-aware visual retention")
+    .option("--visual-profile <profile>", "visual-retention pacing profile")
+    .option("--strict-shot-validation", "fail on shot validation warnings")
     .action(async (opts: EpisodeCommandOptions) =>
       commandEpisodeReviewPrepare(opts)
     );

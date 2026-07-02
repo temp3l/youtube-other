@@ -3,13 +3,32 @@ import path from "node:path";
 import sharp from "sharp";
 import { z } from "zod";
 import {
+  episodeIdSchema,
+  episodeFocalMetadataSchema,
+  sourceImageIdSchema,
+  sourceSceneIdSchema,
+  shotPlanSchema,
   type Scene,
   sceneIdSchema,
   scenePlanSchema,
   sceneSchema,
   inferSceneTextRequirement,
   type ScenePlan,
+  type EpisodeFocalMetadata,
+  type ShotPlan,
+  type ShotPlanValidationIssue,
+  type VisualBudget,
+  type VisualNarrativePhase,
+  type VisualPacingProfile,
+  type VisualPacingProfileId,
+  type VisualSourceScene,
+  visualPacingProfileIdSchema,
+  visualSourceSceneSchema,
 } from "@mediaforge/domain";
+import {
+  shotTreatmentCatalog,
+  shotTreatmentCatalogVersion,
+} from "@mediaforge/domain/visual-retention/treatment-catalog.js";
 import {
   createPlaceholderImage,
   createPromptBatch,
@@ -18,7 +37,12 @@ import {
   localSceneStyle,
   loadOpenAiImageGenerationSettings,
 } from "@mediaforge/image-generation";
-import { FFmpegVideoRenderer } from "@mediaforge/rendering";
+import { ensureEpisodeFocalMetadataForImages } from "@mediaforge/image-generation/focal-metadata.js";
+import {
+  FFmpegVideoRenderer,
+  type ShotSourceImage,
+  type VideoRenderResult,
+} from "@mediaforge/rendering";
 import { runCommand } from "@mediaforge/process-runner";
 import {
   OpenAiCompatibleSpeechProvider,
@@ -27,7 +51,7 @@ import {
   MockSpeechProvider,
 } from "@mediaforge/speech";
 import { getLanguageProfile } from "@mediaforge/story-localization";
-import { loadEpisodeConfig } from "@mediaforge/config";
+import { loadEpisodeConfig, loadRuntimeConfig, type RuntimeConfig } from "@mediaforge/config";
 import {
   buildSrt,
   buildVtt,
@@ -37,6 +61,10 @@ import {
   hashFile,
   hashText,
   normalizeWhitespace,
+  createEpisodePathResolver,
+  normalizeContentVariant,
+  normalizeEpisodeId,
+  normalizeLocaleCode,
   resolveSceneImageCandidatePaths,
   slugify,
   splitIntoSentences,
@@ -44,6 +72,12 @@ import {
   writeJsonAtomic,
   writeTextAtomic,
 } from "@mediaforge/shared";
+import {
+  deterministicShotPlanner,
+  serializeShotPlan,
+  validateShotPlan,
+  type ShotPlanValidationResult,
+} from "@mediaforge/visual-planning";
 
 export type SpeechVoicePreset = "slow" | "fast" | "very-fast";
 
@@ -274,6 +308,47 @@ export interface SubtitleManifest {
   readonly sourceSha256: string;
   readonly narrationSha256: string;
   readonly generatedAt: string;
+}
+
+export interface DarkTruthVisualRetentionOptions {
+  readonly enabled: boolean;
+  readonly profile?: VisualPacingProfileId;
+  readonly strictValidation?: boolean;
+}
+
+export interface DarkTruthVisualRetentionArtifacts {
+  readonly sourceScenesPath: string;
+  readonly focalMetadataPath: string;
+  readonly shotPlanPath: string;
+  readonly validationPath: string;
+  readonly shotPlan: ShotPlan;
+  readonly validation: ShotPlanValidationResult;
+  readonly sourceImages: readonly ShotSourceImage[];
+  readonly derivedShotCache?: NonNullable<VideoRenderResult["shotRenderSummary"]>["derivedShotCache"];
+}
+
+interface PersistedShotValidationArtifact {
+  readonly schemaVersion: 1;
+  readonly valid: boolean;
+  readonly issues: readonly ShotPlanValidationIssue[];
+  readonly metrics: ShotPlanValidationResult["metrics"];
+}
+
+interface FullImageManifest {
+  readonly assets: readonly {
+    readonly canonicalSceneId: string;
+    readonly relativePath: string;
+    readonly sha256: string;
+  }[];
+}
+
+interface ShortsImageManifest {
+  readonly entries: readonly {
+    readonly sceneId: string;
+    readonly outputImagePath: string;
+    readonly outputImageSha256?: string | undefined;
+    readonly status: string;
+  }[];
 }
 
 interface NarrationAudioManifest {
@@ -1614,20 +1689,361 @@ export async function sliceSceneAudioFiles(
   }
 }
 
+function darkTruthSourceImageId(sceneId: string) {
+  return sourceImageIdSchema.parse(`source-image-${sceneId}`);
+}
+
+function darkTruthSourceSceneId(artifactType: ArtifactType, sceneId: string) {
+  return sourceSceneIdSchema.parse(`source-scene-${artifactType}-${sceneId}`);
+}
+
+function visualPhaseForScene(index: number, totalScenes: number): VisualNarrativePhase {
+  if (index === 0) {
+    return "hook";
+  }
+  if (index === totalScenes - 1) {
+    return "aftermath";
+  }
+  const progress = totalScenes <= 1 ? 1 : index / (totalScenes - 1);
+  if (progress < 0.3) {
+    return "setup";
+  }
+  if (progress < 0.55) {
+    return "evidence";
+  }
+  if (progress < 0.8) {
+    return "escalation";
+  }
+  return "climax";
+}
+
+function selectVisualRetentionPacingProfile(
+  config: RuntimeConfig,
+  profileId: VisualPacingProfileId
+): VisualPacingProfile {
+  switch (profileId) {
+    case "atmospheric":
+      return config.visualRetention.pacingProfiles.atmospheric;
+    case "balanced":
+      return config.visualRetention.pacingProfiles.balanced;
+    case "high-retention":
+      return config.visualRetention.pacingProfiles["high-retention"];
+    case "shorts-aggressive":
+      return config.visualRetention.pacingProfiles["shorts-aggressive"];
+  }
+}
+
+function selectVisualRetentionPreset(args: {
+  readonly config: RuntimeConfig;
+  readonly variant: ArtifactType;
+  readonly sourceScenes: readonly VisualSourceScene[];
+  readonly requestedProfile?: VisualPacingProfileId;
+}): {
+  readonly pacingProfile: VisualPacingProfile;
+  readonly visualBudget: VisualBudget;
+} {
+  const durationMs = args.sourceScenes.at(-1)?.narrationEndMs ?? 0;
+  const presets = args.config.visualRetention.defaults[args.variant];
+  const matching =
+    presets.find(
+      (preset) =>
+        durationMs >= preset.narrationDurationMs.minMs &&
+        durationMs <= preset.narrationDurationMs.maxMs
+    ) ??
+    [...presets].sort((left, right) => {
+      const leftDistance = presetDistance(left.narrationDurationMs, durationMs);
+      const rightDistance = presetDistance(
+        right.narrationDurationMs,
+        durationMs
+      );
+      return leftDistance - rightDistance;
+    })[0];
+  if (!matching) {
+    throw new Error(`No visual-retention defaults configured for ${args.variant}.`);
+  }
+  const profileId = args.requestedProfile ?? matching.pacingProfileId;
+  return {
+    pacingProfile: selectVisualRetentionPacingProfile(args.config, profileId),
+    visualBudget: matching.budget,
+  };
+}
+
+function presetDistance(
+  range: { readonly minMs: number; readonly maxMs: number },
+  durationMs: number
+): number {
+  if (durationMs < range.minMs) {
+    return range.minMs - durationMs;
+  }
+  if (durationMs > range.maxMs) {
+    return durationMs - range.maxMs;
+  }
+  return 0;
+}
+
+async function readFullImageManifest(manifestPath: string): Promise<FullImageManifest> {
+  const raw = JSON.parse(await fs.readFile(manifestPath, "utf8")) as unknown;
+  return z
+    .object({
+      assets: z.array(
+        z.object({
+          canonicalSceneId: z.string().min(1),
+          relativePath: z.string().min(1),
+          sha256: z.string().regex(/^[a-f0-9]{64}$/u),
+        })
+      ),
+    })
+    .parse(raw);
+}
+
+async function readShortsImageManifest(manifestPath: string): Promise<ShortsImageManifest> {
+  const raw = JSON.parse(await fs.readFile(manifestPath, "utf8")) as unknown;
+  return z
+    .object({
+      entries: z.array(
+        z.object({
+          sceneId: z.string().min(1),
+          outputImagePath: z.string().min(1),
+          outputImageSha256: z.string().regex(/^[a-f0-9]{64}$/u).optional(),
+          status: z.string().min(1),
+        })
+      ),
+    })
+    .parse(raw);
+}
+
+async function writeJsonIfChanged(filePath: string, value: unknown): Promise<void> {
+  const next = `${JSON.stringify(value, null, 2)}\n`;
+  const current = await fs.readFile(filePath, "utf8").catch(() => null);
+  if (current === next) {
+    return;
+  }
+  await writeJsonAtomic(filePath, value);
+}
+
+async function loadShotPlanIfValid(filePath: string): Promise<ShotPlan | null> {
+  const raw = await fs.readFile(filePath, "utf8").catch(() => null);
+  if (raw === null) {
+    return null;
+  }
+  try {
+    return shotPlanSchema.parse(JSON.parse(raw) as unknown);
+  } catch {
+    return null;
+  }
+}
+
+async function prepareDarkTruthVisualRetention(args: {
+  readonly episodeDir: string;
+  readonly scenePlan: ScenePlan;
+  readonly artifactType: ArtifactType;
+  readonly imageManifestPath: string;
+  readonly options: DarkTruthVisualRetentionOptions;
+}): Promise<DarkTruthVisualRetentionArtifacts> {
+  const language = normalizeLocaleCode(path.basename(path.dirname(args.episodeDir)));
+  const episodeRoot = path.dirname(path.dirname(args.episodeDir));
+  const outputRoot = path.dirname(episodeRoot);
+  const episodeId = normalizeEpisodeId(path.basename(episodeRoot));
+  const variant = normalizeContentVariant(args.artifactType);
+  const resolver = createEpisodePathResolver(outputRoot);
+  const imageBySceneId = new Map<
+    string,
+    { readonly path: string; readonly sha256: string }
+  >();
+  if (args.artifactType === "short") {
+    const manifest = await readShortsImageManifest(args.imageManifestPath);
+    for (const entry of manifest.entries) {
+      if (entry.status !== "success") {
+        continue;
+      }
+      const outputPath = path.isAbsolute(entry.outputImagePath)
+        ? entry.outputImagePath
+        : path.resolve(episodeRoot, entry.outputImagePath);
+      imageBySceneId.set(entry.sceneId, {
+        path: outputPath,
+        sha256: entry.outputImageSha256 ?? (await hashFile(outputPath)),
+      });
+    }
+  } else {
+    const manifest = await readFullImageManifest(args.imageManifestPath);
+    const sharedDir = path.dirname(args.imageManifestPath);
+    for (const asset of manifest.assets) {
+      imageBySceneId.set(asset.canonicalSceneId, {
+        path: path.resolve(sharedDir, asset.relativePath),
+        sha256: asset.sha256,
+      });
+    }
+  }
+
+  const focalReferences: Array<{
+    sceneId: VisualSourceScene["sceneId"];
+    outputPath: string;
+    outputSha256: string;
+  }> = [];
+  for (const scene of args.scenePlan.scenes) {
+    const image = imageBySceneId.get(scene.id);
+    if (!image || !(await fileExists(image.path))) {
+      throw new Error(`Missing visual-retention source image for ${scene.id}.`);
+    }
+    focalReferences.push({
+      sceneId: scene.id,
+      outputPath: image.path,
+      outputSha256: image.sha256,
+    });
+  }
+  await ensureEpisodeFocalMetadataForImages({
+    episodeDir: episodeRoot,
+    episodeId,
+    images: focalReferences,
+  });
+  const focalMetadata = episodeFocalMetadataSchema.parse(
+    JSON.parse(await fs.readFile(resolver.focalMetadata(episodeId), "utf8")) as unknown
+  );
+  const focalByImageId = new Map(
+    focalMetadata.images.map((image) => [image.sourceImageId, image] as const)
+  );
+  const sourceScenes = visualSourceSceneSchema.array().parse(
+    args.scenePlan.scenes.map((scene, index) => {
+      const image = imageBySceneId.get(scene.id);
+      if (!image) {
+        throw new Error(`Missing source image manifest entry for ${scene.id}.`);
+      }
+      const sourceImageId = darkTruthSourceImageId(scene.id);
+      return {
+        sourceSceneId: darkTruthSourceSceneId(args.artifactType, scene.id),
+        sceneId: scene.id,
+        narrationStartMs: Math.round(scene.timing.startSeconds * 1000),
+        narrationEndMs: Math.round(scene.timing.endSeconds * 1000),
+        sourceImageId,
+        sourceImagePath: path.relative(args.episodeDir, image.path),
+        sourceImageSha256: image.sha256,
+        importance: visualPhaseForScene(index, args.scenePlan.scenes.length),
+        focalRegions: focalByImageId.get(sourceImageId)?.focalRegions ?? [],
+      };
+    })
+  );
+  await writeJsonIfChanged(resolver.visualSourceScenes(episodeId), sourceScenes);
+  const runtimeConfig = await loadRuntimeConfig();
+  const preset = selectVisualRetentionPreset({
+    config: runtimeConfig,
+    variant: args.artifactType,
+    sourceScenes,
+    ...(args.options.profile ? { requestedProfile: args.options.profile } : {}),
+  });
+  const aspectRatio = args.artifactType === "short" ? "9:16" : "16:9";
+  const seed = hashText(
+    JSON.stringify({
+      episodeId,
+      variant,
+      locale: language,
+      profile: preset.pacingProfile.id,
+      aspectRatio,
+    })
+  );
+  const planned = deterministicShotPlanner.plan({
+    sourceId: episodeIdSchema.parse(episodeId),
+    locale: language,
+    platform: variant,
+    aspectRatio,
+    sourceScenes,
+    pacingProfile: preset.pacingProfile,
+    visualBudget: preset.visualBudget,
+    treatmentCatalogVersion: shotTreatmentCatalogVersion,
+    seed,
+  });
+  const context = { episodeId, locale: language, variant };
+  const shotPlanPath = resolver.shotPlan(context);
+  const currentShotPlan = await loadShotPlanIfValid(shotPlanPath);
+  const shotPlan =
+    currentShotPlan &&
+    serializeShotPlan(currentShotPlan) === serializeShotPlan(planned)
+      ? currentShotPlan
+      : planned;
+  if (shotPlan !== currentShotPlan) {
+    await writeJsonAtomic(shotPlanPath, shotPlan);
+  }
+  const validation = validateShotPlan({
+    shotPlan,
+    pacingProfile: preset.pacingProfile,
+    visualBudget: preset.visualBudget,
+    treatmentCatalog: shotTreatmentCatalog,
+    focalMetadata,
+  });
+  const validationPath = resolver.shotValidation(context);
+  const validationArtifact: PersistedShotValidationArtifact = {
+    schemaVersion: 1,
+    valid: validation.valid,
+    issues: validation.issues,
+    metrics: validation.metrics,
+  };
+  await writeJsonAtomic(validationPath, validationArtifact);
+  const blockingIssues = validation.issues.filter(
+    (issue) =>
+      issue.severity === "error" ||
+      (args.options.strictValidation === true && issue.severity === "warning")
+  );
+  if (blockingIssues.length > 0) {
+    const first = blockingIssues[0];
+    throw new Error(
+      `Shot validation failed for ${args.artifactType} ${language}: ${first?.code ?? "UNKNOWN"} ${first?.message ?? ""}`.trim()
+    );
+  }
+  return {
+    sourceScenesPath: resolver.visualSourceScenes(episodeId),
+    focalMetadataPath: resolver.focalMetadata(episodeId),
+    shotPlanPath,
+    validationPath,
+    shotPlan,
+    validation,
+    sourceImages: sourceScenes.map((sourceScene) => ({
+      sourceImageId: sourceScene.sourceImageId,
+      sourceSceneId: sourceScene.sourceSceneId,
+      sceneId: sourceScene.sceneId,
+      path: sourceScene.sourceImagePath,
+      sha256: sourceScene.sourceImageSha256,
+    })),
+  };
+}
+
 export async function renderCleanVideo(
   episodeDir: string,
   scenePlan: ScenePlan,
   artifactType: ArtifactType,
   options?: {
     readonly imageDir?: string;
+    readonly imageManifestPath?: string;
+    readonly visualRetention?: DarkTruthVisualRetentionOptions;
   }
-): Promise<{ readonly cleanPath: string; readonly validation: unknown }> {
+): Promise<{
+  readonly cleanPath: string;
+  readonly validation: VideoRenderResult["validation"];
+  readonly visualRetention?: DarkTruthVisualRetentionArtifacts;
+}> {
   const languageDir = path.basename(path.dirname(episodeDir));
   const episodeSlug = path.basename(path.dirname(path.dirname(episodeDir)));
   const outputBasename = slugify(
     `${episodeSlug}-${languageDir}-${artifactType}`
   );
   const renderer = new FFmpegVideoRenderer();
+  const imageDir = options?.imageDir ?? path.join(episodeDir, "shared", "images", "generated");
+  const visualRetention =
+    options?.visualRetention?.enabled === true
+      ? await prepareDarkTruthVisualRetention({
+          episodeDir,
+          scenePlan,
+          artifactType,
+          imageManifestPath:
+            options.imageManifestPath ??
+            path.join(
+              path.dirname(path.dirname(episodeDir)),
+              "shared",
+              artifactType === "short"
+                ? path.join("short", "images", "shorts-image-manifest.json")
+                : "image-manifest.json"
+            ),
+          options: options.visualRetention,
+        })
+      : undefined;
   const renderResult = await renderer.render(
     {
       episodeDir,
@@ -1643,9 +2059,24 @@ export async function renderCleanVideo(
         burnCaptions: false,
       },
       captionBurnIn: false,
-      imageDir: options?.imageDir ?? path.join(episodeDir, "shared", "images", "generated"),
+      imageDir,
       sceneAudioDir: path.join(episodeDir, "audio", "segments"),
       outputBasename,
+      ...(visualRetention
+        ? {
+            shotPlan: visualRetention.shotPlan,
+            sourceImages: visualRetention.sourceImages,
+            shotValidationResult: {
+              issues: visualRetention.validation.issues.map((issue) => ({
+                severity: issue.severity,
+                code: issue.code,
+                message: issue.message,
+                ...(issue.sceneId ? { sceneId: issue.sceneId } : {}),
+                ...(issue.shotId ? { shotId: issue.shotId } : {}),
+              })),
+            },
+          }
+        : {}),
       trailingSilenceRatio: 0.8,
       trailingSilenceBufferSeconds: 0,
     },
@@ -1654,6 +2085,19 @@ export async function renderCleanVideo(
   return {
     cleanPath: renderResult.cleanPath,
     validation: renderResult.validation,
+    ...(visualRetention
+      ? {
+          visualRetention: {
+            ...visualRetention,
+            ...(renderResult.shotRenderSummary?.derivedShotCache
+              ? {
+                  derivedShotCache:
+                    renderResult.shotRenderSummary.derivedShotCache,
+                }
+              : {}),
+          },
+        }
+      : {}),
   };
 }
 
@@ -2551,6 +2995,13 @@ export async function writeReviewPackage(
     readonly metadataPath: string;
     readonly sceneListPath: string;
     readonly canonicalAssetReferencesPath: string;
+    readonly visualRetention?: {
+      readonly shotPlanPath: string;
+      readonly validationPath: string;
+      readonly sourceScenesPath?: string;
+      readonly focalMetadataPath?: string;
+      readonly validationWarnings?: readonly unknown[];
+    };
     readonly checklistPath: string;
     readonly approvalState: ApprovalState;
     readonly rejectionNotesPath: string;
