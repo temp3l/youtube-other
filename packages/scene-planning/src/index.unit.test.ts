@@ -33,6 +33,16 @@ describe("scene planning", () => {
     const plan = new OneToOneScenePlanner().plan(transcript, script, ["16:9"]);
     expect(plan.scenes).toHaveLength(3);
     expect(plan.scenes.every((scene) => scene.estimatedDurationSeconds >= 5 && scene.estimatedDurationSeconds <= 6)).toBe(true);
+    expect(plan.scenes.map((scene) => scene.timing)).toEqual([
+      { startSeconds: 0, endSeconds: 6 },
+      { startSeconds: 6, endSeconds: 12 },
+      { startSeconds: 12, endSeconds: 17 },
+    ]);
+    expect(plan.scenes.map((scene) => scene.expectedImageFilenames[0])).toEqual([
+      "scene-001__000000-000006__16x9.png",
+      "scene-002__000006-000012__16x9.png",
+      "scene-003__000012-000017__16x9.png",
+    ]);
     expect(plan.scenes[0]?.sourceSegmentIds).toContain("segment-001");
     expect(plan.scenes[1]?.sourceSegmentIds).toContain("segment-002");
     expect(plan.scenes[2]?.sourceSegmentIds).toContain("segment-003");

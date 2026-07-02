@@ -116,6 +116,46 @@ describe("shorts image strategy", () => {
     expect(plan[5]?.motion?.mode).toBe("pan-and-scan");
   });
 
+  it("plans one portrait image output per scene with motion as metadata only", () => {
+    const scenePlan = makeScenePlan(3);
+    const config: ShortsImageConfig = {
+      enabled: true,
+      keySceneCount: 1,
+      portraitWidth: 1088,
+      portraitHeight: 1920,
+      finalWidth: 1080,
+      finalHeight: 1920,
+      reuseLandscapeImages: true,
+      enablePanAndScan: true,
+      enableBlurredFallback: true,
+      forceRegenerateAll: false,
+      selectionMode: "first-n",
+    };
+
+    const plan = buildShortsImageStrategyPlan(scenePlan, config, {
+      landscapeDir: "/tmp/landscape",
+      outputDir: "/tmp/portrait",
+    });
+
+    expect(plan).toHaveLength(scenePlan.scenes.length);
+    expect(plan.map((entry) => entry.sceneId)).toEqual([
+      "scene-001",
+      "scene-002",
+      "scene-003",
+    ]);
+    expect(plan.map((entry) => path.basename(entry.outputPortraitPath))).toEqual([
+      "scene-001__000000-000008__9x16.png",
+      "scene-002__000008-000016__9x16.png",
+      "scene-003__000016-000024__9x16.png",
+    ]);
+    expect(plan.map((entry) => entry.motion?.mode)).toEqual([
+      "none",
+      "pan-and-scan",
+      "pan-and-scan",
+    ]);
+    expect(plan).not.toContainEqual(expect.objectContaining({ clipPath: expect.any(String) }));
+  });
+
   it("uses importance-based selection with ratio-based coverage", () => {
     const scenePlan = makeScenePlan(10);
     const config: ShortsImageConfig = {
@@ -196,6 +236,10 @@ describe("shorts image strategy", () => {
       }
     );
     expect(result.entries).toHaveLength(6);
+    expect(new Set(result.entries.map((entry) => entry.sceneId))).toEqual(
+      new Set(scenePlan.scenes.map((scene) => scene.id))
+    );
+    expect(result.entries.map((entry) => entry.outputImagePath)).toHaveLength(scenePlan.scenes.length);
     expect(result.entries.slice(0, 5).every((entry) => entry.regenerated)).toBe(true);
     expect(result.entries[5]?.reusedExistingImage).toBe(true);
     const firstImage = await sharp(result.entries[0]!.outputImagePath).metadata();
@@ -206,6 +250,9 @@ describe("shorts image strategy", () => {
     expect(tailImage.height).toBe(1920);
     const manifest = JSON.parse(await fs.readFile(result.manifestPath, "utf8")) as Array<Record<string, unknown>>;
     expect(manifest).toHaveLength(6);
+    expect(manifest.map((entry) => entry["sceneId"])).toEqual(
+      scenePlan.scenes.map((scene) => scene.id)
+    );
     expect(result.entries[0]).toMatchObject({
       aspectRatio: "9:16",
       shortMediaRequirements: {

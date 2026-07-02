@@ -46,6 +46,58 @@ function makeScenePlan() {
   });
 }
 
+function makeTwoScenePlan() {
+  return scenePlanSchema.parse({
+    sourceId: "episode-fixture",
+    scenes: [
+      {
+        id: "scene-001",
+        sequenceNumber: 1,
+        canonicalNarration: "A quiet hallway closes around the narrator.",
+        sourceSegmentIds: ["scene-001"],
+        estimatedDurationSeconds: 1,
+        timing: { startSeconds: 0, endSeconds: 1 },
+        visualPurpose: "establish the scene",
+        subject: "a quiet hallway",
+        action: "shown",
+        setting: "dim hallway with a single light",
+        composition: "centered",
+        cameraFraming: "medium shot",
+        mood: "uneasy",
+        continuityReferences: [],
+        onScreenText: "",
+        negativeConstraints: [],
+        aspectRatios: ["16:9"],
+        imagePrompt: "quiet hallway",
+        expectedImageFilenames: ["scene-001__000000-000001__16x9.png"],
+        qualityStatus: "draft",
+      },
+      {
+        id: "scene-002",
+        sequenceNumber: 2,
+        canonicalNarration: "A locked door waits at the end.",
+        sourceSegmentIds: ["scene-002"],
+        estimatedDurationSeconds: 1,
+        timing: { startSeconds: 1, endSeconds: 2 },
+        visualPurpose: "advance the scene",
+        subject: "a locked door",
+        action: "shown",
+        setting: "end of the dim hallway",
+        composition: "centered",
+        cameraFraming: "close shot",
+        mood: "uneasy",
+        continuityReferences: ["scene-001"],
+        onScreenText: "",
+        negativeConstraints: [],
+        aspectRatios: ["16:9"],
+        imagePrompt: "locked door",
+        expectedImageFilenames: ["scene-002__000001-000002__16x9.png"],
+        qualityStatus: "draft",
+      },
+    ],
+  });
+}
+
 describe("FFmpegVideoRenderer", () => {
   it("assigns alternating renderers after sorting by sequence number", () => {
     const assignments = assignClipRenderers([
@@ -149,6 +201,102 @@ describe("FFmpegVideoRenderer", () => {
     });
     expect(Date.parse(marker.generatedAt)).not.toBeNaN();
   });
+
+  it("renders one scene clip and manifest per scene id in scene order", async () => {
+    const baseDir = mkdtempSync(
+      path.join(os.tmpdir(), "mediaforge-rendering-scenes-")
+    );
+    const episodeDir = path.join(baseDir, "episode");
+    const outputDir = path.join(episodeDir, "video");
+    const imageDir = path.join(episodeDir, "images", "generated");
+    const audioDir = path.join(episodeDir, "audio", "segments");
+    await fs.mkdir(imageDir, { recursive: true });
+    await fs.mkdir(audioDir, { recursive: true });
+    const scenePlan = makeTwoScenePlan();
+    for (const [index, scene] of scenePlan.scenes.entries()) {
+      await fs.writeFile(
+        path.join(imageDir, scene.expectedImageFilenames[0] as string),
+        await sharp({
+          create: {
+            width: 32,
+            height: 32,
+            channels: 3,
+            background: index === 0 ? "#334455" : "#553344",
+          },
+        })
+          .png()
+          .toBuffer()
+      );
+      execFileSync(
+        "ffmpeg",
+        [
+          "-y",
+          "-f",
+          "lavfi",
+          "-i",
+          "anullsrc=r=24000:cl=mono",
+          "-t",
+          "1",
+          path.join(audioDir, `${scene.id}.wav`),
+        ],
+        { stdio: "ignore" }
+      );
+    }
+
+    const renderer = new FFmpegVideoRenderer();
+    const result = await renderer.renderSceneClips(
+      {
+        episodeDir,
+        scenePlan,
+        outputDir,
+        renderProfile: {
+          id: "youtube",
+          label: "youtube",
+          aspectRatio: "16:9",
+          width: 160,
+          height: 90,
+          fps: 30,
+        },
+        captionBurnIn: false,
+        imageDir,
+        sceneAudioDir: audioDir,
+      },
+      new AbortController().signal
+    );
+
+    expect(result.clipPaths.map((clipPath) => path.basename(clipPath))).toEqual([
+      "scene-001.mp4",
+      "scene-002.mp4",
+    ]);
+    const manifests = await Promise.all(
+      scenePlan.scenes.map((scene) =>
+        fs
+          .readFile(path.join(result.clipsDir, `${scene.id}.json`), "utf8")
+          .then((raw) => JSON.parse(raw) as Record<string, unknown>)
+      )
+    );
+    expect(manifests.map((manifest) => manifest["sceneId"])).toEqual([
+      "scene-001",
+      "scene-002",
+    ]);
+    expect(manifests.every((manifest) => manifest["schemaVersion"] === 2)).toBe(true);
+    expect(manifests.every((manifest) => manifest["renderer"] === "local")).toBe(true);
+    expect(manifests.every((manifest) => typeof manifest["renderFingerprint"] === "string")).toBe(true);
+    expect(manifests).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          renderProfile: {
+            aspectRatio: "16:9",
+            width: 160,
+            height: 90,
+            fps: 30,
+          },
+          trailingSilenceRatio: 0.8,
+          trailingSilenceBufferSeconds: 0,
+        }),
+      ])
+    );
+  }, 60000);
 
   it("rebuilds placeholder-sized scene clips before concat", async () => {
     const baseDir = mkdtempSync(

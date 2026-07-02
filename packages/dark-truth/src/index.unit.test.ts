@@ -1,4 +1,5 @@
 import fs from "node:fs/promises";
+import { execFileSync } from "node:child_process";
 import os from "node:os";
 import path from "node:path";
 import sharp from "sharp";
@@ -13,6 +14,7 @@ import {
   generateMockNarrationAudio,
   parseEpisodeSourceFile,
   retimeScenePlan,
+  sliceSceneAudioFiles,
   buildSpeechPlan,
 } from "./index.js";
 import { scenePlanSchema } from "@mediaforge/domain";
@@ -39,6 +41,24 @@ const episode001EnglishShort = path.join(
   "en",
   "001-the-forbidden-village-where-japan-s-laws-do-not-apply-en-short.md"
 );
+
+function probeDurationSeconds(filePath: string): number {
+  return Number(
+    execFileSync(
+      "ffprobe",
+      [
+        "-v",
+        "error",
+        "-show_entries",
+        "format=duration",
+        "-of",
+        "default=noprint_wrappers=1:nokey=1",
+        filePath,
+      ],
+      { encoding: "utf8" }
+    ).trim()
+  );
+}
 
 describe("dark-truth workflow", () => {
   it("discovers episode source files in stable order", async () => {
@@ -480,4 +500,84 @@ describe("dark-truth workflow", () => {
     expect(retimed.scenes[0]?.actualAudioDurationSeconds).toBe(5);
     expect(retimed.scenes[1]?.actualAudioDurationSeconds).toBe(5);
   });
+
+  it("slices narration audio into one scene-level audio file per scene id", async () => {
+    const tempDir = await fs.mkdtemp(
+      path.join(os.tmpdir(), "dark-truth-scene-audio-")
+    );
+    const narrationPath = path.join(tempDir, "narration.wav");
+    execFileSync(
+      "ffmpeg",
+      [
+        "-y",
+        "-f",
+        "lavfi",
+        "-i",
+        "sine=frequency=440:sample_rate=24000:duration=3",
+        narrationPath,
+      ],
+      { stdio: "ignore" }
+    );
+    const scenePlan = scenePlanSchema.parse({
+      sourceId: "episode-fixture",
+      scenes: [
+        {
+          id: "scene-001",
+          sequenceNumber: 1,
+          canonicalNarration: "First scene.",
+          sourceSegmentIds: ["scene-001"],
+          estimatedDurationSeconds: 1,
+          timing: { startSeconds: 0, endSeconds: 1 },
+          visualPurpose: "introduce the setting",
+          textRequirement: { required: false },
+          subject: "first scene",
+          action: "shown",
+          setting: "dark room",
+          composition: "centered",
+          cameraFraming: "wide shot",
+          mood: "tense",
+          continuityReferences: [],
+          onScreenText: "",
+          negativeConstraints: [],
+          aspectRatios: ["16:9"],
+          imagePrompt: "first scene",
+          expectedImageFilenames: ["scene-001__000000-000001__16x9.png"],
+          qualityStatus: "draft",
+        },
+        {
+          id: "scene-002",
+          sequenceNumber: 2,
+          canonicalNarration: "Second scene.",
+          sourceSegmentIds: ["scene-002"],
+          estimatedDurationSeconds: 2,
+          timing: { startSeconds: 1, endSeconds: 3 },
+          visualPurpose: "close on the reveal",
+          textRequirement: { required: false },
+          subject: "second scene",
+          action: "shown",
+          setting: "dark room",
+          composition: "centered",
+          cameraFraming: "wide shot",
+          mood: "tense",
+          continuityReferences: ["scene-001"],
+          onScreenText: "",
+          negativeConstraints: [],
+          aspectRatios: ["16:9"],
+          imagePrompt: "second scene",
+          expectedImageFilenames: ["scene-002__000001-000003__16x9.png"],
+          qualityStatus: "draft",
+        },
+      ],
+    });
+
+    await sliceSceneAudioFiles(narrationPath, scenePlan, tempDir);
+
+    const segmentPaths = scenePlan.scenes.map((scene) =>
+      path.join(tempDir, "audio", "segments", `${scene.id}.wav`)
+    );
+    await expect(fs.stat(segmentPaths[0] as string)).resolves.toBeTruthy();
+    await expect(fs.stat(segmentPaths[1] as string)).resolves.toBeTruthy();
+    expect(probeDurationSeconds(segmentPaths[0] as string)).toBeCloseTo(1, 1);
+    expect(probeDurationSeconds(segmentPaths[1] as string)).toBeCloseTo(2, 1);
+  }, 60000);
 });
