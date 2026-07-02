@@ -5,7 +5,7 @@ const SAFE_COLOR_PATTERN =
   /^(?:#[0-9A-Fa-f]{6}(?:[0-9A-Fa-f]{2})?|[A-Za-z][A-Za-z0-9_-]{0,31})(?:@[0-9]+(?:\.[0-9]+)?)?$/u;
 
 export function escapeFilterValue(value: string): string {
-  return value.replace(/[\\':,\[\]\n\r%]/gu, (character) => {
+  return value.replace(/[\\':,\x5b\x5d\n\r%]/gu, (character) => {
     switch (character) {
       case "\\":
         return "\\\\";
