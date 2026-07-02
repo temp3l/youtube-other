@@ -5,9 +5,12 @@ import os from "node:os";
 import path from "node:path";
 import sharp from "sharp";
 import { describe, expect, it } from "vitest";
-import { scenePlanSchema } from "@mediaforge/domain";
+import { scenePlanSchema, shotPlanSchema, type RenderShot } from "@mediaforge/domain";
+import { hashFile } from "@mediaforge/shared";
 import {
   assignClipRenderers,
+  buildShotClipRenderRequest,
+  buildShotRenderOperationFingerprint,
   buildRemoteReadyMarker,
   FFmpegVideoRenderer,
   remoteAssetFileName,
@@ -95,6 +98,104 @@ function makeTwoScenePlan() {
         qualityStatus: "draft",
       },
     ],
+  });
+}
+
+function makeShotPlan(args: {
+  readonly sourceImagePath: string;
+  readonly sourceImageSha256: string;
+  readonly shots?: readonly RenderShot[];
+}) {
+  const baseShot = {
+    sourceSceneId: "source-scene-001",
+    sceneId: "scene-001",
+    sourceImageId: "source-image-001",
+    treatment: {
+      family: "framing" as const,
+      catalogVersion: "shot-treatment-catalog-v1",
+      treatmentId: "medium-crop",
+      variant: "medium-crop" as const,
+    },
+    overlays: [],
+    transition: { kind: "hard-cut" as const, durationMs: 0 as const },
+  };
+  return shotPlanSchema.parse({
+    schemaVersion: 1,
+    sourceId: "episode-fixture",
+    variant: "short",
+    aspectRatio: "9:16",
+    sourceScenes: [
+      {
+        sourceSceneId: "source-scene-001",
+        sceneId: "scene-001",
+        narrationStartMs: 0,
+        narrationEndMs: 1000,
+        sourceImageId: "source-image-001",
+        sourceImagePath: args.sourceImagePath,
+        sourceImageSha256: args.sourceImageSha256,
+        importance: "setup",
+        focalRegions: [],
+      },
+    ],
+    shots:
+      args.shots ?? [
+        {
+          ...baseShot,
+          shotId: "scene-001-shot-001",
+          startMs: 0,
+          endMs: 500,
+          crop: { x: 0, y: 0, width: 0.75, height: 1 },
+        },
+        {
+          ...baseShot,
+          shotId: "scene-001-shot-002",
+          startMs: 500,
+          endMs: 1000,
+          crop: { x: 0.25, y: 0, width: 0.75, height: 1 },
+          motion: {
+            kind: "push-in",
+            startScale: 1,
+            endScale: 1.08,
+            anchor: { x: 0.5, y: 0.5 },
+          },
+        },
+      ],
+    pacingProfile: {
+      mode: "inline",
+      profile: {
+        id: "balanced",
+        shotDurationMs: { minMs: 400, maxMs: 1000 },
+        staticShotDurationMs: { minMs: 400, maxMs: 1000 },
+        movingShotDurationMs: { minMs: 400, maxMs: 1000 },
+        openingCadenceMs: { minMs: 400, maxMs: 1000 },
+        climaxCadenceMs: { minMs: 400, maxMs: 1000 },
+      },
+    },
+    visualBudget: {
+      sourceImageCount: { min: 1, max: 1 },
+      shotCount: { min: 2, max: 2 },
+      shotsPerImage: { min: 2, max: 2 },
+      maxConsecutiveSourceImageUses: 2,
+      maxTotalSourceImageUses: 2,
+      cropLimits: {
+        minCropArea: 0.35,
+        minFaceMargin: 0.08,
+        maxCropZoom: 2,
+        minOutputHeightPx: 90,
+        maxAdjacentSameImageCropIou: 0.82,
+      },
+      motionLimits: {
+        minShotDurationMs: 400,
+        pushInScaleRange: { min: 1.03, max: 1.14 },
+        fastPushInScaleRange: { min: 1.08, max: 1.22 },
+        panTravelFractionOfImage: { min: 0.03, max: 0.12 },
+        rotationDegreesRange: { min: -1, max: 1 },
+        dissolveDurationMs: { minMs: 120, maxMs: 250 },
+        dipToBlackDurationMs: { minMs: 100, maxMs: 500 },
+      },
+      effectCaps: [],
+    },
+    planningSeed: "seed",
   });
 }
 
@@ -296,6 +397,306 @@ describe("FFmpegVideoRenderer", () => {
         }),
       ])
     );
+  }, 60000);
+
+  it("renders an explicit shot plan as ordered shot clips from one source image", async () => {
+    const baseDir = mkdtempSync(
+      path.join(os.tmpdir(), "mediaforge-rendering-shots-")
+    );
+    const episodeDir = path.join(baseDir, "episode");
+    const outputDir = path.join(episodeDir, "video");
+    const imageDir = path.join(episodeDir, "shared", "images", "generated");
+    await fs.mkdir(imageDir, { recursive: true });
+    const imagePath = path.join(imageDir, "source-001.png");
+    await fs.writeFile(
+      imagePath,
+      await sharp({
+        create: { width: 96, height: 96, channels: 3, background: "#223344" },
+      })
+        .png()
+        .toBuffer()
+    );
+    const sourceHash = await hashFile(imagePath);
+    const shotPlan = makeShotPlan({
+      sourceImagePath: path.relative(episodeDir, imagePath),
+      sourceImageSha256: sourceHash,
+    });
+
+    const renderer = new FFmpegVideoRenderer();
+    const result = await renderer.renderSceneClips(
+      {
+        episodeDir,
+        scenePlan: makeScenePlan(),
+        shotPlan,
+        outputDir,
+        renderProfile: {
+          id: "short",
+          label: "short",
+          aspectRatio: "9:16",
+          width: 90,
+          height: 160,
+          fps: 10,
+        },
+        captionBurnIn: false,
+      },
+      new AbortController().signal
+    );
+
+    expect(result.clipPaths.map((clipPath) => path.basename(clipPath))).toEqual([
+      "scene-001-shot-001.mp4",
+      "scene-001-shot-002.mp4",
+    ]);
+    expect(result.shotRenderSummary?.renderedShotIds).toEqual([
+      "scene-001-shot-001",
+      "scene-001-shot-002",
+    ]);
+    const manifests = await Promise.all(
+      ["scene-001-shot-001", "scene-001-shot-002"].map((shotId) =>
+        fs
+          .readFile(path.join(result.clipsDir, `${shotId}.json`), "utf8")
+          .then((raw) => JSON.parse(raw) as Record<string, unknown>)
+      )
+    );
+    expect(manifests.map((manifest) => manifest["shotId"])).toEqual([
+      "scene-001-shot-001",
+      "scene-001-shot-002",
+    ]);
+    expect(manifests.every((manifest) => manifest["sceneId"] === "scene-001")).toBe(true);
+    expect(manifests.every((manifest) => manifest["sourceImageSha256"] === sourceHash)).toBe(true);
+    expect(manifests[0]?.["renderOperationFingerprint"]).not.toBe(
+      manifests[1]?.["renderOperationFingerprint"]
+    );
+    expect(JSON.stringify(manifests)).not.toContain(imagePath);
+    await expect(validateRenderedVideo(result.clipPaths[0] as string, { requireAudio: false })).resolves.toMatchObject({
+      valid: true,
+      width: 90,
+      height: 160,
+    });
+  }, 60000);
+
+  it("keeps shot render-operation fingerprints stable and path independent", async () => {
+    const baseDir = mkdtempSync(
+      path.join(os.tmpdir(), "mediaforge-rendering-shot-fingerprint-")
+    );
+    const episodeDir = path.join(baseDir, "episode");
+    const imagePath = path.join(episodeDir, "shared", "images", "generated", "source-001.png");
+    await fs.mkdir(path.dirname(imagePath), { recursive: true });
+    await fs.writeFile(
+      imagePath,
+      await sharp({
+        create: { width: 96, height: 96, channels: 3, background: "#445566" },
+      })
+        .png()
+        .toBuffer()
+    );
+    const sourceHash = await hashFile(imagePath);
+    const shotPlan = makeShotPlan({
+      sourceImagePath: "shared/images/generated/source-001.png",
+      sourceImageSha256: sourceHash,
+    });
+    const first = shotPlan.shots[0] as RenderShot;
+    const second = shotPlan.shots[1] as RenderShot;
+    const sourceImage = {
+      sourceImageId: "source-image-001",
+      sourceSceneId: "source-scene-001",
+      sceneId: "scene-001",
+      path: imagePath,
+      sha256: sourceHash,
+    };
+    const firstRequest = await buildShotClipRenderRequest({
+      episodeId: "episode-fixture",
+      episodeDir,
+      shot: first,
+      sourceImage,
+      sequenceNumber: 1,
+      outputPath: path.join(episodeDir, "out-a.mp4"),
+      manifestPath: path.join(episodeDir, "out-a.json"),
+      fps: 10,
+      width: 90,
+      height: 160,
+    });
+    const secondRequest = await buildShotClipRenderRequest({
+      episodeId: "episode-fixture",
+      episodeDir,
+      shot: second,
+      sourceImage,
+      sequenceNumber: 2,
+      outputPath: path.join(episodeDir, "elsewhere", "out-b.mp4"),
+      manifestPath: path.join(episodeDir, "elsewhere", "out-b.json"),
+      fps: 10,
+      width: 90,
+      height: 160,
+    });
+    const recomputed = buildShotRenderOperationFingerprint({
+      shot: first,
+      sourceImageSha256: sourceHash,
+      operations: firstRequest.operations,
+      outputProfile: {
+        aspectRatio: "9:16",
+        width: 90,
+        height: 160,
+        fps: 10,
+        pixelFormat: "yuv420p",
+      },
+      overlayHashes: [],
+    });
+
+    expect(firstRequest.renderOperationFingerprint).toBe(recomputed);
+    expect(firstRequest.renderOperationFingerprint).not.toBe(
+      secondRequest.renderOperationFingerprint
+    );
+    expect(firstRequest.renderOperationFingerprint).toMatch(/^[a-f0-9]{64}$/u);
+  });
+
+  it("fails shot rendering for missing source images and unsupported treatments", async () => {
+    const baseDir = mkdtempSync(
+      path.join(os.tmpdir(), "mediaforge-rendering-shot-errors-")
+    );
+    const episodeDir = path.join(baseDir, "episode");
+    const renderer = new FFmpegVideoRenderer();
+    const missingPlan = makeShotPlan({
+      sourceImagePath: "shared/images/generated/missing.png",
+      sourceImageSha256: "a".repeat(64),
+    });
+
+    await expect(
+      renderer.renderSceneClips(
+        {
+          episodeDir,
+          scenePlan: makeScenePlan(),
+          shotPlan: missingPlan,
+          outputDir: path.join(episodeDir, "video"),
+          renderProfile: {
+            id: "short",
+            label: "short",
+            aspectRatio: "9:16",
+            width: 90,
+            height: 160,
+            fps: 10,
+          },
+          captionBurnIn: false,
+        },
+        new AbortController().signal
+      )
+    ).rejects.toThrow(/Missing source image/u);
+
+    const imagePath = path.join(episodeDir, "shared", "images", "generated", "source-001.png");
+    await fs.mkdir(path.dirname(imagePath), { recursive: true });
+    await fs.writeFile(
+      imagePath,
+      await sharp({
+        create: { width: 96, height: 96, channels: 3, background: "#665544" },
+      })
+        .png()
+        .toBuffer()
+    );
+    const sourceHash = await hashFile(imagePath);
+    const unsupportedShot = {
+      ...(makeShotPlan({
+        sourceImagePath: path.relative(episodeDir, imagePath),
+        sourceImageSha256: sourceHash,
+      }).shots[0] as RenderShot),
+      treatment: {
+        family: "depth" as const,
+        catalogVersion: "shot-treatment-catalog-v1",
+        treatmentId: "layered-pseudo-parallax",
+        variant: "parallax" as const,
+        cacheRequired: true,
+      },
+    };
+    const unsupportedPlan = makeShotPlan({
+      sourceImagePath: path.relative(episodeDir, imagePath),
+      sourceImageSha256: sourceHash,
+      shots: [unsupportedShot],
+    });
+
+    await expect(
+      renderer.renderSceneClips(
+        {
+          episodeDir,
+          scenePlan: makeScenePlan(),
+          shotPlan: unsupportedPlan,
+          outputDir: path.join(episodeDir, "video-unsupported"),
+          renderProfile: {
+            id: "short",
+            label: "short",
+            aspectRatio: "9:16",
+            width: 90,
+            height: 160,
+            fps: 10,
+          },
+          captionBurnIn: false,
+        },
+        new AbortController().signal
+      )
+    ).rejects.toThrow(/Unsupported shot treatment/u);
+  }, 60000);
+
+  it("composes shot clips with one global narration audio track", async () => {
+    const baseDir = mkdtempSync(
+      path.join(os.tmpdir(), "mediaforge-rendering-shot-final-")
+    );
+    const episodeDir = path.join(baseDir, "episode");
+    const outputDir = path.join(episodeDir, "video");
+    const imageDir = path.join(episodeDir, "shared", "images", "generated");
+    const audioDir = path.join(episodeDir, "audio");
+    await fs.mkdir(imageDir, { recursive: true });
+    await fs.mkdir(audioDir, { recursive: true });
+    const imagePath = path.join(imageDir, "source-001.png");
+    await fs.writeFile(
+      imagePath,
+      await sharp({
+        create: { width: 96, height: 96, channels: 3, background: "#334422" },
+      })
+        .png()
+        .toBuffer()
+    );
+    execFileSync(
+      "ffmpeg",
+      [
+        "-y",
+        "-f",
+        "lavfi",
+        "-i",
+        "anullsrc=r=24000:cl=mono",
+        "-t",
+        "1",
+        path.join(audioDir, "narration.wav"),
+      ],
+      { stdio: "ignore" }
+    );
+    const sourceHash = await hashFile(imagePath);
+    const renderer = new FFmpegVideoRenderer();
+    const result = await renderer.render(
+      {
+        episodeDir,
+        scenePlan: makeScenePlan(),
+        shotPlan: makeShotPlan({
+          sourceImagePath: path.relative(episodeDir, imagePath),
+          sourceImageSha256: sourceHash,
+        }),
+        outputDir,
+        renderProfile: {
+          id: "short",
+          label: "short",
+          aspectRatio: "9:16",
+          width: 90,
+          height: 160,
+          fps: 10,
+        },
+        captionBurnIn: false,
+      },
+      new AbortController().signal
+    );
+
+    expect(result.shotRenderSummary?.renderedShotIds).toEqual([
+      "scene-001-shot-001",
+      "scene-001-shot-002",
+    ]);
+    expect(result.validation.valid).toBe(true);
+    expect(result.validation.audioCodec).not.toBe("");
+    expect(result.validation.durationSeconds).toBeGreaterThanOrEqual(0.95);
+    expect(result.validation.durationSeconds).toBeLessThan(1.6);
   }, 60000);
 
   it("rebuilds placeholder-sized scene clips before concat", async () => {
