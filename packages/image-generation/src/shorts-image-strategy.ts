@@ -38,6 +38,7 @@ export type ShortsImageStrategy =
 export interface ShortsImageConfig {
   enabled: boolean;
   keySceneCount: number;
+  keySceneRatio?: number;
   portraitWidth: number;
   portraitHeight: number;
   finalWidth: number;
@@ -336,18 +337,89 @@ function resolveKeySceneIds(
   scenePlan: ScenePlan,
   config: ShortsImageConfig
 ): Set<string> {
-  if (config.selectionMode === "importance-based" && config.importanceSceneIds) {
+  const explicitImportanceIds = config.importanceSceneIds
+    ?.map((entry) => entry.trim())
+    .filter((entry) => entry.length > 0);
+  const ratioTarget =
+    typeof config.keySceneRatio === "number" &&
+    Number.isFinite(config.keySceneRatio) &&
+    config.keySceneRatio > 0
+      ? Math.ceil(scenePlan.scenes.length * config.keySceneRatio)
+      : 0;
+  const keySceneCount = Math.max(
+    0,
+    Math.min(
+      scenePlan.scenes.length,
+      Math.max(config.keySceneCount, ratioTarget)
+    )
+  );
+
+  if (config.selectionMode === "importance-based" && explicitImportanceIds?.length) {
     return new Set(
-      config.importanceSceneIds
-        .map((entry) => entry.trim())
-        .filter((entry) => entry.length > 0)
-        .slice(0, config.keySceneCount)
+      explicitImportanceIds.slice(0, keySceneCount)
     );
+  }
+  if (config.selectionMode === "importance-based") {
+    const rankedScenes = [...scenePlan.scenes]
+      .map((scene, index) => {
+        let score = 0;
+        if (index === 0) {
+          score += 1000;
+        }
+        if (index === scenePlan.scenes.length - 1) {
+          score += 900;
+        }
+        if (index === Math.floor(scenePlan.scenes.length / 2)) {
+          score += 500;
+        }
+        if (scene.textRequirement.required) {
+          score += 150;
+        }
+        if (scene.continuityReferences.length === 0) {
+          score += 120;
+        }
+        if (/reveal|final|ending|consequence|question/i.test(scene.visualPurpose)) {
+          score += 80;
+        }
+        score += Math.min(60, Math.round(scene.estimatedDurationSeconds * 10));
+        return { sceneId: scene.id, score, sequenceNumber: scene.sequenceNumber };
+      })
+      .sort(
+        (left, right) =>
+          right.score - left.score || left.sequenceNumber - right.sequenceNumber
+      )
+      .slice(0, keySceneCount)
+      .map((scene) => scene.sceneId);
+    return new Set(rankedScenes);
   }
   return new Set(
     scenePlan.scenes
-      .slice(0, config.keySceneCount)
+      .slice(0, keySceneCount)
       .map((scene) => scene.id)
+  );
+}
+
+function shouldReuseExistingPortrait(args: {
+  readonly cached?: ShortsSceneManifestEntry;
+  readonly currentSceneHash: string;
+  readonly imagePlanFingerprint: string;
+  readonly strategy: ShortsImageStrategy;
+  readonly shouldRegenerate: boolean;
+  readonly outputPortraitPath: string;
+}): boolean {
+  if (args.shouldRegenerate) {
+    return false;
+  }
+  if (!args.cached || args.cached.status !== "success") {
+    return false;
+  }
+  if (args.cached.outputImagePath !== args.outputPortraitPath) {
+    return false;
+  }
+  return (
+    args.cached.imagePlanFingerprint === args.imagePlanFingerprint &&
+    args.cached.sceneHash === args.currentSceneHash &&
+    args.cached.strategy === args.strategy
   );
 }
 
@@ -717,7 +789,18 @@ export async function prepareShortsImageAssets(
         ? { parentFullFingerprint: context.parentFullNarration.fingerprint }
         : {}),
     };
-    if (await fileExists(outputPortraitPath)) {
+    const portraitExists = await fileExists(outputPortraitPath);
+    if (
+      portraitExists &&
+      shouldReuseExistingPortrait({
+        cached,
+        currentSceneHash,
+        imagePlanFingerprint,
+        strategy,
+        shouldRegenerate,
+        outputPortraitPath,
+      })
+    ) {
       const entry: ShortsSceneManifestEntry = {
         sceneId: scene.id,
         sequenceNumber: scene.sequenceNumber,
@@ -755,6 +838,9 @@ export async function prepareShortsImageAssets(
       entries.push(entry);
       previousSpec = buildSceneVisualSpec(scene, registry, previousSpec);
       continue;
+    }
+    if (portraitExists) {
+      await fs.rm(outputPortraitPath, { force: true }).catch(() => undefined);
     }
     const attemptCount = 1;
     try {

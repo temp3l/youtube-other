@@ -291,6 +291,7 @@ export type ShortsImageStrategy =
 export interface ShortsImageConfig {
   readonly enabled: boolean;
   readonly keySceneCount: number;
+  readonly keySceneRatio?: number;
   readonly portraitWidth: number;
   readonly portraitHeight: number;
   readonly finalWidth: number;
@@ -299,6 +300,8 @@ export interface ShortsImageConfig {
   readonly enablePanAndScan: boolean;
   readonly enableBlurredFallback: boolean;
   readonly forceRegenerateAll: boolean;
+  readonly selectionMode?: "first-n" | "importance-based";
+  readonly importanceSceneIds?: readonly string[];
 }
 
 export interface ShortsScenePlan {

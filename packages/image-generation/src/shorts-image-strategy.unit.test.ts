@@ -116,6 +116,30 @@ describe("shorts image strategy", () => {
     expect(plan[5]?.motion?.mode).toBe("pan-and-scan");
   });
 
+  it("uses importance-based selection with ratio-based coverage", () => {
+    const scenePlan = makeScenePlan(10);
+    const config: ShortsImageConfig = {
+      enabled: true,
+      keySceneCount: 3,
+      keySceneRatio: 0.8,
+      portraitWidth: 1088,
+      portraitHeight: 1920,
+      finalWidth: 1080,
+      finalHeight: 1920,
+      reuseLandscapeImages: true,
+      enablePanAndScan: true,
+      enableBlurredFallback: true,
+      forceRegenerateAll: false,
+      selectionMode: "importance-based",
+    };
+    const plan = buildShortsImageStrategyPlan(scenePlan, config, {
+      outputDir: "/tmp/portrait",
+    });
+    expect(plan.filter((entry) => entry.strategy === "regenerate")).toHaveLength(8);
+    expect(plan[0]?.strategy).toBe("regenerate");
+    expect(plan[plan.length - 1]?.strategy).toBe("regenerate");
+  });
+
   it("prepares native vertical openings and reuses landscape tail scenes", async () => {
     const tempDir = await fs.mkdtemp(path.join(process.cwd(), ".tmp-shorts-"));
     const episodeDir = path.join(tempDir, "episode");
@@ -313,7 +337,7 @@ describe("shorts image strategy", () => {
     await fs.rm(tempDir, { recursive: true, force: true });
   }, 15_000);
 
-  it("reuses an existing shared Shorts image instead of regenerating it", async () => {
+  it("regenerates an existing shared Shorts image when the plan requires regeneration", async () => {
     const tempDir = await fs.mkdtemp(path.join(process.cwd(), ".tmp-shorts-reuse-"));
     const episodeDir = path.join(tempDir, "episode");
     const outputDir = path.join(tempDir, "shared", "short", "images", "generated");
@@ -354,9 +378,32 @@ describe("shorts image strategy", () => {
     })
       .png()
       .toFile(existingPath);
+    const beforeHash = await hashFile(existingPath);
     const generator = {
-      async generate() {
-        throw new Error("generator should not be called for existing images");
+      async generate(request) {
+        await sharp({
+          create: {
+            width: 1088,
+            height: 1920,
+            channels: 4,
+            background: { r: 12, g: 34, b: 56, alpha: 1 },
+          },
+        })
+          .png()
+          .toFile(request.providerRequest.outputPath);
+        return {
+          outputPath: request.providerRequest.outputPath,
+          outputSha256: await hashFile(request.providerRequest.outputPath),
+          model: "stub",
+          size: "1088x1920",
+          quality: "low",
+          generationMode: "text-only",
+          attempts: 1,
+          durationMs: 1,
+          providerRequestHash: request.providerRequest.providerRequestHash,
+          promptHash: "prompt-hash",
+          referenceHashes: [],
+        };
       },
     } satisfies ImageGenerator;
 
@@ -373,9 +420,91 @@ describe("shorts image strategy", () => {
     );
 
     expect(result.entries).toHaveLength(1);
+    expect(result.entries[0]?.reusedExistingImage).toBe(false);
+    expect(result.entries[0]?.regenerated).toBe(true);
+    expect(result.entries[0]?.outputImagePath).toBe(existingPath);
+    expect(await hashFile(existingPath)).not.toBe(beforeHash);
+    await fs.rm(tempDir, { recursive: true, force: true });
+  }, 15_000);
+
+  it("reuses an existing shared Shorts image only when the cached fingerprint still matches", async () => {
+    const tempDir = await fs.mkdtemp(path.join(process.cwd(), ".tmp-shorts-cache-"));
+    const episodeDir = path.join(tempDir, "episode");
+    const landscapeDir = path.join(tempDir, "landscape");
+    const outputDir = path.join(tempDir, "shared", "short", "images", "generated");
+    await fs.mkdir(episodeDir, { recursive: true });
+    await fs.mkdir(landscapeDir, { recursive: true });
+    await fs.mkdir(outputDir, { recursive: true });
+    await fs.mkdir(path.join(episodeDir, "shared"), { recursive: true });
+    await fs.writeFile(
+      path.join(episodeDir, "shared", "characters.json"),
+      JSON.stringify({ episodeId: "episode-1", characters: [], updatedAt: new Date().toISOString() })
+    );
+    const scenePlan = makeScenePlan(1);
+    for (const scene of scenePlan.scenes) {
+      await sharp({
+        create: {
+          width: 1920,
+          height: 1080,
+          channels: 4,
+          background: { r: 20, g: 40, b: 60, alpha: 1 },
+        },
+      })
+        .png()
+        .toFile(path.join(landscapeDir, scene.expectedImageFilenames[0] ?? `${scene.id}.png`));
+    }
+    const config: ShortsImageConfig = {
+      enabled: true,
+      keySceneCount: 0,
+      portraitWidth: 1088,
+      portraitHeight: 1920,
+      finalWidth: 1080,
+      finalHeight: 1920,
+      reuseLandscapeImages: true,
+      enablePanAndScan: true,
+      enableBlurredFallback: true,
+      forceRegenerateAll: false,
+      selectionMode: "first-n",
+    };
+    const firstRun = await prepareShortsImageAssets(
+      episodeDir,
+      "episode-1",
+      scenePlan,
+      createSettings(),
+      config,
+      {
+        landscapeDir,
+        outputDir,
+        generator: createGenerator(),
+      }
+    );
+    const reusedPath = firstRun.entries[0]?.outputImagePath;
+    if (!reusedPath) {
+      throw new Error("missing expected portrait path");
+    }
+    const reusedHash = await hashFile(reusedPath);
+    const generator = {
+      async generate() {
+        throw new Error("generator should not run when cached portrait matches");
+      },
+    } satisfies ImageGenerator;
+
+    const result = await prepareShortsImageAssets(
+      episodeDir,
+      "episode-1",
+      scenePlan,
+      createSettings(),
+      config,
+      {
+        landscapeDir,
+        outputDir,
+        generator,
+      }
+    );
+
     expect(result.entries[0]?.reusedExistingImage).toBe(true);
     expect(result.entries[0]?.regenerated).toBe(false);
-    expect(result.entries[0]?.outputImagePath).toBe(existingPath);
+    expect(await hashFile(reusedPath)).toBe(reusedHash);
     await fs.rm(tempDir, { recursive: true, force: true });
   }, 15_000);
 });
