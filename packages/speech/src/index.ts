@@ -33,6 +33,7 @@ export {
 export * from "./narration-schemas.js";
 export * from "./spoken-narration.js";
 export * from "./narration-segmentation.js";
+export * from "./performance-direction.js";
 export * from "./pronunciation.js";
 export * from "./audio-validation.js";
 export * from "./wav-analysis.js";

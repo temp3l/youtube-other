@@ -47,10 +47,11 @@ export const narrationMoodSchema = z.enum([
   "intimate",
   "disturbed",
   "reflective",
+  "restrained",
 ]);
 export type NarrationMood = z.infer<typeof narrationMoodSchema>;
 
-export const narrationPaceSchema = z.enum(["slow", "measured", "normal", "fast"]);
+export const narrationPaceSchema = z.enum(["slow", "measured", "normal", "brisk", "fast"]);
 export type NarrationPace = z.infer<typeof narrationPaceSchema>;
 
 export const narrationFlowIntentSchema = z.enum([
@@ -326,9 +327,14 @@ export const narrationDirectionSetSchema = z
   .object({
     schemaVersion: z.literal(NARRATION_ARTIFACT_SCHEMA_VERSION),
     manifestFingerprint: sha256Schema,
-    plannerMode: z.enum(["deterministic", "openai", "manual", "fallback"]),
+    plannerMode: z.enum(["deterministic", "openai", "openai-assisted", "manual", "fallback"]),
     plannerVersion: boundedString(80),
+    promptVersion: boundedString(80).optional(),
+    schemaVersionFingerprint: sha256Schema.optional(),
+    plannerRequestFingerprint: sha256Schema.optional(),
+    sourceFingerprint: sha256Schema.optional(),
     fallbackUsage: fallbackUsageSchema,
+    warnings: z.array(warningSchema).max(100).optional(),
     directions: z.array(narrationDirectionSchema).min(1),
     setFingerprint: sha256Schema,
     createdAt: isoTimestampSchema,
