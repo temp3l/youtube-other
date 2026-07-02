@@ -273,9 +273,15 @@ importers:
 
   packages/observability:
     dependencies:
+      '@mediaforge/domain':
+        specifier: workspace:*
+        version: link:../domain
       '@mediaforge/shared':
         specifier: workspace:*
         version: link:../shared
+      '@mediaforge/visual-planning':
+        specifier: workspace:*
+        version: link:../visual-planning
       pino:
         specifier: ^9.8.0
         version: 9.14.0

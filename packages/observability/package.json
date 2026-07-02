@@ -11,7 +11,6 @@
   },
   "dependencies": {
     "@mediaforge/domain": "workspace:*",
-    "@mediaforge/rendering": "workspace:*",
     "@mediaforge/shared": "workspace:*",
     "@mediaforge/visual-planning": "workspace:*",
     "pino": "^9.8.0",
