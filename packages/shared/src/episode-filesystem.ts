@@ -8,6 +8,7 @@ export type LocaleCode = (typeof localeCodes)[number];
 
 export const contentVariants = ["full", "short"] as const;
 export type ContentVariant = (typeof contentVariants)[number];
+export type Sha256Fingerprint = string & { readonly __brand: "Sha256Fingerprint" };
 
 export type EpisodeId = string & { readonly __brand: "EpisodeId" };
 export type RelativePath = string & { readonly __brand: "RelativePath" };
@@ -15,6 +16,7 @@ export type RelativePath = string & { readonly __brand: "RelativePath" };
 const episodeIdPattern = /^[a-z0-9][a-z0-9-]*$/u;
 const localeCodePattern = /^(en|de|es|fr|pt)(?:-[a-z0-9]{2,8})*$/iu;
 const legacySpanishLocaleCodePattern = /^sp(?:-[a-z0-9]{2,8})*$/iu;
+const sha256FingerprintPattern = /^[a-f0-9]{64}$/u;
 
 export function normalizeEpisodeId(value: string): EpisodeId {
   const normalized = value.trim().toLowerCase();
@@ -42,6 +44,14 @@ export function normalizeContentVariant(value: string): ContentVariant {
     throw new Error(`Invalid content variant: ${value}`);
   }
   return normalized;
+}
+
+export function normalizeSha256Fingerprint(value: string): Sha256Fingerprint {
+  const normalized = value.trim().toLowerCase();
+  if (!sha256FingerprintPattern.test(normalized)) {
+    throw new Error(`Invalid sha256 fingerprint: ${value}`);
+  }
+  return normalized as Sha256Fingerprint;
 }
 
 export function ensurePortableRelativePath(candidate: string): RelativePath {
@@ -171,6 +181,16 @@ export interface EpisodePathResolver {
   ): string;
   batchStateDir(episodeId: EpisodeId): string;
   renderStateDir(episodeId: EpisodeId): string;
+  visualRetentionDir(episodeId: EpisodeId): string;
+  visualSourceScenes(episodeId: EpisodeId): string;
+  focalMetadata(episodeId: EpisodeId): string;
+  shotPlan(context: EpisodeContext): string;
+  shotValidation(context: EpisodeContext): string;
+  shotStoryboard(context: EpisodeContext): string;
+  shotContactSheet(context: EpisodeContext): string;
+  derivedShotsDir(episodeId: EpisodeId): string;
+  derivedShotClip(episodeId: EpisodeId, fingerprint: string): string;
+  derivedShotManifest(episodeId: EpisodeId, fingerprint: string): string;
   uploadStateDir(episodeId: EpisodeId): string;
   logsDir(episodeId: EpisodeId): string;
   sharedGeneratedImagesDir(episodeId: EpisodeId): string;
@@ -292,6 +312,163 @@ export function resolveEpisodeImageFailurePath(
   return path.join(resolveEpisodeImageFailuresDir(episodeDir), `${sceneId}.json`);
 }
 
+function resolveEpisodeContainedPath(
+  episodeDir: string,
+  ...segments: readonly string[]
+): string {
+  return assertInsideWorkspace(episodeDir, path.join(episodeDir, ...segments));
+}
+
+function resolveVariantLocaleArtifactName(args: {
+  readonly prefix: string;
+  readonly locale: string;
+  readonly variant: string;
+  readonly extension: string;
+}): string {
+  const variant = normalizeContentVariant(args.variant);
+  const locale = normalizeLocaleCode(args.locale);
+  return `${args.prefix}.${variant}.${locale}.${args.extension}`;
+}
+
+/**
+ * Visual-retention artifacts are canonical state owned by the shared resolver.
+ * Later planners/renderers should consume these helpers instead of rebuilding filenames.
+ */
+export function resolveEpisodeVisualRetentionDir(episodeDir: string): string {
+  return resolveEpisodeContainedPath(episodeDir, "state", "visual-retention");
+}
+
+export function resolveEpisodeVisualSourceScenesPath(episodeDir: string): string {
+  return resolveEpisodeContainedPath(
+    episodeDir,
+    "state",
+    "visual-retention",
+    "source-scenes.json"
+  );
+}
+
+export function resolveEpisodeFocalMetadataPath(episodeDir: string): string {
+  return resolveEpisodeContainedPath(
+    episodeDir,
+    "state",
+    "visual-retention",
+    "focal-metadata.json"
+  );
+}
+
+export function resolveEpisodeShotPlanPath(args: {
+  readonly episodeDir: string;
+  readonly locale: LocaleCode;
+  readonly variant: ContentVariant;
+}): string {
+  return resolveEpisodeContainedPath(
+    args.episodeDir,
+    "state",
+    "visual-retention",
+    resolveVariantLocaleArtifactName({
+      prefix: "shot-plan",
+      locale: args.locale,
+      variant: args.variant,
+      extension: "json",
+    })
+  );
+}
+
+export function resolveEpisodeShotValidationPath(args: {
+  readonly episodeDir: string;
+  readonly locale: LocaleCode;
+  readonly variant: ContentVariant;
+}): string {
+  return resolveEpisodeContainedPath(
+    args.episodeDir,
+    "state",
+    "visual-retention",
+    resolveVariantLocaleArtifactName({
+      prefix: "validation",
+      locale: args.locale,
+      variant: args.variant,
+      extension: "json",
+    })
+  );
+}
+
+export function resolveEpisodeShotStoryboardPath(args: {
+  readonly episodeDir: string;
+  readonly locale: LocaleCode;
+  readonly variant: ContentVariant;
+}): string {
+  return resolveEpisodeContainedPath(
+    args.episodeDir,
+    "state",
+    "visual-retention",
+    resolveVariantLocaleArtifactName({
+      prefix: "storyboard",
+      locale: args.locale,
+      variant: args.variant,
+      extension: "html",
+    })
+  );
+}
+
+export function resolveEpisodeShotContactSheetPath(args: {
+  readonly episodeDir: string;
+  readonly locale: LocaleCode;
+  readonly variant: ContentVariant;
+}): string {
+  return resolveEpisodeContainedPath(
+    args.episodeDir,
+    "state",
+    "visual-retention",
+    resolveVariantLocaleArtifactName({
+      prefix: "contact-sheet",
+      locale: args.locale,
+      variant: args.variant,
+      extension: "png",
+    })
+  );
+}
+
+export function resolveEpisodeDerivedShotsDir(episodeDir: string): string {
+  return resolveEpisodeContainedPath(
+    episodeDir,
+    "state",
+    "render",
+    "derived-shots"
+  );
+}
+
+/**
+ * Derived-shot fingerprints must already be content-addressed sha256 hex values.
+ * The resolver validates them before constructing a filename so invalid inputs cannot collide.
+ */
+export function resolveEpisodeDerivedShotClipPath(
+  episodeDir: string,
+  fingerprint: string
+): string {
+  const normalizedFingerprint = normalizeSha256Fingerprint(fingerprint);
+  return resolveEpisodeContainedPath(
+    episodeDir,
+    "state",
+    "render",
+    "derived-shots",
+    `${normalizedFingerprint}.mp4`
+  );
+}
+
+export function resolveEpisodeDerivedShotManifestPath(
+  episodeDir: string,
+  fingerprint: string
+): string {
+  const normalizedFingerprint = normalizeSha256Fingerprint(fingerprint);
+  return resolveEpisodeContainedPath(
+    episodeDir,
+    "state",
+    "render",
+    "derived-shots",
+    `${normalizedFingerprint}.json`
+  );
+}
+
 export function resolveEpisodeSharedGeneratedImagePath(args: {
   readonly episodeDir: string;
   readonly sceneId: string;
@@ -381,6 +558,8 @@ export function createEpisodePathResolver(workspaceRoot: string): EpisodePathRes
   const resolvedWorkspace = path.resolve(workspaceRoot);
   const episodeRoot = (episodeId: EpisodeId): string =>
     path.join(resolvedWorkspace, episodeId);
+  const episodeVisualRetentionDir = (episodeId: EpisodeId): string =>
+    resolveEpisodeVisualRetentionDir(episodeRoot(episodeId));
   const localeRoot = (context: EpisodeContext): string =>
     path.join(episodeRoot(context.episodeId), "locales", context.locale);
   const localeVariantRoot = (context: EpisodeContext): string =>
@@ -466,6 +645,41 @@ export function createEpisodePathResolver(workspaceRoot: string): EpisodePathRes
       }),
     batchStateDir: (episodeId) => path.join(episodeRoot(episodeId), "state", "batch"),
     renderStateDir: (episodeId) => path.join(episodeRoot(episodeId), "state", "render"),
+    visualRetentionDir: episodeVisualRetentionDir,
+    visualSourceScenes: (episodeId) =>
+      resolveEpisodeVisualSourceScenesPath(episodeRoot(episodeId)),
+    focalMetadata: (episodeId) =>
+      resolveEpisodeFocalMetadataPath(episodeRoot(episodeId)),
+    shotPlan: (context) =>
+      resolveEpisodeShotPlanPath({
+        episodeDir: episodeRoot(context.episodeId),
+        locale: context.locale,
+        variant: context.variant,
+      }),
+    shotValidation: (context) =>
+      resolveEpisodeShotValidationPath({
+        episodeDir: episodeRoot(context.episodeId),
+        locale: context.locale,
+        variant: context.variant,
+      }),
+    shotStoryboard: (context) =>
+      resolveEpisodeShotStoryboardPath({
+        episodeDir: episodeRoot(context.episodeId),
+        locale: context.locale,
+        variant: context.variant,
+      }),
+    shotContactSheet: (context) =>
+      resolveEpisodeShotContactSheetPath({
+        episodeDir: episodeRoot(context.episodeId),
+        locale: context.locale,
+        variant: context.variant,
+      }),
+    derivedShotsDir: (episodeId) =>
+      resolveEpisodeDerivedShotsDir(episodeRoot(episodeId)),
+    derivedShotClip: (episodeId, fingerprint) =>
+      resolveEpisodeDerivedShotClipPath(episodeRoot(episodeId), fingerprint),
+    derivedShotManifest: (episodeId, fingerprint) =>
+      resolveEpisodeDerivedShotManifestPath(episodeRoot(episodeId), fingerprint),
     uploadStateDir: (episodeId) => path.join(episodeRoot(episodeId), "state", "upload"),
     logsDir: (episodeId) => path.join(episodeRoot(episodeId), "logs"),
     sharedGeneratedImagesDir: (episodeId) =>
