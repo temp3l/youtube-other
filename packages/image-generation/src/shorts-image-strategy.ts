@@ -793,7 +793,7 @@ export async function prepareShortsImageAssets(
     if (
       portraitExists &&
       shouldReuseExistingPortrait({
-        cached,
+        ...(cached ? { cached } : {}),
         currentSceneHash,
         imagePlanFingerprint,
         strategy,

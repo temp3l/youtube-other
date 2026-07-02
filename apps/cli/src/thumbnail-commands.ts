@@ -144,22 +144,38 @@ export function registerThumbnailCommands(program: Command): void {
       const runtimeConfig = await loadRuntimeConfig();
       const workspaceRoot = runtimeConfig.workspaceDir;
       const episodeSlug = options.episodeSlug ?? options.episode ?? "";
-      const storyFilePath = await resolveStoryFilePath({
-        workspaceRoot,
-        episodeSlug,
-        storyFile: options.storyFile,
-      });
+      const storyFilePath = await resolveStoryFilePath(
+        options.storyFile
+          ? {
+              workspaceRoot,
+              episodeSlug,
+              storyFile: options.storyFile,
+            }
+          : {
+              workspaceRoot,
+              episodeSlug,
+            }
+      );
       const story = await readThumbnailStoryFile({
         workspaceRoot,
         storyFilePath,
       });
-      const hookText = await resolveHookText({
-        workspaceRoot,
-        episodeSlug,
-        locale: options.locale ?? "",
-        format: (options.format ?? "full") as ThumbnailFormat,
-        explicitHookText: options.hookText,
-      });
+      const hookText = await resolveHookText(
+        options.hookText
+          ? {
+              workspaceRoot,
+              episodeSlug,
+              locale: options.locale ?? "",
+              format: (options.format ?? "full") as ThumbnailFormat,
+              explicitHookText: options.hookText,
+            }
+          : {
+              workspaceRoot,
+              episodeSlug,
+              locale: options.locale ?? "",
+              format: (options.format ?? "full") as ThumbnailFormat,
+            }
+      );
       const input: GenerateThumbnailInput = {
         workspaceRoot,
         episodeSlug,
