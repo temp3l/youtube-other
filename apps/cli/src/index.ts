@@ -140,6 +140,7 @@ import {
 } from "./render-remote-inspection.js";
 import { buildRemoteRenderShellScript } from "./render-remote-shell.js";
 import { buildSceneInspectOutput } from "./scene-inspect-output.js";
+import { registerShotsCommands } from "./shots.js";
 import { registerStoryLocalizationCommands } from "./story-localization-commands.js";
 import { registerThumbnailCommands } from "./thumbnail-commands.js";
 import { resolveUploadThumbnailPath } from "./youtube-upload-thumbnail.js";
@@ -348,11 +349,15 @@ function spawnRemoteCommand(
 }
 
 function spawnSyncStderr(result: ReturnType<typeof spawnSync>): string {
-  return typeof result.stderr === "string" ? result.stderr : result.stderr.toString("utf8");
+  return typeof result.stderr === "string"
+    ? result.stderr
+    : result.stderr.toString("utf8");
 }
 
 function spawnSyncStdout(result: ReturnType<typeof spawnSync>): string {
-  return typeof result.stdout === "string" ? result.stdout : result.stdout.toString("utf8");
+  return typeof result.stdout === "string"
+    ? result.stdout
+    : result.stdout.toString("utf8");
 }
 
 function buildRemoteInspectNodeScript(): string {
@@ -472,7 +477,9 @@ function parseRemoteStatusResponse(stdout: string): RemoteStatusJobSummary[] {
   return (parsed.jobs ?? []).map((job) => summarizeRemoteStatusJob(job));
 }
 
-function formatRemoteStatusSummary(jobs: readonly RemoteStatusJobSummary[]): string {
+function formatRemoteStatusSummary(
+  jobs: readonly RemoteStatusJobSummary[]
+): string {
   if (jobs.length === 0) {
     return "No remote render jobs found.\n";
   }
@@ -487,9 +494,8 @@ function formatRemoteStatusSummary(jobs: readonly RemoteStatusJobSummary[]): str
       `${job.counts.missing} missing`,
       timestamp,
     ].join(" | ");
-    const excerpts = (job.logs ?? []).map(
-      (entry) =>
-        `  log:${entry.clipId} ${entry.text.split(/\r?\n/u)[0] ?? ""}`.trimEnd()
+    const excerpts = (job.logs ?? []).map((entry) =>
+      `  log:${entry.clipId} ${entry.text.split(/\r?\n/u)[0] ?? ""}`.trimEnd()
     );
     return [summary, ...excerpts];
   });
@@ -542,15 +548,21 @@ function localizedSuffix(language: string): string {
 }
 
 function localizedSegmentsDir(episodeDir: string, language: string): string {
-  return localizedSegmentsDirFromBase(localizedAudioBaseDir(episodeDir, language));
+  return localizedSegmentsDirFromBase(
+    localizedAudioBaseDir(episodeDir, language)
+  );
 }
 
 function localizedNarrationPath(episodeDir: string, language: string): string {
-  return localizedNarrationPathFromBase(localizedAudioBaseDir(episodeDir, language));
+  return localizedNarrationPathFromBase(
+    localizedAudioBaseDir(episodeDir, language)
+  );
 }
 
 function localizedMetadataDir(episodeDir: string, language: string): string {
-  return localizedMetadataDirFromBase(localizedAudioBaseDir(episodeDir, language));
+  return localizedMetadataDirFromBase(
+    localizedAudioBaseDir(episodeDir, language)
+  );
 }
 
 function canonicalGeneratedImagesDir(episodeDir: string): string {
@@ -1009,17 +1021,19 @@ async function readManifestForEpisode(options: CliOptions, episodeId: string) {
 
       if (!nextManifest.scenePlan) {
         const scenePlanCandidates = [
-          createEpisodePathResolver(path.dirname(episodeDir)).canonicalScenesPath(
-            normalizeEpisodeId(path.basename(episodeDir))
-          ),
+          createEpisodePathResolver(
+            path.dirname(episodeDir)
+          ).canonicalScenesPath(normalizeEpisodeId(path.basename(episodeDir))),
           path.join(episodeDir, "scenes.json"),
           path.join(episodeDir, "output", "scenes.json"),
         ];
         const scenePlanPath = (
-          await Promise.all(scenePlanCandidates.map(async (candidate) => ({
-            candidate,
-            exists: await fileExists(candidate),
-          })))
+          await Promise.all(
+            scenePlanCandidates.map(async (candidate) => ({
+              candidate,
+              exists: await fileExists(candidate),
+            }))
+          )
         ).find((entry) => entry.exists)?.candidate;
         if (scenePlanPath) {
           nextManifest = {
@@ -1423,20 +1437,17 @@ async function writeAudioPromptLogs(args: {
   await Promise.all(
     [canonicalPromptDir, legacyPromptDir].map(async (promptDir) => {
       await ensureDir(promptDir);
-      await writeJsonAtomic(
-        path.join(promptDir, "index.json"),
-        {
-          episodeId: args.episodeSlug,
-          language: args.language,
-          chunkCount: args.chunks.length,
-          generatedAt: args.generatedAt,
-          prompts: promptRecords.map((record, index) => ({
-            chunkIndex: index + 1,
-            sceneId: record.sceneId,
-            file: `chunk-${String(index + 1).padStart(3, "0")}.json`,
-          })),
-        }
-      );
+      await writeJsonAtomic(path.join(promptDir, "index.json"), {
+        episodeId: args.episodeSlug,
+        language: args.language,
+        chunkCount: args.chunks.length,
+        generatedAt: args.generatedAt,
+        prompts: promptRecords.map((record, index) => ({
+          chunkIndex: index + 1,
+          sceneId: record.sceneId,
+          file: `chunk-${String(index + 1).padStart(3, "0")}.json`,
+        })),
+      });
       await Promise.all(
         promptRecords.map(async (record, index) => {
           const fileName = `chunk-${String(index + 1).padStart(3, "0")}.json`;
@@ -1705,7 +1716,10 @@ async function commandStatus(
   options: CliOptions,
   episodeId: string
 ): Promise<void> {
-  const { manifest, episodeDir } = await readManifestForEpisode(options, episodeId);
+  const { manifest, episodeDir } = await readManifestForEpisode(
+    options,
+    episodeId
+  );
   const imageStatus = (await summarizeEpisodeImageState(
     episodeDir,
     manifest.scenePlan?.scenes.map((scene) => scene.id) ?? []
@@ -1732,7 +1746,10 @@ async function commandInspect(
   options: CliOptions,
   episodeId: string
 ): Promise<void> {
-  const { manifest, episodeDir } = await readManifestForEpisode(options, episodeId);
+  const { manifest, episodeDir } = await readManifestForEpisode(
+    options,
+    episodeId
+  );
   const imageStatus = (await summarizeEpisodeImageState(
     episodeDir,
     manifest.scenePlan?.scenes.map((scene) => scene.id) ?? []
@@ -1824,7 +1841,9 @@ async function commandAudioGenerate(
           ? balanceScriptChunksForScenes(rewrittenChunks, sceneCount)
           : localizedNarrationChunks;
   if (chunks.length === 0) {
-    throw new Error(`No narration text found in ${narrationDependency.filePath}.`);
+    throw new Error(
+      `No narration text found in ${narrationDependency.filePath}.`
+    );
   }
   const audioDir = path.join(audioBaseDir, "audio");
   const segmentsDir = localizedSegmentsDirFromBase(audioBaseDir);
@@ -1852,9 +1871,7 @@ async function commandAudioGenerate(
       : emptyEpisodeOverrides
   );
   const speechVoicePreset: SpeechVoicePreset =
-    config.speechVoicePreset ??
-    episodeConfig?.speechVoicePreset ??
-    "fast";
+    config.speechVoicePreset ?? episodeConfig?.speechVoicePreset ?? "fast";
   const narrationTempo = resolveNarrationTempoSettings(
     language,
     "full",
@@ -1889,9 +1906,7 @@ async function commandAudioGenerate(
     config.openAiCompatibleModel ??
     "gpt-4o-mini-tts";
   const voice =
-    config.openAiSpeechVoice ??
-    config.openAiCompatibleTtsVoice ??
-    "onyx";
+    config.openAiSpeechVoice ?? config.openAiCompatibleTtsVoice ?? "onyx";
   const audioInstruction = buildAudioInstructionArtifact({
     narration: narrationDependency,
     speechConfig: {
@@ -1950,7 +1965,11 @@ async function commandAudioGenerate(
       if (chunks.length <= 1 || preferredConcurrency <= 1) {
         throw error;
       }
-      await cleanupAudioGenerationArtifacts(audioDir, segmentsDir, narrationPath);
+      await cleanupAudioGenerationArtifacts(
+        audioDir,
+        segmentsDir,
+        narrationPath
+      );
       generated = await synthesizeSpeechChunks(
         pipeline,
         chunks,
@@ -1994,7 +2013,9 @@ async function commandAudioGenerate(
       { encoding: "utf8" }
     );
     if (concat.status !== 0) {
-      throw new Error(concat.stderr || "Failed to concatenate narration audio.");
+      throw new Error(
+        concat.stderr || "Failed to concatenate narration audio."
+      );
     }
     const narrationStats = await fs.stat(narrationPath);
     completeArtifacts.push({
@@ -2134,7 +2155,11 @@ async function commandClipsGenerate(
       episodeId,
       language,
       audioDir: localizedSegmentsDirFromBase(audioBaseDir),
-      clipsDir: path.join(audioBaseDir, "renders", localizedClipsDirName(language)),
+      clipsDir: path.join(
+        audioBaseDir,
+        "renders",
+        localizedClipsDirName(language)
+      ),
       dryRun: true,
     });
     return;
@@ -2184,7 +2209,9 @@ async function commandClipsBackfillManifests(
   episodeId: string
 ): Promise<void> {
   markEpisodeTelemetry(episodeId);
-  const initialConfig = await loadRuntimeConfig(configOverridesFromCli(options));
+  const initialConfig = await loadRuntimeConfig(
+    configOverridesFromCli(options)
+  );
   const episodeDirCandidates = [
     path.join(initialConfig.workspaceDir, "episodes", episodeId),
     path.join(initialConfig.workspaceDir, episodeId),
@@ -2275,7 +2302,10 @@ async function commandScenesInspect(
   episodeId: string,
   sceneId: string
 ): Promise<void> {
-  const { manifest, episodeDir } = await readManifestForEpisode(options, episodeId);
+  const { manifest, episodeDir } = await readManifestForEpisode(
+    options,
+    episodeId
+  );
   const scene = manifest.scenePlan?.scenes.find((item) => item.id === sceneId);
   if (!scene) {
     throw new Error(`Scene not found: ${sceneId}`);
@@ -2370,7 +2400,10 @@ async function commandImagesStatus(
   options: CliOptions,
   episodeId: string
 ): Promise<void> {
-  const { manifest, episodeDir } = await readManifestForEpisode(options, episodeId);
+  const { manifest, episodeDir } = await readManifestForEpisode(
+    options,
+    episodeId
+  );
   const report = (await summarizeEpisodeImageState(
     episodeDir,
     manifest.scenePlan?.scenes.map((scene) => scene.id) ?? []
@@ -2740,7 +2773,11 @@ async function commandRender(
       parentFingerprint: `dry-run:${episodeId}:${language}:${variant}:narration`,
       selectedRenderProfile: profile,
       stageReuseDecision: "dry-run-no-render",
-      clipsDir: path.join(audioBaseDir, "renders", localizedClipsDirName(language)),
+      clipsDir: path.join(
+        audioBaseDir,
+        "renders",
+        localizedClipsDirName(language)
+      ),
       cleanPath: path.join(
         audioBaseDir,
         "renders",
@@ -2849,23 +2886,26 @@ async function commandAudioGenerateLocalized(
 ): Promise<void> {
   markEpisodeTelemetry(episodeId);
   const resolved = await readEpisodeWorkspaceForAudio(options, episodeId);
-  const availableLanguages = await listEpisodeScriptLanguages(resolved.episodeDir);
+  const availableLanguages = await listEpisodeScriptLanguages(
+    resolved.episodeDir
+  );
   const requestedLanguages = parseAudioLanguageList(options.languages);
   const selectedLanguages =
     requestedLanguages.length > 0
       ? requestedLanguages
       : availableLanguages.filter((language) => language !== "en");
   if (selectedLanguages.length === 0) {
-    throw new Error(
-      `No localized scripts found in ${resolved.episodeDir}.`
-    );
+    throw new Error(`No localized scripts found in ${resolved.episodeDir}.`);
   }
   const languages = selectedLanguages.filter(
     (language: string, index: number, all: readonly string[]) =>
       language.length > 0 && all.indexOf(language) === index
   );
   for (const language of languages) {
-    await commandAudioGenerate({ ...options, scriptLanguage: language }, episodeId);
+    await commandAudioGenerate(
+      { ...options, scriptLanguage: language },
+      episodeId
+    );
   }
 }
 
@@ -3065,9 +3105,7 @@ async function commandRenderRemoteVerify(options: CliOptions): Promise<void> {
   const clipManifests = await Promise.all(
     scenePlan.scenes.map(async (scene) => {
       const manifestPath = path.join(result.clipsDir, `${scene.id}.json`);
-      const manifest = JSON.parse(
-        await fs.readFile(manifestPath, "utf8")
-      ) as {
+      const manifest = JSON.parse(await fs.readFile(manifestPath, "utf8")) as {
         renderer?: "local" | "remote";
       };
       const expectedRenderer = scene.id === "scene-002" ? "remote" : "local";
@@ -3146,7 +3184,9 @@ async function commandRenderRemoteStatus(
     statusOptions.all ? "true" : "false",
   ]);
   if (result.status !== 0) {
-    throw new Error(spawnSyncStderr(result) || "Remote status inspection failed.");
+    throw new Error(
+      spawnSyncStderr(result) || "Remote status inspection failed."
+    );
   }
   const jobs = parseRemoteStatusResponse(spawnSyncStdout(result));
   if (options.json) {
@@ -3178,7 +3218,9 @@ async function commandRenderRemoteLogs(
     String(tail),
   ]);
   if (result.status !== 0) {
-    throw new Error(spawnSyncStderr(result) || `Failed to fetch logs for ${jobId}.`);
+    throw new Error(
+      spawnSyncStderr(result) || `Failed to fetch logs for ${jobId}.`
+    );
   }
   const payload = JSON.parse(spawnSyncStdout(result)) as {
     jobId: string;
@@ -3216,7 +3258,10 @@ async function commandMetadataGenerate(
     episodeId
   );
   const target = await readAndValidateScenesFile(scenesFilePath, language);
-  const narration = await loadValidatedNarrationDependency(episodeDir, language);
+  const narration = await loadValidatedNarrationDependency(
+    episodeDir,
+    language
+  );
   const generationOptions: Omit<YoutubeMetadataGenerationOptions, "baseUrl"> & {
     baseUrl?: string;
   } = {
@@ -3825,7 +3870,10 @@ async function commandYoutubeUpload(
       ...(uploadOptions.videoPath
         ? { videoPath: uploadOptions.videoPath }
         : {}),
-      thumbnailPath: path.join(episodeDir, ".thumbnail-resolution-placeholder.png"),
+      thumbnailPath: path.join(
+        episodeDir,
+        ".thumbnail-resolution-placeholder.png"
+      ),
     } as YoutubeUploadOverrides;
     if (uploadOptions.generateMetadata) {
       if (!metadataGeneration) {
@@ -3970,7 +4018,10 @@ function addGlobalOptions(command: Command): Command {
     .option("--openai-api-key <key>", "OpenAI API key")
     .option("--openai-speech-model <model>", "OpenAI speech model")
     .option("--openai-speech-voice <voice>", "OpenAI speech voice")
-    .option("--speech-voice-preset <preset>", "slow, fast, or very-fast speech settings")
+    .option(
+      "--speech-voice-preset <preset>",
+      "slow, fast, or very-fast speech settings"
+    )
     .option(
       "--language <code>",
       "localized script language, for example en, es, pt"
@@ -4149,18 +4200,25 @@ audioCommand
   });
 audioCommand
   .command("generate-localized")
-  .description("Generate audio for every localized script available in the episode workspace")
+  .description(
+    "Generate audio for every localized script available in the episode workspace"
+  )
   .argument("<episode-id>")
   .option("--languages <comma-separated-languages>", "target languages")
   .option("--dry-run", "preview actions without writing")
-  .action(async (episodeId: string, opts: { languages?: string; dryRun?: boolean }) => {
-    const cliOptions: CliOptions & { readonly languages?: string } = {
-      ...program.opts<CliOptions>(),
-      ...(opts.dryRun !== undefined ? { dryRun: opts.dryRun } : {}),
-      ...(opts.languages !== undefined ? { languages: opts.languages } : {}),
-    };
-    await commandAudioGenerateLocalized(cliOptions, episodeId);
-  });
+  .action(
+    async (
+      episodeId: string,
+      opts: { languages?: string; dryRun?: boolean }
+    ) => {
+      const cliOptions: CliOptions & { readonly languages?: string } = {
+        ...program.opts<CliOptions>(),
+        ...(opts.dryRun !== undefined ? { dryRun: opts.dryRun } : {}),
+        ...(opts.languages !== undefined ? { languages: opts.languages } : {}),
+      };
+      await commandAudioGenerateLocalized(cliOptions, episodeId);
+    }
+  );
 
 const clipsCommand = program
   .command("clips")
@@ -4453,7 +4511,10 @@ renderRemoteCommand
   .option("--limit <count>", "limit job summaries when --all is not set")
   .option("--all", "include all remote jobs")
   .option("--include-logs", "include tailed log excerpts in the output")
-  .option("--tail <lines>", "number of log lines to include when logs are requested")
+  .option(
+    "--tail <lines>",
+    "number of log lines to include when logs are requested"
+  )
   .action(
     async (opts: {
       job?: string;
@@ -4543,6 +4604,7 @@ youtubeCommand
   );
 
 registerEpisodeCommands(program);
+registerShotsCommands(program);
 registerStoryLocalizationCommands(program);
 registerThumbnailCommands(program);
 
