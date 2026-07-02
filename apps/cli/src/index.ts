@@ -120,6 +120,7 @@ import {
   type TtsGenerationRecord,
   loadEpisodeScriptMarkdown,
   listEpisodeScriptLanguages,
+  DEFAULT_SPEECH_VOICE,
   loadSpeechVoiceSettings,
   splitEpisodeScriptMarkdown,
   writeEpisodeScriptMarkdown,
@@ -2003,7 +2004,7 @@ async function commandAudioGenerate(
     config.openAiCompatibleModel ??
     "gpt-4o-mini-tts";
   const voice =
-    config.openAiSpeechVoice ?? config.openAiCompatibleTtsVoice ?? "onyx";
+    config.openAiSpeechVoice ?? config.openAiCompatibleTtsVoice ?? DEFAULT_SPEECH_VOICE;
   const audioInstruction = buildAudioInstructionArtifact({
     narration: narrationDependency,
     speechConfig: {
@@ -3135,7 +3136,7 @@ async function runAudioNarrationPipeline(
     config.openAiCompatibleModel ??
     "gpt-4o-mini-tts";
   const voice =
-    config.openAiSpeechVoice ?? config.openAiCompatibleTtsVoice ?? "onyx";
+    config.openAiSpeechVoice ?? config.openAiCompatibleTtsVoice ?? DEFAULT_SPEECH_VOICE;
   let loadedPipeline: Awaited<ReturnType<typeof loadPipeline>> | null = null;
   const loadTargetPipeline = async () => {
     loadedPipeline ??= await loadPipeline(options, episodeDir);

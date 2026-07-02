@@ -2315,12 +2315,23 @@ function buildFullStoryPreflightAdapter(args: {
 }
 
 async function prepareParsedStory(
-  sourceFile: string
+  sourceFile: string,
+  identity?: {
+    readonly episodeNumber: string;
+    readonly slug: string;
+  }
 ): Promise<{
   readonly parsed: ParsedSourceStory;
   readonly facts: CanonicalStoryFacts;
 }> {
-  const parsed = await parseCanonicalSourceStory(sourceFile);
+  const parsedSource = await parseCanonicalSourceStory(sourceFile);
+  const parsed = identity
+    ? {
+        ...parsedSource,
+        episodeNumber: identity.episodeNumber,
+        slug: identity.slug,
+      }
+    : parsedSource;
   const facts = extractCanonicalStoryFacts(parsed);
   return { parsed, facts };
 }
@@ -2884,7 +2895,10 @@ export async function localizeStoryEpisode(
         outputFiles.full,
         outputFiles.rootScript
       );
-      canonicalEnglishStory = await prepareParsedStory(outputFiles.full);
+      canonicalEnglishStory = await prepareParsedStory(outputFiles.full, {
+        episodeNumber: parsed.episodeNumber,
+        slug: parsed.slug,
+      });
       await ensureCacheFacts(
         cacheDir,
         canonicalEnglishStory.parsed.sourceHash,

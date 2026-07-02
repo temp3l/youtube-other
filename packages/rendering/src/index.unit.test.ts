@@ -705,6 +705,93 @@ describe("FFmpegVideoRenderer", () => {
     expect(result.validation.durationSeconds).toBeLessThan(1.6);
   }, 60000);
 
+  it("composes scene clips with one global narration audio track", async () => {
+    const baseDir = mkdtempSync(
+      path.join(os.tmpdir(), "mediaforge-rendering-scene-final-")
+    );
+    const episodeDir = path.join(baseDir, "episode");
+    const outputDir = path.join(episodeDir, "video");
+    const imageDir = path.join(episodeDir, "images", "generated");
+    const audioDir = path.join(episodeDir, "audio");
+    const segmentDir = path.join(audioDir, "segments");
+    await fs.mkdir(imageDir, { recursive: true });
+    await fs.mkdir(segmentDir, { recursive: true });
+    await Promise.all(
+      [
+        "scene-001__000000-000001__16x9.png",
+        "scene-002__000001-000002__16x9.png",
+      ].map(async (fileName) =>
+          fs.writeFile(
+            path.join(imageDir, fileName),
+            await sharp({
+              create: {
+                width: 96,
+                height: 54,
+                channels: 3,
+                background: "#334455",
+              },
+            })
+              .png()
+              .toBuffer()
+          )
+      )
+    );
+    for (const sceneId of ["scene-001", "scene-002"]) {
+      execFileSync(
+        "ffmpeg",
+        [
+          "-y",
+          "-f",
+          "lavfi",
+          "-i",
+          "sine=frequency=440:sample_rate=24000:duration=1",
+          path.join(segmentDir, `${sceneId}.wav`),
+        ],
+        { stdio: "ignore" }
+      );
+    }
+    execFileSync(
+      "ffmpeg",
+      [
+        "-y",
+        "-f",
+        "lavfi",
+        "-i",
+        "anullsrc=r=24000:cl=mono",
+        "-t",
+        "1",
+        path.join(audioDir, "narration.wav"),
+      ],
+      { stdio: "ignore" }
+    );
+
+    const renderer = new FFmpegVideoRenderer();
+    const result = await renderer.render(
+      {
+        episodeDir,
+        scenePlan: makeTwoScenePlan(),
+        outputDir,
+        renderProfile: {
+          id: "youtube",
+          label: "youtube",
+          aspectRatio: "16:9",
+          width: 160,
+          height: 90,
+          fps: 30,
+        },
+        captionBurnIn: false,
+        sceneAudioDir: segmentDir,
+        imageDir,
+      },
+      new AbortController().signal
+    );
+
+    expect(result.validation.valid).toBe(true);
+    expect(result.validation.audioCodec).not.toBe("");
+    expect(result.validation.durationSeconds).toBeGreaterThanOrEqual(0.95);
+    expect(result.validation.durationSeconds).toBeLessThan(1.6);
+  }, 60000);
+
   it("rebuilds placeholder-sized scene clips before concat", async () => {
     const baseDir = mkdtempSync(
       path.join(os.tmpdir(), "mediaforge-rendering-")

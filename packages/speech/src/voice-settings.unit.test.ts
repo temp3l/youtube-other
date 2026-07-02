@@ -9,6 +9,7 @@ describe("speech voice settings", () => {
   it("loads the fast preset by default", () => {
     const settings = loadSpeechVoiceSettings();
     expect(settings.preset).toBe("fast");
+    expect(settings.voice).toBe("ash");
     expect(settings.profile.paceWpm).toBe(180);
     expect(settings.instructions).toContain("180 words per minute");
   });

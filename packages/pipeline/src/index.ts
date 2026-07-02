@@ -68,6 +68,7 @@ import { OneToOneScenePlanner } from "@mediaforge/scene-planning";
 import {
   MockSpeechProvider,
   OpenAiCompatibleSpeechProvider,
+  DEFAULT_SPEECH_VOICE,
   loadSpeechVoiceSettings,
 } from "@mediaforge/speech";
 import { buildCaptionPack } from "@mediaforge/alignment";
@@ -678,7 +679,7 @@ export class MediaForgePipeline {
             voice:
               config.openAiSpeechVoice ??
               config.openAiCompatibleTtsVoice ??
-              "onyx",
+              DEFAULT_SPEECH_VOICE,
             ...(this.speechSettings.preset
               ? { preset: this.speechSettings.preset }
               : {}),

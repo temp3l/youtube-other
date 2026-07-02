@@ -28,6 +28,7 @@ import {
   type NarrationPipelineResult,
 } from "./narration-pipeline.js";
 import type { ProbeAudioMetadata } from "./audio-validation.js";
+import { DEFAULT_SPEECH_VOICE } from "./voice-settings.js";
 
 const supportedDarkTruthLanguages = ["en", "de", "es", "fr"] as const;
 const supportedDarkTruthArtifactTypes = ["full", "short"] as const;
@@ -529,7 +530,7 @@ export async function runDarkTruthNarrationAdapter(
     stage: "all",
     rolloutMode: "new",
     model: input.model ?? "gpt-4o-mini-tts",
-    voice: input.voice ?? "onyx",
+    voice: input.voice ?? DEFAULT_SPEECH_VOICE,
     speed: input.speed ?? 1,
     outputFormat: "wav",
     baseVoiceInstructions:

@@ -66,12 +66,12 @@ There are three active chunking strategies:
   - Falls back to `docs/voice-settings.md`, then hard-coded presets.
   - Presets: `slow`, `fast`, `very-fast`.
   - Default model: `gpt-4o-mini-tts`.
-  - Default voice: `onyx`.
+  - Default voice: `ash`.
   - `very-fast` default speed is `1.5`; other presets usually omit `speed`.
 - `apps/cli/src/index.ts`
   - `resolveNarrationTempoSettings` derives language-specific WPM and speed from `getLanguageProfile`.
   - OpenAI model resolves from `openAiSpeechModel`, then `openAiCompatibleModel`, then `gpt-4o-mini-tts`.
-  - Voice resolves from `openAiSpeechVoice`, then `openAiCompatibleTtsVoice`, then `onyx`.
+  - Voice resolves from `openAiSpeechVoice`, then `openAiCompatibleTtsVoice`, then `ash`.
 - `packages/config/src/index.ts`
   - Env/config keys include `MEDIAFORGE_OPENAI_SPEECH_MODEL`, `OPENAI_SPEECH_MODEL`, `MEDIAFORGE_OPENAI_SPEECH_VOICE`, `OPENAI_SPEECH_VOICE`, `MEDIAFORGE_SPEECH_VOICE_PRESET`, and `MEDIAFORGE_SCRIPT_LANGUAGE`.
 

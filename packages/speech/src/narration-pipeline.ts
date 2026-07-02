@@ -74,6 +74,7 @@ import {
   runNarrationQualityGate,
 } from "./narration-quality-gate.js";
 import { recordNarrationTelemetry } from "./narration-telemetry.js";
+import { DEFAULT_SPEECH_VOICE } from "./voice-settings.js";
 
 export const narrationPipelineModeSchema = z.enum(["legacy", "shadow", "new"]);
 export type NarrationPipelineMode = z.infer<typeof narrationPipelineModeSchema>;
@@ -279,7 +280,7 @@ function buildGenerationMetadata(input: {
   readonly stageResults: readonly NarrationPipelineStageResult[];
 }): NarrationGenerationMetadata {
   const model = input.request.model ?? "gpt-4o-mini-tts";
-  const voice = input.request.voice ?? "onyx";
+  const voice = input.request.voice ?? DEFAULT_SPEECH_VOICE;
   return narrationGenerationMetadataSchema.parse({
     schemaVersion: NARRATION_ARTIFACT_SCHEMA_VERSION,
     episodeId: input.request.episodeId,
@@ -575,7 +576,7 @@ export class NarrationPipeline {
     const directions = await readRequiredJson(paths.performanceDirections, (value) => narrationDirectionSetSchema.parse(value), "Performance directions");
     const transforms = await readPronunciationTransforms(paths, manifest);
     const model = request.model ?? "gpt-4o-mini-tts";
-    const voice = request.voice ?? "onyx";
+    const voice = request.voice ?? DEFAULT_SPEECH_VOICE;
     const speed = request.speed ?? 1;
     const outputFormat = request.outputFormat ?? "wav";
     const outputPaths: string[] = [];

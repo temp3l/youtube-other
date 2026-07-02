@@ -1,0 +1,131 @@
+digraph MediaForge {
+  graph [rankdir=LR, splines=ortho, overlap=false, compound=true, newrank=true, bgcolor="white", pad="0.4", nodesep="0.35", ranksep="0.75", fontname="Arial", fontsize=18, label="MediaForge — Consolidated End-to-End Product, Media, Validation and Platform Flow", labelloc=t];
+  node [shape=box, style="rounded,filled", fillcolor="#E8F5E9", color="#2E7D32", fontname="Arial", fontsize=9, margin="0.10,0.07"];
+  edge [color="#546E7A", fontname="Arial", fontsize=8, arrowsize=0.7];
+
+  subgraph cluster_source { label="1. Source & Ingestion"; color="#90CAF9"; style="rounded";
+    s1 [label="Local media / story / transcript"];
+    s2 [label="URL inspection\nYouTube / TikTok"];
+    s3 [label="Transcript generation\nAPI or whisper.cpp"];
+    s4 [label="Timing normalization"];
+    s5 [label="Source cleaning"];
+    s1->s3; s2->s3; s3->s4->s5;
+  }
+  subgraph cluster_intel { label="2. Story Intelligence & Character Map"; color="#A5D6A7"; style="rounded";
+    i1 [label="Canonical facts"];
+    i2 [label="StoryIR\nentities, chronology, rules"];
+    i3 [label="Story bible &\nprotected elements"];
+    i4 [label="Localization-safe\nrename map"];
+    i5 [label="Episode character\nregistry"];
+    i6 [label="Appearance profiles"];
+    i7 [label="Reference image\ngeneration"];
+    i8 [label="Human approval", shape=diamond, fillcolor="#FFF3E0", color="#EF6C00"];
+    i9 [label="Scene & beat coverage"];
+    s5->i1->i2; i2->i3; i2->i4->i5; i3->i5; i5->i6->i7->i8; i2->i9;
+  }
+  subgraph cluster_story { label="3. Story Production & Localization"; color="#FFCC80"; style="rounded";
+    w1 [label="Canonical English\nfull rewrite"];
+    w2 [label="Story contract\nvalidation"];
+    w3 [label="Production analysis"];
+    w4 [label="English full"];
+    w5 [label="Localized full\nde / es / fr / pt"];
+    w6 [label="English short"];
+    w7 [label="Localized shorts"];
+    i1->w1; i3->w1; w1->w2->w3; w3->w4; w3->w5; w3->w6; w5->w7; w6->w7;
+  }
+  subgraph cluster_audio { label="4. Narration, Audio & Captions"; color="#CE93D8"; style="rounded";
+    a1 [label="Spoken-text prep"];
+    a2 [label="Chunking &\nperformance direction"];
+    a3 [label="Pronunciation"];
+    a4 [label="TTS generation"];
+    a5 [label="Assembly & mastering"];
+    a6 [label="Audio validation"];
+    a7 [label="Alignment, timing\n& SRT captions"];
+    w4->a1; w5->a1; w6->a1; w7->a1; a1->a2->a3->a4->a5->a6->a7;
+  }
+  subgraph cluster_visual { label="5. Scene, Image & Shot Production"; color="#80CBC4"; style="rounded";
+    v1 [label="Narrative beats +\nnarration timing"];
+    v2 [label="Scene plan"];
+    v3 [label="Visual scene specs"];
+    v4 [label="Prompt-ready context"];
+    v5 [label="Generate or reuse\nimages", shape=diamond, fillcolor="#FFF3E0", color="#EF6C00"];
+    v6 [label="Source scene assets"];
+    v7 [label="Deterministic\nshot plan"];
+    v8 [label="Crops, pans, zooms,\noverlays, transitions"];
+    v9 [label="Derived shot cache"];
+    i9->v1; a7->v1; v1->v2->v3->v4->v5->v6->v7->v8; i8->v4 [label="approved refs"]; i6->v4; v7->v9 [dir=both];
+  }
+  subgraph cluster_reuse { label="Asset Reuse & Continuity"; color="#B0BEC5"; style="rounded";
+    r1 [label="Prior scene images"];
+    r2 [label="Missing-scene &\nreuse checks"];
+    r3 [label="Generated or\nreused assets"];
+    r4 [label="Checkpoints &\nmanifests"];
+    r5 [label="Linked episode\noutputs"];
+    r1->r2; v4->r2->r3->r4->r5; r3->v6;
+  }
+  subgraph cluster_publish { label="6. Rendering, Packaging & Publishing"; color="#EF9A9A"; style="rounded";
+    p1 [label="FFmpeg local /\nremote rendering"];
+    p2 [label="Full / short video"];
+    p3 [label="Render validation"];
+    p4 [label="Localized thumbnails"];
+    p5 [label="YouTube metadata"];
+    p6 [label="Review package"];
+    p7 [label="Approve / reject", shape=diamond, fillcolor="#FFF3E0", color="#EF6C00"];
+    p8 [label="Upload package"];
+    p9 [label="YouTube upload"];
+    a7->p1; v8->p1; p1->p2->p3->p6->p7; i8->p4->p6; w4->p5; w5->p5; w6->p5; w7->p5; p5->p6; p7->p8 [label="approved"]; p8->p9; p7->v4 [label="rejected"];
+  }
+
+  subgraph cluster_quality { label="Cross-cutting Validation & Recovery"; color="#FBC02D"; style="rounded,dashed";
+    node [fillcolor="#FFFDE7", color="#F9A825"];
+    q1 [label="Local preflight"];
+    q2 [label="Structured request"];
+    q3 [label="Schema validation"];
+    q4 [label="Semantic, locale &\ncontinuity checks"];
+    q5 [label="Quality gate"];
+    q6 [label="Retry same model"];
+    q7 [label="Repair / changed model"];
+    q8 [label="Partial failure +\nconfigured fallback"];
+    q9 [label="Resume manifest"];
+    q10 [label="Final production gate"];
+    q1->q2 [label="allowed"]; q2->q3; q3->q4 [label="valid"]; q4->q5 [label="passed"]; q3->q6 [label="invalid"]; q4->q7 [label="failed"]; q6->q2; q7->q2; q7->q8->q9->q5; q5->q10;
+  }
+
+  subgraph cluster_platform { label="Platform, State & Operations"; color="#1565C0"; style="rounded";
+    node [fillcolor="#E3F2FD", color="#1565C0"];
+    c1 [label="MediaForge CLI"];
+    c2 [label="Runtime & episode config"];
+    c3 [label="Filesystem workspace,\ncache & manifests"];
+    c4 [label="SQLite run state"];
+    c5 [label="Telemetry, logs,\nretries & cost"];
+    c6 [label="Batch lifecycle"];
+    c7 [label="Fingerprints, resume\n& invalidation"];
+    c8 [label="Concurrency &\ncost controls"];
+    c1->{c2 c3 c4 c5 c6 c7 c8};
+  }
+
+  subgraph cluster_external { label="External Services & Tools"; color="#6A1B9A"; style="rounded";
+    node [fillcolor="#F3E5F5", color="#6A1B9A"];
+    e1 [label="OpenAI-compatible\ntext APIs"];
+    e2 [label="OpenAI image APIs"];
+    e3 [label="Speech / TTS APIs"];
+    e4 [label="whisper.cpp"];
+    e5 [label="FFmpeg / ffprobe"];
+    e6 [label="Remote render worker"];
+    e7 [label="YouTube API"];
+  }
+
+  subgraph cluster_roadmap { label="Roadmap / Not Fully Unified"; color="#757575"; style="rounded,dashed";
+    node [fillcolor="#F5F5F5", color="#757575", style="rounded,filled,dashed"];
+    x1 [label="Durable unified\nDAG executor"];
+    x2 [label="Cross-series character\nidentity graph"];
+    x3 [label="Short production\nanalysis"];
+    x4 [label="Consolidated media\nworker architecture"];
+    x5 [label="TikTok publishing"];
+  }
+
+  q1->w1 [style=dashed,label="governs"]; q1->a4 [style=dashed]; q1->v5 [style=dashed]; w2->q3 [style=dashed]; a6->q4 [style=dashed]; p3->q4 [style=dashed]; p7->q5 [style=dashed]; q10->p8 [style=dashed,label="releases"];
+  c1->s1 [style=dashed,label="orchestrates"]; c1->w1 [style=dashed]; c1->a1 [style=dashed]; c1->v2 [style=dashed]; c1->p1 [style=dashed]; c3->r4 [style=dashed,label="persists"]; c3->p2 [style=dashed]; c6->w5 [style=dashed,label="batch"]; c6->v5 [style=dashed]; c7->q9 [style=dashed,label="resume"]; c8->q1 [style=dashed]; c5->q10 [style=dashed,label="observes"];
+  s3->e4; q2->e1; v5->e2; a4->e3; p1->e5; p1->e6; p9->e7;
+  c6->x1 [style=dashed]; i5->x2 [style=dashed]; w6->x3 [style=dashed]; p1->x4 [style=dashed]; p8->x5 [style=dashed];
+}

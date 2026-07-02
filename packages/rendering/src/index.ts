@@ -2693,7 +2693,7 @@ async function renderDerivedShotCacheEntry(input: {
 
 async function resolveShotNarrationAudioPath(
   request: VideoRenderRequest,
-  shotPlan: ShotPlan
+  fallbackDurationSeconds: number
 ): Promise<string> {
   const audioDir =
     request.sceneAudioDir ?? path.join(request.episodeDir, "audio", "segments");
@@ -2733,7 +2733,7 @@ async function resolveShotNarrationAudioPath(
       "-i",
       concatListPath,
       "-t",
-      String(shotPlanDurationSeconds(shotPlan)),
+      String(fallbackDurationSeconds),
       "-acodec",
       "pcm_s16le",
       outputPath,
@@ -3873,9 +3873,11 @@ export class FFmpegVideoRenderer implements VideoRenderer {
       request.outputBasename ??
       `youtube-${request.renderProfile.aspectRatio.replace(":", "x")}${suffix}`;
     const cleanPath = path.join(request.outputDir, `${baseName}-clean.mp4`);
-    const visualConcatPath = request.shotPlan
-      ? path.join(request.outputDir, `${baseName}-visual-clean.mp4`)
-      : cleanPath;
+    const visualConcatPath = path.join(
+      request.outputDir,
+      `${baseName}-visual-clean.mp4`
+    );
+    let expectedFinalDurationSeconds: number | undefined;
     await runCommand(
       "ffmpeg",
       [
@@ -3894,10 +3896,12 @@ export class FFmpegVideoRenderer implements VideoRenderer {
         timeoutMs: 600000,
       }
     );
-    if (request.shotPlan) {
-      const shotPlan = shotPlanSchema.parse(request.shotPlan);
+    {
+      const expectedDurationSeconds = request.shotPlan
+        ? shotPlanDurationSeconds(shotPlanSchema.parse(request.shotPlan))
+        : scenePlanDurationSeconds(request.scenePlan);
       const visualValidation = await validateRenderOutput(visualConcatPath, {
-        expectedDurationSeconds: shotPlanDurationSeconds(shotPlan),
+        ...(request.shotPlan ? { expectedDurationSeconds } : {}),
         expectedWidth: request.renderProfile.width,
         expectedHeight: request.renderProfile.height,
         requireAudio: false,
@@ -3909,7 +3913,11 @@ export class FFmpegVideoRenderer implements VideoRenderer {
       }
       const narrationAudioPath = await resolveShotNarrationAudioPath(
         request,
-        shotPlan
+        expectedDurationSeconds
+      );
+      expectedFinalDurationSeconds = Math.min(
+        expectedDurationSeconds,
+        await probeDurationSeconds(narrationAudioPath)
       );
       await runCommand(
         "ffmpeg",
@@ -3962,9 +3970,11 @@ export class FFmpegVideoRenderer implements VideoRenderer {
     const expectedDurationSeconds = request.shotPlan
       ? shotPlanDurationSeconds(shotPlanSchema.parse(request.shotPlan))
       : scenePlanDurationSeconds(request.scenePlan);
-    if (validation.durationSeconds + 0.25 < expectedDurationSeconds) {
+    const minimumDurationSeconds =
+      expectedFinalDurationSeconds ?? expectedDurationSeconds;
+    if (validation.durationSeconds + 0.25 < minimumDurationSeconds) {
       throw new MediaValidationError(
-        `Rendered media is shorter than the planned scene duration. Expected at least ${expectedDurationSeconds.toFixed(3)}s but got ${validation.durationSeconds.toFixed(3)}s.`
+        `Rendered media is shorter than the expected duration. Expected at least ${minimumDurationSeconds.toFixed(3)}s but got ${validation.durationSeconds.toFixed(3)}s.`
       );
     }
     const renderFingerprint = hashText(

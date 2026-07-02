@@ -66,6 +66,8 @@ const fallbackVoiceSettingsDocument = [
   fallbackVoiceInstructions["very-fast"]
 ].join("\n");
 
+export const DEFAULT_SPEECH_VOICE = "ash";
+
 function inferPresetFromHeading(heading: string): SpeechVoicePreset | null {
   const normalized = heading.trim().toLowerCase();
   if (normalized === "slow voice") {
@@ -248,7 +250,7 @@ export function loadSpeechVoiceSettings(overrides: SpeechVoiceSettingsOverrides 
     ...(artifactType ? { artifactType } : {}),
     instructions,
     model: overrides.model ?? "gpt-4o-mini-tts",
-    voice: overrides.voice ?? "onyx",
+    voice: overrides.voice ?? DEFAULT_SPEECH_VOICE,
     profile,
     paceWpm,
     ...(speed !== undefined ? { speed } : {})
