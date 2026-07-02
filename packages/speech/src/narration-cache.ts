@@ -145,7 +145,7 @@ const sha256Schema = z.string().regex(/^[a-f0-9]{64}$/u);
 const portablePathSchema = z.string().min(1).max(500);
 const outputFormatSchema = z.enum(["mp3", "opus", "aac", "flac", "wav", "pcm"]);
 
-const narrationChunkCacheRecordSchema = z
+export const narrationChunkCacheRecordSchema = z
   .object({
     schemaVersion: z.literal(NARRATION_CHUNK_CACHE_SCHEMA_VERSION),
     artifactSchemaVersion: z.literal(NARRATION_ARTIFACT_SCHEMA_VERSION),

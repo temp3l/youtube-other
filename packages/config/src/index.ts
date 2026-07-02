@@ -528,6 +528,7 @@ const configSchema = z.object({
   openAiSpeechModel: z.string().optional(),
   openAiSpeechVoice: z.string().optional(),
   speechVoicePreset: z.enum(["slow", "fast", "very-fast"]).optional(),
+  narrationPipelineMode: z.enum(["legacy", "shadow", "new"]),
   scriptLanguage: z.string().regex(/^[a-z]{2}(?:-[a-z0-9]{2,8})*$/iu).optional(),
   youtubeClientId: z.string().optional(),
   youtubeClientSecret: z.string().optional(),
@@ -689,6 +690,7 @@ const envSchema = z.object({
   MEDIAFORGE_OPENAI_SPEECH_MODEL: z.string().optional(),
   MEDIAFORGE_OPENAI_SPEECH_VOICE: z.string().optional(),
   MEDIAFORGE_SPEECH_VOICE_PRESET: z.enum(["slow", "fast", "very-fast"]).optional(),
+  MEDIAFORGE_NARRATION_PIPELINE_MODE: z.enum(["legacy", "shadow", "new"]).optional(),
   MEDIAFORGE_SCRIPT_LANGUAGE: z.string().regex(/^[a-z]{2}(?:-[a-z0-9]{2,8})*$/iu).optional(),
   YOUTUBE_CLIENT_ID: z.string().optional(),
   YOUTUBE_CLIENT_SECRET: z.string().optional(),
@@ -1029,6 +1031,11 @@ export async function loadRuntimeConfig(
     openAiSpeechModel: overrides.openAiSpeechModel ?? episodeOverrides.openAiSpeechModel ?? env.MEDIAFORGE_OPENAI_SPEECH_MODEL ?? env.OPENAI_SPEECH_MODEL,
     openAiSpeechVoice: overrides.openAiSpeechVoice ?? episodeOverrides.openAiSpeechVoice ?? env.MEDIAFORGE_OPENAI_SPEECH_VOICE ?? env.OPENAI_SPEECH_VOICE,
     speechVoicePreset: overrides.speechVoicePreset ?? episodeOverrides.speechVoicePreset ?? env.MEDIAFORGE_SPEECH_VOICE_PRESET ?? "fast",
+    narrationPipelineMode:
+      overrides.narrationPipelineMode ??
+      episodeOverrides.narrationPipelineMode ??
+      env.MEDIAFORGE_NARRATION_PIPELINE_MODE ??
+      "legacy",
     scriptLanguage: overrides.scriptLanguage ?? episodeOverrides.scriptLanguage ?? env.MEDIAFORGE_SCRIPT_LANGUAGE ?? "en",
     youtubeClientId: overrides.youtubeClientId ?? episodeOverrides.youtubeClientId ?? env.YOUTUBE_CLIENT_ID,
     youtubeClientSecret: overrides.youtubeClientSecret ?? episodeOverrides.youtubeClientSecret ?? env.YOUTUBE_CLIENT_SECRET,

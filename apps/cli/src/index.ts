@@ -100,7 +100,14 @@ import {
   computeTtsDependencyFingerprint,
   computeSpeechModelConfigFingerprint,
   computeSpeechVoiceConfigFingerprint,
+  NarrationPipeline,
+  narrationPipelineExitCode,
+  narrationPipelineModeSchema,
+  narrationPipelineStageSchema,
   type AudioInstructionArtifact,
+  type NarrationPipelineMode,
+  type NarrationPipelineResult,
+  type NarrationPipelineStage,
   type SpeechNarrationDependency,
   type SpeechVoicePreset,
   type TtsGenerationRecord,
@@ -160,6 +167,7 @@ interface CliOptions {
   openAiSpeechModel?: string;
   openAiSpeechVoice?: string;
   speechVoicePreset?: "slow" | "fast" | "very-fast";
+  narrationPipelineMode?: NarrationPipelineMode;
   scriptLanguage?: string;
   sceneLimit?: number;
   fromStage?: string;
@@ -283,6 +291,9 @@ function configOverridesFromCli(options: CliOptions): RuntimeConfigOverrides {
   }
   if (options.speechVoicePreset) {
     overrides.speechVoicePreset = options.speechVoicePreset;
+  }
+  if (options.narrationPipelineMode) {
+    overrides.narrationPipelineMode = options.narrationPipelineMode;
   }
   if (options.scriptLanguage) {
     overrides.scriptLanguage = options.scriptLanguage;
@@ -1876,6 +1887,13 @@ async function commandAudioGenerate(
       ? compactConfigOverrides(episodeConfig)
       : emptyEpisodeOverrides
   );
+  if (config.narrationPipelineMode === "new") {
+    await runAudioNarrationPipeline(options, episodeId, "all", {
+      ...(options.json !== undefined ? { json: options.json } : {}),
+      ...(options.dryRun !== undefined ? { dryRun: options.dryRun } : {}),
+    });
+    return;
+  }
   if (
     config.ttsProvider !== "openai-compatible" ||
     !config.openAiCompatibleApiKey
@@ -2985,6 +3003,163 @@ function parseAudioLanguageList(value: string | undefined): string[] {
     }
   }
   return languages;
+}
+
+interface AudioNarrationCommandOptions {
+  readonly episode?: string;
+  readonly language?: string;
+  readonly languages?: string;
+  readonly variant?: "full" | "short";
+  readonly allLanguages?: boolean;
+  readonly allVariants?: boolean;
+  readonly resume?: boolean;
+  readonly force?: boolean;
+  readonly validationOnly?: boolean;
+  readonly dryRun?: boolean;
+  readonly json?: boolean;
+  readonly concurrency?: string;
+}
+
+function parseNarrationVariant(value: string | undefined): "full" | "short" {
+  if (value === undefined) {
+    return "full";
+  }
+  if (value === "full" || value === "short") {
+    return value;
+  }
+  throw new Error("--variant must be full or short.");
+}
+
+function parseNarrationConcurrency(value: string | undefined): number {
+  return parsePositiveIntegerOption(value, "--concurrency", 1);
+}
+
+function ensureNarrationPipelineMode(value: string | undefined): NarrationPipelineMode {
+  return narrationPipelineModeSchema.parse(value ?? "legacy");
+}
+
+function summarizeNarrationResults(results: readonly NarrationPipelineResult[]): string {
+  return `${results
+    .map((result) => {
+      const latest = result.stages[result.stages.length - 1];
+      const state = latest ? `${latest.stage}:${latest.status}` : result.status;
+      return `${result.episodeId} ${result.language}/${result.variant} ${result.rolloutMode} ${state}`;
+    })
+    .join("\n")}\n`;
+}
+
+async function runAudioNarrationPipeline(
+  options: CliOptions,
+  episodeId: string,
+  stage: NarrationPipelineStage,
+  commandOptions: AudioNarrationCommandOptions = {}
+): Promise<NarrationPipelineResult[]> {
+  markEpisodeTelemetry(episodeId);
+  const resolved = await readEpisodeWorkspaceForAudio(options, episodeId);
+  const { episodeDir } = resolved;
+  const episodeConfig = await loadEpisodeConfig(episodeDir);
+  const config = await loadRuntimeConfig(
+    configOverridesFromCli(options),
+    episodeConfig ? compactConfigOverrides(episodeConfig) : {}
+  );
+  const rolloutMode = ensureNarrationPipelineMode(config.narrationPipelineMode);
+  const requestedLanguages = [
+    ...parseAudioLanguageList(commandOptions.languages),
+    ...(commandOptions.language ? [commandOptions.language] : []),
+    ...(options.scriptLanguage ? [options.scriptLanguage] : []),
+  ].filter((language, index, all) => all.indexOf(language) === index);
+  const languages = commandOptions.allLanguages
+    ? await listEpisodeScriptLanguages(episodeDir)
+    : requestedLanguages.length > 0
+      ? requestedLanguages
+      : [config.scriptLanguage ?? episodeConfig?.scriptLanguage ?? "en"];
+  if (languages.length === 0) {
+    throw new Error(`No narration languages found in ${episodeDir}.`);
+  }
+  const variants = commandOptions.allVariants
+    ? (["full", "short"] as const)
+    : ([parseNarrationVariant(commandOptions.variant)] as const);
+  const speechVoicePreset: SpeechVoicePreset =
+    config.speechVoicePreset ?? episodeConfig?.speechVoicePreset ?? "fast";
+  const model =
+    config.openAiSpeechModel ??
+    config.openAiCompatibleModel ??
+    "gpt-4o-mini-tts";
+  const voice =
+    config.openAiSpeechVoice ?? config.openAiCompatibleTtsVoice ?? "onyx";
+  const pipeline = await loadPipeline(options, episodeDir);
+  const runner = new NarrationPipeline();
+  const results: NarrationPipelineResult[] = [];
+  for (const language of languages) {
+    for (const variant of variants) {
+      const narrationTempo = resolveNarrationTempoSettings(
+        language,
+        variant,
+        speechVoicePreset
+      );
+      const speechSettings = loadSpeechVoiceSettings({
+        preset: speechVoicePreset,
+        ...(language ? { language } : {}),
+        artifactType: variant,
+        ...(narrationTempo.paceWpm !== undefined
+          ? { paceWpm: narrationTempo.paceWpm }
+          : {}),
+        ...(narrationTempo.speed !== undefined
+          ? { speed: narrationTempo.speed }
+          : {}),
+      });
+      const result = await runner.run({
+        episodeDir,
+        episodeId,
+        language,
+        variant,
+        stage,
+        rolloutMode,
+        ...(commandOptions.resume !== undefined ? { resume: commandOptions.resume } : {}),
+        ...(commandOptions.force !== undefined ? { force: commandOptions.force } : {}),
+        ...(commandOptions.dryRun ?? options.dryRun
+          ? { dryRun: commandOptions.dryRun ?? options.dryRun }
+          : {}),
+        ...(commandOptions.validationOnly !== undefined
+          ? { validationOnly: commandOptions.validationOnly }
+          : {}),
+        concurrency: parseNarrationConcurrency(commandOptions.concurrency),
+        model,
+        voice,
+        ...(speechSettings.speed !== undefined ? { speed: speechSettings.speed } : {}),
+        outputFormat: "wav",
+        baseVoiceInstructions: speechSettings.instructions,
+        synthesizeChunk: async (request) => {
+          const idMatch = request.chunkId.match(/([0-9]+)$/u);
+          const sceneNumber = idMatch?.[1] ?? "001";
+          await pipeline.speech.synthesize(
+            {
+              sceneId: sceneIdSchema.parse(`scene-${sceneNumber.padStart(3, "0")}`),
+              text: request.text,
+              voiceProfile: speechSettings.profile,
+              outputPath: request.outputPath,
+              ...(request.targetDurationSeconds !== undefined
+                ? { targetDurationSeconds: request.targetDurationSeconds }
+                : {}),
+              instructions: request.instructions,
+            },
+            new AbortController().signal
+          );
+        },
+      });
+      results.push(result);
+    }
+  }
+  const exitCode = Math.max(...results.map((result) => result.exitCode));
+  if (commandOptions.json ?? options.json) {
+    printJson(results.length === 1 ? results[0] : { results, exitCode });
+  } else if (!options.quiet) {
+    process.stdout.write(summarizeNarrationResults(results));
+  }
+  if (exitCode !== narrationPipelineExitCode.ok) {
+    process.exitCode = exitCode;
+  }
+  return results;
 }
 
 async function commandAudioGenerateLocalized(
@@ -4126,6 +4301,10 @@ function addGlobalOptions(command: Command): Command {
     .option("--openai-speech-model <model>", "OpenAI speech model")
     .option("--openai-speech-voice <voice>", "OpenAI speech voice")
     .option(
+      "--narration-pipeline-mode <legacy|shadow|new>",
+      "staged narration rollout mode"
+    )
+    .option(
       "--speech-voice-preset <preset>",
       "slow, fast, or very-fast speech settings"
     )
@@ -4326,6 +4505,48 @@ audioCommand
       await commandAudioGenerateLocalized(cliOptions, episodeId);
     }
   );
+
+const audioNarrationCommand = audioCommand
+  .command("narration")
+  .description("Staged narration pipeline utilities");
+
+function addAudioNarrationOptions(command: Command): Command {
+  return command
+    .requiredOption("--episode <episode-id>", "episode slug or id")
+    .option("--language <code>", "target language")
+    .option("--languages <comma-separated-languages>", "target languages")
+    .option("--variant <full|short>", "narration variant", "full")
+    .option("--all-languages", "run all script languages found for the episode")
+    .option("--all-variants", "run full and short variants")
+    .option("--resume", "reuse completed artifacts when valid")
+    .option("--force", "rerun completed stages")
+    .option("--validation-only", "skip mutation stages and validate existing artifacts")
+    .option("--dry-run", "print planned work without writing")
+    .option("--concurrency <n>", "maximum local narration chunk concurrency", "1")
+    .option("--json", "print machine-readable output");
+}
+
+for (const stage of [
+  "prepare",
+  "plan",
+  "generate",
+  "assemble",
+  "validate",
+  "status",
+  "inspect",
+] as const satisfies readonly NarrationPipelineStage[]) {
+  addAudioNarrationOptions(
+    audioNarrationCommand.command(stage).description(`Run narration ${stage}`)
+  ).action(async (opts: AudioNarrationCommandOptions) => {
+    const parsedStage = narrationPipelineStageSchema.parse(stage);
+    const cliOptions: CliOptions = {
+      ...program.opts<CliOptions>(),
+      ...(opts.dryRun !== undefined ? { dryRun: opts.dryRun } : {}),
+      ...(opts.json !== undefined ? { json: opts.json } : {}),
+    };
+    await runAudioNarrationPipeline(cliOptions, opts.episode ?? "", parsedStage, opts);
+  });
+}
 
 const clipsCommand = program
   .command("clips")
@@ -4731,7 +4952,10 @@ const telemetry = createExecutionTelemetry({
       ? { npmScript: process.env["MEDIAFORGE_NPM_SCRIPT"] }
       : {}),
   },
-  logger: createLogger(resolveLogLevel(process.env["MEDIAFORGE_LOG_LEVEL"])),
+  logger: createLogger(
+    resolveLogLevel(process.env["MEDIAFORGE_LOG_LEVEL"]),
+    process.stderr
+  ),
   reportDir: path.join(process.cwd(), ".mediaforge", "execution-reports"),
 });
 
