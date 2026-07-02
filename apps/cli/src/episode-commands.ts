@@ -79,6 +79,7 @@ export interface EpisodeCommandOptions {
   readonly json?: boolean;
   readonly verbose?: boolean;
   readonly visualRetention?: boolean;
+  readonly visualRetentionMode?: "disabled" | "preview" | "enabled";
   readonly visualProfile?: string;
   readonly strictShotValidation?: boolean;
 }
@@ -136,10 +137,12 @@ function assertReuseImagesEnabled(reuseImages: boolean | undefined): void {
 
 function resolveVisualRetentionOptions(options: EpisodeCommandOptions): {
   readonly enabled: boolean;
+  readonly mode?: "disabled" | "preview" | "enabled";
   readonly profile?: "atmospheric" | "balanced" | "high-retention" | "shorts-aggressive";
   readonly strictValidation?: boolean;
 } {
   const profile = options.visualProfile;
+  const mode = options.visualRetentionMode;
   if (
     profile !== undefined &&
     profile !== "atmospheric" &&
@@ -149,8 +152,17 @@ function resolveVisualRetentionOptions(options: EpisodeCommandOptions): {
   ) {
     throw new Error(`Unsupported visual-retention profile: ${profile}`);
   }
+  if (
+    mode !== undefined &&
+    mode !== "disabled" &&
+    mode !== "preview" &&
+    mode !== "enabled"
+  ) {
+    throw new Error(`Unsupported visual-retention mode: ${mode}`);
+  }
   return {
     enabled: options.visualRetention === true,
+    ...(mode ? { mode } : {}),
     ...(profile ? { profile } : {}),
     ...(options.strictShotValidation !== undefined
       ? { strictValidation: options.strictShotValidation }
@@ -1404,6 +1416,7 @@ export function registerEpisodeCommands(program: Command): void {
     .option("--dry-run", "do not execute paid providers")
     .option("--visual-retention", "enable shot-aware visual retention")
     .option("--no-visual-retention", "disable shot-aware visual retention")
+    .option("--visual-retention-mode <disabled|preview|enabled>", "set visual retention rollout mode")
     .option("--visual-profile <profile>", "visual-retention pacing profile")
     .option("--strict-shot-validation", "fail on shot validation warnings")
     .action(async (opts: EpisodeCommandOptions) => commandEpisodeEnglish(opts));
@@ -1417,6 +1430,7 @@ export function registerEpisodeCommands(program: Command): void {
     .option("--dry-run", "do not execute paid providers")
     .option("--visual-retention", "enable shot-aware visual retention")
     .option("--no-visual-retention", "disable shot-aware visual retention")
+    .option("--visual-retention-mode <disabled|preview|enabled>", "set visual retention rollout mode")
     .option("--visual-profile <profile>", "visual-retention pacing profile")
     .option("--strict-shot-validation", "fail on shot validation warnings")
     .action(async (opts: EpisodeCommandOptions) =>
@@ -1432,6 +1446,7 @@ export function registerEpisodeCommands(program: Command): void {
     .option("--dry-run", "do not execute paid providers")
     .option("--visual-retention", "enable shot-aware visual retention")
     .option("--no-visual-retention", "disable shot-aware visual retention")
+    .option("--visual-retention-mode <disabled|preview|enabled>", "set visual retention rollout mode")
     .option("--visual-profile <profile>", "visual-retention pacing profile")
     .option("--strict-shot-validation", "fail on shot validation warnings")
     .action(async (opts: EpisodeCommandOptions) => commandEpisodeShort(opts));
@@ -1512,6 +1527,7 @@ export function registerEpisodeCommands(program: Command): void {
     .option("--dry-run", "do not execute paid providers")
     .option("--visual-retention", "enable shot-aware visual retention")
     .option("--no-visual-retention", "disable shot-aware visual retention")
+    .option("--visual-retention-mode <disabled|preview|enabled>", "set visual retention rollout mode")
     .option("--visual-profile <profile>", "visual-retention pacing profile")
     .option("--strict-shot-validation", "fail on shot validation warnings")
     .action(async (opts: EpisodeCommandOptions) =>

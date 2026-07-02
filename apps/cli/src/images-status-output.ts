@@ -1,3 +1,5 @@
+import type { VisualRetentionMetrics } from "@mediaforge/observability";
+
 export interface ImageStatusReport {
   readonly totalBatches: number;
   readonly pendingBatches: number;
@@ -12,6 +14,7 @@ export interface ImageStatusReport {
   readonly failureCategories?: Record<string, number>;
   readonly episodeNumbers: readonly string[];
   readonly sceneCount: number;
+  readonly visualRetention?: VisualRetentionMetrics;
 }
 
 export function buildImageStatusOutput(report: ImageStatusReport): Record<string, unknown> {
@@ -33,5 +36,29 @@ export function buildImageStatusOutput(report: ImageStatusReport): Record<string
       mergedWithNextScenes: report.mergedWithNextScenes,
       reusedScenes: report.reusedScenes,
     },
+    ...(report.visualRetention
+      ? {
+          visualRetention: {
+            rolloutMode: report.visualRetention.rolloutMode,
+            fallbackReason: report.visualRetention.fallbackReason,
+            validation: report.visualRetention.validationStatus.toUpperCase(),
+            sourceImages: report.visualRetention.generatedSourceImageCount,
+            renderedShots: report.visualRetention.renderedShotCount,
+            shotsPerImage: report.visualRetention.averageShotsPerSourceImage,
+            openingChangesFirstEightSeconds:
+              report.visualRetention.meaningfulVisualChangesFirstEightSeconds,
+            longestStaticIntervalSeconds:
+              report.visualRetention.longestStaticIntervalMs / 1000,
+            derivedClipCache: {
+              hits: report.visualRetention.derivedShotCache.hits,
+              misses: report.visualRetention.derivedShotCache.misses,
+              hitRatio: report.visualRetention.derivedShotCache.hitRatio,
+            },
+            avoidedImageGenerationCalls:
+              report.visualRetention.avoidedImageGenerationCalls,
+            estimatedImageSavings: report.visualRetention.estimatedImageSavings,
+          },
+        }
+      : {}),
   };
 }

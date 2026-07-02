@@ -8,6 +8,20 @@ Recommended strategy: **hybrid explicit scene-to-shot architecture**. Add a dete
 
 Expected Short defaults: 5-9 generated source images for 45-60 seconds, 15-28 rendered shots, and roughly 55-70% avoided image-generation calls versus one image per visual change.
 
+## Deprecations
+
+The following assumptions are now deprecated, fallback-supported, and not yet removed:
+
+- one scene equals one rendered clip;
+- scene id equals clip id;
+- one source image equals one full visual interval;
+- Shorts motion metadata without temporal shot realization;
+- scene-only visual reports without shot-aware validation or cache metrics;
+- ad hoc shot artifact paths outside `state/visual-retention/`;
+- direct renderer assumptions that bypass shot plans.
+
+Legacy rendering remains available as a fallback path while rollout stays staged and production confidence is gathered.
+
 ## Current Pipeline Findings
 
 Primary operator surfaces:
@@ -445,4 +459,3 @@ Deprecate in stages:
 - Move `shorts-image-strategy` motion intent into shot planning.
 - Replace scene-only visual reports with shot-plan reports.
 - Eventually simplify duplicated ad hoc render paths after canonical and Dark Truth integrations pass characterization tests.
-

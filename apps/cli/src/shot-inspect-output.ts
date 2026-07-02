@@ -4,6 +4,10 @@ import type {
   ShotPlanValidationIssue,
 } from "@mediaforge/domain";
 import {
+  buildVisualRetentionMetrics,
+  summarizeValidationIssues,
+} from "@mediaforge/observability";
+import {
   classifyMeaningfulVisualChange,
   type ShotPlanValidationMetrics,
 } from "@mediaforge/visual-planning";
@@ -21,8 +25,10 @@ export interface ShotInspectCacheSummary {
 export interface ShotInspectEstimatedSavings {
   readonly estimated: true;
   readonly avoidedImageGenerationCalls: number;
-  readonly pricingVersion: string;
+  readonly pricingVersion?: string;
   readonly estimatedCostMicros: number | null;
+  readonly currency: "USD" | null;
+  readonly costBasis: string;
 }
 
 export interface ShotInspectValidationSummary {
@@ -101,7 +107,29 @@ export function buildShotInspectReport(args: {
     0,
     shots.length - args.shotPlan.sourceScenes.length
   );
-
+  const visualMetrics = buildVisualRetentionMetrics({
+    rolloutMode: "enabled",
+    shotPlan: args.shotPlan,
+    validationIssues: args.validationIssues,
+    validationMetrics: args.validationMetrics,
+    generatedSourceImageCount: args.shotPlan.sourceScenes.length,
+    unitCostMicros:
+      args.estimatedCostMicros === null || avoidedImageGenerationCalls === 0
+        ? null
+        : args.estimatedCostMicros / avoidedImageGenerationCalls,
+    pricingVersion: args.pricingVersion,
+    costBasis: "shot inspect baseline from one image per rendered shot",
+    ...(args.derivedClipCache?.available
+      ? {
+          derivedShotCache: {
+            hits: args.derivedClipCache.hits ?? 0,
+            misses: args.derivedClipCache.misses ?? 0,
+            writes: args.derivedClipCache.writes ?? 0,
+            invalidEntries: args.derivedClipCache.invalidEntries ?? 0,
+          },
+        }
+      : {}),
+  });
   return {
     episodeId: args.shotPlan.sourceId,
     locale: args.shotPlan.locale ?? "und",
@@ -134,7 +162,7 @@ export function buildShotInspectReport(args: {
       args.validationMetrics.climaxAverageShotDurationMs,
     climaxChangeIntervalsMs: climaxChangeIntervalsMs(shots, args.shotPlan),
     averageShotsPerSourceImage:
-      args.validationMetrics.averageShotsPerSourceImage,
+      visualMetrics.averageShotsPerSourceImage ?? 0,
     maximumConsecutiveSourceImageReuse:
       args.validationMetrics.maximumConsecutiveSourceImageUses,
     maximumTotalUsesForOneSourceImage:
@@ -152,8 +180,13 @@ export function buildShotInspectReport(args: {
     estimatedSavings: {
       estimated: true,
       avoidedImageGenerationCalls,
-      pricingVersion: args.pricingVersion,
-      estimatedCostMicros: args.estimatedCostMicros,
+      ...(visualMetrics.estimatedImageSavings.pricingVersion
+        ? { pricingVersion: visualMetrics.estimatedImageSavings.pricingVersion }
+        : {}),
+      estimatedCostMicros:
+        visualMetrics.estimatedImageSavings.estimatedSavingsMicros,
+      currency: visualMetrics.estimatedImageSavings.currency,
+      costBasis: visualMetrics.estimatedImageSavings.costBasis,
     },
     estimatedLocalRenderClipCount: shots.length,
     derivedClipCache: args.derivedClipCache ?? { available: false },
@@ -225,19 +258,14 @@ function buildCountDistribution<TKey extends string>(
 function summarizeValidation(
   issues: readonly ShotPlanValidationIssue[]
 ): ShotInspectValidationSummary {
-  let warningCount = 0;
-  let errorCount = 0;
-  for (const issue of issues) {
-    if (issue.severity === "error") {
-      errorCount += 1;
-    } else {
-      warningCount += 1;
-    }
-  }
+  const summary = summarizeValidationIssues(issues);
   return {
-    status: errorCount > 0 ? "fail" : warningCount > 0 ? "warn" : "pass",
-    warningCount,
-    errorCount,
+    status:
+      summary.status === "error"
+        ? "fail"
+        : summary.status,
+    warningCount: summary.warningCount,
+    errorCount: summary.errorCount,
   };
 }
 

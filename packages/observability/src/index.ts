@@ -2,6 +2,7 @@ import pino from "pino";
 import type { Writable } from "node:stream";
 export * from "./pricing.js";
 export * from "./telemetry.js";
+export * from "./visual-retention.js";
 
 export interface LoggerContext {
   episodeId?: string;

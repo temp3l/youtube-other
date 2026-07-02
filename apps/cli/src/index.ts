@@ -130,6 +130,8 @@ import {
   summarizeEpisodeImageState,
   type EpisodeImageSummary,
 } from "./episode-image-summary.js";
+import { buildEpisodeStatusOutput } from "./episode-status-output.js";
+import { buildImageStatusOutput } from "./images-status-output.js";
 import { registerImagesResumeCommand } from "./images-resume-command.js";
 import { registerImagesSyncSharedCommand } from "./images-sync-shared-command.js";
 import {
@@ -187,6 +189,25 @@ interface DoctorCheck {
 
 function printJson(value: unknown): void {
   process.stdout.write(`${JSON.stringify(value, null, 2)}\n`);
+}
+
+function formatPercent(value: unknown): string {
+  return typeof value === "number" && Number.isFinite(value)
+    ? `${(value * 100).toFixed(1)}%`
+    : "unavailable";
+}
+
+function formatEstimatedSavings(value: Record<string, unknown>): string {
+  const currency = value["currency"];
+  const estimatedSavingsMicros = value["estimatedSavingsMicros"];
+  if (
+    currency === "USD" &&
+    typeof estimatedSavingsMicros === "number" &&
+    Number.isFinite(estimatedSavingsMicros)
+  ) {
+    return `estimated USD ${(estimatedSavingsMicros / 1_000_000).toFixed(2)}`;
+  }
+  return "unavailable";
 }
 
 function markEpisodeTelemetry(episodeId: string): void {
@@ -1724,22 +1745,73 @@ async function commandStatus(
     episodeDir,
     manifest.scenePlan?.scenes.map((scene) => scene.id) ?? []
   )) as EpisodeImageSummary;
+  const locale =
+    typeof manifest.transcript?.language === "string"
+      ? manifest.transcript.language
+      : "en";
+  const visualRetention = (await fs
+    .readFile(
+      path.join(
+        episodeDir,
+        "state",
+        "visual-retention",
+        `summary.full.${locale}.json`
+      ),
+      "utf8"
+    )
+    .then((value) => JSON.parse(value) as Record<string, unknown>)
+    .catch(() => undefined)) as
+    | undefined
+    | Record<string, unknown>;
+  const status = buildEpisodeStatusOutput({
+    episodeId: manifest.episodeId,
+    slug: manifest.slug,
+    pipelineRuns: manifest.pipelineRuns.length,
+    imageGeneration: {
+      totalBatches: imageStatus.manifestedScenes,
+      pendingBatches: imageStatus.plannedScenes - imageStatus.manifestedScenes,
+      requiresImportBatches: imageStatus.missingManifests,
+      importedBatches: imageStatus.generatedScenes,
+      failedBatches: imageStatus.failedScenes,
+      mergedWithPreviousScenes: imageStatus.mergeWithPreviousScenes,
+      mergedWithNextScenes: imageStatus.mergeWithNextScenes,
+      reusedScenes: imageStatus.reusedScenes,
+      readyForRender: imageStatus.readyForRender,
+      retryableFailedScenes: imageStatus.retryableFailedScenes,
+      failureCategories: imageStatus.failureCategories,
+      episodeNumbers: [manifest.episodeId],
+      sceneCount: manifest.scenePlan?.scenes.length ?? 0,
+      ...(visualRetention ? { visualRetention: visualRetention as never } : {}),
+    },
+  });
   if (options.json) {
-    printJson({
-      ...manifest,
-      imageGeneration: buildEpisodeImageSummaryOutput(imageStatus),
-    });
+    printJson(status);
     return;
   }
-  process.stdout.write(`${manifest.episodeId} ${manifest.slug}\n`);
-  process.stdout.write(`${manifest.pipelineRuns.length} pipeline runs\n`);
-  process.stdout.write(
-    [
-      `images ready: ${imageStatus.readyForRender ? "yes" : "no"}`,
-      `images scenes: ${imageStatus.generatedScenes} generated, ${imageStatus.failedScenes} failed, ${imageStatus.missingManifests} missing manifests, ${imageStatus.missingImages} missing images`,
-      `images merges: ${imageStatus.mergeWithPreviousScenes} merged with previous, ${imageStatus.mergeWithNextScenes} merged with next, ${imageStatus.reusedScenes} reused`,
-    ].join("\n") + "\n"
-  );
+  const lines = [
+    `${status.episodeId} ${status.slug}`,
+    `${status.pipelineRuns} pipeline runs`,
+    `images ready: ${imageStatus.readyForRender ? "yes" : "no"}`,
+    `images scenes: ${imageStatus.generatedScenes} generated, ${imageStatus.failedScenes} failed, ${imageStatus.missingManifests} missing manifests, ${imageStatus.missingImages} missing images`,
+    `images merges: ${imageStatus.mergeWithPreviousScenes} merged with previous, ${imageStatus.mergeWithNextScenes} merged with next, ${imageStatus.reusedScenes} reused`,
+  ];
+  const visual = status.visualRetention;
+  if (visual) {
+    const cache = visual["derivedClipCache"] as Record<string, unknown>;
+    lines.push(
+      `Visual retention: ${String(visual["rolloutMode"])}${visual["fallbackReason"] ? ` (${String(visual["fallbackReason"])})` : ""}`,
+      `Validation: ${String(visual["validation"])}`,
+      `Source images: ${String(visual["sourceImages"])}`,
+      `Rendered shots: ${String(visual["renderedShots"])}`,
+      `Shots per image: ${typeof visual["shotsPerImage"] === "number" ? visual["shotsPerImage"].toFixed(2) : "unavailable"}`,
+      `Opening changes (first 8s): ${String(visual["openingChangesFirstEightSeconds"])}`,
+      `Longest static interval: ${typeof visual["longestStaticIntervalSeconds"] === "number" ? visual["longestStaticIntervalSeconds"].toFixed(2) : "0.00"}s`,
+      `Derived cache: ${String(cache["hits"])} hits / ${String(cache["misses"])} misses (${formatPercent(cache["hitRatio"])})`,
+      `Avoided image calls: ${String(visual["avoidedImageGenerationCalls"])}`,
+      `Estimated image savings: ${formatEstimatedSavings(visual["estimatedImageSavings"] as Record<string, unknown>)}`,
+    );
+  }
+  process.stdout.write(lines.join("\n") + "\n");
 }
 
 async function commandInspect(
@@ -2408,7 +2480,42 @@ async function commandImagesStatus(
     episodeDir,
     manifest.scenePlan?.scenes.map((scene) => scene.id) ?? []
   )) as EpisodeImageSummary;
-  printJson(buildEpisodeImageSummaryOutput(report));
+  const locale =
+    typeof manifest.transcript?.language === "string"
+      ? manifest.transcript.language
+      : "en";
+  const visualRetention = (await fs
+    .readFile(
+      path.join(
+        episodeDir,
+        "state",
+        "visual-retention",
+        `summary.full.${locale}.json`
+      ),
+      "utf8"
+    )
+    .then((value) => JSON.parse(value) as Record<string, unknown>)
+    .catch(() => undefined)) as
+    | undefined
+    | Record<string, unknown>;
+  printJson(
+    buildImageStatusOutput({
+      totalBatches: report.manifestedScenes,
+      pendingBatches: report.plannedScenes - report.manifestedScenes,
+      requiresImportBatches: report.missingManifests,
+      importedBatches: report.generatedScenes,
+      failedBatches: report.failedScenes,
+      mergedWithPreviousScenes: report.mergeWithPreviousScenes,
+      mergedWithNextScenes: report.mergeWithNextScenes,
+      reusedScenes: report.reusedScenes,
+      readyForRender: report.readyForRender,
+      retryableFailedScenes: report.retryableFailedScenes,
+      failureCategories: report.failureCategories,
+      episodeNumbers: [manifest.episodeId],
+      sceneCount: manifest.scenePlan?.scenes.length ?? 0,
+      ...(visualRetention ? { visualRetention: visualRetention as never } : {}),
+    })
+  );
 }
 
 async function commandImagesMissing(

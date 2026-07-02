@@ -1,5 +1,15 @@
 # Production Defaults
 
+## Rollout Modes
+
+- `disabled`: preserve legacy scene rendering and skip shot-aware final render.
+- `preview`: generate or reuse shot plans and validation artifacts, keep final production render on the legacy path, and report the fallback reason.
+- `enabled`: use shot-aware rendering when validation passes; otherwise preserve the legacy fallback path and report a stable fallback code.
+
+Default rollout remains conservative: existing installations should start in `disabled` or explicit `preview` until operators confirm validation, cache behavior, and estimated image-savings telemetry on live episodes.
+
+Rollback is configuration-only: switch the rollout mode back to `disabled` or pass the existing explicit legacy override, then rerun render. No image regeneration, cache deletion, artifact migration reversal, or database changes are required.
+
 ## Visual Budgets
 
 | Output | Generated Source Images | Rendered Shots | Shots Per Image | Max Consecutive Uses | Max Total Uses |
@@ -106,3 +116,8 @@ Reuse source images for:
 - No word-by-word bounce by default.
 - Caption changes do not count as the only meaningful visual change.
 
+## Operations
+
+- Preview mode should persist shot plans under `state/visual-retention/` without making shot-aware rendering mandatory.
+- Validation reports should be read from `state/visual-retention/validation.<variant>.<locale>.json`.
+- Status and inspect surfaces should treat image-savings values as estimates, not exact realized cost reductions.

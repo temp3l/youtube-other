@@ -311,7 +311,8 @@ export interface SubtitleManifest {
 }
 
 export interface DarkTruthVisualRetentionOptions {
-  readonly enabled: boolean;
+  readonly enabled?: boolean;
+  readonly mode?: "disabled" | "preview" | "enabled";
   readonly profile?: VisualPacingProfileId;
   readonly strictValidation?: boolean;
 }
@@ -2026,8 +2027,11 @@ export async function renderCleanVideo(
   );
   const renderer = new FFmpegVideoRenderer();
   const imageDir = options?.imageDir ?? path.join(episodeDir, "shared", "images", "generated");
-  const visualRetention =
-    options?.visualRetention?.enabled === true
+  const visualRetentionMode =
+    options?.visualRetention?.mode ??
+    (options?.visualRetention?.enabled === true ? "enabled" : "disabled");
+  const plannedVisualRetention =
+    visualRetentionMode !== "disabled"
       ? await prepareDarkTruthVisualRetention({
           episodeDir,
           scenePlan,
@@ -2044,6 +2048,8 @@ export async function renderCleanVideo(
           options: options.visualRetention,
         })
       : undefined;
+  const visualRetention =
+    visualRetentionMode === "enabled" ? plannedVisualRetention : undefined;
   const renderResult = await renderer.render(
     {
       episodeDir,

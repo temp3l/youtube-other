@@ -125,3 +125,10 @@ Hard failures:
 - Caption collision with no safe position.
 - Source image too low resolution for any compliant shot and no fallback profile allowed.
 
+## Rollout Interpretation
+
+- `disabled`: no shot-plan requirement; legacy rendering remains primary.
+- `preview`: validation still runs and persists reports, but final production render stays on the legacy path.
+- `enabled`: shot-aware rendering is allowed only after validation passes; otherwise the system must surface a stable fallback reason instead of silently changing paths.
+
+Estimated image-savings values must stay labeled as estimates and should be interpreted against the configured baseline rather than as exact historical spend.

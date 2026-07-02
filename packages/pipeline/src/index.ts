@@ -41,7 +41,13 @@ import {
   type RuntimeConfig,
   type RuntimeConfigOverrides,
 } from "@mediaforge/config";
-import { createLogger } from "@mediaforge/observability";
+import {
+  buildVisualRetentionMetrics,
+  createLogger,
+  currentExecutionTelemetry,
+  type VisualRetentionFallbackReasonCode,
+  type VisualRetentionRolloutMode,
+} from "@mediaforge/observability";
 import {
   createPersistence,
   type SQLitePersistence,
@@ -69,6 +75,7 @@ import {
   createPlaceholderImage,
   createPromptBatch,
   exportSceneWorkbook,
+  loadEpisodeSceneManifest,
   localSceneNegativePrompt,
   localSceneStyle,
   missingScenes,
@@ -166,7 +173,8 @@ export interface RunPipelineOptions {
 }
 
 export interface VisualRetentionPipelineOptions {
-  readonly enabled: boolean;
+  readonly enabled?: boolean;
+  readonly mode?: VisualRetentionRolloutMode;
   readonly profile?: VisualPacingProfileId;
   readonly strictValidation?: boolean;
 }
@@ -430,6 +438,7 @@ interface VisualRetentionPipelineArtifacts {
   readonly shotPlan: ShotPlan;
   readonly validation: ShotPlanValidationResult;
   readonly sourceImages: readonly ShotSourceImage[];
+  readonly shotPlanRegenerated: boolean;
 }
 
 interface PersistedShotValidationArtifact {
@@ -452,9 +461,13 @@ class PipelineStageError extends Error {
 
 function resolveVisualRetentionMode(
   options: RunPipelineOptions
-): VisualRetentionPipelineOptions {
+): Required<Pick<VisualRetentionPipelineOptions, "mode">> &
+  Pick<VisualRetentionPipelineOptions, "profile" | "strictValidation"> {
+  const mode =
+    options.visualRetention?.mode ??
+    (options.visualRetention?.enabled === true ? "enabled" : "disabled");
   return {
-    enabled: options.visualRetention?.enabled ?? false,
+    mode,
     ...(options.visualRetention?.profile
       ? { profile: options.visualRetention.profile }
       : {}),
@@ -462,6 +475,19 @@ function resolveVisualRetentionMode(
       ? { strictValidation: options.visualRetention.strictValidation }
       : {}),
   };
+}
+
+function visualRetentionSummaryPath(args: {
+  readonly episodeDir: string;
+  readonly locale: string;
+  readonly variant: "full" | "short";
+}): string {
+  return path.join(
+    args.episodeDir,
+    "state",
+    "visual-retention",
+    `summary.${args.variant}.${args.locale}.json`
+  );
 }
 
 function sourceImageIdForScene(sceneId: string): SourceImageId {
@@ -890,7 +916,7 @@ export class MediaForgePipeline {
       };
     }
     const visualRetentionMode = resolveVisualRetentionMode(options);
-    const visualRetentionArtifacts = visualRetentionMode.enabled
+    const plannedVisualRetentionArtifacts = visualRetentionMode.mode !== "disabled"
       ? await this.planVisualRetention(
           manifest,
           episodeDirPath,
@@ -900,24 +926,28 @@ export class MediaForgePipeline {
           visualRetentionMode
         )
       : undefined;
-    if (visualRetentionArtifacts) {
+    let visualRetentionArtifacts = plannedVisualRetentionArtifacts;
+    let fallbackReason: VisualRetentionFallbackReasonCode | null =
+      visualRetentionMode.mode === "disabled"
+        ? "VISUAL_RETENTION_DISABLED"
+        : visualRetentionMode.mode === "preview"
+          ? "VISUAL_RETENTION_PREVIEW_MODE"
+          : null;
+    if (plannedVisualRetentionArtifacts) {
       const validationErrors =
-        visualRetentionArtifacts.validation.issues.filter(
+        plannedVisualRetentionArtifacts.validation.issues.filter(
           (issue) => issue.severity === "error"
         );
       const strictValidationFailures =
         visualRetentionMode.strictValidation === true
-          ? visualRetentionArtifacts.validation.issues
+          ? plannedVisualRetentionArtifacts.validation.issues
           : [];
-      if (
-        validationErrors.length > 0 ||
-        strictValidationFailures.length > 0
-      ) {
+      if (strictValidationFailures.length > 0) {
         throw new PipelineStageError(
           "plan-shots",
           `Shot validation failed; refusing shot-aware rendering: ${
             validationErrors.length > 0
-              ? summarizeShotValidationErrors(visualRetentionArtifacts.validation)
+              ? summarizeShotValidationErrors(plannedVisualRetentionArtifacts.validation)
               : "strict validation rejected warnings"
           }`,
           {
@@ -928,12 +958,31 @@ export class MediaForgePipeline {
           }
         );
       }
+      if (visualRetentionMode.mode === "preview") {
+        visualRetentionArtifacts = undefined;
+      } else if (validationErrors.length > 0) {
+        fallbackReason = "SHOT_VALIDATION_FAILED";
+        visualRetentionArtifacts = undefined;
+      }
       warnings.push(
-        ...visualRetentionArtifacts.validation.issues
+        ...plannedVisualRetentionArtifacts.validation.issues
           .filter((issue) => issue.severity === "warning")
           .map((issue) => `Shot validation warning ${issue.code}: ${issue.message}`)
       );
     }
+    if (fallbackReason !== null) {
+      currentExecutionTelemetry()?.recordEvent({
+        name: "visual_retention_fallback_used",
+        at: nowIso(),
+        details: {
+          mode: visualRetentionMode.mode,
+          reason: fallbackReason,
+          variant: "full",
+          locale: this.episodeLocale(),
+        },
+      });
+    }
+    const renderStartedAt = Date.now();
     const renderResult = await this.render(
       manifest,
       episodeDirPath,
@@ -942,6 +991,40 @@ export class MediaForgePipeline {
       options.outputProfile ?? "youtube",
       visualRetentionArtifacts
     );
+    const renderDurationMs = Date.now() - renderStartedAt;
+    if (visualRetentionArtifacts) {
+      currentExecutionTelemetry()?.recordEvent({
+        name: "shot_render_completed",
+        at: nowIso(),
+        details: {
+          variant: "full",
+          locale: this.episodeLocale(),
+          renderedShotCount:
+            renderResult.shotRenderSummary?.renderedShotIds.length ??
+            visualRetentionArtifacts.shotPlan.shots.length,
+          failedShotCount:
+            renderResult.shotRenderSummary?.failedShotIds.length ?? 0,
+          localShotRenderDurationMs: renderDurationMs,
+        },
+      });
+    }
+    if (plannedVisualRetentionArtifacts) {
+      await this.writeVisualRetentionSummary({
+        episodeDirPath,
+        locale: this.episodeLocale(),
+        variant: "full",
+        artifacts: plannedVisualRetentionArtifacts,
+        rolloutMode: visualRetentionMode.mode,
+        fallbackReason,
+        localShotRenderDurationMs:
+          visualRetentionArtifacts && renderResult.shotRenderSummary
+            ? renderDurationMs
+            : null,
+        finalCompositionRenderDurationMs: renderDurationMs,
+        derivedShotCache:
+          renderResult.shotRenderSummary?.derivedShotCache,
+      });
+    }
     const outputValidation = await validateRenderedVideo(
       renderResult.captionedPath ?? renderResult.cleanPath
     );
@@ -1699,9 +1782,20 @@ export class MediaForgePipeline {
       serializeShotPlan(currentShotPlan) === serializeShotPlan(planned)
         ? currentShotPlan
         : planned;
+    const shotPlanRegenerated = shotPlan !== currentShotPlan;
     if (shotPlan !== currentShotPlan) {
       await writeJsonAtomic(shotPlanPath, shotPlan);
     }
+    currentExecutionTelemetry()?.recordEvent({
+      name: shotPlanRegenerated ? "shot_plan_created" : "shot_plan_reused",
+      at: nowIso(),
+      details: {
+        variant: "full",
+        locale: this.episodeLocale(),
+        renderedShotCount: shotPlan.shots.length,
+        sourceSceneCount: shotPlan.sourceScenes.length,
+      },
+    });
 
     const validation = validateShotPlan({
       shotPlan,
@@ -1718,6 +1812,22 @@ export class MediaForgePipeline {
       metrics: validation.metrics,
     };
     await writeJsonAtomic(validationPath, validationArtifact);
+    currentExecutionTelemetry()?.recordEvent({
+      name: "shot_validation_completed",
+      at: nowIso(),
+      details: {
+        variant: "full",
+        locale: this.episodeLocale(),
+        valid: validation.valid,
+        warningCount: validation.issues.filter((issue) => issue.severity === "warning").length,
+        errorCount: validation.issues.filter((issue) => issue.severity === "error").length,
+        validationStatus: validation.valid
+          ? validation.issues.some((issue) => issue.severity === "warning")
+            ? "warn"
+            : "pass"
+          : "error",
+      },
+    });
 
     return {
       sourceScenesPath: this.paths.visualSourceScenes(episodeId),
@@ -1735,6 +1845,7 @@ export class MediaForgePipeline {
         path: sourceScene.sourceImagePath,
         sha256: sourceScene.sourceImageSha256,
       })),
+      shotPlanRegenerated,
     };
   }
 
@@ -1747,6 +1858,95 @@ export class MediaForgePipeline {
       return shotPlanSchema.parse(JSON.parse(raw) as unknown);
     } catch {
       return null;
+    }
+  }
+
+  private async writeVisualRetentionSummary(args: {
+    readonly episodeDirPath: string;
+    readonly locale: string;
+    readonly variant: "full" | "short";
+    readonly artifacts: VisualRetentionPipelineArtifacts;
+    readonly rolloutMode: VisualRetentionRolloutMode;
+    readonly fallbackReason: VisualRetentionFallbackReasonCode | null;
+    readonly localShotRenderDurationMs: number | null;
+    readonly finalCompositionRenderDurationMs: number | null;
+    readonly derivedShotCache?: NonNullable<
+      Awaited<ReturnType<FFmpegVideoRenderer["render"]>>["shotRenderSummary"]
+    >["derivedShotCache"];
+  }): Promise<void> {
+    const manifests = await Promise.all(
+      args.artifacts.shotPlan.sourceScenes.map((sourceScene) =>
+        loadEpisodeSceneManifest(args.episodeDirPath, sourceScene.sceneId)
+      )
+    );
+    const generatedSourceImageCount = manifests.filter(
+      (manifest) => manifest?.status === "generated" && !manifest.reusedFromSceneId
+    ).length;
+    const reusedSourceImageCount = manifests.filter(
+      (manifest) => manifest?.reusedFromSceneId
+    ).length;
+    const firstManifest = manifests.find((manifest) => manifest !== null);
+    const unitCostMicros = null;
+    const metricsInput = {
+      rolloutMode: args.rolloutMode,
+      fallbackReason: args.fallbackReason,
+      shotPlan: args.artifacts.shotPlan,
+      validationIssues: args.artifacts.validation.issues,
+      validationMetrics: args.artifacts.validation.metrics,
+      generatedSourceImageCount:
+        generatedSourceImageCount > 0
+          ? generatedSourceImageCount
+          : args.artifacts.shotPlan.sourceScenes.length,
+      reusedSourceImageCount,
+      unitCostMicros,
+      pricingVersion: "unconfigured",
+      costBasis:
+        firstManifest === undefined
+          ? "current image manifest metadata unavailable"
+          : `current image manifest metadata (${firstManifest.model} ${firstManifest.size} ${firstManifest.quality})`,
+      localShotRenderDurationMs: args.localShotRenderDurationMs,
+      finalCompositionRenderDurationMs: args.finalCompositionRenderDurationMs,
+      shotPlanRegenerationCount: args.artifacts.shotPlanRegenerated ? 1 : 0,
+      sourceImageRegenerationCount: 0,
+    };
+    const metrics = buildVisualRetentionMetrics(
+      args.derivedShotCache !== undefined
+        ? { ...metricsInput, derivedShotCache: args.derivedShotCache }
+        : metricsInput
+    );
+    const summaryPath = visualRetentionSummaryPath({
+      episodeDir: args.episodeDirPath,
+      locale: args.locale,
+      variant: args.variant,
+    });
+    await writeJsonAtomic(summaryPath, metrics);
+    currentExecutionTelemetry()?.recordEvent({
+      name: "final_composition_completed",
+      at: nowIso(),
+      details: {
+        variant: args.variant,
+        locale: args.locale,
+        rolloutMode: args.rolloutMode,
+        fallbackReason: args.fallbackReason,
+        renderedShotCount: metrics.renderedShotCount,
+        generatedSourceImageCount: metrics.generatedSourceImageCount,
+        avoidedImageGenerationCalls: metrics.avoidedImageGenerationCalls,
+        finalCompositionRenderDurationMs:
+          metrics.finalCompositionRenderDurationMs,
+      },
+    });
+    if (args.derivedShotCache) {
+      currentExecutionTelemetry()?.recordEvent({
+        name: "derived_clip_cache_summary",
+        at: nowIso(),
+        details: {
+          variant: args.variant,
+          locale: args.locale,
+          hits: metrics.derivedShotCache.hits,
+          misses: metrics.derivedShotCache.misses,
+          hitRatio: metrics.derivedShotCache.hitRatio,
+        },
+      });
     }
   }
 
@@ -1830,6 +2030,17 @@ export class MediaForgePipeline {
       burnCaptions: true,
     } as const;
     const renderer = this.renderer;
+    if (!visualRetentionArtifacts) {
+      currentExecutionTelemetry()?.recordEvent({
+        name: "legacy_render_path_used",
+        at: nowIso(),
+        details: {
+          variant: "full",
+          locale: this.episodeLocale(),
+          renderPath: "legacy",
+        },
+      });
+    }
     return renderer.render(
       {
         episodeDir: episodeDirPath,
