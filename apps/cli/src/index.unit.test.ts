@@ -4,7 +4,12 @@ import path from "node:path";
 import { loadRuntimeConfig } from "@mediaforge/config";
 import {
   NarrationPipeline,
+  buildNarrationBatchStatus,
+  buildNarrationTargetStatusFromResult,
+  createNarrationArtifactPaths,
   narrationPipelineModeSchema,
+  type NarrationPipelineResult,
+  type NarrationPipelineStageResult,
 } from "@mediaforge/speech";
 import { describe, expect, it } from "vitest";
 import { buildSceneInspectOutput } from "./scene-inspect-output.js";
@@ -61,6 +66,38 @@ describe("CLI narration pipeline integration", () => {
     return episodeDir;
   }
 
+  async function createStatusResult(input: {
+    readonly episodeId: string;
+    readonly language: string;
+    readonly stages: readonly NarrationPipelineStageResult[];
+    readonly status?: NarrationPipelineResult["status"];
+  }): Promise<NarrationPipelineResult> {
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), "mediaforge-narration-status-"));
+    const episodeDir = path.join(root, input.episodeId);
+    await fs.mkdir(episodeDir, { recursive: true });
+    return {
+      episodeId: input.episodeId,
+      language: input.language,
+      locale: input.language,
+      variant: "full",
+      rolloutMode: "new",
+      dryRun: false,
+      stages: input.stages,
+      paths: createNarrationArtifactPaths({
+        episodeId: input.episodeId,
+        locale: input.language,
+        variant: "full",
+        episodeRoot: episodeDir,
+      }),
+      exitCode: input.stages.some((stage) => stage.status === "failed")
+        ? 2
+        : input.stages.some((stage) => stage.status === "blocked")
+          ? 3
+          : 0,
+      status: input.status ?? "ready",
+    };
+  }
+
   it("plans dry-run output without writing staged artifacts", async () => {
     const episodeDir = await createEpisode();
     const result = await new NarrationPipeline().run({
@@ -108,6 +145,91 @@ describe("CLI narration pipeline integration", () => {
     );
   });
 
+  it("summarizes mixed success and failure while preserving independent target records", async () => {
+    const success = buildNarrationTargetStatusFromResult(
+      await createStatusResult({
+        episodeId: "001-test-story",
+        language: "en",
+        stages: [{ stage: "validate", status: "completed", outputPaths: ["quality-gate.json"], message: "READY" }],
+      }),
+      10
+    );
+    const failed = buildNarrationTargetStatusFromResult(
+      await createStatusResult({
+        episodeId: "001-test-story",
+        language: "de",
+        stages: [
+          {
+            stage: "generate",
+            status: "failed",
+            outputPaths: [],
+            message: "ProviderResponseError: api_key=sk-secret narration text should not leak",
+          },
+        ],
+        status: "failed",
+      }),
+      12
+    );
+
+    const batch = buildNarrationBatchStatus({ targets: [success, failed] });
+
+    expect(batch.summary).toMatchObject({ success: 1, failed: 1, total: 2 });
+    expect(batch.exitCode).toBe(2);
+    expect(batch.targets.map((target) => target.language)).toEqual(["en", "de"]);
+    expect(batch.targets[1]?.message).toContain("[redacted]");
+    expect(batch.targets[1]?.message).not.toContain("sk-secret");
+    expect(batch.targets[1]?.message).not.toContain("narration text should not leak");
+  });
+
+  it("reports all-failed, warning-only strict, and blocked batch outcomes", async () => {
+    const failedEn = buildNarrationTargetStatusFromResult(
+      await createStatusResult({
+        episodeId: "001-test-story",
+        language: "en",
+        stages: [{ stage: "generate", status: "failed", outputPaths: [], message: "provider failed" }],
+        status: "failed",
+      }),
+      10
+    );
+    const failedDe = buildNarrationTargetStatusFromResult(
+      await createStatusResult({
+        episodeId: "001-test-story",
+        language: "de",
+        stages: [{ stage: "generate", status: "failed", outputPaths: [], message: "provider failed" }],
+        status: "failed",
+      }),
+      11
+    );
+    const warning = buildNarrationTargetStatusFromResult(
+      await createStatusResult({
+        episodeId: "001-test-story",
+        language: "en",
+        stages: [
+          { stage: "validate", status: "completed", outputPaths: ["quality-gate.json"], message: "READY_WITH_WARNINGS" },
+        ],
+      }),
+      8
+    );
+    const blocked = buildNarrationTargetStatusFromResult(
+      await createStatusResult({
+        episodeId: "001-test-story",
+        language: "en",
+        stages: [{ stage: "assemble", status: "blocked", outputPaths: [], message: "missing chunk" }],
+        status: "blocked",
+      }),
+      9
+    );
+
+    expect(buildNarrationBatchStatus({ targets: [failedEn, failedDe] }).summary).toMatchObject({
+      failed: 2,
+      total: 2,
+    });
+    expect(buildNarrationBatchStatus({ targets: [warning] }).exitCode).toBe(0);
+    expect(buildNarrationBatchStatus({ targets: [warning], strictMode: true }).exitCode).toBe(4);
+    expect(buildNarrationBatchStatus({ targets: [blocked] }).summary.blocked).toBe(1);
+    expect(blocked.failureClass).toBe("assembly");
+  });
+
   it("rejects invalid rollout modes before mutation", () => {
     expect(() => narrationPipelineModeSchema.parse("experimental")).toThrow();
   });
@@ -139,6 +261,10 @@ describe("CLI narration pipeline integration", () => {
 
     expect(resumed.stages[0]).toMatchObject({ stage: "prepare", status: "skipped" });
     expect(forced.stages[0]).toMatchObject({ stage: "prepare", status: "completed" });
+
+    const resumedStatus = buildNarrationTargetStatusFromResult(resumed, 5);
+    expect(resumedStatus.outcome).toBe("success");
+    expect(resumedStatus.latestStageStatus).toBe("skipped");
   });
 
   it("blocks staged mutation when rollout mode is legacy", async () => {

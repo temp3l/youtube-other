@@ -101,14 +101,20 @@ import {
   computeSpeechModelConfigFingerprint,
   computeSpeechVoiceConfigFingerprint,
   NarrationPipeline,
+  buildNarrationBatchStatus,
+  buildNarrationTargetStatus,
+  buildNarrationTargetStatusFromError,
+  buildNarrationTargetStatusFromResult,
   narrationPipelineExitCode,
   narrationPipelineModeSchema,
   narrationPipelineStageSchema,
   runVoiceBenchmark,
   type AudioInstructionArtifact,
+  type NarrationBatchStatus,
   type NarrationPipelineMode,
   type NarrationPipelineResult,
   type NarrationPipelineStage,
+  type NarrationTargetStatus,
   type SpeechNarrationDependency,
   type SpeechVoicePreset,
   type TtsGenerationRecord,
@@ -3017,6 +3023,7 @@ interface AudioNarrationCommandOptions {
   readonly force?: boolean;
   readonly validationOnly?: boolean;
   readonly dryRun?: boolean;
+  readonly strict?: boolean;
   readonly json?: boolean;
   readonly concurrency?: string;
 }
@@ -3049,14 +3056,40 @@ function ensureNarrationPipelineMode(value: string | undefined): NarrationPipeli
   return narrationPipelineModeSchema.parse(value ?? "legacy");
 }
 
-function summarizeNarrationResults(results: readonly NarrationPipelineResult[]): string {
-  return `${results
-    .map((result) => {
-      const latest = result.stages[result.stages.length - 1];
-      const state = latest ? `${latest.stage}:${latest.status}` : result.status;
-      return `${result.episodeId} ${result.language}/${result.variant} ${result.rolloutMode} ${state}`;
-    })
-    .join("\n")}\n`;
+function normalizeRequestedNarrationLanguages(
+  values: readonly string[],
+  availableLanguages: readonly string[],
+  options: { readonly requireAvailable: boolean }
+): string[] {
+  const normalized = values.map((language) => normalizeLocaleCode(language));
+  const unique = normalized.filter(
+    (language, index, all) => all.indexOf(language) === index
+  );
+  if (options.requireAvailable) {
+    const missing = unique.filter((language) => !availableLanguages.includes(language));
+    if (missing.length > 0) {
+      throw new Error(
+        `Requested narration language(s) are not available for this episode: ${missing.join(", ")}.`
+      );
+    }
+  }
+  return unique;
+}
+
+function summarizeNarrationBatchStatus(status: NarrationBatchStatus): string {
+  const lines = [
+    `Narration targets: ${status.summary.total} total, ${status.summary.success} success, ${status.summary.warning} warning, ${status.summary.blocked} blocked, ${status.summary.failed} failed`,
+    ...status.targets.map((target) => {
+      const latest =
+        target.latestStage && target.latestStageStatus
+          ? ` ${target.latestStage}:${target.latestStageStatus}`
+          : "";
+      const failure = target.failureClass ? ` ${target.failureClass}` : "";
+      const message = target.message ? ` - ${target.message}` : "";
+      return `${target.episodeId} ${target.language}/${target.variant} ${target.rolloutMode} ${target.outcome}${latest}${failure}${message}`;
+    }),
+  ];
+  return `${lines.join("\n")}\n`;
 }
 
 async function runAudioNarrationPipeline(
@@ -3074,16 +3107,21 @@ async function runAudioNarrationPipeline(
     episodeConfig ? compactConfigOverrides(episodeConfig) : {}
   );
   const rolloutMode = ensureNarrationPipelineMode(config.narrationPipelineMode);
+  const availableLanguages = await listEpisodeScriptLanguages(episodeDir);
   const requestedLanguages = [
     ...parseAudioLanguageList(commandOptions.languages),
     ...(commandOptions.language ? [commandOptions.language] : []),
     ...(options.scriptLanguage ? [options.scriptLanguage] : []),
   ].filter((language, index, all) => all.indexOf(language) === index);
-  const languages = commandOptions.allLanguages
-    ? await listEpisodeScriptLanguages(episodeDir)
-    : requestedLanguages.length > 0
-      ? requestedLanguages
-      : [config.scriptLanguage ?? episodeConfig?.scriptLanguage ?? "en"];
+  const languages = normalizeRequestedNarrationLanguages(
+    commandOptions.allLanguages
+      ? availableLanguages
+      : requestedLanguages.length > 0
+        ? requestedLanguages
+        : [config.scriptLanguage ?? episodeConfig?.scriptLanguage ?? "en"],
+    availableLanguages,
+    { requireAvailable: stage !== "status" && stage !== "inspect" }
+  );
   if (languages.length === 0) {
     throw new Error(`No narration languages found in ${episodeDir}.`);
   }
@@ -3098,11 +3136,24 @@ async function runAudioNarrationPipeline(
     "gpt-4o-mini-tts";
   const voice =
     config.openAiSpeechVoice ?? config.openAiCompatibleTtsVoice ?? "onyx";
-  const pipeline = await loadPipeline(options, episodeDir);
+  let loadedPipeline: Awaited<ReturnType<typeof loadPipeline>> | null = null;
+  const loadTargetPipeline = async () => {
+    loadedPipeline ??= await loadPipeline(options, episodeDir);
+    return loadedPipeline;
+  };
   const runner = new NarrationPipeline();
   const results: NarrationPipelineResult[] = [];
+  const targetStatuses: NarrationTargetStatus[] = [];
   for (const language of languages) {
     for (const variant of variants) {
+      const targetStartedAt = Date.now();
+      const target = {
+        episodeId,
+        language,
+        locale: normalizeLocaleCode(language),
+        variant,
+        rolloutMode,
+      };
       const narrationTempo = resolveNarrationTempoSettings(
         language,
         variant,
@@ -3119,56 +3170,76 @@ async function runAudioNarrationPipeline(
           ? { speed: narrationTempo.speed }
           : {}),
       });
-      const result = await runner.run({
-        episodeDir,
-        episodeId,
-        language,
-        variant,
-        stage,
-        rolloutMode,
-        ...(commandOptions.resume !== undefined ? { resume: commandOptions.resume } : {}),
-        ...(commandOptions.force !== undefined ? { force: commandOptions.force } : {}),
-        ...(commandOptions.dryRun ?? options.dryRun
-          ? { dryRun: commandOptions.dryRun ?? options.dryRun }
-          : {}),
-        ...(commandOptions.validationOnly !== undefined
-          ? { validationOnly: commandOptions.validationOnly }
-          : {}),
-        concurrency: parseNarrationConcurrency(commandOptions.concurrency),
-        model,
-        voice,
-        ...(speechSettings.speed !== undefined ? { speed: speechSettings.speed } : {}),
-        outputFormat: "wav",
-        baseVoiceInstructions: speechSettings.instructions,
-        synthesizeChunk: async (request) => {
-          const idMatch = request.chunkId.match(/([0-9]+)$/u);
-          const sceneNumber = idMatch?.[1] ?? "001";
-          await pipeline.speech.synthesize(
-            {
-              sceneId: sceneIdSchema.parse(`scene-${sceneNumber.padStart(3, "0")}`),
-              text: request.text,
-              voiceProfile: speechSettings.profile,
-              outputPath: request.outputPath,
-              ...(request.targetDurationSeconds !== undefined
-                ? { targetDurationSeconds: request.targetDurationSeconds }
-                : {}),
-              instructions: request.instructions,
-            },
-            new AbortController().signal
-          );
-        },
-      });
-      results.push(result);
+      try {
+        const result = await runner.run({
+          episodeDir,
+          episodeId,
+          language,
+          variant,
+          stage,
+          rolloutMode,
+          ...(commandOptions.resume !== undefined ? { resume: commandOptions.resume } : {}),
+          ...(commandOptions.force !== undefined ? { force: commandOptions.force } : {}),
+          ...(commandOptions.dryRun ?? options.dryRun
+            ? { dryRun: commandOptions.dryRun ?? options.dryRun }
+            : {}),
+          ...(commandOptions.validationOnly !== undefined
+            ? { validationOnly: commandOptions.validationOnly }
+            : {}),
+          concurrency: parseNarrationConcurrency(commandOptions.concurrency),
+          model,
+          voice,
+          ...(speechSettings.speed !== undefined ? { speed: speechSettings.speed } : {}),
+          outputFormat: "wav",
+          baseVoiceInstructions: speechSettings.instructions,
+          synthesizeChunk: async (request) => {
+            const pipeline = await loadTargetPipeline();
+            const idMatch = request.chunkId.match(/([0-9]+)$/u);
+            const sceneNumber = idMatch?.[1] ?? "001";
+            await pipeline.speech.synthesize(
+              {
+                sceneId: sceneIdSchema.parse(`scene-${sceneNumber.padStart(3, "0")}`),
+                text: request.text,
+                voiceProfile: speechSettings.profile,
+                outputPath: request.outputPath,
+                ...(request.targetDurationSeconds !== undefined
+                  ? { targetDurationSeconds: request.targetDurationSeconds }
+                  : {}),
+                instructions: request.instructions,
+              },
+              new AbortController().signal
+            );
+          },
+        });
+        results.push(result);
+        targetStatuses.push(
+          buildNarrationTargetStatusFromResult(
+            result,
+            Math.max(0, Date.now() - targetStartedAt)
+          )
+        );
+      } catch (error) {
+        targetStatuses.push(
+          buildNarrationTargetStatusFromError({
+            target,
+            error,
+            durationMs: Math.max(0, Date.now() - targetStartedAt),
+          })
+        );
+      }
     }
   }
-  const exitCode = Math.max(...results.map((result) => result.exitCode));
+  const batchStatus = buildNarrationBatchStatus({
+    targets: targetStatuses,
+    strictMode: commandOptions.strict ?? false,
+  });
   if (commandOptions.json ?? options.json) {
-    printJson(results.length === 1 ? results[0] : { results, exitCode });
+    printJson(batchStatus);
   } else if (!options.quiet) {
-    process.stdout.write(summarizeNarrationResults(results));
+    process.stdout.write(summarizeNarrationBatchStatus(batchStatus));
   }
-  if (exitCode !== narrationPipelineExitCode.ok) {
-    process.exitCode = exitCode;
+  if (batchStatus.exitCode !== narrationPipelineExitCode.ok) {
+    process.exitCode = batchStatus.exitCode;
   }
   return results;
 }
@@ -3232,7 +3303,7 @@ async function commandAudioNarrationBenchmarkVoices(
 }
 
 async function commandAudioGenerateLocalized(
-  options: CliOptions & { readonly languages?: string },
+  options: CliOptions & { readonly languages?: string; readonly strict?: boolean },
   episodeId: string
 ): Promise<void> {
   markEpisodeTelemetry(episodeId);
@@ -3248,15 +3319,69 @@ async function commandAudioGenerateLocalized(
   if (selectedLanguages.length === 0) {
     throw new Error(`No localized scripts found in ${resolved.episodeDir}.`);
   }
-  const languages = selectedLanguages.filter(
-    (language: string, index: number, all: readonly string[]) =>
-      language.length > 0 && all.indexOf(language) === index
+  const languages = normalizeRequestedNarrationLanguages(
+    selectedLanguages,
+    availableLanguages,
+    { requireAvailable: true }
   );
+  const episodeConfig = await loadEpisodeConfig(resolved.episodeDir);
+  const config = await loadRuntimeConfig(
+    configOverridesFromCli(options),
+    episodeConfig ? compactConfigOverrides(episodeConfig) : {}
+  );
+  const rolloutMode = ensureNarrationPipelineMode(config.narrationPipelineMode);
+  if (rolloutMode === "new") {
+    await runAudioNarrationPipeline(options, episodeId, "all", {
+      languages: languages.join(","),
+      ...(options.dryRun !== undefined ? { dryRun: options.dryRun } : {}),
+      ...(options.json !== undefined ? { json: options.json } : {}),
+      ...(options.strict !== undefined ? { strict: options.strict } : {}),
+    });
+    return;
+  }
+  const targetStatuses: NarrationTargetStatus[] = [];
   for (const language of languages) {
-    await commandAudioGenerate(
-      { ...options, scriptLanguage: language },
-      episodeId
-    );
+    const targetStartedAt = Date.now();
+    const target = {
+      episodeId,
+      language,
+      locale: normalizeLocaleCode(language),
+      variant: "full" as const,
+      rolloutMode,
+    };
+    try {
+      await commandAudioGenerate(
+        { ...options, json: false, quiet: true, scriptLanguage: language },
+        episodeId
+      );
+      targetStatuses.push(
+        buildNarrationTargetStatus({
+          target,
+          outcome: "success",
+          durationMs: Math.max(0, Date.now() - targetStartedAt),
+        })
+      );
+    } catch (error) {
+      targetStatuses.push(
+        buildNarrationTargetStatusFromError({
+          target,
+          error,
+          durationMs: Math.max(0, Date.now() - targetStartedAt),
+        })
+      );
+    }
+  }
+  const batchStatus = buildNarrationBatchStatus({
+    targets: targetStatuses,
+    strictMode: options.strict ?? false,
+  });
+  if (options.json) {
+    printJson(batchStatus);
+  } else if (!options.quiet) {
+    process.stdout.write(summarizeNarrationBatchStatus(batchStatus));
+  }
+  if (batchStatus.exitCode !== narrationPipelineExitCode.ok) {
+    process.exitCode = batchStatus.exitCode;
   }
 }
 
@@ -4561,15 +4686,17 @@ audioCommand
   .argument("<episode-id>")
   .option("--languages <comma-separated-languages>", "target languages")
   .option("--dry-run", "preview actions without writing")
+  .option("--strict", "return a strict warning exit code when warnings are present")
   .action(
     async (
       episodeId: string,
-      opts: { languages?: string; dryRun?: boolean }
+      opts: { languages?: string; dryRun?: boolean; strict?: boolean }
     ) => {
-      const cliOptions: CliOptions & { readonly languages?: string } = {
+      const cliOptions: CliOptions & { readonly languages?: string; readonly strict?: boolean } = {
         ...program.opts<CliOptions>(),
         ...(opts.dryRun !== undefined ? { dryRun: opts.dryRun } : {}),
         ...(opts.languages !== undefined ? { languages: opts.languages } : {}),
+        ...(opts.strict !== undefined ? { strict: opts.strict } : {}),
       };
       await commandAudioGenerateLocalized(cliOptions, episodeId);
     }
@@ -4591,6 +4718,7 @@ function addAudioNarrationOptions(command: Command): Command {
     .option("--force", "rerun completed stages")
     .option("--validation-only", "skip mutation stages and validate existing artifacts")
     .option("--dry-run", "print planned work without writing")
+    .option("--strict", "return a strict warning exit code when warnings are present")
     .option("--concurrency <n>", "maximum local narration chunk concurrency", "1")
     .option("--json", "print machine-readable output");
 }

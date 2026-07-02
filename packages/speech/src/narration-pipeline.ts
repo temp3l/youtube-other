@@ -224,7 +224,6 @@ async function existingStatus(paths: NarrationArtifactPathSet): Promise<Narratio
     ["plan", paths.pronunciationTransforms],
     ["generate", path.join(paths.chunkAudioDir, "narr-chunk-001.cache.json")],
     ["assemble", paths.assemblyManifest],
-    ["validate", paths.qualityGateJson],
   ] as const;
   const grouped = new Map<Exclude<NarrationPipelineStage, "all">, string[]>();
   for (const [stage, filePath] of checks) {
@@ -232,13 +231,28 @@ async function existingStatus(paths: NarrationArtifactPathSet): Promise<Narratio
       grouped.set(stage, [...(grouped.get(stage) ?? []), filePath]);
     }
   }
-  return [...grouped.entries()].map(([stage, outputPaths]) =>
+  const results = [...grouped.entries()].map(([stage, outputPaths]) =>
     stageResult({
       stage,
       status: "completed",
       outputPaths,
     })
   );
+  const qualityGate = await readJsonIfExists(
+    paths.qualityGateJson,
+    (value) => narrationQualityGateReportSchema.parse(value)
+  );
+  if (qualityGate) {
+    results.push(
+      stageResult({
+        stage: "validate",
+        status: qualityGate.outcome === "BLOCKED" ? "blocked" : "completed",
+        outputPaths: [paths.qualityGateJson],
+        message: qualityGate.outcome,
+      })
+    );
+  }
+  return results;
 }
 
 function completed(result: NarrationPipelineStageResult | undefined): boolean {
