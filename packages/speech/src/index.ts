@@ -28,6 +28,7 @@ export {
 } from "./narration-paths.js";
 export * from "./narration-schemas.js";
 export * from "./spoken-narration.js";
+export * from "./narration-segmentation.js";
 export {
   loadSpeechVoiceInstructionTemplate,
   loadSpeechVoiceSettings,
