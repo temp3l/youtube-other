@@ -21,6 +21,14 @@ export {
   writeEpisodeScriptMarkdown,
 } from "./script-markdown.js";
 export {
+  createNarrationArtifactPaths,
+  type NarrationArtifactPathContext,
+  type NarrationArtifactPathSet,
+  type NarrationVariant,
+} from "./narration-paths.js";
+export * from "./narration-schemas.js";
+export * from "./spoken-narration.js";
+export {
   loadSpeechVoiceInstructionTemplate,
   loadSpeechVoiceSettings,
   resolveSpeechVoiceInstructionPath,
