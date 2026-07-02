@@ -5,6 +5,7 @@ import { Command } from "commander";
 import sharp from "sharp";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { scenePlanSchema, visualSourceSceneSchema } from "@mediaforge/domain";
+import { hashFile } from "@mediaforge/shared";
 
 const configMocks = vi.hoisted(() => ({
   loadRuntimeConfigMock: vi.fn(),
@@ -23,10 +24,25 @@ vi.mock("@mediaforge/config", async () => {
   };
 });
 
+vi.mock("@mediaforge/visual-planning", async () => {
+  const actual =
+    await vi.importActual<typeof import("@mediaforge/visual-planning")>(
+      "@mediaforge/visual-planning"
+    );
+  const migration = await import(
+    "../../../packages/visual-planning/src/legacy-shot-plan.js"
+  );
+  return {
+    ...actual,
+    migrateLegacyEpisodeShots: migration.migrateLegacyEpisodeShots,
+  };
+});
+
 const {
   planShotsCommand,
   previewShotsCommand,
   registerShotsCommands,
+  migrateShotsCommand,
   validateShotsCommand,
 } = await import("./shots.js");
 
@@ -194,8 +210,87 @@ async function setupWorkspace() {
   return { episodeDir };
 }
 
+async function setupLegacyWorkspace() {
+  const workspaceDir = await fs.mkdtemp(path.join(os.tmpdir(), "shots-migrate-"));
+  const episodeId = "legacy-fixture";
+  const episodeDir = path.join(workspaceDir, episodeId);
+  await fs.mkdir(path.join(episodeDir, "canonical"), { recursive: true });
+  const scenes = [0, 1, 2].map((index) => {
+    const sceneNumber = index + 1;
+    const sceneId = `scene-${String(sceneNumber).padStart(3, "0")}`;
+    return {
+      id: sceneId,
+      sequenceNumber: sceneNumber,
+      canonicalNarration: `Legacy scene ${sceneNumber}.`,
+      sourceSegmentIds: [`segment-${String(sceneNumber).padStart(3, "0")}`],
+      estimatedDurationSeconds: 6,
+      timing: { startSeconds: index * 6, endSeconds: index * 6 + 6 },
+      visualPurpose: "migration",
+      textRequirement: { required: false },
+      subject: "subject",
+      action: "shown",
+      setting: "room",
+      composition: "centered",
+      cameraFraming: "medium",
+      mood: "tense",
+      aspectRatios: ["9:16"],
+      imagePrompt: "legacy",
+      expectedImageFilenames: [`${sceneId}.png`],
+      qualityStatus: "approved",
+    };
+  });
+  await fs.writeFile(
+    path.join(episodeDir, "canonical", "scenes.json"),
+    `${JSON.stringify(scenePlanSchema.parse({ sourceId: episodeId, scenes }), null, 2)}\n`,
+    "utf8"
+  );
+  for (const scene of scenes) {
+    const imagePath = path.join(
+      episodeDir,
+      "shared",
+      "images",
+      "generated",
+      `${scene.id}.png`
+    );
+    await fs.mkdir(path.dirname(imagePath), { recursive: true });
+    await sharp({
+      create: {
+        width: 1600,
+        height: 1600,
+        channels: 3,
+        background: { r: 80, g: 90, b: 100 },
+      },
+    })
+      .png()
+      .toFile(imagePath);
+    const manifestPath = path.join(
+      episodeDir,
+      "state",
+      "image-generation",
+      "manifests",
+      `${scene.id}.json`
+    );
+    await fs.mkdir(path.dirname(manifestPath), { recursive: true });
+    await fs.writeFile(
+      manifestPath,
+      `${JSON.stringify({ sceneId: scene.id, outputPath: imagePath, outputSha256: await hashFile(imagePath) }, null, 2)}\n`,
+      "utf8"
+    );
+  }
+  await setupWorkspace();
+  const previousRuntimeConfig = (await configMocks.loadRuntimeConfigMock()) as {
+    readonly visualRetention: unknown;
+  };
+  configMocks.loadRuntimeConfigMock.mockResolvedValue({
+    workspaceDir,
+    visualRetention: previousRuntimeConfig.visualRetention,
+  });
+  configMocks.loadEpisodeConfigMock.mockResolvedValue(null);
+  return { episodeDir };
+}
+
 describe("shot commands", () => {
-  it("registers plan, inspect, validate, and preview commands", () => {
+  it("registers plan, inspect, validate, preview, and migrate commands", () => {
     const program = new Command();
     registerShotsCommands(program);
     const shots = program.commands.find(
@@ -206,7 +301,28 @@ describe("shot commands", () => {
       "inspect",
       "validate",
       "preview",
+      "migrate",
     ]);
+  });
+
+  it("dry-runs legacy shot migration through the CLI command API", async () => {
+    const { episodeDir } = await setupLegacyWorkspace();
+    const result = await migrateShotsCommand({
+      episode: "legacy-fixture",
+      variant: "short",
+      locale: "en",
+      dryRun: true,
+    });
+
+    expect(result.status).toBe("migrated");
+    expect(result.sourceFormat).toBe("canonical-scene-plan-image-manifests");
+    expect(result.validation.valid).toBe(true);
+    expect(result.artifactsWritten).toContain(
+      path.join(episodeDir, "state", "visual-retention", "shot-plan.short.en.json")
+    );
+    await expect(
+      fs.access(path.join(episodeDir, "state", "visual-retention"))
+    ).rejects.toThrow();
   });
 
   it("plans to the resolver-owned path and reuses a stable plan", async () => {

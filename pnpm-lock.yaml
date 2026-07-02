@@ -525,6 +525,9 @@ importers:
       '@mediaforge/shared':
         specifier: workspace:*
         version: link:../shared
+      sharp:
+        specifier: ^0.34.3
+        version: 0.34.5
 
   packages/youtube-upload:
     dependencies:

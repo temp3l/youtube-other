@@ -38,8 +38,10 @@ import {
 } from "@mediaforge/shared";
 import {
   deterministicShotPlanner,
+  migrateLegacyEpisodeShots,
   serializeShotPlan,
   type ShotPlanValidationMetrics,
+  type LegacyMigrationResult,
   validateShotPlan,
 } from "@mediaforge/visual-planning";
 import {
@@ -85,6 +87,7 @@ export interface ShotsCommandOptions {
   readonly format?: ShotInspectFormat;
   readonly force?: boolean;
   readonly json?: boolean;
+  readonly dryRun?: boolean;
 }
 
 export interface ShotsPlanResult {
@@ -131,6 +134,8 @@ export interface ShotsPreviewResult {
   readonly shotCount: number;
   readonly limitation: string;
 }
+
+export type ShotsMigrateResult = LegacyMigrationResult;
 
 export async function planShotsCommand(
   options: ShotsCommandOptions
@@ -297,6 +302,30 @@ export async function previewShotsCommand(
   };
 }
 
+export async function migrateShotsCommand(
+  options: ShotsCommandOptions
+): Promise<ShotsMigrateResult> {
+  const context = await resolveShotsContext(options);
+  const sourceScenes = await readJsonIfExists(
+    context.paths.sourceScenesPath,
+    (value) => z.array(visualSourceSceneSchema).parse(value)
+  );
+  const preset = selectVisualRetentionPreset(
+    context.config,
+    context.variant,
+    sourceScenes ?? [],
+    options.profile
+  );
+  return migrateLegacyEpisodeShots({
+    episodeWorkspace: context.episodeDir,
+    locale: context.locale,
+    variant: context.variant,
+    pacingProfile: preset.pacingProfile,
+    visualBudget: preset.visualBudget,
+    dryRun: options.dryRun ?? false,
+  });
+}
+
 export function registerShotsCommands(program: Command): void {
   const shots = program
     .command("shots")
@@ -399,6 +428,30 @@ export function registerShotsCommands(program: Command): void {
         `Shots: ${result.shotCount}`,
         result.limitation,
       ]);
+    });
+
+  shots
+    .command("migrate")
+    .requiredOption("--episode <episode-id>")
+    .requiredOption("--variant <variant>")
+    .requiredOption("--locale <locale>")
+    .option("--profile <pacing-profile>")
+    .option("--dry-run")
+    .option("--format <text|json>", "output format", "text")
+    .action(async (options: ShotsCommandOptions) => {
+      const effective = withGlobalJson(
+        options,
+        program.opts<{ readonly json?: boolean }>().json
+      );
+      const result = await migrateShotsCommand(effective);
+      if (resolveFormat(effective) === "json") {
+        process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+      } else {
+        process.stdout.write(formatMigrationResult(result));
+      }
+      if (result.status === "blocked") {
+        process.exitCode = 1;
+      }
     });
 }
 
@@ -633,6 +686,25 @@ function printOutput(
   }
   process.stdout.write(
     `${textLines.filter((line): line is string => Boolean(line)).join("\n")}\n`
+  );
+}
+
+function formatMigrationResult(result: ShotsMigrateResult): string {
+  return (
+    [
+      `Legacy shot migration: ${result.status}`,
+      `Detected format: ${result.sourceFormat}`,
+      `Scenes: ${result.scenesFound}`,
+      `Images: ${result.imagesFound}`,
+      `Focal metadata entries: ${result.focalMetadataGenerated}`,
+      `Planned shots: ${result.plannedShotCount}`,
+      `Validation: ${result.validation.valid ? "passed" : "failed"}`,
+      `Artifacts: ${result.artifactsWritten.length === 0 ? "none" : result.artifactsWritten.join(", ")}`,
+      `Image regeneration recommended: ${result.requiresImageRegeneration ? "yes" : "no"}`,
+      ...result.warnings.map((warning) =>
+        `WARNING ${warning.code}${warning.sceneId ? ` ${warning.sceneId}` : ""}: ${warning.message}`
+      ),
+    ].join("\n") + "\n"
   );
 }
 

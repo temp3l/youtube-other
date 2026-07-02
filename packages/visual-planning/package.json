@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@mediaforge/domain": "workspace:*",
-    "@mediaforge/shared": "workspace:*"
+    "@mediaforge/shared": "workspace:*",
+    "sharp": "^0.34.3"
   }
 }

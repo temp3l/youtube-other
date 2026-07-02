@@ -67,3 +67,12 @@ export {
   type CaptionProtectedRegion as CaptionCollisionProtectedRegion,
   type ResolveCaptionPlacementInput,
 } from "./caption-collision.js";
+
+export {
+  migrateLegacyEpisodeShots,
+  type LegacyArtifactFormat,
+  type LegacyMigrationResult,
+  type LegacyMigrationWarning,
+  type LegacyMigrationWarningCode,
+  type MigrateLegacyEpisodeInput,
+} from "./legacy-shot-plan.js";
