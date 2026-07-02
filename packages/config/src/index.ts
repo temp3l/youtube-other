@@ -72,6 +72,128 @@ const visualRetentionConfigOverrideSchema = z.strictObject({
     .optional(),
 });
 
+const narrationMasteringProfileSchema = z.strictObject({
+  id: z.enum(["clean", "render-ready", "shorts", "full-length"]),
+  version: z.string().min(1).max(80),
+  enabled: z.boolean(),
+  sampleRate: z.number().int().min(16_000).max(96_000),
+  codec: z.literal("pcm_s16le"),
+  targetLoudnessLufs: z.number().min(-24).max(-12),
+  truePeakLimitDb: z.number().min(-6).max(-1),
+  highPassHz: z.number().min(20).max(120).optional(),
+  correctiveEq: z
+    .strictObject({
+      frequencyHz: z.number().min(100).max(8_000),
+      gainDb: z.number().min(-3).max(3),
+      width: z.number().min(0.1).max(3).optional(),
+    })
+    .optional(),
+  compression: z
+    .strictObject({
+      thresholdDb: z.number().min(-30).max(-10),
+      ratio: z.number().min(1).max(2.5),
+      attackMs: z.number().min(1).max(50),
+      releaseMs: z.number().min(40).max(300),
+    })
+    .optional(),
+  deEss: z
+    .strictObject({
+      enabled: z.boolean(),
+      frequencyHz: z.number().min(4_000).max(10_000),
+      width: z.number().min(0.1).max(2),
+      reductionDb: z.number().min(-3).max(0),
+    })
+    .optional(),
+});
+
+const narrationMasteringProfileOverrideSchema =
+  narrationMasteringProfileSchema.partial().extend({
+    id: narrationMasteringProfileSchema.shape.id,
+  });
+
+const narrationMasteringConfigSchema = z.strictObject({
+  profiles: z.array(narrationMasteringProfileSchema).min(1).superRefine((profiles, ctx) => {
+    const ids = profiles.map((profile) => profile.id);
+    if (new Set(ids).size !== ids.length) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Narration mastering profile ids must be unique.",
+      });
+    }
+  }),
+  defaultProfileByVariant: z.strictObject({
+    full: z.enum(["clean", "render-ready", "shorts", "full-length"]),
+    short: z.enum(["clean", "render-ready", "shorts", "full-length"]),
+  }),
+});
+
+const narrationMasteringConfigOverrideSchema = z.strictObject({
+  profiles: z.array(narrationMasteringProfileOverrideSchema).optional(),
+  defaultProfileByVariant: z
+    .strictObject({
+      full: z.enum(["clean", "render-ready", "shorts", "full-length"]).optional(),
+      short: z.enum(["clean", "render-ready", "shorts", "full-length"]).optional(),
+    })
+    .optional(),
+});
+
+const defaultNarrationMasteringConfig = narrationMasteringConfigSchema.parse({
+  profiles: [
+    {
+      id: "clean",
+      version: "mastering-clean-v1",
+      enabled: false,
+      sampleRate: 48_000,
+      codec: "pcm_s16le",
+      targetLoudnessLufs: -18,
+      truePeakLimitDb: -2,
+    },
+    {
+      id: "render-ready",
+      version: "mastering-render-ready-v1",
+      enabled: true,
+      sampleRate: 48_000,
+      codec: "pcm_s16le",
+      targetLoudnessLufs: -16,
+      truePeakLimitDb: -1.5,
+      highPassHz: 70,
+      correctiveEq: { frequencyHz: 250, gainDb: -1.5, width: 1.2 },
+      compression: { thresholdDb: -18, ratio: 1.6, attackMs: 12, releaseMs: 120 },
+      deEss: { enabled: false, frequencyHz: 6_500, width: 0.8, reductionDb: -1.5 },
+    },
+    {
+      id: "shorts",
+      version: "mastering-shorts-v1",
+      enabled: true,
+      sampleRate: 48_000,
+      codec: "pcm_s16le",
+      targetLoudnessLufs: -15,
+      truePeakLimitDb: -1.5,
+      highPassHz: 80,
+      correctiveEq: { frequencyHz: 220, gainDb: -1, width: 1 },
+      compression: { thresholdDb: -20, ratio: 1.8, attackMs: 10, releaseMs: 100 },
+      deEss: { enabled: true, frequencyHz: 6_500, width: 0.7, reductionDb: -1.5 },
+    },
+    {
+      id: "full-length",
+      version: "mastering-full-length-v1",
+      enabled: true,
+      sampleRate: 48_000,
+      codec: "pcm_s16le",
+      targetLoudnessLufs: -17,
+      truePeakLimitDb: -2,
+      highPassHz: 65,
+      correctiveEq: { frequencyHz: 260, gainDb: -1, width: 1.1 },
+      compression: { thresholdDb: -18, ratio: 1.4, attackMs: 15, releaseMs: 150 },
+      deEss: { enabled: false, frequencyHz: 6_500, width: 0.8, reductionDb: -1 },
+    },
+  ],
+  defaultProfileByVariant: {
+    full: "render-ready",
+    short: "shorts",
+  },
+});
+
 const defaultVisualRetentionConfig = visualRetentionConfigSchema.parse({
   pacingProfiles: {
     atmospheric: {
@@ -260,6 +382,10 @@ type VisualRetentionPacingProfilesOverride = NonNullable<
 type VisualRetentionProfile = VisualRetentionPacingProfiles["atmospheric"];
 type VisualRetentionProfileOverride =
   VisualRetentionPacingProfilesOverride["atmospheric"];
+type NarrationMasteringConfig = z.infer<typeof narrationMasteringConfigSchema>;
+type NarrationMasteringConfigOverride = z.infer<
+  typeof narrationMasteringConfigOverrideSchema
+>;
 
 function mergeVisualRetentionProfile(
   baseProfile: VisualRetentionProfile,
@@ -311,6 +437,31 @@ function mergeVisualRetentionConfig(
         };
 
   return visualRetentionConfigSchema.parse(merged);
+}
+
+function mergeNarrationMasteringConfig(
+  overrides: NarrationMasteringConfigOverride | undefined,
+  episodeOverrides: NarrationMasteringConfigOverride | undefined,
+): NarrationMasteringConfig {
+  const profileOverrides = [
+    ...(episodeOverrides?.profiles ?? []),
+    ...(overrides?.profiles ?? []),
+  ];
+  const profiles = defaultNarrationMasteringConfig.profiles.map((baseProfile) => {
+    const matchingOverrides = profileOverrides.filter((override) => override.id === baseProfile.id);
+    return matchingOverrides.reduce(
+      (current, override) => ({ ...current, ...override }),
+      baseProfile,
+    );
+  });
+  return narrationMasteringConfigSchema.parse({
+    profiles,
+    defaultProfileByVariant: {
+      ...defaultNarrationMasteringConfig.defaultProfileByVariant,
+      ...(episodeOverrides?.defaultProfileByVariant ?? {}),
+      ...(overrides?.defaultProfileByVariant ?? {}),
+    },
+  });
 }
 
 const configSchema = z.object({
@@ -408,10 +559,12 @@ const configSchema = z.object({
   localRenderConcurrency: z.number().int().positive().optional(),
   remoteRenderCleanupMaxAgeHours: z.number().int().positive(),
   visualRetention: visualRetentionConfigSchema,
+  narrationMastering: narrationMasteringConfigSchema,
 });
 export type RuntimeConfig = z.infer<typeof configSchema>;
 export const runtimeConfigOverridesSchema = configSchema.partial().extend({
   visualRetention: visualRetentionConfigOverrideSchema.optional(),
+  narrationMastering: narrationMasteringConfigOverrideSchema.optional(),
 });
 export type RuntimeConfigOverrides = z.infer<typeof runtimeConfigOverridesSchema>;
 export const episodeConfigSchema: z.ZodType<RuntimeConfigOverrides> =
@@ -992,6 +1145,10 @@ export async function loadRuntimeConfig(
     visualRetention: mergeVisualRetentionConfig(
       overrides.visualRetention,
       episodeOverrides.visualRetention,
+    ),
+    narrationMastering: mergeNarrationMasteringConfig(
+      overrides.narrationMastering,
+      episodeOverrides.narrationMastering,
     ),
   });
   return config;
