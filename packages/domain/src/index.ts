@@ -41,7 +41,7 @@ const nonNegativeFiniteNumberSchema = z.number().finite().nonnegative();
 const positiveFiniteNumberSchema = z.number().finite().positive();
 const nonNegativeIntegerSchema = z.number().int().nonnegative();
 const positiveIntegerSchema = z.number().int().positive();
-const aspectRatioSchema = z.enum(["16:9", "9:16"]);
+export const aspectRatioSchema = z.enum(["16:9", "9:16"]);
 const contentVariantSchema = z.enum(["full", "short"]);
 const sha256Schema = z.string().regex(sha256Pattern);
 
@@ -50,7 +50,7 @@ const normalizedPointSchema = z.object({
   y: normalizedUnitIntervalSchema,
 });
 
-const durationRangeSchema = z
+export const durationRangeSchema = z
   .object({
     minMs: nonNegativeIntegerSchema,
     maxMs: nonNegativeIntegerSchema,
