@@ -33,7 +33,7 @@ export interface StoryPipelineReadCliOptions {
 }
 
 interface StoryPipelineIo {
-  readonly stdout: Pick<NodeJS.WriteStream, "write">;
+  readonly stdout: Pick<typeof process.stdout, "write">;
 }
 
 function splitCsv(value: string | undefined): string[] | undefined {

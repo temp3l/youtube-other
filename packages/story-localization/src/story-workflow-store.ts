@@ -21,6 +21,7 @@ import { withFileLock } from "./story-localization-batch-storage.js";
 
 export type StoryWorkflowManifest = WorkflowManifest<ArtifactLineage>;
 export type StoryWorkflowOutcome = z.infer<typeof stageOutcomeSchema>;
+type ErrnoLike = Error & { code?: string };
 
 export class StoryWorkflowStoreError extends Error {
   readonly failure: StageFailure;
@@ -143,7 +144,7 @@ export class StoryWorkflowManifestStore {
     try {
       raw = await fs.readFile(manifestPath, "utf8");
     } catch (error) {
-      if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+      if ((error as ErrnoLike).code === "ENOENT") {
         return null;
       }
       throw normalizeStoreError(error);

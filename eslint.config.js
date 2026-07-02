@@ -16,10 +16,6 @@ export default [
     files: ["**/*.ts"],
     languageOptions: {
       parser: tseslint.parser,
-      parserOptions: {
-        projectService: true,
-        tsconfigRootDir: import.meta.dirname
-      },
       globals: {
         ...globals.node
       }
@@ -43,10 +39,6 @@ export default [
     files: ["**/*.test.ts", "**/*.integration.test.ts", "**/*.e2e.test.ts"],
     languageOptions: {
       parser: tseslint.parser,
-      parserOptions: {
-        projectService: false,
-        tsconfigRootDir: import.meta.dirname
-      },
       globals: {
         ...globals.node
       }
@@ -67,6 +59,26 @@ export default [
     }
   },
   {
-    ignores: ["**/dist/**", "**/coverage/**", "node_modules/**", "vitest.*.ts", "tools/whisper.cpp/**"]
+    ignores: [
+      "**/dist/**",
+      "**/coverage/**",
+      "node_modules/**",
+      "episodes/**/output/**",
+      "episodes/**/state/**",
+      "episodes/**/generated-assets/**",
+      "episodes/**/audio/**",
+      "episodes/**/video/**",
+      "episodes/**/images/**",
+      "episodes/**/transcripts/**",
+      "episodes/**/logs/**",
+      "audio/**",
+      "video/**",
+      "images/**",
+      "transcripts/**",
+      "logs/**",
+      "docs.bak/**",
+      "vitest.*.ts",
+      "tools/whisper.cpp/**"
+    ]
   }
 ];
