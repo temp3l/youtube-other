@@ -1,3 +1,10 @@
+# prompts
+
+- task docs/plans/visual-retention-shot-architecture/tasks/17-legacy-episode-migration.md was implemented
+- check if we should run any migration commands or should fill any caches
+- i dont want to re-generate any videos or images or sound assets from old episodes
+- but lets check if any of the images should be used to fill any caches
+
 ## prompts
 
 mkdir -p content-ideas/content/youtube-horror-rewrites/019-the-russian-sleep-experiment/en
