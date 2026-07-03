@@ -53,6 +53,7 @@ export {
   loadSpeechVoiceSettings,
   resolveSpeechVoiceInstructionPath,
   speechVoiceSettings,
+  DEFAULT_SPEECH_VOICE,
   type SpeechArtifactType,
   type SpeechVoicePreset,
 } from "./voice-settings.js";

@@ -671,7 +671,15 @@ function sanitizeFilename(fileName: string): string {
   return basename;
 }
 
-function validateFinalMetadata(metadata: YoutubeMetadata, expected: { readonly sceneCount: number; readonly durationSeconds: number; readonly language: string }): YoutubeMetadata {
+function validateFinalMetadata(
+  metadata: YoutubeMetadata,
+  expected: {
+    readonly sceneCount: number;
+    readonly durationSeconds: number;
+    readonly language: string;
+    readonly locale?: string | undefined;
+  }
+): YoutubeMetadata {
   const chapterBlock = buildChapterBlock(metadata);
   const chapters = splitChapterLines(metadata.chapters.text);
   const tags = parseTagsText(metadata.tags.text);

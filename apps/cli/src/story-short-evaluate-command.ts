@@ -6,8 +6,8 @@ import { normalizeLocaleCode, normalizeWhitespace } from "@mediaforge/shared";
 import {
   buildCanonicalEpisodeSlug,
   assessShortNarrationQuality,
-  shortRewriteArtifactSchema,
-  type ShortRewriteArtifact,
+  shortRewriteGenerationSchema,
+  type ShortRewriteJsonSidecar,
   type ShortNarrationQualitySummary,
   type StoryLanguage,
 } from "@mediaforge/story-localization";
@@ -31,7 +31,7 @@ interface StoryShortEvaluateReport {
   readonly selectedEventCount: number;
   readonly selectedEventIds: readonly string[];
   readonly selectedEventStatements: readonly string[];
-  readonly beatPlan: ShortRewriteArtifact["shortSourceExtraction"]["beatPlan"];
+  readonly beatPlan: ShortRewriteJsonSidecar["shortSourceExtraction"]["beatPlan"] | null;
   readonly eventDensity: number;
   readonly abstractCommentaryRatio: number;
   readonly visualizabilityRatio: number;
@@ -146,7 +146,7 @@ function normalizeExpectedDuration(
 }
 
 function buildReport(args: {
-  readonly artifact: ShortRewriteArtifact;
+  readonly artifact: ShortRewriteJsonSidecar;
   readonly sourceArtifactPath: string;
   readonly metadataPath: string;
   readonly language: StoryLanguage;
@@ -261,7 +261,7 @@ export function registerStoryShortEvaluateCommand(program: Command): void {
         "metadata.json"
       );
       const artifactRaw = await fs.readFile(artifactPath, "utf8");
-      const artifact = shortRewriteArtifactSchema.parse(JSON.parse(artifactRaw) as unknown);
+      const artifact = shortRewriteGenerationSchema.parse(JSON.parse(artifactRaw) as unknown);
       const report = buildReport({
         artifact,
         sourceArtifactPath: artifactPath,
