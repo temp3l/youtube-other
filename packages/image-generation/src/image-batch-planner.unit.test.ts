@@ -13,6 +13,7 @@ import { normalizeImageBatchManifest } from "./image-batch-normalization.js";
 import {
   ImageBatchPlannerError,
   planReferenceImageBatchForEpisode,
+  prepareFullSceneImageBatches,
   prepareImageBatchForEpisode,
   planImageBatchForEpisode,
 } from "./image-batch-planner.js";
@@ -132,6 +133,53 @@ async function writeSceneManifest(args: {
     await fs.mkdir(path.dirname(outputPath), { recursive: true });
     await fs.writeFile(outputPath, "png");
   }
+}
+
+async function writeCanonicalScenePlan(
+  episodeDir: string,
+  sceneIds: readonly string[]
+): Promise<void> {
+  await fs.mkdir(path.join(episodeDir, "canonical"), { recursive: true });
+  await fs.writeFile(
+    path.join(episodeDir, "canonical", "scenes.json"),
+    JSON.stringify({
+      sourceId: "001-demo",
+      scenes: sceneIds.map((sceneId, index) => ({
+        id: sceneId,
+        sequenceNumber: index + 1,
+        canonicalNarration: `Narration for ${sceneId}.`,
+        sourceSegmentIds: [`segment-${String(index + 1).padStart(3, "0")}`],
+        estimatedDurationSeconds: 4,
+        timing: { startSeconds: index * 4, endSeconds: index * 4 + 4 },
+        visualPurpose: "establish",
+        subject: `subject ${sceneId}`,
+        action: `action ${sceneId}`,
+        setting: `setting ${sceneId}`,
+        composition: "centered",
+        cameraFraming: "medium shot",
+        mood: "uneasy",
+        continuityReferences: [],
+        onScreenText: "",
+        negativeConstraints: [],
+        aspectRatios: ["16:9"],
+        imagePrompt: `Prompt for ${sceneId}.`,
+        expectedImageFilenames: [
+          `${sceneId}__${String(index * 4).padStart(6, "0")}-${String(index * 4 + 4).padStart(6, "0")}__16x9.png`,
+        ],
+        qualityStatus: "draft",
+      })),
+    }),
+    "utf8"
+  );
+}
+
+async function writeLocalizedScript(
+  episodeDir: string,
+  language: string
+): Promise<void> {
+  const localeDir = path.join(episodeDir, "locales", language, "full");
+  await fs.mkdir(localeDir, { recursive: true });
+  await fs.writeFile(path.join(localeDir, "script.md"), `# ${language}\n`, "utf8");
 }
 
 function makeCharacter(args: {
@@ -390,6 +438,7 @@ describe("image batch planner", () => {
     expect(referenceGroups[0]?.referencePlans[0]?.requestLine.url).toBe(
       "/v1/images/generations"
     );
+    expect(referenceGroups[0]?.storagePlan.localBatchId).toMatch(/^imgb-/u);
   });
 
   it("fails reference-assisted batch preparation instead of emitting an unproven edit JSONL shape", async () => {
@@ -834,6 +883,59 @@ describe("image batch planner", () => {
     expect(
       first[0]?.scenePlans.map((item) => item.job.identity.identityHash)
     ).toEqual(second[0]?.scenePlans.map((item) => item.job.identity.identityHash));
+    expect(first[0]?.storagePlan.localBatchId).toBe(second[0]?.storagePlan.localBatchId);
+  });
+
+  it("prepares full-scene batches through canonical resolvers for selected languages", async () => {
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), "image-batch-full-workflow-"));
+    const episodeDir = path.join(tempDir, "001-demo");
+    await writeCanonicalScenePlan(episodeDir, ["scene-001", "scene-002"]);
+    await writeLocalizedScript(episodeDir, "de");
+
+    const prepared = await prepareFullSceneImageBatches({
+      episodeDir,
+      episodeId: "001-demo",
+      languages: ["de-DE"],
+      variant: "full",
+      settings: {
+        model: "gpt-image-2",
+        requestedSize: "1920x1088",
+        quality: "medium",
+        outputFormat: "png",
+        maxRequestsPerBatch: 1,
+      },
+    });
+    const repeated = await prepareFullSceneImageBatches({
+      episodeDir,
+      episodeId: "001-demo",
+      languages: ["de-DE"],
+      variant: "full",
+      settings: {
+        model: "gpt-image-2",
+        requestedSize: "1920x1088",
+        quality: "medium",
+        outputFormat: "png",
+        maxRequestsPerBatch: 1,
+      },
+    });
+
+    expect(prepared.languages).toEqual(["de"]);
+    expect(prepared.groups).toHaveLength(3);
+    expect(prepared.groups.filter((group) => group.stageKind === "scene-images")).toHaveLength(2);
+    expect(prepared.groups.map((group) => group.storagePlan.localBatchId)).toEqual(
+      repeated.groups.map((group) => group.storagePlan.localBatchId)
+    );
+    expect(prepared.stagePreviews.map((stage) => stage.kind)).toEqual([
+      "reference-prompts",
+      "reference-images",
+      "reference-approval-validation",
+      "scene-prompts",
+      "scene-images",
+    ]);
+    const sceneGroups = prepared.groups.filter((group) => group.stageKind === "scene-images");
+    expect(sceneGroups.every((group) => group.scenePlans[0]?.job.identity.language === "de")).toBe(true);
+    expect(sceneGroups.map((group) => group.splitGroupIndex)).toEqual([0, 1]);
+    expect(sceneGroups.map((group) => group.splitGroupCount)).toEqual([2, 2]);
   });
 
   it("rejects duplicate identities, custom ids, and destination paths during normalization", () => {

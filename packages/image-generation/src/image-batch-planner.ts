@@ -1,13 +1,17 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import type { BatchCreateParams } from "openai/resources/batches";
+import { scenePlanSchema, type ScenePlan } from "@mediaforge/domain";
 import {
+  assertInsideWorkspace,
   fileExists,
   hashFile,
   hashText,
   normalizeContentVariant,
+  normalizeEpisodeId,
   normalizeLocaleCode,
   normalizeWhitespace,
+  createEpisodePathResolver,
   resolveEpisodeCharacterReferencePath,
   resolveEpisodeImageManifestPath,
   resolveEpisodeImageStateDir,
@@ -28,10 +32,14 @@ import type {
 } from "./image-batch.types.js";
 import {
   buildCharacterReferencePrompt,
+  buildMediaStageDependency,
   loadEpisodeCharacterRegistry,
   loadEpisodeSceneManifest,
+  mediaStageIdentitySchema,
+  planEpisodeImageGeneration,
   type CharacterDefinition,
   type CharacterRegistry,
+  type EpisodeImagePipelineSettings,
   type SceneGenerationManifest,
 } from "./episode-image-pipeline.js";
 import {
@@ -49,6 +57,7 @@ export interface ImageBatchPlannerSettings {
   readonly outputFormat: "png" | "jpeg" | "webp";
   readonly allowUnapprovedCharacterReferences?: boolean;
   readonly force?: boolean;
+  readonly maxRequestsPerBatch?: number;
 }
 
 export interface ImageBatchPlannerOptions {
@@ -118,6 +127,8 @@ export interface PlannedImageBatchScene {
 export interface PlannedImageBatchGroup {
   readonly groupKey: string;
   readonly stageKind: "reference-images" | "scene-images";
+  readonly splitGroupIndex: number;
+  readonly splitGroupCount: number;
   readonly outputDirectory: string;
   readonly storagePlan: ImageBatchStoragePlan;
   readonly referencePlans: readonly PlannedImageBatchReference[];
@@ -131,6 +142,12 @@ export interface PrepareImageBatchResult {
   readonly groups: readonly PlannedImageBatchGroup[];
   readonly stagePreviews: readonly ImageBatchStagePreview[];
   readonly writtenFiles: readonly string[];
+}
+
+export interface PreparedFullSceneBatchResult extends PrepareImageBatchResult {
+  readonly episodeId: string;
+  readonly variant: "full";
+  readonly languages: readonly string[];
 }
 
 export type ImageBatchStageKind =
@@ -212,6 +229,24 @@ function normalizePrompt(value: string): string {
   return normalizeWhitespace(value).trim();
 }
 
+function plannerSettingsForPipeline(
+  settings: ImageBatchPlannerSettings
+): EpisodeImagePipelineSettings {
+  return {
+    apiKey: "batch-prepare-only",
+    model: settings.model,
+    size: settings.requestedSize,
+    resolvedSize: settings.requestedSize,
+    quality: settings.quality,
+    concurrency: 1,
+    maxRetries: 0,
+    timeoutMs: 1_000,
+    allowUnapprovedCharacterReferences:
+      settings.allowUnapprovedCharacterReferences ?? false,
+    force: settings.force ?? false,
+  };
+}
+
 function buildStagePreview(args: {
   readonly kind: ImageBatchStageKind;
   readonly language: string;
@@ -236,6 +271,33 @@ function buildStagePreview(args: {
     quality: args.settings.quality,
     dependencyStageKinds: args.dependencyStageKinds,
   };
+}
+
+function deterministicLocalBatchId(args: {
+  readonly groupKey: string;
+  readonly splitGroupIndex: number;
+  readonly splitGroupCount: number;
+}): string {
+  return [
+    "imgb",
+    args.groupKey.slice(0, 12),
+    `p${String(args.splitGroupIndex + 1).padStart(3, "0")}`,
+    `of${String(args.splitGroupCount).padStart(3, "0")}`,
+  ].join("-");
+}
+
+function splitByLimit<T>(
+  items: readonly T[],
+  maxRequestsPerBatch: number | undefined
+): readonly (readonly T[])[] {
+  if (!maxRequestsPerBatch || maxRequestsPerBatch < 1 || items.length <= maxRequestsPerBatch) {
+    return [items];
+  }
+  const groups: T[][] = [];
+  for (let index = 0; index < items.length; index += maxRequestsPerBatch) {
+    groups.push(items.slice(index, index + maxRequestsPerBatch));
+  }
+  return groups;
 }
 
 async function readPromptText(
@@ -685,25 +747,47 @@ async function buildPlannedGroup(args: {
   readonly language: string;
   readonly variant: "full" | "short";
   readonly settings: ImageBatchPlannerSettings;
+  readonly splitGroupIndex: number;
+  readonly splitGroupCount: number;
   readonly endpoint?: "/v1/images/generations" | "/v1/images/edits";
   readonly referencePlans?: readonly PlannedImageBatchReference[];
   readonly scenePlans?: readonly PlannedImageBatchScene[];
   readonly skippedSceneIds?: readonly string[];
 }): Promise<PlannedImageBatchGroup> {
-  return {
-    groupKey: buildConfigurationHash({
-      stageKind: args.stageKind,
-      language: args.language,
-      variant: args.variant,
-      model: args.settings.model,
-      requestedSize: args.settings.requestedSize,
-      quality: args.settings.quality,
-      outputFormat: args.settings.outputFormat,
-      ...(args.endpoint ? { endpoint: args.endpoint } : {}),
-    }),
+  const groupKey = buildConfigurationHash({
     stageKind: args.stageKind,
+    language: args.language,
+    variant: args.variant,
+    model: args.settings.model,
+    requestedSize: args.settings.requestedSize,
+    quality: args.settings.quality,
+    outputFormat: args.settings.outputFormat,
+    ...(args.endpoint ? { endpoint: args.endpoint } : {}),
+  });
+  return {
+    groupKey,
+    stageKind: args.stageKind,
+    splitGroupIndex: args.splitGroupIndex,
+    splitGroupCount: args.splitGroupCount,
     outputDirectory: args.batchRoot,
-    storagePlan: await createImageBatchStoragePlan(args.batchRoot),
+    storagePlan: await createImageBatchStoragePlan(
+      args.batchRoot,
+      deterministicLocalBatchId({
+        groupKey: stableHash(
+          JSON.stringify({
+            groupKey,
+            splitGroupIndex: args.splitGroupIndex,
+            splitGroupCount: args.splitGroupCount,
+            customIds: [
+              ...(args.referencePlans ?? []).map((plan) => plan.requestLine.custom_id),
+              ...(args.scenePlans ?? []).map((plan) => plan.requestLine.custom_id),
+            ],
+          })
+        ),
+        splitGroupIndex: args.splitGroupIndex,
+        splitGroupCount: args.splitGroupCount,
+      })
+    ),
     referencePlans: args.referencePlans ?? [],
     scenePlans: args.scenePlans ?? [],
     skippedSceneIds: args.skippedSceneIds ?? [],
@@ -781,22 +865,32 @@ export async function planReferenceImageBatchForEpisode(args: {
         language,
         variant,
         settings: args.settings,
+        splitGroupIndex: 0,
+        splitGroupCount: 1,
         endpoint: imageGenerationBatchEndpoint,
       }),
     ];
   }
 
-  return [
-    await buildPlannedGroup({
-      batchRoot,
-      stageKind: "reference-images",
-      language,
-      variant,
-      settings: args.settings,
-      endpoint: imageGenerationBatchEndpoint,
-      referencePlans: plannedReferences,
-    }),
-  ];
+  const chunks = splitByLimit(
+    plannedReferences,
+    args.settings.maxRequestsPerBatch
+  );
+  return Promise.all(
+    chunks.map((chunk, index) =>
+      buildPlannedGroup({
+        batchRoot,
+        stageKind: "reference-images",
+        language,
+        variant,
+        settings: args.settings,
+        splitGroupIndex: index,
+        splitGroupCount: chunks.length,
+        endpoint: imageGenerationBatchEndpoint,
+        referencePlans: chunk,
+      })
+    )
+  );
 }
 
 export async function planImageBatchForEpisode(args: {
@@ -885,6 +979,8 @@ export async function planImageBatchForEpisode(args: {
         language,
         variant,
         settings: args.settings,
+        splitGroupIndex: 0,
+        splitGroupCount: 1,
         skippedSceneIds,
       }),
     ];
@@ -892,31 +988,48 @@ export async function planImageBatchForEpisode(args: {
 
   const groups: PlannedImageBatchGroup[] = [];
   if (generationPlans.length > 0) {
+    const generationChunks = splitByLimit(
+      generationPlans,
+      args.settings.maxRequestsPerBatch
+    );
     groups.push(
-      await buildPlannedGroup({
-        batchRoot,
-        stageKind: "scene-images",
-        language,
-        variant,
-        settings: args.settings,
-        endpoint: imageGenerationBatchEndpoint,
-        scenePlans: generationPlans,
-        skippedSceneIds,
-      })
+      ...(await Promise.all(
+        generationChunks.map((chunk, index) =>
+          buildPlannedGroup({
+            batchRoot,
+            stageKind: "scene-images",
+            language,
+            variant,
+            settings: args.settings,
+            splitGroupIndex: index,
+            splitGroupCount: generationChunks.length,
+            endpoint: imageGenerationBatchEndpoint,
+            scenePlans: chunk,
+            skippedSceneIds,
+          })
+        )
+      ))
     );
   }
   if (editPlans.length > 0) {
+    const editChunks = splitByLimit(editPlans, args.settings.maxRequestsPerBatch);
     groups.push(
-      await buildPlannedGroup({
-        batchRoot,
-        stageKind: "scene-images",
-        language,
-        variant,
-        settings: args.settings,
-        endpoint: imageEditBatchEndpoint,
-        scenePlans: editPlans,
-        skippedSceneIds,
-      })
+      ...(await Promise.all(
+        editChunks.map((chunk, index) =>
+          buildPlannedGroup({
+            batchRoot,
+            stageKind: "scene-images",
+            language,
+            variant,
+            settings: args.settings,
+            splitGroupIndex: index,
+            splitGroupCount: editChunks.length,
+            endpoint: imageEditBatchEndpoint,
+            scenePlans: chunk,
+            skippedSceneIds,
+          })
+        )
+      ))
     );
   }
   return groups;
@@ -1097,6 +1210,148 @@ export async function prepareImageBatchForEpisode(args: {
       settings: args.settings,
       groups,
     }),
+    writtenFiles,
+  };
+}
+
+async function loadCanonicalScenePlan(args: {
+  readonly episodeDir: string;
+  readonly episodeId: string;
+}): Promise<ScenePlan> {
+  const resolver = createEpisodePathResolver(path.dirname(args.episodeDir));
+  const canonicalScenesPath = resolver.canonicalScenesPath(
+    normalizeEpisodeId(args.episodeId)
+  );
+  const resolvedPath = assertInsideWorkspace(args.episodeDir, canonicalScenesPath);
+  if (!(await fileExists(resolvedPath))) {
+    throw new ImageBatchPlannerError({
+      code: "missing-scene-plan",
+      message: `Missing canonical scene plan for ${args.episodeId}.`,
+      details: { canonicalScenesPath: resolvedPath },
+    });
+  }
+  return scenePlanSchema.parse(
+    JSON.parse(await fs.readFile(resolvedPath, "utf8")) as unknown
+  );
+}
+
+export async function prepareFullSceneImageBatches(args: {
+  readonly episodeDir: string;
+  readonly episodeId: string;
+  readonly languages: readonly string[];
+  readonly variant: "full";
+  readonly settings: ImageBatchPlannerSettings;
+}): Promise<PreparedFullSceneBatchResult> {
+  const normalizedLanguages = [
+    ...new Set(args.languages.map((language) => normalizeLocaleCode(language))),
+  ].sort((left, right) => left.localeCompare(right));
+  const resolver = createEpisodePathResolver(path.dirname(args.episodeDir));
+  const episodeId = normalizeEpisodeId(args.episodeId);
+  const scenePlan = await loadCanonicalScenePlan({
+    episodeDir: args.episodeDir,
+    episodeId,
+  });
+  const allGroups: PlannedImageBatchGroup[] = [];
+  const allStagePreviews: ImageBatchStagePreview[] = [];
+  const writtenFiles: string[] = [];
+
+  for (const language of normalizedLanguages) {
+    const localizationPath = resolver.narrationScript({
+      episodeId,
+      locale: language,
+      variant: "full",
+    });
+    const resolvedLocalizationPath = assertInsideWorkspace(
+      args.episodeDir,
+      localizationPath
+    );
+    if (!(await fileExists(resolvedLocalizationPath))) {
+      throw new ImageBatchPlannerError({
+        code: "missing-localization",
+        message: `Missing localized full script for ${episodeId}:${language}.`,
+        details: { localizationPath: resolvedLocalizationPath, language },
+      });
+    }
+
+    await planEpisodeImageGeneration(
+      args.episodeDir,
+      episodeId,
+      scenePlan,
+      plannerSettingsForPipeline(args.settings),
+      {
+        context: {
+          identity: mediaStageIdentitySchema.parse({
+            episodeId,
+            language,
+            locale: language,
+            variant: "full",
+            owner: "image-plan",
+          }),
+          narration: buildMediaStageDependency({
+            owner: "narration",
+            episodeId,
+            language,
+            locale: language,
+            variant: "full",
+            fingerprint: hashText(`${episodeId}:narration:${language}:full`),
+            status: "ready",
+          }),
+        },
+      }
+    );
+
+    const preparedReferences = await prepareReferenceImageBatchForEpisode({
+      episodeDir: args.episodeDir,
+      episodeId,
+      settings: args.settings,
+      options: {
+        language,
+        variant: "full",
+      },
+    });
+    const prepared = await prepareImageBatchForEpisode({
+      episodeDir: args.episodeDir,
+      episodeId,
+      scenePlan,
+      settings: args.settings,
+      options: {
+        language,
+        variant: "full",
+      },
+    });
+    allGroups.push(...preparedReferences.groups);
+    allStagePreviews.push(...preparedReferences.stagePreviews);
+    writtenFiles.push(...preparedReferences.writtenFiles);
+    allGroups.push(...prepared.groups);
+    allStagePreviews.push(...prepared.stagePreviews);
+    writtenFiles.push(...prepared.writtenFiles);
+  }
+
+  validateUniquePlans(
+    allGroups.flatMap((group) =>
+      [
+        ...group.referencePlans.map((plan) => ({
+          customId: plan.requestLine.custom_id,
+          identityHash: plan.job.identity.identityHash,
+          expectedOutputPath: plan.job.expectedOutputPath,
+          subjectDescription: `${plan.job.identity.subject.kind}:${plan.job.identity.subject.id}:${plan.job.identity.language}`,
+        })),
+        ...group.scenePlans.map((plan) => ({
+          customId: plan.requestLine.custom_id,
+          identityHash: plan.job.identity.identityHash,
+          expectedOutputPath: plan.job.expectedOutputPath,
+          subjectDescription: `${plan.job.identity.subject.kind}:${plan.job.identity.subject.id}:${plan.job.identity.language}`,
+        })),
+      ]
+    )
+  );
+
+  return {
+    episodeId,
+    languages: normalizedLanguages,
+    variant: "full",
+    groups: allGroups,
+    stagePreviews: allStagePreviews,
     writtenFiles,
   };
 }
