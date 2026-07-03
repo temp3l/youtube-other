@@ -23,7 +23,12 @@ import {
   writeReviewPackage,
   writeScenePlanArtifacts,
 } from "@mediaforge/dark-truth";
-import { scenePlanSchema } from "@mediaforge/domain";
+import {
+  episodeIdSchema,
+  scenePlanSchema,
+  shotPlanSchema,
+  shotPlanValidationIssueSchema,
+} from "@mediaforge/domain";
 import {
   approveEpisodeCharacter,
   generateEpisodeImageReferences,
@@ -46,6 +51,7 @@ import {
 import {
   AuthoredScriptResolverError,
   ensureDir,
+  ensureWorkspacePath,
   fileExists,
   hashFile,
   hashText,
@@ -56,6 +62,10 @@ import {
   writeTextAtomic,
   type ResolvedAuthoredScript,
 } from "@mediaforge/shared";
+import {
+  validateShotPlanArtifactReferences,
+} from "@mediaforge/visual-planning";
+import { z } from "zod";
 import { commandImagesResume } from "./images-resume-command.js";
 import { registerEpisodeLayoutMigrationCommand } from "./episode-layout-migration-command.js";
 
@@ -107,6 +117,133 @@ export interface EpisodeSetupUseCaseInput {
 
 export interface EpisodeSetupUseCaseResult {
   readonly summary: Record<string, unknown>;
+}
+
+const hashSchema = z.string().regex(/^[a-f0-9]{64}$/iu);
+const validationVariantSchema = z.enum(["full", "short"]);
+const validationLanguageSchema = z.enum(["en", "de", "es", "fr"]);
+const sourceMetadataSchema = z
+  .object({
+    episodeId: z.string().min(1),
+    language: z.string().min(1),
+    variant: validationVariantSchema,
+    absolutePath: z.string().min(1),
+    canonicalRelativePath: z.string().min(1),
+    contentHash: hashSchema,
+    resolverVersion: z.string().min(1),
+    cacheIdentity: z.string().min(1),
+  })
+  .strict();
+const visualRetentionManifestSchema = z
+  .object({
+    sourceScenesPath: z.string().min(1),
+    focalMetadataPath: z.string().min(1),
+    shotPlanPath: z.string().min(1),
+    validationPath: z.string().min(1),
+  })
+  .passthrough();
+const generationManifestSchema = z
+  .object({
+    episodeId: z.string().min(1),
+    language: z.string().min(1),
+    artifactType: validationVariantSchema,
+    sourceSha256: hashSchema,
+    source: sourceMetadataSchema.optional(),
+    visualRetention: visualRetentionManifestSchema.optional(),
+  })
+  .passthrough();
+const episodeSummaryManifestSchema = z
+  .object({
+    episodeSlug: z.string().min(1),
+    language: z.string().min(1),
+    artifactType: validationVariantSchema,
+    currentArtifactPath: z.string().min(1),
+    source: sourceMetadataSchema.optional(),
+  })
+  .passthrough();
+const shotValidationArtifactSchema = z
+  .object({
+    schemaVersion: z.literal(1),
+    validationCode: z.literal("VALID"),
+    valid: z.boolean(),
+    issues: z.array(shotPlanValidationIssueSchema),
+    metrics: z.record(z.string(), z.unknown()),
+  })
+  .passthrough();
+
+type ParsedGenerationManifest = z.infer<typeof generationManifestSchema>;
+type ParsedEpisodeSummaryManifest = z.infer<typeof episodeSummaryManifestSchema>;
+type ParsedShotValidationArtifact = z.infer<typeof shotValidationArtifactSchema>;
+
+export type EpisodeValidationCode =
+  | "VALID"
+  | "INVALID_REQUEST"
+  | "EPISODE_NOT_FOUND"
+  | "MISSING_SOURCE"
+  | "LEGACY_FALLBACK_ATTEMPT"
+  | "SOURCE_RESOLUTION_FAILED"
+  | "PATH_ESCAPE"
+  | "MISSING_ARTIFACT"
+  | "INVALID_SCHEMA"
+  | "WRONG_LANGUAGE"
+  | "WRONG_VARIANT"
+  | "WRONG_EPISODE"
+  | "ARTIFACT_MISMATCH"
+  | "SOURCE_IDENTITY_MISSING"
+  | "STALE_SOURCE_IDENTITY"
+  | "BROKEN_REFERENCE"
+  | "VISUAL_RETENTION_INVALID";
+
+type EpisodeValidationArtifactType =
+  | "authored-source"
+  | "summary-manifest"
+  | "generation-manifest"
+  | "visual-retention-manifest"
+  | "visual-source-scenes"
+  | "focal-metadata"
+  | "shot-plan"
+  | "shot-validation";
+
+export type EpisodeValidationResult =
+  | {
+      readonly state: "valid";
+      readonly validationCode: "VALID";
+      readonly artifactType: EpisodeValidationArtifactType;
+      readonly message: string;
+      readonly relativePath?: string;
+      readonly contentHash?: string;
+      readonly resolverVersion?: string;
+      readonly cacheIdentity?: string;
+    }
+  | {
+      readonly state: "invalid";
+      readonly validationCode: Exclude<EpisodeValidationCode, "VALID">;
+      readonly artifactType: EpisodeValidationArtifactType;
+      readonly message: string;
+      readonly relativePath?: string;
+      readonly contentHash?: string;
+      readonly resolverVersion?: string;
+      readonly cacheIdentity?: string;
+      readonly expected?: string;
+      readonly actual?: string;
+    };
+
+export interface EpisodeValidationReport {
+  readonly schemaVersion: 1;
+  readonly status: "valid" | "invalid";
+  readonly valid: boolean;
+  readonly episodeSlug: string;
+  readonly language: SupportedLanguage;
+  readonly variant: ArtifactType;
+  readonly outputRoot: string;
+  readonly source?: EpisodeSourceMetadata;
+  readonly artifacts: {
+    readonly summaryManifestPath: string;
+    readonly generationManifestPath: string;
+    readonly shotPlanPath: string;
+    readonly shotValidationPath: string;
+  };
+  readonly results: readonly EpisodeValidationResult[];
 }
 
 function setupInputFromOptions(
@@ -1375,10 +1512,690 @@ export async function commandEpisodeBootstrapCharacters(
   );
 }
 
+function validResult(
+  input: Omit<EpisodeValidationResult & { readonly state: "valid" }, "state" | "validationCode">
+): EpisodeValidationResult {
+  return {
+    state: "valid",
+    validationCode: "VALID",
+    ...input,
+  };
+}
+
+function invalidResult(
+  input: Omit<EpisodeValidationResult & { readonly state: "invalid" }, "state">
+): EpisodeValidationResult {
+  return {
+    state: "invalid",
+    ...input,
+  };
+}
+
+function normalizeValidationLanguage(
+  value: unknown
+): SupportedLanguage | null {
+  const parsed = validationLanguageSchema.safeParse(value ?? "en");
+  return parsed.success ? parsed.data : null;
+}
+
+function normalizeValidationVariant(value: unknown): ArtifactType | null {
+  const parsed = validationVariantSchema.safeParse(value ?? "full");
+  return parsed.success ? parsed.data : null;
+}
+
+function pathRelativeTo(root: string, filePath: string): string {
+  return path.relative(root, path.resolve(filePath)).replace(/\\/gu, "/");
+}
+
+function containedPathResult(args: {
+  readonly root: string;
+  readonly filePath: string;
+  readonly artifactType: EpisodeValidationArtifactType;
+  readonly label: string;
+}):
+  | { readonly contained: true; readonly path: string; readonly relativePath: string }
+  | { readonly contained: false; readonly result: EpisodeValidationResult } {
+  try {
+    const contained = path.resolve(args.root, ensureWorkspacePath(args.root, args.filePath));
+    return {
+      contained: true,
+      path: contained,
+      relativePath: pathRelativeTo(args.root, contained),
+    };
+  } catch (error) {
+    return {
+      contained: false,
+      result: invalidResult({
+        validationCode: "PATH_ESCAPE",
+        artifactType: args.artifactType,
+        message: `${args.label} escapes the episode root.`,
+        actual: args.filePath,
+      }),
+    };
+  }
+}
+
+async function parseJsonArtifact<T>(
+  filePath: string,
+  parser: (value: unknown) => T
+): Promise<
+  | { readonly status: "missing" }
+  | { readonly status: "invalid"; readonly message: string }
+  | { readonly status: "valid"; readonly data: T }
+> {
+  let raw: string;
+  try {
+    raw = await fs.readFile(filePath, "utf8");
+  } catch (error) {
+    if (error instanceof Error && "code" in error && error.code === "ENOENT") {
+      return { status: "missing" };
+    }
+    return {
+      status: "invalid",
+      message: error instanceof Error ? error.message : String(error),
+    };
+  }
+  let json: unknown;
+  try {
+    json = JSON.parse(raw) as unknown;
+  } catch (error) {
+    return {
+      status: "invalid",
+      message: error instanceof Error ? error.message : String(error),
+    };
+  }
+  try {
+    return { status: "valid", data: parser(json) };
+  } catch (error) {
+    return {
+      status: "invalid",
+      message: error instanceof Error ? error.message : String(error),
+    };
+  }
+}
+
+function expectedShotSourceIdentity(source: ResolvedEpisodeLanguageSource) {
+  return {
+    resolverVersion: source.resolverVersion,
+    episodeId: episodeIdSchema.parse(source.episodeId),
+    language: source.language,
+    variant: source.variant,
+    relativePath: source.relativePath,
+    contentHash: source.contentHash,
+    cacheIdentity: source.cacheIdentity,
+  };
+}
+
+function pushSourceIdentityResults(args: {
+  readonly results: EpisodeValidationResult[];
+  readonly artifactType: EpisodeValidationArtifactType;
+  readonly source: ResolvedEpisodeLanguageSource;
+  readonly actual?: z.infer<typeof sourceMetadataSchema>;
+}): void {
+  if (!args.actual) {
+    args.results.push(
+      invalidResult({
+        validationCode: "SOURCE_IDENTITY_MISSING",
+        artifactType: args.artifactType,
+        message: "Artifact does not record the authored source resolver identity.",
+        relativePath: args.source.relativePath,
+        contentHash: args.source.contentHash,
+        resolverVersion: args.source.resolverVersion,
+        cacheIdentity: args.source.cacheIdentity,
+      })
+    );
+    return;
+  }
+  const mismatches = [
+    ["episodeId", args.source.episodeId, args.actual.episodeId],
+    ["language", args.source.language, args.actual.language],
+    ["variant", args.source.variant, args.actual.variant],
+    ["canonicalRelativePath", args.source.relativePath, args.actual.canonicalRelativePath],
+    ["contentHash", args.source.contentHash, args.actual.contentHash],
+    ["resolverVersion", args.source.resolverVersion, args.actual.resolverVersion],
+    ["cacheIdentity", args.source.cacheIdentity, args.actual.cacheIdentity],
+  ].filter(([, expected, actual]) => expected !== actual);
+  if (mismatches.length > 0) {
+    const [field, expected, actual] = mismatches[0]!;
+    args.results.push(
+      invalidResult({
+        validationCode: "STALE_SOURCE_IDENTITY",
+        artifactType: args.artifactType,
+        message: `Artifact source identity field ${field} is stale.`,
+        relativePath: args.actual.canonicalRelativePath,
+        contentHash: args.actual.contentHash,
+        resolverVersion: args.actual.resolverVersion,
+        cacheIdentity: args.actual.cacheIdentity,
+        expected: String(expected),
+        actual: String(actual),
+      })
+    );
+    return;
+  }
+  args.results.push(
+    validResult({
+      artifactType: args.artifactType,
+      message: "Artifact source identity matches the authored script resolver.",
+      relativePath: args.source.relativePath,
+      contentHash: args.source.contentHash,
+      resolverVersion: args.source.resolverVersion,
+      cacheIdentity: args.source.cacheIdentity,
+    })
+  );
+}
+
+function pushExpectedManifestFields(args: {
+  readonly results: EpisodeValidationResult[];
+  readonly artifactType: EpisodeValidationArtifactType;
+  readonly relativePath: string;
+  readonly episodeSlug: string;
+  readonly language: SupportedLanguage;
+  readonly variant: ArtifactType;
+  readonly actualEpisodeSlug: string;
+  readonly actualLanguage: string;
+  readonly actualVariant: ArtifactType;
+}): void {
+  if (args.actualEpisodeSlug !== args.episodeSlug) {
+    args.results.push(
+      invalidResult({
+        validationCode: "WRONG_EPISODE",
+        artifactType: args.artifactType,
+        message: "Artifact belongs to a different episode.",
+        relativePath: args.relativePath,
+        expected: args.episodeSlug,
+        actual: args.actualEpisodeSlug,
+      })
+    );
+  }
+  if (args.actualLanguage !== args.language) {
+    args.results.push(
+      invalidResult({
+        validationCode: "WRONG_LANGUAGE",
+        artifactType: args.artifactType,
+        message: "Artifact language does not match the requested language.",
+        relativePath: args.relativePath,
+        expected: args.language,
+        actual: args.actualLanguage,
+      })
+    );
+  }
+  if (args.actualVariant !== args.variant) {
+    args.results.push(
+      invalidResult({
+        validationCode: "WRONG_VARIANT",
+        artifactType: args.artifactType,
+        message: "Artifact variant does not match the requested variant.",
+        relativePath: args.relativePath,
+        expected: args.variant,
+        actual: args.actualVariant,
+      })
+    );
+  }
+}
+
+async function pushParsedArtifact<T>(args: {
+  readonly results: EpisodeValidationResult[];
+  readonly filePath: string;
+  readonly root: string;
+  readonly artifactType: EpisodeValidationArtifactType;
+  readonly parser: (value: unknown) => T;
+  readonly missingMessage: string;
+}): Promise<T | null> {
+  const relativePath = pathRelativeTo(args.root, args.filePath);
+  const parsed = await parseJsonArtifact(args.filePath, args.parser);
+  if (parsed.status === "missing") {
+    args.results.push(
+      invalidResult({
+        validationCode: "MISSING_ARTIFACT",
+        artifactType: args.artifactType,
+        message: args.missingMessage,
+        relativePath,
+      })
+    );
+    return null;
+  }
+  if (parsed.status === "invalid") {
+    args.results.push(
+      invalidResult({
+        validationCode: "INVALID_SCHEMA",
+        artifactType: args.artifactType,
+        message: parsed.message,
+        relativePath,
+      })
+    );
+    return null;
+  }
+  args.results.push(
+    validResult({
+      artifactType: args.artifactType,
+      message: "Artifact exists and matches the package-local schema.",
+      relativePath,
+    })
+  );
+  return parsed.data;
+}
+
+async function pushVisualRetentionResults(args: {
+  readonly results: EpisodeValidationResult[];
+  readonly episodeDir: string;
+  readonly expectedSource?: ResolvedEpisodeLanguageSource;
+  readonly generationManifest: ParsedGenerationManifest;
+  readonly language: SupportedLanguage;
+  readonly variant: ArtifactType;
+}): Promise<void> {
+  const manifest = args.generationManifest.visualRetention;
+  if (!manifest) {
+    args.results.push(
+      invalidResult({
+        validationCode: "MISSING_ARTIFACT",
+        artifactType: "visual-retention-manifest",
+        message: "Generation manifest does not reference visual-retention artifacts.",
+      })
+    );
+    return;
+  }
+  args.results.push(
+    validResult({
+      artifactType: "visual-retention-manifest",
+      message: "Generation manifest references visual-retention artifacts.",
+    })
+  );
+
+  for (const [artifactType, filePath] of [
+    ["visual-source-scenes", manifest.sourceScenesPath],
+    ["focal-metadata", manifest.focalMetadataPath],
+    ["shot-plan", manifest.shotPlanPath],
+    ["shot-validation", manifest.validationPath],
+  ] as const) {
+    const contained = containedPathResult({
+      root: args.episodeDir,
+      filePath,
+      artifactType,
+      label: artifactType,
+    });
+    if (!contained.contained) {
+      args.results.push(contained.result);
+      continue;
+    }
+    if (!(await fileExists(contained.path))) {
+      args.results.push(
+        invalidResult({
+          validationCode: "MISSING_ARTIFACT",
+          artifactType,
+          message: "Required visual-retention artifact is missing.",
+          relativePath: contained.relativePath,
+        })
+      );
+    }
+  }
+
+  const shotPlan = await pushParsedArtifact({
+    results: args.results,
+    filePath: manifest.shotPlanPath,
+    root: args.episodeDir,
+    artifactType: "shot-plan",
+    parser: (value) => shotPlanSchema.parse(value),
+    missingMessage: "Missing shot-plan artifact.",
+  });
+  if (shotPlan) {
+    if (shotPlan.locale !== undefined && shotPlan.locale !== args.language) {
+      args.results.push(
+        invalidResult({
+          validationCode: "WRONG_LANGUAGE",
+          artifactType: "shot-plan",
+          message: "Shot-plan locale does not match the requested language.",
+          relativePath: pathRelativeTo(args.episodeDir, manifest.shotPlanPath),
+          expected: args.language,
+          actual: shotPlan.locale,
+        })
+      );
+    }
+    if (shotPlan.variant !== args.variant) {
+      args.results.push(
+        invalidResult({
+          validationCode: "WRONG_VARIANT",
+          artifactType: "shot-plan",
+          message: "Shot-plan variant does not match the requested variant.",
+          relativePath: pathRelativeTo(args.episodeDir, manifest.shotPlanPath),
+          expected: args.variant,
+          actual: shotPlan.variant,
+        })
+      );
+    }
+    const referenceValidation = await validateShotPlanArtifactReferences({
+      shotPlan,
+      episodeWorkspace: args.episodeDir,
+      artifactPath: manifest.shotPlanPath,
+      ...(args.expectedSource
+        ? { expectedSourceIdentity: expectedShotSourceIdentity(args.expectedSource) }
+        : {}),
+    });
+    if (referenceValidation.validationCode === "VALID") {
+      args.results.push(
+        validResult({
+          artifactType: "shot-plan",
+          message: "Shot-plan references are root-contained and source-current.",
+          relativePath: pathRelativeTo(args.episodeDir, manifest.shotPlanPath),
+        })
+      );
+    } else {
+      const validationCode: Exclude<EpisodeValidationCode, "VALID"> =
+        referenceValidation.validationCode === "STALE_SOURCE_IDENTITY"
+          ? "STALE_SOURCE_IDENTITY"
+          : referenceValidation.message.includes("escapes")
+            ? "PATH_ESCAPE"
+            : "BROKEN_REFERENCE";
+      args.results.push(
+        invalidResult({
+          validationCode,
+          artifactType: "shot-plan",
+          message: referenceValidation.message,
+          ...(referenceValidation.validationCode === "BROKEN_REFERENCE" &&
+          referenceValidation.relativePath
+            ? { relativePath: referenceValidation.relativePath }
+            : { relativePath: pathRelativeTo(args.episodeDir, manifest.shotPlanPath) }),
+        })
+      );
+    }
+  }
+
+  const shotValidation = await pushParsedArtifact<ParsedShotValidationArtifact>({
+    results: args.results,
+    filePath: manifest.validationPath,
+    root: args.episodeDir,
+    artifactType: "shot-validation",
+    parser: (value) => shotValidationArtifactSchema.parse(value),
+    missingMessage: "Missing shot validation artifact.",
+  });
+  if (shotValidation && !shotValidation.valid) {
+    args.results.push(
+      invalidResult({
+        validationCode: "VISUAL_RETENTION_INVALID",
+        artifactType: "shot-validation",
+        message: "Visual-retention shot validation artifact is not valid.",
+        relativePath: pathRelativeTo(args.episodeDir, manifest.validationPath),
+      })
+    );
+  }
+}
+
+async function buildEpisodeValidationReport(
+  options: EpisodeCommandOptions
+): Promise<EpisodeValidationReport> {
+  const language = normalizeValidationLanguage(options.language);
+  const variant = normalizeValidationVariant(options.artifact);
+  const outputRoot = resolveOutputRoot(options);
+  const sourceRoot = resolveSourceRoot(options);
+  const requestedEpisode = resolveEpisodeFilter(options) ?? "unknown";
+  const results: EpisodeValidationResult[] = [];
+
+  if (!language || !variant) {
+    const safeLanguage = language ?? "en";
+    const safeVariant = variant ?? "full";
+    results.push(
+      invalidResult({
+        validationCode: "INVALID_REQUEST",
+        artifactType: "authored-source",
+        message: "Unsupported language or artifact variant.",
+        expected: "language en|de|es|fr and artifact full|short",
+        actual: `${String(options.language ?? "en")} ${String(options.artifact ?? "full")}`,
+      })
+    );
+    return {
+      schemaVersion: 1,
+      status: "invalid",
+      valid: false,
+      episodeSlug: requestedEpisode,
+      language: safeLanguage,
+      variant: safeVariant,
+      outputRoot,
+      artifacts: {
+        summaryManifestPath: "",
+        generationManifestPath: "",
+        shotPlanPath: "",
+        shotValidationPath: "",
+      },
+      results,
+    };
+  }
+
+  const discoveries = filterDiscoveries(
+    await discoverEpisodeSources(sourceRoot),
+    resolveEpisodeFilter(options)
+  );
+  const selected = discoveries[0];
+  if (!selected) {
+    results.push(
+      invalidResult({
+        validationCode: "EPISODE_NOT_FOUND",
+        artifactType: "authored-source",
+        message: `No episode found under ${sourceRoot}.`,
+      })
+    );
+    return {
+      schemaVersion: 1,
+      status: "invalid",
+      valid: false,
+      episodeSlug: requestedEpisode,
+      language,
+      variant,
+      outputRoot,
+      artifacts: {
+        summaryManifestPath: "",
+        generationManifestPath: "",
+        shotPlanPath: "",
+        shotValidationPath: "",
+      },
+      results,
+    };
+  }
+
+  const episodeDir = path.join(outputRoot, selected.slug);
+  const summaryManifestPath = path.join(
+    episodeDir,
+    "manifests",
+    `${language}-${variant}.json`
+  );
+  const generationManifestPath = path.join(
+    episodeDir,
+    language,
+    variant,
+    "generation-manifest.json"
+  );
+  const shotPlanPath = path.join(
+    episodeDir,
+    "state",
+    "visual-retention",
+    `shot-plan.${variant}.${language}.json`
+  );
+  const shotValidationPath = path.join(
+    episodeDir,
+    "state",
+    "visual-retention",
+    `validation.${variant}.${language}.json`
+  );
+
+  let resolvedSource: ResolvedEpisodeLanguageSource | undefined;
+  try {
+    resolvedSource = await resolveEpisodeLanguageSource(
+      outputRoot,
+      selected,
+      language,
+      variant
+    );
+    results.push(
+      validResult({
+        artifactType: "authored-source",
+        message: "Canonical authored source resolved.",
+        relativePath: resolvedSource.relativePath,
+        contentHash: resolvedSource.contentHash,
+        resolverVersion: resolvedSource.resolverVersion,
+        cacheIdentity: resolvedSource.cacheIdentity,
+      })
+    );
+  } catch (error) {
+    if (error instanceof AuthoredScriptResolverError) {
+      const validationCode: Exclude<EpisodeValidationCode, "VALID"> =
+        error.code === "MISSING_SCRIPT"
+          ? "MISSING_SOURCE"
+          : error.code === "STALE_LAYOUT"
+            ? "LEGACY_FALLBACK_ATTEMPT"
+            : error.code === "PATH_ESCAPE"
+              ? "PATH_ESCAPE"
+              : "SOURCE_RESOLUTION_FAILED";
+      results.push(
+        invalidResult({
+          validationCode,
+          artifactType: "authored-source",
+          message: error.message,
+          ...(error.details.canonicalRelativePath
+            ? { relativePath: error.details.canonicalRelativePath }
+            : {}),
+        })
+      );
+    } else {
+      results.push(
+        invalidResult({
+          validationCode: "SOURCE_RESOLUTION_FAILED",
+          artifactType: "authored-source",
+          message: error instanceof Error ? error.message : String(error),
+        })
+      );
+    }
+  }
+
+  const summaryManifest = await pushParsedArtifact<ParsedEpisodeSummaryManifest>({
+    results,
+    filePath: summaryManifestPath,
+    root: episodeDir,
+    artifactType: "summary-manifest",
+    parser: (value) => episodeSummaryManifestSchema.parse(value),
+    missingMessage: "Missing episode summary manifest.",
+  });
+  if (summaryManifest) {
+    const relativePath = pathRelativeTo(episodeDir, summaryManifestPath);
+    pushExpectedManifestFields({
+      results,
+      artifactType: "summary-manifest",
+      relativePath,
+      episodeSlug: selected.slug,
+      language,
+      variant,
+      actualEpisodeSlug: summaryManifest.episodeSlug,
+      actualLanguage: summaryManifest.language,
+      actualVariant: summaryManifest.artifactType,
+    });
+    const contained = containedPathResult({
+      root: episodeDir,
+      filePath: summaryManifest.currentArtifactPath,
+      artifactType: "summary-manifest",
+      label: "summary manifest current artifact path",
+    });
+    if (!contained.contained) {
+      results.push(contained.result);
+    } else if (contained.path !== path.resolve(generationManifestPath)) {
+      results.push(
+        invalidResult({
+          validationCode: "ARTIFACT_MISMATCH",
+          artifactType: "summary-manifest",
+          message: "Summary manifest points at a different generation artifact.",
+          relativePath,
+          expected: pathRelativeTo(episodeDir, generationManifestPath),
+          actual: contained.relativePath,
+        })
+      );
+    }
+    if (resolvedSource) {
+      pushSourceIdentityResults({
+        results,
+        artifactType: "summary-manifest",
+        source: resolvedSource,
+        ...(summaryManifest.source ? { actual: summaryManifest.source } : {}),
+      });
+    }
+  }
+
+  const generationManifest = await pushParsedArtifact<ParsedGenerationManifest>({
+    results,
+    filePath: generationManifestPath,
+    root: episodeDir,
+    artifactType: "generation-manifest",
+    parser: (value) => generationManifestSchema.parse(value),
+    missingMessage: "Missing generation manifest.",
+  });
+  if (generationManifest) {
+    const relativePath = pathRelativeTo(episodeDir, generationManifestPath);
+    pushExpectedManifestFields({
+      results,
+      artifactType: "generation-manifest",
+      relativePath,
+      episodeSlug: selected.slug,
+      language,
+      variant,
+      actualEpisodeSlug: generationManifest.episodeId,
+      actualLanguage: generationManifest.language,
+      actualVariant: generationManifest.artifactType,
+    });
+    if (resolvedSource) {
+      pushSourceIdentityResults({
+        results,
+        artifactType: "generation-manifest",
+        source: resolvedSource,
+        ...(generationManifest.source ? { actual: generationManifest.source } : {}),
+      });
+      if (generationManifest.sourceSha256 !== resolvedSource.contentHash) {
+        results.push(
+          invalidResult({
+            validationCode: "STALE_SOURCE_IDENTITY",
+            artifactType: "generation-manifest",
+            message: "Generation manifest source hash does not match the authored source.",
+            relativePath,
+            expected: resolvedSource.contentHash,
+            actual: generationManifest.sourceSha256,
+          })
+        );
+      }
+    }
+    await pushVisualRetentionResults({
+      results,
+      episodeDir,
+      ...(resolvedSource ? { expectedSource: resolvedSource } : {}),
+      generationManifest,
+      language,
+      variant,
+    });
+  }
+
+  const status = results.some((result) => result.state === "invalid")
+    ? "invalid"
+    : "valid";
+  return {
+    schemaVersion: 1,
+    status,
+    valid: status === "valid",
+    episodeSlug: selected.slug,
+    language,
+    variant,
+    outputRoot,
+    ...(resolvedSource ? { source: sourceMetadata(resolvedSource) } : {}),
+    artifacts: {
+      summaryManifestPath,
+      generationManifestPath,
+      shotPlanPath,
+      shotValidationPath,
+    },
+    results,
+  };
+}
+
 export async function commandEpisodeValidate(
   options: EpisodeCommandOptions
 ): Promise<void> {
-  await commandEpisodeDryRun({ ...options, dryRun: true });
+  const report = await buildEpisodeValidationReport(options);
+  process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
+  if (!report.valid) {
+    process.exitCode = 1;
+  }
 }
 
 export async function commandEpisodeReviewPrepare(
@@ -1665,6 +2482,7 @@ export function registerEpisodeCommands(program: Command): void {
     .option("--language <en|de|es|fr>", "language")
     .option("--artifact <full|short>", "artifact type", "full")
     .option("--output-root <path>", "output root")
+    .option("--json", "emit JSON")
     .action(async (opts: EpisodeCommandOptions) =>
       commandEpisodeValidate(mergeEpisodeCommandOptions(program, opts))
     );
