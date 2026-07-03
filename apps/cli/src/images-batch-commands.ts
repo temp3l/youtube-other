@@ -1,3 +1,4 @@
+import path from "node:path";
 import { Command } from "commander";
 import { loadRuntimeConfig } from "@mediaforge/config";
 import {
@@ -119,6 +120,7 @@ function createClient(
 
 function summarizeManifest(
   manifest: ImageBatchManifest,
+  episodeDir: string,
   args?: {
     readonly outcome?: "imported" | "imported_with_failures" | "non_terminal";
     readonly providerStatus?: ImageBatchStatus;
@@ -150,8 +152,10 @@ function summarizeManifest(
     }
     return category !== "policy" && category !== "policy-rejection" && category !== "destination-conflict";
   }).length;
+  const resolver = createEpisodePathResolver(path.dirname(episodeDir));
+  const episodeId = manifest.items[0]?.identity.episodeId ?? "unknown";
   return {
-    episode: manifest.items[0]?.identity.episodeId ?? "unknown",
+    episode: episodeId,
     languages,
     variants,
     stages,
@@ -173,15 +177,33 @@ function summarizeManifest(
     providerStatus: args?.providerStatus ?? manifest.status,
     unknownResultCount: args?.unknownResultCount ?? 0,
     duplicateResultCount: args?.duplicateResultCount ?? 0,
+    paths: episodeId === "unknown"
+      ? undefined
+      : {
+          batchManifestsDir: resolver.imageBatchManifestsDir(normalizeEpisodeId(episodeId)),
+          batchInputsDir: resolver.imageBatchInputsDir(normalizeEpisodeId(episodeId)),
+          batchResultsDir: resolver.imageBatchResultsDir(normalizeEpisodeId(episodeId)),
+          batchErrorsDir: resolver.imageBatchErrorsDir(normalizeEpisodeId(episodeId)),
+          batchReportsDir: resolver.imageBatchReportsDir(normalizeEpisodeId(episodeId)),
+          fullImagesDir: resolver.sharedGeneratedImagesDir(normalizeEpisodeId(episodeId)),
+          shortImagesDir: resolver.sharedShortGeneratedImagesDir(normalizeEpisodeId(episodeId)),
+          characterReferencesDir:
+            resolver.sharedCharacterReferencesDir(normalizeEpisodeId(episodeId)),
+          shortsImageManifest:
+            resolver.shortsImageManifest(normalizeEpisodeId(episodeId)),
+        },
   };
 }
 
 function summarizePrepared(
   result:
     | Awaited<ReturnType<typeof prepareFullSceneImageBatches>>
-    | Awaited<ReturnType<typeof prepareShortSceneImageBatches>>
+    | Awaited<ReturnType<typeof prepareShortSceneImageBatches>>,
+  episodeDir: string
 ) {
   const localBatchIds = result.groups.map((group) => group.storagePlan.localBatchId);
+  const resolver = createEpisodePathResolver(path.dirname(episodeDir));
+  const episodeId = normalizeEpisodeId(result.episodeId);
   const summary = {
     episode: result.episodeId,
     languages: result.languages,
@@ -218,6 +240,17 @@ function summarizePrepared(
       model: result.stagePreviews[0]?.model ?? null,
       size: result.stagePreviews[0]?.size ?? null,
       quality: result.stagePreviews[0]?.quality ?? null,
+    },
+    paths: {
+      batchManifestsDir: resolver.imageBatchManifestsDir(episodeId),
+      batchInputsDir: resolver.imageBatchInputsDir(episodeId),
+      batchResultsDir: resolver.imageBatchResultsDir(episodeId),
+      batchErrorsDir: resolver.imageBatchErrorsDir(episodeId),
+      batchReportsDir: resolver.imageBatchReportsDir(episodeId),
+      fullImagesDir: resolver.sharedGeneratedImagesDir(episodeId),
+      shortImagesDir: resolver.sharedShortGeneratedImagesDir(episodeId),
+      characterReferencesDir: resolver.sharedCharacterReferencesDir(episodeId),
+      shortsImageManifest: resolver.shortsImageManifest(episodeId),
     },
   };
   if (result.variant === "short") {
@@ -305,7 +338,7 @@ export function createImagesBatchCommandHandlers(
               variant,
               settings: plannerSettings,
             });
-      const summary = summarizePrepared(prepared);
+      const summary = summarizePrepared(prepared, episodeDir);
       if (options.json) {
         printJson(summary);
         return;
@@ -317,11 +350,11 @@ export function createImagesBatchCommandHandlers(
       if (!options.batch) {
         throw new Error("--batch is required");
       }
-      const { outputDirectory } = await resolveEpisodeRuntime(deps, options);
+      const { episodeDir, outputDirectory } = await resolveEpisodeRuntime(deps, options);
       const client = createClient(deps, options);
       await deps.submitImageBatch(outputDirectory, options.batch, client);
       const resolved = await deps.resolveImageBatchManifest(outputDirectory, options.batch);
-      const summary = summarizeManifest(resolved.manifest);
+      const summary = summarizeManifest(resolved.manifest, episodeDir);
       if (options.json) {
         printJson(summary);
         return;
@@ -333,10 +366,10 @@ export function createImagesBatchCommandHandlers(
       if (!options.batch) {
         throw new Error("--batch is required");
       }
-      const { outputDirectory } = await resolveEpisodeRuntime(deps, options);
+      const { episodeDir, outputDirectory } = await resolveEpisodeRuntime(deps, options);
       const client = createClient(deps, options);
       const manifest = await deps.refreshImageBatch(outputDirectory, options.batch, client);
-      const summary = summarizeManifest(manifest);
+      const summary = summarizeManifest(manifest, episodeDir);
       if (options.json) {
         printJson(summary);
         return;
@@ -348,11 +381,11 @@ export function createImagesBatchCommandHandlers(
       if (!options.batch) {
         throw new Error("--batch is required");
       }
-      const { outputDirectory } = await resolveEpisodeRuntime(deps, options);
+      const { episodeDir, outputDirectory } = await resolveEpisodeRuntime(deps, options);
       const client = createClient(deps, options);
       const result = await deps.importImageBatch(outputDirectory, options.batch, client);
       const resolved = await deps.resolveImageBatchManifest(outputDirectory, options.batch);
-      const summary = summarizeManifest(resolved.manifest, {
+      const summary = summarizeManifest(resolved.manifest, episodeDir, {
         outcome: result.status,
         providerStatus: result.providerStatus,
         unknownResultCount: result.unknownResultCount,
@@ -366,11 +399,11 @@ export function createImagesBatchCommandHandlers(
     },
 
     async resume(options: ImagesBatchCliOptions): Promise<void> {
-      const { outputDirectory } = await resolveEpisodeRuntime(deps, options);
+      const { episodeDir, outputDirectory } = await resolveEpisodeRuntime(deps, options);
       const batchRef = await resolveBatchRefForResume(outputDirectory, options);
       const result = await deps.retryFailedImageBatch(outputDirectory, batchRef);
       const resolved = await deps.resolveImageBatchManifest(outputDirectory, result.localBatchId);
-      const summary = summarizeManifest(resolved.manifest);
+      const summary = summarizeManifest(resolved.manifest, episodeDir);
       if (options.json) {
         printJson(summary);
         return;

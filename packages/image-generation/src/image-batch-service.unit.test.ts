@@ -5,11 +5,25 @@ import path from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import sharp from "sharp";
 import { StoryBatchIndexService } from "@mediaforge/story-localization";
-import { prepareImageBatchForEpisode } from "./image-batch-planner.js";
 import {
+  resolveEpisodeCharacterReferencePath,
+  resolveEpisodeShortsImageManifestPath,
+} from "@mediaforge/shared";
+import {
+  planReferenceImageBatchForEpisode,
+  prepareImageBatchForEpisode,
+  prepareShortSceneImageBatches,
+} from "./image-batch-planner.js";
+import {
+  writeImageBatchInputFile,
   readImageBatchManifest,
   type ImageBatchStoragePlan,
+  writeImageBatchManifest,
 } from "./image-batch-storage.js";
+import {
+  type CharacterDefinition,
+  upsertCharacterRegistry,
+} from "./episode-image-pipeline.js";
 import {
   importImageBatch,
   refreshImageBatch,
@@ -17,6 +31,49 @@ import {
   submitImageBatch,
   summarizeImageBatchState,
 } from "./image-batch-service.js";
+
+function makeCharacter(args: {
+  readonly id?: string;
+  readonly referenceStatus: CharacterDefinition["referenceStatus"];
+  readonly referenceImagePath?: string;
+}): CharacterDefinition {
+  return {
+    id: args.id ?? "character-1",
+    name: "Daniel Mercer",
+    role: "lead",
+    physicalDescription: "Tall, pale, severe features.",
+    ageRange: "30s",
+    genderPresentation: "masculine",
+    face: {
+      shape: "angular",
+      skinTone: "pale",
+      eyeColor: "gray",
+      eyebrows: "dark",
+      nose: "straight",
+      mouth: "thin",
+      distinguishingFeatures: ["scar on left cheek"],
+    },
+    hair: {
+      color: "dark brown",
+      length: "short",
+      style: "neat",
+    },
+    build: "lean",
+    defaultWardrobe: {
+      upperBody: "black coat",
+      lowerBody: "dark trousers",
+      footwear: "boots",
+      accessories: [],
+      carriedObjects: [],
+      colors: ["black"],
+    },
+    continuityTraits: ["scar on left cheek"],
+    ...(args.referenceImagePath
+      ? { referenceImagePath: args.referenceImagePath }
+      : {}),
+    referenceStatus: args.referenceStatus,
+  };
+}
 
 async function writeSceneManifest(args: {
   readonly episodeDir: string;
@@ -1024,6 +1081,317 @@ describe("image batch service", () => {
     expect(secondImport.failedItemCount).toBe(0);
     const manifest = await readImageBatchManifest(group.storagePlan.manifestPath);
     expect(manifest?.items[0]?.status).toBe("persisted");
+  });
+
+  it("imports native short-scene batch outputs into canonical shared portrait paths", async () => {
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), "image-batch-short-import-"));
+    const episodeDir = path.join(tempDir, "001-demo");
+    process.env["SHORTS_KEY_SCENE_COUNT"] = "1";
+    process.env["SHORTS_KEY_SCENE_RATIO"] = "0";
+    await fs.mkdir(path.join(episodeDir, "locales", "de", "short"), {
+      recursive: true,
+    });
+    await fs.writeFile(
+      path.join(episodeDir, "locales", "de", "short", "script.md"),
+      "# de short\n",
+      "utf8"
+    );
+    await fs.mkdir(path.join(episodeDir, "de", "short"), { recursive: true });
+    await fs.writeFile(
+      path.join(episodeDir, "de", "short", "scenes.json"),
+      JSON.stringify({
+        sourceId: "001-demo",
+        scenes: [
+          {
+            id: "scene-001",
+            sequenceNumber: 1,
+            canonicalNarration: "Narration 1",
+            sourceSegmentIds: ["scene-001"],
+            estimatedDurationSeconds: 4,
+            timing: { startSeconds: 0, endSeconds: 4 },
+            visualPurpose: "hook",
+            subject: "Subject 1",
+            action: "shown",
+            setting: "Setting 1",
+            composition: "centered",
+            cameraFraming: "medium shot",
+            mood: "tense",
+            continuityReferences: [],
+            onScreenText: "",
+            textRequirement: { required: false },
+            negativeConstraints: [],
+            aspectRatios: ["16:9"],
+            imagePrompt: "Prompt 1",
+            expectedImageFilenames: ["scene-001__000000-000004__16x9.png"],
+            qualityStatus: "draft",
+          },
+        ],
+      }),
+      "utf8"
+    );
+    await fs.mkdir(path.join(episodeDir, "shared"), { recursive: true });
+    await fs.writeFile(
+      path.join(episodeDir, "shared", "characters.json"),
+      JSON.stringify({
+        episodeId: "001-demo",
+        characters: [],
+        updatedAt: new Date().toISOString(),
+      }),
+      "utf8"
+    );
+
+    const prepared = await prepareShortSceneImageBatches({
+      episodeDir,
+      episodeId: "001-demo",
+      languages: ["de"],
+      variant: "short",
+      settings: {
+        model: "gpt-image-2",
+        requestedSize: "1024x1536",
+        quality: "medium",
+        outputFormat: "png",
+      },
+    });
+    const group = prepared.groups[0] as {
+      readonly storagePlan: ImageBatchStoragePlan;
+      readonly scenePlans: ReadonlyArray<{
+        readonly manifestItem: { readonly customId: string };
+        readonly job: { readonly expectedOutputPath: string };
+      }>;
+    };
+    const imageBase64 = await makeBase64Image(1024, 1536);
+    const outputJsonl = JSON.stringify({
+      custom_id: group.scenePlans[0]?.manifestItem.customId,
+      response: {
+        status_code: 200,
+        body: { data: [{ b64_json: imageBase64 }] },
+      },
+    });
+    const client = makeImportClient({
+      outputText: `${outputJsonl}\n`,
+      total: 1,
+      completed: 1,
+      failed: 0,
+    });
+    await submitImageBatch(
+      path.join(episodeDir, "state", "image-generation"),
+      group.storagePlan.localBatchId,
+      client as never
+    );
+    await refreshImageBatch(
+      path.join(episodeDir, "state", "image-generation"),
+      group.storagePlan.localBatchId,
+      client as never
+    );
+
+    const imported = await importImageBatch(
+      path.join(episodeDir, "state", "image-generation"),
+      group.storagePlan.localBatchId,
+      client as never
+    );
+
+    expect(imported.status).toBe("imported");
+    expect(group.scenePlans[0]?.job.expectedOutputPath).toContain(
+      path.join("shared", "short", "images", "generated")
+    );
+    const shortsManifest = JSON.parse(
+      await fs.readFile(resolveEpisodeShortsImageManifestPath(episodeDir), "utf8")
+    ) as Array<Record<string, unknown>>;
+    expect(shortsManifest).toHaveLength(1);
+    expect(shortsManifest[0]?.["outputImagePath"]).toBe(
+      group.scenePlans[0]?.job.expectedOutputPath
+    );
+    expect(shortsManifest[0]?.["promptHash"]).toBeDefined();
+  });
+
+  it("imports character reference batch outputs into canonical shared reference paths", async () => {
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), "image-batch-reference-import-"));
+    const episodeDir = path.join(tempDir, "episode");
+    const referencePath = resolveEpisodeCharacterReferencePath(
+      episodeDir,
+      "character-1"
+    );
+    await upsertCharacterRegistry(episodeDir, "001-demo", [
+      makeCharacter({
+        referenceStatus: "missing",
+        referenceImagePath: referencePath,
+      }),
+    ]);
+
+    const groups = await planReferenceImageBatchForEpisode({
+      episodeDir,
+      episodeId: "001-demo",
+      settings: {
+        model: "gpt-image-2",
+        requestedSize: "1920x1088",
+        quality: "medium",
+        outputFormat: "png",
+      },
+    });
+    const group = groups[0] as {
+      readonly storagePlan: ImageBatchStoragePlan;
+      readonly referencePlans: ReadonlyArray<{
+        readonly manifestItem: { readonly customId: string };
+        readonly requestLine: Record<string, unknown>;
+        readonly job: { readonly expectedOutputPath: string };
+      }>;
+    };
+    const { inputFilePath, inputFileHash } = await writeImageBatchInputFile(
+      group.storagePlan,
+      group.referencePlans.map((plan) => JSON.stringify(plan.requestLine))
+    );
+    await writeImageBatchManifest(group.storagePlan, {
+      schemaVersion: "image-batch-v2",
+      category: "image-generation",
+      localBatchId: group.storagePlan.localBatchId,
+      rootLocalBatchId: group.storagePlan.localBatchId,
+      retryNumber: 0,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      endpoint: "/v1/images/generations",
+      model: "gpt-image-2",
+      completionWindow: "24h",
+      inputFilePath,
+      inputFileHash,
+      status: "prepared",
+      items: group.referencePlans.map((plan) => plan.manifestItem),
+    });
+    const imageBase64 = await makeBase64Image(1920, 1088);
+    const outputJsonl = JSON.stringify({
+      custom_id: group.referencePlans[0]?.manifestItem.customId,
+      response: {
+        status_code: 200,
+        body: { data: [{ b64_json: imageBase64 }] },
+      },
+    });
+    const client = makeImportClient({
+      outputText: `${outputJsonl}\n`,
+      total: 1,
+      completed: 1,
+      failed: 0,
+    });
+    await submitImageBatch(
+      path.join(episodeDir, "state", "image-generation"),
+      group.storagePlan.localBatchId,
+      client as never
+    );
+    await refreshImageBatch(
+      path.join(episodeDir, "state", "image-generation"),
+      group.storagePlan.localBatchId,
+      client as never
+    );
+
+    const imported = await importImageBatch(
+      path.join(episodeDir, "state", "image-generation"),
+      group.storagePlan.localBatchId,
+      client as never
+    );
+
+    expect(imported.status).toBe("imported");
+    expect(group.referencePlans[0]?.job.expectedOutputPath).toBe(referencePath);
+    const registry = JSON.parse(
+      await fs.readFile(path.join(episodeDir, "shared", "characters.json"), "utf8")
+    ) as {
+      readonly characters: Array<{
+        readonly id: string;
+        readonly referenceImagePath?: string;
+        readonly referenceStatus?: string;
+      }>;
+    };
+    expect(registry.characters[0]).toMatchObject({
+      id: "character-1",
+      referenceImagePath: referencePath,
+      referenceStatus: "generated",
+    });
+  });
+
+  it("marks manifest/filesystem destination disagreement as a validation failure during import", async () => {
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), "image-batch-destination-conflict-"));
+    const episodeDir = path.join(tempDir, "episode");
+    await writeSceneManifest({ episodeDir, sceneId: "scene-002" });
+    const prepared = await prepareImageBatchForEpisode({
+      episodeDir,
+      episodeId: "001-demo",
+      scenePlan: { scenes: [{ id: "scene-002", sequenceNumber: 2 }] },
+      settings: {
+        model: "gpt-image-2",
+        requestedSize: "1920x1088",
+        quality: "medium",
+        outputFormat: "png",
+      },
+    });
+    const group = prepared.groups[0] as {
+      readonly storagePlan: ImageBatchStoragePlan;
+      readonly scenePlans: ReadonlyArray<{
+        readonly manifestItem: { readonly customId: string };
+      }>;
+    };
+    const manifest = await readImageBatchManifest(group.storagePlan.manifestPath);
+    if (!manifest) {
+      throw new Error("expected batch manifest");
+    }
+    await fs.writeFile(
+      group.storagePlan.manifestPath,
+      JSON.stringify(
+        {
+          ...manifest,
+          items: manifest.items.map((item) => ({
+            ...item,
+            expectedOutputPath: path.join(
+              episodeDir,
+              "shared",
+              "images",
+              "generated",
+              "scene-999__000000-000004__16x9.png"
+            ),
+          })),
+        },
+        null,
+        2
+      ),
+      "utf8"
+    );
+    const imageBase64 = await makeBase64Image(1920, 1088);
+    const outputJsonl = JSON.stringify({
+      custom_id: group.scenePlans[0]?.manifestItem.customId,
+      response: {
+        status_code: 200,
+        body: { data: [{ b64_json: imageBase64 }] },
+      },
+    });
+    const client = makeImportClient({
+      outputText: `${outputJsonl}\n`,
+      total: 1,
+      completed: 1,
+      failed: 0,
+    });
+    await submitImageBatch(
+      path.join(episodeDir, "state", "image-generation"),
+      group.storagePlan.localBatchId,
+      client as never
+    );
+    await refreshImageBatch(
+      path.join(episodeDir, "state", "image-generation"),
+      group.storagePlan.localBatchId,
+      client as never
+    );
+
+    const imported = await importImageBatch(
+      path.join(episodeDir, "state", "image-generation"),
+      group.storagePlan.localBatchId,
+      client as never
+    );
+
+    expect(imported.status).toBe("imported_with_failures");
+    const nextManifest = await readImageBatchManifest(group.storagePlan.manifestPath);
+    expect(nextManifest?.items[0]?.status).toBe("validation-failed");
+    expect(nextManifest?.items[0]?.error).toMatchObject({
+      category: "destination-conflict",
+      code: "destination-conflict",
+    });
+    expect(nextManifest?.items[0]?.error?.message).toContain(
+      "Manifest/filesystem disagreement"
+    );
   });
 
   it("retries only failed image scenes and keeps the successful ones out of the new batch", async () => {

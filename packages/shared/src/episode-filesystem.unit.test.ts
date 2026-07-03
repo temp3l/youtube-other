@@ -17,19 +17,29 @@ import {
   resolveEpisodeCharacterReferencePath,
   resolveEpisodeDirFromSceneOutputPath,
   resolveEpisodeCharacterRegistryPath,
+  resolveEpisodeContainedFilePath,
   resolveEpisodeDerivedShotClipPath,
   resolveEpisodeDerivedShotManifestPath,
   resolveEpisodeDerivedShotsDir,
   resolveEpisodeFocalMetadataPath,
+  resolveEpisodeImageBatchErrorPath,
+  resolveEpisodeImageBatchInputPath,
+  resolveEpisodeImageBatchManifestFilePath,
+  resolveEpisodeImageBatchReportPath,
+  resolveEpisodeImageBatchResultPath,
   resolveEpisodeImageManifestPath,
   resolveEpisodeImageManifestPathFromSceneOutputPath,
   resolveEpisodeImagePromptPath,
+  resolveEpisodeSharedShortGeneratedImagePath,
+  resolveShortSceneImageCandidatePaths,
+  resolveEpisodeShortsImageManifestPath,
   resolveEpisodeShotPlanPath,
   resolveEpisodeShotValidationPath,
   resolveEpisodeVisualRetentionDir,
   resolveEpisodeVisualSourceScenesPath,
   resolveEpisodeImageVisualPlanPath,
   resolveSceneImageCandidatePaths,
+  toEpisodeRelativeDisplayPath,
   type AuthoredScriptSourceIdentity,
 } from "./episode-filesystem.js";
 
@@ -102,6 +112,21 @@ describe("episode filesystem helpers", () => {
     expect(resolver.generatedImage(episodeId, "scene-001")).toBe(
       "/workspace/009-mary-gloria-the-christmas-doll/shared/images/generated/scene-001.png"
     );
+    expect(resolver.sharedShortGeneratedImagesDir(episodeId)).toBe(
+      "/workspace/009-mary-gloria-the-christmas-doll/shared/short/images/generated"
+    );
+    expect(resolver.shortsImageManifest(episodeId)).toBe(
+      "/workspace/009-mary-gloria-the-christmas-doll/shared/short/images/shorts-image-manifest.json"
+    );
+    expect(resolver.shortGeneratedImage(episodeId, "scene-001")).toBe(
+      "/workspace/009-mary-gloria-the-christmas-doll/shared/short/images/generated/scene-001.png"
+    );
+    expect(resolver.imageBatchInput(episodeId, "imgb-001")).toBe(
+      "/workspace/009-mary-gloria-the-christmas-doll/state/image-generation/.batch/inputs/batch-imgb-001.jsonl"
+    );
+    expect(resolver.imageBatchManifestFile(episodeId, "imgb-001")).toBe(
+      "/workspace/009-mary-gloria-the-christmas-doll/state/image-generation/.batch/manifests/batch-imgb-001.manifest.json"
+    );
     expect(resolver.visualRetentionDir(episodeId)).toBe(
       "/workspace/009-mary-gloria-the-christmas-doll/state/visual-retention"
     );
@@ -144,6 +169,31 @@ describe("episode filesystem helpers", () => {
     );
     expect(resolveEpisodeImageVisualPlanPath(episodeDir, "scene-001")).toBe(
       "/workspace/009-mary-gloria-the-christmas-doll/state/image-generation/visual-plans/scene-001.json"
+    );
+    expect(resolveEpisodeSharedShortGeneratedImagePath({
+      episodeDir,
+      sceneId: "scene-001",
+      expectedFilename: "scene-001__000000-000004__9x16.png",
+    })).toBe(
+      "/workspace/009-mary-gloria-the-christmas-doll/shared/short/images/generated/scene-001__000000-000004__9x16.png"
+    );
+    expect(resolveEpisodeShortsImageManifestPath(episodeDir)).toBe(
+      "/workspace/009-mary-gloria-the-christmas-doll/shared/short/images/shorts-image-manifest.json"
+    );
+    expect(resolveEpisodeImageBatchInputPath(episodeDir, "imgb-001")).toBe(
+      "/workspace/009-mary-gloria-the-christmas-doll/state/image-generation/.batch/inputs/batch-imgb-001.jsonl"
+    );
+    expect(resolveEpisodeImageBatchResultPath(episodeDir, "imgb-001")).toBe(
+      "/workspace/009-mary-gloria-the-christmas-doll/state/image-generation/.batch/results/batch-imgb-001.output.jsonl"
+    );
+    expect(resolveEpisodeImageBatchErrorPath(episodeDir, "imgb-001")).toBe(
+      "/workspace/009-mary-gloria-the-christmas-doll/state/image-generation/.batch/errors/batch-imgb-001.errors.jsonl"
+    );
+    expect(resolveEpisodeImageBatchManifestFilePath(episodeDir, "imgb-001")).toBe(
+      "/workspace/009-mary-gloria-the-christmas-doll/state/image-generation/.batch/manifests/batch-imgb-001.manifest.json"
+    );
+    expect(resolveEpisodeImageBatchReportPath(episodeDir, "imgb-001")).toBe(
+      "/workspace/009-mary-gloria-the-christmas-doll/state/image-generation/.batch/reports/batch-imgb-001.summary.json"
     );
     expect(resolveEpisodeVisualRetentionDir(episodeDir)).toBe(
       "/workspace/009-mary-gloria-the-christmas-doll/state/visual-retention"
@@ -341,6 +391,32 @@ describe("episode filesystem helpers", () => {
       legacySceneId:
         "/workspace/009-mary-gloria-the-christmas-doll/state/image-generation/images/scene-001.png",
     });
+  });
+
+  it("resolves canonical short image candidates alongside compatibility fallbacks", () => {
+    expect(
+      resolveShortSceneImageCandidatePaths({
+        episodeDir: "/workspace/009-mary-gloria-the-christmas-doll",
+        sceneId: "scene-001",
+        expectedFilename: "scene-001__000000-000004__9x16.png",
+      })
+    ).toEqual({
+      canonical:
+        "/workspace/009-mary-gloria-the-christmas-doll/shared/short/images/generated/scene-001__000000-000004__9x16.png",
+      legacyExpected:
+        "/workspace/009-mary-gloria-the-christmas-doll/images/generated/scene-001__000000-000004__9x16.png",
+      legacySceneId:
+        "/workspace/009-mary-gloria-the-christmas-doll/images/generated/scene-001.png",
+    });
+  });
+
+  it("builds episode-relative display paths for canonical assets", () => {
+    expect(
+      toEpisodeRelativeDisplayPath(
+        "/workspace/009-mary-gloria-the-christmas-doll",
+        "/workspace/009-mary-gloria-the-christmas-doll/shared/images/generated/scene-001.png"
+      )
+    ).toBe("shared/images/generated/scene-001.png");
   });
 
   it("resolves an episode directory and manifest path from canonical and legacy scene output paths", () => {
@@ -570,6 +646,30 @@ describe("episode filesystem helpers", () => {
         variant: "full",
       })
     ).rejects.toMatchObject({ code: "PATH_ESCAPE" });
+  });
+
+  it("rejects traversal and symlink escapes for contained episode artifact paths", async () => {
+    const episodeDir = await createTempWorkspace();
+    await expect(
+      resolveEpisodeContainedFilePath({
+        episodeDir,
+        relativePath: "../escape.txt",
+      })
+    ).rejects.toThrow(/Invalid portable relative path|Path escapes workspace/u);
+
+    const outsideRoot = await createTempWorkspace();
+    const outsideFile = path.join(outsideRoot, "escape.txt");
+    await fs.writeFile(outsideFile, "escape", "utf8");
+    const symlinkDir = path.join(episodeDir, "shared", "images");
+    await fs.mkdir(path.dirname(symlinkDir), { recursive: true });
+    await fs.symlink(outsideRoot, symlinkDir);
+
+    await expect(
+      resolveEpisodeContainedFilePath({
+        episodeDir,
+        relativePath: "shared/images/output.png",
+      })
+    ).rejects.toThrow(/Path escapes workspace via symlink/u);
   });
 
   it("rejects stale authored script layouts without reading them as fallbacks", async () => {

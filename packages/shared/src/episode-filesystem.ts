@@ -524,11 +524,29 @@ export interface EpisodePathResolver {
     characterId: string,
     extension?: string
   ): string;
+  sharedShortGeneratedImagesDir(episodeId: EpisodeId): string;
+  shortsImageManifest(episodeId: EpisodeId): string;
   generatedImage(
     episodeId: EpisodeId,
     sceneId: string,
     expectedFilename?: string
   ): string;
+  shortGeneratedImage(
+    episodeId: EpisodeId,
+    sceneId: string,
+    expectedFilename?: string
+  ): string;
+  imageBatchRoot(episodeId: EpisodeId): string;
+  imageBatchInputsDir(episodeId: EpisodeId): string;
+  imageBatchResultsDir(episodeId: EpisodeId): string;
+  imageBatchErrorsDir(episodeId: EpisodeId): string;
+  imageBatchManifestsDir(episodeId: EpisodeId): string;
+  imageBatchReportsDir(episodeId: EpisodeId): string;
+  imageBatchInput(episodeId: EpisodeId, localBatchId: string): string;
+  imageBatchResult(episodeId: EpisodeId, localBatchId: string): string;
+  imageBatchError(episodeId: EpisodeId, localBatchId: string): string;
+  imageBatchManifestFile(episodeId: EpisodeId, localBatchId: string): string;
+  imageBatchReport(episodeId: EpisodeId, localBatchId: string): string;
   batchStateDir(episodeId: EpisodeId): string;
   renderStateDir(episodeId: EpisodeId): string;
   visualRetentionDir(episodeId: EpisodeId): string;
@@ -552,6 +570,12 @@ export interface SceneImageCandidatePaths {
   readonly legacySceneId: string;
 }
 
+export interface ShortSceneImageCandidatePaths {
+  readonly canonical: string;
+  readonly legacyExpected: string;
+  readonly legacySceneId: string;
+}
+
 export function resolveEpisodeCharacterRegistryPath(episodeDir: string): string {
   return path.join(episodeDir, "shared", "characters.json");
 }
@@ -562,12 +586,15 @@ export function resolveEpisodeCharacterReferencePath(
   extension = ".png"
 ): string {
   return path.join(
-    episodeDir,
-    "shared",
-    "images",
-    "character-references",
+    resolveEpisodeSharedCharacterReferencesDir(episodeDir),
     `${characterId}${extension}`
   );
+}
+
+export function resolveEpisodeSharedCharacterReferencesDir(
+  episodeDir: string
+): string {
+  return path.join(episodeDir, "shared", "images", "character-references");
 }
 
 export function resolveEpisodeImageStateDir(episodeDir: string): string {
@@ -828,11 +855,45 @@ export function resolveEpisodeSharedGeneratedImagePath(args: {
     expectedFilename && expectedFilename.length > 0
       ? expectedFilename
       : `${args.sceneId}.png`;
+  return path.join(resolveEpisodeSharedGeneratedImagesDir(args.episodeDir), canonicalFileName);
+}
+
+export function resolveEpisodeSharedGeneratedImagesDir(
+  episodeDir: string
+): string {
+  return path.join(episodeDir, "shared", "images", "generated");
+}
+
+export function resolveEpisodeSharedShortGeneratedImagesDir(
+  episodeDir: string
+): string {
+  return path.join(episodeDir, "shared", "short", "images", "generated");
+}
+
+export function resolveEpisodeShortsImageManifestPath(
+  episodeDir: string
+): string {
   return path.join(
-    args.episodeDir,
+    episodeDir,
     "shared",
+    "short",
     "images",
-    "generated",
+    "shorts-image-manifest.json"
+  );
+}
+
+export function resolveEpisodeSharedShortGeneratedImagePath(args: {
+  readonly episodeDir: string;
+  readonly sceneId: string;
+  readonly expectedFilename?: string;
+}): string {
+  const expectedFilename = args.expectedFilename?.trim();
+  const canonicalFileName =
+    expectedFilename && expectedFilename.length > 0
+      ? expectedFilename
+      : `${args.sceneId}.png`;
+  return path.join(
+    resolveEpisodeSharedShortGeneratedImagesDir(args.episodeDir),
     canonicalFileName
   );
 }
@@ -854,6 +915,150 @@ export function resolveEpisodeLegacyGeneratedImagePath(args: {
     "images",
     legacyFileName
   );
+}
+
+export function resolveEpisodeLegacyShortGeneratedImagePath(args: {
+  readonly episodeDir: string;
+  readonly sceneId: string;
+  readonly expectedFilename?: string;
+}): string {
+  const expectedFilename = args.expectedFilename?.trim();
+  const legacyFileName =
+    expectedFilename && expectedFilename.length > 0
+      ? expectedFilename
+      : `${args.sceneId}.png`;
+  return path.join(args.episodeDir, "images", "generated", legacyFileName);
+}
+
+export function resolveEpisodeImageBatchRoot(episodeDir: string): string {
+  return path.join(resolveEpisodeImageStateDir(episodeDir), ".batch");
+}
+
+export function resolveEpisodeImageBatchInputsDir(episodeDir: string): string {
+  return path.join(resolveEpisodeImageBatchRoot(episodeDir), "inputs");
+}
+
+export function resolveEpisodeImageBatchResultsDir(episodeDir: string): string {
+  return path.join(resolveEpisodeImageBatchRoot(episodeDir), "results");
+}
+
+export function resolveEpisodeImageBatchErrorsDir(episodeDir: string): string {
+  return path.join(resolveEpisodeImageBatchRoot(episodeDir), "errors");
+}
+
+export function resolveEpisodeImageBatchManifestsDir(episodeDir: string): string {
+  return path.join(resolveEpisodeImageBatchRoot(episodeDir), "manifests");
+}
+
+export function resolveEpisodeImageBatchReportsDir(episodeDir: string): string {
+  return path.join(resolveEpisodeImageBatchRoot(episodeDir), "reports");
+}
+
+export function resolveEpisodeImageBatchInputPath(
+  episodeDir: string,
+  localBatchId: string
+): string {
+  return path.join(
+    resolveEpisodeImageBatchInputsDir(episodeDir),
+    `batch-${localBatchId}.jsonl`
+  );
+}
+
+export function resolveEpisodeImageBatchResultPath(
+  episodeDir: string,
+  localBatchId: string
+): string {
+  return path.join(
+    resolveEpisodeImageBatchResultsDir(episodeDir),
+    `batch-${localBatchId}.output.jsonl`
+  );
+}
+
+export function resolveEpisodeImageBatchErrorPath(
+  episodeDir: string,
+  localBatchId: string
+): string {
+  return path.join(
+    resolveEpisodeImageBatchErrorsDir(episodeDir),
+    `batch-${localBatchId}.errors.jsonl`
+  );
+}
+
+export function resolveEpisodeImageBatchManifestFilePath(
+  episodeDir: string,
+  localBatchId: string
+): string {
+  return path.join(
+    resolveEpisodeImageBatchManifestsDir(episodeDir),
+    `batch-${localBatchId}.manifest.json`
+  );
+}
+
+export function resolveEpisodeImageBatchReportPath(
+  episodeDir: string,
+  localBatchId: string
+): string {
+  return path.join(
+    resolveEpisodeImageBatchReportsDir(episodeDir),
+    `batch-${localBatchId}.summary.json`
+  );
+}
+
+export async function resolveEpisodeContainedFilePath(args: {
+  readonly episodeDir: string;
+  readonly relativePath: string;
+}): Promise<string> {
+  const relativePath = ensurePortableRelativePath(args.relativePath);
+  const resolvedPath = assertInsideWorkspace(
+    args.episodeDir,
+    path.join(args.episodeDir, relativePath)
+  );
+  let existingParent = path.dirname(resolvedPath);
+  while (true) {
+    try {
+      const stat = await fs.lstat(existingParent);
+      if (stat.isSymbolicLink()) {
+        const realParent = await fs.realpath(existingParent);
+        if (
+          realParent !== args.episodeDir &&
+          !realParent.startsWith(`${args.episodeDir}${path.sep}`)
+        ) {
+          throw new Error(`Path escapes workspace via symlink: ${relativePath}`);
+        }
+      } else {
+        const realParent = await fs.realpath(existingParent).catch(() => existingParent);
+        if (
+          realParent !== args.episodeDir &&
+          !realParent.startsWith(`${args.episodeDir}${path.sep}`)
+        ) {
+          throw new Error(`Path escapes workspace via symlink: ${relativePath}`);
+        }
+      }
+      break;
+    } catch (error) {
+      if (
+        error instanceof Error &&
+        "code" in error &&
+        error.code === "ENOENT" &&
+        existingParent !== args.episodeDir
+      ) {
+        existingParent = path.dirname(existingParent);
+        continue;
+      }
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error(String(error));
+    }
+  }
+  return resolvedPath;
+}
+
+export function toEpisodeRelativeDisplayPath(
+  episodeDir: string,
+  filePath: string
+): RelativePath {
+  return toPortableRelativePath(episodeDir, filePath);
 }
 
 export function resolveEpisodeDirFromSceneOutputPath(
@@ -973,19 +1178,51 @@ export function createEpisodePathResolver(workspaceRoot: string): EpisodePathRes
     sharedCharactersPath: (episodeId) =>
       resolveEpisodeCharacterRegistryPath(episodeRoot(episodeId)),
     sharedCharacterReferencesDir: (episodeId) =>
-      path.dirname(resolveEpisodeCharacterReferencePath(episodeRoot(episodeId), "placeholder")),
+      resolveEpisodeSharedCharacterReferencesDir(episodeRoot(episodeId)),
     characterReferenceImage: (episodeId, characterId, extension = ".png") =>
       resolveEpisodeCharacterReferencePath(
         episodeRoot(episodeId),
         characterId,
         extension
       ),
+    sharedShortGeneratedImagesDir: (episodeId) =>
+      resolveEpisodeSharedShortGeneratedImagesDir(episodeRoot(episodeId)),
+    shortsImageManifest: (episodeId) =>
+      resolveEpisodeShortsImageManifestPath(episodeRoot(episodeId)),
     generatedImage: (episodeId, sceneId, expectedFilename) =>
       resolveEpisodeSharedGeneratedImagePath({
         episodeDir: episodeRoot(episodeId),
         sceneId,
         ...(expectedFilename ? { expectedFilename } : {}),
       }),
+    shortGeneratedImage: (episodeId, sceneId, expectedFilename) =>
+      resolveEpisodeSharedShortGeneratedImagePath({
+        episodeDir: episodeRoot(episodeId),
+        sceneId,
+        ...(expectedFilename ? { expectedFilename } : {}),
+      }),
+    imageBatchRoot: (episodeId) =>
+      resolveEpisodeImageBatchRoot(episodeRoot(episodeId)),
+    imageBatchInputsDir: (episodeId) =>
+      resolveEpisodeImageBatchInputsDir(episodeRoot(episodeId)),
+    imageBatchResultsDir: (episodeId) =>
+      resolveEpisodeImageBatchResultsDir(episodeRoot(episodeId)),
+    imageBatchErrorsDir: (episodeId) =>
+      resolveEpisodeImageBatchErrorsDir(episodeRoot(episodeId)),
+    imageBatchManifestsDir: (episodeId) =>
+      resolveEpisodeImageBatchManifestsDir(episodeRoot(episodeId)),
+    imageBatchReportsDir: (episodeId) =>
+      resolveEpisodeImageBatchReportsDir(episodeRoot(episodeId)),
+    imageBatchInput: (episodeId, localBatchId) =>
+      resolveEpisodeImageBatchInputPath(episodeRoot(episodeId), localBatchId),
+    imageBatchResult: (episodeId, localBatchId) =>
+      resolveEpisodeImageBatchResultPath(episodeRoot(episodeId), localBatchId),
+    imageBatchError: (episodeId, localBatchId) =>
+      resolveEpisodeImageBatchErrorPath(episodeRoot(episodeId), localBatchId),
+    imageBatchManifestFile: (episodeId, localBatchId) =>
+      resolveEpisodeImageBatchManifestFilePath(episodeRoot(episodeId), localBatchId),
+    imageBatchReport: (episodeId, localBatchId) =>
+      resolveEpisodeImageBatchReportPath(episodeRoot(episodeId), localBatchId),
     batchStateDir: (episodeId) => path.join(episodeRoot(episodeId), "state", "batch"),
     renderStateDir: (episodeId) => path.join(episodeRoot(episodeId), "state", "render"),
     visualRetentionDir: episodeVisualRetentionDir,
@@ -1026,7 +1263,7 @@ export function createEpisodePathResolver(workspaceRoot: string): EpisodePathRes
     uploadStateDir: (episodeId) => path.join(episodeRoot(episodeId), "state", "upload"),
     logsDir: (episodeId) => path.join(episodeRoot(episodeId), "logs"),
     sharedGeneratedImagesDir: (episodeId) =>
-      path.join(episodeRoot(episodeId), "shared", "images", "generated"),
+      resolveEpisodeSharedGeneratedImagesDir(episodeRoot(episodeId)),
   };
 }
 
@@ -1045,6 +1282,18 @@ export function resolveSceneImageCandidatePaths(args: {
       "images",
       `${args.sceneId}.png`
     ),
+  };
+}
+
+export function resolveShortSceneImageCandidatePaths(args: {
+  readonly episodeDir: string;
+  readonly sceneId: string;
+  readonly expectedFilename?: string;
+}): ShortSceneImageCandidatePaths {
+  return {
+    canonical: resolveEpisodeSharedShortGeneratedImagePath(args),
+    legacyExpected: resolveEpisodeLegacyShortGeneratedImagePath(args),
+    legacySceneId: path.join(args.episodeDir, "images", "generated", `${args.sceneId}.png`),
   };
 }
 

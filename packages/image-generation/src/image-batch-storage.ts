@@ -1,18 +1,24 @@
 import fs from "node:fs/promises";
+import path from "node:path";
 import {
+  ensureDir,
   fileExists,
   hashText,
+  resolveEpisodeImageBatchErrorPath,
+  resolveEpisodeImageBatchErrorsDir,
+  resolveEpisodeImageBatchInputPath,
+  resolveEpisodeImageBatchInputsDir,
+  resolveEpisodeImageBatchManifestFilePath,
+  resolveEpisodeImageBatchManifestsDir,
+  resolveEpisodeImageBatchReportPath,
+  resolveEpisodeImageBatchReportsDir,
+  resolveEpisodeImageBatchResultPath,
+  resolveEpisodeImageBatchResultsDir,
   writeJsonAtomic,
   writeTextAtomic,
 } from "@mediaforge/shared";
 import {
-  ensureBatchStorageLayout,
   createLocalBatchId,
-  inputPathFor,
-  manifestPathFor,
-  reportPathFor,
-  resultPathFor,
-  errorPathFor,
   type BatchStorageLayout,
 } from "@mediaforge/story-localization";
 import type {
@@ -42,10 +48,46 @@ type ImageBatchManifest = ImageBatchManifestType;
 type ImageBatchManifestItem = ImageBatchManifestItemType;
 type ImageBatchJob = ImageBatchJobType;
 
+function resolveEpisodeDirFromImageStateDir(outputDirectory: string): string {
+  const resolved = outputDirectory.replace(/[\\\/]+$/u, "");
+  if (
+    path.basename(resolved) !== "image-generation" ||
+    path.basename(path.dirname(resolved)) !== "state"
+  ) {
+    throw new Error(
+      `Image batch storage requires a canonical image state directory, received ${outputDirectory}.`
+    );
+  }
+  return path.dirname(path.dirname(resolved));
+}
+
 export async function ensureImageBatchStorageLayout(
   outputDirectory: string
 ): Promise<ImageBatchStorageLayout> {
-  return ensureBatchStorageLayout(outputDirectory);
+  const episodeDir = resolveEpisodeDirFromImageStateDir(outputDirectory);
+  const layout = {
+    root: path.join(outputDirectory, ".batch"),
+    indexPath: path.join(outputDirectory, ".batch", "batch-index.json"),
+    pendingDir: path.join(outputDirectory, ".batch", "pending"),
+    submittedDir: path.join(outputDirectory, ".batch", "submitted"),
+    completedDir: path.join(outputDirectory, ".batch", "completed"),
+    failedDir: path.join(outputDirectory, ".batch", "failed"),
+    expiredDir: path.join(outputDirectory, ".batch", "expired"),
+    cancelledDir: path.join(outputDirectory, ".batch", "cancelled"),
+    inputsDir: resolveEpisodeImageBatchInputsDir(episodeDir),
+    resultsDir: resolveEpisodeImageBatchResultsDir(episodeDir),
+    errorsDir: resolveEpisodeImageBatchErrorsDir(episodeDir),
+    manifestsDir: resolveEpisodeImageBatchManifestsDir(episodeDir),
+    locksDir: path.join(outputDirectory, ".batch", "locks"),
+    reportsDir: resolveEpisodeImageBatchReportsDir(episodeDir),
+    quarantineDir: path.join(outputDirectory, ".batch", "quarantine"),
+  } satisfies ImageBatchStorageLayout;
+  await Promise.all(
+    Object.values(layout)
+      .filter((value) => value !== layout.indexPath)
+      .map((dir) => ensureDir(dir))
+  );
+  return layout;
 }
 
 export async function createImageBatchStoragePlan(
@@ -53,16 +95,17 @@ export async function createImageBatchStoragePlan(
   localBatchId?: string
 ): Promise<ImageBatchStoragePlan> {
   const layout = await ensureImageBatchStorageLayout(outputDirectory);
+  const episodeDir = resolveEpisodeDirFromImageStateDir(outputDirectory);
   const resolvedLocalBatchId = localBatchId ?? (await createLocalBatchId(layout));
   return {
     outputDirectory,
     layout,
     localBatchId: resolvedLocalBatchId,
-    inputFilePath: inputPathFor(layout, resolvedLocalBatchId),
-    manifestPath: manifestPathFor(layout, resolvedLocalBatchId),
-    resultFilePath: resultPathFor(layout, resolvedLocalBatchId),
-    errorFilePath: errorPathFor(layout, resolvedLocalBatchId),
-    reportFilePath: reportPathFor(layout, resolvedLocalBatchId),
+    inputFilePath: resolveEpisodeImageBatchInputPath(episodeDir, resolvedLocalBatchId),
+    manifestPath: resolveEpisodeImageBatchManifestFilePath(episodeDir, resolvedLocalBatchId),
+    resultFilePath: resolveEpisodeImageBatchResultPath(episodeDir, resolvedLocalBatchId),
+    errorFilePath: resolveEpisodeImageBatchErrorPath(episodeDir, resolvedLocalBatchId),
+    reportFilePath: resolveEpisodeImageBatchReportPath(episodeDir, resolvedLocalBatchId),
   };
 }
 

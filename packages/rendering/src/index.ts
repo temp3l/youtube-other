@@ -12,14 +12,19 @@ import {
 import { shotTreatmentCatalogVersion } from "@mediaforge/domain/visual-retention/treatment-catalog.js";
 import { runCommand, runCommandJson } from "@mediaforge/process-runner";
 import {
+  assertInsideWorkspace,
   ensureDir,
   copyAtomic,
   fileExists,
   hashFile,
   hashText,
+  resolveEpisodeSharedGeneratedImagesDir,
+  resolveEpisodeSharedShortGeneratedImagesDir,
   resolveEpisodeDerivedShotClipPath,
   resolveEpisodeDerivedShotManifestPath,
   resolveSceneImageCandidatePaths,
+  resolveShortSceneImageCandidatePaths,
+  sceneFilename,
   writeJsonAtomic,
   writeTextAtomic,
 } from "@mediaforge/shared";
@@ -353,7 +358,7 @@ const derivedShotManifestSchema = z
   })
   .strict();
 
-interface RenderManifest {
+export interface RenderManifest {
   readonly stageIdentity: MediaStageIdentity;
   readonly narrationDependency?: MediaStageDependency;
   readonly scenePlanDependency?: MediaStageDependency;
@@ -381,7 +386,7 @@ interface SpawnedBackgroundProcess {
   readonly promise: Promise<SpawnedProcessResult>;
 }
 
-const renderManifestSchema = z.object({
+export const renderManifestSchema = z.object({
   stageIdentity: mediaStageIdentitySchema,
   narrationDependency: mediaStageDependencySchema.optional(),
   scenePlanDependency: mediaStageDependencySchema.optional(),
@@ -414,6 +419,7 @@ const renderManifestSchema = z.object({
   status: z.literal("generated"),
   generatedAt: z.string().min(1),
 });
+export type ParsedRenderManifest = z.infer<typeof renderManifestSchema>;
 
 function defaultRenderContext(request: VideoRenderRequest): MediaStageContext {
   const variant: MediaStageVariant =
@@ -607,7 +613,11 @@ export async function backfillSceneClipManifests(
   );
   await ensureDir(clipsDir);
   const imageDir =
-    request.imageDir ?? path.join(request.episodeDir, "images", "generated");
+    request.imageDir ??
+    defaultSceneImageDir({
+      episodeDir: request.episodeDir,
+      aspectRatio: request.renderProfile.aspectRatio,
+    });
   const audioDir =
     request.sceneAudioDir ?? path.join(request.episodeDir, "audio", "segments");
   const sortedScenePlan = stableSortScenes(request.scenePlan);
@@ -624,7 +634,8 @@ export async function backfillSceneClipManifests(
       request.episodeDir,
       sortedScenePlan,
       index,
-      imageDir
+      imageDir,
+      request.renderProfile.aspectRatio
     );
     const audioPath = await resolveSceneAudioPath(
       request.episodeDir,
@@ -1193,26 +1204,6 @@ function parseSceneImageFilename(
     endSeconds,
     aspectRatio: match[4] ?? "",
   };
-}
-
-function scoreSceneImageFilenameMatch(
-  expectedFilename: string,
-  candidateFilename: string
-): number | null {
-  const expected = parseSceneImageFilename(expectedFilename);
-  const candidate = parseSceneImageFilename(candidateFilename);
-  if (
-    !expected ||
-    !candidate ||
-    expected.sceneId !== candidate.sceneId ||
-    expected.aspectRatio !== candidate.aspectRatio
-  ) {
-    return null;
-  }
-  return (
-    Math.abs(candidate.startSeconds - expected.startSeconds) * 1000 +
-    Math.abs(candidate.endSeconds - expected.endSeconds)
-  );
 }
 
 async function loadSceneClipManifest(
@@ -2166,64 +2157,75 @@ async function resolveSceneImagePath(
   episodeDir: string,
   scenePlan: ScenePlan,
   sceneIndex: number,
-  imageDir: string
+  imageDir: string,
+  aspectRatio: "16:9" | "9:16"
 ): Promise<string> {
   const scene = scenePlan.scenes[sceneIndex];
   if (!scene) {
     throw new MediaValidationError(`Missing scene at index ${sceneIndex}.`);
   }
-  const expectedFilename = scene.expectedImageFilenames[0];
+  const expectedFilename =
+    aspectRatio === "9:16"
+      ? scene.expectedImageFilenames.find((name) => name.includes("__9x16")) ??
+        sceneFilename(
+          scene.sequenceNumber,
+          scene.timing.startSeconds,
+          scene.timing.endSeconds,
+          "9:16"
+        )
+      : scene.expectedImageFilenames[0];
   const candidates = [
     expectedFilename ? path.join(imageDir, expectedFilename) : undefined,
     ...Object.values(
-      resolveSceneImageCandidatePaths({
-        episodeDir,
-        sceneId: scene.id,
-        ...(expectedFilename ? { expectedFilename } : {}),
-      })
+      aspectRatio === "9:16"
+        ? resolveShortSceneImageCandidatePaths({
+            episodeDir,
+            sceneId: scene.id,
+            ...(expectedFilename ? { expectedFilename } : {}),
+          })
+        : resolveSceneImageCandidatePaths({
+            episodeDir,
+            sceneId: scene.id,
+            ...(expectedFilename ? { expectedFilename } : {}),
+          })
     ),
   ].filter((candidate): candidate is string => Boolean(candidate));
   for (const candidate of candidates) {
     if (await fileExists(candidate)) {
-      return candidate;
+      return assertInsideWorkspace(episodeDir, candidate);
     }
   }
   const directoryMatches = (await fs.readdir(imageDir).catch(() => [])).filter(
     (entry) => entry.startsWith(`${scene.id}__`) && entry.endsWith(".png")
   );
   if (directoryMatches.length === 1) {
-    return path.join(imageDir, directoryMatches[0] ?? "");
+    return assertInsideWorkspace(episodeDir, path.join(imageDir, directoryMatches[0] ?? ""));
   }
   if (directoryMatches.length > 1) {
-    const rankedMatches = expectedFilename
-      ? directoryMatches
-          .map((entry) => ({
-            entry,
-            score: scoreSceneImageFilenameMatch(expectedFilename, entry),
-          }))
-          .filter(
-            (
-              item
-            ): item is { readonly entry: string; readonly score: number } =>
-              item.score !== null
-          )
-          .sort((left, right) => {
-            if (left.score !== right.score) {
-              return left.score - right.score;
-            }
-            return left.entry.localeCompare(right.entry);
-          })
+    const exactMatches = expectedFilename
+      ? directoryMatches.filter((entry) => entry === expectedFilename)
       : [];
-    if (rankedMatches.length > 0) {
-      return path.join(imageDir, rankedMatches[0]?.entry ?? "");
+    if (exactMatches.length === 1) {
+      return assertInsideWorkspace(episodeDir, path.join(imageDir, exactMatches[0]!));
     }
     throw new MediaValidationError(
-      `Multiple image assets found for ${scene.id} in ${imageDir}: ${directoryMatches.join(", ")}`
+      `Ambiguous image assets found for ${scene.id} in ${imageDir}: ${directoryMatches
+        .sort((left, right) => left.localeCompare(right))
+        .join(", ")}`
     );
   }
   throw new MediaValidationError(
     `Missing image asset for ${scene.id} in ${episodeDir}.`
   );
+}
+
+function defaultSceneImageDir(args: {
+  readonly episodeDir: string;
+  readonly aspectRatio: "16:9" | "9:16";
+}): string {
+  return args.aspectRatio === "9:16"
+    ? resolveEpisodeSharedShortGeneratedImagesDir(args.episodeDir)
+    : resolveEpisodeSharedGeneratedImagesDir(args.episodeDir);
 }
 
 async function resolveSceneAudioPath(
@@ -2343,19 +2345,9 @@ async function resolveShotSourceImages(
   for (const sourceScene of shotPlan.sourceScenes) {
     const explicit = supplied.get(sourceScene.sourceImageId);
     if (explicit) {
-      if (explicit.sceneId !== sourceScene.sceneId) {
-        throw new MediaValidationError(
-          `Source image scene mismatch for ${sourceScene.sourceImageId} in ${sourceScene.sceneId}.`
-        );
-      }
-      if (
-        explicit.sourceSceneId !== undefined &&
-        explicit.sourceSceneId !== sourceScene.sourceSceneId
-      ) {
-        throw new MediaValidationError(
-          `Source image source-scene mismatch for ${sourceScene.sourceImageId} in ${sourceScene.sceneId}.`
-        );
-      }
+      // Explicit source-image assignments may intentionally reuse an image
+      // generated for a neighboring scene. Keep the hash check below, but do
+      // not require the supplied identity to match the planned scene id.
     }
     const sourcePath = explicit?.path ?? sourceScene.sourceImagePath;
     const resolvedPath = resolveShotSourceImagePath(request.episodeDir, sourcePath);
@@ -3632,15 +3624,6 @@ export class FFmpegVideoRenderer implements VideoRenderer {
           `Missing source image mapping for ${shot.shotId} in ${shot.sceneId}.`
         );
       }
-      if (
-        sourceImage.sceneId !== shot.sceneId ||
-        sourceImage.sourceSceneId !== shot.sourceSceneId
-      ) {
-        failedShotIds.push(shot.shotId);
-        throw new MediaValidationError(
-          `Source image identity mismatch for ${shot.shotId} in ${shot.sceneId}.`
-        );
-      }
       const outputPath = path.join(clipsDir, safeShotClipFilename(shot.shotId, ".mp4"));
       const manifestPath = path.join(
         clipsDir,
@@ -3724,7 +3707,11 @@ export class FFmpegVideoRenderer implements VideoRenderer {
     const clipsDir = resolveClipsDir(request);
     await ensureDir(clipsDir);
     const imageDir =
-      request.imageDir ?? path.join(request.episodeDir, "images", "generated");
+      request.imageDir ??
+      defaultSceneImageDir({
+        episodeDir: request.episodeDir,
+        aspectRatio: request.renderProfile.aspectRatio,
+      });
     const audioDir =
       request.sceneAudioDir ??
       path.join(request.episodeDir, "audio", "segments");
@@ -3757,7 +3744,8 @@ export class FFmpegVideoRenderer implements VideoRenderer {
           request.episodeDir,
           request.scenePlan,
           index,
-          imageDir
+          imageDir,
+          request.renderProfile.aspectRatio
         );
         const audioPath = await resolveSceneAudioPath(
           request.episodeDir,
@@ -4065,7 +4053,11 @@ export class HybridFFmpegVideoRenderer extends FFmpegVideoRenderer {
     const clipsDir = resolveClipsDir(request);
     await ensureDir(clipsDir);
     const imageDir =
-      request.imageDir ?? path.join(request.episodeDir, "images", "generated");
+      request.imageDir ??
+      defaultSceneImageDir({
+        episodeDir: request.episodeDir,
+        aspectRatio: request.renderProfile.aspectRatio,
+      });
     const audioDir =
       request.sceneAudioDir ??
       path.join(request.episodeDir, "audio", "segments");
@@ -4080,7 +4072,8 @@ export class HybridFFmpegVideoRenderer extends FFmpegVideoRenderer {
         request.episodeDir,
         sortedScenePlan,
         index,
-        imageDir
+        imageDir,
+        request.renderProfile.aspectRatio
       );
       const audioPath = await resolveSceneAudioPath(
         request.episodeDir,

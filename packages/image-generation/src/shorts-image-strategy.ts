@@ -25,6 +25,8 @@ import {
   hashFile,
   hashText,
   resolveEpisodeCharacterRegistryPath,
+  resolveEpisodeSharedShortGeneratedImagesDir,
+  resolveEpisodeShortsImageManifestPath,
   sceneFilename,
   writeJsonAtomic,
 } from "@mediaforge/shared";
@@ -748,8 +750,9 @@ export async function planShortsImageWork(args: {
   readonly outputDir?: string;
   readonly context?: ShortsMediaContext;
 }): Promise<PlannedShortsImageWork> {
-  const outputDir = args.outputDir ?? path.join(args.episodeDir, "images", "generated");
-  const manifestPath = path.join(path.dirname(outputDir), "shorts-image-manifest.json");
+  const outputDir =
+    args.outputDir ?? resolveEpisodeSharedShortGeneratedImagesDir(args.episodeDir);
+  const manifestPath = resolveEpisodeShortsImageManifestPath(args.episodeDir);
   const existingEntries = new Map(
     (await loadExistingManifest(manifestPath) ?? []).map((entry) => [entry.sceneId, entry] as const)
   );
@@ -1071,7 +1074,7 @@ export function buildShortsImageStrategyPlan(
   }
 ): ShortsScenePlan[] {
   const keySceneIds = resolveKeySceneIds(scenePlan, config);
-  const outputDir = options?.outputDir ?? path.join(".", "images", "generated");
+  const outputDir = options?.outputDir ?? resolveEpisodeSharedShortGeneratedImagesDir(".");
   return scenePlan.scenes.map((scene, index) => {
     const portraitPath = path.join(outputDir, portraitFilename(scene));
     const sourceLandscapePath = options?.landscapeDir
@@ -1119,16 +1122,15 @@ export async function prepareShortsImageAssets(
 ): Promise<PreparedShortsImagesResult> {
   if (!config.enabled) {
     return {
-      outputDir: options?.outputDir ?? path.join(episodeDir, "images", "generated"),
-      manifestPath: path.join(
-        path.dirname(options?.outputDir ?? path.join(episodeDir, "images", "generated")),
-        "shorts-image-manifest.json"
-      ),
+      outputDir:
+        options?.outputDir ?? resolveEpisodeSharedShortGeneratedImagesDir(episodeDir),
+      manifestPath: resolveEpisodeShortsImageManifestPath(episodeDir),
       entries: [],
     };
   }
-  const outputDir = options?.outputDir ?? path.join(episodeDir, "images", "generated");
-  const manifestPath = path.join(path.dirname(outputDir), "shorts-image-manifest.json");
+  const outputDir =
+    options?.outputDir ?? resolveEpisodeSharedShortGeneratedImagesDir(episodeDir);
+  const manifestPath = resolveEpisodeShortsImageManifestPath(episodeDir);
   await ensureDir(outputDir);
   await ensureDir(path.dirname(manifestPath));
   await removeStalePortraitAssets(outputDir, scenePlan);

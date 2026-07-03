@@ -6,7 +6,15 @@ import {
   fileExists,
   hashFile,
   readJsonIfExists,
-  resolveEpisodeImageManifestPathFromSceneOutputPath,
+  resolveEpisodeContainedFilePath,
+  resolveEpisodeImageBatchErrorPath,
+  resolveEpisodeImageBatchManifestFilePath,
+  resolveEpisodeImageBatchReportPath,
+  resolveEpisodeImageBatchResultPath,
+  resolveEpisodeCharacterRegistryPath,
+  resolveEpisodeImageManifestPath,
+  resolveEpisodeShortsImageManifestPath,
+  toEpisodeRelativeDisplayPath,
   writeBinaryAtomic,
   writeJsonAtomic,
   writeTextAtomic,
@@ -38,7 +46,12 @@ import type {
   ImageBatchItemStatus,
   ImageBatchStatus,
 } from "./image-batch.types.js";
-import type { SceneGenerationManifest } from "./episode-image-pipeline.js";
+import {
+  loadEpisodeCharacterRegistry,
+  upsertCharacterRegistry,
+  type SceneGenerationManifest,
+} from "./episode-image-pipeline.js";
+import type { ShortsSceneManifestEntry } from "./shorts-image-strategy.js";
 import sharp from "sharp";
 
 export interface ImageBatchSubmissionResult {
@@ -260,10 +273,6 @@ function toIndexEntry(args: {
   return entry as unknown as BatchIndexEntry;
 }
 
-function imageManifestPath(layout: ImageBatchStorageLayout, localBatchId: string): string {
-  return path.join(layout.manifestsDir, `batch-${localBatchId}.manifest.json`);
-}
-
 function importedItemCount(manifest: ImageBatchManifest): number {
   return manifest.items.filter((item) => item.status === "persisted").length;
 }
@@ -278,11 +287,42 @@ function retryableItemCount(manifest: ImageBatchManifest): number {
   return manifest.items.filter((item) => itemRetryable(item)).length;
 }
 
-function sceneManifestPathForOutput(outputPath: string, sceneId: string): string {
-  return resolveEpisodeImageManifestPathFromSceneOutputPath({
-    outputPath,
-    sceneId,
+async function resolveCanonicalOutputPathForItem(args: {
+  readonly episodeDir: string;
+  readonly item: ImageBatchManifest["items"][number];
+}): Promise<string> {
+  const resolvedFromIdentity = await resolveEpisodeContainedFilePath({
+    episodeDir: args.episodeDir,
+    relativePath: args.item.identity.destination.relativePath,
   });
+  const resolvedExpected = assertInsideWorkspace(
+    args.episodeDir,
+    args.item.expectedOutputPath
+  );
+  if (path.resolve(resolvedFromIdentity) !== path.resolve(resolvedExpected)) {
+    throw new ImageBatchImportError({
+      message:
+        `Manifest/filesystem disagreement for ${args.item.customId}: expected ${toEpisodeRelativeDisplayPath(
+          args.episodeDir,
+          resolvedExpected
+        )}, identity resolves to ${args.item.identity.destination.relativePath}.`,
+      status: "validation-failed",
+      category: "destination-conflict",
+      code: "destination-conflict",
+    });
+  }
+  return resolvedFromIdentity;
+}
+
+function fullSceneManifestPath(
+  episodeDir: string,
+  sceneId: string
+): string {
+  return resolveEpisodeImageManifestPath(episodeDir, sceneId);
+}
+
+function shortsManifestPath(episodeDir: string): string {
+  return resolveEpisodeShortsImageManifestPath(episodeDir);
 }
 
 class ImageBatchImportError extends Error {
@@ -396,7 +436,10 @@ async function persistImportedImage(args: {
   readonly mimeType: string;
   readonly byteSize: number;
 }> {
-  const resolvedOutputPath = assertInsideWorkspace(args.episodeDir, args.outputPath);
+  const resolvedOutputPath = await resolveEpisodeContainedFilePath({
+    episodeDir: args.episodeDir,
+    relativePath: toEpisodeRelativeDisplayPath(args.episodeDir, args.outputPath),
+  });
   const metadata = await sharp(args.imageBuffer).metadata().catch((error) => {
     throw new ImageBatchImportError({
       message:
@@ -474,10 +517,10 @@ async function persistImportedImage(args: {
 }
 
 async function readSceneManifest(
-  outputPath: string,
+  episodeDir: string,
   sceneId: string
 ): Promise<SceneGenerationManifest | undefined> {
-  const manifestPath = sceneManifestPathForOutput(outputPath, sceneId);
+  const manifestPath = fullSceneManifestPath(episodeDir, sceneId);
   return (
     (await readJsonIfExists(
       manifestPath,
@@ -487,13 +530,88 @@ async function readSceneManifest(
 }
 
 async function writeSceneManifest(
-  outputPath: string,
+  episodeDir: string,
   sceneId: string,
   manifest: SceneGenerationManifest
 ): Promise<string> {
-  const manifestPath = sceneManifestPathForOutput(outputPath, sceneId);
+  const manifestPath = fullSceneManifestPath(episodeDir, sceneId);
   await writeJsonAtomic(manifestPath, manifest);
   return manifestPath;
+}
+
+async function readShortsManifest(
+  episodeDir: string
+): Promise<ShortsSceneManifestEntry[]> {
+  return (
+    (await readJsonIfExists(
+      shortsManifestPath(episodeDir),
+      (value) => value as ShortsSceneManifestEntry[]
+    )) ?? []
+  );
+}
+
+async function writeShortsManifest(
+  episodeDir: string,
+  entries: readonly ShortsSceneManifestEntry[]
+): Promise<string> {
+  const manifestPath = shortsManifestPath(episodeDir);
+  await writeJsonAtomic(
+    manifestPath,
+    [...entries].sort(
+      (left, right) => left.sequenceNumber - right.sequenceNumber || left.sceneId.localeCompare(right.sceneId)
+    )
+  );
+  return manifestPath;
+}
+
+async function upsertShortsManifestEntry(args: {
+  readonly episodeDir: string;
+  readonly item: ImageBatchManifest["items"][number];
+  readonly outputPath: string;
+  readonly outputSha256: string;
+}): Promise<string> {
+  const entries = await readShortsManifest(args.episodeDir);
+  const nextEntry: ShortsSceneManifestEntry = {
+    sceneId: args.item.sceneId ?? args.item.identity.subject.id,
+    sequenceNumber: args.item.sceneIndex ?? 0,
+    aspectRatio: "9:16",
+    strategy: "regenerate",
+    outputImagePath: args.outputPath,
+    reusedExistingImage: false,
+    regenerated: true,
+    attemptCount: 1,
+    status: "success",
+    error: null,
+    outputImageSha256: args.outputSha256,
+    promptHash: args.item.identity.promptHash,
+    generatedAt: new Date().toISOString(),
+  };
+  const retained = entries.filter((entry) => entry.sceneId !== nextEntry.sceneId);
+  return writeShortsManifest(args.episodeDir, [...retained, nextEntry]);
+}
+
+async function updateCharacterReferenceRegistry(args: {
+  readonly episodeDir: string;
+  readonly episodeId: string;
+  readonly characterId: string;
+  readonly outputPath: string;
+}): Promise<string | undefined> {
+  const registry = await loadEpisodeCharacterRegistry(args.episodeDir, args.episodeId);
+  const characters = registry.characters.map((character) =>
+    character.id !== args.characterId
+      ? character
+      : {
+          ...character,
+          referenceImagePath: args.outputPath,
+          referenceStatus:
+            character.referenceStatus === "approved" ? "approved" : "generated",
+        }
+  );
+  if (!characters.some((character) => character.id === args.characterId)) {
+    return undefined;
+  }
+  await upsertCharacterRegistry(args.episodeDir, args.episodeId, characters);
+  return resolveEpisodeCharacterRegistryPath(args.episodeDir);
 }
 
 function classifyBatchFailure(
@@ -608,7 +726,7 @@ async function persistImportedSceneResult(args: {
 }): Promise<{
   readonly manifestItem: ImageBatchManifest["items"][number];
   readonly imageFilePath: string;
-  readonly sceneManifestPath: string;
+  readonly auxiliaryManifestPath?: string;
 }> {
   if (args.line.error) {
     throw new Error(args.line.error.message || `Batch item failed: ${args.item.customId}`);
@@ -641,37 +759,56 @@ async function persistImportedSceneResult(args: {
     }
   }
   const imageBuffer = decodeBase64Image(payload);
+  const canonicalOutputPath = await resolveCanonicalOutputPathForItem({
+    episodeDir: args.episodeDir,
+    item: args.item,
+  });
   const persisted = await persistImportedImage({
     episodeDir: args.episodeDir,
-    outputPath: args.item.expectedOutputPath,
+    outputPath: canonicalOutputPath,
     sceneId: args.item.sceneId ?? args.item.identity.subject.id,
     imageBuffer,
     expectedFormat: args.item.outputFormat,
     requestedSize: args.item.requestedSize,
   });
-  const sceneManifest = await readSceneManifest(
-    args.item.expectedOutputPath,
-    args.item.sceneId ?? args.item.identity.subject.id
-  );
-  if (!sceneManifest) {
-    throw new Error(
-      `Missing scene manifest for ${args.item.sceneId ?? args.item.identity.subject.id}.`
+  let auxiliaryManifestPath: string | undefined;
+  if (args.item.identity.assetRole === "full-scene") {
+    const sceneId = args.item.sceneId ?? args.item.identity.subject.id;
+    const sceneManifest = await readSceneManifest(args.episodeDir, sceneId);
+    if (!sceneManifest) {
+      throw new Error(`Missing scene manifest for ${sceneId}.`);
+    }
+    const nextSceneManifest: SceneGenerationManifest = {
+      ...sceneManifest,
+      outputPath: canonicalOutputPath,
+      status: "generated",
+      outputSha256: persisted.sha256,
+      generatedAt: new Date().toISOString(),
+      attempts: Math.max(sceneManifest.attempts, 1),
+    };
+    auxiliaryManifestPath = await writeSceneManifest(
+      args.episodeDir,
+      sceneId,
+      nextSceneManifest
     );
+  } else if (args.item.identity.assetRole === "short-scene") {
+    auxiliaryManifestPath = await upsertShortsManifestEntry({
+      episodeDir: args.episodeDir,
+      item: args.item,
+      outputPath: canonicalOutputPath,
+      outputSha256: persisted.sha256,
+    });
+  } else if (args.item.identity.assetRole === "character-reference") {
+    auxiliaryManifestPath = await updateCharacterReferenceRegistry({
+      episodeDir: args.episodeDir,
+      episodeId: args.item.identity.episodeId,
+      characterId: args.item.identity.subject.id,
+      outputPath: canonicalOutputPath,
+    });
   }
-  const nextSceneManifest: SceneGenerationManifest = {
-    ...sceneManifest,
-    status: "generated",
-    outputSha256: persisted.sha256,
-    generatedAt: new Date().toISOString(),
-    attempts: Math.max(sceneManifest.attempts, 1),
-  };
-  const manifestPath = await writeSceneManifest(
-    args.item.expectedOutputPath,
-    args.item.sceneId ?? args.item.identity.subject.id,
-    nextSceneManifest
-  );
   const nextItem = imageBatchManifestItemSchema.parse({
     ...args.item,
+    expectedOutputPath: canonicalOutputPath,
     status: "persisted",
     retryCount: args.item.retryCount,
     imageHash: persisted.sha256,
@@ -698,8 +835,8 @@ async function persistImportedSceneResult(args: {
   }) as ImageBatchManifest["items"][number];
   return {
     manifestItem: nextItem,
-    imageFilePath: args.item.expectedOutputPath,
-    sceneManifestPath: manifestPath,
+    imageFilePath: canonicalOutputPath,
+    ...(auxiliaryManifestPath ? { auxiliaryManifestPath } : {}),
   };
 }
 
@@ -710,6 +847,7 @@ export async function submitImageBatch(
 ): Promise<ImageBatchSubmissionResult> {
   requireBatchCapabilities(client);
   const layout = await ensureImageBatchStorageLayout(outputDirectory);
+  const episodeDir = resolveEpisodeDir(outputDirectory);
   const resolved = await resolveImageBatchManifest(outputDirectory, localBatchId);
   const manifestPath = resolved.manifestPath;
   const manifest = resolved.manifest;
@@ -756,9 +894,9 @@ export async function submitImageBatch(
       localBatchId,
       inputFilePath: manifest.inputFilePath,
       manifestPath,
-      resultFilePath: path.join(layout.resultsDir, `batch-${localBatchId}.output.jsonl`),
-      errorFilePath: path.join(layout.errorsDir, `batch-${localBatchId}.errors.jsonl`),
-      reportFilePath: path.join(layout.reportsDir, `batch-${localBatchId}.summary.json`),
+      resultFilePath: resolveEpisodeImageBatchResultPath(episodeDir, localBatchId),
+      errorFilePath: resolveEpisodeImageBatchErrorPath(episodeDir, localBatchId),
+      reportFilePath: resolveEpisodeImageBatchReportPath(episodeDir, localBatchId),
     },
     nextManifest
   );
@@ -780,6 +918,7 @@ export async function refreshImageBatch(
 ): Promise<ImageBatchManifest> {
   requireBatchCapabilities(client);
   const layout = await ensureImageBatchStorageLayout(outputDirectory);
+  const episodeDir = resolveEpisodeDir(outputDirectory);
   const index = new StoryBatchIndexService(outputDirectory);
   const resolved = await resolveImageBatchManifest(outputDirectory, batchRef);
   if (!resolved.manifest.openAIBatchId) {
@@ -806,9 +945,9 @@ export async function refreshImageBatch(
       localBatchId: resolved.localBatchId,
       inputFilePath: manifest.inputFilePath,
       manifestPath,
-      resultFilePath: path.join(layout.resultsDir, `batch-${resolved.localBatchId}.output.jsonl`),
-      errorFilePath: path.join(layout.errorsDir, `batch-${resolved.localBatchId}.errors.jsonl`),
-      reportFilePath: path.join(layout.reportsDir, `batch-${resolved.localBatchId}.summary.json`),
+      resultFilePath: resolveEpisodeImageBatchResultPath(episodeDir, resolved.localBatchId),
+      errorFilePath: resolveEpisodeImageBatchErrorPath(episodeDir, resolved.localBatchId),
+      reportFilePath: resolveEpisodeImageBatchReportPath(episodeDir, resolved.localBatchId),
     },
     nextManifest
   );
@@ -823,6 +962,7 @@ export async function importImageBatch(
 ): Promise<ImageBatchImportResult> {
   requireBatchCapabilities(client);
   const layout = await ensureImageBatchStorageLayout(outputDirectory);
+  const episodeDir = resolveEpisodeDir(outputDirectory);
   const index = new StoryBatchIndexService(outputDirectory);
   const refreshed = await refreshImageBatch(outputDirectory, batchRef, client);
   if (!refreshed.openAIBatchId) {
@@ -851,17 +991,17 @@ export async function importImageBatch(
   const errorText = refreshed.errorFileId
     ? await readRemoteFileText(client, refreshed.errorFileId)
     : "";
-  const resultFilePath = path.join(
-    layout.resultsDir,
-    `batch-${refreshed.localBatchId}.output.jsonl`
+  const resultFilePath = resolveEpisodeImageBatchResultPath(
+    episodeDir,
+    refreshed.localBatchId
   );
-  const errorFilePath = path.join(
-    layout.errorsDir,
-    `batch-${refreshed.localBatchId}.errors.jsonl`
+  const errorFilePath = resolveEpisodeImageBatchErrorPath(
+    episodeDir,
+    refreshed.localBatchId
   );
-  const reportFilePath = path.join(
-    layout.reportsDir,
-    `batch-${refreshed.localBatchId}.summary.json`
+  const reportFilePath = resolveEpisodeImageBatchReportPath(
+    episodeDir,
+    refreshed.localBatchId
   );
   if (outputText) {
     await writeTextAtomic(resultFilePath, outputText);
@@ -890,7 +1030,6 @@ export async function importImageBatch(
   }
   const nextItems: Array<ImageBatchManifest["items"][number]> = [];
   const persistedFiles: string[] = [];
-  const episodeDir = resolveEpisodeDir(outputDirectory);
   for (const item of refreshed.items) {
     const itemLines = linesByCustomId.get(item.customId) ?? [];
     if (itemLines.length === 0) {
@@ -934,10 +1073,16 @@ export async function importImageBatch(
         nextItems.push(item);
         continue;
       }
-      assertInsideWorkspace(episodeDir, item.expectedOutputPath);
-      if ((await fileExists(item.expectedOutputPath)) && item.status !== "persisted") {
+      const canonicalOutputPath = await resolveCanonicalOutputPathForItem({
+        episodeDir,
+        item,
+      });
+      if ((await fileExists(canonicalOutputPath)) && item.status !== "persisted") {
         throw new ImageBatchImportError({
-          message: `Destination conflict for ${item.customId}: ${item.expectedOutputPath} already exists.`,
+          message: `Destination conflict for ${item.customId}: ${toEpisodeRelativeDisplayPath(
+            episodeDir,
+            canonicalOutputPath
+          )} already exists.`,
           status: "validation-failed",
           category: "destination-conflict",
           code: "destination-conflict",
@@ -948,7 +1093,10 @@ export async function importImageBatch(
         item,
         line,
       });
-      persistedFiles.push(persisted.imageFilePath, persisted.sceneManifestPath);
+      persistedFiles.push(
+        persisted.imageFilePath,
+        ...(persisted.auxiliaryManifestPath ? [persisted.auxiliaryManifestPath] : [])
+      );
       nextItems.push(persisted.manifestItem);
     } catch (error) {
       const lineFailureStatus = line.error ? classifyBatchFailure(line) : "validation-failed";
@@ -999,7 +1147,10 @@ export async function importImageBatch(
       layout,
       localBatchId: refreshed.localBatchId,
       inputFilePath: refreshed.inputFilePath,
-      manifestPath: imageManifestPath(layout, refreshed.localBatchId),
+      manifestPath: resolveEpisodeImageBatchManifestFilePath(
+        episodeDir,
+        refreshed.localBatchId
+      ),
       resultFilePath,
       errorFilePath,
       reportFilePath,

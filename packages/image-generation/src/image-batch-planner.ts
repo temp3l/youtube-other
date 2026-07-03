@@ -16,6 +16,7 @@ import {
   resolveEpisodeImageManifestPath,
   resolveEpisodeImageStateDir,
   resolveEpisodeImagePromptPath,
+  resolveEpisodeSharedGeneratedImagePath,
   writeJsonAtomic,
 } from "@mediaforge/shared";
 import {
@@ -603,6 +604,7 @@ async function buildSceneJob(args: {
   readonly variant: "full" | "short";
   readonly sceneId: string;
   readonly sceneIndex: number;
+  readonly expectedFilename?: string;
   readonly sceneManifest: SceneGenerationManifest;
   readonly registry: CharacterRegistry;
   readonly settings: ImageBatchPlannerSettings;
@@ -649,6 +651,15 @@ async function buildSceneJob(args: {
     outputFormat: args.settings.outputFormat,
     characterReferenceHashes: dependencies.map((dependency) => dependency.sha256),
   });
+  const expectedOutputPath =
+    args.variant === "short"
+      ? args.sceneManifest.outputPath
+      : resolveEpisodeSharedGeneratedImagePath({
+          episodeDir: args.episodeDir,
+          sceneId: args.sceneId,
+          expectedFilename:
+            args.expectedFilename ?? path.basename(args.sceneManifest.outputPath),
+        });
   const identity = createImageBatchAssetIdentity({
     episodeId: args.episodeId,
     language: args.language,
@@ -664,7 +675,7 @@ async function buildSceneJob(args: {
     destination: deriveImageBatchDestinationIdentity({
       assetRole: args.variant === "short" ? "short-scene" : "full-scene",
       episodeDir: args.episodeDir,
-      outputPath: args.sceneManifest.outputPath,
+      outputPath: expectedOutputPath,
     }),
   });
   const customId = buildImageBatchCustomId(identity);
@@ -684,7 +695,7 @@ async function buildSceneJob(args: {
     characterReferencePaths: dependencies.map((dependency) => dependency.sourcePath),
     dependencies,
     outputFormat: args.settings.outputFormat,
-    expectedOutputPath: args.sceneManifest.outputPath,
+    expectedOutputPath,
     providerRequestHash,
     generationConfigurationHash: buildConfigurationHash({
       stageKind: "scene-images",
@@ -958,6 +969,8 @@ export async function planImageBatchForEpisode(args: {
     readonly scenes: ReadonlyArray<{
       readonly id: string;
       readonly sequenceNumber: number;
+      readonly expectedFilename?: string;
+      readonly expectedImageFilenames?: readonly string[];
     }>;
   };
   readonly settings: ImageBatchPlannerSettings;
@@ -991,6 +1004,13 @@ export async function planImageBatchForEpisode(args: {
       variant,
       sceneId: scene.id,
       sceneIndex: scene.sequenceNumber,
+      ...(
+        scene.expectedFilename
+          ? { expectedFilename: scene.expectedFilename }
+          : scene.expectedImageFilenames?.[0]
+            ? { expectedFilename: scene.expectedImageFilenames[0] }
+            : {}
+      ),
       sceneManifest,
       registry,
       settings: args.settings,
@@ -1261,6 +1281,8 @@ export async function prepareImageBatchForEpisode(args: {
     readonly scenes: ReadonlyArray<{
       readonly id: string;
       readonly sequenceNumber: number;
+      readonly expectedFilename?: string;
+      readonly expectedImageFilenames?: readonly string[];
     }>;
   };
   readonly settings: ImageBatchPlannerSettings;
