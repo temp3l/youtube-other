@@ -481,6 +481,84 @@ describe("episode commands", () => {
     expect(result.warning).toBeUndefined();
   });
 
+  it("prefers the canonical authored script resolver source when available", async () => {
+    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "dark-truth-cli-"));
+    const outputRoot = path.join(tempDir, "episodes");
+    const canonicalScript = path.join(
+      outputRoot,
+      episodeSlug,
+      "languages",
+      "script-en.md"
+    );
+    await fs.mkdir(path.dirname(canonicalScript), { recursive: true });
+    await fs.writeFile(canonicalScript, "Canonical narration", "utf8");
+    const result = await resolveEpisodeLanguageSource(
+      outputRoot,
+      {
+        episodeId: episodeSlug,
+        episodeNumber: "011",
+        slug: episodeSlug,
+        sourceDir: path.dirname(path.dirname(englishFullSource)),
+        candidates: [
+          {
+            language: "en",
+            artifactType: "full",
+            filePath: englishFullSource,
+            status: "present",
+          },
+        ],
+      } as unknown as Parameters<typeof resolveEpisodeLanguageSource>[1],
+      "en",
+      "full"
+    );
+
+    expect(result.sourceFile).toBe(canonicalScript);
+    expect(result.warning).toBeUndefined();
+  });
+
+  it("surfaces stale authored script resolver errors", async () => {
+    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "dark-truth-cli-"));
+    const outputRoot = path.join(tempDir, "episodes");
+    await fs.mkdir(path.join(outputRoot, episodeSlug, "languages"), {
+      recursive: true,
+    });
+    await fs.writeFile(
+      path.join(outputRoot, episodeSlug, "languages", "script-en.md"),
+      "same narration",
+      "utf8"
+    );
+    await fs.mkdir(path.join(outputRoot, episodeSlug, "en", "full"), {
+      recursive: true,
+    });
+    await fs.writeFile(
+      path.join(outputRoot, episodeSlug, "en", "full", "script.md"),
+      "same narration",
+      "utf8"
+    );
+
+    await expect(
+      resolveEpisodeLanguageSource(
+        outputRoot,
+        {
+          episodeId: episodeSlug,
+          episodeNumber: "011",
+          slug: episodeSlug,
+          sourceDir: path.dirname(path.dirname(englishFullSource)),
+          candidates: [
+            {
+              language: "en",
+              artifactType: "full",
+              filePath: englishFullSource,
+              status: "present",
+            },
+          ],
+        } as unknown as Parameters<typeof resolveEpisodeLanguageSource>[1],
+        "en",
+        "full"
+      )
+    ).rejects.toMatchObject({ code: "STALE_LAYOUT" });
+  });
+
   it("warns when English full localization falls back to the pack source", async () => {
     const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "dark-truth-cli-"));
     const outputRoot = path.join(tempDir, "episodes");

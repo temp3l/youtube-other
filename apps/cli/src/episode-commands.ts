@@ -44,10 +44,12 @@ import {
   type ShortsImageConfig,
 } from "@mediaforge/image-generation";
 import {
+  AuthoredScriptResolverError,
   ensureDir,
   fileExists,
   hashFile,
   hashText,
+  resolveAuthoredScript,
   normalizeWhitespace,
   slugify,
   writeJsonAtomic,
@@ -82,6 +84,83 @@ export interface EpisodeCommandOptions {
   readonly visualRetentionMode?: "disabled" | "preview" | "enabled";
   readonly visualProfile?: string;
   readonly strictShotValidation?: boolean;
+}
+
+export interface EpisodeSetupUseCaseInput {
+  readonly episode?: string;
+  readonly sourceRoot: string;
+  readonly outputRoot: string;
+  readonly language: SupportedLanguage;
+  readonly variant: ArtifactType;
+  readonly dryRun?: boolean;
+  readonly validationOnly?: boolean;
+  readonly force?: boolean;
+  readonly resume?: boolean;
+  readonly reuseImages?: boolean;
+  readonly visualRetention?: boolean;
+  readonly visualRetentionMode?: "disabled" | "preview" | "enabled";
+  readonly visualProfile?: string;
+  readonly strictShotValidation?: boolean;
+}
+
+export interface EpisodeSetupUseCaseResult {
+  readonly summary: Record<string, unknown>;
+}
+
+function setupInputFromOptions(
+  options: EpisodeCommandOptions,
+  args: {
+    readonly sourceRoot: string;
+    readonly outputRoot: string;
+    readonly language: SupportedLanguage;
+    readonly variant: ArtifactType;
+  }
+): EpisodeSetupUseCaseInput {
+  const episode = resolveEpisodeFilter(options);
+  return {
+    ...(episode !== undefined ? { episode } : {}),
+    sourceRoot: args.sourceRoot,
+    outputRoot: args.outputRoot,
+    language: args.language,
+    variant: args.variant,
+    ...(options.dryRun !== undefined ? { dryRun: options.dryRun } : {}),
+    ...(options.force !== undefined ? { force: options.force } : {}),
+    ...(options.resume !== undefined ? { resume: options.resume } : {}),
+    ...(options.reuseImages !== undefined ? { reuseImages: options.reuseImages } : {}),
+    ...(options.visualRetention !== undefined ? { visualRetention: options.visualRetention } : {}),
+    ...(options.visualRetentionMode !== undefined
+      ? { visualRetentionMode: options.visualRetentionMode }
+      : {}),
+    ...(options.visualProfile !== undefined ? { visualProfile: options.visualProfile } : {}),
+    ...(options.strictShotValidation !== undefined
+      ? { strictShotValidation: options.strictShotValidation }
+      : {}),
+  };
+}
+
+function episodeOptionsFromSetupInput(
+  input: EpisodeSetupUseCaseInput,
+  artifact: ArtifactType
+): EpisodeCommandOptions {
+  return {
+    ...(input.episode !== undefined ? { episode: input.episode } : {}),
+    source: input.sourceRoot,
+    outputRoot: input.outputRoot,
+    language: input.language,
+    artifact,
+    ...(input.dryRun !== undefined ? { dryRun: input.dryRun } : {}),
+    ...(input.force !== undefined ? { force: input.force } : {}),
+    ...(input.resume !== undefined ? { resume: input.resume } : {}),
+    ...(input.reuseImages !== undefined ? { reuseImages: input.reuseImages } : {}),
+    ...(input.visualRetention !== undefined ? { visualRetention: input.visualRetention } : {}),
+    ...(input.visualRetentionMode !== undefined
+      ? { visualRetentionMode: input.visualRetentionMode }
+      : {}),
+    ...(input.visualProfile !== undefined ? { visualProfile: input.visualProfile } : {}),
+    ...(input.strictShotValidation !== undefined
+      ? { strictShotValidation: input.strictShotValidation }
+      : {}),
+  };
 }
 
 const defaultSourceRoot =
@@ -428,6 +507,30 @@ export async function resolveEpisodeLanguageSource(
   readonly sourceFile: string;
   readonly warning?: string;
 }> {
+  try {
+    const resolved = await resolveAuthoredScript({
+      workspaceRoot: path.dirname(path.resolve(outputRoot)),
+      episode: discovery.slug,
+      language,
+      variant: artifactType,
+    });
+    return { sourceFile: resolved.absolutePath };
+  } catch (error) {
+    if (!(error instanceof AuthoredScriptResolverError)) {
+      throw error;
+    }
+    const rootCompatibilityPath = `episodes/${discovery.slug}/script.md`;
+    const candidates = [...(error.details.candidates ?? [])];
+    const isRootCompatibilityOnly =
+      candidates.length === 1 && candidates[0] === rootCompatibilityPath;
+    if (
+      error.code !== "MISSING_SCRIPT" &&
+      error.code !== "INVALID_REQUEST" &&
+      !isRootCompatibilityOnly
+    ) {
+      throw error;
+    }
+  }
   if (language === "en" && artifactType === "full") {
     const workspaceCandidates = [
       path.join(outputRoot, discovery.slug, "script.md"),
@@ -919,6 +1022,51 @@ async function prepareEnglishCanonical(
   );
 }
 
+async function selectEpisodeForSetup(
+  sourceRoot: string,
+  episodeFilter?: string
+): Promise<EpisodeSourceDiscovery> {
+  const discoveries = filterDiscoveries(
+    await discoverEpisodeSources(sourceRoot),
+    episodeFilter
+  );
+  const selected = discoveries[0];
+  if (!selected) {
+    throw new Error(`No episode found under ${sourceRoot}.`);
+  }
+  return selected;
+}
+
+export async function runEpisodeFullSetupUseCase(
+  input: EpisodeSetupUseCaseInput
+): Promise<EpisodeSetupUseCaseResult> {
+  const selected = await selectEpisodeForSetup(input.sourceRoot, input.episode);
+  const summary = await prepareEpisodeLanguage(
+    input.sourceRoot,
+    input.outputRoot,
+    selected,
+    input.language,
+    "full",
+    episodeOptionsFromSetupInput(input, "full")
+  );
+  return { summary };
+}
+
+export async function runEpisodeShortSetupUseCase(
+  input: EpisodeSetupUseCaseInput
+): Promise<EpisodeSetupUseCaseResult> {
+  const selected = await selectEpisodeForSetup(input.sourceRoot, input.episode);
+  const summary = await prepareEpisodeLanguage(
+    input.sourceRoot,
+    input.outputRoot,
+    selected,
+    input.language,
+    "short",
+    episodeOptionsFromSetupInput(input, "short")
+  );
+  return { summary };
+}
+
 async function handleReviewApproval(
   outputRoot: string,
   episodeSlug: string,
@@ -1043,20 +1191,12 @@ export async function commandEpisodeEnglish(
 ): Promise<void> {
   const sourceRoot = resolveSourceRoot(options);
   const outputRoot = resolveOutputRoot(options);
-  const discoveries = filterDiscoveries(
-    await discoverEpisodeSources(sourceRoot),
-    resolveEpisodeFilter(options)
-  );
-  const selected = discoveries[0];
-  if (!selected) {
-    throw new Error(`No episode found under ${sourceRoot}.`);
-  }
-  const summary = await prepareEnglishCanonical(
+  const { summary } = await runEpisodeFullSetupUseCase(setupInputFromOptions(options, {
     sourceRoot,
     outputRoot,
-    selected,
-    options
-  );
+    language: "en",
+    variant: "full",
+  }));
   process.stdout.write(`${JSON.stringify(summary, null, 2)}\n`);
 }
 
@@ -1082,15 +1222,14 @@ export async function commandEpisodeLocalized(
   }
   const outputs: Record<string, unknown>[] = [];
   for (const language of selectedLanguages) {
+    const { summary } = await runEpisodeFullSetupUseCase(setupInputFromOptions(options, {
+      sourceRoot,
+      outputRoot,
+      language,
+      variant: "full",
+    }));
     outputs.push(
-      await prepareEpisodeLanguage(
-        sourceRoot,
-        outputRoot,
-        selected,
-        language,
-        "full",
-        options
-      )
+      summary
     );
   }
   process.stdout.write(`${JSON.stringify(outputs, null, 2)}\n`);
@@ -1115,14 +1254,12 @@ export async function commandEpisodeShort(
   if (language === "de") {
     await requireApproval(outputRoot, selected.slug, "de", "full");
   }
-  const summary = await prepareEpisodeLanguage(
+  const { summary } = await runEpisodeShortSetupUseCase(setupInputFromOptions(options, {
     sourceRoot,
     outputRoot,
-    selected,
     language,
-    "short",
-    options
-  );
+    variant: "short",
+  }));
   process.stdout.write(`${JSON.stringify(summary, null, 2)}\n`);
 }
 
