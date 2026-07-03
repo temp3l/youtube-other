@@ -1,5 +1,9 @@
+import fs from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
 import { describe, expect, it } from "vitest";
 import {
+  AuthoredScriptResolverError,
   assertInsideWorkspace,
   createEpisodePathResolver,
   ensurePortableRelativePath,
@@ -7,6 +11,7 @@ import {
   normalizeEpisodeId,
   normalizeLocaleCode,
   normalizeSha256Fingerprint,
+  resolveAuthoredScript,
   resolveEpisodeCharacterReferencePath,
   resolveEpisodeDirFromSceneOutputPath,
   resolveEpisodeCharacterRegistryPath,
@@ -24,6 +29,21 @@ import {
   resolveEpisodeImageVisualPlanPath,
   resolveSceneImageCandidatePaths,
 } from "./episode-filesystem.js";
+
+async function createTempWorkspace(): Promise<string> {
+  return fs.mkdtemp(path.join(os.tmpdir(), "episode-filesystem-"));
+}
+
+async function writeWorkspaceFile(
+  workspaceRoot: string,
+  relativePath: string,
+  content: string
+): Promise<string> {
+  const filePath = path.join(workspaceRoot, relativePath);
+  await fs.mkdir(path.dirname(filePath), { recursive: true });
+  await fs.writeFile(filePath, content, "utf8");
+  return filePath;
+}
 
 describe("episode filesystem helpers", () => {
   it("normalizes episode ids, locales, and variants", () => {
@@ -306,5 +326,191 @@ describe("episode filesystem helpers", () => {
     ).toBe(
       "/workspace/009-mary-gloria-the-christmas-doll/state/image-generation/manifests/scene-001.json"
     );
+  });
+
+  it("resolves canonical authored full and Short scripts with deterministic identities", async () => {
+    const workspaceRoot = await createTempWorkspace();
+    await writeWorkspaceFile(
+      workspaceRoot,
+      "episodes/022-the-whistler-in-the-woods/languages/script-en.md",
+      "English full script"
+    );
+    await writeWorkspaceFile(
+      workspaceRoot,
+      "episodes/022-the-whistler-in-the-woods/languages/short/script-de.md",
+      "German short script"
+    );
+
+    const full = await resolveAuthoredScript({
+      workspaceRoot,
+      episode: "022-the-whistler-in-the-woods",
+      language: "en",
+      variant: "full",
+    });
+    const short = await resolveAuthoredScript({
+      workspaceRoot,
+      episode: "022-the-whistler-in-the-woods",
+      language: "de",
+      variant: "short",
+    });
+
+    expect(full.relativePath).toBe(
+      "episodes/022-the-whistler-in-the-woods/languages/script-en.md"
+    );
+    expect(short.relativePath).toBe(
+      "episodes/022-the-whistler-in-the-woods/languages/short/script-de.md"
+    );
+    expect(full.contentHash).toMatch(/^[a-f0-9]{64}$/u);
+    expect(full.cacheIdentity).toBe(
+      `authored-script-resolver-v1:022-the-whistler-in-the-woods:en:full:${full.contentHash}`
+    );
+    await expect(
+      resolveAuthoredScript({
+        workspaceRoot,
+        episode: "022-the-whistler-in-the-woods",
+        language: "de",
+        variant: "full",
+      })
+    ).rejects.toMatchObject({ code: "MISSING_SCRIPT" });
+  });
+
+  it("rejects invalid authored script request values without falling back to English", async () => {
+    const workspaceRoot = await createTempWorkspace();
+    await writeWorkspaceFile(
+      workspaceRoot,
+      "episodes/022-the-whistler-in-the-woods/languages/script-en.md",
+      "English full script"
+    );
+
+    await expect(
+      resolveAuthoredScript({
+        workspaceRoot,
+        episode: "../022-the-whistler-in-the-woods",
+        language: "en",
+        variant: "full",
+      })
+    ).rejects.toMatchObject({ code: "INVALID_REQUEST" });
+    await expect(
+      resolveAuthoredScript({
+        workspaceRoot,
+        episode: "022-the-whistler-in-the-woods",
+        language: "sp",
+        variant: "full",
+      })
+    ).rejects.toMatchObject({ code: "INVALID_REQUEST" });
+    await expect(
+      resolveAuthoredScript({
+        workspaceRoot,
+        episode: "022-the-whistler-in-the-woods",
+        language: "de",
+        variant: "feature",
+      })
+    ).rejects.toMatchObject({ code: "INVALID_REQUEST" });
+  });
+
+  it("rejects directories and symlink escapes for canonical authored scripts", async () => {
+    const workspaceRoot = await createTempWorkspace();
+    const canonicalDir = path.join(
+      workspaceRoot,
+      "episodes/022-the-whistler-in-the-woods/languages/script-en.md"
+    );
+    await fs.mkdir(canonicalDir, { recursive: true });
+
+    await expect(
+      resolveAuthoredScript({
+        workspaceRoot,
+        episode: "022-the-whistler-in-the-woods",
+        language: "en",
+        variant: "full",
+      })
+    ).rejects.toMatchObject({ code: "NOT_A_FILE" });
+
+    await fs.rm(canonicalDir, { recursive: true });
+    const outsideFile = path.join(await createTempWorkspace(), "script-en.md");
+    await fs.writeFile(outsideFile, "outside", "utf8");
+    await fs.symlink(outsideFile, canonicalDir);
+
+    await expect(
+      resolveAuthoredScript({
+        workspaceRoot,
+        episode: "022-the-whistler-in-the-woods",
+        language: "en",
+        variant: "full",
+      })
+    ).rejects.toMatchObject({ code: "PATH_ESCAPE" });
+  });
+
+  it("classifies identical and divergent stale authored script candidates", async () => {
+    const identicalWorkspace = await createTempWorkspace();
+    await writeWorkspaceFile(
+      identicalWorkspace,
+      "episodes/022-the-whistler-in-the-woods/languages/script-en.md",
+      "same script"
+    );
+    await writeWorkspaceFile(
+      identicalWorkspace,
+      "episodes/022-the-whistler-in-the-woods/en/full/script.md",
+      "same script"
+    );
+
+    await expect(
+      resolveAuthoredScript({
+        workspaceRoot: identicalWorkspace,
+        episode: "022-the-whistler-in-the-woods",
+        language: "en",
+        variant: "full",
+      })
+    ).rejects.toMatchObject({
+      code: "STALE_LAYOUT",
+      details: {
+        candidates: [
+          "episodes/022-the-whistler-in-the-woods/en/full/script.md",
+        ],
+      },
+    });
+
+    const divergentWorkspace = await createTempWorkspace();
+    await writeWorkspaceFile(
+      divergentWorkspace,
+      "episodes/022-the-whistler-in-the-woods/languages/script-de.md",
+      "canonical script"
+    );
+    await writeWorkspaceFile(
+      divergentWorkspace,
+      "episodes/022-the-whistler-in-the-woods/de/full/script.md",
+      "different script"
+    );
+
+    await expect(
+      resolveAuthoredScript({
+        workspaceRoot: divergentWorkspace,
+        episode: "022-the-whistler-in-the-woods",
+        language: "de",
+        variant: "full",
+      })
+    ).rejects.toMatchObject({ code: "AMBIGUOUS_SCRIPT" });
+  });
+
+  it("exposes structured resolver errors for missing authored scripts", async () => {
+    const workspaceRoot = await createTempWorkspace();
+
+    try {
+      await resolveAuthoredScript({
+        workspaceRoot,
+        episode: "022-the-whistler-in-the-woods",
+        language: "en",
+        variant: "full",
+      });
+      throw new Error("Expected resolver to throw");
+    } catch (error) {
+      expect(error).toBeInstanceOf(AuthoredScriptResolverError);
+      expect(error).toMatchObject({
+        code: "MISSING_SCRIPT",
+        details: {
+          canonicalRelativePath:
+            "episodes/022-the-whistler-in-the-woods/languages/script-en.md",
+        },
+      });
+    }
   });
 });

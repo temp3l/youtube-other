@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { z } from "zod";
@@ -5,13 +6,19 @@ import { z } from "zod";
 
 export const localeCodes = ["en", "de", "es", "fr", "pt"] as const;
 export type LocaleCode = (typeof localeCodes)[number];
+export type EpisodeLanguage = LocaleCode;
 
 export const contentVariants = ["full", "short"] as const;
 export type ContentVariant = (typeof contentVariants)[number];
+export type ScriptVariant = ContentVariant;
 export type Sha256Fingerprint = string & { readonly __brand: "Sha256Fingerprint" };
+export type ScriptContentHash = Sha256Fingerprint;
 
 export type EpisodeId = string & { readonly __brand: "EpisodeId" };
+export type EpisodeSlug = EpisodeId;
 export type RelativePath = string & { readonly __brand: "RelativePath" };
+export type RepositoryRelativePath = RelativePath;
+export type AbsolutePath = string & { readonly __brand: "AbsolutePath" };
 
 const episodeIdPattern = /^[a-z0-9][a-z0-9-]*$/u;
 const localeCodePattern = /^(en|de|es|fr|pt)(?:-[a-z0-9]{2,8})*$/iu;
@@ -106,6 +113,14 @@ export function toPortableRelativePath(root: string, filePath: string): Relative
   return ensurePortableRelativePath(relative);
 }
 
+export function normalizeAbsolutePath(value: string): AbsolutePath {
+  const resolved = path.resolve(value);
+  if (!path.isAbsolute(resolved)) {
+    throw new Error(`Invalid absolute path: ${value}`);
+  }
+  return resolved as AbsolutePath;
+}
+
 export function assertInsideWorkspace(workspaceRoot: string, candidatePath: string): string {
   const resolvedWorkspace = path.resolve(workspaceRoot);
   const resolvedCandidate = path.resolve(candidatePath);
@@ -116,6 +131,327 @@ export function assertInsideWorkspace(workspaceRoot: string, candidatePath: stri
     throw new Error(`Path escapes workspace: ${candidatePath}`);
   }
   return resolvedCandidate;
+}
+
+export const authoredScriptResolverVersion = "authored-script-resolver-v1" as const;
+
+export type AuthoredScriptResolverErrorCode =
+  | "INVALID_REQUEST"
+  | "PATH_ESCAPE"
+  | "MISSING_SCRIPT"
+  | "NOT_A_FILE"
+  | "STALE_LAYOUT"
+  | "AMBIGUOUS_SCRIPT"
+  | "FILESYSTEM_ERROR";
+
+export interface AuthoredScriptResolverErrorDetails {
+  readonly workspaceRoot?: string;
+  readonly episodeId?: string;
+  readonly language?: string;
+  readonly variant?: string;
+  readonly canonicalRelativePath?: string;
+  readonly candidates?: readonly string[];
+  readonly causeMessage?: string;
+}
+
+export class AuthoredScriptResolverError extends Error {
+  readonly code: AuthoredScriptResolverErrorCode;
+  readonly details: AuthoredScriptResolverErrorDetails;
+
+  constructor(
+    code: AuthoredScriptResolverErrorCode,
+    message: string,
+    details: AuthoredScriptResolverErrorDetails = {}
+  ) {
+    super(message);
+    this.name = "AuthoredScriptResolverError";
+    this.code = code;
+    this.details = details;
+  }
+}
+
+export interface ResolveAuthoredScriptRequest {
+  readonly workspaceRoot: string;
+  readonly episode: string;
+  readonly language: string;
+  readonly variant: string;
+}
+
+export interface ResolvedAuthoredScript {
+  readonly episodeId: EpisodeSlug;
+  readonly language: EpisodeLanguage;
+  readonly variant: ScriptVariant;
+  readonly absolutePath: AbsolutePath;
+  readonly relativePath: RepositoryRelativePath;
+  readonly contentHash: ScriptContentHash;
+  readonly cacheIdentity: string;
+  readonly resolverVersion: typeof authoredScriptResolverVersion;
+  readonly logContext: {
+    readonly episodeId: string;
+    readonly language: string;
+    readonly variant: string;
+    readonly scriptPath: string;
+    readonly scriptHash: string;
+    readonly resolverVersion: typeof authoredScriptResolverVersion;
+  };
+}
+
+async function statIfExists(filePath: string): Promise<import("node:fs").Stats | null> {
+  try {
+    return await fs.stat(filePath);
+  } catch (error) {
+    if (error instanceof Error && "code" in error && error.code === "ENOENT") {
+      return null;
+    }
+    throw error;
+  }
+}
+
+async function hashExistingFile(filePath: string): Promise<ScriptContentHash> {
+  const content = await fs.readFile(filePath);
+  return normalizeSha256Fingerprint(
+    crypto.createHash("sha256").update(content).digest("hex")
+  ) as ScriptContentHash;
+}
+
+function authoredScriptRelativePath(args: {
+  readonly episodeId: EpisodeSlug;
+  readonly language: EpisodeLanguage;
+  readonly variant: ScriptVariant;
+}): RepositoryRelativePath {
+  const segments =
+    args.variant === "short"
+      ? ["episodes", args.episodeId, "languages", "short", `script-${args.language}.md`]
+      : ["episodes", args.episodeId, "languages", `script-${args.language}.md`];
+  return ensurePortableRelativePath(segments.join("/"));
+}
+
+function staleAuthoredScriptRelativePaths(args: {
+  readonly episodeId: EpisodeSlug;
+  readonly language: EpisodeLanguage;
+  readonly variant: ScriptVariant;
+}): readonly RepositoryRelativePath[] {
+  const variantPaths =
+    args.variant === "short"
+      ? [
+          ["episodes", args.episodeId, args.language, "short", "script.md"],
+          ["episodes", args.episodeId, "locales", args.language, "short", "script.md"],
+        ]
+      : [
+          ["episodes", args.episodeId, "script.md"],
+          ["episodes", args.episodeId, args.language, "script.md"],
+          ["episodes", args.episodeId, args.language, "full", "script.md"],
+          ["episodes", args.episodeId, "locales", args.language, "full", "script.md"],
+        ];
+  return variantPaths.map((segments) => ensurePortableRelativePath(segments.join("/")));
+}
+
+function resolverDetails(args: {
+  readonly workspaceRoot: string;
+  readonly episodeId?: string;
+  readonly language?: string;
+  readonly variant?: string;
+  readonly canonicalRelativePath?: string;
+  readonly candidates?: readonly string[];
+  readonly causeMessage?: string;
+}): AuthoredScriptResolverErrorDetails {
+  return args;
+}
+
+export async function resolveAuthoredScript(
+  request: ResolveAuthoredScriptRequest
+): Promise<ResolvedAuthoredScript> {
+  const workspaceRoot = path.resolve(request.workspaceRoot);
+  let episodeId: EpisodeSlug;
+  let language: EpisodeLanguage;
+  let variant: ScriptVariant;
+
+  try {
+    episodeId = normalizeEpisodeId(request.episode);
+    language = normalizeLocaleCode(request.language);
+    variant = normalizeContentVariant(request.variant);
+  } catch (error) {
+    throw new AuthoredScriptResolverError(
+      "INVALID_REQUEST",
+      error instanceof Error ? error.message : "Invalid authored script request",
+      resolverDetails({
+        workspaceRoot,
+        episodeId: request.episode,
+        language: request.language,
+        variant: request.variant,
+      })
+    );
+  }
+
+  const canonicalRelativePath = authoredScriptRelativePath({
+    episodeId,
+    language,
+    variant,
+  });
+  const canonicalPath = assertInsideWorkspace(
+    workspaceRoot,
+    path.join(workspaceRoot, canonicalRelativePath)
+  );
+
+  let canonicalStat: import("node:fs").Stats | null;
+  try {
+    canonicalStat = await statIfExists(canonicalPath);
+  } catch (error) {
+    throw new AuthoredScriptResolverError(
+      "FILESYSTEM_ERROR",
+      `Unable to inspect authored script: ${canonicalRelativePath}`,
+      resolverDetails({
+        workspaceRoot,
+        episodeId,
+        language,
+        variant,
+        canonicalRelativePath,
+        causeMessage: error instanceof Error ? error.message : String(error),
+      })
+    );
+  }
+
+  const staleCandidates = staleAuthoredScriptRelativePaths({
+    episodeId,
+    language,
+    variant,
+  });
+  const existingStaleCandidates: RepositoryRelativePath[] = [];
+  for (const candidate of staleCandidates) {
+    const candidatePath = assertInsideWorkspace(
+      workspaceRoot,
+      path.join(workspaceRoot, candidate)
+    );
+    const candidateStat = await statIfExists(candidatePath);
+    if (candidateStat?.isFile()) {
+      existingStaleCandidates.push(candidate);
+    }
+  }
+
+  if (existingStaleCandidates.length > 0) {
+    const canonicalHash = canonicalStat?.isFile()
+      ? await hashExistingFile(canonicalPath)
+      : null;
+    const staleHashes = await Promise.all(
+      existingStaleCandidates.map(async (candidate) => ({
+        candidate,
+        hash: await hashExistingFile(path.join(workspaceRoot, candidate)),
+      }))
+    );
+    const allHashes = new Set([
+      ...(canonicalHash ? [canonicalHash] : []),
+      ...staleHashes.map((candidate) => candidate.hash),
+    ]);
+    const details = resolverDetails({
+      workspaceRoot,
+      episodeId,
+      language,
+      variant,
+      canonicalRelativePath,
+      candidates: existingStaleCandidates,
+    });
+    if (allHashes.size > 1 || canonicalHash === null) {
+      throw new AuthoredScriptResolverError(
+        "AMBIGUOUS_SCRIPT",
+        `Multiple divergent authored script candidates exist for ${episodeId} ${language} ${variant}`,
+        details
+      );
+    }
+    throw new AuthoredScriptResolverError(
+      "STALE_LAYOUT",
+      `Stale duplicate authored script candidates exist for ${episodeId} ${language} ${variant}`,
+      details
+    );
+  }
+
+  if (canonicalStat === null) {
+    throw new AuthoredScriptResolverError(
+      "MISSING_SCRIPT",
+      `Missing authored script: ${canonicalRelativePath}`,
+      resolverDetails({
+        workspaceRoot,
+        episodeId,
+        language,
+        variant,
+        canonicalRelativePath,
+      })
+    );
+  }
+  if (!canonicalStat.isFile()) {
+    throw new AuthoredScriptResolverError(
+      "NOT_A_FILE",
+      `Authored script is not a regular file: ${canonicalRelativePath}`,
+      resolverDetails({
+        workspaceRoot,
+        episodeId,
+        language,
+        variant,
+        canonicalRelativePath,
+      })
+    );
+  }
+
+  let realCanonicalPath: string;
+  try {
+    realCanonicalPath = await fs.realpath(canonicalPath);
+  } catch (error) {
+    throw new AuthoredScriptResolverError(
+      "FILESYSTEM_ERROR",
+      `Unable to resolve authored script realpath: ${canonicalRelativePath}`,
+      resolverDetails({
+        workspaceRoot,
+        episodeId,
+        language,
+        variant,
+        canonicalRelativePath,
+        causeMessage: error instanceof Error ? error.message : String(error),
+      })
+    );
+  }
+  if (
+    realCanonicalPath !== workspaceRoot &&
+    !realCanonicalPath.startsWith(`${workspaceRoot}${path.sep}`)
+  ) {
+    throw new AuthoredScriptResolverError(
+      "PATH_ESCAPE",
+      `Authored script resolves outside workspace: ${canonicalRelativePath}`,
+      resolverDetails({
+        workspaceRoot,
+        episodeId,
+        language,
+        variant,
+        canonicalRelativePath,
+      })
+    );
+  }
+
+  const contentHash = await hashExistingFile(realCanonicalPath);
+  const cacheIdentity = [
+    authoredScriptResolverVersion,
+    episodeId,
+    language,
+    variant,
+    contentHash,
+  ].join(":");
+
+  return {
+    episodeId,
+    language,
+    variant,
+    absolutePath: normalizeAbsolutePath(realCanonicalPath),
+    relativePath: canonicalRelativePath,
+    contentHash,
+    cacheIdentity,
+    resolverVersion: authoredScriptResolverVersion,
+    logContext: {
+      episodeId,
+      language,
+      variant,
+      scriptPath: canonicalRelativePath,
+      scriptHash: contentHash,
+      resolverVersion: authoredScriptResolverVersion,
+    },
+  };
 }
 
 export interface EpisodeContext {
