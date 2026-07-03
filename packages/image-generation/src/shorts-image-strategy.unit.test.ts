@@ -116,6 +116,69 @@ describe("shorts image strategy", () => {
     expect(plan[5]?.motion?.mode).toBe("pan-and-scan");
   });
 
+  it("documents current short-image classification for native regeneration, smart crop, and blurred fill", () => {
+    const scenePlan = makeScenePlan(3);
+    const baseConfig: ShortsImageConfig = {
+      enabled: true,
+      keySceneCount: 1,
+      portraitWidth: 1088,
+      portraitHeight: 1920,
+      finalWidth: 1080,
+      finalHeight: 1920,
+      reuseLandscapeImages: true,
+      enablePanAndScan: true,
+      enableBlurredFallback: true,
+      forceRegenerateAll: false,
+      selectionMode: "first-n",
+    };
+
+    const panAndScanPlan = buildShortsImageStrategyPlan(scenePlan, baseConfig, {
+      landscapeDir: "/tmp/landscape",
+      outputDir: "/tmp/portrait",
+    });
+    expect(panAndScanPlan.map((entry) => entry.strategy)).toEqual([
+      "regenerate",
+      "smart-crop",
+      "smart-crop",
+    ]);
+    expect(panAndScanPlan.map((entry) => entry.regenerateReason)).toEqual([
+      "key_scene_1",
+      undefined,
+      undefined,
+    ]);
+    expect(panAndScanPlan.map((entry) => entry.motion?.mode)).toEqual([
+      "none",
+      "pan-and-scan",
+      "pan-and-scan",
+    ]);
+    expect(panAndScanPlan[1]?.motion).toMatchObject({
+      startZoom: 1.06,
+      endZoom: 1.12,
+    });
+
+    const blurredFillPlan = buildShortsImageStrategyPlan(
+      scenePlan,
+      {
+        ...baseConfig,
+        keySceneCount: 0,
+        enablePanAndScan: false,
+        enableBlurredFallback: true,
+      },
+      {
+        landscapeDir: "/tmp/landscape",
+        outputDir: "/tmp/portrait",
+      }
+    );
+    expect(blurredFillPlan.map((entry) => entry.strategy)).toEqual([
+      "blurred-fill",
+      "blurred-fill",
+      "blurred-fill",
+    ]);
+    expect(blurredFillPlan.every((entry) => entry.motion?.mode === "none")).toBe(
+      true
+    );
+  });
+
   it("plans one portrait image output per scene with motion as metadata only", () => {
     const scenePlan = makeScenePlan(3);
     const config: ShortsImageConfig = {
@@ -261,6 +324,77 @@ describe("shorts image strategy", () => {
       },
     });
     expect(manifest[0]?.["imagePlanFingerprint"]).toMatch(/^[a-f0-9]{64}$/u);
+    await fs.rm(tempDir, { recursive: true, force: true });
+  }, 15_000);
+
+  it("reuses landscape images with blurred fill when pan-and-scan is disabled", async () => {
+    const tempDir = await fs.mkdtemp(path.join(process.cwd(), ".tmp-shorts-blurred-"));
+    const episodeDir = path.join(tempDir, "episode");
+    const landscapeDir = path.join(tempDir, "landscape");
+    const outputDir = path.join(tempDir, "short", "images", "generated");
+    await fs.mkdir(episodeDir, { recursive: true });
+    await fs.mkdir(landscapeDir, { recursive: true });
+    await fs.mkdir(path.join(episodeDir, "shared"), { recursive: true });
+    await fs.writeFile(
+      path.join(episodeDir, "shared", "characters.json"),
+      JSON.stringify({ episodeId: "episode-1", characters: [], updatedAt: new Date().toISOString() })
+    );
+    const scenePlan = makeScenePlan(1);
+    const sourcePath = path.join(
+      landscapeDir,
+      scenePlan.scenes[0]?.expectedImageFilenames[0] ?? "scene-001.png"
+    );
+    await sharp({
+      create: {
+        width: 1920,
+        height: 1080,
+        channels: 4,
+        background: { r: 40, g: 80, b: 120, alpha: 1 },
+      },
+    })
+      .png()
+      .toFile(sourcePath);
+    const generator = {
+      async generate() {
+        throw new Error("generator should not run for blurred-fill reuse");
+      },
+    } satisfies ImageGenerator;
+
+    const result = await prepareShortsImageAssets(
+      episodeDir,
+      "episode-1",
+      scenePlan,
+      createSettings(),
+      {
+        enabled: true,
+        keySceneCount: 0,
+        portraitWidth: 1088,
+        portraitHeight: 1920,
+        finalWidth: 1080,
+        finalHeight: 1920,
+        reuseLandscapeImages: true,
+        enablePanAndScan: false,
+        enableBlurredFallback: true,
+        forceRegenerateAll: false,
+        selectionMode: "first-n",
+      },
+      {
+        landscapeDir,
+        outputDir,
+        generator,
+      }
+    );
+
+    expect(result.entries[0]).toMatchObject({
+      strategy: "blurred-fill",
+      sourceImagePath: sourcePath,
+      reusedExistingImage: true,
+      regenerated: false,
+      status: "success",
+    });
+    const image = await sharp(result.entries[0]!.outputImagePath).metadata();
+    expect(image.width).toBe(1080);
+    expect(image.height).toBe(1920);
     await fs.rm(tempDir, { recursive: true, force: true });
   }, 15_000);
 

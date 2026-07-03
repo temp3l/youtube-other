@@ -192,9 +192,143 @@ describe("image batch planner", () => {
       prepared.groups[0]?.storagePlan.inputFilePath ?? "",
       "utf8"
     );
-    expect(inputFile).toContain("/v1/images/generations");
-    expect(inputFile).toContain('"n":1');
+    const requestLine = JSON.parse(inputFile.trim()) as {
+      readonly custom_id: string;
+      readonly method: string;
+      readonly url: string;
+      readonly body: Record<string, unknown>;
+    };
+    expect(requestLine).toMatchObject({
+      method: "POST",
+      url: "/v1/images/generations",
+      body: {
+        model: "gpt-image-2",
+        prompt: "A figure in the doorway.",
+        n: 1,
+        size: "1920x1088",
+        quality: "medium",
+        output_format: "png",
+      },
+    });
+    expect(Object.keys(requestLine.body).sort()).toEqual([
+      "model",
+      "n",
+      "output_format",
+      "prompt",
+      "quality",
+      "size",
+    ]);
     expect(inputFile).not.toContain("scene-001");
+  });
+
+  it("documents current full batch identity as English full scene-only", async () => {
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), "image-batch-identity-"));
+    const episodeDir = path.join(tempDir, "episode");
+    await writeSceneManifest({
+      episodeDir,
+      sceneId: "scene-007",
+      prompt: "A corridor with a recurring character.",
+      status: "planned",
+    });
+
+    const prepared = await prepareImageBatchForEpisode({
+      episodeDir,
+      episodeId: "002-demo",
+      scenePlan: {
+        scenes: [{ id: "scene-007", sequenceNumber: 7 }],
+      },
+      settings: {
+        model: "gpt-image-2",
+        requestedSize: "1920x1088",
+        quality: "medium",
+        outputFormat: "png",
+      },
+    });
+
+    const group = prepared.groups[0];
+    const scenePlan = group?.scenePlans[0];
+    expect(scenePlan?.job).toMatchObject({
+      episodeNumber: "002-demo",
+      episodeSlug: "002-demo",
+      language: "en",
+      format: "full",
+      sceneId: "scene-007",
+      sceneIndex: 7,
+    });
+    expect(scenePlan?.manifestItem).toMatchObject({
+      episodeNumber: "002-demo",
+      episodeSlug: "002-demo",
+      language: "en",
+      format: "full",
+      sceneId: "scene-007",
+      sceneIndex: 7,
+    });
+    expect(scenePlan?.requestLine.custom_id.split(":").slice(0, 5)).toEqual([
+      "dte-img",
+      "002-demo",
+      "en",
+      "full",
+      "scene-007",
+    ]);
+  });
+
+  it("tracks reference hashes while current batch request lines omit reference image inputs", async () => {
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), "image-batch-reference-gap-"));
+    const episodeDir = path.join(tempDir, "episode");
+    await writeSceneManifest({
+      episodeDir,
+      sceneId: "scene-002",
+      prompt: "A reference-assisted scene.",
+      status: "planned",
+    });
+
+    const prepared = await prepareImageBatchForEpisode({
+      episodeDir,
+      episodeId: "001-demo",
+      scenePlan: {
+        scenes: [{ id: "scene-002", sequenceNumber: 2 }],
+      },
+      settings: {
+        model: "gpt-image-2",
+        requestedSize: "1920x1088",
+        quality: "medium",
+        outputFormat: "png",
+      },
+    });
+
+    const group = prepared.groups[0];
+    const scenePlan = group?.scenePlans[0];
+    expect(scenePlan?.job.characterReferencePaths).toEqual([
+      path.join(episodeDir, "ref.png"),
+    ]);
+    expect(scenePlan?.manifestItem.characterReferenceHashes).toEqual([
+      "ref-hash",
+    ]);
+    expect(scenePlan?.providerRequestHash).toBe(
+      providerRequestHashForFixture({
+        prompt: "A reference-assisted scene.",
+        characterReferenceHashes: ["ref-hash"],
+      })
+    );
+    expect(scenePlan?.requestLine.url).toBe("/v1/images/generations");
+    expect(scenePlan?.requestLine.body).not.toHaveProperty("image");
+    expect(scenePlan?.requestLine.body).not.toHaveProperty("images");
+    expect(scenePlan?.requestLine.body).not.toHaveProperty("input_image");
+    expect(scenePlan?.requestLine.body).not.toHaveProperty("reference_images");
+
+    const inputFile = await fs.readFile(
+      group?.storagePlan.inputFilePath ?? "",
+      "utf8"
+    );
+    const requestLine = JSON.parse(inputFile.trim()) as {
+      readonly url: string;
+      readonly body: Record<string, unknown>;
+    };
+    expect(requestLine.url).toBe("/v1/images/generations");
+    expect(requestLine.body).not.toHaveProperty("image");
+    expect(requestLine.body).not.toHaveProperty("reference_images");
+    expect(inputFile).not.toContain("ref-hash");
+    expect(inputFile).not.toContain("ref.png");
   });
 
   it("returns a no-op group when every selected scene is already reusable", async () => {

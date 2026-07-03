@@ -139,6 +139,60 @@ async function makeBase64Image(width: number, height: number): Promise<string> {
   return buffer.toString("base64");
 }
 
+function makeImportClient(args: {
+  readonly outputText?: string;
+  readonly errorText?: string;
+  readonly total: number;
+  readonly completed: number;
+  readonly failed: number;
+}) {
+  return {
+    files: {
+      create: vi.fn(async () => ({ id: "file_1" })),
+      content: vi.fn(async (fileId: string) => ({
+        text: async () =>
+          fileId === "file_out"
+            ? (args.outputText ?? "")
+            : fileId === "file_err"
+              ? (args.errorText ?? "")
+              : "",
+      })),
+    },
+    batches: {
+      create: vi.fn(async () => ({
+        id: "batch_1",
+        status: "validating",
+        endpoint: "/v1/images/generations",
+        input_file_id: "file_1",
+        completion_window: "24h",
+        created_at: 1,
+        object: "batch",
+      })),
+      retrieve: vi.fn(async () => ({
+        id: "batch_1",
+        status: "completed",
+        endpoint: "/v1/images/generations",
+        input_file_id: "file_1",
+        output_file_id: "file_out",
+        ...(args.errorText ? { error_file_id: "file_err" } : {}),
+        completion_window: "24h",
+        created_at: 1,
+        completed_at: 2,
+        request_counts: {
+          total: args.total,
+          completed: args.completed,
+          failed: args.failed,
+        },
+        object: "batch",
+      })),
+      cancel: vi.fn(),
+    },
+    responses: {
+      create: vi.fn(),
+    },
+  };
+}
+
 describe("image batch service", () => {
   it("submits and refreshes an image batch while updating the shared index", async () => {
     const tempDir = mkdtempSync(path.join(os.tmpdir(), "image-batch-service-"));
@@ -464,6 +518,195 @@ describe("image batch service", () => {
     );
     expect(readiness.readyForRender).toBe(false);
     expect(readiness.failedBatches).toBeGreaterThan(0);
+  });
+
+  it("reconciles completed image outputs by custom_id when result lines are out of order", async () => {
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), "image-batch-order-"));
+    const episodeDir = path.join(tempDir, "episode");
+    await writeSceneManifest({ episodeDir, sceneId: "scene-002" });
+    await writeSceneManifest({ episodeDir, sceneId: "scene-003" });
+    const prepared = await prepareImageBatchForEpisode({
+      episodeDir,
+      episodeId: "001-demo",
+      scenePlan: {
+        scenes: [
+          { id: "scene-002", sequenceNumber: 2 },
+          { id: "scene-003", sequenceNumber: 3 },
+        ],
+      },
+      settings: {
+        model: "gpt-image-2",
+        requestedSize: "1920x1088",
+        quality: "medium",
+        outputFormat: "png",
+      },
+    });
+    const group = prepared.groups[0] as {
+      readonly storagePlan: ImageBatchStoragePlan;
+      readonly scenePlans: ReadonlyArray<{
+        readonly manifestItem: { readonly customId: string };
+      }>;
+    };
+    const firstImageBase64 = await makeBase64Image(1920, 1088);
+    const secondImageBase64 = await makeBase64Image(1920, 1088);
+    const firstLine = JSON.stringify({
+      custom_id: group.scenePlans[0]?.manifestItem.customId,
+      response: {
+        status_code: 200,
+        body: { data: [{ b64_json: firstImageBase64 }] },
+      },
+    });
+    const secondLine = JSON.stringify({
+      custom_id: group.scenePlans[1]?.manifestItem.customId,
+      response: {
+        status_code: 200,
+        body: { data: [{ b64_json: secondImageBase64 }] },
+      },
+    });
+    const client = makeImportClient({
+      outputText: `${secondLine}\n${firstLine}\n`,
+      total: 2,
+      completed: 2,
+      failed: 0,
+    });
+    await submitImageBatch(
+      path.join(episodeDir, "state", "image-generation"),
+      group.storagePlan.localBatchId,
+      client as never
+    );
+    await refreshImageBatch(
+      path.join(episodeDir, "state", "image-generation"),
+      group.storagePlan.localBatchId,
+      client as never
+    );
+
+    const imported = await importImageBatch(
+      path.join(episodeDir, "state", "image-generation"),
+      group.storagePlan.localBatchId,
+      client as never
+    );
+
+    expect(imported.status).toBe("imported");
+    expect(imported.importedItemCount).toBe(2);
+    const manifest = await readImageBatchManifest(group.storagePlan.manifestPath);
+    expect(manifest?.items.map((item) => [item.sceneId, item.status])).toEqual([
+      ["scene-002", "persisted"],
+      ["scene-003", "persisted"],
+    ]);
+  });
+
+  it("marks missing result lines as retry-required during import", async () => {
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), "image-batch-missing-result-"));
+    const episodeDir = path.join(tempDir, "episode");
+    await writeSceneManifest({ episodeDir, sceneId: "scene-002" });
+    const prepared = await prepareImageBatchForEpisode({
+      episodeDir,
+      episodeId: "001-demo",
+      scenePlan: { scenes: [{ id: "scene-002", sequenceNumber: 2 }] },
+      settings: {
+        model: "gpt-image-2",
+        requestedSize: "1920x1088",
+        quality: "medium",
+        outputFormat: "png",
+      },
+    });
+    const group = prepared.groups[0] as {
+      readonly storagePlan: ImageBatchStoragePlan;
+    };
+    const client = makeImportClient({
+      outputText: "",
+      total: 1,
+      completed: 1,
+      failed: 0,
+    });
+    await submitImageBatch(
+      path.join(episodeDir, "state", "image-generation"),
+      group.storagePlan.localBatchId,
+      client as never
+    );
+    await refreshImageBatch(
+      path.join(episodeDir, "state", "image-generation"),
+      group.storagePlan.localBatchId,
+      client as never
+    );
+
+    const imported = await importImageBatch(
+      path.join(episodeDir, "state", "image-generation"),
+      group.storagePlan.localBatchId,
+      client as never
+    );
+
+    expect(imported.status).toBe("imported_with_failures");
+    expect(imported.failedItemCount).toBe(1);
+    const manifest = await readImageBatchManifest(group.storagePlan.manifestPath);
+    expect(manifest?.items[0]?.status).toBe("retry-required");
+    expect(manifest?.items[0]?.error).toMatchObject({
+      category: "missing-result",
+    });
+  });
+
+  it("marks invalid image dimensions as validation failures during import", async () => {
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), "image-batch-bad-dimensions-"));
+    const episodeDir = path.join(tempDir, "episode");
+    await writeSceneManifest({ episodeDir, sceneId: "scene-002" });
+    const prepared = await prepareImageBatchForEpisode({
+      episodeDir,
+      episodeId: "001-demo",
+      scenePlan: { scenes: [{ id: "scene-002", sequenceNumber: 2 }] },
+      settings: {
+        model: "gpt-image-2",
+        requestedSize: "1920x1088",
+        quality: "medium",
+        outputFormat: "png",
+      },
+    });
+    const group = prepared.groups[0] as {
+      readonly storagePlan: ImageBatchStoragePlan;
+      readonly scenePlans: ReadonlyArray<{
+        readonly manifestItem: { readonly customId: string };
+      }>;
+    };
+    const wrongSizeImageBase64 = await makeBase64Image(8, 8);
+    const outputJsonl = JSON.stringify({
+      custom_id: group.scenePlans[0]?.manifestItem.customId,
+      response: {
+        status_code: 200,
+        body: { data: [{ b64_json: wrongSizeImageBase64 }] },
+      },
+    });
+    const client = makeImportClient({
+      outputText: `${outputJsonl}\n`,
+      total: 1,
+      completed: 1,
+      failed: 0,
+    });
+    await submitImageBatch(
+      path.join(episodeDir, "state", "image-generation"),
+      group.storagePlan.localBatchId,
+      client as never
+    );
+    await refreshImageBatch(
+      path.join(episodeDir, "state", "image-generation"),
+      group.storagePlan.localBatchId,
+      client as never
+    );
+
+    const imported = await importImageBatch(
+      path.join(episodeDir, "state", "image-generation"),
+      group.storagePlan.localBatchId,
+      client as never
+    );
+
+    expect(imported.status).toBe("imported_with_failures");
+    expect(imported.failedItemCount).toBe(1);
+    const manifest = await readImageBatchManifest(group.storagePlan.manifestPath);
+    expect(manifest?.items[0]?.status).toBe("validation-failed");
+    expect(manifest?.items[0]?.error).toMatchObject({
+      category: "validation",
+    });
+    expect(manifest?.items[0]?.error?.message).toContain(
+      "Unexpected image dimensions"
+    );
   });
 
   it("retries only failed image scenes and keeps the successful ones out of the new batch", async () => {

@@ -1407,7 +1407,7 @@ describe("episode image pipeline helpers", () => {
       Buffer.from(b64, "base64")
     );
     const generator = new OpenAIImageGenerator(settings, client);
-    await generator.generate({
+    const textOnlyResult = await generator.generate({
       providerRequest: makePreparedProviderRequest({
         scene: { ...makeSceneSpec(), characters: [] },
         prompt: "a lonely corridor",
@@ -1415,7 +1415,7 @@ describe("episode image pipeline helpers", () => {
       }),
       referenceImages: [],
     });
-    await generator.generate({
+    const referenceAssistedResult = await generator.generate({
       providerRequest: makePreparedProviderRequest({
         scene: makeSceneSpec(),
         prompt: buildPromptFromSpec(makeSceneSpec(), undefined, makeRegistry()),
@@ -1437,6 +1437,91 @@ describe("episode image pipeline helpers", () => {
       ],
     });
     expect(calls.map((call) => call.method)).toEqual(["generate", "edit"]);
+    expect(textOnlyResult.generationMode).toBe("text-only");
+    expect(referenceAssistedResult.generationMode).toBe("reference-assisted");
+    const editCall = calls.find((call) => call.method === "edit");
+    expect(editCall?.body).toMatchObject({
+      model: "gpt-image-2",
+      prompt: expect.stringContaining("approved identity reference image"),
+      size: "1536x1024",
+      quality: "medium",
+      output_format: "png",
+      background: "opaque",
+      stream: false,
+    });
+    const editBody = editCall?.body as { readonly image?: readonly unknown[] };
+    expect(editBody.image).toHaveLength(1);
+  });
+
+  it("records a reference-resolution failure when character references are not approved", async () => {
+    const dir = mkdtempSync(path.join(os.tmpdir(), "mediaforge-reference-approval-"));
+    const episodeDir = path.join(dir, "episode");
+    await fs.mkdir(episodeDir, { recursive: true });
+    const referencePath = path.join(dir, "daniel-reference.png");
+    await fs.writeFile(
+      referencePath,
+      await sharp({
+        create: { width: 8, height: 8, channels: 3, background: "#223344" },
+      })
+        .png()
+        .toBuffer()
+    );
+    await upsertCharacterRegistry(
+      episodeDir,
+      "episode-fixture",
+      makeRegistry("generated", referencePath).characters
+    );
+    const plan = makeScenePlan([
+      {
+        sceneId: "scene-001",
+        sequenceNumber: 1,
+        id: "scene-001",
+        subject: "Daniel",
+        action: "studies the corridor on a monitor",
+      },
+    ] as never);
+    const settings = loadEpisodeImageGenerationSettings({
+      OPENAI_API_KEY: "test-key",
+      OPENAI_IMAGE_MODEL: "gpt-image-2",
+      OPENAI_IMAGE_SIZE: "1536x1024",
+      OPENAI_IMAGE_QUALITY: "medium",
+      OPENAI_IMAGE_CONCURRENCY: "1",
+      OPENAI_IMAGE_MAX_RETRIES: "0",
+      OPENAI_IMAGE_TIMEOUT_MS: "1000",
+      OPENAI_IMAGE_ALLOW_UNAPPROVED_CHARACTER_REFERENCES: "false",
+    });
+    const calls: Array<{ method: "generate" | "edit"; body: unknown }> = [];
+    const client = createFailingMockClient(
+      calls,
+      new Error("provider should not be called")
+    );
+
+    const result = await generateEpisodeImages(
+      episodeDir,
+      "episode-fixture",
+      plan,
+      settings,
+      { client }
+    );
+
+    expect(result[0]?.status).toBe("failed");
+    expect(calls).toHaveLength(0);
+    const manifest = JSON.parse(
+      await fs.readFile(
+        path.join(
+          episodeDir,
+          "state",
+          "image-generation",
+          "manifests",
+          "scene-001.json"
+        ),
+        "utf8"
+      )
+    ) as { readonly status?: string; readonly error?: { readonly message?: string } };
+    expect(manifest.status).toBe("failed");
+    expect(manifest.error?.message).toContain(
+      "requires an approved reference before scene generation"
+    );
   });
 
   it("writes manifests atomically and resumes from valid outputs", async () => {
