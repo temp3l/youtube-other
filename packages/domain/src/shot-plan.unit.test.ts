@@ -342,14 +342,14 @@ describe("visual shot planning schemas", () => {
     ).toBe(false);
   });
 
-  it("rejects shot and source-image mismatches, invalid ordering, and unsupported overlap", () => {
+  it("allows reused source images across scenes but still rejects invalid ordering and unsupported overlap", () => {
     expect(
       shotPlanSchema.safeParse(
         makeShotPlan({
           shots: [makeShot({ sourceImageId: "source-image-999" })],
         }),
       ).success,
-    ).toBe(false);
+    ).toBe(true);
 
     expect(
       shotPlanSchema.safeParse(

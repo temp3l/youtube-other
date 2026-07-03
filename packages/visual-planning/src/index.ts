@@ -10,6 +10,7 @@ export {
   type ShotPlanningLimitation,
   type ShotPlanningRestrictions,
   type ShotPlanningResult,
+  type VisualMotionPreset,
   type VisualPlatform,
   type AspectRatio,
 } from "./shot-planner.js";

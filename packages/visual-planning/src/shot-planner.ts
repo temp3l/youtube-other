@@ -24,6 +24,7 @@ import { hashText } from "@mediaforge/shared";
 
 export type VisualPlatform = ShotPlan["variant"];
 export type AspectRatio = ShotPlan["aspectRatio"];
+export type VisualMotionPreset = "subtle" | "balanced" | "strong";
 
 export interface ShotPlanningRestrictions {
   readonly disabledTreatmentIds?: readonly string[];
@@ -43,6 +44,7 @@ export interface PlanShotsInput {
   readonly visualBudget: VisualBudget;
   readonly treatmentCatalogVersion: string;
   readonly sourceIdentity?: ShotPlanSourceIdentity;
+  readonly motionPreset?: VisualMotionPreset;
   readonly restrictions?: ShotPlanningRestrictions;
   readonly seed: string;
 }
@@ -103,6 +105,7 @@ interface SceneAllocation {
 
 interface PlannedShotDraft {
   readonly sourceScene: VisualSourceScene;
+  readonly renderSourceScene: VisualSourceScene;
   readonly ordinalInScene: number;
   readonly startMs: number;
   readonly endMs: number;
@@ -119,6 +122,7 @@ type PanDirection = "left" | "right" | "up" | "down";
 
 const plannerVersion = "deterministic-shot-planner-v1";
 const openingWindowMs = 8_000;
+const defaultMotionPreset: VisualMotionPreset = "subtle";
 
 const phasePriority: Record<VisualNarrativePhase, number> = {
   aftermath: 0,
@@ -185,6 +189,99 @@ const treatmentPreferenceByPhase: Record<VisualNarrativePhase, readonly string[]
   ],
 };
 
+const motionPresetPreferenceOverrides: Readonly<
+  Record<VisualMotionPreset, Partial<Record<VisualNarrativePhase, readonly string[]>>>
+> = {
+  subtle: {},
+  balanced: {
+    setup: [
+      "slow-push-in",
+      "lateral-pan",
+      "vertical-pan",
+      "establishing-wide-crop",
+      "medium-crop",
+      "smart-crop",
+      "handheld-micro-drift",
+    ],
+    evidence: [
+      "vertical-pan",
+      "crop-toward-evidence",
+      "object-detail-crop",
+      "medium-crop",
+      "recording-timestamp",
+      "smart-crop",
+    ],
+    escalation: [
+      "handheld-micro-drift",
+      "face-close-up",
+      "smart-crop",
+      "rule-of-thirds-reposition",
+      "vignette-drift",
+    ],
+    callback: [
+      "slow-push-in",
+      "smart-crop",
+      "establishing-wide-crop",
+      "vignette-drift",
+      "rule-of-thirds-reposition",
+    ],
+  },
+  strong: {
+    hook: [
+      "vignette-drift",
+      "rule-of-thirds-reposition",
+      "smart-crop",
+      "face-close-up",
+      "object-detail-crop",
+      "vertical-smart-crop",
+    ],
+    setup: [
+      "slow-push-in",
+      "lateral-pan",
+      "vertical-pan",
+      "handheld-micro-drift",
+      "establishing-wide-crop",
+      "medium-crop",
+      "smart-crop",
+    ],
+    evidence: [
+      "vertical-pan",
+      "crop-toward-evidence",
+      "object-detail-crop",
+      "medium-crop",
+      "recording-timestamp",
+      "smart-crop",
+    ],
+    escalation: [
+      "handheld-micro-drift",
+      "vignette-drift",
+      "smart-crop",
+      "face-close-up",
+      "rule-of-thirds-reposition",
+    ],
+    climax: [
+      "vignette-drift",
+      "smart-crop",
+      "crop-toward-evidence",
+      "object-detail-crop",
+      "face-close-up",
+    ],
+    callback: [
+      "slow-push-in",
+      "vignette-drift",
+      "smart-crop",
+      "establishing-wide-crop",
+      "rule-of-thirds-reposition",
+    ],
+    aftermath: [
+      "slow-pull-out",
+      "medium-crop",
+      "establishing-wide-crop",
+      "smart-crop",
+    ],
+  },
+};
+
 export class DeterministicShotPlanner implements ShotPlanner {
   public plan(input: PlanShotsInput): ShotPlan {
     return this.planWithDiagnostics(input).plan;
@@ -216,6 +313,8 @@ export class DeterministicShotPlanner implements ShotPlanner {
       drafts,
       platform: input.platform,
       aspectRatio: input.aspectRatio,
+      pacingProfile: input.pacingProfile,
+      motionPreset: input.motionPreset ?? defaultMotionPreset,
       treatmentCatalogVersion: input.treatmentCatalogVersion,
       visualBudget: budget,
       restrictions: input.restrictions,
@@ -419,8 +518,9 @@ function allocateSceneShots(args: {
     args.sourceScene.focalRegions,
     args.visualBudget,
   );
-  const maxDurationMs = Math.min(
-    args.pacingProfile.movingShotDurationMs.maxMs,
+  const maxDurationMs = maximumReliableShotDurationMs(
+    args.sourceScene.importance,
+    args.pacingProfile,
     treatmentMaxMs,
   );
   const minimumShotCount = Math.min(
@@ -591,6 +691,7 @@ function buildShotDrafts(args: {
   readonly seed: string;
 }): PlannedShotDraft[] {
   const drafts: PlannedShotDraft[] = [];
+  const renderSourceScenes = assignRenderSourceScenes(args.allocations, args.visualBudget);
   for (const allocation of args.allocations) {
     const durations = allocateSceneDurations({
       allocation,
@@ -607,6 +708,9 @@ function buildShotDrafts(args: {
           : cursorMs + durationMs;
       drafts.push({
         sourceScene: allocation.sourceScene,
+        renderSourceScene:
+          renderSourceScenes.get(allocation.sourceScene.sceneId) ??
+          allocation.sourceScene,
         ordinalInScene: index + 1,
         startMs: cursorMs,
         endMs,
@@ -683,6 +787,8 @@ function selectRenderShots(args: {
   readonly drafts: readonly PlannedShotDraft[];
   readonly platform: VisualPlatform;
   readonly aspectRatio: AspectRatio;
+  readonly pacingProfile: VisualPacingProfile;
+  readonly motionPreset: VisualMotionPreset;
   readonly treatmentCatalogVersion: string;
   readonly visualBudget: VisualBudget;
   readonly restrictions: ShotPlanningRestrictions | undefined;
@@ -728,6 +834,8 @@ function buildRenderShot(args: {
   readonly ordinalInScene: number;
   readonly platform: VisualPlatform;
   readonly aspectRatio: AspectRatio;
+  readonly pacingProfile: VisualPacingProfile;
+  readonly motionPreset: VisualMotionPreset;
   readonly treatmentCatalogVersion: string;
   readonly visualBudget: VisualBudget;
   readonly restrictions: ShotPlanningRestrictions | undefined;
@@ -740,19 +848,19 @@ function buildRenderShot(args: {
     durationMs,
   });
   const focalRegion = selectFocalRegion(
-    args.draft.sourceScene.focalRegions,
+    args.draft.renderSourceScene.focalRegions,
     treatmentEntry.id,
     args.draft.sourceScene.importance,
     `${args.seed}:${args.draft.sourceScene.sceneId}:${args.ordinalInScene}`,
   );
   const previousSameImageCrop =
-    args.state.previousShot?.sourceImageId === args.draft.sourceScene.sourceImageId
+    args.state.previousShot?.sourceImageId === args.draft.renderSourceScene.sourceImageId
       ? args.state.previousShot.crop
       : undefined;
   const crop = selectCrop({
     aspectRatio: args.aspectRatio,
     treatmentId: treatmentEntry.id,
-    sourceScene: args.draft.sourceScene,
+    sourceScene: args.draft.renderSourceScene,
     focalRegion,
     previousSameImageCrop,
     visualBudget: args.visualBudget,
@@ -764,6 +872,7 @@ function buildRenderShot(args: {
     crop,
     durationMs,
     visualBudget: args.visualBudget,
+    motionPreset: args.motionPreset,
     recentPanDirections: args.state.recentPanDirections,
     seed: `${args.seed}:${args.draft.sourceScene.sceneId}:${args.ordinalInScene}:motion`,
   });
@@ -776,7 +885,7 @@ function buildRenderShot(args: {
     shotId,
     sourceSceneId: args.draft.sourceScene.sourceSceneId,
     sceneId: args.draft.sourceScene.sceneId,
-    sourceImageId: args.draft.sourceScene.sourceImageId,
+    sourceImageId: args.draft.renderSourceScene.sourceImageId,
     startMs: args.draft.startMs,
     endMs: args.draft.endMs,
     treatment: buildShotTreatment(treatmentEntry, args.treatmentCatalogVersion),
@@ -791,6 +900,8 @@ function selectTreatment(args: {
   readonly draft: PlannedShotDraft;
   readonly ordinalInScene: number;
   readonly aspectRatio: AspectRatio;
+  readonly pacingProfile: VisualPacingProfile;
+  readonly motionPreset: VisualMotionPreset;
   readonly durationMs: number;
   readonly visualBudget: VisualBudget;
   readonly restrictions: ShotPlanningRestrictions | undefined;
@@ -946,10 +1057,16 @@ function scoreTreatment(
     readonly draft: PlannedShotDraft;
     readonly ordinalInScene: number;
     readonly aspectRatio: AspectRatio;
+    readonly pacingProfile: VisualPacingProfile;
+    readonly motionPreset: VisualMotionPreset;
+    readonly durationMs: number;
   },
   previousTreatmentId: string | undefined,
 ): number {
-  const preferences = treatmentPreferenceByPhase[args.draft.sourceScene.importance];
+  const preferences = preferredTreatmentsForPhase(
+    args.draft.sourceScene.importance,
+    args.motionPreset,
+  );
   const preferenceIndex = preferences.indexOf(entry.id);
   const preferenceScore =
     preferenceIndex === -1 ? 0 : (preferences.length - preferenceIndex) * 10;
@@ -962,11 +1079,52 @@ function scoreTreatment(
         : entry.focalMetadataRequirement === "required"
           ? 20
           : 10;
+  const motionBonus =
+    args.durationMs > args.pacingProfile.staticShotDurationMs.maxMs &&
+    entry.category === "camera-movement"
+      ? args.motionPreset === "strong"
+        ? 90
+        : args.motionPreset === "balanced"
+          ? 65
+          : 40
+      : 0;
+  const baselineMotionBonus =
+    entry.category === "camera-movement"
+      ? args.motionPreset === "strong"
+        ? 25
+        : args.motionPreset === "balanced"
+          ? 10
+          : 0
+      : 0;
+  const driftTreatmentBonus =
+    entry.id === "vignette-drift" || entry.id === "handheld-micro-drift"
+      ? args.motionPreset === "strong"
+        ? 20
+        : args.motionPreset === "balanced"
+          ? 10
+          : 0
+      : 0;
   const verticalScore =
     args.aspectRatio === "9:16" && entry.id === "vertical-smart-crop" ? 25 : 0;
   const repeatPenalty = previousTreatmentId === entry.id ? -80 : 0;
   const fallbackPenalty = entry.id === "blurred-fill" ? -150 : 0;
-  return preferenceScore + focalScore + verticalScore + repeatPenalty + fallbackPenalty;
+  return (
+    preferenceScore +
+    focalScore +
+    motionBonus +
+    baselineMotionBonus +
+    driftTreatmentBonus +
+    verticalScore +
+    repeatPenalty +
+    fallbackPenalty
+  );
+}
+
+function preferredTreatmentsForPhase(
+  phase: VisualNarrativePhase,
+  motionPreset: VisualMotionPreset,
+): readonly string[] {
+  return motionPresetPreferenceOverrides[motionPreset][phase] ?? treatmentPreferenceByPhase[phase];
 }
 
 function buildShotTreatment(
@@ -1159,6 +1317,7 @@ function selectMotion(args: {
   readonly crop: NormalizedCrop;
   readonly durationMs: number;
   readonly visualBudget: VisualBudget;
+  readonly motionPreset: VisualMotionPreset;
   readonly recentPanDirections: readonly PanDirection[];
   readonly seed: string;
 }): CameraMotion {
@@ -1176,12 +1335,20 @@ function selectMotion(args: {
   }
   if (
     args.treatmentId === "slow-push-in" ||
-    args.sourceScene.importance === "callback"
+    args.sourceScene.importance === "callback" ||
+    (args.motionPreset !== "subtle" &&
+      args.sourceScene.importance === "setup" &&
+      args.durationMs > args.visualBudget.motionLimits.minShotDurationMs)
   ) {
     return {
       kind: "push-in",
       startScale: 1,
-      endScale: roundFloat(args.visualBudget.motionLimits.pushInScaleRange.min),
+      endScale: roundFloat(
+        motionPresetValueInRange(
+          args.visualBudget.motionLimits.pushInScaleRange,
+          args.motionPreset,
+        ),
+      ),
       anchor: cropCenter(args.crop),
     };
   }
@@ -1196,19 +1363,42 @@ function selectMotion(args: {
   if (
     !fallbackOnly &&
     (args.sourceScene.importance === "climax" ||
-      args.sourceScene.importance === "escalation")
+      args.sourceScene.importance === "escalation" ||
+      (args.motionPreset === "strong" &&
+        (args.sourceScene.importance === "setup" ||
+          args.sourceScene.importance === "evidence")))
   ) {
     const direction = choosePanDirection(args.recentPanDirections, args.seed);
     return panAndZoomMotion(args, direction);
   }
   if (args.durationMs > args.visualBudget.motionLimits.minShotDurationMs) {
+    if (args.motionPreset === "strong" && !fallbackOnly) {
+      return panMotion({
+        ...args,
+        treatmentId: "pan-and-scan",
+        seed: `${args.seed}:strong-pan`,
+      });
+    }
     return {
       kind: "drift",
-      deltaX: roundFloat(stableSignedFraction(`${args.seed}:drift-x`, 0.015)),
-      deltaY: roundFloat(stableSignedFraction(`${args.seed}:drift-y`, 0.015)),
+      deltaX: roundFloat(
+        stableSignedFraction(
+          `${args.seed}:drift-x`,
+          args.motionPreset === "balanced" ? 0.03 : 0.015,
+        ),
+      ),
+      deltaY: roundFloat(
+        stableSignedFraction(
+          `${args.seed}:drift-y`,
+          args.motionPreset === "balanced" ? 0.03 : 0.015,
+        ),
+      ),
       rotationDegrees: roundFloat(
         clampNumber(
-          stableSignedFraction(`${args.seed}:rotation`, 0.25),
+          stableSignedFraction(
+            `${args.seed}:rotation`,
+            args.motionPreset === "balanced" ? 0.35 : 0.25,
+          ),
           args.visualBudget.motionLimits.rotationDegreesRange.min,
           args.visualBudget.motionLimits.rotationDegreesRange.max,
         ),
@@ -1222,6 +1412,7 @@ function panMotion(args: {
   readonly treatmentId: string;
   readonly crop: NormalizedCrop;
   readonly visualBudget: VisualBudget;
+  readonly motionPreset: VisualMotionPreset;
   readonly recentPanDirections: readonly PanDirection[];
   readonly seed: string;
 }): CameraMotion {
@@ -1234,7 +1425,10 @@ function panMotion(args: {
   const [startCenter, endCenter] = panCenters(
     args.crop,
     forcedDirection,
-    args.visualBudget.motionLimits.panTravelFractionOfImage.min,
+    motionPresetValueInRange(
+      args.visualBudget.motionLimits.panTravelFractionOfImage,
+      args.motionPreset,
+    ),
   );
   return {
     kind: "pan",
@@ -1247,21 +1441,43 @@ function panAndZoomMotion(
   args: {
     readonly crop: NormalizedCrop;
     readonly visualBudget: VisualBudget;
+    readonly motionPreset: VisualMotionPreset;
   },
   direction: PanDirection,
 ): CameraMotion {
   const [startCenter, endCenter] = panCenters(
     args.crop,
     direction,
-    args.visualBudget.motionLimits.panTravelFractionOfImage.min,
+    motionPresetValueInRange(
+      args.visualBudget.motionLimits.panTravelFractionOfImage,
+      args.motionPreset,
+    ),
   );
   return {
     kind: "pan-and-zoom",
     startCenter,
     endCenter,
     startScale: 1,
-    endScale: roundFloat(args.visualBudget.motionLimits.pushInScaleRange.min),
+    endScale: roundFloat(
+      motionPresetValueInRange(
+        args.visualBudget.motionLimits.pushInScaleRange,
+        args.motionPreset,
+      ),
+    ),
   };
+}
+
+function motionPresetValueInRange(
+  range: { readonly min: number; readonly max: number },
+  motionPreset: VisualMotionPreset,
+): number {
+  if (motionPreset === "strong") {
+    return range.max;
+  }
+  if (motionPreset === "balanced") {
+    return range.min + (range.max - range.min) * 0.6;
+  }
+  return range.min;
 }
 
 function selectTransition(platform: VisualPlatform): ShotTransition {
@@ -1305,7 +1521,7 @@ function targetShotDurationMs(
     return midpoint(profile.openingCadenceMs.minMs, profile.openingCadenceMs.maxMs);
   }
   if (phase === "climax") {
-    return midpoint(profile.climaxCadenceMs.minMs, profile.climaxCadenceMs.maxMs);
+    return profile.climaxCadenceMs.minMs;
   }
   if (platform === "short") {
     if (phase === "evidence") {
@@ -1332,6 +1548,22 @@ function targetShotDurationMs(
     return 5_000;
   }
   return 6_000;
+}
+
+function maximumReliableShotDurationMs(
+  phase: VisualNarrativePhase,
+  profile: VisualPacingProfile,
+  treatmentMaxMs: number,
+): number {
+  return Math.min(
+    treatmentMaxMs,
+    profile.staticShotDurationMs.maxMs,
+    phase === "hook"
+      ? profile.openingCadenceMs.maxMs
+      : phase === "climax"
+        ? profile.climaxCadenceMs.maxMs
+        : profile.shotDurationMs.maxMs,
+  );
 }
 
 function minimumShotDuration(args: {
@@ -1449,6 +1681,141 @@ function recordReuseLimitations(
       });
     }
   }
+}
+
+function assignRenderSourceScenes(
+  allocations: readonly SceneAllocation[],
+  budget: VisualBudget,
+): ReadonlyMap<string, VisualSourceScene> {
+  if (allocations.length <= budget.sourceImageCount.max) {
+    return new Map(
+      allocations.map((allocation) => [
+        allocation.sourceScene.sceneId,
+        allocation.sourceScene,
+      ]),
+    );
+  }
+
+  type RenderSourceGroup = {
+    readonly scenes: SceneAllocation[];
+    readonly totalUses: number;
+  };
+
+  const groups: RenderSourceGroup[] = allocations.map((allocation) => ({
+    scenes: [allocation],
+    totalUses: allocation.shotCount,
+  }));
+  const maxGroupedUses = Math.min(
+    budget.maxTotalSourceImageUses,
+    budget.maxConsecutiveSourceImageUses,
+  );
+
+  while (groups.length > budget.sourceImageCount.max) {
+    let bestIndex = -1;
+    let bestCost = Number.POSITIVE_INFINITY;
+    for (let index = 0; index < groups.length - 1; index += 1) {
+      const left = groups[index];
+      const right = groups[index + 1];
+      if (!left || !right) {
+        continue;
+      }
+      if (left.totalUses + right.totalUses > maxGroupedUses) {
+        continue;
+      }
+      const cost = mergeCost(left, right);
+      if (cost < bestCost) {
+        bestCost = cost;
+        bestIndex = index;
+      }
+    }
+    if (bestIndex === -1) {
+      break;
+    }
+    const left = groups[bestIndex];
+    const right = groups[bestIndex + 1];
+    if (!left || !right) {
+      break;
+    }
+    groups.splice(bestIndex, 2, {
+      scenes: [...left.scenes, ...right.scenes],
+      totalUses: left.totalUses + right.totalUses,
+    });
+  }
+
+  const assignments = new Map<string, VisualSourceScene>();
+  for (const group of groups) {
+    const donor = selectRenderSourceDonor(group.scenes);
+    for (const allocation of group.scenes) {
+      assignments.set(allocation.sourceScene.sceneId, donor.sourceScene);
+    }
+  }
+  return assignments;
+}
+
+function mergeCost(
+  left: { readonly scenes: readonly SceneAllocation[]; readonly totalUses: number },
+  right: { readonly scenes: readonly SceneAllocation[]; readonly totalUses: number },
+): number {
+  const leftScene = left.scenes[left.scenes.length - 1]?.sourceScene;
+  const rightScene = right.scenes[0]?.sourceScene;
+  if (!leftScene || !rightScene) {
+    return Number.POSITIVE_INFINITY;
+  }
+  const protectionPenalty =
+    (groupProtectionWeight(left.scenes) + groupProtectionWeight(right.scenes)) *
+    1_000;
+  const phasePenalty =
+    Math.abs(phasePriority[leftScene.importance] - phasePriority[rightScene.importance]) *
+    100;
+  const sizePenalty = (left.totalUses + right.totalUses) * 10;
+  const boundaryPenalty =
+    leftScene.importance === rightScene.importance ? 0 : 25;
+  return protectionPenalty + phasePenalty + sizePenalty + boundaryPenalty;
+}
+
+function groupProtectionWeight(
+  allocations: readonly SceneAllocation[],
+): number {
+  return allocations.reduce(
+    (sum, allocation) => sum + sceneProtectionWeight(allocation.sourceScene.importance),
+    0,
+  );
+}
+
+function sceneProtectionWeight(phase: VisualNarrativePhase): number {
+  switch (phase) {
+    case "hook":
+    case "evidence":
+    case "climax":
+      return 4;
+    case "escalation":
+      return 2;
+    case "callback":
+      return 1;
+    case "setup":
+    case "aftermath":
+    default:
+      return 0;
+  }
+}
+
+function selectRenderSourceDonor(
+  allocations: readonly SceneAllocation[],
+): SceneAllocation {
+  return [...allocations].sort((left, right) => {
+    const protectionDelta =
+      sceneProtectionWeight(right.sourceScene.importance) -
+      sceneProtectionWeight(left.sourceScene.importance);
+    if (protectionDelta !== 0) {
+      return protectionDelta;
+    }
+    const focalDelta =
+      right.sourceScene.focalRegions.length - left.sourceScene.focalRegions.length;
+    if (focalDelta !== 0) {
+      return focalDelta;
+    }
+    return left.sourceScene.sceneId.localeCompare(right.sourceScene.sceneId);
+  })[0] as SceneAllocation;
 }
 
 function hasRequiredFocalMetadata(

@@ -6,6 +6,8 @@ import {
   type ScenePlan,
 } from "@mediaforge/domain";
 import { validateImageAssets } from "@mediaforge/image-generation";
+import { youtubeMetadataSchema } from "@mediaforge/metadata";
+import { renderManifestSchema, type ParsedRenderManifest } from "@mediaforge/rendering";
 import {
   createNarrationArtifactPaths,
   narrationAssemblyManifestSchema,
@@ -45,6 +47,7 @@ const generationManifestSchema = z
     visualPlanPath: z.string().min(1).optional(),
     imageManifestPath: z.string().min(1).optional(),
     narrationManifestPath: z.string().min(1).optional(),
+    renderManifestPath: z.string().min(1).optional(),
     audioPath: z.string().min(1).optional(),
     videoPath: z.string().min(1).optional(),
     subtitleSidecars: z.array(z.string().min(1)).optional(),
@@ -114,6 +117,7 @@ const currentArtifactSchema = z
 
 type GenerationManifest = z.infer<typeof generationManifestSchema>;
 type CurrentArtifact = z.infer<typeof currentArtifactSchema>;
+type YoutubeMetadata = z.infer<typeof youtubeMetadataSchema>;
 
 export type CrossManifestValidationCode =
   | "VALID"
@@ -800,6 +804,7 @@ async function validateRenderInputs(args: {
   readonly generation: GenerationManifest;
   readonly results: CrossManifestValidationResult[];
 }): Promise<void> {
+  let resolvedVideoPath: string | null = null;
   for (const [label, artifactPath] of [
     ["audio path", args.generation.audioPath],
     ["video path", args.generation.videoPath],
@@ -818,6 +823,9 @@ async function validateRenderInputs(args: {
       args.results.push(contained.result);
       return;
     }
+    if (label === "video path") {
+      resolvedVideoPath = contained.path;
+    }
     if (!(await fileExists(contained.path))) {
       args.results.push(
         invalid({
@@ -830,6 +838,42 @@ async function validateRenderInputs(args: {
       return;
     }
   }
+  const renderManifestCandidate =
+    args.generation.renderManifestPath ??
+    (resolvedVideoPath ? path.join(path.dirname(resolvedVideoPath), "render.json") : null);
+  if (!renderManifestCandidate) {
+    return;
+  }
+  if (!args.generation.renderManifestPath && !(await fileExists(renderManifestCandidate))) {
+    return;
+  }
+  const contained = containedPath({
+    root: args.input.episodeDir,
+    filePath: renderManifestCandidate,
+    artifactType: "render-manifest",
+    label: "render manifest path",
+  });
+  if (!contained.ok) {
+    args.results.push(contained.result);
+    return;
+  }
+  const renderManifest = await readRequired({
+    results: args.results,
+    filePath: contained.path,
+    root: args.input.episodeDir,
+    artifactType: "render-manifest",
+    parser: (value) => renderManifestSchema.parse(value),
+  });
+  if (!renderManifest) {
+    return;
+  }
+  await validateRenderManifestReferences({
+    input: args.input,
+    generation: args.generation,
+    renderManifest,
+    relativePath: contained.relativePath,
+    results: args.results,
+  });
 }
 
 async function validateMetadata(args: {
@@ -837,6 +881,7 @@ async function validateMetadata(args: {
   readonly scenePlan: ScenePlan | null;
   readonly results: CrossManifestValidationResult[];
 }): Promise<void> {
+  await validateYoutubeMetadata(args);
   const metadataPath = path.join(args.input.episodeDir, args.input.language, args.input.variant, "metadata.json");
   if (!(await fileExists(metadataPath))) {
     return;
@@ -873,6 +918,163 @@ async function validateMetadata(args: {
         actual: String(metadata.source.sceneCount),
       })
     );
+  }
+}
+
+async function validateYoutubeMetadata(args: {
+  readonly input: CrossManifestValidationInput;
+  readonly scenePlan: ScenePlan | null;
+  readonly results: CrossManifestValidationResult[];
+}): Promise<void> {
+  const candidates = [
+    path.join(args.input.episodeDir, "metadata", "youtube-metadata.json"),
+    path.join(args.input.episodeDir, "output", "youtube-metadata.json"),
+    path.join(args.input.episodeDir, args.input.language, args.input.variant, "youtube-metadata.json"),
+  ];
+  const metadataPath = await firstExistingPath(candidates);
+  if (!metadataPath) {
+    return;
+  }
+  const metadata = await readRequired<YoutubeMetadata>({
+    results: args.results,
+    filePath: metadataPath,
+    root: args.input.episodeDir,
+    artifactType: "metadata",
+    parser: (value) => youtubeMetadataSchema.parse(value),
+  });
+  if (!metadata) {
+    return;
+  }
+  const relativePath = relativeTo(args.input.episodeDir, metadataPath);
+  if (metadata.schemaVersion !== "1.0") {
+    args.results.push(
+      invalid({
+        validationCode: "UNSUPPORTED_SCHEMA_VERSION",
+        artifactType: "metadata",
+        message: "YouTube metadata schema version is not supported.",
+        relativePath,
+        expected: "1.0",
+        actual: metadata.schemaVersion,
+      })
+    );
+  }
+  pushExpectedFields({
+    results: args.results,
+    artifactType: "metadata",
+    relativePath,
+    language: metadata.source.language,
+    expectedEpisodeSlug: args.input.episodeSlug,
+    expectedLanguage: args.input.language,
+    expectedVariant: args.input.variant,
+  });
+  if (args.scenePlan && metadata.source.sceneCount !== args.scenePlan.scenes.length) {
+    args.results.push(
+      invalid({
+        validationCode: "ARTIFACT_MISMATCH",
+        artifactType: "metadata",
+        message: "YouTube metadata scene count does not match the scene plan.",
+        relativePath,
+        expected: String(args.scenePlan.scenes.length),
+        actual: String(metadata.source.sceneCount),
+      })
+    );
+  }
+}
+
+async function firstExistingPath(paths: readonly string[]): Promise<string | null> {
+  for (const filePath of paths) {
+    if (await fileExists(filePath)) {
+      return filePath;
+    }
+  }
+  return null;
+}
+
+async function validateRenderManifestReferences(args: {
+  readonly input: CrossManifestValidationInput;
+  readonly generation: GenerationManifest;
+  readonly renderManifest: ParsedRenderManifest;
+  readonly relativePath: string;
+  readonly results: CrossManifestValidationResult[];
+}): Promise<void> {
+  pushExpectedFields({
+    results: args.results,
+    artifactType: "render-manifest",
+    relativePath: args.relativePath,
+    episodeSlug: args.renderManifest.stageIdentity.episodeId,
+    language: args.renderManifest.stageIdentity.language,
+    variant: args.renderManifest.stageIdentity.variant,
+    expectedEpisodeSlug: args.input.episodeSlug,
+    expectedLanguage: args.input.language,
+    expectedVariant: args.input.variant,
+  });
+  for (const [label, artifactPath] of [
+    ["render clean path", args.renderManifest.cleanPath],
+    ["render captioned path", args.renderManifest.captionedPath],
+    ["narration dependency path", args.renderManifest.narrationDependency?.path],
+    ["scene plan dependency path", args.renderManifest.scenePlanDependency?.path],
+    ["image plan dependency path", args.renderManifest.imagePlanDependency?.path],
+    ["audio dependency path", args.renderManifest.audioDependency?.path],
+    ["subtitle dependency path", args.renderManifest.subtitleDependency?.path],
+  ] as const) {
+    if (!artifactPath) {
+      continue;
+    }
+    const contained = containedPath({
+      root: args.input.episodeDir,
+      filePath: artifactPath,
+      artifactType: "render-manifest",
+      label,
+    });
+    if (!contained.ok) {
+      args.results.push(contained.result);
+      return;
+    }
+    if (!(await fileExists(contained.path))) {
+      args.results.push(
+        invalid({
+          validationCode: "MISSING_ARTIFACT",
+          artifactType: "render-manifest",
+          message: `Render manifest references missing ${label}.`,
+          relativePath: contained.relativePath,
+        })
+      );
+      return;
+    }
+  }
+  if (args.generation.videoPath) {
+    const expectedVideo = containedPath({
+      root: args.input.episodeDir,
+      filePath: args.generation.videoPath,
+      artifactType: "render-manifest",
+      label: "generation video path",
+    });
+    const actualClean = containedPath({
+      root: args.input.episodeDir,
+      filePath: args.renderManifest.cleanPath,
+      artifactType: "render-manifest",
+      label: "render clean path",
+    });
+    if (!expectedVideo.ok) {
+      args.results.push(expectedVideo.result);
+      return;
+    }
+    if (!actualClean.ok) {
+      args.results.push(actualClean.result);
+      return;
+    }
+    if (actualClean.path !== expectedVideo.path) {
+      args.results.push(
+        invalid({
+          validationCode: "ARTIFACT_MISMATCH",
+          artifactType: "render-manifest",
+          message: "Render manifest clean path does not match the generation manifest video path.",
+          relativePath: args.relativePath,
+          expected: expectedVideo.relativePath,
+          actual: actualClean.relativePath,
+        })
+      );
+    }
   }
 }
 

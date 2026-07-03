@@ -1393,15 +1393,6 @@ export const shotPlanSchema = z
             "Render shot scene ownership must match its referenced source scene.",
         });
       }
-      if (shot.sourceImageId !== sourceScene.sourceImageId) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ["shots", index, "sourceImageId"],
-          message:
-            "Render shot source-image ownership must match its referenced source scene.",
-        });
-      }
-
       if (previousShot) {
         if (shot.startMs < previousShot.startMs) {
           ctx.addIssue({

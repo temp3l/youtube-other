@@ -119,6 +119,98 @@ function sourceFor(episodeSlug: string, language: FixtureLanguage, variant: Fixt
   };
 }
 
+function youtubeMetadata(language: FixtureLanguage, sceneCount = 1) {
+  return {
+    schemaVersion: "1.0",
+    source: {
+      sourceId: "001",
+      sceneCount,
+      durationSeconds: 3,
+      language,
+    },
+    seo: {
+      primaryKeyword: "forest",
+      secondaryKeywords: ["woods"],
+      viewerSearchIntent: "scary story",
+    },
+    title: {
+      recommended: "The Forest Answered",
+      alternatives: ["Forest Answer", "Dark Forest", "Woods Reply", "Night Woods", "Tree Line"],
+    },
+    description: "A short horror story in the woods.",
+    chapters: {
+      text: "00:00 Opening\n00:01 Forest\n00:02 Answer",
+      characterCount: 33,
+      items: [
+        { timestamp: "00:00", startSeconds: 0, title: "Opening" },
+        { timestamp: "00:01", startSeconds: 1, title: "Forest" },
+        { timestamp: "00:02", startSeconds: 2, title: "Answer" },
+      ],
+    },
+    tags: {
+      text: "forest, horror",
+      characterCount: 14,
+      items: ["forest", "horror"],
+    },
+    hashtags: ["#forest"],
+    thumbnail: {
+      recommendedText: "It Answered",
+      alternativeTexts: ["The Woods", "A Reply", "In The Trees", "After Dark"],
+      imagePrompt: "dark forest",
+    },
+    uploadSettings: {
+      filename: "forest.mp4",
+      category: "Entertainment",
+      videoLanguage: language,
+      captionLanguage: language,
+      madeForKids: false,
+      licence: "standard",
+      playlists: ["Horror"],
+      comments: "enabled",
+      automaticChapters: true,
+    },
+    pinnedComment: "What did you hear?",
+    socialTeaser: "The woods answered.",
+    contentSummary: "A forest answers once.",
+    corrections: [],
+    verificationWarnings: [],
+  };
+}
+
+function renderManifest(episodeSlug: string, language: FixtureLanguage, variant: FixtureVariant, cleanPath: string) {
+  return {
+    stageIdentity: {
+      episodeId: episodeSlug,
+      language,
+      locale: language,
+      variant,
+      owner: "render",
+    },
+    renderFingerprint: hashText(`render-${language}-${variant}`),
+    renderProfile: {
+      id: variant,
+      label: variant,
+      width: variant === "short" ? 1080 : 1920,
+      height: variant === "short" ? 1920 : 1080,
+      fps: 30,
+      aspectRatio: variant === "short" ? "9:16" : "16:9",
+    },
+    cleanPath,
+    validation: {
+      valid: true,
+      width: variant === "short" ? 1080 : 1920,
+      height: variant === "short" ? 1920 : 1080,
+      durationSeconds: 3,
+      videoCodec: "h264",
+      audioCodec: "aac",
+      pixelFormat: "yuv420p",
+      issues: [],
+    },
+    status: "generated",
+    generatedAt: createdAt,
+  };
+}
+
 async function createFixture(language: FixtureLanguage, variant: FixtureVariant): Promise<Fixture> {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), "cross-manifest-"));
   const episodeSlug = "001-cross-manifest-fixture";
@@ -313,5 +405,25 @@ describe("episode cross-manifest validator", () => {
       entries[0]!["chunkId"] = "narr-chunk-999";
     });
     expect(codes(await validateFixture(fixture))).toContain("UNKNOWN_NARRATION_SEGMENT");
+  });
+
+  it("validates current YouTube metadata schema when present", async () => {
+    const fixture = await createFixture("en", "full");
+    await writeJson(path.join(fixture.episodeDir, "output", "youtube-metadata.json"), youtubeMetadata("en", 2));
+    expect(codes(await validateFixture(fixture))).toContain("ARTIFACT_MISMATCH");
+  });
+
+  it("validates render manifests with the rendering package schema", async () => {
+    const fixture = await createFixture("de", "short");
+    const videoPath = path.join(fixture.episodeDir, "de", "short", "video", "clean.mp4");
+    const renderPath = path.join(path.dirname(videoPath), "render.json");
+    await fs.mkdir(path.dirname(videoPath), { recursive: true });
+    await fs.writeFile(videoPath, "video", "utf8");
+    await writeJson(renderPath, renderManifest(fixture.episodeSlug, "en", "short", videoPath));
+    await mutateJson(fixture.generationManifestPath, (manifest) => {
+      manifest["videoPath"] = videoPath;
+      manifest["renderManifestPath"] = renderPath;
+    });
+    expect(codes(await validateFixture(fixture))).toContain("WRONG_LANGUAGE");
   });
 });

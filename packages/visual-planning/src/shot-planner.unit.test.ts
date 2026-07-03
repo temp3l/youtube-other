@@ -16,6 +16,7 @@ import {
 import {
   getTreatment,
   isTreatmentSupported,
+  shotTreatmentCatalog,
   shotTreatmentCatalogVersion,
 } from "@mediaforge/domain/visual-retention/treatment-catalog.js";
 import {
@@ -24,6 +25,7 @@ import {
   serializeShotPlan,
   type PlanShotsInput,
 } from "./shot-planner.js";
+import { validateShotPlan } from "./shot-validation.js";
 
 const planner = new DeterministicShotPlanner();
 
@@ -333,6 +335,91 @@ describe("deterministic shot planner", () => {
     expect(fullPlan.shots.at(-1)?.motion?.kind).toBe("push-in");
   });
 
+  it("prefers motion treatments for full setup scenes that exceed the static cadence", () => {
+    const plan = planner.plan(
+      shortInput({
+        platform: "full",
+        aspectRatio: "16:9",
+        pacingProfile: balancedProfile(),
+        visualBudget: fullBudget(),
+        sourceScenes: [
+          sourceScene({
+            sceneNumber: 19,
+            startMs: 105_612,
+            endMs: 110_673,
+            phase: "setup",
+            focalRegions: [
+              region(
+                19,
+                "safe-crop-region",
+                { x: 0.08, y: 0.12, width: 0.84, height: 0.76 },
+                0.25,
+              ),
+            ],
+          }),
+        ],
+      }),
+    );
+
+    expect(plan.shots.length).toBeGreaterThan(1);
+    expect(plan.shots.some((shot) => shot.motion.kind !== "none")).toBe(true);
+
+    const validation = validateShotPlan({
+      shotPlan: plan,
+      pacingProfile: plan.pacingProfile.profile,
+      visualBudget: plan.visualBudget,
+      treatmentCatalog: shotTreatmentCatalog,
+    });
+
+    expect(
+      validation.issues.some((issue) =>
+        ["VISUAL_CHANGE_RATE_TOO_LOW", "STATIC_SHOT_TOO_LONG"].includes(issue.code),
+      ),
+    ).toBe(false);
+  });
+
+  it("supports stronger motion presets for full-video retention plans", () => {
+    const sourceScenes = [
+      sourceScene({ sceneNumber: 1, startMs: 0, endMs: 9000, phase: "setup" }),
+      sourceScene({ sceneNumber: 2, startMs: 9000, endMs: 17000, phase: "evidence" }),
+      sourceScene({ sceneNumber: 3, startMs: 17000, endMs: 25000, phase: "escalation" }),
+      sourceScene({ sceneNumber: 4, startMs: 25000, endMs: 33000, phase: "climax" }),
+    ];
+    const subtlePlan = planner.plan(
+      shortInput({
+        platform: "full",
+        aspectRatio: "16:9",
+        pacingProfile: balancedProfile(),
+        visualBudget: fullBudget(),
+        sourceScenes,
+      }),
+    );
+    const strongPlan = planner.plan(
+      shortInput({
+        platform: "full",
+        aspectRatio: "16:9",
+        pacingProfile: balancedProfile(),
+        visualBudget: fullBudget(),
+        sourceScenes,
+        motionPreset: "strong",
+      }),
+    );
+
+    const countExpressiveMotion = (plan: ShotPlan) =>
+      plan.shots.filter((shot) =>
+        ["push-in", "pan", "pan-and-zoom"].includes(shot.motion.kind),
+      ).length;
+
+    expect(countExpressiveMotion(strongPlan)).toBeGreaterThan(
+      countExpressiveMotion(subtlePlan),
+    );
+    expect(
+      strongPlan.shots.some((shot) =>
+        ["push-in", "pan", "pan-and-zoom"].includes(shot.motion.kind),
+      ),
+    ).toBe(true);
+  });
+
   it("selects only catalog-compatible supported treatments by default", () => {
     const plan = planner.plan(shortInput());
 
@@ -474,6 +561,72 @@ describe("deterministic shot planner", () => {
     expect(result.limitations.some((entry) => entry.code === "SHOT_BUDGET_TENSION")).toBe(true);
     expect(serializeShotPlan(repeated.plan)).toBe(serializeShotPlan(result.plan));
     expect(repeated.limitations).toEqual(result.limitations);
+  });
+
+  it("reuses adjacent full-length source images and stays within strict pacing caps", () => {
+    let cursorMs = 0;
+    const sourceScenes = Array.from({ length: 24 }, (_, index) => {
+      const sceneNumber = index + 1;
+      const phase: VisualNarrativePhase =
+        sceneNumber <= 2
+          ? "hook"
+          : sceneNumber >= 19
+            ? "climax"
+          : sceneNumber % 5 === 0
+              ? "evidence"
+              : sceneNumber % 3 === 0
+                ? "escalation"
+                : "setup";
+      const startMs = cursorMs;
+      const endMs = startMs + (phase === "climax" ? 4_000 : 3_000);
+      cursorMs = endMs;
+      return sourceScene({
+        sceneNumber,
+        startMs,
+        endMs,
+        phase,
+        focalRegions: [
+          region(
+            sceneNumber,
+            phase === "evidence" ? "evidence-object" : "primary-subject",
+            { x: 0.2, y: 0.16, width: 0.58, height: 0.68 },
+          ),
+        ],
+      });
+    });
+
+    const input = shortInput({
+      platform: "full",
+      aspectRatio: "16:9",
+      pacingProfile: balancedProfile(),
+      visualBudget: visualBudgetSchema.parse({
+        ...fullBudget(),
+        sourceImageCount: { min: 14, max: 14 },
+        shotCount: { min: 24, max: 40 },
+      }),
+      sourceScenes,
+    });
+
+    const plan = planner.plan(input);
+    const validation = validateShotPlan({
+      shotPlan: plan,
+      pacingProfile: input.pacingProfile,
+      visualBudget: input.visualBudget,
+      treatmentCatalog: shotTreatmentCatalog,
+    });
+
+    expect(new Set(plan.shots.map((shot) => shot.sourceImageId)).size).toBeLessThanOrEqual(14);
+    expect(
+      validation.issues.some((issue) =>
+        [
+          "VISUAL_CHANGE_RATE_TOO_LOW",
+          "STATIC_SHOT_TOO_LONG",
+          "CLIMAX_PACING_TOO_SLOW",
+          "SOURCE_IMAGE_BUDGET_EXCEEDED",
+          "CONSECUTIVE_SOURCE_IMAGE_REUSE_TOO_HIGH",
+        ].includes(issue.code),
+      ),
+    ).toBe(false);
   });
 
   it("throws typed errors for structurally unusable input and no compatible treatment", () => {

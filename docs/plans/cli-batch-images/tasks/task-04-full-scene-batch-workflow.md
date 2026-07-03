@@ -6,15 +6,15 @@ Commit after implementation: `feat(image-batch): prepare full scene image batche
 
 ## Objective
 
-Complete batch preparation for full-video scene images across requested languages using canonical scene manifests, prompts, references, and output paths.
+Complete batch preparation for full-video scene images for a selected language using canonical scene manifests, prompts, references, and output paths.
 
 ## Background
 
-`prepareImageBatchForEpisode` currently requires existing per-scene manifests and only models English/full scenes. Full localized video workflows reuse canonical images today, but the target batch system must support requested language variants when separate localized images are required.
+`prepareImageBatchForEpisode` currently requires existing per-scene manifests and only models English/full scenes. Full localized video workflows reuse canonical images today, so batch preparation must reject multi-language full runs until locale-specific output paths exist for separate localized images.
 
 ## Scope
 
-- Prepare full scene batch items for selected episode, languages, and full variant.
+- Prepare full scene batch items for a selected episode, one language per run, and full variant.
 - Reuse valid existing assets when hashes match.
 - Preserve scene-to-image associations through stable identity.
 - Split oversized jobs deterministically when request limits are configured.
@@ -56,7 +56,7 @@ No final CLI commands yet, but expose a service function that Task 05 can call f
 
 ## Error handling and observability
 
-Report missing scene plan, missing prompt, missing reference dependency, duplicate custom ID, duplicate output path, and unsupported endpoint.
+Report missing scene plan, missing prompt, missing reference dependency, duplicate custom ID, duplicate output path, unsupported endpoint, and multi-language shared-output conflicts.
 
 ## Security and cost controls
 
@@ -65,7 +65,8 @@ Prepare-only must not call OpenAI. Output a request count and model/size/quality
 ## Tests
 
 - Prepare all full scene requests for one language.
-- Prepare selected languages without hard-coding `en`.
+- Prepare a selected language without hard-coding `en`.
+- Reject multi-language full preparation while canonical outputs remain shared.
 - Skip valid existing outputs.
 - Split request groups deterministically.
 - Refuse duplicate destination paths.

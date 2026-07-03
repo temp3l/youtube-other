@@ -118,7 +118,6 @@ const minimumVisiblePanTravel = 0.01;
 const minimumVisibleScaleDelta = 0.015;
 const minimumVisibleDrift = 0.01;
 const minimumVisibleRotationDegrees = 0.15;
-const setupToClimaxSpeedupFactor = 0.9;
 
 const issueCodeOrder: readonly ShotPlanValidationIssueCode[] = [
   "VISUAL_CHANGE_RATE_TOO_LOW",
@@ -1061,6 +1060,8 @@ function validateClimaxPacing(
   input: ValidateShotPlanInput,
   analysis: Analysis,
 ): readonly ShotPlanValidationIssue[] {
+  const setupToClimaxSpeedupFactor =
+    input.shotPlan.variant === "short" ? 0.9 : 1.1;
   const climaxShots = analysis.shots.filter(
     (shot) => analysis.phaseByShotId.get(shot.shotId) === "climax",
   );

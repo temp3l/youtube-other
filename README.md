@@ -1,9 +1,133 @@
 # prompts
 
+## batch image EPIC
+
+next task: todo-prompts/batch-images/07-task-09-docs-and-smoke-verification.md
+
+## make sure to never use the OPENAI_API_KEY from shell export again - always use the one from .env
+
+RISKS after todo-prompts/batch-images/04-tasks-05-06-cli-and-resume-hardening.md
+"""Remaining risks: OpenAI batch image-edit JSONL/reference semantics still need real-provider verification; full-scene multi-language shared-output constraints remain; short-scene batch support is still not implemented here."""
+
+RISKS AFETR TAKS: todo-prompts/batch-images/05-task-07-short-image-strategy.md
+"""Remaining risks: short batch prepare currently validates only the image-generation package build; CLI-wide TypeScript and downstream batch import/download flows for short items remain unverified."""
+
 ---
 
-gray resets 17:51
-steph 17:23
+gray : 17:51
+steph :17:23
+soerin 20:00
+jack: 21:03 (7.juli 21:20)
+
+### batches
+
+- pm run mediaforge -- images batch prepare --episode 001-demo --languages en --variants full --json
+- pm run mediaforge -- images batch submit --episode 001-demo --batch imgb-abc123 --json
+- pm run mediaforge -- images batch status --episode 001-demo --batch imgb-abc123 --json
+- pm run mediaforge -- images batch download --episode 001-demo --batch imgb-abc123 --json
+- npm run mediaforge -- images batch resume --episode 001-demo --json
+
+## Approve
+
+• Use the review-approve command:
+
+npm run episode:review:approve -- \
+ --episode 022-the-whistler-in-the-woods \
+ --language en \
+ --artifact full \
+ --reviewer <name>
+
+For German full:
+
+npm run episode:review:approve -- \
+ --episode 022-the-whistler-in-the-woods \
+ --language de \
+ --artifact full \
+ --reviewer <name>
+
+For German short, if you want the short review record approved too:
+
+npm run episode:review:approve -- \
+ --episode 022-the-whistler-in-the-woods \
+ --language de \
+ --artifact short \
+ --reviewer <name>
+
+<name> is required. You can add --notes <text> if you want to record context.
+
+## Render clips
+
+• That failure is not an approval problem. It’s shot validation rejecting the current pacing profile: VISUAL_CHANGE_RATE_TOO_LOW.
+
+Rerun English full with a denser profile:
+
+npm run episode:english -- \
+ --episode 022-the-whistler-in-the-woods \
+ --visual-retention \
+ --visual-profile high-retention
+
+---
+
+npm run episode:english -- \
+ --episode 022-the-whistler-in-the-woods \
+ --visual-retention \
+ --visual-profile atmospheric
+
+---
+
+• Its not a missing asset anymore. The failing artifact is the saved validation report at episodes/022-the-whistler-in-the-woods/state/visual-retention/validation.full.en.json:1, and the plan being validated is episodes/022-the-whistler-in-the-woods/state/visual-retention/shot-plan.full.en.json:1.
+
+The first hard failure in that report is scene-019-shot-001: observedDurationMs: 5061 against configuredLimitMs: 5000. The same issue repeats later at scene-023-shot-001, scene-030-shot-002, scene-048-shot-001, and scene-052-shot-001.
+
+To regenerate the artifacts for English full:
+
+pnpm mediaforge -- shots plan --episode 022-the-whistler-in-the-woods --variant full --locale en --profile atmospheric
+pnpm mediaforge -- shots validate --episode 022-the-whistler-in-the-woods --variant full --locale en
+
+If you want, I can narrow this further to the specific shot content in scene-019 and suggest the smallest visual change that should satisfy the cadence.
+
+---
+
+For German short, use:
+
+npm run episode:short -- \
+ --episode 022-the-whistler-in-the-woods \
+ --language de \
+ --visual-retention \
+ --visual-profile shorts-aggressive
+
+For German full, use the same full profile:
+
+npm run episode:localized -- \
+ --episode 022-the-whistler-in-the-woods \
+ --languages de \
+ --visual-retention \
+ --visual-profile high-retention
+
+• Use the English full episode workflow with the visual-retention flag:
+
+npm run episode:english -- --episode 022-the-whistler-in-the-woods --visual-retention
+
+If you want to force the rollout mode explicitly as well:
+
+npm run episode:english -- --episode 022-the-whistler-in-the-woods --visual-retention --visual-retention-mode enabled
+
+There is no separate visual-retention-aware clips generate entrypoint; that flag lives on the episode english workflow.
+
+---
+
+• For German full:
+
+npm run episode:localized -- --episode 022-the-whistler-in-the-woods --languages de --visual-retention
+
+For German short:
+
+npm run episode:short -- --episode 022-the-whistler-in-the-woods --language de --visual-retention
+
+If you want to pin the rollout mode explicitly:
+
+npm run episode:localized -- --episode 022-the-whistler-in-the-woods --languages de --visual-retention --visual-retention-mode enabled
+npm run episode:short -- --episode 022-the-whistler-in-the-woods --language de --visual-retention --visual-retention-mode enabled
 
 ---
 
@@ -12,8 +136,6 @@ why did this command: "bash -lc 'set -a; . ./.env; set +a; node apps/cli/bin/med
 result in: "Error: Shot validation failed for full en: VISUAL_CHANGE_RATE_TOO_LOW Meaningful visual-change interval exceeds the pacing profile cadence."
 and how to fix it?
 
----
-
 recommend solutions to overcome: "The semantic shot validations still fail for all four cells because the generated plans exceed current pacing/resolution budgets; I did not weaken those checks." And also use visual-retention as default.
 """
 I retried with .env exported and fixed the concrete shot-path failures that were blocking regeneration. Changed paths: apps/cli/src/shots.ts:1, apps/cli/src/shot-commands.unit.test.ts:1, packages/visual-planning/src/shot-validation.ts:1, packages/visual-planning/src/shot-validation.unit.test.ts:1.
@@ -21,6 +143,10 @@ I retried with .env exported and fixed the concrete shot-path failures that were
 Validation run: pnpm test:focused -- apps/cli/src/shot-commands.unit.test.ts and pnpm test:focused -- packages/visual-planning/src/shot-validation.unit.test.ts, both passed. I rebuilt @mediaforge/visual-planning and @mediaforge/cli, then regenerated all four shot plans successfully. The semantic shot
 validations still fail for all four cells because the generated plans exceed current pacing/resolution budgets; I did not weaken those checks.
 """
+
+---
+
+provide me the cli command to regenerate the clips for the english full video of 022 with visual retention enabled
 
 ---
 

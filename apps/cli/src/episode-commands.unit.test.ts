@@ -46,6 +46,7 @@ const {
   commandEpisodeLocalized,
   commandEpisodeShort,
   resolveEpisodeLanguageSource,
+  resolveVisualRetentionOptions,
   registerEpisodeCommands,
 } = await import("./episode-commands.js");
 
@@ -511,6 +512,31 @@ async function createValidationFixture(options: {
 }
 
 describe("episode commands", () => {
+  it("defaults visual retention to enabled unless explicitly disabled", () => {
+    expect(resolveVisualRetentionOptions({})).toEqual({
+      enabled: true,
+      mode: "preview",
+    });
+    expect(resolveVisualRetentionOptions({ visualRetention: false })).toEqual({
+      enabled: false,
+      mode: "disabled",
+    });
+    expect(
+      resolveVisualRetentionOptions({
+        visualRetentionMode: "preview",
+        visualProfile: "balanced",
+        motionPreset: "strong",
+        strictShotValidation: true,
+      })
+    ).toEqual({
+      enabled: true,
+      mode: "preview",
+      profile: "balanced",
+      motionPreset: "strong",
+      strictValidation: true,
+    });
+  });
+
   it("forwards a subcommand language option when the root command also defines language", async () => {
     const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "episode-cli-language-"));
     const outputRoot = path.join(tempDir, "episodes");

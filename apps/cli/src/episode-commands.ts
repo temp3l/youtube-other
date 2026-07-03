@@ -64,6 +64,7 @@ import {
 } from "@mediaforge/shared";
 import {
   validateShotPlanArtifactReferences,
+  type VisualMotionPreset,
 } from "@mediaforge/visual-planning";
 import { z } from "zod";
 import { commandImagesResume } from "./images-resume-command.js";
@@ -96,6 +97,7 @@ export interface EpisodeCommandOptions {
   readonly visualRetention?: boolean;
   readonly visualRetentionMode?: "disabled" | "preview" | "enabled";
   readonly visualProfile?: string;
+  readonly motionPreset?: string;
   readonly strictShotValidation?: boolean;
 }
 
@@ -113,6 +115,7 @@ export interface EpisodeSetupUseCaseInput {
   readonly visualRetention?: boolean;
   readonly visualRetentionMode?: "disabled" | "preview" | "enabled";
   readonly visualProfile?: string;
+  readonly motionPreset?: string;
   readonly strictShotValidation?: boolean;
 }
 
@@ -285,6 +288,7 @@ function setupInputFromOptions(
       ? { visualRetentionMode: options.visualRetentionMode }
       : {}),
     ...(options.visualProfile !== undefined ? { visualProfile: options.visualProfile } : {}),
+    ...(options.motionPreset !== undefined ? { motionPreset: options.motionPreset } : {}),
     ...(options.strictShotValidation !== undefined
       ? { strictShotValidation: options.strictShotValidation }
       : {}),
@@ -310,6 +314,7 @@ function episodeOptionsFromSetupInput(
       ? { visualRetentionMode: input.visualRetentionMode }
       : {}),
     ...(input.visualProfile !== undefined ? { visualProfile: input.visualProfile } : {}),
+    ...(input.motionPreset !== undefined ? { motionPreset: input.motionPreset } : {}),
     ...(input.strictShotValidation !== undefined
       ? { strictShotValidation: input.strictShotValidation }
       : {}),
@@ -367,14 +372,16 @@ function assertReuseImagesEnabled(reuseImages: boolean | undefined): void {
   }
 }
 
-function resolveVisualRetentionOptions(options: EpisodeCommandOptions): {
+export function resolveVisualRetentionOptions(options: EpisodeCommandOptions): {
   readonly enabled: boolean;
   readonly mode?: "disabled" | "preview" | "enabled";
   readonly profile?: "atmospheric" | "balanced" | "high-retention" | "shorts-aggressive";
+  readonly motionPreset?: VisualMotionPreset;
   readonly strictValidation?: boolean;
 } {
   const profile = options.visualProfile;
   const mode = options.visualRetentionMode;
+  const motionPreset = options.motionPreset;
   if (
     profile !== undefined &&
     profile !== "atmospheric" &&
@@ -392,10 +399,21 @@ function resolveVisualRetentionOptions(options: EpisodeCommandOptions): {
   ) {
     throw new Error(`Unsupported visual-retention mode: ${mode}`);
   }
+  if (
+    motionPreset !== undefined &&
+    motionPreset !== "subtle" &&
+    motionPreset !== "balanced" &&
+    motionPreset !== "strong"
+  ) {
+    throw new Error(`Unsupported motion preset: ${motionPreset}`);
+  }
+  const enabled = options.visualRetention !== false;
+  const effectiveMode = mode ?? (enabled ? "preview" : "disabled");
   return {
-    enabled: options.visualRetention === true,
-    ...(mode ? { mode } : {}),
+    enabled,
+    mode: effectiveMode,
     ...(profile ? { profile } : {}),
+    ...(motionPreset ? { motionPreset } : {}),
     ...(options.strictShotValidation !== undefined
       ? { strictValidation: options.strictShotValidation }
       : {}),
@@ -2417,6 +2435,7 @@ export function registerEpisodeCommands(program: Command): void {
     .option("--no-visual-retention", "disable shot-aware visual retention")
     .option("--visual-retention-mode <disabled|preview|enabled>", "set visual retention rollout mode")
     .option("--visual-profile <profile>", "visual-retention pacing profile")
+    .option("--motion-preset <subtle|balanced|strong>", "visual-retention motion preset")
     .option("--strict-shot-validation", "fail on shot validation warnings")
     .action(async (opts: EpisodeCommandOptions) =>
       commandEpisodeEnglish(mergeEpisodeCommandOptions(program, opts))
@@ -2433,6 +2452,7 @@ export function registerEpisodeCommands(program: Command): void {
     .option("--no-visual-retention", "disable shot-aware visual retention")
     .option("--visual-retention-mode <disabled|preview|enabled>", "set visual retention rollout mode")
     .option("--visual-profile <profile>", "visual-retention pacing profile")
+    .option("--motion-preset <subtle|balanced|strong>", "visual-retention motion preset")
     .option("--strict-shot-validation", "fail on shot validation warnings")
     .action(async (opts: EpisodeCommandOptions) =>
       commandEpisodeLocalized(mergeEpisodeCommandOptions(program, opts))
@@ -2449,6 +2469,7 @@ export function registerEpisodeCommands(program: Command): void {
     .option("--no-visual-retention", "disable shot-aware visual retention")
     .option("--visual-retention-mode <disabled|preview|enabled>", "set visual retention rollout mode")
     .option("--visual-profile <profile>", "visual-retention pacing profile")
+    .option("--motion-preset <subtle|balanced|strong>", "visual-retention motion preset")
     .option("--strict-shot-validation", "fail on shot validation warnings")
     .action(async (opts: EpisodeCommandOptions) =>
       commandEpisodeShort(mergeEpisodeCommandOptions(program, opts))
@@ -2535,6 +2556,7 @@ export function registerEpisodeCommands(program: Command): void {
     .option("--no-visual-retention", "disable shot-aware visual retention")
     .option("--visual-retention-mode <disabled|preview|enabled>", "set visual retention rollout mode")
     .option("--visual-profile <profile>", "visual-retention pacing profile")
+    .option("--motion-preset <subtle|balanced|strong>", "visual-retention motion preset")
     .option("--strict-shot-validation", "fail on shot validation warnings")
     .action(async (opts: EpisodeCommandOptions) =>
       commandEpisodeReviewPrepare(mergeEpisodeCommandOptions(program, opts))

@@ -41,8 +41,8 @@ Task 02.
 
 - Add a reference-stage planner that reuses existing character registry and prompt generation.
 - Add dependency hashes to scene items from referenced assets.
-- Refuse to prepare a reference-assisted scene batch if the request would drop image inputs.
-- If `/v1/images/edits` batch request input images are implemented, verify JSONL schema with SDK types and existing repository request conventions.
+- Prepare a reference-assisted scene batch only when every referenced asset has a pre-uploaded OpenAI file ID.
+- Serialize `/v1/images/edits` JSONL with reference image file IDs in `body.image`; refuse local-file-only references before submission.
 
 ## Data model or manifest changes
 
@@ -54,7 +54,7 @@ No public CLI yet, but planner APIs must expose reference stages for Task 05.
 
 ## Error handling and observability
 
-Emit structured errors for missing reference image, unapproved reference, unsupported edit batch request, and stale dependency hash.
+Emit structured errors for missing reference image, unapproved reference, missing OpenAI reference file ID, and stale dependency hash.
 
 ## Security and cost controls
 
@@ -64,7 +64,8 @@ Do not submit dependent scene requests when reference stages are incomplete. Inc
 
 - Character reference stage precedes dependent scene stage.
 - Scene preparation fails if a required approved reference is missing.
-- Reference-assisted scenes never silently fall back to text-only generation.
+- Reference-assisted scenes with uploaded file IDs use `/v1/images/edits`.
+- Reference-assisted scenes without uploaded file IDs never silently fall back to text-only generation.
 - Text-only scenes still use `/v1/images/generations`.
 
 ## Verification commands
@@ -78,7 +79,7 @@ pnpm test:focused -- packages/image-generation/src/episode-image-pipeline.unit.t
 
 - Reference assets are represented in batch planning.
 - Dependent scenes include reference dependency hashes.
-- Unsupported reference-assisted batch requests fail before submission.
+- Reference-assisted batch requests preserve image inputs through uploaded OpenAI file IDs or fail before submission.
 
 ## Rollback considerations
 

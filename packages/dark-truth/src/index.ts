@@ -78,6 +78,7 @@ import {
   serializeShotPlan,
   validateShotPlan,
   type ShotPlanValidationResult,
+  type VisualMotionPreset,
 } from "@mediaforge/visual-planning";
 
 export type SpeechVoicePreset = "slow" | "fast" | "very-fast";
@@ -315,6 +316,7 @@ export interface DarkTruthVisualRetentionOptions {
   readonly enabled?: boolean;
   readonly mode?: "disabled" | "preview" | "enabled";
   readonly profile?: VisualPacingProfileId;
+  readonly motionPreset?: VisualMotionPreset;
   readonly strictValidation?: boolean;
 }
 
@@ -1962,6 +1964,7 @@ async function prepareDarkTruthVisualRetention(args: {
       variant,
       locale: language,
       profile: preset.pacingProfile.id,
+      motionPreset: args.options.motionPreset ?? "subtle",
       aspectRatio,
     })
   );
@@ -1974,6 +1977,9 @@ async function prepareDarkTruthVisualRetention(args: {
     pacingProfile: preset.pacingProfile,
     visualBudget: preset.visualBudget,
     treatmentCatalogVersion: shotTreatmentCatalogVersion,
+    ...(args.options.motionPreset
+      ? { motionPreset: args.options.motionPreset }
+      : {}),
     seed,
   });
   const context = { episodeId, locale: language, variant };
@@ -2007,7 +2013,7 @@ async function prepareDarkTruthVisualRetention(args: {
       issue.severity === "error" ||
       (args.options.strictValidation === true && issue.severity === "warning")
   );
-  if (blockingIssues.length > 0) {
+  if (blockingIssues.length > 0 && args.options.mode !== "preview") {
     const first = blockingIssues[0];
     throw new Error(
       `Shot validation failed for ${args.artifactType} ${language}: ${first?.code ?? "UNKNOWN"} ${first?.message ?? ""}`.trim()
@@ -2074,7 +2080,7 @@ export async function renderCleanVideo(
         })
       : undefined;
   const visualRetention =
-    visualRetentionMode === "enabled" ? plannedVisualRetention : undefined;
+    visualRetentionMode === "disabled" ? undefined : plannedVisualRetention;
   const renderResult = await renderer.render(
     {
       episodeDir,
@@ -2093,7 +2099,7 @@ export async function renderCleanVideo(
       imageDir,
       sceneAudioDir: path.join(episodeDir, "audio", "segments"),
       outputBasename,
-      ...(visualRetention
+      ...(visualRetentionMode === "enabled" && visualRetention
         ? {
             shotPlan: visualRetention.shotPlan,
             sourceImages: visualRetention.sourceImages,
