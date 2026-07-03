@@ -48,6 +48,11 @@ Top-level command groups and commands:
 - `clips backfill-manifests <episode-id>`
 - `align <episode-id>`
 - `images ...`
+- `images batch prepare --episode <episode-id> --languages <comma-separated-languages> --variants <comma-separated-variants>`
+- `images batch submit --episode <episode-id> --batch <id>`
+- `images batch status --episode <episode-id> --batch <id>`
+- `images batch download --episode <episode-id> --batch <id>`
+- `images batch resume --episode <episode-id> --batch <id>`
 - `thumbnails generate --episode <slug> --locale <locale> --format <full|short> --hook-text <text> --story-file <path>`
 - `render <episode-id> --profile <youtube|vertical> --no-captions`
 - `render remote check`
@@ -95,6 +100,18 @@ Root scripts that directly wrap CLI commands:
 - `npm run youtube:upload -- --episode <id>`
 - `npm run images:plan -- --episode <id>`
 - `npm run images:generate -- --episode <id>`
+
+## Image Batch Commands
+
+`images batch` exposes the local-first image batch lifecycle. `prepare` writes manifests and JSONL locally and never creates remote files or batches. Only `submit` uploads the prepared input and creates the provider batch. `status` refreshes provider state, `download` imports finished results idempotently, and `resume` prepares a retry batch only for retryable items.
+
+```bash
+npm run mediaforge -- images batch prepare --episode 001-demo --languages en --variants full --json
+npm run mediaforge -- images batch submit --episode 001-demo --batch imgb-abc123 --json
+npm run mediaforge -- images batch status --episode 001-demo --batch imgb-abc123 --json
+npm run mediaforge -- images batch download --episode 001-demo --batch imgb-abc123 --json
+npm run mediaforge -- images batch resume --episode 001-demo --json
+```
 
 ## Thumbnail Commands
 

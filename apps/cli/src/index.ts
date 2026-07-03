@@ -144,6 +144,7 @@ import {
   summarizeEpisodeImageState,
   type EpisodeImageSummary,
 } from "./episode-image-summary.js";
+import { registerImagesBatchCommands } from "./images-batch-commands.js";
 import { buildImageStatusOutput } from "./images-status-output.js";
 import { registerImagesResumeCommand } from "./images-resume-command.js";
 import { registerImagesSyncSharedCommand } from "./images-sync-shared-command.js";
@@ -4519,6 +4520,7 @@ clipsCommand
 const imagesCommand = program
   .command("images")
   .description("Local scene image workflow");
+registerImagesBatchCommands(imagesCommand);
 registerImagesResumeCommand(imagesCommand);
 registerImagesSyncSharedCommand(imagesCommand);
 imagesCommand
