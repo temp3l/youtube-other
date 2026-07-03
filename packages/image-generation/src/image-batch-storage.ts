@@ -123,6 +123,7 @@ export function createImageBatchManifestItem(args: {
     quality: args.job.identity.quality,
     outputFormat: args.job.outputFormat,
     status: args.status ?? "planned",
+    retryCount: 0,
   };
 }
 

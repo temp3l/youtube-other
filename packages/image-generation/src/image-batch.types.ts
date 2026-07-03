@@ -99,6 +99,7 @@ export interface ImageBatchDependency {
   readonly role: ImageBatchDependencyRole;
   readonly approvalStatus: ImageBatchDependencyApprovalStatus;
   readonly sourcePath: string;
+  readonly openAIFileId?: string;
   readonly sha256: string;
   readonly assetIdentity: ImageBatchAssetIdentity;
 }
@@ -141,11 +142,14 @@ export interface ImageBatchManifestItem {
   readonly quality?: ImageBatchQuality;
   readonly outputFormat: "png" | "jpeg" | "webp";
   readonly status: ImageBatchItemStatus;
+  readonly retryCount: number;
   readonly imageHash?: string;
   readonly actualWidth?: number;
   readonly actualHeight?: number;
   readonly actualMimeType?: string;
   readonly actualByteSize?: number;
+  readonly outputFileId?: string;
+  readonly importedAt?: string;
   readonly usage?: {
     readonly inputTokens: number;
     readonly cachedInputTokens?: number;

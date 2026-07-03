@@ -60,6 +60,9 @@ function normalizeV2Item(
       role: dependency.role,
       approvalStatus: dependency.approvalStatus,
       sourcePath: dependency.sourcePath,
+      ...(dependency.openAIFileId
+        ? { openAIFileId: dependency.openAIFileId }
+        : {}),
       sha256: dependency.sha256,
       assetIdentity: normalizeV2Identity(dependency.assetIdentity),
     })),
@@ -67,6 +70,7 @@ function normalizeV2Item(
     quality: identity.quality,
     outputFormat: item.outputFormat,
     status: item.status,
+    retryCount: item.retryCount,
     ...(item.imageHash ? { imageHash: item.imageHash } : {}),
     ...(item.actualWidth !== undefined ? { actualWidth: item.actualWidth } : {}),
     ...(item.actualHeight !== undefined ? { actualHeight: item.actualHeight } : {}),
@@ -74,6 +78,8 @@ function normalizeV2Item(
     ...(item.actualByteSize !== undefined
       ? { actualByteSize: item.actualByteSize }
       : {}),
+    ...(item.outputFileId ? { outputFileId: item.outputFileId } : {}),
+    ...(item.importedAt ? { importedAt: item.importedAt } : {}),
     ...(item.usage
       ? {
           usage: {
@@ -147,6 +153,7 @@ function normalizeLegacyItem(args: {
     quality: identity.quality,
     outputFormat: args.item.outputFormat,
     status: args.item.status,
+    retryCount: args.item.retryCount ?? 0,
     ...(args.item.imageHash ? { imageHash: args.item.imageHash } : {}),
     ...(args.item.actualWidth ? { actualWidth: args.item.actualWidth } : {}),
     ...(args.item.actualHeight ? { actualHeight: args.item.actualHeight } : {}),
@@ -156,6 +163,8 @@ function normalizeLegacyItem(args: {
     ...(args.item.actualByteSize
       ? { actualByteSize: args.item.actualByteSize }
       : {}),
+    ...(args.item.outputFileId ? { outputFileId: args.item.outputFileId } : {}),
+    ...(args.item.importedAt ? { importedAt: args.item.importedAt } : {}),
     ...(args.item.usage
       ? {
           usage: {

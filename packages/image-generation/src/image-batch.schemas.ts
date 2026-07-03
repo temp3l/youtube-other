@@ -78,6 +78,7 @@ export const imageBatchDependencySchema = z.object({
   role: imageBatchDependencyRoleSchema,
   approvalStatus: imageBatchDependencyApprovalStatusSchema,
   sourcePath: z.string().min(1),
+  openAIFileId: z.string().min(1).optional(),
   sha256: z.string().min(1),
   assetIdentity: imageBatchAssetIdentitySchema,
 });
@@ -118,11 +119,14 @@ export const imageBatchManifestItemSchema = z.object({
     "skipped-cached",
     "retry-required",
   ]),
+  retryCount: z.number().int().nonnegative().default(0),
   imageHash: z.string().min(1).optional(),
   actualWidth: z.number().int().positive().optional(),
   actualHeight: z.number().int().positive().optional(),
   actualMimeType: z.string().min(1).optional(),
   actualByteSize: z.number().int().nonnegative().optional(),
+  outputFileId: z.string().min(1).optional(),
+  importedAt: z.string().min(1).optional(),
   usage: z
     .object({
       inputTokens: z.number().int().nonnegative(),
@@ -250,11 +254,14 @@ export const legacyImageBatchManifestItemV1Schema = z.object({
     "skipped-cached",
     "retry-required",
   ]),
+  retryCount: z.number().int().nonnegative().optional(),
   imageHash: z.string().min(1).optional(),
   actualWidth: z.number().int().positive().optional(),
   actualHeight: z.number().int().positive().optional(),
   actualMimeType: z.string().min(1).optional(),
   actualByteSize: z.number().int().nonnegative().optional(),
+  outputFileId: z.string().min(1).optional(),
+  importedAt: z.string().min(1).optional(),
   usage: z
     .object({
       inputTokens: z.number().int().nonnegative(),

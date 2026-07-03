@@ -771,11 +771,259 @@ describe("image batch service", () => {
     const manifest = await readImageBatchManifest(group.storagePlan.manifestPath);
     expect(manifest?.items[0]?.status).toBe("validation-failed");
     expect(manifest?.items[0]?.error).toMatchObject({
-      category: "validation",
+      category: "invalid-dimensions",
     });
     expect(manifest?.items[0]?.error?.message).toContain(
       "Unexpected image dimensions"
     );
+  });
+
+  it("classifies duplicate and unknown custom_id lines during import", async () => {
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), "image-batch-duplicate-lines-"));
+    const episodeDir = path.join(tempDir, "episode");
+    await writeSceneManifest({ episodeDir, sceneId: "scene-002" });
+    const prepared = await prepareImageBatchForEpisode({
+      episodeDir,
+      episodeId: "001-demo",
+      scenePlan: { scenes: [{ id: "scene-002", sequenceNumber: 2 }] },
+      settings: {
+        model: "gpt-image-2",
+        requestedSize: "1920x1088",
+        quality: "medium",
+        outputFormat: "png",
+      },
+    });
+    const group = prepared.groups[0] as {
+      readonly storagePlan: ImageBatchStoragePlan;
+      readonly scenePlans: ReadonlyArray<{
+        readonly manifestItem: { readonly customId: string };
+      }>;
+    };
+    const imageBase64 = await makeBase64Image(1920, 1088);
+    const duplicateLine = JSON.stringify({
+      custom_id: group.scenePlans[0]?.manifestItem.customId,
+      response: { status_code: 200, body: { data: [{ b64_json: imageBase64 }] } },
+    });
+    const unknownLine = JSON.stringify({
+      custom_id: "unknown-custom-id",
+      response: { status_code: 200, body: { data: [{ b64_json: imageBase64 }] } },
+    });
+    const client = makeImportClient({
+      outputText: `${duplicateLine}\n${duplicateLine}\n${unknownLine}\n`,
+      total: 3,
+      completed: 3,
+      failed: 0,
+    });
+    await submitImageBatch(
+      path.join(episodeDir, "state", "image-generation"),
+      group.storagePlan.localBatchId,
+      client as never
+    );
+    await refreshImageBatch(
+      path.join(episodeDir, "state", "image-generation"),
+      group.storagePlan.localBatchId,
+      client as never
+    );
+
+    const imported = await importImageBatch(
+      path.join(episodeDir, "state", "image-generation"),
+      group.storagePlan.localBatchId,
+      client as never
+    );
+
+    expect(imported.status).toBe("imported_with_failures");
+    expect(imported.duplicateResultCount).toBe(1);
+    expect(imported.unknownResultCount).toBe(1);
+    const manifest = await readImageBatchManifest(group.storagePlan.manifestPath);
+    expect(manifest?.items[0]?.status).toBe("validation-failed");
+    expect(manifest?.items[0]?.error).toMatchObject({
+      category: "duplicate-id",
+    });
+  });
+
+  it("classifies invalid base64 payloads without treating them as imported", async () => {
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), "image-batch-invalid-base64-"));
+    const episodeDir = path.join(tempDir, "episode");
+    await writeSceneManifest({ episodeDir, sceneId: "scene-002" });
+    const prepared = await prepareImageBatchForEpisode({
+      episodeDir,
+      episodeId: "001-demo",
+      scenePlan: { scenes: [{ id: "scene-002", sequenceNumber: 2 }] },
+      settings: {
+        model: "gpt-image-2",
+        requestedSize: "1920x1088",
+        quality: "medium",
+        outputFormat: "png",
+      },
+    });
+    const group = prepared.groups[0] as {
+      readonly storagePlan: ImageBatchStoragePlan;
+      readonly scenePlans: ReadonlyArray<{
+        readonly manifestItem: { readonly customId: string };
+      }>;
+    };
+    const outputJsonl = JSON.stringify({
+      custom_id: group.scenePlans[0]?.manifestItem.customId,
+      response: {
+        status_code: 200,
+        body: { data: [{ b64_json: "%%%not-base64%%%" }] },
+      },
+    });
+    const client = makeImportClient({
+      outputText: `${outputJsonl}\n`,
+      total: 1,
+      completed: 1,
+      failed: 0,
+    });
+    await submitImageBatch(
+      path.join(episodeDir, "state", "image-generation"),
+      group.storagePlan.localBatchId,
+      client as never
+    );
+    await refreshImageBatch(
+      path.join(episodeDir, "state", "image-generation"),
+      group.storagePlan.localBatchId,
+      client as never
+    );
+
+    const imported = await importImageBatch(
+      path.join(episodeDir, "state", "image-generation"),
+      group.storagePlan.localBatchId,
+      client as never
+    );
+
+    expect(imported.status).toBe("imported_with_failures");
+    const manifest = await readImageBatchManifest(group.storagePlan.manifestPath);
+    expect(manifest?.items[0]?.status).toBe("decode-failed");
+    expect(manifest?.items[0]?.error).toMatchObject({
+      category: "invalid-base64",
+    });
+  });
+
+  it("returns non-terminal when download is requested before the batch is complete", async () => {
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), "image-batch-non-terminal-"));
+    const episodeDir = path.join(tempDir, "episode");
+    await writeSceneManifest({ episodeDir, sceneId: "scene-002" });
+    const prepared = await prepareImageBatchForEpisode({
+      episodeDir,
+      episodeId: "001-demo",
+      scenePlan: { scenes: [{ id: "scene-002", sequenceNumber: 2 }] },
+      settings: {
+        model: "gpt-image-2",
+        requestedSize: "1920x1088",
+        quality: "medium",
+        outputFormat: "png",
+      },
+    });
+    const group = prepared.groups[0] as {
+      readonly storagePlan: ImageBatchStoragePlan;
+    };
+    const client = {
+      files: {
+        create: vi.fn(async () => ({ id: "file_1" })),
+        content: vi.fn(async () => ({ text: async () => "" })),
+      },
+      batches: {
+        create: vi.fn(async () => ({
+          id: "batch_1",
+          status: "validating",
+          endpoint: "/v1/images/generations",
+          input_file_id: "file_1",
+          completion_window: "24h",
+          created_at: 1,
+          object: "batch",
+        })),
+        retrieve: vi.fn(async () => ({
+          id: "batch_1",
+          status: "in_progress",
+          endpoint: "/v1/images/generations",
+          input_file_id: "file_1",
+          completion_window: "24h",
+          created_at: 1,
+          object: "batch",
+        })),
+        cancel: vi.fn(),
+      },
+      responses: { create: vi.fn() },
+    };
+    await submitImageBatch(
+      path.join(episodeDir, "state", "image-generation"),
+      group.storagePlan.localBatchId,
+      client as never
+    );
+
+    const imported = await importImageBatch(
+      path.join(episodeDir, "state", "image-generation"),
+      group.storagePlan.localBatchId,
+      client as never
+    );
+
+    expect(imported.status).toBe("non_terminal");
+    expect(imported.providerStatus).toBe("in_progress");
+  });
+
+  it("keeps repeated imports idempotent after a successful import", async () => {
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), "image-batch-repeat-import-"));
+    const episodeDir = path.join(tempDir, "episode");
+    await writeSceneManifest({ episodeDir, sceneId: "scene-002" });
+    const prepared = await prepareImageBatchForEpisode({
+      episodeDir,
+      episodeId: "001-demo",
+      scenePlan: { scenes: [{ id: "scene-002", sequenceNumber: 2 }] },
+      settings: {
+        model: "gpt-image-2",
+        requestedSize: "1920x1088",
+        quality: "medium",
+        outputFormat: "png",
+      },
+    });
+    const group = prepared.groups[0] as {
+      readonly storagePlan: ImageBatchStoragePlan;
+      readonly scenePlans: ReadonlyArray<{
+        readonly manifestItem: { readonly customId: string };
+      }>;
+    };
+    const imageBase64 = await makeBase64Image(1920, 1088);
+    const outputJsonl = JSON.stringify({
+      custom_id: group.scenePlans[0]?.manifestItem.customId,
+      response: {
+        status_code: 200,
+        body: { data: [{ b64_json: imageBase64 }] },
+      },
+    });
+    const client = makeImportClient({
+      outputText: `${outputJsonl}\n`,
+      total: 1,
+      completed: 1,
+      failed: 0,
+    });
+    await submitImageBatch(
+      path.join(episodeDir, "state", "image-generation"),
+      group.storagePlan.localBatchId,
+      client as never
+    );
+    await refreshImageBatch(
+      path.join(episodeDir, "state", "image-generation"),
+      group.storagePlan.localBatchId,
+      client as never
+    );
+
+    const firstImport = await importImageBatch(
+      path.join(episodeDir, "state", "image-generation"),
+      group.storagePlan.localBatchId,
+      client as never
+    );
+    const secondImport = await importImageBatch(
+      path.join(episodeDir, "state", "image-generation"),
+      group.storagePlan.localBatchId,
+      client as never
+    );
+
+    expect(firstImport.status).toBe("imported");
+    expect(secondImport.status).toBe("imported");
+    expect(secondImport.failedItemCount).toBe(0);
+    const manifest = await readImageBatchManifest(group.storagePlan.manifestPath);
+    expect(manifest?.items[0]?.status).toBe("persisted");
   });
 
   it("retries only failed image scenes and keeps the successful ones out of the new batch", async () => {
@@ -835,5 +1083,79 @@ describe("image batch service", () => {
     expect(retryManifest?.retryNumber).toBe(1);
     expect(retryManifest?.items).toHaveLength(1);
     expect(retryManifest?.items[0]?.sceneId).toBe("scene-003");
+  });
+
+  it("does not prepare retries for items already recovered in the same lineage", async () => {
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), "image-batch-lineage-retry-"));
+    const episodeDir = path.join(tempDir, "episode");
+    await writeSceneManifest({ episodeDir, sceneId: "scene-002" });
+    const prepared = await prepareImageBatchForEpisode({
+      episodeDir,
+      episodeId: "001-demo",
+      scenePlan: { scenes: [{ id: "scene-002", sequenceNumber: 2 }] },
+      settings: {
+        model: "gpt-image-2",
+        requestedSize: "1920x1088",
+        quality: "medium",
+        outputFormat: "png",
+      },
+    });
+    const group = prepared.groups[0] as {
+      readonly storagePlan: ImageBatchStoragePlan;
+    };
+    const rootManifest = await readImageBatchManifest(group.storagePlan.manifestPath);
+    expect(rootManifest).toBeDefined();
+    if (!rootManifest) {
+      return;
+    }
+    await fs.writeFile(
+      group.storagePlan.manifestPath,
+      JSON.stringify(
+        {
+          ...rootManifest,
+          items: rootManifest.items.map((item) => ({
+            ...item,
+            status: "decode-failed" as const,
+            retryCount: 0,
+          })),
+        },
+        null,
+        2
+      )
+    );
+    await fs.writeFile(
+      path.join(
+        episodeDir,
+        "state",
+        "image-generation",
+        ".batch",
+        "manifests",
+        "batch-imgb-child.manifest.json"
+      ),
+      JSON.stringify(
+        {
+          ...rootManifest,
+          localBatchId: "imgb-child",
+          rootLocalBatchId: rootManifest.localBatchId,
+          parentLocalBatchId: rootManifest.localBatchId,
+          retryNumber: 1,
+          status: "imported",
+          items: rootManifest.items.map((item) => ({
+            ...item,
+            status: "persisted" as const,
+            retryCount: 1,
+          })),
+        },
+        null,
+        2
+      )
+    );
+
+    await expect(
+      retryFailedImageBatch(
+        path.join(episodeDir, "state", "image-generation"),
+        group.storagePlan.localBatchId
+      )
+    ).rejects.toThrow(/no retryable items/u);
   });
 });
