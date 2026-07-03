@@ -62,14 +62,8 @@ async function writeSceneManifest(args: {
         finalPrompt: `Prompt for ${args.sceneId}.`,
         promptHash: `hash-${args.sceneId}`,
         materialDifferencesFromPrevious: [],
-        characterIds: ["character-1"],
-        referenceImages: [
-          {
-            characterId: "character-1",
-            path: path.join(args.episodeDir, "ref.png"),
-            sha256: `ref-${args.sceneId}`,
-          },
-        ],
+        characterIds: [],
+        referenceImages: [],
         model: "gpt-image-2",
         size: "1920x1088",
         quality: "medium",

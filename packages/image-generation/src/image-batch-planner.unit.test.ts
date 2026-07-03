@@ -3,18 +3,25 @@ import os from "node:os";
 import path from "node:path";
 import { mkdtempSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { hashText } from "@mediaforge/shared";
+import { hashFile, hashText } from "@mediaforge/shared";
 import {
   buildImageBatchCustomId,
   createImageBatchAssetIdentity,
   deriveImageBatchDestinationIdentity,
 } from "./image-batch-identity.js";
 import { normalizeImageBatchManifest } from "./image-batch-normalization.js";
-import { prepareImageBatchForEpisode, planImageBatchForEpisode } from "./image-batch-planner.js";
+import {
+  ImageBatchPlannerError,
+  planReferenceImageBatchForEpisode,
+  prepareImageBatchForEpisode,
+  planImageBatchForEpisode,
+} from "./image-batch-planner.js";
 import { readImageBatchManifest } from "./image-batch-storage.js";
+import { upsertCharacterRegistry, type CharacterDefinition } from "./episode-image-pipeline.js";
 
 function providerRequestHashForFixture(args: {
   readonly prompt: string;
+  readonly operation?: "image-generation" | "image-edit";
   readonly model?: string;
   readonly requestedSize?: string;
   readonly quality?: string;
@@ -23,14 +30,14 @@ function providerRequestHashForFixture(args: {
 }): string {
   return hashText(
     JSON.stringify({
-      operation: "image-generation",
+      operation: args.operation ?? "image-generation",
       model: args.model ?? "gpt-image-2",
       prompt: args.prompt,
       n: 1,
       size: args.requestedSize ?? "1920x1088",
       quality: args.quality ?? "medium",
       outputFormat: args.outputFormat ?? "png",
-      referenceImages: args.characterReferenceHashes ?? ["ref-hash"],
+      referenceImages: args.characterReferenceHashes ?? [],
     })
   );
 }
@@ -44,6 +51,13 @@ async function writeSceneManifest(args: {
   readonly renderability?: "direct" | "requiresInference" | "mergeWithPrevious" | "mergeWithNext" | "skip";
   readonly reusedFromSceneId?: string;
   readonly outputRelativePath?: string;
+  readonly characterIds?: readonly string[];
+  readonly referenceImages?: ReadonlyArray<{
+    readonly characterId: string;
+    readonly path: string;
+    readonly sha256: string;
+  }>;
+  readonly providerRequestHash?: string;
 }): Promise<void> {
   const manifestsDir = path.join(
     args.episodeDir,
@@ -79,6 +93,7 @@ async function writeSceneManifest(args: {
       `${args.sceneId}__000000-000004__16x9.png`
     );
   const outputPath = path.join(args.episodeDir, outputRelativePath);
+  const referenceImages = [...(args.referenceImages ?? [])];
   await fs.writeFile(
     path.join(manifestsDir, `${args.sceneId}.json`),
     JSON.stringify(
@@ -91,18 +106,17 @@ async function writeSceneManifest(args: {
           : {}),
         finalPrompt: args.prompt,
         promptHash: "prompt-hash",
-        providerRequestHash: providerRequestHashForFixture({
-          prompt: args.prompt,
-        }),
+        providerRequestHash:
+          args.providerRequestHash ??
+          providerRequestHashForFixture({
+            prompt: args.prompt,
+            operation:
+              referenceImages.length > 0 ? "image-edit" : "image-generation",
+            characterReferenceHashes: referenceImages.map((entry) => entry.sha256),
+          }),
         materialDifferencesFromPrevious: [],
-        characterIds: ["character-1"],
-        referenceImages: [
-          {
-            characterId: "character-1",
-            path: path.join(args.episodeDir, "ref.png"),
-            sha256: "ref-hash",
-          },
-        ],
+        characterIds: [...(args.characterIds ?? [])],
+        referenceImages,
         model: "gpt-image-2",
         size: "1920x1088",
         quality: "medium",
@@ -118,6 +132,50 @@ async function writeSceneManifest(args: {
     await fs.mkdir(path.dirname(outputPath), { recursive: true });
     await fs.writeFile(outputPath, "png");
   }
+}
+
+function makeCharacter(args: {
+  readonly referenceStatus: CharacterDefinition["referenceStatus"];
+  readonly referenceImagePath?: string;
+  readonly referenceFileId?: string;
+}): CharacterDefinition {
+  return {
+    id: "character-1",
+    name: "Daniel Mercer",
+    role: "lead",
+    physicalDescription: "Tall, pale, severe features.",
+    ageRange: "30s",
+    genderPresentation: "masculine",
+    face: {
+      shape: "angular",
+      skinTone: "pale",
+      eyeColor: "gray",
+      eyebrows: "dark",
+      nose: "straight",
+      mouth: "thin",
+      distinguishingFeatures: ["scar on left cheek"],
+    },
+    hair: {
+      color: "dark brown",
+      length: "short",
+      style: "neat",
+    },
+    build: "lean",
+    defaultWardrobe: {
+      upperBody: "black coat",
+      lowerBody: "dark trousers",
+      footwear: "boots",
+      accessories: [],
+      carriedObjects: [],
+      colors: ["black"],
+    },
+    continuityTraits: ["scar on left cheek"],
+    ...(args.referenceImagePath
+      ? { referenceImagePath: args.referenceImagePath }
+      : {}),
+    ...(args.referenceFileId ? { referenceFileId: args.referenceFileId } : {}),
+    referenceStatus: args.referenceStatus,
+  };
 }
 
 describe("image batch planner", () => {
@@ -293,14 +351,74 @@ describe("image batch planner", () => {
     });
   });
 
-  it("tracks reference hashes while current batch request lines omit reference image inputs", async () => {
-    const tempDir = mkdtempSync(path.join(os.tmpdir(), "image-batch-reference-gap-"));
+  it("plans character reference assets before dependent scene edit batches", async () => {
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), "image-batch-reference-stage-"));
     const episodeDir = path.join(tempDir, "episode");
+    const referencePath = path.join(
+      episodeDir,
+      "shared",
+      "images",
+      "character-references",
+      "character-1.png"
+    );
+    await upsertCharacterRegistry(episodeDir, "001-demo", [
+      makeCharacter({
+        referenceStatus: "missing",
+        referenceImagePath: referencePath,
+      }),
+    ]);
+
+    const referenceGroups = await planReferenceImageBatchForEpisode({
+      episodeDir,
+      episodeId: "001-demo",
+      settings: {
+        model: "gpt-image-2",
+        requestedSize: "1920x1088",
+        quality: "medium",
+        outputFormat: "png",
+      },
+    });
+
+    expect(referenceGroups).toHaveLength(1);
+    expect(referenceGroups[0]?.stageKind).toBe("reference-images");
+    expect(referenceGroups[0]?.referencePlans).toHaveLength(1);
+    expect(referenceGroups[0]?.referencePlans[0]?.job.identity).toMatchObject({
+      assetRole: "character-reference",
+      operation: "generation",
+      subject: { kind: "character", id: "character-1" },
+    });
+    expect(referenceGroups[0]?.referencePlans[0]?.requestLine.url).toBe(
+      "/v1/images/generations"
+    );
+  });
+
+  it("uses image-edit semantics and dependency metadata for reference-assisted scenes", async () => {
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), "image-batch-reference-edit-"));
+    const episodeDir = path.join(tempDir, "episode");
+    const referencePath = path.join(episodeDir, "ref.png");
+    await fs.mkdir(episodeDir, { recursive: true });
+    await fs.writeFile(referencePath, "approved-reference");
+    const referenceHash = await hashFile(referencePath);
+    await upsertCharacterRegistry(episodeDir, "001-demo", [
+      makeCharacter({
+        referenceStatus: "approved",
+        referenceImagePath: referencePath,
+        referenceFileId: "file_ref_123",
+      }),
+    ]);
     await writeSceneManifest({
       episodeDir,
       sceneId: "scene-002",
       prompt: "A reference-assisted scene.",
       status: "planned",
+      characterIds: ["character-1"],
+      referenceImages: [
+        {
+          characterId: "character-1",
+          path: referencePath,
+          sha256: referenceHash,
+        },
+      ],
     });
 
     const prepared = await prepareImageBatchForEpisode({
@@ -319,23 +437,34 @@ describe("image batch planner", () => {
 
     const group = prepared.groups[0];
     const scenePlan = group?.scenePlans[0];
-    expect(scenePlan?.job.characterReferencePaths).toEqual([
-      path.join(episodeDir, "ref.png"),
-    ]);
+    expect(scenePlan?.job.characterReferencePaths).toEqual([referencePath]);
+    expect(scenePlan?.manifestItem.identity.operation).toBe("edit");
     expect(scenePlan?.manifestItem.identity.dependencyHashes).toEqual([
-      "ref-hash",
+      referenceHash,
+    ]);
+    expect(scenePlan?.manifestItem.dependencies).toMatchObject([
+      {
+        role: "character-reference",
+        approvalStatus: "approved",
+        sourcePath: referencePath,
+        sha256: referenceHash,
+        assetIdentity: {
+          assetRole: "character-reference",
+          subject: { kind: "character", id: "character-1" },
+        },
+      },
     ]);
     expect(scenePlan?.providerRequestHash).toBe(
       providerRequestHashForFixture({
         prompt: "A reference-assisted scene.",
-        characterReferenceHashes: ["ref-hash"],
+        operation: "image-edit",
+        characterReferenceHashes: [referenceHash],
       })
     );
-    expect(scenePlan?.requestLine.url).toBe("/v1/images/generations");
-    expect(scenePlan?.requestLine.body).not.toHaveProperty("image");
-    expect(scenePlan?.requestLine.body).not.toHaveProperty("images");
-    expect(scenePlan?.requestLine.body).not.toHaveProperty("input_image");
-    expect(scenePlan?.requestLine.body).not.toHaveProperty("reference_images");
+    expect(scenePlan?.requestLine.url).toBe("/v1/images/edits");
+    expect(scenePlan?.requestLine.body).toMatchObject({
+      images: [{ file_id: "file_ref_123" }],
+    });
 
     const inputFile = await fs.readFile(
       group?.storagePlan.inputFilePath ?? "",
@@ -345,11 +474,98 @@ describe("image batch planner", () => {
       readonly url: string;
       readonly body: Record<string, unknown>;
     };
-    expect(requestLine.url).toBe("/v1/images/generations");
-    expect(requestLine.body).not.toHaveProperty("image");
-    expect(requestLine.body).not.toHaveProperty("reference_images");
-    expect(inputFile).not.toContain("ref-hash");
-    expect(inputFile).not.toContain("ref.png");
+    expect(requestLine.url).toBe("/v1/images/edits");
+    expect(requestLine.body).toMatchObject({
+      images: [{ file_id: "file_ref_123" }],
+    });
+  });
+
+  it("fails scene preparation when a required approved reference is missing", async () => {
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), "image-batch-missing-reference-"));
+    const episodeDir = path.join(tempDir, "episode");
+    const referencePath = path.join(episodeDir, "missing-ref.png");
+    await upsertCharacterRegistry(episodeDir, "001-demo", [
+      makeCharacter({
+        referenceStatus: "approved",
+        referenceImagePath: referencePath,
+        referenceFileId: "file_ref_123",
+      }),
+    ]);
+    await writeSceneManifest({
+      episodeDir,
+      sceneId: "scene-002",
+      prompt: "A reference-assisted scene.",
+      status: "planned",
+      characterIds: ["character-1"],
+      referenceImages: [
+        {
+          characterId: "character-1",
+          path: referencePath,
+          sha256: "stale-hash",
+        },
+      ],
+    });
+
+    await expect(
+      planImageBatchForEpisode({
+        episodeDir,
+        episodeId: "001-demo",
+        scenePlan: { scenes: [{ id: "scene-002", sequenceNumber: 2 }] },
+        settings: {
+          model: "gpt-image-2",
+          requestedSize: "1920x1088",
+          quality: "medium",
+          outputFormat: "png",
+        },
+      })
+    ).rejects.toMatchObject<ImageBatchPlannerError>({
+      code: "missing-reference-image",
+    });
+  });
+
+  it("fails before submission when a reference-assisted batch would drop image inputs", async () => {
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), "image-batch-missing-file-id-"));
+    const episodeDir = path.join(tempDir, "episode");
+    const referencePath = path.join(episodeDir, "ref.png");
+    await fs.mkdir(episodeDir, { recursive: true });
+    await fs.writeFile(referencePath, "approved-reference");
+    const referenceHash = await hashFile(referencePath);
+    await upsertCharacterRegistry(episodeDir, "001-demo", [
+      makeCharacter({
+        referenceStatus: "approved",
+        referenceImagePath: referencePath,
+      }),
+    ]);
+    await writeSceneManifest({
+      episodeDir,
+      sceneId: "scene-002",
+      prompt: "A reference-assisted scene.",
+      status: "planned",
+      characterIds: ["character-1"],
+      referenceImages: [
+        {
+          characterId: "character-1",
+          path: referencePath,
+          sha256: referenceHash,
+        },
+      ],
+    });
+
+    await expect(
+      planImageBatchForEpisode({
+        episodeDir,
+        episodeId: "001-demo",
+        scenePlan: { scenes: [{ id: "scene-002", sequenceNumber: 2 }] },
+        settings: {
+          model: "gpt-image-2",
+          requestedSize: "1920x1088",
+          quality: "medium",
+          outputFormat: "png",
+        },
+      })
+    ).rejects.toMatchObject<ImageBatchPlannerError>({
+      code: "unsupported-edit-batch-request",
+    });
   });
 
   it("supports localized full-scene identities without changing current request shape", async () => {

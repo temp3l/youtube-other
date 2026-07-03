@@ -18,7 +18,7 @@ import {
 import type {
   ImageBatchManifest as ImageBatchManifestType,
   ImageBatchManifestItem as ImageBatchManifestItemType,
-  SceneImageJob as SceneImageJobType,
+  ImageBatchJob as ImageBatchJobType,
 } from "./image-batch.types.js";
 import { normalizeImageBatchManifest } from "./image-batch-normalization.js";
 import {
@@ -40,7 +40,7 @@ export interface ImageBatchStoragePlan {
 
 type ImageBatchManifest = ImageBatchManifestType;
 type ImageBatchManifestItem = ImageBatchManifestItemType;
-type SceneImageJob = SceneImageJobType;
+type ImageBatchJob = ImageBatchJobType;
 
 export async function ensureImageBatchStorageLayout(
   outputDirectory: string
@@ -98,7 +98,7 @@ export async function readImageBatchManifest(
 }
 
 export function createImageBatchManifestItem(args: {
-  readonly job: SceneImageJob;
+  readonly job: ImageBatchJob;
   readonly customId: string;
   readonly status?: ImageBatchManifestItem["status"];
 }): ImageBatchManifestItem {
@@ -117,6 +117,7 @@ export function createImageBatchManifestItem(args: {
     generationConfigurationHash: args.job.generationConfigurationHash,
     expectedOutputPath: args.job.expectedOutputPath,
     characterIds: args.job.characterIds,
+    dependencies: args.job.dependencies,
     requestedSize: args.job.identity.size,
     quality: args.job.identity.quality,
     outputFormat: args.job.outputFormat,

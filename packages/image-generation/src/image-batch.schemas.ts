@@ -19,6 +19,19 @@ const imageBatchOperationSchema = z.enum([
   "deterministic-transform",
 ]);
 
+const imageBatchDependencyRoleSchema = z.enum([
+  "character-reference",
+  "location-reference",
+  "object-reference",
+  "continuity-asset",
+]);
+
+const imageBatchDependencyApprovalStatusSchema = z.enum([
+  "missing",
+  "generated",
+  "approved",
+]);
+
 const imageBatchDestinationRootSchema = z.enum([
   "shared-images-generated",
   "shared-short-images-generated",
@@ -61,6 +74,14 @@ export const imageBatchAssetIdentitySchema = z.object({
   identityHash: z.string().min(1),
 });
 
+export const imageBatchDependencySchema = z.object({
+  role: imageBatchDependencyRoleSchema,
+  approvalStatus: imageBatchDependencyApprovalStatusSchema,
+  sourcePath: z.string().min(1),
+  sha256: z.string().min(1),
+  assetIdentity: imageBatchAssetIdentitySchema,
+});
+
 export const imageBatchManifestItemSchema = z.object({
   customId: z.string().min(1),
   identity: imageBatchAssetIdentitySchema,
@@ -80,6 +101,7 @@ export const imageBatchManifestItemSchema = z.object({
   generationConfigurationHash: z.string().min(1),
   expectedOutputPath: z.string().min(1),
   characterIds: z.array(z.string().min(1)),
+  dependencies: z.array(imageBatchDependencySchema).default([]),
   requestedSize: z.string().min(1),
   quality: imageBatchQualitySchema.optional(),
   outputFormat: z.enum(["png", "jpeg", "webp"]),
@@ -181,6 +203,7 @@ export const sceneImageJobSchema = z.object({
   negativePrompt: z.string().min(1).optional(),
   characterIds: z.array(z.string().min(1)),
   characterReferencePaths: z.array(z.string().min(1)),
+  dependencies: z.array(imageBatchDependencySchema).default([]),
   outputFormat: z.enum(["png", "jpeg", "webp"]),
   expectedOutputPath: z.string().min(1),
   providerRequestHash: z.string().min(1),

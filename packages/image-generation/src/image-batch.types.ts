@@ -44,6 +44,17 @@ export type ImageBatchOperation =
   | "edit"
   | "deterministic-transform";
 
+export type ImageBatchDependencyRole =
+  | "character-reference"
+  | "location-reference"
+  | "object-reference"
+  | "continuity-asset";
+
+export type ImageBatchDependencyApprovalStatus =
+  | "missing"
+  | "generated"
+  | "approved";
+
 export type ImageBatchDestinationRoot =
   | "shared-images-generated"
   | "shared-short-images-generated"
@@ -84,7 +95,15 @@ export interface ImageBatchAssetIdentity {
   readonly identityHash: string;
 }
 
-export interface SceneImageJob {
+export interface ImageBatchDependency {
+  readonly role: ImageBatchDependencyRole;
+  readonly approvalStatus: ImageBatchDependencyApprovalStatus;
+  readonly sourcePath: string;
+  readonly sha256: string;
+  readonly assetIdentity: ImageBatchAssetIdentity;
+}
+
+export interface ImageBatchJob {
   readonly identity: ImageBatchAssetIdentity;
   readonly sceneId?: string;
   readonly sceneIndex?: number;
@@ -97,11 +116,14 @@ export interface SceneImageJob {
   readonly negativePrompt?: string;
   readonly characterIds: readonly string[];
   readonly characterReferencePaths: readonly string[];
+  readonly dependencies: readonly ImageBatchDependency[];
   readonly outputFormat: "png" | "jpeg" | "webp";
   readonly expectedOutputPath: string;
   readonly providerRequestHash: string;
   readonly generationConfigurationHash: string;
 }
+
+export type SceneImageJob = ImageBatchJob;
 
 export interface ImageBatchManifestItem {
   readonly customId: string;
@@ -114,6 +136,7 @@ export interface ImageBatchManifestItem {
   readonly generationConfigurationHash: string;
   readonly expectedOutputPath: string;
   readonly characterIds: readonly string[];
+  readonly dependencies: readonly ImageBatchDependency[];
   readonly requestedSize: string;
   readonly quality?: ImageBatchQuality;
   readonly outputFormat: "png" | "jpeg" | "webp";

@@ -3075,6 +3075,13 @@ async function loadRegistry(
   };
 }
 
+export async function loadEpisodeCharacterRegistry(
+  episodeDir: string,
+  episodeId: string
+): Promise<CharacterRegistry> {
+  return loadRegistry(episodeDir, episodeId);
+}
+
 async function saveRegistry(
   episodeDir: string,
   registry: CharacterRegistry
@@ -3304,37 +3311,7 @@ async function ensureReferenceImage(
     return { path: filePath, sha256: await hashFile(filePath) };
   }
   const generator = new OpenAIImageGenerator(settings, client);
-  const prompt = [
-    "IMAGE TYPE AND STYLE:",
-    "Photorealistic neutral character reference image, adult only, plain background, documentary realism, 16:9, no horror distortion, no text, no labels, no watermark.",
-    "",
-    "PRIMARY VISUAL EVENT:",
-    `One adult character only: ${character.name}. Neutral expression, unobstructed face, front-facing portrait with a three-quarter view if feasible, full wardrobe visible where feasible.`,
-    "",
-    "CHARACTER IDENTITY AND CONTINUITY:",
-    `Identity source for character \`${character.id}\`. Preserve facial structure, hairline, hair color, skin tone, eye color, build, and distinguishing features. ${character.physicalDescription}.`,
-    "",
-    "ENVIRONMENT:",
-    "Plain neutral background with consistent natural lighting.",
-    "",
-    "CAMERA AND COMPOSITION:",
-    "Clean reference-sheet composition, centered, unobstructed face, no dramatic pose.",
-    "",
-    "LIGHTING AND COLOR:",
-    "Soft natural light, no extreme shadows.",
-    "",
-    "DISTINCTIVE SCENE ANCHOR:",
-    `Neutral identity reference for ${character.name}.`,
-    "",
-    "CONTINUITY REQUIREMENTS:",
-    "Neutral identity sheet only. Freeze this appearance for the episode.",
-    "",
-    "EXPLICIT DIFFERENCES FROM PREVIOUS SCENE:",
-    "This is a character reference sheet, not a story scene.",
-    "",
-    "EXCLUSIONS:",
-    "No extra people, no blood, no masks, no hands covering the face, no text, no labels, no watermark, no horror distortion.",
-  ].join("\n");
+  const prompt = buildCharacterReferencePrompt(character);
   const result = await generator.generate({
     providerRequest: {
       sceneId: `${character.id}-reference`,
@@ -3412,6 +3389,42 @@ async function ensureReferenceImage(
   registry.updatedAt = new Date().toISOString();
   await saveRegistry(episodeDir, registry);
   return { path: result.outputPath, sha256: result.outputSha256 };
+}
+
+export function buildCharacterReferencePrompt(
+  character: CharacterDefinition
+): string {
+  return [
+    "IMAGE TYPE AND STYLE:",
+    "Photorealistic neutral character reference image, adult only, plain background, documentary realism, 16:9, no horror distortion, no text, no labels, no watermark.",
+    "",
+    "PRIMARY VISUAL EVENT:",
+    `One adult character only: ${character.name}. Neutral expression, unobstructed face, front-facing portrait with a three-quarter view if feasible, full wardrobe visible where feasible.`,
+    "",
+    "CHARACTER IDENTITY AND CONTINUITY:",
+    `Identity source for character \`${character.id}\`. Preserve facial structure, hairline, hair color, skin tone, eye color, build, and distinguishing features. ${character.physicalDescription}.`,
+    "",
+    "ENVIRONMENT:",
+    "Plain neutral background with consistent natural lighting.",
+    "",
+    "CAMERA AND COMPOSITION:",
+    "Clean reference-sheet composition, centered, unobstructed face, no dramatic pose.",
+    "",
+    "LIGHTING AND COLOR:",
+    "Soft natural light, no extreme shadows.",
+    "",
+    "DISTINCTIVE SCENE ANCHOR:",
+    `Neutral identity reference for ${character.name}.`,
+    "",
+    "CONTINUITY REQUIREMENTS:",
+    "Neutral identity sheet only. Freeze this appearance for the episode.",
+    "",
+    "EXPLICIT DIFFERENCES FROM PREVIOUS SCENE:",
+    "This is a character reference sheet, not a story scene.",
+    "",
+    "EXCLUSIONS:",
+    "No extra people, no blood, no masks, no hands covering the face, no text, no labels, no watermark, no horror distortion.",
+  ].join("\n");
 }
 
 async function loadReferenceImages(
