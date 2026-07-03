@@ -114,6 +114,100 @@ export interface PreparedShortsImagesResult {
   readonly entries: ShortsSceneManifestEntry[];
 }
 
+export type ShortsBatchStrategy =
+  | "native-portrait-generation"
+  | "direct-reuse"
+  | "deterministic-conversion";
+
+export interface ShortsTransformSettings {
+  readonly strategy: Exclude<ShortsImageStrategy, "regenerate">;
+  readonly finalWidth: number;
+  readonly finalHeight: number;
+  readonly motion: ShortsScenePlan["motion"];
+}
+
+interface PlannedShortsItemBase {
+  readonly sceneId: string;
+  readonly sequenceNumber: number;
+  readonly sceneHash: string;
+  readonly outputPortraitPath: string;
+  readonly imagePlanFingerprint: string;
+  readonly stageIdentity: MediaStageIdentity;
+  readonly narrationDependency: MediaStageDependency;
+  readonly parentFullNarrationDependency?: MediaStageDependency;
+  readonly shortMediaRequirements: NonNullable<
+    ShortsSceneManifestEntry["shortMediaRequirements"]
+  >;
+  readonly outputExists: boolean;
+}
+
+export interface PlannedShortsNativeGenerationItem
+  extends PlannedShortsItemBase {
+  readonly kind: "native-generation";
+  readonly batchStrategy: "native-portrait-generation";
+  readonly strategy: "regenerate";
+  readonly regenerateReason: string;
+  readonly promptHash: string;
+  readonly providerRequestHash: string;
+  readonly providerRequest: PreparedImageProviderRequest;
+  readonly referenceImages: Array<{
+    characterId: string;
+    filePath: string;
+    mimeType: "image/png";
+    sha256: string;
+  }>;
+  readonly dependencyHashes: readonly string[];
+}
+
+export interface PlannedShortsReuseItem extends PlannedShortsItemBase {
+  readonly kind: "reuse";
+  readonly batchStrategy: "direct-reuse";
+  readonly strategy: Exclude<ShortsImageStrategy, "regenerate">;
+  readonly sourceLandscapePath?: string;
+  readonly sourceLandscapeSha256?: string;
+  readonly transformSettings: ShortsTransformSettings;
+  readonly dependencyHashes: readonly string[];
+  readonly cachedEntry: ShortsSceneManifestEntry;
+}
+
+export interface PlannedShortsDeterministicTransformItem
+  extends PlannedShortsItemBase {
+  readonly kind: "deterministic-transform";
+  readonly batchStrategy: "deterministic-conversion";
+  readonly strategy: Exclude<ShortsImageStrategy, "regenerate">;
+  readonly sourceLandscapePath: string;
+  readonly sourceLandscapeSha256: string;
+  readonly transformSettings: ShortsTransformSettings;
+  readonly dependencyHashes: readonly string[];
+  readonly promptHash: string;
+}
+
+export interface PlannedShortsBlockedItem extends PlannedShortsItemBase {
+  readonly kind: "blocked";
+  readonly batchStrategy: ShortsBatchStrategy;
+  readonly strategy: ShortsImageStrategy;
+  readonly sourceLandscapePath?: string;
+  readonly sourceLandscapeSha256?: string;
+  readonly dependencyHashes: readonly string[];
+  readonly error: string;
+}
+
+export type PlannedShortsItem =
+  | PlannedShortsNativeGenerationItem
+  | PlannedShortsReuseItem
+  | PlannedShortsDeterministicTransformItem
+  | PlannedShortsBlockedItem;
+
+export interface PlannedShortsImageWork {
+  readonly items: readonly PlannedShortsItem[];
+  readonly counts: {
+    readonly nativeGeneration: number;
+    readonly deterministicTransforms: number;
+    readonly cacheReuse: number;
+    readonly blocked: number;
+  };
+}
+
 export interface ShortsImageAuditResult {
   readonly warnings: string[];
 }
@@ -467,11 +561,19 @@ async function loadCharacterRegistry(
 async function loadReferenceImages(
   registry: CharacterRegistry,
   usages: ReadonlyArray<SceneVisualSpec["characters"][number]>
-): Promise<Array<{ characterId: string; filePath: string; mimeType: "image/png" }>> {
+): Promise<
+  Array<{
+    characterId: string;
+    filePath: string;
+    mimeType: "image/png";
+    sha256: string;
+  }>
+> {
   const references: Array<{
     characterId: string;
     filePath: string;
     mimeType: "image/png";
+    sha256: string;
   }> = [];
   const selectedCharacterIds = new Set(usages.map((usage) => usage.characterId));
   for (const character of registry.characters) {
@@ -494,6 +596,7 @@ async function loadReferenceImages(
       characterId: character.id,
       filePath: character.referenceImagePath,
       mimeType: "image/png",
+      sha256: await hashFile(character.referenceImagePath),
     });
   }
   return references;
@@ -504,7 +607,11 @@ function buildShortsProviderRequest(args: {
   readonly previous?: SceneVisualSpec;
   readonly registry: CharacterRegistry;
   readonly outputPath: string;
-  readonly referenceImages: Array<{ characterId: string; filePath: string }>;
+  readonly referenceImages: Array<{
+    characterId: string;
+    filePath: string;
+    sha256: string;
+  }>;
 }): PreparedImageProviderRequest {
   const prompt = buildPromptFromSpec(
     args.spec,
@@ -529,7 +636,7 @@ function buildShortsProviderRequest(args: {
     referenceImages: args.referenceImages.map((reference) => ({
       characterId: reference.characterId,
       path: reference.filePath,
-      sha256: reference.filePath,
+      sha256: reference.sha256,
     })),
     characterContexts: args.spec.characters.map((usage) => ({
       characterId: usage.characterId,
@@ -550,10 +657,310 @@ function buildShortsProviderRequest(args: {
         prompt,
         referenceImages: args.referenceImages.map((reference) => ({
           characterId: reference.characterId,
-          sha256: reference.filePath,
+          sha256: reference.sha256,
         })),
       })
     ),
+  };
+}
+
+function resolveShortsSceneStrategy(args: {
+  readonly scene: ScenePlan["scenes"][number];
+  readonly keySceneIds: ReadonlySet<string>;
+  readonly config: ShortsImageConfig;
+}): {
+  readonly shouldRegenerate: boolean;
+  readonly strategy: ShortsImageStrategy;
+  readonly regenerateReason?: string;
+} {
+  const shouldRegenerate =
+    args.config.forceRegenerateAll ||
+    args.keySceneIds.has(args.scene.id) ||
+    !args.config.reuseLandscapeImages;
+  const strategy: ShortsImageStrategy = shouldRegenerate
+    ? "regenerate"
+    : args.config.enablePanAndScan
+      ? "smart-crop"
+      : args.config.enableBlurredFallback
+        ? "blurred-fill"
+        : "smart-crop";
+  return {
+    shouldRegenerate,
+    strategy,
+    ...(shouldRegenerate
+      ? {
+          regenerateReason: args.config.forceRegenerateAll
+            ? "force_regenerate_all"
+            : `key_scene_${args.scene.sequenceNumber}`,
+        }
+      : {}),
+  };
+}
+
+function buildShortsImagePlanFingerprint(args: {
+  readonly narrationFingerprint: string;
+  readonly sceneHash: string;
+  readonly strategy: ShortsImageStrategy;
+  readonly scene: ScenePlan["scenes"][number];
+}): string {
+  return hashText(
+    JSON.stringify({
+      narrationFingerprint: args.narrationFingerprint,
+      sceneHash: args.sceneHash,
+      strategy: args.strategy,
+      aspectRatio: "9:16",
+      output: portraitFilename(args.scene),
+    })
+  );
+}
+
+async function hasValidPortraitDimensions(
+  outputPath: string,
+  config: ShortsImageConfig
+): Promise<boolean> {
+  const metadata = await sharp(outputPath).metadata().catch(() => null);
+  return (
+    metadata?.width === config.finalWidth &&
+    metadata.height === config.finalHeight
+  );
+}
+
+function buildDeterministicTransformPromptHash(args: {
+  readonly sceneHash: string;
+  readonly sourceLandscapeSha256: string;
+  readonly transformSettings: ShortsTransformSettings;
+}): string {
+  return hashText(
+    JSON.stringify({
+      sceneHash: args.sceneHash,
+      sourceLandscapeSha256: args.sourceLandscapeSha256,
+      transformSettings: args.transformSettings,
+    })
+  );
+}
+
+export async function planShortsImageWork(args: {
+  readonly episodeDir: string;
+  readonly episodeId: string;
+  readonly scenePlan: ScenePlan;
+  readonly config: ShortsImageConfig;
+  readonly landscapeDir?: string;
+  readonly outputDir?: string;
+  readonly context?: ShortsMediaContext;
+}): Promise<PlannedShortsImageWork> {
+  const outputDir = args.outputDir ?? path.join(args.episodeDir, "images", "generated");
+  const manifestPath = path.join(path.dirname(outputDir), "shorts-image-manifest.json");
+  const existingEntries = new Map(
+    (await loadExistingManifest(manifestPath) ?? []).map((entry) => [entry.sceneId, entry] as const)
+  );
+  const context = resolveShortsMediaContext(
+    args.episodeId,
+    args.scenePlan,
+    args.context
+  );
+  const registry = await loadCharacterRegistry(args.episodeDir, args.episodeId);
+  const keySceneIds = resolveKeySceneIds(args.scenePlan, args.config);
+  const destinationOwners = new Map<string, string>();
+  const items: PlannedShortsItem[] = [];
+  let previousSpec: SceneVisualSpec | undefined;
+
+  for (const [index, scene] of args.scenePlan.scenes.entries()) {
+    const outputPortraitPath = path.join(outputDir, portraitFilename(scene));
+    const existingOwner = destinationOwners.get(outputPortraitPath);
+    if (existingOwner) {
+      throw new Error(
+        `Duplicate short portrait destination detected for ${scene.id}: ${outputPortraitPath} is already assigned to ${existingOwner}.`
+      );
+    }
+    destinationOwners.set(outputPortraitPath, scene.id);
+    const currentSceneHash = sceneHash(scene);
+    const landscapePath = args.landscapeDir
+      ? await resolveLandscapeImagePath(scene, args.landscapeDir)
+      : undefined;
+    const sourceLandscapeSha256 =
+      landscapePath && (await fileExists(landscapePath))
+        ? await hashFile(landscapePath)
+        : undefined;
+    const resolvedStrategy = resolveShortsSceneStrategy({
+      scene,
+      keySceneIds,
+      config: args.config,
+    });
+    const imagePlanFingerprint = buildShortsImagePlanFingerprint({
+      narrationFingerprint: context.narration.fingerprint,
+      sceneHash: currentSceneHash,
+      strategy: resolvedStrategy.strategy,
+      scene,
+    });
+    const shortMediaRequirements = {
+      aspectRatio: "9:16" as const,
+      safeVerticalComposition: true as const,
+      focalSubjectPlacement: "center third",
+      textSafeArea: "top and bottom 12 percent",
+      targetSceneCount: args.scenePlan.scenes.length,
+      ...(context.targetDurationSeconds
+        ? { targetDurationSeconds: context.targetDurationSeconds }
+        : {}),
+      ...(context.parentFullNarration
+        ? { parentFullFingerprint: context.parentFullNarration.fingerprint }
+        : {}),
+    };
+    const baseItem = {
+      sceneId: scene.id,
+      sequenceNumber: scene.sequenceNumber,
+      sceneHash: currentSceneHash,
+      outputPortraitPath,
+      imagePlanFingerprint,
+      stageIdentity: context.identity,
+      narrationDependency: context.narration,
+      ...(context.parentFullNarration
+        ? { parentFullNarrationDependency: context.parentFullNarration }
+        : {}),
+      shortMediaRequirements,
+      outputExists: await fileExists(outputPortraitPath),
+    } satisfies PlannedShortsItemBase;
+    const cached = existingEntries.get(scene.id);
+    const transformSettings: ShortsTransformSettings = {
+      strategy:
+        resolvedStrategy.strategy === "regenerate"
+          ? "smart-crop"
+          : resolvedStrategy.strategy,
+      finalWidth: args.config.finalWidth,
+      finalHeight: args.config.finalHeight,
+      motion:
+        resolvedStrategy.shouldRegenerate
+          ? { mode: "none" as const }
+          : args.config.enablePanAndScan
+            ? buildMotionPlan(index, "pan-and-scan")
+            : { mode: "none" as const },
+    };
+
+    if (!resolvedStrategy.shouldRegenerate) {
+      const transformStrategy = transformSettings.strategy;
+      if (cached && baseItem.outputExists) {
+        const validDimensions = await hasValidPortraitDimensions(
+          outputPortraitPath,
+          args.config
+        );
+        if (!validDimensions) {
+          items.push({
+            ...baseItem,
+            kind: "blocked",
+            batchStrategy: "direct-reuse",
+            strategy: resolvedStrategy.strategy,
+            ...(landscapePath ? { sourceLandscapePath: landscapePath } : {}),
+            ...(sourceLandscapeSha256
+              ? { sourceLandscapeSha256 }
+              : {}),
+            dependencyHashes: [
+              context.narration.fingerprint,
+              ...(sourceLandscapeSha256 ? [sourceLandscapeSha256] : []),
+            ],
+            error: `Invalid portrait dimensions for ${scene.id}: expected ${args.config.finalWidth}x${args.config.finalHeight}.`,
+          });
+          previousSpec = buildSceneVisualSpec(scene, registry, previousSpec);
+          continue;
+        }
+        if (
+          shouldReuseExistingPortrait({
+            cached,
+            currentSceneHash,
+            imagePlanFingerprint,
+            strategy: resolvedStrategy.strategy,
+            shouldRegenerate: false,
+            outputPortraitPath,
+          })
+        ) {
+          items.push({
+            ...baseItem,
+            kind: "reuse",
+            batchStrategy: "direct-reuse",
+            strategy: transformStrategy,
+            ...(landscapePath ? { sourceLandscapePath: landscapePath } : {}),
+            ...(sourceLandscapeSha256
+              ? { sourceLandscapeSha256 }
+              : {}),
+            transformSettings,
+            dependencyHashes: [
+              context.narration.fingerprint,
+              ...(sourceLandscapeSha256 ? [sourceLandscapeSha256] : []),
+            ],
+            cachedEntry: cached,
+          });
+          previousSpec = buildSceneVisualSpec(scene, registry, previousSpec);
+          continue;
+        }
+      }
+      if (!landscapePath || !sourceLandscapeSha256) {
+        items.push({
+          ...baseItem,
+          kind: "blocked",
+          batchStrategy: "deterministic-conversion",
+          strategy: transformStrategy,
+          dependencyHashes: [context.narration.fingerprint],
+          error: `Missing landscape image for ${scene.id}.`,
+        });
+        previousSpec = buildSceneVisualSpec(scene, registry, previousSpec);
+        continue;
+      }
+      items.push({
+        ...baseItem,
+        kind: "deterministic-transform",
+        batchStrategy: "deterministic-conversion",
+        strategy: transformStrategy,
+        sourceLandscapePath: landscapePath,
+        sourceLandscapeSha256,
+        transformSettings,
+        dependencyHashes: [context.narration.fingerprint, sourceLandscapeSha256],
+        promptHash: buildDeterministicTransformPromptHash({
+          sceneHash: currentSceneHash,
+          sourceLandscapeSha256,
+          transformSettings,
+        }),
+      });
+      previousSpec = buildSceneVisualSpec(scene, registry, previousSpec);
+      continue;
+    }
+
+    const spec = buildSceneVisualSpec(scene, registry, previousSpec);
+    const referenceImages = await loadReferenceImages(registry, spec.characters);
+    const providerRequest = buildShortsProviderRequest({
+      spec,
+      ...(previousSpec ? { previous: previousSpec } : {}),
+      registry,
+      outputPath: `${outputPortraitPath}.native.tmp.png`,
+      referenceImages,
+    });
+    items.push({
+      ...baseItem,
+      kind: "native-generation",
+      batchStrategy: "native-portrait-generation",
+      strategy: "regenerate",
+      regenerateReason:
+        resolvedStrategy.regenerateReason ?? "short_native_generation",
+      promptHash: providerRequest.promptHash,
+      providerRequestHash: providerRequest.providerRequestHash,
+      providerRequest,
+      referenceImages,
+      dependencyHashes: [
+        context.narration.fingerprint,
+        ...referenceImages.map((reference) => reference.sha256),
+      ],
+    });
+    previousSpec = spec;
+  }
+
+  return {
+    items,
+    counts: {
+      nativeGeneration: items.filter((item) => item.kind === "native-generation")
+        .length,
+      deterministicTransforms: items.filter(
+        (item) => item.kind === "deterministic-transform"
+      ).length,
+      cacheReuse: items.filter((item) => item.kind === "reuse").length,
+      blocked: items.filter((item) => item.kind === "blocked").length,
+    },
   };
 }
 
@@ -670,34 +1077,26 @@ export function buildShortsImageStrategyPlan(
     const sourceLandscapePath = options?.landscapeDir
       ? path.join(options.landscapeDir, normalizeSceneIdPath(scene))
       : undefined;
-    const regenerate =
-      config.forceRegenerateAll ||
-      keySceneIds.has(scene.id) ||
-      !config.reuseLandscapeImages;
-    const strategy: ShortsImageStrategy = regenerate
-      ? "regenerate"
-      : config.enablePanAndScan
-        ? "smart-crop"
-        : config.enableBlurredFallback
-          ? "blurred-fill"
-          : "smart-crop";
+    const resolvedStrategy = resolveShortsSceneStrategy({
+      scene,
+      keySceneIds,
+      config,
+    });
     const plan: ShortsScenePlan = {
       sceneId: scene.id,
       sequenceNumber: scene.sequenceNumber,
-      strategy,
+      strategy: resolvedStrategy.strategy,
       outputPortraitPath: portraitPath,
       motion:
-        !regenerate && config.enablePanAndScan
+        !resolvedStrategy.shouldRegenerate && config.enablePanAndScan
           ? buildMotionPlan(index, "pan-and-scan")
           : { mode: "none" as const },
     };
     if (sourceLandscapePath) {
       plan.sourceLandscapePath = sourceLandscapePath;
     }
-    if (regenerate) {
-      plan.regenerateReason = config.forceRegenerateAll
-        ? "force_regenerate_all"
-        : `key_scene_${scene.sequenceNumber}`;
+    if (resolvedStrategy.shouldRegenerate && resolvedStrategy.regenerateReason) {
+      plan.regenerateReason = resolvedStrategy.regenerateReason;
     }
     return plan;
   });
@@ -733,134 +1132,75 @@ export async function prepareShortsImageAssets(
   await ensureDir(outputDir);
   await ensureDir(path.dirname(manifestPath));
   await removeStalePortraitAssets(outputDir, scenePlan);
-  const existingEntries = new Map(
-    (await loadExistingManifest(manifestPath) ?? []).map((entry) => [entry.sceneId, entry] as const)
-  );
-  const context = resolveShortsMediaContext(
+  const generator = options?.generator ?? new OpenAIImageGenerator(settings, options?.client);
+  const plan = await planShortsImageWork({
+    episodeDir,
     episodeId,
     scenePlan,
-    options?.context
-  );
-  const registry = await loadCharacterRegistry(episodeDir, episodeId);
-  const keySceneIds = resolveKeySceneIds(scenePlan, config);
-  const generator = options?.generator ?? new OpenAIImageGenerator(settings, options?.client);
+    config,
+    ...(options?.landscapeDir ? { landscapeDir: options.landscapeDir } : {}),
+    outputDir,
+    ...(options?.context ? { context: options.context } : {}),
+  });
   const entries: ShortsSceneManifestEntry[] = [];
-  let previousSpec: SceneVisualSpec | undefined;
-  for (const [index, scene] of scenePlan.scenes.entries()) {
-    const currentSceneHash = sceneHash(scene);
-    const outputPortraitPath = path.join(outputDir, portraitFilename(scene));
-    const landscapePath = options?.landscapeDir
-      ? await resolveLandscapeImagePath(scene, options.landscapeDir)
-      : undefined;
-    const sourceLandscapeSha = landscapePath && (await fileExists(landscapePath))
-      ? await hashFile(landscapePath)
-      : undefined;
-    const shouldRegenerate =
-      config.forceRegenerateAll ||
-      keySceneIds.has(scene.id) ||
-      !config.reuseLandscapeImages;
-    const strategy: ShortsImageStrategy = shouldRegenerate
-      ? "regenerate"
-      : config.enablePanAndScan
-        ? "smart-crop"
-        : config.enableBlurredFallback
-          ? "blurred-fill"
-          : "smart-crop";
-    const cached = existingEntries.get(scene.id);
-    const imagePlanFingerprint = hashText(
-      JSON.stringify({
-        narrationFingerprint: context.narration.fingerprint,
-        sceneHash: currentSceneHash,
-        strategy,
-        aspectRatio: "9:16",
-        output: portraitFilename(scene),
-      })
-    );
-    const shortMediaRequirements = {
-      aspectRatio: "9:16" as const,
-      safeVerticalComposition: true as const,
-      focalSubjectPlacement: "center third",
-      textSafeArea: "top and bottom 12 percent",
-      targetSceneCount: scenePlan.scenes.length,
-      ...(context.targetDurationSeconds
-        ? { targetDurationSeconds: context.targetDurationSeconds }
-        : {}),
-      ...(context.parentFullNarration
-        ? { parentFullFingerprint: context.parentFullNarration.fingerprint }
-        : {}),
-    };
-    const portraitExists = await fileExists(outputPortraitPath);
-    if (
-      portraitExists &&
-      shouldReuseExistingPortrait({
-        ...(cached ? { cached } : {}),
-        currentSceneHash,
-        imagePlanFingerprint,
-        strategy,
-        shouldRegenerate,
-        outputPortraitPath,
-      })
-    ) {
-      const entry: ShortsSceneManifestEntry = {
-        sceneId: scene.id,
-        sequenceNumber: scene.sequenceNumber,
-        stageIdentity: context.identity,
-        narrationDependency: context.narration,
-        ...(context.parentFullNarration
-          ? { parentFullNarrationDependency: context.parentFullNarration }
-          : {}),
-        aspectRatio: "9:16",
-        imagePlanFingerprint,
-        strategy: cached?.strategy ?? strategy,
-        outputImagePath: outputPortraitPath,
-        reusedExistingImage: true,
-        regenerated: false,
-        attemptCount: cached?.attemptCount ?? 0,
-        status: "success",
-        error: null,
-        sceneHash: currentSceneHash,
-        outputImageSha256: await hashFile(outputPortraitPath),
-        shortMediaRequirements,
-      };
-      const sourceImagePath = cached?.sourceImagePath ?? landscapePath;
-      if (sourceImagePath) {
-        entry.sourceImagePath = sourceImagePath;
-      }
-      if (sourceLandscapeSha) {
-        entry.sourceImageSha256 = sourceLandscapeSha;
-      }
-      if (cached?.promptHash) {
-        entry.promptHash = cached.promptHash;
-      }
-      if (cached?.generatedAt) {
-        entry.generatedAt = cached.generatedAt;
-      }
-      entries.push(entry);
-      previousSpec = buildSceneVisualSpec(scene, registry, previousSpec);
-      continue;
+  for (const planned of plan.items) {
+    if (planned.outputExists && planned.kind !== "reuse") {
+      await fs.rm(planned.outputPortraitPath, { force: true }).catch(() => undefined);
     }
-    if (portraitExists) {
-      await fs.rm(outputPortraitPath, { force: true }).catch(() => undefined);
-    }
-    const attemptCount = 1;
     try {
-      if (shouldRegenerate) {
-        const spec = buildSceneVisualSpec(scene, registry, previousSpec);
-        const tempPath = `${outputPortraitPath}.native.tmp.png`;
-        const referenceImages = await loadReferenceImages(registry, spec.characters);
+      if (planned.kind === "reuse") {
+        const entry: ShortsSceneManifestEntry = {
+          sceneId: planned.sceneId,
+          sequenceNumber: planned.sequenceNumber,
+          stageIdentity: planned.stageIdentity,
+          narrationDependency: planned.narrationDependency,
+          ...(planned.parentFullNarrationDependency
+            ? { parentFullNarrationDependency: planned.parentFullNarrationDependency }
+            : {}),
+          aspectRatio: "9:16",
+          imagePlanFingerprint: planned.imagePlanFingerprint,
+          strategy: planned.strategy,
+          outputImagePath: planned.outputPortraitPath,
+          reusedExistingImage: true,
+          regenerated: false,
+          attemptCount: planned.cachedEntry.attemptCount,
+          status: "success",
+          error: null,
+          sceneHash: planned.sceneHash,
+          ...(planned.sourceLandscapeSha256
+            ? { sourceImageSha256: planned.sourceLandscapeSha256 }
+            : {}),
+          outputImageSha256: await hashFile(planned.outputPortraitPath),
+          ...(planned.cachedEntry.promptHash
+            ? { promptHash: planned.cachedEntry.promptHash }
+            : {}),
+          ...(planned.cachedEntry.generatedAt
+            ? { generatedAt: planned.cachedEntry.generatedAt }
+            : {}),
+          shortMediaRequirements: planned.shortMediaRequirements,
+        };
+        const sourceImagePath =
+          planned.cachedEntry.sourceImagePath ?? planned.sourceLandscapePath;
+        if (sourceImagePath) {
+          entry.sourceImagePath = sourceImagePath;
+        }
+        entries.push(entry);
+        continue;
+      }
+
+      if (planned.kind === "blocked") {
+        throw new Error(planned.error);
+      }
+
+      if (planned.kind === "native-generation") {
+        const tempPath = planned.providerRequest.outputPath;
         const result = await generator.generate({
-          providerRequest: buildShortsProviderRequest({
-            spec,
-            ...(previousSpec ? { previous: previousSpec } : {}),
-            registry,
-            outputPath: tempPath,
-            referenceImages,
-          }),
-          referenceImages,
+          providerRequest: planned.providerRequest,
+          referenceImages: planned.referenceImages,
         });
         await normalizePortraitImage(
           tempPath,
-          outputPortraitPath,
+          planned.outputPortraitPath,
           config.portraitWidth,
           config.portraitHeight,
           "smart-crop"
@@ -869,8 +1209,8 @@ export async function prepareShortsImageAssets(
           config.finalWidth !== config.portraitWidth ||
           config.finalHeight !== config.portraitHeight
         ) {
-          const resizedPath = `${outputPortraitPath}.final.tmp.png`;
-          await sharp(outputPortraitPath)
+          const resizedPath = `${planned.outputPortraitPath}.final.tmp.png`;
+          await sharp(planned.outputPortraitPath)
             .resize({
               width: config.finalWidth,
               height: config.finalHeight,
@@ -879,105 +1219,96 @@ export async function prepareShortsImageAssets(
             })
             .png()
             .toFile(resizedPath);
-          await fs.rename(resizedPath, outputPortraitPath);
+          await fs.rename(resizedPath, planned.outputPortraitPath);
         }
         await fs.rm(tempPath, { force: true }).catch(() => undefined);
         const entry: ShortsSceneManifestEntry = {
-          sceneId: scene.id,
-          sequenceNumber: scene.sequenceNumber,
-          stageIdentity: context.identity,
-          narrationDependency: context.narration,
-          ...(context.parentFullNarration
-            ? { parentFullNarrationDependency: context.parentFullNarration }
+          sceneId: planned.sceneId,
+          sequenceNumber: planned.sequenceNumber,
+          stageIdentity: planned.stageIdentity,
+          narrationDependency: planned.narrationDependency,
+          ...(planned.parentFullNarrationDependency
+            ? { parentFullNarrationDependency: planned.parentFullNarrationDependency }
             : {}),
           aspectRatio: "9:16",
-          imagePlanFingerprint,
+          imagePlanFingerprint: planned.imagePlanFingerprint,
           strategy: "regenerate",
-          outputImagePath: outputPortraitPath,
+          outputImagePath: planned.outputPortraitPath,
           reusedExistingImage: false,
           regenerated: true,
           attemptCount: result.attempts,
           status: "success",
           error: null,
-          sceneHash: currentSceneHash,
-          outputImageSha256: await hashFile(outputPortraitPath),
+          sceneHash: planned.sceneHash,
+          outputImageSha256: await hashFile(planned.outputPortraitPath),
           promptHash: result.promptHash,
           generatedAt: new Date().toISOString(),
-          shortMediaRequirements,
+          shortMediaRequirements: planned.shortMediaRequirements,
         };
         entries.push(entry);
-        previousSpec = spec;
         continue;
       }
-      if (!landscapePath || !(await fileExists(landscapePath))) {
-        throw new Error(`Missing landscape image for ${scene.id}.`);
-      }
+
       await transformLandscapeImage(
-        landscapePath,
-        outputPortraitPath,
+        planned.sourceLandscapePath,
+        planned.outputPortraitPath,
         config.finalWidth,
         config.finalHeight,
-        strategy
+        planned.strategy
       );
       const entry: ShortsSceneManifestEntry = {
-        sceneId: scene.id,
-        sequenceNumber: scene.sequenceNumber,
-        stageIdentity: context.identity,
-        narrationDependency: context.narration,
-        ...(context.parentFullNarration
-          ? { parentFullNarrationDependency: context.parentFullNarration }
+        sceneId: planned.sceneId,
+        sequenceNumber: planned.sequenceNumber,
+        stageIdentity: planned.stageIdentity,
+        narrationDependency: planned.narrationDependency,
+        ...(planned.parentFullNarrationDependency
+          ? { parentFullNarrationDependency: planned.parentFullNarrationDependency }
           : {}),
         aspectRatio: "9:16",
-        imagePlanFingerprint,
-        strategy,
-        outputImagePath: outputPortraitPath,
+        imagePlanFingerprint: planned.imagePlanFingerprint,
+        strategy: planned.strategy,
+        outputImagePath: planned.outputPortraitPath,
         reusedExistingImage: true,
         regenerated: false,
-        attemptCount,
+        attemptCount: 1,
         status: "success",
         error: null,
-        sceneHash: currentSceneHash,
-        outputImageSha256: await hashFile(outputPortraitPath),
-        shortMediaRequirements,
+        sceneHash: planned.sceneHash,
+        outputImageSha256: await hashFile(planned.outputPortraitPath),
+        promptHash: planned.promptHash,
+        shortMediaRequirements: planned.shortMediaRequirements,
       };
-      if (landscapePath) {
-        entry.sourceImagePath = landscapePath;
-      }
-      if (sourceLandscapeSha) {
-        entry.sourceImageSha256 = sourceLandscapeSha;
-      }
+      entry.sourceImagePath = planned.sourceLandscapePath;
+      entry.sourceImageSha256 = planned.sourceLandscapeSha256;
       entries.push(entry);
     } catch (error) {
       const entry: ShortsSceneManifestEntry = {
-        sceneId: scene.id,
-        sequenceNumber: scene.sequenceNumber,
-        stageIdentity: context.identity,
-        narrationDependency: context.narration,
-        ...(context.parentFullNarration
-          ? { parentFullNarrationDependency: context.parentFullNarration }
+        sceneId: planned.sceneId,
+        sequenceNumber: planned.sequenceNumber,
+        stageIdentity: planned.stageIdentity,
+        narrationDependency: planned.narrationDependency,
+        ...(planned.parentFullNarrationDependency
+          ? { parentFullNarrationDependency: planned.parentFullNarrationDependency }
           : {}),
         aspectRatio: "9:16",
-        imagePlanFingerprint,
-        strategy,
-        outputImagePath: outputPortraitPath,
-        reusedExistingImage: !shouldRegenerate,
-        regenerated: shouldRegenerate,
-        attemptCount,
+        imagePlanFingerprint: planned.imagePlanFingerprint,
+        strategy: planned.strategy,
+        outputImagePath: planned.outputPortraitPath,
+        reusedExistingImage: planned.kind !== "native-generation",
+        regenerated: planned.kind === "native-generation",
+        attemptCount: 1,
         status: "failed",
         error: error instanceof Error ? error.message : String(error),
-        sceneHash: currentSceneHash,
-        shortMediaRequirements,
+        sceneHash: planned.sceneHash,
+        shortMediaRequirements: planned.shortMediaRequirements,
       };
-      if (landscapePath) {
-        entry.sourceImagePath = landscapePath;
+      if ("sourceLandscapePath" in planned && planned.sourceLandscapePath) {
+        entry.sourceImagePath = planned.sourceLandscapePath;
       }
-      if (sourceLandscapeSha) {
-        entry.sourceImageSha256 = sourceLandscapeSha;
+      if ("sourceLandscapeSha256" in planned && planned.sourceLandscapeSha256) {
+        entry.sourceImageSha256 = planned.sourceLandscapeSha256;
       }
       entries.push(entry);
-      if (shouldRegenerate) {
-        previousSpec = buildSceneVisualSpec(scene, registry, previousSpec);
-      }
     }
   }
   const failures = entries.filter((entry) => entry.status === "failed");

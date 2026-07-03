@@ -4,6 +4,7 @@ import {
   importImageBatch,
   loadEpisodeImageGenerationSettings,
   prepareFullSceneImageBatches,
+  prepareShortSceneImageBatches,
   refreshImageBatch,
   resolveImageBatchManifest,
   retryFailedImageBatch,
@@ -42,6 +43,7 @@ interface ImagesBatchCommandDeps {
   readonly loadRuntimeConfig: typeof loadRuntimeConfig;
   readonly loadEpisodeImageGenerationSettings: typeof loadEpisodeImageGenerationSettings;
   readonly prepareFullSceneImageBatches: typeof prepareFullSceneImageBatches;
+  readonly prepareShortSceneImageBatches: typeof prepareShortSceneImageBatches;
   readonly submitImageBatch: typeof submitImageBatch;
   readonly refreshImageBatch: typeof refreshImageBatch;
   readonly importImageBatch: typeof importImageBatch;
@@ -54,6 +56,7 @@ const defaultDeps: ImagesBatchCommandDeps = {
   loadRuntimeConfig,
   loadEpisodeImageGenerationSettings,
   prepareFullSceneImageBatches,
+  prepareShortSceneImageBatches,
   submitImageBatch,
   refreshImageBatch,
   importImageBatch,
@@ -173,9 +176,13 @@ function summarizeManifest(
   };
 }
 
-function summarizePrepared(result: Awaited<ReturnType<typeof prepareFullSceneImageBatches>>) {
+function summarizePrepared(
+  result:
+    | Awaited<ReturnType<typeof prepareFullSceneImageBatches>>
+    | Awaited<ReturnType<typeof prepareShortSceneImageBatches>>
+) {
   const localBatchIds = result.groups.map((group) => group.storagePlan.localBatchId);
-  return {
+  const summary = {
     episode: result.episodeId,
     languages: result.languages,
     variants: [result.variant],
@@ -213,6 +220,14 @@ function summarizePrepared(result: Awaited<ReturnType<typeof prepareFullSceneIma
       quality: result.stagePreviews[0]?.quality ?? null,
     },
   };
+  if (result.variant === "short") {
+    return {
+      ...summary,
+      previewCounts: result.previewCounts,
+      localWorkPlan: result.localWorkPlan.manifestPath,
+    };
+  }
+  return summary;
 }
 
 async function resolveBatchRefForResume(
@@ -244,15 +259,19 @@ export function createImagesBatchCommandHandlers(
       const { episodeId, episodeDir } = await resolveEpisodeRuntime(deps, options);
       const languages = parseCsv(options.languages, normalizeLocaleCode, ["en"]);
       const variants = parseCsv(options.variants, normalizeContentVariant, ["full"]);
-      if (variants.length !== 1 || variants[0] !== "full") {
+      if (variants.length !== 1 || !["full", "short"].includes(variants[0] ?? "")) {
         throw new Error(
           `Unsupported image batch variant selection: ${variants.join(", ")}.`
         );
       }
+      const variant = variants[0] as "full" | "short";
       const settings = deps.loadEpisodeImageGenerationSettings({
         OPENAI_API_KEY: "batch-prepare-only",
         OPENAI_IMAGE_MODEL: process.env["OPENAI_IMAGE_MODEL"],
-        OPENAI_IMAGE_SIZE: process.env["OPENAI_IMAGE_SIZE"],
+        OPENAI_IMAGE_SIZE:
+          variant === "short"
+            ? process.env["SHORTS_OPENAI_IMAGE_SIZE"] ?? process.env["OPENAI_IMAGE_SIZE"]
+            : process.env["OPENAI_IMAGE_SIZE"],
         OPENAI_IMAGE_QUALITY: process.env["OPENAI_IMAGE_QUALITY"],
         OPENAI_IMAGE_CONCURRENCY: process.env["OPENAI_IMAGE_CONCURRENCY"],
         OPENAI_IMAGE_MAX_RETRIES: process.env["OPENAI_IMAGE_MAX_RETRIES"],
@@ -262,20 +281,30 @@ export function createImagesBatchCommandHandlers(
         OPENAI_IMAGE_FORCE: options.force ? "true" : process.env["OPENAI_IMAGE_FORCE"],
         OPENAI_BASE_URL: options.openAiBaseUrl ?? process.env["OPENAI_BASE_URL"],
       });
-      const prepared = await deps.prepareFullSceneImageBatches({
-        episodeDir,
-        episodeId,
-        languages,
-        variant: "full",
-        settings: {
-          model: settings.model,
-          requestedSize: settings.resolvedSize,
-          quality: settings.quality,
-          outputFormat: "png",
-          allowUnapprovedCharacterReferences: settings.allowUnapprovedCharacterReferences,
-          force: settings.force,
-        },
-      });
+      const plannerSettings = {
+        model: settings.model,
+        requestedSize: settings.resolvedSize,
+        quality: settings.quality,
+        outputFormat: "png" as const,
+        allowUnapprovedCharacterReferences: settings.allowUnapprovedCharacterReferences,
+        force: settings.force,
+      };
+      const prepared =
+        variant === "short"
+          ? await deps.prepareShortSceneImageBatches({
+              episodeDir,
+              episodeId,
+              languages,
+              variant,
+              settings: plannerSettings,
+            })
+          : await deps.prepareFullSceneImageBatches({
+              episodeDir,
+              episodeId,
+              languages,
+              variant,
+              settings: plannerSettings,
+            });
       const summary = summarizePrepared(prepared);
       if (options.json) {
         printJson(summary);

@@ -3,6 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { mkdtempSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import sharp from "sharp";
 import { hashFile, hashText } from "@mediaforge/shared";
 import {
   buildImageBatchCustomId,
@@ -15,10 +16,12 @@ import {
   planReferenceImageBatchForEpisode,
   prepareFullSceneImageBatches,
   prepareImageBatchForEpisode,
+  prepareShortSceneImageBatches,
   planImageBatchForEpisode,
 } from "./image-batch-planner.js";
 import { readImageBatchManifest } from "./image-batch-storage.js";
 import { upsertCharacterRegistry, type CharacterDefinition } from "./episode-image-pipeline.js";
+import { planShortsImageWork } from "./shorts-image-strategy.js";
 
 function providerRequestHashForFixture(args: {
   readonly prompt: string;
@@ -175,11 +178,74 @@ async function writeCanonicalScenePlan(
 
 async function writeLocalizedScript(
   episodeDir: string,
-  language: string
+  language: string,
+  variant: "full" | "short" = "full"
 ): Promise<void> {
-  const localeDir = path.join(episodeDir, "locales", language, "full");
+  const localeDir = path.join(episodeDir, "locales", language, variant);
   await fs.mkdir(localeDir, { recursive: true });
   await fs.writeFile(path.join(localeDir, "script.md"), `# ${language}\n`, "utf8");
+}
+
+async function writeShortScenePlan(
+  episodeDir: string,
+  language: string,
+  sceneIds: readonly string[]
+): Promise<void> {
+  const sceneDir = path.join(episodeDir, language, "short");
+  await fs.mkdir(sceneDir, { recursive: true });
+  await fs.writeFile(
+    path.join(sceneDir, "scenes.json"),
+    JSON.stringify({
+      sourceId: "001-demo",
+      scenes: sceneIds.map((sceneId, index) => ({
+        id: sceneId,
+        sequenceNumber: index + 1,
+        canonicalNarration: `Narration for ${sceneId}.`,
+        sourceSegmentIds: [`segment-${String(index + 1).padStart(3, "0")}`],
+        estimatedDurationSeconds: 4,
+        timing: { startSeconds: index * 4, endSeconds: index * 4 + 4 },
+        visualPurpose: "establish",
+        subject: `subject ${sceneId}`,
+        action: `action ${sceneId}`,
+        setting: `setting ${sceneId}`,
+        composition: "centered",
+        cameraFraming: "medium shot",
+        mood: "uneasy",
+        continuityReferences: [],
+        onScreenText: "",
+        textRequirement: { required: false },
+        negativeConstraints: [],
+        aspectRatios: ["16:9"],
+        imagePrompt: `Prompt for ${sceneId}.`,
+        expectedImageFilenames: [
+          `${sceneId}__${String(index * 4).padStart(6, "0")}-${String(index * 4 + 4).padStart(6, "0")}__16x9.png`,
+        ],
+        qualityStatus: "draft",
+      })),
+    }),
+    "utf8"
+  );
+}
+
+async function writeLandscapeImage(
+  episodeDir: string,
+  fileName: string,
+  color: number
+): Promise<string> {
+  const landscapeDir = path.join(episodeDir, "shared", "images", "generated");
+  await fs.mkdir(landscapeDir, { recursive: true });
+  const target = path.join(landscapeDir, fileName);
+  await sharp({
+    create: {
+      width: 1920,
+      height: 1080,
+      channels: 4,
+      background: { r: color, g: 40, b: 80, alpha: 1 },
+    },
+  })
+    .png()
+    .toFile(target);
+  return target;
 }
 
 function makeCharacter(args: {
@@ -441,7 +507,7 @@ describe("image batch planner", () => {
     expect(referenceGroups[0]?.storagePlan.localBatchId).toMatch(/^imgb-/u);
   });
 
-  it("fails reference-assisted batch preparation instead of emitting an unproven edit JSONL shape", async () => {
+  it("prepares reference-assisted scenes as image edit batch requests with uploaded file IDs", async () => {
     const tempDir = mkdtempSync(path.join(os.tmpdir(), "image-batch-reference-edit-"));
     const episodeDir = path.join(tempDir, "episode");
     const referencePath = path.join(episodeDir, "ref.png");
@@ -470,26 +536,61 @@ describe("image batch planner", () => {
       ],
     });
 
-    await expect(
-      prepareImageBatchForEpisode({
-        episodeDir,
-        episodeId: "001-demo",
-        scenePlan: {
-          scenes: [{ id: "scene-002", sequenceNumber: 2 }],
-        },
-        settings: {
-          model: "gpt-image-2",
-          requestedSize: "1920x1088",
-          quality: "medium",
-          outputFormat: "png",
-        },
-      })
-    ).rejects.toMatchObject<ImageBatchPlannerError>({
-      code: "unsupported-edit-batch-request",
-      details: {
-        sdkBatchEndpoint: "/v1/images/edits",
-        sdkEditTransport: "multipart image uploads",
+    const prepared = await prepareImageBatchForEpisode({
+      episodeDir,
+      episodeId: "001-demo",
+      scenePlan: {
+        scenes: [{ id: "scene-002", sequenceNumber: 2 }],
       },
+      settings: {
+        model: "gpt-image-2",
+        requestedSize: "1920x1088",
+        quality: "medium",
+        outputFormat: "png",
+      },
+    });
+
+    expect(prepared.groups).toHaveLength(1);
+    expect(prepared.groups[0]?.stageKind).toBe("scene-images");
+    expect(prepared.groups[0]?.scenePlans[0]?.job.identity.operation).toBe("edit");
+    expect(prepared.groups[0]?.scenePlans[0]?.requestLine.url).toBe(
+      "/v1/images/edits"
+    );
+    expect(prepared.groups[0]?.scenePlans[0]?.requestLine.body).toMatchObject({
+      model: "gpt-image-2",
+      prompt: "A reference-assisted scene.",
+      image: ["file_ref_123"],
+      n: 1,
+      size: "1920x1088",
+      quality: "medium",
+      output_format: "png",
+    });
+    expect(prepared.groups[0]?.scenePlans[0]?.job.dependencies[0]).toMatchObject({
+      sourcePath: referencePath,
+      openAIFileId: "file_ref_123",
+      sha256: referenceHash,
+    });
+    expect(prepared.stagePreviews.find((stage) => stage.kind === "scene-images")).toMatchObject({
+      operation: "edit",
+      endpoint: "/v1/images/edits",
+    });
+
+    const inputFile = await fs.readFile(
+      prepared.groups[0]?.storagePlan.inputFilePath ?? "",
+      "utf8"
+    );
+    const requestLine = JSON.parse(inputFile.trim()) as {
+      readonly url: string;
+      readonly body: Record<string, unknown>;
+    };
+    expect(requestLine.url).toBe("/v1/images/edits");
+    expect(requestLine.body.image).toEqual(["file_ref_123"]);
+    const manifest = await readImageBatchManifest(
+      prepared.groups[0]?.storagePlan.manifestPath ?? ""
+    );
+    expect(manifest?.endpoint).toBe("/v1/images/edits");
+    expect(manifest?.items[0]?.dependencies[0]).toMatchObject({
+      openAIFileId: "file_ref_123",
     });
   });
 
@@ -578,6 +679,10 @@ describe("image batch planner", () => {
       })
     ).rejects.toMatchObject<ImageBatchPlannerError>({
       code: "unsupported-edit-batch-request",
+      details: {
+        missingOpenAIFileIdPaths: [referencePath],
+        jsonlShape: { image: "OpenAI file ID | OpenAI file ID[]" },
+      },
     });
   });
 
@@ -936,6 +1041,213 @@ describe("image batch planner", () => {
     expect(sceneGroups.every((group) => group.scenePlans[0]?.job.identity.language === "de")).toBe(true);
     expect(sceneGroups.map((group) => group.splitGroupIndex)).toEqual([0, 1]);
     expect(sceneGroups.map((group) => group.splitGroupCount)).toEqual([2, 2]);
+  });
+
+  it("rejects multi-language full-scene preparation before writing shared canonical artifacts", async () => {
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), "image-batch-full-multilang-"));
+    const episodeDir = path.join(tempDir, "001-demo");
+    await writeCanonicalScenePlan(episodeDir, ["scene-001", "scene-002"]);
+    await writeLocalizedScript(episodeDir, "de", "short");
+    await writeLocalizedScript(episodeDir, "fr");
+
+    await expect(
+      prepareFullSceneImageBatches({
+        episodeDir,
+        episodeId: "001-demo",
+        languages: ["de-DE", "fr-FR"],
+        variant: "full",
+        settings: {
+          model: "gpt-image-2",
+          requestedSize: "1920x1088",
+          quality: "medium",
+          outputFormat: "png",
+        },
+      })
+    ).rejects.toMatchObject<ImageBatchPlannerError>({
+      code: "unsupported-shared-output-multilanguage",
+      details: {
+        languages: ["de", "fr"],
+        sharedOutputRoot: "shared/images/generated",
+      },
+    });
+
+    await expect(
+      fs.access(path.join(episodeDir, "state", "image-generation", "prompts"))
+    ).rejects.toThrow();
+    await expect(
+      fs.access(path.join(episodeDir, "shared", "images", "prompt-batches"))
+    ).rejects.toThrow();
+  });
+
+  it("prepares short-scene batches with separate native, transform, and reuse counts", async () => {
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), "image-batch-short-prepare-"));
+    const episodeDir = path.join(tempDir, "001-demo");
+    process.env["SHORTS_KEY_SCENE_COUNT"] = "1";
+    process.env["SHORTS_KEY_SCENE_RATIO"] = "0";
+    await writeLocalizedScript(episodeDir, "de", "short");
+    await writeShortScenePlan(episodeDir, "de", ["scene-001", "scene-002", "scene-003"]);
+    await writeLandscapeImage(episodeDir, "scene-001__000000-000004__16x9.png", 20);
+    const landscapeTwo = await writeLandscapeImage(episodeDir, "scene-002__000004-000008__16x9.png", 40);
+    await writeLandscapeImage(
+      episodeDir,
+      "scene-003__000008-000012__16x9.png",
+      60
+    );
+    const portraitDir = path.join(episodeDir, "shared", "short", "images", "generated");
+    await fs.mkdir(portraitDir, { recursive: true });
+    const reusedPortrait = path.join(
+      portraitDir,
+      "scene-002__000004-000008__9x16.png"
+    );
+    await sharp({
+      create: {
+        width: 1080,
+        height: 1920,
+        channels: 4,
+        background: { r: 10, g: 20, b: 30, alpha: 1 },
+      },
+    })
+      .png()
+      .toFile(reusedPortrait);
+    const scenePlan = JSON.parse(
+      await fs.readFile(path.join(episodeDir, "de", "short", "scenes.json"), "utf8")
+    ) as { scenes: Array<Record<string, unknown>> };
+    const planned = await planShortsImageWork({
+      episodeDir,
+      episodeId: "001-demo",
+      scenePlan: scenePlan as never,
+      config: {
+        enabled: true,
+        keySceneCount: 1,
+        portraitWidth: 1088,
+        portraitHeight: 1920,
+        finalWidth: 1080,
+        finalHeight: 1920,
+        reuseLandscapeImages: true,
+        enablePanAndScan: true,
+        enableBlurredFallback: true,
+        forceRegenerateAll: false,
+        selectionMode: "importance-based",
+      },
+      landscapeDir: path.join(episodeDir, "shared", "images", "generated"),
+      outputDir: portraitDir,
+    });
+    const reusePlan = planned.items.find((item) => item.sceneId === "scene-002");
+    if (!reusePlan || reusePlan.kind !== "deterministic-transform") {
+      throw new Error("expected deterministic transform plan for scene-002");
+    }
+    await fs.writeFile(
+      path.join(episodeDir, "shared", "short", "images", "shorts-image-manifest.json"),
+      JSON.stringify(
+        [
+          {
+            sceneId: "scene-002",
+            sequenceNumber: 2,
+            strategy: "smart-crop",
+            sourceImagePath: landscapeTwo,
+            outputImagePath: reusedPortrait,
+            reusedExistingImage: true,
+            regenerated: false,
+            attemptCount: 1,
+            status: "success",
+            sceneHash: reusePlan.sceneHash,
+            imagePlanFingerprint: reusePlan.imagePlanFingerprint,
+            sourceImageSha256: reusePlan.sourceLandscapeSha256,
+          },
+        ],
+        null,
+        2
+      ),
+      "utf8"
+    );
+
+    const prepared = await prepareShortSceneImageBatches({
+      episodeDir,
+      episodeId: "001-demo",
+      languages: ["de"],
+      variant: "short",
+      settings: {
+        model: "gpt-image-2",
+        requestedSize: "1024x1536",
+        quality: "medium",
+        outputFormat: "png",
+      },
+    });
+
+    expect(prepared.previewCounts).toEqual({
+      paidNativeGenerations: 1,
+      freeLocalTransforms: 1,
+      cacheHits: 1,
+      blocked: 0,
+    });
+    expect(prepared.groups[0]?.scenePlans.every((plan) => plan.job.identity.variant === "short")).toBe(
+      true
+    );
+    expect(prepared.localWorkPlan.deterministicTransforms).toHaveLength(1);
+    expect(prepared.localWorkPlan.cacheReuse).toHaveLength(1);
+  });
+
+  it("keeps deterministic short transforms out of provider JSONL and preserves local work items", async () => {
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), "image-batch-short-transform-"));
+    const episodeDir = path.join(tempDir, "001-demo");
+    process.env["SHORTS_KEY_SCENE_COUNT"] = "0";
+    process.env["SHORTS_KEY_SCENE_RATIO"] = "0";
+    await writeLocalizedScript(episodeDir, "de", "short");
+    await writeShortScenePlan(episodeDir, "de", ["scene-001"]);
+    await writeLandscapeImage(
+      episodeDir,
+      "scene-001__000000-000004__16x9.png",
+      30
+    );
+
+    const prepared = await prepareShortSceneImageBatches({
+      episodeDir,
+      episodeId: "001-demo",
+      languages: ["de"],
+      variant: "short",
+      settings: {
+        model: "gpt-image-2",
+        requestedSize: "1024x1536",
+        quality: "medium",
+        outputFormat: "png",
+      },
+    });
+
+    expect(prepared.previewCounts).toEqual({
+      paidNativeGenerations: 0,
+      freeLocalTransforms: 1,
+      cacheHits: 0,
+      blocked: 0,
+    });
+    expect(prepared.groups[0]?.scenePlans).toHaveLength(0);
+    expect(prepared.localWorkPlan.deterministicTransforms).toHaveLength(1);
+    expect(prepared.writtenFiles).toContain(prepared.localWorkPlan.manifestPath);
+  });
+
+  it("fails short batch preparation when a deterministic source landscape is missing", async () => {
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), "image-batch-short-missing-source-"));
+    const episodeDir = path.join(tempDir, "001-demo");
+    process.env["SHORTS_KEY_SCENE_COUNT"] = "0";
+    process.env["SHORTS_KEY_SCENE_RATIO"] = "0";
+    await writeLocalizedScript(episodeDir, "de", "short");
+    await writeShortScenePlan(episodeDir, "de", ["scene-001"]);
+
+    await expect(
+      prepareShortSceneImageBatches({
+        episodeDir,
+        episodeId: "001-demo",
+        languages: ["de"],
+        variant: "short",
+        settings: {
+          model: "gpt-image-2",
+          requestedSize: "1024x1536",
+          quality: "medium",
+          outputFormat: "png",
+        },
+      })
+    ).rejects.toMatchObject<ImageBatchPlannerError>({
+      code: "missing-short-source-image",
+    });
   });
 
   it("rejects duplicate identities, custom ids, and destination paths during normalization", () => {

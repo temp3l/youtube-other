@@ -39,6 +39,42 @@ function makeDeps() {
         },
       ],
     })),
+    prepareShortSceneImageBatches: vi.fn(async () => ({
+      episodeId: "001-demo",
+      languages: ["de"],
+      variant: "short",
+      groups: [
+        {
+          storagePlan: { localBatchId: "imgb-short-001" },
+          referencePlans: [],
+          scenePlans: [{}],
+        },
+      ],
+      stagePreviews: [
+        {
+          kind: "scene-images",
+          operation: "generation",
+          itemCount: 1,
+          requestCount: 1,
+          endpoint: "/v1/images/generations",
+          model: "gpt-image-2",
+          size: "1024x1536",
+          quality: "medium",
+        },
+      ],
+      localWorkPlan: {
+        manifestPath: "/workspace/001-demo/state/image-generation/shorts-local-work.de.json",
+        deterministicTransforms: [],
+        cacheReuse: [],
+      },
+      previewCounts: {
+        paidNativeGenerations: 1,
+        freeLocalTransforms: 2,
+        cacheHits: 3,
+        blocked: 0,
+      },
+      writtenFiles: [],
+    })),
     submitImageBatch: vi.fn(async () => ({
       localBatchId: "imgb-001",
       openAIBatchId: "batch_001",
@@ -145,6 +181,25 @@ describe("images batch commands", () => {
     expect(deps.prepareFullSceneImageBatches).toHaveBeenCalledTimes(1);
     expect(deps.createOpenAiStoryClientWithOptions).not.toHaveBeenCalled();
     expect(deps.submitImageBatch).not.toHaveBeenCalled();
+  });
+
+  it("routes short variant preparation through the short batch planner", async () => {
+    const deps = makeDeps();
+    const handlers = createImagesBatchCommandHandlers(deps as never);
+    const stdout = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
+    try {
+      await handlers.prepare({
+        episode: "001-demo",
+        languages: "de",
+        variants: "short",
+        json: true,
+      });
+    } finally {
+      stdout.mockRestore();
+    }
+
+    expect(deps.prepareShortSceneImageBatches).toHaveBeenCalledTimes(1);
+    expect(deps.prepareFullSceneImageBatches).not.toHaveBeenCalled();
   });
 
   it("submits only through the explicit submit command", async () => {

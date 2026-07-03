@@ -16,6 +16,7 @@ import {
   resolveEpisodeImageManifestPath,
   resolveEpisodeImageStateDir,
   resolveEpisodeImagePromptPath,
+  writeJsonAtomic,
 } from "@mediaforge/shared";
 import {
   buildImageBatchCustomId,
@@ -42,6 +43,15 @@ import {
   type EpisodeImagePipelineSettings,
   type SceneGenerationManifest,
 } from "./episode-image-pipeline.js";
+import {
+  planShortsImageWork,
+  type PlannedShortsDeterministicTransformItem,
+  type PlannedShortsImageWork,
+  type PlannedShortsItem,
+  type PlannedShortsNativeGenerationItem,
+  type PlannedShortsReuseItem,
+  type ShortsImageConfig,
+} from "./shorts-image-strategy.js";
 import {
   createImageBatchManifestItem,
   createImageBatchStoragePlan,
@@ -80,12 +90,17 @@ export class ImageBatchPlannerError extends Error {
     | "missing-reference-image"
     | "unapproved-reference"
     | "unsupported-edit-batch-request"
+    | "unsupported-shared-output-multilanguage"
     | "stale-dependency-hash"
     | "missing-scene-plan"
     | "missing-localization"
     | "duplicate-custom-id"
     | "duplicate-destination-path"
-    | "path-escape";
+    | "path-escape"
+    | "missing-short-source-image"
+    | "stale-short-source-hash"
+    | "invalid-short-portrait-dimensions"
+    | "unsupported-short-endpoint";
   readonly details?: Record<string, unknown>;
 
   constructor(args: {
@@ -148,6 +163,25 @@ export interface PreparedFullSceneBatchResult extends PrepareImageBatchResult {
   readonly episodeId: string;
   readonly variant: "full";
   readonly languages: readonly string[];
+}
+
+export interface PreparedShortLocalWorkPlan {
+  readonly manifestPath: string;
+  readonly deterministicTransforms: readonly PlannedShortsDeterministicTransformItem[];
+  readonly cacheReuse: readonly PlannedShortsReuseItem[];
+}
+
+export interface PreparedShortSceneBatchResult extends PrepareImageBatchResult {
+  readonly episodeId: string;
+  readonly variant: "short";
+  readonly languages: readonly string[];
+  readonly localWorkPlan: PreparedShortLocalWorkPlan;
+  readonly previewCounts: {
+    readonly paidNativeGenerations: number;
+    readonly freeLocalTransforms: number;
+    readonly cacheHits: number;
+    readonly blocked: number;
+  };
 }
 
 export type ImageBatchStageKind =
@@ -520,6 +554,9 @@ async function resolveSceneDependencies(args: {
       role: "character-reference",
       approvalStatus: character.referenceStatus,
       sourcePath,
+      ...(character.referenceFileId
+        ? { openAIFileId: character.referenceFileId }
+        : {}),
       sha256,
       assetIdentity: buildReferenceAssetIdentity({
         episodeDir: args.episodeDir,
@@ -539,17 +576,22 @@ async function resolveSceneDependencies(args: {
 
 function unsupportedEditBatchRequestError(args: {
   readonly sceneId: string;
-  readonly dependencyPaths: readonly string[];
+  readonly dependencies: readonly ImageBatchDependency[];
 }): ImageBatchPlannerError {
+  const missingOpenAIFileIds = args.dependencies.filter(
+    (dependency) => !dependency.openAIFileId
+  );
   return new ImageBatchPlannerError({
     code: "unsupported-edit-batch-request",
-    message: `Reference-assisted batch scene ${args.sceneId} cannot be serialized safely for ${imageEditBatchEndpoint}.`,
+    message: `Reference-assisted batch scene ${args.sceneId} requires pre-uploaded OpenAI reference file IDs for ${imageEditBatchEndpoint}.`,
     details: {
       sceneId: args.sceneId,
-      dependencyPaths: args.dependencyPaths,
+      dependencyPaths: args.dependencies.map((dependency) => dependency.sourcePath),
+      missingOpenAIFileIdPaths: missingOpenAIFileIds.map(
+        (dependency) => dependency.sourcePath
+      ),
       sdkBatchEndpoint: imageEditBatchEndpoint,
-      sdkEditTransport: "multipart image uploads",
-      unsupportedJsonlShape: { image: "Uploadable | Uploadable[]" },
+      jsonlShape: { image: "OpenAI file ID | OpenAI file ID[]" },
     },
   });
 }
@@ -582,10 +624,13 @@ async function buildSceneJob(args: {
   });
   const promptHash = stableHash(prompt);
   const isEdit = dependencies.length > 0;
-  if (isEdit) {
+  if (
+    isEdit &&
+    dependencies.some((dependency) => !dependency.openAIFileId)
+  ) {
     throw unsupportedEditBatchRequestError({
       sceneId: args.sceneId,
-      dependencyPaths: dependencies.map((dependency) => dependency.sourcePath),
+      dependencies,
     });
   }
   const operation = isEdit ? "edit" : "generation";
@@ -664,6 +709,19 @@ async function buildSceneJob(args: {
         quality: args.settings.quality,
         outputFormat: args.settings.outputFormat,
       }),
+      ...(isEdit
+        ? {
+            image: dependencies.map((dependency) => {
+              if (!dependency.openAIFileId) {
+                throw unsupportedEditBatchRequestError({
+                  sceneId: args.sceneId,
+                  dependencies,
+                });
+              }
+              return dependency.openAIFileId;
+            }),
+          }
+        : {}),
     },
   };
   const manifestItem = createImageBatchManifestItem({
@@ -1130,6 +1188,9 @@ function stagePreviewsForSceneGroups(args: {
   const hasEdit = args.groups.some((group) =>
     group.scenePlans.some((plan) => plan.job.identity.operation === "edit")
   );
+  const hasGeneration = args.groups.some((group) =>
+    group.scenePlans.some((plan) => plan.job.identity.operation === "generation")
+  );
   return [
     buildStagePreview({
       kind: "scene-prompts",
@@ -1148,8 +1209,19 @@ function stagePreviewsForSceneGroups(args: {
       requestCount: sceneItemCount,
       itemCount: sceneItemCount,
       operation:
-        sceneItemCount === 0 ? "none" : hasEdit ? "mixed" : "generation",
-      ...(sceneItemCount > 0 ? { endpoint: imageGenerationBatchEndpoint } : {}),
+        sceneItemCount === 0
+          ? "none"
+          : hasEdit && hasGeneration
+            ? "mixed"
+            : hasEdit
+              ? "edit"
+              : "generation",
+      ...(sceneItemCount > 0 && !hasEdit
+        ? { endpoint: imageGenerationBatchEndpoint }
+        : {}),
+      ...(sceneItemCount > 0 && hasEdit && !hasGeneration
+        ? { endpoint: imageEditBatchEndpoint }
+        : {}),
       settings: args.settings,
       dependencyStageKinds: ["scene-prompts"],
     }),
@@ -1235,6 +1307,228 @@ async function loadCanonicalScenePlan(args: {
   );
 }
 
+function defaultShortsImageConfig(sceneCount: number): ShortsImageConfig {
+  const configuredCount = Number(process.env["SHORTS_KEY_SCENE_COUNT"] ?? 8);
+  const configuredRatio = Number(process.env["SHORTS_KEY_SCENE_RATIO"] ?? 0.8);
+  const ratioCount =
+    Number.isFinite(configuredRatio) && configuredRatio > 0
+      ? Math.ceil(sceneCount * configuredRatio)
+      : 0;
+  return {
+    enabled: true,
+    keySceneCount: Math.max(0, Math.min(sceneCount, Math.max(configuredCount, ratioCount))),
+    portraitWidth: Number(process.env["SHORTS_PORTRAIT_WIDTH"] ?? 1088),
+    portraitHeight: Number(process.env["SHORTS_PORTRAIT_HEIGHT"] ?? 1920),
+    finalWidth: Number(process.env["SHORTS_FINAL_WIDTH"] ?? 1080),
+    finalHeight: Number(process.env["SHORTS_FINAL_HEIGHT"] ?? 1920),
+    reuseLandscapeImages: true,
+    enablePanAndScan: true,
+    enableBlurredFallback: true,
+    forceRegenerateAll:
+      (process.env["SHORTS_FORCE_REGENERATE_ALL"] ?? "").toLowerCase() === "true",
+    selectionMode:
+      (process.env["SHORTS_SELECTION_MODE"] as "first-n" | "importance-based" | undefined) ??
+      "importance-based",
+    ...(process.env["SHORTS_IMPORTANCE_SCENE_IDS"]
+      ? {
+          importanceSceneIds: process.env["SHORTS_IMPORTANCE_SCENE_IDS"]
+            .split(",")
+            .map((value) => normalizeWhitespace(value))
+            .filter((value) => value.length > 0),
+        }
+      : {}),
+  };
+}
+
+async function loadShortScenePlan(args: {
+  readonly episodeDir: string;
+  readonly episodeId: string;
+  readonly language: string;
+}): Promise<ScenePlan> {
+  const scenePlanPath = path.join(args.episodeDir, args.language, "short", "scenes.json");
+  if (!(await fileExists(scenePlanPath))) {
+    throw new ImageBatchPlannerError({
+      code: "missing-scene-plan",
+      message: `Missing short scene plan for ${args.episodeId}:${args.language}.`,
+      details: { scenePlanPath },
+    });
+  }
+  return scenePlanSchema.parse(
+    JSON.parse(await fs.readFile(scenePlanPath, "utf8")) as unknown
+  );
+}
+
+async function buildShortNativeScenePlan(args: {
+  readonly episodeDir: string;
+  readonly episodeId: string;
+  readonly language: string;
+  readonly planned: PlannedShortsNativeGenerationItem;
+  readonly registry: CharacterRegistry;
+}): Promise<PlannedImageBatchScene> {
+  const dependencies: ImageBatchDependency[] = [];
+  for (const referenceImage of args.planned.referenceImages) {
+    const character = args.registry.characters.find(
+      (entry) => entry.id === referenceImage.characterId
+    );
+    if (!character) {
+      throw new ImageBatchPlannerError({
+        code: "missing-reference-image",
+        message: `Missing character registry entry for short scene ${args.planned.sceneId}.`,
+        details: {
+          sceneId: args.planned.sceneId,
+          characterId: referenceImage.characterId,
+        },
+      });
+    }
+    dependencies.push({
+      role: "character-reference",
+      approvalStatus: character.referenceStatus,
+      sourcePath: referenceImage.filePath,
+      ...(character.referenceFileId ? { openAIFileId: character.referenceFileId } : {}),
+      sha256: referenceImage.sha256,
+      assetIdentity: buildReferenceAssetIdentity({
+        episodeDir: args.episodeDir,
+        episodeId: args.episodeId,
+        language: args.language,
+        variant: "short",
+        character,
+        settings: {
+          model: args.planned.providerRequest.model,
+          requestedSize: args.planned.providerRequest.size,
+          quality: args.planned.providerRequest.quality,
+          outputFormat: args.planned.providerRequest.outputFormat,
+        },
+        promptHash: stableHash(buildCharacterReferencePrompt(character)),
+        outputPath:
+          character.referenceImagePath ??
+          resolveEpisodeCharacterReferencePath(args.episodeDir, character.id),
+      }),
+    });
+  }
+  if (
+    args.planned.providerRequest.operation === "image-edit" &&
+    dependencies.some((dependency) => !dependency.openAIFileId)
+  ) {
+    throw unsupportedEditBatchRequestError({
+      sceneId: args.planned.sceneId,
+      dependencies,
+    });
+  }
+  const operation =
+    args.planned.providerRequest.operation === "image-edit" ? "edit" : "generation";
+  const endpoint = endpointForImageBatchOperation(operation);
+  if (!endpoint) {
+    throw new ImageBatchPlannerError({
+      code: "unsupported-short-endpoint",
+      message: `Unsupported short batch endpoint for ${args.planned.sceneId}.`,
+      details: {
+        sceneId: args.planned.sceneId,
+        operation,
+      },
+    });
+  }
+  const identity = createImageBatchAssetIdentity({
+    episodeId: args.episodeId,
+    language: args.language,
+    variant: "short",
+    assetRole: "short-scene",
+    operation,
+    subject: { kind: "scene", id: args.planned.sceneId },
+    promptHash: args.planned.promptHash,
+    model: args.planned.providerRequest.model,
+    size: args.planned.providerRequest.size,
+    quality: args.planned.providerRequest.quality,
+    dependencyHashes: args.planned.dependencyHashes,
+    destination: deriveImageBatchDestinationIdentity({
+      assetRole: "short-scene",
+      episodeDir: args.episodeDir,
+      outputPath: args.planned.outputPortraitPath,
+    }),
+  });
+  const customId = buildImageBatchCustomId(identity);
+  const job: ImageBatchJob = {
+    identity,
+    sceneId: args.planned.sceneId,
+    sceneIndex: args.planned.sequenceNumber,
+    positivePrompt: args.planned.providerRequest.prompt,
+    characterIds: args.planned.referenceImages.map((reference) => reference.characterId),
+    characterReferencePaths: dependencies.map((dependency) => dependency.sourcePath),
+    dependencies,
+    outputFormat: args.planned.providerRequest.outputFormat,
+    expectedOutputPath: args.planned.outputPortraitPath,
+    providerRequestHash: args.planned.providerRequestHash,
+    generationConfigurationHash: buildConfigurationHash({
+      stageKind: "scene-images",
+      language: args.language,
+      variant: "short",
+      model: args.planned.providerRequest.model,
+      requestedSize: args.planned.providerRequest.size,
+      quality: args.planned.providerRequest.quality,
+      outputFormat: args.planned.providerRequest.outputFormat,
+      endpoint,
+    }),
+  };
+  const requestLine: PlannedImageBatchRequestLine = {
+    custom_id: customId,
+    method: "POST",
+    url: endpoint,
+    body: {
+      ...buildBaseRequestBody({
+        model: args.planned.providerRequest.model,
+        prompt: args.planned.providerRequest.prompt,
+        requestedSize: args.planned.providerRequest.size,
+        quality: args.planned.providerRequest.quality,
+        outputFormat: args.planned.providerRequest.outputFormat,
+      }),
+      ...(endpoint === imageEditBatchEndpoint
+        ? {
+            image: dependencies.map((dependency) => {
+              if (!dependency.openAIFileId) {
+                throw unsupportedEditBatchRequestError({
+                  sceneId: args.planned.sceneId,
+                  dependencies,
+                });
+              }
+              return dependency.openAIFileId;
+            }),
+          }
+        : {}),
+    },
+  };
+  const manifestItem = createImageBatchManifestItem({ job, customId });
+  return {
+    sceneId: args.planned.sceneId,
+    sceneIndex: args.planned.sequenceNumber,
+    promptPath: "",
+    promptHash: args.planned.promptHash,
+    providerRequestHash: args.planned.providerRequestHash,
+    manifestPath: "",
+    sceneManifest: {
+      sceneId: args.planned.sceneId,
+      promptVersion: 1,
+      finalPrompt: args.planned.providerRequest.prompt,
+      promptHash: args.planned.promptHash,
+      providerRequestHash: args.planned.providerRequestHash,
+      materialDifferencesFromPrevious: [],
+      characterIds: args.planned.referenceImages.map((reference) => reference.characterId),
+      referenceImages: dependencies.map((dependency) => ({
+        characterId: dependency.assetIdentity.subject.id,
+        path: dependency.sourcePath,
+        sha256: dependency.sha256,
+      })),
+      model: args.planned.providerRequest.model,
+      size: args.planned.providerRequest.size,
+      quality: args.planned.providerRequest.quality,
+      outputPath: args.planned.outputPortraitPath,
+      status: "planned",
+      attempts: 0,
+    },
+    job,
+    requestLine,
+    manifestItem,
+  };
+}
+
 export async function prepareFullSceneImageBatches(args: {
   readonly episodeDir: string;
   readonly episodeId: string;
@@ -1245,6 +1539,18 @@ export async function prepareFullSceneImageBatches(args: {
   const normalizedLanguages = [
     ...new Set(args.languages.map((language) => normalizeLocaleCode(language))),
   ].sort((left, right) => left.localeCompare(right));
+  if (normalizedLanguages.length > 1) {
+    throw new ImageBatchPlannerError({
+      code: "unsupported-shared-output-multilanguage",
+      message:
+        "Full-scene batch preparation currently supports one language per run because all languages target shared canonical output paths.",
+      details: {
+        languages: normalizedLanguages,
+        variant: "full",
+        sharedOutputRoot: "shared/images/generated",
+      },
+    });
+  }
   const resolver = createEpisodePathResolver(path.dirname(args.episodeDir));
   const episodeId = normalizeEpisodeId(args.episodeId);
   const scenePlan = await loadCanonicalScenePlan({
@@ -1353,5 +1659,193 @@ export async function prepareFullSceneImageBatches(args: {
     groups: allGroups,
     stagePreviews: allStagePreviews,
     writtenFiles,
+  };
+}
+
+export async function prepareShortSceneImageBatches(args: {
+  readonly episodeDir: string;
+  readonly episodeId: string;
+  readonly languages: readonly string[];
+  readonly variant: "short";
+  readonly settings: ImageBatchPlannerSettings;
+}): Promise<PreparedShortSceneBatchResult> {
+  const normalizedLanguages = [
+    ...new Set(args.languages.map((language) => normalizeLocaleCode(language))),
+  ].sort((left, right) => left.localeCompare(right));
+  if (normalizedLanguages.length !== 1) {
+    throw new ImageBatchPlannerError({
+      code: "unsupported-shared-output-multilanguage",
+      message:
+        "Short-scene batch preparation currently supports one language per run because all short outputs target shared portrait paths.",
+      details: {
+        languages: normalizedLanguages,
+        variant: "short",
+        sharedOutputRoot: "shared/short/images/generated",
+      },
+    });
+  }
+  const language = normalizedLanguages[0]!;
+  const resolver = createEpisodePathResolver(path.dirname(args.episodeDir));
+  const localizationPath = resolver.narrationScript({
+    episodeId: normalizeEpisodeId(args.episodeId),
+    locale: language,
+    variant: "short",
+  });
+  if (!(await fileExists(localizationPath))) {
+    throw new ImageBatchPlannerError({
+      code: "missing-localization",
+      message: `Missing localized short script for ${args.episodeId}:${language}.`,
+      details: { localizationPath, language },
+    });
+  }
+  const scenePlan = await loadShortScenePlan({
+    episodeDir: args.episodeDir,
+    episodeId: args.episodeId,
+    language,
+  });
+  const shortPlan = await planShortsImageWork({
+    episodeDir: args.episodeDir,
+    episodeId: args.episodeId,
+    scenePlan,
+    config: defaultShortsImageConfig(scenePlan.scenes.length),
+    landscapeDir: path.join(args.episodeDir, "shared", "images", "generated"),
+    outputDir: path.join(args.episodeDir, "shared", "short", "images", "generated"),
+  });
+  const blockedItems = shortPlan.items.filter(
+    (item): item is Extract<PlannedShortsItem, { kind: "blocked" }> => item.kind === "blocked"
+  );
+  if (blockedItems.length > 0) {
+    const first = blockedItems[0]!;
+    const code =
+      first.error.includes("Missing landscape image")
+        ? "missing-short-source-image"
+        : first.error.includes("Invalid portrait dimensions")
+          ? "invalid-short-portrait-dimensions"
+          : "stale-short-source-hash";
+    throw new ImageBatchPlannerError({
+      code,
+      message: `Unable to prepare short image batch for ${args.episodeId}:${language}.`,
+      details: {
+        blockedItems: blockedItems.map((item) => ({
+          sceneId: item.sceneId,
+          strategy: item.batchStrategy,
+          error: item.error,
+          outputPortraitPath: item.outputPortraitPath,
+        })),
+      },
+    });
+  }
+
+  const registry = await loadEpisodeCharacterRegistry(args.episodeDir, args.episodeId);
+  const nativePlans = await Promise.all(
+    shortPlan.items
+      .filter(
+        (item): item is PlannedShortsNativeGenerationItem =>
+          item.kind === "native-generation"
+      )
+      .map((planned) =>
+        buildShortNativeScenePlan({
+          episodeDir: args.episodeDir,
+          episodeId: args.episodeId,
+          language,
+          planned,
+          registry,
+        })
+      )
+  );
+  nativePlans.sort((left, right) =>
+    left.requestLine.custom_id.localeCompare(right.requestLine.custom_id)
+  );
+  validateUniquePlans(
+    nativePlans.map((plan) => ({
+      customId: plan.requestLine.custom_id,
+      identityHash: plan.job.identity.identityHash,
+      expectedOutputPath: plan.job.expectedOutputPath,
+      subjectDescription: `${plan.job.identity.subject.kind}:${plan.job.identity.subject.id}`,
+    }))
+  );
+
+  const groups: PlannedImageBatchGroup[] =
+    nativePlans.length === 0
+      ? [
+          await buildPlannedGroup({
+            batchRoot: resolveEpisodeImageStateDir(args.episodeDir),
+            stageKind: "scene-images",
+            language,
+            variant: "short",
+            settings: args.settings,
+            splitGroupIndex: 0,
+            splitGroupCount: 1,
+            skippedSceneIds: shortPlan.items
+              .filter((item): item is PlannedShortsReuseItem => item.kind === "reuse")
+              .map((item) => item.sceneId),
+          }),
+        ]
+      : await Promise.all(
+          splitByLimit(nativePlans, args.settings.maxRequestsPerBatch).map(
+            (chunk, index, chunks) =>
+              buildPlannedGroup({
+                batchRoot: resolveEpisodeImageStateDir(args.episodeDir),
+                stageKind: "scene-images",
+                language,
+                variant: "short",
+                settings: args.settings,
+                splitGroupIndex: index,
+                splitGroupCount: chunks.length,
+                ...(chunk[0]?.requestLine.url
+                  ? { endpoint: chunk[0].requestLine.url }
+                  : {}),
+                scenePlans: chunk,
+                skippedSceneIds: shortPlan.items
+                  .filter((item): item is PlannedShortsReuseItem => item.kind === "reuse")
+                  .map((item) => item.sceneId),
+              })
+          )
+        );
+  const writtenFiles = (
+    await Promise.all(groups.map((group) => writePreparedGroup({ group, settings: args.settings })))
+  ).flat();
+  const localWorkPlanPath = path.join(
+    resolveEpisodeImageStateDir(args.episodeDir),
+    `shorts-local-work.${language}.json`
+  );
+  const deterministicTransforms = shortPlan.items.filter(
+    (item): item is PlannedShortsDeterministicTransformItem =>
+      item.kind === "deterministic-transform"
+  );
+  const cacheReuse = shortPlan.items.filter(
+    (item): item is PlannedShortsReuseItem => item.kind === "reuse"
+  );
+  await writeJsonAtomic(localWorkPlanPath, {
+    episodeId: args.episodeId,
+    language,
+    variant: "short",
+    deterministicTransforms,
+    cacheReuse,
+  });
+  writtenFiles.push(localWorkPlanPath);
+  return {
+    episodeId: normalizeEpisodeId(args.episodeId),
+    languages: normalizedLanguages,
+    variant: "short",
+    groups,
+    stagePreviews: stagePreviewsForSceneGroups({
+      language,
+      variant: "short",
+      settings: args.settings,
+      groups,
+    }),
+    writtenFiles,
+    localWorkPlan: {
+      manifestPath: localWorkPlanPath,
+      deterministicTransforms,
+      cacheReuse,
+    },
+    previewCounts: {
+      paidNativeGenerations: shortPlan.counts.nativeGeneration,
+      freeLocalTransforms: shortPlan.counts.deterministicTransforms,
+      cacheHits: shortPlan.counts.cacheReuse,
+      blocked: shortPlan.counts.blocked,
+    },
   };
 }
