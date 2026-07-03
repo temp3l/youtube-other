@@ -1,3 +1,6 @@
+import fs from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   episodeFocalMetadataSchema,
@@ -11,6 +14,7 @@ import {
   type NormalizedCrop,
   type RenderShot,
   type ShotPlan,
+  type ShotPlanSourceIdentity,
   type ShotPlanValidationIssueCode,
   type ShotTreatment,
   type VisualBudget,
@@ -31,6 +35,7 @@ import {
 } from "./crop-overlap.js";
 import {
   classifyMeaningfulVisualChange,
+  validateShotPlanArtifactReferences,
   validateShotPlan,
   type CaptionPlan,
   type EvidenceInsert,
@@ -718,5 +723,113 @@ describe("shot validation failing fixtures", () => {
         visualBudget: shortBudget(),
       }).meaningful,
     ).toBe(true);
+  });
+
+  it("classifies stale source identity, broken image references, and path escapes", async () => {
+    const episodeWorkspace = await fs.mkdtemp(
+      path.join(os.tmpdir(), "shot-artifact-validation-")
+    );
+    await fs.mkdir(path.join(episodeWorkspace, "shared", "images", "generated"), {
+      recursive: true,
+    });
+    await fs.writeFile(
+      path.join(episodeWorkspace, "shared", "images", "generated", "scene-001.png"),
+      "not-a-real-image-but-present",
+      "utf8"
+    );
+    const artifactPath = path.join(
+      episodeWorkspace,
+      "state",
+      "visual-retention",
+      "shot-plan.short.en.json"
+    );
+    const sourceIdentity: ShotPlanSourceIdentity = {
+      resolverVersion: "authored-script-resolver-v2",
+      episodeId: episodeIdSchema.parse("episode-fixture"),
+      language: "en",
+      variant: "short",
+      relativePath: "episodes/episode-fixture/languages/short/script-en.md",
+      contentHash: "a".repeat(64),
+      cacheIdentity:
+        "authored-script-resolver-v2:episode-fixture:en:short:episodes/episode-fixture/languages/short/script-en.md:" +
+        "a".repeat(64),
+    };
+    const plan = shotPlanSchema.parse({
+      ...makePlan({
+        sourceScenes: [
+          {
+            ...sourceScene({
+              sceneNumber: 1,
+              startMs: 0,
+              endMs: 4000,
+              phase: "hook",
+            }),
+            sourceImagePath: "shared/images/generated/scene-001.png",
+          },
+        ],
+        shotCountsByScene: [2],
+        pacingProfile: shortProfile(),
+        visualBudget: shortBudget(),
+      }),
+      sourceIdentity,
+    });
+
+    await expect(
+      validateShotPlanArtifactReferences({
+        shotPlan: plan,
+        episodeWorkspace,
+        artifactPath,
+        expectedSourceIdentity: sourceIdentity,
+      })
+    ).resolves.toEqual({ validationCode: "VALID" });
+
+    await expect(
+      validateShotPlanArtifactReferences({
+        shotPlan: plan,
+        episodeWorkspace,
+        artifactPath,
+        expectedSourceIdentity: {
+          ...sourceIdentity,
+          contentHash: "b".repeat(64),
+          cacheIdentity: "changed",
+        },
+      })
+    ).resolves.toMatchObject({ validationCode: "STALE_SOURCE_IDENTITY" });
+
+    const missingImagePlan = shotPlanSchema.parse({
+      ...plan,
+      sourceScenes: [
+        {
+          ...plan.sourceScenes[0]!,
+          sourceImagePath: "shared/images/generated/missing.png",
+        },
+      ],
+    });
+    await expect(
+      validateShotPlanArtifactReferences({
+        shotPlan: missingImagePlan,
+        episodeWorkspace,
+        artifactPath,
+        expectedSourceIdentity: sourceIdentity,
+      })
+    ).resolves.toMatchObject({ validationCode: "BROKEN_REFERENCE" });
+
+    const escapingImagePlan = shotPlanSchema.parse({
+      ...plan,
+      sourceScenes: [
+        {
+          ...plan.sourceScenes[0]!,
+          sourceImagePath: "../outside.png",
+        },
+      ],
+    });
+    await expect(
+      validateShotPlanArtifactReferences({
+        shotPlan: escapingImagePlan,
+        episodeWorkspace,
+        artifactPath,
+        expectedSourceIdentity: sourceIdentity,
+      })
+    ).resolves.toMatchObject({ validationCode: "BROKEN_REFERENCE" });
   });
 });

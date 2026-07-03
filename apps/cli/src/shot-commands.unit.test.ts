@@ -32,9 +32,19 @@ vi.mock("@mediaforge/visual-planning", async () => {
   const migration = await import(
     "../../../packages/visual-planning/src/legacy-shot-plan.js"
   );
+  const shotPlanner = await import(
+    "../../../packages/visual-planning/src/shot-planner.js"
+  );
+  const shotValidation = await import(
+    "../../../packages/visual-planning/src/shot-validation.js"
+  );
   return {
     ...actual,
+    deterministicShotPlanner: shotPlanner.deterministicShotPlanner,
     migrateLegacyEpisodeShots: migration.migrateLegacyEpisodeShots,
+    serializeShotPlan: shotPlanner.serializeShotPlan,
+    validateShotPlanArtifactReferences:
+      shotValidation.validateShotPlanArtifactReferences,
   };
 });
 
@@ -52,7 +62,8 @@ afterEach(() => {
 });
 
 async function setupWorkspace() {
-  const workspaceDir = await fs.mkdtemp(path.join(os.tmpdir(), "shots-cli-"));
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "shots-cli-"));
+  const workspaceDir = path.join(tempDir, "episodes");
   const episodeId = "episode-fixture";
   const episodeDir = path.join(workspaceDir, episodeId);
   await fs.mkdir(path.join(episodeDir, "state", "visual-retention"), {
@@ -62,6 +73,29 @@ async function setupWorkspace() {
   await fs.mkdir(path.join(episodeDir, "shared", "images", "generated"), {
     recursive: true,
   });
+  await fs.mkdir(path.join(episodeDir, "languages", "short"), {
+    recursive: true,
+  });
+  await fs.writeFile(
+    path.join(episodeDir, "languages", "script-en.md"),
+    "English full script.\n",
+    "utf8"
+  );
+  await fs.writeFile(
+    path.join(episodeDir, "languages", "script-de.md"),
+    "Deutsches Full Script.\n",
+    "utf8"
+  );
+  await fs.writeFile(
+    path.join(episodeDir, "languages", "short", "script-en.md"),
+    "English short script.\n",
+    "utf8"
+  );
+  await fs.writeFile(
+    path.join(episodeDir, "languages", "short", "script-de.md"),
+    "Deutsches Short Script.\n",
+    "utf8"
+  );
   const imagePath = path.join(
     episodeDir,
     "shared",
@@ -85,7 +119,7 @@ async function setupWorkspace() {
       sourceSceneId: "source-scene-001",
       sceneId: "scene-001",
       narrationStartMs: 0,
-      narrationEndMs: 1500,
+      narrationEndMs: 6000,
       sourceImageId: "image-001",
       sourceImagePath: "shared/images/generated/scene-001.png",
       sourceImageSha256: "a".repeat(64),
@@ -106,8 +140,8 @@ async function setupWorkspace() {
         sequenceNumber: 1,
         canonicalNarration: "A hallway waits.",
         sourceSegmentIds: ["scene-001"],
-        estimatedDurationSeconds: 1.5,
-        timing: { startSeconds: 0, endSeconds: 1.5 },
+        estimatedDurationSeconds: 6,
+        timing: { startSeconds: 0, endSeconds: 6 },
         visualPurpose: "hook",
         subject: "hallway",
         action: "shown",
@@ -200,7 +234,37 @@ async function setupWorkspace() {
             },
           },
         ],
-        full: [],
+        full: [
+          {
+            id: "full-4-6m",
+            pacingProfileId: "balanced",
+            narrationDurationMs: { minMs: 0, maxMs: 600000 },
+            budget: {
+              sourceImageCount: { min: 1, max: 5 },
+              shotCount: { min: 1, max: 5 },
+              shotsPerImage: { min: 1, max: 3 },
+              maxConsecutiveSourceImageUses: 3,
+              maxTotalSourceImageUses: 5,
+              cropLimits: {
+                minCropArea: 0.35,
+                minFaceMargin: 0.08,
+                maxCropZoom: 1.7,
+                minOutputHeightPx: 720,
+                maxAdjacentSameImageCropIou: 0.82,
+              },
+              motionLimits: {
+                minShotDurationMs: 1000,
+                pushInScaleRange: { min: 1.02, max: 1.1 },
+                fastPushInScaleRange: { min: 1.06, max: 1.16 },
+                panTravelFractionOfImage: { min: 0.02, max: 0.08 },
+                rotationDegreesRange: { min: -0.5, max: 0.5 },
+                dissolveDurationMs: { minMs: 200, maxMs: 500 },
+                dipToBlackDurationMs: { minMs: 200, maxMs: 800 },
+              },
+              effectCaps: [],
+            },
+          },
+        ],
       },
     },
   };
@@ -211,10 +275,24 @@ async function setupWorkspace() {
 }
 
 async function setupLegacyWorkspace() {
-  const workspaceDir = await fs.mkdtemp(path.join(os.tmpdir(), "shots-migrate-"));
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "shots-migrate-"));
+  const workspaceDir = path.join(tempDir, "episodes");
   const episodeId = "legacy-fixture";
   const episodeDir = path.join(workspaceDir, episodeId);
   await fs.mkdir(path.join(episodeDir, "canonical"), { recursive: true });
+  await fs.mkdir(path.join(episodeDir, "languages", "short"), {
+    recursive: true,
+  });
+  await fs.writeFile(
+    path.join(episodeDir, "languages", "script-en.md"),
+    "Legacy English full script.\n",
+    "utf8"
+  );
+  await fs.writeFile(
+    path.join(episodeDir, "languages", "short", "script-en.md"),
+    "Legacy English short script.\n",
+    "utf8"
+  );
   const scenes = [0, 1, 2].map((index) => {
     const sceneNumber = index + 1;
     const sceneId = `scene-${String(sceneNumber).padStart(3, "0")}`;
@@ -346,6 +424,131 @@ describe("shot commands", () => {
     );
     expect(created.status).toBe("created");
     expect(reused.status).toBe("reused");
+  });
+
+  it("plans and validates deterministic resolver-owned artifacts for all locale and variant cells", async () => {
+    const { episodeDir } = await setupWorkspace();
+    const cells = [
+      { locale: "en", variant: "full" },
+      { locale: "de", variant: "full" },
+      { locale: "en", variant: "short" },
+      { locale: "de", variant: "short" },
+    ] as const;
+
+    for (const cell of cells) {
+      const options = {
+        episode: "episode-fixture",
+        variant: cell.variant,
+        locale: cell.locale,
+        format: "json" as const,
+      };
+      const firstPlan = await planShotsCommand(options);
+      const firstPlanContent = await fs.readFile(firstPlan.planPath, "utf8");
+      const secondPlan = await planShotsCommand(options);
+      const secondPlanContent = await fs.readFile(secondPlan.planPath, "utf8");
+      const validation = await validateShotsCommand(options);
+
+      expect(firstPlan.planPath).toBe(
+        path.join(
+          episodeDir,
+          "state",
+          "visual-retention",
+          `shot-plan.${cell.variant}.${cell.locale}.json`
+        )
+      );
+      expect(secondPlan.status).toBe("reused");
+      expect(secondPlanContent).toBe(firstPlanContent);
+      expect(validation.validationCode).toBe("VALID");
+      expect(validation.valid).toBe(true);
+      expect(validation.reportPath).toBe(
+        path.join(
+          episodeDir,
+          "state",
+          "visual-retention",
+          `validation.${cell.variant}.${cell.locale}.json`
+        )
+      );
+    }
+  });
+
+  it("reports a stable missing-artifact code without writing a validation report", async () => {
+    const { episodeDir } = await setupWorkspace();
+    const result = await validateShotsCommand({
+      episode: "episode-fixture",
+      variant: "short",
+      locale: "en",
+      format: "json",
+    });
+
+    expect(result.validationCode).toBe("MISSING_ARTIFACT");
+    expect(result.status).toBe("not-written");
+    expect(result.valid).toBe(false);
+    await expect(
+      fs.access(
+        path.join(
+          episodeDir,
+          "state",
+          "visual-retention",
+          "validation.short.en.json"
+        )
+      )
+    ).rejects.toThrow();
+  });
+
+  it("reports invalid schema, stale identity, broken reference, and path escape artifacts", async () => {
+    const { episodeDir } = await setupWorkspace();
+    const options = {
+      episode: "episode-fixture",
+      variant: "short",
+      locale: "en",
+      format: "json" as const,
+    };
+    const planPath = path.join(
+      episodeDir,
+      "state",
+      "visual-retention",
+      "shot-plan.short.en.json"
+    );
+
+    await fs.writeFile(planPath, "{not-json}\n", "utf8");
+    expect((await validateShotsCommand(options)).validationCode).toBe(
+      "INVALID_SCHEMA"
+    );
+
+    await planShotsCommand(options);
+    await fs.writeFile(
+      path.join(episodeDir, "languages", "short", "script-en.md"),
+      "Changed short script.\n",
+      "utf8"
+    );
+    expect((await validateShotsCommand(options)).validationCode).toBe(
+      "STALE_SOURCE_IDENTITY"
+    );
+
+    await planShotsCommand({ ...options, force: true });
+    const brokenPlan = JSON.parse(await fs.readFile(planPath, "utf8")) as {
+      sourceScenes: Array<{ sourceImagePath: string }>;
+    };
+    brokenPlan.sourceScenes[0]!.sourceImagePath =
+      "shared/images/generated/missing.png";
+    await fs.writeFile(planPath, `${JSON.stringify(brokenPlan, null, 2)}\n`, "utf8");
+    expect((await validateShotsCommand(options)).validationCode).toBe(
+      "BROKEN_REFERENCE"
+    );
+
+    await planShotsCommand({ ...options, force: true });
+    const escapingPlan = JSON.parse(await fs.readFile(planPath, "utf8")) as {
+      sourceScenes: Array<{ sourceImagePath: string }>;
+    };
+    escapingPlan.sourceScenes[0]!.sourceImagePath = "../outside.png";
+    await fs.writeFile(
+      planPath,
+      `${JSON.stringify(escapingPlan, null, 2)}\n`,
+      "utf8"
+    );
+    expect((await validateShotsCommand(options)).validationCode).toBe(
+      "BROKEN_REFERENCE"
+    );
   });
 
   it("persists validation results to the resolver-owned path", async () => {

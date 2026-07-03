@@ -1316,6 +1316,19 @@ export type EvidenceInsertArtifact = z.infer<
   typeof evidenceInsertArtifactSchema
 >;
 
+export const shotPlanSourceIdentitySchema = z
+  .object({
+    resolverVersion: z.string().trim().min(1),
+    episodeId: episodeIdSchema,
+    language: z.string().trim().min(1),
+    variant: contentVariantSchema,
+    relativePath: z.string().trim().min(1),
+    contentHash: sha256Schema,
+    cacheIdentity: z.string().trim().min(1),
+  })
+  .strict();
+export type ShotPlanSourceIdentity = z.infer<typeof shotPlanSourceIdentitySchema>;
+
 export const shotPlanSchema = z
   .object({
     schemaVersion: z.literal(1),
@@ -1323,6 +1336,7 @@ export const shotPlanSchema = z
     locale: z.string().min(1).optional(),
     variant: contentVariantSchema,
     aspectRatio: aspectRatioSchema,
+    sourceIdentity: shotPlanSourceIdentitySchema.optional(),
     sourceScenes: z.array(visualSourceSceneSchema),
     shots: z.array(renderShotSchema),
     pacingProfile: shotPlanPacingProfileSchema,

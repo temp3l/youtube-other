@@ -6,6 +6,7 @@ import {
   visualSourceSceneSchema,
   type FocalRegion,
   type RenderShot,
+  type ShotPlanSourceIdentity,
   type ShotPlan,
   type VisualBudget,
   type VisualNarrativePhase,
@@ -265,6 +266,26 @@ describe("deterministic shot planner", () => {
     expect(serializeShotPlan(planner.plan(shortInput({ seed: "other-seed" })))).not.toBe(
       serializeShotPlan(first),
     );
+  });
+
+  it("preserves resolver source identity in deterministic serialized plans", () => {
+    const sourceIdentity: ShotPlanSourceIdentity = {
+      resolverVersion: "authored-script-resolver-v2",
+      episodeId: episodeIdSchema.parse("episode-fixture"),
+      language: "en",
+      variant: "short",
+      relativePath: "episodes/episode-fixture/languages/short/script-en.md",
+      contentHash: "a".repeat(64),
+      cacheIdentity:
+        "authored-script-resolver-v2:episode-fixture:en:short:episodes/episode-fixture/languages/short/script-en.md:" +
+        "a".repeat(64),
+    };
+    const first = planner.plan(shortInput({ sourceIdentity }));
+    const second = planner.plan(shortInput({ sourceIdentity }));
+
+    expect(first.sourceIdentity).toEqual(sourceIdentity);
+    expect(serializeShotPlan(second)).toBe(serializeShotPlan(first));
+    expect(serializeShotPlan(first)).toContain('"sourceIdentity"');
   });
 
   it("covers scene timing exactly and satisfies the Shorts opening cadence within budget", () => {

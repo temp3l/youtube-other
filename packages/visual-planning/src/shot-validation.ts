@@ -1,3 +1,5 @@
+import fs from "node:fs/promises";
+import path from "node:path";
 import type {
   CameraMotion,
   CaptionPlan as DomainCaptionPlan,
@@ -6,6 +8,7 @@ import type {
   NormalizedCrop,
   RenderShot,
   ShotPlan,
+  ShotPlanSourceIdentity,
   ShotPlanValidationIssue,
   ShotPlanValidationIssueCode,
   ShotPlanValidationIssueSeverity,
@@ -77,6 +80,32 @@ export interface ShotPlanValidationResult {
   readonly issues: readonly ShotPlanValidationIssue[];
   readonly metrics: ShotPlanValidationMetrics;
 }
+
+export type ShotPlanArtifactValidationCode =
+  | "VALID"
+  | "MISSING_ARTIFACT"
+  | "INVALID_SCHEMA"
+  | "STALE_SOURCE_IDENTITY"
+  | "BROKEN_REFERENCE";
+
+export type ShotPlanArtifactReferenceValidationResult =
+  | {
+      readonly validationCode: "VALID";
+    }
+  | {
+      readonly validationCode: "STALE_SOURCE_IDENTITY";
+      readonly message: string;
+      readonly expectedSourceIdentity: ShotPlanSourceIdentity;
+      readonly actualSourceIdentity?: ShotPlanSourceIdentity;
+    }
+  | {
+      readonly validationCode: "BROKEN_REFERENCE";
+      readonly message: string;
+      readonly relativePath?: string;
+      readonly absolutePath?: string;
+      readonly sceneId?: string;
+      readonly sourceImageId?: string;
+    };
 
 export interface MeaningfulVisualChange {
   readonly meaningful: boolean;
@@ -226,6 +255,88 @@ export function validateShotPlan(
   };
 }
 
+export async function validateShotPlanArtifactReferences(input: {
+  readonly shotPlan: ShotPlan;
+  readonly episodeWorkspace: string;
+  readonly artifactPath: string;
+  readonly expectedSourceIdentity?: ShotPlanSourceIdentity;
+}): Promise<ShotPlanArtifactReferenceValidationResult> {
+  const episodeWorkspace = path.resolve(input.episodeWorkspace);
+  const artifactContained = await resolveExistingContainedPath({
+    root: episodeWorkspace,
+    candidatePath: input.artifactPath,
+  });
+  if (!artifactContained.contained) {
+    return {
+      validationCode: "BROKEN_REFERENCE",
+      message: "Shot-plan artifact path escapes the episode workspace.",
+      absolutePath: path.resolve(input.artifactPath),
+    };
+  }
+
+  if (input.expectedSourceIdentity !== undefined) {
+    const actual = input.shotPlan.sourceIdentity;
+    if (
+      actual === undefined ||
+      !shotPlanSourceIdentityEquals(actual, input.expectedSourceIdentity)
+    ) {
+      return {
+        validationCode: "STALE_SOURCE_IDENTITY",
+        message: "Shot-plan source identity does not match the current authored script resolver identity.",
+        expectedSourceIdentity: input.expectedSourceIdentity,
+        ...(actual === undefined ? {} : { actualSourceIdentity: actual }),
+      };
+    }
+  }
+
+  for (const sourceScene of input.shotPlan.sourceScenes) {
+    const candidatePath = path.isAbsolute(sourceScene.sourceImagePath)
+      ? sourceScene.sourceImagePath
+      : path.join(episodeWorkspace, sourceScene.sourceImagePath);
+    const imageContained = await resolveExistingContainedPath({
+      root: episodeWorkspace,
+      candidatePath,
+    });
+    if (!imageContained.contained) {
+      return {
+        validationCode: "BROKEN_REFERENCE",
+        message: "Source image path escapes the episode workspace.",
+        relativePath: sourceScene.sourceImagePath,
+        absolutePath: path.resolve(candidatePath),
+        sceneId: sourceScene.sceneId,
+        sourceImageId: sourceScene.sourceImageId,
+      };
+    }
+    if (!imageContained.exists) {
+      return {
+        validationCode: "BROKEN_REFERENCE",
+        message: "Source image referenced by the shot plan is missing.",
+        relativePath: sourceScene.sourceImagePath,
+        absolutePath: imageContained.resolvedPath,
+        sceneId: sourceScene.sceneId,
+        sourceImageId: sourceScene.sourceImageId,
+      };
+    }
+  }
+
+  return { validationCode: "VALID" };
+}
+
+export function shotPlanSourceIdentityEquals(
+  left: ShotPlanSourceIdentity,
+  right: ShotPlanSourceIdentity,
+): boolean {
+  return (
+    left.resolverVersion === right.resolverVersion &&
+    left.episodeId === right.episodeId &&
+    left.language === right.language &&
+    left.variant === right.variant &&
+    left.relativePath === right.relativePath &&
+    left.contentHash === right.contentHash &&
+    left.cacheIdentity === right.cacheIdentity
+  );
+}
+
 /**
  * Shared pre-render definition of a meaningful visual boundary. It intentionally
  * ignores captions and metadata-only changes, and is reused by opening-variety,
@@ -300,6 +411,47 @@ export function isVisiblyMovingShot(shot: RenderShot): boolean {
     dynamicTreatmentIds.has(shot.treatment.treatmentId) ||
     shot.treatment.family === "depth"
   );
+}
+
+async function resolveExistingContainedPath(args: {
+  readonly root: string;
+  readonly candidatePath: string;
+}): Promise<{
+  readonly contained: boolean;
+  readonly exists: boolean;
+  readonly resolvedPath: string;
+}> {
+  const root = path.resolve(args.root);
+  const resolvedCandidate = path.resolve(args.candidatePath);
+  if (!isPathInside(root, resolvedCandidate)) {
+    return {
+      contained: false,
+      exists: false,
+      resolvedPath: resolvedCandidate,
+    };
+  }
+
+  try {
+    const realPath = await fs.realpath(resolvedCandidate);
+    return {
+      contained: isPathInside(root, realPath),
+      exists: true,
+      resolvedPath: realPath,
+    };
+  } catch (error) {
+    if (error instanceof Error && "code" in error && error.code === "ENOENT") {
+      return {
+        contained: true,
+        exists: false,
+        resolvedPath: resolvedCandidate,
+      };
+    }
+    throw error;
+  }
+}
+
+function isPathInside(root: string, candidatePath: string): boolean {
+  return candidatePath === root || candidatePath.startsWith(`${root}${path.sep}`);
 }
 
 function analyzeShotPlan(input: ValidateShotPlanInput): Analysis {

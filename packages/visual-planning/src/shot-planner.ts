@@ -6,6 +6,7 @@ import {
   type NormalizedCrop,
   type RenderShot,
   type ShotPlan,
+  type ShotPlanSourceIdentity,
   type ShotTransition,
   type ShotTreatment,
   type VisualBudget,
@@ -41,6 +42,7 @@ export interface PlanShotsInput {
   readonly pacingProfile: VisualPacingProfile;
   readonly visualBudget: VisualBudget;
   readonly treatmentCatalogVersion: string;
+  readonly sourceIdentity?: ShotPlanSourceIdentity;
   readonly restrictions?: ShotPlanningRestrictions;
   readonly seed: string;
 }
@@ -225,6 +227,7 @@ export class DeterministicShotPlanner implements ShotPlanner {
       ...(input.locale ? { locale: input.locale } : {}),
       variant: input.platform,
       aspectRatio: input.aspectRatio,
+      ...(input.sourceIdentity ? { sourceIdentity: input.sourceIdentity } : {}),
       sourceScenes,
       shots,
       pacingProfile: {

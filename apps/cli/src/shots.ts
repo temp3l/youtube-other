@@ -15,6 +15,7 @@ import {
   shotPlanValidationIssueSchema,
   type ScenePlan,
   type ShotPlan,
+  type ShotPlanSourceIdentity,
   type ShotPlanValidationIssue,
   type VisualBudget,
   type VisualPacingProfile,
@@ -31,6 +32,7 @@ import {
   normalizeContentVariant,
   normalizeEpisodeId,
   normalizeLocaleCode,
+  resolveAuthoredScript,
   readJsonIfExists,
   writeBinaryAtomic,
   writeJsonAtomic,
@@ -42,7 +44,9 @@ import {
   serializeShotPlan,
   type ShotPlanValidationMetrics,
   type LegacyMigrationResult,
+  type ShotPlanArtifactValidationCode,
   validateShotPlan,
+  validateShotPlanArtifactReferences,
 } from "@mediaforge/visual-planning";
 import {
   shotTreatmentCatalog,
@@ -60,6 +64,7 @@ import { buildShotPreviewArtifacts } from "./shot-preview-output.js";
 const validationArtifactSchema = z
   .object({
     schemaVersion: z.literal(1),
+    validationCode: z.literal("VALID"),
     valid: z.boolean(),
     issues: z.array(shotPlanValidationIssueSchema),
     metrics: z.object({
@@ -104,7 +109,9 @@ export interface ShotsInspectResult {
 }
 
 export interface ShotsValidateResult {
-  readonly status: "created" | "reused" | "replaced";
+  readonly validationCode: ShotPlanArtifactValidationCode;
+  readonly status: "created" | "reused" | "replaced" | "not-written";
+  readonly planPath: string;
   readonly reportPath: string;
   readonly valid: boolean;
   readonly warningCount: number;
@@ -161,6 +168,7 @@ export async function planShotsCommand(
     pacingProfile: preset.pacingProfile,
     visualBudget: preset.visualBudget,
     treatmentCatalogVersion: shotTreatmentCatalogVersion,
+    sourceIdentity: context.sourceIdentity,
     seed: `${context.episodeId}:${context.variant}:${context.locale}:${preset.pacingProfile.id}`,
   });
   const serialized = `${serializeShotPlan(plan)}\n`;
@@ -215,10 +223,24 @@ export async function validateShotsCommand(
   options: ShotsCommandOptions
 ): Promise<ShotsValidateResult> {
   const context = await resolveShotsContext(options);
-  const shotPlan = await loadShotPlan(context.paths.planPath);
+  const artifact = await loadShotPlanForValidation(context);
+  if (artifact.validationCode !== "VALID") {
+    return {
+      validationCode: artifact.validationCode,
+      status: "not-written",
+      planPath: context.paths.planPath,
+      reportPath: context.paths.validationPath,
+      valid: false,
+      warningCount: 0,
+      errorCount: 1,
+      issues: [artifact.issue],
+    };
+  }
+  const shotPlan = artifact.shotPlan;
   const validation = await computeValidation(context, shotPlan);
   const nextArtifact = validationArtifactSchema.parse({
     schemaVersion: 1,
+    validationCode: "VALID",
     valid: validation.valid,
     issues: validation.issues,
     metrics: validation.metrics,
@@ -239,7 +261,9 @@ export async function validateShotsCommand(
     await writeJsonAtomic(context.paths.validationPath, nextArtifact);
   }
   return {
+    validationCode: "VALID",
     status,
+    planPath: context.paths.planPath,
     reportPath: context.paths.validationPath,
     valid: validation.valid,
     warningCount: validation.issues.filter(
@@ -393,7 +417,8 @@ export function registerShotsCommands(program: Command): void {
       } else {
         process.stdout.write(
           [
-            `Shot validation ${result.valid ? "passed" : "failed"} (${result.status})`,
+            `Shot validation ${result.valid ? "passed" : "failed"} (${result.validationCode}, ${result.status})`,
+            `Plan: ${result.planPath}`,
             `Report: ${result.reportPath}`,
             `Warnings: ${result.warningCount}`,
             `Errors: ${result.errorCount}`,
@@ -461,6 +486,7 @@ interface ShotsResolvedContext {
   readonly locale: string;
   readonly variant: "full" | "short";
   readonly episodeDir: string;
+  readonly sourceIdentity: ShotPlanSourceIdentity;
   readonly paths: {
     readonly sourceScenesPath: string;
     readonly scenePlanPath: string;
@@ -491,12 +517,28 @@ async function resolveShotsContext(
   const config = await loadRuntimeConfig({}, episodeConfig ?? {});
   const locale = normalizeLocaleCode(options.locale);
   const variant = normalizeContentVariant(options.variant);
+  const authoredSource = await resolveAuthoredScript({
+    workspaceRoot: authoredScriptWorkspaceRoot(initialConfig.workspaceDir),
+    episode: episodeId,
+    language: locale,
+    variant,
+  });
+  const sourceIdentity: ShotPlanSourceIdentity = {
+    resolverVersion: authoredSource.resolverVersion,
+    episodeId: episodeIdSchema.parse(authoredSource.episodeId),
+    language: authoredSource.language,
+    variant: authoredSource.variant,
+    relativePath: authoredSource.relativePath,
+    contentHash: authoredSource.contentHash,
+    cacheIdentity: authoredSource.cacheIdentity,
+  };
   return {
     config,
     episodeId,
     locale,
     variant,
     episodeDir,
+    sourceIdentity,
     paths: {
       sourceScenesPath: resolver.visualSourceScenes(episodeId),
       scenePlanPath: resolver.canonicalScenesPath(episodeId),
@@ -511,6 +553,11 @@ async function resolveShotsContext(
       focalMetadataPath: resolver.focalMetadata(episodeId),
     },
   };
+}
+
+function authoredScriptWorkspaceRoot(workspaceDir: string): string {
+  const resolved = path.resolve(workspaceDir);
+  return path.basename(resolved) === "episodes" ? path.dirname(resolved) : resolved;
 }
 
 async function loadRequiredSourceScenes(
@@ -539,6 +586,105 @@ async function loadShotPlan(filePath: string): Promise<ShotPlan> {
   return shotPlanSchema.parse(JSON.parse(raw) as unknown);
 }
 
+async function loadShotPlanForValidation(
+  context: ShotsResolvedContext
+): Promise<
+  | {
+      readonly validationCode: "VALID";
+      readonly shotPlan: ShotPlan;
+    }
+  | {
+      readonly validationCode: Exclude<ShotPlanArtifactValidationCode, "VALID">;
+      readonly issue: ShotsValidateResult["issues"][number];
+    }
+> {
+  const raw = await fs.readFile(context.paths.planPath, "utf8").catch((error) => {
+    if (isNodeErrorCode(error, "ENOENT")) {
+      return null;
+    }
+    throw error;
+  });
+  if (raw === null) {
+    return {
+      validationCode: "MISSING_ARTIFACT",
+      issue: artifactIssue({
+        code: "MISSING_ARTIFACT",
+        message: "Missing shot-plan artifact.",
+        repairSuggestion: "run-shots-plan",
+        metricValues: {
+          relativePath: path.relative(context.episodeDir, context.paths.planPath),
+        },
+      }),
+    };
+  }
+
+  let parsedJson: unknown;
+  try {
+    parsedJson = JSON.parse(raw) as unknown;
+  } catch (error) {
+    return {
+      validationCode: "INVALID_SCHEMA",
+      issue: artifactIssue({
+        code: "INVALID_SCHEMA",
+        message: `Shot-plan artifact is not valid JSON: ${error instanceof Error ? error.message : String(error)}`,
+        repairSuggestion: "rerun-shots-plan",
+      }),
+    };
+  }
+
+  const parsed = shotPlanSchema.safeParse(parsedJson);
+  if (!parsed.success) {
+    return {
+      validationCode: "INVALID_SCHEMA",
+      issue: artifactIssue({
+        code: "INVALID_SCHEMA",
+        message: `Shot-plan artifact does not match the schema: ${parsed.error.issues[0]?.message ?? "schema validation failed"}`,
+        repairSuggestion: "rerun-shots-plan",
+      }),
+    };
+  }
+
+  const referenceValidation = await validateShotPlanArtifactReferences({
+    shotPlan: parsed.data,
+    episodeWorkspace: context.episodeDir,
+    artifactPath: context.paths.planPath,
+    expectedSourceIdentity: context.sourceIdentity,
+  });
+  if (referenceValidation.validationCode !== "VALID") {
+    const metricValues =
+      referenceValidation.validationCode === "BROKEN_REFERENCE"
+        ? {
+            ...(referenceValidation.relativePath
+              ? { relativePath: referenceValidation.relativePath }
+              : {}),
+            ...(referenceValidation.sceneId
+              ? { sceneId: referenceValidation.sceneId }
+              : {}),
+            ...(referenceValidation.sourceImageId
+              ? { sourceImageId: referenceValidation.sourceImageId }
+              : {}),
+          }
+        : {};
+    return {
+      validationCode: referenceValidation.validationCode,
+      issue: artifactIssue({
+        code: referenceValidation.validationCode,
+        message: referenceValidation.message,
+        repairSuggestion:
+          referenceValidation.validationCode === "STALE_SOURCE_IDENTITY"
+            ? "rerun-shots-plan"
+            : "repair-shot-plan-reference",
+        metricValues,
+      }),
+    };
+  }
+
+  return {
+    validationCode: "VALID",
+    shotPlan: parsed.data,
+  };
+}
+
 async function loadScenePlan(filePath: string): Promise<ScenePlan> {
   const raw = await fs.readFile(filePath, "utf8").catch(() => null);
   if (raw === null) {
@@ -552,14 +698,18 @@ async function assertSourceSceneImagesExist(
   sourceScenes: readonly z.infer<typeof visualSourceSceneSchema>[]
 ): Promise<void> {
   for (const sourceScene of sourceScenes) {
-    const sourceImagePath = path.isAbsolute(sourceScene.sourceImagePath)
-      ? sourceScene.sourceImagePath
-      : path.join(episodeDir, sourceScene.sourceImagePath);
+    const sourceImagePath = ensureWorkspacePath(
+      episodeDir,
+      path.isAbsolute(sourceScene.sourceImagePath)
+        ? sourceScene.sourceImagePath
+        : path.join(episodeDir, sourceScene.sourceImagePath)
+    );
     if (!(await fileExists(sourceImagePath))) {
       throw new ArtifactNotFoundError(
         `Missing source image for ${sourceScene.sourceImageId} in ${sourceScene.sceneId}.`
       );
     }
+    ensureWorkspacePath(episodeDir, await fs.realpath(sourceImagePath));
   }
 }
 
@@ -743,6 +893,27 @@ function resolveArtifactStatus(args: {
     return "reused";
   }
   return "replaced";
+}
+
+function artifactIssue(args: {
+  readonly code: ShotPlanArtifactValidationCode;
+  readonly message: string;
+  readonly repairSuggestion: string;
+  readonly metricValues?: Readonly<Record<string, string | number | boolean | null>>;
+}): ShotsValidateResult["issues"][number] {
+  return {
+    code: args.code,
+    severity: "error",
+    message: args.message,
+    repairSuggestion: args.repairSuggestion,
+    ...(args.metricValues && Object.keys(args.metricValues).length > 0
+      ? { metricValues: args.metricValues }
+      : {}),
+  };
+}
+
+function isNodeErrorCode(error: unknown, code: string): boolean {
+  return error instanceof Error && "code" in error && error.code === code;
 }
 
 function extractRepairSuggestion(
