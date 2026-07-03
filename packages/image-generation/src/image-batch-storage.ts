@@ -20,6 +20,7 @@ import type {
   ImageBatchManifestItem as ImageBatchManifestItemType,
   SceneImageJob as SceneImageJobType,
 } from "./image-batch.types.js";
+import { normalizeImageBatchManifest } from "./image-batch-normalization.js";
 import {
   imageBatchManifestSchema,
 } from "./image-batch.schemas.js";
@@ -80,7 +81,10 @@ export async function writeImageBatchManifest(
   plan: ImageBatchStoragePlan,
   manifest: ImageBatchManifest
 ): Promise<void> {
-  await writeJsonAtomic(plan.manifestPath, imageBatchManifestSchema.parse(manifest));
+  await writeJsonAtomic(
+    plan.manifestPath,
+    imageBatchManifestSchema.parse(normalizeImageBatchManifest(manifest))
+  );
 }
 
 export async function readImageBatchManifest(
@@ -90,38 +94,32 @@ export async function readImageBatchManifest(
     return undefined;
   }
   const raw = await fs.readFile(manifestPath, "utf8");
-  return imageBatchManifestSchema.parse(JSON.parse(raw)) as ImageBatchManifest;
+  return normalizeImageBatchManifest(JSON.parse(raw)) as ImageBatchManifest;
 }
 
 export function createImageBatchManifestItem(args: {
   readonly job: SceneImageJob;
   readonly customId: string;
   readonly status?: ImageBatchManifestItem["status"];
-  readonly outputFormat: "png" | "jpeg" | "webp";
-  readonly quality?: string;
-  readonly characterReferenceHashes: readonly string[];
 }): ImageBatchManifestItem {
   return {
     customId: args.customId,
-    episodeNumber: args.job.episodeNumber,
-    episodeSlug: args.job.episodeSlug,
-    language: args.job.language,
-    format: args.job.format,
-    sceneId: args.job.sceneId,
-    sceneIndex: args.job.sceneIndex,
+    identity: args.job.identity,
+    ...(args.job.sceneId ? { sceneId: args.job.sceneId } : {}),
+    ...(args.job.sceneIndex !== undefined
+      ? { sceneIndex: args.job.sceneIndex }
+      : {}),
     ...(args.job.renderability ? { renderability: args.job.renderability } : {}),
     ...(args.job.reusedFromSceneId
       ? { reusedFromSceneId: args.job.reusedFromSceneId }
       : {}),
-    promptHash: args.job.promptHash,
     providerRequestHash: args.job.providerRequestHash,
     generationConfigurationHash: args.job.generationConfigurationHash,
     expectedOutputPath: args.job.expectedOutputPath,
     characterIds: args.job.characterIds,
-    characterReferenceHashes: args.characterReferenceHashes,
-    requestedSize: args.job.requestedSize,
-    ...(args.quality ? { quality: args.quality } : {}),
-    outputFormat: args.outputFormat,
+    requestedSize: args.job.identity.size,
+    quality: args.job.identity.quality,
+    outputFormat: args.job.outputFormat,
     status: args.status ?? "planned",
   };
 }

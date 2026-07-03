@@ -194,6 +194,81 @@ function makeImportClient(args: {
 }
 
 describe("image batch service", () => {
+  it("normalizes legacy v1 image batch manifests into the v2 identity shape", async () => {
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), "image-batch-v1-normalize-"));
+    const manifestPath = path.join(tempDir, "batch-v1.manifest.json");
+    await fs.writeFile(
+      manifestPath,
+      JSON.stringify(
+        {
+          schemaVersion: "image-batch-v1",
+          category: "image-generation",
+          localBatchId: "local-batch-0001",
+          rootLocalBatchId: "local-batch-0001",
+          retryNumber: 0,
+          createdAt: "2026-01-01T00:00:00.000Z",
+          updatedAt: "2026-01-01T00:00:00.000Z",
+          endpoint: "/v1/images/generations",
+          model: "gpt-image-2",
+          completionWindow: "24h",
+          inputFilePath: path.join(tempDir, "batch.jsonl"),
+          inputFileHash: "hash",
+          status: "prepared",
+          items: [
+            {
+              customId: "legacy-custom-id",
+              episodeNumber: "001-demo",
+              episodeSlug: "001-demo",
+              language: "en",
+              format: "full",
+              sceneId: "scene-002",
+              sceneIndex: 2,
+              promptHash: "a".repeat(64),
+              providerRequestHash: "b".repeat(64),
+              generationConfigurationHash: "c".repeat(64),
+              expectedOutputPath: path.join(
+                tempDir,
+                "episode",
+                "shared",
+                "images",
+                "generated",
+                "scene-002__000008-000016__16x9.png"
+              ),
+              characterIds: ["character-1"],
+              characterReferenceHashes: ["d".repeat(64), "e".repeat(64)],
+              requestedSize: "1920x1088",
+              quality: "medium",
+              outputFormat: "png",
+              status: "planned",
+            },
+          ],
+        },
+        null,
+        2
+      ),
+      "utf8"
+    );
+
+    const manifest = await readImageBatchManifest(manifestPath);
+
+    expect(manifest?.schemaVersion).toBe("image-batch-v2");
+    expect(manifest?.items[0]?.identity).toMatchObject({
+      episodeId: "001-demo",
+      language: "en",
+      variant: "full",
+      assetRole: "full-scene",
+      operation: "generation",
+      subject: { kind: "scene", id: "scene-002" },
+      dependencyHashes: ["d".repeat(64), "e".repeat(64)],
+      destination: {
+        root: "shared-images-generated",
+        relativePath:
+          "shared/images/generated/scene-002__000008-000016__16x9.png",
+      },
+    });
+    expect(manifest?.items[0]?.customId).toMatch(/^dte-img:v2:/u);
+  });
+
   it("submits and refreshes an image batch while updating the shared index", async () => {
     const tempDir = mkdtempSync(path.join(os.tmpdir(), "image-batch-service-"));
     const episodeDir = path.join(tempDir, "episode");

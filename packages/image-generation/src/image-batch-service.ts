@@ -130,7 +130,9 @@ function computeImageDetails(manifest: ImageBatchManifest) {
   ).length;
   return {
     category: "image-generation" as const,
-    episodeNumbers: [...new Set(manifest.items.map((item) => item.episodeNumber))],
+    episodeNumbers: [
+      ...new Set(manifest.items.map((item) => item.identity.episodeId)),
+    ],
     sceneCount: manifest.items.length,
     mergedWithPreviousScenes: manifest.items.filter(
       (item) => item.renderability === "mergeWithPrevious"
@@ -189,9 +191,17 @@ function toIndexEntry(args: {
     model: args.manifest.model,
     endpoint: args.manifest.endpoint,
     completionWindow: args.manifest.completionWindow,
-    operations: ["image-generation"],
+    operations: [
+      ...new Set(
+        args.manifest.items.map((item) =>
+          item.identity.operation === "edit" ? "image-edit" : "image-generation"
+        )
+      ),
+    ],
     episodeNumbers: imageDetails.episodeNumbers,
-    languages: ["en"],
+    languages: [
+      ...new Set(args.manifest.items.map((item) => item.identity.language)),
+    ],
     itemCount: args.manifest.items.length,
     completedItemCount,
     failedItemCount,
@@ -219,7 +229,11 @@ function toIndexEntry(args: {
     ...(args.manifest.errorFileId
       ? { errorFileId: args.manifest.errorFileId }
       : {}),
-    sourceHashPrefixes: [...new Set(args.manifest.items.map((item) => item.promptHash.slice(0, 8)))],
+    sourceHashPrefixes: [
+      ...new Set(
+        args.manifest.items.map((item) => item.identity.promptHash.slice(0, 8))
+      ),
+    ],
     imported:
       args.manifest.status === "imported" ||
       args.manifest.status === "imported_with_failures",
@@ -435,17 +449,19 @@ async function persistImportedSceneResult(args: {
   const imageBuffer = decodeBase64Image(payload);
   const persisted = await persistImportedImage({
     outputPath: args.item.expectedOutputPath,
-    sceneId: args.item.sceneId,
+    sceneId: args.item.sceneId ?? args.item.identity.subject.id,
     imageBuffer,
     expectedFormat: args.item.outputFormat,
     requestedSize: args.item.requestedSize,
   });
   const sceneManifest = await readSceneManifest(
     args.item.expectedOutputPath,
-    args.item.sceneId
+    args.item.sceneId ?? args.item.identity.subject.id
   );
   if (!sceneManifest) {
-    throw new Error(`Missing scene manifest for ${args.item.sceneId}.`);
+    throw new Error(
+      `Missing scene manifest for ${args.item.sceneId ?? args.item.identity.subject.id}.`
+    );
   }
   const nextSceneManifest: SceneGenerationManifest = {
     ...sceneManifest,
@@ -456,7 +472,7 @@ async function persistImportedSceneResult(args: {
   };
   const manifestPath = await writeSceneManifest(
     args.item.expectedOutputPath,
-    args.item.sceneId,
+    args.item.sceneId ?? args.item.identity.subject.id,
     nextSceneManifest
   );
   const nextItem = imageBatchManifestItemSchema.parse({
@@ -772,11 +788,25 @@ export async function retryFailedImageBatch(
   if (retryableItems.length === 0) {
     throw new Error(`Image batch ${resolvedLocalBatchId} has no retryable items.`);
   }
-  const retryableSceneIds = [...new Set(retryableItems.map((item) => item.sceneId))];
+  const retryableSceneIds = [
+    ...new Set(
+      retryableItems
+        .map((item) => item.sceneId)
+        .filter((item): item is string => item !== undefined)
+    ),
+  ];
   const retryableSceneIndex = new Map(
-    retryableItems.map((item) => [item.sceneId, item.sceneIndex])
+    retryableItems
+      .filter(
+        (
+          item
+        ): item is (typeof retryableItems)[number] & { readonly sceneId: string } =>
+          item.sceneId !== undefined
+      )
+      .map((item) => [item.sceneId, item.sceneIndex ?? 0])
   );
-  const episodeSlug = retryableItems[0]?.episodeSlug ?? manifest.items[0]?.episodeSlug;
+  const episodeSlug =
+    retryableItems[0]?.identity.episodeId ?? manifest.items[0]?.identity.episodeId;
   if (!episodeSlug) {
     throw new Error(`Unable to resolve episode slug for ${resolvedLocalBatchId}.`);
   }

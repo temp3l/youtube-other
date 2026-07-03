@@ -1,3 +1,5 @@
+import type { ContentVariant, EpisodeLanguage } from "@mediaforge/shared";
+
 export type ImageBatchStatus =
   | "prepared"
   | "uploading"
@@ -26,13 +28,66 @@ export type ImageBatchItemStatus =
   | "skipped-cached"
   | "retry-required";
 
+export type ImageBatchQuality = "low" | "medium" | "high" | "auto";
+
+export type ImageBatchAssetRole =
+  | "full-scene"
+  | "short-scene"
+  | "character-reference"
+  | "location-reference"
+  | "object-reference"
+  | "continuity-asset"
+  | "thumbnail";
+
+export type ImageBatchOperation =
+  | "generation"
+  | "edit"
+  | "deterministic-transform";
+
+export type ImageBatchDestinationRoot =
+  | "shared-images-generated"
+  | "shared-short-images-generated"
+  | "shared-character-references"
+  | "shared-location-references"
+  | "shared-object-references"
+  | "shared-continuity-assets"
+  | "locale-thumbnails";
+
+export type ImageBatchSubject =
+  | { readonly kind: "scene"; readonly id: string }
+  | { readonly kind: "shot"; readonly id: string }
+  | { readonly kind: "character"; readonly id: string }
+  | { readonly kind: "location"; readonly id: string }
+  | { readonly kind: "object"; readonly id: string }
+  | { readonly kind: "continuity"; readonly id: string }
+  | { readonly kind: "thumbnail"; readonly id: string };
+
+export interface ImageBatchDestinationIdentity {
+  readonly root: ImageBatchDestinationRoot;
+  readonly relativePath: string;
+}
+
+export interface ImageBatchAssetIdentity {
+  readonly schemaVersion: "image-asset-identity-v1";
+  readonly episodeId: string;
+  readonly language: EpisodeLanguage;
+  readonly variant: ContentVariant;
+  readonly assetRole: ImageBatchAssetRole;
+  readonly operation: ImageBatchOperation;
+  readonly subject: ImageBatchSubject;
+  readonly promptHash: string;
+  readonly model: string;
+  readonly size: string;
+  readonly quality: ImageBatchQuality;
+  readonly dependencyHashes: readonly string[];
+  readonly destination: ImageBatchDestinationIdentity;
+  readonly identityHash: string;
+}
+
 export interface SceneImageJob {
-  readonly episodeNumber: string;
-  readonly episodeSlug: string;
-  readonly language: "en";
-  readonly format: "full";
-  readonly sceneId: string;
-  readonly sceneIndex: number;
+  readonly identity: ImageBatchAssetIdentity;
+  readonly sceneId?: string;
+  readonly sceneIndex?: number;
   readonly renderability?: "direct" | "requiresInference" | "mergeWithPrevious" | "mergeWithNext" | "skip";
   readonly reusedFromSceneId?: string;
   readonly startTimeSeconds?: number;
@@ -42,34 +97,25 @@ export interface SceneImageJob {
   readonly negativePrompt?: string;
   readonly characterIds: readonly string[];
   readonly characterReferencePaths: readonly string[];
-  readonly model: string;
-  readonly quality: string;
-  readonly requestedSize: string;
   readonly outputFormat: "png" | "jpeg" | "webp";
   readonly expectedOutputPath: string;
-  readonly promptHash: string;
   readonly providerRequestHash: string;
   readonly generationConfigurationHash: string;
 }
 
 export interface ImageBatchManifestItem {
   readonly customId: string;
-  readonly episodeNumber: string;
-  readonly episodeSlug: string;
-  readonly language: "en";
-  readonly format: "full";
-  readonly sceneId: string;
-  readonly sceneIndex: number;
+  readonly identity: ImageBatchAssetIdentity;
+  readonly sceneId?: string;
+  readonly sceneIndex?: number;
   readonly renderability?: "direct" | "requiresInference" | "mergeWithPrevious" | "mergeWithNext" | "skip";
   readonly reusedFromSceneId?: string;
-  readonly promptHash: string;
   readonly providerRequestHash: string;
   readonly generationConfigurationHash: string;
   readonly expectedOutputPath: string;
   readonly characterIds: readonly string[];
-  readonly characterReferenceHashes: readonly string[];
   readonly requestedSize: string;
-  readonly quality?: string;
+  readonly quality?: ImageBatchQuality;
   readonly outputFormat: "png" | "jpeg" | "webp";
   readonly status: ImageBatchItemStatus;
   readonly imageHash?: string;
@@ -91,7 +137,7 @@ export interface ImageBatchManifestItem {
 }
 
 export interface ImageBatchManifest {
-  readonly schemaVersion: string;
+  readonly schemaVersion: "image-batch-v2";
   readonly category: "image-generation";
   readonly localBatchId: string;
   readonly rootLocalBatchId: string;

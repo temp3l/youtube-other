@@ -4,10 +4,19 @@ import {
   fileExists,
   hashText,
   normalizeWhitespace,
+  normalizeContentVariant,
+  normalizeLocaleCode,
   resolveEpisodeImageManifestPath,
   resolveEpisodeImagePromptPath,
   resolveEpisodeImageStateDir,
 } from "@mediaforge/shared";
+import {
+  buildImageBatchCustomId,
+  createImageBatchAssetIdentity,
+  deriveImageBatchDestinationIdentity,
+  endpointForImageBatchOperation,
+  normalizeImageBatchDestinationPath,
+} from "./image-batch-identity.js";
 import {
   type ImageBatchManifest,
   type ImageBatchManifestItem,
@@ -36,6 +45,8 @@ export interface ImageBatchPlannerSettings {
 export interface ImageBatchPlannerOptions {
   readonly sceneId?: string;
   readonly sceneIds?: readonly string[];
+  readonly language?: string;
+  readonly variant?: "full" | "short";
 }
 
 export interface PlannedImageBatchScene {
@@ -50,7 +61,7 @@ export interface PlannedImageBatchScene {
   readonly requestLine: {
     readonly custom_id: string;
     readonly method: "POST";
-    readonly url: "/v1/images/generations";
+    readonly url: "/v1/images/generations" | "/v1/images/edits";
     readonly body: Record<string, unknown>;
   };
   readonly manifestItem: ImageBatchManifestItem;
@@ -76,6 +87,8 @@ function stableHash(value: string): string {
 }
 
 function buildConfigurationHash(args: {
+  readonly language: string;
+  readonly variant: string;
   readonly model: string;
   readonly requestedSize: string;
   readonly quality: string;
@@ -83,6 +96,8 @@ function buildConfigurationHash(args: {
 }): string {
   return stableHash(
     JSON.stringify({
+      language: args.language,
+      variant: args.variant,
       model: args.model,
       requestedSize: args.requestedSize,
       quality: args.quality,
@@ -113,23 +128,6 @@ function buildProviderRequestHash(args: {
   );
 }
 
-function buildCustomId(args: {
-  readonly episodeNumber: string;
-  readonly sceneId: string;
-  readonly promptHash: string;
-  readonly providerRequestHash: string;
-}): string {
-  return [
-    "dte-img",
-    args.episodeNumber,
-    "en",
-    "full",
-    args.sceneId,
-    args.promptHash.slice(0, 8),
-    args.providerRequestHash.slice(0, 8),
-  ].join(":");
-}
-
 function normalizePrompt(value: string): string {
   return normalizeWhitespace(value).trim();
 }
@@ -156,6 +154,8 @@ async function readPromptText(
 async function buildSceneJob(args: {
   readonly episodeDir: string;
   readonly episodeId: string;
+  readonly language: string;
+  readonly variant: "full" | "short";
   readonly sceneId: string;
   readonly sceneIndex: number;
   readonly sceneManifest: SceneGenerationManifest;
@@ -168,6 +168,8 @@ async function buildSceneJob(args: {
   );
   const promptHash = stableHash(prompt);
   const configurationHash = buildConfigurationHash({
+    language: args.language,
+    variant: args.variant,
     model: args.settings.model,
     requestedSize: args.settings.requestedSize,
     quality: args.settings.quality,
@@ -184,17 +186,27 @@ async function buildSceneJob(args: {
     outputFormat: args.settings.outputFormat,
     characterReferenceHashes,
   });
-  const customId = buildCustomId({
-    episodeNumber: args.episodeId,
-    sceneId: args.sceneId,
+  const identity = createImageBatchAssetIdentity({
+    episodeId: args.episodeId,
+    language: args.language,
+    variant: args.variant,
+    assetRole: args.variant === "short" ? "short-scene" : "full-scene",
+    operation: "generation",
+    subject: { kind: "scene", id: args.sceneId },
     promptHash,
-    providerRequestHash,
+    model: args.settings.model,
+    size: args.settings.requestedSize,
+    quality: args.settings.quality,
+    dependencyHashes: characterReferenceHashes,
+    destination: deriveImageBatchDestinationIdentity({
+      assetRole: args.variant === "short" ? "short-scene" : "full-scene",
+      episodeDir: args.episodeDir,
+      outputPath: args.sceneManifest.outputPath,
+    }),
   });
+  const customId = buildImageBatchCustomId(identity);
   const job: SceneImageJob = {
-    episodeNumber: args.episodeId,
-    episodeSlug: args.episodeId,
-    language: "en",
-    format: "full",
+    identity,
     sceneId: args.sceneId,
     sceneIndex: args.sceneIndex,
     ...(args.sceneManifest.renderability
@@ -209,19 +221,21 @@ async function buildSceneJob(args: {
     characterReferencePaths: args.sceneManifest.referenceImages.map(
       (entry) => entry.path
     ),
-    model: args.settings.model,
-    quality: args.settings.quality,
-    requestedSize: args.settings.requestedSize,
     outputFormat: args.settings.outputFormat,
     expectedOutputPath: args.sceneManifest.outputPath,
-    promptHash,
     providerRequestHash,
     generationConfigurationHash: configurationHash,
   };
+  const endpoint = endpointForImageBatchOperation(identity.operation);
+  if (!endpoint) {
+    throw new Error(
+      `Unsupported image batch operation ${identity.operation} for ${identity.subject.kind}:${identity.subject.id}.`
+    );
+  }
   const requestLine = {
     custom_id: customId,
     method: "POST" as const,
-    url: "/v1/images/generations" as const,
+    url: endpoint,
     body: {
       model: args.settings.model,
       prompt,
@@ -234,9 +248,6 @@ async function buildSceneJob(args: {
   const manifestItem = createImageBatchManifestItem({
     job,
     customId,
-    outputFormat: args.settings.outputFormat,
-    quality: args.settings.quality,
-    characterReferenceHashes,
   });
   return {
     sceneId: args.sceneId,
@@ -264,6 +275,8 @@ export async function planImageBatchForEpisode(args: {
   readonly settings: ImageBatchPlannerSettings;
   readonly options?: ImageBatchPlannerOptions;
 }): Promise<PlannedImageBatchGroup[]> {
+  const language = normalizeLocaleCode(args.options?.language ?? "en");
+  const variant = normalizeContentVariant(args.options?.variant ?? "full");
   const selectedIds = args.options?.sceneIds?.length
     ? new Set(
         args.options.sceneIds
@@ -315,6 +328,8 @@ export async function planImageBatchForEpisode(args: {
       await buildSceneJob({
         episodeDir: args.episodeDir,
         episodeId: args.episodeId,
+        language,
+        variant,
         sceneId: scene.id,
         sceneIndex: scene.sequenceNumber,
         sceneManifest,
@@ -322,10 +337,42 @@ export async function planImageBatchForEpisode(args: {
       })
     );
   }
+  plannedScenes.sort((left, right) =>
+    left.requestLine.custom_id.localeCompare(right.requestLine.custom_id)
+  );
+  skippedSceneIds.sort((left, right) => left.localeCompare(right));
+  const identityHashes = new Set<string>();
+  const customIds = new Set<string>();
+  const destinationPaths = new Set<string>();
+  for (const plannedScene of plannedScenes) {
+    if (identityHashes.has(plannedScene.job.identity.identityHash)) {
+      throw new Error(
+        `Duplicate image batch identity detected for ${plannedScene.job.identity.subject.kind}:${plannedScene.job.identity.subject.id}.`
+      );
+    }
+    identityHashes.add(plannedScene.job.identity.identityHash);
+    if (customIds.has(plannedScene.requestLine.custom_id)) {
+      throw new Error(
+        `Duplicate image batch custom_id detected: ${plannedScene.requestLine.custom_id}.`
+      );
+    }
+    customIds.add(plannedScene.requestLine.custom_id);
+    const normalizedDestinationPath = normalizeImageBatchDestinationPath(
+      plannedScene.job.expectedOutputPath
+    );
+    if (destinationPaths.has(normalizedDestinationPath)) {
+      throw new Error(
+        `Duplicate image batch destination path detected: ${plannedScene.job.expectedOutputPath}.`
+      );
+    }
+    destinationPaths.add(normalizedDestinationPath);
+  }
   if (plannedScenes.length === 0) {
     return [
       {
         groupKey: buildConfigurationHash({
+          language,
+          variant,
           model: args.settings.model,
           requestedSize: args.settings.requestedSize,
           quality: args.settings.quality,
@@ -339,6 +386,8 @@ export async function planImageBatchForEpisode(args: {
     ];
   }
   const groupKey = buildConfigurationHash({
+    language,
+    variant,
     model: args.settings.model,
     requestedSize: args.settings.requestedSize,
     quality: args.settings.quality,
@@ -379,14 +428,14 @@ export async function prepareImageBatchForEpisode(args: {
       requestLines.map((line) => JSON.stringify(line))
     );
     const manifest: ImageBatchManifest = {
-      schemaVersion: "image-batch-v1",
+      schemaVersion: "image-batch-v2",
       category: "image-generation",
       localBatchId: group.storagePlan.localBatchId,
       rootLocalBatchId: group.storagePlan.localBatchId,
       retryNumber: 0,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-      endpoint: "/v1/images/generations",
+      endpoint: group.scenePlans[0]?.requestLine.url ?? "/v1/images/generations",
       model: args.settings.model,
       completionWindow: "24h",
       inputFilePath,
