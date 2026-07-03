@@ -83,6 +83,7 @@ const episode022GermanFullSourceFile = path.join(
   "de",
   "022-the-whistler-in-the-woods-de-full.md"
 );
+const episode002RenamedCharacter = "Elias Wexler";
 
 type MockResponse = {
   readonly output_text: string;
@@ -179,9 +180,27 @@ function buildFullNarration(language: LanguageCode): string[] {
   ];
 }
 
+function withFullCharacterNameCoverage(
+  packageValue: GeneratedStoryPackage
+): GeneratedStoryPackage {
+  if (!packageValue.full) {
+    throw new Error("Expected full story payload.");
+  }
+  return {
+    ...packageValue,
+    full: {
+      ...packageValue.full,
+      narrationParagraphs: [
+        ...packageValue.full.narrationParagraphs,
+        `${episode002RenamedCharacter} checked the hallway again before the final warning.`,
+      ],
+    },
+  };
+}
+
 function buildRetrySafeEnglishFullNarration(): string[] {
   let first =
-    "Elena Ward stayed in the house after dark and kept hearing Bramble breathe from under the bed while the storm pushed against every window.";
+    `${episode002RenamedCharacter} stayed in the house after dark and kept hearing Bramble breathe from under the bed while the storm pushed against every window.`;
   let second =
     "She found the same wet tracks by the stairs, HUMANS CAN LICK TOO was written on the mirror, and the attic notebook still said SHE REACHED DOWN FIRST while the intruder waited above the loft hatch.";
   while (countWords(`${first} ${second}`) < 155) {
@@ -190,7 +209,7 @@ function buildRetrySafeEnglishFullNarration(): string[] {
   return [
     first,
     second,
-    "When the alarm outside finally broke the silence, Elena saw the killer run through the loft hatch and understood that Bramble had been dead for hours.",
+    "When the alarm outside finally broke the silence, Elias saw the killer run through the loft hatch and understood that Bramble had been dead for hours.",
   ];
 }
 
@@ -245,6 +264,23 @@ function makeLocalizedPackage(
       adaptationNotes: [],
     },
   };
+}
+
+async function fileExists(filePath: string): Promise<boolean> {
+  try {
+    await fs.access(filePath);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function collectMockRequestText(
+  client: ReturnType<typeof makeMockClient>
+): string {
+  return client.responses.create.mock.calls
+    .map((call) => JSON.stringify(call[0]))
+    .join("\n");
 }
 
 describe("story localization helpers", () => {
@@ -528,38 +564,84 @@ describe("story localization helpers", () => {
       processingMode: "sync",
       force: true,
     });
+    const invalidLocalizedShortPackage = withFullCharacterNameCoverage(
+      makeLocalizedPackage("es", 80)
+    );
+    const validEnglishFullPackage = withFullCharacterNameCoverage(
+      makeLocalizedPackage("en", 160)
+    );
     const client = makeMockClient([
       {
         output_text: JSON.stringify({
           language: "en",
-          full: makeLocalizedPackage("en", 160).full,
-          preservationChecklist: makeLocalizedPackage("en", 160)
-            .preservationChecklist,
-          diagnostics: makeLocalizedPackage("en", 160).diagnostics,
+          full: validEnglishFullPackage.full,
+          preservationChecklist: validEnglishFullPackage.preservationChecklist,
+          diagnostics: validEnglishFullPackage.diagnostics,
         }),
       },
-      { output_text: JSON.stringify(makeLocalizedPackage("es", 80)) },
-      { output_text: JSON.stringify(makeLocalizedPackage("es", 165)) },
+      { output_text: JSON.stringify(invalidLocalizedShortPackage) },
     ]);
 
     const result = await localizeStoryEpisode(sourceFile, config, {
       client: client as never,
     });
 
-    expect(result.failure).toContain("Short word count");
+    const shortOutputPath = path.join(
+      tempDir,
+      "002-even-killers-can-lick",
+      "es",
+      "short",
+      "script.md"
+    );
+    const failedReportPath = path.join(
+      tempDir,
+      "002-even-killers-can-lick",
+      ".batch",
+      "failed",
+      "002-even-killers-can-lick",
+      "es",
+      "002-even-killers-can-lick-es-report.json"
+    );
+    const failedShortPath = path.join(
+      tempDir,
+      "002-even-killers-can-lick",
+      ".batch",
+      "failed",
+      "002-even-killers-can-lick",
+      "es",
+      "002-even-killers-can-lick-es-short.failed.md"
+    );
+    const failedReport = JSON.parse(
+      await fs.readFile(failedReportPath, "utf8")
+    ) as {
+      readonly issues: readonly string[];
+      readonly failureMessage: string;
+    };
+    const requestText = collectMockRequestText(client);
+
+    expect(failedReport.issues).toContain(
+      "Short word count 80 outside range 120-145."
+    );
+    expect(failedReport.issues).not.toContain("Character names are missing.");
+    expect(failedReport.issues).not.toContain(
+      "Written messages are not preserved."
+    );
+    expect(result.failure).toContain(
+      "Short word count 80 outside range 120-145."
+    );
+    expect(result.repairAttempts).toBe(0);
     expect(client.responses.create).toHaveBeenCalledTimes(2);
-    await expect(
-      fs.readFile(
-        path.join(
-          tempDir,
-          "002-even-killers-can-lick",
-          "es",
-          "short",
-          "script.md"
-        ),
-        "utf8"
-      )
-    ).rejects.toThrow();
+    expect(requestText).toContain(
+      "Rewrite the validated source story into Spanish narration only."
+    );
+    expect(requestText).toContain("## Full Story Contract");
+    expect(requestText).not.toContain("short repair");
+    expect(requestText).not.toContain("Rewrite only the short narration");
+    expect(requestText).not.toContain("localized-short");
+    expect(result.generatedFiles).not.toContain(shortOutputPath);
+    expect(result.skippedFiles).toContain(shortOutputPath);
+    await expect(fileExists(shortOutputPath)).resolves.toBe(false);
+    await expect(fileExists(failedShortPath)).resolves.toBe(false);
   });
 
   it("blocks impossible full-story budgets before calling OpenAI", async () => {
@@ -630,14 +712,16 @@ describe("story localization helpers", () => {
       processingMode: "sync",
       force: false,
     });
+    const validEnglishFullPackage = withFullCharacterNameCoverage(
+      makeLocalizedPackage("en", 160)
+    );
     const client = makeMockClient([
       {
         output_text: JSON.stringify({
           language: "en",
-          full: makeLocalizedPackage("en", 160).full,
-          preservationChecklist: makeLocalizedPackage("en", 160)
-            .preservationChecklist,
-          diagnostics: makeLocalizedPackage("en", 160).diagnostics,
+          full: validEnglishFullPackage.full,
+          preservationChecklist: validEnglishFullPackage.preservationChecklist,
+          diagnostics: validEnglishFullPackage.diagnostics,
         }),
       },
     ]);
@@ -658,6 +742,7 @@ describe("story localization helpers", () => {
       outputDirectory: tempDir,
       languages: ["es"],
       includeEnglishShort: false,
+      includeLocalizedShorts: false,
       processingMode: "sync",
       force: true,
       maxOutputTokens: 6000,
@@ -667,9 +752,9 @@ describe("story localization helpers", () => {
       language: "es",
       full: {
         narrationParagraphs: [
-          "Elena Ward oyó a Bramble respirar bajo la cama mientras la tormenta golpeaba la casa.",
+          `${episode002RenamedCharacter} oyó a Bramble respirar bajo la cama mientras la tormenta golpeaba la casa.`,
           "A la mañana siguiente encontró las huellas mojadas en el pasillo, HUMANS CAN LICK TOO en el espejo y la libreta del ático con la frase SHE REACHED DOWN FIRST.",
-          "Cuando la alarma del vecino rompió el silencio, Elena vio al intruso huir por la trampilla y comprendió que el asesino había estado dentro toda la noche.",
+          "Cuando la alarma del vecino rompió el silencio, Elias vio al intruso huir por la trampilla y comprendió que el asesino había estado dentro toda la noche.",
         ],
       },
       targetNarrationWpm: 170,
@@ -1270,12 +1355,18 @@ describe("story localization helpers", () => {
     if (!badSpanish.full) {
       throw new Error("Expected localized full payload.");
     }
+    const validEnglishFullPackage = withFullCharacterNameCoverage(
+      makeLocalizedPackage("en", 160)
+    );
+    const validGermanPackage = withFullCharacterNameCoverage(
+      makeLocalizedPackage("de", 125)
+    );
     const invalidSpanish = {
       ...badSpanish,
       full: {
         ...badSpanish.full,
         narrationParagraphs: [
-          "The warning stayed in English and never localized correctly.",
+          `${episode002RenamedCharacter} stayed in English and never localized correctly.`,
           "The warning stayed in English and never localized correctly.",
           "The warning stayed in English and never localized correctly...",
         ],
@@ -1285,13 +1376,12 @@ describe("story localization helpers", () => {
       {
         output_text: JSON.stringify({
           language: "en",
-          full: makeLocalizedPackage("en", 160).full,
-          preservationChecklist: makeLocalizedPackage("en", 160)
-            .preservationChecklist,
-          diagnostics: makeLocalizedPackage("en", 160).diagnostics,
+          full: validEnglishFullPackage.full,
+          preservationChecklist: validEnglishFullPackage.preservationChecklist,
+          diagnostics: validEnglishFullPackage.diagnostics,
         }),
       },
-      { output_text: JSON.stringify(makeLocalizedPackage("de", 165)) },
+      { output_text: JSON.stringify(validGermanPackage) },
       { output_text: JSON.stringify(invalidSpanish) },
     ]);
 

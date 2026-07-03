@@ -133,7 +133,21 @@ export function assertInsideWorkspace(workspaceRoot: string, candidatePath: stri
   return resolvedCandidate;
 }
 
-export const authoredScriptResolverVersion = "authored-script-resolver-v1" as const;
+export type AuthoredScriptResolverVersion = `authored-script-resolver-v${number}`;
+export const authoredScriptResolverVersion =
+  "authored-script-resolver-v2" as const satisfies AuthoredScriptResolverVersion;
+export type AuthoredScriptCacheIdentity = string & {
+  readonly __brand: "AuthoredScriptCacheIdentity";
+};
+
+export interface AuthoredScriptSourceIdentity {
+  readonly resolverVersion: AuthoredScriptResolverVersion;
+  readonly episodeId: EpisodeSlug;
+  readonly language: EpisodeLanguage;
+  readonly variant: ScriptVariant;
+  readonly relativePath: RepositoryRelativePath;
+  readonly contentHash: ScriptContentHash;
+}
 
 export type AuthoredScriptResolverErrorCode =
   | "INVALID_REQUEST"
@@ -184,12 +198,16 @@ export interface ResolvedAuthoredScript {
   readonly absolutePath: AbsolutePath;
   readonly relativePath: RepositoryRelativePath;
   readonly contentHash: ScriptContentHash;
-  readonly cacheIdentity: string;
+  readonly identity: AuthoredScriptSourceIdentity;
+  readonly cacheIdentity: AuthoredScriptCacheIdentity;
   readonly resolverVersion: typeof authoredScriptResolverVersion;
   readonly logContext: {
     readonly episodeId: string;
     readonly language: string;
     readonly variant: string;
+    readonly relativePath: string;
+    readonly contentHash: string;
+    readonly cacheIdentity: string;
     readonly scriptPath: string;
     readonly scriptHash: string;
     readonly resolverVersion: typeof authoredScriptResolverVersion;
@@ -224,6 +242,19 @@ function authoredScriptRelativePath(args: {
       ? ["episodes", args.episodeId, "languages", "short", `script-${args.language}.md`]
       : ["episodes", args.episodeId, "languages", `script-${args.language}.md`];
   return ensurePortableRelativePath(segments.join("/"));
+}
+
+export function buildAuthoredScriptCacheIdentity(
+  identity: AuthoredScriptSourceIdentity
+): AuthoredScriptCacheIdentity {
+  return [
+    identity.resolverVersion,
+    identity.episodeId,
+    identity.language,
+    identity.variant,
+    identity.relativePath,
+    identity.contentHash,
+  ].join(":") as AuthoredScriptCacheIdentity;
 }
 
 function staleAuthoredScriptRelativePaths(args: {
@@ -408,13 +439,15 @@ export async function resolveAuthoredScript(
   }
 
   const contentHash = await hashExistingFile(realCanonicalPath);
-  const cacheIdentity = [
-    authoredScriptResolverVersion,
+  const identity: AuthoredScriptSourceIdentity = {
+    resolverVersion: authoredScriptResolverVersion,
     episodeId,
     language,
     variant,
+    relativePath: canonicalRelativePath,
     contentHash,
-  ].join(":");
+  };
+  const cacheIdentity = buildAuthoredScriptCacheIdentity(identity);
 
   return {
     episodeId,
@@ -423,12 +456,16 @@ export async function resolveAuthoredScript(
     absolutePath: normalizeAbsolutePath(realCanonicalPath),
     relativePath: canonicalRelativePath,
     contentHash,
+    identity,
     cacheIdentity,
     resolverVersion: authoredScriptResolverVersion,
     logContext: {
       episodeId,
       language,
       variant,
+      relativePath: canonicalRelativePath,
+      contentHash,
+      cacheIdentity,
       scriptPath: canonicalRelativePath,
       scriptHash: contentHash,
       resolverVersion: authoredScriptResolverVersion,

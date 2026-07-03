@@ -4,7 +4,9 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   AuthoredScriptResolverError,
+  authoredScriptResolverVersion,
   assertInsideWorkspace,
+  buildAuthoredScriptCacheIdentity,
   createEpisodePathResolver,
   ensurePortableRelativePath,
   normalizeContentVariant,
@@ -28,6 +30,7 @@ import {
   resolveEpisodeVisualSourceScenesPath,
   resolveEpisodeImageVisualPlanPath,
   resolveSceneImageCandidatePaths,
+  type AuthoredScriptSourceIdentity,
 } from "./episode-filesystem.js";
 
 async function createTempWorkspace(): Promise<string> {
@@ -403,9 +406,28 @@ describe("episode filesystem helpers", () => {
       "episodes/022-the-whistler-in-the-woods/languages/short/script-de.md"
     );
     expect(full.contentHash).toMatch(/^[a-f0-9]{64}$/u);
+    expect(full.identity).toEqual({
+      resolverVersion: authoredScriptResolverVersion,
+      episodeId: "022-the-whistler-in-the-woods",
+      language: "en",
+      variant: "full",
+      relativePath:
+        "episodes/022-the-whistler-in-the-woods/languages/script-en.md",
+      contentHash: full.contentHash,
+    });
     expect(full.cacheIdentity).toBe(
-      `authored-script-resolver-v1:022-the-whistler-in-the-woods:en:full:${full.contentHash}`
+      `${authoredScriptResolverVersion}:022-the-whistler-in-the-woods:en:full:episodes/022-the-whistler-in-the-woods/languages/script-en.md:${full.contentHash}`
     );
+    expect(full.logContext).toMatchObject({
+      episodeId: "022-the-whistler-in-the-woods",
+      language: "en",
+      variant: "full",
+      relativePath:
+        "episodes/022-the-whistler-in-the-woods/languages/script-en.md",
+      contentHash: full.contentHash,
+      cacheIdentity: full.cacheIdentity,
+      resolverVersion: authoredScriptResolverVersion,
+    });
     await expect(
       resolveAuthoredScript({
         workspaceRoot,
@@ -414,6 +436,74 @@ describe("episode filesystem helpers", () => {
         variant: "full",
       })
     ).rejects.toMatchObject({ code: "MISSING_SCRIPT" });
+  });
+
+  it("builds deterministic authored script identities and invalidates on every identity field", () => {
+    const baseIdentity: AuthoredScriptSourceIdentity = {
+      resolverVersion: authoredScriptResolverVersion,
+      episodeId: normalizeEpisodeId("022-the-whistler-in-the-woods"),
+      language: normalizeLocaleCode("en"),
+      variant: normalizeContentVariant("full"),
+      relativePath: ensurePortableRelativePath(
+        "episodes/022-the-whistler-in-the-woods/languages/script-en.md"
+      ),
+      contentHash: normalizeSha256Fingerprint("a".repeat(64)),
+    };
+    const baseCacheIdentity = buildAuthoredScriptCacheIdentity(baseIdentity);
+
+    expect(buildAuthoredScriptCacheIdentity({ ...baseIdentity })).toBe(
+      baseCacheIdentity
+    );
+    expect(baseCacheIdentity.startsWith("authored-script-resolver-v2:")).toBe(
+      true
+    );
+    expect(baseCacheIdentity).not.toBe(
+      `authored-script-resolver-v1:022-the-whistler-in-the-woods:en:full:${baseIdentity.contentHash}`
+    );
+
+    const mutations: readonly AuthoredScriptSourceIdentity[] = [
+      {
+        ...baseIdentity,
+        resolverVersion: "authored-script-resolver-v3",
+      },
+      {
+        ...baseIdentity,
+        episodeId: normalizeEpisodeId("023-the-other-episode"),
+        relativePath: ensurePortableRelativePath(
+          "episodes/023-the-other-episode/languages/script-en.md"
+        ),
+      },
+      {
+        ...baseIdentity,
+        language: normalizeLocaleCode("de"),
+        relativePath: ensurePortableRelativePath(
+          "episodes/022-the-whistler-in-the-woods/languages/script-de.md"
+        ),
+      },
+      {
+        ...baseIdentity,
+        variant: normalizeContentVariant("short"),
+        relativePath: ensurePortableRelativePath(
+          "episodes/022-the-whistler-in-the-woods/languages/short/script-en.md"
+        ),
+      },
+      {
+        ...baseIdentity,
+        relativePath: ensurePortableRelativePath(
+          "episodes/022-the-whistler-in-the-woods/languages/short/script-en.md"
+        ),
+      },
+      {
+        ...baseIdentity,
+        contentHash: normalizeSha256Fingerprint("b".repeat(64)),
+      },
+    ];
+
+    for (const mutation of mutations) {
+      expect(buildAuthoredScriptCacheIdentity(mutation)).not.toBe(
+        baseCacheIdentity
+      );
+    }
   });
 
   it("rejects invalid authored script request values without falling back to English", async () => {

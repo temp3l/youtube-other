@@ -54,6 +54,7 @@ import {
   slugify,
   writeJsonAtomic,
   writeTextAtomic,
+  type ResolvedAuthoredScript,
 } from "@mediaforge/shared";
 import { commandImagesResume } from "./images-resume-command.js";
 import { registerEpisodeLayoutMigrationCommand } from "./episode-layout-migration-command.js";
@@ -482,21 +483,20 @@ function filterDiscoveries(
   );
 }
 
-function resolveSourceForLanguage(
-  discovery: EpisodeSourceDiscovery,
-  language: SupportedLanguage,
-  artifactType: ArtifactType
-): string {
-  const candidate = discovery.candidates.find(
-    (entry: EpisodeSourceDiscovery["candidates"][number]) =>
-      entry.language === language && entry.artifactType === artifactType
-  );
-  if (!candidate || candidate.status !== "present") {
-    throw new Error(
-      `Missing source file for episode ${discovery.episodeNumber} ${language} ${artifactType}.`
-    );
-  }
-  return candidate.filePath;
+export interface ResolvedEpisodeLanguageSource extends ResolvedAuthoredScript {
+  readonly sourceFile: string;
+  readonly canonicalRelativePath: ResolvedAuthoredScript["relativePath"];
+}
+
+interface EpisodeSourceMetadata {
+  readonly episodeId: string;
+  readonly language: string;
+  readonly variant: string;
+  readonly absolutePath: string;
+  readonly canonicalRelativePath: string;
+  readonly contentHash: string;
+  readonly resolverVersion: string;
+  readonly cacheIdentity: string;
 }
 
 export async function resolveEpisodeLanguageSource(
@@ -504,9 +504,7 @@ export async function resolveEpisodeLanguageSource(
   discovery: EpisodeSourceDiscovery,
   language: SupportedLanguage,
   artifactType: ArtifactType
-): Promise<{
-  readonly sourceFile: string;
-}> {
+): Promise<ResolvedEpisodeLanguageSource> {
   try {
     const resolved = await resolveAuthoredScript({
       workspaceRoot: path.dirname(path.resolve(outputRoot)),
@@ -514,7 +512,11 @@ export async function resolveEpisodeLanguageSource(
       language,
       variant: artifactType,
     });
-    return { sourceFile: resolved.absolutePath };
+    return {
+      ...resolved,
+      sourceFile: resolved.absolutePath,
+      canonicalRelativePath: resolved.relativePath,
+    };
   } catch (error) {
     if (error instanceof AuthoredScriptResolverError) {
       throw error;
@@ -523,11 +525,27 @@ export async function resolveEpisodeLanguageSource(
   }
 }
 
+function sourceMetadata(
+  source: ResolvedEpisodeLanguageSource
+): EpisodeSourceMetadata {
+  return {
+    episodeId: source.episodeId,
+    language: source.language,
+    variant: source.variant,
+    absolutePath: source.absolutePath,
+    canonicalRelativePath: source.canonicalRelativePath,
+    contentHash: source.contentHash,
+    resolverVersion: source.resolverVersion,
+    cacheIdentity: source.cacheIdentity,
+  };
+}
+
 async function ensureReviewPackageFiles(
   outputRoot: string,
   episodeSlug: string,
   language: SupportedLanguage,
   artifactType: ArtifactType,
+  source: ResolvedEpisodeLanguageSource,
   sourceSha256: string
 ): Promise<string> {
   const reviewDir = path.join(
@@ -557,6 +575,7 @@ async function ensureReviewPackageFiles(
       language,
       artifactType,
       sourceSha256,
+      source: sourceMetadata(source),
       generatedAt: nowIso(),
     }
   );
@@ -568,7 +587,8 @@ async function writeEpisodeSummary(
   episodeSlug: string,
   language: SupportedLanguage,
   artifactType: ArtifactType,
-  currentArtifactPath: string
+  currentArtifactPath: string,
+  source: ResolvedEpisodeLanguageSource
 ): Promise<void> {
   const manifestsDir = path.join(outputRoot, episodeSlug, "manifests");
   await ensureDir(manifestsDir);
@@ -579,6 +599,7 @@ async function writeEpisodeSummary(
       language,
       artifactType,
       currentArtifactPath,
+      source: sourceMetadata(source),
       updatedAt: nowIso(),
     }
   );
@@ -624,6 +645,7 @@ async function writeCurrentArtifactRecord(
   episodeSlug: string,
   language: SupportedLanguage,
   artifactType: ArtifactType,
+  source: ResolvedEpisodeLanguageSource,
   sourceSha256: string
 ): Promise<string> {
   const artifactDir = path.join(
@@ -646,6 +668,7 @@ async function writeCurrentArtifactRecord(
       currentArtifactPath,
       artifactSha256: await hashFile(currentArtifactPath),
       sourceSha256,
+      source: sourceMetadata(source),
       recordedAt: nowIso(),
     }
   );
@@ -660,12 +683,13 @@ async function prepareEpisodeLanguage(
   artifactType: ArtifactType,
   options: EpisodeCommandOptions
 ): Promise<Record<string, unknown>> {
-  const { sourceFile } = await resolveEpisodeLanguageSource(
+  const resolvedSource = await resolveEpisodeLanguageSource(
     outputRoot,
     discovery,
     language,
     artifactType
   );
+  const { sourceFile } = resolvedSource;
   const loadResult = await buildEpisodeLoadResult(sourceFile, outputRoot);
   const baseDir = path.join(outputRoot, discovery.slug, language, artifactType);
   await ensureDir(baseDir);
@@ -707,6 +731,7 @@ async function prepareEpisodeLanguage(
     discovery.slug,
     language,
     artifactType,
+    resolvedSource,
     loadResult.source.sourceSha256
   );
   let reviewVideoPath = path.join(baseDir, "generation-manifest.json");
@@ -881,6 +906,7 @@ async function prepareEpisodeLanguage(
       language,
       artifactType,
       sourceSha256: loadResult.source.sourceSha256,
+      source: sourceMetadata(resolvedSource),
       narrationSha256: hashText(loadResult.source.narration),
       scenePlanSha256: await hashFile(path.join(scenePlanDir, "scenes.json")),
       imageManifestSha256: await hashFile(
@@ -904,6 +930,7 @@ async function prepareEpisodeLanguage(
     discovery.slug,
     language,
     artifactType,
+    resolvedSource,
     loadResult.source.sourceSha256
   );
   await writeEpisodeSummary(
@@ -911,7 +938,8 @@ async function prepareEpisodeLanguage(
     discovery.slug,
     language,
     artifactType,
-    currentArtifactPath
+    currentArtifactPath,
+    resolvedSource
   );
   await writeReviewPackage(reviewDir, {
     videoPath: reviewVideoPath,
@@ -945,6 +973,7 @@ async function prepareEpisodeLanguage(
     language,
     artifactType,
     sourceFile,
+    source: sourceMetadata(resolvedSource),
     analysis: loadResult.analysis,
     outputRoot,
     dryRun: options.dryRun ?? false,
@@ -1373,8 +1402,16 @@ export async function commandEpisodeReviewApprove(
   }
   const language = options.language ?? "en";
   const artifactType = options.artifact ?? "full";
-  const sourceFile = resolveSourceForLanguage(selected, language, artifactType);
-  const current = await parseEpisodeSourceFile(sourceFile, outputRoot);
+  const resolvedSource = await resolveEpisodeLanguageSource(
+    outputRoot,
+    selected,
+    language,
+    artifactType
+  );
+  const current = await parseEpisodeSourceFile(
+    resolvedSource.sourceFile,
+    outputRoot
+  );
   const approval = await handleReviewApproval(
     outputRoot,
     selected.slug,
@@ -1387,7 +1424,7 @@ export async function commandEpisodeReviewApprove(
     options.notes
   );
   process.stdout.write(
-    `${JSON.stringify({ approval, episode: selected.slug, language, artifactType, current }, null, 2)}\n`
+    `${JSON.stringify({ approval, episode: selected.slug, language, artifactType, source: sourceMetadata(resolvedSource), current }, null, 2)}\n`
   );
 }
 
@@ -1406,8 +1443,16 @@ export async function commandEpisodeReviewReject(
   }
   const language = options.language ?? "en";
   const artifactType = options.artifact ?? "full";
-  const sourceFile = resolveSourceForLanguage(selected, language, artifactType);
-  const current = await parseEpisodeSourceFile(sourceFile, outputRoot);
+  const resolvedSource = await resolveEpisodeLanguageSource(
+    outputRoot,
+    selected,
+    language,
+    artifactType
+  );
+  const current = await parseEpisodeSourceFile(
+    resolvedSource.sourceFile,
+    outputRoot
+  );
   const approval = await handleReviewApproval(
     outputRoot,
     selected.slug,
@@ -1419,7 +1464,9 @@ export async function commandEpisodeReviewReject(
     options.reason,
     options.notes
   );
-  process.stdout.write(`${JSON.stringify(approval, null, 2)}\n`);
+  process.stdout.write(
+    `${JSON.stringify({ approval, episode: selected.slug, language, artifactType, source: sourceMetadata(resolvedSource), current }, null, 2)}\n`
+  );
 }
 
 export async function commandEpisodeReviewStatus(

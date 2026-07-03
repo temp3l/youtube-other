@@ -7,7 +7,7 @@ import {
   buildEpisodeLoadResult,
   createApprovalRecord,
 } from "@mediaforge/dark-truth";
-import { hashFile } from "@mediaforge/shared";
+import { authoredScriptResolverVersion, hashFile } from "@mediaforge/shared";
 import type {
   CharacterRegistry,
   EpisodeImagePipelineSettings,
@@ -158,9 +158,30 @@ describe("episode commands", () => {
     const payload = JSON.parse(output) as {
       readonly language: string;
       readonly sourceFile: string;
+      readonly source: {
+        readonly episodeId: string;
+        readonly language: string;
+        readonly variant: string;
+        readonly absolutePath: string;
+        readonly canonicalRelativePath: string;
+        readonly contentHash: string;
+        readonly resolverVersion: string;
+        readonly cacheIdentity: string;
+      };
     };
     expect(payload.language).toBe("de");
     expect(payload.sourceFile).toBe(path.join(episodeDir, "languages", "script-de.md"));
+    expect(payload.source).toMatchObject({
+      episodeId: "001-test-episode",
+      language: "de",
+      variant: "full",
+      absolutePath: payload.sourceFile,
+      canonicalRelativePath: "episodes/001-test-episode/languages/script-de.md",
+      resolverVersion: authoredScriptResolverVersion,
+    });
+    expect(payload.source.cacheIdentity).toBe(
+      `${authoredScriptResolverVersion}:001-test-episode:de:full:episodes/001-test-episode/languages/script-de.md:${payload.source.contentHash}`
+    );
   });
 
   it("bootstraps shared character references into the workspace and optionally approves them", async () => {
@@ -587,6 +608,23 @@ describe("episode commands", () => {
     );
 
     expect(result.sourceFile).toBe(canonicalScript);
+    expect(result.absolutePath).toBe(canonicalScript);
+    expect(result.canonicalRelativePath).toBe(
+      `episodes/${episodeSlug}/languages/script-en.md`
+    );
+    expect(result.contentHash).toBe(await hashFile(canonicalScript));
+    expect(result.resolverVersion).toBe(authoredScriptResolverVersion);
+    expect(result.cacheIdentity).toBe(
+      `${authoredScriptResolverVersion}:${episodeSlug}:en:full:episodes/${episodeSlug}/languages/script-en.md:${result.contentHash}`
+    );
+    expect(result.identity).toMatchObject({
+      episodeId: episodeSlug,
+      language: "en",
+      variant: "full",
+      relativePath: `episodes/${episodeSlug}/languages/script-en.md`,
+      contentHash: result.contentHash,
+      resolverVersion: authoredScriptResolverVersion,
+    });
   });
 
   it("surfaces stale authored script resolver errors", async () => {
