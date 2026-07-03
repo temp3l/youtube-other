@@ -1,0 +1,90 @@
+Episode layout migration write report
+Episodes root: /home/box/workspace/fehmarn-seo/youtube/other/episodes
+Normalization: utf8-strip-bom,crlf-to-lf,trim-trailing-line-whitespace,trim-final-whitespace,append-single-lf
+Summary:
+- already_canonical: 7
+- safe_move: 36
+- identical_duplicate: 7
+- divergent_duplicate: 18
+- target_collision: 0
+- stale_unsupported_layout: 0
+- invalid_language_or_variant: 7
+- filesystem_error: 2
+Candidates:
+- invalid_language_or_variant: episodes/001-calhoun-experiment/languages/script-ar.md
+- already_canonical: episodes/001-calhoun-experiment/languages/script-en.md -> episodes/001-calhoun-experiment/languages/script-en.md
+- already_canonical: episodes/001-calhoun-experiment/languages/script-es.md -> episodes/001-calhoun-experiment/languages/script-es.md
+- invalid_language_or_variant: episodes/001-calhoun-experiment/languages/script-hi.md
+- invalid_language_or_variant: episodes/001-calhoun-experiment/languages/script-id.md
+- invalid_language_or_variant: episodes/001-calhoun-experiment/languages/script-ja.md
+- already_canonical: episodes/001-calhoun-experiment/languages/script-pt.md -> episodes/001-calhoun-experiment/languages/script-pt.md
+- invalid_language_or_variant: episodes/001-calhoun-experiment/languages/script-ru.md
+- invalid_language_or_variant: episodes/001-calhoun-experiment/languages/script-tr.md
+- invalid_language_or_variant: episodes/001-calhoun-experiment/languages/script-vi.md
+- identical_duplicate: episodes/001-calhoun-experiment/script.md -> episodes/001-calhoun-experiment/languages/script-en.md
+- filesystem_error: episodes/002-ancient-humans-at-night
+- filesystem_error: episodes/003-baby-memory
+- safe_move: episodes/009-mary-gloria-the-christmas-doll/de/full/script.md -> episodes/009-mary-gloria-the-christmas-doll/languages/script-de.md move=performed
+- safe_move: episodes/009-mary-gloria-the-christmas-doll/de/short/script.md -> episodes/009-mary-gloria-the-christmas-doll/languages/short/script-de.md move=performed
+- safe_move: episodes/009-mary-gloria-the-christmas-doll/en/full/script.md -> episodes/009-mary-gloria-the-christmas-doll/languages/script-en.md move=performed
+- safe_move: episodes/009-mary-gloria-the-christmas-doll/en/short/script.md -> episodes/009-mary-gloria-the-christmas-doll/languages/short/script-en.md move=performed
+- safe_move: episodes/009-mary-gloria-the-christmas-doll/es/full/script.md -> episodes/009-mary-gloria-the-christmas-doll/languages/script-es.md move=performed
+- safe_move: episodes/009-mary-gloria-the-christmas-doll/es/short/script.md -> episodes/009-mary-gloria-the-christmas-doll/languages/short/script-es.md move=performed
+- safe_move: episodes/009-mary-gloria-the-christmas-doll/fr/full/script.md -> episodes/009-mary-gloria-the-christmas-doll/languages/script-fr.md move=performed
+- safe_move: episodes/009-mary-gloria-the-christmas-doll/fr/short/script.md -> episodes/009-mary-gloria-the-christmas-doll/languages/short/script-fr.md move=performed
+- identical_duplicate: episodes/009-mary-gloria-the-christmas-doll/script.md -> episodes/009-mary-gloria-the-christmas-doll/languages/script-en.md
+- safe_move: episodes/010-010-the-cleaner-of-death/de/full/script.md -> episodes/010-010-the-cleaner-of-death/languages/script-de.md move=performed
+- safe_move: episodes/010-010-the-cleaner-of-death/de/short/script.md -> episodes/010-010-the-cleaner-of-death/languages/short/script-de.md move=performed
+- safe_move: episodes/010-010-the-cleaner-of-death/en/short/script.md -> episodes/010-010-the-cleaner-of-death/languages/short/script-en.md move=performed
+- safe_move: episodes/010-010-the-cleaner-of-death/script.md -> episodes/010-010-the-cleaner-of-death/languages/script-en.md move=performed
+- safe_move: episodes/010-the-cleaner-of-death/de/full/script.md -> episodes/010-the-cleaner-of-death/languages/script-de.md move=performed
+- safe_move: episodes/010-the-cleaner-of-death/de/short/script.md -> episodes/010-the-cleaner-of-death/languages/short/script-de.md move=performed
+- safe_move: episodes/010-the-cleaner-of-death/en/short/script.md -> episodes/010-the-cleaner-of-death/languages/short/script-en.md move=performed
+- identical_duplicate: episodes/010-the-cleaner-of-death/script.md -> episodes/010-the-cleaner-of-death/languages/script-en.md
+- safe_move: episodes/010-the-cleaner-of-death/source/010-the-cleaner-of-death-en-full.md -> episodes/010-the-cleaner-of-death/languages/script-en.md move=performed
+- safe_move: episodes/011-the-black-eyed-children/de/full/script.md -> episodes/011-the-black-eyed-children/languages/script-de.md move=performed
+- divergent_duplicate: episodes/011-the-black-eyed-children/en/script.md -> episodes/011-the-black-eyed-children/languages/script-en.md
+- safe_move: episodes/011-the-black-eyed-children/es/full/script.md -> episodes/011-the-black-eyed-children/languages/script-es.md move=performed
+- safe_move: episodes/011-the-black-eyed-children/pt/full/script.md -> episodes/011-the-black-eyed-children/languages/script-pt.md move=performed
+- divergent_duplicate: episodes/011-the-black-eyed-children/script.md -> episodes/011-the-black-eyed-children/languages/script-en.md
+- divergent_duplicate: episodes/011-the-black-eyed-children/source/011-the-black-eyed-children-en-full.md -> episodes/011-the-black-eyed-children/languages/script-en.md
+- safe_move: episodes/012-the-elevator-game/de/full/script.md -> episodes/012-the-elevator-game/languages/script-de.md move=performed
+- divergent_duplicate: episodes/012-the-elevator-game/en/script.md -> episodes/012-the-elevator-game/languages/script-en.md
+- safe_move: episodes/012-the-elevator-game/es/full/script.md -> episodes/012-the-elevator-game/languages/script-es.md move=performed
+- safe_move: episodes/012-the-elevator-game/fr/full/script.md -> episodes/012-the-elevator-game/languages/script-fr.md move=performed
+- safe_move: episodes/012-the-elevator-game/pt/full/script.md -> episodes/012-the-elevator-game/languages/script-pt.md move=performed
+- divergent_duplicate: episodes/012-the-elevator-game/script.md -> episodes/012-the-elevator-game/languages/script-en.md
+- divergent_duplicate: episodes/012-the-elevator-game/source/012-the-elevator-game-en-full.md -> episodes/012-the-elevator-game/languages/script-en.md
+- divergent_duplicate: episodes/013-the-dyatlov-pass-incident/script.md -> episodes/013-the-dyatlov-pass-incident/languages/script-en.md
+- divergent_duplicate: episodes/013-the-dyatlov-pass-incident/source/013-the-dyatlov-pass-incident-en-full.md -> episodes/013-the-dyatlov-pass-incident/languages/script-en.md
+- safe_move: episodes/014-hachishakusama-the-eight-foot-woman/de/full/script.md -> episodes/014-hachishakusama-the-eight-foot-woman/languages/script-de.md move=performed
+- divergent_duplicate: episodes/014-hachishakusama-the-eight-foot-woman/en/full/script.md -> episodes/014-hachishakusama-the-eight-foot-woman/languages/script-en.md
+- divergent_duplicate: episodes/014-hachishakusama-the-eight-foot-woman/en/script.md -> episodes/014-hachishakusama-the-eight-foot-woman/languages/script-en.md
+- safe_move: episodes/014-hachishakusama-the-eight-foot-woman/en/short/script.md -> episodes/014-hachishakusama-the-eight-foot-woman/languages/short/script-en.md move=performed
+- divergent_duplicate: episodes/014-hachishakusama-the-eight-foot-woman/script.md -> episodes/014-hachishakusama-the-eight-foot-woman/languages/script-en.md
+- divergent_duplicate: episodes/014-hachishakusama-the-eight-foot-woman/source/014-hachishakusama-the-eight-foot-woman-en-full.md -> episodes/014-hachishakusama-the-eight-foot-woman/languages/script-en.md
+- safe_move: episodes/015-the-bell-witch/de/full/script.md -> episodes/015-the-bell-witch/languages/script-de.md move=performed
+- safe_move: episodes/015-the-bell-witch/en/full/script.md -> episodes/015-the-bell-witch/languages/script-en.md move=performed
+- safe_move: episodes/016-kisaragi-station/de/full/script.md -> episodes/016-kisaragi-station/languages/script-de.md move=performed
+- safe_move: episodes/016-kisaragi-station/en/full/script.md -> episodes/016-kisaragi-station/languages/script-en.md move=performed
+- safe_move: episodes/018-the-smiling-man/de/full/script.md -> episodes/018-the-smiling-man/languages/script-de.md move=performed
+- safe_move: episodes/018-the-smiling-man/en/full/script.md -> episodes/018-the-smiling-man/languages/script-en.md move=performed
+- safe_move: episodes/019-the-russian-sleep-experiment/de/full/script.md -> episodes/019-the-russian-sleep-experiment/languages/script-de.md move=performed
+- safe_move: episodes/019-the-russian-sleep-experiment/en/full/script.md -> episodes/019-the-russian-sleep-experiment/languages/script-en.md move=performed
+- safe_move: episodes/021-the-rake-at-the-bedroom-window-en-full-optimized/source/021-the-rake-at-the-bedroom-window-en-full-optimized-en-full.md -> episodes/021-the-rake-at-the-bedroom-window-en-full-optimized/languages/script-en.md move=performed
+- safe_move: episodes/021-the-rake-at-the-bedroom-window/de/full/script.md -> episodes/021-the-rake-at-the-bedroom-window/languages/script-de.md move=performed
+- safe_move: episodes/021-the-rake-at-the-bedroom-window/de/short/script.md -> episodes/021-the-rake-at-the-bedroom-window/languages/short/script-de.md move=performed
+- divergent_duplicate: episodes/021-the-rake-at-the-bedroom-window/en/full/script.md -> episodes/021-the-rake-at-the-bedroom-window/languages/script-en.md
+- divergent_duplicate: episodes/021-the-rake-at-the-bedroom-window/en/script.md -> episodes/021-the-rake-at-the-bedroom-window/languages/script-en.md
+- divergent_duplicate: episodes/021-the-rake-at-the-bedroom-window/script.md -> episodes/021-the-rake-at-the-bedroom-window/languages/script-en.md
+- divergent_duplicate: episodes/021-the-rake-at-the-bedroom-window/source/021-the-rake-at-the-bedroom-window-en-full.md -> episodes/021-the-rake-at-the-bedroom-window/languages/script-en.md
+- identical_duplicate: episodes/022-the-whistler-in-the-woods/de/full/script.md -> episodes/022-the-whistler-in-the-woods/languages/script-de.md
+- identical_duplicate: episodes/022-the-whistler-in-the-woods/en/full/script.md -> episodes/022-the-whistler-in-the-woods/languages/script-en.md
+- identical_duplicate: episodes/022-the-whistler-in-the-woods/en/script.md -> episodes/022-the-whistler-in-the-woods/languages/script-en.md
+- already_canonical: episodes/022-the-whistler-in-the-woods/languages/script-de.md -> episodes/022-the-whistler-in-the-woods/languages/script-de.md
+- already_canonical: episodes/022-the-whistler-in-the-woods/languages/script-en.md -> episodes/022-the-whistler-in-the-woods/languages/script-en.md
+- already_canonical: episodes/022-the-whistler-in-the-woods/languages/short/script-de.md -> episodes/022-the-whistler-in-the-woods/languages/short/script-de.md
+- already_canonical: episodes/022-the-whistler-in-the-woods/languages/short/script-en.md -> episodes/022-the-whistler-in-the-woods/languages/short/script-en.md
+- identical_duplicate: episodes/022-the-whistler-in-the-woods/script.md -> episodes/022-the-whistler-in-the-woods/languages/script-en.md
+- divergent_duplicate: episodes/022-the-whistler-in-the-woods/source/022-the-whistler-in-the-woods-de-full.md -> episodes/022-the-whistler-in-the-woods/languages/script-de.md
+- divergent_duplicate: episodes/022-the-whistler-in-the-woods/source/022-the-whistler-in-the-woods-en-full.md -> episodes/022-the-whistler-in-the-woods/languages/script-en.md

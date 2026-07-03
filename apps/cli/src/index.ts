@@ -22,11 +22,9 @@ import {
   exportSceneWorkbook,
   generateEpisodeImageReferences,
   generateEpisodeImages,
-  generateOpenAiSceneImages,
   importImageAssets,
   loadEpisodeImageGenerationSettings,
   loadEpisodeSceneVisualPlan,
-  loadOpenAiImageGenerationSettings,
   localSceneNegativePrompt,
   localSceneStyle,
   missingScenes,
@@ -122,7 +120,6 @@ import {
   DEFAULT_SPEECH_VOICE,
   loadSpeechVoiceSettings,
   splitEpisodeScriptMarkdown,
-  writeEpisodeScriptMarkdown,
 } from "@mediaforge/speech";
 import {
   buildVisualScenesFromSubtitleSegments,
@@ -1224,12 +1221,7 @@ async function readTranscriptArtifacts(episodeDir: string): Promise<{
   const transcriptDir = path.join(episodeDir, "transcript");
   const rawPath = path.join(transcriptDir, "transcript.raw.json");
   const normalizedPath = path.join(transcriptDir, "transcript.json");
-  const legacyRawPath = path.join(episodeDir, "original-transcript.json");
-  const rawCandidate = (await fileExists(rawPath))
-    ? rawPath
-    : (await fileExists(legacyRawPath))
-      ? legacyRawPath
-      : null;
+  const rawCandidate = (await fileExists(rawPath)) ? rawPath : null;
   const normalizedCandidate = (await fileExists(normalizedPath))
     ? normalizedPath
     : null;
@@ -1777,12 +1769,10 @@ async function commandTranscriptExport(
     return;
   }
   process.stdout.write(`${output}\n`);
-  await writeJsonAtomic(
-    path.join(episodeDir, "original-transcript.json"),
-    transcript
-  );
+  await ensureDir(path.join(episodeDir, "transcript"));
+  await writeJsonAtomic(path.join(episodeDir, "transcript", "transcript.json"), transcript);
   await writeTextAtomic(
-    path.join(episodeDir, "original-transcript.srt"),
+    path.join(episodeDir, "transcript", "transcript.srt"),
     buildSrt(transcript.segments)
   );
 }
@@ -1892,11 +1882,6 @@ async function commandAudioGenerate(
   await ensureDir(segmentsDir);
   await cleanupStaleAudioTempFiles(audioDir, segmentsDir);
   await cleanupAudioGenerationArtifacts(audioDir, segmentsDir, narrationPath);
-  const scriptSourcePath = await writeEpisodeScriptMarkdown(
-    audioBaseDir,
-    narrationDependency.narrationText,
-    language
-  );
   const generatedAt = new Date().toISOString();
   const preferredConcurrency = Math.min(
     resolveTtsConcurrency(),
@@ -2031,30 +2016,15 @@ async function commandAudioGenerate(
       checksumSha256: await hashFile(narrationPath),
       createdAt: generatedAt,
     });
-    completeArtifacts.push({
-      id: artifactIdSchema.parse(
-        `artifact-${slugify(`${episodeSlug}-script-source-${language}`)}`
-      ),
-      kind:
-        language === "en"
-          ? "audio.script-source"
-          : `audio.script-source.${language}`,
-      path: scriptSourcePath,
-      mimeType: "text/markdown",
-      sizeBytes: (await fs.stat(scriptSourcePath)).size,
-      checksumSha256: await hashFile(scriptSourcePath),
-      createdAt: generatedAt,
-    });
     if (manifest) {
       manifest.artifacts = [
         ...manifest.artifacts.filter((artifact) => {
           const kinds =
             language === "en"
-              ? ["audio.segment", "audio.narration", "audio.script-source"]
+              ? ["audio.segment", "audio.narration"]
               : [
                   `audio.segment.${language}`,
                   `audio.narration.${language}`,
-                  `audio.script-source.${language}`,
                 ];
           return !kinds.includes(artifact.kind);
         }),
@@ -2715,66 +2685,6 @@ async function commandImagesRegenerateCharacter(
     settings
   );
   printJson(registry);
-}
-
-async function commandImagesGenerateOpenAi(
-  options: CliOptions,
-  episodeId: string,
-  sceneId?: string
-): Promise<void> {
-  markEpisodeTelemetry(episodeId);
-  const { manifest, episodeDir } = await readManifestForEpisode(
-    options,
-    episodeId
-  );
-  if (!manifest.scenePlan) {
-    throw new Error("Scene plan is not available.");
-  }
-  const settings = loadOpenAiImageGenerationSettings(process.env);
-  const promptBatch = createPromptBatch(
-    manifest.scenePlan,
-    "16:9",
-    localSceneStyle,
-    localSceneNegativePrompt
-  );
-  const promptBySceneId = new Map(
-    promptBatch.map((prompt) => [prompt.sceneId, prompt] as const)
-  );
-  const selectedScenes = sceneId
-    ? manifest.scenePlan.scenes.filter((scene) => scene.id === sceneId)
-    : manifest.scenePlan.scenes;
-  if (selectedScenes.length === 0) {
-    throw new Error(
-      sceneId ? `Scene not found: ${sceneId}` : "No scenes available."
-    );
-  }
-  const jobs = selectedScenes.map((scene) => ({
-    scene,
-    prompt: promptBySceneId.get(scene.id)?.prompt ?? scene.imagePrompt,
-    episodeSlug: manifest.slug,
-    episodeDir,
-    normalizedFilename: scene.expectedImageFilenames[0] ?? `${scene.id}.png`,
-  }));
-  const results = await generateOpenAiSceneImages(jobs, settings);
-  printJson(
-    results.map(
-      (
-        result: Awaited<ReturnType<typeof generateOpenAiSceneImages>>[number]
-      ) => ({
-        sceneId: result.sceneId,
-        sourcePath: result.sourcePath,
-        renderedPath: result.renderedPath,
-        promptPath: result.promptPath,
-        rawPath: result.rawPath,
-        normalizedPath: result.renderedPath,
-        width: result.width,
-        height: result.height,
-        checksumSha256: result.checksumSha256,
-        rawChecksumSha256: result.rawChecksumSha256,
-        finalChecksumSha256: result.finalChecksumSha256,
-      })
-    )
-  );
 }
 
 async function commandRender(
@@ -4799,18 +4709,6 @@ imagesCommand
       opts.file
     );
   });
-imagesCommand
-  .command("generate-openai")
-  .argument("<episode-id>")
-  .option("--scene <scene-id>")
-  .action(async (episodeId: string, opts: { scene?: string }) => {
-    await commandImagesGenerateOpenAi(
-      program.opts<CliOptions>(),
-      episodeId,
-      opts.scene
-    );
-  });
-
 const renderCommand = program
   .command("render")
   .argument("<episode-id>")

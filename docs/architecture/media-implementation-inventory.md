@@ -65,11 +65,14 @@ Primary caller evidence:
 - `packages/story-localization/src/story-localization-batch-service.ts` and related batch storage
   - Cross-package dependency surface for batch infrastructure patterns that image batch currently resembles and partially depends on conceptually.
 
-### Legacy
+### Active Provider Implementation
 
 - `packages/image-generation/src/openai-image.ts`
-  - Raw helper flow used by `apps/cli/src/index.ts` `images generate-openai`.
-  - Active direct provider path, but it bypasses the richer scene manifest and state model in `episode-image-pipeline.ts`.
+  - OpenAI image provider implementation still used by `@mediaforge/dark-truth` image generation.
+  - The raw CLI shortcut that bypassed the richer scene manifest and state model has been removed.
+
+### Legacy
+
 - `packages/image-generation/src/index.ts` workbook/import utilities
   - `exportSceneWorkbook()`, `importImageAssets()`, and `validateImageAssets()` still back active CLI commands for OpenArt/manual workflows.
   - These remain active until parity with the canonical sync or batch pipeline is proven.

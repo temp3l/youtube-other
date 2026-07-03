@@ -5,49 +5,57 @@ import { describe, expect, it } from "vitest";
 import { loadEpisodeScriptMarkdown, splitEpisodeScriptMarkdown } from "./script-markdown.js";
 
 describe("loadEpisodeScriptMarkdown", () => {
-  it("prefers the root script.md file", async () => {
+  it("requires an explicit language instead of defaulting to English", async () => {
     const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "mediaforge-script-"));
-    await fs.mkdir(path.join(tempDir, "script"), { recursive: true });
-    await fs.writeFile(path.join(tempDir, "script.md"), "Root script");
-    await fs.writeFile(path.join(tempDir, "script", "rewritten-script.md"), "Fallback script");
-    const script = await loadEpisodeScriptMarkdown(tempDir);
-    expect(script.filePath).toBe(path.join(tempDir, "script.md"));
-    expect(script.text).toBe("Root script");
+    await fs.mkdir(path.join(tempDir, "languages"), { recursive: true });
+    await fs.writeFile(path.join(tempDir, "languages", "script-en.md"), "English script");
+    await expect(loadEpisodeScriptMarkdown(tempDir)).rejects.toThrow(
+      "Pass an explicit language"
+    );
   });
 
-  it("loads a localized script when a language is specified", async () => {
+  it("loads a canonical localized script when a language is specified", async () => {
     const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "mediaforge-script-"));
-    await fs.mkdir(path.join(tempDir, "es", "full"), { recursive: true });
+    await fs.mkdir(path.join(tempDir, "languages"), { recursive: true });
     await fs.writeFile(
-      path.join(tempDir, "es", "full", "script.md"),
+      path.join(tempDir, "languages", "script-es.md"),
       "# Episode 009\n\n# Narration Script\n\nGuion en español.\n\n## Episode Metadata\n**Episode number:** 009\n"
     );
     const script = await loadEpisodeScriptMarkdown(tempDir, "es");
-    expect(script.filePath).toBe(path.join(tempDir, "es", "full", "script.md"));
+    expect(script.filePath).toBe(path.join(tempDir, "languages", "script-es.md"));
     expect(script.text).toContain("Guion en español.");
   });
 
   it("extracts the narration script section when requested", async () => {
     const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "mediaforge-script-"));
-    await fs.mkdir(path.join(tempDir, "en", "full"), { recursive: true });
+    await fs.mkdir(path.join(tempDir, "languages"), { recursive: true });
     await fs.writeFile(
-      path.join(tempDir, "en", "full", "script.md"),
+      path.join(tempDir, "languages", "script-en.md"),
       "# Episode 009\n\n## Audio Generation Instructions\n- Speak clearly.\n\n# Narration Script\n\nFirst paragraph.\n\nSecond paragraph.\n\n## Episode Metadata\n**Episode number:** 009\n"
     );
     const script = await loadEpisodeScriptMarkdown(tempDir, "en", "Narration Script");
-    expect(script.filePath).toBe(path.join(tempDir, "en", "full", "script.md"));
+    expect(script.filePath).toBe(path.join(tempDir, "languages", "script-en.md"));
     expect(script.text).toBe("First paragraph.\n\nSecond paragraph.");
   });
 
   it("keeps narration readable when canonical markdown contains only narration", async () => {
     const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "mediaforge-script-"));
-    await fs.mkdir(path.join(tempDir, "en", "full"), { recursive: true });
+    await fs.mkdir(path.join(tempDir, "languages"), { recursive: true });
     await fs.writeFile(
-      path.join(tempDir, "en", "full", "script.md"),
+      path.join(tempDir, "languages", "script-en.md"),
       "# Episode 009\n\n# Narration Script\n\nNarration only."
     );
     const script = await loadEpisodeScriptMarkdown(tempDir, "en", "Narration Script");
     expect(script.text).toBe("Narration only.");
+  });
+
+  it("rejects stale localized script layouts with an actionable canonical path", async () => {
+    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "mediaforge-script-"));
+    await fs.mkdir(path.join(tempDir, "es", "full"), { recursive: true });
+    await fs.writeFile(path.join(tempDir, "es", "full", "script.md"), "Stale script");
+    await expect(loadEpisodeScriptMarkdown(tempDir, "es")).rejects.toThrow(
+      "Expected languages/script-es.md"
+    );
   });
 });
 

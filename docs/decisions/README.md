@@ -9,5 +9,5 @@ This is an index of decisions visible in the current implementation. It does not
 - Fact visible in code: OpenAI-compatible providers are used across several content-generation stages.
 - Fact visible in code: YouTube upload is a separate finalization boundary after render and metadata preparation.
 - Reasonable inference: the current repo favors resumable per-subsystem workflows over one global pipeline transaction.
-- Reasonable inference: `@mediaforge/pipeline` remains a valid orchestration surface, but the active operator path is the richer CLI command set in `apps/cli`.
-- Unresolved: whether the long-term primary production path should consolidate further around `@mediaforge/pipeline` or remain command-specific in `apps/cli`.
+- Reasonable inference: the old `@mediaforge/pipeline` orchestration surface is historical; the active operator path is the richer CLI command set in `apps/cli`.
+- Unresolved: whether any external consumers still need release-note coverage for the removed pipeline package surface.

@@ -1,0 +1,1419 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-07-03T00:41:55.434Z",
+  "dryRun": false,
+  "write": true,
+  "episodesRoot": "/home/box/workspace/fehmarn-seo/youtube/other/episodes",
+  "normalizationPolicy": "utf8-strip-bom,crlf-to-lf,trim-trailing-line-whitespace,trim-final-whitespace,append-single-lf",
+  "excludedDirectoryNames": [
+    ".batch",
+    ".tmp-video-build",
+    "audio",
+    "debug",
+    "generated-assets",
+    "images",
+    "locales",
+    "logs",
+    "output",
+    "renders",
+    "state",
+    "transcripts",
+    "video"
+  ],
+  "summary": {
+    "already_canonical": 7,
+    "safe_move": 36,
+    "identical_duplicate": 7,
+    "divergent_duplicate": 18,
+    "target_collision": 0,
+    "stale_unsupported_layout": 0,
+    "invalid_language_or_variant": 7,
+    "filesystem_error": 2
+  },
+  "candidates": [
+    {
+      "episodeSlug": "001-calhoun-experiment",
+      "relativePath": "languages/script-ar.md",
+      "repositoryRelativePath": "episodes/001-calhoun-experiment/languages/script-ar.md",
+      "layout": "canonical_full",
+      "classification": "invalid_language_or_variant",
+      "reason": "Invalid locale code: ar"
+    },
+    {
+      "episodeSlug": "001-calhoun-experiment",
+      "relativePath": "languages/script-en.md",
+      "repositoryRelativePath": "episodes/001-calhoun-experiment/languages/script-en.md",
+      "layout": "canonical_full",
+      "language": "en",
+      "variant": "full",
+      "rawSha256": "21f5e6944e6eea9c5c262d3021c5a388551717bd6c26f3fc65e03f686486629f",
+      "normalizedSha256": "21f5e6944e6eea9c5c262d3021c5a388551717bd6c26f3fc65e03f686486629f",
+      "canonicalRelativePath": "001-calhoun-experiment/languages/script-en.md",
+      "canonicalRepositoryRelativePath": "episodes/001-calhoun-experiment/languages/script-en.md",
+      "classification": "already_canonical",
+      "reason": "Canonical authored script exists with duplicate candidates."
+    },
+    {
+      "episodeSlug": "001-calhoun-experiment",
+      "relativePath": "languages/script-es.md",
+      "repositoryRelativePath": "episodes/001-calhoun-experiment/languages/script-es.md",
+      "layout": "canonical_full",
+      "language": "es",
+      "variant": "full",
+      "rawSha256": "6a3b34c1c5771d2cf900c787a4b94e660bf921d7d5b8efe1ded3b1e9baf43323",
+      "normalizedSha256": "6a3b34c1c5771d2cf900c787a4b94e660bf921d7d5b8efe1ded3b1e9baf43323",
+      "canonicalRelativePath": "001-calhoun-experiment/languages/script-es.md",
+      "canonicalRepositoryRelativePath": "episodes/001-calhoun-experiment/languages/script-es.md",
+      "classification": "already_canonical",
+      "reason": "Canonical authored script is already in place."
+    },
+    {
+      "episodeSlug": "001-calhoun-experiment",
+      "relativePath": "languages/script-hi.md",
+      "repositoryRelativePath": "episodes/001-calhoun-experiment/languages/script-hi.md",
+      "layout": "canonical_full",
+      "classification": "invalid_language_or_variant",
+      "reason": "Invalid locale code: hi"
+    },
+    {
+      "episodeSlug": "001-calhoun-experiment",
+      "relativePath": "languages/script-id.md",
+      "repositoryRelativePath": "episodes/001-calhoun-experiment/languages/script-id.md",
+      "layout": "canonical_full",
+      "classification": "invalid_language_or_variant",
+      "reason": "Invalid locale code: id"
+    },
+    {
+      "episodeSlug": "001-calhoun-experiment",
+      "relativePath": "languages/script-ja.md",
+      "repositoryRelativePath": "episodes/001-calhoun-experiment/languages/script-ja.md",
+      "layout": "canonical_full",
+      "classification": "invalid_language_or_variant",
+      "reason": "Invalid locale code: ja"
+    },
+    {
+      "episodeSlug": "001-calhoun-experiment",
+      "relativePath": "languages/script-pt.md",
+      "repositoryRelativePath": "episodes/001-calhoun-experiment/languages/script-pt.md",
+      "layout": "canonical_full",
+      "language": "pt",
+      "variant": "full",
+      "rawSha256": "2e5edf0c04460ffd2b37f8049674609fde83eb8a9711bd26399b37b6b64a1679",
+      "normalizedSha256": "2e5edf0c04460ffd2b37f8049674609fde83eb8a9711bd26399b37b6b64a1679",
+      "canonicalRelativePath": "001-calhoun-experiment/languages/script-pt.md",
+      "canonicalRepositoryRelativePath": "episodes/001-calhoun-experiment/languages/script-pt.md",
+      "classification": "already_canonical",
+      "reason": "Canonical authored script is already in place."
+    },
+    {
+      "episodeSlug": "001-calhoun-experiment",
+      "relativePath": "languages/script-ru.md",
+      "repositoryRelativePath": "episodes/001-calhoun-experiment/languages/script-ru.md",
+      "layout": "canonical_full",
+      "classification": "invalid_language_or_variant",
+      "reason": "Invalid locale code: ru"
+    },
+    {
+      "episodeSlug": "001-calhoun-experiment",
+      "relativePath": "languages/script-tr.md",
+      "repositoryRelativePath": "episodes/001-calhoun-experiment/languages/script-tr.md",
+      "layout": "canonical_full",
+      "classification": "invalid_language_or_variant",
+      "reason": "Invalid locale code: tr"
+    },
+    {
+      "episodeSlug": "001-calhoun-experiment",
+      "relativePath": "languages/script-vi.md",
+      "repositoryRelativePath": "episodes/001-calhoun-experiment/languages/script-vi.md",
+      "layout": "canonical_full",
+      "classification": "invalid_language_or_variant",
+      "reason": "Invalid locale code: vi"
+    },
+    {
+      "episodeSlug": "001-calhoun-experiment",
+      "relativePath": "script.md",
+      "repositoryRelativePath": "episodes/001-calhoun-experiment/script.md",
+      "layout": "root_script",
+      "language": "en",
+      "variant": "full",
+      "rawSha256": "8cfcbc3e9b89cfcd32adb27d2478463dd409dba3547f7efa495084c4b9c60192",
+      "normalizedSha256": "21f5e6944e6eea9c5c262d3021c5a388551717bd6c26f3fc65e03f686486629f",
+      "canonicalRelativePath": "001-calhoun-experiment/languages/script-en.md",
+      "canonicalRepositoryRelativePath": "episodes/001-calhoun-experiment/languages/script-en.md",
+      "classification": "identical_duplicate",
+      "reason": "Duplicate content matches the canonical authored script after normalization."
+    },
+    {
+      "episodeSlug": "002-ancient-humans-at-night",
+      "relativePath": ".",
+      "repositoryRelativePath": "episodes/002-ancient-humans-at-night",
+      "layout": "unsupported_script",
+      "classification": "filesystem_error",
+      "reason": "ENOENT: no such file or directory, scandir '/home/box/workspace/fehmarn-seo/youtube/other/episodes/002-ancient-humans-at-night'"
+    },
+    {
+      "episodeSlug": "003-baby-memory",
+      "relativePath": ".",
+      "repositoryRelativePath": "episodes/003-baby-memory",
+      "layout": "unsupported_script",
+      "classification": "filesystem_error",
+      "reason": "ENOENT: no such file or directory, scandir '/home/box/workspace/fehmarn-seo/youtube/other/episodes/003-baby-memory'"
+    },
+    {
+      "episodeSlug": "009-mary-gloria-the-christmas-doll",
+      "relativePath": "de/full/script.md",
+      "repositoryRelativePath": "episodes/009-mary-gloria-the-christmas-doll/de/full/script.md",
+      "layout": "language_variant_script",
+      "language": "de",
+      "variant": "full",
+      "rawSha256": "07f7696ac7fe69422a498a8620801a231315df79c15f428871e6ea2af6f10c4e",
+      "normalizedSha256": "07f7696ac7fe69422a498a8620801a231315df79c15f428871e6ea2af6f10c4e",
+      "canonicalRelativePath": "009-mary-gloria-the-christmas-doll/languages/script-de.md",
+      "canonicalRepositoryRelativePath": "episodes/009-mary-gloria-the-christmas-doll/languages/script-de.md",
+      "classification": "safe_move",
+      "reason": "Single mechanically safe source selected for canonical move.",
+      "move": {
+        "from": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/009-mary-gloria-the-christmas-doll/de/full/script.md",
+        "to": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/009-mary-gloria-the-christmas-doll/languages/script-de.md",
+        "rollback": {
+          "command": "mv \"/home/box/workspace/fehmarn-seo/youtube/other/episodes/009-mary-gloria-the-christmas-doll/languages/script-de.md\" \"/home/box/workspace/fehmarn-seo/youtube/other/episodes/009-mary-gloria-the-christmas-doll/de/full/script.md\"",
+          "from": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/009-mary-gloria-the-christmas-doll/languages/script-de.md",
+          "to": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/009-mary-gloria-the-christmas-doll/de/full/script.md"
+        },
+        "performed": true
+      }
+    },
+    {
+      "episodeSlug": "009-mary-gloria-the-christmas-doll",
+      "relativePath": "de/short/script.md",
+      "repositoryRelativePath": "episodes/009-mary-gloria-the-christmas-doll/de/short/script.md",
+      "layout": "language_variant_script",
+      "language": "de",
+      "variant": "short",
+      "rawSha256": "8c00df0c1dc188a188c902b678e7744733e76ba92d8dfad994c6685972fe58e2",
+      "normalizedSha256": "8c00df0c1dc188a188c902b678e7744733e76ba92d8dfad994c6685972fe58e2",
+      "canonicalRelativePath": "009-mary-gloria-the-christmas-doll/languages/short/script-de.md",
+      "canonicalRepositoryRelativePath": "episodes/009-mary-gloria-the-christmas-doll/languages/short/script-de.md",
+      "classification": "safe_move",
+      "reason": "Single mechanically safe source selected for canonical move.",
+      "move": {
+        "from": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/009-mary-gloria-the-christmas-doll/de/short/script.md",
+        "to": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/009-mary-gloria-the-christmas-doll/languages/short/script-de.md",
+        "rollback": {
+          "command": "mv \"/home/box/workspace/fehmarn-seo/youtube/other/episodes/009-mary-gloria-the-christmas-doll/languages/short/script-de.md\" \"/home/box/workspace/fehmarn-seo/youtube/other/episodes/009-mary-gloria-the-christmas-doll/de/short/script.md\"",
+          "from": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/009-mary-gloria-the-christmas-doll/languages/short/script-de.md",
+          "to": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/009-mary-gloria-the-christmas-doll/de/short/script.md"
+        },
+        "performed": true
+      }
+    },
+    {
+      "episodeSlug": "009-mary-gloria-the-christmas-doll",
+      "relativePath": "en/full/script.md",
+      "repositoryRelativePath": "episodes/009-mary-gloria-the-christmas-doll/en/full/script.md",
+      "layout": "language_variant_script",
+      "language": "en",
+      "variant": "full",
+      "rawSha256": "d58124e86c3fb975e38727e8e2c19bb5f8305d8edf38761202a54b372e838ef6",
+      "normalizedSha256": "d58124e86c3fb975e38727e8e2c19bb5f8305d8edf38761202a54b372e838ef6",
+      "canonicalRelativePath": "009-mary-gloria-the-christmas-doll/languages/script-en.md",
+      "canonicalRepositoryRelativePath": "episodes/009-mary-gloria-the-christmas-doll/languages/script-en.md",
+      "classification": "safe_move",
+      "reason": "Single mechanically safe source selected for canonical move.",
+      "move": {
+        "from": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/009-mary-gloria-the-christmas-doll/en/full/script.md",
+        "to": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/009-mary-gloria-the-christmas-doll/languages/script-en.md",
+        "rollback": {
+          "command": "mv \"/home/box/workspace/fehmarn-seo/youtube/other/episodes/009-mary-gloria-the-christmas-doll/languages/script-en.md\" \"/home/box/workspace/fehmarn-seo/youtube/other/episodes/009-mary-gloria-the-christmas-doll/en/full/script.md\"",
+          "from": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/009-mary-gloria-the-christmas-doll/languages/script-en.md",
+          "to": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/009-mary-gloria-the-christmas-doll/en/full/script.md"
+        },
+        "performed": true
+      }
+    },
+    {
+      "episodeSlug": "009-mary-gloria-the-christmas-doll",
+      "relativePath": "en/short/script.md",
+      "repositoryRelativePath": "episodes/009-mary-gloria-the-christmas-doll/en/short/script.md",
+      "layout": "language_variant_script",
+      "language": "en",
+      "variant": "short",
+      "rawSha256": "9da59cc5c4da0b37c415d9e4d7a07ef14e9b7d63e9e8844b66b46dc6f333247b",
+      "normalizedSha256": "9da59cc5c4da0b37c415d9e4d7a07ef14e9b7d63e9e8844b66b46dc6f333247b",
+      "canonicalRelativePath": "009-mary-gloria-the-christmas-doll/languages/short/script-en.md",
+      "canonicalRepositoryRelativePath": "episodes/009-mary-gloria-the-christmas-doll/languages/short/script-en.md",
+      "classification": "safe_move",
+      "reason": "Single mechanically safe source selected for canonical move.",
+      "move": {
+        "from": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/009-mary-gloria-the-christmas-doll/en/short/script.md",
+        "to": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/009-mary-gloria-the-christmas-doll/languages/short/script-en.md",
+        "rollback": {
+          "command": "mv \"/home/box/workspace/fehmarn-seo/youtube/other/episodes/009-mary-gloria-the-christmas-doll/languages/short/script-en.md\" \"/home/box/workspace/fehmarn-seo/youtube/other/episodes/009-mary-gloria-the-christmas-doll/en/short/script.md\"",
+          "from": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/009-mary-gloria-the-christmas-doll/languages/short/script-en.md",
+          "to": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/009-mary-gloria-the-christmas-doll/en/short/script.md"
+        },
+        "performed": true
+      }
+    },
+    {
+      "episodeSlug": "009-mary-gloria-the-christmas-doll",
+      "relativePath": "es/full/script.md",
+      "repositoryRelativePath": "episodes/009-mary-gloria-the-christmas-doll/es/full/script.md",
+      "layout": "language_variant_script",
+      "language": "es",
+      "variant": "full",
+      "rawSha256": "03777f3c5e33110ebbe24e85878fe3856384fd27eb934dbe63da0cac166e3df0",
+      "normalizedSha256": "03777f3c5e33110ebbe24e85878fe3856384fd27eb934dbe63da0cac166e3df0",
+      "canonicalRelativePath": "009-mary-gloria-the-christmas-doll/languages/script-es.md",
+      "canonicalRepositoryRelativePath": "episodes/009-mary-gloria-the-christmas-doll/languages/script-es.md",
+      "classification": "safe_move",
+      "reason": "Single mechanically safe source selected for canonical move.",
+      "move": {
+        "from": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/009-mary-gloria-the-christmas-doll/es/full/script.md",
+        "to": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/009-mary-gloria-the-christmas-doll/languages/script-es.md",
+        "rollback": {
+          "command": "mv \"/home/box/workspace/fehmarn-seo/youtube/other/episodes/009-mary-gloria-the-christmas-doll/languages/script-es.md\" \"/home/box/workspace/fehmarn-seo/youtube/other/episodes/009-mary-gloria-the-christmas-doll/es/full/script.md\"",
+          "from": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/009-mary-gloria-the-christmas-doll/languages/script-es.md",
+          "to": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/009-mary-gloria-the-christmas-doll/es/full/script.md"
+        },
+        "performed": true
+      }
+    },
+    {
+      "episodeSlug": "009-mary-gloria-the-christmas-doll",
+      "relativePath": "es/short/script.md",
+      "repositoryRelativePath": "episodes/009-mary-gloria-the-christmas-doll/es/short/script.md",
+      "layout": "language_variant_script",
+      "language": "es",
+      "variant": "short",
+      "rawSha256": "6821a4e7fa5eae56678d6dccde8b16ec59a9b5cd4cb6a3bf958d6583ceff9ffa",
+      "normalizedSha256": "6821a4e7fa5eae56678d6dccde8b16ec59a9b5cd4cb6a3bf958d6583ceff9ffa",
+      "canonicalRelativePath": "009-mary-gloria-the-christmas-doll/languages/short/script-es.md",
+      "canonicalRepositoryRelativePath": "episodes/009-mary-gloria-the-christmas-doll/languages/short/script-es.md",
+      "classification": "safe_move",
+      "reason": "Single mechanically safe source selected for canonical move.",
+      "move": {
+        "from": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/009-mary-gloria-the-christmas-doll/es/short/script.md",
+        "to": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/009-mary-gloria-the-christmas-doll/languages/short/script-es.md",
+        "rollback": {
+          "command": "mv \"/home/box/workspace/fehmarn-seo/youtube/other/episodes/009-mary-gloria-the-christmas-doll/languages/short/script-es.md\" \"/home/box/workspace/fehmarn-seo/youtube/other/episodes/009-mary-gloria-the-christmas-doll/es/short/script.md\"",
+          "from": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/009-mary-gloria-the-christmas-doll/languages/short/script-es.md",
+          "to": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/009-mary-gloria-the-christmas-doll/es/short/script.md"
+        },
+        "performed": true
+      }
+    },
+    {
+      "episodeSlug": "009-mary-gloria-the-christmas-doll",
+      "relativePath": "fr/full/script.md",
+      "repositoryRelativePath": "episodes/009-mary-gloria-the-christmas-doll/fr/full/script.md",
+      "layout": "language_variant_script",
+      "language": "fr",
+      "variant": "full",
+      "rawSha256": "d19777684f6ec0c487eea656b5c2660ec2abc572a36c1559eb18a3ad78bcaa0b",
+      "normalizedSha256": "d19777684f6ec0c487eea656b5c2660ec2abc572a36c1559eb18a3ad78bcaa0b",
+      "canonicalRelativePath": "009-mary-gloria-the-christmas-doll/languages/script-fr.md",
+      "canonicalRepositoryRelativePath": "episodes/009-mary-gloria-the-christmas-doll/languages/script-fr.md",
+      "classification": "safe_move",
+      "reason": "Single mechanically safe source selected for canonical move.",
+      "move": {
+        "from": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/009-mary-gloria-the-christmas-doll/fr/full/script.md",
+        "to": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/009-mary-gloria-the-christmas-doll/languages/script-fr.md",
+        "rollback": {
+          "command": "mv \"/home/box/workspace/fehmarn-seo/youtube/other/episodes/009-mary-gloria-the-christmas-doll/languages/script-fr.md\" \"/home/box/workspace/fehmarn-seo/youtube/other/episodes/009-mary-gloria-the-christmas-doll/fr/full/script.md\"",
+          "from": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/009-mary-gloria-the-christmas-doll/languages/script-fr.md",
+          "to": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/009-mary-gloria-the-christmas-doll/fr/full/script.md"
+        },
+        "performed": true
+      }
+    },
+    {
+      "episodeSlug": "009-mary-gloria-the-christmas-doll",
+      "relativePath": "fr/short/script.md",
+      "repositoryRelativePath": "episodes/009-mary-gloria-the-christmas-doll/fr/short/script.md",
+      "layout": "language_variant_script",
+      "language": "fr",
+      "variant": "short",
+      "rawSha256": "ec0aed227d014710df4733768827489b0113e181b32a11dda9e8a1fa6a10ddc6",
+      "normalizedSha256": "ec0aed227d014710df4733768827489b0113e181b32a11dda9e8a1fa6a10ddc6",
+      "canonicalRelativePath": "009-mary-gloria-the-christmas-doll/languages/short/script-fr.md",
+      "canonicalRepositoryRelativePath": "episodes/009-mary-gloria-the-christmas-doll/languages/short/script-fr.md",
+      "classification": "safe_move",
+      "reason": "Single mechanically safe source selected for canonical move.",
+      "move": {
+        "from": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/009-mary-gloria-the-christmas-doll/fr/short/script.md",
+        "to": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/009-mary-gloria-the-christmas-doll/languages/short/script-fr.md",
+        "rollback": {
+          "command": "mv \"/home/box/workspace/fehmarn-seo/youtube/other/episodes/009-mary-gloria-the-christmas-doll/languages/short/script-fr.md\" \"/home/box/workspace/fehmarn-seo/youtube/other/episodes/009-mary-gloria-the-christmas-doll/fr/short/script.md\"",
+          "from": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/009-mary-gloria-the-christmas-doll/languages/short/script-fr.md",
+          "to": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/009-mary-gloria-the-christmas-doll/fr/short/script.md"
+        },
+        "performed": true
+      }
+    },
+    {
+      "episodeSlug": "009-mary-gloria-the-christmas-doll",
+      "relativePath": "script.md",
+      "repositoryRelativePath": "episodes/009-mary-gloria-the-christmas-doll/script.md",
+      "layout": "root_script",
+      "language": "en",
+      "variant": "full",
+      "rawSha256": "d58124e86c3fb975e38727e8e2c19bb5f8305d8edf38761202a54b372e838ef6",
+      "normalizedSha256": "d58124e86c3fb975e38727e8e2c19bb5f8305d8edf38761202a54b372e838ef6",
+      "canonicalRelativePath": "009-mary-gloria-the-christmas-doll/languages/script-en.md",
+      "canonicalRepositoryRelativePath": "episodes/009-mary-gloria-the-christmas-doll/languages/script-en.md",
+      "classification": "identical_duplicate",
+      "reason": "Duplicate content matches the selected move source after normalization."
+    },
+    {
+      "episodeSlug": "010-010-the-cleaner-of-death",
+      "relativePath": "de/full/script.md",
+      "repositoryRelativePath": "episodes/010-010-the-cleaner-of-death/de/full/script.md",
+      "layout": "language_variant_script",
+      "language": "de",
+      "variant": "full",
+      "rawSha256": "e9162ddae065d14514b9834c99d6d3be9cbc2b1f60d87a0730e062ea72f74b40",
+      "normalizedSha256": "e9162ddae065d14514b9834c99d6d3be9cbc2b1f60d87a0730e062ea72f74b40",
+      "canonicalRelativePath": "010-010-the-cleaner-of-death/languages/script-de.md",
+      "canonicalRepositoryRelativePath": "episodes/010-010-the-cleaner-of-death/languages/script-de.md",
+      "classification": "safe_move",
+      "reason": "Single mechanically safe source selected for canonical move.",
+      "move": {
+        "from": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/010-010-the-cleaner-of-death/de/full/script.md",
+        "to": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/010-010-the-cleaner-of-death/languages/script-de.md",
+        "rollback": {
+          "command": "mv \"/home/box/workspace/fehmarn-seo/youtube/other/episodes/010-010-the-cleaner-of-death/languages/script-de.md\" \"/home/box/workspace/fehmarn-seo/youtube/other/episodes/010-010-the-cleaner-of-death/de/full/script.md\"",
+          "from": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/010-010-the-cleaner-of-death/languages/script-de.md",
+          "to": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/010-010-the-cleaner-of-death/de/full/script.md"
+        },
+        "performed": true
+      }
+    },
+    {
+      "episodeSlug": "010-010-the-cleaner-of-death",
+      "relativePath": "de/short/script.md",
+      "repositoryRelativePath": "episodes/010-010-the-cleaner-of-death/de/short/script.md",
+      "layout": "language_variant_script",
+      "language": "de",
+      "variant": "short",
+      "rawSha256": "07e3bc764db2ff0ea3f98ba20aed6bfaeadf56ed1a840ea5da49fe249ec7ecec",
+      "normalizedSha256": "07e3bc764db2ff0ea3f98ba20aed6bfaeadf56ed1a840ea5da49fe249ec7ecec",
+      "canonicalRelativePath": "010-010-the-cleaner-of-death/languages/short/script-de.md",
+      "canonicalRepositoryRelativePath": "episodes/010-010-the-cleaner-of-death/languages/short/script-de.md",
+      "classification": "safe_move",
+      "reason": "Single mechanically safe source selected for canonical move.",
+      "move": {
+        "from": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/010-010-the-cleaner-of-death/de/short/script.md",
+        "to": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/010-010-the-cleaner-of-death/languages/short/script-de.md",
+        "rollback": {
+          "command": "mv \"/home/box/workspace/fehmarn-seo/youtube/other/episodes/010-010-the-cleaner-of-death/languages/short/script-de.md\" \"/home/box/workspace/fehmarn-seo/youtube/other/episodes/010-010-the-cleaner-of-death/de/short/script.md\"",
+          "from": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/010-010-the-cleaner-of-death/languages/short/script-de.md",
+          "to": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/010-010-the-cleaner-of-death/de/short/script.md"
+        },
+        "performed": true
+      }
+    },
+    {
+      "episodeSlug": "010-010-the-cleaner-of-death",
+      "relativePath": "en/short/script.md",
+      "repositoryRelativePath": "episodes/010-010-the-cleaner-of-death/en/short/script.md",
+      "layout": "language_variant_script",
+      "language": "en",
+      "variant": "short",
+      "rawSha256": "8642f75e6ac4bab6c0e48a5cd5d4bcef2bfdf88deaa4b1d9a00498a569fc58a6",
+      "normalizedSha256": "8642f75e6ac4bab6c0e48a5cd5d4bcef2bfdf88deaa4b1d9a00498a569fc58a6",
+      "canonicalRelativePath": "010-010-the-cleaner-of-death/languages/short/script-en.md",
+      "canonicalRepositoryRelativePath": "episodes/010-010-the-cleaner-of-death/languages/short/script-en.md",
+      "classification": "safe_move",
+      "reason": "Single mechanically safe source selected for canonical move.",
+      "move": {
+        "from": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/010-010-the-cleaner-of-death/en/short/script.md",
+        "to": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/010-010-the-cleaner-of-death/languages/short/script-en.md",
+        "rollback": {
+          "command": "mv \"/home/box/workspace/fehmarn-seo/youtube/other/episodes/010-010-the-cleaner-of-death/languages/short/script-en.md\" \"/home/box/workspace/fehmarn-seo/youtube/other/episodes/010-010-the-cleaner-of-death/en/short/script.md\"",
+          "from": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/010-010-the-cleaner-of-death/languages/short/script-en.md",
+          "to": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/010-010-the-cleaner-of-death/en/short/script.md"
+        },
+        "performed": true
+      }
+    },
+    {
+      "episodeSlug": "010-010-the-cleaner-of-death",
+      "relativePath": "script.md",
+      "repositoryRelativePath": "episodes/010-010-the-cleaner-of-death/script.md",
+      "layout": "root_script",
+      "language": "en",
+      "variant": "full",
+      "rawSha256": "cdbce3a53b9f24bf7006db982a91b961b15d7abba14ae4f5d5b7c606d8935121",
+      "normalizedSha256": "cdbce3a53b9f24bf7006db982a91b961b15d7abba14ae4f5d5b7c606d8935121",
+      "canonicalRelativePath": "010-010-the-cleaner-of-death/languages/script-en.md",
+      "canonicalRepositoryRelativePath": "episodes/010-010-the-cleaner-of-death/languages/script-en.md",
+      "classification": "safe_move",
+      "reason": "Single mechanically safe source selected for canonical move.",
+      "move": {
+        "from": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/010-010-the-cleaner-of-death/script.md",
+        "to": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/010-010-the-cleaner-of-death/languages/script-en.md",
+        "rollback": {
+          "command": "mv \"/home/box/workspace/fehmarn-seo/youtube/other/episodes/010-010-the-cleaner-of-death/languages/script-en.md\" \"/home/box/workspace/fehmarn-seo/youtube/other/episodes/010-010-the-cleaner-of-death/script.md\"",
+          "from": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/010-010-the-cleaner-of-death/languages/script-en.md",
+          "to": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/010-010-the-cleaner-of-death/script.md"
+        },
+        "performed": true
+      }
+    },
+    {
+      "episodeSlug": "010-the-cleaner-of-death",
+      "relativePath": "de/full/script.md",
+      "repositoryRelativePath": "episodes/010-the-cleaner-of-death/de/full/script.md",
+      "layout": "language_variant_script",
+      "language": "de",
+      "variant": "full",
+      "rawSha256": "3dff24782aa8423883b6866932f228e6ca563727714ad5ba2095f7f12fdcee73",
+      "normalizedSha256": "3dff24782aa8423883b6866932f228e6ca563727714ad5ba2095f7f12fdcee73",
+      "canonicalRelativePath": "010-the-cleaner-of-death/languages/script-de.md",
+      "canonicalRepositoryRelativePath": "episodes/010-the-cleaner-of-death/languages/script-de.md",
+      "classification": "safe_move",
+      "reason": "Single mechanically safe source selected for canonical move.",
+      "move": {
+        "from": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/010-the-cleaner-of-death/de/full/script.md",
+        "to": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/010-the-cleaner-of-death/languages/script-de.md",
+        "rollback": {
+          "command": "mv \"/home/box/workspace/fehmarn-seo/youtube/other/episodes/010-the-cleaner-of-death/languages/script-de.md\" \"/home/box/workspace/fehmarn-seo/youtube/other/episodes/010-the-cleaner-of-death/de/full/script.md\"",
+          "from": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/010-the-cleaner-of-death/languages/script-de.md",
+          "to": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/010-the-cleaner-of-death/de/full/script.md"
+        },
+        "performed": true
+      }
+    },
+    {
+      "episodeSlug": "010-the-cleaner-of-death",
+      "relativePath": "de/short/script.md",
+      "repositoryRelativePath": "episodes/010-the-cleaner-of-death/de/short/script.md",
+      "layout": "language_variant_script",
+      "language": "de",
+      "variant": "short",
+      "rawSha256": "333299cde07ec06bc22f6074d116f322a5a6307a8e69ed4d91d72eea2e921b98",
+      "normalizedSha256": "333299cde07ec06bc22f6074d116f322a5a6307a8e69ed4d91d72eea2e921b98",
+      "canonicalRelativePath": "010-the-cleaner-of-death/languages/short/script-de.md",
+      "canonicalRepositoryRelativePath": "episodes/010-the-cleaner-of-death/languages/short/script-de.md",
+      "classification": "safe_move",
+      "reason": "Single mechanically safe source selected for canonical move.",
+      "move": {
+        "from": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/010-the-cleaner-of-death/de/short/script.md",
+        "to": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/010-the-cleaner-of-death/languages/short/script-de.md",
+        "rollback": {
+          "command": "mv \"/home/box/workspace/fehmarn-seo/youtube/other/episodes/010-the-cleaner-of-death/languages/short/script-de.md\" \"/home/box/workspace/fehmarn-seo/youtube/other/episodes/010-the-cleaner-of-death/de/short/script.md\"",
+          "from": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/010-the-cleaner-of-death/languages/short/script-de.md",
+          "to": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/010-the-cleaner-of-death/de/short/script.md"
+        },
+        "performed": true
+      }
+    },
+    {
+      "episodeSlug": "010-the-cleaner-of-death",
+      "relativePath": "en/short/script.md",
+      "repositoryRelativePath": "episodes/010-the-cleaner-of-death/en/short/script.md",
+      "layout": "language_variant_script",
+      "language": "en",
+      "variant": "short",
+      "rawSha256": "8642f75e6ac4bab6c0e48a5cd5d4bcef2bfdf88deaa4b1d9a00498a569fc58a6",
+      "normalizedSha256": "8642f75e6ac4bab6c0e48a5cd5d4bcef2bfdf88deaa4b1d9a00498a569fc58a6",
+      "canonicalRelativePath": "010-the-cleaner-of-death/languages/short/script-en.md",
+      "canonicalRepositoryRelativePath": "episodes/010-the-cleaner-of-death/languages/short/script-en.md",
+      "classification": "safe_move",
+      "reason": "Single mechanically safe source selected for canonical move.",
+      "move": {
+        "from": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/010-the-cleaner-of-death/en/short/script.md",
+        "to": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/010-the-cleaner-of-death/languages/short/script-en.md",
+        "rollback": {
+          "command": "mv \"/home/box/workspace/fehmarn-seo/youtube/other/episodes/010-the-cleaner-of-death/languages/short/script-en.md\" \"/home/box/workspace/fehmarn-seo/youtube/other/episodes/010-the-cleaner-of-death/en/short/script.md\"",
+          "from": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/010-the-cleaner-of-death/languages/short/script-en.md",
+          "to": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/010-the-cleaner-of-death/en/short/script.md"
+        },
+        "performed": true
+      }
+    },
+    {
+      "episodeSlug": "010-the-cleaner-of-death",
+      "relativePath": "script.md",
+      "repositoryRelativePath": "episodes/010-the-cleaner-of-death/script.md",
+      "layout": "root_script",
+      "language": "en",
+      "variant": "full",
+      "rawSha256": "cdbce3a53b9f24bf7006db982a91b961b15d7abba14ae4f5d5b7c606d8935121",
+      "normalizedSha256": "cdbce3a53b9f24bf7006db982a91b961b15d7abba14ae4f5d5b7c606d8935121",
+      "canonicalRelativePath": "010-the-cleaner-of-death/languages/script-en.md",
+      "canonicalRepositoryRelativePath": "episodes/010-the-cleaner-of-death/languages/script-en.md",
+      "classification": "identical_duplicate",
+      "reason": "Duplicate content matches the selected move source after normalization."
+    },
+    {
+      "episodeSlug": "010-the-cleaner-of-death",
+      "relativePath": "source/010-the-cleaner-of-death-en-full.md",
+      "repositoryRelativePath": "episodes/010-the-cleaner-of-death/source/010-the-cleaner-of-death-en-full.md",
+      "layout": "source_pack",
+      "language": "en",
+      "variant": "full",
+      "rawSha256": "cdbce3a53b9f24bf7006db982a91b961b15d7abba14ae4f5d5b7c606d8935121",
+      "normalizedSha256": "cdbce3a53b9f24bf7006db982a91b961b15d7abba14ae4f5d5b7c606d8935121",
+      "canonicalRelativePath": "010-the-cleaner-of-death/languages/script-en.md",
+      "canonicalRepositoryRelativePath": "episodes/010-the-cleaner-of-death/languages/script-en.md",
+      "classification": "safe_move",
+      "reason": "Single mechanically safe source selected for canonical move.",
+      "move": {
+        "from": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/010-the-cleaner-of-death/source/010-the-cleaner-of-death-en-full.md",
+        "to": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/010-the-cleaner-of-death/languages/script-en.md",
+        "rollback": {
+          "command": "mv \"/home/box/workspace/fehmarn-seo/youtube/other/episodes/010-the-cleaner-of-death/languages/script-en.md\" \"/home/box/workspace/fehmarn-seo/youtube/other/episodes/010-the-cleaner-of-death/source/010-the-cleaner-of-death-en-full.md\"",
+          "from": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/010-the-cleaner-of-death/languages/script-en.md",
+          "to": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/010-the-cleaner-of-death/source/010-the-cleaner-of-death-en-full.md"
+        },
+        "performed": true
+      }
+    },
+    {
+      "episodeSlug": "011-the-black-eyed-children",
+      "relativePath": "de/full/script.md",
+      "repositoryRelativePath": "episodes/011-the-black-eyed-children/de/full/script.md",
+      "layout": "language_variant_script",
+      "language": "de",
+      "variant": "full",
+      "rawSha256": "a59311772104e5fae5ab736429926741911db11de51c8ba12fe61295f9c98ae3",
+      "normalizedSha256": "ec87417de47407d3ba5d3156fd963a2d2b65296594dc06b52479cfafde3429ea",
+      "canonicalRelativePath": "011-the-black-eyed-children/languages/script-de.md",
+      "canonicalRepositoryRelativePath": "episodes/011-the-black-eyed-children/languages/script-de.md",
+      "classification": "safe_move",
+      "reason": "Single mechanically safe source selected for canonical move.",
+      "move": {
+        "from": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/011-the-black-eyed-children/de/full/script.md",
+        "to": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/011-the-black-eyed-children/languages/script-de.md",
+        "rollback": {
+          "command": "mv \"/home/box/workspace/fehmarn-seo/youtube/other/episodes/011-the-black-eyed-children/languages/script-de.md\" \"/home/box/workspace/fehmarn-seo/youtube/other/episodes/011-the-black-eyed-children/de/full/script.md\"",
+          "from": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/011-the-black-eyed-children/languages/script-de.md",
+          "to": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/011-the-black-eyed-children/de/full/script.md"
+        },
+        "performed": true
+      }
+    },
+    {
+      "episodeSlug": "011-the-black-eyed-children",
+      "relativePath": "en/script.md",
+      "repositoryRelativePath": "episodes/011-the-black-eyed-children/en/script.md",
+      "layout": "language_script",
+      "language": "en",
+      "variant": "full",
+      "rawSha256": "522a1118b068986806e606ce7ad47e9b8edac0abbe2837bdd86d36eda4fd8f38",
+      "normalizedSha256": "9fc57e764e441992e5b82e86c2f9e9d860cb79f8547464b3eee7d6bfe6e20045",
+      "canonicalRelativePath": "011-the-black-eyed-children/languages/script-en.md",
+      "canonicalRepositoryRelativePath": "episodes/011-the-black-eyed-children/languages/script-en.md",
+      "classification": "divergent_duplicate",
+      "reason": "Multiple noncanonical candidates for the same target have divergent normalized content."
+    },
+    {
+      "episodeSlug": "011-the-black-eyed-children",
+      "relativePath": "es/full/script.md",
+      "repositoryRelativePath": "episodes/011-the-black-eyed-children/es/full/script.md",
+      "layout": "language_variant_script",
+      "language": "es",
+      "variant": "full",
+      "rawSha256": "36b2c55de39dd83c51784b3551e0092a44d28f35837dfb7aaf6d7b592725f844",
+      "normalizedSha256": "da07a0a0794af0af4222152bc2836d8d82cc2fe8e8b1bb21dff83137df22ee97",
+      "canonicalRelativePath": "011-the-black-eyed-children/languages/script-es.md",
+      "canonicalRepositoryRelativePath": "episodes/011-the-black-eyed-children/languages/script-es.md",
+      "classification": "safe_move",
+      "reason": "Single mechanically safe source selected for canonical move.",
+      "move": {
+        "from": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/011-the-black-eyed-children/es/full/script.md",
+        "to": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/011-the-black-eyed-children/languages/script-es.md",
+        "rollback": {
+          "command": "mv \"/home/box/workspace/fehmarn-seo/youtube/other/episodes/011-the-black-eyed-children/languages/script-es.md\" \"/home/box/workspace/fehmarn-seo/youtube/other/episodes/011-the-black-eyed-children/es/full/script.md\"",
+          "from": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/011-the-black-eyed-children/languages/script-es.md",
+          "to": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/011-the-black-eyed-children/es/full/script.md"
+        },
+        "performed": true
+      }
+    },
+    {
+      "episodeSlug": "011-the-black-eyed-children",
+      "relativePath": "pt/full/script.md",
+      "repositoryRelativePath": "episodes/011-the-black-eyed-children/pt/full/script.md",
+      "layout": "language_variant_script",
+      "language": "pt",
+      "variant": "full",
+      "rawSha256": "91b1402cdeb3eb4411c1ef88e5b651019e5fc29f35f51c8497e32a4ea7784bf6",
+      "normalizedSha256": "69532eaa65cd369a84c2756fa838843ae65e90bd1da3bad861a80d093b880c9f",
+      "canonicalRelativePath": "011-the-black-eyed-children/languages/script-pt.md",
+      "canonicalRepositoryRelativePath": "episodes/011-the-black-eyed-children/languages/script-pt.md",
+      "classification": "safe_move",
+      "reason": "Single mechanically safe source selected for canonical move.",
+      "move": {
+        "from": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/011-the-black-eyed-children/pt/full/script.md",
+        "to": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/011-the-black-eyed-children/languages/script-pt.md",
+        "rollback": {
+          "command": "mv \"/home/box/workspace/fehmarn-seo/youtube/other/episodes/011-the-black-eyed-children/languages/script-pt.md\" \"/home/box/workspace/fehmarn-seo/youtube/other/episodes/011-the-black-eyed-children/pt/full/script.md\"",
+          "from": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/011-the-black-eyed-children/languages/script-pt.md",
+          "to": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/011-the-black-eyed-children/pt/full/script.md"
+        },
+        "performed": true
+      }
+    },
+    {
+      "episodeSlug": "011-the-black-eyed-children",
+      "relativePath": "script.md",
+      "repositoryRelativePath": "episodes/011-the-black-eyed-children/script.md",
+      "layout": "root_script",
+      "language": "en",
+      "variant": "full",
+      "rawSha256": "522a1118b068986806e606ce7ad47e9b8edac0abbe2837bdd86d36eda4fd8f38",
+      "normalizedSha256": "9fc57e764e441992e5b82e86c2f9e9d860cb79f8547464b3eee7d6bfe6e20045",
+      "canonicalRelativePath": "011-the-black-eyed-children/languages/script-en.md",
+      "canonicalRepositoryRelativePath": "episodes/011-the-black-eyed-children/languages/script-en.md",
+      "classification": "divergent_duplicate",
+      "reason": "Multiple noncanonical candidates for the same target have divergent normalized content."
+    },
+    {
+      "episodeSlug": "011-the-black-eyed-children",
+      "relativePath": "source/011-the-black-eyed-children-en-full.md",
+      "repositoryRelativePath": "episodes/011-the-black-eyed-children/source/011-the-black-eyed-children-en-full.md",
+      "layout": "source_pack",
+      "language": "en",
+      "variant": "full",
+      "rawSha256": "32c3d4f98ee4a656453f43c66ff7785410f041999910d5c94971c03e7825ad9a",
+      "normalizedSha256": "32c3d4f98ee4a656453f43c66ff7785410f041999910d5c94971c03e7825ad9a",
+      "canonicalRelativePath": "011-the-black-eyed-children/languages/script-en.md",
+      "canonicalRepositoryRelativePath": "episodes/011-the-black-eyed-children/languages/script-en.md",
+      "classification": "divergent_duplicate",
+      "reason": "Multiple noncanonical candidates for the same target have divergent normalized content."
+    },
+    {
+      "episodeSlug": "012-the-elevator-game",
+      "relativePath": "de/full/script.md",
+      "repositoryRelativePath": "episodes/012-the-elevator-game/de/full/script.md",
+      "layout": "language_variant_script",
+      "language": "de",
+      "variant": "full",
+      "rawSha256": "672d1422e3a5f600f1bc075a98e72a7f236ff0f1bfa8553a6d34ce57df971c57",
+      "normalizedSha256": "3bf78fce5bde31be2d7e689e97f78efad88668569ab408c40c323efd7050e490",
+      "canonicalRelativePath": "012-the-elevator-game/languages/script-de.md",
+      "canonicalRepositoryRelativePath": "episodes/012-the-elevator-game/languages/script-de.md",
+      "classification": "safe_move",
+      "reason": "Single mechanically safe source selected for canonical move.",
+      "move": {
+        "from": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/012-the-elevator-game/de/full/script.md",
+        "to": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/012-the-elevator-game/languages/script-de.md",
+        "rollback": {
+          "command": "mv \"/home/box/workspace/fehmarn-seo/youtube/other/episodes/012-the-elevator-game/languages/script-de.md\" \"/home/box/workspace/fehmarn-seo/youtube/other/episodes/012-the-elevator-game/de/full/script.md\"",
+          "from": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/012-the-elevator-game/languages/script-de.md",
+          "to": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/012-the-elevator-game/de/full/script.md"
+        },
+        "performed": true
+      }
+    },
+    {
+      "episodeSlug": "012-the-elevator-game",
+      "relativePath": "en/script.md",
+      "repositoryRelativePath": "episodes/012-the-elevator-game/en/script.md",
+      "layout": "language_script",
+      "language": "en",
+      "variant": "full",
+      "rawSha256": "1601666317b81f6f5d2b8c010e97b625ee3bba95d2a42cf8a8571e4814975897",
+      "normalizedSha256": "eea1812a14683a8e98906ad0111b4875fa12cb86413a01d546fcac8835b06e52",
+      "canonicalRelativePath": "012-the-elevator-game/languages/script-en.md",
+      "canonicalRepositoryRelativePath": "episodes/012-the-elevator-game/languages/script-en.md",
+      "classification": "divergent_duplicate",
+      "reason": "Multiple noncanonical candidates for the same target have divergent normalized content."
+    },
+    {
+      "episodeSlug": "012-the-elevator-game",
+      "relativePath": "es/full/script.md",
+      "repositoryRelativePath": "episodes/012-the-elevator-game/es/full/script.md",
+      "layout": "language_variant_script",
+      "language": "es",
+      "variant": "full",
+      "rawSha256": "8654870cf4745e448de54ea0ff47682ebab8d15f92b86e38a114cfbab34d78dc",
+      "normalizedSha256": "3865a5caaaf3fc4618e669226ff279ddc6d528ab0ea871bac2a53de993cbbf72",
+      "canonicalRelativePath": "012-the-elevator-game/languages/script-es.md",
+      "canonicalRepositoryRelativePath": "episodes/012-the-elevator-game/languages/script-es.md",
+      "classification": "safe_move",
+      "reason": "Single mechanically safe source selected for canonical move.",
+      "move": {
+        "from": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/012-the-elevator-game/es/full/script.md",
+        "to": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/012-the-elevator-game/languages/script-es.md",
+        "rollback": {
+          "command": "mv \"/home/box/workspace/fehmarn-seo/youtube/other/episodes/012-the-elevator-game/languages/script-es.md\" \"/home/box/workspace/fehmarn-seo/youtube/other/episodes/012-the-elevator-game/es/full/script.md\"",
+          "from": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/012-the-elevator-game/languages/script-es.md",
+          "to": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/012-the-elevator-game/es/full/script.md"
+        },
+        "performed": true
+      }
+    },
+    {
+      "episodeSlug": "012-the-elevator-game",
+      "relativePath": "fr/full/script.md",
+      "repositoryRelativePath": "episodes/012-the-elevator-game/fr/full/script.md",
+      "layout": "language_variant_script",
+      "language": "fr",
+      "variant": "full",
+      "rawSha256": "3085ccd5dfcb67531b3e9d0bf8724467a3f179c19bd797a7ebc1c495f785ed41",
+      "normalizedSha256": "a3fe07d8566a445733d63ca772f7c958df55bba6140a71d8e50492526af591b6",
+      "canonicalRelativePath": "012-the-elevator-game/languages/script-fr.md",
+      "canonicalRepositoryRelativePath": "episodes/012-the-elevator-game/languages/script-fr.md",
+      "classification": "safe_move",
+      "reason": "Single mechanically safe source selected for canonical move.",
+      "move": {
+        "from": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/012-the-elevator-game/fr/full/script.md",
+        "to": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/012-the-elevator-game/languages/script-fr.md",
+        "rollback": {
+          "command": "mv \"/home/box/workspace/fehmarn-seo/youtube/other/episodes/012-the-elevator-game/languages/script-fr.md\" \"/home/box/workspace/fehmarn-seo/youtube/other/episodes/012-the-elevator-game/fr/full/script.md\"",
+          "from": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/012-the-elevator-game/languages/script-fr.md",
+          "to": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/012-the-elevator-game/fr/full/script.md"
+        },
+        "performed": true
+      }
+    },
+    {
+      "episodeSlug": "012-the-elevator-game",
+      "relativePath": "pt/full/script.md",
+      "repositoryRelativePath": "episodes/012-the-elevator-game/pt/full/script.md",
+      "layout": "language_variant_script",
+      "language": "pt",
+      "variant": "full",
+      "rawSha256": "f0a1c30cba13d71324b47fade667abb758cacb133231c12e2bfef383190ac106",
+      "normalizedSha256": "1d49c5f1c36773b61e4d8cfbddbb76e7ff4359177d9529076e4a79e272b6d0d4",
+      "canonicalRelativePath": "012-the-elevator-game/languages/script-pt.md",
+      "canonicalRepositoryRelativePath": "episodes/012-the-elevator-game/languages/script-pt.md",
+      "classification": "safe_move",
+      "reason": "Single mechanically safe source selected for canonical move.",
+      "move": {
+        "from": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/012-the-elevator-game/pt/full/script.md",
+        "to": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/012-the-elevator-game/languages/script-pt.md",
+        "rollback": {
+          "command": "mv \"/home/box/workspace/fehmarn-seo/youtube/other/episodes/012-the-elevator-game/languages/script-pt.md\" \"/home/box/workspace/fehmarn-seo/youtube/other/episodes/012-the-elevator-game/pt/full/script.md\"",
+          "from": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/012-the-elevator-game/languages/script-pt.md",
+          "to": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/012-the-elevator-game/pt/full/script.md"
+        },
+        "performed": true
+      }
+    },
+    {
+      "episodeSlug": "012-the-elevator-game",
+      "relativePath": "script.md",
+      "repositoryRelativePath": "episodes/012-the-elevator-game/script.md",
+      "layout": "root_script",
+      "language": "en",
+      "variant": "full",
+      "rawSha256": "1601666317b81f6f5d2b8c010e97b625ee3bba95d2a42cf8a8571e4814975897",
+      "normalizedSha256": "eea1812a14683a8e98906ad0111b4875fa12cb86413a01d546fcac8835b06e52",
+      "canonicalRelativePath": "012-the-elevator-game/languages/script-en.md",
+      "canonicalRepositoryRelativePath": "episodes/012-the-elevator-game/languages/script-en.md",
+      "classification": "divergent_duplicate",
+      "reason": "Multiple noncanonical candidates for the same target have divergent normalized content."
+    },
+    {
+      "episodeSlug": "012-the-elevator-game",
+      "relativePath": "source/012-the-elevator-game-en-full.md",
+      "repositoryRelativePath": "episodes/012-the-elevator-game/source/012-the-elevator-game-en-full.md",
+      "layout": "source_pack",
+      "language": "en",
+      "variant": "full",
+      "rawSha256": "c795d1a259e79d43313170048de4fdfb072864e8951d008f7e2d8fc07f709346",
+      "normalizedSha256": "c795d1a259e79d43313170048de4fdfb072864e8951d008f7e2d8fc07f709346",
+      "canonicalRelativePath": "012-the-elevator-game/languages/script-en.md",
+      "canonicalRepositoryRelativePath": "episodes/012-the-elevator-game/languages/script-en.md",
+      "classification": "divergent_duplicate",
+      "reason": "Multiple noncanonical candidates for the same target have divergent normalized content."
+    },
+    {
+      "episodeSlug": "013-the-dyatlov-pass-incident",
+      "relativePath": "script.md",
+      "repositoryRelativePath": "episodes/013-the-dyatlov-pass-incident/script.md",
+      "layout": "root_script",
+      "language": "en",
+      "variant": "full",
+      "rawSha256": "8e3746bbf0fabb2f5bfe7f3e141a85230f9fd7ebc5e3c336c2d9be6c0ca83500",
+      "normalizedSha256": "327f67a523495312520f52db2f4209e0e5789375faec7dbeced98c06b103fb6c",
+      "canonicalRelativePath": "013-the-dyatlov-pass-incident/languages/script-en.md",
+      "canonicalRepositoryRelativePath": "episodes/013-the-dyatlov-pass-incident/languages/script-en.md",
+      "classification": "divergent_duplicate",
+      "reason": "Multiple noncanonical candidates for the same target have divergent normalized content."
+    },
+    {
+      "episodeSlug": "013-the-dyatlov-pass-incident",
+      "relativePath": "source/013-the-dyatlov-pass-incident-en-full.md",
+      "repositoryRelativePath": "episodes/013-the-dyatlov-pass-incident/source/013-the-dyatlov-pass-incident-en-full.md",
+      "layout": "source_pack",
+      "language": "en",
+      "variant": "full",
+      "rawSha256": "8c47580aa6bc172e2f74a812dccc6a20815dd6259de83d98021ecd0f2f0acdb2",
+      "normalizedSha256": "8c47580aa6bc172e2f74a812dccc6a20815dd6259de83d98021ecd0f2f0acdb2",
+      "canonicalRelativePath": "013-the-dyatlov-pass-incident/languages/script-en.md",
+      "canonicalRepositoryRelativePath": "episodes/013-the-dyatlov-pass-incident/languages/script-en.md",
+      "classification": "divergent_duplicate",
+      "reason": "Multiple noncanonical candidates for the same target have divergent normalized content."
+    },
+    {
+      "episodeSlug": "014-hachishakusama-the-eight-foot-woman",
+      "relativePath": "de/full/script.md",
+      "repositoryRelativePath": "episodes/014-hachishakusama-the-eight-foot-woman/de/full/script.md",
+      "layout": "language_variant_script",
+      "language": "de",
+      "variant": "full",
+      "rawSha256": "2e3b5eac63ab5188af37c09d1d2d6994e9ade683b286f17169d37876acb5bd33",
+      "normalizedSha256": "2e3b5eac63ab5188af37c09d1d2d6994e9ade683b286f17169d37876acb5bd33",
+      "canonicalRelativePath": "014-hachishakusama-the-eight-foot-woman/languages/script-de.md",
+      "canonicalRepositoryRelativePath": "episodes/014-hachishakusama-the-eight-foot-woman/languages/script-de.md",
+      "classification": "safe_move",
+      "reason": "Single mechanically safe source selected for canonical move.",
+      "move": {
+        "from": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/014-hachishakusama-the-eight-foot-woman/de/full/script.md",
+        "to": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/014-hachishakusama-the-eight-foot-woman/languages/script-de.md",
+        "rollback": {
+          "command": "mv \"/home/box/workspace/fehmarn-seo/youtube/other/episodes/014-hachishakusama-the-eight-foot-woman/languages/script-de.md\" \"/home/box/workspace/fehmarn-seo/youtube/other/episodes/014-hachishakusama-the-eight-foot-woman/de/full/script.md\"",
+          "from": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/014-hachishakusama-the-eight-foot-woman/languages/script-de.md",
+          "to": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/014-hachishakusama-the-eight-foot-woman/de/full/script.md"
+        },
+        "performed": true
+      }
+    },
+    {
+      "episodeSlug": "014-hachishakusama-the-eight-foot-woman",
+      "relativePath": "en/full/script.md",
+      "repositoryRelativePath": "episodes/014-hachishakusama-the-eight-foot-woman/en/full/script.md",
+      "layout": "language_variant_script",
+      "language": "en",
+      "variant": "full",
+      "rawSha256": "5d689c5348593cb7b78cba2ba09a5e2261d3475021f1b26c82169f8fa465afcc",
+      "normalizedSha256": "7844cabe2612770bba8dd330d62d63ac24cc842f6e4e20a15741123a84d2f181",
+      "canonicalRelativePath": "014-hachishakusama-the-eight-foot-woman/languages/script-en.md",
+      "canonicalRepositoryRelativePath": "episodes/014-hachishakusama-the-eight-foot-woman/languages/script-en.md",
+      "classification": "divergent_duplicate",
+      "reason": "Multiple noncanonical candidates for the same target have divergent normalized content."
+    },
+    {
+      "episodeSlug": "014-hachishakusama-the-eight-foot-woman",
+      "relativePath": "en/script.md",
+      "repositoryRelativePath": "episodes/014-hachishakusama-the-eight-foot-woman/en/script.md",
+      "layout": "language_script",
+      "language": "en",
+      "variant": "full",
+      "rawSha256": "1752b8595e1f8b460e7bc87fd64d27f8356adbd596cd4338167e916d8da32c23",
+      "normalizedSha256": "bc19237b6cefc2e3b6d1b9bdfb40e2858839c46d4b70e34e0706c79c72598bdd",
+      "canonicalRelativePath": "014-hachishakusama-the-eight-foot-woman/languages/script-en.md",
+      "canonicalRepositoryRelativePath": "episodes/014-hachishakusama-the-eight-foot-woman/languages/script-en.md",
+      "classification": "divergent_duplicate",
+      "reason": "Multiple noncanonical candidates for the same target have divergent normalized content."
+    },
+    {
+      "episodeSlug": "014-hachishakusama-the-eight-foot-woman",
+      "relativePath": "en/short/script.md",
+      "repositoryRelativePath": "episodes/014-hachishakusama-the-eight-foot-woman/en/short/script.md",
+      "layout": "language_variant_script",
+      "language": "en",
+      "variant": "short",
+      "rawSha256": "42853ae1ffa7b1854b2d146211d32f868b748f9c319f9003a629bdac3653f6a2",
+      "normalizedSha256": "42853ae1ffa7b1854b2d146211d32f868b748f9c319f9003a629bdac3653f6a2",
+      "canonicalRelativePath": "014-hachishakusama-the-eight-foot-woman/languages/short/script-en.md",
+      "canonicalRepositoryRelativePath": "episodes/014-hachishakusama-the-eight-foot-woman/languages/short/script-en.md",
+      "classification": "safe_move",
+      "reason": "Single mechanically safe source selected for canonical move.",
+      "move": {
+        "from": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/014-hachishakusama-the-eight-foot-woman/en/short/script.md",
+        "to": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/014-hachishakusama-the-eight-foot-woman/languages/short/script-en.md",
+        "rollback": {
+          "command": "mv \"/home/box/workspace/fehmarn-seo/youtube/other/episodes/014-hachishakusama-the-eight-foot-woman/languages/short/script-en.md\" \"/home/box/workspace/fehmarn-seo/youtube/other/episodes/014-hachishakusama-the-eight-foot-woman/en/short/script.md\"",
+          "from": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/014-hachishakusama-the-eight-foot-woman/languages/short/script-en.md",
+          "to": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/014-hachishakusama-the-eight-foot-woman/en/short/script.md"
+        },
+        "performed": true
+      }
+    },
+    {
+      "episodeSlug": "014-hachishakusama-the-eight-foot-woman",
+      "relativePath": "script.md",
+      "repositoryRelativePath": "episodes/014-hachishakusama-the-eight-foot-woman/script.md",
+      "layout": "root_script",
+      "language": "en",
+      "variant": "full",
+      "rawSha256": "1752b8595e1f8b460e7bc87fd64d27f8356adbd596cd4338167e916d8da32c23",
+      "normalizedSha256": "bc19237b6cefc2e3b6d1b9bdfb40e2858839c46d4b70e34e0706c79c72598bdd",
+      "canonicalRelativePath": "014-hachishakusama-the-eight-foot-woman/languages/script-en.md",
+      "canonicalRepositoryRelativePath": "episodes/014-hachishakusama-the-eight-foot-woman/languages/script-en.md",
+      "classification": "divergent_duplicate",
+      "reason": "Multiple noncanonical candidates for the same target have divergent normalized content."
+    },
+    {
+      "episodeSlug": "014-hachishakusama-the-eight-foot-woman",
+      "relativePath": "source/014-hachishakusama-the-eight-foot-woman-en-full.md",
+      "repositoryRelativePath": "episodes/014-hachishakusama-the-eight-foot-woman/source/014-hachishakusama-the-eight-foot-woman-en-full.md",
+      "layout": "source_pack",
+      "language": "en",
+      "variant": "full",
+      "rawSha256": "c6164b4d841ab1a7732eb7442358720f7ec321bc6adcfa60ef33d35e33b020bd",
+      "normalizedSha256": "703b212856e29a65afa33eeeffb9b52abf91e3cf420624c872ff40329d409977",
+      "canonicalRelativePath": "014-hachishakusama-the-eight-foot-woman/languages/script-en.md",
+      "canonicalRepositoryRelativePath": "episodes/014-hachishakusama-the-eight-foot-woman/languages/script-en.md",
+      "classification": "divergent_duplicate",
+      "reason": "Multiple noncanonical candidates for the same target have divergent normalized content."
+    },
+    {
+      "episodeSlug": "015-the-bell-witch",
+      "relativePath": "de/full/script.md",
+      "repositoryRelativePath": "episodes/015-the-bell-witch/de/full/script.md",
+      "layout": "language_variant_script",
+      "language": "de",
+      "variant": "full",
+      "rawSha256": "020380e1a180e1065bd33bff753b86871f07332c8bc722eacd273edd134cc42d",
+      "normalizedSha256": "020380e1a180e1065bd33bff753b86871f07332c8bc722eacd273edd134cc42d",
+      "canonicalRelativePath": "015-the-bell-witch/languages/script-de.md",
+      "canonicalRepositoryRelativePath": "episodes/015-the-bell-witch/languages/script-de.md",
+      "classification": "safe_move",
+      "reason": "Single mechanically safe source selected for canonical move.",
+      "move": {
+        "from": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/015-the-bell-witch/de/full/script.md",
+        "to": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/015-the-bell-witch/languages/script-de.md",
+        "rollback": {
+          "command": "mv \"/home/box/workspace/fehmarn-seo/youtube/other/episodes/015-the-bell-witch/languages/script-de.md\" \"/home/box/workspace/fehmarn-seo/youtube/other/episodes/015-the-bell-witch/de/full/script.md\"",
+          "from": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/015-the-bell-witch/languages/script-de.md",
+          "to": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/015-the-bell-witch/de/full/script.md"
+        },
+        "performed": true
+      }
+    },
+    {
+      "episodeSlug": "015-the-bell-witch",
+      "relativePath": "en/full/script.md",
+      "repositoryRelativePath": "episodes/015-the-bell-witch/en/full/script.md",
+      "layout": "language_variant_script",
+      "language": "en",
+      "variant": "full",
+      "rawSha256": "efbcfc6f7e402125f66842b18b5fe0f9a4c8e6e9299e58f93754a5a3c709204a",
+      "normalizedSha256": "efbcfc6f7e402125f66842b18b5fe0f9a4c8e6e9299e58f93754a5a3c709204a",
+      "canonicalRelativePath": "015-the-bell-witch/languages/script-en.md",
+      "canonicalRepositoryRelativePath": "episodes/015-the-bell-witch/languages/script-en.md",
+      "classification": "safe_move",
+      "reason": "Single mechanically safe source selected for canonical move.",
+      "move": {
+        "from": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/015-the-bell-witch/en/full/script.md",
+        "to": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/015-the-bell-witch/languages/script-en.md",
+        "rollback": {
+          "command": "mv \"/home/box/workspace/fehmarn-seo/youtube/other/episodes/015-the-bell-witch/languages/script-en.md\" \"/home/box/workspace/fehmarn-seo/youtube/other/episodes/015-the-bell-witch/en/full/script.md\"",
+          "from": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/015-the-bell-witch/languages/script-en.md",
+          "to": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/015-the-bell-witch/en/full/script.md"
+        },
+        "performed": true
+      }
+    },
+    {
+      "episodeSlug": "016-kisaragi-station",
+      "relativePath": "de/full/script.md",
+      "repositoryRelativePath": "episodes/016-kisaragi-station/de/full/script.md",
+      "layout": "language_variant_script",
+      "language": "de",
+      "variant": "full",
+      "rawSha256": "679c089c485939cebb7f05e9d0f74f103587a4f9c34a8213dc5ef0ff8e796f29",
+      "normalizedSha256": "679c089c485939cebb7f05e9d0f74f103587a4f9c34a8213dc5ef0ff8e796f29",
+      "canonicalRelativePath": "016-kisaragi-station/languages/script-de.md",
+      "canonicalRepositoryRelativePath": "episodes/016-kisaragi-station/languages/script-de.md",
+      "classification": "safe_move",
+      "reason": "Single mechanically safe source selected for canonical move.",
+      "move": {
+        "from": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/016-kisaragi-station/de/full/script.md",
+        "to": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/016-kisaragi-station/languages/script-de.md",
+        "rollback": {
+          "command": "mv \"/home/box/workspace/fehmarn-seo/youtube/other/episodes/016-kisaragi-station/languages/script-de.md\" \"/home/box/workspace/fehmarn-seo/youtube/other/episodes/016-kisaragi-station/de/full/script.md\"",
+          "from": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/016-kisaragi-station/languages/script-de.md",
+          "to": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/016-kisaragi-station/de/full/script.md"
+        },
+        "performed": true
+      }
+    },
+    {
+      "episodeSlug": "016-kisaragi-station",
+      "relativePath": "en/full/script.md",
+      "repositoryRelativePath": "episodes/016-kisaragi-station/en/full/script.md",
+      "layout": "language_variant_script",
+      "language": "en",
+      "variant": "full",
+      "rawSha256": "e7278c729dda6501caf058e7582aa31f5b8956f1053aec985c3f2d6ed9e1b6aa",
+      "normalizedSha256": "e7278c729dda6501caf058e7582aa31f5b8956f1053aec985c3f2d6ed9e1b6aa",
+      "canonicalRelativePath": "016-kisaragi-station/languages/script-en.md",
+      "canonicalRepositoryRelativePath": "episodes/016-kisaragi-station/languages/script-en.md",
+      "classification": "safe_move",
+      "reason": "Single mechanically safe source selected for canonical move.",
+      "move": {
+        "from": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/016-kisaragi-station/en/full/script.md",
+        "to": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/016-kisaragi-station/languages/script-en.md",
+        "rollback": {
+          "command": "mv \"/home/box/workspace/fehmarn-seo/youtube/other/episodes/016-kisaragi-station/languages/script-en.md\" \"/home/box/workspace/fehmarn-seo/youtube/other/episodes/016-kisaragi-station/en/full/script.md\"",
+          "from": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/016-kisaragi-station/languages/script-en.md",
+          "to": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/016-kisaragi-station/en/full/script.md"
+        },
+        "performed": true
+      }
+    },
+    {
+      "episodeSlug": "018-the-smiling-man",
+      "relativePath": "de/full/script.md",
+      "repositoryRelativePath": "episodes/018-the-smiling-man/de/full/script.md",
+      "layout": "language_variant_script",
+      "language": "de",
+      "variant": "full",
+      "rawSha256": "29f01ff639f10e8d1029b97bd25cdf11b5be52aa006284d2fd5a068cd555708d",
+      "normalizedSha256": "29f01ff639f10e8d1029b97bd25cdf11b5be52aa006284d2fd5a068cd555708d",
+      "canonicalRelativePath": "018-the-smiling-man/languages/script-de.md",
+      "canonicalRepositoryRelativePath": "episodes/018-the-smiling-man/languages/script-de.md",
+      "classification": "safe_move",
+      "reason": "Single mechanically safe source selected for canonical move.",
+      "move": {
+        "from": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/018-the-smiling-man/de/full/script.md",
+        "to": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/018-the-smiling-man/languages/script-de.md",
+        "rollback": {
+          "command": "mv \"/home/box/workspace/fehmarn-seo/youtube/other/episodes/018-the-smiling-man/languages/script-de.md\" \"/home/box/workspace/fehmarn-seo/youtube/other/episodes/018-the-smiling-man/de/full/script.md\"",
+          "from": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/018-the-smiling-man/languages/script-de.md",
+          "to": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/018-the-smiling-man/de/full/script.md"
+        },
+        "performed": true
+      }
+    },
+    {
+      "episodeSlug": "018-the-smiling-man",
+      "relativePath": "en/full/script.md",
+      "repositoryRelativePath": "episodes/018-the-smiling-man/en/full/script.md",
+      "layout": "language_variant_script",
+      "language": "en",
+      "variant": "full",
+      "rawSha256": "d5f7fdba2c3c8f9634e48f6a884e34e9a8fc1e39d215e088bb626476c102fbe6",
+      "normalizedSha256": "d5f7fdba2c3c8f9634e48f6a884e34e9a8fc1e39d215e088bb626476c102fbe6",
+      "canonicalRelativePath": "018-the-smiling-man/languages/script-en.md",
+      "canonicalRepositoryRelativePath": "episodes/018-the-smiling-man/languages/script-en.md",
+      "classification": "safe_move",
+      "reason": "Single mechanically safe source selected for canonical move.",
+      "move": {
+        "from": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/018-the-smiling-man/en/full/script.md",
+        "to": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/018-the-smiling-man/languages/script-en.md",
+        "rollback": {
+          "command": "mv \"/home/box/workspace/fehmarn-seo/youtube/other/episodes/018-the-smiling-man/languages/script-en.md\" \"/home/box/workspace/fehmarn-seo/youtube/other/episodes/018-the-smiling-man/en/full/script.md\"",
+          "from": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/018-the-smiling-man/languages/script-en.md",
+          "to": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/018-the-smiling-man/en/full/script.md"
+        },
+        "performed": true
+      }
+    },
+    {
+      "episodeSlug": "019-the-russian-sleep-experiment",
+      "relativePath": "de/full/script.md",
+      "repositoryRelativePath": "episodes/019-the-russian-sleep-experiment/de/full/script.md",
+      "layout": "language_variant_script",
+      "language": "de",
+      "variant": "full",
+      "rawSha256": "58fe3bb37cf3f4c152e411253c5e661770c5cf7676c6700f3a932fd5e4e83065",
+      "normalizedSha256": "58fe3bb37cf3f4c152e411253c5e661770c5cf7676c6700f3a932fd5e4e83065",
+      "canonicalRelativePath": "019-the-russian-sleep-experiment/languages/script-de.md",
+      "canonicalRepositoryRelativePath": "episodes/019-the-russian-sleep-experiment/languages/script-de.md",
+      "classification": "safe_move",
+      "reason": "Single mechanically safe source selected for canonical move.",
+      "move": {
+        "from": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/019-the-russian-sleep-experiment/de/full/script.md",
+        "to": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/019-the-russian-sleep-experiment/languages/script-de.md",
+        "rollback": {
+          "command": "mv \"/home/box/workspace/fehmarn-seo/youtube/other/episodes/019-the-russian-sleep-experiment/languages/script-de.md\" \"/home/box/workspace/fehmarn-seo/youtube/other/episodes/019-the-russian-sleep-experiment/de/full/script.md\"",
+          "from": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/019-the-russian-sleep-experiment/languages/script-de.md",
+          "to": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/019-the-russian-sleep-experiment/de/full/script.md"
+        },
+        "performed": true
+      }
+    },
+    {
+      "episodeSlug": "019-the-russian-sleep-experiment",
+      "relativePath": "en/full/script.md",
+      "repositoryRelativePath": "episodes/019-the-russian-sleep-experiment/en/full/script.md",
+      "layout": "language_variant_script",
+      "language": "en",
+      "variant": "full",
+      "rawSha256": "4d0e06037b8e2c81736de9f4d1327edca48ffa8197239fb869702e9ca0e9639c",
+      "normalizedSha256": "4d0e06037b8e2c81736de9f4d1327edca48ffa8197239fb869702e9ca0e9639c",
+      "canonicalRelativePath": "019-the-russian-sleep-experiment/languages/script-en.md",
+      "canonicalRepositoryRelativePath": "episodes/019-the-russian-sleep-experiment/languages/script-en.md",
+      "classification": "safe_move",
+      "reason": "Single mechanically safe source selected for canonical move.",
+      "move": {
+        "from": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/019-the-russian-sleep-experiment/en/full/script.md",
+        "to": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/019-the-russian-sleep-experiment/languages/script-en.md",
+        "rollback": {
+          "command": "mv \"/home/box/workspace/fehmarn-seo/youtube/other/episodes/019-the-russian-sleep-experiment/languages/script-en.md\" \"/home/box/workspace/fehmarn-seo/youtube/other/episodes/019-the-russian-sleep-experiment/en/full/script.md\"",
+          "from": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/019-the-russian-sleep-experiment/languages/script-en.md",
+          "to": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/019-the-russian-sleep-experiment/en/full/script.md"
+        },
+        "performed": true
+      }
+    },
+    {
+      "episodeSlug": "021-the-rake-at-the-bedroom-window-en-full-optimized",
+      "relativePath": "source/021-the-rake-at-the-bedroom-window-en-full-optimized-en-full.md",
+      "repositoryRelativePath": "episodes/021-the-rake-at-the-bedroom-window-en-full-optimized/source/021-the-rake-at-the-bedroom-window-en-full-optimized-en-full.md",
+      "layout": "source_pack",
+      "language": "en",
+      "variant": "full",
+      "rawSha256": "9770774e8925899e24f9d81b875a092e6f1155828a50959c86f36e18c80c02f9",
+      "normalizedSha256": "1a2cd3c9625a0aed2d9411053a467b55f6f51604646dc049435ba7c39b4e773b",
+      "canonicalRelativePath": "021-the-rake-at-the-bedroom-window-en-full-optimized/languages/script-en.md",
+      "canonicalRepositoryRelativePath": "episodes/021-the-rake-at-the-bedroom-window-en-full-optimized/languages/script-en.md",
+      "classification": "safe_move",
+      "reason": "Single mechanically safe source selected for canonical move.",
+      "move": {
+        "from": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/021-the-rake-at-the-bedroom-window-en-full-optimized/source/021-the-rake-at-the-bedroom-window-en-full-optimized-en-full.md",
+        "to": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/021-the-rake-at-the-bedroom-window-en-full-optimized/languages/script-en.md",
+        "rollback": {
+          "command": "mv \"/home/box/workspace/fehmarn-seo/youtube/other/episodes/021-the-rake-at-the-bedroom-window-en-full-optimized/languages/script-en.md\" \"/home/box/workspace/fehmarn-seo/youtube/other/episodes/021-the-rake-at-the-bedroom-window-en-full-optimized/source/021-the-rake-at-the-bedroom-window-en-full-optimized-en-full.md\"",
+          "from": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/021-the-rake-at-the-bedroom-window-en-full-optimized/languages/script-en.md",
+          "to": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/021-the-rake-at-the-bedroom-window-en-full-optimized/source/021-the-rake-at-the-bedroom-window-en-full-optimized-en-full.md"
+        },
+        "performed": true
+      }
+    },
+    {
+      "episodeSlug": "021-the-rake-at-the-bedroom-window",
+      "relativePath": "de/full/script.md",
+      "repositoryRelativePath": "episodes/021-the-rake-at-the-bedroom-window/de/full/script.md",
+      "layout": "language_variant_script",
+      "language": "de",
+      "variant": "full",
+      "rawSha256": "72f32d2d74a7d0c20c5155f0ac306f2653e98a9f2681f463642f2596050f34cd",
+      "normalizedSha256": "2520ed9e154915fdc5fad8264bef2a59c7296f3e00d0b38264faf574c88b0897",
+      "canonicalRelativePath": "021-the-rake-at-the-bedroom-window/languages/script-de.md",
+      "canonicalRepositoryRelativePath": "episodes/021-the-rake-at-the-bedroom-window/languages/script-de.md",
+      "classification": "safe_move",
+      "reason": "Single mechanically safe source selected for canonical move.",
+      "move": {
+        "from": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/021-the-rake-at-the-bedroom-window/de/full/script.md",
+        "to": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/021-the-rake-at-the-bedroom-window/languages/script-de.md",
+        "rollback": {
+          "command": "mv \"/home/box/workspace/fehmarn-seo/youtube/other/episodes/021-the-rake-at-the-bedroom-window/languages/script-de.md\" \"/home/box/workspace/fehmarn-seo/youtube/other/episodes/021-the-rake-at-the-bedroom-window/de/full/script.md\"",
+          "from": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/021-the-rake-at-the-bedroom-window/languages/script-de.md",
+          "to": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/021-the-rake-at-the-bedroom-window/de/full/script.md"
+        },
+        "performed": true
+      }
+    },
+    {
+      "episodeSlug": "021-the-rake-at-the-bedroom-window",
+      "relativePath": "de/short/script.md",
+      "repositoryRelativePath": "episodes/021-the-rake-at-the-bedroom-window/de/short/script.md",
+      "layout": "language_variant_script",
+      "language": "de",
+      "variant": "short",
+      "rawSha256": "0c45406c5a64bdf2982b7464791d5cd38360bdae95340521cf2074cda946f59b",
+      "normalizedSha256": "0c45406c5a64bdf2982b7464791d5cd38360bdae95340521cf2074cda946f59b",
+      "canonicalRelativePath": "021-the-rake-at-the-bedroom-window/languages/short/script-de.md",
+      "canonicalRepositoryRelativePath": "episodes/021-the-rake-at-the-bedroom-window/languages/short/script-de.md",
+      "classification": "safe_move",
+      "reason": "Single mechanically safe source selected for canonical move.",
+      "move": {
+        "from": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/021-the-rake-at-the-bedroom-window/de/short/script.md",
+        "to": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/021-the-rake-at-the-bedroom-window/languages/short/script-de.md",
+        "rollback": {
+          "command": "mv \"/home/box/workspace/fehmarn-seo/youtube/other/episodes/021-the-rake-at-the-bedroom-window/languages/short/script-de.md\" \"/home/box/workspace/fehmarn-seo/youtube/other/episodes/021-the-rake-at-the-bedroom-window/de/short/script.md\"",
+          "from": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/021-the-rake-at-the-bedroom-window/languages/short/script-de.md",
+          "to": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/021-the-rake-at-the-bedroom-window/de/short/script.md"
+        },
+        "performed": true
+      }
+    },
+    {
+      "episodeSlug": "021-the-rake-at-the-bedroom-window",
+      "relativePath": "en/full/script.md",
+      "repositoryRelativePath": "episodes/021-the-rake-at-the-bedroom-window/en/full/script.md",
+      "layout": "language_variant_script",
+      "language": "en",
+      "variant": "full",
+      "rawSha256": "9ef536e9dc5ab1f7fdb6b751b27a72e6a1bb3ba15d7bc53714fbd04bedbd9c79",
+      "normalizedSha256": "716ed3334c361df865de0d2c9228db18e695524f5b1860f814c1105b64356d46",
+      "canonicalRelativePath": "021-the-rake-at-the-bedroom-window/languages/script-en.md",
+      "canonicalRepositoryRelativePath": "episodes/021-the-rake-at-the-bedroom-window/languages/script-en.md",
+      "classification": "divergent_duplicate",
+      "reason": "Multiple noncanonical candidates for the same target have divergent normalized content."
+    },
+    {
+      "episodeSlug": "021-the-rake-at-the-bedroom-window",
+      "relativePath": "en/script.md",
+      "repositoryRelativePath": "episodes/021-the-rake-at-the-bedroom-window/en/script.md",
+      "layout": "language_script",
+      "language": "en",
+      "variant": "full",
+      "rawSha256": "e68e2e63579ef358017993c2b74f27b9b4d4cdb224df6d7cfcffa4ce17712e2b",
+      "normalizedSha256": "ddac132f6f590cd68f660ee842b2877ef645fc77afeeaa58b42d331891943ae8",
+      "canonicalRelativePath": "021-the-rake-at-the-bedroom-window/languages/script-en.md",
+      "canonicalRepositoryRelativePath": "episodes/021-the-rake-at-the-bedroom-window/languages/script-en.md",
+      "classification": "divergent_duplicate",
+      "reason": "Multiple noncanonical candidates for the same target have divergent normalized content."
+    },
+    {
+      "episodeSlug": "021-the-rake-at-the-bedroom-window",
+      "relativePath": "script.md",
+      "repositoryRelativePath": "episodes/021-the-rake-at-the-bedroom-window/script.md",
+      "layout": "root_script",
+      "language": "en",
+      "variant": "full",
+      "rawSha256": "e68e2e63579ef358017993c2b74f27b9b4d4cdb224df6d7cfcffa4ce17712e2b",
+      "normalizedSha256": "ddac132f6f590cd68f660ee842b2877ef645fc77afeeaa58b42d331891943ae8",
+      "canonicalRelativePath": "021-the-rake-at-the-bedroom-window/languages/script-en.md",
+      "canonicalRepositoryRelativePath": "episodes/021-the-rake-at-the-bedroom-window/languages/script-en.md",
+      "classification": "divergent_duplicate",
+      "reason": "Multiple noncanonical candidates for the same target have divergent normalized content."
+    },
+    {
+      "episodeSlug": "021-the-rake-at-the-bedroom-window",
+      "relativePath": "source/021-the-rake-at-the-bedroom-window-en-full.md",
+      "repositoryRelativePath": "episodes/021-the-rake-at-the-bedroom-window/source/021-the-rake-at-the-bedroom-window-en-full.md",
+      "layout": "source_pack",
+      "language": "en",
+      "variant": "full",
+      "rawSha256": "405e875220294e3ac0e406f5e8914cd34f6eadb81a38c1674dff91492f192579",
+      "normalizedSha256": "cf729307567b9dc283c0cc06eb5cfbb6c18555caf63e54082a01d2c5ef0c5fa5",
+      "canonicalRelativePath": "021-the-rake-at-the-bedroom-window/languages/script-en.md",
+      "canonicalRepositoryRelativePath": "episodes/021-the-rake-at-the-bedroom-window/languages/script-en.md",
+      "classification": "divergent_duplicate",
+      "reason": "Multiple noncanonical candidates for the same target have divergent normalized content."
+    },
+    {
+      "episodeSlug": "022-the-whistler-in-the-woods",
+      "relativePath": "de/full/script.md",
+      "repositoryRelativePath": "episodes/022-the-whistler-in-the-woods/de/full/script.md",
+      "layout": "language_variant_script",
+      "language": "de",
+      "variant": "full",
+      "rawSha256": "d7f45264f9282ff0c25475892ab1a240ba4da674cc3aff555c55e640c8c0d62e",
+      "normalizedSha256": "d7f45264f9282ff0c25475892ab1a240ba4da674cc3aff555c55e640c8c0d62e",
+      "canonicalRelativePath": "022-the-whistler-in-the-woods/languages/script-de.md",
+      "canonicalRepositoryRelativePath": "episodes/022-the-whistler-in-the-woods/languages/script-de.md",
+      "classification": "identical_duplicate",
+      "reason": "Duplicate content matches the canonical authored script after normalization."
+    },
+    {
+      "episodeSlug": "022-the-whistler-in-the-woods",
+      "relativePath": "en/full/script.md",
+      "repositoryRelativePath": "episodes/022-the-whistler-in-the-woods/en/full/script.md",
+      "layout": "language_variant_script",
+      "language": "en",
+      "variant": "full",
+      "rawSha256": "34e2306668d2f11a540da6f9be9143abac238a91931aa8309d9840d6b30a69b2",
+      "normalizedSha256": "34e2306668d2f11a540da6f9be9143abac238a91931aa8309d9840d6b30a69b2",
+      "canonicalRelativePath": "022-the-whistler-in-the-woods/languages/script-en.md",
+      "canonicalRepositoryRelativePath": "episodes/022-the-whistler-in-the-woods/languages/script-en.md",
+      "classification": "identical_duplicate",
+      "reason": "Duplicate content matches the canonical authored script after normalization."
+    },
+    {
+      "episodeSlug": "022-the-whistler-in-the-woods",
+      "relativePath": "en/script.md",
+      "repositoryRelativePath": "episodes/022-the-whistler-in-the-woods/en/script.md",
+      "layout": "language_script",
+      "language": "en",
+      "variant": "full",
+      "rawSha256": "34e2306668d2f11a540da6f9be9143abac238a91931aa8309d9840d6b30a69b2",
+      "normalizedSha256": "34e2306668d2f11a540da6f9be9143abac238a91931aa8309d9840d6b30a69b2",
+      "canonicalRelativePath": "022-the-whistler-in-the-woods/languages/script-en.md",
+      "canonicalRepositoryRelativePath": "episodes/022-the-whistler-in-the-woods/languages/script-en.md",
+      "classification": "identical_duplicate",
+      "reason": "Duplicate content matches the canonical authored script after normalization."
+    },
+    {
+      "episodeSlug": "022-the-whistler-in-the-woods",
+      "relativePath": "languages/script-de.md",
+      "repositoryRelativePath": "episodes/022-the-whistler-in-the-woods/languages/script-de.md",
+      "layout": "canonical_full",
+      "language": "de",
+      "variant": "full",
+      "rawSha256": "d7f45264f9282ff0c25475892ab1a240ba4da674cc3aff555c55e640c8c0d62e",
+      "normalizedSha256": "d7f45264f9282ff0c25475892ab1a240ba4da674cc3aff555c55e640c8c0d62e",
+      "canonicalRelativePath": "022-the-whistler-in-the-woods/languages/script-de.md",
+      "canonicalRepositoryRelativePath": "episodes/022-the-whistler-in-the-woods/languages/script-de.md",
+      "classification": "already_canonical",
+      "reason": "Canonical authored script exists with duplicate candidates."
+    },
+    {
+      "episodeSlug": "022-the-whistler-in-the-woods",
+      "relativePath": "languages/script-en.md",
+      "repositoryRelativePath": "episodes/022-the-whistler-in-the-woods/languages/script-en.md",
+      "layout": "canonical_full",
+      "language": "en",
+      "variant": "full",
+      "rawSha256": "34e2306668d2f11a540da6f9be9143abac238a91931aa8309d9840d6b30a69b2",
+      "normalizedSha256": "34e2306668d2f11a540da6f9be9143abac238a91931aa8309d9840d6b30a69b2",
+      "canonicalRelativePath": "022-the-whistler-in-the-woods/languages/script-en.md",
+      "canonicalRepositoryRelativePath": "episodes/022-the-whistler-in-the-woods/languages/script-en.md",
+      "classification": "already_canonical",
+      "reason": "Canonical authored script exists with duplicate candidates."
+    },
+    {
+      "episodeSlug": "022-the-whistler-in-the-woods",
+      "relativePath": "languages/short/script-de.md",
+      "repositoryRelativePath": "episodes/022-the-whistler-in-the-woods/languages/short/script-de.md",
+      "layout": "canonical_short",
+      "language": "de",
+      "variant": "short",
+      "rawSha256": "af5c4b285bdab16fc84d9ed9fa9e04fe66186392e405d1a968857d3bae3e2ef6",
+      "normalizedSha256": "af5c4b285bdab16fc84d9ed9fa9e04fe66186392e405d1a968857d3bae3e2ef6",
+      "canonicalRelativePath": "022-the-whistler-in-the-woods/languages/short/script-de.md",
+      "canonicalRepositoryRelativePath": "episodes/022-the-whistler-in-the-woods/languages/short/script-de.md",
+      "classification": "already_canonical",
+      "reason": "Canonical authored script is already in place."
+    },
+    {
+      "episodeSlug": "022-the-whistler-in-the-woods",
+      "relativePath": "languages/short/script-en.md",
+      "repositoryRelativePath": "episodes/022-the-whistler-in-the-woods/languages/short/script-en.md",
+      "layout": "canonical_short",
+      "language": "en",
+      "variant": "short",
+      "rawSha256": "266326ed6c3f7b9dd47c4c6e98c8fbb0393264faf68848e607dcd83a2fde402a",
+      "normalizedSha256": "266326ed6c3f7b9dd47c4c6e98c8fbb0393264faf68848e607dcd83a2fde402a",
+      "canonicalRelativePath": "022-the-whistler-in-the-woods/languages/short/script-en.md",
+      "canonicalRepositoryRelativePath": "episodes/022-the-whistler-in-the-woods/languages/short/script-en.md",
+      "classification": "already_canonical",
+      "reason": "Canonical authored script is already in place."
+    },
+    {
+      "episodeSlug": "022-the-whistler-in-the-woods",
+      "relativePath": "script.md",
+      "repositoryRelativePath": "episodes/022-the-whistler-in-the-woods/script.md",
+      "layout": "root_script",
+      "language": "en",
+      "variant": "full",
+      "rawSha256": "34e2306668d2f11a540da6f9be9143abac238a91931aa8309d9840d6b30a69b2",
+      "normalizedSha256": "34e2306668d2f11a540da6f9be9143abac238a91931aa8309d9840d6b30a69b2",
+      "canonicalRelativePath": "022-the-whistler-in-the-woods/languages/script-en.md",
+      "canonicalRepositoryRelativePath": "episodes/022-the-whistler-in-the-woods/languages/script-en.md",
+      "classification": "identical_duplicate",
+      "reason": "Duplicate content matches the canonical authored script after normalization."
+    },
+    {
+      "episodeSlug": "022-the-whistler-in-the-woods",
+      "relativePath": "source/022-the-whistler-in-the-woods-de-full.md",
+      "repositoryRelativePath": "episodes/022-the-whistler-in-the-woods/source/022-the-whistler-in-the-woods-de-full.md",
+      "layout": "source_pack",
+      "language": "de",
+      "variant": "full",
+      "rawSha256": "855f8cb98ddf1976e070c0eac57a888dc428fdc2d7f1baae282a8ddcb5ce7fc8",
+      "normalizedSha256": "855f8cb98ddf1976e070c0eac57a888dc428fdc2d7f1baae282a8ddcb5ce7fc8",
+      "canonicalRelativePath": "022-the-whistler-in-the-woods/languages/script-de.md",
+      "canonicalRepositoryRelativePath": "episodes/022-the-whistler-in-the-woods/languages/script-de.md",
+      "classification": "divergent_duplicate",
+      "reason": "Duplicate content diverges from the canonical authored script."
+    },
+    {
+      "episodeSlug": "022-the-whistler-in-the-woods",
+      "relativePath": "source/022-the-whistler-in-the-woods-en-full.md",
+      "repositoryRelativePath": "episodes/022-the-whistler-in-the-woods/source/022-the-whistler-in-the-woods-en-full.md",
+      "layout": "source_pack",
+      "language": "en",
+      "variant": "full",
+      "rawSha256": "cc7f0c95d833388a47dc65665c6a61c9425c107259b9f33c7c2a540af95e0f9e",
+      "normalizedSha256": "befd11c9d0d1c642da5a44dcce9b22aef68f63a73f5711b204e7b0de632bdd1b",
+      "canonicalRelativePath": "022-the-whistler-in-the-woods/languages/script-en.md",
+      "canonicalRepositoryRelativePath": "episodes/022-the-whistler-in-the-woods/languages/script-en.md",
+      "classification": "divergent_duplicate",
+      "reason": "Duplicate content diverges from the canonical authored script."
+    }
+  ]
+}

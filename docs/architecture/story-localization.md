@@ -56,10 +56,12 @@ This subsystem handles structured English full rewrites, localized full rewrites
 - Metadata or audio failures do not invalidate narration and do not route through narration repair policy.
 - Scene/image/render/publication remain separate downstream owners; Task 14 owns their boundary work.
 
-## Compatibility Markdown
+## Authored Scripts And Compatibility Markdown
 
-- Canonical English full persistence now writes narration-only canonical markdown under `en/full/script.md`.
-- Legacy combined markdown remains supported through compatibility rendering at the episode root and existing localized compatibility files.
+- Authored full scripts resolve from `episodes/<episode-slug>/languages/script-<language>.md`.
+- Authored Short scripts, when they differ from the full script, resolve from `episodes/<episode-slug>/languages/short/script-<language>.md`.
+- The shared authored-script resolver rejects stale duplicate layouts such as root `script.md`, `en/full/script.md`, or `<language>/full/script.md` instead of selecting the first match.
+- Combined markdown projections may still be readable for migration tooling, but they are not the canonical persistence source.
 - Compatibility rendering can combine independently persisted narration, metadata, and audio artifacts, but those combined markdown files are not the canonical persistence source.
 - For already-generated episodes, migrate audio by keeping the existing story markdown unchanged, running `audio narration prepare`, `plan`, `generate`, `assemble`, and `validate` first in `shadow` for the target locale and variant, inspecting `quality-gate.json`, then rerunning the same stages in `new` with `--resume` to promote `mastered-narration.wav` to `audio/narration.wav`. Existing compatibility markdown remains valid and does not need regeneration unless the story text changes.
 

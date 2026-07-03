@@ -20,7 +20,7 @@ This repo is a `pnpm` monorepo targeting Node 22+, written in TypeScript, with r
 ## Primary Execution Model
 
 - CLI commands orchestrate filesystem-first episode workflows.
-- Shared path helpers own episode directory layout and compatibility fallbacks for canonical versus legacy asset locations.
+- Shared path helpers own episode directory layout, including canonical authored script resolution under `languages/` and typed locale/variant output roots.
 - SQLite stores episode manifests, pipeline runs, and step runs, but generated filesystem artifacts remain the primary production state.
 - Episode workspaces resolve under `workspaceDir`, which defaults to `./episodes`.
 

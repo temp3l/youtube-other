@@ -50,9 +50,10 @@ describe("CLI narration pipeline integration", () => {
   async function createEpisode(): Promise<string> {
     const root = await fs.mkdtemp(path.join(os.tmpdir(), "mediaforge-narration-cli-"));
     const episodeDir = path.join(root, "001-test-story");
-    await fs.mkdir(episodeDir, { recursive: true });
+    const languagesDir = path.join(episodeDir, "languages");
+    await fs.mkdir(languagesDir, { recursive: true });
     await fs.writeFile(
-      path.join(episodeDir, "script.md"),
+      path.join(languagesDir, "script-en.md"),
       [
         "# Narration Script",
         "",

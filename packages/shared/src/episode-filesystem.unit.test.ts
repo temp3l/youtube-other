@@ -99,9 +99,6 @@ describe("episode filesystem helpers", () => {
     expect(resolver.generatedImage(episodeId, "scene-001")).toBe(
       "/workspace/009-mary-gloria-the-christmas-doll/shared/images/generated/scene-001.png"
     );
-    expect(resolver.legacyGeneratedImagesDir(episodeId)).toBe(
-      "/workspace/009-mary-gloria-the-christmas-doll/state/image-generation/images"
-    );
     expect(resolver.visualRetentionDir(episodeId)).toBe(
       "/workspace/009-mary-gloria-the-christmas-doll/state/visual-retention"
     );
@@ -485,7 +482,7 @@ describe("episode filesystem helpers", () => {
     ).rejects.toMatchObject({ code: "PATH_ESCAPE" });
   });
 
-  it("classifies identical and divergent stale authored script candidates", async () => {
+  it("rejects stale authored script layouts without reading them as fallbacks", async () => {
     const identicalWorkspace = await createTempWorkspace();
     await writeWorkspaceFile(
       identicalWorkspace,
@@ -512,6 +509,9 @@ describe("episode filesystem helpers", () => {
           "episodes/022-the-whistler-in-the-woods/en/full/script.md",
         ],
       },
+      message: expect.stringContaining(
+        "Use episodes/022-the-whistler-in-the-woods/languages/script-en.md"
+      ),
     });
 
     const divergentWorkspace = await createTempWorkspace();
@@ -533,7 +533,16 @@ describe("episode filesystem helpers", () => {
         language: "de",
         variant: "full",
       })
-    ).rejects.toMatchObject({ code: "AMBIGUOUS_SCRIPT" });
+    ).rejects.toMatchObject({
+      code: "STALE_LAYOUT",
+      details: {
+        canonicalRelativePath:
+          "episodes/022-the-whistler-in-the-woods/languages/script-de.md",
+        candidates: [
+          "episodes/022-the-whistler-in-the-woods/de/full/script.md",
+        ],
+      },
+    });
   });
 
   it("exposes structured resolver errors for missing authored scripts", async () => {

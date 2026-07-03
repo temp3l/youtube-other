@@ -94,6 +94,28 @@ describe("dark-truth workflow", () => {
     );
   });
 
+  it("parses canonical authored full scripts under languages", async () => {
+    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "dark-truth-canonical-"));
+    const canonicalPath = path.join(
+      tempDir,
+      "episodes",
+      "001-the-forbidden-village-where-japan-s-laws-do-not-apply",
+      "languages",
+      "script-en.md"
+    );
+    await fs.mkdir(path.dirname(canonicalPath), { recursive: true });
+    await fs.copyFile(episode001EnglishFull, canonicalPath);
+
+    const parsed = await parseEpisodeSourceFile(canonicalPath);
+
+    expect(parsed.episodeNumber).toBe("001");
+    expect(parsed.episodeId).toBe(
+      "001-the-forbidden-village-where-japan-s-laws-do-not-apply"
+    );
+    expect(parsed.language).toBe("en");
+    expect(parsed.artifactType).toBe("full");
+  });
+
   it("parses the episode 001 German full source", async () => {
     const parsed = await parseEpisodeSourceFile(episode001GermanFull);
     expect(parsed.language).toBe("de");
@@ -109,6 +131,29 @@ describe("dark-truth workflow", () => {
     expect(speechPlan.segments.length).toBeGreaterThan(1);
     expect(speechPlan.segments.at(-1)?.text).toContain("You let the wrong one leave.");
     expect(speechPlan.segments.every((segment) => segment.wordCount <= 70)).toBe(true);
+  });
+
+  it("parses canonical authored short scripts under languages/short", async () => {
+    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "dark-truth-canonical-"));
+    const canonicalPath = path.join(
+      tempDir,
+      "episodes",
+      "001-the-forbidden-village-where-japan-s-laws-do-not-apply",
+      "languages",
+      "short",
+      "script-en.md"
+    );
+    await fs.mkdir(path.dirname(canonicalPath), { recursive: true });
+    await fs.copyFile(episode001EnglishShort, canonicalPath);
+
+    const parsed = await parseEpisodeSourceFile(canonicalPath);
+
+    expect(parsed.episodeNumber).toBe("001");
+    expect(parsed.episodeId).toBe(
+      "001-the-forbidden-village-where-japan-s-laws-do-not-apply"
+    );
+    expect(parsed.language).toBe("en");
+    expect(parsed.artifactType).toBe("short");
   });
 
   it("writes dry-run artifacts with sidecar subtitles only", async () => {

@@ -40,11 +40,11 @@ pnpm --filter @mediaforge/cli typecheck
 
 ## Completion checklist
 
-- [ ] all stale refs classified
-- [ ] focused validation passes
-- [ ] no paid API calls required
-- [ ] release notes complete
-- [ ] rollback notes complete
+- [x] all stale refs classified
+- [x] focused validation passes
+- [x] no paid API calls required
+- [x] release notes complete
+- [x] rollback notes complete
 
 ## Dependencies
 

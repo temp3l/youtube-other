@@ -516,8 +516,6 @@ async function persistWhisperArtifacts(
   const transcriptDir = path.join(episodeDir, "transcript");
   await ensureDir(transcriptDir);
   try {
-    await writeJsonAtomic(path.join(episodeDir, "original-transcript.json"), rawArtifact);
-    await writeTextAtomic(path.join(episodeDir, "original-transcript.srt"), buildSrt(normalizedTranscript.segments));
     await writeJsonAtomic(path.join(transcriptDir, "transcript.raw.json"), rawArtifact);
     await writeJsonAtomic(path.join(transcriptDir, "transcript.json"), normalizedTranscript);
     await writeTextAtomic(path.join(transcriptDir, "transcript.srt"), buildSrt(normalizedTranscript.segments));

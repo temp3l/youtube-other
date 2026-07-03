@@ -16,7 +16,6 @@ export * from "./story-workflow-batch.js";
 export * from "./story-workflow-cost.js";
 export * from "./story-workflow-invalidation.js";
 export * from "./story-workflow-status.js";
-export * from "./story-workflow-legacy.js";
 export * from "./stable-json.js";
 export * from "./genre-policy.js";
 export * from "./full-story-contract.js";

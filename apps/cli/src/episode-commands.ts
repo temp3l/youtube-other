@@ -506,7 +506,6 @@ export async function resolveEpisodeLanguageSource(
   artifactType: ArtifactType
 ): Promise<{
   readonly sourceFile: string;
-  readonly warning?: string;
 }> {
   try {
     const resolved = await resolveAuthoredScript({
@@ -517,45 +516,11 @@ export async function resolveEpisodeLanguageSource(
     });
     return { sourceFile: resolved.absolutePath };
   } catch (error) {
-    if (!(error instanceof AuthoredScriptResolverError)) {
+    if (error instanceof AuthoredScriptResolverError) {
       throw error;
     }
-    const rootCompatibilityPath = `episodes/${discovery.slug}/script.md`;
-    const candidates = [...(error.details.candidates ?? [])];
-    const isRootCompatibilityOnly =
-      candidates.length === 1 && candidates[0] === rootCompatibilityPath;
-    if (
-      error.code !== "MISSING_SCRIPT" &&
-      error.code !== "INVALID_REQUEST" &&
-      !isRootCompatibilityOnly
-    ) {
-      throw error;
-    }
+    throw error;
   }
-  if (language === "en" && artifactType === "full") {
-    const workspaceCandidates = [
-      path.join(outputRoot, discovery.slug, "script.md"),
-      path.join(outputRoot, discovery.slug, "en", "full", "script.md"),
-    ];
-    for (const candidate of workspaceCandidates) {
-      if (await fileExists(candidate)) {
-        return { sourceFile: candidate };
-      }
-    }
-    const fallbackSourceFile = resolveSourceForLanguage(
-      discovery,
-      language,
-      artifactType
-    );
-    return {
-      sourceFile: fallbackSourceFile,
-      warning:
-        "English localized generation fell back to the production-pack source file because the workspace script.md was missing.",
-    };
-  }
-  return {
-    sourceFile: resolveSourceForLanguage(discovery, language, artifactType),
-  };
 }
 
 async function ensureReviewPackageFiles(
@@ -695,33 +660,13 @@ async function prepareEpisodeLanguage(
   artifactType: ArtifactType,
   options: EpisodeCommandOptions
 ): Promise<Record<string, unknown>> {
-  const { sourceFile, warning } = await resolveEpisodeLanguageSource(
+  const { sourceFile } = await resolveEpisodeLanguageSource(
     outputRoot,
     discovery,
     language,
     artifactType
   );
-  if (warning) {
-    process.stderr.write(`${warning}\n`);
-  }
-  const loadSourceFile =
-    language === "en" &&
-    artifactType === "full" &&
-    path.resolve(sourceFile) ===
-      path.resolve(path.join(outputRoot, discovery.slug, "script.md"))
-      ? await (async () => {
-          const compatSourceFile = path.join(
-            outputRoot,
-            discovery.slug,
-            "en",
-            "script.md"
-          );
-          await ensureDir(path.dirname(compatSourceFile));
-          await fs.copyFile(sourceFile, compatSourceFile);
-          return compatSourceFile;
-        })()
-      : sourceFile;
-  const loadResult = await buildEpisodeLoadResult(loadSourceFile, outputRoot);
+  const loadResult = await buildEpisodeLoadResult(sourceFile, outputRoot);
   const baseDir = path.join(outputRoot, discovery.slug, language, artifactType);
   await ensureDir(baseDir);
   const canonicalScenePlanPath = path.join(
@@ -1509,6 +1454,13 @@ export async function commandEpisodeReviewStatus(
   process.stdout.write(`${JSON.stringify({ approval, stale }, null, 2)}\n`);
 }
 
+function mergeEpisodeCommandOptions(
+  program: Command,
+  options: EpisodeCommandOptions
+): EpisodeCommandOptions {
+  return { ...program.opts<EpisodeCommandOptions>(), ...options };
+}
+
 export function registerEpisodeCommands(program: Command): void {
   const episode = program
     .command("episode")
@@ -1521,7 +1473,9 @@ export function registerEpisodeCommands(program: Command): void {
     .option("--source <path>", "source root")
     .option("--output-root <path>", "output root")
     .option("--json", "emit JSON")
-    .action(async (opts: EpisodeCommandOptions) => commandEpisodeInspect(opts));
+    .action(async (opts: EpisodeCommandOptions) =>
+      commandEpisodeInspect(mergeEpisodeCommandOptions(program, opts))
+    );
   episode
     .command("dry-run")
     .option("--episode <number-or-slug>", "episode number or slug")
@@ -1530,7 +1484,9 @@ export function registerEpisodeCommands(program: Command): void {
     .option("--artifact <full|short>", "artifact type", "full")
     .option("--output-root <path>", "output root")
     .option("--json", "emit JSON")
-    .action(async (opts: EpisodeCommandOptions) => commandEpisodeDryRun(opts));
+    .action(async (opts: EpisodeCommandOptions) =>
+      commandEpisodeDryRun(mergeEpisodeCommandOptions(program, opts))
+    );
   episode
     .command("analyze")
     .option("--episode <number-or-slug>", "episode number or slug")
@@ -1538,7 +1494,9 @@ export function registerEpisodeCommands(program: Command): void {
     .option("--language <en|de|es|fr>", "language")
     .option("--artifact <full|short>", "artifact type", "full")
     .option("--output-root <path>", "output root")
-    .action(async (opts: EpisodeCommandOptions) => commandEpisodeAnalyze(opts));
+    .action(async (opts: EpisodeCommandOptions) =>
+      commandEpisodeAnalyze(mergeEpisodeCommandOptions(program, opts))
+    );
   episode
     .command("plan")
     .option("--episode <number-or-slug>", "episode number or slug")
@@ -1546,7 +1504,9 @@ export function registerEpisodeCommands(program: Command): void {
     .option("--language <en|de|es|fr>", "language")
     .option("--artifact <full|short>", "artifact type", "full")
     .option("--output-root <path>", "output root")
-    .action(async (opts: EpisodeCommandOptions) => commandEpisodePlan(opts));
+    .action(async (opts: EpisodeCommandOptions) =>
+      commandEpisodePlan(mergeEpisodeCommandOptions(program, opts))
+    );
   episode
     .command("english")
     .option("--episode <number-or-slug>", "episode number or slug")
@@ -1558,7 +1518,9 @@ export function registerEpisodeCommands(program: Command): void {
     .option("--visual-retention-mode <disabled|preview|enabled>", "set visual retention rollout mode")
     .option("--visual-profile <profile>", "visual-retention pacing profile")
     .option("--strict-shot-validation", "fail on shot validation warnings")
-    .action(async (opts: EpisodeCommandOptions) => commandEpisodeEnglish(opts));
+    .action(async (opts: EpisodeCommandOptions) =>
+      commandEpisodeEnglish(mergeEpisodeCommandOptions(program, opts))
+    );
   episode
     .command("localized")
     .option("--episode <number-or-slug>", "episode number or slug")
@@ -1573,7 +1535,7 @@ export function registerEpisodeCommands(program: Command): void {
     .option("--visual-profile <profile>", "visual-retention pacing profile")
     .option("--strict-shot-validation", "fail on shot validation warnings")
     .action(async (opts: EpisodeCommandOptions) =>
-      commandEpisodeLocalized(opts)
+      commandEpisodeLocalized(mergeEpisodeCommandOptions(program, opts))
     );
   episode
     .command("short")
@@ -1588,13 +1550,17 @@ export function registerEpisodeCommands(program: Command): void {
     .option("--visual-retention-mode <disabled|preview|enabled>", "set visual retention rollout mode")
     .option("--visual-profile <profile>", "visual-retention pacing profile")
     .option("--strict-shot-validation", "fail on shot validation warnings")
-    .action(async (opts: EpisodeCommandOptions) => commandEpisodeShort(opts));
+    .action(async (opts: EpisodeCommandOptions) =>
+      commandEpisodeShort(mergeEpisodeCommandOptions(program, opts))
+    );
   episode
     .command("status")
     .option("--episode <number-or-slug>", "episode number or slug")
     .option("--source <path>", "source root")
     .option("--output-root <path>", "output root")
-    .action(async (opts: EpisodeCommandOptions) => commandEpisodeStatus(opts));
+    .action(async (opts: EpisodeCommandOptions) =>
+      commandEpisodeStatus(mergeEpisodeCommandOptions(program, opts))
+    );
   episode
     .command("sync-characters")
     .option("--episode <number-or-slug>", "episode number or slug")
@@ -1603,7 +1569,7 @@ export function registerEpisodeCommands(program: Command): void {
     .option("--force")
     .option("--json")
     .action(async (opts: EpisodeCommandOptions) =>
-      commandEpisodeSyncCharacters(opts)
+      commandEpisodeSyncCharacters(mergeEpisodeCommandOptions(program, opts))
     );
   episode
     .command("bootstrap-characters")
@@ -1614,7 +1580,7 @@ export function registerEpisodeCommands(program: Command): void {
     .option("--approve", "approve generated references")
     .option("--json")
     .action(async (opts: EpisodeCommandOptions) =>
-      commandEpisodeBootstrapCharacters(opts)
+      commandEpisodeBootstrapCharacters(mergeEpisodeCommandOptions(program, opts))
     );
   episode
     .command("resume-images")
@@ -1653,7 +1619,7 @@ export function registerEpisodeCommands(program: Command): void {
     .option("--artifact <full|short>", "artifact type", "full")
     .option("--output-root <path>", "output root")
     .action(async (opts: EpisodeCommandOptions) =>
-      commandEpisodeValidate(opts)
+      commandEpisodeValidate(mergeEpisodeCommandOptions(program, opts))
     );
   const review = episode.command("review").description("Review workflow");
   review
@@ -1670,7 +1636,7 @@ export function registerEpisodeCommands(program: Command): void {
     .option("--visual-profile <profile>", "visual-retention pacing profile")
     .option("--strict-shot-validation", "fail on shot validation warnings")
     .action(async (opts: EpisodeCommandOptions) =>
-      commandEpisodeReviewPrepare(opts)
+      commandEpisodeReviewPrepare(mergeEpisodeCommandOptions(program, opts))
     );
   review
     .command("approve")
@@ -1682,7 +1648,7 @@ export function registerEpisodeCommands(program: Command): void {
     .option("--reviewer <name>", "reviewer")
     .option("--notes <text>", "review notes")
     .action(async (opts: EpisodeCommandOptions) =>
-      commandEpisodeReviewApprove(opts)
+      commandEpisodeReviewApprove(mergeEpisodeCommandOptions(program, opts))
     );
   review
     .command("reject")
@@ -1695,7 +1661,7 @@ export function registerEpisodeCommands(program: Command): void {
     .option("--reason <text>", "rejection reason")
     .option("--notes <text>", "review notes")
     .action(async (opts: EpisodeCommandOptions) =>
-      commandEpisodeReviewReject(opts)
+      commandEpisodeReviewReject(mergeEpisodeCommandOptions(program, opts))
     );
   review
     .command("status")
@@ -1705,6 +1671,6 @@ export function registerEpisodeCommands(program: Command): void {
     .option("--artifact <full|short>", "artifact type", "full")
     .option("--output-root <path>", "output root")
     .action(async (opts: EpisodeCommandOptions) =>
-      commandEpisodeReviewStatus(opts)
+      commandEpisodeReviewStatus(mergeEpisodeCommandOptions(program, opts))
     );
 }

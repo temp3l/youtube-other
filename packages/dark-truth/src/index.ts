@@ -627,6 +627,16 @@ function parseEpisodeNumber(slug: string): string {
   return match[1];
 }
 
+function resolveEpisodeSlugFromSourceFile(sourceFile: string): string {
+  const sourceDir = path.dirname(sourceFile);
+  const parent = path.basename(sourceDir);
+  const grandparent = path.basename(path.dirname(sourceDir));
+  if (parent === "short" && grandparent === "languages") {
+    return path.basename(path.dirname(path.dirname(sourceDir)));
+  }
+  return path.basename(path.dirname(sourceDir));
+}
+
 function detectArtifactType(
   fileName: string,
   title: string
@@ -635,6 +645,17 @@ function detectArtifactType(
     return "short";
   }
   if (/^-?episode\b/i.test(title) || /-full\.md$/iu.test(fileName)) {
+    return "full";
+  }
+  return null;
+}
+
+function detectArtifactTypeFromPath(filePath: string): ArtifactType | null {
+  const normalized = filePath.split(path.sep).join("/");
+  if (/\/languages\/short\/script-[a-z]+\.md$/iu.test(normalized)) {
+    return "short";
+  }
+  if (/\/languages\/script-[a-z]+\.md$/iu.test(normalized)) {
     return "full";
   }
   return null;
@@ -846,11 +867,13 @@ function detectTitle(lines: ReadonlyArray<string>): string {
 
 function detectArtifactTypeFromTitle(
   title: string,
-  fileName: string
+  sourceFile: string
 ): ArtifactType {
-  const detected = detectArtifactType(fileName, title);
+  const detected =
+    detectArtifactTypeFromPath(sourceFile) ??
+    detectArtifactType(path.basename(sourceFile), title);
   if (!detected) {
-    throw new Error(`Unable to determine artifact type from ${fileName}.`);
+    throw new Error(`Unable to determine artifact type from ${path.basename(sourceFile)}.`);
   }
   return detected;
 }
@@ -2270,11 +2293,11 @@ export async function parseEpisodeSourceFile(
   const text = await fs.readFile(sourceFile, "utf8");
   const lines = text.replace(/\r\n/gu, "\n").split("\n");
   const title = detectTitle(lines);
-  const episodeSlug = path.basename(path.dirname(path.dirname(sourceFile)));
+  const episodeSlug = resolveEpisodeSlugFromSourceFile(sourceFile);
   const episodeNumber = parseEpisodeNumber(episodeSlug);
   const artifactType = detectArtifactTypeFromTitle(
     title,
-    path.basename(sourceFile)
+    sourceFile
   );
   const language = detectLanguageFromMarkers(lines);
   const audioHeadingIndex = findMarkerLine(

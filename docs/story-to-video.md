@@ -244,8 +244,8 @@ TikTok-style metadata is implemented heuristically in [`packages/metadata/src/in
   - canonical markdown and compatibility markdown
 - Persisted artifacts:
   - `en/full/canonical-full.json`
-  - `en/full/script.md`
-  - episode-root compatibility `script.md`
+  - `languages/script-en.md`
+  - migration reports classify stale root or `en/full/script.md` copies instead of treating them as source
   - `manifests/en-full.json`
   - `current-artifact.json`
   - optional debug prompt/request/response files under `debug/`
@@ -289,10 +289,10 @@ TikTok-style metadata is implemented heuristically in [`packages/metadata/src/in
   - target language profile
   - localization config
 - Outputs:
-  - localized `script.md`
+  - localized authored markdown
   - lineage JSON result files in the episode story-production directory
 - Persisted artifacts:
-  - `<lang>/full/script.md`
+  - `languages/script-<lang>.md`
   - cache entries in `<episode>/.localization-cache/entries/*.json`
   - batch manifests under `.batch/`
 - Validation:
@@ -339,7 +339,7 @@ TikTok-style metadata is implemented heuristically in [`packages/metadata/src/in
   - short narration markdown
   - per-language manifests and JSON sidecars
 - Persisted artifacts:
-  - `<lang>/short/script.md`
+  - `languages/short/script-<lang>.md`
   - short artifact JSON, manifest JSON, source extraction JSON
   - short cleaning sidecars for compatibility input
 - Validation:
@@ -396,7 +396,7 @@ TikTok-style metadata is implemented heuristically in [`packages/metadata/src/in
   - persistence: [`packages/story-localization/src/story-production-analysis.persistence.ts`](../packages/story-localization/src/story-production-analysis.persistence.ts)
   - service: [`packages/story-localization/src/story-production-analysis.service.ts`](../packages/story-localization/src/story-production-analysis.service.ts)
 - Inputs:
-  - persisted `script.md`
+  - persisted authored full script resolved from `languages/script-<language>.md`
   - canonical lineage / localized lineage fingerprints
   - model and reasoning settings
 - Outputs:
@@ -858,8 +858,8 @@ TikTok-style metadata is implemented heuristically in [`packages/metadata/src/in
 - Facts are extracted heuristically, cached, and then adapted into a story IR / contract input.
 - Full-story prompt compilation is module-based; the canonical full output is narration-only JSON first, then rendered to markdown.
 - Canonical English behavior is special:
-  - it writes both the canonical markdown at `en/full/script.md`
-  - and the compatibility root `script.md`
+  - it writes canonical authored markdown at `languages/script-en.md`
+  - stale root or `en/full/script.md` copies are migration inputs, not authoritative source
   - its manifest fingerprint becomes the lineage source for localized full scripts and production analysis
 - Validation happens in-process before the artifact is considered current.
 - Repair routing is centralized in [`story-retry-routing.ts`](../packages/story-localization/src/story-retry-routing.ts):
@@ -867,8 +867,8 @@ TikTok-style metadata is implemented heuristically in [`packages/metadata/src/in
   - scoped issues can repair
   - larger failures trigger regeneration
 - Persistence:
-  - canonical full: `en/full/canonical-full.json`, `en/full/script.md`, `manifests/en-full.json`
-  - localized full: `<lang>/full/script.md` plus lineage-bearing cache artifacts
+  - canonical full: `en/full/canonical-full.json`, `languages/script-en.md`, `manifests/en-full.json`
+  - localized full: `languages/script-<lang>.md` plus lineage-bearing cache artifacts
   - debug prompts and raw responses under `debug/` when enabled
 
 ## 6. Localization
@@ -884,7 +884,7 @@ TikTok-style metadata is implemented heuristically in [`packages/metadata/src/in
   - per-episode `.localization-cache`
   - keys incorporate source hash, config hash, prompt/schema fingerprints, and parent lineage
 - Output paths:
-  - `<episode>/<lang>/full/script.md`
+  - `<episode>/languages/script-<lang>.md`
   - cache entry JSON under `.localization-cache/entries/`
 - Locale validation:
   - derived from language profile locale
@@ -904,7 +904,7 @@ TikTok-style metadata is implemented heuristically in [`packages/metadata/src/in
   - short narration generation
   - validation and repair/regeneration routing
 - Outputs:
-  - `<lang>/short/script.md`
+  - `languages/short/script-<lang>.md`
   - manifests and sidecars from [`short-rewrite.persistence.ts`](../packages/story-localization/src/short-rewrite.persistence.ts)
 - Vertical media:
   - `episode short` then uses the short markdown as the media-stage source and reuses or regenerates portrait images
@@ -1186,10 +1186,15 @@ episodes/<episode-slug>/
     stories-rewrite-full-*.prompt.md
     stories-rewrite-full-*.request.json
     stories-rewrite-full-*.response.json
+  languages/
+    script-en.md
+    script-de.md
+    short/
+      script-en.md
+      script-de.md
   en/
     full/
       canonical-full.json
-      script.md
       analysis.json
       metadata.json
       narration.txt
@@ -1205,10 +1210,7 @@ episodes/<episode-slug>/
       subtitles/
         narration.en.srt
         narration.en.vtt
-    short/
-      script.md
   de/
-    full/script.md
     audio/prompts/*.json
   shared/
     scenes.json
@@ -1242,7 +1244,7 @@ Important producers and consumers:
 - `canonical-full.json`
   - producer: canonical full rewrite
   - consumer: localized full rewrite, production analysis
-- `<lang>/full/script.md`
+- `languages/script-<lang>.md`
   - producer: rewrite services
   - consumer: production analysis, audio generation, media prep
 - `shared/scenes.json`

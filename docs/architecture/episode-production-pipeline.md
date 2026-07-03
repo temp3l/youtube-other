@@ -32,6 +32,7 @@ The active production path is CLI-driven episode generation: start from source s
 
 - Inputs usually come from source content roots such as `content-ideas/content/dark-truth-episodes-multilingual-production-pack`.
 - Working outputs land under `episodes/<episode-id>/...` by default.
+- Authored full scripts live at `episodes/<episode-id>/languages/script-<language>.md`; authored Short scripts, when distinct, live at `episodes/<episode-id>/languages/short/script-<language>.md`.
 - Shared episode assets live under `shared/` areas, while locale and variant-specific outputs are separated by language and `full` or `short` directories when applicable.
 
 ## Persistence and Resumability

@@ -23,7 +23,6 @@ export {
   listEpisodeScriptLanguages,
   loadEpisodeScriptMarkdown,
   splitEpisodeScriptMarkdown,
-  writeEpisodeScriptMarkdown,
 } from "./script-markdown.js";
 export {
   createNarrationArtifactPaths,

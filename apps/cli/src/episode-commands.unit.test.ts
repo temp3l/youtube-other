@@ -97,6 +97,72 @@ async function mutateManifest(manifestPath: string): Promise<void> {
 }
 
 describe("episode commands", () => {
+  it("forwards a subcommand language option when the root command also defines language", async () => {
+    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "episode-cli-language-"));
+    const outputRoot = path.join(tempDir, "episodes");
+    const episodeDir = path.join(outputRoot, "001-test-episode");
+    await fs.mkdir(path.join(episodeDir, "languages"), { recursive: true });
+    await fs.writeFile(
+      path.join(episodeDir, "languages", "script-de.md"),
+      [
+        "# Episode 001 - Testfolge",
+        "",
+        "## Anweisungen zur Audiogenerierung",
+        "",
+        "- Ruhig erzaehlen.",
+        "",
+        "# Sprechtext",
+        "",
+        "Dies ist ein deutscher Testtext mit genug Inhalt fuer die lokale Trockenlaufpruefung.",
+        "",
+        "---",
+        "",
+        "## Episoden-Metadaten",
+        "",
+        "Episode: 001",
+        "Primary title: Testfolge",
+        "Hashtags: #Test",
+        "Format: 16:9, 1920 x 1080",
+        "",
+      ].join("\n"),
+      "utf8"
+    );
+    const program = new Command();
+    program.exitOverride();
+    program.option("--language <code>", "root language option");
+    registerEpisodeCommands(program);
+    const writeSpy = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
+    let output = "";
+    try {
+      await program.parseAsync([
+        "node",
+        "mediaforge",
+        "episode",
+        "dry-run",
+        "--episode",
+        "001",
+        "--source",
+        outputRoot,
+        "--output-root",
+        outputRoot,
+        "--language",
+        "de",
+        "--artifact",
+        "full",
+      ]);
+      output = String(writeSpy.mock.calls[0]?.[0]);
+    } finally {
+      writeSpy.mockRestore();
+    }
+
+    const payload = JSON.parse(output) as {
+      readonly language: string;
+      readonly sourceFile: string;
+    };
+    expect(payload.language).toBe("de");
+    expect(payload.sourceFile).toBe(path.join(episodeDir, "languages", "script-de.md"));
+  });
+
   it("bootstraps shared character references into the workspace and optionally approves them", async () => {
     const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "dark-truth-cli-"));
     const outputRoot = path.join(tempDir, "episodes");
@@ -402,6 +468,14 @@ describe("episode commands", () => {
     const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "dark-truth-cli-"));
     const outputRoot = path.join(tempDir, "episodes");
     await approveCurrentManifest(outputRoot, englishFullSource, "en");
+    const canonicalGermanScript = path.join(
+      outputRoot,
+      episodeSlug,
+      "languages",
+      "script-de.md"
+    );
+    await fs.mkdir(path.dirname(canonicalGermanScript), { recursive: true });
+    await fs.copyFile(germanFullSource, canonicalGermanScript);
 
     await expect(
       commandEpisodeLocalized({
@@ -432,10 +506,10 @@ describe("episode commands", () => {
     const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "dark-truth-cli-"));
     const outputRoot = path.join(tempDir, "episodes");
     const episodeDir = path.join(outputRoot, episodeSlug);
-    await fs.mkdir(path.join(episodeDir), { recursive: true });
+    await fs.mkdir(path.join(episodeDir, "languages"), { recursive: true });
     await fs.copyFile(
       path.join("episodes", "011-the-black-eyed-children", "script.md"),
-      path.join(episodeDir, "script.md")
+      path.join(episodeDir, "languages", "script-en.md")
     );
 
     await expect(
@@ -450,7 +524,7 @@ describe("episode commands", () => {
     ).resolves.toBeUndefined();
   });
 
-  it("prefers the workspace script for English full localization", async () => {
+  it("rejects a stale workspace root script for English full localization", async () => {
     const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "dark-truth-cli-"));
     const outputRoot = path.join(tempDir, "episodes");
     const episodeDir = path.join(outputRoot, episodeSlug);
@@ -458,27 +532,27 @@ describe("episode commands", () => {
     const packSource = englishFullSource;
     await fs.mkdir(path.dirname(workspaceScript), { recursive: true });
     await fs.writeFile(workspaceScript, "Workspace narration", "utf8");
-    const result = await resolveEpisodeLanguageSource(
-      outputRoot,
-      {
-        episodeId: episodeSlug,
-        episodeNumber: "011",
-        slug: episodeSlug,
-        sourceDir: path.dirname(path.dirname(packSource)),
-        candidates: [
-          {
-            language: "en",
-            artifactType: "full",
-            filePath: packSource,
-            status: "present",
-          },
-        ],
-      } as unknown as Parameters<typeof resolveEpisodeLanguageSource>[1],
-      "en",
-      "full"
-    );
-    expect(result.sourceFile).toBe(workspaceScript);
-    expect(result.warning).toBeUndefined();
+    await expect(
+      resolveEpisodeLanguageSource(
+        outputRoot,
+        {
+          episodeId: episodeSlug,
+          episodeNumber: "011",
+          slug: episodeSlug,
+          sourceDir: path.dirname(path.dirname(packSource)),
+          candidates: [
+            {
+              language: "en",
+              artifactType: "full",
+              filePath: packSource,
+              status: "present",
+            },
+          ],
+        } as unknown as Parameters<typeof resolveEpisodeLanguageSource>[1],
+        "en",
+        "full"
+      )
+    ).rejects.toMatchObject({ code: "STALE_LAYOUT" });
   });
 
   it("prefers the canonical authored script resolver source when available", async () => {
@@ -513,7 +587,6 @@ describe("episode commands", () => {
     );
 
     expect(result.sourceFile).toBe(canonicalScript);
-    expect(result.warning).toBeUndefined();
   });
 
   it("surfaces stale authored script resolver errors", async () => {
@@ -559,30 +632,30 @@ describe("episode commands", () => {
     ).rejects.toMatchObject({ code: "STALE_LAYOUT" });
   });
 
-  it("warns when English full localization falls back to the pack source", async () => {
+  it("fails when English full localization is missing the canonical authored script", async () => {
     const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "dark-truth-cli-"));
     const outputRoot = path.join(tempDir, "episodes");
-    const result = await resolveEpisodeLanguageSource(
-      outputRoot,
-      {
-        episodeId: episodeSlug,
-        episodeNumber: "011",
-        slug: episodeSlug,
-        sourceDir: path.dirname(path.dirname(englishFullSource)),
-        candidates: [
-          {
-            language: "en",
-            artifactType: "full",
-            filePath: englishFullSource,
-            status: "present",
-          },
-        ],
-      } as unknown as Parameters<typeof resolveEpisodeLanguageSource>[1],
-      "en",
-      "full"
-    );
-    expect(result.sourceFile).toBe(englishFullSource);
-    expect(result.warning).toContain("workspace script.md was missing");
+    await expect(
+      resolveEpisodeLanguageSource(
+        outputRoot,
+        {
+          episodeId: episodeSlug,
+          episodeNumber: "011",
+          slug: episodeSlug,
+          sourceDir: path.dirname(path.dirname(englishFullSource)),
+          candidates: [
+            {
+              language: "en",
+              artifactType: "full",
+              filePath: englishFullSource,
+              status: "present",
+            },
+          ],
+        } as unknown as Parameters<typeof resolveEpisodeLanguageSource>[1],
+        "en",
+        "full"
+      )
+    ).rejects.toMatchObject({ code: "MISSING_SCRIPT" });
   });
 
   it("requires German approval before the German Short", async () => {
@@ -604,6 +677,15 @@ describe("episode commands", () => {
     const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "dark-truth-cli-"));
     const outputRoot = path.join(tempDir, "episodes");
     await approveCurrentManifest(outputRoot, germanFullSource, "de");
+    const canonicalGermanShortScript = path.join(
+      outputRoot,
+      episodeSlug,
+      "languages",
+      "short",
+      "script-de.md"
+    );
+    await fs.mkdir(path.dirname(canonicalGermanShortScript), { recursive: true });
+    await fs.copyFile(germanFullSource, canonicalGermanShortScript);
 
     await expect(
       commandEpisodeShort({

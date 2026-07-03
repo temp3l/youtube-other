@@ -332,11 +332,11 @@ Related analysis state surfaces:
 Story artifact paths:
 
 - Materialized canonical source: `episodes/<episode-slug>/source/<episode-number>-<episode-slug>-en-full.md`
-- Canonical English full story: `episodes/<episode-slug>/script.md`
-- Localized full story: `episodes/<episode-slug>/<language>/full/script.md`
+- Authored English full story: `episodes/<episode-slug>/languages/script-en.md`
+- Authored localized full story: `episodes/<episode-slug>/languages/script-<language>.md`
+- Authored Short story, when distinct from full: `episodes/<episode-slug>/languages/short/script-<language>.md`
 - Short Markdown: `episodes/<episode-slug>/<language>/short/<episode-number>-<episode-slug>-<language>-short.md`
 - Short JSON: `episodes/<episode-slug>/<language>/short/<episode-number>-<episode-slug>-<language>-short.json`
-- Short compatibility script: `episodes/<episode-slug>/<language>/short/script.md`
 - Short manifest: `episodes/<episode-slug>/manifests/short-rewrite-manifest.json`
 - Full localization cache: `episodes/<episode-slug>/.localization-cache/`
 - Story production artifacts: `episodes/<episode-slug>/story-production/`
@@ -408,7 +408,6 @@ Primary image workflow:
 - `images reject <episode-id> --scene <scene-id> --reason <reason>`
 - `images regenerate-workbook <episode-id> --missing-only`
 - `images assign <episode-id> --scene <scene-id> --file <path>`
-- `images generate-openai <episode-id> --scene <scene-id>`
 
 Canonical singular episode resume example:
 
@@ -417,17 +416,17 @@ npm run mediaforge -- episode resume-images --episode <episode-id> --concurrency
 node apps/cli/dist/index.js episode resume-images --episode 011-the-black-eyed-children --concurrency 2
 ```
 
-Do not use `episodes resume-images` in new docs or automation; it exists only through the compatibility alias.
+Do not use `episodes resume-images` in new docs or automation; use the singular `episode` namespace.
 
 ## Audio, Metadata, Render, Upload
 
-Audio generation is separate from story rewriting. The speech package reads finalized `script.md` files and voice settings from `docs/voice-settings.md`; it does not read `docs/templates/audio/system-prompt.md` or `docs/templates/audio/short-story-prompt.md`.
+Audio generation is separate from story rewriting. The speech package reads finalized authored scripts through the shared episode resolver and voice settings from `docs/voice-settings.md`; it does not read `docs/templates/audio/system-prompt.md` or `docs/templates/audio/short-story-prompt.md`.
 
 ```bash
 npm run mediaforge -- audio generate-localized 011-the-black-eyed-children --languages de,es,fr
 ```
 
-Localized audio outputs are written below each language/artifact workspace, including `audio/segments`, `audio/narration.wav`, `audio/generation-report.json`, and `audio/script-source-<language>.md`.
+Localized audio outputs are written below each language/artifact workspace, including `audio/segments`, `audio/narration.wav`, and `audio/generation-report.json`.
 
 Metadata, render, and upload commands are distinct stages:
 

@@ -329,38 +329,20 @@ export async function resolveAuthoredScript(
   }
 
   if (existingStaleCandidates.length > 0) {
-    const canonicalHash = canonicalStat?.isFile()
-      ? await hashExistingFile(canonicalPath)
-      : null;
-    const staleHashes = await Promise.all(
-      existingStaleCandidates.map(async (candidate) => ({
-        candidate,
-        hash: await hashExistingFile(path.join(workspaceRoot, candidate)),
-      }))
-    );
-    const allHashes = new Set([
-      ...(canonicalHash ? [canonicalHash] : []),
-      ...staleHashes.map((candidate) => candidate.hash),
-    ]);
-    const details = resolverDetails({
-      workspaceRoot,
-      episodeId,
-      language,
-      variant,
-      canonicalRelativePath,
-      candidates: existingStaleCandidates,
-    });
-    if (allHashes.size > 1 || canonicalHash === null) {
-      throw new AuthoredScriptResolverError(
-        "AMBIGUOUS_SCRIPT",
-        `Multiple divergent authored script candidates exist for ${episodeId} ${language} ${variant}`,
-        details
-      );
-    }
     throw new AuthoredScriptResolverError(
       "STALE_LAYOUT",
-      `Stale duplicate authored script candidates exist for ${episodeId} ${language} ${variant}`,
-      details
+      [
+        `Stale authored script layout exists for ${episodeId} ${language} ${variant}.`,
+        `Use ${canonicalRelativePath} and remove: ${existingStaleCandidates.join(", ")}`,
+      ].join(" "),
+      resolverDetails({
+        workspaceRoot,
+        episodeId,
+        language,
+        variant,
+        canonicalRelativePath,
+        candidates: existingStaleCandidates,
+      })
     );
   }
 
@@ -510,11 +492,6 @@ export interface EpisodePathResolver {
     sceneId: string,
     expectedFilename?: string
   ): string;
-  legacyGeneratedImage(
-    episodeId: EpisodeId,
-    sceneId: string,
-    extension?: string
-  ): string;
   batchStateDir(episodeId: EpisodeId): string;
   renderStateDir(episodeId: EpisodeId): string;
   visualRetentionDir(episodeId: EpisodeId): string;
@@ -530,7 +507,6 @@ export interface EpisodePathResolver {
   uploadStateDir(episodeId: EpisodeId): string;
   logsDir(episodeId: EpisodeId): string;
   sharedGeneratedImagesDir(episodeId: EpisodeId): string;
-  legacyGeneratedImagesDir(episodeId: EpisodeId): string;
 }
 
 export interface SceneImageCandidatePaths {
@@ -973,12 +949,6 @@ export function createEpisodePathResolver(workspaceRoot: string): EpisodePathRes
         sceneId,
         ...(expectedFilename ? { expectedFilename } : {}),
       }),
-    legacyGeneratedImage: (episodeId, sceneId, extension = ".png") =>
-      resolveEpisodeLegacyGeneratedImagePath({
-        episodeDir: episodeRoot(episodeId),
-        sceneId,
-        expectedFilename: `${sceneId}${extension}`,
-      }),
     batchStateDir: (episodeId) => path.join(episodeRoot(episodeId), "state", "batch"),
     renderStateDir: (episodeId) => path.join(episodeRoot(episodeId), "state", "render"),
     visualRetentionDir: episodeVisualRetentionDir,
@@ -1020,8 +990,6 @@ export function createEpisodePathResolver(workspaceRoot: string): EpisodePathRes
     logsDir: (episodeId) => path.join(episodeRoot(episodeId), "logs"),
     sharedGeneratedImagesDir: (episodeId) =>
       path.join(episodeRoot(episodeId), "shared", "images", "generated"),
-    legacyGeneratedImagesDir: (episodeId) =>
-      path.join(episodeRoot(episodeId), "state", "image-generation", "images"),
   };
 }
 
