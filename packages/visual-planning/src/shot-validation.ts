@@ -290,19 +290,17 @@ export async function validateShotPlanArtifactReferences(input: {
   }
 
   for (const sourceScene of input.shotPlan.sourceScenes) {
-    const candidatePath = path.isAbsolute(sourceScene.sourceImagePath)
-      ? sourceScene.sourceImagePath
-      : path.join(episodeWorkspace, sourceScene.sourceImagePath);
-    const imageContained = await resolveExistingContainedPath({
-      root: episodeWorkspace,
-      candidatePath,
+    const imageContained = await resolveShotPlanSourceImagePath({
+      episodeWorkspace,
+      shotPlan: input.shotPlan,
+      sourceImagePath: sourceScene.sourceImagePath,
     });
     if (!imageContained.contained) {
       return {
         validationCode: "BROKEN_REFERENCE",
         message: "Source image path escapes the episode workspace.",
         relativePath: sourceScene.sourceImagePath,
-        absolutePath: path.resolve(candidatePath),
+        absolutePath: imageContained.resolvedPath,
         sceneId: sourceScene.sceneId,
         sourceImageId: sourceScene.sourceImageId,
       };
@@ -320,6 +318,63 @@ export async function validateShotPlanArtifactReferences(input: {
   }
 
   return { validationCode: "VALID" };
+}
+
+async function resolveShotPlanSourceImagePath(args: {
+  readonly episodeWorkspace: string;
+  readonly shotPlan: ShotPlan;
+  readonly sourceImagePath: string;
+}): Promise<{
+  readonly contained: boolean;
+  readonly exists: boolean;
+  readonly resolvedPath: string;
+}> {
+  if (path.isAbsolute(args.sourceImagePath)) {
+    return resolveExistingContainedPath({
+      root: args.episodeWorkspace,
+      candidatePath: args.sourceImagePath,
+    });
+  }
+
+  const language = args.shotPlan.sourceIdentity?.language ?? args.shotPlan.locale;
+  const variant = args.shotPlan.sourceIdentity?.variant ?? args.shotPlan.variant;
+  const candidateRoots = [
+    ...(language && variant
+      ? [
+          path.join(args.episodeWorkspace, language, variant),
+          path.join(args.episodeWorkspace, "locales", language, variant),
+        ]
+      : []),
+    args.episodeWorkspace,
+  ];
+
+  let lastEscape:
+    | {
+        readonly contained: boolean;
+        readonly exists: boolean;
+        readonly resolvedPath: string;
+      }
+    | null = null;
+  for (const root of candidateRoots) {
+    const resolved = await resolveExistingContainedPath({
+      root: args.episodeWorkspace,
+      candidatePath: path.join(root, args.sourceImagePath),
+    });
+    if (resolved.contained && resolved.exists) {
+      return resolved;
+    }
+    if (!resolved.contained) {
+      lastEscape = resolved;
+    }
+  }
+
+  if (lastEscape) {
+    return lastEscape;
+  }
+  return resolveExistingContainedPath({
+    root: args.episodeWorkspace,
+    candidatePath: path.join(args.episodeWorkspace, args.sourceImagePath),
+  });
 }
 
 export function shotPlanSourceIdentityEquals(

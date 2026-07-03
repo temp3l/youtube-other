@@ -426,6 +426,38 @@ describe("shot commands", () => {
     expect(reused.status).toBe("reused");
   });
 
+  it("plans when source-scene images are stored relative to the legacy locale variant artifact root", async () => {
+    const { episodeDir } = await setupWorkspace();
+    const sourceScenesPath = path.join(
+      episodeDir,
+      "state",
+      "visual-retention",
+      "source-scenes.json"
+    );
+    const sourceScenes = JSON.parse(await fs.readFile(sourceScenesPath, "utf8")) as Array<{
+      sourceImagePath: string;
+    }>;
+    sourceScenes[0]!.sourceImagePath = "../../shared/images/generated/scene-001.png";
+    await fs.writeFile(sourceScenesPath, `${JSON.stringify(sourceScenes, null, 2)}\n`, "utf8");
+
+    const result = await planShotsCommand({
+      episode: "episode-fixture",
+      variant: "full",
+      locale: "en",
+      format: "json",
+    });
+
+    expect(result.status).toBe("created");
+    expect(result.planPath).toBe(
+      path.join(
+        episodeDir,
+        "state",
+        "visual-retention",
+        "shot-plan.full.en.json"
+      )
+    );
+  });
+
   it("plans and validates deterministic resolver-owned artifacts for all locale and variant cells", async () => {
     const { episodeDir } = await setupWorkspace();
     const cells = [

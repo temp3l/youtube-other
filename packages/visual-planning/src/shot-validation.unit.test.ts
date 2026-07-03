@@ -814,6 +814,24 @@ describe("shot validation failing fixtures", () => {
       })
     ).resolves.toMatchObject({ validationCode: "BROKEN_REFERENCE" });
 
+    const legacyRelativePlan = shotPlanSchema.parse({
+      ...plan,
+      sourceScenes: [
+        {
+          ...plan.sourceScenes[0]!,
+          sourceImagePath: "../../shared/images/generated/scene-001.png",
+        },
+      ],
+    });
+    await expect(
+      validateShotPlanArtifactReferences({
+        shotPlan: legacyRelativePlan,
+        episodeWorkspace,
+        artifactPath,
+        expectedSourceIdentity: sourceIdentity,
+      })
+    ).resolves.toEqual({ validationCode: "VALID" });
+
     const escapingImagePlan = shotPlanSchema.parse({
       ...plan,
       sourceScenes: [

@@ -152,7 +152,11 @@ export async function planShotsCommand(
     context.paths.sourceScenesPath
   );
   await loadOptionalFocalMetadata(context.paths.focalMetadataPath);
-  await assertSourceSceneImagesExist(context.episodeDir, sourceScenes);
+  await assertSourceSceneImagesExist(
+    context.episodeDir,
+    context.artifactRoots,
+    sourceScenes
+  );
   const preset = selectVisualRetentionPreset(
     context.config,
     context.variant,
@@ -486,6 +490,7 @@ interface ShotsResolvedContext {
   readonly locale: string;
   readonly variant: "full" | "short";
   readonly episodeDir: string;
+  readonly artifactRoots: readonly string[];
   readonly sourceIdentity: ShotPlanSourceIdentity;
   readonly paths: {
     readonly sourceScenesPath: string;
@@ -538,6 +543,11 @@ async function resolveShotsContext(
     locale,
     variant,
     episodeDir,
+    artifactRoots: [
+      path.join(episodeDir, locale, variant),
+      resolver.localeVariantRoot({ episodeId, locale, variant }),
+      episodeDir,
+    ],
     sourceIdentity,
     paths: {
       sourceScenesPath: resolver.visualSourceScenes(episodeId),
@@ -695,15 +705,15 @@ async function loadScenePlan(filePath: string): Promise<ScenePlan> {
 
 async function assertSourceSceneImagesExist(
   episodeDir: string,
+  artifactRoots: readonly string[],
   sourceScenes: readonly z.infer<typeof visualSourceSceneSchema>[]
 ): Promise<void> {
   for (const sourceScene of sourceScenes) {
-    const sourceImagePath = ensureWorkspacePath(
+    const sourceImagePath = await resolveSourceSceneImagePath({
       episodeDir,
-      path.isAbsolute(sourceScene.sourceImagePath)
-        ? sourceScene.sourceImagePath
-        : path.join(episodeDir, sourceScene.sourceImagePath)
-    );
+      artifactRoots,
+      sourceImagePath: sourceScene.sourceImagePath,
+    });
     if (!(await fileExists(sourceImagePath))) {
       throw new ArtifactNotFoundError(
         `Missing source image for ${sourceScene.sourceImageId} in ${sourceScene.sceneId}.`
@@ -711,6 +721,41 @@ async function assertSourceSceneImagesExist(
     }
     ensureWorkspacePath(episodeDir, await fs.realpath(sourceImagePath));
   }
+}
+
+async function resolveSourceSceneImagePath(args: {
+  readonly episodeDir: string;
+  readonly artifactRoots: readonly string[];
+  readonly sourceImagePath: string;
+}): Promise<string> {
+  if (path.isAbsolute(args.sourceImagePath)) {
+    return ensureWorkspacePath(args.episodeDir, args.sourceImagePath);
+  }
+
+  let pathEscapeError: Error | null = null;
+  for (const root of args.artifactRoots) {
+    try {
+      const candidate = ensureWorkspacePath(
+        args.episodeDir,
+        path.join(root, args.sourceImagePath)
+      );
+      if (await fileExists(candidate)) {
+        return candidate;
+      }
+    } catch (error) {
+      if (error instanceof Error) {
+        pathEscapeError = error;
+      }
+    }
+  }
+
+  if (pathEscapeError) {
+    throw pathEscapeError;
+  }
+  return ensureWorkspacePath(
+    args.episodeDir,
+    path.join(args.episodeDir, args.sourceImagePath)
+  );
 }
 
 async function computeValidation(

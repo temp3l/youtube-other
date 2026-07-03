@@ -1,5 +1,29 @@
 # prompts
 
+---
+
+gray resets 17:51
+steph 17:23
+
+---
+
+why did this command: "bash -lc 'set -a; . ./.env; set +a; node apps/cli/bin/mediaforge.js episode english --episode 022-the-whistler-in-the-woods --visual-retention --visual-retention-mode enabled'^"
+
+result in: "Error: Shot validation failed for full en: VISUAL_CHANGE_RATE_TOO_LOW Meaningful visual-change interval exceeds the pacing profile cadence."
+and how to fix it?
+
+---
+
+recommend solutions to overcome: "The semantic shot validations still fail for all four cells because the generated plans exceed current pacing/resolution budgets; I did not weaken those checks." And also use visual-retention as default.
+"""
+I retried with .env exported and fixed the concrete shot-path failures that were blocking regeneration. Changed paths: apps/cli/src/shots.ts:1, apps/cli/src/shot-commands.unit.test.ts:1, packages/visual-planning/src/shot-validation.ts:1, packages/visual-planning/src/shot-validation.unit.test.ts:1.
+
+Validation run: pnpm test:focused -- apps/cli/src/shot-commands.unit.test.ts and pnpm test:focused -- packages/visual-planning/src/shot-validation.unit.test.ts, both passed. I rebuilt @mediaforge/visual-planning and @mediaforge/cli, then regenerated all four shot plans successfully. The semantic shot
+validations still fail for all four cells because the generated plans exceed current pacing/resolution budgets; I did not weaken those checks.
+"""
+
+---
+
 - when replacing people's name, make sure you keep the gender correct. only use male names for males and female names for females
 
 - do not replace names in stories, keep them as they are
