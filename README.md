@@ -1,6 +1,6 @@
 # prompts
 
-- run next: task-07-task-08-migrate-episodes
+- run next: 11-task-15-legacy-config
 - can i generate all audio assets and images for full and short in english + german for the 022 episode using the batch api ? if yes, run the batch
 
 -- how to re-write many stories at once using the batch api

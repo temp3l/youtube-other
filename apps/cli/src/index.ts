@@ -67,11 +67,7 @@ import {
   currentExecutionTelemetry,
   withExecutionTelemetry,
 } from "@mediaforge/observability";
-import {
-  createPipeline,
-  type CreateEpisodeOptions,
-  type MediaForgeEnvironment,
-} from "@mediaforge/pipeline";
+import { createPersistence, type SQLitePersistence } from "@mediaforge/persistence";
 import { runCommand } from "@mediaforge/process-runner";
 import {
   buildSrt,
@@ -101,6 +97,8 @@ import {
   computeSpeechModelConfigFingerprint,
   computeSpeechVoiceConfigFingerprint,
   NarrationPipeline,
+  MockSpeechProvider,
+  OpenAiCompatibleSpeechProvider,
   buildNarrationBatchStatus,
   buildNarrationTargetStatus,
   buildNarrationTargetStatusFromError,
@@ -116,6 +114,7 @@ import {
   type NarrationPipelineStage,
   type NarrationTargetStatus,
   type SpeechNarrationDependency,
+  type SpeechProvider,
   type SpeechVoicePreset,
   type TtsGenerationRecord,
   loadEpisodeScriptMarkdown,
@@ -128,9 +127,13 @@ import {
 import {
   buildVisualScenesFromSubtitleSegments,
   normalizeTranscriptFromWords,
+  MockTranscriptionProvider,
+  OpenAiCompatibleTranscriptionProvider,
   parseWhisperRawArtifact,
+  WhisperCppTranscriptionProvider,
   validateNormalizedTranscript,
   writeNormalizedTranscriptArtifacts,
+  type TranscriptionProvider,
   type WhisperRawTranscriptArtifact,
 } from "@mediaforge/transcription";
 import { Command } from "commander";
@@ -141,11 +144,9 @@ import os from "node:os";
 import path from "node:path";
 import { registerEpisodeCommands } from "./episode-commands.js";
 import {
-  buildEpisodeImageSummaryOutput,
   summarizeEpisodeImageState,
   type EpisodeImageSummary,
 } from "./episode-image-summary.js";
-import { buildEpisodeStatusOutput } from "./episode-status-output.js";
 import { buildImageStatusOutput } from "./images-status-output.js";
 import { registerImagesResumeCommand } from "./images-resume-command.js";
 import { registerImagesSyncSharedCommand } from "./images-sync-shared-command.js";
@@ -178,8 +179,6 @@ interface CliOptions {
   narrationPipelineMode?: NarrationPipelineMode;
   scriptLanguage?: string;
   sceneLimit?: number;
-  fromStage?: string;
-  untilStage?: string;
   allowUnapprovedCharacterReferences?: boolean;
   force?: boolean;
   episode?: string;
@@ -203,27 +202,17 @@ interface DoctorCheck {
   readonly kind: "required" | "optional" | "manual" | "credential";
 }
 
+interface CliRuntime {
+  readonly config: RuntimeConfig;
+  readonly db: SQLitePersistence;
+  readonly logger: ReturnType<typeof createLogger>;
+  readonly speech: SpeechProvider;
+  readonly transcription: TranscriptionProvider;
+  readonly renderer: FFmpegVideoRenderer;
+}
+
 function printJson(value: unknown): void {
   process.stdout.write(`${JSON.stringify(value, null, 2)}\n`);
-}
-
-function formatPercent(value: unknown): string {
-  return typeof value === "number" && Number.isFinite(value)
-    ? `${(value * 100).toFixed(1)}%`
-    : "unavailable";
-}
-
-function formatEstimatedSavings(value: Record<string, unknown>): string {
-  const currency = value["currency"];
-  const estimatedSavingsMicros = value["estimatedSavingsMicros"];
-  if (
-    currency === "USD" &&
-    typeof estimatedSavingsMicros === "number" &&
-    Number.isFinite(estimatedSavingsMicros)
-  ) {
-    return `estimated USD ${(estimatedSavingsMicros / 1_000_000).toFixed(2)}`;
-  }
-  return "unavailable";
 }
 
 function markEpisodeTelemetry(episodeId: string): void {
@@ -833,25 +822,81 @@ function balanceScriptChunksForScenes(
   return packed.length > 0 ? packed : normalized;
 }
 
-async function buildEnvironment(
-  options: CliOptions
-): Promise<MediaForgeEnvironment> {
-  const config = await loadRuntimeConfig(configOverridesFromCli(options));
-  createLogger(options.verbose ? "debug" : config.logLevel);
-  const pipeline = await createPipeline(configOverridesFromCli(options));
-  return pipeline.environment;
+function createSpeechProvider(config: RuntimeConfig): SpeechProvider {
+  const speechSettings = loadSpeechVoiceSettings({
+    ...(config.speechVoicePreset ? { preset: config.speechVoicePreset } : {}),
+    ...(config.scriptLanguage ? { language: config.scriptLanguage } : {}),
+  });
+  if (config.ttsProvider !== "openai-compatible" || !config.openAiCompatibleApiKey) {
+    return new MockSpeechProvider();
+  }
+  return new OpenAiCompatibleSpeechProvider({
+    apiKey: config.openAiCompatibleApiKey,
+    ...(config.openAiCompatibleOrganization
+      ? { organization: config.openAiCompatibleOrganization }
+      : {}),
+    ...(config.openAiCompatibleProject
+      ? { project: config.openAiCompatibleProject }
+      : {}),
+    model: config.openAiSpeechModel ?? config.openAiCompatibleModel ?? "gpt-4o-mini-tts",
+    voice: config.openAiSpeechVoice ?? config.openAiCompatibleTtsVoice ?? DEFAULT_SPEECH_VOICE,
+    ...(speechSettings.preset ? { preset: speechSettings.preset } : {}),
+    ...(speechSettings.speed !== undefined ? { speed: speechSettings.speed } : {}),
+    ...(speechSettings.language ? { language: speechSettings.language } : {}),
+    ...(config.openAiCompatibleBaseUrl ? { baseUrl: config.openAiCompatibleBaseUrl } : {}),
+  });
 }
 
-async function loadPipeline(options: CliOptions, episodeDir?: string) {
+function createTranscriptionProvider(config: RuntimeConfig): TranscriptionProvider {
+  if (config.transcriptionProvider === "openai-compatible" && config.openAiCompatibleApiKey) {
+    const transcriptionLanguage =
+      config.openAiTranscriptionLanguage ?? config.scriptLanguage;
+    return new OpenAiCompatibleTranscriptionProvider({
+      apiKey: config.openAiCompatibleApiKey,
+      ...(config.openAiCompatibleBaseUrl ? { baseUrl: config.openAiCompatibleBaseUrl } : {}),
+      model: config.openAiTranscriptionModel ?? "whisper-1",
+      ...(transcriptionLanguage ? { language: transcriptionLanguage } : {}),
+      ...(config.openAiTranscriptionPrompt ? { prompt: config.openAiTranscriptionPrompt } : {}),
+    });
+  }
+  if (config.transcriptionProvider === "whisper.cpp" && config.whisperModel) {
+    return new WhisperCppTranscriptionProvider({
+      whisperBin: config.whisperBin,
+      whisperModel: config.whisperModel,
+      language: config.whisperLanguage,
+      threads: config.whisperThreads,
+      processors: config.whisperProcessors,
+      timeoutMs: config.whisperTimeoutMs,
+      maxDurationSeconds: config.whisperMaxDurationSeconds,
+    });
+  }
+  return new MockTranscriptionProvider();
+}
+
+async function loadCliRuntime(options: CliOptions, episodeDir?: string): Promise<CliRuntime> {
   const overrides = compactConfigOverrides(configOverridesFromCli(options));
   const episodeConfig = episodeDir ? await loadEpisodeConfig(episodeDir) : null;
   const emptyEpisodeOverrides: RuntimeConfigOverrides = {};
-  return createPipeline(
+  const config = await loadRuntimeConfig(
     overrides,
     episodeConfig
       ? compactConfigOverrides(episodeConfig)
       : emptyEpisodeOverrides
   );
+  const db = createPersistence(config.dbPath);
+  db.migrate();
+  const logger = createLogger(options.verbose ? "debug" : config.logLevel);
+  const renderer = config.remoteRenderEnabled
+    ? new HybridFFmpegVideoRenderer(buildRemoteRenderSettings(config))
+    : new FFmpegVideoRenderer();
+  return {
+    config,
+    db,
+    logger,
+    speech: createSpeechProvider(config),
+    transcription: createTranscriptionProvider(config),
+    renderer,
+  };
 }
 
 function describeDoctorItem(
@@ -985,49 +1030,11 @@ async function commandDoctor(options: CliOptions): Promise<void> {
 }
 
 async function commandInit(options: CliOptions): Promise<void> {
-  const environment = await buildEnvironment(options);
-  await ensureDir(environment.config.workspaceDir);
+  const config = await loadRuntimeConfig(configOverridesFromCli(options));
+  await ensureDir(config.workspaceDir);
   if (!options.quiet) {
-    process.stdout.write(
-      `Workspace ready at ${environment.config.workspaceDir}\n`
-    );
+    process.stdout.write(`Workspace ready at ${config.workspaceDir}\n`);
   }
-}
-
-async function commandCreate(
-  options: CliOptions,
-  input: CreateEpisodeOptions
-): Promise<void> {
-  const pipeline = await loadPipeline(options);
-  const manifest = await pipeline.createEpisode(input);
-  if (options.json) {
-    printJson(manifest);
-    return;
-  }
-  process.stdout.write(
-    `Created episode ${manifest.episodeId} at ${manifest.slug}\n`
-  );
-}
-
-async function commandRun(
-  options: CliOptions,
-  episodeId: string
-): Promise<void> {
-  markEpisodeTelemetry(episodeId);
-  const { episodeDir } = await readManifestForEpisode(options, episodeId);
-  const pipeline = await loadPipeline(options, episodeDir);
-  const result = await pipeline.runEpisode(episodeId as never, {
-    ...(options.fromStage ? { fromStage: options.fromStage as never } : {}),
-    ...(options.untilStage ? { untilStage: options.untilStage as never } : {}),
-    ...(options.sceneLimit ? { sceneLimit: options.sceneLimit } : {}),
-  });
-  if (options.json) {
-    printJson(result);
-    return;
-  }
-  process.stdout.write(
-    `Completed ${result.episodeId}\n${result.outputPaths.join("\n")}\n`
-  );
 }
 
 async function readManifestForEpisode(options: CliOptions, episodeId: string) {
@@ -1337,7 +1344,7 @@ function resolveTtsConcurrency(): number {
 }
 
 async function synthesizeSpeechChunks(
-  pipeline: Awaited<ReturnType<typeof loadPipeline>>,
+  speech: SpeechProvider,
   chunks: ReadonlyArray<string>,
   speechSettings: Awaited<ReturnType<typeof loadSpeechVoiceSettings>>,
   audioInstruction: AudioInstructionArtifact,
@@ -1377,7 +1384,7 @@ async function synthesizeSpeechChunks(
         segmentsDir,
         `${safeBasename(`segment-${String(index + 1).padStart(3, "0")}`)}.wav`
       );
-      await pipeline.speech.synthesize(
+      await speech.synthesize(
         {
           sceneId,
           text: chunk,
@@ -1544,7 +1551,7 @@ async function commandTranscriptGenerate(
     });
     return;
   }
-  const pipeline = await loadPipeline(options, episodeDir);
+  const runtime = await loadCliRuntime(options, episodeDir);
   const transcriptionLanguage =
     config.whisperLanguage ??
     config.openAiTranscriptionLanguage ??
@@ -1561,7 +1568,7 @@ async function commandTranscriptGenerate(
         audioPath,
         episodeDir,
       };
-  const transcript = await pipeline.transcription.transcribe(
+  const transcript = await runtime.transcription.transcribe(
     transcriptRequest,
     new AbortController().signal
   );
@@ -1752,105 +1759,6 @@ async function commandTranscriptValidate(
   process.stdout.write(`Transcript valid for ${episodeId}\n`);
 }
 
-async function commandStatus(
-  options: CliOptions,
-  episodeId: string
-): Promise<void> {
-  const { manifest, episodeDir } = await readManifestForEpisode(
-    options,
-    episodeId
-  );
-  const imageStatus = (await summarizeEpisodeImageState(
-    episodeDir,
-    manifest.scenePlan?.scenes.map((scene) => scene.id) ?? []
-  )) as EpisodeImageSummary;
-  const locale =
-    typeof manifest.transcript?.language === "string"
-      ? manifest.transcript.language
-      : "en";
-  const visualRetention = (await fs
-    .readFile(
-      path.join(
-        episodeDir,
-        "state",
-        "visual-retention",
-        `summary.full.${locale}.json`
-      ),
-      "utf8"
-    )
-    .then((value) => JSON.parse(value) as Record<string, unknown>)
-    .catch(() => undefined)) as
-    | undefined
-    | Record<string, unknown>;
-  const status = buildEpisodeStatusOutput({
-    episodeId: manifest.episodeId,
-    slug: manifest.slug,
-    pipelineRuns: manifest.pipelineRuns.length,
-    imageGeneration: {
-      totalBatches: imageStatus.manifestedScenes,
-      pendingBatches: imageStatus.plannedScenes - imageStatus.manifestedScenes,
-      requiresImportBatches: imageStatus.missingManifests,
-      importedBatches: imageStatus.generatedScenes,
-      failedBatches: imageStatus.failedScenes,
-      mergedWithPreviousScenes: imageStatus.mergeWithPreviousScenes,
-      mergedWithNextScenes: imageStatus.mergeWithNextScenes,
-      reusedScenes: imageStatus.reusedScenes,
-      readyForRender: imageStatus.readyForRender,
-      retryableFailedScenes: imageStatus.retryableFailedScenes,
-      failureCategories: imageStatus.failureCategories,
-      episodeNumbers: [manifest.episodeId],
-      sceneCount: manifest.scenePlan?.scenes.length ?? 0,
-      ...(visualRetention ? { visualRetention: visualRetention as never } : {}),
-    },
-  });
-  if (options.json) {
-    printJson(status);
-    return;
-  }
-  const lines = [
-    `${status.episodeId} ${status.slug}`,
-    `${status.pipelineRuns} pipeline runs`,
-    `images ready: ${imageStatus.readyForRender ? "yes" : "no"}`,
-    `images scenes: ${imageStatus.generatedScenes} generated, ${imageStatus.failedScenes} failed, ${imageStatus.missingManifests} missing manifests, ${imageStatus.missingImages} missing images`,
-    `images merges: ${imageStatus.mergeWithPreviousScenes} merged with previous, ${imageStatus.mergeWithNextScenes} merged with next, ${imageStatus.reusedScenes} reused`,
-  ];
-  const visual = status.visualRetention;
-  if (visual) {
-    const cache = visual["derivedClipCache"] as Record<string, unknown>;
-    lines.push(
-      `Visual retention: ${String(visual["rolloutMode"])}${visual["fallbackReason"] ? ` (${String(visual["fallbackReason"])})` : ""}`,
-      `Validation: ${String(visual["validation"])}`,
-      `Source images: ${String(visual["sourceImages"])}`,
-      `Rendered shots: ${String(visual["renderedShots"])}`,
-      `Shots per image: ${typeof visual["shotsPerImage"] === "number" ? visual["shotsPerImage"].toFixed(2) : "unavailable"}`,
-      `Opening changes (first 8s): ${String(visual["openingChangesFirstEightSeconds"])}`,
-      `Longest static interval: ${typeof visual["longestStaticIntervalSeconds"] === "number" ? visual["longestStaticIntervalSeconds"].toFixed(2) : "0.00"}s`,
-      `Derived cache: ${String(cache["hits"])} hits / ${String(cache["misses"])} misses (${formatPercent(cache["hitRatio"])})`,
-      `Avoided image calls: ${String(visual["avoidedImageGenerationCalls"])}`,
-      `Estimated image savings: ${formatEstimatedSavings(visual["estimatedImageSavings"] as Record<string, unknown>)}`,
-    );
-  }
-  process.stdout.write(lines.join("\n") + "\n");
-}
-
-async function commandInspect(
-  options: CliOptions,
-  episodeId: string
-): Promise<void> {
-  const { manifest, episodeDir } = await readManifestForEpisode(
-    options,
-    episodeId
-  );
-  const imageStatus = (await summarizeEpisodeImageState(
-    episodeDir,
-    manifest.scenePlan?.scenes.map((scene) => scene.id) ?? []
-  )) as EpisodeImageSummary;
-  printJson({
-    ...manifest,
-    imageGeneration: buildEpisodeImageSummaryOutput(imageStatus),
-  });
-}
-
 async function commandTranscriptExport(
   options: CliOptions,
   episodeId: string
@@ -1962,12 +1870,7 @@ async function commandAudioGenerate(
     });
     return;
   }
-  const pipeline = await createPipeline(
-    overrides,
-    episodeConfig
-      ? compactConfigOverrides(episodeConfig)
-      : emptyEpisodeOverrides
-  );
+  const runtime = await loadCliRuntime(options, episodeDir);
   const speechVoicePreset: SpeechVoicePreset =
     config.speechVoicePreset ?? episodeConfig?.speechVoicePreset ?? "fast";
   const narrationTempo = resolveNarrationTempoSettings(
@@ -2049,7 +1952,7 @@ async function commandAudioGenerate(
     try {
       await writeJsonAtomic(audioInstructionPath, audioInstruction);
       generated = await synthesizeSpeechChunks(
-        pipeline,
+        runtime.speech,
         chunks,
         speechSettings,
         audioInstruction,
@@ -2069,7 +1972,7 @@ async function commandAudioGenerate(
         narrationPath
       );
       generated = await synthesizeSpeechChunks(
-        pipeline,
+        runtime.speech,
         chunks,
         speechSettings,
         audioInstruction,
@@ -2262,7 +2165,7 @@ async function commandClipsGenerate(
     });
     return;
   }
-  const pipeline = await loadPipeline(options, episodeDir);
+  const runtime = await loadCliRuntime(options, episodeDir);
   const scenePlan = options.sceneLimit
     ? {
         ...manifest.scenePlan,
@@ -2278,7 +2181,7 @@ async function commandClipsGenerate(
     aspectRatio: config.defaultAspectRatio,
     burnCaptions: false,
   } as const;
-  const result = await pipeline.renderer.renderSceneClips(
+  const result = await runtime.renderer.renderSceneClips(
     {
       episodeDir,
       scenePlan,
@@ -2940,7 +2843,7 @@ async function commandRender(
     aspectRatio: profile === "youtube" ? "16:9" : "9:16",
     burnCaptions: true,
   } as const;
-  const pipeline = await loadPipeline(options, episodeDir);
+  const runtime = await loadCliRuntime(options, episodeDir);
   const variant: "full" | "short" = profile === "vertical" ? "short" : "full";
   const mediaContext: NonNullable<VideoRenderRequest["mediaContext"]> = {
     identity: {
@@ -2989,7 +2892,7 @@ async function commandRender(
     mediaContext,
     ...(captionsPath ? { captionsPath } : {}),
   };
-  const result = await pipeline.renderer.render(
+  const result = await runtime.renderer.render(
     renderRequest,
     new AbortController().signal
   );
@@ -3137,10 +3040,10 @@ async function runAudioNarrationPipeline(
     "gpt-4o-mini-tts";
   const voice =
     config.openAiSpeechVoice ?? config.openAiCompatibleTtsVoice ?? DEFAULT_SPEECH_VOICE;
-  let loadedPipeline: Awaited<ReturnType<typeof loadPipeline>> | null = null;
-  const loadTargetPipeline = async () => {
-    loadedPipeline ??= await loadPipeline(options, episodeDir);
-    return loadedPipeline;
+  let loadedRuntime: CliRuntime | null = null;
+  const loadTargetRuntime = async () => {
+    loadedRuntime ??= await loadCliRuntime(options, episodeDir);
+    return loadedRuntime;
   };
   const runner = new NarrationPipeline();
   const results: NarrationPipelineResult[] = [];
@@ -3194,10 +3097,10 @@ async function runAudioNarrationPipeline(
           outputFormat: "wav",
           baseVoiceInstructions: speechSettings.instructions,
           synthesizeChunk: async (request) => {
-            const pipeline = await loadTargetPipeline();
+            const runtime = await loadTargetRuntime();
             const idMatch = request.chunkId.match(/([0-9]+)$/u);
             const sceneNumber = idMatch?.[1] ?? "001";
-            await pipeline.speech.synthesize(
+            await runtime.speech.synthesize(
               {
                 sceneId: sceneIdSchema.parse(`scene-${sceneNumber.padStart(3, "0")}`),
                 text: request.text,
@@ -3271,7 +3174,7 @@ async function commandAudioNarrationBenchmarkVoices(
   if (config.ttsProvider !== "openai-compatible") {
     throw new Error("Voice benchmarking requires --tts-provider openai-compatible.");
   }
-  const pipeline = await loadPipeline(options);
+  const runtime = await loadCliRuntime(options);
   const language = commandOptions.language ?? options.scriptLanguage ?? config.scriptLanguage ?? "en";
   const variant = parseNarrationVariant(commandOptions.variant);
   const outputDir = path.resolve(
@@ -3280,7 +3183,7 @@ async function commandAudioNarrationBenchmarkVoices(
   const voices = parseVoiceList(commandOptions.voices);
   const result = await runVoiceBenchmark({
     outputDir,
-    provider: pipeline.speech,
+    provider: runtime.speech,
     ...(voices ? { voices } : {}),
     maxSamples: parsePositiveIntegerOption(commandOptions.maxSamples, "--max-samples", 4),
     labelMode: parseBenchmarkLabelMode(commandOptions.benchmarkLabelMode),
@@ -4475,12 +4378,10 @@ async function commandPackage(
 }
 
 async function commandDbMigrate(options: CliOptions): Promise<void> {
-  const pipeline = await loadPipeline(options);
-  pipeline.environment.db.migrate();
+  const runtime = await loadCliRuntime(options);
+  runtime.db.migrate();
   if (!options.quiet) {
-    process.stdout.write(
-      `Database migrated at ${pipeline.environment.config.dbPath}\n`
-    );
+    process.stdout.write(`Database migrated at ${runtime.config.dbPath}\n`);
   }
 }
 
@@ -4532,99 +4433,6 @@ program
   .description("Create the workspace directories")
   .action(async () => {
     await commandInit(program.opts<CliOptions>());
-  });
-program
-  .command("create")
-  .description("Create an episode from a local file or URL")
-  .option("--file <path>", "local source file")
-  .option("--url <url>", "source URL")
-  .option("--transcript <path>", "local transcript file")
-  .option("--title <title>", "episode title")
-  .option("--slug <slug>", "episode slug")
-  .action(
-    async (opts: {
-      file?: string;
-      url?: string;
-      transcript?: string;
-      title?: string;
-      slug?: string;
-    }) => {
-      const input: CreateEpisodeOptions = {};
-      if (opts.file) {
-        input.filePath = opts.file;
-      }
-      if (opts.url) {
-        input.url = opts.url;
-      }
-      if (opts.transcript) {
-        input.transcriptPath = opts.transcript;
-      }
-      if (opts.title) {
-        input.title = opts.title;
-      }
-      if (opts.slug) {
-        input.slug = opts.slug;
-      }
-      await commandCreate(program.opts<CliOptions>(), input);
-    }
-  );
-program
-  .command("run")
-  .argument("<episode-id>")
-  .option("--from <stage>", "start from a pipeline stage")
-  .option("--until <stage>", "stop at a pipeline stage")
-  .option(
-    "--scene-limit <n>",
-    "process only the first N scenes",
-    (value: string) => Number.parseInt(value, 10)
-  )
-  .description("Run the pipeline for an episode")
-  .action(
-    async (
-      episodeId: string,
-      opts: { from?: string; until?: string; sceneLimit?: number }
-    ) => {
-      const cliOptions: CliOptions = { ...program.opts<CliOptions>() };
-      if (opts.from) {
-        cliOptions.fromStage = opts.from;
-      }
-      if (opts.until) {
-        cliOptions.untilStage = opts.until;
-      }
-      if (opts.sceneLimit !== undefined) {
-        cliOptions.sceneLimit = opts.sceneLimit;
-      }
-      await commandRun(cliOptions, episodeId);
-    }
-  );
-program
-  .command("status")
-  .argument("<episode-id>")
-  .description("Show episode status")
-  .action(async (episodeId: string) => {
-    await commandStatus(program.opts<CliOptions>(), episodeId);
-  });
-program
-  .command("inspect")
-  .argument("<episode-id>")
-  .description("Print the episode manifest")
-  .action(async (episodeId: string) => {
-    await commandInspect(program.opts<CliOptions>(), episodeId);
-  });
-program
-  .command("retry")
-  .argument("<episode-id>")
-  .description("Alias for run")
-  .action(async (episodeId: string) => {
-    await commandRun(program.opts<CliOptions>(), episodeId);
-  });
-program
-  .command("clean")
-  .argument("<episode-id>")
-  .option("--generated-only", "remove generated outputs only")
-  .description("Placeholder cleanup command")
-  .action(async () => {
-    process.stdout.write("Cleanup is not implemented in the first slice.\n");
   });
 
 const transcriptCommand = program
@@ -4795,13 +4603,6 @@ clipsCommand
   .description("Generate missing clip sidecar manifests from existing clips")
   .action(async (episodeId: string) => {
     await commandClipsBackfillManifests(program.opts<CliOptions>(), episodeId);
-  });
-
-program
-  .command("align")
-  .argument("<episode-id>")
-  .action(async (episodeId: string) => {
-    await commandRun(program.opts<CliOptions>(), episodeId);
   });
 
 const imagesCommand = program

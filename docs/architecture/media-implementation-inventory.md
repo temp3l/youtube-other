@@ -6,11 +6,11 @@ This audit is limited to media-generation and media-pipeline tasks. `apps/cli` i
 
 Primary caller evidence:
 
-- `apps/cli/src/index.ts` registers the general `create`, `run`, `images`, `render`, and `metadata` command families.
-- `apps/cli/src/index.ts` calls `createPipeline()` for `create`, `run`, localized audio generation, localized clip generation, and render paths.
+- `apps/cli/src/index.ts` registers active `images`, `render`, `metadata`, `transcript`, `audio`, `episode`, and story command families.
+- `apps/cli/src/index.ts` constructs active speech, transcription, and render providers directly for localized audio generation, localized clip generation, render paths, and DB migration.
 - `apps/cli/src/episode-commands.ts` registers the separate `episode` command family and builds media workflows through `@mediaforge/dark-truth`.
-- `apps/api/src/index.ts` also boots `createPipeline()` directly.
-- Tests keep both orchestration paths live: `packages/pipeline/src/index.unit.test.ts`, `packages/pipeline/src/index.e2e.test.ts`, `packages/dark-truth/src/index.unit.test.ts`, `apps/cli/src/episode-commands.unit.test.ts`, and `apps/cli/src/images-resume-command.unit.test.ts`.
+- `apps/api/src/index.ts` exposes config-backed health without booting legacy orchestration.
+- Tests keep active orchestration paths live: `packages/dark-truth/src/index.unit.test.ts`, `apps/cli/src/episode-commands.unit.test.ts`, and `apps/cli/src/images-resume-command.unit.test.ts`.
 
 ## Classification Legend
 
@@ -25,14 +25,11 @@ Primary caller evidence:
 
 - `apps/cli/src/index.ts`
   - Localized narration generation is a direct CLI utility surface.
-  - Uses `createPipeline()` plus `pipeline.speech.synthesize()` semantics indirectly, then writes localized reports and manifest artifacts itself.
+  - Uses the active speech provider contract directly, then writes localized reports and manifest artifacts itself.
   - Still constructs localized audio paths partly ad hoc through helpers like `localizedAudioBaseDir()`, `localizedSegmentsDirFromBase()`, and `localizedNarrationPathFromBase()`.
-- `packages/pipeline/src/index.ts`
-  - Active orchestration layer for speech provider selection through `MockSpeechProvider` and `OpenAiCompatibleSpeechProvider`.
-  - Owns speech settings loading, provider construction, and pipeline-stage narration generation for the `run` flow.
 - `packages/speech/src/index.ts`
   - Canonical speech provider port and provider implementations.
-  - `loadSpeechVoiceSettings()` is the shared voice policy surface used by both `pipeline` and `dark-truth`.
+  - `loadSpeechVoiceSettings()` is the shared voice policy surface used by the CLI and `dark-truth`.
 
 ### Legacy
 
@@ -42,9 +39,9 @@ Primary caller evidence:
 
 ### Overlaps and Risks
 
-- Both `pipeline` and `dark-truth` construct speech providers and voice settings.
+- Both the CLI and `dark-truth` construct speech providers and voice settings.
 - CLI localized audio generation mixes canonical provider usage with CLI-owned chunking, concat, cleanup, and manifest writes.
-- Audio observability is split across pipeline telemetry, CLI generation reports, and `dark-truth` generation manifests.
+- Audio observability is split across execution telemetry, CLI generation reports, and `dark-truth` generation manifests.
 
 ## Images
 
@@ -102,7 +99,7 @@ Primary caller evidence:
 - `packages/rendering/src/index.ts`
   - Canonical `VideoRenderer` port.
   - `FFmpegVideoRenderer` is the default local renderer.
-  - Used through `pipeline.renderer.render()` and `pipeline.renderer.renderSceneClips()` from `apps/cli/src/index.ts`.
+  - Used directly from `apps/cli/src/index.ts` for render and localized clip commands.
 - `apps/cli/src/index.ts`
   - Direct `render` and localized clip commands are canonical operator surfaces.
   - `backfillSceneClipManifests()` is exposed as an explicit repair utility.
@@ -117,7 +114,7 @@ Primary caller evidence:
 
 - `packages/dark-truth/src/index.ts`
   - `renderCleanVideo()` uses `FFmpegVideoRenderer` directly as part of the separate `episode` orchestration path.
-  - Keeps render invocation and artifact packaging outside `pipeline`.
+  - Keeps render invocation and artifact packaging outside the general CLI render helpers.
 
 ### Overlaps and Risks
 

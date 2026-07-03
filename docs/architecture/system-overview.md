@@ -7,12 +7,12 @@ This repo is a `pnpm` monorepo targeting Node 22+, written in TypeScript, with r
 ## Applications
 
 - `apps/cli` is the primary operator entry point. It wires commands for episode production, story localization, image work, rendering, metadata, uploads, and diagnostics.
-- `apps/api` is a minimal HTTP wrapper that boots `@mediaforge/pipeline` and exposes a health-style JSON response with the resolved workspace path.
+- `apps/api` is a minimal HTTP wrapper that loads runtime config and exposes a health-style JSON response with the resolved workspace path.
 - `apps/web` is a minimal static page surface.
 
 ## Package Responsibilities
 
-- Orchestration: `@mediaforge/cli`, `@mediaforge/dark-truth`, `@mediaforge/pipeline`
+- Orchestration: `@mediaforge/cli`, `@mediaforge/dark-truth`
 - Shared contracts and path ownership: `@mediaforge/domain`, `@mediaforge/shared`, `@mediaforge/config`, `@mediaforge/persistence`
 - Media and content stages: `@mediaforge/story-localization`, `@mediaforge/speech`, `@mediaforge/transcription`, `@mediaforge/transcript-cleaning`, `@mediaforge/scene-planning`, `@mediaforge/image-generation`, `@mediaforge/rendering`, `@mediaforge/metadata`, `@mediaforge/youtube-upload`
 - Support: `@mediaforge/observability`, `@mediaforge/process-runner`, `@mediaforge/testing`
@@ -46,4 +46,3 @@ This repo is a `pnpm` monorepo targeting Node 22+, written in TypeScript, with r
 - `packages/config/src/index.ts`
 - `packages/shared/src/episode-filesystem.ts`
 - `packages/persistence/src/index.ts`
-- `packages/pipeline/src/index.ts`

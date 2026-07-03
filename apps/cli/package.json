@@ -22,7 +22,6 @@
     "@mediaforge/metadata": "workspace:*",
     "@mediaforge/observability": "workspace:*",
     "@mediaforge/persistence": "workspace:*",
-    "@mediaforge/pipeline": "workspace:*",
     "@mediaforge/process-runner": "workspace:*",
     "@mediaforge/rendering": "workspace:*",
     "@mediaforge/rewriting": "workspace:*",

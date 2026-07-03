@@ -27,7 +27,7 @@ Use the root Vitest configs with explicit file paths.
 - `pnpm test:unit -- apps/cli/src/index.unit.test.ts`
 - `pnpm test:unit -- packages/image-generation/src/image-batch-service.unit.test.ts`
 - `pnpm test:integration -- packages/metadata/src/youtube-metadata.integration.test.ts`
-- `pnpm test:e2e -- packages/pipeline/src/index.e2e.test.ts`
+- `pnpm test:focused -- apps/cli/src/index.unit.test.ts`
 
 ## Targeted Lint
 

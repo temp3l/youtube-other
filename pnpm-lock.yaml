@@ -99,9 +99,6 @@ importers:
       '@mediaforge/persistence':
         specifier: workspace:*
         version: link:../../packages/persistence
-      '@mediaforge/pipeline':
-        specifier: workspace:*
-        version: link:../../packages/pipeline
       '@mediaforge/process-runner':
         specifier: workspace:*
         version: link:../../packages/process-runner
@@ -297,63 +294,6 @@ importers:
       '@mediaforge/shared':
         specifier: workspace:*
         version: link:../shared
-      zod:
-        specifier: ^4.0.14
-        version: 4.4.3
-
-  packages/pipeline:
-    dependencies:
-      '@mediaforge/alignment':
-        specifier: workspace:*
-        version: link:../alignment
-      '@mediaforge/config':
-        specifier: workspace:*
-        version: link:../config
-      '@mediaforge/domain':
-        specifier: workspace:*
-        version: link:../domain
-      '@mediaforge/image-generation':
-        specifier: workspace:*
-        version: link:../image-generation
-      '@mediaforge/metadata':
-        specifier: workspace:*
-        version: link:../metadata
-      '@mediaforge/observability':
-        specifier: workspace:*
-        version: link:../observability
-      '@mediaforge/persistence':
-        specifier: workspace:*
-        version: link:../persistence
-      '@mediaforge/process-runner':
-        specifier: workspace:*
-        version: link:../process-runner
-      '@mediaforge/rendering':
-        specifier: workspace:*
-        version: link:../rendering
-      '@mediaforge/rewriting':
-        specifier: workspace:*
-        version: link:../rewriting
-      '@mediaforge/scene-planning':
-        specifier: workspace:*
-        version: link:../scene-planning
-      '@mediaforge/shared':
-        specifier: workspace:*
-        version: link:../shared
-      '@mediaforge/source-ingestion':
-        specifier: workspace:*
-        version: link:../source-ingestion
-      '@mediaforge/speech':
-        specifier: workspace:*
-        version: link:../speech
-      '@mediaforge/transcript-cleaning':
-        specifier: workspace:*
-        version: link:../transcript-cleaning
-      '@mediaforge/transcription':
-        specifier: workspace:*
-        version: link:../transcription
-      '@mediaforge/visual-planning':
-        specifier: workspace:*
-        version: link:../visual-planning
       zod:
         specifier: ^4.0.14
         version: 4.4.3
