@@ -60,15 +60,15 @@ importers:
 
   apps/api:
     dependencies:
+      '@mediaforge/config':
+        specifier: workspace:*
+        version: link:../../packages/config
       '@mediaforge/domain':
         specifier: workspace:*
         version: link:../../packages/domain
       '@mediaforge/persistence':
         specifier: workspace:*
         version: link:../../packages/persistence
-      '@mediaforge/pipeline':
-        specifier: workspace:*
-        version: link:../../packages/pipeline
       '@mediaforge/shared':
         specifier: workspace:*
         version: link:../../packages/shared

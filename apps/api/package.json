@@ -8,9 +8,9 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@mediaforge/config": "workspace:*",
     "@mediaforge/domain": "workspace:*",
     "@mediaforge/persistence": "workspace:*",
-    "@mediaforge/pipeline": "workspace:*",
     "@mediaforge/shared": "workspace:*"
   }
 }
