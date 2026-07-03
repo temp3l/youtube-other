@@ -68,6 +68,7 @@ import {
 import { z } from "zod";
 import { commandImagesResume } from "./images-resume-command.js";
 import { registerEpisodeLayoutMigrationCommand } from "./episode-layout-migration-command.js";
+import { validateEpisodeCrossManifestIntegrity } from "./episode-cross-manifest-validator.js";
 
 export interface EpisodeCommandOptions {
   readonly episode?: string;
@@ -192,12 +193,25 @@ export type EpisodeValidationCode =
   | "SOURCE_IDENTITY_MISSING"
   | "STALE_SOURCE_IDENTITY"
   | "BROKEN_REFERENCE"
+  | "UNSUPPORTED_SCHEMA_VERSION"
+  | "MISSING_SCENE"
+  | "MISSING_IMAGE_ASSET"
+  | "UNKNOWN_NARRATION_SEGMENT"
   | "VISUAL_RETENTION_INVALID";
 
 type EpisodeValidationArtifactType =
   | "authored-source"
+  | "cross-manifest"
   | "summary-manifest"
   | "generation-manifest"
+  | "scene-plan"
+  | "visual-plan"
+  | "image-manifest"
+  | "image-asset"
+  | "narration-manifest"
+  | "render-manifest"
+  | "metadata"
+  | "checkpoint-state"
   | "visual-retention-manifest"
   | "visual-source-scenes"
   | "focal-metadata"
@@ -2164,6 +2178,28 @@ async function buildEpisodeValidationReport(
       language,
       variant,
     });
+    results.push(
+      ...(await validateEpisodeCrossManifestIntegrity({
+        episodeDir,
+        episodeSlug: selected.slug,
+        language,
+        variant,
+        generationManifestPath,
+        ...(resolvedSource
+          ? {
+              expectedSource: {
+                episodeId: resolvedSource.episodeId,
+                language: resolvedSource.language,
+                variant: resolvedSource.variant,
+                relativePath: resolvedSource.relativePath,
+                contentHash: resolvedSource.contentHash,
+                resolverVersion: resolvedSource.resolverVersion,
+                cacheIdentity: resolvedSource.cacheIdentity,
+              },
+            }
+          : {}),
+      }))
+    );
   }
 
   const status = results.some((result) => result.state === "invalid")

@@ -100,7 +100,7 @@ Root scripts that directly wrap CLI commands:
 
 `thumbnails generate` creates exact localized full or short thumbnail artifacts and keeps them independent from render or upload steps.
 
-`youtube upload` now reuses that generator automatically when `--thumbnail-path` is omitted. The upload command resolves the target variant from the selected video, uses the metadata `thumbnail.recommendedText` hook, and reads `episodes/<episode-slug>/story-production/thumbnail-story.json`.
+`youtube upload` now reuses that generator automatically when `--thumbnail-path` is omitted. Pass `--variant full` or `--variant short` explicitly; the upload command uses the matching metadata variant, the metadata `thumbnail.recommendedText` hook, and `episodes/<episode-slug>/story-production/thumbnail-story.json`.
 
 ```bash
 npm run mediaforge -- thumbnails generate \
@@ -434,7 +434,10 @@ Metadata, render, and upload commands are distinct stages:
 - `metadata youtube [source] --episode <episode-slug> --all --force`
 - `render <episode-id> --profile youtube`
 - `render <episode-id> --profile vertical --no-captions`
-- `youtube upload --episode <episode-id> --generate-metadata --metadata-path <path> --video-path <path> --thumbnail-path <path> --playlist-id <id> --privacy-status <private|public|unlisted> --publish-at <timestamp> --notify-subscribers --force`
+- `youtube upload --episode <episode-id> --variant full --generate-metadata --metadata-path <path> --video-path <path> --thumbnail-path <path> --playlist-id <id> --privacy-status <private|public|unlisted> --publish-at <timestamp> --notify-subscribers --force`
+- `youtube upload --episode <episode-id> --variant short --metadata-path <path-to-short-youtube-json> --video-path <path-to-9x16-mp4> --thumbnail-path <path> --privacy-status <private|public|unlisted> --force`
+
+For short uploads, `--variant short` selects short metadata and vertical render artifacts. Without an explicit `--metadata-path`, missing short metadata fails closed instead of falling back to legacy full-length root metadata.
 
 YouTube upload reports are written to:
 

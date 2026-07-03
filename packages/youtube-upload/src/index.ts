@@ -101,6 +101,7 @@ export interface YoutubeAuthSettings {
 }
 
 export interface YoutubeUploadOverrides {
+  readonly variant?: MediaStageVariant;
   readonly languageHint?: string;
   readonly playlistId?: string;
   readonly privacyStatus?: z.infer<typeof privacyStatusSchema>;
@@ -336,6 +337,7 @@ function inferPublicationIdentity(args: {
 function buildPublicationSection(args: {
   readonly episodeId: string;
   readonly metadata: UploadMetadata;
+  readonly variant: MediaStageVariant;
   readonly metadataSha256: string;
   readonly videoPath: string;
   readonly videoSha256: string;
@@ -343,7 +345,10 @@ function buildPublicationSection(args: {
   readonly thumbnailSha256: string;
   readonly channelTarget?: string;
 }): NonNullable<YoutubeUploadReport["publication"]> {
-  const stageIdentity = inferPublicationIdentity(args);
+  const stageIdentity = mediaStageIdentitySchema.parse({
+    ...inferPublicationIdentity(args),
+    variant: args.variant,
+  });
   const renderDependency = buildMediaStageDependency({
     owner: "render",
     episodeId: stageIdentity.episodeId,
@@ -645,6 +650,7 @@ async function resolveYoutubeMetadataFile(args: {
   readonly episodeDir: string;
   readonly metadataPath?: string;
   readonly preferredLanguage?: string;
+  readonly preferredVariant?: MediaStageVariant;
 }): Promise<{ readonly metadata: YoutubeMetadata; readonly metadataPath: string } | null> {
   const localeRoots = await fs.readdir(path.join(args.episodeDir, "locales"), {
     withFileTypes: true,
@@ -656,12 +662,25 @@ async function resolveYoutubeMetadataFile(args: {
     localizedMetadataCandidates,
     args.preferredLanguage
   );
+  const legacyRootMetadataCandidates =
+    args.preferredVariant === "short"
+      ? []
+      : [
+          path.join(args.episodeDir, "metadata", "youtube.json"),
+          path.join(args.episodeDir, "metadata", "youtube-metadata.json"),
+          path.join(args.episodeDir, "output", "youtube.json"),
+          path.join(args.episodeDir, "output", "youtube-metadata.json"),
+        ];
   const candidatePaths = args.metadataPath
     ? [path.resolve(args.episodeDir, args.metadataPath)]
     : [
         ...targetLocaleNames.flatMap((entry) => {
           try {
-            const { resolver, context } = localizedEpisodeContext(args.episodeDir, entry);
+            const { resolver, context } = localizedEpisodeContext(
+              args.episodeDir,
+              entry,
+              args.preferredVariant ?? "full"
+            );
             const metadataDir = resolver.metadataDir(context);
             return [
               path.join(metadataDir, "youtube.json"),
@@ -671,10 +690,7 @@ async function resolveYoutubeMetadataFile(args: {
             return [];
           }
         }),
-        path.join(args.episodeDir, "metadata", "youtube.json"),
-        path.join(args.episodeDir, "metadata", "youtube-metadata.json"),
-        path.join(args.episodeDir, "output", "youtube.json"),
-        path.join(args.episodeDir, "output", "youtube-metadata.json"),
+        ...legacyRootMetadataCandidates,
       ];
   const preferredPrefix = normalizeLanguageHint(args.preferredLanguage);
   let fallback: { readonly metadata: YoutubeMetadata; readonly metadataPath: string } | null = null;
@@ -705,14 +721,14 @@ function episodePathsForDir(episodeDir: string) {
   return { resolver, episodeId };
 }
 
-function localizedEpisodeContext(episodeDir: string, localeName: string) {
+function localizedEpisodeContext(episodeDir: string, localeName: string, variant: MediaStageVariant) {
   const { resolver, episodeId } = episodePathsForDir(episodeDir);
   return {
     resolver,
     context: {
       episodeId,
       locale: normalizeLocaleCode(localeName),
-      variant: normalizeContentVariant("full"),
+      variant: normalizeContentVariant(variant),
     },
   };
 }
@@ -768,7 +784,8 @@ async function resolveVideoPath(
     return absolute;
   }
   const preferredLanguage = normalizeLanguageHint(overrides?.languageHint);
-  if (!preferredLanguage) {
+  const preferredVariant = overrides?.variant;
+  if (!preferredLanguage && !preferredVariant) {
     const manifestVideo = manifest?.artifacts.find((artifact) => artifact.kind === "video" && artifact.mimeType === "video/mp4");
     const manifestVideoPath = resolveEpisodePath(manifestVideo?.path);
     if (manifestVideoPath && (await fileExists(manifestVideoPath))) {
@@ -787,8 +804,9 @@ async function resolveVideoPath(
     )
       .flatMap((localeName) => {
         try {
-          const { resolver, context } = localizedEpisodeContext(episodeDir, localeName);
-          return [resolver.renderDir(context, "youtube")];
+          const variant = preferredVariant ?? "full";
+          const { resolver, context } = localizedEpisodeContext(episodeDir, localeName, variant);
+          return [resolver.renderDir(context, variant === "short" ? "vertical" : "youtube")];
         } catch {
           return [];
         }
@@ -806,6 +824,21 @@ async function resolveVideoPath(
   mp4Candidates.sort((left, right) => {
     const score = (value: string): number => {
       const normalized = path.basename(value).toLowerCase();
+      if (preferredVariant === "short") {
+        if (normalized.includes("youtube-9x16-clean")) {
+          return 0;
+        }
+        if (normalized.includes("9x16") && normalized.includes("clean")) {
+          return 1;
+        }
+        if (normalized.includes("9x16")) {
+          return 2;
+        }
+        return 10;
+      }
+      if (preferredVariant === "full" && normalized.includes("9x16")) {
+        return 10;
+      }
       if (normalized.includes("youtube-16x9-clean")) {
         return 0;
       }
@@ -1279,11 +1312,18 @@ export async function resolveUploadInputsForEpisode(
     episodeDir,
     ...(metadataPath ? { metadataPath } : {}),
     ...(overrides.languageHint ? { preferredLanguage: overrides.languageHint } : {}),
+    ...(overrides.variant ? { preferredVariant: overrides.variant } : {}),
   });
   if (!resolvedMetadata) {
     throw new YoutubeUploadValidationError(`Missing generated YouTube metadata for episode ${episodeId}.`);
   }
   const resolvedVideoPath = await resolveVideoPath(episodeDir, overrides, manifest);
+  const resolvedVariant = inferPublicationVariantFromVideoPath(resolvedVideoPath);
+  if (overrides.variant && resolvedVariant !== overrides.variant) {
+    throw new YoutubeUploadValidationError(
+      `Resolved ${resolvedVariant} video for ${overrides.variant} upload: ${resolvedVideoPath}.`
+    );
+  }
   return {
     metadata: resolvedMetadata.metadata,
     metadataPath: resolvedMetadata.metadataPath,
@@ -1294,7 +1334,7 @@ export async function resolveUploadInputsForEpisode(
       resolvedMetadata.metadata.source.language === "en"
         ? "en-US"
         : resolvedMetadata.metadata.source.language,
-    resolvedVariant: inferPublicationVariantFromVideoPath(resolvedVideoPath),
+    resolvedVariant,
   };
 }
 
@@ -1339,6 +1379,7 @@ function toUploadReport(input: {
   readonly episodeId: string;
   readonly episodeDir: string;
   readonly metadata: UploadMetadata;
+  readonly variant: MediaStageVariant;
   readonly metadataPath: string;
   readonly metadataSha256: string;
   readonly videoPath: string;
@@ -1363,6 +1404,7 @@ function toUploadReport(input: {
     publication: buildPublicationSection({
       episodeId: input.episodeId,
       metadata: input.metadata,
+      variant: input.variant,
       metadataSha256: input.metadataSha256,
       videoPath: input.videoPath,
       videoSha256: input.videoSha256,
@@ -1467,7 +1509,7 @@ export async function uploadYoutubeEpisode(input: YoutubeUploadCommandInput): Pr
     episodeDir,
     resolved.resolvedThumbnailPath
   );
-  const uploadVariant = inferPublicationVariantFromVideoPath(resolved.resolvedVideoPath);
+  const uploadVariant = resolved.resolvedVariant;
   const uploadVideoPath = await prepareVideoForUpload({
     videoPath: resolved.resolvedVideoPath,
     thumbnailPath: resolved.resolvedThumbnailPath,
@@ -1538,6 +1580,7 @@ export async function uploadYoutubeEpisode(input: YoutubeUploadCommandInput): Pr
     episodeId: input.episodeId,
     episodeDir,
     metadata,
+    variant: uploadVariant,
     metadataPath: resolved.metadataPath,
     metadataSha256: resolved.metadataSha256,
     videoPath: uploadVideoPath,
@@ -1777,6 +1820,7 @@ export async function uploadYoutubeEpisode(input: YoutubeUploadCommandInput): Pr
     episodeId: input.episodeId,
     episodeDir,
     metadata,
+    variant: uploadVariant,
     metadataPath: resolved.metadataPath,
     metadataSha256: resolved.metadataSha256,
     videoPath: uploadVideoPath,
@@ -1819,6 +1863,7 @@ export async function uploadYoutubeEpisode(input: YoutubeUploadCommandInput): Pr
       episodeId: input.episodeId,
       episodeDir,
       metadata,
+      variant: uploadVariant,
       metadataPath: resolved.metadataPath,
       metadataSha256: resolved.metadataSha256,
       videoPath: uploadVideoPath,

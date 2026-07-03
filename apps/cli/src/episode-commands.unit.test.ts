@@ -267,6 +267,94 @@ async function createValidationFixture(options: {
     const focalMetadataPath = path.join(visualDir, "focal-metadata.json");
     const shotPlanPath = path.join(visualDir, `shot-plan.${variant}.${language}.json`);
     const validationPath = path.join(visualDir, `validation.${variant}.${language}.json`);
+    const artifactDir = path.join(outputRoot, episodeId, language, variant);
+    await fs.mkdir(artifactDir, { recursive: true });
+    await fs.writeFile(
+      path.join(artifactDir, "scenes.json"),
+      `${JSON.stringify(
+        {
+          sourceId: episodeId,
+          scenes: [
+            {
+              id: "scene-001",
+              sequenceNumber: 1,
+              canonicalNarration: "This fixture exists only for read-only validation tests.",
+              sourceSegmentIds: ["scene-001"],
+              estimatedDurationSeconds: 4,
+              timing: { startSeconds: 0, endSeconds: 4 },
+              visualPurpose: "fixture",
+              textRequirement: { required: false },
+              subject: "fixture",
+              action: "validates",
+              setting: "workspace",
+              composition: "centered",
+              cameraFraming: "medium shot",
+              mood: "quiet",
+              continuityReferences: [],
+              onScreenText: "",
+              negativeConstraints: [],
+              aspectRatios: [variant === "short" ? "9:16" : "16:9"],
+              imagePrompt: "A neutral validation fixture.",
+              expectedImageFilenames: ["scene-001.png"],
+              qualityStatus: "draft",
+            },
+          ],
+        },
+        null,
+        2
+      )}\n`,
+      "utf8"
+    );
+    await fs.writeFile(
+      path.join(artifactDir, "visual-plan.json"),
+      `${JSON.stringify(
+        {
+          episodeId,
+          language,
+          artifactType: variant,
+          generatedAt: "2026-07-03T00:00:00.000Z",
+          scenes: [
+            {
+              sceneId: "scene-001",
+              sequenceNumber: 1,
+              startSeconds: 0,
+              endSeconds: 4,
+              narration: "This fixture exists only for read-only validation tests.",
+              visualPurpose: "fixture",
+              aspectRatios: [variant === "short" ? "9:16" : "16:9"],
+              expectedImageFilenames: ["scene-001.png"],
+            },
+          ],
+        },
+        null,
+        2
+      )}\n`,
+      "utf8"
+    );
+    await fs.writeFile(
+      path.join(
+        outputRoot,
+        episodeId,
+        "shared",
+        variant === "short" ? "shorts-image-manifest.json" : "image-manifest.json"
+      ),
+      `${JSON.stringify(
+        [
+          {
+            sceneId: "scene-001",
+            sourcePath: "shared/images/generated/scene-001.png",
+            width: 1920,
+            height: 1080,
+            mimeType: "image/png",
+            checksumSha256: "a".repeat(64),
+            validated: true,
+          },
+        ],
+        null,
+        2
+      )}\n`,
+      "utf8"
+    );
     await fs.writeFile(sourceScenesPath, "[]\n", "utf8");
     await fs.writeFile(focalMetadataPath, "[]\n", "utf8");
     const shotSource = {

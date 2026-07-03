@@ -4074,18 +4074,18 @@ function resolveYoutubeAuthSettings(
   return authBase;
 }
 
-function inferThumbnailFormatFromVideoPath(
-  videoPath: string
-): "full" | "short" {
-  return /(?:^|[\\/])vertical(?:[\\/]|$)|9x16/u.test(videoPath)
-    ? "short"
-    : "full";
+function parseUploadVariant(value: string | undefined): "full" | "short" {
+  if (value === undefined || value === "full" || value === "short") {
+    return value ?? "full";
+  }
+  throw new Error("--variant must be full or short.");
 }
 
 async function commandYoutubeUpload(
   options: CliOptions,
   uploadOptions: {
     readonly episode: string;
+    readonly variant?: "full" | "short";
     readonly force?: boolean;
     readonly generateMetadata?: boolean;
     readonly metadataPath?: string;
@@ -4098,6 +4098,7 @@ async function commandYoutubeUpload(
   }
 ): Promise<void> {
   markEpisodeTelemetry(uploadOptions.episode);
+  const uploadVariant = parseUploadVariant(uploadOptions.variant);
   const config = await loadRuntimeConfig(configOverridesFromCli(options));
   const { episodeDir } = await readManifestForEpisode(
     options,
@@ -4156,6 +4157,7 @@ async function commandYoutubeUpload(
   if (!effectiveThumbnailPath) {
     let resolvedUploadInputs;
     const uploadResolutionOverrides = {
+      variant: uploadVariant,
       languageHint: uploadLanguage,
       ...(uploadOptions.videoPath
         ? { videoPath: uploadOptions.videoPath }
@@ -4217,9 +4219,7 @@ async function commandYoutubeUpload(
       resolvedUpload: {
         metadata: resolvedUploadInputs.metadata,
         resolvedLanguage: resolvedUploadInputs.metadata.source.language,
-        resolvedVariant: inferThumbnailFormatFromVideoPath(
-          resolvedUploadInputs.resolvedVideoPath
-        ),
+        resolvedVariant: resolvedUploadInputs.resolvedVariant,
       },
       ...(uploadOptions.force !== undefined
         ? { force: uploadOptions.force }
@@ -4235,6 +4235,7 @@ async function commandYoutubeUpload(
     generateMetadata: effectiveGenerateMetadata,
     metadataPath: effectiveMetadataPath,
     overrides: {
+      variant: uploadVariant,
       languageHint: uploadLanguage,
       ...(uploadOptions.playlistId
         ? { playlistId: uploadOptions.playlistId }
@@ -4826,6 +4827,7 @@ const youtubeCommand = program
 youtubeCommand
   .command("upload")
   .requiredOption("--episode <episode-id>")
+  .option("--variant <full|short>", "upload variant: full or short", "full")
   .option("--generate-metadata", "regenerate metadata before upload")
   .option("--metadata-path <path>", "explicit metadata file path")
   .option("--playlist-id <playlist-id>", "add the uploaded video to a playlist")
@@ -4839,6 +4841,7 @@ youtubeCommand
   .action(
     async (opts: {
       episode: string;
+      variant?: "full" | "short";
       generateMetadata?: boolean;
       metadataPath?: string;
       playlistId?: string;
