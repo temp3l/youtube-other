@@ -392,7 +392,7 @@ describe("image batch planner", () => {
     );
   });
 
-  it("uses image-edit semantics and dependency metadata for reference-assisted scenes", async () => {
+  it("fails reference-assisted batch preparation instead of emitting an unproven edit JSONL shape", async () => {
     const tempDir = mkdtempSync(path.join(os.tmpdir(), "image-batch-reference-edit-"));
     const episodeDir = path.join(tempDir, "episode");
     const referencePath = path.join(episodeDir, "ref.png");
@@ -421,62 +421,26 @@ describe("image batch planner", () => {
       ],
     });
 
-    const prepared = await prepareImageBatchForEpisode({
-      episodeDir,
-      episodeId: "001-demo",
-      scenePlan: {
-        scenes: [{ id: "scene-002", sequenceNumber: 2 }],
-      },
-      settings: {
-        model: "gpt-image-2",
-        requestedSize: "1920x1088",
-        quality: "medium",
-        outputFormat: "png",
-      },
-    });
-
-    const group = prepared.groups[0];
-    const scenePlan = group?.scenePlans[0];
-    expect(scenePlan?.job.characterReferencePaths).toEqual([referencePath]);
-    expect(scenePlan?.manifestItem.identity.operation).toBe("edit");
-    expect(scenePlan?.manifestItem.identity.dependencyHashes).toEqual([
-      referenceHash,
-    ]);
-    expect(scenePlan?.manifestItem.dependencies).toMatchObject([
-      {
-        role: "character-reference",
-        approvalStatus: "approved",
-        sourcePath: referencePath,
-        sha256: referenceHash,
-        assetIdentity: {
-          assetRole: "character-reference",
-          subject: { kind: "character", id: "character-1" },
+    await expect(
+      prepareImageBatchForEpisode({
+        episodeDir,
+        episodeId: "001-demo",
+        scenePlan: {
+          scenes: [{ id: "scene-002", sequenceNumber: 2 }],
         },
-      },
-    ]);
-    expect(scenePlan?.providerRequestHash).toBe(
-      providerRequestHashForFixture({
-        prompt: "A reference-assisted scene.",
-        operation: "image-edit",
-        characterReferenceHashes: [referenceHash],
+        settings: {
+          model: "gpt-image-2",
+          requestedSize: "1920x1088",
+          quality: "medium",
+          outputFormat: "png",
+        },
       })
-    );
-    expect(scenePlan?.requestLine.url).toBe("/v1/images/edits");
-    expect(scenePlan?.requestLine.body).toMatchObject({
-      images: [{ file_id: "file_ref_123" }],
-    });
-
-    const inputFile = await fs.readFile(
-      group?.storagePlan.inputFilePath ?? "",
-      "utf8"
-    );
-    const requestLine = JSON.parse(inputFile.trim()) as {
-      readonly url: string;
-      readonly body: Record<string, unknown>;
-    };
-    expect(requestLine.url).toBe("/v1/images/edits");
-    expect(requestLine.body).toMatchObject({
-      images: [{ file_id: "file_ref_123" }],
+    ).rejects.toMatchObject<ImageBatchPlannerError>({
+      code: "unsupported-edit-batch-request",
+      details: {
+        sdkBatchEndpoint: "/v1/images/edits",
+        sdkEditTransport: "multipart image uploads",
+      },
     });
   });
 
@@ -603,6 +567,50 @@ describe("image batch planner", () => {
     expect(planned[0]?.scenePlans[0]?.requestLine.url).toBe(
       "/v1/images/generations"
     );
+  });
+
+  it("returns ordered stage previews for reference and scene preparation", async () => {
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), "image-batch-stage-previews-"));
+    const episodeDir = path.join(tempDir, "episode");
+    await writeSceneManifest({
+      episodeDir,
+      sceneId: "scene-001",
+      prompt: "A text-only scene.",
+      status: "planned",
+    });
+
+    const references = await planReferenceImageBatchForEpisode({
+      episodeDir,
+      episodeId: "001-demo",
+      settings: {
+        model: "gpt-image-2",
+        requestedSize: "1920x1088",
+        quality: "medium",
+        outputFormat: "png",
+      },
+    });
+    expect(references).toHaveLength(1);
+
+    const prepared = await prepareImageBatchForEpisode({
+      episodeDir,
+      episodeId: "001-demo",
+      scenePlan: { scenes: [{ id: "scene-001", sequenceNumber: 1 }] },
+      settings: {
+        model: "gpt-image-2",
+        requestedSize: "1920x1088",
+        quality: "medium",
+        outputFormat: "png",
+      },
+    });
+    expect(prepared.stagePreviews.map((stage) => stage.kind)).toEqual([
+      "scene-prompts",
+      "scene-images",
+    ]);
+    expect(prepared.stagePreviews[1]).toMatchObject({
+      requestCount: 1,
+      endpoint: "/v1/images/generations",
+      operation: "generation",
+    });
   });
 
   it("builds short-scene and reference identities from canonical normalized fields", () => {

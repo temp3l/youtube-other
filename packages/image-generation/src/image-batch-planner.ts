@@ -1,5 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
+import type { BatchCreateParams } from "openai/resources/batches";
 import {
   fileExists,
   hashFile,
@@ -70,7 +71,12 @@ export class ImageBatchPlannerError extends Error {
     | "missing-reference-image"
     | "unapproved-reference"
     | "unsupported-edit-batch-request"
-    | "stale-dependency-hash";
+    | "stale-dependency-hash"
+    | "missing-scene-plan"
+    | "missing-localization"
+    | "duplicate-custom-id"
+    | "duplicate-destination-path"
+    | "path-escape";
   readonly details?: Record<string, unknown>;
 
   constructor(args: {
@@ -123,8 +129,33 @@ export interface PlannedImageBatchGroup {
 
 export interface PrepareImageBatchResult {
   readonly groups: readonly PlannedImageBatchGroup[];
+  readonly stagePreviews: readonly ImageBatchStagePreview[];
   readonly writtenFiles: readonly string[];
 }
+
+export type ImageBatchStageKind =
+  | "reference-prompts"
+  | "reference-images"
+  | "reference-approval-validation"
+  | "scene-prompts"
+  | "scene-images";
+
+export interface ImageBatchStagePreview {
+  readonly kind: ImageBatchStageKind;
+  readonly language: string;
+  readonly variant: "full" | "short";
+  readonly requestCount: number;
+  readonly itemCount: number;
+  readonly operation: "generation" | "edit" | "mixed" | "none";
+  readonly endpoint?: "/v1/images/generations" | "/v1/images/edits";
+  readonly model: string;
+  readonly size: string;
+  readonly quality: ImageBatchPlannerSettings["quality"];
+  readonly dependencyStageKinds: readonly ImageBatchStageKind[];
+}
+
+const imageGenerationBatchEndpoint = "/v1/images/generations" as const satisfies BatchCreateParams["endpoint"];
+const imageEditBatchEndpoint = "/v1/images/edits" as const satisfies BatchCreateParams["endpoint"];
 
 function stableHash(value: string): string {
   return hashText(value);
@@ -179,6 +210,32 @@ function buildProviderRequestHash(args: {
 
 function normalizePrompt(value: string): string {
   return normalizeWhitespace(value).trim();
+}
+
+function buildStagePreview(args: {
+  readonly kind: ImageBatchStageKind;
+  readonly language: string;
+  readonly variant: "full" | "short";
+  readonly requestCount: number;
+  readonly itemCount: number;
+  readonly operation: ImageBatchStagePreview["operation"];
+  readonly endpoint?: "/v1/images/generations" | "/v1/images/edits";
+  readonly settings: ImageBatchPlannerSettings;
+  readonly dependencyStageKinds: readonly ImageBatchStageKind[];
+}): ImageBatchStagePreview {
+  return {
+    kind: args.kind,
+    language: args.language,
+    variant: args.variant,
+    requestCount: args.requestCount,
+    itemCount: args.itemCount,
+    operation: args.operation,
+    ...(args.endpoint ? { endpoint: args.endpoint } : {}),
+    model: args.settings.model,
+    size: args.settings.requestedSize,
+    quality: args.settings.quality,
+    dependencyStageKinds: args.dependencyStageKinds,
+  };
 }
 
 async function readPromptText(
@@ -333,10 +390,8 @@ async function resolveSceneDependencies(args: {
   readonly sceneManifest: SceneGenerationManifest;
 }): Promise<{
   readonly dependencies: readonly ImageBatchDependency[];
-  readonly images: ReadonlyArray<{ readonly file_id: string }>;
 }> {
   const dependencies: ImageBatchDependency[] = [];
-  const images: Array<{ readonly file_id: string }> = [];
 
   for (const reference of args.sceneManifest.referenceImages) {
     const character = args.registry.characters.find(
@@ -398,18 +453,6 @@ async function resolveSceneDependencies(args: {
       });
     }
 
-    if (!character.referenceFileId) {
-      throw new ImageBatchPlannerError({
-        code: "unsupported-edit-batch-request",
-        message: `Reference-assisted batch scene ${args.sceneId} cannot be prepared without a provider file ID for character ${character.id}.`,
-        details: {
-          sceneId: args.sceneId,
-          characterId: character.id,
-          sourcePath,
-        },
-      });
-    }
-
     const promptHash = stableHash(buildCharacterReferencePrompt(character));
     dependencies.push({
       role: "character-reference",
@@ -427,10 +470,26 @@ async function resolveSceneDependencies(args: {
         outputPath: sourcePath,
       }),
     });
-    images.push({ file_id: character.referenceFileId });
   }
 
-  return { dependencies, images };
+  return { dependencies };
+}
+
+function unsupportedEditBatchRequestError(args: {
+  readonly sceneId: string;
+  readonly dependencyPaths: readonly string[];
+}): ImageBatchPlannerError {
+  return new ImageBatchPlannerError({
+    code: "unsupported-edit-batch-request",
+    message: `Reference-assisted batch scene ${args.sceneId} cannot be serialized safely for ${imageEditBatchEndpoint}.`,
+    details: {
+      sceneId: args.sceneId,
+      dependencyPaths: args.dependencyPaths,
+      sdkBatchEndpoint: imageEditBatchEndpoint,
+      sdkEditTransport: "multipart image uploads",
+      unsupportedJsonlShape: { image: "Uploadable | Uploadable[]" },
+    },
+  });
 }
 
 async function buildSceneJob(args: {
@@ -449,7 +508,7 @@ async function buildSceneJob(args: {
     args.sceneId,
     args.sceneManifest
   );
-  const { dependencies, images } = await resolveSceneDependencies({
+  const { dependencies } = await resolveSceneDependencies({
     episodeDir: args.episodeDir,
     episodeId: args.episodeId,
     language: args.language,
@@ -461,6 +520,12 @@ async function buildSceneJob(args: {
   });
   const promptHash = stableHash(prompt);
   const isEdit = dependencies.length > 0;
+  if (isEdit) {
+    throw unsupportedEditBatchRequestError({
+      sceneId: args.sceneId,
+      dependencyPaths: dependencies.map((dependency) => dependency.sourcePath),
+    });
+  }
   const operation = isEdit ? "edit" : "generation";
   const endpoint = endpointForImageBatchOperation(operation);
   if (!endpoint) {
@@ -537,7 +602,6 @@ async function buildSceneJob(args: {
         quality: args.settings.quality,
         outputFormat: args.settings.outputFormat,
       }),
-      ...(isEdit ? { images } : {}),
     },
   };
   const manifestItem = createImageBatchManifestItem({
@@ -571,24 +635,33 @@ function validateUniquePlans(
   const destinationPaths = new Set<string>();
   for (const plan of plans) {
     if (identityHashes.has(plan.identityHash)) {
-      throw new Error(
-        `Duplicate image batch identity detected for ${plan.subjectDescription}.`
-      );
+      throw new ImageBatchPlannerError({
+        code: "duplicate-custom-id",
+        message: `Duplicate image batch identity detected for ${plan.subjectDescription}.`,
+        details: {
+          subjectDescription: plan.subjectDescription,
+          identityHash: plan.identityHash,
+        },
+      });
     }
     identityHashes.add(plan.identityHash);
     if (customIds.has(plan.customId)) {
-      throw new Error(
-        `Duplicate image batch custom_id detected: ${plan.customId}.`
-      );
+      throw new ImageBatchPlannerError({
+        code: "duplicate-custom-id",
+        message: `Duplicate image batch custom_id detected: ${plan.customId}.`,
+        details: { customId: plan.customId },
+      });
     }
     customIds.add(plan.customId);
     const normalizedDestinationPath = normalizeImageBatchDestinationPath(
       plan.expectedOutputPath
     );
     if (destinationPaths.has(normalizedDestinationPath)) {
-      throw new Error(
-        `Duplicate image batch destination path detected: ${plan.expectedOutputPath}.`
-      );
+      throw new ImageBatchPlannerError({
+        code: "duplicate-destination-path",
+        message: `Duplicate image batch destination path detected: ${plan.expectedOutputPath}.`,
+        details: { expectedOutputPath: plan.expectedOutputPath },
+      });
     }
     destinationPaths.add(normalizedDestinationPath);
   }
@@ -708,7 +781,7 @@ export async function planReferenceImageBatchForEpisode(args: {
         language,
         variant,
         settings: args.settings,
-        endpoint: "/v1/images/generations",
+        endpoint: imageGenerationBatchEndpoint,
       }),
     ];
   }
@@ -720,7 +793,7 @@ export async function planReferenceImageBatchForEpisode(args: {
       language,
       variant,
       settings: args.settings,
-      endpoint: "/v1/images/generations",
+      endpoint: imageGenerationBatchEndpoint,
       referencePlans: plannedReferences,
     }),
   ];
@@ -826,7 +899,7 @@ export async function planImageBatchForEpisode(args: {
         language,
         variant,
         settings: args.settings,
-        endpoint: "/v1/images/generations",
+        endpoint: imageGenerationBatchEndpoint,
         scenePlans: generationPlans,
         skippedSceneIds,
       })
@@ -840,7 +913,7 @@ export async function planImageBatchForEpisode(args: {
         language,
         variant,
         settings: args.settings,
-        endpoint: "/v1/images/edits",
+        endpoint: imageEditBatchEndpoint,
         scenePlans: editPlans,
         skippedSceneIds,
       })
@@ -886,6 +959,90 @@ async function writePreparedGroup(args: {
   return [inputFilePath, args.group.storagePlan.manifestPath];
 }
 
+function stagePreviewsForReferenceGroups(args: {
+  readonly language: string;
+  readonly variant: "full" | "short";
+  readonly settings: ImageBatchPlannerSettings;
+  readonly groups: readonly PlannedImageBatchGroup[];
+}): readonly ImageBatchStagePreview[] {
+  const referenceItemCount = args.groups.reduce(
+    (total, group) => total + group.referencePlans.length,
+    0
+  );
+  return [
+    buildStagePreview({
+      kind: "reference-prompts",
+      language: args.language,
+      variant: args.variant,
+      requestCount: 0,
+      itemCount: referenceItemCount,
+      operation: "none",
+      settings: args.settings,
+      dependencyStageKinds: [],
+    }),
+    buildStagePreview({
+      kind: "reference-images",
+      language: args.language,
+      variant: args.variant,
+      requestCount: referenceItemCount,
+      itemCount: referenceItemCount,
+      operation: referenceItemCount > 0 ? "generation" : "none",
+      ...(referenceItemCount > 0 ? { endpoint: imageGenerationBatchEndpoint } : {}),
+      settings: args.settings,
+      dependencyStageKinds: ["reference-prompts"],
+    }),
+    buildStagePreview({
+      kind: "reference-approval-validation",
+      language: args.language,
+      variant: args.variant,
+      requestCount: 0,
+      itemCount: referenceItemCount,
+      operation: "none",
+      settings: args.settings,
+      dependencyStageKinds: ["reference-images"],
+    }),
+  ];
+}
+
+function stagePreviewsForSceneGroups(args: {
+  readonly language: string;
+  readonly variant: "full" | "short";
+  readonly settings: ImageBatchPlannerSettings;
+  readonly groups: readonly PlannedImageBatchGroup[];
+}): readonly ImageBatchStagePreview[] {
+  const sceneItemCount = args.groups.reduce(
+    (total, group) => total + group.scenePlans.length,
+    0
+  );
+  const hasEdit = args.groups.some((group) =>
+    group.scenePlans.some((plan) => plan.job.identity.operation === "edit")
+  );
+  return [
+    buildStagePreview({
+      kind: "scene-prompts",
+      language: args.language,
+      variant: args.variant,
+      requestCount: 0,
+      itemCount: sceneItemCount,
+      operation: "none",
+      settings: args.settings,
+      dependencyStageKinds: ["reference-approval-validation"],
+    }),
+    buildStagePreview({
+      kind: "scene-images",
+      language: args.language,
+      variant: args.variant,
+      requestCount: sceneItemCount,
+      itemCount: sceneItemCount,
+      operation:
+        sceneItemCount === 0 ? "none" : hasEdit ? "mixed" : "generation",
+      ...(sceneItemCount > 0 ? { endpoint: imageGenerationBatchEndpoint } : {}),
+      settings: args.settings,
+      dependencyStageKinds: ["scene-prompts"],
+    }),
+  ];
+}
+
 export async function prepareReferenceImageBatchForEpisode(args: {
   readonly episodeDir: string;
   readonly episodeId: string;
@@ -898,7 +1055,18 @@ export async function prepareReferenceImageBatchForEpisode(args: {
       groups.map((group) => writePreparedGroup({ group, settings: args.settings }))
     )
   ).flat();
-  return { groups, writtenFiles };
+  const language = normalizeLocaleCode(args.options?.language ?? "en");
+  const variant = normalizeContentVariant(args.options?.variant ?? "full");
+  return {
+    groups,
+    stagePreviews: stagePreviewsForReferenceGroups({
+      language,
+      variant,
+      settings: args.settings,
+      groups,
+    }),
+    writtenFiles,
+  };
 }
 
 export async function prepareImageBatchForEpisode(args: {
@@ -919,5 +1087,16 @@ export async function prepareImageBatchForEpisode(args: {
       groups.map((group) => writePreparedGroup({ group, settings: args.settings }))
     )
   ).flat();
-  return { groups, writtenFiles };
+  const language = normalizeLocaleCode(args.options?.language ?? "en");
+  const variant = normalizeContentVariant(args.options?.variant ?? "full");
+  return {
+    groups,
+    stagePreviews: stagePreviewsForSceneGroups({
+      language,
+      variant,
+      settings: args.settings,
+      groups,
+    }),
+    writtenFiles,
+  };
 }

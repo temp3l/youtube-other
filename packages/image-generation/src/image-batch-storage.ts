@@ -49,19 +49,20 @@ export async function ensureImageBatchStorageLayout(
 }
 
 export async function createImageBatchStoragePlan(
-  outputDirectory: string
+  outputDirectory: string,
+  localBatchId?: string
 ): Promise<ImageBatchStoragePlan> {
   const layout = await ensureImageBatchStorageLayout(outputDirectory);
-  const localBatchId = await createLocalBatchId(layout);
+  const resolvedLocalBatchId = localBatchId ?? (await createLocalBatchId(layout));
   return {
     outputDirectory,
     layout,
-    localBatchId,
-    inputFilePath: inputPathFor(layout, localBatchId),
-    manifestPath: manifestPathFor(layout, localBatchId),
-    resultFilePath: resultPathFor(layout, localBatchId),
-    errorFilePath: errorPathFor(layout, localBatchId),
-    reportFilePath: reportPathFor(layout, localBatchId),
+    localBatchId: resolvedLocalBatchId,
+    inputFilePath: inputPathFor(layout, resolvedLocalBatchId),
+    manifestPath: manifestPathFor(layout, resolvedLocalBatchId),
+    resultFilePath: resultPathFor(layout, resolvedLocalBatchId),
+    errorFilePath: errorPathFor(layout, resolvedLocalBatchId),
+    reportFilePath: reportPathFor(layout, resolvedLocalBatchId),
   };
 }
 
