@@ -4509,6 +4509,13 @@ function addGlobalOptions(command: Command): Command {
     );
 }
 
+function normalizeCliArgv(argv: readonly string[]): string[] {
+  if (argv[2] !== "--") {
+    return [...argv];
+  }
+  return [argv[0] ?? "node", argv[1] ?? "mediaforge", ...argv.slice(3)];
+}
+
 const program = addGlobalOptions(new Command());
 program
   .name("mediaforge")
@@ -5155,13 +5162,14 @@ registerThumbnailCommands(program);
 const executionId = process.env["MEDIAFORGE_EXECUTION_ID"] ?? randomUUID();
 const startedAt =
   process.env["MEDIAFORGE_EXECUTION_STARTED_AT"] ?? new Date().toISOString();
+const cliArgv = normalizeCliArgv(process.argv);
 const telemetry = createExecutionTelemetry({
   context: {
     executionId,
     command:
       process.env["MEDIAFORGE_NPM_SCRIPT_COMMAND"] ??
-      process.argv.slice(2).join(" "),
-    argv: process.argv.slice(2),
+      cliArgv.slice(2).join(" "),
+    argv: cliArgv.slice(2),
     cwd: process.cwd(),
     startedAt,
     ...(process.env["MEDIAFORGE_NPM_SCRIPT"]
@@ -5177,7 +5185,7 @@ const telemetry = createExecutionTelemetry({
 
 await withExecutionTelemetry(telemetry, async () => {
   try {
-    await program.parseAsync(process.argv);
+    await program.parseAsync(cliArgv);
     await telemetry.finalize({
       success: true,
       exitCode: typeof process.exitCode === "number" ? process.exitCode : 0,

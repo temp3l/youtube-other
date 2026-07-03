@@ -1,7 +1,9 @@
 # prompts
 
-• I found a concrete compatibility issue in the episode workspace layout: episode english expects episodes/<slug>/script.md for English full, not en/full/script.md. I’m adding that canonical workspace script file so the
-existing episode pipeline can run cleanly.
+- run next: task-07-task-08-migrate-episodes
+- can i generate all audio assets and images for full and short in english + german for the 022 episode using the batch api ? if yes, run the batch
+
+-- how to re-write many stories at once using the batch api
 
 ## batch api
 
@@ -11,16 +13,9 @@ existing episode pipeline can run cleanly.
 
 ---
 
-geschriebne:
-kasse total: 1085
+### shorts
 
-- 170 wechselgeld
-  = 915
-
-sumup eingang: 2550
-
-sumip:
-bar eingang: 940€
+pnpm mediaforge stories rewrite-short --episode 022-the-whistler-in-the-woods --languages en,de --resume --dry-run --json
 
 ## Billing
 

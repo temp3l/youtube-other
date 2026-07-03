@@ -1,3 +1,4 @@
+import path from "node:path";
 import { Command } from "commander";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ShortRewriteRunSummary } from "@mediaforge/story-localization";
@@ -24,6 +25,17 @@ const createLoggerMock = vi.hoisted(() => {
   };
   return vi.fn(() => logger);
 });
+
+const episode022EnglishFullSourcePath = path.resolve(
+  import.meta.dirname,
+  "../../..",
+  "content-ideas",
+  "content",
+  "dark-truth-episodes-multilingual-production-pack",
+  "022-the-whistler-in-the-woods",
+  "en",
+  "022-the-whistler-in-the-woods-en-full.md"
+);
 
 vi.mock("@mediaforge/config", () => ({
   loadRuntimeConfig: vi.fn(async () => ({
@@ -143,9 +155,9 @@ describe("story short rewrite command", () => {
         "stories",
         "rewrite-short",
         "--input",
-        "/tmp/009-the-christmas-doll/source/009-the-christmas-doll-en-full.md",
+        episode022EnglishFullSourcePath,
         "--episode-slug",
-        "the-christmas-doll",
+        "022-the-whistler-in-the-woods",
       ])
     ).rejects.toThrow("Unable to reach OpenAI before short rewrite started");
 
@@ -164,20 +176,20 @@ describe("story short rewrite command", () => {
       "stories",
       "rewrite-short",
       "--input",
-      "/tmp/009-the-christmas-doll/source/009-the-christmas-doll-en-full.md",
+      episode022EnglishFullSourcePath,
       "--episode-slug",
-      "the-christmas-doll",
-        "--languages",
-        "de,es,de",
-        "--dry-run",
-        "--compatibility-source",
-        "--json",
-      ]);
+      "022-the-whistler-in-the-woods",
+      "--languages",
+      "de,es,de",
+      "--dry-run",
+      "--compatibility-source",
+      "--json",
+    ]);
 
     expect(rewriteShortStoriesMock).toHaveBeenCalledTimes(1);
     expect(rewriteShortStoriesMock.mock.calls[0]?.[0]).toMatchObject({
-      inputPath: "/tmp/009-the-christmas-doll/source/009-the-christmas-doll-en-full.md",
-      episodeSlug: "the-christmas-doll",
+      inputPath: episode022EnglishFullSourcePath,
+      episodeSlug: "022-the-whistler-in-the-woods",
       languages: ["de", "es"],
       model: "gpt-5.5",
       temperature: 0.5,
@@ -202,9 +214,9 @@ describe("story short rewrite command", () => {
       "stories",
       "rewrite-short",
       "--input",
-      "/tmp/009-the-christmas-doll/source/009-the-christmas-doll-en-full.md",
+      episode022EnglishFullSourcePath,
       "--episode-slug",
-      "the-christmas-doll",
+      "022-the-whistler-in-the-woods",
       "--languages",
       "es-419",
       "--dry-run",
@@ -226,9 +238,9 @@ describe("story short rewrite command", () => {
         "stories",
         "rewrite-short",
         "--input",
-        "/tmp/009-the-christmas-doll/source/009-the-christmas-doll-en-full.md",
+        episode022EnglishFullSourcePath,
         "--episode-slug",
-        "the-christmas-doll",
+        "022-the-whistler-in-the-woods",
         "--languages",
         "es,sp",
         "--dry-run",
@@ -261,9 +273,9 @@ describe("story short rewrite command", () => {
       "stories",
       "rewrite-short",
       "--input",
-      "/tmp/009-the-christmas-doll/source/009-the-christmas-doll-en-full.md",
+      episode022EnglishFullSourcePath,
       "--episode-slug",
-      "the-christmas-doll",
+      "022-the-whistler-in-the-woods",
     ]);
 
     const preflightRequest = preflightClient.responses.create.mock.calls[0]?.[0];
@@ -291,14 +303,14 @@ describe("story short rewrite command", () => {
       "stories",
       "rewrite-short",
       "--input",
-      "/tmp/009-the-christmas-doll/source/009-the-christmas-doll-en-full.md",
+      episode022EnglishFullSourcePath,
       "--episode-slug",
-      "the-christmas-doll",
+      "022-the-whistler-in-the-woods",
     ]);
 
     expect(rewriteShortStoriesMock).toHaveBeenCalledTimes(1);
     expect(rewriteShortStoriesMock.mock.calls[0]?.[0]).toMatchObject({
-      episodeSlug: "the-christmas-doll",
+      episodeSlug: "022-the-whistler-in-the-woods",
       languages: ["de"],
       dryRun: true,
       json: true,
@@ -313,14 +325,14 @@ describe("story short rewrite command", () => {
       program.parseAsync([
         "node",
         "cli",
-        "stories",
-        "rewrite-short",
-        "--episode",
-        "009",
-        "--input",
-        "/tmp/009-the-christmas-doll/source/009-the-christmas-doll-en-full.md",
-        "--dry-run",
-      ])
+      "stories",
+      "rewrite-short",
+      "--episode",
+      "009",
+      "--input",
+      episode022EnglishFullSourcePath,
+      "--dry-run",
+    ])
     ).rejects.toThrow("--episode and --input are mutually exclusive");
   });
 
@@ -349,9 +361,9 @@ describe("story short rewrite command", () => {
       "stories",
       "rewrite-short",
       "--input",
-      "/tmp/009-the-christmas-doll/source/009-the-christmas-doll-en-full.md",
+      episode022EnglishFullSourcePath,
       "--episode-slug",
-      "the-christmas-doll",
+      "022-the-whistler-in-the-woods",
       "--dry-run",
     ]);
 

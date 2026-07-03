@@ -56,6 +56,7 @@ import {
   writeTextAtomic,
 } from "@mediaforge/shared";
 import { commandImagesResume } from "./images-resume-command.js";
+import { registerEpisodeLayoutMigrationCommand } from "./episode-layout-migration-command.js";
 
 export interface EpisodeCommandOptions {
   readonly episode?: string;
@@ -1513,6 +1514,7 @@ export function registerEpisodeCommands(program: Command): void {
     .command("episode")
     .alias("episodes")
     .description("Dark Truth multilingual workflow");
+  registerEpisodeLayoutMigrationCommand(episode);
   episode
     .command("inspect")
     .option("--episode <number-or-slug>", "episode number or slug")

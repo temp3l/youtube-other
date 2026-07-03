@@ -20,6 +20,17 @@ const createLoggerMock = vi.hoisted(() => {
   return vi.fn(() => logger);
 });
 
+const episode022EnglishFullSourcePath = path.resolve(
+  import.meta.dirname,
+  "../../..",
+  "content-ideas",
+  "content",
+  "dark-truth-episodes-multilingual-production-pack",
+  "022-the-whistler-in-the-woods",
+  "en",
+  "022-the-whistler-in-the-woods-en-full.md"
+);
+
 vi.mock("@mediaforge/config", () => ({
   loadRuntimeConfig: vi.fn(async () => ({
     workspaceDir: "/tmp/workspace",
@@ -90,22 +101,15 @@ describe("story full rewrite command", () => {
   });
 
   it("runs rewrite-full in full-only mode and enables debug payload export", async () => {
-    const sourcePath = path.resolve(
-      import.meta.dirname,
-      "../../..",
-      "content-ideas",
-      "content",
-      "dark-truth-episodes-multilingual-production-pack",
-      "002-even-killers-can-lick",
-      "en",
-      "002-even-killers-can-lick-en-full.md"
-    );
     localizeStoryEpisodeMock.mockResolvedValueOnce({
-      episodeNumber: "002",
-      slug: "002-even-killers-can-lick",
-      sourceFile: sourcePath,
-      copiedEnglishFull: "/tmp/workspace/002-even-killers-can-lick/script.md",
-      generatedFiles: ["/tmp/workspace/002-even-killers-can-lick/script.md"],
+      episodeNumber: "022",
+      slug: "022-the-whistler-in-the-woods",
+      sourceFile: episode022EnglishFullSourcePath,
+      copiedEnglishFull:
+        "/tmp/workspace/022-the-whistler-in-the-woods/script.md",
+      generatedFiles: [
+        "/tmp/workspace/022-the-whistler-in-the-woods/script.md",
+      ],
       skippedFiles: [],
       cacheHit: false,
       repairAttempts: 0,
@@ -123,9 +127,9 @@ describe("story full rewrite command", () => {
       "stories",
       "rewrite-full",
       "--input",
-      sourcePath,
+      episode022EnglishFullSourcePath,
       "--episode-slug",
-      "the-christmas-doll",
+      "022-the-whistler-in-the-woods",
       "--languages",
       "de",
       "--verbose",
@@ -201,17 +205,7 @@ describe("story full rewrite command", () => {
     });
   });
 
-  it("reports canonical and compatibility English full paths during dry-run planning", async () => {
-    const sourcePath = path.resolve(
-      import.meta.dirname,
-      "../../..",
-      "content-ideas",
-      "content",
-      "dark-truth-episodes-multilingual-production-pack",
-      "002-even-killers-can-lick",
-      "en",
-      "002-even-killers-can-lick-en-full.md"
-    );
+  it("documents the current legacy compatibility root during 022 dry-run planning", async () => {
     const writes: string[] = [];
     const stdoutSpy = vi
       .spyOn(process.stdout, "write")
@@ -229,9 +223,9 @@ describe("story full rewrite command", () => {
       "stories",
       "rewrite-full",
       "--input",
-      sourcePath,
+      episode022EnglishFullSourcePath,
       "--episode-slug",
-      "the-christmas-doll",
+      "022-the-whistler-in-the-woods",
       "--languages",
       "de",
       "--dry-run",
@@ -245,14 +239,14 @@ describe("story full rewrite command", () => {
         englishFull: {
           canonical: path.join(
             "/tmp/workspace",
-            "002-the-christmas-doll",
+            "022-the-whistler-in-the-woods",
             "en",
             "full",
             "script.md"
           ),
           compatibility: path.join(
             "/tmp/workspace",
-            "002-the-christmas-doll",
+            "022-the-whistler-in-the-woods",
             "script.md"
           ),
         },
@@ -262,22 +256,15 @@ describe("story full rewrite command", () => {
   });
 
   it("normalizes regional Spanish locale input to es", async () => {
-    const sourcePath = path.resolve(
-      import.meta.dirname,
-      "../../..",
-      "content-ideas",
-      "content",
-      "dark-truth-episodes-multilingual-production-pack",
-      "002-even-killers-can-lick",
-      "en",
-      "002-even-killers-can-lick-en-full.md"
-    );
     localizeStoryEpisodeMock.mockResolvedValueOnce({
-      episodeNumber: "002",
-      slug: "002-even-killers-can-lick",
-      sourceFile: sourcePath,
-      copiedEnglishFull: "/tmp/workspace/002-even-killers-can-lick/script.md",
-      generatedFiles: ["/tmp/workspace/002-even-killers-can-lick/script.md"],
+      episodeNumber: "022",
+      slug: "022-the-whistler-in-the-woods",
+      sourceFile: episode022EnglishFullSourcePath,
+      copiedEnglishFull:
+        "/tmp/workspace/022-the-whistler-in-the-woods/script.md",
+      generatedFiles: [
+        "/tmp/workspace/022-the-whistler-in-the-woods/script.md",
+      ],
       skippedFiles: [],
       cacheHit: false,
       repairAttempts: 0,
@@ -295,9 +282,9 @@ describe("story full rewrite command", () => {
       "stories",
       "rewrite-full",
       "--input",
-      sourcePath,
+      episode022EnglishFullSourcePath,
       "--episode-slug",
-      "the-christmas-doll",
+      "022-the-whistler-in-the-woods",
       "--languages",
       "es-419",
     ]);
@@ -308,16 +295,6 @@ describe("story full rewrite command", () => {
   });
 
   it("rejects legacy sp locale input with an actionable error", async () => {
-    const sourcePath = path.resolve(
-      import.meta.dirname,
-      "../../..",
-      "content-ideas",
-      "content",
-      "dark-truth-episodes-multilingual-production-pack",
-      "002-even-killers-can-lick",
-      "en",
-      "002-even-killers-can-lick-en-full.md"
-    );
     const program = new Command();
     registerStoryRewriteFullCommand(program.command("stories"));
 
@@ -328,9 +305,9 @@ describe("story full rewrite command", () => {
         "stories",
         "rewrite-full",
         "--input",
-        sourcePath,
+        episode022EnglishFullSourcePath,
         "--episode-slug",
-        "the-christmas-doll",
+        "022-the-whistler-in-the-woods",
         "--languages",
         "sp-SP",
       ])
@@ -340,16 +317,6 @@ describe("story full rewrite command", () => {
   });
 
   it("rejects the legacy rewrite output root before generating files", async () => {
-    const sourcePath = path.resolve(
-      import.meta.dirname,
-      "../../..",
-      "content-ideas",
-      "content",
-      "dark-truth-episodes-multilingual-production-pack",
-      "002-even-killers-can-lick",
-      "en",
-      "002-even-killers-can-lick-en-full.md"
-    );
     const program = new Command();
     registerStoryRewriteFullCommand(program.command("stories"));
     assertSupportedStoryOutputDirectoryMock.mockImplementationOnce(() => {
@@ -363,9 +330,9 @@ describe("story full rewrite command", () => {
         "stories",
         "rewrite-full",
         "--input",
-        sourcePath,
+        episode022EnglishFullSourcePath,
         "--episode-slug",
-        "the-christmas-doll",
+        "022-the-whistler-in-the-woods",
         "--output-root",
         path.join(
           "/tmp/workspace",

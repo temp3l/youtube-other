@@ -205,6 +205,51 @@ describe("episode filesystem helpers", () => {
     expect(resolver.shotContactSheet(shortDe).endsWith(".png")).toBe(true);
   });
 
+  it("keeps multilingual narration scripts on distinct locale roots for episode 022", () => {
+    const resolver = createEpisodePathResolver("/workspace");
+    const episodeId = normalizeEpisodeId("022-the-whistler-in-the-woods");
+    const englishFull = {
+      episodeId,
+      locale: normalizeLocaleCode("en"),
+      variant: normalizeContentVariant("full"),
+    };
+    const germanFull = {
+      episodeId,
+      locale: normalizeLocaleCode("de"),
+      variant: normalizeContentVariant("full"),
+    };
+    const germanShort = {
+      episodeId,
+      locale: normalizeLocaleCode("de"),
+      variant: normalizeContentVariant("short"),
+    };
+
+    expect(resolver.localeRoot(englishFull)).toBe(
+      "/workspace/022-the-whistler-in-the-woods/locales/en"
+    );
+    expect(resolver.localeVariantRoot(englishFull)).toBe(
+      "/workspace/022-the-whistler-in-the-woods/locales/en/full"
+    );
+    expect(resolver.narrationScript(englishFull)).toBe(
+      "/workspace/022-the-whistler-in-the-woods/locales/en/full/script.md"
+    );
+    expect(resolver.localeVariantRoot(germanFull)).toBe(
+      "/workspace/022-the-whistler-in-the-woods/locales/de/full"
+    );
+    expect(resolver.narrationScript(germanFull)).toBe(
+      "/workspace/022-the-whistler-in-the-woods/locales/de/full/script.md"
+    );
+    expect(resolver.narrationScript(germanShort)).toBe(
+      "/workspace/022-the-whistler-in-the-woods/locales/de/short/script.md"
+    );
+    expect(resolver.narrationScript(englishFull)).not.toBe(
+      resolver.narrationScript(germanFull)
+    );
+    expect(resolver.narrationScript(germanFull)).not.toBe(
+      resolver.narrationScript(germanShort)
+    );
+  });
+
   it("builds derived-shot clip and manifest paths from a shared fingerprint basename", () => {
     const resolver = createEpisodePathResolver("/workspace");
     const episodeId = normalizeEpisodeId("009-mary-gloria-the-christmas-doll");
