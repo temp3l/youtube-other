@@ -66,6 +66,15 @@ function normalizeV2Item(
       sha256: dependency.sha256,
       assetIdentity: normalizeV2Identity(dependency.assetIdentity),
     })),
+    ...(item.sharedOutputKey
+      ? { sharedOutputKey: item.sharedOutputKey }
+      : {}),
+    ...(item.ownsSharedOutput !== undefined
+      ? { ownsSharedOutput: item.ownsSharedOutput }
+      : {}),
+    ...(item.aliasedToCustomId
+      ? { aliasedToCustomId: item.aliasedToCustomId }
+      : {}),
     requestedSize: identity.size,
     quality: identity.quality,
     outputFormat: item.outputFormat,
@@ -194,7 +203,14 @@ function normalizeLegacyItem(args: {
 function validateNormalizedManifest(manifest: ImageBatchManifest): ImageBatchManifest {
   const identityHashes = new Set<string>();
   const customIds = new Set<string>();
-  const destinationPaths = new Set<string>();
+  const destinationPaths = new Map<
+    string,
+    Array<ImageBatchManifest["items"][number]>
+  >();
+  const sharedOutputGroups = new Map<
+    string,
+    Array<ImageBatchManifest["items"][number]>
+  >();
   for (const item of manifest.items) {
     assertOperationMatchesEndpoint({
       operation: item.identity.operation,
@@ -218,12 +234,71 @@ function validateNormalizedManifest(manifest: ImageBatchManifest): ImageBatchMan
     const normalizedDestinationPath = normalizeImageBatchDestinationPath(
       item.expectedOutputPath
     );
-    if (destinationPaths.has(normalizedDestinationPath)) {
+    const hasExistingDestinationPath =
+      destinationPaths.has(normalizedDestinationPath);
+    const existingAtDestination =
+      destinationPaths.get(normalizedDestinationPath) ?? [];
+    if (
+      hasExistingDestinationPath &&
+      !(
+        item.sharedOutputKey &&
+        existingAtDestination.every(
+          (existing) => existing.sharedOutputKey === item.sharedOutputKey
+        )
+      )
+    ) {
       throw new Error(
         `Duplicate image batch destination path detected: ${item.expectedOutputPath}.`
       );
     }
-    destinationPaths.add(normalizedDestinationPath);
+    existingAtDestination.push(item);
+    destinationPaths.set(normalizedDestinationPath, existingAtDestination);
+    if (item.sharedOutputKey) {
+      const existingSharedOutputItems =
+        sharedOutputGroups.get(item.sharedOutputKey) ?? [];
+      existingSharedOutputItems.push(item);
+      sharedOutputGroups.set(item.sharedOutputKey, existingSharedOutputItems);
+    }
+  }
+  for (const [sharedOutputKey, items] of sharedOutputGroups) {
+    const owners = items.filter((item) => item.ownsSharedOutput === true);
+    if (owners.length !== 1) {
+      throw new Error(
+        `Shared output group ${sharedOutputKey} must contain exactly one owner item.`
+      );
+    }
+    const owner = owners[0]!;
+    const destinationPath = normalizeImageBatchDestinationPath(
+      owner.expectedOutputPath
+    );
+    for (const item of items) {
+      if (
+        normalizeImageBatchDestinationPath(item.expectedOutputPath) !==
+        destinationPath
+      ) {
+        throw new Error(
+          `Shared output group ${sharedOutputKey} contains inconsistent destination paths.`
+        );
+      }
+      if (item.customId === owner.customId) {
+        if (item.aliasedToCustomId !== undefined) {
+          throw new Error(
+            `Shared output owner ${owner.customId} must not alias another item.`
+          );
+        }
+        continue;
+      }
+      if (item.ownsSharedOutput !== false) {
+        throw new Error(
+          `Shared output follower ${item.customId} must set ownsSharedOutput=false.`
+        );
+      }
+      if (item.aliasedToCustomId !== owner.customId) {
+        throw new Error(
+          `Shared output follower ${item.customId} must alias ${owner.customId}.`
+        );
+      }
+    }
   }
   return manifest;
 }

@@ -64,6 +64,14 @@ Available profiles used by the episode workflow:
 - `high-retention`
 - `shorts-aggressive`
 
+Motion preset levels are selected separately with `--motion-preset`:
+
+- `subtle`: conservative push-ins, pans, and drifts
+- `balanced`: safe default for most full videos and shorts
+- `strong`: higher-motion planning for retention-heavy edits
+
+The generated shot plan stores its deterministic `planningSeed`. With the same episode, locale, variant, visual profile, motion preset, source scenes, and source images, re-running `shots plan` produces the same plan unless upstream artifacts change.
+
 ## 2. Inspect the planned motion
 
 Inspect summarizes how many shots were created from the available source images and which treatments were selected.
@@ -127,7 +135,8 @@ pnpm mediaforge -- episode short \
   --episode 022-the-whistler-in-the-woods \
   --language en \
   --visual-retention-mode enabled \
-  --visual-profile shorts-aggressive
+  --visual-profile shorts-aggressive \
+  --motion-preset balanced
 ```
 
 For the full English video:
@@ -136,7 +145,8 @@ For the full English video:
 pnpm mediaforge -- episode english \
   --episode 022-the-whistler-in-the-woods \
   --visual-retention-mode enabled \
-  --visual-profile balanced
+  --visual-profile balanced \
+  --motion-preset subtle
 ```
 
 For a localized short, for example German:
@@ -146,7 +156,8 @@ pnpm mediaforge -- episode short \
   --episode 022-the-whistler-in-the-woods \
   --language de \
   --visual-retention-mode enabled \
-  --visual-profile shorts-aggressive
+  --visual-profile shorts-aggressive \
+  --motion-preset strong
 ```
 
 ## Preview vs enabled
@@ -162,6 +173,47 @@ pnpm mediaforge -- episode short \
 ```
 
 Use `enabled` when the final clean render should use the generated shot plan and motion.
+
+Use `disabled` or `--no-visual-retention` when you want the legacy still-image scene render without shot-plan motion:
+
+```bash
+pnpm mediaforge -- episode short \
+  --episode 022-the-whistler-in-the-woods \
+  --language en \
+  --visual-retention-mode disabled
+```
+
+## FFmpeg motion presets
+
+Motion is FFmpeg-only. No external APIs are called during render-time motion; the renderer applies local filters to existing still images and mixes existing local audio.
+
+Render-report preset IDs:
+
+- Documentary: `doc_slow_push_in`, `doc_slow_pull_back`, `doc_left_drift`
+- Tension: `tension_creep_zoom`, `tension_breathing_frame`, `tension_shadow_push`
+- Reveal: `reveal_pan_to_subject`, `reveal_zoom_to_detail`, `reveal_from_darkness`
+- Shorts-only: `short_fast_push`, `short_snap_zoom`, `short_impact_shake`
+- Ambient: `ambient_fog_drift`, `ambient_light_flicker`, `ambient_static_hold`
+
+The operator-facing `--motion-preset subtle|balanced|strong` controls how much motion the shot planner chooses. The FFmpeg renderer then maps shot-plan motion to local filter operations such as zoompan, crop, scale, pad, fade, and small rotation.
+
+When render motion debug is enabled by the caller, the renderer writes:
+
+- `<outputDir>/motion-report.json`
+
+The report includes shot IDs, selected preset IDs, filter summaries, cache status, and per-shot seeds formatted as `<render-seed>:<shot-id>`.
+
+To reproduce a render:
+
+1. Keep the same source images, source scene files, narration audio, visual profile, motion preset, and shot plan.
+2. Reuse the same `planningSeed` from `shot-plan.<variant>.<locale>.json`.
+3. Re-render with the same output profile and FFmpeg version when exact frame-level output matters.
+
+Troubleshooting:
+
+- If motion looks disabled, confirm `--visual-retention-mode enabled` was used.
+- If the render uses old shot clips, remove only the affected derived-shot cache entries or change the shot plan; do not regenerate production images.
+- If validation fails on duration or resolution, inspect `render.json`, `motion-report.json` when present, and run the focused rendering smoke test before changing fixtures.
 
 ## Strict validation
 

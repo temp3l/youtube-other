@@ -11,6 +11,7 @@ import {
 } from "@mediaforge/shared";
 import {
   planReferenceImageBatchForEpisode,
+  prepareFullSceneImageBatches,
   prepareImageBatchForEpisode,
   prepareShortSceneImageBatches,
 } from "./image-batch-planner.js";
@@ -137,6 +138,59 @@ async function writeSceneManifest(args: {
       null,
       2
     )
+  );
+}
+
+async function writeCanonicalScenePlan(
+  episodeDir: string,
+  sceneIds: readonly string[]
+): Promise<void> {
+  await fs.mkdir(path.join(episodeDir, "canonical"), { recursive: true });
+  await fs.writeFile(
+    path.join(episodeDir, "canonical", "scenes.json"),
+    JSON.stringify({
+      sourceId: "001-demo",
+      scenes: sceneIds.map((sceneId, index) => ({
+        id: sceneId,
+        sequenceNumber: index + 1,
+        canonicalNarration: `Narration for ${sceneId}.`,
+        sourceSegmentIds: [`segment-${String(index + 1).padStart(3, "0")}`],
+        estimatedDurationSeconds: 4,
+        timing: { startSeconds: index * 4, endSeconds: index * 4 + 4 },
+        visualPurpose: "advance the story",
+        subject: `subject ${sceneId}`,
+        action: `action ${sceneId}`,
+        setting: `setting ${sceneId}`,
+        composition: "centered",
+        cameraFraming: "medium shot",
+        mood: "tense",
+        continuityReferences: [],
+        onScreenText: "",
+        negativeConstraints: [],
+        aspectRatios: ["16:9"],
+        imagePrompt: `Prompt for ${sceneId}.`,
+        expectedImageFilenames: [
+          `${sceneId}__${String(index * 4).padStart(6, "0")}-${String(index * 4 + 4).padStart(6, "0")}__16x9.png`,
+        ],
+        qualityStatus: "draft",
+      })),
+    }),
+    "utf8"
+  );
+}
+
+async function writeLocalizedScript(
+  episodeDir: string,
+  language: string,
+  variant: "full" | "short" = "full",
+  content?: string
+): Promise<void> {
+  const localeDir = path.join(episodeDir, "locales", language, variant);
+  await fs.mkdir(localeDir, { recursive: true });
+  await fs.writeFile(
+    path.join(localeDir, "script.md"),
+    content ?? `# ${language}\n`,
+    "utf8"
   );
 }
 
@@ -1394,9 +1448,85 @@ describe("image batch service", () => {
     );
   });
 
+  it("imports owner results into multilingual full-scene alias followers", async () => {
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), "image-batch-alias-import-"));
+    const episodeDir = path.join(tempDir, "001-demo");
+    await writeCanonicalScenePlan(episodeDir, ["scene-001"]);
+    const sharedScript = "# shared full script\n";
+    await writeLocalizedScript(episodeDir, "en", "full", sharedScript);
+    await writeLocalizedScript(episodeDir, "de", "full", sharedScript);
+
+    const prepared = await prepareFullSceneImageBatches({
+      episodeDir,
+      episodeId: "001-demo",
+      languages: ["en-US", "de-DE"],
+      variant: "full",
+      settings: {
+        model: "gpt-image-2",
+        requestedSize: "1920x1088",
+        quality: "medium",
+        outputFormat: "png",
+      },
+    });
+    const sceneGroup = prepared.groups.find((candidate) => candidate.stageKind === "scene-images");
+    if (!sceneGroup) {
+      throw new Error("expected multilingual scene group");
+    }
+    const manifest = await readImageBatchManifest(sceneGroup.storagePlan.manifestPath);
+    const ownerItem = manifest?.items.find((item) => item.ownsSharedOutput === true);
+    const aliasItem = manifest?.items.find((item) => item.aliasedToCustomId);
+    if (!ownerItem || !aliasItem) {
+      throw new Error("expected owner and alias items");
+    }
+    const imageBase64 = await makeBase64Image(1920, 1088);
+    const client = makeImportClient({
+      outputText: `${JSON.stringify({
+        custom_id: ownerItem.customId,
+        response: {
+          status_code: 200,
+          body: { data: [{ b64_json: imageBase64 }] },
+        },
+      })}\n`,
+      total: 1,
+      completed: 1,
+      failed: 0,
+    });
+    await submitImageBatch(
+      path.join(episodeDir, "state", "image-generation"),
+      sceneGroup.storagePlan.localBatchId,
+      client as never
+    );
+    await refreshImageBatch(
+      path.join(episodeDir, "state", "image-generation"),
+      sceneGroup.storagePlan.localBatchId,
+      client as never
+    );
+
+    const imported = await importImageBatch(
+      path.join(episodeDir, "state", "image-generation"),
+      sceneGroup.storagePlan.localBatchId,
+      client as never
+    );
+
+    expect(imported.status).toBe("imported");
+    const nextManifest = await readImageBatchManifest(sceneGroup.storagePlan.manifestPath);
+    expect(nextManifest?.items).toHaveLength(2);
+    expect(nextManifest?.items.every((item) => item.status === "persisted")).toBe(true);
+    const persistedOwner = nextManifest?.items.find((item) => item.customId === ownerItem.customId);
+    const persistedAlias = nextManifest?.items.find((item) => item.customId === aliasItem.customId);
+    expect(persistedAlias).toMatchObject({
+      aliasedToCustomId: ownerItem.customId,
+      imageHash: persistedOwner?.imageHash,
+      actualWidth: persistedOwner?.actualWidth,
+      actualHeight: persistedOwner?.actualHeight,
+    });
+  });
+
   it("retries only failed image scenes and keeps the successful ones out of the new batch", async () => {
     const tempDir = mkdtempSync(path.join(os.tmpdir(), "image-batch-retry-"));
-    const episodeDir = path.join(tempDir, "episode");
+    const episodeDir = path.join(tempDir, "001-demo");
+    await writeCanonicalScenePlan(episodeDir, ["scene-002", "scene-003"]);
+    await writeLocalizedScript(episodeDir, "en");
     await writeSceneManifest({ episodeDir, sceneId: "scene-002" });
     await writeSceneManifest({ episodeDir, sceneId: "scene-003" });
     const prepared = await prepareImageBatchForEpisode({
@@ -1453,9 +1583,163 @@ describe("image batch service", () => {
     expect(retryManifest?.items[0]?.sceneId).toBe("scene-003");
   });
 
+  it("retries multilingual aliases through one owner request while keeping alias manifest items", async () => {
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), "image-batch-alias-retry-"));
+    const episodeDir = path.join(tempDir, "001-demo");
+    await writeCanonicalScenePlan(episodeDir, ["scene-001"]);
+    const sharedScript = "# shared full script\n";
+    await writeLocalizedScript(episodeDir, "en", "full", sharedScript);
+    await writeLocalizedScript(episodeDir, "de", "full", sharedScript);
+
+    const prepared = await prepareFullSceneImageBatches({
+      episodeDir,
+      episodeId: "001-demo",
+      languages: ["en-US", "de-DE"],
+      variant: "full",
+      settings: {
+        model: "gpt-image-2",
+        requestedSize: "1920x1088",
+        quality: "medium",
+        outputFormat: "png",
+      },
+    });
+    const sceneGroup = prepared.groups.find((candidate) => candidate.stageKind === "scene-images");
+    if (!sceneGroup) {
+      throw new Error("expected multilingual scene group");
+    }
+    const manifest = await readImageBatchManifest(sceneGroup.storagePlan.manifestPath);
+    if (!manifest) {
+      throw new Error("expected multilingual manifest");
+    }
+    await fs.writeFile(
+      sceneGroup.storagePlan.manifestPath,
+      JSON.stringify(
+        {
+          ...manifest,
+          items: manifest.items.map((item) => ({
+            ...item,
+            status: "decode-failed" as const,
+          })),
+        },
+        null,
+        2
+      )
+    );
+
+    const retried = await retryFailedImageBatch(
+      path.join(episodeDir, "state", "image-generation"),
+      sceneGroup.storagePlan.localBatchId
+    );
+
+    const retryManifest = await readImageBatchManifest(retried.manifestPath);
+    expect(retryManifest?.items).toHaveLength(2);
+    expect(retryManifest?.items.filter((item) => item.ownsSharedOutput === true)).toHaveLength(1);
+    expect(retryManifest?.items.filter((item) => item.aliasedToCustomId)).toHaveLength(1);
+    const retryInput = await fs.readFile(retried.inputFilePath, "utf8");
+    expect(retryInput.trim().split("\n")).toHaveLength(1);
+  });
+
+  it("retries only failed native short-scene items through the short planner", async () => {
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), "image-batch-short-retry-"));
+    const episodeDir = path.join(tempDir, "001-demo");
+    process.env["SHORTS_KEY_SCENE_COUNT"] = "1";
+    process.env["SHORTS_KEY_SCENE_RATIO"] = "0";
+    await writeLocalizedScript(episodeDir, "de", "short", "# de short\n");
+    await fs.mkdir(path.join(episodeDir, "de", "short"), { recursive: true });
+    await fs.writeFile(
+      path.join(episodeDir, "de", "short", "scenes.json"),
+      JSON.stringify({
+        sourceId: "001-demo",
+        scenes: [
+          {
+            id: "scene-001",
+            sequenceNumber: 1,
+            canonicalNarration: "Narration 1",
+            sourceSegmentIds: ["scene-001"],
+            estimatedDurationSeconds: 4,
+            timing: { startSeconds: 0, endSeconds: 4 },
+            visualPurpose: "hook",
+            subject: "Subject 1",
+            action: "shown",
+            setting: "Setting 1",
+            composition: "centered",
+            cameraFraming: "medium shot",
+            mood: "tense",
+            continuityReferences: [],
+            onScreenText: "",
+            textRequirement: { required: false },
+            negativeConstraints: [],
+            aspectRatios: ["16:9"],
+            imagePrompt: "Prompt 1",
+            expectedImageFilenames: ["scene-001__000000-000004__16x9.png"],
+            qualityStatus: "draft",
+          },
+        ],
+      }),
+      "utf8"
+    );
+    await fs.mkdir(path.join(episodeDir, "shared"), { recursive: true });
+    await fs.writeFile(
+      path.join(episodeDir, "shared", "characters.json"),
+      JSON.stringify({
+        episodeId: "001-demo",
+        characters: [],
+        updatedAt: new Date().toISOString(),
+      }),
+      "utf8"
+    );
+
+    const prepared = await prepareShortSceneImageBatches({
+      episodeDir,
+      episodeId: "001-demo",
+      languages: ["de"],
+      variant: "short",
+      settings: {
+        model: "gpt-image-2",
+        requestedSize: "1024x1536",
+        quality: "medium",
+        outputFormat: "png",
+      },
+    });
+    const sceneGroup = prepared.groups[0];
+    if (!sceneGroup) {
+      throw new Error("expected short retry scene group");
+    }
+    const manifest = await readImageBatchManifest(sceneGroup.storagePlan.manifestPath);
+    if (!manifest) {
+      throw new Error("expected short retry manifest");
+    }
+    await fs.writeFile(
+      sceneGroup.storagePlan.manifestPath,
+      JSON.stringify(
+        {
+          ...manifest,
+          items: manifest.items.map((item) => ({
+            ...item,
+            status: "decode-failed" as const,
+          })),
+        },
+        null,
+        2
+      )
+    );
+
+    const retried = await retryFailedImageBatch(
+      path.join(episodeDir, "state", "image-generation"),
+      sceneGroup.storagePlan.localBatchId
+    );
+
+    const retryManifest = await readImageBatchManifest(retried.manifestPath);
+    expect(retryManifest?.items).toHaveLength(1);
+    expect(retryManifest?.items[0]?.identity.variant).toBe("short");
+    expect(retryManifest?.items[0]?.identity.assetRole).toBe("short-scene");
+  });
+
   it("does not prepare retries for items already recovered in the same lineage", async () => {
     const tempDir = mkdtempSync(path.join(os.tmpdir(), "image-batch-lineage-retry-"));
-    const episodeDir = path.join(tempDir, "episode");
+    const episodeDir = path.join(tempDir, "001-demo");
+    await writeCanonicalScenePlan(episodeDir, ["scene-002"]);
+    await writeLocalizedScript(episodeDir, "en");
     await writeSceneManifest({ episodeDir, sceneId: "scene-002" });
     const prepared = await prepareImageBatchForEpisode({
       episodeDir,

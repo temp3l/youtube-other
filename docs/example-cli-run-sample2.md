@@ -4,6 +4,37 @@ I attempted:
 
 node apps/cli/bin/mediaforge.js episode english --episode 022-the-whistler-in-the-woods --visual-retention --visual-retention-mode enabled
 
+---
+
+› this command: "node apps/cli/bin/mediaforge.js episode english --episode 022-the-whistler-in-the-woods --visual-retention --visual-retention-mode enabled", gave me: "{ "stack": "MediaValidationError: Rendered media is shorter than the expected duration. Expected at least 461.926s but got 461.654s.\n at FFmpegVideoRenderer.render (file:///home/box/workspace/fehmarn-seo/youtube/other/packages/rendering/dist/index.js:2676:19)\n at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n at async renderCleanVideo (file:///home/box/workspace/fehmarn-seo/youtube/other/packages/dark-truth/dist/index.js:1390:26)\n at async prepareEpisodeLanguage (file:///home/box/workspace/fehmarn-seo/youtube/other/apps/cli/dist/episode-commands.js:551:30)\n at async runEpisodeFullSetupUseCase (file:///home/box/workspace/fehmarn-seo/youtube/other/apps/cli/dist/episode-commands.js:644:21)\n at async commandEpisodeEnglish (file:///home/box/workspace/fehmarn-seo/youtube/other/apps/cli/dist/episode-commands.js:726:25)\n at async Command.parseAsync (/home/box/workspace/fehmarn-seo/youtube/other/node_modules/.pnpm/commander@14.0.3/node_modules/commander/lib/command.js:1122:5)\n at async file:///home/box/workspace/fehmarn-seo/youtube/other/apps/cli/dist/index.js:3406:9\n at async file:///home/box/workspace/fehmarn-seo/youtube/other/apps/cli/dist/index.js:3404:1", "message": "Rendered media is shorter than the expected duration. Expected at least 461.926s but got 461.654s.", "remediation": "Replace or repair the media artifact.", "retryable": false, "name": "MediaValidationError" } "
+
+---
+
+• Use episode localized for the German full version, not episode german.
+
+node apps/cli/bin/mediaforge.js episode localized \
+ --episode 022-the-whistler-in-the-woods \
+ --languages de \
+ --visual-retention \
+ --visual-retention-mode enabled
+
+Why:
+
+- episode localized accepts --languages and defaults to de,es,fr if omitted, so --languages de narrows it to German only. See ./apps/cli/src/episode-commands.ts:1347 and ./apps/cli/src/episode-commands.ts:2444.
+- The CLI docs list episode localized --episode <number-or-slug> --languages <en|de|es|fr>. See ./docs/cli.md:393.
+
+If you meant the German short version, use:
+
+node apps/cli/bin/mediaforge.js episode short \
+ --episode 022-the-whistler-in-the-woods \
+ --language de \
+ --visual-retention \
+ --visual-retention-mode enabled
+
+─ Worked for 6m 54s ───────────────────
+
+---
+
 It failed before shot-plan regeneration or rendering. The first hard failure was OpenAI TTS:
 
 - provider: openai

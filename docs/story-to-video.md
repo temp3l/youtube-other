@@ -710,6 +710,7 @@ TikTok-style metadata is implemented heuristically in [`packages/metadata/src/in
   - scene plan
   - per-scene audio WAVs
   - scene images
+  - optional shot plan for FFmpeg-only motion
   - optional captions
 - Outputs:
   - scene clips
@@ -721,15 +722,18 @@ TikTok-style metadata is implemented heuristically in [`packages/metadata/src/in
   - localized audio-base `renders/<profile>/...mp4` in generic CLI path
   - `render.json`
   - scene clip manifests under clip directories
+  - `motion-report.json` under the render output directory when motion debug is enabled
 - Validation:
   - ffprobe-based output validation
   - rendered duration must not be shorter than planned scene duration
 - Retries and reuse:
   - per-scene clip reuse keyed by scene/image/audio/caption/render fingerprint
+  - derived shot clips are reused by shot/image/filter/output fingerprints
   - optional remote render path exists under `render remote ...`
 - Gaps:
   - dark-truth wrapper always renders without burned captions
   - transitions are clip concatenation only; no custom transitions are implemented
+  - render-time motion uses local FFmpeg filters only; it does not call external APIs
 
 ### Stage 22: Render validation
 
@@ -1085,6 +1089,7 @@ TikTok-style metadata is implemented heuristically in [`packages/metadata/src/in
 - Timeline construction:
   - render one clip per scene
   - concat demuxer builds final video
+  - visual-retention renders derive ordered shot clips before final concat
 - Frame rate: `30`
 - Resolution:
   - full `1920x1080`
@@ -1093,6 +1098,16 @@ TikTok-style metadata is implemented heuristically in [`packages/metadata/src/in
   - per-scene WAV clip becomes each scene clip audio
 - Image timing:
   - minimum clip duration from scene timing plus trailing silence settings
+- Motion:
+  - enable shot-plan motion with `--visual-retention-mode enabled`
+  - disable it with `--visual-retention-mode disabled` or `--no-visual-retention`
+  - planning profiles are `atmospheric`, `balanced`, `high-retention`, and `shorts-aggressive`
+  - motion levels are `--motion-preset subtle`, `balanced`, or `strong`
+  - preset families are documentary, tension, reveal, shorts, and ambient
+  - preset IDs include `doc_slow_push_in`, `reveal_pan_to_subject`, `short_fast_push`, and `ambient_static_hold`
+  - shot plans persist `planningSeed`; reproduce by keeping the same source images, profile, motion preset, shot plan, render profile, and FFmpeg version
+  - motion debug writes `motion-report.json` with preset IDs, per-shot seeds, filter summaries, and cache status when enabled by the caller
+  - render-time motion is FFmpeg-only and does not call external APIs
 - Transitions:
   - none beyond clip concatenation
 - Captions:

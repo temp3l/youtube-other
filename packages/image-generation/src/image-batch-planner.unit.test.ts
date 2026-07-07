@@ -179,11 +179,16 @@ async function writeCanonicalScenePlan(
 async function writeLocalizedScript(
   episodeDir: string,
   language: string,
-  variant: "full" | "short" = "full"
+  variant: "full" | "short" = "full",
+  content?: string
 ): Promise<void> {
   const localeDir = path.join(episodeDir, "locales", language, variant);
   await fs.mkdir(localeDir, { recursive: true });
-  await fs.writeFile(path.join(localeDir, "script.md"), `# ${language}\n`, "utf8");
+  await fs.writeFile(
+    path.join(localeDir, "script.md"),
+    content ?? `# ${language}\n`,
+    "utf8"
+  );
 }
 
 async function writeShortScenePlan(
@@ -507,7 +512,7 @@ describe("image batch planner", () => {
     expect(referenceGroups[0]?.storagePlan.localBatchId).toMatch(/^imgb-/u);
   });
 
-  it("prepares reference-assisted scenes as image edit batch requests with uploaded file IDs", async () => {
+  it("blocks reference-assisted batch scenes until edit-batch semantics are manually verified", async () => {
     const tempDir = mkdtempSync(path.join(os.tmpdir(), "image-batch-reference-edit-"));
     const episodeDir = path.join(tempDir, "episode");
     const referencePath = path.join(episodeDir, "ref.png");
@@ -536,61 +541,26 @@ describe("image batch planner", () => {
       ],
     });
 
-    const prepared = await prepareImageBatchForEpisode({
-      episodeDir,
-      episodeId: "001-demo",
-      scenePlan: {
-        scenes: [{ id: "scene-002", sequenceNumber: 2 }],
+    await expect(
+      prepareImageBatchForEpisode({
+        episodeDir,
+        episodeId: "001-demo",
+        scenePlan: {
+          scenes: [{ id: "scene-002", sequenceNumber: 2 }],
+        },
+        settings: {
+          model: "gpt-image-2",
+          requestedSize: "1920x1088",
+          quality: "medium",
+          outputFormat: "png",
+        },
+      })
+    ).rejects.toMatchObject<ImageBatchPlannerError>({
+      code: "unsupported-edit-batch-request",
+      details: {
+        verificationStatus: "manual-only",
+        jsonlShape: { image: "OpenAI file ID | OpenAI file ID[]" },
       },
-      settings: {
-        model: "gpt-image-2",
-        requestedSize: "1920x1088",
-        quality: "medium",
-        outputFormat: "png",
-      },
-    });
-
-    expect(prepared.groups).toHaveLength(1);
-    expect(prepared.groups[0]?.stageKind).toBe("scene-images");
-    expect(prepared.groups[0]?.scenePlans[0]?.job.identity.operation).toBe("edit");
-    expect(prepared.groups[0]?.scenePlans[0]?.requestLine.url).toBe(
-      "/v1/images/edits"
-    );
-    expect(prepared.groups[0]?.scenePlans[0]?.requestLine.body).toMatchObject({
-      model: "gpt-image-2",
-      prompt: "A reference-assisted scene.",
-      image: ["file_ref_123"],
-      n: 1,
-      size: "1920x1088",
-      quality: "medium",
-      output_format: "png",
-    });
-    expect(prepared.groups[0]?.scenePlans[0]?.job.dependencies[0]).toMatchObject({
-      sourcePath: referencePath,
-      openAIFileId: "file_ref_123",
-      sha256: referenceHash,
-    });
-    expect(prepared.stagePreviews.find((stage) => stage.kind === "scene-images")).toMatchObject({
-      operation: "edit",
-      endpoint: "/v1/images/edits",
-    });
-
-    const inputFile = await fs.readFile(
-      prepared.groups[0]?.storagePlan.inputFilePath ?? "",
-      "utf8"
-    );
-    const requestLine = JSON.parse(inputFile.trim()) as {
-      readonly url: string;
-      readonly body: Record<string, unknown>;
-    };
-    expect(requestLine.url).toBe("/v1/images/edits");
-    expect(requestLine.body.image).toEqual(["file_ref_123"]);
-    const manifest = await readImageBatchManifest(
-      prepared.groups[0]?.storagePlan.manifestPath ?? ""
-    );
-    expect(manifest?.endpoint).toBe("/v1/images/edits");
-    expect(manifest?.items[0]?.dependencies[0]).toMatchObject({
-      openAIFileId: "file_ref_123",
     });
   });
 
@@ -637,7 +607,7 @@ describe("image batch planner", () => {
     });
   });
 
-  it("fails before submission when a reference-assisted batch would drop image inputs", async () => {
+  it("fails before submission when a reference-assisted batch would require image inputs", async () => {
     const tempDir = mkdtempSync(path.join(os.tmpdir(), "image-batch-missing-file-id-"));
     const episodeDir = path.join(tempDir, "episode");
     const referencePath = path.join(episodeDir, "ref.png");
@@ -680,7 +650,8 @@ describe("image batch planner", () => {
     ).rejects.toMatchObject<ImageBatchPlannerError>({
       code: "unsupported-edit-batch-request",
       details: {
-        missingOpenAIFileIdPaths: [referencePath],
+        dependencyPaths: [referencePath],
+        verificationStatus: "manual-only",
         jsonlShape: { image: "OpenAI file ID | OpenAI file ID[]" },
       },
     });
@@ -1043,40 +1014,75 @@ describe("image batch planner", () => {
     expect(sceneGroups.map((group) => group.splitGroupCount)).toEqual([2, 2]);
   });
 
-  it("rejects multi-language full-scene preparation before writing shared canonical artifacts", async () => {
-    const tempDir = mkdtempSync(path.join(os.tmpdir(), "image-batch-full-multilang-"));
+  it("aliases multilingual full-scene items when same-path requests are identical", async () => {
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), "image-batch-full-multilang-alias-"));
     const episodeDir = path.join(tempDir, "001-demo");
-    await writeCanonicalScenePlan(episodeDir, ["scene-001", "scene-002"]);
-    await writeLocalizedScript(episodeDir, "de", "short");
-    await writeLocalizedScript(episodeDir, "fr");
+    await writeCanonicalScenePlan(episodeDir, ["scene-001"]);
+    const sharedScript = "# shared full script\n";
+    await writeLocalizedScript(episodeDir, "en", "full", sharedScript);
+    await writeLocalizedScript(episodeDir, "de", "full", sharedScript);
 
-    await expect(
-      prepareFullSceneImageBatches({
-        episodeDir,
-        episodeId: "001-demo",
-        languages: ["de-DE", "fr-FR"],
-        variant: "full",
-        settings: {
-          model: "gpt-image-2",
-          requestedSize: "1920x1088",
-          quality: "medium",
-          outputFormat: "png",
-        },
-      })
-    ).rejects.toMatchObject<ImageBatchPlannerError>({
-      code: "unsupported-shared-output-multilanguage",
-      details: {
-        languages: ["de", "fr"],
-        sharedOutputRoot: "shared/images/generated",
+    const prepared = await prepareFullSceneImageBatches({
+      episodeDir,
+      episodeId: "001-demo",
+      languages: ["en-US", "de-DE"],
+      variant: "full",
+      settings: {
+        model: "gpt-image-2",
+        requestedSize: "1920x1088",
+        quality: "medium",
+        outputFormat: "png",
       },
     });
 
-    await expect(
-      fs.access(path.join(episodeDir, "state", "image-generation", "prompts"))
-    ).rejects.toThrow();
-    await expect(
-      fs.access(path.join(episodeDir, "shared", "images", "prompt-batches"))
-    ).rejects.toThrow();
+    const sceneGroup = prepared.groups.find((group) => group.stageKind === "scene-images");
+    expect(prepared.languages).toEqual(["de", "en"]);
+    expect(sceneGroup?.scenePlans).toHaveLength(2);
+    expect(sceneGroup?.scenePlans.filter((plan) => plan.manifestItem.ownsSharedOutput === true)).toHaveLength(1);
+    expect(sceneGroup?.scenePlans.filter((plan) => plan.manifestItem.aliasedToCustomId)).toHaveLength(1);
+    expect(prepared.stagePreviews.find((stage) => stage.kind === "scene-images")).toMatchObject({
+      itemCount: 2,
+      requestCount: 1,
+      operation: "generation",
+      endpoint: "/v1/images/generations",
+    });
+
+    const inputFile = await fs.readFile(
+      sceneGroup?.storagePlan.inputFilePath ?? "",
+      "utf8"
+    );
+    expect(inputFile.trim().split("\n")).toHaveLength(1);
+    const manifest = await readImageBatchManifest(sceneGroup?.storagePlan.manifestPath ?? "");
+    expect(manifest?.items).toHaveLength(2);
+    expect(manifest?.items.filter((item) => item.ownsSharedOutput === true)).toHaveLength(1);
+    expect(manifest?.items.filter((item) => item.aliasedToCustomId)).toHaveLength(1);
+  });
+
+  it("keeps multilingual full-scene aliasing stable even when localized script text differs", async () => {
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), "image-batch-full-multilang-conflict-"));
+    const episodeDir = path.join(tempDir, "001-demo");
+    await writeCanonicalScenePlan(episodeDir, ["scene-001"]);
+    await writeLocalizedScript(episodeDir, "en", "full", "# english full script\n");
+    await writeLocalizedScript(episodeDir, "de", "full", "# german full script\n");
+
+    const prepared = await prepareFullSceneImageBatches({
+      episodeDir,
+      episodeId: "001-demo",
+      languages: ["en-US", "de-DE"],
+      variant: "full",
+      settings: {
+        model: "gpt-image-2",
+        requestedSize: "1920x1088",
+        quality: "medium",
+        outputFormat: "png",
+      },
+    });
+    const sceneStage = prepared.stagePreviews.find((stage) => stage.kind === "scene-images");
+    expect(sceneStage).toMatchObject({
+      itemCount: 2,
+      requestCount: 1,
+      operation: "generation",
+    });
   });
 
   it("prepares short-scene batches with separate native, transform, and reuse counts", async () => {

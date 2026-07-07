@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import "dotenv/config";
+import "./env-setup.js";
 import {
   loadEpisodeConfig,
   loadRuntimeConfig,

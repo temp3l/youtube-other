@@ -70,6 +70,15 @@ function printJson(value: unknown): void {
   process.stdout.write(`${JSON.stringify(value, null, 2)}\n`);
 }
 
+function hasAliasedFollowerMarker(value: unknown): boolean {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "aliasedToCustomId" in value &&
+    typeof (value as { aliasedToCustomId?: unknown }).aliasedToCustomId === "string"
+  );
+}
+
 function parseCsv(
   value: string | undefined,
   normalize: (input: string) => string,
@@ -145,6 +154,9 @@ function summarizeManifest(
   ].sort((left, right) => left.localeCompare(right));
   const endpoints = [manifest.endpoint];
   const itemCount = manifest.items.length;
+  const aliasFollowerCount = manifest.items.filter(
+    (item) => hasAliasedFollowerMarker(item)
+  ).length;
   const retryableItemCount = manifest.items.filter((item) => {
     const category = item.error?.category ?? "";
     if (!["api-failed", "expired", "decode-failed", "validation-failed", "retry-required"].includes(item.status)) {
@@ -164,6 +176,7 @@ function summarizeManifest(
     endpoints,
     itemCounts: {
       total: itemCount,
+      aliasFollowers: aliasFollowerCount,
       persisted: manifest.items.filter((item) => item.status === "persisted").length,
       failed: manifest.items.filter((item) => item.status !== "persisted" && item.status !== "skipped-cached").length,
       retryable: retryableItemCount,
@@ -232,6 +245,14 @@ function summarizePrepared(
     itemCounts: {
       total: result.groups.reduce(
         (sum, group) => sum + group.referencePlans.length + group.scenePlans.length,
+        0
+      ),
+      aliasFollowers: result.groups.reduce(
+        (sum, group) =>
+          sum +
+          group.scenePlans.filter(
+            (plan) => hasAliasedFollowerMarker(plan.manifestItem)
+          ).length,
         0
       ),
       retryable: 0,

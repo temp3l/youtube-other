@@ -312,7 +312,61 @@ Main outputs per language:
 - `<lang>/short/visual-plan.json`
 - `<lang>/short/generation-manifest.json`
 
-## 16. Batchable image requests with resolved references
+## 16. FFmpeg motion presets for final video
+
+Motion is local and FFmpeg-only. It uses existing images and audio and does not call external APIs during render.
+
+Enable shot-plan motion for a full video:
+
+```bash
+npm run episode:english -- \
+  --episode 022-the-whistler-in-the-woods \
+  --visual-retention-mode enabled \
+  --visual-profile balanced \
+  --motion-preset subtle
+```
+
+Enable shot-plan motion for a short:
+
+```bash
+npm run episode:short -- \
+  --episode 022-the-whistler-in-the-woods \
+  --language en \
+  --visual-retention-mode enabled \
+  --visual-profile shorts-aggressive \
+  --motion-preset balanced
+```
+
+Disable motion and use the still-image render path:
+
+```bash
+npm run episode:short -- \
+  --episode 022-the-whistler-in-the-woods \
+  --language en \
+  --visual-retention-mode disabled
+```
+
+Safe defaults:
+
+- Full videos: `--visual-profile balanced --motion-preset subtle`
+- Shorts: `--visual-profile shorts-aggressive --motion-preset balanced`
+- Use `strong` only when the short needs more aggressive retention pacing.
+
+Preset families are documentary, tension, reveal, shorts, and ambient. Render-report preset IDs include `doc_slow_push_in`, `doc_slow_pull_back`, `reveal_pan_to_subject`, `reveal_zoom_to_detail`, `short_fast_push`, `short_snap_zoom`, `ambient_fog_drift`, and `ambient_static_hold`.
+
+Reproducibility:
+
+- `shot-plan.<variant>.<locale>.json` stores `planningSeed`.
+- Keep the same source images, source scenes, profile, motion preset, shot plan, render profile, and FFmpeg version to reproduce a render.
+- When motion debug is enabled by the caller, inspect `<variant>/video/motion-report.json` for selected preset IDs, per-shot seeds, filter summaries, and cache status.
+
+Troubleshooting:
+
+- If no motion appears, check `--visual-retention-mode enabled`.
+- If old motion appears, inspect derived shot cache status in `motion-report.json` before deleting any cache file.
+- If output validation fails, check `render.json` for duration and resolution details.
+
+## 17. Batchable image requests with resolved references
 
 Once `shared/scenes.json` exists, create the image-generation plan:
 
@@ -332,7 +386,7 @@ If you need the OpenArt export path:
 npm run mediaforge -- images export-openart 022-the-whistler-in-the-woods
 ```
 
-## 17. Scene image generation
+## 18. Scene image generation
 
 Generate all planned scene images:
 
@@ -354,7 +408,7 @@ npm run mediaforge -- stories resume-images \
   --episode 022-the-whistler-in-the-woods
 ```
 
-## 18. Asset validation
+## 19. Asset validation
 
 Validate generated image assets:
 
@@ -374,7 +428,7 @@ Check image readiness summary:
 npm run mediaforge -- images status 022-the-whistler-in-the-woods
 ```
 
-## 19. Production manifests and final packaging summary
+## 20. Production manifests and final packaging summary
 
 The main production manifests are written as side effects of the commands above:
 

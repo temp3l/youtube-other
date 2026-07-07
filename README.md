@@ -1,16 +1,40 @@
 # prompts
 
+- https://profile.kake.team/onboarding
+- https://www.workatastartup.com/jobs/87570
+- https://www.workatastartup.com/jobs/91211
+- https://jobs.micro1.ai/post/61f8d17a-315a-4406-b38a-f93b52f0e4db
+- https://weworkremotely.com/job-seekers/onboarding/step_3?payment_plan=top_access
+
+provide me the cli command to
+regenerate the german short movie - only use panning and zooming as motion effects - tell me all cli commands you used at the end
+
+## mock data
+
+- i want you to always
+
+- i dont want any episode to be generated with mocked audio ever again
+- check if any batches were submitted and finished by now - if so download everything and let me know
+
+- check which plans under docs/planning were created last and check if the last tasks of every plan were succesfully finished.
+
 ## batch image EPIC
 
-next task: todo-prompts/batch-images/07-task-09-docs-and-smoke-verification.md
+- check that all plans from risk-followups and motion effects were run successfully
 
-## make sure to never use the OPENAI_API_KEY from shell export again - always use the one from .env
+- image reuse (acrosss languages by scenes)
+  next prompts: https://chatgpt.com/g/g-p-6a317d326e30819183556eca604b770c/c/6a48ce98-e158-83ed-8501-ed4f024d57c1
+- i want all images for short videos to be genreated instead of beeing reused from full videos
 
-RISKS after todo-prompts/batch-images/04-tasks-05-06-cli-and-resume-hardening.md
-"""Remaining risks: OpenAI batch image-edit JSONL/reference semantics still need real-provider verification; full-scene multi-language shared-output constraints remain; short-scene batch support is still not implemented here."""
+- i only want panning and zooming as motion effects
+- render the short video of 023 german with that in mind - and let me verify results
 
-RISKS AFETR TAKS: todo-prompts/batch-images/05-task-07-short-image-strategy.md
-"""Remaining risks: short batch prepare currently validates only the image-generation package build; CLI-wide TypeScript and downstream batch import/download flows for short items remain unverified."""
+- codebase analysis:
+  - https://chatgpt.com/g/g-p-6a317d326e30819183556eca604b770c/c/6a4922a8-d914-83eb-a1cf-8653739bb60b
+
+next tasks - RISK followups /todo-prompts/risk-followups/
+
+- todo-prompts/risk-followups/02-full-workflow-cli-reconciliation.md
 
 ---
 

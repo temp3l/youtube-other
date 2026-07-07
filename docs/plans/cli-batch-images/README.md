@@ -37,6 +37,10 @@ task-01-characterization-tests
           -> task-06-reconciliation-validation-resume
             -> task-08-paths-renderer-integration
               -> task-09-operator-docs-and-smoke-verification
+                -> task-10-provider-reference-safeguards
+                  -> task-11-multilingual-full-scene-shared-output
+                    -> task-12-short-batch-downstream-verification
+                      -> task-13-remaining-risks-triage-and-docs
 
 task-02-batch-types-and-identity
   -> task-07-short-image-strategy
@@ -54,14 +58,18 @@ task-02-batch-types-and-identity
 7. Add short image batch/transform strategy.
 8. Verify canonical paths and renderer consumption.
 9. Update operator documentation and smoke checks.
+10. Triage remaining worktree noise and lock provider-edit safeguards.
+11. Enforce multilingual full-scene shared-output policy.
+12. Verify short batch import/download/resume behavior end to end.
+13. Record the remaining-risk status, manual checks, and safe cleanup guidance.
 
 ## Parallel Work
 
-Tasks 03 and 05 may be prepared in parallel after Task 02, but Task 05 must not merge before full scene batch workflow behavior is stable. Task 07 may be designed in parallel with Task 04, but implementation must wait for shared identity and reference semantics from Tasks 02 and 03. Task 09 may draft documentation early, but final content must wait for Tasks 04-08.
+Tasks 03 and 05 may be prepared in parallel after Task 02, but Task 05 must not merge before full scene batch workflow behavior is stable. Task 07 may be designed in parallel with Task 04, but implementation must wait for shared identity and reference semantics from Tasks 02 and 03. Task 09 may draft documentation early, but final content must wait for Tasks 04-08. Tasks 10-13 should remain sequential because they harden the already-merged workflow against provider, path-sharing, and resume/import regressions.
 
 ## Sequential Work
 
-Tasks 01, 02, 03, 04, 06, and 08 must remain sequential because each changes contracts consumed by later work.
+Tasks 01, 02, 03, 04, 06, 08, 10, 11, 12, and 13 must remain sequential because each changes contracts or operational guidance consumed by later work.
 
 ## Expected Migrations
 
@@ -83,6 +91,8 @@ Tasks 01, 02, 03, 04, 06, and 08 must remain sequential because each changes con
 - Do not submit OpenAI batches or generate paid assets in tests.
 - Use fake OpenAI clients and local image fixtures.
 - Run docs/diagram validation only for changed documentation.
+- Do not submit real OpenAI batches or upload provider files unless a task
+  explicitly adds a disabled-by-default manual checklist or smoke path.
 
 ## Completion Criteria
 

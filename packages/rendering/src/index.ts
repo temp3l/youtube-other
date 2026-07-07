@@ -41,8 +41,24 @@ import {
   escapeSubtitlePathForSceneCompatibility,
   type VideoFilterOperation,
 } from "./filter-builders/index.js";
+import { resolveMotionRenderConfig } from "./motion/config.js";
+import {
+  buildMotionRenderReportShot,
+  createMotionRenderReport,
+  motionRenderReportPath,
+  writeMotionRenderReport,
+  type MotionRenderReportShot,
+} from "./motion/report.js";
+import type { MotionRenderConfig } from "./motion/types.js";
 
 export * from "./filter-builders/index.js";
+export * from "./motion/config.js";
+export * from "./motion/filter-builder.js";
+export * from "./motion/presets.js";
+export * from "./motion/report.js";
+export * from "./motion/seeded.js";
+export * from "./motion/selection.js";
+export type * from "./motion/types.js";
 
 type ProcessEnv = Readonly<Record<string, string | undefined>>;
 
@@ -135,6 +151,7 @@ export interface VideoRenderRequest {
   readonly imageDir?: string;
   readonly outputSuffix?: string;
   readonly outputBasename?: string;
+  readonly motion?: Partial<MotionRenderConfig>;
   readonly trailingSilenceRatio?: number;
   readonly trailingSilenceBufferSeconds?: number;
   readonly mediaContext?: MediaStageContext & {
@@ -2531,6 +2548,25 @@ function cacheSummaryResult(
   };
 }
 
+function relativeReportPath(root: string, filePath: string): string {
+  const relative = path.relative(path.resolve(root), path.resolve(filePath));
+  return relative.length > 0 && !relative.startsWith("..") && !path.isAbsolute(relative)
+    ? relative.replace(/\\/gu, "/")
+    : path.basename(filePath);
+}
+
+function errorReportContext(
+  error: unknown
+): NonNullable<MotionRenderReportShot["failure"]> {
+  const message = error instanceof Error ? error.message : String(error);
+  const name = error instanceof Error ? error.name : "Error";
+  return {
+    stage: /validation/iu.test(message) ? "validation" : "render",
+    name,
+    message,
+  };
+}
+
 function withShotClipOutputPath(
   request: ShotClipRenderRequest,
   outputPath: string
@@ -3611,6 +3647,22 @@ export class FFmpegVideoRenderer implements VideoRenderer {
     await ensureDir(clipsDir);
     const sourceImages = await resolveShotSourceImages(request, shotPlan);
     const shots = orderedShotPlanShots(shotPlan);
+    const motionConfig = resolveMotionRenderConfig(request.motion);
+    const motionReportShots: MotionRenderReportShot[] = [];
+    const writeDebugMotionReport = async (): Promise<void> => {
+      if (!motionConfig.debug) {
+        return;
+      }
+      await writeMotionRenderReport(
+        motionRenderReportPath(request.outputDir),
+        createMotionRenderReport({
+          episodeId: shotPlan.sourceId,
+          rendererVersion: rendererOperationVersion,
+          outputDir: ".",
+          shots: motionReportShots,
+        })
+      );
+    };
     const clipPaths: string[] = [];
     const renderedShotIds: string[] = [];
     const failedShotIds: string[] = [];
@@ -3618,19 +3670,37 @@ export class FFmpegVideoRenderer implements VideoRenderer {
     for (const [index, shot] of shots.entries()) {
       signal.throwIfAborted();
       const sourceImage = sourceImages.get(shot.sourceImageId);
-      if (!sourceImage) {
-        failedShotIds.push(shot.shotId);
-        throw new MediaValidationError(
-          `Missing source image mapping for ${shot.shotId} in ${shot.sceneId}.`
-        );
-      }
       const outputPath = path.join(clipsDir, safeShotClipFilename(shot.shotId, ".mp4"));
       const manifestPath = path.join(
         clipsDir,
         safeShotClipFilename(shot.shotId, ".json")
       );
+      if (!sourceImage) {
+        failedShotIds.push(shot.shotId);
+        motionReportShots.push(
+          buildMotionRenderReportShot({
+            shot,
+            sourceImageId: shot.sourceImageId,
+            durationMs: Math.max(0, shot.endMs - shot.startMs),
+            inputImage: shot.sourceImageId,
+            outputSegment: relativeReportPath(request.episodeDir, outputPath),
+            seed: `${motionConfig.seed}:${shot.shotId}`,
+            operations: [],
+            failure: {
+              stage: "prepare",
+              name: "MediaValidationError",
+              message: `Missing source image mapping for ${shot.shotId} in ${shot.sceneId}.`,
+            },
+          })
+        );
+        await writeDebugMotionReport().catch(() => {});
+        throw new MediaValidationError(
+          `Missing source image mapping for ${shot.shotId} in ${shot.sceneId}.`
+        );
+      }
+      let clipRequest: ShotClipRenderRequest | undefined;
       try {
-        const clipRequest = await buildShotClipRenderRequest({
+        clipRequest = await buildShotClipRenderRequest({
           episodeId: shotPlan.sourceId,
           episodeDir: request.episodeDir,
           shot,
@@ -3660,6 +3730,21 @@ export class FFmpegVideoRenderer implements VideoRenderer {
           cache.resumedShots.push(shot.shotId);
           clipPaths.push(cacheClipPath);
           renderedShotIds.push(shot.shotId);
+          motionReportShots.push(
+            buildMotionRenderReportShot({
+              shot,
+              sourceImageId: sourceImage.sourceImageId,
+              durationMs: clipRequest.shotDurationMs,
+              inputImage: relativeReportPath(request.episodeDir, sourceImage.path),
+              outputSegment: relativeReportPath(request.episodeDir, cacheClipPath),
+              seed: `${motionConfig.seed}:${shot.shotId}`,
+              operations: clipRequest.operations,
+              cache: {
+                status: "hit",
+                fingerprint: clipRequest.derivedShotFingerprint,
+              },
+            })
+          );
           continue;
         }
         recordCacheMiss(cache, {
@@ -3677,12 +3762,68 @@ export class FFmpegVideoRenderer implements VideoRenderer {
         cache.renderedShots.push(shot.shotId);
         clipPaths.push(cacheClipPath);
         renderedShotIds.push(shot.shotId);
+        motionReportShots.push(
+          buildMotionRenderReportShot({
+            shot,
+            sourceImageId: sourceImage.sourceImageId,
+            durationMs: clipRequest.shotDurationMs,
+            inputImage: relativeReportPath(request.episodeDir, sourceImage.path),
+            outputSegment: relativeReportPath(request.episodeDir, cacheClipPath),
+            seed: `${motionConfig.seed}:${shot.shotId}`,
+            operations: clipRequest.operations,
+            cache: {
+              status: "write",
+              fingerprint: clipRequest.derivedShotFingerprint,
+              reason: lookup.reason,
+            },
+          })
+        );
       } catch (error) {
         failedShotIds.push(shot.shotId);
+        if (clipRequest) {
+          motionReportShots.push(
+            buildMotionRenderReportShot({
+              shot,
+              sourceImageId: sourceImage.sourceImageId,
+              durationMs: clipRequest.shotDurationMs,
+              inputImage: relativeReportPath(request.episodeDir, sourceImage.path),
+              outputSegment: relativeReportPath(
+                request.episodeDir,
+                resolveEpisodeDerivedShotClipPath(
+                  request.episodeDir,
+                  clipRequest.derivedShotFingerprint
+                )
+              ),
+              seed: `${motionConfig.seed}:${shot.shotId}`,
+              operations: clipRequest.operations,
+              failure: errorReportContext(error),
+            })
+          );
+        } else {
+          const failure = errorReportContext(error);
+          motionReportShots.push(
+            buildMotionRenderReportShot({
+              shot,
+              sourceImageId: sourceImage.sourceImageId,
+              durationMs: Math.max(0, shot.endMs - shot.startMs),
+              inputImage: relativeReportPath(request.episodeDir, sourceImage.path),
+              outputSegment: relativeReportPath(request.episodeDir, outputPath),
+              seed: `${motionConfig.seed}:${shot.shotId}`,
+              operations: [],
+              failure: {
+                stage: "prepare",
+                name: failure.name,
+                message: failure.message,
+              },
+            })
+          );
+        }
+        await writeDebugMotionReport().catch(() => {});
         await fs.rm(manifestPath, { force: true }).catch(() => {});
         throw error;
       }
     }
+    await writeDebugMotionReport();
     return {
       clipsDir,
       clipPaths,

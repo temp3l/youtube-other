@@ -2,143 +2,142 @@
 
 ## Executive Summary
 
-Outcome: **A - Implemented**.
+Outcome: **A - Implemented with explicit safeguards**.
 
-The repository now contains a complete, source-registered `images batch` workflow:
-prepare, submit, status, download, and resume are all implemented in
+The repository contains a complete source-registered `images batch` workflow:
+`prepare`, `submit`, `status`, `download`, and `resume` are implemented in
 `apps/cli/src/images-batch-commands.ts`, with planner, service, identity, and
 resolver support in `packages/image-generation` and `packages/shared`.
 
-The workflow covers:
+The workflow now covers:
 
 - full-scene image batches
-- reference-image planning and reference-edit batches
+- multilingual full-scene shared-output aliasing
 - short native generation batches
 - local deterministic short transforms and reuse
 - reconciliation, validation, and retry lineage
 
+Reference-assisted batch image edits are not treated as provider-safe. They are
+blocked during `prepare` with `unsupported-edit-batch-request` until the manual
+verification checklist in
+`docs/plans/cli-batch-images/provider-reference-semantics-checklist.md` is
+completed and the implementation is intentionally widened.
+
 ## Components Inspected
 
-- Package manifests and SDK surface: `package.json`, `apps/cli/package.json`,
-  `node_modules/openai/package.json`, `node_modules/openai/resources/batches.d.ts`
-- CLI surfaces: `apps/cli/src/index.ts`, `apps/cli/src/images-batch-commands.ts`,
-  `apps/cli/src/images-resume-command.ts`, `apps/cli/src/images-sync-shared-command.ts`
+- CLI surfaces: `apps/cli/src/index.ts`,
+  `apps/cli/src/images-batch-commands.ts`,
+  `apps/cli/src/images-resume-command.ts`
 - Image generation: `packages/image-generation/src/image-batch-planner.ts`,
   `packages/image-generation/src/image-batch-service.ts`,
-  `packages/image-generation/src/image-batch-storage.ts`,
-  `packages/image-generation/src/image-batch-identity.ts`,
   `packages/image-generation/src/image-batch-normalization.ts`,
+  `packages/image-generation/src/image-batch.schemas.ts`,
+  `packages/image-generation/src/image-batch.types.ts`,
   `packages/image-generation/src/shorts-image-strategy.ts`,
   `packages/image-generation/src/episode-image-pipeline.ts`
 - Rendering and paths: `packages/rendering/src/index.ts`,
   `packages/shared/src/episode-filesystem.ts`
 - Tests:
   `apps/cli/src/images-batch-commands.unit.test.ts`,
-  `apps/cli/src/images-resume-command.unit.test.ts`,
   `packages/image-generation/src/image-batch-planner.unit.test.ts`,
   `packages/image-generation/src/image-batch-service.unit.test.ts`,
-  `packages/image-generation/src/shorts-image-strategy.unit.test.ts`
-- Documentation: `docs/cli-batch-images.md`, `docs/cli.md`,
-  `docs/openai-api-endpoint-audit.md`
+  `packages/image-generation/src/shorts-image-strategy.unit.test.ts`,
+  `packages/rendering/src/index.unit.test.ts`
 
 ## Implemented Full-Image Flow
 
-The canonical batch flow is now reachable from the CLI:
-
-1. `images batch prepare` resolves the episode workspace and loads batch settings.
-2. `prepareFullSceneImageBatches` creates reference stages, scene stages, and
-   deterministic local batch ids.
-3. Reference-assisted scenes use `/v1/images/edits` when OpenAI file ids are
-   available.
-4. Text-only scenes use `/v1/images/generations`.
-5. `images batch submit` uploads one prepared JSONL input and creates the remote
+1. `images batch prepare` resolves the episode workspace and loads batch
+   settings.
+2. `prepareFullSceneImageBatches` creates reference stages and full-scene
+   generation groups for one or more selected languages.
+3. Canonical full-scene outputs remain shared under
+   `shared/images/generated/`.
+4. When multiple languages target the same canonical full-scene path, the
+   planner compares provider request hash, generation configuration hash,
+   operation, output format, and dependency hashes.
+5. If those fields match, one deterministic owner item emits the provider JSONL
+   line and the remaining items become alias followers in the manifest.
+6. If those fields differ, preparation fails before any write or submission.
+7. `images batch submit` uploads one prepared JSONL input and creates the remote
    batch.
-6. `images batch status` refreshes the provider lifecycle state.
-7. `images batch download` imports completed results, validates them, and writes
-   canonical outputs and manifests.
-8. `images batch resume` prepares a retry batch only for retryable items.
+8. `images batch download` imports completed owner results, validates them, and
+   mirrors the persisted metadata to alias followers.
+9. `images batch resume` prepares a retry batch only for retryable owner items.
 
 ## Implemented Short-Image Flow
 
-Short image handling is now represented in the same batch identity and manifest
-model:
-
 1. `prepareShortSceneImageBatches` loads the localized short scene plan.
-2. `planShortsImageWork` classifies each scene as native generation, deterministic
-   transform, reuse, or blocked.
+2. `planShortsImageWork` classifies each scene as native generation,
+   deterministic transform, reuse, or blocked.
 3. Native portrait generations become provider JSONL lines.
-4. Deterministic transforms and direct reuse stay local.
-5. Imported short images update `shared/short/images/generated` and
+4. Deterministic transforms and direct reuse stay local and are written only to
+   `shorts-local-work.<language>.json`.
+5. `images batch prepare --variants short --json` reports paid native generation
+   counts separately from local deterministic transforms, cache reuse, and
+   blocked items.
+6. Imported short images update `shared/short/images/generated/` and
    `shorts-image-manifest.json`.
-6. Short rendering consumes the canonical portrait outputs.
+7. Short retry preparation includes only failed native generation items and
+   ignores local-only transform or reuse entries.
 
 ## API Endpoint Verification
 
-- Installed OpenAI SDK in lockstep with the repo lockfile supports
-  `/v1/images/generations` and `/v1/images/edits` in batch requests.
-- `image-batch-planner.ts` emits generation and edit JSONL lines using those two
-  endpoints only.
-- The planner never routes image batches through `/v1/responses`.
-- Synchronous reference-assisted generation continues to use `client.images.edit`
-  when reference inputs are present.
+- Text-only batch image generation uses `/v1/images/generations`.
+- The planner never routes image generation through `/v1/responses`.
+- Synchronous reference-assisted generation still uses `client.images.edit(...)`
+  when references are present.
+- Batch reference-assisted edit requests are blocked as manual-only because the
+  repository does not prove the JSONL request body semantics for image inputs on
+  `/v1/images/edits`.
 
 ## Capability Matrix
 
-| Capability                                    | Full video | Short video | Evidence                                     | Status           |
-| --------------------------------------------- | ---------- | ----------- | -------------------------------------------- | ---------------- |
-| CLI batch commands exist                      | Yes        | Yes         | `apps/cli/src/images-batch-commands.ts`      | Complete         |
-| Prepare is local-only                         | Yes        | Yes         | command handlers and unit tests              | Complete         |
-| Submit is the only paid batch creation step   | Yes        | Yes         | submit handler and service tests             | Complete         |
-| Reference-assisted edit batches are modeled   | Yes        | Yes         | planner tests and service types              | Complete         |
-| Short deterministic transforms stay local     | N/A        | Yes         | `shorts-image-strategy.ts` and planner tests | Complete         |
-| Canonical output paths are resolver-backed    | Yes        | Yes         | `packages/shared/src/episode-filesystem.ts`  | Complete         |
-| Order-independent reconciliation              | Yes        | Yes         | service tests                                | Complete         |
-| Duplicate and unknown custom ids are detected | Yes        | Yes         | service tests                                | Complete         |
-| Retry lineage is preserved                    | Yes        | Yes         | service tests                                | Complete         |
-| Deterministic splitting exists                | Yes        | Yes         | planner tests                                | Complete         |
-| Multi-language full batch in one run          | No         | No          | planner guard                                | Known limitation |
-| Multi-language short batch in one run         | No         | No          | planner guard                                | Known limitation |
+| Capability                                         | Full video | Short video | Status           |
+| -------------------------------------------------- | ---------- | ----------- | ---------------- |
+| CLI batch commands exist                           | Yes        | Yes         | Complete         |
+| Prepare is local-only                              | Yes        | Yes         | Complete         |
+| Submit is the only paid batch creation step        | Yes        | Yes         | Complete         |
+| Multilingual same-path aliasing                    | Yes        | N/A         | Complete         |
+| Unsafe same-path collision rejection               | Yes        | N/A         | Complete         |
+| Reference-assisted batch edit requests             | Blocked    | Blocked     | Manual-only      |
+| Deterministic short transforms stay local          | N/A        | Yes         | Complete         |
+| Canonical output paths are resolver-backed         | Yes        | Yes         | Complete         |
+| Order-independent reconciliation                   | Yes        | Yes         | Complete         |
+| Duplicate and unknown custom ids are detected      | Yes        | Yes         | Complete         |
+| Retry lineage is preserved                         | Yes        | Yes         | Complete         |
+| Resume avoids alias/local-only duplicate paid work | Yes        | Yes         | Complete         |
+| Multi-language short batch in one run              | No         | No          | Known limitation |
 
 ## Current Limitations
 
-- Full and short batch preparation support one language per run because outputs
-  target shared canonical workspace paths.
+- Short batch preparation still supports one language per run because portrait
+  outputs target shared canonical paths.
 - Deterministic short transforms remain local and do not emit provider JSONL.
-- Reference-assisted scenes require resolved OpenAI file ids before batch
-  submission.
-- The built CLI binary in this workspace was not rebuilt during this documentation
-  task, so `apps/cli/bin/mediaforge.js` may lag the source tree until the package
-  is rebuilt.
+- Reference-assisted batch edits remain blocked until manual provider
+  verification proves `/v1/images/edits` JSONL semantics for image inputs.
+- The built CLI runtime at `apps/cli/bin/mediaforge.js` may lag the source tree
+  until the CLI package is rebuilt.
 
 ## Evidence Notes
 
-- `images batch` is registered in source and covered by focused unit tests.
-- `resume` accepts an optional `--batch` and falls back to the latest retryable
-  batch in the local index when omitted.
-- `download` and `resume` both resolve manifests by local batch id or OpenAI batch
-  id once a batch exists.
-- Import writes both the canonical asset and the appropriate auxiliary manifest or
-  registry update when needed.
+- `images batch prepare --variants full --languages en,de` can succeed when
+  colliding full-scene outputs are represented as one owner item plus alias
+  followers.
+- Import writes both the canonical owner asset and follower manifest state for
+  aliased full-scene items.
+- Resume accepts an optional `--batch` and otherwise falls back to the latest
+  retryable image batch in the local index.
+- Short prepare output exposes `previewCounts` and `localWorkPlan` in JSON mode.
 
 ## Verification Strategy
 
-Use focused Vitest runs and documentation checks only. No production batch upload,
-polling, or paid image generation was performed for this audit task.
+Use focused Vitest runs, narrow package typechecks, and documentation checks
+only. No production batch upload, polling, or paid image generation was
+performed for this audit task.
 
-## Smoke Verification
+## Remaining Risk Pointers
 
-- `pnpm test:focused -- apps/cli/src/images-batch-commands.unit.test.ts packages/image-generation/src/image-batch-planner.unit.test.ts packages/image-generation/src/image-batch-service.unit.test.ts`
-  passed: 3 files, 41 tests.
-- `pnpm exec prettier --write docs/cli-batch-images.md docs/plans/cli-batch-images/batch-image-audit.md`
-  normalized the new docs after `prettier --check` flagged them.
-- `pnpm docs:diagrams:check` failed on pre-existing stale rendered assets:
-  `docs/diagrams/rendered/story-artifact-lineage.{svg,png}` and
-  `docs/diagrams/rendered/story-stage-state-machine.{svg,png}`.
-- `node apps/cli/bin/mediaforge.js images --help` showed the workspace binary is
-  still using a stale dist build and does not yet reflect the source-registered
-  `images batch` subtree.
-
-## Documentation Created
-
-- `docs/cli-batch-images.md`
-- `docs/plans/cli-batch-images/batch-image-audit.md`
+- Manual-only provider edit-batch verification:
+  `docs/plans/cli-batch-images/provider-reference-semantics-checklist.md`
+- Current implementation and workspace-risk triage:
+  `docs/plans/cli-batch-images/remaining-risks-triage.md`

@@ -41,6 +41,25 @@ Documentation update policy:
 - Update docs only when a task changes documented architecture, commands, configuration, or behavior.
 - If a task does not change those surfaces, leave docs alone.
 
+Plan Execution Reporting:
+
+- Whenever you execute or implement work based on any file under `docs/plans/*`, you must create or update a report after finishing the implementation.
+- Report location: `docs/reports/<YYYY-MM-DD>/<plan-file-name>-implementation-report.md`
+- Each report must include:
+  - Source plan file path
+  - Date of execution
+  - Summary of implemented changes
+  - Files changed
+  - Tasks completed
+  - Tasks partially completed
+  - Tasks not completed
+  - Deviations from the original plan
+  - Tests/checks run
+  - Test results
+  - Known risks or follow-up work
+  - Recommended next steps
+- Before finishing any Codex task, verify whether the task was based on `docs/plans/*`. If yes, do not finish until the report exists and accurately reflects the final state of the implementation.
+
 Documentation index:
 
 - [Docs Index](docs/README.md)

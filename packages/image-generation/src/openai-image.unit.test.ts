@@ -1,4 +1,4 @@
-import { mkdtempSync } from "node:fs";
+import { mkdtempSync, writeFileSync } from "node:fs";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -60,6 +60,24 @@ describe("OpenAI image generation settings", () => {
     expect(settings.organization).toBe("org-new");
   });
 
+  it("prefers OPENAI_API_KEY from .env over the inherited shell env", () => {
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), "mediaforge-openai-image-"));
+    const previousCwd = process.cwd();
+
+    writeFileSync(path.join(tempDir, ".env"), "OPENAI_API_KEY=dotenv-key\n");
+    process.chdir(tempDir);
+
+    try {
+      const settings = loadOpenAiImageGenerationSettings({
+        OPENAI_API_KEY: "shell-key"
+      });
+
+      expect(settings.apiKey).toBe("dotenv-key");
+    } finally {
+      process.chdir(previousCwd);
+    }
+  });
+
   it("rejects malformed image sizes", () => {
     expect(() =>
       loadOpenAiImageGenerationSettings({
@@ -71,57 +89,66 @@ describe("OpenAI image generation settings", () => {
   });
 
   it("redacts API keys and keeps the request body curl-compatible", () => {
-    const settings = loadOpenAiImageGenerationSettings({
-      OPENAI_API_KEY: "sk-test-1234567890",
-      OPENAI_IMAGE_MODEL: "gpt-image-2",
-      OPENAI_IMAGE_SIZE: "1920x1088",
-      OPENAI_IMAGE_QUALITY: "medium"
-    });
-    const plan = scenePlanSchema.parse({
-      sourceId: "episode-fixture",
-      scenes: [
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), "mediaforge-openai-image-"));
+    const previousCwd = process.cwd();
+
+    process.chdir(tempDir);
+
+    try {
+      const settings = loadOpenAiImageGenerationSettings({
+        OPENAI_API_KEY: "sk-test-1234567890",
+        OPENAI_IMAGE_MODEL: "gpt-image-2",
+        OPENAI_IMAGE_SIZE: "1920x1088",
+        OPENAI_IMAGE_QUALITY: "medium"
+      });
+      const plan = scenePlanSchema.parse({
+        sourceId: "episode-fixture",
+        scenes: [
+          {
+            id: "scene-001",
+            sequenceNumber: 1,
+            canonicalNarration: "First scene.",
+            sourceSegmentIds: ["scene-001"],
+            estimatedDurationSeconds: 4,
+            timing: { startSeconds: 0, endSeconds: 4 },
+            visualPurpose: "introduce",
+            subject: "mouse",
+            action: "eating",
+            setting: "habitat",
+            composition: "centered",
+            cameraFraming: "medium shot",
+            mood: "calm",
+            continuityReferences: [],
+            onScreenText: "",
+            negativeConstraints: ["no text"],
+            aspectRatios: ["16:9"],
+            imagePrompt: "mouse eating in a habitat",
+            expectedImageFilenames: ["scene-001__000000-000004__16x9.png"],
+            qualityStatus: "draft"
+          }
+        ]
+      });
+      const body = buildOpenAiImageRequestBody(
         {
-          id: "scene-001",
-          sequenceNumber: 1,
-          canonicalNarration: "First scene.",
-          sourceSegmentIds: ["scene-001"],
-          estimatedDurationSeconds: 4,
-          timing: { startSeconds: 0, endSeconds: 4 },
-          visualPurpose: "introduce",
-          subject: "mouse",
-          action: "eating",
-          setting: "habitat",
-          composition: "centered",
-          cameraFraming: "medium shot",
-          mood: "calm",
-          continuityReferences: [],
-          onScreenText: "",
-          negativeConstraints: ["no text"],
-          aspectRatios: ["16:9"],
-          imagePrompt: "mouse eating in a habitat",
-          expectedImageFilenames: ["scene-001__000000-000004__16x9.png"],
-          qualityStatus: "draft"
-        }
-      ]
-    });
-    const body = buildOpenAiImageRequestBody(
-      {
-        scene: plan.scenes[0]!,
+          scene: plan.scenes[0]!,
+          prompt: "mouse eating in a habitat",
+          episodeSlug: "episode-fixture",
+          episodeDir: "/tmp/episode-fixture",
+          normalizedFilename: "scene-001__000000-000004__16x9.png"
+        },
+        settings
+      );
+      expect(body).toEqual({
+        model: "gpt-image-2",
         prompt: "mouse eating in a habitat",
-        episodeSlug: "episode-fixture",
-        episodeDir: "/tmp/episode-fixture",
-        normalizedFilename: "scene-001__000000-000004__16x9.png"
-      },
-      settings
-    );
-    expect(body).toEqual({
-      model: "gpt-image-2",
-      prompt: "mouse eating in a habitat",
-      size: "1536x1024",
-      quality: "medium",
-      n: 1
-    });
-    expect(redactApiKey(settings.apiKey)).toBe("sk-t…7890");
+        size: "1536x1024",
+        quality: "medium",
+        n: 1
+      });
+      expect(redactApiKey(settings.apiKey)).toBe("sk-t…7890");
+    } finally {
+      process.chdir(previousCwd);
+    }
   });
 });
 

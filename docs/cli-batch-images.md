@@ -1,8 +1,9 @@
 # CLI Batch Images
 
 This document covers the implemented `images batch` workflow in the canonical CLI.
-It is the local-first batch path for image generation, image edits, short-image
-native generation, and short-image local transforms.
+It is the local-first batch path for text-only image generation, short-image
+native generation, and short-image local transforms. Reference-assisted batch
+image edits are blocked pending manual provider verification.
 
 Source of truth:
 
@@ -72,7 +73,11 @@ Behavior:
 - Creates a deterministic local batch id per planned group.
 - Writes `.batch` manifests, JSONL, and summary data under the episode state dir.
 - Returns a JSON summary with episode, languages, variants, stages, local batch ids,
-  endpoints, item counts, request settings, and canonical paths.
+  endpoints, item counts, request settings, canonical paths, and alias follower
+  counts.
+- Short-variant JSON also includes `previewCounts` for paid native generations,
+  local deterministic transforms, cache reuse, and blocked items, plus the
+  `localWorkPlan` path.
 
 `prepare` does not create a provider client and does not upload anything.
 
@@ -189,12 +194,24 @@ Behavior:
 
 Full batches are the canonical scene-image path for full-video assets.
 
-- They require one language per run because the outputs target shared canonical
-  paths.
+- They can prepare multiple languages in one run only when every colliding
+  shared output is provably identical and can be represented as one owner item
+  plus alias followers.
 - They use a reference stage before scene planning.
-- Scene batches can be text-only generation or image edit requests depending on
-  whether the scene depends on approved reference images.
+- Scene batches currently submit only text-only generation requests.
 - Shared output path: `shared/images/generated/`
+
+Shared-output policy:
+
+- The planner compares same-path multilingual candidates by provider request
+  hash, generation configuration hash, operation, output format, and dependency
+  hashes.
+- If those fields match, one deterministic owner item keeps the provider request
+  and the remaining items are manifest aliases that point at the same canonical
+  output path.
+- If those fields diverge, preparation fails before batch JSONL is written.
+- `download` mirrors owner results into alias followers, and `resume` only
+  resubmits owner items.
 
 Reference stage semantics:
 
@@ -281,22 +298,10 @@ The examples below are sanitized and match the implemented schema.
 
 ### Reference-assisted edit
 
-```json
-{
-  "custom_id": "dte-img:v2:001-demo:en:full:full-scene:edit:scene:scene-014:abcdef012345",
-  "method": "POST",
-  "url": "/v1/images/edits",
-  "body": {
-    "model": "gpt-image-2",
-    "prompt": "The same character steps into frame and looks back.",
-    "n": 1,
-    "size": "1920x1088",
-    "quality": "medium",
-    "output_format": "png",
-    "image": ["file_ref_123", "file_ref_456"]
-  }
-}
-```
+There is no supported batch JSONL example for reference-assisted edits yet.
+`images batch prepare` fails with `unsupported-edit-batch-request` and points to
+the manual checklist in
+`docs/plans/cli-batch-images/provider-reference-semantics-checklist.md`.
 
 ### Short native generation
 
@@ -335,7 +340,7 @@ and are applied locally to produce the portrait asset.
   "retryNumber": 0,
   "createdAt": "2026-07-04T10:00:00.000Z",
   "updatedAt": "2026-07-04T10:00:00.000Z",
-  "endpoint": "/v1/images/edits",
+  "endpoint": "/v1/images/generations",
   "model": "gpt-image-2",
   "completionWindow": "24h",
   "inputFilePath": "episodes/001-demo/state/image-generation/.batch/inputs/batch-imgb-0f1a2b3c4d5e-p001-of001.jsonl",
@@ -343,26 +348,28 @@ and are applied locally to produce the portrait asset.
   "status": "prepared",
   "items": [
     {
-      "customId": "dte-img:v2:001-demo:en:full:full-scene:edit:scene:scene-014:abcdef012345",
+      "customId": "dte-img:v2:001-demo:de:full:full-scene:generation:scene:scene-014:abcdef012345",
       "identity": {
         "schemaVersion": "image-asset-identity-v1",
         "episodeId": "001-demo",
-        "language": "en",
+        "language": "de",
         "variant": "full",
         "assetRole": "full-scene",
-        "operation": "edit",
+        "operation": "generation",
         "subject": { "kind": "scene", "id": "scene-014" },
         "promptHash": "abc123...",
         "model": "gpt-image-2",
         "size": "1920x1088",
         "quality": "medium",
-        "dependencyHashes": ["def456..."],
+        "dependencyHashes": [],
         "destination": {
           "root": "shared-images-generated",
           "relativePath": "shared/images/generated/scene-014__000000-000004__16x9.png"
         },
         "identityHash": "012345..."
       },
+      "sharedOutputKey": "shared-output-key",
+      "ownsSharedOutput": true,
       "requestedSize": "1920x1088",
       "quality": "medium",
       "outputFormat": "png",
@@ -390,13 +397,15 @@ The only differences are the normalized language, `variant: "short"`, and the
   - content variants are restricted to `full` or `short`
   - dependency hashes are de-duplicated and sorted
 - `generation` maps to `/v1/images/generations`.
-- `edit` maps to `/v1/images/edits`.
 - `deterministic-transform` is not a provider-batch operation.
-- Reference-assisted scene batches require resolved OpenAI file ids.
+- Reference-assisted scene batches are blocked until manual provider verification
+  proves `/v1/images/edits` JSONL semantics for image inputs.
 - Missing reference images, stale dependency hashes, or unapproved references fail
   preparation unless the explicit override flag is set.
 - Destination paths must resolve to canonical workspace-relative paths.
-- Duplicate `custom_id` values and duplicate destination paths are rejected.
+- Duplicate `custom_id` values are rejected.
+- Duplicate destination paths are rejected unless every colliding item is part of
+  one validated shared-output alias group.
 
 ## Canonical Output Paths
 
@@ -448,11 +457,11 @@ flowchart TD
   B --> C{variant}
   C -->|full| D[Reference stage: prompts -> images -> approval]
   D --> E[Scene planning]
-  E --> F{operation}
-  F -->|generation| G[/v1/images/generations JSONL/]
-  F -->|edit| H[/v1/images/edits JSONL/]
+  E --> F{shared output}
+  F -->|owner items| G[/v1/images/generations JSONL/]
+  F -->|alias followers| H[Manifest alias only]
   G --> I[submit]
-  H --> I
+  H --> K
   I --> J[status]
   J --> K[download/import]
   K --> L[Validation: canonical paths, MIME, dimensions, hashes]
@@ -480,7 +489,8 @@ flowchart TD
   invalid base64, invalid MIME, invalid dimensions, and destination conflicts as
   recovery or validation failures.
 - `download` is idempotent after a successful import.
-- `resume` only includes retryable items and preserves lineage across retries.
+- `resume` only includes retryable owner items and preserves lineage across
+  retries.
 - If no retryable items remain, `resume` fails instead of creating a duplicate
   paid batch.
 
@@ -496,10 +506,12 @@ Machine-readable command output includes:
 - provider batch id, when present
 - endpoint list
 - item counts
+- alias follower counts
 - request model, size, and quality
 - command status and provider status
 - unknown and duplicate result counts
 - canonical path bundle
+- short `previewCounts` and `localWorkPlan`, when `--variants short`
 
 Import reports also record:
 
@@ -521,6 +533,8 @@ Import reports also record:
   quality before any provider call.
 - Deterministic short transforms and direct reuse remain local so short batches do
   not pay for work that can be derived safely.
+- Reference-assisted batch edits remain manual-only and are not provider-safe in
+  normal `prepare`.
 - Logs and summaries exclude secrets, signed URLs, and raw provider credentials.
 
 ## Tests
@@ -550,6 +564,8 @@ Useful smoke checks:
   full-image preparation.
 - `Missing reference image` or `Character ... requires an approved reference`:
   generate or approve the reference before planning the dependent scene.
+- `unsupported-edit-batch-request`: stop and use the manual checklist instead of
+  attempting a paid provider verification from the normal CLI flow.
 - `Image batch ... was already submitted`: use the existing remote batch id for
   `status` or `download` instead of resubmitting.
 - `Image batch ... has no retryable items`: the batch lineage is already clean.
@@ -558,8 +574,9 @@ Useful smoke checks:
 
 ## Known Limitations
 
-- Full and short batch preparation support one language per run because the
-  outputs share canonical workspace paths.
+- Full-scene multilingual preparation only works when colliding outputs can be
+  represented as safe aliases; short preparation still supports one language per
+  run.
 - Deterministic short transforms stay local and never become provider JSONL.
-- Reference-assisted scenes require resolved OpenAI file ids before the batch can
-  be submitted.
+- Reference-assisted batch edits are blocked pending manual provider
+  verification.

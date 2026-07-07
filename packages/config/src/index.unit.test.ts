@@ -364,7 +364,7 @@ describe("runtime config", () => {
     const dir = await fs.mkdtemp(path.join(os.tmpdir(), "mediaforge-dotenv-"));
     const previousCwd = process.cwd();
     const previousOpenAiKey = process.env.OPENAI_API_KEY;
-    delete process.env.OPENAI_API_KEY;
+    process.env.OPENAI_API_KEY = "shell-key";
     await fs.writeFile(
       path.join(dir, ".env"),
       [

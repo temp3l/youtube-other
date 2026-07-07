@@ -791,7 +791,10 @@ export async function loadRuntimeConfig(
   const dotenvValues = await loadDotEnvValues(process.cwd());
   const env = envSchema.parse({
     ...dotenvValues,
-    ...process.env
+    ...process.env,
+    ...(dotenvValues.OPENAI_API_KEY !== undefined
+      ? { OPENAI_API_KEY: dotenvValues.OPENAI_API_KEY }
+      : {})
   });
   const availableCpuCores = Math.max(1, os.cpus().length);
   const workspaceDir = overrides.workspaceDir ?? env.MEDIAFORGE_WORKSPACE ?? "./episodes";

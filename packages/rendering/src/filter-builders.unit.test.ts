@@ -342,10 +342,13 @@ describe("FFmpeg filter builders", () => {
     ).toThrow(/xfade\.offsetSeconds/u);
   });
 
-  it("preserves scene-rendering filter graph compatibility", () => {
+  it("preserves scene-rendering filter graph compatibility for vertical 9:16 output", () => {
     expect(buildSceneClipFilterGraph(1080, 1920)).toBe(
       "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,format=yuv420p"
     );
+  });
+
+  it("preserves scene-rendering filter graph compatibility for widescreen 16:9 output", () => {
     expect(buildSceneClipFilterGraph(1920, 1080)).toBe(
       "scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2,format=yuv420p"
     );

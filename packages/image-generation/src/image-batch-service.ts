@@ -40,7 +40,10 @@ import {
   imageBatchManifestItemSchema,
   imageBatchManifestSchema,
 } from "./image-batch.schemas.js";
-import { prepareImageBatchForEpisode } from "./image-batch-planner.js";
+import {
+  prepareFullSceneImageBatches,
+  prepareShortSceneImageBatches,
+} from "./image-batch-planner.js";
 import type {
   ImageBatchManifest,
   ImageBatchItemStatus,
@@ -49,6 +52,7 @@ import type {
 import {
   loadEpisodeCharacterRegistry,
   upsertCharacterRegistry,
+  type CharacterDefinition,
   type SceneGenerationManifest,
 } from "./episode-image-pipeline.js";
 import type { ShortsSceneManifestEntry } from "./shorts-image-strategy.js";
@@ -597,7 +601,7 @@ async function updateCharacterReferenceRegistry(args: {
   readonly outputPath: string;
 }): Promise<string | undefined> {
   const registry = await loadEpisodeCharacterRegistry(args.episodeDir, args.episodeId);
-  const characters = registry.characters.map((character) =>
+  const characters: CharacterDefinition[] = registry.characters.map((character) =>
     character.id !== args.characterId
       ? character
       : {
@@ -659,6 +663,12 @@ function itemRetryable(item: ImageBatchManifest["items"][number]): boolean {
   }
   const category = item.error?.category ?? "";
   return category !== "policy" && category !== "policy-rejection" && category !== "destination-conflict";
+}
+
+function itemOwnsProviderRequest(
+  item: ImageBatchManifest["items"][number]
+): boolean {
+  return item.aliasedToCustomId === undefined;
 }
 
 async function resolveBatchManifestMatches(
@@ -1010,7 +1020,10 @@ export async function importImageBatch(
     await writeTextAtomic(errorFilePath, errorText);
   }
   const linesByCustomId = new Map<string, OpenAiBatchOutputLine[]>();
-  const knownIds = new Set(refreshed.items.map((item) => item.customId));
+  const providerOwnedItems = refreshed.items.filter((item) =>
+    itemOwnsProviderRequest(item)
+  );
+  const knownIds = new Set(providerOwnedItems.map((item) => item.customId));
   const unknownCustomIds = new Set<string>();
   const duplicateCustomIds = new Set<string>();
   for (const line of [
@@ -1028,13 +1041,16 @@ export async function importImageBatch(
       duplicateCustomIds.add(line.custom_id);
     }
   }
-  const nextItems: Array<ImageBatchManifest["items"][number]> = [];
+  const nextItemsByCustomId = new Map<
+    string,
+    ImageBatchManifest["items"][number]
+  >();
   const persistedFiles: string[] = [];
-  for (const item of refreshed.items) {
+  for (const item of providerOwnedItems) {
     const itemLines = linesByCustomId.get(item.customId) ?? [];
     if (itemLines.length === 0) {
       if (item.status === "persisted" && (await fileExists(item.expectedOutputPath))) {
-        nextItems.push(item);
+        nextItemsByCustomId.set(item.customId, item);
         continue;
       }
       const missingCategory =
@@ -1043,7 +1059,7 @@ export async function importImageBatch(
           : refreshed.status === "cancelled"
             ? "cancelled-batch"
             : "missing-result";
-      nextItems.push({
+      nextItemsByCustomId.set(item.customId, {
         ...item,
         status: "retry-required",
         retryCount: item.retryCount,
@@ -1055,7 +1071,7 @@ export async function importImageBatch(
       continue;
     }
     if (itemLines.length > 1) {
-      nextItems.push({
+      nextItemsByCustomId.set(item.customId, {
         ...item,
         status: "validation-failed",
         retryCount: item.retryCount,
@@ -1070,7 +1086,7 @@ export async function importImageBatch(
     const line = itemLines[0]!;
     try {
       if (item.status === "persisted" && (await fileExists(item.expectedOutputPath))) {
-        nextItems.push(item);
+        nextItemsByCustomId.set(item.customId, item);
         continue;
       }
       const canonicalOutputPath = await resolveCanonicalOutputPathForItem({
@@ -1097,7 +1113,7 @@ export async function importImageBatch(
         persisted.imageFilePath,
         ...(persisted.auxiliaryManifestPath ? [persisted.auxiliaryManifestPath] : [])
       );
-      nextItems.push(persisted.manifestItem);
+      nextItemsByCustomId.set(item.customId, persisted.manifestItem);
     } catch (error) {
       const lineFailureStatus = line.error ? classifyBatchFailure(line) : "validation-failed";
       const importError = asImportError(error, {
@@ -1111,7 +1127,7 @@ export async function importImageBatch(
                 ? "api-failure"
                 : "validation",
       });
-      nextItems.push({
+      nextItemsByCustomId.set(item.customId, {
         ...item,
         status: importError.status,
         retryCount: item.retryCount,
@@ -1123,6 +1139,45 @@ export async function importImageBatch(
       });
     }
   }
+  for (const item of refreshed.items.filter((candidate) => !itemOwnsProviderRequest(candidate))) {
+    const owner = item.aliasedToCustomId
+      ? nextItemsByCustomId.get(item.aliasedToCustomId)
+      : undefined;
+    if (!owner) {
+      nextItemsByCustomId.set(item.customId, {
+        ...item,
+        status: "validation-failed",
+        error: {
+          category: "shared-output-alias",
+          code: "missing-shared-output-owner",
+          message: `Shared output owner ${item.aliasedToCustomId ?? "unknown"} was not found for ${item.customId}.`,
+        },
+      });
+      continue;
+    }
+    nextItemsByCustomId.set(item.customId, imageBatchManifestItemSchema.parse({
+      ...item,
+      status: owner.status,
+      retryCount: item.retryCount,
+      imageHash: owner.imageHash,
+      actualWidth: owner.actualWidth,
+      actualHeight: owner.actualHeight,
+      actualMimeType: owner.actualMimeType,
+      actualByteSize: owner.actualByteSize,
+      outputFileId: owner.outputFileId,
+      importedAt: owner.importedAt,
+      usage: owner.usage,
+      estimatedCostUsd: owner.estimatedCostUsd,
+      error: owner.error,
+    }) as ImageBatchManifest["items"][number]);
+  }
+  const nextItems = refreshed.items.map((item) => {
+    const nextItem = nextItemsByCustomId.get(item.customId);
+    if (!nextItem) {
+      throw new Error(`Missing next image batch state for ${item.customId}.`);
+    }
+    return nextItem;
+  });
   const importedStatus =
     nextItems.some((item) => item.status !== "persisted" && item.status !== "skipped-cached") ||
     unknownCustomIds.size > 0 ||
@@ -1218,6 +1273,9 @@ export async function retryFailedImageBatch(
     if (latest.status === "persisted" || latest.status === "skipped-cached") {
       return false;
     }
+    if (!itemOwnsProviderRequest(latest)) {
+      return false;
+    }
     return itemRetryable(latest);
   });
   if (retryableItems.length === 0) {
@@ -1253,25 +1311,38 @@ export async function retryFailedImageBatch(
   const quality = normalizeImageBatchQuality(referenceItem.quality);
   const outputFormat = referenceItem.outputFormat;
   const episodeDir = resolveEpisodeDir(outputDirectory);
-  const prepared = await prepareImageBatchForEpisode({
-    episodeDir,
-    episodeId: episodeSlug,
-    scenePlan: {
-      scenes: retryableSceneIds.map((sceneId) => ({
-        id: sceneId,
-        sequenceNumber: retryableSceneIndex.get(sceneId) ?? 0,
-      })),
-    },
-    settings: {
-      model: manifest.model,
-      requestedSize,
-      quality,
-      outputFormat,
-    },
-    options: {
-      sceneIds: retryableSceneIds,
-    },
-  });
+  const languages = [
+    ...new Set(manifest.items.map((item) => item.identity.language)),
+  ].sort((left, right) => left.localeCompare(right));
+  const prepared =
+    referenceItem.identity.variant === "short"
+      ? await prepareShortSceneImageBatches({
+          episodeDir,
+          episodeId: episodeSlug,
+          languages,
+          variant: "short",
+          settings: {
+            model: manifest.model,
+            requestedSize,
+            quality,
+            outputFormat,
+          },
+          sceneIds: retryableSceneIds,
+        })
+      : await prepareFullSceneImageBatches({
+          episodeDir,
+          episodeId: episodeSlug,
+          languages,
+          variant: "full",
+          settings: {
+            model: manifest.model,
+            requestedSize,
+            quality,
+            outputFormat,
+          },
+          sceneIds: retryableSceneIds,
+          includeReferenceGroups: false,
+        });
   const group = prepared.groups[0];
   if (!group) {
     throw new Error(`Failed to prepare retry batch for ${resolved.localBatchId}.`);

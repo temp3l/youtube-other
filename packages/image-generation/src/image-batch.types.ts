@@ -138,6 +138,9 @@ export interface ImageBatchManifestItem {
   readonly expectedOutputPath: string;
   readonly characterIds: readonly string[];
   readonly dependencies: readonly ImageBatchDependency[];
+  readonly sharedOutputKey?: string;
+  readonly ownsSharedOutput?: boolean;
+  readonly aliasedToCustomId?: string;
   readonly requestedSize: string;
   readonly quality?: ImageBatchQuality;
   readonly outputFormat: "png" | "jpeg" | "webp";

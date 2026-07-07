@@ -13,6 +13,7 @@ import {
   buildShotRenderOperationFingerprint,
   buildRemoteReadyMarker,
   FFmpegVideoRenderer,
+  motionRenderReportFilename,
   remoteAssetFileName,
   remoteAssetRemotePath,
   remoteReadyPathForClip,
@@ -95,6 +96,80 @@ function makeTwoScenePlan() {
         aspectRatios: ["16:9"],
         imagePrompt: "locked door",
         expectedImageFilenames: ["scene-002__000001-000002__16x9.png"],
+        qualityStatus: "draft",
+      },
+    ],
+  });
+}
+
+function makeMotionSmokeScenePlan() {
+  return scenePlanSchema.parse({
+    sourceId: "episode-fixture",
+    scenes: [
+      {
+        id: "scene-001",
+        sequenceNumber: 1,
+        canonicalNarration: "A hallway light flickers.",
+        sourceSegmentIds: ["scene-001"],
+        estimatedDurationSeconds: 0.7,
+        timing: { startSeconds: 0, endSeconds: 0.7 },
+        visualPurpose: "establish the location",
+        subject: "a hallway",
+        action: "flickers",
+        setting: "dim hallway",
+        composition: "centered",
+        cameraFraming: "wide shot",
+        mood: "uneasy",
+        continuityReferences: [],
+        onScreenText: "",
+        negativeConstraints: [],
+        aspectRatios: ["9:16"],
+        imagePrompt: "dim hallway",
+        expectedImageFilenames: ["scene-001__000000-000001__9x16.png"],
+        qualityStatus: "draft",
+      },
+      {
+        id: "scene-002",
+        sequenceNumber: 2,
+        canonicalNarration: "A door waits at the end.",
+        sourceSegmentIds: ["scene-002"],
+        estimatedDurationSeconds: 0.7,
+        timing: { startSeconds: 0.7, endSeconds: 1.4 },
+        visualPurpose: "advance the threat",
+        subject: "a door",
+        action: "waits",
+        setting: "end of hallway",
+        composition: "right weighted",
+        cameraFraming: "medium shot",
+        mood: "tense",
+        continuityReferences: ["scene-001"],
+        onScreenText: "",
+        negativeConstraints: [],
+        aspectRatios: ["9:16"],
+        imagePrompt: "closed door",
+        expectedImageFilenames: ["scene-002__000001-000001__9x16.png"],
+        qualityStatus: "draft",
+      },
+      {
+        id: "scene-003",
+        sequenceNumber: 3,
+        canonicalNarration: "A shadow crosses the frame.",
+        sourceSegmentIds: ["scene-003"],
+        estimatedDurationSeconds: 0.7,
+        timing: { startSeconds: 1.4, endSeconds: 2.1 },
+        visualPurpose: "heighten tension",
+        subject: "a shadow",
+        action: "crosses",
+        setting: "hallway wall",
+        composition: "left weighted",
+        cameraFraming: "close shot",
+        mood: "alarming",
+        continuityReferences: ["scene-002"],
+        onScreenText: "",
+        negativeConstraints: [],
+        aspectRatios: ["9:16"],
+        imagePrompt: "shadow on wall",
+        expectedImageFilenames: ["scene-003__000001-000002__9x16.png"],
         qualityStatus: "draft",
       },
     ],
@@ -197,6 +272,145 @@ function makeShotPlan(args: {
     },
     planningSeed: "seed",
   });
+}
+
+function makeMotionSmokeShotPlan(
+  sources: readonly {
+    readonly sourceImageId: string;
+    readonly sourceImagePath: string;
+    readonly sourceImageSha256: string;
+  }[]
+) {
+  return shotPlanSchema.parse({
+    schemaVersion: 1,
+    sourceId: "episode-fixture",
+    variant: "short",
+    aspectRatio: "9:16",
+    sourceScenes: sources.map((source, index) => ({
+      sourceSceneId: `source-scene-${String(index + 1).padStart(3, "0")}`,
+      sceneId: `scene-${String(index + 1).padStart(3, "0")}`,
+      narrationStartMs: index * 700,
+      narrationEndMs: (index + 1) * 700,
+      sourceImageId: source.sourceImageId,
+      sourceImagePath: source.sourceImagePath,
+      sourceImageSha256: source.sourceImageSha256,
+      importance: index === 0 ? "setup" : index === 1 ? "escalation" : "climax",
+      focalRegions: [],
+    })),
+    shots: sources.map((source, index) => ({
+      shotId: `scene-${String(index + 1).padStart(3, "0")}-shot-001`,
+      sourceSceneId: `source-scene-${String(index + 1).padStart(3, "0")}`,
+      sceneId: `scene-${String(index + 1).padStart(3, "0")}`,
+      sourceImageId: source.sourceImageId,
+      startMs: index * 700,
+      endMs: (index + 1) * 700,
+      crop: { x: 0, y: 0, width: 1, height: 1 },
+      treatment: {
+        family: "framing" as const,
+        catalogVersion: "shot-treatment-catalog-v1",
+        treatmentId: "medium-crop",
+        variant: "medium-crop" as const,
+      },
+      motion:
+        index === 0
+          ? {
+              kind: "push-in" as const,
+              startScale: 1,
+              endScale: 1.06,
+              anchor: { x: 0.5, y: 0.5 },
+            }
+          : index === 1
+            ? {
+                kind: "pan" as const,
+                startCenter: { x: 0.45, y: 0.5 },
+                endCenter: { x: 0.55, y: 0.5 },
+                scale: 1.08,
+              }
+            : {
+                kind: "pan-and-zoom" as const,
+                startCenter: { x: 0.5, y: 0.45 },
+                endCenter: { x: 0.5, y: 0.55 },
+                startScale: 1,
+                endScale: 1.08,
+              },
+      overlays: [],
+      transition: { kind: "hard-cut" as const, durationMs: 0 as const },
+    })),
+    pacingProfile: {
+      mode: "inline",
+      profile: {
+        id: "shorts-aggressive",
+        shotDurationMs: { minMs: 500, maxMs: 900 },
+        staticShotDurationMs: { minMs: 500, maxMs: 900 },
+        movingShotDurationMs: { minMs: 500, maxMs: 900 },
+        openingCadenceMs: { minMs: 500, maxMs: 900 },
+        climaxCadenceMs: { minMs: 500, maxMs: 900 },
+      },
+    },
+    visualBudget: {
+      sourceImageCount: { min: 3, max: 3 },
+      shotCount: { min: 3, max: 3 },
+      shotsPerImage: { min: 1, max: 1 },
+      maxConsecutiveSourceImageUses: 1,
+      maxTotalSourceImageUses: 1,
+      cropLimits: {
+        minCropArea: 0.35,
+        minFaceMargin: 0.08,
+        maxCropZoom: 2,
+        minOutputHeightPx: 90,
+        maxAdjacentSameImageCropIou: 0.82,
+      },
+      motionLimits: {
+        minShotDurationMs: 400,
+        pushInScaleRange: { min: 1.03, max: 1.14 },
+        fastPushInScaleRange: { min: 1.08, max: 1.22 },
+        panTravelFractionOfImage: { min: 0.03, max: 0.12 },
+        rotationDegreesRange: { min: -1, max: 1 },
+        dissolveDurationMs: { minMs: 120, maxMs: 250 },
+        dipToBlackDurationMs: { minMs: 100, maxMs: 500 },
+      },
+      effectCaps: [],
+    },
+    planningSeed: "motion-smoke-seed",
+  });
+}
+
+async function writeSceneFixtureMedia(args: {
+  readonly imageDir: string;
+  readonly audioDir: string;
+  readonly imageFilename: string;
+  readonly imageSize: { readonly width: number; readonly height: number };
+  readonly durationSeconds: number;
+}): Promise<void> {
+  await fs.mkdir(args.imageDir, { recursive: true });
+  await fs.mkdir(args.audioDir, { recursive: true });
+  await fs.writeFile(
+    path.join(args.imageDir, args.imageFilename),
+    await sharp({
+      create: {
+        width: args.imageSize.width,
+        height: args.imageSize.height,
+        channels: 3,
+        background: "#223344",
+      },
+    })
+      .png()
+      .toBuffer()
+  );
+  execFileSync(
+    "ffmpeg",
+    [
+      "-y",
+      "-f",
+      "lavfi",
+      "-i",
+      "anullsrc=r=24000:cl=mono",
+      "-t",
+      String(args.durationSeconds),
+      path.join(args.audioDir, "scene-001.wav"),
+    ],
+    { stdio: "ignore" }
+  );
 }
 
 describe("FFmpegVideoRenderer", () => {
@@ -399,6 +613,100 @@ describe("FFmpegVideoRenderer", () => {
     );
   }, 60000);
 
+  it("renders a full 16:9 scene fixture from generated image and synthetic audio", async () => {
+    const baseDir = mkdtempSync(
+      path.join(os.tmpdir(), "mediaforge-rendering-full-fixture-")
+    );
+    const episodeDir = path.join(baseDir, "episode");
+    const outputDir = path.join(episodeDir, "video");
+    const imageDir = path.join(episodeDir, "images", "generated");
+    const audioDir = path.join(episodeDir, "audio", "segments");
+    await writeSceneFixtureMedia({
+      imageDir,
+      audioDir,
+      imageFilename: "scene-001__000000-000003__16x9.png",
+      imageSize: { width: 64, height: 36 },
+      durationSeconds: 3,
+    });
+
+    const renderer = new FFmpegVideoRenderer();
+    const result = await renderer.render(
+      {
+        episodeDir,
+        scenePlan: makeScenePlan(),
+        outputDir,
+        renderProfile: {
+          id: "youtube",
+          label: "youtube",
+          aspectRatio: "16:9",
+          width: 160,
+          height: 90,
+          fps: 15,
+        },
+        captionBurnIn: false,
+        imageDir,
+        sceneAudioDir: audioDir,
+        outputBasename: "full-fixture",
+      },
+      new AbortController().signal
+    );
+
+    await expect(
+      validateRenderedVideo(result.cleanPath, { requireAudio: true })
+    ).resolves.toMatchObject({
+      valid: true,
+      width: 160,
+      height: 90,
+    });
+  }, 60000);
+
+  it("renders a short 9:16 scene fixture from generated image and synthetic audio", async () => {
+    const baseDir = mkdtempSync(
+      path.join(os.tmpdir(), "mediaforge-rendering-short-fixture-")
+    );
+    const episodeDir = path.join(baseDir, "episode");
+    const outputDir = path.join(episodeDir, "video");
+    const imageDir = path.join(episodeDir, "images", "generated-short");
+    const audioDir = path.join(episodeDir, "audio", "segments");
+    await writeSceneFixtureMedia({
+      imageDir,
+      audioDir,
+      imageFilename: "scene-001__000000-000003__9x16.png",
+      imageSize: { width: 36, height: 64 },
+      durationSeconds: 3,
+    });
+
+    const renderer = new FFmpegVideoRenderer();
+    const result = await renderer.render(
+      {
+        episodeDir,
+        scenePlan: makeScenePlan(),
+        outputDir,
+        renderProfile: {
+          id: "short",
+          label: "short",
+          aspectRatio: "9:16",
+          width: 90,
+          height: 160,
+          fps: 15,
+        },
+        captionBurnIn: false,
+        imageDir,
+        sceneAudioDir: audioDir,
+        outputBasename: "short-fixture",
+      },
+      new AbortController().signal
+    );
+
+    await expect(
+      validateRenderedVideo(result.cleanPath, { requireAudio: true })
+    ).resolves.toMatchObject({
+      valid: true,
+      width: 90,
+      height: 160,
+    });
+  }, 60000);
+
   it("renders an explicit shot plan as ordered shot clips from one source image", async () => {
     const baseDir = mkdtempSync(
       path.join(os.tmpdir(), "mediaforge-rendering-shots-")
@@ -478,6 +786,113 @@ describe("FFmpegVideoRenderer", () => {
       width: 90,
       height: 160,
     });
+  }, 60000);
+
+  it("writes a motion report only when motion debug is enabled", async () => {
+    const baseDir = mkdtempSync(
+      path.join(os.tmpdir(), "mediaforge-rendering-motion-report-")
+    );
+    const episodeDir = path.join(baseDir, "episode");
+    const outputDir = path.join(episodeDir, "video");
+    const imagePath = path.join(episodeDir, "shared", "images", "generated", "source-001.png");
+    await fs.mkdir(path.dirname(imagePath), { recursive: true });
+    await fs.writeFile(
+      imagePath,
+      await sharp({
+        create: { width: 96, height: 96, channels: 3, background: "#334455" },
+      })
+        .png()
+        .toBuffer()
+    );
+    const sourceHash = await hashFile(imagePath);
+    const shotPlan = makeShotPlan({
+      sourceImagePath: path.relative(episodeDir, imagePath),
+      sourceImageSha256: sourceHash,
+    });
+    const renderer = new FFmpegVideoRenderer();
+
+    await renderer.renderSceneClips(
+      {
+        episodeDir,
+        scenePlan: makeScenePlan(),
+        shotPlan,
+        outputDir,
+        renderProfile: {
+          id: "short",
+          label: "short",
+          aspectRatio: "9:16",
+          width: 90,
+          height: 160,
+          fps: 10,
+        },
+        captionBurnIn: false,
+      },
+      new AbortController().signal
+    );
+    await expect(
+      fs.access(path.join(outputDir, motionRenderReportFilename))
+    ).rejects.toThrow();
+
+    const debugOutputDir = path.join(episodeDir, "video-debug");
+    await renderer.renderSceneClips(
+      {
+        episodeDir,
+        scenePlan: makeScenePlan(),
+        shotPlan,
+        outputDir: debugOutputDir,
+        renderProfile: {
+          id: "short",
+          label: "short",
+          aspectRatio: "9:16",
+          width: 90,
+          height: 160,
+          fps: 10,
+        },
+        captionBurnIn: false,
+        motion: { debug: true, seed: "debug-seed" },
+      },
+      new AbortController().signal
+    );
+
+    const report = JSON.parse(
+      await fs.readFile(path.join(debugOutputDir, motionRenderReportFilename), "utf8")
+    ) as {
+      readonly schemaVersion: number;
+      readonly outputDir: string;
+      readonly shots: readonly {
+        readonly shotId: string;
+        readonly selectedPreset: {
+          readonly id: string;
+          readonly family: string;
+          readonly intensity: string;
+        };
+        readonly durationMs: number;
+        readonly inputImage: string;
+        readonly outputSegment: string;
+        readonly seed: string;
+        readonly reason: string;
+        readonly filterSummary: string;
+        readonly cache?: { readonly status: string };
+      }[];
+    };
+    expect(report.schemaVersion).toBe(1);
+    expect(report.outputDir).toBe(".");
+    expect(report.shots).toHaveLength(2);
+    expect(report.shots[1]).toMatchObject({
+      shotId: "scene-001-shot-002",
+      selectedPreset: {
+        id: "doc_slow_push_in",
+        family: "documentary",
+        intensity: "low",
+      },
+      durationMs: 500,
+      inputImage: "shared/images/generated/source-001.png",
+      seed: "debug-seed:scene-001-shot-002",
+      reason: "shot-plan-motion:push-in",
+      cache: { status: "hit" },
+    });
+    expect(report.shots[1]?.filterSummary).toContain("zoompan");
+    expect(report.shots[1]?.outputSegment).toMatch(/^state\/render\/derived-shots\//u);
   }, 60000);
 
   it("renders shot clips when a later scene reuses an earlier source image id", async () => {
@@ -693,6 +1108,18 @@ describe("FFmpegVideoRenderer", () => {
       width: 90,
       height: 160,
     });
+    const withoutMotion = await buildShotClipRenderRequest({
+      episodeId: "episode-fixture",
+      episodeDir,
+      shot: { ...second, motion: { kind: "none" } },
+      sourceImage,
+      sequenceNumber: 3,
+      outputPath: path.join(episodeDir, "without-motion.mp4"),
+      manifestPath: path.join(episodeDir, "without-motion.json"),
+      fps: 10,
+      width: 90,
+      height: 160,
+    });
     const recomputed = buildShotRenderOperationFingerprint({
       shot: first,
       sourceImageSha256: sourceHash,
@@ -708,8 +1135,15 @@ describe("FFmpegVideoRenderer", () => {
     });
 
     expect(firstRequest.renderOperationFingerprint).toBe(recomputed);
+    expect(secondRequest.operations.some((operation) => operation.kind === "zoompan")).toBe(
+      true
+    );
+    expect(secondRequest.clipRequest.ffmpegArguments.join(" ")).toContain("zoompan=");
     expect(firstRequest.renderOperationFingerprint).not.toBe(
       secondRequest.renderOperationFingerprint
+    );
+    expect(secondRequest.renderOperationFingerprint).not.toBe(
+      withoutMotion.renderOperationFingerprint
     );
     expect(firstRequest.renderOperationFingerprint).toMatch(/^[a-f0-9]{64}$/u);
   });
@@ -792,10 +1226,30 @@ describe("FFmpegVideoRenderer", () => {
             fps: 10,
           },
           captionBurnIn: false,
+          motion: { debug: true },
         },
         new AbortController().signal
       )
     ).rejects.toThrow(/Unsupported shot treatment/u);
+    const failureReport = JSON.parse(
+      await fs.readFile(
+        path.join(episodeDir, "video-unsupported", motionRenderReportFilename),
+        "utf8"
+      )
+    ) as {
+      readonly shots: readonly {
+        readonly shotId: string;
+        readonly failure?: { readonly stage: string; readonly message: string };
+      }[];
+    };
+    expect(failureReport.shots).toHaveLength(1);
+    expect(failureReport.shots[0]).toMatchObject({
+      shotId: "scene-001-shot-001",
+      failure: {
+        stage: "prepare",
+        message: expect.stringContaining("Unsupported shot treatment"),
+      },
+    });
   }, 60000);
 
   it("composes shot clips with one global narration audio track", async () => {
@@ -863,6 +1317,115 @@ describe("FFmpegVideoRenderer", () => {
     expect(result.validation.audioCodec).not.toBe("");
     expect(result.validation.durationSeconds).toBeGreaterThanOrEqual(0.95);
     expect(result.validation.durationSeconds).toBeLessThan(1.6);
+  }, 60000);
+
+  it("smoke renders FFmpeg motion presets from temp fixtures and synthetic audio", async () => {
+    const baseDir = mkdtempSync(
+      path.join(os.tmpdir(), "mediaforge-rendering-motion-smoke-")
+    );
+    const episodeDir = path.join(baseDir, "episode");
+    const outputDir = path.join(episodeDir, "video");
+    const imageDir = path.join(episodeDir, "shared", "images", "generated");
+    const audioDir = path.join(episodeDir, "audio");
+    await fs.mkdir(imageDir, { recursive: true });
+    await fs.mkdir(audioDir, { recursive: true });
+
+    const sourceImages = await Promise.all(
+      ["#223344", "#443322", "#334422"].map(async (background, index) => {
+        const imagePath = path.join(imageDir, `motion-smoke-${index + 1}.png`);
+        await fs.writeFile(
+          imagePath,
+          await sharp({
+            create: {
+              width: 96,
+              height: 160,
+              channels: 3,
+              background,
+            },
+          })
+            .png()
+            .toBuffer()
+        );
+        return {
+          sourceImageId: `source-image-${String(index + 1).padStart(3, "0")}`,
+          sourceImagePath: path.relative(episodeDir, imagePath),
+          sourceImageSha256: await hashFile(imagePath),
+        };
+      })
+    );
+    execFileSync(
+      "ffmpeg",
+      [
+        "-y",
+        "-f",
+        "lavfi",
+        "-i",
+        "sine=frequency=330:sample_rate=24000:duration=2.1",
+        path.join(audioDir, "narration.wav"),
+      ],
+      { stdio: "ignore" }
+    );
+
+    const renderer = new FFmpegVideoRenderer();
+    const result = await renderer.render(
+      {
+        episodeDir,
+        scenePlan: makeMotionSmokeScenePlan(),
+        shotPlan: makeMotionSmokeShotPlan(sourceImages),
+        outputDir,
+        renderProfile: {
+          id: "short-smoke",
+          label: "short smoke",
+          aspectRatio: "9:16",
+          width: 96,
+          height: 160,
+          fps: 10,
+        },
+        captionBurnIn: false,
+        outputBasename: "motion-smoke",
+        motion: { debug: true, seed: "motion-smoke-seed" },
+      },
+      new AbortController().signal
+    );
+
+    expect(result.shotRenderSummary?.renderedShotIds).toEqual([
+      "scene-001-shot-001",
+      "scene-002-shot-001",
+      "scene-003-shot-001",
+    ]);
+    await expect(
+      validateRenderedVideo(result.cleanPath, {
+        expectedDurationSeconds: 2.1,
+        expectedWidth: 96,
+        expectedHeight: 160,
+        requireAudio: true,
+      })
+    ).resolves.toMatchObject({
+      valid: true,
+      width: 96,
+      height: 160,
+    });
+    expect(result.validation.durationSeconds).toBeGreaterThanOrEqual(1.85);
+    expect(result.validation.durationSeconds).toBeLessThan(2.5);
+    const report = JSON.parse(
+      await fs.readFile(path.join(outputDir, motionRenderReportFilename), "utf8")
+    ) as {
+      readonly shots: readonly {
+        readonly selectedPreset: { readonly id: string };
+        readonly seed: string;
+      }[];
+    };
+    expect(report.shots).toHaveLength(3);
+    expect(report.shots.map((shot) => shot.seed)).toEqual([
+      "motion-smoke-seed:scene-001-shot-001",
+      "motion-smoke-seed:scene-002-shot-001",
+      "motion-smoke-seed:scene-003-shot-001",
+    ]);
+    expect(report.shots.map((shot) => shot.selectedPreset.id)).toEqual([
+      "doc_slow_push_in",
+      "reveal_pan_to_subject",
+      "reveal_zoom_to_detail",
+    ]);
   }, 60000);
 
   it("composes scene clips with one global narration audio track", async () => {

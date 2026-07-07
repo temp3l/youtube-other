@@ -1095,7 +1095,12 @@ export function loadOpenAiImageGenerationSettings(
     dotenvValues = {};
   }
 
-  const mergedEnv = { ...dotenvValues, ...env };
+  const mergedEnv = {
+    ...env,
+    ...(dotenvValues.OPENAI_API_KEY !== undefined
+      ? { OPENAI_API_KEY: dotenvValues.OPENAI_API_KEY }
+      : {})
+  };
   const apiKey = mergedEnv["OPENAI_API_KEY"];
 
   if (!apiKey) {

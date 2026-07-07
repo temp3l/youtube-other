@@ -186,7 +186,11 @@ describe("images batch commands", () => {
   it("routes short variant preparation through the short batch planner", async () => {
     const deps = makeDeps();
     const handlers = createImagesBatchCommandHandlers(deps as never);
-    const stdout = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
+    let output = "";
+    const stdout = vi.spyOn(process.stdout, "write").mockImplementation((chunk) => {
+      output += String(chunk);
+      return true;
+    });
     try {
       await handlers.prepare({
         episode: "001-demo",
@@ -200,6 +204,16 @@ describe("images batch commands", () => {
 
     expect(deps.prepareShortSceneImageBatches).toHaveBeenCalledTimes(1);
     expect(deps.prepareFullSceneImageBatches).not.toHaveBeenCalled();
+    expect(JSON.parse(output)).toMatchObject({
+      previewCounts: {
+        paidNativeGenerations: 1,
+        freeLocalTransforms: 2,
+        cacheHits: 3,
+        blocked: 0,
+      },
+      localWorkPlan:
+        "/workspace/001-demo/state/image-generation/shorts-local-work.de.json",
+    });
   });
 
   it("submits only through the explicit submit command", async () => {
