@@ -421,6 +421,19 @@ export const renderManifestSchema = z.object({
     burnCaptions: z.boolean().optional(),
   }),
   shortMediaRequirements: shortMediaRequirementsSchema.optional(),
+  motion: z
+    .object({
+      enabled: z.boolean(),
+      debug: z.boolean(),
+      mode: z.enum(["off", "safe", "cinematic", "shorts"]),
+      seed: z.string().min(1),
+      allowShortsPresetsForFull: z.boolean(),
+      preventSamePresetBackToBack: z.boolean(),
+      maxSameFamilyRunLength: z.number().int().nonnegative(),
+      preventConsecutiveHighIntensity: z.boolean(),
+      explicitPresetId: z.string().min(1).optional(),
+    })
+    .optional(),
   cleanPath: z.string().min(1),
   captionedPath: z.string().min(1).optional(),
   validation: z.object({
@@ -4115,6 +4128,7 @@ export class FFmpegVideoRenderer implements VideoRenderer {
         audioFingerprint: context.audioDependency?.fingerprint ?? null,
         subtitleFingerprint: context.subtitleDependency?.fingerprint ?? null,
         renderProfile: request.renderProfile,
+        motion: request.motion ? resolveMotionRenderConfig(request.motion) : null,
         clipPaths,
         captionsPath: request.captionsPath ?? null,
       })
@@ -4134,6 +4148,9 @@ export class FFmpegVideoRenderer implements VideoRenderer {
         renderFingerprint,
         renderProfile: request.renderProfile,
         shortMediaRequirements: context.shortMediaRequirements,
+        ...(request.motion
+          ? { motion: resolveMotionRenderConfig(request.motion) }
+          : {}),
         cleanPath,
         ...(captionedPath ? { captionedPath } : {}),
         validation,

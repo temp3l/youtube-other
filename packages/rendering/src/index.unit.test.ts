@@ -14,11 +14,61 @@ import {
   buildRemoteReadyMarker,
   FFmpegVideoRenderer,
   motionRenderReportFilename,
+  renderManifestSchema,
   remoteAssetFileName,
   remoteAssetRemotePath,
   remoteReadyPathForClip,
   validateRenderedVideo,
 } from "./index.js";
+
+describe("render manifest motion metadata", () => {
+  it("accepts additive render-motion metadata with an explicit preset", () => {
+    const manifest = renderManifestSchema.parse({
+      stageIdentity: {
+        episodeId: "episode-fixture",
+        language: "en",
+        locale: "en-US",
+        variant: "full",
+        owner: "render",
+      },
+      renderFingerprint: "render-fingerprint",
+      renderProfile: {
+        id: "youtube",
+        label: "youtube",
+        width: 1920,
+        height: 1080,
+        fps: 30,
+        aspectRatio: "16:9",
+      },
+      motion: {
+        enabled: true,
+        debug: true,
+        mode: "cinematic",
+        seed: "episode-022",
+        allowShortsPresetsForFull: false,
+        preventSamePresetBackToBack: true,
+        maxSameFamilyRunLength: 2,
+        preventConsecutiveHighIntensity: true,
+        explicitPresetId: "doc_slow_push_in",
+      },
+      cleanPath: "/tmp/video.mp4",
+      validation: {
+        valid: true,
+        width: 1920,
+        height: 1080,
+        durationSeconds: 10,
+        videoCodec: "h264",
+        audioCodec: "aac",
+        pixelFormat: "yuv420p",
+        issues: [],
+      },
+      status: "generated",
+      generatedAt: "2026-07-07T00:00:00.000Z",
+    });
+
+    expect(manifest.motion?.explicitPresetId).toBe("doc_slow_push_in");
+  });
+});
 
 function makeScenePlan() {
   return scenePlanSchema.parse({

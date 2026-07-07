@@ -10,6 +10,7 @@ import {
   stageFailureSchemaVersion,
   type ArtifactLineage,
   type ExecutionId,
+  type QualityGateDecision,
   type StageFailure,
   type StageId,
   type StageOutcome,
@@ -263,6 +264,25 @@ export function appendStageOutcome(
     stages: updatedStages,
     attemptHistory: [...manifest.attemptHistory, outcome],
     artifacts: artifact ? [...manifest.artifacts, artifact] : manifest.artifacts,
+  }) as StoryWorkflowManifest;
+}
+
+export function appendQualityGateOutcome(
+  manifest: StoryWorkflowManifest,
+  outcome: StageOutcome<ArtifactLineage>,
+  qualityDecision: QualityGateDecision
+): StoryWorkflowManifest {
+  const updated = appendStageOutcome(manifest, outcome);
+  return workflowManifestSchema.parse({
+    ...updated,
+    stages: updated.stages.map((stage) =>
+      stage.stageId === outcome.stageId
+        ? {
+            ...stage,
+            qualityDecision,
+          }
+        : stage
+    ),
   }) as StoryWorkflowManifest;
 }
 

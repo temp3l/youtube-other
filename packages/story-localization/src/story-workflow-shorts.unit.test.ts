@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { resolveShortWorkflow } from "./story-workflow-shorts.js";
+import {
+  executeShortWorkflowStage,
+  resolveShortWorkflow,
+} from "./story-workflow-shorts.js";
+import { buildPlannedStoryWorkflowManifest } from "./story-workflow-planner.js";
 import { type ArtifactLineage } from "./story-workflow.types.js";
 
 function artifact(format: "full" | "short"): ArtifactLineage {
@@ -42,5 +46,63 @@ describe("story workflow shorts", () => {
     });
     expect(result.status).toBe("blocked");
     expect(result.failure?.category).toBe("short-quality-gate-failed");
+  });
+
+  it("persists accepted short outcome with parent linkage", async () => {
+    const manifest = buildPlannedStoryWorkflowManifest({
+      episodeId: "009-the-christmas-doll",
+      locales: ["en"],
+      formats: ["short"],
+      createdAt: "2026-07-01T00:00:00.000Z",
+    });
+    const result = resolveShortWorkflow({
+      locale: "en",
+      parentFull: artifact("full"),
+      shortArtifact: artifact("short"),
+      qualityPassed: true,
+    });
+    const persisted = await executeShortWorkflowStage({
+      context: { manifest },
+      result,
+    });
+
+    expect(persisted.outcome.status).toBe("succeeded");
+    expect(persisted.manifest.artifacts[0]?.format).toBe("short");
+    expect(
+      persisted.manifest.stages.find(
+        (stage) => stage.stageId === "stage:rewrite-short:en:short"
+      )?.status
+    ).toBe("succeeded");
+  });
+
+  it("persists independent short failure without changing full stage state", async () => {
+    const manifest = buildPlannedStoryWorkflowManifest({
+      episodeId: "009-the-christmas-doll",
+      locales: ["en"],
+      formats: ["short"],
+      createdAt: "2026-07-01T00:00:00.000Z",
+    });
+    const result = resolveShortWorkflow({
+      locale: "en",
+      parentFull: artifact("full"),
+      generationFailure: {
+        schemaVersion: "stage-failure-v1",
+        category: "short-generation-failed",
+        retryability: "retryable",
+        message: "Short provider failed.",
+        occurredAt: "2026-07-01T00:00:00.000Z",
+      },
+    });
+    const persisted = await executeShortWorkflowStage({
+      context: { manifest },
+      result,
+    });
+
+    expect(persisted.outcome.status).toBe("failed");
+    expect(
+      persisted.manifest.stages.find(
+        (stage) => stage.stageId === "stage:quality-full:en:full"
+      )?.status
+    ).toBe("planned");
   });
 });

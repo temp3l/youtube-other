@@ -116,6 +116,7 @@ export function buildPlannedStoryWorkflowManifest(
   const rewriteFull = addStage("rewrite-full", "en", "full", [ingest]);
   const validateFull = addStage("validate-full", "en", "full", [rewriteFull]);
   const qualityFull = addStage("quality-full", "en", "full", [validateFull]);
+  addStage("visual-model", "en", "full", [qualityFull]);
   const fullByLocale = new Map<WorkflowLocale, StageId>([["en", qualityFull]]);
 
   if (formats.includes("full")) {

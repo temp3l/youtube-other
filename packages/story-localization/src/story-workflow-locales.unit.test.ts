@@ -1,8 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
+  executeLocaleWorkflowStage,
   localeFailureBlocksOnlyLocale,
   resolveLocaleWorkflowBranch,
 } from "./story-workflow-locales.js";
+import { buildPlannedStoryWorkflowManifest } from "./story-workflow-planner.js";
+import { buildStoryWorkflowStatusReport } from "./story-workflow-status.js";
 import { type ArtifactLineage } from "./story-workflow.types.js";
 
 function artifact(locale: "en" | "de" | "es" | "fr" | "pt"): ArtifactLineage {
@@ -57,5 +60,48 @@ describe("story workflow locale branches", () => {
       generatedArtifact: artifact("de"),
     });
     expect(localeFailureBlocksOnlyLocale([es, de], "es")).toBe(true);
+  });
+
+  it("persists same-locale fallback without corrupting another locale", async () => {
+    const manifest = buildPlannedStoryWorkflowManifest({
+      episodeId: "009-the-christmas-doll",
+      locales: ["en", "de", "es"],
+      formats: ["full"],
+      createdAt: "2026-07-01T00:00:00.000Z",
+    });
+    const es = resolveLocaleWorkflowBranch({
+      locale: "es",
+      canonicalFingerprint: "canon",
+      fallbackCandidates: [
+        { artifact: artifact("es"), canonicalFingerprint: "canon", qualityPassed: true },
+      ],
+    });
+    const withEs = await executeLocaleWorkflowStage({
+      context: { manifest },
+      result: es,
+    });
+    const de = resolveLocaleWorkflowBranch({
+      locale: "de",
+      canonicalFingerprint: "canon",
+      fallbackCandidates: [],
+    });
+    const withDe = await executeLocaleWorkflowStage({
+      context: { manifest: withEs.manifest },
+      result: de,
+    });
+    const status = buildStoryWorkflowStatusReport(withDe.manifest);
+
+    expect(status.fallbacks[0]?.locale).toBe("es");
+    expect(status.fallbacks[0]?.provenance).toBe("localized-fallback");
+    expect(
+      withDe.manifest.stages.find(
+        (stage) => stage.stageId === "stage:localize-full:es:full"
+      )?.status
+    ).toBe("succeeded");
+    expect(
+      withDe.manifest.stages.find(
+        (stage) => stage.stageId === "stage:localize-full:de:full"
+      )?.status
+    ).toBe("blocked");
   });
 });

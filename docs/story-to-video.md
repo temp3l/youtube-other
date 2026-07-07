@@ -1103,10 +1103,11 @@ TikTok-style metadata is implemented heuristically in [`packages/metadata/src/in
   - disable it with `--visual-retention-mode disabled` or `--no-visual-retention`
   - planning profiles are `atmospheric`, `balanced`, `high-retention`, and `shorts-aggressive`
   - motion levels are `--motion-preset subtle`, `balanced`, or `strong`
+  - render-time preset override is `--motion-render-preset <presetId>` on the top-level `render` command; it is separate from shot-planning `--motion-preset`
   - preset families are documentary, tension, reveal, shorts, and ambient
   - preset IDs include `doc_slow_push_in`, `reveal_pan_to_subject`, `short_fast_push`, and `ambient_static_hold`
-  - shot plans persist `planningSeed`; reproduce by keeping the same source images, profile, motion preset, shot plan, render profile, and FFmpeg version
-  - motion debug writes `motion-report.json` with preset IDs, per-shot seeds, filter summaries, and cache status when enabled by the caller
+  - shot plans persist `planningSeed`; reproduce by keeping the same source images, profile, shot-planning motion preset, render-motion preset, shot plan, render profile, and FFmpeg version
+  - `--motion-debug` writes `motion-report.json` with preset IDs, per-shot seeds, filter summaries, and cache status
   - render-time motion is FFmpeg-only and does not call external APIs
 - Transitions:
   - none beyond clip concatenation

@@ -2,6 +2,17 @@
 
 Date: 2026-07-07
 
+## 2026-07-07 Reconciliation Note
+
+After this audit was written, a guarded implementation run added required
+reports under `docs/reports/2026-07-07/` for story pipeline Tasks 05, 06, and
+07-10; post-refactor Task 07; FFmpeg motion Tasks 07 and 08-09; CLI batch image
+provider-reference verification status; short multilingual image aliasing; and
+Task 13 metadata/audio compatibility. Provider edit-batch support remains
+blocked because paid provider reference semantics were not approved or verified.
+The original findings below are retained as historical audit evidence, not as
+the final current state.
+
 ## Executive Summary
 
 Scanned 199 files under `docs/plans`: 196 Markdown files and 3 JSON report artifacts. The required `docs/reports/*` tree did not exist before this audit, so no plan has a corresponding implementation report in the required location. Several plans are implemented in code and tests but are missing reports. The highest-risk unfinished work is the durable story pipeline, which is still documented and implemented as a dry-run skeleton. Other live gaps are FFmpeg render-motion CLI wiring, batch-image provider edit verification, short multilingual image alias policy, and controlled post-refactor smoke verification.

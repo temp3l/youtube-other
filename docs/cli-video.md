@@ -195,17 +195,31 @@ Render-report preset IDs:
 - Shorts-only: `short_fast_push`, `short_snap_zoom`, `short_impact_shake`
 - Ambient: `ambient_fog_drift`, `ambient_light_flicker`, `ambient_static_hold`
 
-The operator-facing `--motion-preset subtle|balanced|strong` controls how much motion the shot planner chooses. The FFmpeg renderer then maps shot-plan motion to local filter operations such as zoompan, crop, scale, pad, fade, and small rotation.
+The operator-facing `--motion-preset subtle|balanced|strong` controls how much motion the shot planner chooses. It is separate from render-time preset selection.
+
+The top-level render command accepts FFmpeg render-motion flags:
+
+```bash
+npm run mediaforge -- render 022-the-whistler-in-the-woods \
+  --profile youtube \
+  --motion \
+  --motion-mode cinematic \
+  --motion-seed episode-022 \
+  --motion-debug \
+  --motion-render-preset doc_slow_push_in
+```
+
+Use `--no-motion` or `--motion-mode off` to disable render-time motion. The FFmpeg renderer maps shot-plan motion and optional `--motion-render-preset` selection to local filter operations such as zoompan, crop, scale, pad, fade, and small rotation.
 
 When render motion debug is enabled by the caller, the renderer writes:
 
 - `<outputDir>/motion-report.json`
 
-The report includes shot IDs, selected preset IDs, filter summaries, cache status, and per-shot seeds formatted as `<render-seed>:<shot-id>`.
+The report includes shot IDs, selected preset IDs, filter summaries, cache status, and per-shot seeds formatted as `<render-seed>:<shot-id>`. The render manifest stores the selected render-motion config under `motion`.
 
 To reproduce a render:
 
-1. Keep the same source images, source scene files, narration audio, visual profile, motion preset, and shot plan.
+1. Keep the same source images, source scene files, narration audio, visual profile, shot-planning motion preset, render-motion preset, and shot plan.
 2. Reuse the same `planningSeed` from `shot-plan.<variant>.<locale>.json`.
 3. Re-render with the same output profile and FFmpeg version when exact frame-level output matters.
 

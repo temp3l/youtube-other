@@ -354,11 +354,25 @@ Safe defaults:
 
 Preset families are documentary, tension, reveal, shorts, and ambient. Render-report preset IDs include `doc_slow_push_in`, `doc_slow_pull_back`, `reveal_pan_to_subject`, `reveal_zoom_to_detail`, `short_fast_push`, `short_snap_zoom`, `ambient_fog_drift`, and `ambient_static_hold`.
 
+Enable render-time FFmpeg motion on the top-level render command:
+
+```bash
+npm run mediaforge -- render 022-the-whistler-in-the-woods \
+  --profile youtube \
+  --motion \
+  --motion-mode cinematic \
+  --motion-seed episode-022 \
+  --motion-debug \
+  --motion-render-preset doc_slow_push_in
+```
+
+`--motion-render-preset` selects a render preset ID and does not replace the shot-planning `--motion-preset subtle|balanced|strong` flag.
+
 Reproducibility:
 
 - `shot-plan.<variant>.<locale>.json` stores `planningSeed`.
-- Keep the same source images, source scenes, profile, motion preset, shot plan, render profile, and FFmpeg version to reproduce a render.
-- When motion debug is enabled by the caller, inspect `<variant>/video/motion-report.json` for selected preset IDs, per-shot seeds, filter summaries, and cache status.
+- Keep the same source images, source scenes, profile, shot-planning motion preset, render-motion preset, shot plan, render profile, and FFmpeg version to reproduce a render.
+- When `--motion-debug` is enabled, inspect `<variant>/video/motion-report.json` for selected preset IDs, per-shot seeds, filter summaries, and cache status.
 
 Troubleshooting:
 

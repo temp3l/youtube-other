@@ -22,6 +22,14 @@ export interface StoryWorkflowStatusReport {
     readonly category: string;
     readonly message: string;
   }[];
+  readonly fallbacks: readonly {
+    readonly stageId: string;
+    readonly locale: string;
+    readonly format?: string;
+    readonly provenance: string;
+    readonly status: string;
+    readonly warningCodes: readonly string[];
+  }[];
 }
 
 function stageLocale(stage: WorkflowStageState<ArtifactLineage>): string {
@@ -34,6 +42,7 @@ export function buildStoryWorkflowStatusReport(
   const stageCounts: Record<string, number> = {};
   const localeMap = new Map<string, { planned: number; succeeded: number; failed: number; blocked: number }>();
   const failures: StoryWorkflowStatusReport["failures"][number][] = [];
+  const fallbacks: StoryWorkflowStatusReport["fallbacks"][number][] = [];
   for (const stage of manifest.stages) {
     stageCounts[stage.status] = (stageCounts[stage.status] ?? 0) + 1;
     const locale = stageLocale(stage);
@@ -54,6 +63,21 @@ export function buildStoryWorkflowStatusReport(
         stageId: stage.stageId,
         category: stage.latestOutcome.failure.category,
         message: stage.latestOutcome.failure.message,
+      });
+    }
+    if (
+      stage.latestOutcome &&
+      "artifact" in stage.latestOutcome &&
+      (stage.latestOutcome.artifact.provenance === "source-fallback" ||
+        stage.latestOutcome.artifact.provenance === "localized-fallback")
+    ) {
+      fallbacks.push({
+        stageId: stage.stageId,
+        locale: stage.locale ?? "shared",
+        ...(stage.format ? { format: stage.format } : {}),
+        provenance: stage.latestOutcome.artifact.provenance,
+        status: stage.latestOutcome.status,
+        warningCodes: stage.latestOutcome.warnings.map((warning) => warning.code),
       });
     }
   }
@@ -84,5 +108,6 @@ export function buildStoryWorkflowStatusReport(
       ...counts,
     })),
     failures,
+    fallbacks,
   };
 }

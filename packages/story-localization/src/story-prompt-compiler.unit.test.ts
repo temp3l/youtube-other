@@ -331,10 +331,10 @@ describe("story prompt compiler", () => {
     expect(compiled.user).toContain("Invention boundaries:");
     expect(compiled.user).toContain("Before returning the result, silently verify:");
     expect(compiled.user).toContain(
-      "Every concrete action, object, timing detail, reveal, and relationship is supported"
+      "Use only the supplied events, beat plan, immutable facts, and forbidden omissions."
     );
     expect(compiled.user).toContain(
-      "Remove any unsupported object, place, call, note, injury, motive, or reveal"
+      "Do not invent unsupported mechanics, extra reveal logic, or a bridge to the full video."
     );
   });
 });

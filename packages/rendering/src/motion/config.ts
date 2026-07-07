@@ -3,6 +3,7 @@ import type { MotionRenderConfig } from "./types.js";
 export const defaultMotionRenderConfig = Object.freeze({
   enabled: false,
   debug: false,
+  mode: "off",
   seed: "render-motion-default",
   allowShortsPresetsForFull: false,
   preventSamePresetBackToBack: true,

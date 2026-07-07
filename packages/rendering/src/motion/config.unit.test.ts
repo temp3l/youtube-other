@@ -9,6 +9,7 @@ describe("motion render config", () => {
     expect(defaultMotionRenderConfig).toMatchObject({
       enabled: false,
       debug: false,
+      mode: "off",
       allowShortsPresetsForFull: false,
       preventSamePresetBackToBack: true,
       maxSameFamilyRunLength: 2,
@@ -20,6 +21,7 @@ describe("motion render config", () => {
     const config = resolveMotionRenderConfig({
       enabled: true,
       debug: true,
+      mode: "cinematic",
       seed: "episode-seed",
       explicitPresetId: "doc_slow_push_in",
     });
@@ -27,6 +29,7 @@ describe("motion render config", () => {
     expect(config).toMatchObject({
       enabled: true,
       debug: true,
+      mode: "cinematic",
       seed: "episode-seed",
       explicitPresetId: "doc_slow_push_in",
     });

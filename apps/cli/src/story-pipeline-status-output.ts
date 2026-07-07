@@ -21,6 +21,10 @@ export function formatStoryPipelineStatus(
   const failureLines = report.failures.map(
     (failure) => `- ${failure.stageId}: ${failure.category} - ${failure.message}`
   );
+  const fallbackLines = (report.fallbacks ?? []).map(
+    (fallback) =>
+      `- ${fallback.stageId}: ${fallback.provenance} (${fallback.status})`
+  );
   return [
     `Workflow: ${report.workflowId}`,
     `Execution: ${report.executionId}`,
@@ -28,6 +32,7 @@ export function formatStoryPipelineStatus(
     `Result: ${report.result}`,
     "Locales:",
     ...(localeLines.length > 0 ? localeLines : ["- none"]),
+    ...(fallbackLines.length > 0 ? ["Fallbacks:", ...fallbackLines] : []),
     ...(failureLines.length > 0 ? ["Failures:", ...failureLines] : []),
   ].join("\n") + "\n";
 }

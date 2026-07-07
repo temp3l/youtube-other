@@ -41,6 +41,16 @@ Documentation update policy:
 - Update docs only when a task changes documented architecture, commands, configuration, or behavior.
 - If a task does not change those surfaces, leave docs alone.
 
+AI context and task reporting:
+
+- Before non-trivial implementation, inspect `docs/ai-context/context-pack.md`.
+- After every task that modifies files, create a report under `docs/reports/codex-runs/YYYY-MM-DD-<short-task-name>.md`.
+- Reports must include changed files, tests/checks run, results, risks remaining, and follow-up tasks.
+- Never include secrets in docs or reports.
+- Do not perform broad unrelated refactors.
+- Do not modify generated assets unless explicitly requested.
+- Do not claim success without listing verification actually performed.
+
 Plan Execution Reporting:
 
 - Whenever you execute or implement work based on any file under `docs/plans/*`, you must create or update a report after finishing the implementation.

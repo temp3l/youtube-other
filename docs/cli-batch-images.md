@@ -305,6 +305,13 @@ the manual checklist in
 
 ### Short native generation
 
+Short native generation writes vertical shared portrait assets under
+`shared/short/images/generated/`. Multi-language runs are allowed only when the
+same scene can be represented as one owner request plus explicit alias followers.
+The manifest records `sharedOutputKey`, `ownsSharedOutput`, and
+`aliasedToCustomId` so `download`, `status`, and `resume` resolve aliases
+deterministically without language collisions.
+
 ```json
 {
   "custom_id": "dte-img:v2:001-demo:de:short:short-scene:generation:scene:scene-006:fedcba987654",
@@ -325,7 +332,8 @@ the manual checklist in
 
 There is no provider JSONL line for deterministic transforms.
 Those entries stay in `state/image-generation/shorts-local-work.<language>.json`
-and are applied locally to produce the portrait asset.
+for single-language runs or `state/image-generation/shorts-local-work.shared.json`
+for multi-language runs, and are applied locally to produce the portrait asset.
 
 ## Sanitized v2 Manifest Examples
 
@@ -422,6 +430,7 @@ Batch preparation and import use these resolver-backed locations:
 - Character references: `episodes/<episode>/shared/images/character-references/`
 - Short manifest: `episodes/<episode>/shared/short/images/shorts-image-manifest.json`
 - Short local work plan: `episodes/<episode>/state/image-generation/shorts-local-work.<language>.json`
+  or `episodes/<episode>/state/image-generation/shorts-local-work.shared.json`
 
 The import path resolver rejects manifest/filesystem disagreements instead of
 writing to an unexpected destination.
@@ -574,9 +583,9 @@ Useful smoke checks:
 
 ## Known Limitations
 
-- Full-scene multilingual preparation only works when colliding outputs can be
-  represented as safe aliases; short preparation still supports one language per
-  run.
+- Multilingual preparation only works when colliding outputs can be represented
+  as safe aliases. Full scenes compare complete provider request semantics;
+  short shared portraits require explicit same-scene short aliases.
 - Deterministic short transforms stay local and never become provider JSONL.
 - Reference-assisted batch edits are blocked pending manual provider
   verification.

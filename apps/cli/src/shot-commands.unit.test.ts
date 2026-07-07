@@ -4,6 +4,7 @@ import path from "node:path";
 import { Command } from "commander";
 import sharp from "sharp";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { type RuntimeConfig } from "@mediaforge/config";
 import { scenePlanSchema, visualSourceSceneSchema } from "@mediaforge/domain";
 import { hashFile } from "@mediaforge/shared";
 
@@ -293,7 +294,7 @@ async function setupLegacyWorkspace() {
     "Legacy English short script.\n",
     "utf8"
   );
-  const scenes = [0, 1, 2].map((index) => {
+  const scenes = [0, 1, 2, 3, 4].map((index) => {
     const sceneNumber = index + 1;
     const sceneId = `scene-${String(sceneNumber).padStart(3, "0")}`;
     return {
@@ -356,12 +357,26 @@ async function setupLegacyWorkspace() {
     );
   }
   await setupWorkspace();
-  const previousRuntimeConfig = (await configMocks.loadRuntimeConfigMock()) as {
-    readonly visualRetention: unknown;
-  };
+  const previousRuntimeConfig = (await configMocks.loadRuntimeConfigMock()) as Pick<
+    RuntimeConfig,
+    "visualRetention"
+  >;
   configMocks.loadRuntimeConfigMock.mockResolvedValue({
     workspaceDir,
-    visualRetention: previousRuntimeConfig.visualRetention,
+    visualRetention: {
+      ...previousRuntimeConfig.visualRetention,
+      defaults: {
+        ...previousRuntimeConfig.visualRetention.defaults,
+        short: previousRuntimeConfig.visualRetention.defaults.short.map((preset) => ({
+          ...preset,
+          budget: {
+            ...preset.budget,
+            shotCount: { min: 1, max: 35 },
+            sourceImageCount: { min: 1, max: 12 },
+          },
+        })),
+      },
+    },
   });
   configMocks.loadEpisodeConfigMock.mockResolvedValue(null);
   return { episodeDir };

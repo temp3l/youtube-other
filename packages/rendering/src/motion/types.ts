@@ -11,6 +11,8 @@ export type MotionIntensity = "low" | "medium" | "high";
 
 export type MotionVideoKind = "full" | "short";
 
+export type MotionRenderMode = "off" | "safe" | "cinematic" | "shorts";
+
 export type MotionStoryBeat = VisualNarrativePhase | "unknown";
 
 export type MotionImageKind =
@@ -73,6 +75,7 @@ export interface SelectedMotionPreset {
 export interface MotionRenderConfig {
   readonly enabled: boolean;
   readonly debug: boolean;
+  readonly mode: MotionRenderMode;
   readonly seed: string;
   readonly allowShortsPresetsForFull: boolean;
   readonly preventSamePresetBackToBack: boolean;

@@ -56,6 +56,45 @@ describe("story pipeline command", () => {
     expect(manifest.stages.every((stage) => stage.status === "planned")).toBe(true);
   });
 
+  it("parses --dry-run through the registered command", async () => {
+    const program = new Command()
+      .option("--dry-run", "global dry run")
+      .option("--json", "global JSON output");
+    const stories = program.command("stories");
+    registerStoryPipelineCommand(stories);
+    let output = "";
+    const writeSpy = vi
+      .spyOn(process.stdout, "write")
+      .mockImplementation((chunk: string | Uint8Array) => {
+        output += String(chunk);
+        return true;
+      });
+    try {
+      await program.parseAsync(
+        [
+          "stories",
+          "pipeline",
+          "--dry-run",
+          "--episode",
+          "009-the-christmas-doll",
+          "--locales",
+          "en,de",
+          "--formats",
+          "full,short",
+          "--json",
+        ],
+        { from: "user" }
+      );
+    } finally {
+      writeSpy.mockRestore();
+    }
+
+    const manifest = workflowManifestSchema.parse(JSON.parse(output));
+    expect(manifest.episodeId).toBe("009-the-christmas-doll");
+    expect(manifest.locales).toEqual(["en", "de"]);
+    expect(manifest.formats).toEqual(["full", "short"]);
+  });
+
   it("rejects legacy sp before planning stages", async () => {
     const output = makeOutput();
     await expect(

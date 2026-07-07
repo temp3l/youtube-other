@@ -340,6 +340,88 @@ function applySharedOutputPolicyToScenePlans(
   );
 }
 
+function shortSharedPortraitKeyForScenePlan(plan: PlannedImageBatchScene): string {
+  return stableHash(
+    JSON.stringify({
+      policy: "short-shared-portrait-v1",
+      expectedOutputPath: normalizeImageBatchDestinationPath(
+        plan.job.expectedOutputPath
+      ),
+      subject: plan.job.identity.subject,
+      assetRole: plan.job.identity.assetRole,
+      variant: plan.job.identity.variant,
+      outputFormat: plan.job.outputFormat,
+      generationConfigurationHash: plan.job.generationConfigurationHash,
+    })
+  );
+}
+
+function applyShortSharedPortraitAliasPolicy(
+  scenePlans: readonly PlannedImageBatchScene[]
+): readonly PlannedImageBatchScene[] {
+  const plansByOutputPath = new Map<string, PlannedImageBatchScene[]>();
+  for (const plan of scenePlans) {
+    const outputPath = normalizeImageBatchDestinationPath(
+      plan.job.expectedOutputPath
+    );
+    const existing = plansByOutputPath.get(outputPath) ?? [];
+    existing.push(plan);
+    plansByOutputPath.set(outputPath, existing);
+  }
+  const nextPlans: PlannedImageBatchScene[] = [];
+  for (const plansAtPath of plansByOutputPath.values()) {
+    if (plansAtPath.length === 1) {
+      nextPlans.push(plansAtPath[0]!);
+      continue;
+    }
+    const [first] = plansAtPath;
+    const firstSubject = JSON.stringify(first!.job.identity.subject);
+    const allSharedPortraits = plansAtPath.every(
+      (plan) =>
+        plan.job.identity.variant === "short" &&
+        plan.job.identity.assetRole === "short-scene" &&
+        plan.job.identity.destination.root === "shared-short-images-generated" &&
+        JSON.stringify(plan.job.identity.subject) === firstSubject
+    );
+    if (!allSharedPortraits) {
+      throw new ImageBatchPlannerError({
+        code: "duplicate-destination-path",
+        message: `Unsafe short shared portrait collision detected at ${first!.job.expectedOutputPath}.`,
+        details: {
+          expectedOutputPath: first!.job.expectedOutputPath,
+          languages: plansAtPath.map((plan) => plan.job.identity.language),
+          customIds: plansAtPath.map((plan) => scenePlanCustomId(plan)),
+        },
+      });
+    }
+    const ordered = [...plansAtPath].sort((left, right) =>
+      scenePlanCustomId(left).localeCompare(scenePlanCustomId(right))
+    );
+    const owner = ordered[0]!;
+    const sharedOutputKey = shortSharedPortraitKeyForScenePlan(owner);
+    nextPlans.push(
+      withSharedOutputMetadata({
+        plan: owner,
+        sharedOutputKey,
+        ownsSharedOutput: true,
+      })
+    );
+    for (const alias of ordered.slice(1)) {
+      nextPlans.push(
+        withSharedOutputMetadata({
+          plan: alias,
+          sharedOutputKey,
+          ownsSharedOutput: false,
+          aliasedToCustomId: owner.manifestItem.customId,
+        })
+      );
+    }
+  }
+  return nextPlans.sort((left, right) =>
+    scenePlanCustomId(left).localeCompare(scenePlanCustomId(right))
+  );
+}
+
 function buildConfigurationHash(args: {
   readonly stageKind: PlannedImageBatchGroup["stageKind"];
   readonly variant: string;
@@ -1921,106 +2003,113 @@ export async function prepareShortSceneImageBatches(args: {
   const normalizedLanguages = [
     ...new Set(args.languages.map((language) => normalizeLocaleCode(language))),
   ].sort((left, right) => left.localeCompare(right));
-  if (normalizedLanguages.length !== 1) {
-    throw new ImageBatchPlannerError({
-      code: "unsupported-shared-output-multilanguage",
-      message:
-        "Short-scene batch preparation currently supports one language per run because all short outputs target shared portrait paths.",
-      details: {
-        languages: normalizedLanguages,
-        variant: "short",
-        sharedOutputRoot: "shared/short/images/generated",
-      },
-    });
-  }
-  const language = normalizedLanguages[0]!;
+  const ownerLanguage = normalizedLanguages[0]!;
   const resolver = createEpisodePathResolver(path.dirname(args.episodeDir));
-  const localizationPath = resolver.narrationScript({
-    episodeId: normalizeEpisodeId(args.episodeId),
-    locale: language,
-    variant: "short",
-  });
-  if (!(await fileExists(localizationPath))) {
-    throw new ImageBatchPlannerError({
-      code: "missing-localization",
-      message: `Missing localized short script for ${args.episodeId}:${language}.`,
-      details: { localizationPath, language },
-    });
-  }
-  const loadedScenePlan = await loadShortScenePlan({
-    episodeDir: args.episodeDir,
-    episodeId: args.episodeId,
-    language,
-  });
   const selectedSceneIds = args.sceneIds?.length
     ? new Set(args.sceneIds.map((sceneId) => normalizeWhitespace(sceneId)).filter(Boolean))
     : undefined;
-  const scenePlan: ScenePlan = {
-    ...loadedScenePlan,
-    scenes: selectedSceneIds
-      ? loadedScenePlan.scenes.filter((scene) => selectedSceneIds.has(scene.id))
-      : loadedScenePlan.scenes,
-  };
-  const shortPlan = await planShortsImageWork({
-    episodeDir: args.episodeDir,
-    episodeId: args.episodeId,
-    scenePlan,
-    config: defaultShortsImageConfig(scenePlan.scenes.length),
-    landscapeDir: path.join(args.episodeDir, "shared", "images", "generated"),
-    outputDir: path.join(args.episodeDir, "shared", "short", "images", "generated"),
-  });
-  const blockedItems = shortPlan.items.filter(
-    (item): item is Extract<PlannedShortsItem, { kind: "blocked" }> => item.kind === "blocked"
-  );
-  if (blockedItems.length > 0) {
-    const first = blockedItems[0]!;
-    const code =
-      first.error.includes("Missing landscape image")
-        ? "missing-short-source-image"
-        : first.error.includes("Invalid portrait dimensions")
-          ? "invalid-short-portrait-dimensions"
-          : "stale-short-source-hash";
-    throw new ImageBatchPlannerError({
-      code,
-      message: `Unable to prepare short image batch for ${args.episodeId}:${language}.`,
-      details: {
-        blockedItems: blockedItems.map((item) => ({
-          sceneId: item.sceneId,
-          strategy: item.batchStrategy,
-          error: item.error,
-          outputPortraitPath: item.outputPortraitPath,
-        })),
-      },
-    });
-  }
-
   const registry = await loadEpisodeCharacterRegistry(args.episodeDir, args.episodeId);
-  const nativePlans = await Promise.all(
-    shortPlan.items
-      .filter(
-        (item): item is PlannedShortsNativeGenerationItem =>
-          item.kind === "native-generation"
-      )
-      .map((planned) =>
-        buildShortNativeScenePlan({
-          episodeDir: args.episodeDir,
-          episodeId: args.episodeId,
-          language,
-          planned,
-          registry,
-        })
-      )
+  const nativePlansByLanguage = await Promise.all(
+    normalizedLanguages.map(async (language) => {
+      const localizationPath = resolver.narrationScript({
+        episodeId: normalizeEpisodeId(args.episodeId),
+        locale: language,
+        variant: "short",
+      });
+      if (!(await fileExists(localizationPath))) {
+        throw new ImageBatchPlannerError({
+          code: "missing-localization",
+          message: `Missing localized short script for ${args.episodeId}:${language}.`,
+          details: { localizationPath, language },
+        });
+      }
+      const loadedScenePlan = await loadShortScenePlan({
+        episodeDir: args.episodeDir,
+        episodeId: args.episodeId,
+        language,
+      });
+      const scenePlan: ScenePlan = {
+        ...loadedScenePlan,
+        scenes: selectedSceneIds
+          ? loadedScenePlan.scenes.filter((scene) => selectedSceneIds.has(scene.id))
+          : loadedScenePlan.scenes,
+      };
+      const shortPlan = await planShortsImageWork({
+        episodeDir: args.episodeDir,
+        episodeId: args.episodeId,
+        scenePlan,
+        config: defaultShortsImageConfig(scenePlan.scenes.length),
+        landscapeDir: path.join(args.episodeDir, "shared", "images", "generated"),
+        outputDir: path.join(args.episodeDir, "shared", "short", "images", "generated"),
+      });
+      const blockedItems = shortPlan.items.filter(
+        (item): item is Extract<PlannedShortsItem, { kind: "blocked" }> =>
+          item.kind === "blocked"
+      );
+      if (blockedItems.length > 0) {
+        const first = blockedItems[0]!;
+        const code =
+          first.error.includes("Missing landscape image")
+            ? "missing-short-source-image"
+            : first.error.includes("Invalid portrait dimensions")
+              ? "invalid-short-portrait-dimensions"
+              : "stale-short-source-hash";
+        throw new ImageBatchPlannerError({
+          code,
+          message: `Unable to prepare short image batch for ${args.episodeId}:${language}.`,
+          details: {
+            language,
+            blockedItems: blockedItems.map((item) => ({
+              sceneId: item.sceneId,
+              strategy: item.batchStrategy,
+              error: item.error,
+              outputPortraitPath: item.outputPortraitPath,
+            })),
+          },
+        });
+      }
+      const plans = await Promise.all(
+        shortPlan.items
+          .filter(
+            (item): item is PlannedShortsNativeGenerationItem =>
+              item.kind === "native-generation"
+          )
+          .map((planned) =>
+            buildShortNativeScenePlan({
+              episodeDir: args.episodeDir,
+              episodeId: args.episodeId,
+              language,
+              planned,
+              registry,
+            })
+          )
+      );
+      return {
+        language,
+        shortPlan,
+        plans,
+      };
+    })
   );
+  const nativePlans = [
+    ...applyShortSharedPortraitAliasPolicy(
+      nativePlansByLanguage.flatMap((entry) => entry.plans)
+    ),
+  ];
   nativePlans.sort((left, right) =>
     left.requestLine.custom_id.localeCompare(right.requestLine.custom_id)
   );
   validateUniquePlans(
-    nativePlans.map((plan) => ({
-      customId: plan.requestLine.custom_id,
-      identityHash: plan.job.identity.identityHash,
-      expectedOutputPath: plan.job.expectedOutputPath,
-      subjectDescription: `${plan.job.identity.subject.kind}:${plan.job.identity.subject.id}`,
-    }))
+    nativePlans.map((plan) => {
+      const sharedOutputKey = plan.manifestItem.sharedOutputKey;
+      return {
+        customId: plan.requestLine.custom_id,
+        identityHash: plan.job.identity.identityHash,
+        expectedOutputPath: plan.job.expectedOutputPath,
+        subjectDescription: `${plan.job.identity.subject.kind}:${plan.job.identity.subject.id}`,
+        ...(sharedOutputKey ? { sharedOutputKey } : {}),
+      };
+    })
   );
 
   const groups: PlannedImageBatchGroup[] =
@@ -2029,12 +2118,12 @@ export async function prepareShortSceneImageBatches(args: {
           await buildPlannedGroup({
             batchRoot: resolveEpisodeImageStateDir(args.episodeDir),
             stageKind: "scene-images",
-            language,
+            language: ownerLanguage,
             variant: "short",
             settings: args.settings,
             splitGroupIndex: 0,
             splitGroupCount: 1,
-            skippedSceneIds: shortPlan.items
+            skippedSceneIds: nativePlansByLanguage.flatMap((entry) => entry.shortPlan.items)
               .filter((item): item is PlannedShortsReuseItem => item.kind === "reuse")
               .map((item) => item.sceneId),
           }),
@@ -2045,7 +2134,7 @@ export async function prepareShortSceneImageBatches(args: {
               buildPlannedGroup({
                 batchRoot: resolveEpisodeImageStateDir(args.episodeDir),
                 stageKind: "scene-images",
-                language,
+                language: ownerLanguage,
                 variant: "short",
                 settings: args.settings,
                 splitGroupIndex: index,
@@ -2054,7 +2143,7 @@ export async function prepareShortSceneImageBatches(args: {
                   ? { endpoint: chunk[0].requestLine.url }
                   : {}),
                 scenePlans: chunk,
-                skippedSceneIds: shortPlan.items
+                skippedSceneIds: nativePlansByLanguage.flatMap((entry) => entry.shortPlan.items)
                   .filter((item): item is PlannedShortsReuseItem => item.kind === "reuse")
                   .map((item) => item.sceneId),
               })
@@ -2065,18 +2154,20 @@ export async function prepareShortSceneImageBatches(args: {
   ).flat();
   const localWorkPlanPath = path.join(
     resolveEpisodeImageStateDir(args.episodeDir),
-    `shorts-local-work.${language}.json`
+    `shorts-local-work.${normalizedLanguages.length === 1 ? ownerLanguage : "shared"}.json`
   );
-  const deterministicTransforms = shortPlan.items.filter(
+  const allShortItems = nativePlansByLanguage.flatMap((entry) => entry.shortPlan.items);
+  const deterministicTransforms = allShortItems.filter(
     (item): item is PlannedShortsDeterministicTransformItem =>
       item.kind === "deterministic-transform"
   );
-  const cacheReuse = shortPlan.items.filter(
+  const cacheReuse = allShortItems.filter(
     (item): item is PlannedShortsReuseItem => item.kind === "reuse"
   );
   await writeJsonAtomic(localWorkPlanPath, {
     episodeId: args.episodeId,
-    language,
+    language: normalizedLanguages.length === 1 ? ownerLanguage : "shared",
+    languages: normalizedLanguages,
     variant: "short",
     deterministicTransforms,
     cacheReuse,
@@ -2088,7 +2179,7 @@ export async function prepareShortSceneImageBatches(args: {
     variant: "short",
     groups,
     stagePreviews: stagePreviewsForSceneGroups({
-      language,
+      language: ownerLanguage,
       variant: "short",
       settings: args.settings,
       groups,
@@ -2100,10 +2191,22 @@ export async function prepareShortSceneImageBatches(args: {
       cacheReuse,
     },
     previewCounts: {
-      paidNativeGenerations: shortPlan.counts.nativeGeneration,
-      freeLocalTransforms: shortPlan.counts.deterministicTransforms,
-      cacheHits: shortPlan.counts.cacheReuse,
-      blocked: shortPlan.counts.blocked,
+      paidNativeGenerations: nativePlansByLanguage.reduce(
+        (total, entry) => total + entry.shortPlan.counts.nativeGeneration,
+        0
+      ),
+      freeLocalTransforms: nativePlansByLanguage.reduce(
+        (total, entry) => total + entry.shortPlan.counts.deterministicTransforms,
+        0
+      ),
+      cacheHits: nativePlansByLanguage.reduce(
+        (total, entry) => total + entry.shortPlan.counts.cacheReuse,
+        0
+      ),
+      blocked: nativePlansByLanguage.reduce(
+        (total, entry) => total + entry.shortPlan.counts.blocked,
+        0
+      ),
     },
   };
 }

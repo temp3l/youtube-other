@@ -157,6 +157,11 @@ import {
 import { buildRemoteRenderShellScript } from "./render-remote-shell.js";
 import { buildSceneInspectOutput } from "./scene-inspect-output.js";
 import { registerShotsCommands } from "./shots.js";
+import {
+  addRenderMotionOptions,
+  buildMotionRenderConfigFromCli,
+  type RenderMotionCliOptions,
+} from "./render-motion-options.js";
 import { registerStoryLocalizationCommands } from "./story-localization-commands.js";
 import { registerThumbnailCommands } from "./thumbnail-commands.js";
 import { resolveUploadThumbnailPath } from "./youtube-upload-thumbnail.js";
@@ -2690,6 +2695,7 @@ async function commandImagesRegenerateCharacter(
 
 async function commandRender(
   options: CliOptions,
+  renderOptions: RenderMotionCliOptions,
   episodeId: string,
   profile: "youtube" | "vertical",
   burnCaptions = true
@@ -2710,6 +2716,7 @@ async function commandRender(
   const language =
     config.scriptLanguage ?? episodeConfig?.scriptLanguage ?? "en";
   const audioBaseDir = localizedAudioBaseDir(episodeDir, language);
+  const motion = buildMotionRenderConfigFromCli(renderOptions);
   if (options.dryRun) {
     const variant = profile === "vertical" ? "short" : "full";
     printJson({
@@ -2737,6 +2744,7 @@ async function commandRender(
         profile,
         `youtube-${profile === "youtube" ? "16x9" : "9x16"}${localizedOutputSuffix(language)}-captioned.mp4`
       ),
+      ...(motion ? { renderMotion: motion } : {}),
       dryRun: true,
     });
     return;
@@ -2801,6 +2809,7 @@ async function commandRender(
     trailingSilenceRatio: config.trailingSilenceRatio,
     trailingSilenceBufferSeconds: config.trailingSilenceBufferSeconds,
     mediaContext,
+    ...(motion ? { motion } : {}),
     ...(captionsPath ? { captionsPath } : {}),
   };
   const result = await runtime.renderer.render(
@@ -4716,14 +4725,19 @@ const renderCommand = program
   .command("render")
   .argument("<episode-id>")
   .option("--profile <profile>", "youtube or vertical", "youtube")
-  .option("--no-captions", "render without burned-in captions")
+  .option("--no-captions", "render without burned-in captions");
+addRenderMotionOptions(renderCommand)
   .action(
     async (
       episodeId: string,
-      opts: { profile: "youtube" | "vertical"; captions?: boolean }
+      opts: {
+        profile: "youtube" | "vertical";
+        captions?: boolean;
+      } & RenderMotionCliOptions
     ) => {
       await commandRender(
         program.opts<CliOptions>(),
+        opts,
         episodeId,
         opts.profile,
         opts.captions ?? true

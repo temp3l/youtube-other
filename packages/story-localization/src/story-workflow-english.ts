@@ -130,6 +130,17 @@ export async function executeEnglishRewriteStage(args: {
   readonly run: EnglishRewriteStageRunner;
 }): Promise<EnglishRewriteStageResult> {
   const stage = resolveStage(args.context.manifest, args.context.stageId);
+  if (
+    (stage.status === "succeeded" || stage.status === "cached") &&
+    stage.latestOutcome &&
+    (stage.latestOutcome.status === "succeeded" ||
+      stage.latestOutcome.status === "cached")
+  ) {
+    return {
+      manifest: args.context.manifest,
+      outcome: stage.latestOutcome,
+    };
+  }
   const startedAt = new Date().toISOString();
   let outcome: StageOutcome<ArtifactLineage>;
   try {
@@ -262,4 +273,108 @@ export function evaluateEnglishSourceFallback(
       },
     },
   };
+}
+
+export async function executeEnglishSourceFallbackStage(args: {
+  readonly context: EnglishRewriteStageContext;
+  readonly rewriteFailure: StageFailure;
+  readonly sourceArtifact?: ArtifactLineage;
+  readonly validationPassed?: boolean;
+  readonly qualityDecision?: QualityGateDecision;
+}): Promise<EnglishRewriteStageResult> {
+  const stage = resolveStage(args.context.manifest, args.context.stageId);
+  if (
+    stage.status === "succeeded" &&
+    stage.latestOutcome?.status === "succeeded" &&
+    stage.latestOutcome.artifact.provenance === "source-fallback"
+  ) {
+    return {
+      manifest: args.context.manifest,
+      outcome: stage.latestOutcome,
+    };
+  }
+
+  const startedAt = new Date().toISOString();
+  let fallback: EnglishSourceFallbackResult;
+  if (!args.sourceArtifact) {
+    fallback = {
+      accepted: false,
+      failure: {
+        schemaVersion: stageFailureSchemaVersion,
+        category: "source-missing",
+        retryability: "manual-review",
+        message: "Source fallback cannot run because no source artifact is available.",
+        occurredAt: new Date().toISOString(),
+      },
+    };
+  } else if (
+    args.validationPassed === undefined ||
+    args.qualityDecision === undefined
+  ) {
+    fallback = {
+      accepted: false,
+      failure: {
+        schemaVersion: stageFailureSchemaVersion,
+        category: "source-invalid",
+        retryability: "manual-review",
+        message:
+          "Source fallback state is ambiguous; validation and quality decision are required.",
+        occurredAt: new Date().toISOString(),
+      },
+    };
+  } else {
+    fallback = evaluateEnglishSourceFallback({
+      rewriteFailure: args.rewriteFailure,
+      sourceArtifact: args.sourceArtifact,
+      validationPassed: args.validationPassed,
+      qualityDecision: args.qualityDecision,
+    });
+  }
+
+  const completedAt = new Date().toISOString();
+  const baseOutcome = {
+    schemaVersion: stageOutcomeSchemaVersion,
+    stageId: stage.stageId,
+    executionId: args.context.manifest.executionId,
+    fingerprintInputs: stage.fingerprintInputs,
+    cache: stage.cache ?? defaultCache(),
+    cost: emptyCost(),
+    startedAt,
+    completedAt,
+    observability: {
+      attemptNumber: args.context.manifest.attemptHistory.length + 1,
+      durationMs: Math.max(0, Date.parse(completedAt) - Date.parse(startedAt)),
+    },
+  } as const;
+  const outcome: StageOutcome<ArtifactLineage> =
+    fallback.accepted && fallback.artifact
+      ? {
+          ...baseOutcome,
+          status: "succeeded",
+          artifact: fallback.artifact,
+          provenance: "source-fallback",
+          warnings: fallback.warning ? [fallback.warning] : [],
+        }
+      : {
+          ...baseOutcome,
+          status: "blocked",
+          failure:
+            fallback.failure ??
+            ({
+              schemaVersion: stageFailureSchemaVersion,
+              category: "source-fallback-rejected",
+              retryability: "manual-review",
+              message: "Source fallback did not produce an accepted artifact.",
+              occurredAt: completedAt,
+            } satisfies StageFailure),
+          warnings: fallback.warning ? [fallback.warning] : [],
+        };
+
+  const manifest = args.context.store
+    ? await args.context.store.appendOutcome({
+        workflowId: args.context.manifest.workflowId,
+        outcome,
+      })
+    : appendStageOutcome(args.context.manifest, outcome);
+  return { manifest, outcome };
 }

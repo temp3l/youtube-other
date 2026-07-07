@@ -158,23 +158,47 @@ export function registerStoryPipelineCommand(storiesCommand: Command): void {
     .option("--batch-mode <sync|batch|hybrid>", "provider execution mode", "hybrid")
     .option("--json", "print machine-readable workflow manifest")
     .option("--verbose", "enable verbose logging")
-    .action((opts: StoryPipelineCliOptions) => commandStoriesPipeline(opts));
+    .action((opts: StoryPipelineCliOptions) => {
+      const rootOpts = storiesCommand.parent?.opts<StoryPipelineCliOptions>() ?? {};
+      const dryRun = opts.dryRun ?? rootOpts.dryRun;
+      const json = opts.json ?? rootOpts.json;
+      const verbose = opts.verbose ?? rootOpts.verbose;
+      return commandStoriesPipeline({
+        ...rootOpts,
+        ...opts,
+        ...(dryRun !== undefined ? { dryRun } : {}),
+        ...(json !== undefined ? { json } : {}),
+        ...(verbose !== undefined ? { verbose } : {}),
+      });
+    });
   pipeline
     .command("status")
     .requiredOption("--episode <slug-or-number>", "episode slug or number")
     .requiredOption("--workflow <workflow-id>", "workflow id")
     .option("--output-root <path>", "episode workspace root")
     .option("--json", "print machine-readable report")
-    .action((opts: StoryPipelineReadCliOptions) =>
-      commandStoriesPipelineStatus(opts)
-    );
+    .action((opts: StoryPipelineReadCliOptions) => {
+      const rootOpts = storiesCommand.parent?.opts<StoryPipelineReadCliOptions>() ?? {};
+      const json = opts.json ?? rootOpts.json;
+      return commandStoriesPipelineStatus({
+        ...rootOpts,
+        ...opts,
+        ...(json !== undefined ? { json } : {}),
+      });
+    });
   pipeline
     .command("inspect")
     .requiredOption("--episode <slug-or-number>", "episode slug or number")
     .requiredOption("--workflow <workflow-id>", "workflow id")
     .option("--output-root <path>", "episode workspace root")
     .option("--json", "accepted for command symmetry; inspect is always JSON")
-    .action((opts: StoryPipelineReadCliOptions) =>
-      commandStoriesPipelineInspect(opts)
-    );
+    .action((opts: StoryPipelineReadCliOptions) => {
+      const rootOpts = storiesCommand.parent?.opts<StoryPipelineReadCliOptions>() ?? {};
+      const json = opts.json ?? rootOpts.json;
+      return commandStoriesPipelineInspect({
+        ...rootOpts,
+        ...opts,
+        ...(json !== undefined ? { json } : {}),
+      });
+    });
 }

@@ -43,5 +43,5 @@ function readPreferredOpenAiApiKeyFromDotEnv(
 const preferredOpenAiApiKey = readPreferredOpenAiApiKeyFromDotEnv(process.cwd());
 
 if (preferredOpenAiApiKey !== undefined) {
-  process.env.OPENAI_API_KEY = preferredOpenAiApiKey;
+  process.env["OPENAI_API_KEY"] = preferredOpenAiApiKey;
 }

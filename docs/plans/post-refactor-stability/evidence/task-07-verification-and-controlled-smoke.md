@@ -1,5 +1,17 @@
 # Task 07 Verification And Controlled Smoke Evidence
 
+## 2026-07-07 Rerun Note
+
+Current rerun evidence is recorded in
+`docs/reports/2026-07-07/post-refactor-task-07-controlled-smoke.md`.
+Focused tests and required package typechecks passed after a stale CLI migration
+fixture budget fix and a CLI `process.env` type-only fix. The four dry-run
+cells passed. The four `episode validate` cells still fail on stale repository
+episode artifacts (`SOURCE_IDENTITY_MISSING`, `MISSING_ARTIFACT`). The four
+`shots validate` cells run without `--no-visual-retention` but fail on stale or
+invalid shot-plan artifacts (`STALE_SOURCE_IDENTITY` or validation errors). No
+paid provider, upload, or remote render command was run.
+
 Date: 2026-07-03
 
 Scope:
