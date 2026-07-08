@@ -1,4 +1,5 @@
 export * from "./story-localization.types.js";
+export * from "./story-generation-contracts.js";
 export * from "./story-localization.errors.js";
 export * from "./story-localization.schemas.js";
 export * from "./story-artifact-model.js";
@@ -35,7 +36,10 @@ export * from "./story-localization.utils.js";
 export * from "./source-story-discovery.js";
 export * from "./source-story-parser.js";
 export * from "./canonical-facts.service.js";
+export * from "./story-facts.persistence.js";
 export * from "./generated-story-validator.js";
+export * from "./story-quality-gate.js";
+export * from "./story-quality-repair.js";
 export * from "./story-markdown-renderer.js";
 export * from "./story-production.js";
 export * from "./story-production-analysis.js";

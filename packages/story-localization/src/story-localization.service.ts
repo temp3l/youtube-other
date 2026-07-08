@@ -18,6 +18,7 @@ import { getLanguageProfile, isShortLanguage } from "./language-profiles.js";
 import { buildLocalizationPrompt } from "./localization-prompt-builder.js";
 import { compileFullStoryPrompt } from "./story-prompt-compiler.js";
 import { extractCanonicalStoryFacts } from "./canonical-facts.service.js";
+import { readStoryFacts, writeStoryFacts } from "./story-facts.persistence.js";
 import {
   assertSupportedStoryOutputDirectory,
   discoverCanonicalSourceStories,
@@ -477,6 +478,12 @@ function buildFullPromptConfig(
     readonly id: string;
     readonly version: string;
   }[];
+  readonly diagnostics: readonly {
+    readonly code: string;
+    readonly severity: string;
+    readonly message: string;
+    readonly blocking?: boolean;
+  }[];
 } {
   const compiled = compileFullStoryPrompt({
     language,
@@ -486,6 +493,19 @@ function buildFullPromptConfig(
     characterRenameMap,
     ...(productionContext ? { productionContext } : {}),
   });
+  if (
+    compiled.system.trim().length === 0 ||
+    compiled.user.trim().length === 0 ||
+    compiled.promptFingerprint.trim().length === 0
+  ) {
+    const diagnostics = compiled.diagnostics
+      .filter((entry) => entry.blocking || entry.severity === "error")
+      .map((entry) => `${entry.code}: ${entry.message}`)
+      .join("; ");
+    throw new StoryLocalizationConfigurationError(
+      `Full story prompt compilation failed for ${sourceStory.slug} (${language}). ${diagnostics || "No compiler diagnostics were reported."}`
+    );
+  }
   return {
     system: compiled.system,
     user: compiled.user,
@@ -497,6 +517,7 @@ function buildFullPromptConfig(
       fingerprint: compiled.responseSchema.fingerprint,
     },
     selectedModules: [...compiled.selectedModules],
+    diagnostics: [...compiled.diagnostics],
   };
 }
 
@@ -2900,6 +2921,13 @@ export async function localizeStoryEpisode(
         episodeNumber: parsed.episodeNumber,
         slug: parsed.slug,
       });
+      await writeStoryFacts({
+        outputRoot: config.outputDirectory,
+        episodeSlug: parsed.slug,
+        sourceFullHash: canonicalEnglishStory.parsed.sourceHash,
+        extractionConfidence: 0.86,
+        facts: canonicalEnglishStory.facts,
+      });
       await ensureCacheFacts(
         cacheDir,
         canonicalEnglishStory.parsed.sourceHash,
@@ -3799,8 +3827,8 @@ export function createStoryLocalizationConfig(
     shortMaxSeconds: input.shortMaxSeconds ?? 65,
     shortWpm: input.shortWpm ?? 180,
     timeoutMs: input.timeoutMs ?? 180_000,
-    maxOutputTokens: input.maxOutputTokens ?? 25_000,
-    retryMaxOutputTokens: input.retryMaxOutputTokens ?? 25_000,
+    maxOutputTokens: input.maxOutputTokens ?? 5_200,
+    retryMaxOutputTokens: input.retryMaxOutputTokens ?? 5_200,
     repairModel: input.repairModel,
     repairReasoningEffort: input.repairReasoningEffort,
     repairMaxOutputTokens: input.repairMaxOutputTokens,

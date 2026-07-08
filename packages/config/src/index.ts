@@ -881,7 +881,7 @@ export async function loadRuntimeConfig(
       episodeOverrides.openAiStoryModel ??
       env.MEDIAFORGE_OPENAI_STORY_MODEL ??
       env.OPENAI_STORY_MODEL ??
-      "gpt-5.5",
+      "gpt-5.4-medium",
     openAiStoryTemperature:
       overrides.openAiStoryTemperature ??
       episodeOverrides.openAiStoryTemperature ??
@@ -893,19 +893,19 @@ export async function loadRuntimeConfig(
       episodeOverrides.openAiStoryReasoningEffort ??
       env.MEDIAFORGE_OPENAI_STORY_REASONING_EFFORT ??
       env.OPENAI_STORY_REASONING_EFFORT ??
-      "high",
+      "medium",
     openAiStoryMaxOutputTokens:
       overrides.openAiStoryMaxOutputTokens ??
       episodeOverrides.openAiStoryMaxOutputTokens ??
       env.MEDIAFORGE_OPENAI_STORY_MAX_OUTPUT_TOKENS ??
       env.OPENAI_STORY_MAX_OUTPUT_TOKENS ??
-      25_000,
+      5_500,
     openAiStoryRetryMaxOutputTokens:
       overrides.openAiStoryRetryMaxOutputTokens ??
       episodeOverrides.openAiStoryRetryMaxOutputTokens ??
       env.MEDIAFORGE_OPENAI_STORY_RETRY_MAX_OUTPUT_TOKENS ??
       env.OPENAI_STORY_RETRY_MAX_OUTPUT_TOKENS ??
-      25_000,
+      5_500,
     openAiLocalizationModel:
       overrides.openAiLocalizationModel ??
       episodeOverrides.openAiLocalizationModel ??
@@ -913,7 +913,7 @@ export async function loadRuntimeConfig(
       env.OPENAI_LOCALIZATION_MODEL ??
       env.MEDIAFORGE_OPENAI_STORY_MODEL ??
       env.OPENAI_STORY_MODEL ??
-      "gpt-5.5",
+      "gpt-5.4-medium",
     openAiLocalizationReasoningEffort:
       overrides.openAiLocalizationReasoningEffort ??
       episodeOverrides.openAiLocalizationReasoningEffort ??
@@ -921,7 +921,7 @@ export async function loadRuntimeConfig(
       env.OPENAI_LOCALIZATION_REASONING_EFFORT ??
       env.MEDIAFORGE_OPENAI_STORY_REASONING_EFFORT ??
       env.OPENAI_STORY_REASONING_EFFORT ??
-      "high",
+      "low",
     openAiLocalizationMaxOutputTokens:
       overrides.openAiLocalizationMaxOutputTokens ??
       episodeOverrides.openAiLocalizationMaxOutputTokens ??
@@ -929,7 +929,7 @@ export async function loadRuntimeConfig(
       env.OPENAI_LOCALIZATION_MAX_OUTPUT_TOKENS ??
       env.MEDIAFORGE_OPENAI_STORY_MAX_OUTPUT_TOKENS ??
       env.OPENAI_STORY_MAX_OUTPUT_TOKENS ??
-      25_000,
+      5_200,
     openAiShortModel:
       overrides.openAiShortModel ??
       episodeOverrides.openAiShortModel ??
@@ -937,7 +937,7 @@ export async function loadRuntimeConfig(
       env.OPENAI_SHORT_MODEL ??
       env.MEDIAFORGE_OPENAI_STORY_MODEL ??
       env.OPENAI_STORY_MODEL ??
-      "gpt-5.5",
+      "gpt-5.4-medium",
     openAiShortReasoningEffort:
       overrides.openAiShortReasoningEffort ??
       episodeOverrides.openAiShortReasoningEffort ??
@@ -945,13 +945,13 @@ export async function loadRuntimeConfig(
       env.OPENAI_SHORT_REASONING_EFFORT ??
       env.MEDIAFORGE_OPENAI_STORY_REASONING_EFFORT ??
       env.OPENAI_STORY_REASONING_EFFORT ??
-      "high",
+      "low",
     openAiShortRewriteMaxOutputTokens:
       overrides.openAiShortRewriteMaxOutputTokens ??
       episodeOverrides.openAiShortRewriteMaxOutputTokens ??
       env.MEDIAFORGE_OPENAI_SHORT_REWRITE_MAX_OUTPUT_TOKENS ??
       env.OPENAI_SHORT_REWRITE_MAX_OUTPUT_TOKENS ??
-      16_000,
+      1_200,
     openAiShortMaxOutputTokens:
       overrides.openAiShortMaxOutputTokens ??
       episodeOverrides.openAiShortMaxOutputTokens ??
@@ -959,13 +959,13 @@ export async function loadRuntimeConfig(
       env.OPENAI_SHORT_MAX_OUTPUT_TOKENS ??
       env.MEDIAFORGE_OPENAI_SHORT_REWRITE_MAX_OUTPUT_TOKENS ??
       env.OPENAI_SHORT_REWRITE_MAX_OUTPUT_TOKENS ??
-      4_000,
+      1_200,
     openAiShortRewriteRetryMaxOutputTokens:
       overrides.openAiShortRewriteRetryMaxOutputTokens ??
       episodeOverrides.openAiShortRewriteRetryMaxOutputTokens ??
       env.MEDIAFORGE_OPENAI_SHORT_REWRITE_RETRY_MAX_OUTPUT_TOKENS ??
       env.OPENAI_SHORT_REWRITE_RETRY_MAX_OUTPUT_TOKENS ??
-      25_000,
+      1_200,
     openAiValidatorModel:
       overrides.openAiValidatorModel ??
       episodeOverrides.openAiValidatorModel ??
@@ -991,7 +991,7 @@ export async function loadRuntimeConfig(
       env.OPENAI_VALIDATOR_MAX_OUTPUT_TOKENS ??
       env.MEDIAFORGE_OPENAI_METADATA_MAX_OUTPUT_TOKENS ??
       env.OPENAI_METADATA_MAX_OUTPUT_TOKENS ??
-      2_000,
+      2_500,
     openAiMetadataModel:
       overrides.openAiMetadataModel ??
       episodeOverrides.openAiMetadataModel ??
@@ -1009,7 +1009,7 @@ export async function loadRuntimeConfig(
       episodeOverrides.openAiMetadataMaxOutputTokens ??
       env.MEDIAFORGE_OPENAI_METADATA_MAX_OUTPUT_TOKENS ??
       env.OPENAI_METADATA_MAX_OUTPUT_TOKENS ??
-      3_000,
+      1_200,
     openAiMetadataMaxRetries:
       overrides.openAiMetadataMaxRetries ?? episodeOverrides.openAiMetadataMaxRetries ?? env.OPENAI_METADATA_MAX_RETRIES ?? 3,
     openAiMetadataKeepFile:

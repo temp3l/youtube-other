@@ -4,11 +4,11 @@ import { getRepoRoot } from "./story-localization.utils.js";
 export const SHORT_REWRITE_PROMPT_VERSION = "short-rewrite-v1";
 
 export const DEFAULT_STORY_REWRITE_MODEL = "gpt-5.5";
-export const DEFAULT_STORY_REWRITE_REASONING_EFFORT = "high" as const;
-export const DEFAULT_FULL_REWRITE_MAX_OUTPUT_TOKENS = 25_000;
-export const DEFAULT_FULL_REWRITE_RETRY_MAX_OUTPUT_TOKENS = 25_000;
-export const DEFAULT_SHORT_REWRITE_MAX_OUTPUT_TOKENS = 16_000;
-export const DEFAULT_SHORT_REWRITE_RETRY_MAX_OUTPUT_TOKENS = 25_000;
+export const DEFAULT_STORY_REWRITE_REASONING_EFFORT = "medium" as const;
+export const DEFAULT_FULL_REWRITE_MAX_OUTPUT_TOKENS = 5_500;
+export const DEFAULT_FULL_REWRITE_RETRY_MAX_OUTPUT_TOKENS = 5_500;
+export const DEFAULT_SHORT_REWRITE_MAX_OUTPUT_TOKENS = 1_200;
+export const DEFAULT_SHORT_REWRITE_RETRY_MAX_OUTPUT_TOKENS = 1_200;
 
 export const SHORT_REWRITE_SUPPORTED_LANGUAGES = {
   en: { name: "English", locale: "en" },
@@ -26,11 +26,11 @@ export const SHORT_REWRITE_LANGUAGE_ORDER = Object.keys(
 
 export const SHORT_REWRITE_PREFERRED_WORD_RANGE = {
   min: 150,
-  max: 165,
+  max: 170,
 } as const;
 
 export const SHORT_REWRITE_HARD_WORD_RANGE = {
-  min: 145,
+  min: 150,
   max: 170,
 } as const;
 
@@ -41,7 +41,7 @@ export const SHORT_REWRITE_DEFAULT_OUTPUT_ROOT = path.join(
   "episodes"
 );
 
-export const SHORT_REWRITE_DEFAULT_MODEL = "gpt-5.5";
+export const SHORT_REWRITE_DEFAULT_MODEL = "gpt-5.4-medium";
 
 export const SHORT_REWRITE_DEFAULT_TIMEOUT_MS = 120_000;
 
@@ -51,7 +51,7 @@ export const SHORT_REWRITE_DEFAULT_MAX_RETRIES = 2;
 
 export const SHORT_REWRITE_DEFAULT_TEMPERATURE = 0.5;
 
-export const SHORT_REWRITE_DEFAULT_REASONING_EFFORT = "high" as const;
+export const SHORT_REWRITE_DEFAULT_REASONING_EFFORT = "low" as const;
 
 export const SHORT_REWRITE_DEFAULT_MAX_SOURCE_BYTES = 1_500_000;
 

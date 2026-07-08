@@ -49,6 +49,7 @@ import {
   normalizeWhitespace,
 } from "@mediaforge/shared";
 import fs from "node:fs/promises";
+import { buildStoryGenerationWarnings } from "./story-config-warnings.js";
 
 export interface StoryLocalizationCliOptions {
   readonly all?: boolean;
@@ -235,6 +236,12 @@ async function printDryRunSummary(
         sourceDirectory: config.sourceDirectory,
         outputDirectory: config.outputDirectory,
         languages: config.languages,
+        configWarnings: buildStoryGenerationWarnings({
+          storyModel: undefined,
+          localizationModel: config.model,
+          storyMaxOutputTokens: config.maxOutputTokens,
+          validatorMaxOutputTokens: config.repairMaxOutputTokens,
+        }),
         planned,
         estimatedApiCalls: planned.reduce(
           (total, item) => total + item.apiCalls,
@@ -337,6 +344,12 @@ function summarizeResults(
       (total, result) => total + (result.estimatedCostUsd ?? 0),
       0
     ),
+    configWarnings: buildStoryGenerationWarnings({
+      storyModel: undefined,
+      localizationModel: config.model,
+      storyMaxOutputTokens: config.maxOutputTokens,
+      validatorMaxOutputTokens: config.repairMaxOutputTokens,
+    }),
   };
   return summary;
 }

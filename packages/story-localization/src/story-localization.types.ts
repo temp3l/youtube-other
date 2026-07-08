@@ -250,6 +250,13 @@ export interface CompactCanonicalStoryFacts {
   readonly centralThreat: string;
   readonly primaryReveal: string;
   readonly finalConsequence: string;
+  readonly protagonistNames?: readonly string[];
+  readonly locationAnchors?: readonly string[];
+  readonly threatMotifs?: readonly string[];
+  readonly keyRules?: readonly string[];
+  readonly forbiddenInventions?: readonly string[];
+  readonly requiredFinalReveal?: string;
+  readonly requiredFinalLine?: string;
 }
 
 export interface CompactStorySource {
@@ -279,6 +286,13 @@ export interface CanonicalStoryFacts {
   readonly threat: string;
   readonly primaryReveal: string;
   readonly finalConsequence: string;
+  readonly protagonistNames?: readonly string[];
+  readonly locationAnchors?: readonly string[];
+  readonly threatMotifs?: readonly string[];
+  readonly keyRules?: readonly string[];
+  readonly forbiddenInventions?: readonly string[];
+  readonly requiredFinalReveal?: string;
+  readonly requiredFinalLine?: string;
   readonly unresolvedQuestion?: string;
 }
 

@@ -3,6 +3,7 @@ import path from "node:path";
 import { z } from "zod";
 import { ensureDir, fileExists, hashText, readJsonIfExists, writeJsonAtomic } from "@mediaforge/shared";
 import { stableSerialize } from "./stable-json.js";
+import { normalizeCanonicalStoryFacts } from "./canonical-facts.service.js";
 import { resolveCanonicalEnglishFullPaths } from "./canonical-full-story.persistence.js";
 import { type CanonicalStoryFacts, type LanguageCode, type StoryLocalizationCacheEntry } from "./story-localization.types.js";
 
@@ -123,7 +124,9 @@ export async function readCanonicalFactsCache(
   const raw = await readJsonIfExists(factsPath(cacheDirectory, sourceHash), (value) =>
     factsCacheSchema.parse(value)
   );
-  return raw ? (raw.facts as unknown as CanonicalStoryFacts) : null;
+  return raw
+    ? normalizeCanonicalStoryFacts(raw.facts as unknown as CanonicalStoryFacts)
+    : null;
 }
 
 export async function writeCanonicalFactsCache(
@@ -134,7 +137,7 @@ export async function writeCanonicalFactsCache(
   await ensureDir(path.dirname(factsPath(cacheDirectory, sourceHash)));
   await writeJsonAtomic(factsPath(cacheDirectory, sourceHash), {
     sourceHash,
-    facts,
+    facts: normalizeCanonicalStoryFacts(facts),
     generatedAt: new Date().toISOString(),
   });
 }

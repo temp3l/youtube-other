@@ -96,12 +96,16 @@ const modules = [
                 `Rewrite the validated source story into ${context.languageProfile.displayName} narration only.`,
                 "Return narration paragraphs that preserve the same story events, relationships, consequences, and ending while using the supplied fictional character names everywhere.",
                 "You may add concise dialogue, immediate reactions, sensory details, transitions, and plausible connective actions when they improve clarity, suspense, or narration flow without changing immutable facts.",
+                "Write concrete scene narration, not an outline. Every paragraph must include an observable action, sensory detail, decision, discovery, or consequence.",
+                "Do not use abstract transition scaffolding such as 'the first real warning came', 'what followed changed everything', 'the danger became personal', or 'the apparent ending did not survive' unless the same sentence names the specific event.",
                 "Do not produce YouTube metadata, tags, chapters, scene plans, image prompts, rendering instructions, thumbnails, audio/TTS instructions, or provider operational notes.",
               ].join("\n")
             : [
                 `Transform the validated short-event plan into short-form narration in ${context.languageProfile.displayName}.`,
                 "Use the supplied atomic events and beat plan, not sentence fragments, as the source of truth for structure.",
                 "Actively improve compression, rhythm, tension, and clarity while preserving the same facts and the same fictional character names.",
+                "Write a complete micro-story in strict chronology: immediate impossible hook, setup, escalation, rule or mechanism, reversal, and final sting.",
+                "Do not stitch together outline labels or source transition sentences. Replace them with physical actions, visible evidence, and one clear choice by the protagonist.",
                 "Keep the result narration-only and not an audio/TTS prompt.",
                 "Do not produce YouTube metadata, tags, scene plans, image prompts, thumbnails, or provider operational notes.",
               ].join("\n"),

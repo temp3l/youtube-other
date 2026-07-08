@@ -185,15 +185,17 @@ export function buildShortRewriteRepairPrompt(args: {
   readonly invalidResult: unknown;
   readonly validationErrors: readonly string[];
 }): { readonly system: string; readonly user: string } {
-  void args.invalidResult;
   const basePrompt = buildShortRewritePrompt(args.context);
   const repairSection = [
     "The previous result was invalid.",
     "Fix only the problems described below and return the complete JSON again.",
     "Reuse the supplied fictional character map exactly. Do not invent new names.",
     "",
-    "Validation errors:",
+    "Fix these issues in the new result:",
     ...args.validationErrors.map((entry) => `- ${entry}`),
+    "",
+    "Previous invalid short result:",
+    JSON.stringify(args.invalidResult, null, 2),
     "",
     "Do not repeat the errors in prose.",
   ].join("\n");

@@ -228,6 +228,69 @@ function detectDuplicateNarrationParagraphs(
   return new Set(normalized).size !== normalized.length;
 }
 
+const abstractTransitionPatterns = [
+  /\bthe first real warning came\b/iu,
+  /\bwhat followed changed\b/iu,
+  /\bthe danger then became personal\b/iu,
+  /\ba reasonable attempt to escape\b/iu,
+  /\bfor a few minutes, the plan appeared to work\b/iu,
+  /\bthe apparent ending did not survive\b/iu,
+  /\bthe final piece of evidence arrived\b/iu,
+  /\bfrom that point, the pattern stopped looking accidental\b/iu,
+  /\bbefore the final decision\b/iu,
+  /\ba second escape attempt failed\b/iu,
+] as const;
+
+function splitNarrationSentences(text: string): readonly string[] {
+  return (
+    text.match(/[^.!?]+[.!?]+/gu) ??
+    normalizeWhitespace(text)
+      .split(/(?<=[.!?])\s+/u)
+      .filter(Boolean)
+  ).map((entry) => normalizeWhitespace(entry));
+}
+
+function detectAbstractTransitionScaffolding(text: string): string[] {
+  const matches: string[] = [];
+  for (const pattern of abstractTransitionPatterns) {
+    if (pattern.test(text)) {
+      matches.push(pattern.source);
+    }
+  }
+  return matches;
+}
+
+function detectOutlineSentenceRatio(text: string): boolean {
+  const sentences = splitNarrationSentences(text);
+  if (sentences.length < 4) {
+    return false;
+  }
+  const abstractCount = sentences.filter((sentence) =>
+    abstractTransitionPatterns.some((pattern) => pattern.test(sentence))
+  ).length;
+  return abstractCount >= 2 || abstractCount / sentences.length >= 0.22;
+}
+
+function detectLateSetupAfterEnding(text: string): boolean {
+  const normalized = normalizeForMatch(text);
+  const finalMarker = normalized.search(
+    /\b(?:finally|final|never says|later|at home|surviv(?:ed|al)|ending)\b/u
+  );
+  if (finalMarker < 0) {
+    return false;
+  }
+  const tail = normalized.slice(finalMarker);
+  return /\b(?:returned to|entered|where .* once|began in|with two old friends|former school|first arrived)\b/u.test(
+    tail
+  );
+}
+
+function detectLocalizedPlaceholderLeakage(text: string): boolean {
+  return /\b(?:The protagonist|The\s+(?:untersuchte|versuchte|wiederholte|hatte|wartete|arbeitete)\b|The\s+[a-zäöüß])/u.test(
+    text
+  );
+}
+
 function detectTruncation(text: string): boolean {
   const trimmed = normalizeWhitespace(text);
   if (trimmed.length === 0) {
@@ -264,6 +327,13 @@ function validateLocaleSpecificNarration(
       variant === "full"
         ? "Localized full locale leakage."
         : "Short locale leakage."
+    );
+  }
+  if (detectLocalizedPlaceholderLeakage(text)) {
+    issues.push(
+      variant === "full"
+        ? "Localized full source-language placeholder leakage."
+        : "Short source-language placeholder leakage."
     );
   }
   if (/\b(the|and|with|from|warning)\b/iu.test(normalized)) {
@@ -390,7 +460,9 @@ function isSynopsisLike(text: string): boolean {
   return (
     /\b(?:this story|the story|the protagonist|the narrative|the central rule)\b/iu.test(
       text
-    ) || detectGenericFiller(text).length > 0
+    ) ||
+    detectGenericFiller(text).length > 0 ||
+    detectOutlineSentenceRatio(text)
   );
 }
 
@@ -705,6 +777,15 @@ export function validateFullNarrationArtifact(
       )
     );
   }
+  if (detectAbstractTransitionScaffolding(narration).length > 0) {
+    issues.push(
+      issue(
+        GENERATED_STORY_VALIDATION_ISSUE_CODES.FULL_NOT_NARRATION_ONLY,
+        "full",
+        "Full reads like an outline or transition scaffold."
+      )
+    );
+  }
   if (hasLeakage(narration)) {
     issues.push(
       issue(
@@ -900,13 +981,18 @@ export function validateShortNarrationArtifact(
     duration < args.outputConstraints.targetDuration.minSeconds ||
     duration > args.outputConstraints.targetDuration.maxSeconds
   ) {
-    issues.push(
-      issue(
-        GENERATED_STORY_VALIDATION_ISSUE_CODES.SHORT_DURATION_OUT_OF_RANGE,
-        "short",
-        "Short duration estimate out of bounds."
-      )
-    );
+    if (
+      wordCount < args.outputConstraints.targetWordRange.min ||
+      wordCount > args.outputConstraints.targetWordRange.max
+    ) {
+      issues.push(
+        issue(
+          GENERATED_STORY_VALIDATION_ISSUE_CODES.SHORT_DURATION_OUT_OF_RANGE,
+          "short",
+          "Short duration estimate out of bounds."
+        )
+      );
+    }
   }
   if (
     openingSeconds > args.outputConstraints.hookDeadlineSeconds ||
@@ -1079,6 +1165,15 @@ export function validateShortNarrationArtifact(
         GENERATED_STORY_VALIDATION_ISSUE_CODES.SHORT_READS_AS_SYNOPSIS,
         "short",
         "Short reads as synopsis language instead of narration."
+      )
+    );
+  }
+  if (detectLateSetupAfterEnding(narration)) {
+    issues.push(
+      issue(
+        GENERATED_STORY_VALIDATION_ISSUE_CODES.SHORT_CHRONOLOGY_INVALID,
+        "short",
+        "Short places setup after the ending or final consequence."
       )
     );
   }
@@ -1273,6 +1368,9 @@ function validateFullStoryPackageNarration(
     if (detectGenericFiller(fullText).length > 0 && profile.fullNarrationWpm > 0) {
       issues.push("Full contains generic filler.");
     }
+    if (detectAbstractTransitionScaffolding(fullText).length > 0) {
+      issues.push("Full reads like an outline or transition scaffold.");
+    }
     if (facts) {
       const normalizedText = normalizeWhitespace(fullText).toLowerCase();
       if (
@@ -1357,6 +1455,12 @@ export function validateGeneratedStoryPackage(
   }
   if (detectGenericFiller(shortText).length > 0) {
     issues.push("Short contains generic filler.");
+  }
+  if (isSynopsisLike(shortText)) {
+    issues.push("Short reads as synopsis language instead of narration.");
+  }
+  if (detectLateSetupAfterEnding(shortText)) {
+    issues.push("Short places setup after the ending or final consequence.");
   }
   if (validateWrittenMessagesPreserved(effectiveFacts, shortText).length > 0) {
     issues.push("Written messages are not preserved.");
@@ -1467,6 +1571,9 @@ export function validateGeneratedLocalizedFullRewritePackage(
   if (detectGenericFiller(fullText).length > 0 && profile.fullNarrationWpm > 0) {
     issues.push("Full contains generic filler.");
   }
+  if (detectAbstractTransitionScaffolding(fullText).length > 0) {
+    issues.push("Full reads like an outline or transition scaffold.");
+  }
   issues.push(
     ...validatePreservationChecklist(packageValue.preservationChecklist).map(
       (entry) => `preservation:${entry}`
@@ -1523,6 +1630,9 @@ export function validateNarrationOnlyFullRewritePackage(
   }
   if (detectGenericFiller(fullText).length > 0 && profile.fullNarrationWpm > 0) {
     issues.push("Full contains generic filler.");
+  }
+  if (detectAbstractTransitionScaffolding(fullText).length > 0) {
+    issues.push("Full reads like an outline or transition scaffold.");
   }
   if (countSpokenWords(fullText) < 1) {
     issues.push("Full story narration is empty.");

@@ -1,169 +1,241 @@
 import { normalizeWhitespace, splitIntoSentences } from "@mediaforge/shared";
 import { type CanonicalStoryFacts, type ParsedSourceStory } from "./story-localization.types.js";
 
-function extractCandidateNames(text: string): string[] {
-  const candidates = new Set<string>();
-  const pattern = /\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)\b/gu;
-  const leadingStopwords = new Set([
-    "The",
-    "A",
-    "An",
-    "And",
-    "But",
-    "By",
-    "Did",
-    "Do",
-    "Does",
-    "For",
-    "From",
-    "He",
-    "Her",
-    "His",
-    "How",
-    "I",
-    "If",
-    "In",
-    "Into",
-    "It",
-    "Of",
-    "On",
-    "Or",
-    "Our",
-    "She",
-    "So",
-    "That",
-    "The",
-    "Their",
-    "Then",
-    "There",
-    "These",
-    "They",
-    "This",
-    "Those",
-    "To",
-    "We",
-    "What",
-    "When",
-    "Where",
-    "Which",
-    "Who",
-    "Why",
-    "With",
-    "You",
-  ]);
-  const trailingGenericNouns = new Set([
-    "Apartment",
-    "Bathroom",
-    "Bed",
-    "Cabin",
-    "Car",
-    "Door",
-    "Floor",
-    "Hall",
-    "Hallway",
-    "House",
-    "Kitchen",
-    "Lobby",
-    "Motel",
-    "Office",
-    "Room",
-    "Road",
-    "Street",
-    "Suite",
-    "Tent",
-    "Vehicle",
-    "Window",
-  ]);
-  for (const match of text.matchAll(pattern)) {
-    const candidate = normalizeWhitespace(match[1] ?? "");
-    const words = candidate.split(/\s+/u);
-    const firstWord = words[0] ?? "";
-    const lastWord = words.at(-1) ?? "";
-    if (
-      candidate.length > 0 &&
-      firstWord.length > 0 &&
-      lastWord.length > 0 &&
-      !leadingStopwords.has(firstWord) &&
-      !trailingGenericNouns.has(lastWord) &&
-      !/^(Episode|Narration|Episode Metadata)$/u.test(candidate)
-    ) {
-      candidates.add(candidate);
-    }
-  }
-  return [...candidates];
+function unique(values: readonly string[]): string[] {
+  return [...new Set(values.map((entry) => normalizeWhitespace(entry)).filter(Boolean))];
 }
 
 function firstSentence(text: string): string {
-  return splitIntoSentences(text)[0] ?? normalizeWhitespace(text);
+  return normalizeWhitespace(splitIntoSentences(text)[0] ?? text);
 }
 
 function lastSentence(text: string): string {
   const sentences = splitIntoSentences(text);
-  return sentences.at(-1) ?? normalizeWhitespace(text);
+  return normalizeWhitespace(sentences.at(-1) ?? text);
 }
 
-function summarizeSetting(narration: string, parsed: ParsedSourceStory): string {
-  const normalized = narration.toLowerCase();
-  if (/\bmotel\b/u.test(normalized)) {
-    return "An isolated roadside motel on a frozen night";
+function extractCandidateNames(text: string): string[] {
+  const matches = [...text.matchAll(/\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)\b/gu)].map(
+    (match) => normalizeWhitespace(match[1] ?? "")
+  );
+  return unique(
+    matches.filter(
+      (candidate) =>
+        candidate.length > 0 &&
+        !/^(Episode|Narration|Episode Metadata|Audio Generation Instructions)$/u.test(
+          candidate
+        )
+    )
+  );
+}
+
+function extractMessages(text: string): string[] {
+  return unique(
+    [...text.matchAll(/["“]([^"”]{3,120})["”]/gu)].map((match) =>
+      normalizeWhitespace(match[1] ?? "")
+    )
+  );
+}
+
+function extractLocationAnchors(text: string): string[] {
+  const lower = text.toLowerCase();
+  const anchors: string[] = [];
+  if (/\bservice entrance\b/u.test(lower)) {
+    anchors.push("service entrance");
   }
-  if (/\bhotel\b/u.test(normalized)) {
-    return "An isolated roadside hotel";
+  if (/\bservice corridor\b|\bservice hall\b/u.test(lower)) {
+    anchors.push("service corridor");
   }
-  if (/\bhouse\b|\bhouse\b/u.test(normalized)) {
-    return "A secluded haunted house";
+  if (/\bbackrooms\b/u.test(lower)) {
+    anchors.push("backrooms");
   }
-  if (/\broad\b|\bmountain\b|\bstorm\b/u.test(normalized)) {
-    return "A remote road during dangerous weather";
+  if (/\bunderground level\b/u.test(lower)) {
+    anchors.push("underground level");
+  }
+  return unique(anchors);
+}
+
+function extractThreatMotifs(text: string): string[] {
+  const lower = text.toLowerCase();
+  const motifs: string[] = [];
+  if (/\bfluorescent\b/u.test(lower)) {
+    motifs.push("fluorescent hum");
+  }
+  if (/\bwet carpet\b/u.test(lower)) {
+    motifs.push("wet carpet");
+  }
+  if (/\binternal phone\b|\bphone extension\b/u.test(lower)) {
+    motifs.push("internal phone");
+  }
+  if (/\bred door\b/u.test(lower)) {
+    motifs.push("red door");
+  }
+  return unique(motifs);
+}
+
+function extractKeyRules(text: string): string[] {
+  const sentences = splitIntoSentences(text);
+  return unique(
+    sentences.filter((sentence) =>
+      /\bnever\b|\bdon't\b|\bdo not\b|\bmust\b|\bonly\b|\brule\b/iu.test(sentence)
+    )
+  );
+}
+
+function extractForbiddenInventions(text: string): string[] {
+  const inventions: string[] = [];
+  if (!/\bAdrian\b/u.test(text)) {
+    inventions.push("Adrian");
+  }
+  if (!/\bAdrian Cole\b/u.test(text)) {
+    inventions.push("Adrian Cole");
+  }
+  if (!/\bFunkger[aä]t\b/u.test(text)) {
+    inventions.push("Funkgerät");
+  }
+  return inventions;
+}
+
+function summarizeSetting(narration: string, parsed: ParsedSourceStory, locationAnchors: readonly string[]): string {
+  if (locationAnchors.length > 0) {
+    return locationAnchors.join(", ");
   }
   return parsed.metadata.visualDirection ?? parsed.sourceTitle ?? parsed.title;
 }
 
 function summarizeThreat(narration: string, parsed: ParsedSourceStory, names: readonly string[]): string {
   const normalized = narration.toLowerCase();
-  if (/black[- ]eyed children/u.test(normalized) || /\bpermission\b/u.test(normalized)) {
-    return "Two black-eyed children seeking permission to enter";
+  if (/\bbackrooms\b/u.test(normalized)) {
+    return `${names[0] ?? "The protagonist"} is trapped by a predatory maze hidden behind service corridors.`;
   }
   if (/\bdoll\b/u.test(normalized)) {
     return "A haunted doll";
-  }
-  if (/\bchildren\b/u.test(normalized) && names.length > 0) {
-    return `${names[0]} being drawn into a supernatural trap`;
   }
   return parsed.metadata.soundMotif ?? firstSentence(narration);
 }
 
 function pickImportantSentences(text: string, count: number): string[] {
-  const sentences = splitIntoSentences(text).map((sentence) => normalizeWhitespace(sentence)).filter(Boolean);
-  return sentences.slice(0, Math.min(count, sentences.length));
+  return splitIntoSentences(text)
+    .map((sentence) => normalizeWhitespace(sentence))
+    .filter(Boolean)
+    .slice(0, count);
 }
 
-function extractMessages(text: string): string[] {
-  const uppercase = [...text.matchAll(/\b([A-Z][A-Z0-9\s'".-]{4,})\b/gu)].map((match) => normalizeWhitespace(match[1] ?? ""));
-  return [...new Set(uppercase)].filter((entry) => entry.length > 0 && entry.length <= 80);
+function extractRequiredFinalReveal(text: string): string {
+  const sentences = splitIntoSentences(text);
+  const reveal =
+    [...sentences]
+      .reverse()
+      .find((sentence) =>
+        /\breveal(?:ed)?\b|\bturned out\b|\bwas actually\b|\bunderground level\b/iu.test(
+          sentence
+        )
+      ) ?? lastSentence(text);
+  return normalizeWhitespace(reveal);
+}
+
+export function normalizeCanonicalStoryFacts(
+  input: CanonicalStoryFacts
+): CanonicalStoryFacts {
+  const protagonistNames =
+    input.protagonistNames && input.protagonistNames.length > 0
+      ? unique(input.protagonistNames)
+      : unique(
+          input.characters
+            .map((character) => character.name)
+            .filter((_, index) => index === 0)
+        );
+  const locationAnchors =
+    input.locationAnchors && input.locationAnchors.length > 0
+      ? unique(input.locationAnchors)
+      : input.setting
+        ? [input.setting]
+        : [];
+  const threatMotifs =
+    input.threatMotifs && input.threatMotifs.length > 0
+      ? unique(input.threatMotifs)
+      : unique(
+          [input.threat, ...input.criticalObjects]
+            .map((entry) => normalizeWhitespace(entry))
+            .filter((entry) => entry.length > 0)
+            .slice(0, 4)
+        );
+  const keyRules =
+    input.keyRules && input.keyRules.length > 0
+      ? unique(input.keyRules)
+      : unique(input.criticalEvents.filter((entry) => /\bnever\b|\bmust\b|\bonly\b/iu.test(entry)));
+  const forbiddenInventions =
+    input.forbiddenInventions && input.forbiddenInventions.length > 0
+      ? unique(input.forbiddenInventions)
+      : extractForbiddenInventions(
+          [
+            ...input.characters.map((character) => character.name),
+            input.setting ?? "",
+            ...input.criticalObjects,
+            input.threat,
+            input.primaryReveal,
+            input.finalConsequence,
+          ].join(" ")
+        );
+  return {
+    ...input,
+    protagonistNames,
+    locationAnchors,
+    threatMotifs,
+    keyRules,
+    forbiddenInventions,
+    requiredFinalReveal:
+      normalizeWhitespace(input.requiredFinalReveal ?? input.primaryReveal) ||
+      input.primaryReveal,
+    requiredFinalLine:
+      normalizeWhitespace(input.requiredFinalLine ?? input.finalConsequence) ||
+      input.finalConsequence,
+  };
 }
 
 export function extractCanonicalStoryFacts(parsed: ParsedSourceStory): CanonicalStoryFacts {
   const narration = parsed.narrationParagraphs.join(" ");
   const names = extractCandidateNames(narration);
-  const characters = [...new Set(names)].slice(0, 3).map((name, index) => ({
-    name,
-    role: index === 0 ? "main protagonist" : index === 1 ? "supporting character" : "important figure",
-  }));
   const messages = extractMessages(narration);
+  const locationAnchors = extractLocationAnchors(narration);
+  const threatMotifs = extractThreatMotifs(narration);
+  const keyRules = extractKeyRules(narration);
+  const requiredFinalReveal = extractRequiredFinalReveal(narration);
   const facts: CanonicalStoryFacts = {
     episodeNumber: parsed.episodeNumber,
     primaryTitle: parsed.title,
     ...(parsed.metadata.sourceTitle ? { sourceTitle: parsed.metadata.sourceTitle } : {}),
-    characters,
-    setting: summarizeSetting(narration, parsed),
-    criticalObjects: parsed.metadata.tags.slice(0, 5),
-    criticalEvents: pickImportantSentences(narration, 4),
+    characters: unique(names).slice(0, 4).map((name, index) => ({
+      name,
+      role:
+        index === 0
+          ? "main protagonist"
+          : index === 1
+            ? "supporting character"
+            : "important figure",
+    })),
+    setting: summarizeSetting(narration, parsed, locationAnchors),
+    criticalObjects: unique(
+      [
+        ...parsed.metadata.tags,
+        ...threatMotifs.filter((entry) => /phone|door|carpet/iu.test(entry)),
+      ].slice(0, 6)
+    ),
+    criticalEvents: pickImportantSentences(narration, 5),
     writtenMessages: messages,
     threat: summarizeThreat(narration, parsed, names),
-    primaryReveal: messages[0] ?? lastSentence(narration),
+    primaryReveal: messages[0] ?? requiredFinalReveal,
     finalConsequence: lastSentence(narration),
+    protagonistNames: unique(names).slice(0, 2),
+    locationAnchors,
+    threatMotifs,
+    keyRules,
+    forbiddenInventions: extractForbiddenInventions(narration),
+    requiredFinalReveal,
+    requiredFinalLine: lastSentence(narration),
   };
   const unresolvedQuestion = splitIntoSentences(narration).find((sentence) => /\?$/u.test(sentence));
-  return unresolvedQuestion ? { ...facts, unresolvedQuestion } : facts;
+  return normalizeCanonicalStoryFacts(
+    unresolvedQuestion ? { ...facts, unresolvedQuestion } : facts
+  );
 }

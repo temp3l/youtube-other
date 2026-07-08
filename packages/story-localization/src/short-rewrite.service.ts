@@ -39,7 +39,6 @@ import {
 import { buildShortRewriteMarkdown } from "./short-rewrite.renderer.js";
 import {
   buildShortRewritePrompt,
-  buildShortRewriteRegenerationPrompt,
   buildShortRewriteRepairPrompt,
 } from "./short-rewrite.prompt.js";
 import { compileShortStoryPrompt } from "./story-prompt-compiler.js";
@@ -84,6 +83,7 @@ import {
   writeJsonAtomicIfChanged,
   writeTextAtomicIfChanged,
 } from "./story-localization.utils.js";
+import { type CanonicalStoryFacts } from "./story-localization.types.js";
 import {
   assertStoryPreflightAllowed,
   estimateStoryComponent,
@@ -109,6 +109,7 @@ import {
   type ShortNarrationResponse,
 } from "./story-prompt-response-schemas.js";
 import { materializeCanonicalSourceStory } from "./short-rewrite.bootstrap.js";
+import { readStoryFacts } from "./story-facts.persistence.js";
 import {
   type ResolvedShortRewriteSource,
   type ShortRewriteAdaptationContract,
@@ -163,6 +164,14 @@ import {
   type GeneratedStoryValidationIssueCode,
   validateShortNarrationArtifact,
 } from "./generated-story-validator.js";
+import { type StoryGenerationBudget } from "./story-generation-contracts.js";
+import { runStoryQualityGate } from "./story-quality-gate.js";
+import {
+  dedupeGeneratedMetadata,
+  repairFinalSting,
+  repairGermanServiceCompounds,
+  repairShortBodyCanonicalNames,
+} from "./story-quality-repair.js";
 
 type ResponseCreateRequest = Parameters<
   OpenAiStoryClient["responses"]["create"]
@@ -1246,6 +1255,65 @@ function analyzeGeneratedPayload(args: {
   return { generation, validation, quality, warnings, issues, issueCodes };
 }
 
+function applyDeterministicQualityRepairs(args: {
+  readonly narration: string;
+  readonly language: StoryLanguage;
+  readonly facts: CanonicalStoryFacts;
+  readonly fixes: readonly string[];
+}): string {
+  let repaired = args.narration;
+  for (const fix of args.fixes) {
+    switch (fix) {
+      case "dedupe-generated-marker":
+        repaired = dedupeGeneratedMetadata(repaired);
+        break;
+      case "repair-german-compounds":
+        repaired = repairGermanServiceCompounds(repaired);
+        break;
+      case "repair-canonical-name":
+        repaired = repairShortBodyCanonicalNames(repaired, args.facts);
+        break;
+      case "repair-final-sting":
+        repaired = repairFinalSting(repaired, args.facts);
+        break;
+      default:
+        break;
+    }
+  }
+  return normalizeWhitespace(repaired);
+}
+
+function buildShortQualityBudget(args: {
+  readonly language: StoryLanguage;
+  readonly model: string;
+  readonly reasoningEffort?:
+    | "none"
+    | "minimal"
+    | "low"
+    | "medium"
+    | "high"
+    | "xhigh"
+    | undefined;
+  readonly maxOutputTokens?: number | undefined;
+  readonly approximateOutputTokens?: number | undefined;
+}): StoryGenerationBudget {
+  return {
+    artifactKind: "short",
+    language: args.language,
+    model: args.model,
+    inputMode: "facts+excerpts",
+    ...(args.reasoningEffort !== undefined
+      ? { reasoningEffort: args.reasoningEffort }
+      : {}),
+    ...(args.maxOutputTokens !== undefined
+      ? { maxOutputTokens: args.maxOutputTokens }
+      : {}),
+    ...(args.approximateOutputTokens !== undefined
+      ? { approximateOutputTokens: args.approximateOutputTokens }
+      : {}),
+  };
+}
+
 function buildRequestSchema(): z.ZodTypeAny {
   return shortNarrationResponseSchema;
 }
@@ -1705,7 +1773,13 @@ async function generateLanguagePayload(
     },
     content: args.parent.narrationParagraphs.join("\n\n"),
   };
-  const promptFacts = extractCanonicalStoryFacts(parsedSourceStory);
+  const promptFacts =
+    (await readStoryFacts({
+      outputRoot: args.outputRoot,
+      episodeSlug: args.source.episodeSlug,
+      sourceFullHash: args.parent.parentFullHash,
+    })) ??
+    extractCanonicalStoryFacts(parsedSourceStory);
   const promptStoryIr = adaptCanonicalStoryFactsToStoryIR(
     promptFacts,
     parsedSourceStory
@@ -2210,6 +2284,22 @@ async function generateLanguagePayload(
   let issues = initialAnalysis.issues;
   let issueCodes = initialAnalysis.issueCodes;
   let warnings = [...initialAnalysis.warnings];
+  let qualityGate = runStoryQualityGate({
+    artifactKind: "short",
+    language: args.language,
+    text: generation.narration,
+    facts: promptFacts,
+    budget: buildShortQualityBudget({
+      language: args.language,
+      model: args.model,
+      reasoningEffort: args.reasoningEffort,
+      maxOutputTokens: args.maxOutputTokens,
+      approximateOutputTokens: initialResponse.outputTokens,
+    }),
+    targetWordRange: args.adaptationContract.constraints.targetWordRange,
+  });
+  warnings.push(...qualityGate.warnings);
+  issues.push(...qualityGate.findings.filter((entry) => entry.severity === "error").map((entry) => entry.message));
   const repairHistory: Array<{
     readonly stage: "repair" | "regenerate";
     readonly issues: readonly string[];
@@ -2228,14 +2318,78 @@ async function generateLanguagePayload(
       issues: normalizedIssues,
       allowTargetedRepair: shouldUseTargetedShortRepair(normalizedIssues),
     });
-    if (retryDecision.action === "block") {
+    if (
+      qualityGate.status === "REPAIRABLE" &&
+      qualityGate.deterministicFixes.length > 0
+    ) {
+      const repairedNarration = applyDeterministicQualityRepairs({
+        narration: generation.narration,
+        language: args.language,
+        facts: promptFacts,
+        fixes: qualityGate.deterministicFixes,
+      });
+      if (repairedNarration !== generation.narration) {
+        responsePayload = { narration: repairedNarration };
+        const deterministicallyRepaired = analyzeGeneratedPayload({
+          parsed: responsePayload,
+          language: args.language,
+          source: args.source,
+          parentTitle: args.parent.title,
+          parent: args.parent,
+          adaptationContract: args.adaptationContract,
+          outputConstraints: {
+            targetNarrationWpm: args.adaptationContract.constraints.targetNarrationWpm,
+            targetDuration: {
+              minSeconds: args.adaptationContract.constraints.targetDurationSeconds.min,
+              maxSeconds: args.adaptationContract.constraints.targetDurationSeconds.max,
+            },
+            targetWordRange: args.adaptationContract.constraints.targetWordRange,
+            hookDeadlineSeconds: args.adaptationContract.constraints.hookDeadlineSeconds,
+          },
+        });
+        generation = deterministicallyRepaired.generation;
+        validation = deterministicallyRepaired.validation;
+        quality = deterministicallyRepaired.quality;
+        warnings = [...deterministicallyRepaired.warnings];
+        issues = [...deterministicallyRepaired.issues];
+        issueCodes = deterministicallyRepaired.issueCodes;
+        qualityGate = runStoryQualityGate({
+          artifactKind: "short",
+          language: args.language,
+          text: generation.narration,
+          facts: promptFacts,
+          budget: buildShortQualityBudget({
+            language: args.language,
+            model: args.model,
+            reasoningEffort: args.reasoningEffort,
+            maxOutputTokens: args.maxOutputTokens,
+            approximateOutputTokens: usage.outputTokens,
+          }),
+          targetWordRange: args.adaptationContract.constraints.targetWordRange,
+        });
+        warnings.push(...qualityGate.warnings);
+        issues.push(
+          ...qualityGate.findings
+            .filter((entry) => entry.severity === "error")
+            .map((entry) => entry.message)
+        );
+        repairHistory.push({
+          stage: "repair",
+          issues: ["Applied deterministic short quality repair."],
+        });
+      }
+    }
+    if (issues.length > 0 && retryDecision.action === "block") {
       throw new ShortRewriteValidationError(normalizedIssues.join("; "));
     }
-    if (retryDecision.action === "repair") {
+    if (
+      issues.length > 0 &&
+      (retryDecision.action === "repair" || qualityGate.status === "REPAIRABLE")
+    ) {
       const repairPrompt = buildShortRewriteRepairPrompt({
         context: promptContext,
         invalidResult: responsePayload,
-        validationErrors: normalizedIssues,
+        validationErrors: normalizeValidationErrors(issues),
       });
       const repairResponse = await requestStructuredShortRewrite({
         client,
@@ -2295,77 +2449,28 @@ async function generateLanguagePayload(
       warnings = [...repairedAnalysis.warnings];
       issues = repairedAnalysis.issues;
       issueCodes = repairedAnalysis.issueCodes;
-    }
-    if (issues.length > 0) {
-      const regenerationPrompt = buildShortRewriteRegenerationPrompt({
-        context: promptContext,
-        validationErrors: normalizeValidationErrors(issues),
-        invalidResult: responsePayload,
-      });
-      const regenerationResponse = await requestStructuredShortRewrite({
-        client,
-        model: args.model,
-        repairModel: args.repairModel,
-        prompt: regenerationPrompt,
-        temperature: args.temperature,
-        reasoningEffort: args.reasoningEffort,
-        maxOutputTokens: args.retryMaxOutputTokens,
-        repairReasoningEffort: args.repairReasoningEffort,
-        repairMaxOutputTokens: args.repairMaxOutputTokens,
-        timeoutMs: args.timeoutMs,
-        maxRetries: args.maxRetries,
-        signal: args.signal,
-        requestLabel: `${languageDefinition.name} short rewrite regenerate`,
-        debugDirectory,
-        debugFileBaseName,
-        preflight: buildShortPreflight({
-          repair: false,
-          promptFingerprint: `${promptFingerprint}:regenerate`,
-        }),
-      });
-      repairHistory.push({
-        stage: "regenerate",
-        issues: normalizeValidationErrors(issues),
-      });
-      requestId = regenerationResponse.id;
-      usage = buildUsagePayload({
-        inputTokens:
-          (usage.inputTokens ?? 0) + (regenerationResponse.inputTokens ?? 0),
-        cachedInputTokens:
-          (usage.cachedInputTokens ?? 0) +
-          (regenerationResponse.cachedInputTokens ?? 0),
-        reasoningTokens:
-          (usage.reasoningTokens ?? 0) +
-          (regenerationResponse.reasoningTokens ?? 0),
-        outputTokens:
-          (usage.outputTokens ?? 0) + (regenerationResponse.outputTokens ?? 0),
-        totalTokens:
-          (usage.totalTokens ?? 0) + (regenerationResponse.totalTokens ?? 0),
-      });
-      responsePayload = parseStructuredResult(regenerationResponse.outputText);
-      const regeneratedAnalysis = analyzeGeneratedPayload({
-        parsed: responsePayload,
+      qualityGate = runStoryQualityGate({
+        artifactKind: "short",
         language: args.language,
-        source: args.source,
-        parentTitle: args.parent.title,
-        parent: args.parent,
-        adaptationContract: args.adaptationContract,
-        outputConstraints: {
-          targetNarrationWpm: args.adaptationContract.constraints.targetNarrationWpm,
-          targetDuration: {
-            minSeconds: args.adaptationContract.constraints.targetDurationSeconds.min,
-            maxSeconds: args.adaptationContract.constraints.targetDurationSeconds.max,
-          },
-          targetWordRange: args.adaptationContract.constraints.targetWordRange,
-          hookDeadlineSeconds: args.adaptationContract.constraints.hookDeadlineSeconds,
-        },
+        text: generation.narration,
+        facts: promptFacts,
+        budget: buildShortQualityBudget({
+          language: args.language,
+          model: args.repairModel ?? args.model,
+          reasoningEffort:
+            args.repairReasoningEffort ?? args.reasoningEffort,
+          maxOutputTokens:
+            args.repairMaxOutputTokens ?? args.retryMaxOutputTokens,
+          approximateOutputTokens: usage.outputTokens,
+        }),
+        targetWordRange: args.adaptationContract.constraints.targetWordRange,
       });
-      generation = regeneratedAnalysis.generation;
-      validation = regeneratedAnalysis.validation;
-      quality = regeneratedAnalysis.quality;
-      warnings = [...regeneratedAnalysis.warnings];
-      issues = regeneratedAnalysis.issues;
-      issueCodes = regeneratedAnalysis.issueCodes;
+      warnings.push(...qualityGate.warnings);
+      issues.push(
+        ...qualityGate.findings
+          .filter((entry) => entry.severity === "error")
+          .map((entry) => entry.message)
+      );
     }
     if (issues.length > 0) {
       throw new ShortRewriteValidationError(issues.join("; "));

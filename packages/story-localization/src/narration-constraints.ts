@@ -70,13 +70,13 @@ const SHORT_DURATION_WORD_RANGES: Readonly<
   en: {
     30: { min: 65, target: 72, max: 80 },
     45: { min: 95, target: 105, max: 115 },
-    60: { min: 125, target: 138, max: 150 },
+    60: { min: 150, target: 160, max: 170 },
     75: { min: 155, target: 170, max: 185 },
   },
   de: {
     30: { min: 60, target: 66, max: 72 },
     45: { min: 85, target: 95, max: 105 },
-    60: { min: 115, target: 126, max: 138 },
+    60: { min: 155, target: 168, max: 180 },
     75: { min: 145, target: 158, max: 170 },
   },
   es: {

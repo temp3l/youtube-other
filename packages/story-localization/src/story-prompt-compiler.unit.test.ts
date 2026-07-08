@@ -43,6 +43,8 @@ describe("story prompt compiler", () => {
     });
     expect(first.system).toBe(second.system);
     expect(first.user).toBe(second.user);
+    expect(first.system.trim().length).toBeGreaterThan(0);
+    expect(first.user).toContain("<SOURCE_NARRATION>");
     expect(first.promptFingerprint).toBe(second.promptFingerprint);
     expect(first.selectedModules).toEqual(
       [...first.selectedModules].sort((left, right) =>
@@ -89,7 +91,16 @@ describe("story prompt compiler", () => {
   it("includes conditional written-message modules and omits irrelevant nonfiction rules", async () => {
     const parsed = await parseCanonicalSourceStory(sourceFile);
     const facts = extractCanonicalStoryFacts(parsed);
-    const storyIr = adaptCanonicalStoryFactsToStoryIR(facts, parsed);
+    const storyIr = {
+      ...adaptCanonicalStoryFactsToStoryIR(facts, parsed),
+      writtenMessages: [
+        {
+          id: "message-1",
+          text: "DO NOT OPEN THE RED DOOR",
+          kind: "warning",
+        },
+      ],
+    };
     const parent = {
       identity: {
         episodeId: parsed.episodeNumber,

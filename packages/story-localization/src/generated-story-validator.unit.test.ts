@@ -570,6 +570,103 @@ describe("generated story validator", () => {
     ).toBe(true);
   });
 
+  it("rejects full narration that is mostly abstract transition scaffolding", () => {
+    const terms = languageTerms("en");
+    const result = validateFullNarrationArtifact({
+      language: "en",
+      profile: getLanguageProfile("en"),
+      storyIr: buildStoryIr("en"),
+      characterRenameMap: buildRenameMap("Morgan Reed"),
+      outputConstraints: {
+        variant: "full",
+        targetWordRange: { min: 1, max: 500 },
+        targetNarrationWpm: getLanguageProfile("en").fullNarrationWpm,
+        targetDuration: { minSeconds: 1, maxSeconds: 240 },
+      },
+      narrationParagraphs: [
+        `${terms.chronology[0]}. The first real warning came when the ordinary rules failed. ${terms.threat}. ${terms.rule}. ${terms.fact}.`,
+        `What followed changed the meaning of everything before it. The danger then became personal. ${terms.chronology[1]}. ${terms.chronology[2]}. ${terms.climax}. ${terms.ending}.`,
+      ],
+    });
+    expect(formatValidationIssues(result.issues)).toContain(
+      "Full reads like an outline or transition scaffold."
+    );
+  });
+
+  it("rejects shorts that read like outline excerpts or move setup after the ending", () => {
+    const terms = languageTerms("en");
+    const parent = buildShortParent("en");
+    const narration = padToWordRange(
+      `${terms.shortOpen} The first real warning came when the ordinary rules failed. What followed changed the meaning of everything before it. ${terms.rule}. ${terms.fact}. ${terms.climax}. ${terms.ending}. Lena never says the name now. Lena returned to the house with two old friends where students had once tested the mirror.`,
+      minimumPassingShortWords("en"),
+      terms.localeFiller
+    );
+    const result = validateShortNarrationArtifact({
+      language: "en",
+      profile: getLanguageProfile("en"),
+      narration,
+      parent: { ...parent, validated: true },
+      adaptationContract: buildShortContract("en"),
+      outputConstraints: buildShortConstraints("en"),
+      characterRenameMap: parent.characterRenameMap,
+    });
+    expect(formatValidationIssues(result.issues)).toContain(
+      "Short reads as synopsis language instead of narration."
+    );
+    expect(formatValidationIssues(result.issues)).toContain(
+      "Short places setup after the ending or final consequence."
+    );
+  });
+
+  it("rejects localized full narration with English placeholder leakage", () => {
+    const facts: CanonicalStoryFacts = {
+      episodeNumber: "026",
+      primaryTitle: "Sie sagte dreimal Bloody Mary",
+      characters: [{ name: "Mia", role: "main protagonist" }],
+      setting: "das Internat",
+      criticalObjects: [],
+      criticalEvents: ["Mia betrat den Waschraum."],
+      writtenMessages: [],
+      threat: "das Spiegelbild",
+      primaryReveal: "das Spiegelbild versuchte, Mia zu ersetzen",
+      finalConsequence: "Mias Spiegelbild blinzelt auf Fotos nie",
+    };
+    const issues = validateNarrationOnlyFullRewritePackage(
+      {
+        language: "de",
+        full: {
+          narrationParagraphs: [
+            "Mia betrat den Waschraum in dem Internat.",
+            "The protagonist arbeitete als ehemalige Schülerin, und The untersuchte alte Akten.",
+            "Das Spiegelbild versuchte, Mia zu ersetzen. Mias Spiegelbild blinzelt auf Fotos nie.",
+          ],
+        },
+        targetNarrationWpm: 175,
+        preservationChecklist: {
+          charactersPreserved: true,
+          relationshipsPreserved: true,
+          chronologyPreserved: true,
+          criticalObjectsPreserved: true,
+          cluesPreserved: true,
+          writtenMessagesPreserved: true,
+          primaryRevealPreserved: true,
+          endingPreserved: true,
+          noNewPlotElementsAdded: true,
+        },
+        diagnostics: {
+          removedGenericFiller: [],
+          adaptationNotes: [],
+        },
+      },
+      facts,
+      getLanguageProfile("de"),
+      "de"
+    );
+    expect(issues).toContain(
+      "Localized full source-language placeholder leakage."
+    );
+  });
+
   it("accepts fictionalized character names when a rename map is supplied", () => {
     const facts: CanonicalStoryFacts = {
       episodeNumber: "021",

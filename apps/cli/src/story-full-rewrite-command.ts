@@ -19,6 +19,7 @@ import {
   materializeCanonicalSourceStory,
 } from "@mediaforge/story-localization";
 import { normalizeLocaleCode, normalizeWhitespace } from "@mediaforge/shared";
+import { buildStoryGenerationWarnings } from "./story-config-warnings.js";
 
 export interface StoryRewriteFullCliOptions {
   readonly episode?: string;
@@ -263,6 +264,19 @@ export function registerStoryRewriteFullCommand(storiesCommand: Command): void {
         outputTokens: result.outputTokens,
         estimatedCostUsd: result.estimatedCostUsd,
         failure: result.failure,
+        configWarnings: buildStoryGenerationWarnings({
+          storyModel:
+            options.model ?? runtimeConfig.openAiStoryModel ?? DEFAULT_STORY_REWRITE_MODEL,
+          localizationModel: runtimeConfig.openAiLocalizationModel,
+          storyMaxOutputTokens:
+            options.maxOutputTokens ??
+            runtimeConfig.openAiStoryMaxOutputTokens ??
+            DEFAULT_FULL_REWRITE_MAX_OUTPUT_TOKENS,
+          validatorMaxOutputTokens:
+            runtimeConfig.openAiValidatorMaxOutputTokens ??
+            runtimeConfig.openAiMetadataMaxOutputTokens,
+          targetWords: 1800,
+        }),
       };
       if (options.json) {
         process.stdout.write(`${JSON.stringify(payload, null, 2)}\n`);
@@ -278,6 +292,9 @@ export function registerStoryRewriteFullCommand(storiesCommand: Command): void {
             `Estimated cost: ${result.estimatedCostUsd === null ? "n/a" : `$${result.estimatedCostUsd.toFixed(4)}`}`,
           ].join("\n") + "\n"
         );
+        for (const warning of payload.configWarnings) {
+          process.stderr.write(`Warning: ${warning}\n`);
+        }
       }
       if (result.failure) {
         process.exitCode = 1;

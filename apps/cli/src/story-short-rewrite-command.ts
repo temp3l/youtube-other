@@ -20,6 +20,7 @@ import {
   normalizeLocaleCode,
   normalizeWhitespace,
 } from "@mediaforge/shared";
+import { buildStoryGenerationWarnings } from "./story-config-warnings.js";
 
 export interface StoryRewriteShortCliOptions {
   readonly episode?: string;
@@ -413,10 +414,28 @@ export function registerStoryRewriteShortCommand(storiesCommand: Command): void 
           } satisfies ShortRewriteRunOptions,
           serviceOptions
         );
+        const configWarnings = buildStoryGenerationWarnings({
+          storyModel: runtimeConfig.openAiStoryModel,
+          localizationModel: runtimeConfig.openAiLocalizationModel,
+          shortMaxOutputTokens:
+            options.maxOutputTokens ??
+            runtimeConfig.openAiShortMaxOutputTokens ??
+            runtimeConfig.openAiShortRewriteMaxOutputTokens ??
+            DEFAULT_SHORT_REWRITE_MAX_OUTPUT_TOKENS,
+          validatorMaxOutputTokens:
+            runtimeConfig.openAiValidatorMaxOutputTokens ??
+            runtimeConfig.openAiMetadataMaxOutputTokens,
+        });
         if (options.json) {
-          printJson(summary);
+          printJson({
+            ...summary,
+            configWarnings,
+          });
         } else {
           process.stdout.write(`${formatSummary(summary)}\n`);
+          if (configWarnings.length > 0) {
+            process.stderr.write(`${configWarnings.map((entry) => `Warning: ${entry}`).join("\n")}\n`);
+          }
         }
         if (summary.failed > 0) {
           process.exitCode = 1;

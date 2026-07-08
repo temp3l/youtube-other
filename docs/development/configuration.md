@@ -43,11 +43,22 @@ Configuration ownership lives in `@mediaforge/config`.
 - Remote rendering is disabled by default
 - Remote render fallback to local is enabled by default
 - Default models visible in code today:
-  - story: `gpt-5.5`
-  - localization: `gpt-5.5`
-  - short rewrite: `gpt-5.5`
+  - story: `gpt-5.4-medium`
+  - localization: `gpt-5.4-medium`
+  - short rewrite: `gpt-5.4-medium`
   - validator: `gpt-5.4-mini`
   - metadata: `gpt-5.4-mini`
+- Default reasoning and token caps:
+  - story: `medium`, `5500`
+  - localization: `low`, `5200`
+  - short rewrite: `low`, `1200`
+  - validator: `low`, `2500`
+  - metadata: `low`, `1200`
+- CLI warning-only guardrails:
+  - short max-output-tokens above `2000`
+  - validator max-output-tokens above `3000`
+  - localization model equal to story model
+  - story max-output-tokens above `7000` when targeting below `2000` words
 - Metadata defaults worth noting:
   - max retries: `3`
   - timeout: `120000`

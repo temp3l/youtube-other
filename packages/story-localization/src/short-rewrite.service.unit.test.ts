@@ -468,7 +468,7 @@ describe("short rewrite service", () => {
         id: "resp-success",
         output_text: buildResponseJson({
           title: "Das Puppenhaus",
-          wordCount: 66,
+          wordCount: 60,
           thumbnailText: "Nasse Hände",
           fullVideoBridge: "Sieh dir die ganze Episode an.",
           language: "de",
@@ -491,7 +491,6 @@ describe("short rewrite service", () => {
         client,
       }
     );
-
     expect(summary.completed).toBe(1);
     expect(summary.failed).toBe(0);
     expect(summary.skipped).toBe(0);

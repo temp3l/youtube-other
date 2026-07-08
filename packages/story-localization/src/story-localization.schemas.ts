@@ -127,6 +127,13 @@ export const compactCanonicalStoryFactsSchema = z.object({
   centralThreat: z.string().min(1),
   primaryReveal: z.string().min(1),
   finalConsequence: z.string().min(1),
+  protagonistNames: z.array(z.string().min(1)).optional(),
+  locationAnchors: z.array(z.string().min(1)).optional(),
+  threatMotifs: z.array(z.string().min(1)).optional(),
+  keyRules: z.array(z.string().min(1)).optional(),
+  forbiddenInventions: z.array(z.string().min(1)).optional(),
+  requiredFinalReveal: z.string().min(1).optional(),
+  requiredFinalLine: z.string().min(1).optional(),
 });
 
 export const compactStorySourceSchema = z.object({
