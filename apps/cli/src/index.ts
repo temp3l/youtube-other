@@ -122,6 +122,10 @@ import {
   splitEpisodeScriptMarkdown,
 } from "@mediaforge/speech";
 import {
+  assertNarrationTtsConfigured,
+  narrationStageRequiresTts,
+} from "./narration-tts-guard.js";
+import {
   buildVisualScenesFromSubtitleSegments,
   normalizeTranscriptFromWords,
   MockTranscriptionProvider,
@@ -1806,14 +1810,7 @@ async function commandAudioGenerate(
     });
     return;
   }
-  if (
-    config.ttsProvider !== "openai-compatible" ||
-    !config.openAiCompatibleApiKey
-  ) {
-    throw new Error(
-      "OpenAI speech is required for narration generation; mock speech is disabled."
-    );
-  }
+  assertNarrationTtsConfigured(config);
   const language =
     config.scriptLanguage ?? episodeConfig?.scriptLanguage ?? "en";
   const narrationDependency = await loadValidatedNarrationDependency(
@@ -2952,6 +2949,12 @@ async function runAudioNarrationPipeline(
   const variants = commandOptions.allVariants
     ? (["full", "short"] as const)
     : ([parseNarrationVariant(commandOptions.variant)] as const);
+  if (
+    narrationStageRequiresTts(stage) &&
+    !(commandOptions.dryRun ?? options.dryRun)
+  ) {
+    assertNarrationTtsConfigured(config);
+  }
   const speechVoicePreset: SpeechVoicePreset =
     config.speechVoicePreset ?? episodeConfig?.speechVoicePreset ?? "fast";
   const model =
@@ -4312,7 +4315,10 @@ function addGlobalOptions(command: Command): Command {
     .option("--quiet", "suppress non-essential output")
     .option("--verbose", "increase logging verbosity")
     .option("--dry-run", "preview actions without writing")
-    .option("--tts-provider <provider>", "mock or openai-compatible")
+    .option(
+      "--tts-provider <provider>",
+      "mock or openai-compatible; narration generation requires openai-compatible"
+    )
     .option("--openai-base-url <url>", "OpenAI API base URL")
     .option("--openai-api-key <key>", "OpenAI API key")
     .option("--openai-speech-model <model>", "OpenAI speech model")

@@ -1,5 +1,6 @@
 # prompts
 
+- next: https://chatgpt.com/g/g-p-6a317d326e30819183556eca604b770c-youtube/c/6a4da7f4-086c-83eb-9749-3b87d0790dbf
 - https://profile.kake.team/onboarding
 - https://www.workatastartup.com/jobs/87570
 - https://www.workatastartup.com/jobs/91211
@@ -12,10 +13,6 @@ regenerate the german short movie - only use panning and zooming as motion effec
 ## mock data
 
 - next prompt: https://chatgpt.com/g/g-p-6a317d326e30819183556eca604b770c/c/6a4d4761-c610-83ed-b7b3-8826ebb22ccd
-
-- i dont want any episode to be generated with mocked audio ever again
-- check if any batches were submitted and finished by now - if so download everything and let me know
-- check which plans under docs/planning were created last and check if the last tasks of every plan were succesfully finished.
 
 ## batch image EPIC
 

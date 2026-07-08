@@ -5,11 +5,15 @@ import { z } from "zod";
  
 
 export const localeCodes = ["en", "de", "es", "fr", "pt"] as const;
+export const SUPPORTED_LANGUAGE_CODES = localeCodes;
 export type LocaleCode = (typeof localeCodes)[number];
 export type EpisodeLanguage = LocaleCode;
+export type SupportedLanguageCode = LocaleCode;
+export type LanguageCode = SupportedLanguageCode;
 
 export const contentVariants = ["full", "short"] as const;
 export type ContentVariant = (typeof contentVariants)[number];
+export type VideoVariant = ContentVariant;
 export type ScriptVariant = ContentVariant;
 export type Sha256Fingerprint = string & { readonly __brand: "Sha256Fingerprint" };
 export type ScriptContentHash = Sha256Fingerprint;
@@ -562,6 +566,22 @@ export interface EpisodePathResolver {
   uploadStateDir(episodeId: EpisodeId): string;
   logsDir(episodeId: EpisodeId): string;
   sharedGeneratedImagesDir(episodeId: EpisodeId): string;
+  canonicalVisualManifest(episodeId: EpisodeId, variant: ContentVariant): string;
+  canonicalVisualImageDir(episodeId: EpisodeId, variant: ContentVariant): string;
+  canonicalVisualImage(
+    episodeId: EpisodeId,
+    variant: ContentVariant,
+    sceneId: string,
+    extension?: CanonicalVisualImageExtension
+  ): string;
+  localizedScript(episodeId: EpisodeId, locale: LocaleCode, variant: ContentVariant): string;
+  localizedAudio(episodeId: EpisodeId, locale: LocaleCode, variant: ContentVariant): string;
+  localizedAlignment(episodeId: EpisodeId, locale: LocaleCode, variant: ContentVariant): string;
+  localizedVisualValidation(
+    episodeId: EpisodeId,
+    locale: LocaleCode,
+    variant: ContentVariant
+  ): string;
 }
 
 export interface SceneImageCandidatePaths {
@@ -574,6 +594,14 @@ export interface ShortSceneImageCandidatePaths {
   readonly canonical: string;
   readonly legacyExpected: string;
   readonly legacySceneId: string;
+}
+
+export type CanonicalVisualImageExtension = "png" | "jpg" | "jpeg" | "webp";
+
+function normalizeCanonicalVisualImageExtension(
+  extension: CanonicalVisualImageExtension | undefined
+): CanonicalVisualImageExtension {
+  return extension ?? "png";
 }
 
 export function resolveEpisodeCharacterRegistryPath(episodeDir: string): string {
@@ -693,6 +721,89 @@ function resolveEpisodeContainedPath(
   ...segments: readonly string[]
 ): string {
   return assertInsideWorkspace(episodeDir, path.join(episodeDir, ...segments));
+}
+
+export function resolveCanonicalVisualManifestPath(input: {
+  readonly episodeDir: string;
+  readonly variant: ContentVariant;
+}): string {
+  const variant = normalizeContentVariant(input.variant);
+  return resolveEpisodeContainedPath(input.episodeDir, "visuals", variant, "scene-plan.json");
+}
+
+export function resolveCanonicalVisualImageDir(input: {
+  readonly episodeDir: string;
+  readonly variant: ContentVariant;
+}): string {
+  const variant = normalizeContentVariant(input.variant);
+  return resolveEpisodeContainedPath(input.episodeDir, "visuals", variant, "images");
+}
+
+export function resolveCanonicalVisualImagePath(input: {
+  readonly episodeDir: string;
+  readonly variant: ContentVariant;
+  readonly sceneId: string;
+  readonly extension?: CanonicalVisualImageExtension;
+}): string {
+  const variant = normalizeContentVariant(input.variant);
+  const extension = normalizeCanonicalVisualImageExtension(input.extension);
+  const sceneId = input.sceneId.trim();
+  if (!/^scene-[0-9]{3}$/u.test(sceneId)) {
+    throw new Error(`Invalid scene id: ${input.sceneId}`);
+  }
+  return path.join(
+    resolveCanonicalVisualImageDir({ episodeDir: input.episodeDir, variant }),
+    `${sceneId}.${extension}`
+  );
+}
+
+function resolveLocalizedVariantPath(input: {
+  readonly episodeDir: string;
+  readonly language: LocaleCode;
+  readonly variant: ContentVariant;
+  readonly fileName: string;
+}): string {
+  const language = normalizeLocaleCode(input.language);
+  const variant = normalizeContentVariant(input.variant);
+  return resolveEpisodeContainedPath(
+    input.episodeDir,
+    "languages",
+    language,
+    variant,
+    input.fileName
+  );
+}
+
+export function resolveLocalizedScriptPath(input: {
+  readonly episodeDir: string;
+  readonly language: LocaleCode;
+  readonly variant: ContentVariant;
+}): string {
+  return resolveLocalizedVariantPath({ ...input, fileName: "script.md" });
+}
+
+export function resolveLocalizedAudioPath(input: {
+  readonly episodeDir: string;
+  readonly language: LocaleCode;
+  readonly variant: ContentVariant;
+}): string {
+  return resolveLocalizedVariantPath({ ...input, fileName: "audio.mp3" });
+}
+
+export function resolveLocalizedAlignmentPath(input: {
+  readonly episodeDir: string;
+  readonly language: LocaleCode;
+  readonly variant: ContentVariant;
+}): string {
+  return resolveLocalizedVariantPath({ ...input, fileName: "alignment.json" });
+}
+
+export function resolveLocalizedVisualValidationPath(input: {
+  readonly episodeDir: string;
+  readonly language: LocaleCode;
+  readonly variant: ContentVariant;
+}): string {
+  return resolveLocalizedVariantPath({ ...input, fileName: "visual-validation.json" });
 }
 
 function resolveVariantLocaleArtifactName(args: {
@@ -1264,6 +1375,47 @@ export function createEpisodePathResolver(workspaceRoot: string): EpisodePathRes
     logsDir: (episodeId) => path.join(episodeRoot(episodeId), "logs"),
     sharedGeneratedImagesDir: (episodeId) =>
       resolveEpisodeSharedGeneratedImagesDir(episodeRoot(episodeId)),
+    canonicalVisualManifest: (episodeId, variant) =>
+      resolveCanonicalVisualManifestPath({
+        episodeDir: episodeRoot(episodeId),
+        variant,
+      }),
+    canonicalVisualImageDir: (episodeId, variant) =>
+      resolveCanonicalVisualImageDir({
+        episodeDir: episodeRoot(episodeId),
+        variant,
+      }),
+    canonicalVisualImage: (episodeId, variant, sceneId, extension) =>
+      resolveCanonicalVisualImagePath({
+        episodeDir: episodeRoot(episodeId),
+        variant,
+        sceneId,
+        ...(extension ? { extension } : {}),
+      }),
+    localizedScript: (episodeId, locale, variant) =>
+      resolveLocalizedScriptPath({
+        episodeDir: episodeRoot(episodeId),
+        language: locale,
+        variant,
+      }),
+    localizedAudio: (episodeId, locale, variant) =>
+      resolveLocalizedAudioPath({
+        episodeDir: episodeRoot(episodeId),
+        language: locale,
+        variant,
+      }),
+    localizedAlignment: (episodeId, locale, variant) =>
+      resolveLocalizedAlignmentPath({
+        episodeDir: episodeRoot(episodeId),
+        language: locale,
+        variant,
+      }),
+    localizedVisualValidation: (episodeId, locale, variant) =>
+      resolveLocalizedVisualValidationPath({
+        episodeDir: episodeRoot(episodeId),
+        language: locale,
+        variant,
+      }),
   };
 }
 

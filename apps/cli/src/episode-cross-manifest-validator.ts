@@ -114,10 +114,30 @@ const currentArtifactSchema = z
     source: sourceMetadataSchema.optional(),
   })
   .passthrough();
+const darkTruthFullImageManifestSchema = z
+  .object({
+    assets: z.array(
+      z
+        .object({
+          canonicalSceneId: z.string().min(1),
+          relativePath: z.string().min(1),
+          sha256: z.string().min(1).optional(),
+          width: z.number().int().positive().optional(),
+          height: z.number().int().positive().optional(),
+        })
+        .passthrough()
+    ),
+  })
+  .passthrough();
 
 type GenerationManifest = z.infer<typeof generationManifestSchema>;
 type CurrentArtifact = z.infer<typeof currentArtifactSchema>;
 type YoutubeMetadata = z.infer<typeof youtubeMetadataSchema>;
+
+interface ParsedImageManifest {
+  readonly assets: z.infer<typeof imageAssetSchema>[];
+  readonly enforceScenePlanFilenames: boolean;
+}
 
 export type CrossManifestValidationCode =
   | "VALID"
@@ -622,16 +642,17 @@ async function validateImageManifest(args: {
     args.results.push(contained.result);
     return;
   }
-  const assets = await readRequired({
+  const imageManifest = await readRequired({
     results: args.results,
     filePath: contained.path,
     root: args.input.episodeDir,
     artifactType: "image-manifest",
-    parser: (value) => z.array(imageAssetSchema).parse(value),
+    parser: (value) => parseImageManifest(value, contained.path),
   });
-  if (!assets || !args.scenePlan) {
+  if (!imageManifest || !args.scenePlan) {
     return;
   }
+  const { assets } = imageManifest;
   const sceneIds = new Set(args.scenePlan.scenes.map((scene) => String(scene.id)));
   for (const asset of assets) {
     if (!sceneIds.has(asset.sceneId)) {
@@ -670,7 +691,12 @@ async function validateImageManifest(args: {
       }
     }
   }
-  const imageValidation = validateImageAssets(args.scenePlan, assets);
+  const imageValidation = imageManifest.enforceScenePlanFilenames
+    ? validateImageAssets(args.scenePlan, assets)
+    : {
+        valid: assets.length === args.scenePlan.scenes.length,
+        issues: ["Image manifest does not cover the scene plan."],
+      };
   if (!imageValidation.valid) {
     args.results.push(
       invalid({
@@ -681,6 +707,38 @@ async function validateImageManifest(args: {
       })
     );
   }
+}
+
+function parseImageManifest(
+  value: unknown,
+  manifestPath: string
+): ParsedImageManifest {
+  const canonicalAssets = z.array(imageAssetSchema).safeParse(value);
+  if (canonicalAssets.success) {
+    return {
+      assets: canonicalAssets.data,
+      enforceScenePlanFilenames: true,
+    };
+  }
+
+  const legacy = darkTruthFullImageManifestSchema.parse(value);
+  const manifestDir = path.dirname(manifestPath);
+  return {
+    assets: legacy.assets.map((asset) =>
+      imageAssetSchema.parse({
+        sceneId: asset.canonicalSceneId,
+        sourcePath: path.resolve(manifestDir, asset.relativePath),
+        renderedPath: path.resolve(manifestDir, asset.relativePath),
+        width: asset.width ?? 1,
+        height: asset.height ?? 1,
+        mimeType: "image/png",
+        checksumSha256:
+          asset.sha256 ?? `legacy-missing-sha256-${asset.canonicalSceneId}`,
+        validated: true,
+      })
+    ),
+    enforceScenePlanFilenames: false,
+  };
 }
 
 async function validateNarrationManifests(args: {
@@ -757,7 +815,9 @@ async function validateNarrationManifests(args: {
       }
       const audioPath = containedPath({
         root: args.input.episodeDir,
-        filePath: entry.validatedAudioPath,
+        filePath: path.isAbsolute(entry.validatedAudioPath)
+          ? entry.validatedAudioPath
+          : path.join(paths.narrationRoot, entry.validatedAudioPath),
         artifactType: "narration-manifest",
         label: "validated narration audio path",
       });

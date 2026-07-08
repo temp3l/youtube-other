@@ -291,6 +291,35 @@ async function createFixture(language: FixtureLanguage, variant: FixtureVariant)
     setFingerprint: hashText("directions"),
     createdAt,
   });
+  await fs.mkdir(narrationPaths.chunkAudioDir, { recursive: true });
+  await fs.writeFile(
+    path.join(narrationPaths.chunkAudioDir, "narr-chunk-001.wav"),
+    "audio",
+    "utf8"
+  );
+  await writeJson(narrationPaths.assemblyManifest, {
+    schemaVersion: NARRATION_ARTIFACT_SCHEMA_VERSION,
+    episodeId: episodeSlug,
+    locale: language,
+    variant,
+    chunkManifestFingerprint: hashText("chunk-manifest"),
+    directionSetFingerprint: hashText("directions"),
+    assemblyFingerprint: hashText("assembly"),
+    cleanOutputPath: null,
+    entries: [
+      {
+        chunkId: "narr-chunk-001",
+        sequence: 0,
+        validatedAudioPath: "chunks/narr-chunk-001.wav",
+        audioHash: hashText("audio"),
+        retainedLeadingSilenceMs: 0,
+        retainedTrailingSilenceMs: 0,
+        insertedPauseMs: 0,
+        validationAcceptanceStatus: "accepted",
+      },
+    ],
+    createdAt,
+  });
   await writeJson(path.join(artifactDir, "metadata.json"), {
     episode: "001",
     language,
@@ -334,6 +363,28 @@ describe("episode cross-manifest validator", () => {
     const results = await validateFixture(fixture);
     expect(results.every((result) => result.state === "valid")).toBe(true);
     expect(codes(results)).toContain("VALID");
+  });
+
+  it("accepts the Dark Truth full image manifest shape", async () => {
+    const fixture = await createFixture("en", "full");
+    await writeJson(path.join(fixture.episodeDir, "shared", "image-manifest.json"), {
+      episodeId: fixture.episodeSlug,
+      sourceLanguage: "en",
+      imageCount: 1,
+      assets: [
+        {
+          assetId: "asset-001",
+          canonicalSceneId: "scene-001",
+          filename: "scene-001__old-timing.png",
+          relativePath: "images/scene-001.png",
+          sha256: hashText("image-en-full"),
+          width: 1920,
+          height: 1080,
+        },
+      ],
+    });
+    const results = await validateFixture(fixture);
+    expect(results.every((result) => result.state === "valid")).toBe(true);
   });
 
   it("accepts a valid short/de workspace", async () => {

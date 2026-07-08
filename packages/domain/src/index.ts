@@ -42,7 +42,14 @@ const positiveFiniteNumberSchema = z.number().finite().positive();
 const nonNegativeIntegerSchema = z.number().int().nonnegative();
 const positiveIntegerSchema = z.number().int().positive();
 export const aspectRatioSchema = z.enum(["16:9", "9:16"]);
-const contentVariantSchema = z.enum(["full", "short"]);
+export const SUPPORTED_LANGUAGE_CODES = ["en", "de", "es", "fr", "pt"] as const;
+export type SupportedLanguageCode = (typeof SUPPORTED_LANGUAGE_CODES)[number];
+export type LanguageCode = SupportedLanguageCode;
+export const supportedLanguageCodeSchema = z.enum(SUPPORTED_LANGUAGE_CODES);
+export const languageCodeSchema = supportedLanguageCodeSchema;
+export const videoVariantSchema = z.enum(["full", "short"]);
+export type VideoVariant = z.infer<typeof videoVariantSchema>;
+const contentVariantSchema = videoVariantSchema;
 const sha256Schema = z.string().regex(sha256Pattern);
 
 const normalizedPointSchema = z.object({
@@ -471,6 +478,111 @@ export const scenePlanSchema = z.object({
   scenes: z.array(sceneSchema)
 });
 export type ScenePlan = z.infer<typeof scenePlanSchema>;
+
+export const canonicalVisualSceneSchema = z
+  .object({
+    sceneId: sceneIdSchema,
+    visualBeat: z.string().min(1),
+    canonicalNarrationExcerpt: z.string().min(1).optional(),
+    characters: z.array(z.string().min(1)).default([]),
+    location: z.string().min(1).optional(),
+    visibleElements: z.array(z.string().min(1)).optional(),
+    continuityTags: z.array(z.string().min(1)).default([]),
+    imagePrompt: z.string().min(1).optional(),
+    imagePath: z.string().min(1).optional(),
+    minDurationSeconds: z.number().nonnegative().optional(),
+    maxDurationSeconds: z.number().positive().optional(),
+  })
+  .superRefine((value, ctx) => {
+    if (
+      value.minDurationSeconds !== undefined &&
+      value.maxDurationSeconds !== undefined &&
+      value.minDurationSeconds > value.maxDurationSeconds
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["minDurationSeconds"],
+        message: "Minimum duration must not exceed maximum duration.",
+      });
+    }
+  });
+export type CanonicalVisualScene = z.infer<typeof canonicalVisualSceneSchema>;
+
+export const canonicalVisualManifestSchema = z.object({
+  episodeSlug: episodeIdSchema,
+  variant: videoVariantSchema,
+  canonicalLanguage: languageCodeSchema,
+  scenes: z.array(canonicalVisualSceneSchema),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime().optional(),
+  schemaVersion: z.literal(1),
+});
+export type CanonicalVisualManifest = z.infer<typeof canonicalVisualManifestSchema>;
+
+export const localizedSceneAlignmentSchema = z
+  .object({
+    language: languageCodeSchema,
+    variant: videoVariantSchema,
+    sceneId: sceneIdSchema,
+    narrationText: z.string(),
+    audioStartSeconds: z.number().finite().nonnegative(),
+    audioEndSeconds: z.number().finite().nonnegative(),
+    confidence: z.number().min(0).max(1).optional(),
+  })
+  .superRefine((value, ctx) => {
+    if (value.audioEndSeconds < value.audioStartSeconds) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["audioEndSeconds"],
+        message: "Alignment end time must not be before start time.",
+      });
+    }
+  });
+export type LocalizedSceneAlignment = z.infer<typeof localizedSceneAlignmentSchema>;
+
+export const localizedAlignmentManifestSchema = z.object({
+  episodeSlug: episodeIdSchema,
+  language: languageCodeSchema,
+  variant: videoVariantSchema,
+  canonicalVisualManifestPath: z.string().min(1),
+  alignments: z.array(localizedSceneAlignmentSchema),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime().optional(),
+  schemaVersion: z.literal(1),
+});
+export type LocalizedAlignmentManifest = z.infer<typeof localizedAlignmentManifestSchema>;
+
+export const localizedVisualValidationStatusSchema = z.enum([
+  "safe",
+  "warn",
+  "block",
+  "regenerate",
+]);
+export type LocalizedVisualValidationStatus = z.infer<
+  typeof localizedVisualValidationStatusSchema
+>;
+
+export const localizedVisualValidationIssueSchema = z.object({
+  sceneId: sceneIdSchema,
+  status: localizedVisualValidationStatusSchema,
+  reason: z.string().min(1),
+  recommendation: z.string().min(1),
+});
+export type LocalizedVisualValidationIssue = z.infer<
+  typeof localizedVisualValidationIssueSchema
+>;
+
+export const localizedVisualValidationReportSchema = z.object({
+  episodeSlug: episodeIdSchema,
+  language: languageCodeSchema,
+  variant: videoVariantSchema,
+  status: localizedVisualValidationStatusSchema,
+  issues: z.array(localizedVisualValidationIssueSchema),
+  createdAt: z.string().datetime(),
+});
+export type LocalizedVisualValidationReport = z.infer<
+  typeof localizedVisualValidationReportSchema
+>;
 
 export const shotIdSchema = z.string().regex(shotIdPattern).brand<"ShotId">();
 export type ShotId = z.infer<typeof shotIdSchema>;

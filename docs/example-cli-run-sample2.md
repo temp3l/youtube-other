@@ -45,7 +45,7 @@ It failed before shot-plan regeneration or rendering. The first hard failure was
 What I verified:
 
 - doctor passes for Node, pnpm, ffmpeg, ffprobe, writable workspace, and OpenAI key presence.
-- There is a mock speech path, but that does not solve the missing paid image generation required for final full and short videos.
+- Narration generation requires `ttsProvider=openai-compatible` and an API key; mocked speech is not allowed for final full or short videos.
 - The episode currently has planned image manifests, not generated image files, so a local-only rerender path is not available.
 
 What’s needed to continue:

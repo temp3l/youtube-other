@@ -16,6 +16,11 @@ export {
   wrapCaptionLines,
   type PlanPhraseCaptionsInput,
 } from "./caption-plan.js";
+export {
+  validateLocalizedVisuals,
+  writeLocalizedVisualValidationReport,
+  type ValidateLocalizedVisualsInput,
+} from "./localized-visual-validation.js";
 
 export interface CaptionPack {
   readonly alignment: AlignmentResult;

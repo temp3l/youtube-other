@@ -24,6 +24,8 @@ Common global options used by audio commands:
 - `--json`
 - `--dry-run`
 
+Narration generation no longer permits mocked speech. Any `audio generate`, `audio generate-localized`, or `audio narration generate|all` run must use `--tts-provider openai-compatible` with a configured API key.
+
 ## Command map
 
 The audio surface has three operator modes:

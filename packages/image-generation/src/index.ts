@@ -33,6 +33,7 @@ export {
 } from "./openai-image.js";
 export { syncEpisodeSharedImageAssets } from "./episode-image-pipeline.js";
 export * from "./shorts-image-strategy.js";
+export * from "./canonical-visual-images.js";
 export * from "./episode-image-pipeline.js";
 export * from "./image-batch.types.js";
 export * from "./image-batch.schemas.js";

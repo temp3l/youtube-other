@@ -13,6 +13,9 @@ import {
   normalizeEpisodeId,
   normalizeLocaleCode,
   normalizeSha256Fingerprint,
+  resolveCanonicalVisualImageDir,
+  resolveCanonicalVisualImagePath,
+  resolveCanonicalVisualManifestPath,
   resolveAuthoredScript,
   resolveEpisodeCharacterReferencePath,
   resolveEpisodeDirFromSceneOutputPath,
@@ -38,6 +41,10 @@ import {
   resolveEpisodeVisualRetentionDir,
   resolveEpisodeVisualSourceScenesPath,
   resolveEpisodeImageVisualPlanPath,
+  resolveLocalizedAlignmentPath,
+  resolveLocalizedAudioPath,
+  resolveLocalizedScriptPath,
+  resolveLocalizedVisualValidationPath,
   resolveSceneImageCandidatePaths,
   toEpisodeRelativeDisplayPath,
   type AuthoredScriptSourceIdentity,
@@ -151,6 +158,75 @@ describe("episode filesystem helpers", () => {
     expect(resolver.derivedShotsDir(episodeId)).toBe(
       "/workspace/009-mary-gloria-the-christmas-doll/state/render/derived-shots"
     );
+  });
+
+  it("resolves variant-isolated canonical visual paths", () => {
+    const resolver = createEpisodePathResolver("/workspace");
+    const episodeId = normalizeEpisodeId("022-the-whistler-in-the-woods");
+    const episodeDir = "/workspace/022-the-whistler-in-the-woods";
+
+    expect(resolveCanonicalVisualManifestPath({ episodeDir, variant: "full" })).toBe(
+      "/workspace/022-the-whistler-in-the-woods/visuals/full/scene-plan.json"
+    );
+    expect(resolveCanonicalVisualManifestPath({ episodeDir, variant: "short" })).toBe(
+      "/workspace/022-the-whistler-in-the-woods/visuals/short/scene-plan.json"
+    );
+    expect(resolveCanonicalVisualImageDir({ episodeDir, variant: "full" })).toBe(
+      "/workspace/022-the-whistler-in-the-woods/visuals/full/images"
+    );
+    expect(resolveCanonicalVisualImageDir({ episodeDir, variant: "short" })).toBe(
+      "/workspace/022-the-whistler-in-the-woods/visuals/short/images"
+    );
+    expect(resolveCanonicalVisualImagePath({ episodeDir, variant: "short", sceneId: "scene-001" })).toBe(
+      "/workspace/022-the-whistler-in-the-woods/visuals/short/images/scene-001.png"
+    );
+    expect(resolveCanonicalVisualImagePath({ episodeDir, variant: "full", sceneId: "scene-001" })).toBe(
+      "/workspace/022-the-whistler-in-the-woods/visuals/full/images/scene-001.png"
+    );
+    expect(resolver.canonicalVisualManifest(episodeId, "full")).toBe(
+      "/workspace/022-the-whistler-in-the-woods/visuals/full/scene-plan.json"
+    );
+    expect(resolver.canonicalVisualImage(episodeId, "short", "scene-001")).toBe(
+      "/workspace/022-the-whistler-in-the-woods/visuals/short/images/scene-001.png"
+    );
+    expect(resolveCanonicalVisualImagePath({ episodeDir, variant: "short", sceneId: "scene-001" })).not.toContain(
+      "/visuals/full/"
+    );
+    expect(resolveCanonicalVisualImagePath({ episodeDir, variant: "full", sceneId: "scene-001" })).not.toContain(
+      "/visuals/short/"
+    );
+  });
+
+  it("resolves localized shared-visual artifacts for every supported language and variant", () => {
+    const episodeDir = "/workspace/022-the-whistler-in-the-woods";
+    const languages = ["de", "es", "fr", "pt"] as const;
+
+    for (const language of languages) {
+      expect(resolveLocalizedScriptPath({ episodeDir, language, variant: "full" })).toBe(
+        `/workspace/022-the-whistler-in-the-woods/languages/${language}/full/script.md`
+      );
+      expect(resolveLocalizedAudioPath({ episodeDir, language, variant: "full" })).toBe(
+        `/workspace/022-the-whistler-in-the-woods/languages/${language}/full/audio.mp3`
+      );
+      expect(resolveLocalizedAlignmentPath({ episodeDir, language, variant: "full" })).toBe(
+        `/workspace/022-the-whistler-in-the-woods/languages/${language}/full/alignment.json`
+      );
+      expect(resolveLocalizedVisualValidationPath({ episodeDir, language, variant: "full" })).toBe(
+        `/workspace/022-the-whistler-in-the-woods/languages/${language}/full/visual-validation.json`
+      );
+      expect(resolveLocalizedScriptPath({ episodeDir, language, variant: "short" })).toBe(
+        `/workspace/022-the-whistler-in-the-woods/languages/${language}/short/script.md`
+      );
+      expect(resolveLocalizedAudioPath({ episodeDir, language, variant: "short" })).toBe(
+        `/workspace/022-the-whistler-in-the-woods/languages/${language}/short/audio.mp3`
+      );
+      expect(resolveLocalizedAlignmentPath({ episodeDir, language, variant: "short" })).toBe(
+        `/workspace/022-the-whistler-in-the-woods/languages/${language}/short/alignment.json`
+      );
+      expect(resolveLocalizedVisualValidationPath({ episodeDir, language, variant: "short" })).toBe(
+        `/workspace/022-the-whistler-in-the-woods/languages/${language}/short/visual-validation.json`
+      );
+    }
   });
 
   it("resolves episode image artifact helper paths", () => {
