@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import fsp from "node:fs/promises";
 import path from "node:path";
+import { z } from "zod";
 import {
   assertInsideWorkspace,
   fileExists,
@@ -39,6 +40,8 @@ import {
 import {
   imageBatchManifestItemSchema,
   imageBatchManifestSchema,
+  openAiImageBatchResponseBodySchema,
+  openAiImageBatchOutputLineSchema,
 } from "./image-batch.schemas.js";
 import {
   prepareFullSceneImageBatches,
@@ -51,11 +54,15 @@ import type {
 } from "./image-batch.types.js";
 import {
   loadEpisodeCharacterRegistry,
+  sceneGenerationManifestSchema,
   upsertCharacterRegistry,
   type CharacterDefinition,
   type SceneGenerationManifest,
 } from "./episode-image-pipeline.js";
-import type { ShortsSceneManifestEntry } from "./shorts-image-strategy.js";
+import {
+  shortsSceneManifestEntrySchema,
+  type ShortsSceneManifestEntry,
+} from "./shorts-image-strategy.js";
 import sharp from "sharp";
 
 export interface ImageBatchSubmissionResult {
@@ -401,21 +408,9 @@ function decodeBase64Image(value: string): Buffer {
   return decoded;
 }
 
-function extractBase64ImageFromBatchLine(
-  line: OpenAiBatchOutputLine
+function extractBase64ImageFromBatchBody(
+  body: z.infer<typeof openAiImageBatchResponseBodySchema>
 ): string | undefined {
-  const body = line.response?.body as {
-    readonly data?:
-      | ReadonlyArray<{
-          readonly b64_json?: string;
-          readonly image_base64?: string;
-          readonly base64?: string;
-        }>
-      | undefined;
-    readonly b64_json?: string;
-    readonly image_base64?: string;
-    readonly base64?: string;
-  };
   return (
     body?.data?.[0]?.b64_json ??
     body?.data?.[0]?.image_base64 ??
@@ -528,7 +523,8 @@ async function readSceneManifest(
   return (
     (await readJsonIfExists(
       manifestPath,
-      (value) => value as SceneGenerationManifest
+      (value) =>
+        sceneGenerationManifestSchema.parse(value) as SceneGenerationManifest
     )) ?? undefined
   );
 }
@@ -549,7 +545,10 @@ async function readShortsManifest(
   return (
     (await readJsonIfExists(
       shortsManifestPath(episodeDir),
-      (value) => value as ShortsSceneManifestEntry[]
+      (value) =>
+        z.array(shortsSceneManifestEntrySchema).parse(
+          value
+        ) as ShortsSceneManifestEntry[]
     )) ?? []
   );
 }
@@ -745,7 +744,8 @@ async function persistImportedSceneResult(args: {
   if (!response || response.status_code !== 200) {
     throw new Error(`Batch item did not return a successful response: ${args.item.customId}`);
   }
-  const payload = extractBase64ImageFromBatchLine(args.line);
+  const responseBody = openAiImageBatchResponseBodySchema.parse(response.body);
+  const payload = extractBase64ImageFromBatchBody(responseBody);
   if (!payload) {
     throw new Error(`Batch item missing image payload: ${args.item.customId}`);
   }
@@ -826,19 +826,19 @@ async function persistImportedSceneResult(args: {
     actualHeight: persisted.height,
     actualMimeType: persisted.mimeType,
     actualByteSize: persisted.byteSize,
-    ...(response.body.id ? { outputFileId: response.body.id } : {}),
+    ...(responseBody.id ? { outputFileId: responseBody.id } : {}),
     importedAt: new Date().toISOString(),
-    ...(response.body.usage
+    ...(responseBody.usage
       ? {
           usage: {
-            inputTokens: response.body.usage.input_tokens ?? 0,
-            ...(response.body.usage.input_tokens_details?.cached_tokens !== undefined
+            inputTokens: responseBody.usage.input_tokens ?? 0,
+            ...(responseBody.usage.input_tokens_details?.cached_tokens !== undefined
               ? {
                   cachedInputTokens:
-                    response.body.usage.input_tokens_details.cached_tokens,
+                    responseBody.usage.input_tokens_details.cached_tokens,
                 }
               : {}),
-            outputTokens: response.body.usage.output_tokens ?? 0,
+            outputTokens: responseBody.usage.output_tokens ?? 0,
           },
         }
       : {}),
@@ -1030,13 +1030,16 @@ export async function importImageBatch(
     ...parseBatchOutputJsonl(outputText),
     ...parseBatchOutputJsonl(errorText),
   ]) {
-    if (!knownIds.has(line.custom_id)) {
-      unknownCustomIds.add(line.custom_id);
+    const parsedLine = openAiImageBatchOutputLineSchema.parse(
+      line
+    ) as OpenAiBatchOutputLine;
+    if (!knownIds.has(parsedLine.custom_id)) {
+      unknownCustomIds.add(parsedLine.custom_id);
       continue;
     }
-    const existing = linesByCustomId.get(line.custom_id) ?? [];
-    existing.push(line);
-    linesByCustomId.set(line.custom_id, existing);
+    const existing = linesByCustomId.get(parsedLine.custom_id) ?? [];
+    existing.push(parsedLine);
+    linesByCustomId.set(parsedLine.custom_id, existing);
     if (existing.length > 1) {
       duplicateCustomIds.add(line.custom_id);
     }

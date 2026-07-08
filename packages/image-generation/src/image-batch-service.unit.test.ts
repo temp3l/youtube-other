@@ -1052,6 +1052,181 @@ describe("image batch service", () => {
     });
   });
 
+  it("schema-rejects a malformed successful provider body before image extraction", async () => {
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), "image-batch-malformed-body-"));
+    const episodeDir = path.join(tempDir, "episode");
+    await writeSceneManifest({ episodeDir, sceneId: "scene-002" });
+    const prepared = await prepareImageBatchForEpisode({
+      episodeDir,
+      episodeId: "001-demo",
+      scenePlan: { scenes: [{ id: "scene-002", sequenceNumber: 2 }] },
+      settings: {
+        model: "gpt-image-2",
+        requestedSize: "1920x1088",
+        quality: "medium",
+        outputFormat: "png",
+      },
+    });
+    const group = prepared.groups[0] as {
+      readonly storagePlan: ImageBatchStoragePlan;
+      readonly scenePlans: ReadonlyArray<{
+        readonly manifestItem: { readonly customId: string };
+      }>;
+    };
+    const outputJsonl = JSON.stringify({
+      custom_id: group.scenePlans[0]?.manifestItem.customId,
+      response: {
+        status_code: 200,
+        body: { data: { b64_json: await makeBase64Image(1920, 1088) } },
+      },
+    });
+    const client = makeImportClient({
+      outputText: `${outputJsonl}\n`,
+      total: 1,
+      completed: 1,
+      failed: 0,
+    });
+    await submitImageBatch(
+      path.join(episodeDir, "state", "image-generation"),
+      group.storagePlan.localBatchId,
+      client as never
+    );
+    await refreshImageBatch(
+      path.join(episodeDir, "state", "image-generation"),
+      group.storagePlan.localBatchId,
+      client as never
+    );
+
+    const imported = await importImageBatch(
+      path.join(episodeDir, "state", "image-generation"),
+      group.storagePlan.localBatchId,
+      client as never
+    );
+
+    expect(imported.status).toBe("imported_with_failures");
+    const manifest = await readImageBatchManifest(group.storagePlan.manifestPath);
+    expect(manifest?.items[0]?.status).toBe("validation-failed");
+    expect(manifest?.items[0]?.error).toMatchObject({
+      category: "validation",
+    });
+    expect(manifest?.items[0]?.error?.message).toContain("Invalid input");
+  });
+
+  it("rejects malformed scene generation manifests before preparing batch items", async () => {
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), "image-batch-bad-scene-manifest-"));
+    const episodeDir = path.join(tempDir, "episode");
+    const manifestsDir = path.join(
+      episodeDir,
+      "state",
+      "image-generation",
+      "manifests"
+    );
+    await fs.mkdir(manifestsDir, { recursive: true });
+    await fs.writeFile(
+      path.join(manifestsDir, "scene-002.json"),
+      JSON.stringify({
+        sceneId: "scene-002",
+        promptVersion: "not-a-number",
+        status: "planned",
+      }),
+      "utf8"
+    );
+
+    await expect(
+      prepareImageBatchForEpisode({
+        episodeDir,
+        episodeId: "001-demo",
+        scenePlan: { scenes: [{ id: "scene-002", sequenceNumber: 2 }] },
+        settings: {
+          model: "gpt-image-2",
+          requestedSize: "1920x1088",
+          quality: "medium",
+          outputFormat: "png",
+        },
+      })
+    ).rejects.toThrow();
+  });
+
+  it("schema-rejects malformed existing short scene manifests before import updates them", async () => {
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), "image-batch-bad-short-manifest-"));
+    const episodeDir = path.join(tempDir, "001-demo");
+    process.env["SHORTS_KEY_SCENE_COUNT"] = "1";
+    process.env["SHORTS_KEY_SCENE_RATIO"] = "0";
+    await writeLocalizedScript(episodeDir, "de", "short", "# de short\n");
+    await writeShortScenePlan(episodeDir, "de", ["scene-001"]);
+    await fs.mkdir(path.join(episodeDir, "shared"), { recursive: true });
+    await fs.writeFile(
+      path.join(episodeDir, "shared", "characters.json"),
+      JSON.stringify({
+        episodeId: "001-demo",
+        characters: [],
+        updatedAt: new Date().toISOString(),
+      }),
+      "utf8"
+    );
+
+    const prepared = await prepareShortSceneImageBatches({
+      episodeDir,
+      episodeId: "001-demo",
+      languages: ["de"],
+      variant: "short",
+      settings: {
+        model: "gpt-image-2",
+        requestedSize: "1024x1536",
+        quality: "medium",
+        outputFormat: "png",
+      },
+    });
+    const group = prepared.groups[0] as {
+      readonly storagePlan: ImageBatchStoragePlan;
+      readonly scenePlans: ReadonlyArray<{
+        readonly manifestItem: { readonly customId: string };
+      }>;
+    };
+    await fs.mkdir(path.dirname(resolveEpisodeShortsImageManifestPath(episodeDir)), {
+      recursive: true,
+    });
+    await fs.writeFile(
+      resolveEpisodeShortsImageManifestPath(episodeDir),
+      JSON.stringify([{ sceneId: "scene-001", sequenceNumber: "bad" }]),
+      "utf8"
+    );
+    const outputJsonl = JSON.stringify({
+      custom_id: group.scenePlans[0]?.manifestItem.customId,
+      response: {
+        status_code: 200,
+        body: { data: [{ b64_json: await makeBase64Image(1024, 1536) }] },
+      },
+    });
+    const client = makeImportClient({
+      outputText: `${outputJsonl}\n`,
+      total: 1,
+      completed: 1,
+      failed: 0,
+    });
+    await submitImageBatch(
+      path.join(episodeDir, "state", "image-generation"),
+      group.storagePlan.localBatchId,
+      client as never
+    );
+    await refreshImageBatch(
+      path.join(episodeDir, "state", "image-generation"),
+      group.storagePlan.localBatchId,
+      client as never
+    );
+
+    const imported = await importImageBatch(
+      path.join(episodeDir, "state", "image-generation"),
+      group.storagePlan.localBatchId,
+      client as never
+    );
+
+    expect(imported.status).toBe("imported_with_failures");
+    const manifest = await readImageBatchManifest(group.storagePlan.manifestPath);
+    expect(manifest?.items[0]?.status).toBe("validation-failed");
+    expect(manifest?.items[0]?.error?.category).toBe("validation");
+  });
+
   it("returns non-terminal when download is requested before the batch is complete", async () => {
     const tempDir = mkdtempSync(path.join(os.tmpdir(), "image-batch-non-terminal-"));
     const episodeDir = path.join(tempDir, "episode");

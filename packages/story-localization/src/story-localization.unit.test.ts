@@ -391,6 +391,31 @@ describe("story localization helpers", () => {
     });
   });
 
+  it("documents generated story output paths as runtime/legacy compatibility paths, not authored script sources", () => {
+    const outputFiles = resolveEpisodeStoryOutputFiles(
+      "/out",
+      "022-the-whistler-in-the-woods",
+      "en"
+    );
+
+    expect(outputFiles).toEqual({
+      episodeDir: "/out/022-the-whistler-in-the-woods",
+      rootScript: "/out/022-the-whistler-in-the-woods/script.md",
+      full: "/out/022-the-whistler-in-the-woods/en/full/script.md",
+      short: "/out/022-the-whistler-in-the-woods/en/short/script.md",
+    });
+    expect(Object.values(outputFiles)).not.toContain(
+      "/out/022-the-whistler-in-the-woods/languages/script-en.md"
+    );
+    expect(Object.values(outputFiles)).not.toContain(
+      "/out/022-the-whistler-in-the-woods/languages/short/script-en.md"
+    );
+  });
+
+  it.todo(
+    "CR-006 task-06: characterize the pt locale boundary across story-localization and dark-truth parsing, then either support pt end-to-end or return an explicit unsupported-locale error."
+  );
+
   it("discovers only canonical English full stories", async () => {
     const tempDir = mkdtempSync(
       path.join(os.tmpdir(), "story-localization-discovery-")

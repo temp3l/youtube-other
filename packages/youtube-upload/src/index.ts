@@ -234,6 +234,7 @@ export interface ResolvedYoutubeUploadInputs {
   readonly resolvedLanguage: string;
   readonly resolvedLocale: string;
   readonly resolvedVariant: "full" | "short";
+  readonly legacyVideoFallbackUsed: boolean;
 }
 
 export class YoutubeUploadError extends Error {
@@ -765,11 +766,11 @@ async function loadEpisodeManifest(episodeDir: string): Promise<EpisodeManifest 
   return readJsonIfExists(manifestPath, (value) => episodeManifestSchema.parse(value));
 }
 
-async function resolveVideoPath(
+async function resolveVideoSelection(
   episodeDir: string,
   overrides?: YoutubeUploadOverrides,
   manifest?: EpisodeManifest | null
-): Promise<string> {
+): Promise<{ readonly videoPath: string; readonly legacyFallbackUsed: boolean }> {
   const resolveEpisodePath = (candidate: string | undefined): string | undefined =>
     candidate
       ? path.isAbsolute(candidate)
@@ -781,7 +782,7 @@ async function resolveVideoPath(
     if (!absolute) {
       throw new YoutubeUploadValidationError("Invalid video path override.");
     }
-    return absolute;
+    return { videoPath: absolute, legacyFallbackUsed: false };
   }
   const preferredLanguage = normalizeLanguageHint(overrides?.languageHint);
   const preferredVariant = overrides?.variant;
@@ -789,7 +790,7 @@ async function resolveVideoPath(
     const manifestVideo = manifest?.artifacts.find((artifact) => artifact.kind === "video" && artifact.mimeType === "video/mp4");
     const manifestVideoPath = resolveEpisodePath(manifestVideo?.path);
     if (manifestVideoPath && (await fileExists(manifestVideoPath))) {
-      return manifestVideoPath;
+      return { videoPath: manifestVideoPath, legacyFallbackUsed: false };
     }
   }
   const localeRoots = await fs.readdir(path.join(episodeDir, "locales"), {
@@ -853,7 +854,7 @@ async function resolveVideoPath(
     return score(left) - score(right) || left.localeCompare(right);
   });
   if (mp4Candidates.length > 0) {
-    return mp4Candidates[0]!;
+    return { videoPath: mp4Candidates[0]!, legacyFallbackUsed: true };
   }
   throw new YoutubeUploadValidationError(`Unable to locate a rendered video for ${episodeDir}.`);
 }
@@ -1317,7 +1318,8 @@ export async function resolveUploadInputsForEpisode(
   if (!resolvedMetadata) {
     throw new YoutubeUploadValidationError(`Missing generated YouTube metadata for episode ${episodeId}.`);
   }
-  const resolvedVideoPath = await resolveVideoPath(episodeDir, overrides, manifest);
+  const videoSelection = await resolveVideoSelection(episodeDir, overrides, manifest);
+  const resolvedVideoPath = videoSelection.videoPath;
   const resolvedVariant = inferPublicationVariantFromVideoPath(resolvedVideoPath);
   if (overrides.variant && resolvedVariant !== overrides.variant) {
     throw new YoutubeUploadValidationError(
@@ -1335,6 +1337,7 @@ export async function resolveUploadInputsForEpisode(
         ? "en-US"
         : resolvedMetadata.metadata.source.language,
     resolvedVariant,
+    legacyVideoFallbackUsed: videoSelection.legacyFallbackUsed,
   };
 }
 
@@ -1562,8 +1565,12 @@ export async function uploadYoutubeEpisode(input: YoutubeUploadCommandInput): Pr
           throw new YoutubeUploadConfigurationError("--generate-metadata requires metadataGeneration settings.");
         })()
       : input.metadataPath
-      ? youtubeMetadataSchema.parse(JSON.parse(await fs.readFile(path.resolve(episodeDir, input.metadataPath), "utf8")) as unknown)
-      : resolved.metadata;
+        ? youtubeMetadataSchema.parse(
+            JSON.parse(
+              await fs.readFile(path.resolve(episodeDir, input.metadataPath), "utf8")
+            ) as unknown
+          )
+        : resolved.metadata;
   const metadata = normalizeUploadMetadata(rawMetadata, {
     ...(input.overrides ?? {}),
     episodeId: input.episodeId,

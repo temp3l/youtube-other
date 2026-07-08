@@ -1,3 +1,8 @@
+import fs from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
+import { Writable } from "node:stream";
+import type { BufferEncoding } from "node:buffer";
 import { describe, expect, it } from "vitest";
 import {
   buildDerivedShotCacheMetrics,
@@ -5,6 +10,13 @@ import {
   buildVisualRetentionMetrics,
   visualRetentionMetricDefinitions,
 } from "./visual-retention.js";
+import { createExecutionTelemetry } from "./telemetry.js";
+
+class NullStream extends Writable {
+  public _write(_chunk: Buffer, _encoding: BufferEncoding, callback: (error?: Error | null) => void): void {
+    callback();
+  }
+}
 
 function shotPlan() {
   return {
@@ -235,5 +247,51 @@ describe("visual retention telemetry", () => {
       invalidEntries: 0,
       hitRatio: null,
     });
+  });
+});
+
+describe("execution telemetry", () => {
+  it("persists process execution args exactly as recorded by the process runner", async () => {
+    const reportDir = await fs.mkdtemp(path.join(os.tmpdir(), "mediaforge-telemetry-"));
+    const telemetry = createExecutionTelemetry({
+      context: {
+        executionId: "exec-redaction",
+        command: "test",
+        argv: [],
+        cwd: process.cwd(),
+        startedAt: "2026-07-08T10:00:00.000Z",
+      },
+      logger: (await import("pino")).default(new NullStream()),
+      reportDir,
+    });
+
+    const redactedArgs = [
+      "-H",
+      "Authorization: Bearer [redacted]",
+      "--api-key",
+      "[redacted]",
+      "https://api.example.test/v1/images",
+    ];
+    telemetry.recordProcessExecution({
+      executable: "curl",
+      args: redactedArgs,
+      startedAt: "2026-07-08T10:00:00.000Z",
+      endedAt: "2026-07-08T10:00:01.000Z",
+      durationMs: 1000,
+      exitCode: 0,
+      success: true,
+    });
+
+    const report = await telemetry.finalize({
+      success: true,
+      exitCode: 0,
+      endedAt: "2026-07-08T10:00:01.000Z",
+    });
+
+    expect(report.processExecutions[0]?.args).toEqual(redactedArgs);
+    const persisted = JSON.parse(
+      await fs.readFile(path.join(reportDir, "exec-redaction.json"), "utf8")
+    ) as { processExecutions?: ReadonlyArray<{ args?: readonly string[] }> };
+    expect(persisted.processExecutions?.[0]?.args).toEqual(redactedArgs);
   });
 });

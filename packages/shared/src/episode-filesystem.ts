@@ -530,6 +530,14 @@ export interface EpisodePathResolver {
   ): string;
   sharedShortGeneratedImagesDir(episodeId: EpisodeId): string;
   shortsImageManifest(episodeId: EpisodeId): string;
+  generatedNarrationScript(context: EpisodeContext): string;
+  localeRuntimeRoot(context: EpisodeContext): string;
+  legacyCompatibilityScript(
+    episodeId: EpisodeId,
+    locale: LocaleCode,
+    variant: ContentVariant
+  ): string;
+  legacyRootCompatibilityScript(episodeId: EpisodeId): string;
   generatedImage(
     episodeId: EpisodeId,
     sceneId: string,
@@ -721,6 +729,15 @@ function resolveEpisodeContainedPath(
   ...segments: readonly string[]
 ): string {
   return assertInsideWorkspace(episodeDir, path.join(episodeDir, ...segments));
+}
+
+function normalizeGeneratedImageFileName(candidate: string): string {
+  const normalized = candidate.trim().replace(/\\/gu, "/");
+  ensurePortableRelativePath(normalized);
+  if (normalized.includes("/") || path.basename(normalized) !== normalized) {
+    throw new Error(`Invalid generated image filename: ${candidate}`);
+  }
+  return normalized;
 }
 
 export function resolveCanonicalVisualManifestPath(input: {
@@ -964,27 +981,28 @@ export function resolveEpisodeSharedGeneratedImagePath(args: {
   const expectedFilename = args.expectedFilename?.trim();
   const canonicalFileName =
     expectedFilename && expectedFilename.length > 0
-      ? expectedFilename
+      ? normalizeGeneratedImageFileName(expectedFilename)
       : `${args.sceneId}.png`;
-  return path.join(resolveEpisodeSharedGeneratedImagesDir(args.episodeDir), canonicalFileName);
+  const root = resolveEpisodeSharedGeneratedImagesDir(args.episodeDir);
+  return assertInsideWorkspace(root, path.join(root, canonicalFileName));
 }
 
 export function resolveEpisodeSharedGeneratedImagesDir(
   episodeDir: string
 ): string {
-  return path.join(episodeDir, "shared", "images", "generated");
+  return resolveEpisodeContainedPath(episodeDir, "shared", "images", "generated");
 }
 
 export function resolveEpisodeSharedShortGeneratedImagesDir(
   episodeDir: string
 ): string {
-  return path.join(episodeDir, "shared", "short", "images", "generated");
+  return resolveEpisodeContainedPath(episodeDir, "shared", "short", "images", "generated");
 }
 
 export function resolveEpisodeShortsImageManifestPath(
   episodeDir: string
 ): string {
-  return path.join(
+  return resolveEpisodeContainedPath(
     episodeDir,
     "shared",
     "short",
@@ -1001,12 +1019,47 @@ export function resolveEpisodeSharedShortGeneratedImagePath(args: {
   const expectedFilename = args.expectedFilename?.trim();
   const canonicalFileName =
     expectedFilename && expectedFilename.length > 0
-      ? expectedFilename
+      ? normalizeGeneratedImageFileName(expectedFilename)
       : `${args.sceneId}.png`;
-  return path.join(
-    resolveEpisodeSharedShortGeneratedImagesDir(args.episodeDir),
-    canonicalFileName
+  const root = resolveEpisodeSharedShortGeneratedImagesDir(args.episodeDir);
+  return assertInsideWorkspace(root, path.join(root, canonicalFileName));
+}
+
+export function resolveEpisodeLocaleRuntimeRootPath(args: {
+  readonly episodeDir: string;
+  readonly locale: LocaleCode;
+  readonly variant: ContentVariant;
+}): string {
+  const locale = normalizeLocaleCode(args.locale);
+  const variant = normalizeContentVariant(args.variant);
+  return resolveEpisodeContainedPath(args.episodeDir, "locales", locale, variant);
+}
+
+export function resolveEpisodeGeneratedNarrationScriptPath(args: {
+  readonly episodeDir: string;
+  readonly locale: LocaleCode;
+  readonly variant: ContentVariant;
+}): string {
+  return resolveEpisodeContainedPath(
+    resolveEpisodeLocaleRuntimeRootPath(args),
+    "script.md"
   );
+}
+
+export function resolveEpisodeLegacyCompatibilityScriptPath(args: {
+  readonly episodeDir: string;
+  readonly locale: LocaleCode;
+  readonly variant: ContentVariant;
+}): string {
+  const locale = normalizeLocaleCode(args.locale);
+  const variant = normalizeContentVariant(args.variant);
+  return resolveEpisodeContainedPath(args.episodeDir, locale, variant, "script.md");
+}
+
+export function resolveEpisodeLegacyRootCompatibilityScriptPath(
+  episodeDir: string
+): string {
+  return resolveEpisodeContainedPath(episodeDir, "script.md");
 }
 
 export function resolveEpisodeLegacyGeneratedImagePath(args: {
@@ -1017,9 +1070,9 @@ export function resolveEpisodeLegacyGeneratedImagePath(args: {
   const expectedFilename = args.expectedFilename?.trim();
   const legacyFileName =
     expectedFilename && expectedFilename.length > 0
-      ? expectedFilename
+      ? normalizeGeneratedImageFileName(expectedFilename)
       : `${args.sceneId}.png`;
-  return path.join(
+  return resolveEpisodeContainedPath(
     args.episodeDir,
     "state",
     "image-generation",
@@ -1036,9 +1089,9 @@ export function resolveEpisodeLegacyShortGeneratedImagePath(args: {
   const expectedFilename = args.expectedFilename?.trim();
   const legacyFileName =
     expectedFilename && expectedFilename.length > 0
-      ? expectedFilename
+      ? normalizeGeneratedImageFileName(expectedFilename)
       : `${args.sceneId}.png`;
-  return path.join(args.episodeDir, "images", "generated", legacyFileName);
+  return resolveEpisodeContainedPath(args.episodeDir, "images", "generated", legacyFileName);
 }
 
 export function resolveEpisodeImageBatchRoot(episodeDir: string): string {
@@ -1228,7 +1281,11 @@ export function createEpisodePathResolver(workspaceRoot: string): EpisodePathRes
   const localeRoot = (context: EpisodeContext): string =>
     path.join(episodeRoot(context.episodeId), "locales", context.locale);
   const localeVariantRoot = (context: EpisodeContext): string =>
-    path.join(localeRoot(context), context.variant);
+    resolveEpisodeLocaleRuntimeRootPath({
+      episodeDir: episodeRoot(context.episodeId),
+      locale: context.locale,
+      variant: context.variant,
+    });
   return {
     workspaceRoot: resolvedWorkspace,
     episodeRoot,
@@ -1239,7 +1296,27 @@ export function createEpisodePathResolver(workspaceRoot: string): EpisodePathRes
     sharedRoot: (episodeId) => path.join(episodeRoot(episodeId), "shared"),
     localeRoot,
     localeVariantRoot,
-    narrationScript: (context) => path.join(localeVariantRoot(context), "script.md"),
+    narrationScript: (context) =>
+      resolveEpisodeGeneratedNarrationScriptPath({
+        episodeDir: episodeRoot(context.episodeId),
+        locale: context.locale,
+        variant: context.variant,
+      }),
+    generatedNarrationScript: (context) =>
+      resolveEpisodeGeneratedNarrationScriptPath({
+        episodeDir: episodeRoot(context.episodeId),
+        locale: context.locale,
+        variant: context.variant,
+      }),
+    localeRuntimeRoot: localeVariantRoot,
+    legacyCompatibilityScript: (episodeId, locale, variant) =>
+      resolveEpisodeLegacyCompatibilityScriptPath({
+        episodeDir: episodeRoot(episodeId),
+        locale,
+        variant,
+      }),
+    legacyRootCompatibilityScript: (episodeId) =>
+      resolveEpisodeLegacyRootCompatibilityScriptPath(episodeRoot(episodeId)),
     transcriptFile: (context, format = "json") =>
       path.join(localeVariantRoot(context), "transcript", `transcript.${format}`),
     captionsFile: (context, format) =>

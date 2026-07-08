@@ -607,7 +607,7 @@ const registrySchema = z.object({
   updatedAt: z.string(),
 });
 
-const manifestSchema = z.object({
+export const sceneGenerationManifestSchema = z.object({
   sceneId: z.string().min(1),
   stageIdentity: mediaStageIdentitySchema.optional(),
   narrationDependency: mediaStageDependencySchema.optional(),
@@ -3972,7 +3972,8 @@ async function readManifest(
 ): Promise<SceneGenerationManifest | null> {
   return readJsonIfExists(
     filePath,
-    (value) => manifestSchema.parse(value) as unknown as SceneGenerationManifest
+    (value) =>
+      sceneGenerationManifestSchema.parse(value) as unknown as SceneGenerationManifest
   );
 }
 
@@ -5436,7 +5437,7 @@ export async function syncEpisodeSharedImageAssets(
       }
       const manifestPath = path.join(manifestsDir, entry.name);
       const manifest = await readJsonIfExists(manifestPath, (value) =>
-        manifestSchema.parse(value) as unknown as SceneGenerationManifest
+        sceneGenerationManifestSchema.parse(value) as unknown as SceneGenerationManifest
       );
       if (!manifest || !manifest.outputPath) {
         continue;

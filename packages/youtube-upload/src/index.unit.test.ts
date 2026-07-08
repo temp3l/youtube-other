@@ -325,7 +325,39 @@ describe("youtube upload", () => {
     const resolved = await generateUploadMetadataForEpisode(episodeDir, "episode-fixture");
     expect(resolved.metadata.title.recommended).toBe("A Simple Upload");
     expect(resolved.resolvedVideoPath).toContain("video.mp4");
+    expect(resolved.legacyVideoFallbackUsed).toBe(false);
     expect(resolved.resolvedThumbnailPath).toContain(thumbnailFixturePath);
+  });
+
+  it("prefers the manifest-owned video artifact over stale scanned output files", async () => {
+    const workspace = createWorkspace();
+    const episodeDir = path.join(workspace, "episode-fixture");
+    await prepareEpisode(episodeDir);
+    await fs.writeFile(
+      path.join(episodeDir, "output", "youtube-16x9-clean.mp4"),
+      Buffer.from("stale-clean-video")
+    );
+
+    const resolved = await generateUploadMetadataForEpisode(episodeDir, "episode-fixture");
+
+    expect(resolved.resolvedVideoPath).toBe(
+      path.join(episodeDir, "output", "video.mp4")
+    );
+    expect(resolved.legacyVideoFallbackUsed).toBe(false);
+  });
+
+  it("labels scanned mp4 selection as an explicit legacy fallback", async () => {
+    const workspace = createWorkspace();
+    const episodeDir = path.join(workspace, "episode-fixture");
+    await prepareEpisode(episodeDir);
+    await fs.rm(path.join(episodeDir, "manifest.json"));
+
+    const resolved = await generateUploadMetadataForEpisode(episodeDir, "episode-fixture");
+
+    expect(resolved.resolvedVideoPath).toBe(
+      path.join(episodeDir, "output", "video.mp4")
+    );
+    expect(resolved.legacyVideoFallbackUsed).toBe(true);
   });
 
   it("writes an upload report using a mocked YouTube client", async () => {

@@ -46,6 +46,7 @@ import {
   resolveLocalizedScriptPath,
   resolveLocalizedVisualValidationPath,
   resolveSceneImageCandidatePaths,
+  resolveEpisodeSharedGeneratedImagePath,
   toEpisodeRelativeDisplayPath,
   type AuthoredScriptSourceIdentity,
 } from "./episode-filesystem.js";
@@ -588,6 +589,104 @@ describe("episode filesystem helpers", () => {
         variant: "full",
       })
     ).rejects.toMatchObject({ code: "MISSING_SCRIPT" });
+  });
+
+  it("keeps authored script identities separate from generated runtime narration paths", async () => {
+    const workspaceRoot = await createTempWorkspace();
+    await writeWorkspaceFile(
+      workspaceRoot,
+      "episodes/022-the-whistler-in-the-woods/languages/script-en.md",
+      "Authored English full script"
+    );
+
+    const resolver = createEpisodePathResolver(
+      path.join(workspaceRoot, "episodes")
+    );
+    const episodeId = normalizeEpisodeId("022-the-whistler-in-the-woods");
+    const runtimeNarrationPath = resolver.narrationScript({
+      episodeId,
+      locale: normalizeLocaleCode("en"),
+      variant: normalizeContentVariant("full"),
+    });
+    const generatedNarrationPath = resolver.generatedNarrationScript({
+      episodeId,
+      locale: normalizeLocaleCode("en"),
+      variant: normalizeContentVariant("full"),
+    });
+    const legacyCompatibilityPath = resolver.legacyCompatibilityScript(
+      episodeId,
+      normalizeLocaleCode("en"),
+      normalizeContentVariant("full")
+    );
+    const authored = await resolveAuthoredScript({
+      workspaceRoot,
+      episode: "022-the-whistler-in-the-woods",
+      language: "en",
+      variant: "full",
+    });
+
+    expect(authored.relativePath).toBe(
+      "episodes/022-the-whistler-in-the-woods/languages/script-en.md"
+    );
+    expect(toEpisodeRelativeDisplayPath(workspaceRoot, runtimeNarrationPath)).toBe(
+      "episodes/022-the-whistler-in-the-woods/locales/en/full/script.md"
+    );
+    expect(generatedNarrationPath).toBe(runtimeNarrationPath);
+    expect(
+      toEpisodeRelativeDisplayPath(
+        workspaceRoot,
+        resolver.localeRuntimeRoot({
+          episodeId,
+          locale: normalizeLocaleCode("en"),
+          variant: normalizeContentVariant("full"),
+        })
+      )
+    ).toBe("episodes/022-the-whistler-in-the-woods/locales/en/full");
+    expect(toEpisodeRelativeDisplayPath(workspaceRoot, legacyCompatibilityPath)).toBe(
+      "episodes/022-the-whistler-in-the-woods/en/full/script.md"
+    );
+    expect(
+      toEpisodeRelativeDisplayPath(
+        workspaceRoot,
+        resolver.legacyRootCompatibilityScript(episodeId)
+      )
+    ).toBe("episodes/022-the-whistler-in-the-woods/script.md");
+    expect(authored.absolutePath).not.toBe(runtimeNarrationPath);
+  });
+
+  it("rejects unsafe generated-image filenames for CR-004", () => {
+    const episodeDir = "/workspace/022-the-whistler-in-the-woods";
+
+    expect(() =>
+      resolveEpisodeSharedGeneratedImagePath({
+        episodeDir,
+        sceneId: "scene-001",
+        expectedFilename: "../x.png",
+      })
+    ).toThrow(/Invalid portable relative path/u);
+    expect(() =>
+      resolveEpisodeSharedGeneratedImagePath({
+        episodeDir,
+        sceneId: "scene-001",
+        expectedFilename: "/tmp/x.png",
+      })
+    ).toThrow(/Invalid portable relative path/u);
+    expect(() =>
+      resolveEpisodeSharedShortGeneratedImagePath({
+        episodeDir,
+        sceneId: "scene-001",
+        expectedFilename: "nested/x.png",
+      })
+    ).toThrow(/Invalid generated image filename/u);
+    expect(
+      resolveEpisodeSharedGeneratedImagePath({
+        episodeDir,
+        sceneId: "scene-001",
+        expectedFilename: "scene-001__000000-000004__16x9.png",
+      })
+    ).toBe(
+      "/workspace/022-the-whistler-in-the-woods/shared/images/generated/scene-001__000000-000004__16x9.png"
+    );
   });
 
   it("builds deterministic authored script identities and invalidates on every identity field", () => {

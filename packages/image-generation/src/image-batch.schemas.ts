@@ -217,6 +217,62 @@ export const sceneImageJobSchema = z.object({
   generationConfigurationHash: z.string().min(1),
 });
 
+const openAiImagePayloadSchema = z
+  .object({
+    b64_json: z.string().min(1).optional(),
+    image_base64: z.string().min(1).optional(),
+    base64: z.string().min(1).optional(),
+  })
+  .passthrough();
+
+export const openAiImageBatchResponseBodySchema = z
+  .object({
+    id: z.string().min(1).optional(),
+    status: z.string().min(1).optional(),
+    incomplete_details: z
+      .object({
+        reason: z.string().min(1).optional(),
+      })
+      .nullable()
+      .optional(),
+    output_text: z.string().optional(),
+    usage: z
+      .object({
+        input_tokens: z.number().int().nonnegative().optional(),
+        output_tokens: z.number().int().nonnegative().optional(),
+        input_tokens_details: z
+          .object({
+            cached_tokens: z.number().int().nonnegative().optional(),
+          })
+          .optional(),
+      })
+      .optional(),
+    data: z.array(openAiImagePayloadSchema).optional(),
+    b64_json: z.string().min(1).optional(),
+    image_base64: z.string().min(1).optional(),
+    base64: z.string().min(1).optional(),
+  })
+  .passthrough();
+
+export const openAiImageBatchOutputLineSchema = z
+  .object({
+    custom_id: z.string().min(1),
+    response: z
+      .object({
+        status_code: z.number().int(),
+        body: z.unknown(),
+      })
+      .optional(),
+    error: z
+      .object({
+        code: z.string().min(1).optional(),
+        message: z.string().min(1).optional(),
+      })
+      .passthrough()
+      .optional(),
+  })
+  .passthrough();
+
 export const legacyImageBatchManifestItemV1Schema = z.object({
   customId: z.string().min(1),
   episodeNumber: z.string().min(1),

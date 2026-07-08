@@ -10,7 +10,32 @@
 provide me the cli command to
 regenerate the german short movie - only use panning and zooming as motion effects - tell me all cli commands you used at the end
 
+---
+
+Current defects characterized: generated image traversal acceptance; short portrait visual identity collapse.
+
+---
+
+## Fixes
+
+- the images of episode 025 full were generated with wrong resolution and wrong ratio - why is that? how to prevent this from happening again.
+- the story rewrite is quite expensive and produces low quality results. how can we solve that? `insert a story review from chatgpt`
+- the speech is way too slow. which presets did you use, how to make it faster? how to prevent this from happening in the future.
+  - can we regenerate the german and english audio - and regenreate the short and full videos without generating new images?
+- there is a small distortion between the clips when listening to the final video. how to fix this permanently for all upcoming video assembly?
+- the video was not fully generated: 025-the-endless-backrooms/de/full/video/clips/
+- how many paid calls for story-rewrite short/full english/german?
+  - how to reduce cost?
+
+---
+
 ## mock data
+
+- next prompt: https://chatgpt.com/g/g-p-6a317d326e30819183556eca604b770c-youtube/c/6a4e2866-e5e4-83eb-aa8b-094349596b6e
+- batch: c
+
+- next prompt: "FIX RE-WRITE PIPLELINE"
+  - https://chatgpt.com/g/g-p-6a317d326e30819183556eca604b770c-youtube/c/6a4e3ef0-2110-83eb-abb0-9f5675efe551
 
 - next prompt: https://chatgpt.com/g/g-p-6a317d326e30819183556eca604b770c/c/6a4d4761-c610-83ed-b7b3-8826ebb22ccd
 

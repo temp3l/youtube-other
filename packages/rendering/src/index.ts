@@ -281,6 +281,31 @@ interface SceneClipManifest {
   readonly generatedAt: string;
 }
 
+const sceneClipManifestSchema = z
+  .object({
+    schemaVersion: z.literal(2),
+    sceneId: z.string().min(1),
+    sceneHash: z.string().min(1),
+    imageSha256: z.string().min(1),
+    audioSha256: z.string().min(1),
+    captionsSha256: z.string().min(1).optional(),
+    renderProfile: z
+      .object({
+        aspectRatio: z.string().min(1),
+        width: z.number(),
+        height: z.number(),
+        fps: z.number(),
+      })
+      .strict(),
+    trailingSilenceRatio: z.number(),
+    trailingSilenceBufferSeconds: z.number(),
+    renderFingerprint: z.string().min(1).optional(),
+    renderer: z.enum(["local", "remote"]).optional(),
+    outputSha256: z.string().min(1),
+    generatedAt: z.string().min(1),
+  })
+  .strict();
+
 export interface ShotOutputProfile {
   readonly aspectRatio: string;
   readonly width: number;
@@ -1244,29 +1269,11 @@ async function loadSceneClipManifest(
     return null;
   }
   const raw = JSON.parse(await fs.readFile(manifestPath, "utf8")) as unknown;
-  if (!raw || typeof raw !== "object") {
+  const parsed = sceneClipManifestSchema.safeParse(raw);
+  if (!parsed.success) {
     return null;
   }
-  const value = raw as Partial<SceneClipManifest>;
-  if (
-    value.schemaVersion !== 2 ||
-    typeof value.sceneId !== "string" ||
-    typeof value.sceneHash !== "string" ||
-    typeof value.imageSha256 !== "string" ||
-    typeof value.audioSha256 !== "string" ||
-    typeof value.outputSha256 !== "string" ||
-    typeof value.generatedAt !== "string" ||
-    typeof value.trailingSilenceRatio !== "number" ||
-    typeof value.trailingSilenceBufferSeconds !== "number" ||
-    !value.renderProfile ||
-    typeof value.renderProfile.aspectRatio !== "string" ||
-    typeof value.renderProfile.width !== "number" ||
-    typeof value.renderProfile.height !== "number" ||
-    typeof value.renderProfile.fps !== "number"
-  ) {
-    return null;
-  }
-  return value as SceneClipManifest;
+  return parsed.data;
 }
 
 async function probeDurationSeconds(filePath: string): Promise<number> {
@@ -2191,6 +2198,7 @@ async function resolveSceneImagePath(
   imageDir: string,
   aspectRatio: "16:9" | "9:16"
 ): Promise<string> {
+  const episodeRoot = path.dirname(path.dirname(episodeDir));
   const scene = scenePlan.scenes[sceneIndex];
   if (!scene) {
     throw new MediaValidationError(`Missing scene at index ${sceneIndex}.`);
@@ -2223,21 +2231,21 @@ async function resolveSceneImagePath(
   ].filter((candidate): candidate is string => Boolean(candidate));
   for (const candidate of candidates) {
     if (await fileExists(candidate)) {
-      return assertInsideWorkspace(episodeDir, candidate);
+      return assertInsideWorkspace(episodeRoot, candidate);
     }
   }
   const directoryMatches = (await fs.readdir(imageDir).catch(() => [])).filter(
     (entry) => entry.startsWith(`${scene.id}__`) && entry.endsWith(".png")
   );
   if (directoryMatches.length === 1) {
-    return assertInsideWorkspace(episodeDir, path.join(imageDir, directoryMatches[0] ?? ""));
+    return assertInsideWorkspace(episodeRoot, path.join(imageDir, directoryMatches[0] ?? ""));
   }
   if (directoryMatches.length > 1) {
     const exactMatches = expectedFilename
       ? directoryMatches.filter((entry) => entry === expectedFilename)
       : [];
     if (exactMatches.length === 1) {
-      return assertInsideWorkspace(episodeDir, path.join(imageDir, exactMatches[0]!));
+      return assertInsideWorkspace(episodeRoot, path.join(imageDir, exactMatches[0]!));
     }
     throw new MediaValidationError(
       `Ambiguous image assets found for ${scene.id} in ${imageDir}: ${directoryMatches

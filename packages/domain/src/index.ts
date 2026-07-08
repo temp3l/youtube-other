@@ -1853,8 +1853,8 @@ export const episodeManifestSchema = z.object({
     transcriptPath: z.string().optional(),
     mediaPath: z.string().optional()
   }),
-  sourceMetadata: z.any().optional(),
-  sourceMedia: z.any().optional(),
+  sourceMetadata: z.unknown().optional(),
+  sourceMedia: z.unknown().optional(),
   transcript: transcriptSchema.optional(),
   cleanedTranscript: cleanedTranscriptSchema.optional(),
   rewrittenScript: rewrittenScriptSchema.optional(),

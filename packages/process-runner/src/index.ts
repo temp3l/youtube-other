@@ -22,6 +22,65 @@ export interface SpawnOptions {
 }
 
 const allowlist = new Set(["curl", "ffmpeg", "ffprobe", "yt-dlp", "node", "whisper", "whisper-cli", "whisper.cpp"]);
+const redactedValue = "[redacted]";
+const sensitiveFlagPattern = /(?:api[-_]?key|access[-_]?token|refresh[-_]?token|auth[-_]?token|bearer[-_]?token|token|secret|password|passwd|credential|client[-_]?secret)/iu;
+const sensitiveEnvPattern = /^[A-Z_][A-Z0-9_]*(?:API[-_]?KEY|TOKEN|SECRET|PASSWORD|PASSWD|CREDENTIAL)[A-Z0-9_]*=/iu;
+
+function isHeaderFlag(value: string): boolean {
+  return value === "-H" || value === "--header" || value === "--proxy-header";
+}
+
+function isSensitiveValueFlag(value: string): boolean {
+  const flagName = value.replace(/^--?/u, "").split("=", 1)[0] ?? value;
+  return sensitiveFlagPattern.test(flagName);
+}
+
+function redactHeaderValue(value: string): string {
+  return value.replace(
+    /\b(authorization\s*:\s*bearer\s+)(\S+)/giu,
+    `$1${redactedValue}`
+  );
+}
+
+function redactInlineSecret(value: string): string {
+  if (sensitiveEnvPattern.test(value)) {
+    const separatorIndex = value.indexOf("=");
+    return `${value.slice(0, separatorIndex + 1)}${redactedValue}`;
+  }
+  if (/^--?[^=]+=/.test(value) && isSensitiveValueFlag(value)) {
+    const separatorIndex = value.indexOf("=");
+    return `${value.slice(0, separatorIndex + 1)}${redactedValue}`;
+  }
+  return redactHeaderValue(value);
+}
+
+export function redactProcessArgs(args: ReadonlyArray<string>): readonly string[] {
+  const redacted: string[] = [];
+  let redactNextValue = false;
+  let redactNextHeader = false;
+  for (const arg of args) {
+    if (redactNextValue) {
+      redacted.push(redactedValue);
+      redactNextValue = false;
+      continue;
+    }
+    if (redactNextHeader) {
+      redacted.push(redactHeaderValue(arg));
+      redactNextHeader = false;
+      continue;
+    }
+    const nextArg = redactInlineSecret(arg);
+    redacted.push(nextArg);
+    if (isHeaderFlag(arg)) {
+      redactNextHeader = true;
+      continue;
+    }
+    if (!arg.includes("=") && isSensitiveValueFlag(arg)) {
+      redactNextValue = true;
+    }
+  }
+  return redacted;
+}
 
 function parseHeaderBlock(text: string): Record<string, string> {
   const headers: Record<string, string> = {};
@@ -96,7 +155,7 @@ export async function runCommand(executable: string, args: ReadonlyArray<string>
       options.signal?.removeEventListener("abort", abortHandler);
       telemetry?.recordProcessExecution({
         executable,
-        args,
+        args: redactProcessArgs(args),
         startedAt: new Date(startedAt).toISOString(),
         endedAt: new Date().toISOString(),
         durationMs: Date.now() - startedAt,

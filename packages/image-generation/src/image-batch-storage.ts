@@ -49,7 +49,7 @@ type ImageBatchManifestItem = ImageBatchManifestItemType;
 type ImageBatchJob = ImageBatchJobType;
 
 function resolveEpisodeDirFromImageStateDir(outputDirectory: string): string {
-  const resolved = outputDirectory.replace(/[\\\/]+$/u, "");
+  const resolved = outputDirectory.replace(/[\\/]+$/u, "");
   if (
     path.basename(resolved) !== "image-generation" ||
     path.basename(path.dirname(resolved)) !== "state"
@@ -138,7 +138,10 @@ export async function readImageBatchManifest(
     return undefined;
   }
   const raw = await fs.readFile(manifestPath, "utf8");
-  return normalizeImageBatchManifest(JSON.parse(raw)) as ImageBatchManifest;
+  const parsed = JSON.parse(raw) as unknown;
+  return imageBatchManifestSchema.parse(
+    normalizeImageBatchManifest(parsed)
+  ) as ImageBatchManifest;
 }
 
 export function createImageBatchManifestItem(args: {

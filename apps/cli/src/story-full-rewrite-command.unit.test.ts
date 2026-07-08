@@ -252,6 +252,28 @@ describe("story full rewrite command", () => {
         },
       },
     });
+    expect(payload.plannedOutputs.englishFull.canonical).not.toContain(
+      path.join("languages", "script-en.md")
+    );
+    expect(payload.plannedOutputs.englishFull.compatibility).toBe(
+      path.join(
+        "/tmp/workspace",
+        "022-the-whistler-in-the-woods",
+        "script.md"
+      )
+    );
+    expect(payload.plannedOutputs.localized).toEqual([
+      {
+        language: "de",
+        full: path.join(
+          "/tmp/workspace",
+          "022-the-whistler-in-the-woods",
+          "de",
+          "full",
+          "script.md"
+        ),
+      },
+    ]);
     expect(localizeStoryEpisodeMock).not.toHaveBeenCalled();
   });
 

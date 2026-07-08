@@ -1242,6 +1242,50 @@ describe("image batch planner", () => {
     );
   });
 
+  it("documents current short portrait alias collision when localized visual intent is not represented in identity", async () => {
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), "image-batch-short-intent-collision-"));
+    const episodeDir = path.join(tempDir, "001-demo");
+    process.env["SHORTS_KEY_SCENE_COUNT"] = "1";
+    process.env["SHORTS_KEY_SCENE_RATIO"] = "0";
+    await writeLocalizedScript(episodeDir, "en", "short");
+    await writeLocalizedScript(episodeDir, "de", "short");
+    await writeShortScenePlan(episodeDir, "en", ["scene-001"]);
+    await writeShortScenePlan(episodeDir, "de", ["scene-001"]);
+    const deScenePlanPath = path.join(episodeDir, "de", "short", "scenes.json");
+    const deScenePlan = JSON.parse(await fs.readFile(deScenePlanPath, "utf8")) as {
+      scenes: Array<{ imagePrompt: string; visualPurpose: string }>;
+    };
+    deScenePlan.scenes[0]!.imagePrompt = "A different localized portrait intent.";
+    deScenePlan.scenes[0]!.visualPurpose = "different localized visual emphasis";
+    await fs.writeFile(deScenePlanPath, JSON.stringify(deScenePlan), "utf8");
+    await writeLandscapeImage(episodeDir, "scene-001__000000-000004__16x9.png", 20);
+
+    const prepared = await prepareShortSceneImageBatches({
+      episodeDir,
+      episodeId: "001-demo",
+      languages: ["en-US", "de-DE"],
+      variant: "short",
+      settings: {
+        model: "gpt-image-2",
+        requestedSize: "1024x1536",
+        quality: "medium",
+        outputFormat: "png",
+      },
+    });
+
+    const sceneGroup = prepared.groups.find((group) => group.stageKind === "scene-images");
+    const promptHashes = new Set(
+      sceneGroup?.scenePlans.map((plan) => plan.job.identity.promptHash)
+    );
+    expect(promptHashes.size).toBe(1);
+    expect(sceneGroup?.scenePlans.filter((plan) => plan.manifestItem.ownsSharedOutput)).toHaveLength(1);
+    expect(sceneGroup?.scenePlans.filter((plan) => plan.manifestItem.aliasedToCustomId)).toHaveLength(1);
+  });
+
+  it.todo(
+    "CR-010 task-06: short/shared portrait alias identity must include visual intent so differing prompt hashes cannot share one portrait owner."
+  );
+
   it("rejects unsafe multilingual short collisions that cannot share a portrait alias", async () => {
     const tempDir = mkdtempSync(path.join(os.tmpdir(), "image-batch-short-multilang-collision-"));
     const episodeDir = path.join(tempDir, "001-demo");

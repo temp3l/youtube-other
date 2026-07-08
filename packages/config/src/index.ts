@@ -792,8 +792,8 @@ export async function loadRuntimeConfig(
   const env = envSchema.parse({
     ...dotenvValues,
     ...process.env,
-    ...(dotenvValues.OPENAI_API_KEY !== undefined
-      ? { OPENAI_API_KEY: dotenvValues.OPENAI_API_KEY }
+    ...(dotenvValues["OPENAI_API_KEY"] !== undefined
+      ? { OPENAI_API_KEY: dotenvValues["OPENAI_API_KEY"] }
       : {})
   });
   const availableCpuCores = Math.max(1, os.cpus().length);

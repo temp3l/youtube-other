@@ -270,7 +270,7 @@ const registrySchema = z.object({
   updatedAt: z.string(),
 });
 
-const manifestEntrySchema = z.object({
+export const shortsSceneManifestEntrySchema = z.object({
   sceneId: z.string().min(1),
   sequenceNumber: z.number().int().positive(),
   stageIdentity: mediaStageIdentitySchema.optional(),
@@ -1060,7 +1060,9 @@ function loadExistingManifest(
   return fs
     .readFile(manifestPath, "utf8")
     .then((raw) =>
-      z.array(manifestEntrySchema).parse(JSON.parse(raw) as unknown) as ShortsSceneManifestEntry[]
+      z.array(shortsSceneManifestEntrySchema).parse(
+        JSON.parse(raw) as unknown
+      ) as ShortsSceneManifestEntry[]
     )
     .catch(() => null);
 }

@@ -11,6 +11,7 @@ import {
   assignClipRenderers,
   buildShotClipRenderRequest,
   buildShotRenderOperationFingerprint,
+  buildSceneClipFilterGraph,
   buildRemoteReadyMarker,
   FFmpegVideoRenderer,
   motionRenderReportFilename,
@@ -566,6 +567,26 @@ describe("FFmpegVideoRenderer", () => {
     });
     expect(Date.parse(marker.generatedAt)).not.toBeNaN();
   });
+
+  it("escapes subtitle path colons in scene clip filter graphs while preserving other current metacharacter behavior", () => {
+    const captionsPath = "/tmp/render/captions:name[1],draft.srt";
+    const filterGraph = buildSceneClipFilterGraph(160, 90, captionsPath);
+
+    expect(filterGraph).toContain("subtitles=/tmp/render/captions\\:name[1],draft.srt");
+    expect(filterGraph).toContain("scale=");
+  });
+
+  it.todo(
+    "CR-002 task-08: missing scene audio must be classified as an upstream-stage failure and must not be synthesized from narration during render."
+  );
+
+  it.todo(
+    "CR-012 task-08: final caption burn-in must escape FFmpeg filter metacharacters, not interpolate request.captionsPath directly."
+  );
+
+  it.todo(
+    "CR-011 task-09: invalid remote job/result JSON and partial remote results need a local fake harness with explicit rejection/classification."
+  );
 
   it("renders one scene clip and manifest per scene id in scene order", async () => {
     const baseDir = mkdtempSync(
@@ -1197,6 +1218,43 @@ describe("FFmpegVideoRenderer", () => {
     );
     expect(firstRequest.renderOperationFingerprint).toMatch(/^[a-f0-9]{64}$/u);
   });
+
+  it("covers absolute external shot source images before clip rendering", async () => {
+    const baseDir = mkdtempSync(
+      path.join(os.tmpdir(), "mediaforge-rendering-absolute-shot-")
+    );
+    const episodeDir = path.join(baseDir, "episode");
+    const renderer = new FFmpegVideoRenderer();
+    const plan = makeShotPlan({
+      sourceImagePath: path.join(baseDir, "outside", "source.png"),
+      sourceImageSha256: "a".repeat(64),
+    });
+
+    await expect(
+      renderer.renderSceneClips(
+        {
+          episodeDir,
+          scenePlan: makeScenePlan(),
+          shotPlan: plan,
+          outputDir: path.join(episodeDir, "video"),
+          renderProfile: {
+            id: "short",
+            label: "short",
+            aspectRatio: "9:16",
+            width: 90,
+            height: 160,
+            fps: 10,
+          },
+          captionBurnIn: false,
+        },
+        new AbortController().signal
+      )
+    ).rejects.toThrow(/Missing source image/u);
+  });
+
+  it.todo(
+    "CR-013 task-08: existing absolute external shot source images must be rejected as containment violations instead of accepted after hash validation."
+  );
 
   it("fails shot rendering for missing source images and unsupported treatments", async () => {
     const baseDir = mkdtempSync(
