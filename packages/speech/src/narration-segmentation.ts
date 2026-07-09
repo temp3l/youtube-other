@@ -6,10 +6,6 @@ import {
   writeJsonAtomic,
 } from "@mediaforge/shared";
 import {
-  LANGUAGE_PROFILES,
-  type LanguageCode,
-} from "@mediaforge/story-localization";
-import {
   NARRATION_ARTIFACT_SCHEMA_VERSION,
   type NarrationChunk,
   type NarrationChunkManifest,
@@ -18,6 +14,7 @@ import {
   type NarrationVariant,
   narrationChunkManifestSchema,
 } from "./narration-schemas.js";
+import { resolveSpeechNarrationPacingPreset } from "./narration-pacing.js";
 import {
   createNarrationArtifactPaths,
   type NarrationArtifactPathSet,
@@ -89,12 +86,10 @@ function localeForLanguage(language: string): string {
 }
 
 function languageWpm(language: string, variant: NarrationVariant): number {
-  const locale = localeForLanguage(language);
-  if (locale === "en" || locale === "de" || locale === "es" || locale === "fr" || locale === "pt") {
-    const profile = LANGUAGE_PROFILES[locale as LanguageCode];
-    return variant === "short" ? profile.shortNarrationWpm : profile.fullNarrationWpm;
-  }
-  return 170;
+  return resolveSpeechNarrationPacingPreset(
+    localeForLanguage(language),
+    variant
+  ).targetWpm;
 }
 
 function estimateDurationMs(wordCount: number, wpm: number): number {

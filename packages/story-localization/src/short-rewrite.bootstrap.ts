@@ -1,12 +1,42 @@
 import path from "node:path";
 import fs from "node:fs/promises";
-import { copyAtomic, ensureDir, fileExists } from "@mediaforge/shared";
+import { copyAtomic, ensureDir, fileExists, writeTextAtomic } from "@mediaforge/shared";
 import { ExistingArtifactError } from "./short-rewrite.errors.js";
 import { sha256NormalizedSource } from "./short-rewrite.utils.js";
 import {
   materializeCleanedCanonicalSourceStory,
 } from "./source-cleaning-persistence.js";
 import { type SourceResolvedFrom, type SourceRole } from "./source-cleaning.js";
+
+const DARK_TRUTH_SOURCE_DIR_NAMES = new Set([
+  "dark-truth-episodes-optimized",
+  "dark-truth-episodes-multilingual-production-pack",
+]);
+
+function isDarkTruthSourcePath(sourcePath: string): boolean {
+  return path
+    .resolve(sourcePath)
+    .split(path.sep)
+    .some((part) => DARK_TRUTH_SOURCE_DIR_NAMES.has(part));
+}
+
+async function appendDarkTruthDisclosureIfMissing(targetPath: string): Promise<void> {
+  const existing = await fs.readFile(targetPath, "utf8");
+  if (/\*\*Content disclosure:\*\*/iu.test(existing)) {
+    return;
+  }
+  await writeTextAtomic(
+    targetPath,
+    [
+      existing.trimEnd(),
+      "",
+      "## Episode Metadata",
+      "",
+      "**Content disclosure:** Fictional horror narration.",
+      "",
+    ].join("\n")
+  );
+}
 
 export async function materializeCanonicalSourceStory(args: {
   readonly sourcePath: string;
@@ -26,6 +56,9 @@ export async function materializeCanonicalSourceStory(args: {
     expectedSourceSha256: args.sourceSha256,
     overwrite: args.overwrite,
   });
+  if (isDarkTruthSourcePath(args.sourcePath)) {
+    await appendDarkTruthDisclosureIfMissing(args.targetPath);
+  }
   return materialized.status;
 }
 

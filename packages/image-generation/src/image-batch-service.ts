@@ -1,4 +1,3 @@
-import fs from "node:fs";
 import fsp from "node:fs/promises";
 import path from "node:path";
 import { z } from "zod";
@@ -22,12 +21,8 @@ import {
 } from "@mediaforge/shared";
 import {
   StoryBatchIndexService,
-  parseBatchOutputJsonl,
-  normalizeBatchStatus,
-  requireBatchCapabilities,
   type BatchIndexEntry,
   type BatchIndexStatus,
-  readRemoteFileText,
   type OpenAiBatchOutputLine,
   type OpenAiStoryClient,
 } from "@mediaforge/story-localization";
@@ -64,6 +59,18 @@ import {
   type ShortsSceneManifestEntry,
 } from "./shorts-image-strategy.js";
 import sharp from "sharp";
+import {
+  assertVideoImageFileMatchesSpec,
+  normalizeImageBufferToSpec,
+} from "./video-image-spec.js";
+import {
+  type ImageBatchProvider,
+} from "./image-batch-provider.js";
+import { createOpenAiImageBatchProvider } from "./openai-image-batch-provider.js";
+import {
+  ImagePayloadValidationError,
+  validateImagePayload,
+} from "./image-payload-validation.js";
 
 export interface ImageBatchSubmissionResult {
   readonly localBatchId: string;
@@ -111,6 +118,25 @@ export interface ImageBatchReadinessReport {
   readonly readyForRender: boolean;
   readonly episodeNumbers: readonly string[];
   readonly sceneCount: number;
+}
+
+type ImageBatchProviderInput = OpenAiStoryClient | ImageBatchProvider;
+
+function isImageBatchProvider(value: ImageBatchProviderInput): value is ImageBatchProvider {
+  return (
+    "uploadInputFile" in value &&
+    "createBatch" in value &&
+    "retrieveStatus" in value &&
+    "downloadOutputFile" in value
+  );
+}
+
+function resolveImageBatchProvider(
+  clientOrProvider: ImageBatchProviderInput
+): ImageBatchProvider {
+  return isImageBatchProvider(clientOrProvider)
+    ? clientOrProvider
+    : createOpenAiImageBatchProvider(clientOrProvider);
 }
 
 function batchIndexStatusFromImageStatus(
@@ -368,44 +394,20 @@ function asImportError(
   if (error instanceof ImageBatchImportError) {
     return error;
   }
+  if (error instanceof ImagePayloadValidationError) {
+    return new ImageBatchImportError({
+      message: error.message,
+      status: error.status,
+      category: error.category,
+      ...(error.code ? { code: error.code } : {}),
+    });
+  }
   return new ImageBatchImportError({
     message: error instanceof Error ? error.message : String(error),
     status: fallback.status,
     category: fallback.category,
     ...(fallback.code ? { code: fallback.code } : {}),
   });
-}
-
-function decodeBase64Image(value: string): Buffer {
-  const compact = value.replace(/\s+/gu, "");
-  if (!/^[A-Za-z0-9+/=]+$/u.test(compact)) {
-    throw new ImageBatchImportError({
-      message: "Invalid base64 image payload.",
-      status: "decode-failed",
-      category: "invalid-base64",
-      code: "invalid-base64",
-    });
-  }
-  const decoded = Buffer.from(compact, "base64");
-  if (decoded.byteLength === 0) {
-    throw new ImageBatchImportError({
-      message: "Empty image payload.",
-      status: "decode-failed",
-      category: "invalid-base64",
-      code: "empty-payload",
-    });
-  }
-  const normalized = decoded.toString("base64").replace(/=+$/gu, "");
-  const inputNormalized = compact.replace(/=+$/gu, "");
-  if (normalized !== inputNormalized) {
-    throw new ImageBatchImportError({
-      message: "Invalid base64 image payload.",
-      status: "decode-failed",
-      category: "invalid-base64",
-      code: "invalid-base64",
-    });
-  }
-  return decoded;
 }
 
 function extractBase64ImageFromBatchBody(
@@ -423,6 +425,9 @@ function extractBase64ImageFromBatchBody(
 
 async function persistImportedImage(args: {
   readonly episodeDir: string;
+  readonly episodeId: string;
+  readonly language: string;
+  readonly videoKind: "full" | "short";
   readonly outputPath: string;
   readonly sceneId: string;
   readonly imageBuffer: Buffer;
@@ -481,37 +486,74 @@ async function persistImportedImage(args: {
       code: "invalid-mime-type",
     });
   }
-  const [requestedWidth, requestedHeight] = args.requestedSize.split("x").map((value) => Number.parseInt(value, 10));
-  if (
-    Number.isFinite(requestedWidth) &&
-    Number.isFinite(requestedHeight) &&
-    (requestedWidth !== metadata.width || requestedHeight !== metadata.height)
-  ) {
+  const normalizedBuffer = await normalizeImageBufferToSpec({
+    imageBuffer: args.imageBuffer,
+    videoKind: args.videoKind,
+    format: args.expectedFormat,
+  });
+  const normalizedMetadata = await sharp(normalizedBuffer).metadata().catch((error) => {
     throw new ImageBatchImportError({
-      message: `Unexpected image dimensions for ${args.sceneId}: expected ${requestedWidth}x${requestedHeight}, received ${metadata.width}x${metadata.height}.`,
+      message:
+        error instanceof Error
+          ? error.message
+          : "Normalized image could not be parsed.",
+      status: "validation-failed",
+      category: "corrupt-file",
+      code: "corrupt-file",
+    });
+  });
+  if (!normalizedMetadata.width || !normalizedMetadata.height) {
+    throw new ImageBatchImportError({
+      message: "Normalized image is missing dimensions.",
       status: "validation-failed",
       category: "invalid-dimensions",
-      code: "invalid-dimensions",
+      code: "missing-dimensions",
     });
   }
   if (await fileExists(resolvedOutputPath)) {
+    await assertVideoImageFileMatchesSpec({
+      episodeId: args.episodeId,
+      language: args.language,
+      videoKind: args.videoKind,
+      imagePath: resolvedOutputPath,
+    }).catch((error) => {
+      throw new ImageBatchImportError({
+        message: error instanceof Error ? error.message : String(error),
+        status: "validation-failed",
+        category: "invalid-dimensions",
+        code: "invalid-dimensions",
+      });
+    });
     const existingHash = await hashFile(resolvedOutputPath);
     const existingBytes = await fsp.stat(resolvedOutputPath);
     return {
       sha256: existingHash,
-      width: metadata.width,
-      height: metadata.height,
+      width: normalizedMetadata.width,
+      height: normalizedMetadata.height,
       mimeType: actualMimeType,
       byteSize: existingBytes.size,
     };
   }
-  await writeBinaryAtomic(resolvedOutputPath, args.imageBuffer);
+  await writeBinaryAtomic(resolvedOutputPath, normalizedBuffer);
+  await assertVideoImageFileMatchesSpec({
+    episodeId: args.episodeId,
+    language: args.language,
+    videoKind: args.videoKind,
+    imagePath: resolvedOutputPath,
+  }).catch((error) => {
+    throw new ImageBatchImportError({
+      message: error instanceof Error ? error.message : String(error),
+      status: "validation-failed",
+      category: "invalid-dimensions",
+      code: "invalid-dimensions",
+    });
+  });
   return {
     sha256: await hashFile(resolvedOutputPath),
-    width: metadata.width,
-    height: metadata.height,
+    width: normalizedMetadata.width,
+    height: normalizedMetadata.height,
     mimeType: actualMimeType,
-    byteSize: args.imageBuffer.byteLength,
+    byteSize: normalizedBuffer.byteLength,
   };
 }
 
@@ -618,9 +660,10 @@ async function updateCharacterReferenceRegistry(args: {
 }
 
 function classifyBatchFailure(
-  line: OpenAiBatchOutputLine
+  line: OpenAiBatchOutputLine,
+  provider: ImageBatchProvider
 ): ImageBatchItemStatus {
-  const code = line.error?.code?.toLowerCase() ?? "";
+  const code = provider.normalizeErrorCode(line.error?.code);
   if (code.includes("policy") || code.includes("moderation")) {
     return "policy-rejected";
   }
@@ -768,16 +811,24 @@ async function persistImportedSceneResult(args: {
       });
     }
   }
-  const imageBuffer = decodeBase64Image(payload);
+  const validatedPayload = await validateImagePayload({
+    base64: payload,
+    expectedFormat: args.item.outputFormat,
+    requestedSize: args.item.requestedSize,
+    sceneId: args.item.sceneId ?? args.item.identity.subject.id,
+  });
   const canonicalOutputPath = await resolveCanonicalOutputPathForItem({
     episodeDir: args.episodeDir,
     item: args.item,
   });
   const persisted = await persistImportedImage({
     episodeDir: args.episodeDir,
+    episodeId: args.item.identity.episodeId,
+    language: args.item.identity.language,
+    videoKind: args.item.identity.variant,
     outputPath: canonicalOutputPath,
     sceneId: args.item.sceneId ?? args.item.identity.subject.id,
-    imageBuffer,
+    imageBuffer: validatedPayload.imageBuffer,
     expectedFormat: args.item.outputFormat,
     requestedSize: args.item.requestedSize,
   });
@@ -853,9 +904,9 @@ async function persistImportedSceneResult(args: {
 export async function submitImageBatch(
   outputDirectory: string,
   localBatchId: string,
-  client: OpenAiStoryClient
+  client: ImageBatchProviderInput
 ): Promise<ImageBatchSubmissionResult> {
-  requireBatchCapabilities(client);
+  const provider = resolveImageBatchProvider(client);
   const layout = await ensureImageBatchStorageLayout(outputDirectory);
   const episodeDir = resolveEpisodeDir(outputDirectory);
   const resolved = await resolveImageBatchManifest(outputDirectory, localBatchId);
@@ -875,23 +926,20 @@ export async function submitImageBatch(
   if (currentHash !== manifest.inputFileHash) {
     throw new Error(`Image batch input hash mismatch for ${localBatchId}.`);
   }
-  const uploaded = await client.files.create({
-    file: fs.createReadStream(absoluteInputPath),
-    purpose: "batch",
-  });
-  const created = await client.batches.create({
-    input_file_id: uploaded.id,
+  const uploaded = await provider.uploadInputFile(absoluteInputPath);
+  const created = await provider.createBatch({
+    inputFileId: uploaded.fileId,
     endpoint: manifest.endpoint,
-    completion_window: "24h",
+    completionWindow: "24h",
     metadata: {
       local_batch_id: localBatchId,
       category: "image-generation",
     },
-  } as never);
+  });
   const nextManifest = imageBatchManifestSchema.parse({
     ...manifest,
-    openAIInputFileId: uploaded.id,
-    openAIBatchId: created.id,
+    openAIInputFileId: uploaded.fileId,
+    openAIBatchId: created.batchId,
     status: "submitted",
     submittedAt: new Date().toISOString(),
     items: manifest.items.map((item) => ({ ...item, status: "submitted" })),
@@ -915,8 +963,8 @@ export async function submitImageBatch(
   await index.upsert(toIndexEntry({ layout, manifest: nextManifest }));
   return {
     localBatchId,
-    openAIBatchId: created.id,
-    openAIInputFileId: uploaded.id,
+    openAIBatchId: created.batchId,
+    openAIInputFileId: uploaded.fileId,
     status: "submitted",
   };
 }
@@ -924,9 +972,9 @@ export async function submitImageBatch(
 export async function refreshImageBatch(
   outputDirectory: string,
   batchRef: string,
-  client: OpenAiStoryClient
+  client: ImageBatchProviderInput
 ): Promise<ImageBatchManifest> {
-  requireBatchCapabilities(client);
+  const provider = resolveImageBatchProvider(client);
   const layout = await ensureImageBatchStorageLayout(outputDirectory);
   const episodeDir = resolveEpisodeDir(outputDirectory);
   const index = new StoryBatchIndexService(outputDirectory);
@@ -936,15 +984,13 @@ export async function refreshImageBatch(
   }
   const manifestPath = resolved.manifestPath;
   const manifest = resolved.manifest;
-  const remote = await client.batches.retrieve(resolved.manifest.openAIBatchId);
+  const remote = await provider.retrieveStatus(resolved.manifest.openAIBatchId);
   const nextManifest = imageBatchManifestSchema.parse({
     ...manifest,
-    status: normalizeBatchStatus(remote.status) as ImageBatchStatus,
-    ...(remote.output_file_id ? { outputFileId: remote.output_file_id } : {}),
-    ...(remote.error_file_id ? { errorFileId: remote.error_file_id } : {}),
-    ...(remote.completed_at
-      ? { completedAt: new Date(remote.completed_at * 1000).toISOString() }
-      : {}),
+    status: remote.status,
+    ...(remote.outputFileId ? { outputFileId: remote.outputFileId } : {}),
+    ...(remote.errorFileId ? { errorFileId: remote.errorFileId } : {}),
+    ...(remote.completedAt ? { completedAt: remote.completedAt } : {}),
     updatedAt: new Date().toISOString(),
     items: manifest.items,
   }) as ImageBatchManifest;
@@ -968,13 +1014,13 @@ export async function refreshImageBatch(
 export async function importImageBatch(
   outputDirectory: string,
   batchRef: string,
-  client: OpenAiStoryClient
+  client: ImageBatchProviderInput
 ): Promise<ImageBatchImportResult> {
-  requireBatchCapabilities(client);
+  const provider = resolveImageBatchProvider(client);
   const layout = await ensureImageBatchStorageLayout(outputDirectory);
   const episodeDir = resolveEpisodeDir(outputDirectory);
   const index = new StoryBatchIndexService(outputDirectory);
-  const refreshed = await refreshImageBatch(outputDirectory, batchRef, client);
+  const refreshed = await refreshImageBatch(outputDirectory, batchRef, provider);
   if (!refreshed.openAIBatchId) {
     throw new Error(`Image batch ${batchRef} has not been submitted.`);
   }
@@ -996,10 +1042,10 @@ export async function importImageBatch(
     };
   }
   const outputText = refreshed.outputFileId
-    ? await readRemoteFileText(client, refreshed.outputFileId)
+    ? await provider.downloadOutputFile(refreshed.outputFileId)
     : "";
   const errorText = refreshed.errorFileId
-    ? await readRemoteFileText(client, refreshed.errorFileId)
+    ? await provider.downloadErrorFile(refreshed.errorFileId)
     : "";
   const resultFilePath = resolveEpisodeImageBatchResultPath(
     episodeDir,
@@ -1027,8 +1073,8 @@ export async function importImageBatch(
   const unknownCustomIds = new Set<string>();
   const duplicateCustomIds = new Set<string>();
   for (const line of [
-    ...parseBatchOutputJsonl(outputText),
-    ...parseBatchOutputJsonl(errorText),
+    ...provider.parseOutputJsonl(outputText),
+    ...provider.parseOutputJsonl(errorText),
   ]) {
     const parsedLine = openAiImageBatchOutputLineSchema.parse(
       line
@@ -1053,6 +1099,12 @@ export async function importImageBatch(
     const itemLines = linesByCustomId.get(item.customId) ?? [];
     if (itemLines.length === 0) {
       if (item.status === "persisted" && (await fileExists(item.expectedOutputPath))) {
+        await assertVideoImageFileMatchesSpec({
+          episodeId: item.identity.episodeId,
+          language: item.identity.language,
+          videoKind: item.identity.variant,
+          imagePath: item.expectedOutputPath,
+        });
         nextItemsByCustomId.set(item.customId, item);
         continue;
       }
@@ -1089,6 +1141,12 @@ export async function importImageBatch(
     const line = itemLines[0]!;
     try {
       if (item.status === "persisted" && (await fileExists(item.expectedOutputPath))) {
+        await assertVideoImageFileMatchesSpec({
+          episodeId: item.identity.episodeId,
+          language: item.identity.language,
+          videoKind: item.identity.variant,
+          imagePath: item.expectedOutputPath,
+        });
         nextItemsByCustomId.set(item.customId, item);
         continue;
       }
@@ -1118,7 +1176,9 @@ export async function importImageBatch(
       );
       nextItemsByCustomId.set(item.customId, persisted.manifestItem);
     } catch (error) {
-      const lineFailureStatus = line.error ? classifyBatchFailure(line) : "validation-failed";
+      const lineFailureStatus = line.error
+        ? classifyBatchFailure(line, provider)
+        : "validation-failed";
       const importError = asImportError(error, {
         status: lineFailureStatus,
         category:

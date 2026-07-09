@@ -16,7 +16,57 @@ const BANNED_OUTLINE_PHRASES = [
   "summary",
   "outline",
   "here is the story",
+  "the story begins",
+  "the threat follows a rule",
+  "the final evidence appears",
+  "the first real warning came",
+  "what followed changed everything",
+  "the danger became personal",
+  "the pattern became worse",
+  "the apparent ending did not survive",
+  "the final piece of evidence arrived later",
+  "all clues are connected to",
+  "alle hinweise stehen im zusammenhang",
+  "die geschichte beginnt",
+  "die bedrohung folgt einer regel",
+  "später erscheint ein letzter beweis",
 ];
+
+function normalizeForDuplicate(value: string): string {
+  return normalizeWhitespace(value)
+    .toLowerCase()
+    .replace(/[`*_>#-]/gu, "")
+    .replace(/[^\p{L}\p{N}\s]/gu, "")
+    .trim();
+}
+
+function paragraphDuplicates(text: string): readonly string[] {
+  const seen = new Set<string>();
+  const duplicates: string[] = [];
+  for (const paragraph of text.split(/\n{2,}/u)) {
+    const normalized = normalizeForDuplicate(paragraph);
+    if (normalized.length < 40) {
+      continue;
+    }
+    if (seen.has(normalized)) {
+      duplicates.push(normalized.slice(0, 80));
+    }
+    seen.add(normalized);
+  }
+  return duplicates;
+}
+
+function includesAny(lower: string, values: readonly string[] | undefined): boolean {
+  return (values ?? []).some((value) => lower.includes(value.toLowerCase()));
+}
+
+function hasEmotionalCost(text: string, facts: CanonicalStoryFacts): boolean {
+  const lower = text.toLowerCase();
+  const cost = facts.emotionalCost?.toLowerCase();
+  const attachment = facts.protagonistAttachment?.toLowerCase();
+  const hasCostVerb = /\b(refus|sacrific|abandon|destroy|betray|accept|ignore|leave|reject|give up|lose)\w*\b/iu.test(text);
+  return hasCostVerb && (!!cost ? lower.includes(cost.slice(0, Math.min(32, cost.length))) || includesAny(lower, [cost]) : true) && (!!attachment ? includesAny(lower, [attachment]) || /\bpromise|guilt|voice|loved|familiar|proof|recording|name|shame|trust\b/iu.test(text) : true);
+}
 
 function finding(args: {
   readonly code: string;
@@ -80,6 +130,19 @@ export function runStoryQualityGate(args: {
     deterministicFixes.add("dedupe-generated-marker");
   }
 
+  const duplicates = paragraphDuplicates(args.text);
+  if (duplicates.length > 0) {
+    findings.push(
+      finding({
+        code: "DUPLICATE_NARRATIVE_PARAGRAPH",
+        message: "Duplicate or near-duplicate narrative paragraphs detected.",
+        severity: "error",
+        repairScope: "targeted-short-repair",
+      })
+    );
+    repairScopes.add("targeted-short-repair");
+  }
+
   const bannedPhrase = BANNED_OUTLINE_PHRASES.find((phrase) => lower.includes(` ${phrase} `));
   if (bannedPhrase) {
     findings.push(
@@ -93,10 +156,63 @@ export function runStoryQualityGate(args: {
     repairScopes.add("targeted-short-repair");
   }
 
+  const titleAnchor = args.facts.primaryTitle.toLowerCase();
+  if (titleAnchor && lower.split(titleAnchor).length > 4) {
+    findings.push(
+      finding({
+        code: "TITLE_USED_AS_GENERIC_ANCHOR",
+        message: "Story title is repeated as a generic anchor instead of natural narration.",
+        severity: "error",
+        repairScope: "targeted-short-repair",
+      })
+    );
+    repairScopes.add("targeted-short-repair");
+  }
+
   for (const name of args.facts.protagonistNames ?? []) {
     if (!lower.includes(` ${name.toLowerCase()} `)) {
-      warnings.push(`Canonical protagonist name is not explicit in the generated text: ${name}.`);
+      const code = args.artifactKind === "short" ? "CANONICAL_NAME_MISSING" : "CANONICAL_NAME_NOT_EXPLICIT";
+      if (args.artifactKind === "short") {
+        findings.push(
+          finding({
+            code,
+            message: `Canonical protagonist name is missing: ${name}.`,
+            severity: "error",
+            repairScope: "canonical-name-repair",
+          })
+        );
+        repairScopes.add("canonical-name-repair");
+      } else {
+        warnings.push(`Canonical protagonist name is not explicit in the generated text: ${name}.`);
+      }
     }
+  }
+
+  const criticalObjects = args.facts.keyObjects ?? args.facts.criticalObjects;
+  const missingObjects = criticalObjects.filter((object) => !lower.includes(object.toLowerCase()));
+  if (criticalObjects.length > 0 && missingObjects.length > Math.max(0, criticalObjects.length - 2)) {
+    findings.push(
+      finding({
+        code: "CONCRETE_OBJECTS_MISSING",
+        message: `Generated text omits too many canonical objects: ${missingObjects.join(", ")}.`,
+        severity: "error",
+        repairScope: "targeted-short-repair",
+      })
+    );
+    repairScopes.add("targeted-short-repair");
+  }
+
+  const locations = args.facts.concreteLocations ?? args.facts.locationAnchors;
+  if (args.artifactKind === "short" && locations && locations.length > 0 && !includesAny(lower, locations)) {
+    findings.push(
+      finding({
+        code: "CONCRETE_LOCATION_MISSING",
+        message: "Short omits canonical concrete locations.",
+        severity: "error",
+        repairScope: "targeted-short-repair",
+      })
+    );
+    repairScopes.add("targeted-short-repair");
   }
 
   for (const invention of args.facts.forbiddenInventions ?? []) {
@@ -162,6 +278,29 @@ export function runStoryQualityGate(args: {
     repairScopes.add("final-sting-repair");
     deterministicFixes.add("repair-final-sting");
   }
+  if (args.facts.supernaturalRule && !includesAny(lower, [args.facts.supernaturalRule]) && !/\bdo not\b|\bdon't\b|\bnever\b|\bmust\b|\brule\b/iu.test(normalized)) {
+    findings.push(
+      finding({
+        code: "SUPERNATURAL_RULE_MISSING",
+        message: "Generated text does not include a visible supernatural rule.",
+        severity: "error",
+        repairScope: "targeted-short-repair",
+      })
+    );
+    repairScopes.add("targeted-short-repair");
+  }
+
+  if (!hasEmotionalCost(normalized, args.facts)) {
+    findings.push(
+      finding({
+        code: "EMOTIONAL_COST_MISSING",
+        message: "Ending lacks a concrete protagonist attachment and emotionally costly final decision.",
+        severity: "error",
+        repairScope: "targeted-short-repair",
+      })
+    );
+    repairScopes.add("targeted-short-repair");
+  }
 
   if (
     args.language === "en" &&
@@ -205,6 +344,21 @@ export function runStoryQualityGate(args: {
       })
     );
     repairScopes.add("targeted-short-repair");
+  }
+
+  if (args.artifactKind === "short") {
+    const firstTwoSentences = sentences.slice(0, 2).join(" ");
+    if (!/\bhook\b|\bdoor\b|\bradio\b|\bvoice\b|\bscrap|\bcar\b|\bmirror\b|\bphone\b/iu.test(firstTwoSentences)) {
+      findings.push(
+        finding({
+          code: "SHORT_CONCRETE_HOOK_MISSING",
+          message: "Short does not start with a concrete impossible detail.",
+          severity: "error",
+          repairScope: "targeted-short-repair",
+        })
+      );
+      repairScopes.add("targeted-short-repair");
+    }
   }
 
   const errorCount = findings.filter((entry) => entry.severity === "error").length;

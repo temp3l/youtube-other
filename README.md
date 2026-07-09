@@ -16,13 +16,146 @@ Current defects characterized: generated image traversal acceptance; short portr
 
 ---
 
+## next prompts:
+
+- fast audio assets are in place for 025 DE and EN short and full; regenerate downstream assets without generating new images.
+- (gpt-5.5 xhigh) the prompt was interrupted: todo-prompts/code-view/03-batch-c-contracts-localization-provider.md
+- (gpt-5.5) the prompt was interrupted: Batch 3 — TTS speed presets + regenerate EN/DE episode 025 audio only
+  - see: https://chatgpt.com/g/g-p-6a317d326e30819183556eca604b770c-youtube/c/6a4eaedb-5dcc-83eb-9830-59e632990a79
+- story-rewrite: https://chatgpt.com/g/g-p-6a317d326e30819183556eca604b770c-youtube/c/6a4e3ef0-2110-83eb-abb0-9f5675efe551
+
+---
+
 ## Fixes
 
-- the images of episode 025 full were generated with wrong resolution and wrong ratio - why is that? how to prevent this from happening again.
-- the speech is way too slow. which presets did you use, how to make it faster? how to prevent this from happening in the future.
-  - can we regenerate the german and english audio - and regenreate the short and full videos without generating new images?
-- there is a small distortion or silence between the clips when listening to the final video. how to fix this permanently for all upcoming video assembly?
+- there is a small distortion or silence between the clips when listening to the final video of 025. how to fix this permanently for all upcoming video assembly?
+  - see batch-2: https://chatgpt.com/g/g-p-6a317d326e30819183556eca604b770c-youtube/c/6a4eaedb-5dcc-83eb-9830-59e632990a79
+
+- the speech is way too slow. which presets did you use, how to make it faster for all languages? how to prevent this from happening in the future.
+  - regenerate the german and english audio for episode 025, then regenreate the short and full videos without generating new images
 - the video was not fully generated: 025-the-endless-backrooms/de/full/video/clips/
+
+### Done
+
+- the images of episode 025 full were generated with wrong resolution and wrong aspect ratio - why is that? how to prevent this from happening again in the future.
+
+### Story rewrite fixes:
+
+"""
+remove repeated template paragraphs;
+make every escalation specific to the story object/location;
+strengthen the first 20 seconds;
+reduce abstract explanation;
+add more concrete sensory beats;
+make the protagonist’s final decision emotionally costly;
+preserve one clear supernatural rule per story.
+"""
+
+### Best production order
+
+028 — Someone Was Living in the Attic
+042 — The Video Knew Who Was Watching
+032 — The Emergency Broadcast Named the Next Victim
+034 — Her Reflection Stopped Copying Her
+030 — The Woman in the Painting Was Moving
+040 — No Guest Ever Checked Out of Room 1413
+027 — They Found a Hook Hanging From the Car Door
+
+That gives you a strong mix of domestic horror, digital horror, analogue horror, mirror horror, gothic object horror, hotel liminal horror, and classic urban legend horror.
+
+## FIX:
+
+```bash
+$ export EPISODE="027-the-hook-on-the-car-door"
+node apps/cli/dist/index.js stories rewrite-full \
+ --input "content-ideas/content/dark-truth-episodes-optimized/${EPISODE}-en-full-optimized.md" \
+ --episode-slug "$EPISODE" \
+ --languages de,en,es \
+ --verbose --dry-run
+(node:924229) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+{
+  "command": "stories rewrite-full",
+  "episodeId": "027",
+  "episodeSlug": "027-the-hook-on-the-car-door",
+  "sourceFile": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/027-the-hook-on-the-car-door/source/027-the-hook-on-the-car-door-en-full.md",
+  "plannedOutputs": {
+    "englishFull": {
+      "canonical": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/027-the-hook-on-the-car-door/en/full/script.md",
+      "compatibility": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/027-the-hook-on-the-car-door/script.md"
+    },
+    "localized": [
+      {
+        "language": "de",
+        "full": "/home/box/workspace/fehmarn-seo/youtube/other/episodes/027-the-hook-on-the-car-door/de/full/script.md"
+      },
+      {
+        "language": "es",
+        "full": "/home/box/worksWhat I would fix before production
+For the English full episode:
+
+Remove the duplicated verification / second escape attempt sections.
+
+Add more concrete sensory details: cold glass, fogged windshield, dashboard clock, metal dragging over paint.
+
+Add 1–2 short dialogue moments between Noah and his girlfriend.
+
+Make the supernatural rule clearer: do not unlock the door / do not answer the voice / do not trust the person outside.
+
+Strengthen the emotional cost: Noah has to ignore someone who sounds like his girlfriend, himself, or a police officer.
+
+For the German full episode:
+
+Do not localize the current German version.
+
+Translate/adapt the English full version instead.
+
+Keep the concrete events and names.
+
+Avoid repeating abstract template phrases.
+
+Make it sound like a narrated case file, not a story outline.
+
+For the English Short:
+
+It is usable, but I would expand it slightly to around 120–150 words.
+
+The current version is probably closer to 30–40 seconds, not 45–55 seconds.
+
+Add one final sentence with a stronger “don’t do this” style warning.
+
+Best production order
+pace/fehmarn-seo/youtube/other/episodes/027-the-hook-on-the-car-door/es/full/script.md"
+      }
+    ]
+  },
+  "dryRun": true
+}
+{"level":30,"time":1783537409743,"pid":924229,"hostname":"box","executionId":"696518f0-c605-46ca-8ed4-cb6264871ad0","success":true,"exitCode":0,"pricingVersion":"unconfigured","estimatedCostMicros":null,"warnings":[],"msg":"execution_report"}
+box@box:~/workspace/fehmarn-seo/youtube/other
+$ node apps/cli/dist/index.js stories rewrite-full  --input "content-ideas/content/dark-truth-episodes-optimized/${EPISODE}-en-full-optimized.md"  --episode-slug "$EPISODE"  --languages de,en,es  --verbose
+(node:924284) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+{"level":30,"time":1783537415788,"pid":924284,"hostname":"box","executionId":"d8f26ead-c7c0-48e9-ae77-ba206589de74","success":false,"exitCode":1,"pricingVersion":"unconfigured","estimatedCostMicros":null,"warnings":[],"msg":"execution_report"}
+{
+  "stack": "StoryLocalizationConfigurationError: Full story prompt compilation failed for 027-the-hook-on-the-car-door (en). UNKNOWN_GENRE_UNSAFE: Unknown genre cannot be compiled because the source requires genre-specific semantics.\n    at buildFullPromptConfig (file:///home/box/workspace/fehmarn-seo/youtube/other/packages/story-localization/dist/story-localization.service.js:196:15)\n    at buildCanonicalEnglishFullPlan (file:///home/box/workspace/fehmarn-seo/youtube/other/packages/story-localization/dist/story-localization.service.js:444:28)\n    at localizeStoryEpisode (file:///home/box/workspace/fehmarn-seo/youtube/other/packages/story-localization/dist/story-localization.service.js:1592:34)\n    at async Command.<anonymous> (file:///home/box/workspace/fehmarn-seo/youtube/other/apps/cli/dist/story-full-rewrite-command.js:175:24)\n    at async Command.parseAsync (/home/box/workspace/fehmarn-seo/youtube/other/node_modules/.pnpm/commander@14.0.3/node_modules/commander/lib/command.js:1122:5)\n    at async file:///home/box/workspace/fehmarn-seo/youtube/other/apps/cli/dist/index.js:3415:9\n    at async file:///home/box/workspace/fehmarn-seo/youtube/other/apps/cli/dist/index.js:3413:1",
+  "message": "Full story prompt compilation failed for 027-the-hook-on-the-car-door (en). UNKNOWN_GENRE_UNSAFE: Unknown genre cannot be compiled because the source requires genre-specific semantics.",
+  "name": "StoryLocalizationConfigurationError"
+}
+box@box:~
+```
+
+---
+
+# Bootstrap the English full story and also generate localized outputs
+
+content-ideas/content/dark-truth-episodes-optimized/027-the-hook-on-the-car-door-en-full-optimized.md
+export EPISODE="027-the-hook-on-the-car-door"
+node apps/cli/dist/index.js stories rewrite-full \
+ --input "content-ideas/content/dark-truth-episodes-optimized/${EPISODE}-en-full-optimized.md" \
+ --episode-slug "$EPISODE" \
+ --languages de,en,es \
+ --verbose --dry-run
 
 ---
 
@@ -981,6 +1114,12 @@ node apps/cli/dist/index.js stories rewrite-full \
  --verbose
 
 # Bootstrap the English full story and also generate localized outputs
+
+node apps/cli/dist/index.js stories rewrite-full \
+ --input content-ideas/content/dark-truth-episodes-optimized/026-bloody-mary-in-the-mirror-en-full-optimized.md \
+ --episode-slug 026-bloody-mary-in-the-mirror \
+ --languages de,en \
+ --verbose --dry-run
 
 node apps/cli/dist/index.js stories rewrite-full \
  --input content-ideas/content/dark-truth-episodes-optimized/011-the-black-eyed-children-en-full-optimized.md \

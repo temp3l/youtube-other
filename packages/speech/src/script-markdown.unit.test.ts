@@ -38,6 +38,44 @@ describe("loadEpisodeScriptMarkdown", () => {
     expect(script.text).toBe("First paragraph.\n\nSecond paragraph.");
   });
 
+  it("loads the canonical short script when the short variant is requested", async () => {
+    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "mediaforge-script-"));
+    await fs.mkdir(path.join(tempDir, "languages", "short"), { recursive: true });
+    await fs.writeFile(
+      path.join(tempDir, "languages", "script-en.md"),
+      "# Narration Script\n\nFull narration."
+    );
+    await fs.writeFile(
+      path.join(tempDir, "languages", "short", "script-en.md"),
+      "# Narration Script\n\nShort narration."
+    );
+
+    const script = await loadEpisodeScriptMarkdown(
+      tempDir,
+      "en",
+      "Narration Script",
+      "short"
+    );
+
+    expect(script.filePath).toBe(
+      path.join(tempDir, "languages", "short", "script-en.md")
+    );
+    expect(script.text).toBe("Short narration.");
+  });
+
+  it("extracts localized narration headings when the canonical heading is requested", async () => {
+    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "mediaforge-script-"));
+    await fs.mkdir(path.join(tempDir, "languages"), { recursive: true });
+    await fs.writeFile(
+      path.join(tempDir, "languages", "script-de.md"),
+      "# Episode 025\n\n## Anweisungen zur Audiogenerierung\nNicht vorlesen.\n\n# Sprechtext\n\nNur dieser Teil.\n\n## Episoden-Metadaten\nNicht verwenden.\n"
+    );
+
+    const script = await loadEpisodeScriptMarkdown(tempDir, "de", "Narration Script");
+
+    expect(script.text).toBe("Nur dieser Teil.");
+  });
+
   it("keeps narration readable when canonical markdown contains only narration", async () => {
     const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "mediaforge-script-"));
     await fs.mkdir(path.join(tempDir, "languages"), { recursive: true });

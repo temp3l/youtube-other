@@ -3,9 +3,17 @@ import path from "node:path";
 import { z } from "zod";
 import { ensureDir, fileExists, hashText, readJsonIfExists, writeJsonAtomic } from "@mediaforge/shared";
 import { stableSerialize } from "./stable-json.js";
-import { normalizeCanonicalStoryFacts } from "./canonical-facts.service.js";
+import {
+  CANONICAL_FACTS_EXTRACTOR_VERSION,
+  CANONICAL_FACTS_SCHEMA_VERSION,
+  normalizeCanonicalStoryFacts,
+  validateCanonicalStoryFacts,
+} from "./canonical-facts.service.js";
 import { resolveCanonicalEnglishFullPaths } from "./canonical-full-story.persistence.js";
 import { type CanonicalStoryFacts, type LanguageCode, type StoryLocalizationCacheEntry } from "./story-localization.types.js";
+
+export const STORY_QUALITY_GATE_VERSION = "story-quality-gate-v3";
+export const PROTECTED_ELEMENTS_VERSION = "protected-elements-v2";
 
 const cacheEntrySchema = z.object({
   schemaVersion: z.literal("story-localization-cache-entry-v2").optional(),
@@ -18,6 +26,13 @@ const cacheEntrySchema = z.object({
   locale: z.string().min(1).optional(),
   variant: z.enum(["full", "short"]).optional(),
   owner: z.literal("narration").optional(),
+  sourceNarrationHash: z.string().min(64).optional(),
+  promptTemplateHash: z.string().min(64).optional(),
+  extractorImplementationVersion: z.string().min(1).optional(),
+  factsSchemaVersion: z.string().min(1).optional(),
+  reasoningEffort: z.string().min(1).optional(),
+  qualityGateVersion: z.string().min(1).optional(),
+  protectedElementsVersion: z.string().min(1).optional(),
   generatedAt: z.string().min(1),
   outputFiles: z.array(z.string().min(1)),
   compilerVersion: z.string().min(1).optional(),
@@ -39,6 +54,16 @@ const cacheEntrySchema = z.object({
 
 const factsCacheSchema = z.object({
   sourceHash: z.string().min(64),
+  sourceNarrationHash: z.string().min(64).optional(),
+  promptTemplateHash: z.string().min(64).optional(),
+  extractorImplementationVersion: z.string().min(1).optional(),
+  schemaVersion: z.string().min(1).optional(),
+  model: z.string().min(1).optional(),
+  reasoningEffort: z.string().min(1).optional(),
+  locale: z.string().min(1).optional(),
+  variant: z.enum(["full", "short"]).optional(),
+  qualityGateVersion: z.string().min(1).optional(),
+  protectedElementsVersion: z.string().min(1).optional(),
   facts: z.record(z.string(), z.unknown()),
   generatedAt: z.string().min(1),
 });
@@ -106,6 +131,21 @@ export async function readLocalizationCacheEntry(
   const raw = await readJsonIfExists(entryPath(cacheDirectory, sourceHash, configurationHash), (value) =>
     cacheEntrySchema.parse(value) as StoryLocalizationCacheEntry
   );
+  if (
+    !raw ||
+    raw.schemaVersion !== "story-localization-cache-entry-v2" ||
+    !raw.sourceNarrationHash ||
+    !raw.promptTemplateHash ||
+    !raw.extractorImplementationVersion ||
+    !raw.factsSchemaVersion ||
+    !raw.reasoningEffort ||
+    !raw.locale ||
+    !raw.variant ||
+    !raw.qualityGateVersion ||
+    !raw.protectedElementsVersion
+  ) {
+    return null;
+  }
   return raw;
 }
 
@@ -114,7 +154,21 @@ export async function writeLocalizationCacheEntry(
   entry: StoryLocalizationCacheEntry
 ): Promise<void> {
   await ensureDir(path.dirname(entryPath(cacheDirectory, entry.sourceHash, entry.configurationHash)));
-  await writeJsonAtomic(entryPath(cacheDirectory, entry.sourceHash, entry.configurationHash), entry);
+  await writeJsonAtomic(entryPath(cacheDirectory, entry.sourceHash, entry.configurationHash), {
+    ...entry,
+    schemaVersion: "story-localization-cache-entry-v2",
+    sourceNarrationHash: entry.sourceNarrationHash ?? entry.sourceHash,
+    promptTemplateHash: entry.promptTemplateHash ?? hashText(entry.promptVersion),
+    extractorImplementationVersion:
+      entry.extractorImplementationVersion ?? CANONICAL_FACTS_EXTRACTOR_VERSION,
+    factsSchemaVersion: entry.factsSchemaVersion ?? CANONICAL_FACTS_SCHEMA_VERSION,
+    reasoningEffort: entry.reasoningEffort ?? "unknown",
+    locale: entry.locale ?? entry.language,
+    variant: entry.variant ?? "full",
+    qualityGateVersion: entry.qualityGateVersion ?? STORY_QUALITY_GATE_VERSION,
+    protectedElementsVersion:
+      entry.protectedElementsVersion ?? PROTECTED_ELEMENTS_VERSION,
+  });
 }
 
 export async function readCanonicalFactsCache(
@@ -124,19 +178,51 @@ export async function readCanonicalFactsCache(
   const raw = await readJsonIfExists(factsPath(cacheDirectory, sourceHash), (value) =>
     factsCacheSchema.parse(value)
   );
-  return raw
-    ? normalizeCanonicalStoryFacts(raw.facts as unknown as CanonicalStoryFacts)
-    : null;
+  if (
+    !raw ||
+    !raw.sourceNarrationHash ||
+    !raw.promptTemplateHash ||
+    raw.extractorImplementationVersion !== CANONICAL_FACTS_EXTRACTOR_VERSION ||
+    raw.schemaVersion !== CANONICAL_FACTS_SCHEMA_VERSION ||
+    !raw.model ||
+    !raw.reasoningEffort ||
+    !raw.locale ||
+    !raw.variant ||
+    raw.qualityGateVersion !== STORY_QUALITY_GATE_VERSION ||
+    raw.protectedElementsVersion !== PROTECTED_ELEMENTS_VERSION
+  ) {
+    return null;
+  }
+  const facts = normalizeCanonicalStoryFacts(raw.facts as unknown as CanonicalStoryFacts);
+  return validateCanonicalStoryFacts(facts).length === 0 ? facts : null;
 }
 
 export async function writeCanonicalFactsCache(
   cacheDirectory: string,
   sourceHash: string,
-  facts: CanonicalStoryFacts
+  facts: CanonicalStoryFacts,
+  identity: {
+    readonly sourceNarrationHash?: string;
+    readonly promptTemplateHash?: string;
+    readonly model?: string;
+    readonly reasoningEffort?: string;
+    readonly locale?: string;
+    readonly variant?: "full" | "short";
+  } = {}
 ): Promise<void> {
   await ensureDir(path.dirname(factsPath(cacheDirectory, sourceHash)));
   await writeJsonAtomic(factsPath(cacheDirectory, sourceHash), {
     sourceHash,
+    sourceNarrationHash: identity.sourceNarrationHash ?? sourceHash,
+    promptTemplateHash: identity.promptTemplateHash ?? hashText(CANONICAL_FACTS_EXTRACTOR_VERSION),
+    extractorImplementationVersion: CANONICAL_FACTS_EXTRACTOR_VERSION,
+    schemaVersion: CANONICAL_FACTS_SCHEMA_VERSION,
+    model: identity.model ?? "deterministic",
+    reasoningEffort: identity.reasoningEffort ?? "none",
+    locale: identity.locale ?? "en",
+    variant: identity.variant ?? "full",
+    qualityGateVersion: STORY_QUALITY_GATE_VERSION,
+    protectedElementsVersion: PROTECTED_ELEMENTS_VERSION,
     facts: normalizeCanonicalStoryFacts(facts),
     generatedAt: new Date().toISOString(),
   });

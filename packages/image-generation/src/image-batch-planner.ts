@@ -60,6 +60,7 @@ import {
   writeImageBatchManifest,
   type ImageBatchStoragePlan,
 } from "./image-batch-storage.js";
+import { assertVideoImageFileMatchesSpec } from "./video-image-spec.js";
 
 export interface ImageBatchPlannerSettings {
   readonly model: string;
@@ -238,6 +239,9 @@ function sharedOutputKeyForScenePlan(plan: PlannedImageBatchScene): string {
       operation: plan.job.identity.operation,
       outputFormat: plan.job.outputFormat,
       dependencyHashes: plan.job.identity.dependencyHashes,
+      visualIntentHash: plan.job.identity.visualIntentHash,
+      promptHash: plan.job.identity.promptHash,
+      dependencySourceHash: plan.job.identity.dependencySourceHash,
     })
   );
 }
@@ -251,6 +255,12 @@ function collisionSignatureForScenePlan(plan: PlannedImageBatchScene) {
     dependencyHashes: [...plan.job.identity.dependencyHashes].sort((left, right) =>
       left.localeCompare(right)
     ),
+    visualIntentHash: plan.job.identity.visualIntentHash,
+    promptHash: plan.job.identity.promptHash,
+    dependencySourceHash: plan.job.identity.dependencySourceHash,
+    assetPurpose: plan.job.identity.assetPurpose,
+    aspectRatio: plan.job.identity.aspectRatio,
+    configurationHash: plan.job.identity.configurationHash,
   };
 }
 
@@ -343,17 +353,31 @@ function applySharedOutputPolicyToScenePlans(
 function shortSharedPortraitKeyForScenePlan(plan: PlannedImageBatchScene): string {
   return stableHash(
     JSON.stringify({
-      policy: "short-shared-portrait-v1",
+      policy: "short-shared-portrait-v2",
       expectedOutputPath: normalizeImageBatchDestinationPath(
         plan.job.expectedOutputPath
       ),
+      visualIntentHash: plan.job.identity.visualIntentHash,
+      promptHash: plan.job.identity.promptHash,
+      dependencySourceHash: plan.job.identity.dependencySourceHash,
       subject: plan.job.identity.subject,
-      assetRole: plan.job.identity.assetRole,
-      variant: plan.job.identity.variant,
-      outputFormat: plan.job.outputFormat,
-      generationConfigurationHash: plan.job.generationConfigurationHash,
+      assetPurpose: plan.job.identity.assetPurpose,
+      aspectRatio: plan.job.identity.aspectRatio,
+      configurationHash: plan.job.identity.configurationHash,
     })
   );
+}
+
+function shortSharedPortraitSignature(plan: PlannedImageBatchScene): string {
+  return JSON.stringify({
+    visualIntentHash: plan.job.identity.visualIntentHash,
+    promptHash: plan.job.identity.promptHash,
+    dependencySourceHash: plan.job.identity.dependencySourceHash,
+    subject: plan.job.identity.subject,
+    assetPurpose: plan.job.identity.assetPurpose,
+    aspectRatio: plan.job.identity.aspectRatio,
+    configurationHash: plan.job.identity.configurationHash,
+  });
 }
 
 function applyShortSharedPortraitAliasPolicy(
@@ -376,12 +400,15 @@ function applyShortSharedPortraitAliasPolicy(
     }
     const [first] = plansAtPath;
     const firstSubject = JSON.stringify(first!.job.identity.subject);
+    const firstSignature = shortSharedPortraitSignature(first!);
     const allSharedPortraits = plansAtPath.every(
       (plan) =>
         plan.job.identity.variant === "short" &&
         plan.job.identity.assetRole === "short-scene" &&
+        plan.job.identity.assetPurpose === "short-scene" &&
         plan.job.identity.destination.root === "shared-short-images-generated" &&
-        JSON.stringify(plan.job.identity.subject) === firstSubject
+        JSON.stringify(plan.job.identity.subject) === firstSubject &&
+        shortSharedPortraitSignature(plan) === firstSignature
     );
     if (!allSharedPortraits) {
       throw new ImageBatchPlannerError({
@@ -391,6 +418,10 @@ function applyShortSharedPortraitAliasPolicy(
           expectedOutputPath: first!.job.expectedOutputPath,
           languages: plansAtPath.map((plan) => plan.job.identity.language),
           customIds: plansAtPath.map((plan) => scenePlanCustomId(plan)),
+          signatures: plansAtPath.map((plan) => ({
+            language: plan.job.identity.language,
+            signature: shortSharedPortraitSignature(plan),
+          })),
         },
       });
     }
@@ -592,10 +623,26 @@ function buildReferenceAssetIdentity(args: {
     episodeId: args.episodeId,
     language: args.language,
     variant: args.variant,
+    aspectRatio: args.variant === "short" ? "9:16" : "16:9",
     assetRole: "character-reference",
+    assetPurpose: "character-reference",
     operation: "generation",
     subject: { kind: "character", id: args.character.id },
+    storyBeatId: args.character.id,
+    visualIntentHash: args.promptHash,
     promptHash: args.promptHash,
+    dependencySourceHash: stableHash(JSON.stringify({ characterId: args.character.id })),
+    sourceLanguage: "en",
+    targetLanguage: args.language,
+    configurationHash: buildConfigurationHash({
+      stageKind: "reference-images",
+      variant: args.variant,
+      model: args.settings.model,
+      requestedSize: args.settings.requestedSize,
+      quality: args.settings.quality,
+      outputFormat: args.settings.outputFormat,
+      endpoint: "/v1/images/generations",
+    }),
     model: args.settings.model,
     size: args.settings.requestedSize,
     quality: args.settings.quality,
@@ -860,14 +907,44 @@ async function buildSceneJob(args: {
           expectedFilename:
             args.expectedFilename ?? path.basename(args.sceneManifest.outputPath),
         });
+  const generationConfigurationHash = buildConfigurationHash({
+    stageKind: "scene-images",
+    variant: args.variant,
+    model: args.settings.model,
+    requestedSize: args.settings.requestedSize,
+    quality: args.settings.quality,
+    outputFormat: args.settings.outputFormat,
+    endpoint,
+  });
   const identity = createImageBatchAssetIdentity({
     episodeId: args.episodeId,
     language: args.language,
     variant: args.variant,
+    aspectRatio: args.variant === "short" ? "9:16" : "16:9",
     assetRole: args.variant === "short" ? "short-scene" : "full-scene",
+    assetPurpose: args.variant === "short" ? "short-scene" : "full-scene",
     operation,
     subject: { kind: "scene", id: args.sceneId },
+    storyBeatId: args.sceneId,
+    visualIntentHash: stableHash(
+      JSON.stringify({
+        prompt,
+        scenePromptHash: args.sceneManifest.promptHash,
+        materialDifferencesFromPrevious:
+          args.sceneManifest.materialDifferencesFromPrevious,
+        renderability: args.sceneManifest.renderability ?? null,
+        reusedFromSceneId: args.sceneManifest.reusedFromSceneId ?? null,
+      })
+    ),
     promptHash,
+    dependencySourceHash: stableHash(
+      JSON.stringify({
+        dependencies: dependencies.map((dependency) => dependency.sha256),
+      })
+    ),
+    sourceLanguage: "en",
+    targetLanguage: args.language,
+    configurationHash: generationConfigurationHash,
     model: args.settings.model,
     size: args.settings.requestedSize,
     quality: args.settings.quality,
@@ -897,15 +974,7 @@ async function buildSceneJob(args: {
     outputFormat: args.settings.outputFormat,
     expectedOutputPath,
     providerRequestHash,
-    generationConfigurationHash: buildConfigurationHash({
-      stageKind: "scene-images",
-      variant: args.variant,
-      model: args.settings.model,
-      requestedSize: args.settings.requestedSize,
-      quality: args.settings.quality,
-      outputFormat: args.settings.outputFormat,
-      endpoint,
-    }),
+    generationConfigurationHash,
   };
   const requestLine: PlannedImageBatchRequestLine = {
     custom_id: customId,
@@ -1222,6 +1291,14 @@ export async function planImageBatchForEpisode(args: {
       settings: args.settings,
     });
     const outputExists = await fileExists(sceneManifest.outputPath);
+    if (outputExists) {
+      await assertVideoImageFileMatchesSpec({
+        episodeId: args.episodeId,
+        language,
+        videoKind: variant,
+        imagePath: sceneManifest.outputPath,
+      });
+    }
     const isReusable =
       !args.settings.force &&
       sceneManifest.status === "generated" &&
@@ -1669,10 +1746,32 @@ async function buildShortNativeScenePlan(args: {
     episodeId: args.episodeId,
     language: args.language,
     variant: "short",
+    aspectRatio: "9:16",
     assetRole: "short-scene",
+    assetPurpose: "short-scene",
     operation,
     subject: { kind: "scene", id: args.planned.sceneId },
+    storyBeatId: args.planned.sceneId,
+    visualIntentHash: args.planned.imagePlanFingerprint,
     promptHash: args.planned.promptHash,
+    dependencySourceHash: stableHash(
+      JSON.stringify({
+        sceneHash: args.planned.sceneHash,
+        imagePlanFingerprint: args.planned.imagePlanFingerprint,
+        dependencyHashes: args.planned.dependencyHashes,
+      })
+    ),
+    sourceLanguage: "en",
+    targetLanguage: args.language,
+    configurationHash: buildConfigurationHash({
+      stageKind: "scene-images",
+      variant: "short",
+      model: args.planned.providerRequest.model,
+      requestedSize: args.planned.providerRequest.size,
+      quality: args.planned.providerRequest.quality,
+      outputFormat: args.planned.providerRequest.outputFormat,
+      endpoint,
+    }),
     model: args.planned.providerRequest.model,
     size: args.planned.providerRequest.size,
     quality: args.planned.providerRequest.quality,

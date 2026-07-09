@@ -3,6 +3,7 @@ import {
   type WorkflowManifest,
   type WorkflowStageState,
 } from "./story-workflow.types.js";
+import { compareStageContractFingerprint } from "./story-workflow-invalidation.js";
 
 export interface StoryWorkflowStatusReport {
   readonly workflowId: string;
@@ -20,7 +21,16 @@ export interface StoryWorkflowStatusReport {
   readonly failures: readonly {
     readonly stageId: string;
     readonly category: string;
+    readonly failureCategory: string;
+    readonly retryability: string;
+    readonly outcomeKind?: string;
     readonly message: string;
+  }[];
+  readonly staleStages: readonly {
+    readonly stageId: string;
+    readonly contractFingerprint?: string;
+    readonly currentContractFingerprint?: string;
+    readonly reasons: readonly string[];
   }[];
   readonly fallbacks: readonly {
     readonly stageId: string;
@@ -37,12 +47,19 @@ function stageLocale(stage: WorkflowStageState<ArtifactLineage>): string {
 }
 
 export function buildStoryWorkflowStatusReport(
-  manifest: WorkflowManifest<ArtifactLineage>
+  manifest: WorkflowManifest<ArtifactLineage>,
+  options: {
+    readonly currentManifest?: WorkflowManifest<ArtifactLineage>;
+  } = {}
 ): StoryWorkflowStatusReport {
   const stageCounts: Record<string, number> = {};
   const localeMap = new Map<string, { planned: number; succeeded: number; failed: number; blocked: number }>();
   const failures: StoryWorkflowStatusReport["failures"][number][] = [];
+  const staleStages: StoryWorkflowStatusReport["staleStages"][number][] = [];
   const fallbacks: StoryWorkflowStatusReport["fallbacks"][number][] = [];
+  const currentStages = new Map(
+    options.currentManifest?.stages.map((stage) => [stage.stageId, stage]) ?? []
+  );
   for (const stage of manifest.stages) {
     stageCounts[stage.status] = (stageCounts[stage.status] ?? 0) + 1;
     const locale = stageLocale(stage);
@@ -62,8 +79,33 @@ export function buildStoryWorkflowStatusReport(
       failures.push({
         stageId: stage.stageId,
         category: stage.latestOutcome.failure.category,
+        failureCategory:
+          stage.latestOutcome.failureCategory ??
+          stage.latestOutcome.failure.category,
+        retryability:
+          stage.latestOutcome.retryability ??
+          stage.latestOutcome.failure.retryability,
+        ...(stage.latestOutcome.outcomeKind
+          ? { outcomeKind: stage.latestOutcome.outcomeKind }
+          : {}),
         message: stage.latestOutcome.failure.message,
       });
+    }
+    const currentStage = currentStages.get(stage.stageId);
+    if (currentStage) {
+      const reasons = compareStageContractFingerprint(stage, currentStage);
+      if (reasons.length > 0) {
+        staleStages.push({
+          stageId: stage.stageId,
+          ...(stage.contractFingerprint
+            ? { contractFingerprint: stage.contractFingerprint }
+            : {}),
+          ...(currentStage.contractFingerprint
+            ? { currentContractFingerprint: currentStage.contractFingerprint }
+            : {}),
+          reasons,
+        });
+      }
     }
     if (
       stage.latestOutcome &&
@@ -108,6 +150,7 @@ export function buildStoryWorkflowStatusReport(
       ...counts,
     })),
     failures,
+    staleStages,
     fallbacks,
   };
 }

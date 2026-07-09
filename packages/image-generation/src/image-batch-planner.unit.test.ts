@@ -134,7 +134,16 @@ async function writeSceneManifest(args: {
   );
   if (args.outputExists) {
     await fs.mkdir(path.dirname(outputPath), { recursive: true });
-    await fs.writeFile(outputPath, "png");
+    await sharp({
+      create: {
+        width: 1920,
+        height: 1080,
+        channels: 3,
+        background: "#334455",
+      },
+    })
+      .png()
+      .toFile(outputPath);
   }
 }
 
@@ -832,6 +841,52 @@ describe("image batch planner", () => {
     expect(planned[0]?.skippedSceneIds).toEqual(["scene-001"]);
   });
 
+  it("rejects invalid existing reusable full-scene assets", async () => {
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), "image-batch-invalid-reuse-"));
+    const episodeDir = path.join(tempDir, "episode");
+    await writeSceneManifest({
+      episodeDir,
+      sceneId: "scene-001",
+      prompt: "A reused scene.",
+      status: "generated",
+      outputExists: false,
+    });
+    const invalidPath = path.join(
+      episodeDir,
+      "shared",
+      "images",
+      "generated",
+      "scene-001__000000-000004__16x9.png"
+    );
+    await fs.mkdir(path.dirname(invalidPath), { recursive: true });
+    await sharp({
+      create: {
+        width: 1024,
+        height: 1024,
+        channels: 3,
+        background: "#221133",
+      },
+    })
+      .png()
+      .toFile(invalidPath);
+
+    await expect(
+      planImageBatchForEpisode({
+        episodeDir,
+        episodeId: "001-demo",
+        scenePlan: {
+          scenes: [{ id: "scene-001", sequenceNumber: 1 }],
+        },
+        settings: {
+          model: "gpt-image-2",
+          requestedSize: "1920x1088",
+          quality: "medium",
+          outputFormat: "png",
+        },
+      })
+    ).rejects.toThrow(/expected=1920x1080/);
+  });
+
   it("plans a new batch request when provider settings change", async () => {
     const tempDir = mkdtempSync(path.join(os.tmpdir(), "image-batch-provider-hash-"));
     const episodeDir = path.join(tempDir, "episode");
@@ -1242,7 +1297,7 @@ describe("image batch planner", () => {
     );
   });
 
-  it("documents current short portrait alias collision when localized visual intent is not represented in identity", async () => {
+  it("rejects short portrait aliasing when localized visual intent differs", async () => {
     const tempDir = mkdtempSync(path.join(os.tmpdir(), "image-batch-short-intent-collision-"));
     const episodeDir = path.join(tempDir, "001-demo");
     process.env["SHORTS_KEY_SCENE_COUNT"] = "1";
@@ -1260,31 +1315,23 @@ describe("image batch planner", () => {
     await fs.writeFile(deScenePlanPath, JSON.stringify(deScenePlan), "utf8");
     await writeLandscapeImage(episodeDir, "scene-001__000000-000004__16x9.png", 20);
 
-    const prepared = await prepareShortSceneImageBatches({
-      episodeDir,
-      episodeId: "001-demo",
-      languages: ["en-US", "de-DE"],
-      variant: "short",
-      settings: {
-        model: "gpt-image-2",
-        requestedSize: "1024x1536",
-        quality: "medium",
-        outputFormat: "png",
-      },
+    await expect(
+      prepareShortSceneImageBatches({
+        episodeDir,
+        episodeId: "001-demo",
+        languages: ["en-US", "de-DE"],
+        variant: "short",
+        settings: {
+          model: "gpt-image-2",
+          requestedSize: "1024x1536",
+          quality: "medium",
+          outputFormat: "png",
+        },
+      })
+    ).rejects.toMatchObject({
+      code: "duplicate-destination-path",
     });
-
-    const sceneGroup = prepared.groups.find((group) => group.stageKind === "scene-images");
-    const promptHashes = new Set(
-      sceneGroup?.scenePlans.map((plan) => plan.job.identity.promptHash)
-    );
-    expect(promptHashes.size).toBe(1);
-    expect(sceneGroup?.scenePlans.filter((plan) => plan.manifestItem.ownsSharedOutput)).toHaveLength(1);
-    expect(sceneGroup?.scenePlans.filter((plan) => plan.manifestItem.aliasedToCustomId)).toHaveLength(1);
   });
-
-  it.todo(
-    "CR-010 task-06: short/shared portrait alias identity must include visual intent so differing prompt hashes cannot share one portrait owner."
-  );
 
   it("rejects unsafe multilingual short collisions that cannot share a portrait alias", async () => {
     const tempDir = mkdtempSync(path.join(os.tmpdir(), "image-batch-short-multilang-collision-"));

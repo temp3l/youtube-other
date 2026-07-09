@@ -10,6 +10,8 @@ Implemented language codes are `en`, `de`, `es`, `fr`, and `pt`. Current default
 
 Canonical source language is English. `stories rewrite-full` materializes an English canonical source under `episodes/<episode-slug>/source/<episode-number>-<episode-slug>-en-full.md`, generates or rewrites the English full story to `episodes/<episode-slug>/script.md`, and generates localized full stories only for requested non-English languages. `stories rewrite-short` consumes a validated generated full story by default and writes short-story artifacts separately.
 
+For Dark Truth pack inputs that omit explicit metadata, the CLI materialization step adds a minimal `Episode Metadata` block with a fallback fiction disclosure so full-story genre inference can proceed.
+
 The full-story localization prompt includes only source narration, immutable facts, character map, locale settings, target word/duration values, and optional production context. Metadata, audio generation, image generation, rendering, and upload concerns are separate stages and must not be added to localization prompts except where the response schema explicitly requires story-package metadata fields.
 
 StoryIR and full-story contract validation are handled in TypeScript, not by this Markdown file. The implemented StoryIR includes genre, fictionality, narrative mode, entities, immutable facts, chronology, central threat, central rule mechanism, critical objects, written messages, climax, ending consequence, and allowed invention boundaries. Task 04 full-story contracts add genre-policy identity/version fields, deterministic `storyIrHash`, `contractHash`, `buildFingerprint`, policy registry version, and stable serializer version.

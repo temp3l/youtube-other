@@ -15,7 +15,7 @@ async function createEpisode(script: string): Promise<{
 }> {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), "mediaforge-spoken-"));
   const episodeDir = path.join(root, "009-mary-gloria-the-christmas-doll");
-  const scriptPath = path.join(episodeDir, "es", "full", "script.md");
+  const scriptPath = path.join(episodeDir, "languages", "script-es.md");
   await fs.mkdir(path.dirname(scriptPath), { recursive: true });
   await fs.writeFile(scriptPath, script, "utf8");
   return { root, episodeDir, scriptPath };
@@ -102,6 +102,33 @@ describe("spoken narration preparation", () => {
     expect(adapted.artifact.preparationMode).toBe("adapted");
   });
 
+  it("uses the requested short script instead of the full script", async () => {
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), "mediaforge-spoken-short-"));
+    const episodeDir = path.join(root, "025-the-endless-backrooms");
+    await fs.mkdir(path.join(episodeDir, "languages", "short"), { recursive: true });
+    await fs.writeFile(
+      path.join(episodeDir, "languages", "script-en.md"),
+      "# Narration Script\n\nFull narration should not be used."
+    );
+    await fs.writeFile(
+      path.join(episodeDir, "languages", "short", "script-en.md"),
+      "# Narration Script\n\nShort narration should be used."
+    );
+
+    const result = await prepareSpokenNarration({
+      episodeDir,
+      language: "en",
+      variant: "short",
+      createdAt: "2026-01-02T03:04:05.000Z",
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.spokenText).toBe("Short narration should be used.");
+    expect(result.artifact.variant).toBe("short");
+    expect(result.artifact.sourceStoryPath).toBe("languages/short/script-en.md");
+  });
+
+
   it("warns on hook and word-count drift without logging full narration text", async () => {
     const { episodeDir } = await createEpisode(
       "Mary Gloria opened the door and found the empty attic waiting."
@@ -161,5 +188,11 @@ describe("spoken narration preparation", () => {
     expect(
       prepareSpokenNarrationText("## Title\n\n1. **First** line\nsecond line")
     ).toBe("Title\n\nFirst line second line");
+  });
+
+  it("drops horizontal-rule separators from spoken narration", () => {
+    expect(
+      prepareSpokenNarrationText("First spoken line.\n\n---\n\nFinal spoken line.")
+    ).toBe("First spoken line.\n\nFinal spoken line.");
   });
 });

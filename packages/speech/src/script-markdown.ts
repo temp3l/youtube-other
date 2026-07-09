@@ -2,8 +2,15 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { fileExists, normalizeWhitespace } from "@mediaforge/shared";
 
-const localizedScriptPath = (language: string): string =>
-  path.join("languages", `script-${language}.md`);
+export type ScriptMarkdownVariant = "full" | "short";
+
+const localizedScriptPath = (
+  language: string,
+  variant: ScriptMarkdownVariant = "full"
+): string =>
+  variant === "short"
+    ? path.join("languages", "short", `script-${language}.md`)
+    : path.join("languages", `script-${language}.md`);
 const maxSpeechChunkCharacters = 3200;
 
 function stripMarkdown(value: string): string {
@@ -23,16 +30,31 @@ function extractMarkdownSection(text: string, sectionHeading: string): string | 
   const normalized = text.replace(/\r\n/gu, "\n");
   const lines = normalized.split("\n");
   const target = normalizeWhitespace(sectionHeading).toLowerCase();
+  const targets = new Set([
+    target,
+    ...(target === "narration script"
+      ? [
+          "sprechtext",
+          "guion de narración",
+          "guion de narracion",
+          "texte de narration",
+          "roteiro de narração",
+          "roteiro de narracao",
+          "texto da narração",
+          "texto da narracao",
+        ]
+      : []),
+  ]);
   let matched = false;
   const collected: string[] = [];
   for (const line of lines) {
     const headingMatch = /^#{1,6}\s+(.+)$/u.exec(line);
     if (headingMatch) {
       const heading = normalizeWhitespace(headingMatch[1] ?? "").toLowerCase();
-      if (matched && heading.length > 0 && heading !== target) {
+      if (matched && heading.length > 0 && !targets.has(heading)) {
         break;
       }
-      matched = heading === target;
+      matched = targets.has(heading);
       continue;
     }
     if (matched) {
@@ -48,7 +70,8 @@ function extractMarkdownSection(text: string, sectionHeading: string): string | 
 export async function loadEpisodeScriptMarkdown(
   episodeDir: string,
   language?: string,
-  sectionHeading?: string
+  sectionHeading?: string,
+  variant: ScriptMarkdownVariant = "full"
 ): Promise<{ readonly filePath: string; readonly text: string }> {
   if (!language) {
     throw new Error(
@@ -56,7 +79,7 @@ export async function loadEpisodeScriptMarkdown(
     );
   }
   const languageSlug = language.toLowerCase();
-  const candidate = path.join(episodeDir, localizedScriptPath(languageSlug));
+  const candidate = path.join(episodeDir, localizedScriptPath(languageSlug, variant));
   if (await fileExists(candidate)) {
     const text = await fs.readFile(candidate, "utf8");
     const sectionText =
@@ -70,7 +93,7 @@ export async function loadEpisodeScriptMarkdown(
   }
   const available = await listEpisodeScriptLanguages(episodeDir);
   throw new Error(
-    `Missing localized script markdown for language "${language}" in ${episodeDir}. Expected ${localizedScriptPath(languageSlug)}. Available languages: ${available.length > 0 ? available.join(", ") : "none"}`
+    `Missing localized script markdown for language "${language}" variant "${variant}" in ${episodeDir}. Expected ${localizedScriptPath(languageSlug, variant)}. Available languages: ${available.length > 0 ? available.join(", ") : "none"}`
   );
 }
 

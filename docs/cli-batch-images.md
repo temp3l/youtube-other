@@ -152,6 +152,9 @@ Behavior:
 - Imports only when the batch is terminal.
 - Reconciles result and error lines by `custom_id`.
 - Writes canonical assets atomically.
+- Normalizes imported scene images to the canonical stored asset specs before manifest acceptance:
+  - full: `1920x1080`
+  - short: `1080x1920`
 - Updates scene manifests, shorts manifests, or character registry entries when applicable.
 - Returns `imported`, `imported_with_failures`, or `non_terminal`.
 
@@ -193,6 +196,9 @@ Behavior:
 ### Full image batches
 
 Full batches are the canonical scene-image path for full-video assets.
+
+- Canonical stored full-scene assets are exact `1920x1080`.
+- Existing cached full-scene outputs are revalidated from the image file before prepare, download, or retry logic accepts them.
 
 - They can prepare multiple languages in one run only when every colliding
   shared output is provably identical and can be represented as one owner item
@@ -312,6 +318,9 @@ The manifest records `sharedOutputKey`, `ownsSharedOutput`, and
 `aliasedToCustomId` so `download`, `status`, and `resume` resolve aliases
 deterministically without language collisions.
 
+- Canonical stored short-scene assets are exact `1080x1920`.
+- Existing cached short-scene outputs are revalidated from the image file before prepare, download, or retry logic accepts them.
+
 ```json
 {
   "custom_id": "dte-img:v2:001-demo:de:short:short-scene:generation:scene:scene-006:fedcba987654",
@@ -393,6 +402,12 @@ for multi-language runs, and are applied locally to produce the portrait asset.
 Short manifests use the same schema and item shape.
 The only differences are the normalized language, `variant: "short"`, and the
 `shared-short-images-generated` destination root.
+
+## Validation And Recovery
+
+- Manifest metadata, filenames, and aspect-ratio labels are not trusted on their own; the CLI inspects the actual image file on disk.
+- A variant mismatch now fails fast with episode slug, language, video kind, file path, actual dimensions, and expected dimensions.
+- To recover an episode with invalid cached images, delete the invalid shared assets and the affected image manifest, then rerun the canonical generator for that variant before rendering or localized reuse.
 
 ## Identity And Dependency Rules
 

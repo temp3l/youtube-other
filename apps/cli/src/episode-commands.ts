@@ -31,8 +31,10 @@ import {
 } from "@mediaforge/domain";
 import {
   approveEpisodeCharacter,
+  assertVideoImageFilesMatchSpec,
   generateEpisodeImageReferences,
   loadEpisodeImageGenerationSettings,
+  resolveVideoImageSpec,
   upsertCharacterRegistry,
   type CharacterDefinition,
   type CharacterRegistry,
@@ -55,8 +57,9 @@ import {
   fileExists,
   hashFile,
   hashText,
-  resolveAuthoredScript,
   normalizeWhitespace,
+  readJsonIfExists,
+  resolveAuthoredScript,
   slugify,
   writeJsonAtomic,
   writeTextAtomic,
@@ -178,6 +181,20 @@ const shotValidationArtifactSchema = z
 type ParsedGenerationManifest = z.infer<typeof generationManifestSchema>;
 type ParsedEpisodeSummaryManifest = z.infer<typeof episodeSummaryManifestSchema>;
 type ParsedShotValidationArtifact = z.infer<typeof shotValidationArtifactSchema>;
+const darkTruthSharedImageManifestSchema = z
+  .object({
+    assets: z.array(
+      z.object({
+        relativePath: z.string().min(1),
+      })
+    ),
+  })
+  .passthrough();
+const shortsSharedImageManifestSchema = z.array(
+  z.object({
+    outputImagePath: z.string().min(1),
+  })
+);
 
 export type EpisodeValidationCode =
   | "VALID"
@@ -668,6 +685,51 @@ interface EpisodeSourceMetadata {
   readonly cacheIdentity: string;
 }
 
+async function assertCanonicalVariantImagesMatchSpec(args: {
+  readonly episodeDir: string;
+  readonly episodeId: string;
+  readonly language: SupportedLanguage;
+  readonly variant: ArtifactType;
+}): Promise<void> {
+  const manifestPath =
+    args.variant === "short"
+      ? path.join(
+          args.episodeDir,
+          "shared",
+          "short",
+          "images",
+          "shorts-image-manifest.json"
+        )
+      : path.join(args.episodeDir, "shared", "image-manifest.json");
+  if (!(await fileExists(manifestPath))) {
+    throw new Error(`Missing ${args.variant} image manifest: ${manifestPath}`);
+  }
+
+  const imagePaths =
+    args.variant === "short"
+      ? (
+          await readJsonIfExists(manifestPath, (value) =>
+            shortsSharedImageManifestSchema.parse(value)
+          )
+        )?.map((entry) => entry.outputImagePath) ?? []
+      : (
+          await readJsonIfExists(manifestPath, (value) =>
+            darkTruthSharedImageManifestSchema.parse(value)
+          )
+        )?.assets.map((asset) => path.resolve(path.dirname(manifestPath), asset.relativePath)) ?? [];
+
+  if (imagePaths.length === 0) {
+    throw new Error(`No ${args.variant} image assets were recorded in ${manifestPath}.`);
+  }
+
+  await assertVideoImageFilesMatchSpec({
+    episodeId: args.episodeId,
+    language: args.language,
+    videoKind: args.variant,
+    imagePaths,
+  });
+}
+
 export async function resolveEpisodeLanguageSource(
   outputRoot: string,
   discovery: EpisodeSourceDiscovery,
@@ -924,8 +986,8 @@ async function prepareEpisodeLanguage(
     keySceneCount: resolveShortKeySceneCount(scenePlan.scenes.length),
     portraitWidth: Number(process.env["SHORTS_PORTRAIT_WIDTH"] ?? 1088),
     portraitHeight: Number(process.env["SHORTS_PORTRAIT_HEIGHT"] ?? 1920),
-    finalWidth: Number(process.env["SHORTS_FINAL_WIDTH"] ?? 1080),
-    finalHeight: Number(process.env["SHORTS_FINAL_HEIGHT"] ?? 1920),
+    finalWidth: resolveVideoImageSpec("short").width,
+    finalHeight: resolveVideoImageSpec("short").height,
     reuseLandscapeImages: true,
     enablePanAndScan: true,
     enableBlurredFallback: true,
@@ -939,6 +1001,16 @@ async function prepareEpisodeLanguage(
         | "importance-based"
         | undefined) ?? "importance-based",
   };
+  if (
+    (process.env["SHORTS_FINAL_WIDTH"] &&
+      Number(process.env["SHORTS_FINAL_WIDTH"]) !== shortsImageConfig.finalWidth) ||
+    (process.env["SHORTS_FINAL_HEIGHT"] &&
+      Number(process.env["SHORTS_FINAL_HEIGHT"]) !== shortsImageConfig.finalHeight)
+  ) {
+    throw new Error(
+      `Short image final dimensions are fixed at ${shortsImageConfig.finalWidth}x${shortsImageConfig.finalHeight}. Remove conflicting SHORTS_FINAL_WIDTH/SHORTS_FINAL_HEIGHT overrides.`
+    );
+  }
   if (process.env["SHORTS_IMPORTANCE_SCENE_IDS"]) {
     shortsImageConfig.importanceSceneIds = process.env[
       "SHORTS_IMPORTANCE_SCENE_IDS"
@@ -1035,6 +1107,12 @@ async function prepareEpisodeLanguage(
         );
       }
     }
+    await assertCanonicalVariantImagesMatchSpec({
+      episodeDir: path.join(outputRoot, discovery.slug),
+      episodeId: discovery.slug,
+      language,
+      variant: artifactType,
+    });
     if (!narrationPath) {
       throw new Error("Narration audio was not generated for scene retiming.");
     }

@@ -9,9 +9,13 @@ import { scenePlanSchema, shotPlanSchema, type RenderShot } from "@mediaforge/do
 import { hashFile } from "@mediaforge/shared";
 import {
   assignClipRenderers,
+  buildFinalAudioMuxFfmpegArguments,
   buildShotClipRenderRequest,
   buildShotRenderOperationFingerprint,
+  buildSceneClipFfmpegArguments,
   buildSceneClipFilterGraph,
+  buildSceneClipRenderRequest,
+  buildVisualConcatFfmpegArguments,
   buildRemoteReadyMarker,
   FFmpegVideoRenderer,
   motionRenderReportFilename,
@@ -576,6 +580,108 @@ describe("FFmpegVideoRenderer", () => {
     expect(filterGraph).toContain("scale=");
   });
 
+  it("builds scene clip commands as video-only without per-clip audio encoding", () => {
+    const args = buildSceneClipFfmpegArguments({
+      imagePath: "/tmp/scene.png",
+      outputPath: "/tmp/scene.mp4",
+      width: 1920,
+      height: 1080,
+      fps: 30,
+      durationSeconds: 3,
+    });
+
+    expect(args).toContain("-an");
+    expect(args).not.toContain("-c:a");
+    expect(args).not.toContain("aac");
+    expect(args.filter((arg) => arg === "-i")).toHaveLength(1);
+  });
+
+  it("targets precise scene clip duration without synthetic one-frame padding", async () => {
+    const baseDir = mkdtempSync(
+      path.join(os.tmpdir(), "mediaforge-rendering-command-")
+    );
+    const audioPath = path.join(baseDir, "scene.wav");
+    execFileSync(
+      "ffmpeg",
+      [
+        "-y",
+        "-f",
+        "lavfi",
+        "-i",
+        "sine=frequency=440:sample_rate=24000:duration=3",
+        audioPath,
+      ],
+      { stdio: "ignore" }
+    );
+
+    const request = await buildSceneClipRenderRequest({
+      episodeId: "episode-fixture",
+      clipId: "scene-001",
+      sequenceNumber: 1,
+      imagePath: path.join(baseDir, "scene.png"),
+      audioPath,
+      outputPath: path.join(baseDir, "scene.mp4"),
+      fps: 30,
+      width: 1920,
+      height: 1080,
+      minimumDurationSeconds: 3,
+      trailingSilenceRatio: 1,
+      trailingSilenceBufferSeconds: 0,
+    });
+
+    expect(request.expectedDurationSeconds).toBe(3);
+    expect(request.ffmpegArguments).toContain("-an");
+    expect(request.ffmpegArguments).toEqual(
+      expect.arrayContaining(["-t", "3"])
+    );
+  });
+
+  it("builds final mux commands from continuous narration with normalized AAC audio", () => {
+    const args = buildFinalAudioMuxFfmpegArguments({
+      visualPath: "/tmp/visual.mp4",
+      narrationAudioPath: "/tmp/narration.wav",
+      outputPath: "/tmp/final.mp4",
+    });
+
+    expect(args).toEqual(
+      expect.arrayContaining([
+        "-map",
+        "0:v:0",
+        "-map",
+        "1:a:0",
+        "-af",
+        "aresample=48000:async=1:first_pts=0",
+        "-ar",
+        "48000",
+        "-ac",
+        "2",
+        "-c:a",
+        "aac",
+      ])
+    );
+    expect(args).not.toContain("silenceremove");
+  });
+
+  it("keeps visual concat as stream copy over pre-rendered video clips", () => {
+    expect(
+      buildVisualConcatFfmpegArguments({
+        concatListPath: "/tmp/concat.txt",
+        outputPath: "/tmp/visual.mp4",
+      })
+    ).toEqual([
+      "-y",
+      "-f",
+      "concat",
+      "-safe",
+      "0",
+      "-i",
+      "/tmp/concat.txt",
+      "-c",
+      "copy",
+      "/tmp/visual.mp4",
+    ]);
+  });
+
   it.todo(
     "CR-002 task-08: missing scene audio must be classified as an upstream-stage failure and must not be synthesized from narration during render."
   );
@@ -852,7 +958,12 @@ describe("FFmpegVideoRenderer", () => {
       manifests[1]?.["renderOperationFingerprint"]
     );
     expect(JSON.stringify(manifests)).not.toContain(imagePath);
-    await expect(validateRenderedVideo(result.clipPaths[0] as string, { requireAudio: false })).resolves.toMatchObject({
+    await expect(
+      validateRenderedVideo(result.clipPaths[0] as string, {
+        requireAudio: false,
+        disallowAudio: true,
+      })
+    ).resolves.toMatchObject({
       valid: true,
       width: 90,
       height: 160,
@@ -1423,6 +1534,14 @@ describe("FFmpegVideoRenderer", () => {
     ]);
     expect(result.validation.valid).toBe(true);
     expect(result.validation.audioCodec).not.toBe("");
+    expect(result.validation.audioSampleRateHz).toBe(48000);
+    expect(result.validation.audioChannels).toBe(2);
+    expect(result.audioAssembly).toMatchObject({
+      strategy: "video-only-clips-continuous-narration",
+      finalAudioSampleRateHz: 48000,
+      finalAudioChannels: 2,
+    });
+    expect(result.audioAssembly?.clips).toHaveLength(2);
     expect(result.validation.durationSeconds).toBeGreaterThanOrEqual(0.95);
     expect(result.validation.durationSeconds).toBeLessThan(1.6);
   }, 60000);
@@ -1685,7 +1804,8 @@ describe("FFmpegVideoRenderer", () => {
       48
     );
     const validation = await validateRenderedVideo(
-      result.clipPaths[0] as string
+      result.clipPaths[0] as string,
+      { requireAudio: false }
     );
     expect(validation.valid).toBe(true);
   }, 60000);
@@ -1917,7 +2037,9 @@ describe("FFmpegVideoRenderer", () => {
       new AbortController().signal
     );
     const firstDuration = (
-      await validateRenderedVideo(first.clipPaths[0] as string)
+      await validateRenderedVideo(first.clipPaths[0] as string, {
+        requireAudio: false,
+      })
     ).durationSeconds;
 
     makeAudio(5);
@@ -1926,10 +2048,101 @@ describe("FFmpegVideoRenderer", () => {
       new AbortController().signal
     );
     const secondDuration = (
-      await validateRenderedVideo(second.clipPaths[0] as string)
+      await validateRenderedVideo(second.clipPaths[0] as string, {
+        requireAudio: false,
+      })
     ).durationSeconds;
 
     expect(secondDuration).toBeGreaterThan(firstDuration);
+  }, 120000);
+
+  it("rebuilds legacy cached scene clips that still contain embedded audio", async () => {
+    const baseDir = mkdtempSync(
+      path.join(os.tmpdir(), "mediaforge-rendering-legacy-audio-")
+    );
+    const episodeDir = path.join(baseDir, "episode");
+    const outputDir = path.join(episodeDir, "video");
+    const imageDir = path.join(episodeDir, "images", "generated");
+    const audioDir = path.join(episodeDir, "audio", "segments");
+    await writeSceneFixtureMedia({
+      imageDir,
+      audioDir,
+      imageFilename: "scene-001__000000-000003__16x9.png",
+      imageSize: { width: 32, height: 32 },
+      durationSeconds: 3,
+    });
+
+    const renderer = new FFmpegVideoRenderer();
+    const request = {
+      episodeDir,
+      scenePlan: makeScenePlan(),
+      outputDir,
+      renderProfile: {
+        id: "youtube",
+        label: "youtube",
+        aspectRatio: "16:9" as const,
+        width: 160,
+        height: 90,
+        fps: 30,
+      },
+      captionBurnIn: false,
+      imageDir,
+      sceneAudioDir: audioDir,
+    };
+    const first = await renderer.renderSceneClips(
+      request,
+      new AbortController().signal
+    );
+    const clipPath = first.clipPaths[0] as string;
+    const manifestPath = clipPath.replace(/\.mp4$/u, ".json");
+    const manifest = JSON.parse(
+      await fs.readFile(manifestPath, "utf8")
+    ) as Record<string, unknown>;
+
+    execFileSync(
+      "ffmpeg",
+      [
+        "-y",
+        "-loop",
+        "1",
+        "-i",
+        path.join(imageDir, "scene-001__000000-000003__16x9.png"),
+        "-f",
+        "lavfi",
+        "-i",
+        "anullsrc=r=24000:cl=mono",
+        "-t",
+        "3",
+        "-r",
+        "30",
+        "-c:v",
+        "libx264",
+        "-pix_fmt",
+        "yuv420p",
+        "-c:a",
+        "aac",
+        clipPath,
+      ],
+      { stdio: "ignore" }
+    );
+
+    const staleOutputSha256 = await hashFile(clipPath);
+    delete manifest["renderFingerprint"];
+    manifest["outputSha256"] = staleOutputSha256;
+    manifest["generatedAt"] = new Date().toISOString();
+    await fs.writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+
+    await renderer.renderSceneClips(request, new AbortController().signal);
+
+    await expect(
+      validateRenderedVideo(clipPath, {
+        requireAudio: false,
+        disallowAudio: true,
+      })
+    ).resolves.toMatchObject({
+      valid: true,
+      audioCodec: "",
+    });
   }, 120000);
 
   it("does not shorten a scene clip below the planned scene timing", async () => {
@@ -1997,12 +2210,13 @@ describe("FFmpegVideoRenderer", () => {
     );
 
     const validation = await validateRenderedVideo(
-      result.clipPaths[0] as string
+      result.clipPaths[0] as string,
+      { requireAudio: false }
     );
     expect(validation.durationSeconds).toBeGreaterThanOrEqual(2.95);
   }, 120000);
 
-  it("pads scene clips so final audio does not land on the cut point", async () => {
+  it("does not add synthetic silence padding to scene clips", async () => {
     const baseDir = mkdtempSync(
       path.join(os.tmpdir(), "mediaforge-rendering-tail-")
     );
@@ -2057,9 +2271,11 @@ describe("FFmpegVideoRenderer", () => {
     );
 
     const validation = await validateRenderedVideo(
-      result.clipPaths[0] as string
+      result.clipPaths[0] as string,
+      { requireAudio: false }
     );
-    expect(validation.durationSeconds).toBeGreaterThanOrEqual(11.36);
+    expect(validation.durationSeconds).toBeGreaterThanOrEqual(11.3);
+    expect(validation.durationSeconds).toBeLessThan(11.5);
   }, 120000);
 
   it("uses an explicit output basename for final renders", async () => {

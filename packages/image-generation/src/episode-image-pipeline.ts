@@ -38,6 +38,8 @@ import {
   resolveEpisodeImageVisualPlanPath,
   resolveEpisodeImageVisualPlansDir,
   resolveSceneImageCandidatePaths,
+  serializeOpenAIError,
+  writeOpenAIDebugLog,
   writeJsonAtomic,
   writeTextAtomic,
 } from "@mediaforge/shared";
@@ -46,6 +48,7 @@ import {
   buildSceneTextPromptSection,
 } from "./scene-text.js";
 import { ensureEpisodeFocalMetadataForImages } from "./focal-metadata.js";
+import { assertVideoImageFileMatchesSpec } from "./video-image-spec.js";
 
 const mediaStageVariantSchema = z.enum(["full", "short"]);
 export type MediaStageVariant = z.infer<typeof mediaStageVariantSchema>;
@@ -1230,6 +1233,9 @@ function sceneHash(scene: Scene): string {
 }
 
 async function canReuseSceneImage(input: {
+  readonly episodeId: string;
+  readonly language: string;
+  readonly videoKind: "full" | "short";
   readonly existing: SceneGenerationManifest | null;
   readonly currentSceneHash: string;
   readonly currentPromptHash: string;
@@ -1249,6 +1255,12 @@ async function canReuseSceneImage(input: {
   if (!(await fileExists(input.outputPath))) {
     return false;
   }
+  await assertVideoImageFileMatchesSpec({
+    episodeId: input.episodeId,
+    language: input.language,
+    videoKind: input.videoKind,
+    imagePath: input.outputPath,
+  });
   if (input.existing.sceneHash !== input.currentSceneHash) {
     return false;
   }
@@ -3028,6 +3040,19 @@ function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+function resolveEpisodeRootFromImageOutputPath(outputPath: string): string | undefined {
+  const parts = path.resolve(outputPath).split(path.sep);
+  const markerIndex = parts.findIndex(
+    (part, index) =>
+      (part === "shared" || part === "locales" || part === "images") &&
+      index > 0
+  );
+  if (markerIndex <= 0) {
+    return undefined;
+  }
+  return parts.slice(0, markerIndex).join(path.sep) || path.sep;
+}
+
 async function atomicWriteImage(
   filePath: string,
   b64: string
@@ -3157,6 +3182,9 @@ export class OpenAIImageGenerator implements ImageGenerator {
       background: "opaque" as const,
       stream: false as const,
     };
+    const episodeRoot = resolveEpisodeRootFromImageOutputPath(
+      request.providerRequest.outputPath
+    );
     let lastError: unknown;
     let attempts = 0;
     for (let attempt = 0; attempt <= this.settings.maxRetries; attempt += 1) {
@@ -3164,6 +3192,34 @@ export class OpenAIImageGenerator implements ImageGenerator {
       const attemptStartedAt = new Date().toISOString();
       const attemptStartedMs = Date.now();
       try {
+        const endpoint =
+          request.referenceImages.length === 0
+            ? "/v1/images/generations"
+            : "/v1/images/edits";
+        await writeOpenAIDebugLog({
+          ...(episodeRoot ? { episodeRoot } : {}),
+          operation,
+          mode: "real",
+          paidProviderCalled: false,
+          model: this.settings.model,
+          endpoint,
+          request: {
+            ...requestBodyBase,
+            referenceImages: request.referenceImages.map((reference) => ({
+              characterId: reference.characterId,
+              filePath: reference.filePath,
+              mimeType: reference.mimeType,
+            })),
+          },
+          durationMs: 0,
+          attempt: attempt + 1,
+          caller: {
+            file: "packages/image-generation/src/episode-image-pipeline.ts",
+            function: "OpenAIImageGenerator.generate",
+            stage: request.providerRequest.sceneId,
+          },
+          status: "pre-dispatch",
+        }).catch(() => undefined);
         const apiPromise =
           request.referenceImages.length === 0
             ? this.client.images.generate(requestBodyBase)
@@ -3180,6 +3236,35 @@ export class OpenAIImageGenerator implements ImageGenerator {
                 ),
               });
         const { data, request_id } = await apiPromise.withResponse();
+        await writeOpenAIDebugLog({
+          ...(episodeRoot ? { episodeRoot } : {}),
+          operation,
+          mode: "real",
+          paidProviderCalled: true,
+          model: this.settings.model,
+          endpoint,
+          request: {
+            ...requestBodyBase,
+            referenceImages: request.referenceImages.map((reference) => ({
+              characterId: reference.characterId,
+              filePath: reference.filePath,
+              mimeType: reference.mimeType,
+            })),
+          },
+          response: {
+            request_id,
+            data,
+          },
+          usage: { imageCount: data.data?.length ?? 0 },
+          durationMs: Date.now() - attemptStartedMs,
+          attempt: attempt + 1,
+          caller: {
+            file: "packages/image-generation/src/episode-image-pipeline.ts",
+            function: "OpenAIImageGenerator.generate",
+            stage: request.providerRequest.sceneId,
+          },
+          status: "success",
+        }).catch(() => undefined);
         const b64 = data.data?.[0]?.b64_json;
         if (!b64) {
           throw new Error(
@@ -3256,6 +3341,35 @@ export class OpenAIImageGenerator implements ImageGenerator {
           referenceHashes,
         } as GeneratedImageResult;
       } catch (error) {
+        const endpoint =
+          request.referenceImages.length === 0
+            ? "/v1/images/generations"
+            : "/v1/images/edits";
+        await writeOpenAIDebugLog({
+          ...(episodeRoot ? { episodeRoot } : {}),
+          operation,
+          mode: "real",
+          paidProviderCalled: true,
+          model: this.settings.model,
+          endpoint,
+          request: {
+            ...requestBodyBase,
+            referenceImages: request.referenceImages.map((reference) => ({
+              characterId: reference.characterId,
+              filePath: reference.filePath,
+              mimeType: reference.mimeType,
+            })),
+          },
+          error: serializeOpenAIError(error),
+          durationMs: Date.now() - attemptStartedMs,
+          attempt: attempt + 1,
+          caller: {
+            file: "packages/image-generation/src/episode-image-pipeline.ts",
+            function: "OpenAIImageGenerator.generate",
+            stage: request.providerRequest.sceneId,
+          },
+          status: "error",
+        }).catch(() => undefined);
         telemetry?.recordApiCall({
           provider: "openai",
           model: this.settings.model,
@@ -4178,6 +4292,9 @@ async function generateIndependentScenePlan(args: {
     args.plan.validationFailures.length === 0 &&
     (await canReuseSceneImage({
       existing,
+      episodeId: args.context.identity.episodeId,
+      language: args.context.identity.language,
+      videoKind: args.context.identity.variant,
       currentSceneHash: args.plan.sceneHash,
       currentPromptHash: args.plan.promptHash,
       currentProviderRequestHash: args.plan.providerRequestHash,
@@ -5041,6 +5158,9 @@ export async function generateEpisodeImages(
       validationFailures.length === 0 &&
       (await canReuseSceneImage({
         existing,
+        episodeId,
+        language: context.identity.language,
+        videoKind: "full",
         currentSceneHash,
         currentPromptHash,
         currentProviderRequestHash,

@@ -23,10 +23,13 @@ Full and short media stay separate. Metadata and audio remain sibling or downstr
 - Scene plans are treated as explicit downstream artifacts of validated narration, with narration fingerprint, locale, variant, and planning configuration recorded in the persisted visual-plan artifacts.
 - Image prompts are generated from scene plans with local style and negative-prompt helpers.
 - Shared image ownership lives under episode-level shared directories, with migration-only stale image candidates classified by shared helpers where older state still needs inspection.
+- Canonical stored scene-image specs are exact and variant-specific: full-video shared images must be `1920x1080`, short-video shared images must be `1080x1920`.
 - The image pipeline persists prompts, visual plans, provider request and response artifacts, manifests, checkpoints, and failure records under `state/image-generation/`.
 - Image-generation manifests now record additive stage dependencies for narration, scene-plan, and image-plan lineage, plus prompt and configuration fingerprints.
-- Resume behavior is manifest-driven. Generated scenes are skipped, retryable failures can be reprocessed, and non-retryable failures remain persisted until forced.
-- Short image preparation keeps the short variant separate, requires `9:16`, and records safe vertical composition, focal-subject placement, text-safe guidance, and optional parent full-video linkage in the shorts manifest.
+- Resume and reuse behavior are manifest-driven, but file existence alone is not accepted as valid. The pipeline inspects the actual image file and fails fast when the stored dimensions do not match the canonical spec for that variant.
+- Short image preparation keeps the short variant separate, requires `9:16`, records safe vertical composition, focal-subject placement, text-safe guidance, and optional parent full-video linkage in the shorts manifest, and validates the final stored portrait asset at `1080x1920`.
+- Localized full-video runs reuse canonical shared full images only after the shared manifest entries and the actual files on disk pass the same dimension contract.
+- Recovery for invalid existing assets: delete the invalid shared image files plus the affected shared image manifest, then rerun the canonical English full image step for full assets or the short image preparation step for short assets. Do not keep rendering from a manifest that points at invalid files.
 
 ## Rendering
 

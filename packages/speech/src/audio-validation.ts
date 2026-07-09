@@ -9,15 +9,12 @@ import {
 } from "@mediaforge/shared";
 import { runCommandJson } from "@mediaforge/process-runner";
 import {
-  LANGUAGE_PROFILES,
-  type LanguageCode,
-} from "@mediaforge/story-localization";
-import {
   NARRATION_ARTIFACT_SCHEMA_VERSION,
   type ChunkValidationReport,
   type NarrationVariant,
   narrationChunkValidationReportSchema,
 } from "./narration-schemas.js";
+import { resolveSpeechNarrationPacingPreset } from "./narration-pacing.js";
 import {
   analyzeWavQuality,
   parseWavMetadata,
@@ -106,7 +103,7 @@ function relativePath(root: string, target: string): string {
   return path.relative(root, target).replace(/\\/gu, "/");
 }
 
-async function probeAudioWithFfprobe(filePath: string): Promise<ProbeAudioMetadata> {
+export async function probeAudioWithFfprobe(filePath: string): Promise<ProbeAudioMetadata> {
   const probe = await runCommandJson(
     "ffprobe",
     [
@@ -133,12 +130,10 @@ async function probeAudioWithFfprobe(filePath: string): Promise<ProbeAudioMetada
 }
 
 function languageWpm(language: string | undefined, variant: NarrationVariant | undefined): number {
-  const normalized = (language ?? "en").toLowerCase().split("-", 1)[0] ?? "en";
-  if (normalized === "en" || normalized === "de" || normalized === "es" || normalized === "fr" || normalized === "pt") {
-    const profile = LANGUAGE_PROFILES[normalized as LanguageCode];
-    return variant === "short" ? profile.shortNarrationWpm : profile.fullNarrationWpm;
-  }
-  return 170;
+  return resolveSpeechNarrationPacingPreset(
+    language ?? "en",
+    variant ?? "full"
+  ).targetWpm;
 }
 
 function expectedRange(expectedDurationMs: number | undefined): { readonly minMs: number; readonly maxMs: number } | undefined {

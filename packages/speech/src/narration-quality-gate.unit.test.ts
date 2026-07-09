@@ -10,6 +10,7 @@ import {
   type NarrationChunkManifest,
   type NarrationChunkValidationReport,
   type NarrationMasteringMetadata,
+  type NarrationPacingSummary,
 } from "./index.js";
 
 const createdAt = "2026-01-02T03:04:05.000Z";
@@ -118,11 +119,33 @@ function mastering(status: "completed" | "failed" = "completed"): NarrationMaste
   };
 }
 
+function pacing(status: "passed" | "warning" | "failed" = "passed"): NarrationPacingSummary {
+  return {
+    presetId: "dark-truth-en-full-pace-v1",
+    language: "en",
+    variant: "full",
+    wordCount: 200,
+    targetWpm: 182,
+    expectedDurationMs: 65_934,
+    warningDurationRangeMs: { minMs: 58_020, maxMs: 75_824 },
+    failDurationRangeMs: { minMs: 51_429, maxMs: 85_714 },
+    actualDurationMs:
+      status === "failed" ? 95_000 : status === "warning" ? 78_000 : 66_500,
+    actualWpm:
+      status === "failed" ? 126.31 : status === "warning" ? 153.85 : 180.45,
+    model: "gpt-4o-mini-tts",
+    voice: "onyx",
+    speed: 1.12,
+    status,
+  };
+}
+
 async function gate(input: {
   readonly validationStatus?: "passed" | "warning" | "failed";
   readonly includeAssembly?: boolean;
   readonly masteringStatus?: "completed" | "failed";
   readonly fallbackUsed?: boolean;
+  readonly pacingStatus?: "passed" | "warning" | "failed";
 }) {
   const narrationRoot = await createRoot();
   const chunkManifest = manifest();
@@ -139,6 +162,7 @@ async function gate(input: {
     compatibilityOutputStatus: "written",
     fallbackUsed: input.fallbackUsed,
     fallbackReasons: input.fallbackUsed ? ["provider retry"] : [],
+    ...(input.pacingStatus ? { pacingSummary: pacing(input.pacingStatus) } : {}),
     createdAt,
   });
 }
@@ -158,6 +182,9 @@ describe("narration quality gate", () => {
     await expect(gate({ fallbackUsed: true })).resolves.toMatchObject({
       outcome: "READY_WITH_WARNINGS",
     });
+    await expect(gate({ pacingStatus: "warning" })).resolves.toMatchObject({
+      outcome: "READY_WITH_WARNINGS",
+    });
   });
 
   it("returns REGENERATION_RECOMMENDED for failed chunk validation", async () => {
@@ -165,6 +192,16 @@ describe("narration quality gate", () => {
 
     expect(report.outcome).toBe("REGENERATION_RECOMMENDED");
     expect(report.checks.map((item) => item.code)).toContain("VALIDATION_FAILED");
+  });
+
+  it("returns REGENERATION_RECOMMENDED when narration pacing is outside the hard range", async () => {
+    const report = await gate({ pacingStatus: "failed" });
+
+    expect(report.outcome).toBe("REGENERATION_RECOMMENDED");
+    expect(report.checks.map((item) => item.code)).toContain(
+      "NARRATION_PACING_FAILED"
+    );
+    expect(report.pacing?.status).toBe("failed");
   });
 
   it("returns BLOCKED for missing assembly and persists JSON plus Markdown", async () => {

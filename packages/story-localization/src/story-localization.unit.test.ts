@@ -7,6 +7,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   buildConfigurationHash,
   buildOutputFiles,
+  compileFullStoryPrompt,
   buildLocalizationPrompt,
   buildCanonicalSourceFileName,
   countWords,
@@ -1427,5 +1428,66 @@ describe("story localization helpers", () => {
         "utf8"
       )
     ).resolves.toContain("# Episode 002");
+  });
+
+  it("adds a Dark Truth fallback disclosure when materializing a raw source without metadata", async () => {
+    const tempDir = mkdtempSync(
+      path.join(os.tmpdir(), "story-localization-dark-truth-fallback-")
+    );
+    const rawSourcePath = path.join(
+      tempDir,
+      "content-ideas",
+      "content",
+      "dark-truth-episodes-optimized",
+      "027-the-hook-on-the-car-door-en-full-optimized.md"
+    );
+    const rawSourceText = await fs.readFile(
+      path.join(
+        repoRoot,
+        "episodes",
+        "027-the-hook-on-the-car-door",
+        "source",
+        "027-the-hook-on-the-car-door-en-full.md"
+      ),
+      "utf8"
+    );
+    await fs.mkdir(path.dirname(rawSourcePath), { recursive: true });
+    await fs.writeFile(rawSourcePath, rawSourceText, "utf8");
+
+    const canonicalSourcePath = path.join(
+      tempDir,
+      "episodes",
+      "027-the-hook-on-the-car-door",
+      "source",
+      buildCanonicalSourceFileName({
+        episodeNumber: "027",
+        episodeSlug: "027-the-hook-on-the-car-door",
+      })
+    );
+
+    await materializeCanonicalSourceStory({
+      sourcePath: rawSourcePath,
+      targetPath: canonicalSourcePath,
+      sourceSha256: hashText(rawSourceText),
+      overwrite: false,
+      sourceRole: "raw-author-source",
+      resolvedFrom: "explicit-input",
+    });
+
+    const parsed = await parseCanonicalSourceStory(canonicalSourcePath);
+    const facts = extractCanonicalStoryFacts(parsed);
+    const compiled = compileFullStoryPrompt({
+      language: "en",
+      adaptationMode: "retention-optimized",
+      sourceStory: parsed,
+      canonicalFacts: facts,
+    });
+
+    expect(parsed.metadata.contentDisclosure).toBe("Fictional horror narration.");
+    expect(compiled.system.trim().length).toBeGreaterThan(0);
+    expect(compiled.user.trim().length).toBeGreaterThan(0);
+    expect(
+      compiled.diagnostics.some((entry) => entry.code === "UNKNOWN_GENRE_UNSAFE")
+    ).toBe(false);
   });
 });

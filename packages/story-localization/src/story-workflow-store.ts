@@ -10,6 +10,7 @@ import {
   stageFailureSchemaVersion,
   type ArtifactLineage,
   type ExecutionId,
+  type StageOutcomeKind,
   type QualityGateDecision,
   type StageFailure,
   type StageId,
@@ -243,28 +244,74 @@ export function appendStageOutcome(
   manifest: StoryWorkflowManifest,
   outcome: StageOutcome<ArtifactLineage>
 ): StoryWorkflowManifest {
+  const normalizedOutcome = normalizeStageOutcome(outcome);
   const updatedStages = manifest.stages.map((stage) =>
-    stage.stageId === outcome.stageId
+    stage.stageId === normalizedOutcome.stageId
       ? {
           ...stage,
-          status: outcome.status,
-          latestExecutionId: outcome.executionId as ExecutionId,
-          latestCompletedAt: outcome.completedAt,
-          latestOutcome: outcome,
+          status: normalizedOutcome.status,
+          outcomeKind: normalizedOutcome.outcomeKind,
+          latestExecutionId: normalizedOutcome.executionId as ExecutionId,
+          latestCompletedAt: normalizedOutcome.completedAt,
+          latestOutcome: normalizedOutcome,
         }
       : stage
   );
   const artifact =
-    outcome.status === "succeeded" || outcome.status === "cached"
-      ? outcome.artifact
+    normalizedOutcome.status === "succeeded" ||
+    normalizedOutcome.status === "cached"
+      ? normalizedOutcome.artifact
       : null;
   return workflowManifestSchema.parse({
     ...manifest,
-    updatedAt: outcome.completedAt,
+    updatedAt: normalizedOutcome.completedAt,
     stages: updatedStages,
-    attemptHistory: [...manifest.attemptHistory, outcome],
+    attemptHistory: [...manifest.attemptHistory, normalizedOutcome],
     artifacts: artifact ? [...manifest.artifacts, artifact] : manifest.artifacts,
   }) as StoryWorkflowManifest;
+}
+
+function outcomeKindForFailure(failure: StageFailure): StageOutcomeKind {
+  return failure.retryability === "retryable" ||
+    failure.retryability === "retry-after-change"
+    ? "failed-retryable"
+    : "failed-terminal";
+}
+
+export function outcomeKindForStageOutcome(
+  outcome: StageOutcome<ArtifactLineage>
+): StageOutcomeKind {
+  if (outcome.status === "cached") {
+    return "cache-hit";
+  }
+  if (outcome.status === "succeeded") {
+    return "completed";
+  }
+  if (outcome.status === "skipped") {
+    return "skipped";
+  }
+  if ("failure" in outcome) {
+    return outcomeKindForFailure(outcome.failure);
+  }
+  return "failed-terminal";
+}
+
+export function normalizeStageOutcome(
+  outcome: StageOutcome<ArtifactLineage>
+): StageOutcome<ArtifactLineage> {
+  const outcomeKind = outcome.outcomeKind ?? outcomeKindForStageOutcome(outcome);
+  if ("failure" in outcome) {
+    return {
+      ...outcome,
+      outcomeKind,
+      failureCategory: outcome.failureCategory ?? outcome.failure.category,
+      retryability: outcome.retryability ?? outcome.failure.retryability,
+    };
+  }
+  return {
+    ...outcome,
+    outcomeKind,
+  };
 }
 
 export function appendQualityGateOutcome(

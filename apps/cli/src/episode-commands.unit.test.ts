@@ -28,6 +28,19 @@ vi.mock("@mediaforge/image-generation", async () => {
   );
   return {
     ...actual,
+    resolveVideoImageSpec:
+      "resolveVideoImageSpec" in actual
+        ? actual.resolveVideoImageSpec
+        : (videoKind: "full" | "short") => ({
+            videoKind,
+            width: videoKind === "short" ? 1080 : 1920,
+            height: videoKind === "short" ? 1920 : 1080,
+            aspectRatio: videoKind === "short" ? "9:16" : "16:9",
+          }),
+    assertVideoImageFilesMatchSpec:
+      "assertVideoImageFilesMatchSpec" in actual
+        ? actual.assertVideoImageFilesMatchSpec
+        : vi.fn(async () => undefined),
     generateEpisodeImageReferences:
       imageGenerationMocks.generateEpisodeImageReferencesMock,
     approveEpisodeCharacter: imageGenerationMocks.approveEpisodeCharacterMock,

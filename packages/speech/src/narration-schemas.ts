@@ -685,6 +685,28 @@ const fallbackSummarySchema = z
   })
   .strict();
 
+const narrationPacingSummarySchema = z
+  .object({
+    presetId: boundedString(160),
+    language: localeSchema,
+    variant: narrationVariantSchema,
+    wordCount: nonNegativeIntegerSchema,
+    targetWpm: positiveNumberSchema,
+    expectedDurationMs: nonNegativeNumberSchema,
+    warningDurationRangeMs: durationRangeMsSchema,
+    failDurationRangeMs: durationRangeMsSchema,
+    actualDurationMs: nonNegativeNumberSchema,
+    actualWpm: nonNegativeNumberSchema,
+    model: boundedString(120),
+    voice: boundedString(120),
+    speed: positiveNumberSchema.min(0.25).max(4),
+    status: z.enum(["passed", "warning", "failed"]),
+  })
+  .strict();
+export type NarrationPacingSummary = z.infer<
+  typeof narrationPacingSummarySchema
+>;
+
 /** Final narration readiness report consumed by migration and inspection tasks. */
 export const narrationQualityGateReportSchema = z
   .object({
@@ -701,6 +723,7 @@ export const narrationQualityGateReportSchema = z
     compatibilityOutputStatus: z.enum(["not_written", "written", "failed", "skipped"]),
     cleanNarrationPath: pathSchema,
     masteredNarrationPath: pathSchema.optional(),
+    pacing: narrationPacingSummarySchema.optional(),
     reportFingerprint: sha256Schema,
     createdAt: isoTimestampSchema,
   })
@@ -874,8 +897,10 @@ export const narrationGenerationMetadataSchema = z
       .object({
         model: boundedString(120),
         voice: boundedString(120),
+        speed: positiveNumberSchema.min(0.25).max(4).optional(),
       })
       .strict(),
+    pacing: narrationPacingSummarySchema.optional(),
     usageCounters: usageCountersSchema,
     fallbackUsage: fallbackSummarySchema,
     startedAt: isoTimestampSchema,

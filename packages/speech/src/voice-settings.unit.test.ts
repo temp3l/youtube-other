@@ -30,11 +30,16 @@ describe("speech voice settings", () => {
   });
 
   it("adapts instructions for the requested language", () => {
-    const settings = loadSpeechVoiceSettings({ preset: "fast", language: "es" });
+    const settings = loadSpeechVoiceSettings({
+      preset: "fast",
+      language: "es",
+      artifactType: "full",
+    });
     expect(settings.language).toBe("es");
+    expect(settings.narrationPacingPreset?.id).toBe("dark-truth-es-full-pace-v1");
     expect(settings.instructions).toContain("Spanish");
     expect(settings.instructions).toContain("es");
-    expect(settings.instructions).toContain("Mantén un ritmo aproximado de 175 palabras por minuto.");
+    expect(settings.instructions).toContain("182 palabras por minuto");
   });
 
   it("loads artifact-specific voice templates from config", () => {
@@ -50,9 +55,22 @@ describe("speech voice settings", () => {
     });
 
     expect(fullTemplate.path).toBe(resolveSpeechVoiceInstructionPath("de", "full"));
-    expect(fullTemplate.instructions).toContain("168 Wörter pro Minute");
+    expect(fullTemplate.instructions).toContain("düsteren Dokumentarton");
     expect(shortTemplate.path).toBe(resolveSpeechVoiceInstructionPath("de", "short"));
-    expect(shortTemplate.instructions).toContain("170 Wörter pro Minute");
+    expect(shortTemplate.instructions).toContain("Halte die Lieferung kompakt");
+  });
+
+  it("applies centralized narration pacing when language and profile are provided", () => {
+    const settings = loadSpeechVoiceSettings({
+      preset: "fast",
+      language: "de",
+      artifactType: "full",
+    });
+
+    expect(settings.paceWpm).toBe(184);
+    expect(settings.profile.paceWpm).toBe(184);
+    expect(settings.speed).toBe(1.45);
+    expect(settings.instructions).toContain("184 Wörter pro Minute");
   });
 
   it("applies explicit pace and speed overrides", () => {
@@ -60,12 +78,24 @@ describe("speech voice settings", () => {
       preset: "fast",
       language: "de",
       artifactType: "full",
-      paceWpm: 168,
-      speed: 0.933,
+      paceWpm: 186,
+      speed: 1.24,
     });
 
-    expect(settings.paceWpm).toBe(168);
-    expect(settings.profile.paceWpm).toBe(168);
-    expect(settings.speed).toBe(0.933);
+    expect(settings.paceWpm).toBe(186);
+    expect(settings.profile.paceWpm).toBe(186);
+    expect(settings.speed).toBe(1.24);
+  });
+
+  it("loads Portuguese templates without falling back to generic instructions", () => {
+    const settings = loadSpeechVoiceSettings({
+      preset: "very-fast",
+      language: "pt",
+      artifactType: "short",
+    });
+
+    expect(settings.narrationPacingPreset?.id).toBe("dark-truth-pt-short-pace-v1");
+    expect(settings.instructions).toContain("188 palavras por minuto");
+    expect(settings.instructions).toContain("Portuguese");
   });
 });

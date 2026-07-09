@@ -63,3 +63,20 @@ export function decideStageInvalidation<TArtifact>(
     },
   };
 }
+
+export function compareStageContractFingerprint<TArtifact>(
+  previous: WorkflowStageState<TArtifact>,
+  next: WorkflowStageState<TArtifact>
+): readonly string[] {
+  const reasons: string[] = [];
+  if (previous.contractFingerprint !== next.contractFingerprint) {
+    reasons.push("contractFingerprint");
+  }
+  if (
+    previous.usesLegacySyntheticFingerprints !==
+    next.usesLegacySyntheticFingerprints
+  ) {
+    reasons.push("usesLegacySyntheticFingerprints");
+  }
+  return reasons;
+}

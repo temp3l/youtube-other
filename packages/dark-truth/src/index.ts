@@ -30,6 +30,7 @@ import {
   shotTreatmentCatalogVersion,
 } from "@mediaforge/domain/visual-retention/treatment-catalog.js";
 import {
+  assertVideoImageFileMatchesSpec,
   createPlaceholderImage,
   createPromptBatch,
   generateOpenAiSceneImages,
@@ -122,12 +123,25 @@ const localizedHeadingAliases = {
     de: ["Sprechtext"],
     es: ["Guion de narración"],
     fr: ["Texte de narration"],
+    pt: [
+      "Roteiro de narração",
+      "Texto da narração",
+      "Texto de narração",
+      "Texto da narracao",
+      "Texto de narracao",
+    ],
   },
   audio: {
     en: ["Audio Generation Instructions"],
     de: ["Anweisungen zur Audiogenerierung"],
     es: ["Instrucciones para generar el audio"],
     fr: ["Instructions de génération audio"],
+    pt: [
+      "Instruções de geração de áudio",
+      "Instruções para gerar o áudio",
+      "Instrucoes de geracao de audio",
+      "Instrucoes para gerar o audio",
+    ],
   },
   metadata: {
     en: ["Episode Metadata"],
@@ -138,6 +152,7 @@ const localizedHeadingAliases = {
       "Métadonnées de l'episode",
       "Métadonnées de l' épisode",
     ],
+    pt: ["Metadados do episódio", "Metadados do episodio"],
   },
 } as const;
 
@@ -366,6 +381,13 @@ interface NarrationAudioManifest {
   readonly segmentSha256s: readonly string[];
   readonly narrationPath: string;
   readonly narrationSha256: string;
+  readonly model?: string;
+  readonly voice?: string;
+  readonly speed?: number;
+  readonly pacingPresetId?: string;
+  readonly targetWpm?: number;
+  readonly actualDurationSeconds?: number;
+  readonly estimatedWpm?: number;
   readonly generatedAt: string;
 }
 
@@ -502,33 +524,6 @@ function normalizeSpeechVoicePreset(
   return undefined;
 }
 
-function defaultPaceWpmForPreset(preset: SpeechVoicePreset): number {
-  if (preset === "very-fast") {
-    return 190;
-  }
-  if (preset === "slow") {
-    return 145;
-  }
-  return 180;
-}
-
-function resolveNarrationTempoSettings(
-  language: SupportedLanguage,
-  artifactType: ArtifactType,
-  preset: SpeechVoicePreset
-): { readonly paceWpm: number; readonly speed: number } {
-  const profile = getLanguageProfile(language);
-  const paceWpm =
-    artifactType === "short"
-      ? profile.shortNarrationWpm
-      : profile.fullNarrationWpm;
-  const basePaceWpm = defaultPaceWpmForPreset(preset);
-  return {
-    paceWpm,
-    speed: Number((paceWpm / Math.max(1, basePaceWpm)).toFixed(3)),
-  };
-}
-
 async function resolveSpeechVoicePreset(
   episodeRootDir: string,
   fallback: SpeechVoicePreset
@@ -547,21 +542,18 @@ function createSpeechProvider(
   episodeRootDir: string,
   language: SupportedLanguage,
   artifactType: ArtifactType
-): Promise<{ readonly provider: MockSpeechProvider | OpenAiCompatibleSpeechProvider; readonly voiceProfile: ReturnType<typeof loadSpeechVoiceSettings>["profile"] }> {
+): Promise<{
+  readonly provider: MockSpeechProvider | OpenAiCompatibleSpeechProvider;
+  readonly voiceProfile: ReturnType<typeof loadSpeechVoiceSettings>["profile"];
+  readonly voiceSettings: ReturnType<typeof loadSpeechVoiceSettings>;
+}> {
   const fallbackPreset: SpeechVoicePreset = artifactType === "short" ? "very-fast" : "fast";
   const configuredVoice = resolveTtsVoice(language, artifactType);
   return resolveSpeechVoicePreset(episodeRootDir, fallbackPreset).then((preset) => {
-    const narrationTempo = resolveNarrationTempoSettings(
-      language,
-      artifactType,
-      preset
-    );
     const voiceSettings = loadSpeechVoiceSettings({
       preset,
       language,
       artifactType,
-      paceWpm: narrationTempo.paceWpm,
-      speed: narrationTempo.speed,
       ...(configuredVoice ? { voice: configuredVoice } : {}),
       ...(process.env["OPENAI_TTS_MODEL"]
         ? { model: process.env["OPENAI_TTS_MODEL"] }
@@ -571,6 +563,7 @@ function createSpeechProvider(
       return {
         provider: new MockSpeechProvider(),
         voiceProfile: voiceSettings.profile,
+        voiceSettings,
       };
     }
     const apiKey = process.env["OPENAI_API_KEY"];
@@ -604,6 +597,7 @@ function createSpeechProvider(
         ...voiceSettings.profile,
         ...(configuredVoice ? { providerVoiceId: configuredVoice } : {}),
       },
+      voiceSettings,
     };
   });
 }
@@ -1499,15 +1493,20 @@ export async function generateCanonicalImages(
     imageModel: string,
     sourcePath?: string
   ) => {
-    const metadata = await sharp(targetPath).metadata();
+    const dimensions = await assertVideoImageFileMatchesSpec({
+      episodeId: scenePlan.sourceId,
+      language: "en",
+      videoKind: "full",
+      imagePath: targetPath,
+    });
     return {
       assetId: `asset-${String(scene.sequenceNumber).padStart(3, "0")}`,
       canonicalSceneId: scene.id,
       filename: path.basename(targetPath),
       relativePath: path.relative(sharedDir, targetPath),
       sha256: await hashFile(targetPath),
-      width: metadata.width ?? 1920,
-      height: metadata.height ?? 1080,
+      width: dimensions.width,
+      height: dimensions.height,
       aspectRatio: "16:9",
       imageModel,
       prompt: scene.imagePrompt,
@@ -1557,8 +1556,10 @@ export async function generateCanonicalImages(
               scene,
               prompt: prompt.prompt,
               episodeSlug: scenePlan.sourceId,
+              language: "en",
               episodeDir: sharedDir,
               normalizedFilename: prompt.expectedFilename,
+              videoKind: "full",
             };
           }),
           settings
@@ -1582,14 +1583,20 @@ export async function generateCanonicalImages(
         if (sourcePath !== targetPath) {
           await fs.copyFile(sourcePath, targetPath);
         }
+        const dimensions = await assertVideoImageFileMatchesSpec({
+          episodeId: scenePlan.sourceId,
+          language: "en",
+          videoKind: "full",
+          imagePath: targetPath,
+        });
         assetRecordsBySceneId.set(scene.id, {
           assetId: `asset-${String(scene.sequenceNumber).padStart(3, "0")}`,
           canonicalSceneId: scene.id,
           filename: path.basename(targetPath),
           relativePath: path.relative(sharedDir, targetPath),
           sha256: result.finalChecksumSha256,
-          width: result.width,
-          height: result.height,
+          width: dimensions.width,
+          height: dimensions.height,
           aspectRatio: "16:9",
           imageModel: settings.model,
           prompt: scene.imagePrompt,
@@ -1647,6 +1654,12 @@ export async function generateCanonicalImages(
       continue;
     }
     const asset = await createPlaceholderImage(imagePath, scene, "16:9");
+    const dimensions = await assertVideoImageFileMatchesSpec({
+      episodeId: scenePlan.sourceId,
+      language: "en",
+      videoKind: "full",
+      imagePath,
+    });
     assets.push(imagePath);
     assetRecords.push({
       assetId: `asset-${String(scene.sequenceNumber).padStart(3, "0")}`,
@@ -1654,8 +1667,8 @@ export async function generateCanonicalImages(
       filename: path.basename(imagePath),
       relativePath: path.relative(sharedDir, imagePath),
       sha256: asset.checksumSha256,
-      width: asset.width,
-      height: asset.height,
+      width: dimensions.width,
+      height: dimensions.height,
       aspectRatio: "16:9",
       imageModel: "placeholder",
       prompt: scene.imagePrompt,
@@ -2678,7 +2691,7 @@ export async function generateMockNarrationAudio(
   const narrationDir = path.join(episodeDir, "audio");
   const segmentsDir = path.join(narrationDir, "segments-speech");
   await ensureDir(segmentsDir);
-  const { provider, voiceProfile } = await createSpeechProvider(
+  const { provider, voiceProfile, voiceSettings } = await createSpeechProvider(
     resolveEpisodeRootDir(episodeDir),
     speechPlan.language,
     speechPlan.artifactType
@@ -2708,6 +2721,7 @@ export async function generateMockNarrationAudio(
                 ? { targetDurationSeconds: request.targetDurationSeconds }
                 : {}),
               instructions: request.instructions,
+              ...(request.speed !== undefined ? { speed: request.speed } : {}),
             },
             new AbortController().signal
           );
@@ -2770,9 +2784,10 @@ export async function generateMockNarrationAudio(
   await clearNarrationAudioArtifacts(narrationDir, segmentsDir, narrationPath);
   const segmentPaths: string[] = [];
   const segmentSha256s: string[] = [];
+  let totalDurationSeconds = 0;
   for (const segment of speechPlan.segments) {
     const outputPath = path.join(segmentsDir, `${segment.id}.wav`);
-    await provider.synthesize(
+    const synthesized = await provider.synthesize(
       {
         sceneId: sceneIdSchema.parse(
           `scene-${String(segment.sequenceNumber).padStart(3, "0")}`
@@ -2787,6 +2802,7 @@ export async function generateMockNarrationAudio(
       },
       new AbortController().signal
     );
+    totalDurationSeconds += synthesized.durationSeconds;
     segmentPaths.push(outputPath);
     segmentSha256s.push(await hashFile(outputPath));
   }
@@ -2824,6 +2840,25 @@ export async function generateMockNarrationAudio(
     segmentSha256s,
     narrationPath,
     narrationSha256,
+    model: voiceSettings.model,
+    voice: voiceSettings.voice,
+    ...(voiceSettings.speed !== undefined ? { speed: voiceSettings.speed } : {}),
+    ...(voiceSettings.narrationPacingPreset?.id
+      ? { pacingPresetId: voiceSettings.narrationPacingPreset.id }
+      : {}),
+    targetWpm: voiceSettings.paceWpm,
+    ...(totalDurationSeconds > 0
+      ? {
+          actualDurationSeconds: totalDurationSeconds,
+          estimatedWpm:
+            (speechPlan.segments.reduce(
+              (sum, segment) => sum + segment.wordCount,
+              0
+            ) /
+              totalDurationSeconds) *
+            60,
+        }
+      : {}),
     generatedAt: nowIso(),
   } satisfies NarrationAudioManifest);
   if (adapterFallbackReason) {

@@ -10,6 +10,7 @@ import {
 import {
   imageBatchManifestSchema,
   legacyImageBatchManifestV1Schema,
+  legacyImageBatchAssetIdentityV1Schema,
 } from "./image-batch.schemas.js";
 import type {
   ImageBatchAssetIdentity,
@@ -22,6 +23,9 @@ type LegacyImageBatchManifestV1 = ReturnType<
   typeof legacyImageBatchManifestV1Schema.parse
 >;
 type ParsedImageBatchManifestV2 = ReturnType<typeof imageBatchManifestSchema.parse>;
+type LegacyImageBatchAssetIdentityV1 = ReturnType<
+  typeof legacyImageBatchAssetIdentityV1Schema.parse
+>;
 
 function normalizeBatchOperation(
   endpoint: "/v1/images/generations" | "/v1/images/edits"
@@ -30,19 +34,73 @@ function normalizeBatchOperation(
 }
 
 function normalizeV2Identity(
+  identity: Extract<
+    ParsedImageBatchManifestV2["items"][number]["identity"],
+    { schemaVersion: "image-asset-identity-v2" }
+  >
+): ImageBatchAssetIdentity {
+  return createImageBatchAssetIdentity({
+    episodeId: identity.episodeId,
+    language: identity.language,
+    variant: identity.variant,
+    aspectRatio: identity.aspectRatio,
+    assetRole: identity.assetRole,
+    assetPurpose: identity.assetPurpose,
+    operation: identity.operation,
+    subject: identity.subject,
+    storyBeatId: identity.storyBeatId,
+    ...(identity.shotId ? { shotId: identity.shotId } : {}),
+    visualIntentHash: identity.visualIntentHash,
+    promptHash: identity.promptHash,
+    dependencySourceHash: identity.dependencySourceHash,
+    sourceLanguage: identity.sourceLanguage,
+    targetLanguage: identity.targetLanguage,
+    configurationHash: identity.configurationHash,
+    model: identity.model,
+    size: identity.size,
+    quality: identity.quality,
+    dependencyHashes: identity.dependencyHashes,
+    destination: identity.destination,
+  });
+}
+
+function normalizeLegacyAssetIdentityV1(
+  identity: LegacyImageBatchAssetIdentityV1
+): ImageBatchAssetIdentity {
+  return createImageBatchAssetIdentity({
+    episodeId: identity.episodeId,
+    language: identity.language,
+    variant: identity.variant,
+    assetRole: identity.assetRole,
+    assetPurpose: identity.assetRole,
+    operation: identity.operation,
+    subject: identity.subject,
+    storyBeatId: identity.subject.id,
+    visualIntentHash: identity.promptHash,
+    promptHash: identity.promptHash,
+    dependencyHashes: identity.dependencyHashes,
+    sourceLanguage: "en",
+    targetLanguage: identity.language,
+    model: identity.model,
+    size: identity.size,
+    quality: identity.quality,
+    destination: identity.destination,
+  });
+}
+
+function normalizeCompatibleIdentity(
   identity: ParsedImageBatchManifestV2["items"][number]["identity"]
 ): ImageBatchAssetIdentity {
-  const {
-    identityHash: _identityHash,
-    ...rest
-  } = identity;
-  return rebuildImageBatchAssetIdentity(rest);
+  if (identity.schemaVersion === "image-asset-identity-v1") {
+    return normalizeLegacyAssetIdentityV1(identity);
+  }
+  return normalizeV2Identity(identity);
 }
 
 function normalizeV2Item(
   item: ParsedImageBatchManifestV2["items"][number]
 ): ImageBatchManifest["items"][number] {
-  const identity = normalizeV2Identity(item.identity);
+  const identity = normalizeCompatibleIdentity(item.identity);
   return {
     customId: buildImageBatchCustomId(identity),
     identity,
@@ -64,7 +122,7 @@ function normalizeV2Item(
         ? { openAIFileId: dependency.openAIFileId }
         : {}),
       sha256: dependency.sha256,
-      assetIdentity: normalizeV2Identity(dependency.assetIdentity),
+      assetIdentity: normalizeCompatibleIdentity(dependency.assetIdentity),
     })),
     ...(item.sharedOutputKey
       ? { sharedOutputKey: item.sharedOutputKey }

@@ -11,6 +11,8 @@ import {
   fileExists,
   hashText,
   normalizeWhitespace,
+  serializeOpenAIError,
+  writeOpenAIDebugLog,
 } from "@mediaforge/shared";
 import {
   createOpenAiStoryClientWithOptions,
@@ -1318,6 +1320,45 @@ function buildRequestSchema(): z.ZodTypeAny {
   return shortNarrationResponseSchema;
 }
 
+function buildShortOpenAiRequest(args: {
+  readonly model: string;
+  readonly prompt: { readonly system: string; readonly user: string };
+  readonly temperature: number;
+  readonly reasoningEffort:
+    | "none"
+    | "minimal"
+    | "low"
+    | "medium"
+    | "high"
+    | "xhigh"
+    | undefined;
+  readonly maxOutputTokens: number;
+}): ResponseCreateRequest {
+  return {
+    model: args.model,
+    input: [
+      {
+        role: "system",
+        content: [{ type: "input_text", text: args.prompt.system }],
+      },
+      {
+        role: "user",
+        content: [{ type: "input_text", text: args.prompt.user }],
+      },
+    ],
+    text: {
+      format: zodTextFormat(buildRequestSchema(), "short_rewrite_result"),
+    },
+    ...(shouldIncludeTemperatureForModel(args.model)
+      ? { temperature: args.temperature }
+      : {}),
+    max_output_tokens: args.maxOutputTokens,
+    ...(args.reasoningEffort
+      ? { reasoning: { effort: args.reasoningEffort } }
+      : {}),
+  };
+}
+
 async function requestStructuredShortRewrite(args: {
   readonly client: Pick<OpenAiStoryClient, "responses">;
   readonly model: string;
@@ -1371,29 +1412,8 @@ async function requestStructuredShortRewrite(args: {
   }
   const start = Date.now();
   let lastError: unknown;
-  const request: ResponseCreateRequest = {
-    model: args.model,
-    input: [
-      {
-        role: "system",
-        content: [{ type: "input_text", text: args.prompt.system }],
-      },
-      {
-        role: "user",
-        content: [{ type: "input_text", text: args.prompt.user }],
-      },
-    ],
-    text: {
-      format: zodTextFormat(buildRequestSchema(), "short_rewrite_result"),
-    },
-    ...(shouldIncludeTemperatureForModel(args.model)
-      ? { temperature: args.temperature }
-      : {}),
-    max_output_tokens: args.maxOutputTokens,
-    ...(args.reasoningEffort
-      ? { reasoning: { effort: args.reasoningEffort } }
-      : {}),
-  };
+  const request = buildShortOpenAiRequest(args);
+  const episodeRoot = path.dirname(args.debugDirectory);
   await (args.preflight?.({
     system: args.prompt.system,
     user: args.prompt.user,
@@ -1425,6 +1445,23 @@ async function requestStructuredShortRewrite(args: {
         prompt: args.prompt,
         request,
       });
+      await writeOpenAIDebugLog({
+        episodeRoot,
+        operation: "rewrite-short",
+        mode: "real",
+        paidProviderCalled: false,
+        model: args.model,
+        endpoint: "/v1/responses",
+        request,
+        durationMs: 0,
+        attempt: attempt + 1,
+        caller: {
+          file: "packages/story-localization/src/short-rewrite.service.ts",
+          function: "requestStructuredShortRewrite",
+          stage: args.requestLabel,
+        },
+        status: "pre-dispatch",
+      }).catch(() => undefined);
       const structuredResponses = args.client
         .responses as StructuredResponsesClient;
       const response = structuredResponses.parse
@@ -1514,6 +1551,25 @@ async function requestStructuredShortRewrite(args: {
                 : "OpenAI returned an empty structured response."
             ),
           });
+          await writeOpenAIDebugLog({
+            episodeRoot,
+            operation: "rewrite-short",
+            mode: "real",
+            paidProviderCalled: true,
+            model: args.model,
+            endpoint: "/v1/responses",
+            request,
+            response: responseRecord,
+            usage: responseUsage,
+            durationMs: Date.now() - start,
+            attempt: attempt + 1,
+            caller: {
+              file: "packages/story-localization/src/short-rewrite.service.ts",
+              function: "requestStructuredShortRewrite",
+              stage: args.requestLabel,
+            },
+            status: "error",
+          }).catch(() => undefined);
           throw new StoryRetryableRequestError(
             incompleteReason === "max_output_tokens"
               ? "OpenAI short rewrite was incomplete because max_output_tokens was exhausted."
@@ -1580,6 +1636,25 @@ async function requestStructuredShortRewrite(args: {
                 : {}),
             },
           });
+          await writeOpenAIDebugLog({
+            episodeRoot,
+            operation: "rewrite-short",
+            mode: "real",
+            paidProviderCalled: true,
+            model: args.model,
+            endpoint: "/v1/responses",
+            request,
+            response: responseRecord,
+            usage: responseUsage,
+            durationMs: Date.now() - start,
+            attempt: attempt + 1,
+            caller: {
+              file: "packages/story-localization/src/short-rewrite.service.ts",
+              function: "requestStructuredShortRewrite",
+              stage: args.requestLabel,
+            },
+            status: "success",
+          }).catch(() => undefined);
           return {
             id: responseRecord.id,
             outputText: JSON.stringify(parsed),
@@ -1650,6 +1725,25 @@ async function requestStructuredShortRewrite(args: {
             : {}),
         },
       });
+      await writeOpenAIDebugLog({
+        episodeRoot,
+        operation: "rewrite-short",
+        mode: "real",
+        paidProviderCalled: true,
+        model: args.model,
+        endpoint: "/v1/responses",
+        request,
+        response: responseRecord,
+        usage: responseUsage,
+        durationMs: Date.now() - start,
+        attempt: attempt + 1,
+        caller: {
+          file: "packages/story-localization/src/short-rewrite.service.ts",
+          function: "requestStructuredShortRewrite",
+          stage: args.requestLabel,
+        },
+        status: "success",
+      }).catch(() => undefined);
       const apiResult: ShortRewriteApiResult = {
         id: responseRecord.id,
         outputText,
@@ -1666,6 +1760,24 @@ async function requestStructuredShortRewrite(args: {
         request,
         error,
       });
+      await writeOpenAIDebugLog({
+        episodeRoot,
+        operation: "rewrite-short",
+        mode: "real",
+        paidProviderCalled: true,
+        model: args.model,
+        endpoint: "/v1/responses",
+        request,
+        error: serializeOpenAIError(error),
+        durationMs: Date.now() - start,
+        attempt: attempt + 1,
+        caller: {
+          file: "packages/story-localization/src/short-rewrite.service.ts",
+          function: "requestStructuredShortRewrite",
+          stage: args.requestLabel,
+        },
+        status: "error",
+      }).catch(() => undefined);
       if (error instanceof StoryRetryableRequestError) {
         throw error;
       }
@@ -2036,6 +2148,38 @@ async function generateLanguagePayload(
     };
   };
   if (args.dryRun) {
+    const dryRunPrompt = {
+      system: compiledPrompt.system,
+      user: compiledPrompt.user,
+    };
+    const dryRunRequest = buildShortOpenAiRequest({
+      model: args.model,
+      prompt: dryRunPrompt,
+      temperature: args.temperature,
+      reasoningEffort: args.reasoningEffort,
+      maxOutputTokens: args.maxOutputTokens,
+    });
+    await writeOpenAIDebugLog({
+      episodeRoot: path.join(args.outputRoot, args.source.episodeSlug),
+      operation: "rewrite-short",
+      mode: "dry-run",
+      paidProviderCalled: false,
+      model: args.model,
+      endpoint: "/v1/responses",
+      request: dryRunRequest,
+      simulatedResponse: {
+        status: "skipped",
+        source: "dry-run short rewrite artifact",
+      },
+      skippedReason: "Short rewrite dry-run builds the final prompt but does not call the paid provider.",
+      durationMs: 0,
+      caller: {
+        file: "packages/story-localization/src/short-rewrite.service.ts",
+        function: "generateLanguagePayload",
+        stage: `dry-run-short-${args.language}`,
+      },
+      status: "simulation",
+    }).catch(() => undefined);
     const dryRunMetadata = buildLocalizedShortMetadata({
       language: args.language,
       narration: args.parent.narrationParagraphs.join("\n\n"),

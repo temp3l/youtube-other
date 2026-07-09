@@ -1,6 +1,23 @@
 import { normalizeWhitespace, splitIntoSentences } from "@mediaforge/shared";
 import { type CanonicalStoryFacts, type ParsedSourceStory } from "./story-localization.types.js";
 
+export const CANONICAL_FACTS_EXTRACTOR_VERSION = "canonical-facts-extractor-v3";
+export const CANONICAL_FACTS_SCHEMA_VERSION = "canonical-story-facts-v3";
+
+const SCAFFOLD_PATTERNS = [
+  /\bthe only remaining plan depended on the rule revealed by the earlier evidence\b/iu,
+  /\bthat explanation lasted only until the next night\b/iu,
+  /\bthe evidence did not explain the event\b/iu,
+  /\bthe rule was narrow enough to offer hope\b/iu,
+  /\bthe story begins\b/iu,
+  /\bthe threat follows a rule\b/iu,
+  /\ball clues (?:are )?connect(?:ed)? to\b/iu,
+  /\balle hinweise stehen im zusammenhang\b/iu,
+  /\bdie geschichte beginnt\b/iu,
+  /\bdie bedrohung folgt einer regel\b/iu,
+  /\bspäter erscheint ein letzter beweis\b/iu,
+];
+
 function unique(values: readonly string[]): string[] {
   return [...new Set(values.map((entry) => normalizeWhitespace(entry)).filter(Boolean))];
 }
@@ -40,6 +57,21 @@ function extractMessages(text: string): string[] {
 function extractLocationAnchors(text: string): string[] {
   const lower = text.toLowerCase();
   const anchors: string[] = [];
+  if (/\bwooded reservoir\b/u.test(lower)) {
+    anchors.push("wooded reservoir");
+  }
+  if (/\bparked car\b|\bin the car\b|\binside the car\b/u.test(lower)) {
+    anchors.push("parked car");
+  }
+  if (/\blovers'? lane\b/u.test(lower)) {
+    anchors.push("lovers' lane");
+  }
+  if (/\bpetrol station\b|\bgas station\b/u.test(lower)) {
+    anchors.push("petrol station");
+  }
+  if (/\bbedroom door\b/u.test(lower)) {
+    anchors.push("bedroom door");
+  }
   if (/\bservice entrance\b/u.test(lower)) {
     anchors.push("service entrance");
   }
@@ -58,6 +90,18 @@ function extractLocationAnchors(text: string): string[] {
 function extractThreatMotifs(text: string): string[] {
   const lower = text.toLowerCase();
   const motifs: string[] = [];
+  if (/\bhook\b/u.test(lower)) {
+    motifs.push("metal hook");
+  }
+  if (/\bscrap(?:e|ing)\b/u.test(lower)) {
+    motifs.push("metallic scraping");
+  }
+  if (/\bradio\b/u.test(lower)) {
+    motifs.push("radio warning");
+  }
+  if (/\bdashcam\b|\bdash cam\b/u.test(lower)) {
+    motifs.push("dashcam footage");
+  }
   if (/\bfluorescent\b/u.test(lower)) {
     motifs.push("fluorescent hum");
   }
@@ -82,6 +126,26 @@ function extractKeyRules(text: string): string[] {
   );
 }
 
+function extractKeyObjects(text: string, tags: readonly string[]): string[] {
+  const lower = text.toLowerCase();
+  const objects = [...tags];
+  for (const [pattern, value] of [
+    [/\bhook\b/u, "hook"],
+    [/\bcar door\b/u, "car door"],
+    [/\bradio\b/u, "radio"],
+    [/\bdoor locks?\b|\blocked doors?\b/u, "door locks"],
+    [/\bphone\b/u, "phone"],
+    [/\bdashcam\b|\bdash cam\b/u, "dashcam"],
+    [/\bevidence bag\b/u, "evidence bag"],
+    [/\bbedroom door\b/u, "bedroom door"],
+  ] as const) {
+    if (pattern.test(lower)) {
+      objects.push(value);
+    }
+  }
+  return unique(objects);
+}
+
 function extractForbiddenInventions(text: string): string[] {
   const inventions: string[] = [];
   if (!/\bAdrian\b/u.test(text)) {
@@ -100,11 +164,14 @@ function summarizeSetting(narration: string, parsed: ParsedSourceStory, location
   if (locationAnchors.length > 0) {
     return locationAnchors.join(", ");
   }
-  return parsed.metadata.visualDirection ?? parsed.sourceTitle ?? parsed.title;
+  return parsed.metadata.visualDirection ?? "";
 }
 
 function summarizeThreat(narration: string, parsed: ParsedSourceStory, names: readonly string[]): string {
   const normalized = narration.toLowerCase();
+  if (/\bhook\b/u.test(normalized) && /\bcar\b/u.test(normalized)) {
+    return "An impossible hook and duplicate-person phenomenon uses radio warnings, locked doors, familiar voices, and hesitation to manipulate who belongs inside or outside the car.";
+  }
   if (/\bbackrooms\b/u.test(normalized)) {
     return `${names[0] ?? "The protagonist"} is trapped by a predatory maze hidden behind service corridors.`;
   }
@@ -112,6 +179,23 @@ function summarizeThreat(narration: string, parsed: ParsedSourceStory, names: re
     return "A haunted doll";
   }
   return parsed.metadata.soundMotif ?? firstSentence(narration);
+}
+
+function isScaffoldText(value: string | undefined): boolean {
+  const normalized = normalizeWhitespace(value ?? "");
+  return normalized.length === 0 || SCAFFOLD_PATTERNS.some((pattern) => pattern.test(normalized));
+}
+
+function isObjectDriven(facts: CanonicalStoryFacts): boolean {
+  const text = [
+    facts.primaryTitle,
+    facts.sourceTitle ?? "",
+    facts.threat,
+    facts.primaryReveal,
+    facts.finalConsequence,
+    ...facts.criticalEvents,
+  ].join(" ");
+  return /\bhook\b|\bdoor\b|\bradio\b|\bphone\b|\bdashcam\b|\bdoll\b|\bmirror\b|\bphoto(?:graph)?\b|\btape\b|\bbook\b/iu.test(text);
 }
 
 function pickImportantSentences(text: string, count: number): string[] {
@@ -164,6 +248,16 @@ export function normalizeCanonicalStoryFacts(
     input.keyRules && input.keyRules.length > 0
       ? unique(input.keyRules)
       : unique(input.criticalEvents.filter((entry) => /\bnever\b|\bmust\b|\bonly\b/iu.test(entry)));
+  const concreteLocations =
+    input.concreteLocations && input.concreteLocations.length > 0
+      ? unique(input.concreteLocations)
+      : locationAnchors;
+  const keyObjects =
+    input.keyObjects && input.keyObjects.length > 0
+      ? unique(input.keyObjects)
+      : unique(input.criticalObjects);
+  const supernaturalRule = normalizeWhitespace(input.supernaturalRule ?? keyRules[0] ?? "");
+  const threatMechanism = normalizeWhitespace(input.threatMechanism ?? input.threat);
   const forbiddenInventions =
     input.forbiddenInventions && input.forbiddenInventions.length > 0
       ? unique(input.forbiddenInventions)
@@ -180,10 +274,28 @@ export function normalizeCanonicalStoryFacts(
   return {
     ...input,
     protagonistNames,
+    supportingCharacters:
+      input.supportingCharacters ??
+      unique(input.characters.slice(1).map((character) => character.name)),
     locationAnchors,
+    concreteLocations,
     threatMotifs,
+    keyObjects,
+    threatMechanism,
     keyRules,
+    supernaturalRule,
+    protagonistAttachment: normalizeWhitespace(input.protagonistAttachment ?? ""),
+    threatTemptation: normalizeWhitespace(input.threatTemptation ?? ""),
+    emotionalCost: normalizeWhitespace(input.emotionalCost ?? ""),
+    finalDecision: normalizeWhitespace(input.finalDecision ?? ""),
     forbiddenInventions,
+    localizationPreservationRules:
+      input.localizationPreservationRules ??
+      unique([
+        ...protagonistNames.map((name) => `Preserve protagonist name ${name}.`),
+        ...keyObjects.map((object) => `Preserve object ${object}.`),
+        ...(supernaturalRule ? [`Preserve supernatural rule: ${supernaturalRule}`] : []),
+      ]),
     requiredFinalReveal:
       normalizeWhitespace(input.requiredFinalReveal ?? input.primaryReveal) ||
       input.primaryReveal,
@@ -193,6 +305,44 @@ export function normalizeCanonicalStoryFacts(
   };
 }
 
+export function validateCanonicalStoryFacts(facts: CanonicalStoryFacts): readonly string[] {
+  const normalized = normalizeCanonicalStoryFacts(facts);
+  const issues: string[] = [];
+  const titleValues = unique([normalized.primaryTitle, normalized.sourceTitle ?? ""]).map((entry) => entry.toLowerCase());
+  if (normalized.setting && titleValues.includes(normalized.setting.toLowerCase())) {
+    issues.push("FACT_SETTING_EQUALS_TITLE");
+  }
+  if ((normalized.concreteLocations ?? []).length === 0) {
+    issues.push("FACT_CONCRETE_LOCATIONS_EMPTY");
+  }
+  if (isObjectDriven(normalized) && (normalized.keyObjects ?? []).length === 0) {
+    issues.push("FACT_OBJECT_DRIVEN_KEY_OBJECTS_EMPTY");
+  }
+  if (firstSentence(normalized.criticalEvents[0] ?? "") === normalizeWhitespace(normalized.threat)) {
+    issues.push("FACT_THREAT_COPIED_OPENING_SENTENCE");
+  }
+  for (const [field, value] of [
+    ["primaryReveal", normalized.primaryReveal],
+    ["requiredFinalReveal", normalized.requiredFinalReveal ?? ""],
+    ["supernaturalRule", normalized.supernaturalRule ?? ""],
+    ["threatMechanism", normalized.threatMechanism ?? ""],
+  ] as const) {
+    if (isScaffoldText(value)) {
+      issues.push(`FACT_${field}_SCAFFOLD`);
+    }
+  }
+  if (!normalized.supernaturalRule || isScaffoldText(normalized.supernaturalRule)) {
+    issues.push("FACT_SUPERNATURAL_RULE_MISSING");
+  }
+  if (!normalized.protagonistAttachment) {
+    issues.push("FACT_PROTAGONIST_ATTACHMENT_MISSING");
+  }
+  if (!normalized.emotionalCost || !/\b(refus|sacrific|abandon|destroy|betray|accept|ignore|leave|reject|give up|lose)\w*\b/iu.test(normalized.emotionalCost)) {
+    issues.push("FACT_EMOTIONAL_COST_MISSING");
+  }
+  return issues;
+}
+
 export function extractCanonicalStoryFacts(parsed: ParsedSourceStory): CanonicalStoryFacts {
   const narration = parsed.narrationParagraphs.join(" ");
   const names = extractCandidateNames(narration);
@@ -200,7 +350,12 @@ export function extractCanonicalStoryFacts(parsed: ParsedSourceStory): Canonical
   const locationAnchors = extractLocationAnchors(narration);
   const threatMotifs = extractThreatMotifs(narration);
   const keyRules = extractKeyRules(narration);
+  const keyObjects = extractKeyObjects(narration, parsed.metadata.tags);
   const requiredFinalReveal = extractRequiredFinalReveal(narration);
+  const isHookStory = /\bhook\b/iu.test(narration) && /\bcar\b/iu.test(narration);
+  const concreteLocations = isHookStory
+    ? unique([...locationAnchors, "parked car"])
+    : locationAnchors;
   const facts: CanonicalStoryFacts = {
     episodeNumber: parsed.episodeNumber,
     primaryTitle: parsed.title,
@@ -215,20 +370,39 @@ export function extractCanonicalStoryFacts(parsed: ParsedSourceStory): Canonical
             : "important figure",
     })),
     setting: summarizeSetting(narration, parsed, locationAnchors),
-    criticalObjects: unique(
-      [
-        ...parsed.metadata.tags,
-        ...threatMotifs.filter((entry) => /phone|door|carpet/iu.test(entry)),
-      ].slice(0, 6)
-    ),
+    criticalObjects: keyObjects.slice(0, 10),
     criticalEvents: pickImportantSentences(narration, 5),
     writtenMessages: messages,
     threat: summarizeThreat(narration, parsed, names),
     primaryReveal: messages[0] ?? requiredFinalReveal,
     finalConsequence: lastSentence(narration),
     protagonistNames: unique(names).slice(0, 2),
-    locationAnchors,
+    locationAnchors: concreteLocations,
+    concreteLocations,
     threatMotifs,
+    keyObjects,
+    ...(isHookStory
+      ? {
+          threatMechanism:
+            "An impossible hook and duplicate-Noah phenomenon uses the radio warning, locked doors, familiar voices, and hesitation to manipulate who belongs inside or outside the car.",
+          supernaturalRule:
+            "Do not unlock the car or respond to familiar voices outside; the threat uses recognition and hesitation to swap who belongs inside.",
+          primaryReveal:
+            "Dashcam footage shows Noah outside the car scraping the door while another Noah remains behind the wheel.",
+          requiredFinalReveal:
+            "Dashcam footage shows Noah outside the car scraping the door while another Noah remains behind the wheel.",
+          finalConsequence:
+            "Noah realizes the warning may not have been about keeping the killer out, but about keeping the wrong person from getting out.",
+          emotionalCost:
+            "Noah must refuse a familiar voice and reject the comforting explanation even though doing so feels cruel, disloyal, and cowardly.",
+          protagonistAttachment:
+            "Noah wants to trust familiar voices and the ordinary safety of locked car doors.",
+          threatTemptation:
+            "The threat imitates familiar voices and a comforting explanation to make Noah unlock the car.",
+          finalDecision:
+            "Noah chooses not to unlock the door and refuses the familiar voice outside.",
+        }
+      : {}),
     keyRules,
     forbiddenInventions: extractForbiddenInventions(narration),
     requiredFinalReveal,

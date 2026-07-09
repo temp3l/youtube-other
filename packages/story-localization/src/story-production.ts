@@ -93,15 +93,15 @@ function buildEpisodeHeading(parsed: ParsedSourceStory): string {
 }
 
 function buildProtagonist(facts: CanonicalStoryFacts): string {
-  return facts.characters[0]?.name ?? facts.primaryReveal;
+  return facts.protagonistNames?.[0] ?? facts.characters[0]?.name ?? "the protagonist";
 }
 
 function buildAntagonist(facts: CanonicalStoryFacts): string {
-  return facts.threat || facts.finalConsequence;
+  return facts.threatMechanism ?? facts.threat;
 }
 
 function buildSetting(facts: CanonicalStoryFacts, parsed: ParsedSourceStory): string {
-  return facts.setting ?? parsed.sourceTitle ?? parsed.title;
+  return facts.concreteLocations?.join(", ") ?? facts.locationAnchors?.join(", ") ?? facts.setting ?? "";
 }
 
 export function analyzeStorySource(
@@ -128,7 +128,7 @@ export function analyzeStorySource(
     keyObjects: [...facts.criticalObjects],
     writtenMessages: [...facts.writtenMessages],
     sceneCount: parsed.narrationParagraphs.length,
-    summary: `${buildEpisodeHeading(parsed)} centers on ${protagonist} facing ${antagonist} in ${setting}.`,
+    summary: `${buildEpisodeHeading(parsed)} centers on ${protagonist} facing ${antagonist}${setting ? ` in ${setting}` : ""}.`,
     ...(parsed.sourceTitle ? { sourceTitle: parsed.sourceTitle } : {}),
   };
 }
@@ -145,8 +145,8 @@ export function buildStoryBible(
     protagonist: analysis.protagonist,
     antagonist: analysis.antagonist,
     setting: analysis.setting,
-    premise: `A story about ${analysis.protagonist} confronting ${analysis.antagonist} in ${analysis.setting}.`,
-    centralThreat: facts.threat,
+    premise: `${analysis.protagonist} confronts ${facts.threatMechanism ?? facts.threat}${analysis.setting ? ` in ${analysis.setting}` : ""}.`,
+    centralThreat: facts.threatMechanism ?? facts.threat,
     primaryReveal: facts.primaryReveal,
     finalConsequence: facts.finalConsequence,
     cast: facts.characters.map((character) => ({
@@ -154,12 +154,14 @@ export function buildStoryBible(
       role: character.role,
       ...(character.relationship ? { relationship: character.relationship } : {}),
     })),
-    keyObjects: [...facts.criticalObjects],
+    keyObjects: [...(facts.keyObjects ?? facts.criticalObjects)],
     writtenMessages: [...facts.writtenMessages],
     storyRules: [
-      `Keep the narration grounded in the source episode ${parsed.episodeNumber}.`,
+      facts.supernaturalRule ?? facts.keyRules?.[0] ?? `Keep the narration grounded in the source episode ${parsed.episodeNumber}.`,
       "Preserve the exact written messages verbatim.",
-      "Do not add new plot events or change the ending.",
+      facts.emotionalCost
+        ? `The final decision must preserve this emotional cost: ${facts.emotionalCost}`
+        : "The final decision must carry a concrete emotional cost tied to the source.",
     ],
     sceneOrder: parsed.narrationParagraphs.map((_, index) => `scene-${index + 1}`),
     ...(parsed.sourceTitle ? { sourceTitle: parsed.sourceTitle } : {}),
@@ -181,11 +183,13 @@ export function buildOriginalityReview(
     protectedElements: [
       analysis.protagonist,
       analysis.antagonist,
-      ...facts.criticalObjects,
+      ...((facts.keyObjects ?? facts.criticalObjects)),
       ...facts.writtenMessages,
       facts.primaryReveal,
       facts.finalConsequence,
-    ],
+      facts.supernaturalRule ?? "",
+      facts.emotionalCost ?? "",
+    ].map(normalize).filter(Boolean),
     notes: [
       "Use the source as a reference, not as a prompt to add new twists.",
       "Retain the episode's signature details and exact written messages.",
@@ -217,14 +221,14 @@ export function buildRetentionPlan(
       label: "Reveal",
       purpose: "Land the primary reveal cleanly and late enough to feel earned.",
       tension: bible.primaryReveal,
-      payoff: "The central mystery becomes explicit.",
+      payoff: bible.primaryReveal,
     },
     {
       id: "ending",
       label: "Ending",
       purpose: "Finish on the original consequence and preserve the final beat.",
       tension: bible.finalConsequence,
-      payoff: "The adaptation closes on the same emotional note as the source.",
+      payoff: bible.finalConsequence,
     },
   ];
 }

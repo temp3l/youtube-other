@@ -1,11 +1,19 @@
-import { hashText, normalizeContentVariant, normalizeEpisodeId, normalizeLocaleCode } from "@mediaforge/shared";
 import {
-  workflowManifestSchema,
-  type fingerprintInputsSchema,
-} from "./story-workflow.schemas.js";
+  hashText,
+  normalizeContentVariant,
+  normalizeEpisodeId,
+  normalizeLocaleCode,
+  resolveAuthoredScript,
+  type ResolvedAuthoredScript,
+} from "@mediaforge/shared";
+import { workflowManifestSchema } from "./story-workflow.schemas.js";
 import {
   type ArtifactLineage,
   type FingerprintInputs,
+  type StageContractInput,
+  type StageContractOutput,
+  stageContractSchemaVersion,
+  type StageDependencyFingerprint,
   type StageId,
   type StageType,
   type StoryFormat,
@@ -23,6 +31,11 @@ export interface PlannedStoryWorkflowInput {
   readonly formats?: readonly string[];
   readonly createdAt?: string;
   readonly dryRun?: boolean;
+}
+
+export interface WorkspacePlannedStoryWorkflowInput
+  extends PlannedStoryWorkflowInput {
+  readonly workspaceRoot: string;
 }
 
 export type PlannedStoryWorkflowManifest = WorkflowManifest<ArtifactLineage>;
@@ -50,16 +63,26 @@ function parseFormats(values: readonly string[] | undefined): StoryFormat[] {
   return unique((values?.length ? values : defaultFormats).map((value) => normalizeContentVariant(value) as StoryFormat));
 }
 
-function fingerprintInputs(args: {
+interface StageContractFields {
+  readonly fingerprintInputs: FingerprintInputs;
+  readonly stageInputs: readonly StageContractInput[];
+  readonly stageOutputs: readonly StageContractOutput[];
+  readonly dependencyFingerprints: readonly StageDependencyFingerprint[];
+  readonly contractFingerprint: string;
+  readonly usesLegacySyntheticFingerprints: boolean;
+}
+
+function syntheticFingerprintInputs(args: {
   readonly episodeId: string;
   readonly stageType: StageType;
   readonly locale?: WorkflowLocale;
   readonly format?: StoryFormat;
+  readonly parentFingerprints: readonly string[];
 }): FingerprintInputs {
   const base = [args.episodeId, args.stageType, args.locale ?? "none", args.format ?? "none"].join(":");
   return {
     sourceFingerprint: hashText(`${base}:source`),
-    parentFingerprints: [],
+    parentFingerprints: args.parentFingerprints,
     promptFingerprint: hashText(`${base}:prompt`),
     schemaFingerprint: hashText(workflowSchemaVersion),
     configFingerprint: hashText(`${base}:config`),
@@ -67,13 +90,147 @@ function fingerprintInputs(args: {
   };
 }
 
+function authoredSourceFingerprint(source: ResolvedAuthoredScript): string {
+  return hashText(
+    JSON.stringify({
+      boundary: "ingest-source",
+      contentHash: source.contentHash,
+      cacheIdentity: source.cacheIdentity,
+      resolverVersion: source.resolverVersion,
+      locale: source.language,
+      variant: source.variant,
+      workflowSchemaVersion,
+    })
+  );
+}
+
+function fingerprintInputsForAuthoredSource(
+  source: ResolvedAuthoredScript
+): FingerprintInputs {
+  return {
+    sourceFingerprint: authoredSourceFingerprint(source),
+    parentFingerprints: [],
+    schemaFingerprint: hashText(workflowSchemaVersion),
+    configFingerprint: hashText(
+      JSON.stringify({
+        boundary: "ingest-source",
+        locale: source.language,
+        variant: source.variant,
+        resolverVersion: source.resolverVersion,
+        workflowSchemaVersion,
+      })
+    ),
+    workflowSchemaVersion,
+  };
+}
+
+function contractFields(args: {
+  readonly stageId: StageId;
+  readonly stageType: StageType;
+  readonly locale?: WorkflowLocale;
+  readonly format?: StoryFormat;
+  readonly fingerprintInputs: FingerprintInputs;
+  readonly dependencyFingerprints: readonly StageDependencyFingerprint[];
+  readonly sourceInput?: StageContractInput;
+  readonly outputPath?: string;
+  readonly usesLegacySyntheticFingerprints: boolean;
+}): StageContractFields {
+  const stageInputs =
+    args.sourceInput
+      ? [args.sourceInput]
+      : [
+          {
+            name: "stage-config",
+            fingerprint:
+              args.fingerprintInputs.configFingerprint ??
+              hashText(`${args.stageId}:stage-config`),
+          },
+        ];
+  const outputFingerprint = hashText(
+    JSON.stringify({
+      stageId: args.stageId,
+      stageType: args.stageType,
+      locale: args.locale ?? null,
+      format: args.format ?? null,
+      sourceFingerprint: args.fingerprintInputs.sourceFingerprint ?? null,
+      parentFingerprints: args.fingerprintInputs.parentFingerprints,
+      promptFingerprint: args.fingerprintInputs.promptFingerprint ?? null,
+      schemaFingerprint: args.fingerprintInputs.schemaFingerprint ?? null,
+      configFingerprint: args.fingerprintInputs.configFingerprint ?? null,
+      workflowSchemaVersion: args.fingerprintInputs.workflowSchemaVersion,
+    })
+  );
+  const stageOutputs: readonly StageContractOutput[] = [
+    {
+      name: `${args.stageType}-output`,
+      fingerprint: outputFingerprint,
+      ...(args.outputPath ? { path: args.outputPath } : {}),
+    },
+  ];
+  const contractFingerprint = hashText(
+    JSON.stringify({
+      schemaVersion: stageContractSchemaVersion,
+      stageId: args.stageId,
+      stageType: args.stageType,
+      locale: args.locale ?? null,
+      format: args.format ?? null,
+      stageInputs,
+      stageOutputs,
+      dependencyFingerprints: args.dependencyFingerprints,
+      usesLegacySyntheticFingerprints: args.usesLegacySyntheticFingerprints,
+      workflowSchemaVersion,
+    })
+  );
+  return {
+    fingerprintInputs: args.fingerprintInputs,
+    stageInputs,
+    stageOutputs,
+    dependencyFingerprints: args.dependencyFingerprints,
+    contractFingerprint,
+    usesLegacySyntheticFingerprints: args.usesLegacySyntheticFingerprints,
+  };
+}
+
+function ingestSourceContractFields(args: {
+  readonly stageId: StageId;
+  readonly source: ResolvedAuthoredScript | undefined;
+}): StageContractFields | undefined {
+  if (!args.source) {
+    return undefined;
+  }
+  const fingerprintInputs = fingerprintInputsForAuthoredSource(args.source);
+  const fingerprint = fingerprintInputs.sourceFingerprint ?? authoredSourceFingerprint(args.source);
+  return contractFields({
+    stageId: args.stageId,
+    stageType: "ingest-source",
+    locale: args.source.language as WorkflowLocale,
+    format: args.source.variant as StoryFormat,
+    fingerprintInputs,
+    dependencyFingerprints: [],
+    sourceInput: {
+      name: "authored-script",
+      fingerprint,
+      source: args.source.relativePath,
+      contentHash: args.source.contentHash,
+      cacheIdentity: args.source.cacheIdentity,
+      resolverVersion: args.source.resolverVersion,
+      locale: args.source.language as WorkflowLocale,
+      format: args.source.variant as StoryFormat,
+    },
+    outputPath: args.source.relativePath,
+    usesLegacySyntheticFingerprints: false,
+  });
+}
+
 function stageId(stageType: StageType, locale?: WorkflowLocale, format?: StoryFormat): StageId {
   return ["stage", stageType, locale, format].filter(Boolean).join(":") as StageId;
 }
 
-export function buildPlannedStoryWorkflowManifest(
-  input: PlannedStoryWorkflowInput
-): PlannedStoryWorkflowManifest {
+function buildPlannedStoryWorkflowManifestWithContracts(args: {
+  readonly input: PlannedStoryWorkflowInput;
+  readonly authoredSource?: ResolvedAuthoredScript;
+}): PlannedStoryWorkflowManifest {
+  const input = args.input;
   const episodeId = normalizeEpisodeId(input.episodeId);
   const locales = parseLocales(input.locales);
   const formats = parseFormats(input.formats);
@@ -83,6 +240,7 @@ export function buildPlannedStoryWorkflowManifest(
   const workflowId = `wf_${episodeId}_${stamp}_${shortHash(idBasis)}` as WorkflowId;
   const executionId = `exec_${stamp}_${shortHash(`${idBasis}:execution`)}` as ExecutionId;
   const stages: WorkflowStageState<ArtifactLineage>[] = [];
+  const stagesById = new Map<StageId, WorkflowStageState<ArtifactLineage>>();
 
   const addStage = (
     stageType: StageType,
@@ -91,24 +249,67 @@ export function buildPlannedStoryWorkflowManifest(
     dependsOn: readonly StageId[]
   ): StageId => {
     const id = stageId(stageType, locale, format);
-    stages.push({
+    const dependencyFingerprints: StageDependencyFingerprint[] = dependsOn.map(
+      (dependencyStageId) => {
+        const dependency = stagesById.get(dependencyStageId);
+        const contractFingerprint =
+          dependency?.contractFingerprint ??
+          hashText(`${dependencyStageId}:legacy-contract`);
+        return {
+          stageId: dependencyStageId,
+          contractFingerprint,
+          ...(dependency?.usesLegacySyntheticFingerprints !== false
+            ? { legacySyntheticFingerprint: true }
+            : {}),
+        };
+      }
+    );
+    const parentFingerprints = dependencyFingerprints.map(
+      (dependency) => dependency.contractFingerprint
+    );
+    const realIngestContract =
+      stageType === "ingest-source" && locale === "en" && format === "full"
+        ? ingestSourceContractFields({ stageId: id, source: args.authoredSource })
+        : undefined;
+    const stageContract =
+      realIngestContract ??
+      contractFields({
+        stageId: id,
+        stageType,
+        ...(locale ? { locale } : {}),
+        ...(format ? { format } : {}),
+        fingerprintInputs: syntheticFingerprintInputs({
+          episodeId,
+          stageType,
+          ...(locale ? { locale } : {}),
+          ...(format ? { format } : {}),
+          parentFingerprints,
+        }),
+        dependencyFingerprints,
+        usesLegacySyntheticFingerprints: true,
+      });
+    const stage: WorkflowStageState<ArtifactLineage> = {
       stageId: id,
       stageType,
       ...(locale ? { locale } : {}),
       ...(format ? { format } : {}),
       dependsOn,
       status: "planned",
-      fingerprintInputs: fingerprintInputs({
-        episodeId,
-        stageType,
-        ...(locale ? { locale } : {}),
-        ...(format ? { format } : {}),
-      }),
+      outcomeKind: "planned",
+      fingerprintInputs: stageContract.fingerprintInputs,
+      stageInputs: stageContract.stageInputs,
+      stageOutputs: stageContract.stageOutputs,
+      dependencyFingerprints: stageContract.dependencyFingerprints,
+      contractFingerprint: stageContract.contractFingerprint,
+      usesLegacySyntheticFingerprints:
+        stageContract.usesLegacySyntheticFingerprints,
       cache: {
         status: input.dryRun ? "bypassed" : "miss",
         invalidationReasons: input.dryRun ? ["dry-run"] : [],
       },
-    });
+    };
+    stages.push(stage);
+    stagesById.set(id, stage);
     return id;
   };
 
@@ -180,6 +381,33 @@ export function buildPlannedStoryWorkflowManifest(
     batches: [],
     warnings: [],
   }) as PlannedStoryWorkflowManifest;
+}
+
+export function buildPlannedStoryWorkflowManifest(
+  input: PlannedStoryWorkflowInput
+): PlannedStoryWorkflowManifest {
+  return buildPlannedStoryWorkflowManifestWithContracts({ input });
+}
+
+export async function buildWorkspacePlannedStoryWorkflowManifest(
+  input: WorkspacePlannedStoryWorkflowInput
+): Promise<PlannedStoryWorkflowManifest> {
+  const episodeId = normalizeEpisodeId(input.episodeId);
+  let authoredSource: ResolvedAuthoredScript | undefined;
+  try {
+    authoredSource = await resolveAuthoredScript({
+      workspaceRoot: input.workspaceRoot,
+      episode: episodeId,
+      language: "en",
+      variant: "full",
+    });
+  } catch {
+    authoredSource = undefined;
+  }
+  return buildPlannedStoryWorkflowManifestWithContracts({
+    input,
+    ...(authoredSource ? { authoredSource } : {}),
+  });
 }
 
 export function summarizePlannedStoryWorkflow(manifest: PlannedStoryWorkflowManifest) {

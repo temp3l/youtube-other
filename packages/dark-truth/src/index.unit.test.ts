@@ -494,8 +494,8 @@ describe("dark-truth workflow", () => {
     const existingPath = path.join(imageDir, "scene-001__000000-000004__16x9.png");
     await sharp({
       create: {
-        width: 64,
-        height: 64,
+        width: 1920,
+        height: 1080,
         channels: 4,
         background: { r: 10, g: 20, b: 30, alpha: 1 },
       },
@@ -522,6 +522,58 @@ describe("dark-truth workflow", () => {
     );
     expect(manifest.assets[0]?.relativePath).toBe(
       "images/generated/scene-001__000000-000004__16x9.png"
+    );
+  });
+
+  it("rejects existing shared full images with non-canonical dimensions", async () => {
+    const tempDir = await fs.mkdtemp(
+      path.join(os.tmpdir(), "dark-truth-invalid-shared-images-")
+    );
+    const sharedDir = path.join(tempDir, "shared");
+    const imageDir = path.join(sharedDir, "images", "generated");
+    await fs.mkdir(imageDir, { recursive: true });
+    const scenePlan = scenePlanSchema.parse({
+      sourceId: "episode-fixture",
+      scenes: [
+        {
+          id: "scene-001",
+          sequenceNumber: 1,
+          canonicalNarration: "A single reused scene.",
+          sourceSegmentIds: ["scene-001"],
+          estimatedDurationSeconds: 4,
+          timing: { startSeconds: 0, endSeconds: 4 },
+          visualPurpose: "introduce the setting",
+          subject: "subject",
+          action: "shown",
+          setting: "setting",
+          composition: "composition",
+          cameraFraming: "wide shot",
+          mood: "tense",
+          continuityReferences: [],
+          onScreenText: "",
+          textRequirement: { required: false },
+          negativeConstraints: [],
+          aspectRatios: ["16:9"],
+          imagePrompt: "existing prompt",
+          expectedImageFilenames: ["scene-001__000000-000004__16x9.png"],
+          qualityStatus: "draft",
+        },
+      ],
+    });
+    const existingPath = path.join(imageDir, "scene-001__000000-000004__16x9.png");
+    await sharp({
+      create: {
+        width: 1024,
+        height: 1024,
+        channels: 4,
+        background: { r: 10, g: 20, b: 30, alpha: 1 },
+      },
+    })
+      .png()
+      .toFile(existingPath);
+
+    await expect(generateCanonicalImages(sharedDir, scenePlan)).rejects.toThrow(
+      /expected=1920x1080/
     );
   });
 

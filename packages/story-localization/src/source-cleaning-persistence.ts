@@ -33,6 +33,28 @@ export interface MaterializedCleanedSourceStory {
   readonly status: "written" | "skipped";
 }
 
+const DARK_TRUTH_SOURCE_DIR_NAMES = new Set([
+  "dark-truth-episodes-optimized",
+  "dark-truth-episodes-multilingual-production-pack",
+]);
+
+function isDarkTruthSourcePath(sourcePath: string): boolean {
+  return path.resolve(sourcePath).split(path.sep).some((part) => DARK_TRUTH_SOURCE_DIR_NAMES.has(part));
+}
+
+function appendDarkTruthMetadataFallback(cleanedText: string): string {
+  if (/\*\*Content disclosure:\*\*/iu.test(cleanedText)) {
+    return cleanedText;
+  }
+  return [
+    cleanedText.trimEnd(),
+    "",
+    "## Episode Metadata",
+    "",
+    "**Content disclosure:** Fictional horror narration.",
+  ].join("\n");
+}
+
 export function resolveSourceCleaningPaths(
   canonicalSourcePath: string,
   artifactSet: SourceCleaningArtifactSet = "canonical-source"
@@ -141,13 +163,17 @@ export async function materializeCleanedCanonicalSourceStory(args: {
       `${cleaning.report.fatal.message} Source: ${args.sourcePath}`
     );
   }
+  const cleanedText =
+    isDarkTruthSourcePath(args.sourcePath)
+      ? appendDarkTruthMetadataFallback(cleaning.cleanedText)
+      : cleaning.cleanedText;
   const paths = resolveSourceCleaningPaths(args.targetPath, args.artifactSet);
   await ensureDir(paths.sourceDirectory);
   const inPlaceCanonicalSource = path.resolve(args.sourcePath) === path.resolve(args.targetPath);
   const writes = await Promise.all([
     writeOriginalSnapshotIfMissing(paths.originalSourcePath, original, args.overwrite),
-    writeTextIfChanged(paths.cleanedSourcePath, cleaning.cleanedText, args.overwrite),
-    writeTextIfChanged(paths.canonicalSourcePath, cleaning.cleanedText, args.overwrite || inPlaceCanonicalSource),
+    writeTextIfChanged(paths.cleanedSourcePath, cleanedText, args.overwrite),
+    writeTextIfChanged(paths.canonicalSourcePath, cleanedText, args.overwrite || inPlaceCanonicalSource),
     writeReportIfChanged(paths.reportPath, cleaning.report, args.overwrite),
   ]);
   return {

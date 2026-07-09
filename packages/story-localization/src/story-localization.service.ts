@@ -7,7 +7,9 @@ import {
   fileExists,
   normalizeLocaleCode,
   normalizeWhitespace,
+  serializeOpenAIError,
   splitIntoSentences,
+  writeOpenAIDebugLog,
 } from "@mediaforge/shared";
 import { createLogger, type LoggerContext } from "@mediaforge/observability";
 import {
@@ -1139,6 +1141,9 @@ async function callOpenAiStructured(
   options?: {
     readonly debugDirectory: string;
     readonly debugFileBaseName: string;
+    readonly episodeRoot?: string;
+    readonly operation?: string;
+    readonly callerStage?: string;
   }
 ): Promise<StructuredOpenAiCallResult> {
   const maxAttempts = 5;
@@ -1156,6 +1161,11 @@ async function callOpenAiStructured(
   });
   const debugDirectory = options?.debugDirectory;
   const debugFileBaseName = options?.debugFileBaseName;
+  const episodeRoot =
+    options?.episodeRoot ??
+    (debugDirectory ? path.dirname(debugDirectory) : undefined);
+  const operation = options?.operation ?? requestLabel;
+  const callerStage = options?.callerStage ?? "story-rewrite";
   const persistDebugRequest = async (): Promise<void> => {
     if (!debugDirectory || !debugFileBaseName) {
       return;
@@ -1240,6 +1250,28 @@ async function callOpenAiStructured(
       remainingMs
     );
     try {
+      const attemptStartedAt = Date.now();
+      if (episodeRoot) {
+        // Story rewrite requests are logged before provider dispatch so dry-run,
+        // skipped, retry, and mock-provider paths keep final prompt visibility.
+        await writeOpenAIDebugLog({
+          episodeRoot,
+          operation,
+          mode: "real",
+          paidProviderCalled: false,
+          model,
+          endpoint: "/v1/responses",
+          request,
+          durationMs: 0,
+          attempt,
+          caller: {
+            file: "packages/story-localization/src/story-localization.service.ts",
+            function: "callOpenAiStructured",
+            stage: callerStage,
+          },
+          status: "pre-dispatch",
+        }).catch(() => undefined);
+      }
       const structuredResponses = client.responses as StructuredResponsesClient;
       const response = structuredResponses.parse
         ? await structuredResponses.parse(request, {
@@ -1385,6 +1417,27 @@ async function callOpenAiStructured(
             }
           : {}),
       };
+      if (episodeRoot) {
+        await writeOpenAIDebugLog({
+          episodeRoot,
+          operation,
+          mode: "real",
+          paidProviderCalled: true,
+          model,
+          endpoint: "/v1/responses",
+          request,
+          response: responseRecord,
+          usage: responsePayload.usage,
+          durationMs: Date.now() - attemptStartedAt,
+          attempt,
+          caller: {
+            file: "packages/story-localization/src/story-localization.service.ts",
+            function: "callOpenAiStructured",
+            stage: callerStage,
+          },
+          status: "success",
+        }).catch(() => undefined);
+      }
       return {
         request,
         response: responsePayload,
@@ -1392,6 +1445,26 @@ async function callOpenAiStructured(
       };
     } catch (error) {
       lastError = error;
+      if (episodeRoot) {
+        await writeOpenAIDebugLog({
+          episodeRoot,
+          operation,
+          mode: "real",
+          paidProviderCalled: true,
+          model,
+          endpoint: "/v1/responses",
+          request,
+          error: serializeOpenAIError(error),
+          durationMs: Date.now() - startedAt,
+          attempt,
+          caller: {
+            file: "packages/story-localization/src/story-localization.service.ts",
+            function: "callOpenAiStructured",
+            stage: callerStage,
+          },
+          status: "error",
+        }).catch(() => undefined);
+      }
       if (error instanceof StoryRetryableRequestError) {
         await persistDebugFailure(error);
         throw error;
@@ -1483,6 +1556,9 @@ async function generateStructuredStoryPackage<T>(
     readonly debug?: {
       readonly debugDirectory: string;
       readonly fileBaseName: string;
+      readonly episodeRoot?: string;
+      readonly operation?: string;
+      readonly callerStage?: string;
     };
     readonly preflight?: StoryRequestPreflightHook;
   }
@@ -1512,6 +1588,15 @@ async function generateStructuredStoryPackage<T>(
     ? {
         debugDirectory: options.debug.debugDirectory,
         debugFileBaseName: options.debug.fileBaseName,
+        ...(options.debug.episodeRoot
+          ? { episodeRoot: options.debug.episodeRoot }
+          : {}),
+        ...(options.debug.operation
+          ? { operation: options.debug.operation }
+          : {}),
+        ...(options.debug.callerStage
+          ? { callerStage: options.debug.callerStage }
+          : {}),
       }
     : undefined;
   await (options?.preflight?.({
@@ -2754,6 +2839,9 @@ export async function localizeStoryEpisode(
               debug: {
                 debugDirectory,
                 fileBaseName: `${debugPrefix}-en`,
+                episodeRoot: path.join(config.outputDirectory, parsed.slug),
+                operation: "rewrite-full",
+                callerStage: "canonical-english-full",
               },
               preflight: buildFullStoryPreflightAdapter({
                 cacheDir,
@@ -3325,6 +3413,9 @@ export async function localizeStoryEpisode(
                 debug: {
                   debugDirectory,
                   fileBaseName: `${debugPrefix}-${language}`,
+                  episodeRoot: path.join(config.outputDirectory, parsed.slug),
+                  operation: "localization-rewrite-full",
+                  callerStage: `localized-full-${language}`,
                 },
               }
             : {}),

@@ -78,15 +78,28 @@ export interface ImageBatchDestinationIdentity {
   readonly relativePath: string;
 }
 
+export type ImageBatchAspectRatio = "16:9" | "9:16" | "1:1";
+export type ImageBatchAssetPurpose = ImageBatchAssetRole;
+
 export interface ImageBatchAssetIdentity {
-  readonly schemaVersion: "image-asset-identity-v1";
+  readonly schemaVersion: "image-asset-identity-v2";
   readonly episodeId: string;
+  readonly episodeSlug: string;
   readonly language: EpisodeLanguage;
   readonly variant: ContentVariant;
+  readonly aspectRatio: ImageBatchAspectRatio;
   readonly assetRole: ImageBatchAssetRole;
+  readonly assetPurpose: ImageBatchAssetPurpose;
   readonly operation: ImageBatchOperation;
   readonly subject: ImageBatchSubject;
+  readonly storyBeatId: string;
+  readonly shotId?: string;
+  readonly visualIntentHash: string;
   readonly promptHash: string;
+  readonly dependencySourceHash: string;
+  readonly sourceLanguage: EpisodeLanguage;
+  readonly targetLanguage: EpisodeLanguage;
+  readonly configurationHash: string;
   readonly model: string;
   readonly size: string;
   readonly quality: ImageBatchQuality;

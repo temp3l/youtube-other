@@ -3,7 +3,7 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import sharp from "sharp";
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { scenePlanSchema } from "@mediaforge/domain";
 import {
   buildOpenAiImageRequestBody,
@@ -12,52 +12,73 @@ import {
   redactApiKey,
 } from "./openai-image.js";
 
+async function withIsolatedCwd(
+  run: () => Promise<void> | void
+): Promise<void> {
+  const tempDir = mkdtempSync(path.join(os.tmpdir(), "mediaforge-openai-image-cwd-"));
+  const previousCwd = process.cwd();
+  process.chdir(tempDir);
+  try {
+    await run();
+  } finally {
+    process.chdir(previousCwd);
+  }
+}
+
 describe("OpenAI image generation settings", () => {
-  it("uses curl-compatible defaults and preserves configured concurrency", () => {
-    const settings = loadOpenAiImageGenerationSettings({
-      OPENAI_API_KEY: "test-key",
-      OPENAI_IMAGE_MODEL: "gpt-image-1-mini",
-      OPENAI_IMAGE_SIZE: "1024x1024",
-      OPENAI_IMAGE_QUALITY: "low"
+  it("uses curl-compatible defaults and preserves configured concurrency", async () => {
+    await withIsolatedCwd(() => {
+      const settings = loadOpenAiImageGenerationSettings({
+        OPENAI_API_KEY: "test-key",
+        OPENAI_IMAGE_MODEL: "gpt-image-1-mini",
+        OPENAI_IMAGE_SIZE: "1024x1024",
+        OPENAI_IMAGE_QUALITY: "low"
+      });
+      expect(settings.model).toBe("gpt-image-1-mini");
+      expect(settings.quality).toBe("low");
+      expect(settings.requestedSize).toBe("1024x1024");
+      expect(settings.apiSize).toBe("1024x1024");
     });
-    expect(settings.model).toBe("gpt-image-1-mini");
-    expect(settings.quality).toBe("low");
-    expect(settings.requestedSize).toBe("1024x1024");
-    expect(settings.apiSize).toBe("1024x1024");
   });
 
-  it("maps larger gpt-image-2 landscape sizes to a supported request size and preserves concurrency", () => {
-    const settings = loadOpenAiImageGenerationSettings({
-      OPENAI_API_KEY: "test-key",
-      OPENAI_IMAGE_MODEL: "gpt-image-2",
-      OPENAI_IMAGE_SIZE: "1920x1088",
-      OPENAI_IMAGE_CONCURRENCY: "4"
+  it("maps larger gpt-image-2 landscape sizes to a supported request size and preserves concurrency", async () => {
+    await withIsolatedCwd(() => {
+      const settings = loadOpenAiImageGenerationSettings({
+        OPENAI_API_KEY: "test-key",
+        OPENAI_IMAGE_MODEL: "gpt-image-2",
+        OPENAI_IMAGE_SIZE: "1920x1088",
+        OPENAI_IMAGE_CONCURRENCY: "4"
+      });
+      expect(settings.concurrency).toBe(4);
+      expect(settings.requestedSize).toBe("1920x1088");
+      expect(settings.apiSize).toBe("1536x1024");
     });
-    expect(settings.concurrency).toBe(4);
-    expect(settings.requestedSize).toBe("1920x1088");
-    expect(settings.apiSize).toBe("1536x1024");
   });
 
-  it("accepts a lower 16:9 output size and maps it to a supported API size", () => {
-    const settings = loadOpenAiImageGenerationSettings({
-      OPENAI_API_KEY: "test-key",
-      OPENAI_IMAGE_MODEL: "gpt-image-1-mini",
-      OPENAI_IMAGE_SIZE: "1280x720",
-      OPENAI_IMAGE_CONCURRENCY: "2"
-    });
+  it("accepts a lower 16:9 output size and maps it to a supported API size", async () => {
+    await withIsolatedCwd(() => {
+      const settings = loadOpenAiImageGenerationSettings({
+        OPENAI_API_KEY: "test-key",
+        OPENAI_IMAGE_MODEL: "gpt-image-1-mini",
+        OPENAI_IMAGE_SIZE: "1280x720",
+        OPENAI_IMAGE_CONCURRENCY: "2"
+      });
 
-    expect(settings.requestedSize).toBe("1280x720");
-    expect(settings.apiSize).toBe("1536x1024");
+      expect(settings.requestedSize).toBe("1280x720");
+      expect(settings.apiSize).toBe("1536x1024");
+    });
   });
 
-  it("prefers OPENAI_ORGANIZATION but still accepts the legacy org id variable", () => {
-    const settings = loadOpenAiImageGenerationSettings({
-      OPENAI_API_KEY: "test-key",
-      OPENAI_ORGANIZATION: "org-new",
-      OPENAI_ORG_ID: "org-legacy"
-    });
+  it("prefers OPENAI_ORGANIZATION but still accepts the legacy org id variable", async () => {
+    await withIsolatedCwd(() => {
+      const settings = loadOpenAiImageGenerationSettings({
+        OPENAI_API_KEY: "test-key",
+        OPENAI_ORGANIZATION: "org-new",
+        OPENAI_ORG_ID: "org-legacy"
+      });
 
-    expect(settings.organization).toBe("org-new");
+      expect(settings.organization).toBe("org-new");
+    });
   });
 
   it("prefers OPENAI_API_KEY from .env over the inherited shell env", () => {
@@ -78,14 +99,38 @@ describe("OpenAI image generation settings", () => {
     }
   });
 
-  it("rejects malformed image sizes", () => {
-    expect(() =>
-      loadOpenAiImageGenerationSettings({
-        OPENAI_API_KEY: "test-key",
-        OPENAI_IMAGE_MODEL: "gpt-image-1-mini",
-        OPENAI_IMAGE_SIZE: "not-a-size"
-      })
-    ).toThrowError(/Invalid OPENAI_IMAGE_SIZE value/i);
+  it("loads image model and size from .env when the shell does not provide them", () => {
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), "mediaforge-openai-image-env-"));
+    const previousCwd = process.cwd();
+
+    writeFileSync(
+      path.join(tempDir, ".env"),
+      "OPENAI_API_KEY=dotenv-key\nOPENAI_IMAGE_MODEL=gpt-image-2\nOPENAI_IMAGE_SIZE=1536x864\nOPENAI_IMAGE_QUALITY=low\n"
+    );
+    process.chdir(tempDir);
+
+    try {
+      const settings = loadOpenAiImageGenerationSettings({});
+
+      expect(settings.apiKey).toBe("dotenv-key");
+      expect(settings.model).toBe("gpt-image-2");
+      expect(settings.requestedSize).toBe("1536x864");
+      expect(settings.quality).toBe("low");
+    } finally {
+      process.chdir(previousCwd);
+    }
+  });
+
+  it("rejects malformed image sizes", async () => {
+    await withIsolatedCwd(() => {
+      expect(() =>
+        loadOpenAiImageGenerationSettings({
+          OPENAI_API_KEY: "test-key",
+          OPENAI_IMAGE_MODEL: "gpt-image-1-mini",
+          OPENAI_IMAGE_SIZE: "not-a-size"
+        })
+      ).toThrowError(/Invalid OPENAI_IMAGE_SIZE value/i);
+    });
   });
 
   it("redacts API keys and keeps the request body curl-compatible", () => {
@@ -133,8 +178,10 @@ describe("OpenAI image generation settings", () => {
           scene: plan.scenes[0]!,
           prompt: "mouse eating in a habitat",
           episodeSlug: "episode-fixture",
+          language: "en",
           episodeDir: "/tmp/episode-fixture",
-          normalizedFilename: "scene-001__000000-000004__16x9.png"
+          normalizedFilename: "scene-001__000000-000004__16x9.png",
+          videoKind: "full",
         },
         settings
       );
@@ -153,6 +200,19 @@ describe("OpenAI image generation settings", () => {
 });
 
 describe("OpenAI image generation", () => {
+  let previousCwd = process.cwd();
+
+  beforeEach(() => {
+    previousCwd = process.cwd();
+    process.chdir(
+      mkdtempSync(path.join(os.tmpdir(), "mediaforge-openai-image-generation-cwd-"))
+    );
+  });
+
+  afterEach(() => {
+    process.chdir(previousCwd);
+  });
+
   it("omits output_format from the default png request body", async () => {
     const tempDir = mkdtempSync(path.join(os.tmpdir(), "mediaforge-openai-images-request-"));
     const episodeDir = path.join(tempDir, "episode");
@@ -219,8 +279,10 @@ describe("OpenAI image generation", () => {
           scene: plan.scenes[0]!,
           prompt: plan.scenes[0]!.imagePrompt,
           episodeSlug: "episode-fixture",
+          language: "en",
           episodeDir,
-          normalizedFilename: plan.scenes[0]!.expectedImageFilenames[0]!
+          normalizedFilename: plan.scenes[0]!.expectedImageFilenames[0]!,
+          videoKind: "full",
         }
       ],
       settings,
@@ -322,8 +384,10 @@ describe("OpenAI image generation", () => {
         scene,
         prompt: scene.imagePrompt,
         episodeSlug: "episode-fixture",
+        language: "en",
         episodeDir,
-        normalizedFilename: scene.expectedImageFilenames[0]!
+        normalizedFilename: scene.expectedImageFilenames[0]!,
+        videoKind: "full",
       })),
       settings,
       { client }
@@ -340,8 +404,8 @@ describe("OpenAI image generation", () => {
       const normalizedMeta = await sharp(result.renderedPath ?? "").metadata();
       expect(rawMeta.width).toBe(8);
       expect(rawMeta.height).toBe(8);
-      expect(normalizedMeta.width).toBe(1024);
-      expect(normalizedMeta.height).toBe(1024);
+      expect(normalizedMeta.width).toBe(1920);
+      expect(normalizedMeta.height).toBe(1080);
     }
   }, 20000);
 
@@ -431,8 +495,10 @@ describe("OpenAI image generation", () => {
         scene,
         prompt: scene.imagePrompt,
         episodeSlug: "episode-fixture",
+        language: "en",
         episodeDir,
-        normalizedFilename: scene.expectedImageFilenames[0]!
+        normalizedFilename: scene.expectedImageFilenames[0]!,
+        videoKind: "full",
       })),
       settings,
       { client }
@@ -507,8 +573,10 @@ describe("OpenAI image generation", () => {
           scene: plan.scenes[0]!,
           prompt: plan.scenes[0]!.imagePrompt,
           episodeSlug: "episode-fixture",
+          language: "en",
           episodeDir,
-          normalizedFilename: plan.scenes[0]!.expectedImageFilenames[0]!
+          normalizedFilename: plan.scenes[0]!.expectedImageFilenames[0]!,
+          videoKind: "full",
         }
       ],
       settings,

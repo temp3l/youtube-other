@@ -1,6 +1,7 @@
 export const workflowSchemaVersion = "story-workflow-manifest-v1" as const;
 export const stageOutcomeSchemaVersion = "stage-outcome-v1" as const;
 export const stageFailureSchemaVersion = "stage-failure-v1" as const;
+export const stageContractSchemaVersion = "stage-contract-v1" as const;
 
 export type WorkflowId = string & { readonly __brand: "WorkflowId" };
 export type ExecutionId = string & { readonly __brand: "ExecutionId" };
@@ -69,6 +70,17 @@ export const terminalStageStatuses = [
   "cached",
 ] as const;
 export type TerminalStageStatus = (typeof terminalStageStatuses)[number];
+
+export const stageOutcomeKinds = [
+  "planned",
+  "skipped",
+  "cache-hit",
+  "started",
+  "completed",
+  "failed-retryable",
+  "failed-terminal",
+] as const;
+export type StageOutcomeKind = (typeof stageOutcomeKinds)[number];
 
 export const retryabilities = [
   "retryable",
@@ -235,6 +247,30 @@ export interface FingerprintInputs {
   readonly workflowSchemaVersion: string;
 }
 
+export interface StageContractInput {
+  readonly name: string;
+  readonly fingerprint: string;
+  readonly source?: string;
+  readonly contentHash?: string;
+  readonly cacheIdentity?: string;
+  readonly resolverVersion?: string;
+  readonly locale?: WorkflowLocale;
+  readonly format?: StoryFormat;
+}
+
+export interface StageContractOutput {
+  readonly name: string;
+  readonly fingerprint?: string;
+  readonly path?: string;
+  readonly artifactId?: ArtifactId;
+}
+
+export interface StageDependencyFingerprint {
+  readonly stageId: StageId;
+  readonly contractFingerprint: string;
+  readonly legacySyntheticFingerprint?: boolean;
+}
+
 export interface ArtifactLineage {
   readonly artifactId: ArtifactId;
   readonly artifactType: string;
@@ -262,6 +298,7 @@ export type StageOutcome<TArtifactRef> =
   | {
       readonly schemaVersion: typeof stageOutcomeSchemaVersion;
       readonly status: "succeeded" | "cached";
+      readonly outcomeKind?: StageOutcomeKind;
       readonly stageId: StageId;
       readonly executionId: ExecutionId;
       readonly artifact: TArtifactRef;
@@ -277,9 +314,12 @@ export type StageOutcome<TArtifactRef> =
   | {
       readonly schemaVersion: typeof stageOutcomeSchemaVersion;
       readonly status: "failed" | "blocked" | "skipped" | "cancelled";
+      readonly outcomeKind?: StageOutcomeKind;
       readonly stageId: StageId;
       readonly executionId: ExecutionId;
       readonly failure: StageFailure;
+      readonly failureCategory?: FailureCategory;
+      readonly retryability?: Retryability;
       readonly fingerprintInputs: FingerprintInputs;
       readonly cache: CacheMetadata;
       readonly warnings: readonly StageWarning[];
@@ -339,7 +379,13 @@ export interface WorkflowStageState<TArtifactRef> {
   readonly format?: StoryFormat;
   readonly dependsOn: readonly StageId[];
   readonly status: StageStatus;
+  readonly outcomeKind?: StageOutcomeKind;
   readonly fingerprintInputs: FingerprintInputs;
+  readonly stageInputs?: readonly StageContractInput[];
+  readonly stageOutputs?: readonly StageContractOutput[];
+  readonly dependencyFingerprints?: readonly StageDependencyFingerprint[];
+  readonly contractFingerprint?: string;
+  readonly usesLegacySyntheticFingerprints?: boolean;
   readonly cache: CacheMetadata;
   readonly latestExecutionId?: ExecutionId;
   readonly latestCompletedAt?: string;

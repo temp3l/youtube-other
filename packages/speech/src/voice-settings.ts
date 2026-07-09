@@ -2,6 +2,10 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import type { VoiceProfile } from "@mediaforge/domain";
+import {
+  resolveSpeechNarrationPacingPreset,
+  type SpeechNarrationPacingPreset,
+} from "./narration-pacing.js";
 
 const moduleDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(moduleDir, "../../..");
@@ -12,6 +16,7 @@ export const speechVoicePresetSchema = {
 } as const;
 export type SpeechVoicePreset = (typeof speechVoicePresetSchema.values)[number];
 export type SpeechArtifactType = "full" | "short";
+const supportedNarrationLanguages = new Set(["en", "de", "es", "fr", "pt"]);
 
 const fallbackVoiceInstructions: Record<SpeechVoicePreset, string> = {
   slow: [
@@ -134,6 +139,41 @@ function defaultSpeedForPreset(preset: SpeechVoicePreset): number | undefined {
   return preset === "very-fast" ? 1.5 : undefined;
 }
 
+function normalizeNarrationLanguage(language: string): string {
+  return language.trim().toLowerCase().split("-", 1)[0] ?? "";
+}
+
+function buildPacingInstruction(
+  language: string | undefined,
+  artifactType: SpeechArtifactType | undefined,
+  targetWpm: number
+): string {
+  const normalizedLanguage = normalizeNarrationLanguage(language ?? "en");
+  if (normalizedLanguage === "de") {
+    return artifactType === "short"
+      ? `Sprich ungefähr ${targetWpm} Wörter pro Minute und halte das Timing straff.`
+      : `Sprich ungefähr ${targetWpm} Wörter pro Minute und halte das Timing zügig, aber natürlich.`;
+  }
+  if (normalizedLanguage === "es") {
+    return artifactType === "short"
+      ? `Mantén aproximadamente ${targetWpm} palabras por minuto y un ritmo compacto.`
+      : `Mantén aproximadamente ${targetWpm} palabras por minuto con un ritmo ágil pero natural.`;
+  }
+  if (normalizedLanguage === "fr") {
+    return artifactType === "short"
+      ? `Tenez environ ${targetWpm} mots par minute avec un rythme compact.`
+      : `Tenez environ ${targetWpm} mots par minute avec un débit vif mais naturel.`;
+  }
+  if (normalizedLanguage === "pt") {
+    return artifactType === "short"
+      ? `Mantenha aproximadamente ${targetWpm} palavras por minuto com ritmo compacto.`
+      : `Mantenha aproximadamente ${targetWpm} palavras por minuto com ritmo agil, mas natural.`;
+  }
+  return artifactType === "short"
+    ? `Target approximately ${targetWpm} words per minute and keep the timing compact.`
+    : `Target approximately ${targetWpm} words per minute with brisk but natural pacing.`;
+}
+
 export function resolveSpeechVoiceInstructionPath(
   language: string,
   artifactType: SpeechArtifactType = "full"
@@ -166,8 +206,21 @@ export function loadSpeechVoiceInstructionTemplate(input: {
       if (instructions.length > 0) {
         return { instructions, path };
       }
-    } catch {
-      // Fall back to preset instructions when a language-specific file is missing or unreadable.
+      throw new Error(`Speech instruction template is empty: ${path}`);
+    } catch (error) {
+      const normalizedLanguage = normalizeNarrationLanguage(language);
+      if (supportedNarrationLanguages.has(normalizedLanguage)) {
+        if (
+          error instanceof Error &&
+          error.message.startsWith("Speech instruction template is empty:")
+        ) {
+          throw error;
+        }
+        throw new Error(
+          `Missing speech instruction template for ${normalizedLanguage}/${input.artifactType ?? "full"}: ${path}`
+        );
+      }
+      void error;
     }
   }
   return {
@@ -179,6 +232,7 @@ export interface SpeechVoiceSettings {
   readonly preset: SpeechVoicePreset;
   readonly language?: string;
   readonly artifactType?: SpeechArtifactType;
+  readonly narrationPacingPreset?: SpeechNarrationPacingPreset;
   readonly instructions: string;
   readonly profile: VoiceProfile;
   readonly model: string;
@@ -209,15 +263,26 @@ export function loadSpeechVoiceSettings(overrides: SpeechVoiceSettingsOverrides 
   const preset = overrides.preset ?? "fast";
   const language = overrides.language;
   const artifactType = overrides.artifactType;
+  const narrationPacingPreset =
+    language && artifactType
+      ? resolveSpeechNarrationPacingPreset(language, artifactType)
+      : undefined;
   const template = loadSpeechVoiceInstructionTemplate({
     preset,
     ...(language ? { language } : {}),
     ...(artifactType ? { artifactType } : {}),
   });
-  const paceWpm = overrides.paceWpm ?? defaultPaceWpmForPreset(preset);
-  const speed = overrides.speed ?? defaultSpeedForPreset(preset);
+  const paceWpm =
+    overrides.paceWpm ??
+    narrationPacingPreset?.targetWpm ??
+    defaultPaceWpmForPreset(preset);
+  const speed =
+    overrides.speed ??
+    narrationPacingPreset?.providerSpeed ??
+    defaultSpeedForPreset(preset);
   const instructions = [
     buildLanguageAdjustment(language),
+    buildPacingInstruction(language, artifactType, paceWpm),
     template.instructions,
   ].filter((part) => part.length > 0).join(" ");
   const profile =
@@ -248,6 +313,7 @@ export function loadSpeechVoiceSettings(overrides: SpeechVoiceSettingsOverrides 
     preset,
     ...(language ? { language } : {}),
     ...(artifactType ? { artifactType } : {}),
+    ...(narrationPacingPreset ? { narrationPacingPreset } : {}),
     instructions,
     model: overrides.model ?? "gpt-4o-mini-tts",
     voice: overrides.voice ?? DEFAULT_SPEECH_VOICE,

@@ -9,7 +9,9 @@ import {
   toPortableRelativePath,
 } from "@mediaforge/shared";
 import type {
+  ImageBatchAspectRatio,
   ImageBatchAssetIdentity,
+  ImageBatchAssetPurpose,
   ImageBatchAssetRole,
   ImageBatchDestinationIdentity,
   ImageBatchDestinationRoot,
@@ -18,7 +20,7 @@ import type {
   ImageBatchSubject,
 } from "./image-batch.types.js";
 
-const imageAssetIdentityVersion = "image-asset-identity-v1" as const;
+const imageAssetIdentityVersion = "image-asset-identity-v2" as const;
 
 function normalizeNonEmpty(value: string, fieldName: string): string {
   const normalized = value.trim();
@@ -42,6 +44,34 @@ function normalizeSize(value: string): string {
 
 function normalizeQuality(value: ImageBatchQuality): ImageBatchQuality {
   return value;
+}
+
+function normalizeAspectRatio(
+  value: ImageBatchAspectRatio
+): ImageBatchAspectRatio {
+  return value;
+}
+
+function aspectRatioFromSize(value: string): ImageBatchAspectRatio {
+  const match = /^(\d+)x(\d+)$/u.exec(value.trim().toLowerCase());
+  if (!match?.[1] || !match[2]) {
+    return "16:9";
+  }
+  const width = Number.parseInt(match[1], 10);
+  const height = Number.parseInt(match[2], 10);
+  if (height > width) {
+    return "9:16";
+  }
+  if (height === width) {
+    return "1:1";
+  }
+  return "16:9";
+}
+
+function defaultAssetPurpose(
+  assetRole: ImageBatchAssetRole
+): ImageBatchAssetPurpose {
+  return assetRole;
 }
 
 function normalizeSubject(subject: ImageBatchSubject): ImageBatchSubject {
@@ -148,10 +178,19 @@ function canonicalIdentityFields(args: {
   readonly episodeId: string;
   readonly language: string;
   readonly variant: string;
+  readonly aspectRatio?: ImageBatchAspectRatio;
   readonly assetRole: ImageBatchAssetRole;
+  readonly assetPurpose?: ImageBatchAssetPurpose;
   readonly operation: ImageBatchOperation;
   readonly subject: ImageBatchSubject;
+  readonly storyBeatId?: string;
+  readonly shotId?: string;
+  readonly visualIntentHash?: string;
   readonly promptHash: string;
+  readonly dependencySourceHash?: string;
+  readonly sourceLanguage?: string;
+  readonly targetLanguage?: string;
+  readonly configurationHash?: string;
   readonly model: string;
   readonly size: string;
   readonly quality: ImageBatchQuality;
@@ -173,18 +212,61 @@ function canonicalIdentityFields(args: {
     assetRole: args.assetRole,
     destination: args.destination,
   });
+  const episodeId = normalizeEpisodeId(args.episodeId);
+  const language = normalizeLocaleCode(args.language);
+  const variant = normalizeContentVariant(args.variant);
+  const model = normalizeModel(args.model);
+  const size = normalizeSize(args.size);
+  const quality = normalizeQuality(args.quality);
+  const promptHash = normalizeHashLike(args.promptHash, "promptHash");
+  const configurationHash = normalizeHashLike(
+    args.configurationHash ??
+      hashText(
+        JSON.stringify({
+          model,
+          size,
+          quality,
+          operation: args.operation,
+          assetRole: args.assetRole,
+        })
+      ),
+    "configurationHash"
+  );
+  const dependencySourceHash = normalizeHashLike(
+    args.dependencySourceHash ??
+      hashText(JSON.stringify({ dependencyHashes, promptHash })),
+    "dependencySourceHash"
+  );
   return {
     schemaVersion: imageAssetIdentityVersion,
-    episodeId: normalizeEpisodeId(args.episodeId),
-    language: normalizeLocaleCode(args.language),
-    variant: normalizeContentVariant(args.variant),
+    episodeId,
+    episodeSlug: episodeId,
+    language,
+    variant,
+    aspectRatio: normalizeAspectRatio(
+      args.aspectRatio ?? aspectRatioFromSize(size)
+    ),
     assetRole: args.assetRole,
+    assetPurpose: args.assetPurpose ?? defaultAssetPurpose(args.assetRole),
     operation: args.operation,
     subject: normalizedSubject,
-    promptHash: normalizeHashLike(args.promptHash, "promptHash"),
-    model: normalizeModel(args.model),
-    size: normalizeSize(args.size),
-    quality: normalizeQuality(args.quality),
+    storyBeatId: normalizeNonEmpty(
+      args.storyBeatId ?? normalizedSubject.id,
+      "storyBeatId"
+    ),
+    ...(args.shotId ? { shotId: normalizeNonEmpty(args.shotId, "shotId") } : {}),
+    visualIntentHash: normalizeHashLike(
+      args.visualIntentHash ?? promptHash,
+      "visualIntentHash"
+    ),
+    promptHash,
+    dependencySourceHash,
+    sourceLanguage: normalizeLocaleCode(args.sourceLanguage ?? "en"),
+    targetLanguage: normalizeLocaleCode(args.targetLanguage ?? language),
+    configurationHash,
+    model,
+    size,
+    quality,
     dependencyHashes,
     destination,
   };
@@ -194,10 +276,19 @@ export function createImageBatchAssetIdentity(args: {
   readonly episodeId: string;
   readonly language: string;
   readonly variant: string;
+  readonly aspectRatio?: ImageBatchAspectRatio;
   readonly assetRole: ImageBatchAssetRole;
+  readonly assetPurpose?: ImageBatchAssetPurpose;
   readonly operation: ImageBatchOperation;
   readonly subject: ImageBatchSubject;
+  readonly storyBeatId?: string;
+  readonly shotId?: string;
+  readonly visualIntentHash?: string;
   readonly promptHash: string;
+  readonly dependencySourceHash?: string;
+  readonly sourceLanguage?: string;
+  readonly targetLanguage?: string;
+  readonly configurationHash?: string;
   readonly model: string;
   readonly size: string;
   readonly quality: ImageBatchQuality;

@@ -7,7 +7,12 @@ import {
   type SceneId,
   type VoiceProfile
 } from "@mediaforge/domain";
-import { ensureDir, fileExists } from "@mediaforge/shared";
+import {
+  ensureDir,
+  fileExists,
+  serializeOpenAIError,
+  writeOpenAIDebugLog,
+} from "@mediaforge/shared";
 import { runCurl } from "@mediaforge/process-runner";
 import {
   currentExecutionTelemetry,
@@ -47,6 +52,7 @@ export * from "./narration-status.js";
 export * from "./dark-truth-adapter.js";
 export * from "./voice-benchmark.js";
 export * from "./narration-telemetry.js";
+export * from "./narration-pacing.js";
 export {
   loadSpeechVoiceInstructionTemplate,
   loadSpeechVoiceSettings,
@@ -65,6 +71,7 @@ export interface SpeechSynthesisRequest {
   readonly outputPath: string;
   readonly targetDurationSeconds?: number;
   readonly instructions?: string;
+  readonly speed?: number;
   readonly requestFingerprint?: string;
 }
 
@@ -136,6 +143,18 @@ function isRetryableSpeechError(error: unknown): boolean {
 
 function uniqueModels(models: ReadonlyArray<string>): string[] {
   return [...new Set(models.map((model) => model.trim()).filter((model) => model.length > 0))];
+}
+
+function resolveEpisodeRootFromAudioOutputPath(outputPath: string): string | undefined {
+  const parts = path.resolve(outputPath).split(path.sep);
+  const markerIndex = parts.findIndex(
+    (part, index) =>
+      ["languages", "locales", "shared"].includes(part) && index > 0
+  );
+  if (markerIndex <= 0) {
+    return undefined;
+  }
+  return parts.slice(0, markerIndex).join(path.sep) || path.sep;
 }
 
 export class MockSpeechProvider implements SpeechProvider {
@@ -214,6 +233,9 @@ export class OpenAiCompatibleSpeechProvider implements SpeechProvider {
     model: string
   ): Promise<SpeechSynthesisResult> {
     const startedAt = new Date();
+    const episodeRoot = resolveEpisodeRootFromAudioOutputPath(
+      request.outputPath
+    );
     const headers = [
       "--header",
       `Authorization: Bearer ${this.options.apiKey}`,
@@ -228,21 +250,64 @@ export class OpenAiCompatibleSpeechProvider implements SpeechProvider {
     }
     if (this.client) {
       const tempPath = `${request.outputPath}.${process.pid}.tmp`;
+      const speed = request.speed ?? this.speed;
       const speechOptions = {
         input: request.text,
         model,
         voice: request.voiceProfile.providerVoiceId ?? this.voice,
         instructions: request.instructions ?? this.instructions,
         response_format: this.responseFormat,
-        ...(this.speed !== undefined ? { speed: this.speed } : {})
+        ...(speed !== undefined ? { speed } : {})
       } satisfies Parameters<SpeechClientLike["audio"]["speech"]["create"]>[0];
       try {
+        await writeOpenAIDebugLog({
+          ...(episodeRoot ? { episodeRoot } : {}),
+          operation: "speech-generation",
+          mode: "real",
+          paidProviderCalled: false,
+          model,
+          endpoint: "/v1/audio/speech",
+          request: speechOptions,
+          durationMs: 0,
+          attempt: 1,
+          caller: {
+            file: "packages/speech/src/index.ts",
+            function: "OpenAiCompatibleSpeechProvider.synthesizeWithModel",
+            stage: String(request.sceneId),
+          },
+          status: "pre-dispatch",
+        }).catch(() => undefined);
         const response = await this.client.audio.speech.create(speechOptions, { signal });
         const data = Buffer.from(await response.arrayBuffer());
         if (data.byteLength === 0) {
           throw new ProviderResponseError("OpenAI speech provider returned an empty audio payload.");
         }
         const metadata = validateSpeechAudioPayload(tempPath, data, request.targetDurationSeconds);
+        await writeOpenAIDebugLog({
+          ...(episodeRoot ? { episodeRoot } : {}),
+          operation: "speech-generation",
+          mode: "real",
+          paidProviderCalled: true,
+          model,
+          endpoint: "/v1/audio/speech",
+          request: speechOptions,
+          response: {
+            byteLength: data.byteLength,
+            responseFormat: this.responseFormat,
+            durationSeconds: metadata.durationSeconds,
+            sampleRate: metadata.sampleRate,
+            channels: metadata.channels,
+          },
+          usage: { durationSeconds: metadata.durationSeconds },
+          durationMs: Date.now() - startedAt.getTime(),
+          attempt: 1,
+          caller: {
+            file: "packages/speech/src/index.ts",
+            function: "OpenAiCompatibleSpeechProvider.synthesizeWithModel",
+            stage: String(request.sceneId),
+          },
+          status: "success",
+        }).catch(() => undefined);
         await fs.writeFile(tempPath, data);
         await fs.rename(tempPath, request.outputPath);
         const cost = telemetry
@@ -297,6 +362,24 @@ export class OpenAiCompatibleSpeechProvider implements SpeechProvider {
           channels: metadata.channels
         };
       } catch (error) {
+        await writeOpenAIDebugLog({
+          ...(episodeRoot ? { episodeRoot } : {}),
+          operation: "speech-generation",
+          mode: "real",
+          paidProviderCalled: true,
+          model,
+          endpoint: "/v1/audio/speech",
+          request: speechOptions,
+          error: serializeOpenAIError(error),
+          durationMs: Date.now() - startedAt.getTime(),
+          attempt: 1,
+          caller: {
+            file: "packages/speech/src/index.ts",
+            function: "OpenAiCompatibleSpeechProvider.synthesizeWithModel",
+            stage: String(request.sceneId),
+          },
+          status: "error",
+        }).catch(() => undefined);
         recordNarrationTelemetry({
           stage: "provider",
           chunkId: request.sceneId,
@@ -324,6 +407,39 @@ export class OpenAiCompatibleSpeechProvider implements SpeechProvider {
     try {
       await ensureDir(path.dirname(tempPath));
       await fs.writeFile(tempPath, "");
+      const speed = request.speed ?? this.speed;
+      const speechOptions = {
+        input: request.text,
+        model,
+        voice: request.voiceProfile.providerVoiceId ?? this.voice,
+        instructions: request.instructions ?? this.instructions,
+        response_format: this.responseFormat,
+        ...(speed !== undefined ? { speed } : {})
+      };
+      await writeOpenAIDebugLog({
+        ...(episodeRoot ? { episodeRoot } : {}),
+        operation: "speech-generation",
+        mode: "real",
+        paidProviderCalled: false,
+        model,
+        endpoint: "/v1/audio/speech",
+        request: {
+          ...speechOptions,
+          headers: {
+            Authorization: `Bearer ${this.options.apiKey}`,
+            ...(this.options.organization ? { "OpenAI-Organization": this.options.organization } : {}),
+            ...(this.options.project ? { "OpenAI-Project": this.options.project } : {}),
+          },
+        },
+        durationMs: 0,
+        attempt: 1,
+        caller: {
+          file: "packages/speech/src/index.ts",
+          function: "OpenAiCompatibleSpeechProvider.synthesizeWithModel",
+          stage: String(request.sceneId),
+        },
+        status: "pre-dispatch",
+      }).catch(() => undefined);
       const result = await runCurl(
         [
           "--fail-with-body",
@@ -335,14 +451,7 @@ export class OpenAiCompatibleSpeechProvider implements SpeechProvider {
           "--output",
           tempPath,
           "--data-binary",
-          JSON.stringify({
-            input: request.text,
-            model,
-            voice: request.voiceProfile.providerVoiceId ?? this.voice,
-            instructions: request.instructions ?? this.instructions,
-            response_format: this.responseFormat,
-            ...(this.speed !== undefined ? { speed: this.speed } : {})
-          }),
+          JSON.stringify(speechOptions),
           new URL("/v1/audio/speech", this.options.baseUrl ?? "https://api.openai.com").toString()
         ],
         { signal }
@@ -361,6 +470,31 @@ export class OpenAiCompatibleSpeechProvider implements SpeechProvider {
         throw new ProviderResponseError("OpenAI speech provider returned an empty audio payload.");
       }
       const metadata = validateSpeechAudioPayload(tempPath, data, request.targetDurationSeconds);
+      await writeOpenAIDebugLog({
+        ...(episodeRoot ? { episodeRoot } : {}),
+        operation: "speech-generation",
+        mode: "real",
+        paidProviderCalled: true,
+        model,
+        endpoint: "/v1/audio/speech",
+        request: speechOptions,
+        response: {
+          byteLength: data.byteLength,
+          responseFormat: this.responseFormat,
+          durationSeconds: metadata.durationSeconds,
+          sampleRate: metadata.sampleRate,
+          channels: metadata.channels,
+        },
+        usage: { durationSeconds: metadata.durationSeconds },
+        durationMs: Date.now() - startedAt.getTime(),
+        attempt: 1,
+        caller: {
+          file: "packages/speech/src/index.ts",
+          function: "OpenAiCompatibleSpeechProvider.synthesizeWithModel",
+          stage: String(request.sceneId),
+        },
+        status: "success",
+      }).catch(() => undefined);
       await fs.rename(tempPath, request.outputPath);
       const cost = telemetry
         ? estimateDurationPricing(telemetry.catalog, {
@@ -414,6 +548,32 @@ export class OpenAiCompatibleSpeechProvider implements SpeechProvider {
         channels: metadata.channels
       };
     } catch (error) {
+      const resolvedSpeed = request.speed ?? this.speed;
+      await writeOpenAIDebugLog({
+        ...(episodeRoot ? { episodeRoot } : {}),
+        operation: "speech-generation",
+        mode: "real",
+        paidProviderCalled: true,
+        model,
+        endpoint: "/v1/audio/speech",
+        request: {
+          input: request.text,
+          model,
+          voice: request.voiceProfile.providerVoiceId ?? this.voice,
+          instructions: request.instructions ?? this.instructions,
+          response_format: this.responseFormat,
+          ...(resolvedSpeed !== undefined ? { speed: resolvedSpeed } : {}),
+        },
+        error: serializeOpenAIError(error),
+        durationMs: Date.now() - startedAt.getTime(),
+        attempt: 1,
+        caller: {
+          file: "packages/speech/src/index.ts",
+          function: "OpenAiCompatibleSpeechProvider.synthesizeWithModel",
+          stage: String(request.sceneId),
+        },
+        status: "error",
+      }).catch(() => undefined);
       recordNarrationTelemetry({
         stage: "provider",
         chunkId: request.sceneId,

@@ -155,6 +155,10 @@ export interface VideoRenderRequest {
   readonly motion?: Partial<MotionRenderConfig>;
   readonly trailingSilenceRatio?: number;
   readonly trailingSilenceBufferSeconds?: number;
+  readonly audioBoundaryDiagnostics?: {
+    readonly warningThresholdSeconds?: number;
+    readonly failureThresholdSeconds?: number;
+  };
   readonly mediaContext?: MediaStageContext & {
     readonly scenePlanDependency?: MediaStageDependency;
     readonly imagePlanDependency?: MediaStageDependency;
@@ -168,14 +172,42 @@ export interface VideoRenderResult {
   readonly cleanPath: string;
   readonly captionedPath?: string;
   readonly validation: RenderValidation;
+  readonly audioAssembly?: AudioAssemblyDiagnostics;
   readonly shotRenderSummary?: ShotRenderSummary;
 }
 
 export interface SceneClipRenderResult {
   readonly clipsDir: string;
   readonly clipPaths: string[];
+  readonly clipDiagnostics?: readonly AudioAssemblyClipDiagnostic[];
   readonly shotManifests?: readonly ShotClipManifest[];
   readonly shotRenderSummary?: ShotRenderSummary;
+}
+
+export interface AudioAssemblyClipDiagnostic {
+  readonly clipId: string;
+  readonly clipPath: string;
+  readonly expectedDurationSeconds: number;
+  readonly actualVideoDurationSeconds: number;
+  readonly sourceAudioDurationSeconds?: number;
+  readonly driftSeconds: number;
+}
+
+export interface AudioAssemblyDiagnostics {
+  readonly schemaVersion: 1;
+  readonly strategy: "video-only-clips-continuous-narration";
+  readonly finalAudioCodec: "aac";
+  readonly finalAudioSampleRateHz: 48000;
+  readonly finalAudioChannels: 2;
+  readonly boundaryWarningThresholdSeconds: number;
+  readonly boundaryFailureThresholdSeconds: number;
+  readonly expectedTimelineDurationSeconds: number;
+  readonly actualClipTimelineDurationSeconds: number;
+  readonly continuousNarrationDurationSeconds: number;
+  readonly finalDurationSeconds: number;
+  readonly totalDriftSeconds: number;
+  readonly clips: readonly AudioAssemblyClipDiagnostic[];
+  readonly warnings: readonly string[];
 }
 
 export interface ShotSourceImage {
@@ -469,9 +501,39 @@ export const renderManifestSchema = z.object({
     durationSeconds: z.number(),
     videoCodec: z.string(),
     audioCodec: z.string(),
+    audioSampleRateHz: z.number().optional(),
+    audioChannels: z.number().optional(),
+    audioChannelLayout: z.string().optional(),
     pixelFormat: z.string(),
     issues: z.array(z.string()),
   }),
+  audioAssembly: z
+    .object({
+      schemaVersion: z.literal(1),
+      strategy: z.literal("video-only-clips-continuous-narration"),
+      finalAudioCodec: z.literal("aac"),
+      finalAudioSampleRateHz: z.literal(48000),
+      finalAudioChannels: z.literal(2),
+      boundaryWarningThresholdSeconds: z.number().nonnegative(),
+      boundaryFailureThresholdSeconds: z.number().nonnegative(),
+      expectedTimelineDurationSeconds: z.number().nonnegative(),
+      actualClipTimelineDurationSeconds: z.number().nonnegative(),
+      continuousNarrationDurationSeconds: z.number().nonnegative(),
+      finalDurationSeconds: z.number().nonnegative(),
+      totalDriftSeconds: z.number(),
+      clips: z.array(
+        z.object({
+          clipId: z.string().min(1),
+          clipPath: z.string().min(1),
+          expectedDurationSeconds: z.number().nonnegative(),
+          actualVideoDurationSeconds: z.number().nonnegative(),
+          sourceAudioDurationSeconds: z.number().nonnegative().optional(),
+          driftSeconds: z.number(),
+        })
+      ),
+      warnings: z.array(z.string()),
+    })
+    .optional(),
   status: z.literal("generated"),
   generatedAt: z.string().min(1),
 });
@@ -552,15 +614,12 @@ function buildSceneClipManifest(
   outputSha256: string,
   renderer?: "local" | "remote"
 ): SceneClipManifest {
-  return {
+  const manifest: Omit<SceneClipManifest, "captionsSha256"> = {
     schemaVersion: 2,
     sceneId: request.sceneId,
     sceneHash: request.sceneHash,
     imageSha256: request.imageSha256,
     audioSha256: request.audioSha256,
-    ...(request.captionsSha256
-      ? { captionsSha256: request.captionsSha256 }
-      : {}),
     renderProfile: request.renderProfile,
     trailingSilenceRatio: request.trailingSilenceRatio,
     trailingSilenceBufferSeconds: request.trailingSilenceBufferSeconds,
@@ -570,6 +629,13 @@ function buildSceneClipManifest(
     ...(renderer ? { renderer } : {}),
     outputSha256,
     generatedAt: new Date().toISOString(),
+  };
+  if (request.captionsSha256 === undefined) {
+    return manifest;
+  }
+  return {
+    ...manifest,
+    captionsSha256: request.captionsSha256,
   };
 }
 
@@ -644,6 +710,9 @@ export interface RenderValidation {
   readonly durationSeconds: number;
   readonly videoCodec: string;
   readonly audioCodec: string;
+  readonly audioSampleRateHz?: number;
+  readonly audioChannels?: number;
+  readonly audioChannelLayout?: string;
   readonly pixelFormat: string;
   readonly issues: string[];
 }
@@ -760,6 +829,8 @@ export async function backfillSceneClipManifests(
       ...(clipRequest.expectedHeight !== undefined
         ? { expectedHeight: clipRequest.expectedHeight }
         : {}),
+      requireAudio: false,
+      disallowAudio: true,
     });
     if (!validation.valid) {
       throw new MediaValidationError(
@@ -847,6 +918,7 @@ export interface RenderOutputValidationOptions {
   readonly expectedHeight?: number;
   readonly durationToleranceSeconds?: number;
   readonly requireAudio?: boolean;
+  readonly disallowAudio?: boolean;
 }
 
 interface ProbeMediaResult {
@@ -1149,6 +1221,9 @@ async function validateRenderOutput(
       );
     }
   }
+  if (options.disallowAudio && validation.audioCodec.length > 0) {
+    issues.push("Unexpected audio stream.");
+  }
   return {
     ...validation,
     valid: issues.length === 0,
@@ -1178,6 +1253,8 @@ async function probeMedia(filePath: string): Promise<RenderValidation> {
           height?: number;
           duration?: string;
           sample_rate?: string;
+          channels?: number;
+          channel_layout?: string;
           pix_fmt?: string;
         }>;
         format?: { duration?: string };
@@ -1206,6 +1283,13 @@ async function probeMedia(filePath: string): Promise<RenderValidation> {
     durationSeconds: duration,
     videoCodec: video?.codec_name ?? "",
     audioCodec: audio?.codec_name ?? "",
+    ...(audio?.sample_rate
+      ? { audioSampleRateHz: Number.parseInt(audio.sample_rate, 10) }
+      : {}),
+    ...(typeof audio?.channels === "number"
+      ? { audioChannels: audio.channels }
+      : {}),
+    ...(audio?.channel_layout ? { audioChannelLayout: audio.channel_layout } : {}),
     pixelFormat: video?.pix_fmt ?? "",
     issues,
   };
@@ -1220,7 +1304,13 @@ async function isReusableSceneClip(filePath: string): Promise<boolean> {
     return false;
   }
   const probe = await probeMedia(filePath).catch(() => null);
-  return Boolean(probe?.valid);
+  return Boolean(
+    probe &&
+      probe.videoCodec.length > 0 &&
+      probe.audioCodec.length === 0 &&
+      probe.width > 0 &&
+      probe.height > 0
+  );
 }
 
 function sceneHash(scene: ScenePlan["scenes"][number]): string {
@@ -1235,6 +1325,58 @@ function sceneHash(scene: ScenePlan["scenes"][number]): string {
       visualPurpose: scene.visualPurpose,
     })
   );
+}
+
+const finalAudioCodec = "aac" as const;
+const finalAudioSampleRateHz = 48000 as const;
+const finalAudioChannels = 2 as const;
+
+export function buildVisualConcatFfmpegArguments(input: {
+  readonly concatListPath: string;
+  readonly outputPath: string;
+}): readonly string[] {
+  return [
+    "-y",
+    "-f",
+    "concat",
+    "-safe",
+    "0",
+    "-i",
+    input.concatListPath,
+    "-c",
+    "copy",
+    input.outputPath,
+  ];
+}
+
+export function buildFinalAudioMuxFfmpegArguments(input: {
+  readonly visualPath: string;
+  readonly narrationAudioPath: string;
+  readonly outputPath: string;
+}): readonly string[] {
+  return [
+    "-y",
+    "-i",
+    input.visualPath,
+    "-i",
+    input.narrationAudioPath,
+    "-map",
+    "0:v:0",
+    "-map",
+    "1:a:0",
+    "-c:v",
+    "copy",
+    "-af",
+    `aresample=${finalAudioSampleRateHz}:async=1:first_pts=0`,
+    "-ar",
+    String(finalAudioSampleRateHz),
+    "-ac",
+    String(finalAudioChannels),
+    "-c:a",
+    finalAudioCodec,
+    "-shortest",
+    input.outputPath,
+  ];
 }
 
 function parseSceneImageFilename(
@@ -1273,7 +1415,7 @@ async function loadSceneClipManifest(
   if (!parsed.success) {
     return null;
   }
-  return parsed.data;
+  return parsed.data as SceneClipManifest;
 }
 
 async function probeDurationSeconds(filePath: string): Promise<number> {
@@ -1345,6 +1487,151 @@ async function calculateClipDurationSeconds(
   return Math.max(0.1, Math.min(duration, trimmedDuration));
 }
 
+function audioBoundaryThresholds(request: VideoRenderRequest): {
+  readonly warning: number;
+  readonly failure: number;
+} {
+  const frameSeconds = 1 / request.renderProfile.fps;
+  const warning =
+    toPositiveFiniteNumber(
+      request.audioBoundaryDiagnostics?.warningThresholdSeconds
+    ) ?? Math.max(0.05, frameSeconds);
+  const configuredFailure = toPositiveFiniteNumber(
+    request.audioBoundaryDiagnostics?.failureThresholdSeconds
+  );
+  return {
+    warning,
+    failure: configuredFailure ?? Math.max(0.25, frameSeconds * 3),
+  };
+}
+
+async function buildAudioAssemblyDiagnostics(input: {
+  readonly request: VideoRenderRequest;
+  readonly clipPaths: readonly string[];
+  readonly narrationAudioPath: string;
+  readonly expectedTimelineDurationSeconds: number;
+  readonly finalDurationSeconds: number;
+}): Promise<AudioAssemblyDiagnostics> {
+  const thresholds = audioBoundaryThresholds(input.request);
+  const clips: AudioAssemblyClipDiagnostic[] = [];
+  if (input.request.shotPlan) {
+    const shotPlan = shotPlanSchema.parse(input.request.shotPlan);
+    const shots = orderedShotPlanShots(shotPlan);
+    for (const [index, shot] of shots.entries()) {
+      const clipPath = input.clipPaths[index];
+      if (!clipPath) {
+        continue;
+      }
+      const expectedDurationSeconds =
+        frameDurationMs(
+          shotFrameCount(shotDurationMs(shot), input.request.renderProfile.fps),
+          input.request.renderProfile.fps
+        ) / 1000;
+      const actualVideoDurationSeconds = await probeDurationSeconds(clipPath);
+      clips.push({
+        clipId: shot.shotId,
+        clipPath,
+        expectedDurationSeconds,
+        actualVideoDurationSeconds,
+        driftSeconds: actualVideoDurationSeconds - expectedDurationSeconds,
+      });
+    }
+  } else {
+    const sortedScenePlan = stableSortScenes(input.request.scenePlan);
+    const audioDir =
+      input.request.sceneAudioDir ??
+      path.join(input.request.episodeDir, "audio", "segments");
+    for (const [index, scene] of sortedScenePlan.scenes.entries()) {
+      const clipPath = input.clipPaths[index];
+      if (!clipPath) {
+        continue;
+      }
+      const audioPath = await resolveSceneAudioPath(
+        input.request.episodeDir,
+        sortedScenePlan,
+        index,
+        audioDir
+      );
+      const sourceAudioDurationSeconds = await probeDurationSeconds(
+        audioPath
+      ).catch(() => undefined);
+      const clipDurationSeconds = await calculateClipDurationSeconds(
+        audioPath,
+        input.request.trailingSilenceRatio ?? 0.8,
+        input.request.trailingSilenceBufferSeconds ?? 0
+      );
+      const expectedDurationSeconds = Math.max(
+        0.1,
+        scene.timing.endSeconds - scene.timing.startSeconds,
+        clipDurationSeconds
+      );
+      const actualVideoDurationSeconds = await probeDurationSeconds(clipPath);
+      clips.push({
+        clipId: scene.id,
+        clipPath,
+        expectedDurationSeconds,
+        actualVideoDurationSeconds,
+        ...(sourceAudioDurationSeconds !== undefined
+          ? { sourceAudioDurationSeconds }
+          : {}),
+        driftSeconds: actualVideoDurationSeconds - expectedDurationSeconds,
+      });
+    }
+  }
+  const actualClipTimelineDurationSeconds = clips.reduce(
+    (total, clip) => total + clip.actualVideoDurationSeconds,
+    0
+  );
+  const totalDriftSeconds =
+    actualClipTimelineDurationSeconds - input.expectedTimelineDurationSeconds;
+  const warnings = [
+    ...clips
+      .filter((clip) => Math.abs(clip.driftSeconds) > thresholds.warning)
+      .map(
+        (clip) =>
+          `Clip ${clip.clipId} drift ${clip.driftSeconds.toFixed(3)}s exceeds warning threshold ${thresholds.warning.toFixed(3)}s.`
+      ),
+    ...(Math.abs(totalDriftSeconds) > thresholds.warning
+      ? [
+          `Total clip timeline drift ${totalDriftSeconds.toFixed(3)}s exceeds warning threshold ${thresholds.warning.toFixed(3)}s.`,
+        ]
+      : []),
+  ];
+  return {
+    schemaVersion: 1,
+    strategy: "video-only-clips-continuous-narration",
+    finalAudioCodec,
+    finalAudioSampleRateHz,
+    finalAudioChannels,
+    boundaryWarningThresholdSeconds: thresholds.warning,
+    boundaryFailureThresholdSeconds: thresholds.failure,
+    expectedTimelineDurationSeconds: input.expectedTimelineDurationSeconds,
+    actualClipTimelineDurationSeconds,
+    continuousNarrationDurationSeconds: await probeDurationSeconds(
+      input.narrationAudioPath
+    ),
+    finalDurationSeconds: input.finalDurationSeconds,
+    totalDriftSeconds,
+    clips,
+    warnings,
+  };
+}
+
+function assertAudioAssemblyWithinFailureThreshold(
+  diagnostics: AudioAssemblyDiagnostics
+): void {
+  const failedClip = diagnostics.clips.find(
+    (clip) =>
+      Math.abs(clip.driftSeconds) >
+      diagnostics.boundaryFailureThresholdSeconds
+  );
+  if (failedClip) {
+    throw new MediaValidationError(
+      `Rendered clip ${failedClip.clipId} boundary drift ${failedClip.driftSeconds.toFixed(3)}s exceeds failure threshold ${diagnostics.boundaryFailureThresholdSeconds.toFixed(3)}s.`
+    );
+  }
+}
+
 export function buildSceneClipFilterGraph(
   width: number,
   height: number,
@@ -1391,6 +1678,36 @@ export function buildSceneClipFilterGraph(
     : scaleFilter;
 }
 
+export function buildSceneClipFfmpegArguments(input: {
+  readonly imagePath: string;
+  readonly outputPath: string;
+  readonly width: number;
+  readonly height: number;
+  readonly fps: number;
+  readonly durationSeconds: number;
+  readonly captionsPath?: string;
+}): readonly string[] {
+  return [
+    "-y",
+    "-loop",
+    "1",
+    "-i",
+    input.imagePath,
+    "-vf",
+    buildSceneClipFilterGraph(input.width, input.height, input.captionsPath),
+    "-t",
+    String(input.durationSeconds),
+    "-r",
+    String(input.fps),
+    "-an",
+    "-c:v",
+    "libx264",
+    "-pix_fmt",
+    "yuv420p",
+    input.outputPath,
+  ];
+}
+
 export async function buildSceneClipRenderRequest(request: {
   readonly episodeId: string;
   readonly clipId: string;
@@ -1416,35 +1733,19 @@ export async function buildSceneClipRenderRequest(request: {
     request.trailingSilenceRatio ?? 0.8,
     request.trailingSilenceBufferSeconds ?? 0
   );
-  const framePaddingSeconds = 1 / request.fps;
   const targetDurationSeconds = Math.max(
     request.minimumDurationSeconds,
     clipDurationSeconds
-  ) + framePaddingSeconds;
-  const ffmpegArguments = [
-    "-y",
-    "-loop",
-    "1",
-    "-i",
-    request.imagePath,
-    "-i",
-    request.audioPath,
-    "-vf",
-    buildSceneClipFilterGraph(
-      request.width,
-      request.height,
-      request.captionsPath
-    ),
-    "-t",
-    String(targetDurationSeconds),
-    "-r",
-    String(request.fps),
-    "-c:v",
-    "libx264",
-    "-c:a",
-    "aac",
-    request.outputPath,
-  ];
+  );
+  const ffmpegArguments = buildSceneClipFfmpegArguments({
+    imagePath: request.imagePath,
+    outputPath: request.outputPath,
+    width: request.width,
+    height: request.height,
+    fps: request.fps,
+    durationSeconds: targetDurationSeconds,
+    ...(request.captionsPath ? { captionsPath: request.captionsPath } : {}),
+  });
   const renderFingerprint = buildRenderFingerprint(
     {
       episodeId: request.episodeId,
@@ -2171,6 +2472,8 @@ export class LocalClipRenderer implements ClipRenderer {
       ...(request.expectedHeight !== undefined
         ? { expectedHeight: request.expectedHeight }
         : {}),
+      requireAudio: false,
+      disallowAudio: true,
     });
     if (!validation.valid) {
       throw new MediaValidationError(
@@ -2469,6 +2772,7 @@ async function renderShotClip(
       ? { expectedHeight: request.clipRequest.expectedHeight }
       : {}),
     requireAudio: false,
+    disallowAudio: true,
   });
   if (!validation.valid) {
     await fs.rm(request.manifestPath, { force: true }).catch(() => {});
@@ -2688,6 +2992,7 @@ async function lookupDerivedShotCache(input: {
     expectedWidth: input.request.outputProfile.width,
     expectedHeight: input.request.outputProfile.height,
     requireAudio: false,
+    disallowAudio: true,
   }).catch(() => null);
   if (!validation?.valid) {
     return { hit: false, reason: "MEDIA_VALIDATION_FAILED", invalid: true };
@@ -2715,6 +3020,7 @@ async function renderDerivedShotCacheEntry(input: {
       expectedWidth: input.request.outputProfile.width,
       expectedHeight: input.request.outputProfile.height,
       requireAudio: false,
+      disallowAudio: true,
     });
     if (!validation.valid) {
       throw new MediaValidationError(
@@ -3319,6 +3625,8 @@ class RemoteClipRenderer implements ClipRenderer {
         ...(request.expectedHeight !== undefined
           ? { expectedHeight: request.expectedHeight }
           : {}),
+        requireAudio: false,
+        disallowAudio: true,
       });
       if (!validation.valid) {
         await fs.rm(partialPath, { force: true }).catch(() => {});
@@ -3987,6 +4295,24 @@ export class FFmpegVideoRenderer implements VideoRenderer {
         await runCommand("ffmpeg", clipRequest.ffmpegArguments, {
           timeoutMs: 600000,
         });
+        const validation = await validateRenderOutput(clipPath, {
+          ...(clipRequest.expectedDurationSeconds !== undefined
+            ? { expectedDurationSeconds: clipRequest.expectedDurationSeconds }
+            : {}),
+          ...(clipRequest.expectedWidth !== undefined
+            ? { expectedWidth: clipRequest.expectedWidth }
+            : {}),
+          ...(clipRequest.expectedHeight !== undefined
+            ? { expectedHeight: clipRequest.expectedHeight }
+            : {}),
+          requireAudio: false,
+          disallowAudio: true,
+        });
+        if (!validation.valid) {
+          throw new MediaValidationError(
+            `Rendered clip ${scene.id} failed validation: ${validation.issues.join("; ")}`
+          );
+        }
         const outputSha256 = await hashFile(clipPath);
         await writeSceneClipManifestFromRequest(
           clipRequest,
@@ -4029,20 +4355,14 @@ export class FFmpegVideoRenderer implements VideoRenderer {
       `${baseName}-visual-clean.mp4`
     );
     let expectedFinalDurationSeconds: number | undefined;
+    let narrationAudioPath: string | undefined;
+    let expectedTimelineDurationSeconds = 0;
     await runCommand(
       "ffmpeg",
-      [
-        "-y",
-        "-f",
-        "concat",
-        "-safe",
-        "0",
-        "-i",
+      buildVisualConcatFfmpegArguments({
         concatListPath,
-        "-c",
-        "copy",
-        visualConcatPath,
-      ],
+        outputPath: visualConcatPath,
+      }),
       {
         timeoutMs: 600000,
       }
@@ -4051,18 +4371,20 @@ export class FFmpegVideoRenderer implements VideoRenderer {
       const expectedDurationSeconds = request.shotPlan
         ? shotPlanDurationSeconds(shotPlanSchema.parse(request.shotPlan))
         : scenePlanDurationSeconds(request.scenePlan);
+      expectedTimelineDurationSeconds = expectedDurationSeconds;
       const visualValidation = await validateRenderOutput(visualConcatPath, {
         ...(request.shotPlan ? { expectedDurationSeconds } : {}),
         expectedWidth: request.renderProfile.width,
         expectedHeight: request.renderProfile.height,
         requireAudio: false,
+        disallowAudio: true,
       });
       if (!visualValidation.valid) {
         throw new MediaValidationError(
           `Rendered shot media failed validation: ${visualValidation.issues.join("; ")}`
         );
       }
-      const narrationAudioPath = await resolveShotNarrationAudioPath(
+      narrationAudioPath = await resolveShotNarrationAudioPath(
         request,
         expectedDurationSeconds
       );
@@ -4072,23 +4394,11 @@ export class FFmpegVideoRenderer implements VideoRenderer {
       );
       await runCommand(
         "ffmpeg",
-        [
-          "-y",
-          "-i",
-          visualConcatPath,
-          "-i",
+        buildFinalAudioMuxFfmpegArguments({
+          visualPath: visualConcatPath,
           narrationAudioPath,
-          "-map",
-          "0:v:0",
-          "-map",
-          "1:a:0",
-          "-c:v",
-          "copy",
-          "-c:a",
-          "aac",
-          "-shortest",
-          cleanPath,
-        ],
+          outputPath: cleanPath,
+        }),
         { timeoutMs: 600000 }
       );
     }
@@ -4118,6 +4428,16 @@ export class FFmpegVideoRenderer implements VideoRenderer {
         `Rendered media failed validation: ${validation.issues.join("; ")}`
       );
     }
+    if (validation.audioSampleRateHz !== finalAudioSampleRateHz) {
+      throw new MediaValidationError(
+        `Rendered media audio sample rate ${validation.audioSampleRateHz ?? "unknown"} does not match ${finalAudioSampleRateHz} Hz.`
+      );
+    }
+    if (validation.audioChannels !== finalAudioChannels) {
+      throw new MediaValidationError(
+        `Rendered media audio channel count ${validation.audioChannels ?? "unknown"} does not match ${finalAudioChannels}.`
+      );
+    }
     const expectedDurationSeconds = request.shotPlan
       ? shotPlanDurationSeconds(shotPlanSchema.parse(request.shotPlan))
       : scenePlanDurationSeconds(request.scenePlan);
@@ -4128,6 +4448,17 @@ export class FFmpegVideoRenderer implements VideoRenderer {
         `Rendered media is shorter than the expected duration. Expected at least ${minimumDurationSeconds.toFixed(3)}s but got ${validation.durationSeconds.toFixed(3)}s.`
       );
     }
+    if (!narrationAudioPath) {
+      throw new MediaValidationError("Unable to resolve narration audio path.");
+    }
+    const audioAssembly = await buildAudioAssemblyDiagnostics({
+      request,
+      clipPaths,
+      narrationAudioPath,
+      expectedTimelineDurationSeconds,
+      finalDurationSeconds: validation.durationSeconds,
+    });
+    assertAudioAssemblyWithinFailureThreshold(audioAssembly);
     const renderFingerprint = hashText(
       JSON.stringify({
         variant: context.identity.variant,
@@ -4163,6 +4494,7 @@ export class FFmpegVideoRenderer implements VideoRenderer {
         cleanPath,
         ...(captionedPath ? { captionedPath } : {}),
         validation,
+        audioAssembly,
         status: "generated",
         generatedAt: new Date().toISOString(),
       })
@@ -4172,6 +4504,7 @@ export class FFmpegVideoRenderer implements VideoRenderer {
           cleanPath,
           captionedPath,
           validation,
+          audioAssembly,
           ...(clipResult.shotRenderSummary
             ? { shotRenderSummary: clipResult.shotRenderSummary }
             : {}),
@@ -4179,6 +4512,7 @@ export class FFmpegVideoRenderer implements VideoRenderer {
       : {
           cleanPath,
           validation,
+          audioAssembly,
           ...(clipResult.shotRenderSummary
             ? { shotRenderSummary: clipResult.shotRenderSummary }
             : {}),

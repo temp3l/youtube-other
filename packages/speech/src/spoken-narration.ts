@@ -105,6 +105,7 @@ export function prepareSpokenNarrationText(sourceText: string): string {
       )
     )
     .filter((block) => block.length > 0)
+    .filter((block) => !/^-{3,}$/u.test(block))
     .join("\n\n");
 }
 
@@ -208,7 +209,8 @@ export async function prepareSpokenNarration(
     const source = await loadEpisodeScriptMarkdown(
       request.episodeDir,
       request.language,
-      request.sectionHeading ?? "Narration Script"
+      request.sectionHeading ?? "Narration Script",
+      variant
     );
     sourcePath = source.filePath;
     const sourceText = normalizeWhitespace(source.text);

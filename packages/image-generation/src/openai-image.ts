@@ -11,6 +11,8 @@ import {
   hashFile,
   hashText,
   normalizeWhitespace,
+  serializeOpenAIError,
+  writeOpenAIDebugLog,
   writeBinaryAtomic,
   writeJsonAtomic,
   writeTextAtomic,
@@ -26,6 +28,7 @@ import {
   currentExecutionTelemetry,
   estimateImageGenerationCost,
 } from "@mediaforge/observability";
+import { normalizeImageFileToSpec } from "./video-image-spec.js";
 
 export interface OpenAiImageGenerationSettings {
   readonly apiKey: string;
@@ -47,8 +50,10 @@ export interface OpenAiImageGenerationJob {
   readonly scene: Scene;
   readonly prompt: string;
   readonly episodeSlug: string;
+  readonly language: string;
   readonly episodeDir: string;
   readonly normalizedFilename: string;
+  readonly videoKind: "full" | "short";
 }
 
 export interface OpenAiImageGenerationResult extends ImageAsset {
@@ -642,22 +647,18 @@ async function cloneImageArtifacts(
 async function normalizeImage(
   rawPath: string,
   normalizedPath: string,
-  requestedSize: string
+  videoKind: "full" | "short"
 ): Promise<{
   readonly width: number;
   readonly height: number;
   readonly checksumSha256: string;
 }> {
-  const match = /^(\d+)x(\d+)$/u.exec(requestedSize);
-  const width = match ? Number.parseInt(match[1] ?? "", 10) : 1920;
-  const height = match ? Number.parseInt(match[2] ?? "", 10) : 1080;
-
-  const buffer = await sharp(rawPath)
-    .resize(width, height, { fit: "cover", position: "centre" })
-    .png()
-    .toBuffer();
-
-  await writeBinaryAtomic(normalizedPath, buffer);
+  await normalizeImageFileToSpec({
+    sourcePath: rawPath,
+    outputPath: normalizedPath,
+    videoKind,
+    format: "png",
+  });
 
   const metadata = await validateDecodedImage(normalizedPath);
 
@@ -698,17 +699,42 @@ async function generateSingleImage(
   const telemetry = currentExecutionTelemetry();
 
   for (let attempt = 0; attempt <= settings.maxRetries; attempt += 1) {
+    const attemptStartedMs = Date.now();
+    const requestBody = buildOpenAiImageRequestBody(job, settings);
+    const endpoint = "/v1/images/generations";
+    const baseUrl = new URL(endpoint, settings.baseUrl ?? "https://api.openai.com").toString();
     try {
+      await writeOpenAIDebugLog({
+        episodeRoot: job.episodeDir,
+        operation: "image-generation",
+        mode: "real",
+        paidProviderCalled: false,
+        model: settings.model,
+        endpoint,
+        request: {
+          url: baseUrl,
+          body: requestBody,
+          headers: {
+            Authorization: `Bearer ${settings.apiKey}`,
+            ...(settings.organization ? { "OpenAI-Organization": settings.organization } : {}),
+            ...(settings.project ? { "OpenAI-Project": settings.project } : {}),
+          },
+        },
+        durationMs: 0,
+        attempt: attempt + 1,
+        caller: {
+          file: "packages/image-generation/src/openai-image.ts",
+          function: "generateSingleImage",
+          stage: `${job.videoKind}:${job.language}:scene-${job.scene.sequenceNumber}`,
+        },
+        status: "pre-dispatch",
+      }).catch(() => undefined);
       if (client) {
-        const requestBody = buildOpenAiImageRequestBody(job, settings);
-
         response = await client.images.generate(
           requestBody,
           { signal: AbortSignal.timeout(settings.timeoutMs) }
         );
       } else {
-        const baseUrl = new URL("/v1/images/generations", settings.baseUrl ?? "https://api.openai.com").toString();
-        const body = buildOpenAiImageRequestBody(job, settings);
         logOpenAiImageRequest(job, settings, baseUrl);
         try {
           const responseBody = await fetch(baseUrl, {
@@ -719,7 +745,7 @@ async function generateSingleImage(
               ...(settings.organization ? { "OpenAI-Organization": settings.organization } : {}),
               ...(settings.project ? { "OpenAI-Project": settings.project } : {}),
             },
-            body: JSON.stringify(body),
+            body: JSON.stringify(requestBody),
             signal: AbortSignal.timeout(settings.timeoutMs),
           });
 
@@ -742,13 +768,35 @@ async function generateSingleImage(
             throw error;
           }
 
-          const parsed = await requestOpenAiImageWithCurl(body, settings, baseUrl);
+          const parsed = await requestOpenAiImageWithCurl(requestBody, settings, baseUrl);
 
           response = parsed as Awaited<ReturnType<OpenAiImageClientLike["images"]["generate"]>>;
         }
       }
 
       lastError = undefined;
+      await writeOpenAIDebugLog({
+        episodeRoot: job.episodeDir,
+        operation: "image-generation",
+        mode: "real",
+        paidProviderCalled: true,
+        model: settings.model,
+        endpoint,
+        request: {
+          url: baseUrl,
+          body: requestBody,
+        },
+        response,
+        usage: { imageCount: response.data?.length ?? 0 },
+        durationMs: Date.now() - attemptStartedMs,
+        attempt: attempt + 1,
+        caller: {
+          file: "packages/image-generation/src/openai-image.ts",
+          function: "generateSingleImage",
+          stage: `${job.videoKind}:${job.language}:scene-${job.scene.sequenceNumber}`,
+        },
+        status: "success",
+      }).catch(() => undefined);
       const cost = telemetry
           ? estimateImageGenerationCost(telemetry.catalog, {
               provider: "openai",
@@ -782,6 +830,27 @@ async function generateSingleImage(
       });
       break;
     } catch (error) {
+      await writeOpenAIDebugLog({
+        episodeRoot: job.episodeDir,
+        operation: "image-generation",
+        mode: "real",
+        paidProviderCalled: true,
+        model: settings.model,
+        endpoint,
+        request: {
+          url: baseUrl,
+          body: requestBody,
+        },
+        error: serializeOpenAIError(error),
+        durationMs: Date.now() - attemptStartedMs,
+        attempt: attempt + 1,
+        caller: {
+          file: "packages/image-generation/src/openai-image.ts",
+          function: "generateSingleImage",
+          stage: `${job.videoKind}:${job.language}:scene-${job.scene.sequenceNumber}`,
+        },
+        status: "error",
+      }).catch(() => undefined);
       telemetry?.recordApiCall({
         provider: "openai",
         model: settings.model,
@@ -844,7 +913,7 @@ async function generateSingleImage(
   const finalDimensions = await normalizeImage(
     rawPath,
     normalizedPath,
-    settings.requestedSize
+    job.videoKind
   );
   const rawChecksumSha256 = await hashFile(rawPath);
   const finalChecksumSha256 = finalDimensions.checksumSha256;
@@ -1097,9 +1166,11 @@ export function loadOpenAiImageGenerationSettings(
 
   const mergedEnv: Record<string, string | undefined> = {
     ...env,
-    ...(dotenvValues["OPENAI_API_KEY"] !== undefined
-      ? { OPENAI_API_KEY: dotenvValues["OPENAI_API_KEY"] }
-      : {})
+    ...Object.fromEntries(
+      Object.entries(dotenvValues).filter(([key]) =>
+        key.startsWith("OPENAI_")
+      )
+    ),
   };
   const apiKey = mergedEnv["OPENAI_API_KEY"];
 

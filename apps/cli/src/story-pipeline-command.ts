@@ -2,9 +2,10 @@ import path from "node:path";
 import { Command } from "commander";
 import { loadRuntimeConfig } from "@mediaforge/config";
 import {
-  buildPlannedStoryWorkflowManifest,
+  buildWorkspacePlannedStoryWorkflowManifest,
   StoryWorkflowManifestStore,
   workflowManifestSchema,
+  type StoryWorkflowManifest,
   type WorkflowId,
 } from "@mediaforge/story-localization";
 import {
@@ -59,6 +60,27 @@ async function maybeLoadResumedManifest(args: {
   return store.load(args.resume as WorkflowId);
 }
 
+function workspaceRootFromOutputRoot(outputRoot: string): string {
+  return path.basename(outputRoot) === "episodes"
+    ? path.dirname(outputRoot)
+    : outputRoot;
+}
+
+async function buildCurrentWorkspacePlan(args: {
+  readonly outputRoot: string;
+  readonly episodeId: string;
+  readonly locales?: readonly string[];
+  readonly formats?: readonly string[];
+}): Promise<StoryWorkflowManifest> {
+  return buildWorkspacePlannedStoryWorkflowManifest({
+    episodeId: args.episodeId,
+    dryRun: true,
+    ...(args.locales ? { locales: args.locales } : {}),
+    ...(args.formats ? { formats: args.formats } : {}),
+    workspaceRoot: workspaceRootFromOutputRoot(args.outputRoot),
+  });
+}
+
 export async function commandStoriesPipeline(
   options: StoryPipelineCliOptions,
   io: StoryPipelineIo = { stdout: process.stdout }
@@ -73,9 +95,9 @@ export async function commandStoriesPipeline(
   const outputRoot = path.resolve(options.outputRoot ?? runtimeConfig.workspaceDir);
   const locales = splitCsv(options.locales);
   const formats = splitCsv(options.formats);
-  const planned = buildPlannedStoryWorkflowManifest({
+  const planned = await buildCurrentWorkspacePlan({
+    outputRoot,
     episodeId: options.episode,
-    dryRun: true,
     ...(locales !== undefined ? { locales } : {}),
     ...(formats !== undefined ? { formats } : {}),
   });
@@ -84,7 +106,12 @@ export async function commandStoriesPipeline(
     episodeId: planned.episodeId,
     resume: options.resume,
   });
-  const manifest = workflowManifestSchema.parse(resumed ?? planned);
+  const manifest = workflowManifestSchema.parse(
+    resumed ?? planned
+  ) as StoryWorkflowManifest;
+  const currentManifest: StoryWorkflowManifest | undefined = resumed
+    ? planned
+    : undefined;
 
   if (options.json) {
     io.stdout.write(`${JSON.stringify(manifest, null, 2)}\n`);
@@ -100,6 +127,9 @@ export async function commandStoriesPipeline(
       `Formats: ${manifest.formats.join(", ")}`,
       `Planned stages: ${manifest.plannedStageCount}`,
       `Mode: ${options.batchMode ?? "hybrid"}`,
+      currentManifest
+        ? `Stale stages: ${buildStoryPipelineStatusJson(manifest, currentManifest).staleStages.length}`
+        : null,
       options.costEstimate ? "Cost estimate: unavailable in dry-run skeleton" : null,
     ]
       .filter((line): line is string => line !== null)
@@ -121,26 +151,34 @@ async function loadWorkflowForRead(options: StoryPipelineReadCliOptions) {
   if (!manifest) {
     throw new Error(`Workflow manifest not found: ${options.workflow}`);
   }
-  return manifest;
+  return { manifest, outputRoot };
 }
 
 export async function commandStoriesPipelineStatus(
   options: StoryPipelineReadCliOptions,
   io: StoryPipelineIo = { stdout: process.stdout }
 ): Promise<void> {
-  const manifest = await loadWorkflowForRead(options);
+  const { manifest, outputRoot } = await loadWorkflowForRead(options);
+  const currentManifest = await buildCurrentWorkspacePlan({
+    outputRoot,
+    episodeId: manifest.episodeId,
+    locales: manifest.locales,
+    formats: manifest.formats,
+  });
   if (options.json) {
-    io.stdout.write(`${JSON.stringify(buildStoryPipelineStatusJson(manifest), null, 2)}\n`);
+    io.stdout.write(
+      `${JSON.stringify(buildStoryPipelineStatusJson(manifest, currentManifest), null, 2)}\n`
+    );
     return;
   }
-  io.stdout.write(formatStoryPipelineStatus(manifest));
+  io.stdout.write(formatStoryPipelineStatus(manifest, currentManifest));
 }
 
 export async function commandStoriesPipelineInspect(
   options: StoryPipelineReadCliOptions,
   io: StoryPipelineIo = { stdout: process.stdout }
 ): Promise<void> {
-  const manifest = await loadWorkflowForRead(options);
+  const { manifest } = await loadWorkflowForRead(options);
   io.stdout.write(`${JSON.stringify(manifest, null, 2)}\n`);
 }
 

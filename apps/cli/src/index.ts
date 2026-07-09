@@ -86,10 +86,6 @@ import {
   writeTextAtomic,
 } from "@mediaforge/shared";
 import {
-  getLanguageProfile,
-  type LanguageCode,
-} from "@mediaforge/story-localization";
-import {
   buildAudioInstructionArtifact,
   computeTtsDependencyFingerprint,
   computeSpeechModelConfigFingerprint,
@@ -741,45 +737,6 @@ function localeForLanguage(language: string): string {
   }
 }
 
-function isLanguageCode(language: string): language is LanguageCode {
-  return (
-    language === "en" ||
-    language === "de" ||
-    language === "es" ||
-    language === "fr" ||
-    language === "pt"
-  );
-}
-
-function defaultPaceWpmForPreset(preset: SpeechVoicePreset): number {
-  if (preset === "very-fast") {
-    return 190;
-  }
-  if (preset === "slow") {
-    return 145;
-  }
-  return 180;
-}
-
-function resolveNarrationTempoSettings(
-  language: string,
-  variant: "full" | "short",
-  preset: SpeechVoicePreset
-): { readonly paceWpm?: number; readonly speed?: number } {
-  if (!isLanguageCode(language)) {
-    return {};
-  }
-  const profile = getLanguageProfile(language);
-  const paceWpm =
-    variant === "short" ? profile.shortNarrationWpm : profile.fullNarrationWpm;
-  const basePaceWpm = defaultPaceWpmForPreset(preset);
-  const speed = Number((paceWpm / Math.max(1, basePaceWpm)).toFixed(3));
-  return {
-    paceWpm,
-    ...(Number.isFinite(speed) && speed > 0 ? { speed } : {}),
-  };
-}
-
 async function loadValidatedNarrationDependency(
   episodeDir: string,
   language: string,
@@ -1137,9 +1094,13 @@ async function readEpisodeWorkspaceForAudio(
 ) {
   const config = await loadRuntimeConfig(configOverridesFromCli(options));
   const directDir = path.join(config.workspaceDir, episodeId);
+  const localizedScripts = await listEpisodeScriptLanguages(directDir).catch(
+    () => []
+  );
   const directScriptExists =
     (await fileExists(path.join(directDir, "script.md"))) ||
-    (await fileExists(path.join(directDir, "script", "rewritten-script.md")));
+    (await fileExists(path.join(directDir, "script", "rewritten-script.md"))) ||
+    localizedScripts.length > 0;
   const directManifestPath = path.join(directDir, "manifest.json");
   if (directScriptExists || (await fileExists(directManifestPath))) {
     const manifest = (await fileExists(directManifestPath))
@@ -1358,11 +1319,14 @@ async function synthesizeSpeechChunks(
 ): Promise<{
   segmentPaths: string[];
   artifacts: Array<ArtifactReference | undefined>;
+  totalDurationSeconds: number;
+  totalWordCount: number;
 }> {
   const segmentPaths: string[] = Array(chunks.length).fill("");
   const artifacts: Array<ArtifactReference | undefined> = Array(
     chunks.length
   ).fill(undefined);
+  const segmentDurations: number[] = Array(chunks.length).fill(0);
   const effectiveConcurrency = Math.min(
     Math.max(1, concurrency),
     Math.max(1, chunks.length)
@@ -1386,17 +1350,21 @@ async function synthesizeSpeechChunks(
         segmentsDir,
         `${safeBasename(`segment-${String(index + 1).padStart(3, "0")}`)}.wav`
       );
-      await speech.synthesize(
+      const result = await speech.synthesize(
         {
           sceneId,
           text: chunk,
           voiceProfile: speechSettings.profile,
           outputPath,
           instructions: audioInstruction.instructions,
+          ...(speechSettings.speed !== undefined
+            ? { speed: speechSettings.speed }
+            : {}),
         },
         new AbortController().signal
       );
       segmentPaths[index] = outputPath;
+      segmentDurations[index] = result.durationSeconds;
       const stats = await fs.stat(outputPath);
       artifacts[index] = {
         id: artifactIdSchema.parse(
@@ -1412,7 +1380,16 @@ async function synthesizeSpeechChunks(
     }
   });
   await Promise.all(workers);
-  return { segmentPaths, artifacts };
+  return {
+    segmentPaths,
+    artifacts,
+    totalDurationSeconds: segmentDurations.reduce((sum, duration) => sum + duration, 0),
+    totalWordCount: chunks.reduce(
+      (sum, chunk) =>
+        sum + chunk.split(/\s+/u).filter((token) => token.length > 0).length,
+      0
+    ),
+  };
 }
 
 function buildSpeechRequestPayload(
@@ -1866,21 +1843,10 @@ async function commandAudioGenerate(
   const runtime = await loadCliRuntime(options, episodeDir);
   const speechVoicePreset: SpeechVoicePreset =
     config.speechVoicePreset ?? episodeConfig?.speechVoicePreset ?? "fast";
-  const narrationTempo = resolveNarrationTempoSettings(
-    language,
-    "full",
-    speechVoicePreset
-  );
   const speechSettings = loadSpeechVoiceSettings({
     preset: speechVoicePreset,
     ...(language ? { language } : {}),
     artifactType: "full",
-    ...(narrationTempo.paceWpm !== undefined
-      ? { paceWpm: narrationTempo.paceWpm }
-      : {}),
-    ...(narrationTempo.speed !== undefined
-      ? { speed: narrationTempo.speed }
-      : {}),
   });
   await ensureDir(segmentsDir);
   await cleanupStaleAudioTempFiles(audioDir, segmentsDir);
@@ -1971,7 +1937,16 @@ async function commandAudioGenerate(
         1
       );
     }
-    const { segmentPaths, artifacts } = generated;
+    const {
+      segmentPaths,
+      artifacts,
+      totalDurationSeconds,
+      totalWordCount,
+    } = generated;
+    const estimatedWpm =
+      totalDurationSeconds > 0
+        ? (totalWordCount / totalDurationSeconds) * 60
+        : undefined;
     const completeSegmentPaths = segmentPaths.filter(
       (segmentPath): segmentPath is string => segmentPath.length > 0
     );
@@ -2040,6 +2015,7 @@ async function commandAudioGenerate(
       episodeId,
       slug: episodeSlug,
       language,
+      variant: narrationDependency.variant,
       scriptPath: narrationDependency.filePath,
       narrationPath,
       segmentsDir,
@@ -2047,6 +2023,13 @@ async function commandAudioGenerate(
       narrationFingerprint: narrationDependency.narrationFingerprint,
       dependencyFingerprint,
       audioInstructionPath,
+      model,
+      voice,
+      speed: speechSettings.speed ?? null,
+      pacingPresetId: speechSettings.narrationPacingPreset?.id ?? null,
+      targetWpm: speechSettings.paceWpm,
+      totalDurationSeconds,
+      estimatedWpm: estimatedWpm ?? null,
       generatedAt,
     });
     const ttsGenerationRecord: TtsGenerationRecord = {
@@ -2063,6 +2046,19 @@ async function commandAudioGenerate(
       dependencyFingerprint,
       narrationPath,
       segmentCount: chunks.length,
+      model,
+      voice,
+      ...(speechSettings.speed !== undefined
+        ? { speed: speechSettings.speed }
+        : {}),
+      ...(speechSettings.narrationPacingPreset?.id
+        ? { pacingPresetId: speechSettings.narrationPacingPreset.id }
+        : {}),
+      targetWpm: speechSettings.paceWpm,
+      ...(totalDurationSeconds > 0
+        ? { actualDurationSeconds: totalDurationSeconds }
+        : {}),
+      ...(estimatedWpm !== undefined ? { estimatedWpm } : {}),
       generatedAt,
     };
     await writeJsonAtomic(ttsGenerationPath, ttsGenerationRecord);
@@ -2097,6 +2093,15 @@ async function commandAudioGenerate(
       audioInstructionFingerprint: audioInstruction.instructionFingerprint,
       dependencyFingerprint,
       segmentCount: 0,
+      model,
+      voice,
+      ...(speechSettings.speed !== undefined
+        ? { speed: speechSettings.speed }
+        : {}),
+      ...(speechSettings.narrationPacingPreset?.id
+        ? { pacingPresetId: speechSettings.narrationPacingPreset.id }
+        : {}),
+      targetWpm: speechSettings.paceWpm,
       generatedAt,
       failureMessage: error instanceof Error ? error.message : String(error),
     } satisfies TtsGenerationRecord);
@@ -2981,21 +2986,10 @@ async function runAudioNarrationPipeline(
         variant,
         rolloutMode,
       };
-      const narrationTempo = resolveNarrationTempoSettings(
-        language,
-        variant,
-        speechVoicePreset
-      );
       const speechSettings = loadSpeechVoiceSettings({
         preset: speechVoicePreset,
         ...(language ? { language } : {}),
         artifactType: variant,
-        ...(narrationTempo.paceWpm !== undefined
-          ? { paceWpm: narrationTempo.paceWpm }
-          : {}),
-        ...(narrationTempo.speed !== undefined
-          ? { speed: narrationTempo.speed }
-          : {}),
       });
       try {
         const result = await runner.run({
@@ -3033,6 +3027,7 @@ async function runAudioNarrationPipeline(
                   ? { targetDurationSeconds: request.targetDurationSeconds }
                   : {}),
                 instructions: request.instructions,
+                ...(request.speed !== undefined ? { speed: request.speed } : {}),
               },
               new AbortController().signal
             );

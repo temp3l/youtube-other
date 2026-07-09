@@ -10,8 +10,10 @@ import {
   failureCategories,
   qualityGateStatuses,
   retryabilities,
+  stageContractSchemaVersion,
   stageFailureSchemaVersion,
   stageOutcomeSchemaVersion,
+  stageOutcomeKinds,
   stageStatuses,
   stageTypes,
   storyFormats,
@@ -144,6 +146,7 @@ export const artifactOwnerSchema = z.enum(artifactOwners);
 export const artifactProvenanceSchema = z.enum(artifactProvenances);
 export const stageStatusSchema = z.enum(stageStatuses);
 export const terminalStageStatusSchema = z.enum(terminalStageStatuses);
+export const stageOutcomeKindSchema = z.enum(stageOutcomeKinds);
 export const retryabilitySchema = z.enum(retryabilities);
 export const failureCategorySchema = z.enum(failureCategories);
 export const qualityGateStatusSchema = z.enum(qualityGateStatuses);
@@ -262,6 +265,47 @@ export const fingerprintInputsSchema = z
   })
   .strict();
 
+export const stageContractInputSchema = z
+  .object({
+    name: z.string().trim().min(1),
+    fingerprint: fingerprintSchema,
+    source: z.string().trim().min(1).optional(),
+    contentHash: fingerprintSchema.optional(),
+    cacheIdentity: z.string().trim().min(1).optional(),
+    resolverVersion: z.string().trim().min(1).optional(),
+    locale: workflowLocaleSchema.optional(),
+    format: storyFormatSchema.optional(),
+  })
+  .strict();
+
+export const stageContractOutputSchema = z
+  .object({
+    name: z.string().trim().min(1),
+    fingerprint: fingerprintSchema.optional(),
+    path: z.string().trim().min(1).optional(),
+    artifactId: artifactIdSchema.optional(),
+  })
+  .strict();
+
+export const stageDependencyFingerprintSchema = z
+  .object({
+    stageId: stageIdSchema,
+    contractFingerprint: fingerprintSchema,
+    legacySyntheticFingerprint: z.boolean().optional(),
+  })
+  .strict();
+
+export const stageContractSchema = z
+  .object({
+    schemaVersion: z.literal(stageContractSchemaVersion),
+    stageInputs: z.array(stageContractInputSchema),
+    stageOutputs: z.array(stageContractOutputSchema),
+    dependencyFingerprints: z.array(stageDependencyFingerprintSchema),
+    contractFingerprint: fingerprintSchema,
+    usesLegacySyntheticFingerprints: z.boolean(),
+  })
+  .strict();
+
 export const artifactLineageSchema = z
   .object({
     artifactId: artifactIdSchema,
@@ -295,6 +339,7 @@ export function createStageOutcomeSchema<TArtifact extends z.ZodTypeAny>(
   const baseSchema = z
     .object({
       schemaVersion: z.literal(stageOutcomeSchemaVersion),
+      outcomeKind: stageOutcomeKindSchema.optional(),
       stageId: stageIdSchema,
       executionId: executionIdSchema,
       fingerprintInputs: fingerprintInputsSchema,
@@ -326,6 +371,8 @@ export function createStageOutcomeSchema<TArtifact extends z.ZodTypeAny>(
     .extend({
       status: z.enum(["failed", "blocked", "skipped", "cancelled"]),
       failure: stageFailureSchema,
+      failureCategory: failureCategorySchema.optional(),
+      retryability: retryabilitySchema.optional(),
     })
     .strict();
 
@@ -407,7 +454,13 @@ export const workflowStageStateSchema = z
     format: storyFormatSchema.optional(),
     dependsOn: z.array(stageIdSchema),
     status: stageStatusSchema,
+    outcomeKind: stageOutcomeKindSchema.optional(),
     fingerprintInputs: fingerprintInputsSchema,
+    stageInputs: z.array(stageContractInputSchema).optional(),
+    stageOutputs: z.array(stageContractOutputSchema).optional(),
+    dependencyFingerprints: z.array(stageDependencyFingerprintSchema).optional(),
+    contractFingerprint: fingerprintSchema.optional(),
+    usesLegacySyntheticFingerprints: z.boolean().optional(),
     cache: cacheMetadataSchema,
     latestExecutionId: executionIdSchema.optional(),
     latestCompletedAt: isoUtcDateTimeSchema.optional(),

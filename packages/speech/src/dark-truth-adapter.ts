@@ -27,10 +27,14 @@ import {
   type NarrationChunkSynthesisRequest,
   type NarrationPipelineResult,
 } from "./narration-pipeline.js";
-import type { ProbeAudioMetadata } from "./audio-validation.js";
+import {
+  probeAudioWithFfprobe,
+  type ProbeAudioMetadata,
+} from "./audio-validation.js";
+import { resolveSpeechNarrationPacingPreset } from "./narration-pacing.js";
 import { DEFAULT_SPEECH_VOICE } from "./voice-settings.js";
 
-const supportedDarkTruthLanguages = ["en", "de", "es", "fr"] as const;
+const supportedDarkTruthLanguages = ["en", "de", "es", "fr", "pt"] as const;
 const supportedDarkTruthArtifactTypes = ["full", "short"] as const;
 const segmentIdPattern = /^segment-[0-9]{3,}$/u;
 
@@ -142,6 +146,13 @@ export interface DarkTruthCompatibilityNarrationManifest {
   readonly segmentSha256s: readonly string[];
   readonly narrationPath: string;
   readonly narrationSha256: string;
+  readonly model?: string;
+  readonly voice?: string;
+  readonly speed?: number;
+  readonly pacingPresetId?: string;
+  readonly targetWpm?: number;
+  readonly actualDurationSeconds?: number;
+  readonly estimatedWpm?: number;
   readonly generatedAt: string;
   readonly adapterMode?: "new";
   readonly canonicalManifestHash?: string;
@@ -451,6 +462,11 @@ async function writeCompatibilityManifest(input: {
   readonly chunkManifest: NarrationChunkManifest;
   readonly chunkAudioDir: string;
   readonly narrationPath: string;
+  readonly model: string;
+  readonly voice: string;
+  readonly speed: number;
+  readonly pacingPresetId?: string;
+  readonly targetWpm?: number;
   readonly generatedAt: string;
 }): Promise<{
   readonly manifestPath: string;
@@ -462,6 +478,11 @@ async function writeCompatibilityManifest(input: {
     const chunkPath = path.join(input.chunkAudioDir, `${chunk.chunkId}.wav`);
     segmentSha256s.push(await hashFile(chunkPath));
   }
+  const narrationMetadata = await probeAudioWithFfprobe(input.narrationPath);
+  const totalWordCount = input.speechPlan.segments.reduce(
+    (sum, segment) => sum + segment.wordCount,
+    0
+  );
   const manifestPath = path.join(input.episodeDir, "audio", "narration-manifest.json");
   const manifest: DarkTruthCompatibilityNarrationManifest = {
     schemaVersion: 2,
@@ -474,6 +495,18 @@ async function writeCompatibilityManifest(input: {
     segmentSha256s,
     narrationPath: input.narrationPath,
     narrationSha256: await hashFile(input.narrationPath),
+    model: input.model,
+    voice: input.voice,
+    speed: input.speed,
+    ...(input.pacingPresetId ? { pacingPresetId: input.pacingPresetId } : {}),
+    ...(input.targetWpm !== undefined ? { targetWpm: input.targetWpm } : {}),
+    ...(narrationMetadata.durationSeconds > 0
+      ? {
+          actualDurationSeconds: narrationMetadata.durationSeconds,
+          estimatedWpm:
+            (totalWordCount / narrationMetadata.durationSeconds) * 60,
+        }
+      : {}),
     generatedAt: input.generatedAt,
     adapterMode: "new",
     canonicalManifestHash: input.chunkManifest.manifestFingerprint,
@@ -520,6 +553,13 @@ export async function runDarkTruthNarrationAdapter(
     },
     "Running Dark Truth narration adapter."
   );
+  const pacingPreset = resolveSpeechNarrationPacingPreset(
+    speechPlan.language,
+    speechPlan.artifactType
+  );
+  const model = input.model ?? "gpt-4o-mini-tts";
+  const voice = input.voice ?? DEFAULT_SPEECH_VOICE;
+  const speed = input.speed ?? pacingPreset.providerSpeed;
   const pipeline = new NarrationPipeline();
   const pipelineResult = await pipeline.run({
     episodeDir: episodeRoot,
@@ -529,9 +569,9 @@ export async function runDarkTruthNarrationAdapter(
     variant: speechPlan.artifactType,
     stage: "all",
     rolloutMode: "new",
-    model: input.model ?? "gpt-4o-mini-tts",
-    voice: input.voice ?? DEFAULT_SPEECH_VOICE,
-    speed: input.speed ?? 1,
+    model,
+    voice,
+    speed,
     outputFormat: "wav",
     baseVoiceInstructions:
       input.baseVoiceInstructions ?? speechPlan.canonicalVoiceProfile,
@@ -553,6 +593,11 @@ export async function runDarkTruthNarrationAdapter(
     chunkManifest,
     chunkAudioDir: pipelineResult.paths.chunkAudioDir,
     narrationPath: legacyNarrationPath,
+    model,
+    voice,
+    speed,
+    pacingPresetId: pacingPreset.id,
+    targetWpm: pacingPreset.targetWpm,
     generatedAt: nowIso(),
   });
   input.logger?.info(

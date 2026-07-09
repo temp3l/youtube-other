@@ -2,6 +2,7 @@ import { z } from "zod";
 import { contentVariants, localeCodes } from "@mediaforge/shared";
 
 const imageBatchQualitySchema = z.enum(["low", "medium", "high", "auto"]);
+const imageBatchAspectRatioSchema = z.enum(["16:9", "9:16", "1:1"]);
 
 const imageBatchAssetRoleSchema = z.enum([
   "full-scene",
@@ -57,7 +58,7 @@ export const imageBatchDestinationIdentitySchema = z.object({
   relativePath: z.string().min(1),
 });
 
-export const imageBatchAssetIdentitySchema = z.object({
+export const legacyImageBatchAssetIdentityV1Schema = z.object({
   schemaVersion: z.literal("image-asset-identity-v1"),
   episodeId: z.string().min(1),
   language: z.enum(localeCodes),
@@ -74,18 +75,50 @@ export const imageBatchAssetIdentitySchema = z.object({
   identityHash: z.string().min(1),
 });
 
+export const imageBatchAssetIdentitySchema = z.object({
+  schemaVersion: z.literal("image-asset-identity-v2"),
+  episodeId: z.string().min(1),
+  episodeSlug: z.string().min(1),
+  language: z.enum(localeCodes),
+  variant: z.enum(contentVariants),
+  aspectRatio: imageBatchAspectRatioSchema,
+  assetRole: imageBatchAssetRoleSchema,
+  assetPurpose: imageBatchAssetRoleSchema,
+  operation: imageBatchOperationSchema,
+  subject: imageBatchSubjectSchema,
+  storyBeatId: z.string().min(1),
+  shotId: z.string().min(1).optional(),
+  visualIntentHash: z.string().min(1),
+  promptHash: z.string().min(1),
+  dependencySourceHash: z.string().min(1),
+  sourceLanguage: z.enum(localeCodes),
+  targetLanguage: z.enum(localeCodes),
+  configurationHash: z.string().min(1),
+  model: z.string().min(1),
+  size: z.string().min(1),
+  quality: imageBatchQualitySchema,
+  dependencyHashes: z.array(z.string().min(1)),
+  destination: imageBatchDestinationIdentitySchema,
+  identityHash: z.string().min(1),
+});
+
+const compatibleImageBatchAssetIdentitySchema = z.union([
+  imageBatchAssetIdentitySchema,
+  legacyImageBatchAssetIdentityV1Schema,
+]);
+
 export const imageBatchDependencySchema = z.object({
   role: imageBatchDependencyRoleSchema,
   approvalStatus: imageBatchDependencyApprovalStatusSchema,
   sourcePath: z.string().min(1),
   openAIFileId: z.string().min(1).optional(),
   sha256: z.string().min(1),
-  assetIdentity: imageBatchAssetIdentitySchema,
+  assetIdentity: compatibleImageBatchAssetIdentitySchema,
 });
 
 export const imageBatchManifestItemSchema = z.object({
   customId: z.string().min(1),
-  identity: imageBatchAssetIdentitySchema,
+  identity: compatibleImageBatchAssetIdentitySchema,
   sceneId: z.string().min(1).optional(),
   sceneIndex: z.number().int().nonnegative().optional(),
   renderability: z
@@ -190,7 +223,7 @@ export const imageBatchManifestSchema = z.object({
 });
 
 export const sceneImageJobSchema = z.object({
-  identity: imageBatchAssetIdentitySchema,
+  identity: compatibleImageBatchAssetIdentitySchema,
   sceneId: z.string().min(1).optional(),
   sceneIndex: z.number().int().nonnegative().optional(),
   renderability: z

@@ -1,0 +1,6 @@
+Use sempre a mesma voz masculina adulta.
+Fale em portugues brasileiro natural com um tom documental sombrio e contido.
+Mantenha uma identidade vocal, um volume, um carater de gravacao e uma pronuncia estaveis.
+Use mudancas emocionais moderadas para os dialogos.
+Nao interprete vozes exageradas.
+Nao leia titulos, metadados, instrucoes de producao, notas de design sonoro nem sintaxe Markdown.

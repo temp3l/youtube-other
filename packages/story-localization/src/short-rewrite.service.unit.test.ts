@@ -656,6 +656,30 @@ describe("short rewrite service", () => {
     expect(summary.dryRun).toBe(true);
     expect(summary.skipped).toBe(1);
     expect(client.responses.create).not.toHaveBeenCalled();
+    const debugDir = path.join(
+      tempRoot,
+      "009-the-christmas-doll",
+      "debug",
+      "openai-calls"
+    );
+    const logFiles = await fs.readdir(debugDir);
+    expect(logFiles).toHaveLength(1);
+    const log = JSON.parse(
+      await fs.readFile(path.join(debugDir, logFiles[0] ?? ""), "utf8")
+    ) as {
+      readonly mode: string;
+      readonly paidProviderCalled: boolean;
+      readonly request: {
+        readonly input: Array<{
+          readonly role: string;
+          readonly content: Array<{ readonly text: string }>;
+        }>;
+      };
+    };
+    expect(log.mode).toBe("dry-run");
+    expect(log.paidProviderCalled).toBe(false);
+    expect(log.request.input[0]?.content[0]?.text).toContain("short");
+    expect(log.request.input[1]?.content[0]?.text).toContain("Lena");
   });
 
   it("materializes the canonical source before generating when compatibility mode is enabled", async () => {

@@ -10,6 +10,8 @@
 - Story localization validates config early, performs structured-output validation, and can run repair prompts when output shape or content constraints fail.
 - Short rewrite explicitly classifies transient OpenAI and network failures, retries them with backoff, and can escalate token ceilings through repair or retry settings.
 - Both flows persist request and response debug artifacts when enabled, which makes failures inspectable without replaying the call.
+- OpenAI-related debug logs are written as structured JSON under `<episode-root>/debug/openai-calls/` when an episode root is known, otherwise under `debug/openai-calls/unscoped/`. Future OpenAI callers should pass explicit `{ episodeRoot, operation, stage, attempt, mode, paidProviderCalled }` context rather than deriving it from output paths.
+- Story rewrite requests log the final Responses API envelope before provider dispatch so mock, dry-run, retry, and skipped paths do not lose prompt visibility. Image base64 payloads, authorization headers, cookies, API keys, bearer tokens, and suspicious large base64-like strings are redacted before debug files are written.
 
 ## Metadata Generation
 

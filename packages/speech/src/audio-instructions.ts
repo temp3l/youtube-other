@@ -78,6 +78,13 @@ export const ttsGenerationRecordSchema = z
     dependencyFingerprint: hashSchema,
     narrationPath: z.string().min(1).optional(),
     segmentCount: z.number().int().nonnegative(),
+    model: z.string().min(1).optional(),
+    voice: z.string().min(1).optional(),
+    speed: z.number().positive().optional(),
+    pacingPresetId: z.string().min(1).optional(),
+    targetWpm: z.number().positive().optional(),
+    actualDurationSeconds: z.number().positive().optional(),
+    estimatedWpm: z.number().positive().optional(),
     generatedAt: z.string().min(1),
     failureMessage: z.string().min(1).optional(),
   })

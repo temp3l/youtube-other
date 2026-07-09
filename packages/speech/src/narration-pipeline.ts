@@ -67,7 +67,12 @@ import {
   segmentNarration,
 } from "./narration-segmentation.js";
 import {
+  assessNarrationPacing,
+  resolveSpeechNarrationPacingPreset,
+} from "./narration-pacing.js";
+import {
   validateChunkAudio,
+  probeAudioWithFfprobe,
   type ProbeAudioMetadata,
 } from "./audio-validation.js";
 import {
@@ -281,6 +286,11 @@ function buildGenerationMetadata(input: {
 }): NarrationGenerationMetadata {
   const model = input.request.model ?? "gpt-4o-mini-tts";
   const voice = input.request.voice ?? DEFAULT_SPEECH_VOICE;
+  const pacingPreset = resolveSpeechNarrationPacingPreset(
+    input.request.language,
+    input.request.variant
+  );
+  const speed = input.request.speed ?? pacingPreset.providerSpeed;
   return narrationGenerationMetadataSchema.parse({
     schemaVersion: NARRATION_ARTIFACT_SCHEMA_VERSION,
     episodeId: input.request.episodeId,
@@ -323,7 +333,7 @@ function buildGenerationMetadata(input: {
         startedAt: input.startedAt,
         completedAt: input.completedAt,
       })),
-    openAi: { model, voice },
+    openAi: { model, voice, speed },
     usageCounters: {
       chunksRequested: input.chunkManifest.chunks.length,
       chunksGenerated: input.records.length,
@@ -577,7 +587,12 @@ export class NarrationPipeline {
     const transforms = await readPronunciationTransforms(paths, manifest);
     const model = request.model ?? "gpt-4o-mini-tts";
     const voice = request.voice ?? DEFAULT_SPEECH_VOICE;
-    const speed = request.speed ?? 1;
+    const speed =
+      request.speed ??
+      resolveSpeechNarrationPacingPreset(
+        request.language,
+        request.variant
+      ).providerSpeed;
     const outputFormat = request.outputFormat ?? "wav";
     const outputPaths: string[] = [];
     const failures: string[] = [];
@@ -808,6 +823,11 @@ export class NarrationPipeline {
     const assembly = await readJsonIfExists(paths.assemblyManifest, (value) => narrationAssemblyManifestSchema.parse(value));
     const mastering = await readJsonIfExists(path.join(paths.narrationRoot, "mastering-metadata.json"), (value) => narrationMasteringMetadataSchema.parse(value));
     const generation = await readJsonIfExists(paths.generationMetadata, (value) => narrationGenerationMetadataSchema.parse(value));
+    const pacingSummary = await buildPacingSummary({
+      request,
+      paths,
+      mastering,
+    });
     const report = await runQualityGate({
       request,
       paths,
@@ -816,7 +836,30 @@ export class NarrationPipeline {
       assembly,
       mastering,
       generation,
+      pacingSummary,
     });
+    request.logger?.info?.(
+      pacingSummary
+        ? {
+            language: pacingSummary.language,
+            variant: pacingSummary.variant,
+            presetId: pacingSummary.presetId,
+            wordCount: pacingSummary.wordCount,
+            targetWpm: pacingSummary.targetWpm,
+            actualDurationMs: pacingSummary.actualDurationMs,
+            actualWpm: Number(pacingSummary.actualWpm.toFixed(2)),
+            model: pacingSummary.model,
+            voice: pacingSummary.voice,
+            speed: pacingSummary.speed,
+            pacingStatus: pacingSummary.status,
+          }
+        : {
+            language: request.language,
+            variant: request.variant,
+            pacingStatus: "missing",
+          },
+      "Computed narration pacing summary."
+    );
     const blocked = report.outcome === "BLOCKED";
     return stageResult({
       stage: "validate",
@@ -937,6 +980,7 @@ async function runQualityGate(input: {
   readonly assembly: NarrationAssemblyManifest | null;
   readonly mastering: NarrationMasteringMetadata | null;
   readonly generation: NarrationGenerationMetadata | null;
+  readonly pacingSummary?: Awaited<ReturnType<typeof buildPacingSummary>>;
 }): Promise<NarrationQualityGateReport> {
   return runNarrationQualityGate({
     chunkManifest: input.manifest,
@@ -955,6 +999,58 @@ async function runQualityGate(input: {
         : await fileExists(input.paths.compatibilityNarration)
           ? "written"
           : "not_written",
+    ...(input.pacingSummary ? { pacingSummary: input.pacingSummary } : {}),
     ...(input.request.logger ? { logger: input.request.logger } : {}),
   });
+}
+
+async function buildPacingSummary(input: {
+  readonly request: RequiredCoreRequest;
+  readonly paths: NarrationArtifactPathSet;
+  readonly mastering: NarrationMasteringMetadata | null;
+}) {
+  const spoken = await readJsonIfExists(
+    input.paths.spokenTextJson,
+    (value) => spokenNarrationArtifactSchema.parse(value)
+  );
+  if (!spoken || spoken.status !== "completed") {
+    return undefined;
+  }
+  const targetPath =
+    input.mastering?.status === "completed" &&
+    input.paths.masteredNarration
+      ? input.paths.masteredNarration
+      : input.paths.cleanNarration;
+  if (!(await fileExists(targetPath))) {
+    return undefined;
+  }
+  const probeAudio = input.request.probeAudio ?? probeAudioWithFfprobe;
+  const metadata = await probeAudio(targetPath);
+  const actualDurationMs = metadata.durationSeconds * 1000;
+  const preset = resolveSpeechNarrationPacingPreset(
+    input.request.language,
+    input.request.variant
+  );
+  const assessment = assessNarrationPacing({
+    language: input.request.language,
+    artifactType: input.request.variant,
+    wordCount: spoken.wordCount,
+    actualDurationMs,
+  });
+  return {
+    presetId: assessment.presetId,
+    language: input.request.locale,
+    variant: assessment.artifactType,
+    wordCount: assessment.wordCount,
+    targetWpm: assessment.targetWpm,
+    expectedDurationMs: assessment.expectedDurationMs,
+    warningDurationRangeMs: assessment.warningDurationRangeMs,
+    failDurationRangeMs: assessment.failDurationRangeMs,
+    actualDurationMs: assessment.actualDurationMs,
+    actualWpm: assessment.actualWpm,
+    model: input.request.model ?? "gpt-4o-mini-tts",
+    voice: input.request.voice ?? DEFAULT_SPEECH_VOICE,
+    speed: input.request.speed ?? preset.providerSpeed,
+    status: assessment.status,
+  } as const;
 }

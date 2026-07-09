@@ -11,6 +11,7 @@ import {
   type NarrationAssemblyManifest,
   type NarrationChunkManifest,
   type NarrationChunkValidationReport,
+  type NarrationPacingSummary,
   type NarrationGenerationMetadata,
   type NarrationMasteringMetadata,
   type NarrationQualityGateReport,
@@ -31,6 +32,7 @@ export interface NarrationQualityGateRequest {
   readonly compatibilityOutputStatus: "not_written" | "written" | "failed" | "skipped";
   readonly fallbackUsed?: boolean;
   readonly fallbackReasons?: readonly string[];
+  readonly pacingSummary?: NarrationPacingSummary;
   readonly createdAt?: string;
   readonly logger?: {
     info(value: Record<string, unknown>, message?: string): void;
@@ -80,6 +82,24 @@ function markdownReport(report: NarrationQualityGateReport): string {
     `Fallback used: ${report.fallbackSummary.used ? "yes" : "no"}`,
     `Compatibility output: ${report.compatibilityOutputStatus}`,
     "",
+    "## Pacing",
+    "",
+    ...(report.pacing
+      ? [
+          `Preset: ${report.pacing.presetId}`,
+          `Language: ${report.pacing.language}`,
+          `Variant: ${report.pacing.variant}`,
+          `Word count: ${report.pacing.wordCount}`,
+          `Target WPM: ${report.pacing.targetWpm}`,
+          `Actual WPM: ${report.pacing.actualWpm.toFixed(1)}`,
+          `Duration: ${(report.pacing.actualDurationMs / 1000).toFixed(2)}s`,
+          `Model: ${report.pacing.model}`,
+          `Voice: ${report.pacing.voice}`,
+          `Speed: ${report.pacing.speed}`,
+          `Status: ${report.pacing.status}`,
+          "",
+        ]
+      : ["No pacing summary available.", ""]),
     "## Checks",
     "",
     "| Code | Status | Severity | Message |",
@@ -154,6 +174,12 @@ export async function runNarrationQualityGate(request: NarrationQualityGateReque
     ...(generation?.fallbackUsage.reasons ?? []),
   ];
   const fallbackUsed = Boolean(request.fallbackUsed || generation?.fallbackUsage.used);
+  const pacingSummary = request.pacingSummary;
+  if (pacingSummary?.status === "failed") {
+    checks.push(check({ code: "NARRATION_PACING_FAILED", status: "failed", severity: "error", message: "Narration duration is outside the acceptable pacing range." }));
+  } else if (pacingSummary?.status === "warning") {
+    checks.push(check({ code: "NARRATION_PACING_WARNING", status: "warning", severity: "warning", message: "Narration duration is outside the preferred pacing range." }));
+  }
   const artifactFingerprints = [
     manifest.manifestFingerprint,
     ...(assembly ? [assembly.assemblyFingerprint] : []),
@@ -179,6 +205,7 @@ export async function runNarrationQualityGate(request: NarrationQualityGateReque
     compatibilityOutputStatus: request.compatibilityOutputStatus,
     cleanNarrationPath: relative(request.narrationRoot, request.cleanNarrationPath),
     ...(request.masteredNarrationPath ? { masteredNarrationPath: relative(request.narrationRoot, request.masteredNarrationPath) } : {}),
+    ...(pacingSummary ? { pacing: pacingSummary } : {}),
     reportFingerprint: hashText("pending"),
     createdAt: request.createdAt ?? new Date().toISOString(),
   };
@@ -193,6 +220,7 @@ export async function runNarrationQualityGate(request: NarrationQualityGateReque
       outcome: report.outcome,
       warningCount: report.warningCount,
       errorCount: report.errorCount,
+      pacingStatus: report.pacing?.status,
       jsonPath: request.reportJsonPath,
       markdownPath: request.reportMarkdownPath,
     },
