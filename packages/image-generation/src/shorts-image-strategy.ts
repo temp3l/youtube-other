@@ -164,7 +164,7 @@ export interface PlannedShortsNativeGenerationItem
 export interface PlannedShortsReuseItem extends PlannedShortsItemBase {
   readonly kind: "reuse";
   readonly batchStrategy: "direct-reuse";
-  readonly strategy: Exclude<ShortsImageStrategy, "regenerate">;
+  readonly strategy: ShortsImageStrategy;
   readonly sourceLandscapePath?: string;
   readonly sourceLandscapeSha256?: string;
   readonly transformSettings: ShortsTransformSettings;
@@ -429,6 +429,31 @@ async function removeStalePortraitAssets(
   );
 }
 
+async function mapWithConcurrency<TInput, TOutput>(
+  items: readonly TInput[],
+  concurrency: number,
+  mapper: (item: TInput, index: number) => Promise<TOutput>
+): Promise<TOutput[]> {
+  if (items.length === 0) {
+    return [];
+  }
+  const limit = Math.max(1, Math.min(concurrency, items.length));
+  const results = new Array<TOutput>(items.length);
+  let nextIndex = 0;
+  const workers = Array.from({ length: limit }, async () => {
+    while (true) {
+      const currentIndex = nextIndex;
+      nextIndex += 1;
+      if (currentIndex >= items.length) {
+        return;
+      }
+      results[currentIndex] = await mapper(items[currentIndex]!, currentIndex);
+    }
+  });
+  await Promise.all(workers);
+  return results;
+}
+
 function resolveKeySceneIds(
   scenePlan: ScenePlan,
   config: ShortsImageConfig
@@ -500,12 +525,8 @@ function shouldReuseExistingPortrait(args: {
   readonly currentSceneHash: string;
   readonly imagePlanFingerprint: string;
   readonly strategy: ShortsImageStrategy;
-  readonly shouldRegenerate: boolean;
   readonly outputPortraitPath: string;
 }): boolean {
-  if (args.shouldRegenerate) {
-    return false;
-  }
   if (!args.cached || args.cached.status !== "success") {
     return false;
   }
@@ -609,6 +630,8 @@ function buildShortsProviderRequest(args: {
   readonly previous?: SceneVisualSpec;
   readonly registry: CharacterRegistry;
   readonly outputPath: string;
+  readonly portraitWidth: number;
+  readonly portraitHeight: number;
   readonly referenceImages: Array<{
     characterId: string;
     filePath: string;
@@ -626,7 +649,7 @@ function buildShortsProviderRequest(args: {
     scene: args.spec,
     ...(args.previous ? { previousScene: args.previous } : {}),
     model: "gpt-image-2",
-    size: "1024x1536",
+    size: `${args.portraitWidth}x${args.portraitHeight}`,
     quality: "medium",
     outputFormat: "png",
     background: "opaque",
@@ -651,7 +674,7 @@ function buildShortsProviderRequest(args: {
         operation:
           args.referenceImages.length > 0 ? "image-edit" : "image-generation",
         model: "gpt-image-2",
-        size: "1024x1536",
+        size: `${args.portraitWidth}x${args.portraitHeight}`,
         quality: "medium",
         outputFormat: "png",
         background: "opaque",
@@ -722,8 +745,8 @@ async function hasValidPortraitDimensions(
 ): Promise<boolean> {
   const metadata = await sharp(outputPath).metadata().catch(() => null);
   return (
-    metadata?.width === config.finalWidth &&
-    metadata.height === config.finalHeight
+    metadata?.width === config.portraitWidth &&
+    metadata.height === config.portraitHeight
   );
 }
 
@@ -828,8 +851,8 @@ export async function planShortsImageWork(args: {
         resolvedStrategy.strategy === "regenerate"
           ? "smart-crop"
           : resolvedStrategy.strategy,
-      finalWidth: args.config.finalWidth,
-      finalHeight: args.config.finalHeight,
+      finalWidth: args.config.portraitWidth,
+      finalHeight: args.config.portraitHeight,
       motion:
         resolvedStrategy.shouldRegenerate
           ? { mode: "none" as const }
@@ -859,7 +882,7 @@ export async function planShortsImageWork(args: {
               context.narration.fingerprint,
               ...(sourceLandscapeSha256 ? [sourceLandscapeSha256] : []),
             ],
-            error: `Invalid portrait dimensions for ${scene.id}: expected ${args.config.finalWidth}x${args.config.finalHeight}.`,
+            error: `Invalid portrait dimensions for ${scene.id}: expected ${args.config.portraitWidth}x${args.config.portraitHeight}.`,
           });
           previousSpec = buildSceneVisualSpec(scene, registry, previousSpec);
           continue;
@@ -870,7 +893,6 @@ export async function planShortsImageWork(args: {
             currentSceneHash,
             imagePlanFingerprint,
             strategy: resolvedStrategy.strategy,
-            shouldRegenerate: false,
             outputPortraitPath,
           })
         ) {
@@ -925,6 +947,56 @@ export async function planShortsImageWork(args: {
       continue;
     }
 
+    if (cached && baseItem.outputExists) {
+      const validDimensions = await hasValidPortraitDimensions(
+        outputPortraitPath,
+        args.config
+      );
+      if (!validDimensions) {
+        items.push({
+          ...baseItem,
+          kind: "blocked",
+          batchStrategy: "native-portrait-generation",
+          strategy: resolvedStrategy.strategy,
+          ...(landscapePath ? { sourceLandscapePath: landscapePath } : {}),
+          ...(sourceLandscapeSha256 ? { sourceLandscapeSha256 } : {}),
+          dependencyHashes: [
+            context.narration.fingerprint,
+            ...(sourceLandscapeSha256 ? [sourceLandscapeSha256] : []),
+          ],
+          error: `Invalid portrait dimensions for ${scene.id}: expected ${args.config.portraitWidth}x${args.config.portraitHeight}.`,
+        });
+        previousSpec = buildSceneVisualSpec(scene, registry, previousSpec);
+        continue;
+      }
+      if (
+        shouldReuseExistingPortrait({
+          cached,
+          currentSceneHash,
+          imagePlanFingerprint,
+          strategy: resolvedStrategy.strategy,
+          outputPortraitPath,
+        })
+      ) {
+        items.push({
+          ...baseItem,
+          kind: "reuse",
+          batchStrategy: "direct-reuse",
+          strategy: "regenerate",
+          ...(landscapePath ? { sourceLandscapePath: landscapePath } : {}),
+          ...(sourceLandscapeSha256 ? { sourceLandscapeSha256 } : {}),
+          transformSettings,
+          dependencyHashes: [
+            context.narration.fingerprint,
+            ...(sourceLandscapeSha256 ? [sourceLandscapeSha256] : []),
+          ],
+          cachedEntry: cached,
+        });
+        previousSpec = buildSceneVisualSpec(scene, registry, previousSpec);
+        continue;
+      }
+    }
+
     const spec = buildSceneVisualSpec(scene, registry, previousSpec);
     const referenceImages = await loadReferenceImages(registry, spec.characters);
     const providerRequest = buildShortsProviderRequest({
@@ -932,6 +1004,8 @@ export async function planShortsImageWork(args: {
       ...(previousSpec ? { previous: previousSpec } : {}),
       registry,
       outputPath: `${outputPortraitPath}.native.tmp.png`,
+      portraitWidth: args.config.portraitWidth,
+      portraitHeight: args.config.portraitHeight,
       referenceImages,
     });
     items.push({
@@ -1029,14 +1103,13 @@ async function createNativeVerticalImage(
       ...(previous ? { previous } : {}),
       registry,
       outputPath: tempPath,
+      portraitWidth,
+      portraitHeight,
       referenceImages,
     }),
     referenceImages,
   });
   await normalizePortraitImage(tempPath, outputPath, portraitWidth, portraitHeight, "smart-crop");
-  if (finalWidth !== portraitWidth || finalHeight !== portraitHeight) {
-    await normalizePortraitImage(outputPath, outputPath, finalWidth, finalHeight, "smart-crop");
-  }
   await fs.rm(tempPath, { force: true }).catch(() => undefined);
   return {
     outputSha256: await hashFile(outputPath),
@@ -1146,12 +1219,11 @@ export async function prepareShortsImageAssets(
     outputDir,
     ...(options?.context ? { context: options.context } : {}),
   });
-  const entries: ShortsSceneManifestEntry[] = [];
-  for (const planned of plan.items) {
-    if (planned.outputExists && planned.kind !== "reuse") {
-      await fs.rm(planned.outputPortraitPath, { force: true }).catch(() => undefined);
-    }
-    try {
+  const entries = await mapWithConcurrency(
+    plan.items,
+    settings.concurrency,
+    async (planned): Promise<ShortsSceneManifestEntry> => {
+      try {
       if (planned.kind === "reuse") {
         const entry: ShortsSceneManifestEntry = {
           sceneId: planned.sceneId,
@@ -1188,8 +1260,7 @@ export async function prepareShortsImageAssets(
         if (sourceImagePath) {
           entry.sourceImagePath = sourceImagePath;
         }
-        entries.push(entry);
-        continue;
+        return entry;
       }
 
       if (planned.kind === "blocked") {
@@ -1201,6 +1272,11 @@ export async function prepareShortsImageAssets(
         const result = await generator.generate({
           providerRequest: planned.providerRequest,
           referenceImages: planned.referenceImages,
+          context: {
+            episodeId: planned.stageIdentity.episodeId,
+            language: planned.stageIdentity.language,
+            profile: planned.stageIdentity.variant,
+          },
         });
         await normalizePortraitImage(
           tempPath,
@@ -1209,24 +1285,8 @@ export async function prepareShortsImageAssets(
           config.portraitHeight,
           "smart-crop"
         );
-        if (
-          config.finalWidth !== config.portraitWidth ||
-          config.finalHeight !== config.portraitHeight
-        ) {
-          const resizedPath = `${planned.outputPortraitPath}.final.tmp.png`;
-          await sharp(planned.outputPortraitPath)
-            .resize({
-              width: config.finalWidth,
-              height: config.finalHeight,
-              fit: "cover",
-              position: "attention",
-            })
-            .png()
-            .toFile(resizedPath);
-          await fs.rename(resizedPath, planned.outputPortraitPath);
-        }
         await fs.rm(tempPath, { force: true }).catch(() => undefined);
-        const entry: ShortsSceneManifestEntry = {
+        return {
           sceneId: planned.sceneId,
           sequenceNumber: planned.sequenceNumber,
           stageIdentity: planned.stageIdentity,
@@ -1249,18 +1309,16 @@ export async function prepareShortsImageAssets(
           generatedAt: new Date().toISOString(),
           shortMediaRequirements: planned.shortMediaRequirements,
         };
-        entries.push(entry);
-        continue;
       }
 
       await transformLandscapeImage(
         planned.sourceLandscapePath,
         planned.outputPortraitPath,
-        config.finalWidth,
-        config.finalHeight,
+        config.portraitWidth,
+        config.portraitHeight,
         planned.strategy
       );
-      const entry: ShortsSceneManifestEntry = {
+      return {
         sceneId: planned.sceneId,
         sequenceNumber: planned.sequenceNumber,
         stageIdentity: planned.stageIdentity,
@@ -1281,10 +1339,9 @@ export async function prepareShortsImageAssets(
         outputImageSha256: await hashFile(planned.outputPortraitPath),
         promptHash: planned.promptHash,
         shortMediaRequirements: planned.shortMediaRequirements,
+        sourceImagePath: planned.sourceLandscapePath,
+        sourceImageSha256: planned.sourceLandscapeSha256,
       };
-      entry.sourceImagePath = planned.sourceLandscapePath;
-      entry.sourceImageSha256 = planned.sourceLandscapeSha256;
-      entries.push(entry);
     } catch (error) {
       const entry: ShortsSceneManifestEntry = {
         sceneId: planned.sceneId,
@@ -1312,9 +1369,10 @@ export async function prepareShortsImageAssets(
       if ("sourceLandscapeSha256" in planned && planned.sourceLandscapeSha256) {
         entry.sourceImageSha256 = planned.sourceLandscapeSha256;
       }
-      entries.push(entry);
+      return entry;
+      }
     }
-  }
+  );
   const failures = entries.filter((entry) => entry.status === "failed");
   if (failures.length > 0) {
     throw new Error(
@@ -1370,7 +1428,7 @@ export async function auditShortsImageAssets(
       warnings.push(`Unable to inspect Shorts image dimensions for ${checkedPath}.`);
       continue;
     }
-    if (metadata.width < metadata.height) {
+    if (metadata.width >= metadata.height) {
       warnings.push(
         `Shorts image is not portrait for ${scene.id}: ${metadata.width}x${metadata.height}.`
       );

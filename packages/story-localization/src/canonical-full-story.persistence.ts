@@ -421,6 +421,7 @@ export async function persistCanonicalEnglishFullStory(args: {
   readonly artifact: CanonicalEnglishFullArtifact;
   readonly sourceStory: ParsedSourceStory;
   readonly canonicalPaths: CanonicalEnglishFullPaths;
+  readonly force?: boolean;
 }): Promise<{
   readonly artifactHash: string;
   readonly canonicalMarkdownHash: string;
@@ -450,12 +451,12 @@ export async function persistCanonicalEnglishFullStory(args: {
   await writeTextAtomicIfChanged(
     args.canonicalPaths.canonicalMarkdownPath,
     canonicalMarkdown,
-    true
+    args.force ?? true
   );
   await writeTextAtomicIfChanged(
     args.canonicalPaths.compatibilityMarkdownPath,
     compatibilityMarkdown,
-    true
+    args.force ?? true
   );
   await writeJsonAtomic(
     path.join(args.canonicalPaths.canonicalDir, "generation-manifest.json"),

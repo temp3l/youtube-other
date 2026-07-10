@@ -1,10 +1,13 @@
 import crypto from "node:crypto";
+import { execFile as execFileCallback } from "node:child_process";
 import fsPromises from "node:fs/promises";
 import path from "node:path";
+import { promisify } from "node:util";
 import OpenAI, { toFile } from "openai";
 import sharp from "sharp";
 import { z } from "zod";
 import {
+  ProviderResponseError,
   requiresSceneText,
   sceneIdSchema,
   type Scene,
@@ -48,7 +51,15 @@ import {
   buildSceneTextPromptSection,
 } from "./scene-text.js";
 import { ensureEpisodeFocalMetadataForImages } from "./focal-metadata.js";
-import { assertVideoImageFileMatchesSpec } from "./video-image-spec.js";
+import {
+  buildIgnoredShortFullSizeWarning,
+  mergeImageGenerationEnv,
+  resolveConfiguredImageGenerationSize,
+  resolveConfiguredRenderSize,
+} from "./image-generation-config.js";
+import { assertGeneratedImageFileMatchesSpec } from "./video-image-spec.js";
+
+const execFile = promisify(execFileCallback);
 
 const mediaStageVariantSchema = z.enum(["full", "short"]);
 export type MediaStageVariant = z.infer<typeof mediaStageVariantSchema>;
@@ -329,6 +340,11 @@ export interface PreparedImageProviderRequest extends ImageProviderRequest {
 export interface ImageGenerationRequest {
   providerRequest: PreparedImageProviderRequest;
   referenceImages: ReferenceImage[];
+  context?: {
+    episodeId: string;
+    language: string;
+    profile: MediaStageVariant;
+  };
 }
 
 export interface GeneratedImageResult {
@@ -528,8 +544,10 @@ export interface EpisodeImagePipelineSettings {
   baseUrl?: string;
   organization?: string;
   project?: string;
+  profile: MediaStageVariant;
   model: string;
   size: string;
+  renderSize: string;
   resolvedSize: string;
   quality: "low" | "medium" | "high" | "auto";
   concurrency: number;
@@ -537,6 +555,7 @@ export interface EpisodeImagePipelineSettings {
   timeoutMs: number;
   allowUnapprovedCharacterReferences: boolean;
   force: boolean;
+  debug: boolean;
   logger?: {
     info: (obj: Record<string, unknown>, msg?: string) => void;
     warn: (obj: Record<string, unknown>, msg?: string) => void;
@@ -548,7 +567,13 @@ export interface EpisodeImagePipelineSettings {
 const envSchema = z.object({
   OPENAI_API_KEY: z.string().min(1),
   OPENAI_IMAGE_MODEL: z.string().default("gpt-image-2"),
-  OPENAI_IMAGE_SIZE: z.string().default("1536x1024"),
+  OPENAI_IMAGE_SIZE: z.string().optional(),
+  OPENAI_IMAGE_FULL_SIZE: z.string().optional(),
+  OPENAI_IMAGE_SHORT_SIZE: z.string().optional(),
+  YOUTUBE_FULL_IMAGE_SIZE: z.string().optional(),
+  YOUTUBE_SHORT_IMAGE_SIZE: z.string().optional(),
+  YOUTUBE_FULL_RENDER_SIZE: z.string().optional(),
+  YOUTUBE_SHORT_RENDER_SIZE: z.string().optional(),
   OPENAI_IMAGE_QUALITY: z
     .enum(["low", "medium", "high", "auto"])
     .default("medium"),
@@ -560,6 +585,7 @@ const envSchema = z.object({
   OPENAI_BASE_URL: z.string().url().optional(),
   OPENAI_ORGANIZATION: z.string().optional(),
   OPENAI_PROJECT: z.string().optional(),
+  OPENAI_IMAGE_DEBUG: z.string().optional(),
 });
 
 const registrySchema = z.object({
@@ -1244,6 +1270,7 @@ async function canReuseSceneImage(input: {
   readonly currentRenderability?: SceneRenderability;
   readonly currentReferenceImages: Array<{ readonly characterId: string; readonly sha256: string }>;
   readonly outputPath: string;
+  readonly expectedSize: string;
   readonly force: boolean;
 }): Promise<boolean> {
   if (input.force) {
@@ -1255,11 +1282,12 @@ async function canReuseSceneImage(input: {
   if (!(await fileExists(input.outputPath))) {
     return false;
   }
-  await assertVideoImageFileMatchesSpec({
+  await assertGeneratedImageFileMatchesSpec({
     episodeId: input.episodeId,
     language: input.language,
     videoKind: input.videoKind,
     imagePath: input.outputPath,
+    expectedSize: input.expectedSize,
   });
   if (input.existing.sceneHash !== input.currentSceneHash) {
     return false;
@@ -1373,6 +1401,10 @@ async function hydrateCanonicalSceneImage(
 }
 
 async function reuseSceneImageFromPriorScene(args: {
+  episodeId: string;
+  language: string;
+  profile: MediaStageVariant;
+  expectedSize: string;
   previousSceneId: string;
   previousOutputPath: string;
   targetOutputPath: string;
@@ -1383,6 +1415,13 @@ async function reuseSceneImageFromPriorScene(args: {
   if (args.previousOutputPath !== args.targetOutputPath) {
     await copyAtomic(args.previousOutputPath, args.targetOutputPath);
   }
+  await assertGeneratedImageFileMatchesSpec({
+    episodeId: args.episodeId,
+    language: args.language,
+    videoKind: args.profile,
+    imagePath: args.targetOutputPath,
+    expectedSize: args.expectedSize,
+  });
   return {
     outputSha256: await hashFile(args.targetOutputPath),
     reusedFromSceneId: args.previousSceneId,
@@ -1414,6 +1453,7 @@ function canResolveByReusingNextScene(
 
 interface PendingMergeWithNextScene {
   readonly episodeId: string;
+  readonly language: string;
   readonly sceneId: string;
   readonly manifestPath: string;
   readonly outputPath: string;
@@ -1454,6 +1494,13 @@ async function materializePendingMergeWithNextScenes(args: {
   ) {
     for (const pending of args.pendingScenes) {
       await copyAtomic(args.sourceOutputPath, pending.outputPath);
+      await assertGeneratedImageFileMatchesSpec({
+        episodeId: pending.episodeId,
+        language: pending.language,
+        videoKind: args.settings.profile,
+        imagePath: pending.outputPath,
+        expectedSize: pending.providerRequest.size,
+      });
       const manifest: SceneGenerationManifest = {
         sceneId: pending.sceneId,
         promptVersion: pending.providerRequest.promptVersion,
@@ -1595,6 +1642,11 @@ async function materializePendingMergeWithNextScenes(args: {
       generation = await args.generator.generate({
         providerRequest: pending.providerRequest,
         referenceImages,
+        context: {
+          episodeId: pending.episodeId,
+          language: pending.language,
+          profile: args.settings.profile,
+        },
       });
     } catch (error) {
       const message = formatError(error);
@@ -2848,7 +2900,7 @@ function buildImageProviderRequest(args: {
     scene: args.scene,
     ...(args.previousScene ? { previousScene: args.previousScene } : {}),
     model: args.settings.model,
-    size: args.settings.resolvedSize,
+    size: args.settings.size,
     quality: args.settings.quality,
     outputFormat: "png",
     background: "opaque",
@@ -2916,14 +2968,17 @@ export function buildPromptFromSpec(
       settings: {
         apiKey: "",
         model: "gpt-image-2",
-        size: "1536x1024",
-        resolvedSize: "1536x1024",
+        profile: "full",
+        size: "1536x864",
+        resolvedSize: "1536x864",
+        renderSize: "1920x1080",
         quality: "medium",
         concurrency: 1,
         maxRetries: 0,
         timeoutMs: 1000,
         allowUnapprovedCharacterReferences: true,
         force: false,
+        debug: false,
       },
       outputPath: "scene-output.png",
       referenceImages: [],
@@ -2995,6 +3050,194 @@ function parseErrorCode(error: unknown): string | undefined {
   if (typeof value.error?.code === "string") return value.error.code;
   if (typeof value.type === "string") return value.type;
   return undefined;
+}
+
+function formatJsonValue(value: unknown): string {
+  try {
+    return JSON.stringify(value, null, 2);
+  } catch {
+    return JSON.stringify(String(value));
+  }
+}
+
+async function readJsonResponse(response: Response): Promise<unknown> {
+  const text = await response.text();
+  if (text.trim().length === 0) {
+    return undefined;
+  }
+
+  try {
+    return JSON.parse(text) as unknown;
+  } catch (error) {
+    throw new ProviderResponseError(
+      formatJsonValue({
+        message: "OpenAI image generation returned invalid JSON.",
+        status: response.status,
+        statusText: response.statusText,
+        body: text,
+        cause: error instanceof Error ? error.message : String(error),
+      })
+    );
+  }
+}
+
+async function readCurlJsonResponse(stdout: string): Promise<unknown> {
+  if (stdout.trim().length === 0) {
+    return undefined;
+  }
+
+  try {
+    return JSON.parse(stdout) as unknown;
+  } catch (error) {
+    throw new ProviderResponseError(
+      formatJsonValue({
+        message: "OpenAI image generation returned invalid JSON from curl.",
+        body: stdout,
+        cause: error instanceof Error ? error.message : String(error),
+      })
+    );
+  }
+}
+
+function shouldFallbackToCurl(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+
+  return (
+    error.name === "TypeError" ||
+    error.message.includes("fetch failed") ||
+    error.message.includes("Connection error") ||
+    error.message.includes("ECONNRESET") ||
+    error.message.includes("ETIMEDOUT") ||
+    error.message.includes("ENOTFOUND") ||
+    error.message.includes("EAI_AGAIN")
+  );
+}
+
+async function requestOpenAiImageWithCurl(
+  body: {
+    readonly model: string;
+    readonly prompt: string;
+    readonly size: string;
+    readonly quality: "low" | "medium" | "high" | "auto";
+    readonly output_format: "png";
+    readonly background: "opaque";
+    readonly stream: false;
+  },
+  settings: EpisodeImagePipelineSettings,
+  baseUrl: string
+): Promise<unknown> {
+  const args = [
+    "--fail-with-body",
+    "--silent",
+    "--show-error",
+    "--request",
+    "POST",
+    baseUrl,
+    "-H",
+    `Authorization: Bearer ${settings.apiKey}`,
+    "-H",
+    "Content-Type: application/json",
+  ];
+
+  if (settings.organization) {
+    args.push("-H", `OpenAI-Organization: ${settings.organization}`);
+  }
+
+  if (settings.project) {
+    args.push("-H", `OpenAI-Project: ${settings.project}`);
+  }
+
+  args.push("--data-binary", JSON.stringify(body));
+
+  try {
+    const { stdout } = await execFile("curl", args, {
+      timeout: settings.timeoutMs,
+      maxBuffer: 10 * 1024 * 1024,
+    });
+
+    return await readCurlJsonResponse(stdout);
+  } catch (error) {
+    const execError = error as {
+      readonly stdout?: string;
+      readonly stderr?: string;
+      readonly code?: number | string | null;
+      readonly signal?: string | null;
+    };
+
+    const stdout = typeof execError.stdout === "string" ? execError.stdout : "";
+    const stderr = typeof execError.stderr === "string" ? execError.stderr : "";
+    const parsedBody = await readCurlJsonResponse(stdout).catch(() => undefined);
+
+    throw new ProviderResponseError(
+      formatJsonValue({
+        message: "OpenAI image generation request failed via curl.",
+        code: execError.code ?? undefined,
+        signal: execError.signal ?? undefined,
+        stderr,
+        body: parsedBody,
+        retryable: isRetryableError(parsedBody ?? error),
+      })
+    );
+  }
+}
+
+async function requestOpenAiTextOnlyImage(
+  body: {
+    readonly model: string;
+    readonly prompt: string;
+    readonly size: string;
+    readonly quality: "low" | "medium" | "high" | "auto";
+    readonly output_format: "png";
+    readonly background: "opaque";
+    readonly stream: false;
+  },
+  settings: EpisodeImagePipelineSettings,
+  endpoint: string
+): Promise<{
+  readonly data?: Array<{
+    readonly b64_json?: string;
+  }>;
+}> {
+  const baseUrl = new URL(endpoint, settings.baseUrl ?? "https://api.openai.com").toString();
+  try {
+    const response = await fetch(baseUrl, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${settings.apiKey}`,
+        "Content-Type": "application/json",
+        ...(settings.organization ? { "OpenAI-Organization": settings.organization } : {}),
+        ...(settings.project ? { "OpenAI-Project": settings.project } : {}),
+      },
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(settings.timeoutMs),
+    });
+    const parsed = await readJsonResponse(response);
+    if (!response.ok) {
+      throw new ProviderResponseError(
+        formatJsonValue({
+          message: "OpenAI image generation request failed.",
+          status: response.status,
+          statusText: response.statusText,
+          body: parsed,
+          retryable: isRetryableError(parsed),
+        })
+      );
+    }
+    return parsed as {
+      readonly data?: Array<{
+        readonly b64_json?: string;
+      }>;
+    };
+  } catch (error) {
+    if (!shouldFallbackToCurl(error)) {
+      throw error;
+    }
+    return (await requestOpenAiImageWithCurl(body, settings, baseUrl)) as {
+      readonly data?: Array<{
+        readonly b64_json?: string;
+      }>;
+    };
+  }
 }
 
 export function isRetryableError(error: unknown): boolean {
@@ -3072,13 +3315,6 @@ async function atomicWriteImage(
   return hashBuffer(buffer);
 }
 
-async function validateImageFile(filePath: string): Promise<void> {
-  const metadata = await sharp(filePath).metadata();
-  if (!metadata.width || !metadata.height) {
-    throw new Error(`Generated image is invalid: ${filePath}`);
-  }
-}
-
 async function loadRegistry(
   episodeDir: string,
   episodeId: string
@@ -3115,21 +3351,38 @@ async function saveRegistry(
 }
 
 export function loadEpisodeImageGenerationSettings(
-  env: Record<string, string | undefined> = process.env
+  env: Record<string, string | undefined> = process.env,
+  options: {
+    readonly profile?: MediaStageVariant;
+    readonly cwd?: string;
+  } = {}
 ): EpisodeImagePipelineSettings {
-  const parsed = envSchema.parse(env);
-  const resolvedSize = resolveCompatibleSize(
-    parsed.OPENAI_IMAGE_SIZE,
-    parsed.OPENAI_IMAGE_MODEL
-  );
+  const mergedEnv = mergeImageGenerationEnv(env, options.cwd);
+  const parsed = envSchema.parse(mergedEnv);
+  const profile = options.profile ?? "full";
+  const configuredGenerationSize = resolveConfiguredImageGenerationSize({
+    profile,
+    env: mergedEnv,
+  });
+  const configuredRenderSize = resolveConfiguredRenderSize({
+    profile,
+    env: mergedEnv,
+  });
+  const ignoredShortWarning =
+    profile === "short" ? buildIgnoredShortFullSizeWarning(mergedEnv) : undefined;
+  if (ignoredShortWarning) {
+    console.warn(ignoredShortWarning);
+  }
   return {
     apiKey: parsed.OPENAI_API_KEY,
     baseUrl: parsed.OPENAI_BASE_URL,
     organization: parsed.OPENAI_ORGANIZATION,
     project: parsed.OPENAI_PROJECT,
+    profile,
     model: parsed.OPENAI_IMAGE_MODEL,
-    size: parsed.OPENAI_IMAGE_SIZE,
-    resolvedSize,
+    size: configuredGenerationSize.size,
+    renderSize: configuredRenderSize.size,
+    resolvedSize: configuredGenerationSize.size,
     quality: parsed.OPENAI_IMAGE_QUALITY,
     concurrency: parsed.OPENAI_IMAGE_CONCURRENCY,
     maxRetries: parsed.OPENAI_IMAGE_MAX_RETRIES,
@@ -3139,6 +3392,7 @@ export function loadEpisodeImageGenerationSettings(
         parsed.OPENAI_IMAGE_ALLOW_UNAPPROVED_CHARACTER_REFERENCES ?? ""
       ).toLowerCase() === "true",
     force: (parsed.OPENAI_IMAGE_FORCE ?? "").toLowerCase() === "true",
+    debug: (parsed.OPENAI_IMAGE_DEBUG ?? "").toLowerCase() === "true",
   } as EpisodeImagePipelineSettings;
 }
 
@@ -3156,6 +3410,7 @@ export class OpenAIImageGenerator implements ImageGenerator {
         baseURL: settings.baseUrl,
         organization: settings.organization,
         project: settings.project,
+        timeout: settings.timeoutMs,
       });
   }
 
@@ -3176,12 +3431,24 @@ export class OpenAIImageGenerator implements ImageGenerator {
     const requestBodyBase = {
       model: this.settings.model,
       prompt: request.providerRequest.prompt,
-      size: this.settings.resolvedSize,
+      size: this.settings.size,
       quality: this.settings.quality,
       output_format: "png" as const,
       background: "opaque" as const,
       stream: false as const,
     };
+    if (this.settings.debug) {
+      console.info("[openai:image-generation] request", {
+        model: this.settings.model,
+        size: this.settings.size,
+        quality: this.settings.quality,
+        format: "png",
+        profile: request.context?.profile ?? this.settings.profile,
+        episodeSlug: request.context?.episodeId,
+        language: request.context?.language,
+        promptId: request.providerRequest.sceneId,
+      });
+    }
     const episodeRoot = resolveEpisodeRootFromImageOutputPath(
       request.providerRequest.outputPath
     );
@@ -3222,7 +3489,9 @@ export class OpenAIImageGenerator implements ImageGenerator {
         }).catch(() => undefined);
         const apiPromise =
           request.referenceImages.length === 0
-            ? this.client.images.generate(requestBodyBase)
+            ? this.client.images.generate(requestBodyBase, {
+                signal: AbortSignal.timeout(this.settings.timeoutMs),
+              })
             : this.client.images.edit({
                 ...requestBodyBase,
                 image: await Promise.all(
@@ -3234,8 +3503,31 @@ export class OpenAIImageGenerator implements ImageGenerator {
                     )
                   )
                 ),
+              }, {
+                signal: AbortSignal.timeout(this.settings.timeoutMs),
               });
-        const { data, request_id } = await apiPromise.withResponse();
+        let responseData:
+          | {
+              readonly data?: Array<{
+                readonly b64_json?: string;
+              }>;
+            }
+          | undefined;
+        let requestId: string | undefined;
+        try {
+          const sdkResponse = await apiPromise.withResponse();
+          responseData = sdkResponse.data;
+          requestId = sdkResponse.request_id ?? undefined;
+        } catch (error) {
+          if (request.referenceImages.length > 0 || !shouldFallbackToCurl(error)) {
+            throw error;
+          }
+          responseData = await requestOpenAiTextOnlyImage(
+            requestBodyBase,
+            this.settings,
+            endpoint
+          );
+        }
         await writeOpenAIDebugLog({
           ...(episodeRoot ? { episodeRoot } : {}),
           operation,
@@ -3252,10 +3544,10 @@ export class OpenAIImageGenerator implements ImageGenerator {
             })),
           },
           response: {
-            request_id,
-            data,
+            request_id: requestId,
+            data: responseData,
           },
-          usage: { imageCount: data.data?.length ?? 0 },
+          usage: { imageCount: responseData?.data?.length ?? 0 },
           durationMs: Date.now() - attemptStartedMs,
           attempt: attempt + 1,
           caller: {
@@ -3265,7 +3557,7 @@ export class OpenAIImageGenerator implements ImageGenerator {
           },
           status: "success",
         }).catch(() => undefined);
-        const b64 = data.data?.[0]?.b64_json;
+        const b64 = responseData?.data?.[0]?.b64_json;
         if (!b64) {
           throw new Error(
             "OpenAI image response did not contain base64 image data."
@@ -3281,13 +3573,21 @@ export class OpenAIImageGenerator implements ImageGenerator {
             sha256: await hashFile(reference.filePath),
           }))
         );
-        await validateImageFile(request.providerRequest.outputPath);
+        if (request.context) {
+          await assertGeneratedImageFileMatchesSpec({
+            episodeId: request.context.episodeId,
+            language: request.context.language,
+            videoKind: request.context.profile,
+            imagePath: request.providerRequest.outputPath,
+            expectedSize: request.providerRequest.size,
+          });
+        }
         const cost = telemetry
           ? estimateImageGenerationCost(telemetry.catalog, {
               provider: "openai",
               model: this.settings.model,
               operation: generationMode === "reference-assisted" ? "edit" : "generate",
-              size: this.settings.resolvedSize,
+              size: this.settings.size,
               quality: this.settings.quality,
             })
           : { pricingVersion: "unconfigured", costMicros: null, warning: undefined };
@@ -3300,11 +3600,11 @@ export class OpenAIImageGenerator implements ImageGenerator {
           durationMs: Date.now() - attemptStartedMs,
           attempt: attempt + 1,
           success: true,
-          ...(request_id ? { requestId: request_id } : {}),
+          ...(requestId ? { requestId: requestId } : {}),
           usage: { imageCount: 1 },
           details: {
             generationMode,
-            size: this.settings.resolvedSize,
+            size: this.settings.size,
             quality: this.settings.quality,
           },
         });
@@ -3321,7 +3621,7 @@ export class OpenAIImageGenerator implements ImageGenerator {
           model: this.settings.model,
           generationMode,
           attempts,
-          ...(request_id ? { requestId: request_id } : {}),
+          ...(requestId ? { requestId: requestId } : {}),
           promptHash,
           outputSha256,
           costMicros: cost.costMicros,
@@ -3330,12 +3630,12 @@ export class OpenAIImageGenerator implements ImageGenerator {
           outputPath: request.providerRequest.outputPath,
           outputSha256,
           model: this.settings.model,
-          size: this.settings.resolvedSize,
+          size: this.settings.size,
           quality: this.settings.quality,
           generationMode,
           attempts,
           durationMs: Date.now() - start,
-          ...(request_id ? { requestId: request_id } : {}),
+          ...(requestId ? { requestId: requestId } : {}),
           providerRequestHash,
           promptHash,
           referenceHashes,
@@ -3382,7 +3682,7 @@ export class OpenAIImageGenerator implements ImageGenerator {
           retryable: isRetryableError(error),
           details: {
             generationMode,
-            size: this.settings.resolvedSize,
+            size: this.settings.size,
             quality: this.settings.quality,
           },
           error: {
@@ -3460,7 +3760,7 @@ async function ensureReferenceImage(
         ],
       },
       model: settings.model,
-      size: settings.resolvedSize,
+      size: settings.size,
       quality: settings.quality,
       outputFormat: "png",
       background: "opaque",
@@ -3486,7 +3786,7 @@ async function ensureReferenceImage(
         JSON.stringify({
           operation: "image-generation",
           model: settings.model,
-          size: settings.resolvedSize,
+          size: settings.size,
           quality: settings.quality,
           outputFormat: "png",
           background: "opaque",
@@ -3497,6 +3797,11 @@ async function ensureReferenceImage(
       ),
     },
     referenceImages: [],
+    context: {
+      episodeId: registry.episodeId,
+      language: "en",
+      profile: settings.profile,
+    },
   });
   character.referenceImagePath = result.outputPath;
   character.referenceStatus = "generated";
@@ -4295,6 +4600,7 @@ async function generateIndependentScenePlan(args: {
       episodeId: args.context.identity.episodeId,
       language: args.context.identity.language,
       videoKind: args.context.identity.variant,
+      expectedSize: args.plan.providerRequest.size,
       currentSceneHash: args.plan.sceneHash,
       currentPromptHash: args.plan.promptHash,
       currentProviderRequestHash: args.plan.providerRequestHash,
@@ -4523,6 +4829,11 @@ async function generateIndependentScenePlan(args: {
     generation = await args.generator.generate({
       providerRequest: args.plan.providerRequest,
       referenceImages,
+      context: {
+        episodeId: args.episodeId,
+        language: args.context.identity.language,
+        profile: args.context.identity.variant,
+      },
     });
   } catch (error) {
     const message = formatError(error);
@@ -5058,6 +5369,7 @@ export async function generateEpisodeImages(
         sceneId: plan.scene.id,
         manifestPath,
         outputPath,
+        language: context.identity.language,
         sceneHash: currentSceneHash,
         providerRequest,
         prompt,
@@ -5093,6 +5405,10 @@ export async function generateEpisodeImages(
       currentImageRunLength < 3
     ) {
       const reused = await reuseSceneImageFromPriorScene({
+        episodeId,
+        language: context.identity.language,
+        profile: context.identity.variant,
+        expectedSize: providerRequest.size,
         previousSceneId: previousResolvedOutput.sceneId,
         previousOutputPath: previousResolvedOutput.outputPath,
         targetOutputPath: outputPath,
@@ -5161,6 +5477,7 @@ export async function generateEpisodeImages(
         episodeId,
         language: context.identity.language,
         videoKind: "full",
+        expectedSize: providerRequest.size,
         currentSceneHash,
         currentPromptHash,
         currentProviderRequestHash,
@@ -5368,6 +5685,11 @@ export async function generateEpisodeImages(
       generation = await generator.generate({
         providerRequest,
         referenceImages,
+        context: {
+          episodeId,
+          language: context.identity.language,
+          profile: context.identity.variant,
+        },
       });
     } catch (error) {
       const errorCode = parseErrorCode(error);
@@ -5572,6 +5894,15 @@ export async function syncEpisodeSharedImageAssets(
         continue;
       }
       await copyAtomic(sourcePath, manifest.outputPath);
+      await assertGeneratedImageFileMatchesSpec({
+        episodeId: manifest.stageIdentity?.episodeId ?? path.basename(episodeDir),
+        language: manifest.stageIdentity?.language ?? "en",
+        videoKind:
+          manifest.stageIdentity?.variant ??
+          (manifest.aspectRatio === "9:16" ? "short" : "full"),
+        imagePath: manifest.outputPath,
+        expectedSize: manifest.size,
+      });
       copiedGeneratedImages.push(manifest.outputPath);
     }
   }

@@ -2,6 +2,8 @@ export const workflowSchemaVersion = "story-workflow-manifest-v1" as const;
 export const stageOutcomeSchemaVersion = "stage-outcome-v1" as const;
 export const stageFailureSchemaVersion = "stage-failure-v1" as const;
 export const stageContractSchemaVersion = "stage-contract-v1" as const;
+export const batchRunPlanSchemaVersion = "batch-run-plan-v1" as const;
+export const productionSummarySchemaVersion = "production-summary-v1" as const;
 
 export type WorkflowId = string & { readonly __brand: "WorkflowId" };
 export type ExecutionId = string & { readonly __brand: "ExecutionId" };
@@ -36,6 +38,24 @@ export const stageTypes = [
   "publish",
 ] as const;
 export type StageType = (typeof stageTypes)[number];
+
+export const orchestrationStageTypes = [...stageTypes] as const;
+export type OrchestrationStageType = (typeof orchestrationStageTypes)[number];
+
+export const orchestrationStatuses = [
+  "planned",
+  "running",
+  "succeeded",
+  "failed",
+  "blocked",
+  "skipped",
+  "cancelled",
+  "cached",
+  "expired",
+  "imported",
+  "partial",
+] as const;
+export type OrchestrationStatus = (typeof orchestrationStatuses)[number];
 
 export const artifactProvenances = [
   "source",
@@ -370,6 +390,54 @@ export interface BatchSubmission {
   readonly createdAt: string;
   readonly updatedAt: string;
   readonly completedAt?: string;
+}
+
+export interface ProductionStageSummary {
+  readonly stageType: OrchestrationStageType;
+  readonly locale?: WorkflowLocale;
+  readonly format?: StoryFormat;
+  readonly status: OrchestrationStatus;
+  readonly sourceStageId?: StageId;
+  readonly updatedAt?: string;
+}
+
+export interface EpisodeProductionSummary {
+  readonly schemaVersion: typeof productionSummarySchemaVersion;
+  readonly episodeId: string;
+  readonly workflowId?: WorkflowId;
+  readonly executionId?: ExecutionId;
+  readonly status: OrchestrationStatus;
+  readonly stageCounts: Readonly<Partial<Record<OrchestrationStatus, number>>>;
+  readonly stages: readonly ProductionStageSummary[];
+  readonly activeCustomIds: readonly string[];
+  readonly failedCustomIds: readonly string[];
+  readonly updatedAt: string;
+}
+
+export interface BatchRunPlanItem {
+  readonly customId: string;
+  readonly episodeId: string;
+  readonly stageType: OrchestrationStageType;
+  readonly locale: WorkflowLocale;
+  readonly format: StoryFormat;
+  readonly status: OrchestrationStatus;
+  readonly operation?: string;
+  readonly endpoint?: string;
+  readonly localBatchId?: string;
+  readonly providerBatchId?: ProviderBatchId;
+  readonly retryParentCustomId?: string;
+  readonly manifestPath?: string;
+  readonly updatedAt: string;
+}
+
+export interface BatchRunPlan {
+  readonly schemaVersion: typeof batchRunPlanSchemaVersion;
+  readonly runId: string;
+  readonly createdAt: string;
+  readonly updatedAt: string;
+  readonly items: readonly BatchRunPlanItem[];
+  readonly episodes: readonly EpisodeProductionSummary[];
+  readonly notes?: readonly string[];
 }
 
 export interface WorkflowStageState<TArtifactRef> {

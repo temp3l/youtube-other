@@ -1,9 +1,18 @@
 import { describe, expect, it } from "vitest";
-import { collapseRepeatedTokenRuns, sceneFilename, secondsToSrtTimestamp, slugify } from "./index.js";
+import { collapseRepeatedTokenRuns, sceneFilename, secondsToSrtTimestamp, slugify, toAsciiSlug } from "./index.js";
 
 describe("shared helpers", () => {
   it("slugifies text deterministically", () => {
     expect(slugify("Hello, World!")).toBe("hello-world");
+  });
+
+  it("keeps ASCII folding scoped to slug helpers", () => {
+    expect(toAsciiSlug("Hörte über dem Küchentisch")).toBe(
+      "horte-uber-dem-kuchentisch"
+    );
+    expect("Hörte über dem Küchentisch".normalize("NFC")).toBe(
+      "Hörte über dem Küchentisch"
+    );
   });
 
   it("formats scene filenames deterministically", () => {

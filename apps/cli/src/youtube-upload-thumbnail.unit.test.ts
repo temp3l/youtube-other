@@ -30,6 +30,9 @@ describe("resolveUploadThumbnailPath", () => {
       threatDescription: "a towering supernatural woman in the distance",
       settingDescription: "a narrow village road at night",
       emphasisWord: "CALLED",
+      referenceImagePaths: {
+        short: "episodes/ref-short.png",
+      },
       referenceImagePath: "episodes/ref.png",
     });
   });
@@ -94,8 +97,9 @@ describe("resolveUploadThumbnailPath", () => {
         episodeSlug: "episode-fixture",
         locale: "en",
         format: "short",
-        style: "cinematic-horror",
+        style: "viral-horror-v1",
         hookText: "SHE CALLED HER NAME",
+        referenceImagePath: "episodes/ref-short.png",
         force: true,
       })
     );

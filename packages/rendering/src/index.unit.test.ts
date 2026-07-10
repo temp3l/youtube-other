@@ -23,7 +23,9 @@ import {
   remoteAssetFileName,
   remoteAssetRemotePath,
   remoteReadyPathForClip,
+  validateFinalRenderedMedia,
   validateRenderedVideo,
+  validateSceneClipArtifacts,
 } from "./index.js";
 
 describe("render manifest motion metadata", () => {
@@ -1788,8 +1790,8 @@ describe("FFmpegVideoRenderer", () => {
           id: "youtube",
           label: "youtube",
           aspectRatio: "16:9",
-          width: 1080,
-          height: 1920,
+          width: 1920,
+          height: 1080,
           fps: 30,
         },
         captionBurnIn: false,
@@ -1916,8 +1918,8 @@ describe("FFmpegVideoRenderer", () => {
           id: "youtube",
           label: "youtube",
           aspectRatio: "16:9",
-          width: 1080,
-          height: 1920,
+          width: 1920,
+          height: 1080,
           fps: 30,
         },
         captionBurnIn: false,
@@ -2321,8 +2323,8 @@ describe("FFmpegVideoRenderer", () => {
           id: "youtube",
           label: "youtube",
           aspectRatio: "16:9",
-          width: 1080,
-          height: 1920,
+          width: 1920,
+          height: 1080,
           fps: 30,
         },
         captionBurnIn: false,
@@ -2335,6 +2337,73 @@ describe("FFmpegVideoRenderer", () => {
 
     expect(path.basename(result.cleanPath)).toBe(
       "episode-fixture-en-full-clean.mp4"
+    );
+  }, 120000);
+
+  it("validates final media against clip continuity and manifest presence", async () => {
+    const baseDir = mkdtempSync(
+      path.join(os.tmpdir(), "mediaforge-rendering-final-validation-")
+    );
+    const episodeDir = path.join(baseDir, "episode");
+    const outputDir = path.join(episodeDir, "video");
+    const imageDir = path.join(episodeDir, "images", "generated");
+    const audioDir = path.join(episodeDir, "audio", "segments");
+    await writeSceneFixtureMedia({
+      imageDir,
+      audioDir,
+      imageFilename: "scene-001__000000-000003__16x9.png",
+      imageSize: { width: 32, height: 32 },
+      durationSeconds: 3,
+    });
+
+    const renderProfile = {
+      id: "youtube",
+      label: "youtube",
+      aspectRatio: "16:9" as const,
+      width: 160,
+      height: 90,
+      fps: 30,
+    };
+    const renderer = new FFmpegVideoRenderer();
+    const result = await renderer.render(
+      {
+        episodeDir,
+        scenePlan: makeScenePlan(),
+        outputDir,
+        renderProfile,
+        captionBurnIn: false,
+        imageDir,
+        sceneAudioDir: audioDir,
+      },
+      new AbortController().signal
+    );
+
+    await expect(
+      validateFinalRenderedMedia({
+        finalVideoPath: result.cleanPath,
+        clipsDir: path.join(outputDir, "clips"),
+        scenePlan: makeScenePlan(),
+        renderProfile,
+      })
+    ).resolves.toMatchObject({
+      valid: true,
+      clipValidation: {
+        valid: true,
+        expectedClipCount: 1,
+        actualClipCount: 1,
+      },
+    });
+
+    await fs.unlink(path.join(outputDir, "clips", "scene-001.json"));
+
+    const clipValidation = await validateSceneClipArtifacts({
+      clipsDir: path.join(outputDir, "clips"),
+      scenePlan: makeScenePlan(),
+      renderProfile,
+    });
+    expect(clipValidation.valid).toBe(false);
+    expect(clipValidation.issues).toContain(
+      "Missing clip manifest for scene-001."
     );
   }, 120000);
 

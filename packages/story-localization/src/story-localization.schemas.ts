@@ -66,6 +66,7 @@ const localBatchManifestItemStatusSchema = z.enum([
   "expired",
   "schema-invalid",
   "content-invalid",
+  "validation-failed",
   "repair-required",
   "preflight-failed",
   "persisted",

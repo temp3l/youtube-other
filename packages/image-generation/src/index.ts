@@ -27,6 +27,7 @@ import {
   buildSceneNegativePrompt,
   buildSceneTextPromptSection,
 } from "./scene-text.js";
+import { resolveMediaProfileSpec } from "./video-image-spec.js";
 export {
   generateOpenAiSceneImages,
   loadOpenAiImageGenerationSettings,
@@ -41,6 +42,7 @@ export * from "./image-batch-storage.js";
 export * from "./image-batch-planner.js";
 export * from "./image-batch-service.js";
 export * from "./video-image-spec.js";
+export * from "./image-generation-config.js";
 export { prepareFullSceneImageBatches } from "./image-batch-planner.js";
 export { resolveImageBatchManifest } from "./image-batch-service.js";
 export * from "./thumbnail-contracts.js";
@@ -1169,8 +1171,10 @@ export async function createPlaceholderImage(
   scene: Scene,
   aspectRatio: "16:9" | "9:16"
 ): Promise<ImageAsset> {
-  const width = aspectRatio === "16:9" ? 1920 : 1080;
-  const height = aspectRatio === "16:9" ? 1080 : 1920;
+  const profile = aspectRatio === "16:9" ? "full" : "short";
+  const dimensions = resolveMediaProfileSpec(profile).imageGenerationSize;
+  const width = dimensions.width;
+  const height = dimensions.height;
   const rng = seededRandom(
     `${scene.id}:${scene.timing.startSeconds}:${scene.timing.endSeconds}`
   );

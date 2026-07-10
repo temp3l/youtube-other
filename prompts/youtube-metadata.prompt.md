@@ -151,6 +151,15 @@ Thumbnail text must:
 - be understandable on a phone;
 - complement rather than repeat the title;
 - avoid misleading claims.
+- sound like a short emotional horror hook, not a literal title translation;
+- use direct, clickable wording with strong fear, mystery, or threat;
+- avoid weak generic phrasing and filler words.
+
+For German thumbnail text:
+
+- write natural German click hooks, not literal English translations;
+- prefer short phrases a German horror viewer would actually click;
+- keep compound words readable and avoid overly formal wording.
 
 The image prompt must specify:
 

@@ -34,6 +34,7 @@ import {
   detectProductionLabels,
   firstSentence,
 } from "./short-rewrite.utils.js";
+import { detectLocalizedUnicodeIssues } from "./localized-content-text.js";
 import {
   type ShortRewriteAdaptationContract,
   type ShortRewriteResolvedParent,
@@ -120,6 +121,7 @@ export const GENERATED_STORY_VALIDATION_ISSUE_CODES = {
     "SHORT_STORY_ROUTED_TO_FULL_REGENERATION",
   ORIGINAL_CHARACTER_NAME_LEAK: "ORIGINAL_CHARACTER_NAME_LEAK",
   MISSING_CHARACTER_RENAME: "MISSING_CHARACTER_RENAME",
+  LOCALIZED_UNICODE_LOSS: "LOCALIZED_UNICODE_LOSS",
 } as const;
 
 export type GeneratedStoryValidationIssueCode =
@@ -291,6 +293,21 @@ function detectLocalizedPlaceholderLeakage(text: string): boolean {
   );
 }
 
+function detectSpokenHeadingOrMetadataLeakage(text: string): boolean {
+  return text
+    .split(/\n+/u)
+    .map((line) => normalizeWhitespace(line))
+    .some((line) =>
+      /^#{1,6}\s+\S+/u.test(line) ||
+      /^\s*[-*+]\s+\S+/u.test(line) ||
+      /^\s*\d+\.\s+\S+/u.test(line) ||
+      /^(?:title|subtitle|description|summary|metadata|script|narration|episode|language|locale|variant|voice|wpm|duration)\s*[:=-]\s*\S+/iu.test(
+        line
+      ) ||
+      /^\s*(?:generated\s+)?(?:from|for)\s+[:=-]\s*\S+/iu.test(line)
+    );
+}
+
 function detectTruncation(text: string): boolean {
   const trimmed = normalizeWhitespace(text);
   if (trimmed.length === 0) {
@@ -336,6 +353,13 @@ function validateLocaleSpecificNarration(
         : "Short source-language placeholder leakage."
     );
   }
+  if (detectSpokenHeadingOrMetadataLeakage(text)) {
+    issues.push(
+      variant === "full"
+        ? "Localized full heading or metadata leakage."
+        : "Short heading or metadata leakage."
+    );
+  }
   if (/\b(the|and|with|from|warning)\b/iu.test(normalized)) {
     issues.push(
       variant === "full"
@@ -351,10 +375,61 @@ function validateLocaleSpecificNarration(
     issues.push(
       variant === "full"
         ? "Localized full untranslated boilerplate."
-        : "Short untranslated boilerplate."
+      : "Short untranslated boilerplate."
     );
   }
+  for (const diagnostic of detectLocalizedUnicodeIssues({
+    language: profile.code,
+    text,
+  })) {
+    issues.push(diagnostic.message);
+  }
   return [...new Set(issues)];
+}
+
+export function validateSpokenNarrationText(args: {
+  readonly language: LanguageCode | string;
+  readonly narration: string;
+  readonly variant: "full" | "short";
+  readonly includeMetadata?: string;
+}): GeneratedStoryValidationResult {
+  const narration = normalizeWhitespace(args.narration);
+  const issues: GeneratedStoryValidationIssue[] = [];
+  const searchableText = [narration, args.includeMetadata ?? ""]
+    .filter((entry) => normalizeWhitespace(entry).length > 0)
+    .join(" ");
+  if (detectSpokenHeadingOrMetadataLeakage(narration)) {
+    issues.push(
+      issue(
+        args.variant === "full"
+          ? GENERATED_STORY_VALIDATION_ISSUE_CODES.FULL_METADATA_AUDIO_VISUAL_LEAKAGE
+          : GENERATED_STORY_VALIDATION_ISSUE_CODES.SHORT_METADATA_AUDIO_VISUAL_LEAKAGE,
+        args.variant,
+        args.variant === "full"
+          ? "Spoken narration contains heading or metadata leakage."
+          : "Short spoken narration contains heading or metadata leakage."
+      )
+    );
+  }
+  for (const diagnostic of detectLocalizedUnicodeIssues({
+    language: args.language,
+    text: searchableText,
+  })) {
+    issues.push(
+      issue(
+        diagnostic.language === "de" ||
+          diagnostic.message.includes("native German characters")
+          ? GENERATED_STORY_VALIDATION_ISSUE_CODES.LOCALIZED_UNICODE_LOSS
+          : args.variant === "full"
+            ? GENERATED_STORY_VALIDATION_ISSUE_CODES.FULL_LANGUAGE_OR_LOCALE_INVALID
+            : GENERATED_STORY_VALIDATION_ISSUE_CODES.SHORT_LANGUAGE_OR_LOCALE_INVALID,
+        args.variant,
+        diagnostic.message,
+        diagnostic.severity
+      )
+    );
+  }
+  return buildResult(issues);
 }
 
 function buildResult(
@@ -797,13 +872,24 @@ export function validateFullNarrationArtifact(
       )
     );
   }
-  if (validateLocaleSpecificNarration(narration, args.profile, "full").length > 0) {
+  const localeIssues = validateLocaleSpecificNarration(
+    narration,
+    args.profile,
+    "full"
+  );
+  for (const localeIssue of localeIssues) {
     issues.push(
       issue(
-        GENERATED_STORY_VALIDATION_ISSUE_CODES.FULL_LANGUAGE_OR_LOCALE_INVALID,
+        localeIssue.includes("native German characters") ||
+          localeIssue.includes("suspiciously ASCII-only")
+          ? GENERATED_STORY_VALIDATION_ISSUE_CODES.LOCALIZED_UNICODE_LOSS
+          : GENERATED_STORY_VALIDATION_ISSUE_CODES.FULL_LANGUAGE_OR_LOCALE_INVALID,
         "full",
-        validateLocaleSpecificNarration(narration, args.profile, "full")[0] ??
-          "Localized full wrong language/locale."
+        localeIssue,
+        localeIssue.includes("suspiciously ASCII-only") &&
+          !localeIssue.includes("German")
+          ? "warning"
+          : "error"
       )
     );
   }
@@ -1191,12 +1277,19 @@ export function validateShortNarrationArtifact(
     args.profile,
     "short"
   );
-  if (localeIssues.length > 0) {
+  for (const localeIssue of localeIssues) {
     issues.push(
       issue(
-        GENERATED_STORY_VALIDATION_ISSUE_CODES.SHORT_LANGUAGE_OR_LOCALE_INVALID,
+        localeIssue.includes("native German characters") ||
+          localeIssue.includes("suspiciously ASCII-only")
+          ? GENERATED_STORY_VALIDATION_ISSUE_CODES.LOCALIZED_UNICODE_LOSS
+          : GENERATED_STORY_VALIDATION_ISSUE_CODES.SHORT_LANGUAGE_OR_LOCALE_INVALID,
         "short",
-        localeIssues[0] ?? "Short wrong language/locale."
+        localeIssue,
+        localeIssue.includes("suspiciously ASCII-only") &&
+          !localeIssue.includes("German")
+          ? "warning"
+          : "error"
       )
     );
   }
@@ -1371,6 +1464,20 @@ function validateFullStoryPackageNarration(
     if (detectAbstractTransitionScaffolding(fullText).length > 0) {
       issues.push("Full reads like an outline or transition scaffold.");
     }
+    issues.push(
+      ...detectLocalizedUnicodeIssues({
+        language: profile.code,
+        text: fullText,
+        includeMetadata: [
+          packageValue.full.title,
+          packageValue.full.thumbnailText,
+          packageValue.full.contentDisclosure,
+          packageValue.full.seoDescription,
+          packageValue.full.tags.join(" "),
+          packageValue.full.hashtags.join(" "),
+        ].join(" "),
+      }).map((diagnostic) => diagnostic.message)
+    );
     if (facts) {
       const normalizedText = normalizeWhitespace(fullText).toLowerCase();
       if (
@@ -1574,6 +1681,20 @@ export function validateGeneratedLocalizedFullRewritePackage(
   if (detectAbstractTransitionScaffolding(fullText).length > 0) {
     issues.push("Full reads like an outline or transition scaffold.");
   }
+  issues.push(
+    ...detectLocalizedUnicodeIssues({
+      language,
+      text: fullText,
+      includeMetadata: [
+        packageValue.full.title,
+        packageValue.full.thumbnailText,
+        packageValue.full.contentDisclosure,
+        packageValue.full.seoDescription,
+        packageValue.full.tags.join(" "),
+        packageValue.full.hashtags.join(" "),
+      ].join(" "),
+    }).map((diagnostic) => diagnostic.message)
+  );
   issues.push(
     ...validatePreservationChecklist(packageValue.preservationChecklist).map(
       (entry) => `preservation:${entry}`

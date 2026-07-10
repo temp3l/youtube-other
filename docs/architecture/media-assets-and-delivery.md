@@ -23,13 +23,17 @@ Full and short media stay separate. Metadata and audio remain sibling or downstr
 - Scene plans are treated as explicit downstream artifacts of validated narration, with narration fingerprint, locale, variant, and planning configuration recorded in the persisted visual-plan artifacts.
 - Image prompts are generated from scene plans with local style and negative-prompt helpers.
 - Shared image ownership lives under episode-level shared directories, with migration-only stale image candidates classified by shared helpers where older state still needs inspection.
-- Canonical stored scene-image specs are exact and variant-specific: full-video shared images must be `1920x1080`, short-video shared images must be `1080x1920`.
+- Canonical shared scene-image specs are exact and variant-specific: full-video generated images must be `1536x864`, short-video generated images must be `864x1536`.
+- Final render specs stay separate from generation specs: full-video renders are `1920x1080`, short-video renders are `1080x1920`.
+- `OPENAI_IMAGE_SIZE` is only the backward-compatible fallback for full-video generation. Short generation must come from `OPENAI_IMAGE_SHORT_SIZE`, `YOUTUBE_SHORT_IMAGE_SIZE`, or the typed default `864x1536`.
+- Using `1920x1080` as the default OpenAI request size is incorrect for the story pipeline because it conflates provider image generation with downstream video rendering and weakens manifest reuse validation.
 - The image pipeline persists prompts, visual plans, provider request and response artifacts, manifests, checkpoints, and failure records under `state/image-generation/`.
 - Image-generation manifests now record additive stage dependencies for narration, scene-plan, and image-plan lineage, plus prompt and configuration fingerprints.
 - Resume and reuse behavior are manifest-driven, but file existence alone is not accepted as valid. The pipeline inspects the actual image file and fails fast when the stored dimensions do not match the canonical spec for that variant.
-- Short image preparation keeps the short variant separate, requires `9:16`, records safe vertical composition, focal-subject placement, text-safe guidance, and optional parent full-video linkage in the shorts manifest, and validates the final stored portrait asset at `1080x1920`.
+- Short image preparation keeps the short variant separate, requires `9:16`, records safe vertical composition, focal-subject placement, text-safe guidance, and optional parent full-video linkage in the shorts manifest, and validates the stored portrait generation asset at `864x1536` before rendering.
 - Localized full-video runs reuse canonical shared full images only after the shared manifest entries and the actual files on disk pass the same dimension contract.
 - Recovery for invalid existing assets: delete the invalid shared image files plus the affected shared image manifest, then rerun the canonical English full image step for full assets or the short image preparation step for short assets. Do not keep rendering from a manifest that points at invalid files.
+- If an older episode already contains `1920x1080` full shared images or `1080x1920` short shared images in the image manifest, treat them as invalid generation assets, remove the manifest entries and files, and resume the image stage so the pipeline regenerates or revalidates against the correct generation size.
 
 ## Rendering
 

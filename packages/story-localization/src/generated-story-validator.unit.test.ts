@@ -1,9 +1,12 @@
 import { describe, expect, it } from "vitest";
+import fs from "node:fs/promises";
+import path from "node:path";
 import { getLanguageProfile } from "./language-profiles.js";
 import {
   GENERATED_STORY_VALIDATION_ISSUE_CODES,
   formatValidationIssues,
   validateFullNarrationArtifact,
+  validateSpokenNarrationText,
   validateNarrationOnlyFullRewritePackage,
   validateShortNarrationArtifact,
 } from "./generated-story-validator.js";
@@ -281,6 +284,35 @@ function buildShortConstraints(language: SupportedLanguage): ShortStoryOutputCon
     targetDuration: { minSeconds: 55, maxSeconds: 65 },
     hookDeadlineSeconds: 8,
     fullVideoBridgeRequired: true,
+  };
+}
+
+function passingChecklist() {
+  return {
+    charactersPreserved: true,
+    relationshipsPreserved: true,
+    chronologyPreserved: true,
+    criticalObjectsPreserved: true,
+    cluesPreserved: true,
+    writtenMessagesPreserved: true,
+    primaryRevealPreserved: true,
+    endingPreserved: true,
+    noNewPlotElementsAdded: true,
+  };
+}
+
+function germanUnicodeFacts(): CanonicalStoryFacts {
+  return {
+    episodeNumber: "099",
+    primaryTitle: "Die Lüftung",
+    characters: [],
+    setting: "die Küche",
+    criticalObjects: [],
+    criticalEvents: ["Die Wörter auf den Überschriften wirkten falsch."],
+    writtenMessages: [],
+    threat: "das Geräusch",
+    primaryReveal: "die Lüftungsgitter klapperten",
+    finalConsequence: "die Tür blieb offen",
   };
 }
 
@@ -665,6 +697,89 @@ describe("generated story validator", () => {
     expect(issues).toContain(
       "Localized full source-language placeholder leakage."
     );
+  });
+
+  it("rejects spoken narration that leaks markdown headings or metadata labels", () => {
+    const result = validateSpokenNarrationText({
+      language: "de",
+      narration: [
+        "# Narration Script",
+        "",
+        "Title: Die Lüftung",
+        "",
+        "Die Wörter auf den Überschriften wirkten falsch.",
+      ].join("\n"),
+      variant: "full",
+    });
+
+    expect(result.status).toBe("failed");
+    expect(result.messages).toEqual(
+      expect.arrayContaining([
+        "Spoken narration contains heading or metadata leakage.",
+      ])
+    );
+  });
+
+  it("rejects German localized narration with obvious ASCII-transliterated terms", async () => {
+    const fixture = await fs.readFile(
+      path.join(
+        import.meta.dirname,
+        "__fixtures__",
+        "localized-unicode",
+        "bad-german-ascii.md"
+      ),
+      "utf8"
+    );
+    const issues = validateNarrationOnlyFullRewritePackage(
+      {
+        language: "de",
+        full: { narrationParagraphs: [fixture] },
+        targetNarrationWpm: 175,
+        preservationChecklist: passingChecklist(),
+        diagnostics: { removedGenericFiller: [], adaptationNotes: [] },
+      },
+      germanUnicodeFacts(),
+      getLanguageProfile("de"),
+      "de"
+    );
+
+    expect(issues.join(" ")).toContain(
+      "German localized narration must preserve native German characters before TTS"
+    );
+    expect(issues.join(" ")).toContain("horte");
+    expect(issues.join(" ")).toContain("Uberschriften");
+  });
+
+  it("accepts German localized narration with preserved umlauts and ß", async () => {
+    const fixture = await fs.readFile(
+      path.join(
+        import.meta.dirname,
+        "__fixtures__",
+        "localized-unicode",
+        "good-german-unicode.md"
+      ),
+      "utf8"
+    );
+    const issues = validateNarrationOnlyFullRewritePackage(
+      {
+        language: "de",
+        full: {
+          narrationParagraphs: [
+            `${fixture} Die Lüftungsgitter klapperten. Die Tür blieb offen.`,
+          ],
+        },
+        targetNarrationWpm: 175,
+        preservationChecklist: passingChecklist(),
+        diagnostics: { removedGenericFiller: [], adaptationNotes: [] },
+      },
+      germanUnicodeFacts(),
+      getLanguageProfile("de"),
+      "de"
+    );
+
+    expect(
+      issues.some((entry) => entry.includes("native German characters"))
+    ).toBe(false);
   });
 
   it("accepts fictionalized character names when a rename map is supplied", () => {

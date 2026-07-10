@@ -1,0 +1,5 @@
+Summary: Added slot-aware YouTube OAuth helpers and separate `pnpm` scripts for English/default and German tokens so refresh tokens are written to the correct env vars.
+Changed paths: `scripts/youtube-auth.ts`, `package.json`, `docs/cli.md`, `docs/development/configuration.md`, `docs/reports/codex-runs/2026-07-10-youtube-auth-slots.md`
+Tests/checks: `git diff --check -- package.json scripts/youtube-auth.ts docs/cli.md docs/development/configuration.md` (passed); `pnpm exec tsx scripts/youtube-auth.ts --help` (failed: `tsx` not installed in workspace); `pnpm exec tsc --pretty false --noEmit --module nodenext --moduleResolution nodenext --target es2022 scripts/youtube-auth.ts` (started, stopped after hanging without output)
+Commit hash: `9e3ba73`
+Unresolved risks: runtime behavior is not fully exercised until `tsx` is available and the auth scripts are run against Google OAuth; only English/default and German convenience scripts were added, though the script also supports Spanish and French via `--slot`.

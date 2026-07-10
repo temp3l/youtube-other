@@ -11,11 +11,21 @@ import { registerStoryRewriteShortCommand } from "./story-short-rewrite-command.
 import { registerStoryRewriteFullCommand } from "./story-full-rewrite-command.js";
 import { registerStoryAnalysisCommand } from "./story-analysis-command.js";
 import { registerStoryPipelineCommand } from "./story-pipeline-command.js";
+import { registerStoryAudioCommand } from "./story-audio-command.js";
+import {
+  commandStoriesBatchTodo,
+  registerStoryProductionCommand,
+  type StoryProductionCliOptions,
+} from "./story-production-command.js";
+import { registerStoryImagesCommand } from "./story-images-command.js";
+import { registerStoryRenderCommand } from "./story-render-command.js";
+import { mergeCommandOptions } from "./command-option-helpers.js";
 import {
   cancelStoryBatch,
   createOpenAiStoryClient,
   createStoryLocalizationConfig,
   discoverCanonicalSourceStories,
+  downloadStoryLocalizationBatch,
   importReadyStoryBatches,
   importStoryLocalizationBatch,
   getLanguageProfile,
@@ -30,6 +40,7 @@ import {
   resolveDefaultSourceDirectory,
   selectSourceCandidates,
   submitStoryLocalizationBatch,
+  syncStoryLocalizationBatch,
   StoryBatchIndexService,
   DEFAULT_STORY_REWRITE_MODEL,
   DEFAULT_FULL_REWRITE_MAX_OUTPUT_TOKENS,
@@ -37,6 +48,7 @@ import {
   DEFAULT_STORY_REWRITE_REASONING_EFFORT,
   SHORT_REWRITE_DEFAULT_TEMPERATURE,
   validateGeneratedStories,
+  validateImportedStoryBatch,
   type LanguageCode,
   type StoryLocalizationEpisodeResult,
   type StoryLocalizationRunCounts,
@@ -80,11 +92,15 @@ export interface StoryLocalizationCliOptions {
 
 export interface StoryBatchCliOptions {
   readonly batch?: string;
+  readonly run?: string;
+  readonly all?: boolean;
+  readonly file?: string;
   readonly episode?: string;
   readonly outputDir?: string;
   readonly sourceDir?: string;
   readonly languages?: string;
   readonly model?: string;
+  readonly force?: boolean;
   readonly repair?: boolean;
   readonly verbose?: boolean;
 }
@@ -569,12 +585,157 @@ export async function buildBatchConfig(
     repairMaxOutputTokens:
       runtimeConfig.openAiLocalizationMaxOutputTokens ??
       DEFAULT_FULL_REWRITE_RETRY_MAX_OUTPUT_TOKENS,
+    force: options.force ?? false,
     verbose: options.verbose ?? false,
   });
 }
 
 async function printBatchEntries(entries: readonly unknown[]): Promise<void> {
   process.stdout.write(`${JSON.stringify(entries, null, 2)}\n`);
+}
+
+function resolveBatchRunOption(options: StoryBatchCliOptions): string {
+  const run = options.run ?? options.batch;
+  if (!run) {
+    throw new Error("--run is required");
+  }
+  return run;
+}
+
+export async function commandStoriesBatchPlan(
+  options: StoryBatchCliOptions
+): Promise<void> {
+  const config = await buildBatchConfig(options);
+  const discovered = await discoverCanonicalSourceStories(
+    config.sourceDirectory
+  );
+  const selected = resolveSelection(options, discovered);
+  if (selected.length === 0) {
+    throw new Error("No source stories matched the batch plan selection.");
+  }
+  const prepared = await prepareStoryLocalizationBatch(
+    selected.map((candidate) => candidate.filePath),
+    config
+  );
+  process.stdout.write(
+    `${JSON.stringify(
+      {
+        planned: true,
+        runId: prepared.localBatchId,
+        localBatchId: prepared.localBatchId,
+        manifestPath: prepared.manifestPath,
+        inputFilePath: prepared.inputFilePath,
+        runDirectory: path.join(config.outputDirectory, "batches", prepared.localBatchId),
+        batchPlanPath: path.join(
+          config.outputDirectory,
+          "batches",
+          prepared.localBatchId,
+          "batch-plan.json"
+        ),
+        runInputJsonlPath: path.join(
+          config.outputDirectory,
+          "batches",
+          prepared.localBatchId,
+          "input.jsonl"
+        ),
+        itemCount: prepared.itemCount,
+        skippedCachedItemCount: prepared.skippedCachedItemCount,
+      },
+      null,
+      2
+    )}\n`
+  );
+}
+
+export async function commandStoriesBatchSubmit(
+  options: StoryBatchCliOptions
+): Promise<void> {
+  const config = await buildBatchConfig(options);
+  const submitted = await submitStoryLocalizationBatch(
+    resolveBatchRunOption(options),
+    config,
+    createOpenAiStoryClient()
+  );
+  process.stdout.write(`${JSON.stringify(submitted, null, 2)}\n`);
+}
+
+export async function commandStoriesBatchStatus(
+  options: StoryBatchCliOptions
+): Promise<void> {
+  const config = await buildBatchConfig(options);
+  const refreshed = await refreshStoryLocalizationBatch(
+    resolveBatchRunOption(options),
+    config,
+    createOpenAiStoryClient()
+  );
+  process.stdout.write(`${JSON.stringify(refreshed, null, 2)}\n`);
+}
+
+export async function commandStoriesBatchDownload(
+  options: StoryBatchCliOptions
+): Promise<void> {
+  const config = await buildBatchConfig(options);
+  const downloaded = await downloadStoryLocalizationBatch(
+    resolveBatchRunOption(options),
+    config,
+    createOpenAiStoryClient()
+  );
+  process.stdout.write(`${JSON.stringify(downloaded, null, 2)}\n`);
+}
+
+export async function commandStoriesBatchImport(
+  options: StoryBatchCliOptions
+): Promise<void> {
+  const config = await buildBatchConfig(options);
+  const imported = await importStoryLocalizationBatch(
+    resolveBatchRunOption(options),
+    config,
+    {
+      responses: {
+        create: async () => {
+          throw new Error("Import does not call provider responses.");
+        },
+        parse: async () => {
+          throw new Error("Import does not call provider responses.");
+        },
+      },
+    } as never
+  );
+  process.stdout.write(`${JSON.stringify(imported, null, 2)}\n`);
+}
+
+export async function commandStoriesBatchValidate(
+  options: StoryBatchCliOptions
+): Promise<void> {
+  const config = await buildBatchConfig(options);
+  const validation = await validateImportedStoryBatch(
+    resolveBatchRunOption(options),
+    config
+  );
+  process.stdout.write(`${JSON.stringify(validation, null, 2)}\n`);
+}
+
+export async function commandStoriesBatchSync(
+  options: StoryBatchCliOptions
+): Promise<void> {
+  const config = await buildBatchConfig(options);
+  const synced = await syncStoryLocalizationBatch(
+    resolveBatchRunOption(options),
+    config,
+    createOpenAiStoryClient()
+  );
+  process.stdout.write(`${JSON.stringify(synced, null, 2)}\n`);
+}
+
+export async function commandStoriesBatchRetryFailed(
+  options: StoryBatchCliOptions
+): Promise<void> {
+  const config = await buildBatchConfig(options);
+  const retried = await retryFailedStoryBatch(
+    resolveBatchRunOption(options),
+    config
+  );
+  process.stdout.write(`${JSON.stringify(retried, null, 2)}\n`);
 }
 
 export async function commandStoriesBatchesList(
@@ -706,6 +867,11 @@ export async function commandStoriesBatchesImport(
     throw new Error("--batch is required");
   }
   const config = await buildBatchConfig(options);
+  await downloadStoryLocalizationBatch(
+    options.batch,
+    config,
+    createOpenAiStoryClient()
+  );
   const imported = await importStoryLocalizationBatch(
     options.batch,
     config,
@@ -845,8 +1011,89 @@ export function registerStoryLocalizationCommands(program: Command): void {
   registerStoryRewriteShortCommand(stories);
   registerStoryRewriteFullCommand(stories);
   registerStoryAnalysisCommand(stories);
+  registerStoryAudioCommand(stories);
+  registerStoryImagesCommand(stories);
   registerStoryPipelineCommand(stories);
+  registerStoryProductionCommand(stories);
+  registerStoryRenderCommand(stories);
   registerStoryShortEvaluateCommand(program);
+  const storyBatch = stories
+    .command("batch")
+    .description("Text story batch lifecycle wrappers");
+  storyBatch
+    .command("plan")
+    .option("--all", "process all discovered English full stories")
+    .option("--file <path>", "explicit canonical English full story file")
+    .option("--episode <number-or-slug>", "episode number or slug")
+    .option("--source-dir <path>", "source directory")
+    .option("--output-dir <path>", "output directory")
+    .option("--languages <comma-separated-languages>", "target languages")
+    .option("--model <model>", "OpenAI model")
+    .option("--verbose")
+    .action(commandStoriesBatchPlan);
+  storyBatch
+    .command("submit")
+    .requiredOption("--run <id>", "local batch run id")
+    .option("--output-dir <path>")
+    .option("--model <model>", "OpenAI model")
+    .option("--verbose")
+    .action(commandStoriesBatchSubmit);
+  storyBatch
+    .command("status")
+    .requiredOption("--run <id>", "local batch run id")
+    .option("--output-dir <path>")
+    .option("--model <model>", "OpenAI model")
+    .option("--verbose")
+    .action(commandStoriesBatchStatus);
+  storyBatch
+    .command("download")
+    .requiredOption("--run <id>", "local batch run id")
+    .option("--output-dir <path>")
+    .option("--model <model>", "OpenAI model")
+    .option("--verbose")
+    .action(commandStoriesBatchDownload);
+  storyBatch
+    .command("import")
+    .requiredOption("--run <id>", "local batch run id")
+    .option("--output-dir <path>")
+    .option("--model <model>", "OpenAI model")
+    .option("--force", "overwrite approved or existing artifacts")
+    .option("--verbose")
+    .action(commandStoriesBatchImport);
+  storyBatch
+    .command("validate")
+    .requiredOption("--run <id>", "local batch run id")
+    .option("--output-dir <path>")
+    .option("--verbose")
+    .action(commandStoriesBatchValidate);
+  storyBatch
+    .command("sync")
+    .requiredOption("--run <id>", "local batch run id")
+    .option("--output-dir <path>")
+    .option("--model <model>", "OpenAI model")
+    .option("--force", "overwrite approved or existing artifacts during import")
+    .option("--verbose")
+    .action(commandStoriesBatchSync);
+  storyBatch
+    .command("retry-failed")
+    .requiredOption("--run <id>", "local batch run id")
+    .option("--output-dir <path>")
+    .option("--model <model>", "OpenAI model")
+    .option("--verbose")
+    .action(commandStoriesBatchRetryFailed);
+  storyBatch
+    .command("todo")
+    .option("--episode <slug-or-number>", "episode slug or number")
+    .option("--episodes <comma-separated-episodes>", "episode slugs or numbers")
+    .option("--workflow <workflow-id>", "workflow id for single-episode reads")
+    .option("--output-root <path>", "episode workspace root")
+    .option("--limit <number>", "maximum items per section", (value) => Number(value))
+    .option("--languages <comma-separated-languages>", "target locales")
+    .option("--profiles <comma-separated-profiles>", "target profiles")
+    .option("--json", "print machine-readable report")
+    .action((opts: StoryProductionCliOptions, command: Command) =>
+      commandStoriesBatchTodo(mergeCommandOptions(command, opts))
+    );
   stories
     .command("resume-images")
     .description("Resume partial image generation for an episode and bootstrap manifest.json when needed")
@@ -869,8 +1116,9 @@ export function registerStoryLocalizationCommands(program: Command): void {
       force?: boolean;
       json?: boolean;
       verbose?: boolean;
-    }) =>
+    }, command: Command) =>
       commandImagesResume({
+        ...mergeCommandOptions(command, {}),
         ...(opts.episode !== undefined ? { episode: opts.episode } : {}),
         ...(opts.source !== undefined ? { source: opts.source } : {}),
         ...(opts.outputRoot !== undefined ? { workspace: opts.outputRoot } : {}),
@@ -992,6 +1240,7 @@ export function registerStoryLocalizationCommands(program: Command): void {
     .command("import")
     .requiredOption("--batch <id>")
     .option("--output-dir <path>")
+    .option("--force", "overwrite approved or existing artifacts")
     .option("--verbose")
     .action(commandStoriesBatchesImport);
   batches

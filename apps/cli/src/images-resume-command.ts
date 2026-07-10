@@ -275,16 +275,11 @@ export async function commandImagesResume(
   const { episodeDir, manifestPath, manifest, created } =
     await loadOrBootstrapEpisodeManifest(options);
   const settings = loadEpisodeImageGenerationSettings({
-    OPENAI_API_KEY: process.env["OPENAI_API_KEY"],
-    OPENAI_IMAGE_MODEL: process.env["OPENAI_IMAGE_MODEL"],
-    OPENAI_IMAGE_SIZE: process.env["OPENAI_IMAGE_SIZE"],
-    OPENAI_IMAGE_QUALITY: process.env["OPENAI_IMAGE_QUALITY"],
+    ...process.env,
     OPENAI_IMAGE_CONCURRENCY:
       options.concurrency !== undefined
         ? String(options.concurrency)
         : process.env["OPENAI_IMAGE_CONCURRENCY"],
-    OPENAI_IMAGE_MAX_RETRIES: process.env["OPENAI_IMAGE_MAX_RETRIES"],
-    OPENAI_IMAGE_TIMEOUT_MS: process.env["OPENAI_IMAGE_TIMEOUT_MS"],
     OPENAI_IMAGE_ALLOW_UNAPPROVED_CHARACTER_REFERENCES:
       options.allowUnapprovedCharacterReferences
         ? "true"
@@ -292,9 +287,8 @@ export async function commandImagesResume(
     OPENAI_IMAGE_FORCE: options.force
       ? "true"
       : process.env["OPENAI_IMAGE_FORCE"],
-    OPENAI_BASE_URL: process.env["OPENAI_BASE_URL"],
-    OPENAI_ORGANIZATION: process.env["OPENAI_ORGANIZATION"],
-    OPENAI_PROJECT: process.env["OPENAI_PROJECT"],
+  }, {
+    profile: "full",
   });
   const logger = createLogger(
     options.verbose ? "debug" : "info",

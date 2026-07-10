@@ -6,6 +6,7 @@ import sharp from "sharp";
 import { describe, expect, it, vi } from "vitest";
 import {
   buildEpisodeLoadResult,
+  buildLocalizedScenePlan,
   buildScenePlan,
   createApprovalRecord,
   discoverEpisodeSources,
@@ -494,8 +495,8 @@ describe("dark-truth workflow", () => {
     const existingPath = path.join(imageDir, "scene-001__000000-000004__16x9.png");
     await sharp({
       create: {
-        width: 1920,
-        height: 1080,
+        width: 1536,
+        height: 864,
         channels: 4,
         background: { r: 10, g: 20, b: 30, alpha: 1 },
       },
@@ -573,7 +574,7 @@ describe("dark-truth workflow", () => {
       .toFile(existingPath);
 
     await expect(generateCanonicalImages(sharedDir, scenePlan)).rejects.toThrow(
-      /expected=1920x1080/
+      /expected=1536x864/
     );
   });
 
@@ -658,6 +659,72 @@ describe("dark-truth workflow", () => {
     );
     expect(retimed.scenes[0]?.actualAudioDurationSeconds).toBe(5);
     expect(retimed.scenes[1]?.actualAudioDurationSeconds).toBe(5);
+  });
+
+  it("keeps localized scene beats aligned to canonical visual timing", () => {
+    const canonical = scenePlanSchema.parse({
+      sourceId: "episode-fixture",
+      scenes: [
+        {
+          id: "scene-001",
+          sequenceNumber: 1,
+          canonicalNarration: "Emma kept hearing footsteps above her bedroom.",
+          sourceSegmentIds: ["scene-001"],
+          estimatedDurationSeconds: 3,
+          timing: { startSeconds: 0, endSeconds: 3 },
+          visualPurpose: "introduce the setting",
+          textRequirement: { required: false },
+          subject: "Emma",
+          action: "hearing footsteps",
+          setting: "bedroom",
+          composition: "centered",
+          cameraFraming: "wide shot",
+          mood: "tense",
+          continuityReferences: [],
+          onScreenText: "",
+          negativeConstraints: [],
+          aspectRatios: ["16:9"],
+          imagePrompt: "Emma hearing footsteps",
+          expectedImageFilenames: ["scene-001__000000-000003__16x9.png"],
+          qualityStatus: "draft",
+        },
+        {
+          id: "scene-002",
+          sequenceNumber: 2,
+          canonicalNarration: "The estate agent insisted the house had no attic.",
+          sourceSegmentIds: ["scene-002"],
+          estimatedDurationSeconds: 5,
+          timing: { startSeconds: 3, endSeconds: 8 },
+          visualPurpose: "establish the premise",
+          textRequirement: { required: false },
+          subject: "estate agent",
+          action: "insisted there was no attic",
+          setting: "house",
+          composition: "centered",
+          cameraFraming: "wide shot",
+          mood: "tense",
+          continuityReferences: ["scene-001"],
+          onScreenText: "",
+          negativeConstraints: [],
+          aspectRatios: ["16:9"],
+          imagePrompt: "Estate agent says no attic",
+          expectedImageFilenames: ["scene-002__000003-000008__16x9.png"],
+          qualityStatus: "draft",
+        },
+      ],
+    });
+    const localized = buildLocalizedScenePlan(
+      canonical,
+      "Emma hoerte Nacht fuer Nacht Schritte ueber ihrem Schlafzimmer. Der Makler behauptete, das Haus habe keinen Dachboden."
+    );
+    expect(localized.scenes[0]?.timing).toEqual({ startSeconds: 0, endSeconds: 3 });
+    expect(localized.scenes[1]?.timing).toEqual({ startSeconds: 3, endSeconds: 8 });
+    expect(localized.scenes[0]?.canonicalNarration).toBe(
+      "Emma hoerte Nacht fuer Nacht Schritte ueber ihrem Schlafzimmer."
+    );
+    expect(localized.scenes[1]?.canonicalNarration).toBe(
+      "Der Makler behauptete, das Haus habe keinen Dachboden."
+    );
   });
 
   it("slices narration audio into one scene-level audio file per scene id", async () => {

@@ -45,15 +45,35 @@ describe("story localization command registration", () => {
     ).toBe(true);
     expect(commandNames(stories as Command)).toEqual([
       "analyze",
+      "audio",
+      "batch",
       "bootstrap-shared",
+      "images",
       "inspect",
       "localize",
       "pipeline",
+      "production",
+      "render",
       "resume-images",
       "rewrite-full",
       "rewrite-short",
       "status",
       "sync-characters",
+    ]);
+    const storyBatch = (stories as Command).commands.find(
+      (command) => command.name() === "batch"
+    );
+    expect(storyBatch).toBeDefined();
+    expect(commandNames(storyBatch as Command)).toEqual([
+      "download",
+      "import",
+      "plan",
+      "retry-failed",
+      "status",
+      "submit",
+      "sync",
+      "todo",
+      "validate",
     ]);
     expect(commandNames(batches as Command)).toEqual([
       "cancel",
@@ -79,6 +99,13 @@ describe("story localization command registration", () => {
     expect(docs).toContain("stories rewrite-full");
     expect(docs).toContain("stories rewrite-short");
     expect(docs).toContain("stories analyze");
+    expect(docs).toContain("stories production status");
+    expect(docs).toContain("stories production repair");
+    expect(docs).toContain("stories production batch");
+    expect(docs).toContain("stories batch todo");
+    expect(docs).toContain("stories audio generate");
+    expect(docs).toContain("stories images generate");
+    expect(docs).toContain("stories render validate");
     expect(docs).toContain("stories:batches verify-index");
     expect(docs).toContain("node apps/cli/dist/index.js episode resume-images");
     expect(docs).not.toContain(

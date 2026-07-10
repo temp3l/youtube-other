@@ -12,6 +12,9 @@ import {
   type LanguageCode,
   type ParsedSourceStory,
 } from "./story-localization.types.js";
+import {
+  normalizeNarrationOnlyFullRewriteResponseContent,
+} from "./localized-content-text.js";
 import { stableSerialize } from "./stable-json.js";
 import { type StoryPromptSchemaDescriptor } from "./story-prompt-modules.js";
 
@@ -158,7 +161,9 @@ export function normalizeNarrationOnlyBatchResult(
   }
   if (narrationOnly.success) {
     return {
-      normalized: narrationOnly.data,
+      normalized: normalizeNarrationOnlyFullRewriteResponseContent(
+        narrationOnly.data
+      ),
       detectedFormat: "narration-only",
       deprecationDiagnostics: [],
     };
@@ -166,17 +171,19 @@ export function normalizeNarrationOnlyBatchResult(
   if (legacyMixed.success) {
     return {
       normalized: {
-        language: legacyMixed.data.language,
-        full: {
-          narrationParagraphs: legacyMixed.data.full.narrationParagraphs,
-        },
-        targetNarrationWpm: legacyMixed.data.full.targetNarrationWpm,
-        preservationChecklist: legacyMixed.data.preservationChecklist,
-        diagnostics: {
-          removedGenericFiller:
-            legacyMixed.data.diagnostics.removedGenericFiller,
-          adaptationNotes: legacyMixed.data.diagnostics.adaptationNotes,
-        },
+        ...normalizeNarrationOnlyFullRewriteResponseContent({
+          language: legacyMixed.data.language,
+          full: {
+            narrationParagraphs: legacyMixed.data.full.narrationParagraphs,
+          },
+          targetNarrationWpm: legacyMixed.data.full.targetNarrationWpm,
+          preservationChecklist: legacyMixed.data.preservationChecklist,
+          diagnostics: {
+            removedGenericFiller:
+              legacyMixed.data.diagnostics.removedGenericFiller,
+            adaptationNotes: legacyMixed.data.diagnostics.adaptationNotes,
+          },
+        }),
       },
       detectedFormat: "legacy-mixed",
       deprecationDiagnostics: [
@@ -187,13 +194,15 @@ export function normalizeNarrationOnlyBatchResult(
   if (legacyFullOnly.success) {
     return {
       normalized: {
-        language: legacyFullOnly.data.language,
-        full: {
-          narrationParagraphs: legacyFullOnly.data.full.narrationParagraphs,
-        },
-        targetNarrationWpm: legacyFullOnly.data.full.targetNarrationWpm,
-        preservationChecklist: legacyFullOnly.data.preservationChecklist,
-        diagnostics: legacyFullOnly.data.diagnostics,
+        ...normalizeNarrationOnlyFullRewriteResponseContent({
+          language: legacyFullOnly.data.language,
+          full: {
+            narrationParagraphs: legacyFullOnly.data.full.narrationParagraphs,
+          },
+          targetNarrationWpm: legacyFullOnly.data.full.targetNarrationWpm,
+          preservationChecklist: legacyFullOnly.data.preservationChecklist,
+          diagnostics: legacyFullOnly.data.diagnostics,
+        }),
       },
       detectedFormat: "legacy-mixed",
       deprecationDiagnostics: [

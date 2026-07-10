@@ -339,6 +339,17 @@ function makeImportClient(args: {
   };
 }
 
+function batchRunReportPath(
+  storagePlan: ImageBatchStoragePlan,
+  fileName: string
+): string {
+  return path.join(
+    storagePlan.layout.reportsDir,
+    `batch-${storagePlan.localBatchId}`,
+    fileName
+  );
+}
+
 describe("image batch service", () => {
   it("normalizes legacy v1 image batch manifests into the v2 identity shape", async () => {
     const tempDir = mkdtempSync(path.join(os.tmpdir(), "image-batch-v1-normalize-"));
@@ -733,6 +744,40 @@ describe("image batch service", () => {
     const manifest = await readImageBatchManifest(group.storagePlan.manifestPath);
     expect(manifest?.items[0]?.status).toBe("persisted");
     expect(manifest?.items[1]?.status).toBe("policy-rejected");
+    const importReport = JSON.parse(
+      await fs.readFile(batchRunReportPath(group.storagePlan, "import-report.json"), "utf8")
+    ) as {
+      readonly importedItemCount: number;
+      readonly failedItemCount: number;
+      readonly failedItems: ReadonlyArray<{ readonly customId: string; readonly retryable: boolean }>;
+    };
+    expect(importReport.importedItemCount).toBe(1);
+    expect(importReport.failedItemCount).toBe(1);
+    expect(importReport.failedItems).toMatchObject([
+      {
+        customId: group.scenePlans[1]?.manifestItem.customId,
+        retryable: false,
+      },
+    ]);
+    const validationReport = JSON.parse(
+      await fs.readFile(batchRunReportPath(group.storagePlan, "validation-report.json"), "utf8")
+    ) as {
+      readonly validatedItemCount: number;
+      readonly items: ReadonlyArray<{ readonly customId: string; readonly validationStatus: string }>;
+    };
+    expect(validationReport.validatedItemCount).toBe(1);
+    expect(validationReport.items).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          customId: group.scenePlans[0]?.manifestItem.customId,
+          validationStatus: "passed",
+        }),
+        expect.objectContaining({
+          customId: group.scenePlans[1]?.manifestItem.customId,
+          validationStatus: "skipped",
+        }),
+      ])
+    );
 
     const readiness = await summarizeImageBatchState(
       path.join(episodeDir, "state", "image-generation")
@@ -928,6 +973,38 @@ describe("image batch service", () => {
     expect(manifest?.items[0]?.error?.message).toContain(
       "Unexpected image dimensions"
     );
+    const validationReport = JSON.parse(
+      await fs.readFile(batchRunReportPath(group.storagePlan, "validation-report.json"), "utf8")
+    ) as {
+      readonly validationFailedItemCount: number;
+      readonly items: ReadonlyArray<{ readonly customId: string; readonly importStatus: string; readonly validationStatus: string }>;
+    };
+    expect(validationReport.validationFailedItemCount).toBe(1);
+    expect(validationReport.items).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          customId: group.scenePlans[0]?.manifestItem.customId,
+          importStatus: "validation-failed",
+          validationStatus: "skipped",
+        }),
+      ])
+    );
+    const retryPlan = JSON.parse(
+      await fs.readFile(batchRunReportPath(group.storagePlan, "retry-plan.json"), "utf8")
+    ) as {
+      readonly candidateCount: number;
+      readonly retryCommand: string | null;
+      readonly candidates: ReadonlyArray<{ readonly originalCustomId: string; readonly retryCustomId: string | null; readonly status: string }>;
+    };
+    expect(retryPlan.candidateCount).toBe(1);
+    expect(retryPlan.retryCommand).toContain("images batch resume");
+    expect(retryPlan.candidates).toMatchObject([
+      {
+        originalCustomId: group.scenePlans[0]?.manifestItem.customId,
+        retryCustomId: null,
+        status: "validation-failed",
+      },
+    ]);
   });
 
   it("classifies duplicate and unknown custom_id lines during import", async () => {
@@ -1172,7 +1249,7 @@ describe("image batch service", () => {
       variant: "short",
       settings: {
         model: "gpt-image-2",
-        requestedSize: "1024x1536",
+        requestedSize: "864x1536",
         quality: "medium",
         outputFormat: "png",
       },
@@ -1195,7 +1272,7 @@ describe("image batch service", () => {
       custom_id: group.scenePlans[0]?.manifestItem.customId,
       response: {
         status_code: 200,
-        body: { data: [{ b64_json: await makeBase64Image(1024, 1536) }] },
+        body: { data: [{ b64_json: await makeBase64Image(864, 1536) }] },
       },
     });
     const client = makeImportClient({
@@ -1417,7 +1494,7 @@ describe("image batch service", () => {
       variant: "short",
       settings: {
         model: "gpt-image-2",
-        requestedSize: "1024x1536",
+        requestedSize: "864x1536",
         quality: "medium",
         outputFormat: "png",
       },
@@ -1429,7 +1506,7 @@ describe("image batch service", () => {
         readonly job: { readonly expectedOutputPath: string };
       }>;
     };
-    const imageBase64 = await makeBase64Image(1024, 1536);
+    const imageBase64 = await makeBase64Image(864, 1536);
     const outputJsonl = JSON.stringify({
       custom_id: group.scenePlans[0]?.manifestItem.customId,
       response: {
@@ -1765,7 +1842,7 @@ describe("image batch service", () => {
       variant: "short",
       settings: {
         model: "gpt-image-2",
-        requestedSize: "1024x1536",
+        requestedSize: "864x1536",
         quality: "medium",
         outputFormat: "png",
       },
@@ -1780,7 +1857,7 @@ describe("image batch service", () => {
     if (!ownerItem || !aliasItem) {
       throw new Error("expected owner and alias items");
     }
-    const imageBase64 = await makeBase64Image(1024, 1536);
+    const imageBase64 = await makeBase64Image(864, 1536);
     const client = makeImportClient({
       outputText: `${JSON.stringify({
         custom_id: ownerItem.customId,
@@ -1888,6 +1965,101 @@ describe("image batch service", () => {
     expect(retryManifest?.retryNumber).toBe(1);
     expect(retryManifest?.items).toHaveLength(1);
     expect(retryManifest?.items[0]?.sceneId).toBe("scene-003");
+    const retryPlan = JSON.parse(
+      await fs.readFile(batchRunReportPath(group.storagePlan, "retry-plan.json"), "utf8")
+    ) as {
+      readonly retryBatchId: string;
+      readonly retryCommand: string;
+      readonly candidates: ReadonlyArray<{ readonly originalCustomId: string; readonly retryCustomId: string | null }>;
+      readonly skippedSuccessfulItems: ReadonlyArray<{ readonly status: string; readonly reason: string }>;
+    };
+    expect(retryPlan.retryBatchId).toBe(retryManifest?.localBatchId);
+    expect(retryPlan.retryCommand).toContain(`--batch ${retryManifest?.localBatchId}`);
+    expect(retryPlan.candidates).toHaveLength(1);
+    expect(retryPlan.skippedSuccessfulItems).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          status: "persisted",
+          reason: "already-imported",
+        }),
+      ])
+    );
+  });
+
+  it("builds retry plans for validation-failed items without requeueing successful siblings", async () => {
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), "image-batch-validation-retry-"));
+    const episodeDir = path.join(tempDir, "001-demo");
+    await writeCanonicalScenePlan(episodeDir, ["scene-002", "scene-003"]);
+    await writeLocalizedScript(episodeDir, "en");
+    await writeSceneManifest({ episodeDir, sceneId: "scene-002" });
+    await writeSceneManifest({ episodeDir, sceneId: "scene-003" });
+    const prepared = await prepareImageBatchForEpisode({
+      episodeDir,
+      episodeId: "001-demo",
+      scenePlan: {
+        scenes: [
+          { id: "scene-002", sequenceNumber: 2 },
+          { id: "scene-003", sequenceNumber: 3 },
+        ],
+      },
+      settings: {
+        model: "gpt-image-2",
+        requestedSize: "1920x1088",
+        quality: "medium",
+        outputFormat: "png",
+      },
+    });
+    const group = prepared.groups[0] as {
+      readonly storagePlan: ImageBatchStoragePlan;
+    };
+    const manifest = await readImageBatchManifest(group.storagePlan.manifestPath);
+    if (!manifest) {
+      throw new Error("expected batch manifest");
+    }
+    await fs.writeFile(
+      group.storagePlan.manifestPath,
+      JSON.stringify(
+        {
+          ...manifest,
+          items: manifest.items.map((item) =>
+            item.sceneId === "scene-002"
+              ? { ...item, status: "persisted" as const }
+              : {
+                  ...item,
+                  status: "validation-failed" as const,
+                  error: {
+                    category: "invalid-dimensions",
+                    code: "invalid-dimensions",
+                    message: "Unexpected image dimensions",
+                  },
+                }
+          ),
+        },
+        null,
+        2
+      )
+    );
+
+    const retried = await retryFailedImageBatch(
+      path.join(episodeDir, "state", "image-generation"),
+      group.storagePlan.localBatchId
+    );
+
+    const retryManifest = await readImageBatchManifest(retried.manifestPath);
+    expect(retryManifest?.items).toHaveLength(1);
+    expect(retryManifest?.items[0]?.sceneId).toBe("scene-003");
+    const retryPlan = JSON.parse(
+      await fs.readFile(batchRunReportPath(group.storagePlan, "retry-plan.json"), "utf8")
+    ) as {
+      readonly candidates: ReadonlyArray<{ readonly status: string }>;
+      readonly skippedSuccessfulItems: ReadonlyArray<{ readonly status: string }>;
+    };
+    expect(retryPlan.candidates).toEqual(
+      expect.arrayContaining([expect.objectContaining({ status: "validation-failed" })])
+    );
+    expect(retryPlan.skippedSuccessfulItems).toEqual(
+      expect.arrayContaining([expect.objectContaining({ status: "persisted" })])
+    );
   });
 
   it("retries multilingual aliases through one owner request while keeping alias manifest items", async () => {
@@ -1973,7 +2145,7 @@ describe("image batch service", () => {
       variant: "short",
       settings: {
         model: "gpt-image-2",
-        requestedSize: "1024x1536",
+        requestedSize: "864x1536",
         quality: "medium",
         outputFormat: "png",
       },
@@ -2071,7 +2243,7 @@ describe("image batch service", () => {
       variant: "short",
       settings: {
         model: "gpt-image-2",
-        requestedSize: "1024x1536",
+        requestedSize: "864x1536",
         quality: "medium",
         outputFormat: "png",
       },

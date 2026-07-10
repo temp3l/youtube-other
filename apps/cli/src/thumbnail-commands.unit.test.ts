@@ -44,6 +44,9 @@ describe("thumbnail commands", () => {
       settingDescription: "an empty street at night",
       moodDescription: "dread",
       keyVisualMoment: "she realizes the smiling man is still behind her",
+      referenceImagePaths: {
+        short: "reference-thumbnails/thumbnail-short.png",
+      },
     });
     await fs.mkdir(path.join(workspaceDir, "018-the-smiling-man", "story-production"), {
       recursive: true,
@@ -89,11 +92,11 @@ describe("thumbnail commands", () => {
     expect(flags).toContain("--episode-slug <slug>");
     expect(flags).toContain("--locale <locale>");
     expect(flags).toContain("--format <full|short>");
-    expect(flags).toContain("--style <cinematic-horror|editorial-card>");
+    expect(flags).toContain("--style <cinematic-horror|editorial-card|viral-horror-v1>");
     expect(flags).toContain("--dry-run");
   });
 
-  it("defaults to cinematic-horror and resolves hook text from metadata when omitted", async () => {
+  it("resolves hook text from metadata when omitted", async () => {
     thumbnailMocks.generateStoryThumbnail.mockResolvedValue({
       episodeSlug: "018-the-smiling-man",
       locale: "en",
@@ -149,6 +152,7 @@ describe("thumbnail commands", () => {
         format: "short",
         style: undefined,
         hookText: "HE KEPT SMILING",
+        referenceImagePath: "reference-thumbnails/thumbnail-short.png",
         dryRun: true,
       })
     );

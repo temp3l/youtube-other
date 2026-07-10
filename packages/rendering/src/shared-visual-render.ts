@@ -19,6 +19,33 @@ export interface SharedVisualRenderSegment {
   readonly narrationText: string;
 }
 
+export interface SharedVisualRenderReadinessIssue {
+  readonly code:
+    | "VARIANT_MISMATCH"
+    | "VALIDATION_MISMATCH"
+    | "VALIDATION_BLOCKED"
+    | "UNKNOWN_CANONICAL_SCENE"
+    | "WRONG_VARIANT_IMAGE"
+    | "INVALID_IMAGE_PATH"
+    | "MISSING_IMAGE"
+    | "IMAGE_VALIDATION_FAILED";
+  readonly message: string;
+  readonly sceneId?: string;
+}
+
+export interface SharedVisualRenderReadiness {
+  readonly episodeSlug: CanonicalVisualManifest["episodeSlug"];
+  readonly language: LocalizedAlignmentManifest["language"];
+  readonly variant: "full" | "short";
+  readonly renderProfile: "youtube" | "vertical";
+  readonly imageSource: "canonical-full-reuse" | "short-only";
+  readonly status: "ready" | "blocked";
+  readonly resolvedSceneCount: number;
+  readonly blockedSceneIds: readonly string[];
+  readonly issues: readonly SharedVisualRenderReadinessIssue[];
+  readonly segments: readonly SharedVisualRenderSegment[];
+}
+
 export interface ResolveSharedVisualRenderTimelineInput {
   readonly episodeDir: string;
   readonly canonicalManifest: CanonicalVisualManifest;
@@ -74,30 +101,47 @@ async function resolveSceneImage(args: {
   return resolved;
 }
 
-export async function resolveSharedVisualRenderTimeline(
+function issueCodeForImageError(message: string): SharedVisualRenderReadinessIssue["code"] {
+  if (message.includes("wrong variant image path")) {
+    return "WRONG_VARIANT_IMAGE";
+  }
+  if (message.includes("must be under")) {
+    return "INVALID_IMAGE_PATH";
+  }
+  if (message.includes("Missing")) {
+    return "MISSING_IMAGE";
+  }
+  return "IMAGE_VALIDATION_FAILED";
+}
+
+export async function evaluateSharedVisualRenderReadiness(
   input: ResolveSharedVisualRenderTimelineInput
-): Promise<readonly SharedVisualRenderSegment[]> {
+): Promise<SharedVisualRenderReadiness> {
   const canonicalManifest = canonicalVisualManifestSchema.parse(input.canonicalManifest);
   const alignmentManifest = localizedAlignmentManifestSchema.parse(input.alignmentManifest);
   const validationReport = localizedVisualValidationReportSchema.parse(input.validationReport);
+  const issues: SharedVisualRenderReadinessIssue[] = [];
 
   if (canonicalManifest.variant !== alignmentManifest.variant) {
-    throw new MediaValidationError(
-      `Cannot render ${alignmentManifest.variant} alignment with ${canonicalManifest.variant} canonical visual manifest.`
-    );
+    issues.push({
+      code: "VARIANT_MISMATCH",
+      message: `Cannot render ${alignmentManifest.variant} alignment with ${canonicalManifest.variant} canonical visual manifest.`,
+    });
   }
   if (
     validationReport.variant !== alignmentManifest.variant ||
     validationReport.language !== alignmentManifest.language
   ) {
-    throw new MediaValidationError(
-      `Localized visual validation report does not match ${alignmentManifest.language}/${alignmentManifest.variant}.`
-    );
+    issues.push({
+      code: "VALIDATION_MISMATCH",
+      message: `Localized visual validation report does not match ${alignmentManifest.language}/${alignmentManifest.variant}.`,
+    });
   }
   if (validationReport.status === "block" && input.allowBlockedValidation !== true) {
-    throw new MediaValidationError(
-      `Localized visual validation blocked ${alignmentManifest.language}/${alignmentManifest.variant} render.`
-    );
+    issues.push({
+      code: "VALIDATION_BLOCKED",
+      message: `Localized visual validation blocked ${alignmentManifest.language}/${alignmentManifest.variant} render.`,
+    });
   }
 
   const scenes = new Map(canonicalManifest.scenes.map((scene) => [scene.sceneId, scene]));
@@ -105,24 +149,61 @@ export async function resolveSharedVisualRenderTimeline(
   for (const alignment of alignmentManifest.alignments) {
     const scene = scenes.get(alignment.sceneId);
     if (!scene) {
-      throw new MediaValidationError(
-        `Localized alignment references unknown canonical scene ${alignment.sceneId}.`
-      );
+      issues.push({
+        code: "UNKNOWN_CANONICAL_SCENE",
+        sceneId: alignment.sceneId,
+        message: `Localized alignment references unknown canonical scene ${alignment.sceneId}.`,
+      });
+      continue;
     }
-    const imagePath = await resolveSceneImage({
-      episodeDir: input.episodeDir,
-      variant: canonicalManifest.variant,
-      sceneId: alignment.sceneId,
-      imagePath: scene.imagePath,
-    });
-    segments.push({
-      sceneId: alignment.sceneId,
-      imagePath,
-      audioStartSeconds: alignment.audioStartSeconds,
-      audioEndSeconds: alignment.audioEndSeconds,
-      durationSeconds: alignment.audioEndSeconds - alignment.audioStartSeconds,
-      narrationText: alignment.narrationText,
-    });
+    try {
+      const imagePath = await resolveSceneImage({
+        episodeDir: input.episodeDir,
+        variant: canonicalManifest.variant,
+        sceneId: alignment.sceneId,
+        imagePath: scene.imagePath,
+      });
+      segments.push({
+        sceneId: alignment.sceneId,
+        imagePath,
+        audioStartSeconds: alignment.audioStartSeconds,
+        audioEndSeconds: alignment.audioEndSeconds,
+        durationSeconds: alignment.audioEndSeconds - alignment.audioStartSeconds,
+        narrationText: alignment.narrationText,
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      issues.push({
+        code: issueCodeForImageError(message),
+        sceneId: alignment.sceneId,
+        message,
+      });
+    }
   }
-  return segments;
+
+  return {
+    episodeSlug: canonicalManifest.episodeSlug,
+    language: alignmentManifest.language,
+    variant: canonicalManifest.variant,
+    renderProfile: canonicalManifest.variant === "short" ? "vertical" : "youtube",
+    imageSource:
+      canonicalManifest.variant === "short" ? "short-only" : "canonical-full-reuse",
+    status: issues.length > 0 ? "blocked" : "ready",
+    resolvedSceneCount: segments.length,
+    blockedSceneIds: [...new Set(issues.flatMap((issue) => (issue.sceneId ? [issue.sceneId] : [])))],
+    issues,
+    segments,
+  };
+}
+
+export async function resolveSharedVisualRenderTimeline(
+  input: ResolveSharedVisualRenderTimelineInput
+): Promise<readonly SharedVisualRenderSegment[]> {
+  const readiness = await evaluateSharedVisualRenderReadiness(input);
+  if (readiness.status === "blocked") {
+    throw new MediaValidationError(
+      readiness.issues[0]?.message ?? "Shared visual render readiness is blocked."
+    );
+  }
+  return readiness.segments;
 }

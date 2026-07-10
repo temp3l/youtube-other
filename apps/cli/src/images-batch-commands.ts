@@ -320,20 +320,14 @@ export function createImagesBatchCommandHandlers(
       }
       const variant = variants[0] as "full" | "short";
       const settings = deps.loadEpisodeImageGenerationSettings({
+        ...process.env,
         OPENAI_API_KEY: "batch-prepare-only",
-        OPENAI_IMAGE_MODEL: process.env["OPENAI_IMAGE_MODEL"],
-        OPENAI_IMAGE_SIZE:
-          variant === "short"
-            ? process.env["SHORTS_OPENAI_IMAGE_SIZE"] ?? process.env["OPENAI_IMAGE_SIZE"]
-            : process.env["OPENAI_IMAGE_SIZE"],
-        OPENAI_IMAGE_QUALITY: process.env["OPENAI_IMAGE_QUALITY"],
-        OPENAI_IMAGE_CONCURRENCY: process.env["OPENAI_IMAGE_CONCURRENCY"],
-        OPENAI_IMAGE_MAX_RETRIES: process.env["OPENAI_IMAGE_MAX_RETRIES"],
-        OPENAI_IMAGE_TIMEOUT_MS: process.env["OPENAI_IMAGE_TIMEOUT_MS"],
         OPENAI_IMAGE_ALLOW_UNAPPROVED_CHARACTER_REFERENCES:
           options.allowUnapprovedCharacterReferences ? "true" : process.env["OPENAI_IMAGE_ALLOW_UNAPPROVED_CHARACTER_REFERENCES"],
         OPENAI_IMAGE_FORCE: options.force ? "true" : process.env["OPENAI_IMAGE_FORCE"],
         OPENAI_BASE_URL: options.openAiBaseUrl ?? process.env["OPENAI_BASE_URL"],
+      }, {
+        profile: variant,
       });
       const plannerSettings = {
         model: settings.model,

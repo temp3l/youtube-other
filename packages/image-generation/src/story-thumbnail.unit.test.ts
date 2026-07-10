@@ -24,6 +24,7 @@ import {
   ThumbnailArtifactConflictError,
   ThumbnailReferenceValidationError,
 } from "./story-thumbnail.js";
+import { buildTypographySvg } from "./thumbnail-text-compositor.js";
 
 function makeInput(workspaceRoot: string) {
   return {
@@ -113,6 +114,13 @@ describe("thumbnail reference resolver", () => {
 });
 
 describe("thumbnail prompt compiler", () => {
+  it("defaults to viral horror style when no environment override is provided", () => {
+    const settings = loadThumbnailGenerationConfig({
+      OPENAI_API_KEY: "test-key",
+    });
+    expect(settings.defaultStyle).toBe("viral-horror-v1");
+  });
+
   it("is deterministic and differentiates full versus short composition", async () => {
     const settings = loadThumbnailGenerationConfig({
       OPENAI_API_KEY: "test-key",
@@ -145,6 +153,33 @@ describe("thumbnail prompt compiler", () => {
     expect(shortPrompt.prompt).toContain("dedicated portrait composition");
   });
 
+  it("compiles the viral horror preset with native portrait instructions", async () => {
+    const settings = loadThumbnailGenerationConfig({
+      OPENAI_API_KEY: "test-key",
+    });
+    const repoRoot = path.resolve(import.meta.dirname, "../../..");
+    const workspaceRoot = mkdtempSync(path.join(os.tmpdir(), "thumb-viral-"));
+    const shortReference = await resolveThumbnailReference({
+      repoRoot,
+      format: "short",
+      config: settings,
+    });
+    const prompt = compileStoryThumbnailPrompt(
+      {
+        ...makeInput(workspaceRoot),
+        format: "short",
+        style: "viral-horror-v1",
+      },
+      settings,
+      shortReference
+    );
+    expect(prompt.style).toBe("viral-horror-v1");
+    expect(prompt.prompt).toContain("professional viral YouTube horror thumbnail");
+    expect(prompt.prompt).toContain("fresh vertical composition");
+    expect(prompt.prompt).toContain("do not crop or reframe a landscape thumbnail");
+    expect(prompt.prompt).toContain("huge white and red typography");
+  });
+
   it("changes only the relevant fingerprints", () => {
     const workspaceRoot = mkdtempSync(path.join(os.tmpdir(), "thumb-fp-"));
     const input = makeInput(workspaceRoot);
@@ -157,7 +192,7 @@ describe("thumbnail prompt compiler", () => {
         fingerprint: "p",
         sourceFingerprint: "s",
         format: "full",
-        style: "cinematic-horror",
+        style: THUMBNAIL_DEFAULT_STYLE,
         referencePath: "reference-thumbnails/thumbnail-full.png",
         referenceSha256: "a".repeat(64),
       },
@@ -172,7 +207,7 @@ describe("thumbnail prompt compiler", () => {
         fingerprint: "p",
         sourceFingerprint: "s",
         format: "full",
-        style: "cinematic-horror",
+        style: THUMBNAIL_DEFAULT_STYLE,
         referencePath: "reference-thumbnails/thumbnail-full.png",
         referenceSha256: "a".repeat(64),
       },
@@ -249,6 +284,30 @@ describe("thumbnail adapter and compositor", () => {
     const metadata = await sharp(output).metadata();
     expect(metadata.width).toBe(THUMBNAIL_OUTPUTS.full.width);
     expect(metadata.height).toBe(THUMBNAIL_OUTPUTS.full.height);
+  });
+
+  it("renders each word as a separate positioned element so spaces cannot collapse", () => {
+    const englishSvg = buildTypographySvg({
+      format: "short",
+      locale: "en",
+      hookText: "NO ONE UP THERE",
+      emphasisWord: "ONE",
+      style: "viral-horror-v1",
+    }).toString("utf8");
+    const germanSvg = buildTypographySvg({
+      format: "short",
+      locale: "de",
+      hookText: "WER WAR OBEN?",
+      emphasisWord: "WAR",
+      style: "viral-horror-v1",
+    }).toString("utf8");
+
+    expect(englishSvg).toContain(">NO</text><text x=");
+    expect(englishSvg).toContain(">ONE</text><text x=");
+    expect(englishSvg).not.toContain("NOONE");
+    expect(germanSvg).toContain(">WER</text><text x=");
+    expect(germanSvg).toContain(">WAR</text><text x=");
+    expect(germanSvg).not.toContain("WERWAR");
   });
 });
 
@@ -332,6 +391,10 @@ describe("thumbnail story file", () => {
         setting: "a dark street",
         mood: "dread",
         thumbnailConcept: "the woman looks back and sees him still smiling",
+        referenceImagePaths: {
+          full: "content-ideas/thumbnails-en/example-full.png",
+          short: "content-ideas/thumbnails-en/example-short.png",
+        },
       })
     );
     const story = await readThumbnailStoryFile({
@@ -341,5 +404,9 @@ describe("thumbnail story file", () => {
     expect(story.storyTitle).toBe("The Smiling Man");
     expect(story.keyVisualMoment).toContain("still smiling");
     expect(story.protagonistDescription).toContain("adult woman");
+    expect(story.referenceImagePaths).toEqual({
+      full: "content-ideas/thumbnails-en/example-full.png",
+      short: "content-ideas/thumbnails-en/example-short.png",
+    });
   });
 });

@@ -12,6 +12,23 @@ import {
   redactApiKey,
 } from "./openai-image.js";
 
+async function createPngBuffer(
+  color: string,
+  width: number = 1536,
+  height: number = 864
+): Promise<Buffer> {
+  return sharp({
+    create: {
+      width,
+      height,
+      channels: 3,
+      background: color,
+    },
+  })
+    .png()
+    .toBuffer();
+}
+
 async function withIsolatedCwd(
   run: () => Promise<void> | void
 ): Promise<void> {
@@ -30,42 +47,70 @@ describe("OpenAI image generation settings", () => {
     await withIsolatedCwd(() => {
       const settings = loadOpenAiImageGenerationSettings({
         OPENAI_API_KEY: "test-key",
-        OPENAI_IMAGE_MODEL: "gpt-image-1-mini",
-        OPENAI_IMAGE_SIZE: "1024x1024",
+        OPENAI_IMAGE_MODEL: "gpt-image-2",
+        OPENAI_IMAGE_SIZE: "1536x864",
         OPENAI_IMAGE_QUALITY: "low"
       });
-      expect(settings.model).toBe("gpt-image-1-mini");
+      expect(settings.model).toBe("gpt-image-2");
       expect(settings.quality).toBe("low");
-      expect(settings.requestedSize).toBe("1024x1024");
-      expect(settings.apiSize).toBe("1024x1024");
+      expect(settings.requestedSize).toBe("1536x864");
+      expect(settings.apiSize).toBe("1536x864");
     });
   });
 
-  it("maps larger gpt-image-2 landscape sizes to a supported request size and preserves concurrency", async () => {
+  it("prefers OPENAI_IMAGE_FULL_SIZE over OPENAI_IMAGE_SIZE for full videos", async () => {
     await withIsolatedCwd(() => {
       const settings = loadOpenAiImageGenerationSettings({
         OPENAI_API_KEY: "test-key",
         OPENAI_IMAGE_MODEL: "gpt-image-2",
-        OPENAI_IMAGE_SIZE: "1920x1088",
+        OPENAI_IMAGE_SIZE: "1920x1080",
+        OPENAI_IMAGE_FULL_SIZE: "1536x864",
         OPENAI_IMAGE_CONCURRENCY: "4"
+      }, {
+        profile: "full",
       });
       expect(settings.concurrency).toBe(4);
-      expect(settings.requestedSize).toBe("1920x1088");
-      expect(settings.apiSize).toBe("1536x1024");
+      expect(settings.requestedSize).toBe("1536x864");
+      expect(settings.apiSize).toBe("1536x864");
     });
   });
 
-  it("accepts a lower 16:9 output size and maps it to a supported API size", async () => {
+  it("uses OPENAI_IMAGE_SHORT_SIZE for shorts", async () => {
     await withIsolatedCwd(() => {
       const settings = loadOpenAiImageGenerationSettings({
         OPENAI_API_KEY: "test-key",
-        OPENAI_IMAGE_MODEL: "gpt-image-1-mini",
-        OPENAI_IMAGE_SIZE: "1280x720",
+        OPENAI_IMAGE_MODEL: "gpt-image-2",
+        OPENAI_IMAGE_SIZE: "1536x864",
+        OPENAI_IMAGE_SHORT_SIZE: "864x1536",
         OPENAI_IMAGE_CONCURRENCY: "2"
+      }, {
+        profile: "short",
       });
 
-      expect(settings.requestedSize).toBe("1280x720");
-      expect(settings.apiSize).toBe("1536x1024");
+      expect(settings.requestedSize).toBe("864x1536");
+      expect(settings.apiSize).toBe("864x1536");
+    });
+  });
+
+  it("keeps OPENAI_IMAGE_SIZE as the full-video fallback only", async () => {
+    await withIsolatedCwd(() => {
+      const fullSettings = loadOpenAiImageGenerationSettings({
+        OPENAI_API_KEY: "test-key",
+        OPENAI_IMAGE_MODEL: "gpt-image-2",
+        OPENAI_IMAGE_SIZE: "1536x864",
+      }, {
+        profile: "full",
+      });
+      const shortSettings = loadOpenAiImageGenerationSettings({
+        OPENAI_API_KEY: "test-key",
+        OPENAI_IMAGE_MODEL: "gpt-image-2",
+        OPENAI_IMAGE_SIZE: "1536x864",
+      }, {
+        profile: "short",
+      });
+
+      expect(fullSettings.requestedSize).toBe("1536x864");
+      expect(shortSettings.requestedSize).toBe("864x1536");
     });
   });
 
@@ -126,10 +171,36 @@ describe("OpenAI image generation settings", () => {
       expect(() =>
         loadOpenAiImageGenerationSettings({
           OPENAI_API_KEY: "test-key",
-          OPENAI_IMAGE_MODEL: "gpt-image-1-mini",
+          OPENAI_IMAGE_MODEL: "gpt-image-2",
           OPENAI_IMAGE_SIZE: "not-a-size"
         })
       ).toThrowError(/Invalid OPENAI_IMAGE_SIZE value/i);
+    });
+  });
+
+  it("rejects invalid full image aspect ratios", async () => {
+    await withIsolatedCwd(() => {
+      expect(() =>
+        loadOpenAiImageGenerationSettings({
+          OPENAI_API_KEY: "test-key",
+          OPENAI_IMAGE_FULL_SIZE: "1536x1024",
+        }, {
+          profile: "full",
+        })
+      ).toThrowError(/Expected 16:9 aspect ratio for the full profile/i);
+    });
+  });
+
+  it("rejects invalid short image aspect ratios", async () => {
+    await withIsolatedCwd(() => {
+      expect(() =>
+        loadOpenAiImageGenerationSettings({
+          OPENAI_API_KEY: "test-key",
+          OPENAI_IMAGE_SHORT_SIZE: "1536x864",
+        }, {
+          profile: "short",
+        })
+      ).toThrowError(/Expected 9:16 aspect ratio for the short profile/i);
     });
   });
 
@@ -143,7 +214,7 @@ describe("OpenAI image generation settings", () => {
       const settings = loadOpenAiImageGenerationSettings({
         OPENAI_API_KEY: "sk-test-1234567890",
         OPENAI_IMAGE_MODEL: "gpt-image-2",
-        OPENAI_IMAGE_SIZE: "1920x1088",
+        OPENAI_IMAGE_SIZE: "1536x864",
         OPENAI_IMAGE_QUALITY: "medium"
       });
       const plan = scenePlanSchema.parse({
@@ -188,7 +259,7 @@ describe("OpenAI image generation settings", () => {
       expect(body).toEqual({
         model: "gpt-image-2",
         prompt: "mouse eating in a habitat",
-        size: "1536x1024",
+        size: "1536x864",
         quality: "medium",
         n: 1
       });
@@ -218,16 +289,7 @@ describe("OpenAI image generation", () => {
     const episodeDir = path.join(tempDir, "episode");
     await fs.mkdir(episodeDir, { recursive: true });
     const seenBodies: Array<Record<string, unknown>> = [];
-    const png = await sharp({
-      create: {
-        width: 8,
-        height: 8,
-        channels: 3,
-        background: "#00ff00"
-      }
-    })
-      .png()
-      .toBuffer();
+    const png = await createPngBuffer("#00ff00");
     const client = {
       images: {
         async generate(body: Record<string, unknown>) {
@@ -265,8 +327,8 @@ describe("OpenAI image generation", () => {
     });
     const settings = loadOpenAiImageGenerationSettings({
       OPENAI_API_KEY: "test-key",
-      OPENAI_IMAGE_MODEL: "gpt-image-1-mini",
-      OPENAI_IMAGE_SIZE: "1024x1024",
+      OPENAI_IMAGE_MODEL: "gpt-image-2",
+      OPENAI_IMAGE_SIZE: "1536x864",
       OPENAI_IMAGE_QUALITY: "low",
       OPENAI_IMAGE_CONCURRENCY: "1",
       OPENAI_IMAGE_MAX_RETRIES: "0",
@@ -297,16 +359,7 @@ describe("OpenAI image generation", () => {
     const tempDir = mkdtempSync(path.join(os.tmpdir(), "mediaforge-openai-images-"));
     const episodeDir = path.join(tempDir, "episode");
     await fs.mkdir(episodeDir, { recursive: true });
-    const png = await sharp({
-      create: {
-        width: 8,
-        height: 8,
-        channels: 3,
-        background: "#ff0000"
-      }
-    })
-      .png()
-      .toBuffer();
+    const png = await createPngBuffer("#ff0000");
     const b64 = png.toString("base64");
     let active = 0;
     let peak = 0;
@@ -372,8 +425,8 @@ describe("OpenAI image generation", () => {
     });
     const settings = loadOpenAiImageGenerationSettings({
       OPENAI_API_KEY: "test-key",
-      OPENAI_IMAGE_MODEL: "gpt-image-1-mini",
-      OPENAI_IMAGE_SIZE: "1024x1024",
+      OPENAI_IMAGE_MODEL: "gpt-image-2",
+      OPENAI_IMAGE_SIZE: "1536x864",
       OPENAI_IMAGE_QUALITY: "low",
       OPENAI_IMAGE_CONCURRENCY: "2",
       OPENAI_IMAGE_MAX_RETRIES: "0",
@@ -402,10 +455,10 @@ describe("OpenAI image generation", () => {
       expect(result.rawPath).not.toBe(result.renderedPath);
       const rawMeta = await sharp(result.rawPath).metadata();
       const normalizedMeta = await sharp(result.renderedPath ?? "").metadata();
-      expect(rawMeta.width).toBe(8);
-      expect(rawMeta.height).toBe(8);
-      expect(normalizedMeta.width).toBe(1920);
-      expect(normalizedMeta.height).toBe(1080);
+      expect(rawMeta.width).toBe(1536);
+      expect(rawMeta.height).toBe(864);
+      expect(normalizedMeta.width).toBe(1536);
+      expect(normalizedMeta.height).toBe(864);
     }
   }, 20000);
 
@@ -413,16 +466,7 @@ describe("OpenAI image generation", () => {
     const tempDir = mkdtempSync(path.join(os.tmpdir(), "mediaforge-openai-images-reuse-"));
     const episodeDir = path.join(tempDir, "episode");
     await fs.mkdir(episodeDir, { recursive: true });
-    const png = await sharp({
-      create: {
-        width: 8,
-        height: 8,
-        channels: 3,
-        background: "#0000ff"
-      }
-    })
-      .png()
-      .toBuffer();
+    const png = await createPngBuffer("#0000ff");
     let calls = 0;
     const client = {
       images: {
@@ -483,8 +527,8 @@ describe("OpenAI image generation", () => {
     });
     const settings = loadOpenAiImageGenerationSettings({
       OPENAI_API_KEY: "test-key",
-      OPENAI_IMAGE_MODEL: "gpt-image-1-mini",
-      OPENAI_IMAGE_SIZE: "1024x1024",
+      OPENAI_IMAGE_MODEL: "gpt-image-2",
+      OPENAI_IMAGE_SIZE: "1536x864",
       OPENAI_IMAGE_QUALITY: "low",
       OPENAI_IMAGE_CONCURRENCY: "2",
       OPENAI_IMAGE_MAX_RETRIES: "0",

@@ -110,6 +110,84 @@ function legacyEditorialPrompt(args: {
   ].join("\n");
 }
 
+function viralHorrorComposition(format: GenerateThumbnailInput["format"]): string[] {
+  if (format === "full") {
+    return [
+      "Canvas: native 16:9 YouTube thumbnail.",
+      "Composition:",
+      "- text will dominate the left 42% to 50% of the final image",
+      "- reserve clean dark negative space on the left for huge post-rendered type",
+      "- place one unmistakable horror subject, monster, cursed object, or location on the right",
+      "- make the subject large, simple, and readable at 120px wide",
+      "- use a strong diagonal or depth cue that pulls the eye from text to subject",
+      "- avoid busy midground clutter behind the future text zone",
+      "- keep faces, eyes, or the key horror object out of the text zone",
+      "- design as a final YouTube thumbnail background, not generic cinematic art",
+    ];
+  }
+  return [
+    "Canvas: native 9:16 Shorts thumbnail.",
+    "Composition:",
+    "- create a fresh vertical composition; do not crop or reframe a landscape thumbnail",
+    "- text will dominate the upper-left or upper third of the final image",
+    "- place one unmistakable horror subject, monster, cursed object, or location in the lower-middle or lower-right",
+    "- make the subject large and readable on a phone feed",
+    "- preserve clear vertical depth from text area to subject",
+    "- keep important faces and story objects away from the bottom-right Shorts UI area",
+    "- avoid wide landscape framing, letterbox thinking, or tiny subjects",
+    "- design specifically for 9:16 first-view impact",
+  ];
+}
+
+function viralHorrorPrompt(args: {
+  readonly input: GenerateThumbnailInput;
+  readonly reference: ResolvedThumbnailReference;
+}): string {
+  return [
+    "1. PURPOSE",
+    "Create one professional viral YouTube horror thumbnail background for deterministic post-rendered typography.",
+    "The final thumbnail must feel like a high-performing horror-story YouTube thumbnail, not generic AI concept art.",
+    "",
+    "2. REFERENCE USAGE",
+    "Use the supplied reference only for punchy thumbnail composition, contrast, lighting, subject scale, and visual hierarchy.",
+    "Do not copy people, identity, text, logos, exact framing, clothing, location, monster design, or story details from the reference.",
+    "",
+    "3. VIRAL HORROR STYLE",
+    "- high-contrast cinematic horror",
+    "- dark blue and black grade",
+    "- selective deep red, orange, or warm practical-light highlights",
+    "- one simple readable horror hook: subject, monster, cursed object, or threatening location",
+    "- dramatic rim light and hard separation from the background",
+    "- bold foreground/background hierarchy",
+    "- strong shape language readable at tiny YouTube sizes",
+    "- no gore, no explicit injury, no graphic violence",
+    "",
+    "4. STORY-SPECIFIC SUBJECT",
+    `Foreground subject: ${normalizeWhitespace(args.input.protagonistDescription)}.`,
+    `Dominant threat or visual hook: ${normalizeWhitespace(args.input.threatDescription)}.`,
+    `Setting: ${normalizeWhitespace(args.input.settingDescription)}.`,
+    `Mood: ${normalizeWhitespace(args.input.moodDescription ?? args.input.storySummary)}.`,
+    `Key visual moment: ${normalizeWhitespace(args.input.keyVisualMoment ?? args.input.storySummary)}.`,
+    `Story title: ${normalizeWhitespace(args.input.storyTitle)}.`,
+    `Story summary: ${normalizeWhitespace(args.input.storySummary)}.`,
+    "Use the story details to create a new, instantly readable image with exactly one primary horror idea.",
+    "",
+    "5. FORMAT-SPECIFIC COMPOSITION",
+    ...viralHorrorComposition(args.input.format),
+    "",
+    "6. TEXT-SAFE AREA",
+    "Leave natural dark negative space where huge white and red typography will be added afterward.",
+    "Do not render any text, letters, numbers, subtitles, logos, UI, signs, watermark, title card, border, or decorative frame.",
+    "",
+    "7. QUALITY BAR",
+    "- prioritize instant click appeal over subtle realism",
+    "- avoid small background-only scares",
+    "- avoid soft, low-contrast, or ambiguous imagery",
+    "- avoid multiple competing subjects",
+    "- keep all human subjects clearly adult",
+  ].join("\n");
+}
+
 export function selectThumbnailEmphasisWord(
   hookText: string,
   locale = "en"
@@ -172,20 +250,25 @@ export function compileThumbnailPrompt(args: {
     style,
     referenceSha256: args.reference.sha256,
   });
-  if (style === "editorial-card") {
-    const prompt = legacyEditorialPrompt(args);
+  const stylePrompt =
+    style === "editorial-card"
+      ? legacyEditorialPrompt(args)
+      : style === "viral-horror-v1"
+        ? viralHorrorPrompt(args)
+        : null;
+  if (stylePrompt) {
     const fingerprint = hashText(
       serializeFingerprint({
         promptVersion: THUMBNAIL_PROMPT_VERSION,
         sourceFingerprint,
-        prompt,
+        prompt: stylePrompt,
         model: args.config.model,
         quality: args.input.quality ?? args.config.quality,
         referenceSha256: args.reference.sha256,
       })
     );
     return {
-      prompt,
+      prompt: stylePrompt,
       version: THUMBNAIL_PROMPT_VERSION,
       fingerprint,
       sourceFingerprint,

@@ -56,6 +56,14 @@ This subsystem handles structured English full rewrites, localized full rewrites
 - Metadata or audio failures do not invalidate narration and do not route through narration repair policy.
 - Scene/image/render/publication remain separate downstream owners; Task 14 owns their boundary work.
 
+## Localized Unicode Policy
+
+- Localized narration, titles, descriptions, metadata, tags, and TTS input must preserve native Unicode characters. Content text is normalized only to Unicode NFC.
+- ASCII cleanup is allowed only for slugs, filenames, IDs, and provider-safe asset names. Do not reuse slug helpers for human-readable localized content.
+- Localization prompts explicitly require natural accents, diacritics, umlauts, ß, ñ, ç, inverted Spanish punctuation, and other language-specific characters.
+- Unicode quality validation runs after generation/import and before Markdown materialization is consumed by TTS or video production. German has a hard gate for obvious ASCII transliteration or long German text with no umlauts/ß; Spanish, French, Portuguese, Italian, and future languages use softer warnings for suspicious long ASCII-only text.
+- Add new language validators in `packages/story-localization/src/localized-content-text.ts` by defining native-character patterns, suspicious ASCII replacement terms, and a word threshold. Keep auto-correction limited to safe NFC normalization.
+
 ## Authored Scripts And Compatibility Markdown
 
 - Authored full scripts resolve from `episodes/<episode-slug>/languages/script-<language>.md`.

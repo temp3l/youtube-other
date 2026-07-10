@@ -31,10 +31,12 @@ import {
 } from "@mediaforge/domain";
 import {
   approveEpisodeCharacter,
-  assertVideoImageFilesMatchSpec,
+  assertGeneratedImageFileMatchesSpec,
   generateEpisodeImageReferences,
   loadEpisodeImageGenerationSettings,
-  resolveVideoImageSpec,
+  mergeImageGenerationEnv,
+  resolveConfiguredImageGenerationSize,
+  resolveConfiguredRenderSize,
   upsertCharacterRegistry,
   type CharacterDefinition,
   type CharacterRegistry,
@@ -619,19 +621,12 @@ async function loadImageGenerationSettings(
   force?: boolean
 ): Promise<ReturnType<typeof loadEpisodeImageGenerationSettings>> {
   return loadEpisodeImageGenerationSettings({
-    OPENAI_API_KEY: process.env["OPENAI_API_KEY"],
-    OPENAI_IMAGE_MODEL: process.env["OPENAI_IMAGE_MODEL"],
-    OPENAI_IMAGE_SIZE: process.env["OPENAI_IMAGE_SIZE"],
-    OPENAI_IMAGE_QUALITY: process.env["OPENAI_IMAGE_QUALITY"],
-    OPENAI_IMAGE_CONCURRENCY: process.env["OPENAI_IMAGE_CONCURRENCY"],
-    OPENAI_IMAGE_MAX_RETRIES: process.env["OPENAI_IMAGE_MAX_RETRIES"],
-    OPENAI_IMAGE_TIMEOUT_MS: process.env["OPENAI_IMAGE_TIMEOUT_MS"],
+    ...process.env,
     OPENAI_IMAGE_FORCE: force
       ? "true"
       : process.env["OPENAI_IMAGE_FORCE"],
-    OPENAI_BASE_URL: process.env["OPENAI_BASE_URL"],
-    OPENAI_ORGANIZATION: process.env["OPENAI_ORGANIZATION"],
-    OPENAI_PROJECT: process.env["OPENAI_PROJECT"],
+  }, {
+    profile: "full",
   });
 }
 
@@ -722,12 +717,14 @@ async function assertCanonicalVariantImagesMatchSpec(args: {
     throw new Error(`No ${args.variant} image assets were recorded in ${manifestPath}.`);
   }
 
-  await assertVideoImageFilesMatchSpec({
-    episodeId: args.episodeId,
-    language: args.language,
-    videoKind: args.variant,
-    imagePaths,
-  });
+  for (const imagePath of imagePaths) {
+    await assertGeneratedImageFileMatchesSpec({
+      episodeId: args.episodeId,
+      language: args.language,
+      videoKind: args.variant,
+      imagePath,
+    });
+  }
 }
 
 export async function resolveEpisodeLanguageSource(
@@ -924,15 +921,12 @@ async function prepareEpisodeLanguage(
   const loadResult = await buildEpisodeLoadResult(sourceFile, outputRoot);
   const baseDir = path.join(outputRoot, discovery.slug, language, artifactType);
   await ensureDir(baseDir);
-  const canonicalScenePlanPath = path.join(
-    outputRoot,
-    discovery.slug,
-    "shared",
-    "scenes.json"
-  );
+  const canonicalScenePlanPath =
+    artifactType === "short"
+      ? path.join(outputRoot, discovery.slug, "en", "short", "scenes.json")
+      : path.join(outputRoot, discovery.slug, "shared", "scenes.json");
   let scenePlan =
     language !== "en" &&
-    artifactType === "full" &&
     (await fileExists(canonicalScenePlanPath))
       ? buildLocalizedScenePlan(
           scenePlanSchema.parse(
@@ -981,38 +975,37 @@ async function prepareEpisodeLanguage(
     "images",
     "generated"
   );
+  const mergedImageEnv = mergeImageGenerationEnv(process.env);
+  const shortGenerationSize = resolveConfiguredImageGenerationSize({
+    profile: "short",
+    env: mergedImageEnv,
+  });
+  const shortRenderSize = resolveConfiguredRenderSize({
+    profile: "short",
+    env: mergedImageEnv,
+  });
   const shortsImageConfig: ShortsImageConfig = {
     enabled: artifactType === "short",
     keySceneCount: resolveShortKeySceneCount(scenePlan.scenes.length),
-    portraitWidth: Number(process.env["SHORTS_PORTRAIT_WIDTH"] ?? 1088),
-    portraitHeight: Number(process.env["SHORTS_PORTRAIT_HEIGHT"] ?? 1920),
-    finalWidth: resolveVideoImageSpec("short").width,
-    finalHeight: resolveVideoImageSpec("short").height,
+    portraitWidth: shortGenerationSize.width,
+    portraitHeight: shortGenerationSize.height,
+    finalWidth: shortRenderSize.width,
+    finalHeight: shortRenderSize.height,
     reuseLandscapeImages: true,
     enablePanAndScan: true,
     enableBlurredFallback: true,
     forceRegenerateAll:
       (options.force ?? false) ||
-      (process.env["SHORTS_FORCE_REGENERATE_ALL"] ?? "").toLowerCase() ===
+      (mergedImageEnv["SHORTS_FORCE_REGENERATE_ALL"] ?? "").toLowerCase() ===
         "true",
     selectionMode:
-      (process.env["SHORTS_SELECTION_MODE"] as
+      (mergedImageEnv["SHORTS_SELECTION_MODE"] as
         | "first-n"
         | "importance-based"
         | undefined) ?? "importance-based",
   };
-  if (
-    (process.env["SHORTS_FINAL_WIDTH"] &&
-      Number(process.env["SHORTS_FINAL_WIDTH"]) !== shortsImageConfig.finalWidth) ||
-    (process.env["SHORTS_FINAL_HEIGHT"] &&
-      Number(process.env["SHORTS_FINAL_HEIGHT"]) !== shortsImageConfig.finalHeight)
-  ) {
-    throw new Error(
-      `Short image final dimensions are fixed at ${shortsImageConfig.finalWidth}x${shortsImageConfig.finalHeight}. Remove conflicting SHORTS_FINAL_WIDTH/SHORTS_FINAL_HEIGHT overrides.`
-    );
-  }
-  if (process.env["SHORTS_IMPORTANCE_SCENE_IDS"]) {
-    shortsImageConfig.importanceSceneIds = process.env[
+  if (mergedImageEnv["SHORTS_IMPORTANCE_SCENE_IDS"]) {
+    shortsImageConfig.importanceSceneIds = mergedImageEnv[
       "SHORTS_IMPORTANCE_SCENE_IDS"
     ]
       .split(",")
@@ -1068,23 +1061,16 @@ async function prepareEpisodeLanguage(
         discovery.slug,
         scenePlan,
         loadEpisodeImageGenerationSettings({
-          OPENAI_API_KEY: process.env["OPENAI_API_KEY"] ?? "dry-run",
-          OPENAI_IMAGE_MODEL: process.env["OPENAI_IMAGE_MODEL"],
-          OPENAI_IMAGE_SIZE:
-            process.env["SHORTS_OPENAI_IMAGE_SIZE"] ?? "1024x1536",
-          OPENAI_IMAGE_QUALITY: process.env["OPENAI_IMAGE_QUALITY"],
-          OPENAI_IMAGE_CONCURRENCY: process.env["OPENAI_IMAGE_CONCURRENCY"],
-          OPENAI_IMAGE_MAX_RETRIES: process.env["OPENAI_IMAGE_MAX_RETRIES"],
-          OPENAI_IMAGE_TIMEOUT_MS: process.env["OPENAI_IMAGE_TIMEOUT_MS"],
+          ...mergedImageEnv,
+          OPENAI_API_KEY: mergedImageEnv["OPENAI_API_KEY"] ?? "dry-run",
           OPENAI_IMAGE_ALLOW_UNAPPROVED_CHARACTER_REFERENCES:
             options.reuseImages === false
               ? "false"
-              : process.env["OPENAI_IMAGE_ALLOW_UNAPPROVED_CHARACTER_REFERENCES"],
+              : mergedImageEnv["OPENAI_IMAGE_ALLOW_UNAPPROVED_CHARACTER_REFERENCES"],
           OPENAI_IMAGE_FORCE:
-            shortsImageConfig.forceRegenerateAll ? "true" : process.env["OPENAI_IMAGE_FORCE"],
-          OPENAI_BASE_URL: process.env["OPENAI_BASE_URL"],
-          OPENAI_ORGANIZATION: process.env["OPENAI_ORGANIZATION"],
-          OPENAI_PROJECT: process.env["OPENAI_PROJECT"],
+            shortsImageConfig.forceRegenerateAll ? "true" : mergedImageEnv["OPENAI_IMAGE_FORCE"],
+        }, {
+          profile: "short",
         }),
         shortsImageConfig,
         {

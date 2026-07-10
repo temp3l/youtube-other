@@ -79,6 +79,29 @@ describe("OpenAI TTS request builder", () => {
     expect(result.request.instructions).toContain("Role hook.");
   });
 
+  it("passes Unicode-preserved localized narration to TTS input", () => {
+    const text =
+      "Ich hörte Wörter über dem Küchentisch und schloß die Tür.";
+    const result = buildOpenAiTtsChunkRequest({
+      chunk: {
+        ...chunk,
+        text,
+        textHash: hashText(text),
+      },
+      direction,
+      config: {
+        ...baseConfig(),
+        language: "de",
+        locale: "de-DE",
+      },
+    });
+
+    expect(result.request.input).toBe(text);
+    expect(result.request.input).toContain("hörte");
+    expect(result.request.input).toContain("über");
+    expect(result.request.input).toContain("ß");
+  });
+
   it("enforces input and instruction budgets deterministically", () => {
     const result = buildOpenAiTtsChunkRequest({
       chunk: {

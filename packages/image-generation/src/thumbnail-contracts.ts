@@ -9,12 +9,12 @@ import {
 
 export const THUMBNAIL_PROMPT_VERSION = "cinematic-horror-reference-v2";
 export const THUMBNAIL_MANIFEST_VERSION = 2;
-export const THUMBNAIL_TEXT_LAYOUT_VERSION = "cinematic-horror-type-v1";
+export const THUMBNAIL_TEXT_LAYOUT_VERSION = "viral-horror-type-v2";
 export const THUMBNAIL_DEFAULT_MAX_REFERENCE_BYTES = 20 * 1024 * 1024;
 export const THUMBNAIL_DEFAULT_MAX_GENERATED_BYTES = 20 * 1024 * 1024;
 export const THUMBNAIL_DEFAULT_TIMEOUT_MS = 180_000;
 export const THUMBNAIL_DEFAULT_MAX_RETRIES = 2;
-export const THUMBNAIL_DEFAULT_STYLE = "cinematic-horror" as const;
+export const THUMBNAIL_DEFAULT_STYLE = "viral-horror-v1" as const;
 
 export const THUMBNAIL_OUTPUTS = {
   full: {
@@ -34,13 +34,17 @@ export const THUMBNAIL_OUTPUTS = {
 } as const;
 
 export type ThumbnailFormat = keyof typeof THUMBNAIL_OUTPUTS;
-export type ThumbnailStyle = "cinematic-horror" | "editorial-card";
+export type ThumbnailStyle =
+  | "cinematic-horror"
+  | "editorial-card"
+  | "viral-horror-v1";
 export type ThumbnailQuality = "low" | "medium" | "high" | "auto";
 
 export const thumbnailFormatSchema = z.enum(["full", "short"]);
 export const thumbnailStyleSchema = z.enum([
   "cinematic-horror",
   "editorial-card",
+  "viral-horror-v1",
 ]);
 export const thumbnailQualitySchema = z.enum(["low", "medium", "high", "auto"]);
 
@@ -76,6 +80,23 @@ export const generateThumbnailInputSchema = z.object({
 
 export type GenerateThumbnailInput = z.infer<typeof generateThumbnailInputSchema>;
 
+type ThumbnailStoryFileOutput = {
+  readonly storyTitle: string;
+  readonly storySummary: string;
+  readonly protagonistDescription: string;
+  readonly threatDescription: string;
+  readonly settingDescription: string;
+  readonly episodeNumber?: number;
+  readonly moodDescription?: string;
+  readonly keyVisualMoment?: string;
+  readonly emphasisWord?: string;
+  readonly referenceImagePath?: string;
+  readonly referenceImagePaths?: {
+    readonly full?: string;
+    readonly short?: string;
+  };
+};
+
 export const thumbnailStoryFileSchema = z
   .object({
     episodeNumber: z.number().int().positive().optional(),
@@ -93,8 +114,14 @@ export const thumbnailStoryFileSchema = z
     thumbnailConcept: z.string().trim().min(1).optional(),
     emphasisWord: z.string().trim().min(1).optional(),
     referenceImagePath: z.string().trim().min(1).optional(),
+    referenceImagePaths: z
+      .object({
+        full: z.string().trim().min(1).optional(),
+        short: z.string().trim().min(1).optional(),
+      })
+      .optional(),
   })
-  .transform((value) => ({
+  .transform((value): ThumbnailStoryFileOutput => ({
     ...(value.episodeNumber !== undefined
       ? { episodeNumber: value.episodeNumber }
       : {}),
@@ -116,6 +143,18 @@ export const thumbnailStoryFileSchema = z
     ...(value.emphasisWord ? { emphasisWord: value.emphasisWord } : {}),
     ...(value.referenceImagePath
       ? { referenceImagePath: value.referenceImagePath }
+      : {}),
+    ...(value.referenceImagePaths
+      ? {
+          referenceImagePaths: {
+            ...(value.referenceImagePaths.full
+              ? { full: value.referenceImagePaths.full }
+              : {}),
+            ...(value.referenceImagePaths.short
+              ? { short: value.referenceImagePaths.short }
+              : {}),
+          },
+        }
       : {}),
   }))
   .superRefine((value, context) => {

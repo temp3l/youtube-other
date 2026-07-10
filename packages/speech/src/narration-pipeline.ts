@@ -202,6 +202,15 @@ function stageResult(input: NarrationPipelineStageResult): NarrationPipelineStag
   return input;
 }
 
+function spokenNarrationFailureIsBlocked(
+  artifact: { readonly status?: string; readonly failureMessage?: string } | null | undefined
+): boolean {
+  return (
+    artifact?.status === "failed" &&
+    artifact.failureMessage?.startsWith("validation_failed") === true
+  );
+}
+
 async function readRequiredText(filePath: string, label: string): Promise<string> {
   try {
     return await fs.readFile(filePath, "utf8");
@@ -224,7 +233,6 @@ async function readRequiredJson<T>(
 
 async function existingStatus(paths: NarrationArtifactPathSet): Promise<NarrationPipelineStageResult[]> {
   const checks = [
-    ["prepare", paths.spokenTextJson],
     ["plan", paths.chunkManifest],
     ["plan", paths.performanceDirections],
     ["plan", paths.pronunciationTransforms],
@@ -237,13 +245,46 @@ async function existingStatus(paths: NarrationArtifactPathSet): Promise<Narratio
       grouped.set(stage, [...(grouped.get(stage) ?? []), filePath]);
     }
   }
-  const results = [...grouped.entries()].map(([stage, outputPaths]) =>
-    stageResult({
-      stage,
-      status: "completed",
-      outputPaths,
-    })
+  const spokenArtifact = await readJsonIfExists(
+    paths.spokenTextJson,
+    (value) => spokenNarrationArtifactSchema.parse(value)
   );
+  const results: NarrationPipelineStageResult[] = [];
+  if (spokenArtifact) {
+    const prepareStatus =
+      spokenNarrationFailureIsBlocked(spokenArtifact)
+        ? "blocked"
+        : spokenArtifact.status === "failed"
+          ? "failed"
+          : "completed";
+    results.push(
+      stageResult({
+        stage: "prepare",
+        status: prepareStatus,
+        outputPaths: [paths.spokenTextJson],
+        ...(spokenArtifact.failureMessage
+          ? { message: spokenArtifact.failureMessage }
+          : {}),
+      })
+    );
+  } else if (await fileExists(paths.spokenTextJson)) {
+    results.push(
+      stageResult({
+        stage: "prepare",
+        status: "completed",
+        outputPaths: [paths.spokenTextJson],
+      })
+    );
+  }
+  for (const [stage, outputPaths] of grouped.entries()) {
+    results.push(
+      stageResult({
+        stage,
+        status: "completed",
+        outputPaths,
+      })
+    );
+  }
   const qualityGate = await readJsonIfExists(
     paths.qualityGateJson,
     (value) => narrationQualityGateReportSchema.parse(value)
@@ -500,7 +541,26 @@ export class NarrationPipeline {
     paths: NarrationArtifactPathSet
   ): Promise<NarrationPipelineStageResult> {
     if (!request.force && await fileExists(paths.spokenTextJson)) {
-      return stageResult({ stage: "prepare", status: "skipped", outputPaths: [paths.spokenTextJson, paths.spokenTextMarkdown] });
+      const spokenArtifact = await readJsonIfExists(
+        paths.spokenTextJson,
+        (value) => spokenNarrationArtifactSchema.parse(value)
+      );
+      return stageResult({
+        stage: "prepare",
+        status:
+          spokenNarrationFailureIsBlocked(spokenArtifact)
+            ? "blocked"
+            : spokenArtifact?.status === "failed"
+              ? "failed"
+              : "skipped",
+        outputPaths:
+          spokenArtifact?.status === "failed"
+            ? [paths.spokenTextJson]
+            : [paths.spokenTextJson, paths.spokenTextMarkdown],
+        ...(spokenArtifact?.failureMessage
+          ? { message: spokenArtifact.failureMessage }
+          : {}),
+      });
     }
     const result = await prepareSpokenNarration({
       episodeDir: request.episodeDir,
@@ -510,11 +570,19 @@ export class NarrationPipeline {
       variant: request.variant,
       ...(request.logger ? { logger: request.logger } : {}),
     });
+    if (!result.success) {
+      const blocked = spokenNarrationFailureIsBlocked(result.artifact);
+      return stageResult({
+        stage: "prepare",
+        status: blocked ? "blocked" : "failed",
+        outputPaths: [paths.spokenTextJson],
+        message: result.artifact.failureMessage ?? "Spoken narration validation failed.",
+      });
+    }
     return stageResult({
       stage: "prepare",
-      status: result.success ? "completed" : "failed",
+      status: "completed",
       outputPaths: [paths.spokenTextJson, ...(result.spokenText ? [paths.spokenTextMarkdown] : [])],
-      ...(result.success ? {} : { message: result.warnings.map((warning) => warning.message).join("; ") }),
     });
   }
 

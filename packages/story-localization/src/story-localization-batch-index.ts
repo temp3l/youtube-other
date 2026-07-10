@@ -80,11 +80,11 @@ function entryFromManifest(manifestPath: string, manifest: Awaited<ReturnType<ty
   ) as BatchIndexEntry["languages"];
   const completedItemCount = manifest.items.filter((item) => item.status === "persisted").length;
   const failedItemCount = manifest.items.filter((item) =>
-    ["api-failed", "expired", "schema-invalid", "content-invalid", "repair-required", "preflight-failed"].includes(item.status)
+    ["api-failed", "expired", "schema-invalid", "content-invalid", "validation-failed", "repair-required", "preflight-failed"].includes(item.status)
   ).length;
   const persistedItemCount = manifest.items.filter((item) => item.status === "persisted").length;
   const hasRetryableFailures = manifest.items.some((item) =>
-    ["api-failed", "expired", "schema-invalid", "content-invalid", "repair-required"].includes(item.status)
+    ["api-failed", "expired", "schema-invalid", "content-invalid", "validation-failed", "repair-required"].includes(item.status)
   );
   const sourceHashPrefixes = sortUnique(
     manifest.items.map((item) => item.sourceHash.slice(0, 8))

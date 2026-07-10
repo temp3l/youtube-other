@@ -54,7 +54,7 @@ Top-level command groups and commands:
 - `images batch download --episode <episode-id> --batch <id>`
 - `images batch resume --episode <episode-id> [--batch <id>]`
 - `thumbnails generate --episode <slug> --locale <locale> --format <full|short> --hook-text <text> --story-file <path>`
-- `render <episode-id> --profile <youtube|vertical> --no-captions`
+- `render <episode-id> --profile <youtube|vertical> [--captions]`
 - `render remote check`
 - `render remote cleanup`
 - `render remote test`
@@ -124,6 +124,7 @@ npm run mediaforge -- thumbnails generate \
   --episode 014-hachishakusama-the-eight-foot-woman \
   --locale en \
   --format full \
+  --style viral-horror-v1 \
   --hook-text "SHE CALLED HER NAME" \
   --story-file episodes/014-hachishakusama-the-eight-foot-woman/story-production/thumbnail-story.json \
   --dry-run
@@ -144,6 +145,7 @@ Options:
 - `--episode <slug>`
 - `--locale <locale>`
 - `--format <full|short>`
+- `--style <cinematic-horror|editorial-card|viral-horror-v1>`
 - `--hook-text <text>`
 - `--story-file <path>`
 - `--emphasis-word <word>`
@@ -235,6 +237,108 @@ npm run mediaforge -- stories pipeline status \
 npm run mediaforge -- stories pipeline inspect \
   --episode 009-the-christmas-doll \
   --workflow wf_009-the-christmas-doll_20260701T000000Z_deadbeef
+```
+
+`stories production status` summarizes workflow state into ready, retryable, blocked, waiting, and completed stage buckets grouped by canonical English, localization, shorts, scene-plan, images, audio, and render. When no persisted workflow manifest exists for an episode, it falls back to the current workspace artifacts.
+
+```bash
+npm run mediaforge -- stories production status \
+  --episode 009-the-christmas-doll \
+  --json
+```
+
+`stories production next` lists the currently actionable ready or retryable stages from persisted workflow state, or from current workspace artifacts when no manifest exists.
+
+```bash
+npm run mediaforge -- stories production next \
+  --episodes 009-the-christmas-doll,010-the-cleaner-of-death \
+  --limit 10
+```
+
+`stories production resume` uses the same gate evaluation and returns only eligible stages in resume order; blocked and waiting stages are excluded. It also falls back to current workspace artifacts when no manifest exists.
+
+```bash
+npm run mediaforge -- stories production resume \
+  --episode 009-the-christmas-doll \
+  --json
+```
+
+`stories production batch` selects the next eligible stage family per episode, stops blocked episodes at the recovery view, and continues unaffected episodes without bypassing validation gates. Episodes without persisted workflow manifests are evaluated from current workspace artifacts instead of failing fast.
+
+```bash
+npm run mediaforge -- stories production batch \
+  --episodes 009-the-christmas-doll,010-the-cleaner-of-death \
+  --json
+```
+
+`stories batch todo` is the operator recovery view over workflow state. It lists retryable, blocked, and ready next actions and points blocked render targets back to the narrowest repair commands. It uses current workspace artifacts when persisted workflow state is absent.
+
+```bash
+npm run mediaforge -- stories batch todo \
+  --episodes 009-the-christmas-doll,010-the-cleaner-of-death \
+  --json
+```
+
+`stories production repair` assembles explicit upstream recovery commands for blocked render targets without silently regenerating missing assets. It can target legacy episodes that have render inputs on disk even when they do not yet have persisted workflow manifests.
+
+```bash
+npm run mediaforge -- stories production repair \
+  --episode 009-the-christmas-doll \
+  --languages de \
+  --profiles full \
+  --regenerate-audio \
+  --render
+```
+
+`stories images generate` is the story-oriented image execution wrapper. It delegates to the existing image resume flow across one or more episodes and can skip episodes that are not image-ready yet.
+
+```bash
+npm run mediaforge -- stories images generate \
+  --episodes 009-the-christmas-doll,010-the-cleaner-of-death \
+  --only-ready \
+  --json
+```
+
+`stories audio generate` is the story-oriented narration execution wrapper. It drives the staged narration pipeline through its validate surface for ready audio targets so generation and validation stay on the same lower-level path.
+
+```bash
+npm run mediaforge -- stories audio generate \
+  --episode 009-the-christmas-doll \
+  --languages en,de \
+  --profiles full,short \
+  --only-ready \
+  --json
+```
+
+`stories audio validate` validates existing narration artifacts without mutation for the selected story targets.
+
+```bash
+npm run mediaforge -- stories audio validate \
+  --episode 009-the-christmas-doll \
+  --languages en,de \
+  --profiles full,short \
+  --only-ready \
+  --json
+```
+
+`stories render` renders only targets whose localized inputs pass direct image and audio validation. Burned-in captions are off by default; pass `--captions` to require and render them. Use `--only-ready` to skip blocked outputs and continue the ready ones.
+
+```bash
+npm run mediaforge -- stories render \
+  --episode 009-the-christmas-doll \
+  --languages en,de \
+  --profiles full,short \
+  --only-ready
+```
+
+`stories render validate` validates existing render artifacts only. Burned-in captions are optional by default; pass `--captions` to require them. It writes per-output final-media validation reports, does not generate missing upstream assets, and can inspect current workspace render inputs when no workflow manifest exists.
+
+```bash
+npm run mediaforge -- stories render validate \
+  --episode 009-the-christmas-doll \
+  --languages en,de \
+  --profiles full,short \
+  --json
 ```
 
 `stories rewrite-full` is the current focused full-story rewrite command. It requires either `--episode` or `--input`, not both.
@@ -403,7 +507,7 @@ Common production/review commands:
 - `episode review reject --episode <number-or-slug> --language <code> --artifact <full|short> --reviewer <name> --reason <text> --notes <text>`
 - `episode review status --episode <number-or-slug>`
 
-`stories sync-characters`, `stories bootstrap-shared`, and `stories resume-images` are story-oriented aliases around the same character/image workflows.
+`stories sync-characters`, `stories bootstrap-shared`, `stories resume-images`, `stories images generate`, and `stories audio generate|validate` are story-oriented wrappers around the same lower-level character, image, and narration workflows.
 
 ## Image Commands
 
@@ -450,7 +554,7 @@ Metadata, render, and upload commands are distinct stages:
 - `metadata generate <episode-id>`
 - `metadata youtube [source] --episode <episode-slug> --all --force`
 - `render <episode-id> --profile youtube`
-- `render <episode-id> --profile vertical --no-captions`
+- `render <episode-id> --profile vertical`
 - `youtube upload --episode <episode-id> --variant full --generate-metadata --metadata-path <path> --video-path <path> --thumbnail-path <path> --playlist-id <id> --privacy-status <private|public|unlisted> --publish-at <timestamp> --notify-subscribers --force`
 - `youtube upload --episode <episode-id> --variant short --metadata-path <path-to-short-youtube-json> --video-path <path-to-9x16-mp4> --thumbnail-path <path> --privacy-status <private|public|unlisted> --force`
 
@@ -510,6 +614,12 @@ Image keys:
 
 - `OPENAI_IMAGE_MODEL`
 - `OPENAI_IMAGE_SIZE`
+- `OPENAI_IMAGE_FULL_SIZE`
+- `OPENAI_IMAGE_SHORT_SIZE`
+- `YOUTUBE_FULL_IMAGE_SIZE`
+- `YOUTUBE_SHORT_IMAGE_SIZE`
+- `YOUTUBE_FULL_RENDER_SIZE`
+- `YOUTUBE_SHORT_RENDER_SIZE`
 - `OPENAI_IMAGE_QUALITY`
 - `OPENAI_IMAGE_FORMAT`
 - `OPENAI_IMAGE_CONCURRENCY`
@@ -521,6 +631,23 @@ Image keys:
 - `VISUAL_SCENE_TARGET_PER_10_MINUTES`
 - `VISUAL_SCENE_MIN_SECONDS`
 - `VISUAL_SCENE_MAX_SECONDS`
+
+Image sizing notes:
+
+- OpenAI image-generation size and final video render size are different settings.
+- Recommended `.env` values:
+  `OPENAI_IMAGE_MODEL=gpt-image-2`,
+  `OPENAI_IMAGE_SIZE=1536x864`,
+  `OPENAI_IMAGE_FULL_SIZE=1536x864`,
+  `OPENAI_IMAGE_SHORT_SIZE=864x1536`,
+  `YOUTUBE_FULL_RENDER_SIZE=1920x1080`,
+  `YOUTUBE_SHORT_RENDER_SIZE=1080x1920`,
+  `OPENAI_IMAGE_QUALITY=low`,
+  `OPENAI_IMAGE_FORMAT=png`.
+- Full-video precedence is `OPENAI_IMAGE_FULL_SIZE`, then `YOUTUBE_FULL_IMAGE_SIZE`, then `OPENAI_IMAGE_SIZE`, then the typed default `1536x864`.
+- Short-video precedence is `OPENAI_IMAGE_SHORT_SIZE`, then `YOUTUBE_SHORT_IMAGE_SIZE`, then the typed default `864x1536`.
+- `OPENAI_IMAGE_SIZE` is a backward-compatible full-video fallback only. Shorts ignore it unless a short-specific value is configured.
+- `1920x1080` and `1080x1920` are render sizes. They are not the default OpenAI request sizes and should not be used as provider defaults unless you explicitly want that larger image-generation request.
 
 Workspace and script-language keys:
 
@@ -544,6 +671,11 @@ YouTube keys:
 - `YOUTUBE_CHANNEL_ID_GERMAN`
 - `YOUTUBE_CHANNEL_ID_SPANISH`
 - `YOUTUBE_CHANNEL_ID_FRENCH`
+
+Local OAuth helpers:
+
+- `pnpm youtube:auth:english`
+- `pnpm youtube:auth:german`
 
 ## Execution Reports
 

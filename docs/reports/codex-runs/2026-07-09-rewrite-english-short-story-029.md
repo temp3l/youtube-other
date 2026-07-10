@@ -1,0 +1,30 @@
+# Codex Run Report
+
+- Date: 2026-07-09
+- Source: user request to rewrite the English short story for episode 029
+- Summary: Rewrote the English short-story narration for episode 029 to a tighter, more coherent horror-short version and updated the short-story metadata word count and duration.
+- Changed files:
+  - `episodes/029-the-ghost-train-of-silver-pines/languages/short/script-en.md`
+- Tasks completed:
+  - Replaced the episode 029 English short narration with a fresh rewrite.
+  - Updated `Narration word count` and `Estimated spoken duration` to match the new short script.
+  - Verified the edited file has no whitespace or patch-format issues with `git diff --check`.
+- Tasks partially completed:
+  - None.
+- Tasks not completed:
+  - No broader pipeline validation was run.
+- Deviations from the original plan:
+  - None.
+- Tests/checks run:
+  - `git diff --check -- episodes/029-the-ghost-train-of-silver-pines/languages/short/script-en.md`
+  - `wc -w episodes/029-the-ghost-train-of-silver-pines/languages/short/script-en.md`
+  - `git rev-parse --short HEAD`
+- Test results:
+  - `git diff --check` passed.
+  - `wc -w` returned `467` for the full Markdown file; the narration metadata was updated to match the 219-word narration block.
+  - Current commit hash: `9e3ba73`.
+- Known risks or follow-up work:
+  - The short story has not been validated by the episode pipeline.
+  - If the downstream generator expects a shorter runtime, the narration can be tightened further.
+- Recommended next steps:
+  - Run the episode 029 short-story validation or preview render if needed.

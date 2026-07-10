@@ -30,13 +30,14 @@ import {
   shotTreatmentCatalogVersion,
 } from "@mediaforge/domain/visual-retention/treatment-catalog.js";
 import {
-  assertVideoImageFileMatchesSpec,
+  assertGeneratedImageFileMatchesSpec,
   createPlaceholderImage,
   createPromptBatch,
   generateOpenAiSceneImages,
   localSceneNegativePrompt,
   localSceneStyle,
   loadOpenAiImageGenerationSettings,
+  resolveConfiguredImageGenerationSize,
 } from "@mediaforge/image-generation";
 import { ensureEpisodeFocalMetadataForImages } from "@mediaforge/image-generation/focal-metadata.js";
 import {
@@ -1268,6 +1269,88 @@ function buildBalancedNarrationChunks(
   return rebalanceChunks(base, desiredCount);
 }
 
+function countChunkWords(chunk: string): number {
+  return splitIntoWords(chunk).length;
+}
+
+function sceneDurationSeconds(scene: Scene): number {
+  return Math.max(0.1, scene.timing.endSeconds - scene.timing.startSeconds);
+}
+
+function buildLocalizedNarrationChunksForCanonicalScenes(
+  narration: string,
+  canonicalScenes: readonly Scene[]
+): string[] {
+  const desiredCount = canonicalScenes.length;
+  const beats = splitNarrationBeats(narration);
+  const normalized =
+    beats.length > 0
+      ? beats.map((beat) => normalizeWhitespace(beat)).filter((beat) => beat.length > 0)
+      : [normalizeWhitespace(narration)].filter((beat) => beat.length > 0);
+  if (desiredCount <= 0 || normalized.length === 0) {
+    return normalized;
+  }
+  if (normalized.length < desiredCount) {
+    return rebalanceChunks(normalized, desiredCount);
+  }
+
+  const totalWords = normalized.reduce((sum, chunk) => sum + countChunkWords(chunk), 0);
+  const totalDuration = canonicalScenes.reduce(
+    (sum, scene) => sum + sceneDurationSeconds(scene),
+    0
+  );
+  if (totalWords <= 0 || totalDuration <= 0) {
+    return rebalanceChunks(normalized, desiredCount);
+  }
+
+  const chunks: string[] = [];
+  let beatIndex = 0;
+  let consumedWords = 0;
+  let consumedDuration = 0;
+  for (let sceneIndex = 0; sceneIndex < desiredCount; sceneIndex += 1) {
+    const remainingScenes = desiredCount - sceneIndex;
+    if (sceneIndex === desiredCount - 1) {
+      chunks.push(normalized.slice(beatIndex).join(" "));
+      break;
+    }
+
+    consumedDuration += sceneDurationSeconds(canonicalScenes[sceneIndex] as Scene);
+    const targetWords = (consumedDuration / totalDuration) * totalWords;
+    const selected: string[] = [];
+    let selectedWords = 0;
+
+    while (beatIndex < normalized.length) {
+      const remainingBeatsAfterThis = normalized.length - (beatIndex + 1);
+      const remainingScenesAfterThis = remainingScenes - 1;
+      const next = normalized[beatIndex] as string;
+      const nextWords = countChunkWords(next);
+      if (selected.length === 0) {
+        selected.push(next);
+        selectedWords += nextWords;
+        beatIndex += 1;
+        continue;
+      }
+      if (remainingBeatsAfterThis < remainingScenesAfterThis) {
+        break;
+      }
+      const currentDistance = Math.abs(consumedWords + selectedWords - targetWords);
+      const nextDistance = Math.abs(consumedWords + selectedWords + nextWords - targetWords);
+      if (nextDistance > currentDistance) {
+        break;
+      }
+      selected.push(next);
+      selectedWords += nextWords;
+      beatIndex += 1;
+    }
+
+    const chunk = normalizeWhitespace(selected.join(" "));
+    chunks.push(chunk);
+    consumedWords += selectedWords;
+  }
+
+  return rebalanceChunks(chunks, desiredCount);
+}
+
 function resolveTargetSceneCount(
   narration: string,
   artifactType: ArtifactType,
@@ -1414,16 +1497,15 @@ export function buildLocalizedScenePlan(
     readonly visualSceneTargetPer10Minutes?: number;
   }
 ): ScenePlan {
-  const chunks = buildBalancedNarrationChunks(
+  const chunks = buildLocalizedNarrationChunksForCanonicalScenes(
     localizedNarration,
-    canonical.scenes.length
+    canonical.scenes
   );
   let cursor = 0;
   const scenes = canonical.scenes.map((scene: Scene, index: number) => {
     const chunk = chunks[index] ?? scene.canonicalNarration;
     const sceneSeed = deriveSceneSeedFields(chunk);
-    const words = splitIntoWords(chunk).length;
-    const estimatedDurationSeconds = Math.max(3, (words / 180) * 60);
+    const estimatedDurationSeconds = sceneDurationSeconds(scene);
     const startSeconds = cursor;
     const endSeconds = cursor + estimatedDurationSeconds;
     cursor = endSeconds;
@@ -1491,13 +1573,18 @@ export async function generateCanonicalImages(
     scene: Scene,
     targetPath: string,
     imageModel: string,
-    sourcePath?: string
+    sourcePath?: string,
+    expectedSize: string = resolveConfiguredImageGenerationSize({
+      profile: "full",
+      env: process.env,
+    }).size
   ) => {
-    const dimensions = await assertVideoImageFileMatchesSpec({
+    const dimensions = await assertGeneratedImageFileMatchesSpec({
       episodeId: scenePlan.sourceId,
       language: "en",
       videoKind: "full",
       imagePath: targetPath,
+      expectedSize,
     });
     return {
       assetId: `asset-${String(scene.sequenceNumber).padStart(3, "0")}`,
@@ -1544,7 +1631,9 @@ export async function generateCanonicalImages(
         "DARK_TRUTH_ENABLE_PAID_PROVIDERS=true requires OPENAI_API_KEY for image generation."
       );
     }
-    const settings = loadOpenAiImageGenerationSettings(process.env);
+    const settings = loadOpenAiImageGenerationSettings(process.env, {
+      profile: "full",
+    });
     const results = pendingPrompts.length > 0
       ? await generateOpenAiSceneImages(
           pendingPrompts.map((prompt) => {
@@ -1583,11 +1672,12 @@ export async function generateCanonicalImages(
         if (sourcePath !== targetPath) {
           await fs.copyFile(sourcePath, targetPath);
         }
-        const dimensions = await assertVideoImageFileMatchesSpec({
+        const dimensions = await assertGeneratedImageFileMatchesSpec({
           episodeId: scenePlan.sourceId,
           language: "en",
           videoKind: "full",
           imagePath: targetPath,
+          expectedSize: settings.requestedSize,
         });
         assetRecordsBySceneId.set(scene.id, {
           assetId: `asset-${String(scene.sequenceNumber).padStart(3, "0")}`,
@@ -1654,7 +1744,7 @@ export async function generateCanonicalImages(
       continue;
     }
     const asset = await createPlaceholderImage(imagePath, scene, "16:9");
-    const dimensions = await assertVideoImageFileMatchesSpec({
+    const dimensions = await assertGeneratedImageFileMatchesSpec({
       episodeId: scenePlan.sourceId,
       language: "en",
       videoKind: "full",
@@ -1838,18 +1928,21 @@ async function readFullImageManifest(manifestPath: string): Promise<FullImageMan
 
 async function readShortsImageManifest(manifestPath: string): Promise<ShortsImageManifest> {
   const raw = JSON.parse(await fs.readFile(manifestPath, "utf8")) as unknown;
-  return z
-    .object({
-      entries: z.array(
-        z.object({
-          sceneId: z.string().min(1),
-          outputImagePath: z.string().min(1),
-          outputImageSha256: z.string().regex(/^[a-f0-9]{64}$/u).optional(),
-          status: z.string().min(1),
-        })
-      ),
-    })
+  const entrySchema = z.object({
+    sceneId: z.string().min(1),
+    outputImagePath: z.string().min(1),
+    outputImageSha256: z.string().regex(/^[a-f0-9]{64}$/u).optional(),
+    status: z.string().min(1),
+  });
+  const parsed = z
+    .union([
+      z.object({
+        entries: z.array(entrySchema),
+      }),
+      z.array(entrySchema),
+    ])
     .parse(raw);
+  return Array.isArray(parsed) ? { entries: parsed } : parsed;
 }
 
 async function writeJsonIfChanged(filePath: string, value: unknown): Promise<void> {

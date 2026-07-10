@@ -6,7 +6,7 @@ import {
   type StoryPromptModuleId,
 } from "./story-prompt-modules.js";
 
-const LOCALE_MODULE_VERSION = "locale-module-v1";
+const LOCALE_MODULE_VERSION = "locale-module-v2";
 
 function hasDialogueEvidence(context: StoryPromptModuleContext): boolean {
   return (
@@ -28,6 +28,25 @@ function hasNamesOrIdentifiers(context: StoryPromptModuleContext): boolean {
 
 function renderRuleList(lines: readonly string[]): string {
   return lines.map((line) => `- ${line}`).join("\n");
+}
+
+function languageSpecificUnicodeReminder(locale: string): string {
+  if (locale.startsWith("de")) {
+    return "German: use ä, ö, ü, Ä, Ö, Ü, and ß naturally.";
+  }
+  if (locale.startsWith("es")) {
+    return "Spanish: use accents, ñ, and inverted punctuation naturally where appropriate.";
+  }
+  if (locale.startsWith("fr")) {
+    return "French: use accents and ç naturally.";
+  }
+  if (locale.startsWith("pt")) {
+    return "Portuguese: use accents, ã/õ, and ç naturally.";
+  }
+  if (locale.startsWith("it")) {
+    return "Italian: preserve accents where natural.";
+  }
+  return "Preserve all natural language-specific characters for the selected locale.";
 }
 
 function moduleDescriptor(
@@ -277,6 +296,14 @@ const modules = [
             {
               id: "spoken-language-only",
               text: "Write natural spoken narration and avoid editorial commentary about the rewrite process.",
+            },
+            {
+              id: "preserve-native-unicode",
+              text: "Preserve natural spelling, punctuation, diacritics, accents, umlauts, ß, ñ, ç, inverted Spanish punctuation, and all language-specific characters. Do not transliterate localized narration into ASCII. Only filenames and slugs may be ASCII-safe. The final narration must be suitable for native TTS pronunciation.",
+            },
+            {
+              id: "locale-unicode-reminder",
+              text: languageSpecificUnicodeReminder(context.selectedLocale),
             },
           ],
           body: [`## ${settings.heading}`, "", settings.instructions].join(

@@ -28,6 +28,9 @@ Configuration ownership lives in `@mediaforge/config`.
   `MEDIAFORGE_OPENAI_SPEECH_MODEL`, `MEDIAFORGE_OPENAI_SPEECH_VOICE`, `MEDIAFORGE_SPEECH_VOICE_PRESET`, `MEDIAFORGE_SCRIPT_LANGUAGE`
 - YouTube credentials and per-language channels:
   `YOUTUBE_CLIENT_ID`, `YOUTUBE_CLIENT_SECRET`, `YOUTUBE_REFRESH_TOKEN`, language-specific refresh-token and channel-id variants for German, Spanish, and French
+  - Local OAuth helpers:
+    `pnpm youtube:auth:english` writes `YOUTUBE_REFRESH_TOKEN` and `YOUTUBE_CHANNEL_ID`
+    `pnpm youtube:auth:german` writes `YOUTUBE_REFRESH_TOKEN_GERMAN` and `YOUTUBE_CHANNEL_ID_GERMAN`
 - Remote rendering:
   `REMOTE_RENDER_*` and `LOCAL_RENDER_CONCURRENCY`
 

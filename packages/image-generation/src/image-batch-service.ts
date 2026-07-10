@@ -60,8 +60,7 @@ import {
 } from "./shorts-image-strategy.js";
 import sharp from "sharp";
 import {
-  assertVideoImageFileMatchesSpec,
-  normalizeImageBufferToSpec,
+  assertGeneratedImageFileMatchesSpec,
 } from "./video-image-spec.js";
 import {
   type ImageBatchProvider,
@@ -486,36 +485,13 @@ async function persistImportedImage(args: {
       code: "invalid-mime-type",
     });
   }
-  const normalizedBuffer = await normalizeImageBufferToSpec({
-    imageBuffer: args.imageBuffer,
-    videoKind: args.videoKind,
-    format: args.expectedFormat,
-  });
-  const normalizedMetadata = await sharp(normalizedBuffer).metadata().catch((error) => {
-    throw new ImageBatchImportError({
-      message:
-        error instanceof Error
-          ? error.message
-          : "Normalized image could not be parsed.",
-      status: "validation-failed",
-      category: "corrupt-file",
-      code: "corrupt-file",
-    });
-  });
-  if (!normalizedMetadata.width || !normalizedMetadata.height) {
-    throw new ImageBatchImportError({
-      message: "Normalized image is missing dimensions.",
-      status: "validation-failed",
-      category: "invalid-dimensions",
-      code: "missing-dimensions",
-    });
-  }
   if (await fileExists(resolvedOutputPath)) {
-    await assertVideoImageFileMatchesSpec({
+    await assertGeneratedImageFileMatchesSpec({
       episodeId: args.episodeId,
       language: args.language,
       videoKind: args.videoKind,
       imagePath: resolvedOutputPath,
+      expectedSize: args.requestedSize,
     }).catch((error) => {
       throw new ImageBatchImportError({
         message: error instanceof Error ? error.message : String(error),
@@ -528,18 +504,19 @@ async function persistImportedImage(args: {
     const existingBytes = await fsp.stat(resolvedOutputPath);
     return {
       sha256: existingHash,
-      width: normalizedMetadata.width,
-      height: normalizedMetadata.height,
+      width: metadata.width,
+      height: metadata.height,
       mimeType: actualMimeType,
       byteSize: existingBytes.size,
     };
   }
-  await writeBinaryAtomic(resolvedOutputPath, normalizedBuffer);
-  await assertVideoImageFileMatchesSpec({
+  await writeBinaryAtomic(resolvedOutputPath, args.imageBuffer);
+  await assertGeneratedImageFileMatchesSpec({
     episodeId: args.episodeId,
     language: args.language,
     videoKind: args.videoKind,
     imagePath: resolvedOutputPath,
+    expectedSize: args.requestedSize,
   }).catch((error) => {
     throw new ImageBatchImportError({
       message: error instanceof Error ? error.message : String(error),
@@ -550,10 +527,10 @@ async function persistImportedImage(args: {
   });
   return {
     sha256: await hashFile(resolvedOutputPath),
-    width: normalizedMetadata.width,
-    height: normalizedMetadata.height,
+    width: metadata.width,
+    height: metadata.height,
     mimeType: actualMimeType,
-    byteSize: normalizedBuffer.byteLength,
+    byteSize: args.imageBuffer.byteLength,
   };
 }
 
@@ -711,6 +688,346 @@ function itemOwnsProviderRequest(
   item: ImageBatchManifest["items"][number]
 ): boolean {
   return item.aliasedToCustomId === undefined;
+}
+
+function resolveBatchReportDirectory(args: {
+  readonly layout: ImageBatchStorageLayout;
+  readonly localBatchId: string;
+}): string {
+  return path.join(args.layout.reportsDir, `batch-${args.localBatchId}`);
+}
+
+function resolveBatchRunReportPath(args: {
+  readonly layout: ImageBatchStorageLayout;
+  readonly localBatchId: string;
+  readonly fileName: string;
+}): string {
+  return path.join(
+    resolveBatchReportDirectory({
+      layout: args.layout,
+      localBatchId: args.localBatchId,
+    }),
+    args.fileName
+  );
+}
+
+function buildImageBatchRetryCommand(
+  manifest: ImageBatchManifest
+): string | null {
+  const episodeId = manifest.items[0]?.identity.episodeId;
+  if (!episodeId) {
+    return null;
+  }
+  return `pnpm mediaforge -- images batch resume --episode ${episodeId} --batch ${manifest.localBatchId}`;
+}
+
+function toFailureRecord(args: {
+  readonly manifest: ImageBatchManifest;
+  readonly item: ImageBatchManifest["items"][number];
+}) {
+  const assetId = args.item.sceneId ?? args.item.identity.subject.id;
+  const retryable = itemOwnsProviderRequest(args.item) && itemRetryable(args.item);
+  return {
+    runId: args.manifest.localBatchId,
+    customId: args.item.customId,
+    episodeSlug: args.item.identity.episodeId,
+    stage: "image-generation" as const,
+    language: args.item.identity.language,
+    profile: args.item.identity.variant,
+    assetType: "image" as const,
+    assetId,
+    provider: "openai" as const,
+    providerRequestId: args.item.outputFileId ?? null,
+    errorCode: args.item.error?.code ?? args.item.status,
+    errorMessage:
+      args.item.error?.message ??
+      `Image batch item ${args.item.customId} ended in ${args.item.status}.`,
+    retryable,
+    occurredAt:
+      args.item.importedAt ??
+      args.manifest.importedAt ??
+      args.manifest.updatedAt,
+    nextAction: retryable ? buildImageBatchRetryCommand(args.manifest) : null,
+  };
+}
+
+async function collectValidationReport(args: {
+  readonly episodeDir: string;
+  readonly manifest: ImageBatchManifest;
+}): Promise<{
+  readonly validatedItemCount: number;
+  readonly failedItemCount: number;
+  readonly validationFailedItemCount: number;
+  readonly items: ReadonlyArray<{
+    readonly customId: string;
+    readonly episodeSlug: string;
+    readonly language: string;
+    readonly profile: "full" | "short";
+    readonly assetId: string;
+    readonly importStatus: ImageBatchItemStatus;
+    readonly validationStatus: "passed" | "failed" | "skipped";
+    readonly outputPath: string;
+    readonly expectedSize: string;
+    readonly retryable: boolean;
+    readonly error: { readonly category: string; readonly code?: string; readonly message: string } | null;
+  }>;
+}> {
+  const items = await Promise.all(
+    args.manifest.items.map(async (item) => {
+      const assetId = item.sceneId ?? item.identity.subject.id;
+      const base = {
+        customId: item.customId,
+        episodeSlug: item.identity.episodeId,
+        language: item.identity.language,
+        profile: item.identity.variant,
+        assetId,
+        importStatus: item.status,
+        outputPath: toEpisodeRelativeDisplayPath(args.episodeDir, item.expectedOutputPath),
+        expectedSize: item.requestedSize,
+        retryable: itemOwnsProviderRequest(item) && itemRetryable(item),
+      };
+      if (item.status !== "persisted" && item.status !== "skipped-cached") {
+        return {
+          ...base,
+          validationStatus: "skipped" as const,
+          error: item.error ?? null,
+        };
+      }
+      try {
+        await assertGeneratedImageFileMatchesSpec({
+          episodeId: item.identity.episodeId,
+          language: item.identity.language,
+          videoKind: item.identity.variant,
+          imagePath: item.expectedOutputPath,
+          expectedSize: item.requestedSize,
+        });
+        return {
+          ...base,
+          validationStatus: "passed" as const,
+          error: null,
+        };
+      } catch (error) {
+        return {
+          ...base,
+          validationStatus: "failed" as const,
+          error: {
+            category: "invalid-dimensions",
+            message: error instanceof Error ? error.message : String(error),
+          },
+        };
+      }
+    })
+  );
+  const validatedItemCount = items.filter(
+    (item) => item.validationStatus === "passed"
+  ).length;
+  const failedItemCount = items.filter(
+    (item) =>
+      item.validationStatus === "failed" ||
+      item.importStatus === "validation-failed" ||
+      item.importStatus === "decode-failed"
+  ).length;
+  const validationFailedItemCount = items.filter(
+    (item) =>
+      item.validationStatus === "failed" ||
+      item.importStatus === "validation-failed" ||
+      item.importStatus === "decode-failed"
+  ).length;
+  return {
+    validatedItemCount,
+    failedItemCount,
+    validationFailedItemCount,
+    items,
+  };
+}
+
+async function writeImageBatchImportArtifacts(args: {
+  readonly layout: ImageBatchStorageLayout;
+  readonly episodeDir: string;
+  readonly manifest: ImageBatchManifest;
+  readonly persistedFiles: readonly string[];
+  readonly unknownCustomIds: readonly string[];
+  readonly duplicateCustomIds: readonly string[];
+}): Promise<{
+  readonly importReportPath: string;
+  readonly validationReportPath: string;
+  readonly retryPlanPath: string;
+}> {
+  const failureRecords = args.manifest.items
+    .filter((item) => item.status !== "persisted" && item.status !== "skipped-cached")
+    .map((item) => toFailureRecord({ manifest: args.manifest, item }));
+  const importReportPath = resolveBatchRunReportPath({
+    layout: args.layout,
+    localBatchId: args.manifest.localBatchId,
+    fileName: "import-report.json",
+  });
+  await writeJsonAtomic(importReportPath, {
+    localBatchId: args.manifest.localBatchId,
+    importedAt: args.manifest.importedAt ?? new Date().toISOString(),
+    totalItems: args.manifest.items.length,
+    importedItemCount: args.manifest.items.filter((item) => item.status === "persisted").length,
+    failedItemCount: failureRecords.length,
+    validationFailedItemCount: args.manifest.items.filter(
+      (item) => item.status === "validation-failed" || item.status === "decode-failed"
+    ).length,
+    retryableItemCount: args.manifest.items.filter(
+      (item) => itemOwnsProviderRequest(item) && itemRetryable(item)
+    ).length,
+    unknownCustomIds: [...args.unknownCustomIds].sort((left, right) => left.localeCompare(right)),
+    duplicateCustomIds: [...args.duplicateCustomIds].sort((left, right) => left.localeCompare(right)),
+    persistedFiles: args.persistedFiles.map((filePath) =>
+      toEpisodeRelativeDisplayPath(args.episodeDir, filePath)
+    ),
+    failedItems: failureRecords,
+    retryCommand: buildImageBatchRetryCommand(args.manifest),
+  });
+  const validation = await collectValidationReport({
+    episodeDir: args.episodeDir,
+    manifest: args.manifest,
+  });
+  const validationReportPath = resolveBatchRunReportPath({
+    layout: args.layout,
+    localBatchId: args.manifest.localBatchId,
+    fileName: "validation-report.json",
+  });
+  await writeJsonAtomic(validationReportPath, {
+    localBatchId: args.manifest.localBatchId,
+    validatedAt: new Date().toISOString(),
+    validatedItemCount: validation.validatedItemCount,
+    failedItemCount: validation.failedItemCount,
+    validationFailedItemCount: validation.validationFailedItemCount,
+    items: validation.items,
+  });
+  const retryableItems = args.manifest.items.filter(
+    (item) => itemOwnsProviderRequest(item) && itemRetryable(item)
+  );
+  const skippedSuccessfulItems = args.manifest.items
+    .filter((item) => !retryableItems.some((candidate) => candidate.customId === item.customId))
+    .map((item) => ({
+      customId: item.customId,
+      episodeSlug: item.identity.episodeId,
+      language: item.identity.language,
+      profile: item.identity.variant,
+      assetId: item.sceneId ?? item.identity.subject.id,
+      status: item.status,
+      reason:
+        item.status === "persisted" || item.status === "skipped-cached"
+          ? "already-imported"
+          : itemOwnsProviderRequest(item)
+            ? "not-retryable"
+            : "shared-output-alias",
+    }));
+  const retryPlanPath = resolveBatchRunReportPath({
+    layout: args.layout,
+    localBatchId: args.manifest.localBatchId,
+    fileName: "retry-plan.json",
+  });
+  await writeJsonAtomic(retryPlanPath, {
+    localBatchId: args.manifest.localBatchId,
+    generatedAt: new Date().toISOString(),
+    candidateCount: retryableItems.length,
+    candidates: retryableItems.map((item) => ({
+      originalCustomId: item.customId,
+      retryCustomId: null,
+      episodeSlug: item.identity.episodeId,
+      language: item.identity.language,
+      profile: item.identity.variant,
+      assetId: item.sceneId ?? item.identity.subject.id,
+      status: item.status,
+      error: item.error ?? null,
+      requestedSize: item.requestedSize,
+      outputPath: toEpisodeRelativeDisplayPath(args.episodeDir, item.expectedOutputPath),
+    })),
+    skippedSuccessfulItemCount: skippedSuccessfulItems.length,
+    skippedSuccessfulItems,
+    retryCommand:
+      retryableItems.length > 0 ? buildImageBatchRetryCommand(args.manifest) : null,
+  });
+  return {
+    importReportPath,
+    validationReportPath,
+    retryPlanPath,
+  };
+}
+
+async function writePreparedRetryPlan(args: {
+  readonly layout: ImageBatchStorageLayout;
+  readonly episodeDir: string;
+  readonly sourceManifest: ImageBatchManifest;
+  readonly retryManifest: ImageBatchManifest;
+}): Promise<string> {
+  const retryItemsByCustomId = new Map(
+    args.retryManifest.items
+      .filter((item) => itemOwnsProviderRequest(item))
+      .map((item) => [item.customId, item] as const)
+  );
+  const retryableItems = args.sourceManifest.items.filter(
+    (item) => itemOwnsProviderRequest(item) && itemRetryable(item)
+  );
+  const skippedSuccessfulItems = args.sourceManifest.items
+    .filter((item) => !retryableItems.some((candidate) => candidate.customId === item.customId))
+    .map((item) => ({
+      customId: item.customId,
+      episodeSlug: item.identity.episodeId,
+      language: item.identity.language,
+      profile: item.identity.variant,
+      assetId: item.sceneId ?? item.identity.subject.id,
+      status: item.status,
+      reason:
+        item.status === "persisted" || item.status === "skipped-cached"
+          ? "already-imported"
+          : itemOwnsProviderRequest(item)
+            ? "not-retryable"
+            : "shared-output-alias",
+    }));
+  const retryPlanPath = resolveBatchRunReportPath({
+    layout: args.layout,
+    localBatchId: args.sourceManifest.localBatchId,
+    fileName: "retry-plan.json",
+  });
+  const episodeId =
+    args.retryManifest.items[0]?.identity.episodeId ??
+    args.sourceManifest.items[0]?.identity.episodeId;
+  await writeJsonAtomic(retryPlanPath, {
+    localBatchId: args.sourceManifest.localBatchId,
+    sourceBatchId: args.sourceManifest.localBatchId,
+    retryBatchId: args.retryManifest.localBatchId,
+    generatedAt: new Date().toISOString(),
+    candidateCount: retryableItems.length,
+    candidates: retryableItems.map((item) => {
+      const retryItem = retryItemsByCustomId.get(item.customId);
+      return {
+        originalCustomId: item.customId,
+        retryCustomId: retryItem?.customId ?? null,
+        episodeSlug: item.identity.episodeId,
+        language: item.identity.language,
+        profile: item.identity.variant,
+        assetId: item.sceneId ?? item.identity.subject.id,
+        status: item.status,
+        error: item.error ?? null,
+        requestedSize: item.requestedSize,
+        outputPath: toEpisodeRelativeDisplayPath(args.episodeDir, item.expectedOutputPath),
+      };
+    }),
+    skippedSuccessfulItemCount: skippedSuccessfulItems.length,
+    skippedSuccessfulItems,
+    inputFilePath: toEpisodeRelativeDisplayPath(
+      args.episodeDir,
+      args.retryManifest.inputFilePath
+    ),
+    manifestPath: toEpisodeRelativeDisplayPath(
+      args.episodeDir,
+      resolveEpisodeImageBatchManifestFilePath(
+        args.episodeDir,
+        args.retryManifest.localBatchId
+      )
+    ),
+    retryCommand:
+      episodeId !== undefined
+        ? `pnpm mediaforge -- images batch submit --episode ${episodeId} --batch ${args.retryManifest.localBatchId}`
+        : null,
+  });
+  return retryPlanPath;
 }
 
 async function resolveBatchManifestMatches(
@@ -1099,11 +1416,12 @@ export async function importImageBatch(
     const itemLines = linesByCustomId.get(item.customId) ?? [];
     if (itemLines.length === 0) {
       if (item.status === "persisted" && (await fileExists(item.expectedOutputPath))) {
-        await assertVideoImageFileMatchesSpec({
+        await assertGeneratedImageFileMatchesSpec({
           episodeId: item.identity.episodeId,
           language: item.identity.language,
           videoKind: item.identity.variant,
           imagePath: item.expectedOutputPath,
+          expectedSize: item.requestedSize,
         });
         nextItemsByCustomId.set(item.customId, item);
         continue;
@@ -1141,11 +1459,12 @@ export async function importImageBatch(
     const line = itemLines[0]!;
     try {
       if (item.status === "persisted" && (await fileExists(item.expectedOutputPath))) {
-        await assertVideoImageFileMatchesSpec({
+        await assertGeneratedImageFileMatchesSpec({
           episodeId: item.identity.episodeId,
           language: item.identity.language,
           videoKind: item.identity.variant,
           imagePath: item.expectedOutputPath,
+          expectedSize: item.requestedSize,
         });
         nextItemsByCustomId.set(item.customId, item);
         continue;
@@ -1275,9 +1594,17 @@ export async function importImageBatch(
     },
     nextManifest
   );
+  const importArtifacts = await writeImageBatchImportArtifacts({
+    layout,
+    episodeDir,
+    manifest: nextManifest,
+    persistedFiles,
+    unknownCustomIds: [...unknownCustomIds],
+    duplicateCustomIds: [...duplicateCustomIds],
+  });
   await writeJsonAtomic(reportFilePath, {
     localBatchId: refreshed.localBatchId,
-    importedAt: new Date().toISOString(),
+    importedAt: nextManifest.importedAt,
     totalItems: refreshed.items.length,
     failedItemCount: nextFailedItemCount,
     retryableItemCount: nextRetryableItemCount,
@@ -1287,6 +1614,14 @@ export async function importImageBatch(
     unknownCustomIds: [...unknownCustomIds].sort((left, right) => left.localeCompare(right)),
     duplicateCustomIds: [...duplicateCustomIds].sort((left, right) => left.localeCompare(right)),
     status: importedStatus,
+    importReportPath: toEpisodeRelativeDisplayPath(episodeDir, importArtifacts.importReportPath),
+    validationReportPath: toEpisodeRelativeDisplayPath(
+      episodeDir,
+      importArtifacts.validationReportPath
+    ),
+    retryPlanPath: toEpisodeRelativeDisplayPath(episodeDir, importArtifacts.retryPlanPath),
+    retryCommand:
+      nextRetryableItemCount > 0 ? buildImageBatchRetryCommand(nextManifest) : null,
   });
   await index.upsert(toIndexEntry({ layout, manifest: nextManifest }));
   return {
@@ -1428,6 +1763,12 @@ export async function retryFailedImageBatch(
     })),
   }) as ImageBatchManifest;
   await writeImageBatchManifest(group.storagePlan, nextManifest);
+  await writePreparedRetryPlan({
+    layout,
+    episodeDir,
+    sourceManifest: manifest,
+    retryManifest: nextManifest,
+  });
   await index.upsert(toIndexEntry({ layout, manifest: nextManifest }));
   return {
     localBatchId: nextManifest.localBatchId,

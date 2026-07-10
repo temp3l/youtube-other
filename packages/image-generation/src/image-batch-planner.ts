@@ -60,7 +60,11 @@ import {
   writeImageBatchManifest,
   type ImageBatchStoragePlan,
 } from "./image-batch-storage.js";
-import { assertVideoImageFileMatchesSpec } from "./video-image-spec.js";
+import {
+  resolveConfiguredImageGenerationSize,
+  resolveConfiguredRenderSize,
+} from "./image-generation-config.js";
+import { assertGeneratedImageFileMatchesSpec } from "./video-image-spec.js";
 
 export interface ImageBatchPlannerSettings {
   readonly model: string;
@@ -507,9 +511,11 @@ function plannerSettingsForPipeline(
 ): EpisodeImagePipelineSettings {
   return {
     apiKey: "batch-prepare-only",
+    profile: "full",
     model: settings.model,
     size: settings.requestedSize,
     resolvedSize: settings.requestedSize,
+    renderSize: "1920x1080",
     quality: settings.quality,
     concurrency: 1,
     maxRetries: 0,
@@ -517,6 +523,7 @@ function plannerSettingsForPipeline(
     allowUnapprovedCharacterReferences:
       settings.allowUnapprovedCharacterReferences ?? false,
     force: settings.force ?? false,
+    debug: false,
   };
 }
 
@@ -1292,11 +1299,12 @@ export async function planImageBatchForEpisode(args: {
     });
     const outputExists = await fileExists(sceneManifest.outputPath);
     if (outputExists) {
-      await assertVideoImageFileMatchesSpec({
+      await assertGeneratedImageFileMatchesSpec({
         episodeId: args.episodeId,
         language,
         videoKind: variant,
         imagePath: sceneManifest.outputPath,
+        expectedSize: sceneManifest.size,
       });
     }
     const isReusable =
@@ -1633,13 +1641,21 @@ function defaultShortsImageConfig(sceneCount: number): ShortsImageConfig {
     Number.isFinite(configuredRatio) && configuredRatio > 0
       ? Math.ceil(sceneCount * configuredRatio)
       : 0;
+  const generationSize = resolveConfiguredImageGenerationSize({
+    profile: "short",
+    env: process.env,
+  });
+  const renderSize = resolveConfiguredRenderSize({
+    profile: "short",
+    env: process.env,
+  });
   return {
     enabled: true,
     keySceneCount: Math.max(0, Math.min(sceneCount, Math.max(configuredCount, ratioCount))),
-    portraitWidth: Number(process.env["SHORTS_PORTRAIT_WIDTH"] ?? 1088),
-    portraitHeight: Number(process.env["SHORTS_PORTRAIT_HEIGHT"] ?? 1920),
-    finalWidth: Number(process.env["SHORTS_FINAL_WIDTH"] ?? 1080),
-    finalHeight: Number(process.env["SHORTS_FINAL_HEIGHT"] ?? 1920),
+    portraitWidth: generationSize.width,
+    portraitHeight: generationSize.height,
+    finalWidth: renderSize.width,
+    finalHeight: renderSize.height,
     reuseLandscapeImages: true,
     enablePanAndScan: true,
     enableBlurredFallback: true,

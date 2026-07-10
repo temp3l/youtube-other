@@ -7,7 +7,10 @@ import type {
   LocalizedAlignmentManifest,
   LocalizedVisualValidationReport,
 } from "@mediaforge/domain";
-import { resolveSharedVisualRenderTimeline } from "./shared-visual-render.js";
+import {
+  evaluateSharedVisualRenderReadiness,
+  resolveSharedVisualRenderTimeline,
+} from "./shared-visual-render.js";
 
 async function tempEpisodeDir(): Promise<string> {
   return fs.mkdtemp(path.join(os.tmpdir(), "shared-visual-render-"));
@@ -91,6 +94,28 @@ async function writeImages(
 }
 
 describe("shared visual render timeline", () => {
+  it("generates a readiness summary that reuses canonical full images for localized full renders", async () => {
+    const episodeDir = await tempEpisodeDir();
+    await writeImages(episodeDir, "full", 2);
+
+    const readiness = await evaluateSharedVisualRenderReadiness({
+      episodeDir,
+      canonicalManifest: manifest("full", 2),
+      alignmentManifest: alignment({ language: "de", variant: "full", durations: [7, 2] }),
+      validationReport: validation({ language: "de", variant: "full", status: "warn" }),
+    });
+
+    expect(readiness.status).toBe("ready");
+    expect(readiness.renderProfile).toBe("youtube");
+    expect(readiness.imageSource).toBe("canonical-full-reuse");
+    expect(readiness.resolvedSceneCount).toBe(2);
+    expect(readiness.blockedSceneIds).toEqual([]);
+    expect(readiness.segments.map((segment) => segment.imagePath)).toEqual([
+      path.join(episodeDir, "visuals", "full", "images", "scene-001.png"),
+      path.join(episodeDir, "visuals", "full", "images", "scene-002.png"),
+    ]);
+  });
+
   it("maps English and German full renders to the same canonical full images", async () => {
     const episodeDir = await tempEpisodeDir();
     await writeImages(episodeDir, "full", 2);
@@ -133,6 +158,20 @@ describe("shared visual render timeline", () => {
   it("fails for missing short images without falling back to full images", async () => {
     const episodeDir = await tempEpisodeDir();
     await writeImages(episodeDir, "full");
+
+    const readiness = await evaluateSharedVisualRenderReadiness({
+      episodeDir,
+      canonicalManifest: manifest("short"),
+      alignmentManifest: alignment({ language: "en", variant: "short", durations: [3] }),
+      validationReport: validation({ language: "en", variant: "short" }),
+    });
+    expect(readiness.status).toBe("blocked");
+    expect(readiness.renderProfile).toBe("vertical");
+    expect(readiness.imageSource).toBe("short-only");
+    expect(readiness.blockedSceneIds).toEqual(["scene-001"]);
+    expect(readiness.issues[0]?.message).toContain(
+      "Full-video image fallback is disabled for short renders."
+    );
 
     await expect(
       resolveSharedVisualRenderTimeline({

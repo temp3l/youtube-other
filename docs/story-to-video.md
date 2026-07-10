@@ -1406,7 +1406,7 @@ Important producers and consumers:
 
 ### Rerender without regeneration
 
-- `mediaforge render <episode-id> --profile youtube --no-captions`
+- `mediaforge render <episode-id> --profile youtube`
 - vertical: `mediaforge render <episode-id> --profile vertical`
 
 ### Inspect production status

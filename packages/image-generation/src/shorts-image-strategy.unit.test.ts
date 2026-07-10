@@ -1,7 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import sharp from "sharp";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { ScenePlan } from "@mediaforge/domain";
 import { hashFile } from "@mediaforge/shared";
 import {
@@ -10,6 +10,11 @@ import {
   type ShortsImageConfig,
 } from "./shorts-image-strategy.js";
 import type { EpisodeImagePipelineSettings, ImageGenerator } from "./episode-image-pipeline.js";
+
+const shortPortraitWidth = 864;
+const shortPortraitHeight = 1536;
+const shortRenderWidth = 1080;
+const shortRenderHeight = 1920;
 
 function makeScenePlan(count: number): ScenePlan {
   const scenes = Array.from({ length: count }, (_, index) => {
@@ -66,8 +71,8 @@ function createGenerator(): ImageGenerator {
     async generate(request) {
       await sharp({
         create: {
-          width: 1088,
-          height: 1920,
+          width: 1024,
+          height: 1536,
           channels: 4,
           background: { r: 12, g: 34, b: 56, alpha: 1 },
         },
@@ -78,7 +83,7 @@ function createGenerator(): ImageGenerator {
         outputPath: request.providerRequest.outputPath,
         outputSha256: await hashFile(request.providerRequest.outputPath),
         model: "stub",
-        size: "1088x1920",
+        size: "1024x1536",
         quality: "low",
         generationMode: "text-only",
         attempts: 1,
@@ -97,10 +102,10 @@ describe("shorts image strategy", () => {
     const config: ShortsImageConfig = {
       enabled: true,
       keySceneCount: 5,
-      portraitWidth: 1088,
-      portraitHeight: 1920,
-      finalWidth: 1080,
-      finalHeight: 1920,
+      portraitWidth: shortPortraitWidth,
+      portraitHeight: shortPortraitHeight,
+      finalWidth: shortRenderWidth,
+      finalHeight: shortRenderHeight,
       reuseLandscapeImages: true,
       enablePanAndScan: true,
       enableBlurredFallback: true,
@@ -121,10 +126,10 @@ describe("shorts image strategy", () => {
     const baseConfig: ShortsImageConfig = {
       enabled: true,
       keySceneCount: 1,
-      portraitWidth: 1088,
-      portraitHeight: 1920,
-      finalWidth: 1080,
-      finalHeight: 1920,
+      portraitWidth: shortPortraitWidth,
+      portraitHeight: shortPortraitHeight,
+      finalWidth: shortRenderWidth,
+      finalHeight: shortRenderHeight,
       reuseLandscapeImages: true,
       enablePanAndScan: true,
       enableBlurredFallback: true,
@@ -184,10 +189,10 @@ describe("shorts image strategy", () => {
     const config: ShortsImageConfig = {
       enabled: true,
       keySceneCount: 1,
-      portraitWidth: 1088,
-      portraitHeight: 1920,
-      finalWidth: 1080,
-      finalHeight: 1920,
+      portraitWidth: shortPortraitWidth,
+      portraitHeight: shortPortraitHeight,
+      finalWidth: shortRenderWidth,
+      finalHeight: shortRenderHeight,
       reuseLandscapeImages: true,
       enablePanAndScan: true,
       enableBlurredFallback: true,
@@ -225,10 +230,10 @@ describe("shorts image strategy", () => {
       enabled: true,
       keySceneCount: 3,
       keySceneRatio: 0.8,
-      portraitWidth: 1088,
-      portraitHeight: 1920,
-      finalWidth: 1080,
-      finalHeight: 1920,
+      portraitWidth: shortPortraitWidth,
+      portraitHeight: shortPortraitHeight,
+      finalWidth: shortRenderWidth,
+      finalHeight: shortRenderHeight,
       reuseLandscapeImages: true,
       enablePanAndScan: true,
       enableBlurredFallback: true,
@@ -276,10 +281,10 @@ describe("shorts image strategy", () => {
     const config: ShortsImageConfig = {
       enabled: true,
       keySceneCount: 5,
-      portraitWidth: 1088,
-      portraitHeight: 1920,
-      finalWidth: 1080,
-      finalHeight: 1920,
+      portraitWidth: shortPortraitWidth,
+      portraitHeight: shortPortraitHeight,
+      finalWidth: shortRenderWidth,
+      finalHeight: shortRenderHeight,
       reuseLandscapeImages: true,
       enablePanAndScan: true,
       enableBlurredFallback: true,
@@ -306,11 +311,11 @@ describe("shorts image strategy", () => {
     expect(result.entries.slice(0, 5).every((entry) => entry.regenerated)).toBe(true);
     expect(result.entries[5]?.reusedExistingImage).toBe(true);
     const firstImage = await sharp(result.entries[0]!.outputImagePath).metadata();
-    expect(firstImage.width).toBe(1080);
-    expect(firstImage.height).toBe(1920);
+    expect(firstImage.width).toBe(shortPortraitWidth);
+    expect(firstImage.height).toBe(shortPortraitHeight);
     const tailImage = await sharp(result.entries[5]!.outputImagePath).metadata();
-    expect(tailImage.width).toBe(1080);
-    expect(tailImage.height).toBe(1920);
+    expect(tailImage.width).toBe(shortPortraitWidth);
+    expect(tailImage.height).toBe(shortPortraitHeight);
     const manifest = JSON.parse(await fs.readFile(result.manifestPath, "utf8")) as Array<Record<string, unknown>>;
     expect(manifest).toHaveLength(6);
     expect(manifest.map((entry) => entry["sceneId"])).toEqual(
@@ -368,10 +373,10 @@ describe("shorts image strategy", () => {
       {
         enabled: true,
         keySceneCount: 0,
-        portraitWidth: 1088,
-        portraitHeight: 1920,
-        finalWidth: 1080,
-        finalHeight: 1920,
+        portraitWidth: shortPortraitWidth,
+        portraitHeight: shortPortraitHeight,
+        finalWidth: shortRenderWidth,
+        finalHeight: shortRenderHeight,
         reuseLandscapeImages: true,
         enablePanAndScan: false,
         enableBlurredFallback: true,
@@ -393,8 +398,8 @@ describe("shorts image strategy", () => {
       status: "success",
     });
     const image = await sharp(result.entries[0]!.outputImagePath).metadata();
-    expect(image.width).toBe(1080);
-    expect(image.height).toBe(1920);
+    expect(image.width).toBe(shortPortraitWidth);
+    expect(image.height).toBe(shortPortraitHeight);
     await fs.rm(tempDir, { recursive: true, force: true });
   }, 15_000);
 
@@ -443,10 +448,10 @@ describe("shorts image strategy", () => {
       {
         enabled: true,
         keySceneCount: 0,
-        portraitWidth: 1088,
-        portraitHeight: 1920,
-        finalWidth: 1080,
-        finalHeight: 1920,
+        portraitWidth: shortPortraitWidth,
+        portraitHeight: shortPortraitHeight,
+        finalWidth: shortRenderWidth,
+        finalHeight: shortRenderHeight,
         reuseLandscapeImages: true,
         enablePanAndScan: true,
         enableBlurredFallback: true,
@@ -498,10 +503,10 @@ describe("shorts image strategy", () => {
       {
         enabled: true,
         keySceneCount: 1,
-        portraitWidth: 1088,
-        portraitHeight: 1920,
-        finalWidth: 1080,
-        finalHeight: 1920,
+        portraitWidth: shortPortraitWidth,
+        portraitHeight: shortPortraitHeight,
+        finalWidth: shortRenderWidth,
+        finalHeight: shortRenderHeight,
         reuseLandscapeImages: true,
         enablePanAndScan: true,
         enableBlurredFallback: true,
@@ -533,10 +538,10 @@ describe("shorts image strategy", () => {
     const config: ShortsImageConfig = {
       enabled: true,
       keySceneCount: 1,
-      portraitWidth: 1088,
-      portraitHeight: 1920,
-      finalWidth: 1080,
-      finalHeight: 1920,
+      portraitWidth: shortPortraitWidth,
+      portraitHeight: shortPortraitHeight,
+      finalWidth: shortRenderWidth,
+      finalHeight: shortRenderHeight,
       reuseLandscapeImages: true,
       enablePanAndScan: true,
       enableBlurredFallback: true,
@@ -564,8 +569,8 @@ describe("shorts image strategy", () => {
       async generate(request) {
         await sharp({
           create: {
-            width: 1088,
-            height: 1920,
+            width: 1024,
+            height: 1536,
             channels: 4,
             background: { r: 12, g: 34, b: 56, alpha: 1 },
           },
@@ -576,7 +581,7 @@ describe("shorts image strategy", () => {
           outputPath: request.providerRequest.outputPath,
           outputSha256: await hashFile(request.providerRequest.outputPath),
           model: "stub",
-          size: "1088x1920",
+          size: "1024x1536",
           quality: "low",
           generationMode: "text-only",
           attempts: 1,
@@ -637,10 +642,10 @@ describe("shorts image strategy", () => {
     const config: ShortsImageConfig = {
       enabled: true,
       keySceneCount: 0,
-      portraitWidth: 1088,
-      portraitHeight: 1920,
-      finalWidth: 1080,
-      finalHeight: 1920,
+      portraitWidth: shortPortraitWidth,
+      portraitHeight: shortPortraitHeight,
+      finalWidth: shortRenderWidth,
+      finalHeight: shortRenderHeight,
       reuseLandscapeImages: true,
       enablePanAndScan: true,
       enableBlurredFallback: true,
@@ -686,6 +691,152 @@ describe("shorts image strategy", () => {
     expect(result.entries[0]?.reusedExistingImage).toBe(true);
     expect(result.entries[0]?.regenerated).toBe(false);
     expect(await hashFile(reusedPath)).toBe(reusedHash);
+    await fs.rm(tempDir, { recursive: true, force: true });
+  }, 15_000);
+
+  it("reuses cached native-generated key scene portraits when the plan fingerprint is unchanged", async () => {
+    const tempDir = await fs.mkdtemp(path.join(process.cwd(), ".tmp-shorts-key-cache-"));
+    const episodeDir = path.join(tempDir, "episode");
+    const outputDir = path.join(tempDir, "shared", "short", "images", "generated");
+    await fs.mkdir(episodeDir, { recursive: true });
+    await fs.mkdir(outputDir, { recursive: true });
+    await fs.mkdir(path.join(episodeDir, "shared"), { recursive: true });
+    await fs.writeFile(
+      path.join(episodeDir, "shared", "characters.json"),
+      JSON.stringify({ episodeId: "episode-1", characters: [], updatedAt: new Date().toISOString() })
+    );
+    const scenePlan = makeScenePlan(1);
+    const config: ShortsImageConfig = {
+      enabled: true,
+      keySceneCount: 1,
+      portraitWidth: shortPortraitWidth,
+      portraitHeight: shortPortraitHeight,
+      finalWidth: shortRenderWidth,
+      finalHeight: shortRenderHeight,
+      reuseLandscapeImages: true,
+      enablePanAndScan: true,
+      enableBlurredFallback: true,
+      forceRegenerateAll: false,
+      selectionMode: "first-n",
+    };
+
+    const firstRun = await prepareShortsImageAssets(
+      episodeDir,
+      "episode-1",
+      scenePlan,
+      createSettings(),
+      config,
+      {
+        outputDir,
+        generator: createGenerator(),
+      }
+    );
+    const generatedPath = firstRun.entries[0]?.outputImagePath;
+    if (!generatedPath) {
+      throw new Error("missing expected portrait path");
+    }
+    const generatedHash = await hashFile(generatedPath);
+    const generator = {
+      async generate() {
+        throw new Error("generator should not run when cached key-scene portrait matches");
+      },
+    } satisfies ImageGenerator;
+
+    const secondRun = await prepareShortsImageAssets(
+      episodeDir,
+      "episode-1",
+      scenePlan,
+      createSettings(),
+      config,
+      {
+        outputDir,
+        generator,
+      }
+    );
+
+    expect(secondRun.entries[0]?.reusedExistingImage).toBe(true);
+    expect(secondRun.entries[0]?.regenerated).toBe(false);
+    expect(secondRun.entries[0]?.strategy).toBe("regenerate");
+    expect(await hashFile(generatedPath)).toBe(generatedHash);
+    await fs.rm(tempDir, { recursive: true, force: true });
+  }, 15_000);
+
+  it("executes short image generation with bounded concurrency from settings", async () => {
+    const tempDir = await fs.mkdtemp(path.join(process.cwd(), ".tmp-shorts-concurrency-"));
+    const episodeDir = path.join(tempDir, "episode");
+    const outputDir = path.join(tempDir, "shared", "short", "images", "generated");
+    await fs.mkdir(episodeDir, { recursive: true });
+    await fs.mkdir(outputDir, { recursive: true });
+    await fs.mkdir(path.join(episodeDir, "shared"), { recursive: true });
+    await fs.writeFile(
+      path.join(episodeDir, "shared", "characters.json"),
+      JSON.stringify({ episodeId: "episode-1", characters: [], updatedAt: new Date().toISOString() })
+    );
+    const scenePlan = makeScenePlan(3);
+    const activeRequests: number[] = [];
+    const observedConcurrency: number[] = [];
+    const generator = {
+      generate: vi.fn(async (request) => {
+        activeRequests.push(1);
+        observedConcurrency.push(activeRequests.length);
+        await new Promise((resolve) => setTimeout(resolve, 40));
+        await sharp({
+          create: {
+            width: 1024,
+            height: 1536,
+            channels: 4,
+            background: { r: 22, g: 44, b: 66, alpha: 1 },
+          },
+        })
+          .png()
+          .toFile(request.providerRequest.outputPath);
+        activeRequests.pop();
+        return {
+          outputPath: request.providerRequest.outputPath,
+          outputSha256: await hashFile(request.providerRequest.outputPath),
+          model: "stub",
+          size: "1024x1536",
+          quality: "low",
+          generationMode: "text-only",
+          attempts: 1,
+          durationMs: 1,
+          providerRequestHash: request.providerRequest.providerRequestHash,
+          promptHash: "prompt-hash",
+          referenceHashes: [],
+        };
+      }),
+    } satisfies ImageGenerator;
+
+    const result = await prepareShortsImageAssets(
+      episodeDir,
+      "episode-1",
+      scenePlan,
+      {
+        ...createSettings(),
+        concurrency: 2,
+      },
+      {
+        enabled: true,
+        keySceneCount: 3,
+        portraitWidth: shortPortraitWidth,
+        portraitHeight: shortPortraitHeight,
+        finalWidth: shortRenderWidth,
+        finalHeight: shortRenderHeight,
+        reuseLandscapeImages: true,
+        enablePanAndScan: true,
+        enableBlurredFallback: true,
+        forceRegenerateAll: false,
+        selectionMode: "first-n",
+      },
+      {
+        outputDir,
+        generator,
+      }
+    );
+
+    expect(result.entries).toHaveLength(3);
+    expect(Math.max(...observedConcurrency)).toBe(2);
+    expect(generator.generate).toHaveBeenCalledTimes(3);
     await fs.rm(tempDir, { recursive: true, force: true });
   }, 15_000);
 });

@@ -29,6 +29,15 @@ export interface ThumbnailGenerateCliOptions {
   readonly json?: boolean;
 }
 
+function resolveStoryReferenceImagePath(args: {
+  readonly story: Awaited<ReturnType<typeof readThumbnailStoryFile>>;
+  readonly format: ThumbnailFormat;
+}): string | undefined {
+  return (
+    args.story.referenceImagePaths?.[args.format] ?? args.story.referenceImagePath
+  );
+}
+
 function printJson(value: unknown): void {
   process.stdout.write(`${JSON.stringify(value, null, 2)}\n`);
 }
@@ -130,7 +139,7 @@ export function registerThumbnailCommands(program: Command): void {
     .option("--episode <slug>", "legacy alias for --episode-slug")
     .requiredOption("--locale <locale>", "locale code")
     .requiredOption("--format <full|short>", "thumbnail format")
-    .option("--style <cinematic-horror|editorial-card>", "thumbnail style")
+    .option("--style <cinematic-horror|editorial-card|viral-horror-v1>", "thumbnail style")
     .option("--hook-text <text>", "exact localized hook text")
     .option("--story-file <path>", "story summary input JSON")
     .option("--emphasis-word <word>", "explicit emphasis word")
@@ -194,7 +203,12 @@ export function registerThumbnailCommands(program: Command): void {
           ? { keyVisualMoment: story.keyVisualMoment }
           : {}),
         emphasisWord: options.emphasisWord ?? story.emphasisWord,
-        referenceImagePath: options.referenceImage ?? story.referenceImagePath,
+        referenceImagePath:
+          options.referenceImage ??
+          resolveStoryReferenceImagePath({
+            story,
+            format: (options.format ?? "full") as ThumbnailFormat,
+          }),
         quality: options.quality,
         dryRun: options.dryRun ?? false,
         force: options.force ?? false,

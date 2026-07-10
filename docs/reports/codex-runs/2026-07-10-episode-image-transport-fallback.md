@@ -1,0 +1,5 @@
+Summary: Added timeout-aware transport hardening to the episode image pipeline, keeping the SDK as the primary path and falling back to fetch/curl for retryable text-only connection failures. Added a focused regression test for the new routing.
+Changed paths: `packages/image-generation/src/episode-image-pipeline.ts`, `packages/image-generation/src/episode-image-pipeline.unit.test.ts`
+Tests: `pnpm exec vitest run -c vitest.unit.config.ts packages/image-generation/src/episode-image-pipeline.unit.test.ts` (fails in pre-existing unrelated cases in this file); `pnpm exec vitest run -c vitest.unit.config.ts packages/image-generation/src/episode-image-pipeline.unit.test.ts -t "routes text-only requests through the fallback transport and keeps reference edits on the SDK"` (pass); `pnpm --filter @mediaforge/image-generation typecheck` (pass)
+Commit hash: `9e3ba734272ae430efca0a09bda11912bbc254a6`
+Unresolved risks: reference-assisted image edits still rely on the SDK path only; the broader `episode-image-pipeline.unit.test.ts` file currently has unrelated failing cases around generated image fixtures and reuse flows.

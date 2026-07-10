@@ -62,6 +62,7 @@ export type LocalBatchManifestItemStatus =
   | "expired"
   | "schema-invalid"
   | "content-invalid"
+  | "validation-failed"
   | "repair-required"
   | "preflight-failed"
   | "persisted"

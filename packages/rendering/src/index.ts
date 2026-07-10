@@ -717,6 +717,49 @@ export interface RenderValidation {
   readonly issues: string[];
 }
 
+export interface SceneClipArtifactValidation {
+  readonly clipId: string;
+  readonly clipPath: string;
+  readonly manifestPath: string;
+  readonly durationSeconds?: number;
+  readonly valid: boolean;
+  readonly issues: readonly string[];
+}
+
+export interface SceneClipArtifactValidationReport {
+  readonly valid: boolean;
+  readonly clipsDir: string;
+  readonly expectedClipCount: number;
+  readonly actualClipCount: number;
+  readonly actualManifestCount: number;
+  readonly totalClipDurationSeconds: number;
+  readonly issues: readonly string[];
+  readonly clips: readonly SceneClipArtifactValidation[];
+}
+
+export interface FinalRenderedMediaValidationReport {
+  readonly schemaVersion: 1;
+  readonly valid: boolean;
+  readonly finalVideoPath: string;
+  readonly clipsDir: string;
+  readonly expectedDurationSeconds: number;
+  readonly expectedFinalDurationSeconds: number;
+  readonly actualDurationSeconds: number;
+  readonly issues: readonly string[];
+  readonly finalValidation: RenderValidation;
+  readonly clipValidation: SceneClipArtifactValidationReport;
+  readonly createdAt: string;
+}
+
+export const finalRenderedMediaValidationFilename =
+  "final-media-validation.json" as const;
+
+export function finalRenderedMediaValidationReportPath(
+  outputDir: string
+): string {
+  return path.join(outputDir, finalRenderedMediaValidationFilename);
+}
+
 export interface VideoRenderer {
   render(
     request: VideoRenderRequest,
@@ -1325,6 +1368,204 @@ function sceneHash(scene: ScenePlan["scenes"][number]): string {
       visualPurpose: scene.visualPurpose,
     })
   );
+}
+
+export async function validateSceneClipArtifacts(args: {
+  readonly clipsDir: string;
+  readonly scenePlan: ScenePlan;
+  readonly renderProfile: RenderProfile;
+  readonly requireComplete?: boolean;
+  readonly durationToleranceSeconds?: number;
+}): Promise<SceneClipArtifactValidationReport> {
+  const sortedScenePlan = stableSortScenes(args.scenePlan);
+  const expectedScenes = sortedScenePlan.scenes;
+  const expectedIds = new Set<string>(expectedScenes.map((scene) => scene.id));
+  const issues: string[] = [];
+  const clips: SceneClipArtifactValidation[] = [];
+
+  const entries = await fs.readdir(args.clipsDir, { withFileTypes: true }).catch(() => []);
+  const actualClipIds = new Set(
+    entries
+      .filter((entry) => entry.isFile() && entry.name.endsWith(".mp4"))
+      .map((entry) => entry.name.replace(/\.mp4$/u, ""))
+  );
+  const actualManifestIds = new Set(
+    entries
+      .filter((entry) => entry.isFile() && entry.name.endsWith(".json"))
+      .map((entry) => entry.name.replace(/\.json$/u, ""))
+  );
+
+  if (
+    args.requireComplete !== false &&
+    actualClipIds.size === 0 &&
+    actualManifestIds.size === 0
+  ) {
+    issues.push(`Clip directory is missing or empty: ${args.clipsDir}`);
+  }
+
+  for (const clipId of actualClipIds) {
+    if (!expectedIds.has(clipId)) {
+      issues.push(`Unexpected clip artifact is present: ${clipId}.mp4`);
+    }
+  }
+  for (const clipId of actualManifestIds) {
+    if (!expectedIds.has(clipId)) {
+      issues.push(`Unexpected clip manifest is present: ${clipId}.json`);
+    }
+  }
+
+  let totalClipDurationSeconds = 0;
+  for (const scene of expectedScenes) {
+    const clipPath = path.join(args.clipsDir, `${scene.id}.mp4`);
+    const manifestPath = path.join(args.clipsDir, `${scene.id}.json`);
+    const clipIssues: string[] = [];
+    let durationSeconds: number | undefined;
+    if (!(await fileExists(clipPath))) {
+      clipIssues.push(`Missing clip artifact for ${scene.id}.`);
+    }
+    if (!(await fileExists(manifestPath))) {
+      clipIssues.push(`Missing clip manifest for ${scene.id}.`);
+    }
+    if (clipIssues.length === 0) {
+      const validation = await validateRenderOutput(clipPath, {
+        expectedWidth: args.renderProfile.width,
+        expectedHeight: args.renderProfile.height,
+        expectedDurationSeconds: Math.max(
+          0.1,
+          scene.timing.endSeconds - scene.timing.startSeconds
+        ),
+        durationToleranceSeconds: args.durationToleranceSeconds ?? 0.75,
+        requireAudio: false,
+        disallowAudio: true,
+      });
+      durationSeconds = validation.durationSeconds;
+      totalClipDurationSeconds += validation.durationSeconds;
+      clipIssues.push(...validation.issues);
+
+      const manifest = await loadSceneClipManifest(manifestPath);
+      if (!manifest) {
+        clipIssues.push(`Invalid clip manifest for ${scene.id}.`);
+      } else {
+        if (manifest.sceneId !== scene.id) {
+          clipIssues.push(
+            `Clip manifest scene id mismatch for ${scene.id}: ${manifest.sceneId}.`
+          );
+        }
+        if (manifest.sceneHash !== sceneHash(scene)) {
+          clipIssues.push(`Clip manifest scene hash mismatch for ${scene.id}.`);
+        }
+        if (
+          manifest.renderProfile.aspectRatio !== args.renderProfile.aspectRatio ||
+          manifest.renderProfile.width !== args.renderProfile.width ||
+          manifest.renderProfile.height !== args.renderProfile.height ||
+          manifest.renderProfile.fps !== args.renderProfile.fps
+        ) {
+          clipIssues.push(`Clip manifest render profile mismatch for ${scene.id}.`);
+        }
+        const outputSha256 = await hashFile(clipPath).catch(() => "");
+        if (manifest.outputSha256 !== outputSha256) {
+          clipIssues.push(`Clip manifest output hash mismatch for ${scene.id}.`);
+        }
+      }
+    }
+    if (clipIssues.length > 0) {
+      issues.push(...clipIssues);
+    }
+    clips.push({
+      clipId: scene.id,
+      clipPath,
+      manifestPath,
+      ...(durationSeconds !== undefined ? { durationSeconds } : {}),
+      valid: clipIssues.length === 0,
+      issues: clipIssues,
+    });
+  }
+
+  return {
+    valid: issues.length === 0,
+    clipsDir: args.clipsDir,
+    expectedClipCount: expectedScenes.length,
+    actualClipCount: actualClipIds.size,
+    actualManifestCount: actualManifestIds.size,
+    totalClipDurationSeconds,
+    issues,
+    clips,
+  };
+}
+
+export async function validateFinalRenderedMedia(args: {
+  readonly finalVideoPath: string;
+  readonly clipsDir: string;
+  readonly scenePlan: ScenePlan;
+  readonly renderProfile: RenderProfile;
+  readonly expectedFinalDurationSeconds?: number;
+  readonly durationToleranceSeconds?: number;
+}): Promise<FinalRenderedMediaValidationReport> {
+  const expectedDurationSeconds = scenePlanDurationSeconds(
+    stableSortScenes(args.scenePlan)
+  );
+  const expectedFinalDurationSeconds =
+    args.expectedFinalDurationSeconds ?? expectedDurationSeconds;
+  const finalValidation = await validateRenderOutput(args.finalVideoPath, {
+    expectedWidth: args.renderProfile.width,
+    expectedHeight: args.renderProfile.height,
+    expectedDurationSeconds: expectedFinalDurationSeconds,
+    durationToleranceSeconds: args.durationToleranceSeconds ?? 0.75,
+    requireAudio: true,
+  });
+  const clipValidation = await validateSceneClipArtifacts({
+    clipsDir: args.clipsDir,
+    scenePlan: args.scenePlan,
+    renderProfile: args.renderProfile,
+    requireComplete: true,
+    durationToleranceSeconds: args.durationToleranceSeconds ?? 0.75,
+  });
+  const issues = [
+    ...finalValidation.issues,
+    ...clipValidation.issues.map((issue) => `Clip validation: ${issue}`),
+  ];
+  if (finalValidation.audioSampleRateHz !== finalAudioSampleRateHz) {
+    issues.push(
+      `Unexpected final audio sample rate ${finalValidation.audioSampleRateHz ?? "unknown"} Hz; expected ${finalAudioSampleRateHz} Hz.`
+    );
+  }
+  if (finalValidation.audioChannels !== finalAudioChannels) {
+    issues.push(
+      `Unexpected final audio channel count ${finalValidation.audioChannels ?? "unknown"}; expected ${finalAudioChannels}.`
+    );
+  }
+  if (
+    clipValidation.totalClipDurationSeconds > 0 &&
+    expectedFinalDurationSeconds + (args.durationToleranceSeconds ?? 0.75) >=
+      clipValidation.totalClipDurationSeconds &&
+    Math.abs(
+      finalValidation.durationSeconds - clipValidation.totalClipDurationSeconds
+    ) > (args.durationToleranceSeconds ?? 0.75)
+  ) {
+    issues.push(
+      `Final media duration ${finalValidation.durationSeconds.toFixed(3)}s does not match clip continuity ${clipValidation.totalClipDurationSeconds.toFixed(3)}s.`
+    );
+  }
+  return {
+    schemaVersion: 1,
+    valid: issues.length === 0,
+    finalVideoPath: args.finalVideoPath,
+    clipsDir: args.clipsDir,
+    expectedDurationSeconds,
+    expectedFinalDurationSeconds,
+    actualDurationSeconds: finalValidation.durationSeconds,
+    issues,
+    finalValidation,
+    clipValidation,
+    createdAt: new Date().toISOString(),
+  };
+}
+
+export async function writeFinalRenderedMediaValidationReport(args: {
+  readonly filePath: string;
+  readonly report: FinalRenderedMediaValidationReport;
+}): Promise<void> {
+  await writeJsonAtomic(args.filePath, args.report);
 }
 
 const finalAudioCodec = "aac" as const;
@@ -4459,6 +4700,28 @@ export class FFmpegVideoRenderer implements VideoRenderer {
       finalDurationSeconds: validation.durationSeconds,
     });
     assertAudioAssemblyWithinFailureThreshold(audioAssembly);
+    if (!request.shotPlan) {
+      const finalMediaValidation = await validateFinalRenderedMedia({
+        finalVideoPath: captionedPath ?? cleanPath,
+        clipsDir: clipResult.clipsDir,
+        scenePlan: request.scenePlan,
+        renderProfile: request.renderProfile,
+        expectedFinalDurationSeconds,
+      });
+      await writeFinalRenderedMediaValidationReport({
+        filePath: finalRenderedMediaValidationReportPath(request.outputDir),
+        report: finalMediaValidation,
+      });
+      if (!finalMediaValidation.valid) {
+        throw new MediaValidationError(
+          `Final rendered media failed validation: ${finalMediaValidation.issues.join("; ")}`
+        );
+      }
+    } else {
+      await fs.rm(finalRenderedMediaValidationReportPath(request.outputDir), {
+        force: true,
+      }).catch(() => {});
+    }
     const renderFingerprint = hashText(
       JSON.stringify({
         variant: context.identity.variant,

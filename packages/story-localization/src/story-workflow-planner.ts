@@ -317,7 +317,9 @@ function buildPlannedStoryWorkflowManifestWithContracts(args: {
   const rewriteFull = addStage("rewrite-full", "en", "full", [ingest]);
   const validateFull = addStage("validate-full", "en", "full", [rewriteFull]);
   const qualityFull = addStage("quality-full", "en", "full", [validateFull]);
-  addStage("visual-model", "en", "full", [qualityFull]);
+  const fullScenePlan = addStage("visual-model", "en", "full", [qualityFull]);
+  const fullPrompt = addStage("image-prompt", "en", "full", [fullScenePlan]);
+  addStage("image-generation", "en", "full", [fullPrompt]);
   const fullByLocale = new Map<WorkflowLocale, StageId>([["en", qualityFull]]);
 
   if (formats.includes("full")) {

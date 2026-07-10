@@ -2531,13 +2531,8 @@ async function commandImagesPlan(
     episodeId
   );
   const settings = loadEpisodeImageGenerationSettings({
+    ...process.env,
     OPENAI_API_KEY: process.env["OPENAI_API_KEY"] ?? "dry-run",
-    OPENAI_IMAGE_MODEL: process.env["OPENAI_IMAGE_MODEL"],
-    OPENAI_IMAGE_SIZE: process.env["OPENAI_IMAGE_SIZE"],
-    OPENAI_IMAGE_QUALITY: process.env["OPENAI_IMAGE_QUALITY"],
-    OPENAI_IMAGE_CONCURRENCY: process.env["OPENAI_IMAGE_CONCURRENCY"],
-    OPENAI_IMAGE_MAX_RETRIES: process.env["OPENAI_IMAGE_MAX_RETRIES"],
-    OPENAI_IMAGE_TIMEOUT_MS: process.env["OPENAI_IMAGE_TIMEOUT_MS"],
     OPENAI_IMAGE_ALLOW_UNAPPROVED_CHARACTER_REFERENCES:
       options.allowUnapprovedCharacterReferences
         ? "true"
@@ -2545,9 +2540,8 @@ async function commandImagesPlan(
     OPENAI_IMAGE_FORCE: options.force
       ? "true"
       : process.env["OPENAI_IMAGE_FORCE"],
-    OPENAI_BASE_URL: process.env["OPENAI_BASE_URL"],
-    OPENAI_ORGANIZATION: process.env["OPENAI_ORGANIZATION"],
-    OPENAI_PROJECT: process.env["OPENAI_PROJECT"],
+  }, {
+    profile: "full",
   });
   const results = await planEpisodeImageGeneration(
     episodeDir,
@@ -2570,13 +2564,7 @@ async function commandImagesGenerate(
     episodeId
   );
   const settings = loadEpisodeImageGenerationSettings({
-    OPENAI_API_KEY: process.env["OPENAI_API_KEY"],
-    OPENAI_IMAGE_MODEL: process.env["OPENAI_IMAGE_MODEL"],
-    OPENAI_IMAGE_SIZE: process.env["OPENAI_IMAGE_SIZE"],
-    OPENAI_IMAGE_QUALITY: process.env["OPENAI_IMAGE_QUALITY"],
-    OPENAI_IMAGE_CONCURRENCY: process.env["OPENAI_IMAGE_CONCURRENCY"],
-    OPENAI_IMAGE_MAX_RETRIES: process.env["OPENAI_IMAGE_MAX_RETRIES"],
-    OPENAI_IMAGE_TIMEOUT_MS: process.env["OPENAI_IMAGE_TIMEOUT_MS"],
+    ...process.env,
     OPENAI_IMAGE_ALLOW_UNAPPROVED_CHARACTER_REFERENCES:
       options.allowUnapprovedCharacterReferences
         ? "true"
@@ -2584,9 +2572,8 @@ async function commandImagesGenerate(
     OPENAI_IMAGE_FORCE: options.force
       ? "true"
       : process.env["OPENAI_IMAGE_FORCE"],
-    OPENAI_BASE_URL: process.env["OPENAI_BASE_URL"],
-    OPENAI_ORGANIZATION: process.env["OPENAI_ORGANIZATION"],
-    OPENAI_PROJECT: process.env["OPENAI_PROJECT"],
+  }, {
+    profile: "full",
   });
   const results = await generateEpisodeImages(
     episodeDir,
@@ -2612,13 +2599,7 @@ async function commandImagesGenerateCharacterReferences(
     episodeId
   );
   const settings = loadEpisodeImageGenerationSettings({
-    OPENAI_API_KEY: process.env["OPENAI_API_KEY"],
-    OPENAI_IMAGE_MODEL: process.env["OPENAI_IMAGE_MODEL"],
-    OPENAI_IMAGE_SIZE: process.env["OPENAI_IMAGE_SIZE"],
-    OPENAI_IMAGE_QUALITY: process.env["OPENAI_IMAGE_QUALITY"],
-    OPENAI_IMAGE_CONCURRENCY: process.env["OPENAI_IMAGE_CONCURRENCY"],
-    OPENAI_IMAGE_MAX_RETRIES: process.env["OPENAI_IMAGE_MAX_RETRIES"],
-    OPENAI_IMAGE_TIMEOUT_MS: process.env["OPENAI_IMAGE_TIMEOUT_MS"],
+    ...process.env,
     OPENAI_IMAGE_ALLOW_UNAPPROVED_CHARACTER_REFERENCES:
       options.allowUnapprovedCharacterReferences
         ? "true"
@@ -2626,9 +2607,8 @@ async function commandImagesGenerateCharacterReferences(
     OPENAI_IMAGE_FORCE: options.force
       ? "true"
       : process.env["OPENAI_IMAGE_FORCE"],
-    OPENAI_BASE_URL: process.env["OPENAI_BASE_URL"],
-    OPENAI_ORGANIZATION: process.env["OPENAI_ORGANIZATION"],
-    OPENAI_PROJECT: process.env["OPENAI_PROJECT"],
+  }, {
+    profile: "full",
   });
   const registry = await generateEpisodeImageReferences(
     episodeDir,
@@ -2668,13 +2648,7 @@ async function commandImagesRegenerateCharacter(
     episodeId
   );
   const settings = loadEpisodeImageGenerationSettings({
-    OPENAI_API_KEY: process.env["OPENAI_API_KEY"],
-    OPENAI_IMAGE_MODEL: process.env["OPENAI_IMAGE_MODEL"],
-    OPENAI_IMAGE_SIZE: process.env["OPENAI_IMAGE_SIZE"],
-    OPENAI_IMAGE_QUALITY: process.env["OPENAI_IMAGE_QUALITY"],
-    OPENAI_IMAGE_CONCURRENCY: process.env["OPENAI_IMAGE_CONCURRENCY"],
-    OPENAI_IMAGE_MAX_RETRIES: process.env["OPENAI_IMAGE_MAX_RETRIES"],
-    OPENAI_IMAGE_TIMEOUT_MS: process.env["OPENAI_IMAGE_TIMEOUT_MS"],
+    ...process.env,
     OPENAI_IMAGE_ALLOW_UNAPPROVED_CHARACTER_REFERENCES:
       options.allowUnapprovedCharacterReferences
         ? "true"
@@ -2682,9 +2656,8 @@ async function commandImagesRegenerateCharacter(
     OPENAI_IMAGE_FORCE: options.force
       ? "true"
       : process.env["OPENAI_IMAGE_FORCE"],
-    OPENAI_BASE_URL: process.env["OPENAI_BASE_URL"],
-    OPENAI_ORGANIZATION: process.env["OPENAI_ORGANIZATION"],
-    OPENAI_PROJECT: process.env["OPENAI_PROJECT"],
+  }, {
+    profile: "full",
   });
   const registry = await regenerateEpisodeCharacter(
     episodeDir,
@@ -2700,7 +2673,7 @@ async function commandRender(
   renderOptions: RenderMotionCliOptions,
   episodeId: string,
   profile: "youtube" | "vertical",
-  burnCaptions = true
+  burnCaptions = false
 ): Promise<void> {
   markEpisodeTelemetry(episodeId);
   const { manifest, episodeDir } = await readManifestForEpisode(
@@ -2740,12 +2713,16 @@ async function commandRender(
         profile,
         `youtube-${profile === "youtube" ? "16x9" : "9x16"}${localizedOutputSuffix(language)}-clean.mp4`
       ),
-      captionedPath: path.join(
-        audioBaseDir,
-        "renders",
-        profile,
-        `youtube-${profile === "youtube" ? "16x9" : "9x16"}${localizedOutputSuffix(language)}-captioned.mp4`
-      ),
+      ...(burnCaptions
+        ? {
+            captionedPath: path.join(
+              audioBaseDir,
+              "renders",
+              profile,
+              `youtube-${profile === "youtube" ? "16x9" : "9x16"}${localizedOutputSuffix(language)}-captioned.mp4`
+            ),
+          }
+        : {}),
       ...(motion ? { renderMotion: motion } : {}),
       dryRun: true,
     });
@@ -2762,7 +2739,7 @@ async function commandRender(
     height: profile === "youtube" ? 1080 : 1920,
     fps: 30,
     aspectRatio: profile === "youtube" ? "16:9" : "9:16",
-    burnCaptions: true,
+    burnCaptions: Boolean(captionsPath),
   } as const;
   const runtime = await loadCliRuntime(options, episodeDir);
   const variant: "full" | "short" = profile === "vertical" ? "short" : "full";
@@ -4726,7 +4703,7 @@ const renderCommand = program
   .command("render")
   .argument("<episode-id>")
   .option("--profile <profile>", "youtube or vertical", "youtube")
-  .option("--no-captions", "render without burned-in captions");
+  .option("--captions", "render with burned-in captions");
 addRenderMotionOptions(renderCommand)
   .action(
     async (
@@ -4741,7 +4718,7 @@ addRenderMotionOptions(renderCommand)
         opts,
         episodeId,
         opts.profile,
-        opts.captions ?? true
+        opts.captions === true
       );
     }
   );

@@ -9,6 +9,10 @@ export function normalizeWhitespace(value: string): string {
 }
 
 export function slugify(value: string): string {
+  return toAsciiSlug(value);
+}
+
+export function toAsciiSlug(value: string): string {
   return normalizeWhitespace(value)
     .toLowerCase()
     .normalize("NFKD")

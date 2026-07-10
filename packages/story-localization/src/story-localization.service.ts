@@ -164,6 +164,7 @@ import {
   StoryRetryableRequestError,
   type StoryRetryPurpose,
 } from "./story-retry-routing.js";
+import { normalizeGeneratedStoryPackageContent } from "./localized-content-text.js";
 
 export interface StoryLocalizationOptions {
   readonly client?: OpenAiStoryClient;
@@ -1874,7 +1875,7 @@ function parseGeneratedPackage(
       `Expected language ${language}, received ${parsed.language}.`
     );
   }
-  return parsed as GeneratedStoryPackage;
+  return normalizeGeneratedStoryPackageContent(parsed as GeneratedStoryPackage);
 }
 
 function parseGeneratedFullPackage(
@@ -3369,7 +3370,10 @@ export async function localizeStoryEpisode(
               if (!packageValue.full) {
                 issues.push(`Missing full story payload for ${language}.`);
               }
-              return issues;
+              return issues.map(
+                (entry) =>
+                  `${localizedOutputFiles.full}: ${entry} Localized narration must preserve native characters before TTS.`
+              );
             }
             const packageValue = parseLocalizedFullRewritePackage(
               value as unknown,
@@ -3395,6 +3399,9 @@ export async function localizeStoryEpisode(
               profile,
               language,
               canonicalEnglishPlan.characterRenameMap
+            ).map(
+              (entry) =>
+                `${localizedOutputFiles.full}: ${entry} Localized narration must preserve native characters before TTS.`
             );
           } catch (error) {
             return [error instanceof Error ? error.message : String(error)];

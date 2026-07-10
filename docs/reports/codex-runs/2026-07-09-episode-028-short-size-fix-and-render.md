@@ -1,0 +1,5 @@
+Summary: Fixed episode 028 short-image sizing so the short pipeline honors merged `.env` settings, rebuilt the CLI packages, and regenerated EN/DE shorts successfully. Root causes were stale CLI `dist` defaults, mismatched short-image validation, and array-vs-object shorts manifest parsing.
+Changed paths: `apps/cli/src/episode-commands.ts`, `packages/image-generation/src/shorts-image-strategy.ts`, `packages/image-generation/src/shorts-image-strategy.unit.test.ts`, `packages/dark-truth/src/index.ts`
+Tests: `pnpm exec vitest run -c vitest.unit.config.ts --bail=1 packages/image-generation/src/shorts-image-strategy.unit.test.ts`; `pnpm --filter @mediaforge/image-generation --filter @mediaforge/cli build`; `pnpm --filter @mediaforge/dark-truth --filter @mediaforge/cli build`; artifact existence checks for episode 028 EN/DE short outputs; shared short images verified at `864x1536`
+Commit hash: `9e3ba73`
+Unresolved risks: Rendered outputs were verified by successful command completion and artifact checks, not by manual playback review. Repo contains other pre-existing untracked run reports.

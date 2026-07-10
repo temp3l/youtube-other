@@ -1,5 +1,11 @@
 # prompts
 
+- tell me how to rewrite and process all EN\*DE stories from 031 to 035 in a batch and initialize those stories correctly via cli
+
+- did all tasks finish regarding batch processing?
+  - how would i start batch production for episode 030, all variants in DE+EN+ES ?
+  - tell me what workflow would happen (and the cli commands)
+
 - next: https://chatgpt.com/g/g-p-6a317d326e30819183556eca604b770c-youtube/c/6a4da7f4-086c-83eb-9749-3b87d0790dbf
 - https://profile.kake.team/onboarding
 - https://www.workatastartup.com/jobs/87570
@@ -16,7 +22,33 @@ Current defects characterized: generated image traversal acceptance; short portr
 
 ---
 
+## Total Code
+
+- Source/config surface in apps/, packages/, scripts/, plus root build/config files: 153,123 lines across 419 files
+
+## Production
+
+pnpm mediaforge -- stories rewrite-full --input episodes/028-the-man-in-the-attic/languages/script-en.md --episode-slug 028-the-man-in-the-attic --languages de --force --json
+
+---
+
 ## next prompts:
+
+- runnning A: https://chatgpt.com/g/g-p-6a317d326e30819183556eca604b770c-youtube/c/6a4fb3bc-a9f8-83eb-a8b1-fc14192d7ccf
+
+- generate the short movies for EN+DE for episode 028, create the youtube metadata, render the thumbnail into the beginning of the short videos and uplad to youtube
+
+- this command: `DARK_TRUTH_ENABLE_PAID_PROVIDERS=true npm run episode:short --  --episode "$EPISODE"  --language de  --visual-retention  --visual-profile shorts-aggressiv` deleted the existing short images and re-regenerated them. they should have been re-used, right? also the cli command did not use concurrency when generating images.
+  why did that happen and how to solve it ?
+
+- the localized movies are slighly out of sync with the images - how can we fix that ?
+
+## updload
+
+node apps/cli/dist/index.js youtube upload \
+ --episode "$EPISODE" \
+ --video-path episodes/${EPISODE}/en/full/renders/youtube/youtube-16x9-es-clean.mp4 \
+ --metadata-path episodes/${EPISODE}/en/full/metadata.json
 
 - fast audio assets are in place for 025 DE and EN short and full; regenerate downstream assets without generating new images.
 - (gpt-5.5 xhigh) the prompt was interrupted: todo-prompts/code-view/03-batch-c-contracts-localization-provider.md
@@ -264,8 +296,9 @@ If you want, I can narrow this further to the specific shot content in scene-019
 
 For German short, use:
 
+export EPISODE="028-the-man-in-the-attic"
 npm run episode:short -- \
- --episode 022-the-whistler-in-the-woods \
+ --episode "$EPISODE" \
  --language de \
  --visual-retention \
  --visual-profile shorts-aggressive
@@ -3044,3 +3077,40 @@ Notes:
 - render does not have a --language flag, so the language comes from MEDIAFORGE_SCRIPT_LANGUAGE or episode config.
 - metadata generate also does not take a language flag, so use YOUTUBE_METADATA_LANGUAGE or MEDIAFORGE_SCRIPT_LANGUAGE.
 - youtube upload will prefer the matching language-specific refresh token and channel ID if you set YOUTUBE_REFRESH_TOKEN_GERMAN / YOUTUBE_REFRESH_TOKEN_SPANISH and the matching channel IDs.
+
+## batch
+
+No tests should call paid providers.
+
+## Requested Planning Docs To Produce In Implementation Planning Pass
+
+When allowed to write docs, create:
+
+- docs/plans/batch-orchestration-implementation-plan.md
+  - this full architecture, phases, execution order, inventory summary
+
+- docs/plans/batch-orchestration-cli-design.md
+  - exact commands, flags, aliases, example outputs
+
+- docs/plans/batch-orchestration-state-machine.md
+  - BatchStageStatus, AssetStatus, gate transitions, blocked semantics
+
+- docs/plans/batch-orchestration-error-resilience.md
+  - partial import, asset failure isolation, retry-plan behavior
+
+- docs/plans/batch-orchestration-test-plan.md
+  - focused test matrix and verification commands
+
+- docs/reports/codex-runs/2026-07-09-batch-orchestration-planning.md
+  - changed paths none, explored paths, findings, risks, next implementation order
+
+## Assumptions And Defaults
+
+- stories pipeline remains the planning/status surface; stories production becomes the daily execution surface.
+- Workspace batch audit root is <workspace>/batches/, while existing subsystem batch dirs remain authoritative for stage-local manifests during migration.
+- Human approval remains required for canonical EN full before localization and for locale full before same-locale short.
+- Metadata stays local/sync in v1, not OpenAI Batch.
+- Image edit/reference requests that are not batch-safe stay on local queued execution in v1.
+- New orchestration emits the new readable custom_id format; legacy ids remain import-compatible.
+- story-state.json is a projection, not a second source of truth.
+- No production logic, episode content, or paid providers are touched during planning.

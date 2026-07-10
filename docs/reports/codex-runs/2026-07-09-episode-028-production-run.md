@@ -1,0 +1,9 @@
+Summary: EN full completed and was approved. EN short source headings were repaired, its image-generation network failures were bypassed by rerunning unsandboxed, and its shared shorts manifest was wrapped to match the current reader. DE full reached rendering but exposed stale shared-image filename drift; stale full-image duplicates were quarantined, missing canonical filenames were restored, and `shared/image-manifest.json` was realigned. EN short and DE full are still running; metadata generation and YouTube uploads have not started.
+
+Changed paths: `episodes/028-the-man-in-the-attic/languages/short/script-en.md`, `episodes/028-the-man-in-the-attic/languages/short/script-de.md`, `episodes/028-the-man-in-the-attic/shared/short/images/shorts-image-manifest.json`, `episodes/028-the-man-in-the-attic/shared/image-manifest.json`, `episodes/028-the-man-in-the-attic/shared/images/stale-duplicates-2026-07-09/`, `docs/reports/codex-runs/2026-07-09-episode-028-production-run.md`
+
+Tests/checks: `DARK_TRUTH_ENABLE_PAID_PROVIDERS=true pnpm mediaforge -- episode english --episode 028-the-man-in-the-attic`; `pnpm mediaforge -- episode review approve --episode 028-the-man-in-the-attic --language en --artifact full --reviewer codex`; `DARK_TRUTH_ENABLE_PAID_PROVIDERS=true pnpm mediaforge -- episode localized --episode 028-the-man-in-the-attic --languages de` (multiple resumes, surfaced shared-image issues); `DARK_TRUTH_ENABLE_PAID_PROVIDERS=true pnpm mediaforge -- episode short --episode 028-the-man-in-the-attic --language en` (sandboxed and unsandboxed resumes); targeted `find`/`rg` checks on shared image duplicates, manifests, and render outputs.
+
+Commit hash: `9e3ba73`
+
+Unresolved risks: EN short still has no final MP4; DE full still has no final MP4; DE short not started; metadata/thumbnails/uploads pending; localized/full shared-image reuse remains brittle because canonical filenames drifted between scene-plan revisions.

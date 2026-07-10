@@ -20,7 +20,12 @@ import {
   planImageBatchForEpisode,
 } from "./image-batch-planner.js";
 import { readImageBatchManifest } from "./image-batch-storage.js";
-import { upsertCharacterRegistry, type CharacterDefinition } from "./episode-image-pipeline.js";
+import {
+  loadEpisodeSceneManifest,
+  loadEpisodeSceneVisualPlan,
+  upsertCharacterRegistry,
+  type CharacterDefinition,
+} from "./episode-image-pipeline.js";
 import { planShortsImageWork } from "./shorts-image-strategy.js";
 
 function providerRequestHashForFixture(args: {
@@ -38,12 +43,23 @@ function providerRequestHashForFixture(args: {
       model: args.model ?? "gpt-image-2",
       prompt: args.prompt,
       n: 1,
-      size: args.requestedSize ?? "1920x1088",
+      size: args.requestedSize ?? "1536x864",
       quality: args.quality ?? "medium",
       outputFormat: args.outputFormat ?? "png",
       referenceImages: args.characterReferenceHashes ?? [],
     })
   );
+}
+
+function parseFixtureSize(size: string): { width: number; height: number } {
+  const match = /^(\d+)x(\d+)$/u.exec(size);
+  if (!match) {
+    throw new Error(`Invalid fixture image size: ${size}`);
+  }
+  return {
+    width: Number.parseInt(match[1] ?? "", 10),
+    height: Number.parseInt(match[2] ?? "", 10),
+  };
 }
 
 async function writeSceneManifest(args: {
@@ -62,6 +78,7 @@ async function writeSceneManifest(args: {
     readonly sha256: string;
   }>;
   readonly providerRequestHash?: string;
+  readonly size?: string;
 }): Promise<void> {
   const manifestsDir = path.join(
     args.episodeDir,
@@ -122,7 +139,7 @@ async function writeSceneManifest(args: {
         characterIds: [...(args.characterIds ?? [])],
         referenceImages,
         model: "gpt-image-2",
-        size: "1920x1088",
+        size: args.size ?? "1536x864",
         quality: "medium",
         outputPath,
         status: args.status,
@@ -133,11 +150,12 @@ async function writeSceneManifest(args: {
     )
   );
   if (args.outputExists) {
+    const dimensions = parseFixtureSize(args.size ?? "1536x864");
     await fs.mkdir(path.dirname(outputPath), { recursive: true });
     await sharp({
       create: {
-        width: 1920,
-        height: 1080,
+        width: dimensions.width,
+        height: dimensions.height,
         channels: 3,
         background: "#334455",
       },
@@ -251,8 +269,8 @@ async function writeLandscapeImage(
   const target = path.join(landscapeDir, fileName);
   await sharp({
     create: {
-      width: 1920,
-      height: 1080,
+      width: 1536,
+      height: 864,
       channels: 4,
       background: { r: color, g: 40, b: 80, alpha: 1 },
     },
@@ -335,7 +353,7 @@ describe("image batch planner", () => {
       },
       settings: {
         model: "gpt-image-2",
-        requestedSize: "1920x1088",
+        requestedSize: "1536x864",
         quality: "medium",
         outputFormat: "png",
       },
@@ -351,7 +369,7 @@ describe("image batch planner", () => {
       model: "gpt-image-2",
       prompt: "A figure in the doorway.",
       n: 1,
-      size: "1920x1088",
+      size: "1536x864",
       quality: "medium",
       output_format: "png",
     });
@@ -370,7 +388,7 @@ describe("image batch planner", () => {
       },
       settings: {
         model: "gpt-image-2",
-        requestedSize: "1920x1088",
+        requestedSize: "1536x864",
         quality: "medium",
         outputFormat: "png",
       },
@@ -394,7 +412,7 @@ describe("image batch planner", () => {
         model: "gpt-image-2",
         prompt: "A figure in the doorway.",
         n: 1,
-        size: "1920x1088",
+        size: "1536x864",
         quality: "medium",
         output_format: "png",
       },
@@ -428,7 +446,7 @@ describe("image batch planner", () => {
       },
       settings: {
         model: "gpt-image-2",
-        requestedSize: "1920x1088",
+        requestedSize: "1536x864",
         quality: "medium",
         outputFormat: "png",
       },
@@ -501,7 +519,7 @@ describe("image batch planner", () => {
       episodeId: "001-demo",
       settings: {
         model: "gpt-image-2",
-        requestedSize: "1920x1088",
+        requestedSize: "1536x864",
         quality: "medium",
         outputFormat: "png",
       },
@@ -559,7 +577,7 @@ describe("image batch planner", () => {
         },
         settings: {
           model: "gpt-image-2",
-          requestedSize: "1920x1088",
+          requestedSize: "1536x864",
           quality: "medium",
           outputFormat: "png",
         },
@@ -606,7 +624,7 @@ describe("image batch planner", () => {
         scenePlan: { scenes: [{ id: "scene-002", sequenceNumber: 2 }] },
         settings: {
           model: "gpt-image-2",
-          requestedSize: "1920x1088",
+          requestedSize: "1536x864",
           quality: "medium",
           outputFormat: "png",
         },
@@ -651,7 +669,7 @@ describe("image batch planner", () => {
         scenePlan: { scenes: [{ id: "scene-002", sequenceNumber: 2 }] },
         settings: {
           model: "gpt-image-2",
-          requestedSize: "1920x1088",
+          requestedSize: "1536x864",
           quality: "medium",
           outputFormat: "png",
         },
@@ -682,7 +700,7 @@ describe("image batch planner", () => {
       scenePlan: { scenes: [{ id: "scene-002", sequenceNumber: 2 }] },
       settings: {
         model: "gpt-image-2",
-        requestedSize: "1920x1088",
+        requestedSize: "1536x864",
         quality: "medium",
         outputFormat: "png",
       },
@@ -718,7 +736,7 @@ describe("image batch planner", () => {
       episodeId: "001-demo",
       settings: {
         model: "gpt-image-2",
-        requestedSize: "1920x1088",
+        requestedSize: "1536x864",
         quality: "medium",
         outputFormat: "png",
       },
@@ -731,7 +749,7 @@ describe("image batch planner", () => {
       scenePlan: { scenes: [{ id: "scene-001", sequenceNumber: 1 }] },
       settings: {
         model: "gpt-image-2",
-        requestedSize: "1920x1088",
+        requestedSize: "1536x864",
         quality: "medium",
         outputFormat: "png",
       },
@@ -757,7 +775,7 @@ describe("image batch planner", () => {
       subject: { kind: "scene", id: "scene-009" },
       promptHash: "A".repeat(64),
       model: "sharp",
-      size: "1080x1920",
+      size: "864x1536",
       quality: "medium",
       dependencyHashes: ["b".repeat(64), "a".repeat(64), "b".repeat(64)],
       destination: {
@@ -784,7 +802,7 @@ describe("image batch planner", () => {
       subject: { kind: "character", id: "daniel-mercer" },
       promptHash: "c".repeat(64),
       model: "gpt-image-2",
-      size: "1536x1024",
+      size: "1536x864",
       quality: "high",
       dependencyHashes: ["f".repeat(64)],
       destination: {
@@ -832,7 +850,7 @@ describe("image batch planner", () => {
       },
       settings: {
         model: "gpt-image-2",
-        requestedSize: "1920x1088",
+        requestedSize: "1536x864",
         quality: "medium",
         outputFormat: "png",
       },
@@ -879,12 +897,12 @@ describe("image batch planner", () => {
         },
         settings: {
           model: "gpt-image-2",
-          requestedSize: "1920x1088",
+          requestedSize: "1536x864",
           quality: "medium",
           outputFormat: "png",
         },
       })
-    ).rejects.toThrow(/expected=1920x1080/);
+    ).rejects.toThrow(/expected=1536x864/);
   });
 
   it("plans a new batch request when provider settings change", async () => {
@@ -906,7 +924,7 @@ describe("image batch planner", () => {
       },
       settings: {
         model: "gpt-image-2",
-        requestedSize: "1920x1088",
+        requestedSize: "1536x864",
         quality: "high",
         outputFormat: "png",
       },
@@ -941,7 +959,7 @@ describe("image batch planner", () => {
       },
       settings: {
         model: "gpt-image-2",
-        requestedSize: "1920x1088",
+        requestedSize: "1536x864",
         quality: "medium",
         outputFormat: "png",
       },
@@ -987,7 +1005,7 @@ describe("image batch planner", () => {
       scenePlan,
       settings: {
         model: "gpt-image-2",
-        requestedSize: "1920x1088",
+        requestedSize: "1536x864",
         quality: "medium",
         outputFormat: "png",
       },
@@ -998,7 +1016,7 @@ describe("image batch planner", () => {
       scenePlan,
       settings: {
         model: "gpt-image-2",
-        requestedSize: "1920x1088",
+        requestedSize: "1536x864",
         quality: "medium",
         outputFormat: "png",
       },
@@ -1030,7 +1048,7 @@ describe("image batch planner", () => {
       variant: "full",
       settings: {
         model: "gpt-image-2",
-        requestedSize: "1920x1088",
+        requestedSize: "1536x864",
         quality: "medium",
         outputFormat: "png",
         maxRequestsPerBatch: 1,
@@ -1043,7 +1061,7 @@ describe("image batch planner", () => {
       variant: "full",
       settings: {
         model: "gpt-image-2",
-        requestedSize: "1920x1088",
+        requestedSize: "1536x864",
         quality: "medium",
         outputFormat: "png",
         maxRequestsPerBatch: 1,
@@ -1063,6 +1081,45 @@ describe("image batch planner", () => {
       "scene-prompts",
       "scene-images",
     ]);
+    const sceneOneManifest = await loadEpisodeSceneManifest(episodeDir, "scene-001");
+    const sceneOneVisualPlan = await loadEpisodeSceneVisualPlan(
+      episodeDir,
+      "scene-001"
+    );
+    expect(sceneOneManifest).toMatchObject({
+      stageIdentity: {
+        language: "de",
+        variant: "full",
+        owner: "image-generation",
+      },
+      scenePlanDependency: {
+        owner: "scene-plan",
+        language: "de",
+        variant: "full",
+        status: "ready",
+      },
+      imagePlanDependency: {
+        owner: "image-plan",
+        language: "de",
+        variant: "full",
+        status: "ready",
+      },
+      status: "planned",
+    });
+    expect(sceneOneVisualPlan).toMatchObject({
+      stageIdentity: {
+        language: "de",
+        variant: "full",
+        owner: "scene-plan",
+      },
+      narrationDependency: {
+        owner: "narration",
+        language: "de",
+        variant: "full",
+        status: "ready",
+      },
+    });
+    await expect(fs.access(sceneOneManifest?.outputPath ?? "")).rejects.toThrow();
     const sceneGroups = prepared.groups.filter((group) => group.stageKind === "scene-images");
     expect(sceneGroups.every((group) => group.scenePlans[0]?.job.identity.language === "de")).toBe(true);
     expect(sceneGroups.map((group) => group.splitGroupIndex)).toEqual([0, 1]);
@@ -1084,7 +1141,7 @@ describe("image batch planner", () => {
       variant: "full",
       settings: {
         model: "gpt-image-2",
-        requestedSize: "1920x1088",
+        requestedSize: "1536x864",
         quality: "medium",
         outputFormat: "png",
       },
@@ -1127,7 +1184,7 @@ describe("image batch planner", () => {
       variant: "full",
       settings: {
         model: "gpt-image-2",
-        requestedSize: "1920x1088",
+        requestedSize: "1536x864",
         quality: "medium",
         outputFormat: "png",
       },
@@ -1162,8 +1219,8 @@ describe("image batch planner", () => {
     );
     await sharp({
       create: {
-        width: 1080,
-        height: 1920,
+        width: 864,
+        height: 1536,
         channels: 4,
         background: { r: 10, g: 20, b: 30, alpha: 1 },
       },
@@ -1180,8 +1237,8 @@ describe("image batch planner", () => {
       config: {
         enabled: true,
         keySceneCount: 1,
-        portraitWidth: 1088,
-        portraitHeight: 1920,
+        portraitWidth: 864,
+        portraitHeight: 1536,
         finalWidth: 1080,
         finalHeight: 1920,
         reuseLandscapeImages: true,
@@ -1229,7 +1286,7 @@ describe("image batch planner", () => {
       variant: "short",
       settings: {
         model: "gpt-image-2",
-        requestedSize: "1024x1536",
+        requestedSize: "864x1536",
         quality: "medium",
         outputFormat: "png",
       },
@@ -1266,7 +1323,7 @@ describe("image batch planner", () => {
       variant: "short",
       settings: {
         model: "gpt-image-2",
-        requestedSize: "1024x1536",
+        requestedSize: "864x1536",
         quality: "medium",
         outputFormat: "png",
       },
@@ -1323,7 +1380,7 @@ describe("image batch planner", () => {
         variant: "short",
         settings: {
           model: "gpt-image-2",
-          requestedSize: "1024x1536",
+          requestedSize: "864x1536",
           quality: "medium",
           outputFormat: "png",
         },
@@ -1359,7 +1416,7 @@ describe("image batch planner", () => {
         variant: "short",
         settings: {
           model: "gpt-image-2",
-          requestedSize: "1024x1536",
+          requestedSize: "864x1536",
           quality: "medium",
           outputFormat: "png",
         },
@@ -1389,7 +1446,7 @@ describe("image batch planner", () => {
       variant: "short",
       settings: {
         model: "gpt-image-2",
-        requestedSize: "1024x1536",
+        requestedSize: "864x1536",
         quality: "medium",
         outputFormat: "png",
       },
@@ -1422,7 +1479,7 @@ describe("image batch planner", () => {
         variant: "short",
         settings: {
           model: "gpt-image-2",
-          requestedSize: "1024x1536",
+          requestedSize: "864x1536",
           quality: "medium",
           outputFormat: "png",
         },
@@ -1442,7 +1499,7 @@ describe("image batch planner", () => {
       subject: { kind: "scene", id: "scene-001" },
       promptHash: "d".repeat(64),
       model: "gpt-image-2",
-      size: "1920x1088",
+      size: "1536x864",
       quality: "medium",
       dependencyHashes: [],
       destination: {
@@ -1473,7 +1530,7 @@ describe("image batch planner", () => {
           generationConfigurationHash: "config-1",
           expectedOutputPath: "/tmp/episode/shared/images/generated/scene-001__000000-000004__16x9.png",
           characterIds: [],
-          requestedSize: "1920x1088",
+          requestedSize: "1536x864",
           quality: "medium",
           outputFormat: "png",
           status: "planned",
@@ -1487,7 +1544,7 @@ describe("image batch planner", () => {
           generationConfigurationHash: "config-2",
           expectedOutputPath: "/tmp/episode/shared/images/generated/scene-001__000000-000004__16x9.png",
           characterIds: [],
-          requestedSize: "1920x1088",
+          requestedSize: "1536x864",
           quality: "medium",
           outputFormat: "png",
           status: "planned",

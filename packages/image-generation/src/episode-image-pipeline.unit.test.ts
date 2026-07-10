@@ -3,7 +3,7 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import sharp from "sharp";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   scenePlanSchema,
   type ScenePlan,
@@ -1386,11 +1386,33 @@ describe("episode image pipeline helpers", () => {
     expect(isRetryableError({ status: 500 })).toBe(true);
   });
 
-  it("supports text-only and reference-assisted routing", async () => {
+  it("routes text-only requests through the fallback transport and keeps reference edits on the SDK", async () => {
     const dir = mkdtempSync(path.join(os.tmpdir(), "mediaforge-routing-"));
     const b64 = await createImageBuffer("#00ff00");
-    const calls: Array<{ method: "generate" | "edit"; body: unknown }> = [];
-    const client = createMockClient(calls, b64);
+    const generateCalls: Array<{ body: unknown; options?: { readonly signal?: AbortSignal } }> = [];
+    const editCalls: Array<{ body: unknown; options?: { readonly signal?: AbortSignal } }> = [];
+    const client = {
+      images: {
+        generate(body: unknown, options?: { readonly signal?: AbortSignal }) {
+          generateCalls.push({ body, options });
+          return {
+            withResponse: async () => {
+              throw new Error("Connection error.");
+            },
+          };
+        },
+        edit(body: unknown, options?: { readonly signal?: AbortSignal }) {
+          editCalls.push({ body, options });
+          return {
+            withResponse: async () => ({
+              data: { data: [{ b64_json: b64 }] },
+              response: new Response(null, { status: 200 }),
+              request_id: "req_edit",
+            }),
+          };
+        },
+      },
+    } as never;
     const settings = loadEpisodeImageGenerationSettings({
       OPENAI_API_KEY: "test-key",
       OPENAI_IMAGE_MODEL: "gpt-image-2",
@@ -1401,56 +1423,73 @@ describe("episode image pipeline helpers", () => {
       OPENAI_IMAGE_TIMEOUT_MS: "1000",
       OPENAI_IMAGE_ALLOW_UNAPPROVED_CHARACTER_REFERENCES: "true",
     });
+    const fetchMock = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValue(
+        new Response(JSON.stringify({ data: [{ b64_json: b64 }] }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        })
+      );
 
-    await fs.writeFile(
-      path.join(dir, "reference.png"),
-      Buffer.from(b64, "base64")
-    );
-    const generator = new OpenAIImageGenerator(settings, client);
-    const textOnlyResult = await generator.generate({
-      providerRequest: makePreparedProviderRequest({
-        scene: { ...makeSceneSpec(), characters: [] },
-        prompt: "a lonely corridor",
-        outputPath: path.join(dir, "text.png"),
-      }),
-      referenceImages: [],
-    });
-    const referenceAssistedResult = await generator.generate({
-      providerRequest: makePreparedProviderRequest({
-        scene: makeSceneSpec(),
-        prompt: buildPromptFromSpec(makeSceneSpec(), undefined, makeRegistry()),
-        outputPath: path.join(dir, "ref.png"),
+    try {
+      await fs.writeFile(
+        path.join(dir, "reference.png"),
+        Buffer.from(b64, "base64")
+      );
+      const generator = new OpenAIImageGenerator(settings, client);
+      const textOnlyResult = await generator.generate({
+        providerRequest: makePreparedProviderRequest({
+          scene: { ...makeSceneSpec(), characters: [] },
+          prompt: "a lonely corridor",
+          outputPath: path.join(dir, "text.png"),
+        }),
+        referenceImages: [],
+      });
+      const referenceAssistedResult = await generator.generate({
+        providerRequest: makePreparedProviderRequest({
+          scene: makeSceneSpec(),
+          prompt: buildPromptFromSpec(makeSceneSpec(), undefined, makeRegistry()),
+          outputPath: path.join(dir, "ref.png"),
+          referenceImages: [
+            {
+              characterId: "daniel-mercer",
+              path: path.join(dir, "reference.png"),
+              sha256: "reference-hash",
+            },
+          ],
+        }),
         referenceImages: [
           {
             characterId: "daniel-mercer",
-            path: path.join(dir, "reference.png"),
-            sha256: "reference-hash",
+            filePath: path.join(dir, "reference.png"),
+            mimeType: "image/png",
           },
         ],
-      }),
-      referenceImages: [
-        {
-          characterId: "daniel-mercer",
-          filePath: path.join(dir, "reference.png"),
-          mimeType: "image/png",
-        },
-      ],
-    });
-    expect(calls.map((call) => call.method)).toEqual(["generate", "edit"]);
-    expect(textOnlyResult.generationMode).toBe("text-only");
-    expect(referenceAssistedResult.generationMode).toBe("reference-assisted");
-    const editCall = calls.find((call) => call.method === "edit");
-    expect(editCall?.body).toMatchObject({
-      model: "gpt-image-2",
-      prompt: expect.stringContaining("approved identity reference image"),
-      size: "1536x1024",
-      quality: "medium",
-      output_format: "png",
-      background: "opaque",
-      stream: false,
-    });
-    const editBody = editCall?.body as { readonly image?: readonly unknown[] };
-    expect(editBody.image).toHaveLength(1);
+      });
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      expect(generateCalls).toHaveLength(1);
+      expect(editCalls).toHaveLength(1);
+      expect(textOnlyResult.generationMode).toBe("text-only");
+      expect(referenceAssistedResult.generationMode).toBe("reference-assisted");
+      expect(editCalls[0]?.body).toMatchObject({
+        model: "gpt-image-2",
+        prompt: expect.stringContaining("approved identity reference image"),
+        size: "1536x864",
+        quality: "medium",
+        output_format: "png",
+        background: "opaque",
+        stream: false,
+      });
+      const editBody = editCalls[0]?.body as { readonly image?: readonly unknown[] };
+      expect(editBody.image).toHaveLength(1);
+      expect(generateCalls[0]?.options?.signal).toBeInstanceOf(AbortSignal);
+      expect(editCalls[0]?.options?.signal).toBeInstanceOf(AbortSignal);
+      const fetchOptions = fetchMock.mock.calls[0]?.[1];
+      expect(fetchOptions?.signal).toBeInstanceOf(AbortSignal);
+    } finally {
+      fetchMock.mockRestore();
+    }
   });
 
   it("records a reference-resolution failure when character references are not approved", async () => {

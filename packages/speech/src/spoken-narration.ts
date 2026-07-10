@@ -18,6 +18,7 @@ import {
   createNarrationArtifactPaths,
   type NarrationArtifactPathSet,
 } from "./narration-paths.js";
+import { validateSpokenNarrationText } from "@mediaforge/story-localization";
 
 export type SpokenNarrationPreparationMode = "deterministic" | "adapted";
 
@@ -234,10 +235,69 @@ export async function prepareSpokenNarration(
     if (spokenText.trim().length === 0) {
       throw new Error("Spoken narration text is empty after preparation.");
     }
+    const validation = validateSpokenNarrationText({
+      language: request.language,
+      narration: spokenText,
+      variant,
+    });
     const warnings = [
       ...buildWarnings(source.text, spokenText),
       ...(adapted?.warnings ?? []),
+      ...validation.issues
+        .filter((issue) => issue.severity === "warning")
+        .map((issue) => ({ code: issue.code, message: issue.message })),
     ];
+    const validationErrors = validation.issues.filter(
+      (issue) => issue.severity === "error"
+    );
+    if (validationErrors.length > 0) {
+      const failureMessage = `validation_failed: ${validationErrors
+        .map((issue) => issue.message)
+        .join("; ")}`;
+      const spokenTextHash = hashText(spokenText);
+      const artifact = createArtifact({
+        status: "failed",
+        request,
+        episodeId,
+        locale,
+        variant,
+        sourcePath,
+        paths,
+        sourceHash,
+        spokenTextHash,
+        wordCount: countSpokenWords(spokenText),
+        warnings: [
+          ...warnings,
+          { code: "SPOKEN_NARRATION_VALIDATION_FAILED", message: failureMessage },
+        ],
+        createdAt,
+        preparationMode: shouldAdapt ? "adapted" : "source",
+        failureMessage,
+      });
+      await writeJsonAtomic(paths.spokenTextJson, artifact);
+      request.logger?.error?.(
+        {
+          episodeId,
+          language: request.language,
+          locale,
+          variant,
+          preparationMode: artifact.preparationMode,
+          sourceHash,
+          outputHash: spokenTextHash,
+          warningCodes: warnings.map((warning) => warning.code),
+        },
+        "Spoken narration preparation failed validation."
+      );
+      return {
+        success: false,
+        artifact,
+        paths,
+        sourcePath,
+        sourceHash,
+        spokenTextHash,
+        warnings,
+      };
+    }
     const spokenTextHash = hashText(spokenText);
     const artifact = createArtifact({
       status: "completed",

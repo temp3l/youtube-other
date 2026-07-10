@@ -97,6 +97,19 @@ function parseEnvInt(value: string | undefined, fallback: number): number {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
 }
 
+function parseThumbnailStyle(
+  value: string | undefined
+): ThumbnailGenerationConfig["defaultStyle"] {
+  if (
+    value === "cinematic-horror" ||
+    value === "editorial-card" ||
+    value === "viral-horror-v1"
+  ) {
+    return value;
+  }
+  return THUMBNAIL_DEFAULT_STYLE;
+}
+
 export function loadThumbnailGenerationConfig(
   env: Readonly<Record<string, string | undefined>> = process.env
 ): ThumbnailGenerationConfig {
@@ -117,10 +130,7 @@ export function loadThumbnailGenerationConfig(
       env["OPENAI_THUMBNAIL_QUALITY"] === "auto"
         ? env["OPENAI_THUMBNAIL_QUALITY"]
         : "high",
-    defaultStyle:
-      env["THUMBNAIL_DEFAULT_STYLE"] === "editorial-card"
-        ? "editorial-card"
-        : THUMBNAIL_DEFAULT_STYLE,
+    defaultStyle: parseThumbnailStyle(env["THUMBNAIL_DEFAULT_STYLE"]),
     fullReferencePath:
       env["THUMBNAIL_FULL_REFERENCE"] ??
       THUMBNAIL_OUTPUTS.full.referencePath,

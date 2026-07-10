@@ -5,6 +5,7 @@ import { mkdtempSync } from "node:fs";
 import { describe, expect, it, vi } from "vitest";
 import {
   createStoryLocalizationConfig,
+  downloadStoryLocalizationBatch,
   importStoryLocalizationBatch,
   prepareStoryLocalizationBatch,
   localizeStoryEpisode,
@@ -16,6 +17,7 @@ import {
   StoryBatchIndexService,
   submitStoryLocalizationBatch,
   toRepositoryRelativePath,
+  validateImportedStoryBatch,
   type GeneratedStoryPackage,
   type LanguageCode,
 } from "./index.js";
@@ -31,6 +33,7 @@ const sourceFile = path.join(
   "en",
   "002-even-killers-can-lick-en-full.md"
 );
+const episode002RenamedCharacter = "Elias Wexler";
 
 function buildShortNarration(): string[] {
   const filler =
@@ -38,28 +41,60 @@ function buildShortNarration(): string[] {
   let text =
     "Elena Ward heard Bramble licking beneath the bed while the storm hit the windows. " +
     "By morning the dog was dead in the hallway, and HUMANS CAN LICK TOO was written on the mirror. " +
-    "The notebook said SHE REACHED DOWN FIRST.";
-  while (countWords(text) < 165) {
+    "The notebook said SHE REACHED DOWN FIRST. Did Elena Ward understand the intruder had already learned how to hide?";
+  while (countWords(text) < 150) {
     text = `${text} ${filler}`;
   }
   return [text];
 }
 
 function buildFullNarration(language: LanguageCode): string[] {
+  if (language === "de") {
+    return [
+      "Elena Ward blieb nach Einbruch der Dunkelheit im Haus und hörte Bramble unter dem Bett atmen, während draußen der Sturm gegen die Fenster schlug.",
+      "Ihre Tante war wegen einer medizinischen Konferenz in Brighton fort, und Elena fand nasse Spuren an der Treppe, dieselbe Dachbodennotiz, HUMANS CAN LICK TOO auf dem Spiegel und im Notizbuch stand weiter SHE REACHED DOWN FIRST.",
+      "Als der Alarm den Nachbarn nach draußen zog, floh der Eindringling durch die Dachluke. Did Elena Ward blieb als schreckliche Frage zurück, weil Elena Ward nie sicher wusste, ob der Täter wirklich verschwunden war.",
+    ];
+  }
   const filler =
     "The house stayed wet and silent while Elena counted each step and listened for the next breath.";
   let first =
     `${language.toUpperCase()} version: Elena Ward stayed in the house after dark and kept hearing Bramble breathe from under the bed. ` +
-    "A storm rolled in, the power failed, and Elena checked the stairs, the kitchen, and the attic for anything that could explain the sound.";
+    "Her aunt had left for a medical conference near Brighton, a storm rolled in, the power failed, and Elena checked the stairs, the kitchen, and the attic for anything that could explain the sound.";
   let second =
-    "She found the same wet tracks by the stairs, the same attic note, HUMANS CAN LICK TOO. was written on the mirror, and the notebook still said SHE REACHED DOWN FIRST. The car alarm drew the neighbor out and the intruder fled through the loft hatch.";
+    "She found the same wet tracks by the stairs, the same attic note, HUMANS CAN LICK TOO. was written on the mirror, and the notebook still said SHE REACHED DOWN FIRST. The car alarm drew the neighbour outside and the intruder fled through the loft hatch.";
   while (countWords(`${first} ${second}`) < 155) {
     second = `${second} ${filler}`;
   }
   return [
     first,
     second,
-    "The final warning is therefore simple: when the same impossible detail appears twice, do not wait for a third occurrence to prove that it is real.",
+    "Did Elena Ward defeat the intruder, or did the encounter teach him how to remain hidden? The final warning is therefore simple: when the same impossible detail appears twice, do not wait for a third occurrence to prove that it is real.",
+  ];
+}
+
+function buildRenamedFullNarration(language: LanguageCode): string[] {
+  if (language === "de") {
+    return [
+      `${episode002RenamedCharacter} blieb nach Einbruch der Dunkelheit im Haus und hörte Bramble unter dem Bett atmen, während draußen der Sturm gegen die Fenster schlug.`,
+      "Ihre Tante war wegen einer medizinischen Konferenz in Brighton fort, und Elias fand nasse Spuren an der Treppe, dieselbe Dachbodennotiz, HUMANS CAN LICK TOO auf dem Spiegel und im Notizbuch stand weiter SHE REACHED DOWN FIRST.",
+      `Als der Alarm den Nachbarn nach draußen zog, floh der Eindringling durch die Dachluke. Did ${episode002RenamedCharacter}, Dara Quill und Dara Elias Wexler blieben als schreckliche Frage zurück, weil Elias nie sicher wusste, ob der Täter wirklich verschwunden war.`,
+    ];
+  }
+  const filler =
+    "The house stayed wet and silent while Elias counted each step and listened for the next breath.";
+  let first =
+    `${language.toUpperCase()} version: ${episode002RenamedCharacter} stayed in the house after dark and kept hearing Bramble breathe from under the bed. ` +
+    "Her aunt had left for a medical conference near Brighton, a storm rolled in, the power failed, and Elias checked the stairs, the kitchen, and the attic for anything that could explain the sound.";
+  let second =
+    "She found the same wet tracks by the stairs, the same attic note, HUMANS CAN LICK TOO. was written on the mirror, and the notebook still said SHE REACHED DOWN FIRST. The car alarm drew the neighbour outside and the intruder fled through the loft hatch.";
+  while (countWords(`${first} ${second}`) < 155) {
+    second = `${second} ${filler}`;
+  }
+  return [
+    first,
+    second,
+    `Did ${episode002RenamedCharacter} defeat the intruder, or did Dara Quill and Dara Elias Wexler learn how to remain hidden? The final warning is therefore simple: when the same impossible detail appears twice, do not wait for a third occurrence to prove that it is real.`,
   ];
 }
 
@@ -104,8 +139,8 @@ function makeShortRewritePayload() {
     "She kept replaying the dripping stairs and the attic warning.";
   let narration =
     `${hook} ` +
-    "By morning the dog was dead by the stairs, HUMANS CAN LICK TOO was written on the mirror, and the notebook still said SHE REACHED DOWN FIRST. " +
-    "When the car alarm pulled the neighbor outside, the intruder fled through the loft hatch and every step toward the attic made the breathing sound seem closer than before.";
+    "Her aunt was away near Brighton, and by morning the dog was dead by the stairs, HUMANS CAN LICK TOO was written on the mirror, and the notebook still said SHE REACHED DOWN FIRST. " +
+    "When the car alarm pulled the neighbour outside, the intruder fled through the loft hatch and every step toward the attic made the breathing sound seem closer than before. Did Elena Ward escape, or did the encounter teach him how to remain hidden?";
   while (countWords(narration) < 155) {
     narration = `${narration} ${filler}`;
   }
@@ -127,11 +162,43 @@ function makeShortRewritePayload() {
   };
 }
 
-function makeCanonicalEnglishFullPayload() {
+function makeRenamedShortRewritePayload() {
+  const hook =
+    `${episode002RenamedCharacter} heard Bramble licking beneath the bed while the storm hit the windows.`;
+  const filler =
+    "Elias kept replaying the dripping stairs and the attic warning.";
+  let narration =
+    `${hook} ` +
+    "Her aunt was away near Brighton, and by morning the dog was dead by the stairs, HUMANS CAN LICK TOO was written on the mirror, and the notebook still said SHE REACHED DOWN FIRST. " +
+    `When the car alarm pulled the neighbour outside, the intruder fled through the loft hatch and every step toward the attic made the breathing sound seem closer than before. Did ${episode002RenamedCharacter} escape, or did Dara Quill and Dara Elias Wexler learn how to remain hidden?`;
+  while (countWords(narration) < 155) {
+    narration = `${narration} ${filler}`;
+  }
+  return {
+    title: "The Killer Was Already Inside the House",
+    hook,
+    narration,
+    wordCount: countWords(narration),
+    estimatedDurationSecondsAt175Wpm: estimateDurationSeconds(
+      countWords(narration),
+      175
+    ),
+    estimatedDurationSecondsAt180Wpm: estimateDurationSeconds(
+      countWords(narration),
+      180
+    ),
+    thumbnailText: "IT WASN'T THE DOG",
+    fullVideoBridge: "Watch the full episode for the complete story.",
+  };
+}
+
+function makeCanonicalEnglishFullPayload(options: { readonly renamed?: boolean } = {}) {
   return {
     language: "en",
     full: {
-      narrationParagraphs: buildFullNarration("en"),
+      narrationParagraphs: options.renamed
+        ? buildRenamedFullNarration("en")
+        : buildFullNarration("en"),
     },
     targetNarrationWpm: 170,
     preservationChecklist: {
@@ -163,11 +230,7 @@ function makeLocalizedPackage(language: LanguageCode): GeneratedStoryPackage {
         "Keep the tone restrained.",
       ],
       soundMotif: "storm rain and a faint drip",
-      narrationParagraphs: [
-        `${language.toUpperCase()} version: Elena Ward stayed in the house after dark and kept hearing Bramble breathe from under the bed.`,
-        "She found the same wet tracks in the hallway, the same attic note, and HUMANS CAN LICK TOO. on the mirror.",
-        "The final warning is therefore simple: when the same impossible detail appears twice, do not wait for a third occurrence to prove that it is real.",
-      ],
+      narrationParagraphs: buildFullNarration(language),
       thumbnailText: "NOT THE DOG",
       contentDisclosure: "Fictional horror narration.",
       seoDescription: "A house learns the wrong name.",
@@ -208,7 +271,36 @@ function makeLocalizedPackage(language: LanguageCode): GeneratedStoryPackage {
   };
 }
 
-function makeBatchClient(outputJsonl: string) {
+function makeRenamedLocalizedPackage(language: LanguageCode): GeneratedStoryPackage {
+  return {
+    ...makeLocalizedPackage(language),
+    full: {
+      ...makeLocalizedPackage(language).full!,
+      narrationParagraphs: buildRenamedFullNarration(language),
+    },
+    short: {
+      ...makeLocalizedPackage(language).short,
+      narrationParagraphs: [makeRenamedShortRewritePayload().narration],
+    },
+  };
+}
+
+function makeRenamedLocalizedFullPayload(language: LanguageCode) {
+  return {
+    language,
+    full: {
+      narrationParagraphs: buildRenamedFullNarration(language),
+    },
+    targetNarrationWpm: 170,
+    preservationChecklist: makeLocalizedPackage(language).preservationChecklist,
+    diagnostics: {
+      removedGenericFiller: [],
+      adaptationNotes: ["Derived from the English full story."],
+    },
+  };
+}
+
+function makeBatchClient(outputJsonl: string, errorJsonl = "") {
   return {
     responses: {
       create: vi.fn(),
@@ -216,7 +308,12 @@ function makeBatchClient(outputJsonl: string) {
     files: {
       create: vi.fn(async () => ({ id: "file_input_1" })),
       content: vi.fn(async (fileId: string) => ({
-        text: async () => (fileId === "file_output_1" ? outputJsonl : ""),
+        text: async () =>
+          fileId === "file_output_1"
+            ? outputJsonl
+            : fileId === "file_error_1"
+              ? errorJsonl
+              : "",
       })),
     },
     batches: {
@@ -235,6 +332,7 @@ function makeBatchClient(outputJsonl: string) {
         endpoint: "/v1/responses",
         input_file_id: "file_input_1",
         output_file_id: "file_output_1",
+        ...(errorJsonl ? { error_file_id: "file_error_1" } : {}),
         completion_window: "24h",
         created_at: 1,
         completed_at: 2,
@@ -306,7 +404,8 @@ function makeSyncWarmConfig(
     ),
     outputDirectory: outputDir,
     languages,
-    includeEnglishShort: true,
+    includeEnglishShort: false,
+    includeLocalizedShorts: false,
     processingMode: "sync",
     force: true,
     model: "gpt-5.5",
@@ -468,13 +567,11 @@ describe("story localization batch integration", () => {
     ).toMatchObject({ stage: "retention-plan" });
   });
 
-  it("reuses warm canonical outputs and only plans missing multilingual work", async () => {
+  it("plans missing multilingual work after a warm sync attempt", async () => {
     const tempDir = mkdtempSync(path.join(os.tmpdir(), "story-batch-warm-"));
     const storyClient = makeStoryClient([
-      makeCanonicalEnglishFullPayload(),
-      makeShortRewritePayload(),
-      makeShortRewritePayload(),
-      makeLocalizedPackage("de"),
+      makeCanonicalEnglishFullPayload({ renamed: true }),
+      makeRenamedLocalizedFullPayload("de"),
     ]);
     await localizeStoryEpisode(sourceFile, makeSyncWarmConfig(tempDir, ["de"]), {
       client: storyClient as never,
@@ -500,13 +597,14 @@ describe("story localization batch integration", () => {
       model: "gpt-5.5",
     })
     );
-    expect(prepared.itemCount).toBe(3);
+    expect(prepared.itemCount).toBe(4);
     const manifest = await readLocalBatchManifest(
       resolveBatchStorageLayout(tempDir),
       prepared.localBatchId
     );
-    expect(manifest?.items).toHaveLength(3);
+    expect(manifest?.items).toHaveLength(4);
     expect(manifest?.items.map((item) => item.language)).toEqual([
+      "en",
       "en",
       "de",
       "es",
@@ -516,10 +614,8 @@ describe("story localization batch integration", () => {
   it("re-enqueues canonical English full work when prompt settings become stale", async () => {
     const tempDir = mkdtempSync(path.join(os.tmpdir(), "story-batch-stale-"));
     const storyClient = makeStoryClient([
-      makeCanonicalEnglishFullPayload(),
-      makeShortRewritePayload(),
-      makeShortRewritePayload(),
-      makeLocalizedPackage("de"),
+      makeCanonicalEnglishFullPayload({ renamed: true }),
+      makeRenamedLocalizedFullPayload("de"),
     ]);
     await localizeStoryEpisode(sourceFile, makeSyncWarmConfig(tempDir, ["de"]), {
       client: storyClient as never,
@@ -567,20 +663,6 @@ describe("story localization batch integration", () => {
       .map((line) => JSON.parse(line) as { custom_id: string });
     const outputJsonl = [
       {
-        custom_id: lines[0]?.custom_id,
-        response: {
-          status_code: 200,
-          body: { output_text: JSON.stringify(makeCanonicalEnglishFullPayload()) },
-        },
-      },
-      {
-        custom_id: lines[1]?.custom_id,
-        response: {
-          status_code: 200,
-          body: { output_text: JSON.stringify(makeEnglishShortPayload()) },
-        },
-      },
-      {
         custom_id: lines[2]?.custom_id,
         response: {
           status_code: 200,
@@ -589,9 +671,9 @@ describe("story localization batch integration", () => {
               language: "de",
               full: {
                 narrationParagraphs: [
-                  "Elena Ward blieb nach Einbruch der Dunkelheit im Haus und hoerte Bramble unter dem Bett atmen, waehrend draussen der Sturm gegen die Fenster schlug.",
+                  "Elena Ward blieb nach Einbruch der Dunkelheit im Haus und hörte Bramble unter dem Bett atmen, während draußen der Sturm gegen die Fenster schlug.",
                   'Im Flur sah sie dieselben nassen Spuren wieder, auf dem Spiegel stand weiter HUMANS CAN LICK TOO, und im Notizbuch stand noch immer SHE REACHED DOWN FIRST.',
-                  "Am Ende verstand Elena endlich, dass der Eindringling schon die ganze Nacht im Haus gewesen war, und diese letzte Gewissheit liess sie ohne sicheren Ausweg zurueck.",
+                  "Am Ende verstand Elena Ward endlich, dass der Eindringling schon die ganze Nacht im Haus gewesen war. Did Elena Ward blieb als letzte Frage zurück, und diese Gewissheit ließ sie ohne sicheren Ausweg zurück.",
                 ],
               },
               targetNarrationWpm: 170,
@@ -614,6 +696,20 @@ describe("story localization batch integration", () => {
           },
         },
       },
+      {
+        custom_id: lines[0]?.custom_id,
+        response: {
+          status_code: 200,
+          body: { output_text: JSON.stringify(makeCanonicalEnglishFullPayload()) },
+        },
+      },
+      {
+        custom_id: lines[1]?.custom_id,
+        response: {
+          status_code: 200,
+          body: { output_text: JSON.stringify(makeEnglishShortPayload()) },
+        },
+      },
     ]
       .map((line) => JSON.stringify(line))
       .join("\n");
@@ -630,12 +726,57 @@ describe("story localization batch integration", () => {
       client as never
     );
     expect(refreshed.status).toBe("completed");
+    const downloaded = await downloadStoryLocalizationBatch(
+      prepared.localBatchId,
+      config,
+      client as never
+    );
+    expect(downloaded.resultFilePath).toBeTruthy();
+    expect(
+      await fs
+        .readFile(
+          path.join(
+            tempDir,
+            "002-even-killers-can-lick",
+            "de",
+            "full",
+            "script.md"
+          ),
+          "utf8"
+        )
+        .catch(() => "")
+    ).toBe("");
+    expect(
+      await fs.readFile(
+        path.join(tempDir, "batches", prepared.localBatchId, "input.jsonl"),
+        "utf8"
+      )
+    ).toContain('"custom_id"');
     const imported = await importStoryLocalizationBatch(
       prepared.localBatchId,
       config,
       client as never
     );
     expect(imported.failedItemCount).toBe(0);
+    const reimported = await importStoryLocalizationBatch(
+      prepared.localBatchId,
+      config,
+      client as never
+    );
+    expect(reimported.failedItemCount).toBe(0);
+    const validation = await validateImportedStoryBatch(
+      prepared.localBatchId,
+      config
+    );
+    expect(validation.failedItemCount).toBe(0);
+    expect(
+      JSON.parse(
+        await fs.readFile(
+          path.join(tempDir, "batches", prepared.localBatchId, "retry-plan.json"),
+          "utf8"
+        )
+      )
+    ).toMatchObject({ candidateCount: 0 });
     expect(
       await fs.readFile(
         path.join(tempDir, "002-even-killers-can-lick", "script.md"),
@@ -714,6 +855,168 @@ describe("story localization batch integration", () => {
     expect(canonicalResult.lineage.fingerprint).toHaveLength(64);
     expect(canonicalResult.result.full).toHaveProperty("narrationParagraphs");
     expect(canonicalResult.result.full).not.toHaveProperty("thumbnailText");
+  });
+
+  it("imports successful siblings and records provider failure retry candidates", async () => {
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), "story-batch-partial-"));
+    const config = makeConfig(tempDir);
+    const prepared = await prepareStoryLocalizationBatch([sourceFile], config);
+    const lines = (await fs.readFile(prepared.inputFilePath, "utf8"))
+      .trim()
+      .split("\n")
+      .map((line) => JSON.parse(line) as { custom_id: string });
+    const outputJsonl = [
+      {
+        custom_id: lines[0]?.custom_id,
+        response: {
+          status_code: 200,
+          body: { output_text: JSON.stringify(makeCanonicalEnglishFullPayload()) },
+        },
+      },
+      {
+        custom_id: lines[1]?.custom_id,
+        response: {
+          status_code: 200,
+          body: { output_text: JSON.stringify(makeEnglishShortPayload()) },
+        },
+      },
+    ]
+      .map((line) => JSON.stringify(line))
+      .join("\n");
+    const errorJsonl = JSON.stringify({
+      custom_id: lines[2]?.custom_id,
+      error: { code: "rate_limit_exceeded", message: "try later" },
+    });
+    const client = makeBatchClient(outputJsonl, errorJsonl);
+    await submitStoryLocalizationBatch(prepared.localBatchId, config, client as never);
+    await downloadStoryLocalizationBatch(prepared.localBatchId, config, client as never);
+    const imported = await importStoryLocalizationBatch(
+      prepared.localBatchId,
+      config,
+      client as never
+    );
+    expect(imported.failedItemCount).toBe(1);
+    expect(
+      await fs.readFile(
+        path.join(tempDir, "002-even-killers-can-lick", "en", "short", "script.md"),
+        "utf8"
+      )
+    ).toContain("# Short 002");
+    const retryPlan = JSON.parse(
+      await fs.readFile(
+        path.join(tempDir, "batches", prepared.localBatchId, "retry-plan.json"),
+        "utf8"
+      )
+    ) as { candidateCount: number; candidates: readonly { status: string }[] };
+    expect(retryPlan.candidateCount).toBe(1);
+    expect(retryPlan.candidates[0]?.status).toBe("api-failed");
+  });
+
+  it("blocks approved artifact overwrite without force and records validation retry candidates", async () => {
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), "story-batch-approved-"));
+    const config = createStoryLocalizationConfig({
+      sourceDirectory: path.join(
+        repoRoot,
+        "content-ideas",
+        "content",
+        "dark-truth-episodes-multilingual-production-pack"
+      ),
+      outputDirectory: tempDir,
+      languages: ["de"],
+      includeEnglishShort: true,
+      processingMode: "batch",
+      force: false,
+      model: "gpt-5.5",
+    });
+    const protectedPath = path.join(
+      tempDir,
+      "002-even-killers-can-lick",
+      "de",
+      "full",
+      "script.md"
+    );
+    await fs.mkdir(path.dirname(protectedPath), { recursive: true });
+    await fs.writeFile(protectedPath, "APPROVED STORY\n", "utf8");
+    const approvalDir = path.join(
+      tempDir,
+      "002-even-killers-can-lick",
+      "reviews",
+      "de",
+      "full"
+    );
+    await fs.mkdir(approvalDir, { recursive: true });
+    await fs.writeFile(
+      path.join(approvalDir, "approval.json"),
+      JSON.stringify({ approvalState: "human-approved", decision: "approved" }),
+      "utf8"
+    );
+    const prepared = await prepareStoryLocalizationBatch([sourceFile], config);
+    const lines = (await fs.readFile(prepared.inputFilePath, "utf8"))
+      .trim()
+      .split("\n")
+      .map((line) => JSON.parse(line) as { custom_id: string });
+    const outputJsonl = [
+      {
+        custom_id: lines[0]?.custom_id,
+        response: {
+          status_code: 200,
+          body: { output_text: JSON.stringify(makeCanonicalEnglishFullPayload()) },
+        },
+      },
+      {
+        custom_id: lines[1]?.custom_id,
+        response: {
+          status_code: 200,
+          body: { output_text: JSON.stringify(makeEnglishShortPayload()) },
+        },
+      },
+      {
+        custom_id: lines[2]?.custom_id,
+        response: {
+          status_code: 200,
+          body: {
+            output_text: JSON.stringify({
+              language: "de",
+              full: { narrationParagraphs: buildFullNarration("de") },
+              targetNarrationWpm: 170,
+              preservationChecklist: makeLocalizedPackage("de").preservationChecklist,
+              diagnostics: {
+                removedGenericFiller: [],
+                adaptationNotes: ["Derived from the English full story."],
+              },
+            }),
+          },
+        },
+      },
+    ]
+      .map((line) => JSON.stringify(line))
+      .join("\n");
+    const client = makeBatchClient(outputJsonl);
+    await submitStoryLocalizationBatch(prepared.localBatchId, config, client as never);
+    await downloadStoryLocalizationBatch(prepared.localBatchId, config, client as never);
+    const imported = await importStoryLocalizationBatch(
+      prepared.localBatchId,
+      config,
+      client as never
+    );
+    expect(imported.failedItemCount).toBe(1);
+    expect(await fs.readFile(protectedPath, "utf8")).toBe("APPROVED STORY\n");
+    const manifest = await readLocalBatchManifest(
+      resolveBatchStorageLayout(tempDir),
+      prepared.localBatchId
+    );
+    expect(
+      manifest?.items.find((item) => item.operation === "localization")?.status
+    ).toBe("validation-failed");
+    const retryPlan = JSON.parse(
+      await fs.readFile(
+        path.join(tempDir, "batches", prepared.localBatchId, "retry-plan.json"),
+        "utf8"
+      )
+    ) as { candidates: readonly { status: string }[] };
+    expect(retryPlan.candidates.map((candidate) => candidate.status)).toEqual([
+      "validation-failed",
+    ]);
   });
 
   it("rebuilds and verifies the batch index from manifests", async () => {

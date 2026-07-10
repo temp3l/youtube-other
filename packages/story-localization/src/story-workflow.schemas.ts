@@ -3,11 +3,15 @@ import { z } from "zod";
 import {
   artifactOwners,
   artifactProvenances,
+  batchRunPlanSchemaVersion,
   batchItemStatuses,
   batchSubmissionStatuses,
   cacheStatuses,
   deterministicValidationStatuses,
   failureCategories,
+  orchestrationStageTypes,
+  orchestrationStatuses,
+  productionSummarySchemaVersion,
   qualityGateStatuses,
   retryabilities,
   stageContractSchemaVersion,
@@ -142,6 +146,8 @@ export const workflowLocaleSchema = z
 
 export const storyFormatSchema = z.enum(storyFormats);
 export const stageTypeSchema = z.enum(stageTypes);
+export const orchestrationStageTypeSchema = z.enum(orchestrationStageTypes);
+export const orchestrationStatusSchema = z.enum(orchestrationStatuses);
 export const artifactOwnerSchema = z.enum(artifactOwners);
 export const artifactProvenanceSchema = z.enum(artifactProvenances);
 export const stageStatusSchema = z.enum(stageStatuses);
@@ -445,6 +451,93 @@ export const batchSubmissionSchema = z
       path: ["updatedAt"],
     }
   );
+
+export const productionStageSummarySchema = z
+  .object({
+    stageType: orchestrationStageTypeSchema,
+    locale: workflowLocaleSchema.optional(),
+    format: storyFormatSchema.optional(),
+    status: orchestrationStatusSchema,
+    sourceStageId: stageIdSchema.optional(),
+    updatedAt: isoUtcDateTimeSchema.optional(),
+  })
+  .strict();
+
+export const episodeProductionSummarySchema = z
+  .object({
+    schemaVersion: z.literal(productionSummarySchemaVersion),
+    episodeId: episodeIdSchema,
+    workflowId: workflowIdSchema.optional(),
+    executionId: executionIdSchema.optional(),
+    status: orchestrationStatusSchema,
+    stageCounts: z.record(z.string().trim().min(1), z.number().int().nonnegative()),
+    stages: z.array(productionStageSummarySchema),
+    activeCustomIds: z.array(z.string().trim().min(1)),
+    failedCustomIds: z.array(z.string().trim().min(1)),
+    updatedAt: isoUtcDateTimeSchema,
+  })
+  .strict()
+  .superRefine((value, context) => {
+    for (const status of Object.keys(value.stageCounts)) {
+      if (!orchestrationStatuses.includes(status as (typeof orchestrationStatuses)[number])) {
+        context.addIssue({
+          code: "custom",
+          message: `Unsupported orchestration status count: ${status}`,
+          path: ["stageCounts", status],
+        });
+      }
+    }
+  });
+
+export const batchRunPlanItemSchema = z
+  .object({
+    customId: z.string().trim().min(1),
+    episodeId: episodeIdSchema,
+    stageType: orchestrationStageTypeSchema,
+    locale: workflowLocaleSchema,
+    format: storyFormatSchema,
+    status: orchestrationStatusSchema,
+    operation: z.string().trim().min(1).optional(),
+    endpoint: z.string().trim().min(1).optional(),
+    localBatchId: z.string().trim().min(1).optional(),
+    providerBatchId: providerBatchIdSchema.optional(),
+    retryParentCustomId: z.string().trim().min(1).optional(),
+    manifestPath: z.string().trim().min(1).optional(),
+    updatedAt: isoUtcDateTimeSchema,
+  })
+  .strict();
+
+export const batchRunPlanSchema = z
+  .object({
+    schemaVersion: z.literal(batchRunPlanSchemaVersion),
+    runId: z.string().trim().min(1).regex(/^[a-z0-9][a-z0-9._-]*$/u),
+    createdAt: isoUtcDateTimeSchema,
+    updatedAt: isoUtcDateTimeSchema,
+    items: z.array(batchRunPlanItemSchema),
+    episodes: z.array(episodeProductionSummarySchema),
+    notes: z.array(z.string().trim().min(1)).optional(),
+  })
+  .strict()
+  .refine(
+    (value) => Date.parse(value.createdAt) <= Date.parse(value.updatedAt),
+    {
+      message: "updatedAt must be after or equal to createdAt.",
+      path: ["updatedAt"],
+    }
+  )
+  .superRefine((value, context) => {
+    const seen = new Set<string>();
+    for (const [index, item] of value.items.entries()) {
+      if (seen.has(item.customId)) {
+        context.addIssue({
+          code: "custom",
+          message: `Duplicate batch plan custom_id: ${item.customId}`,
+          path: ["items", index, "customId"],
+        });
+      }
+      seen.add(item.customId);
+    }
+  });
 
 export const workflowStageStateSchema = z
   .object({

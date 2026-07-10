@@ -1,0 +1,5 @@
+Summary: Commit 11 closed out batch-orchestration with a focused final verification pass for the direct Task 10 CLI wrappers and an operator-doc audit. `docs/cli.md` already matched the implemented `stories production batch`, `stories batch todo`, `stories production repair`, and `stories render validate` behavior, so no command/doc surface edits were needed.
+Changed paths: `docs/reports/2026-07-10/execution-checklist-implementation-report.md`; `docs/reports/codex-runs/2026-07-10-commit-11-final-verification-operator-docs.md`
+Tests/checks: `pnpm exec vitest run -c vitest.unit.config.ts --bail=1 apps/cli/src/story-production-command.unit.test.ts apps/cli/src/story-localization-commands.unit.test.ts apps/cli/src/story-render-command.unit.test.ts` passed; `pnpm test:focused -- packages/story-localization/src/story-workflow.integration.test.ts` passed; `git diff --check -- docs/plans/batch-orchestration docs/reports/codex-runs` passed.
+Commit: `9e3ba73`
+Unresolved risks: no provider-backed end-to-end production smoke was run; audio/image execution still routes through existing lower-level surfaces.

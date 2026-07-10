@@ -9,6 +9,15 @@ const DEFAULT_THUMBNAIL_STORY_FILE = path.join(
   "thumbnail-story.json"
 );
 
+function resolveStoryReferenceImagePath(args: {
+  readonly story: Awaited<ReturnType<typeof readThumbnailStoryFile>>;
+  readonly format: "full" | "short";
+}): string | undefined {
+  return (
+    args.story.referenceImagePaths?.[args.format] ?? args.story.referenceImagePath
+  );
+}
+
 interface ResolvedUploadThumbnailInput {
   readonly metadata: {
     readonly thumbnail: {
@@ -43,7 +52,7 @@ export async function resolveUploadThumbnailPath(args: {
     locale: args.resolvedUpload.resolvedLanguage,
     format: args.resolvedUpload.resolvedVariant,
     episodeNumber: story.episodeNumber,
-    style: "cinematic-horror",
+    style: "viral-horror-v1",
     hookText: args.resolvedUpload.metadata.thumbnail.recommendedText,
     storyTitle: story.storyTitle,
     storySummary: story.storySummary,
@@ -55,7 +64,10 @@ export async function resolveUploadThumbnailPath(args: {
       ? { keyVisualMoment: story.keyVisualMoment }
       : {}),
     emphasisWord: story.emphasisWord,
-    referenceImagePath: story.referenceImagePath,
+    referenceImagePath: resolveStoryReferenceImagePath({
+      story,
+      format: args.resolvedUpload.resolvedVariant,
+    }),
     force: args.force ?? false,
   });
   return result.outputPath;

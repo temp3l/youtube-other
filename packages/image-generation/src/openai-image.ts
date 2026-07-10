@@ -20,7 +20,6 @@ import {
 import crypto from "node:crypto";
 import { execFile as execFileCallback } from "node:child_process";
 import fs from "node:fs/promises";
-import { readFileSync } from "node:fs";
 import path from "node:path";
 import { promisify } from "node:util";
 import sharp from "sharp";
@@ -28,15 +27,23 @@ import {
   currentExecutionTelemetry,
   estimateImageGenerationCost,
 } from "@mediaforge/observability";
-import { normalizeImageFileToSpec } from "./video-image-spec.js";
+import {
+  buildIgnoredShortFullSizeWarning,
+  mergeImageGenerationEnv,
+  resolveConfiguredImageGenerationSize,
+  resolveConfiguredRenderSize,
+} from "./image-generation-config.js";
+import { assertGeneratedImageFileMatchesSpec } from "./video-image-spec.js";
 
 export interface OpenAiImageGenerationSettings {
   readonly apiKey: string;
   readonly baseUrl: string | undefined;
   readonly organization: string | undefined;
   readonly project: string | undefined;
+  readonly profile: "full" | "short";
   readonly model: string;
   readonly requestedSize: string;
+  readonly renderSize: string;
   readonly apiSize: string;
   readonly quality: "low" | "medium" | "high" | "auto";
   readonly outputFormat: "png" | "jpeg" | "webp";
@@ -100,27 +107,6 @@ function parseEnvInt(value: string | undefined, fallback: number): number {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
 }
 
-function parseDotEnv(text: string): Record<string, string> {
-  const entries: Record<string, string> = {};
-
-  for (const line of text.split(/\r?\n/u)) {
-    const trimmed = line.trim();
-
-    if (!trimmed || trimmed.startsWith("#")) continue;
-
-    const equalsIndex = trimmed.indexOf("=");
-
-    if (equalsIndex === -1) continue;
-
-    const key = trimmed.slice(0, equalsIndex).trim();
-    const rawValue = trimmed.slice(equalsIndex + 1).trim();
-
-    entries[key] = rawValue.replace(/^['"]|['"]$/gu, "");
-  }
-
-  return entries;
-}
-
 function isImageQuality(
   value: string | undefined
 ): value is "low" | "medium" | "high" | "auto" {
@@ -162,38 +148,6 @@ function resolveImageOutputFormat(
   }
 
   return value;
-}
-
-const standardImageSizes = new Set(["1024x1024", "1536x1024", "1024x1536"]);
-
-function resolveCompatibleApiSize(requestedSize: string, model: string): string {
-  const normalizedSize = requestedSize.trim();
-
-  if (!/^(?:\d+)x(?:\d+)$/u.test(normalizedSize)) {
-    throw new ConfigurationError(
-      `Invalid OPENAI_IMAGE_SIZE value: ${requestedSize}. Expected WIDTHxHEIGHT.`
-    );
-  }
-
-  if (standardImageSizes.has(normalizedSize)) {
-    return normalizedSize;
-  }
-
-  const [widthText, heightText] = normalizedSize.split("x");
-  const width = Number.parseInt(widthText ?? "", 10);
-  const height = Number.parseInt(heightText ?? "", 10);
-
-  if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) {
-    throw new ConfigurationError(
-      `Invalid OPENAI_IMAGE_SIZE value: ${requestedSize}. Expected WIDTHxHEIGHT.`
-    );
-  }
-
-  if (width === height) {
-    return "1024x1024";
-  }
-
-  return width > height ? "1536x1024" : "1024x1536";
 }
 
 const reuseStopWords = new Set([
@@ -405,9 +359,10 @@ function logOpenAiImageSettings(settings: OpenAiImageGenerationSettings): void {
     baseUrl: settings.baseUrl ?? "default",
     organization: settings.organization ?? "default",
     project: settings.project ?? "default-from-api-key",
+    profile: settings.profile,
     model: settings.model,
     requestedSize: settings.requestedSize,
-    apiSize: settings.apiSize,
+    renderSize: settings.renderSize,
     quality: settings.quality,
     outputFormat: settings.outputFormat,
     concurrency: settings.concurrency,
@@ -439,14 +394,14 @@ export function buildOpenAiImageRequestBody(
     ? {
         model: settings.model,
         prompt: job.prompt,
-        size: settings.apiSize,
+        size: settings.requestedSize,
         quality: settings.quality,
         n: 1,
       }
     : {
         model: settings.model,
         prompt: job.prompt,
-        size: settings.apiSize,
+        size: settings.requestedSize,
         quality: settings.quality,
         output_format: settings.outputFormat,
         n: 1,
@@ -474,8 +429,12 @@ function logOpenAiImageRequest(
     },
     apiKey: redactApiKey(settings.apiKey),
     url: baseUrl,
+    profile: settings.profile,
+    episodeSlug: job.episodeSlug,
+    language: job.language,
+    promptId: job.scene.id,
     model: settings.model,
-    size: settings.apiSize,
+    size: settings.requestedSize,
     quality: settings.quality,
     outputFormat: settings.outputFormat,
     promptHash: hashText(job.prompt),
@@ -644,23 +603,33 @@ async function cloneImageArtifacts(
   await fs.copyFile(sourcePath, targetPath);
 }
 
-async function normalizeImage(
+async function materializeImage(
   rawPath: string,
   normalizedPath: string,
-  videoKind: "full" | "short"
+  settings: OpenAiImageGenerationSettings,
+  job: Pick<OpenAiImageGenerationJob, "episodeSlug" | "language" | "videoKind">
 ): Promise<{
   readonly width: number;
   readonly height: number;
   readonly checksumSha256: string;
 }> {
-  await normalizeImageFileToSpec({
-    sourcePath: rawPath,
-    outputPath: normalizedPath,
-    videoKind,
-    format: "png",
-  });
-
+  if (settings.outputFormat === "png") {
+    await cloneImageArtifacts(rawPath, normalizedPath);
+  } else {
+    let pipeline = sharp(rawPath);
+    pipeline =
+      settings.outputFormat === "jpeg"
+        ? pipeline.jpeg()
+        : pipeline.webp();
+    await pipeline.toFile(normalizedPath);
+  }
   const metadata = await validateDecodedImage(normalizedPath);
+  await assertGeneratedImageFileMatchesSpec({
+    episodeId: job.episodeSlug,
+    language: job.language,
+    videoKind: job.videoKind,
+    imagePath: normalizedPath,
+  });
 
   return {
     width: metadata.width,
@@ -802,7 +771,7 @@ async function generateSingleImage(
               provider: "openai",
               model: settings.model,
               operation: "generate",
-              size: settings.apiSize,
+              size: settings.requestedSize,
               quality: settings.quality,
             })
         : { pricingVersion: "unconfigured", costMicros: null, warning: undefined };
@@ -817,7 +786,7 @@ async function generateSingleImage(
         success: true,
         usage: { imageCount: 1 },
         details: {
-          size: settings.apiSize,
+          size: settings.requestedSize,
           quality: settings.quality,
         },
       });
@@ -862,7 +831,7 @@ async function generateSingleImage(
         success: false,
         retryable: isRetryableOpenAiError(error),
         details: {
-          size: settings.apiSize,
+          size: settings.requestedSize,
           quality: settings.quality,
         },
         error: {
@@ -910,10 +879,11 @@ async function generateSingleImage(
   await writeBinaryAtomic(rawPath, rawBuffer);
   await validateDecodedImage(rawPath);
 
-  const finalDimensions = await normalizeImage(
+  const finalDimensions = await materializeImage(
     rawPath,
     normalizedPath,
-    job.videoKind
+    settings,
+    job
   );
   const rawChecksumSha256 = await hashFile(rawPath);
   const finalChecksumSha256 = finalDimensions.checksumSha256;
@@ -1052,6 +1022,12 @@ async function reuseSingleImage(
   await cloneImageArtifacts(source.renderedPath, normalizedPath);
 
   const finalDimensions = await validateDecodedImage(normalizedPath);
+  await assertGeneratedImageFileMatchesSpec({
+    episodeId: job.episodeSlug,
+    language: job.language,
+    videoKind: job.videoKind,
+    imagePath: normalizedPath,
+  });
   const rawChecksumSha256 = await hashFile(rawPath);
   const finalChecksumSha256 = await hashFile(normalizedPath);
   const generatedAt = new Date().toISOString();
@@ -1152,26 +1128,14 @@ async function reuseSingleImage(
 }
 
 export function loadOpenAiImageGenerationSettings(
-  env: ImageGenerationEnv = process.env
+  env: ImageGenerationEnv = process.env,
+  options: {
+    readonly profile?: "full" | "short";
+    readonly cwd?: string;
+  } = {}
 ): OpenAiImageGenerationSettings {
-  const dotenvPath = path.join(process.cwd(), ".env");
-
-  let dotenvValues: Record<string, string> = {};
-
-  try {
-    dotenvValues = parseDotEnv(readFileSync(dotenvPath, "utf8"));
-  } catch {
-    dotenvValues = {};
-  }
-
-  const mergedEnv: Record<string, string | undefined> = {
-    ...env,
-    ...Object.fromEntries(
-      Object.entries(dotenvValues).filter(([key]) =>
-        key.startsWith("OPENAI_")
-      )
-    ),
-  };
+  const profile = options.profile ?? "full";
+  const mergedEnv = mergeImageGenerationEnv(env, options.cwd);
   const apiKey = mergedEnv["OPENAI_API_KEY"];
 
   if (!apiKey) {
@@ -1180,17 +1144,31 @@ export function loadOpenAiImageGenerationSettings(
     );
   }
 
-  const requestedSize = mergedEnv["OPENAI_IMAGE_SIZE"] ?? "1024x1024";
+  const requestedSize = resolveConfiguredImageGenerationSize({
+    profile,
+    env: mergedEnv,
+  }).size;
+  const renderSize = resolveConfiguredRenderSize({
+    profile,
+    env: mergedEnv,
+  }).size;
   const model = mergedEnv["OPENAI_IMAGE_MODEL"] ?? "gpt-image-1-mini";
+  const ignoredShortWarning =
+    profile === "short" ? buildIgnoredShortFullSizeWarning(mergedEnv) : undefined;
+  if (ignoredShortWarning) {
+    console.warn(ignoredShortWarning);
+  }
 
   return {
     apiKey,
     baseUrl: mergedEnv["OPENAI_BASE_URL"],
     organization: mergedEnv["OPENAI_ORGANIZATION"] ?? mergedEnv["OPENAI_ORG_ID"],
     project: mergedEnv["OPENAI_PROJECT"],
+    profile,
     model,
     requestedSize,
-    apiSize: resolveCompatibleApiSize(requestedSize, model),
+    renderSize,
+    apiSize: requestedSize,
     quality: resolveImageQuality(mergedEnv["OPENAI_IMAGE_QUALITY"]),
     outputFormat: resolveImageOutputFormat(mergedEnv["OPENAI_IMAGE_FORMAT"]),
     concurrency: parseEnvInt(mergedEnv["OPENAI_IMAGE_CONCURRENCY"], 2),

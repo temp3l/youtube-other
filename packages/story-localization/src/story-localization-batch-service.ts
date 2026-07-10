@@ -75,6 +75,10 @@ import {
   type NarrationOnlyFullRewriteResponse,
 } from "./story-prompt-response-schemas.js";
 import {
+  normalizeGeneratedStoryPackageContent,
+  normalizeNarrationOnlyFullRewriteResponseContent,
+} from "./localized-content-text.js";
+import {
   StoryBatchIndexService,
   entryFromLocalBatchManifest,
 } from "./story-localization-batch-index.js";
@@ -131,6 +135,21 @@ import {
   type StoryLocalizationEpisodeResult,
   type StoryLocalizationRunResult,
 } from "./story-localization.types.js";
+import {
+  batchRunPlanSchemaVersion,
+  productionSummarySchemaVersion,
+  type BatchRunPlan,
+  type BatchRunPlanItem,
+  type OrchestrationStatus,
+  type OrchestrationStageType,
+  type ProviderBatchId,
+  type StoryFormat,
+  type WorkflowLocale,
+} from "./story-workflow.types.js";
+import {
+  resolveBatchRunDirectory,
+  saveBatchRunPlan,
+} from "./story-workflow-batch.js";
 import {
   countWords,
   estimateDurationSeconds,
@@ -1976,6 +1995,11 @@ export async function prepareStoryLocalizationBatch(
     items: manifestItems,
   });
   await saveLocalBatchManifest(layout, manifest);
+  await persistTextBatchRunPlan({
+    outputDirectory: config.outputDirectory,
+    manifest,
+    copyInput: true,
+  });
   const index = new StoryBatchIndexService(config.outputDirectory);
   await index.initialize();
   await index.upsert(
@@ -2033,6 +2057,11 @@ export async function submitStoryLocalizationBatch(
     ),
   };
   await saveLocalBatchManifest(layout, nextManifest);
+  await persistTextBatchRunPlan({
+    outputDirectory: config.outputDirectory,
+    manifest: nextManifest,
+    copyInput: true,
+  });
   const index = new StoryBatchIndexService(config.outputDirectory);
   await index.upsert(
     entryFromLocalBatchManifest(config.outputDirectory, nextManifest)
@@ -2084,10 +2113,130 @@ export async function refreshStoryLocalizationBatch(
       : {}),
   };
   await saveLocalBatchManifest(layout, nextManifest);
+  await persistTextBatchRunPlan({
+    outputDirectory: config.outputDirectory,
+    manifest: nextManifest,
+    copyInput: true,
+  });
   await index.upsert(
     entryFromLocalBatchManifest(config.outputDirectory, nextManifest)
   );
   return nextManifest;
+}
+
+export async function downloadStoryLocalizationBatch(
+  batchRef: string,
+  config: StoryLocalizationConfig,
+  client: OpenAiStoryClient
+): Promise<{
+  readonly localBatchId: string;
+  readonly status: LocalBatchManifest["status"];
+  readonly outputFileId?: string;
+  readonly errorFileId?: string;
+  readonly resultFilePath?: string;
+  readonly errorFilePath?: string;
+  readonly runDirectory: string;
+  readonly providerBatchPath: string;
+}> {
+  requireBatchCapabilities(client);
+  const layout = await ensureBatchStorageLayout(config.outputDirectory);
+  const refreshed = await refreshStoryLocalizationBatch(batchRef, config, client);
+  if (!refreshed.openAIBatchId) {
+    throw new Error(`Batch ${batchRef} has not been submitted.`);
+  }
+  if (!refreshed.outputFileId && !refreshed.errorFileId) {
+    throw new Error(`Batch ${batchRef} has no downloadable output yet.`);
+  }
+  const outputText = refreshed.outputFileId
+    ? await readRemoteFileText(client, refreshed.outputFileId)
+    : "";
+  const errorText = refreshed.errorFileId
+    ? await readRemoteFileText(client, refreshed.errorFileId)
+    : "";
+  const resultFilePath = resultPathFor(layout, refreshed.localBatchId);
+  const errorFilePath = errorPathFor(layout, refreshed.localBatchId);
+  if (outputText) {
+    await writeTextAtomic(resultFilePath, outputText);
+    await writeTextAtomic(
+      runFilePath(config.outputDirectory, refreshed.localBatchId, "output.jsonl"),
+      outputText
+    );
+  }
+  if (errorText) {
+    await writeTextAtomic(errorFilePath, errorText);
+    await writeTextAtomic(
+      runFilePath(config.outputDirectory, refreshed.localBatchId, "error.jsonl"),
+      errorText
+    );
+  }
+  const nextManifest: LocalBatchManifest = {
+    ...refreshed,
+    updatedAt: new Date().toISOString(),
+    ...(outputText
+      ? { resultFilePath: toRepositoryRelativePath(resultFilePath) }
+      : {}),
+    ...(errorText ? { errorFilePath: toRepositoryRelativePath(errorFilePath) } : {}),
+  };
+  await saveLocalBatchManifest(layout, nextManifest);
+  const index = new StoryBatchIndexService(config.outputDirectory);
+  await index.upsert(
+    entryFromLocalBatchManifest(config.outputDirectory, nextManifest)
+  );
+  const runArtifacts = await persistTextBatchRunPlan({
+    outputDirectory: config.outputDirectory,
+    manifest: nextManifest,
+    copyInput: true,
+  });
+  return {
+    localBatchId: nextManifest.localBatchId,
+    status: nextManifest.status,
+    ...(nextManifest.outputFileId ? { outputFileId: nextManifest.outputFileId } : {}),
+    ...(nextManifest.errorFileId ? { errorFileId: nextManifest.errorFileId } : {}),
+    ...(outputText ? { resultFilePath } : {}),
+    ...(errorText ? { errorFilePath } : {}),
+    runDirectory: runArtifacts.runDirectory,
+    providerBatchPath: runArtifacts.providerBatchPath,
+  };
+}
+
+async function assertApprovedArtifactCanChange(args: {
+  readonly outputDirectory: string;
+  readonly episodeSlug: string;
+  readonly language: LanguageCode;
+  readonly format: "full" | "short";
+  readonly outputPath: string;
+  readonly nextContent: string;
+  readonly force: boolean;
+}): Promise<void> {
+  if (args.force || !(await fileExists(args.outputPath))) {
+    return;
+  }
+  const existing = await fs.promises.readFile(args.outputPath, "utf8");
+  if (existing === args.nextContent) {
+    return;
+  }
+  const approvalPath = path.join(
+    args.outputDirectory,
+    args.episodeSlug,
+    "reviews",
+    args.language,
+    args.format,
+    "approval.json"
+  );
+  if (!(await fileExists(approvalPath))) {
+    return;
+  }
+  const approval = JSON.parse(
+    await fs.promises.readFile(approvalPath, "utf8")
+  ) as { readonly approvalState?: string; readonly decision?: string };
+  if (
+    approval.approvalState === "human-approved" ||
+    approval.decision === "approved"
+  ) {
+    throw new StoryLocalizationValidationError(
+      `Refusing to overwrite approved ${args.language} ${args.format} artifact for ${args.episodeSlug} without --force.`
+    );
+  }
 }
 
 async function importCanonicalEnglishFullResult(args: {
@@ -2103,9 +2252,12 @@ async function importCanonicalEnglishFullResult(args: {
 }): Promise<readonly string[]> {
   void args.detectedFormat;
   void args.deprecationDiagnostics;
+  const response = normalizeNarrationOnlyFullRewriteResponseContent(
+    args.response
+  );
   const profile = getLanguageProfile("en");
   const issues = validateNarrationOnlyFullRewritePackage(
-    args.response,
+    response,
     args.facts,
     profile,
     "en"
@@ -2146,7 +2298,7 @@ async function importCanonicalEnglishFullResult(args: {
       fingerprint: plan.compiledPrompt.responseSchema.fingerprint,
     },
     preflight: runStoryGenerationPreflight(plan.preflightRequest),
-    response: args.response,
+    response,
     validationIssues: [],
     repairHistory: [
       {
@@ -2174,6 +2326,7 @@ async function importCanonicalEnglishFullResult(args: {
     artifact,
     sourceStory: args.sourceFile,
     canonicalPaths,
+    force: args.config.force,
   });
   const cacheDir = resolveEpisodeCacheDirectory(
     args.config.outputDirectory,
@@ -2221,7 +2374,7 @@ async function importEnglishShortResult(args: {
   readonly outputTokens?: number;
 }): Promise<readonly string[]> {
   const profile = getLanguageProfile("en");
-  const packageValue: GeneratedStoryPackage = {
+  const packageValue = normalizeGeneratedStoryPackageContent({
     language: "en",
     full: undefined,
     short: args.payload.short,
@@ -2234,7 +2387,7 @@ async function importEnglishShortResult(args: {
       removedGenericFiller: args.payload.diagnostics.removedGenericFiller,
       adaptationNotes: args.payload.diagnostics.adaptationNotes,
     },
-  };
+  });
   const issues = validateGeneratedStoryPackage(
     packageValue,
     args.facts,
@@ -2255,13 +2408,23 @@ async function importEnglishShortResult(args: {
       "Canonical English full story is required before English short import."
     );
   }
+  const shortMarkdown = buildEnglishShortMarkdown(
+    args.sourceFile.episodeNumber,
+    packageValue.short
+  );
+  await assertApprovedArtifactCanChange({
+    outputDirectory: args.config.outputDirectory,
+    episodeSlug: args.sourceFile.slug,
+    language: "en",
+    format: "short",
+    outputPath: outputFiles.short,
+    nextContent: shortMarkdown,
+    force: args.config.force,
+  });
   const shortWrite = await writeTextAtomicIfChanged(
     outputFiles.short,
-    buildEnglishShortMarkdown(
-      args.sourceFile.episodeNumber,
-      args.payload.short
-    ),
-    true
+    shortMarkdown,
+    args.config.force
   );
   const persisted: string[] = [];
   if (shortWrite === "written") {
@@ -2307,8 +2470,11 @@ async function importLocalizationResult(args: {
   if (!language || language === "en") {
     throw new Error("Localization import requires a non-English language.");
   }
+  const response = normalizeNarrationOnlyFullRewriteResponseContent(
+    args.response
+  );
   const issues = validateNarrationOnlyFullRewritePackage(
-    args.response,
+    response,
     args.facts,
     getLanguageProfile(language),
     language
@@ -2327,17 +2493,27 @@ async function importLocalizationResult(args: {
   );
   const rendererPackage = adaptNarrationOnlyFullToLegacyRendererPackage({
     sourceStory: args.sourceFile,
-    response: args.response,
+    response,
+  });
+  const localizedMarkdown = renderLocalizedFullStory(
+    args.sourceFile.episodeNumber,
+    rendererPackage,
+    language,
+    args.sourceFile.sourceHash
+  );
+  await assertApprovedArtifactCanChange({
+    outputDirectory: args.config.outputDirectory,
+    episodeSlug: args.sourceFile.slug,
+    language,
+    format: "full",
+    outputPath: outputFiles.full,
+    nextContent: localizedMarkdown,
+    force: args.config.force,
   });
   const fullWrite = await writeTextAtomicIfChanged(
     outputFiles.full,
-    renderLocalizedFullStory(
-      args.sourceFile.episodeNumber,
-      rendererPackage,
-      language,
-      args.sourceFile.sourceHash
-    ),
-    true
+    localizedMarkdown,
+    args.config.force
   );
   await persistStoryProductionArtifact(
     cacheDir,
@@ -2353,7 +2529,7 @@ async function importLocalizationResult(args: {
       responseSchemaFingerprint: args.manifestItem.responseSchemaFingerprint,
       lineage: args.manifestItem.parentArtifact,
       validationIssues: [],
-      result: args.response,
+      result: response,
     }
   );
   await writeLocalizationCacheEntry(cacheDir, {
@@ -2422,12 +2598,416 @@ function lineByCustomId(
   return mapped;
 }
 
+function textBatchStageForItem(item: LocalBatchManifestItem): {
+  readonly stageType: OrchestrationStageType;
+  readonly locale: WorkflowLocale;
+  readonly format: StoryFormat;
+} {
+  if (item.operation === "english-short") {
+    return { stageType: "rewrite-short", locale: "en", format: "short" };
+  }
+  if (item.operation === "localization") {
+    return {
+      stageType: "localize-full",
+      locale: (item.language ?? "en") as WorkflowLocale,
+      format: "full",
+    };
+  }
+  if (item.operation === "visual-analysis") {
+    return { stageType: "visual-model", locale: "en", format: "full" };
+  }
+  if (item.operation === "character-analysis") {
+    return { stageType: "ingest-source", locale: "en", format: "full" };
+  }
+  return { stageType: "rewrite-full", locale: "en", format: "full" };
+}
+
+function orchestrationStatusForManifestItem(
+  status: LocalBatchManifestItem["status"]
+): OrchestrationStatus {
+  switch (status) {
+    case "planned":
+      return "planned";
+    case "submitted":
+      return "running";
+    case "api-succeeded":
+    case "persisted":
+      return "succeeded";
+    case "skipped-cached":
+      return "cached";
+    case "expired":
+      return "expired";
+    case "api-failed":
+    case "schema-invalid":
+    case "content-invalid":
+    case "validation-failed":
+    case "repair-required":
+    case "preflight-failed":
+      return "failed";
+    default:
+      return "failed";
+  }
+}
+
+function orchestrationStatusForManifest(
+  manifest: LocalBatchManifest
+): OrchestrationStatus {
+  if (manifest.status === "imported") {
+    return "imported";
+  }
+  if (manifest.status === "imported_with_failures") {
+    return "partial";
+  }
+  if (manifest.status === "completed") {
+    return "succeeded";
+  }
+  if (manifest.status === "expired") {
+    return "expired";
+  }
+  if (manifest.status === "cancelled") {
+    return "cancelled";
+  }
+  if (manifest.status === "failed") {
+    return "failed";
+  }
+  if (manifest.status === "prepared") {
+    return "planned";
+  }
+  return "running";
+}
+
+function retryableTextBatchStatuses(): readonly LocalBatchManifestItem["status"][] {
+  return [
+    "api-failed",
+    "expired",
+    "schema-invalid",
+    "content-invalid",
+    "validation-failed",
+    "repair-required",
+  ];
+}
+
+function buildTextBatchRunPlan(args: {
+  readonly outputDirectory: string;
+  readonly manifest: LocalBatchManifest;
+}): BatchRunPlan {
+  const manifestPath = toRepositoryRelativePath(
+    manifestPathFor(
+      resolveBatchStorageLayout(args.outputDirectory),
+      args.manifest.localBatchId
+    )
+  );
+  const now = new Date().toISOString();
+  const items: BatchRunPlanItem[] = args.manifest.items.map((item) => {
+    const stage = textBatchStageForItem(item);
+    return {
+      customId: item.customId,
+      episodeId: item.episodeNumber,
+      stageType: stage.stageType,
+      locale: stage.locale,
+      format: stage.format,
+      status: orchestrationStatusForManifestItem(item.status),
+      operation: item.operation,
+      endpoint: args.manifest.endpoint,
+      localBatchId: args.manifest.localBatchId,
+      ...(args.manifest.openAIBatchId
+        ? { providerBatchId: args.manifest.openAIBatchId as ProviderBatchId }
+        : {}),
+      manifestPath,
+      updatedAt: item.resultImportedAt ?? args.manifest.updatedAt,
+    };
+  });
+  const episodes = [...new Set(args.manifest.items.map((item) => item.episodeNumber))]
+    .sort((left, right) => left.localeCompare(right))
+    .map((episodeId) => {
+      const episodeItems = items.filter((item) => item.episodeId === episodeId);
+      const stageCounts: Partial<Record<OrchestrationStatus, number>> = {};
+      for (const item of episodeItems) {
+        stageCounts[item.status] = (stageCounts[item.status] ?? 0) + 1;
+      }
+      return {
+        schemaVersion: productionSummarySchemaVersion,
+        episodeId,
+        status: orchestrationStatusForManifest(args.manifest),
+        stageCounts,
+        stages: episodeItems.map((item) => ({
+          stageType: item.stageType,
+          locale: item.locale,
+          format: item.format,
+          status: item.status,
+          updatedAt: item.updatedAt,
+        })),
+        activeCustomIds: episodeItems
+          .filter((item) => item.status === "planned" || item.status === "running")
+          .map((item) => item.customId),
+        failedCustomIds: episodeItems
+          .filter((item) => item.status === "failed")
+          .map((item) => item.customId),
+        updatedAt: args.manifest.updatedAt,
+      };
+    });
+  return {
+    schemaVersion: batchRunPlanSchemaVersion,
+    runId: args.manifest.localBatchId,
+    createdAt: args.manifest.createdAt,
+    updatedAt: args.manifest.updatedAt ?? now,
+    items,
+    episodes,
+    notes: ["Text batch run audit folder; .batch manifest remains source of truth."],
+  };
+}
+
+async function writeTextBatchProviderMetadata(args: {
+  readonly outputDirectory: string;
+  readonly manifest: LocalBatchManifest;
+}): Promise<string> {
+  const runDir = resolveBatchRunDirectory({
+    workspaceRoot: args.outputDirectory,
+    runId: args.manifest.localBatchId,
+  });
+  await ensureDir(runDir);
+  const providerPath = path.join(runDir, "provider-batch.json");
+  await writeJsonAtomic(providerPath, {
+    localBatchId: args.manifest.localBatchId,
+    openAIBatchId: args.manifest.openAIBatchId ?? null,
+    status: args.manifest.status,
+    endpoint: args.manifest.endpoint,
+    completionWindow: args.manifest.completionWindow,
+    openAIInputFileId: args.manifest.openAIInputFileId ?? null,
+    outputFileId: args.manifest.outputFileId ?? null,
+    errorFileId: args.manifest.errorFileId ?? null,
+    requestCounts: args.manifest.requestCounts ?? null,
+    submittedAt: args.manifest.submittedAt ?? null,
+    completedAt: args.manifest.completedAt ?? null,
+    inputFilePath: args.manifest.inputFilePath,
+    resultFilePath: args.manifest.resultFilePath ?? null,
+    errorFilePath: args.manifest.errorFilePath ?? null,
+    manifestPath: toRepositoryRelativePath(
+      manifestPathFor(
+        resolveBatchStorageLayout(args.outputDirectory),
+        args.manifest.localBatchId
+      )
+    ),
+    updatedAt: new Date().toISOString(),
+  });
+  return providerPath;
+}
+
+async function persistTextBatchRunPlan(args: {
+  readonly outputDirectory: string;
+  readonly manifest: LocalBatchManifest;
+  readonly copyInput?: boolean;
+}): Promise<{
+  readonly runDirectory: string;
+  readonly batchPlanPath: string;
+  readonly inputJsonlPath?: string;
+  readonly providerBatchPath: string;
+}> {
+  const plan = await saveBatchRunPlan({
+    workspaceRoot: args.outputDirectory,
+    plan: buildTextBatchRunPlan(args),
+  });
+  const runDirectory = resolveBatchRunDirectory({
+    workspaceRoot: args.outputDirectory,
+    runId: plan.runId,
+  });
+  let inputJsonlPath: string | undefined;
+  if (args.copyInput) {
+    inputJsonlPath = path.join(runDirectory, "input.jsonl");
+    await writeTextAtomic(
+      inputJsonlPath,
+      await fs.promises.readFile(
+        fromRepositoryRelativePath(args.manifest.inputFilePath),
+        "utf8"
+      )
+    );
+  }
+  const providerBatchPath = await writeTextBatchProviderMetadata(args);
+  return {
+    runDirectory,
+    batchPlanPath: path.join(runDirectory, "batch-plan.json"),
+    ...(inputJsonlPath ? { inputJsonlPath } : {}),
+    providerBatchPath,
+  };
+}
+
+function runFilePath(
+  outputDirectory: string,
+  localBatchId: string,
+  fileName: string
+): string {
+  return path.join(
+    resolveBatchRunDirectory({ workspaceRoot: outputDirectory, runId: localBatchId }),
+    fileName
+  );
+}
+
+async function writeRetryPlan(args: {
+  readonly outputDirectory: string;
+  readonly manifest: LocalBatchManifest;
+}): Promise<string> {
+  const candidates = args.manifest.items
+    .filter((item) => retryableTextBatchStatuses().includes(item.status))
+    .map((item) => ({
+      customId: item.customId,
+      episodeNumber: item.episodeNumber,
+      language: item.language ?? null,
+      operation: item.operation,
+      status: item.status,
+      error: item.error ?? null,
+      sourcePath: item.sourcePath,
+    }));
+  const retryPlanPath = runFilePath(
+    args.outputDirectory,
+    args.manifest.localBatchId,
+    "retry-plan.json"
+  );
+  await ensureDir(path.dirname(retryPlanPath));
+  await writeJsonAtomic(retryPlanPath, {
+    localBatchId: args.manifest.localBatchId,
+    generatedAt: new Date().toISOString(),
+    candidateCount: candidates.length,
+    candidates,
+    retryCommand:
+      candidates.length > 0
+        ? `stories batch retry-failed --run ${args.manifest.localBatchId}`
+        : null,
+  });
+  return retryPlanPath;
+}
+
+async function writeImportReport(args: {
+  readonly outputDirectory: string;
+  readonly manifest: LocalBatchManifest;
+  readonly persistedFiles: readonly string[];
+  readonly unexpectedCustomIds: readonly string[];
+}): Promise<string> {
+  const failedItems = args.manifest.items
+    .filter((item) => retryableTextBatchStatuses().includes(item.status) || item.status === "preflight-failed")
+    .map((item) => ({
+      customId: item.customId,
+      episodeNumber: item.episodeNumber,
+      language: item.language ?? null,
+      operation: item.operation,
+      status: item.status,
+      error: item.error ?? null,
+    }));
+  const importReportPath = runFilePath(
+    args.outputDirectory,
+    args.manifest.localBatchId,
+    "import-report.json"
+  );
+  await writeJsonAtomic(importReportPath, {
+    localBatchId: args.manifest.localBatchId,
+    importedAt: args.manifest.importedAt ?? new Date().toISOString(),
+    totalItems: args.manifest.items.length,
+    importedItemCount: args.manifest.items.filter((item) => item.status === "persisted").length,
+    failedItemCount: failedItems.length,
+    unexpectedCustomIds: args.unexpectedCustomIds,
+    persistedFiles: args.persistedFiles.map((filePath) =>
+      toRepositoryRelativePath(filePath)
+    ),
+    failedItems,
+  });
+  return importReportPath;
+}
+
+export async function validateImportedStoryBatch(
+  batchRef: string,
+  config: StoryLocalizationConfig
+): Promise<{
+  readonly localBatchId: string;
+  readonly validatedItemCount: number;
+  readonly failedItemCount: number;
+  readonly validationReportPath: string;
+  readonly retryPlanPath: string;
+}> {
+  const layout = await ensureBatchStorageLayout(config.outputDirectory);
+  const index = new StoryBatchIndexService(config.outputDirectory);
+  await index.initialize();
+  const entry =
+    (await index.getByLocalBatchId(batchRef)) ??
+    (await index.getByOpenAIBatchId(batchRef));
+  if (!entry) {
+    throw new Error(`Unknown batch ${batchRef}`);
+  }
+  const manifest = await readLocalBatchManifest(layout, entry.localBatchId);
+  if (!manifest) {
+    throw new Error(`Missing manifest for ${entry.localBatchId}`);
+  }
+  const items = await Promise.all(
+    manifest.items.map(async (item) => {
+      const missingOutputPaths =
+        item.status === "persisted"
+          ? (
+              await Promise.all(
+                item.plannedOutputPaths.map(async (outputPath) => ({
+                  outputPath,
+                  exists: await fileExists(fromRepositoryRelativePath(outputPath)),
+                }))
+              )
+            )
+              .filter((output) => !output.exists)
+              .map((output) => output.outputPath)
+          : [];
+      const status =
+        item.status === "persisted" && missingOutputPaths.length === 0
+          ? "passed"
+          : item.status === "persisted"
+            ? "failed"
+            : "skipped";
+      return {
+        customId: item.customId,
+        episodeNumber: item.episodeNumber,
+        language: item.language ?? null,
+        operation: item.operation,
+        importStatus: item.status,
+        validationStatus: status,
+        missingOutputPaths,
+        error: item.error ?? null,
+      };
+    })
+  );
+  const validationReportPath = runFilePath(
+    config.outputDirectory,
+    manifest.localBatchId,
+    "validation-report.json"
+  );
+  await ensureDir(path.dirname(validationReportPath));
+  const failedItemCount = items.filter(
+    (item) => item.validationStatus === "failed" || retryableTextBatchStatuses().includes(item.importStatus)
+  ).length;
+  await writeJsonAtomic(validationReportPath, {
+    localBatchId: manifest.localBatchId,
+    validatedAt: new Date().toISOString(),
+    validatedItemCount: items.filter((item) => item.validationStatus === "passed").length,
+    failedItemCount,
+    items,
+  });
+  const retryPlanPath = await writeRetryPlan({
+    outputDirectory: config.outputDirectory,
+    manifest,
+  });
+  await persistTextBatchRunPlan({
+    outputDirectory: config.outputDirectory,
+    manifest,
+    copyInput: true,
+  });
+  return {
+    localBatchId: manifest.localBatchId,
+    validatedItemCount: items.filter((item) => item.validationStatus === "passed").length,
+    failedItemCount,
+    validationReportPath,
+    retryPlanPath,
+  };
+}
+
 export async function importStoryLocalizationBatch(
   batchRef: string,
   config: StoryLocalizationConfig,
   client: OpenAiStoryClient
 ): Promise<BatchImportResult> {
-  requireBatchCapabilities(client);
+  void client;
   const layout = await ensureBatchStorageLayout(config.outputDirectory);
   const index = new StoryBatchIndexService(config.outputDirectory);
   await index.initialize();
@@ -2438,32 +3018,42 @@ export async function importStoryLocalizationBatch(
   return withFileLock(
     path.join(layout.locksDir, `import-${lockId}.lock`),
     async () => {
-      const refreshed = await refreshStoryLocalizationBatch(
-        batchRef,
-        config,
-        client
+      const refreshedEntry =
+        (await index.getByLocalBatchId(batchRef)) ??
+        (await index.getByOpenAIBatchId(batchRef));
+      if (!refreshedEntry) {
+        throw new Error(`Unknown batch ${batchRef}`);
+      }
+      const refreshed = await readLocalBatchManifest(
+        layout,
+        refreshedEntry.localBatchId
       );
+      if (!refreshed) {
+        throw new Error(`Missing manifest for ${refreshedEntry.localBatchId}`);
+      }
       if (!refreshed.openAIBatchId) {
         throw new Error(`Batch ${batchRef} has not been submitted.`);
       }
-      if (!refreshed.outputFileId && !refreshed.errorFileId) {
-        throw new Error(`Batch ${batchRef} has no downloadable output yet.`);
+      if (!refreshed.resultFilePath && !refreshed.errorFilePath) {
+        throw new Error(
+          `Batch ${batchRef} has no downloaded provider output. Run stories batch download first.`
+        );
       }
-      const outputText = refreshed.outputFileId
-        ? await readRemoteFileText(client, refreshed.outputFileId)
-        : "";
-      const errorText = refreshed.errorFileId
-        ? await readRemoteFileText(client, refreshed.errorFileId)
-        : "";
       const resultFilePath = resultPathFor(layout, refreshed.localBatchId);
       const errorFilePath = errorPathFor(layout, refreshed.localBatchId);
       const reportFilePath = reportPathFor(layout, refreshed.localBatchId);
-      if (outputText) {
-        await writeTextAtomic(resultFilePath, outputText);
-      }
-      if (errorText) {
-        await writeTextAtomic(errorFilePath, errorText);
-      }
+      const outputText = refreshed.resultFilePath
+        ? await fs.promises.readFile(
+            fromRepositoryRelativePath(refreshed.resultFilePath),
+            "utf8"
+          )
+        : "";
+      const errorText = refreshed.errorFilePath
+        ? await fs.promises.readFile(
+            fromRepositoryRelativePath(refreshed.errorFilePath),
+            "utf8"
+          )
+        : "";
       const successLines = lineByCustomId(parseBatchOutputJsonl(outputText));
       const errorLines = lineByCustomId(parseBatchOutputJsonl(errorText));
       const duplicatedAcrossFiles = [...successLines.keys()].filter(
@@ -2698,7 +3288,7 @@ export async function importStoryLocalizationBatch(
               error instanceof StoryLocalizationSchemaError
                 ? "schema-invalid"
                 : error instanceof StoryLocalizationValidationError
-                  ? "content-invalid"
+                  ? "validation-failed"
                   : "api-failed",
             ...(failedRequest
               ? {
@@ -2739,6 +3329,18 @@ export async function importStoryLocalizationBatch(
       await index.upsert(
         entryFromLocalBatchManifest(config.outputDirectory, nextManifest)
       );
+      await persistTextBatchRunPlan({
+        outputDirectory: config.outputDirectory,
+        manifest: nextManifest,
+        copyInput: true,
+      });
+      await writeImportReport({
+        outputDirectory: config.outputDirectory,
+        manifest: nextManifest,
+        persistedFiles,
+        unexpectedCustomIds,
+      });
+      await validateImportedStoryBatch(nextManifest.localBatchId, config);
       return {
         localBatchId: refreshed.localBatchId,
         importedItemCount: refreshed.items.length - failedItemCount,
@@ -2796,6 +3398,7 @@ export async function importReadyStoryBatches(
   const results: BatchImportResult[] = [];
   for (const entry of ready) {
     try {
+      await downloadStoryLocalizationBatch(entry.localBatchId, config, client);
       results.push(
         await importStoryLocalizationBatch(entry.localBatchId, config, client)
       );
@@ -2804,6 +3407,32 @@ export async function importReadyStoryBatches(
     }
   }
   return results;
+}
+
+export async function syncStoryLocalizationBatch(
+  batchRef: string,
+  config: StoryLocalizationConfig,
+  client: OpenAiStoryClient
+): Promise<{
+  readonly downloaded: Awaited<ReturnType<typeof downloadStoryLocalizationBatch>>;
+  readonly imported: BatchImportResult;
+  readonly validation: Awaited<ReturnType<typeof validateImportedStoryBatch>>;
+}> {
+  const downloaded = await downloadStoryLocalizationBatch(
+    batchRef,
+    config,
+    client
+  );
+  const imported = await importStoryLocalizationBatch(
+    downloaded.localBatchId,
+    config,
+    client
+  );
+  const validation = await validateImportedStoryBatch(
+    downloaded.localBatchId,
+    config
+  );
+  return { downloaded, imported, validation };
 }
 
 export async function refreshActiveStoryBatches(
@@ -2842,13 +3471,7 @@ export async function retryFailedStoryBatch(
     throw new Error(`Missing manifest for ${entry.localBatchId}`);
   }
   const retryable = manifest.items.filter((item) =>
-    [
-      "api-failed",
-      "expired",
-      "schema-invalid",
-      "content-invalid",
-      "repair-required",
-    ].includes(item.status)
+    retryableTextBatchStatuses().includes(item.status)
   );
   const { requestItems, manifestItems } = await buildRetryBatchItems({
     manifest,
@@ -2875,6 +3498,11 @@ export async function retryFailedStoryBatch(
     retryNumber: manifest.retryNumber + 1,
   };
   await saveLocalBatchManifest(layout, nextManifest);
+  await persistTextBatchRunPlan({
+    outputDirectory: config.outputDirectory,
+    manifest: nextManifest,
+    copyInput: true,
+  });
   await index.upsert(
     entryFromLocalBatchManifest(config.outputDirectory, nextManifest)
   );
@@ -3041,7 +3669,7 @@ export async function runStoryLocalizationInBatchMode(
           refreshed.status
         )
       ) {
-        await importStoryLocalizationBatch(
+        await syncStoryLocalizationBatch(
           submitted.localBatchId,
           config,
           client
