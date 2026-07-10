@@ -12,6 +12,9 @@ import {
 import {
   createEpisodePathResolver,
   fileExists,
+  normalizeContentVariant,
+  normalizeEpisodeId,
+  normalizeLocaleCode,
   resolveAuthoredScript,
 } from "@mediaforge/shared";
 
@@ -125,7 +128,8 @@ async function fullImagesReady(
   resolver: ReturnType<typeof createEpisodePathResolver>,
   episodeId: string
 ): Promise<boolean> {
-  const manifestPath = resolver.canonicalVisualManifest(episodeId, "full");
+  const normalizedEpisodeId = normalizeEpisodeId(episodeId);
+  const manifestPath = resolver.canonicalVisualManifest(normalizedEpisodeId, "full");
   if (!(await fileExists(manifestPath))) {
     return false;
   }
@@ -141,7 +145,7 @@ async function fullImagesReady(
       (
         await Promise.all(
           imagePaths.map((imagePath) =>
-            fileExists(path.join(resolver.episodeRoot(episodeId), imagePath))
+            fileExists(path.join(resolver.episodeRoot(normalizedEpisodeId), imagePath))
           )
         )
       ).every(Boolean)
@@ -151,13 +155,107 @@ async function fullImagesReady(
   }
 }
 
+function currentLocaleVariantRoot(args: {
+  readonly resolver: ReturnType<typeof createEpisodePathResolver>;
+  readonly episodeId: string;
+  readonly locale: string;
+  readonly format: string;
+}): string {
+  return path.join(
+    args.resolver.episodeRoot(normalizeEpisodeId(args.episodeId)),
+    normalizeLocaleCode(args.locale),
+    normalizeContentVariant(args.format)
+  );
+}
+
+function currentSharedScenePlanPath(
+  resolver: ReturnType<typeof createEpisodePathResolver>,
+  episodeId: string
+): string {
+  return path.join(
+    resolver.episodeRoot(normalizeEpisodeId(episodeId)),
+    "shared",
+    "scenes.json"
+  );
+}
+
+function currentSharedVisualPlanPath(
+  resolver: ReturnType<typeof createEpisodePathResolver>,
+  episodeId: string
+): string {
+  return path.join(
+    resolver.episodeRoot(normalizeEpisodeId(episodeId)),
+    "shared",
+    "visual-plan.json"
+  );
+}
+
+function currentImageManifestPath(
+  resolver: ReturnType<typeof createEpisodePathResolver>,
+  episodeId: string,
+  format: string
+): string {
+  return normalizeContentVariant(format) === "short"
+    ? path.join(
+        resolver.episodeRoot(normalizeEpisodeId(episodeId)),
+        "shared",
+        "short",
+        "images",
+        "shorts-image-manifest.json"
+      )
+    : path.join(
+        resolver.episodeRoot(normalizeEpisodeId(episodeId)),
+        "shared",
+        "image-manifest.json"
+      );
+}
+
+function currentGeneratedImagesDir(
+  resolver: ReturnType<typeof createEpisodePathResolver>,
+  episodeId: string,
+  format: string
+): string {
+  return normalizeContentVariant(format) === "short"
+    ? path.join(
+        resolver.episodeRoot(normalizeEpisodeId(episodeId)),
+        "shared",
+        "short",
+        "images",
+        "generated"
+      )
+    : path.join(
+        resolver.episodeRoot(normalizeEpisodeId(episodeId)),
+        "shared",
+        "images",
+        "generated"
+      );
+}
+
+async function currentLayoutImagesReady(args: {
+  readonly resolver: ReturnType<typeof createEpisodePathResolver>;
+  readonly episodeId: string;
+  readonly format: string;
+}): Promise<boolean> {
+  const manifestPath = currentImageManifestPath(
+    args.resolver,
+    args.episodeId,
+    args.format
+  );
+  return (
+    (await fileExists(manifestPath)) &&
+    (await directoryHasFiles(
+      currentGeneratedImagesDir(args.resolver, args.episodeId, args.format)
+    ))
+  );
+}
+
 async function stageArtifactExists(args: {
   readonly resolver: ReturnType<typeof createEpisodePathResolver>;
   readonly workspaceRoot: string;
   readonly episodeId: string;
   readonly stageType: string;
-  readonly locale?: string;
-  readonly format?: string;
+  readonly locale: string | undefined;
+  readonly format: string | undefined;
 }): Promise<boolean> {
   const { resolver, workspaceRoot, episodeId, stageType, locale, format } = args;
   if (stageType === "ingest-source" && locale === "en" && format === "full") {
@@ -176,8 +274,26 @@ async function stageArtifactExists(args: {
   if (!locale || !format) {
     return false;
   }
-  const context = { episodeId, locale, variant: format };
+  const normalizedEpisodeId = normalizeEpisodeId(episodeId);
+  const normalizedLocale = normalizeLocaleCode(locale);
+  const normalizedVariant = normalizeContentVariant(format);
+  const context = {
+    episodeId: normalizedEpisodeId,
+    locale: normalizedLocale,
+    variant: normalizedVariant,
+  };
   const scriptPath = resolver.generatedNarrationScript(context);
+  const localeVariantRoot = currentLocaleVariantRoot({
+    resolver,
+    episodeId,
+    locale,
+    format,
+  });
+  const currentNarrationPath = path.join(localeVariantRoot, "narration.txt");
+  const currentGenerationManifestPath = path.join(
+    localeVariantRoot,
+    "generation-manifest.json"
+  );
   if (
     stageType === "rewrite-full" ||
     stageType === "validate-full" ||
@@ -187,33 +303,59 @@ async function stageArtifactExists(args: {
     stageType === "validate-short" ||
     stageType === "quality-short"
   ) {
-    return fileExists(scriptPath);
+    return (
+      (await fileExists(scriptPath)) ||
+      (await fileExists(currentNarrationPath)) ||
+      (await fileExists(currentGenerationManifestPath))
+    );
   }
   if (stageType === "visual-model" && locale === "en" && format === "full") {
-    return fileExists(resolver.canonicalVisualManifest(episodeId, "full"));
+    return (
+      (await fileExists(resolver.canonicalVisualManifest(normalizedEpisodeId, "full"))) ||
+      (await fileExists(currentSharedVisualPlanPath(resolver, episodeId)))
+    );
   }
   if (stageType === "image-prompt" && locale === "en" && format === "full") {
-    return fileExists(resolver.canonicalVisualManifest(episodeId, "full"));
+    return (
+      (await fileExists(resolver.canonicalVisualManifest(normalizedEpisodeId, "full"))) ||
+      (await fileExists(currentSharedScenePlanPath(resolver, episodeId)))
+    );
   }
   if (stageType === "image-generation" && locale === "en" && format === "full") {
-    return fullImagesReady(resolver, episodeId);
+    return (
+      (await fullImagesReady(resolver, episodeId)) ||
+      (await currentLayoutImagesReady({ resolver, episodeId, format }))
+    );
   }
   if (stageType === "audio") {
-    return fileExists(resolver.audioNarration(context));
+    return (
+      (await fileExists(resolver.audioNarration(context))) ||
+      (await fileExists(path.join(localeVariantRoot, "audio", "narration.wav")))
+    );
   }
   if (stageType === "captions") {
-    return fileExists(resolver.captionsFile(context, "ass"));
+    return (
+      (await fileExists(resolver.captionsFile(context, "ass"))) ||
+      (await fileExists(path.join(localeVariantRoot, "subtitles", `narration.${normalizedLocale}.srt`))) ||
+      (await fileExists(path.join(localeVariantRoot, "subtitles", `narration.${normalizedLocale}.vtt`)))
+    );
   }
   if (stageType === "metadata") {
-    return directoryHasFiles(resolver.metadataDir(context));
+    return (
+      (await directoryHasFiles(resolver.metadataDir(context))) ||
+      (await fileExists(path.join(localeVariantRoot, "metadata.json")))
+    );
   }
   if (stageType === "thumbnail" && format === "short") {
     return fileExists(resolver.thumbnailFile(context));
   }
   if (stageType === "render") {
+    const profile = normalizedVariant === "short" ? "vertical" : "youtube";
     return (
-      (await fileExists(resolver.renderManifest(context, format === "short" ? "vertical" : "youtube"))) ||
-      (await fileExists(resolver.finalVideo(context, format === "short" ? "vertical" : "youtube")))
+      (await fileExists(resolver.renderManifest(context, profile))) ||
+      (await fileExists(resolver.finalVideo(context, profile))) ||
+      (await fileExists(path.join(localeVariantRoot, "video", "render.json"))) ||
+      (await directoryHasFiles(path.join(localeVariantRoot, "video")))
     );
   }
   return false;

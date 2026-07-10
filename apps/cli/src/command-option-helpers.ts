@@ -1,6 +1,6 @@
 import { Command } from "commander";
 
-export function mergeCommandOptions<T extends Record<string, unknown>>(
+export function mergeCommandOptions<T extends object>(
   command: Command | undefined,
   options: T
 ): T {

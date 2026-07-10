@@ -17,7 +17,7 @@ describe("story workflow command helpers", () => {
     const root = await fs.mkdtemp(path.join(os.tmpdir(), "story-workflow-helper-"));
     const episodesRoot = path.join(root, "episodes");
     const episodeId = "028-the-man-in-the-attic";
-    const resolver = createEpisodePathResolver(episodesRoot);
+    const resolver = createEpisodePathResolver(root);
 
     await fs.mkdir(path.join(episodesRoot, episodeId, "languages"), {
       recursive: true,
@@ -60,7 +60,7 @@ describe("story workflow command helpers", () => {
 
     const statuses = await loadProductionStatuses({
       episode: episodeId,
-      outputRoot: episodesRoot,
+      outputRoot: root,
     });
 
     expect(statuses).toHaveLength(1);
@@ -76,6 +76,98 @@ describe("story workflow command helpers", () => {
     expect(report?.entries).toContainEqual(
       expect.objectContaining({
         stageType: "audio",
+        locale: "en",
+        format: "full",
+        status: "completed",
+      })
+    );
+    expect(report?.entries).toContainEqual(
+      expect.objectContaining({
+        stageType: "render",
+        locale: "en",
+        format: "full",
+        status: "completed",
+      })
+    );
+  });
+
+  it("recognizes current episode-production outputs when no workflow manifest exists", async () => {
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), "story-workflow-current-"));
+    const episodesRoot = path.join(root, "episodes");
+    const episodeId = "031-the-faceless-tall-man";
+    const resolver = createEpisodePathResolver(root);
+    const episodeDir = resolver.episodeRoot(episodeId);
+    const localeVariantDir = path.join(episodeDir, "en", "full");
+
+    await fs.mkdir(path.join(episodeDir, "languages"), { recursive: true });
+    await fs.writeFile(
+      path.join(episodeDir, "languages", "script-en.md"),
+      "# Source\n",
+      "utf8"
+    );
+    await fs.mkdir(localeVariantDir, { recursive: true });
+    await fs.writeFile(path.join(localeVariantDir, "narration.txt"), "Narration\n", "utf8");
+    await fs.mkdir(path.join(localeVariantDir, "audio"), { recursive: true });
+    await fs.writeFile(
+      path.join(localeVariantDir, "audio", "narration.wav"),
+      "audio",
+      "utf8"
+    );
+    await fs.mkdir(path.join(localeVariantDir, "subtitles"), { recursive: true });
+    await fs.writeFile(
+      path.join(localeVariantDir, "subtitles", "narration.en.srt"),
+      "1\n00:00:00,000 --> 00:00:01,000\nNarration\n",
+      "utf8"
+    );
+    await fs.writeFile(path.join(localeVariantDir, "metadata.json"), "{}\n", "utf8");
+    await fs.mkdir(path.join(localeVariantDir, "video"), { recursive: true });
+    await fs.writeFile(path.join(localeVariantDir, "video", "render.json"), "{}\n", "utf8");
+    await fs.mkdir(path.join(episodeDir, "shared", "images", "generated"), {
+      recursive: true,
+    });
+    await fs.writeFile(path.join(episodeDir, "shared", "visual-plan.json"), "{}\n", "utf8");
+    await fs.writeFile(path.join(episodeDir, "shared", "scenes.json"), "{}\n", "utf8");
+    await fs.writeFile(path.join(episodeDir, "shared", "image-manifest.json"), "{}\n", "utf8");
+    await fs.writeFile(
+      path.join(episodeDir, "shared", "images", "generated", "scene-001.png"),
+      "image",
+      "utf8"
+    );
+
+    const statuses = await loadProductionStatuses({
+      episode: episodeId,
+      outputRoot: root,
+    });
+
+    expect(statuses).toHaveLength(1);
+    const report = statuses[0]?.report;
+    expect(report?.entries).toContainEqual(
+      expect.objectContaining({
+        stageType: "rewrite-full",
+        locale: "en",
+        format: "full",
+        status: "completed",
+      })
+    );
+    expect(report?.entries).toContainEqual(
+      expect.objectContaining({
+        stageType: "audio",
+        locale: "en",
+        format: "full",
+        status: "completed",
+      })
+    );
+    expect(report?.entries).toContainEqual(
+      expect.objectContaining({
+        stageType: "captions",
+        locale: "en",
+        format: "full",
+        status: "completed",
+      })
+    );
+    expect(report?.entries).toContainEqual(
+      expect.objectContaining({
+        stageType: "metadata",
         locale: "en",
         format: "full",
         status: "completed",

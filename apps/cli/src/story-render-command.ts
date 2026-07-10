@@ -593,6 +593,10 @@ async function validateExistingRenderTarget(
         (maxDuration, scene) => Math.max(maxDuration, scene.timing.endSeconds),
         0
       ),
+      expectedFinalDurationSeconds: target.scenePlan.scenes.reduce(
+        (maxDuration, scene) => Math.max(maxDuration, scene.timing.endSeconds),
+        0
+      ),
       actualDurationSeconds: 0,
       issues: manifestResult.issues.map((entry) => entry.message),
       finalValidation: {
@@ -624,6 +628,10 @@ async function validateExistingRenderTarget(
       finalVideoPath,
       clipsDir: target.clipsDir,
       expectedDurationSeconds: target.scenePlan.scenes.reduce(
+        (maxDuration, scene) => Math.max(maxDuration, scene.timing.endSeconds),
+        0
+      ),
+      expectedFinalDurationSeconds: target.scenePlan.scenes.reduce(
         (maxDuration, scene) => Math.max(maxDuration, scene.timing.endSeconds),
         0
       ),
@@ -1034,7 +1042,7 @@ export function registerStoryRenderCommand(storiesCommand: Command): void {
     .option("--captions", "validate while requiring burned-in captions")
     .option("--json", "print machine-readable output")
     .action((opts: StoryRenderCliOptions, command: Command) => {
-      const parentOpts = mergeCommandOptions(command.parent, {});
+      const parentOpts = mergeCommandOptions(command.parent ?? undefined, {});
       return commandStoriesRenderValidate({
         ...parentOpts,
         ...opts,

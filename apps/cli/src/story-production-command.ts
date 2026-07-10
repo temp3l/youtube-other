@@ -369,7 +369,7 @@ function buildAction(
       commands: [
         `npm run mediaforge -- stories batch todo --episode ${report.episodeId}`,
       ],
-      reason: retryable[0]?.message,
+      ...(retryable[0]?.message ? { reason: retryable[0].message } : {}),
     };
   }
 
@@ -389,7 +389,7 @@ function buildAction(
       commands: [
         `npm run mediaforge -- stories batch todo --episode ${report.episodeId}`,
       ],
-      reason: blocked[0]?.message,
+      ...(blocked[0]?.message ? { reason: blocked[0].message } : {}),
     };
   }
 
@@ -411,7 +411,7 @@ function buildAction(
       status: "ready",
       stageTypes: uniqueSorted(nextEntries.map((entry) => entry.stageType)),
       commands: commandsForEntries(report.episodeId, nextEntries),
-      reason: nextEntries[0]?.message,
+      ...(nextEntries[0]?.message ? { reason: nextEntries[0].message } : {}),
     };
   }
 
@@ -541,7 +541,7 @@ export async function commandStoriesBatchTodo(
     ])
   );
 
-  const retryable = limitItems(
+  const retryable: readonly StoryProductionTodoItem[] = limitItems(
     statuses.flatMap((status) =>
       sortEntries(
         status.report.entries.filter(
@@ -550,19 +550,21 @@ export async function commandStoriesBatchTodo(
             actionableStageTypes.has(entry.stageType) &&
             entryMatchesFilters(entry, options)
         )
-      ).map((entry) => ({
-        episodeId: entry.episodeId,
-        stageType: entry.stageType,
-        ...(entry.locale ? { locale: entry.locale } : {}),
-        ...(entry.format ? { format: entry.format } : {}),
-        ...(entry.message ? { reason: entry.message } : {}),
-        commands: commandsForEntries(entry.episodeId, [entry]),
-      }))
+      ).map(
+        (entry): StoryProductionTodoItem => ({
+          episodeId: entry.episodeId,
+          stageType: entry.stageType,
+          ...(entry.locale ? { locale: entry.locale } : {}),
+          ...(entry.format ? { format: entry.format } : {}),
+          ...(entry.message ? { reason: entry.message } : {}),
+          commands: commandsForEntries(entry.episodeId, [entry]),
+        })
+      )
     ),
     options.limit
   );
 
-  const blocked = limitItems(
+  const blocked: readonly StoryProductionTodoItem[] = limitItems(
     statuses.flatMap((status) =>
       sortEntries(
         status.report.entries.filter(
@@ -571,20 +573,21 @@ export async function commandStoriesBatchTodo(
             actionableStageTypes.has(entry.stageType) &&
             entryMatchesFilters(entry, options)
         )
-      ).map((entry) => {
+      ).map((entry): StoryProductionTodoItem => {
         const repair =
           entry.stageType === "render" && entry.locale && entry.format
             ? repairMap.get(`${entry.episodeId}:${entry.locale}:${entry.format}`)
             : undefined;
+        const reason =
+          repair?.issues[0]?.message ??
+          entry.message ??
+          entry.blockedBy[0]?.message;
         return {
           episodeId: entry.episodeId,
           stageType: entry.stageType,
           ...(entry.locale ? { locale: entry.locale } : {}),
           ...(entry.format ? { format: entry.format } : {}),
-          reason:
-            repair?.issues[0]?.message ??
-            entry.message ??
-            entry.blockedBy[0]?.message,
+          ...(reason ? { reason } : {}),
           commands:
             repair?.commands.length && repair.commands.length > 0
               ? repair.commands
@@ -595,16 +598,18 @@ export async function commandStoriesBatchTodo(
     options.limit
   );
 
-  const ready = limitItems(
+  const ready: readonly StoryProductionTodoItem[] = limitItems(
     statuses
       .map((status) => buildAction(status.report, options))
       .filter((action) => action.status === "ready")
-      .map((action) => ({
-        episodeId: action.episodeId,
-        stageType: action.stageTypes.join(","),
-        ...(action.reason ? { reason: action.reason } : {}),
-        commands: action.commands,
-      })),
+      .map(
+        (action): StoryProductionTodoItem => ({
+          episodeId: action.episodeId,
+          stageType: action.stageTypes.join(","),
+          ...(action.reason ? { reason: action.reason } : {}),
+          commands: action.commands,
+        })
+      ),
     options.limit
   );
 

@@ -178,11 +178,15 @@ async function runStoryAudioCommand(
 ): Promise<void> {
   const statuses = await loadProductionStatuses(options);
   const targets = selectAudioTargets(options, statuses);
-  const executable = targets.filter(
-    (target) => target.status === "ready" || target.status === "retryable"
+  const executableStatuses =
+    mode === "validate"
+      ? new Set<StoryAudioTarget["status"]>(["completed"])
+      : new Set<StoryAudioTarget["status"]>(["ready", "retryable"]);
+  const executable = targets.filter((target) =>
+    executableStatuses.has(target.status)
   );
   const skipped = targets
-    .filter((target) => target.status !== "ready" && target.status !== "retryable")
+    .filter((target) => !executableStatuses.has(target.status))
     .map(
       (target): StoryAudioSkippedTarget => ({
         episodeId: target.episodeId,

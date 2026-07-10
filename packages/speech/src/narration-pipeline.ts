@@ -203,7 +203,13 @@ function stageResult(input: NarrationPipelineStageResult): NarrationPipelineStag
 }
 
 function spokenNarrationFailureIsBlocked(
-  artifact: { readonly status?: string; readonly failureMessage?: string } | null | undefined
+  artifact:
+    | {
+        readonly status?: string | undefined;
+        readonly failureMessage?: string | undefined;
+      }
+    | null
+    | undefined
 ): boolean {
   return (
     artifact?.status === "failed" &&

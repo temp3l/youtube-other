@@ -55,6 +55,7 @@ vi.mock("./images-resume-command.js", () => ({
 
 const {
   commandEpisodeBootstrapCharacters,
+  commandEpisodeDryRun,
   commandEpisodeValidate,
   commandEpisodeLocalized,
   commandEpisodeShort,
@@ -1123,30 +1124,58 @@ describe("episode commands", () => {
     ).rejects.toMatchObject({ code: "STALE_LAYOUT" });
   });
 
-  it("fails when English full localization is missing the canonical authored script", async () => {
+  it("falls back to the discovered source when the canonical authored script is missing", async () => {
     const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "dark-truth-cli-"));
     const outputRoot = path.join(tempDir, "episodes");
+    const result = await resolveEpisodeLanguageSource(
+      outputRoot,
+      {
+        episodeId: episodeSlug,
+        episodeNumber: "011",
+        slug: episodeSlug,
+        sourceDir: path.dirname(path.dirname(englishFullSource)),
+        candidates: [
+          {
+            language: "en",
+            artifactType: "full",
+            filePath: englishFullSource,
+            status: "present",
+          },
+        ],
+      } as unknown as Parameters<typeof resolveEpisodeLanguageSource>[1],
+      "en",
+      "full"
+    );
+
+    expect(result.sourceFile).toBe(englishFullSource);
+    expect(result.absolutePath).toBe(englishFullSource);
+    expect(result.canonicalRelativePath).toBe(englishFullSource);
+    expect(result.contentHash).toBe(await hashFile(englishFullSource));
+    expect(result.resolverVersion).toBe(authoredScriptResolverVersion);
+  });
+
+  it("allows episode dry-run from a discovered source pack without materializing a canonical script", async () => {
+    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "dark-truth-cli-"));
+    const outputRoot = path.join(tempDir, "episodes");
+    const writeSpy = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
+    try {
+      await expect(
+        commandEpisodeDryRun({
+          episode: "001",
+          source: sourceRoot,
+          outputRoot,
+          language: "en",
+          artifact: "full",
+          dryRun: true,
+        })
+      ).resolves.toBeUndefined();
+    } finally {
+      writeSpy.mockRestore();
+    }
+
     await expect(
-      resolveEpisodeLanguageSource(
-        outputRoot,
-        {
-          episodeId: episodeSlug,
-          episodeNumber: "011",
-          slug: episodeSlug,
-          sourceDir: path.dirname(path.dirname(englishFullSource)),
-          candidates: [
-            {
-              language: "en",
-              artifactType: "full",
-              filePath: englishFullSource,
-              status: "present",
-            },
-          ],
-        } as unknown as Parameters<typeof resolveEpisodeLanguageSource>[1],
-        "en",
-        "full"
-      )
-    ).rejects.toMatchObject({ code: "MISSING_SCRIPT" });
+      fs.access(path.join(outputRoot, episodeSlug, "languages", "script-en.md"))
+    ).rejects.toMatchObject({ code: "ENOENT" });
   });
 
   it("requires German approval before the German Short", async () => {

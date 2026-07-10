@@ -54,6 +54,9 @@ import {
 } from "@mediaforge/image-generation";
 import {
   AuthoredScriptResolverError,
+  authoredScriptResolverVersion,
+  buildAuthoredScriptCacheIdentity,
+  copyAtomic,
   ensureDir,
   ensureWorkspacePath,
   fileExists,
@@ -63,6 +66,7 @@ import {
   readJsonIfExists,
   resolveAuthoredScript,
   slugify,
+  toPortableRelativePath,
   writeJsonAtomic,
   writeTextAtomic,
   type ResolvedAuthoredScript,
@@ -669,6 +673,21 @@ export interface ResolvedEpisodeLanguageSource extends ResolvedAuthoredScript {
   readonly canonicalRelativePath: ResolvedAuthoredScript["relativePath"];
 }
 
+function authoredScriptOutputPath(args: {
+  readonly outputRoot: string;
+  readonly episodeId: string;
+  readonly language: SupportedLanguage;
+  readonly artifactType: ArtifactType;
+}): string {
+  return path.join(
+    args.outputRoot,
+    args.episodeId,
+    "languages",
+    ...(args.artifactType === "short" ? ["short"] : []),
+    `script-${args.language}.md`
+  );
+}
+
 interface EpisodeSourceMetadata {
   readonly episodeId: string;
   readonly language: string;
@@ -733,9 +752,10 @@ export async function resolveEpisodeLanguageSource(
   language: SupportedLanguage,
   artifactType: ArtifactType
 ): Promise<ResolvedEpisodeLanguageSource> {
+  const workspaceRoot = path.dirname(path.resolve(outputRoot));
   try {
     const resolved = await resolveAuthoredScript({
-      workspaceRoot: path.dirname(path.resolve(outputRoot)),
+      workspaceRoot,
       episode: discovery.slug,
       language,
       variant: artifactType,
@@ -747,10 +767,90 @@ export async function resolveEpisodeLanguageSource(
     };
   } catch (error) {
     if (error instanceof AuthoredScriptResolverError) {
-      throw error;
+      if (error.code !== "MISSING_SCRIPT") {
+        throw error;
+      }
+      const discoveredSource = discovery.candidates.find(
+        (candidate) =>
+          candidate.status === "present" &&
+          candidate.language === language &&
+          candidate.artifactType === artifactType
+      );
+      if (!discoveredSource) {
+        throw error;
+      }
+      const sourceFile = path.resolve(discoveredSource.filePath);
+      const contentHash = await hashFile(sourceFile);
+      const relativePath =
+        sourceFile === workspaceRoot ||
+        sourceFile.startsWith(`${workspaceRoot}${path.sep}`)
+          ? toPortableRelativePath(workspaceRoot, sourceFile)
+          : sourceFile.replace(/\\/gu, "/");
+      const identity = {
+        resolverVersion: authoredScriptResolverVersion,
+        episodeId: discovery.slug as ResolvedAuthoredScript["episodeId"],
+        language: language as ResolvedAuthoredScript["language"],
+        variant: artifactType as ResolvedAuthoredScript["variant"],
+        relativePath: relativePath as ResolvedAuthoredScript["relativePath"],
+        contentHash: contentHash as ResolvedAuthoredScript["contentHash"],
+      } as const;
+      const cacheIdentity = buildAuthoredScriptCacheIdentity(identity);
+      return {
+        episodeId: identity.episodeId,
+        language: identity.language,
+        variant: identity.variant,
+        absolutePath: sourceFile as ResolvedAuthoredScript["absolutePath"],
+        relativePath: relativePath as ResolvedAuthoredScript["relativePath"],
+        contentHash: contentHash as ResolvedAuthoredScript["contentHash"],
+        identity,
+        cacheIdentity,
+        resolverVersion: authoredScriptResolverVersion,
+        logContext: {
+          episodeId: discovery.slug,
+          language,
+          variant: artifactType,
+          relativePath,
+          contentHash,
+          cacheIdentity,
+          scriptPath: sourceFile,
+          scriptHash: contentHash,
+          resolverVersion: authoredScriptResolverVersion,
+        },
+        sourceFile,
+        canonicalRelativePath: relativePath as ResolvedAuthoredScript["relativePath"],
+      };
     }
     throw error;
   }
+}
+
+async function materializeCanonicalEpisodeLanguageSource(args: {
+  readonly outputRoot: string;
+  readonly discovery: EpisodeSourceDiscovery;
+  readonly language: SupportedLanguage;
+  readonly artifactType: ArtifactType;
+  readonly source: ResolvedEpisodeLanguageSource;
+}): Promise<ResolvedEpisodeLanguageSource> {
+  const canonicalPath = authoredScriptOutputPath({
+    outputRoot: args.outputRoot,
+    episodeId: args.discovery.slug,
+    language: args.language,
+    artifactType: args.artifactType,
+  });
+  if (path.resolve(args.source.sourceFile) !== path.resolve(canonicalPath)) {
+    await copyAtomic(args.source.sourceFile, canonicalPath);
+  }
+  const resolved = await resolveAuthoredScript({
+    workspaceRoot: path.dirname(path.resolve(args.outputRoot)),
+    episode: args.discovery.slug,
+    language: args.language,
+    variant: args.artifactType,
+  });
+  return {
+    ...resolved,
+    sourceFile: resolved.absolutePath,
+    canonicalRelativePath: resolved.relativePath,
+  };
 }
 
 function sourceMetadata(
@@ -911,12 +1011,21 @@ async function prepareEpisodeLanguage(
   artifactType: ArtifactType,
   options: EpisodeCommandOptions
 ): Promise<Record<string, unknown>> {
-  const resolvedSource = await resolveEpisodeLanguageSource(
+  let resolvedSource = await resolveEpisodeLanguageSource(
     outputRoot,
     discovery,
     language,
     artifactType
   );
+  if (!options.dryRun) {
+    resolvedSource = await materializeCanonicalEpisodeLanguageSource({
+      outputRoot,
+      discovery,
+      language,
+      artifactType,
+      source: resolvedSource,
+    });
+  }
   const { sourceFile } = resolvedSource;
   const loadResult = await buildEpisodeLoadResult(sourceFile, outputRoot);
   const baseDir = path.join(outputRoot, discovery.slug, language, artifactType);
