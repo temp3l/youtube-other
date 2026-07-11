@@ -31,7 +31,7 @@ import {
   type ShortRewriteSourceExtraction,
 } from "./short-rewrite.types.js";
 
-export const STORY_PROMPT_COMPILER_VERSION = "story-prompt-compiler-v1";
+export const STORY_PROMPT_COMPILER_VERSION = "story-prompt-compiler-v2";
 
 export const storyPromptVariantSchema = z.enum(["full", "short"]);
 export type StoryPromptVariant = z.infer<typeof storyPromptVariantSchema>;

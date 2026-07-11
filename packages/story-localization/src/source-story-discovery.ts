@@ -14,10 +14,12 @@ export const DEFAULT_SOURCE_DIRECTORY =
   "./content/dark-truth-episodes-multilingual-production-pack";
 
 export const DEFAULT_OUTPUT_DIRECTORY =
-  "./content-ideas/content/dark-truth-episodes";
+  "./episodes";
 
 export const LEGACY_REWRITE_OUTPUT_DIRECTORY =
   "./content-ideas/content/youtube-horror-rewrites";
+
+export const CONTENT_IDEAS_OUTPUT_DIRECTORY = "./content-ideas";
 
 const canonicalSourceFilePattern =
   /^(?<episodeNumber>\d{3})-(?<slug>.+)-en-full\.md$/u;
@@ -55,6 +57,7 @@ export function resolveDefaultOutputDirectory(): string {
 
 export function assertSupportedStoryOutputDirectory(directory: string): string {
   const resolved = path.resolve(directory);
+  const repoRoot = getRepoRoot();
   const legacyRoot = path.resolve(getRepoRoot(), LEGACY_REWRITE_OUTPUT_DIRECTORY);
   if (
     resolved === legacyRoot ||
@@ -62,6 +65,15 @@ export function assertSupportedStoryOutputDirectory(directory: string): string {
   ) {
     throw new StorySourceDiscoveryError(
       `Legacy rewrite output path is not supported for generated stories: ${resolved}. Use ${resolveDefaultOutputDirectory()} or an episode workspace root instead.`
+    );
+  }
+  const contentIdeasRoot = path.resolve(repoRoot, CONTENT_IDEAS_OUTPUT_DIRECTORY);
+  if (
+    resolved === contentIdeasRoot ||
+    resolved.startsWith(`${contentIdeasRoot}${path.sep}`)
+  ) {
+    throw new StorySourceDiscoveryError(
+      `content-ideas is a source/archive area and is not supported for generated story output: ${resolved}. Use ${resolveDefaultOutputDirectory()} or another episode workspace root.`
     );
   }
   return resolved;

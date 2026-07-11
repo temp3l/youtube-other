@@ -19,11 +19,11 @@ import { stableSerialize } from "./stable-json.js";
 import { type StoryPromptSchemaDescriptor } from "./story-prompt-modules.js";
 
 export const FULL_NARRATION_RESPONSE_SCHEMA_VERSION =
-  "full-narration-response-schema-v1";
+  "full-narration-response-schema-v2";
 export const SHORT_REWRITE_RESPONSE_SCHEMA_VERSION =
   "short-rewrite-response-schema-v1";
 export const SHORT_NARRATION_RESPONSE_SCHEMA_VERSION =
-  "short-narration-response-schema-v1";
+  "short-narration-response-schema-v2";
 
 export const narrationOnlyFullRewriteResponseSchema = z
   .object({

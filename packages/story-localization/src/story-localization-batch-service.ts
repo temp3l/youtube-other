@@ -117,7 +117,10 @@ import {
   StoryLocalizationSchemaError,
   StoryLocalizationValidationError,
 } from "./story-localization.errors.js";
-import { renderLocalizedFullStory } from "./story-markdown-renderer.js";
+import {
+  renderLocalizedFullStory,
+  renderLocalizedShort,
+} from "./story-markdown-renderer.js";
 import { parseCanonicalSourceStory } from "./source-story-parser.js";
 import {
   type BatchImportResult,
@@ -313,34 +316,7 @@ function buildEnglishShortMarkdown(
   episodeNumber: string,
   short: GeneratedStoryPackage["short"]
 ): string {
-  return [
-    `# Short ${episodeNumber} — ${short.title}`,
-    "",
-    "## Narration Instructions",
-    "",
-    ...short.narrationInstructions.map((line) => `- ${line}`),
-    "",
-    "## Narration Script",
-    "",
-    short.narrationParagraphs.join("\n\n"),
-    "",
-    "## Short Metadata",
-    "",
-    `**Primary title:** ${short.title}`,
-    "",
-    `**Thumbnail text:** ${short.thumbnailText}`,
-    "",
-    `**Description:** ${short.description}`,
-    "",
-    `**Hashtags:** ${short.hashtags.join(" ")}`,
-    "",
-    "**Format:** 1080 × 1920, 9:16 vertical",
-    "",
-    `**Recommended duration:** approximately ${short.recommendedDurationSeconds.min}-${short.recommendedDurationSeconds.max} seconds`,
-    "",
-    `**Visual guidance:** ${short.visualGuidance}`,
-    "",
-  ].join("\n");
+  return renderLocalizedShort(episodeNumber, short, "en");
 }
 
 function buildOutputFiles(

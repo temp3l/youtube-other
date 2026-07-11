@@ -1,0 +1,159 @@
+{
+  "schemaVersion": "batch-run-plan-v1",
+  "runId": "slb-20260710192405075-001",
+  "createdAt": "2026-07-10T19:24:05.352Z",
+  "updatedAt": "2026-07-10T19:29:22.876Z",
+  "items": [
+    {
+      "customId": "dte:033:canonical-english-full:en:4749ef86:40fb040c",
+      "episodeId": "033",
+      "stageType": "rewrite-full",
+      "locale": "en",
+      "format": "full",
+      "status": "running",
+      "operation": "canonical-english-full",
+      "endpoint": "/v1/responses",
+      "localBatchId": "slb-20260710192405075-001",
+      "providerBatchId": "batch_6a51481224308190be720a7e7e2f159f",
+      "manifestPath": "content-ideas/content/dark-truth-episodes/.batch/manifests/batch-slb-20260710192405075-001.manifest.json",
+      "updatedAt": "2026-07-10T19:29:22.876Z"
+    },
+    {
+      "customId": "dte:033:english-short:en:4749ef86:b93832db",
+      "episodeId": "033",
+      "stageType": "rewrite-short",
+      "locale": "en",
+      "format": "short",
+      "status": "running",
+      "operation": "english-short",
+      "endpoint": "/v1/responses",
+      "localBatchId": "slb-20260710192405075-001",
+      "providerBatchId": "batch_6a51481224308190be720a7e7e2f159f",
+      "manifestPath": "content-ideas/content/dark-truth-episodes/.batch/manifests/batch-slb-20260710192405075-001.manifest.json",
+      "updatedAt": "2026-07-10T19:29:22.876Z"
+    },
+    {
+      "customId": "dte:033:localization:de:4749ef86:c1cf417c",
+      "episodeId": "033",
+      "stageType": "localize-full",
+      "locale": "de",
+      "format": "full",
+      "status": "running",
+      "operation": "localization",
+      "endpoint": "/v1/responses",
+      "localBatchId": "slb-20260710192405075-001",
+      "providerBatchId": "batch_6a51481224308190be720a7e7e2f159f",
+      "manifestPath": "content-ideas/content/dark-truth-episodes/.batch/manifests/batch-slb-20260710192405075-001.manifest.json",
+      "updatedAt": "2026-07-10T19:29:22.876Z"
+    },
+    {
+      "customId": "dte:033:localization:es:4749ef86:fcf49c0c",
+      "episodeId": "033",
+      "stageType": "localize-full",
+      "locale": "es",
+      "format": "full",
+      "status": "running",
+      "operation": "localization",
+      "endpoint": "/v1/responses",
+      "localBatchId": "slb-20260710192405075-001",
+      "providerBatchId": "batch_6a51481224308190be720a7e7e2f159f",
+      "manifestPath": "content-ideas/content/dark-truth-episodes/.batch/manifests/batch-slb-20260710192405075-001.manifest.json",
+      "updatedAt": "2026-07-10T19:29:22.876Z"
+    },
+    {
+      "customId": "dte:033:localization:fr:4749ef86:84b33a4a",
+      "episodeId": "033",
+      "stageType": "localize-full",
+      "locale": "fr",
+      "format": "full",
+      "status": "running",
+      "operation": "localization",
+      "endpoint": "/v1/responses",
+      "localBatchId": "slb-20260710192405075-001",
+      "providerBatchId": "batch_6a51481224308190be720a7e7e2f159f",
+      "manifestPath": "content-ideas/content/dark-truth-episodes/.batch/manifests/batch-slb-20260710192405075-001.manifest.json",
+      "updatedAt": "2026-07-10T19:29:22.876Z"
+    },
+    {
+      "customId": "dte:033:localization:pt:4749ef86:81d59aac",
+      "episodeId": "033",
+      "stageType": "localize-full",
+      "locale": "pt",
+      "format": "full",
+      "status": "running",
+      "operation": "localization",
+      "endpoint": "/v1/responses",
+      "localBatchId": "slb-20260710192405075-001",
+      "providerBatchId": "batch_6a51481224308190be720a7e7e2f159f",
+      "manifestPath": "content-ideas/content/dark-truth-episodes/.batch/manifests/batch-slb-20260710192405075-001.manifest.json",
+      "updatedAt": "2026-07-10T19:29:22.876Z"
+    }
+  ],
+  "episodes": [
+    {
+      "schemaVersion": "production-summary-v1",
+      "episodeId": "033",
+      "status": "running",
+      "stageCounts": {
+        "running": 6
+      },
+      "stages": [
+        {
+          "stageType": "rewrite-full",
+          "locale": "en",
+          "format": "full",
+          "status": "running",
+          "updatedAt": "2026-07-10T19:29:22.876Z"
+        },
+        {
+          "stageType": "rewrite-short",
+          "locale": "en",
+          "format": "short",
+          "status": "running",
+          "updatedAt": "2026-07-10T19:29:22.876Z"
+        },
+        {
+          "stageType": "localize-full",
+          "locale": "de",
+          "format": "full",
+          "status": "running",
+          "updatedAt": "2026-07-10T19:29:22.876Z"
+        },
+        {
+          "stageType": "localize-full",
+          "locale": "es",
+          "format": "full",
+          "status": "running",
+          "updatedAt": "2026-07-10T19:29:22.876Z"
+        },
+        {
+          "stageType": "localize-full",
+          "locale": "fr",
+          "format": "full",
+          "status": "running",
+          "updatedAt": "2026-07-10T19:29:22.876Z"
+        },
+        {
+          "stageType": "localize-full",
+          "locale": "pt",
+          "format": "full",
+          "status": "running",
+          "updatedAt": "2026-07-10T19:29:22.876Z"
+        }
+      ],
+      "activeCustomIds": [
+        "dte:033:canonical-english-full:en:4749ef86:40fb040c",
+        "dte:033:english-short:en:4749ef86:b93832db",
+        "dte:033:localization:de:4749ef86:c1cf417c",
+        "dte:033:localization:es:4749ef86:fcf49c0c",
+        "dte:033:localization:fr:4749ef86:84b33a4a",
+        "dte:033:localization:pt:4749ef86:81d59aac"
+      ],
+      "failedCustomIds": [],
+      "updatedAt": "2026-07-10T19:29:22.876Z"
+    }
+  ],
+  "notes": [
+    "Text batch run audit folder; .batch manifest remains source of truth."
+  ]
+}

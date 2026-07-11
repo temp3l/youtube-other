@@ -49,6 +49,12 @@ const forbiddenPhrases = [
   "The central rule",
   "The source text",
   "The user requested",
+  "The account became frightening because",
+  "The next event",
+  "A witness, recording or physical mark",
+  "A familiar voice, memory or place",
+  "The official explanation covered",
+  "The surviving evidence did not prove",
 ] as const;
 
 const localeValidationHints = {
@@ -225,9 +231,62 @@ function detectDuplicateNarrationParagraphs(
   paragraphs: readonly string[]
 ): boolean {
   const normalized = paragraphs
-    .map((entry) => normalizeWhitespace(entry).toLowerCase())
+    .map((entry) => normalizeForParagraphRepetition(entry))
     .filter((entry) => entry.length > 0);
   return new Set(normalized).size !== normalized.length;
+}
+
+function normalizeForParagraphRepetition(text: string): string {
+  return normalizeWhitespace(text)
+    .toLowerCase()
+    .replace(/[`*_>#-]/gu, "")
+    .replace(/[^\p{L}\p{N}\s]/gu, "")
+    .trim();
+}
+
+function tokenSet(text: string): Set<string> {
+  return new Set(
+    normalizeForParagraphRepetition(text)
+      .split(/\s+/u)
+      .filter((token) => token.length >= 4)
+  );
+}
+
+function paragraphSimilarity(left: string, right: string): number {
+  const leftTokens = tokenSet(left);
+  const rightTokens = tokenSet(right);
+  if (leftTokens.size === 0 || rightTokens.size === 0) {
+    return 0;
+  }
+  let overlap = 0;
+  for (const token of leftTokens) {
+    if (rightTokens.has(token)) {
+      overlap += 1;
+    }
+  }
+  return overlap / Math.max(leftTokens.size, rightTokens.size);
+}
+
+function detectNearDuplicateNarrationParagraphs(
+  paragraphs: readonly string[]
+): boolean {
+  const candidates = paragraphs.filter(
+    (paragraph) => normalizeForParagraphRepetition(paragraph).length >= 60
+  );
+  for (let left = 0; left < candidates.length; left += 1) {
+    for (let right = left + 1; right < candidates.length; right += 1) {
+      const leftParagraph = candidates[left];
+      const rightParagraph = candidates[right];
+      if (
+        leftParagraph &&
+        rightParagraph &&
+        paragraphSimilarity(leftParagraph, rightParagraph) >= 0.82
+      ) {
+        return true;
+      }
+    }
+  }
+  return false;
 }
 
 const abstractTransitionPatterns = [
@@ -241,6 +300,15 @@ const abstractTransitionPatterns = [
   /\bfrom that point, the pattern stopped looking accidental\b/iu,
   /\bbefore the final decision\b/iu,
   /\ba second escape attempt failed\b/iu,
+  /\bthe account became frightening because\b/iu,
+  /\bthe next event made coincidence less convincing\b/iu,
+  /\bthe surviving evidence did not prove\b/iu,
+  /\bthe official explanation covered\b/iu,
+  /\ball clues are connected to\b/iu,
+  /\balle hinweise stehen im zusammenhang\b/iu,
+  /\btodas las pistas están relacionadas\b/iu,
+  /\btous les indices sont liés\b/iu,
+  /\btodas as pistas estão relacionadas\b/iu,
 ] as const;
 
 function splitNarrationSentences(text: string): readonly string[] {
@@ -639,6 +707,12 @@ export function detectGenericFiller(text: string): string[] {
     "The protagonist",
     "This one became more precise.",
     "The story begins",
+    "The threat reacted to attention.",
+    "The environment reorganized around one person.",
+    "attention, an invitation, a response or an error",
+    "attention, invitation, response, or error",
+    "atención, una invitación, una respuesta o un error",
+    "attention, une invitation, une réponse ou une erreur",
   ];
   return phrases.filter((phrase) => text.includes(phrase));
 }
@@ -893,7 +967,10 @@ export function validateFullNarrationArtifact(
       )
     );
   }
-  if (detectDuplicateNarrationParagraphs(narrationParagraphs)) {
+  if (
+    detectDuplicateNarrationParagraphs(narrationParagraphs) ||
+    detectNearDuplicateNarrationParagraphs(narrationParagraphs)
+  ) {
     issues.push(
       issue(
         GENERATED_STORY_VALIDATION_ISSUE_CODES.FULL_DUPLICATED_MAJOR_SECTION,
@@ -1545,6 +1622,13 @@ export function validateGeneratedStoryPackage(
     shortWordCount,
     packageValue.short.targetNarrationWpm
   );
+  const metadataMin = packageValue.short.recommendedDurationSeconds.min;
+  const metadataMax = packageValue.short.recommendedDurationSeconds.max;
+  if (estimated < metadataMin - 2 || estimated > metadataMax + 2) {
+    issues.push(
+      `Short recommended duration ${metadataMin}-${metadataMax}s does not match actual narration estimate ${Math.round(estimated)}s.`
+    );
+  }
   if (estimated < 30 || estimated > 90) {
     issues.push("Short duration estimate out of bounds.");
   }
@@ -1769,7 +1853,10 @@ export function validateNarrationOnlyFullRewritePackage(
     issues.push("Written messages are not preserved.");
   }
   issues.push(...validateLocaleSpecificNarration(fullText, profile, "full"));
-  if (detectDuplicateNarrationParagraphs(packageValue.full.narrationParagraphs)) {
+  if (
+    detectDuplicateNarrationParagraphs(packageValue.full.narrationParagraphs) ||
+    detectNearDuplicateNarrationParagraphs(packageValue.full.narrationParagraphs)
+  ) {
     issues.push("Localized full duplicated sections.");
   }
   if (detectTruncation(fullText)) {

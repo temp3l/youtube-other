@@ -294,7 +294,7 @@ describe("story localization helpers", () => {
       )
     );
     expect(resolveDefaultOutputDirectory()).toBe(
-      path.join(repoRoot, "content-ideas", "content", "dark-truth-episodes")
+      path.join(repoRoot, "episodes")
     );
   });
 
@@ -309,6 +309,19 @@ describe("story localization helpers", () => {
         ),
       })
     ).toThrow("Legacy rewrite output path is not supported");
+  });
+
+  it("rejects content-ideas as a generated story output root", () => {
+    expect(() =>
+      createStoryLocalizationConfig({
+        outputDirectory: path.join(
+          repoRoot,
+          "content-ideas",
+          "content",
+          "dark-truth-episodes-optimized"
+        ),
+      })
+    ).toThrow("content-ideas is a source/archive area");
   });
 
   it("parses canonical source filenames", () => {
@@ -1091,6 +1104,42 @@ describe("story localization helpers", () => {
       "Unable to reach OpenAI before story localization started"
     );
     expect(client.responses.create).toHaveBeenCalledTimes(1);
+  }, 15000);
+
+  it("omits temperature from the OpenAI preflight request for GPT-5 models", async () => {
+    const tempDir = mkdtempSync(
+      path.join(os.tmpdir(), "story-localization-openai-preflight-temp-")
+    );
+    const config = createStoryLocalizationConfig({
+      outputDirectory: tempDir,
+      languages: [],
+      processingMode: "sync",
+      model: "gpt-5.6-luna",
+    });
+    const create = vi.fn(async () => {
+      throw {
+        message: "fetch failed",
+        code: "ECONNRESET",
+      };
+    });
+    const client = {
+      responses: {
+        create,
+      },
+    };
+
+    await expect(
+      localizeStoryEpisode(sourceFile, config, {
+        client: client as never,
+        preflightConnectivity: true,
+      })
+    ).rejects.toThrow(
+      "Unable to reach OpenAI before story localization started"
+    );
+
+    const preflightRequest = create.mock.calls[0]?.[0];
+    expect(preflightRequest).toBeDefined();
+    expect(preflightRequest).not.toHaveProperty("temperature");
   }, 15000);
 
   it("retries transient OpenAI connectivity failures before succeeding", async () => {

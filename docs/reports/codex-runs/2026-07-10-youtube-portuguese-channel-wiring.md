@@ -1,0 +1,5 @@
+Summary: Wired YouTube upload/auth slot handling for Portuguese alongside the existing English, German, Spanish, and French channel mappings. The OAuth helper now opens the browser automatically when possible and writes the resolved refresh token and channel ID back into local `.env`.
+Changed paths: `packages/config/src/index.ts`, `packages/config/src/index.unit.test.ts`, `apps/cli/src/index.ts`, `scripts/youtube-auth.ts`, `scripts/youtube-auth.unit.test.ts`, `package.json`, `.env.example`, `docs/cli.md`, `docs/development/configuration.md`
+Tests/checks: `pnpm exec vitest run scripts/youtube-auth.unit.test.ts packages/config/src/index.unit.test.ts` (passed, 13 tests); `git diff --check -- scripts/youtube-auth.ts scripts/youtube-auth.unit.test.ts docs/cli.md docs/development/configuration.md packages/config/src/index.ts packages/config/src/index.unit.test.ts apps/cli/src/index.ts package.json .env.example` (passed)
+Commit hash: `24ca8c2`
+Unresolved risks: No end-to-end Google OAuth flow was executed in this run, so browser-launch behavior and live token exchange still need one real local confirmation.

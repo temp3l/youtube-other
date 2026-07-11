@@ -193,9 +193,11 @@ type YoutubeChannelRuntimeConfig = RuntimeConfig & {
   youtubeChannelIdGerman?: string;
   youtubeChannelIdSpanish?: string;
   youtubeChannelIdFrench?: string;
+  youtubeChannelIdPortuguese?: string;
   youtubeRefreshTokenGerman?: string;
   youtubeRefreshTokenSpanish?: string;
   youtubeRefreshTokenFrench?: string;
+  youtubeRefreshTokenPortuguese?: string;
 };
 
 interface DoctorCheck {
@@ -3993,6 +3995,11 @@ function resolveYoutubeChannelIdForLanguage(
       youtubeConfig.youtubeChannelIdFrench ?? youtubeConfig.youtubeChannelId
     );
   }
+  if (prefix === "pt") {
+    return (
+      youtubeConfig.youtubeChannelIdPortuguese ?? youtubeConfig.youtubeChannelId
+    );
+  }
   return youtubeConfig.youtubeChannelId;
 }
 
@@ -4021,6 +4028,12 @@ function resolveYoutubeRefreshTokenForLanguage(
   if (prefix === "fr") {
     return (
       youtubeConfig.youtubeRefreshTokenFrench ??
+      youtubeConfig.youtubeRefreshToken
+    );
+  }
+  if (prefix === "pt") {
+    return (
+      youtubeConfig.youtubeRefreshTokenPortuguese ??
       youtubeConfig.youtubeRefreshToken
     );
   }

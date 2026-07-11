@@ -413,7 +413,7 @@ async function preflightOpenAiConnectivity(
           },
         ],
         max_output_tokens: 16,
-        temperature: 0,
+        ...(shouldIncludeTemperatureForModel(model) ? { temperature: 0 } : {}),
       },
       { signal: controller.signal }
     );
@@ -2803,7 +2803,7 @@ export async function localizeStoryEpisode(
               value as unknown,
               "en"
             );
-            void validateFullNarrationArtifact({
+            const fullValidation = validateFullNarrationArtifact({
               language: "en",
               profile: profileEn,
               storyIr: canonicalEnglishPlan.storyIr,
@@ -2817,13 +2817,16 @@ export async function localizeStoryEpisode(
                   packageValue.preservationChecklist.endingPreserved,
               },
             });
-            return validateNarrationOnlyFullRewritePackage(
-              packageValue,
-              facts,
-              profileEn,
-              "en",
-              canonicalEnglishPlan.characterRenameMap
-            );
+            return [
+              ...fullValidation.messages,
+              ...validateNarrationOnlyFullRewritePackage(
+                packageValue,
+                facts,
+                profileEn,
+                "en",
+                canonicalEnglishPlan.characterRenameMap
+              ),
+            ];
           } catch (error) {
             return [error instanceof Error ? error.message : String(error)];
           }
@@ -3346,7 +3349,7 @@ export async function localizeStoryEpisode(
                 value as unknown,
                 language
               );
-              void validateFullNarrationArtifact({
+              const fullValidation = validateFullNarrationArtifact({
                 language,
                 profile,
                 storyIr: canonicalEnglishPlan.storyIr,
@@ -3367,6 +3370,7 @@ export async function localizeStoryEpisode(
                 parsed,
                 language
               );
+              issues.push(...fullValidation.messages);
               if (!packageValue.full) {
                 issues.push(`Missing full story payload for ${language}.`);
               }
@@ -3379,7 +3383,7 @@ export async function localizeStoryEpisode(
               value as unknown,
               language
             );
-            void validateFullNarrationArtifact({
+            const fullValidation = validateFullNarrationArtifact({
               language,
               profile,
               storyIr: canonicalEnglishPlan.storyIr,
@@ -3393,13 +3397,16 @@ export async function localizeStoryEpisode(
                   packageValue.preservationChecklist.endingPreserved,
               },
             });
-            return validateNarrationOnlyFullRewritePackage(
-              packageValue,
-              facts,
-              profile,
-              language,
-              canonicalEnglishPlan.characterRenameMap
-            ).map(
+            return [
+              ...fullValidation.messages,
+              ...validateNarrationOnlyFullRewritePackage(
+                packageValue,
+                facts,
+                profile,
+                language,
+                canonicalEnglishPlan.characterRenameMap
+              ),
+            ].map(
               (entry) =>
                 `${localizedOutputFiles.full}: ${entry} Localized narration must preserve native characters before TTS.`
             );

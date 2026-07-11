@@ -1,0 +1,467 @@
+{
+  "schemaVersion": "story-localization-batch-v1",
+  "category": "text-localization",
+  "localBatchId": "slb-20260710034438503-001",
+  "rootLocalBatchId": "slb-20260710034438503-001",
+  "retryNumber": 0,
+  "createdAt": "2026-07-10T03:44:38.769Z",
+  "updatedAt": "2026-07-10T19:05:14.928Z",
+  "mode": "batch",
+  "endpoint": "/v1/responses",
+  "model": "gpt-5.4",
+  "completionWindow": "24h",
+  "inputFilePath": "content-ideas/content/dark-truth-episodes/.batch/inputs/batch-slb-20260710034438503-001.jsonl",
+  "inputFileHash": "7b7aff88003f9be0e03ba50348180e4e5aecda3823b2d1f7d3c12c48a2052f85",
+  "openAIInputFileId": "file-GKJhRR6c2BpeMhqFPQWL4x",
+  "openAIBatchId": "batch_6a5077e5d1b08190ba98b4ce6d1001b7",
+  "status": "completed",
+  "items": [
+    {
+      "customId": "dte:033:canonical-english-full:en:a9c7f957:52a1055e",
+      "episodeNumber": "033",
+      "language": "en",
+      "operation": "canonical-english-full",
+      "sourcePath": "content-ideas/content/dark-truth-episodes/033-it-always-comes-back/source/033-it-always-comes-back-en-full.md",
+      "sourceHash": "a9c7f957926dff9adc14837bb1ac777b08b2d5cdfd14b47d237041166bc21821",
+      "promptVersion": "story-localization-v1",
+      "compilerVersion": "story-prompt-compiler-v1",
+      "promptFingerprint": "28b7b2c1b47d6e7b454dd50275f55ec90f63bef1be5215a9429cd17fa286db79",
+      "responseSchemaName": "full_narration_story_package",
+      "responseSchemaVersion": "full-narration-response-schema-v1",
+      "responseSchemaFingerprint": "45b24c3af0c68007c6df2f96850edfcd56a10c4f7e9f6b142ba09f7c47edd1be",
+      "selectedModules": [
+        {
+          "id": "trust-boundary",
+          "version": "1.0.0"
+        },
+        {
+          "id": "core-story-rewrite-task",
+          "version": "1.0.0"
+        },
+        {
+          "id": "full-story-contract",
+          "version": "1.0.0"
+        },
+        {
+          "id": "genre-policy",
+          "version": "1.0.0"
+        },
+        {
+          "id": "locale-rules",
+          "version": "locale-module-v2"
+        },
+        {
+          "id": "dialogue-handling",
+          "version": "1.0.0"
+        },
+        {
+          "id": "names-and-identifiers",
+          "version": "1.0.0"
+        },
+        {
+          "id": "opening-requirements",
+          "version": "1.0.0"
+        },
+        {
+          "id": "ending-requirements",
+          "version": "1.0.0"
+        },
+        {
+          "id": "response-schema",
+          "version": "1.0.0"
+        }
+      ],
+      "configurationHash": "52a1055e194004ad71ae4faae18e6b111144da6bffa48db65f905463c524f6c8",
+      "plannedOutputPaths": [
+        "content-ideas/content/dark-truth-episodes/033-it-always-comes-back/en/full/canonical-full.json",
+        "content-ideas/content/dark-truth-episodes/033-it-always-comes-back/en/full/generation-manifest.json",
+        "content-ideas/content/dark-truth-episodes/033-it-always-comes-back/en/full/script.md",
+        "content-ideas/content/dark-truth-episodes/033-it-always-comes-back/script.md"
+      ],
+      "estimatedInputTokens": 10001,
+      "estimatedOutputTokens": 1673,
+      "preflight": {
+        "policyVersion": "story-preflight-v1",
+        "requestFingerprint": "2ba2318861cc689033d9ca06f814f4b3583ee56d463630f36febb9e877d9cfbd",
+        "status": "allowed",
+        "requestedOutputTokens": 6000,
+        "contextWindowTokens": 400000,
+        "maxModelOutputTokens": 128000,
+        "safetyMarginTokens": 4096
+      },
+      "status": "submitted"
+    },
+    {
+      "customId": "dte:033:english-short:en:a9c7f957:9063ce84",
+      "episodeNumber": "033",
+      "language": "en",
+      "operation": "english-short",
+      "sourcePath": "content-ideas/content/dark-truth-episodes/033-it-always-comes-back/source/033-it-always-comes-back-en-full.md",
+      "sourceHash": "a9c7f957926dff9adc14837bb1ac777b08b2d5cdfd14b47d237041166bc21821",
+      "promptVersion": "story-localization-v1",
+      "promptFingerprint": "4e85bca2d6a3ee5fcb797e386369cf11b8707db480e0fada47e76888cbb3b5c2",
+      "parentArtifact": {
+        "kind": "canonical-english-full",
+        "fingerprint": "52a1055e194004ad71ae4faae18e6b111144da6bffa48db65f905463c524f6c8",
+        "sourceHash": "a9c7f957926dff9adc14837bb1ac777b08b2d5cdfd14b47d237041166bc21821"
+      },
+      "configurationHash": "9063ce8494eac308d00f57bf250385b40c9358892ea29815a517cb97108abe55",
+      "plannedOutputPaths": [
+        "content-ideas/content/dark-truth-episodes/033-it-always-comes-back/en/short/script.md"
+      ],
+      "estimatedInputTokens": 9972,
+      "estimatedOutputTokens": 897,
+      "preflight": {
+        "policyVersion": "story-preflight-v1",
+        "requestFingerprint": "8f0d35fc21866aae44a818d85546f15769688a3413ad48b76adc2f59ce56092b",
+        "status": "allowed",
+        "requestedOutputTokens": 6000,
+        "contextWindowTokens": 400000,
+        "maxModelOutputTokens": 128000,
+        "safetyMarginTokens": 4096
+      },
+      "status": "submitted"
+    },
+    {
+      "customId": "dte:033:localization:de:a9c7f957:b39bb018",
+      "episodeNumber": "033",
+      "language": "de",
+      "operation": "localization",
+      "sourcePath": "content-ideas/content/dark-truth-episodes/033-it-always-comes-back/source/033-it-always-comes-back-en-full.md",
+      "sourceHash": "a9c7f957926dff9adc14837bb1ac777b08b2d5cdfd14b47d237041166bc21821",
+      "promptVersion": "story-localization-v1",
+      "compilerVersion": "story-prompt-compiler-v1",
+      "promptFingerprint": "ab4775a0cd2b82068ad78ab86625c14fd43d5a5ff63cfc9a6ef3bc9ff6fb33f5",
+      "responseSchemaName": "full_narration_story_package",
+      "responseSchemaVersion": "full-narration-response-schema-v1",
+      "responseSchemaFingerprint": "45b24c3af0c68007c6df2f96850edfcd56a10c4f7e9f6b142ba09f7c47edd1be",
+      "parentArtifact": {
+        "kind": "canonical-english-full",
+        "fingerprint": "52a1055e194004ad71ae4faae18e6b111144da6bffa48db65f905463c524f6c8",
+        "sourceHash": "a9c7f957926dff9adc14837bb1ac777b08b2d5cdfd14b47d237041166bc21821",
+        "language": "en",
+        "locale": "en-US",
+        "variant": "full",
+        "storyIrHash": "c2a7ca13ebbefdaaf209eba373847964d465bf5903272975d31fe1dc5e7bf79a",
+        "contractHash": "fa356bac43f71b6b59835f33ce5a0afd6b38f66c29e73b9675238a8bea713f7d",
+        "contractBuildFingerprint": "5b3ea2c8cf8426cd313a4df2341f9809444bad5eb06c8a468e488b8986d4557b"
+      },
+      "selectedModules": [
+        {
+          "id": "trust-boundary",
+          "version": "1.0.0"
+        },
+        {
+          "id": "core-story-rewrite-task",
+          "version": "1.0.0"
+        },
+        {
+          "id": "full-story-contract",
+          "version": "1.0.0"
+        },
+        {
+          "id": "genre-policy",
+          "version": "1.0.0"
+        },
+        {
+          "id": "locale-rules",
+          "version": "locale-module-v2"
+        },
+        {
+          "id": "dialogue-handling",
+          "version": "1.0.0"
+        },
+        {
+          "id": "names-and-identifiers",
+          "version": "1.0.0"
+        },
+        {
+          "id": "opening-requirements",
+          "version": "1.0.0"
+        },
+        {
+          "id": "ending-requirements",
+          "version": "1.0.0"
+        },
+        {
+          "id": "response-schema",
+          "version": "1.0.0"
+        }
+      ],
+      "configurationHash": "b39bb018429f85eabc05ebd608fea83a6a4d80e0da817ea002505fa50311874f",
+      "plannedOutputPaths": [
+        "content-ideas/content/dark-truth-episodes/033-it-always-comes-back/de/full/script.md"
+      ],
+      "estimatedInputTokens": 8319,
+      "estimatedOutputTokens": 1672,
+      "preflight": {
+        "policyVersion": "story-preflight-v1",
+        "requestFingerprint": "9912d08191387eab1a0de35ef799701c53585918e78d54eb9c1293810e1b89d4",
+        "status": "allowed",
+        "requestedOutputTokens": 6000,
+        "contextWindowTokens": 400000,
+        "maxModelOutputTokens": 128000,
+        "safetyMarginTokens": 4096
+      },
+      "status": "submitted"
+    },
+    {
+      "customId": "dte:033:localization:es:a9c7f957:e4f09e89",
+      "episodeNumber": "033",
+      "language": "es",
+      "operation": "localization",
+      "sourcePath": "content-ideas/content/dark-truth-episodes/033-it-always-comes-back/source/033-it-always-comes-back-en-full.md",
+      "sourceHash": "a9c7f957926dff9adc14837bb1ac777b08b2d5cdfd14b47d237041166bc21821",
+      "promptVersion": "story-localization-v1",
+      "compilerVersion": "story-prompt-compiler-v1",
+      "promptFingerprint": "2dee458e0d05826fd0b30aa7185a0ee550c17e713e6cd7a2f52ccf07aac10f96",
+      "responseSchemaName": "full_narration_story_package",
+      "responseSchemaVersion": "full-narration-response-schema-v1",
+      "responseSchemaFingerprint": "45b24c3af0c68007c6df2f96850edfcd56a10c4f7e9f6b142ba09f7c47edd1be",
+      "parentArtifact": {
+        "kind": "canonical-english-full",
+        "fingerprint": "52a1055e194004ad71ae4faae18e6b111144da6bffa48db65f905463c524f6c8",
+        "sourceHash": "a9c7f957926dff9adc14837bb1ac777b08b2d5cdfd14b47d237041166bc21821",
+        "language": "en",
+        "locale": "en-US",
+        "variant": "full",
+        "storyIrHash": "c2a7ca13ebbefdaaf209eba373847964d465bf5903272975d31fe1dc5e7bf79a",
+        "contractHash": "fa356bac43f71b6b59835f33ce5a0afd6b38f66c29e73b9675238a8bea713f7d",
+        "contractBuildFingerprint": "5b3ea2c8cf8426cd313a4df2341f9809444bad5eb06c8a468e488b8986d4557b"
+      },
+      "selectedModules": [
+        {
+          "id": "trust-boundary",
+          "version": "1.0.0"
+        },
+        {
+          "id": "core-story-rewrite-task",
+          "version": "1.0.0"
+        },
+        {
+          "id": "full-story-contract",
+          "version": "1.0.0"
+        },
+        {
+          "id": "genre-policy",
+          "version": "1.0.0"
+        },
+        {
+          "id": "locale-rules",
+          "version": "locale-module-v2"
+        },
+        {
+          "id": "dialogue-handling",
+          "version": "1.0.0"
+        },
+        {
+          "id": "names-and-identifiers",
+          "version": "1.0.0"
+        },
+        {
+          "id": "opening-requirements",
+          "version": "1.0.0"
+        },
+        {
+          "id": "ending-requirements",
+          "version": "1.0.0"
+        },
+        {
+          "id": "response-schema",
+          "version": "1.0.0"
+        }
+      ],
+      "configurationHash": "e4f09e89675cb938713d18fda7e7704417ebde8283fb363f10144be36b30703a",
+      "plannedOutputPaths": [
+        "content-ideas/content/dark-truth-episodes/033-it-always-comes-back/es/full/script.md"
+      ],
+      "estimatedInputTokens": 8647,
+      "estimatedOutputTokens": 1672,
+      "preflight": {
+        "policyVersion": "story-preflight-v1",
+        "requestFingerprint": "30eb5f0be2068541d2d34e9c25537e63a35b61f8a0794901293c53e1ad0eaee3",
+        "status": "allowed",
+        "requestedOutputTokens": 6000,
+        "contextWindowTokens": 400000,
+        "maxModelOutputTokens": 128000,
+        "safetyMarginTokens": 4096
+      },
+      "status": "submitted"
+    },
+    {
+      "customId": "dte:033:localization:fr:a9c7f957:828c056a",
+      "episodeNumber": "033",
+      "language": "fr",
+      "operation": "localization",
+      "sourcePath": "content-ideas/content/dark-truth-episodes/033-it-always-comes-back/source/033-it-always-comes-back-en-full.md",
+      "sourceHash": "a9c7f957926dff9adc14837bb1ac777b08b2d5cdfd14b47d237041166bc21821",
+      "promptVersion": "story-localization-v1",
+      "compilerVersion": "story-prompt-compiler-v1",
+      "promptFingerprint": "de1741e51535e6366f39c05b0f35a209ce3b0ab641895af458adae1ef1d475e3",
+      "responseSchemaName": "full_narration_story_package",
+      "responseSchemaVersion": "full-narration-response-schema-v1",
+      "responseSchemaFingerprint": "45b24c3af0c68007c6df2f96850edfcd56a10c4f7e9f6b142ba09f7c47edd1be",
+      "parentArtifact": {
+        "kind": "canonical-english-full",
+        "fingerprint": "52a1055e194004ad71ae4faae18e6b111144da6bffa48db65f905463c524f6c8",
+        "sourceHash": "a9c7f957926dff9adc14837bb1ac777b08b2d5cdfd14b47d237041166bc21821",
+        "language": "en",
+        "locale": "en-US",
+        "variant": "full",
+        "storyIrHash": "c2a7ca13ebbefdaaf209eba373847964d465bf5903272975d31fe1dc5e7bf79a",
+        "contractHash": "fa356bac43f71b6b59835f33ce5a0afd6b38f66c29e73b9675238a8bea713f7d",
+        "contractBuildFingerprint": "5b3ea2c8cf8426cd313a4df2341f9809444bad5eb06c8a468e488b8986d4557b"
+      },
+      "selectedModules": [
+        {
+          "id": "trust-boundary",
+          "version": "1.0.0"
+        },
+        {
+          "id": "core-story-rewrite-task",
+          "version": "1.0.0"
+        },
+        {
+          "id": "full-story-contract",
+          "version": "1.0.0"
+        },
+        {
+          "id": "genre-policy",
+          "version": "1.0.0"
+        },
+        {
+          "id": "locale-rules",
+          "version": "locale-module-v2"
+        },
+        {
+          "id": "dialogue-handling",
+          "version": "1.0.0"
+        },
+        {
+          "id": "names-and-identifiers",
+          "version": "1.0.0"
+        },
+        {
+          "id": "opening-requirements",
+          "version": "1.0.0"
+        },
+        {
+          "id": "ending-requirements",
+          "version": "1.0.0"
+        },
+        {
+          "id": "response-schema",
+          "version": "1.0.0"
+        }
+      ],
+      "configurationHash": "828c056ac696c515011e22062ef2907be338e9dc56721f142e6078f956b1c6d5",
+      "plannedOutputPaths": [
+        "content-ideas/content/dark-truth-episodes/033-it-always-comes-back/fr/full/script.md"
+      ],
+      "estimatedInputTokens": 8434,
+      "estimatedOutputTokens": 1672,
+      "preflight": {
+        "policyVersion": "story-preflight-v1",
+        "requestFingerprint": "64c6230750d6d03407eedc3110c51fb90dbba7bb35e964470c6fbfd7b44d8251",
+        "status": "allowed",
+        "requestedOutputTokens": 6000,
+        "contextWindowTokens": 400000,
+        "maxModelOutputTokens": 128000,
+        "safetyMarginTokens": 4096
+      },
+      "status": "submitted"
+    },
+    {
+      "customId": "dte:033:localization:pt:a9c7f957:b19be303",
+      "episodeNumber": "033",
+      "language": "pt",
+      "operation": "localization",
+      "sourcePath": "content-ideas/content/dark-truth-episodes/033-it-always-comes-back/source/033-it-always-comes-back-en-full.md",
+      "sourceHash": "a9c7f957926dff9adc14837bb1ac777b08b2d5cdfd14b47d237041166bc21821",
+      "promptVersion": "story-localization-v1",
+      "compilerVersion": "story-prompt-compiler-v1",
+      "promptFingerprint": "97068d15ad9a2b8c90e621c8d12589d552278002b859cc75baa293ebdb5fcec1",
+      "responseSchemaName": "full_narration_story_package",
+      "responseSchemaVersion": "full-narration-response-schema-v1",
+      "responseSchemaFingerprint": "45b24c3af0c68007c6df2f96850edfcd56a10c4f7e9f6b142ba09f7c47edd1be",
+      "parentArtifact": {
+        "kind": "canonical-english-full",
+        "fingerprint": "52a1055e194004ad71ae4faae18e6b111144da6bffa48db65f905463c524f6c8",
+        "sourceHash": "a9c7f957926dff9adc14837bb1ac777b08b2d5cdfd14b47d237041166bc21821",
+        "language": "en",
+        "locale": "en-US",
+        "variant": "full",
+        "storyIrHash": "c2a7ca13ebbefdaaf209eba373847964d465bf5903272975d31fe1dc5e7bf79a",
+        "contractHash": "fa356bac43f71b6b59835f33ce5a0afd6b38f66c29e73b9675238a8bea713f7d",
+        "contractBuildFingerprint": "5b3ea2c8cf8426cd313a4df2341f9809444bad5eb06c8a468e488b8986d4557b"
+      },
+      "selectedModules": [
+        {
+          "id": "trust-boundary",
+          "version": "1.0.0"
+        },
+        {
+          "id": "core-story-rewrite-task",
+          "version": "1.0.0"
+        },
+        {
+          "id": "full-story-contract",
+          "version": "1.0.0"
+        },
+        {
+          "id": "genre-policy",
+          "version": "1.0.0"
+        },
+        {
+          "id": "locale-rules",
+          "version": "locale-module-v2"
+        },
+        {
+          "id": "dialogue-handling",
+          "version": "1.0.0"
+        },
+        {
+          "id": "names-and-identifiers",
+          "version": "1.0.0"
+        },
+        {
+          "id": "opening-requirements",
+          "version": "1.0.0"
+        },
+        {
+          "id": "ending-requirements",
+          "version": "1.0.0"
+        },
+        {
+          "id": "response-schema",
+          "version": "1.0.0"
+        }
+      ],
+      "configurationHash": "b19be3034e5bae68f86b324f335346253fbc064188e9ba28bdcd0dfcbe0e1f20",
+      "plannedOutputPaths": [
+        "content-ideas/content/dark-truth-episodes/033-it-always-comes-back/pt/full/script.md"
+      ],
+      "estimatedInputTokens": 8834,
+      "estimatedOutputTokens": 1672,
+      "preflight": {
+        "policyVersion": "story-preflight-v1",
+        "requestFingerprint": "8b7c45c2ef42c7af678f40cc5818731fb87d16d839c03923b344eaae31385e45",
+        "status": "allowed",
+        "requestedOutputTokens": 6000,
+        "contextWindowTokens": 400000,
+        "maxModelOutputTokens": 128000,
+        "safetyMarginTokens": 4096
+      },
+      "status": "submitted"
+    }
+  ],
+  "errorFileId": "file-TqbMX2KbNnXFtwxhgPFE5k",
+  "submittedAt": "2026-07-10T04:41:10.001Z",
+  "completedAt": "2026-07-10T05:12:16.000Z",
+  "requestCounts": {
+    "total": 6,
+    "completed": 0,
+    "failed": 6
+  },
+  "errorFilePath": "content-ideas/content/dark-truth-episodes/.batch/errors/batch-slb-20260710034438503-001.errors.jsonl"
+}

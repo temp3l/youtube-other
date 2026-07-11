@@ -71,6 +71,37 @@ describe("story prompt compiler", () => {
     ).toHaveLength(1);
   });
 
+  it("adds faithful localization constraints to localized full prompts", async () => {
+    const parsed = await parseCanonicalSourceStory(sourceFile);
+    const facts = extractCanonicalStoryFacts(parsed);
+    const compiled = compileFullStoryPrompt({
+      language: "fr",
+      adaptationMode: "faithful",
+      sourceStory: parsed,
+      canonicalFacts: facts,
+    });
+
+    expect(compiled.user).toContain("Localize faithfully into the target language");
+    expect(compiled.user).toContain("Do not summarize, generalize, reconstruct, or independently rewrite the story");
+    expect(compiled.user).toContain("preserve all named characters, required events, objects, numbers, causal links");
+  });
+
+  it("adds cinematic English full-story constraints", async () => {
+    const parsed = await parseCanonicalSourceStory(sourceFile);
+    const facts = extractCanonicalStoryFacts(parsed);
+    const compiled = compileFullStoryPrompt({
+      language: "en",
+      adaptationMode: "retention-optimized",
+      sourceStory: parsed,
+      canonicalFacts: facts,
+    });
+
+    expect(compiled.user).toContain("deliver the first impossible detail immediately");
+    expect(compiled.user).toContain("Replace generic investigation summaries with escalating experiments");
+    expect(compiled.user).toContain("End on a concrete image, action, sound, object, or contradiction");
+    expect(compiled.user).toContain("The climax must not silently change the rule");
+  });
+
   it("selects exactly one locale module and one genre policy module", async () => {
     const parsed = await parseCanonicalSourceStory(sourceFile);
     const facts = extractCanonicalStoryFacts(parsed);
@@ -347,5 +378,9 @@ describe("story prompt compiler", () => {
     expect(compiled.user).toContain(
       "Do not invent unsupported mechanics, extra reveal logic, or a bridge to the full video."
     );
+    expect(compiled.user).toContain("0-3 seconds impossible hook");
+    expect(compiled.user).toContain("35-50 seconds active climax");
+    expect(compiled.user).toContain("50-60 seconds concrete final reversal");
+    expect(compiled.user).toContain("canonical final reveal");
   });
 });

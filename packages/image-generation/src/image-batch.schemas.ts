@@ -302,6 +302,7 @@ export const openAiImageBatchOutputLineSchema = z
         message: z.string().min(1).optional(),
       })
       .passthrough()
+      .nullable()
       .optional(),
   })
   .passthrough();

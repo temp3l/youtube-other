@@ -10,6 +10,13 @@ import { type CanonicalStoryFacts, type LanguageCode } from "./story-localizatio
 
 const BANNED_OUTLINE_PHRASES = [
   "the protagonist",
+  "the account became frightening because",
+  "the next event",
+  "a witness, recording or physical mark",
+  "a witness, recording, or physical mark",
+  "a familiar voice, memory or place",
+  "the official explanation covered",
+  "the surviving evidence did not prove",
   "the central rule",
   "this story follows",
   "in this story",
@@ -30,7 +37,49 @@ const BANNED_OUTLINE_PHRASES = [
   "die geschichte beginnt",
   "die bedrohung folgt einer regel",
   "später erscheint ein letzter beweis",
+  "the discovery changed the emotional stakes",
+  "at this point, the account accelerated",
+  "the purpose of the sound was",
+  "the story remains disturbing because",
+  "the final action worked because",
+  "a second proof confirmed",
+  "the central sign returned from an impossible location",
+  "the environment reorganized around one person",
+  "all clues are connected to",
+  "central motif returns",
+  "it remains consistent in timing",
+  "alle hinweise stehen im zusammenhang",
+  "das zentrale motiv kehrt",
+  "todas las pistas están relacionadas",
+  "el motivo central vuelve",
+  "tous les indices sont liés",
+  "le motif central revient",
+  "todas as pistas estão relacionadas",
+  "o motivo central volta",
+  "el protagonista",
+  "le protagoniste",
+  "o protagonista",
+  "die hauptfigur",
 ];
+
+const ABSTRACT_COMMENTARY_PATTERNS = [
+  /\b(?:discovery|reveal|moment|detail|incident|account|proof|evidence|sign|environment)\s+(?:changed|accelerated|confirmed|returned|reorganized|increased|established)\b/iu,
+  /\b(?:emotional stakes|story structure|sound motif|audience|viewer|listener|tension|danger|threat)\s+(?:changed|increases|recognise|recognize|functions|works|matters|means)\b/iu,
+  /\b(?:purpose|point|function|meaning|implication)\s+of\s+(?:the\s+)?(?:scene|sound|ending|detail|reveal)\b/iu,
+  /\b(?:the story|the scene|the ending|the climax|the final action)\s+(?:remains|works|functions|shows|demonstrates|is disturbing because)\b/iu,
+  /\b(?:the account|the next event|the surviving evidence|the official explanation|the protagonist)\b/iu,
+  /\b(?:witness|recording|physical mark|sound|object|warning|authorities|relatives)\s+or\s+(?:physical mark|warning|relatives)\b/iu,
+  /\b(?:attention|invitation|response|error)\b[^.?!]{0,90}\b(?:attention|invitation|response|error)\b/iu,
+  /\b(?:atención|invitación|respuesta|error)\b[^.?!]{0,90}\b(?:atención|invitación|respuesta|error)\b/iu,
+  /\b(?:attention|invitation|réponse|erreur)\b[^.?!]{0,90}\b(?:attention|invitation|réponse|erreur)\b/iu,
+  /\b(?:atenção|convite|resposta|erro)\b[^.?!]{0,90}\b(?:atenção|convite|resposta|erro)\b/iu,
+] as const;
+
+const CONCRETE_DETAIL_PATTERNS = [
+  /\b(?:opened|closed|picked|pressed|turned|stepped|ran|dragged|held|dropped|cut|sealed|painted|scanned|watched|heard|saw|entered|removed|retrieved)\b/iu,
+  /\b(?:door|window|canvas|portrait|painting|mug|watch|light|camera|scanner|room|floor|wall|hand|face|glass|mirror|varnish|primer)\b/iu,
+  /\b(?:wet|cold|white|red|silver|dark|bright|silent|loud|stale|dust|smell|sound|shadow|reflection)\b/iu,
+] as const;
 
 function normalizeForDuplicate(value: string): string {
   return normalizeWhitespace(value)
@@ -56,6 +105,73 @@ function paragraphDuplicates(text: string): readonly string[] {
   return duplicates;
 }
 
+function tokenizeNormalized(value: string): readonly string[] {
+  const normalized = normalizeForDuplicate(value);
+  return normalized
+    .split(/\s+/u)
+    .filter((token) => token.length >= 4);
+}
+
+function tokenSimilarity(left: string, right: string): number {
+  const leftTokens = new Set(tokenizeNormalized(left));
+  const rightTokens = new Set(tokenizeNormalized(right));
+  if (leftTokens.size === 0 || rightTokens.size === 0) {
+    return 0;
+  }
+  let overlap = 0;
+  for (const token of leftTokens) {
+    if (rightTokens.has(token)) {
+      overlap += 1;
+    }
+  }
+  return overlap / Math.max(leftTokens.size, rightTokens.size);
+}
+
+function nearDuplicateParagraphs(text: string): readonly string[] {
+  const paragraphs = text
+    .split(/\n{2,}/u)
+    .map((paragraph) => normalizeWhitespace(paragraph))
+    .filter((paragraph) => normalizeForDuplicate(paragraph).length >= 60);
+  const duplicates: string[] = [];
+  for (let left = 0; left < paragraphs.length; left += 1) {
+    for (let right = left + 1; right < paragraphs.length; right += 1) {
+      const leftParagraph = paragraphs[left];
+      const rightParagraph = paragraphs[right];
+      if (
+        leftParagraph &&
+        rightParagraph &&
+        tokenSimilarity(leftParagraph, rightParagraph) >= 0.82
+      ) {
+        duplicates.push(rightParagraph.slice(0, 100));
+      }
+    }
+  }
+  return duplicates;
+}
+
+function repeatedSentenceOpenings(sentences: readonly string[]): readonly string[] {
+  const counts = new Map<string, number>();
+  for (const sentence of sentences) {
+    const opening = tokenizeNormalized(sentence).slice(0, 4).join(" ");
+    if (opening.length < 12) {
+      continue;
+    }
+    counts.set(opening, (counts.get(opening) ?? 0) + 1);
+  }
+  return [...counts.entries()]
+    .filter(([, count]) => count >= 3)
+    .map(([opening]) => opening);
+}
+
+function paragraphIndexForExcerpt(text: string, excerpt: string): number | undefined {
+  const normalizedExcerpt = normalizeWhitespace(excerpt).slice(0, 40);
+  const paragraphs = text.split(/\n{2,}/u);
+  const index = paragraphs.findIndex((paragraph) =>
+    normalizeWhitespace(paragraph).includes(normalizedExcerpt)
+  );
+  return index >= 0 ? index : undefined;
+}
+
 function includesAny(lower: string, values: readonly string[] | undefined): boolean {
   return (values ?? []).some((value) => lower.includes(value.toLowerCase()));
 }
@@ -72,10 +188,54 @@ function finding(args: {
   readonly code: string;
   readonly message: string;
   readonly severity: "warning" | "error";
+  readonly category?: StoryQualityFinding["category"];
+  readonly evidence?: readonly string[];
+  readonly repairable?: boolean;
   readonly repairScope?: RepairScope;
   readonly deterministicFix?: string;
+  readonly language?: string | undefined;
+  readonly paragraphIndex?: number | undefined;
+  readonly excerpt?: string | undefined;
+  readonly explanation?: string | undefined;
+  readonly suggestedRepairAction?: string | undefined;
 }): StoryQualityFinding {
-  return args;
+  return {
+    code: args.code,
+    message: args.message,
+    severity: args.severity,
+    ...(args.category !== undefined ? { category: args.category } : {}),
+    ...(args.evidence !== undefined ? { evidence: args.evidence } : {}),
+    ...(args.repairable !== undefined ? { repairable: args.repairable } : {}),
+    ...(args.repairScope !== undefined ? { repairScope: args.repairScope } : {}),
+    ...(args.deterministicFix !== undefined
+      ? { deterministicFix: args.deterministicFix }
+      : {}),
+    ...(args.language !== undefined ? { language: args.language } : {}),
+    ...(args.paragraphIndex !== undefined
+      ? { paragraphIndex: args.paragraphIndex }
+      : {}),
+    ...(args.excerpt !== undefined ? { excerpt: args.excerpt } : {}),
+    ...(args.explanation !== undefined ? { explanation: args.explanation } : {}),
+    ...(args.suggestedRepairAction !== undefined
+      ? { suggestedRepairAction: args.suggestedRepairAction }
+      : {}),
+  };
+}
+
+function abstractCommentarySentences(text: string): readonly string[] {
+  return splitIntoSentences(text).filter((sentence) =>
+    ABSTRACT_COMMENTARY_PATTERNS.some((pattern) => pattern.test(sentence))
+  );
+}
+
+function concreteSentenceRatio(sentences: readonly string[]): number {
+  if (sentences.length === 0) {
+    return 0;
+  }
+  const concrete = sentences.filter((sentence) =>
+    CONCRETE_DETAIL_PATTERNS.some((pattern) => pattern.test(sentence))
+  ).length;
+  return concrete / sentences.length;
 }
 
 export function runStoryQualityGate(args: {
@@ -85,6 +245,11 @@ export function runStoryQualityGate(args: {
   readonly facts: CanonicalStoryFacts;
   readonly budget: StoryGenerationBudget;
   readonly targetWordRange?: { readonly min: number; readonly max: number };
+  readonly sourceWordCount?: number;
+  readonly lengthRatioWarningMin?: number;
+  readonly lengthRatioBlockMin?: number;
+  readonly lengthRatioWarningMax?: number;
+  readonly lengthRatioBlockMax?: number;
 }): StoryQualityGateResult {
   const findings: StoryQualityFinding[] = [];
   const warnings: string[] = [];
@@ -102,10 +267,43 @@ export function runStoryQualityGate(args: {
           code: "WORD_RANGE_INVALID",
           message: `Narration word count ${wordCount} is outside ${args.targetWordRange.min}-${args.targetWordRange.max}.`,
           severity: "error",
+          category: "length-mismatch",
+          repairable: true,
           repairScope: "targeted-short-repair",
         })
       );
       repairScopes.add("targeted-short-repair");
+    }
+  }
+
+  if (args.sourceWordCount && args.sourceWordCount > 0) {
+    const ratio = wordCount / args.sourceWordCount;
+    const warningMin = args.lengthRatioWarningMin ?? 0.9;
+    const blockMin = args.lengthRatioBlockMin ?? 0.85;
+    const warningMax = args.lengthRatioWarningMax ?? 1.1;
+    const blockMax = args.lengthRatioBlockMax;
+    if (ratio < blockMin || (blockMax !== undefined && ratio > blockMax)) {
+      findings.push(
+        finding({
+          code: "SOURCE_LENGTH_RATIO_BLOCKED",
+          message: `Narration/source word ratio ${ratio.toFixed(2)} is outside blocking limits.`,
+          severity: "error",
+          category: "length-mismatch",
+          repairable: true,
+          repairScope: "targeted-short-repair",
+        })
+      );
+      repairScopes.add("targeted-short-repair");
+    } else if (ratio < warningMin || ratio > warningMax) {
+      findings.push(
+        finding({
+          code: "SOURCE_LENGTH_RATIO_WARNING",
+          message: `Narration/source word ratio ${ratio.toFixed(2)} is outside warning limits.`,
+          severity: "warning",
+          category: "length-mismatch",
+          repairable: true,
+        })
+      );
     }
   }
 
@@ -137,6 +335,60 @@ export function runStoryQualityGate(args: {
         code: "DUPLICATE_NARRATIVE_PARAGRAPH",
         message: "Duplicate or near-duplicate narrative paragraphs detected.",
         severity: "error",
+        language: args.language,
+        excerpt: duplicates[0],
+        paragraphIndex:
+          duplicates[0] !== undefined
+            ? paragraphIndexForExcerpt(args.text, duplicates[0])
+            : undefined,
+        explanation:
+          "A final narration artifact repeated a normalized paragraph.",
+        suggestedRepairAction:
+          "Regenerate or repair from the canonical source and remove repeated boilerplate before downstream production.",
+        repairScope: "targeted-short-repair",
+      })
+    );
+    repairScopes.add("targeted-short-repair");
+  }
+
+  const nearDuplicates = nearDuplicateParagraphs(args.text);
+  if (nearDuplicates.length > 0) {
+    findings.push(
+      finding({
+        code: "NEAR_DUPLICATE_NARRATIVE_PARAGRAPH",
+        message: "Near-duplicate narrative paragraphs detected.",
+        severity: "error",
+        language: args.language,
+        excerpt: nearDuplicates[0],
+        paragraphIndex:
+          nearDuplicates[0] !== undefined
+            ? paragraphIndexForExcerpt(args.text, nearDuplicates[0])
+            : undefined,
+        explanation:
+          "Paragraphs are not byte-identical but repeat the same normalized content.",
+        suggestedRepairAction:
+          "Repair only the repeated paragraphs from source events; do not append motif boilerplate after each paragraph.",
+        repairable: true,
+        repairScope: "targeted-short-repair",
+      })
+    );
+    repairScopes.add("targeted-short-repair");
+  }
+
+  const repeatedOpenings = repeatedSentenceOpenings(sentences);
+  if (repeatedOpenings.length > 0) {
+    findings.push(
+      finding({
+        code: "REPEATED_SENTENCE_OPENING",
+        message: "Narration repeats the same sentence opening too often.",
+        severity: "error",
+        language: args.language,
+        excerpt: repeatedOpenings[0],
+        explanation:
+          "Repeated sentence openings are a structural sign of stitched template or retry output.",
+        suggestedRepairAction:
+          "Repair repeated sections into source-grounded events with varied concrete actions.",
+        repairable: true,
         repairScope: "targeted-short-repair",
       })
     );
@@ -150,6 +402,59 @@ export function runStoryQualityGate(args: {
         code: "BANNED_OUTLINE_PHRASE",
         message: `Narration includes banned outline phrase: ${bannedPhrase}.`,
         severity: "error",
+        category: "template-leakage",
+        evidence: [bannedPhrase],
+        language: args.language,
+        paragraphIndex: paragraphIndexForExcerpt(args.text, bannedPhrase),
+        excerpt: bannedPhrase,
+        explanation:
+          "The narration includes planning, motif, or outline language instead of an in-scene event.",
+        suggestedRepairAction:
+          "Replace the phrase with a concrete event from the canonical story and rerun validation.",
+        repairable: true,
+        repairScope: "targeted-short-repair",
+      })
+    );
+    repairScopes.add("targeted-short-repair");
+  }
+
+  const abstractSentences = abstractCommentarySentences(normalized);
+  if (abstractSentences.length > 0) {
+    findings.push(
+      finding({
+        code: "ABSTRACT_PLANNING_LANGUAGE",
+        message: "Narration contains planning-language or story-analysis leakage.",
+        severity: "error",
+        category: "abstract-language",
+        evidence: abstractSentences.slice(0, 3),
+        language: args.language,
+        paragraphIndex:
+          abstractSentences[0] !== undefined
+            ? paragraphIndexForExcerpt(args.text, abstractSentences[0])
+            : undefined,
+        excerpt: abstractSentences[0],
+        explanation:
+          "A sentence describes narrative function, evidence category, or audience effect.",
+        suggestedRepairAction:
+          "Repair the sentence into story-specific actions, evidence, rule discovery, or consequence.",
+        repairable: true,
+        repairScope: "targeted-short-repair",
+      })
+    );
+    repairScopes.add("targeted-short-repair");
+  }
+
+  const concreteRatio = concreteSentenceRatio(sentences);
+  const concreteRatioMinimum =
+    args.artifactKind === "short" ? 0.45 : 0.35;
+  if (sentences.length >= 6 && concreteRatio < concreteRatioMinimum) {
+    findings.push(
+      finding({
+        code: "CONCRETE_DETAIL_DENSITY_LOW",
+        message: "Narration has too few observable actions, objects, sensory details, discoveries, decisions, or consequences.",
+        severity: "error",
+        category: "abstract-language",
+        repairable: true,
         repairScope: "targeted-short-repair",
       })
     );
@@ -178,6 +483,8 @@ export function runStoryQualityGate(args: {
             code,
             message: `Canonical protagonist name is missing: ${name}.`,
             severity: "error",
+            category: "missing-character",
+            repairable: true,
             repairScope: "canonical-name-repair",
           })
         );
@@ -196,6 +503,9 @@ export function runStoryQualityGate(args: {
         code: "CONCRETE_OBJECTS_MISSING",
         message: `Generated text omits too many canonical objects: ${missingObjects.join(", ")}.`,
         severity: "error",
+        category: "missing-object",
+        evidence: missingObjects.slice(0, 5),
+        repairable: true,
         repairScope: "targeted-short-repair",
       })
     );
@@ -284,6 +594,33 @@ export function runStoryQualityGate(args: {
         code: "SUPERNATURAL_RULE_MISSING",
         message: "Generated text does not include a visible supernatural rule.",
         severity: "error",
+        category: "missing-event",
+        repairable: true,
+        repairScope: "targeted-short-repair",
+      })
+    );
+    repairScopes.add("targeted-short-repair");
+  }
+
+  if (
+    /\b(?:attention|invitation|response|error|atención|invitación|respuesta|attention|réponse|erreur|atenção|convite|resposta|erro)\b/iu.test(
+      normalized
+    ) &&
+    /\b(?:or|oder|ou|o)\b/iu.test(normalized)
+  ) {
+    findings.push(
+      finding({
+        code: "SUPERNATURAL_RULE_ALTERNATIVES_UNRESOLVED",
+        message:
+          "Supernatural rule is expressed as unresolved alternatives instead of one committed rule.",
+        severity: "error",
+        category: "rule-contradiction",
+        language: args.language,
+        explanation:
+          "Narration must preserve the selected trigger/consequence/limitation rather than listing possible prompt examples.",
+        suggestedRepairAction:
+          "State the single canonical rule and use it consistently through the climax.",
+        repairable: true,
         repairScope: "targeted-short-repair",
       })
     );
@@ -312,6 +649,8 @@ export function runStoryQualityGate(args: {
         code: "FINAL_REVEAL_MISSING",
         message: "Required final reveal is missing.",
         severity: "error",
+        category: "missing-ending",
+        repairable: true,
         repairScope: "targeted-short-repair",
       })
     );

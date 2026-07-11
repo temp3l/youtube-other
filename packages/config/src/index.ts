@@ -536,11 +536,13 @@ const configSchema = z.object({
   youtubeRefreshTokenGerman: z.string().optional(),
   youtubeRefreshTokenSpanish: z.string().optional(),
   youtubeRefreshTokenFrench: z.string().optional(),
+  youtubeRefreshTokenPortuguese: z.string().optional(),
   youtubeRedirectUri: z.string().url().optional(),
   youtubeChannelId: z.string().optional(),
   youtubeChannelIdGerman: z.string().optional(),
   youtubeChannelIdSpanish: z.string().optional(),
   youtubeChannelIdFrench: z.string().optional(),
+  youtubeChannelIdPortuguese: z.string().optional(),
   apiPort: z.number().int().positive(),
   remoteRenderEnabled: z.boolean(),
   remoteRenderHost: z.string().min(1),
@@ -698,11 +700,13 @@ const envSchema = z.object({
   YOUTUBE_REFRESH_TOKEN_GERMAN: z.string().optional(),
   YOUTUBE_REFRESH_TOKEN_SPANISH: z.string().optional(),
   YOUTUBE_REFRESH_TOKEN_FRENCH: z.string().optional(),
+  YOUTUBE_REFRESH_TOKEN_PORTUGUESE: z.string().optional(),
   YOUTUBE_REDIRECT_URI: z.string().url().optional(),
   YOUTUBE_CHANNEL_ID: z.string().optional(),
   YOUTUBE_CHANNEL_ID_GERMAN: z.string().optional(),
   YOUTUBE_CHANNEL_ID_SPANISH: z.string().optional(),
   YOUTUBE_CHANNEL_ID_FRENCH: z.string().optional(),
+  YOUTUBE_CHANNEL_ID_PORTUGUESE: z.string().optional(),
   OPENAI_BASE_URL: z.string().url().optional(),
   OPENAI_API_KEY: z.string().optional(),
   OPENAI_ORGANIZATION: z.string().optional(),
@@ -1055,6 +1059,10 @@ export async function loadRuntimeConfig(
       overrides.youtubeRefreshTokenFrench ??
       episodeOverrides.youtubeRefreshTokenFrench ??
       env.YOUTUBE_REFRESH_TOKEN_FRENCH,
+    youtubeRefreshTokenPortuguese:
+      overrides.youtubeRefreshTokenPortuguese ??
+      episodeOverrides.youtubeRefreshTokenPortuguese ??
+      env.YOUTUBE_REFRESH_TOKEN_PORTUGUESE,
     youtubeRedirectUri: overrides.youtubeRedirectUri ?? episodeOverrides.youtubeRedirectUri ?? env.YOUTUBE_REDIRECT_URI,
     youtubeChannelId: overrides.youtubeChannelId ?? episodeOverrides.youtubeChannelId ?? env.YOUTUBE_CHANNEL_ID,
     youtubeChannelIdGerman:
@@ -1069,6 +1077,10 @@ export async function loadRuntimeConfig(
       overrides.youtubeChannelIdFrench ??
       episodeOverrides.youtubeChannelIdFrench ??
       env.YOUTUBE_CHANNEL_ID_FRENCH,
+    youtubeChannelIdPortuguese:
+      overrides.youtubeChannelIdPortuguese ??
+      episodeOverrides.youtubeChannelIdPortuguese ??
+      env.YOUTUBE_CHANNEL_ID_PORTUGUESE,
     apiPort: overrides.apiPort ?? episodeOverrides.apiPort ?? env.MEDIAFORGE_API_PORT ?? 3333,
     remoteRenderEnabled:
       overrides.remoteRenderEnabled ??
@@ -1188,6 +1200,9 @@ export function resolveYoutubeChannelIdForLanguage(
   }
   if (languagePrefix === "fr") {
     return config.youtubeChannelIdFrench ?? config.youtubeChannelId;
+  }
+  if (languagePrefix === "pt") {
+    return config.youtubeChannelIdPortuguese ?? config.youtubeChannelId;
   }
   return config.youtubeChannelId;
 }

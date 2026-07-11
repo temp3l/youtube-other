@@ -114,21 +114,29 @@ const modules = [
             ? [
                 `Rewrite the validated source story into ${context.languageProfile.displayName} narration only.`,
                 "Return narration paragraphs that preserve the same story events, relationships, consequences, and ending while using the supplied fictional character names everywhere.",
+                context.languageProfile.code === "en"
+                  ? "For the English canonical full story, deliver the first impossible detail immediately; establish ordinary context only after the audience has seen something impossible."
+                  : "Localize faithfully into the target language. Preserve every required event, object, character, causal relationship, supernatural rule, climax action, and final reveal. Do not summarize, generalize, reconstruct, or independently rewrite the story.",
                 "You may add concise dialogue, immediate reactions, sensory details, transitions, and plausible connective actions when they improve clarity, suspense, or narration flow without changing immutable facts.",
                 "Write concrete scene narration, not an outline. Every paragraph must include an observable action, sensory detail, decision, discovery, or consequence.",
-                "The first 20 seconds must contain a concrete impossible detail, visible action, and the central object or location.",
+                "The first 20 seconds must contain multiple distinct visual developments: a concrete impossible detail, visible action, and the central object or location.",
+                "Each scene must include at least three concrete anchors: location, character action, physical object, sensory detail, evidence, decision, consequence, or unresolved question.",
+                "Replace generic investigation summaries with escalating experiments: each experiment asks a clear question, uses a concrete object or action, produces an observable result, refines the rule, and makes the situation worse.",
                 "Every escalation beat must name the story-specific object, location, threat behavior, supernatural rule, or sensory motif causing the pressure.",
                 "Before the climax, establish what the protagonist wants emotionally: a person, promise, identity, duty, memory, belief, guilt, or shame.",
                 "The final decision must cost the protagonist something concrete: refusing, sacrificing, destroying, abandoning, betraying, accepting a loss, or choosing a painful rule over a comforting lie.",
-                "Do not use abstract transition scaffolding such as 'the first real warning came', 'what followed changed everything', 'the danger became personal', or 'the apparent ending did not survive' unless the same sentence names the specific event.",
+                "Preserve one internally consistent supernatural rule: trigger, effect, exceptions, limits, discovery path, and climax use. The climax must not silently change the rule.",
+                "End on a concrete image, action, sound, object, or contradiction. Do not append explanatory aftermath after the final reveal.",
+                "Do not use abstract transition scaffolding such as 'the discovery changed the emotional stakes', 'at this point, the account accelerated', 'the purpose of the sound was', 'the story remains disturbing because', 'the final action worked because', 'a second proof confirmed', 'the central sign returned from an impossible location', or 'the environment reorganized around one person'.",
                 "Do not produce YouTube metadata, tags, chapters, scene plans, image prompts, rendering instructions, thumbnails, audio/TTS instructions, or provider operational notes.",
               ].join("\n")
             : [
                 `Transform the validated short-event plan into short-form narration in ${context.languageProfile.displayName}.`,
                 "Use the supplied atomic events and beat plan, not sentence fragments, as the source of truth for structure.",
                 "Actively improve compression, rhythm, tension, and clarity while preserving the same facts and the same fictional character names.",
-                "Write a complete micro-story in strict chronology: immediate impossible hook, setup, escalation, rule or mechanism, reversal, and final sting.",
+                "Write a complete micro-story in this strict shape: 0-3 seconds impossible hook; 3-12 seconds proof or contradiction; 12-22 seconds supernatural rule; 22-35 seconds personal consequence; 35-50 seconds active climax; 50-60 seconds concrete final reversal.",
                 "Target 50-70 seconds unless the output constraints say otherwise.",
+                "Preserve the central impossible event, supernatural rule, main character, personal consequence, active climax, and canonical final reveal from the approved full story.",
                 "Include the protagonist name, one concrete object, one concrete location, visible threat behavior, one supernatural rule, compressed emotional cost, and a final concrete sting.",
                 "The short must be narrated horror scenes, not an outline, premise summary, or list of story functions.",
                 "Do not stitch together outline labels or source transition sentences. Replace them with physical actions, visible evidence, and one clear choice by the protagonist.",
@@ -297,6 +305,18 @@ const modules = [
               id: "spoken-language-only",
               text: "Write natural spoken narration and avoid editorial commentary about the rewrite process.",
             },
+            ...(context.languageProfile.code === "en"
+              ? []
+              : [
+                  {
+                    id: "faithful-localization-only",
+                    text: "For localization, preserve all named characters, required events, objects, numbers, causal links, supernatural rule, climax mechanics, emotional cost, final reveal, chronology, point of view, tense, narrator style, horror intensity, and content restrictions. Adapt only syntax, idiom, rhythm, sentence length, punctuation, and natural target-language flow.",
+                  },
+                  {
+                    id: "no-localization-summary",
+                    text: "Do not summarize, compress a full story into an outline, delete named characters or visual objects, replace scenes with generic descriptions, invent a different ending, or substitute statements like 'previous victims tried to escape' for concrete source events.",
+                  },
+                ]),
             {
               id: "preserve-native-unicode",
               text: "Preserve natural spelling, punctuation, diacritics, accents, umlauts, ß, ñ, ç, inverted Spanish punctuation, and all language-specific characters. Do not transliterate localized narration into ASCII. Only filenames and slugs may be ASCII-safe. The final narration must be suitable for native TTS pronunciation.",

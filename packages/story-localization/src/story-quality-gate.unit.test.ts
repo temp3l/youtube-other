@@ -38,6 +38,42 @@ function episode027Parsed(): ParsedSourceStory {
 }
 
 describe("story quality gate", () => {
+  const episode034Facts = {
+    episodeNumber: "034",
+    primaryTitle: "Her Reflection Stopped Copying Her",
+    sourceTitle: "Not My Reflection",
+    characters: [{ name: "Elena Marks", role: "protagonist" }],
+    setting: "modern apartment with mirrored wardrobe doors",
+    criticalObjects: ["mirror", "condensation", "computer screens", "scar", "photographs"],
+    criticalEvents: [
+      "reflection moves one second too early",
+      "reflection writes reversed messages",
+      "dark computer screens show the other apartment",
+      "scar appears on the wrong side",
+      "Elena no longer appears in photographs",
+    ],
+    writtenMessages: ["someone outside the mirror is copying her"],
+    threat: "Elena's reflection acts independently and tries to replace her",
+    primaryReveal: "The reflection has the scar on the wrong side and smiles",
+    finalConsequence: "Elena no longer appears in photographs",
+    protagonistNames: ["Elena"],
+    locationAnchors: ["apartment", "mirror"],
+    threatMotifs: ["glass hum", "reversed whisper"],
+    keyRules: ["The reflection can act ahead of Elena after it learns her attention and memories."],
+    concreteLocations: ["modern apartment", "mirrored wardrobe doors"],
+    keyObjects: ["mirror", "condensation", "computer screens", "scar", "photographs"],
+    supernaturalRule: "The reflection can act ahead of Elena after it learns her attention and memories.",
+    protagonistAttachment: "identity and memory",
+    emotionalCost: "Elena risks losing proof of her identity",
+    finalDecision: "Elena breaks the mirror and accepts losing visible proof of herself",
+    forbiddenInventions: [],
+    localizationPreservationRules: [
+      "Preserve Elena, reflection delay, reversed condensation, computer screens, wrong-side scar, and missing photographs.",
+    ],
+    requiredFinalReveal: "Elena no longer appears in photographs",
+    requiredFinalLine: "Elena no longer appears in photographs.",
+  };
+
   it("flags forbidden inventions and outline phrasing in bad shorts", async () => {
     const goodFixture = path.resolve(
       import.meta.dirname,
@@ -187,5 +223,149 @@ describe("story quality gate", () => {
     expect(outlineCodes).toContain("FORBIDDEN_INVENTION");
     expect(outlineCodes).toContain("CANONICAL_NAME_MISSING");
     expect(outlineCodes).toContain("EMOTIONAL_COST_MISSING");
+  });
+
+  it("blocks planning-language leakage without relying on exact phrase matches", () => {
+    const facts = extractCanonicalStoryFacts(episode027Parsed());
+    const text = [
+      "Noah opened the car door and found the hook swinging from the handle.",
+      "The discovery changed the emotional stakes before the account accelerated.",
+      "The purpose of the sound was to make the audience recognise danger.",
+      "The final action worked because it contradicted what the threat expected.",
+      "Noah locked the bedroom door and heard metal scrape against the wood.",
+      "The hook hung inside the room before anyone touched the latch.",
+    ].join(" ");
+    const result = runStoryQualityGate({
+      artifactKind: "canonical-english-full",
+      language: "en",
+      text,
+      facts,
+      budget: {
+        artifactKind: "canonical-english-full",
+        language: "en",
+        model: "fixture",
+      },
+    });
+
+    expect(result.status).toBe("REPAIRABLE");
+    expect(result.findings).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "ABSTRACT_PLANNING_LANGUAGE",
+          category: "abstract-language",
+          repairable: true,
+        }),
+      ])
+    );
+  });
+
+  it("blocks severe full-localization compression by source ratio", () => {
+    const facts = extractCanonicalStoryFacts(episode027Parsed());
+    const result = runStoryQualityGate({
+      artifactKind: "localized-full",
+      language: "es",
+      text: "Noah vio el gancho en la puerta. Luego escapó de la casa.",
+      facts,
+      budget: {
+        artifactKind: "localized-full",
+        language: "es",
+        model: "fixture",
+      },
+      sourceWordCount: 150,
+    });
+
+    expect(result.findings).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "SOURCE_LENGTH_RATIO_BLOCKED",
+          category: "length-mismatch",
+        }),
+      ])
+    );
+  });
+
+  it("rejects Episode 034 English construction commentary and unresolved rule alternatives", () => {
+    const text = [
+      "Elena raised her hand. Her reflection lowered its own and pointed behind her.",
+      "The account became frightening because each new incident followed a clear rule.",
+      "The next event made coincidence less convincing. A witness, recording or physical mark supported part of the account.",
+      "The threat needed attention, an invitation, a response or an error before it could act.",
+      "The surviving evidence did not prove a supernatural explanation.",
+    ].join("\n\n");
+    const result = runStoryQualityGate({
+      artifactKind: "canonical-english-full",
+      language: "en",
+      text,
+      facts: episode034Facts,
+      budget: { artifactKind: "canonical-english-full", language: "en", model: "fixture" },
+    });
+
+    expect(result.status).toBe("REPAIRABLE");
+    expect(result.findings.map((entry) => entry.code)).toEqual(
+      expect.arrayContaining([
+        "BANNED_OUTLINE_PHRASE",
+        "ABSTRACT_PLANNING_LANGUAGE",
+        "SUPERNATURAL_RULE_ALTERNATIVES_UNRESOLVED",
+      ])
+    );
+    expect(result.findings[0]).toEqual(
+      expect.objectContaining({
+        language: "en",
+        suggestedRepairAction: expect.any(String),
+      })
+    );
+  });
+
+  it("rejects Episode 034 localized repeated title-motif paragraphs", () => {
+    const repeated =
+      "Todas las pistas están relacionadas con «Su reflejo dejó de imitarla». El motivo central vuelve de distintas formas, pero mantiene la misma hora, el mismo comportamiento y el mismo efecto.";
+    const text = [
+      "Elena levantó la mano. Su reflejo bajó la suya y señaló detrás de ella.",
+      repeated,
+      "La pantalla apagada de su portátil mostró otro apartamento, más oscuro, con la cama en una posición imposible.",
+      repeated,
+      "La cicatriz apareció en el lado equivocado del reflejo antes de que el cristal se rompiera.",
+      repeated,
+    ].join("\n\n");
+    const result = runStoryQualityGate({
+      artifactKind: "localized-full",
+      language: "es",
+      text,
+      facts: episode034Facts,
+      budget: { artifactKind: "localized-full", language: "es", model: "fixture" },
+      sourceWordCount: 120,
+      lengthRatioBlockMin: 0.1,
+    });
+
+    expect(result.findings.map((entry) => entry.code)).toEqual(
+      expect.arrayContaining([
+        "DUPLICATE_NARRATIVE_PARAGRAPH",
+        "BANNED_OUTLINE_PHRASE",
+      ])
+    );
+  });
+
+  it("rejects localized full stories that lose Elena and mirror-specific events", () => {
+    const text = [
+      "Una persona nota que algo extraño la persigue en una casa normal.",
+      "La amenaza reacciona cuando recibe atención y cambia la salida disponible.",
+      "Los sonidos normales desaparecen y una voz familiar crea duda.",
+      "Al final aparece una prueba, pero nadie entiende lo que ocurrió.",
+    ].join(" ");
+    const result = runStoryQualityGate({
+      artifactKind: "localized-full",
+      language: "es",
+      text,
+      facts: episode034Facts,
+      budget: { artifactKind: "localized-full", language: "es", model: "fixture" },
+      sourceWordCount: 300,
+    });
+
+    expect(result.findings.map((entry) => entry.code)).toEqual(
+      expect.arrayContaining([
+        "SOURCE_LENGTH_RATIO_BLOCKED",
+        "CONCRETE_OBJECTS_MISSING",
+      ])
+    );
   });
 });

@@ -1,0 +1,30 @@
+[
+  {
+    "id": "hook",
+    "label": "Hook",
+    "purpose": "Open with immediate unease and a recognizable threat.",
+    "tension": "Daniel Frost enters the story while Daniel burned the box, buried the ashes and left town. is already present.",
+    "payoff": "Establishes the premise of 033 - They Buried It—But It Always Came Back fast."
+  },
+  {
+    "id": "escalation",
+    "label": "Escalation",
+    "purpose": "Stack escalating discoveries without introducing new plot mechanics.",
+    "tension": "Each clue narrows the escape route and raises the cost of staying.",
+    "payoff": "The audience stays oriented while the pressure increases."
+  },
+  {
+    "id": "reveal",
+    "label": "Reveal",
+    "purpose": "Land the primary reveal cleanly and late enough to feel earned.",
+    "tension": "It did prove that the official account left out something important.",
+    "payoff": "It did prove that the official account left out something important."
+  },
+  {
+    "id": "ending",
+    "label": "Ending",
+    "purpose": "Finish on the original consequence and preserve the final beat.",
+    "tension": "It did prove that the official account left out something important.",
+    "payoff": "It did prove that the official account left out something important."
+  }
+]

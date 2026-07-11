@@ -666,16 +666,23 @@ YouTube keys:
 - `YOUTUBE_REFRESH_TOKEN_GERMAN`
 - `YOUTUBE_REFRESH_TOKEN_SPANISH`
 - `YOUTUBE_REFRESH_TOKEN_FRENCH`
+- `YOUTUBE_REFRESH_TOKEN_PORTUGUESE`
 - `YOUTUBE_REDIRECT_URI`
 - `YOUTUBE_CHANNEL_ID`
 - `YOUTUBE_CHANNEL_ID_GERMAN`
 - `YOUTUBE_CHANNEL_ID_SPANISH`
 - `YOUTUBE_CHANNEL_ID_FRENCH`
+- `YOUTUBE_CHANNEL_ID_PORTUGUESE`
 
 Local OAuth helpers:
 
 - `pnpm youtube:auth:english`
 - `pnpm youtube:auth:german`
+- `pnpm youtube:auth:spanish`
+- `pnpm youtube:auth:french`
+- `pnpm youtube:auth:portuguese`
+
+Each helper starts a localhost callback server, opens the Google OAuth URL in your default browser when possible, and writes the resolved refresh token and channel ID back into your local `.env`.
 
 ## Execution Reports
 

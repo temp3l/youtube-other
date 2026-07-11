@@ -1,0 +1,72 @@
+{
+  "sourceHash": "a9c7f957926dff9adc14837bb1ac777b08b2d5cdfd14b47d237041166bc21821",
+  "sourceNarrationHash": "a9c7f957926dff9adc14837bb1ac777b08b2d5cdfd14b47d237041166bc21821",
+  "promptTemplateHash": "894ae80a0a1f07fe223ae39a29f45f9282977014af1fd1970f3afb323991a8ce",
+  "extractorImplementationVersion": "canonical-facts-extractor-v3",
+  "schemaVersion": "canonical-story-facts-v3",
+  "model": "deterministic",
+  "reasoningEffort": "none",
+  "locale": "en",
+  "variant": "full",
+  "qualityGateVersion": "story-quality-gate-v3",
+  "protectedElementsVersion": "protected-elements-v2",
+  "facts": {
+    "episodeNumber": "033",
+    "primaryTitle": "They Buried It—But It Always Came Back",
+    "characters": [
+      {
+        "name": "Daniel Frost",
+        "role": "main protagonist"
+      }
+    ],
+    "setting": "",
+    "criticalObjects": [],
+    "criticalEvents": [
+      "Daniel burned the box, buried the ashes and left town.",
+      "The next morning, it was waiting on his kitchen table.",
+      "Daniel Frost was a man clearing his late grandfather's belongings when the story began in a lakeside family cabin.",
+      "The first impossible detail was a small wooden box returning after being destroyed.",
+      "It did not look dangerous at first, which made it easier to ignore."
+    ],
+    "writtenMessages": [],
+    "threat": "Daniel burned the box, buried the ashes and left town.",
+    "primaryReveal": "It did prove that the official account left out something important.",
+    "finalConsequence": "It did prove that the official account left out something important.",
+    "protagonistNames": [
+      "Daniel Frost"
+    ],
+    "locationAnchors": [],
+    "concreteLocations": [],
+    "threatMotifs": [
+      "Daniel burned the box, buried the ashes and left town."
+    ],
+    "keyObjects": [],
+    "keyRules": [
+      "The account became frightening because each new incident followed a clear rule.",
+      "There was no safe solution, only a narrow opportunity.",
+      "Survival came with evidence that authorities or relatives could verify only in fragments.",
+      "Firefighters find no body, only the undamaged box sitting in the ashes.",
+      "The unsettling question is not only what happened to Daniel Frost.",
+      "One repeated detail provided the only stable reference point."
+    ],
+    "forbiddenInventions": [
+      "Adrian",
+      "Adrian Cole",
+      "Funkgerät"
+    ],
+    "requiredFinalReveal": "It did prove that the official account left out something important.",
+    "requiredFinalLine": "It did prove that the official account left out something important.",
+    "supportingCharacters": [],
+    "threatMechanism": "Daniel burned the box, buried the ashes and left town.",
+    "supernaturalRule": "The account became frightening because each new incident followed a clear rule.",
+    "protagonistAttachment": "",
+    "threatTemptation": "",
+    "emotionalCost": "",
+    "finalDecision": "",
+    "localizationPreservationRules": [
+      "Preserve protagonist name Daniel Frost.",
+      "Preserve supernatural rule: The account became frightening because each new incident followed a clear rule."
+    ]
+  },
+  "generatedAt": "2026-07-10T03:44:38.544Z"
+}

@@ -673,6 +673,7 @@ describe("image batch service", () => {
         status_code: 200,
         body: { data: [{ b64_json: imageBase64 }] },
       },
+      error: null,
     });
     const errorJsonl = JSON.stringify({
       custom_id: group.scenePlans[1]?.manifestItem.customId,

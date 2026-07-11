@@ -1,7 +1,10 @@
 import { normalizeWhitespace } from "@mediaforge/shared";
-import { type GeneratedStoryPackage, type LanguageCode, type LanguageProfile, type ParsedSourceStory } from "./story-localization.types.js";
+import { type GeneratedStoryPackage, type LanguageCode } from "./story-localization.types.js";
 import { estimateDurationSeconds, countWords } from "./story-localization.utils.js";
 import { FULL_STORY_PROVENANCE_MARKER } from "./short-rewrite.constants.js";
+import { getLanguageProfile } from "./language-profiles.js";
+
+const SOUND_DESIGN_PAUSE_ALLOWANCE_SECONDS = 5;
 
 const headingLabels: Record<LanguageCode, {
   readonly audio: string;
@@ -55,6 +58,53 @@ function joinParagraphs(paragraphs: readonly string[]): string {
   return paragraphs.map((paragraph) => normalizeWhitespace(paragraph)).filter(Boolean).join("\n\n");
 }
 
+function languageNarrationInstruction(language: LanguageCode): string {
+  const profile = getLanguageProfile(language);
+  return `Speak in natural ${profile.narratorLanguageName} with a restrained dark-documentary tone.`;
+}
+
+function fullAudioInstructions(language: LanguageCode, targetNarrationWpm: number): readonly string[] {
+  return [
+    "Use one consistent adult narrator.",
+    languageNarrationInstruction(language),
+    `Target approximately ${targetNarrationWpm} words per minute.`,
+    "Begin calmly and build tension steadily.",
+    "Keep dialogue grounded and believable.",
+    "Use only a subtle pitch shift and light room reverb for supernatural voices.",
+    "Keep sound effects below narration and avoid loud jump scares.",
+    "Use silence briefly before the final reveal.",
+  ];
+}
+
+function shortNarrationInstructions(language: LanguageCode, targetNarrationWpm: number): readonly string[] {
+  return [
+    "Use the same narrator as the full episode.",
+    languageNarrationInstruction(language),
+    `Speak at approximately ${targetNarrationWpm} words per minute.`,
+    "Begin immediately without a channel introduction.",
+    "Keep the delivery restrained and credible.",
+    "Pause briefly before the final sentence.",
+    "Do not narrate headings or metadata.",
+  ];
+}
+
+function narrationMetrics(
+  narrationParagraphs: readonly string[],
+  wordsPerMinute: number
+): {
+  readonly wordCount: number;
+  readonly estimatedSpeechSeconds: number;
+  readonly estimatedTotalSeconds: number;
+} {
+  const wordCount = countWords(narrationParagraphs.join(" "));
+  const estimatedSpeechSeconds = estimateDurationSeconds(wordCount, wordsPerMinute);
+  return {
+    wordCount,
+    estimatedSpeechSeconds,
+    estimatedTotalSeconds: estimatedSpeechSeconds + SOUND_DESIGN_PAUSE_ALLOWANCE_SECONDS,
+  };
+}
+
 export function renderNarrationOnlyStoryMarkdown(args: {
   readonly episodeNumber: string;
   readonly title: string;
@@ -86,7 +136,7 @@ export function renderLocalizedFullStory(
   sourceSha256?: string
 ): string {
   const labels = headingLabels[language];
-  const duration = estimateDurationSeconds(countWords(packageValue.narrationParagraphs.join(" ")), packageValue.targetNarrationWpm);
+  const metrics = narrationMetrics(packageValue.narrationParagraphs, packageValue.targetNarrationWpm);
   return [
     `# Episode ${episodeNumber} — ${packageValue.title}`,
     "",
@@ -94,7 +144,7 @@ export function renderLocalizedFullStory(
     "",
     `> ${labels.productionNote}`,
     "",
-    joinBulletList(packageValue.audioInstructions),
+    joinBulletList(fullAudioInstructions(language, packageValue.targetNarrationWpm)),
     "",
     "### Episode-specific sound motif",
     "",
@@ -126,7 +176,11 @@ export function renderLocalizedFullStory(
     "",
     `**Target narration pace:** ${packageValue.targetNarrationWpm} words per minute`,
     "",
-    `**Target duration:** approximately ${Math.round(duration / 60)} minutes`,
+    `**Word count:** ${metrics.wordCount}`,
+    "",
+    `**Estimated speech duration:** approximately ${Math.round(metrics.estimatedSpeechSeconds)} seconds`,
+    "",
+    `**Estimated total duration:** approximately ${Math.round(metrics.estimatedTotalSeconds)} seconds after sound-design allowance`,
     "",
     `**Visual direction:** ${packageValue.visualDirection}`,
     "",
@@ -156,12 +210,16 @@ export function renderLocalizedShort(
   language: LanguageCode
 ): string {
   const labels = headingLabels[language];
+  const metrics = narrationMetrics(
+    packageValue.narrationParagraphs,
+    packageValue.targetNarrationWpm
+  );
   return [
     `# Short ${episodeNumber} — ${packageValue.title}`,
     "",
     `## ${labels.narrationInstructions}`,
     "",
-    joinBulletList(packageValue.narrationInstructions),
+    joinBulletList(shortNarrationInstructions(language, packageValue.targetNarrationWpm)),
     "",
     "# Narration Script",
     "",
@@ -179,7 +237,11 @@ export function renderLocalizedShort(
     "",
     "**Format:** 1080 × 1920, 9:16 vertical",
     "",
-    `**Recommended duration:** approximately ${packageValue.recommendedDurationSeconds.min}–${packageValue.recommendedDurationSeconds.max} seconds`,
+    `**Word count:** ${metrics.wordCount}`,
+    "",
+    `**Estimated speech duration:** approximately ${Math.round(metrics.estimatedSpeechSeconds)} seconds`,
+    "",
+    `**Recommended duration:** approximately ${Math.round(metrics.estimatedTotalSeconds)} seconds after pause allowance`,
     "",
     `**Visual guidance:** ${packageValue.visualGuidance}`,
     "",

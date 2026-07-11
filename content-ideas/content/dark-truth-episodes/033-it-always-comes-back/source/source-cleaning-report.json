@@ -1,0 +1,117 @@
+{
+  "schemaVersion": "source-cleaning-report-v1",
+  "cleanerVersion": "source-cleaner-v1",
+  "ruleVersion": "source-cleaning-rules-v1",
+  "deterministic": true,
+  "sourcePath": "/home/box/workspace/fehmarn-seo/youtube/other/content-ideas/content/dark-truth-episodes/033-it-always-comes-back/source/033-it-always-comes-back-en-full.md",
+  "sourceRole": "raw-author-source",
+  "resolvedFrom": "canonical-search",
+  "originalByteLength": 4231,
+  "originalTextHash": "4749ef86e99d286c859ba94aa73a1606558ff90aa67e479324eee68be3bd693f",
+  "normalizedTextHash": "4749ef86e99d286c859ba94aa73a1606558ff90aa67e479324eee68be3bd693f",
+  "cleanedTextHash": "4749ef86e99d286c859ba94aa73a1606558ff90aa67e479324eee68be3bd693f",
+  "cleaningFingerprint": "735eb4dd76b6601e80424e0d7b803cc1076e6806de87f18868e537adbc146f58",
+  "normalizationStats": {
+    "removedBom": false,
+    "normalizedLineEndings": 0,
+    "trimmedTrailingWhitespaceLines": 0,
+    "collapsedBlankLineRuns": 0
+  },
+  "segments": [
+    {
+      "id": "srcseg_528646040bd1452b",
+      "kind": "structural-commentary",
+      "action": "flagged",
+      "reasonCodes": [
+        "FLAGGED_STRUCTURAL_COMMENTARY"
+      ],
+      "originalText": "The protagonist documented what was happening instead of relying on memory. That record later",
+      "cleanedText": "The protagonist documented what was happening instead of relying on memory. That record later",
+      "originalRange": {
+        "startOffset": 3383,
+        "endOffset": 3477
+      },
+      "lineRange": {
+        "startLine": 66,
+        "endLine": 66
+      },
+      "confidence": "heuristic",
+      "preserveForNarration": true
+    },
+    {
+      "id": "srcseg_79cea5b77c96ddbc",
+      "kind": "structural-commentary",
+      "action": "flagged",
+      "reasonCodes": [
+        "FLAGGED_STRUCTURAL_COMMENTARY"
+      ],
+      "originalText": "The threat appeared to understand hesitation. It became most active whenever the protagonist",
+      "cleanedText": "The threat appeared to understand hesitation. It became most active whenever the protagonist",
+      "originalRange": {
+        "startOffset": 3757,
+        "endOffset": 3850
+      },
+      "lineRange": {
+        "startLine": 73,
+        "endLine": 73
+      },
+      "confidence": "heuristic",
+      "preserveForNarration": true
+    }
+  ],
+  "removedSegments": [],
+  "flaggedSegments": [
+    {
+      "id": "srcseg_528646040bd1452b",
+      "kind": "structural-commentary",
+      "action": "flagged",
+      "reasonCodes": [
+        "FLAGGED_STRUCTURAL_COMMENTARY"
+      ],
+      "originalText": "The protagonist documented what was happening instead of relying on memory. That record later",
+      "cleanedText": "The protagonist documented what was happening instead of relying on memory. That record later",
+      "originalRange": {
+        "startOffset": 3383,
+        "endOffset": 3477
+      },
+      "lineRange": {
+        "startLine": 66,
+        "endLine": 66
+      },
+      "confidence": "heuristic",
+      "preserveForNarration": true
+    },
+    {
+      "id": "srcseg_79cea5b77c96ddbc",
+      "kind": "structural-commentary",
+      "action": "flagged",
+      "reasonCodes": [
+        "FLAGGED_STRUCTURAL_COMMENTARY"
+      ],
+      "originalText": "The threat appeared to understand hesitation. It became most active whenever the protagonist",
+      "cleanedText": "The threat appeared to understand hesitation. It became most active whenever the protagonist",
+      "originalRange": {
+        "startOffset": 3757,
+        "endOffset": 3850
+      },
+      "lineRange": {
+        "startLine": 73,
+        "endLine": 73
+      },
+      "confidence": "heuristic",
+      "preserveForNarration": true
+    }
+  ],
+  "warnings": [
+    {
+      "code": "FLAGGED_STRUCTURAL_COMMENTARY",
+      "message": "Possible structural commentary was retained for downstream validation.",
+      "segmentId": "srcseg_528646040bd1452b"
+    },
+    {
+      "code": "FLAGGED_STRUCTURAL_COMMENTARY",
+      "message": "Possible structural commentary was retained for downstream validation.",
+      "segmentId": "srcseg_79cea5b77c96ddbc"
+    }
+  ]
+}

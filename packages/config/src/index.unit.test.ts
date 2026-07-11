@@ -474,13 +474,15 @@ describe("runtime config", () => {
       youtubeChannelId: "global-channel",
       youtubeChannelIdGerman: "german-channel",
       youtubeChannelIdSpanish: "spanish-channel",
-      youtubeChannelIdFrench: "french-channel"
+      youtubeChannelIdFrench: "french-channel",
+      youtubeChannelIdPortuguese: "portuguese-channel"
     });
 
     expect(resolveYoutubeChannelIdForLanguage(config, "de")).toBe("german-channel");
     expect(resolveYoutubeChannelIdForLanguage(config, "de-AT")).toBe("german-channel");
     expect(resolveYoutubeChannelIdForLanguage(config, "es")).toBe("spanish-channel");
     expect(resolveYoutubeChannelIdForLanguage(config, "fr-CA")).toBe("french-channel");
+    expect(resolveYoutubeChannelIdForLanguage(config, "pt-BR")).toBe("portuguese-channel");
     expect(resolveYoutubeChannelIdForLanguage(config, "it")).toBe("global-channel");
     expect(resolveYoutubeChannelIdForLanguage(config, undefined)).toBe("global-channel");
   });

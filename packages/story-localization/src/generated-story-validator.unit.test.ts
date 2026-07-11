@@ -6,6 +6,7 @@ import {
   GENERATED_STORY_VALIDATION_ISSUE_CODES,
   formatValidationIssues,
   validateFullNarrationArtifact,
+  validateGeneratedStoryPackage,
   validateSpokenNarrationText,
   validateNarrationOnlyFullRewritePackage,
   validateShortNarrationArtifact,
@@ -328,6 +329,92 @@ function minimumPassingShortWords(language: SupportedLanguage): number {
 }
 
 describe("generated story validator", () => {
+  it("rejects copied short duration metadata when actual narration is much shorter", () => {
+    const terms = languageTerms("en");
+    const shortNarration =
+      "Elena raised her hand. Her reflection lowered its own and pointed behind her. Elena noticed the delay during a late-night video call. It wrote reversed messages in condensation while she slept. Dark computer screens showed another apartment. The scar appeared on the wrong side. After the mirror shattered, Elena no longer appeared in photographs.";
+    const source = {
+      language: "en" as const,
+      sourceFile: "034-not-my-reflection.md",
+      sourceHash: "a".repeat(64),
+      episodeNumber: "034",
+      slug: "034-not-my-reflection",
+      title: "Her Reflection Stopped Copying Her",
+      audioInstructions: [],
+      narrationParagraphs: [shortNarration],
+      metadata: {
+        episodeNumber: "034",
+        primaryTitle: "Her Reflection Stopped Copying Her",
+        audioInstructions: [],
+        narration: [shortNarration],
+        tags: [],
+        hashtags: [],
+      },
+      content: shortNarration,
+    };
+    const issues = validateGeneratedStoryPackage(
+      {
+        language: "en",
+        full: {
+          title: "Her Reflection Stopped Copying Her",
+          audioInstructions: ["Speak in English."],
+          narrationParagraphs: [
+            `${terms.chronology[0]}. ${terms.threat}. ${terms.rule}. ${terms.fact}.`,
+            `${terms.chronology[1]}. ${terms.chronology[2]}. ${terms.climax}. ${terms.ending}.`,
+            "Lena chose the rule over the comforting voice and lost the only proof that she had been inside the room.",
+          ],
+          thumbnailText: "NOT ME",
+          contentDisclosure: "Fictional horror narration.",
+          seoDescription: "Mirror horror.",
+          tags: ["horror", "mirror", "reflection"],
+          hashtags: ["#Horror"],
+          targetNarrationWpm: 178,
+          visualDirection: "Mirror apartment.",
+        },
+        short: {
+          title: "Her Reflection Stopped Copying Her",
+          narrationInstructions: ["Speak in English."],
+          narrationParagraphs: [shortNarration],
+          thumbnailText: "NOT ME",
+          description: "Mirror horror.",
+          hashtags: ["#Shorts"],
+          targetNarrationWpm: 180,
+          recommendedDurationSeconds: { min: 45, max: 55 },
+          visualGuidance: "Vertical mirror shots.",
+        },
+        preservationChecklist: passingChecklist(),
+        diagnostics: {
+          fullWordCount: 80,
+          shortWordCount: 55,
+          shortEstimatedDurationSeconds: 18,
+          removedGenericFiller: [],
+          adaptationNotes: [],
+        },
+      },
+      {
+        episodeNumber: "034",
+        primaryTitle: "Her Reflection Stopped Copying Her",
+        characters: [{ name: "Elena", role: "protagonist" }],
+        setting: "apartment",
+        criticalObjects: ["mirror", "scar", "photographs"],
+        criticalEvents: ["Elena no longer appeared in photographs"],
+        writtenMessages: [],
+        threat: "reflection",
+        primaryReveal: "The scar appeared on the wrong side",
+        finalConsequence: "Elena no longer appeared in photographs",
+      },
+      getLanguageProfile("en"),
+      source,
+      "en"
+    );
+
+    expect(issues).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining("Short recommended duration 45-55s does not match actual narration estimate"),
+      ])
+    );
+  });
+
   it("passes the full validation matrix for supported languages", () => {
     for (const language of ["en", "es", "de", "pt", "fr"] as const) {
       const terms = languageTerms(language);

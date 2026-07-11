@@ -1,0 +1,47 @@
+{
+  "episodeNumber": "033",
+  "slug": "033-it-always-comes-back",
+  "title": "They Buried It—But It Always Came Back",
+  "protagonist": "Daniel Frost",
+  "antagonist": "Daniel burned the box, buried the ashes and left town.",
+  "setting": "",
+  "premise": "Daniel Frost confronts Daniel burned the box, buried the ashes and left town..",
+  "centralThreat": "Daniel burned the box, buried the ashes and left town.",
+  "primaryReveal": "It did prove that the official account left out something important.",
+  "finalConsequence": "It did prove that the official account left out something important.",
+  "cast": [
+    {
+      "name": "Daniel Frost",
+      "role": "main protagonist"
+    }
+  ],
+  "keyObjects": [],
+  "writtenMessages": [],
+  "storyRules": [
+    "The account became frightening because each new incident followed a clear rule.",
+    "Preserve the exact written messages verbatim.",
+    "The final decision must carry a concrete emotional cost tied to the source."
+  ],
+  "sceneOrder": [
+    "scene-1",
+    "scene-2",
+    "scene-3",
+    "scene-4",
+    "scene-5",
+    "scene-6",
+    "scene-7",
+    "scene-8",
+    "scene-9",
+    "scene-10",
+    "scene-11",
+    "scene-12",
+    "scene-13",
+    "scene-14",
+    "scene-15",
+    "scene-16",
+    "scene-17",
+    "scene-18",
+    "scene-19",
+    "scene-20"
+  ]
+}

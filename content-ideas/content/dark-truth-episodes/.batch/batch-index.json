@@ -1,7 +1,7 @@
 {
   "schemaVersion": "story-localization-batch-index-v2",
   "createdAt": "2026-06-26T12:12:45.409Z",
-  "updatedAt": "2026-06-26T14:27:20.584Z",
+  "updatedAt": "2026-07-10T19:29:22.920Z",
   "entries": [
     {
       "localBatchId": "slb-20260626123145911-001",
@@ -82,6 +82,93 @@
       "errorFileId": "file-DUBsDTyi3wnkbYYCLKhgDL",
       "sourceHashPrefixes": [
         "7e9692b1"
+      ],
+      "imported": false,
+      "requiresImport": false,
+      "hasRetryableFailures": false
+    },
+    {
+      "localBatchId": "slb-20260710034438503-001",
+      "openAIBatchId": "batch_6a5077e5d1b08190ba98b4ce6d1001b7",
+      "category": "text-localization",
+      "rootLocalBatchId": "slb-20260710034438503-001",
+      "retryNumber": 0,
+      "status": "completed",
+      "createdAt": "2026-07-10T03:44:38.769Z",
+      "updatedAt": "2026-07-10T19:05:14.928Z",
+      "submittedAt": "2026-07-10T04:41:10.001Z",
+      "completedAt": "2026-07-10T05:12:16.000Z",
+      "model": "gpt-5.4",
+      "endpoint": "/v1/responses",
+      "completionWindow": "24h",
+      "operations": [
+        "canonical-english-full",
+        "english-short",
+        "localization"
+      ],
+      "episodeNumbers": [
+        "033"
+      ],
+      "languages": [
+        "de",
+        "en",
+        "es",
+        "fr",
+        "pt"
+      ],
+      "itemCount": 6,
+      "completedItemCount": 0,
+      "failedItemCount": 0,
+      "persistedItemCount": 0,
+      "inputFilePath": "content-ideas/content/dark-truth-episodes/.batch/inputs/batch-slb-20260710034438503-001.jsonl",
+      "manifestPath": "/home/box/workspace/fehmarn-seo/youtube/other/content-ideas/content/dark-truth-episodes/.batch/manifests/batch-slb-20260710034438503-001.manifest.json",
+      "errorFilePath": "content-ideas/content/dark-truth-episodes/.batch/errors/batch-slb-20260710034438503-001.errors.jsonl",
+      "openAIInputFileId": "file-GKJhRR6c2BpeMhqFPQWL4x",
+      "errorFileId": "file-TqbMX2KbNnXFtwxhgPFE5k",
+      "sourceHashPrefixes": [
+        "a9c7f957"
+      ],
+      "imported": false,
+      "requiresImport": true,
+      "hasRetryableFailures": false
+    },
+    {
+      "localBatchId": "slb-20260710192405075-001",
+      "openAIBatchId": "batch_6a51481224308190be720a7e7e2f159f",
+      "category": "text-localization",
+      "rootLocalBatchId": "slb-20260710192405075-001",
+      "retryNumber": 0,
+      "status": "submitted",
+      "createdAt": "2026-07-10T19:24:05.352Z",
+      "updatedAt": "2026-07-10T19:29:22.876Z",
+      "submittedAt": "2026-07-10T19:29:22.876Z",
+      "model": "gpt-5.6-luna",
+      "endpoint": "/v1/responses",
+      "completionWindow": "24h",
+      "operations": [
+        "canonical-english-full",
+        "english-short",
+        "localization"
+      ],
+      "episodeNumbers": [
+        "033"
+      ],
+      "languages": [
+        "de",
+        "en",
+        "es",
+        "fr",
+        "pt"
+      ],
+      "itemCount": 6,
+      "completedItemCount": 0,
+      "failedItemCount": 0,
+      "persistedItemCount": 0,
+      "inputFilePath": "content-ideas/content/dark-truth-episodes/.batch/inputs/batch-slb-20260710192405075-001.jsonl",
+      "manifestPath": "/home/box/workspace/fehmarn-seo/youtube/other/content-ideas/content/dark-truth-episodes/.batch/manifests/batch-slb-20260710192405075-001.manifest.json",
+      "openAIInputFileId": "file-8Me3KCFvEHh4M7MgfzzyZh",
+      "sourceHashPrefixes": [
+        "4749ef86"
       ],
       "imported": false,
       "requiresImport": false,
