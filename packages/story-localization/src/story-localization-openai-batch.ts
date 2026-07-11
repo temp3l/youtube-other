@@ -89,9 +89,10 @@ export interface OpenAiStoryClient {
   readonly files?: {
     create(body: {
       readonly file: fs.ReadStream;
-      readonly purpose: "batch";
+      readonly purpose: "batch" | "vision";
     }): Promise<FileObject>;
     content(fileId: string): Promise<Response>;
+    retrieve?(fileId: string): Promise<FileObject>;
   };
   readonly batches?: {
     create(body: {
@@ -151,6 +152,8 @@ export function createOpenAiStoryClient(): OpenAiStoryClient {
 export function createOpenAiStoryClientWithOptions(options: {
   readonly apiKey?: string | undefined;
   readonly baseUrl?: string | undefined;
+  readonly organization?: string | undefined;
+  readonly project?: string | undefined;
   readonly maxRetries?: number | undefined;
   readonly timeoutMs?: number | undefined;
 }): OpenAiStoryClient {
@@ -169,6 +172,17 @@ export function createOpenAiStoryClientWithOptions(options: {
     timeout: options.timeoutMs ?? 120_000,
     ...(options.baseUrl ?? process.env["OPENAI_BASE_URL"]
       ? { baseURL: options.baseUrl ?? process.env["OPENAI_BASE_URL"] }
+      : {}),
+    ...(options.organization ?? process.env["OPENAI_ORGANIZATION"] ?? process.env["OPENAI_ORG_ID"]
+      ? {
+          organization:
+            options.organization ??
+            process.env["OPENAI_ORGANIZATION"] ??
+            process.env["OPENAI_ORG_ID"],
+        }
+      : {}),
+    ...(options.project ?? process.env["OPENAI_PROJECT"]
+      ? { project: options.project ?? process.env["OPENAI_PROJECT"] }
       : {}),
   }) as unknown as OpenAiStoryClient;
 }

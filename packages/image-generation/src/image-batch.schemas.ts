@@ -33,6 +33,50 @@ const imageBatchDependencyApprovalStatusSchema = z.enum([
   "approved",
 ]);
 
+const promptCachePlanSchema = z.object({
+  mode: z.enum(["disabled", "implicit", "explicit"]),
+  cacheKey: z.string().min(1).optional(),
+  ttl: z.literal("30m").optional(),
+  breakpointAfterBlock: z.string().min(1).optional(),
+  estimatedReusablePrefixTokens: z.number().int().nonnegative(),
+  expectedReuseCount: z.number().int().nonnegative(),
+  shard: z.number().int().nonnegative(),
+});
+
+const imageGenerationIdentitySchema = z.object({
+  operation: z.enum([
+    "reference-image",
+    "scene-image",
+    "short-scene-image",
+    "thumbnail-image",
+    "image-edit",
+    "image-variation",
+    "image-repair",
+  ]),
+  episodeNumber: z.string().min(1).optional(),
+  language: z.string().min(1).optional(),
+  format: z.enum(["full", "short", "thumbnail", "reference"]),
+  promptVersion: z.string().min(1),
+  visualBibleVersion: z.string().min(1),
+  schemaVersion: z.string().min(1),
+  validatorVersion: z.string().min(1),
+  model: z.string().min(1),
+  quality: z.string().min(1),
+  size: z.string().min(1),
+  aspectRatio: z.string().min(1).optional(),
+  background: z.string().min(1).optional(),
+  moderationMode: z.string().min(1).optional(),
+  stablePromptHash: z.string().min(1),
+  dynamicPromptHash: z.string().min(1),
+  orderedReferenceHashes: z.array(z.string().min(1)),
+  orderedReferenceRoles: z.array(z.string().min(1)),
+  referenceDetailMode: z.string().min(1).optional(),
+  inputFidelity: z.string().min(1).optional(),
+  sourceScenePlanHash: z.string().min(1).optional(),
+  sourceStoryHash: z.string().min(1).optional(),
+  sourceImageHash: z.string().min(1).optional(),
+});
+
 const imageBatchDestinationRootSchema = z.enum([
   "shared-images-generated",
   "shared-short-images-generated",
@@ -142,6 +186,18 @@ export const imageBatchManifestItemSchema = z.object({
   requestedSize: z.string().min(1),
   quality: imageBatchQualitySchema.optional(),
   outputFormat: z.enum(["png", "jpeg", "webp"]),
+  generationIdentity: imageGenerationIdentitySchema.optional(),
+  generationIdentityHash: z.string().min(1).optional(),
+  resultCachePath: z.string().min(1).optional(),
+  localCacheState: z.enum(["miss", "hit", "stale", "invalid", "forced"]).optional(),
+  referenceBundleHash: z.string().min(1).optional(),
+  promptCachePlan: promptCachePlanSchema.optional(),
+  providerReference: z.object({
+    status: z.enum(["not-required", "pending", "registered", "failed"]),
+    providerFileId: z.string().min(1).optional(),
+    contentHash: z.string().min(1).optional(),
+    error: z.string().min(1).optional(),
+  }).optional(),
   status: z.enum([
     "planned",
     "submitted",
@@ -167,7 +223,9 @@ export const imageBatchManifestItemSchema = z.object({
     .object({
       inputTokens: z.number().int().nonnegative(),
       cachedInputTokens: z.number().int().nonnegative().optional(),
+      cacheWriteTokens: z.number().int().nonnegative().optional(),
       outputTokens: z.number().int().nonnegative(),
+      reasoningTokens: z.number().int().nonnegative().optional(),
     })
     .optional(),
   estimatedCostUsd: z.number().nonnegative().optional(),
@@ -220,6 +278,24 @@ export const imageBatchManifestSchema = z.object({
   submittedAt: z.string().min(1).optional(),
   completedAt: z.string().min(1).optional(),
   importedAt: z.string().min(1).optional(),
+  dependencyGraphSummary: z.object({
+    referenceItemCount: z.number().int().nonnegative(),
+    sceneItemCount: z.number().int().nonnegative(),
+    blockedItemCount: z.number().int().nonnegative(),
+  }).optional(),
+  localCacheSummary: z.object({
+    hits: z.number().int().nonnegative(),
+    misses: z.number().int().nonnegative(),
+    stale: z.number().int().nonnegative(),
+    invalid: z.number().int().nonnegative(),
+    forced: z.number().int().nonnegative(),
+  }).optional(),
+  promptCacheGroupingSummary: z.object({
+    groups: z.number().int().nonnegative(),
+    explicitGroups: z.number().int().nonnegative(),
+    implicitGroups: z.number().int().nonnegative(),
+    disabledGroups: z.number().int().nonnegative(),
+  }).optional(),
 });
 
 export const sceneImageJobSchema = z.object({
@@ -276,6 +352,12 @@ export const openAiImageBatchResponseBodySchema = z
         input_tokens_details: z
           .object({
             cached_tokens: z.number().int().nonnegative().optional(),
+            cache_write_tokens: z.number().int().nonnegative().optional(),
+          })
+          .optional(),
+        output_tokens_details: z
+          .object({
+            reasoning_tokens: z.number().int().nonnegative().optional(),
           })
           .optional(),
       })

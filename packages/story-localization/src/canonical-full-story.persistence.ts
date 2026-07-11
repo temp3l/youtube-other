@@ -20,6 +20,7 @@ import {
 import { writeTextAtomicIfChanged } from "./story-localization.utils.js";
 import { getLanguageProfile } from "./language-profiles.js";
 import { type StoryPreflightResult } from "./story-generation-preflight.js";
+import { resolveCanonicalStoryScriptPath } from "./story-script-paths.js";
 
 export const CANONICAL_ENGLISH_FULL_ARTIFACT_SCHEMA_VERSION =
   "canonical-english-full-artifact-v1";
@@ -437,6 +438,11 @@ export async function persistCanonicalEnglishFullStory(args: {
     sourceStory: args.sourceStory,
     response: args.artifact.response,
   });
+  const authoredMarkdownPath = resolveCanonicalStoryScriptPath({
+    episodeDir: args.canonicalPaths.episodeDir,
+    language: "en",
+    variant: "full",
+  });
   const canonicalMarkdownHash = hashText(canonicalMarkdown);
   const rootCompatibilityMarkdownHash = hashText(compatibilityMarkdown);
   const manifest = buildCanonicalEnglishFullManifest({
@@ -455,6 +461,11 @@ export async function persistCanonicalEnglishFullStory(args: {
   );
   await writeTextAtomicIfChanged(
     args.canonicalPaths.compatibilityMarkdownPath,
+    compatibilityMarkdown,
+    args.force ?? true
+  );
+  await writeTextAtomicIfChanged(
+    authoredMarkdownPath,
     compatibilityMarkdown,
     args.force ?? true
   );

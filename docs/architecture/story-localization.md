@@ -33,6 +33,7 @@ This subsystem handles structured English full rewrites, localized full rewrites
    Human characters are mapped once per episode to fictionalized names through a deterministic scored candidate pool. The persisted rename map is attached to the canonical full artifact and reused unchanged by localized full rewrites, short rewrites, repair, and regeneration.
 5. StoryIR policy and contract modeling
    Typed genre policies and full-story contracts are derived deterministically from validated `StoryIR`. The contract now carries the authoritative character rename map and narration constraints used downstream.
+   `professional-story-contracts.ts` defines the runtime-validated immutable-facts, supernatural-mechanics, experiment, 12–16 beat, editorial-review, narration-metrics, Short-contract, repair-scope, stage-gate, and complete cache-identity contracts. Critical mechanics, beat, or deterministic narration issues prevent readiness.
 6. Prompt construction
    Prompt builders pseudonymize model-facing source narration, facts, written messages, and StoryIR before any provider call. Typed module ownership checks reject metadata, audio/TTS, scene, image, render, thumbnail, and publication-owned prompt modules before any provider call.
 7. Token-budget preflight
@@ -41,6 +42,7 @@ This subsystem handles structured English full rewrites, localized full rewrites
    The services call the Responses API with schema-backed output formats and configurable model, reasoning, and token settings.
 9. Validation and repair
    Generated output is checked for schema validity, authoritative-name reuse, original-name leakage, message preservation, duration or word-count constraints, and filler or editorial drift. Repair prompts reuse the same rename map and do not choose fresh pseudonyms.
+   Professional narration validation rejects meta-writing, editorial commentary, unresolved alternatives, generic character/evidence/stake placeholders, abstract escalation, and explanation after the final reveal. `READY_WITH_MINOR_EDITS` is advisory and blocks downstream work unless a content profile explicitly opts in.
 10. Cache writes and artifact materialization
    Cache entries, production artifacts, narration-only canonical JSON artifacts, compatibility markdown, JSON sidecars, and debug artifacts are persisted into episode output directories. Canonical lineage now includes the character-rename-map hash so dependent artifacts invalidate when the rename contract changes.
 
@@ -85,6 +87,15 @@ This subsystem handles structured English full rewrites, localized full rewrites
 - Story rewrites default to the project `fast` narration pace while retaining a typed `normal` preset for future reuse.
 - Fast defaults are language-specific and currently set to `en 190/205`, `de 180/195`, `es 190/205`, `fr 185/198`, and `pt 190/205` words per minute for `full/short`.
 - Short word ranges are no longer hardcoded independently. They are derived from the active short duration window and target WPM in one typed utility, and the resulting constraints are shared by prompt compilation and validation.
+- Full-story defaults derive from the shared 330-660 second editorial window, targeting roughly 10 minutes at the language profile pace. Application code, never model diagnostics, owns narration word counts and duration estimates.
+
+## Full Localization Fidelity
+
+- Canonical full narration is projected into ordered `beat-NNN` semantic beats plus a validated story-mechanics contract before localization. Beat IDs remain structured evidence and are never rendered into narration.
+- Localized structured output must declare preserved beat IDs, mechanics, emotional cost, climax/rule connection, final consequence, and localized metadata. Acceptance uses language-specific spoken-duration ratios, semantic beat coverage, named-character presence, English leakage, and metadata checks.
+- The default localization profile requires complete canonical beat coverage and a spoken-duration ratio of 85–115 percent.
+- A severe duration loss, including a roughly 30 percent adaptation, forces full-stage regeneration. Missing mechanics or final consequences cannot pass as ready.
+- Localization cache entries use cache schema v3 and fidelity policy v2. Older localized entries without fidelity validation metadata are unverified and cannot resume.
 
 ## Token-Budget Preflight
 

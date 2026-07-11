@@ -22,6 +22,8 @@ Configuration ownership lives in `@mediaforge/config`.
   `MEDIAFORGE_TTS_PROVIDER`, `MEDIAFORGE_TRANSCRIPTION_PROVIDER`, `MEDIAFORGE_TEXT_PROVIDER`, `MEDIAFORGE_OPENAI_COMPATIBLE_BASE_URL`, `MEDIAFORGE_OPENAI_COMPATIBLE_API_KEY`, and related organization or project fields
 - Story, localization, validator, and metadata models:
   `MEDIAFORGE_OPENAI_STORY_*`, `MEDIAFORGE_OPENAI_LOCALIZATION_*`, `MEDIAFORGE_OPENAI_SHORT_*`, `MEDIAFORGE_OPENAI_VALIDATOR_*`, `MEDIAFORGE_OPENAI_METADATA_*`, plus legacy `OPENAI_*` aliases supported in code
+- Two-phase image models:
+  `MEDIAFORGE_OPENAI_IMAGE_REFERENCE_*`, `MEDIAFORGE_OPENAI_IMAGE_SCENE_*`, `MEDIAFORGE_OPENAI_IMAGE_SHORT_*`, and `MEDIAFORGE_OPENAI_IMAGE_VALIDATOR_*`
 - Whisper and transcription:
   `MEDIAFORGE_WHISPER_*`, `WHISPER_WORD_TIMESTAMPS`, and transcript segmentation settings such as `TRANSCRIPT_MIN_SEGMENT_SECONDS`
 - Speech voices:
@@ -50,17 +52,62 @@ Configuration ownership lives in `@mediaforge/config`.
 - Remote rendering is disabled by default
 - Remote render fallback to local is enabled by default
 - Default models visible in code today:
-  - story: `gpt-5.4-medium`
-  - localization: `gpt-5.4-medium`
-  - short rewrite: `gpt-5.4-medium`
+  - story: `gpt-5.6-sol`
+  - localization: `gpt-5.6-terra`
+  - short rewrite: `gpt-5.6-terra`
   - validator: `gpt-5.4-mini`
   - metadata: `gpt-5.4-mini`
 - Default reasoning and token caps:
-  - story: `medium`, `5500`
-  - localization: `low`, `5200`
-  - short rewrite: `low`, `1200`
-  - validator: `low`, `2500`
-  - metadata: `low`, `1200`
+  - story: `medium`, `14000`
+  - localization: `low`, `10000`
+  - short rewrite: `low`, `4000`
+  - validator: `low`, `5000`
+  - metadata: `none`, `1800`
+- Image defaults:
+  - reference: `gpt-image-2`, `high`, `1536x1024`
+  - full scene: `gpt-image-2`, `high`, `1920x1080`
+  - short scene: `gpt-image-2`, `high`, `1024x1536`
+- Known model/reasoning combinations are validated at runtime. Invalid combinations fail configuration loading; models are never silently downgraded.
+- Maximum output tokens are ceilings. A higher ceiling does not request or bill unused output tokens.
+
+## Batch And Cache Operation
+
+Story batches use the Responses API. Stable system contracts precede episode text;
+eligible repeated prefixes receive privacy-preserving `prompt_cache_key` values.
+A prompt-cache hit still calls the provider. A valid local content-addressed cache
+hit avoids the provider call entirely.
+
+Image production is two phase. Prepare, submit, download, and ingest reference
+images first. Validate and approve them before preparing dependent scene batches.
+Scene requests are grouped by model, operation, format, size/aspect, prompt family,
+ordered reference bundle, and cache shard. Batch execution order is not a dependency
+mechanism; manifests and readiness checks enforce dependencies before submission.
+
+Safe inspection workflow:
+
+```bash
+pnpm mediaforge -- images batch prepare --episode 034-example --languages en,de --variants full --phase references --json
+pnpm mediaforge -- images batch submit --episode 034-example --batch <reference-batch-id> --json
+pnpm mediaforge -- images batch status --episode 034-example --batch <batch-id> --json
+pnpm mediaforge -- images batch download --episode 034-example --batch <batch-id> --json
+pnpm mediaforge -- images batch prepare --episode 034-example --languages en,de --variants full --phase scenes --revalidate --json
+pnpm mediaforge -- images batch resume --episode 034-example --batch <batch-id> --json
+pnpm mediaforge -- stories batch plan --episode 034 --languages de,es
+pnpm mediaforge -- stories batch import --run <story-batch-id>
+pnpm mediaforge -- stories batch retry-failed --run <story-batch-id>
+```
+
+Preparation writes inspectable JSONL and manifests without submitting paid work.
+Partial successes are imported and retained; retry manifests contain unresolved
+items only. `--force` bypasses local result reuse. Revalidation checks a cached
+artifact against the current validator without blind regeneration. Malformed,
+truncated, empty, or incomplete provider responses are failures and never replace
+the last valid artifact.
+
+Cache effectiveness must be measured from input, cached-input, output, and
+reasoning usage. Grouping by an identical ordered reference bundle is the correct
+scene strategy; merely submitting references before randomly grouped scenes does
+not maximize reuse.
 - CLI warning-only guardrails:
   - short max-output-tokens above `2000`
   - validator max-output-tokens above `3000`

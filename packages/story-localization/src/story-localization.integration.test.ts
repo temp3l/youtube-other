@@ -260,6 +260,29 @@ describe("story localization integration", () => {
         "utf8"
       )
     ).toContain("# Episode 002");
+    expect(
+      await fs.readFile(
+        path.join(
+          tempDir,
+          "002-even-killers-can-lick",
+          "languages",
+          "short",
+          "script-en.md"
+        ),
+        "utf8"
+      )
+    ).toContain("# Short 002");
+    expect(
+      await fs.readFile(
+        path.join(
+          tempDir,
+          "002-even-killers-can-lick",
+          "languages",
+          "script-en.md"
+        ),
+        "utf8"
+      )
+    ).toContain("# Episode 002");
   });
 
   it("persists production artifacts and stage state", async () => {
@@ -361,6 +384,29 @@ describe("story localization integration", () => {
             language,
             "short",
             "script.md"
+          ),
+          "utf8"
+        )
+      ).toContain(`# Short 002`);
+      expect(
+        await fs.readFile(
+          path.join(
+            tempDir,
+            "002-even-killers-can-lick",
+            "languages",
+            `script-${language}.md`
+          ),
+          "utf8"
+        )
+      ).toContain(`# Episode 002`);
+      expect(
+        await fs.readFile(
+          path.join(
+            tempDir,
+            "002-even-killers-can-lick",
+            "languages",
+            "short",
+            `script-${language}.md`
           ),
           "utf8"
         )

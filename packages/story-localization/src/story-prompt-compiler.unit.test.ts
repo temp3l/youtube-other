@@ -26,6 +26,20 @@ const sourceFile = path.join(
 );
 
 describe("story prompt compiler", () => {
+  it("does not classify ethnocultural tradition labels as character names", async () => {
+    const parsed = await parseCanonicalSourceStory(sourceFile);
+    const facts = extractCanonicalStoryFacts({
+      ...parsed,
+      narrationParagraphs: [
+        "Jonah Rainer entered the forest. Diverse Algonquian traditions could not be reduced to one movie monster. Jonah Rainer followed the marked trees home.",
+      ],
+    });
+
+    expect(facts.characters.map((character) => character.name)).toEqual([
+      "Jonah Rainer",
+    ]);
+  });
+
   it("orders modules deterministically and compiles byte-identical full prompts", async () => {
     const parsed = await parseCanonicalSourceStory(sourceFile);
     const facts = extractCanonicalStoryFacts(parsed);

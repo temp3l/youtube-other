@@ -43,4 +43,31 @@ describe("story facts persistence", () => {
     expect(loaded?.protagonistNames).toContain("Arin Caldor");
     expect(loaded?.locationAnchors).toContain("service entrance");
   });
+
+  it("persists canonical facts when optional mechanics are unavailable", async () => {
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), "story-facts-optional-"));
+    const fixture = path.resolve(
+      import.meta.dirname,
+      "__fixtures__/story-quality/good-english-full.md"
+    );
+    const parsed = await parseCanonicalSourceStory(fixture);
+    const extracted = extractCanonicalStoryFacts(parsed);
+    const facts = {
+      ...extracted,
+      protagonistAttachment: "",
+      threatTemptation: "",
+      emotionalCost: "",
+      finalDecision: "",
+    };
+
+    await expect(
+      writeStoryFacts({
+        outputRoot: root,
+        episodeSlug: "optional-mechanics",
+        sourceFullHash: parsed.sourceHash,
+        extractionConfidence: 0.5,
+        facts,
+      })
+    ).resolves.toBeUndefined();
+  });
 });

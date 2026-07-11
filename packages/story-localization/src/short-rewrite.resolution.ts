@@ -195,6 +195,7 @@ function parseSourceMarkdown(
 
 function collectCandidatePaths(episodeDir: string): string[] {
   return [
+    path.join(episodeDir, "languages", "script-en.md"),
     path.join(episodeDir, "script.md"),
     path.join(episodeDir, "en", "full", "script.md"),
     path.join(episodeDir, "en", "script.md"),

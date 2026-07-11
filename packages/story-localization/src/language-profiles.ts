@@ -3,16 +3,33 @@ import {
   NORMAL_NARRATION_WPM,
   resolveShortDurationProfile,
 } from "./narration-constraints.js";
-import { type LanguageCode, type LanguageProfile } from "./story-localization.types.js";
+import {
+  type LanguageCode,
+  type LanguageProfile,
+} from "./story-localization.types.js";
 
-export const LANGUAGE_PROFILES: Readonly<Record<LanguageCode, LanguageProfile>> = {
+export const LANGUAGE_PROFILE_REGISTRY_VERSION = "language-profiles-v2";
+
+const FULL_LOCALIZATION_LENGTH_POLICY = {
+  minDurationRatio: 0.85,
+  maxDurationRatio: 1.15,
+  minSceneCoverageRatio: 1,
+  maxEnglishLeakageRatio: 0.08,
+} as const;
+
+export const LANGUAGE_PROFILES: Readonly<
+  Record<LanguageCode, LanguageProfile>
+> = {
   en: {
     code: "en",
     displayName: "English",
     locale: "en-US",
     narratorLanguageName: "English",
     defaultNarrationPace: "fast",
-    narrationPaces: { normal: NORMAL_NARRATION_WPM.en, fast: FAST_NARRATION_WPM.en },
+    narrationPaces: {
+      normal: NORMAL_NARRATION_WPM.en,
+      fast: FAST_NARRATION_WPM.en,
+    },
     fullNarrationWpm: FAST_NARRATION_WPM.en.full,
     shortNarrationWpm: resolveShortDurationProfile({
       language: "en",
@@ -22,6 +39,23 @@ export const LANGUAGE_PROFILES: Readonly<Record<LanguageCode, LanguageProfile>> 
       language: "en",
       durationSeconds: 60,
     }).targetWordRange,
+    localizationLengthPolicy: FULL_LOCALIZATION_LENGTH_POLICY,
+    fullProductionInstructions: [
+      "Use one consistent adult narrator.",
+      "Speak in natural English with a restrained dark-documentary tone.",
+      "Begin calmly and build tension steadily.",
+      "Keep dialogue grounded and believable.",
+      "Keep sound effects below narration.",
+      "Use silence briefly before the final reveal.",
+    ],
+    shortProductionInstructions: [
+      "Use the same narrator as the full episode.",
+      "Speak in natural English.",
+      "Begin immediately without a channel introduction.",
+      "Keep the delivery restrained and credible.",
+      "Pause briefly before the final sentence.",
+      "Do not narrate headings or metadata.",
+    ],
     stylisticGuidance: [
       "Use natural international English.",
       "Keep spoken narration clear and direct.",
@@ -30,7 +64,11 @@ export const LANGUAGE_PROFILES: Readonly<Record<LanguageCode, LanguageProfile>> 
       "Avoid deeply nested sentences, repeated commas, and unnecessary ellipses.",
       "Use natural contractions when appropriate and keep names easy to pronounce.",
     ],
-    defaultFullHashtags: ["#HorrorStory", "#ScaryStories", "#DarkTruthEpisodes"],
+    defaultFullHashtags: [
+      "#HorrorStory",
+      "#ScaryStories",
+      "#DarkTruthEpisodes",
+    ],
     defaultShortHashtags: ["#Shorts", "#Horror", "#DarkTruthEpisodes"],
   },
   de: {
@@ -39,7 +77,10 @@ export const LANGUAGE_PROFILES: Readonly<Record<LanguageCode, LanguageProfile>> 
     locale: "de-DE",
     narratorLanguageName: "German",
     defaultNarrationPace: "fast",
-    narrationPaces: { normal: NORMAL_NARRATION_WPM.de, fast: FAST_NARRATION_WPM.de },
+    narrationPaces: {
+      normal: NORMAL_NARRATION_WPM.de,
+      fast: FAST_NARRATION_WPM.de,
+    },
     fullNarrationWpm: FAST_NARRATION_WPM.de.full,
     shortNarrationWpm: resolveShortDurationProfile({
       language: "de",
@@ -49,6 +90,23 @@ export const LANGUAGE_PROFILES: Readonly<Record<LanguageCode, LanguageProfile>> 
       language: "de",
       durationSeconds: 60,
     }).targetWordRange,
+    localizationLengthPolicy: FULL_LOCALIZATION_LENGTH_POLICY,
+    fullProductionInstructions: [
+      "Eine durchgehend gleichbleibende erwachsene Erzählstimme verwenden.",
+      "In natürlichem Deutsch mit zurückhaltendem, düster-dokumentarischem Ton sprechen.",
+      "Ruhig beginnen und die Spannung stetig steigern.",
+      "Dialoge glaubwürdig und bodenständig halten.",
+      "Geräusche leiser als die Erzählung mischen.",
+      "Vor der letzten Enthüllung kurz schweigen.",
+    ],
+    shortProductionInstructions: [
+      "Dieselbe Erzählstimme wie in der vollständigen Episode verwenden.",
+      "In natürlichem Deutsch sprechen.",
+      "Ohne Kanaleinleitung sofort beginnen.",
+      "Zurückhaltend und glaubwürdig vortragen.",
+      "Vor dem letzten Satz kurz pausieren.",
+      "Überschriften und Metadaten nicht vorlesen.",
+    ],
     stylisticGuidance: [
       "Use natural standard German.",
       "Avoid bureaucratic wording and nested clauses.",
@@ -56,7 +114,11 @@ export const LANGUAGE_PROFILES: Readonly<Record<LanguageCode, LanguageProfile>> 
       "Prefer short and medium clauses for fast narration.",
       "Avoid repeated commas, ellipses, and tongue-twisting alliteration.",
     ],
-    defaultFullHashtags: ["#Horrorgeschichte", "#Gruselgeschichten", "#DarkTruthEpisodes"],
+    defaultFullHashtags: [
+      "#Horrorgeschichte",
+      "#Gruselgeschichten",
+      "#DarkTruthEpisodes",
+    ],
     defaultShortHashtags: ["#Shorts", "#Horror", "#DarkTruthEpisodes"],
   },
   es: {
@@ -65,7 +127,10 @@ export const LANGUAGE_PROFILES: Readonly<Record<LanguageCode, LanguageProfile>> 
     locale: "es-419",
     narratorLanguageName: "Spanish",
     defaultNarrationPace: "fast",
-    narrationPaces: { normal: NORMAL_NARRATION_WPM.es, fast: FAST_NARRATION_WPM.es },
+    narrationPaces: {
+      normal: NORMAL_NARRATION_WPM.es,
+      fast: FAST_NARRATION_WPM.es,
+    },
     fullNarrationWpm: FAST_NARRATION_WPM.es.full,
     shortNarrationWpm: resolveShortDurationProfile({
       language: "es",
@@ -75,6 +140,23 @@ export const LANGUAGE_PROFILES: Readonly<Record<LanguageCode, LanguageProfile>> 
       language: "es",
       durationSeconds: 60,
     }).targetWordRange,
+    localizationLengthPolicy: FULL_LOCALIZATION_LENGTH_POLICY,
+    fullProductionInstructions: [
+      "Usar una sola voz narradora adulta y constante.",
+      "Hablar en español natural con un tono documental oscuro y contenido.",
+      "Comenzar con calma y aumentar la tensión de forma constante.",
+      "Mantener los diálogos creíbles y naturales.",
+      "Mantener los efectos de sonido por debajo de la narración.",
+      "Hacer un breve silencio antes de la revelación final.",
+    ],
+    shortProductionInstructions: [
+      "Usar la misma voz narradora que en el episodio completo.",
+      "Hablar en español natural.",
+      "Comenzar de inmediato, sin introducción del canal.",
+      "Mantener una interpretación contenida y creíble.",
+      "Hacer una breve pausa antes de la última frase.",
+      "No narrar encabezados ni metadatos.",
+    ],
     stylisticGuidance: [
       "Use neutral international Spanish.",
       "Keep the language simple and natural for speech.",
@@ -82,7 +164,11 @@ export const LANGUAGE_PROFILES: Readonly<Record<LanguageCode, LanguageProfile>> 
       "Prefer short and medium clauses for fast narration.",
       "Avoid deeply nested sentences, repeated commas, and unnecessary ellipses.",
     ],
-    defaultFullHashtags: ["#HistoriaDeTerror", "#HistoriasDeMiedo", "#DarkTruthEpisodes"],
+    defaultFullHashtags: [
+      "#HistoriaDeTerror",
+      "#HistoriasDeMiedo",
+      "#DarkTruthEpisodes",
+    ],
     defaultShortHashtags: ["#Shorts", "#Terror", "#DarkTruthEpisodes"],
   },
   fr: {
@@ -91,7 +177,10 @@ export const LANGUAGE_PROFILES: Readonly<Record<LanguageCode, LanguageProfile>> 
     locale: "fr-FR",
     narratorLanguageName: "French",
     defaultNarrationPace: "fast",
-    narrationPaces: { normal: NORMAL_NARRATION_WPM.fr, fast: FAST_NARRATION_WPM.fr },
+    narrationPaces: {
+      normal: NORMAL_NARRATION_WPM.fr,
+      fast: FAST_NARRATION_WPM.fr,
+    },
     fullNarrationWpm: FAST_NARRATION_WPM.fr.full,
     shortNarrationWpm: resolveShortDurationProfile({
       language: "fr",
@@ -101,6 +190,23 @@ export const LANGUAGE_PROFILES: Readonly<Record<LanguageCode, LanguageProfile>> 
       language: "fr",
       durationSeconds: 60,
     }).targetWordRange,
+    localizationLengthPolicy: FULL_LOCALIZATION_LENGTH_POLICY,
+    fullProductionInstructions: [
+      "Utiliser une seule voix adulte cohérente.",
+      "Parler dans un français naturel, avec un ton documentaire sombre et retenu.",
+      "Commencer calmement et faire monter la tension progressivement.",
+      "Garder les dialogues crédibles et naturels.",
+      "Maintenir les effets sonores sous le niveau de la narration.",
+      "Marquer un bref silence avant la révélation finale.",
+    ],
+    shortProductionInstructions: [
+      "Utiliser la même voix que pour l’épisode complet.",
+      "Parler dans un français naturel.",
+      "Commencer immédiatement, sans introduction de chaîne.",
+      "Garder une interprétation retenue et crédible.",
+      "Faire une brève pause avant la dernière phrase.",
+      "Ne pas lire les titres ni les métadonnées.",
+    ],
     stylisticGuidance: [
       "Use natural international French.",
       "Keep sentences direct and easy to speak.",
@@ -108,7 +214,11 @@ export const LANGUAGE_PROFILES: Readonly<Record<LanguageCode, LanguageProfile>> 
       "Prefer short and medium clauses for fast narration.",
       "Avoid repeated commas, ellipses, and hard-to-pronounce name clusters.",
     ],
-    defaultFullHashtags: ["#HistoireDHorreur", "#HistoiresEffrayantes", "#DarkTruthEpisodes"],
+    defaultFullHashtags: [
+      "#HistoireDHorreur",
+      "#HistoiresEffrayantes",
+      "#DarkTruthEpisodes",
+    ],
     defaultShortHashtags: ["#Shorts", "#Horreur", "#DarkTruthEpisodes"],
   },
   pt: {
@@ -117,7 +227,10 @@ export const LANGUAGE_PROFILES: Readonly<Record<LanguageCode, LanguageProfile>> 
     locale: "pt-BR",
     narratorLanguageName: "Brazilian Portuguese",
     defaultNarrationPace: "fast",
-    narrationPaces: { normal: NORMAL_NARRATION_WPM.pt, fast: FAST_NARRATION_WPM.pt },
+    narrationPaces: {
+      normal: NORMAL_NARRATION_WPM.pt,
+      fast: FAST_NARRATION_WPM.pt,
+    },
     fullNarrationWpm: FAST_NARRATION_WPM.pt.full,
     shortNarrationWpm: resolveShortDurationProfile({
       language: "pt",
@@ -127,6 +240,23 @@ export const LANGUAGE_PROFILES: Readonly<Record<LanguageCode, LanguageProfile>> 
       language: "pt",
       durationSeconds: 60,
     }).targetWordRange,
+    localizationLengthPolicy: FULL_LOCALIZATION_LENGTH_POLICY,
+    fullProductionInstructions: [
+      "Usar uma única voz adulta e consistente.",
+      "Falar em português brasileiro natural, com tom documental sombrio e contido.",
+      "Começar com calma e aumentar a tensão gradualmente.",
+      "Manter os diálogos naturais e convincentes.",
+      "Manter os efeitos sonoros abaixo da narração.",
+      "Fazer um breve silêncio antes da revelação final.",
+    ],
+    shortProductionInstructions: [
+      "Usar a mesma voz do episódio completo.",
+      "Falar em português brasileiro natural.",
+      "Começar imediatamente, sem introdução do canal.",
+      "Manter uma interpretação contida e convincente.",
+      "Fazer uma breve pausa antes da última frase.",
+      "Não narrar títulos nem metadados.",
+    ],
     stylisticGuidance: [
       "Use Brazilian Portuguese.",
       "Keep the narration natural and broadly understandable.",
@@ -134,7 +264,11 @@ export const LANGUAGE_PROFILES: Readonly<Record<LanguageCode, LanguageProfile>> 
       "Prefer short and medium clauses for fast narration.",
       "Avoid deeply nested sentences, repeated commas, and unnecessary ellipses.",
     ],
-    defaultFullHashtags: ["#HistoriaDeTerror", "#HistoriasAssustadoras", "#DarkTruthEpisodes"],
+    defaultFullHashtags: [
+      "#HistoriaDeTerror",
+      "#HistoriasAssustadoras",
+      "#DarkTruthEpisodes",
+    ],
     defaultShortHashtags: ["#Shorts", "#Terror", "#DarkTruthEpisodes"],
   },
 };
@@ -143,6 +277,8 @@ export function getLanguageProfile(code: LanguageCode): LanguageProfile {
   return LANGUAGE_PROFILES[code];
 }
 
-export function isShortLanguage(code: string): code is Exclude<LanguageCode, "en"> {
+export function isShortLanguage(
+  code: string
+): code is Exclude<LanguageCode, "en"> {
   return code === "de" || code === "es" || code === "fr" || code === "pt";
 }

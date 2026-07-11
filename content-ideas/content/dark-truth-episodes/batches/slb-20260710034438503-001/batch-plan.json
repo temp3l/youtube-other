@@ -2,7 +2,7 @@
   "schemaVersion": "batch-run-plan-v1",
   "runId": "slb-20260710034438503-001",
   "createdAt": "2026-07-10T03:44:38.769Z",
-  "updatedAt": "2026-07-10T19:05:14.928Z",
+  "updatedAt": "2026-07-11T11:00:02.182Z",
   "items": [
     {
       "customId": "dte:033:canonical-english-full:en:a9c7f957:52a1055e",
@@ -10,13 +10,13 @@
       "stageType": "rewrite-full",
       "locale": "en",
       "format": "full",
-      "status": "running",
+      "status": "failed",
       "operation": "canonical-english-full",
       "endpoint": "/v1/responses",
       "localBatchId": "slb-20260710034438503-001",
       "providerBatchId": "batch_6a5077e5d1b08190ba98b4ce6d1001b7",
       "manifestPath": "content-ideas/content/dark-truth-episodes/.batch/manifests/batch-slb-20260710034438503-001.manifest.json",
-      "updatedAt": "2026-07-10T19:05:14.928Z"
+      "updatedAt": "2026-07-11T11:00:02.182Z"
     },
     {
       "customId": "dte:033:english-short:en:a9c7f957:9063ce84",
@@ -24,13 +24,13 @@
       "stageType": "rewrite-short",
       "locale": "en",
       "format": "short",
-      "status": "running",
+      "status": "failed",
       "operation": "english-short",
       "endpoint": "/v1/responses",
       "localBatchId": "slb-20260710034438503-001",
       "providerBatchId": "batch_6a5077e5d1b08190ba98b4ce6d1001b7",
       "manifestPath": "content-ideas/content/dark-truth-episodes/.batch/manifests/batch-slb-20260710034438503-001.manifest.json",
-      "updatedAt": "2026-07-10T19:05:14.928Z"
+      "updatedAt": "2026-07-11T11:00:02.182Z"
     },
     {
       "customId": "dte:033:localization:de:a9c7f957:b39bb018",
@@ -38,13 +38,13 @@
       "stageType": "localize-full",
       "locale": "de",
       "format": "full",
-      "status": "running",
+      "status": "failed",
       "operation": "localization",
       "endpoint": "/v1/responses",
       "localBatchId": "slb-20260710034438503-001",
       "providerBatchId": "batch_6a5077e5d1b08190ba98b4ce6d1001b7",
       "manifestPath": "content-ideas/content/dark-truth-episodes/.batch/manifests/batch-slb-20260710034438503-001.manifest.json",
-      "updatedAt": "2026-07-10T19:05:14.928Z"
+      "updatedAt": "2026-07-11T11:00:02.182Z"
     },
     {
       "customId": "dte:033:localization:es:a9c7f957:e4f09e89",
@@ -52,13 +52,13 @@
       "stageType": "localize-full",
       "locale": "es",
       "format": "full",
-      "status": "running",
+      "status": "failed",
       "operation": "localization",
       "endpoint": "/v1/responses",
       "localBatchId": "slb-20260710034438503-001",
       "providerBatchId": "batch_6a5077e5d1b08190ba98b4ce6d1001b7",
       "manifestPath": "content-ideas/content/dark-truth-episodes/.batch/manifests/batch-slb-20260710034438503-001.manifest.json",
-      "updatedAt": "2026-07-10T19:05:14.928Z"
+      "updatedAt": "2026-07-11T11:00:02.182Z"
     },
     {
       "customId": "dte:033:localization:fr:a9c7f957:828c056a",
@@ -66,13 +66,13 @@
       "stageType": "localize-full",
       "locale": "fr",
       "format": "full",
-      "status": "running",
+      "status": "failed",
       "operation": "localization",
       "endpoint": "/v1/responses",
       "localBatchId": "slb-20260710034438503-001",
       "providerBatchId": "batch_6a5077e5d1b08190ba98b4ce6d1001b7",
       "manifestPath": "content-ideas/content/dark-truth-episodes/.batch/manifests/batch-slb-20260710034438503-001.manifest.json",
-      "updatedAt": "2026-07-10T19:05:14.928Z"
+      "updatedAt": "2026-07-11T11:00:02.182Z"
     },
     {
       "customId": "dte:033:localization:pt:a9c7f957:b19be303",
@@ -80,68 +80,69 @@
       "stageType": "localize-full",
       "locale": "pt",
       "format": "full",
-      "status": "running",
+      "status": "failed",
       "operation": "localization",
       "endpoint": "/v1/responses",
       "localBatchId": "slb-20260710034438503-001",
       "providerBatchId": "batch_6a5077e5d1b08190ba98b4ce6d1001b7",
       "manifestPath": "content-ideas/content/dark-truth-episodes/.batch/manifests/batch-slb-20260710034438503-001.manifest.json",
-      "updatedAt": "2026-07-10T19:05:14.928Z"
+      "updatedAt": "2026-07-11T11:00:02.182Z"
     }
   ],
   "episodes": [
     {
       "schemaVersion": "production-summary-v1",
       "episodeId": "033",
-      "status": "succeeded",
+      "status": "partial",
       "stageCounts": {
-        "running": 6
+        "failed": 6
       },
       "stages": [
         {
           "stageType": "rewrite-full",
           "locale": "en",
           "format": "full",
-          "status": "running",
-          "updatedAt": "2026-07-10T19:05:14.928Z"
+          "status": "failed",
+          "updatedAt": "2026-07-11T11:00:02.182Z"
         },
         {
           "stageType": "rewrite-short",
           "locale": "en",
           "format": "short",
-          "status": "running",
-          "updatedAt": "2026-07-10T19:05:14.928Z"
+          "status": "failed",
+          "updatedAt": "2026-07-11T11:00:02.182Z"
         },
         {
           "stageType": "localize-full",
           "locale": "de",
           "format": "full",
-          "status": "running",
-          "updatedAt": "2026-07-10T19:05:14.928Z"
+          "status": "failed",
+          "updatedAt": "2026-07-11T11:00:02.182Z"
         },
         {
           "stageType": "localize-full",
           "locale": "es",
           "format": "full",
-          "status": "running",
-          "updatedAt": "2026-07-10T19:05:14.928Z"
+          "status": "failed",
+          "updatedAt": "2026-07-11T11:00:02.182Z"
         },
         {
           "stageType": "localize-full",
           "locale": "fr",
           "format": "full",
-          "status": "running",
-          "updatedAt": "2026-07-10T19:05:14.928Z"
+          "status": "failed",
+          "updatedAt": "2026-07-11T11:00:02.182Z"
         },
         {
           "stageType": "localize-full",
           "locale": "pt",
           "format": "full",
-          "status": "running",
-          "updatedAt": "2026-07-10T19:05:14.928Z"
+          "status": "failed",
+          "updatedAt": "2026-07-11T11:00:02.182Z"
         }
       ],
-      "activeCustomIds": [
+      "activeCustomIds": [],
+      "failedCustomIds": [
         "dte:033:canonical-english-full:en:a9c7f957:52a1055e",
         "dte:033:english-short:en:a9c7f957:9063ce84",
         "dte:033:localization:de:a9c7f957:b39bb018",
@@ -149,8 +150,7 @@
         "dte:033:localization:fr:a9c7f957:828c056a",
         "dte:033:localization:pt:a9c7f957:b19be303"
       ],
-      "failedCustomIds": [],
-      "updatedAt": "2026-07-10T19:05:14.928Z"
+      "updatedAt": "2026-07-11T11:00:02.182Z"
     }
   ],
   "notes": [

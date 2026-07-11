@@ -1,4 +1,4 @@
-import { countSpokenWords, hashText } from "@mediaforge/shared";
+import { hashText } from "@mediaforge/shared";
 import {
   applyCharacterRenameMapToCanonicalFacts,
   applyCharacterRenameMapToParsedSource,
@@ -27,7 +27,9 @@ import {
 } from "./full-story-contract.js";
 import { getLanguageProfile, LANGUAGE_PROFILES } from "./language-profiles.js";
 import {
+  DEFAULT_FULL_DURATION_WINDOW,
   DEFAULT_SHORT_DURATION_WINDOW,
+  resolveFullNarrationWordRange,
   resolveShortNarrationWordRange,
 } from "./narration-constraints.js";
 import { stableSerialize } from "./stable-json.js";
@@ -66,6 +68,10 @@ import {
   type StoryBible,
   type StorySourceAnalysis,
 } from "./story-production.js";
+import {
+  buildCanonicalStoryBeats,
+  buildStoryMechanicsContract,
+} from "./story-mechanics.js";
 import { type SourceCleaningReport } from "./source-cleaning.js";
 import {
   type ShortRewriteAdaptationContract,
@@ -139,18 +145,23 @@ function resolveClassificationOutcome(
 
 function defaultFullOutputConstraints(
   profile: LanguageProfile,
-  sourceStory: ParsedSourceStory
+  _sourceStory: ParsedSourceStory
 ): FullStoryOutputConstraints {
-  const sourceWordCount = countSpokenWords(
-    sourceStory.narrationParagraphs.join(" ")
-  );
+  const targetWordRange = resolveFullNarrationWordRange({
+    language: profile.code,
+    pace: profile.defaultNarrationPace,
+  });
   return fullStoryOutputConstraintsSchema.parse({
     variant: "full",
     targetWordRange: {
-      min: Math.max(1, Math.round(sourceWordCount * 0.92)),
-      max: Math.max(1, Math.round(sourceWordCount * 1.08)),
+      min: targetWordRange.min,
+      max: targetWordRange.max,
     },
     targetNarrationWpm: profile.fullNarrationWpm,
+    targetDuration: {
+      minSeconds: DEFAULT_FULL_DURATION_WINDOW.minSeconds,
+      maxSeconds: DEFAULT_FULL_DURATION_WINDOW.maxSeconds,
+    },
   });
 }
 
@@ -643,6 +654,14 @@ export function compileFullStoryPrompt(
     contract: contractResult.contract as FullStoryContract,
     contractEnvelope: contractResult.envelope as FullStoryContractEnvelope,
     outputConstraints,
+    mechanicsContract: buildStoryMechanicsContract({
+      facts: canonicalFacts,
+      storyIr,
+    }),
+    canonicalBeats: buildCanonicalStoryBeats({
+      story: sourceStory,
+      facts: canonicalFacts,
+    }),
     responseSchema: fullNarrationResponseSchemaDescriptor,
     localeModuleVersion: STORY_PROMPT_LOCALE_MODULE_VERSION,
     selectedLocale: profile.locale,

@@ -27,6 +27,7 @@ import {
   type CharacterDefinition,
 } from "./episode-image-pipeline.js";
 import { planShortsImageWork } from "./shorts-image-strategy.js";
+import { buildCacheableImageScenePrompt } from "./cacheable-image-pipeline.js";
 
 function providerRequestHashForFixture(args: {
   readonly prompt: string;
@@ -37,11 +38,15 @@ function providerRequestHashForFixture(args: {
   readonly outputFormat?: string;
   readonly characterReferenceHashes?: readonly string[];
 }): string {
+  const prompt = buildCacheableImageScenePrompt({
+    referenceRoles: [],
+    scenePrompt: args.prompt,
+  }).rendered;
   return hashText(
     JSON.stringify({
       operation: args.operation ?? "image-generation",
       model: args.model ?? "gpt-image-2",
-      prompt: args.prompt,
+      prompt,
       n: 1,
       size: args.requestedSize ?? "1536x864",
       quality: args.quality ?? "medium",
@@ -367,7 +372,7 @@ describe("image batch planner", () => {
     );
     expect(planned[0]?.scenePlans[0]?.requestLine.body).toMatchObject({
       model: "gpt-image-2",
-      prompt: "A figure in the doorway.",
+      prompt: expect.stringContaining("A figure in the doorway."),
       n: 1,
       size: "1536x864",
       quality: "medium",
@@ -410,7 +415,7 @@ describe("image batch planner", () => {
       url: "/v1/images/generations",
       body: {
         model: "gpt-image-2",
-        prompt: "A figure in the doorway.",
+        prompt: expect.stringContaining("A figure in the doorway."),
         n: 1,
         size: "1536x864",
         quality: "medium",
@@ -539,7 +544,7 @@ describe("image batch planner", () => {
     expect(referenceGroups[0]?.storagePlan.localBatchId).toMatch(/^imgb-/u);
   });
 
-  it("blocks reference-assisted batch scenes until edit-batch semantics are manually verified", async () => {
+  it("prepares reference-assisted edit batches after provider file registration", async () => {
     const tempDir = mkdtempSync(path.join(os.tmpdir(), "image-batch-reference-edit-"));
     const episodeDir = path.join(tempDir, "episode");
     const referencePath = path.join(episodeDir, "ref.png");
@@ -568,8 +573,7 @@ describe("image batch planner", () => {
       ],
     });
 
-    await expect(
-      prepareImageBatchForEpisode({
+    const prepared = await prepareImageBatchForEpisode({
         episodeDir,
         episodeId: "001-demo",
         scenePlan: {
@@ -581,14 +585,21 @@ describe("image batch planner", () => {
           quality: "medium",
           outputFormat: "png",
         },
-      })
-    ).rejects.toMatchObject<ImageBatchPlannerError>({
-      code: "unsupported-edit-batch-request",
-      details: {
-        verificationStatus: "manual-only",
-        jsonlShape: { image: "OpenAI file ID | OpenAI file ID[]" },
+      });
+    const scene = prepared.groups[0]?.scenePlans[0];
+    expect(scene?.requestLine).toMatchObject({
+      url: "/v1/images/edits",
+      body: {
+        image: ["file_ref_123"],
+        prompt: expect.stringContaining("A reference-assisted scene."),
       },
     });
+    expect(scene?.stablePromptPrefix).toContain("reference-bundle");
+    expect(scene?.dynamicPromptSuffix).toContain("A reference-assisted scene.");
+    const renderedPrompt = String(scene?.requestLine.body.prompt ?? "");
+    expect(renderedPrompt.indexOf("A reference-assisted scene.")).toBeGreaterThan(
+      scene?.stablePromptPrefix.length ?? 0
+    );
   });
 
   it("fails scene preparation when a required approved reference is missing", async () => {

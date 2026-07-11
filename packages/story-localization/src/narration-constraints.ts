@@ -52,6 +52,14 @@ export const DEFAULT_SHORT_DURATION_WINDOW: NarrationDurationWindow = {
   maxSeconds: 65,
 } as const;
 
+// Full episodes can run to roughly ten minutes while leaving room for
+// language-specific pacing and pause-heavy horror delivery.
+export const DEFAULT_FULL_DURATION_WINDOW: NarrationDurationWindow = {
+  minSeconds: 330,
+  targetSeconds: 600,
+  maxSeconds: 660,
+} as const;
+
 const SHORT_TARGET_DURATION_WINDOWS: Readonly<
   Record<ShortTargetDurationSeconds, NarrationDurationWindow>
 > = {
@@ -151,6 +159,24 @@ export function resolveShortNarrationWordRange(args: {
     wordsPerMinute: resolveNarrationWordsPerMinute({
       language: args.language,
       variant: "short",
+      pace: args.pace,
+    }),
+    minDurationSeconds: duration.minSeconds,
+    targetDurationSeconds: duration.targetSeconds,
+    maxDurationSeconds: duration.maxSeconds,
+  });
+}
+
+export function resolveFullNarrationWordRange(args: {
+  readonly language: LanguageCode;
+  readonly pace?: NarrationPace | undefined;
+  readonly duration?: NarrationDurationWindow;
+}): NarrationWordRange {
+  const duration = args.duration ?? DEFAULT_FULL_DURATION_WINDOW;
+  return calculateNarrationWordRange({
+    wordsPerMinute: resolveNarrationWordsPerMinute({
+      language: args.language,
+      variant: "full",
       pace: args.pace,
     }),
     minDurationSeconds: duration.minSeconds,

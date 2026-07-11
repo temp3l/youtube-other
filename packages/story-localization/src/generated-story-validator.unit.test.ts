@@ -3,6 +3,9 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { getLanguageProfile } from "./language-profiles.js";
 import {
+  detectForbiddenPhrases,
+  detectMetaNarration,
+  detectUnresolvedTemplateAlternatives,
   GENERATED_STORY_VALIDATION_ISSUE_CODES,
   formatValidationIssues,
   validateFullNarrationArtifact,
@@ -15,7 +18,10 @@ import type {
   ShortStoryOutputConstraints,
   StoryIR,
 } from "./story-artifact-model.js";
-import type { CharacterRenameMap } from "./character-rename.service.js";
+import {
+  detectOriginalCharacterNameLeaks,
+  type CharacterRenameMap,
+} from "./character-rename.service.js";
 import type { CanonicalStoryFacts } from "./story-localization.types.js";
 import type {
   ShortRewriteAdaptationContract,
@@ -329,6 +335,11 @@ function minimumPassingShortWords(language: SupportedLanguage): number {
 }
 
 describe("generated story validator", () => {
+  it("detects meta narration and unresolved authoring alternatives without banning legitimate or", () => {
+    expect(detectMetaNarration("The episode shows the audience why the final action worked because fear wins.")).not.toHaveLength(0);
+    expect(detectUnresolvedTemplateAlternatives("A witness, recording or physical trace appeared.")).not.toHaveLength(0);
+    expect(detectUnresolvedTemplateAlternatives("Clara could run or lock the concrete cellar door.")).toEqual([]);
+  });
   it("rejects copied short duration metadata when actual narration is much shorter", () => {
     const terms = languageTerms("en");
     const shortNarration =
@@ -449,6 +460,110 @@ describe("generated story validator", () => {
         throw new Error(`${language}: ${result.messages.join(" | ")}`);
       }
     }
+  });
+
+  it("validates renamed canonical entities and immutable facts", () => {
+    const renameMap: CharacterRenameMap = {
+      version: 1,
+      episodeId: "035-the-wendigo-legend",
+      sourceHash: "a".repeat(64),
+      poolId: "test",
+      entries: [
+        {
+          characterId: "e1",
+          originalName: "Lena",
+          fictionalName: "Nova Shaw",
+          originalAliases: ["Lena"],
+          fictionalAliases: ["Nova Shaw"],
+        },
+      ],
+      hash: "b".repeat(64),
+    };
+    const storyIr = {
+      ...buildStoryIr("en"),
+      immutableFacts: [
+        {
+          id: "f1",
+          statement: "Lena kept the mirror warning in view",
+          confidence: "confirmed" as const,
+          immutable: true,
+        },
+      ],
+      climax: "Nova Shaw opened the attic door",
+      endingConsequence: "Nova Shaw left the house unlocked",
+    };
+    const result = validateFullNarrationArtifact({
+      language: "en",
+      profile: getLanguageProfile("en"),
+      storyIr,
+      characterRenameMap: renameMap,
+      outputConstraints: {
+        variant: "full",
+        targetWordRange: { min: 1, max: 300 },
+        targetNarrationWpm: 178,
+      },
+      narrationParagraphs: [
+        "Nova Shaw entered the house with the mirror and remembered never answer the whisper. Nova Shaw kept the mirror warning in view. Nova Shaw opened the attic door. Nova Shaw left the house unlocked.",
+      ],
+    });
+
+    expect(result.messages).not.toContain("Character names are missing.");
+    expect(result.messages).not.toContain("Written messages are not preserved.");
+  });
+
+  it("does not require generated production summaries verbatim", () => {
+    const storyIr = {
+      ...buildStoryIr("en"),
+      immutableFacts: [
+        {
+          id: "analysis-summary",
+          statement: "Nova Shaw confronts the mirror warning in the attic.",
+          confidence: "confirmed" as const,
+          immutable: true,
+        },
+      ],
+    };
+    const result = validateFullNarrationArtifact({
+      language: "en",
+      profile: getLanguageProfile("en"),
+      storyIr,
+      characterRenameMap: buildRenameMap("Nova Shaw"),
+      outputConstraints: {
+        variant: "full",
+        targetWordRange: { min: 1, max: 300 },
+        targetNarrationWpm: 178,
+      },
+      narrationParagraphs: [
+        "Nova Shaw entered the house with the mirror and remembered never answer the whisper. Nova Shaw opened the attic door. Nova Shaw left the house unlocked.",
+      ],
+    });
+
+    expect(result.messages).not.toContain("Written messages are not preserved.");
+  });
+
+  it("uses structured preservation signals instead of English climax text for localized fulls", () => {
+    const result = validateFullNarrationArtifact({
+      language: "de",
+      profile: getLanguageProfile("de"),
+      storyIr: buildStoryIr("en"),
+      characterRenameMap: buildRenameMap("Lena"),
+      outputConstraints: {
+        variant: "full",
+        targetWordRange: { min: 1, max: 500 },
+        targetNarrationWpm: 175,
+      },
+      narrationParagraphs: [
+        "Petra Vale betrat das Haus, untersuchte den Spiegel und öffnete schließlich die Dachbodentür. Danach floh sie in den Regen.",
+      ],
+      preservationChecklist: {
+        primaryRevealPreserved: true,
+        endingPreserved: true,
+      },
+    });
+
+    expect(result.messages).not.toContain("Missing climax.");
+    expect(result.messages).not.toContain("Missing ending.");
+    expect(result.messages).not.toContain("Character names are missing.");
   });
 
   it("passes the short validation matrix for supported languages", () => {
@@ -712,6 +827,14 @@ describe("generated story validator", () => {
     );
   });
 
+  it("allows concrete evidence language that is not editorial boilerplate", () => {
+    expect(
+      detectForbiddenPhrases(
+        "The surviving evidence did not prove a monster existed, but the recording retained three knocks."
+      )
+    ).toEqual([]);
+  });
+
   it("rejects shorts that read like outline excerpts or move setup after the ending", () => {
     const terms = languageTerms("en");
     const parent = buildShortParent("en");
@@ -933,5 +1056,58 @@ describe("generated story validator", () => {
       renameMap
     );
     expect(issues).not.toContain("Character names are missing.");
+  });
+
+  it("does not flag a common standalone surname as a character-name leak", () => {
+    const renameMap = buildRenameMap("Nina Bell");
+
+    expect(
+      detectOriginalCharacterNameLeaks({
+        text: "A brass bell rang in the empty room while Petra Vale watched.",
+        renameMap,
+      })
+    ).toEqual([]);
+    expect(
+      detectOriginalCharacterNameLeaks({
+        text: "Nina Bell stood beside the tape machine.",
+        renameMap,
+      })
+    ).toContain("Nina Bell");
+  });
+
+  it("accepts immutable facts preserved through salient semantic anchors", () => {
+    const storyIr = {
+      ...buildStoryIr("en"),
+      immutableFacts: [
+        {
+          id: "booth-warning",
+          statement: "Lena entered the house after the mirror warning.",
+          confidence: "confirmed" as const,
+          immutable: true,
+        },
+      ],
+    } satisfies StoryIR;
+    const terms = languageTerms("en");
+    const result = validateFullNarrationArtifact({
+      language: "en",
+      profile: getLanguageProfile("en"),
+      storyIr,
+      outputConstraints: {
+        variant: "full",
+        targetWordRange: { min: 60, max: 220 },
+        targetNarrationWpm: 178,
+      },
+      narrationParagraphs: [
+        padToWordRange(
+          `Lena stepped into the house after hearing the mirror warning. ${terms.fact}. ${terms.climax}. ${terms.ending}.`,
+          70,
+          terms.localeFiller
+        ),
+      ],
+    });
+
+    expect(result.issues.map((entry) => entry.code)).not.toContain(
+      GENERATED_STORY_VALIDATION_ISSUE_CODES.FULL_IMMUTABLE_FACT_MISSING
+    );
   });
 });

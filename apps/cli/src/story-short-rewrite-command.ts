@@ -368,6 +368,15 @@ export function registerStoryRewriteShortCommand(storiesCommand: Command): void 
           signal: controller.signal,
           ...(client ? { client } : {}),
         };
+        const maxOutputTokens =
+          options.maxOutputTokens ??
+          runtimeConfig.openAiShortMaxOutputTokens ??
+          runtimeConfig.openAiShortRewriteMaxOutputTokens ??
+          DEFAULT_SHORT_REWRITE_MAX_OUTPUT_TOKENS;
+        const retryMaxOutputTokens =
+          options.retryMaxOutputTokens ??
+          runtimeConfig.openAiShortRewriteRetryMaxOutputTokens ??
+          maxOutputTokens;
         const summary = await rewriteShortStories(
           {
             inputPath: options.input,
@@ -377,15 +386,8 @@ export function registerStoryRewriteShortCommand(storiesCommand: Command): void 
             targetDurationSeconds: normalizeTargetDuration(options.duration),
             languages,
             model,
-            maxOutputTokens:
-              options.maxOutputTokens ??
-              runtimeConfig.openAiShortMaxOutputTokens ??
-              runtimeConfig.openAiShortRewriteMaxOutputTokens ??
-              DEFAULT_SHORT_REWRITE_MAX_OUTPUT_TOKENS,
-            retryMaxOutputTokens:
-              options.retryMaxOutputTokens ??
-              runtimeConfig.openAiShortRewriteRetryMaxOutputTokens ??
-              DEFAULT_SHORT_REWRITE_RETRY_MAX_OUTPUT_TOKENS,
+            maxOutputTokens,
+            retryMaxOutputTokens,
             repairModel:
               runtimeConfig.openAiValidatorModel ??
               runtimeConfig.openAiMetadataModel,

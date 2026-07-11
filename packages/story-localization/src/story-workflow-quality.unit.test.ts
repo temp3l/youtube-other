@@ -8,9 +8,12 @@ import { buildPlannedStoryWorkflowManifest } from "./story-workflow-planner.js";
 import { type StoryProductionAnalysisVerdict } from "./story-production-analysis.js";
 import { type ArtifactLineage } from "./story-workflow.types.js";
 
-function analysisArtifact(stageId = "stage:quality-full:en:full"): ArtifactLineage {
+function analysisArtifact(
+  stageId = "stage:quality-full:en:full"
+): ArtifactLineage {
   return {
-    artifactId: "artifact:009-the-christmas-doll:en:full:analysis:deadbeef" as ArtifactLineage["artifactId"],
+    artifactId:
+      "artifact:009-the-christmas-doll:en:full:analysis:deadbeef" as ArtifactLineage["artifactId"],
     artifactType: "story-production-analysis",
     owner: "analysis",
     locale: "en",
@@ -27,7 +30,7 @@ function analysisArtifact(stageId = "stage:quality-full:en:full"): ArtifactLinea
 describe("story workflow quality adapter", () => {
   it.each([
     ["READY", true],
-    ["READY_WITH_MINOR_EDITS", true],
+    ["READY_WITH_MINOR_EDITS", false],
     ["REVISION_REQUIRED", false],
     ["REWRITE_REQUIRED", false],
     ["BLOCKED", false],
@@ -38,6 +41,15 @@ describe("story workflow quality adapter", () => {
     });
     expect(decision.pass).toBe(pass);
     expect(decision.status).toBe(verdict);
+  });
+
+  it("allows minor edits only when the content profile explicitly opts in", () => {
+    const decision = adaptStoryProductionQualityGate({
+      verdict: "READY_WITH_MINOR_EDITS",
+      deterministicValidationStatus: "passed",
+      allowMinorEditsToProceed: true,
+    });
+    expect(decision.pass).toBe(true);
   });
 
   it("lets deterministic validation failure take precedence", () => {
@@ -73,6 +85,7 @@ describe("story workflow quality adapter", () => {
     const decision = adaptStoryProductionQualityGate({
       verdict: "READY_WITH_MINOR_EDITS",
       deterministicValidationStatus: "passed",
+      allowMinorEditsToProceed: true,
     });
     const result = await executeQualityGateStage({
       context: {

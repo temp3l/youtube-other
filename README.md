@@ -13,8 +13,24 @@
 - https://jobs.micro1.ai/post/61f8d17a-315a-4406-b38a-f93b52f0e4db
 - https://weworkremotely.com/job-seekers/onboarding/step_3?payment_plan=top_access
 
+---
+
+next PROMPT: retry the model-chache.batch
+
+---
+
+pnpm mediaforge -- stories rewrite-full --input content-ideas/content/dark-truth-episodes-multilingual-production-pack/035-the-wendigo-legend/en/035-the-wendigo-legend-en-full.md
+--languages de,es,fr,pt --output-root ./episodes --force --json
+
+---
+
 provide me the cli command to
 regenerate the german short movie - only use panning and zooming as motion effects - tell me all cli commands you used at the end
+
+---
+
+why did the image batch processing not use the image-model from .env? make sure it uses all relevant settings from the .env file regarding images.
+The downloaded error payloads already show the likely root cause: every item in both image batches returned 403 model_not_found for gpt-image-1,
 
 ---
 

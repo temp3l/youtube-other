@@ -26,6 +26,7 @@ import {
   type StoryBible,
   type StorySourceAnalysis,
 } from "./story-production.js";
+import type { CanonicalStoryBeat, StoryMechanicsContract } from "./story-mechanics.js";
 import {
   type ShortRewriteAdaptationContract,
   type ShortRewriteSourceExtraction,
@@ -133,6 +134,8 @@ export interface FullStoryPromptInput extends StoryPromptSharedInput {
   readonly contract: FullStoryContract;
   readonly contractEnvelope: FullStoryContractEnvelope;
   readonly outputConstraints: FullStoryOutputConstraints;
+  readonly mechanicsContract: StoryMechanicsContract;
+  readonly canonicalBeats: readonly CanonicalStoryBeat[];
 }
 
 export interface ShortStoryPromptInput extends StoryPromptSharedInput {

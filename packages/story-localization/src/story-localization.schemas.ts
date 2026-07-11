@@ -426,6 +426,17 @@ export const localBatchManifestItemSchema = z.object({
       safetyMarginTokens: z.number().int().positive(),
     })
     .optional(),
+  promptCachePlan: z
+    .object({
+      mode: z.enum(["disabled", "implicit", "explicit"]),
+      cacheKey: z.string().min(1).optional(),
+      ttl: z.literal("30m").optional(),
+      breakpointAfterBlock: z.string().min(1).optional(),
+      estimatedReusablePrefixTokens: z.number().int().nonnegative(),
+      expectedReuseCount: z.number().int().nonnegative(),
+      shard: z.number().int().nonnegative(),
+    })
+    .optional(),
   status: localBatchManifestItemStatusSchema,
   resultImportedAt: z.string().min(1).optional(),
   usage: z

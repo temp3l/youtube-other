@@ -509,7 +509,7 @@ describe("story localization helpers", () => {
     const sourceWordCount = countWords(fullNarration);
     const expectedWordRange = `${Math.max(1, Math.round(sourceWordCount * 0.92))}–${Math.max(
       Math.max(1, Math.round(sourceWordCount * 0.92)),
-      Math.round(sourceWordCount * 1.08)
+      Math.round(sourceWordCount * 1.25)
     )}`;
     const fullPrompt = buildLocalizationPrompt({
       languageProfile: getLanguageProfile("es"),
@@ -994,6 +994,7 @@ describe("story localization helpers", () => {
       model: "gpt-5.5",
       temperature: 0.5,
       reasoningEffort: "high",
+      maxOutputTokens: 14_000,
       promptVersion: "story-v1",
     };
 
@@ -1338,6 +1339,40 @@ describe("story localization helpers", () => {
     );
     expect(facts.characters.map((character) => character.name)).not.toContain(
       "Noah Room"
+    );
+  });
+
+  it("does not treat a leading temporal clause as part of a character name", () => {
+    const parsed = {
+      language: "en",
+      sourceFile: "/tmp/036-test.md",
+      sourceHash: "test",
+      episodeNumber: "036",
+      slug: "036-the-house-of-voices",
+      title: "The House of Voices",
+      narrationParagraphs: [
+        "Nina Bell listened to the tape in the locked vocal booth.",
+        "Once Nina understood the rule, she stopped speaking.",
+      ],
+      audioInstructions: [],
+      metadata: {
+        episodeNumber: "036",
+        primaryTitle: "The House of Voices",
+        audioInstructions: [],
+        narration: [],
+        tags: [],
+        hashtags: [],
+      },
+      content: "",
+    } satisfies ParsedSourceStory;
+
+    const facts = extractCanonicalStoryFacts(parsed);
+
+    expect(facts.characters.map((character) => character.name)).toContain(
+      "Nina Bell"
+    );
+    expect(facts.characters.map((character) => character.name)).not.toContain(
+      "Once Nina"
     );
   });
 

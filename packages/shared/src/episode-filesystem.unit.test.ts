@@ -847,7 +847,7 @@ describe("episode filesystem helpers", () => {
     ).rejects.toThrow(/Path escapes workspace via symlink/u);
   });
 
-  it("rejects stale authored script layouts without reading them as fallbacks", async () => {
+  it("prefers canonical scripts over compatibility renderings", async () => {
     const identicalWorkspace = await createTempWorkspace();
     await writeWorkspaceFile(
       identicalWorkspace,
@@ -867,16 +867,8 @@ describe("episode filesystem helpers", () => {
         language: "en",
         variant: "full",
       })
-    ).rejects.toMatchObject({
-      code: "STALE_LAYOUT",
-      details: {
-        candidates: [
-          "episodes/022-the-whistler-in-the-woods/en/full/script.md",
-        ],
-      },
-      message: expect.stringContaining(
-        "Use episodes/022-the-whistler-in-the-woods/languages/script-en.md"
-      ),
+    ).resolves.toMatchObject({
+      relativePath: "episodes/022-the-whistler-in-the-woods/languages/script-en.md",
     });
 
     const divergentWorkspace = await createTempWorkspace();
@@ -898,15 +890,8 @@ describe("episode filesystem helpers", () => {
         language: "de",
         variant: "full",
       })
-    ).rejects.toMatchObject({
-      code: "STALE_LAYOUT",
-      details: {
-        canonicalRelativePath:
-          "episodes/022-the-whistler-in-the-woods/languages/script-de.md",
-        candidates: [
-          "episodes/022-the-whistler-in-the-woods/de/full/script.md",
-        ],
-      },
+    ).resolves.toMatchObject({
+      relativePath: "episodes/022-the-whistler-in-the-woods/languages/script-de.md",
     });
   });
 

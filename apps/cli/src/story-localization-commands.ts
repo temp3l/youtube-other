@@ -179,6 +179,24 @@ export async function buildCommandConfig(
       options.model ??
       runtimeConfig.openAiLocalizationModel ??
       DEFAULT_STORY_REWRITE_MODEL,
+    ...(runtimeConfig.openAiStoryModel
+      ? { canonicalModel: runtimeConfig.openAiStoryModel }
+      : {}),
+    ...(runtimeConfig.openAiStoryReasoningEffort
+      ? { canonicalReasoningEffort: runtimeConfig.openAiStoryReasoningEffort }
+      : {}),
+    ...(runtimeConfig.openAiStoryMaxOutputTokens !== undefined
+      ? { canonicalMaxOutputTokens: runtimeConfig.openAiStoryMaxOutputTokens }
+      : {}),
+    ...(runtimeConfig.openAiShortModel
+      ? { shortModel: runtimeConfig.openAiShortModel }
+      : {}),
+    ...(runtimeConfig.openAiShortReasoningEffort
+      ? { shortReasoningEffort: runtimeConfig.openAiShortReasoningEffort }
+      : {}),
+    ...(runtimeConfig.openAiShortMaxOutputTokens !== undefined
+      ? { shortMaxOutputTokens: runtimeConfig.openAiShortMaxOutputTokens }
+      : {}),
     temperature: SHORT_REWRITE_DEFAULT_TEMPERATURE,
     reasoningEffort:
       runtimeConfig.openAiLocalizationReasoningEffort ??
@@ -186,6 +204,8 @@ export async function buildCommandConfig(
     maxOutputTokens:
       runtimeConfig.openAiLocalizationMaxOutputTokens ??
       DEFAULT_FULL_REWRITE_MAX_OUTPUT_TOKENS,
+    promptCacheMode: runtimeConfig.openAiPromptCacheMode,
+    promptCacheShardCount: runtimeConfig.openAiPromptCacheShardCount,
     retryMaxOutputTokens:
       runtimeConfig.openAiLocalizationMaxOutputTokens ??
       DEFAULT_FULL_REWRITE_RETRY_MAX_OUTPUT_TOKENS,
@@ -565,6 +585,24 @@ export async function buildBatchConfig(
       options.model ??
       runtimeConfig.openAiLocalizationModel ??
       DEFAULT_STORY_REWRITE_MODEL,
+    ...(runtimeConfig.openAiStoryModel
+      ? { canonicalModel: runtimeConfig.openAiStoryModel }
+      : {}),
+    ...(runtimeConfig.openAiStoryReasoningEffort
+      ? { canonicalReasoningEffort: runtimeConfig.openAiStoryReasoningEffort }
+      : {}),
+    ...(runtimeConfig.openAiStoryMaxOutputTokens !== undefined
+      ? { canonicalMaxOutputTokens: runtimeConfig.openAiStoryMaxOutputTokens }
+      : {}),
+    ...(runtimeConfig.openAiShortModel
+      ? { shortModel: runtimeConfig.openAiShortModel }
+      : {}),
+    ...(runtimeConfig.openAiShortReasoningEffort
+      ? { shortReasoningEffort: runtimeConfig.openAiShortReasoningEffort }
+      : {}),
+    ...(runtimeConfig.openAiShortMaxOutputTokens !== undefined
+      ? { shortMaxOutputTokens: runtimeConfig.openAiShortMaxOutputTokens }
+      : {}),
     temperature: SHORT_REWRITE_DEFAULT_TEMPERATURE,
     reasoningEffort:
       runtimeConfig.openAiLocalizationReasoningEffort ??
@@ -572,6 +610,8 @@ export async function buildBatchConfig(
     maxOutputTokens:
       runtimeConfig.openAiLocalizationMaxOutputTokens ??
       DEFAULT_FULL_REWRITE_MAX_OUTPUT_TOKENS,
+    promptCacheMode: runtimeConfig.openAiPromptCacheMode,
+    promptCacheShardCount: runtimeConfig.openAiPromptCacheShardCount,
     retryMaxOutputTokens:
       runtimeConfig.openAiLocalizationMaxOutputTokens ??
       DEFAULT_FULL_REWRITE_RETRY_MAX_OUTPUT_TOKENS,

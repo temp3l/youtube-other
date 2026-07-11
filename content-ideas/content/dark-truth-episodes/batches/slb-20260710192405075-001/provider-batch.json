@@ -1,18 +1,22 @@
 {
   "localBatchId": "slb-20260710192405075-001",
   "openAIBatchId": "batch_6a51481224308190be720a7e7e2f159f",
-  "status": "submitted",
+  "status": "imported_with_failures",
   "endpoint": "/v1/responses",
   "completionWindow": "24h",
   "openAIInputFileId": "file-8Me3KCFvEHh4M7MgfzzyZh",
   "outputFileId": null,
-  "errorFileId": null,
-  "requestCounts": null,
+  "errorFileId": "file-H8MmGGqKXt7LGebqGqwWGP",
+  "requestCounts": {
+    "total": 6,
+    "completed": 0,
+    "failed": 6
+  },
   "submittedAt": "2026-07-10T19:29:22.876Z",
-  "completedAt": null,
+  "completedAt": "2026-07-10T19:31:33.000Z",
   "inputFilePath": "content-ideas/content/dark-truth-episodes/.batch/inputs/batch-slb-20260710192405075-001.jsonl",
-  "resultFilePath": null,
-  "errorFilePath": null,
+  "resultFilePath": "content-ideas/content/dark-truth-episodes/.batch/results/batch-slb-20260710192405075-001.output.jsonl",
+  "errorFilePath": "content-ideas/content/dark-truth-episodes/.batch/errors/batch-slb-20260710192405075-001.errors.jsonl",
   "manifestPath": "content-ideas/content/dark-truth-episodes/.batch/manifests/batch-slb-20260710192405075-001.manifest.json",
-  "updatedAt": "2026-07-10T19:29:22.891Z"
+  "updatedAt": "2026-07-11T11:00:26.297Z"
 }

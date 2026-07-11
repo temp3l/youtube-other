@@ -1,4 +1,8 @@
 import { normalizeWhitespace, splitIntoSentences } from "@mediaforge/shared";
+import {
+  applyCharacterRenameMapToText,
+  type CharacterRenameMap,
+} from "./character-rename.service.js";
 import { type CanonicalStoryFacts } from "./story-localization.types.js";
 
 export function dedupeGeneratedMetadata(text: string): string {
@@ -15,15 +19,11 @@ export function repairGermanServiceCompounds(text: string): string {
     .replace(/\bFunkgerät\b/gu, "internes Telefon");
 }
 
-export function repairShortBodyCanonicalNames(text: string, facts: CanonicalStoryFacts): string {
-  let repaired = text;
-  const preferredName = facts.protagonistNames?.[0];
-  if (preferredName) {
-    repaired = repaired
-      .replace(/\bAdrian Cole\b/gu, preferredName)
-      .replace(/\bAdrian\b/gu, preferredName);
-  }
-  return repaired;
+export function repairShortBodyCanonicalNames(
+  text: string,
+  characterRenameMap: CharacterRenameMap
+): string {
+  return applyCharacterRenameMapToText(text, characterRenameMap);
 }
 
 export function repairFinalSting(text: string, facts: CanonicalStoryFacts): string {

@@ -115,7 +115,7 @@ const shortRewriteParentIdentitySchema = z
     episodeSlug: z.string().min(1),
     language: z.enum(["en", "de", "es", "fr", "pt"]),
     locale: z.string().min(1),
-    variant: z.literal("full"),
+    variant: z.enum(["full", "short"]),
     parentFullHash: hashSchema,
     sourceSha256: hashSchema,
   })

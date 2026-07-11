@@ -86,6 +86,15 @@ export async function loadEpisodeScriptMarkdown(
       sectionHeading !== undefined
         ? extractMarkdownSection(text, sectionHeading)
         : null;
+    if (
+      sectionHeading !== undefined &&
+      sectionText === null &&
+      /^#{1,6}\s+/mu.test(text)
+    ) {
+      throw new Error(
+        `Missing required Markdown section "${sectionHeading}" in ${candidate}; refusing to send headings, metadata, or production notes to TTS.`
+      );
+    }
     return {
       filePath: candidate,
       text: sectionText ?? text,

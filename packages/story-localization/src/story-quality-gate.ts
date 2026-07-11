@@ -1,4 +1,8 @@
-import { countSpokenWords, normalizeWhitespace, splitIntoSentences } from "@mediaforge/shared";
+import {
+  countSpokenWords,
+  normalizeWhitespace,
+  splitIntoSentences,
+} from "@mediaforge/shared";
 import {
   type RepairScope,
   type StoryArtifactKind,
@@ -6,7 +10,11 @@ import {
   type StoryQualityFinding,
   type StoryQualityGateResult,
 } from "./story-generation-contracts.js";
-import { type CanonicalStoryFacts, type LanguageCode } from "./story-localization.types.js";
+import {
+  type CanonicalStoryFacts,
+  type LanguageCode,
+} from "./story-localization.types.js";
+import { detectProfessionalStoryQualityIssues } from "./professional-story-contracts.js";
 
 const BANNED_OUTLINE_PHRASES = [
   "the protagonist",
@@ -107,9 +115,7 @@ function paragraphDuplicates(text: string): readonly string[] {
 
 function tokenizeNormalized(value: string): readonly string[] {
   const normalized = normalizeForDuplicate(value);
-  return normalized
-    .split(/\s+/u)
-    .filter((token) => token.length >= 4);
+  return normalized.split(/\s+/u).filter((token) => token.length >= 4);
 }
 
 function tokenSimilarity(left: string, right: string): number {
@@ -149,7 +155,9 @@ function nearDuplicateParagraphs(text: string): readonly string[] {
   return duplicates;
 }
 
-function repeatedSentenceOpenings(sentences: readonly string[]): readonly string[] {
+function repeatedSentenceOpenings(
+  sentences: readonly string[]
+): readonly string[] {
   const counts = new Map<string, number>();
   for (const sentence of sentences) {
     const opening = tokenizeNormalized(sentence).slice(0, 4).join(" ");
@@ -163,7 +171,10 @@ function repeatedSentenceOpenings(sentences: readonly string[]): readonly string
     .map(([opening]) => opening);
 }
 
-function paragraphIndexForExcerpt(text: string, excerpt: string): number | undefined {
+function paragraphIndexForExcerpt(
+  text: string,
+  excerpt: string
+): number | undefined {
   const normalizedExcerpt = normalizeWhitespace(excerpt).slice(0, 40);
   const paragraphs = text.split(/\n{2,}/u);
   const index = paragraphs.findIndex((paragraph) =>
@@ -172,7 +183,10 @@ function paragraphIndexForExcerpt(text: string, excerpt: string): number | undef
   return index >= 0 ? index : undefined;
 }
 
-function includesAny(lower: string, values: readonly string[] | undefined): boolean {
+function includesAny(
+  lower: string,
+  values: readonly string[] | undefined
+): boolean {
   return (values ?? []).some((value) => lower.includes(value.toLowerCase()));
 }
 
@@ -180,8 +194,23 @@ function hasEmotionalCost(text: string, facts: CanonicalStoryFacts): boolean {
   const lower = text.toLowerCase();
   const cost = facts.emotionalCost?.toLowerCase();
   const attachment = facts.protagonistAttachment?.toLowerCase();
-  const hasCostVerb = /\b(refus|sacrific|abandon|destroy|betray|accept|ignore|leave|reject|give up|lose)\w*\b/iu.test(text);
-  return hasCostVerb && (!!cost ? lower.includes(cost.slice(0, Math.min(32, cost.length))) || includesAny(lower, [cost]) : true) && (!!attachment ? includesAny(lower, [attachment]) || /\bpromise|guilt|voice|loved|familiar|proof|recording|name|shame|trust\b/iu.test(text) : true);
+  const hasCostVerb =
+    /\b(refus|sacrific|abandon|destroy|betray|accept|ignore|leave|reject|give up|lose)\w*\b/iu.test(
+      text
+    );
+  return (
+    hasCostVerb &&
+    (cost
+      ? lower.includes(cost.slice(0, Math.min(32, cost.length))) ||
+        includesAny(lower, [cost])
+      : true) &&
+    (attachment
+      ? includesAny(lower, [attachment]) ||
+        /\bpromise|guilt|voice|loved|familiar|proof|recording|name|shame|trust\b/iu.test(
+          text
+        )
+      : true)
+  );
 }
 
 function finding(args: {
@@ -206,7 +235,9 @@ function finding(args: {
     ...(args.category !== undefined ? { category: args.category } : {}),
     ...(args.evidence !== undefined ? { evidence: args.evidence } : {}),
     ...(args.repairable !== undefined ? { repairable: args.repairable } : {}),
-    ...(args.repairScope !== undefined ? { repairScope: args.repairScope } : {}),
+    ...(args.repairScope !== undefined
+      ? { repairScope: args.repairScope }
+      : {}),
     ...(args.deterministicFix !== undefined
       ? { deterministicFix: args.deterministicFix }
       : {}),
@@ -215,7 +246,9 @@ function finding(args: {
       ? { paragraphIndex: args.paragraphIndex }
       : {}),
     ...(args.excerpt !== undefined ? { excerpt: args.excerpt } : {}),
-    ...(args.explanation !== undefined ? { explanation: args.explanation } : {}),
+    ...(args.explanation !== undefined
+      ? { explanation: args.explanation }
+      : {}),
     ...(args.suggestedRepairAction !== undefined
       ? { suggestedRepairAction: args.suggestedRepairAction }
       : {}),
@@ -260,8 +293,35 @@ export function runStoryQualityGate(args: {
   const repairScopes = new Set<RepairScope>();
   const deterministicFixes = new Set<string>();
 
+  for (const professionalIssue of detectProfessionalStoryQualityIssues(
+    normalized
+  )) {
+    findings.push(
+      finding({
+        code: professionalIssue.code,
+        message: professionalIssue.message,
+        severity: "error",
+        language: args.language,
+        category:
+          professionalIssue.code === "UNRESOLVED_TEMPLATE_ALTERNATIVE"
+            ? "template-leakage"
+            : "abstract-language",
+        repairable: true,
+        repairScope: "targeted-short-repair",
+        explanation:
+          "Professional narration must depict concrete story events instead of exposing editorial scaffolding.",
+        suggestedRepairAction:
+          "Replace the flagged language with a specific character action, physical object, observable result, and consequence.",
+      })
+    );
+    repairScopes.add("targeted-short-repair");
+  }
+
   if (args.targetWordRange) {
-    if (wordCount < args.targetWordRange.min || wordCount > args.targetWordRange.max) {
+    if (
+      wordCount < args.targetWordRange.min ||
+      wordCount > args.targetWordRange.max
+    ) {
       findings.push(
         finding({
           code: "WORD_RANGE_INVALID",
@@ -307,14 +367,20 @@ export function runStoryQualityGate(args: {
     }
   }
 
-  if (args.budget.maxOutputTokens !== undefined && args.budget.maxOutputTokens > 0) {
+  if (
+    args.budget.maxOutputTokens !== undefined &&
+    args.budget.maxOutputTokens > 0
+  ) {
     const estimatedTokens = Math.ceil(normalized.length / 4);
     if (estimatedTokens > args.budget.maxOutputTokens * 0.8) {
       warnings.push("Output is close to the configured max output token cap.");
     }
   }
 
-  if ((normalized.match(/<!--\s*mediaforge:generated-full-story\s*-->/gu) ?? []).length > 1) {
+  if (
+    (normalized.match(/<!--\s*mediaforge:generated-full-story\s*-->/gu) ?? [])
+      .length > 1
+  ) {
     findings.push(
       finding({
         code: "DUPLICATE_GENERATED_MARKER",
@@ -395,7 +461,9 @@ export function runStoryQualityGate(args: {
     repairScopes.add("targeted-short-repair");
   }
 
-  const bannedPhrase = BANNED_OUTLINE_PHRASES.find((phrase) => lower.includes(` ${phrase} `));
+  const bannedPhrase = BANNED_OUTLINE_PHRASES.find((phrase) =>
+    lower.includes(` ${phrase} `)
+  );
   if (bannedPhrase) {
     findings.push(
       finding({
@@ -423,7 +491,8 @@ export function runStoryQualityGate(args: {
     findings.push(
       finding({
         code: "ABSTRACT_PLANNING_LANGUAGE",
-        message: "Narration contains planning-language or story-analysis leakage.",
+        message:
+          "Narration contains planning-language or story-analysis leakage.",
         severity: "error",
         category: "abstract-language",
         evidence: abstractSentences.slice(0, 3),
@@ -445,13 +514,13 @@ export function runStoryQualityGate(args: {
   }
 
   const concreteRatio = concreteSentenceRatio(sentences);
-  const concreteRatioMinimum =
-    args.artifactKind === "short" ? 0.45 : 0.35;
+  const concreteRatioMinimum = args.artifactKind === "short" ? 0.45 : 0.35;
   if (sentences.length >= 6 && concreteRatio < concreteRatioMinimum) {
     findings.push(
       finding({
         code: "CONCRETE_DETAIL_DENSITY_LOW",
-        message: "Narration has too few observable actions, objects, sensory details, discoveries, decisions, or consequences.",
+        message:
+          "Narration has too few observable actions, objects, sensory details, discoveries, decisions, or consequences.",
         severity: "error",
         category: "abstract-language",
         repairable: true,
@@ -466,7 +535,8 @@ export function runStoryQualityGate(args: {
     findings.push(
       finding({
         code: "TITLE_USED_AS_GENERIC_ANCHOR",
-        message: "Story title is repeated as a generic anchor instead of natural narration.",
+        message:
+          "Story title is repeated as a generic anchor instead of natural narration.",
         severity: "error",
         repairScope: "targeted-short-repair",
       })
@@ -476,7 +546,10 @@ export function runStoryQualityGate(args: {
 
   for (const name of args.facts.protagonistNames ?? []) {
     if (!lower.includes(` ${name.toLowerCase()} `)) {
-      const code = args.artifactKind === "short" ? "CANONICAL_NAME_MISSING" : "CANONICAL_NAME_NOT_EXPLICIT";
+      const code =
+        args.artifactKind === "short"
+          ? "CANONICAL_NAME_MISSING"
+          : "CANONICAL_NAME_NOT_EXPLICIT";
       if (args.artifactKind === "short") {
         findings.push(
           finding({
@@ -490,14 +563,21 @@ export function runStoryQualityGate(args: {
         );
         repairScopes.add("canonical-name-repair");
       } else {
-        warnings.push(`Canonical protagonist name is not explicit in the generated text: ${name}.`);
+        warnings.push(
+          `Canonical protagonist name is not explicit in the generated text: ${name}.`
+        );
       }
     }
   }
 
   const criticalObjects = args.facts.keyObjects ?? args.facts.criticalObjects;
-  const missingObjects = criticalObjects.filter((object) => !lower.includes(object.toLowerCase()));
-  if (criticalObjects.length > 0 && missingObjects.length > Math.max(0, criticalObjects.length - 2)) {
+  const missingObjects = criticalObjects.filter(
+    (object) => !lower.includes(object.toLowerCase())
+  );
+  if (
+    criticalObjects.length > 0 &&
+    missingObjects.length > Math.max(0, criticalObjects.length - 2)
+  ) {
     findings.push(
       finding({
         code: "CONCRETE_OBJECTS_MISSING",
@@ -513,7 +593,12 @@ export function runStoryQualityGate(args: {
   }
 
   const locations = args.facts.concreteLocations ?? args.facts.locationAnchors;
-  if (args.artifactKind === "short" && locations && locations.length > 0 && !includesAny(lower, locations)) {
+  if (
+    args.artifactKind === "short" &&
+    locations &&
+    locations.length > 0 &&
+    !includesAny(lower, locations)
+  ) {
     findings.push(
       finding({
         code: "CONCRETE_LOCATION_MISSING",
@@ -556,7 +641,10 @@ export function runStoryQualityGate(args: {
     }
   }
 
-  if (args.language === "de" && /\bServic Eingang\b|\bServic eflur\b/iu.test(normalized)) {
+  if (
+    args.language === "de" &&
+    /\bServic Eingang\b|\bServic eflur\b/iu.test(normalized)
+  ) {
     findings.push(
       finding({
         code: "MALFORMED_GERMAN_COMPOUND",
@@ -588,7 +676,11 @@ export function runStoryQualityGate(args: {
     repairScopes.add("final-sting-repair");
     deterministicFixes.add("repair-final-sting");
   }
-  if (args.facts.supernaturalRule && !includesAny(lower, [args.facts.supernaturalRule]) && !/\bdo not\b|\bdon't\b|\bnever\b|\bmust\b|\brule\b/iu.test(normalized)) {
+  if (
+    args.facts.supernaturalRule &&
+    !includesAny(lower, [args.facts.supernaturalRule]) &&
+    !/\bdo not\b|\bdon't\b|\bnever\b|\bmust\b|\brule\b/iu.test(normalized)
+  ) {
     findings.push(
       finding({
         code: "SUPERNATURAL_RULE_MISSING",
@@ -631,7 +723,8 @@ export function runStoryQualityGate(args: {
     findings.push(
       finding({
         code: "EMOTIONAL_COST_MISSING",
-        message: "Ending lacks a concrete protagonist attachment and emotionally costly final decision.",
+        message:
+          "Ending lacks a concrete protagonist attachment and emotionally costly final decision.",
         severity: "error",
         repairScope: "targeted-short-repair",
       })
@@ -656,10 +749,7 @@ export function runStoryQualityGate(args: {
     );
     repairScopes.add("targeted-short-repair");
   }
-  if (
-    args.artifactKind === "short" &&
-    !/\?|!|\./u.test(finalSentence)
-  ) {
+  if (args.artifactKind === "short" && !/\?|!|\./u.test(finalSentence)) {
     findings.push(
       finding({
         code: "FINAL_STING_WEAK",
@@ -672,12 +762,15 @@ export function runStoryQualityGate(args: {
   }
 
   const abstractSignals = ["story", "mystery", "terror", "summary", "follows"];
-  const abstractHits = abstractSignals.filter((entry) => lower.includes(` ${entry} `)).length;
+  const abstractHits = abstractSignals.filter((entry) =>
+    lower.includes(` ${entry} `)
+  ).length;
   if (abstractHits >= 3 && args.artifactKind === "short") {
     findings.push(
       finding({
         code: "ABSTRACTION_HIGH",
-        message: "Narration reads too abstractly instead of as a concrete micro-story.",
+        message:
+          "Narration reads too abstractly instead of as a concrete micro-story.",
         severity: "error",
         repairScope: "targeted-short-repair",
       })
@@ -687,7 +780,11 @@ export function runStoryQualityGate(args: {
 
   if (args.artifactKind === "short") {
     const firstTwoSentences = sentences.slice(0, 2).join(" ");
-    if (!/\bhook\b|\bdoor\b|\bradio\b|\bvoice\b|\bscrap|\bcar\b|\bmirror\b|\bphone\b/iu.test(firstTwoSentences)) {
+    if (
+      !/\bhook\b|\bdoor\b|\bradio\b|\bvoice\b|\bscrap|\bcar\b|\bmirror\b|\bphone\b/iu.test(
+        firstTwoSentences
+      )
+    ) {
       findings.push(
         finding({
           code: "SHORT_CONCRETE_HOOK_MISSING",
@@ -700,19 +797,22 @@ export function runStoryQualityGate(args: {
     }
   }
 
-  const errorCount = findings.filter((entry) => entry.severity === "error").length;
+  const errorCount = findings.filter(
+    (entry) => entry.severity === "error"
+  ).length;
   const repairable =
     errorCount > 0 &&
-    findings.every((entry) =>
-      entry.repairScope !== undefined &&
-      [
-        "metadata-deduplication",
-        "generated-marker-replacement",
-        "german-compound-repair",
-        "canonical-name-repair",
-        "final-sting-repair",
-        "targeted-short-repair",
-      ].includes(entry.repairScope)
+    findings.every(
+      (entry) =>
+        entry.repairScope !== undefined &&
+        [
+          "metadata-deduplication",
+          "generated-marker-replacement",
+          "german-compound-repair",
+          "canonical-name-repair",
+          "final-sting-repair",
+          "targeted-short-repair",
+        ].includes(entry.repairScope)
     );
   return {
     status: errorCount === 0 ? "PASS" : repairable ? "REPAIRABLE" : "FAIL",

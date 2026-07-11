@@ -31,6 +31,8 @@ export interface WorkflowQualityGateInput {
   readonly profile?: string;
   readonly gateVersion?: string;
   readonly analysisArtifactId?: QualityGateDecision["analysisArtifactId"];
+  /** READY_WITH_MINOR_EDITS is advisory by default and may proceed only when a content profile opts in. */
+  readonly allowMinorEditsToProceed?: boolean;
 }
 
 export function adaptStoryProductionQualityGate(
@@ -52,7 +54,10 @@ export function adaptStoryProductionQualityGate(
     "warnings" in input && input.warnings ? [...input.warnings] : [];
   const pass =
     deterministicValidationStatus === "passed" &&
-    (verdict === "READY" || verdict === "READY_WITH_MINOR_EDITS");
+    (verdict === "READY" ||
+      (verdict === "READY_WITH_MINOR_EDITS" &&
+        "allowMinorEditsToProceed" in input &&
+        input.allowMinorEditsToProceed === true));
   return {
     status: verdict,
     pass,
@@ -198,7 +203,8 @@ export async function executeQualityGateStage(args: {
     schemaVersion: stageFailureSchemaVersion,
     category: "persistence-failed",
     retryability: "manual-review",
-    message: "Quality gate passed but no analysis artifact lineage was provided.",
+    message:
+      "Quality gate passed but no analysis artifact lineage was provided.",
     occurredAt: completedAt,
   };
   const outcome: StageOutcome<ArtifactLineage> =
@@ -215,16 +221,20 @@ export async function executeQualityGateStage(args: {
           failure:
             args.decision.pass && !args.artifact
               ? missingArtifactFailure
-              : qualityDecisionToFailure({
+              : (qualityDecisionToFailure({
                   decision: args.decision,
                   category:
                     args.failureCategory ??
-                    defaultQualityFailureCategory(stage.stageType, stage.locale),
-                }) ?? missingArtifactFailure,
+                    defaultQualityFailureCategory(
+                      stage.stageType,
+                      stage.locale
+                    ),
+                }) ?? missingArtifactFailure),
         };
   const manifest = args.context.store
-    ? await args.context.store.mutate(args.context.manifest.workflowId, (manifest) =>
-        appendQualityGateOutcome(manifest, outcome, args.decision)
+    ? await args.context.store.mutate(
+        args.context.manifest.workflowId,
+        (manifest) => appendQualityGateOutcome(manifest, outcome, args.decision)
       )
     : appendQualityGateOutcome(args.context.manifest, outcome, args.decision);
   return { manifest, outcome };

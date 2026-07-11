@@ -62,7 +62,7 @@ export interface ShortRewriteParentFullIdentity {
   readonly episodeSlug: string;
   readonly language: StoryLanguage;
   readonly locale: string;
-  readonly variant: "full";
+  readonly variant: "full" | "short";
 }
 
 export interface ShortRewriteResolvedParent {
@@ -79,6 +79,7 @@ export interface ShortRewriteResolvedParent {
   readonly canonical: boolean;
   readonly provenance:
     | "canonical-full-artifact"
+    | "canonical-short-artifact"
     | "localized-full-artifact"
     | "compatibility-source";
 }

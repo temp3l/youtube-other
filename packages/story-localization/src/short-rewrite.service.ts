@@ -161,6 +161,7 @@ import { resolveEpisodeStoryProductionDirectory } from "./story-production.js";
 import {
   buildCharacterRenameMap,
   characterRenameMapSchema,
+  type CharacterRenameMap,
 } from "./character-rename.service.js";
 import {
   type GeneratedStoryValidationIssueCode,
@@ -836,86 +837,29 @@ async function resolveCanonicalEnglishParent(args: {
   };
 }
 
-async function resolveLocalizedFullParent(args: {
+async function resolveCanonicalEnglishShortParent(args: {
   readonly outputRoot: string;
   readonly source: ResolvedShortRewriteSource;
-  readonly language: StoryLanguage;
 }): Promise<ShortRewriteResolvedParent> {
-  const languageProfile = SHORT_REWRITE_SUPPORTED_LANGUAGES[args.language];
-  const cacheDirectory = resolveEpisodeCacheDirectory(
-    args.outputRoot,
-    args.source.episodeSlug
-  );
-  const productionDirectory = resolveEpisodeStoryProductionDirectory(cacheDirectory, {
+  const paths = resolveShortRewriteOutputPaths({
+    outputRoot: args.outputRoot,
+    episodeSlug: args.source.episodeSlug,
     episodeNumber: args.source.episodeNumber,
-    slug: args.source.episodeSlug,
+    language: "en",
   });
-  const artifactPath = path.join(
-    productionDirectory,
-    `${args.language}-full-narration-result.json`
+  const sidecar = await readJsonIfExists(paths.jsonPath, (value) =>
+    shortRewriteGenerationSchema.parse(value)
   );
-  const localizedArtifact = await readJsonIfExists(artifactPath, (value) =>
-    z
-      .object({
-        schemaVersion: z.string().min(1),
-        sourceFormat: z.enum(["narration-only", "legacy-mixed"]),
-        deprecationDiagnostics: z.array(z.string().min(1)),
-        promptFingerprint: z.string().min(1).optional(),
-        responseSchemaName: z.string().min(1).optional(),
-        responseSchemaVersion: z.string().min(1).optional(),
-        responseSchemaFingerprint: z.string().min(1).optional(),
-        lineage: z
-          .object({
-            kind: z.literal("canonical-english-full"),
-            fingerprint: z.string().min(1),
-            sourceHash: z.string().min(1),
-            language: z.literal("en").optional(),
-            locale: z.literal("en-US").optional(),
-            variant: z.literal("full").optional(),
-            storyIrHash: z.string().min(1).optional(),
-            contractHash: z.string().min(1).optional(),
-            contractBuildFingerprint: z.string().min(1).optional(),
-          })
-          .strict(),
-        validationIssues: z.array(z.string().min(1)),
-        result: narrationOnlyFullRewriteResponseSchema,
-      })
-      .strict()
-      .parse(value)
-  );
-  if (!localizedArtifact || localizedArtifact.validationIssues.length > 0) {
+  if (
+    !sidecar ||
+    !sidecar.canonical ||
+    !sidecar.validation.hardWordRangeSatisfied ||
+    !sidecar.validation.hookMatchesNarration
+  ) {
     throw new ShortRewriteValidationError(
-      `${languageProfile.name} short requires a validated matching-locale full parent artifact.`
+      "Localized Shorts require an accepted canonical English Short artifact."
     );
   }
-  if (localizedArtifact.result.language !== args.language) {
-    throw new ShortRewriteValidationError(
-      `${languageProfile.name} short cannot derive from ${localizedArtifact.result.language} full narration.`
-    );
-  }
-  const compatibilityFull = adaptNarrationOnlyFullToLegacyRendererPackage({
-    sourceStory: await parseCanonicalSourceStory(
-      path.join(
-        args.outputRoot,
-        args.source.episodeSlug,
-        "source",
-        buildCanonicalSourceFileName({
-          episodeNumber: args.source.episodeNumber,
-          episodeSlug: args.source.episodeSlug,
-        })
-      )
-    ),
-    response: localizedArtifact.result,
-  });
-  const localizedMarkdown = renderLocalizedFullStory(
-    args.source.episodeNumber,
-    compatibilityFull,
-    args.language,
-    args.source.sourceSha256
-  );
-  const narrationParagraphs = localizedArtifact.result.full.narrationParagraphs.map((entry) =>
-    normalizeWhitespace(entry)
-  );
   const canonicalPaths = resolveCanonicalEnglishFullPaths(
     args.outputRoot,
     args.source.episodeSlug
@@ -926,35 +870,36 @@ async function resolveLocalizedFullParent(args: {
   );
   if (!canonicalArtifact?.characterRenameMap) {
     throw new ShortRewriteValidationError(
-      `${languageProfile.name} short requires a canonical full artifact with a persisted character rename map.`
+      "Localized Shorts require the canonical English character rename map."
     );
   }
+  const narrationParagraphs = [normalizeWhitespace(sidecar.generation.narration)];
   return {
     identity: {
       episodeId: args.source.episodeId,
       episodeSlug: args.source.episodeSlug,
-      language: args.language,
-      locale: languageProfile.locale,
-      variant: "full",
+      language: "en",
+      locale: sidecar.locale,
+      variant: "short",
     },
-    title: compatibilityFull.title,
-    sourcePath: path.join(args.outputRoot, args.source.episodeSlug, args.language, "full", "script.md"),
-    sourceSha256: sha256NormalizedSource(localizedMarkdown),
+    title: sidecar.generation.title,
+    sourcePath: paths.markdownPath,
+    sourceSha256: sidecar.sourceSha256,
     parentFullHash: hashNarrationParagraphs(narrationParagraphs),
-    storyIrHash: localizedArtifact.lineage.storyIrHash ?? "0".repeat(64),
-    contractHash: localizedArtifact.lineage.contractHash ?? "0".repeat(64),
-    contractBuildFingerprint: localizedArtifact.lineage.contractBuildFingerprint,
+    storyIrHash: sidecar.storyIrHash,
+    contractHash: sidecar.shortAdaptationContract.contractHash,
     narrationParagraphs,
     characterRenameMap: canonicalArtifact.characterRenameMap,
     canonical: true,
-    provenance: "localized-full-artifact",
+    provenance: "canonical-short-artifact",
   };
 }
 
-function buildCompatibilityParent(args: {
+async function buildCompatibilityParent(args: {
+  readonly outputRoot: string;
   readonly source: ResolvedShortRewriteSource;
   readonly language: StoryLanguage;
-}): ShortRewriteResolvedParent {
+}): Promise<ShortRewriteResolvedParent> {
   const narrationParagraphs = args.source.narration
     .split(/\n{2,}/u)
     .map((entry) => normalizeWhitespace(entry))
@@ -984,6 +929,24 @@ function buildCompatibilityParent(args: {
     promptFacts,
     parsedSourceStory
   );
+  const canonicalPaths = resolveCanonicalEnglishFullPaths(
+    args.outputRoot,
+    args.source.episodeSlug
+  );
+  const canonicalArtifact = await readJsonIfExists(
+    canonicalPaths.canonicalArtifactPath,
+    (value) => canonicalEnglishFullArtifactSchema.parse(value)
+  );
+  const characterRenameMap =
+    canonicalArtifact?.characterRenameMap ??
+    characterRenameMapSchema.parse(
+      buildCharacterRenameMap({
+        episodeId: args.source.episodeId,
+        sourceHash: args.source.sourceSha256,
+        canonicalFacts: promptFacts,
+        storyIr: promptStoryIr,
+      })
+    );
   return {
     identity: {
       episodeId: args.source.episodeId,
@@ -999,14 +962,7 @@ function buildCompatibilityParent(args: {
     storyIrHash: hash,
     contractHash: hash,
     narrationParagraphs,
-    characterRenameMap: characterRenameMapSchema.parse(
-      buildCharacterRenameMap({
-        episodeId: args.source.episodeId,
-        sourceHash: args.source.sourceSha256,
-        canonicalFacts: promptFacts,
-        storyIr: promptStoryIr,
-      })
-    ),
+    characterRenameMap,
     canonical: false,
     provenance: "compatibility-source",
   };
@@ -1136,12 +1092,12 @@ async function resolveShortRewriteParent(args: {
     if (!args.allowSourceInput) {
       return resolveCanonicalEnglishParent(args);
     }
-    return buildCompatibilityParent(args);
+    return await buildCompatibilityParent(args);
   }
   if (args.allowSourceInput) {
-    return buildCompatibilityParent(args);
+    return await buildCompatibilityParent(args);
   }
-  return resolveLocalizedFullParent(args);
+  return resolveCanonicalEnglishShortParent(args);
 }
 
 function analyzeGeneratedPayload(args: {
@@ -1261,6 +1217,7 @@ function applyDeterministicQualityRepairs(args: {
   readonly narration: string;
   readonly language: StoryLanguage;
   readonly facts: CanonicalStoryFacts;
+  readonly characterRenameMap: CharacterRenameMap;
   readonly fixes: readonly string[];
 }): string {
   let repaired = args.narration;
@@ -1273,7 +1230,7 @@ function applyDeterministicQualityRepairs(args: {
         repaired = repairGermanServiceCompounds(repaired);
         break;
       case "repair-canonical-name":
-        repaired = repairShortBodyCanonicalNames(repaired, args.facts);
+        repaired = repairShortBodyCanonicalNames(repaired, args.characterRenameMap);
         break;
       case "repair-final-sting":
         repaired = repairFinalSting(repaired, args.facts);
@@ -2470,6 +2427,7 @@ async function generateLanguagePayload(
         narration: generation.narration,
         language: args.language,
         facts: promptFacts,
+        characterRenameMap: args.parent.characterRenameMap,
         fixes: qualityGate.deterministicFixes,
       });
       if (repairedNarration !== generation.narration) {
@@ -3061,7 +3019,7 @@ export async function rewriteShortStories(
   let outputTokens = 0;
   let totalTokens = 0;
   let estimatedCostUsd: number | null = 0;
-  const languageTasks = selectedLanguages.map(async (language) => {
+  const languageTasks = selectedLanguages.map((language) => async () => {
     const paths = resolveShortRewriteOutputPaths({
       outputRoot,
       episodeSlug: source.episodeSlug,
@@ -3364,14 +3322,27 @@ export async function rewriteShortStories(
     readonly skipped: boolean;
     readonly error?: string;
   }> = [];
-  const queue = [...languageTasks];
+  const englishTaskIndex = selectedLanguages.indexOf("en");
+  if (englishTaskIndex >= 0) {
+    const englishTask = languageTasks[englishTaskIndex];
+    if (englishTask) {
+      const englishResult = await englishTask();
+      results.push(englishResult);
+      if (englishResult.error && selectedLanguages.some((language) => language !== "en")) {
+        throw new ShortRewriteValidationError(
+          `English short prerequisite failed: ${englishResult.error}`
+        );
+      }
+    }
+  }
+  const queue = languageTasks.filter((_, index) => index !== englishTaskIndex);
   async function worker(): Promise<void> {
     while (queue.length > 0) {
       const next = queue.shift();
       if (!next) {
         return;
       }
-      const result = await next;
+      const result = await next();
       results.push(result);
     }
   }

@@ -1,0 +1,74 @@
+{
+  "localBatchId": "slb-20260710034438503-001",
+  "generatedAt": "2026-07-11T11:00:02.197Z",
+  "candidateCount": 6,
+  "candidates": [
+    {
+      "customId": "dte:033:canonical-english-full:en:a9c7f957:52a1055e",
+      "episodeNumber": "033",
+      "language": "en",
+      "operation": "canonical-english-full",
+      "status": "api-failed",
+      "error": {
+        "message": "Batch item dte:033:canonical-english-full:en:a9c7f957:52a1055e returned HTTP 403."
+      },
+      "sourcePath": "content-ideas/content/dark-truth-episodes/033-it-always-comes-back/source/033-it-always-comes-back-en-full.md"
+    },
+    {
+      "customId": "dte:033:english-short:en:a9c7f957:9063ce84",
+      "episodeNumber": "033",
+      "language": "en",
+      "operation": "english-short",
+      "status": "api-failed",
+      "error": {
+        "message": "Batch item dte:033:english-short:en:a9c7f957:9063ce84 returned HTTP 403."
+      },
+      "sourcePath": "content-ideas/content/dark-truth-episodes/033-it-always-comes-back/source/033-it-always-comes-back-en-full.md"
+    },
+    {
+      "customId": "dte:033:localization:de:a9c7f957:b39bb018",
+      "episodeNumber": "033",
+      "language": "de",
+      "operation": "localization",
+      "status": "api-failed",
+      "error": {
+        "message": "Batch item dte:033:localization:de:a9c7f957:b39bb018 returned HTTP 403."
+      },
+      "sourcePath": "content-ideas/content/dark-truth-episodes/033-it-always-comes-back/source/033-it-always-comes-back-en-full.md"
+    },
+    {
+      "customId": "dte:033:localization:es:a9c7f957:e4f09e89",
+      "episodeNumber": "033",
+      "language": "es",
+      "operation": "localization",
+      "status": "api-failed",
+      "error": {
+        "message": "Batch item dte:033:localization:es:a9c7f957:e4f09e89 returned HTTP 403."
+      },
+      "sourcePath": "content-ideas/content/dark-truth-episodes/033-it-always-comes-back/source/033-it-always-comes-back-en-full.md"
+    },
+    {
+      "customId": "dte:033:localization:fr:a9c7f957:828c056a",
+      "episodeNumber": "033",
+      "language": "fr",
+      "operation": "localization",
+      "status": "api-failed",
+      "error": {
+        "message": "Batch item dte:033:localization:fr:a9c7f957:828c056a returned HTTP 403."
+      },
+      "sourcePath": "content-ideas/content/dark-truth-episodes/033-it-always-comes-back/source/033-it-always-comes-back-en-full.md"
+    },
+    {
+      "customId": "dte:033:localization:pt:a9c7f957:b19be303",
+      "episodeNumber": "033",
+      "language": "pt",
+      "operation": "localization",
+      "status": "api-failed",
+      "error": {
+        "message": "Batch item dte:033:localization:pt:a9c7f957:b19be303 returned HTTP 403."
+      },
+      "sourcePath": "content-ideas/content/dark-truth-episodes/033-it-always-comes-back/source/033-it-always-comes-back-en-full.md"
+    }
+  ],
+  "retryCommand": "stories batch retry-failed --run slb-20260710034438503-001"
+}

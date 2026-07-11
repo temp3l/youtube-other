@@ -127,7 +127,7 @@ function isImageOutputFormat(
 function resolveImageQuality(
   value: string | undefined
 ): "low" | "medium" | "high" | "auto" {
-  if (value === undefined) return "low";
+  if (value === undefined) return "high";
 
   if (!isImageQuality(value)) {
     throw new ConfigurationError(
@@ -1152,7 +1152,12 @@ export function loadOpenAiImageGenerationSettings(
     profile,
     env: mergedEnv,
   }).size;
-  const model = mergedEnv["OPENAI_IMAGE_MODEL"] ?? "gpt-image-1-mini";
+  const model =
+    (profile === "short"
+      ? mergedEnv["MEDIAFORGE_OPENAI_IMAGE_SHORT_MODEL"]
+      : mergedEnv["MEDIAFORGE_OPENAI_IMAGE_SCENE_MODEL"]) ??
+    mergedEnv["OPENAI_IMAGE_MODEL"] ??
+    "gpt-image-2";
   const ignoredShortWarning =
     profile === "short" ? buildIgnoredShortFullSizeWarning(mergedEnv) : undefined;
   if (ignoredShortWarning) {
@@ -1169,7 +1174,13 @@ export function loadOpenAiImageGenerationSettings(
     requestedSize,
     renderSize,
     apiSize: requestedSize,
-    quality: resolveImageQuality(mergedEnv["OPENAI_IMAGE_QUALITY"]),
+    quality: resolveImageQuality(
+      profile === "short"
+        ? mergedEnv["MEDIAFORGE_OPENAI_IMAGE_SHORT_QUALITY"] ??
+            mergedEnv["OPENAI_IMAGE_QUALITY"]
+        : mergedEnv["MEDIAFORGE_OPENAI_IMAGE_SCENE_QUALITY"] ??
+            mergedEnv["OPENAI_IMAGE_QUALITY"]
+    ),
     outputFormat: resolveImageOutputFormat(mergedEnv["OPENAI_IMAGE_FORMAT"]),
     concurrency: parseEnvInt(mergedEnv["OPENAI_IMAGE_CONCURRENCY"], 2),
     maxRetries: parseEnvInt(mergedEnv["OPENAI_IMAGE_MAX_RETRIES"], 2),

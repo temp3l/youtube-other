@@ -19,7 +19,7 @@ import { stableSerialize } from "./stable-json.js";
 import { type StoryPromptSchemaDescriptor } from "./story-prompt-modules.js";
 
 export const FULL_NARRATION_RESPONSE_SCHEMA_VERSION =
-  "full-narration-response-schema-v2";
+  "full-narration-response-schema-v4";
 export const SHORT_REWRITE_RESPONSE_SCHEMA_VERSION =
   "short-rewrite-response-schema-v1";
 export const SHORT_NARRATION_RESPONSE_SCHEMA_VERSION =
@@ -34,6 +34,21 @@ export const narrationOnlyFullRewriteResponseSchema = z
       })
       .strict(),
     targetNarrationWpm: z.number().int().min(120).max(220),
+    preservedBeatIds: z.array(z.string().regex(/^beat-\d{3}$/u)).nullable(),
+    mechanics: z.object({
+      supernaturalRule: z.string().trim().min(1),
+      emotionalCost: z.string().trim().min(1),
+      climaxRuleConnection: z.string().trim().min(1),
+      finalConsequence: z.string().trim().min(1),
+    }).strict().nullable(),
+    localizedMetadata: z.object({
+      title: z.string().trim().min(1),
+      thumbnailText: z.string().trim().min(1).max(50),
+      seoDescription: z.string().trim().min(1),
+      tags: z.array(z.string().trim().min(1)).min(3).max(20),
+      hashtags: z.array(z.string().regex(/^#[^\s#]+$/u)).min(1).max(8),
+      contentDisclosure: z.string().trim().min(1),
+    }).strict().nullable(),
     preservationChecklist: preservationChecklistSchema,
     diagnostics: fullRewriteGenerationDiagnosticsSchema,
   })
@@ -177,6 +192,9 @@ export function normalizeNarrationOnlyBatchResult(
             narrationParagraphs: legacyMixed.data.full.narrationParagraphs,
           },
           targetNarrationWpm: legacyMixed.data.full.targetNarrationWpm,
+          preservedBeatIds: null,
+          mechanics: null,
+          localizedMetadata: null,
           preservationChecklist: legacyMixed.data.preservationChecklist,
           diagnostics: {
             removedGenericFiller:
@@ -200,6 +218,9 @@ export function normalizeNarrationOnlyBatchResult(
             narrationParagraphs: legacyFullOnly.data.full.narrationParagraphs,
           },
           targetNarrationWpm: legacyFullOnly.data.full.targetNarrationWpm,
+          preservedBeatIds: null,
+          mechanics: null,
+          localizedMetadata: null,
           preservationChecklist: legacyFullOnly.data.preservationChecklist,
           diagnostics: legacyFullOnly.data.diagnostics,
         }),
@@ -225,8 +246,9 @@ export function adaptNarrationOnlyFullToLegacyRendererPackage(args: {
   readonly response: NarrationOnlyFullRewriteResponse;
 }): NonNullable<GeneratedStoryPackage["full"]> {
   const metadata = args.sourceStory.metadata;
+  const localizedMetadata = args.response.localizedMetadata;
   return {
-    title: args.sourceStory.title,
+    title: localizedMetadata?.title ?? args.sourceStory.title,
     ...(args.sourceStory.sourceTitle
       ? { sourceTitle: args.sourceStory.sourceTitle }
       : {}),
@@ -238,15 +260,21 @@ export function adaptNarrationOnlyFullToLegacyRendererPackage(args: {
       ? { soundMotif: args.sourceStory.soundMotif }
       : {}),
     narrationParagraphs: args.response.full.narrationParagraphs,
-    thumbnailText: metadata.thumbnailText ?? args.sourceStory.title,
+    thumbnailText:
+      localizedMetadata?.thumbnailText ?? metadata.thumbnailText ?? args.sourceStory.title,
     contentDisclosure:
-      metadata.contentDisclosure ?? "Narration-only compatibility rendering.",
-    seoDescription: metadata.seoDescription ?? args.sourceStory.title,
+      localizedMetadata?.contentDisclosure ??
+      metadata.contentDisclosure ??
+      "Narration-only compatibility rendering.",
+    seoDescription:
+      localizedMetadata?.seoDescription ?? metadata.seoDescription ?? args.sourceStory.title,
     tags:
-      metadata.tags.length > 0
+      localizedMetadata?.tags ?? (metadata.tags.length > 0
         ? metadata.tags
-        : ["story", "narration", "compatibility"],
-    hashtags: metadata.hashtags.length > 0 ? metadata.hashtags : ["#Story"],
+        : ["story", "narration", "compatibility"]),
+    hashtags:
+      localizedMetadata?.hashtags ??
+      (metadata.hashtags.length > 0 ? metadata.hashtags : ["#Story"]),
     targetNarrationWpm: args.response.targetNarrationWpm,
     visualDirection:
       metadata.visualDirection ?? "Reuse existing full-story visual direction.",

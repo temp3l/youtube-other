@@ -38,6 +38,28 @@ export class OpenAiImageBatchProvider implements ImageBatchProvider {
     return { fileId: uploaded.id as OpenAiFileId };
   }
 
+  async uploadReferenceFile(args: {
+    readonly localPath: string;
+    readonly mimeType: string;
+  }): Promise<{ readonly fileId: OpenAiFileId }> {
+    void args.mimeType;
+    const uploaded = await this.files.create({
+      file: fs.createReadStream(args.localPath),
+      purpose: "vision",
+    });
+    return { fileId: uploaded.id as OpenAiFileId };
+  }
+
+  async validateReferenceFile(fileId: string): Promise<boolean> {
+    if (!this.files.retrieve) return false;
+    try {
+      const file = await this.files.retrieve(fileId);
+      return file.id === fileId;
+    } catch {
+      return false;
+    }
+  }
+
   async createBatch(args: {
     readonly inputFileId: string;
     readonly endpoint: "/v1/images/generations" | "/v1/images/edits";
@@ -91,6 +113,11 @@ export class OpenAiImageBatchProvider implements ImageBatchProvider {
 
   normalizeErrorCode(code: string | undefined): string {
     return code?.toLowerCase() ?? "";
+  }
+
+  async cancelBatch(batchId: string): Promise<{ readonly status: ImageBatchStatus }> {
+    const cancelled = await this.batches.cancel(batchId);
+    return { status: toImageBatchStatus(cancelled.status) };
   }
 }
 

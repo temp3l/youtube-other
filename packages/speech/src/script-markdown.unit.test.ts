@@ -38,6 +38,25 @@ describe("loadEpisodeScriptMarkdown", () => {
     expect(script.text).toBe("First paragraph.\n\nSecond paragraph.");
   });
 
+  it("never exposes optimization notes, metadata, instructions, headings, or word-count claims to TTS", async () => {
+    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "mediaforge-script-"));
+    await fs.mkdir(path.join(tempDir, "languages"), { recursive: true });
+    await fs.writeFile(
+      path.join(tempDir, "languages", "script-en.md"),
+      "## Audio Generation Instructions\nSpeak clearly.\n\n# Narration Script\n\nOnly this narration reaches TTS.\n\n## Optimization Notes\nRaise retention.\n\n## Episode Metadata\nWord count: 1178"
+    );
+    const script = await loadEpisodeScriptMarkdown(tempDir, "en", "Narration Script");
+    expect(script.text).toBe("Only this narration reaches TTS.");
+    expect(script.text).not.toMatch(/instructions|optimization|metadata|word count|#/iu);
+  });
+
+  it("fails closed when a structured production file has no narration section", async () => {
+    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "mediaforge-script-"));
+    await fs.mkdir(path.join(tempDir, "languages"), { recursive: true });
+    await fs.writeFile(path.join(tempDir, "languages", "script-en.md"), "## Episode Metadata\nWord count: 1178");
+    await expect(loadEpisodeScriptMarkdown(tempDir, "en", "Narration Script")).rejects.toThrow("refusing to send");
+  });
+
   it("loads the canonical short script when the short variant is requested", async () => {
     const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "mediaforge-script-"));
     await fs.mkdir(path.join(tempDir, "languages", "short"), { recursive: true });

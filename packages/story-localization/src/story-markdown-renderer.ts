@@ -58,33 +58,19 @@ function joinParagraphs(paragraphs: readonly string[]): string {
   return paragraphs.map((paragraph) => normalizeWhitespace(paragraph)).filter(Boolean).join("\n\n");
 }
 
-function languageNarrationInstruction(language: LanguageCode): string {
-  const profile = getLanguageProfile(language);
-  return `Speak in natural ${profile.narratorLanguageName} with a restrained dark-documentary tone.`;
-}
-
 function fullAudioInstructions(language: LanguageCode, targetNarrationWpm: number): readonly string[] {
+  const profile = getLanguageProfile(language);
   return [
-    "Use one consistent adult narrator.",
-    languageNarrationInstruction(language),
-    `Target approximately ${targetNarrationWpm} words per minute.`,
-    "Begin calmly and build tension steadily.",
-    "Keep dialogue grounded and believable.",
-    "Use only a subtle pitch shift and light room reverb for supernatural voices.",
-    "Keep sound effects below narration and avoid loud jump scares.",
-    "Use silence briefly before the final reveal.",
+    ...profile.fullProductionInstructions,
+    `${targetNarrationWpm} WPM (${profile.narratorLanguageName}).`,
   ];
 }
 
 function shortNarrationInstructions(language: LanguageCode, targetNarrationWpm: number): readonly string[] {
+  const profile = getLanguageProfile(language);
   return [
-    "Use the same narrator as the full episode.",
-    languageNarrationInstruction(language),
-    `Speak at approximately ${targetNarrationWpm} words per minute.`,
-    "Begin immediately without a channel introduction.",
-    "Keep the delivery restrained and credible.",
-    "Pause briefly before the final sentence.",
-    "Do not narrate headings or metadata.",
+    ...profile.shortProductionInstructions,
+    `${targetNarrationWpm} WPM (${profile.narratorLanguageName}).`,
   ];
 }
 

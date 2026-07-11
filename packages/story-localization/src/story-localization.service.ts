@@ -77,6 +77,10 @@ import {
   renderLocalizedShort,
 } from "./story-markdown-renderer.js";
 import {
+  DEFAULT_FULL_DURATION_WINDOW,
+  resolveFullNarrationWordRange,
+} from "./narration-constraints.js";
+import {
   buildConfigurationHash,
   buildStoryArtifactCacheKey,
   readCanonicalFactsCache,
@@ -123,6 +127,7 @@ import {
   validateNarrationOnlyFullRewritePackage,
   validateWrittenMessagesPreserved,
 } from "./generated-story-validator.js";
+import { resolveCanonicalStoryScriptPath } from "./story-script-paths.js";
 import {
   createOpenAiStoryClient,
   type OpenAiStoryClient,
@@ -165,6 +170,16 @@ import {
   type StoryRetryPurpose,
 } from "./story-retry-routing.js";
 import { normalizeGeneratedStoryPackageContent } from "./localized-content-text.js";
+import {
+  LOCALIZATION_FIDELITY_POLICY_VERSION,
+  validateLocalizationFidelity,
+} from "./localization-fidelity.js";
+import {
+  buildCanonicalStoryBeats,
+  buildStoryMechanicsContract,
+  hashCanonicalStoryBeats,
+  hashStoryMechanicsContract,
+} from "./story-mechanics.js";
 
 export interface StoryLocalizationOptions {
   readonly client?: OpenAiStoryClient;
@@ -553,15 +568,26 @@ function deriveFullOutputConstraints(args: {
     readonly max: number;
   };
   readonly targetNarrationWpm: number;
+  readonly targetDuration: {
+    readonly minSeconds: number;
+    readonly maxSeconds: number;
+  };
 } {
-  const sourceWordCount = countWords(args.parsed.narrationParagraphs.join(" "));
+  const targetWordRange = resolveFullNarrationWordRange({
+    language: args.profile.code,
+    pace: args.profile.defaultNarrationPace,
+  });
   return {
     variant: "full",
     targetWordRange: {
-      min: Math.max(1, Math.round(sourceWordCount * 0.92)),
-      max: Math.max(1, Math.round(sourceWordCount * 1.08)),
+      min: targetWordRange.min,
+      max: targetWordRange.max,
     },
     targetNarrationWpm: args.profile.fullNarrationWpm,
+    targetDuration: {
+      minSeconds: DEFAULT_FULL_DURATION_WINDOW.minSeconds,
+      maxSeconds: DEFAULT_FULL_DURATION_WINDOW.maxSeconds,
+    },
   };
 }
 
@@ -1940,6 +1966,17 @@ function filterEnglishFullValidationIssues(
   );
 }
 
+const fullStoryRepairInstructions = [
+  "Perform exactly one full-story repair, not a Short rewrite.",
+  "Keep the complete response schema and preserve plot, chronology, named entities, and ending.",
+  "Resolve every listed validation issue: meet the requested word range, remove original character aliases, and retain each required fact through concrete narration.",
+  "Return only the corrected structured JSON.",
+] as const;
+
+function canRepairFullStoryValidation(issues: readonly string[]): boolean {
+  return issues.length > 0 && issues.every((issue) => !/\bshort\b/iu.test(issue));
+}
+
 function buildLocalizedShortNarrationFromFull(
   packageValue: GeneratedStoryPackage,
   profile: LanguageProfile
@@ -2052,6 +2089,28 @@ export function buildOutputFiles(
     short: path.join(outputDirectory, slug, language, "short", "script.md"),
     rootScript: path.join(outputDirectory, slug, "script.md"),
   };
+}
+
+async function writeCanonicalScriptMirror(args: {
+  readonly outputDirectory: string;
+  readonly slug: string;
+  readonly language: LanguageCode;
+  readonly variant: "full" | "short";
+  readonly markdown: string;
+  readonly force: boolean;
+}): Promise<{ readonly path: string; readonly status: "written" | "skipped" }> {
+  const pathToWrite = resolveCanonicalStoryScriptPath({
+    episodeDir: path.join(args.outputDirectory, args.slug),
+    language: args.language,
+    variant: args.variant,
+  });
+  await ensureDir(path.dirname(pathToWrite));
+  const status = await writeTextAtomicIfChanged(
+    pathToWrite,
+    args.markdown,
+    args.force
+  );
+  return { path: pathToWrite, status };
 }
 
 function buildFailedOutputFiles(
@@ -2169,10 +2228,12 @@ function buildCacheKey(args: {
   readonly episodeSlug: string;
   readonly sourceHash: string;
   readonly language: LanguageCode;
+  readonly variant: "full" | "short";
   readonly adaptationMode: StoryLocalizationConfig["adaptationMode"];
   readonly model: string;
   readonly temperature: number;
   readonly reasoningEffort: StoryLocalizationConfig["reasoningEffort"];
+  readonly maxOutputTokens: number;
   readonly profile: ReturnType<typeof getLanguageProfile>;
   readonly promptVersion: string;
   readonly shortWpm: number;
@@ -2182,18 +2243,22 @@ function buildCacheKey(args: {
   readonly promptFingerprint?: string;
   readonly responseSchemaFingerprint?: string;
   readonly parentFingerprint?: string;
+  readonly validationPolicyVersion?: string;
+  readonly storyBeatHash?: string;
+  readonly mechanicsHash?: string;
 }): string {
   return buildStoryArtifactCacheKey({
     episodeSlug: args.episodeSlug,
     sourceHash: args.sourceHash,
     language: args.language,
     locale: args.profile.locale,
-    variant: "short",
+    variant: args.variant,
     owner: "narration",
     adaptationMode: args.adaptationMode,
     model: args.model,
     temperature: args.temperature,
     reasoningEffort: args.reasoningEffort,
+    maxOutputTokens: args.maxOutputTokens,
     promptVersion: args.promptVersion,
     ...(args.compilerVersion ? { compilerVersion: args.compilerVersion } : {}),
     ...(args.promptFingerprint ? { promptFingerprint: args.promptFingerprint } : {}),
@@ -2201,12 +2266,21 @@ function buildCacheKey(args: {
       ? { responseSchemaFingerprint: args.responseSchemaFingerprint }
       : {}),
     ...(args.parentFingerprint ? { parentFingerprint: args.parentFingerprint } : {}),
-    targetWordRange: args.profile.shortWordRange,
-    targetShortTiming: {
-      shortWpm: args.shortWpm,
-      shortMinSeconds: args.shortMinSeconds,
-      shortMaxSeconds: args.shortMaxSeconds,
-    },
+    ...(args.validationPolicyVersion
+      ? { validationPolicyVersion: args.validationPolicyVersion }
+      : {}),
+    ...(args.storyBeatHash ? { storyBeatHash: args.storyBeatHash } : {}),
+    ...(args.mechanicsHash ? { mechanicsHash: args.mechanicsHash } : {}),
+    ...(args.variant === "short"
+      ? {
+          targetWordRange: args.profile.shortWordRange,
+          targetShortTiming: {
+            shortWpm: args.shortWpm,
+            shortMinSeconds: args.shortMinSeconds,
+            shortMaxSeconds: args.shortMaxSeconds,
+          },
+        }
+      : {}),
   });
 }
 
@@ -2218,6 +2292,7 @@ function buildBatchCompatibleConfigurationHash(args: {
   readonly model: string;
   readonly temperature: number;
   readonly reasoningEffort: StoryLocalizationConfig["reasoningEffort"];
+  readonly maxOutputTokens: number;
   readonly promptVersion: string;
   readonly compilerVersion: string;
   readonly promptFingerprint: string;
@@ -2234,12 +2309,13 @@ function buildBatchCompatibleConfigurationHash(args: {
     sourceHash: args.sourceHash,
     language: args.language,
     locale: getLanguageProfile(args.language).locale,
-    variant: "short",
+    variant: "full",
     owner: "narration",
     adaptationMode: args.adaptationMode,
     model: args.model,
     temperature: args.temperature,
     reasoningEffort: args.reasoningEffort,
+    maxOutputTokens: args.maxOutputTokens,
     promptVersion: args.promptVersion,
     compilerVersion: args.compilerVersion,
     promptFingerprint: args.promptFingerprint,
@@ -2657,6 +2733,16 @@ export async function localizeStoryEpisode(
   );
   await persistStoryProductionStage(cacheDir, parsed, "retention-plan");
   const profileEn = getLanguageProfile("en");
+  const canonicalConfig: StoryLocalizationConfig = {
+    ...config,
+    model: config.canonicalModel ?? config.model,
+    reasoningEffort:
+      config.canonicalReasoningEffort ?? config.reasoningEffort,
+    maxOutputTokens:
+      config.canonicalMaxOutputTokens ?? config.maxOutputTokens,
+    retryMaxOutputTokens:
+      config.canonicalMaxOutputTokens ?? config.retryMaxOutputTokens,
+  };
   const outputFiles = buildOutputFiles(
     config.outputDirectory,
     parsed.slug,
@@ -2669,7 +2755,7 @@ export async function localizeStoryEpisode(
   const canonicalEnglishPlan = buildCanonicalEnglishFullPlan({
     parsed,
     facts,
-    config,
+    config: canonicalConfig,
     analysis,
     bible,
     originalityReview,
@@ -2700,10 +2786,12 @@ export async function localizeStoryEpisode(
     episodeSlug: parsed.slug,
     sourceHash: parsed.sourceHash,
     language: "en",
+    variant: "full",
     adaptationMode: config.adaptationMode,
-    model: config.model,
+    model: canonicalConfig.model,
     temperature: config.temperature,
-    reasoningEffort: config.reasoningEffort,
+    reasoningEffort: canonicalConfig.reasoningEffort,
+    maxOutputTokens: canonicalConfig.maxOutputTokens ?? 14_000,
     profile: profileEn,
     promptVersion: config.promptVersion,
     shortWpm: config.shortWpm,
@@ -2723,7 +2811,7 @@ export async function localizeStoryEpisode(
         outputFile: outputFiles.full,
         expectedSourceFile: parsed.sourceFile,
         language: "en",
-        model: config.model,
+        model: canonicalConfig.model,
         promptVersion: config.promptVersion,
         canonicalPaths,
         expectedCanonicalFingerprint:
@@ -2784,8 +2872,8 @@ export async function localizeStoryEpisode(
         NarrationOnlyFullRewriteResponse
       >(
         client,
-        config.model,
-        config.repairModel,
+        canonicalConfig.model,
+        canonicalConfig.repairModel,
         "English full story localization",
         canonicalEnglishPlan.compiledPrompt.system,
         canonicalEnglishPlan.compiledPrompt.user,
@@ -2793,10 +2881,10 @@ export async function localizeStoryEpisode(
         englishResponseSchema.name,
         config.timeoutMs,
         config.temperature,
-        config.maxOutputTokens ?? 25_000,
-        config.reasoningEffort,
-        config.repairMaxOutputTokens,
-        config.repairReasoningEffort,
+        canonicalConfig.maxOutputTokens ?? 14_000,
+        canonicalConfig.reasoningEffort,
+        canonicalConfig.repairMaxOutputTokens,
+        canonicalConfig.repairReasoningEffort,
         (value) => {
           try {
             const packageValue = parseLocalizedFullRewritePackage(
@@ -2834,12 +2922,15 @@ export async function localizeStoryEpisode(
         debugDirectory
           ? {
               purpose: "canonical-full" as const,
-              ...(config.retryMaxOutputTokens !== undefined
+              ...(canonicalConfig.retryMaxOutputTokens !== undefined
                 ? {
-                    regenerationMaxOutputTokens: config.retryMaxOutputTokens,
+                    regenerationMaxOutputTokens:
+                      canonicalConfig.retryMaxOutputTokens,
                   }
                 : {}),
-              canRepair: () => false,
+              canRepair: canRepairFullStoryValidation,
+              retryLabel: "English full story validation repair",
+              retryInstructions: fullStoryRepairInstructions,
               debug: {
                 debugDirectory,
                 fileBaseName: `${debugPrefix}-en`,
@@ -2852,7 +2943,7 @@ export async function localizeStoryEpisode(
                 parsed,
                 language: "en",
                 variant: "canonical-english-full",
-                config,
+                config: canonicalConfig,
                 promptFingerprint:
                   canonicalEnglishPlan.compiledPrompt.promptFingerprint,
                 schemaName: englishResponseSchema.name,
@@ -2869,25 +2960,28 @@ export async function localizeStoryEpisode(
                   canonicalEnglishPlan.compiledPrompt.selectedModules.map(
                     (entry) => buildConfigurationHash([entry.id, entry.version])
                   ),
-                ...(options.modelPricing?.[config.model]
-                  ? { modelPricing: options.modelPricing[config.model] }
+                ...(options.modelPricing?.[canonicalConfig.model]
+                  ? { modelPricing: options.modelPricing[canonicalConfig.model] }
                   : {}),
               }),
             }
           : {
               purpose: "canonical-full" as const,
-              ...(config.retryMaxOutputTokens !== undefined
+              ...(canonicalConfig.retryMaxOutputTokens !== undefined
                 ? {
-                    regenerationMaxOutputTokens: config.retryMaxOutputTokens,
+                    regenerationMaxOutputTokens:
+                      canonicalConfig.retryMaxOutputTokens,
                   }
                 : {}),
-              canRepair: () => false,
+              canRepair: canRepairFullStoryValidation,
+              retryLabel: "English full story validation repair",
+              retryInstructions: fullStoryRepairInstructions,
               preflight: buildFullStoryPreflightAdapter({
                 cacheDir,
                 parsed,
                 language: "en",
                 variant: "canonical-english-full",
-                config,
+                config: canonicalConfig,
                 promptFingerprint:
                   canonicalEnglishPlan.compiledPrompt.promptFingerprint,
                 schemaName: englishResponseSchema.name,
@@ -2904,8 +2998,8 @@ export async function localizeStoryEpisode(
                   canonicalEnglishPlan.compiledPrompt.selectedModules.map(
                     (entry) => buildConfigurationHash([entry.id, entry.version])
                   ),
-                ...(options.modelPricing?.[config.model]
-                  ? { modelPricing: options.modelPricing[config.model] }
+                ...(options.modelPricing?.[canonicalConfig.model]
+                  ? { modelPricing: options.modelPricing[canonicalConfig.model] }
                   : {}),
               }),
             }
@@ -2934,9 +3028,9 @@ export async function localizeStoryEpisode(
           selectedModules: [...canonicalEnglishPlan.compiledPrompt.selectedModules],
         },
         model: {
-          name: config.model,
-          reasoningEffort: config.reasoningEffort,
-          maxOutputTokens: config.maxOutputTokens ?? 25_000,
+          name: canonicalConfig.model,
+          reasoningEffort: canonicalConfig.reasoningEffort,
+          maxOutputTokens: canonicalConfig.maxOutputTokens ?? 14_000,
         },
         responseSchema: {
           name: englishResponseSchema.name,
@@ -2955,7 +3049,7 @@ export async function localizeStoryEpisode(
                 stage: "initial" as const,
                 status: "rejected" as const,
                 issues: ["initial validation required repair."],
-                model: config.model,
+                model: canonicalConfig.model,
                 promptFingerprint:
                   canonicalEnglishPlan.compiledPrompt.promptFingerprint,
                 responseSchemaFingerprint: englishSchemaFingerprint,
@@ -2966,7 +3060,8 @@ export async function localizeStoryEpisode(
                 stage: "repair" as const,
                 status: "accepted" as const,
                 issues: [],
-                model: config.repairModel ?? config.model,
+                model:
+                  canonicalConfig.repairModel ?? canonicalConfig.model,
                 promptFingerprint:
                   canonicalEnglishPlan.compiledPrompt.promptFingerprint,
                 responseSchemaFingerprint: englishSchemaFingerprint,
@@ -2979,7 +3074,7 @@ export async function localizeStoryEpisode(
                 stage: "initial" as const,
                 status: "accepted" as const,
                 issues: [],
-                model: config.model,
+                model: canonicalConfig.model,
                 promptFingerprint:
                   canonicalEnglishPlan.compiledPrompt.promptFingerprint,
                 responseSchemaFingerprint: englishSchemaFingerprint,
@@ -2989,7 +3084,7 @@ export async function localizeStoryEpisode(
         inputTokens: generated.inputTokens,
         outputTokens: generated.outputTokens,
         estimatedCostUsd: estimateStoryLocalizationCost(
-          options.modelPricing?.[config.model],
+          options.modelPricing?.[canonicalConfig.model],
           {
             inputTokens: generated.inputTokens,
             outputTokens: generated.outputTokens,
@@ -3073,7 +3168,7 @@ export async function localizeStoryEpisode(
       sourceHash: parsed.sourceHash,
       configurationHash: englishFullCacheKey,
       promptVersion: config.promptVersion,
-      model: config.model,
+      model: canonicalConfig.model,
       language: "en",
       generatedAt: new Date().toISOString(),
       outputFiles: englishCacheOutputFiles,
@@ -3109,11 +3204,14 @@ export async function localizeStoryEpisode(
           episodeSlug: parsed.slug,
           outputRoot: config.outputDirectory,
           languages: ["en"],
-          model: config.model,
+          model: config.shortModel ?? config.model,
           temperature: config.temperature,
-          reasoningEffort: config.reasoningEffort,
-          maxOutputTokens: DEFAULT_SHORT_REWRITE_MAX_OUTPUT_TOKENS,
-          retryMaxOutputTokens: DEFAULT_SHORT_REWRITE_RETRY_MAX_OUTPUT_TOKENS,
+          reasoningEffort:
+            config.shortReasoningEffort ?? config.reasoningEffort,
+          maxOutputTokens:
+            config.shortMaxOutputTokens ?? DEFAULT_SHORT_REWRITE_MAX_OUTPUT_TOKENS,
+          retryMaxOutputTokens:
+            config.shortMaxOutputTokens ?? DEFAULT_SHORT_REWRITE_RETRY_MAX_OUTPUT_TOKENS,
           maxConcurrency: 1,
           timeoutMs: config.timeoutMs,
           maxRetries: 2,
@@ -3197,10 +3295,14 @@ export async function localizeStoryEpisode(
           episodeSlug: parsed.slug,
           sourceHash: parsed.sourceHash,
           language: "en",
+          variant: "short",
           adaptationMode: config.adaptationMode,
-          model: config.model,
+          model: config.shortModel ?? config.model,
           temperature: config.temperature,
-          reasoningEffort: config.reasoningEffort,
+          reasoningEffort:
+            config.shortReasoningEffort ?? config.reasoningEffort,
+          maxOutputTokens:
+            config.shortMaxOutputTokens ?? config.maxOutputTokens ?? 4_000,
           profile: profileEn,
           promptVersion: config.promptVersion,
           shortWpm: config.shortWpm,
@@ -3217,7 +3319,7 @@ export async function localizeStoryEpisode(
             canonicalEnglishPlan.expectedCanonicalFingerprint,
         }),
         promptVersion: config.promptVersion,
-        model: config.model,
+        model: config.shortModel ?? config.model,
         language: "en",
         generatedAt: new Date().toISOString(),
         outputFiles: [englishShortPath],
@@ -3241,7 +3343,18 @@ export async function localizeStoryEpisode(
     canonicalEnglishStory.parsed,
     canonicalEnglishStory.facts
   );
-  const includeLocalizedShorts = config.includeLocalizedShorts ?? true;
+  const canonicalLocalizationBeats = buildCanonicalStoryBeats({
+    story: canonicalEnglishStory.parsed,
+    facts: canonicalEnglishStory.facts,
+  });
+  const localizationMechanicsContract = buildStoryMechanicsContract({
+    facts: canonicalEnglishStory.facts,
+    storyIr: canonicalEnglishPlan.storyIr,
+  });
+  const canonicalBeatHash = hashCanonicalStoryBeats(canonicalLocalizationBeats);
+  const mechanicsHash = hashStoryMechanicsContract(localizationMechanicsContract);
+  const generateLocalizedShorts = config.includeLocalizedShorts ?? true;
+  const includeLocalizedShorts = false;
   for (const language of config.languages) {
     const profile = getLanguageProfile(language);
     const localizedOutputFiles = buildOutputFiles(
@@ -3266,10 +3379,12 @@ export async function localizeStoryEpisode(
       episodeSlug: parsed.slug,
       sourceHash: canonicalEnglishStory.parsed.sourceHash,
       language,
+      variant: "full",
       adaptationMode: config.adaptationMode,
       model: config.model,
       temperature: config.temperature,
       reasoningEffort: config.reasoningEffort,
+      maxOutputTokens: config.maxOutputTokens ?? 6_000,
       profile,
       promptVersion: config.promptVersion,
       shortWpm: config.shortWpm,
@@ -3281,6 +3396,9 @@ export async function localizeStoryEpisode(
       parentFingerprint:
         canonicalEnglishFingerprint ??
         canonicalEnglishPlan.expectedCanonicalFingerprint,
+      validationPolicyVersion: LOCALIZATION_FIDELITY_POLICY_VERSION,
+      storyBeatHash: canonicalBeatHash,
+      mechanicsHash,
     });
     const localizedParentArtifact = buildLocalizedFullParentArtifact({
       sourceHash: canonicalEnglishStory.parsed.sourceHash,
@@ -3370,7 +3488,11 @@ export async function localizeStoryEpisode(
                 parsed,
                 language
               );
-              issues.push(...fullValidation.messages);
+              issues.push(
+                ...fullValidation.issues
+                  .filter((entry) => entry.severity === "error")
+                  .map((entry) => entry.message)
+              );
               if (!packageValue.full) {
                 issues.push(`Missing full story payload for ${language}.`);
               }
@@ -3397,8 +3519,27 @@ export async function localizeStoryEpisode(
                   packageValue.preservationChecklist.endingPreserved,
               },
             });
+            const fidelity = validateLocalizationFidelity({
+              sourceNarration:
+                canonicalEnglishStory.parsed.narrationParagraphs.join("\n\n"),
+              localizedNarration: packageValue.full.narrationParagraphs.join("\n\n"),
+              sourceProfile: profileEn,
+              localizedProfile: profile,
+              requiredCharacterNames:
+                canonicalEnglishPlan.characterRenameMap.entries.map(
+                  (entry) => entry.fictionalName
+                ),
+              canonicalBeats: canonicalLocalizationBeats,
+              preservedBeatIds: packageValue.preservedBeatIds,
+              mechanicsContract: localizationMechanicsContract,
+              localizedMechanics: packageValue.mechanics,
+              sourceTitle: canonicalEnglishStory.parsed.title,
+              localizedMetadata: packageValue.localizedMetadata,
+            });
             return [
-              ...fullValidation.messages,
+              ...fullValidation.issues
+                .filter((entry) => entry.severity === "error")
+                .map((entry) => entry.message),
               ...validateNarrationOnlyFullRewritePackage(
                 packageValue,
                 facts,
@@ -3406,6 +3547,7 @@ export async function localizeStoryEpisode(
                 language,
                 canonicalEnglishPlan.characterRenameMap
               ),
+              ...fidelity.issues.map((issue) => issue.message),
             ].map(
               (entry) =>
                 `${localizedOutputFiles.full}: ${entry} Localized narration must preserve native characters before TTS.`
@@ -3421,7 +3563,9 @@ export async function localizeStoryEpisode(
                 regenerationMaxOutputTokens: config.retryMaxOutputTokens,
               }
             : {}),
-          canRepair: () => false,
+          canRepair: canRepairFullStoryValidation,
+          retryLabel: `${profile.displayName} full story validation repair`,
+          retryInstructions: fullStoryRepairInstructions,
           ...(debugDirectory
             ? {
                 debug: {
@@ -3490,6 +3634,19 @@ export async function localizeStoryEpisode(
         } else {
           skippedFiles.push(localizedOutputFiles.full);
         }
+        const authoredFullWrite = await writeCanonicalScriptMirror({
+          outputDirectory: config.outputDirectory,
+          slug: parsed.slug,
+          language,
+          variant: "full",
+          markdown: fullMarkdown,
+          force: config.force,
+        });
+        if (authoredFullWrite.status === "written") {
+          generatedFiles.push(authoredFullWrite.path);
+        } else {
+          skippedFiles.push(authoredFullWrite.path);
+        }
         await persistStoryProductionArtifact(
           cacheDir,
           canonicalEnglishStory.parsed,
@@ -3530,6 +3687,19 @@ export async function localizeStoryEpisode(
         } else {
           skippedFiles.push(localizedOutputFiles.short);
         }
+        const authoredShortWrite = await writeCanonicalScriptMirror({
+          outputDirectory: config.outputDirectory,
+          slug: parsed.slug,
+          language,
+          variant: "short",
+          markdown: shortMarkdown,
+          force: config.force,
+        });
+        if (authoredShortWrite.status === "written") {
+          generatedFiles.push(authoredShortWrite.path);
+        } else {
+          skippedFiles.push(authoredShortWrite.path);
+        }
         await persistStoryProductionStage(
           cacheDir,
           parsed,
@@ -3544,6 +3714,33 @@ export async function localizeStoryEpisode(
         const generatedPackage = parseLocalizedFullRewritePackage(
           generated.value,
           language
+        );
+        const fidelity = validateLocalizationFidelity({
+          sourceNarration:
+            canonicalEnglishStory.parsed.narrationParagraphs.join("\n\n"),
+          localizedNarration: generatedPackage.full.narrationParagraphs.join("\n\n"),
+          sourceProfile: profileEn,
+          localizedProfile: profile,
+          requiredCharacterNames:
+            canonicalEnglishPlan.characterRenameMap.entries.map(
+              (entry) => entry.fictionalName
+            ),
+          canonicalBeats: canonicalLocalizationBeats,
+          preservedBeatIds: generatedPackage.preservedBeatIds,
+          mechanicsContract: localizationMechanicsContract,
+          localizedMechanics: generatedPackage.mechanics,
+          sourceTitle: canonicalEnglishStory.parsed.title,
+          localizedMetadata: generatedPackage.localizedMetadata,
+        });
+        await persistStoryProductionArtifact(
+          cacheDir,
+          canonicalEnglishStory.parsed,
+          `${language}-localization-fidelity.json`,
+          {
+            policyVersion: LOCALIZATION_FIDELITY_POLICY_VERSION,
+            language,
+            ...fidelity,
+          }
         );
         const fullMarkdown = renderLocalizedFullStory(
           canonicalEnglishStory.parsed.episodeNumber,
@@ -3563,6 +3760,19 @@ export async function localizeStoryEpisode(
           generatedFiles.push(localizedOutputFiles.full);
         } else {
           skippedFiles.push(localizedOutputFiles.full);
+        }
+        const authoredFullWrite = await writeCanonicalScriptMirror({
+          outputDirectory: config.outputDirectory,
+          slug: parsed.slug,
+          language,
+          variant: "full",
+          markdown: fullMarkdown,
+          force: config.force,
+        });
+        if (authoredFullWrite.status === "written") {
+          generatedFiles.push(authoredFullWrite.path);
+        } else {
+          skippedFiles.push(authoredFullWrite.path);
         }
         await persistStoryProductionArtifact(
           cacheDir,
@@ -3633,6 +3843,7 @@ export async function localizeStoryEpisode(
           model: config.model,
           temperature: config.temperature,
           reasoningEffort: config.reasoningEffort,
+          maxOutputTokens: config.maxOutputTokens ?? 6_000,
           promptVersion: config.promptVersion,
           compilerVersion: languagePrompt.compilerVersion,
           promptFingerprint: languagePrompt.promptFingerprint,
@@ -3703,6 +3914,54 @@ export async function localizeStoryEpisode(
       if (includeLocalizedShorts) {
         skippedFiles.push(localizedOutputFiles.short);
       }
+    }
+  }
+  if (generateLocalizedShorts && config.includeEnglishShort) {
+    try {
+      const shortSummary = await rewriteShortStories(
+        {
+          inputPath: outputFiles.full,
+          episodeSlug: parsed.slug,
+          outputRoot: config.outputDirectory,
+          languages: ["en", ...config.languages],
+          model: config.shortModel ?? config.model,
+          reasoningEffort:
+            config.shortReasoningEffort ?? config.reasoningEffort,
+          maxOutputTokens:
+            config.shortMaxOutputTokens ?? config.maxOutputTokens,
+          retryMaxOutputTokens:
+            config.shortMaxOutputTokens ?? config.retryMaxOutputTokens,
+          timeoutMs: config.timeoutMs,
+          maxConcurrency: config.concurrency,
+          maxRetries: 2,
+          overwrite: config.force,
+          force: config.force,
+          dryRun: config.dryRun,
+          allowSourceInput: false,
+          resume: config.resume,
+          verbose: config.verbose,
+          json: false,
+        },
+        {
+          client,
+          ...(options.signal ? { signal: options.signal } : {}),
+        }
+      );
+      inputTokens += shortSummary.inputTokens;
+      outputTokens += shortSummary.outputTokens;
+      for (const artifact of shortSummary.artifacts) {
+        const markdownPath = path.join(
+          config.outputDirectory,
+          parsed.slug,
+          artifact.markdownOutputPath
+        );
+        if (artifact.status === "completed") generatedFiles.push(markdownPath);
+        else skippedFiles.push(markdownPath);
+      }
+    } catch (error) {
+      languageFailures.push(
+        `localized-shorts: ${error instanceof Error ? error.message : String(error)}`
+      );
     }
   }
   const pricing = options.modelPricing?.[config.model];
@@ -3939,6 +4198,20 @@ export function createStoryLocalizationConfig(
     repairMaxOutputTokens: input.repairMaxOutputTokens,
     concurrency: input.concurrency ?? 2,
     model: input.model ?? SHORT_REWRITE_DEFAULT_MODEL,
+    ...(input.canonicalModel ? { canonicalModel: input.canonicalModel } : {}),
+    ...(input.canonicalReasoningEffort
+      ? { canonicalReasoningEffort: input.canonicalReasoningEffort }
+      : {}),
+    ...(input.canonicalMaxOutputTokens
+      ? { canonicalMaxOutputTokens: input.canonicalMaxOutputTokens }
+      : {}),
+    ...(input.shortModel ? { shortModel: input.shortModel } : {}),
+    ...(input.shortReasoningEffort
+      ? { shortReasoningEffort: input.shortReasoningEffort }
+      : {}),
+    ...(input.shortMaxOutputTokens
+      ? { shortMaxOutputTokens: input.shortMaxOutputTokens }
+      : {}),
     temperature: input.temperature ?? SHORT_REWRITE_DEFAULT_TEMPERATURE,
     reasoningEffort:
       input.reasoningEffort ?? SHORT_REWRITE_DEFAULT_REASONING_EFFORT,
@@ -3954,6 +4227,8 @@ export function createStoryLocalizationConfig(
     validateOnly: input.validateOnly ?? false,
     verbose: input.verbose ?? false,
     promptVersion: input.promptVersion ?? "story-localization-v1",
+    promptCacheMode: input.promptCacheMode ?? "explicit",
+    promptCacheShardCount: input.promptCacheShardCount ?? "auto",
     debugOutputs: input.debugOutputs ?? false,
     debugPrefix: input.debugPrefix ?? "stories-rewrite-full",
   };

@@ -18,6 +18,7 @@ import {
   type ShortRewriteLanguage,
 } from "./short-rewrite.constants.js";
 import { type ShortRewriteGeneration, type ShortRewriteValidation } from "./short-rewrite.types.js";
+import { resolveCanonicalStoryScriptPath } from "./story-script-paths.js";
 
 export function normalizeSourceMarkdown(content: string): string {
   return content.replace(/\r\n/gu, "\n");
@@ -175,7 +176,7 @@ export function isEpisodeOutputFullStoryPath(
     return false;
   }
   const normalized = relativePath.split(path.sep).join("/");
-  return /^(?:episodes\/)?[^/]+\/(?:script\.md|en\/full\/script\.md|en\/script\.md)$/iu.test(
+  return /^(?:episodes\/)?[^/]+\/(?:script\.md|en\/full\/script\.md|en\/script\.md|languages\/script-en\.md)$/iu.test(
     normalized
   ) || /^(?:episodes\/)?[^/]+\/script\.md$/iu.test(normalized);
 }
@@ -228,7 +229,11 @@ export function resolveShortRewriteOutputPaths(args: {
     baseName,
     markdownPath: path.join(shortDir, `${baseName}.md`),
     jsonPath: path.join(shortDir, `${baseName}.json`),
-    compatibilityMarkdownPath: path.join(shortDir, "script.md"),
+    compatibilityMarkdownPath: resolveCanonicalStoryScriptPath({
+      episodeDir,
+      language: args.language,
+      variant: "short",
+    }),
     compatibilityJsonPath: path.join(shortDir, "metadata.json"),
     manifestPath: path.join(episodeDir, "manifests", "short-rewrite-manifest.json"),
   };

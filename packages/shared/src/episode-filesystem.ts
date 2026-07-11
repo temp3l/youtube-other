@@ -352,14 +352,19 @@ export async function resolveAuthoredScript(
     variant,
   });
   const existingStaleCandidates: RepositoryRelativePath[] = [];
-  for (const candidate of staleCandidates) {
-    const candidatePath = assertInsideWorkspace(
-      workspaceRoot,
-      path.join(workspaceRoot, candidate)
-    );
-    const candidateStat = await statIfExists(candidatePath);
-    if (candidateStat?.isFile()) {
+  // Canonical scripts are authoritative. Generated compatibility renderings
+  // intentionally use a different markdown envelope, so they must not block
+  // an authored canonical script from being consumed.
+  if (!canonicalStat?.isFile()) {
+    for (const candidate of staleCandidates) {
+      const candidatePath = assertInsideWorkspace(
+        workspaceRoot,
+        path.join(workspaceRoot, candidate)
+      );
+      const candidateStat = await statIfExists(candidatePath);
+      if (candidateStat?.isFile()) {
       existingStaleCandidates.push(candidate);
+      }
     }
   }
 

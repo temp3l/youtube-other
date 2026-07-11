@@ -235,6 +235,9 @@ async function createSourceStory(tempRoot: string): Promise<string> {
             ],
           },
           targetNarrationWpm: 178,
+          preservedBeatIds: null,
+          mechanics: null,
+          localizedMetadata: null,
           preservationChecklist: {
             charactersPreserved: true,
             relationshipsPreserved: true,
@@ -458,6 +461,59 @@ async function rewriteTestShortStories(
 }
 
 describe("short rewrite service", () => {
+  it("finishes the English short prerequisite before starting localized shorts", async () => {
+    const tempRoot = await fs.mkdtemp(
+      path.join(os.tmpdir(), "short-rewrite-parent-order-")
+    );
+    const sourcePath = await createSourceStory(tempRoot);
+    const client = makeMockClient([
+      {
+        id: "resp-en",
+        output_text: buildResponseJson({
+          title: "The Doll House",
+          wordCount: 66,
+          thumbnailText: "Wet Hands",
+          fullVideoBridge: "Watch the full episode.",
+          language: "en",
+        }),
+      },
+      {
+        id: "resp-de",
+        output_text: buildResponseJson({
+          title: "Das Puppenhaus",
+          wordCount: 66,
+          thumbnailText: "Nasse Hände",
+          fullVideoBridge: "Sieh dir die ganze Episode an.",
+          language: "de",
+        }),
+      },
+    ]);
+
+    await expect(
+      rewriteTestShortStories(
+        {
+          inputPath: sourcePath,
+          outputRoot: tempRoot,
+          languages: ["de", "en"],
+          model: "gpt-5-mini",
+          dryRun: false,
+          resume: false,
+          overwrite: false,
+          maxRetries: 0,
+          maxConcurrency: 2,
+        },
+        { client }
+      )
+    ).rejects.toThrow("English short prerequisite failed");
+
+    expect(client.responses.create).toHaveBeenCalledTimes(2);
+    await expect(
+      fs.access(
+        path.join(tempRoot, "009-the-christmas-doll", "debug", "stories-rewrite-short-de.request.json")
+      )
+    ).rejects.toThrow();
+  });
+
   it("writes localized markdown and JSON for a successful generation", async () => {
     const tempRoot = await fs.mkdtemp(
       path.join(os.tmpdir(), "short-rewrite-success-")

@@ -510,7 +510,15 @@ export function detectOriginalCharacterNameLeaks(args: {
   const normalizedText = args.text.normalize("NFC");
   const leaks = new Set<string>();
   for (const entry of args.renameMap.entries) {
+    const originalNameParts = entry.originalName.trim().split(/\s+/u);
+    const surname = originalNameParts.length > 1 ? originalNameParts.at(-1) : undefined;
     for (const alias of entry.originalAliases) {
+      // A standalone surname can also be an ordinary noun (for example,
+      // "Bell"). Preserve full-name and first-name checks, but avoid treating
+      // a common sentence word as a character-name leak.
+      if (surname && alias.localeCompare(surname, undefined, { sensitivity: "accent" }) === 0) {
+        continue;
+      }
       const pattern = new RegExp(
         `(^|[^\\p{L}\\p{N}])${escapeRegExp(alias)}(['’]s|s['’])?(?=$|[^\\p{L}\\p{N}])`,
         "iu"

@@ -1,4 +1,6 @@
 import type { ContentVariant, EpisodeLanguage } from "@mediaforge/shared";
+import type { PromptCachePlan } from "@mediaforge/shared";
+import type { ImageGenerationIdentity } from "./cacheable-image-pipeline.js";
 
 export type ImageBatchStatus =
   | "prepared"
@@ -157,6 +159,18 @@ export interface ImageBatchManifestItem {
   readonly requestedSize: string;
   readonly quality?: ImageBatchQuality;
   readonly outputFormat: "png" | "jpeg" | "webp";
+  readonly generationIdentity?: ImageGenerationIdentity;
+  readonly generationIdentityHash?: string;
+  readonly resultCachePath?: string;
+  readonly localCacheState?: "miss" | "hit" | "stale" | "invalid" | "forced";
+  readonly referenceBundleHash?: string;
+  readonly promptCachePlan?: PromptCachePlan;
+  readonly providerReference?: {
+    readonly status: "not-required" | "pending" | "registered" | "failed";
+    readonly providerFileId?: string;
+    readonly contentHash?: string;
+    readonly error?: string;
+  };
   readonly status: ImageBatchItemStatus;
   readonly retryCount: number;
   readonly imageHash?: string;
@@ -169,7 +183,9 @@ export interface ImageBatchManifestItem {
   readonly usage?: {
     readonly inputTokens: number;
     readonly cachedInputTokens?: number;
+    readonly cacheWriteTokens?: number;
     readonly outputTokens: number;
+    readonly reasoningTokens?: number;
   };
   readonly estimatedCostUsd?: number;
   readonly error?: {
@@ -205,4 +221,22 @@ export interface ImageBatchManifest {
   readonly submittedAt?: string;
   readonly completedAt?: string;
   readonly importedAt?: string;
+  readonly dependencyGraphSummary?: {
+    readonly referenceItemCount: number;
+    readonly sceneItemCount: number;
+    readonly blockedItemCount: number;
+  };
+  readonly localCacheSummary?: {
+    readonly hits: number;
+    readonly misses: number;
+    readonly stale: number;
+    readonly invalid: number;
+    readonly forced: number;
+  };
+  readonly promptCacheGroupingSummary?: {
+    readonly groups: number;
+    readonly explicitGroups: number;
+    readonly implicitGroups: number;
+    readonly disabledGroups: number;
+  };
 }

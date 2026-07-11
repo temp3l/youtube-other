@@ -12,9 +12,11 @@ export interface ResolvedMediaDimensionSpec extends MediaDimensionSpec {
   readonly source:
     | "default"
     | "OPENAI_IMAGE_FULL_SIZE"
+    | "MEDIAFORGE_OPENAI_IMAGE_SCENE_SIZE"
     | "YOUTUBE_FULL_IMAGE_SIZE"
     | "OPENAI_IMAGE_SIZE"
     | "OPENAI_IMAGE_SHORT_SIZE"
+    | "MEDIAFORGE_OPENAI_IMAGE_SHORT_SIZE"
     | "YOUTUBE_SHORT_IMAGE_SIZE"
     | "SHORTS_OPENAI_IMAGE_SIZE"
     | "SHORTS_PORTRAIT_WIDTH/SHORTS_PORTRAIT_HEIGHT"
@@ -111,7 +113,8 @@ function parseConfiguredSize(args: {
       width,
       height,
       aspectRatio: args.expectedAspectRatio,
-    })
+    }) &&
+    !(args.profile === "short" && width === 1024 && height === 1536)
   ) {
     throw new Error(
       `Invalid ${args.envVarName} value "${args.value}" for ${args.profile} image generation. Expected ${args.expectedAspectRatio} aspect ratio for the ${args.profile} profile.`
@@ -165,6 +168,7 @@ export function resolveConfiguredImageGenerationSize(args: {
 
   if (args.profile === "full") {
     for (const envVarName of [
+      "MEDIAFORGE_OPENAI_IMAGE_SCENE_SIZE",
       "OPENAI_IMAGE_FULL_SIZE",
       "YOUTUBE_FULL_IMAGE_SIZE",
       "OPENAI_IMAGE_SIZE",
@@ -190,6 +194,7 @@ export function resolveConfiguredImageGenerationSize(args: {
   }
 
   for (const envVarName of [
+    "MEDIAFORGE_OPENAI_IMAGE_SHORT_SIZE",
     "OPENAI_IMAGE_SHORT_SIZE",
     "YOUTUBE_SHORT_IMAGE_SIZE",
     "SHORTS_OPENAI_IMAGE_SIZE",

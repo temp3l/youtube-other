@@ -85,6 +85,8 @@ describe("story quality gate", () => {
     );
     const parsed = await parseCanonicalSourceStory(goodFixture);
     const facts = extractCanonicalStoryFacts(parsed);
+    expect(facts.forbiddenInventions).not.toContain("Adrian");
+    expect(facts.forbiddenInventions).not.toContain("Adrian Cole");
     const badText = await fs.readFile(badFixture, "utf8");
     const result = runStoryQualityGate({
       artifactKind: "short",
@@ -102,7 +104,9 @@ describe("story quality gate", () => {
     });
     expect(result.status).toBe("REPAIRABLE");
     expect(result.findings.map((entry) => entry.code)).toContain("BANNED_OUTLINE_PHRASE");
-    expect(result.findings.map((entry) => entry.code)).toContain("FORBIDDEN_INVENTION");
+    expect(result.findings.map((entry) => entry.code)).not.toContain(
+      "FORBIDDEN_INVENTION"
+    );
   });
 
   it("flags malformed german compounds for deterministic repair", async () => {
@@ -220,7 +224,7 @@ describe("story quality gate", () => {
       budget: { artifactKind: "short", language: "en", model: "fixture", inputMode: "facts+excerpts" },
     }).findings.map((entry) => entry.code);
     expect(outlineCodes).toContain("BANNED_OUTLINE_PHRASE");
-    expect(outlineCodes).toContain("FORBIDDEN_INVENTION");
+    expect(outlineCodes).not.toContain("FORBIDDEN_INVENTION");
     expect(outlineCodes).toContain("CANONICAL_NAME_MISSING");
     expect(outlineCodes).toContain("EMOTIONAL_COST_MISSING");
   });

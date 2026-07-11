@@ -1,7 +1,7 @@
 import { normalizeWhitespace, splitIntoSentences } from "@mediaforge/shared";
 import { type CanonicalStoryFacts, type ParsedSourceStory } from "./story-localization.types.js";
 
-export const CANONICAL_FACTS_EXTRACTOR_VERSION = "canonical-facts-extractor-v3";
+export const CANONICAL_FACTS_EXTRACTOR_VERSION = "canonical-facts-extractor-v4";
 export const CANONICAL_FACTS_SCHEMA_VERSION = "canonical-story-facts-v3";
 
 const SCAFFOLD_PATTERNS = [
@@ -17,6 +17,20 @@ const SCAFFOLD_PATTERNS = [
   /\bdie bedrohung folgt einer regel\b/iu,
   /\bspäter erscheint ein letzter beweis\b/iu,
 ];
+
+const NON_NAME_LEADING_WORDS = new Set([
+  "After",
+  "Although",
+  "As",
+  "Because",
+  "Before",
+  "Diverse",
+  "If",
+  "Once",
+  "Since",
+  "When",
+  "While",
+]);
 
 function unique(values: readonly string[]): string[] {
   return [...new Set(values.map((entry) => normalizeWhitespace(entry)).filter(Boolean))];
@@ -39,6 +53,7 @@ function extractCandidateNames(text: string): string[] {
     matches.filter(
       (candidate) =>
         candidate.length > 0 &&
+        !NON_NAME_LEADING_WORDS.has(candidate.split(" ")[0] ?? "") &&
         !/^(Episode|Narration|Episode Metadata|Audio Generation Instructions)$/u.test(
           candidate
         )
@@ -148,12 +163,6 @@ function extractKeyObjects(text: string, tags: readonly string[]): string[] {
 
 function extractForbiddenInventions(text: string): string[] {
   const inventions: string[] = [];
-  if (!/\bAdrian\b/u.test(text)) {
-    inventions.push("Adrian");
-  }
-  if (!/\bAdrian Cole\b/u.test(text)) {
-    inventions.push("Adrian Cole");
-  }
   if (!/\bFunkger[aä]t\b/u.test(text)) {
     inventions.push("Funkgerät");
   }

@@ -1,7 +1,13 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { z } from "zod";
-import { ensureDir, fileExists, hashText, readJsonIfExists, writeJsonAtomic } from "@mediaforge/shared";
+import {
+  ensureDir,
+  fileExists,
+  hashText,
+  readJsonIfExists,
+  writeJsonAtomic,
+} from "@mediaforge/shared";
 import { stableSerialize } from "./stable-json.js";
 import {
   CANONICAL_FACTS_EXTRACTOR_VERSION,
@@ -10,13 +16,18 @@ import {
   validateCanonicalStoryFacts,
 } from "./canonical-facts.service.js";
 import { resolveCanonicalEnglishFullPaths } from "./canonical-full-story.persistence.js";
-import { type CanonicalStoryFacts, type LanguageCode, type StoryLocalizationCacheEntry } from "./story-localization.types.js";
+import {
+  type CanonicalStoryFacts,
+  type LanguageCode,
+  type StoryLocalizationCacheEntry,
+} from "./story-localization.types.js";
+import { LOCALIZATION_FIDELITY_POLICY_VERSION } from "./localization-fidelity.js";
 
-export const STORY_QUALITY_GATE_VERSION = "story-quality-gate-v3";
+export const STORY_QUALITY_GATE_VERSION = "story-quality-gate-v4";
 export const PROTECTED_ELEMENTS_VERSION = "protected-elements-v2";
 
 const cacheEntrySchema = z.object({
-  schemaVersion: z.literal("story-localization-cache-entry-v2").optional(),
+  schemaVersion: z.literal("story-localization-cache-entry-v3").optional(),
   sourceFile: z.string().min(1),
   sourceHash: z.string().min(64),
   configurationHash: z.string().min(64),
@@ -33,6 +44,7 @@ const cacheEntrySchema = z.object({
   reasoningEffort: z.string().min(1).optional(),
   qualityGateVersion: z.string().min(1).optional(),
   protectedElementsVersion: z.string().min(1).optional(),
+  localizationFidelityPolicyVersion: z.string().min(1).optional(),
   generatedAt: z.string().min(1),
   outputFiles: z.array(z.string().min(1)),
   compilerVersion: z.string().min(1).optional(),
@@ -96,10 +108,16 @@ export function resolveEpisodeStoryOutputFiles(
   readonly full: string;
   readonly short: string;
 } {
-  const episodeDir = resolveEpisodeOutputDirectory(outputDirectory, episodeSlug);
+  const episodeDir = resolveEpisodeOutputDirectory(
+    outputDirectory,
+    episodeSlug
+  );
   const languageDir = path.join(episodeDir, language);
   if (language === "en") {
-    const canonical = resolveCanonicalEnglishFullPaths(outputDirectory, episodeSlug);
+    const canonical = resolveCanonicalEnglishFullPaths(
+      outputDirectory,
+      episodeSlug
+    );
     return {
       episodeDir,
       rootScript: canonical.rootCompatibilityMarkdownPath,
@@ -115,8 +133,16 @@ export function resolveEpisodeStoryOutputFiles(
   };
 }
 
-function entryPath(cacheDirectory: string, sourceHash: string, configurationHash: string): string {
-  return path.join(cacheDirectory, "entries", `${sourceHash}.${configurationHash}.json`);
+function entryPath(
+  cacheDirectory: string,
+  sourceHash: string,
+  configurationHash: string
+): string {
+  return path.join(
+    cacheDirectory,
+    "entries",
+    `${sourceHash}.${configurationHash}.json`
+  );
 }
 
 function factsPath(cacheDirectory: string, sourceHash: string): string {
@@ -128,12 +154,13 @@ export async function readLocalizationCacheEntry(
   sourceHash: string,
   configurationHash: string
 ): Promise<StoryLocalizationCacheEntry | null> {
-  const raw = await readJsonIfExists(entryPath(cacheDirectory, sourceHash, configurationHash), (value) =>
-    cacheEntrySchema.parse(value) as StoryLocalizationCacheEntry
+  const raw = await readJsonIfExists(
+    entryPath(cacheDirectory, sourceHash, configurationHash),
+    (value) => cacheEntrySchema.parse(value) as StoryLocalizationCacheEntry
   );
   if (
     !raw ||
-    raw.schemaVersion !== "story-localization-cache-entry-v2" ||
+    raw.schemaVersion !== "story-localization-cache-entry-v3" ||
     !raw.sourceNarrationHash ||
     !raw.promptTemplateHash ||
     !raw.extractorImplementationVersion ||
@@ -142,7 +169,10 @@ export async function readLocalizationCacheEntry(
     !raw.locale ||
     !raw.variant ||
     !raw.qualityGateVersion ||
-    !raw.protectedElementsVersion
+    !raw.protectedElementsVersion ||
+    (raw.language !== "en" &&
+      raw.localizationFidelityPolicyVersion !==
+        LOCALIZATION_FIDELITY_POLICY_VERSION)
   ) {
     return null;
   }
@@ -153,30 +183,49 @@ export async function writeLocalizationCacheEntry(
   cacheDirectory: string,
   entry: StoryLocalizationCacheEntry
 ): Promise<void> {
-  await ensureDir(path.dirname(entryPath(cacheDirectory, entry.sourceHash, entry.configurationHash)));
-  await writeJsonAtomic(entryPath(cacheDirectory, entry.sourceHash, entry.configurationHash), {
-    ...entry,
-    schemaVersion: "story-localization-cache-entry-v2",
-    sourceNarrationHash: entry.sourceNarrationHash ?? entry.sourceHash,
-    promptTemplateHash: entry.promptTemplateHash ?? hashText(entry.promptVersion),
-    extractorImplementationVersion:
-      entry.extractorImplementationVersion ?? CANONICAL_FACTS_EXTRACTOR_VERSION,
-    factsSchemaVersion: entry.factsSchemaVersion ?? CANONICAL_FACTS_SCHEMA_VERSION,
-    reasoningEffort: entry.reasoningEffort ?? "unknown",
-    locale: entry.locale ?? entry.language,
-    variant: entry.variant ?? "full",
-    qualityGateVersion: entry.qualityGateVersion ?? STORY_QUALITY_GATE_VERSION,
-    protectedElementsVersion:
-      entry.protectedElementsVersion ?? PROTECTED_ELEMENTS_VERSION,
-  });
+  await ensureDir(
+    path.dirname(
+      entryPath(cacheDirectory, entry.sourceHash, entry.configurationHash)
+    )
+  );
+  await writeJsonAtomic(
+    entryPath(cacheDirectory, entry.sourceHash, entry.configurationHash),
+    {
+      ...entry,
+      schemaVersion: "story-localization-cache-entry-v3",
+      sourceNarrationHash: entry.sourceNarrationHash ?? entry.sourceHash,
+      promptTemplateHash:
+        entry.promptTemplateHash ?? hashText(entry.promptVersion),
+      extractorImplementationVersion:
+        entry.extractorImplementationVersion ??
+        CANONICAL_FACTS_EXTRACTOR_VERSION,
+      factsSchemaVersion:
+        entry.factsSchemaVersion ?? CANONICAL_FACTS_SCHEMA_VERSION,
+      reasoningEffort: entry.reasoningEffort ?? "unknown",
+      locale: entry.locale ?? entry.language,
+      variant: entry.variant ?? "full",
+      qualityGateVersion:
+        entry.qualityGateVersion ?? STORY_QUALITY_GATE_VERSION,
+      protectedElementsVersion:
+        entry.protectedElementsVersion ?? PROTECTED_ELEMENTS_VERSION,
+      ...(entry.language !== "en"
+        ? {
+            localizationFidelityPolicyVersion:
+              entry.localizationFidelityPolicyVersion ??
+              LOCALIZATION_FIDELITY_POLICY_VERSION,
+          }
+        : {}),
+    }
+  );
 }
 
 export async function readCanonicalFactsCache(
   cacheDirectory: string,
   sourceHash: string
 ): Promise<CanonicalStoryFacts | null> {
-  const raw = await readJsonIfExists(factsPath(cacheDirectory, sourceHash), (value) =>
-    factsCacheSchema.parse(value)
+  const raw = await readJsonIfExists(
+    factsPath(cacheDirectory, sourceHash),
+    (value) => factsCacheSchema.parse(value)
   );
   if (
     !raw ||
@@ -193,7 +242,9 @@ export async function readCanonicalFactsCache(
   ) {
     return null;
   }
-  const facts = normalizeCanonicalStoryFacts(raw.facts as unknown as CanonicalStoryFacts);
+  const facts = normalizeCanonicalStoryFacts(
+    raw.facts as unknown as CanonicalStoryFacts
+  );
   return validateCanonicalStoryFacts(facts).length === 0 ? facts : null;
 }
 
@@ -214,7 +265,9 @@ export async function writeCanonicalFactsCache(
   await writeJsonAtomic(factsPath(cacheDirectory, sourceHash), {
     sourceHash,
     sourceNarrationHash: identity.sourceNarrationHash ?? sourceHash,
-    promptTemplateHash: identity.promptTemplateHash ?? hashText(CANONICAL_FACTS_EXTRACTOR_VERSION),
+    promptTemplateHash:
+      identity.promptTemplateHash ??
+      hashText(CANONICAL_FACTS_EXTRACTOR_VERSION),
     extractorImplementationVersion: CANONICAL_FACTS_EXTRACTOR_VERSION,
     schemaVersion: CANONICAL_FACTS_SCHEMA_VERSION,
     model: identity.model ?? "deterministic",
@@ -243,6 +296,7 @@ export interface StoryArtifactCacheKeyInput {
   readonly model: string;
   readonly temperature: number;
   readonly reasoningEffort: string;
+  readonly maxOutputTokens: number;
   readonly promptVersion: string;
   readonly compilerVersion?: string;
   readonly promptFingerprint?: string;
@@ -255,6 +309,9 @@ export interface StoryArtifactCacheKeyInput {
   readonly parentContractHash?: string;
   readonly parentLocale?: string;
   readonly parentVariant?: "full" | "short";
+  readonly validationPolicyVersion?: string;
+  readonly storyBeatHash?: string;
+  readonly mechanicsHash?: string;
   readonly targetWordRange?: Readonly<Record<string, number>>;
   readonly targetShortTiming?: {
     readonly shortWpm: number;
@@ -268,7 +325,8 @@ export function buildStoryArtifactCacheKey(
 ): string {
   return hashText(
     stableSerialize({
-      cacheKeyVersion: "story-artifact-cache-key-v2",
+      cacheKeyVersion: "story-artifact-cache-key-v4",
+      validatorVersion: STORY_QUALITY_GATE_VERSION,
       ...input,
     })
   );

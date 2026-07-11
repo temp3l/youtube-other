@@ -567,6 +567,12 @@ export interface EpisodeImagePipelineSettings {
 const envSchema = z.object({
   OPENAI_API_KEY: z.string().min(1),
   OPENAI_IMAGE_MODEL: z.string().default("gpt-image-2"),
+  MEDIAFORGE_OPENAI_IMAGE_SCENE_MODEL: z.string().min(1).optional(),
+  MEDIAFORGE_OPENAI_IMAGE_SHORT_MODEL: z.string().min(1).optional(),
+  MEDIAFORGE_OPENAI_IMAGE_SCENE_SIZE: z.string().regex(/^\d+x\d+$/u).optional(),
+  MEDIAFORGE_OPENAI_IMAGE_SHORT_SIZE: z.string().regex(/^\d+x\d+$/u).optional(),
+  MEDIAFORGE_OPENAI_IMAGE_SCENE_QUALITY: z.enum(["low", "medium", "high", "auto"]).optional(),
+  MEDIAFORGE_OPENAI_IMAGE_SHORT_QUALITY: z.enum(["low", "medium", "high", "auto"]).optional(),
   OPENAI_IMAGE_SIZE: z.string().optional(),
   OPENAI_IMAGE_FULL_SIZE: z.string().optional(),
   OPENAI_IMAGE_SHORT_SIZE: z.string().optional(),
@@ -3358,15 +3364,24 @@ export function loadEpisodeImageGenerationSettings(
   } = {}
 ): EpisodeImagePipelineSettings {
   const mergedEnv = mergeImageGenerationEnv(env, options.cwd);
-  const parsed = envSchema.parse(mergedEnv);
   const profile = options.profile ?? "full";
+  const profileEnv = {
+    ...mergedEnv,
+    ...(profile === "full" && mergedEnv["MEDIAFORGE_OPENAI_IMAGE_SCENE_SIZE"]
+      ? { OPENAI_IMAGE_FULL_SIZE: mergedEnv["MEDIAFORGE_OPENAI_IMAGE_SCENE_SIZE"] }
+      : {}),
+    ...(profile === "short" && mergedEnv["MEDIAFORGE_OPENAI_IMAGE_SHORT_SIZE"]
+      ? { OPENAI_IMAGE_SHORT_SIZE: mergedEnv["MEDIAFORGE_OPENAI_IMAGE_SHORT_SIZE"] }
+      : {}),
+  };
+  const parsed = envSchema.parse(profileEnv);
   const configuredGenerationSize = resolveConfiguredImageGenerationSize({
     profile,
-    env: mergedEnv,
+    env: profileEnv,
   });
   const configuredRenderSize = resolveConfiguredRenderSize({
     profile,
-    env: mergedEnv,
+    env: profileEnv,
   });
   const ignoredShortWarning =
     profile === "short" ? buildIgnoredShortFullSizeWarning(mergedEnv) : undefined;
@@ -3379,11 +3394,17 @@ export function loadEpisodeImageGenerationSettings(
     organization: parsed.OPENAI_ORGANIZATION,
     project: parsed.OPENAI_PROJECT,
     profile,
-    model: parsed.OPENAI_IMAGE_MODEL,
+    model:
+      profile === "short"
+        ? parsed.MEDIAFORGE_OPENAI_IMAGE_SHORT_MODEL ?? parsed.OPENAI_IMAGE_MODEL
+        : parsed.MEDIAFORGE_OPENAI_IMAGE_SCENE_MODEL ?? parsed.OPENAI_IMAGE_MODEL,
     size: configuredGenerationSize.size,
     renderSize: configuredRenderSize.size,
     resolvedSize: configuredGenerationSize.size,
-    quality: parsed.OPENAI_IMAGE_QUALITY,
+    quality:
+      profile === "short"
+        ? parsed.MEDIAFORGE_OPENAI_IMAGE_SHORT_QUALITY ?? parsed.OPENAI_IMAGE_QUALITY
+        : parsed.MEDIAFORGE_OPENAI_IMAGE_SCENE_QUALITY ?? parsed.OPENAI_IMAGE_QUALITY,
     concurrency: parsed.OPENAI_IMAGE_CONCURRENCY,
     maxRetries: parsed.OPENAI_IMAGE_MAX_RETRIES,
     timeoutMs: parsed.OPENAI_IMAGE_TIMEOUT_MS,

@@ -157,7 +157,10 @@ export function registerStoryRewriteFullCommand(storiesCommand: Command): void {
           sourceSha256: resolved.sourceSha256,
           sourceRole: "raw-author-source",
           resolvedFrom: resolved.resolvedFrom,
-          overwrite: options.overwrite ?? options.force ?? false,
+          // Resume may safely refresh derived source-cleaning sidecars before
+          // checking the canonical response cache. Without this, a stale
+          // sidecar requires --force, which disables resume and re-bills work.
+          overwrite: options.overwrite ?? options.force ?? options.resume ?? false,
         });
       }
       const sourceFile = options.dryRun || hasDryRunFlag ? resolved.sourcePath : canonicalSourcePath;
@@ -196,6 +199,14 @@ export function registerStoryRewriteFullCommand(storiesCommand: Command): void {
         return;
       }
 
+      const maxOutputTokens =
+        options.maxOutputTokens ??
+        runtimeConfig.openAiStoryMaxOutputTokens ??
+        DEFAULT_FULL_REWRITE_MAX_OUTPUT_TOKENS;
+      const retryMaxOutputTokens =
+        options.retryMaxOutputTokens ??
+        runtimeConfig.openAiStoryRetryMaxOutputTokens ??
+        maxOutputTokens;
       const config = createStoryLocalizationConfig({
         sourceDirectory: outputRoot,
         outputDirectory: outputRoot,
@@ -204,14 +215,8 @@ export function registerStoryRewriteFullCommand(storiesCommand: Command): void {
         includeLocalizedShorts: false,
         processingMode: "sync",
         timeoutMs: options.timeoutMs ?? 180_000,
-        maxOutputTokens:
-          options.maxOutputTokens ??
-          runtimeConfig.openAiStoryMaxOutputTokens ??
-          DEFAULT_FULL_REWRITE_MAX_OUTPUT_TOKENS,
-        retryMaxOutputTokens:
-          options.retryMaxOutputTokens ??
-          runtimeConfig.openAiStoryRetryMaxOutputTokens ??
-          DEFAULT_FULL_REWRITE_RETRY_MAX_OUTPUT_TOKENS,
+        maxOutputTokens,
+        retryMaxOutputTokens,
         model:
           options.model ??
           runtimeConfig.openAiStoryModel ??

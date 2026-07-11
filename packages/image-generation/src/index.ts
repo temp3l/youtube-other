@@ -43,6 +43,7 @@ export * from "./image-batch-planner.js";
 export * from "./image-batch-service.js";
 export * from "./video-image-spec.js";
 export * from "./image-generation-config.js";
+export * from "./cacheable-image-pipeline.js";
 export { prepareFullSceneImageBatches } from "./image-batch-planner.js";
 export { resolveImageBatchManifest } from "./image-batch-service.js";
 export * from "./thumbnail-contracts.js";

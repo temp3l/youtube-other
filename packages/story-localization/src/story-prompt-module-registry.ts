@@ -1,12 +1,14 @@
 import { countSpokenWords } from "@mediaforge/shared";
 import { getLanguageRewriteSettings } from "./multilingual-story-localization-settings.js";
+import { LANGUAGE_PROFILE_REGISTRY_VERSION } from "./language-profiles.js";
+import { PROFESSIONAL_STORY_POLICY_VERSION } from "./professional-story-contracts.js";
 import {
   type StoryPromptModuleContext,
   type StoryPromptModuleDescriptor,
   type StoryPromptModuleId,
 } from "./story-prompt-modules.js";
 
-const LOCALE_MODULE_VERSION = "locale-module-v2";
+const LOCALE_MODULE_VERSION = "locale-module-v3";
 
 function hasDialogueEvidence(context: StoryPromptModuleContext): boolean {
   return (
@@ -58,7 +60,7 @@ function moduleDescriptor(
 const modules = [
   moduleDescriptor({
     id: "trust-boundary",
-    semanticVersion: "1.0.0",
+    semanticVersion: "2.0.0",
     owner: "narration",
     stage: "story-rewrite",
     variants: ["full", "short"],
@@ -66,7 +68,7 @@ const modules = [
     conflicts: [],
     order: 10,
     applies: () => ({ kind: "include" }),
-    render: () => ({
+    render: (context) => ({
       system: {
         heading: "Trust Boundary",
         rules: [
@@ -88,7 +90,11 @@ const modules = [
           },
           {
             id: "forbid-metadata",
-            text: "Do not generate YouTube metadata, scene plans, image prompts, thumbnails, or audio/TTS instructions.",
+            text:
+              context.variant === "full" &&
+              context.languageProfile.code !== "en"
+                ? "Generate only the localized title, thumbnail text, SEO description, tags, hashtags, and disclosure required by the response schema. Never generate word-count or runtime claims. Do not generate scene plans, image prompts, or audio/TTS instructions."
+                : "Do not generate YouTube metadata, scene plans, image prompts, thumbnails, or audio/TTS instructions.",
           },
         ],
         body: "Apply these rules before reading or transforming source content.",
@@ -128,7 +134,9 @@ const modules = [
                 "Preserve one internally consistent supernatural rule: trigger, effect, exceptions, limits, discovery path, and climax use. The climax must not silently change the rule.",
                 "End on a concrete image, action, sound, object, or contradiction. Do not append explanatory aftermath after the final reveal.",
                 "Do not use abstract transition scaffolding such as 'the discovery changed the emotional stakes', 'at this point, the account accelerated', 'the purpose of the sound was', 'the story remains disturbing because', 'the final action worked because', 'a second proof confirmed', 'the central sign returned from an impossible location', or 'the environment reorganized around one person'.",
-                "Do not produce YouTube metadata, tags, chapters, scene plans, image prompts, rendering instructions, thumbnails, audio/TTS instructions, or provider operational notes.",
+                context.languageProfile.code === "en"
+                  ? "Do not produce YouTube metadata, tags, chapters, scene plans, image prompts, rendering instructions, thumbnails, audio/TTS instructions, or provider operational notes."
+                  : "Outside the localized metadata fields required by the response schema, do not produce chapters, scene plans, image prompts, rendering instructions, audio/TTS instructions, provider operational notes, word counts, or runtime claims.",
               ].join("\n")
             : [
                 `Transform the validated short-event plan into short-form narration in ${context.languageProfile.displayName}.`,
@@ -149,6 +157,8 @@ const modules = [
       kind: "core-story-rewrite-task",
       variant: context.variant,
       locale: context.selectedLocale,
+      professionalStoryPolicyVersion: PROFESSIONAL_STORY_POLICY_VERSION,
+      languageProfileRegistryVersion: LANGUAGE_PROFILE_REGISTRY_VERSION,
     }),
   }),
   moduleDescriptor({
@@ -190,7 +200,7 @@ const modules = [
   }),
   moduleDescriptor({
     id: "full-story-contract",
-    semanticVersion: "1.0.0",
+    semanticVersion: "2.0.0",
     owner: "narration",
     stage: "story-rewrite",
     variants: ["full"],
@@ -214,6 +224,20 @@ const modules = [
                 `Target narration pace: ${context.outputConstraints.targetNarrationWpm} WPM`,
                 `Narrative culmination: ${context.contract.sourceTruth.narrativeCulmination}`,
                 `Ending consequence: ${context.contract.sourceTruth.endingConsequence}`,
+                `Central threat: ${context.mechanicsContract.centralThreat}`,
+                `Supernatural rule: ${context.mechanicsContract.supernaturalRule}`,
+                `Earlier rule evidence: ${context.mechanicsContract.ruleEvidence.join(" | ")}`,
+                `Failed responses: ${context.mechanicsContract.failedResponses.map((entry) => `${entry.action} -> ${entry.failure} -> ${entry.informationRevealed}`).join(" | ")}`,
+                `Protagonist goal: ${context.mechanicsContract.protagonistGoal}`,
+                `Emotional stake: ${context.mechanicsContract.emotionalStake}`,
+                `Observable emotional cost: ${context.mechanicsContract.emotionalCost}`,
+                `Climax action: ${context.mechanicsContract.climaxAction}`,
+                `Climax/rule connection: ${context.mechanicsContract.climaxRuleConnection}`,
+                "The rule must be demonstrated in at least two earlier scenes. Failed practical responses must reveal information about it. The climax must use this rule without introducing a new mechanic.",
+                "Ordered canonical beats (preserve every ID in localized structured output; IDs never belong in narration):",
+                ...context.canonicalBeats.map(
+                  (beat) => `- [${beat.id}] ${beat.type}: ${beat.summary}`
+                ),
               ].join("\n"),
             },
           }
@@ -287,7 +311,7 @@ const modules = [
   }),
   moduleDescriptor({
     id: "locale-rules",
-    semanticVersion: LOCALE_MODULE_VERSION,
+    semanticVersion: "3.0.0",
     owner: "narration",
     stage: "story-rewrite",
     variants: ["full", "short"],
@@ -314,7 +338,7 @@ const modules = [
                   },
                   {
                     id: "no-localization-summary",
-                    text: "Do not summarize, compress a full story into an outline, delete named characters or visual objects, replace scenes with generic descriptions, invent a different ending, or substitute statements like 'previous victims tried to escape' for concrete source events.",
+                    text: "Produce a complete localized narration with approximately the same spoken duration and scene coverage as the canonical English master. This is not a summary. Preserve every canonical beat ID in structured output; never print IDs in narration. Do not merge scenes into summary sentences, delete evidence, witnesses, investigation, failed responses, emotional consequences, climax mechanics, or the final reversal.",
                   },
                 ]),
             {
@@ -340,7 +364,7 @@ const modules = [
   }),
   moduleDescriptor({
     id: "dialogue-handling",
-    semanticVersion: "1.0.0",
+    semanticVersion: "2.0.0",
     owner: "narration",
     stage: "story-rewrite",
     variants: ["full", "short"],
@@ -515,7 +539,7 @@ const modules = [
   }),
   moduleDescriptor({
     id: "response-schema",
-    semanticVersion: "1.0.0",
+    semanticVersion: "2.0.0",
     owner: "narration",
     stage: "story-rewrite",
     variants: ["full", "short"],
@@ -529,6 +553,14 @@ const modules = [
         body: [
           `Return only the structured response required by schema ${context.responseSchema.name}.`,
           `Schema version: ${context.responseSchema.version}`,
+          ...(context.variant === "full" &&
+          context.languageProfile.code !== "en"
+            ? [
+                "Return preservedBeatIds containing every supplied canonical beat ID.",
+                "Return the localized mechanics verification fields without changing their meaning.",
+                "Return a localized title, thumbnail text, SEO description, tags, hashtags, and content disclosure. Do not return word-count or runtime claims.",
+              ]
+            : []),
         ].join("\n"),
       },
     }),

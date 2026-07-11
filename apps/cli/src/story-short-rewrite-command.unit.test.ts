@@ -195,7 +195,7 @@ describe("story short rewrite command", () => {
       temperature: 0.5,
       reasoningEffort: "high",
       maxOutputTokens: 16000,
-      retryMaxOutputTokens: 25000,
+      retryMaxOutputTokens: 16000,
       dryRun: true,
       allowSourceInput: true,
       overwrite: false,

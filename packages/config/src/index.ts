@@ -518,6 +518,19 @@ const configSchema = z.object({
   openAiMetadataMaxRetries: z.number().int().positive().optional(),
   openAiMetadataKeepFile: z.boolean(),
   openAiMetadataTimeoutMs: z.number().int().positive().optional(),
+  openAiImageReferenceModel: z.string().min(1),
+  openAiImageReferenceQuality: z.enum(["low", "medium", "high", "auto"]),
+  openAiImageReferenceSize: z.string().regex(/^\d+x\d+$/u),
+  openAiImageSceneModel: z.string().min(1),
+  openAiImageSceneQuality: z.enum(["low", "medium", "high", "auto"]),
+  openAiImageSceneSize: z.string().regex(/^\d+x\d+$/u),
+  openAiImageShortModel: z.string().min(1),
+  openAiImageShortQuality: z.enum(["low", "medium", "high", "auto"]),
+  openAiImageShortSize: z.string().regex(/^\d+x\d+$/u),
+  openAiImageValidatorModel: z.string().min(1),
+  openAiImageValidatorReasoningEffort: z.enum(["none", "minimal", "low", "medium", "high", "xhigh"]),
+  openAiPromptCacheMode: z.enum(["disabled", "implicit", "explicit"]),
+  openAiPromptCacheShardCount: z.union([z.literal("auto"), z.number().int().min(1).max(32)]),
   youtubeMetadataLanguage: z.string().regex(/^[a-z]{2}(?:-[a-z0-9]{2,8})*$/iu).optional(),
   openAiCompatibleBaseUrl: z.string().url().optional(),
   openAiCompatibleApiKey: z.string().optional(),
@@ -565,6 +578,39 @@ const configSchema = z.object({
   narrationMastering: narrationMasteringConfigSchema,
 });
 export type RuntimeConfig = z.infer<typeof configSchema>;
+
+const reasoningSupportByModel: Readonly<Record<string, readonly RuntimeConfig["openAiStoryReasoningEffort"][]>> = {
+  "gpt-5.6-sol": ["low", "medium", "high", "xhigh"],
+  "gpt-5.6-terra": ["low", "medium", "high"],
+  "gpt-5.4-mini": ["none", "low", "medium", "high"],
+};
+
+export function assertSupportedModelReasoning(
+  model: string,
+  effort: RuntimeConfig["openAiStoryReasoningEffort"],
+  settingName: string
+): void {
+  const supported = reasoningSupportByModel[model];
+  if (supported && effort && !supported.includes(effort)) {
+    throw configurationErrorFromUnknown(
+      `${settingName}=${effort} is not supported by ${model}; supported values: ${supported.join(", ")}.`
+    );
+  }
+}
+
+export function validateOpenAiModelConfiguration(config: RuntimeConfig): void {
+  const combinations = [
+    [config.openAiStoryModel, config.openAiStoryReasoningEffort, "MEDIAFORGE_OPENAI_STORY_REASONING_EFFORT"],
+    [config.openAiLocalizationModel, config.openAiLocalizationReasoningEffort, "MEDIAFORGE_OPENAI_LOCALIZATION_REASONING_EFFORT"],
+    [config.openAiShortModel, config.openAiShortReasoningEffort, "MEDIAFORGE_OPENAI_SHORT_REASONING_EFFORT"],
+    [config.openAiValidatorModel, config.openAiValidatorReasoningEffort, "MEDIAFORGE_OPENAI_VALIDATOR_REASONING_EFFORT"],
+    [config.openAiMetadataModel, config.openAiMetadataReasoningEffort, "MEDIAFORGE_OPENAI_METADATA_REASONING_EFFORT"],
+    [config.openAiImageValidatorModel, config.openAiImageValidatorReasoningEffort, "MEDIAFORGE_OPENAI_IMAGE_VALIDATOR_REASONING_EFFORT"],
+  ] as const;
+  for (const [model, effort, settingName] of combinations) {
+    if (model && effort) assertSupportedModelReasoning(model, effort, settingName);
+  }
+}
 export const runtimeConfigOverridesSchema = configSchema.partial().extend({
   visualRetention: visualRetentionConfigOverrideSchema.optional(),
   narrationMastering: narrationMasteringConfigOverrideSchema.optional(),
@@ -676,6 +722,19 @@ const envSchema = z.object({
   MEDIAFORGE_OPENAI_METADATA_MODEL: z.string().optional(),
   MEDIAFORGE_OPENAI_METADATA_REASONING_EFFORT: z.enum(["none", "minimal", "low", "medium", "high", "xhigh"]).optional(),
   MEDIAFORGE_OPENAI_METADATA_MAX_OUTPUT_TOKENS: z.coerce.number().int().positive().optional(),
+  MEDIAFORGE_OPENAI_IMAGE_REFERENCE_MODEL: z.string().min(1).optional(),
+  MEDIAFORGE_OPENAI_IMAGE_REFERENCE_QUALITY: z.enum(["low", "medium", "high", "auto"]).optional(),
+  MEDIAFORGE_OPENAI_IMAGE_REFERENCE_SIZE: z.string().regex(/^\d+x\d+$/u).optional(),
+  MEDIAFORGE_OPENAI_IMAGE_SCENE_MODEL: z.string().min(1).optional(),
+  MEDIAFORGE_OPENAI_IMAGE_SCENE_QUALITY: z.enum(["low", "medium", "high", "auto"]).optional(),
+  MEDIAFORGE_OPENAI_IMAGE_SCENE_SIZE: z.string().regex(/^\d+x\d+$/u).optional(),
+  MEDIAFORGE_OPENAI_IMAGE_SHORT_MODEL: z.string().min(1).optional(),
+  MEDIAFORGE_OPENAI_IMAGE_SHORT_QUALITY: z.enum(["low", "medium", "high", "auto"]).optional(),
+  MEDIAFORGE_OPENAI_IMAGE_SHORT_SIZE: z.string().regex(/^\d+x\d+$/u).optional(),
+  MEDIAFORGE_OPENAI_IMAGE_VALIDATOR_MODEL: z.string().min(1).optional(),
+  MEDIAFORGE_OPENAI_IMAGE_VALIDATOR_REASONING_EFFORT: z.enum(["none", "minimal", "low", "medium", "high", "xhigh"]).optional(),
+  MEDIAFORGE_OPENAI_PROMPT_CACHE_MODE: z.enum(["disabled", "implicit", "explicit"]).optional(),
+  MEDIAFORGE_OPENAI_PROMPT_CACHE_SHARDS: z.union([z.literal("auto"), z.coerce.number().int().min(1).max(32)]).optional(),
   OPENAI_METADATA_MODEL: z.string().optional(),
   OPENAI_METADATA_REASONING_EFFORT: z.enum(["none", "minimal", "low", "medium", "high", "xhigh"]).optional(),
   OPENAI_METADATA_MAX_OUTPUT_TOKENS: z.coerce.number().int().positive().optional(),
@@ -833,6 +892,42 @@ export async function loadRuntimeConfig(
     env.OPENAI_ORGANIZATION;
   const mergedOpenAiProject =
     overrides.openAiCompatibleProject ?? episodeOverrides.openAiCompatibleProject ?? env.MEDIAFORGE_OPENAI_COMPATIBLE_PROJECT ?? env.OPENAI_PROJECT;
+  const resolvedOpenAiStoryMaxOutputTokens =
+    overrides.openAiStoryMaxOutputTokens ??
+    episodeOverrides.openAiStoryMaxOutputTokens ??
+    env.MEDIAFORGE_OPENAI_STORY_MAX_OUTPUT_TOKENS ??
+    env.OPENAI_STORY_MAX_OUTPUT_TOKENS ??
+    14_000;
+  const resolvedOpenAiStoryRetryMaxOutputTokens =
+    overrides.openAiStoryRetryMaxOutputTokens ??
+    overrides.openAiStoryMaxOutputTokens ??
+    episodeOverrides.openAiStoryRetryMaxOutputTokens ??
+    episodeOverrides.openAiStoryMaxOutputTokens ??
+    env.MEDIAFORGE_OPENAI_STORY_RETRY_MAX_OUTPUT_TOKENS ??
+    env.OPENAI_STORY_RETRY_MAX_OUTPUT_TOKENS ??
+    resolvedOpenAiStoryMaxOutputTokens;
+  const resolvedOpenAiShortRewriteMaxOutputTokens =
+    overrides.openAiShortRewriteMaxOutputTokens ??
+    episodeOverrides.openAiShortRewriteMaxOutputTokens ??
+    env.MEDIAFORGE_OPENAI_SHORT_REWRITE_MAX_OUTPUT_TOKENS ??
+    env.OPENAI_SHORT_REWRITE_MAX_OUTPUT_TOKENS ??
+    4_000;
+  const resolvedOpenAiShortMaxOutputTokens =
+    overrides.openAiShortMaxOutputTokens ??
+    episodeOverrides.openAiShortMaxOutputTokens ??
+    env.MEDIAFORGE_OPENAI_SHORT_MAX_OUTPUT_TOKENS ??
+    env.OPENAI_SHORT_MAX_OUTPUT_TOKENS ??
+    resolvedOpenAiShortRewriteMaxOutputTokens;
+  const resolvedOpenAiShortRewriteRetryMaxOutputTokens =
+    overrides.openAiShortRewriteRetryMaxOutputTokens ??
+    overrides.openAiShortMaxOutputTokens ??
+    overrides.openAiShortRewriteMaxOutputTokens ??
+    episodeOverrides.openAiShortRewriteRetryMaxOutputTokens ??
+    episodeOverrides.openAiShortMaxOutputTokens ??
+    episodeOverrides.openAiShortRewriteMaxOutputTokens ??
+    env.MEDIAFORGE_OPENAI_SHORT_REWRITE_RETRY_MAX_OUTPUT_TOKENS ??
+    env.OPENAI_SHORT_REWRITE_RETRY_MAX_OUTPUT_TOKENS ??
+    resolvedOpenAiShortMaxOutputTokens;
   const config = configSchema.parse({
     workspaceDir: path.resolve(workspaceDir),
     dbPath: path.resolve(dbPath),
@@ -885,7 +980,7 @@ export async function loadRuntimeConfig(
       episodeOverrides.openAiStoryModel ??
       env.MEDIAFORGE_OPENAI_STORY_MODEL ??
       env.OPENAI_STORY_MODEL ??
-      "gpt-5.4-medium",
+      "gpt-5.6-sol",
     openAiStoryTemperature:
       overrides.openAiStoryTemperature ??
       episodeOverrides.openAiStoryTemperature ??
@@ -898,18 +993,8 @@ export async function loadRuntimeConfig(
       env.MEDIAFORGE_OPENAI_STORY_REASONING_EFFORT ??
       env.OPENAI_STORY_REASONING_EFFORT ??
       "medium",
-    openAiStoryMaxOutputTokens:
-      overrides.openAiStoryMaxOutputTokens ??
-      episodeOverrides.openAiStoryMaxOutputTokens ??
-      env.MEDIAFORGE_OPENAI_STORY_MAX_OUTPUT_TOKENS ??
-      env.OPENAI_STORY_MAX_OUTPUT_TOKENS ??
-      5_500,
-    openAiStoryRetryMaxOutputTokens:
-      overrides.openAiStoryRetryMaxOutputTokens ??
-      episodeOverrides.openAiStoryRetryMaxOutputTokens ??
-      env.MEDIAFORGE_OPENAI_STORY_RETRY_MAX_OUTPUT_TOKENS ??
-      env.OPENAI_STORY_RETRY_MAX_OUTPUT_TOKENS ??
-      5_500,
+    openAiStoryMaxOutputTokens: resolvedOpenAiStoryMaxOutputTokens,
+    openAiStoryRetryMaxOutputTokens: resolvedOpenAiStoryRetryMaxOutputTokens,
     openAiLocalizationModel:
       overrides.openAiLocalizationModel ??
       episodeOverrides.openAiLocalizationModel ??
@@ -917,7 +1002,7 @@ export async function loadRuntimeConfig(
       env.OPENAI_LOCALIZATION_MODEL ??
       env.MEDIAFORGE_OPENAI_STORY_MODEL ??
       env.OPENAI_STORY_MODEL ??
-      "gpt-5.4-medium",
+      "gpt-5.6-terra",
     openAiLocalizationReasoningEffort:
       overrides.openAiLocalizationReasoningEffort ??
       episodeOverrides.openAiLocalizationReasoningEffort ??
@@ -933,7 +1018,7 @@ export async function loadRuntimeConfig(
       env.OPENAI_LOCALIZATION_MAX_OUTPUT_TOKENS ??
       env.MEDIAFORGE_OPENAI_STORY_MAX_OUTPUT_TOKENS ??
       env.OPENAI_STORY_MAX_OUTPUT_TOKENS ??
-      5_200,
+      10_000,
     openAiShortModel:
       overrides.openAiShortModel ??
       episodeOverrides.openAiShortModel ??
@@ -941,7 +1026,7 @@ export async function loadRuntimeConfig(
       env.OPENAI_SHORT_MODEL ??
       env.MEDIAFORGE_OPENAI_STORY_MODEL ??
       env.OPENAI_STORY_MODEL ??
-      "gpt-5.4-medium",
+      "gpt-5.6-terra",
     openAiShortReasoningEffort:
       overrides.openAiShortReasoningEffort ??
       episodeOverrides.openAiShortReasoningEffort ??
@@ -950,26 +1035,10 @@ export async function loadRuntimeConfig(
       env.MEDIAFORGE_OPENAI_STORY_REASONING_EFFORT ??
       env.OPENAI_STORY_REASONING_EFFORT ??
       "low",
-    openAiShortRewriteMaxOutputTokens:
-      overrides.openAiShortRewriteMaxOutputTokens ??
-      episodeOverrides.openAiShortRewriteMaxOutputTokens ??
-      env.MEDIAFORGE_OPENAI_SHORT_REWRITE_MAX_OUTPUT_TOKENS ??
-      env.OPENAI_SHORT_REWRITE_MAX_OUTPUT_TOKENS ??
-      1_200,
-    openAiShortMaxOutputTokens:
-      overrides.openAiShortMaxOutputTokens ??
-      episodeOverrides.openAiShortMaxOutputTokens ??
-      env.MEDIAFORGE_OPENAI_SHORT_MAX_OUTPUT_TOKENS ??
-      env.OPENAI_SHORT_MAX_OUTPUT_TOKENS ??
-      env.MEDIAFORGE_OPENAI_SHORT_REWRITE_MAX_OUTPUT_TOKENS ??
-      env.OPENAI_SHORT_REWRITE_MAX_OUTPUT_TOKENS ??
-      1_200,
+    openAiShortRewriteMaxOutputTokens: resolvedOpenAiShortRewriteMaxOutputTokens,
+    openAiShortMaxOutputTokens: resolvedOpenAiShortMaxOutputTokens,
     openAiShortRewriteRetryMaxOutputTokens:
-      overrides.openAiShortRewriteRetryMaxOutputTokens ??
-      episodeOverrides.openAiShortRewriteRetryMaxOutputTokens ??
-      env.MEDIAFORGE_OPENAI_SHORT_REWRITE_RETRY_MAX_OUTPUT_TOKENS ??
-      env.OPENAI_SHORT_REWRITE_RETRY_MAX_OUTPUT_TOKENS ??
-      1_200,
+      resolvedOpenAiShortRewriteRetryMaxOutputTokens,
     openAiValidatorModel:
       overrides.openAiValidatorModel ??
       episodeOverrides.openAiValidatorModel ??
@@ -995,7 +1064,7 @@ export async function loadRuntimeConfig(
       env.OPENAI_VALIDATOR_MAX_OUTPUT_TOKENS ??
       env.MEDIAFORGE_OPENAI_METADATA_MAX_OUTPUT_TOKENS ??
       env.OPENAI_METADATA_MAX_OUTPUT_TOKENS ??
-      2_500,
+      5_000,
     openAiMetadataModel:
       overrides.openAiMetadataModel ??
       episodeOverrides.openAiMetadataModel ??
@@ -1007,19 +1076,45 @@ export async function loadRuntimeConfig(
       episodeOverrides.openAiMetadataReasoningEffort ??
       env.MEDIAFORGE_OPENAI_METADATA_REASONING_EFFORT ??
       env.OPENAI_METADATA_REASONING_EFFORT ??
-      "low",
+      "none",
     openAiMetadataMaxOutputTokens:
       overrides.openAiMetadataMaxOutputTokens ??
       episodeOverrides.openAiMetadataMaxOutputTokens ??
       env.MEDIAFORGE_OPENAI_METADATA_MAX_OUTPUT_TOKENS ??
       env.OPENAI_METADATA_MAX_OUTPUT_TOKENS ??
-      1_200,
+      1_800,
     openAiMetadataMaxRetries:
       overrides.openAiMetadataMaxRetries ?? episodeOverrides.openAiMetadataMaxRetries ?? env.OPENAI_METADATA_MAX_RETRIES ?? 3,
     openAiMetadataKeepFile:
       overrides.openAiMetadataKeepFile ?? episodeOverrides.openAiMetadataKeepFile ?? parseBooleanEnv(env.OPENAI_METADATA_KEEP_FILE) ?? false,
     openAiMetadataTimeoutMs:
       overrides.openAiMetadataTimeoutMs ?? episodeOverrides.openAiMetadataTimeoutMs ?? env.OPENAI_METADATA_TIMEOUT_MS ?? 120000,
+    openAiImageReferenceModel:
+      overrides.openAiImageReferenceModel ?? episodeOverrides.openAiImageReferenceModel ?? env.MEDIAFORGE_OPENAI_IMAGE_REFERENCE_MODEL ?? "gpt-image-2",
+    openAiImageReferenceQuality:
+      overrides.openAiImageReferenceQuality ?? episodeOverrides.openAiImageReferenceQuality ?? env.MEDIAFORGE_OPENAI_IMAGE_REFERENCE_QUALITY ?? "high",
+    openAiImageReferenceSize:
+      overrides.openAiImageReferenceSize ?? episodeOverrides.openAiImageReferenceSize ?? env.MEDIAFORGE_OPENAI_IMAGE_REFERENCE_SIZE ?? "1536x1024",
+    openAiImageSceneModel:
+      overrides.openAiImageSceneModel ?? episodeOverrides.openAiImageSceneModel ?? env.MEDIAFORGE_OPENAI_IMAGE_SCENE_MODEL ?? "gpt-image-2",
+    openAiImageSceneQuality:
+      overrides.openAiImageSceneQuality ?? episodeOverrides.openAiImageSceneQuality ?? env.MEDIAFORGE_OPENAI_IMAGE_SCENE_QUALITY ?? "high",
+    openAiImageSceneSize:
+      overrides.openAiImageSceneSize ?? episodeOverrides.openAiImageSceneSize ?? env.MEDIAFORGE_OPENAI_IMAGE_SCENE_SIZE ?? "1920x1080",
+    openAiImageShortModel:
+      overrides.openAiImageShortModel ?? episodeOverrides.openAiImageShortModel ?? env.MEDIAFORGE_OPENAI_IMAGE_SHORT_MODEL ?? "gpt-image-2",
+    openAiImageShortQuality:
+      overrides.openAiImageShortQuality ?? episodeOverrides.openAiImageShortQuality ?? env.MEDIAFORGE_OPENAI_IMAGE_SHORT_QUALITY ?? "high",
+    openAiImageShortSize:
+      overrides.openAiImageShortSize ?? episodeOverrides.openAiImageShortSize ?? env.MEDIAFORGE_OPENAI_IMAGE_SHORT_SIZE ?? "1024x1536",
+    openAiImageValidatorModel:
+      overrides.openAiImageValidatorModel ?? episodeOverrides.openAiImageValidatorModel ?? env.MEDIAFORGE_OPENAI_IMAGE_VALIDATOR_MODEL ?? "gpt-5.4-mini",
+    openAiImageValidatorReasoningEffort:
+      overrides.openAiImageValidatorReasoningEffort ?? episodeOverrides.openAiImageValidatorReasoningEffort ?? env.MEDIAFORGE_OPENAI_IMAGE_VALIDATOR_REASONING_EFFORT ?? "low",
+    openAiPromptCacheMode:
+      overrides.openAiPromptCacheMode ?? episodeOverrides.openAiPromptCacheMode ?? env.MEDIAFORGE_OPENAI_PROMPT_CACHE_MODE ?? "explicit",
+    openAiPromptCacheShardCount:
+      overrides.openAiPromptCacheShardCount ?? episodeOverrides.openAiPromptCacheShardCount ?? env.MEDIAFORGE_OPENAI_PROMPT_CACHE_SHARDS ?? "auto",
     youtubeMetadataLanguage:
       overrides.youtubeMetadataLanguage ??
       episodeOverrides.youtubeMetadataLanguage ??
@@ -1173,6 +1268,7 @@ export async function loadRuntimeConfig(
       episodeOverrides.narrationMastering,
     ),
   });
+  validateOpenAiModelConfiguration(config);
   return config;
 }
 

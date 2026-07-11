@@ -7,6 +7,8 @@ import {
   fileExists,
   hashFile,
   hashText,
+  openAiPromptCacheFields,
+  planPromptCache,
   normalizeContentVariant,
   normalizeEpisodeId,
   normalizeLocaleCode,
@@ -19,6 +21,15 @@ import {
   resolveEpisodeSharedGeneratedImagePath,
   writeJsonAtomic,
 } from "@mediaforge/shared";
+import {
+  buildCacheableImageScenePrompt,
+  imageGenerationIdentityHash,
+  readImageResultCache,
+  referenceBundleHash,
+  writeImageResultCache,
+  type ImageGenerationIdentity,
+  type ReferenceBundleIdentity,
+} from "./cacheable-image-pipeline.js";
 import {
   buildImageBatchCustomId,
   createImageBatchAssetIdentity,
@@ -73,6 +84,9 @@ export interface ImageBatchPlannerSettings {
   readonly outputFormat: "png" | "jpeg" | "webp";
   readonly allowUnapprovedCharacterReferences?: boolean;
   readonly force?: boolean;
+  readonly revalidate?: boolean;
+  readonly promptCacheMode?: "disabled" | "implicit" | "explicit";
+  readonly promptCacheShardCount?: number | "auto";
   readonly maxRequestsPerBatch?: number;
 }
 
@@ -137,6 +151,9 @@ export interface PlannedImageBatchScene {
   readonly sceneIndex: number;
   readonly promptPath: string;
   readonly promptHash: string;
+  readonly stablePromptPrefix: string;
+  readonly dynamicPromptSuffix: string;
+  readonly cacheBreakpointAfterBlock: string;
   readonly providerRequestHash: string;
   readonly manifestPath: string;
   readonly sceneManifest: SceneGenerationManifest;
@@ -223,7 +240,366 @@ function scenePlanCustomId(plan: PlannedImageBatchScene): string {
 }
 
 function scenePlanOwnsProviderRequest(plan: PlannedImageBatchScene): boolean {
-  return plan.manifestItem.aliasedToCustomId === undefined;
+  return (
+    plan.manifestItem.aliasedToCustomId === undefined &&
+    plan.manifestItem.status !== "skipped-cached"
+  );
+}
+
+const imageScenePromptFamily = "mediaforge-image-scene-v5";
+const imageVisualBibleVersion = "mediaforge-visual-bible-v2";
+const imageRecordSchemaVersion = "generated-image-record-v1";
+const imageValidatorVersion = "image-payload-validator-v2";
+
+function referenceBundleForPlan(
+  plan: PlannedImageBatchScene
+): ReferenceBundleIdentity {
+  return {
+    orderedReferenceHashes: plan.job.dependencies.map((dependency) => dependency.sha256),
+    referenceRoles: plan.job.dependencies.map((dependency) => dependency.role),
+    detail: "high",
+    inputFidelity: "high",
+    visualBibleVersion: imageVisualBibleVersion,
+    promptVersion: imageScenePromptFamily,
+  };
+}
+
+function generationIdentityForPlan(
+  plan: PlannedImageBatchScene
+): ImageGenerationIdentity {
+  const bundle = referenceBundleForPlan(plan);
+  return {
+    operation:
+      plan.job.identity.operation === "edit"
+        ? "image-edit"
+        : plan.job.identity.variant === "short"
+          ? "short-scene-image"
+          : "scene-image",
+    episodeNumber: plan.job.identity.episodeId,
+    language: plan.job.identity.language,
+    format: plan.job.identity.variant,
+    promptVersion: imageScenePromptFamily,
+    visualBibleVersion: imageVisualBibleVersion,
+    schemaVersion: imageRecordSchemaVersion,
+    validatorVersion: imageValidatorVersion,
+    model: plan.job.identity.model,
+    quality: plan.job.identity.quality,
+    size: plan.job.identity.size,
+    aspectRatio: plan.job.identity.aspectRatio,
+    background: "opaque",
+    stablePromptHash: stableHash(
+      JSON.stringify({
+        family: imageScenePromptFamily,
+        visualBibleVersion: imageVisualBibleVersion,
+        format: plan.job.identity.variant,
+        aspectRatio: plan.job.identity.aspectRatio,
+        referenceBundle: bundle,
+      })
+    ),
+    dynamicPromptHash: plan.promptHash,
+    orderedReferenceHashes: bundle.orderedReferenceHashes,
+    orderedReferenceRoles: bundle.referenceRoles,
+    referenceDetailMode: bundle.detail,
+    inputFidelity: bundle.inputFidelity,
+    sourceScenePlanHash: plan.job.identity.visualIntentHash,
+  };
+}
+
+function resultCachePathForPlan(
+  episodeDir: string,
+  identityHash: string
+): string {
+  return path.join(
+    resolveEpisodeImageStateDir(episodeDir),
+    "result-cache",
+    `${identityHash}.json`
+  );
+}
+
+async function withLocalResultCache(args: {
+  readonly episodeDir: string;
+  readonly plan: PlannedImageBatchScene;
+  readonly settings: ImageBatchPlannerSettings;
+}): Promise<PlannedImageBatchScene> {
+  const generationIdentity = generationIdentityForPlan(args.plan);
+  const generationIdentityHash = imageGenerationIdentityHash(generationIdentity);
+  const resultCachePath = resultCachePathForPlan(
+    args.episodeDir,
+    generationIdentityHash
+  );
+  let decision = await readImageResultCache({
+    cachePath: resultCachePath,
+    identity: generationIdentity,
+    ...(args.settings.force !== undefined ? { force: args.settings.force } : {}),
+    ...(args.settings.revalidate !== undefined
+      ? { revalidate: args.settings.revalidate }
+      : {}),
+    validateArtifact: async (entry) => {
+      await assertGeneratedImageFileMatchesSpec({
+        episodeId: args.plan.job.identity.episodeId,
+        language: args.plan.job.identity.language,
+        videoKind: args.plan.job.identity.variant,
+        imagePath: entry.artifactPath,
+        expectedSize: args.plan.job.identity.size,
+      });
+      return true;
+    },
+  });
+  const outputExists = await fileExists(args.plan.job.expectedOutputPath);
+  if (
+    decision.state === "miss" &&
+    !args.settings.force &&
+    outputExists &&
+    args.plan.sceneManifest.status === "generated" &&
+    args.plan.sceneManifest.providerRequestHash === args.plan.providerRequestHash
+  ) {
+    await assertGeneratedImageFileMatchesSpec({
+      episodeId: args.plan.job.identity.episodeId,
+      language: args.plan.job.identity.language,
+      videoKind: args.plan.job.identity.variant,
+      imagePath: args.plan.job.expectedOutputPath,
+      expectedSize: args.plan.job.identity.size,
+    });
+    await writeImageResultCache({
+      cachePath: resultCachePath,
+      identity: generationIdentity,
+      artifactPath: args.plan.job.expectedOutputPath,
+      validatedBy: imageValidatorVersion,
+    });
+    decision = await readImageResultCache({
+      cachePath: resultCachePath,
+      identity: generationIdentity,
+    });
+  }
+  return {
+    ...args.plan,
+    manifestItem: {
+      ...args.plan.manifestItem,
+      generationIdentity,
+      generationIdentityHash,
+      resultCachePath,
+      localCacheState: decision.state,
+      referenceBundleHash: referenceBundleHash(referenceBundleForPlan(args.plan)),
+      ...(decision.state === "hit"
+        ? {
+            status: "skipped-cached" as const,
+            imageHash: decision.entry.artifactHash,
+          }
+        : {}),
+    },
+  };
+}
+
+async function withReferenceLocalCache(args: {
+  readonly episodeDir: string;
+  readonly plan: PlannedImageBatchReference;
+  readonly settings: ImageBatchPlannerSettings;
+}): Promise<PlannedImageBatchReference> {
+  const generationIdentity: ImageGenerationIdentity = {
+    operation: "reference-image",
+    episodeNumber: args.plan.job.identity.episodeId,
+    language: args.plan.job.identity.language,
+    format: "reference",
+    promptVersion: "mediaforge-image-reference-v2",
+    visualBibleVersion: imageVisualBibleVersion,
+    schemaVersion: imageRecordSchemaVersion,
+    validatorVersion: imageValidatorVersion,
+    model: args.plan.job.identity.model,
+    quality: args.plan.job.identity.quality,
+    size: args.plan.job.identity.size,
+    aspectRatio: args.plan.job.identity.aspectRatio,
+    background: "opaque",
+    stablePromptHash: stableHash(
+      JSON.stringify({
+        family: "mediaforge-image-reference-v2",
+        role: args.plan.job.identity.assetRole,
+        visualBibleVersion: imageVisualBibleVersion,
+      })
+    ),
+    dynamicPromptHash: args.plan.promptHash,
+    orderedReferenceHashes: [],
+    orderedReferenceRoles: [],
+    sourceStoryHash: args.plan.job.identity.dependencySourceHash,
+  };
+  const generationIdentityHash = imageGenerationIdentityHash(generationIdentity);
+  const resultCachePath = resultCachePathForPlan(
+    args.episodeDir,
+    generationIdentityHash
+  );
+  let decision = await readImageResultCache({
+    cachePath: resultCachePath,
+    identity: generationIdentity,
+    ...(args.settings.force !== undefined ? { force: args.settings.force } : {}),
+    ...(args.settings.revalidate !== undefined
+      ? { revalidate: args.settings.revalidate }
+      : {}),
+    validateArtifact: async (entry) => {
+      await assertGeneratedImageFileMatchesSpec({
+        episodeId: args.plan.job.identity.episodeId,
+        language: args.plan.job.identity.language,
+        videoKind: args.plan.job.identity.variant,
+        imagePath: entry.artifactPath,
+        expectedSize: args.plan.job.identity.size,
+      });
+      return true;
+    },
+  });
+  if (
+    decision.state === "miss" &&
+    !args.settings.force &&
+    (await fileExists(args.plan.job.expectedOutputPath))
+  ) {
+    await assertGeneratedImageFileMatchesSpec({
+      episodeId: args.plan.job.identity.episodeId,
+      language: args.plan.job.identity.language,
+      videoKind: args.plan.job.identity.variant,
+      imagePath: args.plan.job.expectedOutputPath,
+      expectedSize: args.plan.job.identity.size,
+    });
+    await writeImageResultCache({
+      cachePath: resultCachePath,
+      identity: generationIdentity,
+      artifactPath: args.plan.job.expectedOutputPath,
+      validatedBy: imageValidatorVersion,
+    });
+    decision = await readImageResultCache({
+      cachePath: resultCachePath,
+      identity: generationIdentity,
+    });
+  }
+  const promptCachePlan = planPromptCache({
+    ...(args.settings.promptCacheMode
+      ? { requestedMode: args.settings.promptCacheMode }
+      : {}),
+    modelSupportsExplicitCaching:
+      args.settings.promptCacheMode !== "disabled" &&
+      args.settings.promptCacheMode !== "implicit" &&
+      args.plan.job.identity.model === "gpt-image-2",
+    reusablePrefix: JSON.stringify({
+      family: "mediaforge-image-reference-v2",
+      role: args.plan.job.identity.assetRole,
+      visualBibleVersion: imageVisualBibleVersion,
+    }),
+    expectedReuseCount: 1,
+    itemIdentity: args.plan.manifestItem.customId,
+    shardCount: args.settings.promptCacheShardCount ?? "auto",
+    keyParts: {
+      family: "image-reference",
+      version: "v2",
+      operation: "reference",
+      format: "reference",
+      language: args.plan.job.identity.language,
+      modelTier: args.plan.job.identity.model.replace(/^gpt-/u, ""),
+    },
+    breakpointAfterBlock: "reference-contract",
+  });
+  return {
+    ...args.plan,
+    requestLine: {
+      ...args.plan.requestLine,
+      body: {
+        ...args.plan.requestLine.body,
+        ...openAiPromptCacheFields(promptCachePlan),
+      },
+    },
+    manifestItem: {
+      ...args.plan.manifestItem,
+      generationIdentity,
+      generationIdentityHash,
+      resultCachePath,
+      localCacheState: decision.state,
+      promptCachePlan,
+      ...(decision.state === "hit"
+        ? {
+            status: "skipped-cached" as const,
+            imageHash: decision.entry.artifactHash,
+          }
+        : {}),
+    },
+  };
+}
+
+function withPromptCachePlan(
+  plan: PlannedImageBatchScene,
+  expectedReuseCount: number,
+  settings?: ImageBatchPlannerSettings
+): PlannedImageBatchScene {
+  const bundle = referenceBundleForPlan(plan);
+  const stablePrefix = plan.stablePromptPrefix;
+  const promptCachePlan = planPromptCache({
+    ...(settings?.promptCacheMode
+      ? { requestedMode: settings.promptCacheMode }
+      : {}),
+    modelSupportsExplicitCaching:
+      settings?.promptCacheMode !== "disabled" &&
+      settings?.promptCacheMode !== "implicit" &&
+      plan.job.identity.model === "gpt-image-2",
+    reusablePrefix: stablePrefix,
+    expectedReuseCount,
+    itemIdentity: plan.manifestItem.customId,
+    shardCount: settings?.promptCacheShardCount ?? "auto",
+    keyParts: {
+      family: "image-scene",
+      version: "v5",
+      operation: plan.job.identity.operation,
+      format: plan.job.identity.variant,
+      language: plan.job.identity.language,
+      modelTier: plan.job.identity.model.replace(/^gpt-/u, ""),
+      aspectBucket: plan.job.identity.aspectRatio.replace(":", "x"),
+      referenceBundleClass: referenceBundleHash(bundle),
+    },
+    breakpointAfterBlock: plan.cacheBreakpointAfterBlock,
+  });
+  return {
+    ...plan,
+    requestLine: {
+      ...plan.requestLine,
+      body: {
+        ...plan.requestLine.body,
+        ...openAiPromptCacheFields(promptCachePlan),
+      },
+    },
+    manifestItem: { ...plan.manifestItem, promptCachePlan },
+  };
+}
+
+export function imageSceneCacheCompatibilityKey(
+  plan: PlannedImageBatchScene
+): string {
+  return stableHash(
+    JSON.stringify({
+      model: plan.job.identity.model,
+      operation: plan.job.identity.operation,
+      format: plan.job.identity.variant,
+      size: plan.job.identity.size,
+      aspectRatio: plan.job.identity.aspectRatio,
+      promptFamily: "mediaforge-image-scene-v5",
+      referenceBundle: plan.job.dependencies.map((dependency) => ({
+        hash: dependency.sha256,
+        role: dependency.role,
+      })),
+    })
+  );
+}
+
+function groupScenePlansByCacheCompatibility(
+  plans: readonly PlannedImageBatchScene[],
+  settings?: ImageBatchPlannerSettings
+): readonly (readonly PlannedImageBatchScene[])[] {
+  const groups = new Map<string, PlannedImageBatchScene[]>();
+  for (const plan of plans) {
+    const key = imageSceneCacheCompatibilityKey(plan);
+    groups.set(key, [...(groups.get(key) ?? []), plan]);
+  }
+  return [...groups.entries()]
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([, groupedPlans]) =>
+      groupedPlans
+        .sort((left, right) =>
+          left.requestLine.custom_id.localeCompare(right.requestLine.custom_id)
+        )
+        .map((plan) => withPromptCachePlan(plan, groupedPlans.length, settings))
+    );
 }
 
 function scenePlanSharedOutputOwnerCustomId(
@@ -673,7 +1049,10 @@ async function buildReferenceJob(args: {
   const outputPath =
     args.character.referenceImagePath ??
     resolveEpisodeCharacterReferencePath(args.episodeDir, args.character.id);
-  const prompt = buildCharacterReferencePrompt(args.character);
+  const prompt = buildCacheableImageScenePrompt({
+    referenceRoles: [],
+    scenePrompt: buildCharacterReferencePrompt(args.character),
+  }).rendered;
   const promptHash = stableHash(prompt);
   const providerRequestHash = buildProviderRequestHash({
     operation: "image-generation",
@@ -866,7 +1245,7 @@ async function buildSceneJob(args: {
   readonly registry: CharacterRegistry;
   readonly settings: ImageBatchPlannerSettings;
 }): Promise<PlannedImageBatchScene> {
-  const { prompt, promptPath } = await readPromptText(
+  const { prompt: scenePrompt, promptPath } = await readPromptText(
     args.episodeDir,
     args.sceneId,
     args.sceneManifest
@@ -881,14 +1260,13 @@ async function buildSceneJob(args: {
     sceneId: args.sceneId,
     sceneManifest: args.sceneManifest,
   });
+  const cacheablePrompt = buildCacheableImageScenePrompt({
+    referenceRoles: dependencies.map((dependency) => dependency.role),
+    scenePrompt,
+  });
+  const prompt = cacheablePrompt.rendered;
   const promptHash = stableHash(prompt);
   const isEdit = dependencies.length > 0;
-  if (isEdit) {
-    throw unsupportedEditBatchRequestError({
-      sceneId: args.sceneId,
-      dependencies,
-    });
-  }
   const operation = isEdit ? "edit" : "generation";
   const endpoint = endpointForImageBatchOperation(operation);
   if (!endpoint) {
@@ -988,13 +1366,6 @@ async function buildSceneJob(args: {
     method: "POST",
     url: endpoint,
     body: {
-      ...buildBaseRequestBody({
-        model: args.settings.model,
-        prompt,
-        requestedSize: args.settings.requestedSize,
-        quality: args.settings.quality,
-        outputFormat: args.settings.outputFormat,
-      }),
       ...(isEdit
         ? {
             image: dependencies.map((dependency) => {
@@ -1008,6 +1379,13 @@ async function buildSceneJob(args: {
             }),
           }
         : {}),
+      ...buildBaseRequestBody({
+        model: args.settings.model,
+        prompt,
+        requestedSize: args.settings.requestedSize,
+        quality: args.settings.quality,
+        outputFormat: args.settings.outputFormat,
+      }),
     },
   };
   const manifestItem = createImageBatchManifestItem({
@@ -1019,6 +1397,9 @@ async function buildSceneJob(args: {
     sceneIndex: args.sceneIndex,
     promptPath,
     promptHash,
+    stablePromptPrefix: cacheablePrompt.staticPrefix,
+    dynamicPromptSuffix: cacheablePrompt.dynamicSuffix,
+    cacheBreakpointAfterBlock: cacheablePrompt.breakpointAfterBlock,
     providerRequestHash,
     manifestPath: resolveEpisodeImageManifestPath(args.episodeDir, args.sceneId),
     sceneManifest: args.sceneManifest,
@@ -1145,7 +1526,9 @@ async function buildPlannedGroup(args: {
 
 function groupRequestLines(group: PlannedImageBatchGroup): readonly PlannedImageBatchRequestLine[] {
   return group.stageKind === "reference-images"
-    ? group.referencePlans.map((plan) => plan.requestLine)
+    ? group.referencePlans
+        .filter((plan) => plan.manifestItem.status !== "skipped-cached")
+        .map((plan) => plan.requestLine)
     : group.scenePlans
         .filter((plan) => scenePlanOwnsProviderRequest(plan))
         .map((plan) => plan.requestLine);
@@ -1185,13 +1568,17 @@ export async function planReferenceImageBatchForEpisode(args: {
       continue;
     }
     plannedReferences.push(
-      await buildReferenceJob({
+      await withReferenceLocalCache({
+        episodeDir: args.episodeDir,
+        settings: args.settings,
+        plan: await buildReferenceJob({
         episodeDir: args.episodeDir,
         episodeId: args.episodeId,
         language,
         variant,
         character,
         settings: args.settings,
+        }),
       })
     );
   }
@@ -1279,7 +1666,10 @@ export async function planImageBatchForEpisode(args: {
       throw new Error(`Missing scene manifest for ${scene.id}.`);
     }
 
-    const plannedScene = await buildSceneJob({
+    const plannedScene = await withLocalResultCache({
+      episodeDir: args.episodeDir,
+      settings: args.settings,
+      plan: await buildSceneJob({
       episodeDir: args.episodeDir,
       episodeId: args.episodeId,
       language,
@@ -1296,23 +1686,9 @@ export async function planImageBatchForEpisode(args: {
       sceneManifest,
       registry,
       settings: args.settings,
+      }),
     });
-    const outputExists = await fileExists(sceneManifest.outputPath);
-    if (outputExists) {
-      await assertGeneratedImageFileMatchesSpec({
-        episodeId: args.episodeId,
-        language,
-        videoKind: variant,
-        imagePath: sceneManifest.outputPath,
-        expectedSize: sceneManifest.size,
-      });
-    }
-    const isReusable =
-      !args.settings.force &&
-      sceneManifest.status === "generated" &&
-      outputExists &&
-      sceneManifest.providerRequestHash === plannedScene.providerRequestHash;
-    if (isReusable) {
+    if (plannedScene.manifestItem.status === "skipped-cached") {
       skippedSceneIds.push(scene.id);
       continue;
     }
@@ -1340,27 +1716,12 @@ export async function planImageBatchForEpisode(args: {
     }))
   );
 
-  if (generationPlans.length === 0 && editPlans.length === 0) {
-    return [
-      await buildPlannedGroup({
-        batchRoot,
-        stageKind: "scene-images",
-        language,
-        variant,
-        settings: args.settings,
-        splitGroupIndex: 0,
-        splitGroupCount: 1,
-        skippedSceneIds,
-      }),
-    ];
-  }
-
   const groups: PlannedImageBatchGroup[] = [];
   if (generationPlans.length > 0) {
-    const generationChunks = splitByLimit(
-      generationPlans,
-      args.settings.maxRequestsPerBatch
-    );
+    const generationChunks = groupScenePlansByCacheCompatibility(generationPlans, args.settings)
+      .flatMap((compatiblePlans) =>
+        splitByLimit(compatiblePlans, args.settings.maxRequestsPerBatch)
+      );
     groups.push(
       ...(await Promise.all(
         generationChunks.map((chunk, index) =>
@@ -1381,7 +1742,10 @@ export async function planImageBatchForEpisode(args: {
     );
   }
   if (editPlans.length > 0) {
-    const editChunks = splitByLimit(editPlans, args.settings.maxRequestsPerBatch);
+    const editChunks = groupScenePlansByCacheCompatibility(editPlans, args.settings).flatMap(
+      (compatiblePlans) =>
+        splitByLimit(compatiblePlans, args.settings.maxRequestsPerBatch)
+    );
     groups.push(
       ...(await Promise.all(
         editChunks.map((chunk, index) =>
@@ -1401,6 +1765,20 @@ export async function planImageBatchForEpisode(args: {
       ))
     );
   }
+  if (groups.length === 0) {
+    groups.push(
+      await buildPlannedGroup({
+        batchRoot,
+        stageKind: "scene-images",
+        language,
+        variant,
+        settings: args.settings,
+        splitGroupIndex: 0,
+        splitGroupCount: 1,
+        skippedSceneIds,
+      })
+    );
+  }
   return groups;
 }
 
@@ -1409,9 +1787,6 @@ async function writePreparedGroup(args: {
   readonly settings: ImageBatchPlannerSettings;
 }): Promise<readonly string[]> {
   const requestLines = groupRequestLines(args.group);
-  if (requestLines.length === 0) {
-    return [];
-  }
   const { inputFilePath, inputFileHash } = await writeImageBatchInputFile(
     args.group.storagePlan,
     requestLines.map((line) => JSON.stringify(line))
@@ -1436,6 +1811,27 @@ async function writePreparedGroup(args: {
     inputFileHash,
     status: "prepared",
     items: groupManifestItems(args.group),
+    dependencyGraphSummary: {
+      referenceItemCount: args.group.referencePlans.length,
+      sceneItemCount: args.group.scenePlans.length,
+      blockedItemCount: 0,
+    },
+    localCacheSummary: {
+      hits: groupManifestItems(args.group).filter((item) => item.localCacheState === "hit").length,
+      misses: groupManifestItems(args.group).filter((item) => item.localCacheState === "miss").length,
+      stale: groupManifestItems(args.group).filter((item) => item.localCacheState === "stale").length,
+      invalid: groupManifestItems(args.group).filter((item) => item.localCacheState === "invalid").length,
+      forced: groupManifestItems(args.group).filter((item) => item.localCacheState === "forced").length,
+    },
+    promptCacheGroupingSummary: {
+      groups: new Set(
+        groupManifestItems(args.group)
+          .map((item) => item.promptCachePlan?.cacheKey ?? `${item.promptCachePlan?.mode ?? "disabled"}:${item.referenceBundleHash ?? item.customId}`)
+      ).size,
+      explicitGroups: groupManifestItems(args.group).filter((item) => item.promptCachePlan?.mode === "explicit").length > 0 ? 1 : 0,
+      implicitGroups: groupManifestItems(args.group).filter((item) => item.promptCachePlan?.mode === "implicit").length > 0 ? 1 : 0,
+      disabledGroups: groupManifestItems(args.group).filter((item) => item.promptCachePlan?.mode === "disabled").length > 0 ? 1 : 0,
+    },
   };
   await writeImageBatchManifest(args.group.storagePlan, manifest);
   return [inputFilePath, args.group.storagePlan.manifestPath];
@@ -1740,13 +2136,23 @@ async function buildShortNativeScenePlan(args: {
       }),
     });
   }
-  if (args.planned.providerRequest.operation === "image-edit") {
-    throw unsupportedEditBatchRequestError({
-      sceneId: args.planned.sceneId,
-      dependencies,
-    });
-  }
-  const operation = "generation" as const;
+  const isEdit = args.planned.providerRequest.operation === "image-edit";
+  const cacheablePrompt = buildCacheableImageScenePrompt({
+    referenceRoles: dependencies.map((dependency) => dependency.role),
+    scenePrompt: args.planned.providerRequest.prompt,
+  });
+  const prompt = cacheablePrompt.rendered;
+  const promptHash = stableHash(prompt);
+  const providerRequestHash = buildProviderRequestHash({
+    operation: isEdit ? "image-edit" : "image-generation",
+    model: args.planned.providerRequest.model,
+    prompt,
+    requestedSize: args.planned.providerRequest.size,
+    quality: args.planned.providerRequest.quality,
+    outputFormat: args.planned.providerRequest.outputFormat,
+    characterReferenceHashes: dependencies.map((dependency) => dependency.sha256),
+  });
+  const operation = isEdit ? "edit" : "generation";
   const endpoint = endpointForImageBatchOperation(operation);
   if (!endpoint) {
     throw new ImageBatchPlannerError({
@@ -1769,7 +2175,7 @@ async function buildShortNativeScenePlan(args: {
     subject: { kind: "scene", id: args.planned.sceneId },
     storyBeatId: args.planned.sceneId,
     visualIntentHash: args.planned.imagePlanFingerprint,
-    promptHash: args.planned.promptHash,
+    promptHash,
     dependencySourceHash: stableHash(
       JSON.stringify({
         sceneHash: args.planned.sceneHash,
@@ -1803,13 +2209,13 @@ async function buildShortNativeScenePlan(args: {
     identity,
     sceneId: args.planned.sceneId,
     sceneIndex: args.planned.sequenceNumber,
-    positivePrompt: args.planned.providerRequest.prompt,
+    positivePrompt: prompt,
     characterIds: args.planned.referenceImages.map((reference) => reference.characterId),
     characterReferencePaths: dependencies.map((dependency) => dependency.sourcePath),
     dependencies,
     outputFormat: args.planned.providerRequest.outputFormat,
     expectedOutputPath: args.planned.outputPortraitPath,
-    providerRequestHash: args.planned.providerRequestHash,
+    providerRequestHash,
     generationConfigurationHash: buildConfigurationHash({
       stageKind: "scene-images",
       variant: "short",
@@ -1827,7 +2233,7 @@ async function buildShortNativeScenePlan(args: {
     body: {
       ...buildBaseRequestBody({
         model: args.planned.providerRequest.model,
-        prompt: args.planned.providerRequest.prompt,
+        prompt,
         requestedSize: args.planned.providerRequest.size,
         quality: args.planned.providerRequest.quality,
         outputFormat: args.planned.providerRequest.outputFormat,
@@ -1852,15 +2258,18 @@ async function buildShortNativeScenePlan(args: {
     sceneId: args.planned.sceneId,
     sceneIndex: args.planned.sequenceNumber,
     promptPath: "",
-    promptHash: args.planned.promptHash,
-    providerRequestHash: args.planned.providerRequestHash,
+    promptHash,
+    stablePromptPrefix: cacheablePrompt.staticPrefix,
+    dynamicPromptSuffix: cacheablePrompt.dynamicSuffix,
+    cacheBreakpointAfterBlock: cacheablePrompt.breakpointAfterBlock,
+    providerRequestHash,
     manifestPath: "",
     sceneManifest: {
       sceneId: args.planned.sceneId,
       promptVersion: 1,
-      finalPrompt: args.planned.providerRequest.prompt,
-      promptHash: args.planned.promptHash,
-      providerRequestHash: args.planned.providerRequestHash,
+      finalPrompt: prompt,
+      promptHash,
+      providerRequestHash,
       materialDifferencesFromPrevious: [],
       characterIds: args.planned.referenceImages.map((reference) => reference.characterId),
       referenceImages: dependencies.map((dependency) => ({
@@ -2033,7 +2442,10 @@ export async function prepareFullSceneImageBatches(args: {
     if (owners.length === 0) {
       return;
     }
-    const chunks = splitByLimit(owners, args.settings.maxRequestsPerBatch);
+    const chunks = groupScenePlansByCacheCompatibility(owners, args.settings).flatMap(
+      (compatibleOwners) =>
+        splitByLimit(compatibleOwners, args.settings.maxRequestsPerBatch)
+    );
     for (const [index, chunk] of chunks.entries()) {
       const ownerCustomIds = new Set(chunk.map((plan) => scenePlanCustomId(plan)));
       const chunkPlans = allScenePlans
@@ -2189,13 +2601,17 @@ export async function prepareShortSceneImageBatches(args: {
             (item): item is PlannedShortsNativeGenerationItem =>
               item.kind === "native-generation"
           )
-          .map((planned) =>
-            buildShortNativeScenePlan({
+          .map(async (planned) =>
+            withLocalResultCache({
               episodeDir: args.episodeDir,
-              episodeId: args.episodeId,
-              language,
-              planned,
-              registry,
+              settings: args.settings,
+              plan: await buildShortNativeScenePlan({
+                episodeDir: args.episodeDir,
+                episodeId: args.episodeId,
+                language,
+                planned,
+                registry,
+              }),
             })
           )
       );
@@ -2244,7 +2660,11 @@ export async function prepareShortSceneImageBatches(args: {
           }),
         ]
       : await Promise.all(
-          splitByLimit(nativePlans, args.settings.maxRequestsPerBatch).map(
+          groupScenePlansByCacheCompatibility(nativePlans, args.settings)
+            .flatMap((compatiblePlans) =>
+              splitByLimit(compatiblePlans, args.settings.maxRequestsPerBatch)
+            )
+            .map(
             (chunk, index, chunks) =>
               buildPlannedGroup({
                 batchRoot: resolveEpisodeImageStateDir(args.episodeDir),

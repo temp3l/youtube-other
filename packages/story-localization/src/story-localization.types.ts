@@ -1,3 +1,5 @@
+import type { PromptCachePlan } from "@mediaforge/shared";
+
 export const languageCodes = ["en", "de", "es", "fr", "pt"] as const;
 export type LanguageCode = (typeof languageCodes)[number];
 export type NarrationPace = "normal" | "fast";
@@ -128,9 +130,19 @@ export interface LanguageProfile {
     readonly target: number;
     readonly max: number;
   };
+  readonly localizationLengthPolicy: LocalizationLengthPolicy;
+  readonly fullProductionInstructions: readonly string[];
+  readonly shortProductionInstructions: readonly string[];
   readonly stylisticGuidance: readonly string[];
   readonly defaultFullHashtags: readonly string[];
   readonly defaultShortHashtags: readonly string[];
+}
+
+export interface LocalizationLengthPolicy {
+  readonly minDurationRatio: number;
+  readonly maxDurationRatio: number;
+  readonly minSceneCoverageRatio: number;
+  readonly maxEnglishLeakageRatio: number;
 }
 
 export interface StoryLocalizationConfig {
@@ -159,6 +171,12 @@ export interface StoryLocalizationConfig {
   readonly repairMaxOutputTokens: number | undefined;
   readonly concurrency: number;
   readonly model: string;
+  readonly canonicalModel?: string;
+  readonly canonicalReasoningEffort?: StoryLocalizationConfig["reasoningEffort"];
+  readonly canonicalMaxOutputTokens?: number;
+  readonly shortModel?: string;
+  readonly shortReasoningEffort?: StoryLocalizationConfig["reasoningEffort"];
+  readonly shortMaxOutputTokens?: number;
   readonly temperature: number;
   readonly reasoningEffort:
     | "none"
@@ -179,6 +197,8 @@ export interface StoryLocalizationConfig {
   readonly validateOnly: boolean;
   readonly verbose: boolean;
   readonly promptVersion: string;
+  readonly promptCacheMode: "disabled" | "implicit" | "explicit";
+  readonly promptCacheShardCount: number | "auto";
   readonly debugOutputs?: boolean;
   readonly debugPrefix?: string;
 }
@@ -423,7 +443,7 @@ export interface GeneratedStoryPackage {
 }
 
 export interface StoryLocalizationCacheEntry {
-  readonly schemaVersion?: "story-localization-cache-entry-v2";
+  readonly schemaVersion?: "story-localization-cache-entry-v3";
   readonly sourceFile: string;
   readonly sourceHash: string;
   readonly configurationHash: string;
@@ -440,6 +460,7 @@ export interface StoryLocalizationCacheEntry {
   readonly reasoningEffort?: string;
   readonly qualityGateVersion?: string;
   readonly protectedElementsVersion?: string;
+  readonly localizationFidelityPolicyVersion?: string;
   readonly generatedAt: string;
   readonly outputFiles: readonly string[];
   readonly compilerVersion?: string;
@@ -594,6 +615,7 @@ export interface LocalBatchManifestItem {
     readonly maxModelOutputTokens: number;
     readonly safetyMarginTokens: number;
   };
+  readonly promptCachePlan?: PromptCachePlan;
   readonly status: LocalBatchManifestItemStatus;
   readonly resultImportedAt?: string;
   readonly usage?: {

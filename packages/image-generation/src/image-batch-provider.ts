@@ -28,4 +28,10 @@ export interface ImageBatchProvider {
   downloadErrorFile(fileId: string): Promise<string>;
   parseOutputJsonl(content: string): readonly OpenAiBatchOutputLine[];
   normalizeErrorCode(code: string | undefined): string;
+  uploadReferenceFile?(args: {
+    readonly localPath: string;
+    readonly mimeType: string;
+  }): Promise<{ readonly fileId: string }>;
+  validateReferenceFile?(fileId: string): Promise<boolean>;
+  cancelBatch?(batchId: string): Promise<{ readonly status: ImageBatchStatus }>;
 }

@@ -1,6 +1,7 @@
 import { countSpokenWords, normalizeWhitespace } from "@mediaforge/shared";
 import {
   applyCharacterRenameMapToCanonicalFacts,
+  applyCharacterRenameMapToStoryIr,
   detectOriginalCharacterNameLeaks,
   type CharacterRenameMap,
 } from "./character-rename.service.js";
@@ -35,6 +36,7 @@ import {
   firstSentence,
 } from "./short-rewrite.utils.js";
 import { detectLocalizedUnicodeIssues } from "./localized-content-text.js";
+import { detectProfessionalStoryQualityIssues } from "./professional-story-contracts.js";
 import {
   type ShortRewriteAdaptationContract,
   type ShortRewriteResolvedParent,
@@ -50,11 +52,8 @@ const forbiddenPhrases = [
   "The source text",
   "The user requested",
   "The account became frightening because",
-  "The next event",
   "A witness, recording or physical mark",
   "A familiar voice, memory or place",
-  "The official explanation covered",
-  "The surviving evidence did not prove",
 ] as const;
 
 const localeValidationHints = {
@@ -90,6 +89,14 @@ export const GENERATED_STORY_VALIDATION_ISSUE_CODES = {
   FULL_TRUNCATED: "FULL_TRUNCATED",
   FULL_DUPLICATED_MAJOR_SECTION: "FULL_DUPLICATED_MAJOR_SECTION",
   FULL_METADATA_AUDIO_VISUAL_LEAKAGE: "FULL_METADATA_AUDIO_VISUAL_LEAKAGE",
+  META_NARRATION: "META_NARRATION",
+  EDITORIAL_COMMENTARY_IN_NARRATION: "EDITORIAL_COMMENTARY_IN_NARRATION",
+  UNRESOLVED_TEMPLATE_ALTERNATIVE: "UNRESOLVED_TEMPLATE_ALTERNATIVE",
+  GENERIC_CHARACTER_REFERENCE: "GENERIC_CHARACTER_REFERENCE",
+  GENERIC_EVIDENCE_REFERENCE: "GENERIC_EVIDENCE_REFERENCE",
+  GENERIC_EMOTIONAL_STAKE: "GENERIC_EMOTIONAL_STAKE",
+  ABSTRACT_ESCALATION: "ABSTRACT_ESCALATION",
+  EXPLANATION_AFTER_FINAL_REVEAL: "EXPLANATION_AFTER_FINAL_REVEAL",
   FULL_STORY_ROUTED_TO_SHORT_GENERATOR: "FULL_STORY_ROUTED_TO_SHORT_GENERATOR",
   SHORT_SOURCE_NOT_VALIDATED_FULL: "SHORT_SOURCE_NOT_VALIDATED_FULL",
   SHORT_PARENT_HASH_MISMATCH: "SHORT_PARENT_HASH_MISMATCH",
@@ -223,7 +230,9 @@ function includesPhrase(text: string, phrase: string): boolean {
   if (phraseTokens.length === 0) {
     return false;
   }
-  const matched = phraseTokens.filter((token) => normalizedText.includes(token));
+  const matched = phraseTokens.filter((token) =>
+    normalizedText.includes(token)
+  );
   return matched.length >= Math.max(2, Math.ceil(phraseTokens.length * 0.6));
 }
 
@@ -302,8 +311,6 @@ const abstractTransitionPatterns = [
   /\ba second escape attempt failed\b/iu,
   /\bthe account became frightening because\b/iu,
   /\bthe next event made coincidence less convincing\b/iu,
-  /\bthe surviving evidence did not prove\b/iu,
-  /\bthe official explanation covered\b/iu,
   /\ball clues are connected to\b/iu,
   /\balle hinweise stehen im zusammenhang\b/iu,
   /\btodas las pistas están relacionadas\b/iu,
@@ -328,6 +335,39 @@ function detectAbstractTransitionScaffolding(text: string): string[] {
     }
   }
   return matches;
+}
+
+const metaNarrationPatterns = [
+  /\bthe episode\b/iu,
+  /\bthe protagonist\b/iu,
+  /\bthe account accelerated\b/iu,
+  /\bthe recurring motif\b/iu,
+  /\bthe audience\b/iu,
+  /\bthis evidence proved\b/iu,
+  /\bthe discovery changed the emotional stakes\b/iu,
+  /\bthe final action worked because\b/iu,
+  /\b(?:script|narrative|story)\s+(?:structure|pacing|retention|device)\b/iu,
+] as const;
+
+const unresolvedAlternativePatterns = [
+  /\b(?:investigators|relatives|employers)\s*,\s*(?:investigators|relatives|employers)\s+or\s+(?:investigators|relatives|employers)\b/iu,
+  /\ba witness\s*,\s*(?:a\s+)?recording\s+or\s+(?:a\s+)?physical (?:trace|mark)\b/iu,
+  /\bsomeone\s+or\s+something\b/iu,
+  /\ba job\s*,\s*(?:a\s+)?reputation\s+or\s+(?:a\s+)?piece of evidence\b/iu,
+] as const;
+
+export function detectMetaNarration(text: string): readonly string[] {
+  return metaNarrationPatterns
+    .filter((pattern) => pattern.test(text))
+    .map((pattern) => pattern.source);
+}
+
+export function detectUnresolvedTemplateAlternatives(
+  text: string
+): readonly string[] {
+  return unresolvedAlternativePatterns
+    .filter((pattern) => pattern.test(text))
+    .map((pattern) => pattern.source);
 }
 
 function detectOutlineSentenceRatio(text: string): boolean {
@@ -365,14 +405,15 @@ function detectSpokenHeadingOrMetadataLeakage(text: string): boolean {
   return text
     .split(/\n+/u)
     .map((line) => normalizeWhitespace(line))
-    .some((line) =>
-      /^#{1,6}\s+\S+/u.test(line) ||
-      /^\s*[-*+]\s+\S+/u.test(line) ||
-      /^\s*\d+\.\s+\S+/u.test(line) ||
-      /^(?:title|subtitle|description|summary|metadata|script|narration|episode|language|locale|variant|voice|wpm|duration)\s*[:=-]\s*\S+/iu.test(
-        line
-      ) ||
-      /^\s*(?:generated\s+)?(?:from|for)\s+[:=-]\s*\S+/iu.test(line)
+    .some(
+      (line) =>
+        /^#{1,6}\s+\S+/u.test(line) ||
+        /^\s*[-*+]\s+\S+/u.test(line) ||
+        /^\s*\d+\.\s+\S+/u.test(line) ||
+        /^(?:title|subtitle|description|summary|metadata|script|narration|episode|language|locale|variant|voice|wpm|duration)\s*[:=-]\s*\S+/iu.test(
+          line
+        ) ||
+        /^\s*(?:generated\s+)?(?:from|for)\s+[:=-]\s*\S+/iu.test(line)
     );
 }
 
@@ -381,9 +422,7 @@ function detectTruncation(text: string): boolean {
   if (trimmed.length === 0) {
     return false;
   }
-  return /(?:\.\.\.|[[({]|\b(?:and|or|que|und|et|e)\s*$)$/iu.test(
-    trimmed
-  );
+  return /(?:\.\.\.|[[({]|\b(?:and|or|que|und|et|e)\s*$)$/iu.test(trimmed);
 }
 
 function validateLocaleSpecificNarration(
@@ -394,9 +433,7 @@ function validateLocaleSpecificNarration(
   const issues: string[] = [];
   const normalized = normalizeForLeakage(text);
   const hints =
-    localeValidationHints[
-      profile.locale as keyof typeof localeValidationHints
-    ];
+    localeValidationHints[profile.locale as keyof typeof localeValidationHints];
   if (!hints) {
     return issues;
   }
@@ -443,7 +480,7 @@ function validateLocaleSpecificNarration(
     issues.push(
       variant === "full"
         ? "Localized full untranslated boilerplate."
-      : "Short untranslated boilerplate."
+        : "Short untranslated boilerplate."
     );
   }
   for (const diagnostic of detectLocalizedUnicodeIssues({
@@ -627,7 +664,10 @@ function hasLeakage(text: string): boolean {
   );
 }
 
-function chronologyInOrder(text: string, chronology: readonly string[]): boolean {
+function chronologyInOrder(
+  text: string,
+  chronology: readonly string[]
+): boolean {
   let previousIndex = -1;
   for (const step of chronology) {
     const index = firstIndexOfPhrase(text, step);
@@ -642,18 +682,86 @@ function chronologyInOrder(text: string, chronology: readonly string[]): boolean
   return true;
 }
 
-function hasRequiredEntities(text: string, storyIr: StoryIR): boolean {
+function hasRequiredEntities(
+  text: string,
+  storyIr: StoryIR,
+  language: LanguageCode
+): boolean {
   const required = storyIr.entities.filter((entity) =>
-    ["person", "location", "object", "rule", "written-message"].includes(
-      entity.type
-    )
+    language === "en"
+      ? ["person", "location", "object", "rule", "written-message"].includes(
+          entity.type
+        )
+      : entity.type === "person"
   );
   return required.every((entity) => includesPhrase(text, entity.name));
 }
 
+const semanticFactStopWords = new Set([
+  "a",
+  "an",
+  "and",
+  "as",
+  "at",
+  "be",
+  "by",
+  "for",
+  "from",
+  "in",
+  "is",
+  "it",
+  "of",
+  "on",
+  "or",
+  "that",
+  "the",
+  "to",
+  "was",
+  "were",
+  "with",
+]);
+
+function factAnchors(statement: string): readonly string[] {
+  return [
+    ...new Set(
+      tokenize(statement).filter(
+        (token) => token.length > 2 && !semanticFactStopWords.has(token)
+      )
+    ),
+  ];
+}
+
+function preservesImmutableFact(
+  text: string,
+  fact: StoryIR["immutableFacts"][number]
+): boolean {
+  const anchors = factAnchors(fact.statement);
+  if (anchors.length === 0) {
+    return true;
+  }
+  const normalizedText = new Set(tokenize(text));
+  const matchedAnchors = anchors.filter((anchor) =>
+    normalizedText.has(anchor)
+  ).length;
+  const requiredAnchors =
+    anchors.length <= 2
+      ? anchors.length
+      : Math.min(3, Math.ceil(anchors.length / 2));
+  return matchedAnchors >= requiredAnchors;
+}
+
 function hasImmutableFacts(text: string, storyIr: StoryIR): boolean {
-  const immutableFacts = storyIr.immutableFacts.filter((fact) => fact.immutable);
-  return immutableFacts.every((fact) => includesPhrase(text, fact.statement));
+  // StoryIR carries production metadata alongside direct narration facts. The
+  // metadata is validated through the dedicated entity, climax, and ending
+  // checks; requiring its generated summaries verbatim rejects valid rewrites.
+  const immutableFacts = storyIr.immutableFacts.filter(
+    (fact) =>
+      fact.immutable &&
+      !/^(?:episode-title|source-title|central-threat|primary-reveal|ending-consequence|analysis-summary|protected-element-)/u.test(
+        fact.id
+      )
+  );
+  return immutableFacts.every((fact) => preservesImmutableFact(text, fact));
 }
 
 function resolveValidationFacts(
@@ -676,7 +784,9 @@ function hasImmediateStoryIdentification(
     return countSpokenWords(opening) >= 4;
   }
   const anchors = inferStoryAnchors(contract, parentNarration);
-  return anchors.some((anchor) => opening.toLowerCase().includes(anchor.toLowerCase()));
+  return anchors.some((anchor) =>
+    opening.toLowerCase().includes(anchor.toLowerCase())
+  );
 }
 
 function requiresCentralRule(text: string): boolean {
@@ -782,6 +892,9 @@ export function validateFullNarrationArtifact(
     normalizeWhitespace(entry)
   );
   const narration = narrationParagraphs.join(" ").trim();
+  const validationStoryIr = args.characterRenameMap
+    ? applyCharacterRenameMapToStoryIr(args.storyIr, args.characterRenameMap)
+    : args.storyIr;
   const issues: GeneratedStoryValidationIssue[] = [];
   if (
     args.storyIr.entities.some((entry) => entry.type === "person") &&
@@ -835,7 +948,7 @@ export function validateFullNarrationArtifact(
       );
     }
   }
-  if (!chronologyInOrder(narration, args.storyIr.chronology)) {
+  if (!chronologyInOrder(narration, validationStoryIr.chronology)) {
     issues.push(
       issue(
         GENERATED_STORY_VALIDATION_ISSUE_CODES.FULL_CHRONOLOGY_INVALID,
@@ -844,7 +957,7 @@ export function validateFullNarrationArtifact(
       )
     );
   }
-  if (!hasRequiredEntities(narration, args.storyIr)) {
+  if (!hasRequiredEntities(narration, validationStoryIr, args.language)) {
     issues.push(
       issue(
         GENERATED_STORY_VALIDATION_ISSUE_CODES.FULL_REQUIRED_ENTITY_MISSING,
@@ -853,7 +966,7 @@ export function validateFullNarrationArtifact(
       )
     );
   }
-  if (!hasImmutableFacts(narration, args.storyIr)) {
+  if (!hasImmutableFacts(narration, validationStoryIr)) {
     issues.push(
       issue(
         GENERATED_STORY_VALIDATION_ISSUE_CODES.FULL_IMMUTABLE_FACT_MISSING,
@@ -863,13 +976,13 @@ export function validateFullNarrationArtifact(
     );
   }
   const genrePolicy = resolveGenrePolicy({
-    genre: args.storyIr.genre,
+    genre: validationStoryIr.genre,
     registry: DEFAULT_GENRE_POLICY_REGISTRY,
   });
   if (
     !genrePolicy.ok ||
     validateGenrePolicyCompatibility({
-      storyIr: args.storyIr,
+      storyIr: validationStoryIr,
       policy: genrePolicy.policy,
     }).some((entry) => entry.severity === "error")
   ) {
@@ -881,7 +994,10 @@ export function validateFullNarrationArtifact(
       )
     );
   }
-  if (!includesPhrase(narration, args.storyIr.climax)) {
+  if (
+    args.language === "en" &&
+    !includesPhrase(narration, validationStoryIr.climax)
+  ) {
     issues.push(
       issue(
         GENERATED_STORY_VALIDATION_ISSUE_CODES.FULL_MISSING_CLIMAX,
@@ -890,7 +1006,10 @@ export function validateFullNarrationArtifact(
       )
     );
   }
-  if (!includesPhrase(narration, args.storyIr.endingConsequence)) {
+  if (
+    args.language === "en" &&
+    !includesPhrase(narration, validationStoryIr.endingConsequence)
+  ) {
     issues.push(
       issue(
         GENERATED_STORY_VALIDATION_ISSUE_CODES.FULL_MISSING_ENDING,
@@ -934,6 +1053,32 @@ export function validateFullNarrationArtifact(
         "Full reads like an outline or transition scaffold."
       )
     );
+  }
+  if (detectMetaNarration(narration).length > 0) {
+    issues.push(
+      issue(
+        GENERATED_STORY_VALIDATION_ISSUE_CODES.META_NARRATION,
+        "full",
+        "Narration discusses the episode, protagonist role, audience, or narrative construction instead of depicting the story."
+      )
+    );
+  }
+  if (detectUnresolvedTemplateAlternatives(narration).length > 0) {
+    issues.push(
+      issue(
+        GENERATED_STORY_VALIDATION_ISSUE_CODES.UNRESOLVED_TEMPLATE_ALTERNATIVE,
+        "full",
+        "Narration contains unresolved authoring alternatives instead of a concrete story decision."
+      )
+    );
+  }
+  const existingProfessionalCodes = new Set(issues.map((entry) => entry.code));
+  for (const finding of detectProfessionalStoryQualityIssues(narration)) {
+    if (existingProfessionalCodes.has(finding.code)) {
+      continue;
+    }
+    issues.push(issue(finding.code, "full", finding.message));
+    existingProfessionalCodes.add(finding.code);
   }
   if (hasLeakage(narration)) {
     issues.push(
@@ -1029,7 +1174,7 @@ export function validateFullNarrationArtifact(
         language: args.language,
         locale: args.profile.locale,
         narration,
-        storyIr: args.storyIr,
+        storyIr: validationStoryIr,
       })
     );
   }
@@ -1212,7 +1357,8 @@ export function validateShortNarrationArtifact(
     );
   }
   if (
-    normalizeForMatch(args.adaptationContract.centralRuleOrMechanism).length > 0 &&
+    normalizeForMatch(args.adaptationContract.centralRuleOrMechanism).length >
+      0 &&
     enforceRule &&
     requiresCentralRule(args.adaptationContract.centralRuleOrMechanism) &&
     normalizeForMatch(args.adaptationContract.centralRuleOrMechanism) !==
@@ -1372,10 +1518,13 @@ export function validateShortNarrationArtifact(
   }
   const shortExtraction = args.adaptationContract.sourceExtraction;
   const beatPlan = shortExtraction.beatPlan;
-  const selectedEventIds = shortExtraction.selectedEventIds ?? beatPlan?.selectedEventIds ?? [];
+  const selectedEventIds =
+    shortExtraction.selectedEventIds ?? beatPlan?.selectedEventIds ?? [];
   const selectedEventLookup = new Set(selectedEventIds);
   const selectedEvents =
-    shortExtraction.events?.filter((event) => selectedEventLookup.has(event.id)) ?? [];
+    shortExtraction.events?.filter((event) =>
+      selectedEventLookup.has(event.id)
+    ) ?? [];
   let quality: ShortNarrationQualitySummary | undefined;
   if (beatPlan) {
     const duplicateBeatIds = beatPlan.beats
@@ -1390,9 +1539,13 @@ export function validateShortNarrationArtifact(
         )
       );
     }
-    const missingEventIds = beatPlan.beats.flatMap((beat) => beat.eventIds).filter((eventId) =>
-      shortExtraction.events?.some((event) => event.id === eventId) === false
-    );
+    const missingEventIds = beatPlan.beats
+      .flatMap((beat) => beat.eventIds)
+      .filter(
+        (eventId) =>
+          shortExtraction.events?.some((event) => event.id === eventId) ===
+          false
+      );
     if (missingEventIds.length > 0) {
       issues.push(
         issue(
@@ -1426,7 +1579,9 @@ export function validateShortNarrationArtifact(
       );
     }
     const missingDependencies = selectedEvents.flatMap((event) =>
-      event.causalDependencyIds.filter((dependencyId) => !selectedEventLookup.has(dependencyId))
+      event.causalDependencyIds.filter(
+        (dependencyId) => !selectedEventLookup.has(dependencyId)
+      )
     );
     if (missingDependencies.length > 0) {
       issues.push(
@@ -1478,11 +1633,11 @@ export function validateShortNarrationArtifact(
     });
     if (leaks.length > 0) {
       issues.push(
-      issue(
-        GENERATED_STORY_VALIDATION_ISSUE_CODES.ORIGINAL_CHARACTER_NAME_LEAK,
-        "short",
-        `Original character name leak detected: ${leaks[0]}.`
-      )
+        issue(
+          GENERATED_STORY_VALIDATION_ISSUE_CODES.ORIGINAL_CHARACTER_NAME_LEAK,
+          "short",
+          `Original character name leak detected: ${leaks[0]}.`
+        )
       );
     }
   }
@@ -1535,7 +1690,10 @@ function validateFullStoryPackageNarration(
     if (detectEditorialCommentaryIssues(fullText).length > 0) {
       issues.push("Full contains editorial commentary.");
     }
-    if (detectGenericFiller(fullText).length > 0 && profile.fullNarrationWpm > 0) {
+    if (
+      detectGenericFiller(fullText).length > 0 &&
+      profile.fullNarrationWpm > 0
+    ) {
       issues.push("Full contains generic filler.");
     }
     if (detectAbstractTransitionScaffolding(fullText).length > 0) {
@@ -1660,7 +1818,9 @@ export function validateGeneratedStoryPackage(
     !effectiveFacts.characters.every(
       (character) =>
         shortText.includes(character.name) ||
-        packageValue.full?.narrationParagraphs.join(" ").includes(character.name)
+        packageValue.full?.narrationParagraphs
+          .join(" ")
+          .includes(character.name)
     )
   ) {
     issues.push("Character names are missing.");
@@ -1759,7 +1919,10 @@ export function validateGeneratedLocalizedFullRewritePackage(
   if (detectEditorialCommentaryIssues(fullText).length > 0) {
     issues.push("Full contains editorial commentary.");
   }
-  if (detectGenericFiller(fullText).length > 0 && profile.fullNarrationWpm > 0) {
+  if (
+    detectGenericFiller(fullText).length > 0 &&
+    profile.fullNarrationWpm > 0
+  ) {
     issues.push("Full contains generic filler.");
   }
   if (detectAbstractTransitionScaffolding(fullText).length > 0) {
@@ -1833,7 +1996,10 @@ export function validateNarrationOnlyFullRewritePackage(
   if (detectEditorialCommentaryIssues(fullText).length > 0) {
     issues.push("Full contains editorial commentary.");
   }
-  if (detectGenericFiller(fullText).length > 0 && profile.fullNarrationWpm > 0) {
+  if (
+    detectGenericFiller(fullText).length > 0 &&
+    profile.fullNarrationWpm > 0
+  ) {
     issues.push("Full contains generic filler.");
   }
   if (detectAbstractTransitionScaffolding(fullText).length > 0) {
@@ -1855,7 +2021,9 @@ export function validateNarrationOnlyFullRewritePackage(
   issues.push(...validateLocaleSpecificNarration(fullText, profile, "full"));
   if (
     detectDuplicateNarrationParagraphs(packageValue.full.narrationParagraphs) ||
-    detectNearDuplicateNarrationParagraphs(packageValue.full.narrationParagraphs)
+    detectNearDuplicateNarrationParagraphs(
+      packageValue.full.narrationParagraphs
+    )
   ) {
     issues.push("Localized full duplicated sections.");
   }

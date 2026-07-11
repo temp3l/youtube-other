@@ -82,6 +82,9 @@ describe("short rewrite helpers", () => {
     expect(paths.jsonPath).toBe(
       "/tmp/episodes/009-the-christmas-doll/de/short/009-the-christmas-doll-de-short.json"
     );
+    expect(paths.compatibilityMarkdownPath).toBe(
+      "/tmp/episodes/009-the-christmas-doll/languages/short/script-de.md"
+    );
     expect(paths.manifestPath).toBe(
       "/tmp/episodes/009-the-christmas-doll/manifests/short-rewrite-manifest.json"
     );
@@ -413,6 +416,33 @@ describe("short rewrite helpers", () => {
     expect(nestedResolved.sourcePath).toBe(
       path.join(nestedEpisodeRoot, "source", "010-ambiguous-a-en-full.md")
     );
+
+    const canonicalEpisodeRoot = path.join(episodesRoot, "012-canonical-layout");
+    await fs.mkdir(path.join(canonicalEpisodeRoot, "languages"), {
+      recursive: true,
+    });
+    const canonicalLanguagePath = path.join(
+      canonicalEpisodeRoot,
+      "languages",
+      "script-en.md"
+    );
+    await fs.writeFile(
+      canonicalLanguagePath,
+      [
+        "# Episode 012 — Canonical Layout",
+        FULL_STORY_PROVENANCE_MARKER,
+        "",
+        "## Narration Script",
+        "Mara heard the doll breathing under the attic door.",
+      ].join("\n"),
+      "utf8"
+    );
+    const canonicalLanguageResolved = await resolveShortRewriteInput({
+      inputPath: undefined,
+      episode: "012",
+      outputRoot: episodesRoot,
+    });
+    expect(canonicalLanguageResolved.sourcePath).toBe(canonicalLanguagePath);
 
     const ambiguousRoot = await fs.mkdtemp(
       path.join(os.tmpdir(), "short-rewrite-ambiguous-")

@@ -1,0 +1,80 @@
+{
+  "localBatchId": "slb-20260710192405075-001",
+  "validatedAt": "2026-07-11T11:00:26.291Z",
+  "validatedItemCount": 0,
+  "failedItemCount": 6,
+  "items": [
+    {
+      "customId": "dte:033:canonical-english-full:en:4749ef86:40fb040c",
+      "episodeNumber": "033",
+      "language": "en",
+      "operation": "canonical-english-full",
+      "importStatus": "api-failed",
+      "validationStatus": "skipped",
+      "missingOutputPaths": [],
+      "error": {
+        "message": "Batch item dte:033:canonical-english-full:en:4749ef86:40fb040c returned HTTP 400."
+      }
+    },
+    {
+      "customId": "dte:033:english-short:en:4749ef86:b93832db",
+      "episodeNumber": "033",
+      "language": "en",
+      "operation": "english-short",
+      "importStatus": "api-failed",
+      "validationStatus": "skipped",
+      "missingOutputPaths": [],
+      "error": {
+        "message": "Batch item dte:033:english-short:en:4749ef86:b93832db returned HTTP 400."
+      }
+    },
+    {
+      "customId": "dte:033:localization:de:4749ef86:c1cf417c",
+      "episodeNumber": "033",
+      "language": "de",
+      "operation": "localization",
+      "importStatus": "api-failed",
+      "validationStatus": "skipped",
+      "missingOutputPaths": [],
+      "error": {
+        "message": "Batch item dte:033:localization:de:4749ef86:c1cf417c returned HTTP 400."
+      }
+    },
+    {
+      "customId": "dte:033:localization:es:4749ef86:fcf49c0c",
+      "episodeNumber": "033",
+      "language": "es",
+      "operation": "localization",
+      "importStatus": "api-failed",
+      "validationStatus": "skipped",
+      "missingOutputPaths": [],
+      "error": {
+        "message": "Batch item dte:033:localization:es:4749ef86:fcf49c0c returned HTTP 400."
+      }
+    },
+    {
+      "customId": "dte:033:localization:fr:4749ef86:84b33a4a",
+      "episodeNumber": "033",
+      "language": "fr",
+      "operation": "localization",
+      "importStatus": "api-failed",
+      "validationStatus": "skipped",
+      "missingOutputPaths": [],
+      "error": {
+        "message": "Batch item dte:033:localization:fr:4749ef86:84b33a4a returned HTTP 400."
+      }
+    },
+    {
+      "customId": "dte:033:localization:pt:4749ef86:81d59aac",
+      "episodeNumber": "033",
+      "language": "pt",
+      "operation": "localization",
+      "importStatus": "api-failed",
+      "validationStatus": "skipped",
+      "missingOutputPaths": [],
+      "error": {
+        "message": "Batch item dte:033:localization:pt:4749ef86:81d59aac returned HTTP 400."
+      }
+    }
+  ]
+}

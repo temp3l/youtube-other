@@ -433,6 +433,50 @@ describe("runtime config", () => {
     expect(config.trailingSilenceRatio).toBe(0.25);
   });
 
+  it("uses the production story and image model defaults", async () => {
+    const config = await loadRuntimeConfig();
+    expect(config).toMatchObject({
+      openAiStoryModel: "gpt-5.6-sol",
+      openAiStoryReasoningEffort: "medium",
+      openAiStoryMaxOutputTokens: 14000,
+      openAiStoryRetryMaxOutputTokens: 14000,
+      openAiLocalizationModel: "gpt-5.6-terra",
+      openAiLocalizationMaxOutputTokens: 10000,
+      openAiShortModel: "gpt-5.6-terra",
+      openAiShortMaxOutputTokens: 4000,
+      openAiShortRewriteRetryMaxOutputTokens: 4000,
+      openAiValidatorModel: "gpt-5.4-mini",
+      openAiValidatorMaxOutputTokens: 5000,
+      openAiMetadataReasoningEffort: "none",
+      openAiMetadataMaxOutputTokens: 1800,
+      openAiImageReferenceModel: "gpt-image-2",
+      openAiImageReferenceSize: "1536x1024",
+      openAiImageSceneSize: "1920x1080",
+      openAiImageShortSize: "1024x1536",
+    });
+  });
+
+  it("derives retry output caps from explicit primary caps when retry caps are unset", async () => {
+    const config = await loadRuntimeConfig({
+      openAiStoryMaxOutputTokens: 9000,
+      openAiStoryRetryMaxOutputTokens: undefined,
+      openAiShortMaxOutputTokens: 2600,
+      openAiShortRewriteRetryMaxOutputTokens: undefined,
+    });
+
+    expect(config.openAiStoryRetryMaxOutputTokens).toBe(9000);
+    expect(config.openAiShortRewriteRetryMaxOutputTokens).toBe(2600);
+  });
+
+  it("rejects unsupported known model reasoning combinations", async () => {
+    await expect(
+      loadRuntimeConfig({
+        openAiLocalizationModel: "gpt-5.6-terra",
+        openAiLocalizationReasoningEffort: "xhigh",
+      })
+    ).rejects.toThrow(/not supported by gpt-5\.6-terra/u);
+  });
+
   it("allows the silence buffer to be configured independently", async () => {
     const config = await loadRuntimeConfig({
       trailingSilenceBufferSeconds: 0.75

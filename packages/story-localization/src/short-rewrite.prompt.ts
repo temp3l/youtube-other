@@ -19,6 +19,11 @@ function resolvePromptContext(context: ShortRewritePromptContext) {
     context.sourceExtraction &&
     context.adaptationContract
   ) {
+    if (!context.characterRenameMap) {
+      throw new Error(
+        "Structured short rewrite prompts require the canonical character rename map."
+      );
+    }
     return {
       sourceStory: context.sourceStory,
       canonicalFacts: context.canonicalFacts,
@@ -26,14 +31,7 @@ function resolvePromptContext(context: ShortRewritePromptContext) {
       outputConstraints: context.outputConstraints,
       sourceExtraction: context.sourceExtraction,
       adaptationContract: context.adaptationContract,
-      characterRenameMap:
-        context.characterRenameMap ??
-        buildCharacterRenameMap({
-          episodeId: context.sourceStory.episodeNumber,
-          sourceHash: context.sourceStory.sourceHash,
-          canonicalFacts: context.canonicalFacts,
-          storyIr: context.storyIr,
-        }),
+      characterRenameMap: context.characterRenameMap,
     };
   }
   const narration = context.narration ?? (typeof context.sourceStory === "string" ? context.sourceStory : context.sourceStory.narrationParagraphs.join("\n\n"));

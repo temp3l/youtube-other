@@ -2,9 +2,13 @@ import fs from "node:fs";
 import path from "node:path";
 import { z } from "zod";
 import {
+  aggregatePromptCacheUsage,
   ensureDir,
   fileExists,
   hashFile,
+  openAiPromptCacheFields,
+  planPromptCache,
+  type PromptCachePlan,
   writeJsonAtomic,
   writeTextAtomic,
 } from "@mediaforge/shared";
@@ -69,6 +73,10 @@ import {
   type CompiledStoryPrompt,
 } from "./story-prompt-compiler.js";
 import {
+  DEFAULT_FULL_DURATION_WINDOW,
+  resolveFullNarrationWordRange,
+} from "./narration-constraints.js";
+import {
   adaptNarrationOnlyFullToLegacyRendererPackage,
   fullNarrationResponseSchemaDescriptor,
   normalizeNarrationOnlyBatchResult,
@@ -121,6 +129,7 @@ import {
   renderLocalizedFullStory,
   renderLocalizedShort,
 } from "./story-markdown-renderer.js";
+import { resolveCanonicalStoryScriptPath } from "./story-script-paths.js";
 import { parseCanonicalSourceStory } from "./source-story-parser.js";
 import {
   type BatchImportResult,
@@ -230,6 +239,7 @@ function buildFullStoryBatchConfigurationHash(args: {
   readonly model: string;
   readonly temperature: number;
   readonly reasoningEffort: StoryLocalizationConfig["reasoningEffort"];
+  readonly maxOutputTokens: number;
   readonly promptVersion: string;
   readonly promptFingerprint: string;
   readonly compilerVersion: string;
@@ -246,12 +256,13 @@ function buildFullStoryBatchConfigurationHash(args: {
     sourceHash: args.sourceHash,
     language: args.language,
     locale: getLanguageProfile(args.language).locale,
-    variant: "short",
+    variant: "full",
     owner: "narration",
     adaptationMode: args.adaptationMode,
     model: args.model,
     temperature: args.temperature,
     reasoningEffort: args.reasoningEffort,
+    maxOutputTokens: args.maxOutputTokens,
     promptVersion: args.promptVersion,
     compilerVersion: args.compilerVersion,
     promptFingerprint: args.promptFingerprint,
@@ -259,11 +270,6 @@ function buildFullStoryBatchConfigurationHash(args: {
     responseSchemaVersion: args.responseSchemaVersion,
     responseSchemaFingerprint: args.responseSchemaFingerprint,
     ...(args.parentFingerprint ? { parentFingerprint: args.parentFingerprint } : {}),
-    targetShortTiming: {
-      shortWpm: args.shortWpm,
-      shortMinSeconds: args.shortMinSeconds,
-      shortMaxSeconds: args.shortMaxSeconds,
-    },
   });
 }
 
@@ -275,6 +281,7 @@ function buildCacheKey(args: {
   readonly model: string;
   readonly temperature: number;
   readonly reasoningEffort: StoryLocalizationConfig["reasoningEffort"];
+  readonly maxOutputTokens: number;
   readonly promptVersion: string;
   readonly shortWpm: number;
   readonly shortMinSeconds: number;
@@ -296,6 +303,7 @@ function buildCacheKey(args: {
     model: args.model,
     temperature: args.temperature,
     reasoningEffort: args.reasoningEffort,
+    maxOutputTokens: args.maxOutputTokens,
     promptVersion: args.promptVersion,
     ...(args.compilerVersion ? { compilerVersion: args.compilerVersion } : {}),
     ...(args.promptFingerprint ? { promptFingerprint: args.promptFingerprint } : {}),
@@ -341,6 +349,28 @@ function buildOutputFiles(
     short: path.join(outputDirectory, slug, language, "short", "script.md"),
     rootScript: path.join(outputDirectory, slug, "script.md"),
   };
+}
+
+async function writeCanonicalScriptMirror(args: {
+  readonly outputDirectory: string;
+  readonly slug: string;
+  readonly language: LanguageCode;
+  readonly variant: "full" | "short";
+  readonly markdown: string;
+  readonly force: boolean;
+}): Promise<{ readonly path: string; readonly status: "written" | "skipped" }> {
+  const pathToWrite = resolveCanonicalStoryScriptPath({
+    episodeDir: path.join(args.outputDirectory, args.slug),
+    language: args.language,
+    variant: args.variant,
+  });
+  await ensureDir(path.dirname(pathToWrite));
+  const status = await writeTextAtomicIfChanged(
+    pathToWrite,
+    args.markdown,
+    args.force
+  );
+  return { path: pathToWrite, status };
 }
 
 function parseEnglishPackage(json: unknown): {
@@ -401,15 +431,26 @@ function deriveFullOutputConstraints(args: {
     readonly max: number;
   };
   readonly targetNarrationWpm: number;
+  readonly targetDuration: {
+    readonly minSeconds: number;
+    readonly maxSeconds: number;
+  };
 } {
-  const sourceWordCount = countWords(args.parsed.narrationParagraphs.join(" "));
+  const targetWordRange = resolveFullNarrationWordRange({
+    language: args.profile.code,
+    pace: args.profile.defaultNarrationPace,
+  });
   return {
     variant: "full",
     targetWordRange: {
-      min: Math.max(1, Math.round(sourceWordCount * 0.92)),
-      max: Math.max(1, Math.round(sourceWordCount * 1.08)),
+      min: targetWordRange.min,
+      max: targetWordRange.max,
     },
     targetNarrationWpm: args.profile.fullNarrationWpm,
+    targetDuration: {
+      minSeconds: DEFAULT_FULL_DURATION_WINDOW.minSeconds,
+      maxSeconds: DEFAULT_FULL_DURATION_WINDOW.maxSeconds,
+    },
   };
 }
 
@@ -833,7 +874,7 @@ function englishShortBody(
       { role: "user", content: [{ type: "input_text", text: prompt.user }] },
     ],
     text: { format: responseSchemaForLanguage("en") },
-    max_output_tokens: 6000,
+    max_output_tokens: config.maxOutputTokens ?? 6000,
     ...(shouldIncludeTemperatureForModel(config.model)
       ? { temperature: config.temperature }
       : {}),
@@ -857,7 +898,7 @@ function localizationBody(
       { role: "user", content: [{ type: "input_text", text: compiled.user }] },
     ],
     text: { format: responseSchemaForCompiledPrompt(compiled) },
-    max_output_tokens: 6000,
+    max_output_tokens: config.maxOutputTokens ?? 6000,
     ...(shouldIncludeTemperatureForModel(config.model)
       ? { temperature: config.temperature }
       : {}),
@@ -865,6 +906,93 @@ function localizationBody(
       ? { reasoning: { effort: config.reasoningEffort } }
       : {}),
   };
+}
+
+function stableSystemPrefix(item: StoryBatchItem): string {
+  const input = item.body["input"];
+  if (!Array.isArray(input)) return "";
+  const system = input.find(
+    (entry): entry is { readonly role: string; readonly content: readonly unknown[] } =>
+      typeof entry === "object" &&
+      entry !== null &&
+      (entry as { readonly role?: unknown }).role === "system" &&
+      Array.isArray((entry as { readonly content?: unknown }).content)
+  );
+  const first = system?.content[0];
+  return typeof first === "object" &&
+    first !== null &&
+    typeof (first as { readonly text?: unknown }).text === "string"
+    ? (first as { readonly text: string }).text
+    : "";
+}
+
+export function buildStoryBatchPromptCachePlans(
+  items: readonly StoryBatchItem[],
+  settings?: Pick<StoryLocalizationConfig, "promptCacheMode" | "promptCacheShardCount">
+): ReadonlyMap<string, PromptCachePlan> {
+  const counts = new Map<string, number>();
+  for (const item of items) {
+    const groupKey = [
+      item.body["model"],
+      item.metadata.operation,
+      item.metadata.language ?? "en",
+      item.metadata.promptVersion,
+      stableSystemPrefix(item),
+    ].join("\u0000");
+    counts.set(groupKey, (counts.get(groupKey) ?? 0) + 1);
+  }
+  return new Map(items.map((item) => {
+    const reusablePrefix = stableSystemPrefix(item);
+    const groupKey = [
+      item.body["model"],
+      item.metadata.operation,
+      item.metadata.language ?? "en",
+      item.metadata.promptVersion,
+      reusablePrefix,
+    ].join("\u0000");
+    const model = String(item.body["model"] ?? "unknown");
+    const plan = planPromptCache({
+      ...(settings?.promptCacheMode
+        ? { requestedMode: settings.promptCacheMode }
+        : {}),
+      modelSupportsExplicitCaching: model.startsWith("gpt-5.6-"),
+      reusablePrefix,
+      expectedReuseCount: counts.get(groupKey) ?? 1,
+      itemIdentity: item.customId,
+      shardCount: settings?.promptCacheShardCount ?? "auto",
+      keyParts: {
+        family: "story",
+        version: item.metadata.promptVersion,
+        operation: item.metadata.operation,
+        format: item.metadata.operation.includes("short") ? "short" : "full",
+        language: item.metadata.language ?? "en",
+        modelTier: model.replace(/^gpt-/u, ""),
+      },
+      breakpointAfterBlock: "system-contract",
+      repair: item.metadata.operation.includes("repair"),
+    });
+    return [item.customId, plan] as const;
+  }));
+}
+
+export function applyStoryBatchPromptCachePlans(
+  items: readonly StoryBatchItem[],
+  plans: ReadonlyMap<string, PromptCachePlan> = buildStoryBatchPromptCachePlans(items)
+): readonly StoryBatchItem[] {
+  return items.map((item) => ({
+    ...item,
+    body: {
+      ...item.body,
+      ...openAiPromptCacheFields(
+        plans.get(item.customId) ?? {
+          mode: "disabled",
+          estimatedReusablePrefixTokens: 0,
+          expectedReuseCount: 0,
+          shard: 0,
+        }
+      ),
+    },
+  }));
 }
 
 function buildManifestItem(args: {
@@ -1462,6 +1590,20 @@ async function buildBatchItems(
   const manifestItems: LocalBatchManifestItem[] = [];
   let skippedCachedItemCount = 0;
   for (const sourcePath of sourceFiles) {
+    const canonicalConfig: StoryLocalizationConfig = {
+      ...config,
+      model: config.canonicalModel ?? config.model,
+      reasoningEffort:
+        config.canonicalReasoningEffort ?? config.reasoningEffort,
+      maxOutputTokens:
+        config.canonicalMaxOutputTokens ?? config.maxOutputTokens,
+    };
+    const shortConfig: StoryLocalizationConfig = {
+      ...config,
+      model: config.shortModel ?? config.model,
+      reasoningEffort: config.shortReasoningEffort ?? config.reasoningEffort,
+      maxOutputTokens: config.shortMaxOutputTokens ?? config.maxOutputTokens,
+    };
     const parsed = await parseCanonicalSourceStory(sourcePath);
     const canonicalSourcePath = path.join(
       config.outputDirectory,
@@ -1547,14 +1689,14 @@ async function buildBatchItems(
     const canonicalPlan = buildCanonicalEnglishFullBatchPlan({
       parsed: canonicalParsed,
       facts,
-      config,
+      config: canonicalConfig,
       profile: getLanguageProfile("en"),
       productionContext,
     });
     const canonicalResume = await resolveBatchCompatibleCanonicalResume({
       canonicalPaths,
       plan: canonicalPlan,
-      config,
+      config: canonicalConfig,
     });
     let canonicalFingerprint = canonicalPlan.expectedCanonicalFingerprint;
     let downstreamParsed = canonicalParsed;
@@ -1580,7 +1722,7 @@ async function buildBatchItems(
       const canonicalItem = buildCanonicalEnglishFullBatchItem({
         parsed: canonicalParsed,
         canonicalSourcePath,
-        config,
+        config: canonicalConfig,
         configurationHash: canonicalPlan.expectedCanonicalFingerprint,
         plan: canonicalPlan,
       });
@@ -1588,6 +1730,7 @@ async function buildBatchItems(
         requestItems.push(canonicalItem.requestItem);
       }
       manifestItems.push(canonicalItem.manifestItem);
+      continue;
     }
     if (config.includeEnglishShort) {
       const configHash = buildCacheKey({
@@ -1595,9 +1738,10 @@ async function buildBatchItems(
         sourceHash: canonicalParsed.sourceHash,
         language: "en",
         adaptationMode: config.adaptationMode,
-        model: config.model,
+        model: shortConfig.model,
         temperature: config.temperature,
-        reasoningEffort: config.reasoningEffort,
+        reasoningEffort: shortConfig.reasoningEffort,
+        maxOutputTokens: shortConfig.maxOutputTokens ?? 4_000,
         promptVersion: config.promptVersion,
         shortWpm: config.shortWpm,
         shortMinSeconds: config.shortMinSeconds,
@@ -1625,7 +1769,7 @@ async function buildBatchItems(
           parsed: canonicalParsed,
           canonicalSourcePath,
           facts: downstreamFacts,
-          config,
+          config: shortConfig,
           configurationHash: configHash,
           parentFingerprint: canonicalFingerprint,
           productionContext: downstreamProductionContext,
@@ -1656,6 +1800,7 @@ async function buildBatchItems(
         model: config.model,
         temperature: config.temperature,
         reasoningEffort: config.reasoningEffort,
+        maxOutputTokens: config.maxOutputTokens ?? 6_000,
         promptVersion: config.promptVersion,
         compilerVersion: compiledPrompt.compilerVersion,
         promptFingerprint: compiledPrompt.promptFingerprint,
@@ -1717,6 +1862,22 @@ async function buildRetryBatchItems(args: {
   const manifestItems: LocalBatchManifestItem[] = [];
   const nextRetryNumber = args.manifest.retryNumber + 1;
   for (const retryItem of args.retryableItems) {
+    const canonicalConfig: StoryLocalizationConfig = {
+      ...args.config,
+      model: args.config.canonicalModel ?? args.config.model,
+      reasoningEffort:
+        args.config.canonicalReasoningEffort ?? args.config.reasoningEffort,
+      maxOutputTokens:
+        args.config.canonicalMaxOutputTokens ?? args.config.maxOutputTokens,
+    };
+    const shortConfig: StoryLocalizationConfig = {
+      ...args.config,
+      model: args.config.shortModel ?? args.config.model,
+      reasoningEffort:
+        args.config.shortReasoningEffort ?? args.config.reasoningEffort,
+      maxOutputTokens:
+        args.config.shortMaxOutputTokens ?? args.config.maxOutputTokens,
+    };
     const parsed = await parseCanonicalSourceStory(
       fromRepositoryRelativePath(retryItem.sourcePath)
     );
@@ -1802,14 +1963,14 @@ async function buildRetryBatchItems(args: {
     const canonicalPlan = buildCanonicalEnglishFullBatchPlan({
       parsed: canonicalParsed,
       facts,
-      config: args.config,
+      config: canonicalConfig,
       profile: getLanguageProfile("en"),
       productionContext,
     });
     const canonicalResume = await resolveBatchCompatibleCanonicalResume({
       canonicalPaths,
       plan: canonicalPlan,
-      config: args.config,
+      config: canonicalConfig,
     });
     let canonicalFingerprint = canonicalPlan.expectedCanonicalFingerprint;
     let downstreamParsed = canonicalParsed;
@@ -1838,7 +1999,7 @@ async function buildRetryBatchItems(args: {
       const item = buildCanonicalEnglishFullBatchItem({
         parsed: canonicalParsed,
         canonicalSourcePath,
-        config: args.config,
+        config: canonicalConfig,
         configurationHash: retryItem.configurationHash,
         plan: canonicalPlan,
         retryNumber: nextRetryNumber,
@@ -1855,9 +2016,10 @@ async function buildRetryBatchItems(args: {
         sourceHash: canonicalParsed.sourceHash,
         language: "en",
         adaptationMode: args.config.adaptationMode,
-        model: args.config.model,
+        model: shortConfig.model,
         temperature: args.config.temperature,
-        reasoningEffort: args.config.reasoningEffort,
+        reasoningEffort: shortConfig.reasoningEffort,
+        maxOutputTokens: shortConfig.maxOutputTokens ?? 4_000,
         promptVersion: args.config.promptVersion,
         shortWpm: args.config.shortWpm,
         shortMinSeconds: args.config.shortMinSeconds,
@@ -1872,7 +2034,7 @@ async function buildRetryBatchItems(args: {
         parsed: canonicalParsed,
         canonicalSourcePath,
         facts: downstreamFacts,
-        config: args.config,
+        config: shortConfig,
         configurationHash,
         parentFingerprint: canonicalFingerprint,
         retryNumber: nextRetryNumber,
@@ -1910,6 +2072,7 @@ async function buildRetryBatchItems(args: {
               model: args.config.model,
               temperature: args.config.temperature,
               reasoningEffort: args.config.reasoningEffort,
+              maxOutputTokens: args.config.maxOutputTokens ?? 6_000,
               promptVersion: args.config.promptVersion,
               compilerVersion: compiledPrompt.compilerVersion,
               promptFingerprint: compiledPrompt.promptFingerprint,
@@ -1961,14 +2124,22 @@ export async function prepareStoryLocalizationBatch(
   const { requestItems, manifestItems, skippedCachedItemCount } =
     await buildBatchItems(sourceFiles, config);
   const inputPath = inputPathFor(layout, localBatchId);
-  const jsonl = serializeBatchRequestLines(requestItems);
+  const promptCachePlans = buildStoryBatchPromptCachePlans(requestItems, config);
+  const cachePlannedRequestItems = applyStoryBatchPromptCachePlans(
+    requestItems,
+    promptCachePlans
+  );
+  const jsonl = serializeBatchRequestLines(cachePlannedRequestItems);
   await writeTextAtomic(inputPath, jsonl);
   const manifest = createBaseManifest({
     localBatchId,
     model: config.model,
     inputFilePath: inputPath,
     inputFileHash: await hashFile(inputPath),
-    items: manifestItems,
+    items: manifestItems.map((item) => {
+      const promptCachePlan = promptCachePlans.get(item.customId);
+      return promptCachePlan ? { ...item, promptCachePlan } : item;
+    }),
   });
   await saveLocalBatchManifest(layout, manifest);
   await persistTextBatchRunPlan({
@@ -1985,7 +2156,7 @@ export async function prepareStoryLocalizationBatch(
     localBatchId,
     manifestPath: manifestPathFor(layout, localBatchId),
     inputFilePath: inputPath,
-    itemCount: requestItems.length,
+    itemCount: cachePlannedRequestItems.length,
     skippedCachedItemCount,
   };
 }
@@ -2406,6 +2577,17 @@ async function importEnglishShortResult(args: {
   if (shortWrite === "written") {
     persisted.push(outputFiles.short);
   }
+  const authoredShortWrite = await writeCanonicalScriptMirror({
+    outputDirectory: args.config.outputDirectory,
+    slug: args.sourceFile.slug,
+    language: "en",
+    variant: "short",
+    markdown: shortMarkdown,
+    force: args.config.force,
+  });
+  if (authoredShortWrite.status === "written") {
+    persisted.push(authoredShortWrite.path);
+  }
   const cacheDir = resolveEpisodeCacheDirectory(
     args.config.outputDirectory,
     args.sourceFile.slug
@@ -2491,6 +2673,14 @@ async function importLocalizationResult(args: {
     localizedMarkdown,
     args.config.force
   );
+  const authoredFullWrite = await writeCanonicalScriptMirror({
+    outputDirectory: args.config.outputDirectory,
+    slug: args.sourceFile.slug,
+    language,
+    variant: "full",
+    markdown: localizedMarkdown,
+    force: args.config.force,
+  });
   await persistStoryProductionArtifact(
     cacheDir,
     args.sourceFile,
@@ -2551,7 +2741,10 @@ async function importLocalizationResult(args: {
     ...(args.inputTokens !== undefined ? { inputTokens: args.inputTokens } : {}),
     ...(args.outputTokens !== undefined ? { outputTokens: args.outputTokens } : {}),
   });
-  return [...(fullWrite === "written" ? [outputFiles.full] : [])];
+  return [
+    ...(fullWrite === "written" ? [outputFiles.full] : []),
+    ...(authoredFullWrite.status === "written" ? [authoredFullWrite.path] : []),
+  ];
 }
 
 function lineByCustomId(
@@ -3287,6 +3480,30 @@ export async function importStoryLocalizationBatch(
         persistedFiles: persistedFiles.map((filePath) =>
           toRepositoryRelativePath(filePath)
         ),
+        promptCacheMetrics: aggregatePromptCacheUsage(
+          nextItems
+            .filter((item) => item.usage !== undefined)
+            .map((item) => ({
+              model: refreshed.model,
+              promptFamily: `story-${item.operation}`,
+              promptVersion: item.promptVersion,
+              language: item.language ?? "en",
+              format: item.operation.includes("short") ? "short" : "full",
+              stage: item.operation,
+              batch: refreshed.localBatchId,
+              ...(item.promptCachePlan?.cacheKey
+                ? { cacheKey: item.promptCachePlan.cacheKey }
+                : {}),
+              date: refreshed.createdAt.slice(0, 10),
+              inputTokens: item.usage?.inputTokens ?? 0,
+              cachedInputTokens: item.usage?.cachedInputTokens ?? 0,
+              cacheWriteTokens: 0,
+              outputTokens: item.usage?.outputTokens ?? 0,
+              reasoningTokens: item.usage?.reasoningTokens ?? 0,
+              estimatedActualCostUsd: item.usage?.estimatedCostUsd ?? 0,
+            })),
+          ["model", "promptFamily", "language", "format", "batch", "cacheKey", "date"]
+        ),
       };
       await writeJsonAtomic(reportFilePath, report);
       const nextManifest: LocalBatchManifest = {
@@ -3456,7 +3673,12 @@ export async function retryFailedStoryBatch(
   });
   const localBatchId = await createLocalBatchId(layout);
   const inputPath = inputPathFor(layout, localBatchId);
-  const jsonl = serializeBatchRequestLines(requestItems);
+  const promptCachePlans = buildStoryBatchPromptCachePlans(requestItems, config);
+  const cachePlannedRequestItems = applyStoryBatchPromptCachePlans(
+    requestItems,
+    promptCachePlans
+  );
+  const jsonl = serializeBatchRequestLines(cachePlannedRequestItems);
   await writeTextAtomic(inputPath, jsonl);
   const nextManifest: LocalBatchManifest = {
     ...createBaseManifest({
@@ -3467,7 +3689,10 @@ export async function retryFailedStoryBatch(
       model: config.model,
       inputFilePath: inputPath,
       inputFileHash: await hashFile(inputPath),
-      items: manifestItems,
+      items: manifestItems.map((item) => {
+        const promptCachePlan = promptCachePlans.get(item.customId);
+        return promptCachePlan ? { ...item, promptCachePlan } : item;
+      }),
     }),
     rootLocalBatchId: manifest.rootLocalBatchId,
     parentLocalBatchId: manifest.localBatchId,
