@@ -6,10 +6,13 @@ import {
   assertTimingSynchronization,
   buildLessonVariant,
   canonicalHash,
+  createArtifactLineage,
   lessonVariantSpecificationSchema,
   loadCurriculumRelease,
   localizeNarration,
   localizedNarrationSchema,
+  MATH_STAGES,
+  saveWorkflowManifest,
   type LessonVariantSpecification,
   type LocalizedNarration,
 } from "@mediaforge/math-education";
@@ -58,9 +61,10 @@ function narrationFixture(): LocalizedNarration {
   });
 }
 
-async function providerBoundaryFixture(): Promise<{
+async function providerBoundaryFixture(root: string): Promise<{
   lesson: LessonVariantSpecification;
   narration: LocalizedNarration;
+  lessonRoot: string;
 }> {
   const release = await loadCurriculumRelease(
     "packages/math-education/data/curriculum/v1"
@@ -78,6 +82,7 @@ async function providerBoundaryFixture(): Promise<{
     ...baseContent,
     scenes: base.scenes.map((scene) => ({
       ...scene,
+      visualComponent: scene.sceneFunction === "think-pause" ? "teacher" as const : "formula" as const,
       factIds:
         scene.factIds.length > 0 ? scene.factIds : [fallbackFact.factId],
     })),
@@ -86,7 +91,48 @@ async function providerBoundaryFixture(): Promise<{
     ...draft,
     contentHash: canonicalHash(draft),
   });
-  return { lesson, narration: localizeNarration(lesson, "de") };
+  const narration = localizeNarration(lesson, "de");
+  const lessonRoot = path.join(root, lesson.lessonId);
+  const values = [
+    { relativePath: "canonical/lesson-spec.json", value: lesson, schemaVersion: "lesson-spec.v1" as const, producedBy: "lesson-spec" as const },
+    { relativePath: "canonical/narration.de.json", value: narration, schemaVersion: "math-narration.v2" as const, producedBy: "canonical-narration" as const },
+    { relativePath: "locales/de/visual-plan.json", value: {
+      artifactVersion: "math-visual-plan.v1",
+      profile: "grades-5-7-v1",
+      scenes: lesson.scenes.map((scene) => ({
+        sceneId: scene.sceneId,
+        component: scene.visualComponent,
+        factIds: scene.factIds,
+        teacherAssetVersion: "alex.v1-placeholder",
+      })),
+    }, schemaVersion: "math-visual-plan.v1" as const, producedBy: "visual-assets" as const },
+  ];
+  for (const entry of values) {
+    const target = path.join(lessonRoot, entry.relativePath);
+    await fs.mkdir(path.dirname(target), { recursive: true });
+    await fs.writeFile(target, JSON.stringify(entry.value));
+  }
+  const parent = "a".repeat(64);
+  const artifacts = await Promise.all(values.map((entry) => createArtifactLineage({
+    root: lessonRoot,
+    relativePath: entry.relativePath,
+    schemaVersion: entry.schemaVersion,
+    parentHashes: [parent],
+    producedBy: entry.producedBy,
+  })));
+  await saveWorkflowManifest(path.join(lessonRoot, "manifest.json"), {
+    artifactVersion: "math-workflow.v2",
+    lessonId: lesson.lessonId,
+    curriculumReleaseId: "de-gems-5-10-v1",
+    simulated: true,
+    paidProviderCalled: false,
+    stages: MATH_STAGES.map((stage) => {
+      const outputArtifacts = artifacts.filter((artifact) => artifact.producedBy === stage);
+      return { stage, status: outputArtifacts.length ? "succeeded" as const : "planned" as const, fingerprint: canonicalHash({ stage }), parentFingerprints: [parent], outputArtifacts, updatedAt: new Date(0).toISOString() };
+    }),
+    failures: [],
+  });
+  return { lesson, narration, lessonRoot };
 }
 
 describe("provider-free math media integration", () => {
@@ -152,7 +198,7 @@ describe("provider-free math media integration", () => {
             svgPath: visual.filePath,
             svgHash: visual.svgHash,
             minimumGlyphPx: visual.minimumGlyphPx,
-            bounds: { x: 96, y: 54, width: 1728, height: 972 },
+            bounds: visual.bounds,
           },
         ],
         frameRanges: [{ sceneId: "scene-001", startFrame: 0, endFrame: 30 }],
@@ -193,7 +239,7 @@ describe("provider-free math media integration", () => {
     const root = await fs.mkdtemp(
       path.join(os.tmpdir(), "math-media-r007-boundary-")
     );
-    const { lesson, narration } = await providerBoundaryFixture();
+    const { lesson, narration, lessonRoot } = await providerBoundaryFixture(root);
     const fetchSpy = vi
       .spyOn(globalThis, "fetch")
       .mockRejectedValue(new Error("External network dispatch is forbidden."));
@@ -202,8 +248,10 @@ describe("provider-free math media integration", () => {
         id: `${lesson.lessonId}-de`,
         profile: "grades-5-7-v1",
         targetDurationSeconds: 180,
-        lesson,
-        narration,
+        lessonRoot,
+        lessonId: lesson.lessonId,
+        variant: lesson.variant,
+        language: "de",
         scenes: lesson.scenes.map((scene) => {
           const fact = lesson.facts.find(
             (candidate) => candidate.factId === scene.factIds[0]
@@ -219,8 +267,12 @@ describe("provider-free math media integration", () => {
                 expression: fact.semantic.expression,
               },
             },
+            ...(scene.visualComponent === "teacher"
+              ? { teacher: { poseId: "think", areaRatio: 0.2 } }
+              : {}),
           };
         }),
+        teacherManifestPath: "assets/math-teacher/alex/v1/manifest.json",
         outputDir: root,
       });
 

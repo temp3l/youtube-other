@@ -5,19 +5,20 @@ import { describe, expect, it } from "vitest";
 import {
   buildLessonVariant,
   canonicalHash,
+  createArtifactLineage,
+  MATH_STAGES,
   lessonVariantSpecificationSchema,
   loadCurriculumRelease,
   localizeNarration,
   localizedNarrationSchema,
-  type LessonVariantSpecification,
-  type LocalizedNarration,
-} from "@mediaforge/math-education";
-import {
+  saveWorkflowManifest,
   assertTimingSynchronization,
   createNarrationDrivenTiming,
   timingManifestSchema,
   type NarrationAudioTiming,
-} from "../../math-education/src/lesson/timing.js";
+  type LessonVariantSpecification,
+  type LocalizedNarration,
+} from "@mediaforge/math-education";
 import { loadTeacherPose, validateTeacherAssets } from "./assets/teacher.js";
 import {
   Formula,
@@ -34,6 +35,8 @@ import {
 import { createRemotionRenderFingerprint } from "./composition/remotion-runner.js";
 import {
   assertProviderFreeFactBindings,
+  loadProviderFreeMediaInputs,
+  providerFreeMediaRequestSchema,
   type ProviderFreeMediaRequest,
 } from "./provider-free-media.js";
 import {
@@ -52,6 +55,16 @@ const integer = (factId: string, value: string): BoundMathValue => ({
   factId,
   expression: { kind: "integer", value },
 });
+
+const plannedKind = (kind: SemanticMathComponent["kind"]) => ({
+  formula: "formula",
+  "number-line": "number-line",
+  graph: "function-graph",
+  geometry: "geometry",
+  table: "data-table",
+  measurement: "measurement",
+  probability: "probability-tree",
+} as const)[kind];
 
 function narration(): LocalizedNarration {
   const resolvedFacts = Array.from({ length: 9 }, (_, index) => ({
@@ -241,19 +254,87 @@ async function factBindingFixture(): Promise<{
       );
       if (!fact || fact.semantic.kind !== "scalar")
         throw new Error(`Missing scalar fixture fact for ${scene.sceneId}.`);
+      const scalarFacts = scene.factIds.map((factId) => {
+        const value = lesson.facts.find((candidate) => candidate.factId === factId);
+        if (!value || value.semantic.kind !== "scalar")
+          throw new Error(`Missing scalar fixture fact ${factId}.`);
+        return { factId: value.factId, expression: value.semantic.expression };
+      });
       return {
         sceneId: scene.sceneId,
-        component: {
-          kind: "formula",
-          value: {
-            factId: fact.factId,
-            expression: fact.semantic.expression,
-          },
-        },
+        component: scalarFacts.length === 1
+          ? { kind: "formula", value: scalarFacts[0]! }
+          : { kind: "table", columnLabels: ["Wert"], rows: scalarFacts.map((value) => [value]) },
       };
     }
   );
-  return { lesson, narration: localized, scenes };
+  const visualPlan = {
+    artifactVersion: "math-visual-plan.v1" as const,
+    profile: "grades-5-7-v1" as const,
+    scenes: scenes.map((scene, index) => ({
+      sceneId: scene.sceneId,
+      component: plannedKind(scene.component.kind),
+      factIds: [...lesson.scenes[index]!.factIds],
+      teacherAssetVersion: "alex.v1-placeholder" as const,
+    })),
+  };
+  return { lesson, narration: localized, scenes, visualPlan };
+}
+
+async function writeAuthoritativeMediaFixture(
+  root: string,
+  fixture: Awaited<ReturnType<typeof factBindingFixture>>
+): Promise<ProviderFreeMediaRequest> {
+  const lessonRoot = path.join(root, fixture.lesson.lessonId);
+  const lessonPath = "canonical/lesson-spec.json";
+  const narrationPath = "canonical/narration.de.json";
+  const visualPath = "locales/de/visual-plan.json";
+  await Promise.all([
+    fs.mkdir(path.join(lessonRoot, "canonical"), { recursive: true }),
+    fs.mkdir(path.join(lessonRoot, "locales/de"), { recursive: true }),
+  ]);
+  await Promise.all([
+    fs.writeFile(path.join(lessonRoot, lessonPath), JSON.stringify(fixture.lesson)),
+    fs.writeFile(path.join(lessonRoot, narrationPath), JSON.stringify(fixture.narration)),
+    fs.writeFile(path.join(lessonRoot, visualPath), JSON.stringify(fixture.visualPlan)),
+  ]);
+  const parent = "a".repeat(64);
+  const artifacts = await Promise.all([
+    createArtifactLineage({ root: lessonRoot, relativePath: lessonPath, schemaVersion: "lesson-spec.v1", parentHashes: [parent], producedBy: "lesson-spec" }),
+    createArtifactLineage({ root: lessonRoot, relativePath: narrationPath, schemaVersion: "math-narration.v2", parentHashes: [parent], producedBy: "canonical-narration" }),
+    createArtifactLineage({ root: lessonRoot, relativePath: visualPath, schemaVersion: "math-visual-plan.v1", parentHashes: [parent], producedBy: "visual-assets" }),
+  ]);
+  const now = new Date(0).toISOString();
+  await saveWorkflowManifest(path.join(lessonRoot, "manifest.json"), {
+    artifactVersion: "math-workflow.v2",
+    lessonId: fixture.lesson.lessonId,
+    curriculumReleaseId: "de-gems-5-10-v1",
+    simulated: true,
+    paidProviderCalled: false,
+    stages: MATH_STAGES.map((stage) => {
+      const outputArtifacts = artifacts.filter((artifact) => artifact.producedBy === stage);
+      return {
+        stage,
+        status: outputArtifacts.length ? "succeeded" as const : "planned" as const,
+        fingerprint: canonicalHash({ stage }),
+        parentFingerprints: [parent],
+        outputArtifacts,
+        updatedAt: now,
+      };
+    }),
+    failures: [],
+  });
+  return {
+    id: `${fixture.lesson.lessonId}-de`,
+    profile: "grades-5-7-v1",
+    targetDurationSeconds: fixture.lesson.targetDurationSeconds,
+    lessonRoot,
+    lessonId: fixture.lesson.lessonId,
+    variant: fixture.lesson.variant,
+    language: "de",
+    scenes: fixture.scenes,
+    outputDir: path.join(root, "output"),
+  };
 }
 
 function boundaryTiming(durationSeconds: number) {
@@ -517,6 +598,62 @@ describe("semantic math visual contracts", () => {
     expect(probability.svg).not.toContain('font-size="44"');
   });
 
+  it("blocks schema-valid labels that cannot fit conservative output bounds", () => {
+    const huge = "9".repeat(80);
+    expect(() => renderSemanticComponent({
+      kind: "number-line",
+      minimum: integer("line-min", "0"),
+      maximum: integer("line-max", huge),
+      markers: [integer("line-marker", "1")],
+    })).toThrow(/overflow/u);
+    expect(() => renderSemanticComponent({
+      kind: "graph",
+      xMinimum: integer("graph-x-min", "0"), xMaximum: integer("graph-x-max", huge),
+      yMinimum: integer("graph-y-min", "0"), yMaximum: integer("graph-y-max", "10"),
+      points: [{ factId: "graph-point", x: { kind: "integer", value: huge }, y: { kind: "integer", value: "1" } }],
+    })).toThrow(/overflow/u);
+    const longExpression = { kind: "sum" as const, operands: Array.from({ length: 20 }, () => ({ kind: "integer" as const, value: "123" })) };
+    expect(() => renderSemanticComponent({ kind: "geometry", shape: "rectangle", measurements: [
+      { factId: "geometry-long", expression: longExpression }, integer("geometry-side", "2"),
+    ] })).toThrow(/overflow/u);
+    expect(() => renderSemanticComponent({ kind: "measurement", measurements: [{
+      factId: "measurement-long", value: longExpression,
+      unit: { symbol: "cm", scale: { numerator: "1", denominator: "100" }, dimensions: { length: 1 } },
+    }] })).toThrow(/overflow/u);
+    expect(() => renderSemanticComponent({ kind: "table", columnLabels: ["Wert"], rows: [[
+      { factId: "table-long", expression: longExpression },
+    ]] })).toThrow(/unreadable/u);
+    expect(() => renderSemanticComponent({ kind: "probability", nodes: ["Start", "Ziel"], branches: [{
+      from: 0, to: 1, probability: { factId: "probability-long", expression: { kind: "rational", numerator: "1".repeat(70), denominator: "2".repeat(70) } },
+    }] })).toThrow(/overflow/u);
+  });
+
+  it("loads only workflow-owned, hash-valid authoritative media artifacts", async () => {
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), "math-authoritative-media-"));
+    try {
+      const fixture = await factBindingFixture();
+      const valid = await writeAuthoritativeMediaFixture(path.join(root, "valid"), fixture);
+      await expect(loadProviderFreeMediaInputs(valid)).resolves.toMatchObject({ lesson: { lessonId: fixture.lesson.lessonId } });
+      expect(() => providerFreeMediaRequestSchema.parse({ ...valid, lesson: fixture.lesson })).toThrow();
+
+      for (const attack of ["parent", "owner", "swapped", "absent"] as const) {
+        const request = await writeAuthoritativeMediaFixture(path.join(root, attack), fixture);
+        const manifestPath = path.join(request.lessonRoot, "manifest.json");
+        const manifest = JSON.parse(await fs.readFile(manifestPath, "utf8")) as any;
+        const record = manifest.stages.find((stage: any) => stage.stage === "lesson-spec");
+        if (attack === "parent") record.outputArtifacts[0].parentHashes = ["b".repeat(64)];
+        if (attack === "owner") record.outputArtifacts[0].producedBy = "localization";
+        if (attack === "absent") record.outputArtifacts = [];
+        await fs.writeFile(manifestPath, JSON.stringify(manifest));
+        if (attack === "swapped")
+          await fs.copyFile(path.join(request.lessonRoot, "canonical/narration.de.json"), path.join(request.lessonRoot, "canonical/lesson-spec.json"));
+        await expect(loadProviderFreeMediaInputs(request)).rejects.toThrow(/authoritative|workflow|own/i);
+      }
+    } finally {
+      await fs.rm(root, { recursive: true, force: true });
+    }
+  });
+
   it("binds component values to hash-valid locked lesson semantics and exact scenes", async () => {
     const fixture = await factBindingFixture();
     expect(() => assertProviderFreeFactBindings(fixture)).not.toThrow();
@@ -555,7 +692,7 @@ describe("semantic math visual contracts", () => {
       },
     };
     expect(() => assertProviderFreeFactBindings(crossScene)).toThrow(
-      /outside its locked scene/u
+      /every locked fact|outside its locked scene/u
     );
 
     const graphMismatch = structuredClone(fixture);
@@ -579,8 +716,66 @@ describe("semantic math visual contracts", () => {
     if (missingFormula.kind !== "formula") throw new Error("Fixture mismatch.");
     missingFormula.value.factId = "missing-fact";
     expect(() => assertProviderFreeFactBindings(missing)).toThrow(
-      /outside its locked scene|missing fact/u
+      /every locked fact|outside its locked scene|missing fact/u
     );
+
+    const omitted = structuredClone(fixture);
+    const omittedTable = omitted.scenes.find((scene) => scene.component.kind === "table")?.component;
+    if (!omittedTable || omittedTable.kind !== "table" || omittedTable.rows.length < 2)
+      throw new Error("Fixture requires a multi-value table.");
+    omittedTable.rows.pop();
+    expect(() => assertProviderFreeFactBindings(omitted)).toThrow(/every locked fact/u);
+
+    const teacherCannotBypass = structuredClone(fixture);
+    teacherCannotBypass.scenes[1]!.teacher = { poseId: "neutral", areaRatio: 0.2 };
+    const teacherGraph = teacherCannotBypass.scenes[1]!.component;
+    if (teacherGraph.kind !== "graph") throw new Error("Fixture mismatch.");
+    teacherGraph.xMaximum.factId = teacherGraph.xMinimum.factId;
+    expect(() => assertProviderFreeFactBindings(teacherCannotBypass)).toThrow(/duplicate/u);
+  });
+
+  it("requires one strict, ordered nine-scene authoritative visual plan", async () => {
+    const fixture = await factBindingFixture();
+    expect(() => assertProviderFreeFactBindings(fixture)).not.toThrow();
+
+    const { visualPlan: _visualPlan, ...missingPlan } = fixture;
+    expect(() => assertProviderFreeFactBindings(
+      missingPlan as unknown as Parameters<typeof assertProviderFreeFactBindings>[0]
+    )).toThrow();
+
+    const missingScene = structuredClone(fixture);
+    missingScene.visualPlan.scenes.pop();
+    expect(() => assertProviderFreeFactBindings(missingScene)).toThrow();
+
+    const extraScene = structuredClone(fixture);
+    extraScene.visualPlan.scenes.push({
+      ...structuredClone(extraScene.visualPlan.scenes[8]!),
+      sceneId: "scene-010",
+    });
+    expect(() => assertProviderFreeFactBindings(extraScene)).toThrow();
+
+    const duplicateScene = structuredClone(fixture);
+    duplicateScene.visualPlan.scenes[1] = structuredClone(duplicateScene.visualPlan.scenes[0]!);
+    expect(() => assertProviderFreeFactBindings(duplicateScene)).toThrow(/duplicated/u);
+
+    const reorderedScenes = structuredClone(fixture);
+    [reorderedScenes.visualPlan.scenes[0], reorderedScenes.visualPlan.scenes[1]] =
+      [reorderedScenes.visualPlan.scenes[1]!, reorderedScenes.visualPlan.scenes[0]!];
+    expect(() => assertProviderFreeFactBindings(reorderedScenes)).toThrow(/visual plan/u);
+
+    const reorderedFacts = structuredClone(fixture);
+    reorderedFacts.visualPlan.scenes[1]!.factIds.reverse();
+    expect(() => assertProviderFreeFactBindings(reorderedFacts)).toThrow(/visual plan/u);
+
+    const duplicatedFacts = structuredClone(fixture);
+    duplicatedFacts.visualPlan.scenes[1]!.factIds[1] =
+      duplicatedFacts.visualPlan.scenes[1]!.factIds[0]!;
+    expect(() => assertProviderFreeFactBindings(duplicatedFacts)).toThrow(/duplicated/u);
+
+    const mismatchedFacts = structuredClone(fixture);
+    mismatchedFacts.visualPlan.scenes[2]!.factIds[0] =
+      fixture.visualPlan.scenes[1]!.factIds[0]!;
+    expect(() => assertProviderFreeFactBindings(mismatchedFacts)).toThrow(/visual plan/u);
   });
 });
 

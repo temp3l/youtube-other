@@ -246,6 +246,32 @@ export async function outputsAreValid(
   return true;
 }
 
+export async function readAuthoritativeStageArtifact<T>(args: {
+  root: string;
+  manifest: WorkflowManifest;
+  stage: MathStage;
+  relativePath: string;
+  schemaVersion: MathArtifactSchemaVersion;
+  schema: z.ZodType<T>;
+}): Promise<T> {
+  const record = args.manifest.stages.find((candidate) => candidate.stage === args.stage);
+  if (!record || !(await outputsAreValid(args.root, record)))
+    throw new Error(`Authoritative workflow stage ${args.stage} is not reusable.`);
+  const matches = record.outputArtifacts.filter(
+    (artifact) =>
+      artifact.relativePath === args.relativePath &&
+      artifact.schemaVersion === args.schemaVersion &&
+      artifact.producedBy === args.stage
+  );
+  if (matches.length !== 1)
+    throw new Error(
+      `Authoritative workflow does not own exactly one ${args.relativePath} output.`
+    );
+  const target = await isContainedRegularFile(args.root, args.relativePath);
+  if (!target) throw new Error(`Authoritative artifact is unavailable: ${args.relativePath}`);
+  return args.schema.parse(JSON.parse(await fs.readFile(target, "utf8")) as unknown);
+}
+
 export function stageFingerprint(
   stage: MathStage,
   parents: readonly string[],

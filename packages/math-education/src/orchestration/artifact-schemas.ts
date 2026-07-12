@@ -29,7 +29,7 @@ export type MathArtifactSchemaVersion = z.infer<
   typeof mathArtifactSchemaVersionSchema
 >;
 
-const visualPlanSchema = z.strictObject({
+export const mathVisualPlanSchema = z.strictObject({
   artifactVersion: z.literal("math-visual-plan.v1"),
   profile: z.enum(["grades-5-7-v1", "grades-8-10-v1"]),
   scenes: z.array(
@@ -51,7 +51,24 @@ const visualPlanSchema = z.strictObject({
       factIds: z.array(z.string()),
       teacherAssetVersion: z.literal("alex.v1-placeholder"),
     })
-  ),
+  ).length(9),
+}).superRefine((plan, context) => {
+  const seenSceneIds = new Set<string>();
+  for (const [index, scene] of plan.scenes.entries()) {
+    if (seenSceneIds.has(scene.sceneId))
+      context.addIssue({
+        code: "custom",
+        path: ["scenes", index, "sceneId"],
+        message: `Visual-plan scene ID ${scene.sceneId} is duplicated.`,
+      });
+    seenSceneIds.add(scene.sceneId);
+    if (new Set(scene.factIds).size !== scene.factIds.length)
+      context.addIssue({
+        code: "custom",
+        path: ["scenes", index, "factIds"],
+        message: `Visual-plan scene ${scene.sceneId} contains duplicated fact IDs.`,
+      });
+  }
 });
 
 const publishDryRunSchema = z.strictObject({
@@ -86,7 +103,7 @@ const schemas: Record<MathArtifactSchemaVersion, z.ZodType> = {
   "math-narration.v1": legacyLocalizedNarrationSchema,
   "math-narration.v2": localizedNarrationSchema,
   "math-timing.v1": timingManifestSchema,
-  "math-visual-plan.v1": visualPlanSchema,
+  "math-visual-plan.v1": mathVisualPlanSchema,
   "math-metadata.v1": mathMetadataSchema,
   "math-publish-dry-run.v1": publishDryRunSchema,
   "math-quality.v1": qualitySchema,

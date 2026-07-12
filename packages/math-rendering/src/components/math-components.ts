@@ -9,7 +9,7 @@ import {
   type ExpressionNode,
 } from "@mediaforge/math-education";
 
-export const MATH_SVG_RENDERER_VERSION = "math-svg.v3";
+export const MATH_SVG_RENDERER_VERSION = "math-svg.v4";
 export const MATH_FONT_PROFILE = "katex-0.17.0-system-sans-v1";
 
 const factIdSchema = z.string().regex(/^[a-z][a-z0-9-]*$/u);
@@ -111,6 +111,131 @@ export interface VisualComponentResult {
   svgHash: string;
   cacheKey: string;
   minimumGlyphPx: number;
+  bounds: { x: number; y: number; width: number; height: number };
+}
+
+interface Bounds {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+const SAFE_BOUNDS = { x: 96, y: 54, width: 1728, height: 972 } as const;
+
+function textBounds(
+  text: string,
+  x: number,
+  baseline: number,
+  anchor: "start" | "middle" | "end" = "middle",
+  fontSize = 72
+): Bounds {
+  // One em per code point plus vertical leading is conservative for the fixed sans profile.
+  const width = Math.max(fontSize, Array.from(text).length * fontSize);
+  const left = anchor === "start" ? x : anchor === "end" ? x - width : x - width / 2;
+  return { x: left, y: baseline - fontSize, width, height: fontSize * 1.25 };
+}
+
+function unionBounds(bounds: readonly Bounds[]): Bounds {
+  if (bounds.length === 0) throw new Error("Math visual bounds cannot be established.");
+  const left = Math.min(...bounds.map((bound) => bound.x));
+  const top = Math.min(...bounds.map((bound) => bound.y));
+  const right = Math.max(...bounds.map((bound) => bound.x + bound.width));
+  const bottom = Math.max(...bounds.map((bound) => bound.y + bound.height));
+  const result = { x: left, y: top, width: right - left, height: bottom - top };
+  if (
+    result.x < SAFE_BOUNDS.x ||
+    result.y < SAFE_BOUNDS.y ||
+    result.x + result.width > SAFE_BOUNDS.x + SAFE_BOUNDS.width ||
+    result.y + result.height > SAFE_BOUNDS.y + SAFE_BOUNDS.height
+  )
+    throw new Error("Semantic SVG labels overflow the render-safe area.");
+  return result;
+}
+
+function expressionBounds(value: BoundMathValue, x: number, y: number, anchor: "start" | "middle" | "end" = "middle"): Bounds {
+  return textBounds(expressionToSvgText(value.expression), x, y, anchor);
+}
+
+function componentBounds(input: SemanticMathComponent): Bounds {
+  if (input.kind === "formula") return { x: 160, y: 220, width: 1600, height: 640 };
+  if (input.kind === "number-line") {
+    const minimum = literalNumber(input.minimum.expression);
+    const maximum = literalNumber(input.maximum.expression);
+    const x = (value: number) => 180 + ((value - minimum) / (maximum - minimum)) * 1560;
+    return unionBounds([
+      { x: 176, y: 446, width: 1568, height: 188 },
+      expressionBounds(input.minimum, 180, 450),
+      expressionBounds(input.maximum, 1740, 450),
+      ...input.markers.map((marker) => expressionBounds(marker, x(literalNumber(marker.expression)), 650)),
+    ]);
+  }
+  if (input.kind === "graph") {
+    const xMin = literalNumber(input.xMinimum.expression);
+    const xMax = literalNumber(input.xMaximum.expression);
+    const yMin = literalNumber(input.yMinimum.expression);
+    const yMax = literalNumber(input.yMaximum.expression);
+    const x = (value: number) => 240 + ((value - xMin) / (xMax - xMin)) * 1440;
+    const y = (value: number) => 850 - ((value - yMin) / (yMax - yMin)) * 650;
+    return unionBounds([
+      { x: 237, y: 197, width: 1446, height: 656 },
+      expressionBounds(input.xMinimum, 240, 950),
+      expressionBounds(input.xMaximum, 1680, 950),
+      expressionBounds(input.yMinimum, 180, 850),
+      expressionBounds(input.yMaximum, 180, 220),
+      ...input.points.map((point) =>
+        textBounds(`(${expressionToSvgText(point.x)}, ${expressionToSvgText(point.y)})`, x(literalNumber(point.x)) + 28, y(literalNumber(point.y)) - 24, "start")
+      ),
+    ]);
+  }
+  if (input.kind === "geometry")
+    return unionBounds([
+      { x: 412, y: 202, width: 1096, height: 636 },
+      ...input.measurements.map((measurement, index) =>
+        expressionBounds(measurement, 600 + (index % 3) * 360, 930 - Math.floor(index / 3) * 110)
+      ),
+    ]);
+  if (input.kind === "table") {
+    const width = 1440 / input.columnLabels.length;
+    const height = 700 / (input.rows.length + 1);
+    const labels = [
+      ...input.columnLabels.map((label, index) =>
+        textBounds(label, 240 + width * (index + 0.5), 230 + height / 2)
+      ),
+      ...input.rows.flatMap((row, rowIndex) =>
+        row.map((cell, columnIndex) =>
+          expressionBounds(cell, 240 + width * (columnIndex + 0.5), 230 + height * (rowIndex + 1.6))
+        )
+      ),
+    ];
+    if (labels.some((bound) => bound.width > width - 24 || bound.height > height))
+      throw new Error("Semantic table content is unreadable within its cell.");
+    return unionBounds([{ x: 238, y: 178, width: 1444, height: height * (input.rows.length + 1) + 4 }, ...labels]);
+  }
+  if (input.kind === "measurement")
+    return unionBounds(input.measurements.flatMap((measurement, index) => {
+      const y = 250 + index * (600 / Math.max(1, input.measurements.length - 1));
+      const symbol = measurement.unit.angle === "degree" ? "°" : measurement.unit.symbol;
+      return [
+        { x: 354, y: y - 6, width: 1072, height: 12 },
+        textBounds(`${expressionToSvgText(measurement.value)} ${symbol}`, 1550, y + 20),
+      ];
+    }));
+  const nodeX = (index: number) => 420 + (index * 1080) / Math.max(1, input.nodes.length - 1);
+  const nodeY = (index: number) => 300 + (index % 2) * 440;
+  return unionBounds([
+    ...input.nodes.flatMap((label, index) => [
+      { x: nodeX(index) - 59, y: nodeY(index) - 59, width: 118, height: 118 },
+      textBounds(label, nodeX(index), nodeY(index) + 24),
+    ]),
+    ...input.branches.map((branch) =>
+      expressionBounds(
+        branch.probability,
+        (nodeX(branch.from) + nodeX(branch.to)) / 2,
+        (nodeY(branch.from) + nodeY(branch.to)) / 2 - 28
+      )
+    ),
+  ]);
 }
 
 function escapeXml(value: string): string {
@@ -249,6 +374,7 @@ function wrapSvg(
     input,
   });
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" role="img" data-component="${input.kind}" data-cache-key="${cacheKey}"><rect width="1920" height="1080" fill="#f8fafc"/><g data-safe-area="96,54,1728,972">${body}</g></svg>`;
+  const bounds = componentBounds(input);
   return {
     component: input.kind,
     factIds: ids,
@@ -256,6 +382,7 @@ function wrapSvg(
     svgHash: hashText(svg),
     cacheKey,
     minimumGlyphPx,
+    bounds,
   };
 }
 
@@ -337,7 +464,7 @@ function renderGraph(
     .join("");
   return wrapSvg(
     input,
-    `<path d="M240 850H1680M240 200V850" stroke="#14213d" stroke-width="6"/>${mathText(input.xMinimum, 240, 950)}${mathText(input.xMaximum, 1680, 950)}${mathText(input.yMinimum, 150, 850)}${mathText(input.yMaximum, 150, 220)}${points}`,
+    `<path d="M240 850H1680M240 200V850" stroke="#14213d" stroke-width="6"/>${mathText(input.xMinimum, 240, 950)}${mathText(input.xMaximum, 1680, 950)}${mathText(input.yMinimum, 180, 850)}${mathText(input.yMaximum, 180, 220)}${points}`,
     72
   );
 }
@@ -457,7 +584,7 @@ function renderProbability(
     outgoingTotals.set(branch.from, total);
   }
   const nodeX = (index: number) =>
-    220 + (index * 1480) / Math.max(1, input.nodes.length - 1);
+    420 + (index * 1080) / Math.max(1, input.nodes.length - 1);
   const nodeY = (index: number) => 300 + (index % 2) * 440;
   const branches = input.branches
     .map((branch) => {

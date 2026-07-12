@@ -90,22 +90,18 @@ final narration-reader compatibility package typecheck.
 
 ## R-007 — Implement semantic visuals, TTS, timing reflow, render, and media QA
 
-Status: implemented, acceptance rejected 2026-07-13; pending repair and new
-independent acceptance.
+Status: implemented and pending new independent acceptance after the third
+blocker repair on 2026-07-13. Do not treat R-007 as accepted.
 
-Independent source review found three material blockers. The media request
-accepts an inline, recomputably self-consistent lesson/narration and never
-validates the R-004 artifact lineage, workflow output, or parent hashes, so it
-does not establish authoritative upstream provenance. Displayed bindings may
-also be only a subset of a scene's locked facts, and teacher scenes bypass that
-comparison. SVG assets report constant safe-area bounds and glyph sizes rather
-than measured or conservative output bounds; schema-valid long AST labels can
-overflow number-line, graph, and table edges while readiness passes. Finally,
-`@mediaforge/math-education` resolves through stale `dist`: the unit test imports
-timing source directly, but package runtime synchronization lacks the repaired
-shared allocation, scene-span, tolerance, and fact-count checks. Unit 12/12,
-the unchanged host-rerun integration, and math-education typecheck passed, but
-none closes these gaps. The 180-second render was not rerun. R-008 is untouched.
+The strict provider-free binding contract now requires and validates the
+authoritative visual plan before cache, teacher loading, TTS, or rendering.
+The plan has exactly nine uniquely identified scenes, unique per-scene fact
+IDs, and exact ordered correspondence with lesson, narration, and requested
+scene bindings. Focused attacks cover absent plans and missing, extra,
+duplicated, reordered, or mismatched plan entries/facts. The authorized unit,
+host-access render/FFmpeg integration, and both package typechecks pass. The
+filtered integration excludes the 180-second production-boundary test, which
+was not rerun. R-008 remains untouched.
 
 - Related findings: F-006, F-015.
 - Objective: produce deterministic formula/diagram assets, mock audio, synchronized Remotion output, and FFmpeg-validated media.
