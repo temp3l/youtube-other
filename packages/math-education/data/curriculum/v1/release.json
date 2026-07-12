@@ -1,0 +1,16 @@
+{
+  "releaseId": "de-gems-5-10-v1",
+  "schemaVersion": 1,
+  "curriculumVersion": "1.0.0-draft.1",
+  "registryVersion": "v1",
+  "status": "draft",
+  "sourceSeed": "docs/mathe/curriculum/03-machine-readable-seed.md",
+  "inputHashes": {
+    "skills": "7d94840a58e9464be714f4470dd7691cc1ca4a09a8d6006a41c1516265b9423a",
+    "sourceRegistry": "3f60241207625ba50a3c2f7e3a0ee63162ebae066719816b8176ce77faa9d6bd",
+    "stateOverrides": "bb88ff7d3142fd80c8a68eb408822f4bcaf3d86fa59e232c6a0d8a174fb6b32b",
+    "prerequisites": "bb13c967f916892663837975ad464d52d1ad3755175a0d947b2b0e1fcab1bbc6",
+    "migrations": "a6fca77cc28486f151fc534523192bbdaaa175ff76c94f70d2057015b6f4c16b"
+  },
+  "notes": "Normalized draft with explicitly incomplete skill provenance, state overrides, and prerequisite coverage. Published releases are immutable."
+}

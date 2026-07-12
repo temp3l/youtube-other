@@ -1,0 +1,133 @@
+{
+  "schemaVersion": 1,
+  "sources": [
+    {
+      "id": "kmk-2022-math",
+      "jurisdiction": "DE",
+      "schoolType": "Sekundarstufe I",
+      "title": "Bildungsstandards Mathematik ESA/MSA",
+      "documentVersion": "2022-06-23",
+      "effectiveFrom": "2022-06-23",
+      "status": "current",
+      "officialUrls": [
+        "https://www.kmk.org/fileadmin/Dateien/veroeffentlichungen_beschluesse/2022/2022_06_23-Bista-ESA-MSA-Mathe.pdf"
+      ],
+      "retrievedAt": "2026-07-12",
+      "notes": "Cross-state normative reference; no state-law claim."
+    },
+    {
+      "id": "sh-2024-math-in",
+      "jurisdiction": "DE-SH",
+      "schoolType": "Sekundarstufe I",
+      "title": "Fachanforderungen Mathematik 2024",
+      "documentVersion": "2024",
+      "effectiveFrom": "2024-08-01",
+      "cohort": "introduced progressively from school year 2024/25",
+      "status": "phasing_in",
+      "officialUrls": [
+        "https://fachportal.lernnetz.de/sh/fachanforderungen/mathematik.html"
+      ],
+      "retrievedAt": "2026-07-12",
+      "notes": "Cohort placement must be checked before binding claims."
+    },
+    {
+      "id": "sh-2014-math-out",
+      "jurisdiction": "DE-SH",
+      "schoolType": "Sekundarstufe I",
+      "title": "Fachanforderungen Mathematik 2014",
+      "documentVersion": "2014",
+      "effectiveFrom": "2014-08-01",
+      "cohort": "remaining cohorts during progressive 2024 introduction",
+      "status": "phasing_out",
+      "officialUrls": [
+        "https://fachportal.lernnetz.de/sh/fachanforderungen/mathematik.html"
+      ],
+      "retrievedAt": "2026-07-12",
+      "notes": "Outgoing version retained for cohort provenance."
+    },
+    {
+      "id": "nw-2022-math-ges",
+      "jurisdiction": "DE-NW",
+      "schoolType": "Gesamtschule und Sekundarschule",
+      "title": "Kernlehrplan Mathematik Sekundarstufe I",
+      "documentVersion": "2022",
+      "effectiveFrom": "2022-08-01",
+      "status": "current",
+      "officialUrls": [
+        "https://www.schulentwicklung.nrw.de/lehrplaene/lehrplan/311/gesk_m_klp_2022_06_17.pdf"
+      ],
+      "retrievedAt": "2026-07-12",
+      "notes": "Official Gesamtschule/Sekundarschule reference; skill-level mappings remain pending."
+    },
+    {
+      "id": "bw-2016-math-sek1",
+      "jurisdiction": "DE-BW",
+      "schoolType": "Sekundarstufe I",
+      "title": "Bildungsplan 2016 Mathematik Sekundarstufe I",
+      "documentVersion": "2016",
+      "effectiveFrom": "2016-08-01",
+      "status": "current",
+      "officialUrls": [
+        "https://www.bildungsplaene-bw.de/,Lde/BP2016BW_ALLG_SEK1_M"
+      ],
+      "retrievedAt": "2026-07-12",
+      "notes": "Official state reference; level-specific skill mappings remain pending."
+    },
+    {
+      "id": "bb-2023-math-1-10",
+      "jurisdiction": "DE-BB",
+      "schoolType": "Jahrgangsstufen 1 bis 10",
+      "title": "Rahmenlehrplan Teil C Mathematik",
+      "documentVersion": "2023",
+      "effectiveFrom": "2023-08-01",
+      "status": "current",
+      "officialUrls": [
+        "https://bildungsserver.berlin-brandenburg.de/unterricht/rahmenlehrplaene/jahrgangsstufen-1-10/"
+      ],
+      "retrievedAt": "2026-07-12",
+      "notes": "Joint Berlin-Brandenburg reference; level-specific skill mappings remain pending."
+    },
+    {
+      "id": "be-2023-math-1-10",
+      "jurisdiction": "DE-BE",
+      "schoolType": "Jahrgangsstufen 1 bis 10",
+      "title": "Rahmenlehrplan Teil C Mathematik",
+      "documentVersion": "2023",
+      "effectiveFrom": "2023-08-01",
+      "status": "current",
+      "officialUrls": [
+        "https://bildungsserver.berlin-brandenburg.de/unterricht/rahmenlehrplaene/jahrgangsstufen-1-10/"
+      ],
+      "retrievedAt": "2026-07-12",
+      "notes": "Joint Berlin-Brandenburg reference recorded separately for Berlin; level-specific skill mappings remain pending."
+    },
+    {
+      "id": "ni-2015-math-gym",
+      "jurisdiction": "DE-NI",
+      "schoolType": "Gymnasium Sekundarbereich I",
+      "title": "Kerncurriculum Mathematik Schuljahrgaenge 5 bis 10",
+      "documentVersion": "2015",
+      "effectiveFrom": "2015-08-01",
+      "status": "current",
+      "officialUrls": [
+        "https://cuvo.nibis.de/cuvo.php?k0_0=Fach&k0_1=Dokumentenart&k0_2=Schulbereich&p=search&v0_0=Mathematik&v0_1=Kerncurriculum&v0_2=Sek+I"
+      ],
+      "retrievedAt": "2026-07-12",
+      "notes": "Official curriculum portal reference; school-type expansion and skill mappings remain pending."
+    },
+    {
+      "id": "sl-2025-math-9-10",
+      "jurisdiction": "DE-SL",
+      "schoolType": "Gemeinschaftsschule",
+      "title": "Lehrplaene Mathematik Anschluss 9/10",
+      "documentVersion": "unverified-2026-07-12",
+      "effectiveFrom": "2025-01-01",
+      "status": "unverified",
+      "officialUrls": [
+        "https://www.saarland.de/mbk/DE/portale/bildungsserver/schulen-und-bildungswege/lehrplaene/lehrplaene.allgemeinbildende/gemeinschaftsschule.lehrplaene"
+      ],
+      "retrievedAt": "2026-07-12",
+      "notes": "No completeness or binding claim is permitted until 9/10 continuation plans are reviewed."
+    }
+  ]
+}

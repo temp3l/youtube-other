@@ -1,0 +1,4539 @@
+{
+  "schemaVersion": 1,
+  "releaseId": "de-gems-5-10-v1",
+  "releaseHash": "9afb5e2c0ed7a10628df7f5d1d589739995910900d66b5b479894a3a95360b31",
+  "skills": [
+    {
+      "skillId": "M5-ZO-001",
+      "canonicalGrade": 5,
+      "domain": "Zahl und Operation",
+      "topic": "Natürliche Zahlen",
+      "learningObjective": "Natürliche Zahlen im Stellenwertsystem lesen und schreiben",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 0
+    },
+    {
+      "skillId": "M5-ZO-002",
+      "canonicalGrade": 5,
+      "domain": "Zahl und Operation",
+      "topic": "Natürliche Zahlen",
+      "learningObjective": "Natürliche Zahlen vergleichen und ordnen",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 1
+    },
+    {
+      "skillId": "M5-ZO-003",
+      "canonicalGrade": 5,
+      "domain": "Zahl und Operation",
+      "topic": "Natürliche Zahlen",
+      "learningObjective": "Natürliche Zahlen sinnvoll runden",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 2
+    },
+    {
+      "skillId": "M5-ZO-004",
+      "canonicalGrade": 5,
+      "domain": "Zahl und Operation",
+      "topic": "Grundrechenarten",
+      "learningObjective": "Rechenergebnisse überschlagen und mit einer Probe prüfen",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 3
+    },
+    {
+      "skillId": "M5-ZO-005",
+      "canonicalGrade": 5,
+      "domain": "Zahl und Operation",
+      "topic": "Grundrechenarten",
+      "learningObjective": "Natürliche Zahlen schriftlich addieren",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 4
+    },
+    {
+      "skillId": "M5-ZO-006",
+      "canonicalGrade": 5,
+      "domain": "Zahl und Operation",
+      "topic": "Grundrechenarten",
+      "learningObjective": "Natürliche Zahlen schriftlich subtrahieren",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 5
+    },
+    {
+      "skillId": "M5-ZO-007",
+      "canonicalGrade": 5,
+      "domain": "Zahl und Operation",
+      "topic": "Grundrechenarten",
+      "learningObjective": "Natürliche Zahlen schriftlich multiplizieren",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 6
+    },
+    {
+      "skillId": "M5-ZO-008",
+      "canonicalGrade": 5,
+      "domain": "Zahl und Operation",
+      "topic": "Grundrechenarten",
+      "learningObjective": "Natürliche Zahlen schriftlich dividieren",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 7
+    },
+    {
+      "skillId": "M5-ZO-009",
+      "canonicalGrade": 5,
+      "domain": "Zahl und Operation",
+      "topic": "Rechengesetze",
+      "learningObjective": "Punkt-vor-Strich und Klammern anwenden",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 8
+    },
+    {
+      "skillId": "M5-ZO-010",
+      "canonicalGrade": 5,
+      "domain": "Zahl und Operation",
+      "topic": "Rechengesetze",
+      "learningObjective": "Rechengesetze zum vorteilhaften Rechnen nutzen",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 9
+    },
+    {
+      "skillId": "M5-ZO-011",
+      "canonicalGrade": 5,
+      "domain": "Zahl und Operation",
+      "topic": "Terme",
+      "learningObjective": "Rechenterme aus Texten aufstellen",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 10
+    },
+    {
+      "skillId": "M5-ZO-012",
+      "canonicalGrade": 5,
+      "domain": "Zahl und Operation",
+      "topic": "Terme",
+      "learningObjective": "Einfache Termwerte durch Einsetzen berechnen",
+      "placementConfidence": "medium",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 11
+    },
+    {
+      "skillId": "M5-ZO-013",
+      "canonicalGrade": 5,
+      "domain": "Zahl und Operation",
+      "topic": "Teilbarkeit",
+      "learningObjective": "Teiler und Vielfache bestimmen",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 12
+    },
+    {
+      "skillId": "M5-ZO-014",
+      "canonicalGrade": 5,
+      "domain": "Zahl und Operation",
+      "topic": "Teilbarkeit",
+      "learningObjective": "Teilbarkeitsregeln für 2, 5 und 10 anwenden",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 13
+    },
+    {
+      "skillId": "M5-ZO-015",
+      "canonicalGrade": 5,
+      "domain": "Zahl und Operation",
+      "topic": "Teilbarkeit",
+      "learningObjective": "Teilbarkeitsregeln für 3 und 9 anwenden",
+      "placementConfidence": "medium",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 14
+    },
+    {
+      "skillId": "M5-ZO-016",
+      "canonicalGrade": 5,
+      "domain": "Zahl und Operation",
+      "topic": "Potenzen",
+      "learningObjective": "Potenzen als verkürzte Multiplikation verstehen",
+      "placementConfidence": "medium",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 15
+    },
+    {
+      "skillId": "M5-ZO-017",
+      "canonicalGrade": 5,
+      "domain": "Zahl und Operation",
+      "topic": "Brüche",
+      "learningObjective": "Brüche als Anteil eines Ganzen verstehen",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 16
+    },
+    {
+      "skillId": "M5-ZO-018",
+      "canonicalGrade": 5,
+      "domain": "Zahl und Operation",
+      "topic": "Brüche",
+      "learningObjective": "Zähler, Nenner und Bruchstrich sicher verwenden",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 17
+    },
+    {
+      "skillId": "M5-ZO-019",
+      "canonicalGrade": 5,
+      "domain": "Zahl und Operation",
+      "topic": "Brüche",
+      "learningObjective": "Brüche auf dem Zahlenstrahl darstellen",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 18
+    },
+    {
+      "skillId": "M5-ZO-020",
+      "canonicalGrade": 5,
+      "domain": "Zahl und Operation",
+      "topic": "Brüche",
+      "learningObjective": "Gleichwertige Brüche erkennen",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 19
+    },
+    {
+      "skillId": "M5-ZO-021",
+      "canonicalGrade": 5,
+      "domain": "Zahl und Operation",
+      "topic": "Brüche",
+      "learningObjective": "Brüche erweitern",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 20
+    },
+    {
+      "skillId": "M5-ZO-022",
+      "canonicalGrade": 5,
+      "domain": "Zahl und Operation",
+      "topic": "Brüche",
+      "learningObjective": "Brüche kürzen",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 21
+    },
+    {
+      "skillId": "M5-ZO-023",
+      "canonicalGrade": 5,
+      "domain": "Zahl und Operation",
+      "topic": "Dezimalzahlen",
+      "learningObjective": "Dezimalzahlen lesen und im Stellenwertsystem darstellen",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 22
+    },
+    {
+      "skillId": "M5-ZO-024",
+      "canonicalGrade": 5,
+      "domain": "Zahl und Operation",
+      "topic": "Dezimalzahlen",
+      "learningObjective": "Dezimalzahlen vergleichen und ordnen",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 23
+    },
+    {
+      "skillId": "M5-GM-001",
+      "canonicalGrade": 5,
+      "domain": "Größen und Messen",
+      "topic": "Größen",
+      "learningObjective": "Längen-, Massen-, Zeit- und Geldeinheiten umrechnen",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 24
+    },
+    {
+      "skillId": "M5-GM-002",
+      "canonicalGrade": 5,
+      "domain": "Größen und Messen",
+      "topic": "Flächen",
+      "learningObjective": "Umfang von Rechteck und Quadrat berechnen",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 25
+    },
+    {
+      "skillId": "M5-GM-003",
+      "canonicalGrade": 5,
+      "domain": "Größen und Messen",
+      "topic": "Flächen",
+      "learningObjective": "Flächeninhalt von Rechteck und Quadrat berechnen",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 26
+    },
+    {
+      "skillId": "M5-RF-001",
+      "canonicalGrade": 5,
+      "domain": "Raum und Form",
+      "topic": "Grundbegriffe",
+      "learningObjective": "Punkt, Strecke, Gerade, parallel und senkrecht unterscheiden",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 27
+    },
+    {
+      "skillId": "M5-RF-002",
+      "canonicalGrade": 5,
+      "domain": "Raum und Form",
+      "topic": "Winkel",
+      "learningObjective": "Winkelarten erkennen und benennen",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 28
+    },
+    {
+      "skillId": "M5-RF-003",
+      "canonicalGrade": 5,
+      "domain": "Raum und Form",
+      "topic": "Winkel",
+      "learningObjective": "Winkel messen und zeichnen",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 29
+    },
+    {
+      "skillId": "M5-RF-004",
+      "canonicalGrade": 5,
+      "domain": "Raum und Form",
+      "topic": "Figuren",
+      "learningObjective": "Dreiecke und Vierecke klassifizieren",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 30
+    },
+    {
+      "skillId": "M5-RF-005",
+      "canonicalGrade": 5,
+      "domain": "Raum und Form",
+      "topic": "Symmetrie",
+      "learningObjective": "Achsensymmetrische Figuren erkennen und ergänzen",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 31
+    },
+    {
+      "skillId": "M5-RF-006",
+      "canonicalGrade": 5,
+      "domain": "Raum und Form",
+      "topic": "Körper",
+      "learningObjective": "Würfel- und Quadernetze erkennen",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 32
+    },
+    {
+      "skillId": "M5-GM-004",
+      "canonicalGrade": 5,
+      "domain": "Größen und Messen",
+      "topic": "Volumen",
+      "learningObjective": "Volumen mit Einheitswürfeln bestimmen",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 33
+    },
+    {
+      "skillId": "M5-GM-005",
+      "canonicalGrade": 5,
+      "domain": "Größen und Messen",
+      "topic": "Volumen",
+      "learningObjective": "Volumen eines Quaders berechnen",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 34
+    },
+    {
+      "skillId": "M5-DZ-001",
+      "canonicalGrade": 5,
+      "domain": "Daten und Zufall",
+      "topic": "Daten",
+      "learningObjective": "Daten in Ur- und Strichlisten erfassen",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 35
+    },
+    {
+      "skillId": "M5-DZ-002",
+      "canonicalGrade": 5,
+      "domain": "Daten und Zufall",
+      "topic": "Diagramme",
+      "learningObjective": "Säulen- und Balkendiagramme lesen und erstellen",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 36
+    },
+    {
+      "skillId": "M6-ZO-001",
+      "canonicalGrade": 6,
+      "domain": "Zahl und Operation",
+      "topic": "Ganze Zahlen",
+      "learningObjective": "Negative Zahlen in Alltagssituationen deuten",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 37
+    },
+    {
+      "skillId": "M6-ZO-002",
+      "canonicalGrade": 6,
+      "domain": "Zahl und Operation",
+      "topic": "Ganze Zahlen",
+      "learningObjective": "Ganze Zahlen auf dem Zahlenstrahl vergleichen",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 38
+    },
+    {
+      "skillId": "M6-ZO-003",
+      "canonicalGrade": 6,
+      "domain": "Zahl und Operation",
+      "topic": "Ganze Zahlen",
+      "learningObjective": "Ganze Zahlen in Sachkontexten addieren und subtrahieren",
+      "placementConfidence": "medium",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 39
+    },
+    {
+      "skillId": "M6-ZO-004",
+      "canonicalGrade": 6,
+      "domain": "Zahl und Operation",
+      "topic": "Brüche",
+      "learningObjective": "Brüche mit unterschiedlichem Nenner vergleichen",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 40
+    },
+    {
+      "skillId": "M6-ZO-005",
+      "canonicalGrade": 6,
+      "domain": "Zahl und Operation",
+      "topic": "Brüche",
+      "learningObjective": "Gemischte Zahlen und unechte Brüche umwandeln",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 41
+    },
+    {
+      "skillId": "M6-ZO-006",
+      "canonicalGrade": 6,
+      "domain": "Zahl und Operation",
+      "topic": "Brüche",
+      "learningObjective": "Brüche mit gleichem Nenner addieren",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 42
+    },
+    {
+      "skillId": "M6-ZO-007",
+      "canonicalGrade": 6,
+      "domain": "Zahl und Operation",
+      "topic": "Brüche",
+      "learningObjective": "Brüche mit unterschiedlichem Nenner addieren",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 43
+    },
+    {
+      "skillId": "M6-ZO-008",
+      "canonicalGrade": 6,
+      "domain": "Zahl und Operation",
+      "topic": "Brüche",
+      "learningObjective": "Brüche mit gleichem Nenner subtrahieren",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 44
+    },
+    {
+      "skillId": "M6-ZO-009",
+      "canonicalGrade": 6,
+      "domain": "Zahl und Operation",
+      "topic": "Brüche",
+      "learningObjective": "Brüche mit unterschiedlichem Nenner subtrahieren",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 45
+    },
+    {
+      "skillId": "M6-ZO-010",
+      "canonicalGrade": 6,
+      "domain": "Zahl und Operation",
+      "topic": "Brüche",
+      "learningObjective": "Brüche mit natürlichen Zahlen multiplizieren",
+      "placementConfidence": "medium",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 46
+    },
+    {
+      "skillId": "M6-ZO-011",
+      "canonicalGrade": 6,
+      "domain": "Zahl und Operation",
+      "topic": "Brüche",
+      "learningObjective": "Anteile von Größen mit Brüchen berechnen",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 47
+    },
+    {
+      "skillId": "M6-ZO-012",
+      "canonicalGrade": 6,
+      "domain": "Zahl und Operation",
+      "topic": "Darstellungswechsel",
+      "learningObjective": "Brüche in Dezimalzahlen umwandeln",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 48
+    },
+    {
+      "skillId": "M6-ZO-013",
+      "canonicalGrade": 6,
+      "domain": "Zahl und Operation",
+      "topic": "Darstellungswechsel",
+      "learningObjective": "Dezimalzahlen in Brüche umwandeln",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 49
+    },
+    {
+      "skillId": "M6-ZO-014",
+      "canonicalGrade": 6,
+      "domain": "Zahl und Operation",
+      "topic": "Darstellungswechsel",
+      "learningObjective": "Bruch, Dezimalzahl und Prozentangabe zuordnen",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 50
+    },
+    {
+      "skillId": "M6-ZO-015",
+      "canonicalGrade": 6,
+      "domain": "Zahl und Operation",
+      "topic": "Dezimalzahlen",
+      "learningObjective": "Dezimalzahlen addieren und subtrahieren",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 51
+    },
+    {
+      "skillId": "M6-ZO-016",
+      "canonicalGrade": 6,
+      "domain": "Zahl und Operation",
+      "topic": "Dezimalzahlen",
+      "learningObjective": "Dezimalzahlen multiplizieren",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 52
+    },
+    {
+      "skillId": "M6-ZO-017",
+      "canonicalGrade": 6,
+      "domain": "Zahl und Operation",
+      "topic": "Dezimalzahlen",
+      "learningObjective": "Dezimalzahlen dividieren",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 53
+    },
+    {
+      "skillId": "M6-FZ-001",
+      "canonicalGrade": 6,
+      "domain": "Strukturen und funktionaler Zusammenhang",
+      "topic": "Zuordnungen",
+      "learningObjective": "Einfache Zuordnungen in Tabellen beschreiben",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 54
+    },
+    {
+      "skillId": "M6-FZ-002",
+      "canonicalGrade": 6,
+      "domain": "Strukturen und funktionaler Zusammenhang",
+      "topic": "Verhältnisse",
+      "learningObjective": "Verhältnisse als Vergleich zweier Größen verstehen",
+      "placementConfidence": "medium",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 55
+    },
+    {
+      "skillId": "M6-FZ-003",
+      "canonicalGrade": 6,
+      "domain": "Strukturen und funktionaler Zusammenhang",
+      "topic": "Maßstab",
+      "learningObjective": "Maßstäbe lesen und anwenden",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 56
+    },
+    {
+      "skillId": "M6-RF-001",
+      "canonicalGrade": 6,
+      "domain": "Raum und Form",
+      "topic": "Koordinaten",
+      "learningObjective": "Punkte im kartesischen Koordinatensystem eintragen",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 57
+    },
+    {
+      "skillId": "M6-RF-002",
+      "canonicalGrade": 6,
+      "domain": "Raum und Form",
+      "topic": "Abbildungen",
+      "learningObjective": "Figuren spiegeln, verschieben und drehen",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 58
+    },
+    {
+      "skillId": "M6-RF-003",
+      "canonicalGrade": 6,
+      "domain": "Raum und Form",
+      "topic": "Symmetrie",
+      "learningObjective": "Punktsymmetrie erkennen und konstruieren",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 59
+    },
+    {
+      "skillId": "M6-GM-001",
+      "canonicalGrade": 6,
+      "domain": "Größen und Messen",
+      "topic": "Flächen",
+      "learningObjective": "Flächeninhalt eines rechtwinkligen Dreiecks berechnen",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 60
+    },
+    {
+      "skillId": "M6-GM-002",
+      "canonicalGrade": 6,
+      "domain": "Größen und Messen",
+      "topic": "Flächen",
+      "learningObjective": "Zusammengesetzte Flächen zerlegen und berechnen",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 61
+    },
+    {
+      "skillId": "M6-GM-003",
+      "canonicalGrade": 6,
+      "domain": "Größen und Messen",
+      "topic": "Körper",
+      "learningObjective": "Oberflächeninhalt von Würfel und Quader berechnen",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 62
+    },
+    {
+      "skillId": "M6-GM-004",
+      "canonicalGrade": 6,
+      "domain": "Größen und Messen",
+      "topic": "Volumen",
+      "learningObjective": "Volumeneinheiten umrechnen",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 63
+    },
+    {
+      "skillId": "M6-RF-004",
+      "canonicalGrade": 6,
+      "domain": "Raum und Form",
+      "topic": "Kreis",
+      "learningObjective": "Radius, Durchmesser und Kreislinie unterscheiden",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 64
+    },
+    {
+      "skillId": "M6-DZ-001",
+      "canonicalGrade": 6,
+      "domain": "Daten und Zufall",
+      "topic": "Häufigkeiten",
+      "learningObjective": "Absolute und relative Häufigkeit unterscheiden",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 65
+    },
+    {
+      "skillId": "M6-DZ-002",
+      "canonicalGrade": 6,
+      "domain": "Daten und Zufall",
+      "topic": "Kenngrößen",
+      "learningObjective": "Arithmetisches Mittel berechnen und deuten",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 66
+    },
+    {
+      "skillId": "M6-DZ-003",
+      "canonicalGrade": 6,
+      "domain": "Daten und Zufall",
+      "topic": "Kenngrößen",
+      "learningObjective": "Median, Minimum, Maximum und Spannweite bestimmen",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 67
+    },
+    {
+      "skillId": "M6-DZ-004",
+      "canonicalGrade": 6,
+      "domain": "Daten und Zufall",
+      "topic": "Diagramme",
+      "learningObjective": "Kreisdiagramme lesen und erstellen",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 68
+    },
+    {
+      "skillId": "M6-DZ-005",
+      "canonicalGrade": 6,
+      "domain": "Daten und Zufall",
+      "topic": "Kombinatorik",
+      "learningObjective": "Einfache Möglichkeiten systematisch zählen",
+      "placementConfidence": "medium",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 69
+    },
+    {
+      "skillId": "M6-DZ-006",
+      "canonicalGrade": 6,
+      "domain": "Daten und Zufall",
+      "topic": "Zufall",
+      "learningObjective": "Einstufige Zufallsexperimente beschreiben",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 70
+    },
+    {
+      "skillId": "M7-ZO-001",
+      "canonicalGrade": 7,
+      "domain": "Zahl und Operation",
+      "topic": "Rationale Zahlen",
+      "learningObjective": "Rationale Zahlen darstellen und ordnen",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 71
+    },
+    {
+      "skillId": "M7-ZO-002",
+      "canonicalGrade": 7,
+      "domain": "Zahl und Operation",
+      "topic": "Rationale Zahlen",
+      "learningObjective": "Rationale Zahlen addieren und subtrahieren",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 72
+    },
+    {
+      "skillId": "M7-ZO-003",
+      "canonicalGrade": 7,
+      "domain": "Zahl und Operation",
+      "topic": "Rationale Zahlen",
+      "learningObjective": "Rationale Zahlen multiplizieren und dividieren",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 73
+    },
+    {
+      "skillId": "M7-ZO-004",
+      "canonicalGrade": 7,
+      "domain": "Zahl und Operation",
+      "topic": "Rationale Zahlen",
+      "learningObjective": "Vorzeichenregeln sicher anwenden",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 74
+    },
+    {
+      "skillId": "M7-ZO-005",
+      "canonicalGrade": 7,
+      "domain": "Zahl und Operation",
+      "topic": "Brüche",
+      "learningObjective": "Brüche miteinander multiplizieren",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 75
+    },
+    {
+      "skillId": "M7-ZO-006",
+      "canonicalGrade": 7,
+      "domain": "Zahl und Operation",
+      "topic": "Brüche",
+      "learningObjective": "Brüche durcheinander dividieren",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 76
+    },
+    {
+      "skillId": "M7-ZO-007",
+      "canonicalGrade": 7,
+      "domain": "Zahl und Operation",
+      "topic": "Prozentrechnung",
+      "learningObjective": "Prozentangaben als Anteil verstehen",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 77
+    },
+    {
+      "skillId": "M7-ZO-008",
+      "canonicalGrade": 7,
+      "domain": "Zahl und Operation",
+      "topic": "Prozentrechnung",
+      "learningObjective": "Prozentwert berechnen",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 78
+    },
+    {
+      "skillId": "M7-ZO-009",
+      "canonicalGrade": 7,
+      "domain": "Zahl und Operation",
+      "topic": "Prozentrechnung",
+      "learningObjective": "Grundwert berechnen",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 79
+    },
+    {
+      "skillId": "M7-ZO-010",
+      "canonicalGrade": 7,
+      "domain": "Zahl und Operation",
+      "topic": "Prozentrechnung",
+      "learningObjective": "Prozentsatz berechnen",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 80
+    },
+    {
+      "skillId": "M7-ZO-011",
+      "canonicalGrade": 7,
+      "domain": "Zahl und Operation",
+      "topic": "Prozentrechnung",
+      "learningObjective": "Prozentuale Erhöhung und Verringerung berechnen",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 81
+    },
+    {
+      "skillId": "M7-ZO-012",
+      "canonicalGrade": 7,
+      "domain": "Zahl und Operation",
+      "topic": "Zinsrechnung",
+      "learningObjective": "Einfache Zinsrechnung durchführen",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 82
+    },
+    {
+      "skillId": "M7-FZ-001",
+      "canonicalGrade": 7,
+      "domain": "Strukturen und funktionaler Zusammenhang",
+      "topic": "Proportionalität",
+      "learningObjective": "Proportionale Zuordnungen erkennen",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 83
+    },
+    {
+      "skillId": "M7-FZ-002",
+      "canonicalGrade": 7,
+      "domain": "Strukturen und funktionaler Zusammenhang",
+      "topic": "Proportionalität",
+      "learningObjective": "Proportionale Zuordnungen mit dem Dreisatz berechnen",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 84
+    },
+    {
+      "skillId": "M7-FZ-003",
+      "canonicalGrade": 7,
+      "domain": "Strukturen und funktionaler Zusammenhang",
+      "topic": "Antiproportionalität",
+      "learningObjective": "Antiproportionale Zuordnungen erkennen",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 85
+    },
+    {
+      "skillId": "M7-FZ-004",
+      "canonicalGrade": 7,
+      "domain": "Strukturen und funktionaler Zusammenhang",
+      "topic": "Antiproportionalität",
+      "learningObjective": "Antiproportionale Zuordnungen mit dem Dreisatz berechnen",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 86
+    },
+    {
+      "skillId": "M7-ZO-013",
+      "canonicalGrade": 7,
+      "domain": "Zahl und Operation",
+      "topic": "Variablen",
+      "learningObjective": "Variablen als Platzhalter und Veränderliche deuten",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 87
+    },
+    {
+      "skillId": "M7-ZO-014",
+      "canonicalGrade": 7,
+      "domain": "Zahl und Operation",
+      "topic": "Terme",
+      "learningObjective": "Termwerte durch Einsetzen berechnen",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 88
+    },
+    {
+      "skillId": "M7-ZO-015",
+      "canonicalGrade": 7,
+      "domain": "Zahl und Operation",
+      "topic": "Terme",
+      "learningObjective": "Gleichartige Terme zusammenfassen",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 89
+    },
+    {
+      "skillId": "M7-ZO-016",
+      "canonicalGrade": 7,
+      "domain": "Zahl und Operation",
+      "topic": "Terme",
+      "learningObjective": "Klammern ausmultiplizieren",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 90
+    },
+    {
+      "skillId": "M7-ZO-017",
+      "canonicalGrade": 7,
+      "domain": "Zahl und Operation",
+      "topic": "Gleichungen",
+      "learningObjective": "Lineare Gleichungen mit einer Umformung lösen",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 91
+    },
+    {
+      "skillId": "M7-ZO-018",
+      "canonicalGrade": 7,
+      "domain": "Zahl und Operation",
+      "topic": "Gleichungen",
+      "learningObjective": "Lineare Gleichungen mit mehreren Umformungen lösen",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 92
+    },
+    {
+      "skillId": "M7-ZO-019",
+      "canonicalGrade": 7,
+      "domain": "Zahl und Operation",
+      "topic": "Gleichungen",
+      "learningObjective": "Sachaufgaben mit linearen Gleichungen modellieren",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 93
+    },
+    {
+      "skillId": "M7-RF-001",
+      "canonicalGrade": 7,
+      "domain": "Raum und Form",
+      "topic": "Winkel",
+      "learningObjective": "Neben-, Scheitel-, Stufen- und Wechselwinkel nutzen",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 94
+    },
+    {
+      "skillId": "M7-RF-002",
+      "canonicalGrade": 7,
+      "domain": "Raum und Form",
+      "topic": "Winkelsummen",
+      "learningObjective": "Innenwinkelsumme im Dreieck anwenden",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 95
+    },
+    {
+      "skillId": "M7-RF-003",
+      "canonicalGrade": 7,
+      "domain": "Raum und Form",
+      "topic": "Winkelsummen",
+      "learningObjective": "Innenwinkelsumme im Viereck anwenden",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 96
+    },
+    {
+      "skillId": "M7-RF-004",
+      "canonicalGrade": 7,
+      "domain": "Raum und Form",
+      "topic": "Konstruktionen",
+      "learningObjective": "Dreiecke nach SSS, SWS und WSW konstruieren",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 97
+    },
+    {
+      "skillId": "M7-RF-005",
+      "canonicalGrade": 7,
+      "domain": "Raum und Form",
+      "topic": "Konstruktionen",
+      "learningObjective": "Mittelsenkrechte und Winkelhalbierende konstruieren",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 98
+    },
+    {
+      "skillId": "M7-RF-006",
+      "canonicalGrade": 7,
+      "domain": "Raum und Form",
+      "topic": "Kongruenz",
+      "learningObjective": "Kongruente Figuren erkennen und begründen",
+      "placementConfidence": "medium",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 99
+    },
+    {
+      "skillId": "M7-GM-001",
+      "canonicalGrade": 7,
+      "domain": "Größen und Messen",
+      "topic": "Flächen",
+      "learningObjective": "Flächeninhalt von Dreieck und Parallelogramm berechnen",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 100
+    },
+    {
+      "skillId": "M7-GM-002",
+      "canonicalGrade": 7,
+      "domain": "Größen und Messen",
+      "topic": "Flächen",
+      "learningObjective": "Flächeninhalt von Trapez und Vielecken berechnen",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 101
+    },
+    {
+      "skillId": "M7-GM-003",
+      "canonicalGrade": 7,
+      "domain": "Größen und Messen",
+      "topic": "Prismen",
+      "learningObjective": "Volumen und Oberfläche einfacher Prismen berechnen",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 102
+    },
+    {
+      "skillId": "M7-DZ-001",
+      "canonicalGrade": 7,
+      "domain": "Daten und Zufall",
+      "topic": "Wahrscheinlichkeit",
+      "learningObjective": "Ergebnis, Ereignis und Gegenereignis unterscheiden",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 103
+    },
+    {
+      "skillId": "M7-DZ-002",
+      "canonicalGrade": 7,
+      "domain": "Daten und Zufall",
+      "topic": "Wahrscheinlichkeit",
+      "learningObjective": "Laplace-Wahrscheinlichkeiten berechnen",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 104
+    },
+    {
+      "skillId": "M7-DZ-003",
+      "canonicalGrade": 7,
+      "domain": "Daten und Zufall",
+      "topic": "Statistik",
+      "learningObjective": "Relative Häufigkeit und Wahrscheinlichkeit vergleichen",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 105
+    },
+    {
+      "skillId": "M7-DZ-004",
+      "canonicalGrade": 7,
+      "domain": "Daten und Zufall",
+      "topic": "Statistik",
+      "learningObjective": "Quartile bestimmen und Boxplots lesen",
+      "placementConfidence": "medium",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 106
+    },
+    {
+      "skillId": "M8-FZ-001",
+      "canonicalGrade": 8,
+      "domain": "Strukturen und funktionaler Zusammenhang",
+      "topic": "Funktionen",
+      "learningObjective": "Den Funktionsbegriff über eindeutige Zuordnungen verstehen",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 107
+    },
+    {
+      "skillId": "M8-FZ-002",
+      "canonicalGrade": 8,
+      "domain": "Strukturen und funktionaler Zusammenhang",
+      "topic": "Darstellungen",
+      "learningObjective": "Funktionen in Tabelle, Graph, Term und Text darstellen",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 108
+    },
+    {
+      "skillId": "M8-FZ-003",
+      "canonicalGrade": 8,
+      "domain": "Strukturen und funktionaler Zusammenhang",
+      "topic": "Lineare Funktionen",
+      "learningObjective": "Proportionale Funktionen als y = m·x beschreiben",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 109
+    },
+    {
+      "skillId": "M8-FZ-004",
+      "canonicalGrade": 8,
+      "domain": "Strukturen und funktionaler Zusammenhang",
+      "topic": "Lineare Funktionen",
+      "learningObjective": "Lineare Funktionen als y = m·x + b verstehen",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 110
+    },
+    {
+      "skillId": "M8-FZ-005",
+      "canonicalGrade": 8,
+      "domain": "Strukturen und funktionaler Zusammenhang",
+      "topic": "Lineare Funktionen",
+      "learningObjective": "Steigung mit einem Steigungsdreieck bestimmen",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 111
+    },
+    {
+      "skillId": "M8-FZ-006",
+      "canonicalGrade": 8,
+      "domain": "Strukturen und funktionaler Zusammenhang",
+      "topic": "Lineare Funktionen",
+      "learningObjective": "Steigung aus zwei Punkten berechnen",
+      "placementConfidence": "medium",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 112
+    },
+    {
+      "skillId": "M8-FZ-007",
+      "canonicalGrade": 8,
+      "domain": "Strukturen und funktionaler Zusammenhang",
+      "topic": "Lineare Funktionen",
+      "learningObjective": "Den y-Achsenabschnitt bestimmen und deuten",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 113
+    },
+    {
+      "skillId": "M8-FZ-008",
+      "canonicalGrade": 8,
+      "domain": "Strukturen und funktionaler Zusammenhang",
+      "topic": "Lineare Funktionen",
+      "learningObjective": "Eine Funktionsgleichung aus einem Graphen bestimmen",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 114
+    },
+    {
+      "skillId": "M8-FZ-009",
+      "canonicalGrade": 8,
+      "domain": "Strukturen und funktionaler Zusammenhang",
+      "topic": "Lineare Funktionen",
+      "learningObjective": "Eine Funktionsgleichung aus zwei Punkten bestimmen",
+      "placementConfidence": "medium",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 115
+    },
+    {
+      "skillId": "M8-FZ-010",
+      "canonicalGrade": 8,
+      "domain": "Strukturen und funktionaler Zusammenhang",
+      "topic": "Lineare Funktionen",
+      "learningObjective": "Lineare Funktionen in Sachkontexten anwenden",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 116
+    },
+    {
+      "skillId": "M8-ZO-001",
+      "canonicalGrade": 8,
+      "domain": "Zahl und Operation",
+      "topic": "Gleichungssysteme",
+      "learningObjective": "Lineare Gleichungssysteme graphisch lösen",
+      "placementConfidence": "medium",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 117
+    },
+    {
+      "skillId": "M8-ZO-002",
+      "canonicalGrade": 8,
+      "domain": "Zahl und Operation",
+      "topic": "Gleichungssysteme",
+      "learningObjective": "Lineare Gleichungssysteme mit dem Einsetzungsverfahren lösen",
+      "placementConfidence": "medium",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 118
+    },
+    {
+      "skillId": "M8-ZO-003",
+      "canonicalGrade": 8,
+      "domain": "Zahl und Operation",
+      "topic": "Gleichungssysteme",
+      "learningObjective": "Lineare Gleichungssysteme mit dem Gleichsetzungsverfahren lösen",
+      "placementConfidence": "medium",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 119
+    },
+    {
+      "skillId": "M8-ZO-004",
+      "canonicalGrade": 8,
+      "domain": "Zahl und Operation",
+      "topic": "Gleichungssysteme",
+      "learningObjective": "Lineare Gleichungssysteme mit dem Additionsverfahren lösen",
+      "placementConfidence": "medium",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 120
+    },
+    {
+      "skillId": "M8-ZO-005",
+      "canonicalGrade": 8,
+      "domain": "Zahl und Operation",
+      "topic": "Gleichungssysteme",
+      "learningObjective": "Sachprobleme mit linearen Gleichungssystemen modellieren",
+      "placementConfidence": "medium",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 121
+    },
+    {
+      "skillId": "M8-ZO-006",
+      "canonicalGrade": 8,
+      "domain": "Zahl und Operation",
+      "topic": "Terme",
+      "learningObjective": "Terme mit mehreren Klammern umformen",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 122
+    },
+    {
+      "skillId": "M8-ZO-007",
+      "canonicalGrade": 8,
+      "domain": "Zahl und Operation",
+      "topic": "Binomische Formeln",
+      "learningObjective": "Die erste binomische Formel anwenden",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 123
+    },
+    {
+      "skillId": "M8-ZO-008",
+      "canonicalGrade": 8,
+      "domain": "Zahl und Operation",
+      "topic": "Binomische Formeln",
+      "learningObjective": "Die zweite binomische Formel anwenden",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 124
+    },
+    {
+      "skillId": "M8-ZO-009",
+      "canonicalGrade": 8,
+      "domain": "Zahl und Operation",
+      "topic": "Binomische Formeln",
+      "learningObjective": "Die dritte binomische Formel anwenden",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 125
+    },
+    {
+      "skillId": "M8-ZO-010",
+      "canonicalGrade": 8,
+      "domain": "Zahl und Operation",
+      "topic": "Binomische Formeln",
+      "learningObjective": "Binomische Formeln rückwärts zum Faktorisieren nutzen",
+      "placementConfidence": "medium",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 126
+    },
+    {
+      "skillId": "M8-ZO-011",
+      "canonicalGrade": 8,
+      "domain": "Zahl und Operation",
+      "topic": "Gleichungen",
+      "learningObjective": "Lineare Gleichungen mit Brüchen lösen",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 127
+    },
+    {
+      "skillId": "M8-ZO-012",
+      "canonicalGrade": 8,
+      "domain": "Zahl und Operation",
+      "topic": "Prozentrechnung",
+      "learningObjective": "Mehrfache prozentuale Veränderungen mit Faktoren berechnen",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 128
+    },
+    {
+      "skillId": "M8-ZO-013",
+      "canonicalGrade": 8,
+      "domain": "Zahl und Operation",
+      "topic": "Prozentrechnung",
+      "learningObjective": "Rückwärtsrechnen bei Prozentaufgaben",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 129
+    },
+    {
+      "skillId": "M8-ZO-014",
+      "canonicalGrade": 8,
+      "domain": "Zahl und Operation",
+      "topic": "Wachstum",
+      "learningObjective": "Wachstumsfaktor und Wachstumsrate unterscheiden",
+      "placementConfidence": "medium",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 130
+    },
+    {
+      "skillId": "M8-RF-001",
+      "canonicalGrade": 8,
+      "domain": "Raum und Form",
+      "topic": "Ähnlichkeit",
+      "learningObjective": "Zentrische Streckungen konstruieren",
+      "placementConfidence": "medium",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 131
+    },
+    {
+      "skillId": "M8-RF-002",
+      "canonicalGrade": 8,
+      "domain": "Raum und Form",
+      "topic": "Ähnlichkeit",
+      "learningObjective": "Ähnliche Figuren erkennen und den Streckfaktor bestimmen",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 132
+    },
+    {
+      "skillId": "M8-RF-003",
+      "canonicalGrade": 8,
+      "domain": "Raum und Form",
+      "topic": "Strahlensätze",
+      "learningObjective": "Strahlensätze zum Berechnen fehlender Längen nutzen",
+      "placementConfidence": "medium",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 133
+    },
+    {
+      "skillId": "M8-GM-001",
+      "canonicalGrade": 8,
+      "domain": "Größen und Messen",
+      "topic": "Kreis",
+      "learningObjective": "Kreisumfang mit π berechnen",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 134
+    },
+    {
+      "skillId": "M8-GM-002",
+      "canonicalGrade": 8,
+      "domain": "Größen und Messen",
+      "topic": "Kreis",
+      "learningObjective": "Kreisfläche mit π berechnen",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 135
+    },
+    {
+      "skillId": "M8-GM-003",
+      "canonicalGrade": 8,
+      "domain": "Größen und Messen",
+      "topic": "Zylinder",
+      "learningObjective": "Oberfläche und Volumen eines Zylinders berechnen",
+      "placementConfidence": "medium",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 136
+    },
+    {
+      "skillId": "M8-DZ-001",
+      "canonicalGrade": 8,
+      "domain": "Daten und Zufall",
+      "topic": "Baumdiagramme",
+      "learningObjective": "Zweistufige Zufallsexperimente mit Baumdiagrammen darstellen",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 137
+    },
+    {
+      "skillId": "M8-DZ-002",
+      "canonicalGrade": 8,
+      "domain": "Daten und Zufall",
+      "topic": "Pfadregeln",
+      "learningObjective": "Die erste Pfadregel anwenden",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 138
+    },
+    {
+      "skillId": "M8-DZ-003",
+      "canonicalGrade": 8,
+      "domain": "Daten und Zufall",
+      "topic": "Pfadregeln",
+      "learningObjective": "Die zweite Pfadregel anwenden",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 139
+    },
+    {
+      "skillId": "M8-DZ-004",
+      "canonicalGrade": 8,
+      "domain": "Daten und Zufall",
+      "topic": "Kombinatorik",
+      "learningObjective": "Möglichkeiten mit dem Produktprinzip zählen",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 140
+    },
+    {
+      "skillId": "M8-DZ-005",
+      "canonicalGrade": 8,
+      "domain": "Daten und Zufall",
+      "topic": "Statistik",
+      "learningObjective": "Manipulative Diagramme erkennen und kritisch beurteilen",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 141
+    },
+    {
+      "skillId": "M8-DZ-006",
+      "canonicalGrade": 8,
+      "domain": "Daten und Zufall",
+      "topic": "Statistik",
+      "learningObjective": "Boxplots erstellen und Verteilungen vergleichen",
+      "placementConfidence": "medium",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 142
+    },
+    {
+      "skillId": "M9-ZO-001",
+      "canonicalGrade": 9,
+      "domain": "Zahl und Operation",
+      "topic": "Wurzeln",
+      "learningObjective": "Quadratwurzeln als Umkehrung des Quadrierens verstehen",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 143
+    },
+    {
+      "skillId": "M9-ZO-002",
+      "canonicalGrade": 9,
+      "domain": "Zahl und Operation",
+      "topic": "Wurzeln",
+      "learningObjective": "Quadratwurzeln überschlagen und vereinfachen",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 144
+    },
+    {
+      "skillId": "M9-ZO-003",
+      "canonicalGrade": 9,
+      "domain": "Zahl und Operation",
+      "topic": "Reelle Zahlen",
+      "learningObjective": "Rationale und irrationale Zahlen unterscheiden",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 145
+    },
+    {
+      "skillId": "M9-ZO-004",
+      "canonicalGrade": 9,
+      "domain": "Zahl und Operation",
+      "topic": "Reelle Zahlen",
+      "learningObjective": "Reelle Zahlen auf dem Zahlenstrahl einordnen",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 146
+    },
+    {
+      "skillId": "M9-ZO-005",
+      "canonicalGrade": 9,
+      "domain": "Zahl und Operation",
+      "topic": "Potenzen",
+      "learningObjective": "Potenzen mit natürlichen Exponenten berechnen",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 147
+    },
+    {
+      "skillId": "M9-ZO-006",
+      "canonicalGrade": 9,
+      "domain": "Zahl und Operation",
+      "topic": "Potenzen",
+      "learningObjective": "Potenzen mit ganzzahligen Exponenten deuten",
+      "placementConfidence": "medium",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 148
+    },
+    {
+      "skillId": "M9-ZO-007",
+      "canonicalGrade": 9,
+      "domain": "Zahl und Operation",
+      "topic": "Potenzen",
+      "learningObjective": "Zahlen in wissenschaftlicher Schreibweise darstellen",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 149
+    },
+    {
+      "skillId": "M9-ZO-008",
+      "canonicalGrade": 9,
+      "domain": "Zahl und Operation",
+      "topic": "Potenzgesetze",
+      "learningObjective": "Potenzgesetze für Produkte anwenden",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 150
+    },
+    {
+      "skillId": "M9-ZO-009",
+      "canonicalGrade": 9,
+      "domain": "Zahl und Operation",
+      "topic": "Potenzgesetze",
+      "learningObjective": "Potenzgesetze für Quotienten anwenden",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 151
+    },
+    {
+      "skillId": "M9-ZO-010",
+      "canonicalGrade": 9,
+      "domain": "Zahl und Operation",
+      "topic": "Potenzgesetze",
+      "learningObjective": "Potenzen potenzieren",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 152
+    },
+    {
+      "skillId": "M9-FZ-001",
+      "canonicalGrade": 9,
+      "domain": "Strukturen und funktionaler Zusammenhang",
+      "topic": "Quadratische Funktionen",
+      "learningObjective": "Quadratische Funktionen und Parabeln erkennen",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 153
+    },
+    {
+      "skillId": "M9-FZ-002",
+      "canonicalGrade": 9,
+      "domain": "Strukturen und funktionaler Zusammenhang",
+      "topic": "Quadratische Funktionen",
+      "learningObjective": "Die Normalparabel und den Streckfaktor untersuchen",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 154
+    },
+    {
+      "skillId": "M9-FZ-003",
+      "canonicalGrade": 9,
+      "domain": "Strukturen und funktionaler Zusammenhang",
+      "topic": "Quadratische Funktionen",
+      "learningObjective": "Parabeln entlang der y-Achse verschieben",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 155
+    },
+    {
+      "skillId": "M9-FZ-004",
+      "canonicalGrade": 9,
+      "domain": "Strukturen und funktionaler Zusammenhang",
+      "topic": "Quadratische Funktionen",
+      "learningObjective": "Die Scheitelpunktform deuten",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 156
+    },
+    {
+      "skillId": "M9-FZ-005",
+      "canonicalGrade": 9,
+      "domain": "Strukturen und funktionaler Zusammenhang",
+      "topic": "Quadratische Funktionen",
+      "learningObjective": "Nullstellen quadratischer Funktionen graphisch bestimmen",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 157
+    },
+    {
+      "skillId": "M9-ZO-011",
+      "canonicalGrade": 9,
+      "domain": "Zahl und Operation",
+      "topic": "Quadratische Gleichungen",
+      "learningObjective": "Rein quadratische Gleichungen lösen",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 158
+    },
+    {
+      "skillId": "M9-ZO-012",
+      "canonicalGrade": 9,
+      "domain": "Zahl und Operation",
+      "topic": "Quadratische Gleichungen",
+      "learningObjective": "Quadratische Gleichungen mit dem Satz vom Nullprodukt lösen",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 159
+    },
+    {
+      "skillId": "M9-ZO-013",
+      "canonicalGrade": 9,
+      "domain": "Zahl und Operation",
+      "topic": "Quadratische Gleichungen",
+      "learningObjective": "Quadratische Gleichungen durch quadratische Ergänzung lösen",
+      "placementConfidence": "medium",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 160
+    },
+    {
+      "skillId": "M9-ZO-014",
+      "canonicalGrade": 9,
+      "domain": "Zahl und Operation",
+      "topic": "Quadratische Gleichungen",
+      "learningObjective": "Quadratische Gleichungen mit der p-q-Formel lösen",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 161
+    },
+    {
+      "skillId": "M9-FZ-006",
+      "canonicalGrade": 9,
+      "domain": "Strukturen und funktionaler Zusammenhang",
+      "topic": "Exponentialfunktionen",
+      "learningObjective": "Exponentielles Wachstum mit Wachstumsfaktoren beschreiben",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 162
+    },
+    {
+      "skillId": "M9-FZ-007",
+      "canonicalGrade": 9,
+      "domain": "Strukturen und funktionaler Zusammenhang",
+      "topic": "Exponentialfunktionen",
+      "learningObjective": "Exponentiellen Zerfall beschreiben",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 163
+    },
+    {
+      "skillId": "M9-FZ-008",
+      "canonicalGrade": 9,
+      "domain": "Strukturen und funktionaler Zusammenhang",
+      "topic": "Exponentialfunktionen",
+      "learningObjective": "Exponentialfunktionen in Tabelle, Graph und Term darstellen",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 164
+    },
+    {
+      "skillId": "M9-FZ-009",
+      "canonicalGrade": 9,
+      "domain": "Strukturen und funktionaler Zusammenhang",
+      "topic": "Zinseszins",
+      "learningObjective": "Zinseszins als exponentielles Wachstum berechnen",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 165
+    },
+    {
+      "skillId": "M9-RF-001",
+      "canonicalGrade": 9,
+      "domain": "Raum und Form",
+      "topic": "Pythagoras",
+      "learningObjective": "Den Satz des Pythagoras verstehen",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 166
+    },
+    {
+      "skillId": "M9-RF-002",
+      "canonicalGrade": 9,
+      "domain": "Raum und Form",
+      "topic": "Pythagoras",
+      "learningObjective": "Mit dem Satz des Pythagoras fehlende Seiten berechnen",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 167
+    },
+    {
+      "skillId": "M9-RF-003",
+      "canonicalGrade": 9,
+      "domain": "Raum und Form",
+      "topic": "Pythagoras",
+      "learningObjective": "Sachprobleme mit dem Satz des Pythagoras lösen",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 168
+    },
+    {
+      "skillId": "M9-GM-001",
+      "canonicalGrade": 9,
+      "domain": "Größen und Messen",
+      "topic": "Kreis",
+      "learningObjective": "Kreisbogenlänge berechnen",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 169
+    },
+    {
+      "skillId": "M9-GM-002",
+      "canonicalGrade": 9,
+      "domain": "Größen und Messen",
+      "topic": "Kreis",
+      "learningObjective": "Flächeninhalt eines Kreissektors berechnen",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 170
+    },
+    {
+      "skillId": "M9-GM-003",
+      "canonicalGrade": 9,
+      "domain": "Größen und Messen",
+      "topic": "Pyramide",
+      "learningObjective": "Oberfläche und Volumen einer Pyramide berechnen",
+      "placementConfidence": "medium",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 171
+    },
+    {
+      "skillId": "M9-GM-004",
+      "canonicalGrade": 9,
+      "domain": "Größen und Messen",
+      "topic": "Kegel",
+      "learningObjective": "Oberfläche und Volumen eines Kegels berechnen",
+      "placementConfidence": "medium",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 172
+    },
+    {
+      "skillId": "M9-DZ-001",
+      "canonicalGrade": 9,
+      "domain": "Daten und Zufall",
+      "topic": "Vierfeldertafel",
+      "learningObjective": "Bedingte Anteile mit Vierfeldertafeln darstellen",
+      "placementConfidence": "medium",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 173
+    },
+    {
+      "skillId": "M9-DZ-002",
+      "canonicalGrade": 9,
+      "domain": "Daten und Zufall",
+      "topic": "Vierfeldertafel",
+      "learningObjective": "Wahrscheinlichkeiten aus Vierfeldertafeln berechnen",
+      "placementConfidence": "medium",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 174
+    },
+    {
+      "skillId": "M9-DZ-003",
+      "canonicalGrade": 9,
+      "domain": "Daten und Zufall",
+      "topic": "Statistik",
+      "learningObjective": "Statistische Aussagen in authentischen Texten beurteilen",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 175
+    },
+    {
+      "skillId": "M10-FZ-001",
+      "canonicalGrade": 10,
+      "domain": "Strukturen und funktionaler Zusammenhang",
+      "topic": "Quadratische Funktionen",
+      "learningObjective": "Normalform und Scheitelpunktform ineinander umformen",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 176
+    },
+    {
+      "skillId": "M10-FZ-002",
+      "canonicalGrade": 10,
+      "domain": "Strukturen und funktionaler Zusammenhang",
+      "topic": "Quadratische Funktionen",
+      "learningObjective": "Parameterwirkungen bei quadratischen Funktionen erklären",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 177
+    },
+    {
+      "skillId": "M10-FZ-003",
+      "canonicalGrade": 10,
+      "domain": "Strukturen und funktionaler Zusammenhang",
+      "topic": "Quadratische Funktionen",
+      "learningObjective": "Nullstellen quadratischer Funktionen rechnerisch bestimmen",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 178
+    },
+    {
+      "skillId": "M10-FZ-004",
+      "canonicalGrade": 10,
+      "domain": "Strukturen und funktionaler Zusammenhang",
+      "topic": "Quadratische Funktionen",
+      "learningObjective": "Quadratische Funktionen in Sachproblemen modellieren",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 179
+    },
+    {
+      "skillId": "M10-FZ-005",
+      "canonicalGrade": 10,
+      "domain": "Strukturen und funktionaler Zusammenhang",
+      "topic": "Wachstum",
+      "learningObjective": "Lineares, quadratisches und exponentielles Wachstum vergleichen",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 180
+    },
+    {
+      "skillId": "M10-FZ-006",
+      "canonicalGrade": 10,
+      "domain": "Strukturen und funktionaler Zusammenhang",
+      "topic": "Exponentialfunktionen",
+      "learningObjective": "Parameter einer Exponentialfunktion deuten",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 181
+    },
+    {
+      "skillId": "M10-ZO-001",
+      "canonicalGrade": 10,
+      "domain": "Zahl und Operation",
+      "topic": "Exponentialgleichungen",
+      "learningObjective": "Einfache Exponentialgleichungen durch systematisches Probieren lösen",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 182
+    },
+    {
+      "skillId": "M10-ZO-002",
+      "canonicalGrade": 10,
+      "domain": "Zahl und Operation",
+      "topic": "Logarithmen",
+      "learningObjective": "Den Logarithmus als Umkehrung des Potenzierens verstehen",
+      "placementConfidence": "medium",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 183
+    },
+    {
+      "skillId": "M10-ZO-003",
+      "canonicalGrade": 10,
+      "domain": "Zahl und Operation",
+      "topic": "Logarithmen",
+      "learningObjective": "Einfache Logarithmen berechnen",
+      "placementConfidence": "medium",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 184
+    },
+    {
+      "skillId": "M10-RF-001",
+      "canonicalGrade": 10,
+      "domain": "Raum und Form",
+      "topic": "Trigonometrie",
+      "learningObjective": "Sinus, Kosinus und Tangens im rechtwinkligen Dreieck unterscheiden",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 185
+    },
+    {
+      "skillId": "M10-RF-002",
+      "canonicalGrade": 10,
+      "domain": "Raum und Form",
+      "topic": "Trigonometrie",
+      "learningObjective": "Mit dem Sinus fehlende Seiten berechnen",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 186
+    },
+    {
+      "skillId": "M10-RF-003",
+      "canonicalGrade": 10,
+      "domain": "Raum und Form",
+      "topic": "Trigonometrie",
+      "learningObjective": "Mit dem Kosinus fehlende Seiten berechnen",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 187
+    },
+    {
+      "skillId": "M10-RF-004",
+      "canonicalGrade": 10,
+      "domain": "Raum und Form",
+      "topic": "Trigonometrie",
+      "learningObjective": "Mit dem Tangens fehlende Seiten berechnen",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 188
+    },
+    {
+      "skillId": "M10-RF-005",
+      "canonicalGrade": 10,
+      "domain": "Raum und Form",
+      "topic": "Trigonometrie",
+      "learningObjective": "Winkel mit inversen trigonometrischen Funktionen berechnen",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 189
+    },
+    {
+      "skillId": "M10-RF-006",
+      "canonicalGrade": 10,
+      "domain": "Raum und Form",
+      "topic": "Trigonometrie",
+      "learningObjective": "Höhen- und Entfernungsprobleme trigonometrisch lösen",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 190
+    },
+    {
+      "skillId": "M10-FZ-007",
+      "canonicalGrade": 10,
+      "domain": "Strukturen und funktionaler Zusammenhang",
+      "topic": "Sinusfunktion",
+      "learningObjective": "Periodische Vorgänge mit der Sinusfunktion beschreiben",
+      "placementConfidence": "medium",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 191
+    },
+    {
+      "skillId": "M10-FZ-008",
+      "canonicalGrade": 10,
+      "domain": "Strukturen und funktionaler Zusammenhang",
+      "topic": "Sinusfunktion",
+      "learningObjective": "Amplitude und Periode einer Sinusfunktion deuten",
+      "placementConfidence": "medium",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 192
+    },
+    {
+      "skillId": "M10-GM-001",
+      "canonicalGrade": 10,
+      "domain": "Größen und Messen",
+      "topic": "Kugel",
+      "learningObjective": "Oberfläche und Volumen einer Kugel berechnen",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 193
+    },
+    {
+      "skillId": "M10-GM-002",
+      "canonicalGrade": 10,
+      "domain": "Größen und Messen",
+      "topic": "Körper",
+      "learningObjective": "Zusammengesetzte Körper zerlegen und berechnen",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 194
+    },
+    {
+      "skillId": "M10-GM-003",
+      "canonicalGrade": 10,
+      "domain": "Größen und Messen",
+      "topic": "Anwendungen",
+      "learningObjective": "Maßstab, Ähnlichkeit und Trigonometrie kombiniert anwenden",
+      "placementConfidence": "medium",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 195
+    },
+    {
+      "skillId": "M10-DZ-001",
+      "canonicalGrade": 10,
+      "domain": "Daten und Zufall",
+      "topic": "Bedingte Wahrscheinlichkeit",
+      "learningObjective": "Bedingte Wahrscheinlichkeit im Baumdiagramm bestimmen",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 196
+    },
+    {
+      "skillId": "M10-DZ-002",
+      "canonicalGrade": 10,
+      "domain": "Daten und Zufall",
+      "topic": "Bedingte Wahrscheinlichkeit",
+      "learningObjective": "Bedingte Wahrscheinlichkeit mit Vierfeldertafeln bestimmen",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 197
+    },
+    {
+      "skillId": "M10-DZ-003",
+      "canonicalGrade": 10,
+      "domain": "Daten und Zufall",
+      "topic": "Unabhängigkeit",
+      "learningObjective": "Stochastische Unabhängigkeit an Beispielen prüfen",
+      "placementConfidence": "medium",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 198
+    },
+    {
+      "skillId": "M10-DZ-004",
+      "canonicalGrade": 10,
+      "domain": "Daten und Zufall",
+      "topic": "Erwartungswert",
+      "learningObjective": "Erwartungswerte einfacher Zufallsexperimente berechnen",
+      "placementConfidence": "medium",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 199
+    },
+    {
+      "skillId": "M10-DZ-005",
+      "canonicalGrade": 10,
+      "domain": "Daten und Zufall",
+      "topic": "Statistik",
+      "learningObjective": "Stichproben und Repräsentativität beurteilen",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 200
+    },
+    {
+      "skillId": "M10-DZ-006",
+      "canonicalGrade": 10,
+      "domain": "Daten und Zufall",
+      "topic": "Statistik",
+      "learningObjective": "Statistische Manipulationen in Medien erkennen",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 201
+    },
+    {
+      "skillId": "M10-FZ-009",
+      "canonicalGrade": 10,
+      "domain": "Strukturen und funktionaler Zusammenhang",
+      "topic": "Modellieren",
+      "learningObjective": "Mehrschrittige Sachprobleme in ein mathematisches Modell übertragen",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 202
+    },
+    {
+      "skillId": "M10-FZ-010",
+      "canonicalGrade": 10,
+      "domain": "Strukturen und funktionaler Zusammenhang",
+      "topic": "Problemlösen",
+      "learningObjective": "Lösungswege vergleichen und auf Effizienz prüfen",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 203
+    },
+    {
+      "skillId": "M10-FZ-011",
+      "canonicalGrade": 10,
+      "domain": "Strukturen und funktionaler Zusammenhang",
+      "topic": "Argumentieren",
+      "learningObjective": "Behauptungen begründen oder mit Gegenbeispielen widerlegen",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 204
+    },
+    {
+      "skillId": "M10-FZ-012",
+      "canonicalGrade": 10,
+      "domain": "Strukturen und funktionaler Zusammenhang",
+      "topic": "Prüfungsvorbereitung",
+      "learningObjective": "Gemischte MSA-Aufgaben strukturiert bearbeiten und kontrollieren",
+      "placementConfidence": "high",
+      "processCompetencies": ["REP"],
+      "sourceMappings": [
+        {
+          "sourceId": "kmk-2022-math",
+          "section": "normalized synthesis",
+          "coverage": "synthesized",
+          "reviewStatus": "pending"
+        }
+      ],
+      "durationSeconds": 240,
+      "allowedVariants": ["foundation", "standard", "challenge"],
+      "editorialStatus": "draft",
+      "prerequisiteIds": [],
+      "seedOrder": 205
+    }
+  ]
+}

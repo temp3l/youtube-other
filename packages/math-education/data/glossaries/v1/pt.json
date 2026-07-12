@@ -1,0 +1,19 @@
+{
+  "artifactVersion": "math-glossary.v1",
+  "language": "pt",
+  "region": "BR",
+  "terms": [
+    {
+      "conceptId": "place-value",
+      "preferred": "valor posicional",
+      "forbidden": [],
+      "tts": "valor posicional"
+    },
+    {
+      "conceptId": "digit",
+      "preferred": "algarismo",
+      "forbidden": ["dígito decimal"],
+      "tts": "algarismo"
+    }
+  ]
+}

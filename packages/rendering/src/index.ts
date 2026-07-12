@@ -1427,20 +1427,28 @@ export async function validateSceneClipArtifacts(args: {
       clipIssues.push(`Missing clip manifest for ${scene.id}.`);
     }
     if (clipIssues.length === 0) {
+      const expectedDurationSeconds = Math.max(
+        0.1,
+        scene.timing.endSeconds - scene.timing.startSeconds
+      );
+      const durationToleranceSeconds = args.durationToleranceSeconds ?? 0.75;
       const validation = await validateRenderOutput(clipPath, {
         expectedWidth: args.renderProfile.width,
         expectedHeight: args.renderProfile.height,
-        expectedDurationSeconds: Math.max(
-          0.1,
-          scene.timing.endSeconds - scene.timing.startSeconds
-        ),
-        durationToleranceSeconds: args.durationToleranceSeconds ?? 0.75,
         requireAudio: false,
         disallowAudio: true,
       });
       durationSeconds = validation.durationSeconds;
       totalClipDurationSeconds += validation.durationSeconds;
       clipIssues.push(...validation.issues);
+      if (
+        validation.durationSeconds + durationToleranceSeconds <
+        expectedDurationSeconds
+      ) {
+        clipIssues.push(
+          `Unexpected duration ${validation.durationSeconds.toFixed(3)}s; expected at least about ${expectedDurationSeconds.toFixed(3)}s.`
+        );
+      }
 
       const manifest = await loadSceneClipManifest(manifestPath);
       if (!manifest) {

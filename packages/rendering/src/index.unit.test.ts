@@ -2353,7 +2353,7 @@ describe("FFmpegVideoRenderer", () => {
       audioDir,
       imageFilename: "scene-001__000000-000003__16x9.png",
       imageSize: { width: 32, height: 32 },
-      durationSeconds: 3,
+      durationSeconds: 5,
     });
 
     const renderProfile = {

@@ -1,0 +1,6 @@
+{
+  "schemaVersion": 1,
+  "reviewStatus": "explicitly-incomplete",
+  "incompleteReason": "No state-specific placement override has completed editorial review; binding state claims are disabled.",
+  "overrides": []
+}

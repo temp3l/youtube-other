@@ -9,6 +9,12 @@ import {
 import { z } from "zod";
 import { configurationErrorFromUnknown } from "./internal.js";
 
+export {
+  loadMathRuntimeConfig,
+  mathRuntimeConfigSchema,
+  type MathRuntimeConfig,
+} from "./math-config.js";
+
 const visualRetentionPresetSchema = z.strictObject({
   id: z.enum(["short-45-60", "short-60-75", "full-4-6m"]),
   pacingProfileId: visualPacingProfileIdSchema,

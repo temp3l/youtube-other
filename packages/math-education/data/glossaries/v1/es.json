@@ -1,0 +1,19 @@
+{
+  "artifactVersion": "math-glossary.v1",
+  "language": "es",
+  "region": "419",
+  "terms": [
+    {
+      "conceptId": "place-value",
+      "preferred": "valor posicional",
+      "forbidden": ["valor de lugar"],
+      "tts": "valor posicional"
+    },
+    {
+      "conceptId": "digit",
+      "preferred": "cifra",
+      "forbidden": [],
+      "tts": "cifra"
+    }
+  ]
+}

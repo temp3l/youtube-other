@@ -46,6 +46,9 @@ Current defects characterized: generated image traversal acceptance; short portr
 
 pnpm mediaforge -- stories rewrite-full --input episodes/028-the-man-in-the-attic/languages/script-en.md --episode-slug 028-the-man-in-the-attic --languages de --force --json
 
+Continue from the current worktree. Read AGENTS.md, docs/ai-context/context-pack.md, docs/mathe/audits/remediation-backlog.md, and the latest math reports. R-004 is accepted; independently review and accept R-005 before
+starting R-006. Preserve unrelated changes, follow focused verification limits, update required plan/run reports, and do not use paid providers or publishing. Baseline commit: ac21261; worktree is uncommitted.
+
 ---
 
 ## next PROMPT:

@@ -1,0 +1,65 @@
+{
+  "assetVersion": "alex.v1-placeholder",
+  "characterId": "alex",
+  "license": "Repository-local implementation placeholder; not approved for public release.",
+  "provenance": "Deterministic SVG placeholders authored for the simulated math pilot on 2026-07-12.",
+  "maxFrameAreaRatio": 0.25,
+  "poses": [
+    {
+      "poseId": "neutral",
+      "file": "neutral.svg",
+      "sha256": "23bfae891db2541cec020eac74ed1e7e90649d3019a35bd5bcec9b0e4411ac1a",
+      "width": 800,
+      "height": 1200,
+      "safeArea": { "left": 0.1, "right": 0.1, "top": 0.05, "bottom": 0.03 }
+    },
+    {
+      "poseId": "explain-left",
+      "file": "explain-left.svg",
+      "sha256": "19e28ead16ab11e9057750f782ee51d8ec5106ebd5219bc7d211f80dfb319c09",
+      "width": 800,
+      "height": 1200,
+      "safeArea": { "left": 0.02, "right": 0.1, "top": 0.05, "bottom": 0.03 }
+    },
+    {
+      "poseId": "explain-right",
+      "file": "explain-right.svg",
+      "sha256": "7b353941d0b559883465d565d9256b5796bab6c1a7cff6250e801861d9c37f8c",
+      "width": 800,
+      "height": 1200,
+      "safeArea": { "left": 0.1, "right": 0.02, "top": 0.05, "bottom": 0.03 }
+    },
+    {
+      "poseId": "question",
+      "file": "question.svg",
+      "sha256": "66a34aec38831994b7d97cb06f01b18b38acd2aab2b650fb0ccf3e548f62794b",
+      "width": 800,
+      "height": 1200,
+      "safeArea": { "left": 0.1, "right": 0.1, "top": 0.05, "bottom": 0.03 }
+    },
+    {
+      "poseId": "think",
+      "file": "think.svg",
+      "sha256": "5091717269ecfb69ee4112674d0bb3cd4b95f348e076e53608d8d78e8b46fbde",
+      "width": 800,
+      "height": 1200,
+      "safeArea": { "left": 0.1, "right": 0.02, "top": 0.02, "bottom": 0.03 }
+    },
+    {
+      "poseId": "celebrate",
+      "file": "celebrate.svg",
+      "sha256": "fa7b8712c6dbbdef8a1fb3622e3365ec4505d93467ca52c4bcfa6e413af42486",
+      "width": 800,
+      "height": 1200,
+      "safeArea": { "left": 0.02, "right": 0.02, "top": 0.02, "bottom": 0.03 }
+    },
+    {
+      "poseId": "warning",
+      "file": "warning.svg",
+      "sha256": "aa158b6c9ee22d4fac1851fe7fc5f4ed39592ebd5118ed7573af2e9b45c80601",
+      "width": 800,
+      "height": 1200,
+      "safeArea": { "left": 0.1, "right": 0.1, "top": 0.05, "bottom": 0.03 }
+    }
+  ]
+}

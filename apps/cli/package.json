@@ -19,6 +19,8 @@
     "@mediaforge/domain": "workspace:*",
     "@mediaforge/dark-truth": "workspace:*",
     "@mediaforge/image-generation": "workspace:*",
+    "@mediaforge/math-education": "workspace:*",
+    "@mediaforge/math-rendering": "workspace:*",
     "@mediaforge/metadata": "workspace:*",
     "@mediaforge/observability": "workspace:*",
     "@mediaforge/persistence": "workspace:*",

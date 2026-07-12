@@ -1,0 +1,163 @@
+{
+  "schemaVersion": 1,
+  "reviewStatus": "explicitly-incomplete",
+  "incompleteReason": "Only conservative direct mathematical dependencies have been reviewed; omitted nodes are not claimed to have no prerequisites.",
+  "disconnectedPolicy": {
+    "status": "reviewed",
+    "reason": "Disconnected nodes are reported as intentionally unresolved until their prerequisite review is complete."
+  },
+  "edges": [
+    {
+      "from": "M5-ZO-017",
+      "to": "M5-ZO-018",
+      "kind": "required",
+      "rationale": "Naming numerator and denominator presupposes the part-whole meaning of a fraction.",
+      "provenance": "conservative mathematical dependency review 2026-07-12",
+      "reviewStatus": "reviewed"
+    },
+    {
+      "from": "M5-ZO-018",
+      "to": "M5-ZO-020",
+      "kind": "required",
+      "rationale": "Recognizing equivalent fractions requires the fraction notation components.",
+      "provenance": "conservative mathematical dependency review 2026-07-12",
+      "reviewStatus": "reviewed"
+    },
+    {
+      "from": "M5-ZO-020",
+      "to": "M5-ZO-021",
+      "kind": "required",
+      "rationale": "Expanding fractions operationalizes equivalence.",
+      "provenance": "conservative mathematical dependency review 2026-07-12",
+      "reviewStatus": "reviewed"
+    },
+    {
+      "from": "M5-ZO-020",
+      "to": "M5-ZO-022",
+      "kind": "required",
+      "rationale": "Reducing fractions operationalizes equivalence.",
+      "provenance": "conservative mathematical dependency review 2026-07-12",
+      "reviewStatus": "reviewed"
+    },
+    {
+      "from": "M5-ZO-023",
+      "to": "M5-ZO-024",
+      "kind": "required",
+      "rationale": "Comparing decimals requires reading their place-value representation.",
+      "provenance": "conservative mathematical dependency review 2026-07-12",
+      "reviewStatus": "reviewed"
+    },
+    {
+      "from": "M5-RF-002",
+      "to": "M5-RF-003",
+      "kind": "required",
+      "rationale": "Measuring and drawing angles requires recognizing angle types and the angle object.",
+      "provenance": "conservative mathematical dependency review 2026-07-12",
+      "reviewStatus": "reviewed"
+    },
+    {
+      "from": "M5-GM-004",
+      "to": "M5-GM-005",
+      "kind": "required",
+      "rationale": "The cuboid volume formula builds on volume as a count of unit cubes.",
+      "provenance": "conservative mathematical dependency review 2026-07-12",
+      "reviewStatus": "reviewed"
+    },
+    {
+      "from": "M5-DZ-001",
+      "to": "M5-DZ-002",
+      "kind": "required",
+      "rationale": "Constructing diagrams requires first collecting and organizing the represented data.",
+      "provenance": "conservative mathematical dependency review 2026-07-12",
+      "reviewStatus": "reviewed"
+    },
+    {
+      "from": "M7-ZO-017",
+      "to": "M7-ZO-018",
+      "kind": "required",
+      "rationale": "Multi-step linear equations extend one-step equation transformations.",
+      "provenance": "conservative mathematical dependency review 2026-07-12",
+      "reviewStatus": "reviewed"
+    },
+    {
+      "from": "M8-FZ-004",
+      "to": "M8-FZ-005",
+      "kind": "required",
+      "rationale": "Determining slope presupposes the linear-function model y = m*x + b.",
+      "provenance": "conservative mathematical dependency review 2026-07-12",
+      "reviewStatus": "reviewed"
+    },
+    {
+      "from": "M8-FZ-005",
+      "to": "M8-FZ-006",
+      "kind": "required",
+      "rationale": "The two-point slope formula formalizes slope-triangle reasoning.",
+      "provenance": "conservative mathematical dependency review 2026-07-12",
+      "reviewStatus": "reviewed"
+    },
+    {
+      "from": "M8-FZ-006",
+      "to": "M8-FZ-009",
+      "kind": "required",
+      "rationale": "A line equation from two points requires deriving its slope from those points.",
+      "provenance": "conservative mathematical dependency review 2026-07-12",
+      "reviewStatus": "reviewed"
+    },
+    {
+      "from": "M8-DZ-001",
+      "to": "M8-DZ-002",
+      "kind": "required",
+      "rationale": "The first path rule is applied to branches of a two-stage probability tree.",
+      "provenance": "conservative mathematical dependency review 2026-07-12",
+      "reviewStatus": "reviewed"
+    },
+    {
+      "from": "M8-DZ-001",
+      "to": "M8-DZ-003",
+      "kind": "required",
+      "rationale": "The second path rule is applied to paths represented in a probability tree.",
+      "provenance": "conservative mathematical dependency review 2026-07-12",
+      "reviewStatus": "reviewed"
+    },
+    {
+      "from": "M9-RF-001",
+      "to": "M9-RF-002",
+      "kind": "required",
+      "rationale": "Calculating a missing side requires understanding the Pythagorean theorem.",
+      "provenance": "conservative mathematical dependency review 2026-07-12",
+      "reviewStatus": "reviewed"
+    },
+    {
+      "from": "M9-RF-002",
+      "to": "M9-RF-003",
+      "kind": "required",
+      "rationale": "Applying the theorem in context requires calculating missing sides first.",
+      "provenance": "conservative mathematical dependency review 2026-07-12",
+      "reviewStatus": "reviewed"
+    },
+    {
+      "from": "M10-RF-001",
+      "to": "M10-RF-002",
+      "kind": "required",
+      "rationale": "Solving with sine requires distinguishing the trigonometric ratios.",
+      "provenance": "conservative mathematical dependency review 2026-07-12",
+      "reviewStatus": "reviewed"
+    },
+    {
+      "from": "M10-RF-001",
+      "to": "M10-RF-003",
+      "kind": "required",
+      "rationale": "Solving with cosine requires distinguishing the trigonometric ratios.",
+      "provenance": "conservative mathematical dependency review 2026-07-12",
+      "reviewStatus": "reviewed"
+    },
+    {
+      "from": "M10-RF-001",
+      "to": "M10-RF-004",
+      "kind": "required",
+      "rationale": "Solving with tangent requires distinguishing the trigonometric ratios.",
+      "provenance": "conservative mathematical dependency review 2026-07-12",
+      "reviewStatus": "reviewed"
+    }
+  ]
+}

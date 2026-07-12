@@ -1,0 +1,1 @@
+Unresolved prerequisites include Remotion installation, direct KaTeX dependency, reviewed prerequisite edges, teacher assets/licensing, separate channel and playlist configuration, and an explicit madeForKids policy.

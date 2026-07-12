@@ -1,0 +1,6 @@
+{
+  "schemaVersion": 1,
+  "policy": "append-only",
+  "migrations": [],
+  "aliases": []
+}
