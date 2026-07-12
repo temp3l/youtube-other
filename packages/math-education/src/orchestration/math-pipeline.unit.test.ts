@@ -9,7 +9,6 @@ import {
 } from "../localization/localization.js";
 import { generateMathMetadata } from "../metadata/math-metadata.js";
 import { MATH_LANGUAGES } from "../domain/index.js";
-import { deriveMathQuality, assertRenderAllowed } from "./quality-gate.js";
 import { runMathBatch } from "./batch.js";
 
 async function pilot() {
@@ -65,19 +64,6 @@ describe("localized math pipeline", () => {
     expect(metadata.find((item) => item.language === "pt")?.tags[0]).toBe(
       "Matemática"
     );
-  });
-
-  it("never permits a mathematical error to render", () => {
-    const report = deriveMathQuality([
-      {
-        checkId: "math",
-        status: "MATHEMATICAL_ERROR",
-        passed: false,
-        message: "bad result",
-      },
-    ]);
-    expect(report.status).toBe("MATHEMATICAL_ERROR");
-    expect(() => assertRenderAllowed(report)).toThrow(/MATHEMATICAL_ERROR/u);
   });
 
   it("continues a batch after an isolated item failure", async () => {

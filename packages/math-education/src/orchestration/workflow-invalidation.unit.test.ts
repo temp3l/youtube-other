@@ -9,20 +9,26 @@ import {
 describe("math workflow invalidation", () => {
   it("marks only a changed stage and its transitive successors stale", () => {
     const now = "2026-07-12T00:00:00.000Z";
+    let parentFingerprints: string[] = [];
     const manifest: WorkflowManifest = {
       artifactVersion: "math-workflow.v2",
       lessonId: "m5-zo-001-standard",
       curriculumReleaseId: "de-gems-5-10-v1",
       simulated: true,
       paidProviderCalled: false,
-      stages: MATH_STAGES.map((stage) => ({
-        stage,
-        status: "succeeded",
-        fingerprint: stageFingerprint(stage, [], {}),
-        parentFingerprints: [],
-        outputArtifacts: [],
-        updatedAt: now,
-      })),
+      stages: MATH_STAGES.map((stage) => {
+        const fingerprint = stageFingerprint(stage, parentFingerprints, {});
+        const record = {
+          stage,
+          status: "succeeded" as const,
+          fingerprint,
+          parentFingerprints,
+          outputArtifacts: [],
+          updatedAt: now,
+        };
+        parentFingerprints = [fingerprint];
+        return record;
+      }),
       failures: [],
     };
     const result = invalidateWorkflowStages(manifest, ["localization"], now);

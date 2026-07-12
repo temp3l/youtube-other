@@ -1,0 +1,15 @@
+{
+  "version": "1",
+  "lessonId": "linear-equations",
+  "locale": "de",
+  "title": "Lineare Gleichungen lösen",
+  "scenes": [
+    { "id": "title", "type": "title", "durationMs": 4000, "localeSensitivity": "localized", "title": "Lineare Gleichungen", "subtitle": "Schritt für Schritt lösen", "transition": { "type": "fade", "durationMs": 400 } },
+    { "id": "objective", "type": "text", "durationMs": 5000, "localeSensitivity": "localized", "heading": "Lernziel", "text": "Du löst eine Gleichung, indem du auf beiden Seiten dieselbe Rechenoperation ausführst.", "annotation": "Die Waage bleibt im Gleichgewicht." },
+    { "id": "equation-setup", "type": "equation", "durationMs": 5000, "localeSensitivity": "language-neutral", "equation": "3x + 6 = 15", "label": "Ausgangsgleichung", "highlight": "Gesucht: x" },
+    { "id": "subtract-six", "type": "equation-transformation", "durationMs": 6000, "localeSensitivity": "localized", "from": "3x + 6 = 15", "to": "3x = 9", "operation": "auf beiden Seiten − 6", "highlight": "Die +6 fällt weg." },
+    { "id": "divide-three", "type": "equation-transformation", "durationMs": 6000, "localeSensitivity": "localized", "from": "3x = 9", "to": "x = 3", "operation": "beide Seiten ÷ 3", "highlight": "Damit steht x allein." },
+    { "id": "linear-graph", "type": "coordinate-graph", "durationMs": 7000, "localeSensitivity": "language-neutral", "xRange": [-5, 5], "yRange": [-10, 20], "functions": [{ "expression": "3*x+6", "domain": [-5, 4], "color": "#38bdf8" }], "points": [{ "x": 3, "y": 15, "label": "(3, 15)" }], "xLabel": "x", "yLabel": "y", "annotation": "Der Punkt (3, 15) bestätigt die Lösung.", "expensiveGrid": true },
+    { "id": "summary", "type": "summary", "durationMs": 5000, "localeSensitivity": "localized", "title": "Zusammenfassung", "points": ["Auf beiden Seiten − 6", "Danach beide Seiten ÷ 3", "Die Lösung ist x = 3"] }
+  ]
+}

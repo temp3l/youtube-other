@@ -64,6 +64,16 @@ export const mathArtifactLineageSchema = z.strictObject({
 });
 export type MathArtifactLineage = z.infer<typeof mathArtifactLineageSchema>;
 
+function hashesMatch(
+  actual: readonly string[],
+  expected: readonly string[]
+): boolean {
+  return (
+    actual.length === expected.length &&
+    actual.every((hash, index) => hash === expected[index])
+  );
+}
+
 export const stageRecordSchema = z.strictObject({
   stage: z.enum(MATH_STAGES),
   status: stageStatusSchema,
@@ -72,6 +82,21 @@ export const stageRecordSchema = z.strictObject({
   outputArtifacts: z.array(mathArtifactLineageSchema),
   updatedAt: z.string().datetime(),
   error: z.string().optional(),
+}).superRefine((record, context) => {
+  for (const [index, output] of record.outputArtifacts.entries()) {
+    if (output.producedBy !== record.stage)
+      context.addIssue({
+        code: "custom",
+        path: ["outputArtifacts", index, "producedBy"],
+        message: `Stage ${record.stage} cannot own output produced by ${output.producedBy}.`,
+      });
+    if (!hashesMatch(output.parentHashes, record.parentFingerprints))
+      context.addIssue({
+        code: "custom",
+        path: ["outputArtifacts", index, "parentHashes"],
+        message: "Output lineage must exactly match its stage parent fingerprints.",
+      });
+  }
 });
 export type MathStageRecord = z.infer<typeof stageRecordSchema>;
 
@@ -92,6 +117,27 @@ export const workflowManifestSchema = z.strictObject({
   paidProviderCalled: z.literal(false),
   stages: z.array(stageRecordSchema).length(MATH_STAGES.length),
   failures: z.array(failureSchema),
+}).superRefine((manifest, context) => {
+  for (const [index, expectedStage] of MATH_STAGES.entries()) {
+    const record = manifest.stages[index];
+    if (record?.stage !== expectedStage)
+      context.addIssue({
+        code: "custom",
+        path: ["stages", index, "stage"],
+        message: `Workflow stage ${expectedStage} must occur exactly once in canonical order.`,
+      });
+    if (index === 0 || !record) continue;
+    const preceding = manifest.stages[index - 1];
+    if (
+      !preceding ||
+      !hashesMatch(record.parentFingerprints, [preceding.fingerprint])
+    )
+      context.addIssue({
+        code: "custom",
+        path: ["stages", index, "parentFingerprints"],
+        message: `Workflow stage ${expectedStage} must be bound to the authoritative preceding stage fingerprint.`,
+      });
+  }
 });
 export type WorkflowManifest = z.infer<typeof workflowManifestSchema>;
 
@@ -128,27 +174,31 @@ function migrateLegacyManifest(
   raw: z.infer<typeof legacyWorkflowManifestSchema>
 ): WorkflowManifest {
   const now = new Date().toISOString();
+  let precedingFingerprint: string | undefined;
   return workflowManifestSchema.parse({
     artifactVersion: "math-workflow.v2",
     lessonId: raw.lessonId,
     curriculumReleaseId: raw.curriculumReleaseId,
     simulated: raw.simulated,
     paidProviderCalled: false,
-    stages: MATH_STAGES.map((stage) => {
+    stages: MATH_STAGES.map((stage, index) => {
       const legacy = raw.stages.find((candidate) => candidate.stage === stage);
-      const fingerprint = legacy?.fingerprint.match(/^[a-f0-9]{64}$/u)
-        ? legacy.fingerprint
-        : canonicalHash({
-            stage,
-            legacyFingerprint: legacy?.fingerprint ?? null,
-          });
+      const parentFingerprints =
+        index === 0 || !precedingFingerprint ? [] : [precedingFingerprint];
+      const fingerprint = canonicalHash({
+        stage,
+        parentFingerprints,
+        legacyFingerprint: legacy?.fingerprint ?? null,
+        reusable: false,
+      });
+      precedingFingerprint = fingerprint;
       const reusable =
         legacy?.status === "succeeded" || legacy?.status === "cached";
       return {
         stage,
         status: reusable ? "stale" : (legacy?.status ?? "planned"),
         fingerprint,
-        parentFingerprints: [],
+        parentFingerprints,
         outputArtifacts: [],
         updatedAt: legacy?.updatedAt ?? now,
         ...(reusable
@@ -229,7 +279,10 @@ export async function outputsAreValid(
   if (record.outputArtifacts.length === 0) return false;
   for (const output of record.outputArtifacts) {
     if (output.schemaVersion === "math-narration.v1") return false;
-    if (output.parentHashes.join(":") !== expectedParentHashes.join(":"))
+    if (
+      output.producedBy !== record.stage ||
+      !hashesMatch(output.parentHashes, expectedParentHashes)
+    )
       return false;
     const target = await isContainedRegularFile(root, output.relativePath);
     if (!target || (await hashFile(target)) !== output.contentHash)
@@ -254,7 +307,12 @@ export async function readAuthoritativeStageArtifact<T>(args: {
   schemaVersion: MathArtifactSchemaVersion;
   schema: z.ZodType<T>;
 }): Promise<T> {
-  const record = args.manifest.stages.find((candidate) => candidate.stage === args.stage);
+  const parsedManifest = workflowManifestSchema.safeParse(args.manifest);
+  if (!parsedManifest.success)
+    throw new Error("Authoritative workflow manifest stage chain is invalid.");
+  const record = parsedManifest.data.stages.find(
+    (candidate) => candidate.stage === args.stage
+  );
   if (!record || !(await outputsAreValid(args.root, record)))
     throw new Error(`Authoritative workflow stage ${args.stage} is not reusable.`);
   const matches = record.outputArtifacts.filter(

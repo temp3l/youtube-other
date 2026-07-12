@@ -1,0 +1,31 @@
+{
+  "name": "@mediaforge/educational-renderer",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": { "types": "./dist/index.d.ts", "default": "./dist/index.js" },
+    "./contracts": { "types": "./dist/contracts.d.ts", "default": "./dist/contracts.js" },
+    "./errors": { "types": "./dist/errors.d.ts", "default": "./dist/errors.js" }
+  },
+  "bin": { "educational-renderer": "./bin/educational-renderer.js" },
+  "files": ["bin", "dist", "fixtures", "README.md"],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint src tests --max-warnings=0",
+    "test": "vitest run -c vitest.config.ts tests/unit tests/architecture",
+    "test:integration": "vitest run -c vitest.config.ts tests/integration",
+    "benchmark": "node ./bin/educational-renderer.js benchmark --fixture fixtures/linear-equations --profiles preview --output .artifacts/benchmarks"
+  },
+  "dependencies": {
+    "commander": "^14.0.0",
+    "katex": "0.17.0",
+    "zod": "^4.0.14"
+  },
+  "devDependencies": {
+    "@types/katex": "0.16.8"
+  }
+}

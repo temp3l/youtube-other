@@ -1,0 +1,37 @@
+{
+  "manifestVersion": "1",
+  "jobId": "linear-equations-changed",
+  "rendererFormatVersion": "educational-video.v1",
+  "profile": {
+    "name": "preview",
+    "width": 960,
+    "height": 540,
+    "frameRate": 15,
+    "encoder": "libx264",
+    "preset": "ultrafast",
+    "pixelFormat": "yuv420p"
+  },
+  "sceneOrder": [
+    "/home/box/workspace/fehmarn-seo/youtube/other/packages/educational-renderer/.artifacts/linear-equations-changed/renderer/scenes/title/scene.mp4",
+    "/home/box/workspace/fehmarn-seo/youtube/other/packages/educational-renderer/.artifacts/linear-equations-changed/renderer/scenes/objective/scene.mp4",
+    "/home/box/workspace/fehmarn-seo/youtube/other/packages/educational-renderer/.artifacts/linear-equations-changed/renderer/scenes/equation-setup/scene.mp4",
+    "/home/box/workspace/fehmarn-seo/youtube/other/packages/educational-renderer/.artifacts/linear-equations-changed/renderer/scenes/subtract-six/scene.mp4",
+    "/home/box/workspace/fehmarn-seo/youtube/other/packages/educational-renderer/.artifacts/linear-equations-changed/renderer/scenes/divide-three/scene.mp4",
+    "/home/box/workspace/fehmarn-seo/youtube/other/packages/educational-renderer/.artifacts/linear-equations-changed/renderer/scenes/linear-graph/scene.mp4",
+    "/home/box/workspace/fehmarn-seo/youtube/other/packages/educational-renderer/.artifacts/linear-equations-changed/renderer/scenes/summary/scene.mp4"
+  ],
+  "output": {
+    "videoPath": "/home/box/workspace/fehmarn-seo/youtube/other/packages/educational-renderer/.artifacts/linear-equations-changed/final/lesson.mp4",
+    "manifestPath": "/home/box/workspace/fehmarn-seo/youtube/other/packages/educational-renderer/.artifacts/linear-equations-changed/manifest.json",
+    "durationMs": 38000,
+    "width": 960,
+    "height": 540,
+    "frameRate": 15,
+    "videoCodec": "h264",
+    "audioCodec": "aac",
+    "sha256": "c20435fd61c1fe1f1f27756b7cb195f630b9b9560ed38627723caf1a05d7e6d0"
+  },
+  "status": "completed",
+  "deterministicSeed": 0,
+  "completedAt": "2026-07-12T23:40:59.393Z"
+}

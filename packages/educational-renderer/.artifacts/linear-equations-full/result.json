@@ -1,0 +1,132 @@
+{
+  "resultVersion": "1",
+  "jobId": "linear-equations",
+  "status": "completed",
+  "output": {
+    "videoPath": "/home/box/workspace/fehmarn-seo/youtube/other/packages/educational-renderer/.artifacts/linear-equations-full/final/lesson.mp4",
+    "manifestPath": "/home/box/workspace/fehmarn-seo/youtube/other/packages/educational-renderer/.artifacts/linear-equations-full/manifest.json",
+    "durationMs": 38000,
+    "width": 1920,
+    "height": 1080,
+    "frameRate": 24,
+    "videoCodec": "h264",
+    "audioCodec": "aac",
+    "sha256": "14517c7a0c42c9385d01662efeb64f1526453a60325b2b144491022db31b2e3f"
+  },
+  "scenes": [
+    {
+      "resultVersion": "1",
+      "sceneId": "title",
+      "status": "completed",
+      "cacheStatus": "hit",
+      "cacheKey": "9e7699d194190d0b6137897a88fb00d440ad6a3f52fab51721471a3198c8d7ab",
+      "outputPath": "/home/box/workspace/fehmarn-seo/youtube/other/packages/educational-renderer/.artifacts/linear-equations-full/renderer/scenes/title/scene.mp4",
+      "sha256": "87b1b9637e8cb8cff86e462540bf8f05df8ad5e4801a94598e349dda104b8da6",
+      "durationMs": 4000,
+      "renderDurationMs": 18,
+      "warnings": [],
+      "errors": []
+    },
+    {
+      "resultVersion": "1",
+      "sceneId": "objective",
+      "status": "completed",
+      "cacheStatus": "hit",
+      "cacheKey": "5e52a0a6335d6c851f5bc19b72d5ba6c81341b747e6cffb363af4359456394c8",
+      "outputPath": "/home/box/workspace/fehmarn-seo/youtube/other/packages/educational-renderer/.artifacts/linear-equations-full/renderer/scenes/objective/scene.mp4",
+      "sha256": "fc8dd48cbb46b8be25ed75bb8f37e509fd24c1d66fa78725c5542e1c17c2c80b",
+      "durationMs": 5000,
+      "renderDurationMs": 5,
+      "warnings": [],
+      "errors": []
+    },
+    {
+      "resultVersion": "1",
+      "sceneId": "equation-setup",
+      "status": "completed",
+      "cacheStatus": "hit",
+      "cacheKey": "2ddecbeb0efb5493e5a80fdbb9c5201d07b78bb68a856ff0f0129630efe97b04",
+      "outputPath": "/home/box/workspace/fehmarn-seo/youtube/other/packages/educational-renderer/.artifacts/linear-equations-full/renderer/scenes/equation-setup/scene.mp4",
+      "sha256": "41f55520a7c0d28aa24d73a2ce13e7abf127180ae85938af42dec2a69f813ace",
+      "durationMs": 5000,
+      "renderDurationMs": 3,
+      "warnings": [],
+      "errors": []
+    },
+    {
+      "resultVersion": "1",
+      "sceneId": "subtract-six",
+      "status": "completed",
+      "cacheStatus": "hit",
+      "cacheKey": "58d25f8af3a2330ad91826ee5e1c84d61339f7698e77e970008460e1275e2af4",
+      "outputPath": "/home/box/workspace/fehmarn-seo/youtube/other/packages/educational-renderer/.artifacts/linear-equations-full/renderer/scenes/subtract-six/scene.mp4",
+      "sha256": "955a1e461c257558821116a5fc2f6af421499f3560fff34b092c2b191b08c549",
+      "durationMs": 6000,
+      "renderDurationMs": 1,
+      "warnings": [],
+      "errors": []
+    },
+    {
+      "resultVersion": "1",
+      "sceneId": "divide-three",
+      "status": "completed",
+      "cacheStatus": "hit",
+      "cacheKey": "3f98485dc07dac9bdf71a394e5a7794972bc027e55a73b319d29fb120a43c012",
+      "outputPath": "/home/box/workspace/fehmarn-seo/youtube/other/packages/educational-renderer/.artifacts/linear-equations-full/renderer/scenes/divide-three/scene.mp4",
+      "sha256": "8a801b99494fe980710b9d233cc5010ae998ca55283f1579765323940070f9da",
+      "durationMs": 6000,
+      "renderDurationMs": 2,
+      "warnings": [],
+      "errors": []
+    },
+    {
+      "resultVersion": "1",
+      "sceneId": "linear-graph",
+      "status": "completed",
+      "cacheStatus": "hit",
+      "cacheKey": "f5715c2ba370191428320e6e28f9db0ea5ba40edff340d38be201d550cd4eca6",
+      "outputPath": "/home/box/workspace/fehmarn-seo/youtube/other/packages/educational-renderer/.artifacts/linear-equations-full/renderer/scenes/linear-graph/scene.mp4",
+      "sha256": "892e38031de8429b2a607d0b0ea1b66656350967e85395c4b8cf46c521034046",
+      "durationMs": 7000,
+      "renderDurationMs": 1,
+      "warnings": [],
+      "errors": []
+    },
+    {
+      "resultVersion": "1",
+      "sceneId": "summary",
+      "status": "completed",
+      "cacheStatus": "hit",
+      "cacheKey": "6785219a4c18c071c78b8effeebc733464fede64fcd30a1ca32599cd7b70b819",
+      "outputPath": "/home/box/workspace/fehmarn-seo/youtube/other/packages/educational-renderer/.artifacts/linear-equations-full/renderer/scenes/summary/scene.mp4",
+      "sha256": "db71284840e5887ad08c04d1dafcc8a8ef124318a21df0a75a5df004d671e62c",
+      "durationMs": 5000,
+      "renderDurationMs": 2,
+      "warnings": [],
+      "errors": []
+    }
+  ],
+  "cache": {
+    "hits": 7,
+    "misses": 0,
+    "stale": 0,
+    "corrupt": 0,
+    "bytesRead": 0
+  },
+  "metrics": {
+    "totalDurationMs": 2003,
+    "validationDurationMs": 15,
+    "sceneRenderDurationMs": 32,
+    "compositionDurationMs": 1600,
+    "ffmpegDurationMs": 1632,
+    "renderedFrameCount": 0,
+    "temporaryBytesWritten": 0
+  },
+  "capabilities": {
+    "ffmpeg": "available",
+    "ffprobe": "available",
+    "encoder": "libx264"
+  },
+  "warnings": [],
+  "errors": []
+}

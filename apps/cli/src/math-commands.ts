@@ -7,7 +7,14 @@ import {
   importCurriculumSeed,
   loadCurriculumRelease,
   MathWorkspacePathResolver,
+  evaluateMinorEditApproval,
+  loadWorkflowManifest,
+  mathMinorEditApprovalSchema,
+  mathPublishDryRunSchema,
+  mathQualityReportSchema,
   planMathBatchItems,
+  qualityExitCode,
+  readAuthoritativeStageArtifact,
   runMathBatch,
   runPilotSimulation,
   validateVariantDifferentiation,
@@ -27,6 +34,15 @@ interface MathSelectionOptions {
   resume?: boolean;
   dryRun?: boolean;
   python?: string;
+}
+
+export class MathCliSemanticError extends Error {
+  readonly exitCode = 3 as const;
+
+  constructor(message: string, options?: ErrorOptions) {
+    super(message, options);
+    this.name = "MathCliSemanticError";
+  }
 }
 
 function repositoryRoot(): string {
@@ -72,6 +88,58 @@ async function simulate(options: MathSelectionOptions) {
     ...(options.python ? { pythonExecutable: options.python } : {}),
     ...(options.resume === undefined ? {} : { resume: options.resume }),
   });
+}
+
+async function authoritativeQuality(workspace: string, lessonId: string) {
+  const paths = new MathWorkspacePathResolver(workspace);
+  const lessonRoot = paths.lesson(lessonId);
+  const manifest = await loadWorkflowManifest(paths.manifest(lessonId));
+  if (!manifest || manifest.lessonId !== lessonId)
+    throw new Error(`Missing or identity-mismatched workflow manifest for ${lessonId}.`);
+  const relativePath = "canonical/quality.json";
+  const report = await readAuthoritativeStageArtifact({
+    root: lessonRoot,
+    manifest,
+    stage: "quality-gate",
+    relativePath,
+    schemaVersion: "math-quality.v2",
+    schema: mathQualityReportSchema,
+  });
+  if (report.lessonId !== lessonId || report.lessonId !== manifest.lessonId)
+    throw new Error(
+      `Quality report identity does not match requested lesson ${lessonId}.`
+    );
+  const stage = manifest.stages.find((record) => record.stage === "quality-gate")!;
+  const lineage = stage.outputArtifacts.find((artifact) => artifact.relativePath === relativePath)!;
+  const approvalLineage = stage.outputArtifacts.find((artifact) => artifact.relativePath === "canonical/minor-edit-approval.json" && artifact.schemaVersion === "math-minor-approval.v1");
+  const approval = approvalLineage
+    ? await readAuthoritativeStageArtifact({ root: lessonRoot, manifest, stage: "quality-gate", relativePath: approvalLineage.relativePath, schemaVersion: "math-minor-approval.v1", schema: mathMinorEditApprovalSchema })
+    : undefined;
+  const approvalResult = evaluateMinorEditApproval({ report, qualityRelativePath: relativePath, qualityContentHash: lineage.contentHash, approval });
+  return {
+    lessonId,
+    derivedStatus: report.status,
+    blockers: report.blockers,
+    selectedScope: { locales: report.selectedLocales },
+    approval: approvalResult,
+    permissions: {
+      renderPreflightAllowed: report.renderPreflightAllowed,
+      finalMediaReady: report.finalMediaReady,
+      publishAllowed: report.publishableWithoutApproval || approvalResult.approved,
+    },
+    report,
+  };
+}
+
+async function printQualitySelection(workspace: string, lessonIds: readonly string[]) {
+  try {
+    const results = await Promise.all(lessonIds.map((lessonId) => authoritativeQuality(workspace, lessonId)));
+    process.exitCode = qualityExitCode(results.map((result) => result.derivedStatus));
+    print(results.length === 1 ? results[0] : { results, exitCode: process.exitCode });
+  } catch (error) {
+    process.exitCode = 1;
+    throw error;
+  }
 }
 
 export function registerMathCommands(program: Command): void {
@@ -239,12 +307,11 @@ export function registerMathCommands(program: Command): void {
   for (const name of ["status", "inspect"] as const)
     production
       .command(name)
-      .requiredOption("--lesson <lesson-id>")
+      .requiredOption("--lesson <lesson-id...>")
       .requiredOption("--workspace <path>")
-      .action(async (opts: { lesson: string; workspace: string }) => {
-        const paths = new MathWorkspacePathResolver(opts.workspace);
-        print(await paths.readJson(paths.manifest(opts.lesson)));
-      });
+      .action(async (opts: { lesson: string[]; workspace: string }) =>
+        printQualitySelection(opts.workspace, opts.lesson)
+      );
 
   const batch = math
     .command("batch")
@@ -352,22 +419,17 @@ export function registerMathCommands(program: Command): void {
     .description("Inspect the derived, fail-closed math quality status");
   quality
     .command("check")
-    .requiredOption("--lesson <lesson-id>")
+    .requiredOption("--lesson <lesson-id...>")
     .requiredOption("--workspace <path>")
-    .action(async (opts: { lesson: string; workspace: string }) => {
-      const paths = new MathWorkspacePathResolver(opts.workspace);
-      print(
-        await paths.readJson(
-          paths.resolve(opts.lesson, "canonical", "quality.json")
-        )
-      );
-    });
+    .action(async (opts: { lesson: string[]; workspace: string }) =>
+      printQualitySelection(opts.workspace, opts.lesson)
+    );
   const metadata = math
     .command("metadata")
     .description("Inspect generated math metadata");
   metadata
     .command("generate")
-    .requiredOption("--lesson <lesson-id>")
+    .requiredOption("--lesson <lesson-id...>")
     .requiredOption("--workspace <path>")
     .option("--language <language>", "target language", "de")
     .action(
@@ -382,29 +444,70 @@ export function registerMathCommands(program: Command): void {
     );
   math
     .command("status")
-    .requiredOption("--lesson <lesson-id>")
+    .requiredOption("--lesson <lesson-id...>")
     .requiredOption("--workspace <path>")
-    .action(async (opts: { lesson: string; workspace: string }) => {
-      const paths = new MathWorkspacePathResolver(opts.workspace);
-      print(await paths.readJson(paths.manifest(opts.lesson)));
-    });
+    .action(async (opts: { lesson: string[]; workspace: string }) =>
+      printQualitySelection(opts.workspace, opts.lesson)
+    );
   math
     .command("publish")
     .requiredOption("--lesson <lesson-id>")
     .requiredOption("--workspace <path>")
     .option("--language <language>", "target language", "de")
-    .requiredOption("--dry-run", "publishing is only available as a dry run")
+    .option("--dry-run", "publishing is only available as a dry run")
     .action(
-      async (opts: { lesson: string; workspace: string; language: string }) => {
-        const paths = new MathWorkspacePathResolver(opts.workspace);
-        print(
-          await paths.readJson(
-            path.join(
-              paths.locale(opts.lesson, opts.language),
-              "publish-dry-run.json"
-            )
+      async (
+        _opts: { lesson: string; workspace: string; language: string },
+        command: Command
+      ) => {
+        const opts = command.optsWithGlobals<{
+          lesson: string;
+          workspace: string;
+          language: string;
+          dryRun?: boolean;
+        }>();
+        if (!opts.dryRun)
+          throw new Error("Math publish requires --dry-run.");
+        try {
+          const quality = await authoritativeQuality(opts.workspace, opts.lesson);
+          if (!quality.permissions.publishAllowed) {
+            throw new MathCliSemanticError(
+              `Publishing blocked: ${quality.derivedStatus}.`
+            );
+          }
+          if (!quality.report.selectedLocales.includes(opts.language as MathLanguage))
+            throw new Error(
+              `Publish language ${opts.language} is outside the authoritative quality scope.`
+            );
+          const paths = new MathWorkspacePathResolver(opts.workspace);
+          const manifest = await loadWorkflowManifest(paths.manifest(opts.lesson));
+          if (!manifest || manifest.lessonId !== opts.lesson)
+            throw new Error(
+              `Missing or identity-mismatched workflow manifest for ${opts.lesson}.`
+            );
+          const relativePath = `locales/${opts.language}/publish-dry-run.json`;
+          const packet = await readAuthoritativeStageArtifact({
+            root: paths.lesson(opts.lesson),
+            manifest,
+            stage: "metadata-playlists",
+            relativePath,
+            schemaVersion: "math-publish-dry-run.v1",
+            schema: mathPublishDryRunSchema,
+          });
+          if (
+            packet.lessonId !== opts.lesson ||
+            packet.lessonId !== manifest.lessonId ||
+            packet.language !== opts.language
           )
-        );
+            throw new Error(
+              `Publish packet identity does not match ${opts.lesson}/${opts.language}.`
+            );
+          print({ quality, packet });
+        } catch (error) {
+          process.exitCode =
+            error instanceof MathCliSemanticError ? error.exitCode : 1;
+          throw error;
+        }
       }
     );
 }

@@ -1,0 +1,37 @@
+{
+  "manifestVersion": "1",
+  "jobId": "benchmark-preview-libx264",
+  "rendererFormatVersion": "educational-video.v1",
+  "profile": {
+    "name": "preview",
+    "width": 960,
+    "height": 540,
+    "frameRate": 15,
+    "encoder": "libx264",
+    "preset": "ultrafast",
+    "pixelFormat": "yuv420p"
+  },
+  "sceneOrder": [
+    "/home/box/workspace/fehmarn-seo/youtube/other/packages/educational-renderer/.artifacts/benchmarks/preview-libx264/renderer/scenes/title/scene.mp4",
+    "/home/box/workspace/fehmarn-seo/youtube/other/packages/educational-renderer/.artifacts/benchmarks/preview-libx264/renderer/scenes/objective/scene.mp4",
+    "/home/box/workspace/fehmarn-seo/youtube/other/packages/educational-renderer/.artifacts/benchmarks/preview-libx264/renderer/scenes/equation-setup/scene.mp4",
+    "/home/box/workspace/fehmarn-seo/youtube/other/packages/educational-renderer/.artifacts/benchmarks/preview-libx264/renderer/scenes/subtract-six/scene.mp4",
+    "/home/box/workspace/fehmarn-seo/youtube/other/packages/educational-renderer/.artifacts/benchmarks/preview-libx264/renderer/scenes/divide-three/scene.mp4",
+    "/home/box/workspace/fehmarn-seo/youtube/other/packages/educational-renderer/.artifacts/benchmarks/preview-libx264/renderer/scenes/linear-graph/scene.mp4",
+    "/home/box/workspace/fehmarn-seo/youtube/other/packages/educational-renderer/.artifacts/benchmarks/preview-libx264/renderer/scenes/summary/scene.mp4"
+  ],
+  "output": {
+    "videoPath": "/home/box/workspace/fehmarn-seo/youtube/other/packages/educational-renderer/.artifacts/benchmarks/preview-libx264/final/lesson.mp4",
+    "manifestPath": "/home/box/workspace/fehmarn-seo/youtube/other/packages/educational-renderer/.artifacts/benchmarks/preview-libx264/manifest.json",
+    "durationMs": 38000,
+    "width": 960,
+    "height": 540,
+    "frameRate": 15,
+    "videoCodec": "h264",
+    "audioCodec": "aac",
+    "sha256": "5c4a777ef12dc415299c96fabf4ca8f5cd6a095a165549b1ab45699fdb73e838"
+  },
+  "status": "completed",
+  "deterministicSeed": 0,
+  "completedAt": "2026-07-12T23:46:21.117Z"
+}

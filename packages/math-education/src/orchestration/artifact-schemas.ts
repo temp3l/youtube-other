@@ -11,6 +11,7 @@ import {
 } from "../localization/localization.js";
 import { mathMetadataSchema } from "../metadata/math-metadata.js";
 import { verifierResponseSchema } from "../verification/protocol-schemas.js";
+import { mathMinorEditApprovalSchema, mathQualityReportSchema } from "./quality-gate.js";
 
 export const mathArtifactSchemaVersionSchema = z.enum([
   "curriculum-skill.v1",
@@ -24,6 +25,8 @@ export const mathArtifactSchemaVersionSchema = z.enum([
   "math-metadata.v1",
   "math-publish-dry-run.v1",
   "math-quality.v1",
+  "math-quality.v2",
+  "math-minor-approval.v1",
 ]);
 export type MathArtifactSchemaVersion = z.infer<
   typeof mathArtifactSchemaVersionSchema
@@ -71,7 +74,7 @@ export const mathVisualPlanSchema = z.strictObject({
   }
 });
 
-const publishDryRunSchema = z.strictObject({
+export const mathPublishDryRunSchema = z.strictObject({
   artifactVersion: z.literal("math-publish-dry-run.v1"),
   lessonId: z.string().min(1),
   language: z.enum(["de", "en", "es", "fr", "pt"]),
@@ -105,8 +108,10 @@ const schemas: Record<MathArtifactSchemaVersion, z.ZodType> = {
   "math-timing.v1": timingManifestSchema,
   "math-visual-plan.v1": mathVisualPlanSchema,
   "math-metadata.v1": mathMetadataSchema,
-  "math-publish-dry-run.v1": publishDryRunSchema,
+  "math-publish-dry-run.v1": mathPublishDryRunSchema,
   "math-quality.v1": qualitySchema,
+  "math-quality.v2": mathQualityReportSchema,
+  "math-minor-approval.v1": mathMinorEditApprovalSchema,
 };
 
 export function parseMathArtifactPayload(

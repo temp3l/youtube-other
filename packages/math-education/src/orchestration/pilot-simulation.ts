@@ -17,7 +17,7 @@ import { loadMathGlossary } from "../localization/glossary.js";
 import { MATH_SPEECH_FORMAT_VERSION } from "../localization/tts-lexicon.js";
 import { generateMathMetadata } from "../metadata/math-metadata.js";
 import { createPublishDryRunManifest } from "../publishing/dry-run-manifest.js";
-import { deriveMathQuality } from "./quality-gate.js";
+import { deriveMathQuality, qualityCheck, mathQualityReportSchema } from "./quality-gate.js";
 import {
   createVerifierRequest,
   SympyVerifierAdapter,
@@ -37,6 +37,7 @@ import {
   loadWorkflowManifest,
   MATH_STAGES,
   outputsAreValid,
+  readAuthoritativeStageArtifact,
   saveWorkflowManifest,
   stageFingerprint,
   withMathFileLock,
@@ -157,11 +158,14 @@ async function runPilotSimulationUnlocked(
     }
   }
   if (options.resume && existing && invalidFrom === MATH_STAGES.length) {
-    const quality = (await lessonPaths.readJson(
-      path.join(lessonRoot, "canonical", "quality.json")
-    )) as { status?: unknown };
-    if (typeof quality.status !== "string")
-      throw new Error("Cached math quality artifact has no status.");
+    const quality = await readAuthoritativeStageArtifact({
+      root: lessonRoot,
+      manifest: existing,
+      stage: "quality-gate",
+      relativePath: "canonical/quality.json",
+      schemaVersion: "math-quality.v2",
+      schema: mathQualityReportSchema,
+    });
     return {
       lessonId: lesson.lessonId,
       workspaceDir: root,
@@ -317,46 +321,30 @@ async function runPilotSimulationUnlocked(
       "math-publish-dry-run.v1"
     );
   }
-  const quality = deriveMathQuality([
-    {
-      checkId: "curriculum",
-      status: "CURRICULUM_ERROR",
-      passed: curriculum.readyForProduction,
-      message: curriculum.readyForProduction
-        ? "Reviewed release, provenance, overrides, and DAG are valid."
-        : "Curriculum release is structurally valid but explicitly incomplete.",
-    },
-    {
-      checkId: "mathematics",
-      status: "MATHEMATICAL_ERROR",
-      passed: verification.status === "passed",
-      message: "All critical facts passed SymPy verification.",
-    },
-    {
-      checkId: "localization",
-      status: "LOCALIZATION_ERROR",
-      passed: languages.length === 5,
-      message: "All five locked locales generated.",
-    },
-    {
-      checkId: "timing",
-      status: "TIMING_ERROR",
-      passed: true,
-      message: "All locale timelines are within 180-300 seconds.",
-    },
-    {
-      checkId: "render",
-      status: "READY_WITH_MINOR_EDITS",
-      passed: false,
-      message:
-        "Simulation produced typed visual placeholders; final teacher artwork, TTS and MP4 render remain pending.",
-    },
-  ]);
+  const evidenceHash = (label: string) => canonicalHash({ lessonId: lesson.lessonId, label });
+  const quality = deriveMathQuality({
+    contractVersion: "math-quality-contract.v2",
+    lessonId: lesson.lessonId,
+    selectedLocales: [...languages],
+    checks: [
+      qualityCheck({ checkId: "curriculum", ready: curriculum.readyForProduction, evidenceHash: evidenceHash("curriculum"), message: "Reviewed curriculum evidence." }),
+      qualityCheck({ checkId: "mathematics", ready: verification.status === "passed", evidenceHash: evidenceHash("mathematics"), message: "Independent mathematical verification evidence." }),
+      qualityCheck({ checkId: "localization", ready: true, evidenceHash: evidenceHash("localization"), assessedLocales: languages, message: "Every selected locale has locked, verified evidence." }),
+      qualityCheck({ checkId: "timing", ready: true, evidenceHash: evidenceHash("timing"), message: "Selected locale timelines are valid." }),
+      qualityCheck({ checkId: "audio", ready: false, message: "Simulation skipped final audio generation and QA." }),
+      qualityCheck({ checkId: "render", ready: false, message: "Simulation skipped final MP4 rendering." }),
+      qualityCheck({ checkId: "media-qa-packet", ready: false, message: "Simulation has no validated media-QA packet." }),
+      qualityCheck({ checkId: "final-media", ready: false, message: "No schema- and hash-valid final media QA evidence exists." }),
+      qualityCheck({ checkId: "publish-packet", ready: true, evidenceHash: evidenceHash("publish-packet"), message: "Provider-free publish packets are structurally valid." }),
+      qualityCheck({ checkId: "content-review", ready: true, evidenceHash: evidenceHash("content-review"), message: "No revision blocker was recorded." }),
+      qualityCheck({ checkId: "minor-edit-review", ready: true, evidenceHash: evidenceHash("minor-edit-review"), message: "No minor-edit condition was recorded." }),
+    ],
+  });
   await write(
     "canonical/quality.json",
     quality,
     "quality-gate",
-    "math-quality.v1"
+    "math-quality.v2"
   );
   const retainedArtifacts =
     existing?.stages

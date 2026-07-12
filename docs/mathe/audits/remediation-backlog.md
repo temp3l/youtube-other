@@ -114,6 +114,20 @@ evidence were not refreshed. R-008 remains untouched.
 
 ## R-008 — Make quality and CLI outcomes strictly fail-closed
 
+Status: accepted 2026-07-13 after a new independent adversarial source review
+and fresh focused verification of the repaired implementation.
+
+The repair binds every v2 stage and output lineage to the canonical manifest
+chain, binds quality/approval/publish payload identity to the requested lesson
+and locale, and preserves only the classified blocked-publish exit `3` through
+top-level telemetry/finalization. Adversarial tests cover transplanted suffixes,
+identity/path/producer/parent/duplicate mismatches, and ambient exit-code
+rejection. The real-entrypoint test uses the production math command; merged
+root/child `--dry-run` handling reaches the action, classified blocked publish
+retains exit `3` through telemetry, and generic failures finish with exit `1`.
+Fresh workflow, quality, combined CLI, and affected-package checks pass. R-009
+remains unstarted.
+
 - Related findings: F-006, F-007.
 - Objective: derive status only from a complete versioned gate set and map it correctly to render/publish permissions and exit codes.
 - Expected files: quality gate/approval schemas, CLI production/quality/status handlers, workflow integration, tests.

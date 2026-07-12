@@ -1,0 +1,7 @@
+file '/home/box/workspace/fehmarn-seo/youtube/other/packages/educational-renderer/.artifacts/benchmarks/preview-libx264-changed/renderer/scenes/title/scene.mp4'
+file '/home/box/workspace/fehmarn-seo/youtube/other/packages/educational-renderer/.artifacts/benchmarks/preview-libx264-changed/renderer/scenes/objective/scene.mp4'
+file '/home/box/workspace/fehmarn-seo/youtube/other/packages/educational-renderer/.artifacts/benchmarks/preview-libx264-changed/renderer/scenes/equation-setup/scene.mp4'
+file '/home/box/workspace/fehmarn-seo/youtube/other/packages/educational-renderer/.artifacts/benchmarks/preview-libx264-changed/renderer/scenes/subtract-six/scene.mp4'
+file '/home/box/workspace/fehmarn-seo/youtube/other/packages/educational-renderer/.artifacts/benchmarks/preview-libx264-changed/renderer/scenes/divide-three/scene.mp4'
+file '/home/box/workspace/fehmarn-seo/youtube/other/packages/educational-renderer/.artifacts/benchmarks/preview-libx264-changed/renderer/scenes/linear-graph/scene.mp4'
+file '/home/box/workspace/fehmarn-seo/youtube/other/packages/educational-renderer/.artifacts/benchmarks/preview-libx264-changed/renderer/scenes/summary/scene.mp4'

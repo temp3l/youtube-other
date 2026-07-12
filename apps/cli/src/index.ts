@@ -145,7 +145,10 @@ import {
   type EpisodeImageSummary,
 } from "./episode-image-summary.js";
 import { registerImagesBatchCommands } from "./images-batch-commands.js";
-import { registerMathCommands } from "./math-commands.js";
+import {
+  MathCliSemanticError,
+  registerMathCommands,
+} from "./math-commands.js";
 import { buildImageStatusOutput } from "./images-status-output.js";
 import { registerImagesResumeCommand } from "./images-resume-command.js";
 import { registerImagesSyncSharedCommand } from "./images-sync-shared-command.js";
@@ -4986,12 +4989,14 @@ await withExecutionTelemetry(telemetry, async () => {
       endedAt: new Date().toISOString(),
     });
   } catch (error: unknown) {
+    const exitCode =
+      error instanceof MathCliSemanticError ? error.exitCode : 1;
     await telemetry.finalize({
       success: false,
-      exitCode: 1,
+      exitCode,
       endedAt: new Date().toISOString(),
     });
     process.stderr.write(`${JSON.stringify(serializeError(error), null, 2)}\n`);
-    process.exitCode = 1;
+    process.exitCode = exitCode;
   }
 });
