@@ -14,6 +14,30 @@
       "preferred": "algarismo",
       "forbidden": ["dígito decimal"],
       "tts": "algarismo"
+    },
+    {
+      "conceptId": "perimeter",
+      "preferred": "perímetro",
+      "forbidden": ["circunferência do retângulo"],
+      "tts": "perímetro"
+    },
+    {
+      "conceptId": "side-length",
+      "preferred": "comprimento do lado",
+      "forbidden": [],
+      "tts": "comprimento do lado"
+    },
+    {
+      "conceptId": "tally-chart",
+      "preferred": "tabela de contagem",
+      "forbidden": ["lista de riscos"],
+      "tts": "tabela de contagem"
+    },
+    {
+      "conceptId": "total",
+      "preferred": "total",
+      "forbidden": [],
+      "tts": "total"
     }
   ]
 }

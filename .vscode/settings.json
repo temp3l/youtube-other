@@ -1,0 +1,149 @@
+{
+  "npm.packageManager": "pnpm",
+  "search.followSymlinks": false,
+  "editor.minimap.enabled": false,
+  "editor.formatOnSave": true,
+  "editor.wordWrapColumn": 300,
+  "editor.unicodeHighlight.ambiguousCharacters": false,
+  "eslint.useFlatConfig": true,
+  "prettier.requireConfig": true,
+  "prettier.singleQuote": false,
+  "prettier.jsxSingleQuote": false,
+  "editor.codeActionsOnSave": {
+    "source.organizeImports": "explicit",
+    "source.fixAll.eslint": "explicit"
+  },
+  "[javascript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[javascriptreact]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[typescript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[typescriptreact]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[json]": {
+    "editor.defaultFormatter": "vscode.json-language-features"
+  },
+  "[jsonc]": {
+    "editor.defaultFormatter": "vscode.json-language-features"
+  },
+  "[html]": {
+    "editor.defaultFormatter": "vscode.html-language-features"
+  },
+  "[css]": {
+    "editor.defaultFormatter": "vscode.css-language-features"
+  },
+  "[scss]": {
+    "editor.defaultFormatter": "vscode.css-language-features"
+  },
+  "[markdown]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "files.associations": {
+    "*.json.liquid": "json",
+    "*.yaml.liquid": "yaml",
+    "*.md.liquid": "markdown",
+    "*.js.liquid": "liquid-javascript",
+    "*.css.liquid": "liquid-css",
+    "*.scss.liquid": "liquid-scss",
+    "*.inc": "lua",
+    "*.php": "php",
+    ".env*": "dotenv"
+  },
+  "files.exclude": {
+    ".mediaforge.sqlite": true,
+    "*.tsbuildinfo": true,
+    "**/.angular/**": true,
+    "**/.cache/**": true,
+    "**/.eslintcache": true,
+    "**/.git/objects/**": true,
+    "**/.github": true,
+    "**/.mediaforge/**": true,
+    "**/.next/**": true,
+    "**/.nx/**": true,
+    "**/.nyc_output": true,
+    "**/.storage/**": true,
+    "**/.tmp*": true,
+    "**/.trash": true,
+    "**/.yarn/**": true,
+    "**/*compile-cache*": true,
+    "**/backups/**": true,
+    "**/build/**": true,
+    "**/data/**": true,
+    "**/dist/**": true,
+    "**/dump/**": true,
+    "**/node_modules/**": true,
+    "**/storage/**": true,
+    "**/storybook-static/**": true,
+    "**/tmp/**": true,
+    "package-lock.json": true
+  },
+  "files.watcherExclude": {
+    ".mediaforge.sqlite": true,
+    "*.tsbuildinfo": true,
+    "**/.angular/**": true,
+    "**/.cache/**": true,
+    "**/.eslintcache": true,
+    "**/.git/objects/**": true,
+    "**/.github": true,
+    "**/.mediaforge/**": true,
+    "**/.next/**": true,
+    "**/.nx/**": true,
+    "**/.nyc_output": true,
+    "**/.storage/**": true,
+    "**/.tmp*": true,
+    "**/.trash": true,
+    "**/.yarn/**": true,
+    "**/*compile-cache*": true,
+    "**/backups/**": true,
+    "**/build/**": true,
+    "**/data/**": true,
+    "**/dist/**": true,
+    "**/dump/**": true,
+    "**/node_modules/**": true,
+    "**/storage/**": true,
+    "**/storybook-static/**": true,
+    "**/tmp/**": true,
+    "package-lock.json": true
+  },
+  "search.exclude": {
+    ".mediaforge.sqlite": true,
+    "*.tsbuildinfo": true,
+    "**/.angular/**": true,
+    "**/.cache/**": true,
+    "**/.eslintcache": true,
+    "**/.git/objects/**": true,
+    "**/.github": true,
+    "**/.mediaforge/**": true,
+    "**/.next/**": true,
+    "**/.nx/**": true,
+    "**/.nyc_output": true,
+    "**/.storage/**": true,
+    "**/.tmp*": true,
+    "**/.trash": true,
+    "**/.yarn/**": true,
+    "**/*compile-cache*": true,
+    "**/backups/**": true,
+    "**/build/**": true,
+    "**/data/**": true,
+    "**/dist/**": true,
+    "**/dump/**": true,
+    "**/node_modules/**": true,
+    "**/storage/**": true,
+    "**/storybook-static/**": true,
+    "**/tmp/**": true,
+    "package-lock.json": true
+  },
+  "git.enabled": false,
+  "git.enableStatusBarSync": false,
+  "git.optimisticUpdate": false,
+  "git.pullTags": false,
+  "gitlens.advanced.messages": {
+    "suppressGitDisabledWarning": true,
+    "suppressGitMissingWarning": true
+  }
+}

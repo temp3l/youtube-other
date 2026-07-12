@@ -14,6 +14,30 @@
       "preferred": "Ziffer",
       "forbidden": [],
       "tts": "Ziffer"
+    },
+    {
+      "conceptId": "perimeter",
+      "preferred": "Umfang",
+      "forbidden": ["Perimeter"],
+      "tts": "Umfang"
+    },
+    {
+      "conceptId": "side-length",
+      "preferred": "Seitenlänge",
+      "forbidden": [],
+      "tts": "Seitenlänge"
+    },
+    {
+      "conceptId": "tally-chart",
+      "preferred": "Strichliste",
+      "forbidden": [],
+      "tts": "Strichliste"
+    },
+    {
+      "conceptId": "total",
+      "preferred": "Gesamtzahl",
+      "forbidden": [],
+      "tts": "Gesamtzahl"
     }
   ]
 }

@@ -26,6 +26,24 @@ export type ExpressionNode =
     }
   | { kind: "tuple" | "set" | "matrix"; items: ExpressionNode[] };
 
+export interface UnitExpression {
+  symbol: string;
+  scale: { numerator: string; denominator: string };
+  dimensions: Record<string, number>;
+  angle?: "degree" | "radian" | undefined;
+}
+
+export type ExactValue =
+  | { kind: "scalar"; expression: ExpressionNode }
+  | { kind: "measurement"; value: ExpressionNode; unit: UnitExpression }
+  | { kind: "finite-set" | "tuple"; values: ExactValue[] }
+  | {
+      kind: "approximation";
+      exact: ExpressionNode;
+      displayed: string;
+      tolerance: ExpressionNode;
+    };
+
 export const expressionNodeSchema: z.ZodType<ExpressionNode> = z.lazy(() =>
   z.discriminatedUnion("kind", [
     z.strictObject({ kind: z.literal("integer"), value: integerStringSchema }),
@@ -81,7 +99,7 @@ export const expressionNodeSchema: z.ZodType<ExpressionNode> = z.lazy(() =>
   ])
 );
 
-export const unitExpressionSchema = z.strictObject({
+export const unitExpressionSchema: z.ZodType<UnitExpression> = z.strictObject({
   symbol: z.string().min(1),
   scale: z.strictObject({
     numerator: positiveIntegerStringSchema,
@@ -158,7 +176,7 @@ export const measurementExactValueSchema = z.strictObject({
   unit: unitExpressionSchema,
 });
 
-export const exactValueSchema: z.ZodType = z.lazy(() =>
+export const exactValueSchema: z.ZodType<ExactValue> = z.lazy(() =>
   z.discriminatedUnion("kind", [
     scalarExactValueSchema,
     measurementExactValueSchema,

@@ -105,4 +105,39 @@ describe("pilot resume", () => {
       expect(verification.status).toBe("passed");
     }
   });
+
+  it("reruns localized display verification for all five locked locales", async () => {
+    const workspaceDir = await fs.mkdtemp(
+      path.join(os.tmpdir(), "math-localized-display-")
+    );
+    const result = await runPilotSimulation({
+      repositoryRoot: process.cwd(),
+      workspaceDir,
+      skillId: "M5-ZO-001",
+      variant: "standard",
+      languages: ["de", "en", "es", "fr", "pt"],
+      pythonExecutable,
+    });
+    const lockHashes = new Set<string>();
+    for (const language of ["de", "en", "es", "fr", "pt"] as const) {
+      const localeRoot = path.join(
+        workspaceDir,
+        result.lessonId,
+        "locales",
+        language
+      );
+      const narration = JSON.parse(
+        await fs.readFile(path.join(localeRoot, "narration.json"), "utf8")
+      ) as { factLockHash: string; region: string };
+      const verification = JSON.parse(
+        await fs.readFile(
+          path.join(localeRoot, "display-verification.json"),
+          "utf8"
+        )
+      ) as { status: string };
+      lockHashes.add(narration.factLockHash);
+      expect(verification.status).toBe("passed");
+    }
+    expect(lockHashes).toHaveLength(1);
+  });
 });

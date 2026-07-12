@@ -1,140 +1,280 @@
 import { z } from "zod";
 import {
+  type ExactValue,
   type LessonVariantSpecification,
   mathLanguageSchema,
   type MathLanguage,
 } from "../domain/index.js";
 import { canonicalHash } from "../verification/canonical-json.js";
+import { buildFactLock } from "./fact-lock.js";
+import {
+  assertGlossaryText,
+  glossaryTerm,
+  loadMathGlossary,
+  type MathGlossary,
+} from "./glossary.js";
+import {
+  formatExactInteger,
+  formatExpression,
+  formatMeasurement,
+  type FormattedMath,
+} from "./locale-formatter.js";
+import { localeProfiles } from "./tts-lexicon.js";
+
+const sha256Schema = z.string().regex(/^[a-f0-9]{64}$/u);
+
+export const legacyLocalizedNarrationSchema = z.strictObject({
+  artifactVersion: z.literal("math-narration.v1"),
+  language: mathLanguageSchema,
+  lessonId: z.string(),
+  objectiveHash: sha256Schema,
+  factLockHash: sha256Schema,
+  segments: z
+    .array(
+      z.strictObject({
+        segmentId: z.string().regex(/^segment-\d{3}$/u),
+        sceneId: z.string().regex(/^scene-\d{3}$/u),
+        sceneFunction: z.string().min(1),
+        text: z.string().min(1),
+        factIds: z.array(z.string()),
+      })
+    )
+    .length(9),
+  glossaryVersion: z.literal("math-glossary.v1"),
+  contentHash: sha256Schema,
+});
+
+export const resolvedFactSchema = z.strictObject({
+  factId: z.string().regex(/^[a-z0-9-]+$/u),
+  semanticHash: sha256Schema,
+  display: z.string().min(1),
+  spoken: z.string().min(1),
+  latex: z.string().min(1),
+});
 
 export const narrationSegmentSchema = z.strictObject({
   segmentId: z.string().regex(/^segment-\d{3}$/u),
   sceneId: z.string().regex(/^scene-\d{3}$/u),
   sceneFunction: z.string().min(1),
-  text: z.string().min(1),
+  tokenizedText: z.string().min(1),
+  displayText: z.string().min(1),
+  spokenText: z.string().min(1),
   factIds: z.array(z.string()),
 });
+
 export const localizedNarrationSchema = z.strictObject({
-  artifactVersion: z.literal("math-narration.v1"),
+  artifactVersion: z.literal("math-narration.v2"),
   language: mathLanguageSchema,
+  region: z.enum(["DE", "US", "419", "FR", "BR"]),
   lessonId: z.string(),
-  objectiveHash: z.string(),
-  factLockHash: z.string(),
-  segments: z.array(narrationSegmentSchema).length(9),
+  variant: z.enum(["foundation", "standard", "challenge"]),
+  objectiveHash: sha256Schema,
+  factLockHash: sha256Schema,
   glossaryVersion: z.literal("math-glossary.v1"),
-  contentHash: z.string(),
+  glossaryHash: sha256Schema,
+  resolvedFacts: z.array(resolvedFactSchema).min(1),
+  segments: z.array(narrationSegmentSchema).length(9),
+  contentHash: sha256Schema,
 });
 export type LocalizedNarration = z.infer<typeof localizedNarrationSchema>;
 
-const phrases: Record<MathLanguage, readonly string[]> = {
+const beatCopy: Record<MathLanguage, readonly string[]> = {
   de: [
-    "Heute entschlüsseln wir große Zahlen.",
-    "Du liest und zerlegst eine Zahl nach Stellenwerten.",
-    "Die Stellenwerttafel zeigt jede Ziffer an ihrem Platz.",
-    "Unser Beispiel ist [[fact:example-number]]. Es zerfällt in [[fact:expanded-number]].",
-    "Achtung: Eine Null hält ihren Stellenwert frei.",
-    "Ordne nun jede Ziffer von rechts nach links ein.",
-    "Deine Denkaufgabe beginnt. Nutze die Stellenwerttafel und prüfe jede Stelle.",
-    "Die Lösung lautet [[fact:challenge-solution]].",
-    "Merke: Stelle, Ziffer und Wert gehören zusammen.",
+    "Heute untersuchen wir",
+    "Das Lernziel bleibt klar",
+    "Wir bauen ein geprüftes Modell für",
+    "Wir lösen das Beispiel Schritt für Schritt",
+    "Achte auf den typischen Fehler bei",
+    "Jetzt wendest du das Verfahren geführt an",
+    "Die Denkaufgabe beginnt",
+    "Wir prüfen die vollständige Lösung",
+    "Fasse das Verfahren zusammen für",
   ],
   en: [
-    "Today we decode large numbers.",
-    "You will read and expand a number by place value.",
-    "The place-value chart gives every digit its position.",
-    "Our example is [[fact:example-number]]. It expands to [[fact:expanded-number]].",
-    "Watch out: a zero keeps a place open.",
-    "Now place each digit from right to left.",
-    "Your think task starts now. Use the chart and check every place.",
-    "The solution is [[fact:challenge-solution]].",
-    "Remember: place, digit, and value belong together.",
+    "Today we investigate",
+    "Keep the learning objective in view",
+    "We build a verified model for",
+    "We solve the example step by step",
+    "Watch for the common mistake in",
+    "Now apply the method with guidance",
+    "The think challenge starts now",
+    "We check the complete solution",
+    "Summarize the method for",
   ],
   es: [
-    "Hoy desciframos números grandes.",
-    "Leerás y descompondrás un número por valor posicional.",
-    "La tabla de valor posicional ubica cada cifra.",
-    "Nuestro ejemplo es [[fact:example-number]]. Se descompone en [[fact:expanded-number]].",
-    "Atención: un cero mantiene libre una posición.",
-    "Coloca cada cifra de derecha a izquierda.",
-    "Empieza tu reto. Usa la tabla y comprueba cada posición.",
-    "La solución es [[fact:challenge-solution]].",
-    "Recuerda: posición, cifra y valor están relacionados.",
+    "Hoy investigamos",
+    "Mantén claro el objetivo de aprendizaje",
+    "Construimos un modelo verificado de",
+    "Resolvemos el ejemplo paso a paso",
+    "Atención al error frecuente en",
+    "Ahora aplica el método con una guía",
+    "Comienza el reto de reflexión",
+    "Comprobamos la solución completa",
+    "Resume el método para",
   ],
   fr: [
-    "Aujourd'hui, nous décodons les grands nombres.",
-    "Tu vas lire et décomposer un nombre selon sa valeur de position.",
-    "Le tableau de numération place chaque chiffre.",
-    "Notre exemple est [[fact:example-number]]. Il se décompose en [[fact:expanded-number]].",
-    "Attention : un zéro conserve une position.",
-    "Place maintenant chaque chiffre de droite à gauche.",
-    "Ton défi commence. Utilise le tableau et vérifie chaque position.",
-    "La solution est [[fact:challenge-solution]].",
-    "Retiens : position, chiffre et valeur vont ensemble.",
+    "Aujourd'hui, nous étudions",
+    "Garde l'objectif d'apprentissage en vue",
+    "Nous construisons un modèle vérifié pour",
+    "Nous résolvons l'exemple étape par étape",
+    "Attention à l'erreur fréquente avec",
+    "Applique maintenant la méthode avec un guidage",
+    "Le défi de réflexion commence",
+    "Nous vérifions la solution complète",
+    "Résume la méthode pour",
   ],
   pt: [
-    "Hoje vamos decifrar números grandes.",
-    "Você vai ler e decompor um número pelo valor posicional.",
-    "O quadro de valor posicional coloca cada algarismo em seu lugar.",
-    "Nosso exemplo é [[fact:example-number]]. Ele se decompõe em [[fact:expanded-number]].",
-    "Atenção: um zero mantém uma posição aberta.",
-    "Agora coloque cada algarismo da direita para a esquerda.",
-    "Seu desafio começa agora. Use o quadro e confira cada posição.",
-    "A solução é [[fact:challenge-solution]].",
-    "Lembre-se: posição, algarismo e valor estão ligados.",
+    "Hoje investigamos",
+    "Mantenha o objetivo de aprendizagem em foco",
+    "Construímos um modelo verificado de",
+    "Resolvemos o exemplo passo a passo",
+    "Atenção ao erro comum em",
+    "Agora aplique o método com orientação",
+    "O desafio de reflexão começa",
+    "Conferimos a solução completa",
+    "Resuma o método para",
   ],
 };
 
-export function buildFactLock(lesson: LessonVariantSpecification) {
-  const value = {
-    lessonId: lesson.lessonId,
-    variant: lesson.variant,
-    objectiveHash: canonicalHash(lesson.learningObjective),
-    sceneFunctions: lesson.scenes.map((scene) => scene.sceneFunction),
-    facts: lesson.facts.map((fact) => ({
-      factId: fact.factId,
-      semanticHash: canonicalHash(fact.semantic),
-    })),
+function requiredConcepts(skillId: string): readonly [string, string] {
+  if (skillId === "M5-ZO-001") return ["place-value", "digit"];
+  if (skillId === "M5-GM-002") return ["perimeter", "side-length"];
+  if (skillId === "M5-DZ-001") return ["tally-chart", "total"];
+  throw new Error(`No localized concept mapping exists for ${skillId}.`);
+}
+
+function formatExactValue(
+  value: ExactValue,
+  language: MathLanguage
+): FormattedMath {
+  if (value.kind === "scalar")
+    return formatExpression(value.expression, language);
+  if (value.kind === "measurement")
+    return formatMeasurement(value.value, value.unit, language);
+  if (value.kind === "approximation")
+    return formatExpression(value.exact, language);
+  const children = value.values.map((child) =>
+    formatExactValue(child, language)
+  );
+  return {
+    display: children.map((child) => child.display).join(", "),
+    spoken: children.map((child) => child.spoken).join(", "),
+    latex: children.map((child) => child.latex).join(","),
   };
-  return { ...value, factLockHash: canonicalHash(value) };
+}
+
+function defaultTemplates(
+  lesson: LessonVariantSpecification,
+  language: MathLanguage,
+  glossary: MathGlossary
+): string[] {
+  const concepts = requiredConcepts(lesson.skillId);
+  const topic = glossaryTerm(glossary, concepts[0]).preferred;
+  const supporting = glossaryTerm(glossary, concepts[1]).preferred;
+  return lesson.scenes.map((scene, index) => {
+    const copy = beatCopy[language][index];
+    if (!copy) throw new Error(`Missing ${language} narration beat ${index}.`);
+    const conceptText = [0, 2, 4, 8].includes(index)
+      ? ` ${topic}${index === 0 ? ` und ${supporting}` : ""}.`
+      : ".";
+    const factText = scene.factIds
+      .map((factId) => `[[fact:${factId}]]`)
+      .join("; ");
+    return `${copy}${conceptText}${factText ? ` ${factText}.` : ""}`;
+  });
+}
+
+function factTokens(text: string): string[] {
+  return [...text.matchAll(/\[\[fact:([a-z0-9-]+)\]\]/gu)]
+    .map((match) => match[1])
+    .filter((value): value is string => value !== undefined);
+}
+
+function replaceFacts(
+  text: string,
+  facts: Map<string, z.infer<typeof resolvedFactSchema>>,
+  mode: "display" | "spoken"
+): string {
+  return text.replace(
+    /\[\[fact:([a-z0-9-]+)\]\]/gu,
+    (_token, factId: string) => {
+      const fact = facts.get(factId);
+      if (!fact) throw new Error(`Unknown localized fact token ${factId}.`);
+      return fact[mode];
+    }
+  );
+}
+
+export interface LocalizationOptions {
+  glossary?: MathGlossary;
+  templates?: readonly string[];
 }
 
 export function localizeNarration(
   lesson: LessonVariantSpecification,
-  language: MathLanguage
+  language: MathLanguage,
+  options: LocalizationOptions = {}
 ): LocalizedNarration {
   const lock = buildFactLock(lesson);
-  const languagePhrases = phrases[language];
+  const glossary = options.glossary ?? loadMathGlossary(language);
+  if (glossary.language !== language)
+    throw new Error(`Glossary language does not match ${language}.`);
+  if (glossary.region !== localeProfiles[language].region)
+    throw new Error(
+      `Glossary region does not match ${language} locale policy.`
+    );
+  const resolvedFacts = lesson.facts.map((fact) => ({
+    factId: fact.factId,
+    semanticHash: canonicalHash(fact.semantic),
+    ...formatExactValue(fact.semantic, language),
+  }));
+  const resolvedById = new Map(
+    resolvedFacts.map((fact) => [fact.factId, fact])
+  );
+  const templates =
+    options.templates ?? defaultTemplates(lesson, language, glossary);
+  if (templates.length !== lesson.scenes.length)
+    throw new Error("Localized narration must preserve all nine scenes.");
   const segments = lesson.scenes.map((scene, index) => {
-    const text = languagePhrases[index];
-    if (!text)
-      throw new Error(`Missing ${language} narration phrase ${index}.`);
-    const tokens = [...text.matchAll(/\[\[fact:([a-z0-9-]+)\]\]/gu)]
-      .map((match) => match[1])
-      .filter((id): id is string => id !== undefined);
+    const tokenizedText = templates[index];
+    if (!tokenizedText)
+      throw new Error(`Missing ${language} narration scene ${scene.sceneId}.`);
+    const tokens = factTokens(tokenizedText);
     if (new Set(tokens).size !== tokens.length)
       throw new Error(
         `Duplicate fact token in ${language} scene ${scene.sceneId}.`
       );
-    for (const factId of scene.factIds)
-      if (index === 3 || index === 7) {
-        if (!tokens.includes(factId))
-          throw new Error(`Missing locked fact ${factId} in ${language}.`);
-      }
+    if (tokens.join("\0") !== scene.factIds.join("\0"))
+      throw new Error(
+        `Missing, extra, or reordered fact token in ${language} scene ${scene.sceneId}.`
+      );
     return {
       segmentId: `segment-${String(index + 1).padStart(3, "0")}`,
       sceneId: scene.sceneId,
       sceneFunction: scene.sceneFunction,
-      text,
+      tokenizedText,
+      displayText: replaceFacts(tokenizedText, resolvedById, "display"),
+      spokenText: replaceFacts(tokenizedText, resolvedById, "spoken"),
       factIds: tokens,
     };
   });
+  assertGlossaryText(
+    segments.map((segment) => segment.displayText).join(" "),
+    glossary,
+    requiredConcepts(lesson.skillId)
+  );
   const draft = {
-    artifactVersion: "math-narration.v1" as const,
+    artifactVersion: "math-narration.v2" as const,
     language,
+    region: localeProfiles[language].region,
     lessonId: lesson.lessonId,
+    variant: lesson.variant,
     objectiveHash: lock.objectiveHash,
     factLockHash: lock.factLockHash,
-    segments,
     glossaryVersion: "math-glossary.v1" as const,
+    glossaryHash: glossary.glossaryHash,
+    resolvedFacts,
+    segments,
   };
   return localizedNarrationSchema.parse({
     ...draft,
@@ -142,19 +282,4 @@ export function localizeNarration(
   });
 }
 
-export function formatExactInteger(
-  value: string,
-  language: MathLanguage
-): string {
-  const locale = {
-    de: "de-DE",
-    en: "en-US",
-    es: "es-419",
-    fr: "fr-FR",
-    pt: "pt-BR",
-  }[language];
-  return new Intl.NumberFormat(locale, {
-    useGrouping: true,
-    maximumFractionDigits: 0,
-  }).format(BigInt(value));
-}
+export { buildFactLock, formatExactInteger };

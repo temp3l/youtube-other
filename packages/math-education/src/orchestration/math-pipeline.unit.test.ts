@@ -37,16 +37,33 @@ describe("localized math pipeline", () => {
     expect(formatExactInteger("730405", "en")).toBe("730,405");
   });
 
-  it("creates localized metadata with three stable playlist dimensions", async () => {
+  it("creates locale-matched metadata with three stable playlist dimensions", async () => {
     const { skill, lesson } = await pilot();
-    const metadata = generateMathMetadata(skill, lesson, "de");
-    expect(metadata.playlists.map((playlist) => playlist.kind)).toEqual([
-      "grade",
-      "topic",
-      "variant",
-    ]);
-    expect(metadata.thumbnail.text.split(/\s+/u).length).toBeGreaterThanOrEqual(
-      2
+    const metadata = MATH_LANGUAGES.map((language) =>
+      generateMathMetadata(skill, lesson, language)
+    );
+    for (const item of metadata) {
+      expect(item.playlists.map((playlist) => playlist.kind)).toEqual([
+        "grade",
+        "topic",
+        "variant",
+      ]);
+      expect(item.thumbnail.text.split(/\s+/u).length).toBeGreaterThanOrEqual(
+        2
+      );
+    }
+    expect(
+      metadata.find((item) => item.language === "en")?.description
+    ).not.toMatch(/Lernziel|Denkaufgabe/u);
+    expect(
+      metadata.find((item) => item.language === "es")?.chapters[1]?.title
+    ).toBe("Ejemplo");
+    expect(
+      metadata.find((item) => item.language === "fr")?.playlists[0]
+        ?.localizedName
+    ).toBe("Classe 5");
+    expect(metadata.find((item) => item.language === "pt")?.tags[0]).toBe(
+      "Matemática"
     );
   });
 

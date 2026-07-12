@@ -5,7 +5,10 @@ import {
   mathProductionStatusSchema,
 } from "../domain/index.js";
 import { timingManifestSchema } from "../lesson/timing.js";
-import { localizedNarrationSchema } from "../localization/localization.js";
+import {
+  legacyLocalizedNarrationSchema,
+  localizedNarrationSchema,
+} from "../localization/localization.js";
 import { mathMetadataSchema } from "../metadata/math-metadata.js";
 import { verifierResponseSchema } from "../verification/protocol-schemas.js";
 
@@ -15,6 +18,7 @@ export const mathArtifactSchemaVersionSchema = z.enum([
   "lesson-spec.v1",
   "math-verifier.v2",
   "math-narration.v1",
+  "math-narration.v2",
   "math-timing.v1",
   "math-visual-plan.v1",
   "math-metadata.v1",
@@ -79,7 +83,8 @@ const schemas: Record<MathArtifactSchemaVersion, z.ZodType> = {
   "lesson-variants.v1": z.array(lessonVariantSpecificationSchema).length(3),
   "lesson-spec.v1": lessonVariantSpecificationSchema,
   "math-verifier.v2": verifierResponseSchema,
-  "math-narration.v1": localizedNarrationSchema,
+  "math-narration.v1": legacyLocalizedNarrationSchema,
+  "math-narration.v2": localizedNarrationSchema,
   "math-timing.v1": timingManifestSchema,
   "math-visual-plan.v1": visualPlanSchema,
   "math-metadata.v1": mathMetadataSchema,

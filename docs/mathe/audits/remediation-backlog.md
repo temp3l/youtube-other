@@ -60,8 +60,9 @@ focused tests, real Python integration, and package typechecking.
 
 ## R-005 — Implement genuine lesson generation and variant semantics
 
-Status: implemented 2026-07-12; focused verification passed; pending
-independent acceptance before R-006 starts.
+Status: accepted 2026-07-12 after independent source review, adversarial
+contract inspection, focused unit/CLI tests, and real Python-backed simulation
+of the approved number, geometry, and data candidates.
 
 - Related findings: F-003, F-010.
 - Objective: replace the hard-coded pilot with strict generation ports/fixtures and materially differentiated variants.
@@ -73,6 +74,9 @@ independent acceptance before R-006 starts.
 - Recommended Codex model: GPT-5/Codex, high reasoning.
 
 ## R-006 — Enforce locked-fact localization and deterministic math speech/display
+
+Status: implemented 2026-07-12; focused verification passed; pending
+independent acceptance before R-007 starts.
 
 - Related findings: F-005, F-014.
 - Objective: preserve every mathematical fact/step/solution/scene across `de`, `en`, `es`, `fr`, and `pt` and produce controlled display and speech forms.

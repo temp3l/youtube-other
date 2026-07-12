@@ -14,6 +14,30 @@
       "preferred": "chiffre",
       "forbidden": ["numéro"],
       "tts": "chiffre"
+    },
+    {
+      "conceptId": "perimeter",
+      "preferred": "périmètre",
+      "forbidden": ["circonférence du rectangle"],
+      "tts": "périmètre"
+    },
+    {
+      "conceptId": "side-length",
+      "preferred": "longueur du côté",
+      "forbidden": [],
+      "tts": "longueur du côté"
+    },
+    {
+      "conceptId": "tally-chart",
+      "preferred": "tableau de comptage",
+      "forbidden": ["liste de traits"],
+      "tts": "tableau de comptage"
+    },
+    {
+      "conceptId": "total",
+      "preferred": "total",
+      "forbidden": [],
+      "tts": "total"
     }
   ]
 }

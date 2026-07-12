@@ -9,6 +9,11 @@ import {
 import { validateVariantDifferentiation } from "../lesson/lesson-validator.js";
 import { createTimingManifest } from "../lesson/timing.js";
 import { localizeNarration } from "../localization/localization.js";
+import {
+  assertLocalizedDisplayVerification,
+  localizedDisplayChecks,
+} from "../localization/display-verification.js";
+import { loadMathGlossary } from "../localization/glossary.js";
 import { generateMathMetadata } from "../metadata/math-metadata.js";
 import { createPublishDryRunManifest } from "../publishing/dry-run-manifest.js";
 import { deriveMathQuality } from "./quality-gate.js";
@@ -17,6 +22,7 @@ import {
   SympyVerifierAdapter,
 } from "../verification/sympy-adapter.js";
 import { assertFactCoverage } from "../verification/fact-coverage-gate.js";
+import { canonicalHash } from "../verification/canonical-json.js";
 import { verifierResponseSchema } from "../verification/protocol-schemas.js";
 import { MathWorkspacePathResolver } from "./math-workspace-paths.js";
 import { type MathArtifactSchemaVersion } from "./artifact-schemas.js";
@@ -82,6 +88,17 @@ async function runPilotSimulationUnlocked(
   const stageFingerprints = new Map<MathStage, string>();
   const stageParents = new Map<MathStage, string[]>();
   let parents = [curriculum.releaseHash];
+  const canonicalNarrationFingerprint = canonicalHash({
+    localizationVersion: "locked-facts.v2",
+    glossaryHash: loadMathGlossary("de").glossaryHash,
+  });
+  const localeFingerprint = canonicalHash({
+    localizationVersion: "locked-facts.v2",
+    glossaries: languages.map((language) => ({
+      language,
+      hash: loadMathGlossary(language).glossaryHash,
+    })),
+  });
   for (const stage of MATH_STAGES) {
     stageParents.set(stage, parents);
     const fingerprint = stageFingerprint(stage, parents, {
@@ -89,6 +106,13 @@ async function runPilotSimulationUnlocked(
       lessonContentHash: lesson.contentHash,
       languages,
       variant,
+      ...(MATH_STAGES.indexOf(stage) >=
+      MATH_STAGES.indexOf("canonical-narration")
+        ? { canonicalNarrationFingerprint }
+        : {}),
+      ...(MATH_STAGES.indexOf(stage) >= MATH_STAGES.indexOf("localization")
+        ? { localeFingerprint }
+        : {}),
     });
     stageFingerprints.set(stage, fingerprint);
     parents = [fingerprint];
@@ -97,6 +121,7 @@ async function runPilotSimulationUnlocked(
     "curriculum-import",
     "lesson-spec",
     "math-verification",
+    "canonical-narration",
     "localization",
     "scene-timing",
     "visual-assets",
@@ -205,15 +230,55 @@ async function runPilotSimulationUnlocked(
     "math-verification",
     "math-verifier.v2"
   );
+  const canonicalNarration = localizeNarration(lesson, "de");
+  await write(
+    "canonical/narration.de.json",
+    canonicalNarration,
+    "canonical-narration",
+    "math-narration.v2"
+  );
   for (const language of languages) {
-    const narration = localizeNarration(lesson, language);
+    const narration =
+      language === "de"
+        ? canonicalNarration
+        : localizeNarration(lesson, language);
+    const displayChecks = localizedDisplayChecks(lesson, narration);
+    const displayVerification = shouldWrite("localization")
+      ? await new SympyVerifierAdapter({
+          workerRoot: path.join(repositoryRoot, "python/math-verifier"),
+          ...(options.pythonExecutable
+            ? { pythonExecutable: options.pythonExecutable }
+            : {}),
+        }).verify(
+          createVerifierRequest(
+            `${lesson.lessonId}-${language}-display`,
+            displayChecks
+          )
+        )
+      : verifierResponseSchema.parse(
+          await lessonPaths.readJson(
+            path.join(
+              lessonRoot,
+              "locales",
+              language,
+              "display-verification.json"
+            )
+          )
+        );
+    assertLocalizedDisplayVerification(displayChecks, displayVerification);
     const timing = createTimingManifest(lesson, narration);
     const metadata = generateMathMetadata(skill, lesson, language);
     await write(
       `locales/${language}/narration.json`,
       narration,
       "localization",
-      "math-narration.v1"
+      "math-narration.v2"
+    );
+    await write(
+      `locales/${language}/display-verification.json`,
+      displayVerification,
+      "localization",
+      "math-verifier.v2"
     );
     await write(
       `locales/${language}/timing.json`,

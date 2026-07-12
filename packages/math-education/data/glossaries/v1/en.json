@@ -14,6 +14,30 @@
       "preferred": "digit",
       "forbidden": [],
       "tts": "digit"
+    },
+    {
+      "conceptId": "perimeter",
+      "preferred": "perimeter",
+      "forbidden": ["circumference of a rectangle"],
+      "tts": "perimeter"
+    },
+    {
+      "conceptId": "side-length",
+      "preferred": "side length",
+      "forbidden": [],
+      "tts": "side length"
+    },
+    {
+      "conceptId": "tally-chart",
+      "preferred": "tally chart",
+      "forbidden": ["dash list"],
+      "tts": "tally chart"
+    },
+    {
+      "conceptId": "total",
+      "preferred": "total",
+      "forbidden": [],
+      "tts": "total"
     }
   ]
 }
