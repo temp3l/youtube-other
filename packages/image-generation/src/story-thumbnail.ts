@@ -314,6 +314,7 @@ export async function generateStoryThumbnail(
     episodeSlug: input.episodeSlug,
     locale: input.locale,
     format: input.format,
+    ...(input.candidateId ? { candidateId: input.candidateId } : {}),
   });
   const expectedBackground = createExpectedBackgroundManifest({
     input,

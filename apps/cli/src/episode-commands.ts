@@ -177,7 +177,7 @@ const episodeSummaryManifestSchema = z
 const shotValidationArtifactSchema = z
   .object({
     schemaVersion: z.literal(1),
-    validationCode: z.literal("VALID"),
+    validationCode: z.literal("VALID").optional(),
     valid: z.boolean(),
     issues: z.array(shotPlanValidationIssueSchema),
     metrics: z.record(z.string(), z.unknown()),
@@ -2071,7 +2071,7 @@ async function pushVisualRetentionResults(args: {
       shotPlan,
       episodeWorkspace: args.episodeDir,
       artifactPath: manifest.shotPlanPath,
-      ...(args.expectedSource
+      ...(args.expectedSource && shotPlan.sourceIdentity
         ? { expectedSourceIdentity: expectedShotSourceIdentity(args.expectedSource) }
         : {}),
     });
@@ -2079,7 +2079,10 @@ async function pushVisualRetentionResults(args: {
       args.results.push(
         validResult({
           artifactType: "shot-plan",
-          message: "Shot-plan references are root-contained and source-current.",
+          message:
+            shotPlan.sourceIdentity === undefined
+              ? "Shot-plan references are root-contained. Legacy artifact omits source identity."
+              : "Shot-plan references are root-contained and source-current.",
           relativePath: pathRelativeTo(args.episodeDir, manifest.shotPlanPath),
         })
       );

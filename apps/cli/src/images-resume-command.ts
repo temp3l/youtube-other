@@ -273,6 +273,11 @@ export async function loadOrBootstrapEpisodeManifest(
 export async function commandImagesResume(
   options: ImagesResumeCliOptions
 ): Promise<void> {
+  if (options.force) {
+    throw new Error(
+      "Refusing episode-wide forced image resume. Use images generate --episode <id> --scene <scene-id> --force."
+    );
+  }
   const { episodeDir, manifestPath, manifest, created } =
     await loadOrBootstrapEpisodeManifest(options);
   await assertScriptScoreGate({

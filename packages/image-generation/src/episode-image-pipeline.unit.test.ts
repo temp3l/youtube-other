@@ -428,6 +428,34 @@ describe("episode image pipeline helpers", () => {
     ).toBeLessThanOrEqual(1);
   });
 
+  it("sanitizes abstract memory-erasure phrasing and malformed prompt placeholders", () => {
+    const spec = {
+      ...makeSceneSpec(),
+      visibleAction:
+        "and Felix's uncle had vanished from the picture and from his own memories. He took them from anyone who remembered looking at it.",
+      environment: "and Felix's uncle had vanished from the picture and from his own memories.",
+      foreground:
+        "Every night at midnight, Felix Stone's and the nearest physical props in frame",
+      background: "the surrounding walls and negative space of unresolved environment",
+      distinctiveAnchor: "felix uncle vanished picture his own memories",
+    };
+    const prompt = buildPromptFromSpec(spec, undefined, makeRegistry(), "9:16");
+
+    expect(prompt).not.toContain("from his own memories");
+    expect(prompt).toContain("missing from the altered family photograph");
+    expect(prompt).not.toContain("affected anyone who studied it");
+    expect(prompt).toContain(
+      "the altered photograph became the focus of a tense archive review"
+    );
+    expect(prompt).not.toContain("and the nearest physical props in frame");
+    expect(prompt).toContain(
+      "the altered family photograph, archive folders, and nearby evidence"
+    );
+    expect(prompt).toContain(
+      "shadowed archive walls and restrained documentary negative space"
+    );
+  });
+
   it("emits typed visual-plan issues for placeholder language and repeated narration", () => {
     const issues = validateSceneVisualSpec(
       {

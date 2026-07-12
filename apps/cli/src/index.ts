@@ -35,7 +35,6 @@ import {
 import {
   findEpisodeScenesFile,
   generateYoutubeMetadataForTarget,
-  generateYoutubeMetadataFromScenesFile,
   listEpisodeSceneFiles,
   readAndValidateScenesFile,
   YOUTUBE_METADATA_PROMPT_VERSION,
@@ -181,6 +180,7 @@ interface CliOptions {
   openAiSpeechVoice?: string;
   speechVoicePreset?: "slow" | "fast" | "very-fast";
   narrationPipelineMode?: NarrationPipelineMode;
+  language?: string;
   scriptLanguage?: string;
   sceneLimit?: number;
   allowUnapprovedCharacterReferences?: boolean;
@@ -298,8 +298,9 @@ function configOverridesFromCli(options: CliOptions): RuntimeConfigOverrides {
   if (options.narrationPipelineMode) {
     overrides.narrationPipelineMode = options.narrationPipelineMode;
   }
-  if (options.scriptLanguage) {
-    overrides.scriptLanguage = options.scriptLanguage;
+  const requestedLanguage = options.scriptLanguage ?? options.language;
+  if (requestedLanguage) {
+    overrides.scriptLanguage = requestedLanguage;
   }
   return overrides;
 }
@@ -738,6 +739,26 @@ function localeForLanguage(language: string): string {
     default:
       return "en-US";
   }
+}
+
+async function resolveScenesFileForMetadataGeneration(
+  episodeDir: string,
+  language: string,
+  variant: "full" | "short"
+): Promise<string> {
+  const candidates = [
+    path.join(episodeDir, safeBasename(language), variant, "scenes.json"),
+    ...(variant === "full"
+      ? [path.join(episodeDir, safeBasename(language), "full", "scenes.json")]
+      : []),
+    await findEpisodeScenesFile(path.dirname(episodeDir), path.basename(episodeDir)),
+  ];
+  for (const candidate of candidates) {
+    if (await fileExists(candidate)) {
+      return candidate;
+    }
+  }
+  throw new Error(`Unable to locate ${variant} scenes.json for ${episodeDir}.`);
 }
 
 async function loadValidatedNarrationDependency(
@@ -2553,7 +2574,17 @@ async function commandImagesPlan(
     settings,
     sceneId !== undefined ? { sceneId } : undefined
   );
-  printJson(results);
+  const summary = {
+    totalScenes: results.length,
+    providerCalls: results.filter((result) => result.plannedAction === "generate").length,
+    cacheHits: results.filter((result) => result.plannedAction === "reuse").length,
+    intentionalReuseBeats: results.filter((result) =>
+      ["mergeWithPrevious", "mergeWithNext", "skip"].includes(result.renderability)
+    ).length,
+    blocked: results.filter((result) => result.plannedAction === "blocked").length,
+    estimatedCost: "provider/model pricing not configured; providerCalls is the hard upper bound",
+  };
+  printJson({ summary, scenes: results });
 }
 
 async function commandImagesGenerate(
@@ -2561,6 +2592,11 @@ async function commandImagesGenerate(
   episodeId: string,
   sceneId?: string
 ): Promise<void> {
+  if (options.force && sceneId === undefined) {
+    throw new Error(
+      "Refusing episode-wide --force image regeneration. Pass --scene <scene-id> to scope paid regeneration."
+    );
+  }
   markEpisodeTelemetry(episodeId);
   const { manifest, episodeDir, scenePlan } = await readEpisodeScenePlan(
     options,
@@ -2923,7 +2959,9 @@ async function runAudioNarrationPipeline(
   const requestedLanguages = [
     ...parseAudioLanguageList(commandOptions.languages),
     ...(commandOptions.language ? [commandOptions.language] : []),
-    ...(options.scriptLanguage ? [options.scriptLanguage] : []),
+    ...((options.scriptLanguage ?? options.language)
+      ? [options.scriptLanguage ?? options.language ?? "en"]
+      : []),
   ].filter((language, index, all) => all.indexOf(language) === index);
   const languages = normalizeRequestedNarrationLanguages(
     commandOptions.allLanguages
@@ -3087,7 +3125,12 @@ async function commandAudioNarrationBenchmarkVoices(
     throw new Error("Voice benchmarking requires --tts-provider openai-compatible.");
   }
   const runtime = await loadCliRuntime(options);
-  const language = commandOptions.language ?? options.scriptLanguage ?? config.scriptLanguage ?? "en";
+  const language =
+    commandOptions.language ??
+    options.scriptLanguage ??
+    options.language ??
+    config.scriptLanguage ??
+    "en";
   const variant = parseNarrationVariant(commandOptions.variant);
   const outputDir = path.resolve(
     commandOptions.outputDir ?? path.join(config.workspaceDir, "state", "voice-benchmarks", language, variant)
@@ -4186,12 +4229,36 @@ async function commandYoutubeUpload(
           "--generate-metadata requires metadata generation settings."
         );
       }
-      const scenesFilePath = await findEpisodeScenesFile(
-        config.workspaceDir,
-        uploadOptions.episode
+      const scenesFilePath = await resolveScenesFileForMetadataGeneration(
+        episodeDir,
+        uploadLanguage,
+        uploadVariant
       );
-      const generatedMetadata = await generateYoutubeMetadataFromScenesFile(
+      const targetData = await readAndValidateScenesFile(
         scenesFilePath,
+        uploadLanguage
+      );
+      const locale = localeForLanguage(uploadLanguage);
+      const generatedMetadata = await generateYoutubeMetadataForTarget(
+        {
+          ...targetData,
+          outputDir: path.join(
+            episodeDir,
+            "locales",
+            safeBasename(uploadLanguage),
+            uploadVariant,
+            "metadata"
+          ),
+          language: uploadLanguage,
+          locale,
+          variant: uploadVariant,
+          narration: {
+            ...targetData.narration,
+            language: uploadLanguage,
+            locale,
+            variant: uploadVariant,
+          },
+        },
         {
           apiKey: metadataGeneration.apiKey,
           model: metadataGeneration.model,
@@ -4244,6 +4311,7 @@ async function commandYoutubeUpload(
     episodeId: uploadOptions.episode,
     episodeDir,
     auth,
+    metadataLanguage: uploadLanguage,
     force: uploadOptions.force,
     generateMetadata: effectiveGenerateMetadata,
     metadataPath: effectiveMetadataPath,

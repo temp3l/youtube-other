@@ -119,6 +119,8 @@ npm run mediaforge -- images batch resume --episode 001-demo --json
 
 `youtube upload` now reuses that generator automatically when `--thumbnail-path` is omitted. Pass `--variant full` or `--variant short` explicitly; the upload command uses the matching metadata variant, the metadata `thumbnail.recommendedText` hook, and `episodes/<episode-slug>/story-production/thumbnail-story.json`.
 
+The generator also consumes `thumbnail.imagePrompt` as visual direction. For a long-form Studio Test & Compare set, add `--candidates`; this makes three paid image-generation calls with reaction, threat-closeup, and mystery-object concepts, ranks the five metadata hooks, writes `test-1` through `test-3` artifacts, and reports mobile-size contrast/detail checks as JSON. YouTube upload continues to select the normal unsuffixed artifact automatically.
+
 ```bash
 npm run mediaforge -- thumbnails generate \
   --episode 014-hachishakusama-the-eight-foot-woman \
@@ -156,6 +158,7 @@ Options:
 - `--dry-run`
 - `--verbose`
 - `--json`
+- `--candidates` (long-form only; three paid generations)
 
 Artifacts:
 

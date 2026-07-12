@@ -42,6 +42,7 @@ export function resolveThumbnailArtifactPaths(args: {
   readonly episodeSlug: string;
   readonly locale: string;
   readonly format: ThumbnailFormat;
+  readonly candidateId?: string;
 }): {
   readonly root: string;
   readonly backgroundPath: string;
@@ -50,16 +51,17 @@ export function resolveThumbnailArtifactPaths(args: {
   readonly manifestPath: string;
 } {
   const root = thumbnailRoot(args.workspaceRoot, args.episodeSlug);
+  const suffix = args.candidateId ? `-${args.candidateId}` : "";
   return {
     root,
-    backgroundPath: path.join(root, "backgrounds", `${args.format}-${args.locale}.png`),
+    backgroundPath: path.join(root, "backgrounds", `${args.format}-${args.locale}${suffix}.png`),
     backgroundManifestPath: path.join(
       root,
       "manifests",
-      `background-${args.format}-${args.locale}.json`
+      `background-${args.format}-${args.locale}${suffix}.json`
     ),
-    outputPath: path.join(root, args.format, `${args.locale}.png`),
-    manifestPath: path.join(root, "manifests", `${args.format}-${args.locale}.json`),
+    outputPath: path.join(root, args.format, `${args.locale}${suffix}.png`),
+    manifestPath: path.join(root, "manifests", `${args.format}-${args.locale}${suffix}.json`),
   };
 }
 
@@ -133,6 +135,7 @@ export class ThumbnailArtifactRepository {
     readonly episodeSlug: string;
     readonly locale: string;
     readonly format: ThumbnailFormat;
+    readonly candidateId?: string;
   }): ReturnType<typeof resolveThumbnailArtifactPaths> {
     return resolveThumbnailArtifactPaths(args);
   }

@@ -10,6 +10,8 @@ import {
   type ThumbnailFormat,
   type ThumbnailQuality,
   type ThumbnailStyle,
+  rankThumbnailTexts,
+  analyzeThumbnailAtMobileSize,
 } from "@mediaforge/image-generation";
 
 export interface ThumbnailGenerateCliOptions {
@@ -27,6 +29,7 @@ export interface ThumbnailGenerateCliOptions {
   readonly dryRun?: boolean;
   readonly verbose?: boolean;
   readonly json?: boolean;
+  readonly candidates?: boolean;
 }
 
 function resolveStoryReferenceImagePath(args: {
@@ -129,6 +132,24 @@ async function resolveHookText(args: {
   );
 }
 
+async function resolveThumbnailMetadata(args: {
+  readonly workspaceRoot: string;
+  readonly episodeSlug: string;
+  readonly locale: string;
+  readonly format: ThumbnailFormat;
+}): Promise<{ recommendedText: string; alternativeTexts: string[]; imagePrompt?: string }> {
+  const metadataPath = path.join(args.workspaceRoot, args.episodeSlug, "locales", args.locale, args.format, "metadata", "youtube-metadata.json");
+  const parsed = JSON.parse(await fs.readFile(metadataPath, "utf8")) as { thumbnail?: { recommendedText?: string; alternativeTexts?: string[]; imagePrompt?: string } };
+  if (!parsed.thumbnail?.recommendedText) {
+    throw new Error(`Incomplete thumbnail metadata in ${metadataPath}.`);
+  }
+  return {
+    recommendedText: parsed.thumbnail.recommendedText,
+    alternativeTexts: parsed.thumbnail.alternativeTexts ?? [],
+    ...(parsed.thumbnail.imagePrompt ? { imagePrompt: parsed.thumbnail.imagePrompt } : {}),
+  };
+}
+
 export function registerThumbnailCommands(program: Command): void {
   const thumbnailsCommand = program
     .command("thumbnails")
@@ -149,6 +170,7 @@ export function registerThumbnailCommands(program: Command): void {
     .option("--dry-run", "validate inputs, compile prompt, and report reuse decisions without calling OpenAI")
     .option("--verbose", "include the compiled prompt in dry-run output")
     .option("--json", "print machine-readable output")
+    .option("--candidates", "generate three ranked, concept-distinct long-form thumbnails for Studio Test & Compare")
     .action(async (options: ThumbnailGenerateCliOptions) => {
       const runtimeConfig = await loadRuntimeConfig();
       const workspaceRoot = runtimeConfig.workspaceDir;
@@ -185,6 +207,7 @@ export function registerThumbnailCommands(program: Command): void {
               format: (options.format ?? "full") as ThumbnailFormat,
             }
       );
+      const metadata = await resolveThumbnailMetadata({ workspaceRoot, episodeSlug, locale: options.locale ?? "", format: (options.format ?? "full") as ThumbnailFormat });
       const input: GenerateThumbnailInput = {
         workspaceRoot,
         episodeSlug,
@@ -195,6 +218,7 @@ export function registerThumbnailCommands(program: Command): void {
         storyTitle: story.storyTitle,
         storySummary: story.storySummary,
         hookText,
+        ...(metadata.imagePrompt ? { visualDirection: metadata.imagePrompt } : {}),
         protagonistDescription: story.protagonistDescription,
         threatDescription: story.threatDescription,
         settingDescription: story.settingDescription,
@@ -214,6 +238,20 @@ export function registerThumbnailCommands(program: Command): void {
         force: options.force ?? false,
         verbose: options.verbose ?? false,
       };
+      if (options.candidates) {
+        if (input.format !== "full") throw new Error("--candidates is supported only for long-form thumbnails.");
+        if (!metadata.imagePrompt) throw new Error("--candidates requires metadata.thumbnail.imagePrompt.");
+        const ranked = rankThumbnailTexts([metadata.recommendedText, ...metadata.alternativeTexts]).slice(0, 3);
+        if (ranked.length < 3) throw new Error("Metadata must provide at least three distinct thumbnail texts.");
+        const concepts = ["reaction", "threat-closeup", "mystery-object"] as const;
+        const results = [];
+        for (const [index, candidate] of ranked.entries()) {
+          results.push(await generateStoryThumbnail({ ...input, hookText: candidate.text, concept: concepts[index], candidateId: `test-${index + 1}` }));
+        }
+        const reports = await Promise.all(results.map((result) => result.dryRun ? Promise.resolve(null) : analyzeThumbnailAtMobileSize(result.outputPath)));
+        printJson({ candidates: results.map((result, index) => ({ ...buildOutput(result), score: ranked[index]?.score, reasons: ranked[index]?.reasons, qualityReport: reports[index] })) });
+        return;
+      }
       const result = await generateStoryThumbnail(input);
       if (options.json) {
         printJson(buildOutput(result));

@@ -154,6 +154,17 @@ Thumbnail text must:
 - sound like a short emotional horror hook, not a literal title translation;
 - use direct, clickable wording with strong fear, mystery, or threat;
 - avoid weak generic phrasing and filler words.
+- make each alternative a genuinely different curiosity mechanism, not a synonym rewrite;
+- include at least one concrete threat, impossible action, forbidden instruction, or unanswered implication;
+- remain truthful to the first payoff of the video so the click produces watch time, not only CTR.
+
+Order the five options by predicted mobile-feed performance. Deliberately cover:
+
+1. a reaction or direct warning;
+2. a close, specific threat;
+3. an impossible object, event, or unanswered mystery;
+4. a consequence;
+5. a contrasting wildcard.
 
 For German thumbnail text:
 
@@ -173,6 +184,8 @@ The image prompt must specify:
 - no logos;
 - no watermark;
 - no generated text inside the image.
+
+Describe an extreme close focal subject rather than a distant cinematic scene. The image must express one instantly understood visual question at approximately 120 pixels wide.
 
 ## Additional upload metadata
 

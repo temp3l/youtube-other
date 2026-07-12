@@ -7,7 +7,7 @@ import {
   stableSerialize,
 } from "@mediaforge/story-localization";
 
-export const THUMBNAIL_PROMPT_VERSION = "cinematic-horror-reference-v2";
+export const THUMBNAIL_PROMPT_VERSION = "click-optimized-horror-v3";
 export const THUMBNAIL_MANIFEST_VERSION = 2;
 export const THUMBNAIL_TEXT_LAYOUT_VERSION = "viral-horror-type-v2";
 export const THUMBNAIL_DEFAULT_MAX_REFERENCE_BYTES = 20 * 1024 * 1024;
@@ -39,6 +39,7 @@ export type ThumbnailStyle =
   | "editorial-card"
   | "viral-horror-v1";
 export type ThumbnailQuality = "low" | "medium" | "high" | "auto";
+export type ThumbnailConcept = "reaction" | "threat-closeup" | "mystery-object";
 
 export const thumbnailFormatSchema = z.enum(["full", "short"]);
 export const thumbnailStyleSchema = z.enum([
@@ -47,6 +48,11 @@ export const thumbnailStyleSchema = z.enum([
   "viral-horror-v1",
 ]);
 export const thumbnailQualitySchema = z.enum(["low", "medium", "high", "auto"]);
+export const thumbnailConceptSchema = z.enum([
+  "reaction",
+  "threat-closeup",
+  "mystery-object",
+]);
 
 export const localeSchema = z
   .string()
@@ -65,6 +71,9 @@ export const generateThumbnailInputSchema = z.object({
   storyTitle: z.string().trim().min(1),
   storySummary: z.string().trim().min(1),
   hookText: z.string().trim().min(1).max(120),
+  visualDirection: z.string().trim().min(1).max(2000).optional(),
+  concept: thumbnailConceptSchema.optional(),
+  candidateId: z.string().trim().regex(/^[a-z0-9-]+$/u).optional(),
   protagonistDescription: z.string().trim().min(1),
   threatDescription: z.string().trim().min(1),
   settingDescription: z.string().trim().min(1),

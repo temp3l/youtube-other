@@ -30,9 +30,13 @@ Full and short media stay separate. Metadata and audio remain sibling or downstr
 - The image pipeline persists prompts, visual plans, provider request and response artifacts, manifests, checkpoints, and failure records under `state/image-generation/`.
 - Image-generation manifests now record additive stage dependencies for narration, scene-plan, and image-plan lineage, plus prompt and configuration fingerprints.
 - Resume and reuse behavior are manifest-driven, but file existence alone is not accepted as valid. The pipeline inspects the actual image file and fails fast when the stored dimensions do not match the canonical spec for that variant.
+- `images plan` is a cost preflight: it reports the provider-call upper bound, cache hits, intentional visual reuse, and blocked scenes without replacing valid generated manifests.
+- Episode-wide forced image regeneration is rejected. Paid force operations must name one scene; ordinary resume targets only missing, invalid, or retryable scene identities.
+- Full-image generation uses a ten-second visual-cadence target when budgeting semantically valid reuse. Superseded scene filenames move to `state/image-generation/superseded-assets/`; content-addressed cache records remain intact.
+- Full-video rendering treats an existing scene generation manifest as authoritative. The manifest must be generated, point to a current scene-plan candidate, and match the file hash; failed or stale manifests cannot fall through to legacy files.
 - Short image preparation keeps the short variant separate, requires `9:16`, records safe vertical composition, focal-subject placement, text-safe guidance, and optional parent full-video linkage in the shorts manifest, and validates the stored portrait generation asset at `864x1536` before rendering.
 - Localized full-video runs reuse canonical shared full images only after the shared manifest entries and the actual files on disk pass the same dimension contract.
-- Recovery for invalid existing assets: delete the invalid shared image files plus the affected shared image manifest, then rerun the canonical English full image step for full assets or the short image preparation step for short assets. Do not keep rendering from a manifest that points at invalid files.
+- Recovery for invalid existing assets: rerun only the affected scene identity. The pipeline quarantines superseded full-image filenames while retaining reusable cache records. Do not keep rendering from a manifest that points at invalid files.
 - If an older episode already contains `1920x1080` full shared images or `1080x1920` short shared images in the image manifest, treat them as invalid generation assets, remove the manifest entries and files, and resume the image stage so the pipeline regenerates or revalidates against the correct generation size.
 
 ## Rendering

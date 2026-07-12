@@ -1393,17 +1393,37 @@ function sceneOutputPath(episodeDir: string, scene: Scene): string {
   }).canonical;
 }
 
-async function hydrateCanonicalSceneImage(
-  existingOutputPath: string | undefined,
-  targetPath: string
+async function quarantineSupersededSceneImages(
+  episodeDir: string,
+  plans: readonly EpisodeScenePlan[]
 ): Promise<void> {
-  if (!existingOutputPath || existingOutputPath === targetPath) {
-    return;
+  const outputDir = path.join(episodeDir, "shared", "images", "generated");
+  const entries = await fsPromises.readdir(outputDir).catch(() => []);
+  const quarantineDir = path.join(
+    episodeDir,
+    "state",
+    "image-generation",
+    "superseded-assets"
+  );
+  for (const plan of plans) {
+    const canonicalName = path.basename(sceneOutputPath(episodeDir, plan.scene));
+    const staleNames = entries.filter(
+      (entry) =>
+        entry.startsWith(`${plan.scene.id}__`) &&
+        entry.endsWith(".png") &&
+        entry !== canonicalName
+    );
+    for (const staleName of staleNames) {
+      await ensureDir(quarantineDir);
+      const source = path.join(outputDir, staleName);
+      const destination = path.join(quarantineDir, staleName);
+      if (await fileExists(destination)) {
+        await fsPromises.rm(source, { force: true });
+      } else {
+        await fsPromises.rename(source, destination);
+      }
+    }
   }
-  if (!(await fileExists(existingOutputPath)) || (await fileExists(targetPath))) {
-    return;
-  }
-  await copyAtomic(existingOutputPath, targetPath);
 }
 
 async function reuseSceneImageFromPriorScene(args: {
@@ -2824,6 +2844,81 @@ function buildCharacterIdentitySection(
     .join(" ");
 }
 
+function stripLeadingPromptConjunction(value: string): string {
+  return normalizePlanText(value).replace(/^(?:and|und)\s+/iu, "").trim();
+}
+
+function sanitizeImagePromptNarrativeText(value: string): string {
+  let sanitized = stripLeadingPromptConjunction(value);
+  const replacements: Array<[RegExp, string]> = [
+    [
+      /\bvanished from the picture and from (?:his|her|their|its|my|our) own memories\b/giu,
+      "was missing from the altered family photograph",
+    ],
+    [
+      /\bund aus (?:seiner|ihrer|deren) eigenen erinnerung\b/giu,
+      "war nur noch auf dem veraenderten foto nachweisbar",
+    ],
+    [
+      /\bfrom (?:his|her|their|its|my|our) own memories\b/giu,
+      "from the altered family record",
+    ],
+    [
+      /\bno longer remembers? (?:him|her|them|it)\b/giu,
+      "cannot place in the altered photograph",
+    ],
+    [
+      /\b(erased|deleted) from every family photograph\b/giu,
+      "missing from every family photograph",
+    ],
+    [
+      /\baus allen familienfotos geloescht\b/giu,
+      "nur noch in luecken der familienfotos sichtbar",
+    ],
+    [
+      /\btook them from anyone who remembered looking at it\b/giu,
+      "the altered photograph became the focus of a tense archive review",
+    ],
+    [
+      /\bhe took them from the people who remember the picture\b/giu,
+      "the altered photograph changed what the family could verify",
+    ],
+    [
+      /\ber nahm sie jedem, der sich daran erinnerte, ihn angesehen zu haben\b/giu,
+      "das veraenderte foto wurde zum mittelpunkt einer angespannten archivpruefung",
+    ],
+  ];
+  for (const [pattern, replacement] of replacements) {
+    sanitized = sanitized.replace(pattern, replacement);
+  }
+  return normalizeSentence(sanitized);
+}
+
+function shouldUseImagePromptFallback(value: string): boolean {
+  const normalized = stripLeadingPromptConjunction(value);
+  return (
+    normalized.length === 0 ||
+    looksTruncated(normalized) ||
+    hasPlaceholderLanguage(normalized) ||
+    /and the nearest physical props in frame/iu.test(normalized) ||
+    /surrounding walls and negative space of unresolved environment/iu.test(
+      normalized
+    ) ||
+    normalized === unresolvedEnvironment
+  );
+}
+
+function sanitizeImagePromptField(
+  value: string,
+  fallback: string
+): string {
+  const sanitized = sanitizeImagePromptNarrativeText(value);
+  if (shouldUseImagePromptFallback(sanitized)) {
+    return normalizeSentence(fallback);
+  }
+  return sanitized;
+}
+
 function renderImageProviderPrompt(request: ImageProviderRequest): string {
   const referenceText =
     request.characterContexts.length === 0
@@ -2839,6 +2934,26 @@ function renderImageProviderPrompt(request: ImageProviderRequest): string {
             );
           })
           .join(" ");
+  const primaryVisualEvent = sanitizeImagePromptField(
+    buildPrimaryVisualEvent(request.scene),
+    "Visible evidence of the altered family photograph and the uneasy reaction it causes"
+  );
+  const environment = sanitizeImagePromptField(
+    request.scene.environment,
+    "an archive worktable with the altered family photograph and surrounding evidence"
+  );
+  const foreground = sanitizeImagePromptField(
+    request.scene.foreground,
+    "the altered family photograph, archive folders, and nearby evidence"
+  );
+  const background = sanitizeImagePromptField(
+    request.scene.background,
+    "shadowed archive walls and restrained documentary negative space"
+  );
+  const distinctiveAnchor = sanitizeImagePromptField(
+    request.scene.distinctiveAnchor,
+    "altered family photograph with visible documentary evidence"
+  );
 
   return [
     promptSection(
@@ -2847,7 +2962,7 @@ function renderImageProviderPrompt(request: ImageProviderRequest): string {
     ),
     promptSection(
       "PRIMARY VISUAL EVENT",
-      `${buildPrimaryVisualEvent(request.scene)}${request.scene.characters.length === 0 ? " Focus on visible evidence, reaction, or environmental consequence." : ""}`
+      `${primaryVisualEvent}${request.scene.characters.length === 0 ? " Focus on visible evidence, reaction, or environmental consequence." : ""}`
     ),
     promptSection(
       "TEXT REQUIREMENT",
@@ -2856,7 +2971,7 @@ function renderImageProviderPrompt(request: ImageProviderRequest): string {
     promptSection("CHARACTER IDENTITY AND CONTINUITY", referenceText),
     promptSection(
       "ENVIRONMENT",
-      `${request.scene.environment}. Foreground: ${request.scene.foreground}. Background: ${request.scene.background}.`
+      `${environment}. Foreground: ${foreground}. Background: ${background}.`
     ),
     promptSection(
       "CAMERA AND COMPOSITION",
@@ -2866,7 +2981,7 @@ function renderImageProviderPrompt(request: ImageProviderRequest): string {
       "LIGHTING AND COLOR",
       `${request.scene.lighting}. Time of day: ${request.scene.timeOfDay}. Mood: ${request.scene.mood}.`
     ),
-    promptSection("DISTINCTIVE SCENE ANCHOR", request.scene.distinctiveAnchor),
+    promptSection("DISTINCTIVE SCENE ANCHOR", distinctiveAnchor),
     promptSection(
       "CONTINUITY REQUIREMENTS",
       request.scene.continuityElements.length > 0
@@ -4162,14 +4277,26 @@ function visualPlanHash(artifact: PersistedSceneVisualPlan): string {
   return hashText(JSON.stringify(stableArtifact));
 }
 
-function episodeReuseBudget(sceneCount: number): number {
-  return Math.max(0, Math.floor(sceneCount * 0.1));
+const targetVisualCadenceSeconds = 10;
+
+function episodeReuseBudget(plans: readonly EpisodeScenePlan[]): number {
+  const sceneCount = plans.length;
+  const totalDurationSeconds = plans.reduce(
+    (total, plan) => total + Math.max(0, plan.scene.estimatedDurationSeconds),
+    0
+  );
+  const cadenceUniqueTarget = Math.max(
+    minimumUniqueSceneFloor,
+    Math.ceil(totalDurationSeconds / targetVisualCadenceSeconds)
+  );
+  return Math.max(0, sceneCount - Math.min(sceneCount, cadenceUniqueTarget));
 }
 
-function episodeUniqueQuota(sceneCount: number): number {
+function episodeUniqueQuota(plans: readonly EpisodeScenePlan[]): number {
+  const sceneCount = plans.length;
   return Math.max(
     minimumUniqueSceneFloor,
-    sceneCount - episodeReuseBudget(sceneCount)
+    sceneCount - episodeReuseBudget(plans)
   );
 }
 
@@ -4249,8 +4376,8 @@ function rebalanceEpisodeScenePlans(
   plans: EpisodeScenePlan[]
 ): { readonly plans: EpisodeScenePlan[]; readonly promotedSceneIds: string[] } {
   const sceneCount = plans.length;
-  const reuseBudget = episodeReuseBudget(sceneCount);
-  const uniqueQuota = Math.min(sceneCount, episodeUniqueQuota(sceneCount));
+  const reuseBudget = episodeReuseBudget(plans);
+  const uniqueQuota = Math.min(sceneCount, episodeUniqueQuota(plans));
   const maxReusableScenes = Math.min(reuseBudget, sceneCount - uniqueQuota);
   const reusablePlans = plans
     .map((plan, index) => ({ plan, index }))
@@ -4454,6 +4581,7 @@ export interface EpisodeImagePlanResult {
     path: string;
     sha256: string;
   }>;
+  plannedAction: "generate" | "reuse" | "blocked";
 }
 
 interface EpisodeScenePlan {
@@ -4586,7 +4714,6 @@ async function generateIndependentScenePlan(args: {
   );
   const existing = await readManifest(manifestPath);
   const outputPath = sceneOutputPath(args.episodeDir, args.plan.scene);
-  await hydrateCanonicalSceneImage(existing?.outputPath, outputPath);
 
   await writeSceneVisualPlanArtifact(
     args.episodeDir,
@@ -5056,8 +5183,8 @@ export async function planEpisodeImageGeneration(
       {
         episodeId,
         promotedSceneIds,
-        reuseBudget: episodeReuseBudget(plans.length),
-        uniqueQuota: Math.min(plans.length, episodeUniqueQuota(plans.length)),
+        reuseBudget: episodeReuseBudget(plans),
+        uniqueQuota: Math.min(plans.length, episodeUniqueQuota(plans)),
       },
       "Episode image plan exceeded the reuse budget; promoting marginal merge candidates to direct generation."
     );
@@ -5124,7 +5251,30 @@ export async function planEpisodeImageGeneration(
         : {}),
     };
     const manifestPath = resolveEpisodeImageManifestPath(episodeDir, plan.scene.id);
-    await writeManifest(manifestPath, manifest);
+    const existing = await readManifest(manifestPath);
+    const reusable =
+      plan.validationFailures.length === 0 &&
+      (await canReuseSceneImage({
+        existing,
+        episodeId,
+        language: context.identity.language,
+        videoKind: "full",
+        expectedSize: plan.providerRequest.size,
+        currentSceneHash: plan.sceneHash,
+        currentPromptHash: plan.promptHash,
+        currentProviderRequestHash: plan.providerRequestHash,
+        currentVisualPlanHash: plan.visualPlanHash,
+        currentRenderability: plan.visualPlanArtifact.renderability,
+        currentReferenceImages: plan.referenceImages,
+        outputPath: manifest.outputPath,
+        force: settings.force,
+      }));
+    // Planning is a read/preview operation for completed generation state. Never
+    // replace a valid generated manifest with a "planned" record: doing so turns
+    // a harmless preflight into a paid regeneration on the next command.
+    if (!reusable) {
+      await writeManifest(manifestPath, manifest);
+    }
     await writeTextAtomic(
       resolveEpisodeImagePromptPath(episodeDir, plan.scene.id),
       `${plan.prompt}\n`
@@ -5178,6 +5328,12 @@ export async function planEpisodeImageGeneration(
       materialDifferencesFromPrevious: plan.materialDifferencesFromPrevious,
       characterIds: plan.spec.characters.map((character) => character.characterId),
       referenceImages: plan.referenceImages,
+      plannedAction:
+        plan.validationFailures.length > 0
+          ? "blocked"
+          : reusable
+            ? "reuse"
+            : "generate",
     });
   }
   return results;
@@ -5292,13 +5448,14 @@ export async function generateEpisodeImages(
     ...(options?.client ? { client: options.client } : {}),
   });
   const { plans, promotedSceneIds } = rebalanceEpisodeScenePlans(draftPlans);
+  await quarantineSupersededSceneImages(episodeDir, plans);
   if (promotedSceneIds.length > 0 && settings.logger) {
     settings.logger.warn(
       {
         episodeId,
         promotedSceneIds,
-        reuseBudget: episodeReuseBudget(plans.length),
-        uniqueQuota: Math.min(plans.length, episodeUniqueQuota(plans.length)),
+        reuseBudget: episodeReuseBudget(plans),
+        uniqueQuota: Math.min(plans.length, episodeUniqueQuota(plans)),
       },
       "Episode image plan exceeded the reuse budget; promoting marginal merge candidates to direct generation."
     );
@@ -5348,7 +5505,6 @@ export async function generateEpisodeImages(
     const manifestPath = resolveEpisodeImageManifestPath(episodeDir, plan.scene.id);
     const existing = await readManifest(manifestPath);
     const outputPath = sceneOutputPath(episodeDir, plan.scene);
-    await hydrateCanonicalSceneImage(existing?.outputPath, outputPath);
     const spec = plan.spec;
     const prompt = plan.prompt;
     const providerRequest = plan.providerRequest;

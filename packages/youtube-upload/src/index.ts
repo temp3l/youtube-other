@@ -1,5 +1,6 @@
 import fs from "node:fs/promises";
 import { createReadStream } from "node:fs";
+import { randomUUID } from "node:crypto";
 import { spawn } from "node:child_process";
 import path from "node:path";
 import { google, youtube_v3 } from "googleapis";
@@ -8,7 +9,8 @@ import sharp from "sharp";
 import { loadRuntimeConfig, type RuntimeConfig } from "@mediaforge/config";
 import { episodeManifestSchema, type EpisodeManifest } from "@mediaforge/domain";
 import {
-  generateYoutubeMetadataFromScenesFile,
+  generateYoutubeMetadataForTarget,
+  readAndValidateScenesFile,
   youtubeMetadataSchema,
   type YoutubeMetadata,
 } from "@mediaforge/metadata";
@@ -23,6 +25,7 @@ import {
   normalizeContentVariant,
   normalizeEpisodeId,
   normalizeLocaleCode,
+  safeBasename,
   readJsonIfExists,
   writeJsonAtomic,
   writeTextAtomic,
@@ -191,6 +194,7 @@ export interface YoutubeUploadCommandInput {
   readonly workspaceDir: string;
   readonly episodeId: string;
   readonly episodeDir?: string | undefined;
+  readonly metadataLanguage?: string | undefined;
   readonly metadataPath?: string | undefined;
   readonly generateMetadata?: boolean | undefined;
   readonly force?: boolean | undefined;
@@ -316,7 +320,9 @@ const publicationReportSchema = z.object({
 type UploadMetadata = z.infer<typeof uploadMetadataSchema>;
 
 function inferPublicationVariantFromVideoPath(videoPath: string): MediaStageVariant {
-  return /(?:^|[\\/])vertical(?:[\\/]|$)|9x16/u.test(videoPath) ? "short" : "full";
+  return /(?:^|[\\/])(?:vertical|short)(?:[\\/]|$)|9x16|(?:^|-)short(?:-|[.])/u.test(videoPath)
+    ? "short"
+    : "full";
 }
 
 function inferPublicationIdentity(args: {
@@ -990,6 +996,12 @@ function shortThumbnailIntroPath(videoPath: string): string {
   return path.join(path.dirname(videoPath), `${basename}-with-thumbnail-intro.mp4`);
 }
 
+function hasShortThumbnailIntro(videoPath: string): boolean {
+  const extension = path.extname(videoPath) || ".mp4";
+  const basename = path.basename(videoPath, extension);
+  return basename.endsWith("-with-thumbnail-intro");
+}
+
 async function renderShortThumbnailIntro(input: {
   readonly videoPath: string;
   readonly thumbnailPath: string;
@@ -1085,6 +1097,9 @@ async function prepareVideoForUpload(input: {
   readonly renderer?: YoutubeUploadCommandInput["shortThumbnailIntroRenderer"];
 }): Promise<string> {
   if (input.variant !== "short") {
+    return input.videoPath;
+  }
+  if (hasShortThumbnailIntro(input.videoPath)) {
     return input.videoPath;
   }
   const outputPath = shortThumbnailIntroPath(input.videoPath);
@@ -1252,50 +1267,97 @@ async function withRetry<T>(
   }
 }
 
-async function writeUploadReport(reportDir: string, report: YoutubeUploadReport): Promise<{ readonly jsonPath: string; readonly markdownPath: string }> {
-  await ensureDir(reportDir);
-  const jsonPath = path.join(reportDir, "youtube-upload.json");
-  const markdownPath = path.join(reportDir, "youtube-upload.md");
-  await writeJsonAtomic(jsonPath, report);
-  await writeTextAtomic(markdownPath, buildReportMarkdown(report));
-  return { jsonPath, markdownPath };
+interface UploadReportPaths {
+  readonly jsonPath: string;
+  readonly markdownPath: string;
 }
 
-async function loadPreviousReport(reportDir: string): Promise<YoutubeUploadReport | null> {
-  const reportPath = path.join(reportDir, "youtube-upload.json");
-  return readJsonIfExists(reportPath, (value) => {
-    const parsed = value as Record<string, unknown>;
-    const status = uploadStatusSchema.parse(parsed["status"]);
-    const publication =
-      typeof parsed["publication"] === "object" && parsed["publication"] !== null
-        ? publicationReportSchema.parse(parsed["publication"])
-        : null;
-    return {
-      episodeId: String(parsed["episodeId"] ?? ""),
-      episodeDir: String(parsed["episodeDir"] ?? ""),
-      ...(publication ? { publication } : {}),
-      status,
-      generatedAt: String(parsed["generatedAt"] ?? ""),
-      completedAt: typeof parsed["completedAt"] === "string" ? parsed["completedAt"] : undefined,
-      durationMs: typeof parsed["durationMs"] === "number" ? parsed["durationMs"] : undefined,
-      sourceMetadataPath: String(parsed["sourceMetadataPath"] ?? ""),
-      sourceMetadataSha256: String(parsed["sourceMetadataSha256"] ?? ""),
-      metadata: parsed["metadata"] as YoutubeUploadReport["metadata"],
-      video: parsed["video"] as YoutubeUploadReport["video"],
-      thumbnail: {
-        ...(parsed["thumbnail"] as YoutubeUploadReport["thumbnail"]),
-        sourcePath:
-          typeof (parsed["thumbnail"] as { readonly sourcePath?: unknown })?.sourcePath === "string"
-            ? (parsed["thumbnail"] as { readonly sourcePath: string }).sourcePath
-            : String((parsed["thumbnail"] as { readonly path?: unknown })?.path ?? ""),
-      },
-      youtubeVideoId: typeof parsed["youtubeVideoId"] === "string" ? parsed["youtubeVideoId"] : undefined,
-      youtubeChannelId: typeof parsed["youtubeChannelId"] === "string" ? parsed["youtubeChannelId"] : undefined,
-      requestIds: (parsed["requestIds"] as YoutubeUploadReport["requestIds"]) ?? {},
-      warnings: Array.isArray(parsed["warnings"]) ? parsed["warnings"].filter((entry): entry is string => typeof entry === "string") : [],
-      error: typeof parsed["error"] === "object" && parsed["error"] !== null ? (parsed["error"] as YoutubeUploadReport["error"]) : undefined,
-    } satisfies YoutubeUploadReport;
+function createUploadReportPaths(reportDir: string, generatedAt: string): UploadReportPaths {
+  const timestamp = generatedAt.replaceAll(":", "-").replaceAll(".", "-");
+  const basename = `youtube-upload-${timestamp}-${randomUUID()}`;
+  return {
+    jsonPath: path.join(reportDir, `${basename}.json`),
+    markdownPath: path.join(reportDir, `${basename}.md`),
+  };
+}
+
+async function writeUploadReport(
+  reportDir: string,
+  report: YoutubeUploadReport,
+  paths = createUploadReportPaths(reportDir, report.generatedAt)
+): Promise<UploadReportPaths> {
+  await ensureDir(reportDir);
+  await writeJsonAtomic(paths.jsonPath, report);
+  await writeTextAtomic(paths.markdownPath, buildReportMarkdown(report));
+  return paths;
+}
+
+async function loadPreviousReport(
+  reportDir: string
+): Promise<{ readonly report: YoutubeUploadReport; readonly paths: UploadReportPaths } | null> {
+  const entries = await fs.readdir(reportDir).catch((error: unknown) => {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+      return [];
+    }
+    throw error;
   });
+  const historicalPaths = entries
+    .filter((entry) => /^youtube-upload-.*\.json$/u.test(entry))
+    .sort((left, right) => right.localeCompare(left))
+    .map((entry) => path.join(reportDir, entry));
+  const candidatePaths = [
+    ...historicalPaths,
+    path.join(reportDir, "youtube-upload.json"),
+  ];
+  for (const reportPath of candidatePaths) {
+    const report = await readJsonIfExists(reportPath, (value) => {
+      const parsed = value as Record<string, unknown>;
+      const status = uploadStatusSchema.parse(parsed["status"]);
+      const publication =
+        typeof parsed["publication"] === "object" && parsed["publication"] !== null
+          ? publicationReportSchema.parse(parsed["publication"])
+          : null;
+      return {
+        episodeId: String(parsed["episodeId"] ?? ""),
+        episodeDir: String(parsed["episodeDir"] ?? ""),
+        ...(publication ? { publication } : {}),
+        status,
+        generatedAt: String(parsed["generatedAt"] ?? ""),
+        completedAt: typeof parsed["completedAt"] === "string" ? parsed["completedAt"] : undefined,
+        durationMs: typeof parsed["durationMs"] === "number" ? parsed["durationMs"] : undefined,
+        sourceMetadataPath: String(parsed["sourceMetadataPath"] ?? ""),
+        sourceMetadataSha256: String(parsed["sourceMetadataSha256"] ?? ""),
+        metadata: parsed["metadata"] as YoutubeUploadReport["metadata"],
+        video: parsed["video"] as YoutubeUploadReport["video"],
+        thumbnail: {
+          ...(parsed["thumbnail"] as YoutubeUploadReport["thumbnail"]),
+          sourcePath:
+            typeof (parsed["thumbnail"] as { readonly sourcePath?: unknown })?.sourcePath === "string"
+              ? (parsed["thumbnail"] as { readonly sourcePath: string }).sourcePath
+              : String((parsed["thumbnail"] as { readonly path?: unknown })?.path ?? ""),
+        },
+        youtubeVideoId: typeof parsed["youtubeVideoId"] === "string" ? parsed["youtubeVideoId"] : undefined,
+        youtubeChannelId: typeof parsed["youtubeChannelId"] === "string" ? parsed["youtubeChannelId"] : undefined,
+        requestIds: (parsed["requestIds"] as YoutubeUploadReport["requestIds"]) ?? {},
+        warnings: Array.isArray(parsed["warnings"])
+          ? parsed["warnings"].filter((entry): entry is string => typeof entry === "string")
+          : [],
+        error: typeof parsed["error"] === "object" && parsed["error"] !== null
+          ? (parsed["error"] as YoutubeUploadReport["error"])
+          : undefined,
+      } satisfies YoutubeUploadReport;
+    });
+    if (report) {
+      return {
+        report,
+        paths: {
+          jsonPath: reportPath,
+          markdownPath: reportPath.replace(/\.json$/u, ".md"),
+        },
+      };
+    }
+  }
+  return null;
 }
 
 export async function loadYoutubeUploadConfig(): Promise<RuntimeConfig> {
@@ -1368,12 +1430,54 @@ async function resolveScenesFileForEpisode(episodeDir: string): Promise<string> 
   const { resolver, episodeId } = episodePathsForDir(episodeDir);
   const candidates = [
     resolver.canonicalScenesPath(episodeId),
+    path.join(episodeDir, "shared", "scenes.json"),
     path.join(episodeDir, "scenes.json"),
     path.join(episodeDir, "output", "scenes.json"),
   ];
   const resolved = await resolveFirstExisting(candidates);
   if (!resolved) {
     throw new YoutubeUploadValidationError(`Unable to locate scenes.json for ${episodeDir}.`);
+  }
+  return resolved;
+}
+
+function localeForLanguage(language: string): string {
+  switch (language) {
+    case "de":
+      return "de-DE";
+    case "es":
+      return "es-ES";
+    case "fr":
+      return "fr-FR";
+    case "pt":
+      return "pt-BR";
+    default:
+      return "en-US";
+  }
+}
+
+async function resolveScenesFileForUpload(args: {
+  readonly episodeDir: string;
+  readonly preferredLanguage: string;
+  readonly preferredVariant: MediaStageVariant;
+}): Promise<string> {
+  const candidates = [
+    path.join(
+      args.episodeDir,
+      safeBasename(args.preferredLanguage),
+      args.preferredVariant,
+      "scenes.json"
+    ),
+    ...(args.preferredVariant === "full"
+      ? [path.join(args.episodeDir, safeBasename(args.preferredLanguage), "full", "scenes.json")]
+      : []),
+    await resolveScenesFileForEpisode(args.episodeDir),
+  ];
+  const resolved = await resolveFirstExisting(candidates);
+  if (!resolved) {
+    throw new YoutubeUploadValidationError(
+      `Unable to locate ${args.preferredVariant} scenes.json for ${args.episodeDir}.`
+    );
   }
   return resolved;
 }
@@ -1502,11 +1606,67 @@ export async function uploadYoutubeEpisode(input: YoutubeUploadCommandInput): Pr
   const { resolver, episodeId } = episodePathsForDir(episodeDir);
   const reportDir = input.reportDir ?? path.join(resolver.uploadStateDir(episodeId), "reports");
   const warnings: string[] = [];
+  const metadataGeneration = input.metadataGeneration;
+  const generatedMetadata = input.generateMetadata
+    ? metadataGeneration
+      ? await (async () => {
+          const metadataLanguage =
+            input.metadataLanguage ?? input.overrides?.languageHint ?? "en";
+          const metadataVariant = input.overrides?.variant ?? "full";
+          const sourceFilePath = await resolveScenesFileForUpload({
+            episodeDir,
+            preferredLanguage: metadataLanguage,
+            preferredVariant: metadataVariant,
+          });
+          const locale = localeForLanguage(metadataLanguage);
+          const target = await readAndValidateScenesFile(sourceFilePath, metadataLanguage);
+          return generateYoutubeMetadataForTarget(
+            {
+              ...target,
+              outputDir: path.join(
+                episodeDir,
+                "locales",
+                safeBasename(metadataLanguage),
+                metadataVariant,
+                "metadata"
+              ),
+              language: metadataLanguage,
+              locale,
+              variant: metadataVariant,
+              narration: {
+                ...target.narration,
+                language: metadataLanguage,
+                locale,
+                variant: metadataVariant,
+              },
+            },
+            {
+              apiKey: metadataGeneration.apiKey,
+              model: metadataGeneration.model,
+              maxOutputTokens: metadataGeneration.maxOutputTokens,
+              repairModel: metadataGeneration.repairModel,
+              repairReasoningEffort: metadataGeneration.repairReasoningEffort,
+              repairMaxOutputTokens: metadataGeneration.repairMaxOutputTokens,
+              language: metadataLanguage,
+              promptText: metadataGeneration.promptText,
+              maxRetries: metadataGeneration.maxRetries,
+              timeoutMs: metadataGeneration.timeoutMs,
+              keepFile: metadataGeneration.keepFile,
+              ...(metadataGeneration.baseUrl
+                ? { baseUrl: metadataGeneration.baseUrl }
+                : {}),
+            }
+          );
+        })()
+      : (() => {
+          throw new YoutubeUploadConfigurationError("--generate-metadata requires metadataGeneration settings.");
+        })()
+    : null;
   const resolved = await generateUploadMetadataForEpisode(
     episodeDir,
     input.episodeId,
     input.overrides,
-    input.metadataPath
+    generatedMetadata?.outputs.jsonPath ?? input.metadataPath
   );
   const uploadThumbnail = await prepareThumbnailForUpload(
     episodeDir,
@@ -1523,48 +1683,29 @@ export async function uploadYoutubeEpisode(input: YoutubeUploadCommandInput): Pr
   if (
     !input.force &&
     previousReport &&
-    previousReport.status === "uploaded"
+    previousReport.report.status === "uploaded"
   ) {
     const videoSha = await hashFile(uploadVideoPath);
     const thumbnailSha = await hashFile(uploadThumbnail.path);
     if (
-      previousReport.video.sha256 === videoSha &&
-      previousReport.thumbnail.sha256 === thumbnailSha &&
-      previousReport.sourceMetadataSha256 === resolved.metadataSha256 &&
-      previousReport.metadata.title === resolved.metadata.title.recommended
+      previousReport.report.video.sha256 === videoSha &&
+      previousReport.report.thumbnail.sha256 === thumbnailSha &&
+      previousReport.report.sourceMetadataSha256 === resolved.metadataSha256 &&
+      previousReport.report.metadata.title === resolved.metadata.title.recommended
     ) {
-      const report = previousReport;
-      const paths = await writeUploadReport(reportDir, report);
-      return { report, reportPath: paths.jsonPath, markdownPath: paths.markdownPath, skipped: true };
+      return {
+        report: previousReport.report,
+        reportPath: previousReport.paths.jsonPath,
+        markdownPath: previousReport.paths.markdownPath,
+        skipped: true,
+      };
     }
   }
 
   await ensureDir(reportDir);
-  const rawMetadata = input.generateMetadata
-    ? input.metadataGeneration
-      ? (
-          await generateYoutubeMetadataFromScenesFile(
-            await resolveScenesFileForEpisode(episodeDir),
-            {
-              apiKey: input.metadataGeneration.apiKey,
-              model: input.metadataGeneration.model,
-              maxOutputTokens: input.metadataGeneration.maxOutputTokens,
-              repairModel: input.metadataGeneration.repairModel,
-              repairReasoningEffort: input.metadataGeneration.repairReasoningEffort,
-              repairMaxOutputTokens: input.metadataGeneration.repairMaxOutputTokens,
-              language: "en",
-              promptText: input.metadataGeneration.promptText,
-              maxRetries: input.metadataGeneration.maxRetries,
-              timeoutMs: input.metadataGeneration.timeoutMs,
-              keepFile: input.metadataGeneration.keepFile,
-              ...(input.metadataGeneration.baseUrl ? { baseUrl: input.metadataGeneration.baseUrl } : {}),
-            }
-          )
-        ).metadata
-      : (() => {
-          throw new YoutubeUploadConfigurationError("--generate-metadata requires metadataGeneration settings.");
-        })()
-      : input.metadataPath
+  const rawMetadata = generatedMetadata
+    ? generatedMetadata.metadata
+    : input.metadataPath
         ? youtubeMetadataSchema.parse(
             JSON.parse(
               await fs.readFile(path.resolve(episodeDir, input.metadataPath), "utf8")
@@ -1850,7 +1991,7 @@ export async function uploadYoutubeEpisode(input: YoutubeUploadCommandInput): Pr
     youtubeChannelId: authChannelId,
     warnings,
     });
-    const finalPaths = await writeUploadReport(reportDir, finalReport);
+    const finalPaths = await writeUploadReport(reportDir, finalReport, plannedPaths);
     return {
       report: finalReport,
       reportPath: finalPaths.jsonPath,
@@ -1890,7 +2031,7 @@ export async function uploadYoutubeEpisode(input: YoutubeUploadCommandInput): Pr
         retryable: uploadError.retryable,
       },
     });
-    await writeUploadReport(reportDir, failedReport);
+    await writeUploadReport(reportDir, failedReport, plannedPaths);
     throw uploadError;
   }
 }

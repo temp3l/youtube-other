@@ -1,0 +1,5 @@
+Summary: Fixed short-upload video preparation so a video already ending in `-with-thumbnail-intro.mp4` is reused as-is and never wrapped a second time. Added a regression test covering reruns on already-composed short assets.
+Changed paths: `packages/youtube-upload/src/index.ts`, `packages/youtube-upload/src/index.unit.test.ts`, `docs/reports/codex-runs/2026-07-12-short-thumbnail-intro-idempotency-fix.md`
+Tests: `pnpm test:focused -- packages/youtube-upload/src/index.unit.test.ts` failed on a pre-existing fixture issue (`ENOENT` for `content-ideas/audio-ready-thumbnails/en/episode-fixture.png` in `writes an upload report using a mocked YouTube client`); `pnpm exec vitest run packages/youtube-upload/src/index.unit.test.ts -t "does not render the short thumbnail intro twice"` passed
+Commit hash: `9ad38824d7d5283ecbc9cdccbf8c45e52fb42df3`
+Unresolved risks: The broader `packages/youtube-upload` unit file still has an unrelated fixture/setup failure in this workspace. Existing uploaded Shorts for episode `053` may already contain duplicate thumbnail intros and need manual Studio spot-check or replacement upload if confirmed.

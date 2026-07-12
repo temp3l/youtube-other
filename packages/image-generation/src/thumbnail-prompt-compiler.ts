@@ -143,6 +143,14 @@ function viralHorrorPrompt(args: {
   readonly input: GenerateThumbnailInput;
   readonly reference: ResolvedThumbnailReference;
 }): string {
+  const conceptDirection =
+    args.input.concept === "reaction"
+      ? "REACTION CONCEPT: use an extreme close emotional reaction, visible eyes, and the threat close enough to explain the fear."
+      : args.input.concept === "threat-closeup"
+        ? "THREAT CLOSE-UP CONCEPT: make the story-specific threat fill much of the image with one unforgettable face, silhouette, or shape."
+        : args.input.concept === "mystery-object"
+          ? "MYSTERY OBJECT CONCEPT: center one impossible or cursed story object and show a human hand, silhouette, or reaction only for scale."
+          : "Choose the single strongest reaction, threat, or mystery-object concept for this story.";
   return [
     "1. PURPOSE",
     "Create one professional viral YouTube horror thumbnail background for deterministic post-rendered typography.",
@@ -170,6 +178,8 @@ function viralHorrorPrompt(args: {
     `Key visual moment: ${normalizeWhitespace(args.input.keyVisualMoment ?? args.input.storySummary)}.`,
     `Story title: ${normalizeWhitespace(args.input.storyTitle)}.`,
     `Story summary: ${normalizeWhitespace(args.input.storySummary)}.`,
+    `Metadata visual direction: ${normalizeWhitespace(args.input.visualDirection ?? "none supplied")}.`,
+    conceptDirection,
     "Use the story details to create a new, instantly readable image with exactly one primary horror idea.",
     "",
     "5. FORMAT-SPECIFIC COMPOSITION",
@@ -233,6 +243,8 @@ export function computeThumbnailSourceFingerprint(args: {
       settingDescription: normalizeWhitespace(args.input.settingDescription),
       moodDescription: normalizeWhitespace(args.input.moodDescription ?? ""),
       keyVisualMoment: normalizeWhitespace(args.input.keyVisualMoment ?? ""),
+      visualDirection: normalizeWhitespace(args.input.visualDirection ?? ""),
+      concept: args.input.concept ?? null,
       referenceSha256: args.referenceSha256,
     })
   );

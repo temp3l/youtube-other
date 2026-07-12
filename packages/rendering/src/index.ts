@@ -2773,6 +2773,45 @@ async function resolveSceneImagePath(
           })
     ),
   ].filter((candidate): candidate is string => Boolean(candidate));
+  const generationManifestPath = path.join(
+    episodeDir,
+    "state",
+    "image-generation",
+    "manifests",
+    `${scene.id}.json`
+  );
+  const generationManifest =
+    aspectRatio === "16:9" && (await fileExists(generationManifestPath))
+      ? ((JSON.parse(await fs.readFile(generationManifestPath, "utf8")) as {
+          status?: string;
+          outputPath?: string;
+          outputSha256?: string;
+        }))
+      : undefined;
+  if (generationManifest) {
+    if (
+      generationManifest.status !== "generated" ||
+      !generationManifest.outputPath ||
+      !generationManifest.outputSha256
+    ) {
+      throw new MediaValidationError(
+        `Scene image manifest is not renderable for ${scene.id}: status=${generationManifest.status ?? "missing"}.`
+      );
+    }
+    const manifestedPath = path.resolve(generationManifest.outputPath);
+    if (!(await fileExists(manifestedPath))) {
+      throw new MediaValidationError(`Manifest image is missing for ${scene.id}.`);
+    }
+    if ((await hashFile(manifestedPath)) !== generationManifest.outputSha256) {
+      throw new MediaValidationError(`Manifest image hash mismatch for ${scene.id}.`);
+    }
+    if (!candidates.some((candidate) => path.resolve(candidate) === manifestedPath)) {
+      throw new MediaValidationError(
+        `Manifest image does not match the current scene plan for ${scene.id}.`
+      );
+    }
+    return assertInsideWorkspace(episodeRoot, manifestedPath);
+  }
   for (const candidate of candidates) {
     if (await fileExists(candidate)) {
       return assertInsideWorkspace(episodeRoot, candidate);
@@ -4629,8 +4668,11 @@ export class FFmpegVideoRenderer implements VideoRenderer {
         request,
         expectedDurationSeconds
       );
+      const visualDurationSeconds = await probeDurationSeconds(
+        visualConcatPath
+      );
       expectedFinalDurationSeconds = Math.min(
-        expectedDurationSeconds,
+        visualDurationSeconds,
         await probeDurationSeconds(narrationAudioPath)
       );
       await runCommand(

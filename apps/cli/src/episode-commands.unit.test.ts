@@ -171,6 +171,8 @@ async function createValidationFixture(options: {
   readonly shotPathEscape?: boolean;
   readonly includeGenerationManifest?: boolean;
   readonly includeVisualRetention?: boolean;
+  readonly omitShotSourceIdentity?: boolean;
+  readonly omitShotValidationCode?: boolean;
 } = {}): Promise<{
   readonly outputRoot: string;
   readonly episodeId: string;
@@ -393,7 +395,7 @@ async function createValidationFixture(options: {
           locale: language,
           variant,
           aspectRatio: variant === "short" ? "9:16" : "16:9",
-          sourceIdentity: shotSource,
+          ...(options.omitShotSourceIdentity ? {} : { sourceIdentity: shotSource }),
           sourceScenes: [
             {
               sourceSceneId: "source-scene-001",
@@ -473,7 +475,7 @@ async function createValidationFixture(options: {
       `${JSON.stringify(
         {
           schemaVersion: 1,
-          validationCode: "VALID",
+          ...(options.omitShotValidationCode ? {} : { validationCode: "VALID" }),
           valid: true,
           issues: [],
           metrics: {},
@@ -1306,6 +1308,24 @@ describe("episode commands", () => {
 
     expect(result.payload.valid).toBe(false);
     expect(validationCodeSet(result.payload)).toContain("STALE_SOURCE_IDENTITY");
+  });
+
+  it("accepts legacy visual-retention artifacts that omit source identity and validationCode", async () => {
+    const fixture = await createValidationFixture({
+      omitShotSourceIdentity: true,
+      omitShotValidationCode: true,
+    });
+    const result = await runEpisodeValidate({
+      episode: fixture.episodeId,
+      source: fixture.outputRoot,
+      outputRoot: fixture.outputRoot,
+      language: fixture.language,
+      artifact: fixture.variant,
+      json: true,
+    });
+
+    expect(result.payload.valid).toBe(true);
+    expect(validationCodeSet(result.payload)).toEqual(new Set(["VALID"]));
   });
 
   it("reports wrong language and wrong variant in existing artifacts", async () => {

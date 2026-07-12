@@ -48,6 +48,17 @@ pnpm mediaforge -- stories rewrite-full --input episodes/028-the-man-in-the-atti
 
 ---
 
+## next PROMPT:
+
+- docs/plans/20-script-score-gate-plan.md
+  How to run after implementation is included in the plan. Core commands:
+
+  pnpm mediaforge stories analyze --episode 033 --language en --format full --json
+  pnpm mediaforge stories analyze --episode 033 --language en --format short --json
+  pnpm mediaforge stories production status --episode 033 --json
+  pnpm mediaforge stories audio generate --episode 033 --only-ready --json
+  pnpm mediaforge stories images generate --episode 033 --only-ready --json
+
 ## next prompts:
 
 - runnning A: https://chatgpt.com/g/g-p-6a317d326e30819183556eca604b770c-youtube/c/6a4fb3bc-a9f8-83eb-a8b1-fc14192d7ccf

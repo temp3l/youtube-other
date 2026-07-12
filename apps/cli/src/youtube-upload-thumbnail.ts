@@ -22,6 +22,7 @@ interface ResolvedUploadThumbnailInput {
   readonly metadata: {
     readonly thumbnail: {
       readonly recommendedText: string;
+      readonly imagePrompt?: string;
     };
   };
   readonly resolvedLanguage: string;
@@ -54,6 +55,9 @@ export async function resolveUploadThumbnailPath(args: {
     episodeNumber: story.episodeNumber,
     style: "viral-horror-v1",
     hookText: args.resolvedUpload.metadata.thumbnail.recommendedText,
+    ...(args.resolvedUpload.metadata.thumbnail.imagePrompt
+      ? { visualDirection: args.resolvedUpload.metadata.thumbnail.imagePrompt }
+      : {}),
     storyTitle: story.storyTitle,
     storySummary: story.storySummary,
     protagonistDescription: story.protagonistDescription,

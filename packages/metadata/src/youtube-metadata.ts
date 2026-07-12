@@ -97,8 +97,8 @@ export const youtubeMetadataSchema = z.object({
   }),
   hashtags: z.array(z.string().regex(/^#[A-Za-z0-9_]+$/u)).max(3),
   thumbnail: z.object({
-    recommendedText: z.string().min(1),
-    alternativeTexts: z.array(z.string().min(1)).length(4),
+    recommendedText: z.string().trim().min(1).refine((text) => text.split(/\s+/u).length >= 2 && text.split(/\s+/u).length <= 5, "Thumbnail text must contain 2-5 words."),
+    alternativeTexts: z.array(z.string().trim().min(1).refine((text) => text.split(/\s+/u).length >= 2 && text.split(/\s+/u).length <= 5, "Thumbnail text must contain 2-5 words.")).length(4),
     imagePrompt: z.string().min(1)
   }),
   uploadSettings: z.object({

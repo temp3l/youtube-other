@@ -6,6 +6,23 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import sharp from "sharp";
 import { scenePlanSchema } from "@mediaforge/domain";
 import { createEpisodePathResolver, writeJsonAtomic } from "@mediaforge/shared";
+const {
+  mockGenerateYoutubeMetadataForTarget,
+  mockReadAndValidateScenesFile,
+} = vi.hoisted(() => ({
+  mockGenerateYoutubeMetadataForTarget: vi.fn(),
+  mockReadAndValidateScenesFile: vi.fn(),
+}));
+vi.mock("@mediaforge/metadata", async () => {
+  const actual = await vi.importActual<typeof import("@mediaforge/metadata")>(
+    "@mediaforge/metadata"
+  );
+  return {
+    ...actual,
+    generateYoutubeMetadataForTarget: mockGenerateYoutubeMetadataForTarget,
+    readAndValidateScenesFile: mockReadAndValidateScenesFile,
+  };
+});
 import {
   generateUploadMetadataForEpisode,
   uploadYoutubeEpisode,
@@ -93,6 +110,7 @@ function makeScenePlan() {
 async function prepareEpisode(episodeDir: string): Promise<void> {
   await fs.mkdir(path.join(episodeDir, "metadata"), { recursive: true });
   await fs.mkdir(path.join(episodeDir, "output"), { recursive: true });
+  await fs.mkdir(path.join(episodeDir, "canonical"), { recursive: true });
   await fs.mkdir(path.join("content-ideas", "audio-ready-thumbnails", "en"), { recursive: true });
   await writeJsonAtomic(
     path.join(episodeDir, "manifest.json"),
@@ -118,6 +136,7 @@ async function prepareEpisode(episodeDir: string): Promise<void> {
     }
   );
   await fs.writeFile(path.join(episodeDir, "output", "video.mp4"), Buffer.from("video"));
+  await writeJsonAtomic(path.join(episodeDir, "canonical", "scenes.json"), makeScenePlan());
   await fs.writeFile(
     path.join(episodeDir, "output", "thumbnail.png"),
     await sharp({ create: { width: 8, height: 8, channels: 3, background: "#222222" } })
@@ -193,6 +212,8 @@ async function prepareLocalizedEpisode(episodeDir: string): Promise<void> {
   await fs.mkdir(resolver.metadataDir(enContext), { recursive: true });
   await fs.mkdir(resolver.metadataDir(deContext), { recursive: true });
   await fs.mkdir(resolver.metadataDir(deShortContext), { recursive: true });
+  await fs.mkdir(path.join(episodeDir, "de", "full"), { recursive: true });
+  await fs.mkdir(path.join(episodeDir, "de", "short"), { recursive: true });
   await fs.mkdir(resolver.renderDir(enContext, "youtube"), { recursive: true });
   await fs.mkdir(resolver.renderDir(deContext, "youtube"), { recursive: true });
   await fs.mkdir(resolver.renderDir(deShortContext, "vertical"), { recursive: true });
@@ -239,6 +260,8 @@ async function prepareLocalizedEpisode(episodeDir: string): Promise<void> {
       captionLanguage: "de",
     },
   });
+  await writeJsonAtomic(path.join(episodeDir, "de", "full", "scenes.json"), makeScenePlan());
+  await writeJsonAtomic(path.join(episodeDir, "de", "short", "scenes.json"), makeScenePlan());
   await fs.writeFile(
     path.join(resolver.renderDir(enContext, "youtube"), "youtube-16x9-clean-en.mp4"),
     Buffer.from("english-video")
@@ -314,6 +337,8 @@ describe("youtube upload", () => {
   );
 
   afterEach(async () => {
+    mockGenerateYoutubeMetadataForTarget.mockReset();
+    mockReadAndValidateScenesFile.mockReset();
     await fs.rm(thumbnailFixturePath, { force: true }).catch(() => undefined);
     await fs.rm(germanThumbnailFixturePath, { force: true }).catch(() => undefined);
   });
@@ -403,6 +428,41 @@ describe("youtube upload", () => {
     expect(await fs.readFile(result.reportPath, "utf8")).toContain("\"status\": \"uploaded\"");
   });
 
+  it("preserves a separate report pair for every upload attempt", async () => {
+    const workspace = createWorkspace();
+    const episodeDir = path.join(workspace, "episode-fixture");
+    await prepareEpisode(episodeDir);
+    const auth: YoutubeAuthSettings = {
+      clientId: "client-id",
+      clientSecret: "client-secret",
+      refreshToken: "refresh-token",
+      channelId: "channel-id",
+    };
+
+    const first = await uploadYoutubeEpisode({
+      workspaceDir: workspace,
+      episodeId: "episode-fixture",
+      auth,
+      client: createMockYoutubeClient() as never,
+      force: true,
+    });
+    const second = await uploadYoutubeEpisode({
+      workspaceDir: workspace,
+      episodeId: "episode-fixture",
+      auth,
+      client: createMockYoutubeClient() as never,
+      force: true,
+    });
+
+    expect(second.reportPath).not.toBe(first.reportPath);
+    expect(second.markdownPath).not.toBe(first.markdownPath);
+    await expect(fs.readFile(first.reportPath, "utf8")).resolves.toContain(
+      "\"status\": \"uploaded\""
+    );
+    const reportFiles = await fs.readdir(path.dirname(first.reportPath));
+    expect(reportFiles.filter((entry) => /^youtube-upload-.*\.(?:json|md)$/u.test(entry))).toHaveLength(4);
+  });
+
   it("renders thumbnail into short uploads and skips the unsupported thumbnail API call", async () => {
     const workspace = createWorkspace();
     const episodeDir = path.join(workspace, "episode-fixture");
@@ -454,6 +514,226 @@ describe("youtube upload", () => {
     };
     expect(String(uploadRequest.media?.body?.path)).toContain(
       "youtube-9x16-clean-with-thumbnail-intro.mp4"
+    );
+  });
+
+  it("does not render the short thumbnail intro twice", async () => {
+    const workspace = createWorkspace();
+    const episodeDir = path.join(workspace, "episode-fixture");
+    await prepareEpisode(episodeDir);
+    const shortVideoPath = path.join(
+      episodeDir,
+      "output",
+      "youtube-9x16-clean-with-thumbnail-intro.mp4"
+    );
+    await fs.writeFile(shortVideoPath, Buffer.from("short-video-with-thumbnail-intro"));
+    const client = createMockYoutubeClient();
+    const auth: YoutubeAuthSettings = {
+      clientId: "client-id",
+      clientSecret: "client-secret",
+      refreshToken: "refresh-token",
+      channelId: "channel-id",
+    };
+    const shortThumbnailIntroRenderer = vi.fn<
+      YoutubeUploadCommandInput["shortThumbnailIntroRenderer"]
+    >();
+
+    const result = await uploadYoutubeEpisode({
+      workspaceDir: workspace,
+      episodeId: "episode-fixture",
+      auth,
+      client: client as never,
+      overrides: {
+        videoPath: path.join("output", "youtube-9x16-clean-with-thumbnail-intro.mp4"),
+      },
+      shortThumbnailIntroRenderer,
+      logger: {
+        info: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
+        debug: vi.fn(),
+      },
+      force: true,
+    });
+
+    expect(result.report.status).toBe("uploaded");
+    expect(result.report.video.path).toBe(shortVideoPath);
+    expect(shortThumbnailIntroRenderer).not.toHaveBeenCalled();
+    const uploadRequest = client.videos.insert.mock.calls[0]?.[0] as {
+      readonly media?: { readonly body?: { readonly path?: unknown } };
+    };
+    expect(String(uploadRequest.media?.body?.path)).toContain(
+      "youtube-9x16-clean-with-thumbnail-intro.mp4"
+    );
+    expect(String(uploadRequest.media?.body?.path)).not.toContain(
+      "with-thumbnail-intro-with-thumbnail-intro"
+    );
+  });
+
+  it("preserves the requested metadata language when upload regenerates metadata", async () => {
+    const workspace = createWorkspace();
+    const episodeDir = path.join(workspace, "episode-fixture");
+    await prepareLocalizedEpisode(episodeDir);
+    const client = createMockYoutubeClient();
+    const auth: YoutubeAuthSettings = {
+      clientId: "client-id",
+      clientSecret: "client-secret",
+      refreshToken: "refresh-token",
+      channelId: "channel-id",
+    };
+    const generatedMetadata = {
+      schemaVersion: "1.0",
+      source: {
+        sourceId: "episode-fixture",
+        sceneCount: 3,
+        durationSeconds: 15,
+        language: "de",
+      },
+      seo: { primaryKeyword: "keyword", secondaryKeywords: ["keyword"], viewerSearchIntent: "learn" },
+      title: { recommended: "Generated German Upload", alternatives: ["Alt 1", "Alt 2", "Alt 3", "Alt 4", "Alt 5"] },
+      description: "Beschreibung",
+      chapters: {
+        text: "00:00 Intro\n00:04 Mitte\n00:09 Ende",
+        characterCount: 35,
+        items: [
+          { timestamp: "00:00", startSeconds: 0, title: "Intro" },
+          { timestamp: "00:04", startSeconds: 4, title: "Mitte" },
+          { timestamp: "00:09", startSeconds: 9, title: "Ende" },
+        ],
+      },
+      tags: { text: "keyword", characterCount: 7, items: ["keyword"] },
+      hashtags: ["#keyword"],
+      thumbnail: {
+        recommendedText: "Upload",
+        alternativeTexts: ["Alt", "Alt", "Alt", "Alt"],
+        imagePrompt: "prompt",
+      },
+      uploadSettings: {
+        filename: "youtube-16x9-clean-de.mp4",
+        category: "Education",
+        videoLanguage: "de",
+        captionLanguage: "de",
+        madeForKids: false,
+        licence: "Standard YouTube License",
+        playlists: [],
+        comments: "allowed",
+        automaticChapters: true,
+      },
+      pinnedComment: "Pinned",
+      socialTeaser: "Teaser",
+      contentSummary: "Summary",
+      corrections: [],
+      verificationWarnings: [],
+    };
+    const generatedOutputs = {
+      outputDir: path.join(episodeDir, "locales", "de", "short", "metadata"),
+      jsonPath: path.join(episodeDir, "locales", "de", "short", "metadata", "youtube-metadata.json"),
+      markdownPath: path.join(episodeDir, "locales", "de", "short", "metadata", "youtube-metadata.md"),
+      descriptionPath: path.join(episodeDir, "locales", "de", "short", "metadata", "youtube-description.txt"),
+      chaptersPath: path.join(episodeDir, "locales", "de", "short", "metadata", "youtube-chapters.txt"),
+      tagsPath: path.join(episodeDir, "locales", "de", "short", "metadata", "youtube-tags.txt"),
+      pinnedCommentPath: path.join(episodeDir, "locales", "de", "short", "metadata", "youtube-pinned-comment.txt"),
+      generationPath: path.join(episodeDir, "locales", "de", "short", "metadata", "youtube-metadata-generation.json"),
+    };
+    mockReadAndValidateScenesFile.mockResolvedValue({
+      sourceFilePath: path.join(episodeDir, "de", "short", "scenes.json"),
+      episodeDir,
+      outputDir: path.join(episodeDir, "output"),
+      episodeSlug: "episode-fixture",
+      sourceId: "episode-fixture",
+      language: "de",
+      locale: "de-DE",
+      variant: "full",
+      scenePlan: makeScenePlan(),
+      sourceSha256: "a".repeat(64),
+      durationSeconds: 15,
+      narration: {
+        episodeNumber: "episode",
+        episodeSlug: "episode-fixture",
+        language: "de",
+        locale: "de-DE",
+        variant: "full",
+        narrationText: "Narration",
+        narrationFingerprint: "b".repeat(64),
+      },
+    });
+    mockGenerateYoutubeMetadataForTarget.mockImplementation(async (target) => {
+      await fs.mkdir(generatedOutputs.outputDir, { recursive: true });
+      await writeJsonAtomic(generatedOutputs.jsonPath, generatedMetadata);
+      return {
+        metadata: generatedMetadata,
+        generation: {
+          generatedAt: new Date().toISOString(),
+          sourceFile: target.sourceFilePath,
+          sourceSha256: target.sourceSha256,
+          promptVersion: "test-prompt",
+          model: "test-model",
+          attemptCount: 1,
+          chapterCharacterCount: 10,
+          tagCharacterCount: 10,
+          cacheKey: "cache-key",
+          language: target.language,
+          locale: target.locale,
+          variant: target.variant,
+          owner: "metadata",
+          ownerVersion: "youtube-metadata-owner-v1",
+          status: "completed",
+          parentNarrationFingerprint: target.narration.narrationFingerprint,
+          modelConfigFingerprint: "c".repeat(64),
+          promptSchemaFingerprint: "d".repeat(64),
+          narration: {
+            episodeNumber: target.narration.episodeNumber,
+            episodeSlug: target.narration.episodeSlug,
+            language: target.narration.language,
+            locale: target.narration.locale,
+            variant: target.narration.variant,
+            narrationFingerprint: target.narration.narrationFingerprint,
+          },
+        },
+        outputs: generatedOutputs,
+        cacheHit: false,
+      };
+    });
+
+    await uploadYoutubeEpisode({
+      workspaceDir: workspace,
+      episodeId: "episode-fixture",
+      episodeDir,
+      auth,
+      client: client as never,
+      generateMetadata: true,
+      metadataLanguage: "de",
+      overrides: { languageHint: "de", variant: "short" },
+      metadataGeneration: {
+        apiKey: "api-key",
+        model: "test-model",
+        maxOutputTokens: 1000,
+        repairModel: "repair-model",
+        repairReasoningEffort: "minimal",
+        repairMaxOutputTokens: 1000,
+        promptText: "prompt",
+        maxRetries: 1,
+        timeoutMs: 1000,
+        keepFile: false,
+      },
+      shortThumbnailIntroRenderer: async ({ outputPath }) => {
+        await fs.writeFile(outputPath, Buffer.from("short-video-with-thumbnail-intro"));
+        return outputPath;
+      },
+      force: true,
+    });
+
+    expect(mockReadAndValidateScenesFile).toHaveBeenCalledWith(
+      path.join(episodeDir, "de", "short", "scenes.json"),
+      "de"
+    );
+    expect(mockGenerateYoutubeMetadataForTarget).toHaveBeenCalledWith(
+      expect.objectContaining({
+        variant: "short",
+        outputDir: path.join(episodeDir, "locales", "de", "short", "metadata"),
+        narration: expect.objectContaining({ variant: "short" }),
+      }),
+      expect.objectContaining({ language: "de" })
     );
   });
 

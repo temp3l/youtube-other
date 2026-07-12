@@ -48,6 +48,8 @@ export { prepareFullSceneImageBatches } from "./image-batch-planner.js";
 export { resolveImageBatchManifest } from "./image-batch-service.js";
 export * from "./thumbnail-contracts.js";
 export * from "./story-thumbnail.js";
+export * from "./thumbnail-candidate-ranker.js";
+export * from "./thumbnail-quality-analyzer.js";
 export {
   ensureEpisodeFocalMetadataForImages,
   loadEpisodeFocalMetadata,
