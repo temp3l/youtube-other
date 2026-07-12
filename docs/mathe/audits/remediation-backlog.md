@@ -90,20 +90,22 @@ final narration-reader compatibility package typecheck.
 
 ## R-007 — Implement semantic visuals, TTS, timing reflow, render, and media QA
 
-Status: implemented, pending independent acceptance 2026-07-12.
+Status: implemented, acceptance rejected 2026-07-13; pending repair and new
+independent acceptance.
 
-Fresh adversarial coverage binds every component value to a schema- and
-content-hash-valid lesson, rebuilt fact lock, localized semantic hash, and exact
-scene membership. It rejects scalar, unit/scale/dimension, compound graph,
-missing, duplicate, and cross-scene attacks before cache/TTS/render work.
-Timing creation and validation now share final-frame reconciliation and reject
-skewed spans plus invalid drift tolerances. Plain SVG labels are readable,
-glyph metadata matches output, and absent continuity evidence blocks readiness.
-Unit coverage passes 12/12; the exact small local Remotion integration passed
-after one known sandbox-only failure and approved host rerun; typecheck passed.
-The recorded 180-second production render was not rerun because its formula
-render path, scene props/ranges, muxing, and media QA execution are unchanged.
-R-008 remains untouched.
+Independent source review found three material blockers. The media request
+accepts an inline, recomputably self-consistent lesson/narration and never
+validates the R-004 artifact lineage, workflow output, or parent hashes, so it
+does not establish authoritative upstream provenance. Displayed bindings may
+also be only a subset of a scene's locked facts, and teacher scenes bypass that
+comparison. SVG assets report constant safe-area bounds and glyph sizes rather
+than measured or conservative output bounds; schema-valid long AST labels can
+overflow number-line, graph, and table edges while readiness passes. Finally,
+`@mediaforge/math-education` resolves through stale `dist`: the unit test imports
+timing source directly, but package runtime synchronization lacks the repaired
+shared allocation, scene-span, tolerance, and fact-count checks. Unit 12/12,
+the unchanged host-rerun integration, and math-education typecheck passed, but
+none closes these gaps. The 180-second render was not rerun. R-008 is untouched.
 
 - Related findings: F-006, F-015.
 - Objective: produce deterministic formula/diagram assets, mock audio, synchronized Remotion output, and FFmpeg-validated media.
