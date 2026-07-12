@@ -1,5 +1,10 @@
 export const MATH_RENDERER_VERSION = "math-renderer.v1";
+export * from "./audio/mock-tts.js";
 export * from "./assets/teacher.js";
 export * from "./components/math-components.js";
+export * from "./components/svg-cache.js";
 export * from "./composition/composition.js";
+export * from "./composition/remotion-runner.js";
 export * from "./profiles/profiles.js";
+export * from "./provider-free-media.js";
+export * from "./quality/media-qa.js";

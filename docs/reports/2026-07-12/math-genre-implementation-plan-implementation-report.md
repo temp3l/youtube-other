@@ -1,15 +1,12 @@
 # Math Genre Plan Implementation Report
 
-- Source plan: `docs/mathe/plans/math-genre-implementation-plan.md`
-- Date: 2026-07-12
-- Commit: baseline `ac21261`; HEAD `c97572e`; uncommitted.
-- Summary: R-003–R-006 accepted. R-006 locks lesson semantics, emits deterministic five-locale display/speech, binds glossary TTS and fingerprints, verifies localized facts, keeps v1 readable but stale, and validates v2 schema/hashes.
-- Files changed: math localization, orchestration, metadata, domain, glossary, tests, backlog, and reports.
-- Tasks completed: T09, T15, T24/T25 core, and approved-domain rollout planning.
-- Tasks partially completed: T14 uses reviewed deterministic copy without a provider prompt registry; T16 remains planned-timing only; T26 remains simulation-only.
-- Tasks not completed: R-007 onward, providers, rendering, and publishing.
-- Deviations: reviewed templates replace generated localization; unsupported skills stay excluded.
-- Tests/checks: localization unit 8; workflow compatibility unit 4; exact five-locale Python integration 1; `pnpm --filter @mediaforge/math-education typecheck`.
-- Test results: green. Integration first lacked `.venv`, then passed with the offline hash-locked `/tmp` environment.
-- Risks: only three approved skills have glossary/topic mappings.
-- Next: R-007 only—semantic SVG/cache, mock TTS, timing reflow, local Remotion, and FFmpeg QA; no providers or publishing.
+- Source plan: `docs/mathe/plans/math-genre-implementation-plan.md`; date: 2026-07-12.
+- Commit: baseline `ac21261`; HEAD `9651a4036d8d29cc0a545eb5bceb53a02e4135da`; uncommitted.
+- Summary: R-003–R-006 remain accepted. Independent review keeps R-007 pending despite green fresh checks and recorded render evidence.
+- Files changed: `docs/mathe/audits/remediation-backlog.md`; this report; `docs/reports/codex-runs/2026-07-12-math-r007-acceptance-review.md`.
+- Tasks completed: repaired package typecheck; focused unit 9/9; exact small local render/corrupt-media integration.
+- Tasks partially completed: R-007 implementation.
+- Tasks not completed: R-007 acceptance; R-008 onward remains untouched.
+- Deviations: official `@remotion/bundler` replaced the unsupported bootstrap; boundary render took 823 seconds.
+- Tests/results: typecheck and unit 9/9 passed. Small integration first hit sandbox `uv_interface_addresses`; approved host rerun passed. Recorded 180-second render was not rerun.
+- Risks/next: bind each displayed AST/unit value to the locked semantic hash and validate scene-frame duration against audio duration; add focused adversarial tests, then reassess R-007.

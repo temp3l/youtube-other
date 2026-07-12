@@ -2,7 +2,7 @@ import { z } from "zod";
 import { type LessonVariantSpecification } from "../domain/index.js";
 import { type LocalizedNarration } from "../localization/localization.js";
 
-export const timingManifestSchema = z.strictObject({
+const timingManifestFieldsSchema = z.strictObject({
   artifactVersion: z.literal("math-timing.v1"),
   fps: z.literal(30),
   durationSeconds: z.number().min(180).max(300),
@@ -18,7 +18,189 @@ export const timingManifestSchema = z.strictObject({
     )
     .length(9),
 });
+export const timingManifestSchema = timingManifestFieldsSchema.superRefine(
+  (value, context) => {
+    let cursor = 0;
+    const segmentIds = new Set<string>();
+    for (const [index, scene] of value.scenes.entries()) {
+      if (scene.startFrame !== cursor)
+        context.addIssue({
+          code: "custom",
+          path: ["scenes", index, "startFrame"],
+          message: "Timing scenes must form a continuous, gap-free timeline.",
+        });
+      if (scene.endFrame <= scene.startFrame)
+        context.addIssue({
+          code: "custom",
+          path: ["scenes", index, "endFrame"],
+          message: "Timing scenes must contain at least one frame.",
+        });
+      if (segmentIds.has(scene.segmentId))
+        context.addIssue({
+          code: "custom",
+          path: ["scenes", index, "segmentId"],
+          message: "Timing segment ids must be unique.",
+        });
+      segmentIds.add(scene.segmentId);
+      for (const [cueIndex, cueFrame] of scene.cueFrames.entries())
+        if (cueFrame < scene.startFrame || cueFrame >= scene.endFrame)
+          context.addIssue({
+            code: "custom",
+            path: ["scenes", index, "cueFrames", cueIndex],
+            message: "Every visual cue must remain inside its scene.",
+          });
+      cursor = scene.endFrame;
+    }
+    if (cursor !== Math.round(value.durationSeconds * value.fps))
+      context.addIssue({
+        code: "custom",
+        path: ["durationSeconds"],
+        message: "Timing duration must match the final synchronized frame.",
+      });
+  }
+);
 export type TimingManifest = z.infer<typeof timingManifestSchema>;
+
+export const narrationAudioTimingSchema = z.strictObject({
+  segmentId: z.string().regex(/^segment-\d{3}$/u),
+  sceneId: z.string().regex(/^scene-\d{3}$/u),
+  durationSeconds: z.number().positive(),
+  cueOffsetsSeconds: z.array(z.number().nonnegative()).optional(),
+});
+export type NarrationAudioTiming = z.infer<typeof narrationAudioTimingSchema>;
+
+function cueFramesForSegment(
+  startFrame: number,
+  frames: number,
+  factCount: number,
+  audio: NarrationAudioTiming
+): number[] {
+  const offsets =
+    audio.cueOffsetsSeconds ??
+    Array.from(
+      { length: factCount },
+      (_, index) => (audio.durationSeconds * (index + 1)) / (factCount + 1)
+    );
+  if (offsets.length !== factCount)
+    throw new Error(
+      `Audio cue count does not match displayed facts for ${audio.segmentId}.`
+    );
+  return offsets.map((offset) => {
+    if (
+      !Number.isFinite(offset) ||
+      offset < 0 ||
+      offset >= audio.durationSeconds
+    )
+      throw new Error(`Audio cue is outside ${audio.segmentId}.`);
+    return Math.min(
+      startFrame + frames - 1,
+      startFrame + Math.round(offset * 30)
+    );
+  });
+}
+
+export function createNarrationDrivenTiming(
+  narration: LocalizedNarration,
+  rawAudio: readonly NarrationAudioTiming[]
+): TimingManifest {
+  const audio = rawAudio.map((segment) =>
+    narrationAudioTimingSchema.parse(segment)
+  );
+  if (audio.length !== 9)
+    throw new Error("Nine narration audio segments are required.");
+  const durationSeconds = audio.reduce(
+    (total, segment) => total + segment.durationSeconds,
+    0
+  );
+  if (durationSeconds < 180 || durationSeconds > 300)
+    throw new Error(
+      `Narration-driven duration ${durationSeconds.toFixed(3)}s is outside 180-300 seconds.`
+    );
+  const totalFrames = Math.round(durationSeconds * 30);
+  let cursor = 0;
+  const scenes = narration.segments.map((segment, index) => {
+    const audioSegment = audio[index];
+    if (
+      !audioSegment ||
+      audioSegment.segmentId !== segment.segmentId ||
+      audioSegment.sceneId !== segment.sceneId
+    )
+      throw new Error(
+        `Narration/audio identity mismatch at ${segment.segmentId}.`
+      );
+    const frames =
+      index === narration.segments.length - 1
+        ? totalFrames - cursor
+        : Math.round(audioSegment.durationSeconds * 30);
+    if (frames <= 0)
+      throw new Error(`Audio segment ${segment.segmentId} has no frames.`);
+    const startFrame = cursor;
+    const endFrame = startFrame + frames;
+    cursor = endFrame;
+    return {
+      sceneId: segment.sceneId,
+      startFrame,
+      endFrame,
+      segmentId: segment.segmentId,
+      cueFrames: cueFramesForSegment(
+        startFrame,
+        frames,
+        segment.factIds.length,
+        audioSegment
+      ),
+    };
+  });
+  return timingManifestSchema.parse({
+    artifactVersion: "math-timing.v1",
+    fps: 30,
+    durationSeconds: totalFrames / 30,
+    scenes,
+  });
+}
+
+export function assertTimingSynchronization(
+  timing: TimingManifest,
+  rawAudio: readonly NarrationAudioTiming[],
+  factCounts: readonly number[],
+  maxCueDriftFrames = 2
+): void {
+  const parsed = timingManifestSchema.parse(timing);
+  const audio = rawAudio.map((segment) =>
+    narrationAudioTimingSchema.parse(segment)
+  );
+  if (
+    audio.length !== parsed.scenes.length ||
+    factCounts.length !== parsed.scenes.length
+  )
+    throw new Error("Timing, audio, and fact-count lengths must match.");
+  for (const [index, scene] of parsed.scenes.entries()) {
+    const segment = audio[index];
+    if (
+      !segment ||
+      segment.segmentId !== scene.segmentId ||
+      segment.sceneId !== scene.sceneId
+    )
+      throw new Error(`Timing/audio identity mismatch at ${scene.segmentId}.`);
+    const expected = cueFramesForSegment(
+      scene.startFrame,
+      scene.endFrame - scene.startFrame,
+      factCounts[index] ?? 0,
+      segment
+    );
+    if (
+      expected.length !== scene.cueFrames.length ||
+      expected.some(
+        (frame, cueIndex) =>
+          Math.abs(
+            frame - (scene.cueFrames[cueIndex] ?? Number.POSITIVE_INFINITY)
+          ) > maxCueDriftFrames
+      )
+    )
+      throw new Error(
+        `Visual cue drift exceeds ${maxCueDriftFrames} frames in ${scene.sceneId}.`
+      );
+  }
+}
 
 export function createTimingManifest(
   lesson: LessonVariantSpecification,

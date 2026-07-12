@@ -90,6 +90,15 @@ final narration-reader compatibility package typecheck.
 
 ## R-007 — Implement semantic visuals, TTS, timing reflow, render, and media QA
 
+Status: pending after independent review 2026-07-12. Typecheck, focused unit
+coverage (9/9), and the exact small local Remotion integration pass; the first
+integration attempt was sandbox-blocked before an approved host rerun passed.
+Acceptance is blocked because `provider-free-media.ts` validates only visual
+fact-ID membership, not equality between displayed AST/unit semantics and the
+locked fact hash, and `timing.ts` does not compare each synchronized scene span
+with its audio duration. The recorded 180-second production render was not
+rerun. R-008 remains untouched.
+
 - Related findings: F-006, F-015.
 - Objective: produce deterministic formula/diagram assets, mock audio, synchronized Remotion output, and FFmpeg-validated media.
 - Expected files: distinct visual component schemas/renderers/cache, Remotion composition/runner, math TTS stage, timing reflow, teacher asset adapter, FFmpeg gate, fixtures/tests.

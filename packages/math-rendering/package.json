@@ -10,8 +10,13 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@mediaforge/domain": "workspace:*",
     "@mediaforge/math-education": "workspace:*",
+    "@mediaforge/process-runner": "workspace:*",
+    "@mediaforge/rendering": "workspace:*",
     "@mediaforge/shared": "workspace:*",
+    "@mediaforge/speech": "workspace:*",
+    "@remotion/bundler": "4.0.489",
     "@remotion/renderer": "4.0.489",
     "katex": "0.17.0",
     "react": "19.2.7",
