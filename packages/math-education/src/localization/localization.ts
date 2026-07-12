@@ -62,7 +62,7 @@ export const narrationSegmentSchema = z.strictObject({
   factIds: z.array(z.string()),
 });
 
-export const localizedNarrationSchema = z.strictObject({
+const localizedNarrationFieldsSchema = z.strictObject({
   artifactVersion: z.literal("math-narration.v2"),
   language: mathLanguageSchema,
   region: z.enum(["DE", "US", "419", "FR", "BR"]),
@@ -76,6 +76,16 @@ export const localizedNarrationSchema = z.strictObject({
   segments: z.array(narrationSegmentSchema).length(9),
   contentHash: sha256Schema,
 });
+export const localizedNarrationSchema =
+  localizedNarrationFieldsSchema.superRefine((value, context) => {
+    const { contentHash, ...content } = value;
+    if (contentHash !== canonicalHash(content))
+      context.addIssue({
+        code: "custom",
+        path: ["contentHash"],
+        message: "Localized narration content hash does not match its payload.",
+      });
+  });
 export type LocalizedNarration = z.infer<typeof localizedNarrationSchema>;
 
 const beatCopy: Record<MathLanguage, readonly string[]> = {
@@ -169,8 +179,8 @@ function defaultTemplates(
   glossary: MathGlossary
 ): string[] {
   const concepts = requiredConcepts(lesson.skillId);
-  const topic = glossaryTerm(glossary, concepts[0]).preferred;
-  const supporting = glossaryTerm(glossary, concepts[1]).preferred;
+  const topic = `[[term:${concepts[0]}]]`;
+  const supporting = `[[term:${concepts[1]}]]`;
   return lesson.scenes.map((scene, index) => {
     const copy = beatCopy[language][index];
     if (!copy) throw new Error(`Missing ${language} narration beat ${index}.`);
@@ -182,6 +192,20 @@ function defaultTemplates(
       .join("; ");
     return `${copy}${conceptText}${factText ? ` ${factText}.` : ""}`;
   });
+}
+
+function replaceTerms(
+  text: string,
+  glossary: MathGlossary,
+  mode: "display" | "spoken"
+): string {
+  return text.replace(
+    /\[\[term:([a-z0-9-]+)\]\]/gu,
+    (_token, conceptId: string) => {
+      const term = glossaryTerm(glossary, conceptId);
+      return mode === "display" ? term.preferred : term.tts;
+    }
+  );
 }
 
 function factTokens(text: string): string[] {
@@ -253,8 +277,16 @@ export function localizeNarration(
       sceneId: scene.sceneId,
       sceneFunction: scene.sceneFunction,
       tokenizedText,
-      displayText: replaceFacts(tokenizedText, resolvedById, "display"),
-      spokenText: replaceFacts(tokenizedText, resolvedById, "spoken"),
+      displayText: replaceTerms(
+        replaceFacts(tokenizedText, resolvedById, "display"),
+        glossary,
+        "display"
+      ),
+      spokenText: replaceTerms(
+        replaceFacts(tokenizedText, resolvedById, "spoken"),
+        glossary,
+        "spoken"
+      ),
       factIds: tokens,
     };
   });

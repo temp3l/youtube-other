@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { loadCurriculumRelease } from "../curriculum/release.js";
 import { type LessonVariantSpecification } from "../domain/index.js";
 import { buildLessonVariant } from "../lesson/variant-builder.js";
+import { canonicalHash } from "../verification/canonical-json.js";
 import {
   assertLocalizedDisplayVerification,
   localizedDisplayChecks,
@@ -185,6 +186,28 @@ describe("locked-fact localization", () => {
     );
   });
 
+  it("uses glossary TTS forms independently from display forms", async () => {
+    const source = await lesson();
+    const raw = JSON.parse(
+      await fs.readFile(
+        "packages/math-education/data/glossaries/v1/en.json",
+        "utf8"
+      )
+    ) as {
+      terms: Array<{ conceptId: string; preferred: string; tts: string }>;
+    };
+    const placeValue = raw.terms.find(
+      (term) => term.conceptId === "place-value"
+    )!;
+    placeValue.preferred = "place-value display";
+    placeValue.tts = "place value speech";
+    const narration = localizeNarration(source, "en", {
+      glossary: parseMathGlossary(raw, "en"),
+    });
+    expect(narration.segments[0]?.displayText).toContain("place-value display");
+    expect(narration.segments[0]?.spokenText).toContain("place value speech");
+  });
+
   it("blocks a failed post-localization verifier result", async () => {
     const source = await lesson();
     const checks = localizedDisplayChecks(
@@ -205,5 +228,16 @@ describe("locked-fact localization", () => {
         })),
       })
     ).toThrow(/Post-localization verification failed/u);
+  });
+
+  it("rejects a schema-valid narration whose displayed fact was reformatted", async () => {
+    const source = await lesson();
+    const narration = structuredClone(localizeNarration(source, "de"));
+    narration.resolvedFacts[0]!.display = "999";
+    const { contentHash: _oldHash, ...content } = narration;
+    narration.contentHash = canonicalHash(content);
+    expect(() => localizedDisplayChecks(source, narration)).toThrow(
+      /does not match deterministic formatting/u
+    );
   });
 });

@@ -75,8 +75,9 @@ of the approved number, geometry, and data candidates.
 
 ## R-006 — Enforce locked-fact localization and deterministic math speech/display
 
-Status: implemented 2026-07-12; focused verification passed; pending
-independent acceptance before R-007 starts.
+Status: accepted 2026-07-12 after independent adversarial source review,
+focused localization/artifact tests, five-locale Python verification, and the
+final narration-reader compatibility package typecheck.
 
 - Related findings: F-005, F-014.
 - Objective: preserve every mathematical fact/step/solution/scene across `de`, `en`, `es`, `fr`, and `pt` and produce controlled display and speech forms.

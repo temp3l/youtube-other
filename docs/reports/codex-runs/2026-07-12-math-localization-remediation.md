@@ -1,8 +1,8 @@
 # Math localization remediation
 
-- Summary: Independently accepted R-005, then implemented R-006 with schema-bound objective/variant/step/example/challenge/solution/scene/fact locks; deterministic five-locale display and speech; explicit `de-DE`, `en-US`, `es-419`, `fr-FR`, and `pt-BR` policies; glossary/false-friend enforcement; canonical German narration; locale-correct metadata; and post-localization Python verification.
-- Changed paths: `packages/math-education/src/{domain,localization,metadata,orchestration}/`, `packages/math-education/data/glossaries/v1/`, math backlog, plan report, and this report.
-- Tests/checks: R-005 review—10 unit, 1 Python simulation, 3 CLI passed. R-006—6 localization unit, 4 pipeline unit, 1 five-locale Python integration passed; math package typecheck passed after one return-type repair. Final Prettier and diff checks passed; the last v1-reader compatibility addition was not typechecked again under the command budget.
-- Commit: baseline `ac21261`; current HEAD `ccd0672`; changes uncommitted.
-- Risks remaining: R-006 awaits independent acceptance. Only three rollout-approved skills have reviewed topic/glossary mappings; R-007 media work is untouched.
-- Follow-up: independently review R-006 before starting R-007. No paid provider or publishing action ran.
+- Summary: R-006 accepted after adversarial review and repair. Fact locks cover objective, variant, examples, ordered steps, challenge/solutions, scenes, facts, and checks. Five locales emit deterministic display/speech with explicit regions, glossary TTS forms, locale metadata, post-localization verification, and versioned fingerprints. Legacy narration v1 parses but is never reusable; v2 validates schema plus embedded and lineage hashes.
+- Changed paths: `packages/math-education/src/localization/{localization,display-verification,tts-lexicon,localization.unit.test}.ts`, `packages/math-education/src/orchestration/{workflow,pilot-simulation,workflow-store.unit.test}.ts`, backlog, plan report, and this report.
+- Tests/checks: focused localization unit (8 passed); workflow compatibility unit (4 passed); exact five-locale Python integration (1 passed, 2 skipped); math package typecheck passed. The integration’s first run failed because `.venv` was absent; its one repair rerun passed using `/tmp/math-verifier-venv` installed offline from the hash-locked wheelhouse.
+- Commit: baseline `ac21261`; HEAD `c97572e`; changes uncommitted.
+- Risks: only three rollout-approved skills have reviewed glossary/topic mappings. R-007 is untouched.
+- Follow-up: R-007 only—semantic SVG/cache, mock TTS, timing reflow, local Remotion, and FFmpeg QA; no paid providers or publishing.

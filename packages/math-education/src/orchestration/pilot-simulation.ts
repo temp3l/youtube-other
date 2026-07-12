@@ -14,6 +14,7 @@ import {
   localizedDisplayChecks,
 } from "../localization/display-verification.js";
 import { loadMathGlossary } from "../localization/glossary.js";
+import { MATH_SPEECH_FORMAT_VERSION } from "../localization/tts-lexicon.js";
 import { generateMathMetadata } from "../metadata/math-metadata.js";
 import { createPublishDryRunManifest } from "../publishing/dry-run-manifest.js";
 import { deriveMathQuality } from "./quality-gate.js";
@@ -90,10 +91,12 @@ async function runPilotSimulationUnlocked(
   let parents = [curriculum.releaseHash];
   const canonicalNarrationFingerprint = canonicalHash({
     localizationVersion: "locked-facts.v2",
+    speechFormatVersion: MATH_SPEECH_FORMAT_VERSION,
     glossaryHash: loadMathGlossary("de").glossaryHash,
   });
   const localeFingerprint = canonicalHash({
     localizationVersion: "locked-facts.v2",
+    speechFormatVersion: MATH_SPEECH_FORMAT_VERSION,
     glossaries: languages.map((language) => ({
       language,
       hash: loadMathGlossary(language).glossaryHash,

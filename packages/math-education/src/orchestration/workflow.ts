@@ -228,6 +228,7 @@ export async function outputsAreValid(
   if (record.status !== "succeeded" && record.status !== "cached") return false;
   if (record.outputArtifacts.length === 0) return false;
   for (const output of record.outputArtifacts) {
+    if (output.schemaVersion === "math-narration.v1") return false;
     if (output.parentHashes.join(":") !== expectedParentHashes.join(":"))
       return false;
     const target = await isContainedRegularFile(root, output.relativePath);

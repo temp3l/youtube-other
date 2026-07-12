@@ -3,6 +3,8 @@ import os from "node:os";
 import path from "node:path";
 import { hashFile } from "@mediaforge/shared";
 import { describe, expect, it } from "vitest";
+import { canonicalHash } from "../verification/canonical-json.js";
+import { parseMathArtifactPayload } from "./artifact-schemas.js";
 import {
   createArtifactLineage,
   loadWorkflowManifest,
@@ -66,6 +68,91 @@ async function manifestWithOutputs(root: string, names = ["a.json", "b.json"]) {
 }
 
 describe("math workflow store", () => {
+  it("reads legacy narration as compatibility-only and hash-validates v2", async () => {
+    const root = await tempRoot();
+    const segmentsV1 = Array.from({ length: 9 }, (_, index) => ({
+      segmentId: `segment-${String(index + 1).padStart(3, "0")}`,
+      sceneId: `scene-${String(index + 1).padStart(3, "0")}`,
+      sceneFunction: "fixture",
+      text: "legacy text",
+      factIds: [],
+    }));
+    const legacy = {
+      artifactVersion: "math-narration.v1",
+      language: "de",
+      lessonId: "m5-zo-001-standard",
+      objectiveHash: "a".repeat(64),
+      factLockHash: "b".repeat(64),
+      segments: segmentsV1,
+      glossaryVersion: "math-glossary.v1",
+      contentHash: "c".repeat(64),
+    };
+    expect(() =>
+      parseMathArtifactPayload("math-narration.v1", legacy)
+    ).not.toThrow();
+    await fs.writeFile(
+      path.join(root, "legacy.json"),
+      JSON.stringify(legacy),
+      "utf8"
+    );
+    const legacyLineage = await createArtifactLineage({
+      root,
+      relativePath: "legacy.json",
+      schemaVersion: "math-narration.v1",
+      parentHashes: [],
+      producedBy: "localization",
+    });
+    expect(
+      await outputsAreValid(root, {
+        stage: "localization",
+        status: "succeeded",
+        fingerprint: "d".repeat(64),
+        parentFingerprints: [],
+        outputArtifacts: [legacyLineage],
+        updatedAt: new Date().toISOString(),
+      })
+    ).toBe(false);
+
+    const segmentsV2 = segmentsV1.map(({ text: _text, ...segment }) => ({
+      ...segment,
+      tokenizedText: "[[fact:value]]",
+      displayText: "1",
+      spokenText: "1",
+      factIds: ["value"],
+    }));
+    const v2Content = {
+      artifactVersion: "math-narration.v2" as const,
+      language: "de" as const,
+      region: "DE" as const,
+      lessonId: "m5-zo-001-standard",
+      variant: "standard" as const,
+      objectiveHash: "a".repeat(64),
+      factLockHash: "b".repeat(64),
+      glossaryVersion: "math-glossary.v1" as const,
+      glossaryHash: "c".repeat(64),
+      resolvedFacts: [
+        {
+          factId: "value",
+          semanticHash: "d".repeat(64),
+          display: "1",
+          spoken: "1",
+          latex: "1",
+        },
+      ],
+      segments: segmentsV2,
+    };
+    const v2 = { ...v2Content, contentHash: canonicalHash(v2Content) };
+    expect(() =>
+      parseMathArtifactPayload("math-narration.v2", v2)
+    ).not.toThrow();
+    expect(() =>
+      parseMathArtifactPayload("math-narration.v2", {
+        ...v2,
+        resolvedFacts: [{ ...v2.resolvedFacts[0], display: "2" }],
+      })
+    ).toThrow(/content hash/u);
+  });
+
   it("requires every output hash and the exact parent hashes", async () => {
     for (const mutation of ["delete", "truncate", "swap"] as const) {
       const root = await tempRoot();

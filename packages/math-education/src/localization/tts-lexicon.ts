@@ -1,5 +1,7 @@
 import { type MathLanguage } from "../domain/index.js";
 
+export const MATH_SPEECH_FORMAT_VERSION = "math-speech-format.v1";
+
 export const localeProfiles = {
   de: { intl: "de-DE", region: "DE" },
   en: { intl: "en-US", region: "US" },
