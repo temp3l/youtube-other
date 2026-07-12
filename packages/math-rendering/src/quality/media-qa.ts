@@ -195,7 +195,7 @@ export async function validateMathMediaFile(
         )
       );
       continuityChecked = true;
-    }
+    } else issues.push("Packet continuity evidence is unavailable.");
     const decode = await runCommand(
       "ffmpeg",
       [
@@ -239,8 +239,13 @@ export async function validateMathMediaFile(
 }
 
 export function assertMathMediaReady(validation: MathMediaValidation): void {
-  if (!validation.valid)
+  const readinessIssues = [...validation.issues];
+  if (!validation.continuityChecked)
+    readinessIssues.push("Packet continuity evidence is unavailable.");
+  if (!validation.corruptionScanPassed)
+    readinessIssues.push("FFmpeg corruption evidence is unavailable.");
+  if (!validation.valid || readinessIssues.length > 0)
     throw new Error(
-      `Math media readiness blocked: ${validation.issues.join(" ")}`
+      `Math media readiness blocked: ${[...new Set(readinessIssues)].join(" ")}`
     );
 }

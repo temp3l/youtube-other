@@ -2,8 +2,13 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { z } from "zod";
 import {
+  buildFactLock,
   canonicalHash,
+  canonicalJson,
+  lessonVariantSpecificationSchema,
   localizedNarrationSchema,
+  type ExactValue,
+  type LessonVariantSpecification,
   type LocalizedNarration,
 } from "@mediaforge/math-education";
 import {
@@ -39,6 +44,7 @@ export const providerFreeMediaRequestSchema = z.strictObject({
     z.literal(240),
     z.literal(300),
   ]),
+  lesson: lessonVariantSpecificationSchema,
   narration: localizedNarrationSchema,
   scenes: z.array(providerFreeSceneSchema).length(9),
   teacherManifestPath: z.string().min(1).optional(),
@@ -49,31 +55,185 @@ export type ProviderFreeMediaRequest = z.infer<
   typeof providerFreeMediaRequestSchema
 >;
 
-function componentFactIds(component: SemanticMathComponent): string[] {
+interface ComponentFactBinding {
+  factId: string;
+  semantic: ExactValue;
+}
+
+const scalar = (
+  expression: Extract<ExactValue, { kind: "scalar" }>["expression"]
+): ExactValue => ({ kind: "scalar", expression });
+
+function componentFactBindings(
+  component: SemanticMathComponent
+): ComponentFactBinding[] {
   switch (component.kind) {
     case "formula":
-      return [component.value.factId];
+      return [
+        {
+          factId: component.value.factId,
+          semantic: scalar(component.value.expression),
+        },
+      ];
     case "number-line":
       return [
-        component.minimum.factId,
-        component.maximum.factId,
-        ...component.markers.map((marker) => marker.factId),
-      ];
+        component.minimum,
+        component.maximum,
+        ...component.markers,
+      ].map((value) => ({
+        factId: value.factId,
+        semantic: scalar(value.expression),
+      }));
     case "graph":
       return [
-        component.xMinimum.factId,
-        component.xMaximum.factId,
-        component.yMinimum.factId,
-        component.yMaximum.factId,
-        ...component.points.map((point) => point.factId),
+        ...[
+          component.xMinimum,
+          component.xMaximum,
+          component.yMinimum,
+          component.yMaximum,
+        ].map((value) => ({
+          factId: value.factId,
+          semantic: scalar(value.expression),
+        })),
+        ...component.points.map((point) => ({
+          factId: point.factId,
+          semantic: {
+            kind: "tuple" as const,
+            values: [scalar(point.x), scalar(point.y)],
+          },
+        })),
       ];
     case "geometry":
+      return component.measurements.map((value) => ({
+        factId: value.factId,
+        semantic: scalar(value.expression),
+      }));
     case "measurement":
-      return component.measurements.map((value) => value.factId);
+      return component.measurements.map((measurement) => ({
+        factId: measurement.factId,
+        semantic: {
+          kind: "measurement",
+          value: measurement.value,
+          unit: measurement.unit,
+        },
+      }));
     case "table":
-      return component.rows.flatMap((row) => row.map((value) => value.factId));
+      return component.rows.flatMap((row) =>
+        row.map((value) => ({
+          factId: value.factId,
+          semantic: scalar(value.expression),
+        }))
+      );
     case "probability":
-      return component.branches.map((branch) => branch.probability.factId);
+      return component.branches.map((branch) => ({
+        factId: branch.probability.factId,
+        semantic: scalar(branch.probability.expression),
+      }));
+  }
+}
+
+const factBindingInputSchema = z.strictObject({
+  lesson: lessonVariantSpecificationSchema,
+  narration: localizedNarrationSchema,
+  scenes: z.array(providerFreeSceneSchema).length(9),
+});
+
+function exactList(values: readonly string[]): string {
+  return values.join("\0");
+}
+
+export function assertProviderFreeFactBindings(raw: {
+  lesson: LessonVariantSpecification;
+  narration: LocalizedNarration;
+  scenes: ProviderFreeMediaRequest["scenes"];
+}): void {
+  const { lesson, narration, scenes } = factBindingInputSchema.parse(raw);
+  const { contentHash, ...lessonContent } = lesson;
+  if (contentHash !== canonicalHash(lessonContent))
+    throw new Error("Provider-free media lesson content hash is invalid.");
+  const lock = buildFactLock(lesson);
+  if (
+    narration.lessonId !== lesson.lessonId ||
+    narration.variant !== lesson.variant ||
+    narration.objectiveHash !== lock.objectiveHash ||
+    narration.factLockHash !== lock.factLockHash
+  )
+    throw new Error("Provider-free media narration does not match its locked lesson.");
+
+  const lessonFactIds = lesson.facts.map((fact) => fact.factId);
+  const resolvedFactIds = narration.resolvedFacts.map((fact) => fact.factId);
+  if (
+    new Set(lessonFactIds).size !== lessonFactIds.length ||
+    new Set(resolvedFactIds).size !== resolvedFactIds.length ||
+    lessonFactIds.length !== resolvedFactIds.length ||
+    lessonFactIds.some((factId) => !resolvedFactIds.includes(factId))
+  )
+    throw new Error(
+      "Provider-free media fact coverage is missing, duplicated, or unexpected."
+    );
+  const lessonFacts = new Map(lesson.facts.map((fact) => [fact.factId, fact]));
+  for (const resolved of narration.resolvedFacts) {
+    const upstream = lessonFacts.get(resolved.factId);
+    if (
+      !upstream ||
+      resolved.semanticHash !== canonicalHash(upstream.semantic)
+    )
+      throw new Error(
+        `Narration fact ${resolved.factId} does not match locked lesson semantics.`
+      );
+  }
+
+  if (
+    new Set(lesson.scenes.map((scene) => scene.sceneId)).size !==
+      lesson.scenes.length ||
+    new Set(narration.segments.map((segment) => segment.segmentId)).size !==
+      narration.segments.length ||
+    new Set(narration.segments.map((segment) => segment.sceneId)).size !==
+      narration.segments.length
+  )
+    throw new Error("Provider-free media scene or segment identities are duplicated.");
+
+  for (const [index, scene] of scenes.entries()) {
+    const lessonScene = lesson.scenes[index];
+    const narrationSegment = narration.segments[index];
+    if (
+      !lessonScene ||
+      !narrationSegment ||
+      scene.sceneId !== lessonScene.sceneId ||
+      scene.sceneId !== narrationSegment.sceneId ||
+      lessonScene.sceneFunction !== narrationSegment.sceneFunction
+    )
+      throw new Error(`Media scene/narration/lesson mismatch at ${scene.sceneId}.`);
+    if (
+      new Set(lessonScene.factIds).size !== lessonScene.factIds.length ||
+      exactList(lessonScene.factIds) !== exactList(narrationSegment.factIds)
+    )
+      throw new Error(
+        `Scene ${scene.sceneId} fact membership is duplicated or differs from its locked narration.`
+      );
+    if (lessonScene.factIds.some((factId) => !lessonFacts.has(factId)))
+      throw new Error(`Scene ${scene.sceneId} references an unknown lesson fact.`);
+    if (scene.component.kind === "teacher") continue;
+
+    const bindings = componentFactBindings(scene.component);
+    const displayedIds = bindings.map((binding) => binding.factId);
+    if (new Set(displayedIds).size !== displayedIds.length)
+      throw new Error(`Scene ${scene.sceneId} displays a duplicate fact binding.`);
+    for (const binding of bindings) {
+      if (!lessonScene.factIds.includes(binding.factId))
+        throw new Error(
+          `Scene ${scene.sceneId} displays fact ${binding.factId} outside its locked scene.`
+        );
+      const upstream = lessonFacts.get(binding.factId);
+      if (!upstream)
+        throw new Error(
+          `Scene ${scene.sceneId} displays missing fact ${binding.factId}.`
+        );
+      if (canonicalJson(binding.semantic) !== canonicalJson(upstream.semantic))
+        throw new Error(
+          `Scene ${scene.sceneId} fact ${binding.factId} has different exact semantics.`
+        );
+    }
   }
 }
 
@@ -121,33 +281,31 @@ export async function createProviderFreeMediaSlice(
   const outputDir = path.resolve(request.outputDir);
   const visualCacheDir = path.join(outputDir, "visual-cache");
   const narration: LocalizedNarration = request.narration;
-  const knownFactIds = new Set(
-    narration.resolvedFacts.map((fact) => fact.factId)
-  );
+  assertProviderFreeFactBindings({
+    lesson: request.lesson,
+    narration,
+    scenes: request.scenes,
+  });
+  for (const scene of request.scenes)
+    if (scene.component.kind === "teacher" && !request.teacherManifestPath)
+      throw new Error(
+        `Teacher scene ${scene.sceneId} requires a teacher manifest.`
+      );
   const scenes: MathSceneAsset[] = [];
   for (const [index, scene] of request.scenes.entries()) {
     const narrationSegment = narration.segments[index];
     if (!narrationSegment || narrationSegment.sceneId !== scene.sceneId)
       throw new Error(`Media scene/narration mismatch at ${scene.sceneId}.`);
     if (scene.component.kind === "teacher") {
-      if (!request.teacherManifestPath)
-        throw new Error(
-          `Teacher scene ${scene.sceneId} requires a teacher manifest.`
-        );
       const asset = await cacheTeacherSvg({
         cacheDir: visualCacheDir,
-        manifestPath: request.teacherManifestPath,
+        manifestPath: request.teacherManifestPath!,
         poseId: scene.component.poseId,
         areaRatio: scene.component.areaRatio,
       });
       scenes.push({ ...asset, sceneId: scene.sceneId });
       continue;
     }
-    const ids = componentFactIds(scene.component);
-    if (ids.some((factId) => !knownFactIds.has(factId)))
-      throw new Error(
-        `Scene ${scene.sceneId} displays a fact absent from locked narration.`
-      );
     const cached = await cacheSemanticSvg(visualCacheDir, scene.component);
     scenes.push({
       sceneId: scene.sceneId,

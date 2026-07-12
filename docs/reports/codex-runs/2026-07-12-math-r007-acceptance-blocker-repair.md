@@ -1,0 +1,8 @@
+# Math R-007 acceptance-blocker repair
+
+- Summary/status: Repaired both reviewed blockers and narrow adjacent fail-opens. R-007 is implemented, pending independent acceptance 2026-07-12; R-008 remains untouched.
+- Changed paths: `packages/math-education/src/lesson/timing.ts`; `packages/math-rendering/src/provider-free-media.ts`; `packages/math-rendering/src/components/math-components.ts`; `packages/math-rendering/src/quality/media-qa.ts`; `packages/math-rendering/src/math-rendering.unit.test.ts`; `packages/math-rendering/src/math-media.integration.test.ts`; `docs/mathe/audits/remediation-backlog.md`; `docs/reports/2026-07-12/math-genre-implementation-plan-implementation-report.md`; this report.
+- Evidence: valid IDs with altered scalar, measurement unit/scale/dimensions, graph tuple, wrong-scene, missing, and duplicate bindings reject before media work. Skewed synchronized spans and invalid tolerances reject; deterministic 180/300 timing passes. Plain labels avoid raw LaTeX, glyph size is truthful, and missing continuity evidence blocks readiness.
+- Checks: focused unit passed 12/12 after one test-import repair. Exact filtered integration first hit sandbox `uv_interface_addresses`, then passed unchanged with approved host access (1 passed, 1 filtered). Math-rendering typecheck passed.
+- Commit: baseline `ac21261`; HEAD `ea31aff0f21423762066b72f3d8a720913e4fb97`; uncommitted.
+- Risks/not rerun: recorded 180-second render and math-education package typecheck were not rerun under the mandated budget. Formula rendering, scene props/ranges, muxing, and packet probing are unchanged; prior continuity evidence satisfies the stricter readiness assertion. Next: independent R-007 review.

@@ -4,8 +4,13 @@ import path from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import {
   assertTimingSynchronization,
+  buildLessonVariant,
   canonicalHash,
+  lessonVariantSpecificationSchema,
+  loadCurriculumRelease,
+  localizeNarration,
   localizedNarrationSchema,
+  type LessonVariantSpecification,
   type LocalizedNarration,
 } from "@mediaforge/math-education";
 import { runCommand } from "@mediaforge/process-runner";
@@ -51,6 +56,37 @@ function narrationFixture(): LocalizedNarration {
     ...content,
     contentHash: canonicalHash(content),
   });
+}
+
+async function providerBoundaryFixture(): Promise<{
+  lesson: LessonVariantSpecification;
+  narration: LocalizedNarration;
+}> {
+  const release = await loadCurriculumRelease(
+    "packages/math-education/data/curriculum/v1"
+  );
+  const base = buildLessonVariant(
+    release.skills.find((skill) => skill.skillId === "M5-ZO-001")!,
+    "standard"
+  );
+  const fallbackFact = base.facts.find(
+    (fact) => fact.semantic.kind === "scalar"
+  );
+  if (!fallbackFact) throw new Error("Boundary fixture requires a scalar fact.");
+  const { contentHash: _contentHash, ...baseContent } = base;
+  const draft = {
+    ...baseContent,
+    scenes: base.scenes.map((scene) => ({
+      ...scene,
+      factIds:
+        scene.factIds.length > 0 ? scene.factIds : [fallbackFact.factId],
+    })),
+  };
+  const lesson = lessonVariantSpecificationSchema.parse({
+    ...draft,
+    contentHash: canonicalHash(draft),
+  });
+  return { lesson, narration: localizeNarration(lesson, "de") };
 }
 
 describe("provider-free math media integration", () => {
@@ -157,29 +193,34 @@ describe("provider-free math media integration", () => {
     const root = await fs.mkdtemp(
       path.join(os.tmpdir(), "math-media-r007-boundary-")
     );
-    const narration = narrationFixture();
+    const { lesson, narration } = await providerBoundaryFixture();
     const fetchSpy = vi
       .spyOn(globalThis, "fetch")
       .mockRejectedValue(new Error("External network dispatch is forbidden."));
     try {
       const result = await createProviderFreeMediaSlice({
-        id: "m5-media-001-standard-de",
+        id: `${lesson.lessonId}-de`,
         profile: "grades-5-7-v1",
         targetDurationSeconds: 180,
+        lesson,
         narration,
-        scenes: narration.segments.map((segment, index) => ({
-          sceneId: segment.sceneId,
-          component: {
-            kind: "formula" as const,
-            value: {
-              factId: segment.factIds[0]!,
-              expression: {
-                kind: "integer" as const,
-                value: String(index + 1),
+        scenes: lesson.scenes.map((scene) => {
+          const fact = lesson.facts.find(
+            (candidate) => candidate.factId === scene.factIds[0]
+          );
+          if (!fact || fact.semantic.kind !== "scalar")
+            throw new Error(`Boundary fixture is missing ${scene.sceneId}.`);
+          return {
+            sceneId: scene.sceneId,
+            component: {
+              kind: "formula" as const,
+              value: {
+                factId: fact.factId,
+                expression: fact.semantic.expression,
               },
             },
-          },
-        })),
+          };
+        }),
         outputDir: root,
       });
 

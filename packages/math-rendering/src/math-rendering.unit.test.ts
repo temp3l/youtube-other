@@ -3,14 +3,21 @@ import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import {
-  assertTimingSynchronization,
+  buildLessonVariant,
   canonicalHash,
-  createNarrationDrivenTiming,
+  lessonVariantSpecificationSchema,
+  loadCurriculumRelease,
+  localizeNarration,
   localizedNarrationSchema,
-  timingManifestSchema,
+  type LessonVariantSpecification,
   type LocalizedNarration,
-  type NarrationAudioTiming,
 } from "@mediaforge/math-education";
+import {
+  assertTimingSynchronization,
+  createNarrationDrivenTiming,
+  timingManifestSchema,
+  type NarrationAudioTiming,
+} from "../../math-education/src/lesson/timing.js";
 import { loadTeacherPose, validateTeacherAssets } from "./assets/teacher.js";
 import {
   Formula,
@@ -26,12 +33,19 @@ import {
 } from "./composition/composition.js";
 import { createRemotionRenderFingerprint } from "./composition/remotion-runner.js";
 import {
+  assertProviderFreeFactBindings,
+  type ProviderFreeMediaRequest,
+} from "./provider-free-media.js";
+import {
   grades57Profile,
   grades810Profile,
   validateMathLayout,
   validateSafeAreaAndReadability,
 } from "./profiles/profiles.js";
-import { findPacketContinuityIssues } from "./quality/media-qa.js";
+import {
+  assertMathMediaReady,
+  findPacketContinuityIssues,
+} from "./quality/media-qa.js";
 
 const hash = "a".repeat(64);
 const integer = (factId: string, value: string): BoundMathValue => ({
@@ -81,6 +95,165 @@ function audio(duration = 20): NarrationAudioTiming[] {
     sceneId: segment.sceneId,
     durationSeconds: duration,
   }));
+}
+
+function audioForTotal(durationSeconds: 180 | 300): NarrationAudioTiming[] {
+  const localized = narration();
+  const commonDuration = Math.floor(durationSeconds / 9);
+  return localized.segments.map((segment, index) => ({
+    segmentId: segment.segmentId,
+    sceneId: segment.sceneId,
+    durationSeconds:
+      index === localized.segments.length - 1
+        ? durationSeconds - commonDuration * 8
+        : commonDuration,
+  }));
+}
+
+async function factBindingFixture(): Promise<{
+  lesson: LessonVariantSpecification;
+  narration: LocalizedNarration;
+  scenes: ProviderFreeMediaRequest["scenes"];
+}> {
+  const release = await loadCurriculumRelease(
+    "packages/math-education/data/curriculum/v1"
+  );
+  const base = buildLessonVariant(
+    release.skills.find((skill) => skill.skillId === "M5-ZO-001")!,
+    "standard"
+  );
+  const scalarSemantic = (value: string) => ({
+    kind: "scalar" as const,
+    expression: { kind: "integer" as const, value },
+  });
+  const measurementSemantic = {
+    kind: "measurement" as const,
+    value: { kind: "integer" as const, value: "8" },
+    unit: {
+      symbol: "cm",
+      scale: { numerator: "1", denominator: "100" },
+      dimensions: { length: 1 },
+    },
+  };
+  const graphFacts = [
+    { factId: "graph-x-min", semantic: scalarSemantic("0") },
+    { factId: "graph-x-max", semantic: scalarSemantic("10") },
+    { factId: "graph-y-min", semantic: scalarSemantic("0") },
+    { factId: "graph-y-max", semantic: scalarSemantic("10") },
+    {
+      factId: "graph-point",
+      semantic: {
+        kind: "tuple" as const,
+        values: [scalarSemantic("2"), scalarSemantic("4")],
+      },
+    },
+  ];
+  const addedFacts = [
+    {
+      factId: "rendered-measurement",
+      semantic: measurementSemantic,
+      displayLatex: "8\\,\\mathrm{cm}",
+      checkIds: ["check-rendered-measurement"],
+    },
+    ...graphFacts.map((fact) => ({
+      ...fact,
+      displayLatex: fact.factId === "graph-point" ? "(2,4)" : fact.semantic.kind === "scalar" ? fact.semantic.expression.value : "",
+      checkIds: [`check-${fact.factId}`],
+    })),
+  ];
+  const addedChecks: LessonVariantSpecification["checks"] = [
+    {
+      checkId: "check-rendered-measurement",
+      kind: "unit-dimension",
+      expression: measurementSemantic.value,
+      expected: measurementSemantic,
+      actualUnit: measurementSemantic.unit,
+      critical: true,
+    },
+    ...graphFacts.map((fact) => ({
+      checkId: `check-${fact.factId}`,
+      kind: "display-fact" as const,
+      expression:
+        fact.semantic.kind === "scalar"
+          ? fact.semantic.expression
+          : {
+              kind: "tuple" as const,
+              items: fact.semantic.values.map((value) => value.expression),
+            },
+      expected: fact.semantic,
+      critical: true,
+    })),
+  ];
+  const { contentHash: _contentHash, ...baseContent } = base;
+  const draft = {
+    ...baseContent,
+    facts: [...base.facts, ...addedFacts],
+    checks: [...base.checks, ...addedChecks],
+    scenes: base.scenes.map((scene, index) =>
+      index === 0
+        ? { ...scene, factIds: ["rendered-measurement"] }
+        : index === 1
+          ? { ...scene, factIds: graphFacts.map((fact) => fact.factId) }
+          : scene
+    ),
+  };
+  const lesson = lessonVariantSpecificationSchema.parse({
+    ...draft,
+    contentHash: canonicalHash(draft),
+  });
+  const localized = localizeNarration(lesson, "de");
+  const scenes = lesson.scenes.map(
+    (scene, index): ProviderFreeMediaRequest["scenes"][number] => {
+      if (index === 0)
+        return {
+          sceneId: scene.sceneId,
+          component: {
+            kind: "measurement",
+            measurements: [
+              {
+                factId: "rendered-measurement",
+                value: measurementSemantic.value,
+                unit: measurementSemantic.unit,
+              },
+            ],
+          },
+        };
+      if (index === 1)
+        return {
+          sceneId: scene.sceneId,
+          component: {
+            kind: "graph",
+            xMinimum: integer("graph-x-min", "0"),
+            xMaximum: integer("graph-x-max", "10"),
+            yMinimum: integer("graph-y-min", "0"),
+            yMaximum: integer("graph-y-max", "10"),
+            points: [
+              {
+                factId: "graph-point",
+                x: { kind: "integer", value: "2" },
+                y: { kind: "integer", value: "4" },
+              },
+            ],
+          },
+        };
+      const fact = lesson.facts.find(
+        (candidate) => candidate.factId === scene.factIds[0]
+      );
+      if (!fact || fact.semantic.kind !== "scalar")
+        throw new Error(`Missing scalar fixture fact for ${scene.sceneId}.`);
+      return {
+        sceneId: scene.sceneId,
+        component: {
+          kind: "formula",
+          value: {
+            factId: fact.factId,
+            expression: fact.semantic.expression,
+          },
+        },
+      };
+    }
+  );
+  return { lesson, narration: localized, scenes };
 }
 
 function boundaryTiming(durationSeconds: number) {
@@ -294,6 +467,121 @@ describe("semantic math visual contracts", () => {
       await fs.rm(root, { recursive: true, force: true });
     }
   });
+
+  it("renders non-formula AST labels readably and reports actual minimum glyph size", () => {
+    const table = renderSemanticComponent({
+      kind: "table",
+      columnLabels: ["Wert"],
+      rows: [
+        [
+          {
+            factId: "fraction-value",
+            expression: {
+              kind: "quotient",
+              left: {
+                kind: "sum",
+                operands: [
+                  { kind: "integer", value: "1" },
+                  { kind: "integer", value: "2" },
+                ],
+              },
+              right: { kind: "integer", value: "3" },
+            },
+          },
+        ],
+      ],
+    });
+    expect(table.svg).not.toContain("\\frac");
+    expect(table.svg).toContain("÷");
+    expect(table.svg).toContain("(1 + 2)");
+
+    const probability = renderSemanticComponent({
+      kind: "probability",
+      nodes: ["Start", "Ziel"],
+      branches: [
+        {
+          from: 0,
+          to: 1,
+          probability: {
+            factId: "branch-half",
+            expression: {
+              kind: "rational",
+              numerator: "1",
+              denominator: "2",
+            },
+          },
+        },
+      ],
+    });
+    expect(probability.minimumGlyphPx).toBe(72);
+    expect(probability.svg).not.toContain('font-size="44"');
+  });
+
+  it("binds component values to hash-valid locked lesson semantics and exact scenes", async () => {
+    const fixture = await factBindingFixture();
+    expect(() => assertProviderFreeFactBindings(fixture)).not.toThrow();
+
+    const scalarMismatch = structuredClone(fixture);
+    const scalarComponent = scalarMismatch.scenes[2]!.component;
+    if (scalarComponent.kind !== "formula") throw new Error("Fixture mismatch.");
+    scalarComponent.value.expression = { kind: "integer", value: "999" };
+    expect(() => assertProviderFreeFactBindings(scalarMismatch)).toThrow(
+      /different exact semantics/u
+    );
+
+    const unitMismatch = structuredClone(fixture);
+    const measurement = unitMismatch.scenes[0]!.component;
+    if (measurement.kind !== "measurement") throw new Error("Fixture mismatch.");
+    measurement.measurements[0]!.unit = {
+      symbol: "s",
+      scale: { numerator: "1", denominator: "1" },
+      dimensions: { time: 1 },
+    };
+    expect(() => assertProviderFreeFactBindings(unitMismatch)).toThrow(
+      /different exact semantics/u
+    );
+
+    const crossScene = structuredClone(fixture);
+    const remoteFact = fixture.lesson.facts.find(
+      (fact) => fact.factId === fixture.lesson.scenes[7]!.factIds[0]
+    );
+    if (!remoteFact || remoteFact.semantic.kind !== "scalar")
+      throw new Error("Fixture mismatch.");
+    crossScene.scenes[2]!.component = {
+      kind: "formula",
+      value: {
+        factId: remoteFact.factId,
+        expression: remoteFact.semantic.expression,
+      },
+    };
+    expect(() => assertProviderFreeFactBindings(crossScene)).toThrow(
+      /outside its locked scene/u
+    );
+
+    const graphMismatch = structuredClone(fixture);
+    const graph = graphMismatch.scenes[1]!.component;
+    if (graph.kind !== "graph") throw new Error("Fixture mismatch.");
+    graph.points[0]!.y = { kind: "integer", value: "5" };
+    expect(() => assertProviderFreeFactBindings(graphMismatch)).toThrow(
+      /different exact semantics/u
+    );
+
+    const duplicate = structuredClone(fixture);
+    const duplicateGraph = duplicate.scenes[1]!.component;
+    if (duplicateGraph.kind !== "graph") throw new Error("Fixture mismatch.");
+    duplicateGraph.xMaximum.factId = duplicateGraph.xMinimum.factId;
+    expect(() => assertProviderFreeFactBindings(duplicate)).toThrow(
+      /duplicate fact binding/u
+    );
+
+    const missing = structuredClone(fixture);
+    const missingFormula = missing.scenes[2]!.component;
+    if (missingFormula.kind !== "formula") throw new Error("Fixture mismatch.");
+    missingFormula.value.factId = "missing-fact";
+    expect(() => assertProviderFreeFactBindings(missing)).toThrow(
+      /outside its locked scene|missing fact/u
+    );
+  });
 });
 
 describe("timing, teacher, and readiness gates", () => {
@@ -320,6 +608,29 @@ describe("timing, teacher, and readiness gates", () => {
         localized.segments.map((segment) => segment.factIds.length)
       )
     ).toThrow(/drift/u);
+
+    const skewed = structuredClone(result);
+    skewed.scenes[0]!.endFrame += 1;
+    skewed.scenes[1]!.startFrame += 1;
+    skewed.scenes[1]!.cueFrames = skewed.scenes[1]!.cueFrames.map(
+      (frame) => frame + 1
+    );
+    expect(timingManifestSchema.safeParse(skewed).success).toBe(true);
+    expect(() =>
+      assertTimingSynchronization(
+        skewed,
+        timings,
+        localized.segments.map((segment) => segment.factIds.length)
+      )
+    ).toThrow(/scene span/u);
+    expect(() =>
+      assertTimingSynchronization(
+        result,
+        timings,
+        localized.segments.map((segment) => segment.factIds.length),
+        Number.POSITIVE_INFINITY
+      )
+    ).toThrow(/finite/u);
   });
 
   it("enforces inclusive 180/300 duration boundaries", () => {
@@ -338,6 +649,19 @@ describe("timing, teacher, and readiness gates", () => {
     expect(() =>
       createMathComposition("too-short", boundaryTiming(179))
     ).toThrow();
+    for (const duration of [180, 300] as const) {
+      const localized = narration();
+      const timings = audioForTotal(duration);
+      const synchronized = createNarrationDrivenTiming(localized, timings);
+      expect(synchronized.durationSeconds).toBe(duration);
+      expect(() =>
+        assertTimingSynchronization(
+          synchronized,
+          timings,
+          localized.segments.map((segment) => segment.factIds.length)
+        )
+      ).not.toThrow();
+    }
   });
 
   it("blocks unsafe or unreadable layouts for both age profiles", () => {
@@ -483,5 +807,25 @@ describe("timing, teacher, and readiness gates", () => {
         0.233333
       ).join(" ")
     ).toMatch(/gap/u);
+  });
+
+  it("does not treat unavailable packet continuity evidence as ready", () => {
+    expect(() =>
+      assertMathMediaReady({
+        artifactVersion: "math-media-validation.v1",
+        valid: true,
+        filePath: "/tmp/not-read-by-readiness.mp4",
+        sha256: hash,
+        width: 1920,
+        height: 1080,
+        fps: 30,
+        durationSeconds: 180,
+        videoCodec: "h264",
+        audioCodec: "aac",
+        continuityChecked: false,
+        corruptionScanPassed: true,
+        issues: [],
+      })
+    ).toThrow(/continuity evidence/u);
   });
 });

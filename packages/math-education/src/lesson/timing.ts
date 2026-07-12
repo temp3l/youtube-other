@@ -2,6 +2,8 @@ import { z } from "zod";
 import { type LessonVariantSpecification } from "../domain/index.js";
 import { type LocalizedNarration } from "../localization/localization.js";
 
+const MATH_TIMING_FPS = 30;
+
 const timingManifestFieldsSchema = z.strictObject({
   artifactVersion: z.literal("math-timing.v1"),
   fps: z.literal(30),
@@ -94,9 +96,41 @@ function cueFramesForSegment(
       throw new Error(`Audio cue is outside ${audio.segmentId}.`);
     return Math.min(
       startFrame + frames - 1,
-      startFrame + Math.round(offset * 30)
+      startFrame + Math.round(offset * MATH_TIMING_FPS)
     );
   });
+}
+
+function allocateNarrationFrames(
+  audio: readonly NarrationAudioTiming[]
+): { durationSeconds: number; totalFrames: number; segmentFrames: number[] } {
+  const durationSeconds = audio.reduce(
+    (total, segment) => total + segment.durationSeconds,
+    0
+  );
+  if (
+    !Number.isFinite(durationSeconds) ||
+    durationSeconds < 180 ||
+    durationSeconds > 300
+  )
+    throw new Error(
+      `Narration-driven duration ${durationSeconds.toFixed(3)}s is outside 180-300 seconds.`
+    );
+  const totalFrames = Math.round(durationSeconds * MATH_TIMING_FPS);
+  let assignedFrames = 0;
+  const segmentFrames = audio.map((segment, index) => {
+    const frames =
+      index === audio.length - 1
+        ? totalFrames - assignedFrames
+        : Math.round(segment.durationSeconds * MATH_TIMING_FPS);
+    if (frames <= 0)
+      throw new Error(`Audio segment ${segment.segmentId} has no frames.`);
+    assignedFrames += frames;
+    return frames;
+  });
+  if (assignedFrames !== totalFrames)
+    throw new Error("Audio frame allocation did not reconcile to its total.");
+  return { durationSeconds, totalFrames, segmentFrames };
 }
 
 export function createNarrationDrivenTiming(
@@ -108,15 +142,7 @@ export function createNarrationDrivenTiming(
   );
   if (audio.length !== 9)
     throw new Error("Nine narration audio segments are required.");
-  const durationSeconds = audio.reduce(
-    (total, segment) => total + segment.durationSeconds,
-    0
-  );
-  if (durationSeconds < 180 || durationSeconds > 300)
-    throw new Error(
-      `Narration-driven duration ${durationSeconds.toFixed(3)}s is outside 180-300 seconds.`
-    );
-  const totalFrames = Math.round(durationSeconds * 30);
+  const allocation = allocateNarrationFrames(audio);
   let cursor = 0;
   const scenes = narration.segments.map((segment, index) => {
     const audioSegment = audio[index];
@@ -128,12 +154,8 @@ export function createNarrationDrivenTiming(
       throw new Error(
         `Narration/audio identity mismatch at ${segment.segmentId}.`
       );
-    const frames =
-      index === narration.segments.length - 1
-        ? totalFrames - cursor
-        : Math.round(audioSegment.durationSeconds * 30);
-    if (frames <= 0)
-      throw new Error(`Audio segment ${segment.segmentId} has no frames.`);
+    const frames = allocation.segmentFrames[index];
+    if (!frames) throw new Error(`Audio segment ${segment.segmentId} has no frames.`);
     const startFrame = cursor;
     const endFrame = startFrame + frames;
     cursor = endFrame;
@@ -152,8 +174,8 @@ export function createNarrationDrivenTiming(
   });
   return timingManifestSchema.parse({
     artifactVersion: "math-timing.v1",
-    fps: 30,
-    durationSeconds: totalFrames / 30,
+    fps: MATH_TIMING_FPS,
+    durationSeconds: allocation.totalFrames / MATH_TIMING_FPS,
     scenes,
   });
 }
@@ -164,6 +186,14 @@ export function assertTimingSynchronization(
   factCounts: readonly number[],
   maxCueDriftFrames = 2
 ): void {
+  if (
+    !Number.isFinite(maxCueDriftFrames) ||
+    !Number.isInteger(maxCueDriftFrames) ||
+    maxCueDriftFrames < 0
+  )
+    throw new Error(
+      "Maximum cue drift must be a finite, non-negative whole number of frames."
+    );
   const parsed = timingManifestSchema.parse(timing);
   const audio = rawAudio.map((segment) =>
     narrationAudioTimingSchema.parse(segment)
@@ -173,6 +203,19 @@ export function assertTimingSynchronization(
     factCounts.length !== parsed.scenes.length
   )
     throw new Error("Timing, audio, and fact-count lengths must match.");
+  if (
+    factCounts.some(
+      (count) => !Number.isFinite(count) || !Number.isInteger(count) || count < 0
+    )
+  )
+    throw new Error("Fact counts must be finite, non-negative integers.");
+  const allocation = allocateNarrationFrames(audio);
+  if (
+    allocation.totalFrames !==
+    Math.round(parsed.durationSeconds * parsed.fps)
+  )
+    throw new Error("Timing duration does not match narration audio frames.");
+  let expectedStartFrame = 0;
   for (const [index, scene] of parsed.scenes.entries()) {
     const segment = audio[index];
     if (
@@ -181,6 +224,16 @@ export function assertTimingSynchronization(
       segment.sceneId !== scene.sceneId
     )
       throw new Error(`Timing/audio identity mismatch at ${scene.segmentId}.`);
+    const expectedFrames = allocation.segmentFrames[index];
+    if (
+      expectedFrames === undefined ||
+      scene.startFrame !== expectedStartFrame ||
+      scene.endFrame !== expectedStartFrame + expectedFrames
+    )
+      throw new Error(
+        `Timing scene span does not match audio frames in ${scene.sceneId}.`
+      );
+    expectedStartFrame += expectedFrames;
     const expected = cueFramesForSegment(
       scene.startFrame,
       scene.endFrame - scene.startFrame,

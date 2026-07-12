@@ -9,7 +9,7 @@ import {
   type ExpressionNode,
 } from "@mediaforge/math-education";
 
-export const MATH_SVG_RENDERER_VERSION = "math-svg.v2";
+export const MATH_SVG_RENDERER_VERSION = "math-svg.v3";
 export const MATH_FONT_PROFILE = "katex-0.17.0-system-sans-v1";
 
 const factIdSchema = z.string().regex(/^[a-z][a-z0-9-]*$/u);
@@ -138,6 +138,51 @@ function literalNumber(expression: ExpressionNode): number {
   }
 }
 
+function expressionToSvgText(expression: ExpressionNode): string {
+  switch (expression.kind) {
+    case "integer":
+      return expression.value;
+    case "rational":
+      return `${expression.numerator}/${expression.denominator}`;
+    case "decimal": {
+      const sign = expression.unscaled.startsWith("-") ? "-" : "";
+      const digits = expression.unscaled
+        .replace("-", "")
+        .padStart(expression.scale + 1, "0");
+      const whole = digits.slice(0, -expression.scale || undefined);
+      const fractional =
+        expression.scale > 0 ? `.${digits.slice(-expression.scale)}` : "";
+      return `${sign}${whole}${fractional}`;
+    }
+    case "constant":
+      return expression.name === "pi" ? "π" : "e";
+    case "symbol":
+      return expression.name;
+    case "negate":
+      return `−(${expressionToSvgText(expression.operand)})`;
+    case "sum":
+      return `(${expression.operands.map(expressionToSvgText).join(" + ")})`;
+    case "product":
+      return `(${expression.operands.map(expressionToSvgText).join(" × ")})`;
+    case "quotient":
+      return `(${expressionToSvgText(expression.left)}) ÷ (${expressionToSvgText(expression.right)})`;
+    case "power":
+      return `(${expressionToSvgText(expression.left)})^(${expressionToSvgText(expression.right)})`;
+    case "root":
+      return `√[${expressionToSvgText(expression.degree)}](${expressionToSvgText(expression.radicand)})`;
+    case "function":
+      return `${expression.name}(${expression.args.map(expressionToSvgText).join(", ")})`;
+    case "relation":
+      return `${expressionToSvgText(expression.left)} ${{ eq: "=", lt: "<", lte: "≤", gt: ">", gte: "≥" }[expression.operator]} ${expressionToSvgText(expression.right)}`;
+    case "tuple":
+      return `(${expression.items.map(expressionToSvgText).join(", ")})`;
+    case "set":
+      return `{${expression.items.map(expressionToSvgText).join(", ")}}`;
+    case "matrix":
+      return `[${expression.items.map(expressionToSvgText).join(", ")}]`;
+  }
+}
+
 function factIds(input: SemanticMathComponent): string[] {
   switch (input.kind) {
     case "formula":
@@ -173,7 +218,7 @@ function mathText(
   anchor: "start" | "middle" | "end" = "middle",
   fontSize = 72
 ): string {
-  return `<text x="${x}" y="${y}" text-anchor="${anchor}" font-family="Arial, sans-serif" font-size="${fontSize}" fill="#14213d" data-fact-id="${value.factId}">${escapeXml(expressionToLatex(value.expression))}</text>`;
+  return `<text x="${x}" y="${y}" text-anchor="${anchor}" font-family="Arial, sans-serif" font-size="${fontSize}" fill="#14213d" data-fact-id="${value.factId}">${escapeXml(expressionToSvgText(value.expression))}</text>`;
 }
 
 function measurementText(
@@ -181,7 +226,10 @@ function measurementText(
   x: number,
   y: number
 ): string {
-  return `<text x="${x}" y="${y}" text-anchor="middle" font-family="Arial, sans-serif" font-size="72" fill="#14213d" data-fact-id="${measurement.factId}">${escapeXml(`${expressionToLatex(measurement.value)} ${measurement.unit.symbol}`)}</text>`;
+  if (/\\|[{}]/u.test(measurement.unit.symbol))
+    throw new Error("Measurement unit symbols cannot contain rendering commands.");
+  const symbol = measurement.unit.angle === "degree" ? "°" : measurement.unit.symbol;
+  return `<text x="${x}" y="${y}" text-anchor="middle" font-family="Arial, sans-serif" font-size="72" fill="#14213d" data-fact-id="${measurement.factId}">${escapeXml(`${expressionToSvgText(measurement.value)} ${symbol}`)}</text>`;
 }
 
 function wrapSvg(
@@ -195,7 +243,8 @@ function wrapSvg(
       "A semantic component must display at least one fact-bound value."
     );
   const cacheKey = canonicalHash({
-    rendererVersion: MATH_SVG_RENDERER_VERSION,
+    rendererVersion:
+      input.kind === "formula" ? "math-svg.v2" : MATH_SVG_RENDERER_VERSION,
     fontProfile: MATH_FONT_PROFILE,
     input,
   });
@@ -283,7 +332,7 @@ function renderGraph(
         throw new Error(
           `Graph point ${point.factId} is outside its declared domain.`
         );
-      return `<circle cx="${x(pointX)}" cy="${y(pointY)}" r="18" fill="#dc2626" data-fact-id="${point.factId}"/><text x="${x(pointX) + 28}" y="${y(pointY) - 24}" font-size="72" data-fact-id="${point.factId}">${escapeXml(`(${expressionToLatex(point.x)}, ${expressionToLatex(point.y)})`)}</text>`;
+      return `<circle cx="${x(pointX)}" cy="${y(pointY)}" r="18" fill="#dc2626" data-fact-id="${point.factId}"/><text x="${x(pointX) + 28}" y="${y(pointY) - 24}" font-family="Arial, sans-serif" font-size="72" fill="#14213d" data-fact-id="${point.factId}">${escapeXml(`(${expressionToSvgText(point.x)}, ${expressionToSvgText(point.y)})`)}</text>`;
     })
     .join("");
   return wrapSvg(
@@ -422,7 +471,7 @@ function renderProbability(
   const nodes = input.nodes
     .map(
       (label, index) =>
-        `<circle cx="${nodeX(index)}" cy="${nodeY(index)}" r="54" fill="#dbeafe" stroke="#14213d" stroke-width="5"/><text x="${nodeX(index)}" y="${nodeY(index) + 14}" text-anchor="middle" font-size="44">${escapeXml(label)}</text>`
+        `<circle cx="${nodeX(index)}" cy="${nodeY(index)}" r="54" fill="#dbeafe" stroke="#14213d" stroke-width="5"/><text x="${nodeX(index)}" y="${nodeY(index) + 24}" text-anchor="middle" font-family="Arial, sans-serif" font-size="72" fill="#14213d">${escapeXml(label)}</text>`
     )
     .join("");
   return wrapSvg(input, `${branches}${nodes}`, 72);
