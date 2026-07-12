@@ -358,6 +358,9 @@ export interface QualityGateDecision {
   readonly analysisArtifactId?: ArtifactId;
   readonly failedChecks: readonly string[];
   readonly warnings: readonly StageWarning[];
+  readonly overallScore?: number;
+  readonly minimumScore?: number;
+  readonly analysisState?: string;
 }
 
 export interface BatchItemState {

@@ -4,6 +4,7 @@ import { loadRuntimeConfig } from "@mediaforge/config";
 import {
   buildWorkspacePlannedStoryWorkflowManifest,
   buildStoryProductionStatusReport,
+  resolveStoryProductionAnalysisStatus,
   StoryWorkflowManifestStore,
   type StoryWorkflowManifest,
   type StoryProductionStatusReport,
@@ -295,13 +296,26 @@ async function stageArtifactExists(args: {
     "generation-manifest.json"
   );
   if (
+    stageType === "quality-full" || stageType === "quality-short"
+  ) {
+    try {
+      const analysis = await resolveStoryProductionAnalysisStatus({
+        outputRoot: resolver.workspaceRoot,
+        episodeSlug: episodeId,
+        language: locale,
+        format: normalizedVariant,
+      });
+      return analysis.analysisCurrent && analysis.pass === true;
+    } catch {
+      return false;
+    }
+  }
+  if (
     stageType === "rewrite-full" ||
     stageType === "validate-full" ||
-    stageType === "quality-full" ||
     stageType === "localize-full" ||
     stageType === "rewrite-short" ||
-    stageType === "validate-short" ||
-    stageType === "quality-short"
+    stageType === "validate-short"
   ) {
     return (
       (await fileExists(scriptPath)) ||

@@ -8,11 +8,13 @@ export const STORY_PRODUCTION_ANALYSIS_SCHEMA_VERSION =
 export const STORY_PRODUCTION_ANALYSIS_PROMPT_VERSION =
   "story-production-analysis-prompt-v1";
 export const STORY_PRODUCTION_ANALYSIS_GATE_VERSION =
-  "story-production-gate-v1";
+  "story-production-gate-v2";
 export const STORY_PRODUCTION_ANALYSIS_RESPONSE_SCHEMA_VERSION =
   "story-production-analysis-response-v1";
 
-export const STORY_PRODUCTION_ANALYSIS_SUPPORTED_FORMAT = "full" as const;
+export const SCRIPT_PRODUCTION_MIN_SCORE = 80;
+export const STORY_PRODUCTION_ANALYSIS_SUPPORTED_FORMATS = ["full", "short"] as const;
+export type StoryProductionAnalysisFormat = typeof STORY_PRODUCTION_ANALYSIS_SUPPORTED_FORMATS[number];
 
 export const storyProductionAnalysisVerdicts = [
   "READY",
@@ -196,7 +198,7 @@ export const storyProductionAnalysisArtifactSchema = z
     episodeSlug: z.string().trim().min(1),
     language: z.string().trim().min(1),
     locale: z.string().trim().min(1),
-    format: z.literal(STORY_PRODUCTION_ANALYSIS_SUPPORTED_FORMAT),
+    format: z.enum(STORY_PRODUCTION_ANALYSIS_SUPPORTED_FORMATS),
     sourceArtifactPath: z.string().trim().min(1),
     sourceContentFingerprint: z.string().trim().min(1),
     sourceLineageFingerprint: z.string().trim().min(1),
@@ -245,7 +247,7 @@ export interface StoryProductionAnalysisInput {
   readonly paragraphCount: number;
   readonly language: string;
   readonly locale: string;
-  readonly format: "full";
+  readonly format: StoryProductionAnalysisFormat;
   readonly canonicalEnglishText?: string;
 }
 
@@ -363,8 +365,8 @@ export function evaluateStoryProductionGate(
       id: "overall-score",
       label: "Overall score",
       actual: score,
-      expected: ">= 75",
-      pass: score >= 75,
+      expected: `>= ${SCRIPT_PRODUCTION_MIN_SCORE}`,
+      pass: score >= SCRIPT_PRODUCTION_MIN_SCORE,
       severity: "warning",
       reason: "The weighted score is the release gate.",
     }),
@@ -537,7 +539,7 @@ export function computeStoryProductionAnalysisFingerprint(args: {
   readonly sourceLineageFingerprint: string;
   readonly language: string;
   readonly locale: string;
-  readonly format: "full";
+  readonly format: StoryProductionAnalysisFormat;
   readonly sourceArtifactPath: string;
   readonly model: string;
   readonly reasoningEffort: string;

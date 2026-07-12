@@ -1,5 +1,6 @@
 import {
   STORY_PRODUCTION_ANALYSIS_GATE_VERSION,
+  SCRIPT_PRODUCTION_MIN_SCORE,
   type StoryProductionAnalysisArtifact,
   type StoryProductionAnalysisVerdict,
 } from "./story-production-analysis.js";
@@ -33,6 +34,8 @@ export interface WorkflowQualityGateInput {
   readonly analysisArtifactId?: QualityGateDecision["analysisArtifactId"];
   /** READY_WITH_MINOR_EDITS is advisory by default and may proceed only when a content profile opts in. */
   readonly allowMinorEditsToProceed?: boolean;
+  readonly overallScore?: number;
+  readonly analysisState?: string;
 }
 
 export function adaptStoryProductionQualityGate(
@@ -85,6 +88,12 @@ export function adaptStoryProductionQualityGate(
             },
           ]
         : warnings,
+    ...("overallScore" in input && input.overallScore !== undefined
+      ? { overallScore: input.overallScore, minimumScore: SCRIPT_PRODUCTION_MIN_SCORE }
+      : {}),
+    ...("analysisState" in input && input.analysisState
+      ? { analysisState: input.analysisState }
+      : {}),
   };
 }
 

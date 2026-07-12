@@ -20,11 +20,12 @@ import { resolveEpisodeCacheDirectory } from "./story-localization-cache.js";
 import { resolveEpisodeStoryProductionDirectory } from "./story-production.js";
 import {
   STORY_PRODUCTION_ANALYSIS_SCHEMA_VERSION,
-  STORY_PRODUCTION_ANALYSIS_SUPPORTED_FORMAT,
+  SCRIPT_PRODUCTION_MIN_SCORE,
   computeStoryProductionAnalysisFingerprint,
   storyProductionAnalysisArtifactSchema,
   type StoryProductionAnalysisArtifact,
   type StoryProductionAnalysisInput,
+  type StoryProductionAnalysisFormat,
 } from "./story-production-analysis.js";
 import { stableSerialize } from "./stable-json.js";
 import { narrationOnlyFullRewriteResponseSchema } from "./story-prompt-response-schemas.js";
@@ -71,7 +72,7 @@ export interface StoryProductionAnalysisSourceDescriptor {
   readonly episodeSlug: string;
   readonly language: string;
   readonly locale: string;
-  readonly format: "full";
+  readonly format: StoryProductionAnalysisFormat;
   readonly sourceArtifactPath: string;
   readonly storyText: string;
   readonly sourceContentFingerprint: string;
@@ -135,9 +136,9 @@ export function resolveStoryProductionAnalysisPaths(args: {
   readonly outputRoot: string;
   readonly episodeSlug: string;
   readonly language: string;
-  readonly format?: "full";
+  readonly format?: StoryProductionAnalysisFormat;
 }): StoryProductionAnalysisPaths {
-  const format = args.format ?? STORY_PRODUCTION_ANALYSIS_SUPPORTED_FORMAT;
+  const format = args.format ?? "full";
   const episodeDir = ensureWorkspacePath(
     args.outputRoot,
     path.join(args.outputRoot, args.episodeSlug)
@@ -189,7 +190,7 @@ export async function resolveStoryProductionAnalysisSource(args: {
   readonly outputRoot: string;
   readonly episodeSlug: string;
   readonly language: string;
-  readonly format?: "full";
+  readonly format?: StoryProductionAnalysisFormat;
 }): Promise<StoryProductionAnalysisSourceDescriptor> {
   const episodeSlug = await resolveEpisodeDirectorySlug(
     args.outputRoot,
@@ -206,6 +207,41 @@ export async function resolveStoryProductionAnalysisSource(args: {
   const storyText = await readTextIfExists(paths.scriptPath);
   if (!storyText || normalizeWhitespace(storyText).length === 0) {
     throw new Error(`Missing persisted rewritten story at ${paths.scriptPath}.`);
+  }
+  const format = args.format ?? "full";
+  if (format === "short") {
+    const parent = await resolveStoryProductionAnalysisSource({
+      outputRoot: args.outputRoot,
+      episodeSlug,
+      language,
+      format: "full",
+    });
+    return {
+      episode: parent.episode,
+      episodeSlug,
+      language,
+      locale: profile.locale,
+      format,
+      sourceArtifactPath: parent.sourceArtifactPath,
+      storyText,
+      sourceContentFingerprint: hashNormalizedText(storyText),
+      sourceLineageFingerprint: hashText(stableSerialize({
+        parentSourceContentFingerprint: parent.sourceContentFingerprint,
+        parentSourceLineageFingerprint: parent.sourceLineageFingerprint,
+        format,
+      })),
+      source: {
+        storyText,
+        paragraphCount: storyText.split(/\n{2,}/u).filter(Boolean).length,
+        language,
+        locale: profile.locale,
+        format,
+        canonicalEnglishText: parent.source.canonicalEnglishText ?? parent.storyText,
+      },
+      analysisPaths: paths,
+      lineagePresent: parent.lineagePresent,
+      lineageCurrent: parent.lineageCurrent,
+    };
   }
   if (language === "en") {
     const canonicalArtifact = paths.canonicalArtifactPath
@@ -362,7 +398,7 @@ export async function resolveStoryProductionAnalysisStatus(args: {
   readonly outputRoot: string;
   readonly episodeSlug: string;
   readonly language: string;
-  readonly format?: "full";
+  readonly format?: StoryProductionAnalysisFormat;
   readonly model?: string;
   readonly reasoningEffort?: string;
 }): Promise<StoryProductionAnalysisStatus> {
@@ -451,6 +487,7 @@ export function buildStoryProductionInspectPayload(args: {
     pass: args.status.pass,
     verdict: args.status.verdict,
     overallScore: args.status.overallScore,
+    minimumScore: SCRIPT_PRODUCTION_MIN_SCORE,
     failedProductionGates: args.status.failedProductionGates,
     blockingIssueCount: args.status.blockingIssueCount,
     requiredChangeCount: args.status.requiredChangeCount,
@@ -461,4 +498,42 @@ export function buildStoryProductionInspectPayload(args: {
     lineagePresent: args.source.lineagePresent,
     lineageCurrent: args.source.lineageCurrent,
   };
+}
+
+export async function assertScriptScoreGate(args: {
+  readonly outputRoot: string;
+  readonly episode: string;
+  readonly locale: string;
+  readonly format: StoryProductionAnalysisFormat;
+}): Promise<StoryProductionAnalysisStatus> {
+  let status: StoryProductionAnalysisStatus;
+  try {
+    status = await resolveStoryProductionAnalysisStatus({
+      outputRoot: args.outputRoot,
+      episodeSlug: args.episode,
+      language: args.locale,
+      format: args.format,
+    });
+  } catch (error) {
+    throw new Error(
+      `Script analysis is missing or stale for ${args.episode} ${args.locale}/${args.format}. Run stories analyze --episode ${args.episode} --language ${args.locale} --format ${args.format}.`,
+      { cause: error }
+    );
+  }
+  if (!status.analysisCurrent) {
+    throw new Error(
+      `Script analysis is ${status.analysisState.toLowerCase()} for ${args.episode} ${args.locale}/${args.format}. Run stories analyze --episode ${args.episode} --language ${args.locale} --format ${args.format}.`
+    );
+  }
+  if ((status.overallScore ?? 0) < SCRIPT_PRODUCTION_MIN_SCORE) {
+    throw new Error(
+      `Script score ${status.overallScore ?? 0}/100 is below required minimum ${SCRIPT_PRODUCTION_MIN_SCORE}.`
+    );
+  }
+  if (!status.pass) {
+    throw new Error(
+      `Script production analysis failed gates: ${status.failedProductionGates.join(", ") || "unknown"}.`
+    );
+  }
+  return status;
 }

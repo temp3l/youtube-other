@@ -84,6 +84,9 @@ export interface StoryProductionStatusEntry {
   readonly message?: string;
   readonly blockedBy: readonly StoryProductionDependencyStatus[];
   readonly waitingOn: readonly StoryProductionDependencyStatus[];
+  readonly overallScore?: number;
+  readonly minimumScore?: number;
+  readonly analysisState?: string;
 }
 
 export interface StoryProductionCategorySummary {

@@ -101,6 +101,43 @@ describe("story production analysis", () => {
     expect(verdict.verdict).toBe("REVISION_REQUIRED");
   });
 
+  it("blocks deterministic score 79 and passes score 80", () => {
+    const verdict79 = deriveStoryProductionVerdict({
+      modelResponse: makeResponse({
+        scores: { ...makeResponse().scores, hookStrength: 7 },
+      }),
+      source: {
+        storyText: "Story",
+        paragraphCount: 1,
+        language: "en",
+        locale: "en-US",
+        format: "full",
+      },
+      missingLineage: false,
+      staleLineage: false,
+      analysisFingerprintMismatch: false,
+      invalidStructuredAnalysis: false,
+    });
+    const verdict80 = deriveStoryProductionVerdict({
+      modelResponse: makeResponse(),
+      source: {
+        storyText: "Story",
+        paragraphCount: 1,
+        language: "en",
+        locale: "en-US",
+        format: "full",
+      },
+      missingLineage: false,
+      staleLineage: false,
+      analysisFingerprintMismatch: false,
+      invalidStructuredAnalysis: false,
+    });
+    expect(verdict79.overallScore).toBe(79);
+    expect(verdict79.pass).toBe(false);
+    expect(verdict80.overallScore).toBe(80);
+    expect(verdict80.pass).toBe(true);
+  });
+
   it("derives blocked verdicts from blocking checks", () => {
     const verdict = deriveStoryProductionVerdict({
       modelResponse: makeResponse({

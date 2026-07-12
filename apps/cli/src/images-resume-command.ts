@@ -9,6 +9,7 @@ import {
   loadEpisodeImageGenerationSettings,
 } from "@mediaforge/image-generation";
 import { createLogger } from "@mediaforge/observability";
+import { assertScriptScoreGate } from "@mediaforge/story-localization";
 import { ensureDir, fileExists, normalizeWhitespace, writeJsonAtomic } from "@mediaforge/shared";
 
 export interface ImagesResumeCliOptions {
@@ -274,6 +275,12 @@ export async function commandImagesResume(
 ): Promise<void> {
   const { episodeDir, manifestPath, manifest, created } =
     await loadOrBootstrapEpisodeManifest(options);
+  await assertScriptScoreGate({
+    outputRoot: path.dirname(episodeDir),
+    episode: manifest.episodeId,
+    locale: "en",
+    format: "full",
+  });
   const settings = loadEpisodeImageGenerationSettings({
     ...process.env,
     OPENAI_IMAGE_CONCURRENCY:

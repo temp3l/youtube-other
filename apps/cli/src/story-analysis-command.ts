@@ -52,9 +52,6 @@ async function buildStoryInspectPayload(
   const outputRoot = path.resolve(options.outputRoot ?? runtimeConfig.workspaceDir);
   const language = options.language ?? "en";
   const format = options.format ?? "full";
-  if (format !== "full") {
-    throw new Error("Story production analysis supports --format full only in v1.");
-  }
   const statusModel =
     options.model ??
     runtimeConfig.openAiValidatorModel ??
@@ -85,7 +82,7 @@ export function registerStoryAnalysisCommand(storiesCommand: Command): void {
     .description("Analyze a persisted full story artifact for production readiness")
     .requiredOption("--episode <slug-or-number>", "episode slug or number")
     .option("--language <code>", "language", "en")
-    .option("--format <full>", "story format", "full")
+    .option("--format <format>", "story format (full or short)", "full")
     .option("--output-root <path>", "output root directory")
     .option("--force", "rerun regardless of current cached analysis")
     .option("--refresh", "rerun only when the current analysis is stale or missing")
@@ -98,18 +95,15 @@ export function registerStoryAnalysisCommand(storiesCommand: Command): void {
       const runtimeConfig = await loadRuntimeConfig();
       const outputRoot = path.resolve(options.outputRoot ?? runtimeConfig.workspaceDir);
       const format = options.format ?? "full";
-      if (format !== "full") {
-        throw new Error("Story production analysis supports --format full only in v1.");
-      }
       const model =
         options.model ??
         runtimeConfig.openAiValidatorModel ??
         runtimeConfig.openAiStoryModel ??
-        "gpt-5.4-mini";
+        "gpt-5.6-terra";
       const reasoningEffort =
         options.reasoningEffort ??
         runtimeConfig.openAiValidatorReasoningEffort ??
-        "medium";
+        "low";
       const maxOutputTokens =
         runtimeConfig.openAiValidatorMaxOutputTokens ?? 6_000;
       const logger = createLogger(options.verbose ? "debug" : runtimeConfig.logLevel, process.stderr);
@@ -120,7 +114,7 @@ export function registerStoryAnalysisCommand(storiesCommand: Command): void {
       const result = await analyzeStoryProduction({
         episode: options.episode ?? "",
         language: options.language ?? "en",
-        format: "full",
+        format,
         outputRoot,
         model,
         reasoningEffort,
@@ -153,7 +147,7 @@ export function registerStoryAnalysisCommand(storiesCommand: Command): void {
     .description("Inspect current story production analysis state")
     .requiredOption("--episode <slug-or-number>", "episode slug or number")
     .option("--language <code>", "language", "en")
-    .option("--format <full>", "story format", "full")
+    .option("--format <format>", "story format (full or short)", "full")
     .option("--output-root <path>", "output root directory")
     .option("--model <model>", "OpenAI model override")
     .option("--reasoning-effort <level>", "reasoning effort")
@@ -169,7 +163,7 @@ export function registerStoryAnalysisCommand(storiesCommand: Command): void {
     .description("Show story production analysis readiness")
     .requiredOption("--episode <slug-or-number>", "episode slug or number")
     .option("--language <code>", "language", "en")
-    .option("--format <full>", "story format", "full")
+    .option("--format <format>", "story format (full or short)", "full")
     .option("--output-root <path>", "output root directory")
     .option("--model <model>", "OpenAI model override")
     .option("--reasoning-effort <level>", "reasoning effort")

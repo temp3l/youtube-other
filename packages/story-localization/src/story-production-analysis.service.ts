@@ -18,6 +18,7 @@ import {
   storyProductionAnalysisArtifactSchema,
   storyProductionAnalysisResponseSchema,
   type StoryProductionAnalysisArtifact,
+  type StoryProductionAnalysisFormat,
 } from "./story-production-analysis.js";
 import {
   persistStoryProductionAnalysisArtifact,
@@ -28,7 +29,7 @@ import {
 export interface StoryProductionAnalysisServiceInput {
   readonly episode: string;
   readonly language: string;
-  readonly format?: "full";
+  readonly format?: StoryProductionAnalysisFormat;
   readonly outputRoot: string;
   readonly force?: boolean;
   readonly refresh?: boolean;
@@ -81,12 +82,13 @@ function buildAnalysisRequestFingerprint(args: {
   readonly responseSchemaFingerprint: string;
   readonly sourceContentFingerprint: string;
   readonly sourceLineageFingerprint: string;
+  readonly format: StoryProductionAnalysisFormat;
 }): string {
   const input: StoryRequestFingerprintInput = {
     episodeSlug: args.episodeSlug,
     language: args.language as never,
     locale: args.locale,
-    variant: "full",
+    variant: args.format,
     owner: "analysis",
     provider: "openai-compatible",
     model: args.model,
@@ -107,15 +109,13 @@ function buildAnalysisRequestFingerprint(args: {
 export async function analyzeStoryProduction(
   input: StoryProductionAnalysisServiceInput
 ): Promise<StoryProductionAnalysisServiceResult> {
-  if ((input.format ?? "full") !== "full") {
-    throw new Error("Story production analysis supports --format full only in v1.");
-  }
+  const format = input.format ?? "full";
   const logger = createLogger(input.verbose ? "debug" : "info", process.stderr);
   const source = await resolveStoryProductionAnalysisSource({
     outputRoot: input.outputRoot,
     episodeSlug: input.episode,
     language: input.language,
-    format: "full",
+    format,
   });
   const cachedStatus = await resolveStoryProductionAnalysisStatus({
     outputRoot: input.outputRoot,
@@ -159,7 +159,7 @@ export async function analyzeStoryProduction(
   });
   if (!source.lineagePresent || !source.lineageCurrent) {
     throw new Error(
-      `Current source lineage could not be proven for ${source.episodeSlug} ${source.language} full.`
+      `Current source lineage could not be proven for ${source.episodeSlug} ${source.language} ${source.format}.`
     );
   }
   const start = Date.now();
@@ -223,6 +223,7 @@ export async function analyzeStoryProduction(
         responseSchemaFingerprint,
         sourceContentFingerprint: source.sourceContentFingerprint,
         sourceLineageFingerprint: source.sourceLineageFingerprint,
+        format: source.format,
       }),
     },
     "story_production_analysis_request"

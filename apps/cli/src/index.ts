@@ -67,6 +67,7 @@ import {
 } from "@mediaforge/observability";
 import { createPersistence, type SQLitePersistence } from "@mediaforge/persistence";
 import { runCommand } from "@mediaforge/process-runner";
+import { assertScriptScoreGate } from "@mediaforge/story-localization";
 import {
   buildSrt,
   createEpisodePathResolver,
@@ -2565,6 +2566,12 @@ async function commandImagesGenerate(
     options,
     episodeId
   );
+  await assertScriptScoreGate({
+    outputRoot: path.dirname(episodeDir),
+    episode: manifest.episodeId,
+    locale: "en",
+    format: "full",
+  });
   const settings = loadEpisodeImageGenerationSettings({
     ...process.env,
     OPENAI_IMAGE_ALLOW_UNAPPROVED_CHARACTER_REFERENCES:
@@ -2971,6 +2978,14 @@ async function runAudioNarrationPipeline(
         artifactType: variant,
       });
       try {
+        if (narrationStageRequiresTts(stage)) {
+          await assertScriptScoreGate({
+            outputRoot: path.dirname(episodeDir),
+            episode: episodeId,
+            locale: language,
+            format: variant,
+          });
+        }
         const result = await runner.run({
           episodeDir,
           episodeId,
