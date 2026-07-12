@@ -1,7 +1,7 @@
 import { normalizeWhitespace, splitIntoSentences } from "@mediaforge/shared";
 import { type CanonicalStoryFacts, type ParsedSourceStory } from "./story-localization.types.js";
 
-export const CANONICAL_FACTS_EXTRACTOR_VERSION = "canonical-facts-extractor-v4";
+export const CANONICAL_FACTS_EXTRACTOR_VERSION = "canonical-facts-extractor-v5";
 export const CANONICAL_FACTS_SCHEMA_VERSION = "canonical-story-facts-v3";
 
 const SCAFFOLD_PATTERNS = [
@@ -24,10 +24,12 @@ const NON_NAME_LEADING_WORDS = new Set([
   "As",
   "Because",
   "Before",
+  "But",
   "Diverse",
   "If",
   "Once",
   "Since",
+  "The",
   "When",
   "While",
 ]);
@@ -46,7 +48,7 @@ function lastSentence(text: string): string {
 }
 
 function extractCandidateNames(text: string): string[] {
-  const matches = [...text.matchAll(/\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)\b/gu)].map(
+  const matches = [...text.matchAll(/\b([A-Z][a-z]+(?:[ \t]+[A-Z][a-z]+)+)\b/gu)].map(
     (match) => normalizeWhitespace(match[1] ?? "")
   );
   return unique(

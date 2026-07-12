@@ -509,10 +509,14 @@ export function detectOriginalCharacterNameLeaks(args: {
 }): readonly string[] {
   const normalizedText = args.text.normalize("NFC");
   const leaks = new Set<string>();
+  const nonNameAliases = new Set(["a", "an", "the"]);
   for (const entry of args.renameMap.entries) {
     const originalNameParts = entry.originalName.trim().split(/\s+/u);
     const surname = originalNameParts.length > 1 ? originalNameParts.at(-1) : undefined;
     for (const alias of entry.originalAliases) {
+      if (nonNameAliases.has(alias.trim().toLowerCase())) {
+        continue;
+      }
       // A standalone surname can also be an ordinary noun (for example,
       // "Bell"). Preserve full-name and first-name checks, but avoid treating
       // a common sentence word as a character-name leak.

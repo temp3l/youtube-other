@@ -431,7 +431,12 @@ function validateLocaleSpecificNarration(
   variant: "full" | "short"
 ): string[] {
   const issues: string[] = [];
-  const normalized = normalizeForLeakage(text);
+  // Written messages and dialogue may be immutable English story facts. They
+  // are validated separately, so do not let the coarse language heuristic
+  // reject an otherwise localized narration for preserving quoted text.
+  const normalized = normalizeForLeakage(
+    text.replace(/["“][^"”\n]+["”]/gu, " ")
+  );
   const hints =
     localeValidationHints[profile.locale as keyof typeof localeValidationHints];
   if (!hints) {
@@ -685,15 +690,12 @@ function chronologyInOrder(
 function hasRequiredEntities(
   text: string,
   storyIr: StoryIR,
-  language: LanguageCode
+  _language: LanguageCode
 ): boolean {
-  const required = storyIr.entities.filter((entity) =>
-    language === "en"
-      ? ["person", "location", "object", "rule", "written-message"].includes(
-          entity.type
-        )
-      : entity.type === "person"
-  );
+  // Character presence and non-person fact preservation are separate checks.
+  // Requiring every object, rule, location, and written message here caused
+  // those omissions to be misreported as missing character names.
+  const required = storyIr.entities.filter((entity) => entity.type === "person");
   return required.every((entity) => includesPhrase(text, entity.name));
 }
 

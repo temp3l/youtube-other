@@ -1376,6 +1376,30 @@ describe("story localization helpers", () => {
     );
   });
 
+  it("does not join character names across headings, paragraphs, or article-led phrases", () => {
+    const parsed = {
+      language: "en",
+      sourceFile: "/tmp/055-test.md",
+      sourceHash: "test",
+      episodeNumber: "055",
+      slug: "055-the-babysitter",
+      title: "The Babysitter Was Told Never",
+      narrationParagraphs: [
+        "Felix Moore received three instructions from Daniel Harper.",
+        "Felix\n\nMara opened the attic door.",
+        "The Harper family had vanished.",
+      ],
+      audioInstructions: [],
+      metadata: { episodeNumber: "055", primaryTitle: "The Babysitter Was Told Never", audioInstructions: [], narration: [], tags: [], hashtags: [] },
+      content: "",
+    } satisfies ParsedSourceStory;
+    const names = extractCanonicalStoryFacts(parsed).characters.map((entry) => entry.name);
+    expect(names).toContain("Felix Moore");
+    expect(names).toContain("Daniel Harper");
+    expect(names).not.toContain("Felix Mara");
+    expect(names).not.toContain("The Harper");
+  });
+
   it("marks generated full stories with provenance metadata", () => {
     const localized = makeLocalizedPackage("de", 155);
     if (!localized.full) {

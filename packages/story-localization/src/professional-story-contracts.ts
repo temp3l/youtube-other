@@ -442,11 +442,16 @@ export function detectProfessionalStoryQualityIssues(
       severity: "critical",
       message: "Narration contains unresolved authoring alternatives.",
     });
-  const finalRevealIndex = sentences.findIndex((sentence) =>
-    /\b(?:revealed|showed|displayed|read|recording|message|photograph|voice|reflection)\b/iu.test(
-      sentence
-    )
-  );
+  let finalRevealIndex = -1;
+  sentences.forEach((sentence, index) => {
+    if (
+      /\b(?:revealed|showed|displayed|read|recording|message|photograph|voice|reflection)\b/iu.test(
+        sentence
+      )
+    ) {
+      finalRevealIndex = index;
+    }
+  });
   if (
     finalRevealIndex >= 0 &&
     finalRevealIndex < sentences.length - 1 &&
