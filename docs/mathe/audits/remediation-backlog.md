@@ -90,18 +90,18 @@ final narration-reader compatibility package typecheck.
 
 ## R-007 — Implement semantic visuals, TTS, timing reflow, render, and media QA
 
-Status: implemented and pending new independent acceptance after the third
-blocker repair on 2026-07-13. Do not treat R-007 as accepted.
+Status: accepted 2026-07-13 after independent adversarial source review and
+fresh focused verification of the third blocker repair.
 
-The strict provider-free binding contract now requires and validates the
-authoritative visual plan before cache, teacher loading, TTS, or rendering.
-The plan has exactly nine uniquely identified scenes, unique per-scene fact
-IDs, and exact ordered correspondence with lesson, narration, and requested
-scene bindings. Focused attacks cover absent plans and missing, extra,
-duplicated, reordered, or mismatched plan entries/facts. The authorized unit,
-host-access render/FFmpeg integration, and both package typechecks pass. The
-filtered integration excludes the 180-second production-boundary test, which
-was not rerun. R-008 remains untouched.
+The strict provider-free contract requires the authoritative visual plan and
+validates exact ordered nine-scene/fact correspondence before cache, teacher
+loading, TTS, or rendering. Workflow-owned lesson, narration, and visual-plan
+artifacts remain schema-/hash-valid, parent-bound, and identity-matched;
+semantic component, teacher, timing, render, and media-QA gates remain
+fail-closed. The unit suite, host-access filtered render/FFmpeg integration,
+and both package typechecks pass. The filtered integration excludes the
+180-second production-boundary test, so pixel-level and teacher-overlay render
+evidence were not refreshed. R-008 remains untouched.
 
 - Related findings: F-006, F-015.
 - Objective: produce deterministic formula/diagram assets, mock audio, synchronized Remotion output, and FFmpeg-validated media.
