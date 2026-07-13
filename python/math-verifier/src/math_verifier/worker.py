@@ -10,7 +10,7 @@ import sympy
 from . import __version__
 from .checks import run_check
 
-PROTOCOL = "math-verifier.v2"
+PROTOCOL = "math-verifier.v3"
 
 
 def canonical_hash(value: Any) -> str:
@@ -21,7 +21,7 @@ def canonical_hash(value: Any) -> str:
 def process(request: dict[str, Any]) -> dict[str, Any]:
     if request.get("protocolVersion") != PROTOCOL:
         raise ValueError("unsupported protocol version")
-    if request.get("mathSpecVersion") != "math-spec.v2":
+    if request.get("mathSpecVersion") != "math-spec.v3":
         raise ValueError("unsupported math specification version")
     payload = {key: request[key] for key in ("protocolVersion", "requestId", "mathSpecVersion", "checks")}
     if canonical_hash(payload) != request.get("inputHash"):

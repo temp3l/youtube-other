@@ -167,8 +167,8 @@ async function prepareEpisode(episodeDir: string): Promise<void> {
     tags: { text: "keyword, upload", characterCount: 15, items: ["keyword", "upload"] },
     hashtags: ["#keyword"],
     thumbnail: {
-      recommendedText: "Upload",
-      alternativeTexts: ["Alt", "Alt", "Alt", "Alt"],
+      recommendedText: "Simple Upload",
+      alternativeTexts: ["Upload Story", "Simple Video", "Story Upload", "Watch Now"],
       imagePrompt: "prompt",
     },
     uploadSettings: {
@@ -428,6 +428,27 @@ describe("youtube upload", () => {
     expect(await fs.readFile(result.reportPath, "utf8")).toContain("\"status\": \"uploaded\"");
   });
 
+  it("preserves legacy configured-channel fallback and request-success verification semantics", async () => {
+    const workspace = createWorkspace();
+    const episodeDir = path.join(workspace, "episode-fixture");
+    await prepareEpisode(episodeDir);
+    const client = createMockYoutubeClient();
+    client.channels.list.mockResolvedValue({ data: { items: [] }, headers: { "x-goog-request-id": "channel-request" } });
+    client.videos.list.mockResolvedValue({ data: { items: [] }, headers: { "x-goog-request-id": "verification-request" } });
+    const result = await uploadYoutubeEpisode({
+      workspaceDir: workspace,
+      episodeId: "episode-fixture",
+      auth: { clientId: "client-id", clientSecret: "client-secret", refreshToken: "refresh-token", channelId: "configured-channel" },
+      client: client as never,
+      force: true,
+    });
+    expect(result.report.status).toBe("uploaded");
+    expect(result.report.youtubeChannelId).toBe("configured-channel");
+    expect(client.channels.list).toHaveBeenCalledOnce();
+    expect(client.videos.list).toHaveBeenCalledOnce();
+    expect(client.requests).toEqual(["videos.insert", "thumbnails.set"]);
+  });
+
   it("preserves a separate report pair for every upload attempt", async () => {
     const workspace = createWorkspace();
     const episodeDir = path.join(workspace, "episode-fixture");
@@ -604,8 +625,8 @@ describe("youtube upload", () => {
       tags: { text: "keyword", characterCount: 7, items: ["keyword"] },
       hashtags: ["#keyword"],
       thumbnail: {
-        recommendedText: "Upload",
-        alternativeTexts: ["Alt", "Alt", "Alt", "Alt"],
+        recommendedText: "German Upload",
+        alternativeTexts: ["German Story", "Generated Video", "Story Upload", "Watch Now"],
         imagePrompt: "prompt",
       },
       uploadSettings: {

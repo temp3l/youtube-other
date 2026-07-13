@@ -11,7 +11,11 @@ import { configurationErrorFromUnknown } from "./internal.js";
 
 export {
   loadMathRuntimeConfig,
+  mathBrandPolicySchema,
   mathRuntimeConfigSchema,
+  validateMathBrandPolicy,
+  type MathBrandPolicy,
+  type MathBrandPolicyValidation,
   type MathRuntimeConfig,
 } from "./math-config.js";
 

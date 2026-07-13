@@ -42,10 +42,10 @@ function validResponse(overrides = ""): string {
 import json, sys
 request = json.load(sys.stdin)
 response = {
-    "protocolVersion": "math-verifier.v2",
+    "protocolVersion": "math-verifier.v3",
     "requestId": request["requestId"],
     "inputHash": request["inputHash"],
-    "verifierVersion": "2.0.0",
+    "verifierVersion": "3.0.0",
     "sympyVersion": "1.14.0",
     "status": "passed",
     "checks": [{"checkId": check["checkId"], "status": "passed"} for check in request["checks"]],
@@ -71,7 +71,7 @@ async function expectBoundaryCode(
 }
 
 describe("SymPy adapter", () => {
-  it("verifies the pilot example and challenge through protocol v2", async () => {
+  it("verifies the pilot example and challenge through protocol v3", async () => {
     const curriculum = importCurriculumSeed(
       await fs.readFile(
         "docs/mathe/curriculum/03-machine-readable-seed.md",
@@ -108,12 +108,29 @@ describe("SymPy adapter", () => {
     );
   });
 
+  it("turns spawn failure into one structured blocking error", async () => {
+    const adapter = new SympyVerifierAdapter({
+      workerRoot: "python/math-verifier",
+      pythonExecutable: "/definitely-not-a-math-verifier-python",
+      timeoutMs: 1_000,
+    });
+    await expectBoundaryCode(
+      adapter.verify(createVerifierRequest("spawn-failure", [integerCheck])),
+      "SPAWN_ERROR"
+    );
+  });
+
   it.each([
     ["nonzero exit", "import sys; sys.exit(7)", "PROCESS_EXIT"],
     [
       "stderr on success",
       validResponse('sys.stderr.write("diagnostic\\n")'),
       "STDERR_OUTPUT",
+    ],
+    [
+      "noisy stdout",
+      'import sys; sys.stdin.read(); sys.stdout.write("diagnostic\\n{}")',
+      "MALFORMED_OUTPUT",
     ],
     [
       "malformed JSON",
@@ -126,13 +143,33 @@ describe("SymPy adapter", () => {
       "MALFORMED_OUTPUT",
     ],
     [
-      "version mismatch",
+      "protocol mismatch",
+      validResponse('response["protocolVersion"] = "math-verifier.v2"'),
+      "VERSION_MISMATCH",
+    ],
+    [
+      "verifier version mismatch",
+      validResponse('response["verifierVersion"] = "0.0.0"'),
+      "VERSION_MISMATCH",
+    ],
+    [
+      "SymPy version mismatch",
       validResponse('response["sympyVersion"] = "0.0.0"'),
       "VERSION_MISMATCH",
     ],
     [
-      "identity mismatch",
+      "hash mismatch",
       validResponse('response["inputHash"] = "0" * 64'),
+      "IDENTITY_MISMATCH",
+    ],
+    [
+      "request identity mismatch",
+      validResponse('response["requestId"] = "different-request"'),
+      "IDENTITY_MISMATCH",
+    ],
+    [
+      "check identity mismatch",
+      validResponse('response["checks"][0]["checkId"] = "different-check"'),
       "IDENTITY_MISMATCH",
     ],
   ])("blocks %s", async (_name, source, code) => {

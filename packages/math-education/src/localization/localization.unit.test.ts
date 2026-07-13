@@ -12,6 +12,7 @@ import { assertFactLock, buildFactLock } from "./fact-lock.js";
 import { loadMathGlossary, parseMathGlossary } from "./glossary.js";
 import { formatExpression, formatMeasurement } from "./locale-formatter.js";
 import { localizeNarration } from "./localization.js";
+import { MATH_SPEECH_FORMAT_VERSION } from "./tts-lexicon.js";
 
 async function lesson(): Promise<LessonVariantSpecification> {
   const release = await loadCurriculumRelease(
@@ -26,19 +27,76 @@ async function lesson(): Promise<LessonVariantSpecification> {
 describe("locked-fact localization", () => {
   it("formats exact numbers, fractions, signs, units, and speech for five locale policies", () => {
     const expected = {
-      de: ["-12.345", "123,45", "1/2", "minus 7", "3 Zentimeter"],
-      en: ["-12,345", "123.45", "1/2", "minus 7", "3 centimeters"],
-      es: ["-12,345", "123,45", "1/2", "menos 7", "3 centímetros"],
-      fr: ["-12 345", "123,45", "1/2", "moins 7", "3 centimètres"],
-      pt: ["-12.345", "123,45", "1/2", "menos 7", "3 centímetros"],
+      de: [
+        "12.345",
+        "eins zwei drei vier fuenf",
+        "123,045",
+        "eins zwei drei Komma null vier fuenf",
+        "1/2",
+        "eins durch zwei",
+        "minus sieben",
+        "drei Zentimeter",
+        "zwei hoch drei",
+        "drei Wurzel aus acht",
+      ],
+      en: [
+        "12,345",
+        "one two three four five",
+        "123.045",
+        "one two three point zero four five",
+        "1/2",
+        "one over two",
+        "minus seven",
+        "three centimeters",
+        "two to the power of three",
+        "three root of eight",
+      ],
+      es: [
+        "12,345",
+        "uno dos tres cuatro cinco",
+        "123,045",
+        "uno dos tres coma cero cuatro cinco",
+        "1/2",
+        "uno sobre dos",
+        "menos siete",
+        "tres centímetros",
+        "dos elevado a tres",
+        "tres raíz de ocho",
+      ],
+      fr: [
+        "12 345",
+        "un deux trois quatre cinq",
+        "123,045",
+        "un deux trois virgule zero quatre cinq",
+        "1/2",
+        "un sur deux",
+        "moins sept",
+        "trois centimètres",
+        "deux puissance trois",
+        "trois racine de huit",
+      ],
+      pt: [
+        "12.345",
+        "um dois três quatro cinco",
+        "123,045",
+        "um dois três vírgula zero quatro cinco",
+        "1/2",
+        "um sobre dois",
+        "menos sete",
+        "três centímetros",
+        "dois elevado a três",
+        "três raiz de oito",
+      ],
     } as const;
+    const semantic = { kind: "integer" as const, value: "12345" };
+    const semanticHash = canonicalHash({ kind: "scalar", expression: semantic });
     for (const language of ["de", "en", "es", "fr", "pt"] as const) {
       const integer = formatExpression(
-        { kind: "integer", value: "-12345" },
+        { kind: "integer", value: "12345" },
         language
       );
       const decimal = formatExpression(
-        { kind: "decimal", unscaled: "12345", scale: 2 },
+        { kind: "decimal", unscaled: "123045", scale: 3 },
         language
       );
       const fraction = formatExpression(
@@ -54,14 +112,39 @@ describe("locked-fact localization", () => {
         { symbol: "cm" },
         language
       );
+      const power = formatExpression(
+        {
+          kind: "power",
+          left: { kind: "integer", value: "2" },
+          right: { kind: "integer", value: "3" },
+        },
+        language
+      );
+      const root = formatExpression(
+        {
+          kind: "root",
+          degree: { kind: "integer", value: "3" },
+          radicand: { kind: "integer", value: "8" },
+        },
+        language
+      );
       expect([
         integer.display,
+        integer.spoken,
         decimal.display,
+        decimal.spoken,
         fraction.display,
+        fraction.spoken,
         negative.spoken,
         unit.spoken,
+        power.spoken,
+        root.spoken,
       ]).toEqual(expected[language]);
+      expect(canonicalHash({ kind: "scalar", expression: semantic })).toBe(
+        semanticHash
+      );
     }
+    expect(MATH_SPEECH_FORMAT_VERSION).toBe("math-speech-format.v2");
   });
 
   it("pronounces formula operators deterministically", () => {
@@ -76,20 +159,36 @@ describe("locked-fact localization", () => {
       right: { kind: "integer" as const, value: "3" },
     };
     expect(formatExpression(formula, "de").spoken).toBe(
-      "6 geteilt durch 2 gleich 3"
+      "sechs geteilt durch zwei gleich drei"
     );
     expect(formatExpression(formula, "en").spoken).toBe(
-      "6 divided by 2 equals 3"
+      "six divided by two equals three"
     );
     expect(formatExpression(formula, "es").spoken).toBe(
-      "6 dividido entre 2 igual a 3"
+      "seis dividido entre dos igual a tres"
     );
     expect(formatExpression(formula, "fr").spoken).toBe(
-      "6 divisé par 2 égal à 3"
+      "six divisé par deux égal à trois"
     );
     expect(formatExpression(formula, "pt").spoken).toBe(
-      "6 dividido por 2 igual a 3"
+      "seis dividido por dois igual a três"
     );
+  });
+
+  it("fails visibly for unsupported spoken symbols and functions", () => {
+    expect(() =>
+      formatExpression({ kind: "symbol", name: "x" }, "en")
+    ).toThrow(/No reviewed en spoken form for symbol x/u);
+    expect(() =>
+      formatExpression(
+        {
+          kind: "function",
+          name: "log",
+          args: [{ kind: "integer", value: "10" }],
+        },
+        "en"
+      )
+    ).toThrow(/No reviewed en spoken form for function log/u);
   });
 
   it("preserves objective, variant, step, solution, fact, and scene order in every locale", async () => {
@@ -216,10 +315,10 @@ describe("locked-fact localization", () => {
     );
     expect(() =>
       assertLocalizedDisplayVerification(checks, {
-        protocolVersion: "math-verifier.v2",
+        protocolVersion: "math-verifier.v3",
         requestId: "localized-test",
         inputHash: "0".repeat(64),
-        verifierVersion: "2.0.0",
+        verifierVersion: "3.0.0",
         sympyVersion: "1.14.0",
         status: "failed",
         checks: checks.map((check, index) => ({

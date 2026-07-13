@@ -3,6 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "packageManager": "pnpm@10.16.0",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -13,16 +17,17 @@
   "bin": { "educational-renderer": "./bin/educational-renderer.js" },
   "files": ["bin", "dist", "fixtures", "README.md"],
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "node scripts/build.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "eslint src tests --max-warnings=0",
     "test": "vitest run -c vitest.config.ts tests/unit tests/architecture",
     "test:integration": "vitest run -c vitest.config.ts tests/integration",
+    "test:package": "node scripts/package-acceptance.mjs",
+    "ci": "pnpm build && pnpm test && pnpm test:package && pnpm test:integration && pnpm typecheck && pnpm lint",
     "benchmark": "node ./bin/educational-renderer.js benchmark --fixture fixtures/linear-equations --profiles preview --output .artifacts/benchmarks"
   },
   "dependencies": {
     "commander": "^14.0.0",
-    "katex": "0.17.0",
     "zod": "^4.0.14"
   },
   "devDependencies": {

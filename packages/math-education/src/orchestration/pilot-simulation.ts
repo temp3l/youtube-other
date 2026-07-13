@@ -1,5 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
+import { createMathCorrelationId } from "@mediaforge/observability";
 import { writeJsonAtomic } from "@mediaforge/shared";
 import { loadCurriculumRelease } from "../curriculum/release.js";
 import {
@@ -7,7 +8,7 @@ import {
   buildLessonVariant,
 } from "../lesson/variant-builder.js";
 import { validateVariantDifferentiation } from "../lesson/lesson-validator.js";
-import { createTimingManifest } from "../lesson/timing.js";
+import { createMetadataTimingEvidence, createTimingManifest } from "../lesson/timing.js";
 import { localizeNarration } from "../localization/localization.js";
 import {
   assertLocalizedDisplayVerification,
@@ -15,8 +16,14 @@ import {
 } from "../localization/display-verification.js";
 import { loadMathGlossary } from "../localization/glossary.js";
 import { MATH_SPEECH_FORMAT_VERSION } from "../localization/tts-lexicon.js";
-import { generateMathMetadata } from "../metadata/math-metadata.js";
-import { createPublishDryRunManifest } from "../publishing/dry-run-manifest.js";
+import {
+  createMathMetadataEvidence,
+  createMetadataWorkflowEvidence,
+  createReviewedMetadataContext,
+  generateMathMetadata,
+  mathPlaylistCatalog,
+  MATH_PLAYLIST_CATALOG_VERSION,
+} from "../metadata/math-metadata.js";
 import { deriveMathQuality, qualityCheck, mathQualityReportSchema } from "./quality-gate.js";
 import {
   createVerifierRequest,
@@ -89,6 +96,14 @@ async function runPilotSimulationUnlocked(
   const existing = await loadWorkflowManifest(manifestPath);
   const stageFingerprints = new Map<MathStage, string>();
   const stageParents = new Map<MathStage, string[]>();
+  const stageCorrelationId = (stage: MathStage) =>
+    createMathCorrelationId({
+      releaseId: curriculum.release.releaseId,
+      skillId,
+      lessonId: lesson.lessonId,
+      variant,
+      stage,
+    });
   let parents = [curriculum.releaseHash];
   const canonicalNarrationFingerprint = canonicalHash({
     localizationVersion: "locked-facts.v2",
@@ -116,6 +131,16 @@ async function runPilotSimulationUnlocked(
         : {}),
       ...(MATH_STAGES.indexOf(stage) >= MATH_STAGES.indexOf("localization")
         ? { localeFingerprint }
+        : {}),
+      ...(MATH_STAGES.indexOf(stage) >= MATH_STAGES.indexOf("metadata-playlists")
+        ? {
+            metadataVersion: "math-metadata.v2",
+            playlistCatalogVersion: MATH_PLAYLIST_CATALOG_VERSION,
+            thumbnailSpecVersion: "math-thumbnail-spec.v2",
+            thumbnailRendererVersion: "math-thumbnail-renderer.v3",
+            brandPolicyVersion: "math-brand-policy.v1",
+            publishPacketVersion: "math-publish-dry-run.v2",
+          }
         : {}),
     });
     stageFingerprints.set(stage, fingerprint);
@@ -235,7 +260,7 @@ async function runPilotSimulationUnlocked(
     "canonical/verification.json",
     verification,
     "math-verification",
-    "math-verifier.v2"
+    "math-verifier.v3"
   );
   const canonicalNarration = localizeNarration(lesson, "de");
   await write(
@@ -274,7 +299,31 @@ async function runPilotSimulationUnlocked(
         );
     assertLocalizedDisplayVerification(displayChecks, displayVerification);
     const timing = createTimingManifest(lesson, narration);
-    const metadata = generateMathMetadata(skill, lesson, language);
+    const metadataTimingEvidence = createMetadataTimingEvidence(
+      lesson,
+      narration,
+      timing
+    );
+    const metadata = generateMathMetadata({
+      reviewedContext: createReviewedMetadataContext(curriculum, skill.skillId),
+      skill,
+      lesson,
+      localization: narration,
+      timingEvidence: metadataTimingEvidence,
+      workflowEvidence: createMetadataWorkflowEvidence({
+        lesson,
+        localization: narration,
+        timingEvidence: metadataTimingEvidence,
+        parentFingerprints: {
+          lesson: [stageParents.get("lesson-spec")![0]!],
+          localization: [stageParents.get("localization")![0]!],
+          timing: [stageParents.get("scene-timing")![0]!],
+          output: [stageParents.get("metadata-playlists")![0]!],
+        },
+      }),
+      evidence: createMathMetadataEvidence(skill, lesson, narration),
+      catalog: mathPlaylistCatalog,
+    });
     await write(
       `locales/${language}/narration.json`,
       narration,
@@ -285,7 +334,7 @@ async function runPilotSimulationUnlocked(
       `locales/${language}/display-verification.json`,
       displayVerification,
       "localization",
-      "math-verifier.v2"
+      "math-verifier.v3"
     );
     await write(
       `locales/${language}/timing.json`,
@@ -312,13 +361,13 @@ async function runPilotSimulationUnlocked(
       `locales/${language}/metadata.json`,
       metadata,
       "metadata-playlists",
-      "math-metadata.v1"
+      "math-metadata.v2"
     );
     await write(
-      `locales/${language}/publish-dry-run.json`,
-      createPublishDryRunManifest(lesson.lessonId, metadata),
+      `locales/${language}/playlist-catalog.json`,
+      mathPlaylistCatalog,
       "metadata-playlists",
-      "math-publish-dry-run.v1"
+      "math-playlist-catalog.v1"
     );
   }
   const evidenceHash = (label: string) => canonicalHash({ lessonId: lesson.lessonId, label });
@@ -335,7 +384,7 @@ async function runPilotSimulationUnlocked(
       qualityCheck({ checkId: "render", ready: false, message: "Simulation skipped final MP4 rendering." }),
       qualityCheck({ checkId: "media-qa-packet", ready: false, message: "Simulation has no validated media-QA packet." }),
       qualityCheck({ checkId: "final-media", ready: false, message: "No schema- and hash-valid final media QA evidence exists." }),
-      qualityCheck({ checkId: "publish-packet", ready: true, evidenceHash: evidenceHash("publish-packet"), message: "Provider-free publish packets are structurally valid." }),
+      qualityCheck({ checkId: "publish-packet", ready: false, message: "No final media, approved teacher thumbnail, brand policy, or strict publish preflight exists." }),
       qualityCheck({ checkId: "content-review", ready: true, evidenceHash: evidenceHash("content-review"), message: "No revision blocker was recorded." }),
       qualityCheck({ checkId: "minor-edit-review", ready: true, evidenceHash: evidenceHash("minor-edit-review"), message: "No minor-edit condition was recorded." }),
     ],
@@ -351,15 +400,28 @@ async function runPilotSimulationUnlocked(
       .filter((record) => MATH_STAGES.indexOf(record.stage) < invalidFrom)
       .flatMap((record) => record.outputArtifacts) ?? [];
   const createdArtifacts = await Promise.all(
-    outputs.map(({ relativePath, stage, schemaVersion }) =>
-      createArtifactLineage({
+    outputs.map(({ relativePath, stage, schemaVersion }) => {
+      const producer =
+        stage === "lesson-spec" && schemaVersion === "lesson-spec.v1"
+          ? { producer: "lesson-specification-builder", producerVersion: "reviewed-fixtures.v1" }
+          : stage === "math-verification" && schemaVersion === "math-verifier.v3"
+            ? { producer: "sympy-verifier-adapter", producerVersion: "3.0.0" }
+            : stage === "localization" && schemaVersion === "math-narration.v2"
+              ? { producer: "locked-fact-localizer", producerVersion: "locked-facts.v2" }
+              : stage === "localization" && schemaVersion === "math-verifier.v3"
+                ? { producer: "sympy-verifier-adapter", producerVersion: "3.0.0" }
+                : stage === "metadata-playlists" && schemaVersion === "math-metadata.v2"
+                  ? { producer: "math-metadata-generator", producerVersion: "math-metadata-generator.v3" }
+                  : {};
+      return createArtifactLineage({
         root: lessonRoot,
         relativePath,
         schemaVersion,
         parentHashes: stageParents.get(stage)!,
         producedBy: stage,
-      })
-    )
+        ...producer,
+      });
+    })
   );
   const outputArtifacts = [...retainedArtifacts, ...createdArtifacts];
   const now = new Date().toISOString();
@@ -385,6 +447,7 @@ async function runPilotSimulationUnlocked(
         };
       return {
         stage,
+        correlationId: previous?.correlationId ?? stageCorrelationId(stage),
         status:
           stage === "publish"
             ? ("blocked" as const)

@@ -141,7 +141,14 @@ export const graphEvidenceSchema = z.discriminatedUnion("mode", [
 ]);
 
 export const geometryEvidenceSchema = z.strictObject({
-  entity: z.enum(["rectangle", "triangle", "circle", "right-triangle"]),
+  entity: z.enum([
+    "rectangle",
+    "triangle",
+    "circle",
+    "right-triangle",
+    "cuboid",
+    "cylinder",
+  ]),
   formula: z.enum([
     "rectangle-area",
     "rectangle-perimeter",
@@ -149,6 +156,14 @@ export const geometryEvidenceSchema = z.strictObject({
     "circle-area",
     "circle-circumference",
     "pythagorean-hypotenuse",
+    "pythagorean-leg",
+    "right-triangle-sine",
+    "right-triangle-cosine",
+    "right-triangle-tangent",
+    "cuboid-volume",
+    "cuboid-surface-area",
+    "cylinder-volume",
+    "cylinder-surface-area",
   ]),
   parameters: z.record(z.string(), expressionNodeSchema),
   assumptions: z.array(z.string().min(1)).min(1),
@@ -158,9 +173,13 @@ export const probabilityEvidenceSchema = z.strictObject({
   rule: z.enum([
     "single",
     "sum",
+    "path-sum",
     "path-product",
     "complement",
     "normalization",
+    "four-field-total",
+    "four-field-joint",
+    "four-field-conditional",
   ]),
   inputs: z.array(expressionNodeSchema).min(1),
 });

@@ -1,6 +1,11 @@
 import { type ExpressionNode, type MathLanguage } from "../domain/index.js";
 import { expressionToLatex } from "../verification/latex-formatter.js";
-import { localeProfiles, speechLexicon, spokenUnit } from "./tts-lexicon.js";
+import {
+  localeProfiles,
+  speechLexicon,
+  spokenDigit,
+  spokenUnit,
+} from "./tts-lexicon.js";
 
 export interface FormattedMath {
   display: string;
@@ -20,6 +25,17 @@ function decimalParts(unscaled: string, scale: number): [string, string] {
   const digits = unscaled.replace("-", "").padStart(scale + 1, "0");
   const whole = `${negative ? "-" : ""}${digits.slice(0, -scale || undefined)}`;
   return [whole, scale === 0 ? "" : digits.slice(-scale)];
+}
+
+function spokenInteger(value: string, language: MathLanguage): string {
+  const words = speechLexicon(language);
+  const negative = value.startsWith("-");
+  const digits = value.replace("-", "").replace(/^0+(?=\d)/u, "");
+  const spoken = digits
+    .split("")
+    .map((digit) => spokenDigit(digit, language))
+    .join(" ");
+  return negative ? `${words.minus} ${spoken}` : spoken;
 }
 
 function displayExpression(
@@ -74,18 +90,21 @@ function spokenExpression(
   node: ExpressionNode,
   language: MathLanguage
 ): string {
-  const words = speechLexicon(language);
+    const words = speechLexicon(language);
   switch (node.kind) {
     case "integer":
-      return groupedInteger(node.value, language);
+      return spokenInteger(node.value, language);
     case "decimal": {
       const [whole, fractional] = decimalParts(node.unscaled, node.scale);
       return fractional
-        ? `${groupedInteger(whole, language)} ${words.decimal} ${fractional.split("").join(" ")}`
-        : groupedInteger(whole, language);
+        ? `${spokenInteger(whole, language)} ${words.decimal} ${fractional
+            .split("")
+            .map((digit) => spokenDigit(digit, language))
+            .join(" ")}`
+        : spokenInteger(whole, language);
     }
     case "rational":
-      return `${groupedInteger(node.numerator, language)} ${words.fraction} ${groupedInteger(node.denominator, language)}`;
+      return `${spokenInteger(node.numerator, language)} ${words.fraction} ${spokenInteger(node.denominator, language)}`;
     case "negate":
       return `${words.minus} ${spokenExpression(node.operand, language)}`;
     case "sum":
@@ -101,15 +120,15 @@ function spokenExpression(
     case "power":
       return `${spokenExpression(node.left, language)} ${words.power} ${spokenExpression(node.right, language)}`;
     case "root":
-      return `${words.root} ${spokenExpression(node.radicand, language)}`;
+      return `${spokenExpression(node.degree, language)} ${words.root} ${spokenExpression(node.radicand, language)}`;
     case "relation":
       return `${spokenExpression(node.left, language)} ${{ eq: words.equals, lt: words.lt, lte: words.lte, gt: words.gt, gte: words.gte }[node.operator]} ${spokenExpression(node.right, language)}`;
     case "constant":
       return node.name === "pi" ? "pi" : "e";
     case "symbol":
-      return node.name;
+      throw new Error(`No reviewed ${language} spoken form for symbol ${node.name}.`);
     case "function":
-      return `${node.name} ${node.args.map((item) => spokenExpression(item, language)).join(" ")}`;
+      throw new Error(`No reviewed ${language} spoken form for function ${node.name}.`);
     case "tuple":
     case "set":
     case "matrix":

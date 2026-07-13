@@ -14,12 +14,13 @@ describe("public contracts", () => {
   });
   it.each(["preview", "draft", "youtube-full", "youtube-short"] as const)("normalizes %s", (name) => { const profile = normalizeProfile(name); expect(profile.width).toBeGreaterThan(0); expect(profile.frameRate).toBeGreaterThanOrEqual(15); });
   it("keeps cache keys stable and ignores locale for neutral scenes", () => {
-    const input = { scene, profile: normalizeProfile("preview"), fontHash: "a".repeat(64) };
+    const input = { scene, profile: normalizeProfile("preview"), fontHash: "a".repeat(64), toolchainIdentity: "ffmpeg-test" };
     expect(createSceneCacheKey({ ...input, locale: "de" })).toBe(createSceneCacheKey({ ...input, locale: "en" }));
     expect(createSceneCacheKey({ ...input, locale: "de" })).not.toBe(createSceneCacheKey({ ...input, scene: { ...scene, durationMs: 2_000 }, locale: "de" }));
   });
+  it("does not invalidate visual bytes for narration-only changes", () => { const input = { scene, profile: normalizeProfile("preview"), fontHash: "a".repeat(64), locale: "de", toolchainIdentity: "ffmpeg-test" }; expect(createSceneCacheKey(input)).toBe(createSceneCacheKey({ ...input, scene: { ...scene, narrationCue: { startMs: 0, endMs: 500 } } })); });
   it.each(["child/file", "nested/a/b", "."])("contains safe path %s", (candidate) => expect(resolveContained("/tmp/root", candidate)).toMatch(/^\/tmp\/root/u));
   it.each(["../escape", "/etc/passwd"])("rejects escaping path %s", (candidate) => expect(() => resolveContained("/tmp/root", candidate)).toThrow(/escapes/u));
-  it("validates formulas conservatively", () => { expect(normalizeFormula("  x = 3  ")).toBe("x = 3"); expect(() => validateFormula("\\notacommand{")) .toThrow(/Invalid KaTeX/u); });
+  it("validates formulas conservatively", () => { expect(normalizeFormula("  x = 3  ")).toBe("x = 3"); expect(() => validateFormula("\\notacommand{")).toThrow(/unsupported or invalid/u); });
   it("builds FFmpeg arguments without a shell", () => { const args = buildStaticSceneArgs("input.svg", "output.mp4", 1_000, normalizeProfile("preview")); expect(args).toContain("libx264"); expect(args.at(-1)).toBe("output.mp4"); expect(args.join(" ")).not.toContain(";"); });
 });

@@ -8,16 +8,32 @@ import {
   MATH_QUALITY_GATES,
   MATH_STAGES,
   canonicalHash,
+  createMathMetadataEvidence,
+  createMetadataTimingEvidence,
+  createMetadataWorkflowEvidence,
+  createReviewedMetadataContext,
+  createPublishDryRunManifest,
   createArtifactLineage,
+  createVerifierRequest,
   deriveMathQuality,
+  generateMathMetadata,
+  localizeNarration,
+  localizedDisplayChecks,
+  mathPlaylistCatalog,
+  buildLessonVariant,
+  createTimingManifest,
   qualityCheck,
   saveWorkflowManifest,
+  SYMPY_VERSION,
+  VERIFIER_PROTOCOL_VERSION,
+  VERIFIER_VERSION,
   type MathArtifactLineage,
   type MathLanguage,
   type MathQualityCheckId,
   type WorkflowManifest,
 } from "@mediaforge/math-education";
-import { writeJsonAtomic } from "@mediaforge/shared";
+import { hashFile, hashText, writeJsonAtomic } from "@mediaforge/shared";
+import { createReviewedCurriculumFixture } from "../../../packages/math-education/dist/testing/reviewed-curriculum-fixture.js";
 
 vi.mock("@mediaforge/math-education", async (importOriginal) => ({
   ...(await importOriginal<Record<string, unknown>>()),
@@ -192,32 +208,217 @@ describe("math commands", () => {
     }
     if (options.packet) {
       const pathLanguage = options.packet.pathLanguage ?? "de";
-      const packetRelativePath = `locales/${pathLanguage}/publish-dry-run.json`;
-      await writeJsonAtomic(path.join(lessonRoot, packetRelativePath), {
-        artifactVersion: "math-publish-dry-run.v1",
-        lessonId: options.packet.lessonId ?? lessonId,
-        language: options.packet.language ?? pathLanguage,
-        privacyStatus: "private",
-        playlistKeys: ["grade-5", "topic-number", "variant-standard"],
-        dispatchAllowed: false,
-        paidProviderCalled: false,
-      });
+      const release = await createReviewedCurriculumFixture(
+        await fs.mkdtemp(path.join(os.tmpdir(), "math-cli-release-"))
+      );
+      const skill = release.skills.find((item) => item.skillId === "M5-ZO-001")!;
+      const lesson = buildLessonVariant(skill, "standard");
+      const localization = localizeNarration(lesson, pathLanguage);
+      const timing = createTimingManifest(lesson, localization);
+      const timingEvidence = createMetadataTimingEvidence(lesson, localization, timing);
       const metadataParents = stages.find(
         (stage) => stage.stage === "metadata-playlists"
       )!.parentFingerprints;
-      const packetLineage = await createArtifactLineage({
+      const metadata = generateMathMetadata({
+        reviewedContext: createReviewedMetadataContext(release, skill.skillId),
+        skill,
+        lesson,
+        localization,
+        timingEvidence,
+        workflowEvidence: createMetadataWorkflowEvidence({
+          lesson,
+          localization,
+          timingEvidence,
+          parentFingerprints: {
+            lesson: [stages.find((stage) => stage.stage === "lesson-spec")!.parentFingerprints[0]!],
+            localization: [stages.find((stage) => stage.stage === "localization")!.parentFingerprints[0]!],
+            timing: [stages.find((stage) => stage.stage === "scene-timing")!.parentFingerprints[0]!],
+            output: [metadataParents[0]!],
+          },
+        }),
+        evidence: createMathMetadataEvidence(skill, lesson, localization),
+      });
+      const localeRoot = `locales/${pathLanguage}`;
+      const metadataRelativePath = `${localeRoot}/metadata.json`;
+      const catalogRelativePath = `${localeRoot}/playlist-catalog.json`;
+      const thumbnailAssetRelativePath = `${localeRoot}/thumbnail.svg`;
+      const thumbnailRelativePath = `${localeRoot}/thumbnail.svg.manifest.json`;
+      const policyRelativePath = `${localeRoot}/brand-policy.json`;
+      const finalMediaRelativePath = `${localeRoot}/render/final.mp4`;
+      const finalEvidenceRelativePath = `${localeRoot}/final-media.json`;
+      const packetRelativePath = `locales/${pathLanguage}/publish-dry-run.json`;
+      const verificationRequest = createVerifierRequest(`${lesson.lessonId}-canonical`, lesson.checks);
+      const displayRequest = createVerifierRequest(`${lesson.lessonId}-${pathLanguage}-display`, localizedDisplayChecks(lesson, localization));
+      const passed = (request: ReturnType<typeof createVerifierRequest>) => ({
+        protocolVersion: VERIFIER_PROTOCOL_VERSION,
+        requestId: request.requestId,
+        inputHash: request.inputHash,
+        verifierVersion: VERIFIER_VERSION,
+        sympyVersion: SYMPY_VERSION,
+        status: "passed" as const,
+        checks: request.checks.map((check) => ({ checkId: check.checkId, status: "passed" as const })),
+      });
+      await writeJsonAtomic(path.join(lessonRoot, "canonical/lesson-spec.json"), lesson);
+      await writeJsonAtomic(path.join(lessonRoot, "canonical/verification.json"), passed(verificationRequest));
+      await writeJsonAtomic(path.join(lessonRoot, `${localeRoot}/narration.json`), localization);
+      await writeJsonAtomic(path.join(lessonRoot, `${localeRoot}/display-verification.json`), passed(displayRequest));
+      await writeJsonAtomic(path.join(lessonRoot, metadataRelativePath), metadata);
+      await writeJsonAtomic(path.join(lessonRoot, catalogRelativePath), mathPlaylistCatalog);
+      await fs.mkdir(path.join(lessonRoot, localeRoot), { recursive: true });
+      await fs.mkdir(path.dirname(path.join(lessonRoot, finalMediaRelativePath)), { recursive: true });
+      await fs.writeFile(path.join(lessonRoot, thumbnailAssetRelativePath), "<svg width=\"1920\" height=\"1080\"/>");
+      await fs.writeFile(path.join(lessonRoot, finalMediaRelativePath), "video");
+      const thumbnailHash = await hashFile(path.join(lessonRoot, thumbnailAssetRelativePath));
+      const thumbnailByteLength = (await fs.stat(path.join(lessonRoot, thumbnailAssetRelativePath))).size;
+      const sourceOutputs = [
+        await createArtifactLineage({ root: lessonRoot, relativePath: "canonical/lesson-spec.json", schemaVersion: "lesson-spec.v1", parentHashes: stages.find((stage) => stage.stage === "lesson-spec")!.parentFingerprints, producedBy: "lesson-spec", producer: "lesson-specification-builder", producerVersion: "reviewed-fixtures.v1" }),
+        await createArtifactLineage({ root: lessonRoot, relativePath: "canonical/verification.json", schemaVersion: "math-verifier.v2", parentHashes: stages.find((stage) => stage.stage === "math-verification")!.parentFingerprints, producedBy: "math-verification", producer: "sympy-verifier-adapter", producerVersion: VERIFIER_VERSION }),
+        await createArtifactLineage({ root: lessonRoot, relativePath: `${localeRoot}/narration.json`, schemaVersion: "math-narration.v2", parentHashes: stages.find((stage) => stage.stage === "localization")!.parentFingerprints, producedBy: "localization", producer: "locked-fact-localizer", producerVersion: "locked-facts.v2" }),
+        await createArtifactLineage({ root: lessonRoot, relativePath: `${localeRoot}/display-verification.json`, schemaVersion: "math-verifier.v2", parentHashes: stages.find((stage) => stage.stage === "localization")!.parentFingerprints, producedBy: "localization", producer: "sympy-verifier-adapter", producerVersion: VERIFIER_VERSION }),
+      ];
+      for (const source of sourceOutputs) {
+        const stage = stages.find((candidate) => candidate.stage === source.producedBy)!;
+        stage.outputArtifacts.push(source);
+        stage.status = "succeeded";
+      }
+      const sourceByPath = (relativePath: string) => sourceOutputs.find((source) => source.relativePath === relativePath)!;
+      const thumbnailManifest = {
+        artifactVersion: "math-thumbnail.v1", identity: {
+          lessonId,
+          skillId: skill.skillId,
+          language: pathLanguage,
+          variant: "standard",
+          grade: 5,
+          curriculumReleaseId: metadata.identity.curriculumReleaseId,
+          curriculumReleaseHash: metadata.identity.curriculumReleaseHash,
+          localizationHash: metadata.identity.localizationHash,
+        },
+        specVersion: "math-thumbnail-spec.v2", rendererVersion: "math-thumbnail-renderer.v3",
+        fontProfile: { id: "math-thumbnail-fonts.v1", textFamily: "MathThumbnailText", formulaFamily: "MathThumbnailFormula", textFontFile: "KaTeX_SansSerif-Bold.woff2", formulaFontFile: "KaTeX_Main-Regular.woff2", textFontHash: "6".repeat(64), formulaFontHash: "7".repeat(64), measurementModel: "unicode-conservative.v1" },
+        profile: "grades-5-7-v1",
+        teacherVersion: "alex.v1-approved", teacherManifestHash: "5".repeat(64), teacherPoseId: "neutral", teacherPoseHash: "1".repeat(64),
+        artwork: {
+          status: "approved-publish-artwork",
+          publishReady: true,
+          blockers: [],
+          license: "Unit-test approved artwork license.",
+          provenance: "Unit-test approved artwork provenance.",
+        },
+        inputHashes: { lessonContent: lesson.contentHash, metadata: canonicalHash(metadata), fact: "2".repeat(64), verification: "4".repeat(64), spec: "3".repeat(64) },
+        dimensions: { width: 1920, height: 1080, aspectRatio: "16:9" }, safeArea: { x: 96, y: 54, width: 1728, height: 972 },
+        readability: { wordCount: 3, textFontPx: 96, formulaFontPx: 92, measuredTextWidth: 500, measuredFormulaWidth: 500, measuredFormulaHeight: 120, mobileReadable: true },
+        teacherAreaRatio: 0.2,
+        formulaPriority: true,
+        factId: metadata.thumbnail.formulaFactId,
+        factSemanticHash: "2".repeat(64),
+        verification: {
+          requestId: "thumbnail-test",
+          requestContentHash: "4".repeat(64),
+          responseContentHash: "4".repeat(64),
+          referencedFactIds: [metadata.thumbnail.formulaFactId],
+          referencedCheckIds: [lesson.facts.find((fact) => fact.factId === metadata.thumbnail.formulaFactId)!.checkIds[0]!],
+        },
+        sourceLineage: {
+          lesson: { stage: "lesson-spec", relativePath: "canonical/lesson-spec.json", schemaVersion: "lesson-spec.v1", contentHash: sourceByPath("canonical/lesson-spec.json").contentHash, producer: "lesson-specification-builder", producerVersion: "reviewed-fixtures.v1", parentFingerprints: stages.find((stage) => stage.stage === "lesson-spec")!.parentFingerprints },
+          verification: { stage: "math-verification", relativePath: "canonical/verification.json", schemaVersion: "math-verifier.v2", contentHash: sourceByPath("canonical/verification.json").contentHash, producer: "sympy-verifier-adapter", producerVersion: VERIFIER_VERSION, parentFingerprints: stages.find((stage) => stage.stage === "math-verification")!.parentFingerprints },
+          localization: { stage: "localization", relativePath: `${localeRoot}/narration.json`, schemaVersion: "math-narration.v2", contentHash: sourceByPath(`${localeRoot}/narration.json`).contentHash, producer: "locked-fact-localizer", producerVersion: "locked-facts.v2", parentFingerprints: stages.find((stage) => stage.stage === "localization")!.parentFingerprints },
+          localizedVerification: { stage: "localization", relativePath: `${localeRoot}/display-verification.json`, schemaVersion: "math-verifier.v2", contentHash: sourceByPath(`${localeRoot}/display-verification.json`).contentHash, producer: "sympy-verifier-adapter", producerVersion: VERIFIER_VERSION, parentFingerprints: stages.find((stage) => stage.stage === "localization")!.parentFingerprints },
+          metadata: { stage: "metadata-playlists", relativePath: metadataRelativePath, schemaVersion: "math-metadata.v2", contentHash: await hashFile(path.join(lessonRoot, metadataRelativePath)), producer: "math-metadata-generator", producerVersion: "math-metadata-generator.v3", parentFingerprints: metadataParents },
+        },
+        workflow: {
+          owningStage: "metadata-playlists",
+          producer: "math-thumbnail-renderer",
+          producerVersion: "math-thumbnail-renderer.v3",
+          parentFingerprints: metadataParents,
+        },
+        outputPath: "thumbnail.svg",
+        contentHash: thumbnailHash,
+        byteLength: thumbnailByteLength,
+      };
+      await writeJsonAtomic(path.join(lessonRoot, thumbnailRelativePath), thumbnailManifest);
+      const policy = {
+        artifactVersion: "math-brand-policy.v1", privacyStatus: "private", madeForKids: false, containsSyntheticMedia: true,
+        channels: (["de", "en", "es", "fr", "pt"] as const).map((language) => ({ language, channelId: `math-${language}`, playlists: Object.fromEntries(metadata.playlists.map((playlist) => [playlist.key, `${language}-${playlist.kind}`])) })),
+      };
+      await writeJsonAtomic(path.join(lessonRoot, policyRelativePath), policy);
+      const qualityHash = await hashFile(qualityPath);
+      const finalMediaHash = await hashFile(path.join(lessonRoot, finalMediaRelativePath));
+      const finalMediaByteLength = (await fs.stat(path.join(lessonRoot, finalMediaRelativePath))).size;
+      const renderStage = stages.find((stage) => stage.stage === "render")!;
+      const finalMedia = {
+        artifactVersion: "math-final-media.v1",
+        owningStage: "render",
+        producer: "provider-free-media",
+        producerVersion: "provider-free-media.v1",
+        parentFingerprints: renderStage.parentFingerprints,
+        identity: { lessonId, skillId: skill.skillId, language: pathLanguage, variant: "standard" },
+        mediaPath: finalMediaRelativePath,
+        mediaHash: finalMediaHash,
+        mediaByteLength: finalMediaByteLength,
+        qualityEvidenceHash: qualityHash,
+        width: 1920, height: 1080, durationSeconds: 240, mediaQaPassed: true,
+      };
+      await writeJsonAtomic(path.join(lessonRoot, finalEvidenceRelativePath), finalMedia);
+      const channel = policy.channels.find((item) => item.language === pathLanguage)!;
+      const packet = createPublishDryRunManifest({
+        metadata, metadataPath: metadataRelativePath,
+        thumbnailManifestPath: thumbnailRelativePath, thumbnailManifestHash: hashText(JSON.stringify(thumbnailManifest, null, 2) + "\n"),
+        thumbnailAssetPath: thumbnailAssetRelativePath, thumbnailAssetHash: thumbnailHash,
+        finalMediaPath: finalMediaRelativePath, finalMediaHash,
+        finalMediaEvidencePath: finalEvidenceRelativePath, finalMediaEvidenceHash: canonicalHash(finalMedia),
+        qualityPath: "canonical/quality.json", qualityHash,
+        brandPolicyPath: policyRelativePath, brandPolicyHash: hashText(JSON.stringify(policy, null, 2) + "\n"),
+        channelId: channel.channelId, privacyStatus: "private", madeForKids: false, containsSyntheticMedia: true,
+        playlistIdsByKey: channel.playlists,
+      });
+      await writeJsonAtomic(path.join(lessonRoot, packetRelativePath), {
+        ...packet,
+        identity: { ...packet.identity, lessonId: options.packet.lessonId ?? lessonId, language: options.packet.language ?? pathLanguage },
+      });
+      const metadataOutputs = await Promise.all([
+        [metadataRelativePath, "math-metadata.v2"], [catalogRelativePath, "math-playlist-catalog.v1"],
+        [thumbnailRelativePath, "math-thumbnail.v1"], [policyRelativePath, "math-brand-policy.v1"],
+        [packetRelativePath, "math-publish-dry-run.v2"],
+      ].map(([relativePath, schemaVersion]) => createArtifactLineage({
         root: lessonRoot,
-        relativePath: packetRelativePath,
-        schemaVersion: "math-publish-dry-run.v1",
+        relativePath: relativePath!,
+        schemaVersion: schemaVersion as any,
         parentHashes: metadataParents,
         producedBy: "metadata-playlists",
-      });
+        ...(schemaVersion === "math-metadata.v2"
+          ? { producer: "math-metadata-generator", producerVersion: "math-metadata-generator.v3" }
+          : {}),
+      })));
+      metadataOutputs.push(await createArtifactLineage({
+        root: lessonRoot,
+        relativePath: thumbnailAssetRelativePath,
+        schemaVersion: "math-thumbnail-binary.v1",
+        payloadKind: "binary",
+        parentHashes: metadataParents,
+        producedBy: "metadata-playlists",
+        producer: "math-thumbnail-renderer",
+        producerVersion: "math-thumbnail-renderer.v3",
+        identity: { lessonId, skillId: skill.skillId, language: pathLanguage, variant: "standard" },
+      }));
       stages.find(
         (stage) => stage.stage === "metadata-playlists"
-      )!.outputArtifacts.push(packetLineage);
+      )!.outputArtifacts.push(...metadataOutputs);
       stages.find(
         (stage) => stage.stage === "metadata-playlists"
       )!.status = "succeeded";
+      renderStage.outputArtifacts.push(await createArtifactLineage({ root: lessonRoot, relativePath: finalEvidenceRelativePath, schemaVersion: "math-final-media.v1", parentHashes: renderStage.parentFingerprints, producedBy: "render" }));
+      renderStage.outputArtifacts.push(await createArtifactLineage({
+        root: lessonRoot,
+        relativePath: finalMediaRelativePath,
+        schemaVersion: "math-final-media-binary.v1",
+        payloadKind: "binary",
+        parentHashes: renderStage.parentFingerprints,
+        producedBy: "render",
+        producer: "provider-free-media",
+        producerVersion: "provider-free-media.v1",
+        identity: { lessonId, skillId: skill.skillId, language: pathLanguage, variant: "standard" },
+      }));
+      renderStage.status = "succeeded";
     }
     stages.find(
       (stage) => stage.stage === "quality-gate"
@@ -390,21 +591,24 @@ describe("math commands", () => {
     const lessonId = "m5-zo-001-standard";
     await qualityLesson(validWorkspace, lessonId, undefined, { packet: {} });
     const stdout = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
+    const writeSpy = vi.spyOn(fs, "writeFile");
     process.exitCode = undefined;
     try {
       await parseMath(["publish", "--lesson", lessonId, "--workspace", validWorkspace, "--language", "de", "--dry-run"]);
       expect(String(stdout.mock.calls.at(-1)?.[0])).toContain(
         '"dispatchAllowed": false'
       );
+      expect(writeSpy).not.toHaveBeenCalled();
     } finally {
+      writeSpy.mockRestore();
       stdout.mockClear();
     }
 
     const payloadCases = [
-      { name: "lesson", selectedLocales: ["de"] as MathLanguage[], packet: { lessonId: "m5-zo-999-standard" } },
-      { name: "language", selectedLocales: ["de"] as MathLanguage[], packet: { language: "en" as const } },
-      { name: "scope", selectedLocales: ["en"] as MathLanguage[], packet: {} },
-      { name: "path", selectedLocales: ["de", "en"] as MathLanguage[], packet: { pathLanguage: "en" as const } },
+      { name: "lesson", expectedExit: 1, selectedLocales: ["de"] as MathLanguage[], packet: { lessonId: "m5-zo-999-standard" } },
+      { name: "language", expectedExit: 1, selectedLocales: ["de"] as MathLanguage[], packet: { language: "en" as const } },
+      { name: "scope", expectedExit: 1, selectedLocales: ["en"] as MathLanguage[], packet: {} },
+      { name: "path", expectedExit: 3, selectedLocales: ["de", "en"] as MathLanguage[], packet: { pathLanguage: "en" as const } },
     ];
     for (const testCase of payloadCases) {
       const workspace = await fs.mkdtemp(path.join(os.tmpdir(), `math-cli-packet-${testCase.name}-`));
@@ -416,7 +620,7 @@ describe("math commands", () => {
       await expect(
         parseMath(["publish", "--lesson", lessonId, "--workspace", workspace, "--language", "de", "--dry-run"])
       ).rejects.toThrow();
-      expect(process.exitCode).toBe(1);
+      expect(process.exitCode).toBe(testCase.expectedExit);
     }
 
     for (const mutation of ["producer", "parent", "duplicate"] as const) {
@@ -437,7 +641,151 @@ describe("math commands", () => {
       ).rejects.toThrow();
       expect(process.exitCode).toBe(1);
     }
+    for (const mutation of [
+      "thumbnail-bytes",
+      "media-bytes",
+      "binary-owner",
+      "binary-size",
+      "symlink",
+    ] as const) {
+      const workspace = await fs.mkdtemp(
+        path.join(os.tmpdir(), `math-cli-binary-${mutation}-`)
+      );
+      const built = await qualityLesson(workspace, lessonId, undefined, {
+        packet: {},
+      });
+      const metadataStage = built.manifest.stages.find(
+        (stage) => stage.stage === "metadata-playlists"
+      )!;
+      const renderStage = built.manifest.stages.find(
+        (stage) => stage.stage === "render"
+      )!;
+      const thumbnail = metadataStage.outputArtifacts.find(
+        (artifact) => artifact.schemaVersion === "math-thumbnail-binary.v1"
+      )!;
+      const media = renderStage.outputArtifacts.find(
+        (artifact) => artifact.schemaVersion === "math-final-media-binary.v1"
+      )!;
+      if (mutation === "thumbnail-bytes")
+        await fs.writeFile(path.join(built.lessonRoot, thumbnail.relativePath), "arbitrary");
+      if (mutation === "media-bytes")
+        await fs.writeFile(path.join(built.lessonRoot, media.relativePath), "swapped-media");
+      if (mutation === "binary-owner") thumbnail.producer = "caller";
+      if (mutation === "binary-size") media.byteLength += 1;
+      if (mutation === "symlink") {
+        const target = path.join(built.lessonRoot, thumbnail.relativePath);
+        const real = `${target}.real`;
+        await fs.rename(target, real);
+        await fs.symlink(real, target);
+      }
+      await writeJsonAtomic(built.manifestPath, built.manifest);
+      process.exitCode = undefined;
+      await expect(
+        parseMath([
+          "publish",
+          "--lesson",
+          lessonId,
+          "--workspace",
+          workspace,
+          "--language",
+          "de",
+          "--dry-run",
+        ])
+      ).rejects.toThrow();
+      expect(process.exitCode).toBe(1);
+    }
+    for (const mutation of [
+      "quality-path",
+      "evidence-path",
+      "media-path",
+      "packet-quality-hash",
+    ] as const) {
+      const workspace = await fs.mkdtemp(path.join(os.tmpdir(), `math-cli-canonical-${mutation}-`));
+      const built = await qualityLesson(workspace, lessonId, undefined, { packet: {} });
+      const metadataStage = built.manifest.stages.find((stage) => stage.stage === "metadata-playlists")!;
+      const packetLineage = metadataStage.outputArtifacts.find((artifact) => artifact.schemaVersion === "math-publish-dry-run.v2")!;
+      const packetPath = path.join(built.lessonRoot, packetLineage.relativePath);
+      const packet = JSON.parse(await fs.readFile(packetPath, "utf8"));
+      if (mutation === "quality-path") packet.quality.path = "locales/de/quality.json";
+      if (mutation === "evidence-path") packet.finalMedia.evidencePath = "locales/de/render/final-media.json";
+      if (mutation === "media-path") packet.finalMedia.mediaPath = "locales/de/final.mp4";
+      if (mutation === "packet-quality-hash") packet.finalMedia.qualityEvidenceHash = "0".repeat(64);
+      packet.requestFingerprint = canonicalHash({
+        identity: packet.identity,
+        metadata: packet.metadata,
+        thumbnail: packet.thumbnail,
+        finalMedia: packet.finalMedia,
+        quality: packet.quality,
+        brandPolicy: packet.brandPolicy,
+        channelId: packet.channelId,
+        privacyStatus: packet.privacyStatus,
+        madeForKids: packet.madeForKids,
+        containsSyntheticMedia: packet.containsSyntheticMedia,
+        playlistAssignments: packet.playlistAssignments,
+      });
+      await writeJsonAtomic(packetPath, packet);
+      packetLineage.contentHash = await hashFile(packetPath);
+      packetLineage.byteLength = (await fs.stat(packetPath)).size;
+      await writeJsonAtomic(built.manifestPath, built.manifest);
+      process.exitCode = undefined;
+      await expect(parseMath(["publish", "--lesson", lessonId, "--workspace", workspace, "--language", "de", "--dry-run"])).rejects.toThrow();
+      expect(process.exitCode).toBe(1);
+    }
+    {
+      const workspace = await fs.mkdtemp(path.join(os.tmpdir(), "math-cli-placeholder-override-"));
+      const built = await qualityLesson(workspace, lessonId, undefined, { packet: {} });
+      const metadataStage = built.manifest.stages.find((stage) => stage.stage === "metadata-playlists")!;
+      const thumbnailLineage = metadataStage.outputArtifacts.find((artifact) => artifact.schemaVersion === "math-thumbnail.v1")!;
+      const thumbnailPath = path.join(built.lessonRoot, thumbnailLineage.relativePath);
+      const thumbnail = JSON.parse(await fs.readFile(thumbnailPath, "utf8"));
+      thumbnail.teacherVersion = "alex.v1-placeholder";
+      thumbnail.artwork = {
+        status: "approved-publish-artwork",
+        publishReady: true,
+        blockers: [],
+        license: "Forged approval",
+        provenance: "Forged approval",
+      };
+      await writeJsonAtomic(thumbnailPath, thumbnail);
+      thumbnailLineage.contentHash = await hashFile(thumbnailPath);
+      thumbnailLineage.byteLength = (await fs.stat(thumbnailPath)).size;
+      const packetLineage = metadataStage.outputArtifacts.find((artifact) => artifact.schemaVersion === "math-publish-dry-run.v2")!;
+      const packetPath = path.join(built.lessonRoot, packetLineage.relativePath);
+      const packet = JSON.parse(await fs.readFile(packetPath, "utf8"));
+      packet.thumbnail.manifestHash = thumbnailLineage.contentHash;
+      packet.requestFingerprint = canonicalHash({
+        identity: packet.identity,
+        metadata: packet.metadata,
+        thumbnail: packet.thumbnail,
+        finalMedia: packet.finalMedia,
+        quality: packet.quality,
+        brandPolicy: packet.brandPolicy,
+        channelId: packet.channelId,
+        privacyStatus: packet.privacyStatus,
+        madeForKids: packet.madeForKids,
+        containsSyntheticMedia: packet.containsSyntheticMedia,
+        playlistAssignments: packet.playlistAssignments,
+      });
+      await writeJsonAtomic(packetPath, packet);
+      packetLineage.contentHash = await hashFile(packetPath);
+      packetLineage.byteLength = (await fs.stat(packetPath)).size;
+      await writeJsonAtomic(built.manifestPath, built.manifest);
+      process.exitCode = undefined;
+      await expect(parseMath(["publish", "--lesson", lessonId, "--workspace", workspace, "--language", "de", "--dry-run"])).rejects.toThrow(/placeholder/u);
+      expect(process.exitCode).toBe(3);
+    }
+    const source = await fs.readFile("apps/cli/src/math-commands.ts", "utf8");
+    expect(source).not.toMatch(/publishYoutubeMedia|createYoutubeClient|googleapis/u);
     process.exitCode = undefined;
     stdout.mockRestore();
+  });
+
+  it("rejects math publish without --dry-run as input error 1", async () => {
+    process.exitCode = undefined;
+    await expect(
+      parseMath(["publish", "--lesson", "m5-zo-001-standard", "--workspace", "/tmp/unused"])
+    ).rejects.toThrow(/requires --dry-run/u);
+    expect(process.exitCode).toBe(1);
+    process.exitCode = undefined;
   });
 });

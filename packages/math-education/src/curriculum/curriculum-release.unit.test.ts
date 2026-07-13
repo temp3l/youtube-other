@@ -1,16 +1,21 @@
 import fs from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { curriculumSourceSchema } from "../domain/index.js";
 import {
+  sourceRegistrySchema,
   stateOverridesFileSchema,
   validateProvenance,
 } from "./source-registry.js";
 import {
   assertPublishedReleaseImmutable,
   assertWritableSkillId,
+  curriculumReleaseSchema,
   curriculumMigrationsFileSchema,
   loadCurriculumRelease,
   validateCurriculumMigrations,
+  validateUniqueSkillIds,
 } from "./release.js";
 
 const releaseRoot = "packages/math-education/data/curriculum/v1";
@@ -39,6 +44,60 @@ describe("curriculum release", () => {
     expect(release.graph.order).toHaveLength(206);
     expect(release.graph.disconnectedSkillIds.length).toBeGreaterThan(0);
     expect(release.readyForProduction).toBe(false);
+    expect(new Set(release.skills.map((skill) => skill.skillId)).size).toBe(
+      release.skills.length
+    );
+  });
+
+  it("rejects stale input hashes in the real release layout", async () => {
+    const tempRoot = await fs.mkdtemp(
+      path.join(os.tmpdir(), "math-release-hash-")
+    );
+    for (const fileName of [
+      "release.json",
+      "skills.json",
+      "source-registry.json",
+      "state-overrides.json",
+      "prerequisites.json",
+      "migrations.json",
+    ]) {
+      await fs.copyFile(
+        path.join(releaseRoot, fileName),
+        path.join(tempRoot, fileName)
+      );
+    }
+    const registryPath = path.join(tempRoot, "source-registry.json");
+    const registry = JSON.parse(await fs.readFile(registryPath, "utf8")) as {
+      sources: { notes: string }[];
+    };
+    registry.sources[0]!.notes = "mutated without release hash update";
+    await fs.writeFile(registryPath, `${JSON.stringify(registry, null, 2)}\n`);
+    await expect(loadCurriculumRelease(tempRoot)).rejects.toThrow(
+      /Curriculum input hash mismatch: sourceRegistry/u
+    );
+  });
+
+  it("rejects unknown fields, unknown enums, and duplicate ids", async () => {
+    const release = curriculumReleaseSchema.parse(
+      JSON.parse(await fs.readFile(`${releaseRoot}/release.json`, "utf8"))
+    );
+    expect(() =>
+      curriculumReleaseSchema.parse({ ...release, rolloutStatus: "reviewed" })
+    ).toThrow();
+    expect(() =>
+      curriculumReleaseSchema.parse({ ...release, status: "candidate" })
+    ).toThrow();
+
+    const loaded = await loadCurriculumRelease(releaseRoot);
+    expect(() =>
+      validateUniqueSkillIds([loaded.skills[0]!, loaded.skills[0]!])
+    ).toThrow(/Duplicate skill id: M5-ZO-001/u);
+    expect(() =>
+      sourceRegistrySchema.parse({
+        schemaVersion: 1,
+        sources: [loaded.registry.sources[0], loaded.registry.sources[0]],
+      })
+    ).toThrow(/Duplicate source id/u);
   });
 
   it("rejects mutation of a published release", async () => {
@@ -122,6 +181,47 @@ describe("curriculum release", () => {
         ],
       })
     ).toThrow(/lacks reviewed provenance/u);
+  });
+
+  it("blocks binding claims with unknown or unverified authority", async () => {
+    const release = await loadCurriculumRelease(releaseRoot);
+    const reviewedBinding = {
+      overrideId: "reviewed-binding",
+      skillId: "M5-ZO-001",
+      sourceMapping: {
+        sourceId: "missing-source",
+        section: "reviewed section",
+        coverage: "direct" as const,
+        reviewStatus: "reviewed" as const,
+      },
+      jurisdiction: "DE",
+      grade: 5 as const,
+      binding: "binding" as const,
+      comment: "must block",
+    };
+    expect(() =>
+      validateProvenance(release.skills, release.registry, {
+        schemaVersion: 1,
+        reviewStatus: "reviewed",
+        overrides: [reviewedBinding],
+      })
+    ).toThrow(/Unknown override source/u);
+    expect(() =>
+      validateProvenance(release.skills, release.registry, {
+        schemaVersion: 1,
+        reviewStatus: "reviewed",
+        overrides: [
+          {
+            ...reviewedBinding,
+            overrideId: "unverified-binding",
+            sourceMapping: {
+              ...reviewedBinding.sourceMapping,
+              sourceId: "sl-2025-math-9-10",
+            },
+          },
+        ],
+      })
+    ).toThrow(/uses unverified source/u);
   });
 
   it("keeps migrations append-only and aliases read-only", () => {

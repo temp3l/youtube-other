@@ -4,7 +4,7 @@
   "locale": "de",
   "title": "Lineare Gleichungen lösen",
   "scenes": [
-    { "id": "title", "type": "title", "durationMs": 4000, "localeSensitivity": "localized", "title": "Lineare Gleichungen", "subtitle": "Schritt für Schritt lösen", "transition": { "type": "fade", "durationMs": 400 } },
+    { "id": "title", "type": "title", "durationMs": 4000, "localeSensitivity": "localized", "title": "Lineare Gleichungen", "subtitle": "Schritt für Schritt lösen" },
     { "id": "objective", "type": "text", "durationMs": 5000, "localeSensitivity": "localized", "heading": "Lernziel", "text": "Du löst eine Gleichung, indem du auf beiden Seiten dieselbe Rechenoperation ausführst.", "annotation": "Die Waage bleibt im Gleichgewicht." },
     { "id": "equation-setup", "type": "equation", "durationMs": 5000, "localeSensitivity": "language-neutral", "equation": "3x + 6 = 15", "label": "Ausgangsgleichung", "highlight": "Gesucht: x" },
     { "id": "subtract-six", "type": "equation-transformation", "durationMs": 6000, "localeSensitivity": "localized", "from": "3x + 6 = 15", "to": "3x = 9", "operation": "auf beiden Seiten − 6", "highlight": "Die +6 fällt weg." },

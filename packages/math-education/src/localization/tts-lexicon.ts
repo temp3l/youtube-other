@@ -1,6 +1,6 @@
 import { type MathLanguage } from "../domain/index.js";
 
-export const MATH_SPEECH_FORMAT_VERSION = "math-speech-format.v1";
+export const MATH_SPEECH_FORMAT_VERSION = "math-speech-format.v2";
 
 export const localeProfiles = {
   de: { intl: "de-DE", region: "DE" },
@@ -141,8 +141,23 @@ const units: Record<MathLanguage, Record<string, string>> = {
   },
 };
 
+const digits: Record<MathLanguage, readonly string[]> = {
+  de: ["null", "eins", "zwei", "drei", "vier", "fuenf", "sechs", "sieben", "acht", "neun"],
+  en: ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine"],
+  es: ["cero", "uno", "dos", "tres", "cuatro", "cinco", "seis", "siete", "ocho", "nueve"],
+  fr: ["zero", "un", "deux", "trois", "quatre", "cinq", "six", "sept", "huit", "neuf"],
+  pt: ["zero", "um", "dois", "três", "quatro", "cinco", "seis", "sete", "oito", "nove"],
+};
+
 export function speechLexicon(language: MathLanguage) {
   return speech[language];
+}
+
+export function spokenDigit(digit: string, language: MathLanguage): string {
+  const value = digits[language][Number(digit)];
+  if (!/^\d$/u.test(digit) || !value)
+    throw new Error(`TTS lexicon has no ${language} digit ${digit}.`);
+  return value;
 }
 
 export function spokenUnit(symbol: string, language: MathLanguage): string {

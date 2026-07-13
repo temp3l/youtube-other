@@ -10,11 +10,18 @@ import {
   evaluateMinorEditApproval,
   loadWorkflowManifest,
   mathMinorEditApprovalSchema,
+  mathBrandPolicyArtifactSchema,
+  mathFinalMediaEvidenceSchema,
+  mathMetadataSchema,
+  mathPlaylistCatalogSchema,
+  mathThumbnailArtifactSchema,
   mathPublishDryRunSchema,
   mathQualityReportSchema,
   planMathBatchItems,
+  outputsAreValid,
   qualityExitCode,
   readAuthoritativeStageArtifact,
+  readAuthoritativeBinaryArtifact,
   runMathBatch,
   runPilotSimulation,
   validateVariantDifferentiation,
@@ -466,8 +473,10 @@ export function registerMathCommands(program: Command): void {
           language: string;
           dryRun?: boolean;
         }>();
-        if (!opts.dryRun)
+        if (!opts.dryRun) {
+          process.exitCode = 1;
           throw new Error("Math publish requires --dry-run.");
+        }
         try {
           const quality = await authoritativeQuality(opts.workspace, opts.lesson);
           if (!quality.permissions.publishAllowed) {
@@ -485,24 +494,208 @@ export function registerMathCommands(program: Command): void {
             throw new Error(
               `Missing or identity-mismatched workflow manifest for ${opts.lesson}.`
             );
-          const relativePath = `locales/${opts.language}/publish-dry-run.json`;
+          const localeRoot = `locales/${opts.language}`;
+          const metadataRelativePath = `${localeRoot}/metadata.json`;
+          const catalogRelativePath = `${localeRoot}/playlist-catalog.json`;
+          const thumbnailRelativePath = `${localeRoot}/thumbnail.svg.manifest.json`;
+          const policyRelativePath = `${localeRoot}/brand-policy.json`;
+          const relativePath = `${localeRoot}/publish-dry-run.json`;
+          const metadataStageRecord = manifest.stages.find((stage) => stage.stage === "metadata-playlists")!;
+          for (const required of [
+            [catalogRelativePath, "math-playlist-catalog.v1"],
+            [policyRelativePath, "math-brand-policy.v1"],
+          ] as const) {
+            const count = metadataStageRecord.outputArtifacts.filter(
+              (artifact) => artifact.relativePath === required[0] && artifact.schemaVersion === required[1]
+            ).length;
+            if (count !== 1)
+              throw new MathCliSemanticError(`PUBLISH_BLOCKED: missing or duplicate ${required[0]}.`);
+          }
+          const metadata = await readAuthoritativeStageArtifact({
+            root: paths.lesson(opts.lesson), manifest, stage: "metadata-playlists",
+            relativePath: metadataRelativePath, schemaVersion: "math-metadata.v2", schema: mathMetadataSchema,
+          });
+          const catalog = await readAuthoritativeStageArtifact({
+            root: paths.lesson(opts.lesson), manifest, stage: "metadata-playlists",
+            relativePath: catalogRelativePath, schemaVersion: "math-playlist-catalog.v1", schema: mathPlaylistCatalogSchema,
+          });
+          const thumbnail = await readAuthoritativeStageArtifact({
+            root: paths.lesson(opts.lesson), manifest, stage: "metadata-playlists",
+            relativePath: thumbnailRelativePath, schemaVersion: "math-thumbnail.v1", schema: mathThumbnailArtifactSchema,
+          });
+          const rawPolicy = await readAuthoritativeStageArtifact({
+            root: paths.lesson(opts.lesson), manifest, stage: "metadata-playlists",
+            relativePath: policyRelativePath, schemaVersion: "math-brand-policy.v1", schema: mathBrandPolicyArtifactSchema,
+          });
+          const policy = rawPolicy;
+          const languages = policy.channels.map((candidate) => candidate.language);
+          const requiredLanguages = ["de", "en", "es", "fr", "pt"];
+          if (
+            new Set(languages).size !== languages.length ||
+            requiredLanguages.some((language) => !languages.includes(language as MathLanguage)) ||
+            new Set(policy.channels.map((candidate) => candidate.channelId)).size !== policy.channels.length ||
+            policy.channels.some((candidate) => {
+              const ids = Object.values(candidate.playlists);
+              return new Set(ids).size !== ids.length;
+            })
+          )
+            throw new MathCliSemanticError("PUBLISH_BLOCKED: duplicate math channel policy.");
+          const channel = policy.channels.find((candidate) => candidate.language === opts.language);
+          if (!channel)
+            throw new MathCliSemanticError(`PUBLISH_BLOCKED: missing channel policy for ${opts.language}.`);
           const packet = await readAuthoritativeStageArtifact({
             root: paths.lesson(opts.lesson),
             manifest,
             stage: "metadata-playlists",
             relativePath,
-            schemaVersion: "math-publish-dry-run.v1",
+            schemaVersion: "math-publish-dry-run.v2",
             schema: mathPublishDryRunSchema,
           });
+          const canonicalQualityPath = "canonical/quality.json";
+          const canonicalFinalEvidencePath = `${localeRoot}/final-media.json`;
+          const canonicalFinalMediaPath = `${localeRoot}/render/final.mp4`;
           if (
-            packet.lessonId !== opts.lesson ||
-            packet.lessonId !== manifest.lessonId ||
-            packet.language !== opts.language
+            packet.quality.path !== canonicalQualityPath ||
+            packet.finalMedia.evidencePath !== canonicalFinalEvidencePath ||
+            packet.finalMedia.mediaPath !== canonicalFinalMediaPath
+          ) throw new Error("Publish packet uses a non-canonical quality or final-media path.");
+          const finalMedia = await readAuthoritativeStageArtifact({
+            root: paths.lesson(opts.lesson), manifest, stage: "render",
+            relativePath: packet.finalMedia.evidencePath,
+            schemaVersion: "math-final-media.v1",
+            schema: mathFinalMediaEvidenceSchema,
+          });
+          if (
+            packet.identity.lessonId !== opts.lesson ||
+            packet.identity.lessonId !== manifest.lessonId ||
+            packet.identity.language !== opts.language ||
+            metadata.identity.lessonId !== opts.lesson ||
+            metadata.identity.language !== opts.language ||
+            thumbnail.identity.lessonId !== opts.lesson ||
+            thumbnail.identity.language !== opts.language ||
+            finalMedia.identity.lessonId !== opts.lesson ||
+            finalMedia.identity.language !== opts.language
           )
             throw new Error(
               `Publish packet identity does not match ${opts.lesson}/${opts.language}.`
             );
-          print({ quality, packet });
+          const lessonRoot = paths.lesson(opts.lesson);
+          const metadataStage = manifest.stages.find((stage) => stage.stage === "metadata-playlists")!;
+          const lineageHash = (artifactPath: string) => {
+            const matches = metadataStage.outputArtifacts.filter((artifact) => artifact.relativePath === artifactPath);
+            if (matches.length !== 1) throw new Error(`Expected exactly one authoritative ${artifactPath}.`);
+            return matches[0]!.contentHash;
+          };
+          for (const stageName of new Set(Object.values(thumbnail.sourceLineage).map((source) => source.stage))) {
+            const sourceStage = manifest.stages.find((candidate) => candidate.stage === stageName);
+            if (!sourceStage || !(await outputsAreValid(lessonRoot, sourceStage)))
+              throw new Error(`Thumbnail source stage ${stageName} is stale or invalid.`);
+          }
+          const thumbnailSourceLineageValid = Object.values(thumbnail.sourceLineage).every((source) => {
+            const stage = manifest.stages.find((candidate) => candidate.stage === source.stage);
+            const matches = stage?.outputArtifacts.filter((artifact) =>
+              artifact.relativePath === source.relativePath &&
+              artifact.schemaVersion === source.schemaVersion &&
+              artifact.producedBy === source.stage &&
+              artifact.producer === source.producer &&
+              artifact.producerVersion === source.producerVersion &&
+              artifact.contentHash === source.contentHash &&
+              canonicalHash(artifact.parentHashes) === canonicalHash(source.parentFingerprints)
+            ) ?? [];
+            return matches.length === 1;
+          });
+          const thumbnailAssetRelativePath = path.posix.join(localeRoot, thumbnail.outputPath);
+          const thumbnailAsset = await readAuthoritativeBinaryArtifact({
+            root: paths.lesson(opts.lesson),
+            manifest,
+            stage: "metadata-playlists",
+            relativePath: thumbnailAssetRelativePath,
+            schemaVersion: "math-thumbnail-binary.v1",
+            expectedIdentity: {
+              lessonId: opts.lesson,
+              skillId: metadata.identity.skillId,
+              language: opts.language as MathLanguage,
+              variant: metadata.identity.variant,
+            },
+            producer: "math-thumbnail-renderer",
+            producerVersion: "math-thumbnail-renderer.v3",
+          });
+          const finalMediaAsset = await readAuthoritativeBinaryArtifact({
+            root: paths.lesson(opts.lesson),
+            manifest,
+            stage: "render",
+            relativePath: finalMedia.mediaPath,
+            schemaVersion: "math-final-media-binary.v1",
+            expectedIdentity: {
+              lessonId: opts.lesson,
+              skillId: metadata.identity.skillId,
+              language: opts.language as MathLanguage,
+              variant: metadata.identity.variant,
+            },
+            producer: "provider-free-media",
+            producerVersion: "provider-free-media.v1",
+          });
+          const qualityMatches = manifest.stages.find((stage) => stage.stage === "quality-gate")!
+            .outputArtifacts.filter((artifact) => artifact.relativePath === canonicalQualityPath && artifact.schemaVersion === "math-quality.v2");
+          if (qualityMatches.length !== 1)
+            throw new Error("Expected exactly one canonical workflow-owned quality artifact.");
+          const qualityHash = qualityMatches[0]!.contentHash;
+          const expectedPlaylistIds = metadata.playlists.map((playlist) => {
+            const catalogEntries = catalog.entries.filter((entry) => entry.key === playlist.key && entry.kind === playlist.kind);
+            if (catalogEntries.length !== 1 || catalogEntries[0]!.localizedNames[opts.language as MathLanguage] !== playlist.localizedName)
+              throw new MathCliSemanticError(`PUBLISH_BLOCKED: catalog mismatch for ${playlist.key}.`);
+            const playlistId = channel.playlists[playlist.key];
+            if (!playlistId) throw new MathCliSemanticError(`PUBLISH_BLOCKED: unmapped playlist ${playlist.key}.`);
+            return { key: playlist.key, kind: playlist.kind, playlistId };
+          });
+          const packetBound = {
+            identity: packet.identity,
+            metadata: packet.metadata,
+            thumbnail: packet.thumbnail,
+            finalMedia: packet.finalMedia,
+            quality: packet.quality,
+            brandPolicy: packet.brandPolicy,
+            channelId: packet.channelId,
+            privacyStatus: packet.privacyStatus,
+            madeForKids: packet.madeForKids,
+            containsSyntheticMedia: packet.containsSyntheticMedia,
+            playlistAssignments: packet.playlistAssignments,
+          };
+          const hashesMatch =
+            packet.metadata.path === metadataRelativePath && packet.metadata.contentHash === canonicalHash(metadata) &&
+            packet.thumbnail.manifestPath === thumbnailRelativePath && packet.thumbnail.manifestHash === lineageHash(thumbnailRelativePath) &&
+            packet.thumbnail.assetPath === thumbnailAssetRelativePath && packet.thumbnail.assetHash === thumbnail.contentHash && packet.thumbnail.assetHash === thumbnailAsset.contentHash && thumbnail.byteLength === thumbnailAsset.byteLength &&
+            packet.finalMedia.evidencePath === canonicalFinalEvidencePath && packet.finalMedia.evidenceHash === canonicalHash(finalMedia) && packet.finalMedia.mediaPath === canonicalFinalMediaPath && packet.finalMedia.mediaPath === finalMedia.mediaPath && packet.finalMedia.mediaHash === finalMedia.mediaHash && finalMedia.mediaHash === finalMediaAsset.contentHash && packet.finalMedia.qualityEvidenceHash === qualityHash && finalMedia.qualityEvidenceHash === qualityHash &&
+            packet.quality.contentHash === qualityHash && packet.brandPolicy.path === policyRelativePath && packet.brandPolicy.contentHash === lineageHash(policyRelativePath) &&
+            packet.channelId === channel.channelId && packet.privacyStatus === policy.privacyStatus && packet.madeForKids === policy.madeForKids && packet.containsSyntheticMedia === policy.containsSyntheticMedia &&
+            metadata.catalogHash === canonicalHash(catalog) && thumbnail.inputHashes.metadata === canonicalHash(metadata) && thumbnail.inputHashes.lessonContent === metadata.identity.lessonContentHash && thumbnail.factId === metadata.thumbnail.formulaFactId &&
+            thumbnailSourceLineageValid && thumbnail.sourceLineage.lesson.relativePath === "canonical/lesson-spec.json" && thumbnail.sourceLineage.verification.relativePath === "canonical/verification.json" && thumbnail.sourceLineage.localization.relativePath === `${localeRoot}/narration.json` && thumbnail.sourceLineage.localizedVerification.relativePath === `${localeRoot}/display-verification.json` && thumbnail.sourceLineage.metadata.relativePath === metadataRelativePath &&
+            canonicalHash(packet.playlistAssignments) === canonicalHash(expectedPlaylistIds) && packet.requestFingerprint === canonicalHash(packetBound);
+          if (!hashesMatch) throw new Error("Publish preflight artifact hashes or policy bindings do not match authoritative inputs.");
+          if (
+            thumbnail.teacherVersion.includes("placeholder") ||
+            thumbnail.artwork.status !== "approved-publish-artwork" ||
+            !thumbnail.artwork.publishReady ||
+            thumbnail.artwork.blockers.length > 0
+          )
+            throw new MathCliSemanticError("PUBLISH_BLOCKED: placeholder teacher thumbnail is not publish-ready.");
+          print({
+            status: "PREFLIGHT_VALID",
+            lessonId: opts.lesson,
+            language: opts.language,
+            channelId: channel.channelId,
+            privacyStatus: "private",
+            playlistAssignments: expectedPlaylistIds,
+            authoritative: {
+              metadata: packet.metadata,
+              thumbnail: packet.thumbnail,
+              finalMedia: packet.finalMedia,
+              quality: packet.quality,
+              brandPolicy: packet.brandPolicy,
+            },
+            blockers: [], dispatchAllowed: false, paidProviderCalled: false,
+            networkCalls: 0, mutations: 0,
+          });
         } catch (error) {
           process.exitCode =
             error instanceof MathCliSemanticError ? error.exitCode : 1;

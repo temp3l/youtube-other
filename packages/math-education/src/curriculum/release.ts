@@ -4,6 +4,52 @@ import { hashText } from "@mediaforge/shared";
 import { z } from "zod";
 import { curriculumSkillSchema, skillIdSchema } from "../domain/index.js";
 import { canonicalHash } from "../verification/canonical-json.js";
+
+const loadedCurriculumReleaseHashes = new WeakMap<object, string>();
+
+function loadedReleaseAuthorityHash(value: {
+  release: unknown;
+  skills: unknown;
+  registry: unknown;
+  overrides: unknown;
+  prerequisites: unknown;
+  migrations: unknown;
+  provenance: unknown;
+  graph: unknown;
+}): string {
+  return canonicalHash({
+    release: value.release,
+    skills: value.skills,
+    registry: value.registry,
+    overrides: value.overrides,
+    prerequisites: value.prerequisites,
+    migrations: value.migrations,
+    provenance: value.provenance,
+    graph: value.graph,
+  });
+}
+
+export function isAuthoritativeLoadedCurriculumRelease(
+  value: unknown
+): value is {
+  release: unknown;
+  skills: unknown;
+  registry: unknown;
+  overrides: unknown;
+  prerequisites: unknown;
+  migrations: unknown;
+  provenance: unknown;
+  graph: unknown;
+} {
+  if (!value || typeof value !== "object") return false;
+  const expected = loadedCurriculumReleaseHashes.get(value);
+  if (!expected) return false;
+  try {
+    return expected === loadedReleaseAuthorityHash(value as never);
+  } catch {
+    return false;
+  }
+}
 import { analyzePrerequisiteDag, prerequisitesFileSchema } from "./dag.js";
 import {
   sourceRegistrySchema,
@@ -82,6 +128,17 @@ export function validateCurriculumMigrations(
     if (activeSkillIds.has(alias.aliasSkillId))
       throw new Error(`Skill alias reuses active id: ${alias.aliasSkillId}`);
     aliases.add(alias.aliasSkillId);
+  }
+}
+
+export function validateUniqueSkillIds(
+  skills: readonly z.infer<typeof curriculumSkillSchema>[]
+): void {
+  const skillIds = new Set<string>();
+  for (const skill of skills) {
+    if (skillIds.has(skill.skillId))
+      throw new Error(`Duplicate skill id: ${skill.skillId}`);
+    skillIds.add(skill.skillId);
   }
 }
 
@@ -164,13 +221,14 @@ export async function loadCurriculumRelease(releaseRoot: string) {
   for (const jurisdiction of requiredJurisdictions)
     if (!jurisdictions.has(jurisdiction))
       throw new Error(`Missing documented curriculum source: ${jurisdiction}`);
+  validateUniqueSkillIds(skillsFile.skills);
   const activeSkillIds = new Set(
     skillsFile.skills.map((skill) => skill.skillId)
   );
   validateCurriculumMigrations(migrations, activeSkillIds);
   const provenance = validateProvenance(skillsFile.skills, registry, overrides);
   const graph = analyzePrerequisiteDag(skillsFile.skills, prerequisites.edges);
-  return {
+  const loaded = {
     release,
     skills: skillsFile.skills,
     releaseHash: skillsFile.releaseHash,
@@ -186,4 +244,6 @@ export async function loadCurriculumRelease(releaseRoot: string) {
       prerequisites.reviewStatus !== "explicitly-incomplete" &&
       overrides.reviewStatus !== "explicitly-incomplete",
   };
+  loadedCurriculumReleaseHashes.set(loaded, loadedReleaseAuthorityHash(loaded));
+  return loaded;
 }

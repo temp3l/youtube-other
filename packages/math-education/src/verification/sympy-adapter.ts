@@ -1,5 +1,9 @@
 import { spawn } from "node:child_process";
 import path from "node:path";
+import {
+  createMathCorrelationId,
+  recordMathStageEvent,
+} from "@mediaforge/observability";
 import { canonicalHash } from "./canonical-json.js";
 import {
   MATH_SPEC_VERSION,
@@ -79,6 +83,14 @@ function terminateProcessGroup(
   }
 }
 
+function resolvePythonExecutable(executable: string): string {
+  if (path.isAbsolute(executable)) return executable;
+  if (executable.includes("/") || executable.includes("\\")) {
+    return path.resolve(executable);
+  }
+  return executable;
+}
+
 export class SympyVerifierAdapter {
   constructor(private readonly options: SympyAdapterOptions) {}
   verify(request: VerifierRequest): Promise<VerifierResponse> {
@@ -86,10 +98,29 @@ export class SympyVerifierAdapter {
     return new Promise((resolve, reject) => {
       const timeoutMs = this.options.timeoutMs ?? 10_000;
       const maxOutputBytes = this.options.maxOutputBytes ?? 1_000_000;
-      const child = spawn(
+      const startedAt = Date.now();
+      const correlationId = createMathCorrelationId({
+        lessonId: parsed.requestId,
+        stage: "math-verification",
+      });
+      const contextBase = {
+        correlationId,
+        lessonId: parsed.requestId,
+        stage: "math-verification" as const,
+        provider: "local",
+        model: "sympy",
+        version: VERIFIER_VERSION,
+        attempt: 1,
+        cache: "miss" as const,
+        costMicros: null,
+      };
+      const pythonExecutable = resolvePythonExecutable(
         this.options.pythonExecutable ??
           process.env["MATH_VERIFIER_PYTHON"] ??
-          "python3",
+          "python3"
+      );
+      const child = spawn(
+        pythonExecutable,
         ["-m", "math_verifier.worker"],
         {
           cwd: path.resolve(this.options.workerRoot),
@@ -118,12 +149,33 @@ export class SympyVerifierAdapter {
         settled = true;
         clearTimeout(timeout);
         if (terminate) terminateProcessGroup(child);
+        recordMathStageEvent({
+          status: "failure",
+          context: {
+            ...contextBase,
+            durationMs: Date.now() - startedAt,
+          },
+          category: code,
+          details: { message },
+        });
         reject(new MathVerifierBoundaryError(code, message));
       };
       const succeed = (response: VerifierResponse): void => {
         if (settled) return;
         settled = true;
         clearTimeout(timeout);
+        recordMathStageEvent({
+          status: "success",
+          context: {
+            ...contextBase,
+            durationMs: Date.now() - startedAt,
+          },
+          details: {
+            requestId: response.requestId,
+            inputHash: response.inputHash,
+            checkCount: response.checks.length,
+          },
+        });
         resolve(response);
       };
       const timeout = setTimeout(() => {

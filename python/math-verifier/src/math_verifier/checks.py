@@ -50,6 +50,10 @@ def _unit_check(check: dict[str, Any], actual: sp.Expr, expected: sp.Expr) -> tu
     return equal(actual_base, expected_base), actual_base
 
 
+def _is_finite(value: sp.Expr) -> bool:
+    return not value.has(sp.zoo, sp.oo, -sp.oo, sp.nan)
+
+
 def _in_domain(value: sp.Expr, domain: dict[str, Any]) -> bool:
     if domain.get("kind") != "interval":
         raise UnsupportedNode("only exact interval graph domains are supported")
@@ -78,6 +82,8 @@ def _graph_check(check: dict[str, Any], actual: sp.Expr, expected: sp.Expr) -> t
         x = exact_scalar(point["x"], "graph.point.x")
         y = exact_scalar(point["y"], "graph.point.y")
         truth = sp.simplify(function.subs(variable, x))
+        if not _is_finite(truth):
+            return False, truth
         valid = _in_domain(x, domain) and equal(y, truth)
     elif mode == "slope":
         start = require_object(evidence.get("from"), "graph.from")
@@ -87,11 +93,15 @@ def _graph_check(check: dict[str, Any], actual: sp.Expr, expected: sp.Expr) -> t
         if equal(x1, x2):
             raise ValueError("graph slope is undefined for equal x coordinates")
         truth = sp.simplify((y2 - y1) / (x2 - x1))
+        f1 = sp.simplify(function.subs(variable, x1))
+        f2 = sp.simplify(function.subs(variable, x2))
+        if not _is_finite(f1) or not _is_finite(f2) or not _is_finite(truth):
+            return False, truth
         valid = (
             _in_domain(x1, domain)
             and _in_domain(x2, domain)
-            and equal(y1, function.subs(variable, x1))
-            and equal(y2, function.subs(variable, x2))
+            and equal(y1, f1)
+            and equal(y2, f2)
         )
     else:
         raise UnsupportedNode(f"unsupported graph mode: {mode}")
@@ -115,6 +125,14 @@ def _geometry_check(check: dict[str, Any], actual: sp.Expr, expected: sp.Expr) -
         "circle-area": ("circle", {"radius-positive"}, lambda: sp.pi * parameter("radius") ** 2),
         "circle-circumference": ("circle", {"radius-positive"}, lambda: 2 * sp.pi * parameter("radius")),
         "pythagorean-hypotenuse": ("right-triangle", {"leg-a-positive", "leg-b-positive", "right-angle"}, lambda: sp.sqrt(parameter("legA") ** 2 + parameter("legB") ** 2)),
+        "pythagorean-leg": ("right-triangle", {"hypotenuse-positive", "leg-positive", "right-angle"}, lambda: sp.sqrt(parameter("hypotenuse") ** 2 - parameter("leg") ** 2)),
+        "right-triangle-sine": ("right-triangle", {"opposite-positive", "hypotenuse-positive", "right-angle"}, lambda: parameter("opposite") / parameter("hypotenuse")),
+        "right-triangle-cosine": ("right-triangle", {"adjacent-positive", "hypotenuse-positive", "right-angle"}, lambda: parameter("adjacent") / parameter("hypotenuse")),
+        "right-triangle-tangent": ("right-triangle", {"opposite-positive", "adjacent-positive", "right-angle"}, lambda: parameter("opposite") / parameter("adjacent")),
+        "cuboid-volume": ("cuboid", {"length-positive", "width-positive", "height-positive"}, lambda: parameter("length") * parameter("width") * parameter("height")),
+        "cuboid-surface-area": ("cuboid", {"length-positive", "width-positive", "height-positive"}, lambda: 2 * (parameter("length") * parameter("width") + parameter("length") * parameter("height") + parameter("width") * parameter("height"))),
+        "cylinder-volume": ("cylinder", {"radius-positive", "height-positive"}, lambda: sp.pi * parameter("radius") ** 2 * parameter("height")),
+        "cylinder-surface-area": ("cylinder", {"radius-positive", "height-positive"}, lambda: 2 * sp.pi * parameter("radius") * (parameter("radius") + parameter("height"))),
     }
     if formula not in formulas:
         raise UnsupportedNode(f"unsupported geometry formula: {formula}")
@@ -131,17 +149,38 @@ def _geometry_check(check: dict[str, Any], actual: sp.Expr, expected: sp.Expr) -
 def _probability_check(check: dict[str, Any], actual: sp.Expr, expected: sp.Expr) -> tuple[bool, sp.Expr]:
     evidence = require_object(check.get("probability"), "probability")
     rule = evidence.get("rule")
-    limits = {"single": (1, 1), "sum": (2, None), "path-product": (2, None), "complement": (1, 1), "normalization": (2, None)}
+    limits = {
+        "single": (1, 1),
+        "sum": (2, None),
+        "path-sum": (2, None),
+        "path-product": (2, None),
+        "complement": (1, 1),
+        "normalization": (2, None),
+        "four-field-total": (4, 4),
+        "four-field-joint": (2, 2),
+        "four-field-conditional": (2, 2),
+    }
     if rule not in limits:
         raise UnsupportedNode(f"unsupported probability rule: {rule}")
     minimum, maximum = limits[rule]
     raw_inputs = require_count(evidence.get("inputs"), "probability.inputs", minimum=minimum, maximum=maximum)
     inputs = [exact_scalar(item, "probability input") for item in raw_inputs]
+    if rule == "four-field-total":
+        if any(sp.ask(sp.Q.ge(value, 0)) is not True for value in inputs):
+            return False, actual
+        truth = sp.simplify(sp.Add(*inputs))
+        return equal(actual, truth) and equal(expected, truth), truth
+    if rule in ("four-field-joint", "four-field-conditional"):
+        part, total = inputs
+        if sp.ask(sp.Q.ge(part, 0)) is not True or sp.ask(sp.Q.gt(total, 0)) is not True or sp.ask(sp.Q.le(part, total)) is not True:
+            return False, actual
+        truth = sp.simplify(part / total)
+        return equal(actual, truth) and equal(expected, truth), truth
     if any(sp.ask(sp.Q.ge(value, 0)) is not True or sp.ask(sp.Q.le(value, 1)) is not True for value in inputs):
         return False, actual
     if rule == "single":
         truth = inputs[0]
-    elif rule in ("sum", "normalization"):
+    elif rule in ("sum", "path-sum", "normalization"):
         truth = sp.Add(*inputs)
     elif rule == "path-product":
         truth = sp.Mul(*inputs)
@@ -153,6 +192,31 @@ def _probability_check(check: dict[str, Any], actual: sp.Expr, expected: sp.Expr
     if rule == "normalization" and not equal(truth, sp.Integer(1)):
         return False, truth
     return equal(actual, truth) and equal(expected, truth), truth
+
+
+def _solve_check(check: dict[str, Any], actual: sp.Expr, expected: sp.Expr) -> tuple[bool, sp.Expr]:
+    if check.get("solutionDomain", "real") != "real":
+        raise UnsupportedNode("solve only supports the explicit real domain")
+    equations = list(actual) if isinstance(actual, (sp.Tuple, sp.FiniteSet)) else [actual]
+    if not equations or not all(isinstance(item, sp.Equality) for item in equations):
+        raise UnsupportedNode("solve requires equation relation nodes")
+    symbols = sorted(set().union(*(equation.free_symbols for equation in equations)), key=lambda symbol: symbol.name)
+    if not symbols:
+        raise UnsupportedNode("solve requires at least one symbol")
+    normalized = [equation.lhs - equation.rhs for equation in equations]
+    if len(symbols) == 1 and len(normalized) == 1:
+        truth = sp.solveset(normalized[0], symbols[0], domain=sp.S.Reals)
+        return truth == expected, truth
+    raw = sp.nonlinsolve(normalized, symbols)
+    if not isinstance(raw, sp.FiniteSet):
+        raise UnsupportedNode("equation system did not produce a finite exact solution set")
+    for solution in raw:
+        values = list(solution) if isinstance(solution, sp.Tuple) else [solution]
+        if len(values) != len(symbols):
+            raise UnsupportedNode("equation system solution arity mismatch")
+        if any(value.free_symbols or not _is_finite(value) or sp.ask(sp.Q.real(value)) is not True for value in values):
+            raise UnsupportedNode("equation system produced non-finite or non-real solutions")
+    return raw == expected, raw
 
 
 def run_check(check: dict[str, Any]) -> dict[str, Any]:
@@ -168,12 +232,7 @@ def run_check(check: dict[str, Any]) -> dict[str, Any]:
             secondary = expression(check.get("secondaryExpression", check["expected"]["expression"]))
             passed = equal(actual, secondary)
         elif kind == "solve":
-            symbols = sorted(actual.free_symbols, key=lambda symbol: symbol.name)
-            if len(symbols) != 1:
-                raise UnsupportedNode("solve requires exactly one symbol")
-            equation = actual.lhs - actual.rhs if isinstance(actual, sp.Equality) else actual
-            truth = sp.solveset(equation, symbols[0], domain=sp.S.Reals)
-            passed = truth == expected
+            passed, truth = _solve_check(check, actual, expected)
             actual = truth
         elif kind == "unit-dimension":
             passed, truth = _unit_check(check, actual, expected)

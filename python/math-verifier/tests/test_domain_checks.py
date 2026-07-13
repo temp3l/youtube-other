@@ -11,12 +11,16 @@ def rational(numerator, denominator):
     return {"kind": "rational", "numerator": str(numerator), "denominator": str(denominator)}
 
 
+def quotient(left, right):
+    return {"kind": "quotient", "left": left, "right": right}
+
+
 def scalar(expression):
     return {"kind": "scalar", "expression": expression}
 
 
 def request(check):
-    payload = {"protocolVersion": "math-verifier.v2", "requestId": "domain-test", "mathSpecVersion": "math-spec.v2", "checks": [check]}
+    payload = {"protocolVersion": "math-verifier.v3", "requestId": "domain-test", "mathSpecVersion": "math-spec.v3", "checks": [check]}
     return {**payload, "inputHash": canonical_hash(payload)}
 
 
@@ -68,6 +72,25 @@ def graph_check(mode, expression, expected, **evidence):
     }
 
 
+def discontinuous_graph_check():
+    symbol = {"kind": "symbol", "name": "x"}
+    function = quotient(integer(1), symbol)
+    return {
+        "checkId": "check-graph",
+        "kind": "graph-point",
+        "expression": integer(0),
+        "expected": scalar(integer(0)),
+        "graph": {
+            "mode": "point",
+            "function": function,
+            "variable": "x",
+            "domain": {"kind": "interval", "minimum": integer(-1), "maximum": integer(1), "minimumInclusive": True, "maximumInclusive": True},
+            "point": {"x": integer(0), "y": integer(0)},
+        },
+        "critical": True,
+    }
+
+
 def test_graph_point_and_slope_are_derived_from_function_and_points():
     point = graph_check("point", integer(7), integer(7), point={"x": integer(3), "y": integer(7)})
     slope = graph_check("slope", integer(2), integer(2), **{"from": {"x": integer(1), "y": integer(3)}, "to": {"x": integer(4), "y": integer(9)}})
@@ -81,6 +104,7 @@ def test_graph_point_and_slope_are_derived_from_function_and_points():
         graph_check("point", integer(8), integer(8), point={"x": integer(3), "y": integer(8)}),
         graph_check("point", integer(25), integer(25), point={"x": integer(12), "y": integer(25)}),
         graph_check("slope", integer(3), integer(3), **{"from": {"x": integer(1), "y": integer(3)}, "to": {"x": integer(4), "y": integer(9)}}),
+        discontinuous_graph_check(),
     ],
 )
 def test_false_graph_claims_fail_even_when_expected_matches(check):
@@ -94,6 +118,14 @@ def test_false_graph_claims_fail_even_when_expected_matches(check):
         ("triangle", "triangle-area", {"base": integer(6), "height": integer(3)}, ["base-positive", "height-positive", "perpendicular-height"], integer(9)),
         ("circle", "circle-circumference", {"radius": integer(3)}, ["radius-positive"], {"kind": "product", "operands": [integer(6), {"kind": "constant", "name": "pi"}]}),
         ("right-triangle", "pythagorean-hypotenuse", {"legA": integer(3), "legB": integer(4)}, ["leg-a-positive", "leg-b-positive", "right-angle"], integer(5)),
+        ("right-triangle", "pythagorean-leg", {"hypotenuse": integer(5), "leg": integer(3)}, ["hypotenuse-positive", "leg-positive", "right-angle"], integer(4)),
+        ("right-triangle", "right-triangle-sine", {"opposite": integer(3), "hypotenuse": integer(5)}, ["opposite-positive", "hypotenuse-positive", "right-angle"], rational(3, 5)),
+        ("right-triangle", "right-triangle-cosine", {"adjacent": integer(4), "hypotenuse": integer(5)}, ["adjacent-positive", "hypotenuse-positive", "right-angle"], rational(4, 5)),
+        ("right-triangle", "right-triangle-tangent", {"opposite": integer(3), "adjacent": integer(4)}, ["opposite-positive", "adjacent-positive", "right-angle"], rational(3, 4)),
+        ("cuboid", "cuboid-volume", {"length": integer(2), "width": integer(3), "height": integer(4)}, ["length-positive", "width-positive", "height-positive"], integer(24)),
+        ("cuboid", "cuboid-surface-area", {"length": integer(2), "width": integer(3), "height": integer(4)}, ["length-positive", "width-positive", "height-positive"], integer(52)),
+        ("cylinder", "cylinder-volume", {"radius": integer(2), "height": integer(5)}, ["radius-positive", "height-positive"], {"kind": "product", "operands": [integer(20), {"kind": "constant", "name": "pi"}]}),
+        ("cylinder", "cylinder-surface-area", {"radius": integer(2), "height": integer(5)}, ["radius-positive", "height-positive"], {"kind": "product", "operands": [integer(28), {"kind": "constant", "name": "pi"}]}),
     ],
 )
 def test_geometry_formulas(entity, formula, parameters, assumptions, truth):
@@ -112,9 +144,13 @@ def test_geometry_requires_matching_entity_formula_and_assumptions():
     [
         ("single", [rational(1, 3)], rational(1, 3)),
         ("sum", [rational(1, 4), rational(1, 2)], rational(3, 4)),
+        ("path-sum", [rational(1, 6), rational(1, 3)], rational(1, 2)),
         ("path-product", [rational(1, 2), rational(1, 3)], rational(1, 6)),
         ("complement", [rational(1, 4)], rational(3, 4)),
         ("normalization", [rational(1, 4), rational(3, 4)], integer(1)),
+        ("four-field-total", [integer(4), integer(6), integer(3), integer(7)], integer(20)),
+        ("four-field-joint", [integer(6), integer(20)], rational(3, 10)),
+        ("four-field-conditional", [integer(6), integer(10)], rational(3, 5)),
     ],
 )
 def test_probability_rules(rule, inputs, truth):
@@ -129,6 +165,9 @@ def test_probability_rules(rule, inputs, truth):
         ("sum", [rational(3, 4), rational(3, 4)], rational(3, 2)),
         ("normalization", [rational(1, 4), rational(1, 2)], rational(3, 4)),
         ("path-product", [rational(1, 2), rational(1, 2)], rational(1, 2)),
+        ("path-sum", [rational(3, 4), rational(3, 4)], rational(3, 2)),
+        ("four-field-total", [integer(1), integer(2), integer(3), integer(4)], integer(9)),
+        ("four-field-joint", [integer(11), integer(10)], rational(11, 10)),
     ],
 )
 def test_probability_bounds_normalization_and_false_expected_attacks(rule, inputs, claimed):

@@ -4,9 +4,9 @@ export interface EducationalRenderer {
   validate(request: ValidateRequest): Promise<ValidationResult>;
   render(request: RenderRequest, options?: RenderOptions): Promise<RenderResult>;
   renderScene(request: RenderSceneRequest, options?: RenderOptions): Promise<SceneRenderResult>;
-  compose(request: ComposeRequest): Promise<ComposeResult>;
+  compose(request: ComposeRequest, options?: RenderOptions): Promise<ComposeResult>;
   inspectCapabilities(): Promise<RendererCapabilities>;
   benchmark(request: BenchmarkRequest): Promise<BenchmarkResult>;
-  inspectCache(request?: InspectCacheRequest): Promise<CacheInspectionResult>;
-  cleanCache(request?: CleanCacheRequest): Promise<CleanCacheResult>;
+  inspectCache(request: InspectCacheRequest): Promise<CacheInspectionResult>;
+  cleanCache(request: CleanCacheRequest): Promise<CleanCacheResult>;
 }

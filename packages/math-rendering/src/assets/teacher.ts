@@ -4,7 +4,7 @@ import { hashFile } from "@mediaforge/shared";
 import { z } from "zod";
 
 export const teacherManifestSchema = z.strictObject({
-  assetVersion: z.literal("alex.v1-placeholder"),
+  assetVersion: z.enum(["alex.v1-placeholder", "alex.v1-approved"]),
   characterId: z.literal("alex"),
   license: z.string().min(1),
   provenance: z.string().min(1),
@@ -12,7 +12,7 @@ export const teacherManifestSchema = z.strictObject({
   poses: z
     .array(
       z.strictObject({
-        poseId: z.string(),
+        poseId: z.enum(["neutral", "explain-left", "explain-right", "question", "think", "celebrate", "warning"]),
         file: z.string(),
         sha256: z.string().regex(/^[a-f0-9]{64}$/u),
         width: z.literal(800),
@@ -38,6 +38,9 @@ export type TeacherManifest = z.infer<typeof teacherManifestSchema>;
 export async function loadTeacherManifest(
   manifestPath: string
 ): Promise<TeacherManifest> {
+  const manifestStat = await fs.lstat(manifestPath).catch(() => null);
+  if (!manifestStat?.isFile() || manifestStat.isSymbolicLink())
+    throw new Error(`Required teacher manifest is not a regular owned file: ${manifestPath}`);
   let raw: string;
   try {
     raw = await fs.readFile(manifestPath, "utf8");
@@ -49,16 +52,26 @@ export async function loadTeacherManifest(
   const manifest = teacherManifestSchema.parse(JSON.parse(raw) as unknown);
   const ids = new Set(manifest.poses.map((pose) => pose.poseId));
   if (ids.size !== 7) throw new Error("Teacher pose ids must be unique.");
+  if (new Set(manifest.poses.map((pose) => pose.file)).size !== manifest.poses.length)
+    throw new Error("Teacher pose files must be unique.");
+  const manifestRoot = path.resolve(path.dirname(manifestPath));
+  const manifestRootReal = await fs.realpath(manifestRoot);
   for (const pose of manifest.poses) {
-    const filePath = path.resolve(path.dirname(manifestPath), pose.file);
+    const filePath = path.resolve(manifestRoot, pose.file);
     if (
       !filePath.startsWith(
-        `${path.resolve(path.dirname(manifestPath))}${path.sep}`
+        `${manifestRoot}${path.sep}`
       )
     )
       throw new Error(
         `Teacher asset path escapes its manifest: ${pose.poseId}`
       );
+    const stat = await fs.lstat(filePath).catch(() => null);
+    if (!stat?.isFile() || stat.isSymbolicLink())
+      throw new Error(`Teacher asset is not a regular owned file: ${pose.poseId}`);
+    const fileReal = await fs.realpath(filePath);
+    if (!fileReal.startsWith(`${manifestRootReal}${path.sep}`))
+      throw new Error(`Teacher asset symlink escapes its manifest: ${pose.poseId}`);
     if ((await hashFile(filePath)) !== pose.sha256)
       throw new Error(`Teacher asset hash mismatch: ${pose.poseId}`);
   }

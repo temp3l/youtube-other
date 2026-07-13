@@ -1,4 +1,5 @@
 import fs from "node:fs/promises";
+import { createMathCorrelationId } from "@mediaforge/observability";
 import { writeJsonAtomic } from "@mediaforge/shared";
 import { z } from "zod";
 import {
@@ -14,6 +15,7 @@ export interface MathBatchItem {
   language: z.infer<typeof mathLanguageSchema>;
   status: "planned" | "succeeded" | "failed" | "blocked";
   attempts: number;
+  correlationId?: string | undefined;
   error?: string | undefined;
   errorKind?: "retryable" | "permanent" | undefined;
   errorCategory?: string | undefined;
@@ -24,6 +26,7 @@ const batchItemSchema = z.strictObject({
   language: mathLanguageSchema,
   status: z.enum(["planned", "succeeded", "failed", "blocked"]),
   attempts: z.number().int().nonnegative(),
+  correlationId: z.string().optional(),
   error: z.string().optional(),
   errorKind: z.enum(["retryable", "permanent"]).optional(),
   errorCategory: z.string().optional(),
@@ -130,6 +133,15 @@ export async function runMathBatch(
       (item) =>
         previous.get(`${item.skillId}:${item.variant}:${item.language}`) ?? {
           ...item,
+          correlationId:
+            item.correlationId ??
+            createMathCorrelationId({
+              batchId,
+              skillId: item.skillId,
+              variant: item.variant,
+              language: item.language,
+              stage: "batch",
+            }),
         }
     );
     const persist = async (running: boolean) => {

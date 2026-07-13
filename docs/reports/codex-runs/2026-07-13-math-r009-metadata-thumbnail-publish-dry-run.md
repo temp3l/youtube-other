@@ -1,0 +1,8 @@
+# Math R-009 implementation
+
+- Summary: implemented strict localized metadata/catalog, deterministic SVG thumbnail plus manifest, explicit private math brand policy, generic fake-only YouTube core, v2 publish packet, workflow fingerprints, and non-mutating CLI preflight. R-009 is pending independent acceptance; R-010 is unstarted.
+- Changed: `packages/math-education/src/metadata/{math-metadata.ts,math-metadata.unit.test.ts}`; `publishing/{types.ts,dry-run-manifest.ts,math-publishing.unit.test.ts}`; `orchestration/{artifact-schemas.ts,pilot-simulation.ts,math-pipeline.unit.test.ts}`; `packages/math-rendering/src/{assets/teacher.ts,index.ts,thumbnail/*}`; `packages/config/src/{index.ts,math-config.ts,math-config.unit.test.ts}`; `packages/youtube-upload/src/{generic-media-publish.ts,generic-media-publish.unit.test.ts,index.ts,index.unit.test.ts}`; `apps/cli/src/{math-commands.ts,math-commands.unit.test.ts}`; required backlog/plan reports.
+- Completed: R-009 code and focused checks. Partial: independent acceptance. Uncompleted: R-010.
+- Checks: focused metadata/publishing/thumbnail 12/12; generic/legacy upload 13/13; CLI/entrypoint 13/13; four-package typecheck passed. One stale inline legacy fixture and one TS narrowing issue were repaired.
+- Commit: `69f26d39516bf3b507d562417e87992d46490fa1`; no commit.
+- Risks: generic core is additive; config unit was not separately run. Final metadata/thumbnail schema strengthening was focused-tested but not re-typechecked after the retry budget. No render, broad build/test/lint, generated assets, fixtures, provider/network/credentials, upload, or publish verified.

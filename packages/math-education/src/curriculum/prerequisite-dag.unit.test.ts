@@ -63,6 +63,23 @@ describe("prerequisite DAG", () => {
     ).toThrow(/M5-ZO-001 -> M5-ZO-002 -> M5-ZO-001/u);
   });
 
+  it("rejects dangling, self, and unknown-kind edges", () => {
+    expect(() =>
+      validatePrerequisiteDag(skills, [edge("M5-ZO-001", "M5-ZO-999")])
+    ).toThrow(/Unknown prerequisite edge: M5-ZO-001 -> M5-ZO-999/u);
+    expect(() =>
+      validatePrerequisiteDag(skills, [edge("M5-ZO-001", "M5-ZO-001")])
+    ).toThrow(/Self prerequisite: M5-ZO-001/u);
+    expect(() =>
+      validatePrerequisiteDag(skills, [
+        {
+          ...edge("M5-ZO-001", "M5-ZO-002"),
+          kind: "optional",
+        },
+      ])
+    ).toThrow();
+  });
+
   it("blocks parallel edges even when their kinds differ", () => {
     expect(() =>
       validatePrerequisiteDag(skills, [

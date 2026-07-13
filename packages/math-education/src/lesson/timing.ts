@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { type LessonVariantSpecification } from "../domain/index.js";
 import { type LocalizedNarration } from "../localization/localization.js";
+import { canonicalHash } from "../verification/canonical-json.js";
 
 const MATH_TIMING_FPS = 30;
 
@@ -62,6 +63,56 @@ export const timingManifestSchema = timingManifestFieldsSchema.superRefine(
   }
 );
 export type TimingManifest = z.infer<typeof timingManifestSchema>;
+
+const hashSchema = z.string().regex(/^[a-f0-9]{64}$/u);
+export const metadataTimingEvidenceSchema = z.strictObject({
+  artifactVersion: z.literal("math-metadata-timing-evidence.v1"),
+  lessonId: z.string().min(1),
+  skillId: z.string().min(1),
+  variant: z.enum(["foundation", "standard", "challenge"]),
+  language: z.enum(["de", "en", "es", "fr", "pt"]),
+  lessonContentHash: hashSchema,
+  localizationHash: hashSchema,
+  timingPayloadHash: hashSchema,
+  durationSeconds: z.number().min(180).max(300),
+  orderedSceneIds: z.array(z.string()).length(9),
+  orderedSegmentIds: z.array(z.string()).length(9),
+  timing: timingManifestSchema,
+});
+export type MetadataTimingEvidence = z.infer<typeof metadataTimingEvidenceSchema>;
+
+export function createMetadataTimingEvidence(
+  lesson: LessonVariantSpecification,
+  localization: LocalizedNarration,
+  timing: TimingManifest
+): MetadataTimingEvidence {
+  const parsedTiming = timingManifestSchema.parse(timing);
+  const { contentHash: _contentHash, ...lessonPayload } = lesson;
+  if (lesson.contentHash !== canonicalHash(lessonPayload))
+    throw new Error("Lesson content hash is stale.");
+  if (
+    localization.lessonId !== lesson.lessonId ||
+    localization.variant !== lesson.variant ||
+    parsedTiming.scenes.some((scene, index) =>
+      scene.sceneId !== lesson.scenes[index]?.sceneId ||
+      scene.segmentId !== localization.segments[index]?.segmentId
+    )
+  ) throw new Error("Timing evidence identity does not match lesson/localization.");
+  return metadataTimingEvidenceSchema.parse({
+    artifactVersion: "math-metadata-timing-evidence.v1",
+    lessonId: lesson.lessonId,
+    skillId: lesson.skillId,
+    variant: lesson.variant,
+    language: localization.language,
+    lessonContentHash: lesson.contentHash,
+    localizationHash: localization.contentHash,
+    timingPayloadHash: canonicalHash(parsedTiming),
+    durationSeconds: parsedTiming.durationSeconds,
+    orderedSceneIds: parsedTiming.scenes.map((scene) => scene.sceneId),
+    orderedSegmentIds: parsedTiming.scenes.map((scene) => scene.segmentId),
+    timing: parsedTiming,
+  });
+}
 
 export const narrationAudioTimingSchema = z.strictObject({
   segmentId: z.string().regex(/^segment-\d{3}$/u),

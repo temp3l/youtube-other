@@ -34,6 +34,7 @@ const genericVerificationCheckSchema = z.strictObject({
   expression: expressionNodeSchema,
   expected: exactValueSchema,
   secondaryExpression: expressionNodeSchema.optional(),
+  solutionDomain: z.literal("real").optional(),
   assumptions: z.array(z.string().min(1)).optional(),
   tolerance: expressionNodeSchema.optional(),
   critical: z.boolean().default(true),

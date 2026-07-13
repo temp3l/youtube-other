@@ -1,9 +1,9 @@
 import { z } from "zod";
 import { verificationCheckSchema } from "../domain/index.js";
 
-export const VERIFIER_PROTOCOL_VERSION = "math-verifier.v2";
-export const MATH_SPEC_VERSION = "math-spec.v2";
-export const VERIFIER_VERSION = "2.0.0";
+export const VERIFIER_PROTOCOL_VERSION = "math-verifier.v3";
+export const MATH_SPEC_VERSION = "math-spec.v3";
+export const VERIFIER_VERSION = "3.0.0";
 export const SYMPY_VERSION = "1.14.0";
 export const verifierRequestSchema = z.strictObject({
   protocolVersion: z.literal(VERIFIER_PROTOCOL_VERSION),

@@ -11,6 +11,7 @@ import {
   loadWorkflowManifest,
   MATH_STAGES,
   outputsAreValid,
+  readAuthoritativeBinaryArtifact,
   readAuthoritativeStageArtifact,
   saveWorkflowManifest,
   stageFingerprint,
@@ -236,6 +237,88 @@ describe("math workflow store", () => {
         schema: z.unknown(),
       })
     ).rejects.toThrow(/exactly one/u);
+  });
+
+  it("owns binary assets by exact bytes, size, identity, producer, stage, and parents", async () => {
+    const root = await tempRoot();
+    const manifest = await manifestWithOutputs(root, ["a.json"]);
+    const render = manifest.stages.find((record) => record.stage === "render")!;
+    render.status = "succeeded";
+    const mediaPath = "locales/de/render/final.mp4";
+    await fs.mkdir(path.dirname(path.join(root, mediaPath)), { recursive: true });
+    await fs.writeFile(path.join(root, mediaPath), Buffer.from("deterministic-media"));
+    render.outputArtifacts = [
+      await createArtifactLineage({
+        root,
+        relativePath: mediaPath,
+        schemaVersion: "math-final-media-binary.v1",
+        payloadKind: "binary",
+        parentHashes: render.parentFingerprints,
+        producedBy: "render",
+        producer: "provider-free-media",
+        producerVersion: "provider-free-media.v1",
+        identity: {
+          lessonId: manifest.lessonId,
+          skillId: "M5-ZO-001",
+          language: "de",
+          variant: "standard",
+        },
+      }),
+    ];
+    const authoritative = await readAuthoritativeBinaryArtifact({
+      root,
+      manifest,
+      stage: "render",
+      relativePath: mediaPath,
+      schemaVersion: "math-final-media-binary.v1",
+      expectedIdentity: {
+        lessonId: manifest.lessonId,
+        skillId: "M5-ZO-001",
+        language: "de",
+        variant: "standard",
+      },
+      producer: "provider-free-media",
+      producerVersion: "provider-free-media.v1",
+    });
+    expect(authoritative.byteLength).toBe(Buffer.byteLength("deterministic-media"));
+    expect(authoritative.contentHash).toBe(await hashFile(path.join(root, mediaPath)));
+
+    for (const mutate of [
+      (candidate: WorkflowManifest) => { candidate.stages.find((record) => record.stage === "render")!.outputArtifacts[0]!.byteLength += 1; },
+      (candidate: WorkflowManifest) => { candidate.stages.find((record) => record.stage === "render")!.outputArtifacts[0]!.producer = "caller"; },
+      (candidate: WorkflowManifest) => { candidate.stages.find((record) => record.stage === "render")!.outputArtifacts[0]!.identity!.language = "en"; },
+      (candidate: WorkflowManifest) => { candidate.stages.find((record) => record.stage === "render")!.outputArtifacts[0]!.parentHashes = ["f".repeat(64)]; },
+    ]) {
+      const candidate = structuredClone(manifest);
+      mutate(candidate);
+      await expect(readAuthoritativeBinaryArtifact({
+        root,
+        manifest: candidate,
+        stage: "render",
+        relativePath: mediaPath,
+        schemaVersion: "math-final-media-binary.v1",
+        expectedIdentity: { lessonId: manifest.lessonId, skillId: "M5-ZO-001", language: "de", variant: "standard" },
+        producer: "provider-free-media",
+        producerVersion: "provider-free-media.v1",
+      })).rejects.toThrow();
+    }
+
+    const linkPath = "locales/de/render/linked.mp4";
+    await fs.symlink(path.join(root, mediaPath), path.join(root, linkPath));
+    const symlinkManifest = structuredClone(manifest);
+    const linked = structuredClone(render.outputArtifacts[0]!);
+    linked.relativePath = linkPath;
+    symlinkManifest.stages.find((record) => record.stage === "render")!.outputArtifacts = [linked];
+    await expect(readAuthoritativeBinaryArtifact({
+      root,
+      manifest: symlinkManifest,
+      stage: "render",
+      relativePath: linkPath,
+      schemaVersion: "math-final-media-binary.v1",
+      expectedIdentity: { lessonId: manifest.lessonId, skillId: "M5-ZO-001", language: "de", variant: "standard" },
+      producer: "provider-free-media",
+      producerVersion: "provider-free-media.v1",
+    })).rejects.toThrow(/unavailable|reusable|binary/u);
   });
 
   it("rejects missing, duplicated, reordered, or alternatively parented chain data", async () => {

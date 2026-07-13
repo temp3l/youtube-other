@@ -12,6 +12,7 @@ export type RendererErrorCode =
   | "FFMPEG_FAILED"
   | "FFPROBE_FAILED"
   | "OUTPUT_VALIDATION_FAILED"
+  | "OUTPUT_ALREADY_EXISTS"
   | "CACHE_CORRUPTED"
   | "INSUFFICIENT_DISK_SPACE"
   | "PROCESS_TIMEOUT"
@@ -29,15 +30,15 @@ export interface RendererErrorData {
 
 export class RendererError extends Error {
   public readonly data: RendererErrorData;
-  public constructor(data: RendererErrorData, options?: ErrorOptions) {
+  public constructor(data: RendererErrorData | (Omit<RendererErrorData, "sceneId" | "details"> & { readonly sceneId?: string | undefined; readonly details?: RendererErrorData["details"] | undefined }), options?: ErrorOptions) {
     super(data.message, options);
     this.name = "RendererError";
-    this.data = data;
+    this.data = { code: data.code, message: data.message, ...(data.sceneId === undefined ? {} : { sceneId: data.sceneId }), ...(data.details === undefined ? {} : { details: data.details }) };
   }
 }
 
 export function toRendererErrorData(error: unknown): RendererErrorData {
   if (error instanceof RendererError) return error.data;
-  if (error instanceof Error) return { code: "INTERNAL_ERROR", message: error.message };
-  return { code: "INTERNAL_ERROR", message: "An unknown renderer failure occurred." };
+  if (error instanceof Error && "code" in error && error.code === "ENOSPC") return { code: "INSUFFICIENT_DISK_SPACE", message: "Insufficient disk space." };
+  return { code: "INTERNAL_ERROR", message: "An internal renderer failure occurred." };
 }

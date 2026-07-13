@@ -1,26 +1,33 @@
 import fs from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { importCurriculumSeed } from "../curriculum/importer.js";
 import { buildLessonVariant } from "../lesson/variant-builder.js";
-import { createTimingManifest } from "../lesson/timing.js";
+import {
+  createMetadataTimingEvidence,
+  createTimingManifest,
+} from "../lesson/timing.js";
 import {
   formatExactInteger,
   localizeNarration,
 } from "../localization/localization.js";
-import { generateMathMetadata } from "../metadata/math-metadata.js";
+import {
+  createMathMetadataEvidence,
+  createMetadataWorkflowEvidence,
+  createReviewedMetadataContext,
+  generateMathMetadata,
+} from "../metadata/math-metadata.js";
 import { MATH_LANGUAGES } from "../domain/index.js";
 import { runMathBatch } from "./batch.js";
+import { createReviewedCurriculumFixture } from "../testing/reviewed-curriculum-fixture.js";
 
 async function pilot() {
-  const curriculum = importCurriculumSeed(
-    await fs.readFile(
-      "docs/mathe/curriculum/03-machine-readable-seed.md",
-      "utf8"
-    )
+  const curriculum = await createReviewedCurriculumFixture(
+    await fs.mkdtemp(path.join(os.tmpdir(), "math-pipeline-release-"))
   );
   const skill = curriculum.skills.find((item) => item.skillId === "M5-ZO-001");
   if (!skill) throw new Error("Pilot skill missing.");
-  return { skill, lesson: buildLessonVariant(skill, "standard") };
+  return { curriculum, skill, lesson: buildLessonVariant(skill, "standard") };
 }
 
 describe("localized math pipeline", () => {
@@ -37,10 +44,31 @@ describe("localized math pipeline", () => {
   });
 
   it("creates locale-matched metadata with three stable playlist dimensions", async () => {
-    const { skill, lesson } = await pilot();
-    const metadata = MATH_LANGUAGES.map((language) =>
-      generateMathMetadata(skill, lesson, language)
-    );
+    const { curriculum, skill, lesson } = await pilot();
+    const metadata = MATH_LANGUAGES.map((language) => {
+      const narration = localizeNarration(lesson, language);
+      const timing = createTimingManifest(lesson, narration);
+      const timingEvidence = createMetadataTimingEvidence(lesson, narration, timing);
+      return generateMathMetadata({
+        reviewedContext: createReviewedMetadataContext(curriculum, skill.skillId),
+        skill,
+        lesson,
+        localization: narration,
+        timingEvidence,
+        workflowEvidence: createMetadataWorkflowEvidence({
+          lesson,
+          localization: narration,
+          timingEvidence,
+          parentFingerprints: {
+            lesson: ["1".repeat(64)],
+            localization: ["2".repeat(64)],
+            timing: ["3".repeat(64)],
+            output: ["4".repeat(64)],
+          },
+        }),
+        evidence: createMathMetadataEvidence(skill, lesson, narration),
+      });
+    });
     for (const item of metadata) {
       expect(item.playlists.map((playlist) => playlist.kind)).toEqual([
         "grade",
@@ -52,16 +80,16 @@ describe("localized math pipeline", () => {
       );
     }
     expect(
-      metadata.find((item) => item.language === "en")?.description
+      metadata.find((item) => item.identity.language === "en")?.description
     ).not.toMatch(/Lernziel|Denkaufgabe/u);
     expect(
-      metadata.find((item) => item.language === "es")?.chapters[1]?.title
+      metadata.find((item) => item.identity.language === "es")?.chapters[1]?.title
     ).toBe("Ejemplo");
     expect(
-      metadata.find((item) => item.language === "fr")?.playlists[0]
+      metadata.find((item) => item.identity.language === "fr")?.playlists[0]
         ?.localizedName
     ).toBe("Classe 5");
-    expect(metadata.find((item) => item.language === "pt")?.tags[0]).toBe(
+    expect(metadata.find((item) => item.identity.language === "pt")?.tags[0]).toBe(
       "Matemática"
     );
   });

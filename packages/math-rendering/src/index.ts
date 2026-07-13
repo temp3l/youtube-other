@@ -8,3 +8,4 @@ export * from "./composition/remotion-runner.js";
 export * from "./profiles/profiles.js";
 export * from "./provider-free-media.js";
 export * from "./quality/media-qa.js";
+export * from "./thumbnail/math-thumbnail.js";

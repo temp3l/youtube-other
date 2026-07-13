@@ -16,6 +16,13 @@ import {
 } from "@mediaforge/metadata";
 import { currentExecutionTelemetry } from "@mediaforge/observability";
 import {
+  describeYoutubeError as describeYoutubeMutationError,
+  executeYoutubeMutationSequence,
+  isRetryableYoutubeError as isRetryableYoutubeMutationError,
+  readYoutubeRequestId as readYoutubeMutationRequestId,
+  type YoutubeMutationClient,
+} from "./youtube-mutation-seam.js";
+import {
   createEpisodePathResolver,
   ensureDir,
   fileExists,
@@ -30,6 +37,16 @@ import {
   writeJsonAtomic,
   writeTextAtomic,
 } from "@mediaforge/shared";
+
+export {
+  genericYoutubePublishReportSchema,
+  loadGenericYoutubePublishReport,
+  publishYoutubeMedia,
+  saveGenericYoutubePublishReport,
+  type GenericYoutubePublishReport,
+  type PublishYoutubeMediaInput,
+  type YoutubeMediaClient,
+} from "./generic-media-publish.js";
 
 const uploadStatusSchema = z.enum(["planned", "uploaded", "failed", "skipped"]);
 const privacyStatusSchema = z.enum(["private", "public", "unlisted"]);
@@ -1122,58 +1139,6 @@ function createYoutubeClient(auth: YoutubeAuthSettings): youtube_v3.Youtube {
   return google.youtube("v3");
 }
 
-function readRequestId(response: { readonly headers?: Record<string, unknown> }): string | undefined {
-  const headers = response.headers ?? {};
-  const candidates = [
-    headers["x-goog-request-id"],
-    headers["x-request-id"],
-    headers["x-guploader-uploadid"],
-  ];
-  for (const candidate of candidates) {
-    if (typeof candidate === "string" && candidate.length > 0) {
-      return candidate;
-    }
-  }
-  return undefined;
-}
-
-function isRetryableYoutubeError(error: unknown): boolean {
-  if (!error || typeof error !== "object") {
-    return true;
-  }
-  const value = error as {
-    readonly code?: unknown;
-    readonly response?: {
-      readonly status?: unknown;
-      readonly data?: {
-        readonly error?: {
-          readonly code?: unknown;
-          readonly errors?: ReadonlyArray<{ readonly reason?: unknown }>;
-        };
-      };
-    };
-    readonly message?: unknown;
-  };
-  const status = typeof value.response?.status === "number" ? value.response.status : undefined;
-  const reason = value.response?.data?.error?.errors?.[0]?.reason;
-  if (
-    reason === "invalidCredentials" ||
-    reason === "insufficientPermissions" ||
-    reason === "forbidden" ||
-    reason === "badRequest" ||
-    reason === "invalidVideoId" ||
-    reason === "invalidThumbnail" ||
-    reason === "duplicate" ||
-    reason === "authError"
-  ) {
-    return false;
-  }
-  if (status === undefined) {
-    return true;
-  }
-  return status === 408 || status === 409 || status === 429 || status >= 500;
-}
-
 function isMissingYoutubeScopeError(error: unknown): boolean {
   if (!error || typeof error !== "object") {
     return false;
@@ -1222,49 +1187,6 @@ function isThumbnailUploadRateLimitError(error: unknown): boolean {
     return true;
   }
   return isThumbnailUploadRateLimitError(value.cause);
-}
-
-function describeYoutubeError(error: unknown): string {
-  if (error && typeof error === "object") {
-    const value = error as {
-      readonly message?: unknown;
-      readonly response?: {
-        readonly status?: unknown;
-        readonly data?: unknown;
-      };
-    };
-    const message = typeof value.message === "string" ? value.message : "YouTube API request failed.";
-    const status = typeof value.response?.status === "number" ? ` (status ${value.response.status})` : "";
-    return `${message}${status}`;
-  }
-  if (error instanceof Error) {
-    return error.message;
-  }
-  return String(error);
-}
-
-async function withRetry<T>(
-  operation: () => Promise<T>,
-  options: {
-    readonly maxRetries: number;
-    readonly logger?: YoutubeUploadCommandInput["logger"];
-    readonly label: string;
-  }
-): Promise<T> {
-  let attempt = 0;
-  while (true) {
-    attempt += 1;
-    try {
-      return await operation();
-    } catch (error) {
-      if (!isRetryableYoutubeError(error) || attempt > options.maxRetries) {
-        throw error;
-      }
-      const delayMs = Math.min(1000 * 2 ** (attempt - 1), 8000) + Math.floor(Math.random() * 250);
-      options.logger?.warn({ label: options.label, attempt, delayMs, error: describeYoutubeError(error) }, "Retrying YouTube API request");
-      await new Promise((resolve) => setTimeout(resolve, delayMs));
-    }
-  }
 }
 
 interface UploadReportPaths {
@@ -1561,45 +1483,6 @@ function toUploadReport(input: {
   };
 }
 
-async function validateChannelOwnership(
-  youtube: youtube_v3.Youtube,
-  expectedChannelId: string | undefined,
-  telemetry: ReturnType<typeof currentExecutionTelemetry>
-): Promise<string | undefined> {
-  const response = await withRetry(
-    async () =>
-      youtube.channels.list({
-        part: ["id", "snippet"],
-        mine: true,
-      }),
-    { maxRetries: 2, label: "channels.list" }
-  );
-  const channelId = response.data.items?.[0]?.id ?? undefined;
-  const requestId = readRequestId(response);
-  telemetry?.recordApiCall({
-    provider: "googleapis",
-    model: "youtube.v3",
-    operation: "youtube-upload",
-    startedAt: new Date().toISOString(),
-    endedAt: new Date().toISOString(),
-    durationMs: 0,
-    attempt: 1,
-    success: true,
-    ...(requestId ? { requestId } : {}),
-    details: {
-      endpoint: "channels.list",
-      channelId,
-      expectedChannelId,
-    },
-  });
-  if (expectedChannelId && channelId && expectedChannelId !== channelId) {
-    throw new YoutubeUploadConfigurationError(
-      `Authenticated YouTube channel ${channelId} does not match configured channel ID ${expectedChannelId}.`
-    );
-  }
-  return expectedChannelId ?? channelId;
-}
-
 export async function uploadYoutubeEpisode(input: YoutubeUploadCommandInput): Promise<YoutubeUploadResult> {
   const startedAt = Date.now();
   const episodeDir = input.episodeDir ?? path.join(input.workspaceDir, input.episodeId);
@@ -1747,11 +1630,6 @@ export async function uploadYoutubeEpisode(input: YoutubeUploadCommandInput): Pr
       input.client ??
       input.clientFactory?.(input.auth) ??
       createYoutubeClient(input.auth);
-    const authChannelId = await validateChannelOwnership(
-      youtube,
-      input.auth.channelId,
-      telemetry
-    );
     const requestBody: youtube_v3.Schema$Video = {
       snippet: {
         title: metadata.title,
@@ -1774,196 +1652,132 @@ export async function uploadYoutubeEpisode(input: YoutubeUploadCommandInput): Pr
         ...(metadata.publishAt ? { publishAt: metadata.publishAt } : {}),
       },
     };
-    const uploadResponse = await withRetry(
-    async () =>
-      youtube.videos.insert(
-        {
-          part: ["snippet", "status"],
-          notifySubscribers: metadata.notifySubscribers,
-          requestBody,
-          media: {
-            mimeType: "video/mp4",
-            body: createReadStream(uploadVideoPath),
-          },
-          uploadType: "resumable",
+    const requestIds: {
+      upload?: string;
+      thumbnail?: string;
+      playlist?: string;
+      verification?: string;
+    } = {};
+    const mutation = await executeYoutubeMutationSequence({
+      // googleapis exposes overloaded methods; the shared seam consumes the
+      // exact runtime subset characterized by the legacy wrapper tests.
+      client: youtube as unknown as YoutubeMutationClient,
+      ...(input.auth.channelId ? { expectedChannelId: input.auth.channelId } : {}),
+      requireObservedChannelId: false,
+      channelMismatchMessage: (actualChannelId, expectedChannelId) =>
+        `Authenticated YouTube channel ${actualChannelId ?? "missing"} does not match configured channel ID ${expectedChannelId}.`,
+      channelRequest: { part: ["id", "snippet"], mine: true },
+      uploadRequest: {
+        part: ["snippet", "status"],
+        notifySubscribers: metadata.notifySubscribers,
+        requestBody,
+        media: { mimeType: "video/mp4", body: createReadStream(uploadVideoPath) },
+        uploadType: "resumable",
+      },
+      upload: { maxRetries: 2, timeoutMs: input.metadataGeneration?.timeoutMs ?? 180000 },
+      ...(uploadVariant === "short" ? {} : {
+        thumbnail: {
+          request: (videoId: string) => ({
+            videoId,
+            media: { mimeType: uploadThumbnail.mimeType, body: createReadStream(uploadThumbnail.path) },
+          }),
+          config: { maxRetries: 2, timeoutMs: input.metadataGeneration?.timeoutMs ?? 120000 },
         },
-        { timeout: input.metadataGeneration?.timeoutMs ?? 180000 }
-      ),
-    { maxRetries: 2, label: "videos.insert", logger: input.logger }
-    ).catch((error: unknown) => {
+      }),
+      playlists: metadata.playlistId
+        ? [{
+            playlistId: metadata.playlistId,
+            request: (videoId: string) => ({
+              part: ["snippet"],
+              requestBody: {
+                snippet: {
+                  resourceId: { kind: "youtube#video", videoId },
+                  playlistId: metadata.playlistId,
+                },
+              },
+            }),
+            config: { maxRetries: 2, timeoutMs: input.metadataGeneration?.timeoutMs ?? 120000 },
+          }]
+        : [],
+      verification: {
+        request: (videoId: string) => ({ part: ["id", "snippet", "status"], id: [videoId] }),
+        config: { maxRetries: 1 },
+      },
+      verificationIdentityRequired: false,
+      captureFailures: false,
+      continuePlaylistFailures: false,
+      ignoreThumbnailError: (error, context) => {
+        if (!isThumbnailUploadRateLimitError(error)) return false;
+        const warning = `Skipping thumbnail update because YouTube rate limited thumbnail uploads: ${describeYoutubeMutationError(error)}`;
+        warnings.push(warning);
+        input.logger?.warn(
+          { episodeId: input.episodeId, videoId: context.videoId, error: describeYoutubeMutationError(error) },
+          "Skipping thumbnail update because YouTube rate limited thumbnail uploads"
+        );
+        return true;
+      },
+      ignoreVerificationError: (error, context) => {
+        if (!isMissingYoutubeScopeError(error)) return false;
+        input.logger?.warn(
+          { episodeId: input.episodeId, videoId: context.videoId, error: describeYoutubeMutationError(error) },
+          "Skipping video verification because the OAuth token does not grant videos.list scope"
+        );
+        return true;
+      },
+      onRetry: ({ label, attempt, delayMs, error }) =>
+        input.logger?.warn(
+          { label, attempt, delayMs, error },
+          "Retrying YouTube API request"
+        ),
+      onSuccess: (operation, response, context) => {
+        const requestId = readYoutubeMutationRequestId(
+          response as { readonly headers?: Record<string, unknown> }
+        );
+        if (requestId) {
+          if (operation === "videos.insert") requestIds.upload = requestId;
+          if (operation === "thumbnails.set") requestIds.thumbnail = requestId;
+          if (operation === "playlistItems.insert") requestIds.playlist = requestId;
+          if (operation === "videos.list") requestIds.verification = requestId;
+        }
+        telemetry?.recordApiCall({
+          provider: "googleapis",
+          model: "youtube.v3",
+          operation: "youtube-upload",
+          startedAt: new Date().toISOString(),
+          endedAt: new Date().toISOString(),
+          durationMs: 0,
+          attempt: 1,
+          success: true,
+          ...(requestId ? { requestId } : {}),
+          details: {
+            endpoint: operation,
+            ...(operation === "channels.list" ? {
+              ...(context.channelId ? { channelId: context.channelId } : {}),
+              ...(context.expectedChannelId ? { expectedChannelId: context.expectedChannelId } : {}),
+            } : {}),
+            ...(context.videoId ? { videoId: context.videoId } : {}),
+            ...(context.playlistId ? { playlistId: context.playlistId } : {}),
+            ...(operation === "videos.insert" ? { videoPath: uploadVideoPath } : {}),
+            ...(operation === "thumbnails.set" ? { thumbnailPath: resolved.resolvedThumbnailPath } : {}),
+          },
+        });
+      },
+    }).catch((error: unknown) => {
+      if (
+        error instanceof Error &&
+        error.message.startsWith("Authenticated YouTube channel")
+      )
+        throw new YoutubeUploadConfigurationError(error.message);
       throw new YoutubeUploadError(
-        describeYoutubeError(error),
-        isRetryableYoutubeError(error),
+        describeYoutubeMutationError(error),
+        isRetryableYoutubeMutationError(error),
         error
       );
     });
-    const videoId = uploadResponse.data.id;
-    if (!videoId) {
-      throw new YoutubeUploadError(
-        "YouTube upload succeeded but did not return a video ID."
-      );
-    }
-    const uploadRequestId = readRequestId(uploadResponse as {
-      readonly headers?: Record<string, unknown>;
-    });
-    telemetry?.recordApiCall({
-    provider: "googleapis",
-    model: "youtube.v3",
-    operation: "youtube-upload",
-    startedAt: new Date().toISOString(),
-    endedAt: new Date().toISOString(),
-    durationMs: 0,
-    attempt: 1,
-    success: true,
-    ...(uploadRequestId ? { requestId: uploadRequestId } : {}),
-    details: {
-      endpoint: "videos.insert",
-      videoId,
-      videoPath: uploadVideoPath,
-    },
-  });
-    const thumbnailResponse =
-      uploadVariant === "short"
-        ? undefined
-        : await withRetry(
-            async () =>
-              youtube.thumbnails.set(
-                {
-                  videoId,
-                  media: {
-                    mimeType: uploadThumbnail.mimeType,
-                    body: createReadStream(uploadThumbnail.path),
-                  },
-                },
-                { timeout: input.metadataGeneration?.timeoutMs ?? 120000 }
-              ),
-            { maxRetries: 2, label: "thumbnails.set", logger: input.logger }
-          ).catch((error: unknown) => {
-            if (isThumbnailUploadRateLimitError(error)) {
-              const warning = `Skipping thumbnail update because YouTube rate limited thumbnail uploads: ${describeYoutubeError(error)}`;
-              warnings.push(warning);
-              input.logger?.warn(
-                {
-                  episodeId: input.episodeId,
-                  videoId,
-                  error: describeYoutubeError(error),
-                },
-                "Skipping thumbnail update because YouTube rate limited thumbnail uploads"
-              );
-              return undefined;
-            }
-            throw new YoutubeUploadError(
-              describeYoutubeError(error),
-              isRetryableYoutubeError(error),
-              error
-            );
-          });
-    const thumbnailRequestId = thumbnailResponse ? readRequestId(thumbnailResponse as {
-      readonly headers?: Record<string, unknown>;
-    }) : undefined;
-    if (thumbnailResponse) {
-      telemetry?.recordApiCall({
-    provider: "googleapis",
-    model: "youtube.v3",
-    operation: "youtube-upload",
-    startedAt: new Date().toISOString(),
-    endedAt: new Date().toISOString(),
-    durationMs: 0,
-    attempt: 1,
-    success: true,
-    ...(thumbnailRequestId ? { requestId: thumbnailRequestId } : {}),
-    details: {
-      endpoint: "thumbnails.set",
-      videoId,
-      thumbnailPath: resolved.resolvedThumbnailPath,
-    },
-  });
-    }
-    let playlistRequestId: string | undefined;
-    if (metadata.playlistId) {
-    const playlistSnippet: youtube_v3.Schema$PlaylistItemSnippet = {
-      resourceId: {
-        kind: "youtube#video",
-        videoId,
-      },
-      ...(metadata.playlistId ? { playlistId: metadata.playlistId } : {}),
-    };
-    const playlistResponse = await withRetry(
-      async () =>
-        youtube.playlistItems.insert(
-          {
-            part: ["snippet"],
-            requestBody: {
-              snippet: playlistSnippet,
-            },
-          },
-          { timeout: input.metadataGeneration?.timeoutMs ?? 120000 }
-        ),
-      { maxRetries: 2, label: "playlistItems.insert", logger: input.logger }
-    ).catch((error: unknown) => {
-      throw new YoutubeUploadError(describeYoutubeError(error), isRetryableYoutubeError(error), error);
-    });
-    playlistRequestId = readRequestId(playlistResponse as { readonly headers?: Record<string, unknown> });
-    telemetry?.recordApiCall({
-      provider: "googleapis",
-      model: "youtube.v3",
-      operation: "youtube-upload",
-      startedAt: new Date().toISOString(),
-      endedAt: new Date().toISOString(),
-      durationMs: 0,
-      attempt: 1,
-      success: true,
-      ...(playlistRequestId ? { requestId: playlistRequestId } : {}),
-      details: {
-        endpoint: "playlistItems.insert",
-        videoId,
-        playlistId: metadata.playlistId,
-      },
-    });
-    }
-    let verificationRequestId: string | undefined;
-    try {
-    const verificationResponse = await withRetry(
-      async () =>
-        youtube.videos.list({
-          part: ["id", "snippet", "status"],
-          id: [videoId],
-        }),
-      { maxRetries: 1, label: "videos.list", logger: input.logger }
-    );
-    verificationRequestId = readRequestId(verificationResponse as { readonly headers?: Record<string, unknown> });
-    telemetry?.recordApiCall({
-      provider: "googleapis",
-      model: "youtube.v3",
-      operation: "youtube-upload",
-      startedAt: new Date().toISOString(),
-      endedAt: new Date().toISOString(),
-      durationMs: 0,
-      attempt: 1,
-      success: true,
-      ...(verificationRequestId ? { requestId: verificationRequestId } : {}),
-      details: {
-        endpoint: "videos.list",
-        videoId,
-      },
-    });
-    } catch (error: unknown) {
-      if (!isMissingYoutubeScopeError(error)) {
-        throw new YoutubeUploadError(
-          describeYoutubeError(error),
-          isRetryableYoutubeError(error),
-          error
-        );
-      }
-      input.logger?.warn(
-      {
-        episodeId: input.episodeId,
-        videoId,
-        error: describeYoutubeError(error),
-      },
-      "Skipping video verification because the OAuth token does not grant videos.list scope"
-      );
-    }
+    const videoId = mutation.videoId;
+    const authChannelId = mutation.channelId ?? input.auth.channelId;
+    if (!videoId)
+      throw new YoutubeUploadError("YouTube upload succeeded but did not return a video ID.");
     const finalReport = toUploadReport({
     episodeId: input.episodeId,
     episodeDir,
@@ -1982,10 +1796,7 @@ export async function uploadYoutubeEpisode(input: YoutubeUploadCommandInput): Pr
     status: "uploaded",
     channelTarget: authChannelId,
     requestIds: {
-      upload: readRequestId(uploadResponse),
-      thumbnail: thumbnailRequestId,
-      playlist: playlistRequestId,
-      verification: verificationRequestId,
+      ...requestIds,
     },
     youtubeVideoId: videoId,
     youtubeChannelId: authChannelId,

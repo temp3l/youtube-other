@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   loadMathRuntimeConfig,
   mathRuntimeConfigSchema,
+  validateMathBrandPolicy,
 } from "./math-config.js";
 
 describe("math runtime config", () => {
@@ -23,5 +24,29 @@ describe("math runtime config", () => {
     expect(() =>
       loadMathRuntimeConfig({ MEDIAFORGE_MATH_ENABLED: "maybe" }, "/repo")
     ).toThrow(/MEDIAFORGE_MATH_ENABLED/u);
+  });
+});
+
+describe("math brand policy", () => {
+  const valid = () => ({
+    artifactVersion: "math-brand-policy.v1",
+    privacyStatus: "private",
+    madeForKids: false,
+    containsSyntheticMedia: true,
+    channels: (["de", "en", "es", "fr", "pt"] as const).map((language) => ({
+      language,
+      channelId: `math-${language}`,
+      playlists: { "grade-5": `${language}-grade`, "topic-zo": `${language}-topic`, "variant-standard": `${language}-variant` },
+    })),
+  });
+
+  it("requires explicit unique five-language channels and policy without secrets", () => {
+    expect(validateMathBrandPolicy(valid()).status).toBe("READY");
+    expect(validateMathBrandPolicy({ ...valid(), privacyStatus: "public" }).status).toBe("PUBLISH_BLOCKED");
+    expect(validateMathBrandPolicy({ ...valid(), madeForKids: undefined }).status).toBe("PUBLISH_BLOCKED");
+    expect(validateMathBrandPolicy({ ...valid(), oauthToken: "secret" }).status).toBe("PUBLISH_BLOCKED");
+    const duplicate = valid();
+    duplicate.channels[1]!.channelId = duplicate.channels[0]!.channelId;
+    expect(validateMathBrandPolicy(duplicate).status).toBe("PUBLISH_BLOCKED");
   });
 });

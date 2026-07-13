@@ -1,9 +1,11 @@
 import fs from "node:fs/promises";
 import path from "node:path";
+import { createMathCorrelationId } from "@mediaforge/observability";
 import { hashFile, writeJsonAtomic } from "@mediaforge/shared";
 import { z } from "zod";
 import { canonicalHash } from "../verification/canonical-json.js";
 import {
+  isBinaryMathArtifactSchemaVersion,
   mathArtifactSchemaVersionSchema,
   parseMathArtifactPayload,
   type MathArtifactSchemaVersion,
@@ -58,9 +60,33 @@ const relativeArtifactPathSchema = z
 export const mathArtifactLineageSchema = z.strictObject({
   relativePath: relativeArtifactPathSchema,
   schemaVersion: mathArtifactSchemaVersionSchema,
+  payloadKind: z.enum(["json", "binary"]).default("json"),
   contentHash: hashSchema,
+  byteLength: z.number().int().nonnegative(),
   parentHashes: z.array(hashSchema),
   producedBy: z.enum(MATH_STAGES),
+  producer: z.string().min(1),
+  producerVersion: z.string().min(1),
+  identity: z.strictObject({
+    lessonId: z.string().min(1),
+    skillId: z.string().min(1),
+    language: z.enum(["de", "en", "es", "fr", "pt"]),
+    variant: z.enum(["foundation", "standard", "challenge"]),
+  }).optional(),
+}).superRefine((lineage, context) => {
+  const binarySchema = isBinaryMathArtifactSchemaVersion(lineage.schemaVersion);
+  if (binarySchema !== (lineage.payloadKind === "binary"))
+    context.addIssue({
+      code: "custom",
+      path: ["payloadKind"],
+      message: "Binary payload kind must exactly match the declared binary artifact schema.",
+    });
+  if (binarySchema && !lineage.identity)
+    context.addIssue({
+      code: "custom",
+      path: ["identity"],
+      message: "Workflow-owned binary artifacts require lesson and locale identity.",
+    });
 });
 export type MathArtifactLineage = z.infer<typeof mathArtifactLineageSchema>;
 
@@ -77,6 +103,7 @@ function hashesMatch(
 export const stageRecordSchema = z.strictObject({
   stage: z.enum(MATH_STAGES),
   status: stageStatusSchema,
+  correlationId: z.string().min(1).optional(),
   fingerprint: hashSchema,
   parentFingerprints: z.array(hashSchema),
   outputArtifacts: z.array(mathArtifactLineageSchema),
@@ -103,6 +130,7 @@ export type MathStageRecord = z.infer<typeof stageRecordSchema>;
 const failureSchema = z.strictObject({
   stage: z.enum(MATH_STAGES),
   category: z.string().min(1),
+  correlationId: z.string().min(1).optional(),
   message: z.string().min(1),
   retryable: z.boolean(),
   attempts: z.number().int().positive(),
@@ -197,6 +225,11 @@ function migrateLegacyManifest(
       return {
         stage,
         status: reusable ? "stale" : (legacy?.status ?? "planned"),
+        correlationId: createMathCorrelationId({
+          releaseId: raw.curriculumReleaseId,
+          lessonId: raw.lessonId,
+          stage,
+        }),
         fingerprint,
         parentFingerprints,
         outputArtifacts: [],
@@ -287,6 +320,9 @@ export async function outputsAreValid(
     const target = await isContainedRegularFile(root, output.relativePath);
     if (!target || (await hashFile(target)) !== output.contentHash)
       return false;
+    const stat = await fs.stat(target).catch(() => null);
+    if (!stat || stat.size !== output.byteLength) return false;
+    if (output.payloadKind === "binary") continue;
     try {
       parseMathArtifactPayload(
         output.schemaVersion,
@@ -330,6 +366,45 @@ export async function readAuthoritativeStageArtifact<T>(args: {
   return args.schema.parse(JSON.parse(await fs.readFile(target, "utf8")) as unknown);
 }
 
+export async function readAuthoritativeBinaryArtifact(args: {
+  root: string;
+  manifest: WorkflowManifest;
+  stage: MathStage;
+  relativePath: string;
+  schemaVersion: "math-thumbnail-binary.v1" | "math-final-media-binary.v1";
+  expectedIdentity: NonNullable<MathArtifactLineage["identity"]>;
+  producer: string;
+  producerVersion: string;
+}): Promise<MathArtifactLineage> {
+  const parsedManifest = workflowManifestSchema.safeParse(args.manifest);
+  if (!parsedManifest.success)
+    throw new Error("Authoritative workflow manifest stage chain is invalid.");
+  const record = parsedManifest.data.stages.find(
+    (candidate) => candidate.stage === args.stage
+  );
+  if (!record || !(await outputsAreValid(args.root, record)))
+    throw new Error(`Authoritative workflow stage ${args.stage} is not reusable.`);
+  const matches = record.outputArtifacts.filter(
+    (artifact) =>
+      artifact.relativePath === args.relativePath &&
+      artifact.schemaVersion === args.schemaVersion &&
+      artifact.payloadKind === "binary" &&
+      artifact.producedBy === args.stage
+  );
+  if (matches.length !== 1)
+    throw new Error(
+      `Authoritative workflow does not own exactly one binary ${args.relativePath} output.`
+    );
+  const lineage = matches[0]!;
+  if (
+    lineage.producer !== args.producer ||
+    lineage.producerVersion !== args.producerVersion ||
+    canonicalHash(lineage.identity) !== canonicalHash(args.expectedIdentity)
+  )
+    throw new Error("Authoritative binary producer or identity mismatch.");
+  return lineage;
+}
+
 export function stageFingerprint(
   stage: MathStage,
   parents: readonly string[],
@@ -347,20 +422,30 @@ export async function createArtifactLineage(args: {
   root: string;
   relativePath: string;
   schemaVersion: MathArtifactSchemaVersion;
+  payloadKind?: "json" | "binary";
   parentHashes: readonly string[];
   producedBy: MathStage;
+  producer?: string;
+  producerVersion?: string;
+  identity?: NonNullable<MathArtifactLineage["identity"]>;
 }): Promise<MathArtifactLineage> {
   const target = await isContainedRegularFile(args.root, args.relativePath);
   if (!target)
     throw new Error(
       `Artifact is missing, non-regular, or escapes the workspace: ${args.relativePath}`
     );
+  const stat = await fs.stat(target);
   return mathArtifactLineageSchema.parse({
     relativePath: args.relativePath,
     schemaVersion: args.schemaVersion,
+    payloadKind: args.payloadKind ?? "json",
     contentHash: await hashFile(target),
+    byteLength: stat.size,
     parentHashes: args.parentHashes,
     producedBy: args.producedBy,
+    producer: args.producer ?? args.producedBy,
+    producerVersion: args.producerVersion ?? `${args.producedBy}.v1`,
+    ...(args.identity ? { identity: args.identity } : {}),
   });
 }
 

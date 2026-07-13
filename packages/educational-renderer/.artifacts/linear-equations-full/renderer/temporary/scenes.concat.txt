@@ -1,7 +1,0 @@
-file '/home/box/workspace/fehmarn-seo/youtube/other/packages/educational-renderer/.artifacts/linear-equations-full/renderer/scenes/title/scene.mp4'
-file '/home/box/workspace/fehmarn-seo/youtube/other/packages/educational-renderer/.artifacts/linear-equations-full/renderer/scenes/objective/scene.mp4'
-file '/home/box/workspace/fehmarn-seo/youtube/other/packages/educational-renderer/.artifacts/linear-equations-full/renderer/scenes/equation-setup/scene.mp4'
-file '/home/box/workspace/fehmarn-seo/youtube/other/packages/educational-renderer/.artifacts/linear-equations-full/renderer/scenes/subtract-six/scene.mp4'
-file '/home/box/workspace/fehmarn-seo/youtube/other/packages/educational-renderer/.artifacts/linear-equations-full/renderer/scenes/divide-three/scene.mp4'
-file '/home/box/workspace/fehmarn-seo/youtube/other/packages/educational-renderer/.artifacts/linear-equations-full/renderer/scenes/linear-graph/scene.mp4'
-file '/home/box/workspace/fehmarn-seo/youtube/other/packages/educational-renderer/.artifacts/linear-equations-full/renderer/scenes/summary/scene.mp4'
