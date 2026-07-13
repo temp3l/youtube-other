@@ -1,0 +1,45 @@
+{
+  "version": "1",
+  "lessonId": "chalk-writing",
+  "locale": "de",
+  "title": "Kreideschrift",
+  "scenes": [
+    {
+      "id": "title",
+      "type": "title",
+      "durationMs": 1200,
+      "localeSensitivity": "localized",
+      "title": "Lineare Gleichungen",
+      "subtitle": "Kreideanimation"
+    },
+    {
+      "id": "equation",
+      "type": "equation",
+      "durationMs": 4200,
+      "localeSensitivity": "language-neutral",
+      "label": "Schritt 1",
+      "equation": "3x+6=15",
+      "highlight": "Gleichung aufstellen",
+      "animation": { "mode": "chalk-write" }
+    },
+    {
+      "id": "transform",
+      "type": "equation-transformation",
+      "durationMs": 5200,
+      "localeSensitivity": "localized",
+      "from": "3x+6=15",
+      "to": "x=3",
+      "operation": "beide Seiten bearbeiten",
+      "highlight": "Lösung erreicht",
+      "animation": { "mode": "chalk-write" }
+    },
+    {
+      "id": "summary",
+      "type": "summary",
+      "durationMs": 1800,
+      "localeSensitivity": "localized",
+      "title": "Merke",
+      "points": ["Zeichenweise", "mit Pausen", "mit Kreidetipp"]
+    }
+  ]
+}

@@ -2,6 +2,11 @@ import { RendererError } from "../errors.js";
 
 export const FORMULA_RENDERER_ID = "native-svg-math.v1";
 type Node = { kind: "text"; value: string } | { kind: "row"; children: Node[] } | { kind: "frac"; top: Node; bottom: Node } | { kind: "sqrt"; body: Node } | { kind: "script"; base: Node; superscript?: Node; subscript?: Node };
+export type FormulaVisualSemantic = "glyph" | "operator" | "equals" | "fraction-bar" | "radical";
+export type FormulaVisualOp =
+  | { kind: "text"; semantic: FormulaVisualSemantic; text: string; x: number; y: number; fontSize: number; tipX: number; tipY: number; advance: number }
+  | { kind: "path"; semantic: FormulaVisualSemantic; d: string; strokeWidth: number; tipX: number; tipY: number };
+export interface FormulaLayoutPlan { readonly ops: readonly FormulaVisualOp[]; readonly translateX: number; readonly translateY: number; readonly scale: number; readonly naturalWidth: number; }
 const commands: Readonly<Record<string, string>> = { cdot: "·", times: "×", div: "÷", le: "≤", leq: "≤", ge: "≥", geq: "≥", neq: "≠", pm: "±", minus: "−", equals: "=" };
 
 class Parser {
@@ -17,5 +22,59 @@ class Parser {
 function esc(value: string): string { return value.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;"); }
 function width(node: Node): number { if (node.kind === "text") return Math.max(.55, Array.from(node.value).length * .62); if (node.kind === "row") return node.children.reduce((sum, child) => sum + width(child), 0); if (node.kind === "frac") return Math.max(width(node.top), width(node.bottom)) + .35; if (node.kind === "sqrt") return width(node.body) + .55; return width(node.base) + .55 * Math.max(node.superscript ? width(node.superscript) : 0, node.subscript ? width(node.subscript) : 0); }
 function draw(node: Node, x: number, y: number, size: number): string { if (node.kind === "text") return `<text x="${x}" y="${y}" font-family="renderer-font" font-size="${size}" font-weight="600">${esc(node.value)}</text>`; if (node.kind === "row") { let cursor = x; return node.children.map((child) => { const result = draw(child, cursor, y, size); cursor += width(child) * size; return result; }).join(""); } if (node.kind === "frac") { const w = width(node) * size; const topW = width(node.top) * size; const bottomW = width(node.bottom) * size; return `${draw(node.top, x + (w-topW)/2, y-size*.48, size*.72)}<path d="M ${x} ${y-size*.18} H ${x+w}" stroke="currentColor" stroke-width="${Math.max(2, size*.045)}"/>${draw(node.bottom, x + (w-bottomW)/2, y+size*.62, size*.72)}`; } if (node.kind === "sqrt") return `<path d="M ${x} ${y-size*.12} l ${size*.16} ${size*.2} l ${size*.18} ${-size*.72} H ${x+width(node)*size}" fill="none" stroke="currentColor" stroke-width="${Math.max(2, size*.045)}"/>${draw(node.body, x+size*.48, y, size)}`; const baseW = width(node.base)*size; return `${draw(node.base, x, y, size)}${node.superscript ? draw(node.superscript, x+baseW, y-size*.48, size*.62) : ""}${node.subscript ? draw(node.subscript, x+baseW, y+size*.42, size*.62) : ""}`; }
+function classifyTextSemantic(character: string): FormulaVisualSemantic { return character === "=" ? "equals" : "+-−×÷·≤≥≠±".includes(character) ? "operator" : "glyph"; }
+function layoutOps(node: Node, x: number, y: number, size: number): FormulaVisualOp[] {
+  if (node.kind === "text") {
+    const ops: FormulaVisualOp[] = [];
+    let cursor = x;
+    for (const character of Array.from(node.value)) {
+      const advance = Math.max(.55, width({ kind: "text", value: character })) * size;
+      ops.push({ kind: "text", semantic: classifyTextSemantic(character), text: character, x: cursor, y, fontSize: size, tipX: cursor + advance * .84, tipY: y - size * .18, advance });
+      cursor += advance;
+    }
+    return ops;
+  }
+  if (node.kind === "row") {
+    const ops: FormulaVisualOp[] = [];
+    let cursor = x;
+    for (const child of node.children) {
+      ops.push(...layoutOps(child, cursor, y, size));
+      cursor += width(child) * size;
+    }
+    return ops;
+  }
+  if (node.kind === "frac") {
+    const w = width(node) * size;
+    const topW = width(node.top) * size;
+    const bottomW = width(node.bottom) * size;
+    return [
+      ...layoutOps(node.top, x + (w-topW)/2, y-size*.48, size*.72),
+      { kind: "path", semantic: "fraction-bar", d: `M ${x} ${y-size*.18} H ${x+w}`, strokeWidth: Math.max(2, size*.045), tipX: x + w, tipY: y - size * .18 },
+      ...layoutOps(node.bottom, x + (w-bottomW)/2, y+size*.62, size*.72),
+    ];
+  }
+  if (node.kind === "sqrt") {
+    return [
+      { kind: "path", semantic: "radical", d: `M ${x} ${y-size*.12} l ${size*.16} ${size*.2} l ${size*.18} ${-size*.72} H ${x+width(node)*size}`, strokeWidth: Math.max(2, size*.045), tipX: x + width(node) * size, tipY: y - size * .12 },
+      ...layoutOps(node.body, x+size*.48, y, size),
+    ];
+  }
+  const baseW = width(node.base) * size;
+  return [
+    ...layoutOps(node.base, x, y, size),
+    ...(node.superscript ? layoutOps(node.superscript, x+baseW, y-size*.48, size*.62) : []),
+    ...(node.subscript ? layoutOps(node.subscript, x+baseW, y+size*.42, size*.62) : []),
+  ];
+}
+export function buildFormulaLayoutPlan(formula: string, centerX: number, baselineY: number, fontSize: number, maxWidth: number): FormulaLayoutPlan {
+  const node = new Parser(formula.trim()).parse();
+  const naturalWidth = width(node) * fontSize;
+  const scale = Math.min(1, maxWidth / naturalWidth);
+  return { ops: layoutOps(node, 0, 0, fontSize), translateX: centerX-naturalWidth*scale/2, translateY: baselineY, scale, naturalWidth };
+}
 export function validateFormula(formula: string): void { if (formula.length > 300 || /[\0<>]/u.test(formula)) throw new RendererError({ code: "INVALID_FORMULA", message: "Formula uses unsupported or invalid TeX." }); new Parser(formula.trim()).parse(); }
-export function renderFormulaSvg(formula: string, centerX: number, baselineY: number, fontSize: number, maxWidth: number, fill = "#f8fafc"): string { const node = new Parser(formula.trim()).parse(); const naturalWidth = width(node) * fontSize; const scale = Math.min(1, maxWidth / naturalWidth); return `<g fill="${fill}" color="${fill}" transform="translate(${centerX-naturalWidth*scale/2} ${baselineY}) scale(${scale})">${draw(node, 0, 0, fontSize)}</g>`; }
+export function renderFormulaSvg(formula: string, centerX: number, baselineY: number, fontSize: number, maxWidth: number, fill = "#f8fafc"): string {
+  const plan = buildFormulaLayoutPlan(formula, centerX, baselineY, fontSize, maxWidth);
+  const body = plan.ops.map((op) => op.kind === "text" ? `<text x="${op.x}" y="${op.y}" font-family="renderer-font" font-size="${op.fontSize}" font-weight="600">${esc(op.text)}</text>` : `<path d="${op.d}" fill="none" stroke="currentColor" stroke-width="${op.strokeWidth}"/>`).join("");
+  return `<g fill="${fill}" color="${fill}" transform="translate(${plan.translateX} ${plan.translateY}) scale(${plan.scale})">${body}</g>`;
+}

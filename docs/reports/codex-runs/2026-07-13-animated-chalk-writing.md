@@ -1,0 +1,30 @@
+# Codex Run Report - Animated Chalk Writing
+
+- Changed files:
+  - `packages/educational-renderer/src/contracts.ts`
+  - `packages/educational-renderer/src/renderers/formula-svg.ts`
+  - `packages/educational-renderer/src/renderers/chalk-animation.ts`
+  - `packages/educational-renderer/src/domain/cache-key.ts`
+  - `packages/educational-renderer/src/domain/cache.ts`
+  - `packages/educational-renderer/src/application/renderer.ts`
+  - `packages/educational-renderer/tests/unit/chalk-animation.test.ts`
+  - `packages/educational-renderer/tests/unit/contracts.test.ts`
+  - `packages/educational-renderer/tests/integration/render.integration.test.ts`
+  - `packages/educational-renderer/fixtures/chalk-writing/visual-plan.json`
+  - `packages/educational-renderer/fixtures/chalk-writing/README.md`
+  - `packages/educational-renderer/README.md`
+  - `docs/reports/2026-07-13/04-animated-chalk-writing-implementation-report.md`
+- Checks run:
+  - `pnpm exec vitest run -c packages/educational-renderer/vitest.config.ts --bail=1 packages/educational-renderer/tests/unit/chalk-animation.test.ts` -> exit 0.
+  - `pnpm exec vitest run -c packages/educational-renderer/vitest.config.ts --bail=1 packages/educational-renderer/tests/unit/contracts.test.ts packages/educational-renderer/tests/integration/render.integration.test.ts` -> exit 1, then exit 0 after timing fix.
+  - `pnpm --filter @mediaforge/educational-renderer typecheck` -> exit 0.
+  - `pnpm --filter @mediaforge/educational-renderer build` plus sample renders and FFprobe under `/tmp/educational-renderer-chalk-samples-OpQ1Ne` -> exit 0.
+  - `git diff --check` -> exit 0.
+- Results:
+  - Added a bounded opt-in animated chalk-writing path for `equation` and `equation-transformation` scenes.
+  - Produced three verified sample outputs under `/tmp/educational-renderer-chalk-samples-OpQ1Ne`.
+- Risks remaining:
+  - Chalk texture is layered vector styling, not raster brush simulation.
+  - Motion is deterministic and stepwise rather than continuously interpolated.
+- Follow-up tasks:
+  - Watch the three sample videos and decide whether the visual feel is strong enough for acceptance.

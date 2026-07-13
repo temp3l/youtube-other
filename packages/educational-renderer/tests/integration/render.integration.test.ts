@@ -17,6 +17,14 @@ describe("real Linux rendering", () => {
     const { root, renderer } = await setup(); const events: RendererEvent[] = []; const cold = await renderer.render(request(root), { onEvent: (event) => events.push(event) }); expect(cold.status, JSON.stringify(cold.errors)).toBe("completed"); expect(cold.output?.width).toBe(960); expect(cold.output?.frameRate).toBe(15); expect(await fs.stat(cold.output!.videoPath)).toBeTruthy(); expect(events[0]?.type).toBe("job-started"); expect(events.at(-1)?.type).toBe("job-completed");
     const warm = await renderer.render(request(root)); expect(warm.cache.hits).toBe(2); expect(warm.scenes.every((scene) => scene.cacheStatus === "hit")).toBe(true);
   });
+  it("renders animated chalk equation scenes without changing static defaults", async () => {
+    const { root, renderer } = await setup();
+    const animated = await renderer.render({ requestVersion: "1", jobId: "chalk", profile: "preview", outputDirectory: path.join(root, "chalk-output"), execution: { overwrite: true }, visualPlan: { version: "1", lessonId: "chalk", locale: "de", title: "Chalk", scenes: [{ id: "equation", type: "equation", durationMs: 1_600, localeSensitivity: "language-neutral", equation: "x=3", animation: { mode: "chalk-write" } }] } });
+    expect(animated.status, JSON.stringify(animated.errors)).toBe("completed");
+    expect(animated.output?.videoCodec).toBe("h264");
+    const warm = await renderer.render({ requestVersion: "1", jobId: "chalk", profile: "preview", outputDirectory: path.join(root, "chalk-output-2"), execution: { overwrite: true }, visualPlan: { version: "1", lessonId: "chalk", locale: "de", title: "Chalk", scenes: [{ id: "equation", type: "equation", durationMs: 1_600, localeSensitivity: "language-neutral", equation: "x=3", animation: { mode: "chalk-write" } }] } });
+    expect(warm.scenes[0]?.cacheStatus).toBe("hit");
+  });
   it("invalidates only a changed scene and recovers corrupt cache", async () => {
     const { root, renderer } = await setup(); const initial = await renderer.render(request(root)); const changed = request(root); changed.visualPlan.scenes[1] = { ...changed.visualPlan.scenes[1]!, equation: "x=4" }; const result = await renderer.render(changed); expect(result.cache.hits).toBe(1); expect(result.cache.misses).toBe(1); const cached = result.scenes[0]!; const inspection = await renderer.inspectCache({ requestVersion: "1", cacheKey: cached.cacheKey }); expect(inspection.entries[0]?.status).toBe("hit"); await fs.writeFile(cached.outputPath!, "corrupt"); const recovered = await renderer.render(changed); expect(recovered.scenes[0]?.cacheStatus).toBe("corrupt"); expect(recovered.status, JSON.stringify(recovered.errors)).toBe("completed"); expect(initial.scenes).toHaveLength(2);
   });

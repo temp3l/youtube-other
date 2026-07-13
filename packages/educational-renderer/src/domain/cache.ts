@@ -7,10 +7,12 @@ import type { CacheInspectionResult, CacheStatus, CleanCacheResult } from "../co
 import { RendererError } from "../errors.js";
 import { assertSafeMutationTarget, copyFileAtomic, createWritableRoot, ensureSafeDirectory, fileSize, hashFile, pathExists, removeSafe, writeAtomic, writeJsonAtomic } from "../infrastructure/files.js";
 
+const cacheRendererSchema = z.enum(["svg-static.v3", "svg-chalk.v1"]);
+const representationSchema = z.enum(["static-segment", "animated-segment"]);
 const CACHE_RENDERER = "svg-static.v3";
 const LOCK_STALE_MS = 5 * 60_000;
 export const cacheKeySchema = z.string().regex(/^[a-f0-9]{64}$/u, "Cache key must be a lowercase SHA-256 hash");
-const manifestSchema = z.strictObject({ version: z.literal("1"), cacheKey: cacheKeySchema, sceneId: z.string(), sha256: cacheKeySchema, bytes: z.number().int().nonnegative(), createdAt: z.iso.datetime(), renderer: z.literal(CACHE_RENDERER), representation: z.literal("static-segment") });
+const manifestSchema = z.strictObject({ version: z.literal("1"), cacheKey: cacheKeySchema, sceneId: z.string(), sha256: cacheKeySchema, bytes: z.number().int().nonnegative(), createdAt: z.iso.datetime(), renderer: cacheRendererSchema, representation: representationSchema });
 const lockSchema = z.strictObject({ version: z.literal("1"), pid: z.number().int().positive(), token: z.uuid(), createdAt: z.iso.datetime() });
 export type SceneCacheManifest = z.infer<typeof manifestSchema>;
 export interface CacheLookup { readonly status: CacheStatus; readonly videoPath: string; readonly manifest?: SceneCacheManifest; readonly reason: string; }
@@ -66,8 +68,8 @@ export class SceneCache {
     const token = randomUUID(); await handle.writeFile(JSON.stringify({ version: "1", pid: process.pid, token, createdAt: new Date(this.now()).toISOString() })); await handle.close();
     return async () => { const parsed = lockSchema.safeParse(await fs.readFile(lock, "utf8").then((value) => JSON.parse(value) as unknown, () => undefined)); if (parsed.success && parsed.data.token === token) { await this.mutation(lock); await removeSafe(this.root, lock); } };
   }
-  public async promote(keyInput: string, temporaryVideo: string, sceneId: string, sha256: string, bytes: number): Promise<SceneCacheManifest> {
-    const key = this.key(keyInput); const paths = this.paths(key); const manifest = manifestSchema.parse({ version: "1", cacheKey: key, sceneId, sha256, bytes, createdAt: new Date(this.now()).toISOString(), renderer: CACHE_RENDERER, representation: "static-segment" });
+  public async promote(keyInput: string, temporaryVideo: string, sceneId: string, sha256: string, bytes: number, renderer = CACHE_RENDERER, representation: z.infer<typeof representationSchema> = "static-segment"): Promise<SceneCacheManifest> {
+    const key = this.key(keyInput); const paths = this.paths(key); const manifest = manifestSchema.parse({ version: "1", cacheKey: key, sceneId, sha256, bytes, createdAt: new Date(this.now()).toISOString(), renderer, representation });
     try {
       await this.mutation(paths.directory); await ensureSafeDirectory(this.root, paths.directory); await this.recover(key, paths); await this.mutation(paths.transaction); await fs.mkdir(paths.transaction); await this.mutation(paths.transaction); await this.step("staging-created");
       await copyFileAtomic(this.root, temporaryVideo, paths.stagedVideo); await this.step("video-staged");

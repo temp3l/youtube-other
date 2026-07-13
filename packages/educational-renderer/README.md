@@ -151,8 +151,10 @@ their exact capability reason.
 
 Final output is always FFprobe-verified before success. Hash-valid scene cache hits are not re-probed.
 
-Known limitations: v0.1 has static SVG scenes only and explicit hard boundaries; formula support is a
-deliberately restricted grade 5–10 TeX subset; cache layers are designed but not independently materialized.
+Known limitations: v0.1 supports opt-in animated chalk writing only for `equation` and
+`equation-transformation` scenes; all other scenes remain static with explicit hard boundaries. Formula
+support is a deliberately restricted grade 5–10 TeX subset; cache layers are designed but not independently
+materialized.
 On Linux, peak renderer subprocess RSS is sampled from `/proc` and includes active descendants; it is omitted
 when the host facility is unavailable. Peak temporary disk occupancy and cumulative bytes written are not yet
 measured, so neither field is emitted. A future integration

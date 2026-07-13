@@ -3,7 +3,7 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import type { EducationalRenderer } from "../api/educational-renderer.js";
-import { concatFileContent, composeSegments, encodeStaticScene } from "../composition/ffmpeg.js";
+import { composeSceneSegments, concatFileContent, composeSegments, encodeStaticScene } from "../composition/ffmpeg.js";
 import { benchmarkRequestSchema, benchmarkResultSchema, cacheInspectionResultSchema, cleanCacheRequestSchema, cleanCacheResultSchema, composeRequestSchema, composeResultSchema, inspectCacheRequestSchema, renderRequestSchema, renderResultSchema, renderSceneRequestSchema, rendererCapabilitiesSchema, sceneRenderResultSchema, validateRequestSchema, validationResultSchema, visualPlanSchema, type BenchmarkRequest, type BenchmarkResult, type CacheInspectionResult, type CleanCacheRequest, type CleanCacheResult, type ComposeRequest, type ComposeResult, type InspectCacheRequest, type MediaOutput, type NormalizedRenderProfile, type RenderMetrics, type RenderOptions, type RenderRequest, type RenderResult, type RendererCapabilities, type RenderSceneRequest, type SceneRenderResult, type ValidateRequest, type ValidationResult, type VisualScene } from "../contracts.js";
 import { SceneCache } from "../domain/cache.js";
 import { createSceneCacheKey } from "../domain/cache-key.js";
@@ -13,6 +13,7 @@ import { assertNoSymlinkEscape, assertSafeMutationTarget, assertSufficientDiskSp
 import { inspectCapabilities, probeMedia } from "../infrastructure/media.js";
 import { runProcess } from "../infrastructure/process.js";
 import { renderSceneSvg, SVG_RENDERER_VERSION, validateFormula } from "../renderers/svg.js";
+import { CHALK_RENDERER_VERSION, isChalkAnimatedScene, renderChalkAnimationFrames } from "../renderers/chalk-animation.js";
 
 const PACKAGE_VERSION = "0.1.0"; const RENDERER_FORMAT_VERSION = "educational-video.v2"; const SCENE_SCHEMA_VERSION = "visual-scene.v1"; const THEME_VERSION = "midnight-math.v1"; const DEFAULT_FONT = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf";
 export interface EducationalRendererConfiguration { readonly workspaceDirectory: string; readonly cacheDirectory: string; readonly temporaryDirectory: string; readonly fontFile?: string; }
@@ -34,6 +35,7 @@ export class EducationalRendererService implements EducationalRenderer {
   private async preflight(targets: readonly string[], requiredBytes: number): Promise<void> { for (const target of new Set(targets.map((item) => path.resolve(item)))) await assertSufficientDiskSpace(target, requiredBytes, this.infrastructure.statfs ?? fs.statfs); }
   private async writeJson(filePath: string, value: unknown): Promise<void> { if (this.infrastructure.writeJson) await this.infrastructure.writeJson(filePath, value); else await writeJsonAtomic(this.config.workspaceDirectory, filePath, value); }
   private sceneKey(scene: VisualScene, profile: NormalizedRenderProfile, locale: string): string { return createSceneCacheKey({ scene, profile, locale, fontHash: this.fontHash, toolchainIdentity: this.toolchainIdentity }); }
+  private sceneRepresentation(scene: VisualScene): { renderer: string; representation: "static-segment" | "animated-segment" } { return isChalkAnimatedScene(scene) ? { renderer: CHALK_RENDERER_VERSION, representation: "animated-segment" } : { renderer: SVG_RENDERER_VERSION, representation: "static-segment" }; }
   public async validate(request: ValidateRequest): Promise<ValidationResult> {
     const started = Date.now(); void started;
     const parsed = validateRequestSchema.safeParse(request); if (!parsed.success) return validationResultSchema.parse({ resultVersion: "1", valid: false, warnings: [], errors: [schemaFailure(parsed.error.issues, "Invalid validation request.").data] });
@@ -47,9 +49,37 @@ export class EducationalRendererService implements EducationalRenderer {
       let lookup = await this.cache.lookup(key); if (lookup.status === "hit") { await linkOrCopy(this.config.workspaceDirectory, lookup.videoPath, outputPath); options.onEvent?.({ type: "scene-cache-hit", jobId: request.jobId, sceneId: scene.id, cacheKey: key }); const result: SceneRenderResult = { resultVersion: "1", sceneId: scene.id, status: "completed", cacheStatus: "hit", cacheKey: key, outputPath, ...(lookup.manifest?.sha256 ? { sha256: lookup.manifest.sha256 } : {}), durationMs: scene.durationMs, renderDurationMs: Date.now()-started, warnings: [], errors: [] }; options.onEvent?.({ type: "scene-completed", jobId: request.jobId, sceneId: scene.id, durationMs: result.renderDurationMs }); return result; }
       const release = await this.cache.acquire(key); try {
         lookup = await this.cache.lookup(key); if (lookup.status === "hit") { await linkOrCopy(this.config.workspaceDirectory, lookup.videoPath, outputPath); return { resultVersion: "1", sceneId: scene.id, status: "completed", cacheStatus: "hit", cacheKey: key, outputPath, ...(lookup.manifest?.sha256 ? { sha256: lookup.manifest.sha256 } : {}), durationMs: scene.durationMs, renderDurationMs: Date.now()-started, warnings: [], errors: [] }; }
-        const cachePaths = this.cache.paths(key); const svgPath = path.join(this.config.temporaryDirectory, `${key}.${randomUUID()}.svg`); const temporaryVideo = path.join(cachePaths.directory, `.scene.${randomUUID()}.tmp.mp4`); await this.preflight([this.config.temporaryDirectory, cachePaths.directory, outputPath], this.estimateBytes(profile, scene.durationMs, 3)); await ensureSafeDirectory(this.config.cacheDirectory, cachePaths.directory); await assertSafeMutationTarget(this.config.temporaryDirectory, svgPath); await writeAtomic(this.config.temporaryDirectory, svgPath, renderSceneSvg(scene, profile, this.config.fontFile)); await assertSafeMutationTarget(this.config.cacheDirectory, temporaryVideo);
-        try { const encoded = await encodeStaticScene(svgPath, temporaryVideo, scene.durationMs, profile, { ...(options.signal ? { signal: options.signal } : {}) }); if (encoded.peakRssBytes !== undefined) this.peakRendererProcessRssBytes = Math.max(this.peakRendererProcessRssBytes ?? 0, encoded.peakRssBytes); await assertSafeMutationTarget(this.config.cacheDirectory, temporaryVideo); const probe = await probeMedia(temporaryVideo); if (probe.width !== profile.width || probe.height !== profile.height || Math.abs(probe.frameRate-profile.frameRate) > 0.01 || Math.abs(probe.durationMs-scene.durationMs) > 100) throw new RendererError({ code: "OUTPUT_VALIDATION_FAILED", message: `Scene ${scene.id} media does not match its profile or duration.`, sceneId: scene.id }); const sha256 = await hashFile(temporaryVideo); const bytes = await fileSize(temporaryVideo); await this.cache.promote(key, temporaryVideo, scene.id, sha256, bytes); await linkOrCopy(this.config.workspaceDirectory, cachePaths.video, outputPath); const result: SceneRenderResult = { resultVersion: "1", sceneId: scene.id, status: "completed", cacheStatus: lookup.status === "corrupt" ? "corrupt" : lookup.status === "stale" ? "stale" : "miss", cacheKey: key, outputPath, sha256, durationMs: scene.durationMs, renderDurationMs: Date.now()-started, warnings: [], errors: [] }; options.onEvent?.({ type: "scene-completed", jobId: request.jobId, sceneId: scene.id, durationMs: result.renderDurationMs }); return result; }
-        finally { if (!request.execution?.keepTemporaryFiles) await removeSafe(this.config.temporaryDirectory, svgPath); await removeSafe(this.config.cacheDirectory, temporaryVideo).catch(() => undefined); }
+        const cachePaths = this.cache.paths(key); const svgPath = path.join(this.config.temporaryDirectory, `${key}.${randomUUID()}.svg`); const temporaryVideo = path.join(cachePaths.directory, `.scene.${randomUUID()}.tmp.mp4`); await this.preflight([this.config.temporaryDirectory, cachePaths.directory, outputPath], this.estimateBytes(profile, scene.durationMs, 3)); await ensureSafeDirectory(this.config.cacheDirectory, cachePaths.directory);
+        const animation = this.sceneRepresentation(scene);
+        const temporaryFiles: string[] = [];
+        try {
+          if (isChalkAnimatedScene(scene)) {
+            const frames = renderChalkAnimationFrames(scene, profile, this.config.fontFile);
+            const segmentPaths: string[] = [];
+            for (const [index, frame] of frames.entries()) {
+              const frameSvg = path.join(this.config.temporaryDirectory, `${key}.${index}.${randomUUID()}.svg`);
+              const frameVideo = path.join(this.config.temporaryDirectory, `${key}.${index}.${randomUUID()}.mp4`);
+              temporaryFiles.push(frameSvg, frameVideo);
+              await assertSafeMutationTarget(this.config.temporaryDirectory, frameSvg);
+              await writeAtomic(this.config.temporaryDirectory, frameSvg, frame.svg);
+              const encoded = await encodeStaticScene(frameSvg, frameVideo, frame.durationMs, profile, { ...(options.signal ? { signal: options.signal } : {}) });
+              if (encoded.peakRssBytes !== undefined) this.peakRendererProcessRssBytes = Math.max(this.peakRendererProcessRssBytes ?? 0, encoded.peakRssBytes);
+              segmentPaths.push(frameVideo);
+            }
+            const concatPath = path.join(this.config.temporaryDirectory, `${key}.${randomUUID()}.concat.txt`);
+            temporaryFiles.push(concatPath);
+            await writeAtomic(this.config.temporaryDirectory, concatPath, concatFileContent(segmentPaths));
+            const composed = await composeSceneSegments({ scenePaths: segmentPaths, concatPath, outputPath: temporaryVideo, durationMs: scene.durationMs, profile, ...(options.signal ? { signal: options.signal } : {}) });
+            if (composed.peakRssBytes !== undefined) this.peakRendererProcessRssBytes = Math.max(this.peakRendererProcessRssBytes ?? 0, composed.peakRssBytes);
+          } else {
+            await assertSafeMutationTarget(this.config.temporaryDirectory, svgPath);
+            await writeAtomic(this.config.temporaryDirectory, svgPath, renderSceneSvg(scene, profile, this.config.fontFile));
+            temporaryFiles.push(svgPath);
+            const encoded = await encodeStaticScene(svgPath, temporaryVideo, scene.durationMs, profile, { ...(options.signal ? { signal: options.signal } : {}) });
+            if (encoded.peakRssBytes !== undefined) this.peakRendererProcessRssBytes = Math.max(this.peakRendererProcessRssBytes ?? 0, encoded.peakRssBytes);
+          }
+          await assertSafeMutationTarget(this.config.cacheDirectory, temporaryVideo); const probe = await probeMedia(temporaryVideo); if (probe.width !== profile.width || probe.height !== profile.height || Math.abs(probe.frameRate-profile.frameRate) > 0.01 || Math.abs(probe.durationMs-scene.durationMs) > 100) throw new RendererError({ code: "OUTPUT_VALIDATION_FAILED", message: `Scene ${scene.id} media does not match its profile or duration.`, sceneId: scene.id }); const sha256 = await hashFile(temporaryVideo); const bytes = await fileSize(temporaryVideo); await this.cache.promote(key, temporaryVideo, scene.id, sha256, bytes, animation.renderer, animation.representation); await linkOrCopy(this.config.workspaceDirectory, cachePaths.video, outputPath); const result: SceneRenderResult = { resultVersion: "1", sceneId: scene.id, status: "completed", cacheStatus: lookup.status === "corrupt" ? "corrupt" : lookup.status === "stale" ? "stale" : "miss", cacheKey: key, outputPath, sha256, durationMs: scene.durationMs, renderDurationMs: Date.now()-started, warnings: [], errors: [] }; options.onEvent?.({ type: "scene-completed", jobId: request.jobId, sceneId: scene.id, durationMs: result.renderDurationMs }); return result; }
+        finally { for (const file of [svgPath, ...temporaryFiles]) await removeSafe(this.config.temporaryDirectory, file).catch(() => undefined); await removeSafe(this.config.cacheDirectory, temporaryVideo).catch(() => undefined); }
       } finally { await release(); }
     } catch (error) { const data = { ...toRendererErrorData(error), sceneId: scene.id }; options.onEvent?.({ type: "scene-failed", jobId: request.jobId, sceneId: scene.id, error: data }); return { resultVersion: "1", sceneId: scene.id, status: data.code === "PROCESS_INTERRUPTED" ? "cancelled" : "failed", cacheStatus: "miss", cacheKey: key, durationMs: scene.durationMs, renderDurationMs: Date.now()-started, warnings: [], errors: [data] }; }
   }

@@ -12,6 +12,9 @@ describe("public contracts", () => {
     expect(visualPlanSchema.safeParse({ version: "1", lessonId: "lesson", locale: "de", title: "Lesson", scenes: [scene, scene] }).success).toBe(false);
     expect(visualPlanSchema.safeParse({ version: "1", lessonId: "lesson", locale: "de", title: "Lesson", scenes: [{ id: "graph", type: "coordinate-graph", durationMs: 1_000, localeSensitivity: "language-neutral", xRange: [0, Number.POSITIVE_INFINITY], yRange: [0, 1], functions: [{ expression: "x", domain: [0, 1] }], points: [] }] }).success).toBe(false);
   });
+  it("accepts opt-in chalk animation only on equation scenes", () => {
+    expect(visualPlanSchema.safeParse({ version: "1", lessonId: "lesson", locale: "de", title: "Lesson", scenes: [{ ...scene, animation: { mode: "chalk-write" } }] }).success).toBe(true);
+  });
   it.each(["preview", "draft", "youtube-full", "youtube-short"] as const)("normalizes %s", (name) => { const profile = normalizeProfile(name); expect(profile.width).toBeGreaterThan(0); expect(profile.frameRate).toBeGreaterThanOrEqual(15); });
   it("keeps cache keys stable and ignores locale for neutral scenes", () => {
     const input = { scene, profile: normalizeProfile("preview"), fontHash: "a".repeat(64), toolchainIdentity: "ffmpeg-test" };

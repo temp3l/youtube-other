@@ -8,10 +8,11 @@ const range = z.tuple([finite, finite]).refine(([a, b]) => a < b, "Range must in
 const sha256Schema = z.string().regex(/^[a-f0-9]{64}$/u);
 const version = z.literal("1");
 const base = { id: safeId, durationMs: z.number().int().min(250).max(300_000), localeSensitivity: z.enum(["language-neutral", "localized", "timing-sensitive"]), narrationCue: z.strictObject({ startMs: z.number().int().nonnegative(), endMs: z.number().int().positive() }).refine((value) => value.startMs < value.endMs).optional() };
+const chalkAnimationSchema = z.strictObject({ mode: z.literal("chalk-write") });
 const titleSceneSchema = z.strictObject({ ...base, type: z.literal("title"), title: safeText, subtitle: safeText.optional() });
 const textSceneSchema = z.strictObject({ ...base, type: z.literal("text"), heading: safeText.optional(), text: safeText, annotation: safeText.optional() });
-const equationSceneSchema = z.strictObject({ ...base, type: z.literal("equation"), equation: z.string().min(1).max(300), label: safeText.optional(), highlight: z.string().max(80).optional() });
-const equationTransformationSceneSchema = z.strictObject({ ...base, type: z.literal("equation-transformation"), from: z.string().min(1).max(300), to: z.string().min(1).max(300), operation: safeText, highlight: z.string().max(80).optional() });
+const equationSceneSchema = z.strictObject({ ...base, type: z.literal("equation"), equation: z.string().min(1).max(300), label: safeText.optional(), highlight: z.string().max(80).optional(), animation: chalkAnimationSchema.optional() });
+const equationTransformationSceneSchema = z.strictObject({ ...base, type: z.literal("equation-transformation"), from: z.string().min(1).max(300), to: z.string().min(1).max(300), operation: safeText, highlight: z.string().max(80).optional(), animation: chalkAnimationSchema.optional() });
 const graphFunctionSchema = z.strictObject({ expression: z.string().regex(/^[-+]?(?:\d+(?:\.\d+)?)?\*?x(?:[-+]\d+(?:\.\d+)?)?$/u, "Only linear expressions ax+b are supported"), domain: range, color: z.string().regex(/^#[0-9a-fA-F]{6}$/u).optional() });
 const coordinateGraphSceneSchema = z.strictObject({ ...base, type: z.literal("coordinate-graph"), xRange: range, yRange: range, functions: z.array(graphFunctionSchema).min(1).max(4), points: z.array(z.strictObject({ x: finite, y: finite, label: safeText.optional() })).max(16).default([]), xLabel: safeText.max(12).optional(), yLabel: safeText.max(12).optional(), annotation: safeText.optional(), expensiveGrid: z.boolean().default(false) });
 const geometrySceneSchema = z.strictObject({ ...base, type: z.literal("geometry"), shape: z.enum(["triangle", "rectangle", "circle"]), labels: z.array(safeText.max(40)).max(8).default([]) });
