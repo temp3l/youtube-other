@@ -8,6 +8,7 @@ import {
   writeJsonAtomic,
   writeTextAtomic,
 } from "@mediaforge/shared";
+import { writeLegacyBatchSidecar } from "@mediaforge/workflow-engine";
 import { localBatchManifestSchema } from "./story-localization.schemas.js";
 import {
   type BatchCategory,
@@ -196,23 +197,31 @@ export async function writeBatchInputFile(
 export async function writeLocalBatchManifest(
   manifest: LocalBatchManifest
 ): Promise<void> {
-  await writeJsonAtomic(
-    fromRepositoryRelativePath(manifest.inputFilePath).replace(
-      /\/inputs\/.+$/u,
-      `/manifests/batch-${manifest.localBatchId}.manifest.json`
-    ),
-    manifest
+  const manifestPath = fromRepositoryRelativePath(
+    manifest.inputFilePath
+  ).replace(
+    /\/inputs\/.+$/u,
+    `/manifests/batch-${manifest.localBatchId}.manifest.json`
   );
+  await writeJsonAtomic(manifestPath, manifest);
+  await writeLegacyBatchSidecar({
+    family: "story",
+    legacyManifestPath: manifestPath,
+    manifest,
+  });
 }
 
 export async function saveLocalBatchManifest(
   layout: BatchStorageLayout,
   manifest: LocalBatchManifest
 ): Promise<void> {
-  await writeJsonAtomic(
-    manifestPathFor(layout, manifest.localBatchId),
-    manifest
-  );
+  const manifestPath = manifestPathFor(layout, manifest.localBatchId);
+  await writeJsonAtomic(manifestPath, manifest);
+  await writeLegacyBatchSidecar({
+    family: "story",
+    legacyManifestPath: manifestPath,
+    manifest,
+  });
 }
 
 export async function readLocalBatchManifest(

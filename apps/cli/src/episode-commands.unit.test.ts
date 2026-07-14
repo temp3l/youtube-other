@@ -517,6 +517,9 @@ async function createValidationFixture(options: {
       "utf8"
     );
   }
+  if (options.legacyFallback) {
+    await fs.unlink(scriptPath);
+  }
   return {
     outputRoot,
     episodeId,
@@ -785,7 +788,7 @@ describe("episode commands", () => {
     ).toBe(true);
     expect(
       registry.characters.some((character) =>
-        /black[- ]eyed children/u.test(character.name)
+        /black[- ]eyed children/iu.test(character.name)
       )
     ).toBe(true);
   });
@@ -1086,14 +1089,6 @@ describe("episode commands", () => {
   it("surfaces stale authored script resolver errors", async () => {
     const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "dark-truth-cli-"));
     const outputRoot = path.join(tempDir, "episodes");
-    await fs.mkdir(path.join(outputRoot, episodeSlug, "languages"), {
-      recursive: true,
-    });
-    await fs.writeFile(
-      path.join(outputRoot, episodeSlug, "languages", "script-en.md"),
-      "same narration",
-      "utf8"
-    );
     await fs.mkdir(path.join(outputRoot, episodeSlug, "en", "full"), {
       recursive: true,
     });

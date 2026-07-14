@@ -169,6 +169,11 @@ import {
 import { registerStoryLocalizationCommands } from "./story-localization-commands.js";
 import { registerThumbnailCommands } from "./thumbnail-commands.js";
 import { resolveUploadThumbnailPath } from "./youtube-upload-thumbnail.js";
+import {
+  WorkflowCliError,
+  registerWorkflowCommands,
+} from "./workflow-commands.js";
+import { migrateProductionCommandCallers } from "./production-caller-migration.js";
 
 interface CliOptions {
   json?: boolean;
@@ -4955,6 +4960,8 @@ registerShotsCommands(program);
 registerStoryLocalizationCommands(program);
 registerThumbnailCommands(program);
 registerMathCommands(program);
+registerWorkflowCommands(program);
+migrateProductionCommandCallers(program);
 
 const executionId = process.env["MEDIAFORGE_EXECUTION_ID"] ?? randomUUID();
 const startedAt =
@@ -4990,13 +4997,23 @@ await withExecutionTelemetry(telemetry, async () => {
     });
   } catch (error: unknown) {
     const exitCode =
-      error instanceof MathCliSemanticError ? error.exitCode : 1;
+      error instanceof MathCliSemanticError || error instanceof WorkflowCliError
+        ? error.exitCode
+        : 1;
     await telemetry.finalize({
       success: false,
       exitCode,
       endedAt: new Date().toISOString(),
     });
-    process.stderr.write(`${JSON.stringify(serializeError(error), null, 2)}\n`);
+    process.stderr.write(
+      `${JSON.stringify(
+        error instanceof WorkflowCliError
+          ? { error: error.normalized, exitCode: error.exitCode }
+          : serializeError(error),
+        null,
+        2
+      )}\n`
+    );
     process.exitCode = exitCode;
   }
 });

@@ -1,8 +1,13 @@
 import crypto from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
+import type { ArtifactRef } from "@mediaforge/domain";
 import { z } from "zod";
- 
+
+import {
+  resolveArtifactPathSet,
+  type ArtifactPathSet,
+} from "./artifact-path-resolver.js";
 
 export const localeCodes = ["en", "de", "es", "fr", "pt"] as const;
 export const SUPPORTED_LANGUAGE_CODES = localeCodes;
@@ -490,6 +495,7 @@ export interface EpisodeContext {
 
 export interface EpisodePathResolver {
   readonly workspaceRoot: string;
+  artifact(ref: ArtifactRef): ArtifactPathSet;
   episodeRoot(episodeId: EpisodeId): string;
   manifestPath(episodeId: EpisodeId): string;
   canonicalScenesPath(episodeId: EpisodeId): string;
@@ -1293,6 +1299,12 @@ export function createEpisodePathResolver(workspaceRoot: string): EpisodePathRes
     });
   return {
     workspaceRoot: resolvedWorkspace,
+    artifact: (ref) => {
+      if (ref.profileId !== "dark-truth") {
+        throw new Error("Episode artifact resolver requires the dark-truth profile.");
+      }
+      return resolveArtifactPathSet({ workspaceRoot: resolvedWorkspace, ref });
+    },
     episodeRoot,
     manifestPath: (episodeId) => path.join(episodeRoot(episodeId), "manifest.json"),
     canonicalScenesPath: (episodeId) => path.join(episodeRoot(episodeId), "canonical", "scenes.json"),

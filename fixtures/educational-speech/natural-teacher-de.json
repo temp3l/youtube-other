@@ -1,0 +1,70 @@
+{
+  "language": "de",
+  "fixtureVersion": "educational-speech-listening.v1",
+  "beats": [
+    {
+      "id": "fixture-einstieg",
+      "visualStepId": "scene-001",
+      "kind": "introduction",
+      "displayText": "Löse 3x + 5 = 20",
+      "spokenText": "Heute lösen wir gemeinsam 3x + 5 = 20. Achte darauf, wie jede Zeile an der Tafel aus der vorherigen entsteht.",
+      "writingBehavior": "overlap-narration"
+    },
+    {
+      "id": "fixture-aufgabe",
+      "visualStepId": "scene-002",
+      "kind": "problem-statement",
+      "displayText": "3x + 5 = 20",
+      "spokenText": "Unsere Gleichung lautet 3x + 5 = 20. Das Ziel ist, x allein auf eine Seite zu bringen.",
+      "writingBehavior": "overlap-narration"
+    },
+    {
+      "id": "fixture-schritt-eins",
+      "visualStepId": "scene-003",
+      "kind": "calculation-step",
+      "displayText": "3x + 5 - 5 = 20 - 5",
+      "spokenText": "Zuerst ziehen wir auf beiden Seiten 5 ab: 3x + 5 - 5 = 20 - 5.",
+      "writingBehavior": "overlap-narration"
+    },
+    {
+      "id": "fixture-schritt-zwei",
+      "visualStepId": "scene-004",
+      "kind": "calculation-step",
+      "displayText": "3x = 15",
+      "spokenText": "Das vereinfacht sich zu 3x = 15.",
+      "writingBehavior": "overlap-narration"
+    },
+    {
+      "id": "fixture-schritt-drei",
+      "visualStepId": "scene-005",
+      "kind": "calculation-step",
+      "displayText": "x = 15 / 3 = 5",
+      "spokenText": "Jetzt teilen wir beide Seiten durch 3: x = 15 / 3 = 5.",
+      "writingBehavior": "overlap-narration"
+    },
+    {
+      "id": "fixture-warnung",
+      "visualStepId": "scene-006",
+      "kind": "warning",
+      "displayText": "Typischer Fehler: beide Seiten verändern",
+      "spokenText": "Ein typischer Fehler ist, nur auf einer Seite abzuziehen oder zu teilen. Die Gleichung bleibt nur im Gleichgewicht, wenn wir beide Seiten gleich verändern.",
+      "writingBehavior": "overlap-narration"
+    },
+    {
+      "id": "fixture-ergebnis",
+      "visualStepId": "scene-007",
+      "kind": "final-answer",
+      "displayText": "x = 5",
+      "spokenText": "Das Endergebnis lautet also x = 5.",
+      "writingBehavior": "overlap-narration"
+    },
+    {
+      "id": "fixture-rueckblick",
+      "visualStepId": "scene-008",
+      "kind": "recap",
+      "displayText": "5 abziehen → durch 3 teilen → prüfen",
+      "spokenText": "Fassen wir zusammen: Auf beiden Seiten 5 abziehen, beide Seiten durch 3 teilen und das Ergebnis anschließend in der ursprünglichen Gleichung prüfen.",
+      "writingBehavior": "overlap-narration"
+    }
+  ]
+}

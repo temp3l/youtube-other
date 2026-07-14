@@ -1,5 +1,24 @@
 # prompts
 
+Continue strictly from docs/mathe/audits/remediation-backlog.md:6:
+
+1. Implement A-001 only: fix @mediaforge/math-education runtime exports so packaged Node loads dist, not TypeScript source.
+2. Verify:
+
+   pnpm build
+   node apps/cli/bin/mediaforge.js --help
+   node apps/cli/bin/mediaforge.js stories production batch --help
+   node apps/cli/bin/mediaforge.js math curriculum validate
+
+3. Run focused package-import, CLI, and horror compatibility tests.
+4. Independently review and commit A-001 before starting A-002.
+5. Continue A-002 through A-008 in order.
+6. Run the complete provider-free pilot only at A-009.
+
+Keep paid providers and publishing disabled throughout. Because the worktree is already heavily dirty, isolate each remediation into its own reviewed commit rather than combining fixes.
+
+---
+
 - tell me how to rewrite and process all EN\*DE stories from 031 to 035 in a batch and initialize those stories correctly via cli
 
 - did all tasks finish regarding batch processing?

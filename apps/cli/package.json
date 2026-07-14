@@ -37,6 +37,7 @@
     "@mediaforge/transcript-cleaning": "workspace:*",
     "@mediaforge/transcription": "workspace:*",
     "@mediaforge/visual-planning": "workspace:*",
+    "@mediaforge/workflow-engine": "workspace:*",
     "commander": "^14.0.0",
     "pino": "^9.8.0",
     "sharp": "^0.34.3",

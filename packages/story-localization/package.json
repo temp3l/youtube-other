@@ -18,6 +18,7 @@
   "dependencies": {
     "@mediaforge/observability": "workspace:*",
     "@mediaforge/shared": "workspace:*",
+    "@mediaforge/workflow-engine": "workspace:*",
     "openai": "^6.44.0",
     "zod": "^4.0.14"
   }

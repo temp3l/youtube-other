@@ -619,6 +619,42 @@ describe("generated story validator", () => {
     }
   });
 
+  it("accepts the canonical English Short as a localized Short parent", () => {
+    const baseParent = buildShortParent("en");
+    const parent: ShortRewriteResolvedParent = {
+      ...baseParent,
+      identity: {
+        ...baseParent.identity,
+        variant: "short",
+      },
+      canonical: true,
+      provenance: "canonical-short-artifact",
+    };
+    const baseContract = buildShortContract("de");
+    const contract: ShortRewriteAdaptationContract = {
+      ...baseContract,
+      parent: {
+        ...parent.identity,
+        parentFullHash: parent.parentFullHash,
+        sourceSha256: parent.sourceSha256,
+      },
+      storyIrHash: parent.storyIrHash,
+    };
+    const result = validateShortNarrationArtifact({
+      language: "de",
+      profile: getLanguageProfile("de"),
+      narration: "Die Puppe atmete hinter der Dachbodentür.",
+      parent: { ...parent, validated: true },
+      adaptationContract: contract,
+      outputConstraints: buildShortConstraints("de"),
+      characterRenameMap: parent.characterRenameMap,
+    });
+
+    expect(result.issues.map((entry) => entry.code)).not.toContain(
+      GENERATED_STORY_VALIDATION_ISSUE_CODES.SHORT_SOURCE_NOT_VALIDATED_FULL
+    );
+  });
+
   it("flags a parent hash mismatch", () => {
     const contract = buildShortContract("en");
     const result = validateShortNarrationArtifact({

@@ -51,6 +51,7 @@ removal checks in `06-duplicate-elimination.md` pass.
 
 ## Batch 2: Shared Contracts and Error Taxonomy
 
+- **Status:** `ACCEPTED` on 2026-07-14. Batch 3 is unblocked.
 - **Objective:** Add strict profile, task, artifact, workflow, quality, approval,
   batch, and typed-error contracts without changing execution.
 - **Scope:** Schema/type additions and tests.
@@ -69,6 +70,7 @@ removal checks in `06-duplicate-elimination.md` pass.
 
 ## Batch 3: Canonical Artifact Repository
 
+- **Status:** `ACCEPTED` on 2026-07-14. Batch 4 is unblocked.
 - **Objective:** Make one resolver responsible for production paths and artifact
   validity.
 - **Scope:** Typed artifact intent, canonical path mapping, legacy discovery,
@@ -91,6 +93,7 @@ removal checks in `06-duplicate-elimination.md` pass.
 
 ## Batch 4: Task Registry and DAG
 
+- **Status:** `ACCEPTED` on 2026-07-14. Batch 5 is unblocked.
 - **Objective:** Register every logical task once and validate profile DAGs.
 - **Scope:** Registry, definitions, dependency resolution, readiness, explain,
   and dry-run planning.
@@ -109,6 +112,7 @@ removal checks in `06-duplicate-elimination.md` pass.
 
 ## Batch 5: State, Events, Locks, and Reconciliation
 
+- **Status:** `ACCEPTED` on 2026-07-14. Batch 6 is unblocked.
 - **Objective:** Establish canonical resumable state and immutable history.
 - **Scope:** State materialization, event append, attempts, approvals, overrides,
   transitions, locks, interruption, and reconcile.
@@ -128,6 +132,8 @@ removal checks in `06-duplicate-elimination.md` pass.
 
 ## Batch 6: Status, Next, Run-Next, Resume, and CLI Skeleton
 
+- **Status:** `ACCEPTED` on 2026-07-14. Batch 7 is unblocked.
+
 - **Objective:** Provide the canonical operator loop without migrating all task
   families at once.
 - **Scope:** Engine CLI commands and JSON/exit contracts.
@@ -146,6 +152,8 @@ removal checks in `06-duplicate-elimination.md` pass.
   interrupt, resume, and reconcile through the packaged CLI.
 
 ## Batch 7: Fingerprints, Cache, and Invalidation
+
+- **Status:** `ACCEPTED` on 2026-07-14. Batch 8 is unblocked.
 
 - **Objective:** Make every migrated task safely repeatable.
 - **Scope:** Fingerprints, cache decision evidence, output validation, dependency
@@ -167,6 +175,8 @@ removal checks in `06-duplicate-elimination.md` pass.
 
 ## Batch 8: Batch Unification and Observability
 
+- **Status:** `ACCEPTED` on 2026-07-14. Batch 9 is unblocked.
+
 - **Objective:** Reuse normal tasks for resumable item-level batches and emit one
   structured attempt contract.
 - **Scope:** Batch manifests, grouping, retries, cancellation, reconciliation,
@@ -187,6 +197,7 @@ removal checks in `06-duplicate-elimination.md` pass.
 
 ## Batch 9: Dark Truth Bibles, References, and Quality
 
+- **Status:** `ACCEPTED` on 2026-07-14. Batch 10 is unblocked.
 - **Objective:** Implement the complete Dark Truth profile contract.
 - **Scope:** `04-darktruth-profile.md`.
 - **Likely paths:** `packages/dark-truth`, story-localization, visual-planning,
@@ -206,6 +217,7 @@ removal checks in `06-duplicate-elimination.md` pass.
 
 ## Batch 10: Mathematics Profile Integration
 
+- **Status:** `ACCEPTED` on 2026-07-14. Batch 11 is unblocked.
 - **Objective:** Move existing mathematics orchestration onto the shared engine
   without weakening correctness or accessibility.
 - **Scope:** `05-mathematics-profile.md`.
@@ -226,6 +238,7 @@ removal checks in `06-duplicate-elimination.md` pass.
 
 ## Batch 11: Production-Family Caller Migration
 
+- **Status:** `ACCEPTED` on 2026-07-14. Batch 12 is unblocked.
 - **Objective:** Route every entry point through canonical tasks.
 - **Scope:** Story, localization, image/reference/thumbnail, audio/caption,
   render, metadata, publishing, repair, migration, scripts, and npm wrappers.
@@ -244,6 +257,7 @@ removal checks in `06-duplicate-elimination.md` pass.
 
 ## Batch 12: Migration Utilities and Publish Approval
 
+- **Status:** `ACCEPTED` on 2026-07-14. Batch 13 is unblocked.
 - **Objective:** Make legacy data migration safe and publishing irreversible
   only after explicit approval.
 - **Scope:** Artifact verify/migrate, bible/reference migration, approval-bound
@@ -266,6 +280,8 @@ removal checks in `06-duplicate-elimination.md` pass.
 
 ## Batch 13: Remove Duplicates and Deprecated Logic
 
+- **Status:** `ACCEPTED` on 2026-07-14 with explicitly gated compatibility debt.
+  Batch 14 is unblocked.
 - **Objective:** Delete obsolete production implementations after proof of
   disuse.
 - **Scope:** Items marked removable by `06-duplicate-elimination.md`.
@@ -285,6 +301,8 @@ removal checks in `06-duplicate-elimination.md` pass.
 
 ## Batch 14: AI Pack and Final Release Gate
 
+- **Status:** `READY` on 2026-07-14. The current duplicate inventory has no
+  unexplained application implementation; retained adapters have removal gates.
 - **Objective:** Refresh AI context from the accepted source and validate the
   whole deterministic repository.
 - **Scope:** `07-ai-content-pack.md` and `08-validation-and-release.md`.
@@ -300,4 +318,3 @@ removal checks in `06-duplicate-elimination.md` pass.
 - **Risks:** Broad checks may expose unrelated pre-existing failures.
 - **Complete when:** All completion criteria are evidenced, or remaining failures
   are unchanged pre-existing issues explicitly accepted by the operator.
-

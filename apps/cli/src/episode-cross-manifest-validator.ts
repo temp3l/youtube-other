@@ -20,7 +20,7 @@ import { z } from "zod";
 
 const hashSchema = z.string().regex(/^[a-f0-9]{64}$/iu);
 const variantSchema = z.enum(["full", "short"]);
-const languageSchema = z.enum(["en", "de", "es", "fr"]);
+const languageSchema = z.enum(["en", "de", "es", "fr", "pt"]);
 
 const sourceMetadataSchema = z
   .object({
@@ -204,7 +204,7 @@ export interface CrossManifestSourceIdentity {
 export interface CrossManifestValidationInput {
   readonly episodeDir: string;
   readonly episodeSlug: string;
-  readonly language: "en" | "de" | "es" | "fr";
+  readonly language: "en" | "de" | "es" | "fr" | "pt";
   readonly variant: "full" | "short";
   readonly generationManifestPath: string;
   readonly expectedSource?: CrossManifestSourceIdentity;

@@ -8,6 +8,7 @@ const nodeGlobals = {
 
 const typescriptRules = {
   ...tseslint.configs.recommended[0].rules,
+  "no-undef": "off",
   "no-unused-vars": "off",
   "@typescript-eslint/no-unused-vars": "off",
   "@typescript-eslint/no-explicit-any": "off",

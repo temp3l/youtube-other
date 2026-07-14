@@ -47,6 +47,18 @@ export {
   type PublishYoutubeMediaInput,
   type YoutubeMediaClient,
 } from "./generic-media-publish.js";
+export {
+  PUBLISH_APPROVAL_SCHEMA_VERSION,
+  PublishApprovalError,
+  approvePublishDryRun,
+  assertCurrentPublishApproval,
+  createPublishDryRunEvidence,
+  publishApprovalSchema,
+  publishDryRunEvidenceSchema,
+  type PublishApproval,
+  type PublishDryRunEvidence,
+  type PublishDryRunInput,
+} from "./publish-approval.js";
 
 const uploadStatusSchema = z.enum(["planned", "uploaded", "failed", "skipped"]);
 const privacyStatusSchema = z.enum(["private", "public", "unlisted"]);

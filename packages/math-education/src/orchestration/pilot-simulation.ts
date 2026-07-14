@@ -8,7 +8,10 @@ import {
   buildLessonVariant,
 } from "../lesson/variant-builder.js";
 import { validateVariantDifferentiation } from "../lesson/lesson-validator.js";
-import { createMetadataTimingEvidence, createTimingManifest } from "../lesson/timing.js";
+import {
+  createMetadataTimingEvidence,
+  createTimingManifest,
+} from "../lesson/timing.js";
 import { localizeNarration } from "../localization/localization.js";
 import {
   assertLocalizedDisplayVerification,
@@ -24,7 +27,11 @@ import {
   mathPlaylistCatalog,
   MATH_PLAYLIST_CATALOG_VERSION,
 } from "../metadata/math-metadata.js";
-import { deriveMathQuality, qualityCheck, mathQualityReportSchema } from "./quality-gate.js";
+import {
+  deriveMathQuality,
+  qualityCheck,
+  mathQualityReportSchema,
+} from "./quality-gate.js";
 import {
   createVerifierRequest,
   SympyVerifierAdapter,
@@ -55,6 +62,7 @@ import {
 export interface PilotSimulationOptions {
   workspaceDir: string;
   repositoryRoot: string;
+  curriculumRoot?: string;
   skillId?: string;
   variant?: LessonVariant;
   languages?: readonly MathLanguage[];
@@ -83,7 +91,8 @@ async function runPilotSimulationUnlocked(
   const variant = options.variant ?? "standard";
   const languages = options.languages ?? MATH_LANGUAGES;
   const curriculum = await loadCurriculumRelease(
-    path.join(repositoryRoot, "packages/math-education/data/curriculum/v1")
+    options.curriculumRoot ??
+      path.join(repositoryRoot, "packages/math-education/data/curriculum/v1")
   );
   const skill = curriculum.skills.find((item) => item.skillId === skillId);
   if (!skill) throw new Error(`Unknown skill: ${skillId}`);
@@ -132,7 +141,8 @@ async function runPilotSimulationUnlocked(
       ...(MATH_STAGES.indexOf(stage) >= MATH_STAGES.indexOf("localization")
         ? { localeFingerprint }
         : {}),
-      ...(MATH_STAGES.indexOf(stage) >= MATH_STAGES.indexOf("metadata-playlists")
+      ...(MATH_STAGES.indexOf(stage) >=
+      MATH_STAGES.indexOf("metadata-playlists")
         ? {
             metadataVersion: "math-metadata.v2",
             playlistCatalogVersion: MATH_PLAYLIST_CATALOG_VERSION,
@@ -370,23 +380,76 @@ async function runPilotSimulationUnlocked(
       "math-playlist-catalog.v1"
     );
   }
-  const evidenceHash = (label: string) => canonicalHash({ lessonId: lesson.lessonId, label });
+  const evidenceHash = (label: string) =>
+    canonicalHash({ lessonId: lesson.lessonId, label });
   const quality = deriveMathQuality({
     contractVersion: "math-quality-contract.v2",
     lessonId: lesson.lessonId,
     selectedLocales: [...languages],
     checks: [
-      qualityCheck({ checkId: "curriculum", ready: curriculum.readyForProduction, evidenceHash: evidenceHash("curriculum"), message: "Reviewed curriculum evidence." }),
-      qualityCheck({ checkId: "mathematics", ready: verification.status === "passed", evidenceHash: evidenceHash("mathematics"), message: "Independent mathematical verification evidence." }),
-      qualityCheck({ checkId: "localization", ready: true, evidenceHash: evidenceHash("localization"), assessedLocales: languages, message: "Every selected locale has locked, verified evidence." }),
-      qualityCheck({ checkId: "timing", ready: true, evidenceHash: evidenceHash("timing"), message: "Selected locale timelines are valid." }),
-      qualityCheck({ checkId: "audio", ready: false, message: "Simulation skipped final audio generation and QA." }),
-      qualityCheck({ checkId: "render", ready: false, message: "Simulation skipped final MP4 rendering." }),
-      qualityCheck({ checkId: "media-qa-packet", ready: false, message: "Simulation has no validated media-QA packet." }),
-      qualityCheck({ checkId: "final-media", ready: false, message: "No schema- and hash-valid final media QA evidence exists." }),
-      qualityCheck({ checkId: "publish-packet", ready: false, message: "No final media, approved teacher thumbnail, brand policy, or strict publish preflight exists." }),
-      qualityCheck({ checkId: "content-review", ready: true, evidenceHash: evidenceHash("content-review"), message: "No revision blocker was recorded." }),
-      qualityCheck({ checkId: "minor-edit-review", ready: true, evidenceHash: evidenceHash("minor-edit-review"), message: "No minor-edit condition was recorded." }),
+      qualityCheck({
+        checkId: "curriculum",
+        ready: curriculum.readyForProduction,
+        evidenceHash: evidenceHash("curriculum"),
+        message: "Reviewed curriculum evidence.",
+      }),
+      qualityCheck({
+        checkId: "mathematics",
+        ready: verification.status === "passed",
+        evidenceHash: evidenceHash("mathematics"),
+        message: "Independent mathematical verification evidence.",
+      }),
+      qualityCheck({
+        checkId: "localization",
+        ready: true,
+        evidenceHash: evidenceHash("localization"),
+        assessedLocales: languages,
+        message: "Every selected locale has locked, verified evidence.",
+      }),
+      qualityCheck({
+        checkId: "timing",
+        ready: true,
+        evidenceHash: evidenceHash("timing"),
+        message: "Selected locale timelines are valid.",
+      }),
+      qualityCheck({
+        checkId: "audio",
+        ready: false,
+        message: "Simulation skipped final audio generation and QA.",
+      }),
+      qualityCheck({
+        checkId: "render",
+        ready: false,
+        message: "Simulation skipped final MP4 rendering.",
+      }),
+      qualityCheck({
+        checkId: "media-qa-packet",
+        ready: false,
+        message: "Simulation has no validated media-QA packet.",
+      }),
+      qualityCheck({
+        checkId: "final-media",
+        ready: false,
+        message: "No schema- and hash-valid final media QA evidence exists.",
+      }),
+      qualityCheck({
+        checkId: "publish-packet",
+        ready: false,
+        message:
+          "No final media, approved teacher thumbnail, brand policy, or strict publish preflight exists.",
+      }),
+      qualityCheck({
+        checkId: "content-review",
+        ready: true,
+        evidenceHash: evidenceHash("content-review"),
+        message: "No revision blocker was recorded.",
+      }),
+      qualityCheck({
+        checkId: "minor-edit-review",
+        ready: true,
+        evidenceHash: evidenceHash("minor-edit-review"),
+        message: "No minor-edit condition was recorded.",
+      }),
     ],
   });
   await write(
@@ -403,15 +466,29 @@ async function runPilotSimulationUnlocked(
     outputs.map(({ relativePath, stage, schemaVersion }) => {
       const producer =
         stage === "lesson-spec" && schemaVersion === "lesson-spec.v1"
-          ? { producer: "lesson-specification-builder", producerVersion: "reviewed-fixtures.v1" }
-          : stage === "math-verification" && schemaVersion === "math-verifier.v3"
+          ? {
+              producer: "lesson-specification-builder",
+              producerVersion: "reviewed-fixtures.v1",
+            }
+          : stage === "math-verification" &&
+              schemaVersion === "math-verifier.v3"
             ? { producer: "sympy-verifier-adapter", producerVersion: "3.0.0" }
             : stage === "localization" && schemaVersion === "math-narration.v2"
-              ? { producer: "locked-fact-localizer", producerVersion: "locked-facts.v2" }
+              ? {
+                  producer: "locked-fact-localizer",
+                  producerVersion: "locked-facts.v2",
+                }
               : stage === "localization" && schemaVersion === "math-verifier.v3"
-                ? { producer: "sympy-verifier-adapter", producerVersion: "3.0.0" }
-                : stage === "metadata-playlists" && schemaVersion === "math-metadata.v2"
-                  ? { producer: "math-metadata-generator", producerVersion: "math-metadata-generator.v3" }
+                ? {
+                    producer: "sympy-verifier-adapter",
+                    producerVersion: "3.0.0",
+                  }
+                : stage === "metadata-playlists" &&
+                    schemaVersion === "math-metadata.v2"
+                  ? {
+                      producer: "math-metadata-generator",
+                      producerVersion: "math-metadata-generator.v3",
+                    }
                   : {};
       return createArtifactLineage({
         root: lessonRoot,

@@ -27,6 +27,7 @@ import {
   generateUploadMetadataForEpisode,
   uploadYoutubeEpisode,
   type YoutubeAuthSettings,
+  type YoutubeUploadCommandInput,
 } from "./index.js";
 
 function createWorkspace(): string {

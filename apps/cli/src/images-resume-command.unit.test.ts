@@ -10,6 +10,9 @@ let workspaceDir = "";
 const imageGenerationMocks = vi.hoisted(() => ({
   generateEpisodeImages: vi.fn(),
 }));
+const storyLocalizationMocks = vi.hoisted(() => ({
+  assertScriptScoreGate: vi.fn(),
+}));
 
 vi.mock("@mediaforge/config", () => ({
   loadRuntimeConfig: vi.fn(async () => ({
@@ -24,6 +27,16 @@ vi.mock("@mediaforge/image-generation", async () => {
   return {
     ...actual,
     generateEpisodeImages: imageGenerationMocks.generateEpisodeImages,
+  };
+});
+
+vi.mock("@mediaforge/story-localization", async () => {
+  const actual = await vi.importActual<typeof import("@mediaforge/story-localization")>(
+    "@mediaforge/story-localization"
+  );
+  return {
+    ...actual,
+    assertScriptScoreGate: storyLocalizationMocks.assertScriptScoreGate,
   };
 });
 
@@ -71,6 +84,8 @@ describe("images resume command", () => {
     workspaceDir = mkdtempSync(path.join(os.tmpdir(), "mediaforge-images-resume-"));
     imageGenerationMocks.generateEpisodeImages.mockReset();
     imageGenerationMocks.generateEpisodeImages.mockResolvedValue([]);
+    storyLocalizationMocks.assertScriptScoreGate.mockReset();
+    storyLocalizationMocks.assertScriptScoreGate.mockResolvedValue(undefined);
   });
 
   it("registers the resume command with concurrency and bootstrap options", () => {
@@ -185,6 +200,12 @@ describe("images resume command", () => {
     }
 
     expect(imageGenerationMocks.generateEpisodeImages).toHaveBeenCalledTimes(1);
+    expect(storyLocalizationMocks.assertScriptScoreGate).toHaveBeenCalledWith({
+      outputRoot: workspaceDir,
+      episode: "011-the-black-eyed-children",
+      locale: "en",
+      format: "full",
+    });
     expect(imageGenerationMocks.generateEpisodeImages.mock.calls[0]?.[0]).toBe(
       episodeDir
     );

@@ -19,6 +19,7 @@
     "@mediaforge/speech": "workspace:*",
     "@mediaforge/story-localization": "workspace:*",
     "@mediaforge/visual-planning": "workspace:*",
+    "@mediaforge/workflow-engine": "workspace:*",
     "zod": "^4.0.14"
   }
 }

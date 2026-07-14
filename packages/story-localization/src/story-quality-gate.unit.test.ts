@@ -135,6 +135,29 @@ describe("story quality gate", () => {
     expect(result.deterministicFixes).toContain("repair-german-compounds");
   });
 
+  it("recognizes concrete hooks and emotional cost in localized German shorts", () => {
+    const text = [
+      "Die Puppe atmete hinter der verschlossenen Dachbodentür.",
+      "Lena öffnete die Tür und sah ihre nassen Hände auf dem Glas.",
+      "Ihr Name stand im Spiegel.",
+      "Sie verbrannte das Kleid im Waschbecken.",
+      "Damit opferte Lena das letzte Geschenk ihres geliebten Bruders.",
+      "Das letzte Foto auf der Treppe zeigte die Puppe hinter ihm.",
+    ].join(" ");
+    const result = runStoryQualityGate({
+      artifactKind: "short",
+      language: "de",
+      text,
+      facts: episode034Facts,
+      budget: { artifactKind: "short", language: "de", model: "fixture" },
+    });
+    const codes = result.findings.map((entry) => entry.code);
+
+    expect(codes).not.toContain("CONCRETE_DETAIL_DENSITY_LOW");
+    expect(codes).not.toContain("EMOTIONAL_COST_MISSING");
+    expect(codes).not.toContain("SHORT_CONCRETE_HOOK_MISSING");
+  });
+
   it("extracts concrete Episode 027 facts instead of title or scaffold text", () => {
     const facts = extractCanonicalStoryFacts(episode027Parsed());
     expect(facts.protagonistNames).toContain("Noah Brooks");

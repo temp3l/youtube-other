@@ -1,0 +1,120 @@
+{
+  "schemaVersion": "mediaforge.ai-pack-source-index.v1",
+  "generatorVersion": "mediaforge.ai-pack-generator.v1",
+  "concepts": [
+    {
+      "concept": "ai-pack-generator",
+      "source": "scripts/ai-pack.mjs",
+      "sourceSha256": "20cc69ab91ea18d39c3fcdc3401515229ca206afc5713075dd9e914192dbb1dc",
+      "symbols": [
+        "async function build()",
+        "async function validatePack"
+      ]
+    },
+    {
+      "concept": "artifact-repository",
+      "source": "packages/workflow-engine/src/artifact-repository.ts",
+      "sourceSha256": "12c6a8f966f9525f53733cccab78b156e792bef6d694c1852705b453e6e08a1f",
+      "symbols": [
+        "class ArtifactRepository"
+      ]
+    },
+    {
+      "concept": "batch",
+      "source": "packages/workflow-engine/src/batch.ts",
+      "sourceSha256": "7fd37f98d961a52de713a4b7aec58401e814a4e615e6c4b85c6de05f402934f0",
+      "symbols": [
+        "class BatchCoordinator"
+      ]
+    },
+    {
+      "concept": "cache",
+      "source": "packages/workflow-engine/src/cache.ts",
+      "sourceSha256": "3fd4e94ff589008d9a05e435ea0ba66874a7fe78ea790615008330017115adaf",
+      "symbols": [
+        "buildTaskFingerprint",
+        "planCachePrune"
+      ]
+    },
+    {
+      "concept": "cli-bootstrap",
+      "source": "apps/cli/src/index.ts",
+      "sourceSha256": "0198dcb5fa5d8f3b8144ec901e15b475ed404d80bd167f1175380906421d4c2a",
+      "symbols": [
+        "registerWorkflowCommands(program)"
+      ]
+    },
+    {
+      "concept": "darktruth-profile",
+      "source": "packages/dark-truth/src/task-registry.ts",
+      "sourceSha256": "cadab3a02b2071457c0eba6682e705ddc66a3f2a8e78ddb4120dc799f6a64c55",
+      "symbols": [
+        "darkTruthWorkflowDefinition"
+      ]
+    },
+    {
+      "concept": "errors",
+      "source": "packages/workflow-engine/src/workflow-errors.ts",
+      "sourceSha256": "c24e3460e1ca1f33746d55ea01259501f490eebb25c4d031f7dc7206b5848b4c",
+      "symbols": [
+        "normalizeWorkflowError"
+      ]
+    },
+    {
+      "concept": "image-provider",
+      "source": "packages/image-generation/src/openai-image.ts",
+      "sourceSha256": "8de9962f3b892a62a807671e355065b9d1d31ac4a0cee6ea16f3dcd28a6372bb",
+      "symbols": [
+        "generateOpenAiSceneImages"
+      ]
+    },
+    {
+      "concept": "mathematics-profile",
+      "source": "packages/math-education/src/task-registry.ts",
+      "sourceSha256": "62696395d9e4d8eb04959580ca6081de874472242a93aaa9c2b1fdb957bd28a7",
+      "symbols": [
+        "mathWorkflowDefinition"
+      ]
+    },
+    {
+      "concept": "observability",
+      "source": "packages/workflow-engine/src/attempt-observability.ts",
+      "sourceSha256": "6fd622bad478c9b24a566330b41ff95bb669e312ae8828018712fb351ab0506d",
+      "symbols": [
+        "class AttemptObservabilityStore"
+      ]
+    },
+    {
+      "concept": "publishing",
+      "source": "packages/youtube-upload/src/publish-approval.ts",
+      "sourceSha256": "1d9c740bd2ca7d5330b84b5d945c18b3bfcfb7107bb1fb9132d42970c04a249b",
+      "symbols": [
+        "assertCurrentPublishApproval"
+      ]
+    },
+    {
+      "concept": "task-registry",
+      "source": "packages/workflow-engine/src/task-registry.ts",
+      "sourceSha256": "d905028b7443f93296c527cf1a380bb3598caaeb4cb3e5eb258438b26b1a2f32",
+      "symbols": [
+        "createTaskRegistry"
+      ]
+    },
+    {
+      "concept": "workflow-operator",
+      "source": "packages/workflow-engine/src/workflow-operator.ts",
+      "sourceSha256": "a066ee28acf5d45f0e78104193ec6f4a91a99a1c8efbddf997ee11a19c6e1615",
+      "symbols": [
+        "class WorkflowOperator"
+      ]
+    },
+    {
+      "concept": "workflow-state",
+      "source": "packages/workflow-engine/src/workflow-store.ts",
+      "sourceSha256": "153733029fea540fa5ac9a994e04afdd706819b6a091a279b4e42ca8513b6ce8",
+      "symbols": [
+        "class WorkflowStore"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,302 @@
+{
+  "schemaVersion": "mediaforge.ai-pack-manifest.v1",
+  "generatorVersion": "mediaforge.ai-pack-generator.v1",
+  "generatedAt": "2026-07-14T11:57:13.000Z",
+  "repository": {
+    "revision": "2197009156ed909d8a4e61757ef7554bcab49770",
+    "dirty": true
+  },
+  "sourceConfiguration": {
+    "path": "docs/ai-context/sources.json",
+    "sizeBytes": 6428,
+    "sha256": "0dac25094f909eea9930e5eb91902a971cb3c515c831e2a4ba914321faac86e0"
+  },
+  "packFiles": [
+    {
+      "path": "00-project-overview.md",
+      "sizeBytes": 6423,
+      "sha256": "8d87bfb3c74a467b6c5740a17c05e156422d8c09dee8fee1b277dd2cfaa2303e"
+    },
+    {
+      "path": "01-architecture.md",
+      "sizeBytes": 10892,
+      "sha256": "1eeb3b92110164ac575b34e4d1436da7ed22324e9725e0d8605398efae97fda3"
+    },
+    {
+      "path": "02-domain-model.md",
+      "sizeBytes": 32463,
+      "sha256": "4dcd956021a4ee6b885c59b1de1358277643b453db454f48cec089eb63abab9c"
+    },
+    {
+      "path": "03-cli-workflows.md",
+      "sizeBytes": 10892,
+      "sha256": "1eeb3b92110164ac575b34e4d1436da7ed22324e9725e0d8605398efae97fda3"
+    },
+    {
+      "path": "04-pipeline-map.md",
+      "sizeBytes": 17854,
+      "sha256": "35ec5e02fcfbf0437263add6848dd7d769d281e0f6c7e667ee1d84f639608c23"
+    },
+    {
+      "path": "05-important-paths.md",
+      "sizeBytes": 5233,
+      "sha256": "b0dd3c86442fb9237fc520b1fbf0c8603d8210527d2febdd6857faade60e65dc"
+    },
+    {
+      "path": "06-testing-and-verification.md",
+      "sizeBytes": 3875,
+      "sha256": "122fdd5f84c8bc6fff16417e8cd3502f03d2cce0e5d96ba08851fb5b241eb155"
+    },
+    {
+      "path": "07-known-risks-and-open-tasks.md",
+      "sizeBytes": 6253,
+      "sha256": "a9cee78436ef5cd66f2ddc90bb83258594aa08fc093772d4270006067920bf2b"
+    },
+    {
+      "path": "08-codex-prompting-rules.md",
+      "sizeBytes": 5794,
+      "sha256": "c9f00f8d5b2f5420d662bdf05595c744e540f07cdcc2cc803fff153dc471dd33"
+    },
+    {
+      "path": "README.md",
+      "sizeBytes": 1229,
+      "sha256": "c019ed2dbafb783aa07a13cad726d8beb9529d04a10bada1efe712e3e5ce5081"
+    },
+    {
+      "path": "architecture/target-architecture.md",
+      "sizeBytes": 10892,
+      "sha256": "1eeb3b92110164ac575b34e4d1436da7ed22324e9725e0d8605398efae97fda3"
+    },
+    {
+      "path": "cli/commands.md",
+      "sizeBytes": 10892,
+      "sha256": "1eeb3b92110164ac575b34e4d1436da7ed22324e9725e0d8605398efae97fda3"
+    },
+    {
+      "path": "context-pack.md",
+      "sizeBytes": 515,
+      "sha256": "6e14513e70657b1a631904cfe906e37c4db6f4995fd8545c56dc95e38cb37ab5"
+    },
+    {
+      "path": "darktruth/profile.md",
+      "sizeBytes": 6593,
+      "sha256": "b82731b9809d5cd9309461e9772fca870e90863ddbe64178fb0f7d1d03e5593a"
+    },
+    {
+      "path": "mathematics/profile.md",
+      "sizeBytes": 5848,
+      "sha256": "87a0aa52e5599d0804c3808ce04d6bdf4bda5c69e1fdfcbfcebe9b322abe25d4"
+    },
+    {
+      "path": "migration/compatibility.md",
+      "sizeBytes": 5233,
+      "sha256": "b0dd3c86442fb9237fc520b1fbf0c8603d8210527d2febdd6857faade60e65dc"
+    },
+    {
+      "path": "operations/duplicate-elimination.md",
+      "sizeBytes": 4911,
+      "sha256": "3af406fbd7a5ce8a39f6410054aa6aca21384fa91329fc64317d786ccbf5b00e"
+    },
+    {
+      "path": "profiles/overview.md",
+      "sizeBytes": 17854,
+      "sha256": "35ec5e02fcfbf0437263add6848dd7d769d281e0f6c7e667ee1d84f639608c23"
+    },
+    {
+      "path": "repository-map.md",
+      "sizeBytes": 6423,
+      "sha256": "8d87bfb3c74a467b6c5740a17c05e156422d8c09dee8fee1b277dd2cfaa2303e"
+    },
+    {
+      "path": "schemas/workflow-contracts.ts",
+      "sizeBytes": 32463,
+      "sha256": "4dcd956021a4ee6b885c59b1de1358277643b453db454f48cec089eb63abab9c"
+    },
+    {
+      "path": "source-index.json",
+      "sizeBytes": 3848,
+      "sha256": "bf0f758cc4e86a85e089dc61e6c2aeb0ef61dc5e786ee291e361ff7a93e3738f"
+    },
+    {
+      "path": "testing/release-validation.md",
+      "sizeBytes": 5234,
+      "sha256": "e54489bb1389abd7044dfe3bc17cdb9fcbdecfc188ad82e1a3e728de79b5893b"
+    }
+  ],
+  "sources": [
+    {
+      "path": "AGENTS.md",
+      "sizeBytes": 5833,
+      "sha256": "69e93c5285d75b4478fabbb23b5e36c29b8c735bbaa745b1983583e6454ce29a"
+    },
+    {
+      "path": "apps/cli/src/index.ts",
+      "sizeBytes": 161664,
+      "sha256": "0198dcb5fa5d8f3b8144ec901e15b475ed404d80bd167f1175380906421d4c2a"
+    },
+    {
+      "path": "docs/development/codex-verification-guardrails.md",
+      "sizeBytes": 3687,
+      "sha256": "154e42106097514624d64e3b41ab06fa436a855295565e1c71cb0088be4ec656"
+    },
+    {
+      "path": "docs/refactor/01-target-architecture.md",
+      "sizeBytes": 10715,
+      "sha256": "553793166f97446b8e4212b9fad8391abb698bddbd78d6fb3598e4f6ff637b6c"
+    },
+    {
+      "path": "docs/refactor/02-safe-implementation-batches.md",
+      "sizeBytes": 17668,
+      "sha256": "ad8da60d1751f24f50f94737d02e4dd4232ad84dda4da6a573f6b3d7ffb0cfcf"
+    },
+    {
+      "path": "docs/refactor/03-compatibility-and-migration.md",
+      "sizeBytes": 5048,
+      "sha256": "23b84c948efeccc0a9c5fe4c3841aa23bdb6639bcc5c9a8cbeddd3799072bfdc"
+    },
+    {
+      "path": "docs/refactor/04-darktruth-profile.md",
+      "sizeBytes": 6418,
+      "sha256": "8f40fbec5917bdd053921671d84536eafd762a85619ae60504ccee3ad519a055"
+    },
+    {
+      "path": "docs/refactor/05-mathematics-profile.md",
+      "sizeBytes": 5671,
+      "sha256": "bd2bfcda666e2ef640032250feaf0ed09ff2b390c230d9c5c6c05be3b4a97356"
+    },
+    {
+      "path": "docs/refactor/06-duplicate-elimination.md",
+      "sizeBytes": 4732,
+      "sha256": "9e8a02d478e5dda9b0696c1a09d06aa3bcca30e10d30d14685121f8398275cec"
+    },
+    {
+      "path": "docs/refactor/08-validation-and-release.md",
+      "sizeBytes": 5054,
+      "sha256": "9eb18d298913f718b8501ae05271a2fa10dc1089e270c201a80bf29c63f94d65"
+    },
+    {
+      "path": "docs/refactor/audit/07-batch-13-current-duplicate-inventory.md",
+      "sizeBytes": 6052,
+      "sha256": "bcd1e3712af82861cd670039c7fce0aa5e76d17594d4747a3edeb725e320ba1d"
+    },
+    {
+      "path": "docs/refactor/README.md",
+      "sizeBytes": 6317,
+      "sha256": "71b82c32bb0837f49195ba3a987106ced32237fc40e960cf4bef2d9570ee1f95"
+    },
+    {
+      "path": "packages/dark-truth/src/task-registry.ts",
+      "sizeBytes": 20674,
+      "sha256": "cadab3a02b2071457c0eba6682e705ddc66a3f2a8e78ddb4120dc799f6a64c55"
+    },
+    {
+      "path": "packages/domain/src/workflow-contracts.ts",
+      "sizeBytes": 32283,
+      "sha256": "4a2b864b5314eeccd259bd4cb60e8fc6176aeb7d7d92264313f4652e68522611"
+    },
+    {
+      "path": "packages/image-generation/src/openai-image.ts",
+      "sizeBytes": 35639,
+      "sha256": "8de9962f3b892a62a807671e355065b9d1d31ac4a0cee6ea16f3dcd28a6372bb"
+    },
+    {
+      "path": "packages/math-education/src/task-registry.ts",
+      "sizeBytes": 14073,
+      "sha256": "62696395d9e4d8eb04959580ca6081de874472242a93aaa9c2b1fdb957bd28a7"
+    },
+    {
+      "path": "packages/workflow-engine/src/artifact-repository.ts",
+      "sizeBytes": 28142,
+      "sha256": "12c6a8f966f9525f53733cccab78b156e792bef6d694c1852705b453e6e08a1f"
+    },
+    {
+      "path": "packages/workflow-engine/src/attempt-observability.ts",
+      "sizeBytes": 2841,
+      "sha256": "6fd622bad478c9b24a566330b41ff95bb669e312ae8828018712fb351ab0506d"
+    },
+    {
+      "path": "packages/workflow-engine/src/batch.ts",
+      "sizeBytes": 18841,
+      "sha256": "7fd37f98d961a52de713a4b7aec58401e814a4e615e6c4b85c6de05f402934f0"
+    },
+    {
+      "path": "packages/workflow-engine/src/cache.ts",
+      "sizeBytes": 18160,
+      "sha256": "3fd4e94ff589008d9a05e435ea0ba66874a7fe78ea790615008330017115adaf"
+    },
+    {
+      "path": "packages/workflow-engine/src/task-registry.ts",
+      "sizeBytes": 18470,
+      "sha256": "d905028b7443f93296c527cf1a380bb3598caaeb4cb3e5eb258438b26b1a2f32"
+    },
+    {
+      "path": "packages/workflow-engine/src/workflow-errors.ts",
+      "sizeBytes": 7956,
+      "sha256": "c24e3460e1ca1f33746d55ea01259501f490eebb25c4d031f7dc7206b5848b4c"
+    },
+    {
+      "path": "packages/workflow-engine/src/workflow-operator.ts",
+      "sizeBytes": 29782,
+      "sha256": "a066ee28acf5d45f0e78104193ec6f4a91a99a1c8efbddf997ee11a19c6e1615"
+    },
+    {
+      "path": "packages/workflow-engine/src/workflow-store.ts",
+      "sizeBytes": 57508,
+      "sha256": "153733029fea540fa5ac9a994e04afdd706819b6a091a279b4e42ca8513b6ce8"
+    },
+    {
+      "path": "packages/youtube-upload/src/publish-approval.ts",
+      "sizeBytes": 6265,
+      "sha256": "1d9c740bd2ca7d5330b84b5d945c18b3bfcfb7107bb1fb9132d42970c04a249b"
+    },
+    {
+      "path": "scripts/ai-pack.mjs",
+      "sizeBytes": 17710,
+      "sha256": "20cc69ab91ea18d39c3fcdc3401515229ca206afc5713075dd9e914192dbb1dc"
+    }
+  ],
+  "exclusions": [
+    {
+      "pattern": "node_modules/",
+      "reason": "dependencies"
+    },
+    {
+      "pattern": "dist/",
+      "reason": "generated build output"
+    },
+    {
+      "pattern": "episodes/**/output/",
+      "reason": "production media"
+    },
+    {
+      "pattern": "episodes/**/state/",
+      "reason": "production state and provider payloads"
+    },
+    {
+      "pattern": ".env*",
+      "reason": "credentials"
+    }
+  ],
+  "requiredSections": [
+    "architecture",
+    "cli",
+    "profiles",
+    "darktruth",
+    "mathematics",
+    "schemas",
+    "operations",
+    "testing",
+    "migration"
+  ],
+  "limits": {
+    "sourceFileBytes": 250000,
+    "packFileBytes": 300000,
+    "totalPackBytes": 1800000
+  },
+  "totalPackBytes": 211614,
+  "variableFields": [],
+  "knownLimitations": [
+    "Retained compatibility adapters are indexed in the Batch 13 duplicate inventory."
+  ],
+  "unresolvedSourceMappings": []
+}

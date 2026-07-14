@@ -83,9 +83,16 @@ import {
   type VisualMotionPreset,
 } from "@mediaforge/visual-planning";
 
+export * from "./task-registry.js";
+export * from "./profile-contracts.js";
+export * from "./profile-store.js";
+export * from "./profile-quality.js";
+export * from "./profile-fixture.js";
+export * from "./profile-bindings.js";
+
 export type SpeechVoicePreset = "slow" | "fast" | "very-fast";
 
-export const supportedLanguages = ["en", "de", "es", "fr"] as const;
+export const supportedLanguages = ["en", "de", "es", "fr", "pt"] as const;
 export type SupportedLanguage = (typeof supportedLanguages)[number];
 
 export const supportedArtifactTypes = ["full", "short"] as const;

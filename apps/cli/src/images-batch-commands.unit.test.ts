@@ -45,7 +45,10 @@ function makeDeps() {
         {
           storagePlan: { localBatchId: "imgb-001" },
           referencePlans: [],
-          scenePlans: [{}, {}],
+          scenePlans: [
+            { manifestItem: { localCacheState: "miss" } },
+            { manifestItem: { localCacheState: "miss" } },
+          ],
         },
       ],
       stagePreviews: [
@@ -80,7 +83,7 @@ function makeDeps() {
         {
           storagePlan: { localBatchId: "imgb-short-001" },
           referencePlans: [],
-          scenePlans: [{}],
+          scenePlans: [{ manifestItem: { localCacheState: "miss" } }],
         },
       ],
       stagePreviews: [

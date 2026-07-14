@@ -1,6 +1,7 @@
 import fs from "node:fs/promises";
 import { createMathCorrelationId } from "@mediaforge/observability";
 import { writeJsonAtomic } from "@mediaforge/shared";
+import { writeLegacyBatchSidecar } from "@mediaforge/workflow-engine";
 import { z } from "zod";
 import {
   lessonVariantSchema,
@@ -146,8 +147,15 @@ export async function runMathBatch(
     );
     const persist = async (running: boolean) => {
       const report = summarize(batchId, results, running);
-      if (normalized.checkpointPath)
+      if (normalized.checkpointPath) {
         await writeJsonAtomic(normalized.checkpointPath, report);
+        await writeLegacyBatchSidecar({
+          family: "math",
+          legacyManifestPath: normalized.checkpointPath,
+          manifest: report,
+          configuration: { concurrency: 1, retryLimit: retryBudget },
+        });
+      }
       return report;
     };
     for (let index = 0; index < results.length; index += 1) {

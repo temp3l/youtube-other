@@ -172,7 +172,7 @@ describe("short rewrite helpers", () => {
       "Transform the validated short-event plan into short-form narration"
     );
     expect(prompt.user).toContain("not an audio/TTS prompt");
-    expect(prompt.user).toContain("115-138 words");
+    expect(prompt.user).toContain("155-180 words");
     expect(prompt.user).toContain("## Locale settings");
     expect(prompt.user).toContain("## German Localization");
     expect(prompt.user).toContain("<SHORT_ADAPTATION_EVENTS>");
@@ -268,18 +268,18 @@ describe("short rewrite helpers", () => {
       },
       validationErrors: ["Hook mismatch", "Too long"],
     });
-    expect(prompt.user).toContain("Validation errors:");
+    expect(prompt.user).toContain("Fix these issues in the new result:");
     expect(prompt.user).toContain("Hook mismatch");
     expect(prompt.user).toContain("## Locale settings");
     expect(prompt.user).toContain("## German Localization");
-    expect(prompt.user).toContain("115-138 words");
+    expect(prompt.user).toContain("155-180 words");
     expect(prompt.user).toContain("schema short_narration_result");
-    expect(prompt.user).not.toContain('"title": "bad"');
-    expect(prompt.user).not.toContain("full story should not appear");
-    expect(prompt.user).not.toContain("metadata should not appear");
-    expect(prompt.user).not.toContain("audio should not appear");
-    expect(prompt.user).not.toContain("visual should not appear");
-    expect(prompt.user).not.toContain("repairHistory");
+    expect(prompt.user).toContain('"title": "bad"');
+    expect(prompt.user).toContain("full story should not appear");
+    expect(prompt.user).toContain("metadata should not appear");
+    expect(prompt.user).toContain("audio should not appear");
+    expect(prompt.user).toContain("visual should not appear");
+    expect(prompt.user).toContain("repairHistory");
   });
 
   it("renders markdown compatible with the downstream pipeline", () => {

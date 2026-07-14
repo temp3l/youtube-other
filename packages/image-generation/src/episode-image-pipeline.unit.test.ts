@@ -170,8 +170,8 @@ async function loadMalformedSceneRegressionFixtures(): Promise<
 async function createImageBuffer(color: string): Promise<string> {
   return sharp({
     create: {
-      width: 8,
-      height: 8,
+      width: 1536,
+      height: 864,
       channels: 3,
       background: color,
     },
@@ -1111,7 +1111,10 @@ describe("episode image pipeline helpers", () => {
       { client: createMockClient(calls, await createImageBuffer("#446688")) }
     );
 
-    expect(calls.length).toBeGreaterThanOrEqual(8);
+    const generatedResults = result.filter((entry) => entry.status === "generated");
+    expect(generatedResults.length).toBeGreaterThan(0);
+    expect(calls).toHaveLength(generatedResults.length);
+    expect(calls.length).toBeLessThan(result.length);
     expect(result[result.length - 1]?.status).toBe("skipped");
 
     const sceneTenManifest = JSON.parse(
@@ -1138,8 +1141,13 @@ describe("episode image pipeline helpers", () => {
         "utf8"
       )
     ) as Record<string, unknown>;
+    expect(sceneNineManifest["status"]).toBe("generated");
+    expect(sceneTenManifest["status"]).toBe("generated");
     expect(sceneTenManifest["renderability"]).toBe("mergeWithPrevious");
     expect(sceneTenManifest["reusedFromSceneId"]).toBe("scene-009");
+    expect(sceneTenManifest["outputSha256"]).toBe(
+      sceneNineManifest["outputSha256"]
+    );
 
     const sceneOneOutput = path.join(
       episodeDir,
@@ -1210,10 +1218,16 @@ describe("episode image pipeline helpers", () => {
         entry.renderability === "mergeWithNext" ||
         entry.renderability === "skip"
     ).length;
-    expect(reusableCount).toBeLessThanOrEqual(1);
+    const expectedUniqueCount = Math.ceil(
+      plan.scenes.reduce(
+        (total, scene) => total + scene.estimatedDurationSeconds,
+        0
+      ) / 10
+    );
+    expect(reusableCount).toBe(plan.scenes.length - expectedUniqueCount);
     expect(
       result.filter((entry) => entry.renderability === "direct").length
-    ).toBeGreaterThan(0);
+    ).toBe(expectedUniqueCount);
     expect(result[0]).toMatchObject({
       variant: "full",
       language: "en",

@@ -63,7 +63,7 @@ describe("story markdown renderer", () => {
       "de"
     );
 
-    expect(markdown).toContain("Speak in natural German");
+    expect(markdown).toContain("In natürlichem Deutsch sprechen.");
     expect(markdown).not.toContain("Speak in natural English.");
     expect(markdown).toContain("**Word count:** 13");
     expect(markdown).toContain("**Estimated speech duration:** approximately 4 seconds");

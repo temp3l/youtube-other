@@ -20,6 +20,8 @@ const registerEpisodeCommandsMock = vi.hoisted(() => vi.fn());
 const registerShotsCommandsMock = vi.hoisted(() => vi.fn());
 const registerStoryLocalizationCommandsMock = vi.hoisted(() => vi.fn());
 const registerThumbnailCommandsMock = vi.hoisted(() => vi.fn());
+const registerWorkflowCommandsMock = vi.hoisted(() => vi.fn());
+const migrateProductionCommandCallersMock = vi.hoisted(() => vi.fn());
 const createExecutionTelemetryMock = vi.hoisted(() =>
   vi.fn(() => ({
     finalize: vi.fn(async () => undefined),
@@ -53,6 +55,16 @@ vi.mock("./story-localization-commands.js", () => ({
 vi.mock("./thumbnail-commands.js", () => ({
   registerThumbnailCommands: registerThumbnailCommandsMock,
 }));
+vi.mock("./workflow-commands.js", () => ({
+  WorkflowCliError: class WorkflowCliError extends Error {
+    public readonly exitCode = 5;
+    public readonly normalized = { code: "WORKFLOW_CONFLICT" };
+  },
+  registerWorkflowCommands: registerWorkflowCommandsMock,
+}));
+vi.mock("./production-caller-migration.js", () => ({
+  migrateProductionCommandCallers: migrateProductionCommandCallersMock,
+}));
 vi.mock("@mediaforge/observability", () => ({
   createExecutionTelemetry: createExecutionTelemetryMock,
   createLogger: createLoggerMock,
@@ -70,6 +82,8 @@ describe("CLI application setup", () => {
     registerShotsCommandsMock.mockReset();
     registerStoryLocalizationCommandsMock.mockReset();
     registerThumbnailCommandsMock.mockReset();
+    registerWorkflowCommandsMock.mockReset();
+    migrateProductionCommandCallersMock.mockReset();
     createExecutionTelemetryMock.mockClear();
     withExecutionTelemetryMock.mockClear();
     process.argv = ["node", "cli"];
@@ -94,6 +108,8 @@ describe("CLI application setup", () => {
       expect(registerShotsCommandsMock).toHaveBeenCalledTimes(1);
       expect(registerStoryLocalizationCommandsMock).toHaveBeenCalledTimes(1);
       expect(registerThumbnailCommandsMock).toHaveBeenCalledTimes(1);
+      expect(registerWorkflowCommandsMock).toHaveBeenCalledTimes(1);
+      expect(migrateProductionCommandCallersMock).toHaveBeenCalledTimes(1);
       expect(createExecutionTelemetryMock).toHaveBeenCalledTimes(1);
       expect(withExecutionTelemetryMock).toHaveBeenCalledTimes(1);
     },

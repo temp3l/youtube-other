@@ -21,11 +21,11 @@ describe("narration constraints", () => {
         maxSeconds: 65,
       },
       targetWordRange: {
-        min: 125,
-        target: 138,
-        max: 150,
+        min: 150,
+        target: 160,
+        max: 170,
       },
-      targetNarrationWpm: 138,
+      targetNarrationWpm: 160,
     });
     expect(
       resolveShortDurationProfile({

@@ -8,6 +8,10 @@ import {
   saveGenericYoutubePublishReport,
   type YoutubeMediaClient,
 } from "./generic-media-publish.js";
+import {
+  approvePublishDryRun,
+  createPublishDryRunEvidence,
+} from "./publish-approval.js";
 
 async function fixture() {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), "generic-youtube-"));
@@ -22,26 +26,35 @@ async function fixture() {
   return { mediaPath, thumbnailPath, metadataPath };
 }
 
-function client(options: {
-  channelId?: string;
-  failVideo?: boolean;
-  failThumbnail?: boolean;
-  failPlaylist?: string;
-  retryableFailure?: boolean;
-} = {}) {
+function client(
+  options: {
+    channelId?: string;
+    failVideo?: boolean;
+    failThumbnail?: boolean;
+    failPlaylist?: string;
+    retryableFailure?: boolean;
+  } = {}
+) {
   const playlistAttempts: string[] = [];
   const operations: string[] = [];
   const value: YoutubeMediaClient = {
-    channels: { list: vi.fn(async () => {
-      operations.push("channels.list");
-      return { data: { items: [{ id: options.channelId ?? "math-channel" }] } };
-    }) },
+    channels: {
+      list: vi.fn(async () => {
+        operations.push("channels.list");
+        return {
+          data: { items: [{ id: options.channelId ?? "math-channel" }] },
+        };
+      }),
+    },
     videos: {
       insert: vi.fn(async () => {
         operations.push("videos.insert");
         if (options.failVideo)
           throw Object.assign(new Error("upload interrupted"), {
-            response: { status: 400, data: { error: { errors: [{ reason: "badRequest" }] } } },
+            response: {
+              status: 400,
+              data: { error: { errors: [{ reason: "badRequest" }] } },
+            },
           });
         return { data: { id: "video-id" } };
       }),
@@ -50,28 +63,44 @@ function client(options: {
         return { data: { items: [{ id: "video-id" }] } };
       }),
     },
-    thumbnails: { set: vi.fn(async () => {
-      operations.push("thumbnails.set");
-      if (options.failThumbnail)
-        throw Object.assign(new Error("thumbnail interrupted"), {
-          response: options.retryableFailure
-            ? { status: 503, data: { error: { errors: [{ reason: "backendError" }] } } }
-            : { status: 400, data: { error: { errors: [{ reason: "invalidThumbnail" }] } } },
-        });
-      return {};
-    }) },
-    playlistItems: { insert: vi.fn(async (request: any) => {
-      const id = request.requestBody.snippet.playlistId as string;
-      operations.push(`playlistItems.insert:${id}`);
-      playlistAttempts.push(id);
-      if (id === options.failPlaylist)
-        throw Object.assign(new Error("denied"), {
-          response: options.retryableFailure
-            ? { status: 503, data: { error: { errors: [{ reason: "backendError" }] } } }
-            : { status: 403, data: { error: { errors: [{ reason: "forbidden" }] } } },
-        });
-      return { data: { id: `item-${id}` } };
-    }) },
+    thumbnails: {
+      set: vi.fn(async () => {
+        operations.push("thumbnails.set");
+        if (options.failThumbnail)
+          throw Object.assign(new Error("thumbnail interrupted"), {
+            response: options.retryableFailure
+              ? {
+                  status: 503,
+                  data: { error: { errors: [{ reason: "backendError" }] } },
+                }
+              : {
+                  status: 400,
+                  data: { error: { errors: [{ reason: "invalidThumbnail" }] } },
+                },
+          });
+        return {};
+      }),
+    },
+    playlistItems: {
+      insert: vi.fn(async (request: any) => {
+        const id = request.requestBody.snippet.playlistId as string;
+        operations.push(`playlistItems.insert:${id}`);
+        playlistAttempts.push(id);
+        if (id === options.failPlaylist)
+          throw Object.assign(new Error("denied"), {
+            response: options.retryableFailure
+              ? {
+                  status: 503,
+                  data: { error: { errors: [{ reason: "backendError" }] } },
+                }
+              : {
+                  status: 403,
+                  data: { error: { errors: [{ reason: "forbidden" }] } },
+                },
+          });
+        return { data: { id: `item-${id}` } };
+      }),
+    },
   };
   return { value, playlistAttempts, operations };
 }
@@ -79,30 +108,112 @@ function client(options: {
 async function input(overrides: Record<string, unknown> = {}) {
   const files = await fixture();
   const fake = client();
+  const value = {
+    ...files,
+    identity: { contentId: "lesson-1", language: "en", variant: "standard" },
+    channelId: "math-channel",
+    accountId: "math-account",
+    artifactRevisions: { media: "render-r1", thumbnail: "thumbnail-r1" },
+    metadataRevision: "metadata-r1",
+    policy: {
+      privacyStatus: "private",
+      madeForKids: false,
+      containsSyntheticMedia: true,
+    },
+    playlistIds: ["grade", "topic", "variant"],
+    metadata: {
+      title: "Math lesson",
+      description: "Description",
+      tags: ["math"],
+      categoryId: "27",
+    },
+    client: fake.value,
+    ...overrides,
+  };
+  const identity = value.identity as {
+    contentId: string;
+    language: string;
+    variant: string;
+  };
+  const evidence = await createPublishDryRunEvidence({
+    identity: {
+      contentId: identity.contentId,
+      locale: identity.language,
+      variant: identity.variant,
+    },
+    target: {
+      channelId: value.channelId as string,
+      accountId: value.accountId as string,
+    },
+    artifacts: [
+      {
+        kind: "render",
+        revision: value.artifactRevisions.media,
+        path: value.mediaPath,
+      },
+      {
+        kind: "thumbnail",
+        revision: value.artifactRevisions.thumbnail,
+        path: value.thumbnailPath,
+      },
+    ],
+    metadata: { revision: value.metadataRevision, path: value.metadataPath },
+    request: {
+      identity: value.identity,
+      channelId: value.channelId,
+      accountId: value.accountId,
+      policy: JSON.parse(JSON.stringify(value.policy)) as unknown,
+      playlistIds: [
+        ...new Set((value.playlistIds as string[]).map((id) => id.trim())),
+      ],
+      metadata: value.metadata,
+    },
+  });
   return {
     fake,
     value: {
-      ...files,
-      identity: { contentId: "lesson-1", language: "en", variant: "standard" },
-      channelId: "math-channel",
-      policy: { privacyStatus: "private", madeForKids: false, containsSyntheticMedia: true },
-      playlistIds: ["grade", "topic", "variant"],
-      metadata: { title: "Math lesson", description: "Description", tags: ["math"], categoryId: "27" },
-      client: fake.value,
-      ...overrides,
+      ...value,
+      dryRunEvidence: evidence,
+      approval: approvePublishDryRun({
+        evidence,
+        actor: "publisher-reviewer@example.test",
+        approvedAt: "2026-07-14T12:00:00.000Z",
+      }),
     },
   };
 }
 
 describe("genre-neutral YouTube media publish", () => {
+  it("cannot reach the publishing mutation seam without current approval", async () => {
+    const absent = await input();
+    const absentResult = await publishYoutubeMedia({
+      ...absent.value,
+      approval: undefined as never,
+    });
+    expect(absentResult.report.status).toBe("PUBLISH_BLOCKED");
+    expect(absent.fake.operations).toEqual([]);
+
+    const stale = await input();
+    await fs.writeFile(stale.value.metadataPath, '{"changed":true}');
+    const staleResult = await publishYoutubeMedia(stale.value);
+    expect(staleResult.report.status).toBe("PUBLISH_BLOCKED");
+    expect(stale.fake.operations).toEqual([]);
+  });
+
   it("deduplicates playlists and attempts every unique assignment on partial failure", async () => {
-    const setup = await input({ playlistIds: ["grade", "topic", "grade", "variant"] });
+    const setup = await input({
+      playlistIds: ["grade", "topic", "grade", "variant"],
+    });
     const failing = client({ failPlaylist: "topic" });
     setup.value.client = failing.value;
     const result = await publishYoutubeMedia(setup.value);
     expect(failing.playlistAttempts).toEqual(["grade", "topic", "variant"]);
     expect(result.report.status).toBe("PUBLISH_BLOCKED");
-    expect(result.report.playlistResults.map((item) => item.status)).toEqual(["assigned", "failed", "assigned"]);
+    expect(result.report.playlistResults.map((item) => item.status)).toEqual([
+      "assigned",
+      "failed",
+      "assigned",
+    ]);
   });
 
   it("blocks channel mismatch and missing explicit policy before any mutation", async () => {
@@ -113,9 +224,21 @@ describe("genre-neutral YouTube media publish", () => {
     expect(result.report.status).toBe("PUBLISH_BLOCKED");
     expect(wrong.value.videos.insert).not.toHaveBeenCalled();
     for (const missing of [
-      { privacyStatus: undefined, madeForKids: false, containsSyntheticMedia: true },
-      { privacyStatus: "private", madeForKids: undefined, containsSyntheticMedia: true },
-      { privacyStatus: "private", madeForKids: false, containsSyntheticMedia: undefined },
+      {
+        privacyStatus: undefined,
+        madeForKids: false,
+        containsSyntheticMedia: true,
+      },
+      {
+        privacyStatus: "private",
+        madeForKids: undefined,
+        containsSyntheticMedia: true,
+      },
+      {
+        privacyStatus: "private",
+        madeForKids: false,
+        containsSyntheticMedia: undefined,
+      },
     ]) {
       const setup = await input({ policy: missing });
       const blocked = await publishYoutubeMedia(setup.value);
@@ -129,11 +252,19 @@ describe("genre-neutral YouTube media publish", () => {
     const first = await publishYoutubeMedia(setup.value);
     expect(first.report.status).toBe("PUBLISHED");
     const repeatFake = client();
-    const repeat = await publishYoutubeMedia({ ...setup.value, client: repeatFake.value, priorReport: first.report });
+    const repeat = await publishYoutubeMedia({
+      ...setup.value,
+      client: repeatFake.value,
+      priorReport: first.report,
+    });
     expect(repeat.reused).toBe(true);
     expect(repeatFake.value.channels.list).not.toHaveBeenCalled();
     const staleFake = client();
-    const stale = await publishYoutubeMedia({ ...setup.value, client: staleFake.value, priorReport: { ...first.report, requestFingerprint: "0".repeat(64) } });
+    const stale = await publishYoutubeMedia({
+      ...setup.value,
+      client: staleFake.value,
+      priorReport: { ...first.report, requestFingerprint: "0".repeat(64) },
+    });
     expect(stale.report.status).toBe("PUBLISH_BLOCKED");
     expect(staleFake.value.channels.list).not.toHaveBeenCalled();
   });
@@ -145,10 +276,13 @@ describe("genre-neutral YouTube media publish", () => {
       { ...first.report, videoHash: "0".repeat(64) },
       { ...first.report, channelId: "other-channel" },
       { ...first.report, videoId: null, thumbnailStatus: "assigned" },
-      { ...first.report, playlistResults: [
-        first.report.playlistResults[0],
-        first.report.playlistResults[0],
-      ] },
+      {
+        ...first.report,
+        playlistResults: [
+          first.report.playlistResults[0],
+          first.report.playlistResults[0],
+        ],
+      },
       { ...first.report, status: "PUBLISHED", blockers: ["contradiction"] },
       { ...first.report, unknown: true },
       {
@@ -171,18 +305,22 @@ describe("genre-neutral YouTube media publish", () => {
 
   it("persists partial progress and resumes with zero duplicate successful mutations", async () => {
     const setup = await input();
-    const playlistFailure = client({ failPlaylist: "topic", retryableFailure: true });
-    const partial = await publishYoutubeMedia({ ...setup.value, client: playlistFailure.value });
+    const playlistFailure = client({
+      failPlaylist: "topic",
+      retryableFailure: true,
+    });
+    const partial = await publishYoutubeMedia({
+      ...setup.value,
+      client: playlistFailure.value,
+    });
     expect(partial.report).toMatchObject({
       status: "PUBLISH_BLOCKED",
       videoId: "video-id",
       thumbnailStatus: "assigned",
     });
-    expect(partial.report.playlistResults.map((entry) => entry.status)).toEqual([
-      "assigned",
-      "failed",
-      "assigned",
-    ]);
+    expect(partial.report.playlistResults.map((entry) => entry.status)).toEqual(
+      ["assigned", "failed", "assigned"]
+    );
 
     const resumedClient = client();
     const resumed = await publishYoutubeMedia({
@@ -192,8 +330,12 @@ describe("genre-neutral YouTube media publish", () => {
     });
     expect(resumed.report.status).toBe("PUBLISHED");
     expect(resumedClient.operations).not.toContain("videos.insert");
-    expect(resumedClient.operations).not.toContain("playlistItems.insert:grade");
-    expect(resumedClient.operations).not.toContain("playlistItems.insert:variant");
+    expect(resumedClient.operations).not.toContain(
+      "playlistItems.insert:grade"
+    );
+    expect(resumedClient.operations).not.toContain(
+      "playlistItems.insert:variant"
+    );
     expect(resumedClient.operations).toEqual([
       "channels.list",
       "playlistItems.insert:topic",
@@ -204,15 +346,28 @@ describe("genre-neutral YouTube media publish", () => {
   it("does not retry explicitly non-retryable incomplete operations", async () => {
     const setup = await input();
     const failure = client({ failThumbnail: true, failPlaylist: "topic" });
-    const partial = await publishYoutubeMedia({ ...setup.value, client: failure.value });
+    const partial = await publishYoutubeMedia({
+      ...setup.value,
+      client: failure.value,
+    });
     expect(partial.report.thumbnailRetryable).toBe(false);
-    expect(partial.report.playlistResults.find((entry) => entry.playlistId === "topic")?.retryable).toBe(false);
+    expect(
+      partial.report.playlistResults.find(
+        (entry) => entry.playlistId === "topic"
+      )?.retryable
+    ).toBe(false);
     const resumedClient = client();
-    const resumed = await publishYoutubeMedia({ ...setup.value, client: resumedClient.value, priorReport: partial.report });
+    const resumed = await publishYoutubeMedia({
+      ...setup.value,
+      client: resumedClient.value,
+      priorReport: partial.report,
+    });
     expect(resumed.report.status).toBe("PUBLISH_BLOCKED");
     expect(resumedClient.operations).not.toContain("videos.insert");
     expect(resumedClient.operations).not.toContain("thumbnails.set");
-    expect(resumedClient.operations).not.toContain("playlistItems.insert:topic");
+    expect(resumedClient.operations).not.toContain(
+      "playlistItems.insert:topic"
+    );
   });
 
   it("checkpoints after insertion and thumbnail so interruption resumes without duplicate mutations", async () => {
@@ -226,7 +381,11 @@ describe("genre-neutral YouTube media publish", () => {
     });
     expect(afterInsert.report.videoId).toBe("video-id");
     const resumeInsertClient = client();
-    const resumedInsert = await publishYoutubeMedia({ ...setup.value, client: resumeInsertClient.value, priorReport: afterInsert.report });
+    const resumedInsert = await publishYoutubeMedia({
+      ...setup.value,
+      client: resumeInsertClient.value,
+      priorReport: afterInsert.report,
+    });
     expect(resumedInsert.report.status).toBe("PUBLISHED");
     expect(resumeInsertClient.operations).not.toContain("videos.insert");
 
@@ -235,13 +394,20 @@ describe("genre-neutral YouTube media publish", () => {
       ...setup.value,
       client: thumbnailClient.value,
       checkpoint: async (report) => {
-        if (report.thumbnailStatus === "assigned" && report.playlistResults.length === 0)
+        if (
+          report.thumbnailStatus === "assigned" &&
+          report.playlistResults.length === 0
+        )
           throw new Error("interrupt after thumbnail checkpoint");
       },
     });
     expect(afterThumbnail.report.thumbnailStatus).toBe("assigned");
     const resumeThumbnailClient = client();
-    const resumedThumbnail = await publishYoutubeMedia({ ...setup.value, client: resumeThumbnailClient.value, priorReport: afterThumbnail.report });
+    const resumedThumbnail = await publishYoutubeMedia({
+      ...setup.value,
+      client: resumeThumbnailClient.value,
+      priorReport: afterThumbnail.report,
+    });
     expect(resumedThumbnail.report.status).toBe("PUBLISHED");
     expect(resumeThumbnailClient.operations).not.toContain("videos.insert");
     expect(resumeThumbnailClient.operations).not.toContain("thumbnails.set");
@@ -250,31 +416,63 @@ describe("genre-neutral YouTube media publish", () => {
   it("loads persistent prior state only from a regular contained file with the expected hash", async () => {
     const setup = await input();
     const first = await publishYoutubeMedia(setup.value);
-    const reportRoot = await fs.mkdtemp(path.join(os.tmpdir(), "youtube-report-authority-"));
-    const saved = await saveGenericYoutubePublishReport({ reportRoot, report: first.report });
-    const loaded = await loadGenericYoutubePublishReport({ reportRoot, reportPath: saved.reportPath, expectedContentHash: saved.contentHash });
+    const reportRoot = await fs.mkdtemp(
+      path.join(os.tmpdir(), "youtube-report-authority-")
+    );
+    const saved = await saveGenericYoutubePublishReport({
+      reportRoot,
+      report: first.report,
+    });
+    const loaded = await loadGenericYoutubePublishReport({
+      reportRoot,
+      reportPath: saved.reportPath,
+      expectedContentHash: saved.contentHash,
+    });
     const repeatClient = client();
-    const repeated = await publishYoutubeMedia({ ...setup.value, client: repeatClient.value, priorReport: loaded });
+    const repeated = await publishYoutubeMedia({
+      ...setup.value,
+      client: repeatClient.value,
+      priorReport: loaded,
+    });
     expect(repeated.reused).toBe(true);
     expect(repeatClient.operations).toEqual([]);
-    await fs.writeFile(saved.reportPath, JSON.stringify({ ...first.report, videoId: "attacker-video" }));
-    await expect(loadGenericYoutubePublishReport({ reportRoot, reportPath: saved.reportPath, expectedContentHash: saved.contentHash })).rejects.toThrow(/hash mismatch/u);
+    await fs.writeFile(
+      saved.reportPath,
+      JSON.stringify({ ...first.report, videoId: "attacker-video" })
+    );
+    await expect(
+      loadGenericYoutubePublishReport({
+        reportRoot,
+        reportPath: saved.reportPath,
+        expectedContentHash: saved.contentHash,
+      })
+    ).rejects.toThrow(/hash mismatch/u);
   });
 
   it("classifies interrupted video insertion and verifies successful uploads", async () => {
     const setup = await input();
     const interrupted = client({ failVideo: true });
-    const failed = await publishYoutubeMedia({ ...setup.value, client: interrupted.value });
+    const failed = await publishYoutubeMedia({
+      ...setup.value,
+      client: interrupted.value,
+    });
     expect(failed.report.status).toBe("PUBLISH_BLOCKED");
     expect(failed.report.videoId).toBeNull();
     expect(interrupted.operations).toEqual(["channels.list", "videos.insert"]);
     const resumeClient = client();
-    const resumed = await publishYoutubeMedia({ ...setup.value, client: resumeClient.value, priorReport: failed.report });
+    const resumed = await publishYoutubeMedia({
+      ...setup.value,
+      client: resumeClient.value,
+      priorReport: failed.report,
+    });
     expect(resumed.report.status).toBe("PUBLISH_BLOCKED");
     expect(resumeClient.operations).toEqual(["channels.list"]);
 
     const successful = client();
-    const completed = await publishYoutubeMedia({ ...setup.value, client: successful.value });
+    const completed = await publishYoutubeMedia({
+      ...setup.value,
+      client: successful.value,
+    });
     expect(completed.report.status).toBe("PUBLISHED");
     expect(successful.operations.at(-1)).toBe("videos.list");
   });

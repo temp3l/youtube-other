@@ -298,11 +298,19 @@ async function writeAuthoritativeMediaFixture(
     fs.writeFile(path.join(lessonRoot, narrationPath), JSON.stringify(fixture.narration)),
     fs.writeFile(path.join(lessonRoot, visualPath), JSON.stringify(fixture.visualPlan)),
   ]);
-  const parent = "a".repeat(64);
+  const fingerprints = new Map(
+    MATH_STAGES.map((stage) => [stage, canonicalHash({ stage })])
+  );
+  const parents = new Map(
+    MATH_STAGES.map((stage, index) => [
+      stage,
+      index === 0 ? [] : [fingerprints.get(MATH_STAGES[index - 1]!)!],
+    ])
+  );
   const artifacts = await Promise.all([
-    createArtifactLineage({ root: lessonRoot, relativePath: lessonPath, schemaVersion: "lesson-spec.v1", parentHashes: [parent], producedBy: "lesson-spec" }),
-    createArtifactLineage({ root: lessonRoot, relativePath: narrationPath, schemaVersion: "math-narration.v2", parentHashes: [parent], producedBy: "canonical-narration" }),
-    createArtifactLineage({ root: lessonRoot, relativePath: visualPath, schemaVersion: "math-visual-plan.v1", parentHashes: [parent], producedBy: "visual-assets" }),
+    createArtifactLineage({ root: lessonRoot, relativePath: lessonPath, schemaVersion: "lesson-spec.v1", parentHashes: parents.get("lesson-spec")!, producedBy: "lesson-spec" }),
+    createArtifactLineage({ root: lessonRoot, relativePath: narrationPath, schemaVersion: "math-narration.v2", parentHashes: parents.get("canonical-narration")!, producedBy: "canonical-narration" }),
+    createArtifactLineage({ root: lessonRoot, relativePath: visualPath, schemaVersion: "math-visual-plan.v1", parentHashes: parents.get("visual-assets")!, producedBy: "visual-assets" }),
   ]);
   const now = new Date(0).toISOString();
   await saveWorkflowManifest(path.join(lessonRoot, "manifest.json"), {
@@ -316,8 +324,8 @@ async function writeAuthoritativeMediaFixture(
       return {
         stage,
         status: outputArtifacts.length ? "succeeded" as const : "planned" as const,
-        fingerprint: canonicalHash({ stage }),
-        parentFingerprints: [parent],
+        fingerprint: fingerprints.get(stage)!,
+        parentFingerprints: parents.get(stage)!,
         outputArtifacts,
         updatedAt: now,
       };
@@ -893,7 +901,7 @@ describe("timing, teacher, and readiness gates", () => {
     ).rejects.toThrow(/pose is missing/u);
     await expect(
       loadTeacherPose("/definitely/missing/teacher.json", "neutral", 0.2)
-    ).rejects.toThrow(/manifest is missing/u);
+    ).rejects.toThrow(/manifest is not a regular owned file/u);
     await expect(
       loadTeacherPose(
         "assets/math-teacher/alex/v1/manifest.json",

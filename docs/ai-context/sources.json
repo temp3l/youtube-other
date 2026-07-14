@@ -1,0 +1,205 @@
+{
+  "schemaVersion": "mediaforge.ai-pack-config.v1",
+  "generatorVersion": "mediaforge.ai-pack-generator.v1",
+  "limits": {
+    "sourceFileBytes": 250000,
+    "packFileBytes": 300000,
+    "totalPackBytes": 1800000
+  },
+  "requiredSections": [
+    "architecture",
+    "cli",
+    "profiles",
+    "darktruth",
+    "mathematics",
+    "schemas",
+    "operations",
+    "testing",
+    "migration"
+  ],
+  "entries": [
+    {
+      "output": "00-project-overview.md",
+      "source": "docs/refactor/README.md",
+      "symbols": ["# Repository Refactor Plans"]
+    },
+    {
+      "output": "01-architecture.md",
+      "source": "docs/refactor/01-target-architecture.md",
+      "symbols": ["## Package Boundaries"]
+    },
+    {
+      "output": "02-domain-model.md",
+      "source": "packages/domain/src/workflow-contracts.ts",
+      "symbols": ["approvalRecordSchema", "artifactManifestSchema"]
+    },
+    {
+      "output": "03-cli-workflows.md",
+      "source": "docs/refactor/01-target-architecture.md",
+      "symbols": ["## CLI Contract"]
+    },
+    {
+      "output": "04-pipeline-map.md",
+      "source": "docs/refactor/02-safe-implementation-batches.md",
+      "symbols": ["## Batch 14: AI Pack and Final Release Gate"]
+    },
+    {
+      "output": "05-important-paths.md",
+      "source": "docs/refactor/03-compatibility-and-migration.md",
+      "symbols": ["## Artifact Matrix"]
+    },
+    {
+      "output": "06-testing-and-verification.md",
+      "source": "docs/development/codex-verification-guardrails.md",
+      "symbols": ["# Codex Verification Guardrails"]
+    },
+    {
+      "output": "07-known-risks-and-open-tasks.md",
+      "source": "docs/refactor/audit/07-batch-13-current-duplicate-inventory.md",
+      "symbols": ["## Classification"]
+    },
+    {
+      "output": "08-codex-prompting-rules.md",
+      "source": "AGENTS.md",
+      "symbols": ["## Output and token-efficiency policy"]
+    },
+    {
+      "output": "repository-map.md",
+      "source": "docs/refactor/README.md",
+      "symbols": ["## Execution Order"]
+    },
+    {
+      "output": "architecture/target-architecture.md",
+      "source": "docs/refactor/01-target-architecture.md",
+      "symbols": ["## Architectural Decision", "## Task Registry"]
+    },
+    {
+      "output": "cli/commands.md",
+      "source": "docs/refactor/01-target-architecture.md",
+      "symbols": ["## CLI Contract"]
+    },
+    {
+      "output": "profiles/overview.md",
+      "source": "docs/refactor/02-safe-implementation-batches.md",
+      "symbols": [
+        "## Batch 9: Dark Truth Bibles, References, and Quality",
+        "## Batch 10: Mathematics Profile Integration"
+      ]
+    },
+    {
+      "output": "darktruth/profile.md",
+      "source": "docs/refactor/04-darktruth-profile.md",
+      "symbols": ["# Dark Truth Profile", "## Workflow DAG"]
+    },
+    {
+      "output": "mathematics/profile.md",
+      "source": "docs/refactor/05-mathematics-profile.md",
+      "symbols": ["# Mathematics Education Profile", "## Workflow DAG"]
+    },
+    {
+      "output": "schemas/workflow-contracts.ts",
+      "source": "packages/domain/src/workflow-contracts.ts",
+      "symbols": ["workflowDefinitionSchema", "approvalRecordSchema"]
+    },
+    {
+      "output": "operations/duplicate-elimination.md",
+      "source": "docs/refactor/06-duplicate-elimination.md",
+      "symbols": [
+        "## Family Migration Order",
+        "## Required Verification Searches"
+      ]
+    },
+    {
+      "output": "testing/release-validation.md",
+      "source": "docs/refactor/08-validation-and-release.md",
+      "symbols": ["## Deterministic Test Matrix", "## Release Commands"]
+    },
+    {
+      "output": "migration/compatibility.md",
+      "source": "docs/refactor/03-compatibility-and-migration.md",
+      "symbols": ["## Migration Command", "## Rollback"]
+    }
+  ],
+  "sourceIndex": [
+    {
+      "concept": "ai-pack-generator",
+      "source": "scripts/ai-pack.mjs",
+      "symbols": ["async function build()", "async function validatePack"]
+    },
+    {
+      "concept": "cli-bootstrap",
+      "source": "apps/cli/src/index.ts",
+      "symbols": ["registerWorkflowCommands(program)"]
+    },
+    {
+      "concept": "task-registry",
+      "source": "packages/workflow-engine/src/task-registry.ts",
+      "symbols": ["createTaskRegistry"]
+    },
+    {
+      "concept": "workflow-operator",
+      "source": "packages/workflow-engine/src/workflow-operator.ts",
+      "symbols": ["class WorkflowOperator"]
+    },
+    {
+      "concept": "workflow-state",
+      "source": "packages/workflow-engine/src/workflow-store.ts",
+      "symbols": ["class WorkflowStore"]
+    },
+    {
+      "concept": "artifact-repository",
+      "source": "packages/workflow-engine/src/artifact-repository.ts",
+      "symbols": ["class ArtifactRepository"]
+    },
+    {
+      "concept": "cache",
+      "source": "packages/workflow-engine/src/cache.ts",
+      "symbols": ["buildTaskFingerprint", "planCachePrune"]
+    },
+    {
+      "concept": "batch",
+      "source": "packages/workflow-engine/src/batch.ts",
+      "symbols": ["class BatchCoordinator"]
+    },
+    {
+      "concept": "image-provider",
+      "source": "packages/image-generation/src/openai-image.ts",
+      "symbols": ["generateOpenAiSceneImages"]
+    },
+    {
+      "concept": "darktruth-profile",
+      "source": "packages/dark-truth/src/task-registry.ts",
+      "symbols": ["darkTruthWorkflowDefinition"]
+    },
+    {
+      "concept": "mathematics-profile",
+      "source": "packages/math-education/src/task-registry.ts",
+      "symbols": ["mathWorkflowDefinition"]
+    },
+    {
+      "concept": "publishing",
+      "source": "packages/youtube-upload/src/publish-approval.ts",
+      "symbols": ["assertCurrentPublishApproval"]
+    },
+    {
+      "concept": "errors",
+      "source": "packages/workflow-engine/src/workflow-errors.ts",
+      "symbols": ["normalizeWorkflowError"]
+    },
+    {
+      "concept": "observability",
+      "source": "packages/workflow-engine/src/attempt-observability.ts",
+      "symbols": ["class AttemptObservabilityStore"]
+    }
+  ],
+  "exclusions": [
+    { "pattern": "node_modules/", "reason": "dependencies" },
+    { "pattern": "dist/", "reason": "generated build output" },
+    { "pattern": "episodes/**/output/", "reason": "production media" },
+    {
+      "pattern": "episodes/**/state/",
+      "reason": "production state and provider payloads"
+    },
+    { "pattern": ".env*", "reason": "credentials" }
+  ]
+}

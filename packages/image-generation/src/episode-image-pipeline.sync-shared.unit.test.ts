@@ -6,10 +6,17 @@ import sharp from "sharp";
 import { describe, expect, it } from "vitest";
 import { syncEpisodeSharedImageAssets } from "./episode-image-pipeline.js";
 
-async function createPng(filePath: string, color: string): Promise<void> {
+async function createPng(
+  filePath: string,
+  color: string,
+  dimensions: { readonly width: number; readonly height: number } = {
+    width: 8,
+    height: 8,
+  }
+): Promise<void> {
   await fs.mkdir(path.dirname(filePath), { recursive: true });
   await sharp({
-    create: { width: 8, height: 8, channels: 3, background: color },
+    create: { ...dimensions, channels: 3, background: color },
   })
     .png()
     .toFile(filePath);
@@ -39,7 +46,10 @@ describe("episode image shared sync", () => {
       "character-references"
     );
 
-    await createPng(path.join(stateImagesDir, "scene-001.png"), "#445566");
+    await createPng(path.join(stateImagesDir, "scene-001.png"), "#445566", {
+      width: 1536,
+      height: 1024,
+    });
     await createPng(path.join(backupRefsDir, "noah-price.png"), "#667788");
     await fs.mkdir(manifestsDir, { recursive: true });
     await fs.writeFile(

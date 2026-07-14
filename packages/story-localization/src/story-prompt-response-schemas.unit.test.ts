@@ -8,30 +8,41 @@ import {
   shortRewriteResponseSchemaDescriptor,
 } from "./story-prompt-response-schemas.js";
 
+function buildNarrationOnlyResponse(
+  narrationParagraphs: readonly string[] = ["Paragraph."]
+) {
+  return {
+    language: "en" as const,
+    full: {
+      narrationParagraphs: [...narrationParagraphs],
+    },
+    targetNarrationWpm: 178,
+    preservedBeatIds: null,
+    mechanics: null,
+    localizedMetadata: null,
+    preservationChecklist: {
+      charactersPreserved: true,
+      relationshipsPreserved: true,
+      chronologyPreserved: true,
+      criticalObjectsPreserved: true,
+      cluesPreserved: true,
+      writtenMessagesPreserved: true,
+      primaryRevealPreserved: true,
+      endingPreserved: true,
+      noNewPlotElementsAdded: true,
+    },
+    diagnostics: {
+      removedGenericFiller: [],
+      adaptationNotes: [],
+    },
+  };
+}
+
 describe("story prompt response schemas", () => {
   it("keeps the full narration schema narration-only", () => {
-    const parsed = narrationOnlyFullRewriteResponseSchema.parse({
-      language: "en",
-      full: {
-        narrationParagraphs: ["One paragraph."],
-      },
-      targetNarrationWpm: 178,
-      preservationChecklist: {
-        charactersPreserved: true,
-        relationshipsPreserved: true,
-        chronologyPreserved: true,
-        criticalObjectsPreserved: true,
-        cluesPreserved: true,
-        writtenMessagesPreserved: true,
-        primaryRevealPreserved: true,
-        endingPreserved: true,
-        noNewPlotElementsAdded: true,
-      },
-      diagnostics: {
-        removedGenericFiller: [],
-        adaptationNotes: [],
-      },
-    });
+    const parsed = narrationOnlyFullRewriteResponseSchema.parse(
+      buildNarrationOnlyResponse(["One paragraph."])
+    );
     expect("title" in parsed.full).toBe(false);
     expect(fullNarrationResponseSchemaDescriptor.version).toMatch(
       /^full-narration/u
@@ -42,28 +53,9 @@ describe("story prompt response schemas", () => {
   });
 
   it("normalizes legacy mixed and narration-only batch results to the same internal shape", () => {
-    const narrationOnly = normalizeNarrationOnlyBatchResult({
-      language: "en",
-      full: {
-        narrationParagraphs: ["Paragraph."],
-      },
-      targetNarrationWpm: 178,
-      preservationChecklist: {
-        charactersPreserved: true,
-        relationshipsPreserved: true,
-        chronologyPreserved: true,
-        criticalObjectsPreserved: true,
-        cluesPreserved: true,
-        writtenMessagesPreserved: true,
-        primaryRevealPreserved: true,
-        endingPreserved: true,
-        noNewPlotElementsAdded: true,
-      },
-      diagnostics: {
-        removedGenericFiller: [],
-        adaptationNotes: [],
-      },
-    });
+    const narrationOnly = normalizeNarrationOnlyBatchResult(
+      buildNarrationOnlyResponse()
+    );
     const legacy = normalizeNarrationOnlyBatchResult({
       language: "en",
       full: {
@@ -126,26 +118,10 @@ describe("story prompt response schemas", () => {
   it("rejects malformed batch result formats before downstream processing", () => {
     expect(() =>
       normalizeNarrationOnlyBatchResult({
-        language: "en",
+        ...buildNarrationOnlyResponse(),
         full: {
           narrationParagraphs: ["Paragraph."],
           thumbnailText: "metadata is not allowed here",
-        },
-        targetNarrationWpm: 178,
-        preservationChecklist: {
-          charactersPreserved: true,
-          relationshipsPreserved: true,
-          chronologyPreserved: true,
-          criticalObjectsPreserved: true,
-          cluesPreserved: true,
-          writtenMessagesPreserved: true,
-          primaryRevealPreserved: true,
-          endingPreserved: true,
-          noNewPlotElementsAdded: true,
-        },
-        diagnostics: {
-          removedGenericFiller: [],
-          adaptationNotes: [],
         },
       })
     ).toThrow(/does not match/u);
@@ -172,28 +148,7 @@ describe("story prompt response schemas", () => {
         },
         content: "Paragraph.",
       },
-      response: {
-        language: "en",
-        full: {
-          narrationParagraphs: ["Paragraph."],
-        },
-        targetNarrationWpm: 178,
-        preservationChecklist: {
-          charactersPreserved: true,
-          relationshipsPreserved: true,
-          chronologyPreserved: true,
-          criticalObjectsPreserved: true,
-          cluesPreserved: true,
-          writtenMessagesPreserved: true,
-          primaryRevealPreserved: true,
-          endingPreserved: true,
-          noNewPlotElementsAdded: true,
-        },
-        diagnostics: {
-          removedGenericFiller: [],
-          adaptationNotes: [],
-        },
-      },
+      response: buildNarrationOnlyResponse(),
     });
     expect(adapted.title).toBe("Story");
     expect(adapted.narrationParagraphs).toEqual(["Paragraph."]);

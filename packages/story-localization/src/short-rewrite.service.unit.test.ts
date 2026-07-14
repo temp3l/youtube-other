@@ -148,7 +148,140 @@ function buildResponseJson(args: {
   );
 }
 
-async function createSourceStory(tempRoot: string): Promise<string> {
+async function createCanonicalEnglishShortParent(tempRoot: string): Promise<void> {
+  const shortDir = path.join(
+    tempRoot,
+    "009-the-christmas-doll",
+    "en",
+    "short"
+  );
+  const narration = buildNarration(72, "en");
+  const parentFullHash = "3".repeat(64);
+  const sourceSha256 = "a".repeat(64);
+  const storyIrHash = "c".repeat(64);
+  const extractionHash = "4".repeat(64);
+  const contractHash = "5".repeat(64);
+  const parent = {
+    episodeId: "009-the-christmas-doll",
+    episodeSlug: "009-the-christmas-doll",
+    language: "en",
+    locale: "en-US",
+    variant: "full",
+    parentFullHash,
+    sourceSha256,
+  } as const;
+  const sourceExtraction = {
+    version: "short-source-extraction-v1",
+    parentFullHash,
+    storyIrHash,
+    locale: "en-US",
+    targetVariant: "short",
+    maximumBeats: 8,
+    selectedBeatIds: [],
+    removedBeatIds: [],
+    beats: [],
+    orphanedReferences: [],
+    extractionHash,
+  } as const;
+  await fs.mkdir(shortDir, { recursive: true });
+  await fs.writeFile(
+    path.join(shortDir, "009-the-christmas-doll-en-short.md"),
+    `# The Christmas Doll\n\n# Narration Script\n\n${narration}\n`,
+    "utf8"
+  );
+  await fs.writeFile(
+    path.join(shortDir, "009-the-christmas-doll-en-short.json"),
+    JSON.stringify(
+      {
+        schemaVersion: 2,
+        episodeId: "009-the-christmas-doll",
+        episodeSlug: "009-the-christmas-doll",
+        sourceLanguage: "en",
+        targetLanguage: "en",
+        locale: "en-US",
+        variant: "short",
+        promptVersion: SHORT_REWRITE_PROMPT_VERSION,
+        promptFingerprint: "f".repeat(64),
+        model: "gpt-5-mini",
+        sourcePath: "source/009-the-christmas-doll-en-full.md",
+        sourceSha256,
+        parent,
+        storyIrHash,
+        shortSourceExtraction: sourceExtraction,
+        shortAdaptationContract: {
+          schemaVersion: "short-adaptation-contract-schema-v1",
+          contractVersion: "short-adaptation-contract-v1",
+          identity: {
+            episodeId: "009-the-christmas-doll",
+            episodeSlug: "009-the-christmas-doll",
+            language: "en",
+            locale: "en-US",
+            variant: "short",
+          },
+          parent,
+          storyIrHash,
+          immutableFacts: [],
+          centralThreat: "The doll moves through the house.",
+          centralRuleOrMechanism: "The doll appears after it is locked away.",
+          criticalObject: "The doll",
+          climaxOrIrreversibleTurn: "Lena burns the doll's dress.",
+          finalConsequenceOrSting: "The final photograph shows the doll behind her brother.",
+          exactWrittenMessages: [],
+          allowedCompression: [],
+          forbiddenOmissions: [],
+          retentionBoundaries: {
+            factsMustRemain: [],
+            detailsMayCompress: [],
+            detailsMayRemove: [],
+            dialogueMayShorten: [],
+          },
+          inventionBoundaries: [],
+          constraints: {
+            targetDurationSeconds: { min: 28, max: 33 },
+            targetNarrationWpm: 144,
+            targetWordRange: { min: 65, max: 80 },
+            hookDeadlineSeconds: 3,
+            maximumBeats: 8,
+          },
+          sourceExtraction: {
+            extractionHash,
+            selectedBeatIds: [],
+            orphanedReferences: [],
+          },
+          contractHash,
+        },
+        canonical: true,
+        generatedAt: new Date().toISOString(),
+        generation: {
+          title: "The Christmas Doll",
+          hook: "Lena heard the doll breathing under the attic door.",
+          narration,
+          wordCount: 72,
+          estimatedDurationSecondsAt175Wpm: 25,
+          estimatedDurationSecondsAt180Wpm: 24,
+          thumbnailText: "Wet Hands",
+          fullVideoBridge: "Watch the full episode.",
+        },
+        usage: {},
+        validation: {
+          preferredWordRangeSatisfied: true,
+          hardWordRangeSatisfied: true,
+          hookMatchesNarration: true,
+          thumbnailWordCount: 2,
+          warnings: [],
+        },
+      },
+      null,
+      2
+    ),
+    "utf8"
+  );
+}
+
+async function createSourceStory(
+  tempRoot: string,
+  includeCanonicalEnglishShort = true
+): Promise<string> {
   const episodeDir = path.join(tempRoot, "009-the-christmas-doll", "source");
   await fs.mkdir(episodeDir, { recursive: true });
   const sourcePath = path.join(episodeDir, "009-the-christmas-doll-en-full.md");
@@ -276,6 +409,9 @@ async function createSourceStory(tempRoot: string): Promise<string> {
   await createLocalizedFullParent(tempRoot, "es");
   await createLocalizedFullParent(tempRoot, "fr");
   await createLocalizedFullParent(tempRoot, "pt");
+  if (includeCanonicalEnglishShort) {
+    await createCanonicalEnglishShortParent(tempRoot);
+  }
   return sourcePath;
 }
 
@@ -334,8 +470,52 @@ async function createMinimalSourceStory(tempRoot: string): Promise<string> {
           policyVersion: "story-preflight-v1",
           requestFingerprint: "2".repeat(64),
           status: "allowed",
+          requestedOutputTokens: 2000,
+          contextWindowTokens: 400000,
+          maxModelOutputTokens: 128000,
+          safetyMarginTokens: 4096,
         },
         characterRenameMap: buildCharacterRenameMapFixture(),
+        response: {
+          language: "en",
+          full: {
+            narrationParagraphs: [
+              "A white hat moved above the wall.",
+              "Later, Clara heard three low syllables beneath the caller's voice.",
+            ],
+          },
+          targetNarrationWpm: 178,
+          preservedBeatIds: null,
+          mechanics: null,
+          localizedMetadata: null,
+          preservationChecklist: {
+            charactersPreserved: true,
+            relationshipsPreserved: true,
+            chronologyPreserved: true,
+            criticalObjectsPreserved: true,
+            cluesPreserved: true,
+            writtenMessagesPreserved: true,
+            primaryRevealPreserved: true,
+            endingPreserved: true,
+            noNewPlotElementsAdded: true,
+          },
+          diagnostics: {
+            removedGenericFiller: [],
+            adaptationNotes: [],
+          },
+        },
+        validation: {
+          status: "passed",
+          issues: [],
+        },
+        repairHistory: [],
+        usage: {
+          inputTokens: 100,
+          outputTokens: 100,
+        },
+        estimatedCostUsd: 0.01,
+        status: "completed",
+        generatedAt: new Date().toISOString(),
       },
       null,
       2
@@ -465,7 +645,7 @@ describe("short rewrite service", () => {
     const tempRoot = await fs.mkdtemp(
       path.join(os.tmpdir(), "short-rewrite-parent-order-")
     );
-    const sourcePath = await createSourceStory(tempRoot);
+    const sourcePath = await createSourceStory(tempRoot, false);
     const client = makeMockClient([
       {
         id: "resp-en",
@@ -1267,7 +1447,7 @@ describe("short rewrite service", () => {
     const tempRoot = await fs.mkdtemp(
       path.join(os.tmpdir(), "short-rewrite-targeted-repair-")
     );
-    const sourcePath = await createSourceStory(tempRoot);
+    const sourcePath = await createSourceStory(tempRoot, false);
     const invalidNarration = [
       "Mara heard the doll breathing under the attic door.",
       "Eight seconds later, her phone rang in the nursery.",
@@ -1328,7 +1508,7 @@ describe("short rewrite service", () => {
     const tempRoot = await fs.mkdtemp(
       path.join(os.tmpdir(), "short-rewrite-parent-required-")
     );
-    const sourcePath = await createSourceStory(tempRoot);
+    const sourcePath = await createSourceStory(tempRoot, false);
     await fs.rm(
       path.join(
         tempRoot,
@@ -1357,12 +1537,27 @@ describe("short rewrite service", () => {
     ).rejects.toThrow("validated canonical English full parent artifact");
   });
 
-  it("rejects a localized short when the persisted full parent is the wrong locale", async () => {
+  it("rejects a localized short when the canonical English Short has the wrong locale", async () => {
     const tempRoot = await fs.mkdtemp(
       path.join(os.tmpdir(), "short-rewrite-wrong-parent-locale-")
     );
     const sourcePath = await createSourceStory(tempRoot);
-    await createLocalizedFullParent(tempRoot, "de", "es");
+    const canonicalShortPath = path.join(
+      tempRoot,
+      "009-the-christmas-doll",
+      "en",
+      "short",
+      "009-the-christmas-doll-en-short.json"
+    );
+    const canonicalShort = JSON.parse(
+      await fs.readFile(canonicalShortPath, "utf8")
+    ) as Record<string, unknown>;
+    canonicalShort.locale = "es-ES";
+    await fs.writeFile(
+      canonicalShortPath,
+      `${JSON.stringify(canonicalShort, null, 2)}\n`,
+      "utf8"
+    );
     await expect(
       rewriteTestShortStories(
         {
@@ -1379,7 +1574,7 @@ describe("short rewrite service", () => {
           client: makeMockClient(),
         }
       )
-    ).rejects.toThrow("cannot derive from es full narration");
+    ).rejects.toThrow("canonical English Short locale es-ES");
   });
 
   it("persists the matching parent full hash in the short sidecar", async () => {

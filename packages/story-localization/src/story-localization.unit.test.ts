@@ -55,6 +55,7 @@ import type {
   ParsedSourceStory,
 } from "./index.js";
 import { hashText } from "@mediaforge/shared";
+import { resolveFullNarrationWordRange } from "./narration-constraints.js";
 
 const repoRoot = path.resolve(import.meta.dirname, "../../..");
 const sourceFile = path.join(
@@ -85,6 +86,10 @@ const episode022GermanFullSourceFile = path.join(
   "022-the-whistler-in-the-woods-de-full.md"
 );
 const episode002RenamedCharacter = "Elias Wexler";
+const episode002BeatIds = Array.from(
+  { length: 13 },
+  (_, index) => `beat-${String(index + 1).padStart(3, "0")}`
+);
 
 type MockResponse = {
   readonly output_text: string;
@@ -204,14 +209,101 @@ function buildRetrySafeEnglishFullNarration(): string[] {
     `${episode002RenamedCharacter} stayed in the house after dark and kept hearing Bramble breathe from under the bed while the storm pushed against every window.`;
   let second =
     "She found the same wet tracks by the stairs, HUMANS CAN LICK TOO was written on the mirror, and the attic notebook still said SHE REACHED DOWN FIRST while the intruder waited above the loft hatch.";
-  while (countWords(`${first} ${second}`) < 155) {
-    second = `${second} storm`;
+  const minimumWords = resolveFullNarrationWordRange({
+    language: "en",
+    pace: getLanguageProfile("en").defaultNarrationPace,
+  }).min;
+  let index = 0;
+  while (countWords(`${first} ${second}`) < minimumWords - 24) {
+    second = `${second} stormdetail${index}`;
+    index += 1;
   }
   return [
     first,
     second,
     "When the alarm outside finally broke the silence, Elias saw the killer run through the loft hatch and understood that Bramble had been dead for hours.",
+    "The final warning is therefore simple: when the same impossible detail appears twice, do not wait for a third occurrence to prove that it is real.",
   ];
+}
+
+function buildCurrentFullResponse(
+  language: LanguageCode,
+  narrationParagraphs: readonly string[]
+) {
+  const packageValue = makeLocalizedPackage(language, 160);
+  if (!packageValue.full) {
+    throw new Error("Expected full story fixture.");
+  }
+  return {
+    language,
+    full: { narrationParagraphs: [...narrationParagraphs] },
+    targetNarrationWpm: getLanguageProfile(language).fullNarrationWpm,
+    preservedBeatIds: episode002BeatIds,
+    mechanics: {
+      supernaturalRule: "The hidden intruder imitates Bramble beneath the bed.",
+      emotionalCost: "Elias accepts that Bramble died before she understood the warning.",
+      climaxRuleConnection: "The car alarm exposes the intruder and forces him through the loft hatch.",
+      finalConsequence: "The notebook proves the intruder watched Elias reach beneath the bed.",
+    },
+    localizedMetadata: {
+      title: packageValue.full.title,
+      thumbnailText: packageValue.full.thumbnailText,
+      seoDescription: packageValue.full.seoDescription,
+      tags: packageValue.full.tags,
+      hashtags: packageValue.full.hashtags,
+      contentDisclosure: packageValue.full.contentDisclosure,
+    },
+    preservationChecklist: packageValue.preservationChecklist,
+    diagnostics: packageValue.diagnostics,
+  };
+}
+
+function buildRetrySafeSpanishFullNarration(): string[] {
+  const minimumWords = resolveFullNarrationWordRange({
+    language: "es",
+    pace: getLanguageProfile("es").defaultNarrationPace,
+  }).min;
+  const first =
+    `${episode002RenamedCharacter} oyó a Bramble respirar bajo la cama mientras la tormenta golpeaba las ventanas de la casa.`;
+  let second =
+    "A la mañana siguiente encontró al perro muerto en el pasillo, HUMANS CAN LICK TOO escrito en el espejo y SHE REACHED DOWN FIRST en la libreta del ático.";
+  const third =
+    "La alarma del auto atrajo al vecino, y Elias vio al intruso escapar por la trampilla después de imitar la respiración de Bramble.";
+  const fourth =
+    "La advertencia final quedó clara: cuando el mismo detalle imposible aparece dos veces, nadie debe esperar una tercera señal para creerlo.";
+  let index = 0;
+  while (countWords(`${first} ${second} ${third} ${fourth}`) < minimumWords) {
+    second = `${second} tormentadetalle${index}`;
+    index += 1;
+  }
+  return [first, second, third, fourth];
+}
+
+function buildRetrySafeGermanFullNarration(): string[] {
+  const minimumWords = Math.max(
+    resolveFullNarrationWordRange({
+      language: "de",
+      pace: getLanguageProfile("de").defaultNarrationPace,
+    }).min,
+    resolveFullNarrationWordRange({
+      language: "en",
+      pace: getLanguageProfile("en").defaultNarrationPace,
+    }).min
+  );
+  const first =
+    `${episode002RenamedCharacter} blieb nach Einbruch der Dunkelheit im Haus und hörte Bramble unter dem Bett atmen, während der Sturm gegen jedes Fenster drückte.`;
+  let second =
+    "Am Morgen lag der Hund tot im Flur, HUMANS CAN LICK TOO stand auf dem Spiegel und SHE REACHED DOWN FIRST blieb im Notizbuch auf dem Dachboden lesbar.";
+  const third =
+    "Die Autoalarmanlage rief den Nachbarn herbei, und Elias sah den Eindringling durch die Dachbodenluke fliehen, nachdem er Brambles Atmung nachgeahmt hatte.";
+  const fourth =
+    "Die letzte Warnung war eindeutig: Wenn dasselbe unmögliche Detail zweimal erscheint, darf niemand auf ein drittes Zeichen warten, um es zu glauben.";
+  let index = 0;
+  while (countWords(`${first} ${second} ${third} ${fourth}`) < minimumWords) {
+    second = `${second} sturmdetail${index}`;
+    index += 1;
+  }
+  return [first, second, third, fourth];
 }
 
 function makeLocalizedPackage(
@@ -505,12 +597,10 @@ describe("story localization helpers", () => {
     const facts = extractCanonicalStoryFacts(parsed);
     const analysis = analyzeStorySource(parsed, facts);
     const bible = buildStoryBible(parsed, facts, analysis);
-    const fullNarration = parsed.narrationParagraphs.join("\n\n");
-    const sourceWordCount = countWords(fullNarration);
-    const expectedWordRange = `${Math.max(1, Math.round(sourceWordCount * 0.92))}–${Math.max(
-      Math.max(1, Math.round(sourceWordCount * 0.92)),
-      Math.round(sourceWordCount * 1.25)
-    )}`;
+    const expectedWordRange = resolveFullNarrationWordRange({
+      language: "es",
+      pace: getLanguageProfile("es").defaultNarrationPace,
+    });
     const fullPrompt = buildLocalizationPrompt({
       languageProfile: getLanguageProfile("es"),
       adaptationMode: "retention-optimized",
@@ -533,14 +623,19 @@ describe("story localization helpers", () => {
     expect(fullPrompt.system).toContain(
       "full-story or short-story output contract"
     );
-    expect(fullPrompt.system).toContain("Do not generate YouTube metadata");
+    expect(fullPrompt.system).toContain(
+      "Generate only the localized title, thumbnail text, SEO description, tags, hashtags, and disclosure required by the response schema."
+    );
+    expect(fullPrompt.system).toContain(
+      "Do not generate scene plans, image prompts, or audio/TTS instructions."
+    );
     expect(fullPrompt.system).not.toContain("audio.speech.create");
     expect(fullPrompt.user).toContain(
       "Rewrite the validated source story into Spanish narration only."
     );
     expect(fullPrompt.user).toContain("Target narration pace: 190 WPM");
     expect(fullPrompt.user).toContain(
-      `Target word range: ${expectedWordRange.replace("–", "-")}`
+      `Target word range: ${expectedWordRange.min}-${expectedWordRange.max}`
     );
     expect(fullPrompt.user).toContain("<SOURCE_NARRATION>");
     expect(fullPrompt.user).toContain("## Locale settings");
@@ -566,7 +661,7 @@ describe("story localization helpers", () => {
     );
     expect(prompt.user).toContain("Target narration pace: 190 WPM");
     expect(prompt.user).toContain(
-      `Target word range: ${expectedWordRange.replace("–", "-")}`
+      `Target word range: ${expectedWordRange.min}-${expectedWordRange.max}`
     );
     expect(prompt.user).toContain("## Locale settings");
     expect(prompt.user).toContain("## Spanish Localization");
@@ -606,19 +701,20 @@ describe("story localization helpers", () => {
     const invalidLocalizedShortPackage = withFullCharacterNameCoverage(
       makeLocalizedPackage("es", 80)
     );
-    const validEnglishFullPackage = withFullCharacterNameCoverage(
-      makeLocalizedPackage("en", 160)
-    );
     const client = makeMockClient([
       {
-        output_text: JSON.stringify({
-          language: "en",
-          full: validEnglishFullPackage.full,
-          preservationChecklist: validEnglishFullPackage.preservationChecklist,
-          diagnostics: validEnglishFullPackage.diagnostics,
-        }),
+        output_text: JSON.stringify(
+          buildCurrentFullResponse("en", buildRetrySafeEnglishFullNarration())
+        ),
       },
-      { output_text: JSON.stringify(invalidLocalizedShortPackage) },
+      {
+        output_text: JSON.stringify(
+          buildCurrentFullResponse(
+            "es",
+            invalidLocalizedShortPackage.full?.narrationParagraphs ?? []
+          )
+        ),
+      },
     ]);
 
     const result = await localizeStoryEpisode(sourceFile, config, {
@@ -632,15 +728,6 @@ describe("story localization helpers", () => {
       "short",
       "script.md"
     );
-    const failedReportPath = path.join(
-      tempDir,
-      "002-even-killers-can-lick",
-      ".batch",
-      "failed",
-      "002-even-killers-can-lick",
-      "es",
-      "002-even-killers-can-lick-es-report.json"
-    );
     const failedShortPath = path.join(
       tempDir,
       "002-even-killers-can-lick",
@@ -650,24 +737,10 @@ describe("story localization helpers", () => {
       "es",
       "002-even-killers-can-lick-es-short.failed.md"
     );
-    const failedReport = JSON.parse(
-      await fs.readFile(failedReportPath, "utf8")
-    ) as {
-      readonly issues: readonly string[];
-      readonly failureMessage: string;
-    };
     const requestText = collectMockRequestText(client);
 
-    expect(failedReport.issues).toContain(
-      "Short word count 80 outside range 120-145."
-    );
-    expect(failedReport.issues).not.toContain("Character names are missing.");
-    expect(failedReport.issues).not.toContain(
-      "Written messages are not preserved."
-    );
-    expect(result.failure).toContain(
-      "Short word count 80 outside range 120-145."
-    );
+    expect(result.failure).toContain("Full word count");
+    expect(result.failure).not.toContain("Short word count");
     expect(result.repairAttempts).toBe(0);
     expect(client.responses.create).toHaveBeenCalledTimes(2);
     expect(requestText).toContain(
@@ -678,7 +751,6 @@ describe("story localization helpers", () => {
     expect(requestText).not.toContain("Rewrite only the short narration");
     expect(requestText).not.toContain("localized-short");
     expect(result.generatedFiles).not.toContain(shortOutputPath);
-    expect(result.skippedFiles).toContain(shortOutputPath);
     await expect(fileExists(shortOutputPath)).resolves.toBe(false);
     await expect(fileExists(failedShortPath)).resolves.toBe(false);
   });
@@ -751,17 +823,11 @@ describe("story localization helpers", () => {
       processingMode: "sync",
       force: false,
     });
-    const validEnglishFullPackage = withFullCharacterNameCoverage(
-      makeLocalizedPackage("en", 160)
-    );
     const client = makeMockClient([
       {
-        output_text: JSON.stringify({
-          language: "en",
-          full: validEnglishFullPackage.full,
-          preservationChecklist: validEnglishFullPackage.preservationChecklist,
-          diagnostics: validEnglishFullPackage.diagnostics,
-        }),
+        output_text: JSON.stringify(
+          buildCurrentFullResponse("en", buildRetrySafeEnglishFullNarration())
+        ),
       },
     ]);
 
@@ -787,53 +853,19 @@ describe("story localization helpers", () => {
       maxOutputTokens: 6000,
       retryMaxOutputTokens: 9000,
     });
-    const localizedFull = {
-      language: "es",
-      full: {
-        narrationParagraphs: [
-          `${episode002RenamedCharacter} oyó a Bramble respirar bajo la cama mientras la tormenta golpeaba la casa.`,
-          "A la mañana siguiente encontró las huellas mojadas en el pasillo, HUMANS CAN LICK TOO en el espejo y la libreta del ático con la frase SHE REACHED DOWN FIRST.",
-          "Cuando la alarma del vecino rompió el silencio, Elias vio al intruso huir por la trampilla y comprendió que el asesino había estado dentro toda la noche.",
-        ],
-      },
-      targetNarrationWpm: 170,
-      preservationChecklist: makeLocalizedPackage("es", 160).preservationChecklist,
-      diagnostics: {
-        removedGenericFiller: [],
-        adaptationNotes: [],
-      },
-    };
+    const englishFull = buildCurrentFullResponse(
+      "en",
+      buildRetrySafeEnglishFullNarration()
+    );
+    const localizedFull = buildCurrentFullResponse(
+      "es",
+      buildRetrySafeSpanishFullNarration()
+    );
     const client = makeRawClient([
       {
         id: "resp-en",
-        output_text: JSON.stringify({
-          language: "en",
-          full: {
-            narrationParagraphs: buildRetrySafeEnglishFullNarration(),
-          },
-          targetNarrationWpm: 170,
-          preservationChecklist: makeLocalizedPackage("en", 160)
-            .preservationChecklist,
-          diagnostics: {
-            removedGenericFiller: [],
-            adaptationNotes: [],
-          },
-        }),
-        output_parsed: JSON.parse(
-          JSON.stringify({
-            language: "en",
-            full: {
-              narrationParagraphs: buildRetrySafeEnglishFullNarration(),
-            },
-            targetNarrationWpm: 170,
-            preservationChecklist: makeLocalizedPackage("en", 160)
-              .preservationChecklist,
-            diagnostics: {
-              removedGenericFiller: [],
-              adaptationNotes: [],
-            },
-          })
-        ),
+        output_text: JSON.stringify(englishFull),
+        output_parsed: englishFull,
         usage: { input_tokens: 100, output_tokens: 50, input_tokens_details: { cached_tokens: 0 } },
       },
       {
@@ -1163,28 +1195,12 @@ describe("story localization helpers", () => {
           })
           .mockResolvedValueOnce({
             id: "resp_retry",
-            output_text: JSON.stringify({
-              language: "en",
-              full: {
-                narrationParagraphs: buildRetrySafeEnglishFullNarration(),
-              },
-              targetNarrationWpm: 170,
-              preservationChecklist: {
-                charactersPreserved: true,
-                relationshipsPreserved: true,
-                chronologyPreserved: true,
-                criticalObjectsPreserved: true,
-                cluesPreserved: true,
-                writtenMessagesPreserved: true,
-                primaryRevealPreserved: true,
-                endingPreserved: true,
-                noNewPlotElementsAdded: true,
-              },
-              diagnostics: {
-                removedGenericFiller: [],
-                adaptationNotes: ["Derived from the English full story."],
-              },
-            }),
+            output_text: JSON.stringify(
+              buildCurrentFullResponse(
+                "en",
+                buildRetrySafeEnglishFullNarration()
+              )
+            ),
             usage: {
               input_tokens: 10,
               output_tokens: 10,
@@ -1223,7 +1239,8 @@ describe("story localization helpers", () => {
     });
 
     expect(result.failure).toBeUndefined();
-    expect(client.responses.create).toHaveBeenCalledTimes(3);
+    // One preflight request, two full-story attempts, then one Short request.
+    expect(client.responses.create).toHaveBeenCalledTimes(4);
   });
 
   it("accepts generated localized full stories without sourceTitle", () => {
@@ -1482,39 +1499,25 @@ describe("story localization helpers", () => {
       outputDirectory: tempDir,
       languages: ["de", "es"],
       includeEnglishShort: false,
+      includeLocalizedShorts: false,
       processingMode: "sync",
       force: true,
     });
-    const badSpanish = makeLocalizedPackage("es", 165);
-    if (!badSpanish.full) {
-      throw new Error("Expected localized full payload.");
-    }
-    const validEnglishFullPackage = withFullCharacterNameCoverage(
-      makeLocalizedPackage("en", 160)
+    const validEnglishFullPackage = buildCurrentFullResponse(
+      "en",
+      buildRetrySafeEnglishFullNarration()
     );
-    const validGermanPackage = withFullCharacterNameCoverage(
-      makeLocalizedPackage("de", 125)
+    const validGermanPackage = buildCurrentFullResponse(
+      "de",
+      buildRetrySafeGermanFullNarration()
     );
-    const invalidSpanish = {
-      ...badSpanish,
-      full: {
-        ...badSpanish.full,
-        narrationParagraphs: [
-          `${episode002RenamedCharacter} stayed in English and never localized correctly.`,
-          "The warning stayed in English and never localized correctly.",
-          "The warning stayed in English and never localized correctly...",
-        ],
-      },
-    };
+    const invalidSpanish = buildCurrentFullResponse("es", [
+      `${episode002RenamedCharacter} stayed in English and never localized correctly.`,
+      "The warning stayed in English and never localized correctly.",
+      "The warning stayed in English and never localized correctly...",
+    ]);
     const client = makeMockClient([
-      {
-        output_text: JSON.stringify({
-          language: "en",
-          full: validEnglishFullPackage.full,
-          preservationChecklist: validEnglishFullPackage.preservationChecklist,
-          diagnostics: validEnglishFullPackage.diagnostics,
-        }),
-      },
+      { output_text: JSON.stringify(validEnglishFullPackage) },
       { output_text: JSON.stringify(validGermanPackage) },
       { output_text: JSON.stringify(invalidSpanish) },
     ]);

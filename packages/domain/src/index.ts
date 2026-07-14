@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+export * from "./workflow-contracts.js";
+
 const episodeIdPattern = /^[a-z0-9][a-z0-9-]*$/;
 const sceneIdPattern = /^scene-[0-9]{3}$/;
 const artifactIdPattern = /^artifact-[a-z0-9][a-z0-9-]*$/;

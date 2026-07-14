@@ -141,6 +141,9 @@ importers:
       '@mediaforge/visual-planning':
         specifier: workspace:*
         version: link:../../packages/visual-planning
+      '@mediaforge/workflow-engine':
+        specifier: workspace:*
+        version: link:../../packages/workflow-engine
       '@mediaforge/youtube-upload':
         specifier: workspace:*
         version: link:../../packages/youtube-upload
@@ -216,6 +219,9 @@ importers:
       '@mediaforge/visual-planning':
         specifier: workspace:*
         version: link:../visual-planning
+      '@mediaforge/workflow-engine':
+        specifier: workspace:*
+        version: link:../workflow-engine
       zod:
         specifier: ^4.0.14
         version: 4.4.3
@@ -256,6 +262,9 @@ importers:
       '@mediaforge/story-localization':
         specifier: workspace:*
         version: link:../story-localization
+      '@mediaforge/workflow-engine':
+        specifier: workspace:*
+        version: link:../workflow-engine
       openai:
         specifier: ^6.44.0
         version: 6.45.0(ws@8.21.0)(zod@4.4.3)
@@ -268,6 +277,9 @@ importers:
 
   packages/math-education:
     dependencies:
+      '@mediaforge/domain':
+        specifier: workspace:*
+        version: link:../domain
       '@mediaforge/observability':
         specifier: workspace:*
         version: link:../observability
@@ -277,6 +289,9 @@ importers:
       '@mediaforge/speech':
         specifier: workspace:*
         version: link:../speech
+      '@mediaforge/workflow-engine':
+        specifier: workspace:*
+        version: link:../workflow-engine
       zod:
         specifier: ^4.0.14
         version: 4.4.3
@@ -443,6 +458,9 @@ importers:
 
   packages/shared:
     dependencies:
+      '@mediaforge/domain':
+        specifier: workspace:*
+        version: link:../domain
       zod:
         specifier: ^4.0.14
         version: 4.4.3
@@ -491,6 +509,9 @@ importers:
       '@mediaforge/shared':
         specifier: workspace:*
         version: link:../shared
+      '@mediaforge/workflow-engine':
+        specifier: workspace:*
+        version: link:../workflow-engine
       openai:
         specifier: ^6.44.0
         version: 6.45.0(ws@8.21.0)(zod@4.4.3)
@@ -557,6 +578,18 @@ importers:
       sharp:
         specifier: ^0.34.3
         version: 0.34.5
+
+  packages/workflow-engine:
+    dependencies:
+      '@mediaforge/domain':
+        specifier: workspace:*
+        version: link:../domain
+      '@mediaforge/shared':
+        specifier: workspace:*
+        version: link:../shared
+      zod:
+        specifier: ^4.0.14
+        version: 4.4.3
 
   packages/youtube-upload:
     dependencies:

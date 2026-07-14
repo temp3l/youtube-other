@@ -55,13 +55,16 @@
     "transcript:normalize": "node scripts/run-with-telemetry.mjs transcript:normalize -- node apps/cli/bin/mediaforge.js transcript normalize",
     "transcript:validate": "node scripts/run-with-telemetry.mjs transcript:validate -- node apps/cli/bin/mediaforge.js transcript validate",
     "metadata:youtube": "node scripts/run-with-telemetry.mjs metadata:youtube -- node apps/cli/bin/mediaforge.js metadata youtube",
-    "metadata:youtube:curl": "node scripts/run-with-telemetry.mjs metadata:youtube:curl -- bash scripts/generate-youtube-metadata.sh",
+    "metadata:youtube:curl": "node scripts/run-with-telemetry.mjs metadata:youtube:curl -- node apps/cli/bin/mediaforge.js metadata youtube",
     "youtube:upload": "node scripts/run-with-telemetry.mjs youtube:upload -- node apps/cli/bin/mediaforge.js youtube upload",
     "test:metadata": "vitest run packages/metadata/src/youtube-metadata.unit.test.ts",
     "images:plan": "node scripts/run-with-telemetry.mjs images:plan -- node apps/cli/bin/mediaforge.js images plan",
     "images:generate": "node scripts/run-with-telemetry.mjs images:generate -- node apps/cli/bin/mediaforge.js images generate",
     "docs:diagrams": "node scripts/render-docs-diagrams.mjs",
-    "docs:diagrams:check": "node scripts/check-docs-diagrams.mjs"
+    "docs:diagrams:check": "node scripts/check-docs-diagrams.mjs",
+    "ai-pack:build": "node scripts/ai-pack.mjs build",
+    "ai-pack:validate": "node scripts/ai-pack.mjs validate",
+    "ai-pack:status": "node scripts/ai-pack.mjs status"
   },
   "devDependencies": {
     "@eslint/js": "^9.30.1",

@@ -191,7 +191,11 @@ export interface ShortNarrationValidationInput {
   readonly narration: string;
   readonly parent: Pick<
     ShortRewriteResolvedParent,
-    "identity" | "parentFullHash" | "narrationParagraphs"
+    | "identity"
+    | "parentFullHash"
+    | "narrationParagraphs"
+    | "canonical"
+    | "provenance"
   > & {
     readonly validated: boolean;
   };
@@ -1255,7 +1259,16 @@ export function validateShortNarrationArtifact(
       )
     );
   }
-  if (!args.parent.validated || args.parent.identity.variant !== "full") {
+  const hasValidatedFullParent =
+    args.parent.validated && args.parent.identity.variant === "full";
+  const hasCanonicalEnglishShortParent =
+    args.parent.validated &&
+    args.language !== "en" &&
+    args.parent.identity.language === "en" &&
+    args.parent.identity.variant === "short" &&
+    args.parent.canonical &&
+    args.parent.provenance === "canonical-short-artifact";
+  if (!hasValidatedFullParent && !hasCanonicalEnglishShortParent) {
     issues.push(
       issue(
         GENERATED_STORY_VALIDATION_ISSUE_CODES.SHORT_SOURCE_NOT_VALIDATED_FULL,

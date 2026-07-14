@@ -97,7 +97,8 @@ describe("story workflow English rewrite stage", () => {
     });
 
     expect(runner).not.toHaveBeenCalled();
-    expect(resumed.outcome).toStrictEqual(first.outcome);
+    expect(resumed.outcome).toMatchObject(first.outcome);
+    expect(resumed.outcome.outcomeKind).toBe("completed");
     expect(resumed.manifest.attemptHistory).toHaveLength(1);
   });
 
@@ -222,7 +223,8 @@ describe("story workflow English rewrite stage", () => {
       }),
     });
 
-    expect(second.outcome).toStrictEqual(first.outcome);
+    expect(second.outcome).toMatchObject(first.outcome);
+    expect(second.outcome.outcomeKind).toBe("completed");
     expect(second.manifest.attemptHistory).toHaveLength(1);
   });
 

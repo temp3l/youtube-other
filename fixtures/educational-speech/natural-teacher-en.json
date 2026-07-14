@@ -1,0 +1,70 @@
+{
+  "language": "en",
+  "fixtureVersion": "educational-speech-listening.v1",
+  "beats": [
+    {
+      "id": "fixture-introduction",
+      "visualStepId": "scene-001",
+      "kind": "introduction",
+      "displayText": "Solve 3x + 5 = 20",
+      "spokenText": "Today we will solve 3x + 5 = 20 together. Watch how each line on the board follows from the one before it.",
+      "writingBehavior": "overlap-narration"
+    },
+    {
+      "id": "fixture-problem",
+      "visualStepId": "scene-002",
+      "kind": "problem-statement",
+      "displayText": "3x + 5 = 20",
+      "spokenText": "Our equation is 3x + 5 = 20. The goal is to leave x by itself.",
+      "writingBehavior": "overlap-narration"
+    },
+    {
+      "id": "fixture-step-one",
+      "visualStepId": "scene-003",
+      "kind": "calculation-step",
+      "displayText": "3x + 5 - 5 = 20 - 5",
+      "spokenText": "First, subtract 5 on both sides: 3x + 5 - 5 = 20 - 5.",
+      "writingBehavior": "overlap-narration"
+    },
+    {
+      "id": "fixture-step-two",
+      "visualStepId": "scene-004",
+      "kind": "calculation-step",
+      "displayText": "3x = 15",
+      "spokenText": "That simplifies to 3x = 15.",
+      "writingBehavior": "overlap-narration"
+    },
+    {
+      "id": "fixture-step-three",
+      "visualStepId": "scene-005",
+      "kind": "calculation-step",
+      "displayText": "x = 15 / 3 = 5",
+      "spokenText": "Now divide both sides by 3: x = 15 / 3 = 5.",
+      "writingBehavior": "overlap-narration"
+    },
+    {
+      "id": "fixture-warning",
+      "visualStepId": "scene-006",
+      "kind": "warning",
+      "displayText": "Common mistake: change both sides",
+      "spokenText": "A common mistake is to subtract or divide on only one side. An equation stays balanced only when we make the same change on both sides.",
+      "writingBehavior": "overlap-narration"
+    },
+    {
+      "id": "fixture-final-answer",
+      "visualStepId": "scene-007",
+      "kind": "final-answer",
+      "displayText": "x = 5",
+      "spokenText": "So the final answer is x = 5.",
+      "writingBehavior": "overlap-narration"
+    },
+    {
+      "id": "fixture-recap",
+      "visualStepId": "scene-008",
+      "kind": "recap",
+      "displayText": "Subtract 5 → divide by 3 → check",
+      "spokenText": "To recap: subtract 5 from both sides, divide both sides by 3, and then check the answer in the original equation.",
+      "writingBehavior": "overlap-narration"
+    }
+  ]
+}

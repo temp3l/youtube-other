@@ -873,6 +873,14 @@ async function resolveCanonicalEnglishShortParent(args: {
       "Localized Shorts require the canonical English character rename map."
     );
   }
+  if (
+    sidecar.targetLanguage !== "en" ||
+    sidecar.locale !== canonicalArtifact.locale
+  ) {
+    throw new ShortRewriteValidationError(
+      `Localized Shorts cannot derive from canonical English Short locale ${sidecar.locale}.`
+    );
+  }
   const narrationParagraphs = [normalizeWhitespace(sidecar.generation.narration)];
   return {
     identity: {

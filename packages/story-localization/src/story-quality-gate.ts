@@ -87,7 +87,19 @@ const CONCRETE_DETAIL_PATTERNS = [
   /\b(?:opened|closed|picked|pressed|turned|stepped|ran|dragged|held|dropped|cut|sealed|painted|scanned|watched|heard|saw|entered|removed|retrieved)\b/iu,
   /\b(?:door|window|canvas|portrait|painting|mug|watch|light|camera|scanner|room|floor|wall|hand|face|glass|mirror|varnish|primer)\b/iu,
   /\b(?:wet|cold|white|red|silver|dark|bright|silent|loud|stale|dust|smell|sound|shadow|reflection)\b/iu,
+  /(?:öffnete|schloss|drückte|drehte|rannte|zog|hielt|ließ|schnitt|versiegelte|sah|hörte|verbrannte|verriegelte|abrió|cerró|corrió|arrastró|sostuvo|soltó|cortó|selló|vio|oyó|quemó|abriu|fechou|correu|arrastou|segurou|soltou|cortou|selou|viu|ouviu|queimou|ouvrit|ferma|courut|traîna|tint|lâcha|coupa|scella|vit|entendit|brûla)/iu,
+  /(?:tür|fenster|zimmer|wand|hand|gesicht|glas|spiegel|puppe|kleid|foto|treppe|truhe|waschbecken|puerta|ventana|habitación|pared|mano|cara|vidrio|espejo|muñeca|vestido|foto|escalera|baúl|lavabo|porta|janela|sala|parede|mão|rosto|vidro|espelho|boneca|roupa|escada|baú|pia|porte|fenêtre|pièce|mur|main|visage|verre|miroir|poupée|robe|escalier|coffre|lavabo)/iu,
+  /(?:nass|kalt|weiß|rot|dunkel|hell|still|laut|staub|geruch|schatten|spiegelung|mojado|frío|blanco|oscuro|silencio|sombra|molhado|frio|branco|escuro|silêncio|sombra|mouillé|froid|blanc|sombre|silence|ombre)/iu,
 ] as const;
+
+const LOCALIZED_EMOTIONAL_COST_PATTERN =
+  /(?:verweiger|opfer|verlass|zerstör|verrat|akzeptier|ignorier|zurücklass|ablehn|aufgeb|verlier|verbrann|rechaz|sacrific|abandon|destru|traicion|acept|ignor|dej|renunci|perd|recus|trai|aceit|deix|refus|abandonn|détru|trahi|laiss|renonc|brûl)/iu;
+
+const LOCALIZED_ATTACHMENT_PATTERN =
+  /(?:versprechen|schuld|stimme|geliebt|vertraut|beweis|aufnahme|name|scham|vertrauen|promesa|culpa|voz|amado|familiar|prueba|grabación|nombre|vergüenza|confianza|promessa|prova|gravação|vergonha|confi|promesse|voix|aimé|preuve|enregistrement|honte)/iu;
+
+const LOCALIZED_CONCRETE_HOOK_PATTERN =
+  /(?:tür|spiegel|telefon|stimme|puppe|puerta|espejo|teléfono|voz|muñeca|porta|espelho|telefone|boneca|porte|miroir|téléphone|voix|poupée)/iu;
 
 function normalizeForDuplicate(value: string): string {
   return normalizeWhitespace(value)
@@ -190,25 +202,31 @@ function includesAny(
   return (values ?? []).some((value) => lower.includes(value.toLowerCase()));
 }
 
-function hasEmotionalCost(text: string, facts: CanonicalStoryFacts): boolean {
+function hasEmotionalCost(
+  text: string,
+  facts: CanonicalStoryFacts,
+  language: LanguageCode
+): boolean {
   const lower = text.toLowerCase();
   const cost = facts.emotionalCost?.toLowerCase();
   const attachment = facts.protagonistAttachment?.toLowerCase();
   const hasCostVerb =
     /\b(refus|sacrific|abandon|destroy|betray|accept|ignore|leave|reject|give up|lose)\w*\b/iu.test(
       text
-    );
+    ) || LOCALIZED_EMOTIONAL_COST_PATTERN.test(text);
+  const hasAttachment =
+    /\bpromise|guilt|voice|loved|familiar|proof|recording|name|shame|trust\b/iu.test(
+      text
+    ) || LOCALIZED_ATTACHMENT_PATTERN.test(text);
   return (
     hasCostVerb &&
     (cost
-      ? lower.includes(cost.slice(0, Math.min(32, cost.length))) ||
+      ? language !== "en" ||
+        lower.includes(cost.slice(0, Math.min(32, cost.length))) ||
         includesAny(lower, [cost])
       : true) &&
     (attachment
-      ? includesAny(lower, [attachment]) ||
-        /\bpromise|guilt|voice|loved|familiar|proof|recording|name|shame|trust\b/iu.test(
-          text
-        )
+      ? (language === "en" && includesAny(lower, [attachment])) || hasAttachment
       : true)
   );
 }
@@ -719,7 +737,7 @@ export function runStoryQualityGate(args: {
     repairScopes.add("targeted-short-repair");
   }
 
-  if (!hasEmotionalCost(normalized, args.facts)) {
+  if (!hasEmotionalCost(normalized, args.facts, args.language)) {
     findings.push(
       finding({
         code: "EMOTIONAL_COST_MISSING",
@@ -783,7 +801,7 @@ export function runStoryQualityGate(args: {
     if (
       !/\bhook\b|\bdoor\b|\bradio\b|\bvoice\b|\bscrap|\bcar\b|\bmirror\b|\bphone\b/iu.test(
         firstTwoSentences
-      )
+      ) && !LOCALIZED_CONCRETE_HOOK_PATTERN.test(firstTwoSentences)
     ) {
       findings.push(
         finding({

@@ -9,12 +9,19 @@ import {
   legacyLocalizedNarrationSchema,
   localizedNarrationSchema,
 } from "../localization/localization.js";
-import { mathMetadataSchema, mathPlaylistCatalogSchema } from "../metadata/math-metadata.js";
+import {
+  mathMetadataSchema,
+  mathPlaylistCatalogSchema,
+} from "../metadata/math-metadata.js";
 import { mathPublishDryRunSchema } from "../publishing/dry-run-manifest.js";
 import { verifierResponseSchema } from "../verification/protocol-schemas.js";
-import { mathMinorEditApprovalSchema, mathQualityReportSchema } from "./quality-gate.js";
+import {
+  mathMinorEditApprovalSchema,
+  mathQualityReportSchema,
+} from "./quality-gate.js";
 import { educationalSpeechWorkflowLogSchema } from "@mediaforge/speech";
 import { mathPresentationSyncSchema } from "../lesson/educational-speech-sync.js";
+import { educationalVisualStyleManifestSchema } from "../profile-contracts.js";
 
 export const mathArtifactSchemaVersionSchema = z.enum([
   "curriculum-skill.v1",
@@ -25,6 +32,7 @@ export const mathArtifactSchemaVersionSchema = z.enum([
   "math-narration.v2",
   "math-timing.v1",
   "math-visual-plan.v1",
+  "math.educational-visual-style.v1",
   "math-metadata.v1",
   "math-metadata.v2",
   "math-playlist-catalog.v1",
@@ -46,47 +54,51 @@ export type MathArtifactSchemaVersion = z.infer<
   typeof mathArtifactSchemaVersionSchema
 >;
 
-export const mathVisualPlanSchema = z.strictObject({
-  artifactVersion: z.literal("math-visual-plan.v1"),
-  profile: z.enum(["grades-5-7-v1", "grades-8-10-v1"]),
-  scenes: z.array(
-    z.strictObject({
-      sceneId: z.string().regex(/^scene-\d{3}$/u),
-      component: z.enum([
-        "formula",
-        "place-value-chart",
-        "fraction-model",
-        "number-line",
-        "coordinate-plane",
-        "function-graph",
-        "geometry",
-        "measurement",
-        "data-table",
-        "probability-tree",
-        "teacher",
-      ]),
-      factIds: z.array(z.string()),
-      teacherAssetVersion: z.literal("alex.v1-placeholder"),
-    })
-  ).length(9),
-}).superRefine((plan, context) => {
-  const seenSceneIds = new Set<string>();
-  for (const [index, scene] of plan.scenes.entries()) {
-    if (seenSceneIds.has(scene.sceneId))
-      context.addIssue({
-        code: "custom",
-        path: ["scenes", index, "sceneId"],
-        message: `Visual-plan scene ID ${scene.sceneId} is duplicated.`,
-      });
-    seenSceneIds.add(scene.sceneId);
-    if (new Set(scene.factIds).size !== scene.factIds.length)
-      context.addIssue({
-        code: "custom",
-        path: ["scenes", index, "factIds"],
-        message: `Visual-plan scene ${scene.sceneId} contains duplicated fact IDs.`,
-      });
-  }
-});
+export const mathVisualPlanSchema = z
+  .strictObject({
+    artifactVersion: z.literal("math-visual-plan.v1"),
+    profile: z.enum(["grades-5-7-v1", "grades-8-10-v1"]),
+    scenes: z
+      .array(
+        z.strictObject({
+          sceneId: z.string().regex(/^scene-\d{3}$/u),
+          component: z.enum([
+            "formula",
+            "place-value-chart",
+            "fraction-model",
+            "number-line",
+            "coordinate-plane",
+            "function-graph",
+            "geometry",
+            "measurement",
+            "data-table",
+            "probability-tree",
+            "teacher",
+          ]),
+          factIds: z.array(z.string()),
+          teacherAssetVersion: z.literal("alex.v1-placeholder"),
+        })
+      )
+      .length(9),
+  })
+  .superRefine((plan, context) => {
+    const seenSceneIds = new Set<string>();
+    for (const [index, scene] of plan.scenes.entries()) {
+      if (seenSceneIds.has(scene.sceneId))
+        context.addIssue({
+          code: "custom",
+          path: ["scenes", index, "sceneId"],
+          message: `Visual-plan scene ID ${scene.sceneId} is duplicated.`,
+        });
+      seenSceneIds.add(scene.sceneId);
+      if (new Set(scene.factIds).size !== scene.factIds.length)
+        context.addIssue({
+          code: "custom",
+          path: ["scenes", index, "factIds"],
+          message: `Visual-plan scene ${scene.sceneId} contains duplicated fact IDs.`,
+        });
+    }
+  });
 
 const legacyMathPublishDryRunSchema = z.strictObject({
   artifactVersion: z.literal("math-publish-dry-run.v1"),
@@ -114,17 +126,29 @@ const qualitySchema = z.strictObject({
 
 const thumbnailHashSchema = z.string().regex(/^[a-f0-9]{64}$/u);
 const thumbnailSourceSchema = <
-  TStage extends "lesson-spec" | "math-verification" | "localization" | "metadata-playlists",
-  TSchema extends "lesson-spec.v1" | "math-verifier.v3" | "math-narration.v2" | "math-metadata.v2"
->(stage: TStage, schemaVersion: TSchema) => z.strictObject({
-  stage: z.literal(stage),
-  relativePath: z.string().min(1),
-  schemaVersion: z.literal(schemaVersion),
-  contentHash: thumbnailHashSchema,
-  producer: z.string().min(1),
-  producerVersion: z.string().min(1),
-  parentFingerprints: z.array(thumbnailHashSchema).length(1),
-});
+  TStage extends
+    | "lesson-spec"
+    | "math-verification"
+    | "localization"
+    | "metadata-playlists",
+  TSchema extends
+    | "lesson-spec.v1"
+    | "math-verifier.v3"
+    | "math-narration.v2"
+    | "math-metadata.v2",
+>(
+  stage: TStage,
+  schemaVersion: TSchema
+) =>
+  z.strictObject({
+    stage: z.literal(stage),
+    relativePath: z.string().min(1),
+    schemaVersion: z.literal(schemaVersion),
+    contentHash: thumbnailHashSchema,
+    producer: z.string().min(1),
+    producerVersion: z.string().min(1),
+    parentFingerprints: z.array(thumbnailHashSchema).length(1),
+  });
 
 export const mathThumbnailArtifactSchema = z.strictObject({
   artifactVersion: z.literal("math-thumbnail.v1"),
@@ -155,26 +179,45 @@ export const mathThumbnailArtifactSchema = z.strictObject({
   teacherManifestHash: z.string().regex(/^[a-f0-9]{64}$/u),
   teacherPoseId: z.string().min(1),
   teacherPoseHash: z.string().regex(/^[a-f0-9]{64}$/u),
-  artwork: z.strictObject({
-    status: z.enum(["simulation-placeholder", "approved-publish-artwork"]),
-    publishReady: z.boolean(),
-    blockers: z.array(z.string().min(1)),
-    license: z.string().min(1),
-    provenance: z.string().min(1),
-  }).superRefine((artwork, context) => {
-    if (artwork.status === "simulation-placeholder") {
-      if (artwork.publishReady)
-        context.addIssue({ code: "custom", path: ["publishReady"], message: "Simulation placeholders cannot be publish-ready." });
-      if (artwork.blockers.length === 0)
-        context.addIssue({ code: "custom", path: ["blockers"], message: "Simulation placeholders require an explicit publish blocker." });
-    }
-    if (artwork.status === "approved-publish-artwork") {
-      if (!artwork.publishReady)
-        context.addIssue({ code: "custom", path: ["publishReady"], message: "Approved artwork must be publish-ready." });
-      if (artwork.blockers.length !== 0)
-        context.addIssue({ code: "custom", path: ["blockers"], message: "Approved artwork cannot carry publish blockers." });
-    }
-  }),
+  artwork: z
+    .strictObject({
+      status: z.enum(["simulation-placeholder", "approved-publish-artwork"]),
+      publishReady: z.boolean(),
+      blockers: z.array(z.string().min(1)),
+      license: z.string().min(1),
+      provenance: z.string().min(1),
+    })
+    .superRefine((artwork, context) => {
+      if (artwork.status === "simulation-placeholder") {
+        if (artwork.publishReady)
+          context.addIssue({
+            code: "custom",
+            path: ["publishReady"],
+            message: "Simulation placeholders cannot be publish-ready.",
+          });
+        if (artwork.blockers.length === 0)
+          context.addIssue({
+            code: "custom",
+            path: ["blockers"],
+            message:
+              "Simulation placeholders require an explicit publish blocker.",
+          });
+      }
+      if (artwork.status === "approved-publish-artwork") {
+        if (!artwork.publishReady)
+          context.addIssue({
+            code: "custom",
+            path: ["publishReady"],
+            message: "Approved artwork must be publish-ready.",
+          });
+        if (artwork.blockers.length !== 0)
+          context.addIssue({
+            code: "custom",
+            path: ["blockers"],
+            message: "Approved artwork cannot carry publish blockers.",
+          });
+      }
+    }),
   inputHashes: z.strictObject({
     lessonContent: z.string().regex(/^[a-f0-9]{64}$/u),
     metadata: z.string().regex(/^[a-f0-9]{64}$/u),
@@ -182,8 +225,17 @@ export const mathThumbnailArtifactSchema = z.strictObject({
     verification: z.string().regex(/^[a-f0-9]{64}$/u),
     spec: z.string().regex(/^[a-f0-9]{64}$/u),
   }),
-  dimensions: z.strictObject({ width: z.literal(1920), height: z.literal(1080), aspectRatio: z.literal("16:9") }),
-  safeArea: z.strictObject({ x: z.literal(96), y: z.literal(54), width: z.literal(1728), height: z.literal(972) }),
+  dimensions: z.strictObject({
+    width: z.literal(1920),
+    height: z.literal(1080),
+    aspectRatio: z.literal("16:9"),
+  }),
+  safeArea: z.strictObject({
+    x: z.literal(96),
+    y: z.literal(54),
+    width: z.literal(1728),
+    height: z.literal(972),
+  }),
   readability: z.strictObject({
     wordCount: z.number().int().min(2).max(5),
     textFontPx: z.number().min(64),
@@ -210,20 +262,32 @@ export const mathThumbnailArtifactSchema = z.strictObject({
       producer: z.literal("lesson-specification-builder"),
       producerVersion: z.literal("reviewed-fixtures.v1"),
     }),
-    verification: thumbnailSourceSchema("math-verification", "math-verifier.v3").extend({
+    verification: thumbnailSourceSchema(
+      "math-verification",
+      "math-verifier.v3"
+    ).extend({
       relativePath: z.literal("canonical/verification.json"),
       producer: z.literal("sympy-verifier-adapter"),
       producerVersion: z.literal("3.0.0"),
     }),
-    localization: thumbnailSourceSchema("localization", "math-narration.v2").extend({
+    localization: thumbnailSourceSchema(
+      "localization",
+      "math-narration.v2"
+    ).extend({
       producer: z.literal("locked-fact-localizer"),
       producerVersion: z.literal("locked-facts.v2"),
     }),
-    localizedVerification: thumbnailSourceSchema("localization", "math-verifier.v3").extend({
+    localizedVerification: thumbnailSourceSchema(
+      "localization",
+      "math-verifier.v3"
+    ).extend({
       producer: z.literal("sympy-verifier-adapter"),
       producerVersion: z.literal("3.0.0"),
     }),
-    metadata: thumbnailSourceSchema("metadata-playlists", "math-metadata.v2").extend({
+    metadata: thumbnailSourceSchema(
+      "metadata-playlists",
+      "math-metadata.v2"
+    ).extend({
       producer: z.literal("math-metadata-generator"),
       producerVersion: z.literal("math-metadata-generator.v3"),
     }),
@@ -266,11 +330,15 @@ export const mathBrandPolicyArtifactSchema = z.strictObject({
   privacyStatus: z.literal("private"),
   madeForKids: z.boolean(),
   containsSyntheticMedia: z.boolean(),
-  channels: z.array(z.strictObject({
-    language: z.enum(["de", "en", "es", "fr", "pt"]),
-    channelId: z.string().min(1),
-    playlists: z.record(z.string(), z.string().min(1)),
-  })).length(5),
+  channels: z
+    .array(
+      z.strictObject({
+        language: z.enum(["de", "en", "es", "fr", "pt"]),
+        channelId: z.string().min(1),
+        playlists: z.record(z.string(), z.string().min(1)),
+      })
+    )
+    .length(5),
 });
 
 const schemas: Record<MathArtifactSchemaVersion, z.ZodType> = {
@@ -282,6 +350,7 @@ const schemas: Record<MathArtifactSchemaVersion, z.ZodType> = {
   "math-narration.v2": localizedNarrationSchema,
   "math-timing.v1": timingManifestSchema,
   "math-visual-plan.v1": mathVisualPlanSchema,
+  "math.educational-visual-style.v1": educationalVisualStyleManifestSchema,
   "math-metadata.v1": mathMetadataSchema,
   "math-metadata.v2": mathMetadataSchema,
   "math-playlist-catalog.v1": mathPlaylistCatalogSchema,

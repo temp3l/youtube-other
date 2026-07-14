@@ -21,15 +21,14 @@ import {
   createLocalBatchId,
   type BatchStorageLayout,
 } from "@mediaforge/story-localization";
+import { writeLegacyBatchSidecar } from "@mediaforge/workflow-engine";
 import type {
   ImageBatchManifest as ImageBatchManifestType,
   ImageBatchManifestItem as ImageBatchManifestItemType,
   ImageBatchJob as ImageBatchJobType,
 } from "./image-batch.types.js";
 import { normalizeImageBatchManifest } from "./image-batch-normalization.js";
-import {
-  imageBatchManifestSchema,
-} from "./image-batch.schemas.js";
+import { imageBatchManifestSchema } from "./image-batch.schemas.js";
 
 export interface ImageBatchStorageLayout extends BatchStorageLayout {}
 
@@ -96,16 +95,32 @@ export async function createImageBatchStoragePlan(
 ): Promise<ImageBatchStoragePlan> {
   const layout = await ensureImageBatchStorageLayout(outputDirectory);
   const episodeDir = resolveEpisodeDirFromImageStateDir(outputDirectory);
-  const resolvedLocalBatchId = localBatchId ?? (await createLocalBatchId(layout));
+  const resolvedLocalBatchId =
+    localBatchId ?? (await createLocalBatchId(layout));
   return {
     outputDirectory,
     layout,
     localBatchId: resolvedLocalBatchId,
-    inputFilePath: resolveEpisodeImageBatchInputPath(episodeDir, resolvedLocalBatchId),
-    manifestPath: resolveEpisodeImageBatchManifestFilePath(episodeDir, resolvedLocalBatchId),
-    resultFilePath: resolveEpisodeImageBatchResultPath(episodeDir, resolvedLocalBatchId),
-    errorFilePath: resolveEpisodeImageBatchErrorPath(episodeDir, resolvedLocalBatchId),
-    reportFilePath: resolveEpisodeImageBatchReportPath(episodeDir, resolvedLocalBatchId),
+    inputFilePath: resolveEpisodeImageBatchInputPath(
+      episodeDir,
+      resolvedLocalBatchId
+    ),
+    manifestPath: resolveEpisodeImageBatchManifestFilePath(
+      episodeDir,
+      resolvedLocalBatchId
+    ),
+    resultFilePath: resolveEpisodeImageBatchResultPath(
+      episodeDir,
+      resolvedLocalBatchId
+    ),
+    errorFilePath: resolveEpisodeImageBatchErrorPath(
+      episodeDir,
+      resolvedLocalBatchId
+    ),
+    reportFilePath: resolveEpisodeImageBatchReportPath(
+      episodeDir,
+      resolvedLocalBatchId
+    ),
   };
 }
 
@@ -129,6 +144,11 @@ export async function writeImageBatchManifest(
     plan.manifestPath,
     imageBatchManifestSchema.parse(normalizeImageBatchManifest(manifest))
   );
+  await writeLegacyBatchSidecar({
+    family: "image",
+    legacyManifestPath: plan.manifestPath,
+    manifest,
+  });
 }
 
 export async function readImageBatchManifest(
@@ -156,7 +176,9 @@ export function createImageBatchManifestItem(args: {
     ...(args.job.sceneIndex !== undefined
       ? { sceneIndex: args.job.sceneIndex }
       : {}),
-    ...(args.job.renderability ? { renderability: args.job.renderability } : {}),
+    ...(args.job.renderability
+      ? { renderability: args.job.renderability }
+      : {}),
     ...(args.job.reusedFromSceneId
       ? { reusedFromSceneId: args.job.reusedFromSceneId }
       : {}),
