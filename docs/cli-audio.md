@@ -4,6 +4,12 @@ This guide covers the current `audio` command family for episode `022-the-whistl
 
 Use the repository root as your working directory.
 
+Educational mathematics narration is intentionally separate from the generic episode commands in
+this guide. Its canonical surface is `math speech generate`, which defaults to the typed
+`education-natural-teacher` profile without changing documentary or Dark Truth behavior. See
+`docs/architecture/educational-speech-pipeline.md` for commands, candidates, dry-run output, and
+manual listening evaluation.
+
 ## Prerequisites
 
 Build the CLI once:

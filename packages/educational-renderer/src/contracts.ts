@@ -8,7 +8,23 @@ const range = z.tuple([finite, finite]).refine(([a, b]) => a < b, "Range must in
 const sha256Schema = z.string().regex(/^[a-f0-9]{64}$/u);
 const version = z.literal("1");
 const base = { id: safeId, durationMs: z.number().int().min(250).max(300_000), localeSensitivity: z.enum(["language-neutral", "localized", "timing-sensitive"]), narrationCue: z.strictObject({ startMs: z.number().int().nonnegative(), endMs: z.number().int().positive() }).refine((value) => value.startMs < value.endMs).optional() };
-const chalkAnimationSchema = z.strictObject({ mode: z.literal("chalk-write") });
+const chalkAnimationTimingSchema = z.strictObject({
+  writingStartMs: z.number().int().nonnegative(),
+  writingEndMs: z.number().int().positive(),
+  narrationStartMs: z.number().int().nonnegative(),
+  narrationEndMs: z.number().int().positive(),
+  inspectionEndMs: z.number().int().positive(),
+  nextStepStartMs: z.number().int().positive(),
+  writingNarrationOverlap: z.boolean(),
+}).superRefine((value, context) => {
+  if (
+    value.writingEndMs <= value.writingStartMs ||
+    value.narrationEndMs <= value.narrationStartMs ||
+    value.inspectionEndMs < Math.max(value.writingEndMs, value.narrationEndMs) ||
+    value.nextStepStartMs < value.inspectionEndMs
+  ) context.addIssue({ code: "custom", message: "Chalk timing events must be ordered." });
+});
+const chalkAnimationSchema = z.strictObject({ mode: z.literal("chalk-write"), timing: chalkAnimationTimingSchema.optional() });
 const titleSceneSchema = z.strictObject({ ...base, type: z.literal("title"), title: safeText, subtitle: safeText.optional() });
 const textSceneSchema = z.strictObject({ ...base, type: z.literal("text"), heading: safeText.optional(), text: safeText, annotation: safeText.optional() });
 const equationSceneSchema = z.strictObject({ ...base, type: z.literal("equation"), equation: z.string().min(1).max(300), label: safeText.optional(), highlight: z.string().max(80).optional(), animation: chalkAnimationSchema.optional() });
@@ -18,7 +34,7 @@ const coordinateGraphSceneSchema = z.strictObject({ ...base, type: z.literal("co
 const geometrySceneSchema = z.strictObject({ ...base, type: z.literal("geometry"), shape: z.enum(["triangle", "rectangle", "circle"]), labels: z.array(safeText.max(40)).max(8).default([]) });
 const summarySceneSchema = z.strictObject({ ...base, type: z.literal("summary"), title: safeText, points: z.array(safeText).min(1).max(8) });
 export const visualSceneSchema = z.discriminatedUnion("type", [titleSceneSchema, textSceneSchema, equationSceneSchema, equationTransformationSceneSchema, coordinateGraphSceneSchema, geometrySceneSchema, summarySceneSchema]);
-export const visualPlanSchema = z.strictObject({ version, lessonId: safeId, locale: z.enum(["de", "en", "es", "fr", "pt"]), title: safeText, scenes: z.array(visualSceneSchema).min(1).max(120) }).superRefine((plan, context) => { const ids = new Set<string>(); for (const [index, scene] of plan.scenes.entries()) { if (ids.has(scene.id)) context.addIssue({ code: "custom", path: ["scenes", index, "id"], message: "Scene IDs must be unique" }); ids.add(scene.id); if (scene.narrationCue && scene.narrationCue.endMs > scene.durationMs) context.addIssue({ code: "custom", path: ["scenes", index, "narrationCue"], message: "Narration cue exceeds scene duration" }); } });
+export const visualPlanSchema = z.strictObject({ version, lessonId: safeId, locale: z.enum(["de", "en", "es", "fr", "pt"]), title: safeText, scenes: z.array(visualSceneSchema).min(1).max(120) }).superRefine((plan, context) => { const ids = new Set<string>(); for (const [index, scene] of plan.scenes.entries()) { if (ids.has(scene.id)) context.addIssue({ code: "custom", path: ["scenes", index, "id"], message: "Scene IDs must be unique" }); ids.add(scene.id); if (scene.narrationCue && scene.narrationCue.endMs > scene.durationMs) context.addIssue({ code: "custom", path: ["scenes", index, "narrationCue"], message: "Narration cue exceeds scene duration" }); if ((scene.type === "equation" || scene.type === "equation-transformation") && scene.animation?.timing && scene.animation.timing.nextStepStartMs > scene.durationMs) context.addIssue({ code: "custom", path: ["scenes", index, "animation", "timing"], message: "Chalk timing exceeds scene duration" }); } });
 export const profileNameSchema = z.enum(["preview", "draft", "youtube-full", "youtube-short"]);
 export const encoderSchema = z.enum(["libx264", "h264_vaapi", "h264_qsv"]);
 export const renderProfileInputSchema = z.union([profileNameSchema, z.strictObject({ name: profileNameSchema, frameRate: z.union([z.literal(15), z.literal(24), z.literal(25)]).optional(), encoder: encoderSchema.optional(), preset: z.enum(["ultrafast", "superfast", "veryfast", "faster", "fast"]).optional() })]);

@@ -130,6 +130,7 @@ export interface GenerateNarrationChunkWithCacheRequest {
   readonly outputFormat: OpenAiSpeechOutputFormat;
   readonly language: string;
   readonly outputPath: string;
+  readonly reuse?: boolean;
   readonly createdAt?: string;
   readonly synthesizeToTempFile: (tempPath: string) => Promise<{
     readonly validationReport: NarrationChunkValidationReport;
@@ -432,18 +433,29 @@ export async function promoteNarrationChunk(
 export async function generateNarrationChunkWithCache(
   request: GenerateNarrationChunkWithCacheRequest
 ): Promise<NarrationChunkCacheDecision> {
-  const existing = await assessNarrationChunkCache({
-    narrationRoot: request.narrationRoot,
-    chunkId: request.chunkId,
-    chunkFingerprint: request.chunkFingerprint,
-    outputPath: request.outputPath,
-  });
+  const existing = request.reuse === false
+    ? decision({
+        reason: "miss",
+        reusable: false,
+        chunkId: request.chunkId,
+        chunkFingerprint: request.chunkFingerprint,
+        message: "Cache reuse was disabled for regeneration.",
+      })
+    : await assessNarrationChunkCache({
+        narrationRoot: request.narrationRoot,
+        chunkId: request.chunkId,
+        chunkFingerprint: request.chunkFingerprint,
+        outputPath: request.outputPath,
+      });
   if (existing.reusable) {
     return existing;
   }
   const outputPath = resolveUnderRoot(request.narrationRoot, request.outputPath);
   await ensureDir(path.dirname(outputPath));
-  const tempPath = path.join(path.dirname(outputPath), `${path.basename(outputPath)}.${process.pid}.${Date.now()}.tmp`);
+  const tempPath = path.join(
+    path.dirname(outputPath),
+    `${path.basename(outputPath)}.${process.pid}.${Date.now()}.tmp.${request.outputFormat}`
+  );
   try {
     const result = await request.synthesizeToTempFile(tempPath);
     const audioData = await fs.readFile(tempPath);

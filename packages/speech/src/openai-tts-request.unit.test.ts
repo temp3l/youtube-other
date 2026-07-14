@@ -79,6 +79,19 @@ describe("OpenAI TTS request builder", () => {
     expect(result.request.instructions).toContain("Role hook.");
   });
 
+  it("preserves semantic paragraph boundaries only when explicitly requested", () => {
+    const text = "Introduce the equation.\n\nNow calculate the first step.";
+    const result = buildOpenAiTtsChunkRequest({
+      chunk,
+      direction,
+      config: baseConfig(),
+      transformedText: text,
+      preserveParagraphBreaks: true,
+    });
+
+    expect(result.request.input).toBe(text);
+  });
+
   it("passes Unicode-preserved localized narration to TTS input", () => {
     const text =
       "Ich hörte Wörter über dem Küchentisch und schloß die Tür.";

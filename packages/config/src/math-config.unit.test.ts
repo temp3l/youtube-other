@@ -14,6 +14,9 @@ describe("math runtime config", () => {
       enabled: true,
       renderingEnabled: true,
       publishingEnabled: false,
+      educationalSpeechProfile: "education-natural-teacher",
+      educationalSpeechRateWpm: 150,
+      educationalSpeechCandidates: 1,
     });
   });
 

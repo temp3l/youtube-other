@@ -63,6 +63,13 @@ export const mathRuntimeConfigSchema = z.strictObject({
   enabled: z.boolean(),
   renderingEnabled: z.boolean(),
   publishingEnabled: z.boolean(),
+  educationalSpeechProfile: z.literal("education-natural-teacher"),
+  educationalSpeechRateWpm: z.number().int().min(80).max(220),
+  educationalSpeechCandidates: z.union([
+    z.literal(1),
+    z.literal(2),
+    z.literal(3),
+  ]),
 });
 
 export type MathRuntimeConfig = z.infer<typeof mathRuntimeConfigSchema>;
@@ -77,6 +84,14 @@ export function loadMathRuntimeConfig(
     if (["1", "true", "yes", "on"].includes(value.toLowerCase())) return true;
     if (["0", "false", "no", "off"].includes(value.toLowerCase())) return false;
     throw new Error(`Invalid boolean value for ${name}: ${value}`);
+  };
+  const parseInteger = (name: string, fallback: number): number => {
+    const value = env[name];
+    if (value === undefined) return fallback;
+    const parsed = Number(value);
+    if (!Number.isInteger(parsed))
+      throw new Error(`Invalid integer value for ${name}: ${value}`);
+    return parsed;
   };
 
   return mathRuntimeConfigSchema.parse({
@@ -93,6 +108,17 @@ export function loadMathRuntimeConfig(
     publishingEnabled: parseBoolean(
       "MEDIAFORGE_MATH_PUBLISHING_ENABLED",
       false
+    ),
+    educationalSpeechProfile:
+      env["MEDIAFORGE_MATH_SPEECH_PROFILE"] ??
+      "education-natural-teacher",
+    educationalSpeechRateWpm: parseInteger(
+      "MEDIAFORGE_MATH_SPEECH_RATE_WPM",
+      150
+    ),
+    educationalSpeechCandidates: parseInteger(
+      "MEDIAFORGE_MATH_SPEECH_CANDIDATES",
+      1
     ),
   });
 }

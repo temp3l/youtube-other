@@ -28,6 +28,12 @@ Configuration ownership lives in `@mediaforge/config`.
   `MEDIAFORGE_WHISPER_*`, `WHISPER_WORD_TIMESTAMPS`, and transcript segmentation settings such as `TRANSCRIPT_MIN_SEGMENT_SECONDS`
 - Speech voices:
   `MEDIAFORGE_OPENAI_SPEECH_MODEL`, `MEDIAFORGE_OPENAI_SPEECH_VOICE`, `MEDIAFORGE_SPEECH_VOICE_PRESET`, `MEDIAFORGE_SCRIPT_LANGUAGE`
+- Educational mathematics speech (non-secret):
+  `MEDIAFORGE_MATH_SPEECH_PROFILE=education-natural-teacher`,
+  `MEDIAFORGE_MATH_SPEECH_RATE_WPM=150`, and `MEDIAFORGE_MATH_SPEECH_CANDIDATES=1`.
+  Command-level `--speech-profile`, `--speech-rate`, and `--speech-candidates` values take priority.
+  Global OpenAI model/voice settings remain authoritative unless the educational command supplies
+  its local voice override.
 - YouTube credentials and per-language channels:
   `YOUTUBE_CLIENT_ID`, `YOUTUBE_CLIENT_SECRET`, `YOUTUBE_REFRESH_TOKEN`, language-specific refresh-token and channel-id variants for German, Spanish, French, and Portuguese
   - Local OAuth helpers:
@@ -68,6 +74,8 @@ Configuration ownership lives in `@mediaforge/config`.
   - full scene: `gpt-image-2`, `high`, `1920x1080`
   - short scene: `gpt-image-2`, `high`, `1024x1536`
 - Known model/reasoning combinations are validated at runtime. Invalid combinations fail configuration loading; models are never silently downgraded.
+- Educational math defaults are profile `education-natural-teacher`, 150 WPM, one candidate, WAV
+  provider output, and conservative 48 kHz mono assembly. These settings affect only `math speech`.
 - Maximum output tokens are ceilings. A higher ceiling does not request or bill unused output tokens.
 
 ## Batch And Cache Operation

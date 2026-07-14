@@ -2,6 +2,11 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { Command } from "commander";
 import {
+  loadMathRuntimeConfig,
+  loadRuntimeConfig,
+  type RuntimeConfigOverrides,
+} from "@mediaforge/config";
+import {
   buildAllLessonVariants,
   canonicalHash,
   importCurriculumSeed,
@@ -19,9 +24,14 @@ import {
   mathQualityReportSchema,
   planMathBatchItems,
   outputsAreValid,
+  buildMathEducationalNarrationBeats,
+  recordMathEducationalSpeechStage,
   qualityExitCode,
   readAuthoritativeStageArtifact,
   readAuthoritativeBinaryArtifact,
+  lessonVariantSpecificationSchema,
+  localizedNarrationSchema,
+  withMathFileLock,
   runMathBatch,
   runPilotSimulation,
   validateVariantDifferentiation,
@@ -30,6 +40,18 @@ import {
   type MathLanguage,
 } from "@mediaforge/math-education";
 import { writeJsonAtomic } from "@mediaforge/shared";
+import {
+  buildEducationalSpeechPlan,
+  educationalNarrationBeatSchema,
+  educationalSpeechLanguageSchema,
+  generateEducationalSpeech,
+  loadEducationalPronunciationDictionary,
+  MockSpeechProvider,
+  OpenAiCompatibleSpeechProvider,
+  resolveSpeechDeliveryProfile,
+  speechDeliveryProfileIdSchema,
+  type SpeechProvider,
+} from "@mediaforge/speech";
 
 interface MathSelectionOptions {
   skill?: string;
@@ -41,6 +63,33 @@ interface MathSelectionOptions {
   resume?: boolean;
   dryRun?: boolean;
   python?: string;
+  openAiBaseUrl?: string;
+  openAiApiKey?: string;
+  openAiSpeechModel?: string;
+  openAiSpeechVoice?: string;
+  ttsProvider?: "mock" | "openai-compatible";
+}
+
+interface MathSpeechOptions extends MathSelectionOptions {
+  lesson: string;
+  workspace: string;
+  language: MathLanguage;
+  speechProfile: string;
+  speechVoice?: string;
+  speechRate: number;
+  speechCandidates: 1 | 2 | 3;
+  speechSelection?: string[];
+  regenerateSpeech?: boolean;
+  speechDryRun?: boolean;
+}
+
+interface MathSpeechCompareOptions extends MathSelectionOptions {
+  language: MathLanguage;
+  output: string;
+  fixture?: string;
+  speechVoice?: string;
+  speechRate: number;
+  speechDryRun?: boolean;
 }
 
 export class MathCliSemanticError extends Error {
@@ -70,6 +119,370 @@ async function curriculum() {
 }
 function print(value: unknown): void {
   process.stdout.write(`${JSON.stringify(value, null, 2)}\n`);
+}
+
+function parseSpeechRate(value: string): number {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed < 80 || parsed > 220)
+    throw new Error("--speech-rate must be between 80 and 220 words per minute.");
+  return parsed;
+}
+
+function parseSpeechCandidates(value: string): 1 | 2 | 3 {
+  const parsed = Number(value);
+  if (parsed !== 1 && parsed !== 2 && parsed !== 3)
+    throw new Error("--speech-candidates must be 1, 2, or 3.");
+  return parsed;
+}
+
+function parseSpeechSelection(
+  values: readonly string[] | undefined
+): Readonly<Record<string, 1 | 2 | 3>> {
+  const result: Record<string, 1 | 2 | 3> = {};
+  for (const value of values ?? []) {
+    const match = /^(narr-chunk-\d{3,})=([123])$/u.exec(value);
+    if (!match?.[1] || !match[2])
+      throw new Error(
+        `Invalid --speech-selection ${value}; use narr-chunk-001=2.`
+      );
+    result[match[1]] =
+      match[2] === "1" ? 1 : match[2] === "2" ? 2 : 3;
+  }
+  return result;
+}
+
+function mathSpeechRuntimeOverrides(
+  options: MathSpeechOptions
+): RuntimeConfigOverrides {
+  return {
+    ...(options.ttsProvider ? { ttsProvider: options.ttsProvider } : {}),
+    ...(options.openAiBaseUrl
+      ? { openAiCompatibleBaseUrl: options.openAiBaseUrl }
+      : {}),
+    ...(options.openAiApiKey
+      ? { openAiCompatibleApiKey: options.openAiApiKey }
+      : {}),
+    ...(options.openAiSpeechModel
+      ? { openAiSpeechModel: options.openAiSpeechModel }
+      : {}),
+    ...(options.openAiSpeechVoice
+      ? { openAiSpeechVoice: options.openAiSpeechVoice }
+      : {}),
+  };
+}
+
+async function runMathSpeechGenerate(options: MathSpeechOptions): Promise<void> {
+  const profileId = speechDeliveryProfileIdSchema.parse(options.speechProfile);
+  const paths = new MathWorkspacePathResolver(options.workspace);
+  const lessonRoot = paths.lesson(options.lesson);
+  const manifestPath = paths.manifest(options.lesson);
+  const manifest = await loadWorkflowManifest(manifestPath);
+  if (!manifest || manifest.lessonId !== options.lesson)
+    throw new Error(`Missing or identity-mismatched workflow manifest for ${options.lesson}.`);
+  const narrationRelativePath = `locales/${options.language}/narration.json`;
+  const narration = await readAuthoritativeStageArtifact({
+    root: lessonRoot,
+    manifest,
+    stage: "localization",
+    relativePath: narrationRelativePath,
+    schemaVersion: "math-narration.v2",
+    schema: localizedNarrationSchema,
+  });
+  const lesson = await readAuthoritativeStageArtifact({
+    root: lessonRoot,
+    manifest,
+    stage: "lesson-spec",
+    relativePath: "canonical/lesson-spec.json",
+    schemaVersion: "lesson-spec.v1",
+    schema: lessonVariantSpecificationSchema,
+  });
+  if (
+    narration.language !== options.language ||
+    narration.lessonId !== options.lesson ||
+    lesson.lessonId !== options.lesson
+  )
+    throw new Error("Educational speech inputs do not match the requested lesson/language.");
+  const runtime = await loadRuntimeConfig(mathSpeechRuntimeOverrides(options));
+  const model =
+    runtime.openAiSpeechModel ??
+    runtime.openAiCompatibleModel ??
+    "gpt-4o-mini-tts";
+  const configuredVoice =
+    options.speechVoice ??
+    runtime.openAiSpeechVoice ??
+    runtime.openAiCompatibleTtsVoice;
+  const profile = resolveSpeechDeliveryProfile(profileId, options.language, {
+    model,
+    ...(configuredVoice ? { voice: configuredVoice } : {}),
+    targetWordsPerMinute: options.speechRate,
+  });
+  const dictionaries = await loadEducationalPronunciationDictionary({
+    repositoryRoot: repositoryRoot(),
+    profile,
+  });
+  const plan = buildEducationalSpeechPlan({
+    episodeId: options.lesson,
+    profile,
+    beats: buildMathEducationalNarrationBeats(narration),
+    pronunciationDictionaries: dictionaries,
+  });
+  const outputRoot = path.join(
+    paths.locale(options.lesson, options.language),
+    "audio",
+    "educational-speech"
+  );
+  const compatibilityOutputPath = path.join(
+    paths.locale(options.lesson, options.language),
+    "audio",
+    "narration.wav"
+  );
+  const providerId =
+    runtime.ttsProvider === "openai-compatible"
+      ? ("openai-compatible" as const)
+      : ("mock" as const);
+  let provider: SpeechProvider | undefined;
+  if (!options.speechDryRun) {
+    if (runtime.ttsProvider === "openai-compatible") {
+      if (!runtime.openAiCompatibleApiKey)
+        throw new Error(
+          "OpenAI educational speech requires an API key; use --speech-dry-run to inspect without a call."
+        );
+      provider = new OpenAiCompatibleSpeechProvider({
+        apiKey: runtime.openAiCompatibleApiKey,
+        ...(runtime.openAiCompatibleBaseUrl
+          ? { baseUrl: runtime.openAiCompatibleBaseUrl }
+          : {}),
+        ...(runtime.openAiCompatibleOrganization
+          ? { organization: runtime.openAiCompatibleOrganization }
+          : {}),
+        ...(runtime.openAiCompatibleProject
+          ? { project: runtime.openAiCompatibleProject }
+          : {}),
+        model: profile.model,
+        voice: profile.voice,
+        instructions: profile.instructions,
+        speed: profile.providerSpeed,
+        responseFormat: profile.postProcessingPolicy.outputFormat,
+      });
+    } else {
+      provider = new MockSpeechProvider();
+    }
+  }
+  const candidateSelection = parseSpeechSelection(options.speechSelection);
+  const generate = () =>
+    generateEducationalSpeech({
+      plan,
+      profile,
+      pronunciationDictionaries: dictionaries,
+      providerId,
+      ...(provider ? { provider } : {}),
+      providerBaseUrlIdentity: runtime.openAiCompatibleBaseUrl
+        ? new URL(runtime.openAiCompatibleBaseUrl).origin
+        : "openai-default",
+      outputRoot,
+      compatibilityOutputPath,
+      candidateCount: options.speechCandidates,
+      candidateSelection,
+      regenerate: options.regenerateSpeech ?? false,
+      dryRun: options.speechDryRun ?? false,
+    });
+  const workflowRelativePath = path
+    .relative(lessonRoot, path.join(outputRoot, "workflow-log.json"))
+    .replace(/\\/gu, "/");
+  const audioRelativePath = path
+    .relative(lessonRoot, path.join(outputRoot, "narration.wav"))
+    .replace(/\\/gu, "/");
+  const result = options.speechDryRun
+    ? await generate()
+    : await withMathFileLock(
+        path.join(
+          lessonRoot,
+          "state",
+          "locks",
+          `educational-speech-${options.language}.lock`
+        ),
+        async () => {
+          const latestManifest = await loadWorkflowManifest(manifestPath);
+          if (!latestManifest || latestManifest.lessonId !== options.lesson)
+            throw new Error(
+              `Workflow manifest changed before speech generation for ${options.lesson}.`
+            );
+          const generated = await generate();
+          if (generated.status !== "dry-run") {
+            await recordMathEducationalSpeechStage({
+              lessonRoot,
+              manifestPath,
+              manifest: latestManifest,
+              language: options.language,
+              skillId: lesson.skillId,
+              variant: lesson.variant,
+              plan,
+              workflow: generated.workflow,
+              workflowRelativePath,
+              ...(generated.status === "completed"
+                ? { audioRelativePath }
+                : {}),
+            });
+          }
+          return generated;
+        }
+      );
+  if (result.status === "dry-run") {
+    print({ dryRun: true, providerCalls: 0, writes: 0, ...result.dryRun });
+    return;
+  }
+  if (result.status === "failed") process.exitCode = 1;
+  print({
+    status: result.status,
+    provider: result.workflow.provider,
+    model: result.workflow.model,
+    voice: result.workflow.voice,
+    language: result.workflow.language,
+    speechProfile: result.workflow.speechProfile,
+    speechProfileVersion: result.workflow.speechProfileVersion,
+    cacheHit: result.workflow.cacheHit,
+    chunkCount: result.workflow.chunkCount,
+    candidateCount: result.workflow.candidateCount,
+    outputPath: result.outputPath,
+    workflowPath: path.join(outputRoot, "workflow-log.json"),
+    warnings: result.workflow.warnings,
+    errors: result.workflow.errors,
+  });
+}
+
+async function runMathSpeechCompare(
+  options: MathSpeechCompareOptions
+): Promise<void> {
+  const language = educationalSpeechLanguageSchema.parse(options.language);
+  if (language !== "en" && language !== "de" && !options.fixture)
+    throw new Error(
+      "The bundled listening comparison fixture is available only for en and de; use --fixture for other languages."
+    );
+  const fixturePath = path.resolve(
+    options.fixture ??
+      path.join(
+        repositoryRoot(),
+        "fixtures",
+        "educational-speech",
+        `natural-teacher-${language}.json`
+      )
+  );
+  const rawFixture = JSON.parse(await fs.readFile(fixturePath, "utf8")) as {
+    language?: unknown;
+    fixtureVersion?: unknown;
+    beats?: unknown;
+  };
+  if (
+    rawFixture.language !== language ||
+    rawFixture.fixtureVersion !== "educational-speech-listening.v1"
+  )
+    throw new Error(`Listening fixture identity does not match ${language}.`);
+  const beats = educationalNarrationBeatSchema.array().min(1).parse(rawFixture.beats);
+  const runtime = await loadRuntimeConfig(
+    mathSpeechRuntimeOverrides({
+      ...options,
+      lesson: `speech-comparison-${language}`,
+      workspace: options.output,
+      speechProfile: "education-natural-teacher",
+      speechCandidates: 1,
+    })
+  );
+  const model =
+    runtime.openAiSpeechModel ??
+    runtime.openAiCompatibleModel ??
+    "gpt-4o-mini-tts";
+  const configuredVoice =
+    options.speechVoice ??
+    runtime.openAiSpeechVoice ??
+    runtime.openAiCompatibleTtsVoice;
+  const providerId =
+    runtime.ttsProvider === "openai-compatible"
+      ? ("openai-compatible" as const)
+      : ("mock" as const);
+  const outputRoot = path.resolve(options.output);
+  const generateProfile = async (
+    profileId: "education-legacy-baseline" | "education-natural-teacher",
+    subdirectory: string
+  ) => {
+    const profile = resolveSpeechDeliveryProfile(profileId, language, {
+      model,
+      ...(configuredVoice ? { voice: configuredVoice } : {}),
+      targetWordsPerMinute: options.speechRate,
+    });
+    const dictionaries =
+      profileId === "education-natural-teacher"
+        ? await loadEducationalPronunciationDictionary({
+            repositoryRoot: repositoryRoot(),
+            profile,
+          })
+        : [];
+    const plan = buildEducationalSpeechPlan({
+      episodeId: `speech-comparison-${language}`,
+      profile,
+      beats,
+      pronunciationDictionaries: dictionaries,
+    });
+    let provider: SpeechProvider | undefined;
+    if (!options.speechDryRun) {
+      if (runtime.ttsProvider === "openai-compatible") {
+        if (!runtime.openAiCompatibleApiKey)
+          throw new Error(
+            "OpenAI comparison generation requires an API key; use --speech-dry-run for a free preview."
+          );
+        provider = new OpenAiCompatibleSpeechProvider({
+          apiKey: runtime.openAiCompatibleApiKey,
+          ...(runtime.openAiCompatibleBaseUrl
+            ? { baseUrl: runtime.openAiCompatibleBaseUrl }
+            : {}),
+          ...(runtime.openAiCompatibleOrganization
+            ? { organization: runtime.openAiCompatibleOrganization }
+            : {}),
+          ...(runtime.openAiCompatibleProject
+            ? { project: runtime.openAiCompatibleProject }
+            : {}),
+          model: profile.model,
+          voice: profile.voice,
+          instructions: profile.instructions,
+          speed: profile.providerSpeed,
+          responseFormat: profile.postProcessingPolicy.outputFormat,
+        });
+      } else {
+        provider = new MockSpeechProvider();
+      }
+    }
+    return generateEducationalSpeech({
+      plan,
+      profile,
+      pronunciationDictionaries: dictionaries,
+      providerId,
+      ...(provider ? { provider } : {}),
+      providerBaseUrlIdentity: runtime.openAiCompatibleBaseUrl
+        ? new URL(runtime.openAiCompatibleBaseUrl).origin
+        : "openai-default",
+      outputRoot: path.join(outputRoot, subdirectory),
+      candidateCount: 1,
+      dryRun: options.speechDryRun ?? false,
+    });
+  };
+  const baseline = await generateProfile(
+    "education-legacy-baseline",
+    "legacy-baseline"
+  );
+  const natural = await generateProfile(
+    "education-natural-teacher",
+    "natural-teacher"
+  );
+  if (baseline.status === "failed" || natural.status === "failed")
+    process.exitCode = 1;
+  print({
+    fixture: fixturePath,
+    language,
+    dryRun: options.speechDryRun ?? false,
+    costNotice:
+      "Comparison generation runs the same text twice and can incur approximately twice the uncached TTS cost.",
+    baseline,
+    natural,
+  });
 }
 function selection(command: Command): MathSelectionOptions {
   return command.optsWithGlobals<MathSelectionOptions>();
@@ -150,9 +563,70 @@ async function printQualitySelection(workspace: string, lessonIds: readonly stri
 }
 
 export function registerMathCommands(program: Command): void {
+  const mathDefaults = loadMathRuntimeConfig(process.env, repositoryRoot());
   const math = program
     .command("math")
     .description("Deterministic mathematics education pipeline");
+  const speech = math
+    .command("speech")
+    .description("Generate natural, board-synchronized educational narration");
+  speech
+    .command("generate")
+    .requiredOption("--lesson <lesson-id>")
+    .requiredOption("--workspace <path>")
+    .option("--language <language>", "de, en, es, fr, pt", "de")
+    .option(
+      "--speech-profile <profile>",
+      "typed educational delivery profile",
+      mathDefaults.educationalSpeechProfile
+    )
+    .option("--speech-voice <voice>", "override the configured TTS voice")
+    .option(
+      "--speech-rate <wpm>",
+      "target educational words per minute (80-220)",
+      parseSpeechRate,
+      mathDefaults.educationalSpeechRateWpm
+    )
+    .option(
+      "--speech-candidates <count>",
+      "generate 1-3 candidates for high-value lesson sections",
+      parseSpeechCandidates,
+      mathDefaults.educationalSpeechCandidates
+    )
+    .option(
+      "--speech-selection <chunk=candidate...>",
+      "explicit candidate selection, for example narr-chunk-001=2"
+    )
+    .option("--regenerate-speech", "bypass compatible speech cache entries")
+    .option(
+      "--speech-dry-run",
+      "print requests, cache state, output paths, and pauses without writes or provider calls"
+    )
+    .action(async (_opts: unknown, command: Command) =>
+      runMathSpeechGenerate(command.optsWithGlobals<MathSpeechOptions>())
+    );
+  speech
+    .command("compare")
+    .description("Generate legacy-baseline and natural-teacher listening samples")
+    .requiredOption("--output <path>", "comparison output directory")
+    .option("--language <language>", "English or German fixture", "en")
+    .option("--fixture <path>", "override the versioned listening fixture")
+    .option("--speech-voice <voice>", "use the same voice for both samples")
+    .option(
+      "--speech-rate <wpm>",
+      "use the same target rate for both samples",
+      parseSpeechRate,
+      150
+    )
+    .option(
+      "--speech-dry-run",
+      "show both comparison plans without writes or provider calls"
+    )
+    .action(async (_opts: unknown, command: Command) =>
+      runMathSpeechCompare(
+        command.optsWithGlobals<MathSpeechCompareOptions>()
+      )
+    );
   const curriculumCommand = math
     .command("curriculum")
     .description("Import and inspect the versioned math curriculum");

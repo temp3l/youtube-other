@@ -1,0 +1,150 @@
+# Dark Truth Profile
+
+## Decision
+
+Dark Truth uses the shared engine but owns its narrative, pacing, localization,
+visual continuity, reference, quality, and approval policy. Existing character
+registry/reference support is migration evidence, not a complete story-bible or
+reference-set implementation.
+
+## Content Contract
+
+The validated profile fixes the default identity unless explicitly overridden:
+single adult male narrator, restrained dark-documentary delivery, 175-185 WPM,
+calm opening, escalating tension, slower reveals, brief silence before the last
+line, subtle recurring sound motif, no dependence on jumpscares, usually at most
+three central characters, minors only with explicit justification/approval, one
+focal subject, one primary threat, one supernatural rule, a visually active
+opening, sensory escalation, emotionally costly choice, and memorable final
+image or line.
+
+Overrides are versioned profile inputs and therefore invalidate dependent task
+fingerprints.
+
+## Bible Artifacts
+
+`StoryBibleManifest` contains typed references, revisions, hashes, lineage, and
+approval for:
+
+- channel story bible;
+- genre bible;
+- narrative voice and visual style guides;
+- recurring-world canon;
+- episode, character, location, and threat/entity bibles;
+- continuity manifest and forbidden-pattern register;
+- localization notes and pronunciation guide;
+- reference-image manifest.
+
+The channel/genre layers define identity, audience, tone, themes, banned
+cliches/phrases, supernatural-rule policy, character/escalation/ending rules,
+thumbnail/audio/localization/continuity policy, and safety boundaries.
+
+The episode bible requires title, logline, premise, protagonist, supporting
+characters, threat, location, timeline, supernatural rule, motivations,
+emotional cost, reveal structure, escalation ladder, key visuals, ending,
+continuity constraints, required references, prohibited deviations,
+pronunciation, and adaptation notes.
+
+Every downstream task receives exact bible revisions or fingerprints. The
+engine explains staleness and invalidates only declared dependants after a bible
+revision changes.
+
+## ReferenceImageManifest
+
+The schema records:
+
+```text
+manifest ID and version
+episode/profile/reference-set revision
+bible and workflow revisions
+required coverage policy
+entries[]: reference ID, role, canonical/inspiration classification,
+           artifact ref, checksum, dimensions/aspect ratio,
+           subject/continuity identity, provider/model/request ID,
+           prompt version/hash, seed-like metadata when available,
+           imported origin and rights metadata when practical,
+           approval record and replacement lineage
+usage bindings[]: task, scene/thumbnail, exact reference IDs
+validation and continuity results
+```
+
+Supported roles include protagonist, supporting character, threat/entity, hero
+location, recurring prop, palette/lighting, camera language, thumbnail
+composition, aspect-ratio references, full-video set, and Short-specific set.
+Large base64 data is prohibited from manifests and logs.
+
+Dependent visuals are not ready when required references are missing,
+unapproved, corrupt, stale, or inconsistent with the episode bible. An override
+requires actor, timestamp, reason, exact task scope, and expiry/revision binding.
+Replacing a canonical reference invalidates bound scene images, thumbnails, and
+renders but not unrelated story text.
+
+## Workflow DAG
+
+The profile registers these logical stages in dependency order:
+
+1. concept selection and premise uniqueness;
+2. episode bible and story outline;
+3. canonical English full rewrite;
+4. structural, horror-quality, repetition/cliche, bible-continuity,
+   emotional-cost, supernatural-rule, opening, and ending gates;
+5. operator story approval when policy requires it;
+6. localization and localized quality validation;
+7. Shorts derivation and Shorts retention validation;
+8. shot and reference planning;
+9. reference generation/import, validation, and approval;
+10. scene images and visual continuity gate;
+11. thumbnail concept, generation, and validation;
+12. narration instructions, audio generation, and audio validation;
+13. captions, render, and audiovisual QA;
+14. metadata, publish dry-run, explicit publish approval, and publishing.
+
+Deterministic validators and planning transformations are marked deterministic;
+LLM reviews are model-assisted; image/audio generations are provider-dependent;
+approvals are manual; publishing is irreversible. Provider execution remains
+opt-in in tests.
+
+## Scoring and Hard Failures
+
+Score hook, first-20-second visual potential, originality, specificity,
+motivation, escalation, supernatural-rule clarity, emotional cost, causality,
+sensory detail, dialogue restraint, repetition, cliche density, final reveal,
+final line, narratability, thumbnail/full/Short retention potential,
+translation resilience, continuity readiness, and policy suitability.
+
+Hard reason codes include:
+
+- `DARKTRUTH_SUPERNATURAL_RULE_UNCLEAR`;
+- `DARKTRUTH_BIBLE_CONTRADICTION`;
+- `DARKTRUTH_TEMPLATE_REPETITION`;
+- `DARKTRUTH_CHARACTER_IDENTITY_INCONSISTENT`;
+- `DARKTRUTH_EMOTIONAL_COST_MISSING`;
+- `DARKTRUTH_ARBITRARY_ENDING_BEHAVIOR`;
+- `DARKTRUTH_REFERENCE_SET_MISSING`;
+- `DARKTRUTH_REFERENCE_SET_UNAPPROVED`;
+- `DARKTRUTH_VISUAL_CONTINUITY_FAILED`;
+- shared localization, artifact, policy, and publish-approval codes.
+
+Rules specify whether the outcome is revision, rewrite, or blocked. Aggregate
+score never clears a hard reason.
+
+## Validation Placement
+
+Producers validate schema, file integrity, dimensions/streams, checksums, and
+their direct output contract before promotion. Separate gates evaluate
+cross-artifact narrative quality, bible continuity, reference coverage,
+character consistency, thumbnail safety, audio continuity, caption timing,
+audiovisual QA, and publish readiness.
+
+## Tests and Acceptance
+
+Add tests for bible schema/version/diff, stale revision explanation,
+episode-bible completeness, reference coverage/approval/replacement, reference
+binding, continuity, each hard failure, weighted status thresholds, localization
+and pronunciation, full versus Short invalidation, audio/caption/video validity,
+metadata constraints, and stale publish approval.
+
+Acceptance requires a deterministic fixture to traverse both full and Short DAGs
+in all supported locales without provider calls, while provider-dependent tests
+remain separately opt-in.
+

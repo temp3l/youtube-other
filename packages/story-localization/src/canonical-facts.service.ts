@@ -1,7 +1,7 @@
 import { normalizeWhitespace, splitIntoSentences } from "@mediaforge/shared";
 import { type CanonicalStoryFacts, type ParsedSourceStory } from "./story-localization.types.js";
 
-export const CANONICAL_FACTS_EXTRACTOR_VERSION = "canonical-facts-extractor-v5";
+export const CANONICAL_FACTS_EXTRACTOR_VERSION = "canonical-facts-extractor-v6";
 export const CANONICAL_FACTS_SCHEMA_VERSION = "canonical-story-facts-v3";
 
 const SCAFFOLD_PATTERNS = [
@@ -25,6 +25,7 @@ const NON_NAME_LEADING_WORDS = new Set([
   "Because",
   "Before",
   "But",
+  "Did",
   "Diverse",
   "If",
   "Once",
@@ -64,9 +65,27 @@ function extractCandidateNames(text: string): string[] {
 }
 
 function extractMessages(text: string): string[] {
+  const quoted = [...text.matchAll(/["“]([^"”]{3,120})["”]/gu)].map(
+    (match) => match[1] ?? ""
+  );
+  const afterMarker = [
+    ...text.matchAll(
+      /\b(?:wrote|written|read|said|spelled|displayed|showed)\s*:\s*([A-Z][A-Z0-9'’]*(?:[ \t]+[A-Z][A-Z0-9'’]*){1,11})(?=[.!?](?:\s|$)|$)/gu
+    ),
+  ].map((match) => match[1] ?? "");
+  const beforeMarker = [
+    ...text.matchAll(
+      /\b([A-Z][A-Z0-9'’]*(?:[ \t]+[A-Z][A-Z0-9'’]*){1,11})(?=\s+(?:was|were|is|had been)?\s*(?:written|painted|scratched|carved|printed|scrawled|displayed|shown)\b)/gu
+    ),
+  ].map((match) => match[1] ?? "");
+  const afterSpeechVerb = [
+    ...text.matchAll(
+      /\b(?:said|read)\s+([A-Z][A-Z0-9'’]*(?:[ \t]+[A-Z][A-Z0-9'’]*){1,11})(?=[.!?](?:\s|$)|$)/gu
+    ),
+  ].map((match) => match[1] ?? "");
   return unique(
-    [...text.matchAll(/["“]([^"”]{3,120})["”]/gu)].map((match) =>
-      normalizeWhitespace(match[1] ?? "")
+    [...quoted, ...afterMarker, ...beforeMarker, ...afterSpeechVerb].map((message) =>
+      normalizeWhitespace(message)
     )
   );
 }
@@ -180,6 +199,10 @@ function summarizeSetting(narration: string, parsed: ParsedSourceStory, location
 
 function summarizeThreat(narration: string, parsed: ParsedSourceStory, names: readonly string[]): string {
   const normalized = narration.toLowerCase();
+  const sourceIdentity = `${parsed.title} ${parsed.metadata.sourceTitle ?? ""}`;
+  if (/\bblack[- ]eyed children\b/iu.test(sourceIdentity)) {
+    return "The Black-Eyed Children";
+  }
   if (/\bhook\b/u.test(normalized) && /\bcar\b/u.test(normalized)) {
     return "An impossible hook and duplicate-person phenomenon uses radio warnings, locked doors, familiar voices, and hesitation to manipulate who belongs inside or outside the car.";
   }

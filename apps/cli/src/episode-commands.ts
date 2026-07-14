@@ -485,7 +485,7 @@ function buildCharacterRegistryFromSource(
     const protagonistRole = normalizeWhitespace(character.role);
     const isThreatCharacter =
       /black[- ]eyed children|children|doll|ghost|entity|monster|stranger|attacker/iu.test(
-        `${character.name} ${protagonistRole} ${threat}`
+        `${character.name} ${protagonistRole}`
       );
     return {
       id,

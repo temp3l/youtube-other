@@ -1,0 +1,110 @@
+# Repository Refactor Plans
+
+## Purpose
+
+This directory is the execution authority for the repository-wide MediaForge
+unification. It consolidates the requested audit, architecture, migration,
+content-profile, duplicate-removal, validation, and AI-pack plans without
+duplicating the source-backed architecture documents that already exist.
+
+The plans are intentionally ordered. Production code must not be changed until
+the audit gate in [00-baseline-and-audit-gate.md](00-baseline-and-audit-gate.md)
+has been completed and recorded.
+
+## Execution Order
+
+1. [Baseline and audit gate](00-baseline-and-audit-gate.md)
+2. [Target architecture](01-target-architecture.md)
+3. [Safe implementation batches](02-safe-implementation-batches.md)
+4. [Compatibility and migration](03-compatibility-and-migration.md)
+5. [Dark Truth profile](04-darktruth-profile.md)
+6. [Mathematics profile](05-mathematics-profile.md)
+7. [Duplicate elimination](06-duplicate-elimination.md)
+8. [AI content pack](07-ai-content-pack.md)
+9. [Validation and release](08-validation-and-release.md)
+
+## Authority and Evidence
+
+- Executable source and tests are authoritative when documentation conflicts.
+- `apps/cli` remains the primary operational surface.
+- Existing worktree changes are user-owned and must not be reverted or
+  overwritten.
+- Existing consolidation work is extended, not replaced. Important inputs are
+  `docs/architecture/media-implementation-inventory.md`,
+  `docs/architecture/target-media-architecture.md`,
+  `docs/migrations/media-consolidation-plan.md`, the story workflow plans, and
+  the mathematics architecture under `docs/mathe/`.
+- Every audit statement must be labelled `FACT`, `INFERENCE`,
+  `RECOMMENDATION`, or `UNRESOLVED` and include a path, symbol or command, line
+  reference where practical, observed behavior, and confidence.
+
+## Status Legend
+
+| Status | Meaning |
+| --- | --- |
+| `NOT_STARTED` | No implementation or acceptance evidence exists. |
+| `AUDITING` | Read-only inventory or characterization is in progress. |
+| `READY` | Prerequisites and characterization tests are complete. |
+| `IN_PROGRESS` | The bounded batch is being implemented. |
+| `BLOCKED` | A named prerequisite or non-converging failure prevents safe work. |
+| `ACCEPTED` | Completion criteria and required validation passed. |
+
+## Requested Deliverable Mapping
+
+The original prompt requested many separate files. The following mapping keeps
+one canonical owner for each subject while preserving every deliverable's
+intent.
+
+| Requested deliverable | Canonical location |
+| --- | --- |
+| `mediaforge-entrypoint-inventory.md` | `00-baseline-and-audit-gate.md`, audit register |
+| `repository-entrypoint-inventory.md` | `00-baseline-and-audit-gate.md`, audit register |
+| `mediaforge-duplicate-implementation-audit.md` | `06-duplicate-elimination.md` |
+| `repository-wide-duplicate-implementation-audit.md` | `06-duplicate-elimination.md` |
+| `mediaforge-artifact-path-audit.md` | `03-compatibility-and-migration.md` |
+| `mediaforge-cli-ux-audit.md` | `01-target-architecture.md`, CLI section |
+| `mediaforge-workflow-reliability-audit.md` | `00-baseline-and-audit-gate.md` and `01-target-architecture.md` |
+| `darktruth-story-bible-audit.md` | `04-darktruth-profile.md` |
+| `darktruth-reference-image-audit.md` | `04-darktruth-profile.md` |
+| `darktruth-content-quality-audit.md` | `04-darktruth-profile.md` |
+| `mathematics-content-quality-audit.md` | `05-mathematics-profile.md` |
+| `repository-ai-pack-audit.md` | `07-ai-content-pack.md` |
+| `mediaforge-target-architecture.md` | `01-target-architecture.md` |
+| `target-repository-architecture.md` | `01-target-architecture.md` |
+| `mediaforge-task-registry.md` | `01-target-architecture.md`, task registry |
+| `mediaforge-workflow-state.md` | `01-target-architecture.md`, state and events |
+| `mediaforge-cli-command-design.md` | `01-target-architecture.md`, CLI contract |
+| `mediaforge-artifact-layout.md` | `03-compatibility-and-migration.md` |
+| `mediaforge-caching-and-idempotency.md` | `01-target-architecture.md`, caching |
+| `mediaforge-batching-and-resume.md` | `01-target-architecture.md`, batching and reliability |
+| `audience-aware-content-profiles.md` | `01-target-architecture.md` plus profile plans |
+| `darktruth-story-bible-and-continuity.md` | `04-darktruth-profile.md` |
+| `darktruth-reference-image-workflow.md` | `04-darktruth-profile.md` |
+| `darktruth-quality-gates.md` | `04-darktruth-profile.md` |
+| `mathematics-quality-gates.md` | `05-mathematics-profile.md` |
+| `mathematics-visual-language.md` | `05-mathematics-profile.md` |
+| `ai-content-pack-design.md` | `07-ai-content-pack.md` |
+| `mediaforge-unification-implementation-plan.md` | `02-safe-implementation-batches.md` |
+| `mediaforge-unification-safe-batches.md` | `02-safe-implementation-batches.md` |
+| `repository-refactor-master-plan.md` | this index and `02-safe-implementation-batches.md` |
+| `repository-refactor-safe-batches.md` | `02-safe-implementation-batches.md` |
+| `mediaforge-compatibility-and-migration-plan.md` | `03-compatibility-and-migration.md` |
+| `duplicate-elimination-plan.md` | `06-duplicate-elimination.md` |
+| `content-quality-implementation-plan.md` | `04-darktruth-profile.md` and `05-mathematics-profile.md` |
+| `darktruth-bible-and-reference-image-plan.md` | `04-darktruth-profile.md` |
+| `mathematics-content-quality-plan.md` | `05-mathematics-profile.md` |
+| `ai-content-pack-refresh-plan.md` | `07-ai-content-pack.md` |
+| `mediaforge-unification-summary.md` | this index and final implementation report |
+| `ADR-mediaforge-unified-task-workflow-engine.md` | decision records in `01-target-architecture.md` |
+| `ADR-darktruth-story-bible-and-reference-images.md` | decision records in `04-darktruth-profile.md` |
+| `ADR-audience-specific-content-quality-profiles.md` | decision records in both profile plans |
+| `ADR-ai-content-pack.md` | decision records in `07-ai-content-pack.md` |
+
+## Reporting
+
+Every modifying execution batch must create the Codex-run report required by
+`AGENTS.md`. Because these files are outside `docs/plans/`, the special
+plan-file implementation report is not triggered by this planning-only task.
+If the plans are later moved or mirrored under `docs/plans/`, execution must
+also maintain the corresponding dated implementation report.
+

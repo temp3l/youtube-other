@@ -13,6 +13,8 @@ import { mathMetadataSchema, mathPlaylistCatalogSchema } from "../metadata/math-
 import { mathPublishDryRunSchema } from "../publishing/dry-run-manifest.js";
 import { verifierResponseSchema } from "../verification/protocol-schemas.js";
 import { mathMinorEditApprovalSchema, mathQualityReportSchema } from "./quality-gate.js";
+import { educationalSpeechWorkflowLogSchema } from "@mediaforge/speech";
+import { mathPresentationSyncSchema } from "../lesson/educational-speech-sync.js";
 
 export const mathArtifactSchemaVersionSchema = z.enum([
   "curriculum-skill.v1",
@@ -30,6 +32,9 @@ export const mathArtifactSchemaVersionSchema = z.enum([
   "math-thumbnail-binary.v1",
   "math-final-media.v1",
   "math-final-media-binary.v1",
+  "educational-speech.v1",
+  "math-speech-binary.v1",
+  "math-presentation-sync.v1",
   "math-brand-policy.v1",
   "math-publish-dry-run.v1",
   "math-publish-dry-run.v2",
@@ -284,6 +289,9 @@ const schemas: Record<MathArtifactSchemaVersion, z.ZodType> = {
   "math-thumbnail-binary.v1": z.never(),
   "math-final-media.v1": mathFinalMediaEvidenceSchema,
   "math-final-media-binary.v1": z.never(),
+  "educational-speech.v1": educationalSpeechWorkflowLogSchema,
+  "math-speech-binary.v1": z.never(),
+  "math-presentation-sync.v1": mathPresentationSyncSchema,
   "math-brand-policy.v1": mathBrandPolicyArtifactSchema,
   "math-publish-dry-run.v1": legacyMathPublishDryRunSchema,
   "math-publish-dry-run.v2": mathPublishDryRunSchema,
@@ -301,9 +309,13 @@ export function parseMathArtifactPayload(
 
 export function isBinaryMathArtifactSchemaVersion(
   schemaVersion: MathArtifactSchemaVersion
-): schemaVersion is "math-thumbnail-binary.v1" | "math-final-media-binary.v1" {
+): schemaVersion is
+  | "math-thumbnail-binary.v1"
+  | "math-final-media-binary.v1"
+  | "math-speech-binary.v1" {
   return (
     schemaVersion === "math-thumbnail-binary.v1" ||
-    schemaVersion === "math-final-media-binary.v1"
+    schemaVersion === "math-final-media-binary.v1" ||
+    schemaVersion === "math-speech-binary.v1"
   );
 }

@@ -10,7 +10,10 @@ const h1Pattern = /^#\s+Episode\s+(?<episodeNumber>\d{3})\s+[—-]\s+(?<title>.+
 const sectionPattern = /^#{1,3}\s+(?<name>.+)$/u;
 
 function parseKeyValueLine(line: string): [string, string] | null {
-  const match = /^\*\*(.+?)\*\*:\s*(.+)$/u.exec(line) ?? /^(.+?):\s*(.+)$/u.exec(line);
+  const match =
+    /^\*\*(.+?):\*\*\s*(.+)$/u.exec(line) ??
+    /^\*\*(.+?)\*\*:\s*(.+)$/u.exec(line) ??
+    /^(.+?):\s*(.+)$/u.exec(line);
   if (!match?.[1] || !match[2]) {
     return null;
   }

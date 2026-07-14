@@ -140,9 +140,9 @@ async function authoritativeFixture(options: {
     await writeJsonAtomic(path.join(root, relativePath), value);
   const outputs = [
     await createArtifactLineage({ root, relativePath: files[0][0], schemaVersion: "lesson-spec.v1", parentHashes: parents.get("lesson-spec")!, producedBy: "lesson-spec", producer: "lesson-specification-builder", producerVersion: "reviewed-fixtures.v1" }),
-    await createArtifactLineage({ root, relativePath: files[1][0], schemaVersion: "math-verifier.v2", parentHashes: parents.get("math-verification")!, producedBy: "math-verification", producer: "sympy-verifier-adapter", producerVersion: VERIFIER_VERSION }),
+    await createArtifactLineage({ root, relativePath: files[1][0], schemaVersion: VERIFIER_PROTOCOL_VERSION, parentHashes: parents.get("math-verification")!, producedBy: "math-verification", producer: "sympy-verifier-adapter", producerVersion: VERIFIER_VERSION }),
     await createArtifactLineage({ root, relativePath: files[2][0], schemaVersion: "math-narration.v2", parentHashes: parents.get("localization")!, producedBy: "localization", producer: "locked-fact-localizer", producerVersion: "locked-facts.v2" }),
-    await createArtifactLineage({ root, relativePath: files[3][0], schemaVersion: "math-verifier.v2", parentHashes: parents.get("localization")!, producedBy: "localization", producer: "sympy-verifier-adapter", producerVersion: VERIFIER_VERSION }),
+    await createArtifactLineage({ root, relativePath: files[3][0], schemaVersion: VERIFIER_PROTOCOL_VERSION, parentHashes: parents.get("localization")!, producedBy: "localization", producer: "sympy-verifier-adapter", producerVersion: VERIFIER_VERSION }),
     await createArtifactLineage({ root, relativePath: files[4][0], schemaVersion: "math-metadata.v2", parentHashes: parents.get("metadata-playlists")!, producedBy: "metadata-playlists", producer: "math-metadata-generator", producerVersion: "math-metadata-generator.v3" }),
   ];
   const now = new Date(0).toISOString();

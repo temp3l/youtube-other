@@ -1,7 +1,7 @@
 import type { NormalizedRenderProfile, VisualScene } from "../contracts.js";
 import { buildFormulaLayoutPlan, type FormulaLayoutPlan, type FormulaVisualOp } from "./formula-svg.js";
 
-export const CHALK_RENDERER_VERSION = "svg-chalk.v1";
+export const CHALK_RENDERER_VERSION = "svg-chalk.v2";
 type ChalkAnimatedScene = Extract<VisualScene, { type: "equation" | "equation-transformation" }>;
 type ChalkFrame = { readonly svg: string; readonly durationMs: number };
 type ChalkTextOp = { readonly text: string; readonly x: number; readonly y: number; readonly fontSize: number; readonly semantic: "cue" | "operator" | "equals"; readonly tipX: number; readonly tipY: number };
@@ -99,7 +99,7 @@ function sceneShell(profile: NormalizedRenderProfile, fontFile: string, body: st
     + body
     + `</svg>`;
 }
-function buildEquationFrames(scene: Extract<ChalkAnimatedScene, { type: "equation" }>, profile: NormalizedRenderProfile, fontFile: string): readonly ChalkFrame[] {
+function buildEquationFrames(scene: Extract<ChalkAnimatedScene, { type: "equation" }>, profile: NormalizedRenderProfile, fontFile: string, animationDurationMs = scene.durationMs): readonly ChalkFrame[] {
   const center = profile.width / 2;
   const titleSize = Math.round(Math.min(profile.width / 14, profile.height / 10));
   const bodySize = Math.round(Math.min(profile.width / 24, profile.height / 17));
@@ -114,7 +114,7 @@ function buildEquationFrames(scene: Extract<ChalkAnimatedScene, { type: "equatio
       weights.push(durationWeight(index + 101, op.semantic) * .85);
     }
   }
-  const durations = distributeDurations(scene.durationMs, profile.frameRate, weights);
+  const durations = distributeDurations(animationDurationMs, profile.frameRate, weights);
   return states.map((state, index) => {
     const subset = renderFormulaSubset(plan, state.visibleFormulaOps, "#f8fafc", { x: center, y: profile.height * .54 });
     const completed = state.visibleFormulaOps === plan.ops.length;
@@ -126,7 +126,7 @@ function buildEquationFrames(scene: Extract<ChalkAnimatedScene, { type: "equatio
     return { svg: sceneShell(profile, fontFile, body), durationMs: durations[index]! };
   });
 }
-function buildTransformationFrames(scene: Extract<ChalkAnimatedScene, { type: "equation-transformation" }>, profile: NormalizedRenderProfile, fontFile: string): readonly ChalkFrame[] {
+function buildTransformationFrames(scene: Extract<ChalkAnimatedScene, { type: "equation-transformation" }>, profile: NormalizedRenderProfile, fontFile: string, animationDurationMs = scene.durationMs): readonly ChalkFrame[] {
   type TransformationState = { readonly kind: "equation-transformation"; readonly visibleFromOps: number; readonly visibleCueOps: number; readonly visibleToOps: number };
   const center = profile.width / 2;
   const titleSize = Math.round(Math.min(profile.width / 14, profile.height / 10));
@@ -154,7 +154,7 @@ function buildTransformationFrames(scene: Extract<ChalkAnimatedScene, { type: "e
     weights.push(durationWeight(index + 301, op.semantic));
     if (op.semantic !== "glyph") { steps.push({ state: { kind: "equation-transformation", visibleFromOps: fromPlan.ops.length, visibleCueOps: cuePlan.length, visibleToOps: index + 1 }, durationMs: 0 }); weights.push(durationWeight(index + 401, op.semantic) * .82); }
   }
-  const durations = distributeDurations(scene.durationMs, profile.frameRate, weights);
+  const durations = distributeDurations(animationDurationMs, profile.frameRate, weights);
   return steps.map((step, index) => {
     const state = step.state;
     const from = renderFormulaSubset(fromPlan, state.visibleFromOps, "#cbd5e1", { x: center, y: profile.height * .25 });
@@ -173,5 +173,26 @@ function buildTransformationFrames(scene: Extract<ChalkAnimatedScene, { type: "e
   });
 }
 export function renderChalkAnimationFrames(scene: ChalkAnimatedScene, profile: NormalizedRenderProfile, fontFile: string): readonly ChalkFrame[] {
-  return scene.type === "equation" ? buildEquationFrames(scene, profile, fontFile) : buildTransformationFrames(scene, profile, fontFile);
+  const timing = scene.animation?.timing;
+  const writingDurationMs = timing
+    ? timing.writingEndMs - timing.writingStartMs
+    : scene.durationMs;
+  const writingFrames = scene.type === "equation"
+    ? buildEquationFrames(scene, profile, fontFile, writingDurationMs)
+    : buildTransformationFrames(scene, profile, fontFile, writingDurationMs);
+  if (!timing) return writingFrames;
+  const frames: ChalkFrame[] = [];
+  if (timing.writingStartMs > 0) {
+    frames.push({
+      svg: sceneShell(profile, fontFile, ""),
+      durationMs: timing.writingStartMs,
+    });
+  }
+  frames.push(...writingFrames);
+  const completedHoldMs = scene.durationMs - timing.writingEndMs;
+  const completed = writingFrames.at(-1);
+  if (completed && completedHoldMs > 0) {
+    frames.push({ svg: completed.svg, durationMs: completedHoldMs });
+  }
+  return frames;
 }

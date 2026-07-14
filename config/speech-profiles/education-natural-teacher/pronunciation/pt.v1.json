@@ -1,0 +1,28 @@
+{
+  "schemaVersion": "narration-artifact-v1",
+  "dictionaryVersion": "education-math-pronunciation-pt.v1",
+  "language": "pt",
+  "profileId": "education-natural-teacher",
+  "entries": [
+    {
+      "entryId": "pt-mmc",
+      "scope": "profile",
+      "language": "pt",
+      "profileId": "education-natural-teacher",
+      "phrase": "MMC",
+      "replacement": "mínimo múltiplo comum",
+      "mandatory": false,
+      "enabled": true
+    },
+    {
+      "entryId": "pt-mdc",
+      "scope": "profile",
+      "language": "pt",
+      "profileId": "education-natural-teacher",
+      "phrase": "MDC",
+      "replacement": "máximo divisor comum",
+      "mandatory": false,
+      "enabled": true
+    }
+  ]
+}

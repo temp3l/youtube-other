@@ -39,6 +39,7 @@ export interface BuildOpenAiTtsChunkRequestInput {
   readonly direction: NarrationDirection;
   readonly config: OpenAiTtsRequestConfig;
   readonly transformedText?: string;
+  readonly preserveParagraphBreaks?: boolean;
   readonly pronunciationHints?: readonly string[];
   readonly continuityGuidance?: string;
 }
@@ -130,6 +131,15 @@ function limitText(value: string, maxChars: number): string {
 
 function normalizeLines(values: readonly string[]): string[] {
   return values.map((value) => normalizeWhitespace(value)).filter((value) => value.length > 0);
+}
+
+function normalizeTtsInput(value: string, preserveParagraphBreaks: boolean): string {
+  if (!preserveParagraphBreaks) return normalizeWhitespace(value);
+  return value
+    .split(/\n\s*\n/gu)
+    .map((paragraph) => normalizeWhitespace(paragraph))
+    .filter((paragraph) => paragraph.length > 0)
+    .join("\n\n");
 }
 
 function joinSection(title: string, values: readonly string[]): string {
@@ -246,7 +256,10 @@ export function buildOpenAiTtsChunkRequest(
 ): OpenAiTtsRequestBuildResult {
   const outputFormat = validateConfig(input.config);
   const budgets = resolveBudgets(input.config);
-  const ttsInput = normalizeWhitespace(input.transformedText ?? input.chunk.text);
+  const ttsInput = normalizeTtsInput(
+    input.transformedText ?? input.chunk.text,
+    input.preserveParagraphBreaks ?? false
+  );
   if (ttsInput.length === 0) {
     throw new Error(`OpenAI TTS input is empty for chunk ${input.chunk.chunkId}.`);
   }

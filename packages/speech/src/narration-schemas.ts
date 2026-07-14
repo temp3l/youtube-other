@@ -36,6 +36,17 @@ export const narrationRoleSchema = z.enum([
   "reveal",
   "aftermath",
   "closing",
+  "introduction",
+  "problem-statement",
+  "definition",
+  "explanation",
+  "calculation-step",
+  "intermediate-result",
+  "warning",
+  "guided-practice",
+  "think-pause",
+  "final-answer",
+  "recap",
 ]);
 export type NarrationRole = z.infer<typeof narrationRoleSchema>;
 
@@ -423,6 +434,7 @@ export type PronunciationEntry = z.infer<typeof pronunciationEntrySchema>;
 export const pronunciationDictionarySchema = z
   .object({
     schemaVersion: z.literal(NARRATION_ARTIFACT_SCHEMA_VERSION).optional(),
+    dictionaryVersion: boundedString(128).optional(),
     language: z.union([localeSchema, z.literal("global")]),
     profileId: boundedString(128).optional(),
     episodeId: episodeIdSchema.optional(),

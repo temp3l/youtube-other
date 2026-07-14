@@ -1,0 +1,28 @@
+{
+  "schemaVersion": "narration-artifact-v1",
+  "dictionaryVersion": "education-math-pronunciation-fr.v1",
+  "language": "fr",
+  "profileId": "education-natural-teacher",
+  "entries": [
+    {
+      "entryId": "fr-ppcm",
+      "scope": "profile",
+      "language": "fr",
+      "profileId": "education-natural-teacher",
+      "phrase": "PPCM",
+      "replacement": "plus petit commun multiple",
+      "mandatory": false,
+      "enabled": true
+    },
+    {
+      "entryId": "fr-pgcd",
+      "scope": "profile",
+      "language": "fr",
+      "profileId": "education-natural-teacher",
+      "phrase": "PGCD",
+      "replacement": "plus grand commun diviseur",
+      "mandatory": false,
+      "enabled": true
+    }
+  ]
+}

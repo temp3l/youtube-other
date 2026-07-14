@@ -30,6 +30,17 @@
 - Remote rendering can retry SSH or worker failures up to configured limits and optionally fall back to local rendering.
 - Render validation is a separate failure point after encoding completes.
 
+## Educational Speech
+
+- Semantic chunks and candidates are content-addressed and written atomically. Resume retains every
+  valid candidate and starts provider work at the first missing or invalid entry.
+- Rate-limit, timeout, network, capacity, and 502/503/504 failures receive at most three bounded
+  attempts. Authentication, unsupported language, bad input/configuration, schema errors, and
+  deterministic client failures do not retry.
+- A zero-byte, incomplete, undecodable, hash-mismatched, or failed-validation file is never promoted.
+  The accepted narration is replaced only after all selected chunks, assembly, and mastering pass.
+- `--speech-dry-run` reads cache metadata but performs no provider call and creates no final artifact.
+
 ## YouTube Upload
 
 - Upload failures are categorized as configuration, validation, duplicate, or generic upload errors.

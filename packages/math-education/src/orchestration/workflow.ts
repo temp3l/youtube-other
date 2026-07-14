@@ -100,6 +100,15 @@ function hashesMatch(
   );
 }
 
+function hasErrorCode(error: unknown, code: string): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    error.code === code
+  );
+}
+
 export const stageRecordSchema = z.strictObject({
   stage: z.enum(MATH_STAGES),
   status: stageStatusSchema,
@@ -142,7 +151,7 @@ export const workflowManifestSchema = z.strictObject({
   lessonId: z.string().min(1),
   curriculumReleaseId: z.literal("de-gems-5-10-v1"),
   simulated: z.boolean(),
-  paidProviderCalled: z.literal(false),
+  paidProviderCalled: z.boolean(),
   stages: z.array(stageRecordSchema).length(MATH_STAGES.length),
   failures: z.array(failureSchema),
 }).superRefine((manifest, context) => {
@@ -261,7 +270,7 @@ export async function loadWorkflowManifest(
   try {
     rawText = await fs.readFile(filePath, "utf8");
   } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === "ENOENT") return null;
+    if (hasErrorCode(error, "ENOENT")) return null;
     throw error;
   }
   try {
@@ -371,7 +380,10 @@ export async function readAuthoritativeBinaryArtifact(args: {
   manifest: WorkflowManifest;
   stage: MathStage;
   relativePath: string;
-  schemaVersion: "math-thumbnail-binary.v1" | "math-final-media-binary.v1";
+  schemaVersion:
+    | "math-thumbnail-binary.v1"
+    | "math-final-media-binary.v1"
+    | "math-speech-binary.v1";
   expectedIdentity: NonNullable<MathArtifactLineage["identity"]>;
   producer: string;
   producerVersion: string;
@@ -458,7 +470,7 @@ export async function withMathFileLock<T>(
   try {
     handle = await fs.open(lockPath, "wx");
   } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === "EEXIST")
+    if (hasErrorCode(error, "EEXIST"))
       throw new Error(`Math workflow lock is already held: ${lockPath}`);
     throw error;
   }

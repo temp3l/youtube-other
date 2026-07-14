@@ -48,6 +48,19 @@ export interface ApplyPronunciationResult {
   readonly paths: NarrationArtifactPathSet;
 }
 
+export interface TransformPronunciationManifestRequest {
+  readonly manifest: NarrationChunkManifest;
+  readonly language: string;
+  readonly locale: string;
+  readonly dictionaries: ReadonlyArray<PronunciationDictionary>;
+  readonly createdAt?: string;
+}
+
+export interface TransformPronunciationManifestResult {
+  readonly chunks: readonly PronunciationChunkTransform[];
+  readonly report: PronunciationTransformReport;
+}
+
 interface CompiledEntry {
   readonly entry: PronunciationEntry;
   readonly dictionaryFingerprint: string;
@@ -83,7 +96,13 @@ function entryFingerprint(entry: PronunciationEntry): string {
 }
 
 function dictionaryFingerprint(dictionary: PronunciationDictionary): string {
-  return dictionary.dictionaryFingerprint ?? hashText(JSON.stringify(dictionary.entries));
+  return dictionary.dictionaryFingerprint ?? hashText(JSON.stringify({
+    dictionaryVersion: dictionary.dictionaryVersion ?? null,
+    language: dictionary.language,
+    profileId: dictionary.profileId ?? null,
+    episodeId: dictionary.episodeId ?? null,
+    entries: dictionary.entries,
+  }));
 }
 
 function flattenDictionaries(dictionaries: ReadonlyArray<PronunciationDictionary>, language: string): CompiledEntry[] {
@@ -95,6 +114,9 @@ function flattenDictionaries(dictionaries: ReadonlyArray<PronunciationDictionary
     }
     const fingerprint = dictionaryFingerprint(dictionary);
     for (const entry of dictionary.entries) {
+      if (!entry.enabled) {
+        continue;
+      }
       entries.push({ entry, dictionaryFingerprint: fingerprint });
     }
   }
@@ -184,22 +206,30 @@ function transformText(text: string, selected: readonly MatchCandidate[]): strin
   return output;
 }
 
+export function transformPronunciationText(input: {
+  readonly text: string;
+  readonly language: string;
+  readonly dictionaries: ReadonlyArray<PronunciationDictionary>;
+}): PronunciationChunkTransform {
+  const entries = flattenDictionaries(input.dictionaries, input.language);
+  validateEntries(entries);
+  const { selected } = selectNonOverlapping(findMatches(input.text, entries));
+  const text = transformText(input.text, selected);
+  return {
+    chunkId: "narr-chunk-000",
+    text,
+    textHash: hashText(text),
+    appliedEntryIds: [...new Set(selected.map((match) => match.entry.entry.entryId))],
+  };
+}
+
 function relative(root: string, target: string): string {
   return path.relative(root, target).replace(/\\/gu, "/");
 }
 
-export async function applyPronunciationTransforms(
-  request: ApplyPronunciationRequest
-): Promise<ApplyPronunciationResult> {
-  const episodeId = request.episodeId ?? request.manifest.episodeId;
-  const locale = request.locale ?? request.manifest.locale;
-  const variant = request.variant ?? request.manifest.variant;
-  const paths = createNarrationArtifactPaths({
-    episodeId,
-    locale,
-    variant,
-    episodeRoot: request.episodeDir,
-  });
+export function transformPronunciationManifest(
+  request: TransformPronunciationManifestRequest
+): TransformPronunciationManifestResult {
   const entries = flattenDictionaries(request.dictionaries, request.language);
   validateEntries(entries);
   const mandatoryEntryIds = new Set(entries.filter((entry) => entry.entry.mandatory).map((entry) => entry.entry.entryId));
@@ -274,7 +304,7 @@ export async function applyPronunciationTransforms(
     schemaVersion: NARRATION_ARTIFACT_SCHEMA_VERSION,
     sourceManifestFingerprint: request.manifest.manifestFingerprint,
     dictionaryFingerprint: dictionaryFingerprintValue,
-    language: locale,
+    language: request.locale,
     appliedTransformations,
     collisions: [...collisions.entries()].map(([key, ids]) => ({
       entryIds: [...ids].sort(),
@@ -295,6 +325,28 @@ export async function applyPronunciationTransforms(
     ...reportWithoutFingerprint,
     reportFingerprint: hashText(JSON.stringify(reportWithoutFingerprint)),
   });
+  return { chunks, report };
+}
+
+export async function applyPronunciationTransforms(
+  request: ApplyPronunciationRequest
+): Promise<ApplyPronunciationResult> {
+  const episodeId = request.episodeId ?? request.manifest.episodeId;
+  const locale = request.locale ?? request.manifest.locale;
+  const variant = request.variant ?? request.manifest.variant;
+  const paths = createNarrationArtifactPaths({
+    episodeId,
+    locale,
+    variant,
+    episodeRoot: request.episodeDir,
+  });
+  const { chunks, report } = transformPronunciationManifest({
+    manifest: request.manifest,
+    language: request.language,
+    locale,
+    dictionaries: request.dictionaries,
+    ...(request.createdAt ? { createdAt: request.createdAt } : {}),
+  });
   const outputPath = request.outputPath ?? paths.pronunciationTransforms;
   await writeJsonAtomic(outputPath, report);
   request.logger?.info(
@@ -303,8 +355,11 @@ export async function applyPronunciationTransforms(
       language: request.language,
       locale,
       variant,
-      entryCount: entries.length,
-      appliedCount: appliedTransformations.length,
+      entryCount: request.dictionaries.reduce(
+        (count, dictionary) => count + dictionary.entries.length,
+        0
+      ),
+      appliedCount: report.appliedTransformations.length,
       skippedCollisionCount: report.collisions.length,
       reportFingerprint: report.reportFingerprint,
       reportPath: relative(request.episodeDir, outputPath),

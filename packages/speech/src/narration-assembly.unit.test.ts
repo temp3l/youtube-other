@@ -197,6 +197,43 @@ describe("narration assembly", () => {
     expect(args).not.toContain(";");
   });
 
+  it("appends a final inspection pause only when the profile requests it", async () => {
+    const narrationRoot = await createRoot();
+    const manifest = chunkManifest();
+    const directions = directionSet(manifest);
+    const withFinalPause: NarrationDirectionSet = {
+      ...directions,
+      directions: directions.directions.map((entry, index) => ({
+        ...entry,
+        pauseAfterMs: index === directions.directions.length - 1 ? 600 : entry.pauseAfterMs,
+      })),
+    };
+    const { records, reports } = await recordsAndReports(narrationRoot, manifest);
+    const defaultEntries = buildNarrationAssemblyEntries({
+      narrationRoot,
+      chunkManifest: manifest,
+      directionSet: withFinalPause,
+      cacheRecords: records,
+      validationReports: reports,
+    });
+    const educationalEntries = buildNarrationAssemblyEntries({
+      narrationRoot,
+      chunkManifest: manifest,
+      directionSet: withFinalPause,
+      cacheRecords: records,
+      validationReports: reports,
+      config: { appendFinalPause: true },
+    });
+
+    expect(defaultEntries.entries.at(-1)?.insertedPauseMs).toBe(0);
+    expect(educationalEntries.entries.at(-1)?.insertedPauseMs).toBe(600);
+    const args = buildNarrationAssemblyFfmpegArgs({
+      entries: educationalEntries.entries,
+      outputPath: path.join(narrationRoot, "with-final-pause.wav"),
+    });
+    expect(args.join(" ").match(/anullsrc/gu)).toHaveLength(2);
+  });
+
   it("preserves the previous clean narration when assembly is blocked", async () => {
     const narrationRoot = await createRoot();
     const manifest = chunkManifest();

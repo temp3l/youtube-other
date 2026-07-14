@@ -416,10 +416,6 @@ export function buildFullStoryContract(input: {
   if (!identityResult.success) {
     issues.push(issueFromSchemaFailure(["artifactIdentity"], identityResult.error.message));
   }
-  const artifactIdentity = identityResult.success
-    ? identityResult.data
-    : fullStoryArtifactIdentitySchema.parse(input.artifactIdentity);
-
   const constraintsResult = fullStoryOutputConstraintsSchema.safeParse(
     input.outputConstraints
   );
@@ -428,6 +424,13 @@ export function buildFullStoryContract(input: {
       issueFromSchemaFailure(["outputConstraints"], constraintsResult.error.message)
     );
   }
+  if (!identityResult.success || !constraintsResult.success) {
+    return {
+      ok: false,
+      issues: dedupeIssues(issues),
+    };
+  }
+  const artifactIdentity = identityResult.data;
 
   const resolution = resolveGenrePolicy({
     genre: nativeStoryIr.genre,

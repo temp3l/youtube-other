@@ -63,6 +63,10 @@ export {
   type SpeechVoicePreset,
 } from "./voice-settings.js";
 export * from "./audio-instructions.js";
+export * from "./speech-delivery-profile.js";
+export * from "./educational-speech-planning.js";
+export * from "./educational-pronunciation.js";
+export * from "./educational-speech-pipeline.js";
 
 export interface SpeechSynthesisRequest {
   readonly sceneId: SceneId;
@@ -73,6 +77,15 @@ export interface SpeechSynthesisRequest {
   readonly instructions?: string;
   readonly speed?: number;
   readonly requestFingerprint?: string;
+  readonly trace?: {
+    readonly task: "educational-speech-generate";
+    readonly speechProfileId: string;
+    readonly speechProfileVersion: string;
+    readonly language: string;
+    readonly chunkId: string;
+    readonly candidateIndex: number;
+    readonly inputHash: string;
+  };
 }
 
 export interface SpeechSynthesisResult extends AudioSegment {

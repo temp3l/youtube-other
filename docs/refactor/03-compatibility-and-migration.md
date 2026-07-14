@@ -1,0 +1,114 @@
+# Compatibility and Migration
+
+## Decision
+
+Migration is read-compatible and write-forward. New task attempts write only to
+resolver-selected canonical locations. Legacy artifacts remain discoverable and
+verifiable until explicitly migrated. There is no big-bang move and no silent
+conflict resolution.
+
+## Artifact Matrix
+
+The audit must populate one row per conceptual artifact with:
+
+| Field | Required value |
+| --- | --- |
+| identity | profile, unit, locale, variant, kind, revisions |
+| current paths and filenames | every verified canonical and legacy location |
+| producers and consumers | commands, scripts, workflows, tests, repair tools |
+| usage | Dark Truth/math, full/Short, locale behavior |
+| proposed resolver key | typed `ArtifactRef` intent |
+| canonical write | one path and owning repository method |
+| legacy reads | ordered candidates with versioned adapter |
+| conflicts | detection rule and operator action |
+| migration risk | low, medium, high with reason |
+| removal condition | evidence required to drop fallback |
+
+Known starting points requiring characterization include authored scripts under
+`languages/`, locale/variant roots, shared images, image-generation state,
+story workflow state, narration layouts, clip manifests, render outputs,
+metadata, upload reports, mathematics lesson roots, and mathematics batch state.
+These are inputs to the matrix, not assumed final mappings.
+
+## Resolution Rules
+
+1. Parse and validate the `ArtifactRef` before filesystem access.
+2. Resolve the canonical path through the profile layout adapter.
+3. If reading, validate the canonical candidate first.
+4. Discover declared legacy candidates in fixed order.
+5. Reject traversal, symlinks escaping the workspace, non-regular files, and
+   ambiguous valid candidates.
+6. Return provenance identifying canonical or legacy source, resolver version,
+   hash, schema, and validation state.
+7. Never treat an unmanifested file as a successful task output.
+
+Legacy reads may feed reconciliation, but workflow success requires validation
+and an import/reconciliation event. A legacy artifact that cannot establish its
+producer fingerprint is usable only through an explicit compatibility policy;
+it is never a cache hit.
+
+## Atomic Write Protocol
+
+1. Acquire the declared task/artifact lock.
+2. Write output to a unique temporary path on the same filesystem.
+3. Flush and close the file.
+4. Validate schema/media properties and calculate the checksum.
+5. Write the temporary artifact manifest.
+6. Atomically rename output and manifest into canonical locations.
+7. Append the success event and rebuild materialized state.
+
+If promotion succeeds but state update fails, reconciliation imports the valid
+manifest. If state is updated before promotion due to a defect, reconciliation
+invalidates the attempt because required output validation fails.
+
+## Migration Command
+
+`mediaforge artifact migrate` defaults to dry-run and emits a `MigrationPlan`:
+
+- deterministic migration ID;
+- source and destination `ArtifactRef` values and paths;
+- source hash, schema, provenance, and validation;
+- expected destination state;
+- conflict classification;
+- planned operation: copy, atomic move, metadata-only import, skip, or block;
+- rollback operation;
+- downstream invalidations;
+- warnings and required approvals.
+
+Write mode requires an explicit plan ID and confirmation flag. It revalidates
+all hashes immediately before mutation, writes a migration event, preserves a
+rollback manifest, and never overwrites a differing valid destination.
+
+## Compatibility Commands
+
+Existing `stories`, `images`, `audio`, `render`, `episode`, and `math` command
+paths remain aliases while callers migrate. An alias may normalize arguments,
+invoke a canonical task, and translate output to the documented legacy shape.
+It may not own paths, provider calls, validation, cache, or state.
+
+Deprecation output goes to stderr and is suppressed in machine JSON except for a
+structured `deprecations` array. Aliases preserve stable exit semantics and show
+the replacement command in help and failures.
+
+## Rollback
+
+- Code rollback restores an adapter, never duplicate direct callers.
+- Artifact rollback uses the recorded migration manifest and verifies hashes
+  before restoring a path.
+- State rollback is an append-only compensating event, not history deletion.
+- Canonical outputs created by a rolled-back version remain untouched and may be
+  rediscovered by a future compatible resolver.
+- Publishing has no automatic rollback; this is why approval and dry-run are
+  mandatory and publish calls are excluded from refactor validation.
+
+## Removal Gates
+
+A legacy path or command can be removed only when:
+
+- repository searches find no active direct caller;
+- compatibility and packaged-CLI tests pass;
+- representative existing episodes/lessons resolve correctly;
+- migration dry-run reports no unexplained active conflicts;
+- docs and AI pack name the canonical replacement;
+- the adapter's declared support window or operator acceptance condition is met.
+

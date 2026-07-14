@@ -17,11 +17,14 @@ import type { NarrationChunkCacheRecord } from "./narration-cache.js";
 import type { ProbeAudioMetadata } from "./audio-validation.js";
 
 export interface NarrationAssemblyConfig {
+  readonly sampleRate?: number;
+  readonly channels?: 1 | 2;
   readonly trimLeadingSilenceMs?: number;
   readonly trimTrailingSilenceMs?: number;
   readonly retainBoundarySilenceMs?: number;
   readonly pauseScale?: number;
   readonly maxInsertedPauseMs?: number;
+  readonly appendFinalPause?: boolean;
   readonly crossfade?: {
     readonly enabled: boolean;
     readonly durationMs: number;
@@ -79,11 +82,14 @@ export interface AssembleNarrationRequest {
 }
 
 const defaultAssemblyConfig = {
+  sampleRate: 48_000,
+  channels: 1,
   trimLeadingSilenceMs: 120,
   trimTrailingSilenceMs: 160,
   retainBoundarySilenceMs: 80,
   pauseScale: 1,
   maxInsertedPauseMs: 1_250,
+  appendFinalPause: false,
   crossfade: {
     enabled: false,
     durationMs: 40,
@@ -107,11 +113,15 @@ function resolveUnderRoot(root: string, filePath: string): string {
 
 function mergedConfig(config: NarrationAssemblyConfig | undefined): Required<NarrationAssemblyConfig> {
   return {
+    sampleRate: config?.sampleRate ?? defaultAssemblyConfig.sampleRate,
+    channels: config?.channels ?? defaultAssemblyConfig.channels,
     trimLeadingSilenceMs: config?.trimLeadingSilenceMs ?? defaultAssemblyConfig.trimLeadingSilenceMs,
     trimTrailingSilenceMs: config?.trimTrailingSilenceMs ?? defaultAssemblyConfig.trimTrailingSilenceMs,
     retainBoundarySilenceMs: config?.retainBoundarySilenceMs ?? defaultAssemblyConfig.retainBoundarySilenceMs,
     pauseScale: config?.pauseScale ?? defaultAssemblyConfig.pauseScale,
     maxInsertedPauseMs: config?.maxInsertedPauseMs ?? defaultAssemblyConfig.maxInsertedPauseMs,
+    appendFinalPause:
+      config?.appendFinalPause ?? defaultAssemblyConfig.appendFinalPause,
     crossfade: {
       enabled: config?.crossfade?.enabled ?? defaultAssemblyConfig.crossfade.enabled,
       durationMs: config?.crossfade?.durationMs ?? defaultAssemblyConfig.crossfade.durationMs,
@@ -170,7 +180,7 @@ export function buildNarrationAssemblyEntries(input: {
   const records = indexedByChunkId(input.cacheRecords, "cache record", errors);
   const validations = indexedByChunkId(validationReports, "validation report", errors);
   const entries: NarrationAssemblyEntry[] = [];
-  for (const chunk of chunkManifest.chunks) {
+  for (const [chunkIndex, chunk] of chunkManifest.chunks.entries()) {
     const direction = directions.get(chunk.chunkId);
     const record = records.get(chunk.chunkId);
     const validation = validations.get(chunk.chunkId);
@@ -213,10 +223,14 @@ export function buildNarrationAssemblyEntries(input: {
     const retainedTrailingSilenceMs = Math.min(config.retainBoundarySilenceMs, trailingSilenceMs);
     const leadingTrimMs = Math.min(config.trimLeadingSilenceMs, Math.max(0, leadingSilenceMs - retainedLeadingSilenceMs));
     const trailingTrimMs = Math.min(config.trimTrailingSilenceMs, Math.max(0, trailingSilenceMs - retainedTrailingSilenceMs));
-    const insertedPauseMs = Math.min(
-      config.maxInsertedPauseMs,
-      Math.max(0, Math.round(direction.pauseAfterMs * config.pauseScale))
-    );
+    const insertsBoundaryPause =
+      chunkIndex < chunkManifest.chunks.length - 1 || config.appendFinalPause;
+    const insertedPauseMs = insertsBoundaryPause
+      ? Math.min(
+          config.maxInsertedPauseMs,
+          Math.max(0, Math.round(direction.pauseAfterMs * config.pauseScale))
+        )
+      : 0;
     const crossfadeDurationMs =
       config.crossfade.enabled && insertedPauseMs === 0
         ? Math.min(config.crossfade.durationMs, retainedTrailingSilenceMs, retainedLeadingSilenceMs)
@@ -257,9 +271,12 @@ export function buildNarrationAssemblyFfmpegArgs(input: {
   readonly entries: readonly NarrationAssemblyEntry[];
   readonly outputPath: string;
   readonly sampleRate?: number;
+  readonly channels?: 1 | 2;
   readonly crossfadeEqualPower?: boolean;
 }): readonly string[] {
   const sampleRate = input.sampleRate ?? 48_000;
+  const channels = input.channels ?? 1;
+  const channelLayout = channels === 1 ? "mono" : "stereo";
   const args: string[] = ["-y"];
   for (const entry of input.entries) {
     args.push("-i", entry.inputPath);
@@ -269,10 +286,12 @@ export function buildNarrationAssemblyFfmpegArgs(input: {
   for (const [index, entry] of input.entries.entries()) {
     const startMs = entry.leadingTrimMs;
     const endMs = Math.max(startMs + 1, entry.durationMs - entry.trailingTrimMs);
-    filters.push(`[${index}:a]atrim=start=${seconds(startMs)}:end=${seconds(endMs)},asetpts=PTS-STARTPTS[a${index}]`);
+    filters.push(
+      `[${index}:a]aformat=sample_rates=${sampleRate}:channel_layouts=${channelLayout},atrim=start=${seconds(startMs)}:end=${seconds(endMs)},asetpts=PTS-STARTPTS[a${index}]`
+    );
     concatInputs.push(`[a${index}]`);
-    if (entry.insertedPauseMs > 0 && index < input.entries.length - 1) {
-      filters.push(`anullsrc=r=${sampleRate}:cl=mono:d=${seconds(entry.insertedPauseMs)}[s${index}]`);
+    if (entry.insertedPauseMs > 0) {
+      filters.push(`anullsrc=r=${sampleRate}:cl=${channelLayout}:d=${seconds(entry.insertedPauseMs)}[s${index}]`);
       concatInputs.push(`[s${index}]`);
     }
   }
@@ -297,7 +316,7 @@ export function buildNarrationAssemblyFfmpegArgs(input: {
     "-ar",
     String(sampleRate),
     "-ac",
-    "1",
+    String(channels),
     "-c:a",
     "pcm_s16le",
     input.outputPath
@@ -343,6 +362,8 @@ export async function assembleNarration(request: AssembleNarrationRequest): Prom
     const assemblyFfmpegRequest = {
       entries: built.entries,
       outputPath: tempPath,
+      sampleRate: mergedConfig(request.config).sampleRate,
+      channels: mergedConfig(request.config).channels,
       ...(mergedConfig(request.config).crossfade.equalPower !== undefined
         ? { crossfadeEqualPower: mergedConfig(request.config).crossfade.equalPower }
         : {}),

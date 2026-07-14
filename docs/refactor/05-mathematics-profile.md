@@ -1,0 +1,124 @@
+# Mathematics Education Profile
+
+## Decision
+
+Mathematics uses the shared engine but retains its curriculum, correctness,
+pedagogy, accessibility, narration, and deterministic visual policies. It does
+not import Dark Truth prompts, pacing, scoring, or reference requirements.
+
+Existing `packages/math-education`, `packages/math-rendering`, and
+`packages/educational-renderer` implementations are the starting point. The
+current dirty educational-renderer changes are user-owned and must be accepted
+or reconciled before this profile is migrated.
+
+## Audience and Lesson Contract
+
+The profile validates country/state, curriculum source/revision, school type,
+grade, age range, language, prior knowledge, accessibility needs, lesson length,
+full lesson versus Short, student versus teacher output, learning objective, and
+lesson variant. Current German curriculum and grade support is evidence for
+defaults, not a reason to hard-code a single state or grade in shared contracts.
+
+Engagement comes from curiosity, relevance, achievable challenge, visual
+understanding, misconception resolution, progressive mastery, feedback loops,
+examples, confidence, insight, and participation. Horror retention policy is
+invalid for this profile.
+
+## EducationalVisualStyleManifest
+
+The manifest versions and hashes:
+
+- canvas/aspect-ratio and reusable layout templates;
+- mathematical typography, font metrics, and minimum readable sizes;
+- color palette plus color-independent semantic encodings;
+- diagram, graph, coordinate-system, geometry, and symbolic-render rules;
+- animation timing and step-transformation conventions;
+- caption-safe and accessibility regions;
+- renderer and tool versions;
+- optional mascot, teacher, scenario, environment, or thumbnail references;
+- locale-specific visible-label policy;
+- validation evidence and approval.
+
+Reference images default to optional. A lesson/series profile may require them,
+but deterministic SVG, formula, graph, geometry, and animation artifacts take
+priority.
+
+## Workflow DAG
+
+1. curriculum source selection, extraction, normalization, and reviewed release;
+2. objective selection and prerequisite analysis;
+3. lesson specification, misconception inventory, and pedagogical strategy;
+4. example generation and deterministic mathematical verification;
+5. explanation generation, cognitive-load review, and age/language review;
+6. storyboard and visual specification;
+7. deterministic visual rendering where possible;
+8. narration, practice questions, worked solutions, and formative checks;
+9. captions, audio, timing reflow, and video rendering;
+10. mathematical, pedagogical, accessibility, and audiovisual QA;
+11. metadata, publish dry-run, explicit approval, and publishing.
+
+The shared engine adapts the existing math workflow stages and artifact lineage.
+It must resolve the current verifier schema migration before accepting imported
+lineage. Unsupported deterministic verification blocks rather than fabricates
+evidence.
+
+## Deterministic Visual Policy
+
+Prefer existing supported Linux tools after capability detection. Candidate
+strategies include SVG, existing formula renderers, SymPy, programmatic plots,
+FFmpeg, ImageMagick, and reusable animation templates. Mermaid is limited to
+appropriate structural diagrams. No new renderer is mandated without source and
+fixture evidence.
+
+Visual manifests bind each displayed number, expression, graph, geometric
+relation, and worked step to verified lesson facts. Misleading not-to-scale
+diagrams require an explicit label; essential meaning cannot rely only on color,
+sound, or transient animation.
+
+## Scoring and Hard Failures
+
+Score curriculum alignment, correctness, prerequisite fit, objective clarity,
+explanation clarity, cognitive load, pacing, worked examples, misconception
+handling, visual-semantic accuracy, exercises, solutions, age/language fit,
+accessibility, retention, transfer, assessment validity, and metadata relevance.
+
+Hard reason codes include:
+
+- `MATH_STATEMENT_INCORRECT`;
+- `MATH_WORKED_SOLUTION_INVALID`;
+- `MATH_SYMBOLIC_RESULT_UNVERIFIED`;
+- `MATH_CURRICULUM_MISMATCH`;
+- `MATH_PREREQUISITE_MISSING`;
+- `MATH_VISUAL_SEMANTICS_MISLEADING`;
+- `MATH_ESSENTIAL_INFORMATION_INACCESSIBLE`;
+- `MATH_EXERCISE_UNTEACHABLE_FROM_LESSON`;
+- `MATH_ANSWER_KEY_MISMATCH`;
+- `MATH_LEARNING_CLAIM_UNSUPPORTED`;
+- shared artifact, localization, and publish-approval codes.
+
+Mathematical errors and unsupported verification are non-overridable. Minor
+editorial status may use the existing two-reviewer approval concept when the
+approval is bound to exact quality evidence and reviewers differ.
+
+## Validation Placement
+
+Producers validate schemas, deterministic renderer output, hashes, dimensions,
+streams, and direct file integrity. Explicit dependent gates validate symbolic
+correctness, curriculum mapping, answer keys, prerequisite sufficiency,
+cross-artifact visual semantics, cognitive load, pedagogy, accessibility,
+caption timing, audiovisual output, and publish readiness.
+
+## Tests and Acceptance
+
+Add or adapt tests for curriculum provenance/release, DAG cycles and future-grade
+approval, lesson variants, prerequisite fit, SymPy verification, answer keys,
+fact-bound visuals, deterministic hashes, locale-visible labels, readability,
+color-independent meaning, teacher/optional-reference policy, narration timing,
+practice solvability, quality status/approval, batches, resume, and dry-run
+publishing.
+
+Acceptance requires deterministic full and Short fixtures across supported
+lesson variants and representative locales. Offline deterministic verification
+must be exercised where claimed. Provider speech and other paid tests remain
+opt-in.
+

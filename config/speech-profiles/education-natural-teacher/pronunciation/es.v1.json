@@ -1,0 +1,28 @@
+{
+  "schemaVersion": "narration-artifact-v1",
+  "dictionaryVersion": "education-math-pronunciation-es.v1",
+  "language": "es",
+  "profileId": "education-natural-teacher",
+  "entries": [
+    {
+      "entryId": "es-mcm",
+      "scope": "profile",
+      "language": "es",
+      "profileId": "education-natural-teacher",
+      "phrase": "MCM",
+      "replacement": "mínimo común múltiplo",
+      "mandatory": false,
+      "enabled": true
+    },
+    {
+      "entryId": "es-mcd",
+      "scope": "profile",
+      "language": "es",
+      "profileId": "education-natural-teacher",
+      "phrase": "MCD",
+      "replacement": "máximo común divisor",
+      "mandatory": false,
+      "enabled": true
+    }
+  ]
+}

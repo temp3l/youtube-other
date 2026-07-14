@@ -1,0 +1,29 @@
+{
+  "schemaVersion": "narration-artifact-v1",
+  "dictionaryVersion": "education-math-pronunciation-de.v1",
+  "language": "de",
+  "profileId": "education-natural-teacher",
+  "entries": [
+    {
+      "entryId": "de-kgv",
+      "scope": "profile",
+      "language": "de",
+      "profileId": "education-natural-teacher",
+      "phrase": "kgV",
+      "replacement": "kleinstes gemeinsames Vielfaches",
+      "mandatory": false,
+      "enabled": true,
+      "note": "Canonical German mathematics abbreviation."
+    },
+    {
+      "entryId": "de-ggt",
+      "scope": "profile",
+      "language": "de",
+      "profileId": "education-natural-teacher",
+      "phrase": "ggT",
+      "replacement": "größter gemeinsamer Teiler",
+      "mandatory": false,
+      "enabled": true
+    }
+  ]
+}

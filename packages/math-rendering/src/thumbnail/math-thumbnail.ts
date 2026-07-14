@@ -18,6 +18,7 @@ import {
   readAuthoritativeStageArtifact,
   verifierRequestSchema,
   verifierResponseSchema,
+  VERIFIER_PROTOCOL_VERSION,
   VERIFIER_VERSION,
   type MathArtifactSchemaVersion,
   type MathStage,
@@ -118,7 +119,7 @@ export const mathThumbnailSpecSchema = z.strictObject({
     }),
     verification: z.strictObject({
       stage: z.literal("math-verification"), relativePath: z.literal("canonical/verification.json"),
-      schemaVersion: z.literal("math-verifier.v2"), contentHash: hashSchema,
+      schemaVersion: z.literal(VERIFIER_PROTOCOL_VERSION), contentHash: hashSchema,
       producer: z.literal("sympy-verifier-adapter"), producerVersion: z.literal(VERIFIER_VERSION),
       parentFingerprints: z.array(hashSchema).length(1),
     }),
@@ -130,7 +131,7 @@ export const mathThumbnailSpecSchema = z.strictObject({
     }),
     localizedVerification: z.strictObject({
       stage: z.literal("localization"), relativePath: z.string().min(1),
-      schemaVersion: z.literal("math-verifier.v2"), contentHash: hashSchema,
+      schemaVersion: z.literal(VERIFIER_PROTOCOL_VERSION), contentHash: hashSchema,
       producer: z.literal("sympy-verifier-adapter"), producerVersion: z.literal(VERIFIER_VERSION),
       parentFingerprints: z.array(hashSchema).length(1),
     }),
@@ -287,9 +288,9 @@ export async function loadAuthoritativeMathThumbnailSpec(args: {
   const metadataPath = `locales/${language}/metadata.json`;
   const [lesson, verification, localization, localizedVerification, metadata] = await Promise.all([
     readAuthoritativeStageArtifact({ root: lessonRoot, manifest, stage: "lesson-spec", relativePath: "canonical/lesson-spec.json", schemaVersion: "lesson-spec.v1", schema: lessonVariantSpecificationSchema }),
-    readAuthoritativeStageArtifact({ root: lessonRoot, manifest, stage: "math-verification", relativePath: "canonical/verification.json", schemaVersion: "math-verifier.v2", schema: verifierResponseSchema }),
+    readAuthoritativeStageArtifact({ root: lessonRoot, manifest, stage: "math-verification", relativePath: "canonical/verification.json", schemaVersion: VERIFIER_PROTOCOL_VERSION, schema: verifierResponseSchema }),
     readAuthoritativeStageArtifact({ root: lessonRoot, manifest, stage: "localization", relativePath: narrationPath, schemaVersion: "math-narration.v2", schema: localizedNarrationSchema }),
-    readAuthoritativeStageArtifact({ root: lessonRoot, manifest, stage: "localization", relativePath: localizedVerificationPath, schemaVersion: "math-verifier.v2", schema: verifierResponseSchema }),
+    readAuthoritativeStageArtifact({ root: lessonRoot, manifest, stage: "localization", relativePath: localizedVerificationPath, schemaVersion: VERIFIER_PROTOCOL_VERSION, schema: verifierResponseSchema }),
     readAuthoritativeStageArtifact({ root: lessonRoot, manifest, stage: "metadata-playlists", relativePath: metadataPath, schemaVersion: "math-metadata.v2", schema: mathMetadataSchema }),
   ]);
   const request = createVerifierRequest(verification.requestId, lesson.checks);
@@ -324,9 +325,9 @@ export async function loadAuthoritativeMathThumbnailSpec(args: {
   await loadTeacherPose(args.teacherManifestPath, args.teacherPoseId, args.teacherAreaRatio);
   const sources = {
     lesson: authoritativeLineage({ manifest, stage: "lesson-spec", relativePath: "canonical/lesson-spec.json", schemaVersion: "lesson-spec.v1", producer: "lesson-specification-builder", producerVersion: "reviewed-fixtures.v1" }),
-    verification: authoritativeLineage({ manifest, stage: "math-verification", relativePath: "canonical/verification.json", schemaVersion: "math-verifier.v2", producer: "sympy-verifier-adapter", producerVersion: VERIFIER_VERSION }),
+    verification: authoritativeLineage({ manifest, stage: "math-verification", relativePath: "canonical/verification.json", schemaVersion: VERIFIER_PROTOCOL_VERSION, producer: "sympy-verifier-adapter", producerVersion: VERIFIER_VERSION }),
     localization: authoritativeLineage({ manifest, stage: "localization", relativePath: narrationPath, schemaVersion: "math-narration.v2", producer: "locked-fact-localizer", producerVersion: "locked-facts.v2" }),
-    localizedVerification: authoritativeLineage({ manifest, stage: "localization", relativePath: localizedVerificationPath, schemaVersion: "math-verifier.v2", producer: "sympy-verifier-adapter", producerVersion: VERIFIER_VERSION }),
+    localizedVerification: authoritativeLineage({ manifest, stage: "localization", relativePath: localizedVerificationPath, schemaVersion: VERIFIER_PROTOCOL_VERSION, producer: "sympy-verifier-adapter", producerVersion: VERIFIER_VERSION }),
     metadata: authoritativeLineage({ manifest, stage: "metadata-playlists", relativePath: metadataPath, schemaVersion: "math-metadata.v2", producer: "math-metadata-generator", producerVersion: "math-metadata-generator.v3" }),
   };
   const spec = mathThumbnailSpecSchema.parse({

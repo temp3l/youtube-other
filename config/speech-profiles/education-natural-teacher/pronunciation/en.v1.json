@@ -1,0 +1,28 @@
+{
+  "schemaVersion": "narration-artifact-v1",
+  "dictionaryVersion": "education-math-pronunciation-en.v1",
+  "language": "en",
+  "profileId": "education-natural-teacher",
+  "entries": [
+    {
+      "entryId": "en-lcm",
+      "scope": "profile",
+      "language": "en",
+      "profileId": "education-natural-teacher",
+      "phrase": "LCM",
+      "replacement": "least common multiple",
+      "mandatory": false,
+      "enabled": true
+    },
+    {
+      "entryId": "en-gcf",
+      "scope": "profile",
+      "language": "en",
+      "profileId": "education-natural-teacher",
+      "phrase": "GCF",
+      "replacement": "greatest common factor",
+      "mandatory": false,
+      "enabled": true
+    }
+  ]
+}
