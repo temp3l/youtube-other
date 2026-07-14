@@ -6,6 +6,11 @@ export interface RemotionMathScene {
   startFrame: number;
   endFrame: number;
   svgDataUrl: string;
+  caption?: {
+    text: string;
+    lines: string[];
+    fontSizePx: 44;
+  };
 }
 export interface RemotionMathVideoProps extends Record<string, unknown> {
   durationInFrames: number;
@@ -30,6 +35,29 @@ export const MathVideo: React.FC<RemotionMathVideoProps> = ({ scenes }) => {
       }}
     >
       <Img src={scene.svgDataUrl} style={{ width: 1920, height: 1080 }} />
+      {scene.caption ? (
+        <div
+          aria-label={scene.caption.text}
+          style={{
+            position: "absolute",
+            left: 180,
+            right: 180,
+            bottom: 54,
+            padding: "12px 24px",
+            borderRadius: 16,
+            backgroundColor: "rgba(7, 17, 31, 0.9)",
+            color: "#ffffff",
+            fontFamily: "Arial, sans-serif",
+            fontSize: scene.caption.fontSizePx,
+            lineHeight: 1.2,
+            textAlign: "center",
+          }}
+        >
+          {scene.caption.lines.map((line) => (
+            <div key={line}>{line}</div>
+          ))}
+        </div>
+      ) : null}
     </div>
   );
 };

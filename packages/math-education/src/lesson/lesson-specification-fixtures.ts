@@ -11,6 +11,7 @@ const visualComponentSchema = z.enum([
   "geometry",
   "measurement",
   "data-table",
+  "bar-chart",
   "probability-tree",
   "teacher",
 ]);

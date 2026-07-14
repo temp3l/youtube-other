@@ -20,6 +20,9 @@ describe("production caller migration", () => {
     ["episode migrate-layout", "darktruth.scene-images"],
     ["math curriculum import", "math.curriculum-import"],
     ["math production verify", "math.math-verification"],
+    ["math production run", "math.publish-dry-run"],
+    ["math production resume", "math.publish-dry-run"],
+    ["math production status", "math.quality-gate"],
     ["math publish", "math.publish-dry-run"],
   ])("routes %s through %s", (caller, taskId) => {
     expect(resolveProductionCallerRoute(caller)?.taskId).toBe(taskId);

@@ -17,7 +17,7 @@ import {
   type TaskRegistry,
 } from "@mediaforge/workflow-engine";
 
-export const MATH_TASK_REGISTRY_VERSION = "math.task-registry.v2" as const;
+export const MATH_TASK_REGISTRY_VERSION = "math.task-registry.v3" as const;
 
 type ExecutionKind = TaskDefinition["executionKind"];
 type Owner = `@mediaforge/${string}`;
@@ -33,7 +33,6 @@ const artifact = (
   schemaVersion: "1.0.0",
 });
 
-const curriculumSource = artifact("curriculum", "math.curriculum-source");
 const curriculum = artifact("curriculum", "math.curriculum-release");
 const prerequisiteGraph = artifact("curriculum", "math.prerequisite-graph");
 const lessonSpecification = artifact(
@@ -70,7 +69,8 @@ function policies(executionKind: ExecutionKind): TaskDefinition["policies"] {
     retryLimit: provider === "none" ? 0 : 3,
     timeoutMs: provider === "none" ? 60_000 : 900_000,
     lockScope: executionKind === "manual-approval" ? "unit" : "task",
-    approvalRequired: executionKind === "irreversible",
+    approvalRequired:
+      executionKind === "manual-approval" || executionKind === "irreversible",
     batchable:
       executionKind === "model-assisted" ||
       executionKind === "provider-dependent",
@@ -104,6 +104,8 @@ export interface MathProfileReadinessEvidence {
   readonly visualStyleReasons: readonly string[];
   readonly deterministicVerificationSupported: boolean;
   readonly verificationReasons: readonly string[];
+  readonly providerTasksAuthorized: boolean;
+  readonly providerReasons: readonly string[];
 }
 
 const profileEnforcedTasks = new Set([
@@ -151,6 +153,7 @@ const verificationEnforcedTasks = new Set([
   "math.publish-approval",
   "math.publish",
 ]);
+const providerEnforcedTasks = new Set(["math.tts"]);
 
 function registration(
   input: DefinitionInput,
@@ -212,6 +215,10 @@ function registration(
             !profileEvidence.deterministicVerificationSupported
               ? profileEvidence.verificationReasons
               : []),
+            ...(providerEnforcedTasks.has(input.id) &&
+            !profileEvidence.providerTasksAuthorized
+              ? profileEvidence.providerReasons
+              : []),
           ],
         }
       : {}),
@@ -226,7 +233,7 @@ const definitions: readonly DefinitionInput[] = [
       "Select, extract, and normalize a versioned curriculum source.",
     owner: "@mediaforge/math-education",
     executionKind: "deterministic",
-    inputs: [curriculumSource],
+    inputs: [],
     outputs: [curriculum],
   },
   {
@@ -421,6 +428,15 @@ export function createMathTaskRegistrations(
   implementations: Readonly<Partial<Record<string, TaskImplementation>>> = {},
   profileEvidence?: MathProfileReadinessEvidence
 ): readonly TaskRegistration[] {
+  const knownTaskIds = new Set(definitions.map((definition) => definition.id));
+  const unknownBindings = Object.keys(implementations).filter(
+    (taskId) => !knownTaskIds.has(taskId as never)
+  );
+  if (unknownBindings.length > 0) {
+    throw new Error(
+      `Unknown mathematics task implementation bindings: ${unknownBindings.join(", ")}`
+    );
+  }
   return definitions.map((definition) =>
     registration(definition, implementations, profileEvidence)
   );
@@ -435,8 +451,13 @@ export const mathWorkflowDefinition: WorkflowDefinition =
     taskIds: MATH_TASK_IDS,
   });
 
-export function createMathTaskRegistry(): TaskRegistry {
-  const registry = createTaskRegistry(createMathTaskRegistrations());
+export function createMathTaskRegistry(
+  implementations: Readonly<Partial<Record<string, TaskImplementation>>> = {},
+  profileEvidence?: MathProfileReadinessEvidence
+): TaskRegistry {
+  const registry = createTaskRegistry(
+    createMathTaskRegistrations(implementations, profileEvidence)
+  );
   registry.validateWorkflow(mathWorkflowDefinition);
   return registry;
 }

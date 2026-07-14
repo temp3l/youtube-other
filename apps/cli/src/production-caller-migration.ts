@@ -151,6 +151,10 @@ export function resolveProductionCallerRoute(
       return route(caller, "math.source-validation");
     if (/lesson|production plan|production generate/u.test(caller))
       return route(caller, "math.lesson-spec");
+    if (/production (run|resume)/u.test(caller))
+      return route(caller, "math.publish-dry-run");
+    if (/production (status|inspect)/u.test(caller))
+      return route(caller, "math.quality-gate");
     if (/speech generate/u.test(caller)) return route(caller, "math.tts");
     if (/speech compare/u.test(caller))
       return route(caller, "math.quality-gate");

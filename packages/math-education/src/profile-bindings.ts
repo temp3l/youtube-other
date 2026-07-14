@@ -10,8 +10,23 @@ import { MATH_TASK_IDS, createMathTaskRegistry } from "./task-registry.js";
 export function createMathFingerprintMaterial(input: {
   readonly profile: MathLessonProfileManifest | null;
   readonly visualStyle: EducationalVisualStyleManifest | null;
+  readonly curriculum?: {
+    readonly releaseId: string;
+    readonly revision: string;
+    readonly releaseHash: string;
+    readonly authorityHash: string;
+  };
+  readonly selection?: {
+    readonly skillId: string;
+    readonly locale: string;
+    readonly contentVariant: string;
+    readonly lessonVariant: string;
+  };
+  readonly profileRevision?: string;
+  readonly visualStyleRevision?: string;
   readonly verifierVersion?: string;
   readonly rendererVersions?: Readonly<Record<string, string>>;
+  readonly providerConfiguration?: unknown;
 }): Readonly<Record<string, TaskFingerprintMaterial>> {
   const registry = createMathTaskRegistry();
   const material: Record<string, TaskFingerprintMaterial> = {};
@@ -56,6 +71,33 @@ export function createMathFingerprintMaterial(input: {
             },
           }
         : {}),
+      ...(!input.profile && (input.profileRevision || input.selection)
+        ? {
+            profile: {
+              profileRevision: input.profileRevision ?? "unavailable",
+              ...(input.selection ?? {}),
+            },
+          }
+        : {}),
+      ...(input.curriculum
+        ? {
+            curriculumRevision: input.curriculum.revision,
+            additional: {
+              ...(input.profile
+                ? {
+                    curriculumReleaseId: input.profile.curriculum.releaseId,
+                    curriculumReleaseHash: input.profile.curriculum.releaseHash,
+                    skillId: input.profile.skillId,
+                    learningObjective: input.profile.learningObjective,
+                    prerequisites: input.profile.prerequisiteSkillIds,
+                  }
+                : input.selection
+                  ? { skillId: input.selection.skillId }
+                  : {}),
+              authoritativeCurriculum: input.curriculum,
+            },
+          }
+        : {}),
       ...(visualBound && input.visualStyle
         ? {
             visualStyleRevision: input.visualStyle.revision,
@@ -66,6 +108,14 @@ export function createMathFingerprintMaterial(input: {
             },
           }
         : {}),
+      ...(visualBound && !input.visualStyle && input.visualStyleRevision
+        ? {
+            visualStyleRevision: input.visualStyleRevision,
+            renderer: {
+              runtimeVersions: input.rendererVersions ?? {},
+            },
+          }
+        : {}),
       ...(verificationBound
         ? {
             tools: {
@@ -73,6 +123,10 @@ export function createMathFingerprintMaterial(input: {
               unsupportedVerificationPolicy: "block",
             },
           }
+        : {}),
+      ...(taskId === "math.tts" ||
+      explanation.transitiveDependencies.includes("math.tts" as never)
+        ? { provider: input.providerConfiguration ?? { authorized: false } }
         : {}),
     };
   }

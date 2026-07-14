@@ -35,7 +35,6 @@ import {
   assessEducationalVisualStyleReadiness,
   assessMathProfileIntegrationReadiness,
   assessMathLessonProfileReadiness,
-  createMathFingerprintMaterial,
   createMathTaskRegistrations,
   inspectMathMigrationStatus,
   mathWorkflowDefinition,
@@ -66,6 +65,7 @@ import {
 } from "@mediaforge/workflow-engine";
 import { Command } from "commander";
 import { z } from "zod";
+import { createCanonicalMathOperator } from "./math-workflow-runtime.js";
 
 const WORKFLOW_CLI_SCHEMA_VERSION = "mediaforge.workflow-cli.v1" as const;
 const resourceSchema = z.enum(["episode", "lesson", "fixture"]);
@@ -85,6 +85,9 @@ interface IdentityOptions {
   readonly locale?: string;
   readonly variant?: string;
   readonly artifacts?: string;
+  readonly authorizeProvider?: boolean;
+  readonly providerMode?: "fixture-mock" | "provider";
+  readonly python?: string;
   readonly json?: boolean;
 }
 
@@ -273,6 +276,18 @@ async function createOperator(
   const locale = contentLocaleSchema.parse(options.locale ?? "en");
   const variant = contentVariantSchema.parse(options.variant ?? "full");
   const unitRoot = resolveUnitRoot(program, resource, options);
+  if (resource === "lesson") {
+    return createCanonicalMathOperator({
+      repositoryRoot: process.cwd(),
+      workspaceRoot: path.dirname(unitRoot),
+      unitId: unit,
+      locale,
+      contentVariant: variant as "full" | "short",
+      ...(options.python ? { pythonExecutable: options.python } : {}),
+      ...(options.providerMode ? { providerMode: options.providerMode } : {}),
+      ...(options.authorizeProvider ? { authorizeProvider: true } : {}),
+    });
+  }
   let registrations = runtime.registrations;
   let fingerprintMaterial:
     | Readonly<Record<string, TaskFingerprintMaterial>>
@@ -300,57 +315,6 @@ async function createOperator(
     fingerprintMaterial = createDarkTruthFingerprintMaterial({
       bible,
       references,
-    });
-  } else if (resource === "lesson") {
-    const profileStore = new MathProfileStore(unitRoot);
-    const profile = await profileStore.readLessonProfile();
-    const visualStyle = await profileStore.readVisualStyle();
-    const profileReadiness = assessMathLessonProfileReadiness(profile);
-    const visualStyleReadiness = assessEducationalVisualStyleReadiness(
-      visualStyle,
-      locale
-    );
-    const integrationReadiness = assessMathProfileIntegrationReadiness(
-      profile,
-      visualStyle,
-      locale
-    );
-    const profileReasons = [
-      ...profileReadiness.reasons,
-      ...(profile && profile.locale !== locale
-        ? [
-            `Lesson profile locale ${profile.locale} does not match workflow locale ${locale}.`,
-          ]
-        : []),
-      ...(profile && profile.contentVariant !== variant
-        ? [
-            `Lesson profile content variant ${profile.contentVariant} does not match workflow variant ${variant}.`,
-          ]
-        : []),
-    ];
-    registrations = createMathTaskRegistrations(
-      {},
-      {
-        profileReady: profileReadiness.ready && profileReasons.length === 0,
-        profileReasons,
-        curriculumReady: Boolean(
-          profile &&
-          ["reviewed", "published"].includes(profile.curriculum.status)
-        ),
-        curriculumReasons: profile
-          ? []
-          : ["Reviewed curriculum-bound lesson profile evidence is missing."],
-        visualStyleReady:
-          visualStyleReadiness.ready && integrationReadiness.ready,
-        visualStyleReasons: integrationReadiness.reasons,
-        deterministicVerificationSupported: true,
-        verificationReasons: [],
-      }
-    );
-    fingerprintMaterial = createMathFingerprintMaterial({
-      profile,
-      visualStyle,
-      verifierVersion: "math-verifier.v3",
     });
   }
   const artifactRepository = new ArtifactRepository({
@@ -560,6 +524,15 @@ function addIdentityOptions(
     .option(
       "--artifacts <path>",
       "JSON array of currently available artifact contracts"
+    )
+    .option("--python <path>", "approved math verifier interpreter")
+    .option(
+      "--provider-mode <mode>",
+      "configured provider mode (fixture-mock or provider)"
+    )
+    .option(
+      "--authorize-provider",
+      "explicitly authorize the configured provider task for this action"
     )
     .option("--json", "emit the stable JSON contract");
 }

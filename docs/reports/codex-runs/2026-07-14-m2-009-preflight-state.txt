@@ -1,0 +1,101 @@
+M2-009 preflight state (2026-07-14, Europe/Amsterdam)
+
+Branch: mathe-init
+HEAD: 7d8c03ff18891058889c594741e56e516f552fee
+Node: v22.13.0
+pnpm: 10.16.0
+FFmpeg/ffprobe: 5.1.8-0+deb12u1
+CLI package: @mediaforge/cli@0.0.0 (PRIVATE)
+Direct package state: workspace links present; commander 14.0.3, pino 9.14.0, sharp 0.34.5, zod 4.4.3.
+Pre-report git-status SHA-256: 1d9811219cce29deb705d11d94007874d345395a43c89365a06f17fbc81d4e07
+Tracked-dirty path-list SHA-256: 8fcb6cdfbd7a96dedd149dfa99c608debf733fc5727ae199c7297724fb232b3c
+Untracked path-list SHA-256: e581d2f8ea82f2443707dcc2a5c064d9753ad29ade4aceeee53342d2070a1360
+
+Pre-existing dirty files (recorded before this task wrote its report):
+ M apps/cli/src/math-commands.ts
+ M apps/cli/src/math-commands.unit.test.ts
+ M apps/cli/src/production-caller-migration.ts
+ M apps/cli/src/production-caller-migration.unit.test.ts
+ M apps/cli/src/workflow-commands.ts
+ M docs/ai-context/00-project-overview.md
+ M docs/ai-context/04-pipeline-map.md
+ M docs/ai-context/MANIFEST.json
+ M docs/ai-context/profiles/overview.md
+ M docs/ai-context/repository-map.md
+ M docs/architecture/educational-speech-pipeline.md
+ M docs/refactor/02-safe-implementation-batches.md
+ M docs/refactor/README.md
+ M docs/refactor/audit/README.md
+ M packages/educational-renderer/src/renderers/chalk-animation.ts
+ M packages/math-education/data/glossaries/v1/de.json
+ M packages/math-education/src/domain/lesson.ts
+ M packages/math-education/src/index.ts
+ M packages/math-education/src/lesson/capabilities.ts
+ M packages/math-education/src/lesson/lesson-specification-fixtures.ts
+ M packages/math-education/src/lesson/variant-builder.ts
+ M packages/math-education/src/localization/fact-lock.ts
+ M packages/math-education/src/localization/locale-formatter.ts
+ M packages/math-education/src/localization/localization.ts
+ M packages/math-education/src/localization/tts-lexicon.ts
+ M packages/math-education/src/orchestration/artifact-schemas.ts
+ M packages/math-education/src/profile-bindings.ts
+ M packages/math-education/src/profile-contracts.ts
+ M packages/math-education/src/profile-contracts.unit.test.ts
+ M packages/math-education/src/publishing/dry-run-manifest.ts
+ M packages/math-education/src/publishing/math-publishing.unit.test.ts
+ M packages/math-education/src/task-registry.ts
+ M packages/math-education/src/task-registry.unit.test.ts
+ M packages/math-rendering/src/components/math-components.ts
+ M packages/math-rendering/src/composition/composition.ts
+ M packages/math-rendering/src/composition/remotion-entry.tsx
+ M packages/math-rendering/src/composition/remotion-runner.ts
+ M packages/math-rendering/src/math-rendering.unit.test.ts
+ M packages/math-rendering/src/provider-free-media.ts
+ M packages/math-rendering/src/thumbnail/math-thumbnail.ts
+ M packages/shared/src/artifact-path-resolver.ts
+ M packages/speech/src/educational-speech-pipeline.ts
+ M packages/speech/src/educational-speech-planning.ts
+ M packages/speech/src/educational-speech.unit.test.ts
+ M packages/speech/src/index.ts
+ M packages/workflow-engine/src/workflow-operator.ts
+ M python/math-verifier/setup-offline.sh
+ M python/math-verifier/src/math_verifier/checks.py
+?? .artifacts/
+?? .tmp/mock-openai-server.mjs
+?? README-mathe.md
+?? apps/cli/src/math-workflow-runtime.ts
+?? docs/mathe/audits/class-5-curriculum-release-review-packet.md
+?? docs/mathe/audits/m2-004-number-operations-content-review-packet.md
+?? docs/mathe/audits/m2-005-fractions-decimals-content-review-packet.md
+?? docs/mathe/audits/m2-006-geometry-measurement-content-review-packet.md
+?? docs/mathe/audits/m2-007-data-diagrams-content-review-packet.md
+?? docs/mathe/audits/post-refactor-implementation-audit.md
+?? docs/mathe/audits/remediation-backlog-v2.md
+?? docs/reports/codex-runs/2026-07-14-batch-14-ai-pack-release.md
+?? docs/reports/codex-runs/2026-07-14-m2-001-post-refactor-math-audit.md
+?? docs/reports/codex-runs/2026-07-14-m2-002-canonical-math-adapters.md
+?? docs/reports/codex-runs/2026-07-14-m2-003-class5-curriculum-review.md
+?? docs/reports/codex-runs/2026-07-14-m2-004-class5-number-operations-core.md
+?? docs/reports/codex-runs/2026-07-14-m2-005-fractions-decimals.md
+?? docs/reports/codex-runs/2026-07-14-m2-006-geometry-measurement.md
+?? docs/reports/codex-runs/2026-07-14-m2-007-data-diagrams.md
+?? docs/reports/codex-runs/2026-07-14-m2-008-production-media.md
+?? docs/reports/codex-runs/2026-07-14-math-2-task-pack.md
+?? math-video-examples/
+?? packages/math-education/src/lesson/data-diagrams-standard-content.integration.test.ts
+?? packages/math-education/src/lesson/data-diagrams-standard-content.ts
+?? packages/math-education/src/lesson/fractions-decimals-standard-content.ts
+?? packages/math-education/src/lesson/fractions-decimals-standard-content.unit.test.ts
+?? packages/math-education/src/lesson/geometry-measurement-standard-content.integration.test.ts
+?? packages/math-education/src/lesson/geometry-measurement-standard-content.ts
+?? packages/math-education/src/lesson/number-operations-standard-content.ts
+?? packages/math-education/src/lesson/production-content.ts
+?? packages/math-education/src/lesson/production-lesson-specification.unit.test.ts
+?? packages/math-education/src/orchestration/canonical-task-adapters.ts
+?? packages/math-education/src/verification/fractions-decimals-verifier.integration.test.ts
+?? packages/math-education/src/verification/number-operations-verifier.integration.test.ts
+?? packages/math-rendering/src/bar-chart-semantic-component.unit.test.ts
+?? packages/math-rendering/src/geometry-semantic-component.unit.test.ts
+?? todo-prompts/math-2/
+
+No pilot artifact workspace was created. No provider, network, upload, playlist, publish, or channel mutation was attempted.

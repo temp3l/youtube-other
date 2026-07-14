@@ -118,14 +118,16 @@ final answers, and recaps. Other chunks remain single-candidate. Files use stabl
 `candidates/candidate-02/chunks/narr-chunk-001.wav`. No subjective auto-scoring occurs. Candidate 1
 is selected unless `--speech-selection narr-chunk-001=2` is given, and all candidates remain on disk.
 
-The educational cache key covers provider and base-URL identity, model and optional snapshot, voice,
+The educational cache key covers the speech producer version, provider and base-URL identity, model and optional snapshot, voice,
 language, final normalized input, complete instructions, profile/version, dictionary version and
 fingerprint, format, provider and assembly sample rates, WPM/provider speed, pause/chunk/post-process
 policies, candidate number, and centralized request fingerprint. `--regenerate-speech` bypasses reuse
 without deleting an accepted candidate first. Resume walks chunks in stable order: valid cache hits
 are retained and generation continues at the first missing, stale, invalid, or incomplete artifact.
 
-Zero-byte, undecodable, mostly silent, hash-mismatched, or failed-validation files are never cache
+Provider results must echo the exact request fingerprint, scene identity, and output path; their
+duration, sample rate, and channel metadata must match the decoded bytes. Zero-byte, undecodable,
+mostly silent, clipped, transplanted, hash-mismatched, or failed-validation files are never cache
 hits. Candidate audio and metadata use temporary files plus atomic rename. Final narration promotion
 occurs only after successful assembly and light mastering.
 

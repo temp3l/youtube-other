@@ -128,6 +128,7 @@ const words = {
     squared: "squared",
     cubed: "cubed",
     power: "to the power of",
+    root: "square root of",
     equals: "equals",
     notEquals: "is not equal to",
     plus: "plus",
@@ -146,6 +147,7 @@ const words = {
     squared: "zum Quadrat",
     cubed: "hoch drei",
     power: "hoch",
+    root: "Quadratwurzel aus",
     equals: "ist gleich",
     notEquals: "ist nicht gleich",
     plus: "plus",
@@ -164,6 +166,7 @@ const words = {
     squared: "al cuadrado",
     cubed: "al cubo",
     power: "elevado a",
+    root: "raíz cuadrada de",
     equals: "es igual a",
     notEquals: "no es igual a",
     plus: "más",
@@ -182,6 +185,7 @@ const words = {
     squared: "au carré",
     cubed: "au cube",
     power: "puissance",
+    root: "racine carrée de",
     equals: "est égal à",
     notEquals: "n'est pas égal à",
     plus: "plus",
@@ -200,6 +204,7 @@ const words = {
     squared: "ao quadrado",
     cubed: "ao cubo",
     power: "elevado a",
+    root: "raiz quadrada de",
     equals: "é igual a",
     notEquals: "não é igual a",
     plus: "mais",
@@ -338,6 +343,7 @@ export function normalizeEducationalSpokenText(
     },
   ]);
   text = protectedText.text;
+  text = text.replace(/√\s*\(?\s*([\p{L}\p{N}.,+-]+)\s*\)?/gu, `${lexicon.root} $1`);
   text = text.replace(/([\p{L}\p{N})])²/gu, `$1 ${lexicon.squared}`);
   text = text.replace(/([\p{L}\p{N})])³/gu, `$1 ${lexicon.cubed}`);
   text = text.replace(/([\p{L}\p{N})])\s*\^\s*(-?\d+)/gu, `$1 ${lexicon.power} $2`);

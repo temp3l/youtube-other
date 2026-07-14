@@ -10,6 +10,10 @@ import {
   reviewedLessonFixture,
   type LessonSpecificationFixture,
 } from "./lesson-specification-fixtures.js";
+import { loadNumberOperationsStandardContent } from "./number-operations-standard-content.js";
+import { loadFractionsDecimalsStandardContent } from "./fractions-decimals-standard-content.js";
+import { loadGeometryMeasurementStandardContent } from "./geometry-measurement-standard-content.js";
+import { loadDataDiagramStandardContent } from "./data-diagrams-standard-content.js";
 
 export interface LessonSpecificationProvider {
   load(
@@ -67,17 +71,66 @@ const sum = (parts: readonly string[]) => ({
   operands: parts.map(integer),
 });
 
+function buildProductionStandardLesson(
+  skill: CurriculumSkill
+): LessonVariantSpecification | null {
+  const content =
+    loadNumberOperationsStandardContent(skill) ??
+    loadFractionsDecimalsStandardContent(skill) ??
+    loadGeometryMeasurementStandardContent(skill) ??
+    loadDataDiagramStandardContent(skill);
+  if (!content) return null;
+  const draft = {
+    artifactVersion: "lesson-spec.v1" as const,
+    lessonId: createLessonId(skill.skillId, "standard"),
+    skillId: skill.skillId,
+    variant: "standard" as const,
+    learningObjective: content.learningObjective,
+    promise: content.promise,
+    targetAudience: content.targetAudience,
+    scaffolding: "moderate" as const,
+    abstraction: "mixed" as const,
+    reasoningDepth: "independent" as const,
+    variantSemantics: {
+      pacingProfile: "balanced" as const,
+      numberComplexity: "grade-level" as const,
+      challengeMode: "independent-application" as const,
+      representationSequence: [content.modelVisual, content.practiceVisual],
+    },
+    processCompetency: skill.processCompetencies[0] ?? "REP",
+    workedExamples: content.workedExamples,
+    commonMistake: {
+      description: content.misconceptions[0]!.description,
+      correctionFactId: content.misconceptions[0]!.correctionFactId,
+    },
+    challenge: content.transferTask,
+    facts: content.facts,
+    checks: content.checks,
+    scenes: content.scenes.map(({ purpose: _purpose, ...scene }) => scene),
+    targetDurationSeconds: content.expectedDurationSeconds,
+  };
+  return lessonVariantSpecificationSchema.parse({
+    ...draft,
+    contentHash: canonicalHash(draft),
+  });
+}
+
 export function buildLessonVariant(
   skill: CurriculumSkill,
   variant: LessonVariant,
   provider: LessonSpecificationProvider = reviewedFixtureLessonProvider
 ): LessonVariantSpecification {
+  if (variant === "standard") {
+    const production = buildProductionStandardLesson(skill);
+    if (production) return production;
+  }
   const fixture = provider.load(skill.skillId, variant);
   if (!fixture)
     throw new Error(`Unsupported lesson specification: ${skill.skillId}`);
   if (fixture.skillId !== skill.skillId || fixture.variant !== variant)
     throw new Error("Lesson fixture identity does not match the request.");
   const profile = variantProfiles[variant];
+  const fixtureContentHash = canonicalHash(fixture);
   const facts: Array<{
     factId: string;
     semantic: {
@@ -86,6 +139,11 @@ export function buildLessonVariant(
     };
     displayLatex: string;
     checkIds: string[];
+    lineage: {
+      contentContractVersion: string;
+      sourceContentHash: string;
+      sourceTaskId: string;
+    };
   }> = [];
   const checks: Array<{
     checkId: string;
@@ -108,12 +166,22 @@ export function buildLessonVariant(
         semantic: { kind: "scalar", expression: integer(example.value) },
         displayLatex: example.value,
         checkIds: [checkId],
+        lineage: {
+          contentContractVersion: "reviewed-fixtures.v1",
+          sourceContentHash: fixtureContentHash,
+          sourceTaskId: `example-${index + 1}`,
+        },
       },
       {
         factId: expressionFactId,
         semantic: { kind: "scalar", expression },
         displayLatex: example.parts.join("+"),
         checkIds: [checkId],
+        lineage: {
+          contentContractVersion: "reviewed-fixtures.v1",
+          sourceContentHash: fixtureContentHash,
+          sourceTaskId: `example-${index + 1}`,
+        },
       }
     );
     checks.push({
@@ -148,6 +216,11 @@ export function buildLessonVariant(
       semantic: { kind: "scalar", expression: challengeExpression },
       displayLatex: fixture.challenge.parts.join("+"),
       checkIds: ["check-challenge-value"],
+      lineage: {
+        contentContractVersion: "reviewed-fixtures.v1",
+        sourceContentHash: fixtureContentHash,
+        sourceTaskId: "transfer-challenge",
+      },
     },
     {
       factId: "challenge-solution",
@@ -157,6 +230,11 @@ export function buildLessonVariant(
       },
       displayLatex: fixture.challenge.value,
       checkIds: ["check-challenge-value"],
+      lineage: {
+        contentContractVersion: "reviewed-fixtures.v1",
+        sourceContentHash: fixtureContentHash,
+        sourceTaskId: "transfer-challenge",
+      },
     }
   );
   checks.push({

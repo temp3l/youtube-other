@@ -37,6 +37,7 @@ export const factLockManifestSchema = z.strictObject({
       factId: z.string(),
       semanticHash: z.string().length(64),
       checkIds: z.array(z.string()),
+      lineageHash: z.string().length(64),
     })
   ),
   checkOrder: z.array(z.string()),
@@ -76,6 +77,7 @@ export function buildFactLock(
       factId: fact.factId,
       semanticHash: canonicalHash(fact.semantic),
       checkIds: fact.checkIds,
+      lineageHash: canonicalHash(fact.lineage),
     })),
     checkOrder: lesson.checks.map((check) => check.checkId),
   };

@@ -72,6 +72,7 @@ export const mathVisualPlanSchema = z
             "geometry",
             "measurement",
             "data-table",
+            "bar-chart",
             "probability-tree",
             "teacher",
           ]),

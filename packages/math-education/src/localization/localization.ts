@@ -6,6 +6,10 @@ import {
   type MathLanguage,
 } from "../domain/index.js";
 import { canonicalHash } from "../verification/canonical-json.js";
+import { numberOperationsConceptIds } from "../lesson/number-operations-standard-content.js";
+import { fractionsDecimalsConceptIds } from "../lesson/fractions-decimals-standard-content.js";
+import { geometryMeasurementConceptIds } from "../lesson/geometry-measurement-standard-content.js";
+import { dataDiagramConceptIds } from "../lesson/data-diagrams-standard-content.js";
 import { buildFactLock } from "./fact-lock.js";
 import {
   assertGlossaryText,
@@ -147,7 +151,14 @@ const beatCopy: Record<MathLanguage, readonly string[]> = {
 };
 
 function requiredConcepts(skillId: string): readonly [string, string] {
-  if (skillId === "M5-ZO-001") return ["place-value", "digit"];
+  const numberOperations = numberOperationsConceptIds(skillId);
+  if (numberOperations) return numberOperations;
+  const fractionsDecimals = fractionsDecimalsConceptIds(skillId);
+  if (fractionsDecimals) return fractionsDecimals;
+  const geometryMeasurement = geometryMeasurementConceptIds(skillId);
+  if (geometryMeasurement) return geometryMeasurement;
+  const dataDiagram = dataDiagramConceptIds(skillId);
+  if (dataDiagram) return dataDiagram;
   if (skillId === "M5-GM-002") return ["perimeter", "side-length"];
   if (skillId === "M5-DZ-001") return ["tally-chart", "total"];
   throw new Error(`No localized concept mapping exists for ${skillId}.`);

@@ -395,6 +395,14 @@ function exactExpression(value: z.infer<typeof exactValueSchema>) {
   throw new Error("Thumbnail facts must use scalar or measurement semantics.");
 }
 
+function verifierCheckSemantic(
+  check: z.infer<typeof verifierRequestSchema>["checks"][number]
+): z.infer<typeof exactValueSchema> {
+  return "expected" in check
+    ? check.expected
+    : { kind: "scalar", expression: check.expression };
+}
+
 function expressionMetrics(expression: z.infer<typeof expressionNodeSchema>): {
   nodes: number;
   depth: number;
@@ -483,7 +491,8 @@ function assertVerifierBoundFact(spec: MathThumbnailSpec): void {
     responseCheck?.status !== "passed" ||
     canonicalHash(lessonFact.semantic) !== canonicalHash(spec.fact.semantic) ||
     canonicalHash(exactExpression(spec.fact.semantic)) !== canonicalHash(spec.fact.expression) ||
-    canonicalHash(requestCheck.expected) !== canonicalHash(spec.fact.semantic)
+    canonicalHash(verifierCheckSemantic(requestCheck)) !==
+      canonicalHash(spec.fact.semantic)
   )
     throw new Error("Thumbnail fact is not bound to authoritative passed verifier evidence.");
 }

@@ -22,7 +22,7 @@ import {
   writeJsonAtomic,
 } from "@mediaforge/shared";
 import { generateLocalMockTts } from "./audio/mock-tts.js";
-import { loadTeacherPose } from "./assets/teacher.js";
+import { loadTeacherManifest, loadTeacherPose } from "./assets/teacher.js";
 import {
   semanticMathComponentSchema,
   type SemanticMathComponent,
@@ -57,12 +57,56 @@ export const providerFreeMediaRequestSchema = z.strictObject({
   teacherManifestPath: z.string().min(1).optional(),
   outputDir: z.string().min(1),
   browserExecutable: z.string().min(1).optional(),
+  mediaScope: z.literal("private-simulation").default("private-simulation"),
+  visualStrategy: z.literal("static-board").default("static-board"),
 });
-export type ProviderFreeMediaRequest = z.infer<
+export type ProviderFreeMediaRequest = z.input<
   typeof providerFreeMediaRequestSchema
 >;
 
 type MathVisualPlan = z.infer<typeof mathVisualPlanSchema>;
+
+export function createMathCaption(text: string): {
+  text: string;
+  lines: string[];
+  fontSizePx: 44;
+} {
+  const normalized = text.trim().replace(/\s+/gu, " ");
+  if (normalized.length === 0 || normalized.length > 180)
+    throw new Error("Caption text is empty or exceeds the readable overlay budget.");
+  const lines: string[] = [];
+  let current = "";
+  for (const word of normalized.split(" ")) {
+    if (word.length > 60)
+      throw new Error("Caption contains a word wider than the readable overlay budget.");
+    const candidate = current ? `${current} ${word}` : word;
+    if (candidate.length <= 60) current = candidate;
+    else {
+      lines.push(current);
+      current = word;
+    }
+  }
+  if (current) lines.push(current);
+  if (lines.length === 0 || lines.length > 3)
+    throw new Error("Caption overflow exceeds three readable lines.");
+  return { text: normalized, lines, fontSizePx: 44 };
+}
+
+export async function assertSafeMediaOutputDirectory(outputDir: string): Promise<void> {
+  let cursor = path.resolve(outputDir);
+  while (true) {
+    const stat = await fs.lstat(cursor).catch(() => null);
+    if (stat) {
+      if (stat.isSymbolicLink())
+        throw new Error(`Unsafe media output path contains a symlink: ${cursor}`);
+      if (!stat.isDirectory())
+        throw new Error(`Media output ancestor is not a directory: ${cursor}`);
+    }
+    const parent = path.dirname(cursor);
+    if (parent === cursor) break;
+    cursor = parent;
+  }
+}
 
 export async function loadProviderFreeMediaInputs(request: ProviderFreeMediaRequest): Promise<{
   lesson: LessonVariantSpecification;
@@ -178,6 +222,14 @@ function componentFactBindings(
           semantic: scalar(value.expression),
         }))
       );
+    case "bar-chart":
+      return [
+        ...[component.axis.origin, component.axis.maximum, component.axis.tickInterval].map((value) => ({ factId: value.factId, semantic: scalar(value.expression) })),
+        ...component.bars.flatMap((bar) => [
+          { factId: bar.categoryFactId, semantic: scalar(bar.value.expression) },
+          { factId: bar.value.factId, semantic: scalar(bar.value.expression) },
+        ]),
+      ];
     case "probability":
       return component.branches.map((branch) => ({
         factId: branch.probability.factId,
@@ -310,6 +362,7 @@ export function assertProviderFreeFactBindings(raw: {
       geometry: ["geometry"],
       measurement: ["measurement"],
       "data-table": ["table"],
+      "bar-chart": ["bar-chart"],
       "probability-tree": ["probability"],
       teacher: ["formula"],
     };
@@ -372,6 +425,7 @@ export async function createProviderFreeMediaSlice(
 ) {
   const request = providerFreeMediaRequestSchema.parse(raw);
   const outputDir = path.resolve(request.outputDir);
+  await assertSafeMediaOutputDirectory(outputDir);
   const visualCacheDir = path.join(outputDir, "visual-cache");
   const { lesson, narration, visualPlan } = await loadProviderFreeMediaInputs(request);
   assertProviderFreeFactBindings({
@@ -385,12 +439,21 @@ export async function createProviderFreeMediaSlice(
       throw new Error(
         `Teacher scene ${scene.sceneId} requires a teacher manifest.`
       );
+  const teacherManifest = request.teacherManifestPath
+    ? await loadTeacherManifest(request.teacherManifestPath)
+    : null;
+  if (
+    teacherManifest?.assetVersion === "alex.v1-placeholder" &&
+    request.mediaScope !== "private-simulation"
+  )
+    throw new Error("Placeholder teacher artwork is restricted to private simulation media.");
   const scenes: MathSceneAsset[] = [];
   for (const [index, scene] of request.scenes.entries()) {
     const narrationSegment = narration.segments[index];
     if (!narrationSegment || narrationSegment.sceneId !== scene.sceneId)
       throw new Error(`Media scene/narration mismatch at ${scene.sceneId}.`);
     const cached = await cacheSemanticSvg(visualCacheDir, scene.component);
+    const caption = createMathCaption(narrationSegment.displayText);
     if (scene.teacher) {
       const asset = await cacheTeacherSvg({
         cacheDir: visualCacheDir,
@@ -399,7 +462,7 @@ export async function createProviderFreeMediaSlice(
         areaRatio: scene.teacher.areaRatio,
         base: cached,
       });
-      scenes.push({ ...asset, sceneId: scene.sceneId });
+      scenes.push({ ...asset, sceneId: scene.sceneId, caption });
       continue;
     }
     scenes.push({
@@ -408,6 +471,7 @@ export async function createProviderFreeMediaSlice(
       svgHash: cached.svgHash,
       minimumGlyphPx: cached.minimumGlyphPx,
       bounds: cached.bounds,
+      caption,
     });
   }
   const { artifact: audio, timing } = await generateLocalMockTts({
@@ -437,9 +501,33 @@ export async function createProviderFreeMediaSlice(
     artifactVersion: "math-provider-free-media.v1" as const,
     paidProviderCalled: false as const,
     narrationHash: narration.contentHash,
+    identity: {
+      lessonId: lesson.lessonId,
+      skillId: lesson.skillId,
+      language: narration.language,
+      variant: lesson.variant,
+    },
+    publication: {
+      scope: request.mediaScope,
+      publishReady: false as const,
+      blockers:
+        teacherManifest?.assetVersion === "alex.v1-placeholder"
+          ? ["placeholder-teacher-artwork-not-approved-for-public-release"]
+          : ["private-simulation-media-not-approved-for-public-release"],
+    },
+    visualStrategy: {
+      requested: request.visualStrategy,
+      rendered: "static-board" as const,
+      silentlyDowngraded: false as const,
+    },
     timingHash: canonicalHash(timing),
     audioHash: audio.masterAudioSha256,
+    audioDurationSeconds: audio.durationSeconds,
     sceneHashes: scenes.map((scene) => scene.svgHash),
+    orderedSceneIds: scenes.map((scene) => scene.sceneId),
+    captionHash: canonicalHash(scenes.map((scene) => scene.caption)),
+    captionCount: scenes.filter((scene) => scene.caption).length,
+    frameCount: timing.scenes.at(-1)?.endFrame ?? 0,
     videoPath: outputPath,
     videoHash: await hashFile(outputPath),
     renderFingerprint: render.renderFingerprint,

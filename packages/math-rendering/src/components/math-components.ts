@@ -62,15 +62,62 @@ export const graphComponentSchema = z.strictObject({
   yMaximum: boundMathValueSchema,
   points: z.array(pointValueSchema).min(1).max(8),
 });
+const semanticLineValueSchema = z.strictObject({
+  factId: factIdSchema,
+  from: z.strictObject({ x: expressionNodeSchema, y: expressionNodeSchema }),
+  to: z.strictObject({ x: expressionNodeSchema, y: expressionNodeSchema }),
+});
+const geometryRelationClaimSchema = z.strictObject({
+  factId: factIdSchema,
+  kind: z.enum(["parallel", "perpendicular"]),
+  lineFactIds: z.tuple([factIdSchema, factIdSchema]),
+  colorIndependentCue: z.string().min(1),
+});
 export const geometryComponentSchema = z.strictObject({
   kind: z.literal("geometry"),
   shape: z.enum(["rectangle", "triangle", "circle", "right-triangle"]),
   measurements: z.array(boundMathValueSchema).min(1).max(5),
+  semanticLines: z.array(semanticLineValueSchema).max(4).optional(),
+  relationClaims: z.array(geometryRelationClaimSchema).max(4).optional(),
+  scaleMode: z.enum(["to-scale", "not-to-scale"]).optional(),
+  visibleScaleLabel: z.literal("nicht maßstabsgetreu").optional(),
+  accessibleDescription: z.string().min(1).optional(),
+}).superRefine((value, context) => {
+  if (value.scaleMode === "not-to-scale" && !value.visibleScaleLabel)
+    context.addIssue({ code: "custom", path: ["visibleScaleLabel"], message: "A non-scale geometry diagram requires a visible label." });
+  if ((value.semanticLines?.length ?? 0) > 0 && !value.accessibleDescription)
+    context.addIssue({ code: "custom", path: ["accessibleDescription"], message: "Semantic geometry requires an accessible description." });
+  const lineIds = new Set(value.semanticLines?.map((line) => line.factId) ?? []);
+  for (const claim of value.relationClaims ?? [])
+    if (claim.lineFactIds.some((lineId) => !lineIds.has(lineId)))
+      context.addIssue({ code: "custom", path: ["relationClaims", claim.factId], message: "Geometry relation references an unknown semantic line." });
 });
 export const tableComponentSchema = z.strictObject({
   kind: z.literal("table"),
   columnLabels: z.array(nonMathematicalLabelSchema).min(1).max(4),
   rows: z.array(z.array(boundMathValueSchema).min(1).max(4)).min(1).max(4),
+});
+export const barChartComponentSchema = z.strictObject({
+  kind: z.literal("bar-chart"),
+  datasetHash: z.string().regex(/^[a-f0-9]{64}$/u),
+  verifierCheckId: z.string().regex(/^check-[a-z0-9-]+$/u),
+  orientation: z.enum(["column", "bar"]),
+  axis: z.strictObject({
+    origin: boundMathValueSchema,
+    maximum: boundMathValueSchema,
+    tickInterval: boundMathValueSchema,
+    unitLabel: nonMathematicalLabelSchema,
+  }),
+  bars: z.array(z.strictObject({
+    category: nonMathematicalLabelSchema,
+    categoryFactId: factIdSchema,
+    value: boundMathValueSchema,
+    pattern: z.enum(["solid", "diagonal", "dots"]),
+  })).min(1).max(8),
+  accessibleEncoding: z.strictObject({
+    colorIndependentCue: z.string().min(1),
+    visibleValueLabels: z.literal(true),
+  }),
 });
 export const measurementComponentSchema = z.strictObject({
   kind: z.literal("measurement"),
@@ -97,6 +144,7 @@ export const semanticMathComponentSchema = z.discriminatedUnion("kind", [
   graphComponentSchema,
   geometryComponentSchema,
   tableComponentSchema,
+  barChartComponentSchema,
   measurementComponentSchema,
   probabilityComponentSchema,
 ]);
@@ -212,6 +260,8 @@ function componentBounds(input: SemanticMathComponent): Bounds {
       throw new Error("Semantic table content is unreadable within its cell.");
     return unionBounds([{ x: 238, y: 178, width: 1444, height: height * (input.rows.length + 1) + 4 }, ...labels]);
   }
+  if (input.kind === "bar-chart")
+    return { x: 180, y: 110, width: 1560, height: 900 };
   if (input.kind === "measurement")
     return unionBounds(input.measurements.flatMap((measurement, index) => {
       const y = 250 + index * (600 / Math.max(1, input.measurements.length - 1));
@@ -327,10 +377,22 @@ function factIds(input: SemanticMathComponent): string[] {
         ...input.points.map((point) => point.factId),
       ];
     case "geometry":
+      return [
+        ...input.measurements.map((measurement) => measurement.factId),
+        ...(input.semanticLines ?? []).map((line) => line.factId),
+        ...(input.relationClaims ?? []).map((claim) => claim.factId),
+      ];
     case "measurement":
       return input.measurements.map((measurement) => measurement.factId);
     case "table":
       return input.rows.flatMap((row) => row.map((cell) => cell.factId));
+    case "bar-chart":
+      return [
+        input.axis.origin.factId,
+        input.axis.maximum.factId,
+        input.axis.tickInterval.factId,
+        ...input.bars.flatMap((bar) => [bar.categoryFactId, bar.value.factId]),
+      ];
     case "probability":
       return input.branches.map((branch) => branch.probability.factId);
   }
@@ -502,7 +564,30 @@ function renderGeometry(
       )
     )
     .join("");
-  return wrapSvg(input, `${geometryPath(input.shape)}${labels}`, 72);
+  const linesById = new Map((input.semanticLines ?? []).map((line) => [line.factId, line]));
+  const relations = (input.relationClaims ?? []).map((claim, index) => {
+    const [firstId, secondId] = claim.lineFactIds;
+    const first = linesById.get(firstId)!;
+    const second = linesById.get(secondId)!;
+    const direction = (line: z.infer<typeof semanticLineValueSchema>) => [
+      literalNumber(line.to.x) - literalNumber(line.from.x),
+      literalNumber(line.to.y) - literalNumber(line.from.y),
+    ] as const;
+    const a = direction(first);
+    const b = direction(second);
+    const valid = claim.kind === "parallel"
+      ? a[0] * b[1] - a[1] * b[0] === 0
+      : a[0] * b[0] + a[1] * b[1] === 0;
+    if (!valid) throw new Error(`Semantic geometry contradicts ${claim.kind} claim ${claim.factId}.`);
+    return `<text x="960" y="${130 + index * 72}" text-anchor="middle" font-family="Arial, sans-serif" font-size="48" fill="#14213d" data-fact-id="${claim.factId}">${escapeXml(`${claim.kind}: ${claim.colorIndependentCue}`)}</text>`;
+  }).join("");
+  const scaleLabel = input.visibleScaleLabel
+    ? `<text x="960" y="1010" text-anchor="middle" font-family="Arial, sans-serif" font-size="48" fill="#14213d">${input.visibleScaleLabel}</text>`
+    : "";
+  const description = input.accessibleDescription
+    ? `<title>${escapeXml(input.accessibleDescription)}</title>`
+    : "";
+  return wrapSvg(input, `${description}${geometryPath(input.shape)}${labels}${relations}${scaleLabel}`, 72);
 }
 
 function renderTable(
@@ -537,6 +622,43 @@ function renderTable(
       `<line x1="240" y1="${180 + height * index}" x2="1680" y2="${180 + height * index}" stroke="#64748b" stroke-width="4"/>`
   ).join("");
   return wrapSvg(input, `${lines}${headers}${cells}`, 72);
+}
+
+function renderBarChart(
+  input: z.infer<typeof barChartComponentSchema>
+): VisualComponentResult {
+  const origin = literalNumber(input.axis.origin.expression);
+  const maximum = literalNumber(input.axis.maximum.expression);
+  const tick = literalNumber(input.axis.tickInterval.expression);
+  if (origin !== 0)
+    throw new Error("Count charts must visibly start at zero.");
+  if (!Number.isInteger(maximum) || !Number.isInteger(tick) || maximum <= 0 || tick <= 0 || maximum % tick !== 0)
+    throw new Error("Bar-chart bounds require a positive consistent integer scale.");
+  const categories = input.bars.map((bar) => bar.category);
+  if (new Set(categories).size !== categories.length)
+    throw new Error("Bar-chart categories must be unique.");
+  const values = input.bars.map((bar) => literalNumber(bar.value.expression));
+  if (values.some((value) => !Number.isInteger(value) || value < 0 || value > maximum))
+    throw new Error("Bar-chart values must be non-negative integer counts within the axis.");
+  if (Math.max(...values) === 0)
+    throw new Error("Zero-only bar charts are unsupported.");
+  const patterns = `<defs><pattern id="diagonal" width="16" height="16" patternUnits="userSpaceOnUse"><path d="M0 16L16 0" stroke="#14213d" stroke-width="4"/></pattern><pattern id="dots" width="18" height="18" patternUnits="userSpaceOnUse"><circle cx="9" cy="9" r="4" fill="#14213d"/></pattern></defs>`;
+  const axis = `<path d="M260 850H1660M260 850V160" stroke="#14213d" stroke-width="8"/>${mathText(input.axis.origin, 220, 880)}${mathText(input.axis.maximum, 220, 185)}${mathText(input.axis.tickInterval, 1500, 980)}<text x="960" y="105" text-anchor="middle" font-family="Arial, sans-serif" font-size="56" fill="#14213d">${escapeXml(input.axis.unitLabel)}</text>`;
+  const bars = input.bars.map((bar, index) => {
+    const value = values[index]!;
+    const fill = bar.pattern === "solid" ? "#93c5fd" : `url(#${bar.pattern})`;
+    if (input.orientation === "column") {
+      const width = 240;
+      const x = 340 + index * (1240 / Math.max(1, input.bars.length - 1)) - width / 2;
+      const height = (value / maximum) * 650;
+      return `<rect x="${x}" y="${850 - height}" width="${width}" height="${height}" fill="${fill}" stroke="#14213d" stroke-width="5" data-fact-id="${bar.value.factId}"/><text x="${x + width / 2}" y="${900}" text-anchor="middle" font-family="Arial, sans-serif" font-size="54" data-fact-id="${bar.categoryFactId}">${escapeXml(bar.category)}</text>${mathText(bar.value, x + width / 2, 820 - height)}`;
+    }
+    const y = 250 + index * (520 / Math.max(1, input.bars.length - 1));
+    const width = (value / maximum) * 1200;
+    return `<rect x="360" y="${y - 55}" width="${width}" height="110" fill="${fill}" stroke="#14213d" stroke-width="5" data-fact-id="${bar.value.factId}"/><text x="300" y="${y + 18}" text-anchor="end" font-family="Arial, sans-serif" font-size="54" data-fact-id="${bar.categoryFactId}">${escapeXml(bar.category)}</text>${mathText(bar.value, 390 + width, y + 18, "start", 54)}`;
+  }).join("");
+  const title = `<title>${escapeXml(`Diagramm ${input.datasetHash}; ${input.accessibleEncoding.colorIndependentCue}`)}</title>`;
+  return wrapSvg(input, `${title}${patterns}${axis}${bars}`, 72);
 }
 
 function renderMeasurement(
@@ -617,6 +739,8 @@ export function renderSemanticComponent(raw: unknown): VisualComponentResult {
       return renderGeometry(input);
     case "table":
       return renderTable(input);
+    case "bar-chart":
+      return renderBarChart(input);
     case "measurement":
       return renderMeasurement(input);
     case "probability":
@@ -639,6 +763,9 @@ export const GeometryFigure = (
 export const DataTable = (
   input: Omit<z.infer<typeof tableComponentSchema>, "kind">
 ) => renderSemanticComponent({ kind: "table", ...input });
+export const BarChart = (
+  input: Omit<z.infer<typeof barChartComponentSchema>, "kind">
+) => renderSemanticComponent({ kind: "bar-chart", ...input });
 export const MeasurementDiagram = (
   input: Omit<z.infer<typeof measurementComponentSchema>, "kind">
 ) => renderSemanticComponent({ kind: "measurement", ...input });

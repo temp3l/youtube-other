@@ -90,7 +90,7 @@ function spokenExpression(
   node: ExpressionNode,
   language: MathLanguage
 ): string {
-    const words = speechLexicon(language);
+  const words = speechLexicon(language);
   switch (node.kind) {
     case "integer":
       return spokenInteger(node.value, language);
@@ -126,9 +126,14 @@ function spokenExpression(
     case "constant":
       return node.name === "pi" ? "pi" : "e";
     case "symbol":
-      throw new Error(`No reviewed ${language} spoken form for symbol ${node.name}.`);
+      if (language === "de" && node.name === "x") return "x";
+      throw new Error(
+        `No reviewed ${language} spoken form for symbol ${node.name}.`
+      );
     case "function":
-      throw new Error(`No reviewed ${language} spoken form for function ${node.name}.`);
+      throw new Error(
+        `No reviewed ${language} spoken form for function ${node.name}.`
+      );
     case "tuple":
     case "set":
     case "matrix":
@@ -156,9 +161,12 @@ export function formatMeasurement(
 ): FormattedMath {
   const formatted = formatExpression(value, language);
   const symbol = unit.angle === "degree" ? "°" : unit.symbol;
+  const singular =
+    (value.kind === "integer" && value.value === "1") ||
+    (value.kind === "decimal" && BigInt(value.unscaled) === 10n ** BigInt(value.scale));
   return {
     display: `${formatted.display} ${symbol}`,
-    spoken: `${formatted.spoken} ${spokenUnit(unit.angle ?? unit.symbol, language)}`,
+    spoken: `${formatted.spoken} ${spokenUnit(unit.angle ?? unit.symbol, language, singular)}`,
     latex: `${formatted.latex}\\,\\mathrm{${symbol}}`,
   };
 }

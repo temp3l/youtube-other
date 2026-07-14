@@ -1,0 +1,183 @@
+{
+  "artifactVersion": "math-private-owner-attestation.v1",
+  "attestationId": "stephan-private-class5-2026-07-14",
+  "decision": "APPROVE_PRIVATE_NO_CLAIM",
+  "actor": {
+    "stableId": "stephan",
+    "name": "Stephan",
+    "role": "admin",
+    "organization": "admin",
+    "basisOfAuthority": "Repository administrator owner attestation; not external curriculum authority."
+  },
+  "recordedAt": "2026-07-14T21:43:39+02:00",
+  "attestationSource": "interactive-user-instruction",
+  "curriculum": {
+    "reviewTargetHash": "ffeb0991c18e602c724e2d3829c16a123766919444b806df5308e76b827bc46a",
+    "releaseId": "de-gems-5-10-v1",
+    "curriculumVersion": "1.0.0-draft.1",
+    "releaseHash": "9afb5e2c0ed7a10628df7f5d1d589739995910900d66b5b479894a3a95360b31",
+    "orderedSkillIds": [
+      "M5-ZO-001",
+      "M5-ZO-002",
+      "M5-ZO-003",
+      "M5-ZO-004",
+      "M5-ZO-005",
+      "M5-ZO-006",
+      "M5-ZO-007",
+      "M5-ZO-008",
+      "M5-ZO-009",
+      "M5-ZO-010",
+      "M5-ZO-011",
+      "M5-ZO-012",
+      "M5-ZO-013",
+      "M5-ZO-014",
+      "M5-ZO-015",
+      "M5-ZO-016",
+      "M5-ZO-017",
+      "M5-ZO-018",
+      "M5-ZO-019",
+      "M5-ZO-020",
+      "M5-ZO-021",
+      "M5-ZO-022",
+      "M5-ZO-023",
+      "M5-ZO-024",
+      "M5-GM-001",
+      "M5-GM-002",
+      "M5-GM-003",
+      "M5-RF-001",
+      "M5-RF-002",
+      "M5-RF-003",
+      "M5-RF-004",
+      "M5-RF-005",
+      "M5-RF-006",
+      "M5-GM-004",
+      "M5-GM-005",
+      "M5-DZ-001",
+      "M5-DZ-002"
+    ],
+    "sourcePolicy": "ACCEPT_NORMALIZED_SYNTHESIS_WITHOUT_OFFICIAL_PLACEMENT_CLAIM",
+    "prerequisitePolicy": "ACCEPT_CURRENT_HASH_BOUND_GRAPH_FOR_PRIVATE_USE",
+    "placementDecision": "NO_CLAIM"
+  },
+  "contentFamilies": [
+    {
+      "contentVersion": "class5-number-operations-standard.v1",
+      "orderedSkillIds": [
+        "M5-ZO-001",
+        "M5-ZO-002",
+        "M5-ZO-003",
+        "M5-ZO-004",
+        "M5-ZO-005",
+        "M5-ZO-006",
+        "M5-ZO-007",
+        "M5-ZO-008",
+        "M5-ZO-009",
+        "M5-ZO-010",
+        "M5-ZO-011",
+        "M5-ZO-012",
+        "M5-ZO-013",
+        "M5-ZO-014",
+        "M5-ZO-015",
+        "M5-ZO-016"
+      ],
+      "orderedContentHashes": [
+        "525cfaa7aad53bcbe329f83b04e75c89ba2094acb68de61bf15d1b7ce01c665d",
+        "b11989f85e2062f19f241d8fcdb8366a81833e88e0343a5178e82859d3c499bd",
+        "bd38b0bbd683e2368970d73654ea1414ae4a80e58879fc3f0f4a096395ea11a3",
+        "bdd0375ef0559b18d198a53b1ca4a22230d5f4ed0986e3ae086840dd8971d8d0",
+        "e85d77c838e009e56772b38743e05333278852410f581e14de97d9f1a1d72fa2",
+        "d1c6bb629cec7b68018ae84e73b5f5009f5e86381638c86d9fb0d9cca2c1b7d9",
+        "9e522bdb65267440124fc251d6ac5baa5e2658e506f600fd6bf1af21c4bc38b2",
+        "179513c78f42f3e1052ae61f3661cf3a6d7b370209595b766b45cfc87a66c416",
+        "92d330976cce02fdb6bdca85cf556e9f9a88de6ae7a00bdf4938ab84ebe6d5bd",
+        "fc53cc956c65d41305cdaac6a024f0e4ced3684edf0bca1129444c3b0062800b",
+        "4525a288817595ccbc6edb476fade5ab9e7dfc056e365f6e7ab8737f490e34dd",
+        "7859bca4082a37177f411572961ca6fc8891b373de5604ada1a5198156e48922",
+        "55a50a4bb914a1b9a2960031e337f9ac70e878433de005eef83b36e6c7eba2d4",
+        "1194f17738c7de9d5dd813b354d990f38c5e7e301c2baafb826ec10625f7268b",
+        "205def743a3cfa084945066536b8384271888059df0e866bd940e9c15cb984f7",
+        "0eee3fbc8c4f75cc808ff23f487ab66dcc602b92fdd16b35a5876dca336730fb"
+      ],
+      "contentSetHash": "420934c6ea61535827238044af51ee911fdca90b49ba01ecc65322e985854082"
+    },
+    {
+      "contentVersion": "class5-fractions-decimals-standard.v1",
+      "orderedSkillIds": [
+        "M5-ZO-017",
+        "M5-ZO-018",
+        "M5-ZO-019",
+        "M5-ZO-020",
+        "M5-ZO-021",
+        "M5-ZO-022",
+        "M5-ZO-023",
+        "M5-ZO-024"
+      ],
+      "orderedContentHashes": [
+        "dbb6284919d4403c617f86f206623ebc1d3027512239fc8992f70bf4079933ef",
+        "eead6ca030042cdd5f9a617a13f2a4c980997fc4201c477108893b30dad090dd",
+        "e3a07ef12b55349d8887af98490f34faa85926585df4ba33d3d31283c59737b4",
+        "b9094fe10ecfd8dd5b986cc1362674b8d2d1469d4755fd66e871635ff9bca0ce",
+        "7e5f5933bdc6a8d8ce79b685a998828ae340b3253b3fd4af43c6c43e659296e0",
+        "2ba54bc591863b5ed1f35555db43a2ff0769d93c7a8dcdcea4057359b4424bc2",
+        "f03500c9514b4c1737b03cbb3e30e98c6fb7196979ae31919773479799bbfcc2",
+        "43befc16de056da10816c298d8cb95b8a6c9e00e30c5a002d49ec3b9393d6800"
+      ],
+      "contentSetHash": "8176d9c37f40251f4577866218c6e8179c7ca2f72340df0301eca6fa295fb877"
+    },
+    {
+      "contentVersion": "class5-geometry-measurement-standard.v1",
+      "orderedSkillIds": [
+        "M5-GM-001",
+        "M5-GM-002",
+        "M5-GM-003",
+        "M5-GM-004",
+        "M5-GM-005",
+        "M5-RF-001",
+        "M5-RF-002",
+        "M5-RF-003",
+        "M5-RF-004",
+        "M5-RF-005",
+        "M5-RF-006"
+      ],
+      "orderedContentHashes": [
+        "c47c0231c8c78354b9eb8a150bda53e1f2444608ea8402af1000fbea529a7719",
+        "753d303ce4ad29811ea997ab39b0f3273a5f5ccbff1aaf49d682f25c91d1ea4d",
+        "1b72010f2226cd03eb48cac3caa8680a2b6bb1ca49b6e8abcdd260fa90885009",
+        "99ff7ad65b05e9c9567c342f68823847992b8ac920a168ffd74acb6c11d3c272",
+        "12bbbbccec99af5acbd248c2010133ed15f5962c395fc406076641747ad1b244",
+        "a5795b5005b2ebbbc535bf47f7c1293a172df55d508031cdb1ad919ce66d978f",
+        "dcbe80bb026c7255764e2afd7e6ec02f415fabf912a316eddfa25955b7ad76d3",
+        "02e0977d238988248beb27c527f09f64d5a1a2f8e52fd3b3f5a34de4c6f5c5e2",
+        "78bb65f5675683344a48be2149a847c2d528e58cfd5fe301dc64e3023945d582",
+        "9b4d8026ed21d452adf71a13c0c0836244eaf5288efb3e4e0d25a779bf115d66",
+        "80ab3d96e18a975168f3ec8d180a95a27ff7206bc5bd5f7b68ad504bdef92da7"
+      ],
+      "contentSetHash": "e4b84d3b504227ffd7094985bb261c2c9c33b992d61282cafac55e5dfe5a8dcd"
+    },
+    {
+      "contentVersion": "class5-data-diagrams-standard.v1",
+      "orderedSkillIds": ["M5-DZ-001", "M5-DZ-002"],
+      "orderedContentHashes": [
+        "2ef42e53b67d18fe8d5d25abfdd1b3460bc5a3fa73f7ba3b3c9c1ea2bfbd2a84",
+        "5833c518e5c4e2c25c41cf51b52f71994bb862470d2de192aa2a4eaa99c1c4af"
+      ],
+      "contentSetHash": "e64fb5edec1df210a7e2eb401b15533dee46053bd1530e028b3fb6221b899796"
+    }
+  ],
+  "allowedUse": {
+    "visibility": "private",
+    "locales": ["de"],
+    "lessonVariants": ["standard"],
+    "publicPublishing": false,
+    "providerCalls": false
+  },
+  "limitations": {
+    "externalCurriculumReview": false,
+    "officialSkillProvenance": false,
+    "jurisdictionClaims": false,
+    "stateClaims": false,
+    "schoolTypeClaims": false,
+    "gradesSixThroughTenApproved": false
+  },
+  "evidenceHash": "5abffd11c1de3eb9307702a89c2746c7ed907b8810a42e12b7ca9d6de55c8519"
+}

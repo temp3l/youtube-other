@@ -332,8 +332,49 @@ export type EducationalVisualStyleManifest = z.infer<
 export function hashMathProfileContract(value: unknown): string {
   return crypto
     .createHash("sha256")
-    .update(JSON.stringify(value))
+    .update(stableProfileJson(value))
     .digest("hex");
+}
+
+function stableProfileJson(value: unknown): string {
+  if (Array.isArray(value)) {
+    return `[${value.map(stableProfileJson).join(",")}]`;
+  }
+  if (value !== null && typeof value === "object") {
+    return `{${Object.entries(value)
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([key, item]) => `${JSON.stringify(key)}:${stableProfileJson(item)}`)
+      .join(",")}}`;
+  }
+  return JSON.stringify(value);
+}
+
+/** Hash only authored lesson-profile content; approvals and audit timestamps are evidence. */
+export function computeMathLessonProfileContentHash(
+  input: MathLessonProfileManifest
+): string {
+  const {
+    contentHash: _contentHash,
+    approval: _approval,
+    createdAt: _createdAt,
+    updatedAt: _updatedAt,
+    ...content
+  } = mathLessonProfileManifestSchema.parse(input);
+  return hashMathProfileContract(content);
+}
+
+/** Hash only authored visual policy content; approvals and audit timestamps are evidence. */
+export function computeEducationalVisualStyleContentHash(
+  input: EducationalVisualStyleManifest
+): string {
+  const {
+    contentHash: _contentHash,
+    approval: _approval,
+    createdAt: _createdAt,
+    updatedAt: _updatedAt,
+    ...content
+  } = educationalVisualStyleManifestSchema.parse(input);
+  return hashMathProfileContract(content);
 }
 
 export interface MathProfileReadiness {

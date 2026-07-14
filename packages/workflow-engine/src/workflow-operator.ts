@@ -215,16 +215,17 @@ export class WorkflowOperator {
     const invalidated = state
       ? this.cacheInvalidationClosure(state, cache)
       : new Set<TaskId>();
+    const completedTaskIds = new Set(
+      state?.tasks
+        .filter(
+          (task) => task.status === "succeeded" || task.status === "skipped"
+        )
+        .filter((task) => !invalidated.has(task.taskId))
+        .map((task) => task.taskId) ?? []
+    );
     return this.registry.plan(this.workflow, {
-      completedTaskIds: new Set(
-        state?.tasks
-          .filter(
-            (task) => task.status === "succeeded" || task.status === "skipped"
-          )
-          .filter((task) => !invalidated.has(task.taskId))
-          .map((task) => task.taskId) ?? []
-      ),
-      availableArtifacts: this.artifacts,
+      completedTaskIds,
+      availableArtifacts: this.availableArtifactsFor(completedTaskIds),
       approvedTaskIds: new Set(),
     });
   }
@@ -254,7 +255,17 @@ export class WorkflowOperator {
     );
     const invalidatedTaskIds = this.cacheInvalidationClosure(state, cache);
     const derived = await this.store.deriveNext(this.registry, {
-      availableArtifacts: this.artifacts,
+      availableArtifacts: this.availableArtifactsFor(
+        new Set(
+          state.tasks
+            .filter(
+              (task) =>
+                (task.status === "succeeded" || task.status === "skipped") &&
+                !invalidatedTaskIds.has(task.taskId)
+            )
+            .map((task) => task.taskId)
+        )
+      ),
       approvalArtifactHashes: this.approvalArtifactHashes,
       invalidatedTaskIds,
     });
@@ -441,6 +452,10 @@ export class WorkflowOperator {
         );
         for (const output of outputs) {
           if (
+            output.ref.unitId !== this.options.identity.unitId ||
+            output.ref.profileId !== this.workflow.profileId ||
+            output.ref.locale !== this.options.identity.locale ||
+            output.ref.variant !== this.options.identity.variant ||
             output.producerTaskId !== taskId ||
             output.producerTaskVersion !==
               registration.definition.implementationVersion ||
@@ -753,6 +768,10 @@ export class WorkflowOperator {
     const dependencyFingerprints = state
       ? await this.dependencyFingerprints(taskId, state)
       : [];
+    const configuredMaterial = this.options.fingerprintMaterial?.[taskId];
+    const dependencyArtifacts = state
+      ? await this.dependencyOutputManifests(taskId, state)
+      : [];
     return buildTaskFingerprint({
       workflowId: this.workflow.id,
       workflowRevision: this.workflow.revision,
@@ -763,10 +782,57 @@ export class WorkflowOperator {
       locale: this.options.identity.locale,
       variant: this.options.identity.variant,
       dependencyFingerprints,
-      ...(this.options.fingerprintMaterial?.[taskId]
-        ? { material: this.options.fingerprintMaterial[taskId] }
+      ...(configuredMaterial || dependencyArtifacts.length > 0
+        ? {
+            material: {
+              ...(configuredMaterial ?? {}),
+              inputArtifacts: [
+                ...(configuredMaterial?.inputArtifacts ?? []),
+                ...dependencyArtifacts,
+              ],
+            },
+          }
         : {}),
     });
+  }
+
+  private async dependencyOutputManifests(
+    taskId: TaskId,
+    state: WorkflowInstance
+  ): Promise<readonly ArtifactManifest[]> {
+    const outputs: ArtifactManifest[] = [];
+    for (const dependency of this.registry.get(taskId).definition
+      .dependencies) {
+      const task = state.tasks.find(
+        (candidate) => candidate.taskId === dependency.taskId
+      );
+      if (task?.status !== "succeeded" || !task.attemptId) continue;
+      const attempt = await this.store.readAttempt(task.attemptId);
+      if (
+        attempt.status !== "completed" ||
+        attempt.result.status !== "succeeded"
+      ) {
+        continue;
+      }
+      outputs.push(...attempt.result.outputs);
+    }
+    return outputs.sort((left, right) => left.id.localeCompare(right.id));
+  }
+
+  private availableArtifactsFor(
+    completedTaskIds: ReadonlySet<TaskId>
+  ): readonly ArtifactContract[] {
+    const produced = [...completedTaskIds].flatMap(
+      (taskId) => this.registry.get(taskId).definition.outputs
+    );
+    const unique = new Map<string, ArtifactContract>();
+    for (const contract of [...this.artifacts, ...produced]) {
+      unique.set(
+        `${contract.kind}\u0000${contract.schemaId}\u0000${contract.schemaVersion}`,
+        contract
+      );
+    }
+    return [...unique.values()];
   }
 
   private async dependencyFingerprints(

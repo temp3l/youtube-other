@@ -212,13 +212,13 @@ function mathCanonicalRelativePath(ref: ArtifactRef): string {
     case "source":
       return portablePath("source", artifactFileName(ref, "source"));
     case "curriculum":
-      return portablePath("canonical", "curriculum.json");
+      return portablePath("canonical", artifactFileName(ref, "curriculum"));
     case "lesson-specification":
-      return portablePath("canonical", "lesson-spec.json");
+      return portablePath("canonical", artifactFileName(ref, "lesson-spec"));
     case "math-verification":
-      return portablePath("canonical", "verification.json");
+      return portablePath("canonical", artifactFileName(ref, "verification"));
     case "educational-visual-style":
-      return portablePath("canonical", "visual-style.json");
+      return portablePath("canonical", artifactFileName(ref, "visual-style"));
     case "full-script":
     case "short-script":
       return portablePath(variantRoot, "narration.md");

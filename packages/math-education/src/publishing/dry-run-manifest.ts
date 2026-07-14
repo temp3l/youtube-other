@@ -45,7 +45,7 @@ export const mathPublishDryRunSchema = z.strictObject({
     )
     .length(3),
   requestFingerprint: hashSchema,
-  blockers: z.array(z.string()).length(0),
+  blockers: z.array(z.string().min(1)),
   dispatchAllowed: z.literal(false),
   paidProviderCalled: z.literal(false),
   networkCalls: z.literal(0),
@@ -73,6 +73,7 @@ export interface CreatePublishDryRunManifestInput {
   madeForKids: boolean;
   containsSyntheticMedia: boolean;
   playlistIdsByKey: Readonly<Record<string, string>>;
+  blockers?: readonly string[];
 }
 
 export function createPublishDryRunManifest(
@@ -130,12 +131,13 @@ export function createPublishDryRunManifest(
     madeForKids: input.madeForKids,
     containsSyntheticMedia: input.containsSyntheticMedia,
     playlistAssignments,
+    blockers: [...(input.blockers ?? [])],
   };
   return mathPublishDryRunSchema.parse({
     artifactVersion: "math-publish-dry-run.v2",
     ...bound,
     requestFingerprint: canonicalHash(bound),
-    blockers: [],
+    blockers: bound.blockers,
     dispatchAllowed: false,
     paidProviderCalled: false,
     networkCalls: 0,

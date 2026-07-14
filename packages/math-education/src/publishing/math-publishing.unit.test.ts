@@ -73,4 +73,43 @@ describe("math publish dry-run packet", () => {
     expect(() => createPublishDryRunManifest({ ...base, metadataPath: "../escape.json", playlistIdsByKey: Object.fromEntries(value.playlists.map((playlist) => [playlist.key, playlist.key])) })).toThrow(/contained/u);
     expect(() => createPublishDryRunManifest({ ...base, finalMediaPath: "locales/en/final.mp4", playlistIdsByKey: Object.fromEntries(value.playlists.map((playlist) => [playlist.key, playlist.key])) })).toThrow(/canonical path/u);
   });
+
+  it("preserves a placeholder artwork public-release blocker in a zero-mutation private dry run", async () => {
+    const value = await metadata();
+    const packet = createPublishDryRunManifest({
+      metadata: value,
+      metadataPath: "locales/en/metadata.json",
+      thumbnailManifestPath: "locales/en/thumbnail.svg.manifest.json",
+      thumbnailManifestHash: "1".repeat(64),
+      thumbnailAssetPath: "locales/en/thumbnail.svg",
+      thumbnailAssetHash: "2".repeat(64),
+      finalMediaPath: "locales/en/render/final.mp4",
+      finalMediaHash: "3".repeat(64),
+      finalMediaEvidencePath: "locales/en/final-media.json",
+      finalMediaEvidenceHash: "4".repeat(64),
+      qualityPath: "canonical/quality.json",
+      qualityHash: "5".repeat(64),
+      brandPolicyPath: "locales/en/brand-policy.json",
+      brandPolicyHash: "6".repeat(64),
+      channelId: "math-en",
+      privacyStatus: "private",
+      madeForKids: false,
+      containsSyntheticMedia: true,
+      playlistIdsByKey: Object.fromEntries(
+        value.playlists.map((playlist) => [playlist.key, `id-${playlist.key}`])
+      ),
+      blockers: [
+        "placeholder-teacher-artwork-not-approved-for-public-release",
+      ],
+    });
+    expect(packet.blockers).toEqual([
+      "placeholder-teacher-artwork-not-approved-for-public-release",
+    ]);
+    expect(packet).toMatchObject({
+      privacyStatus: "private",
+      dispatchAllowed: false,
+      networkCalls: 0,
+      mutations: 0,
+    });
+  });
 });

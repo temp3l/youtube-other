@@ -106,7 +106,7 @@ from math_verifier import __version__
 
 if sympy.__version__ != "1.14.0":
     raise SystemExit(f"unexpected SymPy version: {sympy.__version__}")
-if __version__ != "2.0.0":
+if __version__ != "3.0.0":
     raise SystemExit(f"unexpected math verifier version: {__version__}")
 PY
 PYTHONPATH="$root/src" "$venv/bin/python" -m pytest -q "$root/tests"

@@ -96,6 +96,13 @@ const units: Record<MathLanguage, Record<string, string>> = {
     km: "Kilometer",
     s: "Sekunden",
     kg: "Kilogramm",
+    g: "Gramm",
+    h: "Stunden",
+    min: "Minuten",
+    "€": "Euro",
+    ct: "Cent",
+    "cm²": "Quadratzentimeter",
+    "cm³": "Kubikzentimeter",
     degree: "Grad",
     radian: "Radiant",
   },
@@ -160,7 +167,18 @@ export function spokenDigit(digit: string, language: MathLanguage): string {
   return value;
 }
 
-export function spokenUnit(symbol: string, language: MathLanguage): string {
+export function spokenUnit(
+  symbol: string,
+  language: MathLanguage,
+  singular = false
+): string {
+  if (language === "de" && singular) {
+    const singularUnits: Record<string, string> = {
+      h: "Stunde",
+      min: "Minute",
+    };
+    if (singularUnits[symbol]) return singularUnits[symbol];
+  }
   const value = units[language][symbol];
   if (!value) throw new Error(`TTS lexicon has no ${language} unit ${symbol}.`);
   return value;

@@ -34,7 +34,9 @@ import {
 } from "./composition/composition.js";
 import { createRemotionRenderFingerprint } from "./composition/remotion-runner.js";
 import {
+  assertSafeMediaOutputDirectory,
   assertProviderFreeFactBindings,
+  createMathCaption,
   loadProviderFreeMediaInputs,
   providerFreeMediaRequestSchema,
   type ProviderFreeMediaRequest,
@@ -62,6 +64,7 @@ const plannedKind = (kind: SemanticMathComponent["kind"]) => ({
   graph: "function-graph",
   geometry: "geometry",
   table: "data-table",
+  "bar-chart": "bar-chart",
   measurement: "measurement",
   probability: "probability-tree",
 } as const)[kind];
@@ -788,6 +791,21 @@ describe("semantic math visual contracts", () => {
 });
 
 describe("timing, teacher, and readiness gates", () => {
+  it("rejects caption overflow and symlinked media output roots", async () => {
+    expect(createMathCaption("Kurzer, lesbarer Untertitel.").lines).toEqual([
+      "Kurzer, lesbarer Untertitel.",
+    ]);
+    expect(() => createMathCaption("x".repeat(181))).toThrow(/budget/u);
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), "math-media-path-"));
+    const target = path.join(root, "target");
+    const linked = path.join(root, "linked");
+    await fs.mkdir(target);
+    await fs.symlink(target, linked);
+    await expect(
+      assertSafeMediaOutputDirectory(path.join(linked, "render"))
+    ).rejects.toThrow(/symlink/u);
+    await fs.rm(root, { recursive: true, force: true });
+  });
   it("reflows from actual narration audio and blocks cue drift", () => {
     const localized = narration();
     const timings = audio();

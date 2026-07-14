@@ -49,6 +49,13 @@ export const mathSceneAssetSchema = z.strictObject({
     width: z.number().positive(),
     height: z.number().positive(),
   }),
+  caption: z
+    .strictObject({
+      text: z.string().min(1).max(180),
+      lines: z.array(z.string().min(1).max(60)).min(1).max(3),
+      fontSizePx: z.literal(44),
+    })
+    .optional(),
   teacher: z
     .strictObject({
       poseId: z.string().min(1),
@@ -76,6 +83,13 @@ export function createReadyMathComposition(
     if (scene.sceneId !== timing.scenes[index]?.sceneId)
       throw new Error(
         `Visual component is missing or reordered at ${timing.scenes[index]?.sceneId}.`
+      );
+    const sceneFrames =
+      (timing.scenes[index]?.endFrame ?? 0) -
+      (timing.scenes[index]?.startFrame ?? 0);
+    if (scene.caption && sceneFrames < 60)
+      throw new Error(
+        `Caption dwell time is below two seconds in ${scene.sceneId}.`
       );
     validateSafeAreaAndReadability(profile, scene.bounds, scene.minimumGlyphPx);
     if (scene.teacher && scene.teacher.areaRatio > profile.maxTeacherAreaRatio)

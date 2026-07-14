@@ -91,6 +91,8 @@ export interface SpeechSynthesisRequest {
 export interface SpeechSynthesisResult extends AudioSegment {
   readonly sampleRate: number;
   readonly channels: number;
+  /** Echoes the exact request identity so callers can reject response transplants. */
+  readonly requestFingerprint?: string;
 }
 
 export interface SpeechProvider {
@@ -181,7 +183,10 @@ export class MockSpeechProvider implements SpeechProvider {
       filePath: request.outputPath,
       durationSeconds: estimatedDuration,
       sampleRate: 24000,
-      channels: 1
+      channels: 1,
+      ...(request.requestFingerprint
+        ? { requestFingerprint: request.requestFingerprint }
+        : {})
     };
   }
 }
@@ -372,7 +377,10 @@ export class OpenAiCompatibleSpeechProvider implements SpeechProvider {
           filePath: request.outputPath,
           durationSeconds: metadata.durationSeconds,
           sampleRate: metadata.sampleRate,
-          channels: metadata.channels
+          channels: metadata.channels,
+          ...(request.requestFingerprint
+            ? { requestFingerprint: request.requestFingerprint }
+            : {})
         };
       } catch (error) {
         await writeOpenAIDebugLog({
@@ -558,7 +566,10 @@ export class OpenAiCompatibleSpeechProvider implements SpeechProvider {
         filePath: request.outputPath,
         durationSeconds: metadata.durationSeconds,
         sampleRate: metadata.sampleRate,
-        channels: metadata.channels
+        channels: metadata.channels,
+        ...(request.requestFingerprint
+          ? { requestFingerprint: request.requestFingerprint }
+          : {})
       };
     } catch (error) {
       const resolvedSpeed = request.speed ?? this.speed;

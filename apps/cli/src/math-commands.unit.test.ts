@@ -38,6 +38,7 @@ import { createReviewedCurriculumFixture } from "../../../packages/math-educatio
 vi.mock("@mediaforge/math-education", async (importOriginal) => ({
   ...(await importOriginal<Record<string, unknown>>()),
   ...(await import("../../../packages/math-education/src/curriculum/release.js")),
+  ...(await import("../../../packages/math-education/src/orchestration/canonical-task-adapters.js")),
   ...(await import("../../../packages/math-education/src/orchestration/batch-planner.js")),
   ...(await import("../../../packages/math-education/src/orchestration/math-workspace-paths.js")),
 }));
@@ -88,6 +89,122 @@ describe("math commands", () => {
       stdout.mockRestore();
     }
   });
+
+  it("projects the legacy production plan from the canonical 18-task DAG without side effects", async () => {
+    const workspace = await fs.mkdtemp(
+      path.join(os.tmpdir(), "math-cli-canonical-plan-")
+    );
+    const before = await fs.readdir(workspace);
+    const stdout = vi
+      .spyOn(process.stdout, "write")
+      .mockImplementation(() => true);
+    try {
+      await parseMath([
+        "production",
+        "plan",
+        "--skill",
+        "M5-ZO-001",
+        "--variant",
+        "standard",
+        "--language",
+        "de",
+      ]);
+      const result = JSON.parse(String(stdout.mock.calls.at(-1)?.[0])) as {
+        taskIds: string[];
+        stages: Array<{ taskId: string }>;
+        writes: number;
+        subprocesses: number;
+        providers: number;
+      };
+      expect(result.taskIds).toHaveLength(18);
+      expect(result.stages.map((stage) => stage.taskId)).toEqual(
+        result.taskIds
+      );
+      expect(result).toMatchObject({
+        writes: 0,
+        subprocesses: 0,
+        providers: 0,
+      });
+      expect(await fs.readdir(workspace)).toEqual(before);
+    } finally {
+      stdout.mockRestore();
+    }
+  });
+
+  it("runs and resumes explicit simulation through WorkflowOperator instead of the legacy pilot state machine", async () => {
+    const workspace = await fs.mkdtemp(
+      path.join(os.tmpdir(), "math-cli-canonical-run-")
+    );
+    const python = path.resolve("python/math-verifier/.venv/bin/python");
+    const stdout = vi
+      .spyOn(process.stdout, "write")
+      .mockImplementation(() => true);
+    try {
+      const common = [
+        "--skill",
+        "M5-ZO-001",
+        "--variant",
+        "standard",
+        "--language",
+        "de",
+        "--simulate",
+        "--workspace",
+        workspace,
+        "--python",
+        python,
+      ] as const;
+      await parseMath(["production", "run", ...common]);
+      const first = JSON.parse(String(stdout.mock.calls.at(-1)?.[0])) as {
+        stateSource: string;
+        status: string;
+        paidProviderCalled: boolean;
+        results: Array<{ taskId: string }>;
+      };
+      expect(first).toMatchObject({
+        stateSource: "workflow-operator",
+        status: "succeeded",
+        paidProviderCalled: false,
+      });
+      expect(first.results).toHaveLength(16);
+
+      await parseMath(["production", "resume", ...common]);
+      const resumed = JSON.parse(String(stdout.mock.calls.at(-1)?.[0])) as {
+        stateSource: string;
+        status: string;
+        results: unknown[];
+      };
+      expect(resumed).toMatchObject({
+        stateSource: "workflow-operator",
+        status: "succeeded",
+        results: [],
+      });
+      const lessonRoot = path.join(workspace, "m5-zo-001-standard");
+      expect(
+        await fs.stat(
+          path.join(
+            lessonRoot,
+            "state",
+            "workflow",
+            "math.production",
+            "state.json"
+          )
+        )
+      ).toBeDefined();
+      await expect(
+        fs.stat(path.join(lessonRoot, "manifest.json"))
+      ).rejects.toMatchObject({
+        code: "ENOENT",
+      });
+      const source = await fs.readFile("apps/cli/src/math-commands.ts", "utf8");
+      const productionSource = source.slice(
+        source.indexOf("const production = math"),
+        source.indexOf("const batch = math")
+      );
+      expect(productionSource).not.toContain("runPilotSimulation");
+    } finally {
+      stdout.mockRestore();
+    }
+  }, 30_000);
 
   it("excludes unsupported lesson capabilities when creating a batch", async () => {
     const workspace = await fs.mkdtemp(

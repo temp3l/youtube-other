@@ -9,8 +9,12 @@ import {
 import {
   buildAllLessonVariants,
   canonicalHash,
+  createLessonId,
+  createMathTaskRegistry,
+  createReviewedCurriculumFixture,
   importCurriculumSeed,
   loadCurriculumRelease,
+  mathWorkflowDefinition,
   MathWorkspacePathResolver,
   evaluateMinorEditApproval,
   loadWorkflowManifest,
@@ -52,6 +56,7 @@ import {
   speechDeliveryProfileIdSchema,
   type SpeechProvider,
 } from "@mediaforge/speech";
+import { createCanonicalMathOperator } from "./math-workflow-runtime.js";
 
 interface MathSelectionOptions {
   skill?: string;
@@ -510,6 +515,140 @@ async function simulate(options: MathSelectionOptions) {
   });
 }
 
+function canonicalSimulationCurriculumRoot(workspace: string): string {
+  return path.join(
+    path.resolve(workspace),
+    "state",
+    "simulation-curriculum-v1"
+  );
+}
+async function ensureCanonicalSimulationCurriculum(
+  workspace: string,
+  write: boolean
+): Promise<string> {
+  const root = canonicalSimulationCurriculumRoot(workspace);
+  try {
+    await fs.access(path.join(root, "release.json"));
+  } catch (error) {
+    if (!write) {
+      throw new Error(
+        `Canonical simulation curriculum fixture is missing: ${root}`,
+        { cause: error }
+      );
+    }
+    await createReviewedCurriculumFixture(root);
+  }
+  return root;
+}
+async function canonicalSimulationOperator(input: {
+  readonly workspace: string;
+  readonly skillId: string;
+  readonly lessonVariant: LessonVariant;
+  readonly language: MathLanguage;
+  readonly python?: string;
+  readonly initializeFixture: boolean;
+}) {
+  const lessonId = createLessonId(input.skillId, input.lessonVariant);
+  return createCanonicalMathOperator({
+    repositoryRoot: repositoryRoot(),
+    workspaceRoot: path.resolve(input.workspace),
+    unitId: lessonId,
+    skillId: input.skillId,
+    lessonVariant: input.lessonVariant,
+    locale: input.language,
+    contentVariant: "full",
+    curriculumRoot: await ensureCanonicalSimulationCurriculum(
+      input.workspace,
+      input.initializeFixture
+    ),
+    simulation: true,
+    providerMode: "fixture-mock",
+    authorizeProvider: true,
+    ...(input.python ? { pythonExecutable: input.python } : {}),
+  });
+}
+async function runCanonicalSimulation(
+  options: MathSelectionOptions,
+  resume: boolean
+) {
+  const workspace = requireSimulationWorkspace(options);
+  const skillId = options.skill ?? "M5-ZO-001";
+  const lessonVariant = options.variant ?? "standard";
+  const language = options.language ?? "de";
+  const operator = await canonicalSimulationOperator({
+    workspace,
+    skillId,
+    lessonVariant,
+    language,
+    ...(options.python ? { python: options.python } : {}),
+    initializeFixture: true,
+  });
+  if (resume) {
+    await operator.reconcile();
+    const before = await operator.status();
+    if (before.tasks.some((task) => task.persistedStatus === "interrupted")) {
+      await operator.resume();
+    }
+  }
+  const ready = await operator.status();
+  const publishDryRunSucceeded = ready.tasks.some(
+    (task) =>
+      task.taskId === "math.publish-dry-run" &&
+      task.persistedStatus === "succeeded"
+  );
+  const results =
+    ready.nextTaskId === null && publishDryRunSucceeded
+      ? []
+      : await operator.runNext({ continue: true });
+  const status = await operator.status();
+  return {
+    lessonId: createLessonId(skillId, lessonVariant),
+    workspaceDir: path.resolve(workspace),
+    status:
+      status.tasks.find((task) => task.taskId === "math.publish-dry-run")
+        ?.persistedStatus ?? "pending",
+    cached: results.length === 0 || results.every((result) => result.cacheHit),
+    paidProviderCalled: false,
+    stateSource: "workflow-operator",
+    results,
+    workflow: status,
+  };
+}
+async function canonicalProductionStatus(
+  workspace: string,
+  lessonIds: readonly string[]
+) {
+  const curriculumRoot = await ensureCanonicalSimulationCurriculum(
+    workspace,
+    false
+  );
+  const statuses = await Promise.all(
+    lessonIds.map(async (lessonId) => {
+      const match =
+        /^(m\d+)-([a-z]{2})-(\d{3})-(foundation|standard|challenge)$/u.exec(
+          lessonId
+        );
+      if (!match?.[1] || !match[2] || !match[3] || !match[4]) {
+        throw new Error(`Invalid canonical math lesson ID: ${lessonId}`);
+      }
+      const operator = await createCanonicalMathOperator({
+        repositoryRoot: repositoryRoot(),
+        workspaceRoot: path.resolve(workspace),
+        unitId: lessonId,
+        skillId: `${match[1]}-${match[2]}-${match[3]}`.toUpperCase(),
+        lessonVariant: match[4] as LessonVariant,
+        locale: "de",
+        contentVariant: "full",
+        curriculumRoot,
+        simulation: true,
+        providerMode: "fixture-mock",
+        authorizeProvider: true,
+      });
+      return { lessonId, ...(await operator.status()) };
+    })
+  );
+  return statuses.length === 1 ? statuses[0] : { results: statuses };
+}
 async function authoritativeQuality(workspace: string, lessonId: string) {
   const paths = new MathWorkspacePathResolver(workspace);
   const lessonRoot = paths.lesson(lessonId);
@@ -741,6 +880,7 @@ export function registerMathCommands(program: Command): void {
     .option("--language <language>", "target language", "de")
     .action((_opts, command) => {
       const options = selection(command);
+      const registry = createMathTaskRegistry();
       print({
         dryRun: true,
         writes: 0,
@@ -752,23 +892,13 @@ export function registerMathCommands(program: Command): void {
           variant: options.variant ?? "standard",
           language: options.language ?? "de",
         },
-        stages: [
-          "curriculum-import",
-          "source-validation",
-          "prerequisite-graph",
-          "lesson-spec",
-          "math-verification",
-          "canonical-narration",
-          "scene-timing",
-          "localization",
-          "visual-assets",
-          "tts",
-          "timing-reflow",
-          "render",
-          "metadata-playlists",
-          "quality-gate",
-          "publish",
-        ],
+        workflowId: mathWorkflowDefinition.id,
+        workflowRevision: mathWorkflowDefinition.revision,
+        taskIds: mathWorkflowDefinition.taskIds,
+        stages: mathWorkflowDefinition.taskIds.map((taskId) => ({
+          taskId,
+          implementationOwner: registry.explain(taskId).implementationOwner,
+        })),
       });
     });
   for (const name of ["run", "resume"] as const)
@@ -782,7 +912,7 @@ export function registerMathCommands(program: Command): void {
       .option("--python <path>")
       .action(async (_opts, command) =>
         print(
-          await simulate({ ...selection(command), resume: name === "resume" })
+          await runCanonicalSimulation(selection(command), name === "resume")
         )
       );
   for (const name of ["status", "inspect"] as const)
@@ -791,7 +921,7 @@ export function registerMathCommands(program: Command): void {
       .requiredOption("--lesson <lesson-id...>")
       .requiredOption("--workspace <path>")
       .action(async (opts: { lesson: string[]; workspace: string }) =>
-        printQualitySelection(opts.workspace, opts.lesson)
+        print(await canonicalProductionStatus(opts.workspace, opts.lesson))
       );
 
   const batch = math

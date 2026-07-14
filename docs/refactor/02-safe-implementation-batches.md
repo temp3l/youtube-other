@@ -301,8 +301,8 @@ removal checks in `06-duplicate-elimination.md` pass.
 
 ## Batch 14: AI Pack and Final Release Gate
 
-- **Status:** `READY` on 2026-07-14. The current duplicate inventory has no
-  unexplained application implementation; retained adapters have removal gates.
+- **Status:** `ACCEPTED` on 2026-07-14. The deterministic AI pack and authorized
+  broad release gate pass; remaining compatibility debt is explicitly gated.
 - **Objective:** Refresh AI context from the accepted source and validate the
   whole deterministic repository.
 - **Scope:** `07-ai-content-pack.md` and `08-validation-and-release.md`.

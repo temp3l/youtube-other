@@ -1,9 +1,9 @@
 {
   "schemaVersion": "mediaforge.ai-pack-manifest.v1",
   "generatorVersion": "mediaforge.ai-pack-generator.v1",
-  "generatedAt": "2026-07-14T11:57:13.000Z",
+  "generatedAt": "2026-07-14T16:47:59.000Z",
   "repository": {
-    "revision": "2197009156ed909d8a4e61757ef7554bcab49770",
+    "revision": "7d8c03ff18891058889c594741e56e516f552fee",
     "dirty": true
   },
   "sourceConfiguration": {
@@ -14,8 +14,8 @@
   "packFiles": [
     {
       "path": "00-project-overview.md",
-      "sizeBytes": 6423,
-      "sha256": "8d87bfb3c74a467b6c5740a17c05e156422d8c09dee8fee1b277dd2cfaa2303e"
+      "sizeBytes": 6847,
+      "sha256": "61cff2b59c6f11b81fbcc442b8048cf3ae653df9ad0a5dc66eb211b18c2c9b48"
     },
     {
       "path": "01-architecture.md",
@@ -34,8 +34,8 @@
     },
     {
       "path": "04-pipeline-map.md",
-      "sizeBytes": 17854,
-      "sha256": "35ec5e02fcfbf0437263add6848dd7d769d281e0f6c7e667ee1d84f639608c23"
+      "sizeBytes": 17856,
+      "sha256": "d1d1ff905fd48f36374ba1c15c1a3cec3de231eb49e1e52a9787ca7674465903"
     },
     {
       "path": "05-important-paths.md",
@@ -99,13 +99,13 @@
     },
     {
       "path": "profiles/overview.md",
-      "sizeBytes": 17854,
-      "sha256": "35ec5e02fcfbf0437263add6848dd7d769d281e0f6c7e667ee1d84f639608c23"
+      "sizeBytes": 17856,
+      "sha256": "d1d1ff905fd48f36374ba1c15c1a3cec3de231eb49e1e52a9787ca7674465903"
     },
     {
       "path": "repository-map.md",
-      "sizeBytes": 6423,
-      "sha256": "8d87bfb3c74a467b6c5740a17c05e156422d8c09dee8fee1b277dd2cfaa2303e"
+      "sizeBytes": 6847,
+      "sha256": "61cff2b59c6f11b81fbcc442b8048cf3ae653df9ad0a5dc66eb211b18c2c9b48"
     },
     {
       "path": "schemas/workflow-contracts.ts",
@@ -146,8 +146,8 @@
     },
     {
       "path": "docs/refactor/02-safe-implementation-batches.md",
-      "sizeBytes": 17668,
-      "sha256": "ad8da60d1751f24f50f94737d02e4dd4232ad84dda4da6a573f6b3d7ffb0cfcf"
+      "sizeBytes": 17670,
+      "sha256": "2153e4d5c5bcad9119697caa71706c04f9675fdb4bc48563d1b055df72578085"
     },
     {
       "path": "docs/refactor/03-compatibility-and-migration.md",
@@ -181,8 +181,8 @@
     },
     {
       "path": "docs/refactor/README.md",
-      "sizeBytes": 6317,
-      "sha256": "71b82c32bb0837f49195ba3a987106ced32237fc40e960cf4bef2d9570ee1f95"
+      "sizeBytes": 6740,
+      "sha256": "1f8a857001cee2e41de453e3a7d64cd3968e696f39aab9f83f9a2d3c4ced76c8"
     },
     {
       "path": "packages/dark-truth/src/task-registry.ts",
@@ -293,7 +293,7 @@
     "packFileBytes": 300000,
     "totalPackBytes": 1800000
   },
-  "totalPackBytes": 211614,
+  "totalPackBytes": 212466,
   "variableFields": [],
   "knownLimitations": [
     "Retained compatibility adapters are indexed in the Batch 13 duplicate inventory."

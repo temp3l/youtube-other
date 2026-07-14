@@ -8,7 +8,7 @@ import {
   writeJsonAtomic,
 } from "@mediaforge/shared";
 import { z } from "zod";
-import type { SpeechProvider } from "./index.js";
+import type { SpeechProvider, SpeechSynthesisResult } from "./index.js";
 import {
   assembleNarration,
   type NarrationAssemblyConfig,
@@ -40,6 +40,8 @@ export const EDUCATIONAL_SPEECH_WORKFLOW_VERSION =
   "educational-speech-workflow.v1" as const;
 export const EDUCATIONAL_SPEECH_CACHE_KEY_VERSION =
   "educational-speech-cache-key.v1" as const;
+export const EDUCATIONAL_SPEECH_PRODUCER_VERSION =
+  "educational-speech-producer.v2" as const;
 
 export const educationalSpeechProviderIdSchema = z.enum([
   "openai-compatible",
@@ -127,6 +129,7 @@ export type EducationalSpeechWorkflowLog = z.infer<
 >;
 
 export interface EducationalSpeechCacheKeyInput {
+  readonly producerVersion: string;
   readonly provider: EducationalSpeechProviderId;
   readonly providerBaseUrlIdentity: string;
   readonly model: string;
@@ -161,6 +164,46 @@ export function buildEducationalSpeechCacheKey(
       modelSnapshot: input.modelSnapshot ?? null,
     })
   );
+}
+
+export function assertEducationalSpeechProviderResult(input: {
+  readonly result: SpeechSynthesisResult;
+  readonly expectedSceneId: string;
+  readonly expectedOutputPath: string;
+  readonly expectedRequestFingerprint: string;
+  readonly validation: NarrationChunkValidationReport;
+}): void {
+  const result = input.result;
+  const metrics = input.validation.metrics;
+  if (String(result.sceneId) !== input.expectedSceneId)
+    throw new Error("Provider response scene identity does not match the request.");
+  if (path.resolve(result.filePath) !== path.resolve(input.expectedOutputPath))
+    throw new Error("Provider response output path does not match the request.");
+  if (result.requestFingerprint !== input.expectedRequestFingerprint)
+    throw new Error("Provider response fingerprint does not match the request.");
+  if (
+    !Number.isFinite(result.durationSeconds) ||
+    result.durationSeconds <= 0 ||
+    !Number.isInteger(result.sampleRate) ||
+    result.sampleRate < 16_000 ||
+    !Number.isInteger(result.channels) ||
+    result.channels < 1 ||
+    result.channels > 2
+  )
+    throw new Error("Provider response contains invalid audio metadata.");
+  if (
+    metrics.durationMs === undefined ||
+    Math.abs(metrics.durationMs - result.durationSeconds * 1000) >
+      Math.max(100, metrics.durationMs * 0.02)
+  )
+    throw new Error("Provider response duration does not match decoded audio bytes.");
+  if (
+    metrics.sampleRate !== undefined &&
+    metrics.sampleRate !== result.sampleRate
+  )
+    throw new Error("Provider response sample rate does not match decoded audio bytes.");
+  if (metrics.channels !== undefined && metrics.channels !== result.channels)
+    throw new Error("Provider response channels do not match decoded audio bytes.");
 }
 
 export type EducationalSpeechErrorClassification =
@@ -428,6 +471,7 @@ function prepareCandidates(
       });
       const candidateRoot = path.dirname(path.dirname(outputPath));
       const cacheKey = buildEducationalSpeechCacheKey({
+        producerVersion: EDUCATIONAL_SPEECH_PRODUCER_VERSION,
         provider: request.providerId,
         providerBaseUrlIdentity:
           request.providerBaseUrlIdentity ?? "openai-default",
@@ -810,6 +854,13 @@ export async function generateEducationalSpeech(
           generationFingerprint: candidate.cacheKey,
           ...(request.probeAudio ? { probeAudio: request.probeAudio } : {}),
           ...(request.logger ? { logger: request.logger } : {}),
+        });
+        assertEducationalSpeechProviderResult({
+          result: generated.value,
+          expectedSceneId: `scene-${String(candidate.chunk.sequence + 1).padStart(3, "0")}`,
+          expectedOutputPath: tempPath,
+          expectedRequestFingerprint: candidate.requestBuild.requestFingerprint,
+          validation: validationReport,
         });
         return { validationReport };
       },

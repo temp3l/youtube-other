@@ -38,6 +38,378 @@
       "preferred": "Gesamtzahl",
       "forbidden": [],
       "tts": "Gesamtzahl"
+    },
+    {
+      "conceptId": "comparison",
+      "preferred": "Vergleich",
+      "forbidden": [],
+      "tts": "Vergleich"
+    },
+    {
+      "conceptId": "rounding",
+      "preferred": "Rundung",
+      "forbidden": [],
+      "tts": "Rundung"
+    },
+    {
+      "conceptId": "estimate",
+      "preferred": "Überschlag",
+      "forbidden": [],
+      "tts": "Überschlag"
+    },
+    {
+      "conceptId": "addition",
+      "preferred": "Addition",
+      "forbidden": [],
+      "tts": "Addition"
+    },
+    {
+      "conceptId": "carry",
+      "preferred": "Übertrag",
+      "forbidden": [],
+      "tts": "Übertrag"
+    },
+    {
+      "conceptId": "subtraction",
+      "preferred": "Subtraktion",
+      "forbidden": [],
+      "tts": "Subtraktion"
+    },
+    {
+      "conceptId": "borrow",
+      "preferred": "Entbündeln",
+      "forbidden": [],
+      "tts": "Entbündeln"
+    },
+    {
+      "conceptId": "multiplication",
+      "preferred": "Multiplikation",
+      "forbidden": [],
+      "tts": "Multiplikation"
+    },
+    {
+      "conceptId": "partial-product",
+      "preferred": "Teilprodukt",
+      "forbidden": [],
+      "tts": "Teilprodukt"
+    },
+    {
+      "conceptId": "division",
+      "preferred": "Division",
+      "forbidden": [],
+      "tts": "Division"
+    },
+    {
+      "conceptId": "remainder",
+      "preferred": "Rest",
+      "forbidden": [],
+      "tts": "Rest"
+    },
+    {
+      "conceptId": "operator-precedence",
+      "preferred": "Rechenreihenfolge",
+      "forbidden": [],
+      "tts": "Rechenreihenfolge"
+    },
+    {
+      "conceptId": "parentheses",
+      "preferred": "Klammer",
+      "forbidden": [],
+      "tts": "Klammer"
+    },
+    {
+      "conceptId": "arithmetic-law",
+      "preferred": "Rechengesetz",
+      "forbidden": [],
+      "tts": "Rechengesetz"
+    },
+    {
+      "conceptId": "distributive-law",
+      "preferred": "Verteilungsgesetz",
+      "forbidden": [],
+      "tts": "Verteilungsgesetz"
+    },
+    {
+      "conceptId": "expression",
+      "preferred": "Term",
+      "forbidden": [],
+      "tts": "Term"
+    },
+    {
+      "conceptId": "wording",
+      "preferred": "Formulierung",
+      "forbidden": [],
+      "tts": "Formulierung"
+    },
+    {
+      "conceptId": "substitution",
+      "preferred": "Einsetzen",
+      "forbidden": [],
+      "tts": "Einsetzen"
+    },
+    {
+      "conceptId": "variable",
+      "preferred": "Variable",
+      "forbidden": [],
+      "tts": "Variable"
+    },
+    {
+      "conceptId": "divisor",
+      "preferred": "Teiler",
+      "forbidden": [],
+      "tts": "Teiler"
+    },
+    {
+      "conceptId": "multiple",
+      "preferred": "Vielfaches",
+      "forbidden": [],
+      "tts": "Vielfaches"
+    },
+    {
+      "conceptId": "divisibility",
+      "preferred": "Teilbarkeit",
+      "forbidden": [],
+      "tts": "Teilbarkeit"
+    },
+    {
+      "conceptId": "final-digit",
+      "preferred": "Endziffer",
+      "forbidden": [],
+      "tts": "Endziffer"
+    },
+    {
+      "conceptId": "digit-sum",
+      "preferred": "Ziffernsumme",
+      "forbidden": [],
+      "tts": "Ziffernsumme"
+    },
+    {
+      "conceptId": "power",
+      "preferred": "Potenz",
+      "forbidden": [],
+      "tts": "Potenz"
+    },
+    {
+      "conceptId": "exponent",
+      "preferred": "Exponent",
+      "forbidden": [],
+      "tts": "Exponent"
+    },
+    {
+      "conceptId": "fraction",
+      "preferred": "Bruch",
+      "forbidden": [],
+      "tts": "Bruch"
+    },
+    {
+      "conceptId": "whole",
+      "preferred": "Ganzes",
+      "forbidden": [],
+      "tts": "Ganzes"
+    },
+    {
+      "conceptId": "numerator",
+      "preferred": "Zähler",
+      "forbidden": [],
+      "tts": "Zähler"
+    },
+    {
+      "conceptId": "denominator",
+      "preferred": "Nenner",
+      "forbidden": [],
+      "tts": "Nenner"
+    },
+    {
+      "conceptId": "number-line",
+      "preferred": "Zahlenstrahl",
+      "forbidden": [],
+      "tts": "Zahlenstrahl"
+    },
+    {
+      "conceptId": "equivalent-fraction",
+      "preferred": "gleichwertiger Bruch",
+      "forbidden": [],
+      "tts": "gleichwertiger Bruch"
+    },
+    {
+      "conceptId": "fraction-expansion",
+      "preferred": "Erweitern",
+      "forbidden": [],
+      "tts": "Erweitern"
+    },
+    {
+      "conceptId": "fraction-reduction",
+      "preferred": "Kürzen",
+      "forbidden": [],
+      "tts": "Kürzen"
+    },
+    {
+      "conceptId": "decimal",
+      "preferred": "Dezimalzahl",
+      "forbidden": [],
+      "tts": "Dezimalzahl"
+    },
+    {
+      "conceptId": "decimal-place",
+      "preferred": "Dezimalstelle",
+      "forbidden": [],
+      "tts": "Dezimalstelle"
+    },
+    {
+      "conceptId": "decimal-comparison",
+      "preferred": "Dezimalvergleich",
+      "forbidden": [],
+      "tts": "Dezimalvergleich"
+    },
+    {
+      "conceptId": "unit-conversion",
+      "preferred": "Einheitenumrechnung",
+      "forbidden": [],
+      "tts": "Einheitenumrechnung"
+    },
+    {
+      "conceptId": "dimension",
+      "preferred": "Größenart",
+      "forbidden": [],
+      "tts": "Größenart"
+    },
+    {
+      "conceptId": "rectangle",
+      "preferred": "Rechteck",
+      "forbidden": [],
+      "tts": "Rechteck"
+    },
+    {
+      "conceptId": "area",
+      "preferred": "Flächeninhalt",
+      "forbidden": [],
+      "tts": "Flächeninhalt"
+    },
+    {
+      "conceptId": "square-unit",
+      "preferred": "Quadrateinheit",
+      "forbidden": [],
+      "tts": "Quadrateinheit"
+    },
+    {
+      "conceptId": "parallel",
+      "preferred": "parallel",
+      "forbidden": [],
+      "tts": "parallel"
+    },
+    {
+      "conceptId": "perpendicular",
+      "preferred": "senkrecht",
+      "forbidden": [],
+      "tts": "senkrecht"
+    },
+    {
+      "conceptId": "angle",
+      "preferred": "Winkel",
+      "forbidden": [],
+      "tts": "Winkel"
+    },
+    {
+      "conceptId": "angle-type",
+      "preferred": "Winkelart",
+      "forbidden": [],
+      "tts": "Winkelart"
+    },
+    {
+      "conceptId": "angle-measurement",
+      "preferred": "Winkelmessung",
+      "forbidden": [],
+      "tts": "Winkelmessung"
+    },
+    {
+      "conceptId": "degree",
+      "preferred": "Grad",
+      "forbidden": [],
+      "tts": "Grad"
+    },
+    {
+      "conceptId": "polygon",
+      "preferred": "Vieleck",
+      "forbidden": [],
+      "tts": "Vieleck"
+    },
+    {
+      "conceptId": "classification",
+      "preferred": "Klassifikation",
+      "forbidden": [],
+      "tts": "Klassifikation"
+    },
+    {
+      "conceptId": "axial-symmetry",
+      "preferred": "Achsensymmetrie",
+      "forbidden": [],
+      "tts": "Achsensymmetrie"
+    },
+    {
+      "conceptId": "mirror-axis",
+      "preferred": "Spiegelachse",
+      "forbidden": [],
+      "tts": "Spiegelachse"
+    },
+    {
+      "conceptId": "solid-net",
+      "preferred": "Körpernetz",
+      "forbidden": [],
+      "tts": "Körpernetz"
+    },
+    {
+      "conceptId": "face",
+      "preferred": "Fläche",
+      "forbidden": [],
+      "tts": "Fläche"
+    },
+    {
+      "conceptId": "unit-cube",
+      "preferred": "Einheitswürfel",
+      "forbidden": [],
+      "tts": "Einheitswürfel"
+    },
+    {
+      "conceptId": "volume",
+      "preferred": "Volumen",
+      "forbidden": [],
+      "tts": "Volumen"
+    },
+    {
+      "conceptId": "cuboid-volume",
+      "preferred": "Quadervolumen",
+      "forbidden": [],
+      "tts": "Quadervolumen"
+    },
+    {
+      "conceptId": "cubic-unit",
+      "preferred": "Kubikeinheit",
+      "forbidden": [],
+      "tts": "Kubikeinheit"
+    },
+    {
+      "conceptId": "tally-list",
+      "preferred": "Strichliste",
+      "forbidden": [],
+      "tts": "Strichliste"
+    },
+    {
+      "conceptId": "category-total",
+      "preferred": "Kategorietotal",
+      "forbidden": [],
+      "tts": "Kategorietotal"
+    },
+    {
+      "conceptId": "bar-chart",
+      "preferred": "Säulendiagramm",
+      "forbidden": [],
+      "tts": "Säulendiagramm"
+    },
+    {
+      "conceptId": "axis-scale",
+      "preferred": "Achsenskalierung",
+      "forbidden": [],
+      "tts": "Achsenskalierung"
     }
   ]
 }

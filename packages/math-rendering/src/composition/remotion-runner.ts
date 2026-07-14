@@ -100,6 +100,7 @@ async function sceneProps(
         startFrame: frames.startFrame,
         endFrame: frames.endFrame,
         svgDataUrl: `data:image/svg+xml;base64,${svg.toString("base64")}`,
+        ...(scene.caption ? { caption: scene.caption } : {}),
       };
     })
   );

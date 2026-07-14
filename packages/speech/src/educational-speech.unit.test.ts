@@ -3,6 +3,8 @@ import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import {
+  EDUCATIONAL_SPEECH_PRODUCER_VERSION,
+  assertEducationalSpeechProviderResult,
   buildEducationalSpeechCacheKey,
   classifyEducationalSpeechError,
   educationalSpeechCandidatePath,
@@ -66,6 +68,7 @@ const beats: readonly EducationalNarrationBeat[] = [
 
 function cacheInput(profile: SpeechDeliveryProfile) {
   return {
+    producerVersion: EDUCATIONAL_SPEECH_PRODUCER_VERSION,
     provider: "openai-compatible" as const,
     providerBaseUrlIdentity: "openai-default",
     model: profile.model,
@@ -112,11 +115,11 @@ describe("educational speech profiles and planning", () => {
   it("normalizes mathematical speech contextually in English and German", () => {
     expect(
       normalizeEducationalSpokenText(
-        "x²; 3.5; -4; 25 %; 1/2; 5 cm; x = 12; 2 + 3 = 5",
+        "x²; √25; 3.5; -4; 25 %; 1/2; 5 cm; x = 12; 2 + 3 = 5",
         "en"
       )
     ).toContain(
-      "x squared; 3 point 5; negative 4; 25 percent; 1 over 2; 5 centimetres; x equals 12; 2 plus 3 equals 5"
+      "x squared; square root of 25; 3 point 5; negative 4; 25 percent; 1 over 2; 5 centimetres; x equals 12; 2 plus 3 equals 5"
     );
     const german = normalizeEducationalSpokenText(
       "x²; 3,5; -4; 25 %; 1/2; 5 cm; x = 12",
@@ -284,7 +287,11 @@ describe("educational speech profiles and planning", () => {
       ...cacheInput(profile),
       candidateIndex: 2,
     });
-    expect(new Set([original, changedVoice, changedDictionary, changedCandidate]).size).toBe(4);
+    const changedProducer = buildEducationalSpeechCacheKey({
+      ...cacheInput(profile),
+      producerVersion: "educational-speech-producer.v3",
+    });
+    expect(new Set([original, changedVoice, changedDictionary, changedCandidate, changedProducer]).size).toBe(5);
     expect(
       educationalSpeechCandidatePath({
         outputRoot: "/tmp/speech",
@@ -315,6 +322,39 @@ describe("educational speech profiles and planning", () => {
       },
     });
     expect(result).toEqual({ value: "ok", attemptCount: 3 });
+  });
+
+  it("rejects transplanted provider identity before promotion", () => {
+    expect(() =>
+      assertEducationalSpeechProviderResult({
+        result: {
+          sceneId: "scene-002",
+          filePath: "/tmp/chunk.wav",
+          durationSeconds: 2,
+          sampleRate: 24_000,
+          channels: 1,
+          requestFingerprint: "wrong",
+        },
+        expectedSceneId: "scene-001",
+        expectedOutputPath: "/tmp/chunk.wav",
+        expectedRequestFingerprint: "expected",
+        validation: {
+          schemaVersion: "narration-artifact-v1",
+          chunkId: "narr-chunk-001",
+          audioPath: "chunk.wav",
+          audioHash: "a".repeat(64),
+          validationStatus: "passed",
+          metrics: {
+            decodable: true,
+            durationMs: 2_000,
+            sampleRate: 24_000,
+            channels: 1,
+          },
+          findings: [],
+          createdAt: "2026-07-14T00:00:00.000Z",
+        },
+      })
+    ).toThrow(/scene identity/u);
   });
 
   it("keeps dry-run read-only while reporting candidates, paths, cache, and pauses", async () => {

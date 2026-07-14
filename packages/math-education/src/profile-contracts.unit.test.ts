@@ -311,6 +311,8 @@ describe("mathematics profile integration", () => {
           visualStyleReasons: ["Style approval missing."],
           deterministicVerificationSupported: true,
           verificationReasons: [],
+          providerTasksAuthorized: false,
+          providerReasons: ["Provider authorization missing."],
         }
       )
     );

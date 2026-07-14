@@ -1,7 +1,7 @@
 import type { NormalizedRenderProfile, VisualScene } from "../contracts.js";
 import { buildFormulaLayoutPlan, type FormulaLayoutPlan, type FormulaVisualOp } from "./formula-svg.js";
 
-export const CHALK_RENDERER_VERSION = "svg-chalk.v2";
+export const CHALK_RENDERER_VERSION = "svg-chalk.v3";
 type ChalkAnimatedScene = Extract<VisualScene, { type: "equation" | "equation-transformation" }>;
 type ChalkFrame = { readonly svg: string; readonly durationMs: number };
 type ChalkTextOp = { readonly text: string; readonly x: number; readonly y: number; readonly fontSize: number; readonly semantic: "cue" | "operator" | "equals"; readonly tipX: number; readonly tipY: number };
@@ -88,8 +88,18 @@ function distributeDurations(totalMs: number, frameRate: number, weights: readon
     else if (current > 1) { frames[at] = current - 1; delta += 1; }
     index += 1;
   }
-  const frameDurationMs = 1_000 / frameRate;
-  return frames.map((count) => Math.round(count * frameDurationMs));
+  let elapsedFrames = 0;
+  let elapsedMs = 0;
+  return frames.map((count, frameIndex) => {
+    elapsedFrames += count;
+    const endMs =
+      frameIndex === frames.length - 1
+        ? totalMs
+        : Math.round((elapsedFrames / totalFrames) * totalMs);
+    const durationMs = endMs - elapsedMs;
+    elapsedMs = endMs;
+    return durationMs;
+  });
 }
 function sceneShell(profile: NormalizedRenderProfile, fontFile: string, body: string): string {
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${profile.width}" height="${profile.height}" viewBox="0 0 ${profile.width} ${profile.height}">`

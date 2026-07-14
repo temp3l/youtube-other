@@ -7,6 +7,14 @@ unification. It consolidates the requested audit, architecture, migration,
 content-profile, duplicate-removal, validation, and AI-pack plans without
 duplicating the source-backed architecture documents that already exist.
 
+## Final implementation status
+
+**ACCEPTED on 2026-07-14.** Batches 0-14 have completion evidence. Batch 13
+retains only classified compatibility debt or intentional strategies with exact
+removal conditions. The deterministic AI pack is generated and fresh, and the
+authorized release build, typecheck, lint, unit, integration, e2e, and packaged
+CLI gates pass. No provider, upload, publish, or remote-render mutation ran.
+
 The plans are intentionally ordered. Production code must not be changed until
 the audit gate in [00-baseline-and-audit-gate.md](00-baseline-and-audit-gate.md)
 has been completed and recorded.
@@ -107,4 +115,3 @@ Every modifying execution batch must create the Codex-run report required by
 plan-file implementation report is not triggered by this planning-only task.
 If the plans are later moved or mirrored under `docs/plans/`, execution must
 also maintain the corresponding dated implementation report.
-
