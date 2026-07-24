@@ -20,6 +20,7 @@ import {
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { createTaskRegistry, type TaskRegistration } from "./task-registry.js";
+import { ArtifactRepository } from "./artifact-repository.js";
 import {
   WORKFLOW_STORE_VERSION,
   WorkflowStore,
@@ -392,6 +393,107 @@ describe("workflow state, events, locks, and reconciliation", () => {
         (event) => event.eventType === "lock-recovered"
       )
     ).toHaveLength(1);
+  });
+
+  it("recovers a running attempt immediately when its operator process is gone", async () => {
+    await store.initialize();
+    await store.transition({ taskId: "test.prepare", to: "ready" });
+    await store.beginAttempt({
+      id: "attempt-dead-owner",
+      runId: "run-dead-owner",
+      taskId: "test.prepare",
+      fingerprint: hashA,
+      attemptNumber: 1,
+    });
+    await store.acquireLock({
+      scope: "task",
+      key: "test.prepare",
+      owner: "workflow-operator-2147483647",
+      runId: "run-dead-owner",
+      attemptId: "attempt-dead-owner",
+    });
+
+    expect(await store.detectStaleRecords()).toMatchObject({
+      attempts: [{ id: "attempt-dead-owner" }],
+      locks: [{ owner: "workflow-operator-2147483647" }],
+    });
+    await store.recoverStaleRecords();
+    expect((await store.readState()).tasks[0]).toMatchObject({
+      status: "interrupted",
+      errorCode: "INTERRUPTED",
+    });
+  });
+
+  it("recovers invalid output and refreshes reusable descendant lineage", async () => {
+    const repository = new ArtifactRepository({
+      workspaceRoot: temporaryRoot,
+      now: () => new Date(currentTime),
+    });
+    const artifactRef = successManifest().ref;
+    const request = {
+      ref: artifactRef,
+      content: "first valid result",
+      mediaType: "text/plain",
+      producerTaskId: "test.prepare",
+      producerTaskVersion: "1.0.0",
+      producerAttemptId: "attempt-001",
+      validatorId: "test.validator",
+      validatorVersion: "1.0.0",
+      dependencyFingerprints: [],
+      validate: (content: Buffer) => {
+        if (content.byteLength === 0) throw new Error("empty artifact");
+      },
+    } as const;
+    const first = await repository.promote(request);
+    if (first.dryRun) throw new Error("unexpected dry run");
+    await fs.writeFile(
+      first.artifact.provenance.absolutePath,
+      "corrupt",
+      "utf8"
+    );
+
+    await expect(
+      repository.promote({ ...request, content: "recomputed result" })
+    ).rejects.toMatchObject({ code: "ARTIFACT_CONFLICT" });
+    const recovered = await repository.promote({
+      ...request,
+      content: "recomputed result",
+      producerAttemptId: "attempt-002",
+      replaceInvalidDestination: true,
+    });
+    if (recovered.dryRun) throw new Error("unexpected dry run");
+    expect(recovered.operation).toBe("write");
+    await expect(
+      fs.readFile(recovered.artifact.provenance.absolutePath, "utf8")
+    ).resolves.toBe("recomputed result");
+    await expect(repository.verify(artifactRef)).resolves.toMatchObject({
+      manifest: { producerAttemptId: "attempt-002" },
+    });
+
+    const beforeRefresh = await fs.stat(
+      recovered.artifact.provenance.absolutePath
+    );
+    const refreshed = await repository.promote({
+      ...request,
+      content: "recomputed result",
+      producerAttemptId: "attempt-003",
+      refreshManifestOnReuse: true,
+    });
+    if (refreshed.dryRun) throw new Error("unexpected dry run");
+    expect(refreshed.operation).toBe("write");
+    const afterRefresh = await fs.stat(
+      refreshed.artifact.provenance.absolutePath
+    );
+    expect({
+      inode: afterRefresh.ino,
+      modifiedAt: afterRefresh.mtimeMs,
+      size: afterRefresh.size,
+    }).toEqual({
+      inode: beforeRefresh.ino,
+      modifiedAt: beforeRefresh.mtimeMs,
+      size: beforeRefresh.size,
+    });
+    expect(refreshed.artifact.manifest.producerAttemptId).toBe("attempt-003");
   });
 
   it("uses subsystem manifests as evidence only and reconciles validated artifact crash windows", async () => {

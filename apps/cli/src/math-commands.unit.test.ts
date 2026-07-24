@@ -41,6 +41,7 @@ vi.mock("@mediaforge/math-education", async (importOriginal) => ({
   ...(await import("../../../packages/math-education/src/orchestration/canonical-task-adapters.js")),
   ...(await import("../../../packages/math-education/src/orchestration/batch-planner.js")),
   ...(await import("../../../packages/math-education/src/orchestration/math-workspace-paths.js")),
+  ...(await import("../../../packages/math-education/src/review/private-owner-attestation.js")),
 }));
 
 describe("math commands", () => {
@@ -90,7 +91,7 @@ describe("math commands", () => {
     }
   });
 
-  it("projects the legacy production plan from the canonical 18-task DAG without side effects", async () => {
+  it("projects the executable private plan and identifies unavailable live tasks without side effects", async () => {
     const workspace = await fs.mkdtemp(
       path.join(os.tmpdir(), "math-cli-canonical-plan-")
     );
@@ -111,21 +112,58 @@ describe("math commands", () => {
       ]);
       const result = JSON.parse(String(stdout.mock.calls.at(-1)?.[0])) as {
         taskIds: string[];
+        unavailableLiveTasks: string[];
         stages: Array<{ taskId: string }>;
         writes: number;
         subprocesses: number;
         providers: number;
       };
-      expect(result.taskIds).toHaveLength(18);
+      expect(result.taskIds).toHaveLength(16);
       expect(result.stages.map((stage) => stage.taskId)).toEqual(
         result.taskIds
       );
+      expect(result.unavailableLiveTasks).toEqual([
+        "math.publish-approval",
+        "math.publish",
+      ]);
       expect(result).toMatchObject({
         writes: 0,
         subprocesses: 0,
         providers: 0,
       });
       expect(await fs.readdir(workspace)).toEqual(before);
+    } finally {
+      stdout.mockRestore();
+    }
+  });
+
+  it("plans registered owner-attested private production without side effects", async () => {
+    const stdout = vi
+      .spyOn(process.stdout, "write")
+      .mockImplementation(() => true);
+    try {
+      await parseMath([
+        "production",
+        "plan",
+        "--skill",
+        "M5-GM-002",
+        "--variant",
+        "standard",
+        "--language",
+        "de",
+        "--private",
+      ]);
+      expect(
+        JSON.parse(String(stdout.mock.calls.at(-1)?.[0]))
+      ).toMatchObject({
+        dryRun: true,
+        writes: 0,
+        providers: 0,
+        visibility: "private",
+        paidProviderAuthorized: false,
+        curriculumApprovalHash:
+          "5abffd11c1de3eb9307702a89c2746c7ed907b8810a42e12b7ca9d6de55c8519",
+      });
     } finally {
       stdout.mockRestore();
     }

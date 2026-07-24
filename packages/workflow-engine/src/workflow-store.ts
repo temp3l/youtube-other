@@ -1096,7 +1096,10 @@ export class WorkflowStore {
       const existing = workflowLockSchema.parse(
         JSON.parse(await fs.readFile(lockPath, "utf8")) as unknown
       );
-      if (!this.isStale(existing.heartbeatAt)) {
+      if (
+        !this.isStale(existing.heartbeatAt) &&
+        !this.ownerProcessIsDead(existing.owner)
+      ) {
         throw new WorkflowStoreError(
           "LOCK_ACTIVE",
           `Lock ${input.scope}:${input.key} is held by ${existing.owner}.`,
@@ -1108,7 +1111,8 @@ export class WorkflowStore {
       );
       if (
         current.token !== existing.token ||
-        !this.isStale(current.heartbeatAt)
+        (!this.isStale(current.heartbeatAt) &&
+          !this.ownerProcessIsDead(current.owner))
       ) {
         throw new WorkflowStoreError(
           "LOCK_ACTIVE",
@@ -1177,12 +1181,17 @@ export class WorkflowStore {
   }
 
   public async detectStaleRecords(): Promise<StaleWorkflowRecords> {
-    const locks = (await this.readLocks()).filter((lock) =>
-      this.isStale(lock.heartbeatAt)
+    const locks = (await this.readLocks()).filter(
+      (lock) =>
+        this.isStale(lock.heartbeatAt) || this.ownerProcessIsDead(lock.owner)
+    );
+    const staleAttemptIds = new Set(
+      locks.flatMap((lock) => (lock.attemptId ? [lock.attemptId] : []))
     );
     const attempts = (await this.readAllAttempts()).filter(
       (attempt) =>
-        attempt.status === "running" && this.isStale(attempt.startedAt)
+        attempt.status === "running" &&
+        (this.isStale(attempt.startedAt) || staleAttemptIds.has(attempt.id))
     );
     return { locks, attempts };
   }
@@ -1696,6 +1705,21 @@ export class WorkflowStore {
     );
   }
 
+  private ownerProcessIsDead(owner: string): boolean {
+    if (process.platform === "win32") return false;
+    const pidText = /^workflow-operator-(\d+)$/u.exec(owner)?.[1];
+    if (!pidText) return false;
+    const pid = Number(pidText);
+    if (!Number.isSafeInteger(pid) || pid <= 0 || pid === process.pid)
+      return false;
+    try {
+      process.kill(pid, 0);
+      return false;
+    } catch (error) {
+      return (error as NodeJS.ErrnoException).code === "ESRCH";
+    }
+  }
+
   private async readLocks(): Promise<readonly WorkflowLock[]> {
     let entries: import("node:fs").Dirent[];
     try {
@@ -1739,7 +1763,11 @@ export class WorkflowStore {
         await fs.readFile(this.lockPath(lock.scope, lock.key), "utf8")
       ) as unknown
     );
-    if (current.token !== lock.token || !this.isStale(current.heartbeatAt)) {
+    if (
+      current.token !== lock.token ||
+      (!this.isStale(current.heartbeatAt) &&
+        !this.ownerProcessIsDead(current.owner))
+    ) {
       throw new WorkflowStoreError(
         "LOCK_ACTIVE",
         `Lock ${lock.scope}:${lock.key} changed during stale-lock recovery.`

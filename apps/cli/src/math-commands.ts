@@ -1,4 +1,5 @@
 import fs from "node:fs/promises";
+import { constants as fsConstants } from "node:fs";
 import path from "node:path";
 import { Command } from "commander";
 import {
@@ -8,12 +9,15 @@ import {
 } from "@mediaforge/config";
 import {
   buildAllLessonVariants,
+  buildLessonVariant,
   canonicalHash,
   createLessonId,
   createMathTaskRegistry,
   createReviewedCurriculumFixture,
   importCurriculumSeed,
   loadCurriculumRelease,
+  loadPrivateOwnerAttestation,
+  assertPrivateOwnerCurriculumApproval,
   mathWorkflowDefinition,
   MathWorkspacePathResolver,
   evaluateMinorEditApproval,
@@ -21,6 +25,10 @@ import {
   mathMinorEditApprovalSchema,
   mathBrandPolicyArtifactSchema,
   mathFinalMediaEvidenceSchema,
+  canonicalPrivateMediaEvidenceSchema,
+  MATH_EXECUTABLE_TASK_IDS,
+  MATH_LOCKED_FACT_NARRATION_VERSION,
+  reviewGermanStandardNarration,
   mathMetadataSchema,
   mathPlaylistCatalogSchema,
   mathThumbnailArtifactSchema,
@@ -35,6 +43,7 @@ import {
   readAuthoritativeBinaryArtifact,
   lessonVariantSpecificationSchema,
   localizedNarrationSchema,
+  localizeNarration,
   withMathFileLock,
   runMathBatch,
   runPilotSimulation,
@@ -56,7 +65,13 @@ import {
   speechDeliveryProfileIdSchema,
   type SpeechProvider,
 } from "@mediaforge/speech";
-import { createCanonicalMathOperator } from "./math-workflow-runtime.js";
+import {
+  CANONICAL_OPENAI_SPEECH_PRICING_VERSION,
+  createCanonicalMathOperator,
+  estimateCanonicalPaidSpeechCostMicros,
+  materializeCanonicalPrivateSpeech,
+  type CanonicalPaidSpeechConfiguration,
+} from "./math-workflow-runtime.js";
 
 interface MathSelectionOptions {
   skill?: string;
@@ -65,6 +80,7 @@ interface MathSelectionOptions {
   language?: MathLanguage;
   workspace?: string;
   simulate?: boolean;
+  private?: boolean;
   resume?: boolean;
   dryRun?: boolean;
   python?: string;
@@ -73,6 +89,9 @@ interface MathSelectionOptions {
   openAiSpeechModel?: string;
   openAiSpeechVoice?: string;
   ttsProvider?: "mock" | "openai-compatible";
+  paidSpeech?: boolean;
+  maxProviderCostUsd?: number;
+  canonicalFirst?: boolean;
 }
 
 interface MathSpeechOptions extends MathSelectionOptions {
@@ -157,7 +176,7 @@ function parseSpeechSelection(
 }
 
 function mathSpeechRuntimeOverrides(
-  options: MathSpeechOptions
+  options: MathSelectionOptions
 ): RuntimeConfigOverrides {
   return {
     ...(options.ttsProvider ? { ttsProvider: options.ttsProvider } : {}),
@@ -173,6 +192,164 @@ function mathSpeechRuntimeOverrides(
     ...(options.openAiSpeechVoice
       ? { openAiSpeechVoice: options.openAiSpeechVoice }
       : {}),
+  };
+}
+
+function parseProviderCostUsd(value: string): number {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed <= 0 || parsed > 100) {
+    throw new Error("--max-provider-cost-usd must be greater than 0 and no more than 100.");
+  }
+  return parsed;
+}
+
+const CANONICAL_PINNED_SPEECH_MODEL =
+  "gpt-4o-mini-tts-2025-12-15" as const;
+
+async function canonicalPaidSpeechSetup(input: {
+  readonly skillId: string;
+  readonly lessonVariant: LessonVariant;
+  readonly language: MathLanguage;
+  readonly ceilingMicros: number;
+  readonly workspace?: string;
+  readonly requireProvider: boolean;
+  readonly options: MathSelectionOptions;
+}): Promise<{
+  readonly configuration: CanonicalPaidSpeechConfiguration;
+  readonly estimate: {
+    readonly calls: number;
+    readonly characters: number;
+    readonly estimatedAudioSeconds: number;
+    readonly estimatedCostMicros: number;
+    readonly words: number;
+    readonly targetWordsPerMinute: number;
+    readonly model: string;
+    readonly voice: string;
+    readonly speechProfileVersion: string;
+  };
+}> {
+  if (input.lessonVariant !== "standard" || input.language !== "de") {
+    throw new Error("Canonical paid speech is restricted to standard/de.");
+  }
+  const release = await curriculum();
+  const skill = release.skills.find(
+    (candidate) => candidate.skillId === input.skillId
+  );
+  if (!skill) throw new Error(`Unknown curriculum skill: ${input.skillId}`);
+  const lesson = buildLessonVariant(skill, input.lessonVariant);
+  const narration = localizeNarration(lesson, input.language);
+  const words = narration.segments.reduce(
+    (total, segment) =>
+      total + segment.spokenText.trim().split(/\s+/u).filter(Boolean).length,
+    0
+  );
+  const targetWordsPerMinute = Math.max(
+    80,
+    Math.min(220, Math.round(words / 3.6))
+  );
+  const runtime = await loadRuntimeConfig(mathSpeechRuntimeOverrides(input.options));
+  const profile = resolveSpeechDeliveryProfile(
+    "education-natural-teacher",
+    input.language,
+    {
+      model: CANONICAL_PINNED_SPEECH_MODEL,
+      ...(runtime.openAiSpeechVoice
+        ? { voice: runtime.openAiSpeechVoice }
+        : runtime.openAiCompatibleTtsVoice
+          ? { voice: runtime.openAiCompatibleTtsVoice }
+          : {}),
+      targetWordsPerMinute,
+    }
+  );
+  const pronunciationDictionaries =
+    await loadEducationalPronunciationDictionary({
+      repositoryRoot: repositoryRoot(),
+      profile,
+    });
+  const plan = buildEducationalSpeechPlan({
+    episodeId: createLessonId(input.skillId, input.lessonVariant),
+    profile,
+    beats: buildMathEducationalNarrationBeats(narration),
+    pronunciationDictionaries,
+  });
+  const outputRoot = path.join(
+    input.workspace ?? "/tmp/mediaforge-math-paid-plan",
+    createLessonId(input.skillId, input.lessonVariant),
+    "locales/de/audio/educational-speech"
+  );
+  const dryRun = await generateEducationalSpeech({
+    plan,
+    profile,
+    pronunciationDictionaries,
+    providerId: "openai-compatible",
+    providerBaseUrlIdentity: runtime.openAiCompatibleBaseUrl
+      ? new URL(runtime.openAiCompatibleBaseUrl).origin
+      : "openai-default",
+    outputRoot,
+    candidateCount: 1,
+    dryRun: true,
+    maxAttempts: 3,
+  });
+  if (dryRun.status !== "dry-run") throw new Error("Speech plan was not dry-run.");
+  const estimatedAudioSeconds = Math.max(
+    lesson.targetDurationSeconds,
+    plan.chunks.reduce(
+      (total, chunk) => total + chunk.estimatedDurationMs / 1_000,
+      0
+    )
+  );
+  const estimatedCostMicros = estimateCanonicalPaidSpeechCostMicros({
+    estimatedAudioSeconds,
+    inputCharacters: dryRun.dryRun.estimatedInputCharacters,
+    providerRequests: dryRun.dryRun.estimatedProviderRequests,
+  });
+  if (estimatedCostMicros > input.ceilingMicros) {
+    throw new Error(
+      `Estimated provider cost USD ${(estimatedCostMicros / 1_000_000).toFixed(6)} exceeds the hard ceiling USD ${(input.ceilingMicros / 1_000_000).toFixed(6)}.`
+    );
+  }
+  if (input.requireProvider && !runtime.openAiCompatibleApiKey) {
+    throw new Error("Canonical paid speech requires an OpenAI API key.");
+  }
+  const provider = new OpenAiCompatibleSpeechProvider({
+    apiKey: runtime.openAiCompatibleApiKey ?? "preflight-no-provider-key",
+    ...(runtime.openAiCompatibleBaseUrl
+      ? { baseUrl: runtime.openAiCompatibleBaseUrl }
+      : {}),
+    ...(runtime.openAiCompatibleOrganization
+      ? { organization: runtime.openAiCompatibleOrganization }
+      : {}),
+    ...(runtime.openAiCompatibleProject
+      ? { project: runtime.openAiCompatibleProject }
+      : {}),
+    model: profile.model,
+    voice: profile.voice,
+    instructions: profile.instructions,
+    speed: profile.providerSpeed,
+    responseFormat: profile.postProcessingPolicy.outputFormat,
+  });
+  return {
+    configuration: {
+      provider,
+      providerBaseUrlIdentity: runtime.openAiCompatibleBaseUrl
+        ? new URL(runtime.openAiCompatibleBaseUrl).origin
+        : "openai-default",
+      profile,
+      pronunciationDictionaries,
+      approvedCeilingMicros: input.ceilingMicros,
+      pricingVersion: CANONICAL_OPENAI_SPEECH_PRICING_VERSION,
+    },
+    estimate: {
+      calls: dryRun.dryRun.estimatedProviderRequests,
+      characters: dryRun.dryRun.estimatedInputCharacters,
+      estimatedAudioSeconds,
+      estimatedCostMicros,
+      words,
+      targetWordsPerMinute,
+      model: profile.model,
+      voice: profile.voice,
+      speechProfileVersion: profile.version,
+    },
   };
 }
 
@@ -384,13 +561,7 @@ async function runMathSpeechCompare(
     throw new Error(`Listening fixture identity does not match ${language}.`);
   const beats = educationalNarrationBeatSchema.array().min(1).parse(rawFixture.beats);
   const runtime = await loadRuntimeConfig(
-    mathSpeechRuntimeOverrides({
-      ...options,
-      lesson: `speech-comparison-${language}`,
-      workspace: options.output,
-      speechProfile: "education-natural-teacher",
-      speechCandidates: 1,
-    })
+    mathSpeechRuntimeOverrides(options)
   );
   const model =
     runtime.openAiSpeechModel ??
@@ -536,7 +707,11 @@ async function ensureCanonicalSimulationCurriculum(
         { cause: error }
       );
     }
-    await createReviewedCurriculumFixture(root);
+    await createReviewedCurriculumFixture(
+      root,
+      path.resolve("packages/math-education/data/curriculum/v1"),
+      { preserveSkillIdentity: true }
+    );
   }
   return root;
 }
@@ -588,6 +763,10 @@ async function runCanonicalSimulation(
     const before = await operator.status();
     if (before.tasks.some((task) => task.persistedStatus === "interrupted")) {
       await operator.resume();
+    } else if (
+      before.tasks.some((task) => task.persistedStatus === "failed")
+    ) {
+      await operator.retryFailed();
     }
   }
   const ready = await operator.status();
@@ -612,6 +791,172 @@ async function runCanonicalSimulation(
     stateSource: "workflow-operator",
     results,
     workflow: status,
+  };
+}
+function requirePrivateWorkspace(options: MathSelectionOptions): string {
+  if (!options.private)
+    throw new Error(
+      "Canonical provider-free production requires the explicit --private flag."
+    );
+  if (!options.workspace)
+    throw new Error("Private production requires an explicit --workspace path.");
+  const workspace = path.resolve(options.workspace);
+  const relative = path.relative(repositoryRoot(), workspace);
+  if (relative === "" || (!relative.startsWith("..") && !path.isAbsolute(relative))) {
+    throw new Error(
+      "Private production workspace must be outside the repository tree."
+    );
+  }
+  return workspace;
+}
+async function runCanonicalPrivateProduction(
+  options: MathSelectionOptions,
+  resume: boolean
+) {
+  const workspace = requirePrivateWorkspace(options);
+  const release = await curriculum();
+  const m5Order = release.graph.order.filter((skillId) =>
+    skillId.startsWith("M5-")
+  );
+  if (m5Order.length !== 37 || new Set(m5Order).size !== 37) {
+    throw new Error("Canonical Class 5 order must contain exactly 37 unique skills.");
+  }
+  const firstSkillId = m5Order[0];
+  if (!firstSkillId) throw new Error("Canonical Class 5 order is empty.");
+  if (
+    options.canonicalFirst &&
+    options.skill !== undefined &&
+    options.skill !== firstSkillId
+  ) {
+    throw new Error(
+      `--canonical-first selected ${firstSkillId}; caller-supplied ${options.skill} is not authoritative.`
+    );
+  }
+  const skillId = options.canonicalFirst
+    ? firstSkillId
+    : (options.skill ?? firstSkillId);
+  const lessonVariant = options.variant ?? "standard";
+  const language = options.language ?? "de";
+  if (lessonVariant !== "standard" || language !== "de") {
+    throw new Error(
+      "Owner-attested private production is restricted to standard/de."
+    );
+  }
+  if (options.maxProviderCostUsd !== undefined && !options.paidSpeech) {
+    throw new Error(
+      "--max-provider-cost-usd is only valid together with --paid-speech."
+    );
+  }
+  if (options.paidSpeech && options.maxProviderCostUsd === undefined) {
+    throw new Error(
+      "Canonical paid speech requires --max-provider-cost-usd <USD>."
+    );
+  }
+  const paidSetup = options.paidSpeech
+    ? await canonicalPaidSpeechSetup({
+        skillId,
+        lessonVariant,
+        language,
+        ceilingMicros: Math.round(options.maxProviderCostUsd! * 1_000_000),
+        workspace,
+        requireProvider: true,
+        options,
+      })
+    : undefined;
+  const operator = await createCanonicalMathOperator({
+    repositoryRoot: repositoryRoot(),
+    workspaceRoot: workspace,
+    unitId: createLessonId(skillId, lessonVariant),
+    skillId,
+    lessonVariant,
+    locale: language,
+    contentVariant: "full",
+    simulation: false,
+    releaseVisibility: "private",
+    providerMode: paidSetup ? "provider" : "fixture-mock",
+    authorizeProvider: true,
+    ...(paidSetup
+      ? {
+          providerConfigurationFingerprint: canonicalHash({
+            provider: "openai-compatible",
+            model: paidSetup.estimate.model,
+            voice: paidSetup.estimate.voice,
+            speechProfileVersion: paidSetup.estimate.speechProfileVersion,
+            pricingVersion: paidSetup.configuration.pricingVersion,
+            approvedCeilingMicros:
+              paidSetup.configuration.approvedCeilingMicros,
+          }),
+          privateSpeechMaterializer: (
+            input: Parameters<typeof materializeCanonicalPrivateSpeech>[0]
+          ) => materializeCanonicalPrivateSpeech(input, paidSetup.configuration),
+        }
+      : {}),
+    ...(options.python ? { pythonExecutable: options.python } : {}),
+  });
+  if (resume) {
+    await operator.reconcile();
+    const before = await operator.status();
+    if (before.tasks.some((task) => task.persistedStatus === "interrupted")) {
+      await operator.resume();
+    } else if (
+      before.tasks.some((task) => task.persistedStatus === "failed")
+    ) {
+      await operator.retryFailed();
+    }
+  }
+  const ready = await operator.status();
+  const publishDryRunSucceeded = ready.tasks.some(
+    (task) =>
+      task.taskId === "math.publish-dry-run" &&
+      task.persistedStatus === "succeeded"
+  );
+  const results =
+    ready.nextTaskId === null && publishDryRunSucceeded
+      ? []
+      : await operator.runNext({ continue: true });
+  const workflow = await operator.status();
+  const mediaPath = path.join(
+    workspace,
+    createLessonId(skillId, lessonVariant),
+    `locales/${language}/final-media.json`
+  );
+  const media = await fs
+    .readFile(mediaPath, "utf8")
+    .then((value) =>
+      canonicalPrivateMediaEvidenceSchema.parse(JSON.parse(value))
+    )
+    .catch(() => undefined);
+  const provider =
+    media && typeof media.provider === "object"
+      ? (media.provider as {
+          mode?: string;
+          calls?: number;
+          characters?: number;
+          retries?: number;
+          latencyMs?: number;
+          costMicros?: number;
+        })
+      : undefined;
+  return {
+    lessonId: createLessonId(skillId, lessonVariant),
+    workspaceDir: workspace,
+    visibility: "private",
+    status:
+      workflow.tasks.find((task) => task.taskId === "math.publish-dry-run")
+        ?.persistedStatus ?? "pending",
+    cached: results.length === 0 || results.every((result) => result.cacheHit),
+    paidProviderCalled: (provider?.calls ?? 0) > 0,
+    providerCalls: provider?.calls ?? 0,
+    providerCharacters: provider?.characters ?? 0,
+    providerRetries: provider?.retries ?? 0,
+    providerLatencyMs: provider?.latencyMs ?? 0,
+    costMicros: provider?.costMicros ?? 0,
+    approvedCeilingMicros:
+      paidSetup?.configuration.approvedCeilingMicros ?? 0,
+    preflightEstimate: paidSetup?.estimate,
+    stateSource: "workflow-operator",
+    results,
+    workflow,
   };
 }
 async function canonicalProductionStatus(
@@ -878,24 +1223,259 @@ export function registerMathCommands(program: Command): void {
     .option("--skill <skill-id>", "skill id", "M5-ZO-001")
     .option("--variant <variant>", "lesson variant", "standard")
     .option("--language <language>", "target language", "de")
-    .action((_opts, command) => {
+    .option("--private", "plan owner-attested private production")
+    .option("--workspace <path>", "private generated-artifact workspace")
+    .option(
+      "--canonical-first",
+      "derive and enforce the first Class 5 skill from the reviewed DAG"
+    )
+    .option("--paid-speech", "plan paid natural German speech")
+    .option(
+      "--max-provider-cost-usd <usd>",
+      "hard provider-cost ceiling in USD",
+      parseProviderCostUsd
+    )
+    .action(async (_opts, command) => {
       const options = selection(command);
       const registry = createMathTaskRegistry();
+      const curriculum = await loadCurriculumRelease(
+        path.join(repositoryRoot(), "packages/math-education/data/curriculum/v1")
+      );
+      const m5Order = curriculum.graph.order.filter((skillId) =>
+        skillId.startsWith("M5-")
+      );
+      if (m5Order.length !== 37 || new Set(m5Order).size !== 37) {
+        throw new Error(
+          "Canonical Class 5 order must contain exactly 37 unique skills."
+        );
+      }
+      const firstSkillId = m5Order[0];
+      if (!firstSkillId) throw new Error("Canonical Class 5 order is empty.");
+      if (
+        options.canonicalFirst &&
+        options.skill !== undefined &&
+        options.skill !== firstSkillId
+      ) {
+        throw new Error(
+          `--canonical-first selected ${firstSkillId}; caller-supplied ${options.skill} is not authoritative.`
+        );
+      }
+      const skillId = options.canonicalFirst
+        ? firstSkillId
+        : (options.skill ?? firstSkillId);
+      const selectedSkill = curriculum.skills.find(
+        (skill) => skill.skillId === skillId
+      );
+      if (!selectedSkill) throw new Error(`Unknown skill: ${skillId}`);
+      const lessonSpecification = buildLessonVariant(
+        selectedSkill,
+        options.variant ?? "standard"
+      );
+      const narration = localizeNarration(
+        lessonSpecification,
+        options.language ?? "de"
+      );
+      const narrationReview =
+        (options.variant === undefined || options.variant === "standard") &&
+        (options.language === undefined || options.language === "de")
+          ? reviewGermanStandardNarration({
+              lesson: lessonSpecification,
+              narration,
+            })
+          : undefined;
+      const attestation = options.private
+        ? await loadPrivateOwnerAttestation(
+            path.join(
+              repositoryRoot(),
+              "packages/math-education/data/reviews/v1/private-owner-attestation.json"
+            )
+          )
+        : undefined;
+      if (attestation) {
+        assertPrivateOwnerCurriculumApproval(attestation, curriculum, skillId);
+      }
+      if (options.maxProviderCostUsd !== undefined && !options.paidSpeech) {
+        throw new Error(
+          "--max-provider-cost-usd is only valid together with --paid-speech."
+        );
+      }
+      if (options.paidSpeech && options.maxProviderCostUsd === undefined) {
+        throw new Error(
+          "Canonical paid speech planning requires --max-provider-cost-usd <USD>."
+        );
+      }
+      if (options.paidSpeech && !options.private) {
+        throw new Error("Canonical paid speech planning requires --private.");
+      }
+      if (options.paidSpeech && !options.workspace) {
+        throw new Error(
+          "Canonical paid speech planning requires an explicit --workspace."
+        );
+      }
+      const workspaceEvidence = options.workspace
+        ? await (async () => {
+            const configuredArtifactRoot = path.resolve(options.workspace!);
+            const sourceRelation = path.relative(
+              repositoryRoot(),
+              configuredArtifactRoot
+            );
+            if (
+              sourceRelation === "" ||
+              (!sourceRelation.startsWith("..") &&
+                !path.isAbsolute(sourceRelation))
+            ) {
+              throw new Error(
+                "Private production workspace must be separate from tracked source."
+              );
+            }
+            const parent = path.dirname(configuredArtifactRoot);
+            await fs.access(parent, fsConstants.W_OK);
+            const unitRoot = path.join(
+              configuredArtifactRoot,
+              createLessonId(skillId, options.variant ?? "standard")
+            );
+            const collisionFree = await fs
+              .access(unitRoot)
+              .then(() => false)
+              .catch(() => true);
+            const disk = await fs.statfs(parent);
+            return {
+              configuredArtifactRoot,
+              outputWorkspace: unitRoot,
+              writable: true,
+              separateFromTrackedSource: true,
+              underConfiguredArtifactRoot:
+                path.relative(configuredArtifactRoot, unitRoot) ===
+                createLessonId(skillId, options.variant ?? "standard"),
+              collisionFree,
+              availableDiskBytes: disk.bavail * disk.bsize,
+              requiredDiskBytes: 2_147_483_648,
+            };
+          })()
+        : undefined;
+      const paidSetup = options.paidSpeech
+        ? await canonicalPaidSpeechSetup({
+            skillId,
+            lessonVariant: options.variant ?? "standard",
+            language: options.language ?? "de",
+            ceilingMicros: Math.round(options.maxProviderCostUsd! * 1_000_000),
+            ...(options.workspace ? { workspace: options.workspace } : {}),
+            requireProvider: false,
+            options,
+          })
+        : undefined;
       print({
         dryRun: true,
         writes: 0,
         subprocesses: 0,
-        providers: 0,
+        providers: paidSetup?.estimate.calls ?? 0,
         selection: {
-          skill: options.skill ?? "M5-ZO-001",
+          skill: skillId,
           grade: 5,
           variant: options.variant ?? "standard",
           language: options.language ?? "de",
         },
+        plannedItems: [
+          {
+            skill: skillId,
+            variant: options.variant ?? "standard",
+            language: options.language ?? "de",
+          },
+        ],
+        plannedItemCount: 1,
+        canonicalClass5Order: m5Order,
+        canonicalClass5SkillCount: m5Order.length,
+        canonicalFirstSkill: firstSkillId,
+        selectedIsCanonicalFirst: skillId === firstSkillId,
+        selectionRationale:
+          skillId === firstSkillId
+            ? "First node in the canonical stable topological order with configured seed-order tie breaking."
+            : "Explicit non-M2-010A operator selection.",
+        reviewedPrerequisiteSkillIds: selectedSkill.prerequisiteIds,
+        release: {
+          releaseId: curriculum.release.releaseId,
+          curriculumVersion: curriculum.release.curriculumVersion,
+          status: curriculum.release.status,
+          releaseHash: curriculum.releaseHash,
+        },
+        lessonSpecificationHash: lessonSpecification.contentHash,
+        narrationHash: narration.contentHash,
+        narrationReviewHash: narrationReview?.contentHash,
         workflowId: mathWorkflowDefinition.id,
         workflowRevision: mathWorkflowDefinition.revision,
-        taskIds: mathWorkflowDefinition.taskIds,
-        stages: mathWorkflowDefinition.taskIds.map((taskId) => ({
+        visibility: options.private ? "private" : "simulation",
+        curriculumApprovalHash: attestation?.evidenceHash,
+        paidProviderExecutionConfigured: Boolean(paidSetup),
+        paidProviderAuthorized: false,
+        approvalRequiredBeforeRun: Boolean(paidSetup),
+        expectedSpeechCharacters: paidSetup?.estimate.characters ?? 0,
+        expectedSpeechDurationSeconds:
+          paidSetup?.estimate.estimatedAudioSeconds ?? 0,
+        estimatedProviderCostMicros:
+          paidSetup?.estimate.estimatedCostMicros ?? 0,
+        approvedHardCeilingMicros:
+          paidSetup?.configuration.approvedCeilingMicros ?? 0,
+        providerConfiguration: paidSetup
+          ? {
+              provider: "openai-compatible",
+              model: paidSetup.estimate.model,
+              voice: paidSetup.estimate.voice,
+              speechProfileVersion: paidSetup.estimate.speechProfileVersion,
+              pricingVersion: paidSetup.configuration.pricingVersion,
+              candidateCount: 1,
+              maximumAttempts: 3,
+              concurrency: 1,
+              backoff: "educational-speech-provider-default-bounded",
+            }
+          : undefined,
+        cache: {
+          hits: 0,
+          misses: MATH_EXECUTABLE_TASK_IDS.length,
+          decision: "preflight-only; executable cache is revalidated at run time",
+        },
+        executionPolicy: {
+          concurrency: 1,
+          rateLimit: "provider account tier plus one in-flight speech request",
+          retries: paidSetup ? 2 : 0,
+          maximumAttempts: paidSetup ? 3 : 1,
+          backoff: paidSetup
+            ? "educational-speech-provider-default-bounded"
+            : "none",
+          diskRequirementBytes: 2_147_483_648,
+          workspace: options.workspace
+            ? path.resolve(options.workspace)
+            : null,
+        },
+        workspaceEvidence,
+        privacy: {
+          outputVisibility: "private",
+          livePublishingAvailable: false,
+          remoteMutationAvailable: false,
+          channelOAuthUsed: false,
+          plannedRemoteMutations: 0,
+        },
+        versions: {
+          narration: MATH_LOCKED_FACT_NARRATION_VERSION,
+          narrationReview: "math-german-narration-review.v1",
+          verifierProtocol: "math-verifier.v3",
+          verifier: "3.0.0",
+          renderer: "math-semantic-keyframe-runner.v2",
+          chalkRenderer: "math-semantic-chalk.v2",
+          visualStyle: "math.educational-visual-style.v1",
+          metadata: "math-metadata.v1",
+          speechProfile: paidSetup?.estimate.speechProfileVersion ?? null,
+          speechModel: paidSetup?.estimate.model ?? null,
+          pricing: paidSetup?.configuration.pricingVersion ?? null,
+        },
+        executableTaskCount: MATH_EXECUTABLE_TASK_IDS.length,
+        taskIds: MATH_EXECUTABLE_TASK_IDS,
+        unavailableLiveTasks: ["math.publish-approval", "math.publish"],
+        otherClass5Lessons: {
+          count: 36,
+          plannedProviderCalls: 0,
+          plannedMutations: 0,
+        },
+        stages: MATH_EXECUTABLE_TASK_IDS.map((taskId) => ({
           taskId,
           implementationOwner: registry.explain(taskId).implementationOwner,
         })),
@@ -908,11 +1488,24 @@ export function registerMathCommands(program: Command): void {
       .option("--variant <variant>", "lesson variant", "standard")
       .option("--language <language>")
       .option("--simulate")
+      .option("--private", "owner-attested provider-free private production")
+      .option(
+        "--canonical-first",
+        "derive and enforce the first Class 5 skill from the reviewed DAG"
+      )
+      .option("--paid-speech", "use paid natural German speech")
+      .option(
+        "--max-provider-cost-usd <usd>",
+        "hard provider-cost ceiling in USD",
+        parseProviderCostUsd
+      )
       .requiredOption("--workspace <path>")
       .option("--python <path>")
       .action(async (_opts, command) =>
         print(
-          await runCanonicalSimulation(selection(command), name === "resume")
+          await (selection(command).private
+            ? runCanonicalPrivateProduction(selection(command), name === "resume")
+            : runCanonicalSimulation(selection(command), name === "resume"))
         )
       );
   for (const name of ["status", "inspect"] as const)

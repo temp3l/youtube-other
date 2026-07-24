@@ -13,6 +13,10 @@ import { analyzePrerequisiteDag, prerequisitesFileSchema } from "../curriculum/d
 import { isAuthoritativeLoadedCurriculumRelease } from "../curriculum/release.js";
 import { lessonCapability } from "../lesson/capabilities.js";
 import {
+  assertPrivateOwnerCurriculumApproval,
+  type PrivateOwnerAttestation,
+} from "../review/private-owner-attestation.js";
+import {
   localizedNarrationSchema,
   type LocalizedNarration,
 } from "../localization/localization.js";
@@ -226,7 +230,7 @@ export const reviewedMetadataContextSchema = z.strictObject({
   releaseContentHash: hashSchema,
   releaseStatus: z.enum(["draft", "reviewed", "published", "superseded"]),
   sourceProvenanceHash: hashSchema,
-  sourceProvenanceComplete: z.literal(true),
+  sourceProvenanceComplete: z.boolean(),
   prerequisiteInputHash: hashSchema,
   prerequisiteReleaseId: z.string().min(1),
   prerequisites: prerequisitesFileSchema,
@@ -239,7 +243,7 @@ export const reviewedMetadataContextSchema = z.strictObject({
   producerVersion: z.literal("curriculum-release-loader.v1"),
   rolloutCapability: z.strictObject({
     skillId: z.string().min(1),
-    status: z.literal("approved-simulation"),
+    status: z.enum(["approved-simulation", "owner-attested-private"]),
     producerVersion: z.literal("reviewed-fixtures.v1"),
     variants: z.array(z.enum(["foundation", "standard", "challenge"])).length(3),
   }),
@@ -247,24 +251,35 @@ export const reviewedMetadataContextSchema = z.strictObject({
 export type ReviewedMetadataContext = z.infer<typeof reviewedMetadataContextSchema>;
 const reviewedMetadataAuthority = new WeakMap<object, string>();
 
-export function createReviewedMetadataContext(release: {
+function createMetadataContext(release: {
   release: { releaseId: string; status: "draft" | "reviewed" | "published" | "superseded" };
   releaseHash: string;
   skills: readonly CurriculumSkill[];
   prerequisites: unknown;
   provenance: { complete: boolean };
   graph: { order: readonly string[] };
-}, targetSkillId: string): ReviewedMetadataContext {
+}, targetSkillId: string, privateOwnerAttestation: PrivateOwnerAttestation | undefined, exactContentSimulation: boolean): ReviewedMetadataContext {
   if (!isAuthoritativeLoadedCurriculumRelease(release))
     throw new Error("Metadata curriculum evidence was not produced by the authoritative release loader.");
   const prerequisites = prerequisitesFileSchema.parse(release.prerequisites);
   const skill = release.skills.find((candidate) => candidate.skillId === targetSkillId);
   const capability = lessonCapability(targetSkillId);
+  const privateOwnerApproved = privateOwnerAttestation
+    ? Boolean(
+        assertPrivateOwnerCurriculumApproval(
+          privateOwnerAttestation,
+          release as Parameters<typeof assertPrivateOwnerCurriculumApproval>[1],
+          targetSkillId
+        )
+      )
+    : false;
   if (
     !skill ||
-    !release.provenance.complete ||
-    prerequisites.reviewStatus !== "reviewed" ||
-    (release.release.status !== "reviewed" && release.release.status !== "published") ||
+    (!privateOwnerApproved && !exactContentSimulation && !release.provenance.complete) ||
+    (!privateOwnerApproved && prerequisites.reviewStatus !== "reviewed") ||
+    (!privateOwnerApproved &&
+      release.release.status !== "reviewed" &&
+      release.release.status !== "published") ||
     !capability
   )
     throw new Error(`Metadata rollout is not reviewed for ${targetSkillId}.`);
@@ -278,7 +293,7 @@ export function createReviewedMetadataContext(release: {
     releaseContentHash: canonicalHash(release.release),
     releaseStatus: release.release.status,
     sourceProvenanceHash: canonicalHash(release.provenance),
-    sourceProvenanceComplete: true,
+    sourceProvenanceComplete: release.provenance.complete,
     prerequisiteInputHash: canonicalHash(prerequisites),
     prerequisiteReleaseId: release.release.releaseId,
     prerequisites,
@@ -289,10 +304,32 @@ export function createReviewedMetadataContext(release: {
     targetSkillHash: canonicalHash(skill),
     sourceProducer: "curriculum-release-loader",
     producerVersion: "curriculum-release-loader.v1",
-    rolloutCapability: capability,
+    rolloutCapability: privateOwnerApproved
+      ? { ...capability, status: "owner-attested-private" }
+      : capability,
   });
   reviewedMetadataAuthority.set(context, canonicalHash(context));
   return context;
+}
+
+export function createReviewedMetadataContext(
+  release: Parameters<typeof createMetadataContext>[0],
+  targetSkillId: string,
+  privateOwnerAttestation?: PrivateOwnerAttestation
+): ReviewedMetadataContext {
+  return createMetadataContext(
+    release,
+    targetSkillId,
+    privateOwnerAttestation,
+    false
+  );
+}
+
+export function createExactContentSimulationMetadataContext(
+  release: Parameters<typeof createMetadataContext>[0],
+  targetSkillId: string
+): ReviewedMetadataContext {
+  return createMetadataContext(release, targetSkillId, undefined, true);
 }
 
 export const mathMetadataSchema = z.strictObject({

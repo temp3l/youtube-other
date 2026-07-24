@@ -15,6 +15,7 @@ import {
   type WorkflowStore,
 } from "@mediaforge/workflow-engine";
 import { z } from "zod";
+import { hashFile } from "@mediaforge/shared";
 
 import {
   isAuthoritativeLoadedCurriculumRelease,
@@ -42,12 +43,19 @@ import {
   localizedDisplayChecks,
 } from "../localization/display-verification.js";
 import {
+  MATH_LOCKED_FACT_NARRATION_VERSION,
+  MATH_LOCKED_FACT_TASK_IMPLEMENTATION_VERSION,
   localizeNarration,
   localizedNarrationSchema,
 } from "../localization/localization.js";
 import {
+  germanStandardNarrationReviewSchema,
+  reviewGermanStandardNarration,
+} from "../localization/narration-review.js";
+import {
   createMathMetadataEvidence,
   createMetadataWorkflowEvidence,
+  createExactContentSimulationMetadataContext,
   createReviewedMetadataContext,
   generateMathMetadata,
   mathMetadataSchema,
@@ -230,6 +238,31 @@ export interface MathCanonicalAdapterOptions {
   readonly pythonExecutable?: string;
   readonly rendererVersions?: Readonly<Record<string, string>>;
   readonly lessonContentReviewEvidence?: unknown;
+  readonly privateMediaMaterializer?: (
+    input: CanonicalPrivateMediaMaterializerInput
+  ) => Promise<unknown>;
+  readonly privateSpeechMaterializer?: (
+    input: CanonicalPrivateSpeechMaterializerInput
+  ) => Promise<unknown>;
+}
+
+export interface CanonicalPrivateSpeechMaterializerInput {
+  readonly unitRoot: string;
+  readonly unitId: string;
+  readonly locale: MathLanguage;
+  readonly lesson: ReturnType<typeof buildLessonVariant>;
+  readonly narration: z.infer<typeof localizedNarrationSchema>;
+}
+
+export interface CanonicalPrivateMediaMaterializerInput {
+  readonly unitRoot: string;
+  readonly unitId: string;
+  readonly locale: MathLanguage;
+  readonly lesson: ReturnType<typeof buildLessonVariant>;
+  readonly narration: z.infer<typeof localizedNarrationSchema>;
+  readonly visualPlan: z.infer<typeof mathVisualPlanSchema>;
+  readonly timing: z.infer<typeof timingManifestSchema>;
+  readonly speech?: CanonicalPrivateSpeechEvidence;
 }
 
 function privateOwnerCurriculumEvidence(
@@ -256,6 +289,7 @@ function curriculumReadyForSelectedVisibility(
   options: MathCanonicalAdapterOptions
 ): boolean {
   return (
+    options.simulation ||
     options.curriculum.readyForProduction ||
     privateOwnerCurriculumEvidence(options) !== null
   );
@@ -281,7 +315,13 @@ function profileIdentityReasons(
   }
   const profile = options.profile;
   if (!profile) return ["The mathematics lesson profile is missing."];
-  const reasons = [...assessMathLessonProfileReadiness(profile).reasons];
+  const reasons = [
+    ...assessMathLessonProfileReadiness(
+      profile,
+      new Date(),
+      privateOwnerCurriculumEvidence(options) !== null
+    ).reasons,
+  ];
   if (profile.contentHash !== computeMathLessonProfileContentHash(profile)) {
     reasons.push(
       "The mathematics lesson-profile content hash is forged or stale."
@@ -461,6 +501,10 @@ async function promote(
   validatorId: string,
   validatorVersion: string
 ) {
+  const producerTaskVersion =
+    taskId === "math.canonical-narration" || taskId === "math.localization"
+      ? MATH_LOCKED_FACT_TASK_IMPLEMENTATION_VERSION
+      : MATH_TASK_REGISTRY_VERSION;
   const artifact = canonicalTaskArtifactSchema.parse({
     schemaVersion: MATH_CANONICAL_ARTIFACT_VERSION,
     adapterVersion: MATH_CANONICAL_ADAPTER_VERSION,
@@ -501,11 +545,13 @@ async function promote(
     content,
     mediaType: "application/json",
     producerTaskId: taskId,
-    producerTaskVersion: MATH_TASK_REGISTRY_VERSION,
+    producerTaskVersion,
     producerAttemptId: context.attemptId,
     validatorId: `math.${validatorId}`,
     validatorVersion,
     dependencyFingerprints: context.dependencyFingerprints,
+    replaceInvalidDestination: true,
+    refreshManifestOnReuse: true,
     validate: (buffer) => {
       const parsed = canonicalTaskArtifactSchema.parse(
         JSON.parse(buffer.toString("utf8")) as unknown
@@ -560,13 +606,285 @@ const sourcePayloadSchema = curriculumPayloadSchema.extend({
   prerequisiteReviewStatus: z.string(),
 });
 
+const canonicalMediaFileSchema = z
+  .object({
+    relativePath: z.string().min(1),
+    sha256: z.string().regex(/^[a-f0-9]{64}$/u),
+    byteLength: z.number().int().positive(),
+  })
+  .strict();
+
+const canonicalFixtureProviderTelemetrySchema = z
+  .object({
+    mode: z.literal("fixture-mock"),
+    calls: z.literal(0),
+    characters: z.literal(0),
+    retries: z.literal(0),
+    latencyMs: z.literal(0),
+    costMicros: z.literal(0),
+  })
+  .strict();
+const canonicalPaidProviderTelemetrySchema = z
+  .object({
+    mode: z.literal("provider"),
+    providerId: z.literal("openai-compatible"),
+    calls: z.number().int().nonnegative(),
+    characters: z.number().int().nonnegative(),
+    retries: z.number().int().nonnegative(),
+    latencyMs: z.number().nonnegative(),
+    costMicros: z.number().int().nonnegative(),
+    model: z.string().min(1),
+    voice: z.string().min(1),
+    speechProfileVersion: z.string().min(1),
+    pricingVersion: z.string().min(1),
+    approvedCeilingMicros: z.number().int().positive(),
+  })
+  .strict()
+  .refine(
+    (value) => value.costMicros <= value.approvedCeilingMicros,
+    "Actual provider cost exceeds the approved hard ceiling."
+  )
+  .refine(
+    (value) =>
+      value.calls > 0
+        ? value.characters > 0
+        : value.characters === 0 &&
+          value.retries === 0 &&
+          value.costMicros === 0,
+    "Provider telemetry must distinguish paid calls from complete cache reuse."
+  );
+const canonicalProviderTelemetrySchema = z.discriminatedUnion("mode", [
+  canonicalFixtureProviderTelemetrySchema,
+  canonicalPaidProviderTelemetrySchema,
+]);
+
+const canonicalNaturalAudioQualitySchema = z
+  .object({
+    kind: z.literal("natural-speech"),
+    audibleNarration: z.literal(true),
+    probesPassed: z.literal(true),
+    integratedLoudnessLufs: z.number().min(-24).max(-14),
+    truePeakDb: z.number().max(-1),
+    clippingDetected: z.literal(false),
+  })
+  .strict();
+
+export const canonicalPrivateSpeechEvidenceSchema = z
+  .object({
+    artifactVersion: z.literal("math-canonical-private-speech.v1"),
+    identity: z
+      .object({
+        lessonId: z.string().min(1),
+        skillId: z.string().min(1),
+        language: z.literal("de"),
+        variant: z.literal("standard"),
+      })
+      .strict(),
+    provider: canonicalPaidProviderTelemetrySchema,
+    audio: canonicalMediaFileSchema.extend({
+      durationSeconds: z.number().min(180).max(300),
+      codec: z.literal("pcm_s16le"),
+      quality: canonicalNaturalAudioQualitySchema,
+    }),
+    durations: z.array(z.number().positive()).length(9),
+    speechPlanFingerprint: z.string().regex(/^[a-f0-9]{64}$/u),
+    cacheHitCount: z.number().int().nonnegative(),
+    cacheMissCount: z.number().int().nonnegative(),
+    contentHash: z.string().regex(/^[a-f0-9]{64}$/u),
+  })
+  .strict()
+  .superRefine((value, context) => {
+    const { contentHash, ...payload } = value;
+    if (contentHash !== canonicalHash(payload)) {
+      context.addIssue({
+        code: "custom",
+        path: ["contentHash"],
+        message: "Canonical private speech evidence hash is stale or forged.",
+      });
+    }
+  });
+export type CanonicalPrivateSpeechEvidence = z.infer<
+  typeof canonicalPrivateSpeechEvidenceSchema
+>;
+
+export const canonicalPrivateMediaEvidenceSchema = z
+  .object({
+    artifactVersion: z.literal("math-canonical-private-media.v1"),
+    identity: z
+      .object({
+        lessonId: z.string().min(1),
+        skillId: z.string().min(1),
+        language: z.literal("de"),
+        variant: z.literal("standard"),
+      })
+      .strict(),
+    provider: canonicalProviderTelemetrySchema,
+    audio: canonicalMediaFileSchema.extend({
+      durationSeconds: z.number().min(180).max(300),
+      codec: z.literal("pcm_s16le"),
+      quality: z.discriminatedUnion("kind", [
+        z
+          .object({
+            kind: z.literal("test-tone"),
+            audibleNarration: z.literal(false),
+            probesPassed: z.literal(false),
+          })
+          .strict(),
+        canonicalNaturalAudioQualitySchema,
+      ]),
+    }),
+    video: canonicalMediaFileSchema.extend({
+      validation: z
+        .object({
+          valid: z.literal(true),
+          width: z.literal(1920),
+          height: z.literal(1080),
+          fps: z.literal(30),
+          durationSeconds: z.number().min(180).max(300),
+          videoCodec: z.literal("h264"),
+          audioCodec: z.string().min(1),
+          continuityChecked: z.literal(true),
+          corruptionScanPassed: z.literal(true),
+        })
+        .strict(),
+    }),
+    thumbnail: canonicalMediaFileSchema.extend({
+      width: z.literal(1920),
+      height: z.literal(1080),
+      factId: z.string().min(1),
+      factSemanticHash: z.string().regex(/^[a-f0-9]{64}$/u),
+    }),
+    thumbnailManifest: canonicalMediaFileSchema,
+    brandPolicy: canonicalMediaFileSchema,
+    captions: z
+      .object({
+        count: z.literal(9),
+        contentHash: z.string().regex(/^[a-f0-9]{64}$/u),
+        rendered: z.literal(true),
+      })
+      .strict(),
+    visualPlanHash: z.string().regex(/^[a-f0-9]{64}$/u),
+    timingHash: z.string().regex(/^[a-f0-9]{64}$/u),
+    renderFingerprint: z.string().regex(/^[a-f0-9]{64}$/u),
+    visualPresentation: z
+      .object({
+        strategy: z.literal("progressive-chalk-reveal"),
+        rendererVersion: z.literal("math-semantic-chalk.v2"),
+      })
+      .strict(),
+    publication: z
+      .object({
+        visibility: z.literal("private"),
+        publicReady: z.literal(false),
+        blockers: z.array(z.string().min(1)).min(1),
+      })
+      .strict(),
+    contentHash: z.string().regex(/^[a-f0-9]{64}$/u),
+  })
+  .strict()
+  .superRefine((value, context) => {
+    const { contentHash, ...payload } = value;
+    if (contentHash !== canonicalHash(payload)) {
+      context.addIssue({
+        code: "custom",
+        path: ["contentHash"],
+        message: "Canonical private media evidence hash is stale or forged.",
+      });
+    }
+    if (
+      (value.provider.mode === "fixture-mock") !==
+      (value.audio.quality.kind === "test-tone")
+    ) {
+      context.addIssue({
+        code: "custom",
+        path: ["audio", "quality"],
+        message: "Audio quality kind must match the provider evidence.",
+      });
+    }
+  });
+
+export type CanonicalPrivateMediaEvidence = z.infer<
+  typeof canonicalPrivateMediaEvidenceSchema
+>;
+
+function containedMediaPath(unitRoot: string, relativePath: string): string {
+  if (
+    path.isAbsolute(relativePath) ||
+    relativePath.includes("\\") ||
+    relativePath.split("/").some((part) => part === ".." || part === "")
+  ) {
+    throw new Error(`Canonical private media path is unsafe: ${relativePath}`);
+  }
+  const root = path.resolve(unitRoot);
+  const resolved = path.resolve(root, relativePath);
+  const relation = path.relative(root, resolved);
+  if (relation.startsWith("..") || path.isAbsolute(relation)) {
+    throw new Error(
+      `Canonical private media path escapes its unit: ${relativePath}`
+    );
+  }
+  return resolved;
+}
+
+export async function verifyCanonicalPrivateMediaEvidenceFiles(
+  unitRoot: string,
+  rawEvidence: unknown
+): Promise<CanonicalPrivateMediaEvidence> {
+  const evidence = canonicalPrivateMediaEvidenceSchema.parse(rawEvidence);
+  for (const file of [
+    evidence.audio,
+    evidence.video,
+    evidence.thumbnail,
+    evidence.thumbnailManifest,
+    evidence.brandPolicy,
+  ]) {
+    const absolutePath = containedMediaPath(unitRoot, file.relativePath);
+    const stat = await fs.stat(absolutePath);
+    if (!stat.isFile() || stat.size !== file.byteLength) {
+      throw new Error(
+        `Canonical private media byte length is invalid: ${file.relativePath}`
+      );
+    }
+    if ((await hashFile(absolutePath)) !== file.sha256) {
+      throw new Error(
+        `Canonical private media hash is invalid: ${file.relativePath}`
+      );
+    }
+  }
+  return evidence;
+}
+
+export async function verifyCanonicalPrivateSpeechEvidenceFiles(
+  unitRoot: string,
+  rawEvidence: unknown
+): Promise<CanonicalPrivateSpeechEvidence> {
+  const evidence = canonicalPrivateSpeechEvidenceSchema.parse(rawEvidence);
+  const absolutePath = containedMediaPath(
+    unitRoot,
+    evidence.audio.relativePath
+  );
+  const stat = await fs.stat(absolutePath);
+  if (!stat.isFile() || stat.size !== evidence.audio.byteLength) {
+    throw new Error(
+      `Canonical private speech byte length is invalid: ${evidence.audio.relativePath}`
+    );
+  }
+  if ((await hashFile(absolutePath)) !== evidence.audio.sha256) {
+    throw new Error(
+      `Canonical private speech hash is invalid: ${evidence.audio.relativePath}`
+    );
+  }
+  return evidence;
+}
+
 const rendererEvidenceSchema = z
   .object({
     status: z.literal("validated"),
     rendererVersions: z.record(z.string(), z.string()),
     visualPlanHash: z.string().regex(/^[a-f0-9]{64}$/u),
     timingHash: z.string().regex(/^[a-f0-9]{64}$/u),
-    providerFree: z.literal(true),
+    providerFree: z.boolean(),
+    media: canonicalPrivateMediaEvidenceSchema.optional(),
   })
   .strict();
 
@@ -751,7 +1069,7 @@ export function createMathProductionTaskImplementations(
       "math.canonical-narration",
       narration,
       "locked-fact-narration-builder",
-      "locked-facts.v2"
+      "locked-facts.v3"
     );
   };
 
@@ -793,13 +1111,21 @@ export function createMathProductionTaskImplementations(
       )
     );
     assertLocalizedDisplayVerification(checks, displayVerification);
+    const narrationReview =
+      options.locale === "de" && options.lessonVariant === "standard"
+        ? reviewGermanStandardNarration({ lesson, narration })
+        : undefined;
     return promote(
       options,
       context,
       "math.localization",
-      { narration, displayVerification },
+      {
+        narration,
+        displayVerification,
+        ...(narrationReview ? { narrationReview } : {}),
+      },
       "locked-fact-localizer",
-      "locked-facts.v2"
+      "locked-facts.v3"
     );
   };
 
@@ -870,12 +1196,6 @@ export function createMathProductionTaskImplementations(
         "Configure the runtime and repeat with an explicit operator action."
       );
     }
-    if (options.providerAuthorization.mode !== "fixture-mock") {
-      throw new WorkflowBlockedError(
-        "No production speech provider adapter is enabled for this workflow.",
-        "Use an explicitly configured and reviewed provider adapter; tests must use fixture-mock."
-      );
-    }
     const localized = payload(
       await verifiedTaskArtifact(options, "math.localization"),
       z.object({ narration: localizedNarrationSchema }).passthrough()
@@ -885,23 +1205,61 @@ export function createMathProductionTaskImplementations(
       z.object({ scenes: z.array(z.unknown()).length(9) }).passthrough()
     ) as ReturnType<typeof buildLessonVariant>;
     const beats = buildMathEducationalNarrationBeats(localized.narration);
-    const durations = lesson.scenes.map(
-      (scene) => scene.plannedDurationSeconds
-    );
+    const privateSpeech =
+      options.providerAuthorization.mode === "provider"
+        ? await (async () => {
+            if (!options.privateSpeechMaterializer) {
+              throw new WorkflowBlockedError(
+                "Canonical paid speech materializer is not configured."
+              );
+            }
+            const materialized = canonicalPrivateSpeechEvidenceSchema.parse(
+              await options.privateSpeechMaterializer({
+                unitRoot: options.unitRoot,
+                unitId: options.unitId,
+                locale: options.locale,
+                lesson,
+                narration: localized.narration,
+              })
+            );
+            if (
+              materialized.identity.lessonId !== options.unitId ||
+              materialized.identity.skillId !== options.skillId ||
+              materialized.identity.language !== options.locale ||
+              materialized.identity.variant !== options.lessonVariant
+            ) {
+              throw new Error(
+                "Canonical private speech identity does not match the workflow selection."
+              );
+            }
+            return verifyCanonicalPrivateSpeechEvidenceFiles(
+              options.unitRoot,
+              materialized
+            );
+          })()
+        : undefined;
+    const durations =
+      privateSpeech?.durations ??
+      lesson.scenes.map((scene) => scene.plannedDurationSeconds);
     return promote(
       options,
       context,
       "math.tts",
       {
-        schemaVersion: "math.provider-free-speech-fixture.v1",
-        provider: "fixture-mock",
-        providerCalls: 0,
+        schemaVersion: privateSpeech
+          ? "math.canonical-private-speech-task.v1"
+          : "math.provider-free-speech-fixture.v1",
+        provider: privateSpeech ? "openai-compatible" : "fixture-mock",
+        providerCalls: privateSpeech?.provider.calls ?? 0,
         configurationFingerprint:
           options.providerAuthorization.configurationFingerprint,
         beats,
         durations,
+        ...(privateSpeech ? { speech: privateSpeech } : {}),
       },
-      "speech-provider-free-fixture",
+      privateSpeech
+        ? "canonical-private-speech-materializer"
+        : "speech-provider-free-fixture",
       "educational-speech.v1"
     );
   };
@@ -945,6 +1303,56 @@ export function createMathProductionTaskImplementations(
       timingManifestSchema
     );
     await verifiedTaskArtifact(options, "math.visual-style");
+    const lesson = payload(
+      await verifiedTaskArtifact(options, "math.lesson-spec"),
+      z.object({ lessonId: z.string() }).passthrough()
+    ) as ReturnType<typeof buildLessonVariant>;
+    const localized = payload(
+      await verifiedTaskArtifact(options, "math.localization"),
+      z.object({ narration: localizedNarrationSchema }).passthrough()
+    );
+    const speechTask = payload(
+      await verifiedTaskArtifact(options, "math.tts"),
+      z
+        .object({ speech: canonicalPrivateSpeechEvidenceSchema.optional() })
+        .passthrough()
+    );
+    const media = options.simulation
+      ? undefined
+      : await (async () => {
+          if (!options.privateMediaMaterializer) {
+            throw new WorkflowBlockedError(
+              "Canonical private media materializer is not configured."
+            );
+          }
+          const materialized = canonicalPrivateMediaEvidenceSchema.parse(
+            await options.privateMediaMaterializer({
+              unitRoot: options.unitRoot,
+              unitId: options.unitId,
+              locale: options.locale,
+              lesson,
+              narration: localized.narration,
+              visualPlan: visual,
+              timing,
+              ...(speechTask.speech ? { speech: speechTask.speech } : {}),
+            })
+          );
+          if (
+            materialized.identity.lessonId !== options.unitId ||
+            materialized.identity.skillId !== options.skillId ||
+            materialized.identity.language !== options.locale ||
+            materialized.identity.variant !== options.lessonVariant
+          ) {
+            throw new Error(
+              "Canonical private media identity does not match the workflow selection."
+            );
+          }
+          await verifyCanonicalPrivateMediaEvidenceFiles(
+            options.unitRoot,
+            materialized
+          );
+          return materialized;
+        })();
     const evidence = rendererEvidenceSchema.parse({
       status: "validated",
       rendererVersions: options.rendererVersions ?? {
@@ -953,7 +1361,8 @@ export function createMathProductionTaskImplementations(
       },
       visualPlanHash: canonicalHash(visual),
       timingHash: canonicalHash(timing),
-      providerFree: true,
+      providerFree: options.providerAuthorization.mode === "fixture-mock",
+      ...(media ? { media } : {}),
     });
     return promote(
       options,
@@ -973,6 +1382,24 @@ export function createMathProductionTaskImplementations(
     const verification = payload(verificationArtifact, verifierResponseSchema);
     const renderArtifact = await verifiedTaskArtifact(options, "math.render");
     const render = payload(renderArtifact, rendererEvidenceSchema);
+    const localizationArtifact = await verifiedTaskArtifact(
+      options,
+      "math.localization"
+    );
+    const localization = payload(
+      localizationArtifact,
+      z
+        .object({
+          narrationReview: germanStandardNarrationReviewSchema.optional(),
+        })
+        .passthrough()
+    );
+    const naturalSpeechReady =
+      options.simulation ||
+      (render.media?.provider.mode === "provider" &&
+        render.media.audio.quality.kind === "natural-speech" &&
+        render.media.audio.quality.audibleNarration &&
+        render.media.audio.quality.probesPassed);
     const evidenceHash = (value: unknown) => canonicalHash(value);
     const report = mathQualityReportSchema.parse(
       deriveMathQuality({
@@ -999,10 +1426,20 @@ export function createMathProductionTaskImplementations(
           }),
           qualityCheck({
             checkId: "localization",
-            ready: true,
-            evidenceHash: evidenceHash(options.locale),
+            ready:
+              options.locale !== "de" ||
+              options.lessonVariant !== "standard" ||
+              Boolean(
+                localization.narrationReview?.checks.every(
+                  (check) => check.status === "passed"
+                )
+              ),
+            evidenceHash:
+              localization.narrationReview?.contentHash ??
+              evidenceHash(options.locale),
             assessedLocales: [options.locale],
-            message: "Locked-fact localization passed.",
+            message:
+              "Locked-fact localization and independent narration review passed.",
           }),
           qualityCheck({
             checkId: "timing",
@@ -1012,29 +1449,46 @@ export function createMathProductionTaskImplementations(
           }),
           qualityCheck({
             checkId: "audio",
-            ready: true,
+            ready: naturalSpeechReady,
             evidenceHash: evidenceHash(
-              options.providerAuthorization.configurationFingerprint
+              naturalSpeechReady
+                ? (render.media?.audio.sha256 ??
+                    options.providerAuthorization.configurationFingerprint)
+                : "unacceptable-test-tone"
             ),
-            message: "Provider-free fixture speech passed.",
+            message: naturalSpeechReady
+              ? options.simulation
+                ? "Provider-free simulation speech passed."
+                : "Audible natural speech and configured audio probes passed."
+              : "Test-tone audio is not acceptable as private lesson narration.",
           }),
           qualityCheck({
             checkId: "render",
-            ready: render.status === "validated",
+            ready:
+              render.status === "validated" &&
+              (options.simulation || Boolean(render.media)),
             evidenceHash: evidenceHash(render),
             message: "Educational renderer plan passed.",
           }),
           qualityCheck({
             checkId: "media-qa-packet",
             ready: true,
-            evidenceHash: renderArtifact.manifest.checksumSha256,
-            message: "Workflow-owned render evidence passed.",
+            evidenceHash:
+              render.media?.contentHash ??
+              renderArtifact.manifest.checksumSha256,
+            message: render.media
+              ? "Workflow-owned media QA passed."
+              : "Workflow-owned render evidence passed.",
           }),
           qualityCheck({
             checkId: "final-media",
             ready: true,
-            evidenceHash: renderArtifact.manifest.checksumSha256,
-            message: "Provider-free fixture media evidence passed.",
+            evidenceHash:
+              render.media?.video.sha256 ??
+              renderArtifact.manifest.checksumSha256,
+            message: render.media
+              ? "Hash-verified local final media passed."
+              : "Provider-free fixture media evidence passed.",
           }),
           qualityCheck({
             checkId: "publish-packet",
@@ -1095,10 +1549,16 @@ export function createMathProductionTaskImplementations(
     );
     const metadata = mathMetadataSchema.parse(
       generateMathMetadata({
-        reviewedContext: createReviewedMetadataContext(
-          options.curriculum,
-          skill.skillId
-        ),
+        reviewedContext: options.simulation
+          ? createExactContentSimulationMetadataContext(
+              options.curriculum,
+              skill.skillId
+            )
+          : createReviewedMetadataContext(
+              options.curriculum,
+              skill.skillId,
+              options.privateOwnerAttestation
+            ),
         skill,
         lesson,
         localization: localized.narration,
@@ -1152,6 +1612,7 @@ export function createMathProductionTaskImplementations(
       "math.quality-gate"
     );
     const renderArtifact = await verifiedTaskArtifact(options, "math.render");
+    const render = payload(renderArtifact, rendererEvidenceSchema);
     const syntheticHash = (label: string) =>
       canonicalHash({
         label,
@@ -1161,18 +1622,32 @@ export function createMathProductionTaskImplementations(
     const report = createPublishDryRunManifest({
       metadata,
       metadataPath: `locales/${options.locale}/metadata.json`,
-      thumbnailManifestPath: `locales/${options.locale}/thumbnail.svg.manifest.json`,
-      thumbnailManifestHash: syntheticHash("thumbnail-manifest"),
-      thumbnailAssetPath: `locales/${options.locale}/thumbnail.svg`,
-      thumbnailAssetHash: syntheticHash("thumbnail-asset"),
-      finalMediaPath: `locales/${options.locale}/render/final.mp4`,
-      finalMediaHash: renderArtifact.manifest.checksumSha256,
+      thumbnailManifestPath:
+        render.media?.thumbnailManifest.relativePath ??
+        `locales/${options.locale}/thumbnail.svg.manifest.json`,
+      thumbnailManifestHash:
+        render.media?.thumbnailManifest.sha256 ??
+        syntheticHash("thumbnail-manifest"),
+      thumbnailAssetPath:
+        render.media?.thumbnail.relativePath ??
+        `locales/${options.locale}/thumbnail.svg`,
+      thumbnailAssetHash:
+        render.media?.thumbnail.sha256 ?? syntheticHash("thumbnail-asset"),
+      finalMediaPath:
+        render.media?.video.relativePath ??
+        `locales/${options.locale}/render/final.mp4`,
+      finalMediaHash:
+        render.media?.video.sha256 ?? renderArtifact.manifest.checksumSha256,
       finalMediaEvidencePath: `locales/${options.locale}/final-media.json`,
-      finalMediaEvidenceHash: renderArtifact.manifest.checksumSha256,
+      finalMediaEvidenceHash:
+        render.media?.contentHash ?? renderArtifact.manifest.checksumSha256,
       qualityPath: "canonical/quality.json",
       qualityHash: qualityArtifact.manifest.checksumSha256,
-      brandPolicyPath: `locales/${options.locale}/brand-policy.json`,
-      brandPolicyHash: syntheticHash("brand-policy"),
+      brandPolicyPath:
+        render.media?.brandPolicy.relativePath ??
+        `locales/${options.locale}/brand-policy.json`,
+      brandPolicyHash:
+        render.media?.brandPolicy.sha256 ?? syntheticHash("brand-policy"),
       channelId: `dry-run-${options.locale}`,
       privacyStatus: "private",
       madeForKids: false,

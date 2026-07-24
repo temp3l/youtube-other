@@ -62,7 +62,13 @@ export const mathLessonProfileManifestSchema = z
         releaseId: identifier,
         revision,
         releaseHash: sha256,
-        status: z.enum(["draft", "reviewed", "published", "superseded"]),
+        status: z.enum([
+          "draft",
+          "reviewed",
+          "published",
+          "superseded",
+          "owner-attested-private",
+        ]),
         schoolType: nonEmpty,
         grade: mathGradeSchema,
         sourceUrls: z.array(z.string().url()).min(1),
@@ -399,7 +405,8 @@ function approvalIsCurrent(
 
 export function assessMathLessonProfileReadiness(
   input: MathLessonProfileManifest | null,
-  now = new Date()
+  now = new Date(),
+  allowPrivateOwnerAttestation = false
 ): MathProfileReadiness {
   if (!input) {
     return {
@@ -421,7 +428,13 @@ export function assessMathLessonProfileReadiness(
       "The exact mathematics lesson-profile revision is not approved."
     );
   }
-  if (!["reviewed", "published"].includes(profile.curriculum.status)) {
+  if (
+    !["reviewed", "published"].includes(profile.curriculum.status) &&
+    !(
+      allowPrivateOwnerAttestation &&
+      profile.curriculum.status === "owner-attested-private"
+    )
+  ) {
     reasons.push("The bound curriculum release is not reviewed or published.");
   }
   return { ready: reasons.length === 0, reasons };

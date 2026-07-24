@@ -15,6 +15,7 @@ export * from "./lesson/variant-builder.js";
 export * from "./lesson/timing.js";
 export * from "./lesson/educational-speech-sync.js";
 export * from "./localization/localization.js";
+export * from "./localization/narration-review.js";
 export * from "./localization/display-verification.js";
 export * from "./localization/fact-lock.js";
 export * from "./localization/glossary.js";

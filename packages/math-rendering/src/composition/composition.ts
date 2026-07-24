@@ -62,6 +62,10 @@ export const mathSceneAssetSchema = z.strictObject({
       areaRatio: z.number().positive(),
     })
     .optional(),
+  animation: z.strictObject({
+    mode: z.literal("progressive-chalk-reveal"),
+    rendererVersion: z.literal("math-semantic-chalk.v2"),
+  }).optional(),
 });
 export type MathSceneAsset = z.infer<typeof mathSceneAssetSchema>;
 

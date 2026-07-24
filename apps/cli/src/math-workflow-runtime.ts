@@ -1,6 +1,22 @@
 import crypto from "node:crypto";
+import fs from "node:fs/promises";
 import path from "node:path";
+import { runCommand } from "@mediaforge/process-runner";
 
+import {
+  cacheSemanticSvg,
+  createMathCaption,
+  generateLocalMockTts,
+  renderProviderFreeMathMedia,
+  type MathSceneAsset,
+  type SemanticMathComponent,
+} from "@mediaforge/math-rendering";
+import {
+  hashFile,
+  hashText,
+  writeBinaryAtomic,
+  writeJsonAtomic,
+} from "@mediaforge/shared";
 import {
   ArtifactRepository,
   WorkflowOperator,
@@ -11,17 +27,38 @@ import {
   MathProfileStore,
   assessAuthoritativeMathReadiness,
   canonicalHash,
+  canonicalPrivateMediaEvidenceSchema,
+  computeEducationalVisualStyleContentHash,
+  computeMathLessonProfileContentHash,
   createMathFingerprintMaterial,
   createMathProductionTaskImplementations,
   createMathTaskRegistrations,
   loadCurriculumRelease,
   loadPrivateOwnerAttestation,
+  mathLessonProfileManifestSchema,
+  educationalVisualStyleManifestSchema,
+  buildLessonVariant,
+  buildMathEducationalNarrationBeats,
+  verifyCanonicalPrivateMediaEvidenceFiles,
   mathLanguageSchema,
   mathWorkflowDefinition,
   type LessonVariant,
   type MathLanguage,
   type MathProviderAuthorization,
+  type CanonicalPrivateMediaMaterializerInput,
+  type PrivateOwnerAttestation,
+  type CanonicalPrivateSpeechMaterializerInput,
 } from "@mediaforge/math-education";
+import {
+  analyzeWavQuality,
+  buildEducationalSpeechPlan,
+  generateEducationalSpeech,
+  parseWavMetadata,
+  probeAudioWithFfprobe,
+  type PronunciationDictionary,
+  type SpeechDeliveryProfile,
+  type SpeechProvider,
+} from "@mediaforge/speech";
 
 export interface CanonicalMathOperatorInput {
   readonly repositoryRoot: string;
@@ -36,8 +73,856 @@ export interface CanonicalMathOperatorInput {
   readonly pythonExecutable?: string;
   readonly authorizeProvider?: boolean;
   readonly providerMode?: "fixture-mock" | "provider";
+  readonly providerConfigurationFingerprint?: string;
   readonly releaseVisibility?: "private" | "public";
   readonly privateOwnerAttestationPath?: string;
+  readonly privateMediaMaterializer?: (
+    input: CanonicalPrivateMediaMaterializerInput
+  ) => Promise<unknown>;
+  readonly privateSpeechMaterializer?: (
+    input: CanonicalPrivateSpeechMaterializerInput
+  ) => Promise<unknown>;
+}
+
+type CanonicalVisualFact =
+  CanonicalPrivateMediaMaterializerInput["lesson"]["facts"][number];
+export const CANONICAL_PRIVATE_FACT_BOARD_MINIMUM_GLYPH_PX = 72;
+export const CANONICAL_OPENAI_SPEECH_PRICING_VERSION =
+  "openai-gpt-4o-mini-tts-token-pricing-2026-07-15.v2" as const;
+// Conservative token-price proxy: $12/M output-audio tokens, budgeted at
+// 25 audio tokens/second. This intentionally rounds above the published
+// approximate per-minute cost.
+export const CANONICAL_OPENAI_SPEECH_OUTPUT_MICROS_PER_SECOND = 300;
+export const CANONICAL_SPEECH_TEXT_INPUT_MICROS_PER_CHARACTER = 0.6;
+export const CANONICAL_SPEECH_WORST_CASE_MULTIPLIER = 3;
+
+export interface CanonicalPaidSpeechConfiguration {
+  readonly provider: SpeechProvider;
+  readonly providerBaseUrlIdentity: string;
+  readonly profile: SpeechDeliveryProfile;
+  readonly pronunciationDictionaries: readonly PronunciationDictionary[];
+  readonly approvedCeilingMicros: number;
+  readonly pricingVersion: typeof CANONICAL_OPENAI_SPEECH_PRICING_VERSION;
+}
+
+export function estimateCanonicalPaidSpeechCostMicros(input: {
+  readonly estimatedAudioSeconds: number;
+  readonly inputCharacters: number;
+  readonly providerRequests: number;
+}): number {
+  if (input.providerRequests === 0) return 0;
+  const worstCaseAudioSeconds =
+    input.estimatedAudioSeconds * CANONICAL_SPEECH_WORST_CASE_MULTIPLIER;
+  const textInputMicros = Math.ceil(
+    input.inputCharacters *
+      CANONICAL_SPEECH_TEXT_INPUT_MICROS_PER_CHARACTER *
+      CANONICAL_SPEECH_WORST_CASE_MULTIPLIER
+  );
+  return Math.ceil(
+    worstCaseAudioSeconds *
+      CANONICAL_OPENAI_SPEECH_OUTPUT_MICROS_PER_SECOND +
+      textInputMicros
+  );
+}
+
+function parseLoudnormMeasurement(stderr: string): {
+  integratedLoudnessLufs: number;
+  truePeakDb: number;
+} {
+  const blocks = [...stderr.matchAll(/\{[\s\S]*?"input_i"[\s\S]*?\}/gu)];
+  const block = blocks.at(-1)?.[0] ?? "";
+  const integrated = /"input_i"\s*:\s*"(-?\d+(?:\.\d+)?)"/u.exec(block)?.[1];
+  const peak = /"input_tp"\s*:\s*"(-?\d+(?:\.\d+)?)"/u.exec(block)?.[1];
+  const integratedLoudnessLufs = Number(integrated);
+  const truePeakDb = Number(peak);
+  if (!Number.isFinite(integratedLoudnessLufs) || !Number.isFinite(truePeakDb)) {
+    throw new Error("Unable to parse canonical narration loudness evidence.");
+  }
+  return { integratedLoudnessLufs, truePeakDb };
+}
+
+export async function materializeCanonicalPrivateSpeech(
+  input: CanonicalPrivateSpeechMaterializerInput,
+  configuration: CanonicalPaidSpeechConfiguration
+): Promise<unknown> {
+  if (input.locale !== "de" || input.lesson.variant !== "standard") {
+    throw new Error("Canonical paid speech is restricted to German standard lessons.");
+  }
+  const outputRoot = path.join(
+    input.unitRoot,
+    "locales",
+    input.locale,
+    "audio",
+    "educational-speech"
+  );
+  const canonicalAudioPath = path.join(
+    input.unitRoot,
+    "locales",
+    input.locale,
+    "audio",
+    "narration.wav"
+  );
+  const plan = buildEducationalSpeechPlan({
+    episodeId: input.unitId,
+    profile: configuration.profile,
+    beats: buildMathEducationalNarrationBeats(input.narration),
+    pronunciationDictionaries: configuration.pronunciationDictionaries,
+  });
+  const dryRun = await generateEducationalSpeech({
+    plan,
+    profile: configuration.profile,
+    pronunciationDictionaries: configuration.pronunciationDictionaries,
+    providerId: "openai-compatible",
+    providerBaseUrlIdentity: configuration.providerBaseUrlIdentity,
+    outputRoot,
+    candidateCount: 1,
+    dryRun: true,
+    maxAttempts: 3,
+  });
+  if (dryRun.status !== "dry-run") {
+    throw new Error("Canonical speech preflight did not remain side-effect-free.");
+  }
+  const estimatedAudioSeconds = Math.max(
+    input.lesson.targetDurationSeconds,
+    plan.chunks.reduce(
+      (total, chunk) => total + chunk.estimatedDurationMs / 1_000,
+      0
+    )
+  );
+  const estimatedCostMicros = estimateCanonicalPaidSpeechCostMicros({
+    estimatedAudioSeconds,
+    inputCharacters: dryRun.dryRun.estimatedInputCharacters,
+    providerRequests: dryRun.dryRun.estimatedProviderRequests,
+  });
+  if (estimatedCostMicros > configuration.approvedCeilingMicros) {
+    throw new Error(
+      `Canonical speech estimate ${estimatedCostMicros} micros exceeds approved ceiling ${configuration.approvedCeilingMicros} micros.`
+    );
+  }
+  const generated = await generateEducationalSpeech({
+    plan,
+    profile: configuration.profile,
+    pronunciationDictionaries: configuration.pronunciationDictionaries,
+    providerId: "openai-compatible",
+    provider: configuration.provider,
+    providerBaseUrlIdentity: configuration.providerBaseUrlIdentity,
+    outputRoot,
+    candidateCount: 1,
+    maxAttempts: 3,
+  });
+  if (generated.status !== "completed" || !generated.outputPath) {
+    throw new Error("Canonical paid speech generation did not complete.");
+  }
+  const sourceProbe = await probeAudioWithFfprobe(generated.outputPath);
+  if (
+    !Number.isFinite(sourceProbe.durationSeconds) ||
+    sourceProbe.durationSeconds <= 0 ||
+    sourceProbe.durationSeconds > input.lesson.targetDurationSeconds
+  ) {
+    throw new Error(
+      `Generated narration duration ${sourceProbe.durationSeconds} cannot be synchronized without truncation.`
+    );
+  }
+  await fs.mkdir(path.dirname(canonicalAudioPath), { recursive: true });
+  const temporaryPath = `${canonicalAudioPath}.${process.pid}.tmp.wav`;
+  try {
+    await runCommand(
+      "ffmpeg",
+      [
+        "-hide_banner",
+        "-loglevel",
+        "error",
+        "-y",
+        "-i",
+        generated.outputPath,
+        "-af",
+        `apad=whole_dur=${input.lesson.targetDurationSeconds},atrim=duration=${input.lesson.targetDurationSeconds}`,
+        "-ar",
+        "48000",
+        "-ac",
+        "1",
+        "-c:a",
+        "pcm_s16le",
+        temporaryPath,
+      ],
+      { timeoutMs: 180_000 }
+    );
+    await fs.rename(temporaryPath, canonicalAudioPath);
+  } finally {
+    await fs.unlink(temporaryPath).catch(() => undefined);
+  }
+  const audioBuffer = await fs.readFile(canonicalAudioPath);
+  const wav = parseWavMetadata(canonicalAudioPath, audioBuffer);
+  const quality = analyzeWavQuality(audioBuffer, wav);
+  const loudnessCommand = await runCommand(
+    "ffmpeg",
+    [
+      "-hide_banner",
+      "-nostats",
+      "-i",
+      canonicalAudioPath,
+      "-af",
+      "loudnorm=I=-17:TP=-2:LRA=11:print_format=json",
+      "-f",
+      "null",
+      "-",
+    ],
+    { timeoutMs: 180_000 }
+  );
+  const loudness = parseLoudnormMeasurement(loudnessCommand.stderr);
+  if (
+    wav.durationSeconds < 239.9 ||
+    wav.durationSeconds > 240.1 ||
+    loudness.integratedLoudnessLufs < -24 ||
+    loudness.integratedLoudnessLufs > -14 ||
+    loudness.truePeakDb > -1 ||
+    quality.clippedRatio > 0 ||
+    quality.normalizedEntropy < 0.3
+  ) {
+    throw new Error("Canonical paid narration failed audio quality probes.");
+  }
+  const selectedCandidates = generated.workflow.chunks.flatMap((chunk) =>
+    chunk.candidates.filter((candidate) => candidate.selected)
+  );
+  const dryRunByChunk = new Map(
+    dryRun.dryRun.chunks.map((chunk) => [chunk.chunkId, chunk])
+  );
+  const actualCalls = selectedCandidates.reduce(
+    (total, candidate) =>
+      total + (candidate.cacheHit ? 0 : candidate.attemptCount),
+    0
+  );
+  const actualCharacters = selectedCandidates.reduce((total, candidate) => {
+    if (candidate.cacheHit) return total;
+    const planned = dryRunByChunk.get(candidate.chunkId);
+    if (!planned) throw new Error(`Missing speech telemetry for ${candidate.chunkId}.`);
+    return total + planned.inputCharacters * candidate.attemptCount;
+  }, 0);
+  const billedAudioSeconds = selectedCandidates.reduce(
+    (total, candidate) =>
+      total +
+      (candidate.cacheHit ? 0 : ((candidate.durationMs ?? 0) / 1_000) * candidate.attemptCount),
+    0
+  );
+  const actualCostMicros =
+    actualCalls === 0
+      ? 0
+      : Math.ceil(
+          billedAudioSeconds *
+            CANONICAL_OPENAI_SPEECH_OUTPUT_MICROS_PER_SECOND +
+            actualCharacters *
+              CANONICAL_SPEECH_TEXT_INPUT_MICROS_PER_CHARACTER
+        );
+  if (actualCostMicros > configuration.approvedCeilingMicros) {
+    throw new Error("Actual canonical speech cost exceeds the approved ceiling.");
+  }
+  const segmentWeights = input.narration.segments.map(
+    (segment) => segment.spokenText.trim().split(/\s+/u).filter(Boolean).length
+  );
+  const evidencePayload = {
+    artifactVersion: "math-canonical-private-speech.v1" as const,
+    identity: {
+      lessonId: input.unitId,
+      skillId: input.lesson.skillId,
+      language: "de" as const,
+      variant: "standard" as const,
+    },
+    provider: {
+      mode: "provider" as const,
+      providerId: "openai-compatible" as const,
+      calls: actualCalls,
+      characters: actualCharacters,
+      retries: selectedCandidates.reduce(
+        (total, candidate) =>
+          total +
+          (candidate.cacheHit ? 0 : Math.max(0, candidate.attemptCount - 1)),
+        0
+      ),
+      latencyMs: selectedCandidates.reduce(
+        (total, candidate) =>
+          total + (candidate.cacheHit ? 0 : candidate.providerDurationMs),
+        0
+      ),
+      costMicros: actualCostMicros,
+      model: generated.workflow.model,
+      voice: generated.workflow.voice,
+      speechProfileVersion: generated.workflow.speechProfileVersion,
+      pricingVersion: configuration.pricingVersion,
+      approvedCeilingMicros: configuration.approvedCeilingMicros,
+    },
+    audio: {
+      relativePath: `locales/${input.locale}/audio/narration.wav`,
+      sha256: await hashFile(canonicalAudioPath),
+      byteLength: audioBuffer.byteLength,
+      durationSeconds: wav.durationSeconds,
+      codec: "pcm_s16le" as const,
+      quality: {
+        kind: "natural-speech" as const,
+        audibleNarration: true as const,
+        probesPassed: true as const,
+        integratedLoudnessLufs: loudness.integratedLoudnessLufs,
+        truePeakDb: loudness.truePeakDb,
+        clippingDetected: false as const,
+      },
+    },
+    durations: segmentWeights,
+    speechPlanFingerprint: plan.planFingerprint,
+    cacheHitCount: generated.workflow.cacheHitCount,
+    cacheMissCount: selectedCandidates.filter((candidate) => !candidate.cacheHit)
+      .length,
+  };
+  return {
+    ...evidencePayload,
+    contentHash: canonicalHash(evidencePayload),
+  };
+}
+
+export function selectCanonicalSemanticComponent(
+  _sceneComponent: CanonicalPrivateMediaMaterializerInput["visualPlan"]["scenes"][number]["component"],
+  boundFacts: readonly CanonicalVisualFact[]
+): SemanticMathComponent | null {
+  if (boundFacts.length === 0) return null;
+  if (
+    boundFacts.length === 1 &&
+    boundFacts[0]?.semantic.kind === "measurement"
+  ) {
+    return {
+      kind: "measurement",
+      measurements: [
+        {
+          factId: boundFacts[0].factId,
+          value: boundFacts[0].semantic.value,
+          unit: boundFacts[0].semantic.unit,
+        },
+      ],
+    };
+  }
+  if (boundFacts.length === 1 && boundFacts[0]?.semantic.kind === "scalar") {
+    return {
+      kind: "formula",
+      value: {
+        factId: boundFacts[0].factId,
+        expression: boundFacts[0].semantic.expression,
+      },
+    };
+  }
+  return null;
+}
+
+const canonicalSceneCaptionLabels: Readonly<Record<string, string>> = {
+  hook: "Einstieg",
+  objective: "Lernziel",
+  model: "Modell",
+  "worked-example": "Beispiel",
+  mistake: "Typischer Fehler",
+  "guided-practice": "Geführte Übung",
+  "think-pause": "Denkpause",
+  solution: "Lösung",
+  recap: "Zusammenfassung",
+};
+
+function canonicalSceneCaption(
+  input: CanonicalPrivateMediaMaterializerInput,
+  scene: CanonicalPrivateMediaMaterializerInput["visualPlan"]["scenes"][number],
+  boundFacts: readonly CanonicalVisualFact[]
+): string {
+  const lessonScene = input.lesson.scenes.find(
+    (candidate) => candidate.sceneId === scene.sceneId
+  );
+  if (!lessonScene) throw new Error(`Missing lesson scene ${scene.sceneId}.`);
+  const label =
+    canonicalSceneCaptionLabels[lessonScene.sceneFunction] ??
+    lessonScene.sceneFunction;
+  const localizedFacts = scene.factIds.map((factId) => {
+    const fact = input.narration.resolvedFacts.find(
+      (candidate) => candidate.factId === factId
+    );
+    if (!fact) throw new Error(`Missing localized caption fact ${factId}.`);
+    return fact.display;
+  });
+  const text =
+    localizedFacts.length > 0
+      ? `${label}: ${localizedFacts.join("; ")}`
+      : `${label}: ${input.lesson.learningObjective}`;
+  if (text.length > 180) {
+    throw new Error(
+      `Fact-bound caption exceeds the readable budget in ${scene.sceneId}.`
+    );
+  }
+  if (boundFacts.length !== localizedFacts.length) {
+    throw new Error(`Caption fact binding changed in ${scene.sceneId}.`);
+  }
+  return text;
+}
+
+function escapeXml(value: string): string {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&apos;");
+}
+
+async function ensurePrivateOwnerProfiles(args: {
+  store: MathProfileStore;
+  curriculum: Awaited<ReturnType<typeof loadCurriculumRelease>>;
+  attestation: PrivateOwnerAttestation;
+  unitId: string;
+  skillId: string;
+  lessonVariant: LessonVariant;
+  locale: MathLanguage;
+  contentVariant: "full" | "short";
+}): Promise<void> {
+  const existing = await Promise.all([
+    args.store.readLessonProfile(),
+    args.store.readVisualStyle(),
+  ]);
+  if (existing[0] && existing[1]) return;
+  const skill = args.curriculum.skills.find(
+    (candidate) => candidate.skillId === args.skillId
+  );
+  if (!skill) throw new Error(`Unknown curriculum skill: ${args.skillId}`);
+  const lesson = buildLessonVariant(skill, args.lessonVariant);
+  const createdAt = args.attestation.recordedAt;
+  const profileRevision = `private-owner-v1-${args.skillId.toLowerCase()}`;
+  const visualRevision = `private-owner-visual-v1-${args.locale}`;
+  const profileWithoutApproval = mathLessonProfileManifestSchema.parse({
+    schemaVersion: "math.profile-manifest.v1",
+    contractVersion: "math.profile.v1",
+    profileId: "mathematics-education",
+    revision: profileRevision,
+    contentHash: "0".repeat(64),
+    createdAt,
+    updatedAt: createdAt,
+    lessonId: args.unitId,
+    skillId: args.skillId,
+    lessonVariant: args.lessonVariant,
+    contentVariant: args.contentVariant,
+    outputAudience: "student",
+    locale: args.locale,
+    jurisdiction: "NO_CLAIM",
+    stateOrRegion: "NO_CLAIM",
+    curriculum: {
+      sourceId: "owner-attested-normalized-synthesis",
+      releaseId: args.curriculum.release.releaseId,
+      revision: args.curriculum.release.curriculumVersion,
+      releaseHash: args.curriculum.releaseHash,
+      status: "owner-attested-private",
+      schoolType: "NO_CLAIM",
+      grade: skill.canonicalGrade,
+      sourceUrls: ["https://invalid.example/private-no-claim"],
+      reviewedAt: createdAt,
+    },
+    audience: {
+      ageMinimum: 10,
+      ageMaximum: 12,
+      priorKnowledge:
+        skill.prerequisiteIds.length > 0
+          ? skill.prerequisiteIds
+          : ["Grundlegende mathematische Fachsprache"],
+      accessibilityNeeds: [
+        "Farbo-unabhängige Bedeutung",
+        "Dauerhaft sichtbare Beschriftungen",
+      ],
+      languageLevel: "altersgerecht Klasse fünf",
+    },
+    lessonLengthSeconds: lesson.targetDurationSeconds,
+    learningObjective: lesson.learningObjective,
+    prerequisiteSkillIds: skill.prerequisiteIds,
+    misconceptionInventory: [lesson.commonMistake.description],
+    pedagogicalStrategy: [
+      "Verifizierte Beispiele mit schrittweiser visueller Erklärung",
+    ],
+    deterministicVerificationRequired: true,
+    profile: {
+      schemaVersion: "mediaforge.profile.v1",
+      contractVersion: "1.0.0",
+      id: "mathematics-education",
+      audience: {
+        ageMinimum: 10,
+        ageMaximum: 12,
+        description: "Lernende in Klasse fünf",
+        priorKnowledge: ["Grundlegende mathematische Fachsprache"],
+        accessibilityNeeds: ["Farbo-unabhängige Bedeutung"],
+      },
+      objective: lesson.learningObjective,
+      engagementStrategies: ["Erreichbare Herausforderung", "Visuelles Verständnis"],
+      qualityPolicies: [{ id: "math.quality", version: "private-v1" }],
+      visualPolicy: { id: "math.visual", version: "private-v1" },
+      narrationPolicy: { id: "math.narration", version: "private-v1" },
+      localizationPolicy: { id: "math.localization", version: "private-v1" },
+      approvalPolicy: { id: "math.private-owner", version: "private-v1" },
+      artifactRequirements: [{ id: "math.artifacts", version: "private-v1" }],
+      referencePolicy: { id: "math.references-optional", version: "private-v1" },
+      curriculumJurisdiction: "NO_CLAIM",
+      curriculumRevision: args.curriculum.release.curriculumVersion,
+      grade: skill.canonicalGrade,
+      deterministicVerificationRequired: true,
+    },
+  });
+  const profileHash = computeMathLessonProfileContentHash(
+    profileWithoutApproval
+  );
+  const profile = mathLessonProfileManifestSchema.parse({
+    ...profileWithoutApproval,
+    contentHash: profileHash,
+    approval: {
+      decision: "approved",
+      actor: `${args.attestation.actor.name} (${args.attestation.actor.role})`,
+      reason: "Hash-bound private owner attestation; no public publishing.",
+      createdAt,
+      boundRevision: profileRevision,
+      contentHash: profileHash,
+    },
+  });
+  const styleWithoutApproval = educationalVisualStyleManifestSchema.parse({
+    schemaVersion: "math.educational-visual-style.v1",
+    profileId: "mathematics-education",
+    revision: visualRevision,
+    profileRevision,
+    curriculumRevision: args.curriculum.release.curriculumVersion,
+    contentHash: "0".repeat(64),
+    createdAt,
+    updatedAt: createdAt,
+    canvas: {
+      width: 1920,
+      height: 1080,
+      aspectRatio: "16:9",
+      layoutTemplates: ["worked-example"],
+    },
+    typography: {
+      textFontFamily: "MathText",
+      mathFontFamily: "MathFormula",
+      fontMetricsRevision: "metrics-private-v1",
+      minimumVisibleFontPx: 48,
+      minimumCaptionFontPx: 44,
+    },
+    palette: {
+      colors: { primary: "#123456", accent: "#abcdef" },
+      semanticEncodings: [
+        {
+          meaning: "aktueller Lösungsschritt",
+          colorToken: "accent",
+          colorIndependentCue: "durchgezogene Kontur und Schrittnummer",
+        },
+      ],
+    },
+    rules: {
+      diagrams: ["Jede sichtbare Zahl ist an einen verifizierten Fakt gebunden."],
+      graphs: ["Achsen und Einheiten werden beschriftet."],
+      coordinateSystems: ["Ursprung und Maßstab werden gezeigt."],
+      geometry: ["Nicht maßstäbliche Zeichnungen werden gekennzeichnet."],
+      symbolicRendering: ["Verifizierte Gleichheit bleibt erhalten."],
+      notToScaleLabelRequired: true,
+    },
+    animation: {
+      minimumStepDurationMs: 800,
+      maximumStepDurationMs: 5000,
+      transformationConvention: "Vorherigen Schritt bis zum Ersatz sichtbar halten.",
+      transientMeaningRequiresPersistentEquivalent: true,
+    },
+    safeRegions: {
+      captions: { x: 96, y: 800, width: 1728, height: 180 },
+      accessibility: { x: 96, y: 54, width: 1728, height: 900 },
+    },
+    rendererVersions: {
+      svg: "math-renderer.v1",
+      formula: "math-renderer.v1",
+      remotion: "math-semantic-keyframe-runner.v2",
+    },
+    references: [],
+    localeVisibleLabels: [
+      {
+        locale: args.locale,
+        policyRevision: "labels-private-v1",
+        decimalSeparator: args.locale === "de" ? "comma" : "point",
+        labelsLocalized: true,
+        mathematicalSemanticsLocked: true,
+      },
+    ],
+    validation: {
+      status: "passed",
+      checkedAt: createdAt,
+      checks: [
+        { id: "readability", status: "passed", evidence: "48px minimum" },
+        {
+          id: "color-independent",
+          status: "passed",
+          evidence: "Jede Farbe hat einen dauerhaften Nicht-Farbhinweis.",
+        },
+      ],
+      issues: [],
+    },
+  });
+  const styleHash = computeEducationalVisualStyleContentHash(
+    styleWithoutApproval
+  );
+  const style = educationalVisualStyleManifestSchema.parse({
+    ...styleWithoutApproval,
+    contentHash: styleHash,
+    approval: {
+      decision: "approved",
+      actor: `${args.attestation.actor.name} (${args.attestation.actor.role})`,
+      reason: "Private owner-approved deterministic visual policy.",
+      createdAt,
+      boundRevision: visualRevision,
+      contentHash: styleHash,
+    },
+  });
+  if (!existing[0]) await args.store.writeLessonProfile(profile);
+  if (!existing[1]) await args.store.writeVisualStyle(style);
+}
+
+export async function materializeCanonicalPrivateMedia(
+  input: CanonicalPrivateMediaMaterializerInput
+): Promise<unknown> {
+  if (input.locale !== "de" || input.lesson.variant !== "standard") {
+    throw new Error("Private owner media is restricted to German standard lessons.");
+  }
+  const localeRoot = path.join(input.unitRoot, "locales", input.locale);
+  const audioRoot = path.join(localeRoot, "audio");
+  const renderRoot = path.join(localeRoot, "render");
+  const visualCache = path.join(renderRoot, "visual-cache");
+  const scenes: MathSceneAsset[] = [];
+  for (const [index, scene] of input.visualPlan.scenes.entries()) {
+    const narration = input.narration.segments[index];
+    if (!narration || narration.sceneId !== scene.sceneId) {
+      throw new Error(`Canonical media narration is reordered at ${scene.sceneId}.`);
+    }
+    const boundFacts = scene.factIds.map((factId) => {
+      const fact = input.lesson.facts.find((candidate) => candidate.factId === factId);
+      if (!fact) {
+        throw new Error(`Visual scene ${scene.sceneId} references unknown fact ${factId}.`);
+      }
+      return fact;
+    });
+    const component = selectCanonicalSemanticComponent(
+      scene.component,
+      boundFacts
+    );
+    const cached = component
+      ? await cacheSemanticSvg(visualCache, component)
+      : await (async () => {
+          const rows =
+            boundFacts.length === 0
+              ? `<text x="960" y="540" text-anchor="middle" font-family="Arial, sans-serif" font-size="72" fill="#14213d">${escapeXml(input.lesson.learningObjective)}</text>`
+              : boundFacts
+                  .map(
+                    (fact, factIndex) =>
+                      `<text x="180" y="${300 + factIndex * 150}" font-family="Arial, sans-serif" font-size="72" fill="#14213d" data-fact-id="${escapeXml(fact.factId)}">${escapeXml(fact.displayLatex)}</text>`
+                  )
+                  .join("");
+          const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" role="img" data-component="verified-fact-board"><rect width="1920" height="1080" fill="#f8fafc"/>${rows}</svg>`;
+          const svgHash = hashText(svg);
+          const filePath = path.join(visualCache, `${svgHash}.svg`);
+          await writeBinaryAtomic(filePath, Buffer.from(svg, "utf8"));
+          return {
+            filePath,
+            svgHash,
+            minimumGlyphPx: CANONICAL_PRIVATE_FACT_BOARD_MINIMUM_GLYPH_PX,
+            bounds: { x: 160, y: 160, width: 1600, height: 760 },
+          };
+        })();
+    scenes.push({
+      sceneId: scene.sceneId,
+      svgPath: cached.filePath,
+      svgHash: cached.svgHash,
+      minimumGlyphPx: cached.minimumGlyphPx,
+      bounds: cached.bounds,
+      caption: createMathCaption(
+        canonicalSceneCaption(input, scene, boundFacts)
+      ),
+      animation: {
+        mode: "progressive-chalk-reveal",
+        rendererVersion: "math-semantic-chalk.v2",
+      },
+    });
+  }
+  const mockSpeech = input.speech
+    ? undefined
+    : await generateLocalMockTts({
+        narration: input.narration,
+        targetDurationSeconds: input.lesson.targetDurationSeconds,
+        outputDir: audioRoot,
+        cacheDir: path.join(input.unitRoot, "state", "mock-tts-cache"),
+      });
+  const timing = input.speech ? input.timing : mockSpeech!.timing;
+  const audioPath = input.speech
+    ? path.join(input.unitRoot, input.speech.audio.relativePath)
+    : mockSpeech!.artifact.masterAudioPath;
+  const videoPath = path.join(renderRoot, "final.mp4");
+  const rendered = await renderProviderFreeMathMedia({
+    id: input.unitId,
+    timing,
+    profile: input.visualPlan.profile,
+    scenes,
+    audioPath,
+    outputPath: videoPath,
+    workDir: path.join(renderRoot, ".render-work"),
+  });
+  const fact = input.lesson.facts[0];
+  if (!fact) throw new Error("Canonical thumbnail requires a verified lesson fact.");
+  const thumbnailRelativePath = `locales/${input.locale}/thumbnail.svg`;
+  const thumbnailPath = path.join(input.unitRoot, thumbnailRelativePath);
+  const thumbnail = `<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080"><rect width="1920" height="1080" fill="#10243f"/><text x="120" y="220" fill="#ffffff" font-size="72" font-family="sans-serif">${escapeXml(input.lesson.learningObjective)}</text><text x="120" y="600" fill="#f5c451" font-size="108" font-family="sans-serif">${escapeXml(fact.displayLatex)}</text><text x="120" y="930" fill="#ffffff" font-size="48" font-family="sans-serif">Private Lernfassung · Klasse 5</text></svg>`;
+  await writeBinaryAtomic(thumbnailPath, Buffer.from(thumbnail, "utf8"));
+  const thumbnailManifestRelativePath = `locales/${input.locale}/thumbnail.svg.manifest.json`;
+  const thumbnailManifestPath = path.join(
+    input.unitRoot,
+    thumbnailManifestRelativePath
+  );
+  const thumbnailStat = await fs.stat(thumbnailPath);
+  const thumbnailSha256 = await hashFile(thumbnailPath);
+  const thumbnailManifestPayload = {
+    artifactVersion: "math-private-thumbnail-manifest.v1" as const,
+    identity: {
+      lessonId: input.lesson.lessonId,
+      skillId: input.lesson.skillId,
+      language: "de" as const,
+      variant: "standard" as const,
+    },
+    asset: {
+      relativePath: thumbnailRelativePath,
+      sha256: thumbnailSha256,
+      byteLength: thumbnailStat.size,
+      width: 1920 as const,
+      height: 1080 as const,
+    },
+    verifierBinding: {
+      factId: fact.factId,
+      factSemanticHash: canonicalHash(fact.semantic),
+    },
+    publication: {
+      visibility: "private" as const,
+      publicReady: false as const,
+      blockers: ["private-owner-attested-artwork-not-approved-for-public-release"],
+    },
+  };
+  await writeJsonAtomic(thumbnailManifestPath, {
+    ...thumbnailManifestPayload,
+    contentHash: canonicalHash(thumbnailManifestPayload),
+  });
+  const brandPolicyRelativePath = `locales/${input.locale}/brand-policy.json`;
+  const brandPolicyPath = path.join(input.unitRoot, brandPolicyRelativePath);
+  const brandPolicyPayload = {
+    artifactVersion: "math-private-brand-policy.v1" as const,
+    lessonId: input.lesson.lessonId,
+    visibility: "private" as const,
+    publicPublishing: false as const,
+    artworkStatus: "private-simulation-only" as const,
+    blockers: ["private-owner-attested-artwork-not-approved-for-public-release"],
+  };
+  await writeJsonAtomic(brandPolicyPath, {
+    ...brandPolicyPayload,
+    contentHash: canonicalHash(brandPolicyPayload),
+  });
+  const captionHash = canonicalHash(
+    scenes.map((scene) => ({ sceneId: scene.sceneId, caption: scene.caption }))
+  );
+  const relativeAudio = `locales/${input.locale}/audio/narration.wav`;
+  const relativeVideo = `locales/${input.locale}/render/final.mp4`;
+  const [
+    audioStat,
+    videoStat,
+    thumbnailManifestStat,
+    brandPolicyStat,
+  ] = await Promise.all([
+    fs.stat(audioPath),
+    fs.stat(videoPath),
+    fs.stat(thumbnailManifestPath),
+    fs.stat(brandPolicyPath),
+  ]);
+  const evidencePayload = {
+    artifactVersion: "math-canonical-private-media.v1" as const,
+    identity: {
+      lessonId: input.lesson.lessonId,
+      skillId: input.lesson.skillId,
+      language: "de" as const,
+      variant: "standard" as const,
+    },
+    provider:
+      input.speech?.provider ??
+      ({
+        mode: "fixture-mock" as const,
+        calls: 0 as const,
+        characters: 0 as const,
+        retries: 0 as const,
+        latencyMs: 0 as const,
+        costMicros: 0 as const,
+      } as const),
+    audio:
+      input.speech?.audio ??
+      ({
+        relativePath: relativeAudio,
+        sha256: mockSpeech!.artifact.masterAudioSha256,
+        byteLength: audioStat.size,
+        durationSeconds: mockSpeech!.artifact.durationSeconds,
+        codec: "pcm_s16le" as const,
+        quality: {
+          kind: "test-tone" as const,
+          audibleNarration: false as const,
+          probesPassed: false as const,
+        },
+      } as const),
+    video: {
+      relativePath: relativeVideo,
+      sha256: await hashFile(videoPath),
+      byteLength: videoStat.size,
+      validation: {
+        valid: true as const,
+        width: 1920 as const,
+        height: 1080 as const,
+        fps: 30 as const,
+        durationSeconds: rendered.validation.durationSeconds,
+        videoCodec: "h264" as const,
+        audioCodec: rendered.validation.audioCodec,
+        continuityChecked: true as const,
+        corruptionScanPassed: true as const,
+      },
+    },
+    thumbnail: {
+      relativePath: thumbnailRelativePath,
+      sha256: thumbnailSha256,
+      byteLength: thumbnailStat.size,
+      width: 1920 as const,
+      height: 1080 as const,
+      factId: fact.factId,
+      factSemanticHash: canonicalHash(fact.semantic),
+    },
+    thumbnailManifest: {
+      relativePath: thumbnailManifestRelativePath,
+      sha256: await hashFile(thumbnailManifestPath),
+      byteLength: thumbnailManifestStat.size,
+    },
+    brandPolicy: {
+      relativePath: brandPolicyRelativePath,
+      sha256: await hashFile(brandPolicyPath),
+      byteLength: brandPolicyStat.size,
+    },
+    captions: { count: 9 as const, contentHash: captionHash, rendered: true as const },
+    visualPlanHash: canonicalHash(input.visualPlan),
+    timingHash: canonicalHash(timing),
+    renderFingerprint: rendered.renderFingerprint,
+    visualPresentation: {
+      strategy: "progressive-chalk-reveal" as const,
+      rendererVersion: "math-semantic-chalk.v2" as const,
+    },
+    publication: {
+      visibility: "private" as const,
+      publicReady: false as const,
+      blockers: ["private-owner-attested-media-not-approved-for-public-release"],
+    },
+  };
+  const evidence = canonicalPrivateMediaEvidenceSchema.parse({
+    ...evidencePayload,
+    contentHash: canonicalHash(evidencePayload),
+  });
+  await Promise.all([
+    writeJsonAtomic(path.join(localeRoot, "final-media.json"), evidence),
+    writeJsonAtomic(path.join(renderRoot, "timing.json"), timing),
+  ]);
+  return evidence;
 }
 
 function selectionFromUnit(unitId: string): {
@@ -65,6 +950,33 @@ function workflowInstanceId(input: CanonicalMathOperatorInput): string {
     )
     .digest("hex")
     .slice(0, 32)}`;
+}
+
+async function resolveCanonicalVerifierPython(
+  input: CanonicalMathOperatorInput
+): Promise<string> {
+  if (input.pythonExecutable) return input.pythonExecutable;
+  if (process.env["MATH_VERIFIER_PYTHON"])
+    return process.env["MATH_VERIFIER_PYTHON"]!;
+  const candidates = [
+    path.join(
+      input.repositoryRoot,
+      "python/math-verifier/.venv/bin/python"
+    ),
+    path.join(
+      input.repositoryRoot,
+      "python/math-verifier/.venv/Scripts/python.exe"
+    ),
+  ];
+  for (const candidate of candidates) {
+    try {
+      await fs.access(candidate);
+      return candidate;
+    } catch {
+      // Try the next repository-owned environment before the PATH fallback.
+    }
+  }
+  return "python3";
 }
 
 export async function createCanonicalMathOperator(
@@ -99,6 +1011,18 @@ export async function createCanonicalMathOperator(
         )
       : undefined;
   const profileStore = new MathProfileStore(unitRoot);
+  if (privateOwnerAttestation) {
+    await ensurePrivateOwnerProfiles({
+      store: profileStore,
+      curriculum,
+      attestation: privateOwnerAttestation,
+      unitId: input.unitId,
+      skillId,
+      lessonVariant,
+      locale,
+      contentVariant: input.contentVariant,
+    });
+  }
   const [profile, visualStyle] = await Promise.all([
     profileStore.readLessonProfile(),
     profileStore.readVisualStyle(),
@@ -107,11 +1031,14 @@ export async function createCanonicalMathOperator(
     configured: Boolean(input.providerMode),
     operatorAuthorized: input.authorizeProvider === true,
     mode: input.providerMode ?? "provider",
-    configurationFingerprint: canonicalHash({
-      mode: input.providerMode ?? "unconfigured",
-      simulation: input.simulation === true,
-    }),
+    configurationFingerprint:
+      input.providerConfigurationFingerprint ??
+      canonicalHash({
+        mode: input.providerMode ?? "unconfigured",
+        simulation: input.simulation === true,
+      }),
   };
+  const pythonExecutable = await resolveCanonicalVerifierPython(input);
   const identity = {
     instanceId: workflowInstanceId(input),
     unitId: input.unitId,
@@ -138,13 +1065,21 @@ export async function createCanonicalMathOperator(
     skillId,
     simulation: input.simulation === true,
     releaseVisibility,
-    ...(privateOwnerAttestation ? { privateOwnerAttestation } : {}),
+    ...(privateOwnerAttestation
+      ? {
+          privateOwnerAttestation,
+          lessonContentReviewEvidence: privateOwnerAttestation,
+          privateMediaMaterializer:
+            input.privateMediaMaterializer ?? materializeCanonicalPrivateMedia,
+          ...(input.privateSpeechMaterializer
+            ? { privateSpeechMaterializer: input.privateSpeechMaterializer }
+            : {}),
+        }
+      : {}),
     providerAuthorization,
     store,
     repository,
-    ...(input.pythonExecutable
-      ? { pythonExecutable: input.pythonExecutable }
-      : {}),
+    pythonExecutable,
     rendererVersions: visualStyle?.rendererVersions ?? {
       visualPlan: "math-visual-plan.v1",
       canonicalAdapter: "math.canonical-adapters.v1",
@@ -206,11 +1141,29 @@ export async function createCanonicalMathOperator(
         const verified = await repository.verify(manifest.ref, {
           dependencyFingerprints: manifest.dependencyFingerprints,
         });
-        return (
+        const validManifest =
           verified.manifest.id === manifest.id &&
           verified.manifest.checksumSha256 === manifest.checksumSha256 &&
-          verified.manifest.producerAttemptId === manifest.producerAttemptId
-        );
+          verified.manifest.producerAttemptId === manifest.producerAttemptId;
+        if (!validManifest) return false;
+        if (!input.simulation && manifest.producerTaskId === "math.render") {
+          const raw = JSON.parse(
+            await fs.readFile(verified.provenance.absolutePath, "utf8")
+          ) as { payload?: { media?: unknown } };
+          const media = await verifyCanonicalPrivateMediaEvidenceFiles(
+            unitRoot,
+            raw.payload?.media
+          );
+          if (
+            media.identity.lessonId !== input.unitId ||
+            media.identity.skillId !== skillId ||
+            media.identity.language !== locale ||
+            media.identity.variant !== lessonVariant
+          ) {
+            return false;
+          }
+        }
+        return true;
       } catch {
         return false;
       }

@@ -7,7 +7,8 @@ import { canonicalHash } from "../verification/canonical-json.js";
 /** Test-only reviewed release material. Production never upgrades editorial status. */
 export async function createReviewedCurriculumFixture(
   root: string,
-  sourceRoot = path.resolve("packages/math-education/data/curriculum/v1")
+  sourceRoot = path.resolve("packages/math-education/data/curriculum/v1"),
+  options: { readonly preserveSkillIdentity?: boolean } = {}
 ) {
   await fs.mkdir(root, { recursive: true });
   const read = async (name: string) =>
@@ -21,15 +22,17 @@ export async function createReviewedCurriculumFixture(
       read("prerequisites.json"),
       read("migrations.json"),
     ]);
-  const skills = (skillsFile["skills"] as Array<Record<string, unknown>>).map(
-    (skill) => ({
-      ...skill,
-      editorialStatus: "reviewed",
-      sourceMappings: (skill["sourceMappings"] as Array<Record<string, unknown>>).map(
-        (mapping) => ({ ...mapping, reviewStatus: "reviewed" })
-      ),
-    })
-  );
+  const skills = options.preserveSkillIdentity
+    ? (skillsFile["skills"] as Array<Record<string, unknown>>)
+    : (skillsFile["skills"] as Array<Record<string, unknown>>).map(
+        (skill) => ({
+          ...skill,
+          editorialStatus: "reviewed",
+          sourceMappings: (
+            skill["sourceMappings"] as Array<Record<string, unknown>>
+          ).map((mapping) => ({ ...mapping, reviewStatus: "reviewed" })),
+        })
+      );
   const reviewedSkills = {
     ...skillsFile,
     skills,

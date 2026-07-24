@@ -16,6 +16,7 @@ import {
   type TaskRegistration,
   type TaskRegistry,
 } from "@mediaforge/workflow-engine";
+import { MATH_LOCKED_FACT_TASK_IMPLEMENTATION_VERSION } from "./localization/localization.js";
 
 export const MATH_TASK_REGISTRY_VERSION = "math.task-registry.v3" as const;
 
@@ -90,6 +91,7 @@ interface DefinitionInput {
   readonly description: string;
   readonly owner: Owner;
   readonly executionKind: ExecutionKind;
+  readonly implementationVersion?: string;
   readonly dependencies?: readonly `math.${string}`[];
   readonly inputs?: readonly ArtifactContract[];
   readonly outputs?: readonly ArtifactContract[];
@@ -163,7 +165,8 @@ function registration(
   const definition = taskDefinitionSchema.parse({
     schemaVersion: TASK_SCHEMA_VERSION,
     id: input.id,
-    implementationVersion: MATH_TASK_REGISTRY_VERSION,
+    implementationVersion:
+      input.implementationVersion ?? MATH_TASK_REGISTRY_VERSION,
     displayName: input.name,
     description: input.description,
     applicableProfiles: ["mathematics-education"],
@@ -286,6 +289,7 @@ const definitions: readonly DefinitionInput[] = [
       "Build the canonical explanation and narration from verified facts.",
     owner: "@mediaforge/math-education",
     executionKind: "model-assisted",
+    implementationVersion: MATH_LOCKED_FACT_TASK_IMPLEMENTATION_VERSION,
     dependencies: ["math.math-verification"],
     inputs: [verification],
     outputs: [narration],
@@ -308,6 +312,7 @@ const definitions: readonly DefinitionInput[] = [
       "Localize narration and visible labels while preserving verified facts.",
     owner: "@mediaforge/math-education",
     executionKind: "model-assisted",
+    implementationVersion: MATH_LOCKED_FACT_TASK_IMPLEMENTATION_VERSION,
     dependencies: ["math.scene-timing"],
     outputs: [localizedNarration],
   },

@@ -26,6 +26,20 @@ import {
 import { localeProfiles } from "./tts-lexicon.js";
 
 const sha256Schema = z.string().regex(/^[a-f0-9]{64}$/u);
+export const MATH_LOCKED_FACT_NARRATION_VERSION = "locked-facts.v3" as const;
+export const MATH_LOCKED_FACT_TASK_IMPLEMENTATION_VERSION =
+  "locked-facts.v3.1" as const;
+export const GERMAN_STANDARD_NARRATION_WORD_RANGE = {
+  minimum: 450,
+  maximum: 800,
+} as const;
+
+export function reviewedNarrationInstruction(text: string): string {
+  return text.replace(
+    /\[\[fact:[a-z0-9-]+\]\]/gu,
+    "die eingeblendete geprüfte Darstellung"
+  );
+}
 
 export const legacyLocalizedNarrationSchema = z.strictObject({
   artifactVersion: z.literal("math-narration.v1"),
@@ -192,6 +206,43 @@ function defaultTemplates(
   const concepts = requiredConcepts(lesson.skillId);
   const topic = `[[term:${concepts[0]}]]`;
   const supporting = `[[term:${concepts[1]}]]`;
+  if (language === "de" && lesson.variant === "standard") {
+    const objective = lesson.learningObjective;
+    const promise = lesson.promise;
+    const mistake = lesson.commonMistake.description;
+    const workedExample = lesson.workedExamples[0];
+    if (!workedExample) throw new Error("Reviewed worked example is missing.");
+    const workedSteps = workedExample.steps
+      .map((step) => step.explanation)
+      .join(" Anschließend: ");
+    const transferSteps = lesson.challenge.steps
+      .map((step) => step.explanation)
+      .join(" Anschließend: ");
+    const workedPrompt = reviewedNarrationInstruction(workedExample.prompt);
+    const transferPrompt = reviewedNarrationInstruction(lesson.challenge.prompt);
+    return lesson.scenes.map((scene, index) => {
+      const facts = scene.factIds
+        .map((factId) => `[[fact:${factId}]]`)
+        .join("; ");
+      const factSentence = facts
+        ? `Für diesen Schritt gilt die geprüfte Darstellung: ${facts}.`
+        : "In diesem Schritt kommt noch keine neue Zahl hinzu.";
+      const templates = [
+        `Heute untersuchen wir ${topic} und ${supporting}. Unser Ziel lautet: ${objective}. Wir gehen ruhig und nachvollziehbar vor. Beobachte zuerst, welche Angaben wichtig sind und welche Frage beantwortet werden soll. ${factSentence} Noch musst du nichts ausrechnen. Ordne nur die Begriffe, achte auf ihre Bedeutung und überlege, woran du eine passende Lösung erkennen würdest.`,
+        `Das Lernziel bleibt klar: ${objective}. Das Versprechen dieser Stunde lautet: ${promise}. Wir verwenden nur Angaben und Rechenschritte, die mathematisch geprüft sind. Sprich die Aufgabe in eigenen Worten nach und markiere, was gesucht ist. ${factSentence} Achte außerdem auf Einheiten, Stellen und Rechenzeichen. Diese Vorbereitung verhindert Flüchtigkeitsfehler und macht den späteren Lösungsweg verständlich.`,
+        `Jetzt bauen wir ein geprüftes Modell für ${topic} auf. Die genaue Beispielaufgabe lautet: ${workedPrompt} Der erste erklärte Schritt ist: ${workedExample.steps[0]?.explanation ?? workedSteps}. Betrachte die Darstellung von links nach rechts und suche zuerst die bekannte Struktur. ${factSentence} Verbinde jede sichtbare Zahl mit ihrer Rolle in der Aufgabe und halte das Zwischenergebnis fest.`,
+        `Wir lösen das geprüfte Beispiel Schritt für Schritt. Der reviewte Lösungsweg lautet: ${workedSteps}. Beginne mit den gegebenen Informationen und entscheide dann, welcher Zusammenhang gebraucht wird. ${factSentence} Lies alle Zeichen und Einheiten. Prüfe nach jedem Schritt, ob das Ergebnis zur Ausgangsfrage passt. So bleibt der Lösungsweg richtig und nachvollziehbar.`,
+        `Achte jetzt auf den typischen Fehler: ${mistake} Dieser Fehler entsteht oft, wenn ein Zeichen, eine Stelle oder eine Einheit übersehen wird. ${factSentence} Vergleiche deshalb den fehlerhaften Gedanken mit der geprüften Darstellung. Benenne genau, was korrigiert werden muss. Eine gute Kontrolle erklärt nicht nur, dass etwas falsch ist, sondern auch warum.`,
+        `Nun wendest du das Verfahren geführt an. Lies zuerst die Aufgabe, nenne das Ziel und wähle danach den passenden Zusammenhang. ${factSentence} Arbeite in kleinen Schritten und lass bereits geprüfte Ergebnisse sichtbar. Kontrolliere Rechenzeichen, Reihenfolge und Einheit, bevor du weitergehst. Wenn du unsicher bist, kehre zum Modell zurück und vergleiche beide Darstellungen.`,
+        `Jetzt beginnt die Denkpause mit der reviewten Transferaufgabe: ${transferPrompt} Löse sie möglichst selbstständig und erkläre deinen Plan leise in eigenen Worten. ${factSentence} Frage dich: Welche Information ist gegeben, welche Größe wird gesucht und welcher Schritt verbindet beides? Nimm dir Zeit für eine Gegenprobe. Erst wenn Darstellung, Rechnung und Antwort zusammenpassen, gehst du zur gemeinsamen Lösung weiter.`,
+        `Wir prüfen nun die vollständige Transferlösung. Der reviewte Lösungsweg lautet: ${transferSteps}. Vergleiche deinen Weg Schritt für Schritt mit der geprüften Darstellung. ${factSentence} Stimmen Ausgangsdaten, Rechenzeichen, Zwischenschritte und Ergebnis überein? Prüfe auch, ob die Antwort wirklich zur gestellten Frage gehört. Jeder Lösungsweg muss dieselben mathematischen Beziehungen und dasselbe Ergebnis bewahren.`,
+        `Zum Abschluss fassen wir das Verfahren für ${topic} zusammen. Unser Versprechen war: ${promise}. Formuliere zuerst das Ziel, ordne dann die gegebenen Informationen und wähle den passenden geprüften Zusammenhang. ${factSentence} Rechne übersichtlich, bewahre wichtige Zwischenschritte und kontrolliere Zeichen sowie Einheiten. Erkläre schließlich, warum das Ergebnis die Aufgabe beantwortet. Damit kannst du das Verfahren auf eine neue Aufgabe übertragen.`,
+      ] as const;
+      const template = templates[index];
+      if (!template) throw new Error(`Missing de narration beat ${index}.`);
+      return template;
+    });
+  }
   return lesson.scenes.map((scene, index) => {
     const copy = beatCopy[language][index];
     if (!copy) throw new Error(`Missing ${language} narration beat ${index}.`);
@@ -301,6 +352,25 @@ export function localizeNarration(
       factIds: tokens,
     };
   });
+  if (
+    options.templates === undefined &&
+    language === "de" &&
+    lesson.variant === "standard"
+  ) {
+    const words = segments.reduce(
+      (total, segment) =>
+        total + segment.spokenText.trim().split(/\s+/u).filter(Boolean).length,
+      0
+    );
+    if (
+      words < GERMAN_STANDARD_NARRATION_WORD_RANGE.minimum ||
+      words > GERMAN_STANDARD_NARRATION_WORD_RANGE.maximum
+    ) {
+      throw new Error(
+        `German standard narration contains ${words} words; expected ${GERMAN_STANDARD_NARRATION_WORD_RANGE.minimum}-${GERMAN_STANDARD_NARRATION_WORD_RANGE.maximum}.`
+      );
+    }
+  }
   assertGlossaryText(
     segments.map((segment) => segment.displayText).join(" "),
     glossary,

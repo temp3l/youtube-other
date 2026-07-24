@@ -1,23 +1,18 @@
 # M2-009 three-skill private pilot
 
-## Summary
+Summary: `BLOCKED_NOT_ACCEPTED` (`INVALID_ARTIFACT`). `M5-ZO-001`, `M5-GM-002`, and `M5-DZ-001` completed verifier v3, German mock speech, private media, metadata, and zero-mutation publish dry run. Verifier, interruption/resume, corruption, stale-release, renderer-failure, and cache-replay probes pass. Acceptance correctly rejects all three fixture-tone artifacts.
 
-`HUMAN_OR_EXTERNAL_BLOCKER`. The pilot was not run or accepted. M2-003 reports missing external curriculum approval; M2-004–007 packets remain pending; M2-008 reports acceptance gated on them. Source confirms an empty accepted-evidence registry and implemented lessons marked unreviewed. This followed `todo-prompts/math-2/09-three-skill-private-pilot.md`, not `docs/plans/*`.
+Changed paths:
 
-## Changed paths
+- `packages/math-rendering/src/composition/remotion-runner*`
+- `packages/math-education/src/localization/{display-verification,localization.unit.test}.ts`
+- `apps/cli/src/math-workflow-runtime*`
+- `packages/workflow-engine/src/{artifact-repository,workflow-store.unit.test}.ts`
+- `packages/math-education/src/orchestration/canonical-task-adapters.ts`
+- Existing M2-009 implementation paths and this report
 
-- This report
-- `docs/reports/codex-runs/2026-07-14-m2-009-preflight-state.txt`
+Tests: renderer 1/1, localization 10/10, runtime 3/3, workflow 10/10, and canonical private workflows/replays passed; affected builds passed.
 
-## Tests/checks
+Commit: base `934a40f`.
 
-- `node apps/cli/bin/mediaforge.js math production --help` and `... plan --help` — passed; canonical syntax discovered.
-- `node apps/cli/bin/mediaforge.js math curriculum validate` — structurally valid, `readyForProduction=false`, draft, 206 incomplete provenance records; release hash `9afb5e2c…60b31`.
-- `node apps/cli/bin/mediaforge.js stories production batch --help` — passed.
-- `sha256sum` — release `4f2161e7…6967e2`, skills `27a74c4e…0199e69`; matched review packet.
-
-No artifact workspace, tests, providers, network, or mutations. Cost: zero. Paid speech: not authorized. Full state/hashes are in the preflight record.
-
-## Commit hash and unresolved risks
-
-Branch `mathe-init`; HEAD `7d8c03ff18891058889c594741e56e516f552fee`; uncommitted. External curriculum and exact lesson-review evidence must be accepted and registered before retrying M2-009.
+Unresolved risks: provider/network/upload/OAuth/publication/mutation counts remain zero. M2-009 needs validated natural speech under fresh paid approval and hard ceilings; placeholder teacher artwork remains a public blocker.

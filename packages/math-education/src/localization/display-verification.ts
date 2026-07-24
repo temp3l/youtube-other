@@ -65,14 +65,20 @@ export function localizedDisplayChecks(
     );
   return lesson.facts.map((fact) => {
     assertResolvedFact(fact, narration);
-    if (fact.semantic.kind !== "scalar")
+    const expression =
+      fact.semantic.kind === "scalar"
+        ? fact.semantic.expression
+        : fact.semantic.kind === "measurement"
+          ? fact.semantic.value
+          : null;
+    if (!expression)
       throw new Error(
         `Localized display verification does not support ${fact.semantic.kind}.`
       );
     return {
       checkId: `check-display-${fact.factId}`,
       kind: "display-fact",
-      expression: fact.semantic.expression,
+      expression,
       expected: fact.semantic,
       critical: true,
     };

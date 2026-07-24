@@ -12,12 +12,75 @@ import {
   type MathSceneAsset,
 } from "./composition.js";
 import {
+  extractSemanticChalkSteps,
+  renderSemanticChalkFrame,
+  semanticChalkWritingFrames,
+} from "./semantic-chalk.js";
+import {
   assertMathMediaReady,
   validateMathMediaFile,
   type MathMediaValidation,
 } from "../quality/media-qa.js";
 
-export const MATH_REMOTION_RUNNER_VERSION = "math-remotion-runner.v1";
+export const MATH_REMOTION_RUNNER_VERSION = "math-semantic-keyframe-runner.v2";
+
+function escapeXml(value: string): string {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&apos;");
+}
+
+function chalkboardSvg(
+  markup: string,
+  caption: MathSceneAsset["caption"],
+  guide: ReturnType<typeof renderSemanticChalkFrame>["guide"],
+  progress: number
+): string {
+  const recolored = markup
+    .replaceAll('fill="#f8fafc"', 'fill="#102b26"')
+    .replaceAll('fill="#14213d"', 'fill="#f4efd8"')
+    .replaceAll("color:#14213d", "color:#f4efd8");
+  const chalk = guide
+    ? `<g data-semantic-chalk-writing="true"><path d="M ${guide.x1} ${guide.y} Q ${(guide.x1 + guide.x2) / 2} ${guide.y - 12} ${guide.x1 + (guide.x2 - guide.x1) * progress} ${guide.y}" fill="none" stroke="#f4efd8" stroke-width="9" stroke-linecap="round" opacity="0.9"/><circle cx="${guide.x1 + (guide.x2 - guide.x1) * progress}" cy="${guide.y}" r="10" fill="#fffbe8"/></g>`
+    : "";
+  const captionMarkup = caption
+    ? `<g data-caption="true"><rect x="180" y="900" width="1560" height="126" rx="16" fill="#07111f" opacity="0.92"/>${caption.lines
+        .map(
+          (line, index) =>
+            `<text x="960" y="${956 + index * 48}" text-anchor="middle" font-family="Arial, sans-serif" font-size="44" fill="#ffffff">${escapeXml(line)}</text>`
+        )
+        .join("")}</g>`
+    : "";
+  return recolored.replace("</svg>", `${chalk}${captionMarkup}</svg>`);
+}
+
+function concatPath(filePath: string): string {
+  return filePath.replaceAll("'", "'\\''");
+}
+
+export async function resolveRemotionEntryPoint(
+  runnerModuleUrl = import.meta.url
+): Promise<string> {
+  const directory = path.dirname(fileURLToPath(runnerModuleUrl));
+  const candidates = [
+    path.join(directory, "remotion-entry.js"),
+    path.join(directory, "remotion-entry.tsx"),
+  ];
+  for (const candidate of candidates) {
+    try {
+      await fs.access(candidate);
+      return candidate;
+    } catch {
+      // Continue to the source fallback when the compiled entry is absent.
+    }
+  }
+  throw new Error(
+    `Math Remotion entry is unavailable: ${candidates.join(", ")}`
+  );
+}
 
 export function createRemotionRenderFingerprint(args: {
   durationInFrames: number;
@@ -45,9 +108,7 @@ export function createRemotionRenderFingerprint(args: {
 
 async function bundleRemotion(bundleDir: string): Promise<string> {
   await fs.rm(bundleDir, { recursive: true, force: true });
-  const entryPoint = fileURLToPath(
-    new URL("./remotion-entry.tsx", import.meta.url)
-  );
+  const entryPoint = await resolveRemotionEntryPoint();
   return bundle({
     entryPoint,
     outDir: bundleDir,
@@ -94,14 +155,165 @@ async function sceneProps(
         throw new Error(`Remotion scene order mismatch at ${scene.sceneId}.`);
       if ((await hashFile(scene.svgPath)) !== scene.svgHash)
         throw new Error(`Semantic SVG hash mismatch: ${scene.sceneId}`);
-      const svg = await fs.readFile(scene.svgPath);
+      const svg = await fs.readFile(scene.svgPath, "utf8");
       return {
         sceneId: scene.sceneId,
         startFrame: frames.startFrame,
         endFrame: frames.endFrame,
-        svgDataUrl: `data:image/svg+xml;base64,${svg.toString("base64")}`,
+        svgMarkup: svg,
+        animation: scene.animation ?? {
+          mode: "progressive-chalk-reveal" as const,
+          rendererVersion: "math-semantic-chalk.v2" as const,
+        },
         ...(scene.caption ? { caption: scene.caption } : {}),
       };
+    })
+  );
+}
+
+async function renderSemanticKeyframes(input: {
+  props: Awaited<ReturnType<typeof sceneProps>>;
+  scenes: readonly MathSceneAsset[];
+  frameRanges: readonly {
+    sceneId: string;
+    startFrame: number;
+    endFrame: number;
+  }[];
+  workDir: string;
+  silentPath: string;
+  durationInFrames: number;
+}): Promise<string> {
+  const keyframesRoot = path.join(input.workDir, "semantic-keyframes");
+  await fs.rm(keyframesRoot, { recursive: true, force: true });
+  await fs.mkdir(keyframesRoot, { recursive: true });
+  const entries: Array<{ filePath: string; frames: number }> = [];
+  let sequence = 0;
+  for (const [sceneIndex, scene] of input.props.entries()) {
+    const frameRange = input.frameRanges[sceneIndex];
+    const source = input.scenes[sceneIndex];
+    if (!frameRange || !source || frameRange.sceneId !== scene.sceneId)
+      throw new Error(`Semantic keyframe scene mismatch at ${scene.sceneId}.`);
+    const sceneFrames = frameRange.endFrame - frameRange.startFrame;
+    const steps = extractSemanticChalkSteps(scene.svgMarkup);
+    const writingFrames =
+      steps.length > 0 ? semanticChalkWritingFrames(sceneFrames) : 0;
+    const sampleCount = Math.max(1, steps.length * 12);
+    const starts =
+      writingFrames > 0
+        ? [
+            ...new Set(
+              Array.from({ length: sampleCount }, (_, index) =>
+                Math.floor((index * writingFrames) / sampleCount)
+              )
+            ),
+          ]
+        : [];
+    for (const [sampleIndex, start] of starts.entries()) {
+      const end = starts[sampleIndex + 1] ?? writingFrames;
+      if (end <= start) continue;
+      const frame = renderSemanticChalkFrame({
+        svgMarkup: scene.svgMarkup,
+        steps,
+        localFrame: start,
+        sceneFrames,
+      });
+      const filePath = path.join(
+        keyframesRoot,
+        `${String(sequence++).padStart(4, "0")}.svg`
+      );
+      await fs.writeFile(
+        filePath,
+        chalkboardSvg(
+          frame.svgMarkup,
+          source.caption,
+          frame.guide,
+          frame.stepProgress
+        ),
+        "utf8"
+      );
+      entries.push({ filePath, frames: end - start });
+    }
+    const finalFrame = renderSemanticChalkFrame({
+      svgMarkup: scene.svgMarkup,
+      steps,
+      localFrame: writingFrames,
+      sceneFrames,
+    });
+    const finalPath = path.join(
+      keyframesRoot,
+      `${String(sequence++).padStart(4, "0")}.svg`
+    );
+    await fs.writeFile(
+      finalPath,
+      chalkboardSvg(finalFrame.svgMarkup, source.caption, null, 1),
+      "utf8"
+    );
+    entries.push({ filePath: finalPath, frames: sceneFrames - writingFrames });
+  }
+  if (
+    entries.reduce((total, entry) => total + entry.frames, 0) !==
+    input.durationInFrames
+  )
+    throw new Error("Semantic keyframe durations do not match the composition.");
+  const rasterEntries = entries.map((entry, index) => ({
+    ...entry,
+    filePath: path.join(
+      keyframesRoot,
+      `${String(index).padStart(4, "0")}.png`
+    ),
+  }));
+  let nextRaster = 0;
+  const rasterWorkers = Array.from(
+    { length: Math.min(4, rasterEntries.length) },
+    async () => {
+      for (;;) {
+        const index = nextRaster++;
+        const rasterEntry = rasterEntries[index];
+        const svgEntry = entries[index];
+        if (!rasterEntry || !svgEntry) return;
+        await runCommand(
+          "ffmpeg",
+          [
+            "-hide_banner", "-loglevel", "error", "-y",
+            "-i", svgEntry.filePath,
+            "-frames:v", "1",
+            "-vf", "scale=1920:1080",
+            "-update", "1",
+            rasterEntry.filePath,
+          ],
+          { timeoutMs: 30_000 }
+        );
+      }
+    }
+  );
+  await Promise.all(rasterWorkers);
+  for (const entry of rasterEntries) await fs.access(entry.filePath);
+  const concatFile = path.join(keyframesRoot, "frames.ffconcat");
+  const lines = ["ffconcat version 1.0"];
+  for (const entry of rasterEntries) {
+    lines.push(`file '${concatPath(entry.filePath)}'`);
+    lines.push(`duration ${(entry.frames / 30).toFixed(9)}`);
+  }
+  const lastEntry = rasterEntries.at(-1);
+  if (!lastEntry) throw new Error("Semantic keyframe plan is empty.");
+  lines.push(`file '${concatPath(lastEntry.filePath)}'`);
+  await fs.writeFile(concatFile, `${lines.join("\n")}\n`, "utf8");
+  await runCommand(
+    "ffmpeg",
+    [
+      "-hide_banner", "-loglevel", "error", "-y",
+      "-f", "concat", "-safe", "0", "-i", concatFile,
+      "-an", "-vf", "fps=30,scale=1920:1080,format=yuv420p",
+      "-frames:v", String(input.durationInFrames),
+      "-c:v", "libx264", "-preset", "veryfast", "-crf", "23",
+      input.silentPath,
+    ],
+    { timeoutMs: 240_000 }
+  );
+  return hashText(
+    JSON.stringify({
+      renderer: "math-semantic-keyframe-ffmpeg.v1",
+      frames: rasterEntries.map((entry) => entry.frames),
     })
   );
 }
@@ -127,46 +339,28 @@ export async function renderLocalRemotionVideo(args: {
   const workDir = path.resolve(args.workDir);
   const outputPath = path.resolve(args.outputPath);
   await fs.mkdir(path.dirname(outputPath), { recursive: true });
-  const bundleDir = path.join(workDir, "bundle");
-  const serveUrl = await bundleRemotion(bundleDir);
-  const bundlePath = path.join(serveUrl, "bundle.js");
   const props = await sceneProps(args.scenes, args.frameRanges);
   const silentPath = path.join(workDir, "silent.mp4");
   const muxedPath = path.join(
     path.dirname(outputPath),
     `${path.basename(outputPath)}.${process.pid}.tmp.mp4`
   );
+  const rendererHash = await renderSemanticKeyframes({
+    props,
+    scenes: args.scenes,
+    frameRanges: args.frameRanges,
+    workDir,
+    silentPath,
+    durationInFrames: args.durationInFrames,
+  });
   const renderFingerprint = createRemotionRenderFingerprint({
     durationInFrames: args.durationInFrames,
     sceneHashes: args.scenes.map((scene) => scene.svgHash),
     frameRanges: args.frameRanges,
     audioHash: await hashFile(args.audioPath),
-    bundleHash: await hashFile(bundlePath),
+    bundleHash: rendererHash,
   });
-  const inputProps = {
-    durationInFrames: args.durationInFrames,
-    scenes: props,
-  };
   try {
-    await renderMedia({
-      composition: videoConfig(args.durationInFrames, inputProps),
-      serveUrl,
-      codec: "h264",
-      pixelFormat: "yuv420p",
-      crf: 23,
-      x264Preset: "veryfast",
-      outputLocation: silentPath,
-      inputProps,
-      browserExecutable: args.browserExecutable ?? "/usr/bin/chromium",
-      chromeMode: "chrome-for-testing",
-      chromiumOptions: { disableWebSecurity: false },
-      concurrency: 1,
-      overwrite: true,
-      muted: true,
-      enforceAudioTrack: false,
-      logLevel: "error",
-      timeoutInMilliseconds: 60_000,
-    });
     await runCommand(
       "ffmpeg",
       [

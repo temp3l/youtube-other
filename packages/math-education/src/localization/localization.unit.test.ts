@@ -11,15 +11,21 @@ import {
 import { assertFactLock, buildFactLock } from "./fact-lock.js";
 import { loadMathGlossary, parseMathGlossary } from "./glossary.js";
 import { formatExpression, formatMeasurement } from "./locale-formatter.js";
-import { localizeNarration } from "./localization.js";
+import {
+  GERMAN_STANDARD_NARRATION_WORD_RANGE,
+  localizeNarration,
+} from "./localization.js";
+import { reviewGermanStandardNarration } from "./narration-review.js";
 import { MATH_SPEECH_FORMAT_VERSION } from "./tts-lexicon.js";
 
-async function lesson(): Promise<LessonVariantSpecification> {
+async function lesson(
+  skillId = "M5-ZO-001"
+): Promise<LessonVariantSpecification> {
   const release = await loadCurriculumRelease(
     "packages/math-education/data/curriculum/v1"
   );
   return buildLessonVariant(
-    release.skills.find((skill) => skill.skillId === "M5-ZO-001")!,
+    release.skills.find((skill) => skill.skillId === skillId)!,
     "standard"
   );
 }
@@ -230,6 +236,44 @@ describe("locked-fact localization", () => {
     );
   });
 
+  it("keeps every German Class 5 standard narration within the reviewed four-minute word budget", async () => {
+    const release = await loadCurriculumRelease(
+      "packages/math-education/data/curriculum/v1"
+    );
+    const skills = release.graph.order
+      .map((skillId) => release.skills.find((skill) => skill.skillId === skillId))
+      .filter(
+        (skill): skill is NonNullable<typeof skill> =>
+          Boolean(skill?.skillId.startsWith("M5-"))
+      );
+    expect(skills).toHaveLength(37);
+    for (const skill of skills) {
+      const narration = localizeNarration(
+        buildLessonVariant(skill, "standard"),
+        "de"
+      );
+      const words = narration.segments.reduce(
+        (total, segment) =>
+          total + segment.spokenText.trim().split(/\s+/u).filter(Boolean).length,
+        0
+      );
+      expect(words).toBeGreaterThanOrEqual(
+        GERMAN_STANDARD_NARRATION_WORD_RANGE.minimum
+      );
+      expect(words).toBeLessThanOrEqual(
+        GERMAN_STANDARD_NARRATION_WORD_RANGE.maximum
+      );
+      const review = reviewGermanStandardNarration({
+        lesson: buildLessonVariant(skill, "standard"),
+        narration,
+      });
+      expect(review.checks).toHaveLength(9);
+      expect(review.checks.every((check) => check.status === "passed")).toBe(
+        true
+      );
+    }
+  });
+
   it("blocks missing, duplicate, and reordered fact tokens", async () => {
     const source = await lesson();
     const valid = localizeNarration(source, "en").segments.map(
@@ -327,6 +371,30 @@ describe("locked-fact localization", () => {
         })),
       })
     ).toThrow(/Post-localization verification failed/u);
+  });
+
+  it("creates verifier-bound display checks for localized measurements", async () => {
+    const source = await lesson("M5-GM-002");
+    const checks = localizedDisplayChecks(
+      source,
+      localizeNarration(source, "de")
+    );
+    const measurements = source.facts.filter(
+      (fact) => fact.semantic.kind === "measurement"
+    );
+    expect(measurements.length).toBeGreaterThan(0);
+    for (const fact of measurements) {
+      if (fact.semantic.kind !== "measurement") throw new Error("test setup");
+      expect(
+        checks.find(
+          (check) => check.checkId === `check-display-${fact.factId}`
+        )
+      ).toMatchObject({
+        kind: "display-fact",
+        expression: fact.semantic.value,
+        expected: fact.semantic,
+      });
+    }
   });
 
   it("rejects a schema-valid narration whose displayed fact was reformatted", async () => {

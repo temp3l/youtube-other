@@ -89,6 +89,8 @@ export interface PromoteArtifactRequest {
   readonly validatorVersion: string;
   readonly dependencyFingerprints: readonly string[];
   readonly validate: (content: Buffer) => void | Promise<void>;
+  readonly replaceInvalidDestination?: boolean;
+  readonly refreshManifestOnReuse?: boolean;
   readonly dryRun?: boolean;
 }
 
@@ -390,19 +392,31 @@ export class ArtifactRepository {
       };
     }
 
-    if (await pathExists(paths.canonical)) {
-      let existing: VerifiedArtifact;
+    let replaceInvalidDestination = false;
+    let refreshCanonicalManifest = false;
+    const canonicalExists = await pathExists(paths.canonical);
+    const canonicalManifestExists = await pathExists(paths.canonicalManifest);
+    if (canonicalExists) {
+      let existing: VerifiedArtifact | undefined;
       try {
         existing = await this.verify(ref);
       } catch (error) {
-        throw new ArtifactRepositoryError(
-          "ARTIFACT_CONFLICT",
-          "The canonical destination exists but is not a reusable valid artifact.",
-          { destination: paths.canonicalRelativePath },
-          error
-        );
+        if (
+          request.replaceInvalidDestination === true &&
+          error instanceof ArtifactRepositoryError &&
+          error.code === "ARTIFACT_INVALID"
+        ) {
+          replaceInvalidDestination = true;
+        } else {
+          throw new ArtifactRepositoryError(
+            "ARTIFACT_CONFLICT",
+            "The canonical destination exists but is not a reusable valid artifact.",
+            { destination: paths.canonicalRelativePath },
+            error
+          );
+        }
       }
-      if (existing.manifest.checksumSha256 !== checksumSha256) {
+      if (existing && existing.manifest.checksumSha256 !== checksumSha256) {
         throw new ArtifactRepositoryError(
           "ARTIFACT_CONFLICT",
           "The canonical destination contains different valid content.",
@@ -413,7 +427,35 @@ export class ArtifactRepository {
           }
         );
       }
-      return { operation: "reuse", dryRun: false, artifact: existing };
+      if (existing) {
+        const lineageMatches =
+          existing.manifest.mediaType === request.mediaType &&
+          existing.manifest.producerTaskId === request.producerTaskId &&
+          existing.manifest.producerTaskVersion ===
+            request.producerTaskVersion &&
+          existing.manifest.producerAttemptId === request.producerAttemptId &&
+          existing.manifest.validation.validatorId === request.validatorId &&
+          existing.manifest.validation.validatorVersion ===
+            request.validatorVersion &&
+          sameFingerprints(
+            existing.manifest.dependencyFingerprints,
+            request.dependencyFingerprints
+          );
+        if (request.refreshManifestOnReuse === true && !lineageMatches) {
+          refreshCanonicalManifest = true;
+        } else {
+          return { operation: "reuse", dryRun: false, artifact: existing };
+        }
+      }
+    } else if (canonicalManifestExists) {
+      if (request.replaceInvalidDestination !== true) {
+        throw new ArtifactRepositoryError(
+          "ARTIFACT_CONFLICT",
+          "The canonical manifest exists without a reusable artifact.",
+          { destination: paths.canonicalManifestRelativePath }
+        );
+      }
+      replaceInvalidDestination = true;
     }
 
     try {
@@ -440,6 +482,8 @@ export class ArtifactRepository {
       path.dirname(paths.canonicalManifest),
       `.${path.basename(paths.canonicalManifest)}.${unique}.tmp`
     );
+    const displacedArtifact = `${temporaryArtifact}.invalid`;
+    const displacedManifest = `${temporaryManifest}.invalid`;
     const timestamp = this.now().toISOString();
     const manifest = artifactManifestSchema.parse({
       schemaVersion: ARTIFACT_SCHEMA_VERSION,
@@ -464,13 +508,64 @@ export class ArtifactRepository {
     });
     let artifactPromoted = false;
     let manifestPromoted = false;
+    let artifactDisplaced = false;
+    let manifestDisplaced = false;
+    let replacementCommitted = false;
     try {
       await writeFileDurably(temporaryArtifact, content);
       await writeFileDurably(
         temporaryManifest,
         Buffer.from(`${JSON.stringify(manifest, null, 2)}\n`, "utf8")
       );
-      if (
+      if (refreshCanonicalManifest) {
+        const current = await this.verify(ref);
+        if (current.manifest.checksumSha256 !== checksumSha256) {
+          throw new ArtifactRepositoryError(
+            "ARTIFACT_CONFLICT",
+            "The canonical destination changed during lineage refresh.",
+            {
+              destination: paths.canonicalRelativePath,
+              existingChecksum: current.manifest.checksumSha256,
+              proposedChecksum: checksumSha256,
+            }
+          );
+        }
+        await fs.rename(paths.canonicalManifest, displacedManifest);
+        manifestDisplaced = true;
+        await fs.rename(temporaryManifest, paths.canonicalManifest);
+        manifestPromoted = true;
+        replacementCommitted = true;
+      } else if (replaceInvalidDestination) {
+        if (await pathExists(paths.canonical)) {
+          try {
+            const current = await this.verify(ref);
+            throw new ArtifactRepositoryError(
+              "ARTIFACT_CONFLICT",
+              "The canonical destination became valid during replacement.",
+              {
+                destination: paths.canonicalRelativePath,
+                existingChecksum: current.manifest.checksumSha256,
+                proposedChecksum: checksumSha256,
+              }
+            );
+          } catch (error) {
+            if (
+              !(
+                error instanceof ArtifactRepositoryError &&
+                error.code === "ARTIFACT_INVALID"
+              )
+            ) {
+              throw error;
+            }
+          }
+          await fs.rename(paths.canonical, displacedArtifact);
+          artifactDisplaced = true;
+        }
+        if (await pathExists(paths.canonicalManifest)) {
+          await fs.rename(paths.canonicalManifest, displacedManifest);
+          manifestDisplaced = true;
+        }
+      } else if (
         (await pathExists(paths.canonical)) ||
         (await pathExists(paths.canonicalManifest))
       ) {
@@ -479,19 +574,41 @@ export class ArtifactRepository {
           "The canonical destination changed during promotion."
         );
       }
-      await fs.rename(temporaryArtifact, paths.canonical);
-      artifactPromoted = true;
-      await fs.rename(temporaryManifest, paths.canonicalManifest);
-      manifestPromoted = true;
+      if (!refreshCanonicalManifest) {
+        await fs.rename(temporaryArtifact, paths.canonical);
+        artifactPromoted = true;
+        await fs.rename(temporaryManifest, paths.canonicalManifest);
+        manifestPromoted = true;
+        replacementCommitted = true;
+      }
     } catch (error) {
-      if (artifactPromoted && !manifestPromoted) {
+      if (manifestPromoted) {
+        await fs.unlink(paths.canonicalManifest).catch(() => undefined);
+      }
+      if (artifactPromoted) {
         await fs.unlink(paths.canonical).catch(() => undefined);
+      }
+      if (manifestDisplaced && !(await pathExists(paths.canonicalManifest))) {
+        await fs
+          .rename(displacedManifest, paths.canonicalManifest)
+          .catch(() => undefined);
+      }
+      if (artifactDisplaced && !(await pathExists(paths.canonical))) {
+        await fs
+          .rename(displacedArtifact, paths.canonical)
+          .catch(() => undefined);
       }
       throw error;
     } finally {
       await Promise.all([
         fs.unlink(temporaryArtifact).catch(() => undefined),
         fs.unlink(temporaryManifest).catch(() => undefined),
+        ...(replacementCommitted
+          ? [
+              fs.unlink(displacedArtifact).catch(() => undefined),
+              fs.unlink(displacedManifest).catch(() => undefined),
+            ]
+          : []),
       ]);
     }
     const artifact = await this.verify(ref, {
