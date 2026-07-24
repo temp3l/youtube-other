@@ -126,6 +126,7 @@ export async function validateMathMediaFile(
 ): Promise<MathMediaValidation> {
   const minimum = options.minimumDurationSeconds ?? 180;
   const maximum = options.maximumDurationSeconds ?? 300;
+  const durationTolerance = options.durationToleranceSeconds ?? 0.1;
   const issues: string[] = [];
   let width = 0;
   let height = 0;
@@ -143,7 +144,7 @@ export async function validateMathMediaFile(
       ...(options.expectedDurationSeconds === undefined
         ? {}
         : { expectedDurationSeconds: options.expectedDurationSeconds }),
-      durationToleranceSeconds: options.durationToleranceSeconds ?? 0.1,
+      durationToleranceSeconds: durationTolerance,
     });
     width = base.width;
     height = base.height;
@@ -151,7 +152,10 @@ export async function validateMathMediaFile(
     videoCodec = base.videoCodec;
     audioCodec = base.audioCodec;
     issues.push(...base.issues);
-    if (durationSeconds < minimum || durationSeconds > maximum)
+    if (
+      durationSeconds < minimum - durationTolerance ||
+      durationSeconds > maximum + durationTolerance
+    )
       issues.push(
         `Media duration ${durationSeconds.toFixed(3)}s is outside ${minimum}-${maximum} seconds.`
       );

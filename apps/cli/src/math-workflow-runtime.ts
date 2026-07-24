@@ -95,6 +95,9 @@ export const CANONICAL_PRIVATE_FACT_BOARD_MINIMUM_GLYPH_PX = 72;
 export const CANONICAL_PRIVATE_NARRATION_SYNC_VERSION =
   "math-narration-sync.v1" as const;
 export const CANONICAL_PRIVATE_NARRATION_MAX_TEMPO_RATIO = 2;
+export const CANONICAL_PRIVATE_RETRIEVAL_RESPONSE_HOLD_SECONDS = 5;
+export const CANONICAL_PRIVATE_SPEECH_RESERVED_SECONDS = 24;
+export const CANONICAL_PRIVATE_MAX_STATIC_INTERVAL_FRAMES = 225;
 export const CANONICAL_PRIVATE_VISUAL_STYLE_VERSION = 6;
 export const CANONICAL_PRIVATE_RENDERER_VERSIONS = {
   svg: MATH_SVG_RENDERER_VERSION,
@@ -129,6 +132,27 @@ export interface CanonicalPaidSpeechUsage {
   readonly costMicros: number;
 }
 
+export function deriveCanonicalPaidSpeechRate(input: {
+  readonly words: number;
+  readonly targetDurationSeconds: number;
+}): number {
+  if (
+    !Number.isFinite(input.words) ||
+    input.words <= 0 ||
+    !Number.isFinite(input.targetDurationSeconds) ||
+    input.targetDurationSeconds <= CANONICAL_PRIVATE_SPEECH_RESERVED_SECONDS
+  ) {
+    throw new Error(
+      "Canonical speech words and target duration must be finite and positive."
+    );
+  }
+  const speakingMinutes =
+    (input.targetDurationSeconds -
+      CANONICAL_PRIVATE_SPEECH_RESERVED_SECONDS) /
+    60;
+  return Math.max(80, Math.min(220, Math.round(input.words / speakingMinutes)));
+}
+
 export function buildCanonicalNarrationSynchronizationFilter(input: {
   readonly sourceDurationSeconds: number;
   readonly targetDurationSeconds: number;
@@ -147,18 +171,20 @@ export function buildCanonicalNarrationSynchronizationFilter(input: {
     );
   }
   const target = String(input.targetDurationSeconds);
-  if (input.sourceDurationSeconds <= input.targetDurationSeconds) {
+  const speechTargetSeconds =
+    input.targetDurationSeconds -
+    CANONICAL_PRIVATE_RETRIEVAL_RESPONSE_HOLD_SECONDS;
+  if (speechTargetSeconds <= 0) {
+    throw new Error(
+      "Canonical narration target must leave room for the retrieval response hold."
+    );
+  }
+  if (input.sourceDurationSeconds <= speechTargetSeconds) {
     return {
       filter: `${CANONICAL_PRIVATE_NARRATION_LOUDNESS_FILTER},apad=whole_dur=${target},atrim=duration=${target}`,
       tempoRatio: 1,
     };
   }
-  const reservedEndPaddingSeconds = Math.min(
-    0.25,
-    input.targetDurationSeconds / 100
-  );
-  const speechTargetSeconds =
-    input.targetDurationSeconds - reservedEndPaddingSeconds;
   const exactTempoRatio = input.sourceDurationSeconds / speechTargetSeconds;
   const tempoRatio = Math.ceil(exactTempoRatio * 1_000_000) / 1_000_000;
   if (tempoRatio > CANONICAL_PRIVATE_NARRATION_MAX_TEMPO_RATIO) {
@@ -483,8 +509,8 @@ export async function materializeCanonicalPrivateSpeech(
   );
   const loudness = parseLoudnormMeasurement(loudnessCommand.stderr);
   if (
-    wav.durationSeconds < 239.9 ||
-    wav.durationSeconds > 240.1 ||
+    wav.durationSeconds < input.lesson.targetDurationSeconds - 0.1 ||
+    wav.durationSeconds > input.lesson.targetDurationSeconds + 0.1 ||
     loudness.integratedLoudnessLufs < -24 ||
     loudness.integratedLoudnessLufs > -14 ||
     loudness.truePeakDb > -1 ||
@@ -971,7 +997,10 @@ function validateCanonicalVisualScene(input: {
     finalInterval,
     ...scheduledIntervals
   );
-  if (maximumStaticIntervalFrames > 180)
+  if (
+    maximumStaticIntervalFrames >
+    CANONICAL_PRIVATE_MAX_STATIC_INTERVAL_FRAMES
+  )
     throw new Error(
       `Visual scene ${input.sceneId} contains a ${maximumStaticIntervalFrames}-frame static interval.`
     );

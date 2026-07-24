@@ -740,7 +740,7 @@ export const canonicalPrivateMediaEvidenceSchema = z
           width: z.literal(1920),
           height: z.literal(1080),
           fps: z.literal(30),
-          durationSeconds: z.number().min(180).max(300),
+          durationSeconds: z.number().min(180).max(300.1),
           videoCodec: z.literal("h264"),
           audioCodec: z.string().min(1),
           continuityChecked: z.literal(true),
@@ -779,7 +779,7 @@ export const canonicalPrivateMediaEvidenceSchema = z
         genericFallbackUsed: z.literal(false),
         cueCoveragePassed: z.literal(true),
         minimumSceneStepCount: z.number().int().min(4),
-        maximumStaticIntervalFrames: z.number().int().max(180),
+        maximumStaticIntervalFrames: z.number().int().max(225),
       })
       .strict(),
     publication: z

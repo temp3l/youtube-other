@@ -22,6 +22,7 @@ describe("lesson variants", () => {
       expect(() => validateVariantDifferentiation(variants)).not.toThrow();
       expect(new Set(variants.map((item) => item.contentHash))).toHaveLength(3);
       for (const variant of variants) {
+        expect(variant.targetDurationSeconds).toBe(300);
         const facts = new Map(
           variant.facts.map((fact) => [fact.factId, fact.semantic])
         );

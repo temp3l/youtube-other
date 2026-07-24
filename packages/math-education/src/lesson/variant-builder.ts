@@ -66,6 +66,27 @@ const sceneFunctions = [
   "recap",
 ] as const;
 
+export const EDUCATIONAL_LESSON_TARGET_DURATION_SECONDS = 300 as const;
+
+function expandedEducationalSceneDurations(
+  durations: readonly number[]
+): readonly number[] {
+  const scale =
+    EDUCATIONAL_LESSON_TARGET_DURATION_SECONDS /
+    durations.reduce((total, duration) => total + duration, 0);
+  const expanded = durations.map((duration) => duration * scale);
+  const misconceptionOverflow = Math.max(0, (expanded[4] ?? 0) - 30);
+  if (misconceptionOverflow > 0) {
+    expanded[4] = 30;
+    expanded[8] = (expanded[8] ?? 0) + misconceptionOverflow;
+  }
+  expanded[8] =
+    (expanded[8] ?? 0) +
+    EDUCATIONAL_LESSON_TARGET_DURATION_SECONDS -
+    expanded.reduce((total, duration) => total + duration, 0);
+  return expanded;
+}
+
 const integer = (value: string) => ({ kind: "integer" as const, value });
 const sum = (parts: readonly string[]) => ({
   kind: "sum" as const,
@@ -81,6 +102,9 @@ function buildProductionStandardLesson(
     loadGeometryMeasurementStandardContent(skill) ??
     loadDataDiagramStandardContent(skill);
   if (!content) return null;
+  const sceneDurations = expandedEducationalSceneDurations(
+    content.scenes.map((scene) => scene.plannedDurationSeconds)
+  );
   const draft = {
     artifactVersion: "lesson-spec.v1" as const,
     lessonId: createLessonId(skill.skillId, "standard"),
@@ -107,8 +131,13 @@ function buildProductionStandardLesson(
     challenge: content.transferTask,
     facts: content.facts,
     checks: content.checks,
-    scenes: content.scenes.map(({ purpose: _purpose, ...scene }) => scene),
-    targetDurationSeconds: content.expectedDurationSeconds,
+    scenes: content.scenes.map(
+      ({ purpose: _purpose, ...scene }, index) => ({
+        ...scene,
+        plannedDurationSeconds: sceneDurations[index]!,
+      })
+    ),
+    targetDurationSeconds: EDUCATIONAL_LESSON_TARGET_DURATION_SECONDS,
   };
   return lessonVariantSpecificationSchema.parse({
     ...draft,
@@ -133,6 +162,9 @@ export function buildLessonVariant(
     throw new Error(`Unsupported lesson specification: ${skill.skillId}`);
   if (fixture.skillId !== skill.skillId || fixture.variant !== variant)
     throw new Error("Lesson fixture identity does not match the request.");
+  const sceneDurations = expandedEducationalSceneDurations(
+    fixture.sceneDurations
+  );
   const profile = variantProfiles[variant];
   const fixtureContentHash = canonicalHash(fixture);
   const facts: Array<{
@@ -322,9 +354,9 @@ export function buildLessonVariant(
             : index === 6
               ? ("teacher" as const)
               : ("formula" as const),
-      plannedDurationSeconds: fixture.sceneDurations[index]!,
+      plannedDurationSeconds: sceneDurations[index]!,
     })),
-    targetDurationSeconds: 240 as const,
+    targetDurationSeconds: EDUCATIONAL_LESSON_TARGET_DURATION_SECONDS,
   };
   const lesson = lessonVariantSpecificationSchema.parse({
     ...draft,

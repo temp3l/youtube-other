@@ -31,14 +31,14 @@ async function pilot() {
 }
 
 describe("localized math pipeline", () => {
-  it("locks facts and creates a 240 second timeline for every locale", async () => {
+  it("locks facts and creates a five-minute timeline for every locale", async () => {
     const { lesson } = await pilot();
     const localized = MATH_LANGUAGES.map((language) =>
       localizeNarration(lesson, language)
     );
     expect(new Set(localized.map((item) => item.factLockHash))).toHaveLength(1);
     for (const narration of localized)
-      expect(createTimingManifest(lesson, narration).durationSeconds).toBe(240);
+      expect(createTimingManifest(lesson, narration).durationSeconds).toBe(300);
     expect(formatExactInteger("730405", "de")).toBe("730.405");
     expect(formatExactInteger("730405", "en")).toBe("730,405");
   });

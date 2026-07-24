@@ -79,6 +79,7 @@ import {
   CANONICAL_OPENAI_SPEECH_PRICING_VERSION,
   CANONICAL_PRIVATE_NARRATION_SYNC_VERSION,
   createCanonicalMathOperator,
+  deriveCanonicalPaidSpeechRate,
   estimateCanonicalPaidSpeechRemainingCost,
   materializeCanonicalPrivateSpeech,
   readCanonicalPaidSpeechUsage,
@@ -268,6 +269,7 @@ interface CanonicalPaidSpeechEstimate {
   readonly priorCostMicros: number;
   readonly words: number;
   readonly targetWordsPerMinute: number;
+  readonly providerSpeed: number;
   readonly model: string;
   readonly voice: string;
   readonly speechProfileVersion: string;
@@ -306,10 +308,10 @@ async function canonicalPaidSpeechPreflight(input: {
       total + segment.spokenText.trim().split(/\s+/u).filter(Boolean).length,
     0
   );
-  const targetWordsPerMinute = Math.max(
-    80,
-    Math.min(220, Math.round(words / 3.6))
-  );
+  const targetWordsPerMinute = deriveCanonicalPaidSpeechRate({
+    words,
+    targetDurationSeconds: lesson.targetDurationSeconds,
+  });
   const runtime = await loadRuntimeConfig(
     mathSpeechRuntimeOverrides(input.options)
   );
@@ -324,6 +326,7 @@ async function canonicalPaidSpeechPreflight(input: {
           ? { voice: runtime.openAiCompatibleTtsVoice }
           : {}),
       targetWordsPerMinute,
+      providerSpeed: 0.9,
     }
   );
   const pronunciationDictionaries =
@@ -418,6 +421,7 @@ async function canonicalPaidSpeechPreflight(input: {
       priorCostMicros: priorUsage.costMicros,
       words,
       targetWordsPerMinute,
+      providerSpeed: profile.providerSpeed,
       model: profile.model,
       voice: profile.voice,
       speechProfileVersion: profile.version,
@@ -994,6 +998,9 @@ async function runCanonicalPrivateProduction(
             provider: "openai-compatible",
             model: paidSetup.estimate.model,
             voice: paidSetup.estimate.voice,
+            targetWordsPerMinute:
+              paidSetup.estimate.targetWordsPerMinute,
+            providerSpeed: paidSetup.estimate.providerSpeed,
             speechProfileVersion: paidSetup.estimate.speechProfileVersion,
             pricingVersion: paidSetup.configuration.pricingVersion,
             narrationSynchronizationVersion:
@@ -2242,6 +2249,9 @@ export function registerMathCommands(program: Command): void {
               provider: "openai-compatible",
               model: paidSetup.estimate.model,
               voice: paidSetup.estimate.voice,
+              targetWordsPerMinute:
+                paidSetup.estimate.targetWordsPerMinute,
+              providerSpeed: paidSetup.estimate.providerSpeed,
               speechProfileVersion: paidSetup.estimate.speechProfileVersion,
               pricingVersion: paidSetup.configuration.pricingVersion,
               narrationSynchronizationVersion:

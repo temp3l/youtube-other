@@ -12,9 +12,11 @@ import {
   buildCanonicalNarrationSynchronizationFilter,
   CANONICAL_PRIVATE_FACT_BOARD_MINIMUM_GLYPH_PX,
   CANONICAL_PRIVATE_NARRATION_MAX_TEMPO_RATIO,
+  CANONICAL_PRIVATE_RETRIEVAL_RESPONSE_HOLD_SECONDS,
   CANONICAL_PRIVATE_RENDERER_VERSIONS,
   CANONICAL_PRIVATE_VISUAL_STYLE_VERSION,
   CANONICAL_SPEECH_WORST_CASE_MULTIPLIER,
+  deriveCanonicalPaidSpeechRate,
   estimateCanonicalPaidSpeechCostMicros,
   estimateCanonicalPaidSpeechRemainingCost,
   readCanonicalPaidSpeechUsage,
@@ -35,6 +37,7 @@ describe("canonical math workflow runtime", () => {
   });
 
   it("preserves overlong narration by tempo-synchronizing before exact padding", () => {
+    expect(CANONICAL_PRIVATE_RETRIEVAL_RESPONSE_HOLD_SECONDS).toBe(5);
     expect(
       buildCanonicalNarrationSynchronizationFilter({
         sourceDurationSeconds: 356.042,
@@ -42,8 +45,8 @@ describe("canonical math workflow runtime", () => {
       })
     ).toEqual({
       filter:
-        "atempo=1.485056,loudnorm=I=-17:TP=-2:LRA=11,apad=whole_dur=240,atrim=duration=240",
-      tempoRatio: 1.485056,
+        "atempo=1.515073,loudnorm=I=-17:TP=-2:LRA=11,apad=whole_dur=240,atrim=duration=240",
+      tempoRatio: 1.515073,
     });
     expect(
       buildCanonicalNarrationSynchronizationFilter({
@@ -63,6 +66,21 @@ describe("canonical math workflow runtime", () => {
     ).toThrow(
       `above the canonical maximum ${CANONICAL_PRIVATE_NARRATION_MAX_TEMPO_RATIO}`
     );
+  });
+
+  it("uses the longer lesson window for slower canonical speech", () => {
+    expect(
+      deriveCanonicalPaidSpeechRate({
+        words: 344,
+        targetDurationSeconds: 240,
+      })
+    ).toBe(96);
+    expect(
+      deriveCanonicalPaidSpeechRate({
+        words: 344,
+        targetDurationSeconds: 300,
+      })
+    ).toBe(80);
   });
 
   it("budgets all three bounded speech attempts before provider execution", () => {
