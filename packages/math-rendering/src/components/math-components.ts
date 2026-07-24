@@ -216,9 +216,11 @@ export const placeValueActivityComponentSchema = z
   })
   .superRefine((value, context) => {
     const requiredCount =
-      value.mode === "hook" || value.mode === "objective"
+      value.mode === "hook" ||
+      value.mode === "objective" ||
+      value.mode === "recap"
         ? 0
-        : value.mode === "worked-example" || value.mode === "recap"
+        : value.mode === "worked-example"
           ? 2
           : 1;
     if (value.values.length !== requiredCount)
@@ -1382,6 +1384,23 @@ function renderPlaceValueActivity(
     return wrapSvg(input, `${header}${plan}${prompt}`, 72);
   }
 
+  if (input.mode === "recap") {
+    const responseSpace = [
+      `<g ${chalkStep("quest-retrieval-cue", { x: 320, y: 300, width: 1280, height: 130 }, undefined, { weight: 0.8, pauseAfterFrames: 24 })}><text x="960" y="390" text-anchor="middle" font-family="Arial, sans-serif" font-size="76" fill="#f59e0b">Nur aus dem Gedächtnis.</text></g>`,
+      `<g ${chalkStep("quest-retrieval-label", { x: 300, y: 500, width: 1320, height: 90 }, undefined, { weight: 0.65 })}><text x="330" y="570" text-anchor="start" font-family="Arial, sans-serif" font-size="72" fill="#14213d">Deine Erklärung:</text></g>`,
+      ...Array.from(
+        { length: 3 },
+        (_, index) =>
+          `<path d="M${420 + index * 35} ${680 + index * 95}Q960 ${695 + index * 95} ${1500 - index * 35} ${680 + index * 95}" fill="none" stroke="#64748b" stroke-width="5" stroke-linecap="round" ${chalkStep(`quest-retrieval-line-${index + 1}`, { x: 400 + index * 35, y: 655 + index * 95, width: 1120 - index * 70, height: 50 }, undefined, { weight: 0.45, pauseAfterFrames: 16 })}/>`
+      ),
+    ].join("");
+    return wrapSvg(
+      input,
+      `${header}${responseSpace}`,
+      72
+    );
+  }
+
   const first = input.values[0]!;
   const firstModel = placeValueModel(first.expression);
 
@@ -1422,33 +1441,6 @@ function renderPlaceValueActivity(
     return wrapSvg(
       input,
       `${header}${incorrectMarkup}${strike}<path d="M800 415Q900 370 970 410" fill="none" stroke="#f59e0b" stroke-width="8" marker-end="url(#quest-repair-arrow)" ${chalkStep("quest-mistake-arrow", { x: 790, y: 355, width: 190, height: 90 }, undefined, { weight: 0.45 })}/><defs><marker id="quest-repair-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#f59e0b"/></marker></defs>${repair}${zeroes}${prompt}`,
-      72
-    );
-  }
-
-  if (input.mode === "recap") {
-    const second = input.values[1]!;
-    const secondModel = placeValueModel(second.expression);
-    const examples = [first, second]
-      .map((value, index) => {
-        const model = index === 0 ? firstModel : secondModel;
-        const x = 300 + index * 820;
-        return `<g ${chalkStep(`quest-recap-code-${index + 1}`, { x, y: 280, width: 560, height: 135 }, value.factId, { weight: 1.25, pauseAfterFrames: 12 })}><text x="${x + 280}" y="375" text-anchor="middle" font-family="Arial, sans-serif" font-size="92" font-weight="700" fill="#14213d">${formattedGermanInteger(model.value)}</text><path d="M${x + 55} 405Q${x + 280} 425 ${x + 505} 402" fill="none" stroke="#f59e0b" stroke-width="6"/></g>`;
-      })
-      .join("");
-    const rule = [
-      "Stellen anlegen.",
-      "Ziffern einsetzen.",
-      "Leere Stellen mit 0 sichern.",
-    ]
-      .map((line, index) => {
-        const y = 545 + index * 90;
-        return `<g ${chalkStep(`quest-recap-rule-${index + 1}`, { x: 380, y: y - 66, width: 1160, height: 86 }, undefined, { weight: index === 2 ? 1.2 : 0.75, pauseAfterFrames: 12 })}><text x="430" y="${y}" text-anchor="start" font-family="Arial, sans-serif" font-size="72" fill="${index === 2 ? "#f59e0b" : "#14213d"}">${escapeXml(line)}</text></g>`;
-      })
-      .join("");
-    return wrapSvg(
-      input,
-      `${header}${examples}${rule}${placeValuePrompt(input.prompt, "quest-recap-prompt", 860)}`,
       72
     );
   }

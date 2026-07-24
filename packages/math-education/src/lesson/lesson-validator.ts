@@ -82,14 +82,20 @@ export function validateRequiredEducationalPractice(
     throw new Error(
       `${lesson.lessonId} independent-example source is missing.`
     );
-  const challengeTaskHash = independentSource.lineage.sourceContentHash;
+  const taskIdentity = (source: NonNullable<typeof independentSource>) =>
+    canonicalHash({
+      sourceContentHash: source.lineage.sourceContentHash,
+      semantic: source.semantic,
+      displayLatex: source.displayLatex,
+    });
+  const challengeTaskHash = taskIdentity(independentSource);
   if (
     lesson.workedExamples.some((example) => {
       const sourceFactId = example.steps.find(
         (step) => step.factId !== example.solutionFactId
       )?.factId;
       const source = sourceFactId ? facts.get(sourceFactId) : undefined;
-      return source?.lineage.sourceContentHash === challengeTaskHash;
+      return source ? taskIdentity(source) === challengeTaskHash : false;
     })
   )
     throw new Error(

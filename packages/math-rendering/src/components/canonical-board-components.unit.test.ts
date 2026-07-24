@@ -88,6 +88,24 @@ describe("canonical chalkboard components", () => {
     expect(rendered.svg).not.toContain('rx="30"');
   });
 
+  it("keeps the final retrieval board fact-free and leaves the answer open", () => {
+    const rendered = renderSemanticComponent({
+      kind: "place-value-activity",
+      mode: "recap",
+      title: "Abruffrage",
+      prompt: "Erkläre das Verfahren ohne zurückzuschauen.",
+      values: [],
+    });
+
+    expect(rendered.factIds).toEqual([]);
+    expect(rendered.svg).toContain("Deine Erklärung:");
+    expect(rendered.svg).toContain('data-chalk-step="quest-retrieval-line-3"');
+    expect(rendered.svg).not.toContain("Erkläre das Verfahren ohne zurückzuschauen.");
+    expect(rendered.svg).not.toContain("Stellen anlegen.");
+    expect(rendered.svg).not.toContain("730.405");
+    expect(extractSemanticChalkSteps(rendered.svg).length).toBeGreaterThan(6);
+  });
+
   it("draws a tuple-bound rectangle edge by edge", () => {
     const rendered = renderSemanticComponent({
       kind: "geometry",
