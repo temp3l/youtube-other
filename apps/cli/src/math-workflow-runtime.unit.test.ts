@@ -4,7 +4,9 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 import {
+  buildCanonicalNarrationSynchronizationFilter,
   CANONICAL_PRIVATE_FACT_BOARD_MINIMUM_GLYPH_PX,
+  CANONICAL_PRIVATE_NARRATION_MAX_TEMPO_RATIO,
   CANONICAL_SPEECH_WORST_CASE_MULTIPLIER,
   estimateCanonicalPaidSpeechCostMicros,
   estimateCanonicalPaidSpeechRemainingCost,
@@ -16,6 +18,37 @@ describe("canonical math workflow runtime", () => {
   it("meets the grades 5-7 minimum glyph size", () => {
     expect(CANONICAL_PRIVATE_FACT_BOARD_MINIMUM_GLYPH_PX).toBeGreaterThanOrEqual(
       72
+    );
+  });
+
+  it("preserves overlong narration by tempo-synchronizing before exact padding", () => {
+    expect(
+      buildCanonicalNarrationSynchronizationFilter({
+        sourceDurationSeconds: 356.042,
+        targetDurationSeconds: 240,
+      })
+    ).toEqual({
+      filter:
+        "atempo=1.485056,loudnorm=I=-17:TP=-2:LRA=11,apad=whole_dur=240,atrim=duration=240",
+      tempoRatio: 1.485056,
+    });
+    expect(
+      buildCanonicalNarrationSynchronizationFilter({
+        sourceDurationSeconds: 230,
+        targetDurationSeconds: 240,
+      })
+    ).toEqual({
+      filter:
+        "loudnorm=I=-17:TP=-2:LRA=11,apad=whole_dur=240,atrim=duration=240",
+      tempoRatio: 1,
+    });
+    expect(() =>
+      buildCanonicalNarrationSynchronizationFilter({
+        sourceDurationSeconds: 500,
+        targetDurationSeconds: 240,
+      })
+    ).toThrow(
+      `above the canonical maximum ${CANONICAL_PRIVATE_NARRATION_MAX_TEMPO_RATIO}`
     );
   });
 

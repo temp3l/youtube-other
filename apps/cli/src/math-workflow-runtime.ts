@@ -87,6 +87,11 @@ export interface CanonicalMathOperatorInput {
 type CanonicalVisualFact =
   CanonicalPrivateMediaMaterializerInput["lesson"]["facts"][number];
 export const CANONICAL_PRIVATE_FACT_BOARD_MINIMUM_GLYPH_PX = 72;
+export const CANONICAL_PRIVATE_NARRATION_SYNC_VERSION =
+  "math-narration-sync.v1" as const;
+export const CANONICAL_PRIVATE_NARRATION_MAX_TEMPO_RATIO = 2;
+const CANONICAL_PRIVATE_NARRATION_LOUDNESS_FILTER =
+  "loudnorm=I=-17:TP=-2:LRA=11";
 export const CANONICAL_OPENAI_SPEECH_PRICING_VERSION =
   "openai-gpt-4o-mini-tts-token-pricing-2026-07-15.v2" as const;
 // Conservative token-price proxy: $12/M output-audio tokens, budgeted at
@@ -111,6 +116,49 @@ export interface CanonicalPaidSpeechUsage {
   readonly audioSeconds: number;
   readonly latencyMs: number;
   readonly costMicros: number;
+}
+
+export function buildCanonicalNarrationSynchronizationFilter(input: {
+  readonly sourceDurationSeconds: number;
+  readonly targetDurationSeconds: number;
+}): {
+  readonly filter: string;
+  readonly tempoRatio: number;
+} {
+  if (
+    !Number.isFinite(input.sourceDurationSeconds) ||
+    input.sourceDurationSeconds <= 0 ||
+    !Number.isFinite(input.targetDurationSeconds) ||
+    input.targetDurationSeconds <= 0
+  ) {
+    throw new Error("Canonical narration durations must be finite and positive.");
+  }
+  const target = String(input.targetDurationSeconds);
+  if (input.sourceDurationSeconds <= input.targetDurationSeconds) {
+    return {
+      filter: `${CANONICAL_PRIVATE_NARRATION_LOUDNESS_FILTER},apad=whole_dur=${target},atrim=duration=${target}`,
+      tempoRatio: 1,
+    };
+  }
+  const reservedEndPaddingSeconds = Math.min(
+    0.25,
+    input.targetDurationSeconds / 100
+  );
+  const speechTargetSeconds =
+    input.targetDurationSeconds - reservedEndPaddingSeconds;
+  const exactTempoRatio =
+    input.sourceDurationSeconds / speechTargetSeconds;
+  const tempoRatio =
+    Math.ceil(exactTempoRatio * 1_000_000) / 1_000_000;
+  if (tempoRatio > CANONICAL_PRIVATE_NARRATION_MAX_TEMPO_RATIO) {
+    throw new Error(
+      `Generated narration duration ${input.sourceDurationSeconds} requires tempo ratio ${tempoRatio.toFixed(6)}, above the canonical maximum ${CANONICAL_PRIVATE_NARRATION_MAX_TEMPO_RATIO}.`
+    );
+  }
+  return {
+    filter: `atempo=${tempoRatio.toFixed(6)},${CANONICAL_PRIVATE_NARRATION_LOUDNESS_FILTER},apad=whole_dur=${target},atrim=duration=${target}`,
+    tempoRatio,
+  };
 }
 
 export function estimateCanonicalPaidSpeechCostMicros(input: {
@@ -361,13 +409,16 @@ export async function materializeCanonicalPrivateSpeech(
   const sourceProbe = await probeAudioWithFfprobe(generated.outputPath);
   if (
     !Number.isFinite(sourceProbe.durationSeconds) ||
-    sourceProbe.durationSeconds <= 0 ||
-    sourceProbe.durationSeconds > input.lesson.targetDurationSeconds
+    sourceProbe.durationSeconds <= 0
   ) {
     throw new Error(
-      `Generated narration duration ${sourceProbe.durationSeconds} cannot be synchronized without truncation.`
+      `Generated narration duration ${sourceProbe.durationSeconds} is invalid.`
     );
   }
+  const synchronization = buildCanonicalNarrationSynchronizationFilter({
+    sourceDurationSeconds: sourceProbe.durationSeconds,
+    targetDurationSeconds: input.lesson.targetDurationSeconds,
+  });
   await fs.mkdir(path.dirname(canonicalAudioPath), { recursive: true });
   const temporaryPath = `${canonicalAudioPath}.${process.pid}.tmp.wav`;
   try {
@@ -381,7 +432,7 @@ export async function materializeCanonicalPrivateSpeech(
         "-i",
         generated.outputPath,
         "-af",
-        `apad=whole_dur=${input.lesson.targetDurationSeconds},atrim=duration=${input.lesson.targetDurationSeconds}`,
+        synchronization.filter,
         "-ar",
         "48000",
         "-ac",

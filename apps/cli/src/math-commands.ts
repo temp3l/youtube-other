@@ -67,6 +67,7 @@ import {
 } from "@mediaforge/speech";
 import {
   CANONICAL_OPENAI_SPEECH_PRICING_VERSION,
+  CANONICAL_PRIVATE_NARRATION_SYNC_VERSION,
   createCanonicalMathOperator,
   estimateCanonicalPaidSpeechRemainingCost,
   materializeCanonicalPrivateSpeech,
@@ -892,6 +893,8 @@ async function runCanonicalPrivateProduction(
             voice: paidSetup.estimate.voice,
             speechProfileVersion: paidSetup.estimate.speechProfileVersion,
             pricingVersion: paidSetup.configuration.pricingVersion,
+            narrationSynchronizationVersion:
+              CANONICAL_PRIVATE_NARRATION_SYNC_VERSION,
             approvedCeilingMicros:
               paidSetup.configuration.approvedCeilingMicros,
           }),
@@ -1437,6 +1440,8 @@ export function registerMathCommands(program: Command): void {
               voice: paidSetup.estimate.voice,
               speechProfileVersion: paidSetup.estimate.speechProfileVersion,
               pricingVersion: paidSetup.configuration.pricingVersion,
+              narrationSynchronizationVersion:
+                CANONICAL_PRIVATE_NARRATION_SYNC_VERSION,
               candidateCount: 1,
               maximumAttempts: 3,
               concurrency: 1,
