@@ -12,8 +12,18 @@ describe("semantic chalk frames", () => {
       '<svg><rect width="10"/><g data-chalk-step="sum" data-chalk-box="100,100,500,100" data-fact-id="fact-a"><text>12+3</text></g><g data-chalk-step="answer" data-chalk-box="100,250,500,100" data-fact-id="fact-b"><text>15</text></g></svg>';
     const steps = extractSemanticChalkSteps(svg);
     expect(steps).toEqual([
-      { key: "step:sum", factId: "fact-a" },
-      { key: "step:answer", factId: "fact-b" },
+      {
+        key: "step:sum",
+        factId: "fact-a",
+        durationWeight: 1,
+        pauseAfterFrames: 0,
+      },
+      {
+        key: "step:answer",
+        factId: "fact-b",
+        durationWeight: 1,
+        pauseAfterFrames: 0,
+      },
     ]);
     const start = renderSemanticChalkFrame({
       svgMarkup: svg,
@@ -64,11 +74,36 @@ describe("semantic chalk frames", () => {
 
   it("centres verifier-bound drawing beats around narration cues", () => {
     const steps = [
-      { key: "step:title", factId: null },
-      { key: "step:grid", factId: null },
-      { key: "step:value-a", factId: "fact-a" },
-      { key: "step:value-b", factId: "fact-a" },
-      { key: "step:result", factId: "fact-b" },
+      {
+        key: "step:title",
+        factId: null,
+        durationWeight: 0.5,
+        pauseAfterFrames: 0,
+      },
+      {
+        key: "step:grid",
+        factId: null,
+        durationWeight: 1,
+        pauseAfterFrames: 0,
+      },
+      {
+        key: "step:value-a",
+        factId: "fact-a",
+        durationWeight: 1,
+        pauseAfterFrames: 12,
+      },
+      {
+        key: "step:value-b",
+        factId: "fact-a",
+        durationWeight: 1.5,
+        pauseAfterFrames: 0,
+      },
+      {
+        key: "step:result",
+        factId: "fact-b",
+        durationWeight: 1.2,
+        pauseAfterFrames: 0,
+      },
     ] as const;
     const schedule = createSemanticChalkSchedule({
       steps,
@@ -91,10 +126,30 @@ describe("semantic chalk frames", () => {
   it("uses final dwell time to keep sparse scenes under six seconds per beat", () => {
     const schedule = createSemanticChalkSchedule({
       steps: [
-        { key: "step:title", factId: null },
-        { key: "step:rule", factId: null },
-        { key: "step:body", factId: null },
-        { key: "step:prompt", factId: null },
+        {
+          key: "step:title",
+          factId: null,
+          durationWeight: 1,
+          pauseAfterFrames: 0,
+        },
+        {
+          key: "step:rule",
+          factId: null,
+          durationWeight: 1,
+          pauseAfterFrames: 0,
+        },
+        {
+          key: "step:body",
+          factId: null,
+          durationWeight: 1,
+          pauseAfterFrames: 0,
+        },
+        {
+          key: "step:prompt",
+          factId: null,
+          durationWeight: 1,
+          pauseAfterFrames: 0,
+        },
       ],
       sceneFrames: 815,
       cues: [],
@@ -105,5 +160,24 @@ describe("semantic chalk frames", () => {
     ];
 
     expect(Math.max(...intervals)).toBeLessThanOrEqual(180);
+  });
+
+  it("uses declared chalk weights and leaves a short thinking pause", () => {
+    const steps = extractSemanticChalkSteps(
+      '<svg><g data-chalk-step="heading" data-chalk-weight="0.5"></g><g data-chalk-step="zero" data-chalk-weight="1.7" data-chalk-pause="18"></g><g data-chalk-step="repair"></g></svg>'
+    );
+    const schedule = createSemanticChalkSchedule({
+      steps,
+      sceneFrames: 480,
+    });
+
+    expect(steps[1]).toMatchObject({
+      durationWeight: 1.7,
+      pauseAfterFrames: 18,
+    });
+    expect(
+      schedule[1]!.endFrame - schedule[1]!.startFrame
+    ).toBeGreaterThan(schedule[0]!.endFrame - schedule[0]!.startFrame);
+    expect(schedule[2]!.startFrame - schedule[1]!.endFrame).toBe(18);
   });
 });

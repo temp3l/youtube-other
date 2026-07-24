@@ -53,9 +53,14 @@ describe("canonical chalkboard components", () => {
     });
 
     expect(practice.factIds).toEqual(["transfer-main-source"]);
-    expect(practice.svg).toContain(">604.070</text>");
-    expect(practice.svg).toContain('data-chalk-step="quest-digit-6"');
-    expect(challenge.svg).toContain('data-chalk-step="quest-empty-places"');
+    expect(practice.svg).not.toContain(">604.070</text>");
+    expect(practice.svg).toContain('data-chalk-step="quest-practice-digit-5"');
+    expect(practice.svg).not.toContain(
+      'data-chalk-step="quest-practice-digit-6"'
+    );
+    expect(challenge.svg).toContain(
+      'data-chalk-step="quest-challenge-digit-5"'
+    );
     expect(challenge.svg).not.toContain(">604.070</text>");
   });
 
@@ -77,6 +82,10 @@ describe("canonical chalkboard components", () => {
     expect(rendered.svg).toContain('data-math-status="incorrect-derived"');
     expect(rendered.svg).toContain(">7.345</text>");
     expect(rendered.svg).toContain(">730.405</text>");
+    expect(rendered.svg.indexOf('data-chalk-step="quest-mistake-wrong"')).toBeLessThan(
+      rendered.svg.indexOf('data-chalk-step="quest-mistake-strike"')
+    );
+    expect(rendered.svg).not.toContain('rx="30"');
   });
 
   it("draws a tuple-bound rectangle edge by edge", () => {

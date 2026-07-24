@@ -1,8 +1,10 @@
-export const MATH_SEMANTIC_CHALK_VERSION = "math-semantic-chalk.v3" as const;
+export const MATH_SEMANTIC_CHALK_VERSION = "math-semantic-chalk.v4" as const;
 
 export interface SemanticChalkStep {
   readonly key: string;
   readonly factId: string | null;
+  readonly durationWeight: number;
+  readonly pauseAfterFrames: number;
 }
 
 export interface SemanticChalkCue {
@@ -38,6 +40,24 @@ function attribute(tag: string, name: string): string | null {
   return tag.match(new RegExp(`\\b${name}="([^"]+)"`, "u"))?.[1] ?? null;
 }
 
+function positiveAttribute(
+  tag: string,
+  name: string,
+  fallback: number
+): number {
+  const value = Number(attribute(tag, name));
+  return Number.isFinite(value) && value > 0 ? value : fallback;
+}
+
+function nonNegativeAttribute(
+  tag: string,
+  name: string,
+  fallback: number
+): number {
+  const value = Number(attribute(tag, name));
+  return Number.isFinite(value) && value >= 0 ? value : fallback;
+}
+
 function setAttribute(tag: string, name: string, value: string): string {
   const pattern = new RegExp(`\\s${name}="[^"]*"`, "u");
   if (pattern.test(tag)) return tag.replace(pattern, ` ${name}="${value}"`);
@@ -59,6 +79,10 @@ export function extractSemanticChalkSteps(
   ].map((match) => ({
     key: `step:${match[1]}`,
     factId: attribute(match[0], "data-fact-id"),
+    durationWeight: positiveAttribute(match[0], "data-chalk-weight", 1),
+    pauseAfterFrames: Math.round(
+      nonNegativeAttribute(match[0], "data-chalk-pause", 0)
+    ),
   }));
   if (explicit.length > 0) {
     const seen = new Set<string>();
@@ -80,9 +104,18 @@ export function extractSemanticChalkSteps(
     return factIds.map((factId) => ({
       key: `fact:${factId}`,
       factId,
+      durationWeight: 1,
+      pauseAfterFrames: 0,
     }));
   return /<(?:text|foreignObject)\b/iu.test(svgMarkup)
-    ? [{ key: "__unbound-text__", factId: null }]
+    ? [
+        {
+          key: "__unbound-text__",
+          factId: null,
+          durationWeight: 1,
+          pauseAfterFrames: 0,
+        },
+      ]
     : [];
 }
 
@@ -138,9 +171,29 @@ export function createSemanticChalkSchedule(args: {
     minimumSpacing,
     Math.min(45, Math.floor(writingFrames / Math.max(1, args.steps.length)))
   );
+  const totalPauseFrames = Math.min(
+    Math.floor(writingFrames * 0.24),
+    args.steps.reduce(
+      (total, step) => total + Math.min(45, step.pauseAfterFrames),
+      0
+    )
+  );
+  const weightedWritingFrames = Math.max(
+    args.steps.length,
+    writingFrames - totalPauseFrames
+  );
+  const totalWeight = args.steps.reduce(
+    (total, step) => total + step.durationWeight,
+    0
+  );
+  let accumulatedWeight = 0;
+  let accumulatedPause = 0;
   const starts: number[] = [];
   for (const [index, step] of args.steps.entries()) {
-    const base = Math.floor((index * writingFrames) / args.steps.length);
+    const base = Math.floor(
+      accumulatedPause +
+        (accumulatedWeight * weightedWritingFrames) / totalWeight
+    );
     const cue = step.factId ? cueByFact.get(step.factId) : undefined;
     const factIndexes = step.factId
       ? indexesByFact.get(step.factId)
@@ -163,6 +216,8 @@ export function createSemanticChalkSchedule(args: {
     starts.push(
       Math.max(earliest, Math.min(latest, maximumFromPrevious, desired))
     );
+    accumulatedWeight += step.durationWeight;
+    accumulatedPause += Math.min(45, step.pauseAfterFrames);
   }
   if (writingFrames <= args.steps.length * 180) {
     let following = writingFrames;
@@ -171,11 +226,19 @@ export function createSemanticChalkSchedule(args: {
       following = starts[index]!;
     }
   }
-  return args.steps.map((step, index) => ({
-    stepKey: step.key,
-    startFrame: starts[index] ?? 0,
-    endFrame: starts[index + 1] ?? writingFrames,
-  }));
+  return args.steps.map((step, index) => {
+    const startFrame = starts[index] ?? 0;
+    const followingStart = starts[index + 1] ?? writingFrames;
+    const pause = Math.min(
+      step.pauseAfterFrames,
+      Math.max(0, followingStart - startFrame - 1)
+    );
+    return {
+      stepKey: step.key,
+      startFrame,
+      endFrame: Math.max(startFrame + 1, followingStart - pause),
+    };
+  });
 }
 
 function boundsForStep(

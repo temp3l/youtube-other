@@ -1160,7 +1160,7 @@ interface CanonicalPrivateBatchPreflight {
     readonly workflow: string;
     readonly narration: string;
     readonly verifierProtocol: "math-verifier.v3";
-    readonly renderer: "math-semantic-keyframe-runner.v5";
+    readonly renderer: "math-semantic-keyframe-runner.v6";
     readonly visualStyle: "math.educational-visual-style.v1";
     readonly metadata: "math-metadata.v1";
     readonly speechProfile: string;
@@ -1530,7 +1530,7 @@ async function canonicalPrivateBatchPreflight(
     workflow: mathWorkflowDefinition.revision,
     narration: MATH_LOCKED_FACT_NARRATION_VERSION,
     verifierProtocol: "math-verifier.v3" as const,
-    renderer: "math-semantic-keyframe-runner.v5" as const,
+    renderer: "math-semantic-keyframe-runner.v6" as const,
     visualStyle: "math.educational-visual-style.v1" as const,
     metadata: "math-metadata.v1" as const,
     speechProfile: items[0]!.speech.speechProfileVersion,
@@ -2282,8 +2282,8 @@ export function registerMathCommands(program: Command): void {
           narrationReview: "math-german-narration-review.v1",
           verifierProtocol: "math-verifier.v3",
           verifier: "3.0.0",
-          renderer: "math-semantic-keyframe-runner.v5",
-          chalkRenderer: "math-semantic-chalk.v3",
+          renderer: "math-semantic-keyframe-runner.v6",
+          chalkRenderer: "math-semantic-chalk.v4",
           visualStyle: "math.educational-visual-style.v1",
           metadata: "math-metadata.v1",
           speechProfile: paidSetup?.estimate.speechProfileVersion ?? null,

@@ -26,11 +26,11 @@ describe("canonical math workflow runtime", () => {
     expect(
       CANONICAL_PRIVATE_FACT_BOARD_MINIMUM_GLYPH_PX
     ).toBeGreaterThanOrEqual(72);
-    expect(CANONICAL_PRIVATE_VISUAL_STYLE_VERSION).toBe(5);
+    expect(CANONICAL_PRIVATE_VISUAL_STYLE_VERSION).toBe(6);
     expect(CANONICAL_PRIVATE_RENDERER_VERSIONS).toEqual({
-      svg: "math-svg.v7",
+      svg: "math-svg.v8",
       formula: "math-svg.v2",
-      remotion: "math-semantic-keyframe-runner.v5",
+      remotion: "math-semantic-keyframe-runner.v6",
     });
   });
 
@@ -204,7 +204,7 @@ describe("canonical math workflow runtime", () => {
     expect(component).toMatchObject({
       kind: "place-value-activity",
       mode: "challenge",
-      title: "Jetzt bist du dran",
+      title: "Jetzt du",
       values: [{ factId: "transfer-main-source" }],
     });
   });

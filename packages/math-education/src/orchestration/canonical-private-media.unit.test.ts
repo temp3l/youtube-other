@@ -116,7 +116,7 @@ describe("canonical private media", () => {
       renderFingerprint: "5".repeat(64),
       visualPresentation: {
         strategy: "progressive-chalk-reveal" as const,
-        rendererVersion: "math-semantic-chalk.v3" as const,
+        rendererVersion: "math-semantic-chalk.v4" as const,
       },
       visualValidation: {
         valid: true as const,

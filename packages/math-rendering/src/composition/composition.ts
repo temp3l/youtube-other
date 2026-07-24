@@ -65,7 +65,7 @@ export const mathSceneAssetSchema = z.strictObject({
   animation: z
     .strictObject({
       mode: z.literal("progressive-chalk-reveal"),
-      rendererVersion: z.literal("math-semantic-chalk.v3"),
+      rendererVersion: z.literal("math-semantic-chalk.v4"),
       cues: z
         .array(
           z.strictObject({

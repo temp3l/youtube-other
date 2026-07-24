@@ -95,7 +95,7 @@ export const CANONICAL_PRIVATE_FACT_BOARD_MINIMUM_GLYPH_PX = 72;
 export const CANONICAL_PRIVATE_NARRATION_SYNC_VERSION =
   "math-narration-sync.v1" as const;
 export const CANONICAL_PRIVATE_NARRATION_MAX_TEMPO_RATIO = 2;
-export const CANONICAL_PRIVATE_VISUAL_STYLE_VERSION = 5;
+export const CANONICAL_PRIVATE_VISUAL_STYLE_VERSION = 6;
 export const CANONICAL_PRIVATE_RENDERER_VERSIONS = {
   svg: MATH_SVG_RENDERER_VERSION,
   formula: "math-svg.v2",
@@ -587,27 +587,27 @@ export function selectCanonicalSemanticComponent(
       recap: "recap",
     } as const;
     const titles = {
-      hook: "Knack den Zahlencode!",
-      objective: "Deine Stellenwert-Mission",
-      model: "Baue den ersten Code",
-      "worked-example": "Vom Ausdruck zum Code",
-      mistake: "Die Null bleibt am Platz",
-      "guided-practice": "Trainiere das Stellenraster",
-      "think-pause": "Jetzt bist du dran",
-      solution: "Code-Auflösung",
-      recap: "Dein Stellenwert-Trick",
+      hook: "Wo gehören die Nullen hin?",
+      objective: "Unser Tafelplan",
+      model: "Erstes Beispiel",
+      "worked-example": "Wir prüfen gemeinsam",
+      mistake: "Typischer Fehler",
+      "guided-practice": "Neues Beispiel",
+      "think-pause": "Jetzt du",
+      solution: "Auflösung",
+      recap: "Merksatz",
     } as const;
     const prompts = {
-      hook: "Welche Ziffer gehört später in welches Fach?",
-      objective: "Entdecken, ordnen und leere Stellen mit Nullen sichern.",
-      model: "Jeder Summand landet in genau einem Stellenfach.",
-      "worked-example": "Lies die fertige Zahl von links nach rechts.",
-      mistake: "Ohne Platzhalter rutschen die Ziffern zusammen.",
+      hook: "Schau auf die sechs Plätze und vermute.",
+      objective: "So arbeiten wir gleich Schritt für Schritt.",
+      model: "Jeder Summand zeigt auf genau eine Stelle.",
+      "worked-example": "Prüfe die Plätze von links nach rechts.",
+      mistake: "Streiche den Fehler und verbessere ihn daneben.",
       "guided-practice":
-        "Setze erst die Ziffern ein und sichere dann die Lücken.",
-      "think-pause": "Fülle jedes Fach und prüfe deine Zahl.",
-      solution: "Vergleiche Fach für Fach mit deiner Lösung.",
-      recap: "Erkläre, warum jede leere Stelle eine Null braucht.",
+        "Die Ziffern stehen. Wo müssen die Nullen hin?",
+      "think-pause": "Setze die Nullen und prüfe deine Zahl.",
+      solution: "Vergleiche jetzt Stelle für Stelle.",
+      recap: "Erkläre den Merksatz in eigenen Worten.",
     } as const;
     const mode = modes[context.sceneFunction as keyof typeof modes];
     const title = titles[context.sceneFunction as keyof typeof titles];
@@ -797,17 +797,15 @@ function canonicalSceneCaption(
   const text =
     input.lesson.skillId === "M5-ZO-001"
       ? ({
-          hook: "Zahlencode: Wo verstecken sich die Nullen?",
-          objective: "Mission: Große Zahlen sicher bauen und lesen.",
-          model: `Codekarte: ${localizedFacts.join("; ")}`,
-          "worked-example": `Vom Ausdruck zum Code: ${localizedFacts.join(
-            " → "
-          )}`,
-          mistake: `Nullen sichern: ${localizedFacts.join("; ")}`,
-          "guided-practice": `Neue Codekarte: ${localizedFacts.join("; ")}`,
-          "think-pause": `Denkzeit: ${localizedFacts.join("; ")}`,
-          solution: `Auflösung: ${localizedFacts.join("; ")}`,
-          recap: `Merke: ${localizedFacts.join(" und ")}`,
+          hook: "Wo gehören die Nullen hin?",
+          objective: "Stellen · Ziffern · Nullen",
+          model: localizedFacts.join("; "),
+          "worked-example": "Prüfe jede Stelle.",
+          mistake: "Nullen halten Plätze frei.",
+          "guided-practice": "Wo fehlen die Nullen?",
+          "think-pause": "Acht Sekunden Denkzeit",
+          solution: "Vergleiche Stelle für Stelle.",
+          recap: "Leere Stelle? Null einsetzen.",
         }[lessonScene.sceneFunction] ??
         `${label}: ${localizedFacts.join("; ")}`)
       : localizedFacts.length > 0
@@ -1315,7 +1313,7 @@ export async function materializeCanonicalPrivateMedia(
       ),
       animation: {
         mode: "progressive-chalk-reveal",
-        rendererVersion: "math-semantic-chalk.v3",
+        rendererVersion: "math-semantic-chalk.v4",
         cues,
         activity:
           lessonScene.sceneFunction === "think-pause"
@@ -1484,7 +1482,7 @@ export async function materializeCanonicalPrivateMedia(
     renderFingerprint: rendered.renderFingerprint,
     visualPresentation: {
       strategy: "progressive-chalk-reveal" as const,
-      rendererVersion: "math-semantic-chalk.v3" as const,
+      rendererVersion: "math-semantic-chalk.v4" as const,
     },
     visualValidation: {
       valid: true as const,

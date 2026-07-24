@@ -12,7 +12,7 @@ export interface RemotionMathScene {
   svgMarkup: string;
   animation: {
     mode: "progressive-chalk-reveal";
-    rendererVersion: "math-semantic-chalk.v3";
+    rendererVersion: "math-semantic-chalk.v4";
     cues?: Array<{ factId: string; frame: number }>;
     activity?: "standard" | "think-pause";
   };
@@ -103,7 +103,7 @@ const defaultProps: RemotionMathVideoProps = {
         '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080"><rect width="1920" height="1080" fill="#f8fafc"/></svg>',
       animation: {
         mode: "progressive-chalk-reveal",
-        rendererVersion: "math-semantic-chalk.v3",
+        rendererVersion: "math-semantic-chalk.v4",
       },
     },
   ],

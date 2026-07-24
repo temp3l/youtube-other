@@ -9,7 +9,7 @@ import {
   type ExpressionNode,
 } from "@mediaforge/math-education";
 
-export const MATH_SVG_RENDERER_VERSION = "math-svg.v7";
+export const MATH_SVG_RENDERER_VERSION = "math-svg.v8";
 export const MATH_FONT_PROFILE = "katex-0.17.0-system-sans-v1";
 
 const factIdSchema = z.string().regex(/^[a-z][a-z0-9-]*$/u);
@@ -598,9 +598,13 @@ function wrappedText(value: string, maximumCharacters: number): string[] {
 function chalkStep(
   stepId: string,
   bounds: { x: number; y: number; width: number; height: number },
-  factId?: string
+  factId?: string,
+  timing?: {
+    readonly weight?: number;
+    readonly pauseAfterFrames?: number;
+  }
 ): string {
-  return `data-chalk-step="${stepId}" data-chalk-box="${bounds.x},${bounds.y},${bounds.width},${bounds.height}"${factId ? ` data-fact-id="${factId}"` : ""}`;
+  return `data-chalk-step="${stepId}" data-chalk-box="${bounds.x},${bounds.y},${bounds.width},${bounds.height}"${factId ? ` data-fact-id="${factId}"` : ""}${timing?.weight ? ` data-chalk-weight="${timing.weight}"` : ""}${timing?.pauseAfterFrames ? ` data-chalk-pause="${timing.pauseAfterFrames}"` : ""}`;
 }
 
 function factIds(input: SemanticMathComponent): string[] {
@@ -1246,121 +1250,156 @@ function placeValueQuestHeader(
   title: string,
   mode: z.infer<typeof placeValueActivityComponentSchema>["mode"]
 ): string {
-  const phase =
-    mode === "hook" || mode === "objective" || mode === "model"
-      ? 0
-      : mode === "worked-example" || mode === "mistake" || mode === "practice"
-        ? 1
-        : 2;
-  const phases = ["Entdecken", "Ordnen", "Knacken"];
-  const tabs = phases
-    .map((label, index) => {
-      const x = 210 + index * 510;
-      const active = index === phase;
-      return `<g ${chalkStep(`quest-phase-${index + 1}`, { x, y: 55, width: 470, height: 92 })}><rect x="${x}" y="55" width="470" height="92" rx="28" fill="${active ? "#f59e0b" : "#dbeafe"}" opacity="${active ? "0.34" : "0.16"}" stroke="${active ? "#f59e0b" : "#64748b"}" stroke-width="${active ? "7" : "4"}"/><text x="${x + 235}" y="125" text-anchor="middle" font-family="Arial, sans-serif" font-size="72" font-weight="${active ? "700" : "400"}" fill="#14213d">${label}</text></g>`;
-    })
-    .join("");
-  return `${tabs}<g ${chalkStep("quest-title", { x: 190, y: 155, width: 1540, height: 95 })}><text x="960" y="230" text-anchor="middle" font-family="Arial, sans-serif" font-size="78" font-weight="700" fill="#14213d">${escapeXml(title)}</text></g>`;
+  const marginNote = {
+    hook: "Einstieg",
+    objective: "Plan",
+    model: "Beispiel",
+    "worked-example": "Prüfen",
+    mistake: "Achtung",
+    practice: "Üben",
+    challenge: "Denkzeit",
+    solution: "Auflösen",
+    recap: "Merken",
+  }[mode];
+  return [
+    `<g ${chalkStep("quest-title", { x: 150, y: 75, width: 1320, height: 100 }, undefined, { weight: 0.55 })}><text x="170" y="155" text-anchor="start" font-family="Arial, sans-serif" font-size="78" font-weight="700" fill="#14213d">${escapeXml(title)}</text></g>`,
+    `<path d="M165 178 Q560 194 1040 180" fill="none" stroke="#f59e0b" stroke-width="7" stroke-linecap="round" ${chalkStep("quest-title-rule", { x: 155, y: 168, width: 900, height: 42 }, undefined, { weight: 0.35 })}/>`,
+    `<g ${chalkStep("quest-margin-note", { x: 1430, y: 82, width: 320, height: 92 }, undefined, { weight: 0.35 })}><text x="1735" y="150" text-anchor="end" font-family="Arial, sans-serif" font-size="72" fill="#f59e0b">${marginNote}</text></g>`,
+  ].join("");
 }
 
 function placeValueGrid(args: {
   model: ReturnType<typeof placeValueModel>;
   factId?: string;
-  revealDigits: boolean;
+  revealDigits: "all" | "none" | "nonzero";
   highlightZeroes?: boolean;
   y?: number;
+  prefix?: string;
 }): string {
-  const gridX = 270;
+  const gridX = 300;
   const gridY = args.y ?? 430;
-  const width = 1380 / args.model.labels.length;
-  const headerHeight = 120;
-  const digitHeight = 170;
+  const totalWidth = 1320;
+  const width = totalWidth / args.model.labels.length;
+  const headerHeight = 108;
+  const digitHeight = 152;
+  const prefix = args.prefix ?? "quest";
   const grid = [
-    `<g ${chalkStep("quest-grid", { x: gridX, y: gridY, width: 1380, height: headerHeight + digitHeight }, args.factId)}><rect x="${gridX}" y="${gridY}" width="1380" height="${headerHeight + digitHeight}" rx="18" fill="none" stroke="#14213d" stroke-width="7"/><line x1="${gridX}" y1="${gridY + headerHeight}" x2="${gridX + 1380}" y2="${gridY + headerHeight}" stroke="#14213d" stroke-width="6"/>${Array.from(
+    `<g ${chalkStep(`${prefix}-grid`, { x: gridX, y: gridY, width: totalWidth, height: headerHeight + digitHeight }, args.factId, { weight: 0.9 })}><path d="M${gridX} ${gridY}H${gridX + totalWidth}M${gridX} ${gridY + headerHeight}H${gridX + totalWidth}M${gridX} ${gridY + headerHeight + digitHeight}H${gridX + totalWidth}" fill="none" stroke="#14213d" stroke-width="6" stroke-linecap="round"/>${Array.from(
       { length: args.model.labels.length - 1 },
       (_, index) =>
-        `<line x1="${gridX + width * (index + 1)}" y1="${gridY}" x2="${gridX + width * (index + 1)}" y2="${gridY + headerHeight + digitHeight}" stroke="#64748b" stroke-width="4"/>`
+        `<line x1="${gridX + width * (index + 1)}" y1="${gridY}" x2="${gridX + width * (index + 1)}" y2="${gridY + headerHeight + digitHeight}" stroke="#64748b" stroke-width="4" stroke-linecap="round"/>`
     ).join("")}</g>`,
-    `<g ${chalkStep("quest-place-labels", { x: gridX, y: gridY, width: 1380, height: headerHeight })}>${args.model.labels
+    `<g ${chalkStep(`${prefix}-place-labels`, { x: gridX, y: gridY, width: totalWidth, height: headerHeight }, undefined, { weight: 0.75 })}>${args.model.labels
       .map(
         (label, index) =>
-          `<text x="${gridX + width * (index + 0.5)}" y="${gridY + 84}" text-anchor="middle" font-family="Arial, sans-serif" font-size="72" font-weight="700" fill="#14213d">${label}</text>`
+          `<text x="${gridX + width * (index + 0.5)}" y="${gridY + 78}" text-anchor="middle" font-family="Arial, sans-serif" font-size="72" font-weight="700" fill="#14213d">${label}</text>`
       )
       .join("")}</g>`,
   ];
-  if (args.revealDigits) {
+  if (args.revealDigits !== "none") {
     for (const [index, digit] of args.model.digits.entries()) {
       const zero = digit === "0";
+      if (args.revealDigits === "nonzero" && zero) continue;
       const x = gridX + width * index;
       grid.push(
-        `<g ${chalkStep(`quest-digit-${index + 1}`, { x, y: gridY + headerHeight, width, height: digitHeight }, args.factId)}>${zero && args.highlightZeroes ? `<rect x="${x + 12}" y="${gridY + headerHeight + 12}" width="${width - 24}" height="${digitHeight - 24}" rx="18" fill="#f59e0b" opacity="0.25" stroke="#f59e0b" stroke-width="5"/>` : ""}<text x="${x + width / 2}" y="${gridY + headerHeight + 116}" text-anchor="middle" font-family="Arial, sans-serif" font-size="102" font-weight="${zero ? "700" : "400"}" fill="${zero && args.highlightZeroes ? "#f59e0b" : "#14213d"}">${digit}</text></g>`
+        `<g ${chalkStep(`${prefix}-digit-${index + 1}`, { x, y: gridY + headerHeight, width, height: digitHeight }, args.factId, {
+          weight: zero ? 1.65 : 0.9,
+          pauseAfterFrames: zero ? 12 : 4,
+        })}><text x="${x + width / 2}" y="${gridY + headerHeight + 108}" text-anchor="middle" font-family="Arial, sans-serif" font-size="96" font-weight="${zero ? "700" : "400"}" fill="${zero && args.highlightZeroes ? "#f59e0b" : "#14213d"}">${digit}</text>${zero && args.highlightZeroes ? `<ellipse cx="${x + width / 2}" cy="${gridY + headerHeight + 78}" rx="${Math.min(62, width * 0.35)}" ry="58" fill="none" stroke="#f59e0b" stroke-width="6" opacity="0.8"/>` : ""}</g>`
       );
     }
-  } else {
-    grid.push(
-      `<g ${chalkStep("quest-empty-places", { x: gridX, y: gridY + headerHeight, width: 1380, height: digitHeight }, args.factId)}>${args.model.digits
-        .map(
-          (_digit, index) =>
-            `<text x="${gridX + width * (index + 0.5)}" y="${gridY + headerHeight + 112}" text-anchor="middle" font-family="Arial, sans-serif" font-size="96" fill="#64748b">?</text>`
-        )
-        .join("")}</g>`
-    );
   }
   return grid.join("");
+}
+
+function placeValueExpression(args: {
+  model: ReturnType<typeof placeValueModel>;
+  factId: string;
+  y: number;
+  prefix: string;
+}): string {
+  const startX = args.model.terms.length === 3 ? 430 : 300;
+  const endX = args.model.terms.length === 3 ? 1490 : 1580;
+  return args.model.terms
+    .map((term, index) => {
+      const x =
+        startX +
+        (index * (endX - startX)) / Math.max(1, args.model.terms.length - 1);
+      const nextX =
+        startX +
+        ((index + 1) * (endX - startX)) /
+          Math.max(1, args.model.terms.length - 1);
+      const plus =
+        index < args.model.terms.length - 1
+          ? `<text x="${(x + nextX) / 2}" y="${args.y}" text-anchor="middle" font-family="Arial, sans-serif" font-size="72" fill="#14213d">+</text>`
+          : "";
+      return `<g ${chalkStep(`${args.prefix}-term-${index + 1}`, { x: x - 145, y: args.y - 72, width: 290, height: 92 }, args.factId, { weight: 1.05, pauseAfterFrames: 6 })}><text x="${x}" y="${args.y}" text-anchor="middle" font-family="Arial, sans-serif" font-size="72" font-weight="700" fill="#14213d">${escapeXml(term.display)}</text>${plus}</g>`;
+    })
+    .join("");
+}
+
+function placeValuePrompt(
+  prompt: string,
+  stepId = "quest-prompt",
+  y = 835
+): string {
+  const lines = wrappedText(prompt, 39).slice(0, 2);
+  return `<g ${chalkStep(stepId, { x: 250, y: y - 55, width: 1420, height: lines.length * 70 + 30 }, undefined, { weight: 0.9, pauseAfterFrames: 24 })}><path d="M245 ${y - 22}L275 ${y + 8}L330 ${y - 48}" fill="none" stroke="#f59e0b" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>${lines
+    .map(
+      (line, index) =>
+        `<text x="365" y="${y + index * 72}" text-anchor="start" font-family="Arial, sans-serif" font-size="72" fill="#14213d">${escapeXml(line)}</text>`
+    )
+    .join("")}</g>`;
 }
 
 function renderPlaceValueActivity(
   input: z.infer<typeof placeValueActivityComponentSchema>
 ): VisualComponentResult {
   const header = placeValueQuestHeader(input.title, input.mode);
-  const promptLines = wrappedText(input.prompt, 34);
-  const prompt = `<g ${chalkStep("quest-prompt", { x: 250, y: 720, width: 1420, height: 160 })}><rect x="250" y="720" width="1420" height="160" rx="28" fill="#dbeafe" opacity="0.18" stroke="#64748b" stroke-width="4"/>${promptLines
-    .slice(0, 2)
-    .map(
-      (line, index) =>
-        `<text x="960" y="${785 + index * 72}" text-anchor="middle" font-family="Arial, sans-serif" font-size="72" fill="#14213d">${escapeXml(line)}</text>`
-    )
-    .join("")}</g>`;
+  const prompt = placeValuePrompt(input.prompt);
 
   if (input.mode === "hook") {
-    const slots = Array.from(
+    const places = Array.from(
       { length: 6 },
       (_, index) =>
-        `<g ${chalkStep(`quest-code-slot-${index + 1}`, { x: 425 + index * 180, y: 490, width: 140, height: 150 })}><rect x="${425 + index * 180}" y="490" width="140" height="150" rx="20" fill="#dbeafe" opacity="0.18" stroke="#14213d" stroke-width="6"/><text x="${495 + index * 180}" y="600" text-anchor="middle" font-family="Arial, sans-serif" font-size="96" fill="#f59e0b">?</text></g>`
+        `<path d="M${340 + index * 220} 590Q${430 + index * 220} 600 ${520 + index * 220} 588" fill="none" stroke="#14213d" stroke-width="7" stroke-linecap="round" ${chalkStep(`quest-code-place-${index + 1}`, { x: 330 + index * 220, y: 565, width: 200, height: 50 }, undefined, { weight: 0.55 })}/>`
     ).join("");
-    const lock = `<g ${chalkStep("quest-lock", { x: 805, y: 265, width: 310, height: 205 })}><path d="M855 390V340C855 255 1065 255 1065 340V390" fill="none" stroke="#f59e0b" stroke-width="18" stroke-linecap="round"/><rect x="805" y="380" width="310" height="110" rx="26" fill="#dbeafe" opacity="0.2" stroke="#14213d" stroke-width="7"/><circle cx="960" cy="430" r="18" fill="#f59e0b"/></g>`;
-    return wrapSvg(input, `${header}${lock}${slots}${prompt}`, 72);
+    const question = `<g ${chalkStep("quest-hook-question", { x: 280, y: 285, width: 1360, height: 150 }, undefined, { weight: 1.1, pauseAfterFrames: 36 })}><text x="960" y="365" text-anchor="middle" font-family="Arial, sans-serif" font-size="76" fill="#14213d">Aus Summanden wird eine Zahl.</text><text x="960" y="450" text-anchor="middle" font-family="Arial, sans-serif" font-size="72" fill="#f59e0b">Welche Plätze bleiben leer?</text></g>`;
+    return wrapSvg(input, `${header}${question}${places}${prompt}`, 72);
   }
 
   if (input.mode === "objective") {
-    const cards = [
-      ["sehen", "Stellen"],
-      ["setzen", "Ziffern"],
-      ["sichern", "Nullen"],
+    const plan = [
+      "Stellen anschauen",
+      "Ziffern eintragen",
+      "leere Stellen mit 0 sichern",
     ]
-      .map(([verb, question], index) => {
-        const x = 190 + index * 550;
-        return `<g ${chalkStep(`quest-mission-${index + 1}`, { x, y: 330, width: 440, height: 310 })}><rect x="${x}" y="330" width="440" height="310" rx="32" fill="#dbeafe" opacity="0.18" stroke="#14213d" stroke-width="6"/><text x="${x + 220}" y="430" text-anchor="middle" font-family="Arial, sans-serif" font-size="72" font-weight="700" fill="#f59e0b">${verb}</text><text x="${x + 220}" y="535" text-anchor="middle" font-family="Arial, sans-serif" font-size="72" fill="#14213d">${question}</text></g>`;
+      .map((line, index) => {
+        const y = 340 + index * 150;
+        return `<g ${chalkStep(`quest-plan-${index + 1}`, { x: 330, y: y - 70, width: 1260, height: 105 }, undefined, { weight: index === 2 ? 1.2 : 0.85, pauseAfterFrames: 18 })}><text x="350" y="${y}" text-anchor="start" font-family="Arial, sans-serif" font-size="74" fill="#14213d">${escapeXml(line)}</text><path d="M1430 ${y - 22}L1460 ${y + 8}L1525 ${y - 55}" fill="none" stroke="#f59e0b" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/></g>`;
       })
       .join("");
-    return wrapSvg(input, `${header}${cards}${prompt}`, 72);
+    return wrapSvg(input, `${header}${plan}${prompt}`, 72);
   }
 
   const first = input.values[0]!;
   const firstModel = placeValueModel(first.expression);
 
   if (input.mode === "challenge") {
-    const expression = `<g ${chalkStep("quest-challenge-expression", { x: 250, y: 265, width: 1420, height: 110 }, first.factId)}><text x="960" y="350" text-anchor="middle" font-family="Arial, sans-serif" font-size="78" font-weight="700" fill="#14213d">${escapeXml(
-      firstModel.terms.map((term) => term.display).join(" + ")
-    )}</text></g>`;
     return wrapSvg(
       input,
-      `${header}${expression}${placeValueGrid({
+      `${header}${placeValueExpression({
         model: firstModel,
         factId: first.factId,
-        revealDigits: false,
-        y: 405,
-      })}${prompt}`,
+        y: 305,
+        prefix: "quest-challenge",
+      })}${placeValueGrid({
+        model: firstModel,
+        factId: first.factId,
+        revealDigits: "nonzero",
+        y: 390,
+        prefix: "quest-challenge",
+      })}<g ${chalkStep("quest-answer-line", { x: 550, y: 690, width: 820, height: 88 }, undefined, { weight: 0.6, pauseAfterFrames: 30 })}><text x="550" y="755" text-anchor="start" font-family="Arial, sans-serif" font-size="72" fill="#f59e0b">Deine Zahl:</text><path d="M900 760Q1150 775 1370 760" fill="none" stroke="#14213d" stroke-width="6"/></g>${placeValuePrompt(input.prompt, "quest-challenge-prompt", 860)}`,
       72
     );
   }
@@ -1369,19 +1408,20 @@ function renderPlaceValueActivity(
     const correct = firstModel.value;
     const incorrectDigits = firstModel.digits.filter((digit) => digit !== "0");
     const incorrect = BigInt(incorrectDigits.join("") || "0");
-    const incorrectCard = `<g ${chalkStep("quest-mistake-wrong", { x: 210, y: 315, width: 650, height: 190 })} data-math-status="incorrect-derived"><rect x="210" y="315" width="650" height="190" rx="30" fill="#dc2626" opacity="0.17" stroke="#dc2626" stroke-width="7"/><text x="535" y="405" text-anchor="middle" font-family="Arial, sans-serif" font-size="72" fill="#14213d">Nullen weg?</text><text x="535" y="485" text-anchor="middle" font-family="Arial, sans-serif" font-size="88" font-weight="700" fill="#dc2626">${formattedGermanInteger(incorrect)}</text><path d="M260 350L810 475M810 350L260 475" stroke="#dc2626" stroke-width="12"/></g>`;
-    const correctCard = `<g ${chalkStep("quest-mistake-correct", { x: 1060, y: 315, width: 650, height: 190 }, first.factId)}><rect x="1060" y="315" width="650" height="190" rx="30" fill="#dbeafe" opacity="0.2" stroke="#f59e0b" stroke-width="8"/><text x="1385" y="405" text-anchor="middle" font-family="Arial, sans-serif" font-size="72" fill="#14213d">Stellen gesichert</text><text x="1385" y="485" text-anchor="middle" font-family="Arial, sans-serif" font-size="88" font-weight="700" fill="#14213d">${formattedGermanInteger(correct)}</text></g>`;
+    const incorrectMarkup = `<g ${chalkStep("quest-mistake-wrong", { x: 260, y: 280, width: 600, height: 150 }, undefined, { weight: 1.1, pauseAfterFrames: 36 })} data-math-status="incorrect-derived"><text x="275" y="355" text-anchor="start" font-family="Arial, sans-serif" font-size="72" fill="#64748b">Nullen weglassen?</text><text x="510" y="445" text-anchor="middle" font-family="Arial, sans-serif" font-size="94" fill="#64748b">${formattedGermanInteger(incorrect)}</text></g>`;
+    const strike = `<path d="M295 405Q515 365 735 450M300 465Q510 405 730 390" fill="none" stroke="#dc2626" stroke-width="11" stroke-linecap="round" ${chalkStep("quest-mistake-strike", { x: 285, y: 360, width: 470, height: 120 }, undefined, { weight: 0.75, pauseAfterFrames: 20 })}/>`;
+    const repair = `<g ${chalkStep("quest-mistake-correct", { x: 980, y: 290, width: 680, height: 165 }, first.factId, { weight: 1.4, pauseAfterFrames: 20 })}><text x="1000" y="365" text-anchor="start" font-family="Arial, sans-serif" font-size="72" fill="#14213d">Plätze erhalten:</text><text x="1325" y="455" text-anchor="middle" font-family="Arial, sans-serif" font-size="96" font-weight="700" fill="#14213d">${formattedGermanInteger(correct)}</text><path d="M1030 475Q1320 495 1610 470" fill="none" stroke="#f59e0b" stroke-width="7"/></g>`;
     const zeroes = firstModel.digits
       .map((digit, index) => ({ digit, index }))
       .filter(({ digit }) => digit === "0")
       .map(
         ({ index }, zeroIndex) =>
-          `<g ${chalkStep(`quest-zero-placeholder-${zeroIndex + 1}`, { x: 590 + zeroIndex * 420, y: 560, width: 320, height: 145 }, first.factId)}><rect x="${590 + zeroIndex * 420}" y="560" width="320" height="145" rx="26" fill="#f59e0b" opacity="0.24" stroke="#f59e0b" stroke-width="6"/><text x="${750 + zeroIndex * 420}" y="655" text-anchor="middle" font-family="Arial, sans-serif" font-size="82" font-weight="700" fill="#14213d">${firstModel.labels[index]} = Null</text></g>`
+          `<g ${chalkStep(`quest-zero-placeholder-${zeroIndex + 1}`, { x: 540 + zeroIndex * 500, y: 555, width: 420, height: 110 }, first.factId, { weight: 1.35, pauseAfterFrames: 14 })}><text x="${750 + zeroIndex * 500}" y="630" text-anchor="middle" font-family="Arial, sans-serif" font-size="72" font-weight="700" fill="#f59e0b">${firstModel.labels[index]} braucht 0</text><ellipse cx="${750 + zeroIndex * 500}" cy="604" rx="205" ry="60" fill="none" stroke="#f59e0b" stroke-width="5"/></g>`
       )
       .join("");
     return wrapSvg(
       input,
-      `${header}${incorrectCard}<path d="M895 410H1025M990 375L1025 410L990 445" fill="none" stroke="#f59e0b" stroke-width="10" ${chalkStep("quest-mistake-arrow", { x: 885, y: 360, width: 150, height: 100 })}/>${correctCard}${zeroes}${prompt}`,
+      `${header}${incorrectMarkup}${strike}<path d="M800 415Q900 370 970 410" fill="none" stroke="#f59e0b" stroke-width="8" marker-end="url(#quest-repair-arrow)" ${chalkStep("quest-mistake-arrow", { x: 790, y: 355, width: 190, height: 90 }, undefined, { weight: 0.45 })}/><defs><marker id="quest-repair-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#f59e0b"/></marker></defs>${repair}${zeroes}${prompt}`,
       72
     );
   }
@@ -1389,57 +1429,95 @@ function renderPlaceValueActivity(
   if (input.mode === "recap") {
     const second = input.values[1]!;
     const secondModel = placeValueModel(second.expression);
-    const cards = [first, second]
+    const examples = [first, second]
       .map((value, index) => {
         const model = index === 0 ? firstModel : secondModel;
-        const x = 260 + index * 820;
-        return `<g ${chalkStep(`quest-recap-code-${index + 1}`, { x, y: 320, width: 580, height: 180 }, value.factId)}><rect x="${x}" y="320" width="580" height="180" rx="30" fill="#dbeafe" opacity="0.2" stroke="#f59e0b" stroke-width="7"/><text x="${x + 290}" y="435" text-anchor="middle" font-family="Arial, sans-serif" font-size="92" font-weight="700" fill="#14213d">${formattedGermanInteger(model.value)}</text></g>`;
+        const x = 300 + index * 820;
+        return `<g ${chalkStep(`quest-recap-code-${index + 1}`, { x, y: 280, width: 560, height: 135 }, value.factId, { weight: 1.25, pauseAfterFrames: 12 })}><text x="${x + 280}" y="375" text-anchor="middle" font-family="Arial, sans-serif" font-size="92" font-weight="700" fill="#14213d">${formattedGermanInteger(model.value)}</text><path d="M${x + 55} 405Q${x + 280} 425 ${x + 505} 402" fill="none" stroke="#f59e0b" stroke-width="6"/></g>`;
       })
       .join("");
-    const rule = `<g ${chalkStep("quest-recap-rule", { x: 240, y: 555, width: 1440, height: 135 })}>${[
-      "Stellen",
-      "Ziffern",
-      "Nullen",
+    const rule = [
+      "Stellen anlegen.",
+      "Ziffern einsetzen.",
+      "Leere Stellen mit 0 sichern.",
     ]
-      .map((label, index) => {
-        const x = 240 + index * 520;
-        return `<rect x="${x}" y="555" width="400" height="125" rx="24" fill="#dbeafe" opacity="0.18" stroke="#64748b" stroke-width="5"/><text x="${x + 200}" y="640" text-anchor="middle" font-family="Arial, sans-serif" font-size="72" font-weight="700" fill="#14213d">${label}</text>${index < 2 ? `<path d="M${x + 415} 618H${x + 495}M${x + 465} 588L${x + 495} 618L${x + 465} 648" fill="none" stroke="#f59e0b" stroke-width="8"/>` : ""}`;
+      .map((line, index) => {
+        const y = 545 + index * 90;
+        return `<g ${chalkStep(`quest-recap-rule-${index + 1}`, { x: 380, y: y - 66, width: 1160, height: 86 }, undefined, { weight: index === 2 ? 1.2 : 0.75, pauseAfterFrames: 12 })}><text x="430" y="${y}" text-anchor="start" font-family="Arial, sans-serif" font-size="72" fill="${index === 2 ? "#f59e0b" : "#14213d"}">${escapeXml(line)}</text></g>`;
       })
-      .join("")}</g>`;
-    return wrapSvg(input, `${header}${cards}${rule}${prompt}`, 72);
+      .join("");
+    return wrapSvg(
+      input,
+      `${header}${examples}${rule}${placeValuePrompt(input.prompt, "quest-recap-prompt", 860)}`,
+      72
+    );
+  }
+
+  if (input.mode === "practice") {
+    return wrapSvg(
+      input,
+      `${header}${placeValueExpression({
+        model: firstModel,
+        factId: first.factId,
+        y: 305,
+        prefix: "quest-practice",
+      })}${placeValueGrid({
+        model: firstModel,
+        factId: first.factId,
+        revealDigits: "nonzero",
+        y: 390,
+        prefix: "quest-practice",
+      })}<g ${chalkStep("quest-practice-note", { x: 1100, y: 690, width: 540, height: 90 }, first.factId, { weight: 0.8, pauseAfterFrames: 22 })}><text x="1600" y="755" text-anchor="end" font-family="Arial, sans-serif" font-size="72" fill="#f59e0b">Drei Lücken.</text><path d="M1160 720Q1080 660 1010 610" fill="none" stroke="#f59e0b" stroke-width="6"/></g>${placeValuePrompt(input.prompt, "quest-practice-prompt", 855)}`,
+      72
+    );
   }
 
   const source = input.mode === "worked-example" ? input.values[0]! : first;
   const answer = input.mode === "worked-example" ? input.values[1]! : first;
   const sourceModel = placeValueModel(source.expression);
   const answerModel = placeValueModel(answer.expression);
-  const sourceDisplay =
-    sourceModel.terms.length > 1
-      ? sourceModel.terms.map((term) => term.display).join(" + ")
-      : formattedGermanInteger(sourceModel.value);
-  const sourceMarkup = `<g ${chalkStep("quest-source", { x: 180, y: 255, width: 1560, height: 105 }, source.factId)}><text x="960" y="335" text-anchor="middle" font-family="Arial, sans-serif" font-size="78" font-weight="700" fill="#14213d">${escapeXml(sourceDisplay)}</text></g>`;
-  const terms =
-    sourceModel.terms.length > 1
-      ? `<g ${chalkStep("quest-place-arrows", { x: 250, y: 345, width: 1420, height: 95 }, source.factId)}>${sourceModel.terms
+  const expression = placeValueExpression({
+    model: sourceModel,
+    factId: source.factId,
+    y: 300,
+    prefix: `quest-${input.mode}`,
+  });
+  const arrows =
+    sourceModel.terms.length > 1 && input.mode === "model"
+      ? sourceModel.terms
           .map((term, index) => {
             const termX =
-              350 + (index * 1220) / Math.max(1, sourceModel.terms.length - 1);
-            const columnWidth = 1380 / sourceModel.labels.length;
-            const targetX = 270 + columnWidth * (term.columnIndex + 0.5);
-            return `<path d="M${termX} 355 Q${(termX + targetX) / 2} 390 ${targetX} 425" fill="none" stroke="#f59e0b" stroke-width="7" marker-end="url(#quest-arrow)"/>`;
+              (sourceModel.terms.length === 3 ? 430 : 300) +
+              (index *
+                ((sourceModel.terms.length === 3 ? 1490 : 1580) -
+                  (sourceModel.terms.length === 3 ? 430 : 300))) /
+                Math.max(1, sourceModel.terms.length - 1);
+            const targetX =
+              300 +
+              (1320 / sourceModel.labels.length) * (term.columnIndex + 0.5);
+            return `<path d="M${termX} 325Q${(termX + targetX) / 2} 350 ${targetX} 390" fill="none" stroke="#f59e0b" stroke-width="6" marker-end="url(#quest-arrow)" ${chalkStep(`quest-place-arrow-${index + 1}`, { x: Math.min(termX, targetX) - 25, y: 315, width: Math.abs(termX - targetX) + 50, height: 90 }, source.factId, { weight: 0.65 })}/>`;
           })
-          .join("")}</g>`
+          .join("")
       : "";
-  const result = `<g ${chalkStep("quest-result", { x: 420, y: 755, width: 1080, height: 115 }, answer.factId)}><rect x="420" y="755" width="1080" height="115" rx="28" fill="#dbeafe" opacity="0.22" stroke="#f59e0b" stroke-width="7"/><text x="960" y="838" text-anchor="middle" font-family="Arial, sans-serif" font-size="90" font-weight="700" fill="#14213d">${formattedGermanInteger(answerModel.value)}</text></g>`;
-  const body = `${header}<defs><marker id="quest-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0 0L10 5L0 10Z" fill="#f59e0b"/></marker></defs>${sourceMarkup}${terms}${placeValueGrid(
-    {
-      model: answerModel,
-      factId: answer.factId,
-      revealDigits: true,
-      highlightZeroes: true,
-      y: 415,
-    }
-  )}${result}`;
+  const result = `<g ${chalkStep("quest-result", { x: 560, y: 720, width: 800, height: 105 }, answer.factId, { weight: 1.4, pauseAfterFrames: 28 })}><text x="650" y="795" text-anchor="start" font-family="Arial, sans-serif" font-size="72" fill="#f59e0b">→</text><text x="1010" y="800" text-anchor="middle" font-family="Arial, sans-serif" font-size="94" font-weight="700" fill="#14213d">${formattedGermanInteger(answerModel.value)}</text><path d="M760 825Q1010 842 1260 820" fill="none" stroke="#f59e0b" stroke-width="6"/></g>`;
+  const checks =
+    input.mode === "worked-example"
+      ? answerModel.digits
+          .map((_digit, index) => {
+            const centerX =
+              300 + (1320 / answerModel.labels.length) * (index + 0.5);
+            return `<path d="M${centerX - 25} 670L${centerX - 5} 690L${centerX + 35} 645" fill="none" stroke="#f59e0b" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" ${chalkStep(`quest-check-${index + 1}`, { x: centerX - 35, y: 635, width: 80, height: 70 }, answer.factId, { weight: 0.45, pauseAfterFrames: 5 })}/>`;
+          })
+          .join("")
+      : "";
+  const body = `${header}<defs><marker id="quest-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#f59e0b"/></marker></defs>${expression}${arrows}${placeValueGrid({
+    model: answerModel,
+    factId: answer.factId,
+    revealDigits: "all",
+    highlightZeroes: input.mode === "solution",
+    y: 390,
+    prefix: `quest-${input.mode}`,
+  })}${checks}${result}`;
   return wrapSvg(input, body, 72);
 }
 

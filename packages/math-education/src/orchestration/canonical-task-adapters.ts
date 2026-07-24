@@ -769,7 +769,7 @@ export const canonicalPrivateMediaEvidenceSchema = z
     visualPresentation: z
       .object({
         strategy: z.literal("progressive-chalk-reveal"),
-        rendererVersion: z.literal("math-semantic-chalk.v3"),
+        rendererVersion: z.literal("math-semantic-chalk.v4"),
       })
       .strict(),
     visualValidation: z

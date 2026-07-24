@@ -23,7 +23,7 @@ import {
   type MathMediaValidation,
 } from "../quality/media-qa.js";
 
-export const MATH_REMOTION_RUNNER_VERSION = "math-semantic-keyframe-runner.v5";
+export const MATH_REMOTION_RUNNER_VERSION = "math-semantic-keyframe-runner.v6";
 export const MATH_THINK_PAUSE_SECONDS = 8;
 const MATH_REVEAL_CUE_VERSION = "math-reveal-cue.v1";
 
@@ -193,7 +193,7 @@ async function sceneProps(
         svgMarkup: svg,
         animation: scene.animation ?? {
           mode: "progressive-chalk-reveal" as const,
-          rendererVersion: "math-semantic-chalk.v3" as const,
+          rendererVersion: "math-semantic-chalk.v4" as const,
           activity: "standard" as const,
         },
         ...(scene.caption ? { caption: scene.caption } : {}),
@@ -424,7 +424,7 @@ async function renderSemanticKeyframes(input: {
             "stillimage",
             temporary,
           ],
-          { timeoutMs: 60_000 }
+          { timeoutMs: 120_000 }
         );
         await fs.rename(temporary, cachedVideo);
       } finally {
