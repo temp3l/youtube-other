@@ -228,11 +228,11 @@ const scenePurposes = [
   "Das überprüfbare Lernziel transparent machen.",
   "Die exakte Darstellung am geprüften Beispiel modellieren.",
   "Den Lösungsweg in fachlich geordneter Folge erklären.",
-  "Die Fehlvorstellung sichtbar machen und fachlich korrigieren.",
-  "Das Verfahren auf die Transferaufgabe anwenden.",
-  "Eine eigenständige Entscheidung mit Denkzeit einfordern.",
+  "Eine kurze Fehlvorstellungsfrage stellen, entscheiden lassen und fachlich korrigieren.",
+  "Ein zweites Beispiel mit verändertem Muster zur selbstständigen Bearbeitung öffnen.",
+  "Die zweite Aufgabe ohne Lösungshinweis mit Denkzeit bearbeiten lassen.",
   "Die geprüfte Transferlösung auflösen und begründen.",
-  "Darstellung, Prüfung und Ergebnis knapp sichern.",
+  "Eine abschließende Abruffrage ohne unmittelbare Lösungshilfe stellen.",
 ] as const;
 const sceneDurations = [20, 20, 35, 30, 25, 30, 35, 25, 20] as const;
 
@@ -261,7 +261,7 @@ function buildSpecification(definition: ContentDefinition): ProductionLessonCont
   const transferHash = canonicalHash(definition.transfer);
   const example = buildTask(definition.example, exampleHash);
   const transfer = buildTask(definition.transfer, transferHash);
-  const sceneFacts = [[], [], ["example-main-source"], ["example-main-source", "example-main-answer"], ["example-main-answer"], ["transfer-main-source"], ["transfer-main-source"], ["transfer-main-answer"], ["example-main-answer", "transfer-main-answer"]];
+  const sceneFacts = [[], [], ["example-main-source"], ["example-main-source", "example-main-answer"], ["example-main-answer"], ["transfer-main-source"], ["transfer-main-source"], ["transfer-main-answer"], []];
   const draft = {
     artifactVersion: "fractions-decimals-lesson-content.v1" as const,
     contractVersion: LESSON_CONTENT_CONTRACT_VERSION,

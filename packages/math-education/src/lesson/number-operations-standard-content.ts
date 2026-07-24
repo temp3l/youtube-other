@@ -872,11 +872,11 @@ const scenePurposes = [
   "Das überprüfbare Lernziel transparent machen.",
   "Die mathematische Darstellung am geprüften Beispiel modellieren.",
   "Den Lösungsweg in fachlich geordneter Folge erklären.",
-  "Die Fehlvorstellung sichtbar machen und fachlich korrigieren.",
-  "Das Verfahren auf die Transferaufgabe anwenden.",
-  "Eine eigenständige Entscheidung mit Denkzeit einfordern.",
+  "Eine kurze Fehlvorstellungsfrage stellen, entscheiden lassen und fachlich korrigieren.",
+  "Ein zweites Beispiel mit verändertem Muster zur selbstständigen Bearbeitung öffnen.",
+  "Die zweite Aufgabe ohne Lösungshinweis mit Denkzeit bearbeiten lassen.",
   "Die geprüfte Transferlösung auflösen und begründen.",
-  "Verfahren, Prüfung und Ergebnis knapp sichern.",
+  "Eine abschließende Abruffrage ohne unmittelbare Lösungshilfe stellen.",
 ] as const;
 const sceneDurations = [20, 20, 35, 30, 25, 30, 35, 25, 20] as const;
 
@@ -955,10 +955,7 @@ function buildSpecification(
     [`${definition.transfer.taskId}-source`],
     [`${definition.transfer.taskId}-source`],
     [`${definition.transfer.taskId}-answer`],
-    [
-      `${definition.example.taskId}-answer`,
-      `${definition.transfer.taskId}-answer`,
-    ],
+    [],
   ];
   const draft = {
     artifactVersion: "number-operations-lesson-content.v1" as const,

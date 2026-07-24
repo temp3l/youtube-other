@@ -222,6 +222,69 @@ export const productionLessonContentSchema =
           path: ["scenes", scene.sceneId, "factIds"],
           message: "Scene references an unknown fact.",
         });
+    const expectedSceneFunctions = [
+      "hook",
+      "objective",
+      "model",
+      "worked-example",
+      "mistake",
+      "guided-practice",
+      "think-pause",
+      "solution",
+      "recap",
+    ];
+    if (
+      value.scenes.map((scene) => scene.sceneFunction).join("\0") !==
+      expectedSceneFunctions.join("\0")
+    )
+      context.addIssue({
+        code: "custom",
+        path: ["scenes"],
+        message: "Educational practice scenes are missing or reordered.",
+      });
+    const mistake = value.misconceptions[0];
+    const mistakeScene = value.scenes[4];
+    const independentSourceFactId = value.transferTask.steps.find(
+      (step) => step.factId !== value.transferTask.solutionFactId
+    )?.factId;
+    const independentScene = value.scenes[5];
+    const thinkScene = value.scenes[6];
+    const solutionScene = value.scenes[7];
+    const retrievalScene = value.scenes[8];
+    if (
+      !mistake ||
+      !mistakeScene ||
+      mistakeScene.plannedDurationSeconds > 30 ||
+      !mistakeScene.factIds.includes(mistake.correctionFactId)
+    )
+      context.addIssue({
+        code: "custom",
+        path: ["scenes", 4],
+        message: "A short, fact-bound misconception check is required.",
+      });
+    if (
+      !independentSourceFactId ||
+      !independentScene ||
+      !thinkScene ||
+      !solutionScene ||
+      !thinkScene.factIds.includes(independentSourceFactId) ||
+      independentScene.factIds.includes(value.transferTask.solutionFactId) ||
+      thinkScene.factIds.includes(value.transferTask.solutionFactId) ||
+      !solutionScene.factIds.includes(value.transferTask.solutionFactId)
+    )
+      context.addIssue({
+        code: "custom",
+        path: ["scenes", 5],
+        message:
+          "The second independent example must withhold its answer until the solution scene.",
+      });
+    if (!retrievalScene || retrievalScene.factIds.length !== 0)
+      context.addIssue({
+        code: "custom",
+        path: ["scenes", 8],
+        message:
+          "The final retrieval question must not expose immediate answer facts.",
+      });
     if (
       value.scenes.reduce(
         (total, scene) => total + scene.plannedDurationSeconds,

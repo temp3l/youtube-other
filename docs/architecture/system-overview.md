@@ -18,6 +18,9 @@ This repo is a `pnpm` monorepo targeting Node 22+, written in TypeScript, with r
 - Educational media: `@mediaforge/math-education` owns lesson/workflow and board synchronization;
   `@mediaforge/speech` owns the shared educational TTS orchestration; `@mediaforge/math-rendering`
   and `@mediaforge/educational-renderer` consume timing and validated audio contracts.
+  Every generated lesson must include a distinct second example for independent
+  practice, a short misconception check, and a final fact-free retrieval
+  question whose answer is not immediately revealed.
 - Support: `@mediaforge/observability`, `@mediaforge/process-runner`, `@mediaforge/testing`
 
 ## Primary Execution Model

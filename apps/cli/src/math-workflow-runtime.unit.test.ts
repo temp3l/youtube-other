@@ -209,6 +209,24 @@ describe("canonical math workflow runtime", () => {
     });
   });
 
+  it("renders the final place-value scene as an unguided retrieval question", () => {
+    const component = selectCanonicalSemanticComponent("formula", [], {
+      title: "Zusammenfassung",
+      body: "Stellenwerte lesen",
+      prompt: "Wiederhole die Regel.",
+      skillId: "M5-ZO-001",
+      sceneFunction: "recap",
+    });
+
+    expect(component).toMatchObject({
+      kind: "place-value-activity",
+      mode: "recap",
+      title: "Abruffrage",
+      prompt: "Erkläre das Verfahren ohne zurückzuschauen.",
+      values: [],
+    });
+  });
+
   it("keeps rectangle dimensions bound to their single verified tuple fact", () => {
     const component = selectCanonicalSemanticComponent("geometry", [
       {

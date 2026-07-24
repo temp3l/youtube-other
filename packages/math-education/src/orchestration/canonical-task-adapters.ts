@@ -1079,7 +1079,7 @@ export function createMathProductionTaskImplementations(
       "math.canonical-narration",
       narration,
       "locked-fact-narration-builder",
-      "locked-facts.v3"
+      MATH_LOCKED_FACT_NARRATION_VERSION
     );
   };
 
@@ -1135,7 +1135,7 @@ export function createMathProductionTaskImplementations(
         ...(narrationReview ? { narrationReview } : {}),
       },
       "locked-fact-localizer",
-      "locked-facts.v3"
+      MATH_LOCKED_FACT_NARRATION_VERSION
     );
   };
 

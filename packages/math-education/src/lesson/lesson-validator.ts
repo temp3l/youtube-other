@@ -34,6 +34,116 @@ const expectedProfiles = {
   },
 } as const;
 
+const requiredEducationalSceneFunctions = [
+  "hook",
+  "objective",
+  "model",
+  "worked-example",
+  "mistake",
+  "guided-practice",
+  "think-pause",
+  "solution",
+  "recap",
+] as const;
+
+function zeroPositionPattern(display: string): string | null {
+  const digits = [...display].filter((character) => /\d/u.test(character));
+  if (digits.length === 0) return null;
+  const positions = digits.flatMap((digit, index) =>
+    digit === "0" ? [index] : []
+  );
+  return positions.length > 0 ? positions.join(",") : null;
+}
+
+export function validateRequiredEducationalPractice(
+  lesson: LessonVariantSpecification
+): void {
+  const sceneFunctions = lesson.scenes.map((scene) => scene.sceneFunction);
+  if (
+    sceneFunctions.join("\0") !== requiredEducationalSceneFunctions.join("\0")
+  )
+    throw new Error(
+      `${lesson.lessonId} does not use the required educational scene sequence.`
+    );
+
+  const facts = new Map(lesson.facts.map((fact) => [fact.factId, fact]));
+  const challengeSolution = facts.get(lesson.challenge.solutionFactId);
+  if (!challengeSolution)
+    throw new Error(
+      `${lesson.lessonId} independent-example solution is missing.`
+    );
+  const independentSourceFactId = lesson.challenge.steps.find(
+    (step) => step.factId !== lesson.challenge.solutionFactId
+  )?.factId;
+  const independentSource = independentSourceFactId
+    ? facts.get(independentSourceFactId)
+    : undefined;
+  if (!independentSource)
+    throw new Error(
+      `${lesson.lessonId} independent-example source is missing.`
+    );
+  const challengeTaskHash = independentSource.lineage.sourceContentHash;
+  if (
+    lesson.workedExamples.some((example) => {
+      const sourceFactId = example.steps.find(
+        (step) => step.factId !== example.solutionFactId
+      )?.factId;
+      const source = sourceFactId ? facts.get(sourceFactId) : undefined;
+      return source?.lineage.sourceContentHash === challengeTaskHash;
+    })
+  )
+    throw new Error(
+      `${lesson.lessonId} repeats a worked example as its independent example.`
+    );
+
+  const mistakeScene = lesson.scenes[4]!;
+  if (
+    mistakeScene.plannedDurationSeconds > 30 ||
+    !mistakeScene.factIds.includes(lesson.commonMistake.correctionFactId)
+  )
+    throw new Error(
+      `${lesson.lessonId} must contain a short, fact-bound misconception check.`
+    );
+
+  const independentScene = lesson.scenes[5]!;
+  const thinkScene = lesson.scenes[6]!;
+  const solutionScene = lesson.scenes[7]!;
+  if (
+    !independentSourceFactId ||
+    !thinkScene.factIds.includes(independentSourceFactId) ||
+    independentScene.factIds.includes(lesson.challenge.solutionFactId) ||
+    thinkScene.factIds.includes(lesson.challenge.solutionFactId) ||
+    !solutionScene.factIds.includes(lesson.challenge.solutionFactId)
+  )
+    throw new Error(
+      `${lesson.lessonId} must withhold the independent-example solution until its reveal.`
+    );
+
+  const retrievalScene = lesson.scenes[8]!;
+  if (retrievalScene.factIds.length !== 0)
+    throw new Error(
+      `${lesson.lessonId} final retrieval question must not expose answer facts.`
+    );
+
+  if (lesson.skillId === "M5-ZO-001") {
+    const workedPatterns = lesson.workedExamples.map((example) => {
+      const solution = facts.get(example.solutionFactId);
+      return solution ? zeroPositionPattern(solution.displayLatex) : null;
+    });
+    const independentPattern = zeroPositionPattern(
+      challengeSolution.displayLatex
+    );
+    if (
+      workedPatterns.some((pattern) => !pattern) ||
+      !independentPattern ||
+      workedPatterns.includes(independentPattern)
+    )
+      throw new Error(
+        `${lesson.lessonId} independent example must use a different zero pattern.`
+      );
+  }
+}
+
 export function lessonStructuralSignature(
   lesson: LessonVariantSpecification
 ): string {
@@ -78,6 +188,7 @@ export function validateVariantDifferentiation(
   if (new Set(variants.map((item) => item.learningObjective)).size !== 1)
     throw new Error("Variants must share one learning objective.");
   for (const variant of variants) {
+    validateRequiredEducationalPractice(variant);
     const expected = expectedProfiles[variant.variant];
     for (const key of ["scaffolding", "abstraction", "reasoningDepth"] as const)
       if (variant[key] !== expected[key])

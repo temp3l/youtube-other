@@ -89,9 +89,9 @@ export function reviewGermanStandardNarration(input: {
   }
   requireText(spoken[4] ?? "", lesson.commonMistake.description, "misconception");
   requireText(
-    spoken[6] ?? "",
+    spoken[5] ?? "",
     reviewedNarrationInstruction(lesson.challenge.prompt),
-    "transfer prompt"
+    "independent example prompt"
   );
   for (const step of lesson.challenge.steps) {
     requireText(spoken[7] ?? "", step.explanation, "transfer step");
@@ -106,6 +106,17 @@ export function reviewGermanStandardNarration(input: {
   ) {
     throw new Error("Narration review failed: scene purposes or fact bindings changed.");
   }
+  if (!(spoken[4] ?? "").includes("?"))
+    throw new Error(
+      "Narration review failed: the misconception check asks no question."
+    );
+  if (
+    narration.segments[8]?.factIds.length !== 0 ||
+    !(spoken[8] ?? "").trim().endsWith("?")
+  )
+    throw new Error(
+      "Narration review failed: the final retrieval question exposes guidance or is missing."
+    );
   const narratedFactIds = new Set(narration.segments.flatMap((segment) => segment.factIds));
   const factByCheck = new Map<string, string[]>();
   for (const fact of lesson.facts) {
@@ -135,10 +146,13 @@ export function reviewGermanStandardNarration(input: {
   const checks = [
     ["identity-and-provenance", { lessonId: lesson.lessonId, narration: narration.lessonId }],
     ["objective-and-promise", { objective: lesson.learningObjective, promise: lesson.promise }],
-    ["scene-purpose-order", lesson.scenes.map(({ sceneId, sceneFunction }) => ({ sceneId, sceneFunction }))],
+    ["scene-purpose-order", {
+      scenes: lesson.scenes.map(({ sceneId, sceneFunction }) => ({ sceneId, sceneFunction })),
+      finalRetrievalQuestion: spoken[8],
+    }],
     ["worked-example", lesson.workedExamples],
-    ["transfer-task", lesson.challenge],
-    ["misconception", lesson.commonMistake],
+    ["transfer-task", { task: lesson.challenge, independentlyAttempted: true }],
+    ["misconception", { mistake: lesson.commonMistake, checkQuestion: spoken[4] }],
     ["formative-check-bindings", lesson.checks.map((check) => ({ checkId: check.checkId, factIds: factByCheck.get(check.checkId) }))],
     ["fact-lock-bindings", narration.segments.map(({ sceneId, factIds }) => ({ sceneId, factIds }))],
     ["german-standard-language", { language: narration.language, variant: narration.variant, wordCount }],

@@ -14,6 +14,7 @@ import { loadNumberOperationsStandardContent } from "./number-operations-standar
 import { loadFractionsDecimalsStandardContent } from "./fractions-decimals-standard-content.js";
 import { loadGeometryMeasurementStandardContent } from "./geometry-measurement-standard-content.js";
 import { loadDataDiagramStandardContent } from "./data-diagrams-standard-content.js";
+import { validateRequiredEducationalPractice } from "./lesson-validator.js";
 
 export interface LessonSpecificationProvider {
   load(
@@ -122,7 +123,10 @@ export function buildLessonVariant(
 ): LessonVariantSpecification {
   if (variant === "standard") {
     const production = buildProductionStandardLesson(skill);
-    if (production) return production;
+    if (production) {
+      validateRequiredEducationalPractice(production);
+      return production;
+    }
   }
   const fixture = provider.load(skill.skillId, variant);
   if (!fixture)
@@ -262,7 +266,7 @@ export function buildLessonVariant(
       : ["challenge-expression"],
     ["challenge-expression"],
     ["challenge-solution"],
-    ["example-number", "challenge-solution"],
+    [],
   ];
   const draft = {
     artifactVersion: "lesson-spec.v1" as const,
@@ -322,10 +326,12 @@ export function buildLessonVariant(
     })),
     targetDurationSeconds: 240 as const,
   };
-  return lessonVariantSpecificationSchema.parse({
+  const lesson = lessonVariantSpecificationSchema.parse({
     ...draft,
     contentHash: canonicalHash(draft),
   });
+  validateRequiredEducationalPractice(lesson);
+  return lesson;
 }
 
 export function buildAllLessonVariants(

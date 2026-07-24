@@ -173,6 +173,19 @@ describe("Class 5 number and operations production content", () => {
       productionLessonContentSchema.parse(rehashContent(reordered))
     ).toThrow(/ordered steps/u);
 
+    const guidedRetrieval = structuredClone(first) as unknown as Record<
+      string,
+      unknown
+    >;
+    (
+      guidedRetrieval["scenes"] as Array<{
+        factIds: string[];
+      }>
+    )[8]!.factIds = [first.transferTask.solutionFactId];
+    expect(() =>
+      productionLessonContentSchema.parse(rehashContent(guidedRetrieval))
+    ).toThrow(/final retrieval question/u);
+
     const release = await loadCurriculumRelease(releaseRoot);
     const staleSkill = {
       ...release.skills.find((item) => item.skillId === "M5-ZO-001")!,

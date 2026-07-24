@@ -227,6 +227,12 @@ describe("locked-fact localization", () => {
           (segment) => !segment.spokenText.includes("[[fact:")
         )
       ).toBe(true);
+      expect(item.segments[4]?.spokenText).toContain("?");
+      expect(item.segments[5]?.spokenText.toLowerCase()).toMatch(
+        /zweites|second|segundo|deuxième/u
+      );
+      expect(item.segments[8]?.factIds).toEqual([]);
+      expect(item.segments[8]?.spokenText.trim()).toMatch(/\?$/u);
     }
 
     const changed = structuredClone(source);
@@ -274,6 +280,12 @@ describe("locked-fact localization", () => {
       expect(review.checks.every((check) => check.status === "passed")).toBe(
         true
       );
+      expect(narration.segments[4]?.spokenText).toContain("?");
+      expect(narration.segments[5]?.spokenText).toContain(
+        "zweites, eigenständiges Beispiel"
+      );
+      expect(narration.segments[8]?.factIds).toEqual([]);
+      expect(narration.segments[8]?.spokenText.trim()).toMatch(/\?$/u);
     }
   });
 

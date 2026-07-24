@@ -5,6 +5,7 @@ import { canonicalHash } from "../verification/canonical-json.js";
 import { buildAllLessonVariants } from "./variant-builder.js";
 import {
   assertNotNearDuplicateLessons,
+  validateRequiredEducationalPractice,
   validateVariantDifferentiation,
 } from "./lesson-validator.js";
 
@@ -29,8 +30,46 @@ describe("lesson variants", () => {
         ).not.toBe(
           canonicalHash(facts.get(variant.workedExamples[0]!.solutionFactId))
         );
+        expect(() =>
+          validateRequiredEducationalPractice(variant)
+        ).not.toThrow();
+        expect(variant.scenes[4]!.factIds).toContain(
+          variant.commonMistake.correctionFactId
+        );
+        expect(variant.scenes[6]!.factIds).not.toContain(
+          variant.challenge.solutionFactId
+        );
+        expect(variant.scenes[7]!.factIds).toContain(
+          variant.challenge.solutionFactId
+        );
+        expect(variant.scenes[8]!.factIds).toEqual([]);
       }
     }
+  });
+
+  it("rejects retrieval guidance and a repeated place-value zero pattern", async () => {
+    const release = await loadCurriculumRelease(releaseRoot);
+    const skill = release.skills.find((item) => item.skillId === "M5-ZO-001")!;
+    const lesson = buildAllLessonVariants(skill).find(
+      (variant) => variant.variant === "standard"
+    )!;
+
+    const guidedRetrieval = structuredClone(lesson);
+    guidedRetrieval.scenes[8]!.factIds = [
+      guidedRetrieval.challenge.solutionFactId,
+    ];
+    expect(() => validateRequiredEducationalPractice(guidedRetrieval)).toThrow(
+      /retrieval question/u
+    );
+
+    const repeatedPattern = structuredClone(lesson);
+    const challengeSolution = repeatedPattern.facts.find(
+      (fact) => fact.factId === repeatedPattern.challenge.solutionFactId
+    )!;
+    challengeSolution.displayLatex = "640708";
+    expect(() => validateRequiredEducationalPractice(repeatedPattern)).toThrow(
+      /different zero pattern/u
+    );
   });
 
   it("detects a pure prose and number-material near duplicate", async () => {

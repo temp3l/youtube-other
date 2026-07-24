@@ -591,23 +591,22 @@ export function selectCanonicalSemanticComponent(
       objective: "Unser Tafelplan",
       model: "Erstes Beispiel",
       "worked-example": "Wir prüfen gemeinsam",
-      mistake: "Typischer Fehler",
-      "guided-practice": "Neues Beispiel",
+      mistake: "Kurzer Fehlercheck",
+      "guided-practice": "Zweites Beispiel",
       "think-pause": "Jetzt du",
       solution: "Auflösung",
-      recap: "Merksatz",
+      recap: "Abruffrage",
     } as const;
     const prompts = {
       hook: "Schau auf die sechs Plätze und vermute.",
       objective: "So arbeiten wir gleich Schritt für Schritt.",
       model: "Jeder Summand zeigt auf genau eine Stelle.",
       "worked-example": "Prüfe die Plätze von links nach rechts.",
-      mistake: "Streiche den Fehler und verbessere ihn daneben.",
-      "guided-practice":
-        "Die Ziffern stehen. Wo müssen die Nullen hin?",
+      mistake: "Stimmt die Aussage? Entscheide vor der Korrektur.",
+      "guided-practice": "Löse das neue Nullmuster ohne Hinweis.",
       "think-pause": "Setze die Nullen und prüfe deine Zahl.",
       solution: "Vergleiche jetzt Stelle für Stelle.",
-      recap: "Erkläre den Merksatz in eigenen Worten.",
+      recap: "Erkläre das Verfahren ohne zurückzuschauen.",
     } as const;
     const mode = modes[context.sceneFunction as keyof typeof modes];
     const title = titles[context.sceneFunction as keyof typeof titles];
@@ -768,11 +767,11 @@ const canonicalSceneCaptionLabels: Readonly<Record<string, string>> = {
   objective: "Lernziel",
   model: "Modell",
   "worked-example": "Beispiel",
-  mistake: "Typischer Fehler",
-  "guided-practice": "Geführte Übung",
+  mistake: "Kurzer Fehlercheck",
+  "guided-practice": "Zweites Beispiel",
   "think-pause": "Denkpause",
   solution: "Lösung",
-  recap: "Zusammenfassung",
+  recap: "Abruffrage",
 };
 
 function canonicalSceneCaption(
@@ -801,16 +800,18 @@ function canonicalSceneCaption(
           objective: "Stellen · Ziffern · Nullen",
           model: localizedFacts.join("; "),
           "worked-example": "Prüfe jede Stelle.",
-          mistake: "Nullen halten Plätze frei.",
-          "guided-practice": "Wo fehlen die Nullen?",
+          mistake: "Stimmt das wirklich?",
+          "guided-practice": "Anderes Nullmuster – jetzt selbst.",
           "think-pause": "Acht Sekunden Denkzeit",
           solution: "Vergleiche Stelle für Stelle.",
-          recap: "Leere Stelle? Null einsetzen.",
+          recap: "Welche Regel kannst du noch erklären?",
         }[lessonScene.sceneFunction] ??
         `${label}: ${localizedFacts.join("; ")}`)
-      : localizedFacts.length > 0
-        ? `${label}: ${localizedFacts.join("; ")}`
-        : `${label}: ${input.lesson.learningObjective}`;
+      : lessonScene.sceneFunction === "recap"
+        ? "Abruffrage: Erkläre das Verfahren ohne zurückzuschauen."
+        : localizedFacts.length > 0
+          ? `${label}: ${localizedFacts.join("; ")}`
+          : `${label}: ${input.lesson.learningObjective}`;
   if (text.length > 180) {
     throw new Error(
       `Fact-bound caption exceeds the readable budget in ${scene.sceneId}.`
@@ -844,15 +845,23 @@ function canonicalSceneBoardContext(
       ? "Was fällt dir schon auf?"
       : lessonScene.sceneFunction === "objective"
         ? "Achte auf Darstellung, Rechenweg und Kontrolle."
-        : lessonScene.sceneFunction === "think-pause"
-          ? "Halte das Video an, wenn du mehr Denkzeit brauchst."
-          : "Verfolge jeden Schritt auf der Tafel.";
+        : lessonScene.sceneFunction === "mistake"
+          ? "Entscheide zuerst selbst, bevor die Korrektur erscheint."
+          : lessonScene.sceneFunction === "guided-practice"
+            ? "Bearbeite das zweite Beispiel ohne Lösungshinweis."
+            : lessonScene.sceneFunction === "think-pause"
+              ? "Halte das Video an, wenn du mehr Denkzeit brauchst."
+              : lessonScene.sceneFunction === "recap"
+                ? "Antworte aus dem Gedächtnis; die Lösung bleibt offen."
+                : "Verfolge jeden Schritt auf der Tafel.";
   return {
     title,
     body:
       lessonScene.sceneFunction === "hook"
         ? `Eine Leitfrage öffnet das Thema: ${input.lesson.learningObjective}.`
-        : input.lesson.learningObjective,
+        : lessonScene.sceneFunction === "recap"
+          ? "Rufe das Verfahren aus dem Gedächtnis ab."
+          : input.lesson.learningObjective,
     prompt,
     skillId: input.lesson.skillId,
     sceneFunction: lessonScene.sceneFunction,
