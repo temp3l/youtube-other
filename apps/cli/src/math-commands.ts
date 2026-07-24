@@ -7,6 +7,7 @@ import {
   loadRuntimeConfig,
   type RuntimeConfigOverrides,
 } from "@mediaforge/config";
+import { workflowInstanceSchema } from "@mediaforge/domain";
 import {
   buildAllLessonVariants,
   buildLessonVariant,
@@ -1121,6 +1122,9 @@ interface CanonicalPrivateBatchPreflight {
     readonly separateFromTrackedSource: true;
     readonly containedUnitCount: number;
     readonly collisionFree: boolean;
+    readonly existingUnitCount: number;
+    readonly reusableUnitCount: number;
+    readonly batchStateExists: boolean;
     readonly availableDiskBytes: number;
     readonly requiredDiskBytes: number;
   };
@@ -1189,16 +1193,93 @@ async function canonicalPrivateBatchWorkspaceEvidence(
       "Private batch unit path escaped the configured workspace."
     );
   }
-  const collisionFree = (
-    await Promise.all(
-      [...unitRoots, privateBatchStateRoot(realArtifactRoot)].map((target) =>
-        fs
-          .access(target)
-          .then(() => false)
-          .catch(() => true)
-      )
-    )
-  ).every(Boolean);
+  const reusableUnits = await Promise.all(
+    unitRoots.map(async (unitRoot, index) => {
+      const lessonId = lessonIds[index]!;
+      const unitStat = await fs.lstat(unitRoot).catch((error: unknown) => {
+        if ((error as NodeJS.ErrnoException).code === "ENOENT") return null;
+        throw error;
+      });
+      if (!unitStat) return false;
+      if (!unitStat.isDirectory() || unitStat.isSymbolicLink()) {
+        throw new Error(
+          `Existing private batch unit ${lessonId} is not a reusable directory.`
+        );
+      }
+      const realUnitRoot = await fs.realpath(unitRoot);
+      if (path.relative(realArtifactRoot, realUnitRoot) !== lessonId) {
+        throw new Error(
+          `Existing private batch unit ${lessonId} escaped the configured workspace.`
+        );
+      }
+      const statePath = path.join(
+        realUnitRoot,
+        "state",
+        "workflow",
+        "math.production",
+        "state.json"
+      );
+      const stateStat = await fs.lstat(statePath).catch((error: unknown) => {
+        if ((error as NodeJS.ErrnoException).code === "ENOENT") return null;
+        throw error;
+      });
+      if (!stateStat?.isFile() || stateStat.isSymbolicLink()) {
+        throw new Error(
+          `Existing private batch unit ${lessonId} has no reusable canonical workflow state.`
+        );
+      }
+      const realStatePath = await fs.realpath(statePath);
+      const stateRelation = path.relative(realUnitRoot, realStatePath);
+      if (stateRelation.startsWith("..") || path.isAbsolute(stateRelation)) {
+        throw new Error(
+          `Existing private batch unit ${lessonId} has workflow state outside its unit root.`
+        );
+      }
+      const parsed = workflowInstanceSchema.safeParse(
+        JSON.parse(await fs.readFile(realStatePath, "utf8")) as unknown
+      );
+      if (
+        !parsed.success ||
+        parsed.data.workflowId !== "math.production" ||
+        parsed.data.unitId !== lessonId ||
+        parsed.data.profileId !== "mathematics-education" ||
+        parsed.data.locale !== "de" ||
+        parsed.data.variant !== "full"
+      ) {
+        throw new Error(
+          `Existing private batch unit ${lessonId} has incompatible workflow identity.`
+        );
+      }
+      return true;
+    })
+  );
+  const batchStateRoot = privateBatchStateRoot(realArtifactRoot);
+  const batchStateStat = await fs
+    .lstat(batchStateRoot)
+    .catch((error: unknown) => {
+      if ((error as NodeJS.ErrnoException).code === "ENOENT") return null;
+      throw error;
+    });
+  if (
+    batchStateStat &&
+    (!batchStateStat.isDirectory() || batchStateStat.isSymbolicLink())
+  ) {
+    throw new Error(
+      "Existing private batch coordinator state is not a reusable directory."
+    );
+  }
+  if (batchStateStat) {
+    const realBatchStateRoot = await fs.realpath(batchStateRoot);
+    if (
+      path.relative(realArtifactRoot, realBatchStateRoot) !==
+      path.relative(realArtifactRoot, batchStateRoot)
+    ) {
+      throw new Error(
+        "Existing private batch coordinator state escaped the configured workspace."
+      );
+    }
+  }
+  const existingUnitCount = reusableUnits.filter(Boolean).length;
   const disk = await fs.statfs(realArtifactRoot);
   return {
     configuredArtifactRoot,
@@ -1206,7 +1287,10 @@ async function canonicalPrivateBatchWorkspaceEvidence(
     writable: true,
     separateFromTrackedSource: true,
     containedUnitCount: unitRoots.length,
-    collisionFree,
+    collisionFree: true,
+    existingUnitCount,
+    reusableUnitCount: existingUnitCount,
+    batchStateExists: batchStateStat !== null,
     availableDiskBytes: disk.bavail * disk.bsize,
     requiredDiskBytes: CANONICAL_PRIVATE_BATCH_REQUIRED_DISK_BYTES,
   };
@@ -1283,7 +1367,7 @@ function canonicalPrivateBatchInput(
 async function canonicalPrivateBatchPreflight(
   options: MathSelectionOptions,
   requireProvider: boolean,
-  allowExisting = false
+  requireExistingBatch = false
 ): Promise<CanonicalPrivateBatchPreflight> {
   const workspace = requirePrivateWorkspace(options);
   if (Number(options.grade ?? "5") !== 5) {
@@ -1335,6 +1419,10 @@ async function canonicalPrivateBatchPreflight(
       "packages/math-education/data/reviews/v1/private-owner-attestation.json"
     )
   );
+  const workspaceEvidence = await canonicalPrivateBatchWorkspaceEvidence(
+    workspace,
+    orderedSkills.map((skill) => createLessonId(skill.skillId, lessonVariant))
+  );
   const itemPlans = await Promise.all(
     orderedSkills.map(async (skill) => {
       assertPrivateOwnerCurriculumApproval(attestation, release, skill.skillId);
@@ -1378,15 +1466,6 @@ async function canonicalPrivateBatchPreflight(
   const providerCredentialConfigured = itemPlans.every(
     (item) => item.providerCredentialConfigured
   );
-  const workspaceEvidence = await canonicalPrivateBatchWorkspaceEvidence(
-    workspace,
-    items.map((item) => item.lessonId)
-  );
-  if (!workspaceEvidence.collisionFree && !allowExisting) {
-    throw new Error(
-      "Private batch workspace collides with an earlier release, locale, or batch state."
-    );
-  }
   const sum = (
     selector: (item: CanonicalPrivateBatchItemPlan) => number
   ): number => items.reduce((total, item) => total + selector(item), 0);
@@ -1483,7 +1562,7 @@ async function canonicalPrivateBatchPreflight(
   const manifest = new BatchCoordinator({
     root: privateBatchStateRoot(workspace),
   }).createManifest(canonicalPrivateBatchInput(withoutBatchId));
-  if (allowExisting) {
+  if (requireExistingBatch) {
     const existing = await new BatchStore(
       privateBatchStateRoot(workspace)
     ).read(manifest.id);

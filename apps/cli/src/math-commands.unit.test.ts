@@ -282,9 +282,32 @@ describe("math commands", () => {
     }
   });
 
-  it("plans all 37 canonical private lessons without writing or calling providers", async () => {
+  it("plans all 37 canonical private lessons while reusing compatible unit state without writes or provider calls", async () => {
     const workspace = await fs.mkdtemp(
       path.join(os.tmpdir(), "math-cli-private-batch-plan-")
+    );
+    await writeJsonAtomic(
+      path.join(
+        workspace,
+        "m5-zo-001-standard",
+        "state",
+        "workflow",
+        "math.production",
+        "state.json"
+      ),
+      {
+        schemaVersion: "mediaforge.workflow.v1",
+        id: "workflow-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        workflowId: "math.production",
+        workflowRevision: "math.task-registry.v3",
+        unitId: "m5-zo-001-standard",
+        profileId: "mathematics-education",
+        locale: "de",
+        variant: "full",
+        tasks: [],
+        createdAt: "2026-07-24T00:00:00.000Z",
+        updatedAt: "2026-07-24T00:00:00.000Z",
+      }
     );
     const before = await fs.readdir(workspace);
     const stdout = vi
@@ -323,6 +346,12 @@ describe("math commands", () => {
           paidProviderAuthorized: boolean;
           exactInstruction: string;
         };
+        workspaceEvidence: {
+          collisionFree: boolean;
+          existingUnitCount: number;
+          reusableUnitCount: number;
+          batchStateExists: boolean;
+        };
         writes: number;
         providerCallsSubmitted: number;
       };
@@ -339,6 +368,12 @@ describe("math commands", () => {
         requiredApproval: {
           paidProviderAuthorized: false,
         },
+        workspaceEvidence: {
+          collisionFree: true,
+          existingUnitCount: 1,
+          reusableUnitCount: 1,
+          batchStateExists: false,
+        },
       });
       expect(result.batchId).toMatch(/^batch-[a-f0-9]{40}$/u);
       expect(result.orderedSkillIds).toHaveLength(37);
@@ -353,6 +388,52 @@ describe("math commands", () => {
       stdout.mockRestore();
     }
   }, 30_000);
+
+  it("rejects an existing private unit with mismatched workflow identity", async () => {
+    const workspace = await fs.mkdtemp(
+      path.join(os.tmpdir(), "math-cli-private-batch-identity-")
+    );
+    await writeJsonAtomic(
+      path.join(
+        workspace,
+        "m5-zo-001-standard",
+        "state",
+        "workflow",
+        "math.production",
+        "state.json"
+      ),
+      {
+        schemaVersion: "mediaforge.workflow.v1",
+        id: "workflow-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        workflowId: "math.production",
+        workflowRevision: "math.task-registry.v3",
+        unitId: "m5-zo-999-standard",
+        profileId: "mathematics-education",
+        locale: "de",
+        variant: "full",
+        tasks: [],
+        createdAt: "2026-07-24T00:00:00.000Z",
+        updatedAt: "2026-07-24T00:00:00.000Z",
+      }
+    );
+
+    await expect(
+      parseMath([
+        "batch",
+        "plan",
+        "--grade",
+        "5",
+        "--variant",
+        "standard",
+        "--language",
+        "de",
+        "--private",
+        "--paid-speech",
+        "--workspace",
+        workspace,
+      ])
+    ).rejects.toThrow(/incompatible workflow identity/u);
+  });
 
   async function qualityLesson(
     workspace: string,
