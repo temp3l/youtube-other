@@ -175,6 +175,15 @@ export function assertEducationalSpeechProviderResult(input: {
 }): void {
   const result = input.result;
   const metrics = input.validation.metrics;
+  if (input.validation.validationStatus === "failed") {
+    const findingCodes = input.validation.findings
+      .filter((finding) => finding.severity === "error")
+      .map((finding) => finding.code)
+      .join(", ");
+    throw new Error(
+      `Provider audio validation failed${findingCodes ? `: ${findingCodes}` : "."}`
+    );
+  }
   if (String(result.sceneId) !== input.expectedSceneId)
     throw new Error("Provider response scene identity does not match the request.");
   if (path.resolve(result.filePath) !== path.resolve(input.expectedOutputPath))
@@ -212,6 +221,7 @@ export type EducationalSpeechErrorClassification =
   | "timeout"
   | "network"
   | "provider-transient"
+  | "provider-validation"
   | "invalid-input"
   | "unsupported-language"
   | "invalid-configuration"
@@ -252,6 +262,9 @@ export function classifyEducationalSpeechError(error: unknown): {
   }
   if (/\b50[0234]\b|temporar|at capacity|unavailable|overloaded/u.test(value)) {
     return { classification: "provider-transient", retryable: true };
+  }
+  if (/provider audio validation failed/u.test(value)) {
+    return { classification: "provider-validation", retryable: true };
   }
   if (/providerresponseerror/u.test(value)) {
     return { classification: "provider-deterministic", retryable: false };
@@ -805,7 +818,7 @@ export async function generateEducationalSpeech(
           },
           operation: async (attempt) => {
             attemptCount = attempt;
-            return provider.synthesize(
+            const providerResult = await provider.synthesize(
               {
                 sceneId: sceneIdSchema.parse(
                   `scene-${String(candidate.chunk.sequence + 1).padStart(3, "0")}`
@@ -839,30 +852,34 @@ export async function generateEducationalSpeech(
               },
               signal
             );
+            const validationReport = await validateChunkAudio({
+              chunkId: candidate.chunk.chunkId,
+              audioPath: tempPath,
+              narrationRoot: candidate.candidateRoot,
+              expectedText: candidate.requestBuild.request.input,
+              language: request.profile.language,
+              variant: "full",
+              expectedDurationMs: candidate.chunk.estimatedDurationMs,
+              requestFingerprint: candidate.requestBuild.requestFingerprint,
+              generationFingerprint: candidate.cacheKey,
+              ...(request.probeAudio
+                ? { probeAudio: request.probeAudio }
+                : {}),
+              ...(request.logger ? { logger: request.logger } : {}),
+            });
+            assertEducationalSpeechProviderResult({
+              result: providerResult,
+              expectedSceneId: `scene-${String(candidate.chunk.sequence + 1).padStart(3, "0")}`,
+              expectedOutputPath: tempPath,
+              expectedRequestFingerprint:
+                candidate.requestBuild.requestFingerprint,
+              validation: validationReport,
+            });
+            return { providerResult, validationReport };
           },
         });
         attemptCount = generated.attemptCount;
-        const validationReport = await validateChunkAudio({
-          chunkId: candidate.chunk.chunkId,
-          audioPath: tempPath,
-          narrationRoot: candidate.candidateRoot,
-          expectedText: candidate.requestBuild.request.input,
-          language: request.profile.language,
-          variant: "full",
-          expectedDurationMs: candidate.chunk.estimatedDurationMs,
-          requestFingerprint: candidate.requestBuild.requestFingerprint,
-          generationFingerprint: candidate.cacheKey,
-          ...(request.probeAudio ? { probeAudio: request.probeAudio } : {}),
-          ...(request.logger ? { logger: request.logger } : {}),
-        });
-        assertEducationalSpeechProviderResult({
-          result: generated.value,
-          expectedSceneId: `scene-${String(candidate.chunk.sequence + 1).padStart(3, "0")}`,
-          expectedOutputPath: tempPath,
-          expectedRequestFingerprint: candidate.requestBuild.requestFingerprint,
-          validation: validationReport,
-        });
-        return { validationReport };
+        return { validationReport: generated.value.validationReport };
       },
     });
     const providerDurationMs = Math.max(0, Date.now() - providerStarted);

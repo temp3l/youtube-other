@@ -105,6 +105,14 @@ export interface CanonicalPaidSpeechConfiguration {
   readonly pricingVersion: typeof CANONICAL_OPENAI_SPEECH_PRICING_VERSION;
 }
 
+export interface CanonicalPaidSpeechUsage {
+  readonly calls: number;
+  readonly characters: number;
+  readonly audioSeconds: number;
+  readonly latencyMs: number;
+  readonly costMicros: number;
+}
+
 export function estimateCanonicalPaidSpeechCostMicros(input: {
   readonly estimatedAudioSeconds: number;
   readonly inputCharacters: number;
@@ -123,6 +131,144 @@ export function estimateCanonicalPaidSpeechCostMicros(input: {
       CANONICAL_OPENAI_SPEECH_OUTPUT_MICROS_PER_SECOND +
       textInputMicros
   );
+}
+
+export function estimateCanonicalPaidSpeechRemainingCost(input: {
+  readonly targetDurationSeconds: number;
+  readonly planChunks: readonly {
+    readonly chunkId: string;
+    readonly estimatedDurationMs: number;
+  }[];
+  readonly dryRunChunks: readonly {
+    readonly chunkId: string;
+    readonly selected: boolean;
+    readonly cacheStatus: string;
+  }[];
+  readonly inputCharacters: number;
+  readonly providerRequests: number;
+}): {
+  readonly estimatedAudioSeconds: number;
+  readonly estimatedCostMicros: number;
+} {
+  const selectedMisses = new Set(
+    input.dryRunChunks
+      .filter((chunk) => chunk.selected && chunk.cacheStatus !== "hit")
+      .map((chunk) => chunk.chunkId)
+  );
+  const fullPlanDurationMs = input.planChunks.reduce(
+    (total, chunk) => total + chunk.estimatedDurationMs,
+    0
+  );
+  const missingDurationMs = input.planChunks.reduce(
+    (total, chunk) =>
+      total + (selectedMisses.has(chunk.chunkId) ? chunk.estimatedDurationMs : 0),
+    0
+  );
+  const fullBudgetedDurationSeconds = Math.max(
+    input.targetDurationSeconds,
+    fullPlanDurationMs / 1_000
+  );
+  const estimatedAudioSeconds =
+    input.providerRequests === 0 || fullPlanDurationMs === 0
+      ? 0
+      : fullBudgetedDurationSeconds *
+        (missingDurationMs / fullPlanDurationMs);
+  return {
+    estimatedAudioSeconds,
+    estimatedCostMicros: estimateCanonicalPaidSpeechCostMicros({
+      estimatedAudioSeconds,
+      inputCharacters: input.inputCharacters,
+      providerRequests: input.providerRequests,
+    }),
+  };
+}
+
+export async function readCanonicalPaidSpeechUsage(
+  unitRoot: string
+): Promise<CanonicalPaidSpeechUsage> {
+  const directory = path.join(unitRoot, "debug", "openai-calls");
+  let entries: string[];
+  try {
+    entries = await fs.readdir(directory);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+      return {
+        calls: 0,
+        characters: 0,
+        audioSeconds: 0,
+        latencyMs: 0,
+        costMicros: 0,
+      };
+    }
+    throw error;
+  }
+  let calls = 0;
+  let characters = 0;
+  let audioSeconds = 0;
+  let latencyMs = 0;
+  for (const entry of entries
+    .filter((name) => name.endsWith(".json"))
+    .sort()) {
+    const filePath = path.join(directory, entry);
+    const parsed = JSON.parse(await fs.readFile(filePath, "utf8")) as {
+      readonly episodeRoot?: unknown;
+      readonly operation?: unknown;
+      readonly paidProviderCalled?: unknown;
+      readonly request?: unknown;
+      readonly response?: unknown;
+      readonly durationMs?: unknown;
+    };
+    if (
+      parsed.operation !== "speech-generation" ||
+      parsed.paidProviderCalled !== true
+    ) {
+      continue;
+    }
+    if (
+      typeof parsed.episodeRoot !== "string" ||
+      path.resolve(parsed.episodeRoot) !== path.resolve(unitRoot)
+    ) {
+      throw new Error(`Paid speech log is bound to a different unit: ${filePath}`);
+    }
+    const request =
+      parsed.request && typeof parsed.request === "object"
+        ? (parsed.request as { readonly input?: unknown })
+        : {};
+    const response =
+      parsed.response && typeof parsed.response === "object"
+        ? (parsed.response as { readonly durationSeconds?: unknown })
+        : {};
+    const inputText = typeof request.input === "string" ? request.input : "";
+    const generatedSeconds =
+      typeof response.durationSeconds === "number" &&
+      Number.isFinite(response.durationSeconds) &&
+      response.durationSeconds > 0
+        ? response.durationSeconds
+        : 0;
+    calls += 1;
+    characters += inputText.length;
+    audioSeconds += generatedSeconds;
+    latencyMs +=
+      typeof parsed.durationMs === "number" &&
+      Number.isFinite(parsed.durationMs) &&
+      parsed.durationMs > 0
+        ? parsed.durationMs
+        : 0;
+  }
+  return {
+    calls,
+    characters,
+    audioSeconds,
+    latencyMs,
+    costMicros:
+      calls === 0
+        ? 0
+        : Math.ceil(
+            audioSeconds *
+              CANONICAL_OPENAI_SPEECH_OUTPUT_MICROS_PER_SECOND +
+              characters * CANONICAL_SPEECH_TEXT_INPUT_MICROS_PER_CHARACTER
+          ),
+  };
 }
 
 function parseLoudnormMeasurement(stderr: string): {
@@ -182,21 +328,20 @@ export async function materializeCanonicalPrivateSpeech(
   if (dryRun.status !== "dry-run") {
     throw new Error("Canonical speech preflight did not remain side-effect-free.");
   }
-  const estimatedAudioSeconds = Math.max(
-    input.lesson.targetDurationSeconds,
-    plan.chunks.reduce(
-      (total, chunk) => total + chunk.estimatedDurationMs / 1_000,
-      0
-    )
-  );
-  const estimatedCostMicros = estimateCanonicalPaidSpeechCostMicros({
-    estimatedAudioSeconds,
+  const remainingEstimate = estimateCanonicalPaidSpeechRemainingCost({
+    targetDurationSeconds: input.lesson.targetDurationSeconds,
+    planChunks: plan.chunks,
+    dryRunChunks: dryRun.dryRun.chunks,
     inputCharacters: dryRun.dryRun.estimatedInputCharacters,
     providerRequests: dryRun.dryRun.estimatedProviderRequests,
   });
-  if (estimatedCostMicros > configuration.approvedCeilingMicros) {
+  const priorUsage = await readCanonicalPaidSpeechUsage(input.unitRoot);
+  if (
+    priorUsage.costMicros + remainingEstimate.estimatedCostMicros >
+    configuration.approvedCeilingMicros
+  ) {
     throw new Error(
-      `Canonical speech estimate ${estimatedCostMicros} micros exceeds approved ceiling ${configuration.approvedCeilingMicros} micros.`
+      `Cumulative canonical speech estimate ${priorUsage.costMicros + remainingEstimate.estimatedCostMicros} micros exceeds approved ceiling ${configuration.approvedCeilingMicros} micros.`
     );
   }
   const generated = await generateEducationalSpeech({
@@ -287,33 +432,13 @@ export async function materializeCanonicalPrivateSpeech(
   const dryRunByChunk = new Map(
     dryRun.dryRun.chunks.map((chunk) => [chunk.chunkId, chunk])
   );
-  const actualCalls = selectedCandidates.reduce(
-    (total, candidate) =>
-      total + (candidate.cacheHit ? 0 : candidate.attemptCount),
-    0
-  );
-  const actualCharacters = selectedCandidates.reduce((total, candidate) => {
-    if (candidate.cacheHit) return total;
-    const planned = dryRunByChunk.get(candidate.chunkId);
-    if (!planned) throw new Error(`Missing speech telemetry for ${candidate.chunkId}.`);
-    return total + planned.inputCharacters * candidate.attemptCount;
-  }, 0);
-  const billedAudioSeconds = selectedCandidates.reduce(
-    (total, candidate) =>
-      total +
-      (candidate.cacheHit ? 0 : ((candidate.durationMs ?? 0) / 1_000) * candidate.attemptCount),
-    0
-  );
-  const actualCostMicros =
-    actualCalls === 0
-      ? 0
-      : Math.ceil(
-          billedAudioSeconds *
-            CANONICAL_OPENAI_SPEECH_OUTPUT_MICROS_PER_SECOND +
-            actualCharacters *
-              CANONICAL_SPEECH_TEXT_INPUT_MICROS_PER_CHARACTER
-        );
-  if (actualCostMicros > configuration.approvedCeilingMicros) {
+  for (const candidate of selectedCandidates) {
+    if (!dryRunByChunk.has(candidate.chunkId)) {
+      throw new Error(`Missing speech telemetry for ${candidate.chunkId}.`);
+    }
+  }
+  const cumulativeUsage = await readCanonicalPaidSpeechUsage(input.unitRoot);
+  if (cumulativeUsage.costMicros > configuration.approvedCeilingMicros) {
     throw new Error("Actual canonical speech cost exceeds the approved ceiling.");
   }
   const segmentWeights = input.narration.segments.map(
@@ -330,20 +455,11 @@ export async function materializeCanonicalPrivateSpeech(
     provider: {
       mode: "provider" as const,
       providerId: "openai-compatible" as const,
-      calls: actualCalls,
-      characters: actualCharacters,
-      retries: selectedCandidates.reduce(
-        (total, candidate) =>
-          total +
-          (candidate.cacheHit ? 0 : Math.max(0, candidate.attemptCount - 1)),
-        0
-      ),
-      latencyMs: selectedCandidates.reduce(
-        (total, candidate) =>
-          total + (candidate.cacheHit ? 0 : candidate.providerDurationMs),
-        0
-      ),
-      costMicros: actualCostMicros,
+      calls: cumulativeUsage.calls,
+      characters: cumulativeUsage.characters,
+      retries: Math.max(0, cumulativeUsage.calls - plan.chunks.length),
+      latencyMs: cumulativeUsage.latencyMs,
+      costMicros: cumulativeUsage.costMicros,
       model: generated.workflow.model,
       voice: generated.workflow.voice,
       speechProfileVersion: generated.workflow.speechProfileVersion,

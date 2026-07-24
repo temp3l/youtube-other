@@ -26,6 +26,8 @@ import {
   DEFAULT_SPEECH_VOICE,
   loadSpeechVoiceSettings,
 } from "./voice-settings.js";
+import { probeAudioWithFfprobe } from "./audio-validation.js";
+import { MockSpeechProvider } from "./index.js";
 
 const beats: readonly EducationalNarrationBeat[] = [
   {
@@ -311,6 +313,16 @@ describe("educational speech profiles and planning", () => {
       classification: "rate-limit",
       retryable: true,
     });
+    expect(
+      classifyEducationalSpeechError(
+        new Error(
+          "Provider audio validation failed: AUDIO_WPM_IMPLAUSIBLE"
+        )
+      )
+    ).toEqual({
+      classification: "provider-validation",
+      retryable: true,
+    });
     let attempts = 0;
     const result = await runEducationalSpeechWithRetries({
       maxAttempts: 3,
@@ -322,6 +334,67 @@ describe("educational speech profiles and planning", () => {
       },
     });
     expect(result).toEqual({ value: "ok", attemptCount: 3 });
+  });
+
+  it("retries failed provider-audio validation inside the bounded attempt loop", async () => {
+    const root = await fs.mkdtemp(
+      path.join(os.tmpdir(), "speech-validation-retry-")
+    );
+    const profile = resolveSpeechDeliveryProfile(
+      "education-natural-teacher",
+      "de"
+    );
+    const plan = buildEducationalSpeechPlan({
+      episodeId: "lesson-validation-retry",
+      profile,
+      beats: [
+        {
+          id: "explanation",
+          visualStepId: "scene-001",
+          kind: "explanation",
+          displayText: "Stellenwert erklären",
+          spokenText:
+            "Wir lesen die Zahl langsam von links nach rechts und begründen anschließend jede besetzte Stelle.",
+          writingBehavior: "overlap-narration",
+        },
+      ],
+      createdAt: "2026-07-24T10:00:00.000Z",
+    });
+    const mockProvider = new MockSpeechProvider();
+    let providerCalls = 0;
+    let chunkValidationProbes = 0;
+    const result = await generateEducationalSpeech({
+      plan,
+      profile,
+      pronunciationDictionaries: [],
+      providerId: "mock",
+      provider: {
+        async synthesize(request, signal) {
+          providerCalls += 1;
+          return mockProvider.synthesize(request, signal);
+        },
+      },
+      outputRoot: path.join(root, "speech"),
+      candidateCount: 1,
+      maxAttempts: 3,
+      sleep: async () => undefined,
+      probeAudio: async (filePath) => {
+        const actual = await probeAudioWithFfprobe(filePath);
+        if (filePath.includes(".tmp.wav") && chunkValidationProbes++ === 0) {
+          return {
+            ...actual,
+            durationSeconds: actual.durationSeconds / 4,
+          };
+        }
+        return actual;
+      },
+    });
+
+    expect(result.status).toBe("completed");
+    expect(providerCalls).toBe(2);
+    if (result.status !== "completed")
+      throw new Error("Expected completed educational speech.");
+    expect(result.workflow.chunks[0]?.candidates[0]?.attemptCount).toBe(2);
   });
 
   it("rejects transplanted provider identity before promotion", () => {

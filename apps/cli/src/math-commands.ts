@@ -68,8 +68,9 @@ import {
 import {
   CANONICAL_OPENAI_SPEECH_PRICING_VERSION,
   createCanonicalMathOperator,
-  estimateCanonicalPaidSpeechCostMicros,
+  estimateCanonicalPaidSpeechRemainingCost,
   materializeCanonicalPrivateSpeech,
+  readCanonicalPaidSpeechUsage,
   type CanonicalPaidSpeechConfiguration,
 } from "./math-workflow-runtime.js";
 
@@ -221,6 +222,9 @@ async function canonicalPaidSpeechSetup(input: {
     readonly characters: number;
     readonly estimatedAudioSeconds: number;
     readonly estimatedCostMicros: number;
+    readonly newCostEstimateMicros: number;
+    readonly priorCostMicros: number;
+    readonly remainingBudgetMicros: number;
     readonly words: number;
     readonly targetWordsPerMinute: number;
     readonly model: string;
@@ -291,18 +295,20 @@ async function canonicalPaidSpeechSetup(input: {
     maxAttempts: 3,
   });
   if (dryRun.status !== "dry-run") throw new Error("Speech plan was not dry-run.");
-  const estimatedAudioSeconds = Math.max(
-    lesson.targetDurationSeconds,
-    plan.chunks.reduce(
-      (total, chunk) => total + chunk.estimatedDurationMs / 1_000,
-      0
-    )
-  );
-  const estimatedCostMicros = estimateCanonicalPaidSpeechCostMicros({
-    estimatedAudioSeconds,
+  const remainingEstimate = estimateCanonicalPaidSpeechRemainingCost({
+    targetDurationSeconds: lesson.targetDurationSeconds,
+    planChunks: plan.chunks,
+    dryRunChunks: dryRun.dryRun.chunks,
     inputCharacters: dryRun.dryRun.estimatedInputCharacters,
     providerRequests: dryRun.dryRun.estimatedProviderRequests,
   });
+  const unitRoot = path.join(
+    input.workspace ?? "/tmp/mediaforge-math-paid-plan",
+    createLessonId(input.skillId, input.lessonVariant)
+  );
+  const priorUsage = await readCanonicalPaidSpeechUsage(unitRoot);
+  const estimatedCostMicros =
+    priorUsage.costMicros + remainingEstimate.estimatedCostMicros;
   if (estimatedCostMicros > input.ceilingMicros) {
     throw new Error(
       `Estimated provider cost USD ${(estimatedCostMicros / 1_000_000).toFixed(6)} exceeds the hard ceiling USD ${(input.ceilingMicros / 1_000_000).toFixed(6)}.`
@@ -342,8 +348,11 @@ async function canonicalPaidSpeechSetup(input: {
     estimate: {
       calls: dryRun.dryRun.estimatedProviderRequests,
       characters: dryRun.dryRun.estimatedInputCharacters,
-      estimatedAudioSeconds,
+      estimatedAudioSeconds: remainingEstimate.estimatedAudioSeconds,
       estimatedCostMicros,
+      newCostEstimateMicros: remainingEstimate.estimatedCostMicros,
+      priorCostMicros: priorUsage.costMicros,
+      remainingBudgetMicros: input.ceilingMicros - priorUsage.costMicros,
       words,
       targetWordsPerMinute,
       model: profile.model,
@@ -1413,6 +1422,12 @@ export function registerMathCommands(program: Command): void {
           paidSetup?.estimate.estimatedAudioSeconds ?? 0,
         estimatedProviderCostMicros:
           paidSetup?.estimate.estimatedCostMicros ?? 0,
+        estimatedNewProviderCostMicros:
+          paidSetup?.estimate.newCostEstimateMicros ?? 0,
+        priorProviderCostMicros:
+          paidSetup?.estimate.priorCostMicros ?? 0,
+        remainingProviderBudgetMicros:
+          paidSetup?.estimate.remainingBudgetMicros ?? 0,
         approvedHardCeilingMicros:
           paidSetup?.configuration.approvedCeilingMicros ?? 0,
         providerConfiguration: paidSetup
