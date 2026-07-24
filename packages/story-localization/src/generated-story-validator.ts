@@ -24,6 +24,7 @@ import {
   type LanguageProfile,
   type ParsedSourceStory,
 } from "./story-localization.types.js";
+import { validateSemanticOpeningHook } from "./story-semantic-validation.js";
 import { type LocalizedFullRewriteResponseShape } from "./story-localization.schemas.js";
 import { type NarrationOnlyFullRewriteResponse } from "./story-prompt-response-schemas.js";
 import {
@@ -432,15 +433,17 @@ function detectTruncation(text: string): boolean {
 function validateLocaleSpecificNarration(
   text: string,
   profile: LanguageProfile,
-  variant: "full" | "short"
+  variant: "full" | "short",
+  exactWrittenMessages: readonly string[] = []
 ): string[] {
   const issues: string[] = [];
-  // Written messages and dialogue may be immutable English story facts. They
-  // are validated separately, so do not let the coarse language heuristic
-  // reject an otherwise localized narration for preserving quoted text.
-  const normalized = normalizeForLeakage(
-    text.replace(/["“][^"”\n]+["”]/gu, " ")
+  // Only contract-classified physical/device text may remain source-language.
+  // Ordinary quoted speech must still be localized naturally.
+  const withoutExactWrittenMessages = exactWrittenMessages.reduce(
+    (current, message) => current.split(message).join(" "),
+    text
   );
+  const normalized = normalizeForLeakage(withoutExactWrittenMessages);
   const hints =
     localeValidationHints[profile.locale as keyof typeof localeValidationHints];
   if (!hints) {
@@ -1100,7 +1103,8 @@ export function validateFullNarrationArtifact(
   const localeIssues = validateLocaleSpecificNarration(
     narration,
     args.profile,
-    "full"
+    "full",
+    validationStoryIr.writtenMessages.map((message) => message.text)
   );
   for (const localeIssue of localeIssues) {
     issues.push(
@@ -1156,24 +1160,8 @@ export function validateFullNarrationArtifact(
       );
     }
   }
-  if (args.preservationChecklist?.primaryRevealPreserved === false) {
-    issues.push(
-      issue(
-        GENERATED_STORY_VALIDATION_ISSUE_CODES.FULL_MISSING_CLIMAX,
-        "full",
-        "Missing climax."
-      )
-    );
-  }
-  if (args.preservationChecklist?.endingPreserved === false) {
-    issues.push(
-      issue(
-        GENERATED_STORY_VALIDATION_ISSUE_CODES.FULL_MISSING_ENDING,
-        "full",
-        "Missing ending."
-      )
-    );
-  }
+  // Generator preservation booleans are diagnostics only. Independent checks
+  // above and the separately configured semantic validator determine acceptance.
   if (args.semanticValidator?.validateFull) {
     issues.push(
       ...args.semanticValidator.validateFull({
@@ -1317,11 +1305,15 @@ export function validateShortNarrationArtifact(
       );
     }
   }
-  if (
-    openingSeconds > args.outputConstraints.hookDeadlineSeconds ||
-    (enforceThreat &&
-      !includesPhrase(openingWindow, args.adaptationContract.centralThreat))
-  ) {
+  const semanticHook = validateSemanticOpeningHook({
+    opening: openingWindow,
+    entities: [
+      args.adaptationContract.criticalObject,
+      args.adaptationContract.centralThreat,
+      ...inferStoryAnchors(args.adaptationContract, parentNarration),
+    ],
+  });
+  if (openingSeconds > args.outputConstraints.hookDeadlineSeconds || !semanticHook.valid) {
     issues.push(
       issue(
         GENERATED_STORY_VALIDATION_ISSUE_CODES.SHORT_HOOK_TOO_LATE,
@@ -1347,10 +1339,7 @@ export function validateShortNarrationArtifact(
       )
     );
   }
-  if (
-    narration.split(/\n{2,}/u).length > 2 ||
-    /\b(?:meanwhile|in another story|elsewhere|separately)\b/iu.test(narration)
-  ) {
+  if (/\b(?:in another story|a separate story)\b/iu.test(narration)) {
     issues.push(
       issue(
         GENERATED_STORY_VALIDATION_ISSUE_CODES.SHORT_INCOHERENT_NARRATIVE_THREAD,
@@ -1513,7 +1502,8 @@ export function validateShortNarrationArtifact(
   const localeIssues = validateLocaleSpecificNarration(
     narration,
     args.profile,
-    "short"
+    "short",
+    args.adaptationContract.exactWrittenMessages
   );
   for (const localeIssue of localeIssues) {
     issues.push(
@@ -1776,11 +1766,7 @@ export function validateGeneratedStoryPackage(
   issues.push(
     ...validateFullStoryPackageNarration(packageValue, profile, effectiveFacts)
   );
-  issues.push(
-    ...validatePreservationChecklist(packageValue.preservationChecklist).map(
-      (entry) => `preservation:${entry}`
-    )
-  );
+  // Self-reported preservation flags never contribute to acceptance.
   const shortText = packageValue.short.narrationParagraphs.join(" ");
   const shortWordCount = countWords(shortText);
   if (
@@ -1840,12 +1826,6 @@ export function validateGeneratedStoryPackage(
   ) {
     issues.push("Character names are missing.");
   }
-  if (!packageValue.preservationChecklist.primaryRevealPreserved) {
-    issues.push("Primary reveal not preserved.");
-  }
-  if (!packageValue.preservationChecklist.endingPreserved) {
-    issues.push("Ending not preserved.");
-  }
   void source;
   return issues;
 }
@@ -1867,11 +1847,6 @@ export function validateGeneratedFullStoryPackage(
   }
   issues.push(
     ...validateFullStoryPackageNarration(packageValue, profile, effectiveFacts)
-  );
-  issues.push(
-    ...validatePreservationChecklist(packageValue.preservationChecklist).map(
-      (entry) => `preservation:${entry}`
-    )
   );
   if (packageValue.full) {
     const fullText = packageValue.full.narrationParagraphs.join(" ");
@@ -1957,11 +1932,7 @@ export function validateGeneratedLocalizedFullRewritePackage(
       ].join(" "),
     }).map((diagnostic) => diagnostic.message)
   );
-  issues.push(
-    ...validatePreservationChecklist(packageValue.preservationChecklist).map(
-      (entry) => `preservation:${entry}`
-    )
-  );
+  // Generator preservation checklist is retained for diagnostics only.
   if (countSpokenWords(fullText) < 1) {
     issues.push("Full story narration is empty.");
   }
@@ -1990,11 +1961,7 @@ export function validateNarrationOnlyFullRewritePackage(
   if (packageValue.language !== language) {
     issues.push("Language mismatch.");
   }
-  issues.push(
-    ...validatePreservationChecklist(packageValue.preservationChecklist).map(
-      (entry) => `preservation:${entry}`
-    )
-  );
+  // Acceptance is computed from narration and canonical facts, not self-report.
   const fullText = packageValue.full.narrationParagraphs.join(" ");
   if (
     packageValue.full.narrationParagraphs.length === 0 ||
@@ -2033,7 +2000,7 @@ export function validateNarrationOnlyFullRewritePackage(
   if (validateWrittenMessagesPreserved(effectiveFacts, fullText).length > 0) {
     issues.push("Written messages are not preserved.");
   }
-  issues.push(...validateLocaleSpecificNarration(fullText, profile, "full"));
+  issues.push(...validateLocaleSpecificNarration(fullText, profile, "full", effectiveFacts.writtenMessages));
   if (
     detectDuplicateNarrationParagraphs(packageValue.full.narrationParagraphs) ||
     detectNearDuplicateNarrationParagraphs(
@@ -2047,12 +2014,6 @@ export function validateNarrationOnlyFullRewritePackage(
   }
   if (hasLeakage(fullText)) {
     issues.push("Localized full metadata leakage.");
-  }
-  if (!packageValue.preservationChecklist.primaryRevealPreserved) {
-    issues.push("Missing climax.");
-  }
-  if (!packageValue.preservationChecklist.endingPreserved) {
-    issues.push("Missing ending.");
   }
   return issues;
 }

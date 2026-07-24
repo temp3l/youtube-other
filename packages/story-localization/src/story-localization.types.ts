@@ -335,6 +335,22 @@ export interface CanonicalStoryFacts {
   readonly requiredFinalReveal?: string;
   readonly requiredFinalLine?: string;
   readonly unresolvedQuestion?: string;
+  readonly openingImpossibleDetail?: string;
+  readonly escalationEvidence?: readonly string[];
+  readonly climax?: string;
+  readonly factDiagnostics?: readonly CanonicalFactDiagnostic[];
+}
+
+export type CanonicalFactSource =
+  | "structured-contract"
+  | "canonical-scene"
+  | "legacy-inference"
+  | "fallback-extraction";
+
+export interface CanonicalFactDiagnostic {
+  readonly fact: string;
+  readonly source: CanonicalFactSource;
+  readonly detail: string;
 }
 
 export type ShortsImageStrategy =

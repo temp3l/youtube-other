@@ -37,3 +37,18 @@ export function repairFinalSting(text: string, facts: CanonicalStoryFacts): stri
   sentences[sentences.length - 1] = facts.requiredFinalLine;
   return sentences.join(" ");
 }
+
+export function preserveImmutableFinalLine(text: string, immutableFinalLine: string): string {
+  const normalizedLine = immutableFinalLine.trim();
+  if (!normalizedLine) return text;
+  const exactIndex = text.indexOf(normalizedLine);
+  if (exactIndex >= 0) return text.slice(0, exactIndex + normalizedLine.length).trimEnd();
+  const sentences = splitIntoSentences(normalizeWhitespace(text));
+  if (sentences.length === 0) return normalizedLine;
+  sentences[sentences.length - 1] = normalizedLine;
+  return sentences.join(" ");
+}
+
+export function hasExactImmutableFinalLine(text: string, immutableFinalLine: string): boolean {
+  return text.endsWith(immutableFinalLine) && text.slice(0, -immutableFinalLine.length).indexOf(immutableFinalLine) < 0;
+}

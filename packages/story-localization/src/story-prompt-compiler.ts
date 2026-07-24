@@ -72,9 +72,16 @@ import {
   buildCanonicalStoryBeats,
   buildStoryMechanicsContract,
 } from "./story-mechanics.js";
+import { estimateStoryTokens } from "./story-generation-preflight.js";
+import {
+  validateCompiledPromptContract,
+  validateStoryContractPreflight,
+} from "./story-contract-preflight.js";
+import { adaptLegacyStoryToCanonicalContract } from "./canonical-story-contract.js";
 import { type SourceCleaningReport } from "./source-cleaning.js";
 import {
   type ShortRewriteAdaptationContract,
+  type ShortBeatPlanBeat,
   type ShortRewriteSourceExtraction,
 } from "./short-rewrite.types.js";
 
@@ -92,7 +99,52 @@ export interface CompiledStoryPrompt {
     readonly version: string;
   }[];
   readonly diagnostics: readonly StoryPromptDiagnostic[];
+  readonly metrics: StoryPromptMetrics;
 }
+
+export interface StoryPromptBudgets {
+  readonly maxPromptCharacters: number;
+  readonly maxEstimatedInputTokens: number;
+  readonly maxCanonicalEvents: number;
+  readonly maxSceneBeats: number;
+}
+
+export interface StoryPromptMetrics {
+  readonly promptCharacters: number;
+  readonly estimatedInputTokens: number;
+  readonly selectedEventCount: number;
+  readonly expandedDependencyCount: number;
+  readonly emittedEventCount: number;
+  readonly sceneBeatCount: number;
+  readonly promptSectionCount: number;
+  readonly duplicateSectionCount: number;
+  readonly sectionSizes: readonly { readonly heading: string; readonly characters: number }[];
+}
+
+const EMPTY_PROMPT_METRICS: StoryPromptMetrics = {
+  promptCharacters: 0,
+  estimatedInputTokens: 0,
+  selectedEventCount: 0,
+  expandedDependencyCount: 0,
+  emittedEventCount: 0,
+  sceneBeatCount: 0,
+  promptSectionCount: 0,
+  duplicateSectionCount: 0,
+  sectionSizes: [],
+};
+
+const DEFAULT_FULL_PROMPT_BUDGETS: StoryPromptBudgets = {
+  maxPromptCharacters: 48_000,
+  maxEstimatedInputTokens: 14_000,
+  maxCanonicalEvents: 20,
+  maxSceneBeats: 20,
+};
+const DEFAULT_SHORT_PROMPT_BUDGETS: StoryPromptBudgets = {
+  maxPromptCharacters: 24_000,
+  maxEstimatedInputTokens: 8_000,
+  maxCanonicalEvents: 6,
+  maxSceneBeats: 6,
+};
 
 export interface CompileFullStoryPromptInput {
   readonly language: LanguageCode;
@@ -109,6 +161,7 @@ export interface CompileFullStoryPromptInput {
   readonly sourceCleaningReport?: SourceCleaningReport;
   readonly storyIr?: StoryIR;
   readonly characterRenameMap?: CharacterRenameMap;
+  readonly promptBudgets?: Partial<StoryPromptBudgets>;
 }
 
 export interface CompileShortStoryPromptInput {
@@ -128,6 +181,11 @@ export interface CompileShortStoryPromptInput {
   readonly sourceCleaningReport?: SourceCleaningReport;
   readonly storyIr?: StoryIR;
   readonly characterRenameMap?: CharacterRenameMap;
+  readonly promptBudgets?: Partial<StoryPromptBudgets>;
+}
+
+function resolvePromptBudgets(variant: "full" | "short", override?: Partial<StoryPromptBudgets>): StoryPromptBudgets {
+  return { ...(variant === "full" ? DEFAULT_FULL_PROMPT_BUDGETS : DEFAULT_SHORT_PROMPT_BUDGETS), ...override };
 }
 
 function resolveClassificationOutcome(
@@ -222,7 +280,8 @@ function buildStoryIr(args: {
 }
 
 function compileFromContext(
-  context: StoryPromptModuleContext
+  context: StoryPromptModuleContext,
+  budgets: StoryPromptBudgets
 ): CompiledStoryPrompt {
   const diagnostics: StoryPromptDiagnostic[] = [];
   const selected: SelectedStoryPromptModule[] = [];
@@ -311,6 +370,7 @@ function compileFromContext(
         version: entry.module.semanticVersion,
       })),
       diagnostics,
+      metrics: EMPTY_PROMPT_METRICS,
     };
   }
   const ordered = [...selected].sort((left, right) => {
@@ -328,14 +388,24 @@ function compileFromContext(
   const userRuleMap = new Map<string, string>();
   const systemSections: string[] = [];
   const userSections: string[] = [];
+  const systemHeadings = new Set<string>();
+  const userHeadings = new Set<string>();
   for (const entry of ordered) {
     if (entry.system) {
+      const headingKey = entry.system.heading.trim().toLocaleLowerCase();
+      if (systemHeadings.has(headingKey)) {
+        diagnostics.push({ code: "DUPLICATED_PROMPT_SECTION", severity: "error", message: `System section ${entry.system.heading} is duplicated.`, moduleId: entry.module.id, blocking: true });
+        continue;
+      }
+      systemHeadings.add(headingKey);
+      const newRules: string[] = [];
       for (const rule of entry.system.rules ?? []) {
         if (!systemRuleMap.has(rule.id)) {
           systemRuleMap.set(rule.id, rule.text);
+          newRules.push(rule.text);
         }
       }
-      const renderedRules = [...systemRuleMap.values()]
+      const renderedRules = newRules
         .map((line) => `- ${line}`)
         .join("\n");
       const body =
@@ -345,12 +415,20 @@ function compileFromContext(
       systemSections.push(`## ${entry.system.heading}\n${body}`);
     }
     if (entry.user) {
+      const headingKey = entry.user.heading.trim().toLocaleLowerCase();
+      if (userHeadings.has(headingKey)) {
+        diagnostics.push({ code: "DUPLICATED_PROMPT_SECTION", severity: "error", message: `User section ${entry.user.heading} is duplicated.`, moduleId: entry.module.id, blocking: true });
+        continue;
+      }
+      userHeadings.add(headingKey);
+      const newRules: string[] = [];
       for (const rule of entry.user.rules ?? []) {
         if (!userRuleMap.has(rule.id)) {
           userRuleMap.set(rule.id, rule.text);
+          newRules.push(rule.text);
         }
       }
-      const renderedRules = [...userRuleMap.values()]
+      const renderedRules = newRules
         .map((line) => `- ${line}`)
         .join("\n");
       const body =
@@ -361,6 +439,13 @@ function compileFromContext(
     }
   }
   const system = systemSections.join("\n\n");
+  const selectedEventIds = context.variant === "short" ? new Set(context.sourceExtraction.selectedEventIds ?? []) : new Set<string>();
+  const emittedEvents = context.variant === "short"
+    ? (context.sourceExtraction.events ?? []).filter((event) => selectedEventIds.has(event.id))
+    : [];
+  const emittedBeats: readonly ShortBeatPlanBeat[] = context.variant === "short"
+    ? (context.sourceExtraction.beatPlan?.beats ?? []).filter((beat) => beat.eventIds.every((id) => selectedEventIds.has(id)))
+    : [];
   const user = [
     userSections.join("\n\n"),
         context.variant === "short"
@@ -403,7 +488,7 @@ function compileFromContext(
           `- Forbidden inventions: ${context.canonicalFacts.forbiddenInventions?.join(" | ") || "none"}`,
           "",
           "<SHORT_ADAPTATION_EVENTS>",
-          ...(context.sourceExtraction.events ?? [])
+          ...emittedEvents
             .map((event) => {
               const roles = event.narrativeRoles.join(", ");
               const dependencies = event.causalDependencyIds.join(", ") || "none";
@@ -419,7 +504,7 @@ function compileFromContext(
           "</SHORT_ADAPTATION_EVENTS>",
           "",
           "<SHORT_ADAPTATION_BEAT_PLAN>",
-          ...(context.sourceExtraction.beatPlan?.beats ?? []).map((beat) =>
+          ...emittedBeats.map((beat) =>
             [
               `- [${beat.id}] ${beat.role} ${beat.targetStartSecond}-${beat.targetEndSecond}s`,
               `  event-ids: ${beat.eventIds.join(", ") || "none"}`,
@@ -446,6 +531,57 @@ function compileFromContext(
         ].join("\n")
       : `<SOURCE_NARRATION>\n${context.sourceStory.narrationParagraphs.join("\n\n")}\n</SOURCE_NARRATION>`,
   ].join("\n\n");
+  const allSections = [...systemSections, ...userSections];
+  const headings = allSections.map((section) => /^##\s+(.+)$/mu.exec(section)?.[1]?.trim() ?? "unnamed");
+  const normalizedHeadings = headings.map((heading) => heading.toLocaleLowerCase());
+  const duplicateSectionCount = normalizedHeadings.length - new Set(normalizedHeadings).size;
+  const promptCharacters = system.length + user.length;
+  const estimatedInputTokens = estimateStoryTokens(`${system}\n${user}`, "openai-compatible-local-estimate");
+  const metrics: StoryPromptMetrics = {
+    promptCharacters,
+    estimatedInputTokens,
+    selectedEventCount: selectedEventIds.size,
+    expandedDependencyCount: context.variant === "short"
+      ? Math.max(0, selectedEventIds.size - new Set(emittedEvents.flatMap((event) => event.sourceBeatIds)).size)
+      : 0,
+    emittedEventCount: emittedEvents.length,
+    sceneBeatCount: context.variant === "short" ? emittedBeats.length : Math.min(context.canonicalBeats.length, budgets.maxSceneBeats),
+    promptSectionCount: headings.length + (context.variant === "short" ? 2 : 1),
+    duplicateSectionCount,
+    sectionSizes: allSections.map((section, index) => ({ heading: headings[index] ?? "unnamed", characters: section.length })).sort((left, right) => right.characters - left.characters),
+  };
+  const promptContractIssues = validateCompiledPromptContract({
+    system,
+    user,
+    responseSchemaName: context.responseSchema.name,
+    selectedEventCount: metrics.selectedEventCount,
+    emittedEventCount: metrics.emittedEventCount,
+    sceneBeatCount: metrics.sceneBeatCount,
+    maxCanonicalEvents: budgets.maxCanonicalEvents,
+    maxSceneBeats: budgets.maxSceneBeats,
+  });
+  diagnostics.push(...promptContractIssues.map((issue) => ({ code: issue.code, severity: "error" as const, message: issue.message, blocking: true })));
+  if (promptCharacters > budgets.maxPromptCharacters || estimatedInputTokens > budgets.maxEstimatedInputTokens) {
+    diagnostics.push({
+      code: "PROMPT_BUDGET_EXCEEDED",
+      severity: "error",
+      message: `Prompt requires ${promptCharacters} characters / ${estimatedInputTokens} estimated tokens; limits are ${budgets.maxPromptCharacters} / ${budgets.maxEstimatedInputTokens}. Largest sections: ${metrics.sectionSizes.slice(0, 3).map((entry) => `${entry.heading}=${entry.characters}`).join(", ")}.`,
+      blocking: true,
+    });
+  }
+  if (diagnostics.some((entry) => entry.blocking)) {
+    return {
+      compilerVersion: STORY_PROMPT_COMPILER_VERSION,
+      variant: context.variant,
+      system: "",
+      user: "",
+      responseSchema: context.responseSchema,
+      promptFingerprint: "",
+      selectedModules: ordered.map((entry) => ({ id: entry.module.id, version: entry.module.semanticVersion })),
+      diagnostics,
+      metrics,
+    };
+  }
   const fingerprintPayload = {
     compilerVersion: STORY_PROMPT_COMPILER_VERSION,
     variant: context.variant,
@@ -507,6 +643,7 @@ function compileFromContext(
       version: entry.module.semanticVersion,
     })),
     diagnostics,
+    metrics,
   };
 }
 
@@ -575,6 +712,7 @@ export function compileFullStoryPrompt(
       promptFingerprint: "",
       selectedModules: [],
       diagnostics,
+      metrics: EMPTY_PROMPT_METRICS,
     };
   }
   if (classificationOutcome === "unknown-unsafe") {
@@ -594,6 +732,7 @@ export function compileFullStoryPrompt(
       promptFingerprint: "",
       selectedModules: [],
       diagnostics,
+      metrics: EMPTY_PROMPT_METRICS,
     };
   }
   const outputConstraints =
@@ -639,7 +778,15 @@ export function compileFullStoryPrompt(
       promptFingerprint: "",
       selectedModules: [],
       diagnostics,
+      metrics: EMPTY_PROMPT_METRICS,
     };
+  }
+  const mechanicsContract = buildStoryMechanicsContract({ facts: canonicalFacts, storyIr });
+  const canonicalBeats = buildCanonicalStoryBeats({ story: sourceStory, facts: canonicalFacts });
+  const contractPreflightIssues = validateStoryContractPreflight({ storyIr, facts: canonicalFacts, mechanics: mechanicsContract });
+  diagnostics.push(...contractPreflightIssues.map((issue) => ({ code: issue.code, severity: "error" as const, message: issue.message, blocking: true })));
+  if (contractPreflightIssues.length > 0) {
+    return { compilerVersion: STORY_PROMPT_COMPILER_VERSION, variant: "full", system: "", user: "", responseSchema: fullNarrationResponseSchemaDescriptor, promptFingerprint: "", selectedModules: [], diagnostics, metrics: EMPTY_PROMPT_METRICS };
   }
   const context: FullStoryPromptInput = {
     variant: "full",
@@ -654,14 +801,9 @@ export function compileFullStoryPrompt(
     contract: contractResult.contract as FullStoryContract,
     contractEnvelope: contractResult.envelope as FullStoryContractEnvelope,
     outputConstraints,
-    mechanicsContract: buildStoryMechanicsContract({
-      facts: canonicalFacts,
-      storyIr,
-    }),
-    canonicalBeats: buildCanonicalStoryBeats({
-      story: sourceStory,
-      facts: canonicalFacts,
-    }),
+    mechanicsContract,
+    canonicalBeats,
+    canonicalStoryContract: adaptLegacyStoryToCanonicalContract({ storyIr, facts: canonicalFacts, mechanics: mechanicsContract, beats: canonicalBeats }),
     responseSchema: fullNarrationResponseSchemaDescriptor,
     localeModuleVersion: STORY_PROMPT_LOCALE_MODULE_VERSION,
     selectedLocale: profile.locale,
@@ -673,7 +815,7 @@ export function compileFullStoryPrompt(
       ? { sourceCleaningReport: input.sourceCleaningReport }
       : {}),
   };
-  const compiled = compileFromContext(context);
+  const compiled = compileFromContext(context, resolvePromptBudgets("full", input.promptBudgets));
   return {
     ...compiled,
     diagnostics: [...diagnostics, ...compiled.diagnostics],
@@ -726,6 +868,7 @@ export function compileShortStoryPrompt(
       promptFingerprint: "",
       selectedModules: [],
       diagnostics,
+      metrics: EMPTY_PROMPT_METRICS,
     };
   }
   if (initialClassificationOutcome === "unknown-unsafe") {
@@ -763,7 +906,7 @@ export function compileShortStoryPrompt(
       ? { sourceCleaningReport: input.sourceCleaningReport }
       : {}),
   };
-  const compiled = compileFromContext(context);
+  const compiled = compileFromContext(context, resolvePromptBudgets("short", input.promptBudgets));
   return {
     ...compiled,
     diagnostics: [...diagnostics, ...compiled.diagnostics],

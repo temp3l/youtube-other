@@ -37,6 +37,15 @@
       ]
     },
     {
+      "concept": "canonical-story-contract",
+      "source": "packages/story-localization/src/canonical-story-contract.ts",
+      "sourceSha256": "6614ca76a825816c49dde75ee7ab6b972c637722aec9b04164b9b5844bade2e5",
+      "symbols": [
+        "adaptLegacyStoryToCanonicalContract",
+        "canonicalStoryContractSchema"
+      ]
+    },
+    {
       "concept": "cli-bootstrap",
       "source": "apps/cli/src/index.ts",
       "sourceSha256": "0198dcb5fa5d8f3b8144ec901e15b475ed404d80bd167f1175380906421d4c2a",
@@ -71,7 +80,7 @@
     {
       "concept": "mathematics-profile",
       "source": "packages/math-education/src/task-registry.ts",
-      "sourceSha256": "62696395d9e4d8eb04959580ca6081de874472242a93aaa9c2b1fdb957bd28a7",
+      "sourceSha256": "29b44a444a7f54db73cb51a29e48f77719f12fe1ce45479e91baef8346671845",
       "symbols": [
         "mathWorkflowDefinition"
       ]
@@ -93,6 +102,33 @@
       ]
     },
     {
+      "concept": "story-contract-preflight",
+      "source": "packages/story-localization/src/story-contract-preflight.ts",
+      "sourceSha256": "7d1c83621f3f05410142424d9cf5be1e86ec8bf3f5b64a4851817d57f1d0a09b",
+      "symbols": [
+        "validateCompiledPromptContract",
+        "validateStoryContractPreflight"
+      ]
+    },
+    {
+      "concept": "story-model-resolution",
+      "source": "packages/story-localization/src/model-resolution.ts",
+      "sourceSha256": "1053b5ea09e9f7067b4fb68cbb439d7d2f6836ffcfc037126baadd9dc8e55b04",
+      "symbols": [
+        "isRetryableProviderError",
+        "resolveModelResponse"
+      ]
+    },
+    {
+      "concept": "story-prompt-compiler",
+      "source": "packages/story-localization/src/story-prompt-compiler.ts",
+      "sourceSha256": "54692a4d803da85d621d4dc331afa9d099d720999e98c0fc7d21b1a8730e51e4",
+      "symbols": [
+        "compileFullStoryPrompt",
+        "compileShortStoryPrompt"
+      ]
+    },
+    {
       "concept": "task-registry",
       "source": "packages/workflow-engine/src/task-registry.ts",
       "sourceSha256": "d905028b7443f93296c527cf1a380bb3598caaeb4cb3e5eb258438b26b1a2f32",
@@ -103,7 +139,7 @@
     {
       "concept": "workflow-operator",
       "source": "packages/workflow-engine/src/workflow-operator.ts",
-      "sourceSha256": "a066ee28acf5d45f0e78104193ec6f4a91a99a1c8efbddf997ee11a19c6e1615",
+      "sourceSha256": "eb3654cca40c37594bf1165dbb0119b32ff4a6ff42c1e66ea7e161e62bc5d00f",
       "symbols": [
         "class WorkflowOperator"
       ]

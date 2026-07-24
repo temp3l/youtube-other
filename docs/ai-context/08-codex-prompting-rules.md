@@ -77,7 +77,7 @@ Documentation index:
 - [Docs Index](source-index.json)
 - [System Overview](source-index.json)
 - [Episode Production Pipeline](source-index.json)
-- [Story Localization](source-index.json)
+- [Story Localization](architecture/story-localization.md)
 - [Media Assets And Delivery](source-index.json)
 
 Media pipeline documentation:

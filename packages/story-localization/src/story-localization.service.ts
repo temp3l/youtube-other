@@ -180,6 +180,7 @@ import {
   hashCanonicalStoryBeats,
   hashStoryMechanicsContract,
 } from "./story-mechanics.js";
+import { isRetryableProviderError, resolveModelResponse, type ModelResolutionRecord } from "./model-resolution.js";
 
 export interface StoryLocalizationOptions {
   readonly client?: OpenAiStoryClient;
@@ -202,6 +203,7 @@ interface StructuredOpenAiCallResult {
     readonly startedAt: number;
     readonly finishedAt: number;
     readonly durationMs: number;
+    readonly modelResolution: ModelResolutionRecord;
     readonly usage?: {
       readonly inputTokens?: number;
       readonly outputTokens?: number;
@@ -820,6 +822,7 @@ function buildLocalizedFullParentArtifact(args: {
   readonly storyIrHash: string;
   readonly contractHash: string;
   readonly contractBuildFingerprint: string;
+  readonly canonicalContentHash: string;
 }): {
   readonly kind: "canonical-english-full";
   readonly fingerprint: string;
@@ -830,6 +833,11 @@ function buildLocalizedFullParentArtifact(args: {
   readonly storyIrHash: string;
   readonly contractHash: string;
   readonly contractBuildFingerprint: string;
+  readonly canonicalStoryId: string;
+  readonly canonicalRevision: number;
+  readonly canonicalContentHash: string;
+  readonly canonicalContractHash: string;
+  readonly acceptanceStatus: "accepted";
 } {
   return {
     kind: "canonical-english-full",
@@ -841,6 +849,11 @@ function buildLocalizedFullParentArtifact(args: {
     storyIrHash: args.storyIrHash,
     contractHash: args.contractHash,
     contractBuildFingerprint: args.contractBuildFingerprint,
+    canonicalStoryId: args.canonicalFingerprint,
+    canonicalRevision: 1,
+    canonicalContentHash: args.canonicalContentHash,
+    canonicalContractHash: args.contractHash,
+    acceptanceStatus: "accepted",
   };
 }
 
@@ -1103,50 +1116,6 @@ function describeOpenAiStoryLocalizationError(error: unknown): string {
   return String(error);
 }
 
-function isRetryableOpenAiRequestError(error: unknown): boolean {
-  const isRetryableCode = (code: string): boolean =>
-    [
-      "ECONNRESET",
-      "ETIMEDOUT",
-      "EAI_AGAIN",
-      "ENOTFOUND",
-      "UND_ERR_CONNECT_TIMEOUT",
-      "UND_ERR_SOCKET",
-      "ECONNREFUSED",
-      "EPIPE",
-    ].includes(code);
-  const isRetryableStatus = (status: number): boolean =>
-    [408, 409, 425, 429, 500, 502, 503, 504].includes(status);
-  if (!error || typeof error !== "object") {
-    return false;
-  }
-  const record = error as {
-    readonly retryable?: unknown;
-    readonly status?: unknown;
-    readonly code?: unknown;
-    readonly message?: unknown;
-    readonly name?: unknown;
-  };
-  if (record.retryable === true) {
-    return true;
-  }
-  if (typeof record.status === "number" && isRetryableStatus(record.status)) {
-    return true;
-  }
-  const code = typeof record.code === "string" ? record.code : undefined;
-  if (code && isRetryableCode(code)) {
-    return true;
-  }
-  const text = [
-    typeof record.name === "string" ? record.name : "",
-    typeof record.code === "string" ? record.code : "",
-    typeof record.message === "string" ? record.message : "",
-  ].join(" ");
-  return /connection|connect|timeout|timed out|dns|fetch failed|network error|socket hang up|temporary failure/iu.test(
-    text
-  );
-}
-
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => {
     setTimeout(resolve, ms);
@@ -1405,6 +1374,11 @@ async function callOpenAiStructured(
         extractStructuredResponseText(responseRecord) ??
         JSON.stringify(parsedOutput);
       const finishedAt = Date.now();
+      const modelResolution = resolveModelResponse({
+        configuredModel: model,
+        resolvedModel: model,
+        actualResponseModel: responseRecord.model ?? model,
+      });
       const responsePayload: StructuredOpenAiCallResult["response"] = {
         requestModel: model,
         responseId: response.id,
@@ -1412,6 +1386,7 @@ async function callOpenAiStructured(
         startedAt,
         finishedAt,
         durationMs: finishedAt - startedAt,
+        modelResolution,
         ...(responseRecord.status !== undefined
           ? { status: responseRecord.status }
           : {}),
@@ -1496,7 +1471,7 @@ async function callOpenAiStructured(
         await persistDebugFailure(error);
         throw error;
       }
-      if (attempt < maxAttempts && isRetryableOpenAiRequestError(error)) {
+      if (attempt < maxAttempts && isRetryableProviderError(error)) {
         const delayMs = Math.min(
           8_000,
           Math.max(250, 500 * 2 ** (attempt - 1))
@@ -3409,6 +3384,7 @@ export async function localizeStoryEpisode(
       contractHash: canonicalEnglishPlan.contractHash,
       contractBuildFingerprint:
         canonicalEnglishPlan.contractBuildFingerprint,
+      canonicalContentHash: canonicalEnglishStory.parsed.sourceHash,
     });
     const localizedResume = resumeEnabled
       ? await resolveResumableFullStoryOutput({

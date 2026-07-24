@@ -396,5 +396,18 @@ describe("story prompt compiler", () => {
     expect(compiled.user).toContain("35-50 seconds active climax");
     expect(compiled.user).toContain("50-60 seconds concrete final reversal");
     expect(compiled.user).toContain("canonical final reveal");
+    expect(compiled.metrics.promptCharacters).toBeLessThan(88_439);
+    expect(compiled.metrics.estimatedInputTokens).toBeLessThan(26_536);
+    expect(compiled.metrics.selectedEventCount).toBeLessThanOrEqual(6);
+    expect(compiled.metrics.emittedEventCount).toBe(
+      sourceExtraction.selectedEventIds?.length ?? 0
+    );
+    expect(compiled.metrics.sceneBeatCount).toBeLessThanOrEqual(6);
+    expect(compiled.metrics.duplicateSectionCount).toBe(0);
+    for (const unselected of (sourceExtraction.events ?? []).filter(
+      (event) => !sourceExtraction.selectedEventIds?.includes(event.id)
+    )) {
+      expect(compiled.user).not.toContain(`[${unselected.id}]`);
+    }
   });
 });

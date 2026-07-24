@@ -14,6 +14,7 @@ import {
   type CanonicalStoryFacts,
   type LanguageCode,
 } from "./story-localization.types.js";
+import { canonicalHookEntities, validateSemanticOpeningHook } from "./story-semantic-validation.js";
 import { detectProfessionalStoryQualityIssues } from "./professional-story-contracts.js";
 
 const BANNED_OUTLINE_PHRASES = [
@@ -84,9 +85,9 @@ const ABSTRACT_COMMENTARY_PATTERNS = [
 ] as const;
 
 const CONCRETE_DETAIL_PATTERNS = [
-  /\b(?:opened|closed|picked|pressed|turned|stepped|ran|dragged|held|dropped|cut|sealed|painted|scanned|watched|heard|saw|entered|removed|retrieved)\b/iu,
-  /\b(?:door|window|canvas|portrait|painting|mug|watch|light|camera|scanner|room|floor|wall|hand|face|glass|mirror|varnish|primer)\b/iu,
-  /\b(?:wet|cold|white|red|silver|dark|bright|silent|loud|stale|dust|smell|sound|shadow|reflection)\b/iu,
+  /\b(?:opened|closed|picked|pressed|turned|stepped|ran|dragged|held|dropped|cut|sealed|painted|scanned|watched|heard|saw|entered|removed|retrieved|rang|ringing|answer|answered|grabbed|taped|slammed|shook|showed|displayed|vibrated|recorded|whispered)\b/iu,
+  /\b(?:door|window|canvas|portrait|painting|mug|watch|light|camera|scanner|room|floor|wall|hand|face|glass|mirror|varnish|primer|phone|receiver|recorder|bell|bells|cable|shelf|booth|car|mobile|cradle|photograph|number)\b/iu,
+  /\b(?:wet|cold|white|red|silver|dark|bright|silent|loud|stale|dust|smell|sound|shadow|reflection|rain|lightning|storm|thunder|static)\b/iu,
   /(?:öffnete|schloss|drückte|drehte|rannte|zog|hielt|ließ|schnitt|versiegelte|sah|hörte|verbrannte|verriegelte|abrió|cerró|corrió|arrastró|sostuvo|soltó|cortó|selló|vio|oyó|quemó|abriu|fechou|correu|arrastou|segurou|soltou|cortou|selou|viu|ouviu|queimou|ouvrit|ferma|courut|traîna|tint|lâcha|coupa|scella|vit|entendit|brûla)/iu,
   /(?:tür|fenster|zimmer|wand|hand|gesicht|glas|spiegel|puppe|kleid|foto|treppe|truhe|waschbecken|puerta|ventana|habitación|pared|mano|cara|vidrio|espejo|muñeca|vestido|foto|escalera|baúl|lavabo|porta|janela|sala|parede|mão|rosto|vidro|espelho|boneca|roupa|escada|baú|pia|porte|fenêtre|pièce|mur|main|visage|verre|miroir|poupée|robe|escalier|coffre|lavabo)/iu,
   /(?:nass|kalt|weiß|rot|dunkel|hell|still|laut|staub|geruch|schatten|spiegelung|mojado|frío|blanco|oscuro|silencio|sombra|molhado|frio|branco|escuro|silêncio|sombra|mouillé|froid|blanc|sombre|silence|ombre)/iu,
@@ -798,11 +799,11 @@ export function runStoryQualityGate(args: {
 
   if (args.artifactKind === "short") {
     const firstTwoSentences = sentences.slice(0, 2).join(" ");
-    if (
-      !/\bhook\b|\bdoor\b|\bradio\b|\bvoice\b|\bscrap|\bcar\b|\bmirror\b|\bphone\b/iu.test(
-        firstTwoSentences
-      ) && !LOCALIZED_CONCRETE_HOOK_PATTERN.test(firstTwoSentences)
-    ) {
+    const semanticHook = validateSemanticOpeningHook({
+      opening: firstTwoSentences,
+      entities: canonicalHookEntities(args.facts),
+    });
+    if (!semanticHook.valid && !LOCALIZED_CONCRETE_HOOK_PATTERN.test(firstTwoSentences)) {
       findings.push(
         finding({
           code: "SHORT_CONCRETE_HOOK_MISSING",

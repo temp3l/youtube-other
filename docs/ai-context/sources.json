@@ -74,6 +74,17 @@
       "symbols": ["## Architectural Decision", "## Task Registry"]
     },
     {
+      "output": "architecture/story-localization.md",
+      "source": "docs/architecture/story-localization.md",
+      "symbols": [
+        "## Ordered Stages",
+        "## Full Localization Fidelity",
+        "## Prompt And Event Budgets",
+        "## Semantic Validation And Repair",
+        "## Model Resolution And Failure Policy"
+      ]
+    },
+    {
       "output": "cli/commands.md",
       "source": "docs/refactor/01-target-architecture.md",
       "symbols": ["## CLI Contract"]
@@ -190,6 +201,26 @@
       "concept": "observability",
       "source": "packages/workflow-engine/src/attempt-observability.ts",
       "symbols": ["class AttemptObservabilityStore"]
+    },
+    {
+      "concept": "canonical-story-contract",
+      "source": "packages/story-localization/src/canonical-story-contract.ts",
+      "symbols": ["canonicalStoryContractSchema", "adaptLegacyStoryToCanonicalContract"]
+    },
+    {
+      "concept": "story-contract-preflight",
+      "source": "packages/story-localization/src/story-contract-preflight.ts",
+      "symbols": ["validateStoryContractPreflight", "validateCompiledPromptContract"]
+    },
+    {
+      "concept": "story-prompt-compiler",
+      "source": "packages/story-localization/src/story-prompt-compiler.ts",
+      "symbols": ["compileFullStoryPrompt", "compileShortStoryPrompt"]
+    },
+    {
+      "concept": "story-model-resolution",
+      "source": "packages/story-localization/src/model-resolution.ts",
+      "symbols": ["resolveModelResponse", "isRetryableProviderError"]
     }
   ],
   "exclusions": [

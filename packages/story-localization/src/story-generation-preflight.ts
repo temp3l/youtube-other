@@ -131,6 +131,11 @@ export interface StoryPreflightRequest {
     readonly storyIrHash?: string;
     readonly contractHash?: string;
     readonly contractBuildFingerprint?: string;
+    readonly canonicalStoryId?: string;
+    readonly canonicalRevision?: number;
+    readonly canonicalContentHash?: string;
+    readonly canonicalContractHash?: string;
+    readonly acceptanceStatus?: "accepted";
   };
   readonly costCeilingUsd?: number;
   readonly modelPricing?: ModelPricing;
@@ -537,6 +542,12 @@ export function runStoryGenerationPreflight(
       (request.parentArtifact.storyIrHash?.length ?? 0) < 64 ||
       (request.parentArtifact.contractHash?.length ?? 0) < 64 ||
       (request.parentArtifact.contractBuildFingerprint?.length ?? 0) < 64
+      || !request.parentArtifact.canonicalStoryId
+      || !Number.isInteger(request.parentArtifact.canonicalRevision)
+      || (request.parentArtifact.canonicalRevision ?? 0) <= 0
+      || (request.parentArtifact.canonicalContentHash?.length ?? 0) !== 64
+      || request.parentArtifact.canonicalContractHash !== request.parentArtifact.contractHash
+      || request.parentArtifact.acceptanceStatus !== "accepted"
     ) {
       failureCodes.push("INVALID_PARENT_FULL_STORY");
     }

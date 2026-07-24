@@ -63,6 +63,15 @@ const canonicalLineageSchema = z
   })
   .strict();
 
+export const canonicalStorySnapshotSchema = z.object({
+  canonicalStoryId: z.string().min(1),
+  canonicalRevision: z.number().int().positive(),
+  canonicalContentHash: z.string().regex(/^[a-f0-9]{64}$/u),
+  canonicalContractHash: z.string().regex(/^[a-f0-9]{64}$/u),
+  acceptanceStatus: z.literal("accepted"),
+}).strict();
+export type CanonicalStorySnapshot = z.infer<typeof canonicalStorySnapshotSchema>;
+
 const canonicalPromptSchema = z
   .object({
     compilerVersion: z.string().min(1),
@@ -111,6 +120,7 @@ export const canonicalEnglishFullArtifactSchema = z
     variant: z.literal("full"),
     sourceFile: z.string().min(1),
     lineage: canonicalLineageSchema,
+    snapshot: canonicalStorySnapshotSchema.optional(),
     prompt: canonicalPromptSchema,
     model: canonicalModelSchema,
     responseSchema: canonicalSchemaSchema,
@@ -173,6 +183,7 @@ export const canonicalEnglishFullManifestSchema = z
     rootCompatibilityMarkdownPath: z.string().min(1),
     rootCompatibilityMarkdownHash: z.string().min(1),
     lineage: canonicalLineageSchema,
+    snapshot: canonicalStorySnapshotSchema.optional(),
     prompt: canonicalPromptSchema,
     model: canonicalModelSchema,
     responseSchema: canonicalSchemaSchema,
@@ -283,6 +294,7 @@ export function buildCanonicalEnglishFullArtifact(args: {
   readonly outputTokens: number;
   readonly estimatedCostUsd: number | null;
   readonly status: CanonicalEnglishFullArtifact["status"];
+  readonly canonicalRevision?: number;
   readonly generatedAt?: string;
 }): CanonicalEnglishFullArtifact {
   const artifact: CanonicalEnglishFullArtifact = {
@@ -301,6 +313,17 @@ export function buildCanonicalEnglishFullArtifact(args: {
       contractBuildFingerprint: args.contractBuildFingerprint,
       characterRenameMapHash: args.characterRenameMap.hash,
     },
+    ...(args.status === "completed"
+      ? {
+          snapshot: {
+            canonicalStoryId: `${args.sourceStory.episodeNumber}:${args.sourceStory.slug}`,
+            canonicalRevision: args.canonicalRevision ?? 1,
+            canonicalContentHash: hashText(args.response.full.narrationParagraphs.join("\n\n")),
+            canonicalContractHash: args.contractHash,
+            acceptanceStatus: "accepted" as const,
+          },
+        }
+      : {}),
     prompt: args.prompt,
     model: args.model,
     responseSchema: args.responseSchema,
@@ -359,6 +382,7 @@ export function buildCanonicalEnglishFullManifest(args: {
   const canonicalArtifactHash = hashText(stableSerialize(args.artifact));
   const canonicalFingerprint = computeCanonicalEnglishFullFingerprint({
     lineage: args.artifact.lineage,
+    ...(args.artifact.snapshot ? { snapshot: args.artifact.snapshot } : {}),
     prompt: args.artifact.prompt,
     model: args.artifact.model,
     responseSchema: args.artifact.responseSchema,

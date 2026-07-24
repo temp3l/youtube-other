@@ -51,6 +51,25 @@ function languageSpecificUnicodeReminder(locale: string): string {
   return "Preserve all natural language-specific characters for the selected locale.";
 }
 
+const CONTEXTUAL_LOCALE_LINES = [
+  { line: /security chain|Türkette|chaînette de sécurité|cadena de seguridad|corrente de segurança/iu, story: /chain|Türkette|chaînette|cadena|corrente/iu },
+  { line: /motel|front desk|reception|Rezeption|réception|recepción|recepção|Room 4|Zimmer 4|chambre 4/iu, story: /motel|hotel|front desk|reception|room\s*\d|zimmer\s*\d|chambre\s*\d/iu },
+  { line: /mountain road|Passstraße|route de montagne|carretera de montaña|estrada de montanha/iu, story: /mountain|pass road|Passstraße|montagne|montaña|montanha/iu },
+  { line: /threshold|Schwelle|seuil|umbral|soleira|invitation|Einladung|invitación|convite/iu, story: /threshold|Schwelle|seuil|umbral|soleira|invitation|Einladung|invitación|convite/iu },
+] as const;
+
+export function filterLocaleInstructionsForStory(instructions: string, storyText: string): string {
+  return instructions
+    .split("\n")
+    .filter((line, index) => {
+      if (index === 0 && /^##\s+/u.test(line.trim())) return false;
+      const contextual = CONTEXTUAL_LOCALE_LINES.find((entry) => entry.line.test(line));
+      return !contextual || contextual.story.test(storyText);
+    })
+    .join("\n")
+    .trim();
+}
+
 function moduleDescriptor(
   descriptor: StoryPromptModuleDescriptor
 ): StoryPromptModuleDescriptor {
@@ -225,7 +244,14 @@ const modules = [
                 `Narrative culmination: ${context.contract.sourceTruth.narrativeCulmination}`,
                 `Ending consequence: ${context.contract.sourceTruth.endingConsequence}`,
                 `Central threat: ${context.mechanicsContract.centralThreat}`,
-                `Supernatural rule: ${context.mechanicsContract.supernaturalRule}`,
+                `Supernatural trigger: ${context.mechanicsContract.supernaturalMechanics.trigger}`,
+                `Activation effect: ${context.mechanicsContract.supernaturalMechanics.activationEffect}`,
+                `Interaction requirement: ${context.mechanicsContract.supernaturalMechanics.interactionRequirement}`,
+                `Supernatural cost: ${context.mechanicsContract.supernaturalMechanics.cost}`,
+                `Ending the interaction: ${context.mechanicsContract.supernaturalMechanics.endingInteraction}`,
+                `Rule limits: ${context.mechanicsContract.supernaturalMechanics.limits.join(" | ") || "none established"}`,
+                `Threat capabilities: ${context.mechanicsContract.supernaturalMechanics.threatCapabilities.join(" | ")}`,
+                `Threat migration: ${context.mechanicsContract.supernaturalMechanics.migration ?? "not established"}`,
                 `Earlier rule evidence: ${context.mechanicsContract.ruleEvidence.join(" | ")}`,
                 `Failed responses: ${context.mechanicsContract.failedResponses.map((entry) => `${entry.action} -> ${entry.failure} -> ${entry.informationRevealed}`).join(" | ")}`,
                 `Protagonist goal: ${context.mechanicsContract.protagonistGoal}`,
@@ -321,6 +347,14 @@ const modules = [
     applies: () => ({ kind: "include" }),
     render: (context) => {
       const settings = getLanguageRewriteSettings(context.selectedLocale);
+      const relevantInstructions = filterLocaleInstructionsForStory(
+        settings.instructions,
+        [
+          ...context.sourceStory.narrationParagraphs,
+          ...context.canonicalFacts.criticalObjects,
+          ...(context.canonicalFacts.concreteLocations ?? []),
+        ].join(" ")
+      );
       return {
         user: {
           heading: "Locale settings",
@@ -350,9 +384,7 @@ const modules = [
               text: languageSpecificUnicodeReminder(context.selectedLocale),
             },
           ],
-          body: [`## ${settings.heading}`, "", settings.instructions].join(
-            "\n"
-          ),
+          body: relevantInstructions,
         },
       };
     },
@@ -384,6 +416,10 @@ const modules = [
                 context.contract.generationBoundaries.dialogue
                   ? "Dialogue may appear only when grounded in the validated source."
                   : "Do not invent dialogue that the validated source does not support.",
+                context.languageProfile.code === "en"
+                  ? "Preserve the meaning and dramatic function of spoken dialogue."
+                  : "Localize ordinary spoken dialogue naturally into the target language. Quotation marks do not make speech immutable written text.",
+                "Keep physical inscriptions exact only when their language identity is story-relevant; localize device text unless the established setting requires otherwise; reuse one approved localized wording for every callback phrase.",
                 "Do not expand a spoken exchange into new plot information.",
               ])
             : renderRuleList([

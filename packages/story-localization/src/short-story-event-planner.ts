@@ -33,6 +33,8 @@ export interface ShortStoryEventPlanInput {
   readonly canonicalFacts: CanonicalStoryFacts;
   readonly sourceBeats: readonly ShortRewriteSourceBeat[];
   readonly outputConstraints: ShortStoryOutputConstraints;
+  readonly maxCanonicalEvents?: number;
+  readonly maxSceneBeats?: number;
 }
 
 export interface ShortStoryEventPlanResult {
@@ -44,6 +46,9 @@ export interface ShortStoryEventPlanResult {
     readonly issues: readonly string[];
   };
   readonly timingEstimate: NarrationTimingEstimate;
+  readonly expandedDependencyCount: number;
+  readonly maxCanonicalEvents: number;
+  readonly maxSceneBeats: number;
 }
 
 interface EventCandidate {
@@ -109,7 +114,27 @@ function splitClauses(text: string): readonly string[] {
       clauses.push(normalized);
       continue;
     }
-    clauses.push(...parts);
+    for (let partIndex = 0; partIndex < parts.length; partIndex += 1) {
+      const part = parts[partIndex];
+      if (!part) {
+        continue;
+      }
+      const wordCount = part.split(/\s+/u).filter(Boolean).length;
+      const beginsWithConnector = /^(?:and|but|so|that|which|who|where)\b/iu.test(part);
+      const previousIndex = clauses.length - 1;
+      if (beginsWithConnector && previousIndex >= 0) {
+        clauses[previousIndex] = normalize(`${clauses[previousIndex] ?? ""} ${part}`);
+        continue;
+      }
+      if (wordCount <= 3 && parts.length > 1) {
+        const nextPart = parts[partIndex + 1];
+        if (nextPart) {
+          parts[partIndex + 1] = normalize(`${part} ${nextPart}`);
+          continue;
+        }
+      }
+      clauses.push(part);
+    }
   }
   return clauses;
 }
@@ -302,7 +327,7 @@ function classifySentence(text: string, index: number, total: number): SentenceP
 
 function buildNarrativeRoles(profile: SentenceProfile, index: number, total: number): readonly ShortNarrativeRole[] {
   const roles = new Set<ShortNarrativeRole>();
-  if (index === 0 || profile.kind === "physical-event") {
+  if (index === 0) {
     roles.add("hook");
   }
   if (profile.kind === "observable-evidence" || profile.kind === "sensory-detail") {
@@ -381,6 +406,9 @@ function clampScore(value: number): 1 | 2 | 3 | 4 | 5 {
 
 function buildEvents(args: ShortStoryEventPlanInput): readonly StoryEvent[] {
   const candidates = collectCandidateTexts({
+    // Retention is the output of bounded event selection, not an input filter.
+    // Keeping the complete canonical pool prevents an early beat heuristic from
+    // deleting evidence that a coherent six-event chain still needs.
     sourceBeats: args.sourceBeats,
     storyIr: args.storyIr,
     canonicalFacts: args.canonicalFacts,
@@ -442,7 +470,6 @@ function buildCausalDependencies(args: {
     return [];
   }
   const prior = args.candidates.slice(0, args.index);
-  const lastPrior = prior.at(-1)?.id;
   if (args.roles.includes("reveal") || args.roles.includes("reversal")) {
     return prior
       .filter((candidate) =>
@@ -474,7 +501,9 @@ function buildCausalDependencies(args: {
       .map((candidate) => candidate.id);
   }
   if (args.roles.includes("escalation")) {
-    return lastPrior ? [lastPrior] : [];
+    // Chronological adjacency is not a causal dependency. Treating every
+    // preceding sentence as one created unbounded chains for late evidence.
+    return [];
   }
   if (args.profile.kind === "character-decision") {
     return prior
@@ -573,6 +602,23 @@ function narrativePriority(role: ShortNarrativeRole): readonly ShortNarrativeRol
   }
 }
 
+function eventSatisfiesRequiredRole(
+  event: StoryEvent,
+  requiredRole: "hook" | "evidence" | "reveal" | "sting"
+): boolean {
+  if (requiredRole === "reveal") {
+    return event.narrativeRoles.some((role) =>
+      ["reveal", "reversal", "consequence", "sting"].includes(role)
+    );
+  }
+  if (requiredRole === "sting") {
+    return event.narrativeRoles.some((role) =>
+      ["sting", "consequence"].includes(role)
+    );
+  }
+  return event.narrativeRoles.includes(requiredRole);
+}
+
 function eventRoleScore(event: StoryEvent, requestedRole: ShortNarrativeRole): number {
   const priorities = narrativePriority(requestedRole);
   const matchedPriority = priorities.findIndex((role) =>
@@ -587,10 +633,18 @@ function eventRoleScore(event: StoryEvent, requestedRole: ShortNarrativeRole): n
   );
 }
 
-function closeDependencies(
+export function resolveBoundedEventDependencyClosure(
   events: readonly StoryEvent[],
-  selectedIds: Set<string>
-): void {
+  rootIds: readonly string[],
+  maximumEvents: number
+): {
+  readonly ok: boolean;
+  readonly selectedEventIds: readonly string[];
+  readonly expandedDependencyCount: number;
+  readonly issues: readonly string[];
+} {
+  const selectedIds = new Set(rootIds);
+  const issues: string[] = [];
   let changed = true;
   while (changed) {
     changed = false;
@@ -602,11 +656,23 @@ function closeDependencies(
         if (selectedIds.has(dependencyId)) {
           continue;
         }
+        if (!events.some((candidate) => candidate.id === dependencyId)) {
+          issues.push(`Event ${event.id} references missing dependency ${dependencyId}.`);
+          continue;
+        }
         selectedIds.add(dependencyId);
         changed = true;
       }
     }
   }
+  const ordered = events.filter((event) => selectedIds.has(event.id)).sort((left, right) => left.chronologyIndex - right.chronologyIndex).map((event) => event.id);
+  if (ordered.length > maximumEvents) issues.push(`Dependency closure requires ${ordered.length} events but the configured maximum is ${maximumEvents}.`);
+  return {
+    ok: issues.length === 0,
+    selectedEventIds: ordered,
+    expandedDependencyCount: Math.max(0, ordered.length - new Set(rootIds).size),
+    issues,
+  };
 }
 
 function pickEventForRole(args: {
@@ -626,7 +692,11 @@ function pickEventForRole(args: {
   if (candidates.length === 0) {
     return undefined;
   }
-  return [...candidates].sort((left, right) => {
+  const exactCandidates = candidates.filter((event) =>
+    event.narrativeRoles.includes(args.requestedRole)
+  );
+  const rankedCandidates = exactCandidates.length > 0 ? exactCandidates : candidates;
+  return [...rankedCandidates].sort((left, right) => {
     const scoreDifference =
       eventRoleScore(right, args.requestedRole) -
       eventRoleScore(left, args.requestedRole);
@@ -651,10 +721,43 @@ function pickEventForRole(args: {
 function pickSelectedEventIds(args: {
   readonly events: readonly StoryEvent[];
   readonly targetDurationSeconds: 30 | 45 | 60 | 75;
-}): readonly string[] {
+  readonly maximumEvents: number;
+}): { readonly ids: readonly string[]; readonly expandedDependencyCount: number; readonly issues: readonly string[] } {
   const selectedIds = new Set<string>();
+  const issues: string[] = [];
+  const tryAdd = (id: string): boolean => {
+    const closure = resolveBoundedEventDependencyClosure(args.events, [...selectedIds, id], args.maximumEvents);
+    if (!closure.ok) return false;
+    selectedIds.clear();
+    for (const selectedId of closure.selectedEventIds) selectedIds.add(selectedId);
+    return true;
+  };
+  // Reserve the bounded causal spine before optional blueprint roles can
+  // consume the event budget. Reveal and sting may be the same terminal event.
+  for (const requiredRole of ["hook", "reveal", "sting", "evidence"] as const) {
+    const alreadyCovered = args.events.some(
+      (event) =>
+        selectedIds.has(event.id) && eventSatisfiesRequiredRole(event, requiredRole)
+    );
+    if (alreadyCovered) {
+      continue;
+    }
+    const requiredEvent = pickEventForRole({
+      events: args.events,
+      requestedRole: requiredRole,
+      usedIds: selectedIds,
+      minimumChronologyIndex: requiredRole === "hook" ? 0 : 1,
+    });
+    if (!requiredEvent) {
+      issues.push(`No canonical event can satisfy required role ${requiredRole}.`);
+      continue;
+    }
+    if (!tryAdd(requiredEvent.id)) {
+      issues.push(`Required ${requiredRole} event ${requiredEvent.id} cannot fit with its dependencies inside the ${args.maximumEvents}-event budget.`);
+    }
+  }
   let minimumChronologyIndex = 0;
-  for (const role of ROLE_BLUEPRINTS[args.targetDurationSeconds]) {
+  for (const role of ROLE_BLUEPRINTS[args.targetDurationSeconds].slice(0, args.maximumEvents)) {
     const candidate = pickEventForRole({
       events: args.events,
       requestedRole: role,
@@ -664,17 +767,15 @@ function pickSelectedEventIds(args: {
     if (!candidate) {
       continue;
     }
-    selectedIds.add(candidate.id);
-    minimumChronologyIndex = candidate.chronologyIndex;
+    if (tryAdd(candidate.id)) minimumChronologyIndex = candidate.chronologyIndex;
   }
   if (selectedIds.size === 0 && args.events[0]) {
-    selectedIds.add(args.events[0].id);
+    tryAdd(args.events[0].id);
   }
-  closeDependencies(args.events, selectedIds);
   for (const requiredRole of ["hook", "evidence", "reveal", "sting"] as const) {
     const alreadyCovered = args.events.some(
       (event) =>
-        selectedIds.has(event.id) && event.narrativeRoles.includes(requiredRole)
+        selectedIds.has(event.id) && eventSatisfiesRequiredRole(event, requiredRole)
     );
     if (alreadyCovered) {
       continue;
@@ -686,11 +787,12 @@ function pickSelectedEventIds(args: {
       minimumChronologyIndex: requiredRole === "hook" ? 0 : 1,
     });
     if (fallback) {
-      selectedIds.add(fallback.id);
-      closeDependencies(args.events, selectedIds);
+      if (!tryAdd(fallback.id)) issues.push(`Required ${requiredRole} event ${fallback.id} cannot fit with its dependencies inside the ${args.maximumEvents}-event budget.`);
+    } else {
+      issues.push(`No canonical event can satisfy required role ${requiredRole}.`);
     }
   }
-  const targetCount = ROLE_BLUEPRINTS[args.targetDurationSeconds].length;
+  const targetCount = Math.min(args.maximumEvents, ROLE_BLUEPRINTS[args.targetDurationSeconds].length);
   for (const event of args.events) {
     if (selectedIds.size >= targetCount) {
       break;
@@ -698,13 +800,10 @@ function pickSelectedEventIds(args: {
     if (event.chronologyIndex < minimumChronologyIndex && event.narrativeRoles.includes("hook")) {
       continue;
     }
-    selectedIds.add(event.id);
+    tryAdd(event.id);
   }
-  closeDependencies(args.events, selectedIds);
-  return args.events
-    .filter((event) => selectedIds.has(event.id))
-    .sort((left, right) => left.chronologyIndex - right.chronologyIndex)
-    .map((event) => event.id);
+  const closure = resolveBoundedEventDependencyClosure(args.events, [...selectedIds], args.maximumEvents);
+  return { ids: closure.selectedEventIds, expandedDependencyCount: closure.expandedDependencyCount, issues: [...issues, ...closure.issues] };
 }
 
 function buildBeatPlan(args: {
@@ -754,11 +853,11 @@ function resolveBeatRole(
   total: number,
   blueprintRole?: ShortNarrativeRole | undefined
 ): ShortNarrativeRole {
-  if (blueprintRole && event.narrativeRoles.includes(blueprintRole)) {
-    return blueprintRole;
-  }
   if (index === total - 1) {
     return determineEndingBeatRole(event);
+  }
+  if (blueprintRole && event.narrativeRoles.includes(blueprintRole)) {
+    return blueprintRole;
   }
   if (blueprintRole) {
     return blueprintRole;
@@ -1231,16 +1330,22 @@ function detectLocalePenalty(text: string, locale: string): number {
 export function buildShortStoryEventPlan(args: ShortStoryEventPlanInput): ShortStoryEventPlanResult {
   const events = buildEvents(args);
   const targetDurationSeconds = pickTargetDurationSeconds(args.outputConstraints);
-  const selectedEventIds = pickSelectedEventIds({
+  const maxCanonicalEvents = args.maxCanonicalEvents ?? (targetDurationSeconds <= 30 ? 4 : targetDurationSeconds <= 45 ? 5 : targetDurationSeconds <= 60 ? 6 : 8);
+  const maxSceneBeats = args.maxSceneBeats ?? maxCanonicalEvents;
+  const selection = pickSelectedEventIds({
     events,
     targetDurationSeconds,
+    maximumEvents: maxCanonicalEvents,
   });
+  const selectedEventIds = selection.ids;
   const beatPlan = buildBeatPlan({
     events,
     selectedEventIds,
     targetDurationSeconds,
   });
-  const causalValidation = causalValidate(events, selectedEventIds);
+  const causalBase = causalValidate(events, selectedEventIds);
+  const causalIssues = [...selection.issues, ...causalBase.issues];
+  const causalValidation = { status: causalIssues.length === 0 ? "passed" as const : "failed" as const, issues: causalIssues };
   const selectedEvents = selectedEventIds
     .map((eventId) => events.find((event) => event.id === eventId))
     .filter((event): event is StoryEvent => Boolean(event));
@@ -1261,6 +1366,9 @@ export function buildShortStoryEventPlan(args: ShortStoryEventPlanInput): ShortS
     beatPlan,
     causalValidation,
     timingEstimate,
+    expandedDependencyCount: selection.expandedDependencyCount,
+    maxCanonicalEvents,
+    maxSceneBeats,
   };
 }
 

@@ -1,0 +1,25 @@
+{
+  "canonicalStoryId": "056:black-phone",
+  "canonicalRevision": 1,
+  "canonicalContentHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "canonicalContractHash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "acceptedEventIds": ["storm", "ring", "answer", "memory-cost", "refusal-test", "hang-up", "migration"],
+  "localizedEventIds": ["storm", "ring", "answer", "memory-cost", "refusal-test", "hang-up", "migration"],
+  "mechanics": {
+    "trigger": "A storm passes over the roadside booth.",
+    "activationEffect": "The disconnected black phone rings.",
+    "interactionRequirement": "Answering or responding lets the voice disclose facts about the dead.",
+    "cost": "Every answered interaction removes one memory of the dead person.",
+    "endingInteraction": "Hanging up stops the immediate loss but restores nothing.",
+    "exceptions": ["The phone stays silent in clear weather."],
+    "limits": ["The interaction lasts only while the storm remains."],
+    "threatCapabilities": ["The threat imitates voices using surrendered memories."],
+    "migration": "After refusal, the threat rings through Selma's own phone.",
+    "climaxUse": "Selma asks a question her real brother would refuse, recognizes the immediate answer, and hangs up."
+  },
+  "emotionalAttachment": "Selma's final intact memory of her brother",
+  "finalDecision": "Selma sacrifices the complete truth to preserve her final memory.",
+  "englishDialogue": "Please answer.",
+  "germanDialogue": "Bitte geh ran.",
+  "immutableFinalLine": "The screen displayed Selma's own number."
+}

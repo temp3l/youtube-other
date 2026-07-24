@@ -566,7 +566,7 @@ describe("generated story validator", () => {
     expect(result.messages).not.toContain("Character names are missing.");
   });
 
-  it("allows required quoted English dialogue inside German narration", () => {
+  it("rejects ordinary English spoken dialogue inside German narration", () => {
     const result = validateFullNarrationArtifact({
       language: "de",
       profile: getLanguageProfile("de"),
@@ -577,7 +577,7 @@ describe("generated story validator", () => {
         targetNarrationWpm: 175,
       },
       narrationParagraphs: [
-        'Petra Vale betrat den Bus und hörte die Warnung: “Do not ask the last passenger where he is going.” Danach untersuchte sie den Spiegel, befolgte die Regel und öffnete schließlich die Tür.',
+        "Petra Vale betrat den Bus und hörte die Warnung: „Do not ask the last passenger where he is going.“ Danach untersuchte sie den Spiegel, befolgte die Regel und öffnete schließlich die Tür.",
       ],
       preservationChecklist: {
         primaryRevealPreserved: true,
@@ -585,7 +585,7 @@ describe("generated story validator", () => {
       },
     });
 
-    expect(result.messages).not.toContain(
+    expect(result.messages).toContain(
       "Localized full source-language leakage."
     );
   });

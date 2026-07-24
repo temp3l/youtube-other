@@ -13,6 +13,7 @@ Generated deterministically from `sources.json`. Edit the mapped sources, not ge
 - [06-testing-and-verification.md](06-testing-and-verification.md)
 - [07-known-risks-and-open-tasks.md](07-known-risks-and-open-tasks.md)
 - [08-codex-prompting-rules.md](08-codex-prompting-rules.md)
+- [architecture/story-localization.md](architecture/story-localization.md)
 - [architecture/target-architecture.md](architecture/target-architecture.md)
 - [cli/commands.md](cli/commands.md)
 - [darktruth/profile.md](darktruth/profile.md)

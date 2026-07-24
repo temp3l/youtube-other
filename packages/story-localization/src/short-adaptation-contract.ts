@@ -88,6 +88,12 @@ function isMeaningfulOrphanedReference(reference: string): boolean {
     "him",
     "himself",
     "his",
+    "room",
+    "rooms",
+    "house",
+    "hallway",
+    "inside",
+    "outside",
   ]);
   const tokens = tokenize(reference);
   return tokens.some((token) => !genericTokens.has(token));
@@ -585,6 +591,8 @@ export function buildShortSourceExtraction(args: {
     }),
     sourceBeats: initiallyRetainedBeats,
     outputConstraints: args.outputConstraints,
+    maxCanonicalEvents: maximumBeats,
+    maxSceneBeats: maximumBeats,
   });
   const eventSelectedBeatIds = [
     ...new Set(

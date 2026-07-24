@@ -9,6 +9,25 @@ import {
 import { buildConfigurationHash } from "./story-localization-cache.js";
 import { type StoryRequestFingerprintInput } from "./story-request-telemetry.js";
 
+function acceptedParent(fingerprint = "c".repeat(64)) {
+  return {
+    kind: "canonical-english-full" as const,
+    fingerprint,
+    sourceHash: "a".repeat(64),
+    language: "en" as const,
+    locale: "en-US" as const,
+    variant: "full" as const,
+    storyIrHash: "d".repeat(64),
+    contractHash: "e".repeat(64),
+    contractBuildFingerprint: "f".repeat(64),
+    canonicalStoryId: "001:episode-one",
+    canonicalRevision: 1,
+    canonicalContentHash: "8".repeat(64),
+    canonicalContractHash: "e".repeat(64),
+    acceptanceStatus: "accepted" as const,
+  };
+}
+
 function baseRequest(
   overrides: Partial<StoryPreflightRequest> = {}
 ): StoryPreflightRequest {
@@ -243,17 +262,7 @@ describe("story generation preflight", () => {
                 : language === "pt"
                   ? "pt-BR"
                   : "fr-FR",
-          parentArtifact: {
-            kind: "canonical-english-full",
-            fingerprint: "c".repeat(64),
-            sourceHash: "a".repeat(64),
-            language: "en",
-            locale: "en-US",
-            variant: "full",
-            storyIrHash: "d".repeat(64),
-            contractHash: "e".repeat(64),
-            contractBuildFingerprint: "f".repeat(64),
-          },
+          parentArtifact: acceptedParent(),
         })
       );
       expect(result.status).toBe("allowed");
@@ -362,17 +371,7 @@ describe("story generation preflight", () => {
         variant: "localized-full",
         language: "es",
         locale: "es-419",
-        parentArtifact: {
-          kind: "canonical-english-full",
-          fingerprint: "c".repeat(64),
-          sourceHash: "a".repeat(64),
-          language: "en",
-          locale: "en-US",
-          variant: "full",
-          storyIrHash: "d".repeat(64),
-          contractHash: "e".repeat(64),
-          contractBuildFingerprint: "f".repeat(64),
-        },
+        parentArtifact: acceptedParent(),
       })
     );
     const changedParent = runStoryGenerationPreflight(
@@ -381,17 +380,7 @@ describe("story generation preflight", () => {
         variant: "localized-full",
         language: "es",
         locale: "es-419",
-        parentArtifact: {
-          kind: "canonical-english-full",
-          fingerprint: "9".repeat(64),
-          sourceHash: "a".repeat(64),
-          language: "en",
-          locale: "en-US",
-          variant: "full",
-          storyIrHash: "d".repeat(64),
-          contractHash: "e".repeat(64),
-          contractBuildFingerprint: "f".repeat(64),
-        },
+        parentArtifact: acceptedParent("9".repeat(64)),
       })
     );
     const changedPrompt = runStoryGenerationPreflight(

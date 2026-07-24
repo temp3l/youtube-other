@@ -158,6 +158,38 @@ describe("story quality gate", () => {
     expect(codes).not.toContain("SHORT_CONCRETE_HOOK_MISSING");
   });
 
+  it("recognizes phone-booth actions and objects as concrete short details", () => {
+    const text = [
+      "The black phone inside the abandoned roadside booth began ringing as lightning split the sky.",
+      "Its severed cable dripped rainwater beneath the shelf.",
+      "Selma Larken stopped beside her parked car, watched the receiver hammer its cradle, and answered.",
+      "Each storm call revealed a fact and erased one memory.",
+      "Selma taped down the receiver, but it bucked while her recorder said, ‘Selma. Please answer.’",
+      "Bells erupted from the phone, recorder, and shelf as the glass shook.",
+      "Selma slammed down the receiver, preserving her final memory instead of learning the driver's name.",
+      "Three nights later, her mobile showed her own photograph and number.",
+    ].join(" ");
+    const result = runStoryQualityGate({
+      artifactKind: "short",
+      language: "en",
+      text,
+      facts: {
+        ...episode034Facts,
+        characters: [{ name: "Selma Larken", role: "protagonist" }],
+        protagonistNames: ["Selma Larken"],
+        criticalObjects: ["phone", "receiver", "recorder"],
+        keyObjects: ["phone", "receiver", "recorder"],
+        locationAnchors: ["roadside booth"],
+        concreteLocations: ["roadside booth"],
+      },
+      budget: { artifactKind: "short", language: "en", model: "fixture" },
+    });
+
+    expect(result.findings.map((entry) => entry.code)).not.toContain(
+      "CONCRETE_DETAIL_DENSITY_LOW"
+    );
+  });
+
   it("extracts concrete Episode 027 facts instead of title or scaffold text", () => {
     const facts = extractCanonicalStoryFacts(episode027Parsed());
     expect(facts.protagonistNames).toContain("Noah Brooks");

@@ -8,6 +8,7 @@ import { adaptCanonicalStoryFactsToStoryIR } from "./story-artifact-model.js";
 import { getLanguageProfile } from "./language-profiles.js";
 import { compileShortStoryPrompt } from "./story-prompt-compiler.js";
 import { DEFAULT_SHORT_DURATION_WINDOW } from "./narration-constraints.js";
+import { countSpokenWords } from "@mediaforge/shared";
 import { insertSectionBeforeMarker } from "./prompt-template-loader.js";
 
 function resolvePromptContext(context: ShortRewritePromptContext) {
@@ -184,11 +185,36 @@ export function buildShortRewriteRepairPrompt(args: {
   readonly validationErrors: readonly string[];
 }): { readonly system: string; readonly user: string } {
   const basePrompt = buildShortRewritePrompt(args.context);
+  const resolved = resolvePromptContext(args.context);
+  const serialized = JSON.stringify(args.invalidResult);
+  const narration = typeof args.invalidResult === "string"
+    ? args.invalidResult
+    : args.invalidResult && typeof args.invalidResult === "object" && "narration" in args.invalidResult && typeof (args.invalidResult as { readonly narration?: unknown }).narration === "string"
+      ? (args.invalidResult as { readonly narration: string }).narration
+      : serialized;
+  const currentWordCount = countSpokenWords(narration);
+  const target = resolved.outputConstraints.targetWordRange;
+  const wordInstruction = currentWordCount < target.min
+    ? `Add between ${target.min - currentWordCount} and ${target.max - currentWordCount} words.`
+    : currentWordCount > target.max
+      ? `Remove between ${currentWordCount - target.max} and ${currentWordCount - target.min} words.`
+      : "Do not change the word count except where the listed defect requires it.";
+  const immutableOpening = resolved.canonicalFacts.openingImpossibleDetail ?? resolved.sourceStory.narrationParagraphs[0] ?? "";
+  const immutableFinalLine = resolved.canonicalFacts.requiredFinalLine ?? resolved.adaptationContract.finalConsequenceOrSting;
   const repairSection = [
     "The previous result was invalid.",
     "Fix only the problems described below and return the complete JSON again.",
     "Reuse the supplied fictional character map exactly. Do not invent new names.",
     "Preserve approved story facts, concrete objects, locations, supernatural rule, primary reveal, final consequence, and emotional cost.",
+    `Current word count: ${currentWordCount}.`,
+    `Target minimum: ${target.min}.`,
+    `Target maximum: ${target.max}.`,
+    wordInstruction,
+    `Missing canonical event IDs: ${resolved.sourceExtraction.selectedEventIds?.filter((id) => args.validationErrors.some((error) => error.includes(id))).join(", ") || "none explicitly identified"}.`,
+    `Exact immutable opening when present: ${immutableOpening}`,
+    `Exact immutable final line (preserve byte-for-byte and place last): ${immutableFinalLine}`,
+    "Sections that may be modified: only passages implicated by the listed validation errors.",
+    "Sections that must not be modified: established facts, selected event order, mechanics, names, relationships, exact opening, and exact final line.",
     "If the issue is outline prose, convert only the broken section into narrated scene action.",
     "If the issue is missing emotional cost, add the protagonist attachment and costly final refusal, loss, destruction, abandonment, betrayal, or acceptance without changing the plot.",
     "",

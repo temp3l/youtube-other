@@ -1,7 +1,13 @@
 import { normalizeWhitespace, splitIntoSentences } from "@mediaforge/shared";
-import { type CanonicalStoryFacts, type ParsedSourceStory } from "./story-localization.types.js";
+import {
+  type CanonicalFactDiagnostic,
+  type CanonicalStoryFacts,
+  type ParsedSourceStory,
+} from "./story-localization.types.js";
+import { type StoryIR } from "./story-artifact-model.js";
+import { type StoryMechanicsContract } from "./story-mechanics.js";
 
-export const CANONICAL_FACTS_EXTRACTOR_VERSION = "canonical-facts-extractor-v6";
+export const CANONICAL_FACTS_EXTRACTOR_VERSION = "canonical-facts-extractor-v7";
 export const CANONICAL_FACTS_SCHEMA_VERSION = "canonical-story-facts-v3";
 
 const SCAFFOLD_PATTERNS = [
@@ -37,6 +43,18 @@ const NON_NAME_LEADING_WORDS = new Set([
 
 function unique(values: readonly string[]): string[] {
   return [...new Set(values.map((entry) => normalizeWhitespace(entry)).filter(Boolean))];
+}
+
+const COMPILER_METADATA_PATTERNS = [
+  /<!--[^]*?-->/gu,
+  /\b(?:source|content|contract|prompt)[-_ ]?(?:sha256|hash|fingerprint)\s*[:=]\s*[a-f0-9]{16,}\b/giu,
+  /\bGENERATED[-_ ](?:SOURCE|BY|MARKER)\b[^\n]*/giu,
+] as const;
+
+export function stripCanonicalCompilerMetadata(value: string): string {
+  return normalizeWhitespace(
+    COMPILER_METADATA_PATTERNS.reduce((current, pattern) => current.replace(pattern, " "), value)
+  );
 }
 
 function firstSentence(text: string): string {
@@ -120,6 +138,17 @@ function extractLocationAnchors(text: string): string[] {
   if (/\bunderground level\b/u.test(lower)) {
     anchors.push("underground level");
   }
+  for (const [pattern, value] of [
+    [/\b(?:roadside|emergency|telephone|phone) booth\b/u, "roadside booth"],
+    [/\blake\b|\breservoir\b/u, "lake"],
+    [/\bshoreline\b|\blakeshore\b|\bwater's edge\b/u, "shoreline"],
+    [/\bapartment\b|\bflat\b/u, "apartment"],
+    [/\b(?:highway|road|roadside|street)\b/u, "road"],
+    [/\b(?:bed)?room\b/u, "room"],
+    [/\b(?:car|vehicle|truck|van)\b/u, "vehicle"],
+  ] as const) {
+    if (pattern.test(lower)) anchors.push(value);
+  }
   return unique(anchors);
 }
 
@@ -162,6 +191,39 @@ function extractKeyRules(text: string): string[] {
   );
 }
 
+function inferEmotionalAttachment(text: string, protagonist: string | undefined): string {
+  const sentence = splitIntoSentences(text).find((entry) =>
+    /\b(?:brother|sister|mother|father|child|friend|partner|promise|memory|guilt|truth|duty|identity|grief|loved|wanted|needed)\b/iu.test(entry)
+  );
+  return sentence
+    ? stripCanonicalCompilerMetadata(sentence)
+    : `${protagonist ?? "The protagonist"} has an established personal reason to confront the central threat.`;
+}
+
+function inferEmotionalCost(text: string, protagonist: string | undefined): string {
+  const sentence = splitIntoSentences(text).find((entry) =>
+    /\b(?:sacrific|lose|lost|forget|refus|abandon|destroy|betray|give up|cost)\w*\b/iu.test(entry)
+  );
+  return sentence
+    ? stripCanonicalCompilerMetadata(sentence)
+    : `${protagonist ?? "The protagonist"} must sacrifice an established attachment to survive the final interaction.`;
+}
+
+function inferSupernaturalRule(text: string): string {
+  return stripCanonicalCompilerMetadata(
+    splitIntoSentences(text).find((sentence) =>
+      /\b(?:when|whenever|each time|only|must|never|answer|respond|listen|ring|cost|trigger)\b/iu.test(sentence)
+    ) ?? ""
+  );
+}
+
+function inferClimaxAction(text: string): string {
+  const sentences = splitIntoSentences(text).map(stripCanonicalCompilerMetadata).filter(Boolean);
+  return [...sentences].reverse().find((sentence, index) =>
+    index > 0 && /\b(?:chose|decided|refused|hung up|closed|destroyed|left|answered|opened|recorded|confronted|looked)\b/iu.test(sentence)
+  ) ?? sentences.at(-2) ?? sentences.at(-1) ?? "";
+}
+
 function extractKeyObjects(text: string, tags: readonly string[]): string[] {
   const lower = text.toLowerCase();
   const objects = [...tags];
@@ -174,6 +236,14 @@ function extractKeyObjects(text: string, tags: readonly string[]): string[] {
     [/\bdashcam\b|\bdash cam\b/u, "dashcam"],
     [/\bevidence bag\b/u, "evidence bag"],
     [/\bbedroom door\b/u, "bedroom door"],
+    [/\bcamera\b/u, "camera"],
+    [/\brecorder\b|\brecording device\b/u, "recorder"],
+    [/\bnotebook\b/u, "notebook"],
+    [/\bcar\b|\bvehicle\b/u, "car"],
+    [/\blake\b/u, "lake"],
+    [/\bwater\b/u, "water"],
+    [/\bphotograph\b|\bphoto\b/u, "photograph"],
+    [/\bscreen\b|\bdisplay\b/u, "screen"],
   ] as const) {
     if (pattern.test(lower)) {
       objects.push(value);
@@ -244,7 +314,8 @@ function extractRequiredFinalReveal(text: string): string {
   const reveal =
     [...sentences]
       .reverse()
-      .find((sentence) =>
+      .find((sentence, reverseIndex) =>
+        reverseIndex < Math.max(1, Math.ceil(sentences.length * 0.35)) &&
         /\breveal(?:ed)?\b|\bturned out\b|\bwas actually\b|\bunderground level\b/iu.test(
           sentence
         )
@@ -378,7 +449,17 @@ export function validateCanonicalStoryFacts(facts: CanonicalStoryFacts): readonl
 }
 
 export function extractCanonicalStoryFacts(parsed: ParsedSourceStory): CanonicalStoryFacts {
-  const narration = parsed.narrationParagraphs.join(" ");
+  return extractCanonicalStoryFactsWithDiagnostics({ parsed }).facts;
+}
+
+export function extractCanonicalStoryFactsWithDiagnostics(args: {
+  readonly parsed: ParsedSourceStory;
+  readonly storyIr?: StoryIR;
+  readonly mechanicsContract?: StoryMechanicsContract;
+}): { readonly facts: CanonicalStoryFacts; readonly diagnostics: readonly CanonicalFactDiagnostic[] } {
+  const parsed = args.parsed;
+  const cleanParagraphs = parsed.narrationParagraphs.map(stripCanonicalCompilerMetadata).filter(Boolean);
+  const narration = cleanParagraphs.join(" ");
   const names = extractCandidateNames(narration);
   const messages = extractMessages(narration);
   const locationAnchors = extractLocationAnchors(narration);
@@ -390,6 +471,15 @@ export function extractCanonicalStoryFacts(parsed: ParsedSourceStory): Canonical
   const concreteLocations = isHookStory
     ? unique([...locationAnchors, "parked car"])
     : locationAnchors;
+  const openingImpossibleDetail = firstSentence(cleanParagraphs[0] ?? narration);
+  const structuredRule = args.mechanicsContract?.supernaturalMechanics;
+  const inferredAttachment = inferEmotionalAttachment(narration, names[0]);
+  const inferredEmotionalCost = inferEmotionalCost(narration, names[0]);
+  const inferredRule = inferSupernaturalRule(narration);
+  const diagnostics: CanonicalFactDiagnostic[] = [];
+  const record = (fact: string, source: CanonicalFactDiagnostic["source"], detail: string): void => {
+    if (fact.trim()) diagnostics.push({ fact, source, detail });
+  };
   const facts: CanonicalStoryFacts = {
     episodeNumber: parsed.episodeNumber,
     primaryTitle: parsed.title,
@@ -404,10 +494,16 @@ export function extractCanonicalStoryFacts(parsed: ParsedSourceStory): Canonical
             : "important figure",
     })),
     setting: summarizeSetting(narration, parsed, locationAnchors),
-    criticalObjects: keyObjects.slice(0, 10),
-    criticalEvents: pickImportantSentences(narration, 5),
+    criticalObjects: unique([
+      ...(args.storyIr?.criticalObjects.map((object) => stripCanonicalCompilerMetadata(object.name)) ?? []),
+      ...keyObjects,
+    ]).slice(0, 12),
+    criticalEvents: unique([
+      ...(args.storyIr?.chronology.map(stripCanonicalCompilerMetadata) ?? []),
+      ...pickImportantSentences(narration, 8),
+    ]),
     writtenMessages: messages,
-    threat: summarizeThreat(narration, parsed, names),
+    threat: stripCanonicalCompilerMetadata(args.mechanicsContract?.centralThreat ?? args.storyIr?.centralThreat.description ?? summarizeThreat(narration, parsed, names)),
     primaryReveal: messages[0] ?? requiredFinalReveal,
     finalConsequence: lastSentence(narration),
     protagonistNames: unique(names).slice(0, 2),
@@ -415,6 +511,17 @@ export function extractCanonicalStoryFacts(parsed: ParsedSourceStory): Canonical
     concreteLocations,
     threatMotifs,
     keyObjects,
+    keyRules,
+    supernaturalRule: inferredRule,
+    protagonistAttachment: inferredAttachment,
+    emotionalCost: inferredEmotionalCost,
+    finalDecision: stripCanonicalCompilerMetadata(args.storyIr?.climax ?? inferClimaxAction(narration)),
+    forbiddenInventions: extractForbiddenInventions(narration),
+    requiredFinalReveal,
+    requiredFinalLine: lastSentence(narration),
+    openingImpossibleDetail,
+    escalationEvidence: unique(args.mechanicsContract?.ruleEvidence ?? pickImportantSentences(narration, 5).slice(1)),
+    climax: stripCanonicalCompilerMetadata(args.mechanicsContract?.climaxAction ?? args.storyIr?.climax ?? ""),
     ...(isHookStory
       ? {
           threatMechanism:
@@ -437,13 +544,31 @@ export function extractCanonicalStoryFacts(parsed: ParsedSourceStory): Canonical
             "Noah chooses not to unlock the door and refuses the familiar voice outside.",
         }
       : {}),
-    keyRules,
-    forbiddenInventions: extractForbiddenInventions(narration),
-    requiredFinalReveal,
-    requiredFinalLine: lastSentence(narration),
+    ...(structuredRule
+      ? {
+          supernaturalRule: [
+            `Trigger: ${structuredRule.trigger}`,
+            `Activation: ${structuredRule.activationEffect}`,
+            `Interaction: ${structuredRule.interactionRequirement}`,
+            `Cost: ${structuredRule.cost}`,
+            `Ending: ${structuredRule.endingInteraction}`,
+          ].join("; "),
+          emotionalCost: structuredRule.cost,
+          finalDecision: structuredRule.climaxUse,
+        }
+      : {}),
   };
   const unresolvedQuestion = splitIntoSentences(narration).find((sentence) => /\?$/u.test(sentence));
-  return normalizeCanonicalStoryFacts(
+  const normalized = normalizeCanonicalStoryFacts(
     unresolvedQuestion ? { ...facts, unresolvedQuestion } : facts
   );
+  record(normalized.threat, args.mechanicsContract || args.storyIr ? "structured-contract" : "legacy-inference", "central threat");
+  record(normalized.openingImpossibleDetail ?? "", "canonical-scene", "first canonical scene, never an ending candidate");
+  for (const location of normalized.concreteLocations ?? []) record(location, args.storyIr ? "structured-contract" : "fallback-extraction", "location");
+  for (const object of normalized.keyObjects ?? []) record(object, args.storyIr ? "structured-contract" : "fallback-extraction", "critical object");
+  record(normalized.protagonistAttachment ?? "", structuredRule ? "structured-contract" : "legacy-inference", "emotional attachment");
+  record(normalized.emotionalCost ?? "", structuredRule ? "structured-contract" : "legacy-inference", "observable emotional cost");
+  record(normalized.requiredFinalReveal ?? "", "canonical-scene", "ending-region reveal extraction");
+  const withDiagnostics = { ...normalized, factDiagnostics: diagnostics };
+  return { facts: withDiagnostics, diagnostics };
 }

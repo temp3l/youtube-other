@@ -7,11 +7,24 @@ import {
 } from "./story-localization.types.js";
 import { type StoryIR } from "./story-artifact-model.js";
 
-export const STORY_MECHANICS_CONTRACT_VERSION = "story-mechanics-contract-v1";
+export const STORY_MECHANICS_CONTRACT_VERSION = "story-mechanics-contract-v2";
 export const CANONICAL_STORY_BEAT_VERSION = "canonical-story-beats-v1";
 
 export const storyMechanicsContractSchema = z.object({
   centralThreat: z.string().trim().min(1),
+  supernaturalMechanics: z.object({
+    trigger: z.string().trim().min(1),
+    activationEffect: z.string().trim().min(1),
+    interactionRequirement: z.string().trim().min(1),
+    cost: z.string().trim().min(1),
+    endingInteraction: z.string().trim().min(1),
+    exceptions: z.array(z.string().trim().min(1)),
+    limits: z.array(z.string().trim().min(1)),
+    threatCapabilities: z.array(z.string().trim().min(1)),
+    migration: z.string().trim().min(1).optional(),
+    climaxUse: z.string().trim().min(1),
+  }).strict(),
+  /** @deprecated Compatibility text. New compilers consume supernaturalMechanics. */
   supernaturalRule: z.string().trim().min(1),
   ruleEvidence: z.array(z.string().trim().min(1)).min(2),
   prohibitedActions: z.array(z.string().trim().min(1)),
@@ -28,6 +41,40 @@ export const storyMechanicsContractSchema = z.object({
   finalConsequence: z.string().trim().min(1),
 }).strict();
 export type StoryMechanicsContract = z.infer<typeof storyMechanicsContractSchema>;
+
+function sentenceMatching(texts: readonly string[], pattern: RegExp): string | undefined {
+  return texts.find((text) => pattern.test(text));
+}
+
+function buildStructuredMechanics(args: {
+  readonly rule: string;
+  readonly evidence: readonly string[];
+  readonly climaxAction: string;
+  readonly emotionalCost: string;
+  readonly finalConsequence: string;
+}): StoryMechanicsContract["supernaturalMechanics"] {
+  const corpus = [args.rule, ...args.evidence, args.climaxAction, args.finalConsequence];
+  const trigger = sentenceMatching(corpus, /\b(?:storm|thunder|ring|answer|listen|respond|touch|look|open|enter|camera|record)\w*\b/iu) ?? args.rule;
+  const activationEffect = sentenceMatching(corpus, /\b(?:activate|begin|ring|appear|show|speak|voice|display|record)\w*\b/iu) ?? args.rule;
+  const interactionRequirement = sentenceMatching(corpus, /\b(?:answer|respond|listen|speak|look|open|enter|touch|remain)\w*\b/iu) ?? args.rule;
+  const endingInteraction = sentenceMatching(corpus, /\b(?:hang up|end(?:ed|ing)? the (?:call|interaction)|close|leave|stop(?:ped)? listening|refus)\w*\b/iu) ?? `The interaction ends through the established climax action: ${args.climaxAction}`;
+  const migration = sentenceMatching(corpus, /\b(?:another|other|own|different|next)\s+(?:phone|device|screen|camera|recorder)\b/iu);
+  const exceptions = unique(corpus.filter((entry) => /\b(?:unless|except|only when|only while|cannot|does not|did not)\b/iu.test(entry)));
+  const limits = unique(corpus.filter((entry) => /\b(?:only|until|while|limit|cannot|does not|did not|stops?)\b/iu.test(entry)));
+  const threatCapabilities = unique(corpus.filter((entry) => /\b(?:imitat|migrat|follow|copy|erase|remove|appear|record|display|speak|ring)\w*\b/iu.test(entry)));
+  return {
+    trigger,
+    activationEffect,
+    interactionRequirement,
+    cost: args.emotionalCost,
+    endingInteraction,
+    exceptions,
+    limits,
+    threatCapabilities: threatCapabilities.length > 0 ? threatCapabilities : [args.rule],
+    ...(migration ? { migration } : {}),
+    climaxUse: args.climaxAction,
+  };
+}
 
 export const canonicalStoryBeatTypeSchema = z.enum([
   "HOOK",
@@ -125,9 +172,8 @@ export function buildStoryMechanicsContract(args: {
     .filter((event) => /\b(?:tried|attempted|called|locked|sealed|ran|escaped|failed|could not|did not)\b/iu.test(event));
   const fallbackFailure = args.facts.criticalEvents[1] ?? args.storyIr.chronology[1] ?? args.storyIr.climax;
   const protagonistGoal = firstNonEmpty([
-    args.facts.protagonistAttachment,
-    args.facts.primaryReveal,
     `Survive ${args.facts.threat}`,
+    args.facts.primaryReveal,
   ]);
   const emotionalCost = firstNonEmpty([
     args.facts.emotionalCost,
@@ -140,18 +186,27 @@ export function buildStoryMechanicsContract(args: {
     args.storyIr.climax,
     args.facts.primaryReveal,
   ]);
+  const emotionalStake = firstNonEmpty([args.facts.protagonistAttachment, args.facts.primaryReveal, args.facts.finalConsequence, args.storyIr.endingConsequence]);
+  const finalConsequence = args.facts.finalConsequence || args.storyIr.endingConsequence;
   return storyMechanicsContractSchema.parse({
     centralThreat: args.facts.threatMechanism ?? args.facts.threat,
     supernaturalRule: rule,
+    supernaturalMechanics: buildStructuredMechanics({
+      rule,
+      evidence,
+      climaxAction,
+      emotionalCost,
+      finalConsequence,
+    }),
     ruleEvidence: evidence.length >= 2 ? evidence : [evidence[0] ?? rule, args.storyIr.climax],
     prohibitedActions: unique(args.facts.keyRules ?? []).filter((entry) => /\b(?:never|must not|do not|don't|forbidden)\b/iu.test(entry)),
     protagonistGoal,
-    emotionalStake: firstNonEmpty([args.facts.protagonistAttachment, args.facts.primaryReveal, args.facts.finalConsequence, args.storyIr.endingConsequence]),
+    emotionalStake,
     emotionalCost,
     failedResponses: (failedEvents.length > 0 ? failedEvents : [fallbackFailure]).slice(0, 3).map((event) => failedResponseFromEvent(event, rule)),
     climaxAction,
     climaxRuleConnection: `${climaxAction} must directly use or subvert this established rule: ${rule}`,
-    finalConsequence: args.facts.finalConsequence || args.storyIr.endingConsequence,
+    finalConsequence,
   });
 }
 
