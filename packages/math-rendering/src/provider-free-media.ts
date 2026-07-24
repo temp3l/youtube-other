@@ -69,7 +69,7 @@ type MathVisualPlan = z.infer<typeof mathVisualPlanSchema>;
 export function createMathCaption(text: string): {
   text: string;
   lines: string[];
-  fontSizePx: 44;
+  fontSizePx: 48;
 } {
   const normalized = text.trim().replace(/\s+/gu, " ");
   if (normalized.length === 0 || normalized.length > 180)
@@ -93,7 +93,7 @@ export function createMathCaption(text: string): {
   if (current) lines.push(current);
   if (lines.length === 0 || lines.length > 3)
     throw new Error("Caption overflow exceeds three readable lines.");
-  return { text: normalized, lines, fontSizePx: 44 };
+  return { text: normalized, lines, fontSizePx: 48 };
 }
 
 export async function assertSafeMediaOutputDirectory(
@@ -283,6 +283,11 @@ function componentFactBindings(
           semantic: scalar(component.source.expression),
         },
       ];
+    case "place-value-activity":
+      return component.values.map((value) => ({
+        factId: value.factId,
+        semantic: scalar(value.expression),
+      }));
     case "number-line-focus":
       return [
         {
@@ -432,10 +437,23 @@ export function assertProviderFreeFactBindings(raw: {
       MathVisualPlan["scenes"][number]["component"],
       readonly SemanticMathComponent["kind"][]
     > = {
-      formula: ["formula", "fact-stack", "lesson-board"],
-      "place-value-chart": ["table", "place-value-chart"],
+      formula: [
+        "formula",
+        "fact-stack",
+        "lesson-board",
+        "place-value-activity",
+      ],
+      "place-value-chart": [
+        "table",
+        "place-value-chart",
+        "place-value-activity",
+      ],
       "fraction-model": ["formula", "number-line"],
-      "number-line": ["number-line", "number-line-focus"],
+      "number-line": [
+        "number-line",
+        "number-line-focus",
+        "place-value-activity",
+      ],
       "coordinate-plane": ["graph"],
       "function-graph": ["graph"],
       geometry: ["geometry"],
@@ -443,7 +461,12 @@ export function assertProviderFreeFactBindings(raw: {
       "data-table": ["table", "tally-table"],
       "bar-chart": ["bar-chart"],
       "probability-tree": ["probability"],
-      teacher: ["formula", "fact-stack", "lesson-board"],
+      teacher: [
+        "formula",
+        "fact-stack",
+        "lesson-board",
+        "place-value-activity",
+      ],
     };
     if (!compatibleKinds[planned.component].includes(scene.component.kind))
       throw new Error(

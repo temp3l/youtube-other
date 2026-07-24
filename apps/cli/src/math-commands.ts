@@ -141,6 +141,31 @@ export class MathCliSemanticError extends Error {
 function repositoryRoot(): string {
   return process.cwd();
 }
+
+function isPathWithin(base: string, candidate: string): boolean {
+  const relative = path.relative(base, candidate);
+  return (
+    relative === "" ||
+    (!relative.startsWith("..") && !path.isAbsolute(relative))
+  );
+}
+
+function repositoryLocalMathPipelineRoot(root = repositoryRoot()): string {
+  return path.join(root, ".cache", "math-pipeline");
+}
+
+export function isApprovedPrivateMathWorkspace(
+  workspacePath: string,
+  root = repositoryRoot()
+): boolean {
+  const workspace = path.resolve(workspacePath);
+  const resolvedRoot = path.resolve(root);
+  return (
+    !isPathWithin(resolvedRoot, workspace) ||
+    isPathWithin(repositoryLocalMathPipelineRoot(resolvedRoot), workspace)
+  );
+}
+
 async function importedCurriculumSeed() {
   const root = repositoryRoot();
   const markdown = await fs.readFile(
@@ -888,13 +913,9 @@ function requirePrivateWorkspace(options: MathSelectionOptions): string {
       "Private production requires an explicit --workspace path."
     );
   const workspace = path.resolve(options.workspace);
-  const relative = path.relative(repositoryRoot(), workspace);
-  if (
-    relative === "" ||
-    (!relative.startsWith("..") && !path.isAbsolute(relative))
-  ) {
+  if (!isApprovedPrivateMathWorkspace(workspace)) {
     throw new Error(
-      "Private production workspace must be outside the repository tree."
+      "Private production workspace must be outside tracked source or inside .cache/math-pipeline."
     );
   }
   return workspace;
@@ -1139,7 +1160,7 @@ interface CanonicalPrivateBatchPreflight {
     readonly workflow: string;
     readonly narration: string;
     readonly verifierProtocol: "math-verifier.v3";
-    readonly renderer: "math-semantic-keyframe-runner.v4";
+    readonly renderer: "math-semantic-keyframe-runner.v5";
     readonly visualStyle: "math.educational-visual-style.v1";
     readonly metadata: "math-metadata.v1";
     readonly speechProfile: string;
@@ -1176,9 +1197,17 @@ async function canonicalPrivateBatchWorkspaceEvidence(
     sourceRelation === "" ||
     (!sourceRelation.startsWith("..") && !path.isAbsolute(sourceRelation))
   ) {
-    throw new Error(
-      "Private production workspace must be separate from tracked source."
-    );
+    const configuredLocalRoot = repositoryLocalMathPipelineRoot();
+    const localRootStat = await fs.lstat(configuredLocalRoot).catch(() => null);
+    if (!localRootStat?.isDirectory() || localRootStat.isSymbolicLink())
+      throw new Error(
+        "Repository-local private production requires a real .cache/math-pipeline directory."
+      );
+    const realLocalRoot = await fs.realpath(configuredLocalRoot);
+    if (!isPathWithin(realLocalRoot, realArtifactRoot))
+      throw new Error(
+        "Private production workspace must be separate from tracked source or contained by .cache/math-pipeline."
+      );
   }
   const unitRoots = lessonIds.map((lessonId) =>
     path.join(realArtifactRoot, lessonId)
@@ -1501,7 +1530,7 @@ async function canonicalPrivateBatchPreflight(
     workflow: mathWorkflowDefinition.revision,
     narration: MATH_LOCKED_FACT_NARRATION_VERSION,
     verifierProtocol: "math-verifier.v3" as const,
-    renderer: "math-semantic-keyframe-runner.v4" as const,
+    renderer: "math-semantic-keyframe-runner.v5" as const,
     visualStyle: "math.educational-visual-style.v1" as const,
     metadata: "math-metadata.v1" as const,
     speechProfile: items[0]!.speech.speechProfileVersion,
@@ -2253,7 +2282,7 @@ export function registerMathCommands(program: Command): void {
           narrationReview: "math-german-narration-review.v1",
           verifierProtocol: "math-verifier.v3",
           verifier: "3.0.0",
-          renderer: "math-semantic-keyframe-runner.v4",
+          renderer: "math-semantic-keyframe-runner.v5",
           chalkRenderer: "math-semantic-chalk.v3",
           visualStyle: "math.educational-visual-style.v1",
           metadata: "math-metadata.v1",

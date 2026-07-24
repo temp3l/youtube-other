@@ -1,7 +1,12 @@
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+
+vi.mock(
+  "@mediaforge/math-rendering",
+  async () => import("../../../packages/math-rendering/src/index.js")
+);
 
 import {
   buildCanonicalNarrationSynchronizationFilter,
@@ -21,11 +26,11 @@ describe("canonical math workflow runtime", () => {
     expect(
       CANONICAL_PRIVATE_FACT_BOARD_MINIMUM_GLYPH_PX
     ).toBeGreaterThanOrEqual(72);
-    expect(CANONICAL_PRIVATE_VISUAL_STYLE_VERSION).toBe(4);
+    expect(CANONICAL_PRIVATE_VISUAL_STYLE_VERSION).toBe(5);
     expect(CANONICAL_PRIVATE_RENDERER_VERSIONS).toEqual({
-      svg: "math-svg.v6",
+      svg: "math-svg.v7",
       formula: "math-svg.v2",
-      remotion: "math-semantic-keyframe-runner.v4",
+      remotion: "math-semantic-keyframe-runner.v5",
     });
   });
 
@@ -158,6 +163,49 @@ describe("canonical math workflow runtime", () => {
     expect(component).toMatchObject({
       kind: "place-value-chart",
       source: { factId: "example-main-source" },
+    });
+  });
+
+  it("turns the reviewed place-value lesson into a child-facing code activity", () => {
+    const component = selectCanonicalSemanticComponent(
+      "place-value-chart",
+      [
+        {
+          factId: "transfer-main-source",
+          semantic: {
+            kind: "scalar",
+            expression: {
+              kind: "sum",
+              operands: [
+                { kind: "integer", value: "600000" },
+                { kind: "integer", value: "4000" },
+                { kind: "integer", value: "70" },
+              ],
+            },
+          },
+          displayLatex: "600000+4000+70",
+          checkIds: ["check-transfer-main"],
+          lineage: {
+            contentContractVersion: "lesson-content-contract.v1",
+            sourceContentHash: "1".repeat(64),
+            sourceTaskId: "transfer-main",
+          },
+        },
+      ],
+      {
+        title: "Denkpause",
+        body: "Stellenwerte lesen",
+        prompt: "Löse die Aufgabe.",
+        skillId: "M5-ZO-001",
+        sceneFunction: "think-pause",
+      }
+    );
+
+    expect(component).toMatchObject({
+      kind: "place-value-activity",
+      mode: "challenge",
+      title: "Jetzt bist du dran",
+      values: [{ factId: "transfer-main-source" }],
     });
   });
 

@@ -35,9 +35,9 @@ describe("locked-fact localization", () => {
     const expected = {
       de: [
         "12.345",
-        "eins zwei drei vier fuenf",
+        "zwölftausenddreihundertfünfundvierzig",
         "123,045",
-        "eins zwei drei Komma null vier fuenf",
+        "einhundertdreiundzwanzig Komma null vier fünf",
         "1/2",
         "eins durch zwei",
         "minus sieben",
@@ -150,7 +150,10 @@ describe("locked-fact localization", () => {
         semanticHash
       );
     }
-    expect(MATH_SPEECH_FORMAT_VERSION).toBe("math-speech-format.v2");
+    expect(MATH_SPEECH_FORMAT_VERSION).toBe("math-speech-format.v3");
+    expect(
+      formatExpression({ kind: "integer", value: "730405" }, "de").spoken
+    ).toBe("siebenhundertdreißigtausendvierhundertfünf");
   });
 
   it("pronounces formula operators deterministically", () => {

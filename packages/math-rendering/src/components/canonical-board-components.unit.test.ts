@@ -29,6 +29,56 @@ describe("canonical chalkboard components", () => {
     expect(extractSemanticChalkSteps(rendered.svg).length).toBeGreaterThan(8);
   });
 
+  it("renders the place-value quest with meaningful choices and a hidden challenge answer", () => {
+    const source = {
+      factId: "transfer-main-source",
+      expression: {
+        kind: "sum" as const,
+        operands: [integer("600000"), integer("4000"), integer("70")],
+      },
+    };
+    const practice = renderSemanticComponent({
+      kind: "place-value-activity",
+      mode: "practice",
+      title: "Trainiere das Stellenraster",
+      prompt: "Setze erst die Ziffern ein und sichere dann die Lücken.",
+      values: [source],
+    });
+    const challenge = renderSemanticComponent({
+      kind: "place-value-activity",
+      mode: "challenge",
+      title: "Jetzt bist du dran",
+      prompt: "Fülle jedes Fach und prüfe deine Zahl.",
+      values: [source],
+    });
+
+    expect(practice.factIds).toEqual(["transfer-main-source"]);
+    expect(practice.svg).toContain(">604.070</text>");
+    expect(practice.svg).toContain('data-chalk-step="quest-digit-6"');
+    expect(challenge.svg).toContain('data-chalk-step="quest-empty-places"');
+    expect(challenge.svg).not.toContain(">604.070</text>");
+  });
+
+  it("derives and labels the missing-zero misconception without treating it as a verified fact", () => {
+    const rendered = renderSemanticComponent({
+      kind: "place-value-activity",
+      mode: "mistake",
+      title: "Die Null bleibt am Platz",
+      prompt: "Ohne Platzhalter rutschen die Ziffern zusammen.",
+      values: [
+        {
+          factId: "example-main-answer",
+          expression: integer("730405"),
+        },
+      ],
+    });
+
+    expect(rendered.factIds).toEqual(["example-main-answer"]);
+    expect(rendered.svg).toContain('data-math-status="incorrect-derived"');
+    expect(rendered.svg).toContain(">7.345</text>");
+    expect(rendered.svg).toContain(">730.405</text>");
+  });
+
   it("draws a tuple-bound rectangle edge by edge", () => {
     const rendered = renderSemanticComponent({
       kind: "geometry",

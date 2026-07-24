@@ -3,7 +3,10 @@ import os from "node:os";
 import path from "node:path";
 import { Command } from "commander";
 import { describe, expect, it, vi } from "vitest";
-import { registerMathCommands } from "./math-commands.js";
+import {
+  isApprovedPrivateMathWorkspace,
+  registerMathCommands,
+} from "./math-commands.js";
 import {
   MATH_QUALITY_GATES,
   MATH_STAGES,
@@ -45,6 +48,25 @@ vi.mock("@mediaforge/math-education", async (importOriginal) => ({
 }));
 
 describe("math commands", () => {
+  it("keeps repository-local private media inside the ignored math cache", () => {
+    const root = path.resolve("/workspace/repository");
+    expect(
+      isApprovedPrivateMathWorkspace(
+        path.join(root, ".cache", "math-pipeline", "review"),
+        root
+      )
+    ).toBe(true);
+    expect(
+      isApprovedPrivateMathWorkspace(path.join(root, "episodes", "review"), root)
+    ).toBe(false);
+    expect(
+      isApprovedPrivateMathWorkspace(
+        path.resolve("/private-media/review"),
+        root
+      )
+    ).toBe(true);
+  });
+
   it("registers an additive top-level command and approved subcommands", () => {
     const program = new Command();
     registerMathCommands(program);

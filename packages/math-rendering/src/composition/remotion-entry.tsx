@@ -19,7 +19,7 @@ export interface RemotionMathScene {
   caption?: {
     text: string;
     lines: string[];
-    fontSizePx: 44;
+    fontSizePx: 48;
   };
 }
 export interface RemotionMathVideoProps extends Record<string, unknown> {

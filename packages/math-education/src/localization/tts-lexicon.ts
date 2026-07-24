@@ -1,6 +1,6 @@
 import { type MathLanguage } from "../domain/index.js";
 
-export const MATH_SPEECH_FORMAT_VERSION = "math-speech-format.v2";
+export const MATH_SPEECH_FORMAT_VERSION = "math-speech-format.v3";
 
 export const localeProfiles = {
   de: { intl: "de-DE", region: "DE" },
@@ -149,7 +149,7 @@ const units: Record<MathLanguage, Record<string, string>> = {
 };
 
 const digits: Record<MathLanguage, readonly string[]> = {
-  de: ["null", "eins", "zwei", "drei", "vier", "fuenf", "sechs", "sieben", "acht", "neun"],
+  de: ["null", "eins", "zwei", "drei", "vier", "fünf", "sechs", "sieben", "acht", "neun"],
   en: ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine"],
   es: ["cero", "uno", "dos", "tres", "cuatro", "cinco", "seis", "siete", "ocho", "nueve"],
   fr: ["zero", "un", "deux", "trois", "quatre", "cinq", "six", "sept", "huit", "neuf"],

@@ -23,7 +23,9 @@ import {
   type MathMediaValidation,
 } from "../quality/media-qa.js";
 
-export const MATH_REMOTION_RUNNER_VERSION = "math-semantic-keyframe-runner.v4";
+export const MATH_REMOTION_RUNNER_VERSION = "math-semantic-keyframe-runner.v5";
+export const MATH_THINK_PAUSE_SECONDS = 8;
+const MATH_REVEAL_CUE_VERSION = "math-reveal-cue.v1";
 
 function escapeXml(value: string): string {
   return value
@@ -59,12 +61,16 @@ function chalkboardSvg(
       ? ""
       : `<g data-think-pause-countdown="true"><circle cx="1690" cy="150" r="72" fill="#183a32" stroke="#f4c95d" stroke-width="7"/><text x="1690" y="172" text-anchor="middle" font-family="Arial, sans-serif" font-size="62" font-weight="700" fill="#f4efd8">${thinkSecondsRemaining}</text><text x="1690" y="252" text-anchor="middle" font-family="Arial, sans-serif" font-size="36" fill="#f4c95d">Denkzeit</text></g>`;
   const captionMarkup = caption
-    ? `<g data-caption="true"><rect x="240" y="916" width="1440" height="96" rx="18" fill="#07111f" opacity="0.78"/>${caption.lines
-        .map(
-          (line, index) =>
-            `<text x="960" y="${974 + index * 46}" text-anchor="middle" font-family="Arial, sans-serif" font-size="44" fill="#ffffff">${escapeXml(line)}</text>`
-        )
-        .join("")}</g>`
+    ? (() => {
+        const height = 34 + caption.lines.length * 56;
+        const y = 1020 - height;
+        return `<g data-caption="true"><rect x="220" y="${y}" width="1480" height="${height}" rx="18" fill="#07111f" opacity="0.84"/>${caption.lines
+          .map(
+            (line, index) =>
+              `<text x="960" y="${y + 58 + index * 56}" text-anchor="middle" font-family="Arial, sans-serif" font-size="${caption.fontSizePx}" fill="#ffffff">${escapeXml(line)}</text>`
+          )
+          .join("")}</g>`;
+      })()
     : "";
   return recolored.replace(
     "</svg>",
@@ -107,6 +113,14 @@ export function createRemotionRenderFingerprint(args: {
   }[];
   audioHash: string;
   bundleHash: string;
+  audioTreatment?: {
+    readonly thinkPauseRangesSeconds: readonly {
+      readonly start: number;
+      readonly end: number;
+    }[];
+    readonly revealCueSeconds: number | null;
+    readonly version: string;
+  };
 }): string {
   return hashText(
     JSON.stringify({
@@ -116,6 +130,7 @@ export function createRemotionRenderFingerprint(args: {
       frameRanges: args.frameRanges,
       audioHash: args.audioHash,
       bundleHash: args.bundleHash,
+      audioTreatment: args.audioTreatment ?? null,
       codec: "h264-yuv420p-aac",
     })
   );
@@ -223,7 +238,10 @@ async function renderSemanticKeyframes(input: {
     const sceneFrames = frameRange.endFrame - frameRange.startFrame;
     const steps = extractSemanticChalkSteps(scene.svgMarkup);
     const isThinkPause = scene.animation.activity === "think-pause";
-    const countdownFrames = Math.min(300, sceneFrames);
+    const countdownFrames = Math.min(
+      MATH_THINK_PAUSE_SECONDS * 30,
+      sceneFrames
+    );
     const countdownStart = sceneFrames - countdownFrames;
     const schedule = createSemanticChalkSchedule({
       steps,
@@ -374,9 +392,7 @@ async function renderSemanticKeyframes(input: {
         lines.push(`file '${concatPath(entry.filePath)}'`);
         lines.push(`duration ${(entry.frames / 30).toFixed(9)}`);
       }
-      lines.push(
-        `file '${concatPath(sceneEntries.at(-1)!.filePath)}'`
-      );
+      lines.push(`file '${concatPath(sceneEntries.at(-1)!.filePath)}'`);
       await fs.writeFile(concatFile, `${lines.join("\n")}\n`, "utf8");
       const temporary = `${cachedVideo}.${process.pid}-${sceneIndex}.tmp.mp4`;
       try {
@@ -427,9 +443,7 @@ async function renderSemanticKeyframes(input: {
     concatFile,
     `${[
       "ffconcat version 1.0",
-      ...sceneVideos.map(
-        (scene) => `file '${concatPath(scene.filePath)}'`
-      ),
+      ...sceneVideos.map((scene) => `file '${concatPath(scene.filePath)}'`),
     ].join("\n")}\n`,
     "utf8"
   );
@@ -477,6 +491,49 @@ async function renderSemanticKeyframes(input: {
   );
 }
 
+async function createRevealCue(workDir: string): Promise<string> {
+  const cuePath = path.join(workDir, `${MATH_REVEAL_CUE_VERSION}.wav`);
+  try {
+    if ((await fs.stat(cuePath)).size > 0) return cuePath;
+  } catch {
+    // Generate the deterministic local cue below.
+  }
+  const temporary = `${cuePath}.${process.pid}.tmp.wav`;
+  try {
+    await runCommand(
+      "ffmpeg",
+      [
+        "-hide_banner",
+        "-loglevel",
+        "error",
+        "-y",
+        "-f",
+        "lavfi",
+        "-i",
+        "sine=frequency=659.25:duration=0.16:sample_rate=48000",
+        "-f",
+        "lavfi",
+        "-i",
+        "sine=frequency=987.77:duration=0.24:sample_rate=48000",
+        "-filter_complex",
+        "[0:a]volume=0.035[a0];[1:a]adelay=140|140,volume=0.035[a1];[a0][a1]amix=inputs=2:duration=longest:normalize=0,afade=t=out:st=0.22:d=0.16[aout]",
+        "-map",
+        "[aout]",
+        "-ar",
+        "48000",
+        "-ac",
+        "2",
+        temporary,
+      ],
+      { timeoutMs: 30_000 }
+    );
+    await fs.rename(temporary, cuePath);
+  } finally {
+    await fs.unlink(temporary).catch(() => undefined);
+  }
+  return cuePath;
+}
+
 export async function renderLocalRemotionVideo(args: {
   durationInFrames: number;
   scenes: readonly MathSceneAsset[];
@@ -512,14 +569,61 @@ export async function renderLocalRemotionVideo(args: {
     silentPath,
     durationInFrames: args.durationInFrames,
   });
+  const thinkPauseRangesSeconds = args.scenes.flatMap((scene, index) => {
+    if (scene.animation?.activity !== "think-pause") return [];
+    const range = args.frameRanges[index];
+    if (!range || range.sceneId !== scene.sceneId)
+      throw new Error(`Think-pause timing mismatch at ${scene.sceneId}.`);
+    const end = range.endFrame / 30;
+    return [
+      {
+        start: Math.max(range.startFrame / 30, end - MATH_THINK_PAUSE_SECONDS),
+        end,
+      },
+    ];
+  });
+  const thinkPauseIndex = args.scenes.findIndex(
+    (scene) => scene.animation?.activity === "think-pause"
+  );
+  const revealRange =
+    thinkPauseIndex >= 0 ? args.frameRanges[thinkPauseIndex + 1] : undefined;
+  const revealCueSeconds = revealRange ? revealRange.startFrame / 30 : null;
+  const audioTreatment = {
+    thinkPauseRangesSeconds,
+    revealCueSeconds,
+    version: MATH_REVEAL_CUE_VERSION,
+  };
   const renderFingerprint = createRemotionRenderFingerprint({
     durationInFrames: args.durationInFrames,
     sceneHashes: args.scenes.map((scene) => scene.svgHash),
     frameRanges: args.frameRanges,
     audioHash: await hashFile(args.audioPath),
     bundleHash: rendererHash,
+    audioTreatment,
   });
   try {
+    const revealCuePath =
+      revealCueSeconds === null ? null : await createRevealCue(workDir);
+    const silenceExpression = thinkPauseRangesSeconds
+      .map(
+        (range) =>
+          `between(t,${range.start.toFixed(6)},${range.end.toFixed(6)})`
+      )
+      .join("+");
+    const narrationFilter =
+      thinkPauseRangesSeconds.length === 0
+        ? null
+        : `[1:a]aresample=48000,volume=0:enable='${silenceExpression}'`;
+    const audioFilter =
+      narrationFilter === null
+        ? null
+        : revealCuePath === null || revealCueSeconds === null
+          ? `${narrationFilter}[aout]`
+          : `${narrationFilter}[narration];[2:a]adelay=${Math.round(
+              revealCueSeconds * 1000
+            )}|${Math.round(
+              revealCueSeconds * 1000
+            )}[cue];[narration][cue]amix=inputs=2:duration=first:normalize=0,alimiter=limit=0.95[aout]`;
     await runCommand(
       "ffmpeg",
       [
@@ -531,10 +635,12 @@ export async function renderLocalRemotionVideo(args: {
         silentPath,
         "-i",
         args.audioPath,
+        ...(revealCuePath ? ["-i", revealCuePath] : []),
+        ...(audioFilter ? ["-filter_complex", audioFilter] : []),
         "-map",
         "0:v:0",
         "-map",
-        "1:a:0",
+        audioFilter ? "[aout]" : "1:a:0",
         "-c:v",
         "copy",
         "-c:a",

@@ -27,7 +27,98 @@ function decimalParts(unscaled: string, scale: number): [string, string] {
   return [whole, scale === 0 ? "" : digits.slice(-scale)];
 }
 
+function spokenGermanBelowHundred(value: number, compoundOne = false): string {
+  const small = [
+    "null",
+    compoundOne ? "ein" : "eins",
+    "zwei",
+    "drei",
+    "vier",
+    "fünf",
+    "sechs",
+    "sieben",
+    "acht",
+    "neun",
+    "zehn",
+    "elf",
+    "zwölf",
+    "dreizehn",
+    "vierzehn",
+    "fünfzehn",
+    "sechzehn",
+    "siebzehn",
+    "achtzehn",
+    "neunzehn",
+  ] as const;
+  const direct = small[value];
+  if (direct) return direct;
+  const tens = [
+    "",
+    "",
+    "zwanzig",
+    "dreißig",
+    "vierzig",
+    "fünfzig",
+    "sechzig",
+    "siebzig",
+    "achtzig",
+    "neunzig",
+  ] as const;
+  const ones = value % 10;
+  const tensWord = tens[Math.floor(value / 10)];
+  if (!tensWord)
+    throw new Error(`German speech formatter cannot pronounce ${value}.`);
+  return ones === 0
+    ? tensWord
+    : `${spokenGermanBelowHundred(ones, true)}und${tensWord}`;
+}
+
+function spokenGermanBelowThousand(value: number): string {
+  if (value < 100) return spokenGermanBelowHundred(value);
+  const hundreds = Math.floor(value / 100);
+  const remainder = value % 100;
+  const prefix =
+    hundreds === 1
+      ? "einhundert"
+      : `${spokenGermanBelowHundred(hundreds)}hundert`;
+  return remainder === 0
+    ? prefix
+    : `${prefix}${spokenGermanBelowHundred(remainder)}`;
+}
+
+function spokenGermanInteger(value: string): string {
+  const parsed = BigInt(value);
+  const negative = parsed < 0n;
+  const absolute = negative ? -parsed : parsed;
+  if (absolute > 999_999_999n)
+    throw new Error(
+      "Reviewed German natural-number speech supports values through 999,999,999."
+    );
+  const numeric = Number(absolute);
+  if (numeric === 0) return "null";
+  const millions = Math.floor(numeric / 1_000_000);
+  const thousands = Math.floor((numeric % 1_000_000) / 1_000);
+  const remainder = numeric % 1_000;
+  const parts: string[] = [];
+  if (millions > 0)
+    parts.push(
+      millions === 1
+        ? "eine Million"
+        : `${spokenGermanBelowThousand(millions)} Millionen`
+    );
+  if (thousands > 0)
+    parts.push(
+      thousands === 1
+        ? "eintausend"
+        : `${spokenGermanBelowThousand(thousands)}tausend`
+    );
+  if (remainder > 0) parts.push(spokenGermanBelowThousand(remainder));
+  const spoken = parts.join(millions > 0 ? " " : "");
+  return negative ? `minus ${spoken}` : spoken;
+}
+
 function spokenInteger(value: string, language: MathLanguage): string {
+  if (language === "de") return spokenGermanInteger(value);
   const words = speechLexicon(language);
   const negative = value.startsWith("-");
   const digits = value.replace("-", "").replace(/^0+(?=\d)/u, "");
@@ -163,7 +254,8 @@ export function formatMeasurement(
   const symbol = unit.angle === "degree" ? "°" : unit.symbol;
   const singular =
     (value.kind === "integer" && value.value === "1") ||
-    (value.kind === "decimal" && BigInt(value.unscaled) === 10n ** BigInt(value.scale));
+    (value.kind === "decimal" &&
+      BigInt(value.unscaled) === 10n ** BigInt(value.scale));
   return {
     display: `${formatted.display} ${symbol}`,
     spoken: `${formatted.spoken} ${spokenUnit(unit.angle ?? unit.symbol, language, singular)}`,

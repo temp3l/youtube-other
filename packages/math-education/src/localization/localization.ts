@@ -28,10 +28,10 @@ import { localeProfiles } from "./tts-lexicon.js";
 const sha256Schema = z.string().regex(/^[a-f0-9]{64}$/u);
 export const MATH_LOCKED_FACT_NARRATION_VERSION = "locked-facts.v3" as const;
 export const MATH_LOCKED_FACT_TASK_IMPLEMENTATION_VERSION =
-  "locked-facts.v3.1" as const;
+  "locked-facts.v3.2" as const;
 export const GERMAN_STANDARD_NARRATION_WORD_RANGE = {
-  minimum: 450,
-  maximum: 800,
+  minimum: 400,
+  maximum: 620,
 } as const;
 
 export function reviewedNarrationInstruction(text: string): string {
@@ -214,30 +214,45 @@ function defaultTemplates(
     if (!workedExample) throw new Error("Reviewed worked example is missing.");
     const workedSteps = workedExample.steps
       .map((step) => step.explanation)
-      .join(" Anschließend: ");
+      .join(" Danach: ");
     const transferSteps = lesson.challenge.steps
       .map((step) => step.explanation)
-      .join(" Anschließend: ");
+      .join(" Danach: ");
     const workedPrompt = reviewedNarrationInstruction(workedExample.prompt);
-    const transferPrompt = reviewedNarrationInstruction(lesson.challenge.prompt);
+    const transferPrompt = reviewedNarrationInstruction(
+      lesson.challenge.prompt
+    );
     return lesson.scenes.map((scene, index) => {
       const facts = scene.factIds
         .map((factId) => `[[fact:${factId}]]`)
         .join("; ");
       const factSentence = facts
-        ? `Für diesen Schritt gilt die geprüfte Darstellung: ${facts}.`
-        : "In diesem Schritt kommt noch keine neue Zahl hinzu.";
-      const templates = [
-        `Heute untersuchen wir ${topic} und ${supporting}. Unser Ziel lautet: ${objective}. Wir gehen ruhig und nachvollziehbar vor. Beobachte zuerst, welche Angaben wichtig sind und welche Frage beantwortet werden soll. ${factSentence} Noch musst du nichts ausrechnen. Ordne nur die Begriffe, achte auf ihre Bedeutung und überlege, woran du eine passende Lösung erkennen würdest.`,
-        `Das Lernziel bleibt klar: ${objective}. Das Versprechen dieser Stunde lautet: ${promise}. Wir verwenden nur Angaben und Rechenschritte, die mathematisch geprüft sind. Sprich die Aufgabe in eigenen Worten nach und markiere, was gesucht ist. ${factSentence} Achte außerdem auf Einheiten, Stellen und Rechenzeichen. Diese Vorbereitung verhindert Flüchtigkeitsfehler und macht den späteren Lösungsweg verständlich.`,
-        `Jetzt bauen wir ein geprüftes Modell für ${topic} auf. Die genaue Beispielaufgabe lautet: ${workedPrompt} Der erste erklärte Schritt ist: ${workedExample.steps[0]?.explanation ?? workedSteps}. Betrachte die Darstellung von links nach rechts und suche zuerst die bekannte Struktur. ${factSentence} Verbinde jede sichtbare Zahl mit ihrer Rolle in der Aufgabe und halte das Zwischenergebnis fest.`,
-        `Wir lösen das geprüfte Beispiel Schritt für Schritt. Der reviewte Lösungsweg lautet: ${workedSteps}. Beginne mit den gegebenen Informationen und entscheide dann, welcher Zusammenhang gebraucht wird. ${factSentence} Lies alle Zeichen und Einheiten. Prüfe nach jedem Schritt, ob das Ergebnis zur Ausgangsfrage passt. So bleibt der Lösungsweg richtig und nachvollziehbar.`,
-        `Achte jetzt auf den typischen Fehler: ${mistake} Dieser Fehler entsteht oft, wenn ein Zeichen, eine Stelle oder eine Einheit übersehen wird. ${factSentence} Vergleiche deshalb den fehlerhaften Gedanken mit der geprüften Darstellung. Benenne genau, was korrigiert werden muss. Eine gute Kontrolle erklärt nicht nur, dass etwas falsch ist, sondern auch warum.`,
-        `Nun wendest du das Verfahren geführt an. Lies zuerst die Aufgabe, nenne das Ziel und wähle danach den passenden Zusammenhang. ${factSentence} Arbeite in kleinen Schritten und lass bereits geprüfte Ergebnisse sichtbar. Kontrolliere Rechenzeichen, Reihenfolge und Einheit, bevor du weitergehst. Wenn du unsicher bist, kehre zum Modell zurück und vergleiche beide Darstellungen.`,
-        `Jetzt beginnt die Denkpause mit der reviewten Transferaufgabe: ${transferPrompt} Löse sie möglichst selbstständig und erkläre deinen Plan leise in eigenen Worten. ${factSentence} Frage dich: Welche Information ist gegeben, welche Größe wird gesucht und welcher Schritt verbindet beides? Nimm dir Zeit für eine Gegenprobe. Erst wenn Darstellung, Rechnung und Antwort zusammenpassen, gehst du zur gemeinsamen Lösung weiter.`,
-        `Wir prüfen nun die vollständige Transferlösung. Der reviewte Lösungsweg lautet: ${transferSteps}. Vergleiche deinen Weg Schritt für Schritt mit der geprüften Darstellung. ${factSentence} Stimmen Ausgangsdaten, Rechenzeichen, Zwischenschritte und Ergebnis überein? Prüfe auch, ob die Antwort wirklich zur gestellten Frage gehört. Jeder Lösungsweg muss dieselben mathematischen Beziehungen und dasselbe Ergebnis bewahren.`,
-        `Zum Abschluss fassen wir das Verfahren für ${topic} zusammen. Unser Versprechen war: ${promise}. Formuliere zuerst das Ziel, ordne dann die gegebenen Informationen und wähle den passenden geprüften Zusammenhang. ${factSentence} Rechne übersichtlich, bewahre wichtige Zwischenschritte und kontrolliere Zeichen sowie Einheiten. Erkläre schließlich, warum das Ergebnis die Aufgabe beantwortet. Damit kannst du das Verfahren auf eine neue Aufgabe übertragen.`,
-      ] as const;
+        ? `Auf der Tafel siehst du: ${facts}.`
+        : "Noch kommt keine neue Zahl hinzu.";
+      const placeValueQuest = lesson.skillId === "M5-ZO-001";
+      const templates = placeValueQuest
+        ? ([
+            `Heute knacken wir einen Zahlencode. Dabei untersuchen wir ${topic} und ${supporting}. Unser Ziel lautet: ${objective}. Auf der Tafel entsteht gleich eine große Zahl aus einzelnen Stellen. Beobachte genau: Wo muss eine Null stehen, damit der Wert stimmt? ${factSentence} Noch musst du nichts ausrechnen. Suche zuerst das Muster und triff eine Vermutung.`,
+            `Deine Mission lautet: ${promise}. Das Lernziel bleibt: ${objective}. Sprich es kurz in deinen eigenen Worten aus. ${factSentence} Am Ende sollst du den Code nicht nur nennen, sondern erklären, warum jede Ziffer genau an ihrem Platz steht. Achte besonders auf leere Stellen: Sie sind nicht unwichtig.`,
+            `Hier kommt die erste Codekarte. ${workedPrompt} ${factSentence} Wir nutzen eine Stellenwerttafel und lesen von links nach rechts. ${workedExample.steps[0]?.explanation ?? workedSteps} Verbinde jeden Summanden mit seinem Fach. Wo kein Summand landet, muss die Stelle trotzdem sichtbar bleiben. So entsteht der Code Schritt für Schritt.`,
+            `Jetzt lösen wir die Codekarte gemeinsam. ${workedSteps} ${factSentence} Lass jede bereits gefundene Ziffer stehen. Prüfe danach die Plätze von links nach rechts. Stimmen die Hunderttausender, Zehntausender, Tausender, Hunderter, Zehner und Einer? Dann passt die Zahl zur zerlegten Darstellung.`,
+            `Achtung, hier versteckt sich der typische Fehler: ${mistake} ${factSentence} Wenn du die leeren Fächer zusammenschiebst, wandern andere Ziffern an eine falsche Stelle. Vergleiche deshalb den kurzen falschen Code mit der vollständigen Zahl. Zeige auf die fehlenden Plätze und erkläre, warum dort Nullen stehen müssen.`,
+            `Jetzt üben wir mit einer neuen Codekarte. ${factSentence} Lege zuerst für jede Stelle ein Fach an. Setze dann nur die vorhandenen Ziffern ein und fülle die übrigen Fächer mit Nullen. Arbeite von links nach rechts. Vergleiche deinen Zwischenstand mit dem ersten Modell, bevor du dich entscheidest.`,
+            `Jetzt bist du der Codeprofi. ${transferPrompt} ${factSentence} Sage deinen Plan leise: Welche Stellen sind besetzt, welche bleiben leer? Nach meiner Frage bleibt die Tafel acht Sekunden still: Welche sechsstellige Zahl entsteht? Nutze die Pause wirklich zum Denken und kontrolliere anschließend jede Stelle.`,
+            `Zeit für die Auflösung. ${transferSteps} ${factSentence} Vergleiche nicht nur die letzte Zahl. Fahre mit dem Finger von links nach rechts über die Stellenwerttafel. Jede Ziffer braucht ihr richtiges Fach, und jede leere Stelle braucht eine Null. So kannst du deinen eigenen Lösungsweg zuverlässig prüfen.`,
+            `Mission geschafft. Unser Versprechen war: ${promise}. Für ${topic} gilt: Erst die Stellen anlegen, dann die Ziffern einsetzen und leere Stellen mit Nullen sichern. ${factSentence} Erkläre zum Schluss in einem Satz, warum eine ausgelassene Null den ganzen Zahlencode verändert. Dann bist du bereit für die nächste Codekarte.`,
+          ] as const)
+        : ([
+            `Heute untersuchen wir ${topic} und ${supporting}. Unser Ziel lautet: ${objective}. Starte mit einer Vermutung: Was könnte die Darstellung bedeuten? ${factSentence} Noch musst du nichts ausrechnen. Suche nach einer bekannten Struktur und entscheide, worauf du gleich besonders achten willst.`,
+            `Deine Mission lautet: ${promise}. Das Lernziel bleibt: ${objective}. Sprich die Aufgabe kurz in deinen eigenen Worten aus. ${factSentence} Markiere, was gegeben und was gesucht ist. Achte auf Stellen, Zeichen und Einheiten, die leicht übersehen werden.`,
+            `Jetzt bauen wir ein passendes Modell. ${workedPrompt} ${factSentence} ${workedExample.steps[0]?.explanation ?? workedSteps} Verfolge die Darstellung von links nach rechts. Verbinde jede Angabe mit ihrer Rolle und lass wichtige Zwischenschritte sichtbar.`,
+            `Wir lösen das Beispiel gemeinsam. ${workedSteps} ${factSentence} Vergleiche nach jedem Schritt Modell und Rechnung. Erkläre kurz, warum der Schritt erlaubt ist. Wenn alle Angaben erhalten bleiben und das Ergebnis zur Frage passt, ist der Weg nachvollziehbar.`,
+            `Achtung, hier liegt der typische Fehler: ${mistake} ${factSentence} Vergleiche den falschen Gedanken mit der vollständigen Darstellung. Zeige genau auf die Stelle, an der sich der Weg trennt, und erkläre die Korrektur in einem Satz.`,
+            `Nun probierst du das Verfahren mit Führung aus. ${factSentence} Nenne zuerst das Ziel, wähle dann die passende Darstellung und arbeite in kleinen Schritten. Prüfe Reihenfolge, Zeichen und Einheit. Wenn du stockst, vergleiche mit dem Modell aus dem Beispiel.`,
+            `Jetzt beginnt deine Denkzeit. ${transferPrompt} ${factSentence} Sage deinen Plan leise in eigenen Worten. Welche Information ist gegeben, was wird gesucht und welcher Schritt verbindet beides? Nach der Frage bleibt die Tafel acht Sekunden still. Nutze die Pause für eine echte Gegenprobe.`,
+            `Wir lösen die Denkaufgabe auf. ${transferSteps} ${factSentence} Vergleiche deinen Weg Schritt für Schritt mit der geprüften Darstellung. Stimmen Ausgangsdaten, Rechenzeichen, Zwischenschritte und Ergebnis? Erkläre auch, warum die Antwort wirklich zur Frage gehört.`,
+            `Zum Abschluss sichern wir ${topic}. Unser Versprechen war: ${promise}. Formuliere zuerst das Ziel, ordne dann die Angaben und wähle den passenden Zusammenhang. ${factSentence} Nenne den wichtigsten Prüfschritt laut. Damit kannst du das Verfahren auf eine neue Aufgabe übertragen.`,
+          ] as const);
       const template = templates[index];
       if (!template) throw new Error(`Missing de narration beat ${index}.`);
       return template;

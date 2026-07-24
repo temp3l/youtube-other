@@ -9,7 +9,7 @@ import {
   type ExpressionNode,
 } from "@mediaforge/math-education";
 
-export const MATH_SVG_RENDERER_VERSION = "math-svg.v6";
+export const MATH_SVG_RENDERER_VERSION = "math-svg.v7";
 export const MATH_FONT_PROFILE = "katex-0.17.0-system-sans-v1";
 
 const factIdSchema = z.string().regex(/^[a-z][a-z0-9-]*$/u);
@@ -188,6 +188,57 @@ export const placeValueChartComponentSchema = z.strictObject({
   kind: z.literal("place-value-chart"),
   source: boundMathValueSchema,
 });
+export const placeValueActivityComponentSchema = z
+  .strictObject({
+    kind: z.literal("place-value-activity"),
+    mode: z.enum([
+      "hook",
+      "objective",
+      "model",
+      "worked-example",
+      "mistake",
+      "practice",
+      "challenge",
+      "solution",
+      "recap",
+    ]),
+    title: z
+      .string()
+      .min(1)
+      .max(36)
+      .regex(/^\D+$/u, "Place-value activity titles cannot add numbers."),
+    prompt: z
+      .string()
+      .min(1)
+      .max(68)
+      .regex(/^\D+$/u, "Place-value activity prompts cannot add numbers."),
+    values: z.array(boundMathValueSchema).max(2),
+  })
+  .superRefine((value, context) => {
+    const requiredCount =
+      value.mode === "hook" || value.mode === "objective"
+        ? 0
+        : value.mode === "worked-example" || value.mode === "recap"
+          ? 2
+          : 1;
+    if (value.values.length !== requiredCount)
+      context.addIssue({
+        code: "custom",
+        path: ["values"],
+        message: `${value.mode} requires exactly ${requiredCount} verifier-bound values.`,
+      });
+    if (
+      value.mode === "worked-example" &&
+      value.values.length === 2 &&
+      exactInteger(value.values[0]!.expression) !==
+        exactInteger(value.values[1]!.expression)
+    )
+      context.addIssue({
+        code: "custom",
+        path: ["values"],
+        message: "Worked place-value source and answer must be exactly equal.",
+      });
+  });
 export const numberLineFocusComponentSchema = z.strictObject({
   kind: z.literal("number-line-focus"),
   focus: boundMathValueSchema,
@@ -243,6 +294,7 @@ export const semanticMathComponentSchema = z.discriminatedUnion("kind", [
   lessonBoardComponentSchema,
   factStackComponentSchema,
   placeValueChartComponentSchema,
+  placeValueActivityComponentSchema,
   numberLineFocusComponentSchema,
   tallyTableComponentSchema,
 ]);
@@ -315,6 +367,7 @@ function componentBounds(input: SemanticMathComponent): Bounds {
     input.kind === "lesson-board" ||
     input.kind === "fact-stack" ||
     input.kind === "place-value-chart" ||
+    input.kind === "place-value-activity" ||
     input.kind === "number-line-focus" ||
     input.kind === "tally-table"
   )
@@ -593,6 +646,8 @@ function factIds(input: SemanticMathComponent): string[] {
       return input.facts.map((fact) => fact.factId);
     case "place-value-chart":
       return [input.source.factId];
+    case "place-value-activity":
+      return input.values.map((value) => value.factId);
     case "number-line-focus":
       return [input.focus.factId];
     case "tally-table":
@@ -633,7 +688,11 @@ function wrapSvg(
   minimumGlyphPx: number
 ): VisualComponentResult {
   const ids = factIds(input);
-  if (ids.length === 0 && input.kind !== "lesson-board")
+  if (
+    ids.length === 0 &&
+    input.kind !== "lesson-board" &&
+    input.kind !== "place-value-activity"
+  )
     throw new Error(
       "A semantic component must display at least one fact-bound value."
     );
@@ -1036,8 +1095,7 @@ function renderFactStack(
   input: z.infer<typeof factStackComponentSchema>
 ): VisualComponentResult {
   const single = input.facts.length === 1;
-  const longSingleFact =
-    single && displayFactText(input.facts[0]!).length > 24;
+  const longSingleFact = single && displayFactText(input.facts[0]!).length > 24;
   const compact = input.facts.length >= 3;
   const cardHeight = compact ? 128 : 160;
   const rowGap = single ? 0 : compact ? 25 : 85;
@@ -1051,13 +1109,7 @@ function renderFactStack(
       const width = single ? (longSingleFact ? 1500 : 1180) : 1380;
       const x = (1920 - width) / 2;
       const baseline = y + (single ? 108 : compact ? 91 : 106);
-      const fontSize = single
-        ? longSingleFact
-          ? 72
-          : 96
-        : compact
-          ? 72
-          : 78;
+      const fontSize = single ? (longSingleFact ? 72 : 96) : compact ? 72 : 78;
       return `<g ${chalkStep(`fact-frame-${index + 1}`, { x, y, width, height: cardHeight })}><rect x="${x}" y="${y}" width="${width}" height="${cardHeight}" rx="24" fill="${emphasized ? "#dbeafe" : "none"}" opacity="${emphasized ? "0.24" : "1"}" stroke="${emphasized ? "#f59e0b" : "#64748b"}" stroke-width="${emphasized ? "8" : "4"}"/></g><g ${chalkStep(`fact-value-${index + 1}`, { x: x + 50, y: y + 14, width: width - 100, height: cardHeight - 28 }, fact.factId)}><text x="${x + 70}" y="${baseline}" text-anchor="start" font-family="Arial, sans-serif" font-size="${fontSize}" fill="#14213d"><tspan font-size="72" font-weight="700">${index + 1}.</tspan><tspan dx="44">${escapeXml(display)}</tspan></text></g>`;
     })
     .join("");
@@ -1133,6 +1185,261 @@ function renderPlaceValueChart(
     `<g ${chalkStep("place-equation", { x: 220, y: 635, width: 1480, height: 140 }, input.source.factId)}><text x="960" y="740" text-anchor="middle" font-family="Arial, sans-serif" font-size="72" fill="#14213d">${escapeXml(expression)}</text></g>`,
     `<g ${chalkStep("place-zero-note", { x: 350, y: 785, width: 1220, height: 80 })}><text x="960" y="850" text-anchor="middle" font-family="Arial, sans-serif" font-size="72" fill="#f59e0b">Nullen sichern den Stellenwert.</text></g>`,
   ].join("");
+  return wrapSvg(input, body, 72);
+}
+
+function formattedGermanInteger(value: bigint): string {
+  return new Intl.NumberFormat("de-DE", {
+    useGrouping: true,
+    maximumFractionDigits: 0,
+  }).format(value);
+}
+
+function placeValueModel(expression: ExpressionNode): {
+  readonly value: bigint;
+  readonly labels: readonly string[];
+  readonly digits: readonly string[];
+  readonly terms: readonly {
+    display: string;
+    columnIndex: number;
+  }[];
+} {
+  const value = exactInteger(expression);
+  if (value < 0n || value > 999_999_999n)
+    throw new Error(
+      "Place-value activities support non-negative values up to nine digits."
+    );
+  const rawDigits = value.toString();
+  const columnCount = Math.max(6, rawDigits.length);
+  const labels = ["HM", "ZM", "M", "HT", "ZT", "T", "H", "Z", "E"].slice(
+    9 - columnCount
+  );
+  const digits = rawDigits.padStart(columnCount, "0").split("");
+  const termValues =
+    expression.kind === "sum"
+      ? expression.operands.map((operand) => exactInteger(operand))
+      : digits.flatMap((digit, index) => {
+          if (digit === "0") return [];
+          return [BigInt(digit) * 10n ** BigInt(digits.length - index - 1)];
+        });
+  const terms = termValues.map((term) => {
+    if (term <= 0n)
+      throw new Error(
+        "Expanded place-value activities require positive place terms."
+      );
+    const raw = term.toString();
+    const trailingZeroes = raw.match(/0+$/u)?.[0].length ?? 0;
+    const leading = raw.slice(0, raw.length - trailingZeroes);
+    if (!/^[1-9]$/u.test(leading))
+      throw new Error(
+        "Expanded place-value terms must contain one non-zero place digit."
+      );
+    return {
+      display: formattedGermanInteger(term),
+      columnIndex: columnCount - trailingZeroes - 1,
+    };
+  });
+  return { value, labels, digits, terms };
+}
+
+function placeValueQuestHeader(
+  title: string,
+  mode: z.infer<typeof placeValueActivityComponentSchema>["mode"]
+): string {
+  const phase =
+    mode === "hook" || mode === "objective" || mode === "model"
+      ? 0
+      : mode === "worked-example" || mode === "mistake" || mode === "practice"
+        ? 1
+        : 2;
+  const phases = ["Entdecken", "Ordnen", "Knacken"];
+  const tabs = phases
+    .map((label, index) => {
+      const x = 210 + index * 510;
+      const active = index === phase;
+      return `<g ${chalkStep(`quest-phase-${index + 1}`, { x, y: 55, width: 470, height: 92 })}><rect x="${x}" y="55" width="470" height="92" rx="28" fill="${active ? "#f59e0b" : "#dbeafe"}" opacity="${active ? "0.34" : "0.16"}" stroke="${active ? "#f59e0b" : "#64748b"}" stroke-width="${active ? "7" : "4"}"/><text x="${x + 235}" y="125" text-anchor="middle" font-family="Arial, sans-serif" font-size="72" font-weight="${active ? "700" : "400"}" fill="#14213d">${label}</text></g>`;
+    })
+    .join("");
+  return `${tabs}<g ${chalkStep("quest-title", { x: 190, y: 155, width: 1540, height: 95 })}><text x="960" y="230" text-anchor="middle" font-family="Arial, sans-serif" font-size="78" font-weight="700" fill="#14213d">${escapeXml(title)}</text></g>`;
+}
+
+function placeValueGrid(args: {
+  model: ReturnType<typeof placeValueModel>;
+  factId?: string;
+  revealDigits: boolean;
+  highlightZeroes?: boolean;
+  y?: number;
+}): string {
+  const gridX = 270;
+  const gridY = args.y ?? 430;
+  const width = 1380 / args.model.labels.length;
+  const headerHeight = 120;
+  const digitHeight = 170;
+  const grid = [
+    `<g ${chalkStep("quest-grid", { x: gridX, y: gridY, width: 1380, height: headerHeight + digitHeight }, args.factId)}><rect x="${gridX}" y="${gridY}" width="1380" height="${headerHeight + digitHeight}" rx="18" fill="none" stroke="#14213d" stroke-width="7"/><line x1="${gridX}" y1="${gridY + headerHeight}" x2="${gridX + 1380}" y2="${gridY + headerHeight}" stroke="#14213d" stroke-width="6"/>${Array.from(
+      { length: args.model.labels.length - 1 },
+      (_, index) =>
+        `<line x1="${gridX + width * (index + 1)}" y1="${gridY}" x2="${gridX + width * (index + 1)}" y2="${gridY + headerHeight + digitHeight}" stroke="#64748b" stroke-width="4"/>`
+    ).join("")}</g>`,
+    `<g ${chalkStep("quest-place-labels", { x: gridX, y: gridY, width: 1380, height: headerHeight })}>${args.model.labels
+      .map(
+        (label, index) =>
+          `<text x="${gridX + width * (index + 0.5)}" y="${gridY + 84}" text-anchor="middle" font-family="Arial, sans-serif" font-size="72" font-weight="700" fill="#14213d">${label}</text>`
+      )
+      .join("")}</g>`,
+  ];
+  if (args.revealDigits) {
+    for (const [index, digit] of args.model.digits.entries()) {
+      const zero = digit === "0";
+      const x = gridX + width * index;
+      grid.push(
+        `<g ${chalkStep(`quest-digit-${index + 1}`, { x, y: gridY + headerHeight, width, height: digitHeight }, args.factId)}>${zero && args.highlightZeroes ? `<rect x="${x + 12}" y="${gridY + headerHeight + 12}" width="${width - 24}" height="${digitHeight - 24}" rx="18" fill="#f59e0b" opacity="0.25" stroke="#f59e0b" stroke-width="5"/>` : ""}<text x="${x + width / 2}" y="${gridY + headerHeight + 116}" text-anchor="middle" font-family="Arial, sans-serif" font-size="102" font-weight="${zero ? "700" : "400"}" fill="${zero && args.highlightZeroes ? "#f59e0b" : "#14213d"}">${digit}</text></g>`
+      );
+    }
+  } else {
+    grid.push(
+      `<g ${chalkStep("quest-empty-places", { x: gridX, y: gridY + headerHeight, width: 1380, height: digitHeight }, args.factId)}>${args.model.digits
+        .map(
+          (_digit, index) =>
+            `<text x="${gridX + width * (index + 0.5)}" y="${gridY + headerHeight + 112}" text-anchor="middle" font-family="Arial, sans-serif" font-size="96" fill="#64748b">?</text>`
+        )
+        .join("")}</g>`
+    );
+  }
+  return grid.join("");
+}
+
+function renderPlaceValueActivity(
+  input: z.infer<typeof placeValueActivityComponentSchema>
+): VisualComponentResult {
+  const header = placeValueQuestHeader(input.title, input.mode);
+  const promptLines = wrappedText(input.prompt, 34);
+  const prompt = `<g ${chalkStep("quest-prompt", { x: 250, y: 720, width: 1420, height: 160 })}><rect x="250" y="720" width="1420" height="160" rx="28" fill="#dbeafe" opacity="0.18" stroke="#64748b" stroke-width="4"/>${promptLines
+    .slice(0, 2)
+    .map(
+      (line, index) =>
+        `<text x="960" y="${785 + index * 72}" text-anchor="middle" font-family="Arial, sans-serif" font-size="72" fill="#14213d">${escapeXml(line)}</text>`
+    )
+    .join("")}</g>`;
+
+  if (input.mode === "hook") {
+    const slots = Array.from(
+      { length: 6 },
+      (_, index) =>
+        `<g ${chalkStep(`quest-code-slot-${index + 1}`, { x: 425 + index * 180, y: 490, width: 140, height: 150 })}><rect x="${425 + index * 180}" y="490" width="140" height="150" rx="20" fill="#dbeafe" opacity="0.18" stroke="#14213d" stroke-width="6"/><text x="${495 + index * 180}" y="600" text-anchor="middle" font-family="Arial, sans-serif" font-size="96" fill="#f59e0b">?</text></g>`
+    ).join("");
+    const lock = `<g ${chalkStep("quest-lock", { x: 805, y: 265, width: 310, height: 205 })}><path d="M855 390V340C855 255 1065 255 1065 340V390" fill="none" stroke="#f59e0b" stroke-width="18" stroke-linecap="round"/><rect x="805" y="380" width="310" height="110" rx="26" fill="#dbeafe" opacity="0.2" stroke="#14213d" stroke-width="7"/><circle cx="960" cy="430" r="18" fill="#f59e0b"/></g>`;
+    return wrapSvg(input, `${header}${lock}${slots}${prompt}`, 72);
+  }
+
+  if (input.mode === "objective") {
+    const cards = [
+      ["sehen", "Stellen"],
+      ["setzen", "Ziffern"],
+      ["sichern", "Nullen"],
+    ]
+      .map(([verb, question], index) => {
+        const x = 190 + index * 550;
+        return `<g ${chalkStep(`quest-mission-${index + 1}`, { x, y: 330, width: 440, height: 310 })}><rect x="${x}" y="330" width="440" height="310" rx="32" fill="#dbeafe" opacity="0.18" stroke="#14213d" stroke-width="6"/><text x="${x + 220}" y="430" text-anchor="middle" font-family="Arial, sans-serif" font-size="72" font-weight="700" fill="#f59e0b">${verb}</text><text x="${x + 220}" y="535" text-anchor="middle" font-family="Arial, sans-serif" font-size="72" fill="#14213d">${question}</text></g>`;
+      })
+      .join("");
+    return wrapSvg(input, `${header}${cards}${prompt}`, 72);
+  }
+
+  const first = input.values[0]!;
+  const firstModel = placeValueModel(first.expression);
+
+  if (input.mode === "challenge") {
+    const expression = `<g ${chalkStep("quest-challenge-expression", { x: 250, y: 265, width: 1420, height: 110 }, first.factId)}><text x="960" y="350" text-anchor="middle" font-family="Arial, sans-serif" font-size="78" font-weight="700" fill="#14213d">${escapeXml(
+      firstModel.terms.map((term) => term.display).join(" + ")
+    )}</text></g>`;
+    return wrapSvg(
+      input,
+      `${header}${expression}${placeValueGrid({
+        model: firstModel,
+        factId: first.factId,
+        revealDigits: false,
+        y: 405,
+      })}${prompt}`,
+      72
+    );
+  }
+
+  if (input.mode === "mistake") {
+    const correct = firstModel.value;
+    const incorrectDigits = firstModel.digits.filter((digit) => digit !== "0");
+    const incorrect = BigInt(incorrectDigits.join("") || "0");
+    const incorrectCard = `<g ${chalkStep("quest-mistake-wrong", { x: 210, y: 315, width: 650, height: 190 })} data-math-status="incorrect-derived"><rect x="210" y="315" width="650" height="190" rx="30" fill="#dc2626" opacity="0.17" stroke="#dc2626" stroke-width="7"/><text x="535" y="405" text-anchor="middle" font-family="Arial, sans-serif" font-size="72" fill="#14213d">Nullen weg?</text><text x="535" y="485" text-anchor="middle" font-family="Arial, sans-serif" font-size="88" font-weight="700" fill="#dc2626">${formattedGermanInteger(incorrect)}</text><path d="M260 350L810 475M810 350L260 475" stroke="#dc2626" stroke-width="12"/></g>`;
+    const correctCard = `<g ${chalkStep("quest-mistake-correct", { x: 1060, y: 315, width: 650, height: 190 }, first.factId)}><rect x="1060" y="315" width="650" height="190" rx="30" fill="#dbeafe" opacity="0.2" stroke="#f59e0b" stroke-width="8"/><text x="1385" y="405" text-anchor="middle" font-family="Arial, sans-serif" font-size="72" fill="#14213d">Stellen gesichert</text><text x="1385" y="485" text-anchor="middle" font-family="Arial, sans-serif" font-size="88" font-weight="700" fill="#14213d">${formattedGermanInteger(correct)}</text></g>`;
+    const zeroes = firstModel.digits
+      .map((digit, index) => ({ digit, index }))
+      .filter(({ digit }) => digit === "0")
+      .map(
+        ({ index }, zeroIndex) =>
+          `<g ${chalkStep(`quest-zero-placeholder-${zeroIndex + 1}`, { x: 590 + zeroIndex * 420, y: 560, width: 320, height: 145 }, first.factId)}><rect x="${590 + zeroIndex * 420}" y="560" width="320" height="145" rx="26" fill="#f59e0b" opacity="0.24" stroke="#f59e0b" stroke-width="6"/><text x="${750 + zeroIndex * 420}" y="655" text-anchor="middle" font-family="Arial, sans-serif" font-size="82" font-weight="700" fill="#14213d">${firstModel.labels[index]} = Null</text></g>`
+      )
+      .join("");
+    return wrapSvg(
+      input,
+      `${header}${incorrectCard}<path d="M895 410H1025M990 375L1025 410L990 445" fill="none" stroke="#f59e0b" stroke-width="10" ${chalkStep("quest-mistake-arrow", { x: 885, y: 360, width: 150, height: 100 })}/>${correctCard}${zeroes}${prompt}`,
+      72
+    );
+  }
+
+  if (input.mode === "recap") {
+    const second = input.values[1]!;
+    const secondModel = placeValueModel(second.expression);
+    const cards = [first, second]
+      .map((value, index) => {
+        const model = index === 0 ? firstModel : secondModel;
+        const x = 260 + index * 820;
+        return `<g ${chalkStep(`quest-recap-code-${index + 1}`, { x, y: 320, width: 580, height: 180 }, value.factId)}><rect x="${x}" y="320" width="580" height="180" rx="30" fill="#dbeafe" opacity="0.2" stroke="#f59e0b" stroke-width="7"/><text x="${x + 290}" y="435" text-anchor="middle" font-family="Arial, sans-serif" font-size="92" font-weight="700" fill="#14213d">${formattedGermanInteger(model.value)}</text></g>`;
+      })
+      .join("");
+    const rule = `<g ${chalkStep("quest-recap-rule", { x: 240, y: 555, width: 1440, height: 135 })}>${[
+      "Stellen",
+      "Ziffern",
+      "Nullen",
+    ]
+      .map((label, index) => {
+        const x = 240 + index * 520;
+        return `<rect x="${x}" y="555" width="400" height="125" rx="24" fill="#dbeafe" opacity="0.18" stroke="#64748b" stroke-width="5"/><text x="${x + 200}" y="640" text-anchor="middle" font-family="Arial, sans-serif" font-size="72" font-weight="700" fill="#14213d">${label}</text>${index < 2 ? `<path d="M${x + 415} 618H${x + 495}M${x + 465} 588L${x + 495} 618L${x + 465} 648" fill="none" stroke="#f59e0b" stroke-width="8"/>` : ""}`;
+      })
+      .join("")}</g>`;
+    return wrapSvg(input, `${header}${cards}${rule}${prompt}`, 72);
+  }
+
+  const source = input.mode === "worked-example" ? input.values[0]! : first;
+  const answer = input.mode === "worked-example" ? input.values[1]! : first;
+  const sourceModel = placeValueModel(source.expression);
+  const answerModel = placeValueModel(answer.expression);
+  const sourceDisplay =
+    sourceModel.terms.length > 1
+      ? sourceModel.terms.map((term) => term.display).join(" + ")
+      : formattedGermanInteger(sourceModel.value);
+  const sourceMarkup = `<g ${chalkStep("quest-source", { x: 180, y: 255, width: 1560, height: 105 }, source.factId)}><text x="960" y="335" text-anchor="middle" font-family="Arial, sans-serif" font-size="78" font-weight="700" fill="#14213d">${escapeXml(sourceDisplay)}</text></g>`;
+  const terms =
+    sourceModel.terms.length > 1
+      ? `<g ${chalkStep("quest-place-arrows", { x: 250, y: 345, width: 1420, height: 95 }, source.factId)}>${sourceModel.terms
+          .map((term, index) => {
+            const termX =
+              350 + (index * 1220) / Math.max(1, sourceModel.terms.length - 1);
+            const columnWidth = 1380 / sourceModel.labels.length;
+            const targetX = 270 + columnWidth * (term.columnIndex + 0.5);
+            return `<path d="M${termX} 355 Q${(termX + targetX) / 2} 390 ${targetX} 425" fill="none" stroke="#f59e0b" stroke-width="7" marker-end="url(#quest-arrow)"/>`;
+          })
+          .join("")}</g>`
+      : "";
+  const result = `<g ${chalkStep("quest-result", { x: 420, y: 755, width: 1080, height: 115 }, answer.factId)}><rect x="420" y="755" width="1080" height="115" rx="28" fill="#dbeafe" opacity="0.22" stroke="#f59e0b" stroke-width="7"/><text x="960" y="838" text-anchor="middle" font-family="Arial, sans-serif" font-size="90" font-weight="700" fill="#14213d">${formattedGermanInteger(answerModel.value)}</text></g>`;
+  const body = `${header}<defs><marker id="quest-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0 0L10 5L0 10Z" fill="#f59e0b"/></marker></defs>${sourceMarkup}${terms}${placeValueGrid(
+    {
+      model: answerModel,
+      factId: answer.factId,
+      revealDigits: true,
+      highlightZeroes: true,
+      y: 415,
+    }
+  )}${result}`;
   return wrapSvg(input, body, 72);
 }
 
@@ -1260,6 +1567,8 @@ export function renderSemanticComponent(raw: unknown): VisualComponentResult {
       return renderFactStack(input);
     case "place-value-chart":
       return renderPlaceValueChart(input);
+    case "place-value-activity":
+      return renderPlaceValueActivity(input);
     case "number-line-focus":
       return renderNumberLineFocus(input);
     case "tally-table":

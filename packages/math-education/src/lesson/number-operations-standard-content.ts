@@ -116,7 +116,7 @@ const definitions: readonly ContentDefinition[] = [
     misconception: "Nullen zwischen besetzten Stellen werden ausgelassen.",
     conceptIds: ["place-value", "digit"],
     modelVisual: "place-value-chart",
-    practiceVisual: "number-line",
+    practiceVisual: "place-value-chart",
     example: task(
       "example-main",
       "700000+30000+400+5",

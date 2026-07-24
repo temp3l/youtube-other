@@ -53,7 +53,7 @@ export const mathSceneAssetSchema = z.strictObject({
     .strictObject({
       text: z.string().min(1).max(180),
       lines: z.array(z.string().min(1).max(60)).min(1).max(3),
-      fontSizePx: z.literal(44),
+      fontSizePx: z.literal(48),
     })
     .optional(),
   teacher: z

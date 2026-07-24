@@ -11,6 +11,7 @@ import {
   generateLocalMockTts,
   MATH_REMOTION_RUNNER_VERSION,
   MATH_SVG_RENDERER_VERSION,
+  MATH_THINK_PAUSE_SECONDS,
   renderProviderFreeMathMedia,
   type MathSceneAsset,
   type SemanticMathComponent,
@@ -94,7 +95,7 @@ export const CANONICAL_PRIVATE_FACT_BOARD_MINIMUM_GLYPH_PX = 72;
 export const CANONICAL_PRIVATE_NARRATION_SYNC_VERSION =
   "math-narration-sync.v1" as const;
 export const CANONICAL_PRIVATE_NARRATION_MAX_TEMPO_RATIO = 2;
-export const CANONICAL_PRIVATE_VISUAL_STYLE_VERSION = 4;
+export const CANONICAL_PRIVATE_VISUAL_STYLE_VERSION = 5;
 export const CANONICAL_PRIVATE_RENDERER_VERSIONS = {
   svg: MATH_SVG_RENDERER_VERSION,
   formula: "math-svg.v2",
@@ -569,8 +570,65 @@ export function selectCanonicalSemanticComponent(
     readonly title: string;
     readonly body: string;
     readonly prompt: string;
+    readonly skillId?: string;
+    readonly sceneFunction?: string;
   }
 ): SemanticMathComponent | null {
+  if (context?.skillId === "M5-ZO-001" && context.sceneFunction) {
+    const modes = {
+      hook: "hook",
+      objective: "objective",
+      model: "model",
+      "worked-example": "worked-example",
+      mistake: "mistake",
+      "guided-practice": "practice",
+      "think-pause": "challenge",
+      solution: "solution",
+      recap: "recap",
+    } as const;
+    const titles = {
+      hook: "Knack den Zahlencode!",
+      objective: "Deine Stellenwert-Mission",
+      model: "Baue den ersten Code",
+      "worked-example": "Vom Ausdruck zum Code",
+      mistake: "Die Null bleibt am Platz",
+      "guided-practice": "Trainiere das Stellenraster",
+      "think-pause": "Jetzt bist du dran",
+      solution: "Code-Auflösung",
+      recap: "Dein Stellenwert-Trick",
+    } as const;
+    const prompts = {
+      hook: "Welche Ziffer gehört später in welches Fach?",
+      objective: "Entdecken, ordnen und leere Stellen mit Nullen sichern.",
+      model: "Jeder Summand landet in genau einem Stellenfach.",
+      "worked-example": "Lies die fertige Zahl von links nach rechts.",
+      mistake: "Ohne Platzhalter rutschen die Ziffern zusammen.",
+      "guided-practice":
+        "Setze erst die Ziffern ein und sichere dann die Lücken.",
+      "think-pause": "Fülle jedes Fach und prüfe deine Zahl.",
+      solution: "Vergleiche Fach für Fach mit deiner Lösung.",
+      recap: "Erkläre, warum jede leere Stelle eine Null braucht.",
+    } as const;
+    const mode = modes[context.sceneFunction as keyof typeof modes];
+    const title = titles[context.sceneFunction as keyof typeof titles];
+    const prompt = prompts[context.sceneFunction as keyof typeof prompts];
+    if (!mode || !title || !prompt) return null;
+    if (boundFacts.some((fact) => fact.semantic.kind !== "scalar")) return null;
+    return {
+      kind: "place-value-activity",
+      mode,
+      title,
+      prompt,
+      values: boundFacts.map((fact) => {
+        if (fact.semantic.kind !== "scalar")
+          throw new Error("Place-value fact changed during selection.");
+        return {
+          factId: fact.factId,
+          expression: fact.semantic.expression,
+        };
+      }),
+    };
+  }
   if (boundFacts.length === 0)
     return context
       ? {
@@ -737,9 +795,24 @@ function canonicalSceneCaption(
     return fact.display;
   });
   const text =
-    localizedFacts.length > 0
-      ? `${label}: ${localizedFacts.join("; ")}`
-      : `${label}: ${input.lesson.learningObjective}`;
+    input.lesson.skillId === "M5-ZO-001"
+      ? ({
+          hook: "Zahlencode: Wo verstecken sich die Nullen?",
+          objective: "Mission: Große Zahlen sicher bauen und lesen.",
+          model: `Codekarte: ${localizedFacts.join("; ")}`,
+          "worked-example": `Vom Ausdruck zum Code: ${localizedFacts.join(
+            " → "
+          )}`,
+          mistake: `Nullen sichern: ${localizedFacts.join("; ")}`,
+          "guided-practice": `Neue Codekarte: ${localizedFacts.join("; ")}`,
+          "think-pause": `Denkzeit: ${localizedFacts.join("; ")}`,
+          solution: `Auflösung: ${localizedFacts.join("; ")}`,
+          recap: `Merke: ${localizedFacts.join(" und ")}`,
+        }[lessonScene.sceneFunction] ??
+        `${label}: ${localizedFacts.join("; ")}`)
+      : localizedFacts.length > 0
+        ? `${label}: ${localizedFacts.join("; ")}`
+        : `${label}: ${input.lesson.learningObjective}`;
   if (text.length > 180) {
     throw new Error(
       `Fact-bound caption exceeds the readable budget in ${scene.sceneId}.`
@@ -758,6 +831,8 @@ function canonicalSceneBoardContext(
   readonly title: string;
   readonly body: string;
   readonly prompt: string;
+  readonly skillId: string;
+  readonly sceneFunction: string;
 } {
   const lessonScene = input.lesson.scenes.find(
     (candidate) => candidate.sceneId === scene.sceneId
@@ -781,6 +856,8 @@ function canonicalSceneBoardContext(
         ? `Eine Leitfrage öffnet das Thema: ${input.lesson.learningObjective}.`
         : input.lesson.learningObjective,
     prompt,
+    skillId: input.lesson.skillId,
+    sceneFunction: lessonScene.sceneFunction,
   };
 }
 
@@ -790,10 +867,10 @@ const compatibleCanonicalVisualKinds: Readonly<
     readonly SemanticMathComponent["kind"][]
   >
 > = {
-  formula: ["formula", "fact-stack", "lesson-board"],
-  "place-value-chart": ["place-value-chart"],
+  formula: ["formula", "fact-stack", "lesson-board", "place-value-activity"],
+  "place-value-chart": ["place-value-chart", "place-value-activity"],
   "fraction-model": ["formula"],
-  "number-line": ["number-line", "number-line-focus"],
+  "number-line": ["number-line", "number-line-focus", "place-value-activity"],
   "coordinate-plane": ["graph"],
   "function-graph": ["graph"],
   geometry: ["geometry"],
@@ -801,7 +878,7 @@ const compatibleCanonicalVisualKinds: Readonly<
   "data-table": ["table", "tally-table"],
   "bar-chart": ["bar-chart"],
   "probability-tree": ["probability"],
-  teacher: ["formula", "fact-stack", "lesson-board"],
+  teacher: ["formula", "fact-stack", "lesson-board", "place-value-activity"],
 };
 
 function validateCanonicalVisualScene(input: {
@@ -856,7 +933,7 @@ function validateCanonicalVisualScene(input: {
       `Visual scene ${input.sceneId} has only ${steps.length} meaningful chalk beats.`
     );
   const countdownFrames = input.thinkPause
-    ? Math.min(300, input.sceneFrames)
+    ? Math.min(MATH_THINK_PAUSE_SECONDS * 30, input.sceneFrames)
     : 0;
   const schedule = createSemanticChalkSchedule({
     steps,
