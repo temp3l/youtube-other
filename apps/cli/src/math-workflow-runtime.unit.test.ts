@@ -7,6 +7,8 @@ import {
   buildCanonicalNarrationSynchronizationFilter,
   CANONICAL_PRIVATE_FACT_BOARD_MINIMUM_GLYPH_PX,
   CANONICAL_PRIVATE_NARRATION_MAX_TEMPO_RATIO,
+  CANONICAL_PRIVATE_RENDERER_VERSIONS,
+  CANONICAL_PRIVATE_VISUAL_STYLE_VERSION,
   CANONICAL_SPEECH_WORST_CASE_MULTIPLIER,
   estimateCanonicalPaidSpeechCostMicros,
   estimateCanonicalPaidSpeechRemainingCost,
@@ -16,9 +18,15 @@ import {
 
 describe("canonical math workflow runtime", () => {
   it("meets the grades 5-7 minimum glyph size", () => {
-    expect(CANONICAL_PRIVATE_FACT_BOARD_MINIMUM_GLYPH_PX).toBeGreaterThanOrEqual(
-      72
-    );
+    expect(
+      CANONICAL_PRIVATE_FACT_BOARD_MINIMUM_GLYPH_PX
+    ).toBeGreaterThanOrEqual(72);
+    expect(CANONICAL_PRIVATE_VISUAL_STYLE_VERSION).toBe(4);
+    expect(CANONICAL_PRIVATE_RENDERER_VERSIONS).toEqual({
+      svg: "math-svg.v6",
+      formula: "math-svg.v2",
+      remotion: "math-semantic-keyframe-runner.v4",
+    });
   });
 
   it("preserves overlong narration by tempo-synchronizing before exact padding", () => {
@@ -122,41 +130,38 @@ describe("canonical math workflow runtime", () => {
     });
   });
 
-  it("keeps a long single verified place-value expression out of table layout", () => {
-    const component = selectCanonicalSemanticComponent(
-      "place-value-chart",
-      [
-        {
-          factId: "example-main-source",
-          semantic: {
-            kind: "scalar",
-            expression: {
-              kind: "sum",
-              operands: [
-                { kind: "integer", value: "700000" },
-                { kind: "integer", value: "30000" },
-                { kind: "integer", value: "400" },
-                { kind: "integer", value: "5" },
-              ],
-            },
-          },
-          displayLatex: "700000+30000+400+5",
-          checkIds: ["check-example-main"],
-          lineage: {
-            contentContractVersion: "lesson-content-contract.v1",
-            sourceContentHash: "1".repeat(64),
-            sourceTaskId: "example-main",
+  it("materializes a verifier-bound place-value chart from the exact sum", () => {
+    const component = selectCanonicalSemanticComponent("place-value-chart", [
+      {
+        factId: "example-main-source",
+        semantic: {
+          kind: "scalar",
+          expression: {
+            kind: "sum",
+            operands: [
+              { kind: "integer", value: "700000" },
+              { kind: "integer", value: "30000" },
+              { kind: "integer", value: "400" },
+              { kind: "integer", value: "5" },
+            ],
           },
         },
-      ]
-    );
+        displayLatex: "700000+30000+400+5",
+        checkIds: ["check-example-main"],
+        lineage: {
+          contentContractVersion: "lesson-content-contract.v1",
+          sourceContentHash: "1".repeat(64),
+          sourceTaskId: "example-main",
+        },
+      },
+    ]);
     expect(component).toMatchObject({
-      kind: "formula",
-      value: { factId: "example-main-source" },
+      kind: "place-value-chart",
+      source: { factId: "example-main-source" },
     });
   });
 
-  it("does not forge a two-measurement rectangle from one tuple fact", () => {
+  it("keeps rectangle dimensions bound to their single verified tuple fact", () => {
     const component = selectCanonicalSemanticComponent("geometry", [
       {
         factId: "example-main-source",
@@ -170,7 +175,7 @@ describe("canonical math workflow runtime", () => {
             ],
           },
         },
-        displayLatex: "8\\,\\mathrm{cm}\\times5\\,\\mathrm{cm}",
+        displayLatex: "Rechteck 8 cm × 5 cm",
         checkIds: ["check-example-main"],
         lineage: {
           contentContractVersion: "lesson-content-contract.v1",
@@ -181,11 +186,68 @@ describe("canonical math workflow runtime", () => {
     ]);
 
     expect(component).toMatchObject({
-      kind: "formula",
-      value: {
+      kind: "geometry",
+      shape: "rectangle",
+      measurements: [
+        {
+          factId: "example-main-source",
+          expression: { kind: "tuple" },
+        },
+      ],
+    });
+  });
+
+  it("materializes an exact tally table instead of a generic fact board", () => {
+    const lineage = {
+      contentContractVersion: "lesson-content-contract.v1" as const,
+      sourceContentHash: "1".repeat(64),
+      sourceTaskId: "example-main",
+    };
+    const component = selectCanonicalSemanticComponent("data-table", [
+      {
+        factId: "example-main-source",
+        semantic: {
+          kind: "scalar",
+          expression: {
+            kind: "tuple",
+            items: [
+              { kind: "integer", value: "4" },
+              { kind: "integer", value: "3" },
+              { kind: "integer", value: "5" },
+            ],
+          },
+        },
+        displayLatex: "Apfel 4; Birne 3; Banane 5",
+        checkIds: ["check-example-main"],
+        lineage,
+      },
+      ...[
+        ["example-category-apfel", "Apfel", "4"],
+        ["example-category-birne", "Birne", "3"],
+        ["example-category-banane", "Banane", "5"],
+      ].map(([factId, category, value]) => ({
+        factId: factId!,
+        semantic: {
+          kind: "scalar" as const,
+          expression: { kind: "integer" as const, value: value! },
+        },
+        displayLatex: `${category}: ${value}`,
+        checkIds: ["check-example-main"],
+        lineage,
+      })),
+    ]);
+
+    expect(component).toMatchObject({
+      kind: "tally-table",
+      dataset: {
         factId: "example-main-source",
         expression: { kind: "tuple" },
       },
+      rows: [
+        { category: "Apfel", count: { factId: "example-category-apfel" } },
+        { category: "Birne", count: { factId: "example-category-birne" } },
+        { category: "Banane", count: { factId: "example-category-banane" } },
+      ],
     });
   });
 });

@@ -21,6 +21,7 @@
     "katex": "0.17.0",
     "react": "19.2.7",
     "remotion": "4.0.489",
+    "sharp": "^0.34.3",
     "zod": "^4.0.14"
   },
   "devDependencies": {

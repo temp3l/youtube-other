@@ -7,14 +7,15 @@ import { runCommand } from "@mediaforge/process-runner";
 import { hashFile, hashText } from "@mediaforge/shared";
 import { type TimingManifest } from "@mediaforge/math-education";
 import type { VideoConfig } from "remotion/no-react";
+import sharp from "sharp";
 import {
   createReadyMathComposition,
   type MathSceneAsset,
 } from "./composition.js";
 import {
+  createSemanticChalkSchedule,
   extractSemanticChalkSteps,
   renderSemanticChalkFrame,
-  semanticChalkWritingFrames,
 } from "./semantic-chalk.js";
 import {
   assertMathMediaReady,
@@ -22,7 +23,7 @@ import {
   type MathMediaValidation,
 } from "../quality/media-qa.js";
 
-export const MATH_REMOTION_RUNNER_VERSION = "math-semantic-keyframe-runner.v2";
+export const MATH_REMOTION_RUNNER_VERSION = "math-semantic-keyframe-runner.v4";
 
 function escapeXml(value: string): string {
   return value
@@ -36,25 +37,39 @@ function escapeXml(value: string): string {
 function chalkboardSvg(
   markup: string,
   caption: MathSceneAsset["caption"],
-  guide: ReturnType<typeof renderSemanticChalkFrame>["guide"],
-  progress: number
+  thinkSecondsRemaining: number | null
 ): string {
   const recolored = markup
     .replaceAll('fill="#f8fafc"', 'fill="#102b26"')
     .replaceAll('fill="#14213d"', 'fill="#f4efd8"')
-    .replaceAll("color:#14213d", "color:#f4efd8");
-  const chalk = guide
-    ? `<g data-semantic-chalk-writing="true"><path d="M ${guide.x1} ${guide.y} Q ${(guide.x1 + guide.x2) / 2} ${guide.y - 12} ${guide.x1 + (guide.x2 - guide.x1) * progress} ${guide.y}" fill="none" stroke="#f4efd8" stroke-width="9" stroke-linecap="round" opacity="0.9"/><circle cx="${guide.x1 + (guide.x2 - guide.x1) * progress}" cy="${guide.y}" r="10" fill="#fffbe8"/></g>`
-    : "";
+    .replaceAll('stroke="#14213d"', 'stroke="#f4efd8"')
+    .replaceAll('stroke="#64748b"', 'stroke="#9fc4ad"')
+    .replaceAll('fill="#dbeafe"', 'fill="#3f6f61"')
+    .replaceAll('fill="#f59e0b"', 'fill="#f4c95d"')
+    .replaceAll('stroke="#f59e0b"', 'stroke="#f4c95d"')
+    .replaceAll('fill="#dc2626"', 'fill="#ef8a7b"')
+    .replaceAll("color:#14213d", "color:#f4efd8")
+    .replaceAll(
+      'font-family="Arial, sans-serif"',
+      'font-family="Segoe Print, Comic Sans MS, Arial, sans-serif"'
+    );
+  const boardTexture = `<g data-board-surface="true" pointer-events="none"><rect x="24" y="24" width="1872" height="1032" rx="26" fill="none" stroke="#31574d" stroke-width="4"/><path d="M80 92H1840M80 988H1840" stroke="#183a32" stroke-width="3" opacity="0.65"/><g fill="#dce8dd" opacity="0.035">${Array.from({ length: 28 }, (_, index) => `<circle cx="${70 + ((index * 173) % 1780)}" cy="${80 + ((index * 97) % 900)}" r="${2 + (index % 3)}"/>`).join("")}</g></g>`;
+  const thinking =
+    thinkSecondsRemaining === null
+      ? ""
+      : `<g data-think-pause-countdown="true"><circle cx="1690" cy="150" r="72" fill="#183a32" stroke="#f4c95d" stroke-width="7"/><text x="1690" y="172" text-anchor="middle" font-family="Arial, sans-serif" font-size="62" font-weight="700" fill="#f4efd8">${thinkSecondsRemaining}</text><text x="1690" y="252" text-anchor="middle" font-family="Arial, sans-serif" font-size="36" fill="#f4c95d">Denkzeit</text></g>`;
   const captionMarkup = caption
-    ? `<g data-caption="true"><rect x="180" y="900" width="1560" height="126" rx="16" fill="#07111f" opacity="0.92"/>${caption.lines
+    ? `<g data-caption="true"><rect x="240" y="916" width="1440" height="96" rx="18" fill="#07111f" opacity="0.78"/>${caption.lines
         .map(
           (line, index) =>
-            `<text x="960" y="${956 + index * 48}" text-anchor="middle" font-family="Arial, sans-serif" font-size="44" fill="#ffffff">${escapeXml(line)}</text>`
+            `<text x="960" y="${974 + index * 46}" text-anchor="middle" font-family="Arial, sans-serif" font-size="44" fill="#ffffff">${escapeXml(line)}</text>`
         )
         .join("")}</g>`
     : "";
-  return recolored.replace("</svg>", `${chalk}${captionMarkup}</svg>`);
+  return recolored.replace(
+    "</svg>",
+    `${boardTexture}${thinking}${captionMarkup}</svg>`
+  );
 }
 
 function concatPath(filePath: string): string {
@@ -163,7 +178,8 @@ async function sceneProps(
         svgMarkup: svg,
         animation: scene.animation ?? {
           mode: "progressive-chalk-reveal" as const,
-          rendererVersion: "math-semantic-chalk.v2" as const,
+          rendererVersion: "math-semantic-chalk.v3" as const,
+          activity: "standard" as const,
         },
         ...(scene.caption ? { caption: scene.caption } : {}),
       };
@@ -184,9 +200,20 @@ async function renderSemanticKeyframes(input: {
   durationInFrames: number;
 }): Promise<string> {
   const keyframesRoot = path.join(input.workDir, "semantic-keyframes");
+  const rasterCacheRoot = path.join(input.workDir, "semantic-raster-cache");
+  const videoCacheRoot = path.join(input.workDir, "semantic-video-cache");
   await fs.rm(keyframesRoot, { recursive: true, force: true });
-  await fs.mkdir(keyframesRoot, { recursive: true });
-  const entries: Array<{ filePath: string; frames: number }> = [];
+  await Promise.all([
+    fs.mkdir(keyframesRoot, { recursive: true }),
+    fs.mkdir(rasterCacheRoot, { recursive: true }),
+    fs.mkdir(videoCacheRoot, { recursive: true }),
+  ]);
+  const entries: Array<{
+    sceneId: string;
+    filePath: string;
+    frames: number;
+    svgHash: string;
+  }> = [];
   let sequence = 0;
   for (const [sceneIndex, scene] of input.props.entries()) {
     const frameRange = input.frameRanges[sceneIndex];
@@ -195,125 +222,257 @@ async function renderSemanticKeyframes(input: {
       throw new Error(`Semantic keyframe scene mismatch at ${scene.sceneId}.`);
     const sceneFrames = frameRange.endFrame - frameRange.startFrame;
     const steps = extractSemanticChalkSteps(scene.svgMarkup);
-    const writingFrames =
-      steps.length > 0 ? semanticChalkWritingFrames(sceneFrames) : 0;
-    const sampleCount = Math.max(1, steps.length * 12);
-    const starts =
-      writingFrames > 0
-        ? [
-            ...new Set(
-              Array.from({ length: sampleCount }, (_, index) =>
-                Math.floor((index * writingFrames) / sampleCount)
-              )
-            ),
-          ]
-        : [];
+    const isThinkPause = scene.animation.activity === "think-pause";
+    const countdownFrames = Math.min(300, sceneFrames);
+    const countdownStart = sceneFrames - countdownFrames;
+    const schedule = createSemanticChalkSchedule({
+      steps,
+      sceneFrames,
+      ...(scene.animation.cues ? { cues: scene.animation.cues } : {}),
+      ...(isThinkPause ? { writingEndFrame: countdownStart } : {}),
+    });
+    const sampledStarts = new Set<number>([0]);
+    for (const timing of schedule) {
+      for (let sample = 0; sample < 8; sample += 1)
+        sampledStarts.add(
+          Math.floor(
+            timing.startFrame +
+              ((timing.endFrame - timing.startFrame) * sample) / 8
+          )
+        );
+      sampledStarts.add(timing.endFrame);
+    }
+    if (isThinkPause)
+      for (let frame = countdownStart; frame < sceneFrames; frame += 30)
+        sampledStarts.add(frame);
+    const starts = [...sampledStarts]
+      .filter((frame) => frame >= 0 && frame < sceneFrames)
+      .sort((left, right) => left - right);
     for (const [sampleIndex, start] of starts.entries()) {
-      const end = starts[sampleIndex + 1] ?? writingFrames;
+      const end = starts[sampleIndex + 1] ?? sceneFrames;
       if (end <= start) continue;
       const frame = renderSemanticChalkFrame({
         svgMarkup: scene.svgMarkup,
         steps,
         localFrame: start,
         sceneFrames,
+        ...(scene.animation.cues ? { cues: scene.animation.cues } : {}),
+        schedule,
       });
       const filePath = path.join(
         keyframesRoot,
         `${String(sequence++).padStart(4, "0")}.svg`
       );
-      await fs.writeFile(
-        filePath,
-        chalkboardSvg(
-          frame.svgMarkup,
-          source.caption,
-          frame.guide,
-          frame.stepProgress
-        ),
-        "utf8"
+      const svgMarkup = chalkboardSvg(
+        frame.svgMarkup,
+        source.caption,
+        isThinkPause && start >= countdownStart
+          ? Math.max(1, Math.ceil((sceneFrames - start) / 30))
+          : null
       );
-      entries.push({ filePath, frames: end - start });
+      await fs.writeFile(filePath, svgMarkup, "utf8");
+      entries.push({
+        sceneId: scene.sceneId,
+        filePath,
+        frames: end - start,
+        svgHash: hashText(svgMarkup),
+      });
     }
-    const finalFrame = renderSemanticChalkFrame({
-      svgMarkup: scene.svgMarkup,
-      steps,
-      localFrame: writingFrames,
-      sceneFrames,
-    });
-    const finalPath = path.join(
-      keyframesRoot,
-      `${String(sequence++).padStart(4, "0")}.svg`
-    );
-    await fs.writeFile(
-      finalPath,
-      chalkboardSvg(finalFrame.svgMarkup, source.caption, null, 1),
-      "utf8"
-    );
-    entries.push({ filePath: finalPath, frames: sceneFrames - writingFrames });
   }
   if (
     entries.reduce((total, entry) => total + entry.frames, 0) !==
     input.durationInFrames
   )
-    throw new Error("Semantic keyframe durations do not match the composition.");
-  const rasterEntries = entries.map((entry, index) => ({
+    throw new Error(
+      "Semantic keyframe durations do not match the composition."
+    );
+  const rasterEntries = entries.map((entry) => ({
     ...entry,
-    filePath: path.join(
-      keyframesRoot,
-      `${String(index).padStart(4, "0")}.png`
-    ),
+    filePath: path.join(rasterCacheRoot, `${entry.svgHash}.png`),
   }));
+  const rasterJobs = [
+    ...new Map(
+      rasterEntries.map((entry, index) => [
+        entry.svgHash,
+        { rasterEntry: entry, svgEntry: entries[index]! },
+      ])
+    ).values(),
+  ];
   let nextRaster = 0;
   const rasterWorkers = Array.from(
-    { length: Math.min(4, rasterEntries.length) },
+    { length: Math.min(4, rasterJobs.length) },
     async () => {
       for (;;) {
         const index = nextRaster++;
-        const rasterEntry = rasterEntries[index];
-        const svgEntry = entries[index];
-        if (!rasterEntry || !svgEntry) return;
-        await runCommand(
-          "ffmpeg",
-          [
-            "-hide_banner", "-loglevel", "error", "-y",
-            "-i", svgEntry.filePath,
-            "-frames:v", "1",
-            "-vf", "scale=1920:1080",
-            "-update", "1",
-            rasterEntry.filePath,
-          ],
-          { timeoutMs: 30_000 }
-        );
+        const job = rasterJobs[index];
+        if (!job) return;
+        try {
+          const metadata = await sharp(job.rasterEntry.filePath).metadata();
+          if (metadata.width === 1920 && metadata.height === 1080) continue;
+        } catch {
+          // Populate a missing or incomplete cache entry below.
+        }
+        const temporary = `${job.rasterEntry.filePath}.${process.pid}-${index}.tmp.png`;
+        try {
+          await sharp(job.svgEntry.filePath)
+            .resize(1920, 1080, { fit: "fill" })
+            .png({ compressionLevel: 6 })
+            .toFile(temporary);
+          await fs.rename(temporary, job.rasterEntry.filePath);
+        } finally {
+          await fs.unlink(temporary).catch(() => undefined);
+        }
       }
     }
   );
   await Promise.all(rasterWorkers);
   for (const entry of rasterEntries) await fs.access(entry.filePath);
-  const concatFile = path.join(keyframesRoot, "frames.ffconcat");
-  const lines = ["ffconcat version 1.0"];
-  for (const entry of rasterEntries) {
-    lines.push(`file '${concatPath(entry.filePath)}'`);
-    lines.push(`duration ${(entry.frames / 30).toFixed(9)}`);
+  const sceneVideos: Array<{
+    sceneId: string;
+    filePath: string;
+    cacheKey: string;
+    frames: number;
+  }> = [];
+  for (const [sceneIndex, frameRange] of input.frameRanges.entries()) {
+    const sceneEntries = rasterEntries.filter(
+      (entry) => entry.sceneId === frameRange.sceneId
+    );
+    const sceneFrames = frameRange.endFrame - frameRange.startFrame;
+    if (
+      sceneEntries.length === 0 ||
+      sceneEntries.reduce((total, entry) => total + entry.frames, 0) !==
+        sceneFrames
+    )
+      throw new Error(
+        `Semantic keyframe durations do not match scene ${frameRange.sceneId}.`
+      );
+    const cacheKey = hashText(
+      JSON.stringify({
+        renderer: "math-semantic-scene-video-cache.v1",
+        sceneId: frameRange.sceneId,
+        frames: sceneEntries.map((entry) => ({
+          svgHash: entry.svgHash,
+          frames: entry.frames,
+        })),
+        encoding: "h264-yuv420p-ultrafast-crf20-stillimage",
+      })
+    );
+    const cachedVideo = path.join(videoCacheRoot, `${cacheKey}.mp4`);
+    let cacheHit = false;
+    try {
+      cacheHit = (await fs.stat(cachedVideo)).size > 0;
+    } catch {
+      // Encode a missing scene checkpoint below.
+    }
+    if (!cacheHit) {
+      const concatFile = path.join(
+        keyframesRoot,
+        `scene-${String(sceneIndex).padStart(2, "0")}.ffconcat`
+      );
+      const lines = ["ffconcat version 1.0"];
+      for (const entry of sceneEntries) {
+        lines.push(`file '${concatPath(entry.filePath)}'`);
+        lines.push(`duration ${(entry.frames / 30).toFixed(9)}`);
+      }
+      lines.push(
+        `file '${concatPath(sceneEntries.at(-1)!.filePath)}'`
+      );
+      await fs.writeFile(concatFile, `${lines.join("\n")}\n`, "utf8");
+      const temporary = `${cachedVideo}.${process.pid}-${sceneIndex}.tmp.mp4`;
+      try {
+        await runCommand(
+          "ffmpeg",
+          [
+            "-hide_banner",
+            "-loglevel",
+            "error",
+            "-y",
+            "-f",
+            "concat",
+            "-safe",
+            "0",
+            "-i",
+            concatFile,
+            "-an",
+            "-vf",
+            "fps=30,scale=1920:1080,format=yuv420p",
+            "-frames:v",
+            String(sceneFrames),
+            "-c:v",
+            "libx264",
+            "-preset",
+            "ultrafast",
+            "-crf",
+            "20",
+            "-tune",
+            "stillimage",
+            temporary,
+          ],
+          { timeoutMs: 60_000 }
+        );
+        await fs.rename(temporary, cachedVideo);
+      } finally {
+        await fs.unlink(temporary).catch(() => undefined);
+      }
+    }
+    sceneVideos.push({
+      sceneId: frameRange.sceneId,
+      filePath: cachedVideo,
+      cacheKey,
+      frames: sceneFrames,
+    });
   }
-  const lastEntry = rasterEntries.at(-1);
-  if (!lastEntry) throw new Error("Semantic keyframe plan is empty.");
-  lines.push(`file '${concatPath(lastEntry.filePath)}'`);
-  await fs.writeFile(concatFile, `${lines.join("\n")}\n`, "utf8");
-  await runCommand(
-    "ffmpeg",
-    [
-      "-hide_banner", "-loglevel", "error", "-y",
-      "-f", "concat", "-safe", "0", "-i", concatFile,
-      "-an", "-vf", "fps=30,scale=1920:1080,format=yuv420p",
-      "-frames:v", String(input.durationInFrames),
-      "-c:v", "libx264", "-preset", "veryfast", "-crf", "23",
-      input.silentPath,
-    ],
-    { timeoutMs: 240_000 }
+  const concatFile = path.join(keyframesRoot, "scenes.ffconcat");
+  await fs.writeFile(
+    concatFile,
+    `${[
+      "ffconcat version 1.0",
+      ...sceneVideos.map(
+        (scene) => `file '${concatPath(scene.filePath)}'`
+      ),
+    ].join("\n")}\n`,
+    "utf8"
   );
+  const temporarySilent = `${input.silentPath}.${process.pid}.tmp.mp4`;
+  try {
+    await runCommand(
+      "ffmpeg",
+      [
+        "-hide_banner",
+        "-loglevel",
+        "error",
+        "-y",
+        "-f",
+        "concat",
+        "-safe",
+        "0",
+        "-i",
+        concatFile,
+        "-map",
+        "0:v:0",
+        "-c",
+        "copy",
+        "-an",
+        "-map_metadata",
+        "-1",
+        "-movflags",
+        "+faststart",
+        temporarySilent,
+      ],
+      { timeoutMs: 60_000 }
+    );
+    await fs.rename(temporarySilent, input.silentPath);
+  } finally {
+    await fs.unlink(temporarySilent).catch(() => undefined);
+  }
   return hashText(
     JSON.stringify({
-      renderer: "math-semantic-keyframe-ffmpeg.v1",
-      frames: rasterEntries.map((entry) => entry.frames),
+      renderer: "math-semantic-keyframe-sharp-segmented.v3",
+      scenes: sceneVideos.map((scene) => ({
+        sceneId: scene.sceneId,
+        cacheKey: scene.cacheKey,
+        frames: scene.frames,
+      })),
     })
   );
 }

@@ -1,0 +1,138 @@
+import { describe, expect, it } from "vitest";
+
+import { extractSemanticChalkSteps } from "../composition/semantic-chalk.js";
+import { renderSemanticComponent } from "./math-components.js";
+
+const integer = (value: string) => ({ kind: "integer" as const, value });
+
+describe("canonical chalkboard components", () => {
+  it("renders place-value digits, including internal zeroes, as sequenced chalk beats", () => {
+    const rendered = renderSemanticComponent({
+      kind: "place-value-chart",
+      source: {
+        factId: "example-main-source",
+        expression: {
+          kind: "sum",
+          operands: [
+            integer("700000"),
+            integer("30000"),
+            integer("400"),
+            integer("5"),
+          ],
+        },
+      },
+    });
+
+    expect(rendered.component).toBe("place-value-chart");
+    expect(rendered.svg).toContain("= 730405</text>");
+    expect(rendered.svg).toContain('data-chalk-step="place-digit-6"');
+    expect(extractSemanticChalkSteps(rendered.svg).length).toBeGreaterThan(8);
+  });
+
+  it("draws a tuple-bound rectangle edge by edge", () => {
+    const rendered = renderSemanticComponent({
+      kind: "geometry",
+      shape: "rectangle",
+      measurements: [
+        {
+          factId: "example-main-source",
+          expression: {
+            kind: "tuple",
+            items: [integer("8"), integer("5")],
+          },
+        },
+      ],
+      scaleMode: "not-to-scale",
+      visibleScaleLabel: "nicht maßstabsgetreu",
+      accessibleDescription: "Rechteck mit Breite acht und Höhe fünf.",
+    });
+
+    expect(rendered.factIds).toEqual(["example-main-source"]);
+    expect(rendered.svg).toContain('data-chalk-step="geometry-edge-top"');
+    expect(rendered.svg).toContain(
+      'data-chalk-step="geometry-perimeter-trace"'
+    );
+  });
+
+  it("keeps multi-step fact cards below the heading with readable operators", () => {
+    const rendered = renderSemanticComponent({
+      kind: "fact-stack",
+      title: "Beispiel",
+      facts: [
+        {
+          kind: "scalar",
+          factId: "source",
+          expression: integer("730405"),
+          display: "700000+30000+400+5",
+        },
+        {
+          kind: "scalar",
+          factId: "result",
+          expression: integer("730405"),
+          display: "730405",
+        },
+      ],
+    });
+
+    expect(rendered.svg).toContain(
+      'data-chalk-box="270,240,1380,160"'
+    );
+    expect(rendered.svg).toContain("700000 + 30000 + 400 + 5");
+  });
+
+  it("uses five widely spaced ticks for large focused numbers", () => {
+    const rendered = renderSemanticComponent({
+      kind: "number-line-focus",
+      focus: {
+        factId: "focus",
+        expression: {
+          kind: "sum",
+          operands: [integer("600000"), integer("4000"), integer("70")],
+        },
+      },
+    });
+
+    expect(
+      rendered.svg.match(/data-chalk-step="number-tick-/gu)
+    ).toHaveLength(5);
+    expect(rendered.svg).toContain('x1="300" y1="505" x2="1620"');
+  });
+
+  it("rejects tally rows that differ from the verifier-bound dataset", () => {
+    expect(() =>
+      renderSemanticComponent({
+        kind: "tally-table",
+        dataset: {
+          factId: "example-main-source",
+          expression: {
+            kind: "tuple",
+            items: [integer("4"), integer("3"), integer("5")],
+          },
+        },
+        rows: [
+          {
+            category: "Apfel",
+            count: {
+              factId: "example-category-apfel",
+              expression: integer("4"),
+            },
+          },
+          {
+            category: "Birne",
+            count: {
+              factId: "example-category-birne",
+              expression: integer("2"),
+            },
+          },
+          {
+            category: "Banane",
+            count: {
+              factId: "example-category-banane",
+              expression: integer("5"),
+            },
+          },
+        ],
+      })
+    ).toThrow(/differs from its verifier-bound dataset tuple/u);
+  });
+});

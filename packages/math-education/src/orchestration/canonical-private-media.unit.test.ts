@@ -9,9 +9,7 @@ import { loadCurriculumRelease } from "../curriculum/release.js";
 import { createReviewedMetadataContext } from "../metadata/math-metadata.js";
 import { loadPrivateOwnerAttestation } from "../review/private-owner-attestation.js";
 import { canonicalHash } from "../verification/canonical-json.js";
-import {
-  verifyCanonicalPrivateMediaEvidenceFiles,
-} from "./canonical-task-adapters.js";
+import { verifyCanonicalPrivateMediaEvidenceFiles } from "./canonical-task-adapters.js";
 
 const curriculumRoot = path.resolve(
   "packages/math-education/data/curriculum/v1"
@@ -118,7 +116,15 @@ describe("canonical private media", () => {
       renderFingerprint: "5".repeat(64),
       visualPresentation: {
         strategy: "progressive-chalk-reveal" as const,
-        rendererVersion: "math-semantic-chalk.v2" as const,
+        rendererVersion: "math-semantic-chalk.v3" as const,
+      },
+      visualValidation: {
+        valid: true as const,
+        plannedComponentsRealized: true as const,
+        genericFallbackUsed: false as const,
+        cueCoveragePassed: true as const,
+        minimumSceneStepCount: 4,
+        maximumStaticIntervalFrames: 180,
       },
       publication: {
         visibility: "private" as const,

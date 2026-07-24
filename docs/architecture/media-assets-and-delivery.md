@@ -42,6 +42,9 @@ Full and short media stay separate. Metadata and audio remain sibling or downstr
 ## Rendering
 
 - Rendering is `ffmpeg`-based and can operate locally or through a remote SSH plus `rsync` worker.
+- Canonical private math lessons render verified facts through semantic board components rather than generic text cards. The component set includes lesson boards, fact stacks, place-value charts, focused number lines, geometry diagrams, and tally tables; unsupported planned components fail closed.
+- The math keyframe renderer progressively reveals SVG strokes and text from narration cues, includes bounded think-pause countdowns, and persists content-addressed raster and per-scene video caches so an interrupted render can resume without regenerating speech.
+- Canonical math final-media evidence records whether planned components were realized, whether a generic fallback was used, narration-cue coverage, minimum scene-step count, and maximum static interval. The private quality gate requires this visual evidence to pass.
 - Scene clip manifests record hashes, render profile details, and renderer provenance for resumability and validation.
 - Final render manifests are explicit downstream `render` artifacts. They are variant-aware, preserve upstream dependency fingerprints, and enforce `youtube` for full outputs versus portrait `vertical` for shorts.
 - Thumbnail generation is a separate `thumbnail` ownership stage under locale plus variant roots. Full thumbnails are exact `1536x864`; short thumbnails are exact `864x1536`.

@@ -160,7 +160,9 @@ function print(value: unknown): void {
 function parseSpeechRate(value: string): number {
   const parsed = Number(value);
   if (!Number.isFinite(parsed) || parsed < 80 || parsed > 220)
-    throw new Error("--speech-rate must be between 80 and 220 words per minute.");
+    throw new Error(
+      "--speech-rate must be between 80 and 220 words per minute."
+    );
   return parsed;
 }
 
@@ -181,8 +183,7 @@ function parseSpeechSelection(
       throw new Error(
         `Invalid --speech-selection ${value}; use narr-chunk-001=2.`
       );
-    result[match[1]] =
-      match[2] === "1" ? 1 : match[2] === "2" ? 2 : 3;
+    result[match[1]] = match[2] === "1" ? 1 : match[2] === "2" ? 2 : 3;
   }
   return result;
 }
@@ -210,7 +211,9 @@ function mathSpeechRuntimeOverrides(
 function parseProviderCostUsd(value: string): number {
   const parsed = Number(value);
   if (!Number.isFinite(parsed) || parsed <= 0 || parsed > 100) {
-    throw new Error("--max-provider-cost-usd must be greater than 0 and no more than 100.");
+    throw new Error(
+      "--max-provider-cost-usd must be greater than 0 and no more than 100."
+    );
   }
   return parsed;
 }
@@ -225,8 +228,7 @@ function parseProviderCostPerLessonUsd(value: string): number {
   return parsed;
 }
 
-const CANONICAL_PINNED_SPEECH_MODEL =
-  "gpt-4o-mini-tts-2025-12-15" as const;
+const CANONICAL_PINNED_SPEECH_MODEL = "gpt-4o-mini-tts-2025-12-15" as const;
 
 interface CanonicalPaidSpeechEstimate {
   readonly chunks: number;
@@ -282,7 +284,9 @@ async function canonicalPaidSpeechPreflight(input: {
     80,
     Math.min(220, Math.round(words / 3.6))
   );
-  const runtime = await loadRuntimeConfig(mathSpeechRuntimeOverrides(input.options));
+  const runtime = await loadRuntimeConfig(
+    mathSpeechRuntimeOverrides(input.options)
+  );
   const profile = resolveSpeechDeliveryProfile(
     "education-natural-teacher",
     input.language,
@@ -325,7 +329,8 @@ async function canonicalPaidSpeechPreflight(input: {
     dryRun: true,
     maxAttempts: 3,
   });
-  if (dryRun.status !== "dry-run") throw new Error("Speech plan was not dry-run.");
+  if (dryRun.status !== "dry-run")
+    throw new Error("Speech plan was not dry-run.");
   const remainingEstimate = estimateCanonicalPaidSpeechRemainingCost({
     targetDurationSeconds: lesson.targetDurationSeconds,
     planChunks: plan.chunks,
@@ -427,14 +432,18 @@ async function canonicalPaidSpeechSetup(input: {
   };
 }
 
-async function runMathSpeechGenerate(options: MathSpeechOptions): Promise<void> {
+async function runMathSpeechGenerate(
+  options: MathSpeechOptions
+): Promise<void> {
   const profileId = speechDeliveryProfileIdSchema.parse(options.speechProfile);
   const paths = new MathWorkspacePathResolver(options.workspace);
   const lessonRoot = paths.lesson(options.lesson);
   const manifestPath = paths.manifest(options.lesson);
   const manifest = await loadWorkflowManifest(manifestPath);
   if (!manifest || manifest.lessonId !== options.lesson)
-    throw new Error(`Missing or identity-mismatched workflow manifest for ${options.lesson}.`);
+    throw new Error(
+      `Missing or identity-mismatched workflow manifest for ${options.lesson}.`
+    );
   const narrationRelativePath = `locales/${options.language}/narration.json`;
   const narration = await readAuthoritativeStageArtifact({
     root: lessonRoot,
@@ -457,7 +466,9 @@ async function runMathSpeechGenerate(options: MathSpeechOptions): Promise<void> 
     narration.lessonId !== options.lesson ||
     lesson.lessonId !== options.lesson
   )
-    throw new Error("Educational speech inputs do not match the requested lesson/language.");
+    throw new Error(
+      "Educational speech inputs do not match the requested lesson/language."
+    );
   const runtime = await loadRuntimeConfig(mathSpeechRuntimeOverrides(options));
   const model =
     runtime.openAiSpeechModel ??
@@ -633,10 +644,11 @@ async function runMathSpeechCompare(
     rawFixture.fixtureVersion !== "educational-speech-listening.v1"
   )
     throw new Error(`Listening fixture identity does not match ${language}.`);
-  const beats = educationalNarrationBeatSchema.array().min(1).parse(rawFixture.beats);
-  const runtime = await loadRuntimeConfig(
-    mathSpeechRuntimeOverrides(options)
-  );
+  const beats = educationalNarrationBeatSchema
+    .array()
+    .min(1)
+    .parse(rawFixture.beats);
+  const runtime = await loadRuntimeConfig(mathSpeechRuntimeOverrides(options));
   const model =
     runtime.openAiSpeechModel ??
     runtime.openAiCompatibleModel ??
@@ -837,9 +849,7 @@ async function runCanonicalSimulation(
     const before = await operator.status();
     if (before.tasks.some((task) => task.persistedStatus === "interrupted")) {
       await operator.resume();
-    } else if (
-      before.tasks.some((task) => task.persistedStatus === "failed")
-    ) {
+    } else if (before.tasks.some((task) => task.persistedStatus === "failed")) {
       await operator.retryFailed();
     }
   }
@@ -873,10 +883,15 @@ function requirePrivateWorkspace(options: MathSelectionOptions): string {
       "Canonical private production requires the explicit --private flag."
     );
   if (!options.workspace)
-    throw new Error("Private production requires an explicit --workspace path.");
+    throw new Error(
+      "Private production requires an explicit --workspace path."
+    );
   const workspace = path.resolve(options.workspace);
   const relative = path.relative(repositoryRoot(), workspace);
-  if (relative === "" || (!relative.startsWith("..") && !path.isAbsolute(relative))) {
+  if (
+    relative === "" ||
+    (!relative.startsWith("..") && !path.isAbsolute(relative))
+  ) {
     throw new Error(
       "Private production workspace must be outside the repository tree."
     );
@@ -893,7 +908,9 @@ async function runCanonicalPrivateProduction(
     skillId.startsWith("M5-")
   );
   if (m5Order.length !== 37 || new Set(m5Order).size !== 37) {
-    throw new Error("Canonical Class 5 order must contain exactly 37 unique skills.");
+    throw new Error(
+      "Canonical Class 5 order must contain exactly 37 unique skills."
+    );
   }
   const firstSkillId = m5Order[0];
   if (!firstSkillId) throw new Error("Canonical Class 5 order is empty.");
@@ -964,7 +981,8 @@ async function runCanonicalPrivateProduction(
           }),
           privateSpeechMaterializer: (
             input: Parameters<typeof materializeCanonicalPrivateSpeech>[0]
-          ) => materializeCanonicalPrivateSpeech(input, paidSetup.configuration),
+          ) =>
+            materializeCanonicalPrivateSpeech(input, paidSetup.configuration),
         }
       : {}),
     ...(options.python ? { pythonExecutable: options.python } : {}),
@@ -974,9 +992,7 @@ async function runCanonicalPrivateProduction(
     const before = await operator.status();
     if (before.tasks.some((task) => task.persistedStatus === "interrupted")) {
       await operator.resume();
-    } else if (
-      before.tasks.some((task) => task.persistedStatus === "failed")
-    ) {
+    } else if (before.tasks.some((task) => task.persistedStatus === "failed")) {
       await operator.retryFailed();
     }
   }
@@ -1027,8 +1043,7 @@ async function runCanonicalPrivateProduction(
     providerRetries: provider?.retries ?? 0,
     providerLatencyMs: provider?.latencyMs ?? 0,
     costMicros: provider?.costMicros ?? 0,
-    approvedCeilingMicros:
-      paidSetup?.configuration.approvedCeilingMicros ?? 0,
+    approvedCeilingMicros: paidSetup?.configuration.approvedCeilingMicros ?? 0,
     preflightEstimate: paidSetup?.estimate,
     stateSource: "workflow-operator",
     results,
@@ -1120,7 +1135,7 @@ interface CanonicalPrivateBatchPreflight {
     readonly workflow: string;
     readonly narration: string;
     readonly verifierProtocol: "math-verifier.v3";
-    readonly renderer: "math-semantic-keyframe-runner.v2";
+    readonly renderer: "math-semantic-keyframe-runner.v4";
     readonly visualStyle: "math.educational-visual-style.v1";
     readonly metadata: "math-metadata.v1";
     readonly speechProfile: string;
@@ -1170,7 +1185,9 @@ async function canonicalPrivateBatchWorkspaceEvidence(
         path.relative(realArtifactRoot, unitRoot) !== lessonIds[index]
     )
   ) {
-    throw new Error("Private batch unit path escaped the configured workspace.");
+    throw new Error(
+      "Private batch unit path escaped the configured workspace."
+    );
   }
   const collisionFree = (
     await Promise.all(
@@ -1199,9 +1216,7 @@ function canonicalPrivateBatchInput(
   preflight: Omit<CanonicalPrivateBatchPreflight, "batchId"> & {
     readonly batchId?: string;
   },
-  execute?: (
-    item: CanonicalPrivateBatchItemPlan
-  ) => BatchWorkItem["execute"]
+  execute?: (item: CanonicalPrivateBatchItemPlan) => BatchWorkItem["execute"]
 ): BatchPlanInput {
   const speechModel = preflight.versions.speechModel;
   return {
@@ -1213,8 +1228,7 @@ function canonicalPrivateBatchInput(
     configuration: {
       concurrency: CANONICAL_PRIVATE_BATCH_CONCURRENCY,
       retryLimit: CANONICAL_PRIVATE_BATCH_RETRY_LIMIT,
-      rateLimitPerSecond:
-        CANONICAL_PRIVATE_BATCH_RATE_LIMIT_PER_SECOND,
+      rateLimitPerSecond: CANONICAL_PRIVATE_BATCH_RATE_LIMIT_PER_SECOND,
     },
     items: preflight.items.map((item) => ({
       key: `${item.skillId}:standard:de`,
@@ -1273,7 +1287,9 @@ async function canonicalPrivateBatchPreflight(
 ): Promise<CanonicalPrivateBatchPreflight> {
   const workspace = requirePrivateWorkspace(options);
   if (Number(options.grade ?? "5") !== 5) {
-    throw new Error("Canonical private batch production is restricted to grade 5.");
+    throw new Error(
+      "Canonical private batch production is restricted to grade 5."
+    );
   }
   const lessonVariant = options.variant ?? "standard";
   const language = options.language ?? "de";
@@ -1291,10 +1307,7 @@ async function canonicalPrivateBatchPreflight(
   const orderedSkillIds = release.graph.order.filter((skillId) =>
     skillId.startsWith("M5-")
   );
-  if (
-    orderedSkillIds.length !== 37 ||
-    new Set(orderedSkillIds).size !== 37
-  ) {
+  if (orderedSkillIds.length !== 37 || new Set(orderedSkillIds).size !== 37) {
     throw new Error(
       "Canonical Class 5 order must contain exactly 37 unique skills."
     );
@@ -1324,11 +1337,7 @@ async function canonicalPrivateBatchPreflight(
   );
   const itemPlans = await Promise.all(
     orderedSkills.map(async (skill) => {
-      assertPrivateOwnerCurriculumApproval(
-        attestation,
-        release,
-        skill.skillId
-      );
+      assertPrivateOwnerCurriculumApproval(attestation, release, skill.skillId);
       assertProductionLessonCapability(
         skill.skillId,
         lessonVariant,
@@ -1390,21 +1399,15 @@ async function canonicalPrivateBatchPreflight(
     speechCacheMisses: sum((item) => item.speech.cacheMisses),
     plannedProviderCalls: sum((item) => item.speech.calls),
     expectedSpeechCharacters: sum((item) => item.speech.characters),
-    expectedAudioDurationSeconds: sum(
-      (item) => item.targetDurationSeconds
-    ),
+    expectedAudioDurationSeconds: sum((item) => item.targetDurationSeconds),
     estimatedUncachedAudioSeconds: sum(
       (item) => item.speech.estimatedAudioSeconds
     ),
-    priorProviderCostMicros: sum(
-      (item) => item.speech.priorCostMicros
-    ),
+    priorProviderCostMicros: sum((item) => item.speech.priorCostMicros),
     estimatedNewProviderCostMicros: sum(
       (item) => item.speech.newCostEstimateMicros
     ),
-    estimatedProviderCostMicros: sum(
-      (item) => item.speech.estimatedCostMicros
-    ),
+    estimatedProviderCostMicros: sum((item) => item.speech.estimatedCostMicros),
     maximumLessonCostMicros: Math.max(
       ...items.map((item) => item.speech.estimatedCostMicros)
     ),
@@ -1419,7 +1422,7 @@ async function canonicalPrivateBatchPreflight(
     workflow: mathWorkflowDefinition.revision,
     narration: MATH_LOCKED_FACT_NARRATION_VERSION,
     verifierProtocol: "math-verifier.v3" as const,
-    renderer: "math-semantic-keyframe-runner.v2" as const,
+    renderer: "math-semantic-keyframe-runner.v4" as const,
     visualStyle: "math.educational-visual-style.v1" as const,
     metadata: "math-metadata.v1" as const,
     speechProfile: items[0]!.speech.speechProfileVersion,
@@ -1459,8 +1462,7 @@ async function canonicalPrivateBatchPreflight(
     },
     executionPolicy: {
       concurrency: CANONICAL_PRIVATE_BATCH_CONCURRENCY,
-      rateLimitPerSecond:
-        CANONICAL_PRIVATE_BATCH_RATE_LIMIT_PER_SECOND,
+      rateLimitPerSecond: CANONICAL_PRIVATE_BATCH_RATE_LIMIT_PER_SECOND,
       retryLimit: CANONICAL_PRIVATE_BATCH_RETRY_LIMIT,
       maximumProviderAttemptsPerSpeechChunk: 3,
     },
@@ -1526,17 +1528,9 @@ async function runCanonicalPrivateBatch(
   }
   const totalCeilingUsd = options.maxProviderCostUsd;
   const perLessonCeilingUsd = options.maxProviderCostPerLessonUsd;
-  const totalCeilingMicros = Math.round(
-    totalCeilingUsd * 1_000_000
-  );
-  const perLessonCeilingMicros = Math.round(
-    perLessonCeilingUsd * 1_000_000
-  );
-  const preflight = await canonicalPrivateBatchPreflight(
-    options,
-    true,
-    resume
-  );
+  const totalCeilingMicros = Math.round(totalCeilingUsd * 1_000_000);
+  const perLessonCeilingMicros = Math.round(perLessonCeilingUsd * 1_000_000);
+  const preflight = await canonicalPrivateBatchPreflight(options, true, resume);
   if (preflight.totals.estimatedProviderCostMicros > totalCeilingMicros) {
     throw new Error(
       `Estimated batch provider cost USD ${(preflight.totals.estimatedProviderCostMicros / 1_000_000).toFixed(6)} exceeds the aggregate hard ceiling USD ${(totalCeilingMicros / 1_000_000).toFixed(6)}.`
@@ -1555,10 +1549,7 @@ async function runCanonicalPrivateBatch(
       preflight.workspace,
       preflight.items
     );
-    if (
-      costBefore + item.speech.newCostEstimateMicros >
-      totalCeilingMicros
-    ) {
+    if (costBefore + item.speech.newCostEstimateMicros > totalCeilingMicros) {
       throw new Error(
         `Aggregate cost gate blocks ${item.skillId}: prior usage plus the remaining worst-case estimate exceeds the approved ceiling.`
       );
@@ -1621,14 +1612,12 @@ async function runCanonicalPrivateBatch(
     preflight.items
   );
   if (actualCostMicros > totalCeilingMicros) {
-    throw new Error("Canonical private batch aggregate cost ceiling was exceeded.");
+    throw new Error(
+      "Canonical private batch aggregate cost ceiling was exceeded."
+    );
   }
   process.exitCode =
-    manifest.status === "succeeded"
-      ? 0
-      : manifest.status === "partial"
-        ? 2
-        : 3;
+    manifest.status === "succeeded" ? 0 : manifest.status === "partial" ? 2 : 3;
   return {
     batchId: manifest.id,
     status: manifest.status,
@@ -1682,7 +1671,9 @@ async function authoritativeQuality(workspace: string, lessonId: string) {
   const lessonRoot = paths.lesson(lessonId);
   const manifest = await loadWorkflowManifest(paths.manifest(lessonId));
   if (!manifest || manifest.lessonId !== lessonId)
-    throw new Error(`Missing or identity-mismatched workflow manifest for ${lessonId}.`);
+    throw new Error(
+      `Missing or identity-mismatched workflow manifest for ${lessonId}.`
+    );
   const relativePath = "canonical/quality.json";
   const report = await readAuthoritativeStageArtifact({
     root: lessonRoot,
@@ -1696,13 +1687,33 @@ async function authoritativeQuality(workspace: string, lessonId: string) {
     throw new Error(
       `Quality report identity does not match requested lesson ${lessonId}.`
     );
-  const stage = manifest.stages.find((record) => record.stage === "quality-gate")!;
-  const lineage = stage.outputArtifacts.find((artifact) => artifact.relativePath === relativePath)!;
-  const approvalLineage = stage.outputArtifacts.find((artifact) => artifact.relativePath === "canonical/minor-edit-approval.json" && artifact.schemaVersion === "math-minor-approval.v1");
+  const stage = manifest.stages.find(
+    (record) => record.stage === "quality-gate"
+  )!;
+  const lineage = stage.outputArtifacts.find(
+    (artifact) => artifact.relativePath === relativePath
+  )!;
+  const approvalLineage = stage.outputArtifacts.find(
+    (artifact) =>
+      artifact.relativePath === "canonical/minor-edit-approval.json" &&
+      artifact.schemaVersion === "math-minor-approval.v1"
+  );
   const approval = approvalLineage
-    ? await readAuthoritativeStageArtifact({ root: lessonRoot, manifest, stage: "quality-gate", relativePath: approvalLineage.relativePath, schemaVersion: "math-minor-approval.v1", schema: mathMinorEditApprovalSchema })
+    ? await readAuthoritativeStageArtifact({
+        root: lessonRoot,
+        manifest,
+        stage: "quality-gate",
+        relativePath: approvalLineage.relativePath,
+        schemaVersion: "math-minor-approval.v1",
+        schema: mathMinorEditApprovalSchema,
+      })
     : undefined;
-  const approvalResult = evaluateMinorEditApproval({ report, qualityRelativePath: relativePath, qualityContentHash: lineage.contentHash, approval });
+  const approvalResult = evaluateMinorEditApproval({
+    report,
+    qualityRelativePath: relativePath,
+    qualityContentHash: lineage.contentHash,
+    approval,
+  });
   return {
     lessonId,
     derivedStatus: report.status,
@@ -1712,17 +1723,29 @@ async function authoritativeQuality(workspace: string, lessonId: string) {
     permissions: {
       renderPreflightAllowed: report.renderPreflightAllowed,
       finalMediaReady: report.finalMediaReady,
-      publishAllowed: report.publishableWithoutApproval || approvalResult.approved,
+      publishAllowed:
+        report.publishableWithoutApproval || approvalResult.approved,
     },
     report,
   };
 }
 
-async function printQualitySelection(workspace: string, lessonIds: readonly string[]) {
+async function printQualitySelection(
+  workspace: string,
+  lessonIds: readonly string[]
+) {
   try {
-    const results = await Promise.all(lessonIds.map((lessonId) => authoritativeQuality(workspace, lessonId)));
-    process.exitCode = qualityExitCode(results.map((result) => result.derivedStatus));
-    print(results.length === 1 ? results[0] : { results, exitCode: process.exitCode });
+    const results = await Promise.all(
+      lessonIds.map((lessonId) => authoritativeQuality(workspace, lessonId))
+    );
+    process.exitCode = qualityExitCode(
+      results.map((result) => result.derivedStatus)
+    );
+    print(
+      results.length === 1
+        ? results[0]
+        : { results, exitCode: process.exitCode }
+    );
   } catch (error) {
     process.exitCode = 1;
     throw error;
@@ -1774,7 +1797,9 @@ export function registerMathCommands(program: Command): void {
     );
   speech
     .command("compare")
-    .description("Generate legacy-baseline and natural-teacher listening samples")
+    .description(
+      "Generate legacy-baseline and natural-teacher listening samples"
+    )
     .requiredOption("--output <path>", "comparison output directory")
     .option("--language <language>", "English or German fixture", "en")
     .option("--fixture <path>", "override the versioned listening fixture")
@@ -1790,9 +1815,7 @@ export function registerMathCommands(program: Command): void {
       "show both comparison plans without writes or provider calls"
     )
     .action(async (_opts: unknown, command: Command) =>
-      runMathSpeechCompare(
-        command.optsWithGlobals<MathSpeechCompareOptions>()
-      )
+      runMathSpeechCompare(command.optsWithGlobals<MathSpeechCompareOptions>())
     );
   const curriculumCommand = math
     .command("curriculum")
@@ -1922,7 +1945,10 @@ export function registerMathCommands(program: Command): void {
       const options = selection(command);
       const registry = createMathTaskRegistry();
       const curriculum = await loadCurriculumRelease(
-        path.join(repositoryRoot(), "packages/math-education/data/curriculum/v1")
+        path.join(
+          repositoryRoot(),
+          "packages/math-education/data/curriculum/v1"
+        )
       );
       const m5Order = curriculum.graph.order.filter((skillId) =>
         skillId.startsWith("M5-")
@@ -2098,8 +2124,7 @@ export function registerMathCommands(program: Command): void {
           paidSetup?.estimate.estimatedCostMicros ?? 0,
         estimatedNewProviderCostMicros:
           paidSetup?.estimate.newCostEstimateMicros ?? 0,
-        priorProviderCostMicros:
-          paidSetup?.estimate.priorCostMicros ?? 0,
+        priorProviderCostMicros: paidSetup?.estimate.priorCostMicros ?? 0,
         remainingProviderBudgetMicros:
           paidSetup?.estimate.remainingBudgetMicros ?? 0,
         approvedHardCeilingMicros:
@@ -2122,7 +2147,8 @@ export function registerMathCommands(program: Command): void {
         cache: {
           hits: 0,
           misses: MATH_EXECUTABLE_TASK_IDS.length,
-          decision: "preflight-only; executable cache is revalidated at run time",
+          decision:
+            "preflight-only; executable cache is revalidated at run time",
         },
         executionPolicy: {
           concurrency: 1,
@@ -2133,9 +2159,7 @@ export function registerMathCommands(program: Command): void {
             ? "educational-speech-provider-default-bounded"
             : "none",
           diskRequirementBytes: 2_147_483_648,
-          workspace: options.workspace
-            ? path.resolve(options.workspace)
-            : null,
+          workspace: options.workspace ? path.resolve(options.workspace) : null,
         },
         workspaceEvidence,
         privacy: {
@@ -2150,8 +2174,8 @@ export function registerMathCommands(program: Command): void {
           narrationReview: "math-german-narration-review.v1",
           verifierProtocol: "math-verifier.v3",
           verifier: "3.0.0",
-          renderer: "math-semantic-keyframe-runner.v2",
-          chalkRenderer: "math-semantic-chalk.v2",
+          renderer: "math-semantic-keyframe-runner.v4",
+          chalkRenderer: "math-semantic-chalk.v3",
           visualStyle: "math.educational-visual-style.v1",
           metadata: "math-metadata.v1",
           speechProfile: paidSetup?.estimate.speechProfileVersion ?? null,
@@ -2195,7 +2219,10 @@ export function registerMathCommands(program: Command): void {
       .action(async (_opts, command) =>
         print(
           await (selection(command).private
-            ? runCanonicalPrivateProduction(selection(command), name === "resume")
+            ? runCanonicalPrivateProduction(
+                selection(command),
+                name === "resume"
+              )
             : runCanonicalSimulation(selection(command), name === "resume"))
         )
       );
@@ -2242,10 +2269,7 @@ export function registerMathCommands(program: Command): void {
       )
       .action(async (_opts, command) =>
         print(
-          await runCanonicalPrivateBatch(
-            selection(command),
-            name === "resume"
-          )
+          await runCanonicalPrivateBatch(selection(command), name === "resume")
         )
       );
   }
@@ -2254,37 +2278,41 @@ export function registerMathCommands(program: Command): void {
     .requiredOption("--batch-id <id>")
     .requiredOption("--workspace <path>")
     .option("--private")
-    .action(async (options: {
-      batchId: string;
-      workspace: string;
-      private?: boolean;
-    }) => {
-      const workspace = requirePrivateWorkspace(options);
-      print(
-        await new BatchStore(privateBatchStateRoot(workspace)).read(
-          options.batchId
-        )
-      );
-    });
+    .action(
+      async (options: {
+        batchId: string;
+        workspace: string;
+        private?: boolean;
+      }) => {
+        const workspace = requirePrivateWorkspace(options);
+        print(
+          await new BatchStore(privateBatchStateRoot(workspace)).read(
+            options.batchId
+          )
+        );
+      }
+    );
   batch
     .command("cancel")
     .requiredOption("--batch-id <id>")
     .requiredOption("--reason <text>")
     .requiredOption("--workspace <path>")
     .option("--private")
-    .action(async (options: {
-      batchId: string;
-      reason: string;
-      workspace: string;
-      private?: boolean;
-    }) => {
-      const workspace = requirePrivateWorkspace(options);
-      print(
-        await new BatchCoordinator({
-          root: privateBatchStateRoot(workspace),
-        }).cancel(options.batchId, options.reason)
-      );
-    });
+    .action(
+      async (options: {
+        batchId: string;
+        reason: string;
+        workspace: string;
+        private?: boolean;
+      }) => {
+        const workspace = requirePrivateWorkspace(options);
+        print(
+          await new BatchCoordinator({
+            root: privateBatchStateRoot(workspace),
+          }).cancel(options.batchId, options.reason)
+        );
+      }
+    );
   batch
     .command("create")
     .option("--grade <grade>", "grade 5-10", "5")
@@ -2440,18 +2468,27 @@ export function registerMathCommands(program: Command): void {
           throw new Error("Math publish requires --dry-run.");
         }
         try {
-          const quality = await authoritativeQuality(opts.workspace, opts.lesson);
+          const quality = await authoritativeQuality(
+            opts.workspace,
+            opts.lesson
+          );
           if (!quality.permissions.publishAllowed) {
             throw new MathCliSemanticError(
               `Publishing blocked: ${quality.derivedStatus}.`
             );
           }
-          if (!quality.report.selectedLocales.includes(opts.language as MathLanguage))
+          if (
+            !quality.report.selectedLocales.includes(
+              opts.language as MathLanguage
+            )
+          )
             throw new Error(
               `Publish language ${opts.language} is outside the authoritative quality scope.`
             );
           const paths = new MathWorkspacePathResolver(opts.workspace);
-          const manifest = await loadWorkflowManifest(paths.manifest(opts.lesson));
+          const manifest = await loadWorkflowManifest(
+            paths.manifest(opts.lesson)
+          );
           if (!manifest || manifest.lessonId !== opts.lesson)
             throw new Error(
               `Missing or identity-mismatched workflow manifest for ${opts.lesson}.`
@@ -2462,49 +2499,82 @@ export function registerMathCommands(program: Command): void {
           const thumbnailRelativePath = `${localeRoot}/thumbnail.svg.manifest.json`;
           const policyRelativePath = `${localeRoot}/brand-policy.json`;
           const relativePath = `${localeRoot}/publish-dry-run.json`;
-          const metadataStageRecord = manifest.stages.find((stage) => stage.stage === "metadata-playlists")!;
+          const metadataStageRecord = manifest.stages.find(
+            (stage) => stage.stage === "metadata-playlists"
+          )!;
           for (const required of [
             [catalogRelativePath, "math-playlist-catalog.v1"],
             [policyRelativePath, "math-brand-policy.v1"],
           ] as const) {
             const count = metadataStageRecord.outputArtifacts.filter(
-              (artifact) => artifact.relativePath === required[0] && artifact.schemaVersion === required[1]
+              (artifact) =>
+                artifact.relativePath === required[0] &&
+                artifact.schemaVersion === required[1]
             ).length;
             if (count !== 1)
-              throw new MathCliSemanticError(`PUBLISH_BLOCKED: missing or duplicate ${required[0]}.`);
+              throw new MathCliSemanticError(
+                `PUBLISH_BLOCKED: missing or duplicate ${required[0]}.`
+              );
           }
           const metadata = await readAuthoritativeStageArtifact({
-            root: paths.lesson(opts.lesson), manifest, stage: "metadata-playlists",
-            relativePath: metadataRelativePath, schemaVersion: "math-metadata.v2", schema: mathMetadataSchema,
+            root: paths.lesson(opts.lesson),
+            manifest,
+            stage: "metadata-playlists",
+            relativePath: metadataRelativePath,
+            schemaVersion: "math-metadata.v2",
+            schema: mathMetadataSchema,
           });
           const catalog = await readAuthoritativeStageArtifact({
-            root: paths.lesson(opts.lesson), manifest, stage: "metadata-playlists",
-            relativePath: catalogRelativePath, schemaVersion: "math-playlist-catalog.v1", schema: mathPlaylistCatalogSchema,
+            root: paths.lesson(opts.lesson),
+            manifest,
+            stage: "metadata-playlists",
+            relativePath: catalogRelativePath,
+            schemaVersion: "math-playlist-catalog.v1",
+            schema: mathPlaylistCatalogSchema,
           });
           const thumbnail = await readAuthoritativeStageArtifact({
-            root: paths.lesson(opts.lesson), manifest, stage: "metadata-playlists",
-            relativePath: thumbnailRelativePath, schemaVersion: "math-thumbnail.v1", schema: mathThumbnailArtifactSchema,
+            root: paths.lesson(opts.lesson),
+            manifest,
+            stage: "metadata-playlists",
+            relativePath: thumbnailRelativePath,
+            schemaVersion: "math-thumbnail.v1",
+            schema: mathThumbnailArtifactSchema,
           });
           const rawPolicy = await readAuthoritativeStageArtifact({
-            root: paths.lesson(opts.lesson), manifest, stage: "metadata-playlists",
-            relativePath: policyRelativePath, schemaVersion: "math-brand-policy.v1", schema: mathBrandPolicyArtifactSchema,
+            root: paths.lesson(opts.lesson),
+            manifest,
+            stage: "metadata-playlists",
+            relativePath: policyRelativePath,
+            schemaVersion: "math-brand-policy.v1",
+            schema: mathBrandPolicyArtifactSchema,
           });
           const policy = rawPolicy;
-          const languages = policy.channels.map((candidate) => candidate.language);
+          const languages = policy.channels.map(
+            (candidate) => candidate.language
+          );
           const requiredLanguages = ["de", "en", "es", "fr", "pt"];
           if (
             new Set(languages).size !== languages.length ||
-            requiredLanguages.some((language) => !languages.includes(language as MathLanguage)) ||
-            new Set(policy.channels.map((candidate) => candidate.channelId)).size !== policy.channels.length ||
+            requiredLanguages.some(
+              (language) => !languages.includes(language as MathLanguage)
+            ) ||
+            new Set(policy.channels.map((candidate) => candidate.channelId))
+              .size !== policy.channels.length ||
             policy.channels.some((candidate) => {
               const ids = Object.values(candidate.playlists);
               return new Set(ids).size !== ids.length;
             })
           )
-            throw new MathCliSemanticError("PUBLISH_BLOCKED: duplicate math channel policy.");
-          const channel = policy.channels.find((candidate) => candidate.language === opts.language);
+            throw new MathCliSemanticError(
+              "PUBLISH_BLOCKED: duplicate math channel policy."
+            );
+          const channel = policy.channels.find(
+            (candidate) => candidate.language === opts.language
+          );
           if (!channel)
-            throw new MathCliSemanticError(`PUBLISH_BLOCKED: missing channel policy for ${opts.language}.`);
+            throw new MathCliSemanticError(
+              `PUBLISH_BLOCKED: missing channel policy for ${opts.language}.`
+            );
           const packet = await readAuthoritativeStageArtifact({
             root: paths.lesson(opts.lesson),
             manifest,
@@ -2520,9 +2590,14 @@ export function registerMathCommands(program: Command): void {
             packet.quality.path !== canonicalQualityPath ||
             packet.finalMedia.evidencePath !== canonicalFinalEvidencePath ||
             packet.finalMedia.mediaPath !== canonicalFinalMediaPath
-          ) throw new Error("Publish packet uses a non-canonical quality or final-media path.");
+          )
+            throw new Error(
+              "Publish packet uses a non-canonical quality or final-media path."
+            );
           const finalMedia = await readAuthoritativeStageArtifact({
-            root: paths.lesson(opts.lesson), manifest, stage: "render",
+            root: paths.lesson(opts.lesson),
+            manifest,
+            stage: "render",
             relativePath: packet.finalMedia.evidencePath,
             schemaVersion: "math-final-media.v1",
             schema: mathFinalMediaEvidenceSchema,
@@ -2542,31 +2617,57 @@ export function registerMathCommands(program: Command): void {
               `Publish packet identity does not match ${opts.lesson}/${opts.language}.`
             );
           const lessonRoot = paths.lesson(opts.lesson);
-          const metadataStage = manifest.stages.find((stage) => stage.stage === "metadata-playlists")!;
+          const metadataStage = manifest.stages.find(
+            (stage) => stage.stage === "metadata-playlists"
+          )!;
           const lineageHash = (artifactPath: string) => {
-            const matches = metadataStage.outputArtifacts.filter((artifact) => artifact.relativePath === artifactPath);
-            if (matches.length !== 1) throw new Error(`Expected exactly one authoritative ${artifactPath}.`);
+            const matches = metadataStage.outputArtifacts.filter(
+              (artifact) => artifact.relativePath === artifactPath
+            );
+            if (matches.length !== 1)
+              throw new Error(
+                `Expected exactly one authoritative ${artifactPath}.`
+              );
             return matches[0]!.contentHash;
           };
-          for (const stageName of new Set(Object.values(thumbnail.sourceLineage).map((source) => source.stage))) {
-            const sourceStage = manifest.stages.find((candidate) => candidate.stage === stageName);
-            if (!sourceStage || !(await outputsAreValid(lessonRoot, sourceStage)))
-              throw new Error(`Thumbnail source stage ${stageName} is stale or invalid.`);
+          for (const stageName of new Set(
+            Object.values(thumbnail.sourceLineage).map((source) => source.stage)
+          )) {
+            const sourceStage = manifest.stages.find(
+              (candidate) => candidate.stage === stageName
+            );
+            if (
+              !sourceStage ||
+              !(await outputsAreValid(lessonRoot, sourceStage))
+            )
+              throw new Error(
+                `Thumbnail source stage ${stageName} is stale or invalid.`
+              );
           }
-          const thumbnailSourceLineageValid = Object.values(thumbnail.sourceLineage).every((source) => {
-            const stage = manifest.stages.find((candidate) => candidate.stage === source.stage);
-            const matches = stage?.outputArtifacts.filter((artifact) =>
-              artifact.relativePath === source.relativePath &&
-              artifact.schemaVersion === source.schemaVersion &&
-              artifact.producedBy === source.stage &&
-              artifact.producer === source.producer &&
-              artifact.producerVersion === source.producerVersion &&
-              artifact.contentHash === source.contentHash &&
-              canonicalHash(artifact.parentHashes) === canonicalHash(source.parentFingerprints)
-            ) ?? [];
+          const thumbnailSourceLineageValid = Object.values(
+            thumbnail.sourceLineage
+          ).every((source) => {
+            const stage = manifest.stages.find(
+              (candidate) => candidate.stage === source.stage
+            );
+            const matches =
+              stage?.outputArtifacts.filter(
+                (artifact) =>
+                  artifact.relativePath === source.relativePath &&
+                  artifact.schemaVersion === source.schemaVersion &&
+                  artifact.producedBy === source.stage &&
+                  artifact.producer === source.producer &&
+                  artifact.producerVersion === source.producerVersion &&
+                  artifact.contentHash === source.contentHash &&
+                  canonicalHash(artifact.parentHashes) ===
+                    canonicalHash(source.parentFingerprints)
+              ) ?? [];
             return matches.length === 1;
           });
-          const thumbnailAssetRelativePath = path.posix.join(localeRoot, thumbnail.outputPath);
+          const thumbnailAssetRelativePath = path.posix.join(
+            localeRoot,
+            thumbnail.outputPath
+          );
           const thumbnailAsset = await readAuthoritativeBinaryArtifact({
             root: paths.lesson(opts.lesson),
             manifest,
@@ -2597,17 +2698,37 @@ export function registerMathCommands(program: Command): void {
             producer: "provider-free-media",
             producerVersion: "provider-free-media.v1",
           });
-          const qualityMatches = manifest.stages.find((stage) => stage.stage === "quality-gate")!
-            .outputArtifacts.filter((artifact) => artifact.relativePath === canonicalQualityPath && artifact.schemaVersion === "math-quality.v2");
+          const qualityMatches = manifest.stages
+            .find((stage) => stage.stage === "quality-gate")!
+            .outputArtifacts.filter(
+              (artifact) =>
+                artifact.relativePath === canonicalQualityPath &&
+                artifact.schemaVersion === "math-quality.v2"
+            );
           if (qualityMatches.length !== 1)
-            throw new Error("Expected exactly one canonical workflow-owned quality artifact.");
+            throw new Error(
+              "Expected exactly one canonical workflow-owned quality artifact."
+            );
           const qualityHash = qualityMatches[0]!.contentHash;
           const expectedPlaylistIds = metadata.playlists.map((playlist) => {
-            const catalogEntries = catalog.entries.filter((entry) => entry.key === playlist.key && entry.kind === playlist.kind);
-            if (catalogEntries.length !== 1 || catalogEntries[0]!.localizedNames[opts.language as MathLanguage] !== playlist.localizedName)
-              throw new MathCliSemanticError(`PUBLISH_BLOCKED: catalog mismatch for ${playlist.key}.`);
+            const catalogEntries = catalog.entries.filter(
+              (entry) =>
+                entry.key === playlist.key && entry.kind === playlist.kind
+            );
+            if (
+              catalogEntries.length !== 1 ||
+              catalogEntries[0]!.localizedNames[
+                opts.language as MathLanguage
+              ] !== playlist.localizedName
+            )
+              throw new MathCliSemanticError(
+                `PUBLISH_BLOCKED: catalog mismatch for ${playlist.key}.`
+              );
             const playlistId = channel.playlists[playlist.key];
-            if (!playlistId) throw new MathCliSemanticError(`PUBLISH_BLOCKED: unmapped playlist ${playlist.key}.`);
+            if (!playlistId)
+              throw new MathCliSemanticError(
+                `PUBLISH_BLOCKED: unmapped playlist ${playlist.key}.`
+              );
             return { key: playlist.key, kind: playlist.kind, playlistId };
           });
           const packetBound = {
@@ -2624,23 +2745,63 @@ export function registerMathCommands(program: Command): void {
             playlistAssignments: packet.playlistAssignments,
           };
           const hashesMatch =
-            packet.metadata.path === metadataRelativePath && packet.metadata.contentHash === canonicalHash(metadata) &&
-            packet.thumbnail.manifestPath === thumbnailRelativePath && packet.thumbnail.manifestHash === lineageHash(thumbnailRelativePath) &&
-            packet.thumbnail.assetPath === thumbnailAssetRelativePath && packet.thumbnail.assetHash === thumbnail.contentHash && packet.thumbnail.assetHash === thumbnailAsset.contentHash && thumbnail.byteLength === thumbnailAsset.byteLength &&
-            packet.finalMedia.evidencePath === canonicalFinalEvidencePath && packet.finalMedia.evidenceHash === canonicalHash(finalMedia) && packet.finalMedia.mediaPath === canonicalFinalMediaPath && packet.finalMedia.mediaPath === finalMedia.mediaPath && packet.finalMedia.mediaHash === finalMedia.mediaHash && finalMedia.mediaHash === finalMediaAsset.contentHash && packet.finalMedia.qualityEvidenceHash === qualityHash && finalMedia.qualityEvidenceHash === qualityHash &&
-            packet.quality.contentHash === qualityHash && packet.brandPolicy.path === policyRelativePath && packet.brandPolicy.contentHash === lineageHash(policyRelativePath) &&
-            packet.channelId === channel.channelId && packet.privacyStatus === policy.privacyStatus && packet.madeForKids === policy.madeForKids && packet.containsSyntheticMedia === policy.containsSyntheticMedia &&
-            metadata.catalogHash === canonicalHash(catalog) && thumbnail.inputHashes.metadata === canonicalHash(metadata) && thumbnail.inputHashes.lessonContent === metadata.identity.lessonContentHash && thumbnail.factId === metadata.thumbnail.formulaFactId &&
-            thumbnailSourceLineageValid && thumbnail.sourceLineage.lesson.relativePath === "canonical/lesson-spec.json" && thumbnail.sourceLineage.verification.relativePath === "canonical/verification.json" && thumbnail.sourceLineage.localization.relativePath === `${localeRoot}/narration.json` && thumbnail.sourceLineage.localizedVerification.relativePath === `${localeRoot}/display-verification.json` && thumbnail.sourceLineage.metadata.relativePath === metadataRelativePath &&
-            canonicalHash(packet.playlistAssignments) === canonicalHash(expectedPlaylistIds) && packet.requestFingerprint === canonicalHash(packetBound);
-          if (!hashesMatch) throw new Error("Publish preflight artifact hashes or policy bindings do not match authoritative inputs.");
+            packet.metadata.path === metadataRelativePath &&
+            packet.metadata.contentHash === canonicalHash(metadata) &&
+            packet.thumbnail.manifestPath === thumbnailRelativePath &&
+            packet.thumbnail.manifestHash ===
+              lineageHash(thumbnailRelativePath) &&
+            packet.thumbnail.assetPath === thumbnailAssetRelativePath &&
+            packet.thumbnail.assetHash === thumbnail.contentHash &&
+            packet.thumbnail.assetHash === thumbnailAsset.contentHash &&
+            thumbnail.byteLength === thumbnailAsset.byteLength &&
+            packet.finalMedia.evidencePath === canonicalFinalEvidencePath &&
+            packet.finalMedia.evidenceHash === canonicalHash(finalMedia) &&
+            packet.finalMedia.mediaPath === canonicalFinalMediaPath &&
+            packet.finalMedia.mediaPath === finalMedia.mediaPath &&
+            packet.finalMedia.mediaHash === finalMedia.mediaHash &&
+            finalMedia.mediaHash === finalMediaAsset.contentHash &&
+            packet.finalMedia.qualityEvidenceHash === qualityHash &&
+            finalMedia.qualityEvidenceHash === qualityHash &&
+            packet.quality.contentHash === qualityHash &&
+            packet.brandPolicy.path === policyRelativePath &&
+            packet.brandPolicy.contentHash ===
+              lineageHash(policyRelativePath) &&
+            packet.channelId === channel.channelId &&
+            packet.privacyStatus === policy.privacyStatus &&
+            packet.madeForKids === policy.madeForKids &&
+            packet.containsSyntheticMedia === policy.containsSyntheticMedia &&
+            metadata.catalogHash === canonicalHash(catalog) &&
+            thumbnail.inputHashes.metadata === canonicalHash(metadata) &&
+            thumbnail.inputHashes.lessonContent ===
+              metadata.identity.lessonContentHash &&
+            thumbnail.factId === metadata.thumbnail.formulaFactId &&
+            thumbnailSourceLineageValid &&
+            thumbnail.sourceLineage.lesson.relativePath ===
+              "canonical/lesson-spec.json" &&
+            thumbnail.sourceLineage.verification.relativePath ===
+              "canonical/verification.json" &&
+            thumbnail.sourceLineage.localization.relativePath ===
+              `${localeRoot}/narration.json` &&
+            thumbnail.sourceLineage.localizedVerification.relativePath ===
+              `${localeRoot}/display-verification.json` &&
+            thumbnail.sourceLineage.metadata.relativePath ===
+              metadataRelativePath &&
+            canonicalHash(packet.playlistAssignments) ===
+              canonicalHash(expectedPlaylistIds) &&
+            packet.requestFingerprint === canonicalHash(packetBound);
+          if (!hashesMatch)
+            throw new Error(
+              "Publish preflight artifact hashes or policy bindings do not match authoritative inputs."
+            );
           if (
             thumbnail.teacherVersion.includes("placeholder") ||
             thumbnail.artwork.status !== "approved-publish-artwork" ||
             !thumbnail.artwork.publishReady ||
             thumbnail.artwork.blockers.length > 0
           )
-            throw new MathCliSemanticError("PUBLISH_BLOCKED: placeholder teacher thumbnail is not publish-ready.");
+            throw new MathCliSemanticError(
+              "PUBLISH_BLOCKED: placeholder teacher thumbnail is not publish-ready."
+            );
           print({
             status: "PREFLIGHT_VALID",
             lessonId: opts.lesson,
@@ -2655,8 +2816,11 @@ export function registerMathCommands(program: Command): void {
               quality: packet.quality,
               brandPolicy: packet.brandPolicy,
             },
-            blockers: [], dispatchAllowed: false, paidProviderCalled: false,
-            networkCalls: 0, mutations: 0,
+            blockers: [],
+            dispatchAllowed: false,
+            paidProviderCalled: false,
+            networkCalls: 0,
+            mutations: 0,
           });
         } catch (error) {
           process.exitCode =

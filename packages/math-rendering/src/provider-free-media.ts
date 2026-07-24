@@ -73,12 +73,16 @@ export function createMathCaption(text: string): {
 } {
   const normalized = text.trim().replace(/\s+/gu, " ");
   if (normalized.length === 0 || normalized.length > 180)
-    throw new Error("Caption text is empty or exceeds the readable overlay budget.");
+    throw new Error(
+      "Caption text is empty or exceeds the readable overlay budget."
+    );
   const lines: string[] = [];
   let current = "";
   for (const word of normalized.split(" ")) {
     if (word.length > 60)
-      throw new Error("Caption contains a word wider than the readable overlay budget.");
+      throw new Error(
+        "Caption contains a word wider than the readable overlay budget."
+      );
     const candidate = current ? `${current} ${word}` : word;
     if (candidate.length <= 60) current = candidate;
     else {
@@ -92,13 +96,17 @@ export function createMathCaption(text: string): {
   return { text: normalized, lines, fontSizePx: 44 };
 }
 
-export async function assertSafeMediaOutputDirectory(outputDir: string): Promise<void> {
+export async function assertSafeMediaOutputDirectory(
+  outputDir: string
+): Promise<void> {
   let cursor = path.resolve(outputDir);
   while (true) {
     const stat = await fs.lstat(cursor).catch(() => null);
     if (stat) {
       if (stat.isSymbolicLink())
-        throw new Error(`Unsafe media output path contains a symlink: ${cursor}`);
+        throw new Error(
+          `Unsafe media output path contains a symlink: ${cursor}`
+        );
       if (!stat.isDirectory())
         throw new Error(`Media output ancestor is not a directory: ${cursor}`);
     }
@@ -108,15 +116,21 @@ export async function assertSafeMediaOutputDirectory(outputDir: string): Promise
   }
 }
 
-export async function loadProviderFreeMediaInputs(request: ProviderFreeMediaRequest): Promise<{
+export async function loadProviderFreeMediaInputs(
+  request: ProviderFreeMediaRequest
+): Promise<{
   lesson: LessonVariantSpecification;
   narration: LocalizedNarration;
   visualPlan: MathVisualPlan;
 }> {
   const lessonRoot = path.resolve(request.lessonRoot);
-  const manifest = await loadWorkflowManifest(path.join(lessonRoot, "manifest.json"));
+  const manifest = await loadWorkflowManifest(
+    path.join(lessonRoot, "manifest.json")
+  );
   if (!manifest || manifest.lessonId !== request.lessonId)
-    throw new Error("Provider-free media requires the lesson's authoritative workflow manifest.");
+    throw new Error(
+      "Provider-free media requires the lesson's authoritative workflow manifest."
+    );
   const lesson = await readAuthoritativeStageArtifact({
     root: lessonRoot,
     manifest,
@@ -130,7 +144,10 @@ export async function loadProviderFreeMediaInputs(request: ProviderFreeMediaRequ
     root: lessonRoot,
     manifest,
     stage: language === "de" ? "canonical-narration" : "localization",
-    relativePath: language === "de" ? "canonical/narration.de.json" : `locales/${language}/narration.json`,
+    relativePath:
+      language === "de"
+        ? "canonical/narration.de.json"
+        : `locales/${language}/narration.json`,
     schemaVersion: "math-narration.v2",
     schema: localizedNarrationSchema,
   });
@@ -149,7 +166,9 @@ export async function loadProviderFreeMediaInputs(request: ProviderFreeMediaRequ
     narration.language !== language ||
     visualPlan.profile !== request.profile
   )
-    throw new Error("Authoritative media artifacts do not match the requested lesson identity.");
+    throw new Error(
+      "Authoritative media artifacts do not match the requested lesson identity."
+    );
   return { lesson, narration, visualPlan };
 }
 
@@ -174,14 +193,12 @@ function componentFactBindings(
         },
       ];
     case "number-line":
-      return [
-        component.minimum,
-        component.maximum,
-        ...component.markers,
-      ].map((value) => ({
-        factId: value.factId,
-        semantic: scalar(value.expression),
-      }));
+      return [component.minimum, component.maximum, ...component.markers].map(
+        (value) => ({
+          factId: value.factId,
+          semantic: scalar(value.expression),
+        })
+      );
     case "graph":
       return [
         ...[
@@ -224,9 +241,19 @@ function componentFactBindings(
       );
     case "bar-chart":
       return [
-        ...[component.axis.origin, component.axis.maximum, component.axis.tickInterval].map((value) => ({ factId: value.factId, semantic: scalar(value.expression) })),
+        ...[
+          component.axis.origin,
+          component.axis.maximum,
+          component.axis.tickInterval,
+        ].map((value) => ({
+          factId: value.factId,
+          semantic: scalar(value.expression),
+        })),
         ...component.bars.flatMap((bar) => [
-          { factId: bar.categoryFactId, semantic: scalar(bar.value.expression) },
+          {
+            factId: bar.categoryFactId,
+            semantic: scalar(bar.value.expression),
+          },
           { factId: bar.value.factId, semantic: scalar(bar.value.expression) },
         ]),
       ];
@@ -235,6 +262,45 @@ function componentFactBindings(
         factId: branch.probability.factId,
         semantic: scalar(branch.probability.expression),
       }));
+    case "lesson-board":
+      return [];
+    case "fact-stack":
+      return component.facts.map((fact) => ({
+        factId: fact.factId,
+        semantic:
+          fact.kind === "scalar"
+            ? scalar(fact.expression)
+            : {
+                kind: "measurement" as const,
+                value: fact.value,
+                unit: fact.unit,
+              },
+      }));
+    case "place-value-chart":
+      return [
+        {
+          factId: component.source.factId,
+          semantic: scalar(component.source.expression),
+        },
+      ];
+    case "number-line-focus":
+      return [
+        {
+          factId: component.focus.factId,
+          semantic: scalar(component.focus.expression),
+        },
+      ];
+    case "tally-table":
+      return [
+        {
+          factId: component.dataset.factId,
+          semantic: scalar(component.dataset.expression),
+        },
+        ...component.rows.map((row) => ({
+          factId: row.count.factId,
+          semantic: scalar(row.count.expression),
+        })),
+      ];
   }
 }
 
@@ -255,7 +321,8 @@ export function assertProviderFreeFactBindings(raw: {
   scenes: ProviderFreeMediaRequest["scenes"];
   visualPlan: MathVisualPlan;
 }): void {
-  const { lesson, narration, scenes, visualPlan } = factBindingInputSchema.parse(raw);
+  const { lesson, narration, scenes, visualPlan } =
+    factBindingInputSchema.parse(raw);
   const { contentHash, ...lessonContent } = lesson;
   if (contentHash !== canonicalHash(lessonContent))
     throw new Error("Provider-free media lesson content hash is invalid.");
@@ -266,7 +333,9 @@ export function assertProviderFreeFactBindings(raw: {
     narration.objectiveHash !== lock.objectiveHash ||
     narration.factLockHash !== lock.factLockHash
   )
-    throw new Error("Provider-free media narration does not match its locked lesson.");
+    throw new Error(
+      "Provider-free media narration does not match its locked lesson."
+    );
 
   const lessonFactIds = lesson.facts.map((fact) => fact.factId);
   const resolvedFactIds = narration.resolvedFacts.map((fact) => fact.factId);
@@ -282,10 +351,7 @@ export function assertProviderFreeFactBindings(raw: {
   const lessonFacts = new Map(lesson.facts.map((fact) => [fact.factId, fact]));
   for (const resolved of narration.resolvedFacts) {
     const upstream = lessonFacts.get(resolved.factId);
-    if (
-      !upstream ||
-      resolved.semanticHash !== canonicalHash(upstream.semantic)
-    )
+    if (!upstream || resolved.semanticHash !== canonicalHash(upstream.semantic))
       throw new Error(
         `Narration fact ${resolved.factId} does not match locked lesson semantics.`
       );
@@ -299,7 +365,9 @@ export function assertProviderFreeFactBindings(raw: {
     new Set(narration.segments.map((segment) => segment.sceneId)).size !==
       narration.segments.length
   )
-    throw new Error("Provider-free media scene or segment identities are duplicated.");
+    throw new Error(
+      "Provider-free media scene or segment identities are duplicated."
+    );
 
   for (const [index, scene] of scenes.entries()) {
     const lessonScene = lesson.scenes[index];
@@ -311,7 +379,9 @@ export function assertProviderFreeFactBindings(raw: {
       scene.sceneId !== narrationSegment.sceneId ||
       lessonScene.sceneFunction !== narrationSegment.sceneFunction
     )
-      throw new Error(`Media scene/narration/lesson mismatch at ${scene.sceneId}.`);
+      throw new Error(
+        `Media scene/narration/lesson mismatch at ${scene.sceneId}.`
+      );
     if (
       new Set(lessonScene.factIds).size !== lessonScene.factIds.length ||
       exactList(lessonScene.factIds) !== exactList(narrationSegment.factIds)
@@ -320,11 +390,15 @@ export function assertProviderFreeFactBindings(raw: {
         `Scene ${scene.sceneId} fact membership is duplicated or differs from its locked narration.`
       );
     if (lessonScene.factIds.some((factId) => !lessonFacts.has(factId)))
-      throw new Error(`Scene ${scene.sceneId} references an unknown lesson fact.`);
+      throw new Error(
+        `Scene ${scene.sceneId} references an unknown lesson fact.`
+      );
     const bindings = componentFactBindings(scene.component);
     const displayedIds = bindings.map((binding) => binding.factId);
     if (new Set(displayedIds).size !== displayedIds.length)
-      throw new Error(`Scene ${scene.sceneId} displays a duplicate fact binding.`);
+      throw new Error(
+        `Scene ${scene.sceneId} displays a duplicate fact binding.`
+      );
     if (exactList(displayedIds) !== exactList(lessonScene.factIds))
       throw new Error(
         `Scene ${scene.sceneId} must display every locked fact exactly once and no extras.`
@@ -351,25 +425,34 @@ export function assertProviderFreeFactBindings(raw: {
       exactList(planned.factIds) !== exactList(narrationSegment.factIds) ||
       exactList(planned.factIds) !== exactList(displayedIds)
     )
-      throw new Error(`Scene ${scene.sceneId} differs from its authoritative visual plan.`);
-    const compatibleKinds: Record<MathVisualPlan["scenes"][number]["component"], readonly SemanticMathComponent["kind"][]> = {
-      formula: ["formula"],
-      "place-value-chart": ["table"],
+      throw new Error(
+        `Scene ${scene.sceneId} differs from its authoritative visual plan.`
+      );
+    const compatibleKinds: Record<
+      MathVisualPlan["scenes"][number]["component"],
+      readonly SemanticMathComponent["kind"][]
+    > = {
+      formula: ["formula", "fact-stack", "lesson-board"],
+      "place-value-chart": ["table", "place-value-chart"],
       "fraction-model": ["formula", "number-line"],
-      "number-line": ["number-line"],
+      "number-line": ["number-line", "number-line-focus"],
       "coordinate-plane": ["graph"],
       "function-graph": ["graph"],
       geometry: ["geometry"],
       measurement: ["measurement"],
-      "data-table": ["table"],
+      "data-table": ["table", "tally-table"],
       "bar-chart": ["bar-chart"],
       "probability-tree": ["probability"],
-      teacher: ["formula"],
+      teacher: ["formula", "fact-stack", "lesson-board"],
     };
     if (!compatibleKinds[planned.component].includes(scene.component.kind))
-      throw new Error(`Scene ${scene.sceneId} component is incompatible with its visual plan.`);
+      throw new Error(
+        `Scene ${scene.sceneId} component is incompatible with its visual plan.`
+      );
     if ((planned.component === "teacher") !== Boolean(scene.teacher))
-      throw new Error(`Scene ${scene.sceneId} teacher overlay differs from its visual plan.`);
+      throw new Error(
+        `Scene ${scene.sceneId} teacher overlay differs from its visual plan.`
+      );
   }
 }
 
@@ -413,8 +496,12 @@ async function cacheTeacherSvg(args: {
     bounds: {
       x: Math.min(args.base.bounds.x, x),
       y: Math.min(args.base.bounds.y, y),
-      width: Math.max(args.base.bounds.x + args.base.bounds.width, x + width) - Math.min(args.base.bounds.x, x),
-      height: Math.max(args.base.bounds.y + args.base.bounds.height, y + height) - Math.min(args.base.bounds.y, y),
+      width:
+        Math.max(args.base.bounds.x + args.base.bounds.width, x + width) -
+        Math.min(args.base.bounds.x, x),
+      height:
+        Math.max(args.base.bounds.y + args.base.bounds.height, y + height) -
+        Math.min(args.base.bounds.y, y),
     },
     teacher: { poseId: args.poseId, areaRatio: args.areaRatio },
   };
@@ -427,7 +514,8 @@ export async function createProviderFreeMediaSlice(
   const outputDir = path.resolve(request.outputDir);
   await assertSafeMediaOutputDirectory(outputDir);
   const visualCacheDir = path.join(outputDir, "visual-cache");
-  const { lesson, narration, visualPlan } = await loadProviderFreeMediaInputs(request);
+  const { lesson, narration, visualPlan } =
+    await loadProviderFreeMediaInputs(request);
   assertProviderFreeFactBindings({
     lesson,
     narration,
@@ -446,7 +534,9 @@ export async function createProviderFreeMediaSlice(
     teacherManifest?.assetVersion === "alex.v1-placeholder" &&
     request.mediaScope !== "private-simulation"
   )
-    throw new Error("Placeholder teacher artwork is restricted to private simulation media.");
+    throw new Error(
+      "Placeholder teacher artwork is restricted to private simulation media."
+    );
   const scenes: MathSceneAsset[] = [];
   for (const [index, scene] of request.scenes.entries()) {
     const narrationSegment = narration.segments[index];

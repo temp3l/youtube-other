@@ -769,7 +769,17 @@ export const canonicalPrivateMediaEvidenceSchema = z
     visualPresentation: z
       .object({
         strategy: z.literal("progressive-chalk-reveal"),
-        rendererVersion: z.literal("math-semantic-chalk.v2"),
+        rendererVersion: z.literal("math-semantic-chalk.v3"),
+      })
+      .strict(),
+    visualValidation: z
+      .object({
+        valid: z.literal(true),
+        plannedComponentsRealized: z.literal(true),
+        genericFallbackUsed: z.literal(false),
+        cueCoveragePassed: z.literal(true),
+        minimumSceneStepCount: z.number().int().min(4),
+        maximumStaticIntervalFrames: z.number().int().max(180),
       })
       .strict(),
     publication: z
@@ -1472,12 +1482,19 @@ export function createMathProductionTaskImplementations(
           }),
           qualityCheck({
             checkId: "media-qa-packet",
-            ready: true,
+            ready:
+              options.simulation ||
+              Boolean(
+                render.media?.visualValidation.valid &&
+                render.media.visualValidation.plannedComponentsRealized &&
+                !render.media.visualValidation.genericFallbackUsed &&
+                render.media.visualValidation.cueCoveragePassed
+              ),
             evidenceHash:
               render.media?.contentHash ??
               renderArtifact.manifest.checksumSha256,
             message: render.media
-              ? "Workflow-owned media QA passed."
+              ? "Workflow-owned media, semantic-component, cue, and visual-motion QA passed."
               : "Workflow-owned render evidence passed.",
           }),
           qualityCheck({

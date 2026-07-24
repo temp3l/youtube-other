@@ -62,10 +62,21 @@ export const mathSceneAssetSchema = z.strictObject({
       areaRatio: z.number().positive(),
     })
     .optional(),
-  animation: z.strictObject({
-    mode: z.literal("progressive-chalk-reveal"),
-    rendererVersion: z.literal("math-semantic-chalk.v2"),
-  }).optional(),
+  animation: z
+    .strictObject({
+      mode: z.literal("progressive-chalk-reveal"),
+      rendererVersion: z.literal("math-semantic-chalk.v3"),
+      cues: z
+        .array(
+          z.strictObject({
+            factId: z.string().regex(/^[a-z][a-z0-9-]*$/u),
+            frame: z.number().int().nonnegative(),
+          })
+        )
+        .optional(),
+      activity: z.enum(["standard", "think-pause"]).optional(),
+    })
+    .optional(),
 });
 export type MathSceneAsset = z.infer<typeof mathSceneAssetSchema>;
 
@@ -94,6 +105,14 @@ export function createReadyMathComposition(
     if (scene.caption && sceneFrames < 60)
       throw new Error(
         `Caption dwell time is below two seconds in ${scene.sceneId}.`
+      );
+    if (
+      scene.animation?.cues?.some((cue) => cue.frame >= sceneFrames) ||
+      new Set(scene.animation?.cues?.map((cue) => cue.factId) ?? []).size !==
+        (scene.animation?.cues?.length ?? 0)
+    )
+      throw new Error(
+        `Animation cues are duplicated or outside ${scene.sceneId}.`
       );
     validateSafeAreaAndReadability(profile, scene.bounds, scene.minimumGlyphPx);
     if (scene.teacher && scene.teacher.areaRatio > profile.maxTeacherAreaRatio)
