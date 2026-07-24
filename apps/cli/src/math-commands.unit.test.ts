@@ -282,6 +282,78 @@ describe("math commands", () => {
     }
   });
 
+  it("plans all 37 canonical private lessons without writing or calling providers", async () => {
+    const workspace = await fs.mkdtemp(
+      path.join(os.tmpdir(), "math-cli-private-batch-plan-")
+    );
+    const before = await fs.readdir(workspace);
+    const stdout = vi
+      .spyOn(process.stdout, "write")
+      .mockImplementation(() => true);
+    try {
+      await parseMath([
+        "batch",
+        "plan",
+        "--grade",
+        "5",
+        "--variant",
+        "standard",
+        "--language",
+        "de",
+        "--private",
+        "--paid-speech",
+        "--workspace",
+        workspace,
+      ]);
+      const result = JSON.parse(String(stdout.mock.calls.at(-1)?.[0])) as {
+        batchId: string;
+        itemCount: number;
+        excludedCount: number;
+        orderedSkillIds: string[];
+        totals: {
+          workflowTaskCount: number;
+          plannedProviderCalls: number;
+        };
+        privacy: {
+          outputVisibility: string;
+          livePublishingAvailable: boolean;
+          plannedRemoteMutations: number;
+        };
+        requiredApproval: {
+          paidProviderAuthorized: boolean;
+          exactInstruction: string;
+        };
+        writes: number;
+        providerCallsSubmitted: number;
+      };
+      expect(result).toMatchObject({
+        itemCount: 37,
+        excludedCount: 0,
+        writes: 0,
+        providerCallsSubmitted: 0,
+        privacy: {
+          outputVisibility: "private",
+          livePublishingAvailable: false,
+          plannedRemoteMutations: 0,
+        },
+        requiredApproval: {
+          paidProviderAuthorized: false,
+        },
+      });
+      expect(result.batchId).toMatch(/^batch-[a-f0-9]{40}$/u);
+      expect(result.orderedSkillIds).toHaveLength(37);
+      expect(new Set(result.orderedSkillIds).size).toBe(37);
+      expect(result.totals.workflowTaskCount).toBe(592);
+      expect(result.totals.plannedProviderCalls).toBeGreaterThan(0);
+      expect(result.requiredApproval.exactInstruction).toContain(
+        "canonical 37-lesson Class 5"
+      );
+      expect(await fs.readdir(workspace)).toEqual(before);
+    } finally {
+      stdout.mockRestore();
+    }
+  }, 30_000);
+
   async function qualityLesson(
     workspace: string,
     lessonId: string,

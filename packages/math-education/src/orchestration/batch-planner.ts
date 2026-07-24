@@ -3,7 +3,10 @@ import {
   type LessonVariant,
   type MathLanguage,
 } from "../domain/index.js";
-import { lessonCapability } from "../lesson/capabilities.js";
+import {
+  lessonCapability,
+  productionLessonCapability,
+} from "../lesson/capabilities.js";
 import { type MathBatchItem } from "./batch.js";
 
 export interface MathBatchCapabilityExclusion {
@@ -11,10 +14,15 @@ export interface MathBatchCapabilityExclusion {
   reason: "unsupported-skill" | "unsupported-variant";
 }
 
+export type MathBatchCapabilityMode =
+  | "approved-simulation"
+  | "private-production";
+
 export function planMathBatchItems(args: {
   skills: readonly CurriculumSkill[];
   variant: LessonVariant;
   language: MathLanguage;
+  capabilityMode?: MathBatchCapabilityMode;
 }): {
   items: MathBatchItem[];
   excluded: MathBatchCapabilityExclusion[];
@@ -22,12 +30,16 @@ export function planMathBatchItems(args: {
   const items: MathBatchItem[] = [];
   const excluded: MathBatchCapabilityExclusion[] = [];
   for (const skill of args.skills) {
-    const capability = lessonCapability(skill.skillId);
+    const capability =
+      args.capabilityMode === "private-production"
+        ? productionLessonCapability(skill.skillId)
+        : lessonCapability(skill.skillId);
     if (!capability) {
       excluded.push({ skillId: skill.skillId, reason: "unsupported-skill" });
       continue;
     }
-    if (!capability.variants.includes(args.variant)) {
+    const variants: readonly LessonVariant[] = capability.variants;
+    if (!variants.includes(args.variant)) {
       excluded.push({ skillId: skill.skillId, reason: "unsupported-variant" });
       continue;
     }

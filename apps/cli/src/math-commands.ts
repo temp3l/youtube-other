@@ -18,6 +18,7 @@ import {
   loadCurriculumRelease,
   loadPrivateOwnerAttestation,
   assertPrivateOwnerCurriculumApproval,
+  assertProductionLessonCapability,
   mathWorkflowDefinition,
   MathWorkspacePathResolver,
   evaluateMinorEditApproval,
@@ -55,6 +56,7 @@ import {
 import { writeJsonAtomic } from "@mediaforge/shared";
 import {
   buildEducationalSpeechPlan,
+  classifyEducationalSpeechError,
   educationalNarrationBeatSchema,
   educationalSpeechLanguageSchema,
   generateEducationalSpeech,
@@ -65,6 +67,13 @@ import {
   speechDeliveryProfileIdSchema,
   type SpeechProvider,
 } from "@mediaforge/speech";
+import {
+  BatchCoordinator,
+  BatchStore,
+  normalizeWorkflowError,
+  type BatchPlanInput,
+  type BatchWorkItem,
+} from "@mediaforge/workflow-engine";
 import {
   CANONICAL_OPENAI_SPEECH_PRICING_VERSION,
   CANONICAL_PRIVATE_NARRATION_SYNC_VERSION,
@@ -93,6 +102,7 @@ interface MathSelectionOptions {
   ttsProvider?: "mock" | "openai-compatible";
   paidSpeech?: boolean;
   maxProviderCostUsd?: number;
+  maxProviderCostPerLessonUsd?: number;
   canonicalFirst?: boolean;
 }
 
@@ -205,38 +215,58 @@ function parseProviderCostUsd(value: string): number {
   return parsed;
 }
 
+function parseProviderCostPerLessonUsd(value: string): number {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed <= 0 || parsed > 100) {
+    throw new Error(
+      "--max-provider-cost-per-lesson-usd must be greater than 0 and no more than 100."
+    );
+  }
+  return parsed;
+}
+
 const CANONICAL_PINNED_SPEECH_MODEL =
   "gpt-4o-mini-tts-2025-12-15" as const;
 
-async function canonicalPaidSpeechSetup(input: {
+interface CanonicalPaidSpeechEstimate {
+  readonly chunks: number;
+  readonly cacheHits: number;
+  readonly cacheMisses: number;
+  readonly calls: number;
+  readonly characters: number;
+  readonly estimatedAudioSeconds: number;
+  readonly estimatedCostMicros: number;
+  readonly newCostEstimateMicros: number;
+  readonly priorCostMicros: number;
+  readonly words: number;
+  readonly targetWordsPerMinute: number;
+  readonly model: string;
+  readonly voice: string;
+  readonly speechProfileVersion: string;
+}
+
+interface CanonicalPaidSpeechPreflight {
+  readonly configuration: Omit<
+    CanonicalPaidSpeechConfiguration,
+    "approvedCeilingMicros"
+  >;
+  readonly estimate: CanonicalPaidSpeechEstimate;
+  readonly providerCredentialConfigured: boolean;
+}
+
+async function canonicalPaidSpeechPreflight(input: {
   readonly skillId: string;
   readonly lessonVariant: LessonVariant;
   readonly language: MathLanguage;
-  readonly ceilingMicros: number;
   readonly workspace?: string;
   readonly requireProvider: boolean;
   readonly options: MathSelectionOptions;
-}): Promise<{
-  readonly configuration: CanonicalPaidSpeechConfiguration;
-  readonly estimate: {
-    readonly calls: number;
-    readonly characters: number;
-    readonly estimatedAudioSeconds: number;
-    readonly estimatedCostMicros: number;
-    readonly newCostEstimateMicros: number;
-    readonly priorCostMicros: number;
-    readonly remainingBudgetMicros: number;
-    readonly words: number;
-    readonly targetWordsPerMinute: number;
-    readonly model: string;
-    readonly voice: string;
-    readonly speechProfileVersion: string;
-  };
-}> {
+  readonly curriculumRelease?: Awaited<ReturnType<typeof curriculum>>;
+}): Promise<CanonicalPaidSpeechPreflight> {
   if (input.lessonVariant !== "standard" || input.language !== "de") {
     throw new Error("Canonical paid speech is restricted to standard/de.");
   }
-  const release = await curriculum();
+  const release = input.curriculumRelease ?? (await curriculum());
   const skill = release.skills.find(
     (candidate) => candidate.skillId === input.skillId
   );
@@ -310,11 +340,6 @@ async function canonicalPaidSpeechSetup(input: {
   const priorUsage = await readCanonicalPaidSpeechUsage(unitRoot);
   const estimatedCostMicros =
     priorUsage.costMicros + remainingEstimate.estimatedCostMicros;
-  if (estimatedCostMicros > input.ceilingMicros) {
-    throw new Error(
-      `Estimated provider cost USD ${(estimatedCostMicros / 1_000_000).toFixed(6)} exceeds the hard ceiling USD ${(input.ceilingMicros / 1_000_000).toFixed(6)}.`
-    );
-  }
   if (input.requireProvider && !runtime.openAiCompatibleApiKey) {
     throw new Error("Canonical paid speech requires an OpenAI API key.");
   }
@@ -343,22 +368,61 @@ async function canonicalPaidSpeechSetup(input: {
         : "openai-default",
       profile,
       pronunciationDictionaries,
-      approvedCeilingMicros: input.ceilingMicros,
       pricingVersion: CANONICAL_OPENAI_SPEECH_PRICING_VERSION,
     },
+    providerCredentialConfigured: Boolean(runtime.openAiCompatibleApiKey),
     estimate: {
+      chunks: dryRun.dryRun.chunks.filter((chunk) => chunk.selected).length,
+      cacheHits: dryRun.dryRun.chunks.filter(
+        (chunk) => chunk.selected && chunk.cacheStatus === "hit"
+      ).length,
+      cacheMisses: dryRun.dryRun.chunks.filter(
+        (chunk) => chunk.selected && chunk.cacheStatus !== "hit"
+      ).length,
       calls: dryRun.dryRun.estimatedProviderRequests,
       characters: dryRun.dryRun.estimatedInputCharacters,
       estimatedAudioSeconds: remainingEstimate.estimatedAudioSeconds,
       estimatedCostMicros,
       newCostEstimateMicros: remainingEstimate.estimatedCostMicros,
       priorCostMicros: priorUsage.costMicros,
-      remainingBudgetMicros: input.ceilingMicros - priorUsage.costMicros,
       words,
       targetWordsPerMinute,
       model: profile.model,
       voice: profile.voice,
       speechProfileVersion: profile.version,
+    },
+  };
+}
+
+async function canonicalPaidSpeechSetup(input: {
+  readonly skillId: string;
+  readonly lessonVariant: LessonVariant;
+  readonly language: MathLanguage;
+  readonly ceilingMicros: number;
+  readonly workspace?: string;
+  readonly requireProvider: boolean;
+  readonly options: MathSelectionOptions;
+}): Promise<{
+  readonly configuration: CanonicalPaidSpeechConfiguration;
+  readonly estimate: CanonicalPaidSpeechEstimate & {
+    readonly remainingBudgetMicros: number;
+  };
+}> {
+  const preflight = await canonicalPaidSpeechPreflight(input);
+  if (preflight.estimate.estimatedCostMicros > input.ceilingMicros) {
+    throw new Error(
+      `Estimated provider cost USD ${(preflight.estimate.estimatedCostMicros / 1_000_000).toFixed(6)} exceeds the hard ceiling USD ${(input.ceilingMicros / 1_000_000).toFixed(6)}.`
+    );
+  }
+  return {
+    configuration: {
+      ...preflight.configuration,
+      approvedCeilingMicros: input.ceilingMicros,
+    },
+    estimate: {
+      ...preflight.estimate,
+      remainingBudgetMicros:
+        input.ceilingMicros - preflight.estimate.priorCostMicros,
     },
   };
 }
@@ -806,7 +870,7 @@ async function runCanonicalSimulation(
 function requirePrivateWorkspace(options: MathSelectionOptions): string {
   if (!options.private)
     throw new Error(
-      "Canonical provider-free production requires the explicit --private flag."
+      "Canonical private production requires the explicit --private flag."
     );
   if (!options.workspace)
     throw new Error("Private production requires an explicit --workspace path.");
@@ -971,6 +1035,613 @@ async function runCanonicalPrivateProduction(
     workflow,
   };
 }
+
+const CANONICAL_PRIVATE_BATCH_CONCURRENCY = 1;
+const CANONICAL_PRIVATE_BATCH_RETRY_LIMIT = 2;
+const CANONICAL_PRIVATE_BATCH_RATE_LIMIT_PER_SECOND = 0.05;
+const CANONICAL_PRIVATE_BATCH_REQUIRED_DISK_BYTES = 2_147_483_648;
+
+interface CanonicalPrivateBatchItemPlan {
+  readonly skillId: string;
+  readonly lessonId: string;
+  readonly lessonSpecificationHash: string;
+  readonly narrationHash: string;
+  readonly narrationReviewHash: string;
+  readonly verifierCheckCount: number;
+  readonly targetDurationSeconds: number;
+  readonly speech: CanonicalPaidSpeechEstimate;
+}
+
+interface CanonicalPrivateBatchPreflight {
+  readonly status:
+    | "READY_FOR_PRIVATE_BATCH"
+    | "BLOCKED_PROVIDER_CONFIGURATION"
+    | "BLOCKED_WORKSPACE_CAPACITY";
+  readonly batchId: string;
+  readonly workspace: string;
+  readonly release: {
+    readonly releaseId: string;
+    readonly curriculumVersion: string;
+    readonly status: string;
+    readonly releaseHash: string;
+  };
+  readonly curriculumApprovalHash: string;
+  readonly orderedSkillIds: readonly string[];
+  readonly items: readonly CanonicalPrivateBatchItemPlan[];
+  readonly itemCount: number;
+  readonly excludedCount: number;
+  readonly providerCredentialConfigured: boolean;
+  readonly totals: {
+    readonly workflowTaskCount: number;
+    readonly workflowCacheHits: number;
+    readonly workflowCacheMisses: number;
+    readonly speechChunks: number;
+    readonly speechCacheHits: number;
+    readonly speechCacheMisses: number;
+    readonly plannedProviderCalls: number;
+    readonly expectedSpeechCharacters: number;
+    readonly expectedAudioDurationSeconds: number;
+    readonly estimatedUncachedAudioSeconds: number;
+    readonly priorProviderCostMicros: number;
+    readonly estimatedNewProviderCostMicros: number;
+    readonly estimatedProviderCostMicros: number;
+    readonly maximumLessonCostMicros: number;
+  };
+  readonly requiredApproval: {
+    readonly paidProviderAuthorized: false;
+    readonly recommendedPerLessonCeilingMicros: number;
+    readonly recommendedTotalCeilingMicros: number;
+    readonly exactInstruction: string;
+  };
+  readonly executionPolicy: {
+    readonly concurrency: number;
+    readonly rateLimitPerSecond: number;
+    readonly retryLimit: number;
+    readonly maximumProviderAttemptsPerSpeechChunk: number;
+  };
+  readonly workspaceEvidence: {
+    readonly configuredArtifactRoot: string;
+    readonly realArtifactRoot: string;
+    readonly writable: true;
+    readonly separateFromTrackedSource: true;
+    readonly containedUnitCount: number;
+    readonly collisionFree: boolean;
+    readonly availableDiskBytes: number;
+    readonly requiredDiskBytes: number;
+  };
+  readonly privacy: {
+    readonly outputVisibility: "private";
+    readonly livePublishingAvailable: false;
+    readonly remoteMutationAvailable: false;
+    readonly channelOAuthUsed: false;
+    readonly plannedRemoteMutations: 0;
+  };
+  readonly versions: {
+    readonly workflow: string;
+    readonly narration: string;
+    readonly verifierProtocol: "math-verifier.v3";
+    readonly renderer: "math-semantic-keyframe-runner.v2";
+    readonly visualStyle: "math.educational-visual-style.v1";
+    readonly metadata: "math-metadata.v1";
+    readonly speechProfile: string;
+    readonly speechModel: string;
+    readonly pricing: typeof CANONICAL_OPENAI_SPEECH_PRICING_VERSION;
+    readonly narrationSynchronization: typeof CANONICAL_PRIVATE_NARRATION_SYNC_VERSION;
+  };
+  readonly dryRun: true;
+  readonly writes: 0;
+  readonly subprocesses: 0;
+  readonly providerCallsSubmitted: 0;
+}
+
+function roundedCeilingMicros(value: number): number {
+  return Math.ceil(value / 1_000) * 1_000;
+}
+
+function privateBatchStateRoot(workspace: string): string {
+  return path.join(workspace, "state", "canonical-batches");
+}
+
+async function canonicalPrivateBatchWorkspaceEvidence(
+  workspace: string,
+  lessonIds: readonly string[]
+): Promise<CanonicalPrivateBatchPreflight["workspaceEvidence"]> {
+  const configuredArtifactRoot = path.resolve(workspace);
+  await fs.access(configuredArtifactRoot, fsConstants.W_OK);
+  const [realArtifactRoot, realRepositoryRoot] = await Promise.all([
+    fs.realpath(configuredArtifactRoot),
+    fs.realpath(repositoryRoot()),
+  ]);
+  const sourceRelation = path.relative(realRepositoryRoot, realArtifactRoot);
+  if (
+    sourceRelation === "" ||
+    (!sourceRelation.startsWith("..") && !path.isAbsolute(sourceRelation))
+  ) {
+    throw new Error(
+      "Private production workspace must be separate from tracked source."
+    );
+  }
+  const unitRoots = lessonIds.map((lessonId) =>
+    path.join(realArtifactRoot, lessonId)
+  );
+  if (
+    unitRoots.some(
+      (unitRoot, index) =>
+        path.relative(realArtifactRoot, unitRoot) !== lessonIds[index]
+    )
+  ) {
+    throw new Error("Private batch unit path escaped the configured workspace.");
+  }
+  const collisionFree = (
+    await Promise.all(
+      [...unitRoots, privateBatchStateRoot(realArtifactRoot)].map((target) =>
+        fs
+          .access(target)
+          .then(() => false)
+          .catch(() => true)
+      )
+    )
+  ).every(Boolean);
+  const disk = await fs.statfs(realArtifactRoot);
+  return {
+    configuredArtifactRoot,
+    realArtifactRoot,
+    writable: true,
+    separateFromTrackedSource: true,
+    containedUnitCount: unitRoots.length,
+    collisionFree,
+    availableDiskBytes: disk.bavail * disk.bsize,
+    requiredDiskBytes: CANONICAL_PRIVATE_BATCH_REQUIRED_DISK_BYTES,
+  };
+}
+
+function canonicalPrivateBatchInput(
+  preflight: Omit<CanonicalPrivateBatchPreflight, "batchId"> & {
+    readonly batchId?: string;
+  },
+  execute?: (
+    item: CanonicalPrivateBatchItemPlan
+  ) => BatchWorkItem["execute"]
+): BatchPlanInput {
+  const speechModel = preflight.versions.speechModel;
+  return {
+    profileId: "mathematics-education",
+    provider: "openai-compatible",
+    model: speechModel,
+    operation: "math.private-class5-production",
+    executionMode: "sync",
+    configuration: {
+      concurrency: CANONICAL_PRIVATE_BATCH_CONCURRENCY,
+      retryLimit: CANONICAL_PRIVATE_BATCH_RETRY_LIMIT,
+      rateLimitPerSecond:
+        CANONICAL_PRIVATE_BATCH_RATE_LIMIT_PER_SECOND,
+    },
+    items: preflight.items.map((item) => ({
+      key: `${item.skillId}:standard:de`,
+      taskId: "math.publish-dry-run",
+      unitId: item.lessonId,
+      locale: "de",
+      variant: "full",
+      fingerprint: canonicalHash({
+        releaseHash: preflight.release.releaseHash,
+        curriculumApprovalHash: preflight.curriculumApprovalHash,
+        skillId: item.skillId,
+        lessonSpecificationHash: item.lessonSpecificationHash,
+        narrationHash: item.narrationHash,
+        narrationReviewHash: item.narrationReviewHash,
+        versions: preflight.versions,
+      }),
+      groupKey: `openai-compatible:${speechModel}:de:standard`,
+      revisions: {
+        workflow: preflight.versions.workflow,
+        narration: preflight.versions.narration,
+        verifier: preflight.versions.verifierProtocol,
+        renderer: preflight.versions.renderer,
+        visualStyle: preflight.versions.visualStyle,
+        metadata: preflight.versions.metadata,
+        speechProfile: preflight.versions.speechProfile,
+        speechModel,
+        pricing: preflight.versions.pricing,
+      },
+      execute: execute
+        ? execute(item)
+        : async () => ({ outputArtifacts: [], warnings: [] }),
+      classifyError: (error: unknown) => {
+        const speech = classifyEducationalSpeechError(error);
+        const normalized = normalizeWorkflowError(error);
+        return {
+          retryable:
+            speech.classification === "unknown"
+              ? normalized.retryable
+              : speech.retryable,
+          code:
+            speech.classification === "unknown"
+              ? normalized.code
+              : `MATH_SPEECH_${speech.classification
+                  .replaceAll("-", "_")
+                  .toUpperCase()}`,
+        };
+      },
+    })),
+  };
+}
+
+async function canonicalPrivateBatchPreflight(
+  options: MathSelectionOptions,
+  requireProvider: boolean,
+  allowExisting = false
+): Promise<CanonicalPrivateBatchPreflight> {
+  const workspace = requirePrivateWorkspace(options);
+  if (Number(options.grade ?? "5") !== 5) {
+    throw new Error("Canonical private batch production is restricted to grade 5.");
+  }
+  const lessonVariant = options.variant ?? "standard";
+  const language = options.language ?? "de";
+  if (lessonVariant !== "standard" || language !== "de") {
+    throw new Error(
+      "Canonical private batch production is restricted to standard/de."
+    );
+  }
+  if (!options.paidSpeech) {
+    throw new Error(
+      "Canonical private batch planning requires --paid-speech to estimate the reviewed speech path."
+    );
+  }
+  const release = await curriculum();
+  const orderedSkillIds = release.graph.order.filter((skillId) =>
+    skillId.startsWith("M5-")
+  );
+  if (
+    orderedSkillIds.length !== 37 ||
+    new Set(orderedSkillIds).size !== 37
+  ) {
+    throw new Error(
+      "Canonical Class 5 order must contain exactly 37 unique skills."
+    );
+  }
+  const byId = new Map(release.skills.map((skill) => [skill.skillId, skill]));
+  const orderedSkills = orderedSkillIds.map((skillId) => {
+    const skill = byId.get(skillId);
+    if (!skill) throw new Error(`Missing canonical Class 5 skill: ${skillId}`);
+    return skill;
+  });
+  const planned = planMathBatchItems({
+    skills: orderedSkills,
+    variant: lessonVariant,
+    language,
+    capabilityMode: "private-production",
+  });
+  if (planned.items.length !== 37 || planned.excluded.length !== 0) {
+    throw new Error(
+      `Private production capability mismatch: ${planned.items.length} planned, ${planned.excluded.length} excluded.`
+    );
+  }
+  const attestation = await loadPrivateOwnerAttestation(
+    path.join(
+      repositoryRoot(),
+      "packages/math-education/data/reviews/v1/private-owner-attestation.json"
+    )
+  );
+  const itemPlans = await Promise.all(
+    orderedSkills.map(async (skill) => {
+      assertPrivateOwnerCurriculumApproval(
+        attestation,
+        release,
+        skill.skillId
+      );
+      assertProductionLessonCapability(
+        skill.skillId,
+        lessonVariant,
+        attestation,
+        "private"
+      );
+      const lesson = buildLessonVariant(skill, lessonVariant);
+      const narration = localizeNarration(lesson, language);
+      const narrationReview = reviewGermanStandardNarration({
+        lesson,
+        narration,
+      });
+      const paid = await canonicalPaidSpeechPreflight({
+        skillId: skill.skillId,
+        lessonVariant,
+        language,
+        workspace,
+        requireProvider,
+        options,
+        curriculumRelease: release,
+      });
+      return {
+        plan: {
+          skillId: skill.skillId,
+          lessonId: createLessonId(skill.skillId, lessonVariant),
+          lessonSpecificationHash: lesson.contentHash,
+          narrationHash: narration.contentHash,
+          narrationReviewHash: narrationReview.contentHash,
+          verifierCheckCount: lesson.checks.length,
+          targetDurationSeconds: lesson.targetDurationSeconds,
+          speech: paid.estimate,
+        } satisfies CanonicalPrivateBatchItemPlan,
+        providerCredentialConfigured: paid.providerCredentialConfigured,
+      };
+    })
+  );
+  const items = itemPlans.map((item) => item.plan);
+  const providerCredentialConfigured = itemPlans.every(
+    (item) => item.providerCredentialConfigured
+  );
+  const workspaceEvidence = await canonicalPrivateBatchWorkspaceEvidence(
+    workspace,
+    items.map((item) => item.lessonId)
+  );
+  if (!workspaceEvidence.collisionFree && !allowExisting) {
+    throw new Error(
+      "Private batch workspace collides with an earlier release, locale, or batch state."
+    );
+  }
+  const sum = (
+    selector: (item: CanonicalPrivateBatchItemPlan) => number
+  ): number => items.reduce((total, item) => total + selector(item), 0);
+  const totals = {
+    workflowTaskCount: items.length * MATH_EXECUTABLE_TASK_IDS.length,
+    workflowCacheHits: 0,
+    workflowCacheMisses: items.length * MATH_EXECUTABLE_TASK_IDS.length,
+    speechChunks: sum((item) => item.speech.chunks),
+    speechCacheHits: sum((item) => item.speech.cacheHits),
+    speechCacheMisses: sum((item) => item.speech.cacheMisses),
+    plannedProviderCalls: sum((item) => item.speech.calls),
+    expectedSpeechCharacters: sum((item) => item.speech.characters),
+    expectedAudioDurationSeconds: sum(
+      (item) => item.targetDurationSeconds
+    ),
+    estimatedUncachedAudioSeconds: sum(
+      (item) => item.speech.estimatedAudioSeconds
+    ),
+    priorProviderCostMicros: sum(
+      (item) => item.speech.priorCostMicros
+    ),
+    estimatedNewProviderCostMicros: sum(
+      (item) => item.speech.newCostEstimateMicros
+    ),
+    estimatedProviderCostMicros: sum(
+      (item) => item.speech.estimatedCostMicros
+    ),
+    maximumLessonCostMicros: Math.max(
+      ...items.map((item) => item.speech.estimatedCostMicros)
+    ),
+  };
+  const recommendedPerLessonCeilingMicros = roundedCeilingMicros(
+    totals.maximumLessonCostMicros
+  );
+  const recommendedTotalCeilingMicros = roundedCeilingMicros(
+    totals.estimatedProviderCostMicros
+  );
+  const versions = {
+    workflow: mathWorkflowDefinition.revision,
+    narration: MATH_LOCKED_FACT_NARRATION_VERSION,
+    verifierProtocol: "math-verifier.v3" as const,
+    renderer: "math-semantic-keyframe-runner.v2" as const,
+    visualStyle: "math.educational-visual-style.v1" as const,
+    metadata: "math-metadata.v1" as const,
+    speechProfile: items[0]!.speech.speechProfileVersion,
+    speechModel: items[0]!.speech.model,
+    pricing: CANONICAL_OPENAI_SPEECH_PRICING_VERSION,
+    narrationSynchronization: CANONICAL_PRIVATE_NARRATION_SYNC_VERSION,
+  };
+  const withoutBatchId = {
+    status: !providerCredentialConfigured
+      ? ("BLOCKED_PROVIDER_CONFIGURATION" as const)
+      : workspaceEvidence.availableDiskBytes <
+          workspaceEvidence.requiredDiskBytes
+        ? ("BLOCKED_WORKSPACE_CAPACITY" as const)
+        : ("READY_FOR_PRIVATE_BATCH" as const),
+    workspace,
+    release: {
+      releaseId: release.release.releaseId,
+      curriculumVersion: release.release.curriculumVersion,
+      status: release.release.status,
+      releaseHash: release.releaseHash,
+    },
+    curriculumApprovalHash: attestation.evidenceHash,
+    orderedSkillIds,
+    items,
+    itemCount: items.length,
+    excludedCount: planned.excluded.length,
+    providerCredentialConfigured,
+    totals,
+    requiredApproval: {
+      paidProviderAuthorized: false as const,
+      recommendedPerLessonCeilingMicros,
+      recommendedTotalCeilingMicros,
+      exactInstruction:
+        `Approve paid German speech for the canonical 37-lesson Class 5 standard/de private batch only, ` +
+        `with a hard ceiling of USD ${(recommendedPerLessonCeilingMicros / 1_000_000).toFixed(3)} per lesson ` +
+        `and USD ${(recommendedTotalCeilingMicros / 1_000_000).toFixed(3)} total.`,
+    },
+    executionPolicy: {
+      concurrency: CANONICAL_PRIVATE_BATCH_CONCURRENCY,
+      rateLimitPerSecond:
+        CANONICAL_PRIVATE_BATCH_RATE_LIMIT_PER_SECOND,
+      retryLimit: CANONICAL_PRIVATE_BATCH_RETRY_LIMIT,
+      maximumProviderAttemptsPerSpeechChunk: 3,
+    },
+    workspaceEvidence,
+    privacy: {
+      outputVisibility: "private" as const,
+      livePublishingAvailable: false as const,
+      remoteMutationAvailable: false as const,
+      channelOAuthUsed: false as const,
+      plannedRemoteMutations: 0 as const,
+    },
+    versions,
+    dryRun: true as const,
+    writes: 0 as const,
+    subprocesses: 0 as const,
+    providerCallsSubmitted: 0 as const,
+  };
+  const manifest = new BatchCoordinator({
+    root: privateBatchStateRoot(workspace),
+  }).createManifest(canonicalPrivateBatchInput(withoutBatchId));
+  if (allowExisting) {
+    const existing = await new BatchStore(
+      privateBatchStateRoot(workspace)
+    ).read(manifest.id);
+    if (
+      existing.items.map((item) => item.unitId).join("\0") !==
+      manifest.items.map((item) => item.unitId).join("\0")
+    ) {
+      throw new Error(
+        "Existing private batch state does not match the canonical Class 5 plan."
+      );
+    }
+  }
+  return {
+    ...withoutBatchId,
+    batchId: manifest.id,
+  };
+}
+
+async function readCanonicalPrivateBatchUsage(
+  workspace: string,
+  items: readonly CanonicalPrivateBatchItemPlan[]
+): Promise<number> {
+  const usage = await Promise.all(
+    items.map((item) =>
+      readCanonicalPaidSpeechUsage(path.join(workspace, item.lessonId))
+    )
+  );
+  return usage.reduce((total, item) => total + item.costMicros, 0);
+}
+
+async function runCanonicalPrivateBatch(
+  options: MathSelectionOptions,
+  resume: boolean
+) {
+  if (
+    options.maxProviderCostUsd === undefined ||
+    options.maxProviderCostPerLessonUsd === undefined
+  ) {
+    throw new Error(
+      "Canonical private batch execution requires aggregate --max-provider-cost-usd and --max-provider-cost-per-lesson-usd ceilings."
+    );
+  }
+  const totalCeilingUsd = options.maxProviderCostUsd;
+  const perLessonCeilingUsd = options.maxProviderCostPerLessonUsd;
+  const totalCeilingMicros = Math.round(
+    totalCeilingUsd * 1_000_000
+  );
+  const perLessonCeilingMicros = Math.round(
+    perLessonCeilingUsd * 1_000_000
+  );
+  const preflight = await canonicalPrivateBatchPreflight(
+    options,
+    true,
+    resume
+  );
+  if (preflight.totals.estimatedProviderCostMicros > totalCeilingMicros) {
+    throw new Error(
+      `Estimated batch provider cost USD ${(preflight.totals.estimatedProviderCostMicros / 1_000_000).toFixed(6)} exceeds the aggregate hard ceiling USD ${(totalCeilingMicros / 1_000_000).toFixed(6)}.`
+    );
+  }
+  const overPerLesson = preflight.items.find(
+    (item) => item.speech.estimatedCostMicros > perLessonCeilingMicros
+  );
+  if (overPerLesson) {
+    throw new Error(
+      `${overPerLesson.skillId} estimated provider cost USD ${(overPerLesson.speech.estimatedCostMicros / 1_000_000).toFixed(6)} exceeds the per-lesson hard ceiling USD ${(perLessonCeilingMicros / 1_000_000).toFixed(6)}.`
+    );
+  }
+  const input = canonicalPrivateBatchInput(preflight, (item) => async () => {
+    const costBefore = await readCanonicalPrivateBatchUsage(
+      preflight.workspace,
+      preflight.items
+    );
+    if (
+      costBefore + item.speech.newCostEstimateMicros >
+      totalCeilingMicros
+    ) {
+      throw new Error(
+        `Aggregate cost gate blocks ${item.skillId}: prior usage plus the remaining worst-case estimate exceeds the approved ceiling.`
+      );
+    }
+    const result = await runCanonicalPrivateProduction(
+      {
+        ...options,
+        skill: item.skillId,
+        grade: "5",
+        variant: "standard",
+        language: "de",
+        private: true,
+        paidSpeech: true,
+        maxProviderCostUsd: perLessonCeilingUsd,
+      },
+      true
+    );
+    if (result.status !== "succeeded") {
+      throw new Error(
+        `Canonical workflow did not reach publish dry-run for ${item.skillId}.`
+      );
+    }
+    const costAfter = await readCanonicalPrivateBatchUsage(
+      preflight.workspace,
+      preflight.items
+    );
+    if (costAfter > totalCeilingMicros) {
+      throw new Error(
+        `Aggregate provider usage USD ${(costAfter / 1_000_000).toFixed(6)} exceeded the approved ceiling.`
+      );
+    }
+    return {
+      outputArtifacts: [],
+      warnings: [
+        "Private-only output; placeholder artwork remains a public-release blocker.",
+      ],
+      telemetry: {
+        provider: "openai-compatible",
+        model: item.speech.model,
+        cacheStatus: result.cached ? ("hit" as const) : ("miss" as const),
+        cost: {
+          estimatedMicros: item.speech.newCostEstimateMicros,
+          actualMicros: Math.max(0, costAfter - costBefore),
+          currency: "USD" as const,
+        },
+        revisions: {
+          workflow: preflight.versions.workflow,
+          speechProfile: preflight.versions.speechProfile,
+          pricing: preflight.versions.pricing,
+        },
+      },
+    };
+  });
+  const coordinator = new BatchCoordinator({
+    root: privateBatchStateRoot(preflight.workspace),
+  });
+  const manifest = await coordinator.run(input);
+  const actualCostMicros = await readCanonicalPrivateBatchUsage(
+    preflight.workspace,
+    preflight.items
+  );
+  if (actualCostMicros > totalCeilingMicros) {
+    throw new Error("Canonical private batch aggregate cost ceiling was exceeded.");
+  }
+  process.exitCode =
+    manifest.status === "succeeded"
+      ? 0
+      : manifest.status === "partial"
+        ? 2
+        : 3;
+  return {
+    batchId: manifest.id,
+    status: manifest.status,
+    workspace: preflight.workspace,
+    itemCount: preflight.itemCount,
+    approvedPerLessonCeilingMicros: perLessonCeilingMicros,
+    approvedTotalCeilingMicros: totalCeilingMicros,
+    actualCostMicros,
+    privacy: preflight.privacy,
+    manifest,
+  };
+}
+
 async function canonicalProductionStatus(
   workspace: string,
   lessonIds: readonly string[]
@@ -1539,7 +2210,81 @@ export function registerMathCommands(program: Command): void {
 
   const batch = math
     .command("batch")
-    .description("Create and process isolated math batch items");
+    .description("Plan and run isolated canonical math batch items");
+  const configurePrivateBatchSelection = (command: Command) =>
+    command
+      .option("--grade <grade>", "canonical grade", "5")
+      .option("--variant <variant>", "lesson variant", "standard")
+      .option("--language <language>", "target language", "de")
+      .option("--private", "owner-attested private production")
+      .option("--paid-speech", "plan or run paid natural German speech")
+      .requiredOption("--workspace <path>", "private artifact workspace")
+      .option("--python <path>");
+  configurePrivateBatchSelection(batch.command("plan"))
+    .description("Side-effect-free canonical Class 5 private batch preflight")
+    .action(async (_opts, command) =>
+      print(await canonicalPrivateBatchPreflight(selection(command), false))
+    );
+  for (const name of ["run", "resume"] as const) {
+    configurePrivateBatchSelection(batch.command(name))
+      .description(
+        `${name === "run" ? "Run" : "Resume"} the canonical Class 5 private batch`
+      )
+      .requiredOption(
+        "--max-provider-cost-usd <usd>",
+        "aggregate hard provider-cost ceiling in USD",
+        parseProviderCostUsd
+      )
+      .requiredOption(
+        "--max-provider-cost-per-lesson-usd <usd>",
+        "per-lesson hard provider-cost ceiling in USD",
+        parseProviderCostPerLessonUsd
+      )
+      .action(async (_opts, command) =>
+        print(
+          await runCanonicalPrivateBatch(
+            selection(command),
+            name === "resume"
+          )
+        )
+      );
+  }
+  batch
+    .command("status")
+    .requiredOption("--batch-id <id>")
+    .requiredOption("--workspace <path>")
+    .option("--private")
+    .action(async (options: {
+      batchId: string;
+      workspace: string;
+      private?: boolean;
+    }) => {
+      const workspace = requirePrivateWorkspace(options);
+      print(
+        await new BatchStore(privateBatchStateRoot(workspace)).read(
+          options.batchId
+        )
+      );
+    });
+  batch
+    .command("cancel")
+    .requiredOption("--batch-id <id>")
+    .requiredOption("--reason <text>")
+    .requiredOption("--workspace <path>")
+    .option("--private")
+    .action(async (options: {
+      batchId: string;
+      reason: string;
+      workspace: string;
+      private?: boolean;
+    }) => {
+      const workspace = requirePrivateWorkspace(options);
+      print(
+        await new BatchCoordinator({
+          root: privateBatchStateRoot(workspace),
+        }).cancel(options.batchId, options.reason)
+      );
+    });
   batch
     .command("create")
     .option("--grade <grade>", "grade 5-10", "5")
