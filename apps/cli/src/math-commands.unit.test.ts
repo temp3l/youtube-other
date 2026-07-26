@@ -126,6 +126,30 @@ describe("math commands", () => {
     }
   });
 
+  it("keeps private batch run and resume behind both aggregate cost ceilings before any provider or render work", () => {
+    const program = new Command();
+    registerMathCommands(program);
+    const math = program.commands.find((command) => command.name() === "math")!;
+    const batch = math.commands.find((command) => command.name() === "batch")!;
+    for (const action of ["run", "resume"] as const) {
+      const command = batch.commands.find(
+        (candidate) => candidate.name() === action
+      )!;
+      for (const optionName of [
+        "--workspace",
+        "--max-provider-cost-usd",
+        "--max-provider-cost-per-lesson-usd",
+      ]) {
+        expect(
+          command.options.find((option) => option.long === optionName)?.mandatory
+        ).toBe(true);
+      }
+      expect(command.options.map((option) => option.long)).toContain(
+        "--render-executor"
+      );
+    }
+  });
+
   it("renders the natural-chalk golden fixture set inside an approved workspace", async () => {
     const output = await fs.mkdtemp(
       path.join(os.tmpdir(), "math-natural-chalk-fixtures-")

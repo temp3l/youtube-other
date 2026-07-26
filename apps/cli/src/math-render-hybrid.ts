@@ -93,13 +93,34 @@ export interface MathSceneLaneRunResult {
   readonly transferBytes: number;
   readonly startupLatencyMs?: number;
   readonly transferDurationMs?: number;
+  readonly remoteJobId?: string;
+}
+
+interface MathSceneLaneExecutionContext extends MathSceneShardExecutionContext {
+  readonly onRemoteJob?: (jobId: string) => void | Promise<void>;
 }
 
 export interface MathSceneLaneRunner {
   execute(
     request: MathSceneShardRequest,
-    context: MathSceneShardExecutionContext
+    context: MathSceneLaneExecutionContext
   ): Promise<MathSceneLaneRunResult>;
+}
+
+export interface MathHybridSceneEvent {
+  readonly jobRoot: string;
+  readonly sceneId: string;
+  readonly requestFingerprint: string;
+  readonly status:
+    | "queued"
+    | "running"
+    | "succeeded"
+    | "failed";
+  readonly assignmentId?: string;
+  readonly lane?: "local" | "remote";
+  readonly remoteJobId?: string;
+  readonly attempt?: number;
+  readonly reassigned?: boolean;
 }
 
 export interface MathHybridSceneExecutorOptions {
@@ -115,6 +136,7 @@ export interface MathHybridSceneExecutorOptions {
     context: MathSceneShardExecutionContext
   ) => Promise<MathSceneShardResult | undefined>;
   readonly now?: () => number;
+  readonly observer?: (event: MathHybridSceneEvent) => void | Promise<void>;
 }
 
 function emptyExecution(
@@ -298,6 +320,24 @@ export function createHybridMathSceneShardExecutor(
     const pending = requests.filter(
       (request) => !reused.has(request.scenes[0]!.sceneId)
     );
+    await Promise.all(
+      requests.map(async (request) => {
+        const sceneId = request.scenes[0]!.sceneId;
+        await options.observer?.({
+          jobRoot: context.jobRoot,
+          sceneId,
+          requestFingerprint: request.requestHash,
+          status: reused.has(sceneId) ? "succeeded" : "queued",
+          ...(reused.has(sceneId)
+            ? {
+                assignmentId: `resume-${sceneId}`,
+                lane: "local" as const,
+                attempt: 1,
+              }
+            : {}),
+        });
+      })
+    );
     const workers =
       options.mode === "remote"
         ? [options.remoteCapability]
@@ -356,6 +396,15 @@ export function createHybridMathSceneShardExecutor(
             : "local";
         let fallback = false;
         let laneResult: MathSceneLaneRunResult;
+        await options.observer?.({
+          jobRoot: context.jobRoot,
+          sceneId: assignment.scene.sceneId,
+          requestFingerprint: request.requestHash,
+          status: "running",
+          assignmentId: `${lane}-${assignment.scene.sceneId}-1`,
+          lane,
+          attempt: 1,
+        });
         if (lane === "local") {
           laneResult = await localRunner.execute(request, {
             jobRoot: context.jobRoot,
@@ -369,6 +418,18 @@ export function createHybridMathSceneShardExecutor(
               laneResult = await remoteRunner.execute(request, {
                 jobRoot: context.jobRoot,
                 signal,
+                onRemoteJob: async (remoteJobId) => {
+                  await options.observer?.({
+                    jobRoot: context.jobRoot,
+                    sceneId: assignment.scene.sceneId,
+                    requestFingerprint: request.requestHash,
+                    status: "running",
+                    assignmentId: `remote-${assignment.scene.sceneId}-${attempts}`,
+                    lane: "remote",
+                    remoteJobId,
+                    attempt: attempts,
+                  });
+                },
               });
               lastError = undefined;
               break;
@@ -381,6 +442,16 @@ export function createHybridMathSceneShardExecutor(
             fallback = true;
             lane = "local";
             attempts = maximumRemoteAttempts + 1;
+            await options.observer?.({
+              jobRoot: context.jobRoot,
+              sceneId: assignment.scene.sceneId,
+              requestFingerprint: request.requestHash,
+              status: "running",
+              assignmentId: `local-${assignment.scene.sceneId}-${attempts}`,
+              lane,
+              attempt: attempts,
+              reassigned: true,
+            });
             laneResult = await localRunner.execute(request, {
               jobRoot: context.jobRoot,
               signal,
@@ -388,7 +459,7 @@ export function createHybridMathSceneShardExecutor(
           }
         }
         const actualFinishMs = Math.max(actualStartMs, now() - batchStartedAt);
-        return bindScheduledResult({
+        const scheduled = bindScheduledResult({
           request,
           result: laneResult!.result,
           lane,
@@ -402,6 +473,20 @@ export function createHybridMathSceneShardExecutor(
           fallback,
           cacheStatus: "miss",
         });
+        await options.observer?.({
+          jobRoot: context.jobRoot,
+          sceneId: assignment.scene.sceneId,
+          requestFingerprint: request.requestHash,
+          status: "succeeded",
+          assignmentId: `${lane}-${assignment.scene.sceneId}-${attempts}`,
+          lane,
+          ...(laneResult!.remoteJobId
+            ? { remoteJobId: laneResult!.remoteJobId }
+            : {}),
+          attempt: attempts,
+          ...(fallback ? { reassigned: true } : {}),
+        });
+        return scheduled;
       },
     });
     const completed = new Map(reused);
@@ -692,6 +777,7 @@ export function createRemoteMathLaneRunner(input: {
           stagingRoot,
           lane: "remote",
         });
+        await context.onRemoteJob?.(staged.workerRequest.jobId);
         let transferDurationMs = 0;
         let launchDurationMs = 0;
         try {
@@ -763,6 +849,7 @@ export function createRemoteMathLaneRunner(input: {
         return {
           result: rebound,
           transferBytes: staged.svgBytes + rebound.fragments[0]!.byteLength,
+          remoteJobId: staged.workerRequest.jobId,
           startupLatencyMs: Math.max(
             0,
             launchDurationMs -
@@ -809,7 +896,10 @@ function capabilitiesFromCalibration(
     remote: {
       workerId: "remote",
       workerImageId: imageId,
-      cpuSlots: settings.remoteSceneSlots,
+      cpuSlots: Math.min(
+        settings.remoteSceneSlots,
+        settings.remoteJobConcurrency
+      ),
       cache: { raster: true, sceneVideo: true },
       calibration: calibration.remote,
     },
@@ -1033,6 +1123,7 @@ export async function createMathWorkflowRenderExecution(input: {
   readonly workspaceRoot: string;
   readonly explicitMode?: MathRenderExecutorMode;
   readonly processExecutor?: MathRemoteProcessExecutor;
+  readonly observer?: (event: MathHybridSceneEvent) => void | Promise<void>;
 }): Promise<MathWorkflowRenderExecution> {
   const mode = resolveMathRenderExecutorMode(
     input.explicitMode,
@@ -1092,7 +1183,7 @@ export async function createMathWorkflowRenderExecution(input: {
     ...(input.processExecutor ? { executor: input.processExecutor } : {}),
   });
   const remoteRunner = createRemoteMathLaneRunner({
-    settings: preparedSettings,
+    settings: { ...preparedSettings, remoteSceneSlots: 1 },
     ...(input.processExecutor ? { executor: input.processExecutor } : {}),
   });
   const createExecutor = (calibration: MathLaneCalibrations) => {
@@ -1110,6 +1201,7 @@ export async function createMathWorkflowRenderExecution(input: {
       remoteRunner,
       remoteMaxRetries: preparedSettings.transport.maxRetries,
       reuse: reusableLocalFragment,
+      ...(input.observer ? { observer: input.observer } : {}),
     });
   };
   if (receipt?.calibration) {

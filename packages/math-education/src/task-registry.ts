@@ -69,7 +69,7 @@ function policies(executionKind: ExecutionKind): TaskDefinition["policies"] {
         : "fingerprint",
     retryLimit: provider === "none" ? 0 : 3,
     timeoutMs: provider === "none" ? 60_000 : 900_000,
-    lockScope: executionKind === "manual-approval" ? "unit" : "task",
+    lockScope: "unit",
     approvalRequired:
       executionKind === "manual-approval" || executionKind === "irreversible",
     batchable:

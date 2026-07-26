@@ -73,6 +73,7 @@ import { createNaturalChalkGoldenFixtures } from "@mediaforge/math-rendering";
 import {
   BatchCoordinator,
   BatchStore,
+  createDeterministicBatchItemId,
   normalizeWorkflowError,
   type BatchPlanInput,
   type BatchWorkItem,
@@ -90,6 +91,7 @@ import {
 } from "./math-workflow-runtime.js";
 import {
   createMathWorkflowRenderExecution,
+  type MathHybridSceneEvent,
   type MathRenderExecutorMode,
   type MathWorkflowRenderExecution,
 } from "./math-render-hybrid.js";
@@ -101,6 +103,10 @@ import {
   inspectMathRemoteStatus,
   parseMathRemoteSettings,
 } from "./math-render-remote.js";
+import {
+  MathPrivateBatchScheduler,
+  type MathBatchWorkflowOperator,
+} from "./math-private-batch-scheduler.js";
 
 interface MathSelectionOptions {
   skill?: string;
@@ -803,7 +809,8 @@ function parseMathRenderExecutor(value: string): MathRenderExecutorMode {
 
 async function canonicalMathRenderExecution(
   options: MathSelectionOptions,
-  workspace: string
+  workspace: string,
+  observer?: (event: MathHybridSceneEvent) => void | Promise<void>
 ): Promise<MathWorkflowRenderExecution> {
   const config = await loadRuntimeConfig(
     options.renderExecutor ? { mathRenderExecutor: options.renderExecutor } : {}
@@ -813,6 +820,7 @@ async function canonicalMathRenderExecution(
     repositoryRoot: repositoryRoot(),
     workspaceRoot: workspace,
     ...(options.renderExecutor ? { explicitMode: options.renderExecutor } : {}),
+    ...(observer ? { observer } : {}),
   });
 }
 function requireSimulationWorkspace(options: MathSelectionOptions): string {
@@ -960,9 +968,8 @@ function requirePrivateWorkspace(options: MathSelectionOptions): string {
   }
   return workspace;
 }
-async function runCanonicalPrivateProduction(
+async function createCanonicalPrivateProductionRuntime(
   options: MathSelectionOptions,
-  resume: boolean,
   preparedRenderExecution?: MathWorkflowRenderExecution
 ) {
   const workspace = requirePrivateWorkspace(options);
@@ -1062,6 +1069,32 @@ async function runCanonicalPrivateProduction(
       : {}),
     ...(options.python ? { pythonExecutable: options.python } : {}),
   });
+  return {
+    workspace,
+    skillId,
+    lessonVariant,
+    language,
+    paidSetup,
+    operator,
+  };
+}
+
+async function runCanonicalPrivateProduction(
+  options: MathSelectionOptions,
+  resume: boolean,
+  preparedRenderExecution?: MathWorkflowRenderExecution
+) {
+  const {
+    workspace,
+    skillId,
+    lessonVariant,
+    language,
+    paidSetup,
+    operator,
+  } = await createCanonicalPrivateProductionRuntime(
+    options,
+    preparedRenderExecution
+  );
   if (resume) {
     await operator.reconcile();
     const before = await operator.status();
@@ -1426,23 +1459,28 @@ function canonicalPrivateBatchInput(
       execute: execute
         ? execute(item)
         : async () => ({ outputArtifacts: [], warnings: [] }),
-      classifyError: (error: unknown) => {
-        const speech = classifyEducationalSpeechError(error);
-        const normalized = normalizeWorkflowError(error);
-        return {
-          retryable:
-            speech.classification === "unknown"
-              ? normalized.retryable
-              : speech.retryable,
-          code:
-            speech.classification === "unknown"
-              ? normalized.code
-              : `MATH_SPEECH_${speech.classification
-                  .replaceAll("-", "_")
-                  .toUpperCase()}`,
-        };
-      },
+      classifyError: classifyCanonicalPrivateBatchError,
     })),
+  };
+}
+
+function classifyCanonicalPrivateBatchError(error: unknown): {
+  readonly retryable: boolean;
+  readonly code: string;
+} {
+  const speech = classifyEducationalSpeechError(error);
+  const normalized = normalizeWorkflowError(error);
+  return {
+    retryable:
+      speech.classification === "unknown"
+        ? normalized.retryable
+        : speech.retryable,
+    code:
+      speech.classification === "unknown"
+        ? normalized.code
+        : `MATH_SPEECH_${speech.classification
+            .replaceAll("-", "_")
+            .toUpperCase()}`,
   };
 }
 
@@ -1705,70 +1743,134 @@ async function runCanonicalPrivateBatch(
       `${overPerLesson.skillId} estimated provider cost USD ${(overPerLesson.speech.estimatedCostMicros / 1_000_000).toFixed(6)} exceeds the per-lesson hard ceiling USD ${(perLessonCeilingMicros / 1_000_000).toFixed(6)}.`
     );
   }
+  let scheduler: MathPrivateBatchScheduler | undefined;
   const renderExecution = await canonicalMathRenderExecution(
     options,
-    preflight.workspace
+    preflight.workspace,
+    async (event) => {
+      if (!scheduler) return;
+      const relative = path.relative(preflight.workspace, event.jobRoot);
+      const unitId = relative.split(path.sep)[0];
+      if (!unitId || unitId === ".." || path.isAbsolute(relative)) {
+        throw new Error("Hybrid scene event escaped the private workspace.");
+      }
+      await scheduler.recordSceneEvent({
+        unitId,
+        sceneId: event.sceneId,
+        status: event.status,
+        requestFingerprint: event.requestFingerprint,
+        ...(event.assignmentId ? { assignmentId: event.assignmentId } : {}),
+        ...(event.lane ? { lane: event.lane } : {}),
+        ...(event.remoteJobId ? { remoteJobId: event.remoteJobId } : {}),
+        ...(event.attempt ? { attempt: event.attempt } : {}),
+        ...(event.reassigned ? { reassigned: true } : {}),
+      });
+    }
   );
-  const input = canonicalPrivateBatchInput(preflight, (item) => async () => {
-    const costBefore = await readCanonicalPrivateBatchUsage(
-      preflight.workspace,
-      preflight.items
-    );
-    if (costBefore + item.speech.newCostEstimateMicros > totalCeilingMicros) {
-      throw new Error(
-        `Aggregate cost gate blocks ${item.skillId}: prior usage plus the remaining worst-case estimate exceeds the approved ceiling.`
+  const baseInput = canonicalPrivateBatchInput(preflight);
+  const workByUnit = new Map(
+    baseInput.items.map((work) => [work.unitId, work])
+  );
+  const costBeforeByUnit = new Map<string, number>();
+  scheduler = new MathPrivateBatchScheduler({
+    batchId: preflight.batchId,
+    stateRoot: privateBatchStateRoot(preflight.workspace),
+    maxRenderReadyLessons: renderExecution.mode === "local" ? 1 : 2,
+    paidSpeechStartsPerSecond: CANONICAL_PRIVATE_BATCH_RATE_LIMIT_PER_SECOND,
+    classifyError: classifyCanonicalPrivateBatchError,
+    items: preflight.items.map((item) => {
+      const work = workByUnit.get(item.lessonId)!;
+      return {
+        batchItemId: createDeterministicBatchItemId(work),
+        unitId: item.lessonId,
+        requestFingerprint: work.fingerprint,
+        sharedImageId: renderExecution.imageId ?? "local:canonical-math-v8",
+        createOperator: async () =>
+          (
+            await createCanonicalPrivateProductionRuntime(
+              {
+                ...options,
+                skill: item.skillId,
+                grade: "5",
+                variant: "standard",
+                language: "de",
+                private: true,
+                paidSpeech: true,
+                maxProviderCostUsd: perLessonCeilingUsd,
+              },
+              renderExecution
+            )
+          ).operator as MathBatchWorkflowOperator,
+      };
+    }),
+    beforePaidSpeech: async (unitId) => {
+      const item = preflight.items.find(
+        (candidate) => candidate.lessonId === unitId
+      )!;
+      const costBefore = await readCanonicalPrivateBatchUsage(
+        preflight.workspace,
+        preflight.items
       );
-    }
-    const result = await runCanonicalPrivateProduction(
-      {
-        ...options,
-        skill: item.skillId,
-        grade: "5",
-        variant: "standard",
-        language: "de",
-        private: true,
-        paidSpeech: true,
-        maxProviderCostUsd: perLessonCeilingUsd,
-      },
-      true,
-      renderExecution
-    );
-    if (result.status !== "succeeded") {
-      throw new Error(
-        `Canonical workflow did not reach publish dry-run for ${item.skillId}.`
+      if (costBefore + item.speech.newCostEstimateMicros > totalCeilingMicros) {
+        throw new Error(
+          `Aggregate cost gate blocks ${item.skillId}: prior usage plus the remaining worst-case estimate exceeds the approved ceiling.`
+        );
+      }
+      costBeforeByUnit.set(unitId, costBefore);
+    },
+    afterPaidSpeech: async () => {
+      const costAfter = await readCanonicalPrivateBatchUsage(
+        preflight.workspace,
+        preflight.items
       );
-    }
-    const costAfter = await readCanonicalPrivateBatchUsage(
-      preflight.workspace,
-      preflight.items
-    );
-    if (costAfter > totalCeilingMicros) {
-      throw new Error(
-        `Aggregate provider usage USD ${(costAfter / 1_000_000).toFixed(6)} exceeded the approved ceiling.`
-      );
-    }
-    return {
-      outputArtifacts: [],
-      warnings: [
-        "Private-only output; placeholder artwork remains a public-release blocker.",
-      ],
-      telemetry: {
-        provider: "openai-compatible",
-        model: item.speech.model,
-        cacheStatus: result.cached ? ("hit" as const) : ("miss" as const),
-        cost: {
-          estimatedMicros: item.speech.newCostEstimateMicros,
-          actualMicros: Math.max(0, costAfter - costBefore),
-          currency: "USD" as const,
-        },
-        revisions: {
-          workflow: preflight.versions.workflow,
-          speechProfile: preflight.versions.speechProfile,
-          pricing: preflight.versions.pricing,
-        },
-      },
-    };
+      if (costAfter > totalCeilingMicros) {
+        throw new Error(
+          `Aggregate provider usage USD ${(costAfter / 1_000_000).toFixed(6)} exceeded the approved ceiling.`
+        );
+      }
+    },
   });
+  const stagedInput = canonicalPrivateBatchInput(
+    preflight,
+    (item) => async () => {
+      await scheduler!.runUnit(item.lessonId, true);
+      const costAfter = await readCanonicalPrivateBatchUsage(
+        preflight.workspace,
+        preflight.items
+      );
+      return {
+        outputArtifacts: [],
+        warnings: [
+          "Private-only output; placeholder artwork remains a public-release blocker.",
+        ],
+        telemetry: {
+          provider: "openai-compatible",
+          model: item.speech.model,
+          cacheStatus: "miss" as const,
+          cost: {
+            estimatedMicros: item.speech.newCostEstimateMicros,
+            actualMicros: Math.max(
+              0,
+              costAfter - (costBeforeByUnit.get(item.lessonId) ?? costAfter)
+            ),
+            currency: "USD" as const,
+          },
+          revisions: {
+            workflow: preflight.versions.workflow,
+            speechProfile: preflight.versions.speechProfile,
+            pricing: preflight.versions.pricing,
+          },
+        },
+      };
+    }
+  );
+  const input: BatchPlanInput = {
+    ...stagedInput,
+    configuration: {
+      concurrency: renderExecution.mode === "local" ? 1 : 3,
+      retryLimit: stagedInput.configuration.retryLimit,
+    },
+  };
   const coordinator = new BatchCoordinator({
     root: privateBatchStateRoot(preflight.workspace),
   });
