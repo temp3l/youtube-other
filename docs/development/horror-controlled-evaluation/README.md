@@ -9,10 +9,13 @@ evaluation design but included Episode 034, which has no accepted canonical
 Full lineage. Before outcome inspection, immutable v3 replaced that unit with
 Episode 028. V3 freezes the metric, threshold, cohort, budget, analytics
 authority, and rollout authority. Its source-backed generation preflight is
-ready, and a mock-only execution adapter now persists an atomic, hash-bound
-call/cost ledger before each fake invocation. Both steps dispatched zero
-production provider calls. With no v3 candidates, ratings, audience import, or
-approval, the manifest's missing-outcome rule remains `remain-shadow`.
+ready. The execution ledger, explicit paid-dispatch authorization contract,
+and authorization-gated production boundary are fake-validated. A bounded
+authorization artifact is persisted for the window beginning
+`2026-07-26T14:00:00+02:00`; all eight ledger units remain `planned`, with zero
+reserved calls and USD 0 charged. Paid execution stopped before dispatch
+because configured credentials require rotation. With no v3 candidates,
+ratings, or audience import, the missing-outcome rule remains `remain-shadow`.
 
 ## Operating Contract
 
@@ -30,21 +33,29 @@ approval, the manifest's missing-outcome rule remains `remain-shadow`.
    interrupted reservations `uncertain` without automatic retry. Uncertain
    remote state requires separate operator reconciliation; the ledger does not
    claim provider-level exactly-once execution.
-5. Production candidate sets must match the manifest ID/hash, exact sample,
+5. `candidate-dispatch-authorization.json` must bind an identified authority,
+   approval reference, validity window, exact ledger binding and ordered sample,
+   eight-call/USD 8 aggregate limits, one-call/USD 1 unit limits, and zero
+   retries. Missing, placeholder, stale, expired, partial, reordered, extra, or
+   changed authorization fails before the production provider boundary.
+6. Authorized candidate execution reuses the ledger state machine, requires an
+   injected existing-contract validator, and atomically writes validated output
+   only to the preflight-owned strategy path. Tests use fake providers only.
+7. Production candidate sets must match the manifest ID/hash, exact sample,
    strata, strategy versions, artifact hashes, and accepted final lines.
-6. Candidate sets are persisted immutably before blind packets. Full and Short
+8. Candidate sets are persisted immutably before blind packets. Full and Short
    reviewer packets and answer keys are stored separately; partial or changed
    records fail closed.
-7. Blind editorial packets reuse deterministic seeded assignment and remain
+9. Blind editorial packets reuse deterministic seeded assignment and remain
    separate by format. Candidate lineage stays out of reviewer packets; raters
    use non-secret provenance IDs.
-8. Mediaforge accepts only an explicitly imported, already-authorized aggregate
+10. Mediaforge accepts only an explicitly imported, already-authorized aggregate
    metrics artifact. It has no YouTube fetch operation.
-9. Normalized retention, early retention, average percentage viewed, and ending
+11. Normalized retention, early retention, average percentage viewed, and ending
    retention are story outcomes. CTR remains title/thumbnail evidence unless
    those variables were controlled.
-10. Insufficient strata are exploratory. Full and Short results are never pooled.
-11. `promote-to-enforce` requires every source-plan gate and matching human
+12. Insufficient strata are exploratory. Full and Short results are never pooled.
+13. `promote-to-enforce` requires every source-plan gate and matching human
    approval. A configuration transition is declarative, makes zero provider
    calls, retains evidence paths, and never rewrites accepted stories.
 
@@ -53,6 +64,7 @@ Runtime evaluation artifacts:
 - `evaluation-manifest.json`
 - `candidate-generation-preflight.json`
 - `candidate-execution-ledger.json`
+- `candidate-dispatch-authorization.json`
 - `production-editorial-candidates.json`
 - `blind-review-full.json` and `blind-review-full-answer-key.json`
 - `blind-review-short.json` and `blind-review-short-answer-key.json`
@@ -73,4 +85,6 @@ Supporting approval record:
 - `production-evaluation-approval-packet.v3.md` records the corrected bounded cohort,
   decision defaults, cost ceiling, and non-secret authority scopes. It cannot
   by itself authorize paid dispatch or rollout promotion. Production execution
-  remains disabled until a later human explicitly authorizes paid dispatch.
+  remains disabled until the persisted dispatch window is active and exposed
+  credentials have been rotated. The bounded authorization does not authorize
+  rollout promotion.

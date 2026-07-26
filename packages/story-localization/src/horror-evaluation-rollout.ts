@@ -37,6 +37,8 @@ export const HORROR_CANDIDATE_GENERATION_PREFLIGHT_SCHEMA_VERSION =
   "horror-candidate-generation-preflight-v1";
 export const HORROR_CANDIDATE_EXECUTION_LEDGER_SCHEMA_VERSION =
   "horror-candidate-execution-ledger-v1";
+export const HORROR_CANDIDATE_DISPATCH_AUTHORIZATION_SCHEMA_VERSION =
+  "horror-candidate-dispatch-authorization-v1";
 export const HORROR_EVALUATION_PRODUCER_VERSION =
   "story-localization-controlled-evaluation-v1";
 
@@ -286,6 +288,7 @@ export interface HorrorEvaluationArtifactPaths {
   readonly manifestPath: string;
   readonly candidateGenerationPreflightPath: string;
   readonly candidateExecutionLedgerPath: string;
+  readonly candidateDispatchAuthorizationPath: string;
   readonly productionCandidateSetPath: string;
   readonly fullBlindReviewPacketPath: string;
   readonly fullBlindReviewAnswerKeyPath: string;
@@ -318,6 +321,10 @@ export function resolveHorrorEvaluationArtifactPaths(args: {
     candidateExecutionLedgerPath: ensureWorkspacePath(
       evaluationDirectory,
       path.join(evaluationDirectory, "candidate-execution-ledger.json")
+    ),
+    candidateDispatchAuthorizationPath: ensureWorkspacePath(
+      evaluationDirectory,
+      path.join(evaluationDirectory, "candidate-dispatch-authorization.json")
     ),
     productionCandidateSetPath: ensureWorkspacePath(
       evaluationDirectory,
@@ -1421,6 +1428,268 @@ export async function initializeHorrorCandidateExecutionLedger(args: {
   return { ledger, persisted: true, reused: false };
 }
 
+export const horrorCandidateDispatchAuthorizationSchema = z
+  .object({
+    schemaVersion: z.literal(
+      HORROR_CANDIDATE_DISPATCH_AUTHORIZATION_SCHEMA_VERSION
+    ),
+    authorizationVersion: identifierSchema,
+    evaluationId: identifierSchema,
+    manifestHash: hashSchema,
+    preflightHash: hashSchema,
+    ledgerBindingHash: hashSchema,
+    authorizedAt: timestampSchema,
+    expiresAt: timestampSchema,
+    authority: z
+      .object({
+        authorityId: identifierSchema,
+        approvalReference: identifierSchema,
+        containsPersonalSecrets: z.literal(false),
+      })
+      .strict(),
+    scope: z
+      .object({
+        purpose: z.literal("candidate-generation-only"),
+        sampleUnitIds: z.array(identifierSchema).length(8),
+        maxProviderCalls: z.literal(8),
+        maxCostUsd: z.literal(8),
+        perUnitProviderCalls: z.literal(1),
+        perUnitCostUsd: z.literal(1),
+        maxRetries: z.literal(0),
+        ratingsAuthorized: z.literal(false),
+        analyticsImportAuthorized: z.literal(false),
+        rolloutDecisionAuthorized: z.literal(false),
+        rolloutPromotionAuthorized: z.literal(false),
+        uploadOrPublicationAuthorized: z.literal(false),
+      })
+      .strict(),
+    authorizationHash: hashSchema,
+  })
+  .strict()
+  .superRefine((authorization, context) => {
+    if (
+      Date.parse(authorization.expiresAt) <=
+      Date.parse(authorization.authorizedAt)
+    ) {
+      context.addIssue({
+        code: "custom",
+        path: ["expiresAt"],
+        message: "Dispatch authorization must expire after it is granted.",
+      });
+    }
+    if (
+      new Set(authorization.scope.sampleUnitIds).size !==
+      authorization.scope.sampleUnitIds.length
+    ) {
+      context.addIssue({
+        code: "custom",
+        path: ["scope", "sampleUnitIds"],
+        message: "Dispatch authorization sample units must be unique.",
+      });
+    }
+    const { authorizationHash: _authorizationHash, ...body } = authorization;
+    if (
+      hashText(stableSerialize(body)) !== authorization.authorizationHash
+    ) {
+      context.addIssue({
+        code: "custom",
+        path: ["authorizationHash"],
+        message: "Dispatch authorization hash does not match.",
+      });
+    }
+  });
+export type HorrorCandidateDispatchAuthorization = z.infer<
+  typeof horrorCandidateDispatchAuthorizationSchema
+>;
+
+function assertNoAuthorizationPlaceholder(value: string): void {
+  if (/replace|placeholder|todo|tbd/iu.test(value)) {
+    throw new Error(
+      "Dispatch authorization contains an unresolved placeholder."
+    );
+  }
+}
+
+export function buildHorrorCandidateDispatchAuthorization(args: {
+  readonly ledger: HorrorCandidateExecutionLedger;
+  readonly authorizationVersion: string;
+  readonly authorityId: string;
+  readonly approvalReference: string;
+  readonly authorizedAt: string;
+  readonly expiresAt: string;
+}): HorrorCandidateDispatchAuthorization {
+  const ledger = horrorCandidateExecutionLedgerSchema.parse(args.ledger);
+  assertNoAuthorizationPlaceholder(args.authorityId);
+  assertNoAuthorizationPlaceholder(args.approvalReference);
+  if (
+    ledger.items.length !== 8 ||
+    ledger.budget.maxProviderCalls !== 8 ||
+    ledger.budget.maxCostUsd !== 8 ||
+    ledger.budget.perUnitCostCeilingUsd !== 1
+  ) {
+    throw new Error(
+      "Paid dispatch authorization requires the exact bounded v3 ledger."
+    );
+  }
+  const body = {
+    schemaVersion:
+      HORROR_CANDIDATE_DISPATCH_AUTHORIZATION_SCHEMA_VERSION as typeof HORROR_CANDIDATE_DISPATCH_AUTHORIZATION_SCHEMA_VERSION,
+    authorizationVersion: identifierSchema.parse(args.authorizationVersion),
+    evaluationId: ledger.evaluationId,
+    manifestHash: ledger.manifestHash,
+    preflightHash: ledger.preflightHash,
+    ledgerBindingHash: ledger.bindingHash,
+    authorizedAt: timestampSchema.parse(args.authorizedAt),
+    expiresAt: timestampSchema.parse(args.expiresAt),
+    authority: {
+      authorityId: identifierSchema.parse(args.authorityId),
+      approvalReference: identifierSchema.parse(args.approvalReference),
+      containsPersonalSecrets: false as const,
+    },
+    scope: {
+      purpose: "candidate-generation-only" as const,
+      sampleUnitIds: ledger.items.map((item) => item.sampleUnitId),
+      maxProviderCalls: 8 as const,
+      maxCostUsd: 8 as const,
+      perUnitProviderCalls: 1 as const,
+      perUnitCostUsd: 1 as const,
+      maxRetries: 0 as const,
+      ratingsAuthorized: false as const,
+      analyticsImportAuthorized: false as const,
+      rolloutDecisionAuthorized: false as const,
+      rolloutPromotionAuthorized: false as const,
+      uploadOrPublicationAuthorized: false as const,
+    },
+  };
+  return horrorCandidateDispatchAuthorizationSchema.parse({
+    ...body,
+    authorizationHash: hashText(stableSerialize(body)),
+  });
+}
+
+function assertDispatchAuthorizationMatches(args: {
+  readonly authorization: HorrorCandidateDispatchAuthorization;
+  readonly manifest: HorrorEvaluationManifest;
+  readonly preflight: HorrorCandidateGenerationPreflight;
+  readonly ledger: HorrorCandidateExecutionLedger;
+  readonly now?: string;
+}): void {
+  const { authorization, manifest, preflight, ledger } = args;
+  if (
+    authorization.evaluationId !== manifest.evaluationId ||
+    authorization.manifestHash !== manifest.manifestHash ||
+    authorization.preflightHash !== preflight.preflightHash ||
+    authorization.ledgerBindingHash !== ledger.bindingHash
+  ) {
+    throw new Error(
+      "Dispatch authorization is stale or bound to different execution inputs."
+    );
+  }
+  const expectedIds = ledger.items.map((item) => item.sampleUnitId);
+  if (
+    stableSerialize(authorization.scope.sampleUnitIds) !==
+    stableSerialize(expectedIds)
+  ) {
+    throw new Error(
+      "Dispatch authorization has partial, reordered, or extra sample units."
+    );
+  }
+  if (args.now !== undefined) {
+    const now = Date.parse(timestampSchema.parse(args.now));
+    if (now < Date.parse(authorization.authorizedAt)) {
+      throw new Error("Dispatch authorization is not active yet.");
+    }
+    if (now >= Date.parse(authorization.expiresAt)) {
+      throw new Error("Dispatch authorization has expired.");
+    }
+  }
+}
+
+export async function persistHorrorCandidateDispatchAuthorization(args: {
+  readonly paths: HorrorEvaluationArtifactPaths;
+  readonly manifest: HorrorEvaluationManifest;
+  readonly preflight: HorrorCandidateGenerationPreflight;
+  readonly ledger: HorrorCandidateExecutionLedger;
+  readonly authorization: HorrorCandidateDispatchAuthorization;
+  readonly writeAuthorizationAtomic?: (
+    authorizationPath: string,
+    authorization: HorrorCandidateDispatchAuthorization
+  ) => Promise<void>;
+}): Promise<{ readonly persisted: boolean; readonly reused: boolean }> {
+  const manifest = horrorEvaluationManifestSchema.parse(args.manifest);
+  const preflight = horrorCandidateGenerationPreflightSchema.parse(
+    args.preflight
+  );
+  const ledger = horrorCandidateExecutionLedgerSchema.parse(args.ledger);
+  const authorization = horrorCandidateDispatchAuthorizationSchema.parse(
+    args.authorization
+  );
+  assertExecutionInputs({ paths: args.paths, manifest, preflight });
+  assertDispatchAuthorizationMatches({
+    authorization,
+    manifest,
+    preflight,
+    ledger,
+  });
+  await assertPersistedManifest(args.paths, manifest);
+  await assertPersistedPreflight(args.paths, preflight);
+  const persistedLedger = horrorCandidateExecutionLedgerSchema.parse(
+    await readJsonIfPresent(args.paths.candidateExecutionLedgerPath)
+  );
+  if (persistedLedger.ledgerHash !== ledger.ledgerHash) {
+    throw new Error(
+      "Dispatch authorization does not match the persisted execution ledger."
+    );
+  }
+  const existing = await readJsonIfPresent(
+    args.paths.candidateDispatchAuthorizationPath
+  );
+  if (existing !== undefined) {
+    const persisted =
+      horrorCandidateDispatchAuthorizationSchema.parse(existing);
+    if (persisted.authorizationHash !== authorization.authorizationHash) {
+      throw new Error(
+        "A persisted dispatch authorization is immutable and rejects changed scope."
+      );
+    }
+    return { persisted: false, reused: true };
+  }
+  const writer =
+    args.writeAuthorizationAtomic ??
+    (async (
+      authorizationPath: string,
+      value: HorrorCandidateDispatchAuthorization
+    ) => {
+      await writeTextAtomic(
+        authorizationPath,
+        `${stableSerialize(value)}\n`
+      );
+    });
+  await writer(args.paths.candidateDispatchAuthorizationPath, authorization);
+  return { persisted: true, reused: false };
+}
+
+async function readActiveHorrorCandidateDispatchAuthorization(args: {
+  readonly paths: HorrorEvaluationArtifactPaths;
+  readonly manifest: HorrorEvaluationManifest;
+  readonly preflight: HorrorCandidateGenerationPreflight;
+  readonly ledger: HorrorCandidateExecutionLedger;
+  readonly now: string;
+}): Promise<HorrorCandidateDispatchAuthorization> {
+  const raw = await readJsonIfPresent(
+    args.paths.candidateDispatchAuthorizationPath
+  );
+  if (raw === undefined) {
+    throw new Error(
+      "Paid candidate dispatch requires a persisted explicit authorization."
+    );
+  }
+  const authorization =
+    horrorCandidateDispatchAuthorizationSchema.parse(raw);
+  assertDispatchAuthorizationMatches({ ...args, authorization });
+  return authorization;
+}
+
 const mockExecutionResultSchema = z.discriminatedUnion("status", [
   z
     .object({
@@ -1669,6 +1938,187 @@ export async function executeNextHorrorCandidateWithMockAdapter(args: {
     providerInvoked: true,
     ledger,
   };
+}
+
+export type AuthorizedHorrorCandidateExecutionResult =
+  | {
+      readonly status: "completed";
+      readonly candidateText: string;
+      readonly chargedCostUsd: number;
+    }
+  | {
+      readonly status: "failed";
+      readonly failureCode: string;
+      readonly chargedCostUsd: number;
+    };
+
+export interface AuthorizedHorrorCandidateExecutionAdapter {
+  readonly kind: "production";
+  generate(
+    request: MockHorrorCandidateExecutionRequest
+  ): Promise<AuthorizedHorrorCandidateExecutionResult>;
+}
+
+const authorizedCandidateValidationResultSchema = z.discriminatedUnion(
+  "status",
+  [
+    z
+      .object({
+        status: z.literal("passed"),
+        acceptedFinalLine: nonEmptyTextSchema,
+        contractVersion: identifierSchema,
+        evidenceHash: hashSchema,
+      })
+      .strict(),
+    z
+      .object({
+        status: z.literal("failed"),
+        failureCode: identifierSchema,
+      })
+      .strict(),
+  ]
+);
+
+export type AuthorizedHorrorCandidateValidationResult = z.infer<
+  typeof authorizedCandidateValidationResultSchema
+>;
+
+export interface AuthorizedHorrorCandidateValidator {
+  validate(args: {
+    readonly request: MockHorrorCandidateExecutionRequest;
+    readonly candidateText: string;
+  }): Promise<AuthorizedHorrorCandidateValidationResult>;
+}
+
+async function persistImmutableAuthorizedCandidate(args: {
+  readonly workspaceRoot: string;
+  readonly request: MockHorrorCandidateExecutionRequest;
+  readonly candidateText: string;
+  readonly writeCandidateAtomic?: (
+    candidatePath: string,
+    candidateText: string
+  ) => Promise<void>;
+}): Promise<void> {
+  const output = resolveWorkspaceArtifactPath(
+    path.resolve(args.workspaceRoot),
+    args.request.strategyOutputPath
+  );
+  const candidateText = args.candidateText.trim();
+  const existing = await fs
+    .readFile(output.absolute, "utf8")
+    .catch((error: NodeJS.ErrnoException) => {
+      if (error.code === "ENOENT") {
+        return undefined;
+      }
+      throw error;
+    });
+  if (existing !== undefined) {
+    if (hashText(existing.trim()) !== hashText(candidateText)) {
+      throw new Error(
+        "A persisted authorized strategy candidate is immutable."
+      );
+    }
+    return;
+  }
+  await (args.writeCandidateAtomic ??
+    (async (candidatePath: string, value: string) => {
+      await writeTextAtomic(candidatePath, `${value}\n`);
+    }))(output.absolute, candidateText);
+}
+
+export async function executeNextAuthorizedHorrorCandidate(args: {
+  readonly workspaceRoot: string;
+  readonly paths: HorrorEvaluationArtifactPaths;
+  readonly manifest: HorrorEvaluationManifest;
+  readonly preflight: HorrorCandidateGenerationPreflight;
+  readonly ledgerVersion: string;
+  readonly clock: () => string;
+  readonly adapter: AuthorizedHorrorCandidateExecutionAdapter;
+  readonly validator: AuthorizedHorrorCandidateValidator;
+  readonly writeLedgerAtomic?: HorrorCandidateExecutionLedgerWriter;
+  readonly writeCandidateAtomic?: (
+    candidatePath: string,
+    candidateText: string
+  ) => Promise<void>;
+}): Promise<{
+  readonly status: "completed" | "failed" | "uncertain" | "idle";
+  readonly sampleUnitId: string | null;
+  readonly providerInvoked: boolean;
+  readonly ledger: HorrorCandidateExecutionLedger;
+}> {
+  if (args.adapter.kind !== "production") {
+    throw new Error(
+      "Authorized candidate execution requires the production adapter boundary."
+    );
+  }
+  const manifest = horrorEvaluationManifestSchema.parse(args.manifest);
+  const preflight = horrorCandidateGenerationPreflightSchema.parse(
+    args.preflight
+  );
+  const initialized = await initializeHorrorCandidateExecutionLedger({
+    paths: args.paths,
+    manifest,
+    preflight,
+    ledgerVersion: args.ledgerVersion,
+    clock: args.clock,
+    ...(args.writeLedgerAtomic
+      ? { writeLedgerAtomic: args.writeLedgerAtomic }
+      : {}),
+  });
+  await readActiveHorrorCandidateDispatchAuthorization({
+    paths: args.paths,
+    manifest,
+    preflight,
+    ledger: initialized.ledger,
+    now: timestampFromClock(args.clock),
+  });
+  const adapter: MockHorrorCandidateExecutionAdapter = {
+    kind: "mock",
+    generate: async (request) => {
+      const result = await args.adapter.generate(request);
+      if (result.status === "failed") {
+        return result;
+      }
+      const validation = authorizedCandidateValidationResultSchema.parse(
+        await args.validator.validate({
+          request,
+          candidateText: result.candidateText,
+        })
+      );
+      if (validation.status === "failed") {
+        return {
+          status: "failed",
+          failureCode: validation.failureCode,
+          chargedCostUsd: result.chargedCostUsd,
+        };
+      }
+      await persistImmutableAuthorizedCandidate({
+        workspaceRoot: args.workspaceRoot,
+        request,
+        candidateText: result.candidateText,
+        ...(args.writeCandidateAtomic
+          ? { writeCandidateAtomic: args.writeCandidateAtomic }
+          : {}),
+      });
+      return {
+        status: "completed",
+        candidateText: result.candidateText,
+        acceptedFinalLine: validation.acceptedFinalLine,
+        chargedCostUsd: result.chargedCostUsd,
+      };
+    },
+  };
+  return executeNextHorrorCandidateWithMockAdapter({
+    paths: args.paths,
+    manifest,
+    preflight,
+    ledgerVersion: args.ledgerVersion,
+    clock: args.clock,
+    adapter,
+    ...(args.writeLedgerAtomic
+      ? { writeLedgerAtomic: args.writeLedgerAtomic }
+      : {}),
+  });
 }
 
 const productionCandidateTextSchema = z.string().trim().min(1).max(200_000);

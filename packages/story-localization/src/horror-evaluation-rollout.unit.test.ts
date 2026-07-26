@@ -9,20 +9,24 @@ import {
 } from "./horror-editorial-calibration.js";
 import { stableSerialize } from "./stable-json.js";
 import {
+  buildHorrorCandidateDispatchAuthorization,
   buildHorrorAudienceMetricsImport,
   buildHorrorEvaluationManifest,
   buildHorrorProductionEditorialCandidateSet,
   buildHorrorRolloutApproval,
   buildHorrorRolloutDecisionArtifact,
   evaluateHorrorAudienceMetrics,
+  executeNextAuthorizedHorrorCandidate,
   executeNextHorrorCandidateWithMockAdapter,
   horrorCandidateGenerationPreflightSchema,
+  horrorCandidateDispatchAuthorizationSchema,
   horrorCandidateExecutionLedgerSchema,
   horrorEditorialRaterProvenanceSchema,
   horrorEvaluationManifestSchema,
   horrorRolloutDecisionArtifactSchema,
   initializeHorrorCandidateExecutionLedger,
   persistAuthorizedHorrorAudienceMetricsImport,
+  persistHorrorCandidateDispatchAuthorization,
   persistHorrorCandidateGenerationPreflight,
   persistHorrorEvaluationManifest,
   persistHorrorProductionEditorialCandidateSet,
@@ -33,6 +37,8 @@ import {
   prepareSeparatedBlindHorrorProductionEditorialReviews,
   resolveHorrorEvaluationArtifactPaths,
   type HorrorAudienceMetricsImport,
+  type AuthorizedHorrorCandidateExecutionAdapter,
+  type AuthorizedHorrorCandidateValidator,
   type HorrorCandidateGenerationPreflight,
   type HorrorEvaluationManifest,
   type MockHorrorCandidateExecutionAdapter,
@@ -111,6 +117,7 @@ async function createExecutionHarness() {
     preflight,
   });
   return {
+    workspaceRoot: directory,
     manifest,
     preflight,
     paths,
@@ -136,6 +143,43 @@ function successfulMockAdapter(
       };
     },
   };
+}
+
+function buildDispatchAuthorization(args: {
+  readonly ledger: Awaited<
+    ReturnType<typeof initializeHorrorCandidateExecutionLedger>
+  >["ledger"];
+  readonly approvalReference?: string;
+  readonly authorizedAt?: string;
+  readonly expiresAt?: string;
+}) {
+  return buildHorrorCandidateDispatchAuthorization({
+    ledger: args.ledger,
+    authorizationVersion: "production-candidate-dispatch-authorization-v1",
+    authorityId: "test-repository-owner",
+    approvalReference:
+      args.approvalReference ?? "test-bounded-v3-dispatch-approval",
+    authorizedAt: args.authorizedAt ?? "2026-07-26T12:00:00+02:00",
+    expiresAt: args.expiresAt ?? "2026-07-26T14:00:00+02:00",
+  });
+}
+
+async function persistDispatchAuthorization(
+  harness: Awaited<ReturnType<typeof createExecutionHarness>>
+) {
+  const initialized =
+    await initializeHorrorCandidateExecutionLedger(harness);
+  const authorization = buildDispatchAuthorization({
+    ledger: initialized.ledger,
+  });
+  await persistHorrorCandidateDispatchAuthorization({
+    paths: harness.paths,
+    manifest: harness.manifest,
+    preflight: harness.preflight,
+    ledger: initialized.ledger,
+    authorization,
+  });
+  return { authorization, ledger: initialized.ledger };
 }
 
 const productionWorkspaceRoot = path.resolve(import.meta.dirname, "../../..");
@@ -481,6 +525,273 @@ const passingEvidence: HorrorRolloutEvidence = {
 };
 
 describe("controlled evaluation manifest and assignment", () => {
+  it("persists exact bounded dispatch authorization and rejects placeholders or changed scope", async () => {
+    const harness = await createExecutionHarness();
+    const initialized =
+      await initializeHorrorCandidateExecutionLedger(harness);
+    const authorization = buildDispatchAuthorization({
+      ledger: initialized.ledger,
+    });
+
+    await expect(
+      persistHorrorCandidateDispatchAuthorization({
+        paths: harness.paths,
+        manifest: harness.manifest,
+        preflight: harness.preflight,
+        ledger: initialized.ledger,
+        authorization,
+      })
+    ).resolves.toEqual({ persisted: true, reused: false });
+    await expect(
+      persistHorrorCandidateDispatchAuthorization({
+        paths: harness.paths,
+        manifest: harness.manifest,
+        preflight: harness.preflight,
+        ledger: initialized.ledger,
+        authorization,
+      })
+    ).resolves.toEqual({ persisted: false, reused: true });
+
+    const persisted = horrorCandidateDispatchAuthorizationSchema.parse(
+      JSON.parse(
+        await fs.readFile(
+          harness.paths.candidateDispatchAuthorizationPath,
+          "utf8"
+        )
+      )
+    );
+    expect(persisted).toMatchObject({
+      evaluationId: harness.manifest.evaluationId,
+      manifestHash: harness.manifest.manifestHash,
+      preflightHash: harness.preflight.preflightHash,
+      ledgerBindingHash: initialized.ledger.bindingHash,
+      scope: {
+        purpose: "candidate-generation-only",
+        maxProviderCalls: 8,
+        maxCostUsd: 8,
+        perUnitProviderCalls: 1,
+        perUnitCostUsd: 1,
+        maxRetries: 0,
+        ratingsAuthorized: false,
+        analyticsImportAuthorized: false,
+        rolloutDecisionAuthorized: false,
+        rolloutPromotionAuthorized: false,
+        uploadOrPublicationAuthorized: false,
+      },
+    });
+    expect(persisted.scope.sampleUnitIds).toEqual(
+      initialized.ledger.items.map((item) => item.sampleUnitId)
+    );
+    expect(JSON.stringify(persisted)).not.toMatch(
+      /"apiKey"|"credentials?"|"authorizationValue"|"rawProviderCredentials"/u
+    );
+    expect(() =>
+      buildHorrorCandidateDispatchAuthorization({
+        ledger: initialized.ledger,
+        authorizationVersion:
+          "production-candidate-dispatch-authorization-v1",
+        authorityId: "replace-with-authority-id",
+        approvalReference: "test-approval",
+        authorizedAt: "2026-07-26T12:00:00+02:00",
+        expiresAt: "2026-07-26T14:00:00+02:00",
+      })
+    ).toThrow("unresolved placeholder");
+    await expect(
+      persistHorrorCandidateDispatchAuthorization({
+        paths: harness.paths,
+        manifest: harness.manifest,
+        preflight: harness.preflight,
+        ledger: initialized.ledger,
+        authorization: buildDispatchAuthorization({
+          ledger: initialized.ledger,
+          approvalReference: "changed-approval-reference",
+        }),
+      })
+    ).rejects.toThrow("immutable and rejects changed scope");
+  });
+
+  it("requires active persisted authorization before the production boundary", async () => {
+    const harness = await createExecutionHarness();
+    const invocations: string[] = [];
+    const adapter: AuthorizedHorrorCandidateExecutionAdapter = {
+      kind: "production",
+      async generate(request) {
+        invocations.push(request.sampleUnitId);
+        return {
+          status: "completed",
+          candidateText: "This must not be generated.",
+          chargedCostUsd: 0.1,
+        };
+      },
+    };
+    const validator: AuthorizedHorrorCandidateValidator = {
+      async validate() {
+        return {
+          status: "passed",
+          acceptedFinalLine: "This must not be generated.",
+          contractVersion: "test-contract-v1",
+          evidenceHash: hashText("test-contract-evidence"),
+        };
+      },
+    };
+
+    await expect(
+      executeNextAuthorizedHorrorCandidate({
+        ...harness,
+        adapter,
+        validator,
+      })
+    ).rejects.toThrow("requires a persisted explicit authorization");
+    expect(invocations).toEqual([]);
+
+    const initialized =
+      await initializeHorrorCandidateExecutionLedger(harness);
+    const expired = buildDispatchAuthorization({
+      ledger: initialized.ledger,
+      authorizedAt: "2026-07-26T09:00:00+02:00",
+      expiresAt: "2026-07-26T10:00:00+02:00",
+    });
+    await persistHorrorCandidateDispatchAuthorization({
+      paths: harness.paths,
+      manifest: harness.manifest,
+      preflight: harness.preflight,
+      ledger: initialized.ledger,
+      authorization: expired,
+    });
+    await expect(
+      executeNextAuthorizedHorrorCandidate({
+        ...harness,
+        adapter,
+        validator,
+      })
+    ).rejects.toThrow("authorization has expired");
+    expect(invocations).toEqual([]);
+  });
+
+  it("fake-validates the authorized production boundary and persists immutable candidate output", async () => {
+    const harness = await createExecutionHarness();
+    await persistDispatchAuthorization(harness);
+    const invocations: string[] = [];
+    const adapter: AuthorizedHorrorCandidateExecutionAdapter = {
+      kind: "production",
+      async generate(request) {
+        invocations.push(request.sampleUnitId);
+        const finalLine = `Authorized final line for ${request.sampleUnitId}.`;
+        return {
+          status: "completed",
+          candidateText: `Validated fake candidate. ${finalLine}`,
+          chargedCostUsd: 0.35,
+        };
+      },
+    };
+    const validator: AuthorizedHorrorCandidateValidator = {
+      async validate({ request, candidateText }) {
+        const acceptedFinalLine = `Authorized final line for ${request.sampleUnitId}.`;
+        expect(candidateText.endsWith(acceptedFinalLine)).toBe(true);
+        return {
+          status: "passed",
+          acceptedFinalLine,
+          contractVersion: "test-existing-story-contract-v1",
+          evidenceHash: hashText(
+            stableSerialize({ request, candidateText })
+          ),
+        };
+      },
+    };
+    const result = await executeNextAuthorizedHorrorCandidate({
+      ...harness,
+      adapter,
+      validator,
+    });
+
+    expect(result).toMatchObject({
+      status: "completed",
+      sampleUnitId: "full-025-endless-backrooms",
+      providerInvoked: true,
+      ledger: {
+        accounting: {
+          providerCallsReserved: 1,
+          reservedCostUsd: 1,
+          chargedCostUsd: 0.35,
+        },
+      },
+    });
+    expect(invocations).toEqual(["full-025-endless-backrooms"]);
+    const outputPath = path.join(
+      harness.workspaceRoot,
+      harness.preflight.items[0]!.strategyOutputPath
+    );
+    const output = await fs.readFile(outputPath, "utf8");
+    expect(hashText(output.trim())).toBe(
+      (
+        result.ledger.items[0] as Extract<
+          (typeof result.ledger.items)[number],
+          { state: "completed" }
+        >
+      ).result.candidateHash
+    );
+    expect(
+      await fs
+        .access(harness.paths.productionCandidateSetPath)
+        .then(() => true)
+        .catch(() => false)
+    ).toBe(false);
+  });
+
+  it("consumes one fake attempt on contract failure without candidate persistence or retry", async () => {
+    const harness = await createExecutionHarness();
+    await persistDispatchAuthorization(harness);
+    const invocations: string[] = [];
+    const adapter: AuthorizedHorrorCandidateExecutionAdapter = {
+      kind: "production",
+      async generate(request) {
+        invocations.push(request.sampleUnitId);
+        return {
+          status: "completed",
+          candidateText: `Invalid fake candidate for ${request.sampleUnitId}.`,
+          chargedCostUsd: 0.2,
+        };
+      },
+    };
+    const validator: AuthorizedHorrorCandidateValidator = {
+      async validate() {
+        return {
+          status: "failed",
+          failureCode: "existing-contract-validation-failed",
+        };
+      },
+    };
+    const first = await executeNextAuthorizedHorrorCandidate({
+      ...harness,
+      adapter,
+      validator,
+    });
+    expect(first.ledger.items.slice(0, 2).map((item) => item.state)).toEqual([
+      "failed",
+      "blocked",
+    ]);
+    const failedOutputPath = path.join(
+      harness.workspaceRoot,
+      harness.preflight.items[0]!.strategyOutputPath
+    );
+    expect(
+      await fs
+        .access(failedOutputPath)
+        .then(() => true)
+        .catch(() => false)
+    ).toBe(false);
+
+    await executeNextAuthorizedHorrorCandidate({
+      ...harness,
+      adapter,
+      validator,
+    });
+    expect(invocations).toEqual([
+      "full-025-endless-backrooms",
+      "full-028-man-in-the-attic",
+    ]);
+  });
+
   it("initializes the exact v3 atomic execution ledger and rejects changed identity", async () => {
     const harness = await createExecutionHarness();
     const first = await initializeHorrorCandidateExecutionLedger(harness);

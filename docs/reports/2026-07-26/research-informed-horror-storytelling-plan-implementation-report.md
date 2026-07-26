@@ -6,33 +6,30 @@
 
 ## Summary / Files
 
-Added the schema-validated atomic candidate-execution ledger and mock-only
-adapter, focused tests, and controlled-evaluation guidance.
-
-Files: `packages/story-localization/src/horror-evaluation-rollout.ts`,
-its `.unit.test.ts`, `docs/development/horror-controlled-evaluation/README.md`,
-this report, and the matching `docs/reports/codex-runs/` report.
+Added atomic ledger execution, time-bounded dispatch authorization, a gated
+production boundary, candidate validation/output persistence, tests, README
+guidance, and runtime artifacts under `horror-evaluations/`.
 
 ## Task Status
 
-- Completed: exact v3 identity binding; durable reservation; Full-before-Short;
-  one attempt/zero retry; USD 1/8 and 1/8-call ceilings; fail-closed resume;
-  candidate/final-line hash evidence.
-- Partial: evaluation is ready only for later authorized dispatch.
-- Not completed: paid calls, candidates, ratings, analytics, decision,
-  publication, or promotion.
-- Deviations: none.
+- Completed: exact v3 identity/scope binding, USD/call ceilings, zero retries,
+  authorization persistence, fake provider/validator coverage.
+- Partial: paid generation awaits the active window and credential rotation.
+- Not completed: paid calls, candidates, candidate set, ratings, analytics,
+  decision, publication, or promotion.
+- Deviations: stopped before dispatch after credentials appeared in diagnostic
+  output; their values are not recorded here.
 
 ## Checks / Results
 
-Focused rollout: 16 passed after one test-seam correction. Package typecheck
-passed after one literal-type repair. Targeted `git diff --check`: passed.
+Focused rollout: 20 passed. Package typecheck and targeted whitespace checks
+passed. Ledger: eight planned, zero reserved. Actual calls/cost: 0 / USD 0.
 
 ## Risks / Next
 
-Provider exactly-once is not claimed. Uncertain calls require separate
-reconciliation. Next obtain explicit human paid-dispatch authority.
+Rotate exposed credentials, confirm replacement configuration, then resume one
+eligible unit at a time after `2026-07-26T14:00:00+02:00`.
 
 ## Commit
 
-`f29a43c` (uncommitted).
+`b0286bd` (current base; task changes uncommitted).
