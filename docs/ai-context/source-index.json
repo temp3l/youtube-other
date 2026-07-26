@@ -14,7 +14,7 @@
     {
       "concept": "artifact-repository",
       "source": "packages/workflow-engine/src/artifact-repository.ts",
-      "sourceSha256": "12c6a8f966f9525f53733cccab78b156e792bef6d694c1852705b453e6e08a1f",
+      "sourceSha256": "fd6fee746ed438c8a3a3679fb5c0cd3f6441b1a419d5166d5de3667acca204e5",
       "symbols": [
         "class ArtifactRepository"
       ]
@@ -80,7 +80,7 @@
     {
       "concept": "mathematics-profile",
       "source": "packages/math-education/src/task-registry.ts",
-      "sourceSha256": "29b44a444a7f54db73cb51a29e48f77719f12fe1ce45479e91baef8346671845",
+      "sourceSha256": "ea53d69078761612c9a8036444d1305838017b57626389c8bf1fb16ed024a588",
       "symbols": [
         "mathWorkflowDefinition"
       ]
@@ -122,7 +122,7 @@
     {
       "concept": "story-prompt-compiler",
       "source": "packages/story-localization/src/story-prompt-compiler.ts",
-      "sourceSha256": "54692a4d803da85d621d4dc331afa9d099d720999e98c0fc7d21b1a8730e51e4",
+      "sourceSha256": "15ba96758cccb2d46c5da0e3c10b055900eccda1fca5a1404f247ef9e020a66c",
       "symbols": [
         "compileFullStoryPrompt",
         "compileShortStoryPrompt"
@@ -147,7 +147,7 @@
     {
       "concept": "workflow-state",
       "source": "packages/workflow-engine/src/workflow-store.ts",
-      "sourceSha256": "153733029fea540fa5ac9a994e04afdd706819b6a091a279b4e42ca8513b6ce8",
+      "sourceSha256": "aa539b52caf743c2d7946b45cac64a38b7f75bb5b4a19b77f9b4fb1a40faa1c9",
       "symbols": [
         "class WorkflowStore"
       ]

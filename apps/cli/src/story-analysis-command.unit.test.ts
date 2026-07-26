@@ -4,9 +4,11 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const analyzeStoryProductionMock = vi.hoisted(() => vi.fn());
 const resolveStoryProductionAnalysisSourceMock = vi.hoisted(() => vi.fn());
 const resolveStoryProductionAnalysisStatusMock = vi.hoisted(() => vi.fn());
-const createOpenAiStoryClientWithOptionsMock = vi.hoisted(() => vi.fn(() => ({
-  responses: {},
-})));
+const createOpenAiStoryClientWithOptionsMock = vi.hoisted(() =>
+  vi.fn(() => ({
+    responses: {},
+  }))
+);
 
 vi.mock("@mediaforge/config", () => ({
   loadRuntimeConfig: vi.fn(async () => ({
@@ -21,19 +23,22 @@ vi.mock("@mediaforge/config", () => ({
 }));
 
 vi.mock("@mediaforge/story-localization", async () => {
-  const actual = await vi.importActual<typeof import("@mediaforge/story-localization")>(
-    "@mediaforge/story-localization"
-  );
+  const actual = await vi.importActual<
+    typeof import("@mediaforge/story-localization")
+  >("@mediaforge/story-localization");
   return {
     ...actual,
     analyzeStoryProduction: analyzeStoryProductionMock,
-    resolveStoryProductionAnalysisSource: resolveStoryProductionAnalysisSourceMock,
-    resolveStoryProductionAnalysisStatus: resolveStoryProductionAnalysisStatusMock,
+    resolveStoryProductionAnalysisSource:
+      resolveStoryProductionAnalysisSourceMock,
+    resolveStoryProductionAnalysisStatus:
+      resolveStoryProductionAnalysisStatusMock,
     createOpenAiStoryClientWithOptions: createOpenAiStoryClientWithOptionsMock,
   };
 });
 
-const { registerStoryAnalysisCommand } = await import("./story-analysis-command.js");
+const { registerStoryAnalysisCommand } =
+  await import("./story-analysis-command.js");
 
 describe("story analysis command", () => {
   beforeEach(() => {
@@ -86,6 +91,8 @@ describe("story analysis command", () => {
       "analyze",
       "--episode",
       "014-demo",
+      "--analysis-version",
+      "v2",
       "--json",
     ]);
     stdoutSpy.mockRestore();
@@ -96,5 +103,10 @@ describe("story analysis command", () => {
       verdict: "REVISION_REQUIRED",
     });
     expect(process.exitCode).toBe(1);
+    expect(analyzeStoryProductionMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        analysisVersion: "v2",
+      })
+    );
   });
 });

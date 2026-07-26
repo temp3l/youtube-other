@@ -26,14 +26,20 @@ import {
   type StoryBible,
   type StorySourceAnalysis,
 } from "./story-production.js";
-import type { CanonicalStoryBeat, StoryMechanicsContract } from "./story-mechanics.js";
+import type { HorrorAffectPlan } from "./horror-affect-plan.js";
+import type { LocalizationHorrorAffectProjection } from "./localization-horror-affect-projection.js";
+import type { ShortHorrorAffectProjection } from "./short-horror-affect-projection.js";
+import type {
+  CanonicalStoryBeat,
+  StoryMechanicsContract,
+} from "./story-mechanics.js";
 import type { CanonicalStoryContract } from "./canonical-story-contract.js";
 import {
   type ShortRewriteAdaptationContract,
   type ShortRewriteSourceExtraction,
 } from "./short-rewrite.types.js";
 
-export const STORY_PROMPT_COMPILER_VERSION = "story-prompt-compiler-v2";
+export const STORY_PROMPT_COMPILER_VERSION = "story-prompt-compiler-v3";
 
 export const storyPromptVariantSchema = z.enum(["full", "short"]);
 export type StoryPromptVariant = z.infer<typeof storyPromptVariantSchema>;
@@ -43,6 +49,9 @@ export const storyPromptModuleIdSchema = z.enum([
   "trust-boundary",
   "source-cleaning-context",
   "full-story-contract",
+  "horror-affect-plan",
+  "localization-horror-affect-projection",
+  "short-horror-affect-projection",
   "nonfiction-boundaries",
   "genre-policy",
   "locale-rules",
@@ -138,6 +147,8 @@ export interface FullStoryPromptInput extends StoryPromptSharedInput {
   readonly mechanicsContract: StoryMechanicsContract;
   readonly canonicalBeats: readonly CanonicalStoryBeat[];
   readonly canonicalStoryContract: CanonicalStoryContract;
+  readonly horrorAffectPlan?: HorrorAffectPlan;
+  readonly localizationHorrorAffectProjection?: LocalizationHorrorAffectProjection;
 }
 
 export interface ShortStoryPromptInput extends StoryPromptSharedInput {
@@ -145,6 +156,7 @@ export interface ShortStoryPromptInput extends StoryPromptSharedInput {
   readonly outputConstraints: ShortStoryOutputConstraints;
   readonly sourceExtraction: ShortRewriteSourceExtraction;
   readonly adaptationContract: ShortRewriteAdaptationContract;
+  readonly horrorAffectProjection?: ShortHorrorAffectProjection;
 }
 
 export type StoryPromptModuleContext =

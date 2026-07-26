@@ -375,6 +375,7 @@ describe("runtime config", () => {
         "MEDIAFORGE_OPENAI_STORY_REASONING_EFFORT=high",
         "MEDIAFORGE_OPENAI_STORY_MAX_OUTPUT_TOKENS=25000",
         "MEDIAFORGE_OPENAI_STORY_RETRY_MAX_OUTPUT_TOKENS=25000",
+        "MEDIAFORGE_HORROR_AFFECT_ROLLOUT_MODE=enforce",
         "MEDIAFORGE_OPENAI_LOCALIZATION_MODEL=gpt-5.4",
         "MEDIAFORGE_OPENAI_LOCALIZATION_REASONING_EFFORT=low",
         "MEDIAFORGE_OPENAI_LOCALIZATION_MAX_OUTPUT_TOKENS=10000",
@@ -401,6 +402,7 @@ describe("runtime config", () => {
       expect(config.openAiStoryReasoningEffort).toBe("high");
       expect(config.openAiStoryMaxOutputTokens).toBe(25000);
       expect(config.openAiStoryRetryMaxOutputTokens).toBe(25000);
+      expect(config.horrorAffectRolloutMode).toBe("enforce");
       expect(config.openAiLocalizationModel).toBe("gpt-5.4");
       expect(config.openAiLocalizationReasoningEffort).toBe("low");
       expect(config.openAiLocalizationMaxOutputTokens).toBe(10000);
@@ -440,6 +442,7 @@ describe("runtime config", () => {
       openAiStoryReasoningEffort: "medium",
       openAiStoryMaxOutputTokens: 14000,
       openAiStoryRetryMaxOutputTokens: 14000,
+      horrorAffectRolloutMode: "shadow",
       openAiLocalizationModel: "gpt-5.6-terra",
       openAiLocalizationMaxOutputTokens: 10000,
       openAiShortModel: "gpt-5.6-terra",

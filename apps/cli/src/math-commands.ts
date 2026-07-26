@@ -19,6 +19,7 @@ import {
   loadCurriculumRelease,
   loadPrivateOwnerAttestation,
   assertPrivateOwnerCurriculumApproval,
+  APPROVED_MATH_NARRATION_PRESET,
   assertProductionLessonCapability,
   mathWorkflowDefinition,
   MathWorkspacePathResolver,
@@ -68,6 +69,7 @@ import {
   speechDeliveryProfileIdSchema,
   type SpeechProvider,
 } from "@mediaforge/speech";
+import { createNaturalChalkGoldenFixtures } from "@mediaforge/math-rendering";
 import {
   BatchCoordinator,
   BatchStore,
@@ -255,7 +257,7 @@ function parseProviderCostPerLessonUsd(value: string): number {
   return parsed;
 }
 
-const CANONICAL_PINNED_SPEECH_MODEL = "gpt-4o-mini-tts-2025-12-15" as const;
+const CANONICAL_PINNED_SPEECH_MODEL = APPROVED_MATH_NARRATION_PRESET.model;
 
 interface CanonicalPaidSpeechEstimate {
   readonly chunks: number;
@@ -320,13 +322,9 @@ async function canonicalPaidSpeechPreflight(input: {
     input.language,
     {
       model: CANONICAL_PINNED_SPEECH_MODEL,
-      ...(runtime.openAiSpeechVoice
-        ? { voice: runtime.openAiSpeechVoice }
-        : runtime.openAiCompatibleTtsVoice
-          ? { voice: runtime.openAiCompatibleTtsVoice }
-          : {}),
+      voice: APPROVED_MATH_NARRATION_PRESET.voice,
       targetWordsPerMinute,
-      providerSpeed: 0.9,
+      providerSpeed: APPROVED_MATH_NARRATION_PRESET.providerSpeed,
     }
   );
   const pronunciationDictionaries =
@@ -998,8 +996,7 @@ async function runCanonicalPrivateProduction(
             provider: "openai-compatible",
             model: paidSetup.estimate.model,
             voice: paidSetup.estimate.voice,
-            targetWordsPerMinute:
-              paidSetup.estimate.targetWordsPerMinute,
+            targetWordsPerMinute: paidSetup.estimate.targetWordsPerMinute,
             providerSpeed: paidSetup.estimate.providerSpeed,
             speechProfileVersion: paidSetup.estimate.speechProfileVersion,
             pricingVersion: paidSetup.configuration.pricingVersion,
@@ -1167,7 +1164,7 @@ interface CanonicalPrivateBatchPreflight {
     readonly workflow: string;
     readonly narration: string;
     readonly verifierProtocol: "math-verifier.v3";
-    readonly renderer: "math-semantic-keyframe-runner.v6";
+    readonly renderer: "math-semantic-keyframe-runner.v8";
     readonly visualStyle: "math.educational-visual-style.v1";
     readonly metadata: "math-metadata.v1";
     readonly speechProfile: string;
@@ -1537,7 +1534,7 @@ async function canonicalPrivateBatchPreflight(
     workflow: mathWorkflowDefinition.revision,
     narration: MATH_LOCKED_FACT_NARRATION_VERSION,
     verifierProtocol: "math-verifier.v3" as const,
-    renderer: "math-semantic-keyframe-runner.v6" as const,
+    renderer: "math-semantic-keyframe-runner.v8" as const,
     visualStyle: "math.educational-visual-style.v1" as const,
     metadata: "math-metadata.v1" as const,
     speechProfile: items[0]!.speech.speechProfileVersion,
@@ -1872,6 +1869,56 @@ export function registerMathCommands(program: Command): void {
   const math = program
     .command("math")
     .description("Deterministic mathematics education pipeline");
+  const renderer = math
+    .command("renderer")
+    .description("Inspect and render deterministic mathematics fixtures");
+  renderer
+    .command("fixture <fixture>")
+    .description("Render a deterministic renderer fixture")
+    .option(
+      "--output <path>",
+      "repository-local fixture output directory",
+      ".cache/math-pipeline/natural-chalk-fixtures"
+    )
+    .action(async (fixture: string, options: { output: string }) => {
+      if (fixture !== "natural-chalk")
+        throw new Error(`Unknown mathematics renderer fixture: ${fixture}`);
+      const output = path.resolve(options.output);
+      if (!isApprovedPrivateMathWorkspace(output))
+        throw new Error(
+          "Math renderer fixtures must stay under .cache/math-pipeline/ or outside the repository."
+        );
+      await fs.mkdir(output, { recursive: true });
+      const fixtures = createNaturalChalkGoldenFixtures();
+      await Promise.all(
+        fixtures.flatMap((item) => [
+          fs.writeFile(
+            path.join(output, `${item.id}-midpoint.svg`),
+            item.midpointSvg,
+            "utf8"
+          ),
+          fs.writeFile(
+            path.join(output, `${item.id}-complete.svg`),
+            item.completeSvg,
+            "utf8"
+          ),
+        ])
+      );
+      await writeJsonAtomic(path.join(output, "manifest.json"), {
+        artifactVersion: "math-natural-chalk-fixtures.v1",
+        rendererVersion: "math-semantic-chalk.v7",
+        fixtures: fixtures.map(({ id, midpointHash, completeHash }) => ({
+          id,
+          midpointHash,
+          completeHash,
+        })),
+      });
+      print({
+        output,
+        fixtureCount: fixtures.length,
+        rendererVersion: "math-semantic-chalk.v7",
+      });
+    });
   const speech = math
     .command("speech")
     .description("Generate natural, board-synchronized educational narration");
@@ -2249,8 +2296,7 @@ export function registerMathCommands(program: Command): void {
               provider: "openai-compatible",
               model: paidSetup.estimate.model,
               voice: paidSetup.estimate.voice,
-              targetWordsPerMinute:
-                paidSetup.estimate.targetWordsPerMinute,
+              targetWordsPerMinute: paidSetup.estimate.targetWordsPerMinute,
               providerSpeed: paidSetup.estimate.providerSpeed,
               speechProfileVersion: paidSetup.estimate.speechProfileVersion,
               pricingVersion: paidSetup.configuration.pricingVersion,
@@ -2292,8 +2338,8 @@ export function registerMathCommands(program: Command): void {
           narrationReview: "math-german-narration-review.v1",
           verifierProtocol: "math-verifier.v3",
           verifier: "3.0.0",
-          renderer: "math-semantic-keyframe-runner.v6",
-          chalkRenderer: "math-semantic-chalk.v4",
+          renderer: "math-semantic-keyframe-runner.v8",
+          chalkRenderer: "math-semantic-chalk.v7",
           visualStyle: "math.educational-visual-style.v1",
           metadata: "math-metadata.v1",
           speechProfile: paidSetup?.estimate.speechProfileVersion ?? null,

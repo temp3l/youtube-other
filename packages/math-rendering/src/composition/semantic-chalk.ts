@@ -1,4 +1,11 @@
-export const MATH_SEMANTIC_CHALK_VERSION = "math-semantic-chalk.v4" as const;
+import {
+  injectStableChalkMaterial,
+  renderNaturalChalkGroup,
+  renderNaturalChalkText,
+  segmentChalkGraphemes,
+} from "./natural-chalk.js";
+
+export const MATH_SEMANTIC_CHALK_VERSION = "math-semantic-chalk.v7" as const;
 
 export interface SemanticChalkStep {
   readonly key: string;
@@ -119,6 +126,51 @@ export function extractSemanticChalkSteps(
     : [];
 }
 
+function stepMarkup(svgMarkup: string, step: SemanticChalkStep): string {
+  if (step.key === "__unbound-text__") return svgMarkup;
+  const selector = step.key.startsWith("step:")
+    ? `data-chalk-step="${step.key.slice(5)}"`
+    : `data-fact-id="${step.factId ?? ""}"`;
+  const escaped = selector.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&");
+  const group = svgMarkup.match(
+    new RegExp(`<g\\b[^>]*${escaped}[^>]*>([\\s\\S]*?)<\\/g>`, "u")
+  )?.[1];
+  if (group) return group;
+  return (
+    svgMarkup.match(
+      new RegExp(
+        `<(?:text|path|line|circle|ellipse|polygon|polyline|rect)\\b[^>]*${escaped}[^>]*(?:>[\\s\\S]*?<\\/text>|\\/>)`,
+        "u"
+      )
+    )?.[0] ?? ""
+  );
+}
+
+export function semanticChalkStepSampleCount(args: {
+  readonly svgMarkup: string;
+  readonly step: SemanticChalkStep;
+  readonly durationFrames: number;
+}): number {
+  const markup = stepMarkup(args.svgMarkup, args.step);
+  const glyphCount = [...markup.matchAll(/<text\b[^>]*>([\s\S]*?)<\/text>/giu)]
+    .map((match) =>
+      match[1]
+        ?.replace(/<[^>]+>/gu, "")
+        .replaceAll("&amp;", "&")
+        .replaceAll("&lt;", "<")
+        .replaceAll("&gt;", ">")
+        .replaceAll("&#160;", " ")
+    )
+    .filter((text): text is string => text !== undefined)
+    .reduce((count, text) => count + segmentChalkGraphemes(text).length, 0);
+  const shapeCount = (
+    markup.match(/<(?:path|line|circle|ellipse|polygon|polyline|rect)\b/giu) ??
+    []
+  ).length;
+  const desired = Math.max(8, glyphCount, shapeCount * 8);
+  return Math.max(1, Math.min(36, args.durationFrames, desired));
+}
+
 export function semanticChalkWritingFrames(
   sceneFrames: number,
   stepCount = 1
@@ -126,11 +178,7 @@ export function semanticChalkWritingFrames(
   if (stepCount <= 0) return 0;
   const finalDwellFrames = Math.min(
     180,
-    Math.max(
-      36,
-      Math.floor(sceneFrames * 0.12),
-      sceneFrames - stepCount * 180
-    )
+    Math.max(36, Math.floor(sceneFrames * 0.12), sceneFrames - stepCount * 180)
   );
   return Math.max(1, sceneFrames - finalDwellFrames);
 }
@@ -298,11 +346,7 @@ function stepKeyForTag(
   return null;
 }
 
-function progressiveElement(
-  openingTag: string,
-  progress: number,
-  clipId: string
-): string {
+function progressiveElement(openingTag: string, progress: number): string {
   const shape = /^<(path|line|circle|ellipse|polygon|polyline|rect)\b/iu.test(
     openingTag
   );
@@ -325,7 +369,80 @@ function progressiveElement(
       result = setAttribute(result, "fill-opacity", String(progress * 0.3));
     return result;
   }
-  return setAttribute(result, "clip-path", `url(#${clipId})`);
+  if (/^<g\b/iu.test(result)) return result;
+  result = setAttribute(result, "stroke-linecap", "round");
+  result = setAttribute(result, "stroke-linejoin", "round");
+  result = setAttribute(result, "stroke-dasharray", "11 7");
+  result = setAttribute(
+    result,
+    "stroke-dashoffset",
+    String((1 - progress) * 42)
+  );
+  result = setAttribute(
+    result,
+    "fill-opacity",
+    String(Math.min(0.3, progress))
+  );
+  return setAttribute(result, "data-chalk-fallback", "token-grain");
+}
+
+function activeMarkup(args: {
+  readonly svgMarkup: string;
+  readonly step: SemanticChalkStep;
+  readonly progress: number;
+}): string {
+  const seed = `${MATH_SEMANTIC_CHALK_VERSION}:${args.step.key}`;
+  const selector =
+    args.step.key === "__unbound-text__"
+      ? null
+      : args.step.key.startsWith("step:")
+        ? `data-chalk-step="${args.step.key.slice(5)}"`
+        : `data-fact-id="${args.step.factId ?? ""}"`;
+  if (selector) {
+    const escaped = selector.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&");
+    const groupPattern = new RegExp(
+      `(<g\\b[^>]*${escaped}[^>]*>)([\\s\\S]*?)(<\\/g>)`,
+      "u"
+    );
+    if (groupPattern.test(args.svgMarkup))
+      return args.svgMarkup.replace(
+        groupPattern,
+        (_match, opening: string, inner: string, closing: string) =>
+          `${opening}${renderNaturalChalkGroup({
+            markup: inner,
+            progress: args.progress,
+            seed,
+          })}${closing}`
+      );
+    const textPattern = new RegExp(
+      `(<text\\b[^>]*${escaped}[^>]*>)([\\s\\S]*?)(<\\/text>)`,
+      "u"
+    );
+    if (textPattern.test(args.svgMarkup))
+      return args.svgMarkup.replace(
+        textPattern,
+        (_match, opening: string, inner: string) =>
+          renderNaturalChalkText({
+            openingTag: opening,
+            innerMarkup: inner,
+            progress: args.progress,
+            seed,
+          })
+      );
+    return args.svgMarkup;
+  }
+  const unboundText =
+    /(<text\b(?![^>]*data-fact-id)[^>]*>)([\s\S]*?)(<\/text>)/iu;
+  return args.svgMarkup.replace(
+    unboundText,
+    (_match, opening: string, inner: string) =>
+      renderNaturalChalkText({
+        openingTag: opening,
+        innerMarkup: inner,
+        progress: args.progress,
+        seed,
+      })
+  );
 }
 
 function applyVisibility(args: {
@@ -334,24 +451,17 @@ function applyVisibility(args: {
   readonly completedStepKeys: ReadonlySet<string>;
   readonly activeStepKey: string | null;
   readonly activeProgress: number;
-  readonly activeBounds: SemanticChalkFrame["activeBounds"];
 }): string {
-  const clipId = "semantic-chalk-active-clip";
   let result = args.svgMarkup.replace(
     new RegExp(`<(?:${revealableElement})\\b[^>]*\\/?>`, "gu"),
     (openingTag) => {
       const key = stepKeyForTag(openingTag, args.steps);
       if (!key || args.completedStepKeys.has(key)) return openingTag;
       if (key === args.activeStepKey)
-        return progressiveElement(openingTag, args.activeProgress, clipId);
+        return progressiveElement(openingTag, args.activeProgress);
       return setAttribute(openingTag, "opacity", "0");
     }
   );
-  if (args.activeStepKey && args.activeBounds) {
-    const width = Math.max(0.01, args.activeBounds.width * args.activeProgress);
-    const clip = `<defs data-semantic-chalk-clip="true"><clipPath id="${clipId}"><rect x="${args.activeBounds.x}" y="${args.activeBounds.y}" width="${width}" height="${args.activeBounds.height}"/></clipPath></defs>`;
-    result = result.replace(/(<svg\b[^>]*>)/u, `$1${clip}`);
-  }
   return result;
 }
 
@@ -407,15 +517,31 @@ export function renderSemanticChalkFrame(args: {
   const activeBounds = active
     ? boundsForStep(args.svgMarkup, active, activeStep)
     : null;
+  const naturalMarkup = args.steps.reduce((markup, step) => {
+    const stepProgress = completed.has(step.key)
+      ? 1
+      : step.key === active?.key
+        ? progress
+        : null;
+    return stepProgress === null
+      ? markup
+      : activeMarkup({
+          svgMarkup: markup,
+          step,
+          progress: stepProgress,
+        });
+  }, args.svgMarkup);
   return {
-    svgMarkup: applyVisibility({
-      svgMarkup: args.svgMarkup,
-      steps: args.steps,
-      completedStepKeys: completed,
-      activeStepKey: active?.key ?? null,
-      activeProgress: progress,
-      activeBounds,
-    }),
+    svgMarkup: injectStableChalkMaterial(
+      applyVisibility({
+        svgMarkup: naturalMarkup,
+        steps: args.steps,
+        completedStepKeys: completed,
+        activeStepKey: active?.key ?? null,
+        activeProgress: progress,
+      }),
+      MATH_SEMANTIC_CHALK_VERSION
+    ),
     revealing: Boolean(activeTiming),
     activeStep,
     activeStepKey: active?.key ?? null,

@@ -226,6 +226,7 @@ export function registerStoryRewriteFullCommand(storiesCommand: Command): void {
           options.reasoningEffort ??
           runtimeConfig.openAiStoryReasoningEffort ??
           DEFAULT_STORY_REWRITE_REASONING_EFFORT,
+        horrorAffectRolloutMode: runtimeConfig.horrorAffectRolloutMode,
         repairModel:
           runtimeConfig.openAiValidatorModel ??
           runtimeConfig.openAiMetadataModel,

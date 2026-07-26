@@ -102,6 +102,25 @@ function formatStatusReport(report: StoryProductionStatusReport): string {
     `Workflow: ${report.workflowId}`,
     `Execution: ${report.executionId}`,
     `Episode: ${report.episodeId}`,
+    ...(report.horrorAffectPlan
+      ? [
+          [
+            "Horror affect plan:",
+            `state=${report.horrorAffectPlan.state}`,
+            report.horrorAffectPlan.rolloutMode
+              ? `mode=${report.horrorAffectPlan.rolloutMode}`
+              : null,
+            report.horrorAffectPlan.planHash
+              ? `hash=${report.horrorAffectPlan.planHash}`
+              : null,
+            report.horrorAffectPlan.reasons[0]
+              ? `reason=${report.horrorAffectPlan.reasons[0].message}`
+              : null,
+          ]
+            .filter((part): part is string => part !== null)
+            .join(" "),
+        ]
+      : []),
     `Summary: ${report.summary.ready} ready, ${report.summary.retryable} retryable, ${report.summary.blocked} blocked, ${report.summary.waiting} waiting, ${report.summary.completed} completed`,
     "Categories:",
     ...report.categories.map(

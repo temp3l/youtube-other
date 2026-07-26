@@ -10,6 +10,7 @@ import { compileShortStoryPrompt } from "./story-prompt-compiler.js";
 import { DEFAULT_SHORT_DURATION_WINDOW } from "./narration-constraints.js";
 import { countSpokenWords } from "@mediaforge/shared";
 import { insertSectionBeforeMarker } from "./prompt-template-loader.js";
+import type { StoryTargetedAffectRepairInstructions } from "./story-quality-repair.js";
 
 function resolvePromptContext(context: ShortRewritePromptContext) {
   if (
@@ -33,9 +34,16 @@ function resolvePromptContext(context: ShortRewritePromptContext) {
       sourceExtraction: context.sourceExtraction,
       adaptationContract: context.adaptationContract,
       characterRenameMap: context.characterRenameMap,
+      horrorAffectProjection:
+        context.horrorAffectProjection ??
+        context.adaptationContract.horrorAffectProjection,
     };
   }
-  const narration = context.narration ?? (typeof context.sourceStory === "string" ? context.sourceStory : context.sourceStory.narrationParagraphs.join("\n\n"));
+  const narration =
+    context.narration ??
+    (typeof context.sourceStory === "string"
+      ? context.sourceStory
+      : context.sourceStory.narrationParagraphs.join("\n\n"));
   const parsedSourceStory = {
     language: "en" as const,
     sourceFile: `${context.episodeSlug ?? "episode"}.md`,
@@ -56,7 +64,10 @@ function resolvePromptContext(context: ShortRewritePromptContext) {
     content: narration,
   };
   const canonicalFacts = extractCanonicalStoryFacts(parsedSourceStory);
-  const storyIr = adaptCanonicalStoryFactsToStoryIR(canonicalFacts, parsedSourceStory);
+  const storyIr = adaptCanonicalStoryFactsToStoryIR(
+    canonicalFacts,
+    parsedSourceStory
+  );
   const characterRenameMap = buildCharacterRenameMap({
     episodeId: parsedSourceStory.episodeNumber,
     sourceHash: parsedSourceStory.sourceHash,
@@ -66,7 +77,10 @@ function resolvePromptContext(context: ShortRewritePromptContext) {
   const profile = getLanguageProfile(context.targetLanguage);
   return {
     sourceStory: parsedSourceStory,
-    canonicalFacts: applyCharacterRenameMapToCanonicalFacts(canonicalFacts, characterRenameMap),
+    canonicalFacts: applyCharacterRenameMapToCanonicalFacts(
+      canonicalFacts,
+      characterRenameMap
+    ),
     storyIr,
     outputConstraints: context.outputConstraints ?? {
       variant: "short" as const,
@@ -95,65 +109,67 @@ function resolvePromptContext(context: ShortRewritePromptContext) {
       orphanedReferences: [],
       extractionHash: "compatibility".padEnd(64, "0"),
     },
-    adaptationContract:
-      context.adaptationContract ??
-      {
-        schemaVersion: "compatibility",
-        contractVersion: "compatibility",
-        identity: {
-          episodeId: parsedSourceStory.episodeNumber,
-          episodeSlug: parsedSourceStory.slug,
-          language: context.targetLanguage,
-          locale: context.targetLocale,
-          variant: "short" as const,
-        },
-        parent: {
-          episodeId: parsedSourceStory.episodeNumber,
-          episodeSlug: parsedSourceStory.slug,
-          language: context.targetLanguage,
-          locale: context.targetLocale,
-          variant: "full" as const,
-          parentFullHash: "compatibility".padEnd(64, "0"),
-          sourceSha256: "compatibility".padEnd(64, "0"),
-        },
-        storyIrHash: "compatibility".padEnd(64, "0"),
-        immutableFacts: [],
-        centralThreat: storyIr.centralThreat.description,
-        centralRuleOrMechanism: storyIr.centralRuleMechanism.description,
-        criticalObject: storyIr.criticalObjects[0]?.name ?? "",
-        climaxOrIrreversibleTurn: storyIr.climax,
-        finalConsequenceOrSting: storyIr.endingConsequence,
-        exactWrittenMessages: storyIr.writtenMessages.map((entry) => entry.text),
-        allowedCompression: [],
-        forbiddenOmissions: [],
-        retentionBoundaries: {
-          factsMustRemain: [],
-          detailsMayCompress: [],
-          detailsMayRemove: [],
-          dialogueMayShorten: [],
-        },
-        inventionBoundaries: [],
-        constraints: {
-          targetDurationSeconds: {
-            min: DEFAULT_SHORT_DURATION_WINDOW.minSeconds,
-            max: DEFAULT_SHORT_DURATION_WINDOW.maxSeconds,
-          },
-          targetNarrationWpm: profile.shortNarrationWpm,
-          targetWordRange: {
-            min: profile.shortWordRange.min,
-            max: profile.shortWordRange.max,
-          },
-          hookDeadlineSeconds: 8,
-          maximumBeats: 6,
-        },
-        sourceExtraction: {
-          extractionHash: "compatibility".padEnd(64, "0"),
-          selectedBeatIds: [],
-          orphanedReferences: [],
-        },
-        contractHash: "compatibility".padEnd(64, "0"),
+    adaptationContract: context.adaptationContract ?? {
+      schemaVersion: "compatibility",
+      contractVersion: "compatibility",
+      identity: {
+        episodeId: parsedSourceStory.episodeNumber,
+        episodeSlug: parsedSourceStory.slug,
+        language: context.targetLanguage,
+        locale: context.targetLocale,
+        variant: "short" as const,
       },
+      parent: {
+        episodeId: parsedSourceStory.episodeNumber,
+        episodeSlug: parsedSourceStory.slug,
+        language: context.targetLanguage,
+        locale: context.targetLocale,
+        variant: "full" as const,
+        parentFullHash: "compatibility".padEnd(64, "0"),
+        sourceSha256: "compatibility".padEnd(64, "0"),
+      },
+      storyIrHash: "compatibility".padEnd(64, "0"),
+      immutableFacts: [],
+      centralThreat: storyIr.centralThreat.description,
+      centralRuleOrMechanism: storyIr.centralRuleMechanism.description,
+      criticalObject: storyIr.criticalObjects[0]?.name ?? "",
+      climaxOrIrreversibleTurn: storyIr.climax,
+      finalConsequenceOrSting: storyIr.endingConsequence,
+      exactWrittenMessages: storyIr.writtenMessages.map((entry) => entry.text),
+      allowedCompression: [],
+      forbiddenOmissions: [],
+      retentionBoundaries: {
+        factsMustRemain: [],
+        detailsMayCompress: [],
+        detailsMayRemove: [],
+        dialogueMayShorten: [],
+      },
+      inventionBoundaries: [],
+      constraints: {
+        targetDurationSeconds: {
+          min: DEFAULT_SHORT_DURATION_WINDOW.minSeconds,
+          max: DEFAULT_SHORT_DURATION_WINDOW.maxSeconds,
+        },
+        targetNarrationWpm: profile.shortNarrationWpm,
+        targetWordRange: {
+          min: profile.shortWordRange.min,
+          max: profile.shortWordRange.max,
+        },
+        hookDeadlineSeconds: 8,
+        maximumBeats: 6,
+      },
+      sourceExtraction: {
+        extractionHash: "compatibility".padEnd(64, "0"),
+        selectedBeatIds: [],
+        orphanedReferences: [],
+      },
+      ...(context.horrorAffectProjection
+        ? { horrorAffectProjection: context.horrorAffectProjection }
+        : {}),
+      contractHash: "compatibility".padEnd(64, "0"),
+    },
     characterRenameMap,
+    horrorAffectProjection: context.horrorAffectProjection,
   };
 }
 
@@ -172,6 +188,9 @@ export function buildShortRewritePrompt(context: ShortRewritePromptContext): {
     adaptationContract: resolved.adaptationContract,
     outputConstraints: resolved.outputConstraints,
     characterRenameMap: resolved.characterRenameMap,
+    ...(resolved.horrorAffectProjection
+      ? { horrorAffectProjection: resolved.horrorAffectProjection }
+      : {}),
   });
   return {
     system: compiled.system,
@@ -183,24 +202,36 @@ export function buildShortRewriteRepairPrompt(args: {
   readonly context: ShortRewritePromptContext;
   readonly invalidResult: unknown;
   readonly validationErrors: readonly string[];
+  readonly targetedAffectRepair?: StoryTargetedAffectRepairInstructions;
 }): { readonly system: string; readonly user: string } {
   const basePrompt = buildShortRewritePrompt(args.context);
   const resolved = resolvePromptContext(args.context);
   const serialized = JSON.stringify(args.invalidResult);
-  const narration = typeof args.invalidResult === "string"
-    ? args.invalidResult
-    : args.invalidResult && typeof args.invalidResult === "object" && "narration" in args.invalidResult && typeof (args.invalidResult as { readonly narration?: unknown }).narration === "string"
-      ? (args.invalidResult as { readonly narration: string }).narration
-      : serialized;
+  const narration =
+    typeof args.invalidResult === "string"
+      ? args.invalidResult
+      : args.invalidResult &&
+          typeof args.invalidResult === "object" &&
+          "narration" in args.invalidResult &&
+          typeof (args.invalidResult as { readonly narration?: unknown })
+            .narration === "string"
+        ? (args.invalidResult as { readonly narration: string }).narration
+        : serialized;
   const currentWordCount = countSpokenWords(narration);
   const target = resolved.outputConstraints.targetWordRange;
-  const wordInstruction = currentWordCount < target.min
-    ? `Add between ${target.min - currentWordCount} and ${target.max - currentWordCount} words.`
-    : currentWordCount > target.max
-      ? `Remove between ${currentWordCount - target.max} and ${currentWordCount - target.min} words.`
-      : "Do not change the word count except where the listed defect requires it.";
-  const immutableOpening = resolved.canonicalFacts.openingImpossibleDetail ?? resolved.sourceStory.narrationParagraphs[0] ?? "";
-  const immutableFinalLine = resolved.canonicalFacts.requiredFinalLine ?? resolved.adaptationContract.finalConsequenceOrSting;
+  const wordInstruction =
+    currentWordCount < target.min
+      ? `Add between ${target.min - currentWordCount} and ${target.max - currentWordCount} words.`
+      : currentWordCount > target.max
+        ? `Remove between ${currentWordCount - target.max} and ${currentWordCount - target.min} words.`
+        : "Do not change the word count except where the listed defect requires it.";
+  const immutableOpening =
+    resolved.canonicalFacts.openingImpossibleDetail ??
+    resolved.sourceStory.narrationParagraphs[0] ??
+    "";
+  const immutableFinalLine =
+    resolved.canonicalFacts.requiredFinalLine ??
+    resolved.adaptationContract.finalConsequenceOrSting;
   const repairSection = [
     "The previous result was invalid.",
     "Fix only the problems described below and return the complete JSON again.",
@@ -217,6 +248,7 @@ export function buildShortRewriteRepairPrompt(args: {
     "Sections that must not be modified: established facts, selected event order, mechanics, names, relationships, exact opening, and exact final line.",
     "If the issue is outline prose, convert only the broken section into narrated scene action.",
     "If the issue is missing emotional cost, add the protagonist attachment and costly final refusal, loss, destruction, abandonment, betrayal, or acceptance without changing the plot.",
+    ...(args.targetedAffectRepair ? ["", args.targetedAffectRepair.text] : []),
     "",
     "Fix these issues in the new result:",
     ...args.validationErrors.map((entry) => `- ${entry}`),

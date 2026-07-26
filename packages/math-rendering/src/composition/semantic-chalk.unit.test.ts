@@ -4,7 +4,9 @@ import {
   createSemanticChalkSchedule,
   extractSemanticChalkSteps,
   renderSemanticChalkFrame,
+  semanticChalkStepSampleCount,
 } from "./semantic-chalk.js";
+import { segmentChalkGraphemes } from "./natural-chalk.js";
 
 describe("semantic chalk frames", () => {
   it("reveals actual verifier-bound elements in declared board order", () => {
@@ -31,8 +33,13 @@ describe("semantic chalk frames", () => {
       localFrame: 0,
       sceneFrames: 600,
     });
-    expect(start.svgMarkup).toContain("semantic-chalk-active-clip");
-    expect(start.svgMarkup).toMatch(/data-chalk-step="sum"[^>]*clip-path=/u);
+    expect(start.svgMarkup).toContain("data-natural-chalk-material");
+    expect(start.svgMarkup).toContain("data-natural-chalk-text");
+    expect(start.svgMarkup).toContain("data-chalk-glyph");
+    expect(start.svgMarkup).toContain('data-chalk-state="pending"');
+    expect(start.svgMarkup).toContain('visibility="hidden"');
+    expect(start.svgMarkup).not.toContain("clip-path");
+    expect(start.svgMarkup).not.toContain("<clipPath");
     expect(start.svgMarkup).toMatch(
       /data-chalk-step="answer"[^>]*opacity="0"/u
     );
@@ -54,7 +61,10 @@ describe("semantic chalk frames", () => {
       localFrame: 600,
       sceneFrames: 600,
     });
-    expect(complete.svgMarkup).toBe(svg);
+    expect(complete.svgMarkup).toContain("data-natural-chalk-material");
+    expect(complete.svgMarkup).toContain('data-chalk-state="complete"');
+    expect(complete.svgMarkup).not.toContain('data-chalk-state="pending"');
+    expect(complete.svgMarkup).not.toContain(">12+3</text>");
   });
 
   it("draws geometric strokes instead of adding a generic underline", () => {
@@ -70,6 +80,40 @@ describe("semantic chalk frames", () => {
     expect(frame.svgMarkup).toContain('pathLength="1"');
     expect(frame.svgMarkup).toContain('stroke-dasharray="1"');
     expect(frame.svgMarkup).not.toContain("semantic-chalk-writing");
+  });
+
+  it("samples long text at grapheme boundaries without unbounded raster work", () => {
+    const svg =
+      '<svg><g data-chalk-step="title"><text>Wo gehören die Nullen hin?</text></g><g data-chalk-step="line"><path d="M0 0H100"/></g></svg>';
+    const steps = extractSemanticChalkSteps(svg);
+
+    expect(
+      semanticChalkStepSampleCount({
+        svgMarkup: svg,
+        step: steps[0]!,
+        durationFrames: 180,
+      })
+    ).toBe(segmentChalkGraphemes("Wo gehören die Nullen hin?").length);
+    expect(
+      semanticChalkStepSampleCount({
+        svgMarkup: svg,
+        step: steps[1]!,
+        durationFrames: 5,
+      })
+    ).toBe(5);
+    expect(
+      semanticChalkStepSampleCount({
+        svgMarkup:
+          '<svg><g data-chalk-step="title"><text>abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz</text></g></svg>',
+        step: {
+          key: "step:title",
+          factId: null,
+          durationWeight: 1,
+          pauseAfterFrames: 0,
+        },
+        durationFrames: 180,
+      })
+    ).toBe(36);
   });
 
   it("centres verifier-bound drawing beats around narration cues", () => {
@@ -175,9 +219,9 @@ describe("semantic chalk frames", () => {
       durationWeight: 1.7,
       pauseAfterFrames: 18,
     });
-    expect(
-      schedule[1]!.endFrame - schedule[1]!.startFrame
-    ).toBeGreaterThan(schedule[0]!.endFrame - schedule[0]!.startFrame);
+    expect(schedule[1]!.endFrame - schedule[1]!.startFrame).toBeGreaterThan(
+      schedule[0]!.endFrame - schedule[0]!.startFrame
+    );
     expect(schedule[2]!.startFrame - schedule[1]!.endFrame).toBe(18);
   });
 });

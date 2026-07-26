@@ -188,6 +188,7 @@ export async function buildCommandConfig(
     ...(runtimeConfig.openAiStoryMaxOutputTokens !== undefined
       ? { canonicalMaxOutputTokens: runtimeConfig.openAiStoryMaxOutputTokens }
       : {}),
+    horrorAffectRolloutMode: runtimeConfig.horrorAffectRolloutMode,
     ...(runtimeConfig.openAiShortModel
       ? { shortModel: runtimeConfig.openAiShortModel }
       : {}),
@@ -594,6 +595,7 @@ export async function buildBatchConfig(
     ...(runtimeConfig.openAiStoryMaxOutputTokens !== undefined
       ? { canonicalMaxOutputTokens: runtimeConfig.openAiStoryMaxOutputTokens }
       : {}),
+    horrorAffectRolloutMode: runtimeConfig.horrorAffectRolloutMode,
     ...(runtimeConfig.openAiShortModel
       ? { shortModel: runtimeConfig.openAiShortModel }
       : {}),

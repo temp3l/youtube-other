@@ -5,7 +5,10 @@ import { pathToFileURL } from "node:url";
 
 import { afterEach, describe, expect, it } from "vitest";
 
-import { resolveRemotionEntryPoint } from "./remotion-runner.js";
+import {
+  createSemanticRasterBatches,
+  resolveRemotionEntryPoint,
+} from "./remotion-runner.js";
 
 const temporaryDirectories: string[] = [];
 
@@ -34,5 +37,32 @@ describe("resolveRemotionEntryPoint", () => {
         pathToFileURL(path.join(directory, "remotion-runner.js")).href
       )
     ).resolves.toBe(javascriptEntry);
+  });
+});
+
+describe("createSemanticRasterBatches", () => {
+  it("bounds worker lifetime without crossing scene boundaries", () => {
+    const jobs = [
+      ...Array.from({ length: 10 }, (_, index) => ({
+        sceneId: "scene-a",
+        index,
+      })),
+      ...Array.from({ length: 3 }, (_, index) => ({
+        sceneId: "scene-b",
+        index,
+      })),
+    ];
+
+    expect(createSemanticRasterBatches(jobs, 8)).toEqual([
+      jobs.slice(0, 8),
+      jobs.slice(8, 10),
+      jobs.slice(10, 13),
+    ]);
+  });
+
+  it("rejects an invalid batch size", () => {
+    expect(() => createSemanticRasterBatches([], 0)).toThrow(
+      "Semantic raster batch size must be a positive integer."
+    );
   });
 });

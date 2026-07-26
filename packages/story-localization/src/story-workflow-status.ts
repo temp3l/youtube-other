@@ -8,6 +8,7 @@ import {
   type WorkflowStageState,
 } from "./story-workflow.types.js";
 import { compareStageContractFingerprint } from "./story-workflow-invalidation.js";
+import type { HorrorAffectPlanArtifactStatus } from "./horror-affect-plan.persistence.js";
 
 export interface StoryWorkflowStatusReport {
   readonly workflowId: string;
@@ -105,6 +106,7 @@ export interface StoryProductionStatusReport {
   readonly summary: Readonly<Record<StoryProductionEntryStatus, number>>;
   readonly categories: readonly StoryProductionCategorySummary[];
   readonly entries: readonly StoryProductionStatusEntry[];
+  readonly horrorAffectPlan?: HorrorAffectPlanArtifactStatus;
 }
 
 function stageLocale(stage: WorkflowStageState<ArtifactLineage>): string {

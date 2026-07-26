@@ -1,0 +1,91 @@
+{
+  "schemaVersion": "horror-rollout-decision-v1",
+  "evaluationId": "horror-strategy-production-evaluation-v2",
+  "manifestHash": "64e264a2217110a7e9e0b2c847e27e238ad1b4370d778b06fbb1dd19c4a607ac",
+  "generatedAt": "2026-07-25T23:58:53+02:00",
+  "requestedDecision": "remain-shadow",
+  "decision": "remain-shadow",
+  "scope": {
+    "formats": [
+      "full",
+      "short"
+    ],
+    "locales": [
+      "en-US"
+    ],
+    "strategyVersion": "horror-affect-strategy-v1"
+  },
+  "confidence": "insufficient",
+  "gates": [
+    {
+      "gateId": "immutable-fact-rule-ending-regression-free",
+      "passed": false,
+      "evidence": "No production baseline-versus-strategy artifacts have been evaluated."
+    },
+    {
+      "gateId": "no-extra-generation-call",
+      "passed": true,
+      "evidence": "Preregistration added zero provider calls."
+    },
+    {
+      "gateId": "cost-within-budget",
+      "passed": true,
+      "evidence": "Observed incremental provider calls and cost are both zero before evaluation execution."
+    },
+    {
+      "gateId": "blind-editorial-primary-improved",
+      "passed": false,
+      "evidence": "No production blind editorial comparison has been completed."
+    },
+    {
+      "gateId": "production-retention-not-harmed",
+      "passed": false,
+      "evidence": "No authorized production retention aggregate has been imported."
+    },
+    {
+      "gateId": "failure-behavior-understood",
+      "passed": false,
+      "evidence": "Production evaluation failure behavior has not been observed."
+    },
+    {
+      "gateId": "stale-cache-behavior-understood",
+      "passed": false,
+      "evidence": "Deterministic tests pass, but stale-cache behavior has not been observed in this production evaluation."
+    },
+    {
+      "gateId": "product-decisions-resolved",
+      "passed": true,
+      "evidence": "The v2 manifest resolves metric, threshold, sample, budget, analytics authority, and rollout authority."
+    },
+    {
+      "gateId": "explicit-human-approval",
+      "passed": false,
+      "evidence": "No manifest-bound promotion or rollback approval artifact exists."
+    }
+  ],
+  "regressions": [],
+  "cost": {
+    "incrementalProviderCalls": 0,
+    "incrementalCostUsd": 0,
+    "withinBudget": true
+  },
+  "failures": [],
+  "staleCacheBehavior": {
+    "understood": false,
+    "evidence": "Focused deterministic resume tests pass; production evaluation behavior remains unobserved."
+  },
+  "dissentingEvidence": [
+    "The blind packet builder accepts only synthetic Task 03 corpus provenance.",
+    "No production strategy-arm candidates, ratings, or audience outcomes exist."
+  ],
+  "humanApproval": null,
+  "failClosedReasons": [
+    "No production baseline-versus-strategy artifacts have been evaluated.",
+    "No production blind editorial comparison has been completed.",
+    "No authorized production retention aggregate has been imported.",
+    "Production evaluation failure behavior has not been observed.",
+    "Stale-cache behavior has not been observed in this production evaluation.",
+    "No manifest-bound promotion or rollback approval artifact exists."
+  ],
+  "artifactHash": "65aa114a416aecae7c3b0b696c853fefbee7958edef7c35486548a2b4a8408db"
+}

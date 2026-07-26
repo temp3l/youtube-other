@@ -42,4 +42,42 @@ describe("math workflow invalidation", () => {
       result.stages.find((stage) => stage.stage === "publish")?.status
     ).toBe("stale");
   });
+
+  it("keeps approved narration reusable after a visual-only chalk change", () => {
+    const now = "2026-07-12T00:00:00.000Z";
+    let parentFingerprints: string[] = [];
+    const manifest: WorkflowManifest = {
+      artifactVersion: "math-workflow.v2",
+      lessonId: "m5-zo-001-standard",
+      curriculumReleaseId: "de-gems-5-10-v1",
+      simulated: true,
+      paidProviderCalled: false,
+      stages: MATH_STAGES.map((stage) => {
+        const fingerprint = stageFingerprint(stage, parentFingerprints, {});
+        const record = {
+          stage,
+          status: "succeeded" as const,
+          fingerprint,
+          parentFingerprints,
+          outputArtifacts: [],
+          updatedAt: now,
+        };
+        parentFingerprints = [fingerprint];
+        return record;
+      }),
+      failures: [],
+    };
+
+    const result = invalidateWorkflowStages(manifest, ["visual-assets"], now);
+
+    expect(result.stages.find((stage) => stage.stage === "tts")?.status).toBe(
+      "succeeded"
+    );
+    expect(
+      result.stages.find((stage) => stage.stage === "timing-reflow")?.status
+    ).toBe("succeeded");
+    expect(
+      result.stages.find((stage) => stage.stage === "render")?.status
+    ).toBe("stale");
+  });
 });

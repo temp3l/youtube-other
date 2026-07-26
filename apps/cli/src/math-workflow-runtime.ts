@@ -147,8 +147,7 @@ export function deriveCanonicalPaidSpeechRate(input: {
     );
   }
   const speakingMinutes =
-    (input.targetDurationSeconds -
-      CANONICAL_PRIVATE_SPEECH_RESERVED_SECONDS) /
+    (input.targetDurationSeconds - CANONICAL_PRIVATE_SPEECH_RESERVED_SECONDS) /
     60;
   return Math.max(80, Math.min(220, Math.round(input.words / speakingMinutes)));
 }
@@ -998,8 +997,7 @@ function validateCanonicalVisualScene(input: {
     ...scheduledIntervals
   );
   if (
-    maximumStaticIntervalFrames >
-    CANONICAL_PRIVATE_MAX_STATIC_INTERVAL_FRAMES
+    maximumStaticIntervalFrames > CANONICAL_PRIVATE_MAX_STATIC_INTERVAL_FRAMES
   )
     throw new Error(
       `Visual scene ${input.sceneId} contains a ${maximumStaticIntervalFrames}-frame static interval.`
@@ -1351,7 +1349,7 @@ export async function materializeCanonicalPrivateMedia(
       ),
       animation: {
         mode: "progressive-chalk-reveal",
-        rendererVersion: "math-semantic-chalk.v4",
+        rendererVersion: "math-semantic-chalk.v7",
         cues,
         activity:
           lessonScene.sceneFunction === "think-pause"
@@ -1520,7 +1518,7 @@ export async function materializeCanonicalPrivateMedia(
     renderFingerprint: rendered.renderFingerprint,
     visualPresentation: {
       strategy: "progressive-chalk-reveal" as const,
-      rendererVersion: "math-semantic-chalk.v4" as const,
+      rendererVersion: "math-semantic-chalk.v7" as const,
     },
     visualValidation: {
       valid: true as const,

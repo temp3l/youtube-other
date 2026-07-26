@@ -6,6 +6,8 @@ export * from "./components/svg-cache.js";
 export * from "./composition/composition.js";
 export * from "./composition/remotion-runner.js";
 export * from "./composition/semantic-chalk.js";
+export * from "./composition/natural-chalk.js";
+export * from "./composition/natural-chalk-fixtures.js";
 export * from "./profiles/profiles.js";
 export * from "./provider-free-media.js";
 export * from "./quality/media-qa.js";

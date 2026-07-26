@@ -36,6 +36,12 @@ export interface WorkflowQualityGateInput {
   readonly allowMinorEditsToProceed?: boolean;
   readonly overallScore?: number;
   readonly analysisState?: string;
+  readonly qualitativeVerdict?:
+    | "ADVISORY_READY"
+    | "ADVISORY_REVIEW"
+    | "ADVISORY_WEAK";
+  readonly qualitativeOverallScore?: number;
+  readonly advisoryObservedAt?: string;
 }
 
 export function adaptStoryProductionQualityGate(
@@ -55,6 +61,27 @@ export function adaptStoryProductionQualityGate(
         : [];
   const warnings =
     "warnings" in input && input.warnings ? [...input.warnings] : [];
+  const advisoryWarnings =
+    "qualitativeVerdict" in input &&
+    input.qualitativeVerdict &&
+    "qualitativeOverallScore" in input &&
+    input.qualitativeOverallScore !== undefined
+      ? [
+          {
+            code: "analysis-v2-advisory",
+            message: `Analysis V2 is shadow/advisory: ${input.qualitativeVerdict} at ${input.qualitativeOverallScore}/100.`,
+            emittedAt:
+              "updatedAt" in input
+                ? input.updatedAt
+                : (input.advisoryObservedAt ?? "1970-01-01T00:00:00.000Z"),
+            details: {
+              qualitativeOverallScore: input.qualitativeOverallScore,
+              qualitativeVerdict: input.qualitativeVerdict,
+              productionThresholdsChanged: false,
+            },
+          },
+        ]
+      : [];
   const pass =
     deterministicValidationStatus === "passed" &&
     (verdict === "READY" ||
@@ -81,15 +108,19 @@ export function adaptStoryProductionQualityGate(
       verdict === "READY_WITH_MINOR_EDITS"
         ? [
             ...warnings,
+            ...advisoryWarnings,
             {
               code: "ready-with-minor-edits",
               message: "Quality gate passed with minor edits recommended.",
               emittedAt: new Date().toISOString(),
             },
           ]
-        : warnings,
+        : [...warnings, ...advisoryWarnings],
     ...("overallScore" in input && input.overallScore !== undefined
-      ? { overallScore: input.overallScore, minimumScore: SCRIPT_PRODUCTION_MIN_SCORE }
+      ? {
+          overallScore: input.overallScore,
+          minimumScore: SCRIPT_PRODUCTION_MIN_SCORE,
+        }
       : {}),
     ...("analysisState" in input && input.analysisState
       ? { analysisState: input.analysisState }

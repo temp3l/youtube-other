@@ -62,3 +62,9 @@ In order, class 5 is:
 37. M5-DS-002 Säulen- und Balkendiagramme lesen und erstellen
 
 If you want, I can also turn that into the exact pnpm mediaforge math ... command input for class 5.
+
+
+
+todo-prompts/math-2/05-class5-fractions-decimals.md
+todo-prompts/math-2/06-class5-geometry-measurement.md
+todo-prompts/math-2/07-class5-data-diagrams.md

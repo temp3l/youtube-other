@@ -61,6 +61,30 @@ describe("story workflow quality adapter", () => {
     expect(decision.failedChecks).toContain("deterministic-validation");
   });
 
+  it("keeps weak Analysis V2 dimensions advisory without changing production thresholds", () => {
+    const decision = adaptStoryProductionQualityGate({
+      verdict: "READY",
+      deterministicValidationStatus: "passed",
+      overallScore: 80,
+      qualitativeOverallScore: 20,
+      qualitativeVerdict: "ADVISORY_WEAK",
+      advisoryObservedAt: "2026-07-24T00:00:00.000Z",
+    });
+    expect(decision.pass).toBe(true);
+    expect(decision.overallScore).toBe(80);
+    expect(decision.minimumScore).toBe(80);
+    expect(decision.failedChecks).toEqual([]);
+    expect(decision.warnings).toContainEqual(
+      expect.objectContaining({
+        code: "analysis-v2-advisory",
+        details: expect.objectContaining({
+          productionThresholdsChanged: false,
+          qualitativeOverallScore: 20,
+        }),
+      })
+    );
+  });
+
   it("turns a blocking quality decision into a typed failure", () => {
     const decision = adaptStoryProductionQualityGate({
       verdict: "REWRITE_REQUIRED",

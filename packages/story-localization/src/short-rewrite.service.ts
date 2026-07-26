@@ -102,9 +102,7 @@ import {
   StoryRetryableRequestError,
   type PersistedFailedRequestMetadata,
 } from "./story-retry-routing.js";
-import {
-  type StoryRequestFingerprintInput,
-} from "./story-request-telemetry.js";
+import { type StoryRequestFingerprintInput } from "./story-request-telemetry.js";
 import {
   shortNarrationResponseSchema,
   shortNarrationResponseSchemaDescriptor,
@@ -147,6 +145,17 @@ import {
   SHORT_ADAPTATION_CONTRACT_VERSION,
   SHORT_SOURCE_EXTRACTION_VERSION,
 } from "./short-adaptation-contract.js";
+import {
+  buildShortHorrorAffectProjectionLineage,
+  explainShortHorrorAffectProjectionStaleness,
+  projectShortHorrorAffectPlan,
+  type ShortHorrorAffectProjection,
+} from "./short-horror-affect-projection.js";
+import {
+  inspectHorrorAffectPlanArtifact,
+  resolveHorrorAffectPlanArtifactPaths,
+} from "./horror-affect-plan.persistence.js";
+import type { HorrorAffectPlan } from "./horror-affect-plan.js";
 import { getLanguageProfile } from "./language-profiles.js";
 import {
   canonicalEnglishFullArtifactSchema,
@@ -159,6 +168,8 @@ import {
 import { renderLocalizedFullStory } from "./story-markdown-renderer.js";
 import { resolveEpisodeStoryProductionDirectory } from "./story-production.js";
 import {
+  applyCharacterRenameMapToCanonicalFacts,
+  applyCharacterRenameMapToText,
   buildCharacterRenameMap,
   characterRenameMapSchema,
   type CharacterRenameMap,
@@ -332,7 +343,9 @@ function buildFailedRequestMetadata(args: {
     ...(args.incompleteReason !== undefined
       ? { incompleteReason: args.incompleteReason }
       : {}),
-    ...(args.usage !== undefined ? { usage: buildUsagePayload(args.usage) } : {}),
+    ...(args.usage !== undefined
+      ? { usage: buildUsagePayload(args.usage) }
+      : {}),
     ...(args.estimatedCostUsd !== undefined
       ? { estimatedCostUsd: args.estimatedCostUsd }
       : {}),
@@ -757,7 +770,9 @@ function cloneArtifactPayload(
 }
 
 function hashNarrationParagraphs(paragraphs: readonly string[]): string {
-  return sha256NormalizedSource(paragraphs.map((entry) => normalizeWhitespace(entry)).join("\n\n"));
+  return sha256NormalizedSource(
+    paragraphs.map((entry) => normalizeWhitespace(entry)).join("\n\n")
+  );
 }
 
 function buildShortRequestFingerprint(args: {
@@ -777,7 +792,8 @@ function buildShortRequestFingerprint(args: {
 }): string {
   return hashText(
     stableSerialize({
-      variant: args.language === "en" ? "canonical-english-short" : "localized-short",
+      variant:
+        args.language === "en" ? "canonical-english-short" : "localized-short",
       locale: args.locale,
       compilerVersion: args.compilerVersion,
       compiledPromptFingerprint: args.compiledPromptFingerprint,
@@ -804,16 +820,21 @@ async function resolveCanonicalEnglishParent(args: {
     args.outputRoot,
     args.source.episodeSlug
   );
-  const artifact = await readJsonIfExists(canonicalPaths.canonicalArtifactPath, (value) =>
-    canonicalEnglishFullArtifactSchema.parse(value)
+  const artifact = await readJsonIfExists(
+    canonicalPaths.canonicalArtifactPath,
+    (value) => canonicalEnglishFullArtifactSchema.parse(value)
   );
-  if (!artifact || artifact.status !== "completed" || artifact.validation.status !== "passed") {
+  if (
+    !artifact ||
+    artifact.status !== "completed" ||
+    artifact.validation.status !== "passed"
+  ) {
     throw new ShortRewriteValidationError(
       "English short requires a validated canonical English full parent artifact."
     );
   }
-  const narrationParagraphs = artifact.response.full.narrationParagraphs.map((entry) =>
-    normalizeWhitespace(entry)
+  const narrationParagraphs = artifact.response.full.narrationParagraphs.map(
+    (entry) => normalizeWhitespace(entry)
   );
   return {
     identity: {
@@ -830,6 +851,7 @@ async function resolveCanonicalEnglishParent(args: {
     storyIrHash: artifact.lineage.storyIrHash,
     contractHash: artifact.lineage.contractHash,
     contractBuildFingerprint: artifact.lineage.contractBuildFingerprint,
+    canonicalSourceHash: artifact.lineage.sourceHash,
     narrationParagraphs,
     characterRenameMap: artifact.characterRenameMap,
     canonical: true,
@@ -881,7 +903,9 @@ async function resolveCanonicalEnglishShortParent(args: {
       `Localized Shorts cannot derive from canonical English Short locale ${sidecar.locale}.`
     );
   }
-  const narrationParagraphs = [normalizeWhitespace(sidecar.generation.narration)];
+  const narrationParagraphs = [
+    normalizeWhitespace(sidecar.generation.narration),
+  ];
   return {
     identity: {
       episodeId: args.source.episodeId,
@@ -1026,7 +1050,10 @@ function buildLocalizedShortMetadata(args: {
   readonly language: StoryLanguage;
   readonly narration: string;
   readonly parentTitle: string;
-}): Pick<ShortRewriteGeneration, "title" | "thumbnailText" | "fullVideoBridge"> {
+}): Pick<
+  ShortRewriteGeneration,
+  "title" | "thumbnailText" | "fullVideoBridge"
+> {
   const narration = normalizeWhitespace(args.narration);
   const openingSentence = normalizeWhitespace(firstSentence(narration));
   const title =
@@ -1040,14 +1067,19 @@ function buildLocalizedShortMetadata(args: {
     .join(" ");
   return {
     title,
-    thumbnailText: normalizeWhitespace(thumbnailText) || normalizeWhitespace(args.parentTitle),
+    thumbnailText:
+      normalizeWhitespace(thumbnailText) ||
+      normalizeWhitespace(args.parentTitle),
     fullVideoBridge: localizedFullVideoBridge(args.language),
   };
 }
 
 function validateLocalizedShortMetadata(args: {
   readonly language: StoryLanguage;
-  readonly generation: Pick<ShortRewriteGeneration, "title" | "thumbnailText" | "fullVideoBridge">;
+  readonly generation: Pick<
+    ShortRewriteGeneration,
+    "title" | "thumbnailText" | "fullVideoBridge"
+  >;
 }): string[] {
   const values = [
     args.generation.title,
@@ -1056,14 +1088,26 @@ function validateLocalizedShortMetadata(args: {
   ]
     .map((value) => ` ${normalizeWhitespace(value).toLowerCase()} `)
     .join(" ");
-  const rules: Record<StoryLanguage, { readonly requiredAny: readonly string[]; readonly forbidden: readonly string[] }> = {
+  const rules: Record<
+    StoryLanguage,
+    {
+      readonly requiredAny: readonly string[];
+      readonly forbidden: readonly string[];
+    }
+  > = {
     en: {
       requiredAny: [" the ", " and ", " of ", " to ", " in "],
       forbidden: [],
     },
     de: {
       requiredAny: [" der ", " die ", " das ", " und ", " nicht ", " mit "],
-      forbidden: [" the ", " and ", " because ", " here is ", " watch the full episode "],
+      forbidden: [
+        " the ",
+        " and ",
+        " because ",
+        " here is ",
+        " watch the full episode ",
+      ],
     },
     es: {
       requiredAny: [" el ", " la ", " que ", " de ", " y "],
@@ -1081,11 +1125,15 @@ function validateLocalizedShortMetadata(args: {
   const profile = rules[args.language];
   const issues: string[] = [];
   if (!profile.requiredAny.some((entry) => values.includes(entry))) {
-    issues.push(`Short metadata does not appear localized for ${args.language}.`);
+    issues.push(
+      `Short metadata does not appear localized for ${args.language}.`
+    );
   }
   const forbidden = profile.forbidden.find((entry) => values.includes(entry));
   if (forbidden) {
-    issues.push(`Short metadata contains source-language leakage: ${forbidden.trim()}.`);
+    issues.push(
+      `Short metadata contains source-language leakage: ${forbidden.trim()}.`
+    );
   }
   return issues;
 }
@@ -1106,6 +1154,42 @@ async function resolveShortRewriteParent(args: {
     return await buildCompatibilityParent(args);
   }
   return resolveCanonicalEnglishShortParent(args);
+}
+
+async function readCurrentParentHorrorAffectPlan(args: {
+  readonly outputRoot: string;
+  readonly source: ResolvedShortRewriteSource;
+  readonly parent: ShortRewriteResolvedParent;
+}): Promise<HorrorAffectPlan> {
+  const inspected = await inspectHorrorAffectPlanArtifact({
+    paths: resolveHorrorAffectPlanArtifactPaths({
+      outputDirectory: args.outputRoot,
+      episodeSlug: args.source.episodeSlug,
+    }),
+  });
+  if (
+    inspected.status.state !== "current" ||
+    !inspected.artifact?.plan ||
+    !inspected.artifact.eligibility.eligible
+  ) {
+    throw new ShortRewriteValidationError(
+      `English Short affect enforcement requires a current accepted full-story horror affect plan; state=${inspected.status.state}.`
+    );
+  }
+  if (
+    !args.parent.canonicalSourceHash ||
+    inspected.artifact.source.sourceHash !== args.parent.canonicalSourceHash
+  ) {
+    throw new ShortRewriteValidationError(
+      "English Short affect enforcement rejected a stale parent plan because the canonical full-story source hash changed."
+    );
+  }
+  if (!inspected.artifact.plan.validation.valid) {
+    throw new ShortRewriteValidationError(
+      "English Short affect enforcement requires a valid accepted full-story horror affect plan."
+    );
+  }
+  return inspected.artifact.plan;
 }
 
 function analyzeGeneratedPayload(args: {
@@ -1180,7 +1264,9 @@ function analyzeGeneratedPayload(args: {
   });
   const selectedEvents =
     args.adaptationContract.sourceExtraction.events?.filter((event) =>
-      args.adaptationContract.sourceExtraction.selectedEventIds?.includes(event.id)
+      args.adaptationContract.sourceExtraction.selectedEventIds?.includes(
+        event.id
+      )
     ) ?? [];
   const quality =
     args.adaptationContract.sourceExtraction.beatPlan &&
@@ -1189,10 +1275,12 @@ function analyzeGeneratedPayload(args: {
           narrationText: narration,
           selectedEvents,
           beatPlan: args.adaptationContract.sourceExtraction.beatPlan,
-          causalValidation: args.adaptationContract.sourceExtraction.causalValidation,
+          causalValidation:
+            args.adaptationContract.sourceExtraction.causalValidation,
           language: args.language,
           targetDurationSeconds:
-            args.adaptationContract.sourceExtraction.beatPlan.targetDurationSeconds,
+            args.adaptationContract.sourceExtraction.beatPlan
+              .targetDurationSeconds,
           ...(args.adaptationContract.sourceExtraction.events !== undefined
             ? {
                 totalEventCount:
@@ -1238,7 +1326,10 @@ function applyDeterministicQualityRepairs(args: {
         repaired = repairGermanServiceCompounds(repaired);
         break;
       case "repair-canonical-name":
-        repaired = repairShortBodyCanonicalNames(repaired, args.characterRenameMap);
+        repaired = repairShortBodyCanonicalNames(
+          repaired,
+          args.characterRenameMap
+        );
         break;
       case "repair-final-sting":
         repaired = repairFinalSting(repaired, args.facts);
@@ -1485,7 +1576,8 @@ async function requestStructuredShortRewrite(args: {
         const extractedText =
           responseRecord.output_text ??
           extractStructuredResponseText(responseRecord.output);
-        const normalizedIncomplete = normalizeIncompleteResponse(responseRecord);
+        const normalizedIncomplete =
+          normalizeIncompleteResponse(responseRecord);
         const incompleteReason = normalizedIncomplete?.reason ?? null;
         if (!extractedText) {
           const responseFinishedAt = Date.now();
@@ -1546,9 +1638,7 @@ async function requestStructuredShortRewrite(args: {
                 : {}),
               maxOutputTokens: args.maxOutputTokens,
               attemptNumber: attempt + 1,
-              ...(incompleteReason !== null
-                ? { incompleteReason }
-                : {}),
+              ...(incompleteReason !== null ? { incompleteReason } : {}),
               usage: normalizedIncomplete?.usage ?? responseUsage,
             })
           );
@@ -1769,9 +1859,7 @@ async function requestStructuredShortRewrite(args: {
   );
 }
 
-function parseStructuredResult(
-  outputText: string
-): ShortNarrationResponse {
+function parseStructuredResult(outputText: string): ShortNarrationResponse {
   const parsedJson = JSON.parse(outputText) as unknown;
   return shortNarrationResponseSchema.parse(parsedJson);
 }
@@ -1855,8 +1943,33 @@ async function generateLanguagePayload(
       outputRoot: args.outputRoot,
       episodeSlug: args.source.episodeSlug,
       sourceFullHash: args.parent.parentFullHash,
-    })) ??
-    extractCanonicalStoryFacts(parsedSourceStory);
+    })) ?? extractCanonicalStoryFacts(parsedSourceStory);
+  const renamedPromptFacts = args.parent.characterRenameMap
+    ? applyCharacterRenameMapToCanonicalFacts(
+        promptFacts,
+        args.parent.characterRenameMap
+      )
+    : promptFacts;
+  const renameQualityFact = (value: string): string =>
+    args.parent.characterRenameMap
+      ? applyCharacterRenameMapToText(value, args.parent.characterRenameMap)
+      : value;
+  const affectProjection = args.adaptationContract.horrorAffectProjection;
+  const qualityFacts: CanonicalStoryFacts = affectProjection
+    ? {
+        ...renamedPromptFacts,
+        supernaturalRule: renameQualityFact(
+          affectProjection.chain.rule.statement
+        ),
+        protagonistAttachment: renameQualityFact(
+          affectProjection.chain.cost.stake
+        ),
+        emotionalCost: renameQualityFact(affectProjection.chain.cost.action),
+        finalDecision: renameQualityFact(
+          affectProjection.chain.cost.observableResult
+        ),
+      }
+    : renamedPromptFacts;
   const promptStoryIr = adaptCanonicalStoryFactsToStoryIR(
     promptFacts,
     parsedSourceStory
@@ -1870,17 +1983,27 @@ async function generateLanguagePayload(
     outputConstraints: {
       variant: "short" as const,
       targetWordRange: args.adaptationContract.constraints.targetWordRange,
-      targetNarrationWpm: args.adaptationContract.constraints.targetNarrationWpm,
+      targetNarrationWpm:
+        args.adaptationContract.constraints.targetNarrationWpm,
       targetDuration: {
-        minSeconds: args.adaptationContract.constraints.targetDurationSeconds.min,
-        maxSeconds: args.adaptationContract.constraints.targetDurationSeconds.max,
+        minSeconds:
+          args.adaptationContract.constraints.targetDurationSeconds.min,
+        maxSeconds:
+          args.adaptationContract.constraints.targetDurationSeconds.max,
       },
-      hookDeadlineSeconds: args.adaptationContract.constraints.hookDeadlineSeconds,
+      hookDeadlineSeconds:
+        args.adaptationContract.constraints.hookDeadlineSeconds,
       fullVideoBridgeRequired: true,
     },
     sourceExtraction: args.sourceExtraction,
     adaptationContract: args.adaptationContract,
     characterRenameMap: args.parent.characterRenameMap,
+    ...(args.adaptationContract.horrorAffectProjection
+      ? {
+          horrorAffectProjection:
+            args.adaptationContract.horrorAffectProjection,
+        }
+      : {}),
   };
   const compiledPrompt = compileShortStoryPrompt({
     language: args.language,
@@ -1892,6 +2015,12 @@ async function generateLanguagePayload(
     adaptationContract: args.adaptationContract,
     outputConstraints: promptContext.outputConstraints,
     characterRenameMap: args.parent.characterRenameMap,
+    ...(args.adaptationContract.horrorAffectProjection
+      ? {
+          horrorAffectProjection:
+            args.adaptationContract.horrorAffectProjection,
+        }
+      : {}),
   });
   if (compiledPrompt.diagnostics.some((entry) => entry.blocking)) {
     throw new ShortRewriteValidationError(
@@ -1957,7 +2086,8 @@ async function generateLanguagePayload(
             promptCompilerVersion: compiledPrompt.compilerVersion,
             promptFingerprint: preflightArgs.promptFingerprint,
             responseSchemaName: shortNarrationResponseSchemaDescriptor.name,
-            responseSchemaVersion: shortNarrationResponseSchemaDescriptor.version,
+            responseSchemaVersion:
+              shortNarrationResponseSchemaDescriptor.version,
             responseSchemaFingerprint:
               shortNarrationResponseSchemaDescriptor.fingerprint,
             reasoningEffort: requestArgs.reasoningEffort,
@@ -1978,10 +2108,13 @@ async function generateLanguagePayload(
               storyIrHash: args.parent.storyIrHash,
               contractHash: args.parent.contractHash,
             },
-            targetWordRange: args.adaptationContract.constraints.targetWordRange,
+            targetWordRange:
+              args.adaptationContract.constraints.targetWordRange,
             targetDurationSeconds: {
-              min: args.adaptationContract.constraints.targetDurationSeconds.min,
-              max: args.adaptationContract.constraints.targetDurationSeconds.max,
+              min: args.adaptationContract.constraints.targetDurationSeconds
+                .min,
+              max: args.adaptationContract.constraints.targetDurationSeconds
+                .max,
             },
           }
         : {
@@ -1999,7 +2132,8 @@ async function generateLanguagePayload(
             promptCompilerVersion: compiledPrompt.compilerVersion,
             promptFingerprint: preflightArgs.promptFingerprint,
             responseSchemaName: shortNarrationResponseSchemaDescriptor.name,
-            responseSchemaVersion: shortNarrationResponseSchemaDescriptor.version,
+            responseSchemaVersion:
+              shortNarrationResponseSchemaDescriptor.version,
             responseSchemaFingerprint:
               shortNarrationResponseSchemaDescriptor.fingerprint,
             reasoningEffort: requestArgs.reasoningEffort,
@@ -2017,10 +2151,13 @@ async function generateLanguagePayload(
               storyIrHash: args.parent.storyIrHash,
               contractHash: args.parent.contractHash,
             },
-            targetWordRange: args.adaptationContract.constraints.targetWordRange,
+            targetWordRange:
+              args.adaptationContract.constraints.targetWordRange,
             targetDurationSeconds: {
-              min: args.adaptationContract.constraints.targetDurationSeconds.min,
-              max: args.adaptationContract.constraints.targetDurationSeconds.max,
+              min: args.adaptationContract.constraints.targetDurationSeconds
+                .min,
+              max: args.adaptationContract.constraints.targetDurationSeconds
+                .max,
             },
           };
       const request: StoryPreflightRequest = {
@@ -2086,7 +2223,8 @@ async function generateLanguagePayload(
             estimatedTokens: estimateStructuredRequestWrapperTokens({
               schemaName: shortNarrationResponseSchemaDescriptor.name,
               schemaVersion: shortNarrationResponseSchemaDescriptor.version,
-              schemaFingerprint: shortNarrationResponseSchemaDescriptor.fingerprint,
+              schemaFingerprint:
+                shortNarrationResponseSchemaDescriptor.fingerprint,
             }),
           },
           {
@@ -2136,7 +2274,8 @@ async function generateLanguagePayload(
         status: "skipped",
         source: "dry-run short rewrite artifact",
       },
-      skippedReason: "Short rewrite dry-run builds the final prompt but does not call the paid provider.",
+      skippedReason:
+        "Short rewrite dry-run builds the final prompt but does not call the paid provider.",
       durationMs: 0,
       caller: {
         file: "packages/story-localization/src/short-rewrite.service.ts",
@@ -2318,7 +2457,8 @@ async function generateLanguagePayload(
       throw error;
     }
     failedRequest = error.metadata;
-    const purpose = args.language === "en" ? "canonical-short" : "localized-short";
+    const purpose =
+      args.language === "en" ? "canonical-short" : "localized-short";
     const retryDecision = decideRetryRoute({
       purpose,
       incompleteReason: error.metadata.incompleteReason ?? null,
@@ -2359,13 +2499,17 @@ async function generateLanguagePayload(
     parent: args.parent,
     adaptationContract: args.adaptationContract,
     outputConstraints: {
-      targetNarrationWpm: args.adaptationContract.constraints.targetNarrationWpm,
+      targetNarrationWpm:
+        args.adaptationContract.constraints.targetNarrationWpm,
       targetDuration: {
-        minSeconds: args.adaptationContract.constraints.targetDurationSeconds.min,
-        maxSeconds: args.adaptationContract.constraints.targetDurationSeconds.max,
+        minSeconds:
+          args.adaptationContract.constraints.targetDurationSeconds.min,
+        maxSeconds:
+          args.adaptationContract.constraints.targetDurationSeconds.max,
       },
       targetWordRange: args.adaptationContract.constraints.targetWordRange,
-      hookDeadlineSeconds: args.adaptationContract.constraints.hookDeadlineSeconds,
+      hookDeadlineSeconds:
+        args.adaptationContract.constraints.hookDeadlineSeconds,
     },
   });
   let requestId = initialResponse.id;
@@ -2397,7 +2541,7 @@ async function generateLanguagePayload(
     artifactKind: "short",
     language: args.language,
     text: generation.narration,
-    facts: promptFacts,
+    facts: qualityFacts,
     budget: buildShortQualityBudget({
       language: args.language,
       model: args.model,
@@ -2408,7 +2552,11 @@ async function generateLanguagePayload(
     targetWordRange: args.adaptationContract.constraints.targetWordRange,
   });
   warnings.push(...qualityGate.warnings);
-  issues.push(...qualityGate.findings.filter((entry) => entry.severity === "error").map((entry) => entry.message));
+  issues.push(
+    ...qualityGate.findings
+      .filter((entry) => entry.severity === "error")
+      .map((entry) => entry.message)
+  );
   const repairHistory: Array<{
     readonly stage: "repair" | "regenerate";
     readonly issues: readonly string[];
@@ -2448,13 +2596,18 @@ async function generateLanguagePayload(
           parent: args.parent,
           adaptationContract: args.adaptationContract,
           outputConstraints: {
-            targetNarrationWpm: args.adaptationContract.constraints.targetNarrationWpm,
+            targetNarrationWpm:
+              args.adaptationContract.constraints.targetNarrationWpm,
             targetDuration: {
-              minSeconds: args.adaptationContract.constraints.targetDurationSeconds.min,
-              maxSeconds: args.adaptationContract.constraints.targetDurationSeconds.max,
+              minSeconds:
+                args.adaptationContract.constraints.targetDurationSeconds.min,
+              maxSeconds:
+                args.adaptationContract.constraints.targetDurationSeconds.max,
             },
-            targetWordRange: args.adaptationContract.constraints.targetWordRange,
-            hookDeadlineSeconds: args.adaptationContract.constraints.hookDeadlineSeconds,
+            targetWordRange:
+              args.adaptationContract.constraints.targetWordRange,
+            hookDeadlineSeconds:
+              args.adaptationContract.constraints.hookDeadlineSeconds,
           },
         });
         generation = deterministicallyRepaired.generation;
@@ -2467,7 +2620,7 @@ async function generateLanguagePayload(
           artifactKind: "short",
           language: args.language,
           text: generation.narration,
-          facts: promptFacts,
+          facts: qualityFacts,
           budget: buildShortQualityBudget({
             language: args.language,
             model: args.model,
@@ -2508,7 +2661,8 @@ async function generateLanguagePayload(
         prompt: repairPrompt,
         temperature: args.temperature,
         reasoningEffort: args.repairReasoningEffort ?? args.reasoningEffort,
-        maxOutputTokens: args.repairMaxOutputTokens ?? args.retryMaxOutputTokens,
+        maxOutputTokens:
+          args.repairMaxOutputTokens ?? args.retryMaxOutputTokens,
         repairReasoningEffort: args.repairReasoningEffort,
         repairMaxOutputTokens: args.repairMaxOutputTokens,
         timeoutMs: args.timeoutMs,
@@ -2525,7 +2679,8 @@ async function generateLanguagePayload(
       repairHistory.push({ stage: "repair", issues: normalizedIssues });
       requestId = repairResponse.id;
       usage = buildUsagePayload({
-        inputTokens: (usage.inputTokens ?? 0) + (repairResponse.inputTokens ?? 0),
+        inputTokens:
+          (usage.inputTokens ?? 0) + (repairResponse.inputTokens ?? 0),
         cachedInputTokens:
           (usage.cachedInputTokens ?? 0) +
           (repairResponse.cachedInputTokens ?? 0),
@@ -2533,7 +2688,8 @@ async function generateLanguagePayload(
           (usage.reasoningTokens ?? 0) + (repairResponse.reasoningTokens ?? 0),
         outputTokens:
           (usage.outputTokens ?? 0) + (repairResponse.outputTokens ?? 0),
-        totalTokens: (usage.totalTokens ?? 0) + (repairResponse.totalTokens ?? 0),
+        totalTokens:
+          (usage.totalTokens ?? 0) + (repairResponse.totalTokens ?? 0),
       });
       responsePayload = parseStructuredResult(repairResponse.outputText);
       const repairedAnalysis = analyzeGeneratedPayload({
@@ -2544,13 +2700,17 @@ async function generateLanguagePayload(
         parent: args.parent,
         adaptationContract: args.adaptationContract,
         outputConstraints: {
-          targetNarrationWpm: args.adaptationContract.constraints.targetNarrationWpm,
+          targetNarrationWpm:
+            args.adaptationContract.constraints.targetNarrationWpm,
           targetDuration: {
-            minSeconds: args.adaptationContract.constraints.targetDurationSeconds.min,
-            maxSeconds: args.adaptationContract.constraints.targetDurationSeconds.max,
+            minSeconds:
+              args.adaptationContract.constraints.targetDurationSeconds.min,
+            maxSeconds:
+              args.adaptationContract.constraints.targetDurationSeconds.max,
           },
           targetWordRange: args.adaptationContract.constraints.targetWordRange,
-          hookDeadlineSeconds: args.adaptationContract.constraints.hookDeadlineSeconds,
+          hookDeadlineSeconds:
+            args.adaptationContract.constraints.hookDeadlineSeconds,
         },
       });
       generation = repairedAnalysis.generation;
@@ -2563,12 +2723,11 @@ async function generateLanguagePayload(
         artifactKind: "short",
         language: args.language,
         text: generation.narration,
-        facts: promptFacts,
+        facts: qualityFacts,
         budget: buildShortQualityBudget({
           language: args.language,
           model: args.repairModel ?? args.model,
-          reasoningEffort:
-            args.repairReasoningEffort ?? args.reasoningEffort,
+          reasoningEffort: args.repairReasoningEffort ?? args.reasoningEffort,
           maxOutputTokens:
             args.repairMaxOutputTokens ?? args.retryMaxOutputTokens,
           approximateOutputTokens: usage.outputTokens,
@@ -2621,17 +2780,16 @@ async function generateLanguagePayload(
           audioOutputTokens: 0,
         }).costMicros
       : null;
-  const failedRequestWithCost =
-    failedRequest
-      ? buildPersistedFailedRequestMetadata({
-          ...failedRequest,
-          ...(failedRequestCostMicros !== null
-            ? { estimatedCostUsd: failedRequestCostMicros / 1_000_000 }
-            : failedRequest.estimatedCostUsd !== undefined
-              ? { estimatedCostUsd: failedRequest.estimatedCostUsd }
-              : {}),
-        })
-      : failedRequest;
+  const failedRequestWithCost = failedRequest
+    ? buildPersistedFailedRequestMetadata({
+        ...failedRequest,
+        ...(failedRequestCostMicros !== null
+          ? { estimatedCostUsd: failedRequestCostMicros / 1_000_000 }
+          : failedRequest.estimatedCostUsd !== undefined
+            ? { estimatedCostUsd: failedRequest.estimatedCostUsd }
+            : {}),
+      })
+    : failedRequest;
   const generatedAt = new Date().toISOString();
   const jsonSidecar: ShortRewriteJsonSidecar = {
     schemaVersion: 2,
@@ -2754,7 +2912,9 @@ async function generateLanguagePayload(
         ? { totalTokens: usage.totalTokens }
         : {}),
       estimatedCostUsd,
-      ...(failedRequestWithCost ? { failedRequest: failedRequestWithCost } : {}),
+      ...(failedRequestWithCost
+        ? { failedRequest: failedRequestWithCost }
+        : {}),
       promptLineage: {
         compilerVersion: compiledPrompt.compilerVersion,
         promptFingerprint,
@@ -2793,9 +2953,11 @@ async function isResumeEligible(args: {
   readonly promptFingerprint: string;
   readonly shortContractHash: string;
   readonly shortSourceExtractionHash: string;
+  readonly horrorAffectProjection?: ShortHorrorAffectProjection;
 }): Promise<{
   readonly eligible: boolean;
   readonly artifact?: ShortRewriteArtifact;
+  readonly stalenessReasons: readonly string[];
 }> {
   const paths = resolveShortRewriteOutputPaths({
     outputRoot: args.outputRoot,
@@ -2807,13 +2969,33 @@ async function isResumeEligible(args: {
     !(await fileExists(paths.jsonPath)) ||
     !(await fileExists(paths.markdownPath))
   ) {
-    return { eligible: false };
+    return { eligible: false, stalenessReasons: [] };
   }
   const parsed = await readJsonIfExists(paths.jsonPath, (value) =>
     shortRewriteGenerationSchema.parse(value)
   );
   if (!parsed) {
-    return { eligible: false };
+    return { eligible: false, stalenessReasons: [] };
+  }
+  const expectedProjection = args.horrorAffectProjection;
+  const persistedProjection =
+    parsed.shortAdaptationContract.horrorAffectProjection;
+  const projectionStalenessReasons = expectedProjection
+    ? persistedProjection
+      ? explainShortHorrorAffectProjectionStaleness({
+          persisted:
+            buildShortHorrorAffectProjectionLineage(persistedProjection),
+          expected: buildShortHorrorAffectProjectionLineage(expectedProjection),
+        }).map((reason) => reason.message)
+      : [
+          "The cached Short has no affect projection lineage for the enforced parent plan.",
+        ]
+    : [];
+  if (projectionStalenessReasons.length > 0) {
+    return {
+      eligible: false,
+      stalenessReasons: projectionStalenessReasons,
+    };
   }
   if (
     parsed.sourceSha256 !== args.source.sourceSha256 ||
@@ -2821,7 +3003,8 @@ async function isResumeEligible(args: {
     parsed.parent.language !== args.parent.identity.language ||
     parsed.parent.locale !== args.parent.identity.locale ||
     parsed.shortAdaptationContract.contractHash !== args.shortContractHash ||
-    parsed.shortSourceExtraction.extractionHash !== args.shortSourceExtractionHash ||
+    parsed.shortSourceExtraction.extractionHash !==
+      args.shortSourceExtractionHash ||
     parsed.promptFingerprint !== args.promptFingerprint ||
     parsed.promptVersion !== SHORT_REWRITE_PROMPT_VERSION ||
     parsed.model !== args.model ||
@@ -2829,13 +3012,13 @@ async function isResumeEligible(args: {
     parsed.episodeSlug !== args.source.episodeSlug ||
     parsed.episodeId !== args.source.episodeId
   ) {
-    return { eligible: false };
+    return { eligible: false, stalenessReasons: [] };
   }
   if (
     !parsed.validation.hardWordRangeSatisfied ||
     !parsed.validation.hookMatchesNarration
   ) {
-    return { eligible: false };
+    return { eligible: false, stalenessReasons: [] };
   }
   const artifact = shortRewriteArtifactSchema.parse(
     buildArtifactPayload({
@@ -2858,8 +3041,7 @@ async function isResumeEligible(args: {
       storyIrHash: parsed.storyIrHash,
       shortContractHash: parsed.shortAdaptationContract.contractHash,
       shortContractVersion: parsed.shortAdaptationContract.contractVersion,
-      shortContractSchemaVersion:
-        parsed.shortAdaptationContract.schemaVersion,
+      shortContractSchemaVersion: parsed.shortAdaptationContract.schemaVersion,
       shortSourceExtractionHash: parsed.shortSourceExtraction.extractionHash,
       shortSourceExtractionVersion: parsed.shortSourceExtraction.version,
       canonical: parsed.canonical,
@@ -2899,7 +3081,7 @@ async function isResumeEligible(args: {
         : {}),
     })
   );
-  return { eligible: true, artifact };
+  return { eligible: true, artifact, stalenessReasons: [] };
 }
 
 async function mergeManifest(args: {
@@ -3012,6 +3194,38 @@ export async function rewriteShortStories(
           maxRetries: options.maxRetries ?? SHORT_REWRITE_DEFAULT_MAX_RETRIES,
         }));
   const selectedLanguages = options.languages;
+  const horrorAffectRolloutMode = options.horrorAffectRolloutMode ?? "shadow";
+  let englishParentHorrorAffectPlan: HorrorAffectPlan | undefined;
+  if (horrorAffectRolloutMode !== "off" && selectedLanguages.includes("en")) {
+    try {
+      const englishParent = await resolveCanonicalEnglishParent({
+        outputRoot,
+        source,
+      });
+      englishParentHorrorAffectPlan = await readCurrentParentHorrorAffectPlan({
+        outputRoot,
+        source,
+        parent: englishParent,
+      });
+      const englishConstraints = buildShortOutputConstraints({
+        language: "en",
+        targetDurationSeconds,
+      });
+      projectShortHorrorAffectPlan({
+        parentPlan: englishParentHorrorAffectPlan,
+        durationSeconds: {
+          min: englishConstraints.targetDuration.minSeconds,
+          max: englishConstraints.targetDuration.maxSeconds,
+        },
+        immutableFacts: [],
+      });
+    } catch (error) {
+      englishParentHorrorAffectPlan = undefined;
+      if (horrorAffectRolloutMode === "enforce") {
+        throw error;
+      }
+    }
+  }
   const startedAt = Date.now();
   const artifacts: ShortRewriteArtifact[] = [];
   const failures: Array<{
@@ -3035,7 +3249,8 @@ export async function rewriteShortStories(
       language,
     });
     const episodeRelativeRoot = path.join(outputRoot, source.episodeSlug);
-    const canonicalParsed = await parseCanonicalSourceStory(canonicalSourcePath);
+    const canonicalParsed =
+      await parseCanonicalSourceStory(canonicalSourcePath);
     const canonicalFacts = extractCanonicalStoryFacts(canonicalParsed);
     const canonicalStoryIr = adaptCanonicalStoryFactsToStoryIR(
       canonicalFacts,
@@ -3063,7 +3278,7 @@ export async function rewriteShortStories(
     if (sourceExtractionIssues.length > 0) {
       throw new ShortRewriteValidationError(sourceExtractionIssues.join("; "));
     }
-    const adaptationContract = buildShortAdaptationContract({
+    const baseAdaptationContract = buildShortAdaptationContract({
       identity: {
         episodeId: source.episodeId,
         episodeSlug: source.episodeSlug,
@@ -3076,6 +3291,36 @@ export async function rewriteShortStories(
       extraction: sourceExtraction,
       outputConstraints,
     });
+    const shortHorrorAffectProjection =
+      language === "en" && englishParentHorrorAffectPlan
+        ? projectShortHorrorAffectPlan({
+            parentPlan: englishParentHorrorAffectPlan,
+            durationSeconds: {
+              min: outputConstraints.targetDuration.minSeconds,
+              max: outputConstraints.targetDuration.maxSeconds,
+            },
+            immutableFacts: baseAdaptationContract.immutableFacts,
+          })
+        : undefined;
+    const adaptationContract =
+      horrorAffectRolloutMode === "enforce" &&
+      language === "en" &&
+      shortHorrorAffectProjection
+        ? buildShortAdaptationContract({
+            identity: {
+              episodeId: source.episodeId,
+              episodeSlug: source.episodeSlug,
+              language,
+              locale: SHORT_REWRITE_SUPPORTED_LANGUAGES[language].locale,
+              variant: "short",
+            },
+            parent,
+            storyIr: canonicalStoryIr,
+            extraction: sourceExtraction,
+            outputConstraints,
+            horrorAffectProjection: shortHorrorAffectProjection,
+          })
+        : baseAdaptationContract;
     const compiledPrompt = compileShortStoryPrompt({
       language,
       adaptationMode: "retention-optimized",
@@ -3084,6 +3329,11 @@ export async function rewriteShortStories(
       storyIr: canonicalStoryIr,
       sourceExtraction,
       adaptationContract,
+      ...(adaptationContract.horrorAffectProjection
+        ? {
+            horrorAffectProjection: adaptationContract.horrorAffectProjection,
+          }
+        : {}),
     });
     const promptFingerprint = buildShortRequestFingerprint({
       compiledPromptFingerprint: compiledPrompt.promptFingerprint,
@@ -3201,7 +3451,21 @@ export async function rewriteShortStories(
         promptFingerprint,
         shortContractHash: adaptationContract.contractHash,
         shortSourceExtractionHash: sourceExtraction.extractionHash,
+        ...(adaptationContract.horrorAffectProjection
+          ? {
+              horrorAffectProjection: adaptationContract.horrorAffectProjection,
+            }
+          : {}),
       });
+      if (options.resume && existing.stalenessReasons.length > 0) {
+        logger.warn(
+          {
+            episodeId: source.episodeSlug,
+            language,
+          },
+          `Short resume cache is stale: ${existing.stalenessReasons.join(" ")}`
+        );
+      }
       if (existing.eligible && existing.artifact && options.resume) {
         const skippedPayload = cloneArtifactPayload(existing.artifact);
         skippedPayload.status = "skipped";
@@ -3336,7 +3600,10 @@ export async function rewriteShortStories(
     if (englishTask) {
       const englishResult = await englishTask();
       results.push(englishResult);
-      if (englishResult.error && selectedLanguages.some((language) => language !== "en")) {
+      if (
+        englishResult.error &&
+        selectedLanguages.some((language) => language !== "en")
+      ) {
         throw new ShortRewriteValidationError(
           `English short prerequisite failed: ${englishResult.error}`
         );

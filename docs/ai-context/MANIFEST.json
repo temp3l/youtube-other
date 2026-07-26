@@ -1,9 +1,9 @@
 {
   "schemaVersion": "mediaforge.ai-pack-manifest.v1",
   "generatorVersion": "mediaforge.ai-pack-generator.v1",
-  "generatedAt": "2026-07-14T19:53:55.000Z",
+  "generatedAt": "2026-07-24T20:43:40.000Z",
   "repository": {
-    "revision": "934a40fce55929d79c37e92395ba43af9d9d2897",
+    "revision": "f29a43c2eef25f185b60a20c4e56ea4598279115",
     "dirty": true
   },
   "sourceConfiguration": {
@@ -64,8 +64,8 @@
     },
     {
       "path": "architecture/story-localization.md",
-      "sizeBytes": 18336,
-      "sha256": "d99883d3ce6731f1228c8e2efea6913989a9e04201b2147f896e85ee7d1f3177"
+      "sizeBytes": 23051,
+      "sha256": "aa0adc9c590502b417c8d9a41902d1a97fdd6fef194fba5cdcd6cd1cf807ed93"
     },
     {
       "path": "architecture/target-architecture.md",
@@ -89,8 +89,8 @@
     },
     {
       "path": "mathematics/profile.md",
-      "sizeBytes": 5848,
-      "sha256": "87a0aa52e5599d0804c3808ce04d6bdf4bda5c69e1fdfcbfcebe9b322abe25d4"
+      "sizeBytes": 6967,
+      "sha256": "0d32a3c27e37b6a0893a4f87b674b904e12b7697b31188a90b7b59e8e084622f"
     },
     {
       "path": "migration/compatibility.md",
@@ -120,7 +120,7 @@
     {
       "path": "source-index.json",
       "sizeBytes": 5152,
-      "sha256": "380e5a830f78c5c19565b89e85e799c849eb3191f4d504d9f7eed25053be0fa6"
+      "sha256": "7835b12518ca037025d2b63b70d776ed4fb1620d3533d52301b82dacf6eb0376"
     },
     {
       "path": "testing/release-validation.md",
@@ -141,8 +141,8 @@
     },
     {
       "path": "docs/architecture/story-localization.md",
-      "sizeBytes": 18158,
-      "sha256": "a38061c4a217722be546395be8a9429bdf911e5daa9d3863ec1e00e3263dc742"
+      "sizeBytes": 22873,
+      "sha256": "c9e10a5f83bebf597adf5020884347bc97bef8e2b01f39b96c7100c7b3a4b96d"
     },
     {
       "path": "docs/development/codex-verification-guardrails.md",
@@ -171,8 +171,8 @@
     },
     {
       "path": "docs/refactor/05-mathematics-profile.md",
-      "sizeBytes": 5671,
-      "sha256": "bd2bfcda666e2ef640032250feaf0ed09ff2b390c230d9c5c6c05be3b4a97356"
+      "sizeBytes": 6789,
+      "sha256": "021ba7ce5d1b7d6c2450ba6b42b12931a640342ddbf1a7da77df06590e24d9d3"
     },
     {
       "path": "docs/refactor/06-duplicate-elimination.md",
@@ -211,8 +211,8 @@
     },
     {
       "path": "packages/math-education/src/task-registry.ts",
-      "sizeBytes": 15045,
-      "sha256": "29b44a444a7f54db73cb51a29e48f77719f12fe1ce45479e91baef8346671845"
+      "sizeBytes": 15194,
+      "sha256": "ea53d69078761612c9a8036444d1305838017b57626389c8bf1fb16ed024a588"
     },
     {
       "path": "packages/story-localization/src/canonical-story-contract.ts",
@@ -231,13 +231,13 @@
     },
     {
       "path": "packages/story-localization/src/story-prompt-compiler.ts",
-      "sizeBytes": 35950,
-      "sha256": "54692a4d803da85d621d4dc331afa9d099d720999e98c0fc7d21b1a8730e51e4"
+      "sizeBytes": 48334,
+      "sha256": "15ba96758cccb2d46c5da0e3c10b055900eccda1fca5a1404f247ef9e020a66c"
     },
     {
       "path": "packages/workflow-engine/src/artifact-repository.ts",
-      "sizeBytes": 28142,
-      "sha256": "12c6a8f966f9525f53733cccab78b156e792bef6d694c1852705b453e6e08a1f"
+      "sizeBytes": 32798,
+      "sha256": "fd6fee746ed438c8a3a3679fb5c0cd3f6441b1a419d5166d5de3667acca204e5"
     },
     {
       "path": "packages/workflow-engine/src/attempt-observability.ts",
@@ -271,8 +271,8 @@
     },
     {
       "path": "packages/workflow-engine/src/workflow-store.ts",
-      "sizeBytes": 57508,
-      "sha256": "153733029fea540fa5ac9a994e04afdd706819b6a091a279b4e42ca8513b6ce8"
+      "sizeBytes": 58396,
+      "sha256": "aa539b52caf743c2d7946b45cac64a38b7f75bb5b4a19b77f9b4fb1a40faa1c9"
     },
     {
       "path": "packages/youtube-upload/src/publish-approval.ts",
@@ -323,7 +323,7 @@
     "packFileBytes": 300000,
     "totalPackBytes": 1800000
   },
-  "totalPackBytes": 232198,
+  "totalPackBytes": 238032,
   "variableFields": [],
   "knownLimitations": [
     "Retained compatibility adapters are indexed in the Batch 13 duplicate inventory."

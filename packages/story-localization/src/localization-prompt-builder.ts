@@ -2,16 +2,24 @@ import {
   type AdaptationMode,
   type CanonicalStoryFacts,
   type CompactStorySource,
+  type HorrorAffectRolloutMode,
   type LanguageProfile,
   type ParsedSourceStory,
 } from "./story-localization.types.js";
+import type { CharacterRenameMap } from "./character-rename.service.js";
+import type { FullStoryContract } from "./full-story-contract.js";
+import type { HorrorAffectPlan } from "./horror-affect-plan.js";
+import { buildLocalizationHorrorAffectProjection } from "./localization-horror-affect-projection.js";
 import {
   type OriginalityReview,
   type RetentionBeat,
   type StoryBible,
   type StorySourceAnalysis,
 } from "./story-production.js";
-import { compileFullStoryPrompt } from "./story-prompt-compiler.js";
+import {
+  compileFullStoryPrompt,
+  type CompiledStoryPrompt,
+} from "./story-prompt-compiler.js";
 
 export function buildCompactStorySource(
   sourceStory: ParsedSourceStory,
@@ -77,4 +85,46 @@ export function buildLocalizationPrompt(args: {
     system: compiled.system,
     user: compiled.user,
   };
+}
+
+export function compileLocalizedFullStoryPrompt(args: {
+  readonly languageProfile: LanguageProfile;
+  readonly adaptationMode: AdaptationMode;
+  readonly sourceStory: ParsedSourceStory;
+  readonly canonicalFacts: CanonicalStoryFacts;
+  readonly characterRenameMap: CharacterRenameMap;
+  readonly horrorAffectRolloutMode: HorrorAffectRolloutMode;
+  readonly parentHorrorAffectPlan?: HorrorAffectPlan;
+  readonly parentFullContract: FullStoryContract;
+  readonly parentCanonicalFingerprint: string;
+  readonly productionContext?: {
+    readonly analysis?: StorySourceAnalysis;
+    readonly bible?: StoryBible;
+    readonly originalityReview?: OriginalityReview;
+    readonly retentionPlan?: ReadonlyArray<RetentionBeat>;
+  };
+}): CompiledStoryPrompt {
+  const localizationHorrorAffectProjection =
+    args.horrorAffectRolloutMode === "enforce" &&
+    args.parentHorrorAffectPlan?.validation.valid
+      ? buildLocalizationHorrorAffectProjection({
+          plan: args.parentHorrorAffectPlan,
+          contract: args.parentFullContract,
+          canonicalFingerprint: args.parentCanonicalFingerprint,
+        })
+      : undefined;
+  return compileFullStoryPrompt({
+    language: args.languageProfile.code,
+    adaptationMode: args.adaptationMode,
+    sourceStory: args.sourceStory,
+    canonicalFacts: args.canonicalFacts,
+    characterRenameMap: args.characterRenameMap,
+    horrorAffectRolloutMode: args.horrorAffectRolloutMode,
+    ...(localizationHorrorAffectProjection
+      ? { localizationHorrorAffectProjection }
+      : {}),
+    ...(args.productionContext
+      ? { productionContext: args.productionContext }
+      : {}),
+  });
 }

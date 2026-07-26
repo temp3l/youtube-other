@@ -25,6 +25,10 @@ import {
   type FullStoryContract,
   type FullStoryContractEnvelope,
 } from "./full-story-contract.js";
+import {
+  buildHorrorAffectPlan,
+  type HorrorAffectPlan,
+} from "./horror-affect-plan.js";
 import { getLanguageProfile, LANGUAGE_PROFILES } from "./language-profiles.js";
 import {
   DEFAULT_FULL_DURATION_WINDOW,
@@ -52,12 +56,14 @@ import {
 } from "./story-prompt-module-registry.js";
 import {
   fullNarrationResponseSchemaDescriptor,
+  localizedAffectNarrationResponseSchemaDescriptor,
   shortNarrationResponseSchemaDescriptor,
   type NarrationOnlyFullRewriteResponse,
 } from "./story-prompt-response-schemas.js";
 import {
   type AdaptationMode,
   type CanonicalStoryFacts,
+  type HorrorAffectRolloutMode,
   type LanguageCode,
   type LanguageProfile,
   type ParsedSourceStory,
@@ -84,6 +90,14 @@ import {
   type ShortBeatPlanBeat,
   type ShortRewriteSourceExtraction,
 } from "./short-rewrite.types.js";
+import {
+  validateLocalizationHorrorAffectProjection,
+  type LocalizationHorrorAffectProjection,
+} from "./localization-horror-affect-projection.js";
+import {
+  validateShortHorrorAffectProjection,
+  type ShortHorrorAffectProjection,
+} from "./short-horror-affect-projection.js";
 
 export interface CompiledStoryPrompt {
   readonly compilerVersion: string;
@@ -92,6 +106,7 @@ export interface CompiledStoryPrompt {
   readonly user: string;
   readonly responseSchema:
     | typeof fullNarrationResponseSchemaDescriptor
+    | typeof localizedAffectNarrationResponseSchemaDescriptor
     | typeof shortNarrationResponseSchemaDescriptor;
   readonly promptFingerprint: string;
   readonly selectedModules: readonly {
@@ -100,6 +115,26 @@ export interface CompiledStoryPrompt {
   }[];
   readonly diagnostics: readonly StoryPromptDiagnostic[];
   readonly metrics: StoryPromptMetrics;
+  readonly horrorAffectPlan?: HorrorAffectPlan;
+  readonly localizationHorrorAffectProjection?: LocalizationHorrorAffectProjection;
+  readonly horrorAffectDiagnostics?: HorrorAffectRolloutDiagnostics;
+}
+
+export type HorrorAffectEligibilityReason =
+  | "canonical-english-fiction"
+  | "localized-language"
+  | "nonfiction"
+  | "unsupported-fictionality"
+  | "unsupported-genre";
+
+export interface HorrorAffectRolloutDiagnostics {
+  readonly mode: HorrorAffectRolloutMode;
+  readonly eligible: boolean;
+  readonly eligibilityReason: HorrorAffectEligibilityReason;
+  readonly planBuilt: boolean;
+  readonly planValid?: boolean;
+  readonly planHash?: string;
+  readonly promptEnforced: boolean;
 }
 
 export interface StoryPromptBudgets {
@@ -118,7 +153,10 @@ export interface StoryPromptMetrics {
   readonly sceneBeatCount: number;
   readonly promptSectionCount: number;
   readonly duplicateSectionCount: number;
-  readonly sectionSizes: readonly { readonly heading: string; readonly characters: number }[];
+  readonly sectionSizes: readonly {
+    readonly heading: string;
+    readonly characters: number;
+  }[];
 }
 
 const EMPTY_PROMPT_METRICS: StoryPromptMetrics = {
@@ -161,6 +199,8 @@ export interface CompileFullStoryPromptInput {
   readonly sourceCleaningReport?: SourceCleaningReport;
   readonly storyIr?: StoryIR;
   readonly characterRenameMap?: CharacterRenameMap;
+  readonly horrorAffectRolloutMode?: HorrorAffectRolloutMode;
+  readonly localizationHorrorAffectProjection?: LocalizationHorrorAffectProjection;
   readonly promptBudgets?: Partial<StoryPromptBudgets>;
 }
 
@@ -181,11 +221,20 @@ export interface CompileShortStoryPromptInput {
   readonly sourceCleaningReport?: SourceCleaningReport;
   readonly storyIr?: StoryIR;
   readonly characterRenameMap?: CharacterRenameMap;
+  readonly horrorAffectProjection?: ShortHorrorAffectProjection;
   readonly promptBudgets?: Partial<StoryPromptBudgets>;
 }
 
-function resolvePromptBudgets(variant: "full" | "short", override?: Partial<StoryPromptBudgets>): StoryPromptBudgets {
-  return { ...(variant === "full" ? DEFAULT_FULL_PROMPT_BUDGETS : DEFAULT_SHORT_PROMPT_BUDGETS), ...override };
+function resolvePromptBudgets(
+  variant: "full" | "short",
+  override?: Partial<StoryPromptBudgets>
+): StoryPromptBudgets {
+  return {
+    ...(variant === "full"
+      ? DEFAULT_FULL_PROMPT_BUDGETS
+      : DEFAULT_SHORT_PROMPT_BUDGETS),
+    ...override,
+  };
 }
 
 function resolveClassificationOutcome(
@@ -199,6 +248,96 @@ function resolveClassificationOutcome(
     (!storyIr.centralRuleMechanism.supernatural &&
       storyIr.centralThreat.type !== "supernatural");
   return semanticallySafe ? "unknown-safe" : "unknown-unsafe";
+}
+
+function resolveHorrorAffectEligibility(
+  language: LanguageCode,
+  storyIr: StoryIR
+): Pick<HorrorAffectRolloutDiagnostics, "eligible" | "eligibilityReason"> {
+  if (language !== "en") {
+    return { eligible: false, eligibilityReason: "localized-language" };
+  }
+  if (storyIr.fictionality === "nonfiction") {
+    return { eligible: false, eligibilityReason: "nonfiction" };
+  }
+  if (
+    storyIr.fictionality !== "fiction" &&
+    storyIr.fictionality !== "fiction-inspired-by-folklore"
+  ) {
+    return { eligible: false, eligibilityReason: "unsupported-fictionality" };
+  }
+  const eligible = [
+    "fictional-supernatural",
+    "fictional-psychological",
+    "folklore",
+  ].includes(storyIr.genre);
+  return {
+    eligible,
+    eligibilityReason: eligible
+      ? "canonical-english-fiction"
+      : "unsupported-genre",
+  };
+}
+
+function buildHorrorAffectRolloutDiagnostics(
+  mode: HorrorAffectRolloutMode,
+  eligibility: Pick<
+    HorrorAffectRolloutDiagnostics,
+    "eligible" | "eligibilityReason"
+  >,
+  plan?: HorrorAffectPlan
+): HorrorAffectRolloutDiagnostics {
+  return {
+    mode,
+    ...eligibility,
+    planBuilt: plan !== undefined,
+    ...(plan
+      ? {
+          planValid: plan.validation.valid,
+          planHash: plan.planHash,
+        }
+      : {}),
+    promptEnforced:
+      mode === "enforce" && plan !== undefined && plan.validation.valid,
+  };
+}
+
+function rolloutDiagnosticsToPromptDiagnostics(
+  diagnostics: HorrorAffectRolloutDiagnostics
+): readonly StoryPromptDiagnostic[] {
+  return [
+    {
+      code: "HORROR_AFFECT_ROLLOUT_MODE",
+      severity: "info",
+      message: `Horror affect rollout mode: ${diagnostics.mode}.`,
+      moduleId: "horror-affect-plan",
+      blocking: false,
+    },
+    {
+      code: "HORROR_AFFECT_ELIGIBILITY",
+      severity: "info",
+      message: `Horror affect eligibility: ${
+        diagnostics.eligible ? "eligible" : "ineligible"
+      } (${diagnostics.eligibilityReason}).`,
+      moduleId: "horror-affect-plan",
+      blocking: false,
+    },
+    ...(diagnostics.planBuilt
+      ? [
+          {
+            code: "HORROR_AFFECT_PLAN_STATUS",
+            severity: diagnostics.planValid
+              ? ("info" as const)
+              : ("warning" as const),
+            message: `Horror affect plan validation: ${
+              diagnostics.planValid ? "valid" : "invalid"
+            }.`,
+            moduleId: "horror-affect-plan" as const,
+            blocking: false,
+          },
+        ]
+      : []),
+  ];
 }
 
 function defaultFullOutputConstraints(
@@ -394,7 +533,13 @@ function compileFromContext(
     if (entry.system) {
       const headingKey = entry.system.heading.trim().toLocaleLowerCase();
       if (systemHeadings.has(headingKey)) {
-        diagnostics.push({ code: "DUPLICATED_PROMPT_SECTION", severity: "error", message: `System section ${entry.system.heading} is duplicated.`, moduleId: entry.module.id, blocking: true });
+        diagnostics.push({
+          code: "DUPLICATED_PROMPT_SECTION",
+          severity: "error",
+          message: `System section ${entry.system.heading} is duplicated.`,
+          moduleId: entry.module.id,
+          blocking: true,
+        });
         continue;
       }
       systemHeadings.add(headingKey);
@@ -405,9 +550,7 @@ function compileFromContext(
           newRules.push(rule.text);
         }
       }
-      const renderedRules = newRules
-        .map((line) => `- ${line}`)
-        .join("\n");
+      const renderedRules = newRules.map((line) => `- ${line}`).join("\n");
       const body =
         entry.system.rules && entry.system.rules.length > 0
           ? [renderedRules, entry.system.body].filter(Boolean).join("\n")
@@ -417,7 +560,13 @@ function compileFromContext(
     if (entry.user) {
       const headingKey = entry.user.heading.trim().toLocaleLowerCase();
       if (userHeadings.has(headingKey)) {
-        diagnostics.push({ code: "DUPLICATED_PROMPT_SECTION", severity: "error", message: `User section ${entry.user.heading} is duplicated.`, moduleId: entry.module.id, blocking: true });
+        diagnostics.push({
+          code: "DUPLICATED_PROMPT_SECTION",
+          severity: "error",
+          message: `User section ${entry.user.heading} is duplicated.`,
+          moduleId: entry.module.id,
+          blocking: true,
+        });
         continue;
       }
       userHeadings.add(headingKey);
@@ -428,9 +577,7 @@ function compileFromContext(
           newRules.push(rule.text);
         }
       }
-      const renderedRules = newRules
-        .map((line) => `- ${line}`)
-        .join("\n");
+      const renderedRules = newRules.map((line) => `- ${line}`).join("\n");
       const body =
         entry.user.rules && entry.user.rules.length > 0
           ? [renderedRules, entry.user.body].filter(Boolean).join("\n")
@@ -439,17 +586,26 @@ function compileFromContext(
     }
   }
   const system = systemSections.join("\n\n");
-  const selectedEventIds = context.variant === "short" ? new Set(context.sourceExtraction.selectedEventIds ?? []) : new Set<string>();
-  const emittedEvents = context.variant === "short"
-    ? (context.sourceExtraction.events ?? []).filter((event) => selectedEventIds.has(event.id))
-    : [];
-  const emittedBeats: readonly ShortBeatPlanBeat[] = context.variant === "short"
-    ? (context.sourceExtraction.beatPlan?.beats ?? []).filter((beat) => beat.eventIds.every((id) => selectedEventIds.has(id)))
-    : [];
+  const selectedEventIds =
+    context.variant === "short"
+      ? new Set(context.sourceExtraction.selectedEventIds ?? [])
+      : new Set<string>();
+  const emittedEvents =
+    context.variant === "short"
+      ? (context.sourceExtraction.events ?? []).filter((event) =>
+          selectedEventIds.has(event.id)
+        )
+      : [];
+  const emittedBeats: readonly ShortBeatPlanBeat[] =
+    context.variant === "short"
+      ? (context.sourceExtraction.beatPlan?.beats ?? []).filter((beat) =>
+          beat.eventIds.every((id) => selectedEventIds.has(id))
+        )
+      : [];
   const user = [
     userSections.join("\n\n"),
-        context.variant === "short"
-          ? [
+    context.variant === "short"
+      ? [
           "## Short Adaptation Contract",
           `- Preserve the core identity in ${context.adaptationContract.identity.locale}.`,
           `- Reuse the same fictional character names exactly: ${context.characterRenameMap.entries.map((entry) => entry.fictionalName).join(", ") || "none"}`,
@@ -488,19 +644,18 @@ function compileFromContext(
           `- Forbidden inventions: ${context.canonicalFacts.forbiddenInventions?.join(" | ") || "none"}`,
           "",
           "<SHORT_ADAPTATION_EVENTS>",
-          ...emittedEvents
-            .map((event) => {
-              const roles = event.narrativeRoles.join(", ");
-              const dependencies = event.causalDependencyIds.join(", ") || "none";
-              const sourceBeats = event.sourceBeatIds.join(", ") || "none";
-              return [
-                `- [${event.id}] #${event.chronologyIndex} ${event.statement}`,
-                `  roles: ${roles || "none"}`,
-                `  depends-on: ${dependencies}`,
-                `  source-beats: ${sourceBeats}`,
-                `  facts: ${event.mandatoryFacts.join(" | ") || "none"}`,
-              ].join("\n");
-            }),
+          ...emittedEvents.map((event) => {
+            const roles = event.narrativeRoles.join(", ");
+            const dependencies = event.causalDependencyIds.join(", ") || "none";
+            const sourceBeats = event.sourceBeatIds.join(", ") || "none";
+            return [
+              `- [${event.id}] #${event.chronologyIndex} ${event.statement}`,
+              `  roles: ${roles || "none"}`,
+              `  depends-on: ${dependencies}`,
+              `  source-beats: ${sourceBeats}`,
+              `  facts: ${event.mandatoryFacts.join(" | ") || "none"}`,
+            ].join("\n");
+          }),
           "</SHORT_ADAPTATION_EVENTS>",
           "",
           "<SHORT_ADAPTATION_BEAT_PLAN>",
@@ -532,23 +687,45 @@ function compileFromContext(
       : `<SOURCE_NARRATION>\n${context.sourceStory.narrationParagraphs.join("\n\n")}\n</SOURCE_NARRATION>`,
   ].join("\n\n");
   const allSections = [...systemSections, ...userSections];
-  const headings = allSections.map((section) => /^##\s+(.+)$/mu.exec(section)?.[1]?.trim() ?? "unnamed");
-  const normalizedHeadings = headings.map((heading) => heading.toLocaleLowerCase());
-  const duplicateSectionCount = normalizedHeadings.length - new Set(normalizedHeadings).size;
+  const headings = allSections.map(
+    (section) => /^##\s+(.+)$/mu.exec(section)?.[1]?.trim() ?? "unnamed"
+  );
+  const normalizedHeadings = headings.map((heading) =>
+    heading.toLocaleLowerCase()
+  );
+  const duplicateSectionCount =
+    normalizedHeadings.length - new Set(normalizedHeadings).size;
   const promptCharacters = system.length + user.length;
-  const estimatedInputTokens = estimateStoryTokens(`${system}\n${user}`, "openai-compatible-local-estimate");
+  const estimatedInputTokens = estimateStoryTokens(
+    `${system}\n${user}`,
+    "openai-compatible-local-estimate"
+  );
   const metrics: StoryPromptMetrics = {
     promptCharacters,
     estimatedInputTokens,
     selectedEventCount: selectedEventIds.size,
-    expandedDependencyCount: context.variant === "short"
-      ? Math.max(0, selectedEventIds.size - new Set(emittedEvents.flatMap((event) => event.sourceBeatIds)).size)
-      : 0,
+    expandedDependencyCount:
+      context.variant === "short"
+        ? Math.max(
+            0,
+            selectedEventIds.size -
+              new Set(emittedEvents.flatMap((event) => event.sourceBeatIds))
+                .size
+          )
+        : 0,
     emittedEventCount: emittedEvents.length,
-    sceneBeatCount: context.variant === "short" ? emittedBeats.length : Math.min(context.canonicalBeats.length, budgets.maxSceneBeats),
+    sceneBeatCount:
+      context.variant === "short"
+        ? emittedBeats.length
+        : Math.min(context.canonicalBeats.length, budgets.maxSceneBeats),
     promptSectionCount: headings.length + (context.variant === "short" ? 2 : 1),
     duplicateSectionCount,
-    sectionSizes: allSections.map((section, index) => ({ heading: headings[index] ?? "unnamed", characters: section.length })).sort((left, right) => right.characters - left.characters),
+    sectionSizes: allSections
+      .map((section, index) => ({
+        heading: headings[index] ?? "unnamed",
+        characters: section.length,
+      }))
+      .sort((left, right) => right.characters - left.characters),
   };
   const promptContractIssues = validateCompiledPromptContract({
     system,
@@ -560,12 +737,25 @@ function compileFromContext(
     maxCanonicalEvents: budgets.maxCanonicalEvents,
     maxSceneBeats: budgets.maxSceneBeats,
   });
-  diagnostics.push(...promptContractIssues.map((issue) => ({ code: issue.code, severity: "error" as const, message: issue.message, blocking: true })));
-  if (promptCharacters > budgets.maxPromptCharacters || estimatedInputTokens > budgets.maxEstimatedInputTokens) {
+  diagnostics.push(
+    ...promptContractIssues.map((issue) => ({
+      code: issue.code,
+      severity: "error" as const,
+      message: issue.message,
+      blocking: true,
+    }))
+  );
+  if (
+    promptCharacters > budgets.maxPromptCharacters ||
+    estimatedInputTokens > budgets.maxEstimatedInputTokens
+  ) {
     diagnostics.push({
       code: "PROMPT_BUDGET_EXCEEDED",
       severity: "error",
-      message: `Prompt requires ${promptCharacters} characters / ${estimatedInputTokens} estimated tokens; limits are ${budgets.maxPromptCharacters} / ${budgets.maxEstimatedInputTokens}. Largest sections: ${metrics.sectionSizes.slice(0, 3).map((entry) => `${entry.heading}=${entry.characters}`).join(", ")}.`,
+      message: `Prompt requires ${promptCharacters} characters / ${estimatedInputTokens} estimated tokens; limits are ${budgets.maxPromptCharacters} / ${budgets.maxEstimatedInputTokens}. Largest sections: ${metrics.sectionSizes
+        .slice(0, 3)
+        .map((entry) => `${entry.heading}=${entry.characters}`)
+        .join(", ")}.`,
       blocking: true,
     });
   }
@@ -577,7 +767,10 @@ function compileFromContext(
       user: "",
       responseSchema: context.responseSchema,
       promptFingerprint: "",
-      selectedModules: ordered.map((entry) => ({ id: entry.module.id, version: entry.module.semanticVersion })),
+      selectedModules: ordered.map((entry) => ({
+        id: entry.module.id,
+        version: entry.module.semanticVersion,
+      })),
       diagnostics,
       metrics,
     };
@@ -610,12 +803,50 @@ function compileFromContext(
       ? {
           contractFingerprint: context.contractEnvelope.buildFingerprint,
           outputConstraints: context.outputConstraints,
+          ...(context.localizationHorrorAffectProjection
+            ? {
+                localizationHorrorAffectProjection: {
+                  schemaVersion:
+                    context.localizationHorrorAffectProjection.schemaVersion,
+                  projectionVersion:
+                    context.localizationHorrorAffectProjection
+                      .projectionVersion,
+                  strategyVersion:
+                    context.localizationHorrorAffectProjection.strategyVersion,
+                  parentPlanHash:
+                    context.localizationHorrorAffectProjection.parent.planHash,
+                  parentCanonicalFingerprint:
+                    context.localizationHorrorAffectProjection.parent
+                      .canonicalFingerprint,
+                  semanticIdsHash:
+                    context.localizationHorrorAffectProjection.semanticIdsHash,
+                  projectionHash:
+                    context.localizationHorrorAffectProjection.projectionHash,
+                },
+              }
+            : {}),
         }
       : {
           parentFullHash: context.adaptationContract.parent.parentFullHash,
           shortContractHash: context.adaptationContract.contractHash,
           shortSourceExtractionHash: context.sourceExtraction.extractionHash,
           outputConstraints: context.outputConstraints,
+          ...(context.horrorAffectProjection
+            ? {
+                horrorAffectProjection: {
+                  schemaVersion: context.horrorAffectProjection.schemaVersion,
+                  projectionVersion:
+                    context.horrorAffectProjection.projectionVersion,
+                  strategyVersion:
+                    context.horrorAffectProjection.strategyVersion,
+                  parentPlanHash:
+                    context.horrorAffectProjection.parent.planHash,
+                  selectedIdsHash:
+                    context.horrorAffectProjection.selectedIdsHash,
+                  projectionHash: context.horrorAffectProjection.projectionHash,
+                },
+              }
+            : {}),
         }),
     ...(context.sourceCleaningReport
       ? {
@@ -644,6 +875,15 @@ function compileFromContext(
     })),
     diagnostics,
     metrics,
+    ...(context.variant === "full" && context.horrorAffectPlan
+      ? { horrorAffectPlan: context.horrorAffectPlan }
+      : {}),
+    ...(context.variant === "full" && context.localizationHorrorAffectProjection
+      ? {
+          localizationHorrorAffectProjection:
+            context.localizationHorrorAffectProjection,
+        }
+      : {}),
   };
 }
 
@@ -669,6 +909,43 @@ export function compileFullStoryPrompt(
   input: CompileFullStoryPromptInput
 ): CompiledStoryPrompt {
   const diagnostics: StoryPromptDiagnostic[] = [];
+  const responseSchema = input.localizationHorrorAffectProjection
+    ? localizedAffectNarrationResponseSchemaDescriptor
+    : fullNarrationResponseSchemaDescriptor;
+  if (input.localizationHorrorAffectProjection) {
+    const projectionIssues = [
+      ...validateLocalizationHorrorAffectProjection(
+        input.localizationHorrorAffectProjection
+      ),
+    ];
+    if (input.language === "en") {
+      projectionIssues.push(
+        "Localization affect projection cannot be compiled for canonical English."
+      );
+    }
+    diagnostics.push(
+      ...projectionIssues.map((message) => ({
+        code: "LOCALIZATION_HORROR_AFFECT_PROJECTION_INVALID",
+        severity: "error" as const,
+        message,
+        moduleId: "localization-horror-affect-projection" as const,
+        blocking: true,
+      }))
+    );
+    if (projectionIssues.length > 0) {
+      return {
+        compilerVersion: STORY_PROMPT_COMPILER_VERSION,
+        variant: "full",
+        system: "",
+        user: "",
+        responseSchema,
+        promptFingerprint: "",
+        selectedModules: [],
+        diagnostics,
+        metrics: EMPTY_PROMPT_METRICS,
+      };
+    }
+  }
   const profile = getLanguageProfile(input.language);
   if (profile.locale !== supportedLocaleForLanguage(input.language)) {
     throw new Error(
@@ -696,6 +973,18 @@ export function compileFullStoryPrompt(
     originalStoryIr,
     characterRenameMap
   );
+  const horrorAffectRolloutMode = input.horrorAffectRolloutMode ?? "shadow";
+  const horrorAffectEligibility = resolveHorrorAffectEligibility(
+    input.language,
+    storyIr
+  );
+  let horrorAffectDiagnostics = buildHorrorAffectRolloutDiagnostics(
+    horrorAffectRolloutMode,
+    horrorAffectEligibility
+  );
+  diagnostics.push(
+    ...rolloutDiagnosticsToPromptDiagnostics(horrorAffectDiagnostics)
+  );
   const classificationOutcome = resolveClassificationOutcome(storyIr);
   const policyResolution = resolveGenrePolicy({
     genre: storyIr.genre,
@@ -708,11 +997,12 @@ export function compileFullStoryPrompt(
       variant: "full",
       system: "",
       user: "",
-      responseSchema: fullNarrationResponseSchemaDescriptor,
+      responseSchema,
       promptFingerprint: "",
       selectedModules: [],
       diagnostics,
       metrics: EMPTY_PROMPT_METRICS,
+      horrorAffectDiagnostics,
     };
   }
   if (classificationOutcome === "unknown-unsafe") {
@@ -728,11 +1018,12 @@ export function compileFullStoryPrompt(
       variant: "full",
       system: "",
       user: "",
-      responseSchema: fullNarrationResponseSchemaDescriptor,
+      responseSchema,
       promptFingerprint: "",
       selectedModules: [],
       diagnostics,
       metrics: EMPTY_PROMPT_METRICS,
+      horrorAffectDiagnostics,
     };
   }
   const outputConstraints =
@@ -774,20 +1065,114 @@ export function compileFullStoryPrompt(
       variant: "full",
       system: "",
       user: "",
-      responseSchema: fullNarrationResponseSchemaDescriptor,
+      responseSchema,
       promptFingerprint: "",
       selectedModules: [],
       diagnostics,
       metrics: EMPTY_PROMPT_METRICS,
+      horrorAffectDiagnostics,
     };
   }
-  const mechanicsContract = buildStoryMechanicsContract({ facts: canonicalFacts, storyIr });
-  const canonicalBeats = buildCanonicalStoryBeats({ story: sourceStory, facts: canonicalFacts });
-  const contractPreflightIssues = validateStoryContractPreflight({ storyIr, facts: canonicalFacts, mechanics: mechanicsContract });
-  diagnostics.push(...contractPreflightIssues.map((issue) => ({ code: issue.code, severity: "error" as const, message: issue.message, blocking: true })));
+  const mechanicsContract = buildStoryMechanicsContract({
+    facts: canonicalFacts,
+    storyIr,
+  });
+  const canonicalBeats = buildCanonicalStoryBeats({
+    story: sourceStory,
+    facts: canonicalFacts,
+  });
+  const contractPreflightIssues = validateStoryContractPreflight({
+    storyIr,
+    facts: canonicalFacts,
+    mechanics: mechanicsContract,
+  });
+  diagnostics.push(
+    ...contractPreflightIssues.map((issue) => ({
+      code: issue.code,
+      severity: "error" as const,
+      message: issue.message,
+      blocking: true,
+    }))
+  );
   if (contractPreflightIssues.length > 0) {
-    return { compilerVersion: STORY_PROMPT_COMPILER_VERSION, variant: "full", system: "", user: "", responseSchema: fullNarrationResponseSchemaDescriptor, promptFingerprint: "", selectedModules: [], diagnostics, metrics: EMPTY_PROMPT_METRICS };
+    return {
+      compilerVersion: STORY_PROMPT_COMPILER_VERSION,
+      variant: "full",
+      system: "",
+      user: "",
+      responseSchema,
+      promptFingerprint: "",
+      selectedModules: [],
+      diagnostics,
+      metrics: EMPTY_PROMPT_METRICS,
+      horrorAffectDiagnostics,
+    };
   }
+  const canonicalStoryContract = adaptLegacyStoryToCanonicalContract({
+    storyIr,
+    facts: canonicalFacts,
+    mechanics: mechanicsContract,
+    beats: canonicalBeats,
+  });
+  const horrorAffectPlan =
+    horrorAffectRolloutMode !== "off" && horrorAffectEligibility.eligible
+      ? buildHorrorAffectPlan({
+          storyIr,
+          canonicalContract: canonicalStoryContract,
+          mechanics: mechanicsContract,
+          beats: canonicalBeats,
+        })
+      : undefined;
+  horrorAffectDiagnostics = buildHorrorAffectRolloutDiagnostics(
+    horrorAffectRolloutMode,
+    horrorAffectEligibility,
+    horrorAffectPlan
+  );
+  diagnostics.push(
+    ...rolloutDiagnosticsToPromptDiagnostics(horrorAffectDiagnostics).filter(
+      (entry) => entry.code === "HORROR_AFFECT_PLAN_STATUS"
+    )
+  );
+  if (horrorAffectPlan) {
+    diagnostics.push(
+      ...horrorAffectPlan.validation.issues.map((issue) => ({
+        code: `HORROR_AFFECT_${issue.code}`,
+        severity:
+          horrorAffectRolloutMode === "enforce" && issue.severity === "blocking"
+            ? ("error" as const)
+            : ("warning" as const),
+        message: `Horror affect plan validation issue ${issue.code}${
+          issue.beatId ? ` at beat ${issue.beatId}` : ""
+        }${issue.responseId ? ` for response ${issue.responseId}` : ""}.`,
+        moduleId: "horror-affect-plan" as const,
+        blocking:
+          horrorAffectRolloutMode === "enforce" &&
+          issue.severity === "blocking",
+      }))
+    );
+    if (
+      horrorAffectRolloutMode === "enforce" &&
+      !horrorAffectPlan.validation.valid
+    ) {
+      return {
+        compilerVersion: STORY_PROMPT_COMPILER_VERSION,
+        variant: "full",
+        system: "",
+        user: "",
+        responseSchema,
+        promptFingerprint: "",
+        selectedModules: [],
+        diagnostics,
+        metrics: EMPTY_PROMPT_METRICS,
+        horrorAffectPlan,
+        horrorAffectDiagnostics,
+      };
+    }
+  }
+  const enforcedHorrorAffectPlan =
+    horrorAffectRolloutMode === "enforce" && horrorAffectPlan?.validation.valid
+      ? horrorAffectPlan
+      : undefined;
   const context: FullStoryPromptInput = {
     variant: "full",
     language: input.language,
@@ -803,8 +1188,17 @@ export function compileFullStoryPrompt(
     outputConstraints,
     mechanicsContract,
     canonicalBeats,
-    canonicalStoryContract: adaptLegacyStoryToCanonicalContract({ storyIr, facts: canonicalFacts, mechanics: mechanicsContract, beats: canonicalBeats }),
-    responseSchema: fullNarrationResponseSchemaDescriptor,
+    canonicalStoryContract,
+    ...(enforcedHorrorAffectPlan
+      ? { horrorAffectPlan: enforcedHorrorAffectPlan }
+      : {}),
+    ...(input.localizationHorrorAffectProjection
+      ? {
+          localizationHorrorAffectProjection:
+            input.localizationHorrorAffectProjection,
+        }
+      : {}),
+    responseSchema,
     localeModuleVersion: STORY_PROMPT_LOCALE_MODULE_VERSION,
     selectedLocale: profile.locale,
     characterRenameMap,
@@ -815,10 +1209,21 @@ export function compileFullStoryPrompt(
       ? { sourceCleaningReport: input.sourceCleaningReport }
       : {}),
   };
-  const compiled = compileFromContext(context, resolvePromptBudgets("full", input.promptBudgets));
+  const compiled = compileFromContext(
+    context,
+    resolvePromptBudgets("full", input.promptBudgets)
+  );
   return {
     ...compiled,
     diagnostics: [...diagnostics, ...compiled.diagnostics],
+    ...(horrorAffectPlan ? { horrorAffectPlan } : {}),
+    ...(input.localizationHorrorAffectProjection
+      ? {
+          localizationHorrorAffectProjection:
+            input.localizationHorrorAffectProjection,
+        }
+      : {}),
+    horrorAffectDiagnostics,
   };
 }
 
@@ -826,6 +1231,56 @@ export function compileShortStoryPrompt(
   input: CompileShortStoryPromptInput
 ): CompiledStoryPrompt {
   const diagnostics: StoryPromptDiagnostic[] = [];
+  if (input.horrorAffectProjection) {
+    const projectionIssues = [
+      ...validateShortHorrorAffectProjection(input.horrorAffectProjection),
+    ];
+    if (
+      input.adaptationContract.horrorAffectProjection?.projectionHash !==
+      input.horrorAffectProjection.projectionHash
+    ) {
+      projectionIssues.push({
+        code: "PROJECTION_HASH_MISMATCH",
+        message:
+          "The enforced Short affect projection does not match the Short adaptation contract.",
+      });
+    }
+    const expectedFactIds = input.adaptationContract.immutableFacts.map(
+      (fact) => fact.id
+    );
+    if (
+      stableSerialize(expectedFactIds) !==
+      stableSerialize(input.horrorAffectProjection.selectedIds.immutableFactIds)
+    ) {
+      projectionIssues.push({
+        code: "IMMUTABLE_FACT_OMITTED",
+        message:
+          "The enforced Short affect projection omits an immutable fact from the Short adaptation contract.",
+      });
+    }
+    diagnostics.push(
+      ...projectionIssues.map((issue) => ({
+        code: `SHORT_HORROR_AFFECT_${issue.code}`,
+        severity: "error" as const,
+        message: issue.message,
+        moduleId: "short-horror-affect-projection" as const,
+        blocking: true,
+      }))
+    );
+    if (projectionIssues.length > 0) {
+      return {
+        compilerVersion: STORY_PROMPT_COMPILER_VERSION,
+        variant: "short",
+        system: "",
+        user: "",
+        responseSchema: shortNarrationResponseSchemaDescriptor,
+        promptFingerprint: "",
+        selectedModules: [],
+        diagnostics,
+        metrics: EMPTY_PROMPT_METRICS,
+      };
+    }
+  }
   const profile = getLanguageProfile(input.language);
   const originalStoryIr = buildStoryIr(input);
   const characterRenameMap =
@@ -899,6 +1354,9 @@ export function compileShortStoryPrompt(
     localeModuleVersion: STORY_PROMPT_LOCALE_MODULE_VERSION,
     selectedLocale: profile.locale,
     characterRenameMap,
+    ...(input.horrorAffectProjection
+      ? { horrorAffectProjection: input.horrorAffectProjection }
+      : {}),
     ...(input.productionContext
       ? { productionContext: input.productionContext }
       : {}),
@@ -906,7 +1364,10 @@ export function compileShortStoryPrompt(
       ? { sourceCleaningReport: input.sourceCleaningReport }
       : {}),
   };
-  const compiled = compileFromContext(context, resolvePromptBudgets("short", input.promptBudgets));
+  const compiled = compileFromContext(
+    context,
+    resolvePromptBudgets("short", input.promptBudgets)
+  );
   return {
     ...compiled,
     diagnostics: [...diagnostics, ...compiled.diagnostics],

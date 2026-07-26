@@ -202,7 +202,7 @@ function inferEmotionalAttachment(text: string, protagonist: string | undefined)
 
 function inferEmotionalCost(text: string, protagonist: string | undefined): string {
   const sentence = splitIntoSentences(text).find((entry) =>
-    /\b(?:sacrific|lose|lost|forget|refus|abandon|destroy|betray|give up|cost)\w*\b/iu.test(entry)
+    /\b(?:sacrific|lose|lost|forget|refus|abandon|destroy|burn|betray|give up|cost)\w*\b/iu.test(entry)
   );
   return sentence
     ? stripCanonicalCompilerMetadata(sentence)
@@ -442,7 +442,7 @@ export function validateCanonicalStoryFacts(facts: CanonicalStoryFacts): readonl
   if (!normalized.protagonistAttachment) {
     issues.push("FACT_PROTAGONIST_ATTACHMENT_MISSING");
   }
-  if (!normalized.emotionalCost || !/\b(refus|sacrific|abandon|destroy|betray|accept|ignore|leave|reject|give up|lose)\w*\b/iu.test(normalized.emotionalCost)) {
+  if (!normalized.emotionalCost || !/\b(refus|sacrific|abandon|destroy|burn|betray|accept|ignore|leave|reject|give up|lose)\w*\b/iu.test(normalized.emotionalCost)) {
     issues.push("FACT_EMOTIONAL_COST_MISSING");
   }
   return issues;

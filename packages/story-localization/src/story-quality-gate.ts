@@ -14,8 +14,69 @@ import {
   type CanonicalStoryFacts,
   type LanguageCode,
 } from "./story-localization.types.js";
-import { canonicalHookEntities, validateSemanticOpeningHook } from "./story-semantic-validation.js";
+import {
+  canonicalHookEntities,
+  validateSemanticOpeningHook,
+} from "./story-semantic-validation.js";
 import { detectProfessionalStoryQualityIssues } from "./professional-story-contracts.js";
+
+export const storyAnalysisDeterministicCheckIds = [
+  "source-fidelity",
+  "source-lineage",
+  "accepted-final-line",
+  "rename-map",
+  "canonical-identity",
+  "duration",
+  "narration-only",
+  "affect-projection",
+] as const;
+export type StoryAnalysisDeterministicCheckId =
+  (typeof storyAnalysisDeterministicCheckIds)[number];
+
+export interface StoryAnalysisDeterministicCheck {
+  readonly id: StoryAnalysisDeterministicCheckId;
+  readonly pass: boolean;
+  readonly reason: string;
+}
+
+export interface StoryAnalysisDeterministicContractResult {
+  readonly pass: boolean;
+  readonly checks: readonly StoryAnalysisDeterministicCheck[];
+  readonly failedChecks: readonly StoryAnalysisDeterministicCheck[];
+}
+
+const storyAnalysisDeterministicCheckLabels: Readonly<
+  Record<StoryAnalysisDeterministicCheckId, string>
+> = {
+  "source-fidelity": "Source fidelity is valid.",
+  "source-lineage": "Source lineage is present and current.",
+  "accepted-final-line": "The accepted final line or consequence is preserved.",
+  "rename-map": "The accepted character rename map is preserved.",
+  "canonical-identity": "The canonical story identity is current.",
+  duration: "Narration duration remains within the accepted contract.",
+  "narration-only": "The artifact contains narration-only story output.",
+  "affect-projection": "The applicable affect projection is valid.",
+};
+
+export function buildStoryAnalysisDeterministicContractResult(
+  args: {
+    readonly failures?: Partial<
+      Readonly<Record<StoryAnalysisDeterministicCheckId, string>>
+    >;
+  } = {}
+): StoryAnalysisDeterministicContractResult {
+  const checks = storyAnalysisDeterministicCheckIds.map((id) => ({
+    id,
+    pass: args.failures?.[id] === undefined,
+    reason: args.failures?.[id] ?? storyAnalysisDeterministicCheckLabels[id],
+  }));
+  const failedChecks = checks.filter((check) => !check.pass);
+  return {
+    pass: failedChecks.length === 0,
+    checks,
+    failedChecks,
+  };
+}
 
 const BANNED_OUTLINE_PHRASES = [
   "the protagonist",
@@ -146,6 +207,63 @@ function tokenSimilarity(left: string, right: string): number {
   return overlap / Math.max(leftTokens.size, rightTokens.size);
 }
 
+const RULE_MATCH_STOPWORDS = new Set([
+  "after",
+  "away",
+  "before",
+  "each",
+  "every",
+  "from",
+  "into",
+  "make",
+  "that",
+  "their",
+  "then",
+  "when",
+  "with",
+]);
+
+function normalizeRuleToken(token: string): string {
+  if (token.endsWith("ing") && token.length > 5) {
+    return token.slice(0, -3);
+  }
+  if (token.endsWith("ed") && token.length > 4) {
+    return token.slice(0, -2);
+  }
+  if (token.endsWith("es") && token.length > 4) {
+    return token.slice(0, -2);
+  }
+  if (token.endsWith("s") && token.length > 4) {
+    return token.slice(0, -1);
+  }
+  return token;
+}
+
+function semanticRuleTokens(value: string): ReadonlySet<string> {
+  return new Set(
+    tokenizeNormalized(value)
+      .map(normalizeRuleToken)
+      .filter((token) => !RULE_MATCH_STOPWORDS.has(token))
+  );
+}
+
+function hasSemanticRuleEvidence(text: string, rule: string): boolean {
+  const ruleTokens = semanticRuleTokens(rule);
+  if (ruleTokens.size < 3) {
+    return false;
+  }
+  return splitIntoSentences(text).some((sentence) => {
+    const sentenceTokens = semanticRuleTokens(sentence);
+    let overlap = 0;
+    for (const token of ruleTokens) {
+      if (sentenceTokens.has(token)) {
+        overlap += 1;
+      }
+    }
+    return overlap >= 3 && overlap / ruleTokens.size >= 0.5;
+  });
+}
+
 function nearDuplicateParagraphs(text: string): readonly string[] {
   const paragraphs = text
     .split(/\n{2,}/u)
@@ -212,7 +330,7 @@ function hasEmotionalCost(
   const cost = facts.emotionalCost?.toLowerCase();
   const attachment = facts.protagonistAttachment?.toLowerCase();
   const hasCostVerb =
-    /\b(refus|sacrific|abandon|destroy|betray|accept|ignore|leave|reject|give up|lose)\w*\b/iu.test(
+    /\b(refus|sacrific|abandon|destroy|burn|betray|accept|ignore|leave|reject|give up|lose)\w*\b/iu.test(
       text
     ) || LOCALIZED_EMOTIONAL_COST_PATTERN.test(text);
   const hasAttachment =
@@ -698,6 +816,7 @@ export function runStoryQualityGate(args: {
   if (
     args.facts.supernaturalRule &&
     !includesAny(lower, [args.facts.supernaturalRule]) &&
+    !hasSemanticRuleEvidence(normalized, args.facts.supernaturalRule) &&
     !/\bdo not\b|\bdon't\b|\bnever\b|\bmust\b|\brule\b/iu.test(normalized)
   ) {
     findings.push(
@@ -803,7 +922,10 @@ export function runStoryQualityGate(args: {
       opening: firstTwoSentences,
       entities: canonicalHookEntities(args.facts),
     });
-    if (!semanticHook.valid && !LOCALIZED_CONCRETE_HOOK_PATTERN.test(firstTwoSentences)) {
+    if (
+      !semanticHook.valid &&
+      !LOCALIZED_CONCRETE_HOOK_PATTERN.test(firstTwoSentences)
+    ) {
       findings.push(
         finding({
           code: "SHORT_CONCRETE_HOOK_MISSING",

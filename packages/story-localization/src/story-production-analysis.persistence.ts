@@ -19,20 +19,36 @@ import { getLanguageProfile } from "./language-profiles.js";
 import { resolveEpisodeCacheDirectory } from "./story-localization-cache.js";
 import { resolveEpisodeStoryProductionDirectory } from "./story-production.js";
 import {
-  STORY_PRODUCTION_ANALYSIS_SCHEMA_VERSION,
+  STORY_PRODUCTION_ANALYSIS_V2_SCHEMA_VERSION,
   SCRIPT_PRODUCTION_MIN_SCORE,
+  buildStoryProductionAnalysisAffectReferenceIndex,
   computeStoryProductionAnalysisFingerprint,
+  computeStoryProductionAnalysisV2Fingerprint,
   storyProductionAnalysisArtifactSchema,
   type StoryProductionAnalysisArtifact,
   type StoryProductionAnalysisInput,
   type StoryProductionAnalysisFormat,
+  type StoryProductionAnalysisVersion,
 } from "./story-production-analysis.js";
 import { stableSerialize } from "./stable-json.js";
-import { narrationOnlyFullRewriteResponseSchema } from "./story-prompt-response-schemas.js";
+import {
+  localizedAffectNarrationResponseSchema,
+  narrationOnlyFullRewriteResponseSchema,
+} from "./story-prompt-response-schemas.js";
+import {
+  inspectHorrorAffectPlanArtifact,
+  resolveHorrorAffectPlanArtifactPaths,
+} from "./horror-affect-plan.persistence.js";
+import {
+  buildStoryAnalysisDeterministicContractResult,
+  type StoryAnalysisDeterministicCheckId,
+  type StoryAnalysisDeterministicContractResult,
+} from "./story-quality-gate.js";
 
 const localizedFullArtifactSchema = z
   .object({
     schemaVersion: z.string().min(1),
+    sourceFormat: z.enum(["narration-only", "legacy-mixed"]).optional(),
     lineage: z
       .object({
         kind: z.literal("canonical-english-full"),
@@ -47,9 +63,35 @@ const localizedFullArtifactSchema = z
       })
       .strict(),
     validationIssues: z.array(z.string().min(1)),
-    result: narrationOnlyFullRewriteResponseSchema,
+    result: z.union([
+      narrationOnlyFullRewriteResponseSchema,
+      localizedAffectNarrationResponseSchema,
+    ]),
   })
-  .strict();
+  .passthrough();
+
+const localizationFidelityArtifactSchema = z
+  .object({
+    status: z.enum([
+      "READY",
+      "READY_WITH_MINOR_EDITS",
+      "REVISION_REQUIRED",
+      "REWRITE_REQUIRED",
+    ]),
+    durationRatio: z.number().nonnegative(),
+    missingCharacters: z.array(z.string()),
+    finalConsequencePreserved: z.boolean(),
+    affectCausalityPreserved: z.boolean().optional(),
+    issues: z.array(
+      z
+        .object({
+          code: z.string().min(1),
+          message: z.string().min(1),
+        })
+        .passthrough()
+    ),
+  })
+  .passthrough();
 
 export type StoryProductionAnalysisState =
   | "CURRENT"
@@ -64,7 +106,9 @@ export interface StoryProductionAnalysisPaths {
   readonly analysisPath: string;
   readonly scriptPath: string;
   readonly localizedLineagePath?: string | undefined;
+  readonly localizationFidelityPath?: string | undefined;
   readonly canonicalArtifactPath?: string | undefined;
+  readonly affectPlanArtifactPath?: string | undefined;
 }
 
 export interface StoryProductionAnalysisSourceDescriptor {
@@ -81,6 +125,7 @@ export interface StoryProductionAnalysisSourceDescriptor {
   readonly analysisPaths: StoryProductionAnalysisPaths;
   readonly lineagePresent: boolean;
   readonly lineageCurrent: boolean;
+  readonly deterministicContractResult: StoryAnalysisDeterministicContractResult;
 }
 
 export interface StoryProductionAnalysisStatus {
@@ -98,6 +143,7 @@ export interface StoryProductionAnalysisStatus {
   readonly reasoningEffort?: string;
   readonly analyzedAt?: string;
   readonly estimatedCost?: number | null;
+  readonly analysisVersion?: StoryProductionAnalysisVersion;
   readonly artifact?: StoryProductionAnalysisArtifact;
 }
 
@@ -147,6 +193,14 @@ export function resolveStoryProductionAnalysisPaths(args: {
     args.outputRoot,
     path.join(episodeDir, args.language, format)
   );
+  const storyProductionDirectory = resolveEpisodeStoryProductionDirectory(
+    resolveEpisodeCacheDirectory(args.outputRoot, args.episodeSlug),
+    {
+      episodeNumber:
+        /^(\d{3})[-_]/u.exec(args.episodeSlug)?.[1] ?? args.episodeSlug,
+      slug: args.episodeSlug,
+    }
+  );
   return {
     episodeDir,
     storyDir,
@@ -156,21 +210,22 @@ export function resolveStoryProductionAnalysisPaths(args: {
       ? {}
       : {
           localizedLineagePath: path.join(
-            resolveEpisodeStoryProductionDirectory(
-              resolveEpisodeCacheDirectory(args.outputRoot, args.episodeSlug),
-              {
-                episodeNumber:
-                  /^(\d{3})[-_]/u.exec(args.episodeSlug)?.[1] ?? args.episodeSlug,
-                slug: args.episodeSlug,
-              }
-            ),
+            storyProductionDirectory,
             `${args.language}-full-narration-result.json`
+          ),
+          localizationFidelityPath: path.join(
+            storyProductionDirectory,
+            `${args.language}-localization-fidelity.json`
           ),
         }),
     canonicalArtifactPath: resolveCanonicalEnglishFullPaths(
       args.outputRoot,
       args.episodeSlug
     ).canonicalArtifactPath,
+    affectPlanArtifactPath: resolveHorrorAffectPlanArtifactPaths({
+      outputDirectory: args.outputRoot,
+      episodeSlug: args.episodeSlug,
+    }).artifactPath,
   };
 }
 
@@ -184,6 +239,63 @@ export async function readStoryProductionAnalysisArtifact(
 
 function hashNormalizedText(value: string): string {
   return hashText(normalizeWhitespace(value));
+}
+
+function deterministicFailuresFromIssues(
+  issues: readonly string[]
+): Partial<Record<StoryAnalysisDeterministicCheckId, string>> {
+  const failures: Partial<Record<StoryAnalysisDeterministicCheckId, string>> =
+    {};
+  const matches = (pattern: RegExp): string | undefined =>
+    issues.find((issue) => pattern.test(issue));
+  const sourceIssue = matches(/source|fidel|immutable|plot|fact/iu);
+  const finalIssue = matches(/final|ending|consequence|sting/iu);
+  const renameIssue = matches(/rename|alias|character.*name/iu);
+  const durationIssue = matches(/duration|word.*range|length/iu);
+  const narrationIssue = matches(/narration|metadata|instruction|format/iu);
+  const affectIssue = matches(/affect|question|payoff|response|surprise/iu);
+  if (sourceIssue) failures["source-fidelity"] = sourceIssue;
+  if (finalIssue) failures["accepted-final-line"] = finalIssue;
+  if (renameIssue) failures["rename-map"] = renameIssue;
+  if (durationIssue) failures.duration = durationIssue;
+  if (narrationIssue) failures["narration-only"] = narrationIssue;
+  if (affectIssue) failures["affect-projection"] = affectIssue;
+  return failures;
+}
+
+async function resolveAffectPlanContext(args: {
+  readonly outputRoot: string;
+  readonly episodeSlug: string;
+}): Promise<{
+  readonly affectReferenceIndex?: StoryProductionAnalysisInput["affectReferenceIndex"];
+  readonly affectFailure?: string;
+}> {
+  const inspected = await inspectHorrorAffectPlanArtifact({
+    paths: resolveHorrorAffectPlanArtifactPaths({
+      outputDirectory: args.outputRoot,
+      episodeSlug: args.episodeSlug,
+    }),
+  });
+  if (inspected.status.state === "missing") {
+    return {};
+  }
+  if (
+    inspected.status.state !== "current" ||
+    !inspected.artifact?.plan ||
+    !inspected.artifact.plan.validation.valid
+  ) {
+    return {
+      affectFailure:
+        inspected.status.reasons[0]?.message ??
+        inspected.artifact?.validationIssues[0]?.message ??
+        "The persisted horror affect plan is invalid.",
+    };
+  }
+  return {
+    affectReferenceIndex: buildStoryProductionAnalysisAffectReferenceIndex(
+      inspected.artifact.plan
+    ),
+  };
 }
 
 export async function resolveStoryProductionAnalysisSource(args: {
@@ -206,9 +318,15 @@ export async function resolveStoryProductionAnalysisSource(args: {
   });
   const storyText = await readTextIfExists(paths.scriptPath);
   if (!storyText || normalizeWhitespace(storyText).length === 0) {
-    throw new Error(`Missing persisted rewritten story at ${paths.scriptPath}.`);
+    throw new Error(
+      `Missing persisted rewritten story at ${paths.scriptPath}.`
+    );
   }
   const format = args.format ?? "full";
+  const affectContext = await resolveAffectPlanContext({
+    outputRoot: args.outputRoot,
+    episodeSlug,
+  });
   if (format === "short") {
     const parent = await resolveStoryProductionAnalysisSource({
       outputRoot: args.outputRoot,
@@ -225,22 +343,29 @@ export async function resolveStoryProductionAnalysisSource(args: {
       sourceArtifactPath: parent.sourceArtifactPath,
       storyText,
       sourceContentFingerprint: hashNormalizedText(storyText),
-      sourceLineageFingerprint: hashText(stableSerialize({
-        parentSourceContentFingerprint: parent.sourceContentFingerprint,
-        parentSourceLineageFingerprint: parent.sourceLineageFingerprint,
-        format,
-      })),
+      sourceLineageFingerprint: hashText(
+        stableSerialize({
+          parentSourceContentFingerprint: parent.sourceContentFingerprint,
+          parentSourceLineageFingerprint: parent.sourceLineageFingerprint,
+          format,
+        })
+      ),
       source: {
         storyText,
         paragraphCount: storyText.split(/\n{2,}/u).filter(Boolean).length,
         language,
         locale: profile.locale,
         format,
-        canonicalEnglishText: parent.source.canonicalEnglishText ?? parent.storyText,
+        canonicalEnglishText:
+          parent.source.canonicalEnglishText ?? parent.storyText,
+        ...(parent.source.affectReferenceIndex
+          ? { affectReferenceIndex: parent.source.affectReferenceIndex }
+          : {}),
       },
       analysisPaths: paths,
       lineagePresent: parent.lineagePresent,
       lineageCurrent: parent.lineageCurrent,
+      deterministicContractResult: parent.deterministicContractResult,
     };
   }
   if (language === "en") {
@@ -260,6 +385,37 @@ export async function resolveStoryProductionAnalysisSource(args: {
         lineage: canonicalArtifact.lineage,
       })
     );
+    const failures = deterministicFailuresFromIssues(
+      canonicalArtifact.validation.issues
+    );
+    if (
+      canonicalArtifact.status !== "completed" ||
+      canonicalArtifact.validation.status !== "passed"
+    ) {
+      failures["source-fidelity"] =
+        canonicalArtifact.validation.issues[0] ??
+        `Canonical validation status is ${canonicalArtifact.validation.status}.`;
+    }
+    if (
+      canonicalArtifact.characterRenameMap.hash !==
+      canonicalArtifact.lineage.characterRenameMapHash
+    ) {
+      failures["rename-map"] =
+        "The canonical rename-map hash does not match lineage.";
+    }
+    if (
+      canonicalArtifact.snapshot &&
+      canonicalArtifact.snapshot.canonicalContentHash !==
+        hashText(
+          canonicalArtifact.response.full.narrationParagraphs.join("\n\n")
+        )
+    ) {
+      failures["canonical-identity"] =
+        "The accepted canonical content hash does not match the narration.";
+    }
+    if (affectContext.affectFailure) {
+      failures["affect-projection"] = affectContext.affectFailure;
+    }
     return {
       episode: canonicalArtifact.episodeNumber,
       episodeSlug: canonicalArtifact.episodeSlug,
@@ -276,10 +432,15 @@ export async function resolveStoryProductionAnalysisSource(args: {
         language,
         locale: canonicalArtifact.locale,
         format: "full",
+        ...(affectContext.affectReferenceIndex
+          ? { affectReferenceIndex: affectContext.affectReferenceIndex }
+          : {}),
       },
       analysisPaths: paths,
       lineagePresent: true,
       lineageCurrent: true,
+      deterministicContractResult:
+        buildStoryAnalysisDeterministicContractResult({ failures }),
     };
   }
   const localizedArtifact = paths.localizedLineagePath
@@ -296,9 +457,17 @@ export async function resolveStoryProductionAnalysisSource(args: {
     resolveCanonicalEnglishFullPaths(args.outputRoot, args.episodeSlug)
   );
   if (!localizedArtifact || localizedArtifact.validationIssues.length > 0) {
+    const failures = {
+      "source-lineage": "Localized narration lineage is missing or invalid.",
+      "source-fidelity":
+        localizedArtifact?.validationIssues[0] ??
+        "Localized narration validation could not be proven.",
+      ...(affectContext.affectFailure
+        ? { "affect-projection": affectContext.affectFailure }
+        : {}),
+    };
     return {
-      episode:
-        /^(\d{3})[-_]/u.exec(args.episodeSlug)?.[1] ?? args.episodeSlug,
+      episode: /^(\d{3})[-_]/u.exec(args.episodeSlug)?.[1] ?? args.episodeSlug,
       episodeSlug,
       language,
       locale: profile.locale,
@@ -313,12 +482,22 @@ export async function resolveStoryProductionAnalysisSource(args: {
         language,
         locale: profile.locale,
         format: "full",
+        ...(affectContext.affectReferenceIndex
+          ? { affectReferenceIndex: affectContext.affectReferenceIndex }
+          : {}),
       },
       analysisPaths: paths,
       lineagePresent: false,
       lineageCurrent: false,
+      deterministicContractResult:
+        buildStoryAnalysisDeterministicContractResult({ failures }),
     };
   }
+  const fidelityArtifact = paths.localizationFidelityPath
+    ? await readJsonIfExists(paths.localizationFidelityPath, (value) =>
+        localizationFidelityArtifactSchema.parse(value)
+      )
+    : null;
   const lineageCurrent =
     Boolean(canonicalArtifact) &&
     Boolean(canonicalManifest) &&
@@ -326,9 +505,53 @@ export async function resolveStoryProductionAnalysisSource(args: {
     canonicalArtifact?.validation.status === "passed" &&
     localizedArtifact.lineage.fingerprint ===
       canonicalManifest?.canonicalFingerprint;
+  const failures = deterministicFailuresFromIssues([
+    ...localizedArtifact.validationIssues,
+    ...(fidelityArtifact?.issues.map((issue) => issue.message) ?? []),
+  ]);
+  if (!lineageCurrent) {
+    failures["source-lineage"] =
+      "Localized lineage does not match the accepted canonical fingerprint.";
+    failures["canonical-identity"] =
+      "Localized canonical identity is stale or missing.";
+  }
+  if (localizedArtifact.sourceFormat === "legacy-mixed") {
+    failures["narration-only"] =
+      "Localized output uses the legacy mixed payload instead of narration-only output.";
+  }
+  if (
+    fidelityArtifact &&
+    !["READY", "READY_WITH_MINOR_EDITS"].includes(fidelityArtifact.status)
+  ) {
+    failures["source-fidelity"] =
+      `Localization fidelity status is ${fidelityArtifact.status}.`;
+  }
+  if (fidelityArtifact && !fidelityArtifact.finalConsequencePreserved) {
+    failures["accepted-final-line"] =
+      "The localized narration does not preserve the accepted final consequence.";
+  }
+  if (fidelityArtifact && fidelityArtifact.missingCharacters.length > 0) {
+    failures["rename-map"] =
+      `Localized narration omits accepted renamed characters: ${fidelityArtifact.missingCharacters.join(", ")}.`;
+  }
+  if (
+    fidelityArtifact?.issues.some((issue) =>
+      /DURATION|ABRIDGEMENT/iu.test(issue.code)
+    )
+  ) {
+    failures.duration =
+      fidelityArtifact.issues.find((issue) =>
+        /DURATION|ABRIDGEMENT/iu.test(issue.code)
+      )?.message ?? "Localized duration is outside the accepted contract.";
+  }
+  if (fidelityArtifact?.affectCausalityPreserved === false) {
+    failures["affect-projection"] =
+      "Localized affect causality does not match the accepted projection.";
+  } else if (affectContext.affectFailure) {
+    failures["affect-projection"] = affectContext.affectFailure;
+  }
   return {
-    episode:
-        /^(\d{3})[-_]/u.exec(args.episodeSlug)?.[1] ?? args.episodeSlug,
+    episode: /^(\d{3})[-_]/u.exec(args.episodeSlug)?.[1] ?? args.episodeSlug,
     episodeSlug,
     language,
     locale: profile.locale,
@@ -348,28 +571,32 @@ export async function resolveStoryProductionAnalysisSource(args: {
       language,
       locale: profile.locale,
       format: "full",
-      ...((lineageCurrent && canonicalArtifact
-        ? await readTextIfExists(
-              resolveCanonicalEnglishFullPaths(
-                args.outputRoot,
-                episodeSlug
-              ).canonicalMarkdownPath
+      ...((
+        lineageCurrent && canonicalArtifact
+          ? await readTextIfExists(
+              resolveCanonicalEnglishFullPaths(args.outputRoot, episodeSlug)
+                .canonicalMarkdownPath
             )
-        : null)
+          : null
+      )
         ? {
             canonicalEnglishText:
               (await readTextIfExists(
-                resolveCanonicalEnglishFullPaths(
-                  args.outputRoot,
-                  episodeSlug
-                ).canonicalMarkdownPath
+                resolveCanonicalEnglishFullPaths(args.outputRoot, episodeSlug)
+                  .canonicalMarkdownPath
               )) ?? "",
           }
+        : {}),
+      ...(affectContext.affectReferenceIndex
+        ? { affectReferenceIndex: affectContext.affectReferenceIndex }
         : {}),
     },
     analysisPaths: paths,
     lineagePresent: true,
     lineageCurrent,
+    deterministicContractResult: buildStoryAnalysisDeterministicContractResult({
+      failures,
+    }),
   };
 }
 
@@ -387,10 +614,7 @@ export async function persistStoryProductionAnalysisArtifact(args: {
 }): Promise<void> {
   await writeJsonAtomic(
     args.analysisPath,
-    storyProductionAnalysisArtifactSchema.parse({
-      ...args.artifact,
-      schemaVersion: STORY_PRODUCTION_ANALYSIS_SCHEMA_VERSION,
-    })
+    storyProductionAnalysisArtifactSchema.parse(args.artifact)
   );
 }
 
@@ -401,6 +625,7 @@ export async function resolveStoryProductionAnalysisStatus(args: {
   readonly format?: StoryProductionAnalysisFormat;
   readonly model?: string;
   readonly reasoningEffort?: string;
+  readonly analysisVersion?: StoryProductionAnalysisVersion;
 }): Promise<StoryProductionAnalysisStatus> {
   const source = await resolveStoryProductionAnalysisSource(args);
   const artifact = await readStoryProductionAnalysisArtifact(
@@ -419,16 +644,33 @@ export async function resolveStoryProductionAnalysisStatus(args: {
   }
   const expectedFingerprint =
     args.model && args.reasoningEffort
-      ? computeStoryProductionAnalysisFingerprint({
-          sourceContentFingerprint: source.sourceContentFingerprint,
-          sourceLineageFingerprint: source.sourceLineageFingerprint,
-          language: source.language,
-          locale: source.locale,
-          format: source.format,
-          sourceArtifactPath: source.sourceArtifactPath,
-          model: args.model,
-          reasoningEffort: args.reasoningEffort,
-        })
+      ? (args.analysisVersion ??
+          (artifact.schemaVersion ===
+          STORY_PRODUCTION_ANALYSIS_V2_SCHEMA_VERSION
+            ? "v2"
+            : "v1")) === "v2"
+        ? computeStoryProductionAnalysisV2Fingerprint({
+            sourceContentFingerprint: source.sourceContentFingerprint,
+            sourceLineageFingerprint: source.sourceLineageFingerprint,
+            language: source.language,
+            locale: source.locale,
+            format: source.format,
+            sourceArtifactPath: source.sourceArtifactPath,
+            model: args.model,
+            reasoningEffort: args.reasoningEffort,
+            affectPlanHash:
+              source.source.affectReferenceIndex?.planHash ?? null,
+          })
+        : computeStoryProductionAnalysisFingerprint({
+            sourceContentFingerprint: source.sourceContentFingerprint,
+            sourceLineageFingerprint: source.sourceLineageFingerprint,
+            language: source.language,
+            locale: source.locale,
+            format: source.format,
+            sourceArtifactPath: source.sourceArtifactPath,
+            model: args.model,
+            reasoningEffort: args.reasoningEffort,
+          })
       : artifact.analysisFingerprint;
   const analysisFingerprintMatches =
     artifact.analysisFingerprint === expectedFingerprint;
@@ -463,6 +705,10 @@ export async function resolveStoryProductionAnalysisStatus(args: {
       : {}),
     ...(artifact.updatedAt ? { analyzedAt: artifact.updatedAt } : {}),
     estimatedCost: artifact.estimatedCost,
+    analysisVersion:
+      artifact.schemaVersion === STORY_PRODUCTION_ANALYSIS_V2_SCHEMA_VERSION
+        ? "v2"
+        : "v1",
     ...(artifact ? { artifact } : {}),
   };
 }
@@ -471,6 +717,16 @@ export function buildStoryProductionInspectPayload(args: {
   readonly source: StoryProductionAnalysisSourceDescriptor;
   readonly status: StoryProductionAnalysisStatus;
 }): Record<string, unknown> {
+  const artifact = args.status.artifact;
+  const advisory =
+    artifact?.schemaVersion === STORY_PRODUCTION_ANALYSIS_V2_SCHEMA_VERSION
+      ? {
+          mode: artifact.analysisMode,
+          overallScore: artifact.qualitativeOverallScore,
+          verdict: artifact.qualitativeVerdict,
+          evidenceSummary: artifact.evidenceSummary,
+        }
+      : undefined;
   return {
     episode: args.source.episode,
     episodeSlug: args.source.episodeSlug,
@@ -495,8 +751,11 @@ export function buildStoryProductionInspectPayload(args: {
     reasoningEffort: args.status.reasoningEffort,
     analyzedAt: args.status.analyzedAt,
     estimatedCost: args.status.estimatedCost,
+    analysisVersion: args.status.analysisVersion,
+    ...(advisory ? { advisory } : {}),
     lineagePresent: args.source.lineagePresent,
     lineageCurrent: args.source.lineageCurrent,
+    deterministicContractResults: args.source.deterministicContractResult,
   };
 }
 

@@ -1,4 +1,5 @@
 import type { PromptCachePlan } from "@mediaforge/shared";
+import type { LocalizationHorrorAffectProjection } from "./localization-horror-affect-projection.js";
 
 export const languageCodes = ["en", "de", "es", "fr", "pt"] as const;
 export type LanguageCode = (typeof languageCodes)[number];
@@ -6,6 +7,8 @@ export type NarrationPace = "normal" | "fast";
 
 export type AdaptationMode = "faithful" | "retention-optimized";
 export type ProcessingMode = "batch" | "sync";
+export const horrorAffectRolloutModes = ["off", "shadow", "enforce"] as const;
+export type HorrorAffectRolloutMode = (typeof horrorAffectRolloutModes)[number];
 export type BatchCategory =
   | "text-localization"
   | "image-generation"
@@ -121,7 +124,10 @@ export interface LanguageProfile {
   readonly narratorLanguageName: string;
   readonly defaultNarrationPace: NarrationPace;
   readonly narrationPaces: Readonly<
-    Record<NarrationPace, Readonly<{ readonly full: number; readonly short: number }>>
+    Record<
+      NarrationPace,
+      Readonly<{ readonly full: number; readonly short: number }>
+    >
   >;
   readonly fullNarrationWpm: number;
   readonly shortNarrationWpm: number;
@@ -197,6 +203,7 @@ export interface StoryLocalizationConfig {
   readonly validateOnly: boolean;
   readonly verbose: boolean;
   readonly promptVersion: string;
+  readonly horrorAffectRolloutMode: HorrorAffectRolloutMode;
   readonly promptCacheMode: "disabled" | "implicit" | "explicit";
   readonly promptCacheShardCount: number | "auto";
   readonly debugOutputs?: boolean;
@@ -492,6 +499,11 @@ export interface StoryLocalizationCacheEntry {
   readonly parentArtifactContractBuildFingerprint?: string;
   readonly parentArtifactLocale?: string;
   readonly parentArtifactVariant?: "full";
+  readonly localizationAffectProjectionVersion?: string;
+  readonly parentHorrorAffectPlanHash?: string;
+  readonly localizationAffectProjectionHash?: string;
+  readonly localizationAffectSemanticIdsHash?: string;
+  readonly localizationAffectFidelityPolicyVersion?: string;
   readonly inputTokens?: number;
   readonly outputTokens?: number;
 }
@@ -616,6 +628,7 @@ export interface LocalBatchManifestItem {
     readonly id: string;
     readonly version: string;
   }[];
+  readonly localizationHorrorAffectProjection?: LocalizationHorrorAffectProjection;
   readonly configurationHash: string;
   readonly plannedOutputPaths: readonly string[];
   readonly estimatedInputTokens: number;

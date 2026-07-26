@@ -2,6 +2,9 @@ import { countSpokenWords } from "@mediaforge/shared";
 import { getLanguageRewriteSettings } from "./multilingual-story-localization-settings.js";
 import { LANGUAGE_PROFILE_REGISTRY_VERSION } from "./language-profiles.js";
 import { PROFESSIONAL_STORY_POLICY_VERSION } from "./professional-story-contracts.js";
+import { HORROR_AFFECT_STRATEGY_VERSION } from "./horror-affect-plan.js";
+import { LOCALIZATION_HORROR_AFFECT_PROJECTION_VERSION } from "./localization-horror-affect-projection.js";
+import { SHORT_HORROR_AFFECT_PROJECTION_VERSION } from "./short-horror-affect-projection.js";
 import {
   type StoryPromptModuleContext,
   type StoryPromptModuleDescriptor,
@@ -52,18 +55,37 @@ function languageSpecificUnicodeReminder(locale: string): string {
 }
 
 const CONTEXTUAL_LOCALE_LINES = [
-  { line: /security chain|Türkette|chaînette de sécurité|cadena de seguridad|corrente de segurança/iu, story: /chain|Türkette|chaînette|cadena|corrente/iu },
-  { line: /motel|front desk|reception|Rezeption|réception|recepción|recepção|Room 4|Zimmer 4|chambre 4/iu, story: /motel|hotel|front desk|reception|room\s*\d|zimmer\s*\d|chambre\s*\d/iu },
-  { line: /mountain road|Passstraße|route de montagne|carretera de montaña|estrada de montanha/iu, story: /mountain|pass road|Passstraße|montagne|montaña|montanha/iu },
-  { line: /threshold|Schwelle|seuil|umbral|soleira|invitation|Einladung|invitación|convite/iu, story: /threshold|Schwelle|seuil|umbral|soleira|invitation|Einladung|invitación|convite/iu },
+  {
+    line: /security chain|Türkette|chaînette de sécurité|cadena de seguridad|corrente de segurança/iu,
+    story: /chain|Türkette|chaînette|cadena|corrente/iu,
+  },
+  {
+    line: /motel|front desk|reception|Rezeption|réception|recepción|recepção|Room 4|Zimmer 4|chambre 4/iu,
+    story:
+      /motel|hotel|front desk|reception|room\s*\d|zimmer\s*\d|chambre\s*\d/iu,
+  },
+  {
+    line: /mountain road|Passstraße|route de montagne|carretera de montaña|estrada de montanha/iu,
+    story: /mountain|pass road|Passstraße|montagne|montaña|montanha/iu,
+  },
+  {
+    line: /threshold|Schwelle|seuil|umbral|soleira|invitation|Einladung|invitación|convite/iu,
+    story:
+      /threshold|Schwelle|seuil|umbral|soleira|invitation|Einladung|invitación|convite/iu,
+  },
 ] as const;
 
-export function filterLocaleInstructionsForStory(instructions: string, storyText: string): string {
+export function filterLocaleInstructionsForStory(
+  instructions: string,
+  storyText: string
+): string {
   return instructions
     .split("\n")
     .filter((line, index) => {
       if (index === 0 && /^##\s+/u.test(line.trim())) return false;
-      const contextual = CONTEXTUAL_LOCALE_LINES.find((entry) => entry.line.test(line));
+      const contextual = CONTEXTUAL_LOCALE_LINES.find((entry) =>
+        entry.line.test(line)
+      );
       return !contextual || contextual.story.test(storyText);
     })
     .join("\n")
@@ -123,7 +145,7 @@ const modules = [
   }),
   moduleDescriptor({
     id: "core-story-rewrite-task",
-    semanticVersion: "1.0.0",
+    semanticVersion: "2.0.0",
     owner: "narration",
     stage: "story-rewrite",
     variants: ["full", "short"],
@@ -146,12 +168,19 @@ const modules = [
                 "Write concrete scene narration, not an outline. Every paragraph must include an observable action, sensory detail, decision, discovery, or consequence.",
                 "The first 20 seconds must contain multiple distinct visual developments: a concrete impossible detail, visible action, and the central object or location.",
                 "Each scene must include at least three concrete anchors: location, character action, physical object, sensory detail, evidence, decision, consequence, or unresolved question.",
-                "Replace generic investigation summaries with escalating experiments: each experiment asks a clear question, uses a concrete object or action, produces an observable result, refines the rule, and makes the situation worse.",
-                "Every escalation beat must name the story-specific object, location, threat behavior, supernatural rule, or sensory motif causing the pressure.",
-                "Before the climax, establish what the protagonist wants emotionally: a person, promise, identity, duty, memory, belief, guilt, or shame.",
-                "The final decision must cost the protagonist something concrete: refusing, sacrificing, destroying, abandoning, betraying, accepting a loss, or choosing a painful rule over a comforting lie.",
-                "Preserve one internally consistent supernatural rule: trigger, effect, exceptions, limits, discovery path, and climax use. The climax must not silently change the rule.",
-                "End on a concrete image, action, sound, object, or contradiction. Do not append explanatory aftermath after the final reveal.",
+                ...(context.languageProfile.code === "en" &&
+                context.horrorAffectPlan
+                  ? [
+                      "Follow the supplied story-specific horror affect plan. Render its knowledge changes, choices, observable results, rule discoveries, tension changes, emotional cost, and payoff as natural scenes without printing plan labels.",
+                    ]
+                  : [
+                      "Replace generic investigation summaries with escalating experiments: each experiment asks a clear question, uses a concrete object or action, produces an observable result, refines the rule, and makes the situation worse.",
+                      "Every escalation beat must name the story-specific object, location, threat behavior, supernatural rule, or sensory motif causing the pressure.",
+                      "Before the climax, establish what the protagonist wants emotionally: a person, promise, identity, duty, memory, belief, guilt, or shame.",
+                      "The final decision must cost the protagonist something concrete: refusing, sacrificing, destroying, abandoning, betraying, accepting a loss, or choosing a painful rule over a comforting lie.",
+                      "Preserve one internally consistent supernatural rule: trigger, effect, exceptions, limits, discovery path, and climax use. The climax must not silently change the rule.",
+                      "End on a concrete image, action, sound, object, or contradiction. Do not append explanatory aftermath after the final reveal.",
+                    ]),
                 "Do not use abstract transition scaffolding such as 'the discovery changed the emotional stakes', 'at this point, the account accelerated', 'the purpose of the sound was', 'the story remains disturbing because', 'the final action worked because', 'a second proof confirmed', 'the central sign returned from an impossible location', or 'the environment reorganized around one person'.",
                 context.languageProfile.code === "en"
                   ? "Do not produce YouTube metadata, tags, chapters, scene plans, image prompts, rendering instructions, thumbnails, audio/TTS instructions, or provider operational notes."
@@ -275,6 +304,202 @@ const modules = [
             contractFingerprint: context.contractEnvelope.buildFingerprint,
           }
         : { kind: "full-story-contract", present: false },
+  }),
+  moduleDescriptor({
+    id: "horror-affect-plan",
+    semanticVersion: "1.0.0",
+    owner: "narration",
+    stage: "story-rewrite",
+    variants: ["full"],
+    dependencies: ["full-story-contract"],
+    conflicts: [],
+    order: 45,
+    applies: (context) =>
+      context.variant === "full" && context.horrorAffectPlan
+        ? { kind: "include" }
+        : {
+            kind: "skip",
+            reason: "no canonical-English Dark Truth horror affect plan",
+          },
+    render: (context) => {
+      if (context.variant !== "full" || !context.horrorAffectPlan) {
+        return {};
+      }
+      const plan = context.horrorAffectPlan;
+      const primaryQuestion = plan.openQuestions[0];
+      return {
+        user: {
+          heading: "Story-Specific Horror Strategy",
+          body: [
+            `Strategy: ${plan.strategyVersion}`,
+            `Audience promise: ${plan.primaryAudiencePromise}`,
+            `Primary question: ${primaryQuestion?.question ?? "none"}`,
+            `Question payoff: ${primaryQuestion?.answerOrResidualUncertainty ?? context.canonicalStoryContract.finalConsequence}`,
+            `Intensity policy: ${plan.intensityPolicy}; use local rises and partial releases rather than uniform maximum intensity.`,
+            "Beat directives (write scenes, never these labels):",
+            ...plan.beatAffects.map((beat) =>
+              [
+                `- [${beat.beatId}] ${beat.mode}/${beat.intensity}`,
+                `  knowledge: ${beat.audienceKnowledgeBefore} -> ${beat.audienceKnowledgeAfter}`,
+                `  action/result: ${beat.action} -> ${beat.observableResult}`,
+                `  question: open=${beat.openedQuestionIds.join(", ") || "none"}; advance=${beat.advancedQuestionIds.join(", ") || "none"}; pay-off=${beat.paidOffQuestionIds.join(", ") || "none"}`,
+                `  viable responses: before=${beat.viableResponseIdsBefore.join(", ") || "none"}; after=${beat.viableResponseIdsAfter.join(", ") || "none"}`,
+                `  rule update: ${(beat.ruleRefinement ?? beat.ruleEvidence.join(" | ")) || "none"}`,
+                `  causal predecessor: ${beat.continuity.cause}; protagonist goal: ${beat.continuity.goal}`,
+                ...(beat.reversalSetupBeatIds.length > 0
+                  ? [
+                      `  reversal setup: ${beat.reversalSetupBeatIds.join(", ")}`,
+                    ]
+                  : []),
+              ].join("\n")
+            ),
+            "Source-grounded response narrowing:",
+            ...(plan.responseOptions.length > 0
+              ? plan.responseOptions.map(
+                  (option) =>
+                    `- [${option.id}] ${option.action} fails at ${option.resolvedAtBeatId}; show this observable result: ${option.observableResult}`
+                )
+              : [
+                  "- No source-supported failed response is available; do not invent one.",
+                ]),
+            "Keep the primary information gap concrete. Partial answers must clarify the rule while making its consequence more threatening.",
+            "The protagonist must observe, decide, act, learn, and pay the established emotional cost. Atmosphere alone is not escalation.",
+            "Do not invent a new threat capability, response, clue, motive, rule, or twist to satisfy this strategy.",
+          ].join("\n"),
+        },
+      };
+    },
+    fingerprint: (context) => ({
+      kind: "horror-affect-plan",
+      strategyVersion: HORROR_AFFECT_STRATEGY_VERSION,
+      planHash:
+        context.variant === "full"
+          ? (context.horrorAffectPlan?.planHash ?? "absent")
+          : "absent",
+    }),
+  }),
+  moduleDescriptor({
+    id: "localization-horror-affect-projection",
+    semanticVersion: "1.0.0",
+    owner: "narration",
+    stage: "story-rewrite",
+    variants: ["full"],
+    dependencies: ["full-story-contract"],
+    conflicts: ["horror-affect-plan"],
+    order: 46,
+    applies: (context) =>
+      context.variant === "full" && context.localizationHorrorAffectProjection
+        ? { kind: "include" }
+        : {
+            kind: "skip",
+            reason: "localized horror affect projection not enforced",
+          },
+    render: (context) => {
+      if (
+        context.variant !== "full" ||
+        !context.localizationHorrorAffectProjection
+      ) {
+        return {};
+      }
+      const projection = context.localizationHorrorAffectProjection;
+      return {
+        user: {
+          heading: "Localized Horror Affect Preservation",
+          body: [
+            `Projection: ${projection.projectionVersion}; accepted parent plan: ${projection.parent.planHash}`,
+            "Preserve the following semantic cause-and-effect chain. Translate meaning, not English sentence shape.",
+            ...projection.transitions.map(
+              (transition) =>
+                `- [${transition.semanticId}] ${transition.kind} at ${transition.beatId}; invariant=${transition.invariant}; meaning=${transition.statement}; depends-on=${transition.dependsOnSemanticIds.join(", ") || "none"}; evidence=${transition.sourceRefs.join(", ")}`
+            ),
+            `Protected fact IDs: ${projection.protectedFacts.map((fact) => fact.id).join(", ") || "none"}`,
+            "Syntax, cadence, idiom, sentence boundaries, and paragraph rhythm may change naturally for the locale. Literal English wording is never required.",
+            "Do not add or replace a threat rule, immutable fact, response result, surprise, climax mechanic, or ending. A surprise may appear only when its supplied reversal setup IDs remain earlier in the narration.",
+            "Keep canonical identities and the supplied fictional rename map unchanged. Preserve the accepted final-line meaning as the last narrative consequence; do not append an explanation.",
+            "Return one affectPreservation transition entry for every supplied semantic ID. Cite paragraph or sentence evidence references and quote a short localized evidence fragment. Mark missing or contradicted transitions honestly.",
+            "introducedThreatRuleIds, introducedSurpriseIds, and introducedImmutableFactIds must remain empty; never invent content merely to satisfy those audit fields.",
+            "Never print semantic IDs, projection labels, evidence references, or audit fields inside narration.",
+          ].join("\n"),
+        },
+      };
+    },
+    fingerprint: (context) => ({
+      kind: "localization-horror-affect-projection",
+      projectionVersion: LOCALIZATION_HORROR_AFFECT_PROJECTION_VERSION,
+      projectionHash:
+        context.variant === "full"
+          ? (context.localizationHorrorAffectProjection?.projectionHash ??
+            "absent")
+          : "absent",
+      parentPlanHash:
+        context.variant === "full"
+          ? (context.localizationHorrorAffectProjection?.parent.planHash ??
+            "absent")
+          : "absent",
+      semanticIdsHash:
+        context.variant === "full"
+          ? (context.localizationHorrorAffectProjection?.semanticIdsHash ??
+            "absent")
+          : "absent",
+    }),
+  }),
+  moduleDescriptor({
+    id: "short-horror-affect-projection",
+    semanticVersion: "1.0.0",
+    owner: "narration",
+    stage: "story-rewrite",
+    variants: ["short"],
+    dependencies: [],
+    conflicts: [],
+    order: 46,
+    applies: (context) =>
+      context.variant === "short" && context.horrorAffectProjection
+        ? { kind: "include" }
+        : {
+            kind: "skip",
+            reason: "Short horror affect projection not enforced",
+          },
+    render: (context) => {
+      if (context.variant !== "short" || !context.horrorAffectProjection) {
+        return {};
+      }
+      const projection = context.horrorAffectProjection;
+      return {
+        user: {
+          heading: "Short Horror Affect Projection",
+          body: [
+            `Projection: ${projection.projectionVersion}; parent plan: ${projection.parent.planHash}`,
+            `Central question [${projection.chain.question.id}] (${projection.chain.question.openedAtBeatId} -> ${projection.chain.question.dueAtBeatId}): ${projection.chain.question.text}`,
+            `Rule [${projection.chain.rule.beatId}]: ${projection.chain.rule.statement}`,
+            ...projection.chain.proofSteps.map(
+              (step) =>
+                `${step.kind === "response" ? "Response" : "Proof"} [${step.responseId ?? step.beatId}] at ${step.beatId}: ${step.action} -> ${step.observableResult}; learns ${step.informationGained}`
+            ),
+            `Cost [${projection.chain.cost.beatId}]: ${projection.chain.cost.action} -> ${projection.chain.cost.observableResult}; stake: ${projection.chain.cost.stake}`,
+            `Accepted payoff [${projection.chain.payoff.beatId}]: ${projection.chain.payoff.acceptedConsequence}`,
+            `Required immutable fact IDs: ${projection.selectedIds.immutableFactIds.join(", ") || "none"}`,
+            "Compress this one chain in the listed source order. Do not replace, bridge, or reselect any question, rule, proof/response, cost, or payoff.",
+            "Render only natural narration. Never print projection labels or IDs.",
+          ].join("\n"),
+        },
+      };
+    },
+    fingerprint: (context) => ({
+      kind: "short-horror-affect-projection",
+      projectionVersion: SHORT_HORROR_AFFECT_PROJECTION_VERSION,
+      projectionHash:
+        context.variant === "short"
+          ? (context.horrorAffectProjection?.projectionHash ?? "absent")
+          : "absent",
+      parentPlanHash:
+        context.variant === "short"
+          ? (context.horrorAffectProjection?.parent.planHash ?? "absent")
+          : "absent",
+      selectedIdsHash:
+        context.variant === "short"
+          ? (context.horrorAffectProjection?.selectedIdsHash ?? "absent")
+          : "absent",
+    }),
   }),
   moduleDescriptor({
     id: "nonfiction-boundaries",
@@ -529,7 +754,13 @@ const modules = [
     dependencies: [],
     conflicts: [],
     order: 120,
-    applies: () => ({ kind: "include" }),
+    applies: (context) =>
+      context.variant === "full" && context.horrorAffectPlan
+        ? {
+            kind: "skip",
+            reason: "story-specific horror plan owns the full opening question",
+          }
+        : { kind: "include" },
     render: (context) => ({
       user: {
         heading: "Opening Requirements",
@@ -595,6 +826,11 @@ const modules = [
                 "Return preservedBeatIds containing every supplied canonical beat ID.",
                 "Return the localized mechanics verification fields without changing their meaning.",
                 "Return a localized title, thumbnail text, SEO description, tags, hashtags, and content disclosure. Do not return word-count or runtime claims.",
+                ...(context.localizationHorrorAffectProjection
+                  ? [
+                      "Return affectPreservation for every supplied semantic ID with evidence references; report missing or contradicted meaning instead of claiming preservation.",
+                    ]
+                  : []),
               ]
             : []),
         ].join("\n"),

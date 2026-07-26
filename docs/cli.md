@@ -113,6 +113,22 @@ npm run mediaforge -- images batch download --episode 001-demo --batch imgb-abc1
 npm run mediaforge -- images batch resume --episode 001-demo --json
 ```
 
+## Mathematics Renderer Fixtures
+
+`math renderer fixture natural-chalk` writes eight deterministic SVG golden
+fixture pairs and a hash manifest. Repository-local output is restricted to
+the ignored `.cache/math-pipeline/` workspace.
+
+```bash
+pnpm mediaforge math renderer fixture natural-chalk \
+  --output .cache/math-pipeline/natural-chalk-fixtures
+```
+
+The fixtures cover locale diacritics, repeated digits/operators, place value,
+fractions, equations, coordinate graphs, geometry, and an upper-grade formula.
+They use `math-semantic-chalk.v7`; a rectangular line wipe is not a supported
+fallback.
+
 ## Thumbnail Commands
 
 `thumbnails generate` creates exact localized full or short thumbnail artifacts and keeps them independent from render or upload steps.
@@ -242,7 +258,7 @@ npm run mediaforge -- stories pipeline inspect \
   --workflow wf_009-the-christmas-doll_20260701T000000Z_deadbeef
 ```
 
-`stories production status` summarizes workflow state into ready, retryable, blocked, waiting, and completed stage buckets grouped by canonical English, localization, shorts, scene-plan, images, audio, and render. When no persisted workflow manifest exists for an episode, it falls back to the current workspace artifacts.
+`stories production status` summarizes workflow state into ready, retryable, blocked, waiting, and completed stage buckets grouped by canonical English, localization, shorts, scene-plan, images, audio, and render. It also reports the local `horror-affect-plan.json` state (`missing`, `current`, `stale`, or `invalid`), rollout mode, plan hash, and first state reason without making a provider call. When no persisted workflow manifest exists for an episode, it falls back to the current workspace artifacts.
 
 ```bash
 npm run mediaforge -- stories production status \
@@ -432,8 +448,14 @@ npm run mediaforge -- stories analyze \
   --episode 014-hachishakusama-the-eight-foot-woman \
   --language en \
   --format full \
+  --analysis-version v2 \
   --json
 ```
+
+V1 remains the default. `--analysis-version v2` explicitly selects the
+shadow/advisory evidence-bearing contract. Human and JSON output include V2
+dimension scores, paragraph spans, affect-plan IDs, and evidence summaries;
+production thresholds remain unchanged.
 
 Options:
 
@@ -445,6 +467,7 @@ Options:
 - `--refresh`
 - `--model <model>`
 - `--reasoning-effort <low|medium|high>`
+- `--analysis-version <v1|v2>`
 - `--json`
 - `--verbose`
 
@@ -581,6 +604,7 @@ Story generation keys:
 - `MEDIAFORGE_OPENAI_STORY_REASONING_EFFORT` or `OPENAI_STORY_REASONING_EFFORT`
 - `MEDIAFORGE_OPENAI_STORY_MAX_OUTPUT_TOKENS` or `OPENAI_STORY_MAX_OUTPUT_TOKENS`
 - `MEDIAFORGE_OPENAI_STORY_RETRY_MAX_OUTPUT_TOKENS` or `OPENAI_STORY_RETRY_MAX_OUTPUT_TOKENS`
+- `MEDIAFORGE_HORROR_AFFECT_ROLLOUT_MODE` (`off`, `shadow`, or `enforce`; default `shadow`)
 - `MEDIAFORGE_OPENAI_LOCALIZATION_MODEL` or `OPENAI_LOCALIZATION_MODEL`
 - `MEDIAFORGE_OPENAI_LOCALIZATION_REASONING_EFFORT` or `OPENAI_LOCALIZATION_REASONING_EFFORT`
 - `MEDIAFORGE_OPENAI_LOCALIZATION_MAX_OUTPUT_TOKENS` or `OPENAI_LOCALIZATION_MAX_OUTPUT_TOKENS`

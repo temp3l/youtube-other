@@ -21,6 +21,7 @@ This subsystem handles structured English full rewrites, localized full rewrites
 - `packages/story-localization/src/story-generation-preflight.ts` owns deterministic token-budget preflight for narration model requests before sync or batch provider submission.
 - `packages/story-localization/src/canonical-story-contract.ts` is the typed canonical narrative boundary. `story-contract-preflight.ts` rejects malformed critical narrative fields before prompt compilation; legacy prose mechanics enter only through the adapter in the canonical-contract module.
 - `packages/story-localization/src/story-prompt-compiler.ts` is the canonical narration prompt compiler for full and short variants. It records section and event metrics, rejects contradictory task/schema contracts, and enforces hard prompt budgets.
+- `packages/story-localization/src/horror-affect-plan.ts` derives a versioned, source-grounded Dark Truth affect strategy from the canonical story contract, mechanics, and beats. It remains separate from `StoryIR`, adds no provider call, and is governed by the canonical-English full-story rollout mode.
 - `packages/story-localization/src/model-resolution.ts` owns configured/resolved/actual model comparison, approved fallback evaluation, and retryable provider-error classification.
 
 ## Ordered Stages
@@ -41,6 +42,7 @@ This subsystem handles structured English full rewrites, localized full rewrites
 6. Prompt construction
    Prompt builders pseudonymize model-facing source narration, facts, written messages, and StoryIR before any provider call. Typed module ownership checks reject metadata, audio/TTS, scene, image, render, thumbnail, and publication-owned prompt modules before any provider call.
    Narration, localization, metadata, scene planning, validation, and repair are discriminated task types. Narration-only schemas cannot request metadata. Only selected events and relevant locale policy fragments are emitted.
+   Eligible canonical English Dark Truth fiction can derive a deterministic `HorrorAffectPlan`: one concrete audience question, beat-level knowledge changes, source-supported response narrowing, rule discovery, local tension/release bands, emotional cost, causal continuity, and an earned payoff. `off` omits planning, `shadow` (the default) builds and validates the plan without changing provider request text or narration cache identity, and `enforce` emits the plan directives and includes their version/hash in the prompt fingerprint. The versioned plan envelope is persisted canonically at `<episode>/en/full/horror-affect-plan.json`; local inspection classifies it as `missing`, `current`, `stale`, or `invalid`, and sync/batch preparation reuses current bytes or refreshes non-current state before provider work. Unsupported response evidence is omitted or rejected locally rather than promoted into the prompt.
 7. Token-budget preflight
    The compiled request is checked locally against model context limits, model output limits, expected output requirements, schema overhead, and a safety reserve. Blocked requests do not call the provider.
 8. OpenAI structured generation
@@ -48,11 +50,17 @@ This subsystem handles structured English full rewrites, localized full rewrites
 9. Validation and repair
    Generated output is checked for schema validity, authoritative-name reuse, original-name leakage, message preservation, duration or word-count constraints, and filler or editorial drift. Repair prompts reuse the same rename map and do not choose fresh pseudonyms.
    Professional narration validation rejects meta-writing, editorial commentary, unresolved alternatives, generic character/evidence/stake placeholders, abstract escalation, and explanation after the final reveal. `READY_WITH_MINOR_EDITS` is advisory and blocks downstream work unless a content profile explicitly opts in.
+   Analysis V2 may authorize one bounded beat or beat-range affect repair only for a typed local omission or contradiction with valid paragraph evidence, cited existing modifiable beat IDs, and explicit protected facts. Missing central questions, unsupported rules, arbitrary climaxes, cross-story causal failures, and incompatible payoffs regenerate the full artifact or block at a Short parent boundary.
+   Source, lineage, accepted-ending, rename-map, canonical-identity, duration, narration-only, and affect-projection failures take precedence. Repair instructions lock parent hashes, immutable facts, unaffected beats, the selected Short/localization projection, word/duration budgets, and narration ownership; the complete applicable contract is rerun after the single repair attempt.
 10. Cache writes and artifact materialization
-   Cache entries, production artifacts, narration-only canonical JSON artifacts, compatibility markdown, JSON sidecars, and debug artifacts are persisted into episode output directories. Canonical lineage now includes the character-rename-map hash so dependent artifacts invalidate when the rename contract changes.
+    Cache entries, production artifacts, narration-only canonical JSON artifacts, compatibility markdown, JSON sidecars, and debug artifacts are persisted into episode output directories. Canonical lineage now includes the character-rename-map hash so dependent artifacts invalidate when the rename contract changes.
 
 11. Production analysis
-   `stories analyze` reads a persisted full story artifact, evaluates production readiness, writes `story-production-analysis.json` beside the target story, and exposes the current or stale state through inspect/status surfaces without regenerating story content.
+    `stories analyze` reads a persisted story artifact, evaluates production readiness, writes `story-production-analysis.json` beside the target story, and exposes the current or stale state through inspect/status surfaces without regenerating story content. V1 remains the default and readable contract. Operator-selected V2 adds evidence-bearing information-gap, response-narrowing, surprise, continuity, coping, tension-modulation, and presence dimensions in shadow/advisory mode. V2 validates paragraph spans and existing affect-plan semantic IDs; its scores cannot change production thresholds or override source, lineage, accepted-ending, rename-map, canonical-identity, duration, narration-only, or affect-projection failures.
+
+12. Controlled evaluation and rollout
+    `horror-evaluation-rollout.ts` provides an offline, versioned control plane rather than another story pipeline. It immutably persists the evaluation manifest before outcome import, derives separate seeded blind packets for full stories and Shorts, validates non-secret rater provenance, and accepts only explicitly imported aggregate audience metrics with a matching authorization record. It never fetches YouTube data.
+    Retention-curve area, early retention, average percentage viewed, and ending retention are story outcomes. CTR is title/thumbnail evidence unless those inputs were controlled. Undersized strata are exploratory. The decision artifact records every source-plan gate, confidence, regressions, cost, failures, stale-cache behavior, dissent, scope, and approval. Missing decisions or approval remain `shadow`; promotion cannot bypass a gate. Rollback emits only a configuration transition, retains evaluation artifacts, makes no provider call, and never rewrites accepted stories.
 
 ## Downstream Ownership Boundaries
 
@@ -97,6 +105,10 @@ This subsystem handles structured English full rewrites, localized full rewrites
 ## Full Localization Fidelity
 
 - Canonical full narration is projected into ordered `beat-NNN` semantic beats plus a validated story-mechanics contract before localization. Beat IDs remain structured evidence and are never rendered into narration.
+- In horror affect `enforce` mode, localized full narration also receives one compact versioned projection of the accepted question, rule, response/proof, cost, climax, and payoff IDs. It preserves semantic causality and protected facts while allowing locale-native syntax, cadence, idiom, and paragraph rhythm; it never creates a locale-specific plot or provider call.
+- Enforced localized output reports evidence references for every semantic ID. Missing responses, changed rules, unearned surprises, altered payoffs, new immutable facts, and parent-plan lineage mismatches fail deterministically before persistence. Source-fidelity and lineage failures remain hard failures.
+- The projection and parent-plan lineage are included in enforced prompt/schema/cache identity and localized result/fidelity sidecars. Staleness can distinguish projection version, parent plan, accepted canonical fingerprint, semantic-ID set, and projection-content changes.
+- `off` and `shadow` omit the projection and preserve the previous localized request schema, prompt fingerprint, and cache identity. Sync and batch localization compile through the same projection-aware prompt helper.
 - A completed canonical English artifact persists an accepted snapshot with `canonicalStoryId`, `canonicalRevision`, `canonicalContentHash`, and `canonicalContractHash`. Localized-full preflight rejects absent, unaccepted, or contract-mismatched parent snapshots. Snapshot fields remain optional only when reading legacy artifacts.
 - Localized structured output must declare preserved beat IDs, mechanics, emotional cost, climax/rule connection, final consequence, and localized metadata. Acceptance uses language-specific spoken-duration ratios, semantic beat coverage, named-character presence, English leakage, and metadata checks.
 - Generator preservation booleans are diagnostics only; deterministic validation computes acceptance independently. Spoken dialogue is localized naturally, while physical inscriptions, device text, proper names, and callback phrases have separate policies.
@@ -118,6 +130,13 @@ This subsystem handles structured English full rewrites, localized full rewrites
 - Full prompts admit at most 20 canonical events and 20 scene beats by default. Short prompts admit at most six of each. Dependency expansion is bounded and stable; impossible mandatory closures produce causal diagnostics instead of unlimited expansion.
 - Metrics include prompt characters, estimated tokens, selected, dependency-expanded, and emitted event counts, scene-beat count, prompt-section count, duplicate-section count, and largest section sizes.
 - Prompt inspection is provider-free: callers can inspect the compiled prompt metrics and redacted section-size report. A hard-budget failure produces an empty provider payload.
+
+## Short Horror Affect Projection
+
+- Canonical English Shorts reuse the accepted, persisted full-story horror affect plan. A strict deterministic projection keeps one question, one established rule, one source-backed response or proof, one costly climax, and the accepted payoff with their original affect-plan IDs.
+- `off` and `shadow` preserve the existing Short provider request, prompt fingerprint, adaptation-contract hash, and resume identity. `enforce` embeds the projection in the existing Short adaptation contract and includes its strategy, parent-plan, selected-ID, and projection hashes in prompt/cache identity.
+- Enforce mode rejects missing, stale, unsupported, or causally incomplete projections before Short generation. Repair and regeneration compile the same embedded projection, final-line contract, and character rename map instead of selecting a new chain.
+- Projection lineage is persisted in the existing Short JSON sidecar. Resume explains parent-plan, selected-chain-ID, and projection-content changes as stale cache dependencies.
 
 ## Semantic Validation And Repair
 

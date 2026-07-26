@@ -22,6 +22,12 @@ Configuration ownership lives in `@mediaforge/config`.
   `MEDIAFORGE_TTS_PROVIDER`, `MEDIAFORGE_TRANSCRIPTION_PROVIDER`, `MEDIAFORGE_TEXT_PROVIDER`, `MEDIAFORGE_OPENAI_COMPATIBLE_BASE_URL`, `MEDIAFORGE_OPENAI_COMPATIBLE_API_KEY`, and related organization or project fields
 - Story, localization, validator, and metadata models:
   `MEDIAFORGE_OPENAI_STORY_*`, `MEDIAFORGE_OPENAI_LOCALIZATION_*`, `MEDIAFORGE_OPENAI_SHORT_*`, `MEDIAFORGE_OPENAI_VALIDATOR_*`, `MEDIAFORGE_OPENAI_METADATA_*`, plus legacy `OPENAI_*` aliases supported in code
+- Horror affect rollout:
+  `MEDIAFORGE_HORROR_AFFECT_ROLLOUT_MODE=off|shadow|enforce`; defaults to `shadow`. Only `enforce` changes eligible canonical-English full, derived Short, or localized-full provider request text and narration cache identity.
+  Controlled evaluation does not mutate this setting. A scoped transition to
+  `enforce` or configuration-only rollback to `off` requires a hash-bound
+  decision artifact and matching explicit human approval. Missing product
+  decisions or approval remain `shadow`.
 - Two-phase image models:
   `MEDIAFORGE_OPENAI_IMAGE_REFERENCE_*`, `MEDIAFORGE_OPENAI_IMAGE_SCENE_*`, `MEDIAFORGE_OPENAI_IMAGE_SHORT_*`, and `MEDIAFORGE_OPENAI_IMAGE_VALIDATOR_*`
 - Whisper and transcription:
@@ -57,6 +63,7 @@ Configuration ownership lives in `@mediaforge/config`.
 - SQLite defaults to `./.mediaforge.sqlite`
 - Remote rendering is disabled by default
 - Remote render fallback to local is enabled by default
+- Horror affect rollout defaults to `shadow`
 - Default models visible in code today:
   - story: `gpt-5.6-sol`
   - localization: `gpt-5.6-terra`
@@ -116,6 +123,7 @@ Cache effectiveness must be measured from input, cached-input, output, and
 reasoning usage. Grouping by an identical ordered reference bundle is the correct
 scene strategy; merely submitting references before randomly grouped scenes does
 not maximize reuse.
+
 - CLI warning-only guardrails:
   - short max-output-tokens above `2000`
   - validator max-output-tokens above `3000`

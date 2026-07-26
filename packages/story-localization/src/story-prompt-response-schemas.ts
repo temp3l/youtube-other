@@ -12,14 +12,15 @@ import {
   type LanguageCode,
   type ParsedSourceStory,
 } from "./story-localization.types.js";
-import {
-  normalizeNarrationOnlyFullRewriteResponseContent,
-} from "./localized-content-text.js";
+import { normalizeNarrationOnlyFullRewriteResponseContent } from "./localized-content-text.js";
+import { localizationAffectEvidenceSchema } from "./localization-horror-affect-projection.js";
 import { stableSerialize } from "./stable-json.js";
 import { type StoryPromptSchemaDescriptor } from "./story-prompt-modules.js";
 
 export const FULL_NARRATION_RESPONSE_SCHEMA_VERSION =
   "full-narration-response-schema-v4";
+export const LOCALIZED_AFFECT_NARRATION_RESPONSE_SCHEMA_VERSION =
+  "localized-affect-narration-response-schema-v1";
 export const SHORT_REWRITE_RESPONSE_SCHEMA_VERSION =
   "short-rewrite-response-schema-v1";
 export const SHORT_NARRATION_RESPONSE_SCHEMA_VERSION =
@@ -35,20 +36,29 @@ export const narrationOnlyFullRewriteResponseSchema = z
       .strict(),
     targetNarrationWpm: z.number().int().min(120).max(220),
     preservedBeatIds: z.array(z.string().regex(/^beat-\d{3}$/u)).nullable(),
-    mechanics: z.object({
-      supernaturalRule: z.string().trim().min(1),
-      emotionalCost: z.string().trim().min(1),
-      climaxRuleConnection: z.string().trim().min(1),
-      finalConsequence: z.string().trim().min(1),
-    }).strict().nullable(),
-    localizedMetadata: z.object({
-      title: z.string().trim().min(1),
-      thumbnailText: z.string().trim().min(1).max(50),
-      seoDescription: z.string().trim().min(1),
-      tags: z.array(z.string().trim().min(1)).min(3).max(20),
-      hashtags: z.array(z.string().regex(/^#[^\s#]+$/u)).min(1).max(8),
-      contentDisclosure: z.string().trim().min(1),
-    }).strict().nullable(),
+    mechanics: z
+      .object({
+        supernaturalRule: z.string().trim().min(1),
+        emotionalCost: z.string().trim().min(1),
+        climaxRuleConnection: z.string().trim().min(1),
+        finalConsequence: z.string().trim().min(1),
+      })
+      .strict()
+      .nullable(),
+    localizedMetadata: z
+      .object({
+        title: z.string().trim().min(1),
+        thumbnailText: z.string().trim().min(1).max(50),
+        seoDescription: z.string().trim().min(1),
+        tags: z.array(z.string().trim().min(1)).min(3).max(20),
+        hashtags: z
+          .array(z.string().regex(/^#[^\s#]+$/u))
+          .min(1)
+          .max(8),
+        contentDisclosure: z.string().trim().min(1),
+      })
+      .strict()
+      .nullable(),
     preservationChecklist: preservationChecklistSchema,
     diagnostics: fullRewriteGenerationDiagnosticsSchema,
   })
@@ -58,13 +68,26 @@ export type NarrationOnlyFullRewriteResponse = z.infer<
   typeof narrationOnlyFullRewriteResponseSchema
 >;
 
+export const localizedAffectNarrationResponseSchema =
+  narrationOnlyFullRewriteResponseSchema
+    .extend({
+      affectPreservation: localizationAffectEvidenceSchema,
+    })
+    .strict();
+
+export type LocalizedAffectNarrationResponse = z.infer<
+  typeof localizedAffectNarrationResponseSchema
+>;
+
 export const shortNarrationResponseSchema = z
   .object({
     narration: z.string().min(1),
   })
   .strict();
 
-export type ShortNarrationResponse = z.infer<typeof shortNarrationResponseSchema>;
+export type ShortNarrationResponse = z.infer<
+  typeof shortNarrationResponseSchema
+>;
 
 export const legacyMixedBatchStoryResultSchema = z
   .object({
@@ -104,6 +127,16 @@ export interface NormalizedNarrationOnlyBatchResult {
   readonly deprecationDiagnostics: readonly string[];
 }
 
+export function parseLocalizedAffectNarrationResponse(
+  value: unknown
+): LocalizedAffectNarrationResponse {
+  const parsed = localizedAffectNarrationResponseSchema.parse(value);
+  return {
+    ...normalizeNarrationOnlyFullRewriteResponseContent(parsed),
+    affectPreservation: parsed.affectPreservation,
+  };
+}
+
 function descriptorFingerprint(
   name: string,
   version: string,
@@ -127,6 +160,18 @@ export const fullNarrationResponseSchemaDescriptor: StoryPromptSchemaDescriptor 
       "full_narration_story_package",
       FULL_NARRATION_RESPONSE_SCHEMA_VERSION,
       narrationOnlyFullRewriteResponseSchema
+    ),
+  };
+
+export const localizedAffectNarrationResponseSchemaDescriptor: StoryPromptSchemaDescriptor =
+  {
+    name: "localized_full_affect_narration_package",
+    version: LOCALIZED_AFFECT_NARRATION_RESPONSE_SCHEMA_VERSION,
+    schema: localizedAffectNarrationResponseSchema,
+    fingerprint: descriptorFingerprint(
+      "localized_full_affect_narration_package",
+      LOCALIZED_AFFECT_NARRATION_RESPONSE_SCHEMA_VERSION,
+      localizedAffectNarrationResponseSchema
     ),
   };
 
@@ -261,15 +306,20 @@ export function adaptNarrationOnlyFullToLegacyRendererPackage(args: {
       : {}),
     narrationParagraphs: args.response.full.narrationParagraphs,
     thumbnailText:
-      localizedMetadata?.thumbnailText ?? metadata.thumbnailText ?? args.sourceStory.title,
+      localizedMetadata?.thumbnailText ??
+      metadata.thumbnailText ??
+      args.sourceStory.title,
     contentDisclosure:
       localizedMetadata?.contentDisclosure ??
       metadata.contentDisclosure ??
       "Narration-only compatibility rendering.",
     seoDescription:
-      localizedMetadata?.seoDescription ?? metadata.seoDescription ?? args.sourceStory.title,
+      localizedMetadata?.seoDescription ??
+      metadata.seoDescription ??
+      args.sourceStory.title,
     tags:
-      localizedMetadata?.tags ?? (metadata.tags.length > 0
+      localizedMetadata?.tags ??
+      (metadata.tags.length > 0
         ? metadata.tags
         : ["story", "narration", "compatibility"]),
     hashtags:

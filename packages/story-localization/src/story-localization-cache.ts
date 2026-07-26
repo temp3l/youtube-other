@@ -21,7 +21,10 @@ import {
   type LanguageCode,
   type StoryLocalizationCacheEntry,
 } from "./story-localization.types.js";
-import { LOCALIZATION_FIDELITY_POLICY_VERSION } from "./localization-fidelity.js";
+import {
+  LOCALIZATION_AFFECT_FIDELITY_POLICY_VERSION,
+  LOCALIZATION_FIDELITY_POLICY_VERSION,
+} from "./localization-fidelity.js";
 
 export const STORY_QUALITY_GATE_VERSION = "story-quality-gate-v4";
 export const PROTECTED_ELEMENTS_VERSION = "protected-elements-v2";
@@ -60,6 +63,20 @@ const cacheEntrySchema = z.object({
   parentArtifactContractBuildFingerprint: z.string().min(1).optional(),
   parentArtifactLocale: z.string().min(1).optional(),
   parentArtifactVariant: z.literal("full").optional(),
+  localizationAffectProjectionVersion: z.string().min(1).optional(),
+  parentHorrorAffectPlanHash: z
+    .string()
+    .regex(/^[a-f0-9]{64}$/u)
+    .optional(),
+  localizationAffectProjectionHash: z
+    .string()
+    .regex(/^[a-f0-9]{64}$/u)
+    .optional(),
+  localizationAffectSemanticIdsHash: z
+    .string()
+    .regex(/^[a-f0-9]{64}$/u)
+    .optional(),
+  localizationAffectFidelityPolicyVersion: z.string().min(1).optional(),
   inputTokens: z.number().int().nonnegative().optional(),
   outputTokens: z.number().int().nonnegative().optional(),
 });
@@ -172,7 +189,13 @@ export async function readLocalizationCacheEntry(
     !raw.protectedElementsVersion ||
     (raw.language !== "en" &&
       raw.localizationFidelityPolicyVersion !==
-        LOCALIZATION_FIDELITY_POLICY_VERSION)
+        LOCALIZATION_FIDELITY_POLICY_VERSION) ||
+    (raw.localizationAffectProjectionVersion !== undefined &&
+      (!raw.parentHorrorAffectPlanHash ||
+        !raw.localizationAffectProjectionHash ||
+        !raw.localizationAffectSemanticIdsHash ||
+        raw.localizationAffectFidelityPolicyVersion !==
+          LOCALIZATION_AFFECT_FIDELITY_POLICY_VERSION))
   ) {
     return null;
   }

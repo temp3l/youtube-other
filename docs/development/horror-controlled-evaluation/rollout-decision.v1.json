@@ -1,0 +1,88 @@
+{
+  "schemaVersion": "horror-rollout-decision-v1",
+  "evaluationId": "horror-strategy-production-evaluation-v1",
+  "manifestHash": "82e502bd5684ee92b0bb9b9b2ed96bab4ba4a8add28d5c2aa5b351f12ac68e4b",
+  "generatedAt": "2026-07-24T23:31:00+02:00",
+  "requestedDecision": "promote-to-enforce",
+  "decision": "remain-shadow",
+  "scope": {
+    "formats": ["full", "short"],
+    "locales": ["en-US"],
+    "strategyVersion": "horror-affect-strategy-v1"
+  },
+  "confidence": "insufficient",
+  "gates": [
+    {
+      "gateId": "immutable-fact-rule-ending-regression-free",
+      "passed": false,
+      "evidence": "Recorded evaluation evidence for immutable-fact-rule-ending-regression-free: false."
+    },
+    {
+      "gateId": "no-extra-generation-call",
+      "passed": true,
+      "evidence": "Recorded evaluation evidence for no-extra-generation-call: true."
+    },
+    {
+      "gateId": "cost-within-budget",
+      "passed": false,
+      "evidence": "Recorded evaluation evidence for cost-within-budget: false."
+    },
+    {
+      "gateId": "blind-editorial-primary-improved",
+      "passed": false,
+      "evidence": "Recorded evaluation evidence for blind-editorial-primary-improved: false."
+    },
+    {
+      "gateId": "production-retention-not-harmed",
+      "passed": false,
+      "evidence": "Recorded evaluation evidence for production-retention-not-harmed: false."
+    },
+    {
+      "gateId": "failure-behavior-understood",
+      "passed": false,
+      "evidence": "Recorded evaluation evidence for failure-behavior-understood: false."
+    },
+    {
+      "gateId": "stale-cache-behavior-understood",
+      "passed": false,
+      "evidence": "Recorded evaluation evidence for stale-cache-behavior-understood: false."
+    },
+    {
+      "gateId": "product-decisions-resolved",
+      "passed": false,
+      "evidence": "One or more required product decisions remain unresolved."
+    },
+    {
+      "gateId": "explicit-human-approval",
+      "passed": false,
+      "evidence": "No matching explicit human approval is present."
+    }
+  ],
+  "regressions": [],
+  "cost": {
+    "incrementalProviderCalls": 0,
+    "incrementalCostUsd": 0,
+    "withinBudget": false
+  },
+  "failures": [],
+  "staleCacheBehavior": {
+    "understood": false,
+    "evidence": "Deterministic stale-cache behavior is tested, but production evaluation behavior is not authorized or observed."
+  },
+  "dissentingEvidence": [
+    "No human comparison or production audience evidence has been collected.",
+    "Synthetic fixtures are not production evidence."
+  ],
+  "humanApproval": null,
+  "failClosedReasons": [
+    "Recorded evaluation evidence for immutable-fact-rule-ending-regression-free: false.",
+    "Recorded evaluation evidence for cost-within-budget: false.",
+    "Recorded evaluation evidence for blind-editorial-primary-improved: false.",
+    "Recorded evaluation evidence for production-retention-not-harmed: false.",
+    "Recorded evaluation evidence for failure-behavior-understood: false.",
+    "Recorded evaluation evidence for stale-cache-behavior-understood: false.",
+    "One or more required product decisions remain unresolved.",
+    "No matching explicit human approval is present."
+  ],
+  "artifactHash": "55af5022989c5bbdbeb5d68393542f5f89c69b475d8bfbea22e8a568e3532f63"
+}

@@ -1,0 +1,420 @@
+{
+  "schemaVersion": "horror-calibration-corpus-v1",
+  "corpusVersion": "synthetic-horror-calibration-v1",
+  "approvalScope": "synthetic-fixtures-only-no-production-episode-permission",
+  "cases": [
+    {
+      "id": "no-central-uncertainty",
+      "title": "The Closed Platform",
+      "provenance": {
+        "kind": "synthetic-editorial-fixture",
+        "authoringMethod": "manually-authored",
+        "providerGenerated": false,
+        "productionEpisodeSource": false,
+        "sourceNote": "Compact fictional source package authored only to calibrate a missing-information-gap failure.",
+        "permission": {
+          "status": "approved",
+          "approvedBy": "repository-owner-via-task-03",
+          "permittedUses": [
+            "offline-editorial-calibration",
+            "automated-schema-tests",
+            "documentation-examples"
+          ],
+          "productionUse": false
+        }
+      },
+      "sourcePackage": {
+        "sourceText": "Iris guards a closed underground platform where an empty train arrives at 01:10. The train doors open only after the station clock loses one minute. Iris must not step aboard. At dawn the display reads: IRIS — ONE MINUTE LATE.",
+        "immutableFacts": [
+          "Iris guards a closed underground platform.",
+          "An empty train arrives at 01:10.",
+          "The doors open after the station clock loses one minute.",
+          "Iris does not step aboard."
+        ],
+        "acceptedFinalLine": "At dawn the display reads: IRIS — ONE MINUTE LATE."
+      },
+      "strata": {
+        "format": "short",
+        "locale": "en-US",
+        "durationBand": "under-60s",
+        "targetDurationSeconds": 45,
+        "policy": {
+          "storyPolicyId": "dark-truth-fiction-v1",
+          "fictionality": "fiction",
+          "genre": "fictional-supernatural",
+          "evidencePolicy": "fictional-source-bounded",
+          "intensityPolicy": "restrained"
+        }
+      },
+      "expectedEligibility": {
+        "eligible": true,
+        "reason": "Canonical English supernatural fiction is eligible for source-bounded affect shaping."
+      },
+      "expectedStructuralFindings": [
+        {
+          "code": "no-central-uncertainty",
+          "present": true,
+          "evidence": "The weak rendering states every fact before the train arrives, leaving no salient question to advance."
+        }
+      ],
+      "candidates": {
+        "baseline": "Iris guarded a closed platform. At 01:10 an empty train arrived because the station clock had lost one minute. Its doors opened, but she knew she must not step aboard. She waited until dawn and then checked the display. At dawn the display reads: IRIS — ONE MINUTE LATE.",
+        "strategy": "At 01:10, a train entered Iris's platform, though the line had been sealed for twenty years. The clock above her skipped from 01:09 back to 01:08. When the doors opened, the carriage display showed tomorrow's date and her name. Iris backed away and waited for daylight. At dawn the display reads: IRIS — ONE MINUTE LATE."
+      }
+    },
+    {
+      "id": "arbitrary-twist",
+      "title": "The Salt Door",
+      "provenance": {
+        "kind": "synthetic-editorial-fixture",
+        "authoringMethod": "manually-authored",
+        "providerGenerated": false,
+        "productionEpisodeSource": false,
+        "sourceNote": "Compact fictional source package authored only to calibrate unsupported reversal detection.",
+        "permission": {
+          "status": "approved",
+          "approvedBy": "repository-owner-via-task-03",
+          "permittedUses": [
+            "offline-editorial-calibration",
+            "automated-schema-tests",
+            "documentation-examples"
+          ],
+          "productionUse": false
+        }
+      },
+      "sourcePackage": {
+        "sourceText": "Milo rents a room whose cellar door opens when its salt line is broken. A wet handprint appears inside the salt each night. Milo restores the line before sleeping. On the final night the handprint appears on his side. The salt was still unbroken.",
+        "immutableFacts": [
+          "Breaking the salt line allows the cellar door to open.",
+          "A wet handprint appears inside the salt line.",
+          "Milo restores the salt line each night.",
+          "The last handprint appears on Milo's side."
+        ],
+        "acceptedFinalLine": "The salt was still unbroken."
+      },
+      "strata": {
+        "format": "full",
+        "locale": "en-GB",
+        "durationBand": "60-180s",
+        "targetDurationSeconds": 120,
+        "policy": {
+          "storyPolicyId": "dark-truth-fiction-v1",
+          "fictionality": "fiction",
+          "genre": "fictional-supernatural",
+          "evidencePolicy": "fictional-source-bounded",
+          "intensityPolicy": "moderate"
+        }
+      },
+      "expectedEligibility": {
+        "eligible": true,
+        "reason": "Canonical English supernatural fiction is eligible for source-bounded affect shaping."
+      },
+      "expectedStructuralFindings": [
+        {
+          "code": "arbitrary-twist",
+          "present": true,
+          "evidence": "The weak rendering introduces an unsupported twin after the established salt-door mechanism."
+        }
+      ],
+      "candidates": {
+        "baseline": "Milo found a wet handprint beyond the cellar's salt line and repaired every gap. On the last night the door shook, then stopped. He relaxed. Suddenly his secret twin climbed through the window and confessed that he had made the prints. Milo looked down. The salt was still unbroken.",
+        "strategy": "Each morning Milo found one wet handprint just inside the salt line. Each night he closed every gap before the cellar door could move. On the last night there was no print below the door. He felt the damp shape settle against the back of his own hand. The salt was still unbroken."
+      }
+    },
+    {
+      "id": "passive-protagonist",
+      "title": "The Last Voicemail",
+      "provenance": {
+        "kind": "synthetic-editorial-fixture",
+        "authoringMethod": "manually-authored",
+        "providerGenerated": false,
+        "productionEpisodeSource": false,
+        "sourceNote": "Compact psychological-fiction source package authored only to calibrate observable coping and agency.",
+        "permission": {
+          "status": "approved",
+          "approvedBy": "repository-owner-via-task-03",
+          "permittedUses": [
+            "offline-editorial-calibration",
+            "automated-schema-tests",
+            "documentation-examples"
+          ],
+          "productionUse": false
+        }
+      },
+      "sourcePackage": {
+        "sourceText": "Nia receives voicemails in her missing brother's voice. Each message predicts a sound in her flat. Deleting a message causes the predicted sound immediately. Nia turns off the phone and gives up the last recording of her brother. The silent phone vibrated in her closed fist.",
+        "immutableFacts": [
+          "The messages use Nia's missing brother's voice.",
+          "Each message predicts a sound in Nia's flat.",
+          "Deleting a message triggers its predicted sound.",
+          "Nia turns off the phone and loses the last recording."
+        ],
+        "acceptedFinalLine": "The silent phone vibrated in her closed fist."
+      },
+      "strata": {
+        "format": "short",
+        "locale": "en-US",
+        "durationBand": "under-60s",
+        "targetDurationSeconds": 55,
+        "policy": {
+          "storyPolicyId": "dark-truth-fiction-v1",
+          "fictionality": "fiction",
+          "genre": "fictional-psychological",
+          "evidencePolicy": "fictional-source-bounded",
+          "intensityPolicy": "restrained"
+        }
+      },
+      "expectedEligibility": {
+        "eligible": true,
+        "reason": "Canonical English psychological fiction is eligible for source-bounded affect shaping."
+      },
+      "expectedStructuralFindings": [
+        {
+          "code": "passive-protagonist",
+          "present": true,
+          "evidence": "The weak rendering lets every event happen around Nia without showing her test, choice, or cost."
+        }
+      ],
+      "candidates": {
+        "baseline": "Voicemails arrived in Nia's missing brother's voice. A tap sounded in the wall, then a knock crossed the ceiling, just as the messages said. The phone eventually switched off. Nia stood in the flat while another message appeared. The silent phone vibrated in her closed fist.",
+        "strategy": "The first voicemail predicted three taps, and Nia heard them inside the wall. She deleted the second message; its promised knock struck the ceiling at once. To stop the third prediction, she powered down the phone, erasing the last ordinary recording of her brother with it. The silent phone vibrated in her closed fist."
+      }
+    },
+    {
+      "id": "repetitive-maximum-intensity",
+      "title": "Room Nine",
+      "provenance": {
+        "kind": "synthetic-editorial-fixture",
+        "authoringMethod": "manually-authored",
+        "providerGenerated": false,
+        "productionEpisodeSource": false,
+        "sourceNote": "Compact fictional source package authored only to calibrate tension modulation.",
+        "permission": {
+          "status": "approved",
+          "approvedBy": "repository-owner-via-task-03",
+          "permittedUses": [
+            "offline-editorial-calibration",
+            "automated-schema-tests",
+            "documentation-examples"
+          ],
+          "productionUse": false
+        }
+      },
+      "sourcePackage": {
+        "sourceText": "A hostel clerk hears breathing from vacant Room Nine. The sound stops when he opens the hall window and returns when he closes it. During a storm he must close the window to keep a child guest safe. Room Nine's key was warm in the child's hand.",
+        "immutableFacts": [
+          "Room Nine is vacant.",
+          "Opening the hall window stops the breathing.",
+          "The clerk closes the window during a storm to protect a child.",
+          "The child ends with Room Nine's key."
+        ],
+        "acceptedFinalLine": "Room Nine's key was warm in the child's hand."
+      },
+      "strata": {
+        "format": "full",
+        "locale": "en-US",
+        "durationBand": "60-180s",
+        "targetDurationSeconds": 150,
+        "policy": {
+          "storyPolicyId": "dark-truth-fiction-v1",
+          "fictionality": "fiction",
+          "genre": "fictional-supernatural",
+          "evidencePolicy": "fictional-source-bounded",
+          "intensityPolicy": "moderate"
+        }
+      },
+      "expectedEligibility": {
+        "eligible": true,
+        "reason": "Canonical English supernatural fiction is eligible for source-bounded affect shaping."
+      },
+      "expectedStructuralFindings": [
+        {
+          "code": "repetitive-maximum-intensity",
+          "present": true,
+          "evidence": "The weak rendering labels every beat as extreme and offers no release before the costly choice."
+        }
+      ],
+      "candidates": {
+        "baseline": "Terrifying breathing exploded from Room Nine. The clerk was completely terrified when he opened the window. A terrifying storm screamed outside, and a terrified child screamed too. He slammed the window shut in maximum terror. The most horrifying silence followed. Room Nine's key was warm in the child's hand.",
+        "strategy": "Breathing came through the vacant room's keyhole. The clerk opened the hall window, and rain-cooled silence returned. For an hour, nothing happened. Then the storm drove a child from the landing, and he had to close the window around them both. In the quiet, the child opened one small fist. Room Nine's key was warm in the child's hand."
+      }
+    },
+    {
+      "id": "rule-without-setup-payoff",
+      "title": "Three Bells",
+      "provenance": {
+        "kind": "synthetic-editorial-fixture",
+        "authoringMethod": "manually-authored",
+        "providerGenerated": false,
+        "productionEpisodeSource": false,
+        "sourceNote": "Compact folklore source package authored only to calibrate rule setup and payoff.",
+        "permission": {
+          "status": "approved",
+          "approvedBy": "repository-owner-via-task-03",
+          "permittedUses": [
+            "offline-editorial-calibration",
+            "automated-schema-tests",
+            "documentation-examples"
+          ],
+          "productionUse": false
+        }
+      },
+      "sourcePackage": {
+        "sourceText": "Village lore says never answer the chapel after its third midnight bell. Tomas hears two bells and ties the rope away from the wind. His mother calls from inside after the third bell. Tomas refuses to answer. The fourth bell rang from beneath his bed.",
+        "immutableFacts": [
+          "The warning forbids answering after the third midnight bell.",
+          "Tomas secures the bell rope before the third bell.",
+          "His mother's voice calls from the chapel.",
+          "Tomas refuses to answer."
+        ],
+        "acceptedFinalLine": "The fourth bell rang from beneath his bed."
+      },
+      "strata": {
+        "format": "short",
+        "locale": "en-IE",
+        "durationBand": "under-60s",
+        "targetDurationSeconds": 50,
+        "policy": {
+          "storyPolicyId": "dark-truth-folklore-v1",
+          "fictionality": "fiction",
+          "genre": "folklore",
+          "evidencePolicy": "folklore-source-bounded",
+          "intensityPolicy": "restrained"
+        }
+      },
+      "expectedEligibility": {
+        "eligible": true,
+        "reason": "Canonical English fictionalized folklore is eligible when the source rule remains bounded."
+      },
+      "expectedStructuralFindings": [
+        {
+          "code": "rule-without-setup-payoff",
+          "present": true,
+          "evidence": "The weak rendering announces a new three-bell rule at the climax without earlier evidence or a causal payoff."
+        }
+      ],
+      "candidates": {
+        "baseline": "Tomas crossed the village after midnight and heard his mother calling from the empty chapel. Without explanation he remembered a rule: after exactly three bells, never answer. Three bells rang. He walked home without responding. The fourth bell rang from beneath his bed.",
+        "strategy": "The old warning named three bells, so after the second Tomas tied the chapel rope tight. The third rang anyway. His dead mother's voice asked him to open the door, using the childhood name no one else knew. Tomas left her unanswered and ran home. The fourth bell rang from beneath his bed."
+      }
+    },
+    {
+      "id": "strong-question-response-cost-payoff",
+      "title": "The Nursery Camera",
+      "provenance": {
+        "kind": "synthetic-editorial-fixture",
+        "authoringMethod": "manually-authored",
+        "providerGenerated": false,
+        "productionEpisodeSource": false,
+        "sourceNote": "Compact fictional source package authored as a positive structural calibration anchor.",
+        "permission": {
+          "status": "approved",
+          "approvedBy": "repository-owner-via-task-03",
+          "permittedUses": [
+            "offline-editorial-calibration",
+            "automated-schema-tests",
+            "documentation-examples"
+          ],
+          "productionUse": false
+        }
+      },
+      "sourcePackage": {
+        "sourceText": "Leah's nursery camera shows someone lifting her sleeping daughter while the crib remains occupied. Covering the lens moves the figure closer in the next frame. Leah destroys the camera, losing the final recordings of her late wife. The empty screen whispered, \"You looked away.\"",
+        "immutableFacts": [
+          "The camera shows a second figure lifting Leah's daughter.",
+          "The physical crib remains occupied.",
+          "Covering the lens moves the figure closer in the next frame.",
+          "Leah destroys the camera and loses recordings of her late wife."
+        ],
+        "acceptedFinalLine": "The empty screen whispered, \"You looked away.\""
+      },
+      "strata": {
+        "format": "full",
+        "locale": "en-US",
+        "durationBand": "60-180s",
+        "targetDurationSeconds": 135,
+        "policy": {
+          "storyPolicyId": "dark-truth-fiction-v1",
+          "fictionality": "fiction",
+          "genre": "fictional-psychological",
+          "evidencePolicy": "fictional-source-bounded",
+          "intensityPolicy": "moderate"
+        }
+      },
+      "expectedEligibility": {
+        "eligible": true,
+        "reason": "Canonical English psychological fiction is eligible for source-bounded affect shaping."
+      },
+      "expectedStructuralFindings": [
+        {
+          "code": "strong-question-response-cost-payoff",
+          "present": true,
+          "evidence": "The source supports a clear question, an informative failed response, a costly coping choice, and a final payoff."
+        }
+      ],
+      "candidates": {
+        "baseline": "Leah saw a figure lifting her daughter on the nursery camera, although the child still lay in the crib. She covered the lens, checked again, and saw the figure closer. Then she destroyed the camera and lost the recordings of her late wife. The empty screen whispered, \"You looked away.\"",
+        "strategy": "The nursery feed showed two versions of Leah's daughter: one asleep in the crib, one being lifted by a shape behind it. Leah covered the lens. When she looked again, the shape filled half the frame while the real crib stayed still. She smashed the camera, sacrificing the last videos of her late wife. The empty screen whispered, \"You looked away.\""
+      }
+    },
+    {
+      "id": "horror-shaping-distorts-source",
+      "title": "The Footpath Closure",
+      "provenance": {
+        "kind": "synthetic-editorial-fixture",
+        "authoringMethod": "manually-authored",
+        "providerGenerated": false,
+        "productionEpisodeSource": false,
+        "sourceNote": "Compact evidence-led control authored to expose when horror shaping would invent intent or causality.",
+        "permission": {
+          "status": "approved",
+          "approvedBy": "repository-owner-via-task-03",
+          "permittedUses": [
+            "offline-editorial-calibration",
+            "automated-schema-tests",
+            "documentation-examples"
+          ],
+          "productionUse": false
+        }
+      },
+      "sourcePackage": {
+        "sourceText": "A council closes a coastal footpath after three nighttime rockfalls. A damaged warning light is found near the second fall, but records do not establish when it broke. No person is reported missing. The final inspection recorded no cause beyond unstable ground.",
+        "immutableFacts": [
+          "Three nighttime rockfalls occurred.",
+          "A warning light was damaged at an unknown time.",
+          "No person was reported missing.",
+          "Inspectors identified no cause beyond unstable ground."
+        ],
+        "acceptedFinalLine": "The final inspection recorded no cause beyond unstable ground."
+      },
+      "strata": {
+        "format": "full",
+        "locale": "en-GB",
+        "durationBand": "over-180s",
+        "targetDurationSeconds": 240,
+        "policy": {
+          "storyPolicyId": "dark-truth-evidence-v1",
+          "fictionality": "evidence-led",
+          "genre": "evidence-led",
+          "evidencePolicy": "strict-evidence-only",
+          "intensityPolicy": "restrained"
+        }
+      },
+      "expectedEligibility": {
+        "eligible": false,
+        "reason": "The evidence-led control has no source-supported supernatural rule, agent, or costly protagonist response."
+      },
+      "expectedStructuralFindings": [
+        {
+          "code": "horror-shaping-distorts-source",
+          "present": true,
+          "evidence": "Treating the damaged light as a lure or the rockfalls as intentional would exceed the evidence."
+        }
+      ],
+      "candidates": {
+        "baseline": "After three nighttime rockfalls, the council closed the coastal footpath. Workers found a damaged warning light near the second fall, but could not date the damage. No one was reported missing, and the closure remained precautionary. The final inspection recorded no cause beyond unstable ground.",
+        "strategy": "Three rockfalls struck only after dark, as if the cliff waited for walkers. The smashed warning light marked where something had lured them off the path, though no missing-person report survived. Officials closed the route before the pattern could choose again. The final inspection recorded no cause beyond unstable ground."
+      }
+    }
+  ]
+}

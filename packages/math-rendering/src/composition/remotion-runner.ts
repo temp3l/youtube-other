@@ -16,16 +16,46 @@ import {
   createSemanticChalkSchedule,
   extractSemanticChalkSteps,
   renderSemanticChalkFrame,
+  semanticChalkStepSampleCount,
 } from "./semantic-chalk.js";
 import {
   assertMathMediaReady,
   validateMathMediaFile,
   type MathMediaValidation,
 } from "../quality/media-qa.js";
+import {
+  mathEncodingProfiles,
+  type MathEncodingProfileId,
+} from "../profiles/profiles.js";
 
-export const MATH_REMOTION_RUNNER_VERSION = "math-semantic-keyframe-runner.v6";
+export const MATH_REMOTION_RUNNER_VERSION = "math-semantic-keyframe-runner.v10";
 export const MATH_THINK_PAUSE_SECONDS = 8;
 const MATH_REVEAL_CUE_VERSION = "math-reveal-cue.v1";
+const MATH_RASTER_BATCH_SIZE = 8;
+const MATH_RASTER_WORKER_SOURCE = `
+import fs from "node:fs/promises";
+
+const [manifestPath, sharpModuleUrl] = process.argv.slice(1);
+if (!manifestPath || !sharpModuleUrl) {
+  throw new Error("Raster worker requires a manifest path and Sharp module URL.");
+}
+const { default: sharp } = await import(sharpModuleUrl);
+sharp.cache(false);
+sharp.concurrency(1);
+const jobs = JSON.parse(await fs.readFile(manifestPath, "utf8"));
+for (const [index, job] of jobs.entries()) {
+  const temporary = \`\${job.targetPath}.\${process.pid}-\${index}.tmp.png\`;
+  try {
+    await sharp(job.sourcePath, { sequentialRead: true })
+      .resize(1920, 1080, { fit: "fill" })
+      .png({ compressionLevel: 6 })
+      .toFile(temporary);
+    await fs.rename(temporary, job.targetPath);
+  } finally {
+    await fs.unlink(temporary).catch(() => undefined);
+  }
+}
+`;
 
 function escapeXml(value: string): string {
   return value
@@ -80,6 +110,27 @@ function chalkboardSvg(
 
 function concatPath(filePath: string): string {
   return filePath.replaceAll("'", "'\\''");
+}
+
+export function createSemanticRasterBatches<
+  T extends { readonly sceneId: string },
+>(jobs: readonly T[], batchSize = MATH_RASTER_BATCH_SIZE): T[][] {
+  if (!Number.isInteger(batchSize) || batchSize <= 0)
+    throw new Error("Semantic raster batch size must be a positive integer.");
+  const batches: T[][] = [];
+  let batch: T[] = [];
+  for (const job of jobs) {
+    if (
+      batch.length >= batchSize ||
+      (batch.length > 0 && batch[0]!.sceneId !== job.sceneId)
+    ) {
+      batches.push(batch);
+      batch = [];
+    }
+    batch.push(job);
+  }
+  if (batch.length > 0) batches.push(batch);
+  return batches;
 }
 
 export async function resolveRemotionEntryPoint(
@@ -176,7 +227,8 @@ async function sceneProps(
     sceneId: string;
     startFrame: number;
     endFrame: number;
-  }[]
+  }[],
+  burnInCaptions: boolean
 ) {
   return Promise.all(
     scenes.map(async (scene, index) => {
@@ -193,10 +245,10 @@ async function sceneProps(
         svgMarkup: svg,
         animation: scene.animation ?? {
           mode: "progressive-chalk-reveal" as const,
-          rendererVersion: "math-semantic-chalk.v4" as const,
+          rendererVersion: "math-semantic-chalk.v7" as const,
           activity: "standard" as const,
         },
-        ...(scene.caption ? { caption: scene.caption } : {}),
+        ...(burnInCaptions && scene.caption ? { caption: scene.caption } : {}),
       };
     })
   );
@@ -213,8 +265,11 @@ async function renderSemanticKeyframes(input: {
   workDir: string;
   silentPath: string;
   durationInFrames: number;
+  burnInCaptions: boolean;
+  encodingProfile: MathEncodingProfileId;
 }): Promise<string> {
   const keyframesRoot = path.join(input.workDir, "semantic-keyframes");
+  const encoding = mathEncodingProfiles[input.encodingProfile];
   const rasterCacheRoot = path.join(input.workDir, "semantic-raster-cache");
   const videoCacheRoot = path.join(input.workDir, "semantic-video-cache");
   await fs.rm(keyframesRoot, { recursive: true, force: true });
@@ -251,11 +306,21 @@ async function renderSemanticKeyframes(input: {
     });
     const sampledStarts = new Set<number>([0]);
     for (const timing of schedule) {
-      for (let sample = 0; sample < 8; sample += 1)
+      const step = steps.find((candidate) => candidate.key === timing.stepKey);
+      if (!step)
+        throw new Error(
+          `Semantic chalk schedule references unknown step ${timing.stepKey}.`
+        );
+      const sampleCount = semanticChalkStepSampleCount({
+        svgMarkup: scene.svgMarkup,
+        step,
+        durationFrames: timing.endFrame - timing.startFrame,
+      });
+      for (let sample = 0; sample < sampleCount; sample += 1)
         sampledStarts.add(
           Math.floor(
             timing.startFrame +
-              ((timing.endFrame - timing.startFrame) * sample) / 8
+              ((timing.endFrame - timing.startFrame) * sample) / sampleCount
           )
         );
       sampledStarts.add(timing.endFrame);
@@ -283,7 +348,7 @@ async function renderSemanticKeyframes(input: {
       );
       const svgMarkup = chalkboardSvg(
         frame.svgMarkup,
-        source.caption,
+        input.burnInCaptions ? source.caption : undefined,
         isThinkPause && start >= countdownStart
           ? Math.max(1, Math.ceil((sceneFrames - start) / 30))
           : null
@@ -316,34 +381,118 @@ async function renderSemanticKeyframes(input: {
       ])
     ).values(),
   ];
-  let nextRaster = 0;
-  const rasterWorkers = Array.from(
-    { length: Math.min(4, rasterJobs.length) },
-    async () => {
-      for (;;) {
-        const index = nextRaster++;
-        const job = rasterJobs[index];
-        if (!job) return;
-        try {
-          const metadata = await sharp(job.rasterEntry.filePath).metadata();
-          if (metadata.width === 1920 && metadata.height === 1080) continue;
-        } catch {
-          // Populate a missing or incomplete cache entry below.
-        }
-        const temporary = `${job.rasterEntry.filePath}.${process.pid}-${index}.tmp.png`;
-        try {
-          await sharp(job.svgEntry.filePath)
-            .resize(1920, 1080, { fit: "fill" })
-            .png({ compressionLevel: 6 })
-            .toFile(temporary);
-          await fs.rename(temporary, job.rasterEntry.filePath);
-        } finally {
-          await fs.unlink(temporary).catch(() => undefined);
-        }
-      }
+  const rasterIsValid = async (filePath: string): Promise<boolean> => {
+    try {
+      const metadata = await sharp(filePath).metadata();
+      return metadata.width === 1920 && metadata.height === 1080;
+    } catch {
+      return false;
     }
+  };
+  const completedHashes = new Set<string>();
+  const pendingRasterJobs = [];
+  for (const job of rasterJobs) {
+    if (await rasterIsValid(job.rasterEntry.filePath))
+      completedHashes.add(job.rasterEntry.svgHash);
+    else pendingRasterJobs.push(job);
+  }
+  const progressPath = path.join(
+    input.workDir,
+    "semantic-raster-progress.json"
   );
-  await Promise.all(rasterWorkers);
+  const batchManifestPath = path.join(
+    keyframesRoot,
+    "semantic-raster-batch.json"
+  );
+  const writeRasterProgress = async (args: {
+    state: "in-progress" | "complete";
+    currentSceneId: string | null;
+  }): Promise<void> => {
+    const scenes = input.frameRanges.map(({ sceneId }) => {
+      const sceneJobs = rasterJobs.filter(
+        (job) => job.rasterEntry.sceneId === sceneId
+      );
+      return {
+        sceneId,
+        completed: sceneJobs.filter((job) =>
+          completedHashes.has(job.rasterEntry.svgHash)
+        ).length,
+        total: sceneJobs.length,
+      };
+    });
+    const temporary = `${progressPath}.${process.pid}.tmp`;
+    await fs.writeFile(
+      temporary,
+      `${JSON.stringify(
+        {
+          version: "math-semantic-raster-progress.v1",
+          runnerVersion: MATH_REMOTION_RUNNER_VERSION,
+          state: args.state,
+          total: rasterJobs.length,
+          completed: completedHashes.size,
+          remaining: rasterJobs.length - completedHashes.size,
+          currentSceneId: args.currentSceneId,
+          scenes,
+          updatedAt: new Date().toISOString(),
+        },
+        null,
+        2
+      )}\n`,
+      "utf8"
+    );
+    await fs.rename(temporary, progressPath);
+  };
+  await writeRasterProgress({
+    state: pendingRasterJobs.length === 0 ? "complete" : "in-progress",
+    currentSceneId: pendingRasterJobs[0]?.rasterEntry.sceneId ?? null,
+  });
+  const batches = createSemanticRasterBatches(
+    pendingRasterJobs.map((job) => ({
+      ...job,
+      sceneId: job.rasterEntry.sceneId,
+    }))
+  );
+  const sharpModuleUrl = import.meta.resolve("sharp");
+  for (const batch of batches) {
+    await fs.writeFile(
+      batchManifestPath,
+      `${JSON.stringify(
+        batch.map((job) => ({
+          sourcePath: job.svgEntry.filePath,
+          targetPath: job.rasterEntry.filePath,
+        }))
+      )}\n`,
+      "utf8"
+    );
+    await runCommand(
+      process.execPath,
+      [
+        "--input-type=module",
+        "--eval",
+        MATH_RASTER_WORKER_SOURCE,
+        batchManifestPath,
+        sharpModuleUrl,
+      ],
+      { timeoutMs: 120_000 }
+    );
+    for (const job of batch) {
+      if (!(await rasterIsValid(job.rasterEntry.filePath)))
+        throw new Error(
+          `Semantic raster worker produced an invalid checkpoint: ${job.rasterEntry.filePath}`
+        );
+      completedHashes.add(job.rasterEntry.svgHash);
+    }
+    await writeRasterProgress({
+      state:
+        completedHashes.size === rasterJobs.length
+          ? "complete"
+          : "in-progress",
+      currentSceneId:
+        completedHashes.size === rasterJobs.length
+          ? null
+          : batch.at(-1)!.sceneId,
+    });
+  }
   for (const entry of rasterEntries) await fs.access(entry.filePath);
   const sceneVideos: Array<{
     sceneId: string;
@@ -373,6 +522,7 @@ async function renderSemanticKeyframes(input: {
           frames: entry.frames,
         })),
         encoding: "h264-yuv420p-ultrafast-crf20-stillimage",
+        profile: encoding,
       })
     );
     const cachedVideo = path.join(videoCacheRoot, `${cacheKey}.mp4`);
@@ -417,9 +567,9 @@ async function renderSemanticKeyframes(input: {
             "-c:v",
             "libx264",
             "-preset",
-            "ultrafast",
+            encoding.preset,
             "-crf",
-            "20",
+            String(encoding.crf),
             "-tune",
             "stillimage",
             temporary,
@@ -481,7 +631,7 @@ async function renderSemanticKeyframes(input: {
   }
   return hashText(
     JSON.stringify({
-      renderer: "math-semantic-keyframe-sharp-segmented.v3",
+      renderer: "math-semantic-keyframe-sharp-segmented.v4",
       scenes: sceneVideos.map((scene) => ({
         sceneId: scene.sceneId,
         cacheKey: scene.cacheKey,
@@ -547,6 +697,9 @@ export async function renderLocalRemotionVideo(args: {
   workDir: string;
   browserExecutable?: string;
   validationDurationRange?: { minimum: number; maximum: number };
+  /** Debug/review only. Production captions are emitted as separate tracks. */
+  burnInCaptions?: boolean;
+  encodingProfile?: MathEncodingProfileId;
 }): Promise<{ validation: MathMediaValidation; renderFingerprint: string }> {
   if (!Number.isInteger(args.durationInFrames) || args.durationInFrames <= 0)
     throw new Error(
@@ -555,7 +708,9 @@ export async function renderLocalRemotionVideo(args: {
   const workDir = path.resolve(args.workDir);
   const outputPath = path.resolve(args.outputPath);
   await fs.mkdir(path.dirname(outputPath), { recursive: true });
-  const props = await sceneProps(args.scenes, args.frameRanges);
+  const burnInCaptions = args.burnInCaptions ?? false;
+  const encodingProfile = args.encodingProfile ?? "publish";
+  const props = await sceneProps(args.scenes, args.frameRanges, burnInCaptions);
   const silentPath = path.join(workDir, "silent.mp4");
   const muxedPath = path.join(
     path.dirname(outputPath),
@@ -568,6 +723,8 @@ export async function renderLocalRemotionVideo(args: {
     workDir,
     silentPath,
     durationInFrames: args.durationInFrames,
+    burnInCaptions,
+    encodingProfile,
   });
   const thinkPauseRangesSeconds = args.scenes.flatMap((scene, index) => {
     if (scene.animation?.activity !== "think-pause") return [];
@@ -645,6 +802,8 @@ export async function renderLocalRemotionVideo(args: {
         "copy",
         "-c:a",
         "aac",
+        "-b:a",
+        mathEncodingProfiles[encodingProfile].audioBitrate,
         "-ar",
         "48000",
         "-ac",

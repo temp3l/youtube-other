@@ -16,12 +16,12 @@ import {
   type ShortRewriteSourceBeat,
   type ShortRewriteSourceExtraction,
 } from "./short-rewrite.types.js";
+import type { ShortHorrorAffectProjection } from "./short-horror-affect-projection.js";
 
 export const SHORT_SOURCE_EXTRACTION_VERSION = "short-source-extraction-v1";
 export const SHORT_ADAPTATION_CONTRACT_SCHEMA_VERSION =
   "short-adaptation-contract-schema-v1";
-export const SHORT_ADAPTATION_CONTRACT_VERSION =
-  "short-adaptation-contract-v1";
+export const SHORT_ADAPTATION_CONTRACT_VERSION = "short-adaptation-contract-v1";
 
 function splitSentences(text: string): readonly string[] {
   return text
@@ -100,7 +100,11 @@ function isMeaningfulOrphanedReference(reference: string): boolean {
 }
 
 function uniqueStrings(values: readonly string[]): readonly string[] {
-  return [...new Set(values.map((entry) => normalizeWhitespace(entry)).filter(Boolean))];
+  return [
+    ...new Set(
+      values.map((entry) => normalizeWhitespace(entry)).filter(Boolean)
+    ),
+  ];
 }
 
 function buildPlannerCanonicalFacts(args: {
@@ -131,7 +135,9 @@ function buildPlannerCanonicalFacts(args: {
       : {}),
     criticalObjects: args.storyIr.criticalObjects.map((object) => object.name),
     criticalEvents: args.storyIr.chronology.slice(0, 6),
-    writtenMessages: args.storyIr.writtenMessages.map((message) => message.text),
+    writtenMessages: args.storyIr.writtenMessages.map(
+      (message) => message.text
+    ),
     threat: args.storyIr.centralThreat.description,
     primaryReveal: args.storyIr.climax,
     finalConsequence: args.storyIr.endingConsequence,
@@ -188,7 +194,9 @@ function minimumRetainedBeatCount(
   outputConstraints: ShortStoryOutputConstraints,
   maximumBeats: number
 ): number {
-  const heuristicMinimum = Math.ceil(outputConstraints.targetWordRange.min / 55);
+  const heuristicMinimum = Math.ceil(
+    outputConstraints.targetWordRange.min / 55
+  );
   return Math.min(maximumBeats, Math.max(3, heuristicMinimum));
 }
 
@@ -317,7 +325,10 @@ function selectRetainedBeatIds(args: {
         return true;
       }
       const phraseTokens = tokenize(normalizedPhrase);
-      return phraseTokens.length > 0 && phraseTokens.every((token) => normalized.includes(token));
+      return (
+        phraseTokens.length > 0 &&
+        phraseTokens.every((token) => normalized.includes(token))
+      );
     });
     if (matched) {
       requiredIds.add(beat.id);
@@ -382,10 +393,12 @@ function selectRetainedBeatIds(args: {
         });
       })
       .find((beat) => beat !== undefined);
-    const fallbackBeat = nextBeat ?? chooseCoverageBeat({
-      beats: args.beats,
-      selectedBeatIds,
-    });
+    const fallbackBeat =
+      nextBeat ??
+      chooseCoverageBeat({
+        beats: args.beats,
+        selectedBeatIds,
+      });
     if (!addSelectedBeat(orderedSelection, selectedBeatIds, fallbackBeat)) {
       break;
     }
@@ -399,7 +412,9 @@ function selectRetainedBeatIds(args: {
     })
     .slice(0, args.maximumBeats)
     .map((beat) => beat.id);
-  return capped.length > 0 ? capped : args.beats.slice(0, args.maximumBeats).map((beat) => beat.id);
+  return capped.length > 0
+    ? capped
+    : args.beats.slice(0, args.maximumBeats).map((beat) => beat.id);
 }
 
 export function validateShortSourceExtraction(args: {
@@ -452,13 +467,19 @@ export function detectOrphanedShortReferences(args: {
   readonly selectedBeatIds: readonly string[];
 }): ShortRewriteSourceExtraction["orphanedReferences"] {
   const keptIndex = new Map<string, number>();
-  const standaloneReferenceTokens = collectStandaloneReferenceTokens(args.beats);
+  const standaloneReferenceTokens = collectStandaloneReferenceTokens(
+    args.beats
+  );
   args.selectedBeatIds.forEach((id, index) => {
     keptIndex.set(id, index);
   });
   const referenceOccurrences = new Map<
     string,
-    Array<{ readonly beatId: string; readonly retained: boolean; readonly order: number }>
+    Array<{
+      readonly beatId: string;
+      readonly retained: boolean;
+      readonly order: number;
+    }>
   >();
   args.beats.forEach((beat, order) => {
     for (const reference of beat.references) {
@@ -471,7 +492,9 @@ export function detectOrphanedShortReferences(args: {
       referenceOccurrences.set(reference, current);
     }
   });
-  const orphaned: Array<ShortRewriteSourceExtraction["orphanedReferences"][number]> = [];
+  const orphaned: Array<
+    ShortRewriteSourceExtraction["orphanedReferences"][number]
+  > = [];
   for (const [reference, occurrences] of referenceOccurrences.entries()) {
     if (!isMeaningfulOrphanedReference(reference)) {
       continue;
@@ -490,12 +513,16 @@ export function detectOrphanedShortReferences(args: {
       firstRetainedBeatId: firstRetained.beatId,
     });
   }
-  for (const removedBeat of args.beats.filter((beat) => !keptIndex.has(beat.id))) {
+  for (const removedBeat of args.beats.filter(
+    (beat) => !keptIndex.has(beat.id)
+  )) {
     const removedTokens = new Set(tokenize(removedBeat.text));
     const removedReferenceTokens = new Set(
       removedBeat.references.flatMap((reference) => tokenize(reference))
     );
-    for (const retainedBeat of args.beats.filter((beat) => keptIndex.has(beat.id))) {
+    for (const retainedBeat of args.beats.filter((beat) =>
+      keptIndex.has(beat.id)
+    )) {
       if (
         removedBeat.paragraphIndex > retainedBeat.paragraphIndex ||
         (removedBeat.paragraphIndex === retainedBeat.paragraphIndex &&
@@ -510,7 +537,8 @@ export function detectOrphanedShortReferences(args: {
         (token) =>
           standaloneReferenceTokens.has(token) &&
           removedTokens.has(token) &&
-          (removedReferenceTokens.has(token) || retainedReferenceTokens.has(token))
+          (removedReferenceTokens.has(token) ||
+            retainedReferenceTokens.has(token))
       );
       if (!shared) {
         continue;
@@ -565,7 +593,10 @@ export function buildShortSourceExtraction(args: {
       });
     });
   });
-  const maximumBeats = Math.max(1, Math.min(8, args.outputConstraints.targetDuration.maxSeconds <= 65 ? 6 : 8));
+  const maximumBeats = Math.max(
+    1,
+    Math.min(8, args.outputConstraints.targetDuration.maxSeconds <= 65 ? 6 : 8)
+  );
   const minimumBeats = minimumRetainedBeatCount(
     args.outputConstraints,
     maximumBeats
@@ -596,10 +627,11 @@ export function buildShortSourceExtraction(args: {
   });
   const eventSelectedBeatIds = [
     ...new Set(
-      eventPlan.selectedEventIds.flatMap((eventId) =>
-        eventPlan.events
-          .find((event) => event.id === eventId)
-          ?.sourceBeatIds.filter((beatId) => beatId.length > 0) ?? []
+      eventPlan.selectedEventIds.flatMap(
+        (eventId) =>
+          eventPlan.events
+            .find((event) => event.id === eventId)
+            ?.sourceBeatIds.filter((beatId) => beatId.length > 0) ?? []
       )
     ),
   ];
@@ -647,8 +679,11 @@ export function buildShortAdaptationContract(args: {
   readonly storyIr: StoryIR;
   readonly extraction: ShortRewriteSourceExtraction;
   readonly outputConstraints: ShortStoryOutputConstraints;
+  readonly horrorAffectProjection?: ShortHorrorAffectProjection;
 }): ShortRewriteAdaptationContract {
-  const criticalObject = args.storyIr.criticalObjects[0]?.name ?? args.storyIr.centralThreat.description;
+  const criticalObject =
+    args.storyIr.criticalObjects[0]?.name ??
+    args.storyIr.centralThreat.description;
   const retainedFacts = args.storyIr.immutableFacts
     .filter((fact) => fact.immutable)
     .slice(0, 10)
@@ -656,74 +691,80 @@ export function buildShortAdaptationContract(args: {
       id: fact.id,
       statement: fact.statement,
     }));
-  const contractPayload: Omit<ShortRewriteAdaptationContract, "contractHash"> = {
-    schemaVersion: SHORT_ADAPTATION_CONTRACT_SCHEMA_VERSION,
-    contractVersion: SHORT_ADAPTATION_CONTRACT_VERSION,
-    identity: args.identity,
-    parent: {
-      ...args.parent.identity,
-      parentFullHash: args.parent.parentFullHash,
-      sourceSha256: args.parent.sourceSha256,
-    },
-    storyIrHash: args.parent.storyIrHash,
-    immutableFacts: retainedFacts,
-    centralThreat: args.storyIr.centralThreat.description,
-    centralRuleOrMechanism: args.storyIr.centralRuleMechanism.description,
-    criticalObject,
-    climaxOrIrreversibleTurn: args.storyIr.climax,
-    finalConsequenceOrSting: args.storyIr.endingConsequence,
-    exactWrittenMessages: uniqueStrings(
-      args.storyIr.writtenMessages.map((entry) => entry.text)
-    ),
-    allowedCompression: [
-      "Combine adjacent setup beats when no immutable fact is lost.",
-      "Condense atmosphere and secondary movement into fewer clauses.",
-      "Shorten dialogue to the minimum wording needed for the same narrative function.",
-    ],
-    forbiddenOmissions: uniqueStrings([
-      args.storyIr.centralThreat.description,
-      args.storyIr.centralRuleMechanism.description,
-      criticalObject,
-      args.storyIr.climax,
-      args.storyIr.endingConsequence,
-      ...args.storyIr.writtenMessages.map((entry) => entry.text),
-    ]),
-    retentionBoundaries: {
-      factsMustRemain: retainedFacts.map((fact) => fact.statement),
-      detailsMayCompress: uniqueStrings(
-        args.extraction.beats
-          .filter((beat) => beat.retained)
-          .slice(1)
-          .map((beat) => beat.text)
-      ),
-      detailsMayRemove: args.extraction.removedBeatIds,
-      dialogueMayShorten: args.storyIr.writtenMessages.map((entry) => entry.text),
-    },
-    inventionBoundaries: [
-      "Do not invent new characters, motives, rules, evidence, clues, or outcomes.",
-      "Do not translate, paraphrase, or replace exact written messages marked for retention.",
-      "Do not move a reveal earlier if doing so removes the original escalation.",
-    ],
-    constraints: {
-      targetDurationSeconds: {
-        min: args.outputConstraints.targetDuration.minSeconds,
-        max: args.outputConstraints.targetDuration.maxSeconds,
+  const contractPayload: Omit<ShortRewriteAdaptationContract, "contractHash"> =
+    {
+      schemaVersion: SHORT_ADAPTATION_CONTRACT_SCHEMA_VERSION,
+      contractVersion: SHORT_ADAPTATION_CONTRACT_VERSION,
+      identity: args.identity,
+      parent: {
+        ...args.parent.identity,
+        parentFullHash: args.parent.parentFullHash,
+        sourceSha256: args.parent.sourceSha256,
       },
-      targetNarrationWpm: args.outputConstraints.targetNarrationWpm,
-      targetWordRange: args.outputConstraints.targetWordRange,
-      hookDeadlineSeconds: args.outputConstraints.hookDeadlineSeconds,
-      maximumBeats: args.extraction.maximumBeats,
-    },
-    sourceExtraction: {
-      extractionHash: args.extraction.extractionHash,
-      selectedBeatIds: args.extraction.selectedBeatIds,
-      selectedEventIds: args.extraction.selectedEventIds,
-      events: args.extraction.events,
-      orphanedReferences: args.extraction.orphanedReferences,
-      beatPlan: args.extraction.beatPlan,
-      causalValidation: args.extraction.causalValidation,
-    },
-  };
+      storyIrHash: args.parent.storyIrHash,
+      immutableFacts: retainedFacts,
+      centralThreat: args.storyIr.centralThreat.description,
+      centralRuleOrMechanism: args.storyIr.centralRuleMechanism.description,
+      criticalObject,
+      climaxOrIrreversibleTurn: args.storyIr.climax,
+      finalConsequenceOrSting: args.storyIr.endingConsequence,
+      exactWrittenMessages: uniqueStrings(
+        args.storyIr.writtenMessages.map((entry) => entry.text)
+      ),
+      allowedCompression: [
+        "Combine adjacent setup beats when no immutable fact is lost.",
+        "Condense atmosphere and secondary movement into fewer clauses.",
+        "Shorten dialogue to the minimum wording needed for the same narrative function.",
+      ],
+      forbiddenOmissions: uniqueStrings([
+        args.storyIr.centralThreat.description,
+        args.storyIr.centralRuleMechanism.description,
+        criticalObject,
+        args.storyIr.climax,
+        args.storyIr.endingConsequence,
+        ...args.storyIr.writtenMessages.map((entry) => entry.text),
+      ]),
+      retentionBoundaries: {
+        factsMustRemain: retainedFacts.map((fact) => fact.statement),
+        detailsMayCompress: uniqueStrings(
+          args.extraction.beats
+            .filter((beat) => beat.retained)
+            .slice(1)
+            .map((beat) => beat.text)
+        ),
+        detailsMayRemove: args.extraction.removedBeatIds,
+        dialogueMayShorten: args.storyIr.writtenMessages.map(
+          (entry) => entry.text
+        ),
+      },
+      inventionBoundaries: [
+        "Do not invent new characters, motives, rules, evidence, clues, or outcomes.",
+        "Do not translate, paraphrase, or replace exact written messages marked for retention.",
+        "Do not move a reveal earlier if doing so removes the original escalation.",
+      ],
+      constraints: {
+        targetDurationSeconds: {
+          min: args.outputConstraints.targetDuration.minSeconds,
+          max: args.outputConstraints.targetDuration.maxSeconds,
+        },
+        targetNarrationWpm: args.outputConstraints.targetNarrationWpm,
+        targetWordRange: args.outputConstraints.targetWordRange,
+        hookDeadlineSeconds: args.outputConstraints.hookDeadlineSeconds,
+        maximumBeats: args.extraction.maximumBeats,
+      },
+      sourceExtraction: {
+        extractionHash: args.extraction.extractionHash,
+        selectedBeatIds: args.extraction.selectedBeatIds,
+        selectedEventIds: args.extraction.selectedEventIds,
+        events: args.extraction.events,
+        orphanedReferences: args.extraction.orphanedReferences,
+        beatPlan: args.extraction.beatPlan,
+        causalValidation: args.extraction.causalValidation,
+      },
+      ...(args.horrorAffectProjection
+        ? { horrorAffectProjection: args.horrorAffectProjection }
+        : {}),
+    };
   const contract = {
     ...contractPayload,
     contractHash: computeShortAdaptationContractHash(contractPayload),

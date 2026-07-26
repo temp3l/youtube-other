@@ -629,7 +629,8 @@ function detectUnsupportedFacts(
   language: LanguageCode,
   narration: string,
   parentNarration: string,
-  contract: ShortRewriteAdaptationContract
+  contract: ShortRewriteAdaptationContract,
+  characterRenameMap?: CharacterRenameMap
 ): boolean {
   if (language !== "en") {
     return false;
@@ -643,6 +644,10 @@ function detectUnsupportedFacts(
     ...tokenize(contract.finalConsequenceOrSting),
     ...contract.immutableFacts.flatMap((fact) => tokenize(fact.statement)),
     ...contract.exactWrittenMessages.flatMap((entry) => tokenize(entry)),
+    ...(characterRenameMap?.entries.flatMap((entry) => [
+      ...tokenize(entry.fictionalName),
+      ...entry.fictionalAliases.flatMap((alias) => tokenize(alias)),
+    ]) ?? []),
   ]);
   const properNouns = narration.match(/\b[A-Z][a-z]{2,}\b/gu) ?? [];
   return properNouns.some((entry) => !allowed.has(entry.toLowerCase()));
@@ -1382,7 +1387,8 @@ export function validateShortNarrationArtifact(
       args.language,
       narration,
       parentNarration,
-      args.adaptationContract
+      args.adaptationContract,
+      args.characterRenameMap
     )
   ) {
     issues.push(

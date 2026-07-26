@@ -16,10 +16,7 @@ import {
   type ShortRewriteRunOptions,
   type StoryLanguage,
 } from "@mediaforge/story-localization";
-import {
-  normalizeLocaleCode,
-  normalizeWhitespace,
-} from "@mediaforge/shared";
+import { normalizeLocaleCode, normalizeWhitespace } from "@mediaforge/shared";
 import { buildStoryGenerationWarnings } from "./story-config-warnings.js";
 
 export interface StoryRewriteShortCliOptions {
@@ -32,7 +29,13 @@ export interface StoryRewriteShortCliOptions {
   readonly outputRoot?: string;
   readonly duration?: 30 | 45 | 60 | 75;
   readonly temperature?: number;
-  readonly reasoningEffort?: "none" | "minimal" | "low" | "medium" | "high" | "xhigh";
+  readonly reasoningEffort?:
+    | "none"
+    | "minimal"
+    | "low"
+    | "medium"
+    | "high"
+    | "xhigh";
   readonly maxOutputTokens?: number;
   readonly retryMaxOutputTokens?: number;
   readonly maxConcurrency?: number;
@@ -54,21 +57,21 @@ function resolveInheritedCliOptions(
   const inherited = command.optsWithGlobals() as StoryRewriteShortCliOptions;
   return {
     ...options,
-    ...(options.language ?? inherited.language
+    ...((options.language ?? inherited.language)
       ? { language: options.language ?? inherited.language }
       : {}),
-    ...(options.languages ?? inherited.languages
+    ...((options.languages ?? inherited.languages)
       ? { languages: options.languages ?? inherited.languages }
       : {}),
-    ...(options.dryRun ?? inherited.dryRun) !== undefined
+    ...((options.dryRun ?? inherited.dryRun) !== undefined
       ? { dryRun: options.dryRun ?? inherited.dryRun }
-      : {},
-    ...(options.json ?? inherited.json) !== undefined
+      : {}),
+    ...((options.json ?? inherited.json) !== undefined
       ? { json: options.json ?? inherited.json }
-      : {},
-    ...(options.verbose ?? inherited.verbose) !== undefined
+      : {}),
+    ...((options.verbose ?? inherited.verbose) !== undefined
       ? { verbose: options.verbose ?? inherited.verbose }
-      : {},
+      : {}),
   };
 }
 
@@ -222,9 +225,16 @@ function parseLanguageList(value: string | undefined): string[] {
     .filter((entry) => entry.length > 0);
 }
 
-function normalizeRequestedLanguages(options: StoryRewriteShortCliOptions): StoryLanguage[] {
-  const raw = [...parseLanguageList(options.language), ...parseLanguageList(options.languages)];
-  const supported = new Set<StoryLanguage>(Object.keys(SUPPORTED_STORY_LANGUAGES) as StoryLanguage[]);
+function normalizeRequestedLanguages(
+  options: StoryRewriteShortCliOptions
+): StoryLanguage[] {
+  const raw = [
+    ...parseLanguageList(options.language),
+    ...parseLanguageList(options.languages),
+  ];
+  const supported = new Set<StoryLanguage>(
+    Object.keys(SUPPORTED_STORY_LANGUAGES) as StoryLanguage[]
+  );
   const normalized: StoryLanguage[] = [];
   const unsupported: string[] = [];
   if (raw.length === 0) {
@@ -273,7 +283,9 @@ function normalizeTargetDuration(
   );
 }
 
-function formatSummary(summary: Awaited<ReturnType<typeof rewriteShortStories>>): string {
+function formatSummary(
+  summary: Awaited<ReturnType<typeof rewriteShortStories>>
+): string {
   const lines = [
     `Episode: ${summary.episodeId} — ${summary.episodeSlug}`,
     `Source: ${summary.sourcePath}`,
@@ -297,33 +309,68 @@ function formatSummary(summary: Awaited<ReturnType<typeof rewriteShortStories>>)
   return lines.join("\n");
 }
 
-export function registerStoryRewriteShortCommand(storiesCommand: Command): void {
+export function registerStoryRewriteShortCommand(
+  storiesCommand: Command
+): void {
   storiesCommand
     .command("rewrite-short")
-    .description("Rewrite an English full-length horror story into localized YouTube Shorts")
+    .description(
+      "Rewrite an English full-length horror story into localized YouTube Shorts"
+    )
     .option("--episode <id-or-slug>", "episode id or slug")
     .option("--input <path>", "explicit English full-story markdown input")
-    .option("--episode-slug <slug>", "canonical episode slug for bootstrapped input")
+    .option(
+      "--episode-slug <slug>",
+      "canonical episode slug for bootstrapped input"
+    )
     .option("--language <code>", "single target language")
     .option("--languages <comma-separated-codes>", "target languages")
     .option("--model <model>", "OpenAI model")
     .option("--output-root <path>", "output root directory")
-    .option("--duration <seconds>", "target short duration in seconds (30, 45, 60, 75)", (value) => Number(value))
-    .option("--temperature <number>", "sampling temperature", (value) => Number(value))
+    .option(
+      "--duration <seconds>",
+      "target short duration in seconds (30, 45, 60, 75)",
+      (value) => Number(value)
+    )
+    .option("--temperature <number>", "sampling temperature", (value) =>
+      Number(value)
+    )
     .option("--reasoning-effort <value>", "reasoning effort")
-    .option("--max-output-tokens <number>", "maximum output tokens", (value) => Number(value))
-    .option("--retry-max-output-tokens <number>", "retry output tokens", (value) => Number(value))
-    .option("--max-concurrency <number>", "maximum concurrent requests", (value) => Number(value))
-    .option("--timeout-ms <number>", "request timeout in milliseconds", (value) => Number(value))
-    .option("--max-retries <number>", "maximum transient retries", (value) => Number(value))
+    .option("--max-output-tokens <number>", "maximum output tokens", (value) =>
+      Number(value)
+    )
+    .option(
+      "--retry-max-output-tokens <number>",
+      "retry output tokens",
+      (value) => Number(value)
+    )
+    .option(
+      "--max-concurrency <number>",
+      "maximum concurrent requests",
+      (value) => Number(value)
+    )
+    .option(
+      "--timeout-ms <number>",
+      "request timeout in milliseconds",
+      (value) => Number(value)
+    )
+    .option("--max-retries <number>", "maximum transient retries", (value) =>
+      Number(value)
+    )
     .option("--overwrite", "overwrite existing outputs")
     .option("--resume", "skip valid outputs and regenerate invalid ones")
     .option("--dry-run", "plan the run without calling OpenAI or writing files")
-    .option("--compatibility-source", "allow raw source markdown for short generation")
+    .option(
+      "--compatibility-source",
+      "allow raw source markdown for short generation"
+    )
     .option("--force", "alias for overwrite")
     .option("--json", "print machine-readable output")
     .option("--verbose", "enable verbose logging")
-    .action(async function (this: Command, rawOptions: StoryRewriteShortCliOptions) {
+    .action(async function (
+      this: Command,
+      rawOptions: StoryRewriteShortCliOptions
+    ) {
       const options = resolveInheritedCliOptions(this, rawOptions);
       const rawArgs = new Set(process.argv.slice(2));
       const commandText = [
@@ -333,7 +380,9 @@ export function registerStoryRewriteShortCommand(storiesCommand: Command): void 
       const hasDryRunFlag =
         rawArgs.has("--dry-run") || commandText.includes("--dry-run");
       const runtimeConfig = await loadRuntimeConfig();
-      const outputRoot = path.resolve(options.outputRoot ?? runtimeConfig.workspaceDir);
+      const outputRoot = path.resolve(
+        options.outputRoot ?? runtimeConfig.workspaceDir
+      );
       const languages = normalizeRequestedLanguages(options);
       if (options.episode && options.input) {
         throw new Error("--episode and --input are mutually exclusive.");
@@ -344,15 +393,19 @@ export function registerStoryRewriteShortCommand(storiesCommand: Command): void 
       const timeoutMs = options.timeoutMs ?? SHORT_REWRITE_DEFAULT_TIMEOUT_MS;
       const maxRetries = options.maxRetries ?? 2;
       const model = resolveModel(options, runtimeConfig);
-      const client = options.dryRun || hasDryRunFlag
-        ? undefined
-        : createOpenAiStoryClientWithOptions({
-            apiKey: runtimeConfig.openAiCompatibleApiKey ?? undefined,
-            baseUrl: runtimeConfig.openAiCompatibleBaseUrl ?? undefined,
-            timeoutMs,
-            maxRetries,
-          });
-      const logger = createLogger(options.verbose ? "debug" : runtimeConfig.logLevel, process.stderr);
+      const client =
+        options.dryRun || hasDryRunFlag
+          ? undefined
+          : createOpenAiStoryClientWithOptions({
+              apiKey: runtimeConfig.openAiCompatibleApiKey ?? undefined,
+              baseUrl: runtimeConfig.openAiCompatibleBaseUrl ?? undefined,
+              timeoutMs,
+              maxRetries,
+            });
+      const logger = createLogger(
+        options.verbose ? "debug" : runtimeConfig.logLevel,
+        process.stderr
+      );
       const controller = new AbortController();
       const abort = (): void => {
         controller.abort(new Error("Short rewrite interrupted."));
@@ -360,7 +413,7 @@ export function registerStoryRewriteShortCommand(storiesCommand: Command): void 
       process.once("SIGINT", abort);
       process.once("SIGTERM", abort);
       try {
-        if (client) {
+        if (client && runtimeConfig.horrorAffectRolloutMode !== "enforce") {
           await preflightOpenAiConnectivity(client, model, 60_000);
         }
         const serviceOptions = {
@@ -397,7 +450,10 @@ export function registerStoryRewriteShortCommand(storiesCommand: Command): void 
             repairMaxOutputTokens:
               runtimeConfig.openAiValidatorMaxOutputTokens ??
               runtimeConfig.openAiMetadataMaxOutputTokens,
-            temperature: options.temperature ?? runtimeConfig.openAiStoryTemperature ?? SHORT_REWRITE_DEFAULT_TEMPERATURE,
+            temperature:
+              options.temperature ??
+              runtimeConfig.openAiStoryTemperature ??
+              SHORT_REWRITE_DEFAULT_TEMPERATURE,
             reasoningEffort:
               options.reasoningEffort ??
               runtimeConfig.openAiShortReasoningEffort ??
@@ -413,6 +469,7 @@ export function registerStoryRewriteShortCommand(storiesCommand: Command): void 
             force: options.force ?? false,
             verbose: options.verbose ?? false,
             json: options.json ?? false,
+            horrorAffectRolloutMode: runtimeConfig.horrorAffectRolloutMode,
           } satisfies ShortRewriteRunOptions,
           serviceOptions
         );
@@ -436,7 +493,9 @@ export function registerStoryRewriteShortCommand(storiesCommand: Command): void 
         } else {
           process.stdout.write(`${formatSummary(summary)}\n`);
           if (configWarnings.length > 0) {
-            process.stderr.write(`${configWarnings.map((entry) => `Warning: ${entry}`).join("\n")}\n`);
+            process.stderr.write(
+              `${configWarnings.map((entry) => `Warning: ${entry}`).join("\n")}\n`
+            );
           }
         }
         if (summary.failed > 0) {

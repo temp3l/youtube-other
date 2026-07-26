@@ -4,6 +4,8 @@ import { loadRuntimeConfig } from "@mediaforge/config";
 import {
   buildWorkspacePlannedStoryWorkflowManifest,
   buildStoryProductionStatusReport,
+  inspectHorrorAffectPlanArtifact,
+  resolveHorrorAffectPlanArtifactPaths,
   resolveStoryProductionAnalysisStatus,
   StoryWorkflowManifestStore,
   type StoryWorkflowManifest,
@@ -400,9 +402,19 @@ async function buildWorkspaceFallbackStatus(args: {
       manifest = markStageCompleted(manifest, stage.stageId);
     }
   }
+  const report = buildStoryProductionStatusReport(manifest);
+  const horrorAffectPlan = await inspectHorrorAffectPlanArtifact({
+    paths: resolveHorrorAffectPlanArtifactPaths({
+      outputDirectory: args.outputRoot,
+      episodeSlug: manifest.episodeId,
+    }),
+  });
   return {
     manifest,
-    report: buildStoryProductionStatusReport(manifest),
+    report: {
+      ...report,
+      horrorAffectPlan: horrorAffectPlan.status,
+    },
   };
 }
 
@@ -431,9 +443,19 @@ export async function loadManifestForEpisode(args: {
   if (!manifest) {
     throw new Error(`Workflow manifest not found: ${workflowId}`);
   }
+  const report = buildStoryProductionStatusReport(manifest);
+  const horrorAffectPlan = await inspectHorrorAffectPlanArtifact({
+    paths: resolveHorrorAffectPlanArtifactPaths({
+      outputDirectory: args.outputRoot,
+      episodeSlug: manifest.episodeId,
+    }),
+  });
   return {
     manifest,
-    report: buildStoryProductionStatusReport(manifest),
+    report: {
+      ...report,
+      horrorAffectPlan: horrorAffectPlan.status,
+    },
   };
 }
 

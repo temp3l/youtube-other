@@ -22,14 +22,19 @@ function makeFacts(): CanonicalStoryFacts {
     criticalObjects: ["hook", "car door", "radio"],
     criticalEvents: ["A hook scraped the car door."],
     writtenMessages: [],
-    threat: "An impossible hook and duplicate-Noah phenomenon manipulates who belongs inside the car.",
-    primaryReveal: "Dashcam footage shows Noah outside the car while another Noah remains behind the wheel.",
-    finalConsequence: "Noah realizes the warning was about keeping the wrong person from getting out.",
+    threat:
+      "An impossible hook and duplicate-Noah phenomenon manipulates who belongs inside the car.",
+    primaryReveal:
+      "Dashcam footage shows Noah outside the car while another Noah remains behind the wheel.",
+    finalConsequence:
+      "Noah realizes the warning was about keeping the wrong person from getting out.",
     protagonistNames: ["Noah Brooks"],
     concreteLocations: ["wooded reservoir", "parked car"],
     keyObjects: ["hook", "car door", "radio"],
-    threatMechanism: "An impossible hook and duplicate-Noah phenomenon manipulates who belongs inside the car.",
-    supernaturalRule: "Do not unlock the car or respond to familiar voices outside.",
+    threatMechanism:
+      "An impossible hook and duplicate-Noah phenomenon manipulates who belongs inside the car.",
+    supernaturalRule:
+      "Do not unlock the car or respond to familiar voices outside.",
     protagonistAttachment: "Noah wants to trust the familiar voice outside.",
     emotionalCost: "Noah must refuse the familiar voice to survive.",
     finalDecision: "Noah refuses to unlock the car.",
@@ -63,7 +68,9 @@ describe("story localization cache identity", () => {
       variant: "full",
     });
 
-    await expect(readCanonicalFactsCache(root, sourceHash)).resolves.toMatchObject({
+    await expect(
+      readCanonicalFactsCache(root, sourceHash)
+    ).resolves.toMatchObject({
       protagonistNames: ["Noah Brooks"],
       keyObjects: expect.arrayContaining(["hook", "car door"]),
     });
@@ -71,7 +78,11 @@ describe("story localization cache identity", () => {
 
   it("invalidates stale localization cache entries missing quality identity", async () => {
     const root = await fs.mkdtemp(path.join(os.tmpdir(), "story-cache-"));
-    const entryPath = path.join(root, "entries", `${sourceHash}.${configurationHash}.json`);
+    const entryPath = path.join(
+      root,
+      "entries",
+      `${sourceHash}.${configurationHash}.json`
+    );
     await fs.mkdir(path.dirname(entryPath), { recursive: true });
     await fs.writeFile(
       entryPath,
@@ -88,7 +99,9 @@ describe("story localization cache identity", () => {
       "utf8"
     );
 
-    await expect(readLocalizationCacheEntry(root, sourceHash, configurationHash)).resolves.toBeNull();
+    await expect(
+      readLocalizationCacheEntry(root, sourceHash, configurationHash)
+    ).resolves.toBeNull();
   });
 
   it("writes fresh localization cache entries with required identity", async () => {
@@ -107,11 +120,47 @@ describe("story localization cache identity", () => {
       outputFiles: ["out.md"],
     });
 
-    await expect(readLocalizationCacheEntry(root, sourceHash, configurationHash)).resolves.toMatchObject({
+    await expect(
+      readLocalizationCacheEntry(root, sourceHash, configurationHash)
+    ).resolves.toMatchObject({
       sourceNarrationHash: sourceHash,
       extractorImplementationVersion: expect.any(String),
       qualityGateVersion: expect.any(String),
       protectedElementsVersion: expect.any(String),
+    });
+  });
+
+  it("round-trips enforced localization affect lineage without changing legacy identity", async () => {
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), "story-cache-"));
+    await writeLocalizationCacheEntry(root, {
+      sourceFile: "source.md",
+      sourceHash,
+      configurationHash,
+      promptVersion: "prompt-v3",
+      model: "fixture",
+      language: "de",
+      reasoningEffort: "none",
+      locale: "de-DE",
+      variant: "full",
+      generatedAt: new Date().toISOString(),
+      outputFiles: ["out.md"],
+      localizationAffectProjectionVersion:
+        "localization-horror-affect-projection-v1",
+      parentHorrorAffectPlanHash: "c".repeat(64),
+      localizationAffectProjectionHash: "d".repeat(64),
+      localizationAffectSemanticIdsHash: "e".repeat(64),
+      localizationAffectFidelityPolicyVersion:
+        "localization-affect-fidelity-v1",
+    });
+
+    await expect(
+      readLocalizationCacheEntry(root, sourceHash, configurationHash)
+    ).resolves.toMatchObject({
+      localizationAffectProjectionVersion:
+        "localization-horror-affect-projection-v1",
+      parentHorrorAffectPlanHash: "c".repeat(64),
+      localizationAffectProjectionHash: "d".repeat(64),
+      localizationAffectSemanticIdsHash: "e".repeat(64),
     });
   });
 });

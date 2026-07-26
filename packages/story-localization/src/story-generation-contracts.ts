@@ -63,6 +63,62 @@ export interface StoryQualityScore {
 
 export type StoryGenerationFormat = "full" | "short";
 
+export const STORY_AFFECT_REPAIR_ROUTING_VERSION =
+  "story-affect-repair-routing-v1";
+export const STORY_AFFECT_REPAIR_PROMPT_VERSION =
+  "story-affect-repair-prompt-v1";
+export const STORY_AFFECT_REPAIR_HISTORY_SCHEMA_VERSION =
+  "story-affect-repair-history-v1";
+
+export const STORY_AFFECT_ISSUE_CODES = {
+  LOCAL_RESPONSE_STEP_MISSING: "LOCAL_RESPONSE_STEP_MISSING",
+  LOCAL_COST_WEAKENED: "LOCAL_COST_WEAKENED",
+  LOCAL_BEAT_CONTRADICTION: "LOCAL_BEAT_CONTRADICTION",
+  MISSING_CENTRAL_QUESTION: "MISSING_CENTRAL_QUESTION",
+  UNSUPPORTED_RULE: "UNSUPPORTED_RULE",
+  ARBITRARY_CLIMAX: "ARBITRARY_CLIMAX",
+  CROSS_STORY_CAUSAL_FAILURE: "CROSS_STORY_CAUSAL_FAILURE",
+  INCOMPATIBLE_PAYOFF: "INCOMPATIBLE_PAYOFF",
+} as const;
+
+export type StoryAffectIssueCode =
+  (typeof STORY_AFFECT_ISSUE_CODES)[keyof typeof STORY_AFFECT_ISSUE_CODES];
+
+export const STORY_LOCAL_AFFECT_ISSUE_CODES = [
+  STORY_AFFECT_ISSUE_CODES.LOCAL_RESPONSE_STEP_MISSING,
+  STORY_AFFECT_ISSUE_CODES.LOCAL_COST_WEAKENED,
+  STORY_AFFECT_ISSUE_CODES.LOCAL_BEAT_CONTRADICTION,
+] as const;
+
+export const STORY_ARCHITECTURE_AFFECT_ISSUE_CODES = [
+  STORY_AFFECT_ISSUE_CODES.MISSING_CENTRAL_QUESTION,
+  STORY_AFFECT_ISSUE_CODES.UNSUPPORTED_RULE,
+  STORY_AFFECT_ISSUE_CODES.ARBITRARY_CLIMAX,
+  STORY_AFFECT_ISSUE_CODES.CROSS_STORY_CAUSAL_FAILURE,
+  STORY_AFFECT_ISSUE_CODES.INCOMPATIBLE_PAYOFF,
+] as const;
+
+export type StoryAffectRepairScope = "beat" | "beat-range";
+
+export interface StoryAffectProtectedFact {
+  readonly id: string;
+  readonly statement: string;
+}
+
+export interface StoryAffectRepairHistoryEntry {
+  readonly schemaVersion: typeof STORY_AFFECT_REPAIR_HISTORY_SCHEMA_VERSION;
+  readonly attemptNumber: number;
+  readonly issueIds: readonly string[];
+  readonly issueCodes: readonly StoryAffectIssueCode[];
+  readonly repairScope: StoryAffectRepairScope;
+  readonly affectedBeatIds: readonly string[];
+  readonly parentHashes: Readonly<Record<string, string>>;
+  readonly routingFingerprint: string;
+  readonly promptFingerprint: string;
+  readonly outcome: "accepted" | "rejected" | "blocked";
+  readonly validationIssues: readonly string[];
+}
+
 export interface StoryGenerationProfile {
   readonly format: StoryGenerationFormat;
   readonly sourcePath: string;

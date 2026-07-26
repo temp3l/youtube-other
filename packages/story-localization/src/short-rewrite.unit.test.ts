@@ -2,7 +2,7 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { countSpokenWords } from "@mediaforge/shared";
+import { countSpokenWords, hashText } from "@mediaforge/shared";
 import {
   FULL_STORY_PROVENANCE_MARKER,
   SHORT_REWRITE_HARD_WORD_RANGE,
@@ -33,9 +33,24 @@ import { buildShortRewriteMarkdown } from "./short-rewrite.renderer.js";
 import {
   buildShortRewritePrompt,
   buildShortRewriteRepairPrompt,
+  buildShortRewriteRegenerationPrompt,
 } from "./short-rewrite.prompt.js";
 import { getLanguageRewriteSettings } from "./multilingual-story-localization-settings.js";
 import { resolveShortRewriteInput } from "./short-rewrite.resolution.js";
+import {
+  computeShortHorrorAffectProjectionHash,
+  SHORT_HORROR_AFFECT_PROJECTION_SCHEMA_VERSION,
+  SHORT_HORROR_AFFECT_PROJECTION_VERSION,
+  type ShortHorrorAffectProjection,
+} from "./short-horror-affect-projection.js";
+import {
+  HORROR_AFFECT_PLAN_SCHEMA_VERSION,
+  HORROR_AFFECT_STRATEGY_VERSION,
+} from "./horror-affect-plan.js";
+import { stableSerialize } from "./stable-json.js";
+import { STORY_AFFECT_ISSUE_CODES } from "./story-generation-contracts.js";
+import { decideStoryAffectRepairRoute } from "./story-retry-routing.js";
+import { buildTargetedAffectRepairInstructions } from "./story-quality-repair.js";
 
 function makeNarration(wordTarget: number): string {
   const sentences = [
@@ -50,6 +65,92 @@ function makeNarration(wordTarget: number): string {
     index += 1;
   }
   return narration;
+}
+
+function buildProjectionFixture(): ShortHorrorAffectProjection {
+  const selectedIds = {
+    questionId: "primary-question",
+    questionOpenBeatId: "beat-001",
+    questionDueBeatId: "beat-005",
+    ruleBeatId: "beat-002",
+    proofStepBeatIds: ["beat-003"],
+    proofResponseIds: ["response-001"],
+    costBeatId: "beat-004",
+    payoffBeatId: "beat-005",
+    immutableFactIds: [],
+  };
+  const body = {
+    schemaVersion: SHORT_HORROR_AFFECT_PROJECTION_SCHEMA_VERSION,
+    projectionVersion: SHORT_HORROR_AFFECT_PROJECTION_VERSION,
+    strategyVersion: HORROR_AFFECT_STRATEGY_VERSION,
+    parent: {
+      planSchemaVersion: HORROR_AFFECT_PLAN_SCHEMA_VERSION,
+      planHash: "1".repeat(64),
+      storyIrHash: "2".repeat(64),
+      canonicalContractHash: "3".repeat(64),
+      mechanicsHash: "4".repeat(64),
+      canonicalBeatsHash: "5".repeat(64),
+    },
+    target: {
+      format: "short" as const,
+      durationSeconds: { min: 50, max: 60 },
+    },
+    chain: {
+      question: {
+        id: "primary-question",
+        text: "Why does the doll move closer?",
+        openedAtBeatId: "beat-001",
+        dueAtBeatId: "beat-005",
+        resolution: "reframed" as const,
+        answerOrResidualUncertainty:
+          "The final photograph shows the doll behind her brother.",
+        sourceRefs: ["canonical-contract:final-consequence"],
+      },
+      rule: {
+        beatId: "beat-002",
+        statement: "Locking the doll away makes it appear closer.",
+        sourceRefs: ["canonical-beat:beat-002"],
+      },
+      proofSteps: [
+        {
+          kind: "response" as const,
+          beatId: "beat-003",
+          responseId: "response-001",
+          action: "Mara locks the doll in the trunk.",
+          observableResult: "The doll appears on the nursery chair.",
+          informationGained: "Physical barriers make the doll appear closer.",
+          sourceRefs: ["canonical-beat:beat-003"],
+        },
+      ],
+      cost: {
+        beatId: "beat-004",
+        stake: "Mara must protect her brother.",
+        action: "Mara burns the doll's dress.",
+        observableResult: "She destroys her mother's last gift.",
+        sourceRefs: ["canonical-beat:beat-004", "mechanics:climax"],
+      },
+      payoff: {
+        beatId: "beat-005",
+        questionId: "primary-question",
+        acceptedConsequence:
+          "The final photograph shows the doll behind her brother.",
+        observableResult:
+          "The final photograph shows the doll behind her brother.",
+        sourceRefs: ["canonical-beat:beat-005"],
+      },
+      requiredImmutableFacts: [],
+    },
+    selectedIds,
+    selectedIdsHash: hashText(stableSerialize(selectedIds)),
+    validation: {
+      valid: true as const,
+      issues: [],
+    },
+  };
+  return {
+    ...body,
+    projectionHash: computeShortHorrorAffectProjectionHash(body),
+  };
 }
 
 describe("short rewrite helpers", () => {
@@ -282,6 +383,134 @@ describe("short rewrite helpers", () => {
     expect(prompt.user).toContain("repairHistory");
   });
 
+  it("keeps the enforced affect chain, final line, rename map, and narration ownership across repair and regeneration", () => {
+    const horrorAffectProjection = buildProjectionFixture();
+    const context = {
+      episodeNumber: "009",
+      episodeSlug: "009-the-christmas-doll",
+      targetLanguage: "en" as const,
+      targetLocale: "en-US",
+      sourceStory:
+        "Mara locked the doll in the trunk. The final photograph showed the doll behind her brother.",
+      narration:
+        "Mara locked the doll in the trunk. The final photograph showed the doll behind her brother.",
+      title: "The Christmas Doll",
+      horrorAffectProjection,
+    };
+    const base = buildShortRewritePrompt(context);
+    const repair = buildShortRewriteRepairPrompt({
+      context,
+      invalidResult: { narration: "Mara chose a different chain." },
+      validationErrors: ["Missing accepted payoff."],
+    });
+    const regeneration = buildShortRewriteRegenerationPrompt({
+      context,
+      validationErrors: ["Missing accepted payoff."],
+    });
+
+    for (const prompt of [base, repair, regeneration]) {
+      expect(
+        prompt.user.match(/## Short Horror Affect Projection/gu)
+      ).toHaveLength(1);
+      expect(prompt.user).toContain(horrorAffectProjection.parent.planHash);
+      expect(prompt.user).toContain(
+        "The final photograph shows the doll behind her brother."
+      );
+      expect(prompt.user).toContain("Authoritative fictional character map:");
+      expect(prompt.user).toContain("Render only natural narration.");
+      expect(prompt.user).toContain("not an audio/TTS prompt");
+    }
+  });
+
+  it("Task 07 composes a locked beat-scoped repair into the existing Short prompt", () => {
+    const horrorAffectProjection = buildProjectionFixture();
+    const finding = {
+      id: "response-omission-1",
+      assessment: "weakness" as const,
+      issueCode: STORY_AFFECT_ISSUE_CODES.LOCAL_RESPONSE_STEP_MISSING,
+      paragraphSpans: [{ start: 2, end: 2 }],
+      affectRefs: { beatIds: ["beat-003"] },
+      repairScope: "beat" as const,
+      modifiableBeatIds: ["beat-003"],
+      protectedFacts: [
+        {
+          id: "fact-payoff",
+          statement:
+            "The final photograph shows the doll behind Mara's brother.",
+        },
+      ],
+    };
+    const decision = decideStoryAffectRepairRoute({
+      purpose: "canonical-short",
+      findings: [finding],
+      paragraphCount: 3,
+      availableModifiableBeatIds: ["beat-003"],
+    });
+    if (decision.action !== "repair") {
+      throw new Error(`Expected repair, received ${decision.action}.`);
+    }
+    const targetedAffectRepair = buildTargetedAffectRepairInstructions({
+      decision,
+      findings: [finding],
+      acceptedPlanFragments: [
+        {
+          beatId: "beat-003",
+          instruction: "Restore Mara's lock-and-observe response step.",
+        },
+      ],
+      locks: {
+        parentHashes: {
+          planHash: horrorAffectProjection.parent.planHash,
+          contractHash: horrorAffectProjection.parent.canonicalContractHash,
+        },
+        immutableFacts: finding.protectedFacts,
+        acceptedFinalLine:
+          horrorAffectProjection.chain.payoff.acceptedConsequence,
+        renameMapHash: "6".repeat(64),
+        unaffectedBeats: [
+          { beatId: "beat-001", contentHash: "7".repeat(64) },
+          { beatId: "beat-005", contentHash: "8".repeat(64) },
+        ],
+        selectedProjection: {
+          kind: "short",
+          projectionHash: horrorAffectProjection.projectionHash,
+          selectedIds: Object.values(horrorAffectProjection.selectedIds).flat(),
+        },
+        wordBudget: { min: 155, max: 180 },
+        durationBudget: { minSeconds: 50, maxSeconds: 60 },
+        narrationOnly: true,
+      },
+    });
+    const prompt = buildShortRewriteRepairPrompt({
+      context: {
+        episodeNumber: "009",
+        episodeSlug: "009-the-christmas-doll",
+        targetLanguage: "en",
+        targetLocale: "en-US",
+        sourceStory:
+          "Mara locked the doll in the trunk. The final photograph showed the doll behind her brother.",
+        narration:
+          "Mara locked the doll in the trunk. The final photograph showed the doll behind her brother.",
+        title: "The Christmas Doll",
+        horrorAffectProjection,
+      },
+      invalidResult: { narration: "Mara skipped the response." },
+      validationErrors: ["The response step is missing."],
+      targetedAffectRepair,
+    });
+
+    expect(prompt.user).toContain(
+      "Targeted affect repair is authorized for exactly one bounded attempt."
+    );
+    expect(prompt.user).toContain("Modifiable beat IDs only: beat-003");
+    expect(prompt.user).toContain(
+      `Locked short projection hash: ${horrorAffectProjection.projectionHash}`
+    );
+    expect(prompt.user).toContain(
+      "Return the complete applicable response schema with narration-only story output."
+    );
+  });
+
   it("renders markdown compatible with the downstream pipeline", () => {
     const narration = makeNarration(150);
     const markdown = buildShortRewriteMarkdown({
@@ -417,7 +646,10 @@ describe("short rewrite helpers", () => {
       path.join(nestedEpisodeRoot, "source", "010-ambiguous-a-en-full.md")
     );
 
-    const canonicalEpisodeRoot = path.join(episodesRoot, "012-canonical-layout");
+    const canonicalEpisodeRoot = path.join(
+      episodesRoot,
+      "012-canonical-layout"
+    );
     await fs.mkdir(path.join(canonicalEpisodeRoot, "languages"), {
       recursive: true,
     });

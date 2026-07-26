@@ -5,6 +5,62 @@ export interface MathPresentationProfile {
   maxTeacherAreaRatio: number;
   concreteModelsPreferred: boolean;
 }
+
+export type MathEncodingProfileId = "draft" | "review" | "publish";
+
+export interface MathEncodingProfile {
+  readonly id: MathEncodingProfileId;
+  readonly width: 1920;
+  readonly height: 1080;
+  readonly fps: 30;
+  readonly videoCodec: "libx264";
+  readonly crf: 18 | 21 | 25;
+  readonly preset: "veryfast" | "medium" | "slow";
+  readonly pixelFormat: "yuv420p";
+  readonly audioCodec: "aac";
+  readonly audioBitrate: "192k";
+}
+
+export const mathEncodingProfiles: Readonly<
+  Record<MathEncodingProfileId, MathEncodingProfile>
+> = {
+  draft: {
+    id: "draft",
+    width: 1920,
+    height: 1080,
+    fps: 30,
+    videoCodec: "libx264",
+    crf: 25,
+    preset: "veryfast",
+    pixelFormat: "yuv420p",
+    audioCodec: "aac",
+    audioBitrate: "192k",
+  },
+  review: {
+    id: "review",
+    width: 1920,
+    height: 1080,
+    fps: 30,
+    videoCodec: "libx264",
+    crf: 21,
+    preset: "medium",
+    pixelFormat: "yuv420p",
+    audioCodec: "aac",
+    audioBitrate: "192k",
+  },
+  publish: {
+    id: "publish",
+    width: 1920,
+    height: 1080,
+    fps: 30,
+    videoCodec: "libx264",
+    crf: 18,
+    preset: "slow",
+    pixelFormat: "yuv420p",
+    audioCodec: "aac",
+    audioBitrate: "192k",
+  },
+};
 export const grades57Profile: MathPresentationProfile = {
   id: "grades-5-7-v1",
   minFormulaPx: 72,

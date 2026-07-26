@@ -3,6 +3,7 @@ import {
   SHORT_REWRITE_HARD_WORD_RANGE,
   SHORT_REWRITE_THUMBNAIL_WORD_LIMIT,
 } from "./short-rewrite.constants.js";
+import { shortHorrorAffectProjectionSchema } from "./short-horror-affect-projection.js";
 
 const finitePositiveNumber = z.number().finite().nonnegative();
 const hashSchema = z.string().regex(/^[a-f0-9]{64}$/iu);
@@ -243,6 +244,7 @@ export const shortRewriteAdaptationContractSchema = z
           .optional(),
       })
       .strict(),
+    horrorAffectProjection: shortHorrorAffectProjectionSchema.optional(),
     contractHash: hashSchema,
   })
   .strict();
@@ -398,7 +400,12 @@ export const shortRewriteArtifactSchema = z
           })
           .strict()
           .optional(),
-        estimatedCostUsd: z.number().finite().nonnegative().nullable().optional(),
+        estimatedCostUsd: z
+          .number()
+          .finite()
+          .nonnegative()
+          .nullable()
+          .optional(),
       })
       .strict()
       .optional(),

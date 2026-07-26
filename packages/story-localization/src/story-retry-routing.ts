@@ -1,4 +1,14 @@
+import { hashText } from "@mediaforge/shared";
+import {
+  STORY_AFFECT_REPAIR_ROUTING_VERSION,
+  STORY_ARCHITECTURE_AFFECT_ISSUE_CODES,
+  STORY_LOCAL_AFFECT_ISSUE_CODES,
+  type StoryAffectIssueCode,
+  type StoryAffectProtectedFact,
+  type StoryAffectRepairScope,
+} from "./story-generation-contracts.js";
 import { type StoryNarrationVariant } from "./story-generation-preflight.js";
+import { stableSerialize } from "./stable-json.js";
 import {
   GENERATED_STORY_VALIDATION_ISSUE_CODES,
   type GeneratedStoryValidationIssueCode,
@@ -15,6 +25,8 @@ export type StoryRetryScope =
   | "sentence"
   | "paragraph"
   | "paragraph-range"
+  | "beat"
+  | "beat-range"
   | "opening"
   | "hook"
   | "ending"
@@ -49,6 +61,8 @@ export type StoryRetryDecision =
         | "sentence"
         | "paragraph"
         | "paragraph-range"
+        | "beat"
+        | "beat-range"
         | "opening"
         | "hook"
         | "ending";
@@ -57,6 +71,53 @@ export type StoryRetryDecision =
       readonly action: "regenerate";
       readonly purpose: StoryRetryPurpose;
       readonly scope: "full-regeneration" | "short-regeneration";
+    };
+
+export interface StoryAffectRoutingFinding {
+  readonly id: string;
+  readonly assessment: "strength" | "weakness";
+  readonly issueCode?: StoryAffectIssueCode;
+  readonly paragraphSpans: readonly {
+    readonly start: number;
+    readonly end: number;
+  }[];
+  readonly affectRefs: {
+    readonly beatIds: readonly string[];
+  };
+  readonly repairScope?: StoryAffectRepairScope;
+  readonly modifiableBeatIds?: readonly string[];
+  readonly protectedFacts?: readonly StoryAffectProtectedFact[];
+}
+
+export type StoryAffectRepairRoutingDecision =
+  | {
+      readonly action: "block";
+      readonly reason:
+        | "deterministic-validation"
+        | "duplicate-failed-fingerprint"
+        | "retry-cap-exhausted"
+        | "invalid-repair-evidence"
+        | "requires-parent-full-regeneration";
+      readonly issueIds: readonly string[];
+      readonly routingFingerprint: string;
+    }
+  | {
+      readonly action: "repair";
+      readonly purpose: StoryRetryPurpose;
+      readonly scope: StoryAffectRepairScope;
+      readonly issueIds: readonly string[];
+      readonly issueCodes: readonly StoryAffectIssueCode[];
+      readonly affectedBeatIds: readonly string[];
+      readonly protectedFacts: readonly StoryAffectProtectedFact[];
+      readonly routingFingerprint: string;
+    }
+  | {
+      readonly action: "regenerate";
+      readonly purpose: "canonical-full" | "localized-full";
+      readonly scope: "full-regeneration";
+      readonly issueIds: readonly string[];
+      readonly issueCodes: readonly StoryAffectIssueCode[];
+      readonly routingFingerprint: string;
     };
 
 export interface PersistedFailedRequestUsage {
@@ -209,7 +270,9 @@ export function normalizeIncompleteResponse(
   return null;
 }
 
-function normalizeUsage(record: unknown): PersistedFailedRequestUsage | undefined {
+function normalizeUsage(
+  record: unknown
+): PersistedFailedRequestUsage | undefined {
   if (!record || typeof record !== "object") {
     return undefined;
   }
@@ -281,7 +344,9 @@ function readIncompleteReason(record: unknown): string | null {
       : "incomplete";
   }
   if (typeof value.incompleteReason === "string") {
-    return value.incompleteReason.length > 0 ? value.incompleteReason : "incomplete";
+    return value.incompleteReason.length > 0
+      ? value.incompleteReason
+      : "incomplete";
   }
   return value.status === "incomplete" ? "incomplete" : null;
 }
@@ -311,7 +376,13 @@ export function inferRepairScopeFromIssueCodes(args: {
   readonly issueCodes: readonly GeneratedStoryValidationIssueCode[];
 }): Extract<
   StoryRetryScope,
-  "field" | "sentence" | "paragraph" | "paragraph-range" | "opening" | "hook" | "ending"
+  | "field"
+  | "sentence"
+  | "paragraph"
+  | "paragraph-range"
+  | "opening"
+  | "hook"
+  | "ending"
 > | null {
   const codes = new Set(args.issueCodes);
   if (args.purpose === "canonical-full" || args.purpose === "localized-full") {
@@ -331,7 +402,9 @@ export function inferRepairScopeFromIssueCodes(args: {
     return "ending";
   }
   if (
-    codes.has(GENERATED_STORY_VALIDATION_ISSUE_CODES.SHORT_WORD_RANGE_INVALID) ||
+    codes.has(
+      GENERATED_STORY_VALIDATION_ISSUE_CODES.SHORT_WORD_RANGE_INVALID
+    ) ||
     codes.has(GENERATED_STORY_VALIDATION_ISSUE_CODES.SHORT_UNSUPPORTED_FACT) ||
     codes.has(
       GENERATED_STORY_VALIDATION_ISSUE_CODES.SHORT_ORPHANED_REFERENCE
@@ -382,7 +455,15 @@ export function decideRetryRoute(args: {
   readonly issueCodes?: readonly GeneratedStoryValidationIssueCode[];
   readonly requestedScope?: Extract<
     StoryRetryScope,
-    "field" | "sentence" | "paragraph" | "paragraph-range" | "opening" | "hook" | "ending"
+    | "field"
+    | "sentence"
+    | "paragraph"
+    | "paragraph-range"
+    | "beat"
+    | "beat-range"
+    | "opening"
+    | "hook"
+    | "ending"
   >;
   readonly issues?: readonly string[];
   readonly incompleteReason?: string | null;
@@ -440,7 +521,15 @@ export function decideRetryRoute(args: {
   if (args.allowTargetedRepair) {
     const scope: Extract<
       StoryRetryScope,
-      "field" | "sentence" | "paragraph" | "paragraph-range" | "opening" | "hook" | "ending"
+      | "field"
+      | "sentence"
+      | "paragraph"
+      | "paragraph-range"
+      | "beat"
+      | "beat-range"
+      | "opening"
+      | "hook"
+      | "ending"
     > =
       args.requestedScope ??
       (args.issueCodes
@@ -467,5 +556,215 @@ export function decideRetryRoute(args: {
     action: "regenerate",
     purpose: args.purpose,
     scope: regenerationScopeForPurpose(args.purpose),
+  };
+}
+
+export function computeStoryAffectRepairRoutingFingerprint(args: {
+  readonly purpose: StoryRetryPurpose;
+  readonly findings: readonly StoryAffectRoutingFinding[];
+  readonly paragraphCount: number;
+  readonly availableModifiableBeatIds: readonly string[];
+  readonly deterministicFailureIds?: readonly string[];
+  readonly attemptNumber?: number;
+  readonly retryCap?: number;
+}): string {
+  return hashText(
+    stableSerialize({
+      routingVersion: STORY_AFFECT_REPAIR_ROUTING_VERSION,
+      purpose: args.purpose,
+      paragraphCount: args.paragraphCount,
+      availableModifiableBeatIds: [...args.availableModifiableBeatIds].sort(),
+      deterministicFailureIds: [...(args.deterministicFailureIds ?? [])].sort(),
+      attemptNumber: args.attemptNumber ?? 0,
+      retryCap: args.retryCap ?? 1,
+      findings: args.findings.map((finding) => ({
+        id: finding.id,
+        assessment: finding.assessment,
+        issueCode: finding.issueCode ?? null,
+        paragraphSpans: finding.paragraphSpans,
+        beatIds: [...finding.affectRefs.beatIds],
+        repairScope: finding.repairScope ?? null,
+        modifiableBeatIds: [...(finding.modifiableBeatIds ?? [])],
+        protectedFacts: [...(finding.protectedFacts ?? [])],
+      })),
+    })
+  );
+}
+
+function isArchitectureAffectIssue(issueCode: StoryAffectIssueCode): boolean {
+  return (
+    STORY_ARCHITECTURE_AFFECT_ISSUE_CODES as readonly StoryAffectIssueCode[]
+  ).includes(issueCode);
+}
+
+function isLocalAffectIssue(issueCode: StoryAffectIssueCode): boolean {
+  return (
+    STORY_LOCAL_AFFECT_ISSUE_CODES as readonly StoryAffectIssueCode[]
+  ).includes(issueCode);
+}
+
+function hasValidLocalRepairEvidence(args: {
+  readonly finding: StoryAffectRoutingFinding;
+  readonly paragraphCount: number;
+  readonly availableModifiableBeatIds: ReadonlySet<string>;
+}): boolean {
+  const finding = args.finding;
+  if (
+    finding.assessment !== "weakness" ||
+    !finding.issueCode ||
+    !isLocalAffectIssue(finding.issueCode) ||
+    !finding.repairScope ||
+    !finding.modifiableBeatIds ||
+    finding.modifiableBeatIds.length === 0 ||
+    !finding.protectedFacts ||
+    finding.protectedFacts.length === 0 ||
+    finding.paragraphSpans.length === 0
+  ) {
+    return false;
+  }
+  if (
+    finding.repairScope === "beat" &&
+    finding.modifiableBeatIds.length !== 1
+  ) {
+    return false;
+  }
+  if (
+    finding.repairScope === "beat-range" &&
+    finding.modifiableBeatIds.length < 2
+  ) {
+    return false;
+  }
+  if (
+    finding.paragraphSpans.some(
+      (span) =>
+        !Number.isInteger(span.start) ||
+        !Number.isInteger(span.end) ||
+        span.start < 1 ||
+        span.end < span.start ||
+        span.end > args.paragraphCount
+    )
+  ) {
+    return false;
+  }
+  const citedBeatIds = new Set(finding.affectRefs.beatIds);
+  if (
+    finding.modifiableBeatIds.some(
+      (beatId) =>
+        !citedBeatIds.has(beatId) ||
+        !args.availableModifiableBeatIds.has(beatId)
+    )
+  ) {
+    return false;
+  }
+  return finding.protectedFacts.every(
+    (fact) => fact.id.trim().length > 0 && fact.statement.trim().length > 0
+  );
+}
+
+export function decideStoryAffectRepairRoute(args: {
+  readonly purpose: StoryRetryPurpose;
+  readonly findings: readonly StoryAffectRoutingFinding[];
+  readonly paragraphCount: number;
+  readonly availableModifiableBeatIds: readonly string[];
+  readonly deterministicFailureIds?: readonly string[];
+  readonly previousFailedFingerprint?: boolean;
+  readonly attemptNumber?: number;
+  readonly retryCap?: number;
+}): StoryAffectRepairRoutingDecision {
+  const issueIds = args.findings.map((finding) => finding.id);
+  const routingFingerprint = computeStoryAffectRepairRoutingFingerprint(args);
+  if ((args.deterministicFailureIds?.length ?? 0) > 0) {
+    return {
+      action: "block",
+      reason: "deterministic-validation",
+      issueIds,
+      routingFingerprint,
+    };
+  }
+  if (args.previousFailedFingerprint) {
+    return {
+      action: "block",
+      reason: "duplicate-failed-fingerprint",
+      issueIds,
+      routingFingerprint,
+    };
+  }
+  if ((args.attemptNumber ?? 0) >= (args.retryCap ?? 1)) {
+    return {
+      action: "block",
+      reason: "retry-cap-exhausted",
+      issueIds,
+      routingFingerprint,
+    };
+  }
+  const issueCodes = args.findings
+    .map((finding) => finding.issueCode)
+    .filter((issueCode): issueCode is StoryAffectIssueCode =>
+      Boolean(issueCode)
+    );
+  if (
+    args.findings.length > 0 &&
+    issueCodes.length === args.findings.length &&
+    issueCodes.some(isArchitectureAffectIssue)
+  ) {
+    if (
+      args.purpose === "canonical-short" ||
+      args.purpose === "localized-short"
+    ) {
+      return {
+        action: "block",
+        reason: "requires-parent-full-regeneration",
+        issueIds,
+        routingFingerprint,
+      };
+    }
+    return {
+      action: "regenerate",
+      purpose: args.purpose,
+      scope: "full-regeneration",
+      issueIds,
+      issueCodes,
+      routingFingerprint,
+    };
+  }
+  const availableModifiableBeatIds = new Set(args.availableModifiableBeatIds);
+  if (
+    args.findings.length === 0 ||
+    !args.findings.every((finding) =>
+      hasValidLocalRepairEvidence({
+        finding,
+        paragraphCount: args.paragraphCount,
+        availableModifiableBeatIds,
+      })
+    )
+  ) {
+    return {
+      action: "block",
+      reason: "invalid-repair-evidence",
+      issueIds,
+      routingFingerprint,
+    };
+  }
+  const affectedBeatIds = [
+    ...new Set(
+      args.findings.flatMap((finding) => finding.modifiableBeatIds ?? [])
+    ),
+  ];
+  const protectedFacts = [
+    ...new Map(
+      args.findings
+        .flatMap((finding) => finding.protectedFacts ?? [])
+        .map((fact) => [fact.id, fact])
+    ).values(),
+  ];
+  return {
+    action: "repair",
+    purpose: args.purpose,
+    scope: affectedBeatIds.length === 1 ? "beat" : "beat-range",
+    issueIds,
+    issueCodes,
+    affectedBeatIds,
+    protectedFacts,
+    routingFingerprint,
   };
 }

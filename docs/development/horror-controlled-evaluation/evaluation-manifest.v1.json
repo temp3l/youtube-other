@@ -1,0 +1,60 @@
+{
+  "schemaVersion": "horror-controlled-evaluation-manifest-v1",
+  "evaluationId": "horror-strategy-production-evaluation-v1",
+  "preregisteredAt": "2026-07-24T23:30:00+02:00",
+  "preregisteredBy": {
+    "actorId": "codex-task-08",
+    "role": "operator",
+    "containsPersonalSecrets": false
+  },
+  "outcomeInspectionStatus": "not-started",
+  "primaryMetric": {
+    "status": "unresolved",
+    "reason": "No primary production metric has been approved."
+  },
+  "practicalImprovementThreshold": {
+    "status": "unresolved",
+    "reason": "No practical improvement threshold has been approved."
+  },
+  "sample": {
+    "status": "unresolved",
+    "reason": "No production episode sample has been approved; Task 03 fixtures are synthetic only."
+  },
+  "exclusions": [],
+  "stratification": {
+    "dimensions": ["locale", "genrePolicyId", "durationBand", "audienceType"],
+    "minimumSamplePerArm": 2,
+    "insufficientSamplesAreExploratory": true
+  },
+  "strategyVersions": {
+    "baseline": "current-production-baseline",
+    "strategy": "horror-affect-strategy-v1"
+  },
+  "costBudget": {
+    "status": "unresolved",
+    "reason": "No production evaluation cost budget has been approved."
+  },
+  "productDecisions": {
+    "productionAnalyticsAuthority": {
+      "status": "unresolved",
+      "reason": "No production analytics import authority exists."
+    },
+    "defaultRolloutChangeAuthority": {
+      "status": "unresolved",
+      "reason": "No authority to change the default rollout mode exists."
+    }
+  },
+  "decisionRule": {
+    "promotionRequiresAllSourcePlanGates": true,
+    "missingDecisionOutcome": "remain-shadow",
+    "fullAndShortEvaluatedSeparately": true,
+    "ctrRequiresControlledTitleAndThumbnail": true,
+    "rollbackIsConfigurationOnly": true
+  },
+  "creation": {
+    "producerVersion": "story-localization-controlled-evaluation-v1",
+    "serializerVersion": "stable-json-v1",
+    "deterministic": true
+  },
+  "manifestHash": "82e502bd5684ee92b0bb9b9b2ed96bab4ba4a8add28d5c2aa5b351f12ac68e4b"
+}

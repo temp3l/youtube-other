@@ -410,6 +410,77 @@ export function applyCharacterRenameMapToCanonicalFacts(
       facts.finalConsequence,
       renameMap
     ),
+    ...(facts.protagonistNames
+      ? {
+          protagonistNames: facts.protagonistNames.map((entry) =>
+            applyCharacterRenameMapToText(entry, renameMap)
+          ),
+        }
+      : {}),
+    ...(facts.threatMechanism
+      ? {
+          threatMechanism: applyCharacterRenameMapToText(
+            facts.threatMechanism,
+            renameMap
+          ),
+        }
+      : {}),
+    ...(facts.supernaturalRule
+      ? {
+          supernaturalRule: applyCharacterRenameMapToText(
+            facts.supernaturalRule,
+            renameMap
+          ),
+        }
+      : {}),
+    ...(facts.protagonistAttachment
+      ? {
+          protagonistAttachment: applyCharacterRenameMapToText(
+            facts.protagonistAttachment,
+            renameMap
+          ),
+        }
+      : {}),
+    ...(facts.threatTemptation
+      ? {
+          threatTemptation: applyCharacterRenameMapToText(
+            facts.threatTemptation,
+            renameMap
+          ),
+        }
+      : {}),
+    ...(facts.emotionalCost
+      ? {
+          emotionalCost: applyCharacterRenameMapToText(
+            facts.emotionalCost,
+            renameMap
+          ),
+        }
+      : {}),
+    ...(facts.finalDecision
+      ? {
+          finalDecision: applyCharacterRenameMapToText(
+            facts.finalDecision,
+            renameMap
+          ),
+        }
+      : {}),
+    ...(facts.requiredFinalReveal
+      ? {
+          requiredFinalReveal: applyCharacterRenameMapToText(
+            facts.requiredFinalReveal,
+            renameMap
+          ),
+        }
+      : {}),
+    ...(facts.requiredFinalLine
+      ? {
+          requiredFinalLine: applyCharacterRenameMapToText(
+            facts.requiredFinalLine,
+            renameMap
+          ),
+        }
+      : {}),
     ...(facts.unresolvedQuestion
       ? {
           unresolvedQuestion: applyCharacterRenameMapToText(

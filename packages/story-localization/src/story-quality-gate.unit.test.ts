@@ -190,6 +190,45 @@ describe("story quality gate", () => {
     );
   });
 
+  it("recognizes a tense-shifted supernatural rule but rejects unrelated activity", () => {
+    const acceptedText = [
+      "The haunted doll moved beneath Lena's attic door.",
+      "Lena locked it in the trunk; each time, it appeared closer.",
+      "To protect her brother, Lena burned the doll's dress.",
+      "The final photograph showed the doll behind her brother.",
+    ].join(" ");
+    const facts = {
+      ...episode034Facts,
+      characters: [{ name: "Lena", role: "protagonist" }],
+      protagonistNames: ["Lena"],
+      supernaturalRule: "Locking the doll away makes it appear closer.",
+      protagonistAttachment: "Lena must protect her brother.",
+      emotionalCost: "Lena burned the doll's dress.",
+      requiredFinalLine:
+        "The final photograph showed the doll behind her brother.",
+    };
+    const acceptedCodes = runStoryQualityGate({
+      artifactKind: "short",
+      language: "en",
+      text: acceptedText,
+      facts,
+      budget: { artifactKind: "short", language: "en", model: "fixture" },
+    }).findings.map((entry) => entry.code);
+    const rejectedCodes = runStoryQualityGate({
+      artifactKind: "short",
+      language: "en",
+      text: acceptedText.replace(
+        "Lena locked it in the trunk; each time, it appeared closer.",
+        "Lena carried it to the trunk, but the doll remained on the chair."
+      ),
+      facts,
+      budget: { artifactKind: "short", language: "en", model: "fixture" },
+    }).findings.map((entry) => entry.code);
+
+    expect(acceptedCodes).not.toContain("SUPERNATURAL_RULE_MISSING");
+    expect(rejectedCodes).toContain("SUPERNATURAL_RULE_MISSING");
+  });
+
   it("extracts concrete Episode 027 facts instead of title or scaffold text", () => {
     const facts = extractCanonicalStoryFacts(episode027Parsed());
     expect(facts.protagonistNames).toContain("Noah Brooks");

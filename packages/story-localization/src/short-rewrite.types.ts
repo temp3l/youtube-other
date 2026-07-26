@@ -18,6 +18,8 @@ import {
   SHORT_REWRITE_SUPPORTED_LANGUAGES,
   type ShortRewriteLanguage,
 } from "./short-rewrite.constants.js";
+import type { ShortHorrorAffectProjection } from "./short-horror-affect-projection.js";
+import type { HorrorAffectRolloutMode } from "./story-localization.types.js";
 
 export type StoryLanguage = ShortRewriteLanguage;
 
@@ -74,6 +76,7 @@ export interface ShortRewriteResolvedParent {
   readonly storyIrHash: string;
   readonly contractHash: string;
   readonly contractBuildFingerprint?: string | undefined;
+  readonly canonicalSourceHash?: string | undefined;
   readonly narrationParagraphs: readonly string[];
   readonly characterRenameMap: CharacterRenameMap;
   readonly canonical: boolean;
@@ -188,10 +191,12 @@ export interface ShortRewriteSourceExtraction {
   readonly events?: readonly StoryEvent[] | undefined;
   readonly beatPlan?: ShortBeatPlan | undefined;
   readonly timingEstimate?: NarrationTimingEstimate | undefined;
-  readonly causalValidation?: {
-    readonly status: "passed" | "failed";
-    readonly issues: readonly string[];
-  } | undefined;
+  readonly causalValidation?:
+    | {
+        readonly status: "passed" | "failed";
+        readonly issues: readonly string[];
+      }
+    | undefined;
   readonly extractionHash: string;
 }
 
@@ -250,6 +255,7 @@ export interface ShortRewriteAdaptationContract {
         }
       | undefined;
   };
+  readonly horrorAffectProjection?: ShortHorrorAffectProjection | undefined;
   readonly contractHash: string;
 }
 
@@ -443,6 +449,7 @@ export interface ShortRewriteRunOptions {
   readonly force?: boolean | undefined;
   readonly verbose?: boolean | undefined;
   readonly json?: boolean | undefined;
+  readonly horrorAffectRolloutMode?: HorrorAffectRolloutMode | undefined;
 }
 
 export interface ShortRewriteRunSummary {
@@ -508,6 +515,7 @@ export interface ShortRewritePromptContext {
   readonly outputConstraints?: ShortStoryOutputConstraints;
   readonly sourceExtraction?: ShortRewriteSourceExtraction;
   readonly adaptationContract?: ShortRewriteAdaptationContract;
+  readonly horrorAffectProjection?: ShortHorrorAffectProjection;
   readonly characterRenameMap?: CharacterRenameMap;
   readonly episodeNumber?: string;
   readonly episodeSlug?: string;

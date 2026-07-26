@@ -511,6 +511,7 @@ const configSchema = z.object({
   openAiStoryReasoningEffort: z.enum(["none", "minimal", "low", "medium", "high", "xhigh"]).optional(),
   openAiStoryMaxOutputTokens: z.number().int().positive().optional(),
   openAiStoryRetryMaxOutputTokens: z.number().int().positive().optional(),
+  horrorAffectRolloutMode: z.enum(["off", "shadow", "enforce"]),
   openAiLocalizationModel: z.string().optional(),
   openAiLocalizationReasoningEffort: z.enum(["none", "minimal", "low", "medium", "high", "xhigh"]).optional(),
   openAiLocalizationMaxOutputTokens: z.number().int().positive().optional(),
@@ -702,6 +703,7 @@ const envSchema = z.object({
   MEDIAFORGE_OPENAI_STORY_REASONING_EFFORT: z.enum(["none", "minimal", "low", "medium", "high", "xhigh"]).optional(),
   MEDIAFORGE_OPENAI_STORY_MAX_OUTPUT_TOKENS: z.coerce.number().int().positive().optional(),
   MEDIAFORGE_OPENAI_STORY_RETRY_MAX_OUTPUT_TOKENS: z.coerce.number().int().positive().optional(),
+  MEDIAFORGE_HORROR_AFFECT_ROLLOUT_MODE: z.enum(["off", "shadow", "enforce"]).optional(),
   MEDIAFORGE_OPENAI_LOCALIZATION_MODEL: z.string().optional(),
   MEDIAFORGE_OPENAI_LOCALIZATION_REASONING_EFFORT: z.enum(["none", "minimal", "low", "medium", "high", "xhigh"]).optional(),
   MEDIAFORGE_OPENAI_LOCALIZATION_MAX_OUTPUT_TOKENS: z.coerce.number().int().positive().optional(),
@@ -1005,6 +1007,11 @@ export async function loadRuntimeConfig(
       "medium",
     openAiStoryMaxOutputTokens: resolvedOpenAiStoryMaxOutputTokens,
     openAiStoryRetryMaxOutputTokens: resolvedOpenAiStoryRetryMaxOutputTokens,
+    horrorAffectRolloutMode:
+      overrides.horrorAffectRolloutMode ??
+      episodeOverrides.horrorAffectRolloutMode ??
+      env.MEDIAFORGE_HORROR_AFFECT_ROLLOUT_MODE ??
+      "shadow",
     openAiLocalizationModel:
       overrides.openAiLocalizationModel ??
       episodeOverrides.openAiLocalizationModel ??

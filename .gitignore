@@ -9,6 +9,9 @@ coverage
 .mediaforge/
 debug/openai-calls/
 .tmp-shorts-*/
+.tmp/mock-openai-server.mjs
+.artifacts/
+math-video-examples/
 tools/whisper.cpp
 episodes
 !.gitkeep

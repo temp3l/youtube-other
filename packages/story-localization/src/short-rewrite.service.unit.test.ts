@@ -9,6 +9,20 @@ import {
   SHORT_REWRITE_PROMPT_VERSION,
 } from "./short-rewrite.constants.js";
 import { cleanSourceText } from "./source-cleaning.js";
+import {
+  buildHorrorAffectPlan,
+  computeHorrorAffectPlanHash,
+} from "./horror-affect-plan.js";
+import {
+  buildPersistedHorrorAffectPlanArtifact,
+  serializePersistedHorrorAffectPlanArtifact,
+} from "./horror-affect-plan.persistence.js";
+import type { StoryIR } from "./story-artifact-model.js";
+import type { CanonicalStoryContract } from "./canonical-story-contract.js";
+import type {
+  CanonicalStoryBeat,
+  StoryMechanicsContract,
+} from "./story-mechanics.js";
 
 type MockResponse = {
   readonly id?: string;
@@ -86,6 +100,17 @@ function buildNarration(
   return narration;
 }
 
+function buildAcceptedEnglishNarration(): string {
+  return [
+    "The haunted doll moved on its own under Lena's attic door as she heard it breathing.",
+    "When she opened the door, the doll sat on the nursery chair.",
+    "Its hands were wet; her name was scratched across the glass.",
+    "Lena locked it in the trunk; each time, it appeared closer.",
+    "To protect her brother, Lena burned the doll's dress and locked the trunk.",
+    "The final photograph on the stairs showed the doll behind her brother.",
+  ].join(" ");
+}
+
 function makeMockClient(responses: readonly MockResponse[] = []) {
   const queue = [...responses];
   const responseFn = vi.fn(async () => {
@@ -141,20 +166,13 @@ function buildResponseJson(args: {
 }): string {
   const narration =
     args.narration ?? buildNarration(args.wordCount, args.language ?? "en");
-  return JSON.stringify(
-    { narration },
-    null,
-    2
-  );
+  return JSON.stringify({ narration }, null, 2);
 }
 
-async function createCanonicalEnglishShortParent(tempRoot: string): Promise<void> {
-  const shortDir = path.join(
-    tempRoot,
-    "009-the-christmas-doll",
-    "en",
-    "short"
-  );
+async function createCanonicalEnglishShortParent(
+  tempRoot: string
+): Promise<void> {
+  const shortDir = path.join(tempRoot, "009-the-christmas-doll", "en", "short");
   const narration = buildNarration(72, "en");
   const parentFullHash = "3".repeat(64);
   const sourceSha256 = "a".repeat(64);
@@ -225,7 +243,8 @@ async function createCanonicalEnglishShortParent(tempRoot: string): Promise<void
           centralRuleOrMechanism: "The doll appears after it is locked away.",
           criticalObject: "The doll",
           climaxOrIrreversibleTurn: "Lena burns the doll's dress.",
-          finalConsequenceOrSting: "The final photograph shows the doll behind her brother.",
+          finalConsequenceOrSting:
+            "The final photograph shows the doll behind her brother.",
           exactWrittenMessages: [],
           allowedCompression: [],
           forbiddenOmissions: [],
@@ -306,7 +325,11 @@ async function createSourceStory(
   await fs.writeFile(sourcePath, content, "utf8");
   const episodeRoot = path.join(tempRoot, "009-the-christmas-doll");
   await fs.mkdir(path.join(episodeRoot, "en", "full"), { recursive: true });
-  await fs.writeFile(path.join(episodeRoot, "en", "full", "script.md"), content, "utf8");
+  await fs.writeFile(
+    path.join(episodeRoot, "en", "full", "script.md"),
+    content,
+    "utf8"
+  );
   await fs.writeFile(
     path.join(episodeRoot, "en", "full", "canonical-full.json"),
     JSON.stringify(
@@ -415,6 +438,142 @@ async function createSourceStory(
   return sourcePath;
 }
 
+async function createHorrorAffectPlanArtifact(
+  tempRoot: string,
+  questionSuffix = ""
+): Promise<void> {
+  const storyIr = {
+    genre: "fictional-supernatural",
+    fictionality: "fiction",
+    centralThreat: { description: "a doll that moves when locked away" },
+    centralRuleMechanism: {
+      description: "Locking the doll away makes it appear closer.",
+    },
+    criticalObjects: [{ name: "the doll" }],
+    writtenMessages: [],
+    immutableFacts: [],
+    chronology: [],
+    climax: "Lena burned the doll's dress and locked the trunk.",
+    endingConsequence:
+      "The final photograph on the stairs shows the doll behind her brother.",
+  } as unknown as StoryIR;
+  const mechanics = {
+    centralThreat: "a doll that moves when locked away",
+    failedResponses: [
+      {
+        action: "Lena locks the doll in the trunk.",
+        failure: "The doll appears on the nursery chair.",
+        informationRevealed: "Locking the doll away makes it appear closer.",
+      },
+    ],
+    ruleEvidence: ["Locking the doll away makes it appear closer."],
+    protagonistGoal: "Keep the doll away from Lena's brother.",
+    emotionalStake: "Lena must protect her brother.",
+    emotionalCost: "Lena burned the doll's dress to protect her brother.",
+    climaxAction: "Lena burned the doll's dress and locked the trunk.",
+    finalConsequence:
+      "The final photograph on the stairs shows the doll behind her brother.",
+  } as unknown as StoryMechanicsContract;
+  const beats = [
+    {
+      id: "beat-001",
+      type: "HOOK",
+      summary: "Lena hears the doll breathing under the attic door.",
+      requiredFacts: ["the doll"],
+      requiredCharacters: ["Lena"],
+      mechanicsReferences: [],
+    },
+    {
+      id: "beat-002",
+      type: "RULE_DISCOVERY",
+      summary:
+        "Lena locks the doll away and sees it appear closer on the nursery chair.",
+      requiredFacts: ["the doll"],
+      requiredCharacters: ["Lena"],
+      mechanicsReferences: ["Locking the doll away makes it appear closer."],
+    },
+    {
+      id: "beat-003",
+      type: "FAILED_RESPONSE",
+      summary:
+        "Lena locks the doll in the trunk, but it appears on the nursery chair.",
+      requiredFacts: ["the doll", "trunk"],
+      requiredCharacters: ["Lena"],
+      mechanicsReferences: [],
+    },
+    {
+      id: "beat-004",
+      type: "CLIMAX",
+      summary: "Lena burned the doll's dress and locked the trunk.",
+      requiredFacts: ["dress", "trunk"],
+      requiredCharacters: ["Lena"],
+      mechanicsReferences: ["Locking the doll away makes it appear closer."],
+    },
+    {
+      id: "beat-005",
+      type: "FINAL_REVERSAL",
+      summary:
+        "The trunk stays shut, but the final photograph shows the doll behind Lena's brother.",
+      requiredFacts: ["photograph"],
+      requiredCharacters: ["Lena"],
+      mechanicsReferences: [],
+    },
+  ] satisfies readonly CanonicalStoryBeat[];
+  const canonicalContract = {
+    characters: [{ name: "Lena" }],
+    locations: [{ name: "the attic" }],
+    protagonistGoal: mechanics.protagonistGoal,
+    finalConsequence: mechanics.finalConsequence,
+  } as unknown as CanonicalStoryContract;
+  const plan = buildHorrorAffectPlan({
+    storyIr,
+    canonicalContract,
+    mechanics,
+    beats,
+  });
+  const adjustedPlan =
+    questionSuffix.length > 0
+      ? {
+          ...plan,
+          primaryAudiencePromise: `${plan.primaryAudiencePromise} ${questionSuffix}`,
+        }
+      : plan;
+  const persistedPlan =
+    questionSuffix.length > 0
+      ? {
+          ...adjustedPlan,
+          planHash: computeHorrorAffectPlanHash(
+            Object.fromEntries(
+              Object.entries(adjustedPlan).filter(([key]) => key !== "planHash")
+            ) as Parameters<typeof computeHorrorAffectPlanHash>[0]
+          ),
+        }
+      : plan;
+  const artifact = buildPersistedHorrorAffectPlanArtifact({
+    episodeNumber: "009",
+    episodeSlug: "009-the-christmas-doll",
+    sourceHash: "a".repeat(64),
+    storyIrHash: persistedPlan.parents.storyIrHash,
+    rolloutMode: "shadow",
+    eligibility: {
+      eligible: true,
+      reason: "canonical-english-fiction",
+    },
+    plan: persistedPlan,
+  });
+  await fs.writeFile(
+    path.join(
+      tempRoot,
+      "009-the-christmas-doll",
+      "en",
+      "full",
+      "horror-affect-plan.json"
+    ),
+    serializePersistedHorrorAffectPlanArtifact(artifact),
+    "utf8"
+  );
+}
+
 async function createMinimalSourceStory(tempRoot: string): Promise<string> {
   const episodeDir = path.join(tempRoot, "010-short-source", "source");
   await fs.mkdir(episodeDir, { recursive: true });
@@ -430,7 +589,11 @@ async function createMinimalSourceStory(tempRoot: string): Promise<string> {
   await fs.writeFile(sourcePath, content, "utf8");
   const episodeRoot = path.join(tempRoot, "010-short-source");
   await fs.mkdir(path.join(episodeRoot, "en", "full"), { recursive: true });
-  await fs.writeFile(path.join(episodeRoot, "en", "full", "script.md"), content, "utf8");
+  await fs.writeFile(
+    path.join(episodeRoot, "en", "full", "script.md"),
+    content,
+    "utf8"
+  );
   await fs.writeFile(
     path.join(episodeRoot, "en", "full", "canonical-full.json"),
     JSON.stringify(
@@ -689,7 +852,12 @@ describe("short rewrite service", () => {
     expect(client.responses.create).toHaveBeenCalledTimes(2);
     await expect(
       fs.access(
-        path.join(tempRoot, "009-the-christmas-doll", "debug", "stories-rewrite-short-de.request.json")
+        path.join(
+          tempRoot,
+          "009-the-christmas-doll",
+          "debug",
+          "stories-rewrite-short-de.request.json"
+        )
       )
     ).rejects.toThrow();
   });
@@ -1059,20 +1227,29 @@ describe("short rewrite service", () => {
       fs.readFile(path.join(canonicalSourceDir, "source-original.md"), "utf8")
     ).resolves.toBe("canonical original source\n");
     await expect(
-      fs.readFile(path.join(canonicalSourceDir, "source-cleaning-report.json"), "utf8")
+      fs.readFile(
+        path.join(canonicalSourceDir, "source-cleaning-report.json"),
+        "utf8"
+      )
     ).resolves.toBe(`${JSON.stringify({ preserved: "canonical" }, null, 2)}\n`);
     await expect(
-      fs.readFile(path.join(canonicalSourceDir, "cleaned-short-story.md"), "utf8")
+      fs.readFile(
+        path.join(canonicalSourceDir, "cleaned-short-story.md"),
+        "utf8"
+      )
     ).resolves.toContain("Mara heard the doll breathing under the attic door.");
     await expect(
-      fs.readFile(path.join(canonicalSourceDir, "original-short-story.md"), "utf8")
+      fs.readFile(
+        path.join(canonicalSourceDir, "original-short-story.md"),
+        "utf8"
+      )
     ).resolves.toContain("# Episode 009");
     await expect(
       fs.readFile(
         path.join(canonicalSourceDir, "short-story-cleaning-report.json"),
         "utf8"
       )
-    ).resolves.toContain("\"sourceRole\": \"generated-english-full\"");
+    ).resolves.toContain('"sourceRole": "generated-english-full"');
   });
 
   it("skips valid artifacts on resume and regenerates stale hashes", async () => {
@@ -1382,10 +1559,14 @@ describe("short rewrite service", () => {
     expect(summary.completed).toBe(1);
     expect(client.responses.create).toHaveBeenCalledTimes(2);
     const firstRequest = client.responses.create.mock.calls[0]?.[0] as {
-      readonly input: readonly { readonly content: readonly { readonly text: string }[] }[];
+      readonly input: readonly {
+        readonly content: readonly { readonly text: string }[];
+      }[];
     };
     const secondRequest = client.responses.create.mock.calls[1]?.[0] as {
-      readonly input: readonly { readonly content: readonly { readonly text: string }[] }[];
+      readonly input: readonly {
+        readonly content: readonly { readonly text: string }[];
+      }[];
       readonly max_output_tokens: number;
     };
     expect(firstRequest.input[1]?.content[0]?.text).not.toContain(
@@ -1501,7 +1682,9 @@ describe("short rewrite service", () => {
     const followUpPrompt = followUpRequest.input[1]?.content[0]?.text ?? "";
     expect(followUpPrompt).toContain("Fix these issues in the new result:");
     expect(followUpPrompt).toContain("Previous invalid short result:");
-    expect(followUpPrompt).toContain("Eight seconds later, her phone rang in the nursery.");
+    expect(followUpPrompt).toContain(
+      "Eight seconds later, her phone rang in the nursery."
+    );
   });
 
   it("requires a validated canonical full parent for English shorts", async () => {
@@ -1626,5 +1809,315 @@ describe("short rewrite service", () => {
     };
     expect(sidecar.parent.parentFullHash).toHaveLength(64);
     expect(sidecar.shortAdaptationContract.contractHash).toHaveLength(64);
+  });
+
+  it("keeps off and shadow provider requests and accepted Short identity byte-stable", async () => {
+    const offRoot = await fs.mkdtemp(
+      path.join(os.tmpdir(), "short-affect-off-")
+    );
+    const shadowRoot = await fs.mkdtemp(
+      path.join(os.tmpdir(), "short-affect-shadow-")
+    );
+    const offSource = await createSourceStory(offRoot, false);
+    const shadowSource = await createSourceStory(shadowRoot, false);
+    await createHorrorAffectPlanArtifact(shadowRoot);
+    const response = {
+      output_text: buildResponseJson({
+        title: "The Doll House",
+        wordCount: 66,
+        thumbnailText: "Wet Hands",
+        fullVideoBridge: "Watch the full episode.",
+        language: "en",
+        narration: buildAcceptedEnglishNarration(),
+      }),
+    };
+    const offClient = makeMockClient([response]);
+    const shadowClient = makeMockClient([response]);
+
+    const off = await rewriteTestShortStories(
+      {
+        inputPath: offSource,
+        outputRoot: offRoot,
+        languages: ["en"],
+        model: "gpt-5-mini",
+        dryRun: false,
+        resume: false,
+        overwrite: false,
+        maxRetries: 0,
+        horrorAffectRolloutMode: "off",
+      },
+      { client: offClient }
+    );
+    const shadow = await rewriteTestShortStories(
+      {
+        inputPath: shadowSource,
+        outputRoot: shadowRoot,
+        languages: ["en"],
+        model: "gpt-5-mini",
+        dryRun: false,
+        resume: false,
+        overwrite: false,
+        maxRetries: 0,
+        horrorAffectRolloutMode: "shadow",
+      },
+      { client: shadowClient }
+    );
+
+    expect(offClient.responses.create.mock.calls[0]?.[0]).toEqual(
+      shadowClient.responses.create.mock.calls[0]?.[0]
+    );
+    expect(off.artifacts[0]?.promptFingerprint).toBe(
+      shadow.artifacts[0]?.promptFingerprint
+    );
+    expect(off.artifacts[0]?.shortContractHash).toBe(
+      shadow.artifacts[0]?.shortContractHash
+    );
+    expect(shadow.artifacts[0]?.shortContractVersion).toBe(
+      "short-adaptation-contract-v1"
+    );
+  });
+
+  it("enforces and persists one Short-owned affect chain without changing final-line or rename-map ownership", async () => {
+    const tempRoot = await fs.mkdtemp(
+      path.join(os.tmpdir(), "short-affect-enforce-")
+    );
+    const sourcePath = await createSourceStory(tempRoot, false);
+    await createHorrorAffectPlanArtifact(tempRoot);
+    const client = makeMockClient([
+      {
+        id: "resp-affect-enforce",
+        output_text: buildResponseJson({
+          title: "The Doll House",
+          wordCount: 66,
+          thumbnailText: "Wet Hands",
+          fullVideoBridge: "Watch the full episode.",
+          language: "en",
+          narration: buildAcceptedEnglishNarration(),
+        }),
+      },
+    ]);
+
+    const summary = await rewriteTestShortStories(
+      {
+        inputPath: sourcePath,
+        outputRoot: tempRoot,
+        languages: ["en"],
+        model: "gpt-5-mini",
+        dryRun: false,
+        resume: false,
+        overwrite: false,
+        maxRetries: 0,
+        horrorAffectRolloutMode: "enforce",
+      },
+      { client }
+    );
+
+    expect(summary.completed).toBe(1);
+    const request = client.responses.create.mock.calls[0]?.[0] as {
+      readonly input: readonly {
+        readonly content: readonly { readonly text: string }[];
+      }[];
+    };
+    const userPrompt = request.input[1]?.content[0]?.text ?? "";
+    expect(
+      userPrompt.match(/## Short Horror Affect Projection/gu)
+    ).toHaveLength(1);
+    expect(userPrompt).toContain(
+      "The final photograph on the stairs shows the doll behind her brother."
+    );
+    expect(userPrompt).toContain("Mara -> Lena");
+    expect(userPrompt).toContain(
+      "Do not replace, bridge, or reselect any question, rule, proof/response, cost, or payoff."
+    );
+    const sidecar = JSON.parse(
+      await fs.readFile(
+        path.join(
+          tempRoot,
+          "009-the-christmas-doll",
+          "en",
+          "short",
+          "009-the-christmas-doll-en-short.json"
+        ),
+        "utf8"
+      )
+    ) as {
+      readonly shortAdaptationContract: {
+        readonly horrorAffectProjection: {
+          readonly parent: { readonly planHash: string };
+          readonly selectedIdsHash: string;
+          readonly projectionHash: string;
+        };
+      };
+    };
+    expect(
+      sidecar.shortAdaptationContract.horrorAffectProjection.parent.planHash
+    ).toHaveLength(64);
+    expect(
+      sidecar.shortAdaptationContract.horrorAffectProjection.selectedIdsHash
+    ).toHaveLength(64);
+    expect(
+      sidecar.shortAdaptationContract.horrorAffectProjection.projectionHash
+    ).toHaveLength(64);
+  });
+
+  it("blocks an incomplete enforced projection before a provider call", async () => {
+    const tempRoot = await fs.mkdtemp(
+      path.join(os.tmpdir(), "short-affect-block-")
+    );
+    const sourcePath = await createSourceStory(tempRoot, false);
+    const client = makeMockClient();
+
+    await expect(
+      rewriteTestShortStories(
+        {
+          inputPath: sourcePath,
+          outputRoot: tempRoot,
+          languages: ["en"],
+          model: "gpt-5-mini",
+          dryRun: false,
+          resume: false,
+          overwrite: false,
+          maxRetries: 0,
+          horrorAffectRolloutMode: "enforce",
+        },
+        { client }
+      )
+    ).rejects.toThrow("current accepted full-story horror affect plan");
+    expect(client.responses.create).not.toHaveBeenCalled();
+  });
+
+  it("invalidates resume identity when the parent affect plan changes", async () => {
+    const tempRoot = await fs.mkdtemp(
+      path.join(os.tmpdir(), "short-affect-resume-")
+    );
+    await createSourceStory(tempRoot, false);
+    const sourcePath = path.join(
+      tempRoot,
+      "009-the-christmas-doll",
+      "en",
+      "full",
+      "script.md"
+    );
+    await createHorrorAffectPlanArtifact(tempRoot);
+    const firstClient = makeMockClient([
+      {
+        output_text: buildResponseJson({
+          title: "The Doll House",
+          wordCount: 66,
+          thumbnailText: "Wet Hands",
+          fullVideoBridge: "Watch the full episode.",
+          language: "en",
+          narration: buildAcceptedEnglishNarration(),
+        }),
+      },
+    ]);
+    await rewriteTestShortStories(
+      {
+        inputPath: sourcePath,
+        outputRoot: tempRoot,
+        languages: ["en"],
+        model: "gpt-5-mini",
+        dryRun: false,
+        resume: false,
+        overwrite: true,
+        maxRetries: 0,
+        horrorAffectRolloutMode: "enforce",
+      },
+      { client: firstClient }
+    );
+    await createHorrorAffectPlanArtifact(tempRoot, "revised");
+    const resumedClient = makeMockClient([
+      {
+        output_text: buildResponseJson({
+          title: "The Doll House",
+          wordCount: 66,
+          thumbnailText: "Wet Hands",
+          fullVideoBridge: "Watch the full episode.",
+          language: "en",
+          narration: buildAcceptedEnglishNarration(),
+        }),
+      },
+    ]);
+
+    const resumed = await rewriteTestShortStories(
+      {
+        inputPath: sourcePath,
+        outputRoot: tempRoot,
+        languages: ["en"],
+        model: "gpt-5-mini",
+        dryRun: false,
+        resume: true,
+        overwrite: true,
+        maxRetries: 0,
+        horrorAffectRolloutMode: "enforce",
+      },
+      { client: resumedClient }
+    );
+
+    expect(resumed.completed).toBe(1);
+    expect(resumedClient.responses.create).toHaveBeenCalledTimes(1);
+  });
+
+  it("Task 07 fully revalidates one bounded Short repair and preserves the selected affect projection", async () => {
+    const tempRoot = await fs.mkdtemp(
+      path.join(os.tmpdir(), "short-affect-repair-validation-")
+    );
+    const sourcePath = await createSourceStory(tempRoot, false);
+    await createHorrorAffectPlanArtifact(tempRoot);
+    const invalidInitial = `${buildAcceptedEnglishNarration()} ${Array.from(
+      { length: 220 },
+      (_, index) => `detail${index}`
+    ).join(" ")}`;
+    const invalidRepair = buildNarration(165).replace(
+      "The final photograph on the stairs showed the doll behind her brother.",
+      "The final photograph showed an empty staircase."
+    );
+    const client = makeMockClient([
+      {
+        id: "resp-affect-invalid",
+        output_text: buildResponseJson({
+          language: "en",
+          narration: invalidInitial,
+        }),
+      },
+      {
+        id: "resp-affect-repair-invalid",
+        output_text: buildResponseJson({
+          language: "en",
+          narration: invalidRepair,
+        }),
+      },
+    ]);
+
+    const summary = await rewriteTestShortStories(
+      {
+        inputPath: sourcePath,
+        outputRoot: tempRoot,
+        languages: ["en"],
+        model: "gpt-5-mini",
+        dryRun: false,
+        resume: false,
+        overwrite: false,
+        maxRetries: 0,
+        horrorAffectRolloutMode: "enforce",
+      },
+      { client }
+    );
+
+    expect(summary.failed).toBe(1);
+    expect(client.responses.create).toHaveBeenCalledTimes(2);
+    const repairRequest = client.responses.create.mock.calls[1]?.[0] as {
+      readonly input: readonly {
+        readonly content: readonly { readonly text: string }[];
+      }[];
+    };
+    const repairPrompt = repairRequest.input[1]?.content[0]?.text ?? "";
+    expect(repairPrompt).toContain("## Short Horror Affect Projection");
+    expect(repairPrompt).toContain(
+      "Do not replace, bridge, or reselect any question, rule, proof/response, cost, or payoff."
+    );
+    expect(summary.failures[0]?.message).toMatch(
+      /final consequence|payoff|ending/iu
+    );
   });
 });

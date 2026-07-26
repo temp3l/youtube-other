@@ -21,6 +21,11 @@ evidence. A-009 should run in a fresh independent Codex session after A-008 is a
 7. `07-a007-locale-speech.md`
 8. `08-a008-release-gates.md`
 9. `09-a009-independent-pilot.md`
+10. `10-natural-chalkboard-v6-review.md`
+
+Item 10 is a post-remediation creative and pedagogical enhancement. It is not a
+new remediation backlog ID and should begin only after the v5 review artifacts
+are available.
 
 Every implementation prompt requires a Codex-run report. If work is executed from a file
 under `docs/plans/` or `docs/mathe/plans/`, also follow the repository's plan execution

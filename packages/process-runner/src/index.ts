@@ -21,7 +21,16 @@ export interface SpawnOptions {
   readonly allowNonZeroExit?: boolean;
 }
 
-const allowlist = new Set(["curl", "ffmpeg", "ffprobe", "yt-dlp", "node", "whisper", "whisper-cli", "whisper.cpp"]);
+const allowlist = new Set([
+  "curl",
+  "ffmpeg",
+  "ffprobe",
+  "yt-dlp",
+  "node",
+  "whisper",
+  "whisper-cli",
+  "whisper.cpp",
+]);
 const redactedValue = "[redacted]";
 const sensitiveFlagPattern = /(?:api[-_]?key|access[-_]?token|refresh[-_]?token|auth[-_]?token|bearer[-_]?token|token|secret|password|passwd|credential|client[-_]?secret)/iu;
 const sensitiveEnvPattern = /^[A-Z_][A-Z0-9_]*(?:API[-_]?KEY|TOKEN|SECRET|PASSWORD|PASSWD|CREDENTIAL)[A-Z0-9_]*=/iu;

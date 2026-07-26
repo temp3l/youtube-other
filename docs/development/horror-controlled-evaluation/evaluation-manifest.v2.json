@@ -1,0 +1,168 @@
+{
+  "schemaVersion": "horror-controlled-evaluation-manifest-v1",
+  "evaluationId": "horror-strategy-production-evaluation-v2",
+  "preregisteredAt": "2026-07-25T23:52:37+02:00",
+  "preregisteredBy": {
+    "actorId": "workspace-user",
+    "role": "operator",
+    "containsPersonalSecrets": false
+  },
+  "outcomeInspectionStatus": "not-started",
+  "primaryMetric": {
+    "status": "resolved",
+    "value": "endingRetention",
+    "decisionReference": "user-approved-evaluation-design-2026-07-25"
+  },
+  "practicalImprovementThreshold": {
+    "status": "resolved",
+    "value": 0.05,
+    "decisionReference": "user-approved-evaluation-design-2026-07-25"
+  },
+  "sample": {
+    "status": "resolved",
+    "value": {
+      "full": [
+        {
+          "sampleUnitId": "full-025-endless-backrooms",
+          "locale": "en-US",
+          "genrePolicyId": "genre-policy-unknown",
+          "durationBand": "over-180s",
+          "audienceType": "mixed"
+        },
+        {
+          "sampleUnitId": "full-034-not-my-reflection",
+          "locale": "en-US",
+          "genrePolicyId": "genre-policy-unknown",
+          "durationBand": "over-180s",
+          "audienceType": "mixed"
+        },
+        {
+          "sampleUnitId": "full-041-town-calls-your-name",
+          "locale": "en-US",
+          "genrePolicyId": "genre-policy-unknown",
+          "durationBand": "over-180s",
+          "audienceType": "mixed"
+        },
+        {
+          "sampleUnitId": "full-051-voice-message-tomorrow",
+          "locale": "en-US",
+          "genrePolicyId": "genre-policy-unknown",
+          "durationBand": "over-180s",
+          "audienceType": "mixed"
+        }
+      ],
+      "short": [
+        {
+          "sampleUnitId": "short-025-endless-backrooms",
+          "locale": "en-US",
+          "genrePolicyId": "genre-policy-unknown",
+          "durationBand": "under-60s",
+          "audienceType": "mixed"
+        },
+        {
+          "sampleUnitId": "short-034-not-my-reflection",
+          "locale": "en-US",
+          "genrePolicyId": "genre-policy-unknown",
+          "durationBand": "under-60s",
+          "audienceType": "mixed"
+        },
+        {
+          "sampleUnitId": "short-041-town-calls-your-name",
+          "locale": "en-US",
+          "genrePolicyId": "genre-policy-unknown",
+          "durationBand": "under-60s",
+          "audienceType": "mixed"
+        },
+        {
+          "sampleUnitId": "short-051-voice-message-tomorrow",
+          "locale": "en-US",
+          "genrePolicyId": "genre-policy-unknown",
+          "durationBand": "under-60s",
+          "audienceType": "mixed"
+        }
+      ]
+    },
+    "decisionReference": "user-approved-cohort-2026-07-25"
+  },
+  "exclusions": [
+    {
+      "exclusionId": "deterministic-contract-failure",
+      "rule": "Exclude an artifact that fails deterministic source, lineage, rule, rename-map, or ending validation before blind assignment.",
+      "decidedBeforeOutcomes": true
+    },
+    {
+      "exclusionId": "stale-after-assignment",
+      "rule": "Exclude an artifact that changes after assignment or whose accepted lineage becomes stale.",
+      "decidedBeforeOutcomes": true
+    },
+    {
+      "exclusionId": "incomplete-review-pair",
+      "rule": "Exclude a unit when provider or persistence failure prevents a complete paired review packet.",
+      "decidedBeforeOutcomes": true
+    },
+    {
+      "exclusionId": "unauthorized-audience-aggregate",
+      "rule": "Exclude an audience aggregate without matching authorization, sample ID, format, arm, and observation window.",
+      "decidedBeforeOutcomes": true
+    },
+    {
+      "exclusionId": "uncontrolled-ctr-input",
+      "rule": "Do not use CTR as story-decision evidence when title or thumbnail differs between arms.",
+      "decidedBeforeOutcomes": true
+    }
+  ],
+  "stratification": {
+    "dimensions": [
+      "locale",
+      "genrePolicyId",
+      "durationBand",
+      "audienceType"
+    ],
+    "minimumSamplePerArm": 2,
+    "insufficientSamplesAreExploratory": true
+  },
+  "strategyVersions": {
+    "baseline": "current-production-baseline",
+    "strategy": "horror-affect-strategy-v1"
+  },
+  "costBudget": {
+    "status": "resolved",
+    "value": {
+      "maxIncrementalProviderCalls": 8,
+      "maxIncrementalCostUsd": 8,
+      "budgetReference": "story-evaluation-cap-2026-07-25"
+    },
+    "decisionReference": "user-approved-bounded-evaluation-2026-07-25"
+  },
+  "productDecisions": {
+    "productionAnalyticsAuthority": {
+      "status": "resolved",
+      "value": {
+        "authorityId": "workspace-user",
+        "scopeReference": "aggregate-horror-evaluation-v2"
+      },
+      "decisionReference": "user-approved-evaluation-authority-2026-07-25"
+    },
+    "defaultRolloutChangeAuthority": {
+      "status": "resolved",
+      "value": {
+        "authorityId": "workspace-user",
+        "scopeReference": "config-only-horror-rollout-v2"
+      },
+      "decisionReference": "user-approved-evaluation-authority-2026-07-25"
+    }
+  },
+  "decisionRule": {
+    "promotionRequiresAllSourcePlanGates": true,
+    "missingDecisionOutcome": "remain-shadow",
+    "fullAndShortEvaluatedSeparately": true,
+    "ctrRequiresControlledTitleAndThumbnail": true,
+    "rollbackIsConfigurationOnly": true
+  },
+  "creation": {
+    "producerVersion": "story-localization-controlled-evaluation-v1",
+    "serializerVersion": "stable-json-v1",
+    "deterministic": true
+  },
+  "manifestHash": "64e264a2217110a7e9e0b2c847e27e238ad1b4370d778b06fbb1dd19c4a607ac"
+}

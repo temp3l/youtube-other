@@ -1,0 +1,179 @@
+{
+  "schemaVersion": "horror-calibration-baseline-v1",
+  "corpusVersion": "synthetic-horror-calibration-v1",
+  "rubricVersion": "horror-editorial-rubric-v1",
+  "recordedAt": "2026-07-24T00:00:00+02:00",
+  "corpusHash": "0b3f5b5324f22b5fb9eff31e3ab07af14fe949bf15b375c8732a1889d145e6ed",
+  "cases": [
+    {
+      "caseId": "no-central-uncertainty",
+      "sourceHash": "ce05b8cd23b537bbaee534196d06a5c3ab0b328a91aa2cc72f5799093c5b7c57",
+      "baselineCandidateHash": "0fbcfd9281532aa73b66e74fb5e23e6ec6db48d904d9fbd4395ef3c5486ab4e5",
+      "strategyCandidateHash": "796ec9172a3cc0869a0960441839633abfe8eb5b533dab8e73dad47efa4dba4a",
+      "baselineWordCount": 49,
+      "strategyWordCount": 58,
+      "expectedEligibility": true,
+      "expectedStructuralFindings": ["no-central-uncertainty"],
+      "strata": {
+        "format": "short",
+        "locale": "en-US",
+        "durationBand": "under-60s",
+        "targetDurationSeconds": 45,
+        "policy": {
+          "storyPolicyId": "dark-truth-fiction-v1",
+          "fictionality": "fiction",
+          "genre": "fictional-supernatural",
+          "evidencePolicy": "fictional-source-bounded",
+          "intensityPolicy": "restrained"
+        }
+      }
+    },
+    {
+      "caseId": "arbitrary-twist",
+      "sourceHash": "27fb49edebaa1d66c32dea4ded242049fcb735999016780d432a1456abe61b98",
+      "baselineCandidateHash": "88469abd80a5949805db5f1e22a38d32a3c96e88b5169fd05c33f8f7ce663a39",
+      "strategyCandidateHash": "0c473df6e6945dda414fa0a1e39fbde6d247fa483d00bafb2460a361792e24e2",
+      "baselineWordCount": 49,
+      "strategyWordCount": 53,
+      "expectedEligibility": true,
+      "expectedStructuralFindings": ["arbitrary-twist"],
+      "strata": {
+        "format": "full",
+        "locale": "en-GB",
+        "durationBand": "60-180s",
+        "targetDurationSeconds": 120,
+        "policy": {
+          "storyPolicyId": "dark-truth-fiction-v1",
+          "fictionality": "fiction",
+          "genre": "fictional-supernatural",
+          "evidencePolicy": "fictional-source-bounded",
+          "intensityPolicy": "moderate"
+        }
+      }
+    },
+    {
+      "caseId": "passive-protagonist",
+      "sourceHash": "acf2b2ffc7fccc1be733a952bc78eebba955c29905d830fb9338effa95861467",
+      "baselineCandidateHash": "f62b7b4edfa4ca9ce2f84cd510cc945a1d41b9dee7fdf7618afec4af03b72a6b",
+      "strategyCandidateHash": "7e62204afe6eeb86a0fc51397f0b0b5d323bda7a940b3f5e8d3f9b23e8546d69",
+      "baselineWordCount": 46,
+      "strategyWordCount": 54,
+      "expectedEligibility": true,
+      "expectedStructuralFindings": ["passive-protagonist"],
+      "strata": {
+        "format": "short",
+        "locale": "en-US",
+        "durationBand": "under-60s",
+        "targetDurationSeconds": 55,
+        "policy": {
+          "storyPolicyId": "dark-truth-fiction-v1",
+          "fictionality": "fiction",
+          "genre": "fictional-psychological",
+          "evidencePolicy": "fictional-source-bounded",
+          "intensityPolicy": "restrained"
+        }
+      }
+    },
+    {
+      "caseId": "repetitive-maximum-intensity",
+      "sourceHash": "50a82cebab2b6c0ecd9ad6994ef45c35c97fd27a2d6a15a42251d6acc3cf4252",
+      "baselineCandidateHash": "6e74c1a4f391f7b93fe774b7bbefaa0da3c0ebc7df63583167c21efa0a76b873",
+      "strategyCandidateHash": "961e664fd56b7267fdf5e504da5551aad1260e47edc58545060247148ceb52dc",
+      "baselineWordCount": 49,
+      "strategyWordCount": 60,
+      "expectedEligibility": true,
+      "expectedStructuralFindings": ["repetitive-maximum-intensity"],
+      "strata": {
+        "format": "full",
+        "locale": "en-US",
+        "durationBand": "60-180s",
+        "targetDurationSeconds": 150,
+        "policy": {
+          "storyPolicyId": "dark-truth-fiction-v1",
+          "fictionality": "fiction",
+          "genre": "fictional-supernatural",
+          "evidencePolicy": "fictional-source-bounded",
+          "intensityPolicy": "moderate"
+        }
+      }
+    },
+    {
+      "caseId": "rule-without-setup-payoff",
+      "sourceHash": "333ff4bc3e6c03dfe17b287ef8426ecd129c77438c2ca4e5f9b96141a292bff0",
+      "baselineCandidateHash": "a30ee9beeebeb7f6e438752a03e1586df5e30fb54692d482b87a70006397bed4",
+      "strategyCandidateHash": "de87e5a756a504ca4458312aff82a19615a1c70467bdf3aeeb5185bd2293dd6f",
+      "baselineWordCount": 43,
+      "strategyWordCount": 53,
+      "expectedEligibility": true,
+      "expectedStructuralFindings": ["rule-without-setup-payoff"],
+      "strata": {
+        "format": "short",
+        "locale": "en-IE",
+        "durationBand": "under-60s",
+        "targetDurationSeconds": 50,
+        "policy": {
+          "storyPolicyId": "dark-truth-folklore-v1",
+          "fictionality": "fiction",
+          "genre": "folklore",
+          "evidencePolicy": "folklore-source-bounded",
+          "intensityPolicy": "restrained"
+        }
+      }
+    },
+    {
+      "caseId": "strong-question-response-cost-payoff",
+      "sourceHash": "8aad1ac8d7d54b24b7053695c8bec0edd11a7fd537a3be73f3f7422ad9993a83",
+      "baselineCandidateHash": "06182447f57100a28c5344aba2077c88d0001671956f5a89475b25d10e0076e1",
+      "strategyCandidateHash": "6ec0222911f1058b80ed2f4f29782697629fd3d2c2f0029932d5218567e573c4",
+      "baselineWordCount": 50,
+      "strategyWordCount": 61,
+      "expectedEligibility": true,
+      "expectedStructuralFindings": ["strong-question-response-cost-payoff"],
+      "strata": {
+        "format": "full",
+        "locale": "en-US",
+        "durationBand": "60-180s",
+        "targetDurationSeconds": 135,
+        "policy": {
+          "storyPolicyId": "dark-truth-fiction-v1",
+          "fictionality": "fiction",
+          "genre": "fictional-psychological",
+          "evidencePolicy": "fictional-source-bounded",
+          "intensityPolicy": "moderate"
+        }
+      }
+    },
+    {
+      "caseId": "horror-shaping-distorts-source",
+      "sourceHash": "bd87979b834ce4a6d0d3456f86b5df7d5db806c52b1aef9872b5d6310dd262e2",
+      "baselineCandidateHash": "24e505a1ad289d824a6a3e7a381518254a0b80964788aa151e0ffb7036265b74",
+      "strategyCandidateHash": "00fb5796bbd554fb48635c37980188c8eb49405da6737ff777a73dc183ee715d",
+      "baselineWordCount": 45,
+      "strategyWordCount": 51,
+      "expectedEligibility": false,
+      "expectedStructuralFindings": ["horror-shaping-distorts-source"],
+      "strata": {
+        "format": "full",
+        "locale": "en-GB",
+        "durationBand": "over-180s",
+        "targetDurationSeconds": 240,
+        "policy": {
+          "storyPolicyId": "dark-truth-evidence-v1",
+          "fictionality": "evidence-led",
+          "genre": "evidence-led",
+          "evidencePolicy": "strict-evidence-only",
+          "intensityPolicy": "restrained"
+        }
+      }
+    }
+  ],
+  "evaluationBoundary": {
+    "providerCalls": 0,
+    "estimatedProviderCostUsd": 0,
+    "modelAnalysisIncluded": false,
+    "deterministicProductionGateIncluded": false,
+    "productionPromptFingerprint": "not-applicable-manually-authored-offline-candidates",
+    "generatedAssetsModified": false
+  },
+  "manifestHash": "35983ebd7ff781233bc8bc873fab73d96b06cbe9a8f7f0ba41392b4c5be4222a"
+}

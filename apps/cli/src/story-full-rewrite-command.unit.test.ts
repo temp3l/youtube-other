@@ -38,6 +38,7 @@ vi.mock("@mediaforge/config", () => ({
     openAiStoryModel: "gpt-5.5",
     openAiStoryTemperature: 0.5,
     openAiStoryReasoningEffort: "high",
+    horrorAffectRolloutMode: "enforce",
     openAiMetadataModel: "gpt-5.4-mini",
     openAiMetadataReasoningEffort: "low",
     openAiCompatibleModel: "gpt-4.1-mini",
@@ -149,6 +150,7 @@ describe("story full rewrite command", () => {
       model: "gpt-5.5",
       temperature: 0.5,
       reasoningEffort: "high",
+      horrorAffectRolloutMode: "enforce",
     });
     expect(localizeStoryEpisodeMock).toHaveBeenCalledTimes(1);
   });

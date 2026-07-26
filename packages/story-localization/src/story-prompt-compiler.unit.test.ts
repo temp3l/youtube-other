@@ -1,5 +1,6 @@
 import path from "node:path";
 import { describe, expect, it } from "vitest";
+import { hashText } from "@mediaforge/shared";
 import { parseCanonicalSourceStory } from "./source-story-parser.js";
 import { extractCanonicalStoryFacts } from "./canonical-facts.service.js";
 import {
@@ -95,9 +96,15 @@ describe("story prompt compiler", () => {
       canonicalFacts: facts,
     });
 
-    expect(compiled.user).toContain("Localize faithfully into the target language");
-    expect(compiled.user).toContain("Do not summarize, generalize, reconstruct, or independently rewrite the story");
-    expect(compiled.user).toContain("preserve all named characters, required events, objects, numbers, causal links");
+    expect(compiled.user).toContain(
+      "Localize faithfully into the target language"
+    );
+    expect(compiled.user).toContain(
+      "Do not summarize, generalize, reconstruct, or independently rewrite the story"
+    );
+    expect(compiled.user).toContain(
+      "preserve all named characters, required events, objects, numbers, causal links"
+    );
   });
 
   it("adds cinematic English full-story constraints", async () => {
@@ -108,12 +115,213 @@ describe("story prompt compiler", () => {
       adaptationMode: "retention-optimized",
       sourceStory: parsed,
       canonicalFacts: facts,
+      horrorAffectRolloutMode: "enforce",
     });
 
-    expect(compiled.user).toContain("deliver the first impossible detail immediately");
-    expect(compiled.user).toContain("Replace generic investigation summaries with escalating experiments");
-    expect(compiled.user).toContain("End on a concrete image, action, sound, object, or contradiction");
-    expect(compiled.user).toContain("The climax must not silently change the rule");
+    expect(compiled.promptFingerprint).toBe(
+      "0fd48da6584f17041075b8b1869413d63ca56dcaeb3da0554e8dc0c5122331cc"
+    );
+    expect(hashText(compiled.system)).toBe(
+      "2dd0bc854f771af6b34ac94567a89958d9aaaad50370950d1b992954ddfff3de"
+    );
+    expect(hashText(compiled.user)).toBe(
+      "8824f77b0f5961fffaf246521012a684284edc2865fcbd357706442af28a1923"
+    );
+    expect(compiled.user).toContain(
+      "deliver the first impossible detail immediately"
+    );
+    expect(compiled.user).toContain("## Story-Specific Horror Strategy");
+    expect(compiled.user).toContain("Primary question:");
+    expect(compiled.user).toContain(
+      "Beat directives (write scenes, never these labels):"
+    );
+    expect(compiled.user).toContain("Source-grounded response narrowing:");
+    expect(compiled.user).toContain(
+      "The protagonist must observe, decide, act, learn, and pay the established emotional cost."
+    );
+    expect(compiled.user).toContain(
+      "Do not invent a new threat capability, response, clue, motive, rule, or twist"
+    );
+    expect(compiled.selectedModules).toContainEqual({
+      id: "horror-affect-plan",
+      version: "1.0.0",
+    });
+    expect(compiled.horrorAffectPlan).toEqual(
+      expect.objectContaining({
+        profileId: "dark-truth",
+        format: "full",
+        validation: expect.objectContaining({ valid: true }),
+      })
+    );
+    expect(compiled.horrorAffectPlan?.planHash).toBe(
+      "e9dbef9ca7937b03d8ab6df140035428dfd9c5fe6236b449b7d319d3525c147f"
+    );
+    expect(compiled.horrorAffectDiagnostics).toEqual({
+      mode: "enforce",
+      eligible: true,
+      eligibilityReason: "canonical-english-fiction",
+      planBuilt: true,
+      planValid: true,
+      planHash:
+        "e9dbef9ca7937b03d8ab6df140035428dfd9c5fe6236b449b7d319d3525c147f",
+      promptEnforced: true,
+    });
+  });
+
+  it("defaults to shadow while off and shadow preserve request and cache identity", async () => {
+    const parsed = await parseCanonicalSourceStory(sourceFile);
+    const facts = extractCanonicalStoryFacts(parsed);
+    const defaultCompiled = compileFullStoryPrompt({
+      language: "en",
+      adaptationMode: "retention-optimized",
+      sourceStory: parsed,
+      canonicalFacts: facts,
+    });
+    const shadowCompiled = compileFullStoryPrompt({
+      language: "en",
+      adaptationMode: "retention-optimized",
+      sourceStory: parsed,
+      canonicalFacts: facts,
+      horrorAffectRolloutMode: "shadow",
+    });
+    const offCompiled = compileFullStoryPrompt({
+      language: "en",
+      adaptationMode: "retention-optimized",
+      sourceStory: parsed,
+      canonicalFacts: facts,
+      horrorAffectRolloutMode: "off",
+    });
+    const enforceCompiled = compileFullStoryPrompt({
+      language: "en",
+      adaptationMode: "retention-optimized",
+      sourceStory: parsed,
+      canonicalFacts: facts,
+      horrorAffectRolloutMode: "enforce",
+    });
+
+    expect(defaultCompiled.system).toBe(shadowCompiled.system);
+    expect(defaultCompiled.user).toBe(shadowCompiled.user);
+    expect(defaultCompiled.promptFingerprint).toBe(
+      shadowCompiled.promptFingerprint
+    );
+    expect(shadowCompiled.system).toBe(offCompiled.system);
+    expect(shadowCompiled.user).toBe(offCompiled.user);
+    expect(shadowCompiled.promptFingerprint).toBe(
+      offCompiled.promptFingerprint
+    );
+    expect(shadowCompiled.selectedModules).toEqual(
+      offCompiled.selectedModules
+    );
+    expect(shadowCompiled.promptFingerprint).not.toBe(
+      enforceCompiled.promptFingerprint
+    );
+    expect(shadowCompiled.user).not.toContain(
+      "## Story-Specific Horror Strategy"
+    );
+    expect(shadowCompiled.horrorAffectPlan).toBeDefined();
+    expect(offCompiled.horrorAffectPlan).toBeUndefined();
+    expect(defaultCompiled.horrorAffectDiagnostics?.mode).toBe("shadow");
+    expect(shadowCompiled.horrorAffectDiagnostics).toEqual(
+      expect.objectContaining({
+        mode: "shadow",
+        eligible: true,
+        planBuilt: true,
+        planValid: true,
+        promptEnforced: false,
+      })
+    );
+    expect(offCompiled.horrorAffectDiagnostics).toEqual({
+      mode: "off",
+      eligible: true,
+      eligibilityReason: "canonical-english-fiction",
+      planBuilt: false,
+      promptEnforced: false,
+    });
+  });
+
+  it("keeps the horror affect strategy out of localized full prompts", async () => {
+    const parsed = await parseCanonicalSourceStory(sourceFile);
+    const facts = extractCanonicalStoryFacts(parsed);
+    const compiled = compileFullStoryPrompt({
+      language: "de",
+      adaptationMode: "retention-optimized",
+      sourceStory: parsed,
+      canonicalFacts: facts,
+    });
+
+    expect(compiled.horrorAffectPlan).toBeUndefined();
+    expect(compiled.horrorAffectDiagnostics).toEqual({
+      mode: "shadow",
+      eligible: false,
+      eligibilityReason: "localized-language",
+      planBuilt: false,
+      promptEnforced: false,
+    });
+    expect(compiled.user).not.toContain("## Story-Specific Horror Strategy");
+    expect(
+      compiled.selectedModules.some(
+        (entry) => entry.id === "horror-affect-plan"
+      )
+    ).toBe(false);
+    expect(compiled.user).toContain(
+      "Replace generic investigation summaries with escalating experiments"
+    );
+  });
+
+  it("keeps non-fiction stories ineligible without changing their prompt behavior", async () => {
+    const parsed = await parseCanonicalSourceStory(sourceFile);
+    const facts = extractCanonicalStoryFacts(parsed);
+    const baseStoryIr = adaptCanonicalStoryFactsToStoryIR(facts, parsed);
+    const storyIr = {
+      ...baseStoryIr,
+      genre: "documentary" as const,
+      fictionality: "nonfiction" as const,
+      narrativeMode: "documentary" as const,
+      centralThreat: {
+        type: "person" as const,
+        description: "A documented human threat",
+        intelligent: true,
+      },
+      centralRuleMechanism: {
+        description: "A documented sequence of events",
+        supernatural: false,
+      },
+      allowedInventionBoundaries: {
+        ...baseStoryIr.allowedInventionBoundaries,
+        dialogue: false,
+        internalThoughts: false,
+      },
+    };
+    const shadowCompiled = compileFullStoryPrompt({
+      language: "en",
+      adaptationMode: "faithful",
+      sourceStory: parsed,
+      canonicalFacts: facts,
+      storyIr,
+      horrorAffectRolloutMode: "shadow",
+    });
+    const offCompiled = compileFullStoryPrompt({
+      language: "en",
+      adaptationMode: "faithful",
+      sourceStory: parsed,
+      canonicalFacts: facts,
+      storyIr,
+      horrorAffectRolloutMode: "off",
+    });
+
+    expect(shadowCompiled.system).toBe(offCompiled.system);
+    expect(shadowCompiled.user).toBe(offCompiled.user);
+    expect(shadowCompiled.promptFingerprint).toBe(
+      offCompiled.promptFingerprint
+    );
+    expect(shadowCompiled.horrorAffectPlan).toBeUndefined();
+    expect(shadowCompiled.horrorAffectDiagnostics).toEqual({
+      mode: "shadow",
+      eligible: false,
+      eligibilityReason: "nonfiction",
+      planBuilt: false,
+      promptEnforced: false,
+    });
   });
 
   it("selects exactly one locale module and one genre policy module", async () => {
@@ -385,7 +593,9 @@ describe("story prompt compiler", () => {
     });
     expect(compiled.user).toContain("Immutable facts that remain grounded:");
     expect(compiled.user).toContain("Invention boundaries:");
-    expect(compiled.user).toContain("Before returning the result, silently verify:");
+    expect(compiled.user).toContain(
+      "Before returning the result, silently verify:"
+    );
     expect(compiled.user).toContain(
       "Use only the supplied events, beat plan, immutable facts, and forbidden omissions."
     );

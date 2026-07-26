@@ -53,9 +53,10 @@ priority.
 6. storyboard and visual specification;
 7. deterministic visual rendering where possible;
 8. narration, practice questions, worked solutions, and formative checks;
-9. captions, audio, timing reflow, and video rendering;
-10. mathematical, pedagogical, accessibility, and audiovisual QA;
-11. metadata, publish dry-run, explicit approval, and publishing.
+9. full and Short scene plans, captions, audio, timing reflow, and video rendering;
+10. differentiated worksheet, answer key, quiz, thumbnail, and metadata generation;
+11. mathematical, pedagogical, accessibility, and audiovisual QA;
+12. locale artefact approval, private upload, remote verification, publication approval, external resource distribution, and scheduling.
 
 The shared engine adapts the existing math workflow stages and artifact lineage.
 It must resolve the current verifier schema migration before accepting imported
@@ -74,6 +75,22 @@ Visual manifests bind each displayed number, expression, graph, geometric
 relation, and worked step to verified lesson facts. Misleading not-to-scale
 diagrams require an explicit label; essential meaning cannot rely only on color,
 sound, or transient animation.
+
+The production chalk preset writes text by grapheme and strokes geometric marks
+by path length. Its stable seeded grain and bounded variants must remain
+deterministic across frames. A horizontal rectangular text reveal is prohibited.
+Production captions are separate tracks; the bottom burn-in bar is debug-only.
+
+`math-narration-approved-v1` binds the reviewed five-minute German baseline:
+OpenAI-compatible `gpt-4o-mini-tts`, `marin`, speed `0.9`,
+`education-natural-teacher.v1`, and the reviewed mastering targets. Visual-only
+changes preserve valid audio.
+
+All production artefacts carry typed grade, grade band, locale, curriculum,
+canonical-content hash, and localisation hash. Worksheet differentiation,
+four-purpose quizzes, independent locale approvals, private upload, and
+publication approval are fail-closed contracts. External worksheets and quizzes
+use a configured distribution provider; answer keys default to private.
 
 ## Scoring and Hard Failures
 
@@ -121,4 +138,3 @@ Acceptance requires deterministic full and Short fixtures across supported
 lesson variants and representative locales. Offline deterministic verification
 must be exercised where claimed. Provider speech and other paid tests remain
 opt-in.
-

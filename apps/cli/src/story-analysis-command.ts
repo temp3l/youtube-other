@@ -19,6 +19,7 @@ export interface StoryAnalysisCliOptions {
   readonly refresh?: boolean;
   readonly model?: string;
   readonly reasoningEffort?: "low" | "medium" | "high";
+  readonly analysisVersion?: "v1" | "v2";
   readonly json?: boolean;
   readonly verbose?: boolean;
 }
@@ -30,16 +31,25 @@ function resolveInheritedCliOptions(
   const inherited = command.optsWithGlobals() as StoryAnalysisCliOptions;
   return {
     ...options,
-    ...(options.language ?? inherited.language
+    ...((options.language ?? inherited.language)
       ? { language: options.language ?? inherited.language }
       : {}),
-    ...(options.json ?? inherited.json) !== undefined
+    ...((options.json ?? inherited.json) !== undefined
       ? { json: options.json ?? inherited.json }
-      : {},
-    ...(options.verbose ?? inherited.verbose) !== undefined
+      : {}),
+    ...((options.verbose ?? inherited.verbose) !== undefined
       ? { verbose: options.verbose ?? inherited.verbose }
-      : {},
+      : {}),
   };
+}
+
+function resolveAnalysisVersion(
+  value: StoryAnalysisCliOptions["analysisVersion"]
+): "v1" | "v2" | undefined {
+  if (value === undefined || value === "v1" || value === "v2") {
+    return value;
+  }
+  throw new Error("--analysis-version must be v1 or v2.");
 }
 
 async function buildStoryInspectPayload(
@@ -49,7 +59,9 @@ async function buildStoryInspectPayload(
     throw new Error("--episode is required.");
   }
   const runtimeConfig = await loadRuntimeConfig();
-  const outputRoot = path.resolve(options.outputRoot ?? runtimeConfig.workspaceDir);
+  const outputRoot = path.resolve(
+    options.outputRoot ?? runtimeConfig.workspaceDir
+  );
   const language = options.language ?? "en";
   const format = options.format ?? "full";
   const statusModel =
@@ -71,6 +83,9 @@ async function buildStoryInspectPayload(
       options.reasoningEffort ??
       runtimeConfig.openAiValidatorReasoningEffort ??
       "medium",
+    ...(resolveAnalysisVersion(options.analysisVersion)
+      ? { analysisVersion: resolveAnalysisVersion(options.analysisVersion) }
+      : {}),
     ...(statusModel !== undefined ? { model: statusModel } : {}),
   });
   return buildStoryProductionInspectPayload({ source, status });
@@ -79,21 +94,36 @@ async function buildStoryInspectPayload(
 export function registerStoryAnalysisCommand(storiesCommand: Command): void {
   storiesCommand
     .command("analyze")
-    .description("Analyze a persisted full story artifact for production readiness")
+    .description(
+      "Analyze a persisted full story artifact for production readiness"
+    )
     .requiredOption("--episode <slug-or-number>", "episode slug or number")
     .option("--language <code>", "language", "en")
     .option("--format <format>", "story format (full or short)", "full")
     .option("--output-root <path>", "output root directory")
     .option("--force", "rerun regardless of current cached analysis")
-    .option("--refresh", "rerun only when the current analysis is stale or missing")
+    .option(
+      "--refresh",
+      "rerun only when the current analysis is stale or missing"
+    )
     .option("--model <model>", "OpenAI model override")
     .option("--reasoning-effort <level>", "reasoning effort")
+    .option(
+      "--analysis-version <version>",
+      "analysis contract (v1 or explicit shadow/advisory v2)",
+      "v1"
+    )
     .option("--json", "print machine-readable output")
     .option("--verbose", "enable verbose logging")
-    .action(async function (this: Command, rawOptions: StoryAnalysisCliOptions) {
+    .action(async function (
+      this: Command,
+      rawOptions: StoryAnalysisCliOptions
+    ) {
       const options = resolveInheritedCliOptions(this, rawOptions);
       const runtimeConfig = await loadRuntimeConfig();
-      const outputRoot = path.resolve(options.outputRoot ?? runtimeConfig.workspaceDir);
+      const outputRoot = path.resolve(
+        options.outputRoot ?? runtimeConfig.workspaceDir
+      );
       const format = options.format ?? "full";
       const model =
         options.model ??
@@ -106,7 +136,10 @@ export function registerStoryAnalysisCommand(storiesCommand: Command): void {
         "low";
       const maxOutputTokens =
         runtimeConfig.openAiValidatorMaxOutputTokens ?? 6_000;
-      const logger = createLogger(options.verbose ? "debug" : runtimeConfig.logLevel, process.stderr);
+      const logger = createLogger(
+        options.verbose ? "debug" : runtimeConfig.logLevel,
+        process.stderr
+      );
       const client = createOpenAiStoryClientWithOptions({
         apiKey: runtimeConfig.openAiCompatibleApiKey ?? undefined,
         baseUrl: runtimeConfig.openAiCompatibleBaseUrl ?? undefined,
@@ -120,6 +153,8 @@ export function registerStoryAnalysisCommand(storiesCommand: Command): void {
         reasoningEffort,
         maxOutputTokens,
         client,
+        analysisVersion:
+          resolveAnalysisVersion(options.analysisVersion) ?? "v1",
         ...(options.force !== undefined ? { force: options.force } : {}),
         ...(options.refresh !== undefined ? { refresh: options.refresh } : {}),
         ...(options.verbose !== undefined ? { verbose: options.verbose } : {}),
@@ -151,8 +186,12 @@ export function registerStoryAnalysisCommand(storiesCommand: Command): void {
     .option("--output-root <path>", "output root directory")
     .option("--model <model>", "OpenAI model override")
     .option("--reasoning-effort <level>", "reasoning effort")
+    .option("--analysis-version <version>", "analysis contract (v1 or v2)")
     .option("--json", "print machine-readable output")
-    .action(async function (this: Command, rawOptions: StoryAnalysisCliOptions) {
+    .action(async function (
+      this: Command,
+      rawOptions: StoryAnalysisCliOptions
+    ) {
       const options = resolveInheritedCliOptions(this, rawOptions);
       const payload = await buildStoryInspectPayload(options);
       process.stdout.write(`${JSON.stringify(payload, null, 2)}\n`);
@@ -167,8 +206,12 @@ export function registerStoryAnalysisCommand(storiesCommand: Command): void {
     .option("--output-root <path>", "output root directory")
     .option("--model <model>", "OpenAI model override")
     .option("--reasoning-effort <level>", "reasoning effort")
+    .option("--analysis-version <version>", "analysis contract (v1 or v2)")
     .option("--json", "print machine-readable output")
-    .action(async function (this: Command, rawOptions: StoryAnalysisCliOptions) {
+    .action(async function (
+      this: Command,
+      rawOptions: StoryAnalysisCliOptions
+    ) {
       const options = resolveInheritedCliOptions(this, rawOptions);
       const payload = await buildStoryInspectPayload(options);
       const status =

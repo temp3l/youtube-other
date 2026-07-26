@@ -3,6 +3,10 @@ import path from "node:path";
 import { Command } from "commander";
 import { describe, expect, it, vi } from "vitest";
 
+const createStoryLocalizationConfigMock = vi.hoisted(() =>
+  vi.fn((config) => config)
+);
+
 vi.mock("@mediaforge/config", () => ({
   loadRuntimeConfig: vi.fn(async () => ({
     openAiLocalizationModel: "gpt-5.4-localize",
@@ -14,8 +18,19 @@ vi.mock("@mediaforge/config", () => ({
     openAiMetadataModel: "gpt-5-metadata",
     openAiMetadataReasoningEffort: "high",
     openAiMetadataMaxOutputTokens: 8888,
+    horrorAffectRolloutMode: "enforce",
   })),
 }));
+
+vi.mock("@mediaforge/story-localization", async () => {
+  const actual = await vi.importActual<
+    typeof import("@mediaforge/story-localization")
+  >("@mediaforge/story-localization");
+  return {
+    ...actual,
+    createStoryLocalizationConfig: createStoryLocalizationConfigMock,
+  };
+});
 
 import {
   buildBatchConfig,
@@ -122,6 +137,7 @@ describe("story localization command registration", () => {
     expect(config.repairModel).toBe("gpt-5.4-localize");
     expect(config.repairReasoningEffort).toBe("low");
     expect(config.repairMaxOutputTokens).toBe(12345);
+    expect(config.horrorAffectRolloutMode).toBe("enforce");
   });
 
   it("keeps batch localized full config on the localization fallback family", async () => {
@@ -130,6 +146,7 @@ describe("story localization command registration", () => {
     expect(config.repairModel).toBe("gpt-5.4-localize");
     expect(config.maxOutputTokens).toBe(12345);
     expect(config.repairMaxOutputTokens).toBe(12345);
+    expect(config.horrorAffectRolloutMode).toBe("enforce");
   });
 
   it("normalizes regional Spanish locale input to es", async () => {

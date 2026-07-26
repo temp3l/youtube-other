@@ -48,6 +48,7 @@ import {
   StoryLocalizationApiError,
   getLanguageRewriteSettings,
   materializeCanonicalSourceStory,
+  prepareStoryLocalizationBatch,
 } from "./index.js";
 import type {
   GeneratedStoryPackage,
@@ -792,6 +793,47 @@ describe("story localization helpers", () => {
         "utf8"
       )
     ).rejects.toThrow();
+  });
+
+  it("persists byte-equivalent horror affect plans in sync and batch preparation", async () => {
+    const syncRoot = mkdtempSync(
+      path.join(os.tmpdir(), "story-localization-affect-sync-")
+    );
+    const batchRoot = mkdtempSync(
+      path.join(os.tmpdir(), "story-localization-affect-batch-")
+    );
+    const syncConfig = createStoryLocalizationConfig({
+      outputDirectory: syncRoot,
+      languages: [],
+      includeEnglishShort: false,
+      processingMode: "sync",
+      force: true,
+      maxOutputTokens: 1,
+      retryMaxOutputTokens: 1,
+      horrorAffectRolloutMode: "shadow",
+    });
+    const client = makeMockClient([]);
+    await localizeStoryEpisode(sourceFile, syncConfig, {
+      client: client as never,
+    });
+    expect(client.responses.create).not.toHaveBeenCalled();
+
+    const batchConfig = createStoryLocalizationConfig({
+      ...syncConfig,
+      outputDirectory: batchRoot,
+      processingMode: "batch",
+    });
+    await prepareStoryLocalizationBatch([sourceFile], batchConfig);
+
+    const relativeArtifactPath = path.join(
+      "002-even-killers-can-lick",
+      "en",
+      "full",
+      "horror-affect-plan.json"
+    );
+    expect(
+      await fs.readFile(path.join(batchRoot, relativeArtifactPath), "utf8")
+    ).toBe(await fs.readFile(path.join(syncRoot, relativeArtifactPath), "utf8"));
   });
 
   it("reuses a pre-materialized canonical source without requiring overwrite", async () => {

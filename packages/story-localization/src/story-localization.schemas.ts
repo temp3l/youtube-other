@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { localizationHorrorAffectProjectionSchema } from "./localization-horror-affect-projection.js";
 import { languageCodes } from "./story-localization.types.js";
 
 const batchOperationSchema = z.enum([
@@ -409,6 +410,8 @@ export const localBatchManifestItemSchema = z.object({
       })
     )
     .optional(),
+  localizationHorrorAffectProjection:
+    localizationHorrorAffectProjectionSchema.optional(),
   configurationHash: z.string().min(8),
   plannedOutputPaths: z.array(z.string().min(1)),
   estimatedInputTokens: z.number().int().nonnegative(),

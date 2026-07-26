@@ -14,8 +14,12 @@ vi.mock("@mediaforge/story-localization", async () => {
   const { buildStoryProductionStatusReport } = await import(
     "../../../packages/story-localization/src/story-workflow-status.js"
   );
+  const horrorAffectPersistence = await import(
+    "../../../packages/story-localization/src/horror-affect-plan.persistence.js"
+  );
   return {
     ...actual,
+    ...horrorAffectPersistence,
     buildStoryProductionStatusReport,
   };
 });
@@ -33,7 +37,10 @@ vi.mock("./story-render-command.js", () => ({
 }));
 
 import {
+  buildPersistedHorrorAffectPlanArtifact,
   buildPlannedStoryWorkflowManifest,
+  persistHorrorAffectPlanArtifact,
+  resolveHorrorAffectPlanArtifactPaths,
   StoryWorkflowManifestStore,
 } from "@mediaforge/story-localization";
 import {
@@ -200,6 +207,24 @@ describe("story production command", () => {
       dryRun: true,
     });
     await new StoryWorkflowManifestStore(root, manifest.episodeId).create(manifest);
+    const horrorAffectPaths = resolveHorrorAffectPlanArtifactPaths({
+      outputDirectory: root,
+      episodeSlug: manifest.episodeId,
+    });
+    await persistHorrorAffectPlanArtifact({
+      paths: horrorAffectPaths,
+      artifact: buildPersistedHorrorAffectPlanArtifact({
+        episodeNumber: "009",
+        episodeSlug: manifest.episodeId,
+        sourceHash: "a".repeat(64),
+        storyIrHash: "b".repeat(64),
+        rolloutMode: "off",
+        eligibility: {
+          eligible: true,
+          reason: "canonical-english-fiction",
+        },
+      }),
+    });
 
     const statusOutput = makeOutput();
     await commandStoriesProductionStatus(
@@ -212,8 +237,34 @@ describe("story production command", () => {
     );
     const statusJson = JSON.parse(statusOutput.read()) as readonly {
       readonly summary: { readonly ready: number };
+      readonly horrorAffectPlan: {
+        readonly state: string;
+        readonly rolloutMode: string;
+        readonly eligible: boolean;
+        readonly planHash: string | null;
+        readonly reasons: readonly unknown[];
+      };
     }[];
     expect(statusJson[0]?.summary.ready).toBeGreaterThan(0);
+    expect(statusJson[0]?.horrorAffectPlan).toMatchObject({
+      state: "current",
+      rolloutMode: "off",
+      eligible: true,
+      planHash: null,
+      reasons: [],
+    });
+
+    const humanStatusOutput = makeOutput();
+    await commandStoriesProductionStatus(
+      {
+        episode: manifest.episodeId,
+        outputRoot: root,
+      },
+      humanStatusOutput
+    );
+    expect(humanStatusOutput.read()).toContain(
+      "Horror affect plan: state=current mode=off"
+    );
 
     const nextOutput = makeOutput();
     await commandStoriesProductionNext(
