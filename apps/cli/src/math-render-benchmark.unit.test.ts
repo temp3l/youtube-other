@@ -9,6 +9,7 @@ import {
   createMathFragmentEncoding,
   createMathRenderToolchainIdentity,
   mathRenderBenchmarkArtifactSchema,
+  mathRenderBenchmarkInputSchema,
   MATH_SEMANTIC_CHALK_VERSION,
   type MathRenderBenchmarkMode,
   type MathRenderBenchmarkRun,
@@ -152,6 +153,46 @@ function runFixture(
 }
 
 describe("math renderer benchmark artifact", () => {
+  it("binds a strict hash-checked benchmark input without narration content or absolute paths", () => {
+    const input = benchmarkInput();
+
+    expect(mathRenderBenchmarkInputSchema.parse(input)).toEqual(input);
+    expect(JSON.stringify(input)).not.toContain(
+      "Narration text must never appear"
+    );
+    expect(() =>
+      mathRenderBenchmarkInputSchema.parse({
+        ...input,
+        narration: {
+          ...input.narration,
+          content: "Narration text must never appear",
+        },
+      })
+    ).toThrow();
+    expect(() =>
+      bindMathRenderBenchmarkInput({
+        artifactVersion: "math-render-benchmark-input.v1",
+        lessonId: input.lessonId,
+        language: input.language,
+        plan: input.plan,
+        narration: {
+          relativePath: "/private/audio/narration.wav",
+          sha256: input.narration.sha256,
+        },
+        identities: input.identities,
+      })
+    ).toThrow();
+    expect(() =>
+      mathRenderBenchmarkInputSchema.parse({
+        ...input,
+        identities: {
+          ...input.identities,
+          timingHash: hash("f"),
+        },
+      })
+    ).toThrow(/hash does not match/u);
+  });
+
   it("records eight isolated provider-free runs, real overlap, and a passing ratio", async () => {
     const root = await fs.mkdtemp(
       path.join(os.tmpdir(), "math-benchmark-test-")

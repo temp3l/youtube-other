@@ -100,6 +100,35 @@ describe("math commands", () => {
     );
   });
 
+  it("registers the provider-free renderer benchmark with explicit selection and authorization", () => {
+    const program = new Command();
+    registerMathCommands(program);
+    const math = program.commands.find((command) => command.name() === "math");
+    const renderer = math?.commands.find(
+      (command) => command.name() === "renderer"
+    );
+    const benchmark = renderer?.commands.find(
+      (command) => command.name() === "benchmark"
+    );
+
+    expect(benchmark).toBeDefined();
+    expect(benchmark?.description()).toContain("without providers");
+    for (const optionName of [
+      "--lesson",
+      "--workspace",
+      "--authorize-resource-use",
+    ]) {
+      expect(
+        benchmark?.options.find((option) => option.long === optionName)
+          ?.mandatory
+      ).toBe(true);
+    }
+    expect(
+      benchmark?.options.find((option) => option.long === "--artifact")
+        ?.mandatory
+    ).toBe(false);
+  });
+
   it("keeps local rendering as the default, lets configuration override it, and gives the CLI final precedence", () => {
     expect(resolveMathRenderExecutorMode(undefined, undefined)).toBe("local");
     expect(resolveMathRenderExecutorMode(undefined, "remote")).toBe("remote");

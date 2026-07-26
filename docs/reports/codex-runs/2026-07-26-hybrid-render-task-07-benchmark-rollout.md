@@ -1,25 +1,26 @@
 # Hybrid Render Task 07: Provider-Free Benchmark Rollout
 
-Commit: `8991a79`
+Baseline commit: `cd63e87`
 
-Summary: Added `math renderer benchmark`, strict hashed input/output artifacts,
-eight isolated cold/warm case orchestration, explicit unavailable measurements,
-ratio/speedup/overlap gates, local-container support, target redaction, safe
-configuration examples, and remote-math operations documentation. Local remains
-the default.
+Summary: Closed only Task 07's provider-free verification debt. Added tests
+proving discoverable `math renderer benchmark` registration with required
+lesson/workspace/resource authorization, strict hash-bound benchmark inputs
+that reject narration content and absolute paths, and deployment receipts that
+hash rather than expose the remote target. Production behavior and the `local`
+executor default are unchanged.
 
-Changed paths: `.env.example`; `apps/cli/src/math-{commands,render-benchmark,render-hybrid,render-remote,workflow-runtime}*`;
-`packages/{config,math-rendering}/**`; relevant architecture, commands, remote
-operations docs; this report.
+Changed paths: `apps/cli/src/math-commands.unit.test.ts`;
+`apps/cli/src/math-render-benchmark.unit.test.ts`;
+`apps/cli/src/math-render-remote.unit.test.ts`;
+`docs/reports/2026-07-26/task-07-benchmark-rollout-and-final-verification-implementation-report.md`;
+this report.
 
 Checks:
-- `pnpm test:focused -- apps/cli/src/math-private-batch-scheduler.unit.test.ts` — 5 passed.
-- `pnpm test:focused -- apps/cli/src/math-commands.unit.test.ts -t "keeps private batch run and resume behind both aggregate cost ceilings before any provider or render work"` — 1 passed.
-- `pnpm --filter @mediaforge/cli typecheck` — passed.
-- `pnpm test:focused -- apps/cli/src/math-render-benchmark.unit.test.ts` — stale-dist failure, then 2 passed after source binding.
-- Targeted ESLint — new files passed; pre-existing `math-render-remote.ts:132` escape finding remained.
+- `pnpm test:focused -- apps/cli/src/math-render-benchmark.unit.test.ts` — 2/2 passed.
+- Filtered Vitest across the three changed test files — new coverage 3/3 passed.
+- Combined `typecheck` filtered to config, math-rendering, and CLI — passed.
 - `git diff --check` — passed.
 
-Unresolved risks: No image ID, infrastructure timing/ratio, cache/transfer, media output,
-scene assignment, overlap, failure reassignment, Docker, SSH, VPS, provider,
-publish, or default-executor change was measured or performed.
+Unresolved risks: No Docker, SSH, VPS, providers, real benchmarks, deployment,
+publication, image/timing/ratio/cache/transfer/overlap/reassignment evidence, or
+default-executor change was performed. Keep `local`.

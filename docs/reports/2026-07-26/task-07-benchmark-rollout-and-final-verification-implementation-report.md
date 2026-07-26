@@ -1,25 +1,30 @@
 # Task 07 Benchmark Rollout And Final Verification
 
-Commit: `8991a79`
+Source task: `docs/remote-rendering/tasks/task-07-benchmark-rollout-and-final-verification.md`
+Date: 2026-07-26
+Baseline commit: `cd63e87`
 
-Summary: Implemented the provider-free portions of
-`docs/remote-rendering/tasks/task-07-benchmark-rollout-and-final-verification.md`:
-the required CLI selection and resource authorization, temporary outputs,
-native/container/remote/hybrid cold/warm matrix, strict input/output schemas,
-unavailable-versus-zero metrics, ratio/speedup/throughput/overlap gates,
-redacted receipts, local-default recommendation, configuration examples,
-architecture guidance, rollback, and operations documentation.
+Summary: Closed the provider-free verification debt without changing production
+behavior or the `local` default. Added narrow coverage for benchmark CLI
+registration and mandatory authorization, strict/hash-bound benchmark inputs,
+absolute-path and narration-content rejection, and hashed remote-target output.
 
-Changed paths: `.env.example`; CLI benchmark/hybrid/remote/workflow files;
-config defaults/tests; math-rendering benchmark contract and exports; media,
-commands, and remote operations docs; reports.
+Changed files: `apps/cli/src/math-commands.unit.test.ts`;
+`apps/cli/src/math-render-benchmark.unit.test.ts`;
+`apps/cli/src/math-render-remote.unit.test.ts`; both Task 07 reports.
 
-Tests/checks: Task 06 scheduler 5/5, CLI gate 1/1, CLI typecheck passed;
-Task 07 benchmark 2/2 after one stale-dist repair; diff check passed. Targeted
-lint retained the pre-existing remote quoting finding.
+Tasks completed: focused benchmark verification; missing registration,
+benchmark-input, and redaction tests; combined affected-package typecheck.
 
-Unresolved risks: The post-change CLI typecheck was not run because Task 06
-consumed the authorized typecheck. No deployment, preflight, real render/QA,
-image ID, timing/ratio, cache/transfer, overlap, reassignment, cleanup,
-publication, or default change ran. Retain `local` pending authorized staged
-verification and a passing `<=0.80` warm ratio.
+Tasks partially/not completed: none within the provider-free verification
+scope. Authorized real benchmark stages remain intentionally unexecuted.
+
+Deviations: none.
+
+Checks: focused benchmark 2/2 passed; filtered new coverage 3/3 passed;
+config, math-rendering, and CLI combined typecheck passed; `git diff --check`
+passed.
+
+Risks/follow-up: No Docker, SSH, VPS, provider, real benchmark, deployment,
+publication, image/timing/ratio/overlap/reassignment evidence, or executor
+default change was performed. Keep `local`.

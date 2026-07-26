@@ -173,7 +173,7 @@ describe("math remote transport configuration", () => {
 });
 
 describe("math remote deployment and preflight", () => {
-  it("deploys by resumable archive and writes a nonsecret identity receipt", async () => {
+  it("deploys by resumable archive and writes a redacted nonsecret identity receipt", async () => {
     const root = await fs.mkdtemp(path.join(os.tmpdir(), "math-deploy-test-"));
     const remote = await settings();
     const executor = new FakeExecutor();
@@ -195,8 +195,17 @@ describe("math remote deployment and preflight", () => {
     expect(
       executor.invocations.find((item) => item.command === "rsync")?.args
     ).toEqual(expect.arrayContaining(["--partial", "--append-verify"]));
-    expect(JSON.stringify(receipt)).not.toContain("/tmp/private key");
-    expect(JSON.stringify(receipt)).not.toContain(root);
+    const serializedReceipt = JSON.stringify(receipt);
+    expect(receipt.target).toBe(
+      `sha256:${createHash("sha256")
+        .update("worker@renderer.example:2202")
+        .digest("hex")}`
+    );
+    expect(serializedReceipt).not.toContain("renderer.example");
+    expect(serializedReceipt).not.toContain("worker@");
+    expect(serializedReceipt).not.toContain("/srv/mediaforge worker");
+    expect(serializedReceipt).not.toContain("/tmp/private key");
+    expect(serializedReceipt).not.toContain(root);
   });
 
   it("fails closed on configured build and local/remote image mismatches", async () => {
