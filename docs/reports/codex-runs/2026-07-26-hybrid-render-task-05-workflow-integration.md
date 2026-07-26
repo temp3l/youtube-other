@@ -1,7 +1,7 @@
 # Hybrid Render Task 05: Workflow Integration
 
 Date: 2026-07-26
-Commit: `b0286bd044b76dda679f08744f59e005e25a8377` (uncommitted)
+Commit: `43745c4`
 
 Summary: Task 05 hybrid workflow integration is completion-claimable. Stephan's
 private/no-claim attestation was renewed for the internally consistent July 24
@@ -28,4 +28,5 @@ Tests/checks:
   typechecks: passed; CLI passed again after the final repair.
 - `git diff --check`: passed.
 
-Risk: changes remain uncommitted in a dirty worktree with unrelated edits.
+Risk: no live provider, Docker, SSH/VPS, render, or publication verification
+was performed for commit `43745c4`.

@@ -1,7 +1,7 @@
 # Private owner attestation renewal
 
 Date: 2026-07-26
-Commit: `b0286bd044b76dda679f08744f59e005e25a8377` (uncommitted)
+Commit: `43745c4`
 
 Summary: Reviewed the July 24 active-practice lesson-content changes across all
 37 unique Class 5 standard lessons. Schema, curriculum identity, ordering,
@@ -28,5 +28,5 @@ Tests/checks:
 - Six affected-package typechecks: passed.
 - CLI typecheck passed again after the final preflight repair.
 
-Risk: changes remain uncommitted among unrelated worktree edits. No live
-actions ran.
+Risk: no live provider, Docker, SSH/VPS, render, or publication verification
+was performed for commit `43745c4`.
