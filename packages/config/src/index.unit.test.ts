@@ -502,10 +502,10 @@ describe("runtime config", () => {
     try {
       const config = await loadRuntimeConfig();
       expect(config.remoteRenderEnabled).toBe(false);
-      expect(config.remoteRenderHost).toBe("2.24.81.148");
-      expect(config.remoteRenderUser).toBe("box");
+      expect(config.remoteRenderHost).toBe("render-vps.example.invalid");
+      expect(config.remoteRenderUser).toBe("render");
       expect(config.remoteRenderPort).toBe(22);
-      expect(config.remoteRenderBaseDir).toBe("/home/box/youtube-render-worker");
+      expect(config.remoteRenderBaseDir).toBe("/srv/mediaforge-render-worker");
       expect(config.remoteRenderConcurrency).toBe(1);
       expect(config.remoteRenderFallbackToLocal).toBe(true);
       expect(config.remoteRenderVerifyHostKey).toBe(true);
@@ -518,10 +518,10 @@ describe("runtime config", () => {
       expect(config.mathRemoteJobConcurrency).toBe(1);
       expect(parseRemoteTransportConfig(config)).toMatchObject({
         enabled: false,
-        host: "2.24.81.148",
-        user: "box",
+        host: "render-vps.example.invalid",
+        user: "render",
         port: 22,
-        baseDir: "/home/box/youtube-render-worker",
+        baseDir: "/srv/mediaforge-render-worker",
         fallbackToLocal: true,
         verifyHostKey: true,
       });

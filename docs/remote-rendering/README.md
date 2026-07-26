@@ -67,6 +67,10 @@ Execute every task separately and preserve focused verification budgets.
 | [06](tasks/task-06-batch-render-overlap-and-resume.md)          | Global hybrid lanes across render-ready lessons                        | Task 05     |
 | [07](tasks/task-07-benchmark-rollout-and-final-verification.md) | Local/remote/hybrid performance gate and final acceptance              | Tasks 01–06 |
 
+Operator procedures live in
+[Remote Math Renderer Operations](operations.md). Native-local remains the
+default until a real authorized benchmark passes Task 07.
+
 ## Cross-Cutting Constraints
 
 - Inspect current source and tests before editing; source is authoritative.

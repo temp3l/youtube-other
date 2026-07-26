@@ -4,6 +4,7 @@ import path from "node:path";
 import { runCommand } from "@mediaforge/process-runner";
 
 import {
+  bindMathRenderBenchmarkInput,
   cacheSemanticSvg,
   createSemanticChalkSchedule,
   createMathCaption,
@@ -1381,6 +1382,23 @@ export async function materializeCanonicalPrivateMedia(
       ? { sceneShardExecutor: executionOptions.sceneShardExecutor }
       : {}),
   });
+  await writeJsonAtomic(
+    path.join(renderRoot, "benchmark-input.json"),
+    bindMathRenderBenchmarkInput({
+      artifactVersion: "math-render-benchmark-input.v1",
+      lessonId: input.unitId,
+      language: "de",
+      plan: rendered.plan,
+      narration: {
+        relativePath: "audio/narration.wav",
+        sha256: await hashFile(audioPath),
+      },
+      identities: {
+        timingHash: canonicalHash(timing),
+        visualPlanHash: canonicalHash(input.visualPlan),
+      },
+    })
+  );
   const fact = input.lesson.facts[0];
   if (!fact)
     throw new Error("Canonical thumbnail requires a verified lesson fact.");

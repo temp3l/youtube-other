@@ -69,7 +69,10 @@ import {
   speechDeliveryProfileIdSchema,
   type SpeechProvider,
 } from "@mediaforge/speech";
-import { createNaturalChalkGoldenFixtures } from "@mediaforge/math-rendering";
+import {
+  createNaturalChalkGoldenFixtures,
+  mathRenderBenchmarkInputSchema,
+} from "@mediaforge/math-rendering";
 import {
   BatchCoordinator,
   BatchStore,
@@ -107,6 +110,10 @@ import {
   MathPrivateBatchScheduler,
   type MathBatchWorkflowOperator,
 } from "./math-private-batch-scheduler.js";
+import {
+  benchmarkArtifactName,
+  runSystemMathRenderBenchmark,
+} from "./math-render-benchmark.js";
 
 interface MathSelectionOptions {
   skill?: string;
@@ -1084,17 +1091,11 @@ async function runCanonicalPrivateProduction(
   resume: boolean,
   preparedRenderExecution?: MathWorkflowRenderExecution
 ) {
-  const {
-    workspace,
-    skillId,
-    lessonVariant,
-    language,
-    paidSetup,
-    operator,
-  } = await createCanonicalPrivateProductionRuntime(
-    options,
-    preparedRenderExecution
-  );
+  const { workspace, skillId, lessonVariant, language, paidSetup, operator } =
+    await createCanonicalPrivateProductionRuntime(
+      options,
+      preparedRenderExecution
+    );
   if (resume) {
     await operator.reconcile();
     const before = await operator.status();
@@ -2092,6 +2093,72 @@ export function registerMathCommands(program: Command): void {
         retentionHours: settings.transport.cleanupMaxAgeHours,
       });
     });
+  renderer
+    .command("benchmark")
+    .description(
+      "Benchmark one render-ready lesson without providers or canonical output replacement"
+    )
+    .requiredOption("--lesson <lesson-id>", "render-ready canonical lesson ID")
+    .requiredOption("--workspace <path>", "private mathematics workspace")
+    .requiredOption(
+      "--authorize-resource-use",
+      "confirm authorized Docker, SSH, transfer, and benchmark resource use"
+    )
+    .option(
+      "--artifact <path>",
+      "versioned benchmark artifact path outside canonical lesson outputs"
+    )
+    .action(
+      async (options: {
+        lesson: string;
+        workspace: string;
+        authorizeResourceUse: boolean;
+        artifact?: string;
+      }) => {
+        const workspace = path.resolve(options.workspace);
+        if (!isApprovedPrivateMathWorkspace(workspace)) {
+          throw new Error(
+            "Math benchmarks must use .cache/math-pipeline/ or a workspace outside the repository."
+          );
+        }
+        const lessonRoot = path.join(workspace, options.lesson);
+        const sourceRoot = path.join(lessonRoot, "locales", "de");
+        const benchmarkInput = mathRenderBenchmarkInputSchema.parse(
+          JSON.parse(
+            await fs.readFile(
+              path.join(sourceRoot, "render", "benchmark-input.json"),
+              "utf8"
+            )
+          )
+        );
+        if (benchmarkInput.lessonId !== options.lesson) {
+          throw new Error("Benchmark input identity does not match --lesson.");
+        }
+        const artifactPath = path.resolve(
+          options.artifact ??
+            path.join(
+              workspace,
+              "state",
+              "math-render-benchmarks",
+              benchmarkArtifactName(options.lesson)
+            )
+        );
+        if (isPathWithin(lessonRoot, artifactPath)) {
+          throw new Error(
+            "Benchmark artifacts cannot replace or sit inside canonical lesson outputs."
+          );
+        }
+        const artifact = await runSystemMathRenderBenchmark({
+          benchmarkInput,
+          sourceRoot,
+          config: await loadRuntimeConfig(),
+          repositoryRoot: repositoryRoot(),
+          artifactPath,
+          authorizedResourceUse: options.authorizeResourceUse,
+        });
+        print(artifact);
+      }
+    );
   renderer
     .command("fixture <fixture>")
     .description("Render a deterministic renderer fixture")

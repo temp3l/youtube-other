@@ -34,7 +34,7 @@ const safeUserSchema = z
 
 export const mathRemoteDeploymentReceiptSchema = z.strictObject({
   artifactVersion: z.literal("math-render-remote-deployment.v1"),
-  target: z.string().min(1).max(400),
+  target: z.string().regex(/^sha256:[a-f0-9]{64}$/u),
   repositoryRevision: revisionSchema,
   sceneWorkerContract: z.literal(MATH_RENDER_WORKER_RESULT_VERSION),
   shardRequestContract: z.literal(MATH_SCENE_SHARD_REQUEST_VERSION),
@@ -476,7 +476,9 @@ export async function deployMathRemoteWorker(input: {
 
   const receipt = mathRemoteDeploymentReceiptSchema.parse({
     artifactVersion: "math-render-remote-deployment.v1",
-    target: `${transport.user}@${transport.host}:${transport.port}`,
+    target: `sha256:${createHash("sha256")
+      .update(`${transport.user}@${transport.host}:${transport.port}`)
+      .digest("hex")}`,
     repositoryRevision: revision,
     sceneWorkerContract: MATH_RENDER_WORKER_RESULT_VERSION,
     shardRequestContract: MATH_SCENE_SHARD_REQUEST_VERSION,

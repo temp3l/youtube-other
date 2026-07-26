@@ -80,6 +80,7 @@ transitive dependencies.
 - `pnpm mediaforge -- math renderer remote status [--job <math-job-id>]`
 - `pnpm mediaforge -- math renderer remote logs <math-job-id>`
 - `pnpm mediaforge -- math renderer remote cleanup`
+- `pnpm mediaforge -- math renderer benchmark --lesson <lesson-id> --workspace <private-workspace> --authorize-resource-use [--artifact <report.json>]`
 - `pnpm mediaforge -- math production run ... [--render-executor local|remote|hybrid]`
 - `pnpm mediaforge -- math production resume ... [--render-executor local|remote|hybrid]`
 - `pnpm mediaforge -- math batch run ... [--render-executor local|remote|hybrid]`
@@ -104,6 +105,12 @@ machine for strict validation, ordered assembly, narration muxing, final media
 QA, and atomic promotion. Retryable remote shard failures are bounded and
 reassigned per scene to the local Docker lane; identity or integrity failures
 fail closed.
+The benchmark command additionally requires a render-ready
+`locales/de/render/benchmark-input.json`. It uses temporary media outputs,
+performs no provider calls, and writes only the requested versioned report.
+Do not pass `--authorize-resource-use` until Docker image transfer/load, remote
+smoke work, and benchmark capacity have explicit human authorization. See
+[Remote Math Renderer Operations](../remote-rendering/operations.md).
 
 ## Validation Guidance
 

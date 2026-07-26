@@ -1252,12 +1252,12 @@ export async function loadRuntimeConfig(
       overrides.remoteRenderHost ??
       episodeOverrides.remoteRenderHost ??
       env.REMOTE_RENDER_HOST ??
-      "2.24.81.148",
+      "render-vps.example.invalid",
     remoteRenderUser:
       overrides.remoteRenderUser ??
       episodeOverrides.remoteRenderUser ??
       env.REMOTE_RENDER_USER ??
-      "box",
+      "render",
     remoteRenderPort:
       overrides.remoteRenderPort ??
       episodeOverrides.remoteRenderPort ??
@@ -1267,7 +1267,7 @@ export async function loadRuntimeConfig(
       overrides.remoteRenderBaseDir ??
       episodeOverrides.remoteRenderBaseDir ??
       env.REMOTE_RENDER_BASE_DIR ??
-      "/home/box/youtube-render-worker",
+      "/srv/mediaforge-render-worker",
     remoteRenderConcurrency:
       overrides.remoteRenderConcurrency ??
       episodeOverrides.remoteRenderConcurrency ??

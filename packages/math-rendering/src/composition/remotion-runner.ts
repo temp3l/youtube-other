@@ -2088,6 +2088,7 @@ export async function renderProviderFreeMathMedia(args: {
   };
   return {
     composition,
+    plan,
     validation,
     renderFingerprint: renderExecution.renderFingerprint,
     renderExecution,

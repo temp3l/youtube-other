@@ -9,6 +9,7 @@ import {
   bindMathSceneShardResult,
   countSemanticRasterSamples,
   createMathRenderToolchainIdentity,
+  defaultLocalMathWorkerCapability,
   estimateMathSceneCost,
   executeMathSceneSchedule,
   mathRenderWorkerResultRelativePaths,
@@ -111,11 +112,7 @@ export interface MathHybridSceneEvent {
   readonly jobRoot: string;
   readonly sceneId: string;
   readonly requestFingerprint: string;
-  readonly status:
-    | "queued"
-    | "running"
-    | "succeeded"
-    | "failed";
+  readonly status: "queued" | "running" | "succeeded" | "failed";
   readonly assignmentId?: string;
   readonly lane?: "local" | "remote";
   readonly remoteJobId?: string;
@@ -124,7 +121,7 @@ export interface MathHybridSceneEvent {
 }
 
 export interface MathHybridSceneExecutorOptions {
-  readonly mode: Exclude<MathRenderExecutorMode, "local">;
+  readonly mode: "local-container" | Exclude<MathRenderExecutorMode, "local">;
   readonly imageId: string;
   readonly localCapability: MathWorkerCapability;
   readonly remoteCapability: MathWorkerCapability;
@@ -339,9 +336,11 @@ export function createHybridMathSceneShardExecutor(
       })
     );
     const workers =
-      options.mode === "remote"
-        ? [options.remoteCapability]
-        : [options.localCapability, options.remoteCapability];
+      options.mode === "local-container"
+        ? [options.localCapability]
+        : options.mode === "remote"
+          ? [options.remoteCapability]
+          : [options.localCapability, options.remoteCapability];
     const scheduleInputs = await Promise.all(
       pending.map(async (request) => {
         const scene = request.scenes[0]!;
@@ -1115,6 +1114,80 @@ export interface MathWorkflowRenderExecution {
   readonly mode: MathRenderExecutorMode;
   readonly imageId?: string;
   readonly sceneShardExecutor?: MathSceneShardExecutor;
+}
+
+export interface MathLocalContainerRenderExecution {
+  readonly mode: "local-container";
+  readonly imageId: string;
+  readonly sceneShardExecutor: MathSceneShardExecutor;
+}
+
+export async function createMathLocalContainerRenderExecution(input: {
+  readonly config: RuntimeConfig;
+  readonly repositoryRoot: string;
+  readonly workspaceRoot: string;
+  readonly processExecutor?: MathRemoteProcessExecutor;
+  readonly observer?: (event: MathHybridSceneEvent) => void | Promise<void>;
+}): Promise<MathLocalContainerRenderExecution> {
+  const settings = parseMathRemoteSettings(input.config);
+  const receipt = await readMathRemoteDeploymentReceipt(
+    input.repositoryRoot,
+    settings.transport
+  );
+  const imageId = settings.imageId ?? receipt?.imageId;
+  if (!imageId) {
+    throw new Error(
+      "Local-container benchmarking requires a deployment receipt or explicit immutable image ID."
+    );
+  }
+  if (settings.imageId && receipt && settings.imageId !== receipt.imageId) {
+    throw new Error(
+      "The configured math image ID does not match the deployment receipt."
+    );
+  }
+  const localRunner = createLocalDockerMathLaneRunner({
+    imageId,
+    buildRevision:
+      receipt?.repositoryRevision ??
+      createHash("sha256").update(imageId).digest("hex"),
+    cpuSlots: settings.localSceneSlots,
+    cacheRoot: path.join(
+      input.workspaceRoot,
+      "state",
+      "math-render-cache",
+      imageId.slice("sha256:".length)
+    ),
+    ...(input.processExecutor ? { executor: input.processExecutor } : {}),
+  });
+  const defaultCapability = defaultLocalMathWorkerCapability({
+    workerImageId: imageId,
+    cpuSlots: settings.localSceneSlots,
+  });
+  const localCapability: MathWorkerCapability = receipt?.calibration
+    ? {
+        ...defaultCapability,
+        calibration: receipt.calibration.local,
+      }
+    : defaultCapability;
+  const unusedRemoteCapability: MathWorkerCapability = {
+    ...localCapability,
+    workerId: "remote-unused",
+  };
+  return {
+    mode: "local-container",
+    imageId,
+    sceneShardExecutor: createHybridMathSceneShardExecutor({
+      mode: "local-container",
+      imageId,
+      localCapability,
+      remoteCapability: unusedRemoteCapability,
+      localRunner,
+      remoteRunner: localRunner,
+      remoteMaxRetries: 0,
+      reuse: reusableLocalFragment,
+      ...(input.observer ? { observer: input.observer } : {}),
+    }),
+  };
 }
 
 export async function createMathWorkflowRenderExecution(input: {
