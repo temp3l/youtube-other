@@ -17,6 +17,7 @@ import {
   type LocalizedNarration,
 } from "@mediaforge/math-education";
 import { runCommand } from "@mediaforge/process-runner";
+import { hashFile } from "@mediaforge/shared";
 import { generateLocalMockTts } from "./audio/mock-tts.js";
 import { cacheSemanticSvg } from "./components/svg-cache.js";
 import { renderLocalRemotionVideo } from "./composition/remotion-runner.js";
@@ -190,6 +191,7 @@ describe("provider-free math media integration", () => {
         },
       });
       const outputPath = path.join(root, "small-remotion.mp4");
+      const cacheRoot = path.join(root, "shared-render-cache");
       const render = await renderLocalRemotionVideo({
         durationInFrames: 30,
         scenes: [
@@ -205,6 +207,8 @@ describe("provider-free math media integration", () => {
         audioPath: oneSecondAudio,
         outputPath,
         workDir: path.join(root, "render-work"),
+        cacheRoot,
+        cpuSlotBudget: 1,
         validationDurationRange: { minimum: 0.9, maximum: 1.1 },
       });
       expect(render.renderFingerprint).toMatch(/^[a-f0-9]{64}$/u);
@@ -218,6 +222,67 @@ describe("provider-free math media integration", () => {
       });
       expect(render.validation.videoCodec).toBe("h264");
       expect(render.validation.audioCodec).toBe("aac");
+      expect(render.cacheMissCount).toBeGreaterThan(0);
+
+      const repeatedOutputPath = path.join(root, "small-remotion-repeat.mp4");
+      const repeated = await renderLocalRemotionVideo({
+        durationInFrames: 30,
+        scenes: [
+          {
+            sceneId: "scene-001",
+            svgPath: visual.filePath,
+            svgHash: visual.svgHash,
+            minimumGlyphPx: visual.minimumGlyphPx,
+            bounds: visual.bounds,
+          },
+        ],
+        frameRanges: [{ sceneId: "scene-001", startFrame: 0, endFrame: 30 }],
+        audioPath: oneSecondAudio,
+        outputPath: repeatedOutputPath,
+        workDir: path.join(root, "render-work-repeat"),
+        cacheRoot,
+        cpuSlotBudget: 1,
+        validationDurationRange: { minimum: 0.9, maximum: 1.1 },
+      });
+      expect(repeated.cacheMissCount).toBe(0);
+      expect(repeated.cacheHitCount).toBe(render.cacheMissCount);
+      expect(repeated.renderFingerprint).toBe(render.renderFingerprint);
+      await expect(hashFile(repeatedOutputPath)).resolves.toBe(
+        await hashFile(outputPath)
+      );
+
+      const cacheFiles = await fs.readdir(cacheRoot, {
+        recursive: true,
+      });
+      const rasterEntry = cacheFiles.find((entry) => entry.endsWith(".png"));
+      const videoEntry = cacheFiles.find((entry) => entry.endsWith(".mp4"));
+      if (!rasterEntry || !videoEntry)
+        throw new Error("Expected reusable raster and video cache entries.");
+      await Promise.all([
+        fs.truncate(path.join(cacheRoot, rasterEntry), 64),
+        fs.truncate(path.join(cacheRoot, videoEntry), 128),
+      ]);
+      const repaired = await renderLocalRemotionVideo({
+        durationInFrames: 30,
+        scenes: [
+          {
+            sceneId: "scene-001",
+            svgPath: visual.filePath,
+            svgHash: visual.svgHash,
+            minimumGlyphPx: visual.minimumGlyphPx,
+            bounds: visual.bounds,
+          },
+        ],
+        frameRanges: [{ sceneId: "scene-001", startFrame: 0, endFrame: 30 }],
+        audioPath: oneSecondAudio,
+        outputPath: path.join(root, "small-remotion-repaired.mp4"),
+        workDir: path.join(root, "render-work-repaired"),
+        cacheRoot,
+        cpuSlotBudget: 1,
+        validationDurationRange: { minimum: 0.9, maximum: 1.1 },
+      });
+      expect(repaired.cacheMissCount).toBeGreaterThanOrEqual(2);
+      expect(repaired.renderFingerprint).toBe(render.renderFingerprint);
 
       const corruptPath = path.join(root, "corrupt.mp4");
       await fs.copyFile(outputPath, corruptPath);

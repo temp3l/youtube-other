@@ -2,8 +2,9 @@ import { validateRenderedVideo } from "@mediaforge/rendering";
 import { runCommand, runCommandJson } from "@mediaforge/process-runner";
 import { hashFile } from "@mediaforge/shared";
 import { z } from "zod";
+import { MATH_MEDIA_QA_VERSION } from "../composition/renderer-versions.js";
 
-export const MATH_MEDIA_QA_VERSION = "math-media-qa.v1";
+export { MATH_MEDIA_QA_VERSION } from "../composition/renderer-versions.js";
 
 const probeSchema = z.looseObject({
   streams: z.array(

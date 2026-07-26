@@ -8,8 +8,10 @@ import {
   unitExpressionSchema,
   type ExpressionNode,
 } from "@mediaforge/math-education";
+import { MATH_SVG_RENDERER_VERSION } from "../composition/renderer-versions.js";
 
-export const MATH_SVG_RENDERER_VERSION = "math-svg.v8";
+export { MATH_SVG_RENDERER_VERSION } from "../composition/renderer-versions.js";
+export const MATH_FORMULA_SVG_RENDERER_VERSION = "math-svg.v2" as const;
 export const MATH_FONT_PROFILE = "katex-0.17.0-system-sans-v1";
 
 const factIdSchema = z.string().regex(/^[a-z][a-z0-9-]*$/u);
@@ -704,7 +706,9 @@ function wrapSvg(
     );
   const cacheKey = canonicalHash({
     rendererVersion:
-      input.kind === "formula" ? "math-svg.v2" : MATH_SVG_RENDERER_VERSION,
+      input.kind === "formula"
+        ? MATH_FORMULA_SVG_RENDERER_VERSION
+        : MATH_SVG_RENDERER_VERSION,
     fontProfile: MATH_FONT_PROFILE,
     input,
   });

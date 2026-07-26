@@ -9,10 +9,13 @@ import {
   createMathCaption,
   extractSemanticChalkSteps,
   generateLocalMockTts,
+  MATH_FORMULA_SVG_RENDERER_VERSION,
   MATH_REMOTION_RUNNER_VERSION,
+  MATH_SEMANTIC_CHALK_VERSION,
   MATH_SVG_RENDERER_VERSION,
   MATH_THINK_PAUSE_SECONDS,
   renderProviderFreeMathMedia,
+  type MathSceneShardExecutor,
   type MathSceneAsset,
   type SemanticMathComponent,
 } from "@mediaforge/math-rendering";
@@ -89,6 +92,11 @@ export interface CanonicalMathOperatorInput {
   ) => Promise<unknown>;
 }
 
+export interface CanonicalMathRenderExecutionOptions {
+  readonly mode: "local" | "remote" | "hybrid";
+  readonly sceneShardExecutor?: MathSceneShardExecutor;
+}
+
 type CanonicalVisualFact =
   CanonicalPrivateMediaMaterializerInput["lesson"]["facts"][number];
 export const CANONICAL_PRIVATE_FACT_BOARD_MINIMUM_GLYPH_PX = 72;
@@ -101,7 +109,7 @@ export const CANONICAL_PRIVATE_MAX_STATIC_INTERVAL_FRAMES = 225;
 export const CANONICAL_PRIVATE_VISUAL_STYLE_VERSION = 6;
 export const CANONICAL_PRIVATE_RENDERER_VERSIONS = {
   svg: MATH_SVG_RENDERER_VERSION,
-  formula: "math-svg.v2",
+  formula: MATH_FORMULA_SVG_RENDERER_VERSION,
   remotion: MATH_REMOTION_RUNNER_VERSION,
 } as const;
 const CANONICAL_PRIVATE_NARRATION_LOUDNESS_FILTER =
@@ -1247,7 +1255,8 @@ async function ensurePrivateOwnerProfiles(args: {
 }
 
 export async function materializeCanonicalPrivateMedia(
-  input: CanonicalPrivateMediaMaterializerInput
+  input: CanonicalPrivateMediaMaterializerInput,
+  executionOptions: CanonicalMathRenderExecutionOptions = { mode: "local" }
 ): Promise<unknown> {
   if (input.locale !== "de" || input.lesson.variant !== "standard") {
     throw new Error(
@@ -1349,7 +1358,7 @@ export async function materializeCanonicalPrivateMedia(
       ),
       animation: {
         mode: "progressive-chalk-reveal",
-        rendererVersion: "math-semantic-chalk.v7",
+        rendererVersion: MATH_SEMANTIC_CHALK_VERSION,
         cues,
         activity:
           lessonScene.sceneFunction === "think-pause"
@@ -1367,6 +1376,10 @@ export async function materializeCanonicalPrivateMedia(
     audioPath,
     outputPath: videoPath,
     workDir: path.join(renderRoot, ".render-work"),
+    jobRoot: localeRoot,
+    ...(executionOptions.sceneShardExecutor
+      ? { sceneShardExecutor: executionOptions.sceneShardExecutor }
+      : {}),
   });
   const fact = input.lesson.facts[0];
   if (!fact)
@@ -1516,9 +1529,105 @@ export async function materializeCanonicalPrivateMedia(
     visualPlanHash: canonicalHash(input.visualPlan),
     timingHash: canonicalHash(timing),
     renderFingerprint: rendered.renderFingerprint,
+    renderExecution: {
+      artifactVersion: "math-render-execution.v1" as const,
+      mode:
+        executionOptions.mode === "local"
+          ? ("local-compatibility" as const)
+          : executionOptions.mode,
+      planHash: rendered.renderExecution.planHash,
+      renderResultHash: rendered.renderExecution.contentHash,
+      toolchain: rendered.renderExecution.scenes[0]!.toolchain,
+      scenes: rendered.renderExecution.scenes.map((scene, index) => ({
+        ...(() => {
+          const scheduling = scene.execution?.scheduling;
+          return scheduling
+            ? {
+                workerAssignment: scheduling.lane,
+                predictedStartMs: scheduling.predictedStartMs,
+                predictedFinishMs: scheduling.predictedFinishMs,
+                actualStartMs: scheduling.actualStartMs,
+                actualFinishMs: scheduling.actualFinishMs,
+                cacheStatus: scheduling.cacheStatus,
+                attempts: scheduling.attempts,
+                ...(scheduling.reassignedFrom
+                  ? { reassignedFrom: scheduling.reassignedFrom }
+                  : {}),
+                transferBytes: scheduling.transferBytes,
+                fallbackStatus: scheduling.fallbackStatus,
+              }
+            : {
+                workerAssignment: "local" as const,
+                predictedStartMs: 0,
+                predictedFinishMs: scene.renderDurationMs,
+                actualStartMs: 0,
+                actualFinishMs: scene.renderDurationMs,
+                cacheStatus:
+                  scene.cacheMissCount === 0
+                    ? ("hit" as const)
+                    : ("miss" as const),
+                attempts: 1,
+                transferBytes: 0,
+                fallbackStatus: "none" as const,
+              };
+        })(),
+        sceneId: scene.sceneId,
+        assignmentId:
+          scene.execution?.scheduling?.assignmentId ??
+          rendered.renderExecution.assignments[index]!.assignmentId,
+        sourceSvgHash: scene.svgHash,
+        fragmentSha256: scene.sha256,
+        frameCount: scene.frameCount,
+        renderDurationMs: scene.renderDurationMs,
+        cacheHitCount: scene.cacheHitCount,
+        cacheMissCount: scene.cacheMissCount,
+      })),
+      assembly: {
+        durationMs: rendered.renderExecution.assembly.durationMs,
+        narrationMuxCount: rendered.renderExecution.assembly.narrationMuxCount,
+        revealCueVersion: rendered.renderExecution.assembly.revealCueVersion,
+        mediaQaVersion: rendered.renderExecution.assembly.mediaQaVersion,
+      },
+      cacheHitCount: rendered.renderExecution.cacheHitCount,
+      cacheMissCount: rendered.renderExecution.cacheMissCount,
+      ...(() => {
+        const scheduled = rendered.renderExecution.scenes
+          .map((scene) => scene.execution?.scheduling)
+          .filter(
+            (scheduling): scheduling is NonNullable<typeof scheduling> =>
+              scheduling !== undefined
+          );
+        const local = scheduled.filter((scene) => scene.lane === "local");
+        const remote = scheduled.filter((scene) => scene.lane === "remote");
+        if (local.length === 0 || remote.length === 0) return {};
+        const startMs = Math.max(
+          Math.min(...local.map((scene) => scene.actualStartMs)),
+          Math.min(...remote.map((scene) => scene.actualStartMs))
+        );
+        const finishMs = Math.min(
+          Math.max(...local.map((scene) => scene.actualFinishMs)),
+          Math.max(...remote.map((scene) => scene.actualFinishMs))
+        );
+        return finishMs > startMs
+          ? {
+              overlapInterval: {
+                startMs,
+                finishMs,
+                durationMs: finishMs - startMs,
+              },
+            }
+          : {};
+      })(),
+      fallbackStatus: rendered.renderExecution.scenes.some(
+        (scene) =>
+          scene.execution?.scheduling?.fallbackStatus === "reassigned-local"
+      )
+        ? ("used" as const)
+        : ("none" as const),
+    },
     visualPresentation: {
       strategy: "progressive-chalk-reveal" as const,
-      rendererVersion: "math-semantic-chalk.v7" as const,
+      rendererVersion: MATH_SEMANTIC_CHALK_VERSION,
     },
     visualValidation: {
       valid: true as const,

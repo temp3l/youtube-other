@@ -32,7 +32,26 @@ import {
   createReadyMathComposition,
   type MathSceneAsset,
 } from "./composition/composition.js";
-import { createRemotionRenderFingerprint } from "./composition/remotion-runner.js";
+import {
+  createMathSceneShardRequests,
+  createRemotionRenderFingerprint,
+} from "./composition/remotion-runner.js";
+import {
+  bindMathFinalAssemblyRequest,
+  bindMathPortableScene,
+  bindMathRenderPlan,
+  bindMathRenderResult,
+  bindMathSceneShardRequest,
+  bindMathSceneShardResult,
+  createMathFragmentEncoding,
+  createMathRenderToolchainIdentity,
+  mathRenderPlanSchema,
+  mathSceneShardRequestSchema,
+  validateMathFinalAssemblyRequest,
+  validateMathRenderRoundTrip,
+  validateMathSceneShardRoundTrip,
+  type MathFinalAssemblyRequest,
+} from "./composition/portable-render-contract.js";
 import {
   assertSafeMediaOutputDirectory,
   assertProviderFreeFactBindings,
@@ -134,6 +153,146 @@ function audioForTotal(durationSeconds: 180 | 300): NarrationAudioTiming[] {
   }));
 }
 
+function portableRenderContractFixture() {
+  const encoding = createMathFragmentEncoding("publish");
+  const toolchain = createMathRenderToolchainIdentity();
+  const scenes = Array.from({ length: 9 }, (_, index) =>
+    bindMathPortableScene({
+      sceneId: `scene-${String(index + 1).padStart(3, "0")}`,
+      order: index,
+      startFrame: index * 600,
+      endFrame: (index + 1) * 600,
+      expectedFrameCount: 600,
+      svgRelativePath: `visual-cache/scene-${index + 1}.svg`,
+      svgHash: String(index + 1).repeat(64).slice(0, 64),
+      minimumGlyphPx: 72,
+      bounds: { x: 96, y: 54, width: 1728, height: 972 },
+      animation: {
+        mode: "progressive-chalk-reveal",
+        rendererVersion: "math-semantic-chalk.v7",
+        cues: [{ factId: `fact-${index + 1}`, frame: 300 }],
+        activity: index === 6 ? "think-pause" : "standard",
+      },
+      caption: {
+        text: `Scene ${index + 1}`,
+        lines: [`Scene ${index + 1}`],
+        fontSizePx: 48,
+      },
+      fragmentRelativePath: `render/work/fragments/scene-${index + 1}.mp4`,
+      encoding,
+      toolchain,
+    })
+  );
+  const plan = bindMathRenderPlan({
+    artifactVersion: "math-render-plan.v1",
+    jobId: "lesson-standard",
+    compositionId: "lesson-standard",
+    durationInFrames: 5_400,
+    scenes,
+  });
+  const shards = scenes.map((scene) => {
+    const request = bindMathSceneShardRequest({
+      artifactVersion: "math-scene-shard-request.v1",
+      jobId: plan.jobId,
+      planHash: plan.contentHash,
+      assignmentId: `local-${scene.sceneId}`,
+      workRelativePath: "render/work/shards",
+      scenes: [scene],
+    });
+    const result = bindMathSceneShardResult({
+      artifactVersion: "math-scene-shard-result.v1",
+      jobId: plan.jobId,
+      planHash: plan.contentHash,
+      assignmentId: request.assignmentId,
+      requestHash: request.requestHash,
+      fragments: [
+        {
+          sceneId: scene.sceneId,
+          order: scene.order,
+          sceneHash: scene.sceneHash,
+          svgHash: scene.svgHash,
+          relativePath: scene.fragmentRelativePath,
+          sha256: String(scene.order + 1).repeat(64).slice(0, 64),
+          byteLength: 1_000 + scene.order,
+          frameCount: scene.expectedFrameCount,
+          width: 1920,
+          height: 1080,
+          fps: 30,
+          pixelFormat: "yuv420p",
+          codec: "h264",
+          codecProfile: "High",
+          timeBase: "1/15360",
+          audioStreamCount: 0,
+          encoding,
+          toolchain,
+          renderDurationMs: 100 + scene.order,
+          cacheHitCount: 0,
+          cacheMissCount: 1,
+        },
+      ],
+    });
+    return { request, result };
+  });
+  const assembly = bindMathFinalAssemblyRequest({
+    artifactVersion: "math-final-assembly-request.v1",
+    jobId: plan.jobId,
+    plan,
+    shards: shards.slice().reverse(),
+    narrationRelativePath: "audio/narration.wav",
+    narrationSha256: "a".repeat(64),
+    outputRelativePath: "render/final.mp4",
+    workRelativePath: "render/work",
+  });
+  const renderResult = bindMathRenderResult({
+    artifactVersion: "math-render-result.v1",
+    jobId: plan.jobId,
+    planHash: plan.contentHash,
+    assemblyRequestHash: assembly.requestHash,
+    outputRelativePath: assembly.outputRelativePath,
+    renderFingerprint: "b".repeat(64),
+    scenes: assembly.shards.flatMap((shard) => shard.result.fragments),
+    assignments: assembly.shards.flatMap((shard) =>
+      shard.request.scenes.map((scene) => ({
+        sceneId: scene.sceneId,
+        assignmentId: shard.request.assignmentId,
+      }))
+    ),
+    assembly: {
+      durationMs: 500,
+      cacheHitCount: 0,
+      cacheMissCount: 0,
+      narrationMuxCount: 1,
+      revealCueVersion: "math-reveal-cue.v1",
+      mediaQaVersion: "math-media-qa.v1",
+    },
+    cacheHitCount: 0,
+    cacheMissCount: 9,
+    validation: {
+      valid: true,
+      sha256: "c".repeat(64),
+      byteLength: 10_000,
+      width: 1920,
+      height: 1080,
+      fps: 30,
+      durationSeconds: 180,
+      videoCodec: "h264",
+      audioCodec: "aac",
+      continuityChecked: true,
+      corruptionScanPassed: true,
+    },
+  });
+  return { encoding, toolchain, scenes, plan, shards, assembly, renderResult };
+}
+
+function rehashAssembly(
+  assembly: MathFinalAssemblyRequest,
+  updates: Partial<Omit<MathFinalAssemblyRequest, "requestHash">>
+) {
+  const { requestHash: _requestHash, ...base } = assembly;
+  const payload = { ...base, ...updates };
+  return { ...payload, requestHash: canonicalHash(payload) };
+}
+
 async function factBindingFixture(): Promise<{
   lesson: LessonVariantSpecification;
   narration: LocalizedNarration;
@@ -172,12 +331,21 @@ async function factBindingFixture(): Promise<{
       },
     },
   ];
+  const fixtureLineage = (sourceTaskId: string, semantic: unknown) => ({
+    contentContractVersion: "render-contract-test-fixture.v1",
+    sourceContentHash: canonicalHash({ sourceTaskId, semantic }),
+    sourceTaskId,
+  });
   const addedFacts = [
     {
       factId: "rendered-measurement",
       semantic: measurementSemantic,
       displayLatex: "8\\,\\mathrm{cm}",
       checkIds: ["check-rendered-measurement"],
+      lineage: fixtureLineage(
+        "example-rendered-measurement",
+        measurementSemantic
+      ),
     },
     ...graphFacts.map((fact) => ({
       ...fact,
@@ -188,6 +356,7 @@ async function factBindingFixture(): Promise<{
             ? fact.semantic.expression.value
             : "",
       checkIds: [`check-${fact.factId}`],
+      lineage: fixtureLineage(`example-${fact.factId}`, fact.semantic),
     })),
   ];
   const addedChecks: LessonVariantSpecification["checks"] = [
@@ -263,6 +432,16 @@ async function factBindingFixture(): Promise<{
                 y: { kind: "integer", value: "4" },
               },
             ],
+          },
+        };
+      if (scene.factIds.length === 0)
+        return {
+          sceneId: scene.sceneId,
+          component: {
+            kind: "lesson-board",
+            title: "Abruffrage",
+            body: "Erkläre das Verfahren.",
+            prompt: "Was hast du gelernt?",
           },
         };
       const fact = lesson.facts.find(
@@ -1209,5 +1388,313 @@ describe("timing, teacher, and readiness gates", () => {
         issues: [],
       })
     ).toThrow(/continuity evidence/u);
+  });
+});
+
+describe("portable math render contracts", () => {
+  it("round-trips a strict nine-scene plan, every shard, local assembly, and final result", () => {
+    const fixture = portableRenderContractFixture();
+    expect(mathRenderPlanSchema.parse(fixture.plan)).toEqual(fixture.plan);
+    for (const shard of fixture.shards) {
+      expect(
+        validateMathSceneShardRoundTrip(shard.request, shard.result)
+      ).toEqual(shard);
+      expect(shard.request).not.toHaveProperty("narrationRelativePath");
+      expect(JSON.stringify(shard.request)).not.toContain("narration.wav");
+    }
+    expect(fixture.assembly.shards.map((shard) => shard.request.scenes[0]!.order))
+      .toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8]);
+    expect(validateMathFinalAssemblyRequest(fixture.assembly)).toEqual(
+      fixture.assembly
+    );
+    expect(
+      validateMathRenderRoundTrip(fixture.assembly, fixture.renderResult)
+    ).toEqual(fixture.renderResult);
+    expect(fixture.renderResult.assembly.narrationMuxCount).toBe(1);
+  });
+
+  it("gives an injected executor only exact validated silent-scene inputs", async () => {
+    const fixture = portableRenderContractFixture();
+    const requests = createMathSceneShardRequests(
+      fixture.plan,
+      "render/work"
+    );
+    const received: unknown[] = [];
+    const executor = {
+      execute: async (request: (typeof requests)[number]) => {
+        received.push(mathSceneShardRequestSchema.parse(request));
+        return fixture.shards[request.scenes[0]!.order]!.result;
+      },
+    };
+    for (const request of requests)
+      await executor.execute(request);
+    expect(received).toEqual(fixture.shards.map((shard) => shard.request));
+    expect(JSON.stringify(received)).not.toContain("narration");
+    expect(JSON.stringify(received)).not.toContain("render/final.mp4");
+  });
+
+  it("rejects unknown fields, unsafe paths, missing hashes, and wrong output identity", () => {
+    const fixture = portableRenderContractFixture();
+    expect(() =>
+      mathRenderPlanSchema.parse({ ...fixture.plan, unexpected: true })
+    ).toThrow();
+    const { sceneHash: _sceneHash, ...scenePayload } = fixture.scenes[0]!;
+    for (const unsafePath of [
+      "../scene.svg",
+      "/tmp/scene.svg",
+      "C:\\tmp\\scene.svg",
+      "visual-cache//scene.svg",
+    ]) {
+      expect(() =>
+        bindMathPortableScene({
+          ...scenePayload,
+          svgRelativePath: unsafePath,
+        })
+      ).toThrow(/relative paths/u);
+    }
+    expect(() =>
+      mathSceneShardRequestSchema.parse({
+        ...fixture.shards[0]!.request,
+        narrationRelativePath: "audio/narration.wav",
+      })
+    ).toThrow();
+    expect(() =>
+      mathRenderPlanSchema.parse({
+        ...fixture.plan,
+        contentHash: "",
+      })
+    ).toThrow();
+    const wrongOutput = bindMathSceneShardResult({
+      ...(() => {
+        const { contentHash: _contentHash, ...payload } =
+          fixture.shards[0]!.result;
+        return payload;
+      })(),
+      fragments: [
+        {
+          ...fixture.shards[0]!.result.fragments[0]!,
+          relativePath: "render/work/fragments/transplanted.mp4",
+        },
+      ],
+    });
+    expect(() =>
+      validateMathSceneShardRoundTrip(
+        fixture.shards[0]!.request,
+        wrongOutput
+      )
+    ).toThrow(/output identity/u);
+    expect(() =>
+      validateMathRenderRoundTrip(fixture.assembly, {
+        ...fixture.renderResult,
+        outputRelativePath: "render/other.mp4",
+        contentHash: canonicalHash({
+          ...(() => {
+            const { contentHash: _contentHash, ...payload } =
+              fixture.renderResult;
+            return payload;
+          })(),
+          outputRelativePath: "render/other.mp4",
+        }),
+      })
+    ).toThrow(/identity/u);
+  });
+
+  it("rejects duplicate or reordered scenes and timing gaps or overlaps", () => {
+    const fixture = portableRenderContractFixture();
+    expect(() =>
+      bindMathRenderPlan({
+        artifactVersion: "math-render-plan.v1",
+        jobId: fixture.plan.jobId,
+        compositionId: fixture.plan.compositionId,
+        durationInFrames: fixture.plan.durationInFrames,
+        scenes: [
+          fixture.scenes[0]!,
+          fixture.scenes[0]!,
+          ...fixture.scenes.slice(2),
+        ],
+      })
+    ).toThrow(/ordered/u);
+    expect(() =>
+      bindMathRenderPlan({
+        artifactVersion: "math-render-plan.v1",
+        jobId: fixture.plan.jobId,
+        compositionId: fixture.plan.compositionId,
+        durationInFrames: fixture.plan.durationInFrames,
+        scenes: [
+          fixture.scenes[1]!,
+          fixture.scenes[0]!,
+          ...fixture.scenes.slice(2),
+        ],
+      })
+    ).toThrow(/ordered/u);
+    const { sceneHash: _gapHash, ...gapPayload } = fixture.scenes[1]!;
+    const gap = bindMathPortableScene({
+      ...gapPayload,
+      startFrame: gapPayload.startFrame + 1,
+      expectedFrameCount: gapPayload.expectedFrameCount - 1,
+    });
+    expect(() =>
+      bindMathRenderPlan({
+        artifactVersion: "math-render-plan.v1",
+        jobId: fixture.plan.jobId,
+        compositionId: fixture.plan.compositionId,
+        durationInFrames: fixture.plan.durationInFrames,
+        scenes: [fixture.scenes[0]!, gap, ...fixture.scenes.slice(2)],
+      })
+    ).toThrow(/gaps or overlaps/u);
+    const { sceneHash: _overlapHash, ...overlapPayload } = fixture.scenes[1]!;
+    const overlap = bindMathPortableScene({
+      ...overlapPayload,
+      startFrame: overlapPayload.startFrame - 1,
+      expectedFrameCount: overlapPayload.expectedFrameCount + 1,
+    });
+    expect(() =>
+      bindMathRenderPlan({
+        artifactVersion: "math-render-plan.v1",
+        jobId: fixture.plan.jobId,
+        compositionId: fixture.plan.compositionId,
+        durationInFrames: fixture.plan.durationInFrames,
+        scenes: [fixture.scenes[0]!, overlap, ...fixture.scenes.slice(2)],
+      })
+    ).toThrow(/gaps or overlaps/u);
+  });
+
+  it("fails assembly closed for missing, duplicate, reordered, mixed, audio-bearing, or wrong-frame fragments", () => {
+    const fixture = portableRenderContractFixture();
+    expect(() =>
+      validateMathFinalAssemblyRequest(
+        rehashAssembly(fixture.assembly, {
+          shards: fixture.assembly.shards.slice(0, 8),
+        })
+      )
+    ).toThrow(/exactly once|missing/u);
+    expect(() =>
+      validateMathFinalAssemblyRequest(
+        rehashAssembly(fixture.assembly, {
+          shards: [
+            fixture.assembly.shards[0]!,
+            fixture.assembly.shards[0]!,
+            ...fixture.assembly.shards.slice(2),
+          ],
+        })
+      )
+    ).toThrow(/invalid|reordered|missing/u);
+    expect(() =>
+      validateMathFinalAssemblyRequest(
+        rehashAssembly(fixture.assembly, {
+          shards: fixture.assembly.shards.slice().reverse(),
+        })
+      )
+    ).toThrow(/reordered|invalid/u);
+
+    const incompatibleResult = bindMathSceneShardResult({
+      ...(() => {
+        const { contentHash: _contentHash, ...payload } =
+          fixture.shards[1]!.result;
+        return payload;
+      })(),
+      fragments: [
+        {
+          ...fixture.shards[1]!.result.fragments[0]!,
+          timeBase: "1/30000",
+        },
+      ],
+    });
+    expect(() =>
+      validateMathFinalAssemblyRequest(
+        rehashAssembly(fixture.assembly, {
+          shards: fixture.assembly.shards.map((shard, index) =>
+            index === 1 ? { ...shard, result: incompatibleResult } : shard
+          ),
+        })
+      )
+    ).toThrow(/incompatible|invalid/u);
+
+    const mixedToolchainResult = bindMathSceneShardResult({
+      ...(() => {
+        const { contentHash: _contentHash, ...payload } =
+          fixture.shards[1]!.result;
+        return payload;
+      })(),
+      fragments: [
+        {
+          ...fixture.shards[1]!.result.fragments[0]!,
+          toolchain: {
+            ...fixture.toolchain,
+            workerImageId: "local:different-image",
+          },
+        },
+      ],
+    });
+    expect(() =>
+      validateMathSceneShardRoundTrip(
+        fixture.shards[1]!.request,
+        mixedToolchainResult
+      )
+    ).toThrow(/output identity/u);
+    expect(() =>
+      bindMathSceneShardResult({
+        ...(() => {
+          const { contentHash: _contentHash, ...payload } =
+            fixture.shards[0]!.result;
+          return payload;
+        })(),
+        fragments: [
+          {
+            ...fixture.shards[0]!.result.fragments[0]!,
+            audioStreamCount: 1,
+          },
+        ],
+      })
+    ).toThrow();
+    const wrongFrames = bindMathSceneShardResult({
+      ...(() => {
+        const { contentHash: _contentHash, ...payload } =
+          fixture.shards[0]!.result;
+        return payload;
+      })(),
+      fragments: [
+        {
+          ...fixture.shards[0]!.result.fragments[0]!,
+          frameCount: 599,
+        },
+      ],
+    });
+    expect(() =>
+      validateMathSceneShardRoundTrip(fixture.shards[0]!.request, wrongFrames)
+    ).toThrow(/output identity/u);
+  });
+
+  it("hash-binds SVG, encoding, and toolchain identity into render fingerprints", () => {
+    const fixture = portableRenderContractFixture();
+    const base = createRemotionRenderFingerprint({
+      durationInFrames: fixture.plan.durationInFrames,
+      sceneHashes: fixture.plan.scenes.map((scene) => scene.svgHash),
+      frameRanges: fixture.plan.scenes,
+      audioHash: "d".repeat(64),
+      bundleHash: canonicalHash({
+        assignments: fixture.renderResult.assignments,
+        fragments: fixture.renderResult.scenes.map((scene) => scene.sha256),
+        encoding: fixture.encoding,
+        toolchain: fixture.toolchain,
+      }),
+    });
+    const reassigned = createRemotionRenderFingerprint({
+      durationInFrames: fixture.plan.durationInFrames,
+      sceneHashes: fixture.plan.scenes.map((scene) => scene.svgHash),
+      frameRanges: fixture.plan.scenes,
+      audioHash: "d".repeat(64),
+      bundleHash: canonicalHash({
+        assignments: fixture.renderResult.assignments.map((assignment, index) =>
+          index === 0
+            ? { ...assignment, assignmentId: "other-lane" }
+            : assignment
+        ),
+        fragments: fixture.renderResult.scenes.map((scene) => scene.sha256),
+        encoding: fixture.encoding,
+        toolchain: fixture.toolchain,
+      }),
+    });
+    expect(reassigned).not.toBe(base);
   });
 });

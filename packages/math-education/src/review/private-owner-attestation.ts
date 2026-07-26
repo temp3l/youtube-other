@@ -125,7 +125,7 @@ export type PrivateOwnerAttestation = z.infer<
 
 // Registration is a reviewed source change; arbitrary caller attestations cannot opt in.
 export const REGISTERED_PRIVATE_OWNER_ATTESTATION_HASH =
-  "5abffd11c1de3eb9307702a89c2746c7ed907b8810a42e12b7ca9d6de55c8519";
+  "71e2823d786f0cbcbd5dd47f645c812d5b05411d8fe6dd270e05c4cb391648c0";
 
 export async function loadPrivateOwnerAttestation(
   filePath: string

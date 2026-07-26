@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080">
+  <rect width="1920" height="1080" fill="#101820"/>
+  <g data-chalk-step="first-line" data-chalk-box="300,420,1320,120" data-fact-id="smoke-a">
+    <path d="M320 500 H1600" fill="none" stroke="#f5f0dc" stroke-width="18" stroke-linecap="round"/>
+  </g>
+</svg>

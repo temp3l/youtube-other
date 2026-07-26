@@ -585,10 +585,54 @@ const configSchema = z.object({
   remoteRenderUploadMethod: z.enum(["rsync"]),
   localRenderConcurrency: z.number().int().positive().optional(),
   remoteRenderCleanupMaxAgeHours: z.number().int().positive(),
+  mathRenderExecutor: z.enum(["local", "remote", "hybrid"]),
+  mathRemoteImageId: z.string().regex(/^sha256:[a-f0-9]{64}$/u).optional(),
+  mathLocalSceneSlots: z.number().int().positive(),
+  mathRemoteSceneSlots: z.number().int().positive(),
+  mathRemoteJobConcurrency: z.number().int().positive(),
   visualRetention: visualRetentionConfigSchema,
   narrationMastering: narrationMasteringConfigSchema,
 });
 export type RuntimeConfig = z.infer<typeof configSchema>;
+
+export const remoteTransportConfigSchema = z.strictObject({
+  enabled: z.boolean(),
+  host: z.string().min(1),
+  user: z.string().min(1),
+  port: z.number().int().min(1).max(65535),
+  baseDir: z.string().min(1),
+  connectTimeoutSeconds: z.number().int().positive(),
+  commandTimeoutSeconds: z.number().int().positive(),
+  maxRetries: z.number().int().nonnegative(),
+  fallbackToLocal: z.boolean(),
+  keepFiles: z.boolean(),
+  verifyHostKey: z.boolean(),
+  knownHostsFile: z.string().optional(),
+  sshPrivateKey: z.string().optional(),
+  uploadMethod: z.literal("rsync"),
+  cleanupMaxAgeHours: z.number().int().positive(),
+});
+export type RemoteTransportConfig = z.infer<typeof remoteTransportConfigSchema>;
+
+export function parseRemoteTransportConfig(config: RuntimeConfig): RemoteTransportConfig {
+  return remoteTransportConfigSchema.parse({
+    enabled: config.remoteRenderEnabled,
+    host: config.remoteRenderHost,
+    user: config.remoteRenderUser,
+    port: config.remoteRenderPort,
+    baseDir: config.remoteRenderBaseDir,
+    connectTimeoutSeconds: config.remoteRenderConnectTimeoutSeconds,
+    commandTimeoutSeconds: config.remoteRenderCommandTimeoutSeconds,
+    maxRetries: config.remoteRenderMaxRetries,
+    fallbackToLocal: config.remoteRenderFallbackToLocal,
+    keepFiles: config.remoteRenderKeepFiles,
+    verifyHostKey: config.remoteRenderVerifyHostKey,
+    knownHostsFile: config.remoteRenderKnownHostsFile,
+    sshPrivateKey: config.remoteRenderSshPrivateKey,
+    uploadMethod: config.remoteRenderUploadMethod,
+    cleanupMaxAgeHours: config.remoteRenderCleanupMaxAgeHours,
+  });
+}
 
 const reasoningSupportByModel: Readonly<Record<string, readonly RuntimeConfig["openAiStoryReasoningEffort"][]>> = {
   "gpt-5.6-sol": ["low", "medium", "high", "xhigh"],
@@ -801,7 +845,12 @@ const envSchema = z.object({
   REMOTE_RENDER_SSH_PRIVATE_KEY: z.string().optional(),
   REMOTE_RENDER_UPLOAD_METHOD: z.enum(["rsync"]).optional(),
   LOCAL_RENDER_CONCURRENCY: z.string().optional(),
-  REMOTE_RENDER_CLEANUP_MAX_AGE_HOURS: z.coerce.number().int().positive().optional()
+  REMOTE_RENDER_CLEANUP_MAX_AGE_HOURS: z.coerce.number().int().positive().optional(),
+  MEDIAFORGE_MATH_RENDER_EXECUTOR: z.enum(["local", "remote", "hybrid"]).optional(),
+  MEDIAFORGE_MATH_REMOTE_IMAGE_ID: z.string().regex(/^sha256:[a-f0-9]{64}$/u).optional(),
+  MEDIAFORGE_MATH_LOCAL_SCENE_SLOTS: z.coerce.number().int().positive().optional(),
+  MEDIAFORGE_MATH_REMOTE_SCENE_SLOTS: z.coerce.number().int().positive().optional(),
+  MEDIAFORGE_MATH_REMOTE_JOB_CONCURRENCY: z.coerce.number().int().positive().optional()
 });
 
 export async function loadPackageJsonConfig(configPath: string): Promise<Record<string, unknown> | null> {
@@ -1276,6 +1325,30 @@ export async function loadRuntimeConfig(
       episodeOverrides.remoteRenderCleanupMaxAgeHours ??
       env.REMOTE_RENDER_CLEANUP_MAX_AGE_HOURS ??
       24,
+    mathRenderExecutor:
+      overrides.mathRenderExecutor ??
+      episodeOverrides.mathRenderExecutor ??
+      env.MEDIAFORGE_MATH_RENDER_EXECUTOR ??
+      "local",
+    mathRemoteImageId:
+      overrides.mathRemoteImageId ??
+      episodeOverrides.mathRemoteImageId ??
+      env.MEDIAFORGE_MATH_REMOTE_IMAGE_ID,
+    mathLocalSceneSlots:
+      overrides.mathLocalSceneSlots ??
+      episodeOverrides.mathLocalSceneSlots ??
+      env.MEDIAFORGE_MATH_LOCAL_SCENE_SLOTS ??
+      1,
+    mathRemoteSceneSlots:
+      overrides.mathRemoteSceneSlots ??
+      episodeOverrides.mathRemoteSceneSlots ??
+      env.MEDIAFORGE_MATH_REMOTE_SCENE_SLOTS ??
+      1,
+    mathRemoteJobConcurrency:
+      overrides.mathRemoteJobConcurrency ??
+      episodeOverrides.mathRemoteJobConcurrency ??
+      env.MEDIAFORGE_MATH_REMOTE_JOB_CONCURRENCY ??
+      1,
     visualRetention: mergeVisualRetentionConfig(
       overrides.visualRetention,
       episodeOverrides.visualRetention,

@@ -2,7 +2,12 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { loadEpisodeConfig, loadRuntimeConfig, resolveYoutubeChannelIdForLanguage } from "./index.js";
+import {
+  loadEpisodeConfig,
+  loadRuntimeConfig,
+  parseRemoteTransportConfig,
+  resolveYoutubeChannelIdForLanguage,
+} from "./index.js";
 
 describe("runtime config", () => {
   it("lets CLI overrides beat episode config", async () => {
@@ -506,6 +511,20 @@ describe("runtime config", () => {
       expect(config.remoteRenderVerifyHostKey).toBe(true);
       expect(config.remoteRenderUploadMethod).toBe("rsync");
       expect(config.remoteRenderCleanupMaxAgeHours).toBe(24);
+      expect(config.mathRenderExecutor).toBe("local");
+      expect(config.mathRemoteImageId).toBeUndefined();
+      expect(config.mathLocalSceneSlots).toBe(1);
+      expect(config.mathRemoteSceneSlots).toBe(1);
+      expect(config.mathRemoteJobConcurrency).toBe(1);
+      expect(parseRemoteTransportConfig(config)).toMatchObject({
+        enabled: false,
+        host: "2.24.81.148",
+        user: "box",
+        port: 22,
+        baseDir: "/home/box/youtube-render-worker",
+        fallbackToLocal: true,
+        verifyHostKey: true,
+      });
     } finally {
       process.chdir(previousCwd);
       if (previousRemoteRenderEnabled !== undefined) {
@@ -514,6 +533,39 @@ describe("runtime config", () => {
         delete process.env.REMOTE_RENDER_ENABLED;
       }
     }
+  });
+
+  it("parses immutable math renderer settings without changing story transport settings", async () => {
+    const imageId = `sha256:${"a".repeat(64)}`;
+    const config = await loadRuntimeConfig({
+      remoteRenderHost: "renderer.example",
+      remoteRenderUser: "worker",
+      remoteRenderPort: 2202,
+      remoteRenderBaseDir: "/srv/mediaforge worker",
+      remoteRenderMaxRetries: 4,
+      remoteRenderFallbackToLocal: false,
+      mathRenderExecutor: "hybrid",
+      mathRemoteImageId: imageId,
+      mathLocalSceneSlots: 2,
+      mathRemoteSceneSlots: 3,
+      mathRemoteJobConcurrency: 2,
+    });
+
+    expect(parseRemoteTransportConfig(config)).toMatchObject({
+      host: "renderer.example",
+      user: "worker",
+      port: 2202,
+      baseDir: "/srv/mediaforge worker",
+      maxRetries: 4,
+      fallbackToLocal: false,
+    });
+    expect(config).toMatchObject({
+      mathRenderExecutor: "hybrid",
+      mathRemoteImageId: imageId,
+      mathLocalSceneSlots: 2,
+      mathRemoteSceneSlots: 3,
+      mathRemoteJobConcurrency: 2,
+    });
   });
 
   it("resolves language-specific YouTube channels with fallback", async () => {

@@ -83,10 +83,24 @@ import {
   createCanonicalMathOperator,
   deriveCanonicalPaidSpeechRate,
   estimateCanonicalPaidSpeechRemainingCost,
+  materializeCanonicalPrivateMedia,
   materializeCanonicalPrivateSpeech,
   readCanonicalPaidSpeechUsage,
   type CanonicalPaidSpeechConfiguration,
 } from "./math-workflow-runtime.js";
+import {
+  createMathWorkflowRenderExecution,
+  type MathRenderExecutorMode,
+  type MathWorkflowRenderExecution,
+} from "./math-render-hybrid.js";
+import {
+  checkMathRemoteWorker,
+  cleanupMathRemoteJobs,
+  deployMathRemoteWorker,
+  inspectMathRemoteLogs,
+  inspectMathRemoteStatus,
+  parseMathRemoteSettings,
+} from "./math-render-remote.js";
 
 interface MathSelectionOptions {
   skill?: string;
@@ -108,6 +122,7 @@ interface MathSelectionOptions {
   maxProviderCostUsd?: number;
   maxProviderCostPerLessonUsd?: number;
   canonicalFirst?: boolean;
+  renderExecutor?: MathRenderExecutorMode;
 }
 
 interface MathSpeechOptions extends MathSelectionOptions {
@@ -777,6 +792,29 @@ async function runMathSpeechCompare(
 function selection(command: Command): MathSelectionOptions {
   return command.optsWithGlobals<MathSelectionOptions>();
 }
+
+function parseMathRenderExecutor(value: string): MathRenderExecutorMode {
+  if (value === "local" || value === "remote" || value === "hybrid")
+    return value;
+  throw new Error(
+    `Invalid math render executor ${value}; expected local, remote, or hybrid.`
+  );
+}
+
+async function canonicalMathRenderExecution(
+  options: MathSelectionOptions,
+  workspace: string
+): Promise<MathWorkflowRenderExecution> {
+  const config = await loadRuntimeConfig(
+    options.renderExecutor ? { mathRenderExecutor: options.renderExecutor } : {}
+  );
+  return createMathWorkflowRenderExecution({
+    config,
+    repositoryRoot: repositoryRoot(),
+    workspaceRoot: workspace,
+    ...(options.renderExecutor ? { explicitMode: options.renderExecutor } : {}),
+  });
+}
 function requireSimulationWorkspace(options: MathSelectionOptions): string {
   if (!options.simulate)
     throw new Error(
@@ -924,7 +962,8 @@ function requirePrivateWorkspace(options: MathSelectionOptions): string {
 }
 async function runCanonicalPrivateProduction(
   options: MathSelectionOptions,
-  resume: boolean
+  resume: boolean,
+  preparedRenderExecution?: MathWorkflowRenderExecution
 ) {
   const workspace = requirePrivateWorkspace(options);
   const release = await curriculum();
@@ -978,6 +1017,9 @@ async function runCanonicalPrivateProduction(
         options,
       })
     : undefined;
+  const renderExecution =
+    preparedRenderExecution ??
+    (await canonicalMathRenderExecution(options, workspace));
   const operator = await createCanonicalMathOperator({
     repositoryRoot: repositoryRoot(),
     workspaceRoot: workspace,
@@ -990,6 +1032,13 @@ async function runCanonicalPrivateProduction(
     releaseVisibility: "private",
     providerMode: paidSetup ? "provider" : "fixture-mock",
     authorizeProvider: true,
+    privateMediaMaterializer: (input) =>
+      materializeCanonicalPrivateMedia(input, {
+        mode: renderExecution.mode,
+        ...(renderExecution.sceneShardExecutor
+          ? { sceneShardExecutor: renderExecution.sceneShardExecutor }
+          : {}),
+      }),
     ...(paidSetup
       ? {
           providerConfigurationFingerprint: canonicalHash({
@@ -1656,6 +1705,10 @@ async function runCanonicalPrivateBatch(
       `${overPerLesson.skillId} estimated provider cost USD ${(overPerLesson.speech.estimatedCostMicros / 1_000_000).toFixed(6)} exceeds the per-lesson hard ceiling USD ${(perLessonCeilingMicros / 1_000_000).toFixed(6)}.`
     );
   }
+  const renderExecution = await canonicalMathRenderExecution(
+    options,
+    preflight.workspace
+  );
   const input = canonicalPrivateBatchInput(preflight, (item) => async () => {
     const costBefore = await readCanonicalPrivateBatchUsage(
       preflight.workspace,
@@ -1677,7 +1730,8 @@ async function runCanonicalPrivateBatch(
         paidSpeech: true,
         maxProviderCostUsd: perLessonCeilingUsd,
       },
-      true
+      true,
+      renderExecution
     );
     if (result.status !== "succeeded") {
       throw new Error(
@@ -1872,6 +1926,70 @@ export function registerMathCommands(program: Command): void {
   const renderer = math
     .command("renderer")
     .description("Inspect and render deterministic mathematics fixtures");
+  const remoteRenderer = renderer
+    .command("remote")
+    .description("Operate the immutable SSH math scene worker");
+  remoteRenderer
+    .command("deploy")
+    .description("Build, transfer, load, and verify one immutable worker image")
+    .action(async () => {
+      const settings = parseMathRemoteSettings(await loadRuntimeConfig());
+      const receipt = await deployMathRemoteWorker({
+        settings,
+        repositoryRoot: repositoryRoot(),
+      });
+      print({
+        deployed: true,
+        imageId: receipt.imageId,
+        architecture: receipt.architecture,
+        repositoryRevision: receipt.repositoryRevision,
+      });
+    });
+  remoteRenderer
+    .command("check")
+    .description(
+      "Verify SSH, Docker, resources, permissions, and shared image ID"
+    )
+    .action(async () => {
+      const settings = parseMathRemoteSettings(await loadRuntimeConfig());
+      print(
+        await checkMathRemoteWorker({
+          settings,
+          repositoryRoot: repositoryRoot(),
+        })
+      );
+    });
+  remoteRenderer
+    .command("status")
+    .description("Inspect schema-recognized math remote jobs")
+    .option("--job <job-id>", "inspect one exact locally generated job ID")
+    .action(async (options: { job?: string }) => {
+      const settings = parseMathRemoteSettings(await loadRuntimeConfig());
+      print(
+        await inspectMathRemoteStatus({
+          settings,
+          ...(options.job ? { jobId: options.job } : {}),
+        })
+      );
+    });
+  remoteRenderer
+    .command("logs <job-id>")
+    .description("Read bounded structured logs for one exact math job")
+    .action(async (jobId: string) => {
+      const settings = parseMathRemoteSettings(await loadRuntimeConfig());
+      print(await inspectMathRemoteLogs({ settings, jobId }));
+    });
+  remoteRenderer
+    .command("cleanup")
+    .description("Remove only old, completed, schema-recognized math jobs")
+    .action(async () => {
+      const settings = parseMathRemoteSettings(await loadRuntimeConfig());
+      await cleanupMathRemoteJobs({ settings });
+      print({
+        cleaned: true,
+        retentionHours: settings.transport.cleanupMaxAgeHours,
+      });
+    });
   renderer
     .command("fixture <fixture>")
     .description("Render a deterministic renderer fixture")
@@ -2374,6 +2492,11 @@ export function registerMathCommands(program: Command): void {
       )
       .option("--paid-speech", "use paid natural German speech")
       .option(
+        "--render-executor <mode>",
+        "math scene executor: local, remote, or hybrid",
+        parseMathRenderExecutor
+      )
+      .option(
         "--max-provider-cost-usd <usd>",
         "hard provider-cost ceiling in USD",
         parseProviderCostUsd
@@ -2430,6 +2553,11 @@ export function registerMathCommands(program: Command): void {
         "--max-provider-cost-per-lesson-usd <usd>",
         "per-lesson hard provider-cost ceiling in USD",
         parseProviderCostPerLessonUsd
+      )
+      .option(
+        "--render-executor <mode>",
+        "math scene executor: local, remote, or hybrid",
+        parseMathRenderExecutor
       )
       .action(async (_opts, command) =>
         print(
@@ -2907,6 +3035,7 @@ export function registerMathCommands(program: Command): void {
             madeForKids: packet.madeForKids,
             containsSyntheticMedia: packet.containsSyntheticMedia,
             playlistAssignments: packet.playlistAssignments,
+            blockers: packet.blockers,
           };
           const hashesMatch =
             packet.metadata.path === metadataRelativePath &&

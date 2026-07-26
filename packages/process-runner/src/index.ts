@@ -3,7 +3,7 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { ProcessExecutionError } from "@mediaforge/domain";
-import { currentExecutionTelemetry } from "@mediaforge/observability";
+import { currentExecutionTelemetry } from "@mediaforge/observability/telemetry.js";
 
 export interface CommandResult {
   readonly stdout: string;

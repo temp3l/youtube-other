@@ -9,6 +9,14 @@
     ".": {
       "types": "./src/index.ts",
       "default": "./dist/index.js"
+    },
+    "./canonical-json.js": {
+      "types": "./src/verification/canonical-json.ts",
+      "default": "./dist/verification/canonical-json.js"
+    },
+    "./timing.js": {
+      "types": "./src/lesson/timing.ts",
+      "default": "./dist/lesson/timing.js"
     }
   },
   "scripts": {

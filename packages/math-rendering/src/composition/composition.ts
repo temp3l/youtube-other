@@ -1,11 +1,12 @@
 import { z } from "zod";
-import { timingManifestSchema } from "@mediaforge/math-education";
+import { timingManifestSchema } from "@mediaforge/math-education/timing.js";
 import {
   grades57Profile,
   grades810Profile,
   validateSafeAreaAndReadability,
   validateTeacherPresence,
 } from "../profiles/profiles.js";
+import { MATH_SEMANTIC_CHALK_VERSION } from "./semantic-chalk.js";
 
 export const mathCompositionSchema = z.strictObject({
   id: z.string(),
@@ -65,7 +66,7 @@ export const mathSceneAssetSchema = z.strictObject({
   animation: z
     .strictObject({
       mode: z.literal("progressive-chalk-reveal"),
-      rendererVersion: z.literal("math-semantic-chalk.v7"),
+      rendererVersion: z.literal(MATH_SEMANTIC_CHALK_VERSION),
       cues: z
         .array(
           z.strictObject({

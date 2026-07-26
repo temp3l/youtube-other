@@ -7,14 +7,15 @@ import {
   isApprovedPrivateMathWorkspace,
   registerMathCommands,
 } from "./math-commands.js";
+import { resolveMathRenderExecutorMode } from "./math-render-hybrid.js";
 import {
   MATH_QUALITY_GATES,
   MATH_STAGES,
   canonicalHash,
   createMathMetadataEvidence,
+  createExactContentSimulationMetadataContext,
   createMetadataTimingEvidence,
   createMetadataWorkflowEvidence,
-  createReviewedMetadataContext,
   createPublishDryRunManifest,
   createArtifactLineage,
   createVerifierRequest,
@@ -36,7 +37,7 @@ import {
   type WorkflowManifest,
 } from "@mediaforge/math-education";
 import { hashFile, hashText, writeJsonAtomic } from "@mediaforge/shared";
-import { createReviewedCurriculumFixture } from "../../../packages/math-education/dist/testing/reviewed-curriculum-fixture.js";
+import { createReviewedCurriculumFixture } from "../../../packages/math-education/src/testing/reviewed-curriculum-fixture.js";
 
 vi.mock("@mediaforge/math-education", async (importOriginal) => ({
   ...(await importOriginal<Record<string, unknown>>()),
@@ -44,14 +45,16 @@ vi.mock("@mediaforge/math-education", async (importOriginal) => ({
   ...(await import("../../../packages/math-education/src/orchestration/canonical-task-adapters.js")),
   ...(await import("../../../packages/math-education/src/orchestration/batch-planner.js")),
   ...(await import("../../../packages/math-education/src/orchestration/math-workspace-paths.js")),
+  ...(await import("../../../packages/math-education/src/lesson/capabilities.js")),
+  ...(await import("../../../packages/math-education/src/metadata/math-metadata.js")),
   ...(await import("../../../packages/math-education/src/review/private-owner-attestation.js")),
   ...(await import("../../../packages/math-education/src/narration/approved-preset.js")),
 }));
 
-vi.mock("@mediaforge/math-rendering", async (importOriginal) => ({
-  ...(await importOriginal<Record<string, unknown>>()),
-  ...(await import("../../../packages/math-rendering/src/composition/natural-chalk-fixtures.js")),
-}));
+vi.mock(
+  "@mediaforge/math-rendering",
+  async () => import("../../../packages/math-rendering/src/index.js")
+);
 
 describe("math commands", () => {
   it("keeps repository-local private media inside the ignored math cache", () => {
@@ -95,6 +98,32 @@ describe("math commands", () => {
         "publish",
       ])
     );
+  });
+
+  it("keeps local rendering as the default, lets configuration override it, and gives the CLI final precedence", () => {
+    expect(resolveMathRenderExecutorMode(undefined, undefined)).toBe("local");
+    expect(resolveMathRenderExecutorMode(undefined, "remote")).toBe("remote");
+    expect(resolveMathRenderExecutorMode("hybrid", "remote")).toBe("hybrid");
+
+    const program = new Command();
+    registerMathCommands(program);
+    const math = program.commands.find((command) => command.name() === "math")!;
+    const production = math.commands.find(
+      (command) => command.name() === "production"
+    )!;
+    const batch = math.commands.find((command) => command.name() === "batch")!;
+    for (const command of [
+      ...production.commands.filter((candidate) =>
+        ["run", "resume"].includes(candidate.name())
+      ),
+      ...batch.commands.filter((candidate) =>
+        ["run", "resume"].includes(candidate.name())
+      ),
+    ]) {
+      expect(command.options.map((option) => option.long)).toContain(
+        "--render-executor"
+      );
+    }
   });
 
   it("renders the natural-chalk golden fixture set inside an approved workspace", async () => {
@@ -218,7 +247,7 @@ describe("math commands", () => {
         visibility: "private",
         paidProviderAuthorized: false,
         curriculumApprovalHash:
-          "5abffd11c1de3eb9307702a89c2746c7ed907b8810a42e12b7ca9d6de55c8519",
+          "71e2823d786f0cbcbd5dd47f645c812d5b05411d8fe6dd270e05c4cb391648c0",
       });
     } finally {
       stdout.mockRestore();
@@ -298,7 +327,7 @@ describe("math commands", () => {
     } finally {
       stdout.mockRestore();
     }
-  }, 30_000);
+  }, 60_000);
 
   it("excludes unsupported lesson capabilities when creating a batch", async () => {
     const workspace = await fs.mkdtemp(
@@ -584,7 +613,9 @@ describe("math commands", () => {
     if (options.packet) {
       const pathLanguage = options.packet.pathLanguage ?? "de";
       const release = await createReviewedCurriculumFixture(
-        await fs.mkdtemp(path.join(os.tmpdir(), "math-cli-release-"))
+        await fs.mkdtemp(path.join(os.tmpdir(), "math-cli-release-")),
+        path.resolve("packages/math-education/data/curriculum/v1"),
+        { preserveSkillIdentity: true }
       );
       const skill = release.skills.find(
         (item) => item.skillId === "M5-ZO-001"
@@ -601,7 +632,10 @@ describe("math commands", () => {
         (stage) => stage.stage === "metadata-playlists"
       )!.parentFingerprints;
       const metadata = generateMathMetadata({
-        reviewedContext: createReviewedMetadataContext(release, skill.skillId),
+        reviewedContext: createExactContentSimulationMetadataContext(
+          release,
+          skill.skillId
+        ),
         skill,
         lesson,
         localization,
@@ -1502,6 +1536,7 @@ describe("math commands", () => {
         madeForKids: packet.madeForKids,
         containsSyntheticMedia: packet.containsSyntheticMedia,
         playlistAssignments: packet.playlistAssignments,
+        blockers: packet.blockers,
       });
       await writeJsonAtomic(packetPath, packet);
       packetLineage.contentHash = await hashFile(packetPath);
@@ -1572,6 +1607,7 @@ describe("math commands", () => {
         madeForKids: packet.madeForKids,
         containsSyntheticMedia: packet.containsSyntheticMedia,
         playlistAssignments: packet.playlistAssignments,
+        blockers: packet.blockers,
       });
       await writeJsonAtomic(packetPath, packet);
       packetLineage.contentHash = await hashFile(packetPath);

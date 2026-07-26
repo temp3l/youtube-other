@@ -2,7 +2,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { AsyncLocalStorage } from "node:async_hooks";
 import { ensureDir, hashText, writeJsonAtomic } from "@mediaforge/shared";
-import pino from "pino";
+import type pino from "pino";
 import {
   defaultPricingCatalog,
   estimateDurationCostMicros,

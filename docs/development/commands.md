@@ -29,6 +29,17 @@ Use the root Vitest configs with explicit file paths.
 - `pnpm test:integration -- packages/metadata/src/youtube-metadata.integration.test.ts`
 - `pnpm test:focused -- apps/cli/src/index.unit.test.ts`
 
+## TypeScript and Vite Tooling
+
+Run repository scripts and test tooling from the workspace root. `tsx`, `vite`,
+`vitest`, and `jsdom` are direct root development dependencies, so a fresh
+`pnpm install` exposes the command-line tools without relying on optional or
+transitive dependencies.
+
+- `pnpm exec tsx <script.ts-or-mjs>`
+- `pnpm exec vite --version`
+- `pnpm exec vitest --version`
+
 ## Targeted Lint
 
 - `pnpm exec eslint apps/cli/src/index.ts`
@@ -64,8 +75,35 @@ Use the root Vitest configs with explicit file paths.
 - `pnpm mediaforge -- render remote status [--job <job-id>] [--limit <count>] [--all] [--include-logs]`
 - `pnpm mediaforge -- render remote logs <job-id> [--clip <clip-id>] [--tail <lines>]`
 - `pnpm mediaforge -- render remote cleanup`
+- `pnpm mediaforge -- math renderer remote deploy`
+- `pnpm mediaforge -- math renderer remote check`
+- `pnpm mediaforge -- math renderer remote status [--job <math-job-id>]`
+- `pnpm mediaforge -- math renderer remote logs <math-job-id>`
+- `pnpm mediaforge -- math renderer remote cleanup`
+- `pnpm mediaforge -- math production run ... [--render-executor local|remote|hybrid]`
+- `pnpm mediaforge -- math production resume ... [--render-executor local|remote|hybrid]`
+- `pnpm mediaforge -- math batch run ... [--render-executor local|remote|hybrid]`
+- `pnpm mediaforge -- math batch resume ... [--render-executor local|remote|hybrid]`
 - `pnpm mediaforge -- metadata youtube --episode <episode-id>`
 - `pnpm mediaforge -- youtube upload --episode <episode-id>`
+
+Math scene-worker operations reuse the `REMOTE_RENDER_*` SSH, timeout, retry,
+retention, and fallback settings. They additionally accept
+`MEDIAFORGE_MATH_RENDER_EXECUTOR=local|remote|hybrid`,
+`MEDIAFORGE_MATH_REMOTE_IMAGE_ID=sha256:<64-hex>`,
+`MEDIAFORGE_MATH_LOCAL_SCENE_SLOTS`, `MEDIAFORGE_MATH_REMOTE_SCENE_SLOTS`, and
+`MEDIAFORGE_MATH_REMOTE_JOB_CONCURRENCY`. Math remote commands require strict
+host-key verification and an enabled remote transport. `deploy` writes an
+ignored receipt under `.mediaforge/math-render-remote/`; `cleanup` only removes
+old, completed, schema-recognized math jobs and never the shared cache.
+The explicit `--render-executor` option takes precedence over
+`MEDIAFORGE_MATH_RENDER_EXECUTOR`; an unset installation remains on the native
+local renderer. `remote` and `hybrid` require a compatible local/remote
+preflight and one immutable image ID. Scene fragments return to the operator
+machine for strict validation, ordered assembly, narration muxing, final media
+QA, and atomic promotion. Retryable remote shard failures are bounded and
+reassigned per scene to the local Docker lane; identity or integrity failures
+fail closed.
 
 ## Validation Guidance
 

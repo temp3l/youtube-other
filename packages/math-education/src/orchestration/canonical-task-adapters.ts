@@ -766,6 +766,86 @@ export const canonicalPrivateMediaEvidenceSchema = z
     visualPlanHash: z.string().regex(/^[a-f0-9]{64}$/u),
     timingHash: z.string().regex(/^[a-f0-9]{64}$/u),
     renderFingerprint: z.string().regex(/^[a-f0-9]{64}$/u),
+    renderExecution: z
+      .object({
+        artifactVersion: z.literal("math-render-execution.v1"),
+        mode: z.enum([
+          "local-compatibility",
+          "injected-shard-executor",
+          "remote",
+          "hybrid",
+        ]),
+        planHash: z.string().regex(/^[a-f0-9]{64}$/u),
+        renderResultHash: z.string().regex(/^[a-f0-9]{64}$/u),
+        toolchain: z
+          .object({
+            workerImageId: z.string().min(1),
+            remotionRunnerVersion: z.string().min(1),
+            svgRendererVersion: z.string().min(1),
+            semanticChalkVersion: z.string().min(1),
+            mediaQaVersion: z.string().min(1),
+          })
+          .strict(),
+        scenes: z
+          .array(
+            z
+              .object({
+                sceneId: z.string().regex(/^scene-\d{3}$/u),
+                assignmentId: z.string().min(1),
+                sourceSvgHash: z.string().regex(/^[a-f0-9]{64}$/u),
+                fragmentSha256: z.string().regex(/^[a-f0-9]{64}$/u),
+                frameCount: z.number().int().positive(),
+                renderDurationMs: z.number().int().nonnegative(),
+                cacheHitCount: z.number().int().nonnegative(),
+                cacheMissCount: z.number().int().nonnegative(),
+                workerAssignment: z.enum(["local", "remote"]).optional(),
+                predictedStartMs: z.number().nonnegative().optional(),
+                predictedFinishMs: z.number().nonnegative().optional(),
+                actualStartMs: z.number().int().nonnegative().optional(),
+                actualFinishMs: z.number().int().nonnegative().optional(),
+                cacheStatus: z.enum(["hit", "miss"]).optional(),
+                attempts: z.number().int().positive().optional(),
+                reassignedFrom: z.literal("remote").optional(),
+                transferBytes: z.number().int().nonnegative().optional(),
+                fallbackStatus: z.enum(["none", "reassigned-local"]).optional(),
+              })
+              .strict()
+          )
+          .length(9),
+        assembly: z
+          .object({
+            durationMs: z.number().int().nonnegative(),
+            narrationMuxCount: z.literal(1),
+            revealCueVersion: z.string().min(1),
+            mediaQaVersion: z.string().min(1),
+          })
+          .strict(),
+        cacheHitCount: z.number().int().nonnegative(),
+        cacheMissCount: z.number().int().nonnegative(),
+        overlapInterval: z
+          .object({
+            startMs: z.number().int().nonnegative(),
+            finishMs: z.number().int().nonnegative(),
+            durationMs: z.number().int().positive(),
+          })
+          .strict()
+          .optional(),
+        fallbackStatus: z.enum(["none", "used"]).optional(),
+      })
+      .strict()
+      .superRefine((value, context) => {
+        for (const [index, scene] of value.scenes.entries()) {
+          if (scene.sceneId !== `scene-${String(index + 1).padStart(3, "0")}`) {
+            context.addIssue({
+              code: "custom",
+              path: ["scenes", index, "sceneId"],
+              message:
+                "Render execution scenes must retain canonical scene order.",
+            });
+          }
+        }
+      })
+      .optional(),
     visualPresentation: z
       .object({
         strategy: z.literal("progressive-chalk-reveal"),

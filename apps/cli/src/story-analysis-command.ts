@@ -68,6 +68,7 @@ async function buildStoryInspectPayload(
     options.model ??
     runtimeConfig.openAiValidatorModel ??
     runtimeConfig.openAiStoryModel;
+  const analysisVersion = resolveAnalysisVersion(options.analysisVersion);
   const source = await resolveStoryProductionAnalysisSource({
     outputRoot,
     episodeSlug: options.episode,
@@ -83,9 +84,7 @@ async function buildStoryInspectPayload(
       options.reasoningEffort ??
       runtimeConfig.openAiValidatorReasoningEffort ??
       "medium",
-    ...(resolveAnalysisVersion(options.analysisVersion)
-      ? { analysisVersion: resolveAnalysisVersion(options.analysisVersion) }
-      : {}),
+    ...(analysisVersion ? { analysisVersion } : {}),
     ...(statusModel !== undefined ? { model: statusModel } : {}),
   });
   return buildStoryProductionInspectPayload({ source, status });

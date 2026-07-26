@@ -3,6 +3,7 @@ import "./env-setup.js";
 import {
   loadEpisodeConfig,
   loadRuntimeConfig,
+  parseRemoteTransportConfig,
   type RuntimeConfig,
   type RuntimeConfigOverrides,
 } from "@mediaforge/config";
@@ -331,30 +332,31 @@ function compactConfigOverrides(
 function buildRemoteRenderSettings(
   config: RuntimeConfig
 ): RemoteRenderSettings {
+  const transport = parseRemoteTransportConfig(config);
   return {
-    enabled: config.remoteRenderEnabled,
-    host: config.remoteRenderHost,
-    user: config.remoteRenderUser,
-    port: config.remoteRenderPort,
-    baseDir: config.remoteRenderBaseDir,
+    enabled: transport.enabled,
+    host: transport.host,
+    user: transport.user,
+    port: transport.port,
+    baseDir: transport.baseDir,
     concurrency: config.remoteRenderConcurrency,
-    connectTimeoutSeconds: config.remoteRenderConnectTimeoutSeconds,
-    commandTimeoutSeconds: config.remoteRenderCommandTimeoutSeconds,
-    maxRetries: config.remoteRenderMaxRetries,
-    fallbackToLocal: config.remoteRenderFallbackToLocal,
-    keepFiles: config.remoteRenderKeepFiles,
-    verifyHostKey: config.remoteRenderVerifyHostKey,
-    ...(config.remoteRenderKnownHostsFile
-      ? { knownHostsFile: config.remoteRenderKnownHostsFile }
+    connectTimeoutSeconds: transport.connectTimeoutSeconds,
+    commandTimeoutSeconds: transport.commandTimeoutSeconds,
+    maxRetries: transport.maxRetries,
+    fallbackToLocal: transport.fallbackToLocal,
+    keepFiles: transport.keepFiles,
+    verifyHostKey: transport.verifyHostKey,
+    ...(transport.knownHostsFile
+      ? { knownHostsFile: transport.knownHostsFile }
       : {}),
-    ...(config.remoteRenderSshPrivateKey
-      ? { sshPrivateKey: config.remoteRenderSshPrivateKey }
+    ...(transport.sshPrivateKey
+      ? { sshPrivateKey: transport.sshPrivateKey }
       : {}),
-    uploadMethod: config.remoteRenderUploadMethod,
+    uploadMethod: transport.uploadMethod,
     ...(config.localRenderConcurrency
       ? { localRenderConcurrency: config.localRenderConcurrency }
       : {}),
-    cleanupMaxAgeHours: config.remoteRenderCleanupMaxAgeHours,
+    cleanupMaxAgeHours: transport.cleanupMaxAgeHours,
   };
 }
 
