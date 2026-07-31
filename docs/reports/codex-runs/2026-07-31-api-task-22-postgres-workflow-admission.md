@@ -17,11 +17,12 @@ Added one transactional PostgreSQL workflow-admission port and connected it to t
 
 - `pnpm test:focused -- packages/persistence/src/postgres-workflow-admission.unit.test.ts` — passed (2 tests).
 - Filtered persistence/config/API/CLI typecheck — passed after refreshing workspace links and declarations.
+- `POSTGRES_INTEGRATION_HOST=/tmp/mediaforge-task04-postgres-socket POSTGRES_INTEGRATION_PORT=55432 POSTGRES_INTEGRATION_DATABASE=mediaforge_task04 pnpm test:focused -- packages/persistence/src/postgres-workflow-repository.integration.test.ts` — passed (6 tests) against live PostgreSQL.
 
 ## Commit Hash
 
-Base: `666a973`; changes remain uncommitted.
+Pending this report-only verification commit.
 
 ## Unresolved Risks
 
-Live PostgreSQL migration/admission remains environment-gated. Existing filesystem CLI commands have not been cut over.
+The integration test remains environment-gated by design. Existing filesystem CLI commands have not been cut over.
