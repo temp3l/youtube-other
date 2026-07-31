@@ -1,11 +1,6 @@
-import { createDarkTruthTaskRegistrations } from "@mediaforge/dark-truth";
+import { createLegacyCliProductionCallerAdapter } from "@mediaforge/application";
 import { taskIdSchema } from "@mediaforge/domain";
-import { createMathTaskRegistrations } from "@mediaforge/math-education";
-import {
-  ProductionTaskCallerAdapter,
-  createTaskRegistry,
-  type ProductionCallerMigrationRoute,
-} from "@mediaforge/workflow-engine";
+import { type ProductionCallerMigrationRoute } from "@mediaforge/workflow-engine";
 import type { Command } from "commander";
 
 export const PRODUCTION_CALLER_MIGRATION_VERSION =
@@ -42,6 +37,7 @@ function route(
     taskId: taskIdSchema.parse(taskIdInput),
     compatibility: "legacy-cli",
     removeWhen: REMOVE_CONDITION,
+    authority: "filesystem-legacy",
   };
 }
 
@@ -209,11 +205,7 @@ export interface ProductionCallerMigrationSummary {
 export function migrateProductionCommandCallers(
   program: Command
 ): ProductionCallerMigrationSummary {
-  const registry = createTaskRegistry([
-    ...createDarkTruthTaskRegistrations(),
-    ...createMathTaskRegistrations(),
-  ]);
-  const adapter = new ProductionTaskCallerAdapter(registry);
+  const adapter = createLegacyCliProductionCallerAdapter();
   const routes: ProductionCallerMigrationRoute[] = [];
   const unmappedProductionCallers: string[] = [];
 

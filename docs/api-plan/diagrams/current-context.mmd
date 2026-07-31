@@ -1,0 +1,27 @@
+flowchart TB
+  scripts[Root scripts]
+  cli[apps/cli composition root]
+  api[apps/api placeholder]
+  ercli[Educational renderer CLI]
+  imperative[Imperative Dark Truth commands]
+  storywf[Story workflow manifests]
+  generic[Generic workflow operator]
+  math[Math canonical and legacy workflows]
+  packages[Capability packages]
+  files[(Episode/lesson JSON and media)]
+  sqlite[(SQLite episodes only)]
+  providers[AI / TTS / FFmpeg / remote / YouTube]
+
+  scripts --> cli
+  cli --> imperative
+  cli --> storywf
+  cli --> generic
+  cli --> math
+  ercli --> packages
+  api --> sqlite
+  imperative --> packages
+  storywf --> files
+  generic --> files
+  math --> files
+  packages --> files
+  packages --> providers

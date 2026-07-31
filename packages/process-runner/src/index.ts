@@ -19,6 +19,8 @@ export interface SpawnOptions {
   readonly timeoutMs?: number;
   readonly signal?: AbortSignal;
   readonly allowNonZeroExit?: boolean;
+  /** Grace period after SIGTERM before a bounded SIGKILL escalation. */
+  readonly terminationGraceMs?: number;
 }
 
 const allowlist = new Set([
@@ -131,16 +133,16 @@ export async function runCommand(executable: string, args: ReadonlyArray<string>
     });
     let stdout = "";
     let stderr = "";
-    const timeout = options.timeoutMs
-      ? setTimeout(() => {
-          child.kill("SIGKILL");
-          reject(new ProcessExecutionError(`Command timed out: ${executable}`));
-        }, options.timeoutMs)
-      : null;
-    const abortHandler = (): void => {
-      child.kill("SIGKILL");
-      reject(new ProcessExecutionError(`Command aborted: ${executable}`));
+    let termination: "aborted" | "timed-out" | undefined;
+    let killTimer: ReturnType<typeof setTimeout> | undefined;
+    const terminate = (reason: "aborted" | "timed-out"): void => {
+      if (termination) return;
+      termination = reason;
+      child.kill("SIGTERM");
+      killTimer = setTimeout(() => child.kill("SIGKILL"), options.terminationGraceMs ?? 5_000);
     };
+    const timeout = options.timeoutMs ? setTimeout(() => terminate("timed-out"), options.timeoutMs) : null;
+    const abortHandler = (): void => terminate("aborted");
     options.signal?.addEventListener("abort", abortHandler, { once: true });
     child.stdout?.setEncoding("utf8");
     child.stderr?.setEncoding("utf8");
@@ -154,6 +156,7 @@ export async function runCommand(executable: string, args: ReadonlyArray<string>
       if (timeout !== null) {
         clearTimeout(timeout);
       }
+      if (killTimer !== undefined) clearTimeout(killTimer);
       options.signal?.removeEventListener("abort", abortHandler);
       reject(new ProcessExecutionError(`Failed to start ${executable}: ${(error as Error).message}`));
     });
@@ -161,7 +164,12 @@ export async function runCommand(executable: string, args: ReadonlyArray<string>
       if (timeout !== null) {
         clearTimeout(timeout);
       }
+      if (killTimer !== undefined) clearTimeout(killTimer);
       options.signal?.removeEventListener("abort", abortHandler);
+      if (termination) {
+        reject(new ProcessExecutionError(`Command ${termination === "aborted" ? "aborted" : "timed out"}: ${executable}`));
+        return;
+      }
       telemetry?.recordProcessExecution({
         executable,
         args: redactProcessArgs(args),

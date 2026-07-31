@@ -380,6 +380,8 @@ describe("genre-neutral YouTube media publish", () => {
       },
     });
     expect(afterInsert.report.videoId).toBe("video-id");
+    expect(afterInsert.report.status).toBe("PUBLISH_BLOCKED");
+    expect(setup.fake.operations).toEqual(["channels.list", "videos.insert"]);
     const resumeInsertClient = client();
     const resumedInsert = await publishYoutubeMedia({
       ...setup.value,

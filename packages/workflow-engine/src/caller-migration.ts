@@ -13,6 +13,8 @@ export interface ProductionCallerInvocation {
   readonly taskId: TaskId;
   readonly implementationOwner: `@mediaforge/${string}`;
   readonly implementationVersion: string;
+  /** Legacy callers may only project their filesystem-owned state. */
+  readonly authority: "filesystem-legacy" | "database-v1";
 }
 
 export interface ProductionCallerMigrationRoute {
@@ -20,6 +22,7 @@ export interface ProductionCallerMigrationRoute {
   readonly taskId: TaskId;
   readonly compatibility: "legacy-cli" | "legacy-script" | "package-bin";
   readonly removeWhen: string;
+  readonly authority?: "filesystem-legacy" | "database-v1";
 }
 
 const invocationStorage = new AsyncLocalStorage<ProductionCallerInvocation>();
@@ -54,6 +57,7 @@ export class ProductionTaskCallerAdapter {
       taskId: registration.definition.id,
       implementationOwner: registration.implementation.owner,
       implementationVersion: registration.definition.implementationVersion,
+      authority: route.authority ?? "filesystem-legacy",
     };
     return invocationStorage.run(invocation, async () => callback());
   }

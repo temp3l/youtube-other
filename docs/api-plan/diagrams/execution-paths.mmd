@@ -1,0 +1,22 @@
+flowchart LR
+  CLI[CLI commands]
+  API[HTTP placeholder]
+  DW[Dark Truth imperative]
+  SW[Story manifests / dry-run]
+  GW[Generic workflow]
+  MW[Math canonical workflow]
+  CAP[Story / speech / image / render / publish capabilities]
+  STATE[(Multiple file authorities)]
+  EXT[Providers / YouTube]
+
+  CLI --> DW
+  CLI --> SW
+  CLI --> GW
+  CLI --> MW
+  API -. no production path .-> STATE
+  DW --> CAP
+  SW --> STATE
+  GW --> CAP
+  MW --> CAP
+  CAP --> STATE
+  CAP --> EXT

@@ -1,10 +1,10 @@
-import http from "node:http";
 import { loadRuntimeConfig } from "@mediaforge/config";
 
-export async function startApiServer(port = 3333): Promise<http.Server> {
-  const config = await loadRuntimeConfig();
-  return http.createServer(async (_request, response) => {
-    response.setHeader("content-type", "application/json");
-    response.end(JSON.stringify({ ok: true, workspace: config.workspaceDir }));
-  }).listen(port);
+export * from "./contract.js";
+export * from "./http-server.js";
+import { createApiServer } from "./http-server.js";
+
+export async function startApiServer(port = 3333) {
+  await loadRuntimeConfig();
+  return createApiServer().listen(port);
 }

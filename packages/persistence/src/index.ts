@@ -7,6 +7,10 @@ import {
 } from "@mediaforge/domain";
 import { ensureDir, writeJsonAtomic } from "@mediaforge/shared";
 
+export * from "./relational-workflow-state.js";
+export * from "./postgres-workflow-repository.js";
+export * from "./tenant-object-storage.js";
+
 export interface PersistenceConfig {
   readonly dbPath: string;
 }

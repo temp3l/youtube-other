@@ -58,6 +58,7 @@ describe("production caller migration", () => {
         caller: "mediaforge metadata youtube",
         taskId: "darktruth.metadata",
         implementationOwner: "@mediaforge/metadata",
+        authority: "filesystem-legacy",
       },
     });
   });

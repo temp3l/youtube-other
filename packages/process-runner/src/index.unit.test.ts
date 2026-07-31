@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { redactProcessArgs } from "./index.js";
+import { ProcessExecutionError } from "@mediaforge/domain";
+
+import { redactProcessArgs, runCommand } from "./index.js";
 
 describe("process runner telemetry redaction", () => {
   it("redacts bearer headers and secret-like argument values while preserving command context", () => {
@@ -38,5 +40,16 @@ describe("process runner telemetry redaction", () => {
       "gpt-image-2",
       "--quality=high",
     ]);
+  });
+
+  it("uses TERM grace and rejects completion after cancellation", async () => {
+    const controller = new AbortController();
+    const execution = runCommand(
+      "node",
+      ["-e", "process.on('SIGTERM', () => {}); setInterval(() => {}, 1000);"],
+      { signal: controller.signal, terminationGraceMs: 10 }
+    );
+    controller.abort();
+    await expect(execution).rejects.toBeInstanceOf(ProcessExecutionError);
   });
 });

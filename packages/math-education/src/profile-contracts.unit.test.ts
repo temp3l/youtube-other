@@ -291,13 +291,37 @@ describe("mathematics profile integration", () => {
     const material = createMathFingerprintMaterial({
       profile,
       visualStyle: style,
+      rendererVersions: { svg: "renderer-r1", formula: "katex-r1" },
+      providerConfiguration: {
+        presetId: "narration-standard-en",
+        revision: "audio-r1",
+      },
     });
     expect(material["math.math-verification"]).toMatchObject({
       curriculumRevision: "curriculum-r1",
       tools: { verifierVersion: "math-verifier.v3" },
     });
     expect(material["math.render"]).toMatchObject({
+      profile: {
+        profileRevision: "lesson-profile-r1",
+        lessonVariant: "standard",
+      },
+      configuration: {
+        grade: 5,
+        locale: "en",
+      },
       visualStyleRevision: "visual-r1",
+      renderer: {
+        manifestVersions: { svg: "renderer-r1", formula: "katex-r1" },
+        runtimeVersions: { svg: "renderer-r1", formula: "katex-r1" },
+      },
+    });
+    expect(material["math.tts"]).toMatchObject({
+      profile: { contentVariant: "full" },
+      provider: {
+        presetId: "narration-standard-en",
+        revision: "audio-r1",
+      },
     });
     const registry = createTaskRegistry(
       createMathTaskRegistrations(
@@ -435,7 +459,9 @@ describe("mathematics profile integration", () => {
     const curriculumRoot = await fs.mkdtemp(
       path.join(os.tmpdir(), "math-profile-curriculum-")
     );
-    await createReviewedCurriculumFixture(curriculumRoot);
+    await createReviewedCurriculumFixture(curriculumRoot, undefined, {
+      preserveSkillIdentity: true,
+    });
     const pythonExecutable =
       process.env["MATH_VERIFIER_PYTHON"] ??
       path.resolve("python/math-verifier/.venv/bin/python");

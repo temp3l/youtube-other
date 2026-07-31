@@ -22,7 +22,7 @@ import { MATH_SPEECH_FORMAT_VERSION } from "../localization/tts-lexicon.js";
 import {
   createMathMetadataEvidence,
   createMetadataWorkflowEvidence,
-  createReviewedMetadataContext,
+  createExactContentSimulationMetadataContext,
   generateMathMetadata,
   mathPlaylistCatalog,
   MATH_PLAYLIST_CATALOG_VERSION,
@@ -315,7 +315,10 @@ async function runPilotSimulationUnlocked(
       timing
     );
     const metadata = generateMathMetadata({
-      reviewedContext: createReviewedMetadataContext(curriculum, skill.skillId),
+      reviewedContext: createExactContentSimulationMetadataContext(
+        curriculum,
+        skill.skillId
+      ),
       skill,
       lesson,
       localization: narration,

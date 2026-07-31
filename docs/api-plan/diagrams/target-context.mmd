@@ -1,0 +1,25 @@
+flowchart TB
+  ext[External integrations]
+  human[Human users]
+  cli[Existing CLI]
+  sched[Schedulers]
+  api[REST API /v1]
+  app[Typed application use cases]
+  wf[Canonical workflow engine]
+  ports[Domain contracts and ports]
+  db[(Relational state)]
+  obj[(Object storage)]
+  workers[Workers]
+  providers[AI / TTS / renderer / YouTube]
+
+  ext --> api
+  human --> api
+  cli --> app
+  sched --> app
+  api --> app
+  app --> wf
+  wf --> ports
+  ports --> db
+  ports --> obj
+  ports --> workers
+  workers --> providers

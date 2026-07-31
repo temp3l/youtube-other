@@ -1,0 +1,22 @@
+sequenceDiagram
+  participant C as CLI/API/Scheduler
+  participant U as Application use case
+  participant D as SQL state/outbox
+  participant W as Worker
+  participant P as Domain/provider port
+  participant O as Object storage
+
+  C->>U: start high-level workflow
+  U->>D: TX command + run + job + outbox
+  U-->>C: accepted job/run IDs
+  W->>D: claim fenced lease
+  W->>D: create attempt + heartbeat
+  W->>P: execute typed task(deadline, abort)
+  P->>O: stage output
+  P-->>W: validated artifact evidence
+  W->>D: TX promote asset + complete step + next job/outbox
+  alt approval required
+    D-->>C: waiting_for_approval event/status
+    C->>U: approve bound challenge
+    U->>D: TX approval + runnable job + audit
+  end

@@ -14,6 +14,7 @@
     "db:migrate": "node ./bin/mediaforge.js db migrate"
   },
   "dependencies": {
+    "@mediaforge/application": "workspace:*",
     "@mediaforge/alignment": "workspace:*",
     "@mediaforge/config": "workspace:*",
     "@mediaforge/domain": "workspace:*",

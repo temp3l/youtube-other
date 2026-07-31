@@ -1,0 +1,44 @@
+flowchart LR
+  subgraph Adapters
+    REST[REST controllers]
+    CLI[CLI commands]
+    SCHED[Scheduler]
+    WORKER[Worker handlers]
+  end
+  subgraph Application
+    CMD[Command handlers]
+    QUERY[Query handlers]
+    POLICY[Authorization / quota]
+  end
+  subgraph Canonical
+    ENGINE[Workflow operator]
+    REGISTRY[Profile task registries]
+    DT[Dark Truth adapters]
+    MATH[Math education adapters]
+  end
+  subgraph Ports
+    STATE[State / job / outbox]
+    ASSET[Asset repository]
+    PROVIDER[Provider and renderer]
+    PUBLISH[Publication gateway]
+    AUDIT[Audit / usage]
+  end
+
+  REST --> CMD
+  REST --> QUERY
+  CLI --> CMD
+  SCHED --> CMD
+  WORKER --> CMD
+  CMD --> POLICY
+  POLICY --> ENGINE
+  QUERY --> STATE
+  ENGINE --> REGISTRY
+  REGISTRY --> DT
+  REGISTRY --> MATH
+  DT --> STATE
+  DT --> ASSET
+  MATH --> STATE
+  MATH --> ASSET
+  ENGINE --> PROVIDER
+  ENGINE --> PUBLISH
+  ENGINE --> AUDIT

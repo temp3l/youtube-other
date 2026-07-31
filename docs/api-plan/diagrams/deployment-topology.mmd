@@ -1,0 +1,32 @@
+flowchart TB
+  edge[HTTPS gateway]
+  api[API replicas]
+  db[(PostgreSQL)]
+  obj[(S3-compatible object storage)]
+  secrets[Secrets manager]
+  sched[Scheduler / outbox]
+  general[General workers]
+  render[Isolated render workers]
+  publish[Publish workers]
+  hooks[Webhook dispatcher]
+  idp[OIDC provider]
+  ai[AI / TTS providers]
+  yt[YouTube]
+  customers[Customer endpoints]
+
+  edge --> api
+  api --> idp
+  api --> db
+  api --> obj
+  sched --> db
+  general --> db
+  general --> obj
+  general --> ai
+  render --> db
+  render --> obj
+  publish --> db
+  publish --> obj
+  publish --> secrets
+  publish --> yt
+  hooks --> db
+  hooks --> customers

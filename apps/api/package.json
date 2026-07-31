@@ -8,9 +8,11 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@mediaforge/application": "workspace:*",
     "@mediaforge/config": "workspace:*",
     "@mediaforge/domain": "workspace:*",
     "@mediaforge/persistence": "workspace:*",
-    "@mediaforge/shared": "workspace:*"
+    "@mediaforge/shared": "workspace:*",
+    "zod": "^4.0.14"
   }
 }

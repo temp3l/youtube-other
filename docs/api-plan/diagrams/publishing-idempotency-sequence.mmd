@@ -1,0 +1,30 @@
+sequenceDiagram
+  participant C as Client
+  participant A as API/use case
+  participant D as Database
+  participant W as Publish worker
+  participant Y as YouTube
+
+  C->>A: POST publication + Idempotency-Key
+  A->>D: TX: key+fingerprint, intent, job, outbox
+  D-->>A: publication/job IDs
+  A-->>C: 202 Accepted
+  W->>D: claim fenced lease by channel
+  W->>D: recheck approval, hashes, credential, intent
+  W->>D: mark provider_pending + unique marker
+  W->>Y: videos.insert(marker, resumable upload)
+  alt response received
+    Y-->>W: videoId + requestId
+    W->>D: checkpoint videoId before later mutations
+  else timeout or crash before checkpoint
+    W->>D: lease expires; state provider_unknown
+    W->>Y: reconcile channel by marker/fingerprint/window
+    alt exactly one match
+      Y-->>W: existing videoId
+      W->>D: bind videoId; continue
+    else no safe unique match
+      W->>D: reconciliation_required; block retry
+    end
+  end
+  W->>Y: thumbnail / playlists (checkpoint each)
+  W->>D: TX: succeeded + audit + outbox
