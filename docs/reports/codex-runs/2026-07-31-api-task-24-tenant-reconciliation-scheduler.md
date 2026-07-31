@@ -18,7 +18,7 @@ Completed PostgreSQL-backed, tenant-bound scheduling for YouTube publication rec
 
 ## Commit Hash
 
-Pending commit.
+`bfc5bdc` — `feat(api): compose tenant reconciliation scheduler`
 
 ## Unresolved Risks
 
