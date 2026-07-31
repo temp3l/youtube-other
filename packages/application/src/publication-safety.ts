@@ -20,7 +20,7 @@ export interface PublicationEvidenceLookup {
 export function transitionPublication(intent: PublicationIntent, next: PublicationState): PublicationIntent {
   const allowed: Readonly<Record<PublicationState, readonly PublicationState[]>> = {
     pending: ["executing", "cancelled"], executing: ["published", "failed", "reconciliation_required"],
-    published: [], failed: [], reconciliation_required: [], cancelled: [],
+    published: [], failed: [], reconciliation_required: ["published"], cancelled: [],
   };
   if (!allowed[intent.state].includes(next)) throw new Error("publication_transition_rejected");
   return { ...intent, state: next };

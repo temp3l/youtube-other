@@ -81,9 +81,19 @@ importers:
       '@mediaforge/shared':
         specifier: workspace:*
         version: link:../../packages/shared
+      '@mediaforge/youtube-upload':
+        specifier: workspace:*
+        version: link:../../packages/youtube-upload
+      pg:
+        specifier: ^8.16.3
+        version: 8.22.0
       zod:
         specifier: ^4.0.14
         version: 4.4.3
+    devDependencies:
+      '@types/pg':
+        specifier: ^8.15.6
+        version: 8.20.0
 
   apps/cli:
     dependencies:
@@ -165,6 +175,9 @@ importers:
       commander:
         specifier: ^14.0.0
         version: 14.0.3
+      pg:
+        specifier: ^8.16.3
+        version: 8.22.0
       pino:
         specifier: ^9.8.0
         version: 9.14.0
@@ -174,6 +187,10 @@ importers:
       zod:
         specifier: ^4.0.14
         version: 4.4.3
+    devDependencies:
+      '@types/pg':
+        specifier: ^8.15.6
+        version: 8.20.0
 
   apps/web:
     dependencies:

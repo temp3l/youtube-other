@@ -14,6 +14,8 @@ export interface DurableOutboxRepository {
     readonly workerId: string;
     readonly now: string;
     readonly leaseSeconds: number;
+    /** A role claims only the event type it is authorized to process. */
+    readonly topic?: string;
   }): Promise<DurableOutboxLease | null>;
   markOutboxDelivered(input: {
     readonly workspaceId: string;
@@ -66,6 +68,8 @@ export class DurableOutboxWorker {
       readonly maxAttempts: number;
       readonly now: () => Date;
       readonly retryAt: (attempt: number, now: Date) => Date;
+      /** Keeps independently deployed workers from claiming each other's work. */
+      readonly topic?: string;
     }
   ) {}
 
@@ -76,6 +80,7 @@ export class DurableOutboxWorker {
       workerId: this.options.workerId,
       now: startedAt.toISOString(),
       leaseSeconds: this.options.leaseSeconds,
+      ...(this.options.topic ? { topic: this.options.topic } : {}),
     });
     if (!lease) return { kind: "idle" };
 

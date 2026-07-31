@@ -174,6 +174,7 @@ import {
   WorkflowCliError,
   registerWorkflowCommands,
 } from "./workflow-commands.js";
+import { registerWorkflowAdmissionCommand } from "./workflow-admission-command.js";
 import { migrateProductionCommandCallers } from "./production-caller-migration.js";
 
 interface CliOptions {
@@ -4963,6 +4964,7 @@ registerStoryLocalizationCommands(program);
 registerThumbnailCommands(program);
 registerMathCommands(program);
 registerWorkflowCommands(program);
+registerWorkflowAdmissionCommand(program);
 migrateProductionCommandCallers(program);
 
 const executionId = process.env["MEDIAFORGE_EXECUTION_ID"] ?? randomUUID();

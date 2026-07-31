@@ -477,6 +477,7 @@ function mergeNarrationMasteringConfig(
 const configSchema = z.object({
   workspaceDir: z.string().min(1),
   dbPath: z.string().min(1),
+  workflowDatabaseUrl: z.string().url().optional(),
   logLevel: z.enum(["fatal", "error", "warn", "info", "debug", "trace"]),
   defaultAspectRatio: z.enum(["16:9", "9:16"]),
   openArtBatchSize: z.number().int().positive(),
@@ -713,6 +714,7 @@ async function loadDotEnvValues(cwd: string): Promise<Record<string, string>> {
 const envSchema = z.object({
   MEDIAFORGE_WORKSPACE: z.string().optional(),
   MEDIAFORGE_DB_PATH: z.string().optional(),
+  MEDIAFORGE_WORKFLOW_DATABASE_URL: z.string().url().optional(),
   MEDIAFORGE_LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace"]).optional(),
   MEDIAFORGE_DEFAULT_ASPECT_RATIO: z.enum(["16:9", "9:16"]).optional(),
   MEDIAFORGE_OPENART_BATCH_SIZE: z.coerce.number().int().positive().optional(),
@@ -992,6 +994,10 @@ export async function loadRuntimeConfig(
   const config = configSchema.parse({
     workspaceDir: path.resolve(workspaceDir),
     dbPath: path.resolve(dbPath),
+    workflowDatabaseUrl:
+      overrides.workflowDatabaseUrl ??
+      episodeOverrides.workflowDatabaseUrl ??
+      env.MEDIAFORGE_WORKFLOW_DATABASE_URL,
     logLevel: overrides.logLevel ?? env.MEDIAFORGE_LOG_LEVEL ?? "info",
     defaultAspectRatio: overrides.defaultAspectRatio ?? env.MEDIAFORGE_DEFAULT_ASPECT_RATIO ?? "16:9",
     openArtBatchSize: overrides.openArtBatchSize ?? env.MEDIAFORGE_OPENART_BATCH_SIZE ?? 8,

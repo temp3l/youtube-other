@@ -10,6 +10,15 @@ import {
 } from "./index.js";
 
 describe("runtime config", () => {
+  it("keeps the workflow PostgreSQL URL separate from the legacy SQLite path", async () => {
+    const config = await loadRuntimeConfig({
+      dbPath: "./legacy.sqlite",
+      workflowDatabaseUrl: "postgres://workflow-user:secret@db.example.invalid:5432/mediaforge",
+    });
+    expect(config.dbPath).toContain("legacy.sqlite");
+    expect(config.workflowDatabaseUrl).toBe("postgres://workflow-user:secret@db.example.invalid:5432/mediaforge");
+  });
+
   it("lets CLI overrides beat episode config", async () => {
     const config = await loadRuntimeConfig(
       {

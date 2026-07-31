@@ -13,6 +13,11 @@
     "@mediaforge/domain": "workspace:*",
     "@mediaforge/persistence": "workspace:*",
     "@mediaforge/shared": "workspace:*",
-    "zod": "^4.0.14"
+    "@mediaforge/youtube-upload": "workspace:*",
+    "zod": "^4.0.14",
+    "pg": "^8.16.3"
+  },
+  "devDependencies": {
+    "@types/pg": "^8.15.6"
   }
 }

@@ -680,6 +680,7 @@ Workspace and script-language keys:
 
 - `MEDIAFORGE_WORKSPACE`
 - `MEDIAFORGE_DB_PATH`
+- `MEDIAFORGE_WORKFLOW_DATABASE_URL` (required for connected API/CLI workflow admission)
 - `MEDIAFORGE_LOG_LEVEL`
 - `MEDIAFORGE_SCRIPT_LANGUAGE`
 - `EPISODES_SOURCE_ROOT`

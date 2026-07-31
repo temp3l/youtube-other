@@ -1,3 +1,5 @@
+import crypto from "node:crypto";
+
 import {
   POSTGRES_DURABLE_DISPATCH_MIGRATION,
   POSTGRES_WORKFLOW_AUTHORITY_MIGRATION,
@@ -15,6 +17,22 @@ export interface CommandAdmissionResult {
   readonly kind: "admitted" | "replayed";
   readonly commandId: string;
   readonly response: unknown;
+}
+
+/** Structural subset of the application execution context used by this adapter. */
+export interface WorkflowAdmissionExecution {
+  readonly workspace: { readonly id: string };
+  readonly idempotency?: {
+    readonly key: string;
+    readonly fingerprint: string;
+  } | undefined;
+}
+
+export interface PostgresWorkflowAdmissionPortOptions {
+  readonly repository: PostgresWorkflowRepository;
+  readonly now?: () => Date;
+  readonly createId?: (prefix: "workflow" | "job" | "outbox" | "command") => string;
+  readonly executionDefaults?: Partial<Omit<WorkflowExecutionSpecification, "input">>;
 }
 
 export interface PostgresQueryResult<T> {
@@ -273,6 +291,75 @@ export class WorkspaceTransactionRepository {
     }
   }
 
+  /**
+   * The complete admission is deliberately one transaction: an idempotency
+   * record is inserted before its dependent run, job, and outbox rows.  On a
+   * replay no new workflow ID is made durable.
+   */
+  public async admitWorkflow(input: {
+    readonly run: Omit<RelationalWorkflowRun, "revision" | "updatedAt" | "authority"> & {
+      readonly authority?: WorkflowAuthority;
+    };
+    readonly idempotencyKey: string;
+    readonly requestFingerprint: string;
+    readonly commandId: string;
+    readonly response: unknown;
+    readonly job: { readonly jobId: string; readonly runId: string };
+    readonly outbox: {
+      readonly outboxId: string;
+      readonly topic: string;
+      readonly payload: unknown;
+      readonly availableAt: string;
+    };
+    readonly now: string;
+  }): Promise<CommandAdmissionResult> {
+    try {
+      const inserted = await this.connection.query<{
+        readonly command_id: string;
+        readonly response: unknown;
+      }>(
+        `INSERT INTO command_admissions (
+          workspace_id, idempotency_key, request_fingerprint, command_id, response, created_at
+        ) VALUES ($1, $2, $3, $4, $5::jsonb, $6::timestamptz)
+        ON CONFLICT (workspace_id, idempotency_key) DO NOTHING
+        RETURNING command_id, response`,
+        [input.run.workspaceId, input.idempotencyKey, input.requestFingerprint, input.commandId, JSON.stringify(input.response), input.now]
+      );
+      if (!inserted.rows[0]) {
+        const existing = await this.connection.query<{
+          readonly command_id: string;
+          readonly request_fingerprint: string;
+          readonly response: unknown;
+        }>(
+          `SELECT command_id, request_fingerprint, response FROM command_admissions
+           WHERE workspace_id = $1 AND idempotency_key = $2 FOR UPDATE`,
+          [input.run.workspaceId, input.idempotencyKey]
+        );
+        const record = existing.rows[0];
+        if (!record) throw new Error("Idempotency record disappeared during admission.");
+        if (record.request_fingerprint !== input.requestFingerprint)
+          throw new WorkflowStateTransitionError(
+            "Idempotency key is already associated with a different request."
+          );
+        return { kind: "replayed", commandId: record.command_id, response: record.response };
+      }
+      await this.create(input.run);
+      await this.createJob({
+        workspaceId: input.run.workspaceId,
+        jobId: input.job.jobId,
+        runId: input.job.runId,
+      });
+      await this.connection.query(
+        `INSERT INTO workflow_outbox (workspace_id, outbox_id, topic, payload, available_at)
+         VALUES ($1, $2, $3, $4::jsonb, $5::timestamptz)`,
+        [input.run.workspaceId, input.outbox.outboxId, input.outbox.topic, JSON.stringify(input.outbox.payload), input.outbox.availableAt]
+      );
+      return { kind: "admitted", commandId: inserted.rows[0].command_id, response: inserted.rows[0].response };
+    } catch (error) {
+      return translate(error);
+    }
+  }
+
   public async heartbeatJob(input: {
     readonly workspaceId: string;
     readonly jobId: string;
@@ -303,12 +390,14 @@ export class WorkspaceTransactionRepository {
     readonly workerId: string;
     readonly now: string;
     readonly leaseSeconds: number;
+    readonly topic?: string;
   }): Promise<OutboxLease | null> {
     try {
       const result = await this.connection.query<OutboxRow>(
         `WITH candidate AS (
            SELECT workspace_id, outbox_id FROM workflow_outbox
            WHERE workspace_id = $1 AND state = 'pending' AND available_at <= $2::timestamptz
+             AND ($5::text IS NULL OR topic = $5)
              AND (lease_expires_at IS NULL OR lease_expires_at <= $2::timestamptz)
            ORDER BY available_at, outbox_id FOR UPDATE SKIP LOCKED LIMIT 1
          )
@@ -320,7 +409,7 @@ export class WorkspaceTransactionRepository {
          WHERE outbox.workspace_id = candidate.workspace_id AND outbox.outbox_id = candidate.outbox_id
          RETURNING outbox.workspace_id, outbox.outbox_id, outbox.topic, outbox.payload,
                    outbox.lease_fence, outbox.lease_owner, outbox.lease_expires_at, outbox.attempt_count`,
-        [input.workspaceId, input.now, input.workerId, input.leaseSeconds]
+        [input.workspaceId, input.now, input.workerId, input.leaseSeconds, input.topic ?? null]
       );
       return result.rows[0] ? mapOutboxLease(result.rows[0]) : null;
     } catch (error) {
@@ -414,6 +503,42 @@ export class WorkspaceTransactionRepository {
     );
   }
 
+  /** Records an exact provider receipt and advances only an uncertain publication. */
+  public async resolvePublicationReconciliation(input: {
+    readonly workspaceId: string;
+    readonly publicationId: string;
+    readonly receipt: unknown;
+  }): Promise<void> {
+    const result = await this.connection.query(
+      `UPDATE publications
+       SET status = 'published', revision = revision + 1, provider_receipt = $1::jsonb
+       WHERE workspace_id = $2 AND publication_id = $3 AND status = 'reconciliation_required'
+       RETURNING revision`,
+      [JSON.stringify(input.receipt), input.workspaceId, input.publicationId]
+    );
+    if (result.rowCount !== 1)
+      throw new WorkflowStateTransitionError(
+        "Publication was missing or is not awaiting reconciliation."
+      );
+  }
+
+  /** Inconclusive evidence is append-only and never reopens provider mutation. */
+  public async recordPublicationReconciliationAttempt(input: {
+    readonly workspaceId: string;
+    readonly attemptId: string;
+    readonly publicationId: string;
+    readonly reason: "no_match" | "multiple_matches" | "provider_unavailable";
+    readonly evidence?: unknown;
+    readonly now: string;
+  }): Promise<void> {
+    await this.connection.query(
+      `INSERT INTO publication_reconciliation_attempts (
+        workspace_id, attempt_id, publication_id, reason, evidence, created_at
+      ) VALUES ($1, $2, $3, $4, $5::jsonb, $6::timestamptz)`,
+      [input.workspaceId, input.attemptId, input.publicationId, input.reason, input.evidence === undefined ? null : JSON.stringify(input.evidence), input.now]
+    );
+  }
+
   /** Claims only queued or expired work and advances the durable fencing token. */
   public async claimJob(input: {
     readonly workspaceId: string;
@@ -483,6 +608,126 @@ export class PostgresWorkflowRepository {
 
   public async close(): Promise<void> {
     await this.pool.end();
+  }
+}
+
+function responseFromAdmission(value: unknown): { readonly workflowRunId: string; readonly jobId: string; readonly revision: number } {
+  if (
+    value !== null && typeof value === "object" &&
+    typeof Reflect.get(value, "workflowRunId") === "string" &&
+    typeof Reflect.get(value, "jobId") === "string" &&
+    typeof Reflect.get(value, "revision") === "number"
+  ) {
+    return value as { readonly workflowRunId: string; readonly jobId: string; readonly revision: number };
+  }
+  throw new WorkflowStateTransitionError("Stored workflow admission response is invalid.");
+}
+
+/** Concrete durable adapter for the application's workflow-admission port. */
+export class PostgresWorkflowAdmissionPort {
+  private readonly now: () => Date;
+  private readonly createId: NonNullable<PostgresWorkflowAdmissionPortOptions["createId"]>;
+  private readonly executionDefaults: Omit<WorkflowExecutionSpecification, "input">;
+
+  public constructor(private readonly options: PostgresWorkflowAdmissionPortOptions) {
+    this.now = options.now ?? (() => new Date());
+    this.createId = options.createId ?? ((prefix) => `${prefix}-${crypto.randomUUID()}`);
+    this.executionDefaults = {
+      configurationVersion: "workflow-admission.v1",
+      promptVersion: "unversioned",
+      providerSelection: "deferred",
+      rendererVersion: "deferred",
+      presetVersion: "deferred",
+      buildVersion: null,
+      assetHashes: [],
+      taskGraphVersion: "workflow-admission.v1",
+      ...options.executionDefaults,
+    };
+  }
+
+  public async admit(input: {
+    readonly execution: WorkflowAdmissionExecution;
+    readonly command: string;
+    readonly input: unknown;
+  }): Promise<{ readonly workflowRunId: string; readonly jobId: string; readonly revision: number }> {
+    const idempotency = input.execution.idempotency;
+    if (!idempotency) throw new WorkflowStateTransitionError("Workflow admission requires an idempotency key.");
+    const now = this.now().toISOString();
+    const workflowRunId = this.createId("workflow");
+    const jobId = this.createId("job");
+    const response = { workflowRunId, jobId, revision: 0 };
+    const result = await this.options.repository.withWorkspaceTransaction(input.execution.workspace.id, (transaction) =>
+      transaction.admitWorkflow({
+        run: {
+          workspaceId: input.execution.workspace.id,
+          runId: workflowRunId,
+          status: "queued",
+          execution: { ...this.executionDefaults, input: { command: input.command, input: input.input } },
+          supersedesRunId: null,
+          createdAt: now,
+        },
+        idempotencyKey: idempotency.key,
+        requestFingerprint: idempotency.fingerprint,
+        commandId: this.createId("command"),
+        response,
+        job: { jobId, runId: workflowRunId },
+        outbox: {
+          outboxId: this.createId("outbox"),
+          topic: "workflow.queued",
+          payload: { workflowRunId, jobId, command: input.command },
+          availableAt: now,
+        },
+        now,
+      })
+    );
+    return responseFromAdmission(result.response);
+  }
+}
+
+export interface PostgresPublicationReconciliationStoreOptions {
+  readonly repository: PostgresWorkflowRepository;
+  readonly workspaceId: string;
+  readonly now?: () => Date;
+  readonly createAttemptId?: () => string;
+}
+
+/** Tenant-bound persistence adapter for the read-only reconciliation worker. */
+export class PostgresPublicationReconciliationStore {
+  private readonly now: () => Date;
+  private readonly createAttemptId: () => string;
+
+  public constructor(private readonly options: PostgresPublicationReconciliationStoreOptions) {
+    this.now = options.now ?? (() => new Date());
+    this.createAttemptId = options.createAttemptId ?? (() => `reconciliation-${crypto.randomUUID()}`);
+  }
+
+  public async recordResolved(input: {
+    readonly publicationId: string;
+    readonly receipt: { readonly providerObjectId: string; readonly recoveryIdentity: string; readonly evidence: unknown };
+  }): Promise<void> {
+    await this.options.repository.withWorkspaceTransaction(this.options.workspaceId, (transaction) =>
+      transaction.resolvePublicationReconciliation({
+        workspaceId: this.options.workspaceId,
+        publicationId: input.publicationId,
+        receipt: input.receipt,
+      })
+    );
+  }
+
+  public async recordInconclusive(input: {
+    readonly publicationId: string;
+    readonly reason: "no_match" | "multiple_matches" | "provider_unavailable";
+  }): Promise<void> {
+    await this.options.repository.withWorkspaceTransaction(this.options.workspaceId, (transaction) =>
+      transaction.recordPublicationReconciliationAttempt({
+        workspaceId: this.options.workspaceId,
+        attemptId: this.createAttemptId(),
+        publicationId: input.publicationId,
+        reason: input.reason,
+        evidence: { reason: input.reason },
+        now: this.now().toISOString(),
+      })
+    );
   }
 }
 

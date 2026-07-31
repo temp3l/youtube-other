@@ -281,11 +281,11 @@ INSERT INTO workflow_transition_rules (subject_type, from_status, to_status) VAL
   ('step', 'queued', 'running'), ('step', 'queued', 'cancelled'), ('step', 'running', 'succeeded'), ('step', 'running', 'failed'), ('step', 'running', 'cancelled'),
   ('attempt', 'queued', 'running'), ('attempt', 'queued', 'cancelled'), ('attempt', 'running', 'succeeded'), ('attempt', 'running', 'failed'), ('attempt', 'running', 'cancelled'),
   ('batch', 'queued', 'running'), ('batch', 'queued', 'cancelled'), ('batch', 'running', 'succeeded'), ('batch', 'running', 'failed'), ('batch', 'running', 'cancelled'),
-  ('publication', 'pending', 'executing'), ('publication', 'pending', 'cancelled'), ('publication', 'executing', 'published'), ('publication', 'executing', 'failed'), ('publication', 'executing', 'reconciliation_required')
+  ('publication', 'pending', 'executing'), ('publication', 'pending', 'cancelled'), ('publication', 'executing', 'published'), ('publication', 'executing', 'failed'), ('publication', 'executing', 'reconciliation_required'), ('publication', 'reconciliation_required', 'published')
 ON CONFLICT DO NOTHING;
 CREATE OR REPLACE FUNCTION enforce_workflow_transition() RETURNS trigger AS $$
 BEGIN
-  IF OLD.status IN ('succeeded', 'failed', 'cancelled', 'published', 'reconciliation_required') THEN
+  IF OLD.status IN ('succeeded', 'failed', 'cancelled', 'published') THEN
     RAISE EXCEPTION 'terminal % records are immutable', TG_ARGV[0] USING ERRCODE = 'P0001';
   END IF;
   IF NEW.revision <> OLD.revision + 1 THEN
@@ -428,6 +428,17 @@ CREATE TABLE IF NOT EXISTS effect_records (
   updated_at TIMESTAMPTZ NOT NULL,
   PRIMARY KEY (workspace_id, effect_id)
 );
+ALTER TABLE publications ADD COLUMN IF NOT EXISTS provider_receipt JSONB NULL;
+CREATE TABLE IF NOT EXISTS publication_reconciliation_attempts (
+  workspace_id TEXT NOT NULL,
+  attempt_id TEXT NOT NULL,
+  publication_id TEXT NOT NULL,
+  reason TEXT NOT NULL CHECK (reason IN ('no_match', 'multiple_matches', 'provider_unavailable')),
+  evidence JSONB NULL,
+  created_at TIMESTAMPTZ NOT NULL,
+  PRIMARY KEY (workspace_id, attempt_id),
+  FOREIGN KEY (workspace_id, publication_id) REFERENCES publications (workspace_id, publication_id)
+);
 INSERT INTO workflow_transition_rules (subject_type, from_status, to_status) VALUES
   ('job', 'running', 'queued')
 ON CONFLICT DO NOTHING;
@@ -452,7 +463,7 @@ CREATE TRIGGER effect_transition_guard BEFORE UPDATE ON effect_records FOR EACH 
 DO $$
 DECLARE table_name TEXT;
 BEGIN
-  FOREACH table_name IN ARRAY ARRAY['command_admissions', 'workflow_outbox', 'job_dead_letters', 'effect_records']
+  FOREACH table_name IN ARRAY ARRAY['command_admissions', 'workflow_outbox', 'job_dead_letters', 'effect_records', 'publication_reconciliation_attempts']
   LOOP
     EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY', table_name);
     EXECUTE format('ALTER TABLE %I FORCE ROW LEVEL SECURITY', table_name);

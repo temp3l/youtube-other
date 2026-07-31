@@ -164,6 +164,7 @@ describe("application contracts", () => {
     const executing = transitionPublication({ id: "publication-1", approvalRevision: 1, credentialVersion: "credential-1", assetHash: "a".repeat(64), state: "pending" }, "executing");
     const uncertain = transitionPublication(executing, "reconciliation_required");
     expect(() => transitionPublication(uncertain, "executing")).toThrow(/transition/u);
+    expect(transitionPublication(uncertain, "published")).toMatchObject({ state: "published" });
   });
 
   it("binds exactly one publication receipt and never uploads during reconciliation", async () => {

@@ -13,6 +13,7 @@ import {
   type PublishApproval,
   type PublishDryRunEvidence,
 } from "./publish-approval.js";
+import { youtubePublicationRecoveryMarker } from "./publication-reconciliation.js";
 
 const hashSchema = z.string().regex(/^[a-f0-9]{64}$/u);
 const policySchema = z.strictObject({
@@ -247,6 +248,8 @@ export interface PublishYoutubeMediaInput {
   client: YoutubeMediaClient;
   dryRunEvidence: PublishDryRunEvidence;
   approval: PublishApproval;
+  /** Immutable marker persisted in the provider object for uncertain-effect recovery. */
+  recoveryIdentity?: string;
   priorReport?: unknown;
   checkpoint?: (report: GenericYoutubePublishReport) => void | Promise<void>;
 }
@@ -629,6 +632,11 @@ export async function publishYoutubeMedia(
       })
     );
   };
+  const recoveryMarker = input.recoveryIdentity
+    ? `\n\n<!-- ${youtubePublicationRecoveryMarker(input.recoveryIdentity)} -->`
+    : "";
+  if (metadata.description.length + recoveryMarker.length > 5_000)
+    throw new Error("Publication recovery marker would exceed YouTube's description limit.");
   const progress = await executeYoutubeMutationSequence({
     client: input.client,
     expectedChannelId: input.channelId,
@@ -639,7 +647,7 @@ export async function publishYoutubeMedia(
       requestBody: {
         snippet: {
           title: metadata.title,
-          description: metadata.description,
+          description: `${metadata.description}${recoveryMarker}`,
           tags: metadata.tags,
           categoryId: metadata.categoryId,
         },

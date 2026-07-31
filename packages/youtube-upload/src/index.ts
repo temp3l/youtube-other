@@ -59,6 +59,13 @@ export {
   type PublishDryRunEvidence,
   type PublishDryRunInput,
 } from "./publish-approval.js";
+export {
+  YoutubePublicationEvidenceLookup,
+  youtubePublicationRecoveryMarker,
+  type YoutubePublicationReceipt,
+  type YoutubeReconciliationClient,
+} from "./publication-reconciliation.js";
+import type { YoutubeReconciliationClient } from "./publication-reconciliation.js";
 
 const uploadStatusSchema = z.enum(["planned", "uploaded", "failed", "skipped"]);
 const privacyStatusSchema = z.enum(["private", "public", "unlisted"]);
@@ -1147,8 +1154,17 @@ function createYoutubeClient(auth: YoutubeAuthSettings): youtube_v3.Youtube {
     auth.redirectUri ?? "http://localhost"
   );
   oauth2Client.setCredentials({ refresh_token: auth.refreshToken });
-  google.options({ auth: oauth2Client });
-  return google.youtube("v3");
+  return google.youtube({ version: "v3", auth: oauth2Client });
+}
+
+/**
+ * Creates the read-only provider client used by tenant-scoped reconciliation
+ * workers. The caller owns credential-to-tenant authorization.
+ */
+export function createYoutubePublicationReconciliationClient(
+  auth: YoutubeAuthSettings
+): YoutubeReconciliationClient {
+  return createYoutubeClient(auth) as unknown as YoutubeReconciliationClient;
 }
 
 function isMissingYoutubeScopeError(error: unknown): boolean {
