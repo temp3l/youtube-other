@@ -15,6 +15,7 @@ export * from "./postgres-principal-directory.js";
 export * from "./postgres-pilot-api-key-repository.js";
 export * from "./postgres-asset-migration-repository.js";
 export * from "./postgres-publication-channel-lease-repository.js";
+export * from "./postgres-speech-repository.js";
 export * from "./webhook-event-catalog.js";
 export * from "./asset-payload-validation.js";
 export * from "./tenant-object-storage.js";
@@ -50,20 +51,30 @@ export class SQLitePersistence {
        VALUES (?, ?, ?, ?)
        ON CONFLICT(episode_id) DO UPDATE SET manifest_json = excluded.manifest_json, updated_at = excluded.updated_at`
     );
-    statement.run(validated.episodeId, JSON.stringify(validated), validated.createdAt ?? now, now);
+    statement.run(
+      validated.episodeId,
+      JSON.stringify(validated),
+      validated.createdAt ?? now,
+      now
+    );
   }
 
   public loadEpisodeManifest(episodeId: string): EpisodeManifest | null {
-    const row = this.database.prepare("SELECT manifest_json FROM episodes WHERE episode_id = ?").get(episodeId) as
-      | { manifest_json: string }
-      | undefined;
+    const row = this.database
+      .prepare("SELECT manifest_json FROM episodes WHERE episode_id = ?")
+      .get(episodeId) as { manifest_json: string } | undefined;
     if (!row) {
       return null;
     }
-    return episodeManifestSchema.parse(JSON.parse(row.manifest_json) as unknown);
+    return episodeManifestSchema.parse(
+      JSON.parse(row.manifest_json) as unknown
+    );
   }
 
-  public async exportEpisodeManifestToFile(episodeDir: string, manifest: EpisodeManifest): Promise<void> {
+  public async exportEpisodeManifestToFile(
+    episodeDir: string,
+    manifest: EpisodeManifest
+  ): Promise<void> {
     await ensureDir(episodeDir);
     await writeJsonAtomic(path.join(episodeDir, "manifest.json"), manifest);
   }
@@ -75,5 +86,7 @@ export function createPersistence(dbPath: string): SQLitePersistence {
 
 export async function ensureDatabaseFile(dbPath: string): Promise<void> {
   await fs.mkdir(path.dirname(dbPath), { recursive: true });
-  await fs.writeFile(dbPath, await fs.readFile(dbPath).catch(() => Buffer.from(""))).catch(() => undefined);
+  await fs
+    .writeFile(dbPath, await fs.readFile(dbPath).catch(() => Buffer.from("")))
+    .catch(() => undefined);
 }

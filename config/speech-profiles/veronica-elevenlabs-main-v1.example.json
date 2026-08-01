@@ -1,0 +1,33 @@
+{
+  "profile": {
+    "key": "veronica-elevenlabs-main",
+    "displayName": "Veronica multilingual cloned voice",
+    "consentRecordId": "replace-with-consent-record-id",
+    "status": "DRAFT"
+  },
+  "version": {
+    "version": 1,
+    "status": "DRAFT",
+    "configuration": {
+      "provider": "elevenlabs",
+      "modelId": "eleven_multilingual_v2",
+      "voiceId": "replace-with-backend-managed-voice-id",
+      "outputFormat": "mp3_44100_128",
+      "settings": {
+        "stability": 0.65,
+        "similarityBoost": 0.8,
+        "style": 0,
+        "useSpeakerBoost": true,
+        "speed": 1
+      },
+      "pronunciationDictionaryVersions": [],
+      "textNormalization": "auto",
+      "chunking": {
+        "targetCharacters": 4000,
+        "hardMaximumCharacters": 8000,
+        "previousContextCharacters": 400,
+        "nextContextCharacters": 400
+      }
+    }
+  }
+}

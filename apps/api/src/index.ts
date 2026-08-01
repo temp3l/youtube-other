@@ -5,6 +5,7 @@ import {
   PostgresUsageAuditRepository,
   PostgresPrincipalDirectory,
   PostgresPilotApiKeyRepository,
+  PostgresSpeechRepository,
   PostgresWorkflowRepository,
   type PostgresPool,
 } from "@mediaforge/persistence";
@@ -13,6 +14,7 @@ import type { AuthenticatedPrincipal } from "@mediaforge/application";
 import { Pool } from "pg";
 
 export * from "./contract.js";
+export * from "./speech-contract.js";
 export * from "./http-server.js";
 export * from "./job-process.js";
 export * from "./postgres-durable-workflow-loader.js";
@@ -26,7 +28,11 @@ export * from "./reconciliation-process.js";
 export * from "./tenant-reconciliation-scheduler.js";
 export * from "./webhook-process.js";
 export * from "./webhook-endpoint-provision.js";
-import { createApiServer, createDirectoryBackedRequestAuthenticator, type ApiServerOptions } from "./http-server.js";
+import {
+  createApiServer,
+  createDirectoryBackedRequestAuthenticator,
+  type ApiServerOptions,
+} from "./http-server.js";
 import { createPostgresApiUseCases } from "./postgres-api-use-cases.js";
 
 /** Production composition root; HTTP only receives the shared application handler. */
@@ -74,8 +80,9 @@ export function createPostgresApiServer(input: {
 export async function startApiServer(input: {
   readonly port?: number;
   readonly host?: string;
-  readonly authenticate: (request: import("node:http").IncomingMessage) =>
-    Promise<AuthenticatedPrincipal | null>;
+  readonly authenticate: (
+    request: import("node:http").IncomingMessage
+  ) => Promise<AuthenticatedPrincipal | null>;
   readonly cursorSecret: string;
 }) {
   const config = await loadRuntimeConfig();
@@ -91,6 +98,7 @@ export async function startApiServer(input: {
     await new PostgresUsageAuditRepository(pool).migrate();
     await new PostgresPrincipalDirectory(pool).migrate();
     await new PostgresPilotApiKeyRepository(pool).migrate();
+    await new PostgresSpeechRepository(pool).migrate();
     const server = createPostgresApiServer({
       pool,
       authenticate: createDirectoryBackedRequestAuthenticator({
@@ -102,7 +110,10 @@ export async function startApiServer(input: {
     server.once("close", () => {
       void pool.end();
     });
-    return server.listen({ port: input.port ?? config.apiPort, host: input.host ?? "127.0.0.1" });
+    return server.listen({
+      port: input.port ?? config.apiPort,
+      host: input.host ?? "127.0.0.1",
+    });
   } catch (error) {
     await pool.end();
     throw error;

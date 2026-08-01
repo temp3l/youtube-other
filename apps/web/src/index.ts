@@ -1,3 +1,14 @@
+export {
+  renderGenreSpeechSettings,
+  renderVideoSpeechSettings,
+  type GenreSpeechSettingsViewModel,
+  type SpeechGenerationState,
+  type SpeechProfileSummary,
+  type SpeechQuotaSummary,
+  type SpeechViewStatus,
+  type VideoSpeechGenerationViewModel,
+} from "./speech-administration.js";
+
 export function renderHomePage(): string {
   return `<!doctype html>
 <html>
@@ -10,4 +21,3 @@ export function renderHomePage(): string {
   </body>
 </html>`;
 }
-

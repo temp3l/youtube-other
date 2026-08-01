@@ -6,7 +6,7 @@ import {
   type AudioSegment,
   type ContentProfileId,
   type SceneId,
-  type VoiceProfile
+  type VoiceProfile,
 } from "@mediaforge/domain";
 import {
   ensureDir,
@@ -20,12 +20,12 @@ import {
   estimateDurationPricing,
 } from "@mediaforge/observability";
 import { loadSpeechVoiceSettings } from "./voice-settings.js";
-import {
-  makeWavHeader,
-  validateSpeechAudioPayload,
-} from "./wav-analysis.js";
+import { makeWavHeader, validateSpeechAudioPayload } from "./wav-analysis.js";
 import { recordNarrationTelemetry } from "./narration-telemetry.js";
-import { assertCreatorVoiceDispatchAllowed, type SpeechDispatchContext } from "./creator-voice-policy.js";
+import {
+  assertCreatorVoiceDispatchAllowed,
+  type SpeechDispatchContext,
+} from "./creator-voice-policy.js";
 export {
   listEpisodeScriptLanguages,
   loadEpisodeScriptMarkdown,
@@ -70,6 +70,42 @@ export * from "./educational-speech-planning.js";
 export * from "./educational-pronunciation.js";
 export * from "./educational-speech-pipeline.js";
 export * from "./creator-voice-policy.js";
+export {
+  AUDIO_MASTERING_PROFILE_VERSION,
+  SPEECH_CACHE_KEY_SCHEMA_VERSION,
+  elevenLabsSpeechProviderConfigurationSchema,
+  elevenLabsVoiceSettingsSchema,
+  openAiSpeechProviderConfigurationSchema,
+  resolvedSpeechProfileSchema,
+  speechCostEstimateSchema,
+  speechProviderConfigurationSchema,
+  speechProviderIdSchema,
+  speechSynthesisRequestSchema,
+  type ElevenLabsVoiceSettings,
+  type ProviderSpeechResult,
+  type ResolvedSpeechProfile,
+  type SpeechCostEstimate,
+  type SpeechProvider as PlatformSpeechProvider,
+  type SpeechProviderConfiguration,
+  type SpeechProviderId,
+  type SpeechSynthesisRequest as PlatformSpeechSynthesisRequest,
+} from "./platform/contracts.js";
+export * from "./platform/cache-key.js";
+export * from "./platform/chunking.js";
+export * from "./platform/consent.js";
+export * from "./platform/errors.js";
+export * from "./platform/state-machine.js";
+export * from "./platform/registry.js";
+export * from "./platform/openai-provider.js";
+export * from "./platform/legacy-openai-transport.js";
+export * from "./platform/elevenlabs-provider.js";
+export * from "./platform/profile-resolver.js";
+export * from "./platform/profile-administration.js";
+export * from "./platform/service.js";
+export * from "./platform/filesystem-artifacts.js";
+export * from "./platform/workflow-adapter.js";
+export * from "./platform/quota.js";
+export * from "./platform/pricing.js";
 
 export interface SpeechSynthesisRequest {
   /** Runtime-validated before any provider, output, or temporary-file effect. */
@@ -102,7 +138,10 @@ export interface SpeechSynthesisResult extends AudioSegment {
 }
 
 export interface SpeechProvider {
-  synthesize(request: SpeechSynthesisRequest, signal: AbortSignal): Promise<SpeechSynthesisResult>;
+  synthesize(
+    request: SpeechSynthesisRequest,
+    signal: AbortSignal
+  ): Promise<SpeechSynthesisResult>;
 }
 
 export interface OpenAiCompatibleSpeechOptions {
@@ -128,7 +167,13 @@ interface SpeechClientLike {
           readonly model: string;
           readonly voice: string;
           readonly instructions?: string;
-          readonly response_format?: "mp3" | "opus" | "aac" | "flac" | "wav" | "pcm";
+          readonly response_format?:
+            | "mp3"
+            | "opus"
+            | "aac"
+            | "flac"
+            | "wav"
+            | "pcm";
           readonly speed?: number;
         },
         options?: { readonly signal?: AbortSignal }
@@ -137,7 +182,11 @@ interface SpeechClientLike {
   };
 }
 
-async function writePlaceholderToneWav(filePath: string, durationSeconds: number, sampleRate = 24000): Promise<void> {
+async function writePlaceholderToneWav(
+  filePath: string,
+  durationSeconds: number,
+  sampleRate = 24000
+): Promise<void> {
   const channels = 1;
   const bitsPerSample = 16;
   const frames = Math.max(1, Math.floor(durationSeconds * sampleRate));
@@ -145,10 +194,17 @@ async function writePlaceholderToneWav(filePath: string, durationSeconds: number
   const amplitude = Math.max(1, Math.floor(0.02 * 32767));
   const frequencyHz = 220;
   for (let index = 0; index < frames; index += 1) {
-    const sample = Math.round(Math.sin((index / sampleRate) * Math.PI * 2 * frequencyHz) * amplitude);
+    const sample = Math.round(
+      Math.sin((index / sampleRate) * Math.PI * 2 * frequencyHz) * amplitude
+    );
     pcm.writeInt16LE(sample, index * 2);
   }
-  const header = makeWavHeader(sampleRate, channels, bitsPerSample, pcm.byteLength);
+  const header = makeWavHeader(
+    sampleRate,
+    channels,
+    bitsPerSample,
+    pcm.byteLength
+  );
   await ensureDir(path.dirname(filePath));
   const tempPath = `${filePath}.${process.pid}.tmp`;
   await fs.writeFile(tempPath, Buffer.concat([header, pcm]));
@@ -156,17 +212,24 @@ async function writePlaceholderToneWav(filePath: string, durationSeconds: number
 }
 
 function isRetryableSpeechError(error: unknown): boolean {
-  const message = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+  const message =
+    error instanceof Error ? `${error.name}: ${error.message}` : String(error);
   return /insufficient_quota|at capacity|model is at capacity|try a different model|rate limit|too many requests|temporarily unavailable|quality validation|too quiet|noise|clipped|tone or static/i.test(
     message
   );
 }
 
 function uniqueModels(models: ReadonlyArray<string>): string[] {
-  return [...new Set(models.map((model) => model.trim()).filter((model) => model.length > 0))];
+  return [
+    ...new Set(
+      models.map((model) => model.trim()).filter((model) => model.length > 0)
+    ),
+  ];
 }
 
-function resolveEpisodeRootFromAudioOutputPath(outputPath: string): string | undefined {
+function resolveEpisodeRootFromAudioOutputPath(
+  outputPath: string
+): string | undefined {
   const parts = path.resolve(outputPath).split(path.sep);
   const markerIndex = parts.findIndex(
     (part, index) =>
@@ -179,11 +242,19 @@ function resolveEpisodeRootFromAudioOutputPath(outputPath: string): string | und
 }
 
 export class MockSpeechProvider implements SpeechProvider {
-  public async synthesize(request: SpeechSynthesisRequest, signal: AbortSignal): Promise<SpeechSynthesisResult> {
+  public async synthesize(
+    request: SpeechSynthesisRequest,
+    signal: AbortSignal
+  ): Promise<SpeechSynthesisResult> {
     signal.throwIfAborted();
-    assertCreatorVoiceDispatchAllowed(request.contentProfileId, request.dispatchContext);
+    assertCreatorVoiceDispatchAllowed(
+      request.contentProfileId,
+      request.dispatchContext
+    );
     const words = request.text.trim().split(/\s+/u).filter(Boolean).length;
-    const estimatedDuration = request.targetDurationSeconds ?? Math.max(2, Math.ceil((words / request.voiceProfile.paceWpm) * 60));
+    const estimatedDuration =
+      request.targetDurationSeconds ??
+      Math.max(2, Math.ceil((words / request.voiceProfile.paceWpm) * 60));
     await writePlaceholderToneWav(request.outputPath, estimatedDuration);
     return {
       sceneId: request.sceneId,
@@ -193,7 +264,7 @@ export class MockSpeechProvider implements SpeechProvider {
       channels: 1,
       ...(request.requestFingerprint
         ? { requestFingerprint: request.requestFingerprint }
-        : {})
+        : {}),
     };
   }
 }
@@ -204,17 +275,23 @@ export class OpenAiCompatibleSpeechProvider implements SpeechProvider {
   private readonly voice: string;
   private readonly instructions: string;
   private readonly speed: number | undefined;
-  private readonly responseFormat: "mp3" | "opus" | "aac" | "flac" | "wav" | "pcm";
+  private readonly responseFormat:
+    | "mp3"
+    | "opus"
+    | "aac"
+    | "flac"
+    | "wav"
+    | "pcm";
 
   public constructor(private readonly options: OpenAiCompatibleSpeechOptions) {
     this.client = options.client ?? null;
     const speechSettings = loadSpeechVoiceSettings({
       ...(options.model ? { model: options.model } : {}),
-      ...(options.voice ? { voice: options.voice } : {})
+      ...(options.voice ? { voice: options.voice } : {}),
     });
     this.models = uniqueModels([
       options.model ?? speechSettings.model,
-      ...(options.fallbackModels ?? [])
+      ...(options.fallbackModels ?? []),
     ]);
     this.voice = speechSettings.voice;
     this.instructions = options.instructions ?? speechSettings.instructions;
@@ -222,12 +299,20 @@ export class OpenAiCompatibleSpeechProvider implements SpeechProvider {
     this.responseFormat = options.responseFormat ?? "wav";
   }
 
-  public async synthesize(request: SpeechSynthesisRequest, signal: AbortSignal): Promise<SpeechSynthesisResult> {
+  public async synthesize(
+    request: SpeechSynthesisRequest,
+    signal: AbortSignal
+  ): Promise<SpeechSynthesisResult> {
     signal.throwIfAborted();
-    assertCreatorVoiceDispatchAllowed(request.contentProfileId, request.dispatchContext);
+    assertCreatorVoiceDispatchAllowed(
+      request.contentProfileId,
+      request.dispatchContext
+    );
     const telemetry = currentExecutionTelemetry();
     if (!this.options.apiKey) {
-      throw new ProviderAuthenticationError("OpenAI TTS synthesis requires an API key.");
+      throw new ProviderAuthenticationError(
+        "OpenAI TTS synthesis requires an API key."
+      );
     }
     await ensureDir(path.dirname(request.outputPath));
     if (this.models.length === 0) {
@@ -235,7 +320,12 @@ export class OpenAiCompatibleSpeechProvider implements SpeechProvider {
     }
     let lastError: unknown = null;
     for (const model of this.models) {
-      const result = await this.synthesizeWithModel(request, signal, telemetry, model).catch((error: unknown) => {
+      const result = await this.synthesizeWithModel(
+        request,
+        signal,
+        telemetry,
+        model
+      ).catch((error: unknown) => {
         lastError = error;
         if (isRetryableSpeechError(error)) {
           return null;
@@ -249,7 +339,9 @@ export class OpenAiCompatibleSpeechProvider implements SpeechProvider {
     if (lastError) {
       throw lastError;
     }
-    throw new ProviderResponseError("OpenAI speech provider failed without a specific error.");
+    throw new ProviderResponseError(
+      "OpenAI speech provider failed without a specific error."
+    );
   }
 
   private async synthesizeWithModel(
@@ -266,10 +358,13 @@ export class OpenAiCompatibleSpeechProvider implements SpeechProvider {
       "--header",
       `Authorization: Bearer ${this.options.apiKey}`,
       "--header",
-      "Content-Type: application/json"
+      "Content-Type: application/json",
     ];
     if (this.options.organization) {
-      headers.push("--header", `OpenAI-Organization: ${this.options.organization}`);
+      headers.push(
+        "--header",
+        `OpenAI-Organization: ${this.options.organization}`
+      );
     }
     if (this.options.project) {
       headers.push("--header", `OpenAI-Project: ${this.options.project}`);
@@ -283,7 +378,7 @@ export class OpenAiCompatibleSpeechProvider implements SpeechProvider {
         voice: request.voiceProfile.providerVoiceId ?? this.voice,
         instructions: request.instructions ?? this.instructions,
         response_format: this.responseFormat,
-        ...(speed !== undefined ? { speed } : {})
+        ...(speed !== undefined ? { speed } : {}),
       } satisfies Parameters<SpeechClientLike["audio"]["speech"]["create"]>[0];
       try {
         await writeOpenAIDebugLog({
@@ -303,12 +398,20 @@ export class OpenAiCompatibleSpeechProvider implements SpeechProvider {
           },
           status: "pre-dispatch",
         }).catch(() => undefined);
-        const response = await this.client.audio.speech.create(speechOptions, { signal });
+        const response = await this.client.audio.speech.create(speechOptions, {
+          signal,
+        });
         const data = Buffer.from(await response.arrayBuffer());
         if (data.byteLength === 0) {
-          throw new ProviderResponseError("OpenAI speech provider returned an empty audio payload.");
+          throw new ProviderResponseError(
+            "OpenAI speech provider returned an empty audio payload."
+          );
         }
-        const metadata = validateSpeechAudioPayload(tempPath, data, request.targetDurationSeconds);
+        const metadata = validateSpeechAudioPayload(
+          tempPath,
+          data,
+          request.targetDurationSeconds
+        );
         await writeOpenAIDebugLog({
           ...(episodeRoot ? { episodeRoot } : {}),
           operation: "speech-generation",
@@ -343,7 +446,11 @@ export class OpenAiCompatibleSpeechProvider implements SpeechProvider {
               operation: "speech",
               durationSeconds: metadata.durationSeconds,
             })
-          : { pricingVersion: "unconfigured", costMicros: null, warning: undefined };
+          : {
+              pricingVersion: "unconfigured",
+              costMicros: null,
+              warning: undefined,
+            };
         telemetry?.recordApiCall({
           provider: "openai",
           model,
@@ -388,7 +495,7 @@ export class OpenAiCompatibleSpeechProvider implements SpeechProvider {
           channels: metadata.channels,
           ...(request.requestFingerprint
             ? { requestFingerprint: request.requestFingerprint }
-            : {})
+            : {}),
         };
       } catch (error) {
         await writeOpenAIDebugLog({
@@ -443,7 +550,7 @@ export class OpenAiCompatibleSpeechProvider implements SpeechProvider {
         voice: request.voiceProfile.providerVoiceId ?? this.voice,
         instructions: request.instructions ?? this.instructions,
         response_format: this.responseFormat,
-        ...(speed !== undefined ? { speed } : {})
+        ...(speed !== undefined ? { speed } : {}),
       };
       await writeOpenAIDebugLog({
         ...(episodeRoot ? { episodeRoot } : {}),
@@ -456,8 +563,12 @@ export class OpenAiCompatibleSpeechProvider implements SpeechProvider {
           ...speechOptions,
           headers: {
             Authorization: `Bearer ${this.options.apiKey}`,
-            ...(this.options.organization ? { "OpenAI-Organization": this.options.organization } : {}),
-            ...(this.options.project ? { "OpenAI-Project": this.options.project } : {}),
+            ...(this.options.organization
+              ? { "OpenAI-Organization": this.options.organization }
+              : {}),
+            ...(this.options.project
+              ? { "OpenAI-Project": this.options.project }
+              : {}),
           },
         },
         durationMs: 0,
@@ -481,7 +592,10 @@ export class OpenAiCompatibleSpeechProvider implements SpeechProvider {
           tempPath,
           "--data-binary",
           JSON.stringify(speechOptions),
-          new URL("/v1/audio/speech", this.options.baseUrl ?? "https://api.openai.com").toString()
+          new URL(
+            "/v1/audio/speech",
+            this.options.baseUrl ?? "https://api.openai.com"
+          ).toString(),
         ],
         { signal }
       );
@@ -492,13 +606,23 @@ export class OpenAiCompatibleSpeechProvider implements SpeechProvider {
         } catch {
           responseText = result.stderr.trim();
         }
-        throw new ProviderResponseError(responseText.length > 0 ? responseText : "OpenAI speech provider request failed.");
+        throw new ProviderResponseError(
+          responseText.length > 0
+            ? responseText
+            : "OpenAI speech provider request failed."
+        );
       }
       const data = await fs.readFile(tempPath);
       if (data.byteLength === 0) {
-        throw new ProviderResponseError("OpenAI speech provider returned an empty audio payload.");
+        throw new ProviderResponseError(
+          "OpenAI speech provider returned an empty audio payload."
+        );
       }
-      const metadata = validateSpeechAudioPayload(tempPath, data, request.targetDurationSeconds);
+      const metadata = validateSpeechAudioPayload(
+        tempPath,
+        data,
+        request.targetDurationSeconds
+      );
       await writeOpenAIDebugLog({
         ...(episodeRoot ? { episodeRoot } : {}),
         operation: "speech-generation",
@@ -532,7 +656,11 @@ export class OpenAiCompatibleSpeechProvider implements SpeechProvider {
             operation: "speech",
             durationSeconds: metadata.durationSeconds,
           })
-        : { pricingVersion: "unconfigured", costMicros: null, warning: undefined };
+        : {
+            pricingVersion: "unconfigured",
+            costMicros: null,
+            warning: undefined,
+          };
       telemetry?.recordApiCall({
         provider: "openai",
         model,
@@ -577,7 +705,7 @@ export class OpenAiCompatibleSpeechProvider implements SpeechProvider {
         channels: metadata.channels,
         ...(request.requestFingerprint
           ? { requestFingerprint: request.requestFingerprint }
-          : {})
+          : {}),
       };
     } catch (error) {
       const resolvedSpeed = request.speed ?? this.speed;
@@ -631,6 +759,8 @@ export class OpenAiCompatibleSpeechProvider implements SpeechProvider {
   }
 }
 
-export async function ensureSpeechProviderReady(filePath: string): Promise<boolean> {
+export async function ensureSpeechProviderReady(
+  filePath: string
+): Promise<boolean> {
   return filePath.length > 0 && (await fileExists(filePath));
 }

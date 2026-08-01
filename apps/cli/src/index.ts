@@ -66,7 +66,10 @@ import {
   currentExecutionTelemetry,
   withExecutionTelemetry,
 } from "@mediaforge/observability";
-import { createPersistence, type SQLitePersistence } from "@mediaforge/persistence";
+import {
+  createPersistence,
+  type SQLitePersistence,
+} from "@mediaforge/persistence";
 import { runCommand } from "@mediaforge/process-runner";
 import { assertScriptScoreGate } from "@mediaforge/story-localization";
 import {
@@ -146,15 +149,13 @@ import {
   ConnectedApiCliError,
   registerConnectedApiCommands,
 } from "./api-commands.js";
+import { registerSpeechCommands } from "./speech-commands.js";
 import {
   summarizeEpisodeImageState,
   type EpisodeImageSummary,
 } from "./episode-image-summary.js";
 import { registerImagesBatchCommands } from "./images-batch-commands.js";
-import {
-  MathCliSemanticError,
-  registerMathCommands,
-} from "./math-commands.js";
+import { MathCliSemanticError, registerMathCommands } from "./math-commands.js";
 import { buildImageStatusOutput } from "./images-status-output.js";
 import { registerImagesResumeCommand } from "./images-resume-command.js";
 import { registerImagesSyncSharedCommand } from "./images-sync-shared-command.js";
@@ -769,7 +770,10 @@ async function resolveScenesFileForMetadataGeneration(
     ...(variant === "full"
       ? [path.join(episodeDir, safeBasename(language), "full", "scenes.json")]
       : []),
-    await findEpisodeScenesFile(path.dirname(episodeDir), path.basename(episodeDir)),
+    await findEpisodeScenesFile(
+      path.dirname(episodeDir),
+      path.basename(episodeDir)
+    ),
   ];
   for (const candidate of candidates) {
     if (await fileExists(candidate)) {
@@ -833,7 +837,10 @@ function createSpeechProvider(config: RuntimeConfig): SpeechProvider {
     ...(config.speechVoicePreset ? { preset: config.speechVoicePreset } : {}),
     ...(config.scriptLanguage ? { language: config.scriptLanguage } : {}),
   });
-  if (config.ttsProvider !== "openai-compatible" || !config.openAiCompatibleApiKey) {
+  if (
+    config.ttsProvider !== "openai-compatible" ||
+    !config.openAiCompatibleApiKey
+  ) {
     return new MockSpeechProvider();
   }
   return new OpenAiCompatibleSpeechProvider({
@@ -844,25 +851,44 @@ function createSpeechProvider(config: RuntimeConfig): SpeechProvider {
     ...(config.openAiCompatibleProject
       ? { project: config.openAiCompatibleProject }
       : {}),
-    model: config.openAiSpeechModel ?? config.openAiCompatibleModel ?? "gpt-4o-mini-tts",
-    voice: config.openAiSpeechVoice ?? config.openAiCompatibleTtsVoice ?? DEFAULT_SPEECH_VOICE,
+    model:
+      config.openAiSpeechModel ??
+      config.openAiCompatibleModel ??
+      "gpt-4o-mini-tts",
+    voice:
+      config.openAiSpeechVoice ??
+      config.openAiCompatibleTtsVoice ??
+      DEFAULT_SPEECH_VOICE,
     ...(speechSettings.preset ? { preset: speechSettings.preset } : {}),
-    ...(speechSettings.speed !== undefined ? { speed: speechSettings.speed } : {}),
+    ...(speechSettings.speed !== undefined
+      ? { speed: speechSettings.speed }
+      : {}),
     ...(speechSettings.language ? { language: speechSettings.language } : {}),
-    ...(config.openAiCompatibleBaseUrl ? { baseUrl: config.openAiCompatibleBaseUrl } : {}),
+    ...(config.openAiCompatibleBaseUrl
+      ? { baseUrl: config.openAiCompatibleBaseUrl }
+      : {}),
   });
 }
 
-function createTranscriptionProvider(config: RuntimeConfig): TranscriptionProvider {
-  if (config.transcriptionProvider === "openai-compatible" && config.openAiCompatibleApiKey) {
+function createTranscriptionProvider(
+  config: RuntimeConfig
+): TranscriptionProvider {
+  if (
+    config.transcriptionProvider === "openai-compatible" &&
+    config.openAiCompatibleApiKey
+  ) {
     const transcriptionLanguage =
       config.openAiTranscriptionLanguage ?? config.scriptLanguage;
     return new OpenAiCompatibleTranscriptionProvider({
       apiKey: config.openAiCompatibleApiKey,
-      ...(config.openAiCompatibleBaseUrl ? { baseUrl: config.openAiCompatibleBaseUrl } : {}),
+      ...(config.openAiCompatibleBaseUrl
+        ? { baseUrl: config.openAiCompatibleBaseUrl }
+        : {}),
       model: config.openAiTranscriptionModel ?? "whisper-1",
       ...(transcriptionLanguage ? { language: transcriptionLanguage } : {}),
-      ...(config.openAiTranscriptionPrompt ? { prompt: config.openAiTranscriptionPrompt } : {}),
+      ...(config.openAiTranscriptionPrompt
+        ? { prompt: config.openAiTranscriptionPrompt }
+        : {}),
     });
   }
   if (config.transcriptionProvider === "whisper.cpp" && config.whisperModel) {
@@ -879,7 +905,10 @@ function createTranscriptionProvider(config: RuntimeConfig): TranscriptionProvid
   return new MockTranscriptionProvider();
 }
 
-async function loadCliRuntime(options: CliOptions, episodeDir?: string): Promise<CliRuntime> {
+async function loadCliRuntime(
+  options: CliOptions,
+  episodeDir?: string
+): Promise<CliRuntime> {
   const overrides = compactConfigOverrides(configOverridesFromCli(options));
   const episodeConfig = episodeDir ? await loadEpisodeConfig(episodeDir) : null;
   const emptyEpisodeOverrides: RuntimeConfigOverrides = {};
@@ -1428,7 +1457,10 @@ async function synthesizeSpeechChunks(
   return {
     segmentPaths,
     artifacts,
-    totalDurationSeconds: segmentDurations.reduce((sum, duration) => sum + duration, 0),
+    totalDurationSeconds: segmentDurations.reduce(
+      (sum, duration) => sum + duration,
+      0
+    ),
     totalWordCount: chunks.reduce(
       (sum, chunk) =>
         sum + chunk.split(/\s+/u).filter((token) => token.length > 0).length,
@@ -1802,7 +1834,10 @@ async function commandTranscriptExport(
   }
   process.stdout.write(`${output}\n`);
   await ensureDir(path.join(episodeDir, "transcript"));
-  await writeJsonAtomic(path.join(episodeDir, "transcript", "transcript.json"), transcript);
+  await writeJsonAtomic(
+    path.join(episodeDir, "transcript", "transcript.json"),
+    transcript
+  );
   await writeTextAtomic(
     path.join(episodeDir, "transcript", "transcript.srt"),
     buildSrt(transcript.segments)
@@ -1906,7 +1941,9 @@ async function commandAudioGenerate(
     config.openAiCompatibleModel ??
     "gpt-4o-mini-tts";
   const voice =
-    config.openAiSpeechVoice ?? config.openAiCompatibleTtsVoice ?? DEFAULT_SPEECH_VOICE;
+    config.openAiSpeechVoice ??
+    config.openAiCompatibleTtsVoice ??
+    DEFAULT_SPEECH_VOICE;
   const audioInstruction = buildAudioInstructionArtifact({
     narration: narrationDependency,
     speechConfig: {
@@ -1982,12 +2019,8 @@ async function commandAudioGenerate(
         1
       );
     }
-    const {
-      segmentPaths,
-      artifacts,
-      totalDurationSeconds,
-      totalWordCount,
-    } = generated;
+    const { segmentPaths, artifacts, totalDurationSeconds, totalWordCount } =
+      generated;
     const estimatedWpm =
       totalDurationSeconds > 0
         ? (totalWordCount / totalDurationSeconds) * 60
@@ -2045,10 +2078,7 @@ async function commandAudioGenerate(
           const kinds =
             language === "en"
               ? ["audio.segment", "audio.narration"]
-              : [
-                  `audio.segment.${language}`,
-                  `audio.narration.${language}`,
-                ];
+              : [`audio.segment.${language}`, `audio.narration.${language}`];
           return !kinds.includes(artifact.kind);
         }),
         ...completeArtifacts,
@@ -2447,9 +2477,7 @@ async function commandImagesStatus(
       "utf8"
     )
     .then((value) => JSON.parse(value) as Record<string, unknown>)
-    .catch(() => undefined)) as
-    | undefined
-    | Record<string, unknown>;
+    .catch(() => undefined)) as undefined | Record<string, unknown>;
   printJson(
     buildImageStatusOutput({
       totalBatches: report.manifestedScenes,
@@ -2575,19 +2603,22 @@ async function commandImagesPlan(
     options,
     episodeId
   );
-  const settings = loadEpisodeImageGenerationSettings({
-    ...process.env,
-    OPENAI_API_KEY: process.env["OPENAI_API_KEY"] ?? "dry-run",
-    OPENAI_IMAGE_ALLOW_UNAPPROVED_CHARACTER_REFERENCES:
-      options.allowUnapprovedCharacterReferences
+  const settings = loadEpisodeImageGenerationSettings(
+    {
+      ...process.env,
+      OPENAI_API_KEY: process.env["OPENAI_API_KEY"] ?? "dry-run",
+      OPENAI_IMAGE_ALLOW_UNAPPROVED_CHARACTER_REFERENCES:
+        options.allowUnapprovedCharacterReferences
+          ? "true"
+          : process.env["OPENAI_IMAGE_ALLOW_UNAPPROVED_CHARACTER_REFERENCES"],
+      OPENAI_IMAGE_FORCE: options.force
         ? "true"
-        : process.env["OPENAI_IMAGE_ALLOW_UNAPPROVED_CHARACTER_REFERENCES"],
-    OPENAI_IMAGE_FORCE: options.force
-      ? "true"
-      : process.env["OPENAI_IMAGE_FORCE"],
-  }, {
-    profile: "full",
-  });
+        : process.env["OPENAI_IMAGE_FORCE"],
+    },
+    {
+      profile: "full",
+    }
+  );
   const results = await planEpisodeImageGeneration(
     episodeDir,
     manifest.episodeId,
@@ -2597,13 +2628,20 @@ async function commandImagesPlan(
   );
   const summary = {
     totalScenes: results.length,
-    providerCalls: results.filter((result) => result.plannedAction === "generate").length,
-    cacheHits: results.filter((result) => result.plannedAction === "reuse").length,
-    intentionalReuseBeats: results.filter((result) =>
-      ["mergeWithPrevious", "mergeWithNext", "skip"].includes(result.renderability)
+    providerCalls: results.filter(
+      (result) => result.plannedAction === "generate"
     ).length,
-    blocked: results.filter((result) => result.plannedAction === "blocked").length,
-    estimatedCost: "provider/model pricing not configured; providerCalls is the hard upper bound",
+    cacheHits: results.filter((result) => result.plannedAction === "reuse")
+      .length,
+    intentionalReuseBeats: results.filter((result) =>
+      ["mergeWithPrevious", "mergeWithNext", "skip"].includes(
+        result.renderability
+      )
+    ).length,
+    blocked: results.filter((result) => result.plannedAction === "blocked")
+      .length,
+    estimatedCost:
+      "provider/model pricing not configured; providerCalls is the hard upper bound",
   };
   printJson({ summary, scenes: results });
 }
@@ -2629,18 +2667,21 @@ async function commandImagesGenerate(
     locale: "en",
     format: "full",
   });
-  const settings = loadEpisodeImageGenerationSettings({
-    ...process.env,
-    OPENAI_IMAGE_ALLOW_UNAPPROVED_CHARACTER_REFERENCES:
-      options.allowUnapprovedCharacterReferences
+  const settings = loadEpisodeImageGenerationSettings(
+    {
+      ...process.env,
+      OPENAI_IMAGE_ALLOW_UNAPPROVED_CHARACTER_REFERENCES:
+        options.allowUnapprovedCharacterReferences
+          ? "true"
+          : process.env["OPENAI_IMAGE_ALLOW_UNAPPROVED_CHARACTER_REFERENCES"],
+      OPENAI_IMAGE_FORCE: options.force
         ? "true"
-        : process.env["OPENAI_IMAGE_ALLOW_UNAPPROVED_CHARACTER_REFERENCES"],
-    OPENAI_IMAGE_FORCE: options.force
-      ? "true"
-      : process.env["OPENAI_IMAGE_FORCE"],
-  }, {
-    profile: "full",
-  });
+        : process.env["OPENAI_IMAGE_FORCE"],
+    },
+    {
+      profile: "full",
+    }
+  );
   const results = await generateEpisodeImages(
     episodeDir,
     manifest.episodeId,
@@ -2664,18 +2705,21 @@ async function commandImagesGenerateCharacterReferences(
     options,
     episodeId
   );
-  const settings = loadEpisodeImageGenerationSettings({
-    ...process.env,
-    OPENAI_IMAGE_ALLOW_UNAPPROVED_CHARACTER_REFERENCES:
-      options.allowUnapprovedCharacterReferences
+  const settings = loadEpisodeImageGenerationSettings(
+    {
+      ...process.env,
+      OPENAI_IMAGE_ALLOW_UNAPPROVED_CHARACTER_REFERENCES:
+        options.allowUnapprovedCharacterReferences
+          ? "true"
+          : process.env["OPENAI_IMAGE_ALLOW_UNAPPROVED_CHARACTER_REFERENCES"],
+      OPENAI_IMAGE_FORCE: options.force
         ? "true"
-        : process.env["OPENAI_IMAGE_ALLOW_UNAPPROVED_CHARACTER_REFERENCES"],
-    OPENAI_IMAGE_FORCE: options.force
-      ? "true"
-      : process.env["OPENAI_IMAGE_FORCE"],
-  }, {
-    profile: "full",
-  });
+        : process.env["OPENAI_IMAGE_FORCE"],
+    },
+    {
+      profile: "full",
+    }
+  );
   const registry = await generateEpisodeImageReferences(
     episodeDir,
     manifest.episodeId,
@@ -2713,18 +2757,21 @@ async function commandImagesRegenerateCharacter(
     options,
     episodeId
   );
-  const settings = loadEpisodeImageGenerationSettings({
-    ...process.env,
-    OPENAI_IMAGE_ALLOW_UNAPPROVED_CHARACTER_REFERENCES:
-      options.allowUnapprovedCharacterReferences
+  const settings = loadEpisodeImageGenerationSettings(
+    {
+      ...process.env,
+      OPENAI_IMAGE_ALLOW_UNAPPROVED_CHARACTER_REFERENCES:
+        options.allowUnapprovedCharacterReferences
+          ? "true"
+          : process.env["OPENAI_IMAGE_ALLOW_UNAPPROVED_CHARACTER_REFERENCES"],
+      OPENAI_IMAGE_FORCE: options.force
         ? "true"
-        : process.env["OPENAI_IMAGE_ALLOW_UNAPPROVED_CHARACTER_REFERENCES"],
-    OPENAI_IMAGE_FORCE: options.force
-      ? "true"
-      : process.env["OPENAI_IMAGE_FORCE"],
-  }, {
-    profile: "full",
-  });
+        : process.env["OPENAI_IMAGE_FORCE"],
+    },
+    {
+      profile: "full",
+    }
+  );
   const registry = await regenerateEpisodeCharacter(
     episodeDir,
     manifest.episodeId,
@@ -2921,7 +2968,9 @@ function parseNarrationConcurrency(value: string | undefined): number {
   return parsePositiveIntegerOption(value, "--concurrency", 1);
 }
 
-function ensureNarrationPipelineMode(value: string | undefined): NarrationPipelineMode {
+function ensureNarrationPipelineMode(
+  value: string | undefined
+): NarrationPipelineMode {
   return narrationPipelineModeSchema.parse(value ?? "legacy");
 }
 
@@ -2935,7 +2984,9 @@ function normalizeRequestedNarrationLanguages(
     (language, index, all) => all.indexOf(language) === index
   );
   if (options.requireAvailable) {
-    const missing = unique.filter((language) => !availableLanguages.includes(language));
+    const missing = unique.filter(
+      (language) => !availableLanguages.includes(language)
+    );
     if (missing.length > 0) {
       throw new Error(
         `Requested narration language(s) are not available for this episode: ${missing.join(", ")}.`
@@ -3012,7 +3063,9 @@ async function runAudioNarrationPipeline(
     config.openAiCompatibleModel ??
     "gpt-4o-mini-tts";
   const voice =
-    config.openAiSpeechVoice ?? config.openAiCompatibleTtsVoice ?? DEFAULT_SPEECH_VOICE;
+    config.openAiSpeechVoice ??
+    config.openAiCompatibleTtsVoice ??
+    DEFAULT_SPEECH_VOICE;
   let loadedRuntime: CliRuntime | null = null;
   const loadTargetRuntime = async () => {
     loadedRuntime ??= await loadCliRuntime(options, episodeDir);
@@ -3052,9 +3105,13 @@ async function runAudioNarrationPipeline(
           variant,
           stage,
           rolloutMode,
-          ...(commandOptions.resume !== undefined ? { resume: commandOptions.resume } : {}),
-          ...(commandOptions.force !== undefined ? { force: commandOptions.force } : {}),
-          ...(commandOptions.dryRun ?? options.dryRun
+          ...(commandOptions.resume !== undefined
+            ? { resume: commandOptions.resume }
+            : {}),
+          ...(commandOptions.force !== undefined
+            ? { force: commandOptions.force }
+            : {}),
+          ...((commandOptions.dryRun ?? options.dryRun)
             ? { dryRun: commandOptions.dryRun ?? options.dryRun }
             : {}),
           ...(commandOptions.validationOnly !== undefined
@@ -3063,7 +3120,9 @@ async function runAudioNarrationPipeline(
           concurrency: parseNarrationConcurrency(commandOptions.concurrency),
           model,
           voice,
-          ...(speechSettings.speed !== undefined ? { speed: speechSettings.speed } : {}),
+          ...(speechSettings.speed !== undefined
+            ? { speed: speechSettings.speed }
+            : {}),
           outputFormat: "wav",
           baseVoiceInstructions: speechSettings.instructions,
           synthesizeChunk: async (request) => {
@@ -3073,7 +3132,9 @@ async function runAudioNarrationPipeline(
             await runtime.speech.synthesize(
               {
                 contentProfileId: "dark-truth",
-                sceneId: sceneIdSchema.parse(`scene-${sceneNumber.padStart(3, "0")}`),
+                sceneId: sceneIdSchema.parse(
+                  `scene-${sceneNumber.padStart(3, "0")}`
+                ),
                 text: request.text,
                 voiceProfile: speechSettings.profile,
                 outputPath: request.outputPath,
@@ -3081,7 +3142,9 @@ async function runAudioNarrationPipeline(
                   ? { targetDurationSeconds: request.targetDurationSeconds }
                   : {}),
                 instructions: request.instructions,
-                ...(request.speed !== undefined ? { speed: request.speed } : {}),
+                ...(request.speed !== undefined
+                  ? { speed: request.speed }
+                  : {}),
                 dispatchContext: { kind: "legacy-noncreator" },
               },
               new AbortController().signal
@@ -3121,15 +3184,22 @@ async function runAudioNarrationPipeline(
   return results;
 }
 
-function parseVoiceList(value: string | undefined): readonly string[] | undefined {
+function parseVoiceList(
+  value: string | undefined
+): readonly string[] | undefined {
   if (!value) {
     return undefined;
   }
-  const voices = value.split(",").map((item) => item.trim()).filter((item) => item.length > 0);
+  const voices = value
+    .split(",")
+    .map((item) => item.trim())
+    .filter((item) => item.length > 0);
   return voices.length > 0 ? voices : undefined;
 }
 
-function parseBenchmarkLabelMode(value: string | undefined): "anonymous" | "voice" {
+function parseBenchmarkLabelMode(
+  value: string | undefined
+): "anonymous" | "voice" {
   if (value === undefined || value === "anonymous") {
     return "anonymous";
   }
@@ -3145,7 +3215,9 @@ async function commandAudioNarrationBenchmarkVoices(
 ): Promise<void> {
   const config = await loadRuntimeConfig(configOverridesFromCli(options));
   if (config.ttsProvider !== "openai-compatible") {
-    throw new Error("Voice benchmarking requires --tts-provider openai-compatible.");
+    throw new Error(
+      "Voice benchmarking requires --tts-provider openai-compatible."
+    );
   }
   const runtime = await loadCliRuntime(options);
   const language =
@@ -3156,16 +3228,30 @@ async function commandAudioNarrationBenchmarkVoices(
     "en";
   const variant = parseNarrationVariant(commandOptions.variant);
   const outputDir = path.resolve(
-    commandOptions.outputDir ?? path.join(config.workspaceDir, "state", "voice-benchmarks", language, variant)
+    commandOptions.outputDir ??
+      path.join(
+        config.workspaceDir,
+        "state",
+        "voice-benchmarks",
+        language,
+        variant
+      )
   );
   const voices = parseVoiceList(commandOptions.voices);
   const result = await runVoiceBenchmark({
     outputDir,
     provider: runtime.speech,
     ...(voices ? { voices } : {}),
-    maxSamples: parsePositiveIntegerOption(commandOptions.maxSamples, "--max-samples", 4),
+    maxSamples: parsePositiveIntegerOption(
+      commandOptions.maxSamples,
+      "--max-samples",
+      4
+    ),
     labelMode: parseBenchmarkLabelMode(commandOptions.benchmarkLabelMode),
-    model: config.openAiSpeechModel ?? config.openAiCompatibleModel ?? "gpt-4o-mini-tts",
+    model:
+      config.openAiSpeechModel ??
+      config.openAiCompatibleModel ??
+      "gpt-4o-mini-tts",
     language,
     variant,
     ...(config.speechVoicePreset ? { preset: config.speechVoicePreset } : {}),
@@ -3185,7 +3271,10 @@ async function commandAudioNarrationBenchmarkVoices(
 }
 
 async function commandAudioGenerateLocalized(
-  options: CliOptions & { readonly languages?: string; readonly strict?: boolean },
+  options: CliOptions & {
+    readonly languages?: string;
+    readonly strict?: boolean;
+  },
   episodeId: string
 ): Promise<void> {
   markEpisodeTelemetry(episodeId);
@@ -4520,13 +4609,19 @@ audioCommand
   .argument("<episode-id>")
   .option("--languages <comma-separated-languages>", "target languages")
   .option("--dry-run", "preview actions without writing")
-  .option("--strict", "return a strict warning exit code when warnings are present")
+  .option(
+    "--strict",
+    "return a strict warning exit code when warnings are present"
+  )
   .action(
     async (
       episodeId: string,
       opts: { languages?: string; dryRun?: boolean; strict?: boolean }
     ) => {
-      const cliOptions: CliOptions & { readonly languages?: string; readonly strict?: boolean } = {
+      const cliOptions: CliOptions & {
+        readonly languages?: string;
+        readonly strict?: boolean;
+      } = {
         ...program.opts<CliOptions>(),
         ...(opts.dryRun !== undefined ? { dryRun: opts.dryRun } : {}),
         ...(opts.languages !== undefined ? { languages: opts.languages } : {}),
@@ -4550,10 +4645,20 @@ function addAudioNarrationOptions(command: Command): Command {
     .option("--all-variants", "run full and short variants")
     .option("--resume", "reuse completed artifacts when valid")
     .option("--force", "rerun completed stages")
-    .option("--validation-only", "skip mutation stages and validate existing artifacts")
+    .option(
+      "--validation-only",
+      "skip mutation stages and validate existing artifacts"
+    )
     .option("--dry-run", "print planned work without writing")
-    .option("--strict", "return a strict warning exit code when warnings are present")
-    .option("--concurrency <n>", "maximum local narration chunk concurrency", "1")
+    .option(
+      "--strict",
+      "return a strict warning exit code when warnings are present"
+    )
+    .option(
+      "--concurrency <n>",
+      "maximum local narration chunk concurrency",
+      "1"
+    )
     .option("--json", "print machine-readable output");
 }
 
@@ -4575,7 +4680,12 @@ for (const stage of [
       ...(opts.dryRun !== undefined ? { dryRun: opts.dryRun } : {}),
       ...(opts.json !== undefined ? { json: opts.json } : {}),
     };
-    await runAudioNarrationPipeline(cliOptions, opts.episode ?? "", parsedStage, opts);
+    await runAudioNarrationPipeline(
+      cliOptions,
+      opts.episode ?? "",
+      parsedStage,
+      opts
+    );
   });
 }
 
@@ -4587,7 +4697,11 @@ audioNarrationCommand
   .option("--language <code>", "benchmark language")
   .option("--variant <full|short>", "narration variant", "full")
   .option("--output-dir <path>", "benchmark artifact directory")
-  .option("--benchmark-label-mode <anonymous|voice>", "sample label mode", "anonymous")
+  .option(
+    "--benchmark-label-mode <anonymous|voice>",
+    "sample label mode",
+    "anonymous"
+  )
   .option("--json", "print machine-readable output")
   .action(async (opts: VoiceBenchmarkCommandOptions) => {
     const cliOptions: CliOptions = {
@@ -4823,24 +4937,23 @@ const renderCommand = program
   .argument("<episode-id>")
   .option("--profile <profile>", "youtube or vertical", "youtube")
   .option("--captions", "render with burned-in captions");
-addRenderMotionOptions(renderCommand)
-  .action(
-    async (
-      episodeId: string,
-      opts: {
-        profile: "youtube" | "vertical";
-        captions?: boolean;
-      } & RenderMotionCliOptions
-    ) => {
-      await commandRender(
-        program.opts<CliOptions>(),
-        opts,
-        episodeId,
-        opts.profile,
-        opts.captions === true
-      );
-    }
-  );
+addRenderMotionOptions(renderCommand).action(
+  async (
+    episodeId: string,
+    opts: {
+      profile: "youtube" | "vertical";
+      captions?: boolean;
+    } & RenderMotionCliOptions
+  ) => {
+    await commandRender(
+      program.opts<CliOptions>(),
+      opts,
+      episodeId,
+      opts.profile,
+      opts.captions === true
+    );
+  }
+);
 const renderRemoteCommand = renderCommand
   .command("remote")
   .description("Remote rendering utilities");
@@ -4971,6 +5084,7 @@ youtubeCommand
 
 registerEpisodeCommands(program);
 registerConnectedApiCommands(program);
+registerSpeechCommands(program);
 registerShotsCommands(program);
 registerStoryLocalizationCommands(program);
 registerThumbnailCommands(program);
@@ -5034,7 +5148,7 @@ await withExecutionTelemetry(telemetry, async () => {
                 error: error.problem,
                 exitCode: error.exitCode,
               }
-          : serializeError(error),
+            : serializeError(error),
         null,
         2
       )}\n`

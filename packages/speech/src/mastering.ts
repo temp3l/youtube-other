@@ -1,6 +1,12 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { ensureDir, fileExists, hashFile, hashText, writeJsonAtomic } from "@mediaforge/shared";
+import {
+  ensureDir,
+  fileExists,
+  hashFile,
+  hashText,
+  writeJsonAtomic,
+} from "@mediaforge/shared";
 import { runCommand } from "@mediaforge/process-runner";
 import {
   NARRATION_ARTIFACT_SCHEMA_VERSION,
@@ -14,7 +20,7 @@ export interface NarrationMasteringProfile {
   readonly version: string;
   readonly enabled: boolean;
   readonly sampleRate: number;
-  readonly codec: "pcm_s16le";
+  readonly codec: "pcm_s16le" | "flac";
   readonly targetLoudnessLufs: number;
   readonly truePeakLimitDb: number;
   readonly highPassHz?: number;
@@ -59,6 +65,9 @@ export interface MasterNarrationRequest {
   readonly profile: NarrationMasteringProfile;
   readonly createdAt?: string;
   readonly runFfmpeg?: (args: readonly string[]) => Promise<void>;
+  readonly runFfmpegCapture?: (
+    args: readonly string[]
+  ) => Promise<{ readonly stderr: string }>;
   readonly probeAudio?: (filePath: string) => Promise<ProbeAudioMetadata>;
   readonly logger?: {
     info(value: Record<string, unknown>, message?: string): void;
@@ -91,8 +100,18 @@ export function defaultNarrationMasteringProfiles(): readonly NarrationMastering
       truePeakLimitDb: -1.5,
       highPassHz: 70,
       correctiveEq: { frequencyHz: 250, gainDb: -1.5, width: 1.2 },
-      compression: { thresholdDb: -18, ratio: 1.6, attackMs: 12, releaseMs: 120 },
-      deEss: { enabled: false, frequencyHz: 6500, width: 0.8, reductionDb: -1.5 },
+      compression: {
+        thresholdDb: -18,
+        ratio: 1.6,
+        attackMs: 12,
+        releaseMs: 120,
+      },
+      deEss: {
+        enabled: false,
+        frequencyHz: 6500,
+        width: 0.8,
+        reductionDb: -1.5,
+      },
     },
     {
       id: "shorts",
@@ -104,8 +123,18 @@ export function defaultNarrationMasteringProfiles(): readonly NarrationMastering
       truePeakLimitDb: -1.5,
       highPassHz: 80,
       correctiveEq: { frequencyHz: 220, gainDb: -1, width: 1 },
-      compression: { thresholdDb: -20, ratio: 1.8, attackMs: 10, releaseMs: 100 },
-      deEss: { enabled: true, frequencyHz: 6500, width: 0.7, reductionDb: -1.5 },
+      compression: {
+        thresholdDb: -20,
+        ratio: 1.8,
+        attackMs: 10,
+        releaseMs: 100,
+      },
+      deEss: {
+        enabled: true,
+        frequencyHz: 6500,
+        width: 0.7,
+        reductionDb: -1.5,
+      },
     },
     {
       id: "full-length",
@@ -117,15 +146,43 @@ export function defaultNarrationMasteringProfiles(): readonly NarrationMastering
       truePeakLimitDb: -2,
       highPassHz: 65,
       correctiveEq: { frequencyHz: 260, gainDb: -1, width: 1.1 },
-      compression: { thresholdDb: -18, ratio: 1.4, attackMs: 15, releaseMs: 150 },
+      compression: {
+        thresholdDb: -18,
+        ratio: 1.4,
+        attackMs: 15,
+        releaseMs: 150,
+      },
       deEss: { enabled: false, frequencyHz: 6500, width: 0.8, reductionDb: -1 },
     },
   ];
 }
 
-function validateProfile(profile: NarrationMasteringProfile): NarrationMasteringProfile {
+/** Canonical lossless master; this version is part of provider-neutral cache identity. */
+export const CANONICAL_SPEECH_MASTERING_PROFILE = {
+  id: "speech-canonical",
+  version: "speech-master-flac-v1",
+  enabled: true,
+  sampleRate: 48_000,
+  codec: "flac",
+  targetLoudnessLufs: -16,
+  truePeakLimitDb: -1.5,
+} as const satisfies NarrationMasteringProfile;
+
+export interface LoudnessMeasurement {
+  readonly inputI: number;
+  readonly inputTp: number;
+  readonly inputLra: number;
+  readonly inputThreshold: number;
+  readonly targetOffset: number;
+}
+
+function validateProfile(
+  profile: NarrationMasteringProfile
+): NarrationMasteringProfile {
   if (profile.sampleRate < 16_000 || profile.sampleRate > 96_000) {
-    throw new Error("Mastering profile sample rate is outside the supported narration range.");
+    throw new Error(
+      "Mastering profile sample rate is outside the supported narration range."
+    );
   }
   if (profile.targetLoudnessLufs < -24 || profile.targetLoudnessLufs > -12) {
     throw new Error("Mastering target loudness must remain conservative.");
@@ -133,13 +190,18 @@ function validateProfile(profile: NarrationMasteringProfile): NarrationMastering
   if (profile.truePeakLimitDb > -1 || profile.truePeakLimitDb < -6) {
     throw new Error("True-peak limit must remain between -6 dB and -1 dB.");
   }
-  if (profile.compression && (profile.compression.ratio > 2.5 || profile.compression.ratio < 1)) {
+  if (
+    profile.compression &&
+    (profile.compression.ratio > 2.5 || profile.compression.ratio < 1)
+  ) {
     throw new Error("Narration compression ratio must remain light.");
   }
   return profile;
 }
 
-export function buildNarrationMasteringFilters(profileInput: NarrationMasteringProfile): string {
+function buildNarrationPreFilters(
+  profileInput: NarrationMasteringProfile
+): string[] {
   const profile = validateProfile(profileInput);
   const filters: string[] = [];
   if (profile.highPassHz !== undefined) {
@@ -160,29 +222,121 @@ export function buildNarrationMasteringFilters(profileInput: NarrationMasteringP
       `acompressor=threshold=${profile.compression.thresholdDb}dB:ratio=${profile.compression.ratio}:attack=${profile.compression.attackMs}:release=${profile.compression.releaseMs}:makeup=1`
     );
   }
-  filters.push(`loudnorm=I=${profile.targetLoudnessLufs}:TP=${profile.truePeakLimitDb}:LRA=11`);
-  filters.push(`alimiter=limit=${Math.pow(10, profile.truePeakLimitDb / 20).toFixed(4)}`);
-  return filters.join(",");
+  return filters;
+}
+
+export function buildNarrationMasteringFilters(
+  profileInput: NarrationMasteringProfile
+): string {
+  const profile = validateProfile(profileInput);
+  return [
+    ...buildNarrationPreFilters(profile),
+    `loudnorm=I=${profile.targetLoudnessLufs}:TP=${profile.truePeakLimitDb}:LRA=11`,
+    `alimiter=limit=${Math.pow(10, profile.truePeakLimitDb / 20).toFixed(4)}`,
+  ].join(",");
+}
+
+export function buildNarrationLoudnessMeasurementArgs(input: {
+  readonly inputPath: string;
+  readonly profile: NarrationMasteringProfile;
+}): readonly string[] {
+  const profile = validateProfile(input.profile);
+  const filters = [
+    ...buildNarrationPreFilters(profile),
+    `loudnorm=I=${profile.targetLoudnessLufs}:TP=${profile.truePeakLimitDb}:LRA=11:print_format=json`,
+  ].join(",");
+  return [
+    "-hide_banner",
+    "-nostats",
+    "-i",
+    input.inputPath,
+    "-af",
+    filters,
+    "-f",
+    "null",
+    "-",
+  ];
+}
+
+export function parseNarrationLoudnessMeasurement(
+  stderr: string
+): LoudnessMeasurement {
+  const match = /\{[\s\S]*?"input_i"[\s\S]*?\}/u.exec(stderr);
+  if (!match) throw new Error("FFmpeg loudness measurement was missing.");
+  const parsed = JSON.parse(match[0]) as unknown;
+  if (!parsed || typeof parsed !== "object")
+    throw new Error("FFmpeg loudness measurement was invalid.");
+  const values = parsed as Record<string, unknown>;
+  const number = (key: string): number => {
+    const value = Number(values[key]);
+    if (!Number.isFinite(value))
+      throw new Error(`FFmpeg loudness measurement ${key} was invalid.`);
+    return value;
+  };
+  return {
+    inputI: number("input_i"),
+    inputTp: number("input_tp"),
+    inputLra: number("input_lra"),
+    inputThreshold: number("input_thresh"),
+    targetOffset: number("target_offset"),
+  };
+}
+
+export function buildNarrationSecondPassFilters(
+  profileInput: NarrationMasteringProfile,
+  measurement: LoudnessMeasurement
+): string {
+  const profile = validateProfile(profileInput);
+  return [
+    ...buildNarrationPreFilters(profile),
+    `loudnorm=I=${profile.targetLoudnessLufs}:TP=${profile.truePeakLimitDb}:LRA=11:measured_I=${measurement.inputI}:measured_TP=${measurement.inputTp}:measured_LRA=${measurement.inputLra}:measured_thresh=${measurement.inputThreshold}:offset=${measurement.targetOffset}:linear=true:print_format=summary`,
+    `alimiter=limit=${Math.pow(10, profile.truePeakLimitDb / 20).toFixed(4)}`,
+  ].join(",");
 }
 
 export function buildNarrationMasteringFfmpegArgs(input: {
   readonly inputPath: string;
   readonly outputPath: string;
   readonly profile: NarrationMasteringProfile;
+  readonly measuredLoudness?: LoudnessMeasurement;
 }): readonly string[] {
   const profile = validateProfile(input.profile);
   const args = ["-y", "-i", input.inputPath];
   if (profile.enabled) {
-    args.push("-af", buildNarrationMasteringFilters(profile));
+    args.push(
+      "-af",
+      input.measuredLoudness
+        ? buildNarrationSecondPassFilters(profile, input.measuredLoudness)
+        : buildNarrationMasteringFilters(profile)
+    );
   }
-  args.push("-ar", String(profile.sampleRate), "-ac", "1", "-c:a", profile.codec, input.outputPath);
+  args.push(
+    "-ar",
+    String(profile.sampleRate),
+    "-ac",
+    "1",
+    "-c:a",
+    profile.codec
+  );
+  if (profile.codec === "flac") args.push("-sample_fmt", "s16");
+  args.push(input.outputPath);
   return args;
 }
 
-async function probeAudioWithFfprobe(filePath: string): Promise<ProbeAudioMetadata> {
+async function probeAudioWithFfprobe(
+  filePath: string
+): Promise<ProbeAudioMetadata> {
   const result = await runCommand(
     "ffprobe",
-    ["-v", "error", "-show_entries", "format=duration", "-of", "default=noprint_wrappers=1:nokey=1", filePath],
+    [
+      "-v",
+      "error",
+      "-show_entries",
+      "format=duration",
+      "-of",
+      "default=noprint_wrappers=1:nokey=1",
+      filePath,
+    ],
     { timeoutMs: 30_000 }
   );
   return { durationSeconds: Number.parseFloat(result.stdout.trim()) };
@@ -199,7 +353,10 @@ async function writeMetadata(input: {
   readonly outputDurationMs?: number;
   readonly outputHash?: string;
   readonly status: "completed" | "failed";
-  readonly warnings: readonly { readonly code: string; readonly message: string }[];
+  readonly warnings: readonly {
+    readonly code: string;
+    readonly message: string;
+  }[];
 }): Promise<NarrationMasteringMetadata> {
   const metadata = narrationMasteringMetadataSchema.parse({
     schemaVersion: NARRATION_ARTIFACT_SCHEMA_VERSION,
@@ -207,15 +364,22 @@ async function writeMetadata(input: {
     inputHash: input.inputHash,
     masteringProfileName: input.request.profile.id,
     masteringProfileVersion: input.request.profile.version,
-    masteringConfigurationFingerprint: profileFingerprint(input.request.profile),
+    masteringConfigurationFingerprint: profileFingerprint(
+      input.request.profile
+    ),
     ...(input.status === "completed"
       ? {
-          outputPath: relative(input.request.narrationRoot, input.request.outputPath),
+          outputPath: relative(
+            input.request.narrationRoot,
+            input.request.outputPath
+          ),
           outputHash: input.outputHash,
         }
       : {}),
     inputDurationMs: input.inputDurationMs,
-    ...(input.outputDurationMs !== undefined ? { outputDurationMs: input.outputDurationMs } : {}),
+    ...(input.outputDurationMs !== undefined
+      ? { outputDurationMs: input.outputDurationMs }
+      : {}),
     targetLoudnessLufs: input.request.profile.targetLoudnessLufs,
     truePeakTargetDb: input.request.profile.truePeakLimitDb,
     sampleRate: input.request.profile.sampleRate,
@@ -228,22 +392,53 @@ async function writeMetadata(input: {
   return metadata;
 }
 
-export async function masterNarration(request: MasterNarrationRequest): Promise<NarrationMasteringResult> {
+export async function masterNarration(
+  request: MasterNarrationRequest
+): Promise<NarrationMasteringResult> {
   const profile = validateProfile(request.profile);
   const inputHash = await hashFile(request.inputPath);
-  const inputProbe = await (request.probeAudio ?? probeAudioWithFfprobe)(request.inputPath);
+  const inputProbe = await (request.probeAudio ?? probeAudioWithFfprobe)(
+    request.inputPath
+  );
   const inputDurationMs = Math.max(0, inputProbe.durationSeconds * 1000);
   await ensureDir(path.dirname(request.outputPath));
-  const tempPath = path.join(path.dirname(request.outputPath), `${path.basename(request.outputPath)}.${process.pid}.${Date.now()}.tmp.wav`);
+  const extension = profile.codec === "flac" ? "flac" : "wav";
+  const tempPath = path.join(
+    path.dirname(request.outputPath),
+    `${path.basename(request.outputPath)}.${process.pid}.${Date.now()}.tmp.${extension}`
+  );
   try {
+    let measuredLoudness: LoudnessMeasurement | undefined;
+    if (profile.enabled && profile.codec === "flac") {
+      const measurementArgs = buildNarrationLoudnessMeasurementArgs({
+        inputPath: request.inputPath,
+        profile,
+      });
+      const measured = request.runFfmpegCapture
+        ? await request.runFfmpegCapture(measurementArgs)
+        : await runCommand("ffmpeg", measurementArgs, { timeoutMs: 300_000 });
+      measuredLoudness = parseNarrationLoudnessMeasurement(measured.stderr);
+    }
     const args = buildNarrationMasteringFfmpegArgs({
       inputPath: request.inputPath,
       outputPath: tempPath,
       profile,
+      ...(measuredLoudness ? { measuredLoudness } : {}),
     });
-    await (request.runFfmpeg ?? ((ffmpegArgs) => runCommand("ffmpeg", ffmpegArgs, { timeoutMs: 300_000 }).then(() => undefined)))(args);
-    const outputProbe = await (request.probeAudio ?? probeAudioWithFfprobe)(tempPath);
-    if (!Number.isFinite(outputProbe.durationSeconds) || outputProbe.durationSeconds <= 0) {
+    await (
+      request.runFfmpeg ??
+      ((ffmpegArgs) =>
+        runCommand("ffmpeg", ffmpegArgs, { timeoutMs: 300_000 }).then(
+          () => undefined
+        ))
+    )(args);
+    const outputProbe = await (request.probeAudio ?? probeAudioWithFfprobe)(
+      tempPath
+    );
+    if (
+      !Number.isFinite(outputProbe.durationSeconds) ||
+      outputProbe.durationSeconds <= 0
+    ) {
       throw new Error("Mastered narration output is not decodable.");
     }
     const outputHash = await hashFile(tempPath);
@@ -255,7 +450,14 @@ export async function masterNarration(request: MasterNarrationRequest): Promise<
       outputDurationMs: outputProbe.durationSeconds * 1000,
       outputHash,
       status: "completed",
-      warnings: profile.enabled ? [] : [{ code: "MASTERING_DISABLED", message: "Profile leaves clean narration unchanged." }],
+      warnings: profile.enabled
+        ? []
+        : [
+            {
+              code: "MASTERING_DISABLED",
+              message: "Profile leaves clean narration unchanged.",
+            },
+          ],
     });
     request.logger?.info(
       {
@@ -267,7 +469,12 @@ export async function masterNarration(request: MasterNarrationRequest): Promise<
       },
       "Mastered narration."
     );
-    return { status: "completed", metadata, outputPath: request.outputPath, outputHash };
+    return {
+      status: "completed",
+      metadata,
+      outputPath: request.outputPath,
+      outputHash,
+    };
   } catch (error) {
     const metadata = await writeMetadata({
       request,
@@ -281,7 +488,10 @@ export async function masterNarration(request: MasterNarrationRequest): Promise<
         },
       ],
     });
-    request.logger?.warn?.({ profile: profile.id, outputPath: request.outputPath }, "Narration mastering failed.");
+    request.logger?.warn?.(
+      { profile: profile.id, outputPath: request.outputPath },
+      "Narration mastering failed."
+    );
     return {
       status: "failed",
       metadata,

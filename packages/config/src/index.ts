@@ -32,18 +32,20 @@ export {
 const visualRetentionPresetSchema = z.strictObject({
   id: z.enum(["short-45-60", "short-60-75", "full-4-6m"]),
   pacingProfileId: visualPacingProfileIdSchema,
-  narrationDurationMs: z.object({
-    minMs: z.number().int().nonnegative(),
-    maxMs: z.number().int().nonnegative(),
-  }).superRefine((value, ctx) => {
-    if (value.minMs > value.maxMs) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["minMs"],
-        message: "Minimum duration must not exceed maximum duration.",
-      });
-    }
-  }),
+  narrationDurationMs: z
+    .object({
+      minMs: z.number().int().nonnegative(),
+      maxMs: z.number().int().nonnegative(),
+    })
+    .superRefine((value, ctx) => {
+      if (value.minMs > value.maxMs) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["minMs"],
+          message: "Minimum duration must not exceed maximum duration.",
+        });
+      }
+    }),
   budget: visualBudgetSchema,
 });
 
@@ -126,21 +128,25 @@ const narrationMasteringProfileSchema = z.strictObject({
     .optional(),
 });
 
-const narrationMasteringProfileOverrideSchema =
-  narrationMasteringProfileSchema.partial().extend({
+const narrationMasteringProfileOverrideSchema = narrationMasteringProfileSchema
+  .partial()
+  .extend({
     id: narrationMasteringProfileSchema.shape.id,
   });
 
 const narrationMasteringConfigSchema = z.strictObject({
-  profiles: z.array(narrationMasteringProfileSchema).min(1).superRefine((profiles, ctx) => {
-    const ids = profiles.map((profile) => profile.id);
-    if (new Set(ids).size !== ids.length) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "Narration mastering profile ids must be unique.",
-      });
-    }
-  }),
+  profiles: z
+    .array(narrationMasteringProfileSchema)
+    .min(1)
+    .superRefine((profiles, ctx) => {
+      const ids = profiles.map((profile) => profile.id);
+      if (new Set(ids).size !== ids.length) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Narration mastering profile ids must be unique.",
+        });
+      }
+    }),
   defaultProfileByVariant: z.strictObject({
     full: z.enum(["clean", "render-ready", "shorts", "full-length"]),
     short: z.enum(["clean", "render-ready", "shorts", "full-length"]),
@@ -151,8 +157,12 @@ const narrationMasteringConfigOverrideSchema = z.strictObject({
   profiles: z.array(narrationMasteringProfileOverrideSchema).optional(),
   defaultProfileByVariant: z
     .strictObject({
-      full: z.enum(["clean", "render-ready", "shorts", "full-length"]).optional(),
-      short: z.enum(["clean", "render-ready", "shorts", "full-length"]).optional(),
+      full: z
+        .enum(["clean", "render-ready", "shorts", "full-length"])
+        .optional(),
+      short: z
+        .enum(["clean", "render-ready", "shorts", "full-length"])
+        .optional(),
     })
     .optional(),
 });
@@ -178,8 +188,18 @@ const defaultNarrationMasteringConfig = narrationMasteringConfigSchema.parse({
       truePeakLimitDb: -1.5,
       highPassHz: 70,
       correctiveEq: { frequencyHz: 250, gainDb: -1.5, width: 1.2 },
-      compression: { thresholdDb: -18, ratio: 1.6, attackMs: 12, releaseMs: 120 },
-      deEss: { enabled: false, frequencyHz: 6_500, width: 0.8, reductionDb: -1.5 },
+      compression: {
+        thresholdDb: -18,
+        ratio: 1.6,
+        attackMs: 12,
+        releaseMs: 120,
+      },
+      deEss: {
+        enabled: false,
+        frequencyHz: 6_500,
+        width: 0.8,
+        reductionDb: -1.5,
+      },
     },
     {
       id: "shorts",
@@ -191,8 +211,18 @@ const defaultNarrationMasteringConfig = narrationMasteringConfigSchema.parse({
       truePeakLimitDb: -1.5,
       highPassHz: 80,
       correctiveEq: { frequencyHz: 220, gainDb: -1, width: 1 },
-      compression: { thresholdDb: -20, ratio: 1.8, attackMs: 10, releaseMs: 100 },
-      deEss: { enabled: true, frequencyHz: 6_500, width: 0.7, reductionDb: -1.5 },
+      compression: {
+        thresholdDb: -20,
+        ratio: 1.8,
+        attackMs: 10,
+        releaseMs: 100,
+      },
+      deEss: {
+        enabled: true,
+        frequencyHz: 6_500,
+        width: 0.7,
+        reductionDb: -1.5,
+      },
     },
     {
       id: "full-length",
@@ -204,8 +234,18 @@ const defaultNarrationMasteringConfig = narrationMasteringConfigSchema.parse({
       truePeakLimitDb: -2,
       highPassHz: 65,
       correctiveEq: { frequencyHz: 260, gainDb: -1, width: 1.1 },
-      compression: { thresholdDb: -18, ratio: 1.4, attackMs: 15, releaseMs: 150 },
-      deEss: { enabled: false, frequencyHz: 6_500, width: 0.8, reductionDb: -1 },
+      compression: {
+        thresholdDb: -18,
+        ratio: 1.4,
+        attackMs: 15,
+        releaseMs: 150,
+      },
+      deEss: {
+        enabled: false,
+        frequencyHz: 6_500,
+        width: 0.8,
+        reductionDb: -1,
+      },
     },
   ],
   defaultProfileByVariant: {
@@ -409,14 +449,14 @@ type NarrationMasteringConfigOverride = z.infer<
 
 function mergeVisualRetentionProfile(
   baseProfile: VisualRetentionProfile,
-  override: VisualRetentionProfileOverride | undefined,
+  override: VisualRetentionProfileOverride | undefined
 ) {
   return override === undefined ? baseProfile : { ...baseProfile, ...override };
 }
 
 function mergeVisualRetentionConfig(
   overrides: VisualRetentionConfigOverride | undefined,
-  episodeOverrides: VisualRetentionConfigOverride | undefined,
+  episodeOverrides: VisualRetentionConfigOverride | undefined
 ) {
   const merged =
     episodeOverrides === undefined && overrides === undefined
@@ -426,22 +466,22 @@ function mergeVisualRetentionConfig(
             atmospheric: mergeVisualRetentionProfile(
               defaultVisualRetentionConfig.pacingProfiles.atmospheric,
               overrides?.pacingProfiles?.atmospheric ??
-                episodeOverrides?.pacingProfiles?.atmospheric,
+                episodeOverrides?.pacingProfiles?.atmospheric
             ),
             balanced: mergeVisualRetentionProfile(
               defaultVisualRetentionConfig.pacingProfiles.balanced,
               overrides?.pacingProfiles?.balanced ??
-                episodeOverrides?.pacingProfiles?.balanced,
+                episodeOverrides?.pacingProfiles?.balanced
             ),
             "high-retention": mergeVisualRetentionProfile(
               defaultVisualRetentionConfig.pacingProfiles["high-retention"],
               overrides?.pacingProfiles?.["high-retention"] ??
-                episodeOverrides?.pacingProfiles?.["high-retention"],
+                episodeOverrides?.pacingProfiles?.["high-retention"]
             ),
             "shorts-aggressive": mergeVisualRetentionProfile(
               defaultVisualRetentionConfig.pacingProfiles["shorts-aggressive"],
               overrides?.pacingProfiles?.["shorts-aggressive"] ??
-                episodeOverrides?.pacingProfiles?.["shorts-aggressive"],
+                episodeOverrides?.pacingProfiles?.["shorts-aggressive"]
             ),
           },
           defaults: {
@@ -461,19 +501,23 @@ function mergeVisualRetentionConfig(
 
 function mergeNarrationMasteringConfig(
   overrides: NarrationMasteringConfigOverride | undefined,
-  episodeOverrides: NarrationMasteringConfigOverride | undefined,
+  episodeOverrides: NarrationMasteringConfigOverride | undefined
 ): NarrationMasteringConfig {
   const profileOverrides = [
     ...(episodeOverrides?.profiles ?? []),
     ...(overrides?.profiles ?? []),
   ];
-  const profiles = defaultNarrationMasteringConfig.profiles.map((baseProfile) => {
-    const matchingOverrides = profileOverrides.filter((override) => override.id === baseProfile.id);
-    return matchingOverrides.reduce(
-      (current, override) => ({ ...current, ...override }),
-      baseProfile,
-    );
-  });
+  const profiles = defaultNarrationMasteringConfig.profiles.map(
+    (baseProfile) => {
+      const matchingOverrides = profileOverrides.filter(
+        (override) => override.id === baseProfile.id
+      );
+      return matchingOverrides.reduce(
+        (current, override) => ({ ...current, ...override }),
+        baseProfile
+      );
+    }
+  );
   return narrationMasteringConfigSchema.parse({
     profiles,
     defaultProfileByVariant: {
@@ -519,23 +563,37 @@ const configSchema = z.object({
   openAiTranscriptionPrompt: z.string().optional(),
   openAiStoryModel: z.string().optional(),
   openAiStoryTemperature: z.number().min(0).max(2).optional(),
-  openAiStoryReasoningEffort: z.enum(["none", "minimal", "low", "medium", "high", "xhigh"]).optional(),
+  openAiStoryReasoningEffort: z
+    .enum(["none", "minimal", "low", "medium", "high", "xhigh"])
+    .optional(),
   openAiStoryMaxOutputTokens: z.number().int().positive().optional(),
   openAiStoryRetryMaxOutputTokens: z.number().int().positive().optional(),
   horrorAffectRolloutMode: z.enum(["off", "shadow", "enforce"]),
   openAiLocalizationModel: z.string().optional(),
-  openAiLocalizationReasoningEffort: z.enum(["none", "minimal", "low", "medium", "high", "xhigh"]).optional(),
+  openAiLocalizationReasoningEffort: z
+    .enum(["none", "minimal", "low", "medium", "high", "xhigh"])
+    .optional(),
   openAiLocalizationMaxOutputTokens: z.number().int().positive().optional(),
   openAiShortModel: z.string().optional(),
-  openAiShortReasoningEffort: z.enum(["none", "minimal", "low", "medium", "high", "xhigh"]).optional(),
+  openAiShortReasoningEffort: z
+    .enum(["none", "minimal", "low", "medium", "high", "xhigh"])
+    .optional(),
   openAiShortRewriteMaxOutputTokens: z.number().int().positive().optional(),
-  openAiShortRewriteRetryMaxOutputTokens: z.number().int().positive().optional(),
+  openAiShortRewriteRetryMaxOutputTokens: z
+    .number()
+    .int()
+    .positive()
+    .optional(),
   openAiShortMaxOutputTokens: z.number().int().positive().optional(),
   openAiValidatorModel: z.string().optional(),
-  openAiValidatorReasoningEffort: z.enum(["none", "minimal", "low", "medium", "high", "xhigh"]).optional(),
+  openAiValidatorReasoningEffort: z
+    .enum(["none", "minimal", "low", "medium", "high", "xhigh"])
+    .optional(),
   openAiValidatorMaxOutputTokens: z.number().int().positive().optional(),
   openAiMetadataModel: z.string().optional(),
-  openAiMetadataReasoningEffort: z.enum(["none", "minimal", "low", "medium", "high", "xhigh"]).optional(),
+  openAiMetadataReasoningEffort: z
+    .enum(["none", "minimal", "low", "medium", "high", "xhigh"])
+    .optional(),
   openAiMetadataMaxOutputTokens: z.number().int().positive().optional(),
   openAiMetadataMaxRetries: z.number().int().positive().optional(),
   openAiMetadataKeepFile: z.boolean(),
@@ -550,10 +608,23 @@ const configSchema = z.object({
   openAiImageShortQuality: z.enum(["low", "medium", "high", "auto"]),
   openAiImageShortSize: z.string().regex(/^\d+x\d+$/u),
   openAiImageValidatorModel: z.string().min(1),
-  openAiImageValidatorReasoningEffort: z.enum(["none", "minimal", "low", "medium", "high", "xhigh"]),
+  openAiImageValidatorReasoningEffort: z.enum([
+    "none",
+    "minimal",
+    "low",
+    "medium",
+    "high",
+    "xhigh",
+  ]),
   openAiPromptCacheMode: z.enum(["disabled", "implicit", "explicit"]),
-  openAiPromptCacheShardCount: z.union([z.literal("auto"), z.number().int().min(1).max(32)]),
-  youtubeMetadataLanguage: z.string().regex(/^[a-z]{2}(?:-[a-z0-9]{2,8})*$/iu).optional(),
+  openAiPromptCacheShardCount: z.union([
+    z.literal("auto"),
+    z.number().int().min(1).max(32),
+  ]),
+  youtubeMetadataLanguage: z
+    .string()
+    .regex(/^[a-z]{2}(?:-[a-z0-9]{2,8})*$/iu)
+    .optional(),
   openAiCompatibleBaseUrl: z.string().url().optional(),
   openAiCompatibleApiKey: z.string().optional(),
   openAiCompatibleOrganization: z.string().optional(),
@@ -562,9 +633,16 @@ const configSchema = z.object({
   openAiCompatibleTtsVoice: z.string().optional(),
   openAiSpeechModel: z.string().optional(),
   openAiSpeechVoice: z.string().optional(),
+  elevenLabsFeatureEnabled: z.boolean(),
+  elevenLabsApiKey: z.string().optional(),
+  elevenLabsBaseUrl: z.string().url().optional(),
+  elevenLabsRequestTimeoutMs: z.number().int().positive(),
   speechVoicePreset: z.enum(["slow", "fast", "very-fast"]).optional(),
   narrationPipelineMode: z.enum(["legacy", "shadow", "new"]),
-  scriptLanguage: z.string().regex(/^[a-z]{2}(?:-[a-z0-9]{2,8})*$/iu).optional(),
+  scriptLanguage: z
+    .string()
+    .regex(/^[a-z]{2}(?:-[a-z0-9]{2,8})*$/iu)
+    .optional(),
   youtubeClientId: z.string().optional(),
   youtubeClientSecret: z.string().optional(),
   youtubeRefreshToken: z.string().optional(),
@@ -597,7 +675,10 @@ const configSchema = z.object({
   localRenderConcurrency: z.number().int().positive().optional(),
   remoteRenderCleanupMaxAgeHours: z.number().int().positive(),
   mathRenderExecutor: z.enum(["local", "remote", "hybrid"]),
-  mathRemoteImageId: z.string().regex(/^sha256:[a-f0-9]{64}$/u).optional(),
+  mathRemoteImageId: z
+    .string()
+    .regex(/^sha256:[a-f0-9]{64}$/u)
+    .optional(),
   mathLocalSceneSlots: z.number().int().positive(),
   mathRemoteSceneSlots: z.number().int().positive(),
   mathRemoteJobConcurrency: z.number().int().positive(),
@@ -625,7 +706,9 @@ export const remoteTransportConfigSchema = z.strictObject({
 });
 export type RemoteTransportConfig = z.infer<typeof remoteTransportConfigSchema>;
 
-export function parseRemoteTransportConfig(config: RuntimeConfig): RemoteTransportConfig {
+export function parseRemoteTransportConfig(
+  config: RuntimeConfig
+): RemoteTransportConfig {
   return remoteTransportConfigSchema.parse({
     enabled: config.remoteRenderEnabled,
     host: config.remoteRenderHost,
@@ -645,7 +728,9 @@ export function parseRemoteTransportConfig(config: RuntimeConfig): RemoteTranspo
   });
 }
 
-const reasoningSupportByModel: Readonly<Record<string, readonly RuntimeConfig["openAiStoryReasoningEffort"][]>> = {
+const reasoningSupportByModel: Readonly<
+  Record<string, readonly RuntimeConfig["openAiStoryReasoningEffort"][]>
+> = {
   "gpt-5.6-sol": ["low", "medium", "high", "xhigh"],
   "gpt-5.6-terra": ["low", "medium", "high"],
   "gpt-5.4-mini": ["none", "low", "medium", "high"],
@@ -666,22 +751,49 @@ export function assertSupportedModelReasoning(
 
 export function validateOpenAiModelConfiguration(config: RuntimeConfig): void {
   const combinations = [
-    [config.openAiStoryModel, config.openAiStoryReasoningEffort, "MEDIAFORGE_OPENAI_STORY_REASONING_EFFORT"],
-    [config.openAiLocalizationModel, config.openAiLocalizationReasoningEffort, "MEDIAFORGE_OPENAI_LOCALIZATION_REASONING_EFFORT"],
-    [config.openAiShortModel, config.openAiShortReasoningEffort, "MEDIAFORGE_OPENAI_SHORT_REASONING_EFFORT"],
-    [config.openAiValidatorModel, config.openAiValidatorReasoningEffort, "MEDIAFORGE_OPENAI_VALIDATOR_REASONING_EFFORT"],
-    [config.openAiMetadataModel, config.openAiMetadataReasoningEffort, "MEDIAFORGE_OPENAI_METADATA_REASONING_EFFORT"],
-    [config.openAiImageValidatorModel, config.openAiImageValidatorReasoningEffort, "MEDIAFORGE_OPENAI_IMAGE_VALIDATOR_REASONING_EFFORT"],
+    [
+      config.openAiStoryModel,
+      config.openAiStoryReasoningEffort,
+      "MEDIAFORGE_OPENAI_STORY_REASONING_EFFORT",
+    ],
+    [
+      config.openAiLocalizationModel,
+      config.openAiLocalizationReasoningEffort,
+      "MEDIAFORGE_OPENAI_LOCALIZATION_REASONING_EFFORT",
+    ],
+    [
+      config.openAiShortModel,
+      config.openAiShortReasoningEffort,
+      "MEDIAFORGE_OPENAI_SHORT_REASONING_EFFORT",
+    ],
+    [
+      config.openAiValidatorModel,
+      config.openAiValidatorReasoningEffort,
+      "MEDIAFORGE_OPENAI_VALIDATOR_REASONING_EFFORT",
+    ],
+    [
+      config.openAiMetadataModel,
+      config.openAiMetadataReasoningEffort,
+      "MEDIAFORGE_OPENAI_METADATA_REASONING_EFFORT",
+    ],
+    [
+      config.openAiImageValidatorModel,
+      config.openAiImageValidatorReasoningEffort,
+      "MEDIAFORGE_OPENAI_IMAGE_VALIDATOR_REASONING_EFFORT",
+    ],
   ] as const;
   for (const [model, effort, settingName] of combinations) {
-    if (model && effort) assertSupportedModelReasoning(model, effort, settingName);
+    if (model && effort)
+      assertSupportedModelReasoning(model, effort, settingName);
   }
 }
 export const runtimeConfigOverridesSchema = configSchema.partial().extend({
   visualRetention: visualRetentionConfigOverrideSchema.optional(),
   narrationMastering: narrationMasteringConfigOverrideSchema.optional(),
 });
-export type RuntimeConfigOverrides = z.infer<typeof runtimeConfigOverridesSchema>;
+export type RuntimeConfigOverrides = z.infer<
+  typeof runtimeConfigOverridesSchema
+>;
 export const episodeConfigSchema: z.ZodType<RuntimeConfigOverrides> =
   runtimeConfigOverridesSchema;
 export type EpisodeConfig = z.infer<typeof episodeConfigSchema>;
@@ -703,7 +815,8 @@ function parseDotEnv(content: string): Record<string, string> {
       continue;
     }
     const quoted =
-      (rawValue.startsWith('"') && rawValue.endsWith('"')) || (rawValue.startsWith("'") && rawValue.endsWith("'"))
+      (rawValue.startsWith('"') && rawValue.endsWith('"')) ||
+      (rawValue.startsWith("'") && rawValue.endsWith("'"))
         ? rawValue.slice(1, -1)
         : rawValue;
     values[key] = quoted.replace(/\\n/gu, "\n");
@@ -725,11 +838,15 @@ const envSchema = z.object({
   MEDIAFORGE_WORKSPACE: z.string().optional(),
   MEDIAFORGE_DB_PATH: z.string().optional(),
   MEDIAFORGE_WORKFLOW_DATABASE_URL: z.string().url().optional(),
-  MEDIAFORGE_LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace"]).optional(),
+  MEDIAFORGE_LOG_LEVEL: z
+    .enum(["fatal", "error", "warn", "info", "debug", "trace"])
+    .optional(),
   MEDIAFORGE_DEFAULT_ASPECT_RATIO: z.enum(["16:9", "9:16"]).optional(),
   MEDIAFORGE_OPENART_BATCH_SIZE: z.coerce.number().int().positive().optional(),
   MEDIAFORGE_TTS_PROVIDER: z.enum(["mock", "openai-compatible"]).optional(),
-  MEDIAFORGE_TRANSCRIPTION_PROVIDER: z.enum(["mock", "whisper.cpp", "openai-compatible"]).optional(),
+  MEDIAFORGE_TRANSCRIPTION_PROVIDER: z
+    .enum(["mock", "whisper.cpp", "openai-compatible"])
+    .optional(),
   MEDIAFORGE_IMAGE_PROVIDER: z.enum(["mock", "placeholder"]).optional(),
   MEDIAFORGE_TEXT_PROVIDER: z.enum(["mock", "openai-compatible"]).optional(),
   MEDIAFORGE_WHISPER_BIN: z.string().optional(),
@@ -738,78 +855,200 @@ const envSchema = z.object({
   MEDIAFORGE_WHISPER_THREADS: z.coerce.number().int().positive().optional(),
   MEDIAFORGE_WHISPER_PROCESSORS: z.coerce.number().int().positive().optional(),
   MEDIAFORGE_WHISPER_TIMEOUT_MS: z.coerce.number().int().positive().optional(),
-  MEDIAFORGE_WHISPER_MAX_DURATION_SECONDS: z.coerce.number().int().positive().optional(),
+  MEDIAFORGE_WHISPER_MAX_DURATION_SECONDS: z.coerce
+    .number()
+    .int()
+    .positive()
+    .optional(),
   WHISPER_WORD_TIMESTAMPS: z.string().optional(),
   TRANSCRIPT_MIN_SEGMENT_SECONDS: z.coerce.number().positive().optional(),
   TRANSCRIPT_MAX_SEGMENT_SECONDS: z.coerce.number().positive().optional(),
   TRANSCRIPT_MAX_SILENCE_SECONDS: z.coerce.number().nonnegative().optional(),
-  TRANSCRIPT_TIMESTAMP_PRECISION: z.coerce.number().int().min(0).max(6).optional(),
+  TRANSCRIPT_TIMESTAMP_PRECISION: z.coerce
+    .number()
+    .int()
+    .min(0)
+    .max(6)
+    .optional(),
   TRANSCRIPT_MAX_WORD_DURATION_SECONDS: z.coerce.number().positive().optional(),
-  TRANSCRIPT_BOUNDARY_LOOKBACK_WORDS: z.coerce.number().int().nonnegative().optional(),
+  TRANSCRIPT_BOUNDARY_LOOKBACK_WORDS: z.coerce
+    .number()
+    .int()
+    .nonnegative()
+    .optional(),
   VISUAL_SCENE_TARGET_PER_10_MINUTES: z.coerce.number().positive().optional(),
   VISUAL_SCENE_MIN_SECONDS: z.coerce.number().positive().optional(),
   VISUAL_SCENE_MAX_SECONDS: z.coerce.number().positive().optional(),
   MEDIAFORGE_TRAILING_SILENCE_RATIO: z.coerce.number().min(0).max(1).optional(),
-  MEDIAFORGE_TRAILING_SILENCE_BUFFER_SECONDS: z.coerce.number().min(0).optional(),
+  MEDIAFORGE_TRAILING_SILENCE_BUFFER_SECONDS: z.coerce
+    .number()
+    .min(0)
+    .optional(),
   MEDIAFORGE_OPENAI_TRANSCRIPTION_MODEL: z.string().optional(),
   MEDIAFORGE_OPENAI_TRANSCRIPTION_LANGUAGE: z.string().optional(),
   MEDIAFORGE_OPENAI_TRANSCRIPTION_PROMPT: z.string().optional(),
   MEDIAFORGE_OPENAI_STORY_MODEL: z.string().optional(),
-  MEDIAFORGE_OPENAI_STORY_TEMPERATURE: z.coerce.number().min(0).max(2).optional(),
-  MEDIAFORGE_OPENAI_STORY_REASONING_EFFORT: z.enum(["none", "minimal", "low", "medium", "high", "xhigh"]).optional(),
-  MEDIAFORGE_OPENAI_STORY_MAX_OUTPUT_TOKENS: z.coerce.number().int().positive().optional(),
-  MEDIAFORGE_OPENAI_STORY_RETRY_MAX_OUTPUT_TOKENS: z.coerce.number().int().positive().optional(),
-  MEDIAFORGE_HORROR_AFFECT_ROLLOUT_MODE: z.enum(["off", "shadow", "enforce"]).optional(),
+  MEDIAFORGE_OPENAI_STORY_TEMPERATURE: z.coerce
+    .number()
+    .min(0)
+    .max(2)
+    .optional(),
+  MEDIAFORGE_OPENAI_STORY_REASONING_EFFORT: z
+    .enum(["none", "minimal", "low", "medium", "high", "xhigh"])
+    .optional(),
+  MEDIAFORGE_OPENAI_STORY_MAX_OUTPUT_TOKENS: z.coerce
+    .number()
+    .int()
+    .positive()
+    .optional(),
+  MEDIAFORGE_OPENAI_STORY_RETRY_MAX_OUTPUT_TOKENS: z.coerce
+    .number()
+    .int()
+    .positive()
+    .optional(),
+  MEDIAFORGE_HORROR_AFFECT_ROLLOUT_MODE: z
+    .enum(["off", "shadow", "enforce"])
+    .optional(),
   MEDIAFORGE_OPENAI_LOCALIZATION_MODEL: z.string().optional(),
-  MEDIAFORGE_OPENAI_LOCALIZATION_REASONING_EFFORT: z.enum(["none", "minimal", "low", "medium", "high", "xhigh"]).optional(),
-  MEDIAFORGE_OPENAI_LOCALIZATION_MAX_OUTPUT_TOKENS: z.coerce.number().int().positive().optional(),
+  MEDIAFORGE_OPENAI_LOCALIZATION_REASONING_EFFORT: z
+    .enum(["none", "minimal", "low", "medium", "high", "xhigh"])
+    .optional(),
+  MEDIAFORGE_OPENAI_LOCALIZATION_MAX_OUTPUT_TOKENS: z.coerce
+    .number()
+    .int()
+    .positive()
+    .optional(),
   MEDIAFORGE_OPENAI_SHORT_MODEL: z.string().optional(),
-  MEDIAFORGE_OPENAI_SHORT_REASONING_EFFORT: z.enum(["none", "minimal", "low", "medium", "high", "xhigh"]).optional(),
-  MEDIAFORGE_OPENAI_SHORT_MAX_OUTPUT_TOKENS: z.coerce.number().int().positive().optional(),
-  MEDIAFORGE_OPENAI_SHORT_REWRITE_MAX_OUTPUT_TOKENS: z.coerce.number().int().positive().optional(),
-  MEDIAFORGE_OPENAI_SHORT_REWRITE_RETRY_MAX_OUTPUT_TOKENS: z.coerce.number().int().positive().optional(),
+  MEDIAFORGE_OPENAI_SHORT_REASONING_EFFORT: z
+    .enum(["none", "minimal", "low", "medium", "high", "xhigh"])
+    .optional(),
+  MEDIAFORGE_OPENAI_SHORT_MAX_OUTPUT_TOKENS: z.coerce
+    .number()
+    .int()
+    .positive()
+    .optional(),
+  MEDIAFORGE_OPENAI_SHORT_REWRITE_MAX_OUTPUT_TOKENS: z.coerce
+    .number()
+    .int()
+    .positive()
+    .optional(),
+  MEDIAFORGE_OPENAI_SHORT_REWRITE_RETRY_MAX_OUTPUT_TOKENS: z.coerce
+    .number()
+    .int()
+    .positive()
+    .optional(),
   MEDIAFORGE_OPENAI_VALIDATOR_MODEL: z.string().optional(),
-  MEDIAFORGE_OPENAI_VALIDATOR_REASONING_EFFORT: z.enum(["none", "minimal", "low", "medium", "high", "xhigh"]).optional(),
-  MEDIAFORGE_OPENAI_VALIDATOR_MAX_OUTPUT_TOKENS: z.coerce.number().int().positive().optional(),
+  MEDIAFORGE_OPENAI_VALIDATOR_REASONING_EFFORT: z
+    .enum(["none", "minimal", "low", "medium", "high", "xhigh"])
+    .optional(),
+  MEDIAFORGE_OPENAI_VALIDATOR_MAX_OUTPUT_TOKENS: z.coerce
+    .number()
+    .int()
+    .positive()
+    .optional(),
   OPENAI_STORY_MODEL: z.string().optional(),
   OPENAI_STORY_TEMPERATURE: z.coerce.number().min(0).max(2).optional(),
-  OPENAI_STORY_REASONING_EFFORT: z.enum(["none", "minimal", "low", "medium", "high", "xhigh"]).optional(),
+  OPENAI_STORY_REASONING_EFFORT: z
+    .enum(["none", "minimal", "low", "medium", "high", "xhigh"])
+    .optional(),
   OPENAI_STORY_MAX_OUTPUT_TOKENS: z.coerce.number().int().positive().optional(),
-  OPENAI_STORY_RETRY_MAX_OUTPUT_TOKENS: z.coerce.number().int().positive().optional(),
+  OPENAI_STORY_RETRY_MAX_OUTPUT_TOKENS: z.coerce
+    .number()
+    .int()
+    .positive()
+    .optional(),
   OPENAI_LOCALIZATION_MODEL: z.string().optional(),
-  OPENAI_LOCALIZATION_REASONING_EFFORT: z.enum(["none", "minimal", "low", "medium", "high", "xhigh"]).optional(),
-  OPENAI_LOCALIZATION_MAX_OUTPUT_TOKENS: z.coerce.number().int().positive().optional(),
+  OPENAI_LOCALIZATION_REASONING_EFFORT: z
+    .enum(["none", "minimal", "low", "medium", "high", "xhigh"])
+    .optional(),
+  OPENAI_LOCALIZATION_MAX_OUTPUT_TOKENS: z.coerce
+    .number()
+    .int()
+    .positive()
+    .optional(),
   OPENAI_SHORT_MODEL: z.string().optional(),
-  OPENAI_SHORT_REASONING_EFFORT: z.enum(["none", "minimal", "low", "medium", "high", "xhigh"]).optional(),
+  OPENAI_SHORT_REASONING_EFFORT: z
+    .enum(["none", "minimal", "low", "medium", "high", "xhigh"])
+    .optional(),
   OPENAI_SHORT_MAX_OUTPUT_TOKENS: z.coerce.number().int().positive().optional(),
-  OPENAI_SHORT_REWRITE_MAX_OUTPUT_TOKENS: z.coerce.number().int().positive().optional(),
-  OPENAI_SHORT_REWRITE_RETRY_MAX_OUTPUT_TOKENS: z.coerce.number().int().positive().optional(),
+  OPENAI_SHORT_REWRITE_MAX_OUTPUT_TOKENS: z.coerce
+    .number()
+    .int()
+    .positive()
+    .optional(),
+  OPENAI_SHORT_REWRITE_RETRY_MAX_OUTPUT_TOKENS: z.coerce
+    .number()
+    .int()
+    .positive()
+    .optional(),
   OPENAI_VALIDATOR_MODEL: z.string().optional(),
-  OPENAI_VALIDATOR_REASONING_EFFORT: z.enum(["none", "minimal", "low", "medium", "high", "xhigh"]).optional(),
-  OPENAI_VALIDATOR_MAX_OUTPUT_TOKENS: z.coerce.number().int().positive().optional(),
+  OPENAI_VALIDATOR_REASONING_EFFORT: z
+    .enum(["none", "minimal", "low", "medium", "high", "xhigh"])
+    .optional(),
+  OPENAI_VALIDATOR_MAX_OUTPUT_TOKENS: z.coerce
+    .number()
+    .int()
+    .positive()
+    .optional(),
   MEDIAFORGE_OPENAI_METADATA_MODEL: z.string().optional(),
-  MEDIAFORGE_OPENAI_METADATA_REASONING_EFFORT: z.enum(["none", "minimal", "low", "medium", "high", "xhigh"]).optional(),
-  MEDIAFORGE_OPENAI_METADATA_MAX_OUTPUT_TOKENS: z.coerce.number().int().positive().optional(),
+  MEDIAFORGE_OPENAI_METADATA_REASONING_EFFORT: z
+    .enum(["none", "minimal", "low", "medium", "high", "xhigh"])
+    .optional(),
+  MEDIAFORGE_OPENAI_METADATA_MAX_OUTPUT_TOKENS: z.coerce
+    .number()
+    .int()
+    .positive()
+    .optional(),
   MEDIAFORGE_OPENAI_IMAGE_REFERENCE_MODEL: z.string().min(1).optional(),
-  MEDIAFORGE_OPENAI_IMAGE_REFERENCE_QUALITY: z.enum(["low", "medium", "high", "auto"]).optional(),
-  MEDIAFORGE_OPENAI_IMAGE_REFERENCE_SIZE: z.string().regex(/^\d+x\d+$/u).optional(),
+  MEDIAFORGE_OPENAI_IMAGE_REFERENCE_QUALITY: z
+    .enum(["low", "medium", "high", "auto"])
+    .optional(),
+  MEDIAFORGE_OPENAI_IMAGE_REFERENCE_SIZE: z
+    .string()
+    .regex(/^\d+x\d+$/u)
+    .optional(),
   MEDIAFORGE_OPENAI_IMAGE_SCENE_MODEL: z.string().min(1).optional(),
-  MEDIAFORGE_OPENAI_IMAGE_SCENE_QUALITY: z.enum(["low", "medium", "high", "auto"]).optional(),
-  MEDIAFORGE_OPENAI_IMAGE_SCENE_SIZE: z.string().regex(/^\d+x\d+$/u).optional(),
+  MEDIAFORGE_OPENAI_IMAGE_SCENE_QUALITY: z
+    .enum(["low", "medium", "high", "auto"])
+    .optional(),
+  MEDIAFORGE_OPENAI_IMAGE_SCENE_SIZE: z
+    .string()
+    .regex(/^\d+x\d+$/u)
+    .optional(),
   MEDIAFORGE_OPENAI_IMAGE_SHORT_MODEL: z.string().min(1).optional(),
-  MEDIAFORGE_OPENAI_IMAGE_SHORT_QUALITY: z.enum(["low", "medium", "high", "auto"]).optional(),
-  MEDIAFORGE_OPENAI_IMAGE_SHORT_SIZE: z.string().regex(/^\d+x\d+$/u).optional(),
+  MEDIAFORGE_OPENAI_IMAGE_SHORT_QUALITY: z
+    .enum(["low", "medium", "high", "auto"])
+    .optional(),
+  MEDIAFORGE_OPENAI_IMAGE_SHORT_SIZE: z
+    .string()
+    .regex(/^\d+x\d+$/u)
+    .optional(),
   MEDIAFORGE_OPENAI_IMAGE_VALIDATOR_MODEL: z.string().min(1).optional(),
-  MEDIAFORGE_OPENAI_IMAGE_VALIDATOR_REASONING_EFFORT: z.enum(["none", "minimal", "low", "medium", "high", "xhigh"]).optional(),
-  MEDIAFORGE_OPENAI_PROMPT_CACHE_MODE: z.enum(["disabled", "implicit", "explicit"]).optional(),
-  MEDIAFORGE_OPENAI_PROMPT_CACHE_SHARDS: z.union([z.literal("auto"), z.coerce.number().int().min(1).max(32)]).optional(),
+  MEDIAFORGE_OPENAI_IMAGE_VALIDATOR_REASONING_EFFORT: z
+    .enum(["none", "minimal", "low", "medium", "high", "xhigh"])
+    .optional(),
+  MEDIAFORGE_OPENAI_PROMPT_CACHE_MODE: z
+    .enum(["disabled", "implicit", "explicit"])
+    .optional(),
+  MEDIAFORGE_OPENAI_PROMPT_CACHE_SHARDS: z
+    .union([z.literal("auto"), z.coerce.number().int().min(1).max(32)])
+    .optional(),
   OPENAI_METADATA_MODEL: z.string().optional(),
-  OPENAI_METADATA_REASONING_EFFORT: z.enum(["none", "minimal", "low", "medium", "high", "xhigh"]).optional(),
-  OPENAI_METADATA_MAX_OUTPUT_TOKENS: z.coerce.number().int().positive().optional(),
+  OPENAI_METADATA_REASONING_EFFORT: z
+    .enum(["none", "minimal", "low", "medium", "high", "xhigh"])
+    .optional(),
+  OPENAI_METADATA_MAX_OUTPUT_TOKENS: z.coerce
+    .number()
+    .int()
+    .positive()
+    .optional(),
   OPENAI_METADATA_MAX_RETRIES: z.coerce.number().int().positive().optional(),
   OPENAI_METADATA_KEEP_FILE: z.string().optional(),
   OPENAI_METADATA_TIMEOUT_MS: z.coerce.number().int().positive().optional(),
-  YOUTUBE_METADATA_LANGUAGE: z.string().regex(/^[a-z]{2}(?:-[a-z0-9]{2,8})*$/iu).optional(),
+  YOUTUBE_METADATA_LANGUAGE: z
+    .string()
+    .regex(/^[a-z]{2}(?:-[a-z0-9]{2,8})*$/iu)
+    .optional(),
   MEDIAFORGE_OPENAI_COMPATIBLE_BASE_URL: z.string().url().optional(),
   MEDIAFORGE_OPENAI_COMPATIBLE_API_KEY: z.string().optional(),
   MEDIAFORGE_OPENAI_COMPATIBLE_ORGANIZATION: z.string().optional(),
@@ -818,9 +1057,20 @@ const envSchema = z.object({
   MEDIAFORGE_OPENAI_COMPATIBLE_TTS_VOICE: z.string().optional(),
   MEDIAFORGE_OPENAI_SPEECH_MODEL: z.string().optional(),
   MEDIAFORGE_OPENAI_SPEECH_VOICE: z.string().optional(),
-  MEDIAFORGE_SPEECH_VOICE_PRESET: z.enum(["slow", "fast", "very-fast"]).optional(),
-  MEDIAFORGE_NARRATION_PIPELINE_MODE: z.enum(["legacy", "shadow", "new"]).optional(),
-  MEDIAFORGE_SCRIPT_LANGUAGE: z.string().regex(/^[a-z]{2}(?:-[a-z0-9]{2,8})*$/iu).optional(),
+  ELEVENLABS_FEATURE_ENABLED: z.string().optional(),
+  ELEVENLABS_API_KEY: z.string().optional(),
+  ELEVENLABS_BASE_URL: z.string().url().optional(),
+  ELEVENLABS_REQUEST_TIMEOUT_MS: z.coerce.number().int().positive().optional(),
+  MEDIAFORGE_SPEECH_VOICE_PRESET: z
+    .enum(["slow", "fast", "very-fast"])
+    .optional(),
+  MEDIAFORGE_NARRATION_PIPELINE_MODE: z
+    .enum(["legacy", "shadow", "new"])
+    .optional(),
+  MEDIAFORGE_SCRIPT_LANGUAGE: z
+    .string()
+    .regex(/^[a-z]{2}(?:-[a-z0-9]{2,8})*$/iu)
+    .optional(),
   YOUTUBE_CLIENT_ID: z.string().optional(),
   YOUTUBE_CLIENT_SECRET: z.string().optional(),
   YOUTUBE_REFRESH_TOKEN: z.string().optional(),
@@ -847,8 +1097,16 @@ const envSchema = z.object({
   REMOTE_RENDER_PORT: z.coerce.number().int().min(1).max(65535).optional(),
   REMOTE_RENDER_BASE_DIR: z.string().optional(),
   REMOTE_RENDER_CONCURRENCY: z.coerce.number().int().positive().optional(),
-  REMOTE_RENDER_CONNECT_TIMEOUT_SECONDS: z.coerce.number().int().positive().optional(),
-  REMOTE_RENDER_COMMAND_TIMEOUT_SECONDS: z.coerce.number().int().positive().optional(),
+  REMOTE_RENDER_CONNECT_TIMEOUT_SECONDS: z.coerce
+    .number()
+    .int()
+    .positive()
+    .optional(),
+  REMOTE_RENDER_COMMAND_TIMEOUT_SECONDS: z.coerce
+    .number()
+    .int()
+    .positive()
+    .optional(),
   REMOTE_RENDER_MAX_RETRIES: z.coerce.number().int().nonnegative().optional(),
   REMOTE_RENDER_FALLBACK_TO_LOCAL: z.string().optional(),
   REMOTE_RENDER_KEEP_FILES: z.string().optional(),
@@ -857,15 +1115,38 @@ const envSchema = z.object({
   REMOTE_RENDER_SSH_PRIVATE_KEY: z.string().optional(),
   REMOTE_RENDER_UPLOAD_METHOD: z.enum(["rsync"]).optional(),
   LOCAL_RENDER_CONCURRENCY: z.string().optional(),
-  REMOTE_RENDER_CLEANUP_MAX_AGE_HOURS: z.coerce.number().int().positive().optional(),
-  MEDIAFORGE_MATH_RENDER_EXECUTOR: z.enum(["local", "remote", "hybrid"]).optional(),
-  MEDIAFORGE_MATH_REMOTE_IMAGE_ID: z.string().regex(/^sha256:[a-f0-9]{64}$/u).optional(),
-  MEDIAFORGE_MATH_LOCAL_SCENE_SLOTS: z.coerce.number().int().positive().optional(),
-  MEDIAFORGE_MATH_REMOTE_SCENE_SLOTS: z.coerce.number().int().positive().optional(),
-  MEDIAFORGE_MATH_REMOTE_JOB_CONCURRENCY: z.coerce.number().int().positive().optional()
+  REMOTE_RENDER_CLEANUP_MAX_AGE_HOURS: z.coerce
+    .number()
+    .int()
+    .positive()
+    .optional(),
+  MEDIAFORGE_MATH_RENDER_EXECUTOR: z
+    .enum(["local", "remote", "hybrid"])
+    .optional(),
+  MEDIAFORGE_MATH_REMOTE_IMAGE_ID: z
+    .string()
+    .regex(/^sha256:[a-f0-9]{64}$/u)
+    .optional(),
+  MEDIAFORGE_MATH_LOCAL_SCENE_SLOTS: z.coerce
+    .number()
+    .int()
+    .positive()
+    .optional(),
+  MEDIAFORGE_MATH_REMOTE_SCENE_SLOTS: z.coerce
+    .number()
+    .int()
+    .positive()
+    .optional(),
+  MEDIAFORGE_MATH_REMOTE_JOB_CONCURRENCY: z.coerce
+    .number()
+    .int()
+    .positive()
+    .optional(),
 });
 
-export async function loadPackageJsonConfig(configPath: string): Promise<Record<string, unknown> | null> {
+export async function loadPackageJsonConfig(
+  configPath: string
+): Promise<Record<string, unknown> | null> {
   try {
     const raw = await fs.readFile(configPath, "utf8");
     return JSON.parse(raw) as Record<string, unknown>;
@@ -888,7 +1169,10 @@ function parseBooleanEnv(value: string | undefined): boolean | undefined {
   return undefined;
 }
 
-function parseStrictBooleanEnv(value: string | undefined, variableName: string): boolean | undefined {
+function parseStrictBooleanEnv(
+  value: string | undefined,
+  variableName: string
+): boolean | undefined {
   if (value === undefined) {
     return undefined;
   }
@@ -908,7 +1192,9 @@ function parseOptionalPositiveIntEnv(
   }
   const parsed = Number(value);
   if (!Number.isInteger(parsed) || parsed <= 0) {
-    throw new Error(`Invalid positive integer value for ${variableName}: ${value}`);
+    throw new Error(
+      `Invalid positive integer value for ${variableName}: ${value}`
+    );
   }
   return parsed;
 }
@@ -930,41 +1216,72 @@ export async function loadRuntimeConfig(
     ...process.env,
     ...(dotenvValues["OPENAI_API_KEY"] !== undefined
       ? { OPENAI_API_KEY: dotenvValues["OPENAI_API_KEY"] }
-      : {})
+      : {}),
   });
   const availableCpuCores = Math.max(1, os.cpus().length);
-  const workspaceDir = overrides.workspaceDir ?? env.MEDIAFORGE_WORKSPACE ?? "./episodes";
-  const dbPath = overrides.dbPath ?? env.MEDIAFORGE_DB_PATH ?? "./.mediaforge.sqlite";
-  const transcriptionProvider = overrides.transcriptionProvider ?? episodeOverrides.transcriptionProvider ?? env.MEDIAFORGE_TRANSCRIPTION_PROVIDER ?? "mock";
-  const localWhisperBin = path.resolve("tools/whisper.cpp/build/bin/whisper-cli");
+  const workspaceDir =
+    overrides.workspaceDir ?? env.MEDIAFORGE_WORKSPACE ?? "./episodes";
+  const dbPath =
+    overrides.dbPath ?? env.MEDIAFORGE_DB_PATH ?? "./.mediaforge.sqlite";
+  const transcriptionProvider =
+    overrides.transcriptionProvider ??
+    episodeOverrides.transcriptionProvider ??
+    env.MEDIAFORGE_TRANSCRIPTION_PROVIDER ??
+    "mock";
+  const localWhisperBin = path.resolve(
+    "tools/whisper.cpp/build/bin/whisper-cli"
+  );
   const preferredWhisperModels = [
     path.resolve("tools/whisper.cpp/models/ggml-small.bin"),
     path.resolve("tools/whisper.cpp/models/ggml-medium.bin"),
     path.resolve("tools/whisper.cpp/models/ggml-base.bin"),
-    path.resolve("tools/whisper.cpp/models/ggml-base.en.bin")
+    path.resolve("tools/whisper.cpp/models/ggml-base.en.bin"),
   ];
-  const whisperBin = overrides.whisperBin ?? env.MEDIAFORGE_WHISPER_BIN ?? (await fs.stat(localWhisperBin).then(() => localWhisperBin).catch(() => "whisper-cli"));
+  const whisperBin =
+    overrides.whisperBin ??
+    env.MEDIAFORGE_WHISPER_BIN ??
+    (await fs
+      .stat(localWhisperBin)
+      .then(() => localWhisperBin)
+      .catch(() => "whisper-cli"));
   const whisperModel =
     overrides.whisperModel ??
     env.MEDIAFORGE_WHISPER_MODEL ??
     (await (async () => {
       for (const candidate of preferredWhisperModels) {
-        if (await fs.stat(candidate).then(() => true).catch(() => false)) {
+        if (
+          await fs
+            .stat(candidate)
+            .then(() => true)
+            .catch(() => false)
+        ) {
           return candidate;
         }
       }
       return undefined;
     })());
-  const mergedSpeechProvider = overrides.ttsProvider ?? episodeOverrides.ttsProvider;
-  const mergedOpenAiBaseUrl = overrides.openAiCompatibleBaseUrl ?? episodeOverrides.openAiCompatibleBaseUrl ?? env.MEDIAFORGE_OPENAI_COMPATIBLE_BASE_URL ?? env.OPENAI_BASE_URL;
-  const mergedOpenAiApiKey = overrides.openAiCompatibleApiKey ?? episodeOverrides.openAiCompatibleApiKey ?? env.MEDIAFORGE_OPENAI_COMPATIBLE_API_KEY ?? env.OPENAI_API_KEY;
+  const mergedSpeechProvider =
+    overrides.ttsProvider ?? episodeOverrides.ttsProvider;
+  const mergedOpenAiBaseUrl =
+    overrides.openAiCompatibleBaseUrl ??
+    episodeOverrides.openAiCompatibleBaseUrl ??
+    env.MEDIAFORGE_OPENAI_COMPATIBLE_BASE_URL ??
+    env.OPENAI_BASE_URL;
+  const mergedOpenAiApiKey =
+    overrides.openAiCompatibleApiKey ??
+    episodeOverrides.openAiCompatibleApiKey ??
+    env.MEDIAFORGE_OPENAI_COMPATIBLE_API_KEY ??
+    env.OPENAI_API_KEY;
   const mergedOpenAiOrganization =
     overrides.openAiCompatibleOrganization ??
     episodeOverrides.openAiCompatibleOrganization ??
     env.MEDIAFORGE_OPENAI_COMPATIBLE_ORGANIZATION ??
     env.OPENAI_ORGANIZATION;
   const mergedOpenAiProject =
-    overrides.openAiCompatibleProject ?? episodeOverrides.openAiCompatibleProject ?? env.MEDIAFORGE_OPENAI_COMPATIBLE_PROJECT ?? env.OPENAI_PROJECT;
+    overrides.openAiCompatibleProject ??
+    episodeOverrides.openAiCompatibleProject ??
+    env.MEDIAFORGE_OPENAI_COMPATIBLE_PROJECT ??
+    env.OPENAI_PROJECT;
   const resolvedOpenAiStoryMaxOutputTokens =
     overrides.openAiStoryMaxOutputTokens ??
     episodeOverrides.openAiStoryMaxOutputTokens ??
@@ -1009,49 +1326,125 @@ export async function loadRuntimeConfig(
       episodeOverrides.workflowDatabaseUrl ??
       env.MEDIAFORGE_WORKFLOW_DATABASE_URL,
     logLevel: overrides.logLevel ?? env.MEDIAFORGE_LOG_LEVEL ?? "info",
-    defaultAspectRatio: overrides.defaultAspectRatio ?? env.MEDIAFORGE_DEFAULT_ASPECT_RATIO ?? "16:9",
-    openArtBatchSize: overrides.openArtBatchSize ?? env.MEDIAFORGE_OPENART_BATCH_SIZE ?? 8,
-    ttsProvider: mergedSpeechProvider ?? env.MEDIAFORGE_TTS_PROVIDER ?? (mergedOpenAiApiKey ? "openai-compatible" : env.MEDIAFORGE_TTS_PROVIDER ?? "mock"),
+    defaultAspectRatio:
+      overrides.defaultAspectRatio ??
+      env.MEDIAFORGE_DEFAULT_ASPECT_RATIO ??
+      "16:9",
+    openArtBatchSize:
+      overrides.openArtBatchSize ?? env.MEDIAFORGE_OPENART_BATCH_SIZE ?? 8,
+    ttsProvider:
+      mergedSpeechProvider ??
+      env.MEDIAFORGE_TTS_PROVIDER ??
+      (mergedOpenAiApiKey
+        ? "openai-compatible"
+        : (env.MEDIAFORGE_TTS_PROVIDER ?? "mock")),
     transcriptionProvider,
-    imageProvider: overrides.imageProvider ?? episodeOverrides.imageProvider ?? env.MEDIAFORGE_IMAGE_PROVIDER ?? "placeholder",
-    textProvider: overrides.textProvider ?? episodeOverrides.textProvider ?? env.MEDIAFORGE_TEXT_PROVIDER ?? "mock",
+    imageProvider:
+      overrides.imageProvider ??
+      episodeOverrides.imageProvider ??
+      env.MEDIAFORGE_IMAGE_PROVIDER ??
+      "placeholder",
+    textProvider:
+      overrides.textProvider ??
+      episodeOverrides.textProvider ??
+      env.MEDIAFORGE_TEXT_PROVIDER ??
+      "mock",
     whisperBin,
     whisperModel,
-    whisperLanguage: overrides.whisperLanguage ?? episodeOverrides.whisperLanguage ?? env.MEDIAFORGE_WHISPER_LANGUAGE,
-    whisperThreads: overrides.whisperThreads ?? episodeOverrides.whisperThreads ?? env.MEDIAFORGE_WHISPER_THREADS ?? (transcriptionProvider === "whisper.cpp" ? availableCpuCores : undefined),
-    whisperProcessors: overrides.whisperProcessors ?? episodeOverrides.whisperProcessors ?? env.MEDIAFORGE_WHISPER_PROCESSORS ?? (transcriptionProvider === "whisper.cpp" ? 1 : undefined),
-    whisperTimeoutMs: overrides.whisperTimeoutMs ?? episodeOverrides.whisperTimeoutMs ?? env.MEDIAFORGE_WHISPER_TIMEOUT_MS,
-    whisperMaxDurationSeconds: overrides.whisperMaxDurationSeconds ?? episodeOverrides.whisperMaxDurationSeconds ?? env.MEDIAFORGE_WHISPER_MAX_DURATION_SECONDS,
+    whisperLanguage:
+      overrides.whisperLanguage ??
+      episodeOverrides.whisperLanguage ??
+      env.MEDIAFORGE_WHISPER_LANGUAGE,
+    whisperThreads:
+      overrides.whisperThreads ??
+      episodeOverrides.whisperThreads ??
+      env.MEDIAFORGE_WHISPER_THREADS ??
+      (transcriptionProvider === "whisper.cpp" ? availableCpuCores : undefined),
+    whisperProcessors:
+      overrides.whisperProcessors ??
+      episodeOverrides.whisperProcessors ??
+      env.MEDIAFORGE_WHISPER_PROCESSORS ??
+      (transcriptionProvider === "whisper.cpp" ? 1 : undefined),
+    whisperTimeoutMs:
+      overrides.whisperTimeoutMs ??
+      episodeOverrides.whisperTimeoutMs ??
+      env.MEDIAFORGE_WHISPER_TIMEOUT_MS,
+    whisperMaxDurationSeconds:
+      overrides.whisperMaxDurationSeconds ??
+      episodeOverrides.whisperMaxDurationSeconds ??
+      env.MEDIAFORGE_WHISPER_MAX_DURATION_SECONDS,
     whisperWordTimestamps:
-      overrides.whisperWordTimestamps ?? episodeOverrides.whisperWordTimestamps ?? parseBooleanEnv(env.WHISPER_WORD_TIMESTAMPS) ?? true,
+      overrides.whisperWordTimestamps ??
+      episodeOverrides.whisperWordTimestamps ??
+      parseBooleanEnv(env.WHISPER_WORD_TIMESTAMPS) ??
+      true,
     transcriptMinSegmentSeconds:
-      overrides.transcriptMinSegmentSeconds ?? episodeOverrides.transcriptMinSegmentSeconds ?? env.TRANSCRIPT_MIN_SEGMENT_SECONDS ?? 2,
+      overrides.transcriptMinSegmentSeconds ??
+      episodeOverrides.transcriptMinSegmentSeconds ??
+      env.TRANSCRIPT_MIN_SEGMENT_SECONDS ??
+      2,
     transcriptMaxSegmentSeconds:
-      overrides.transcriptMaxSegmentSeconds ?? episodeOverrides.transcriptMaxSegmentSeconds ?? env.TRANSCRIPT_MAX_SEGMENT_SECONDS ?? 15,
+      overrides.transcriptMaxSegmentSeconds ??
+      episodeOverrides.transcriptMaxSegmentSeconds ??
+      env.TRANSCRIPT_MAX_SEGMENT_SECONDS ??
+      15,
     transcriptMaxSilenceSeconds:
-      overrides.transcriptMaxSilenceSeconds ?? episodeOverrides.transcriptMaxSilenceSeconds ?? env.TRANSCRIPT_MAX_SILENCE_SECONDS ?? 1.25,
+      overrides.transcriptMaxSilenceSeconds ??
+      episodeOverrides.transcriptMaxSilenceSeconds ??
+      env.TRANSCRIPT_MAX_SILENCE_SECONDS ??
+      1.25,
     transcriptTimestampPrecision:
-      overrides.transcriptTimestampPrecision ?? episodeOverrides.transcriptTimestampPrecision ?? env.TRANSCRIPT_TIMESTAMP_PRECISION ?? 3,
+      overrides.transcriptTimestampPrecision ??
+      episodeOverrides.transcriptTimestampPrecision ??
+      env.TRANSCRIPT_TIMESTAMP_PRECISION ??
+      3,
     transcriptMaxWordDurationSeconds:
-      overrides.transcriptMaxWordDurationSeconds ?? episodeOverrides.transcriptMaxWordDurationSeconds ?? env.TRANSCRIPT_MAX_WORD_DURATION_SECONDS ?? 5,
+      overrides.transcriptMaxWordDurationSeconds ??
+      episodeOverrides.transcriptMaxWordDurationSeconds ??
+      env.TRANSCRIPT_MAX_WORD_DURATION_SECONDS ??
+      5,
     transcriptBoundaryLookbackWords:
-      overrides.transcriptBoundaryLookbackWords ?? episodeOverrides.transcriptBoundaryLookbackWords ?? env.TRANSCRIPT_BOUNDARY_LOOKBACK_WORDS ?? 6,
+      overrides.transcriptBoundaryLookbackWords ??
+      episodeOverrides.transcriptBoundaryLookbackWords ??
+      env.TRANSCRIPT_BOUNDARY_LOOKBACK_WORDS ??
+      6,
     visualSceneTargetPer10Minutes:
-      overrides.visualSceneTargetPer10Minutes ?? episodeOverrides.visualSceneTargetPer10Minutes ?? env.VISUAL_SCENE_TARGET_PER_10_MINUTES ?? 100,
+      overrides.visualSceneTargetPer10Minutes ??
+      episodeOverrides.visualSceneTargetPer10Minutes ??
+      env.VISUAL_SCENE_TARGET_PER_10_MINUTES ??
+      100,
     visualSceneMinSeconds:
-      overrides.visualSceneMinSeconds ?? episodeOverrides.visualSceneMinSeconds ?? env.VISUAL_SCENE_MIN_SECONDS ?? 5,
+      overrides.visualSceneMinSeconds ??
+      episodeOverrides.visualSceneMinSeconds ??
+      env.VISUAL_SCENE_MIN_SECONDS ??
+      5,
     visualSceneMaxSeconds:
-      overrides.visualSceneMaxSeconds ?? episodeOverrides.visualSceneMaxSeconds ?? env.VISUAL_SCENE_MAX_SECONDS ?? 6,
+      overrides.visualSceneMaxSeconds ??
+      episodeOverrides.visualSceneMaxSeconds ??
+      env.VISUAL_SCENE_MAX_SECONDS ??
+      6,
     trailingSilenceRatio:
-      overrides.trailingSilenceRatio ?? episodeOverrides.trailingSilenceRatio ?? env.MEDIAFORGE_TRAILING_SILENCE_RATIO ?? 1,
+      overrides.trailingSilenceRatio ??
+      episodeOverrides.trailingSilenceRatio ??
+      env.MEDIAFORGE_TRAILING_SILENCE_RATIO ??
+      1,
     trailingSilenceBufferSeconds:
-      overrides.trailingSilenceBufferSeconds ?? episodeOverrides.trailingSilenceBufferSeconds ?? env.MEDIAFORGE_TRAILING_SILENCE_BUFFER_SECONDS ?? 0,
+      overrides.trailingSilenceBufferSeconds ??
+      episodeOverrides.trailingSilenceBufferSeconds ??
+      env.MEDIAFORGE_TRAILING_SILENCE_BUFFER_SECONDS ??
+      0,
     openAiTranscriptionModel:
-      overrides.openAiTranscriptionModel ?? episodeOverrides.openAiTranscriptionModel ?? env.MEDIAFORGE_OPENAI_TRANSCRIPTION_MODEL,
+      overrides.openAiTranscriptionModel ??
+      episodeOverrides.openAiTranscriptionModel ??
+      env.MEDIAFORGE_OPENAI_TRANSCRIPTION_MODEL,
     openAiTranscriptionLanguage:
-      overrides.openAiTranscriptionLanguage ?? episodeOverrides.openAiTranscriptionLanguage ?? env.MEDIAFORGE_OPENAI_TRANSCRIPTION_LANGUAGE,
+      overrides.openAiTranscriptionLanguage ??
+      episodeOverrides.openAiTranscriptionLanguage ??
+      env.MEDIAFORGE_OPENAI_TRANSCRIPTION_LANGUAGE,
     openAiTranscriptionPrompt:
-      overrides.openAiTranscriptionPrompt ?? episodeOverrides.openAiTranscriptionPrompt ?? env.MEDIAFORGE_OPENAI_TRANSCRIPTION_PROMPT,
+      overrides.openAiTranscriptionPrompt ??
+      episodeOverrides.openAiTranscriptionPrompt ??
+      env.MEDIAFORGE_OPENAI_TRANSCRIPTION_PROMPT,
     openAiStoryModel:
       overrides.openAiStoryModel ??
       episodeOverrides.openAiStoryModel ??
@@ -1117,7 +1510,8 @@ export async function loadRuntimeConfig(
       env.MEDIAFORGE_OPENAI_STORY_REASONING_EFFORT ??
       env.OPENAI_STORY_REASONING_EFFORT ??
       "low",
-    openAiShortRewriteMaxOutputTokens: resolvedOpenAiShortRewriteMaxOutputTokens,
+    openAiShortRewriteMaxOutputTokens:
+      resolvedOpenAiShortRewriteMaxOutputTokens,
     openAiShortMaxOutputTokens: resolvedOpenAiShortMaxOutputTokens,
     openAiShortRewriteRetryMaxOutputTokens:
       resolvedOpenAiShortRewriteRetryMaxOutputTokens,
@@ -1166,37 +1560,85 @@ export async function loadRuntimeConfig(
       env.OPENAI_METADATA_MAX_OUTPUT_TOKENS ??
       1_800,
     openAiMetadataMaxRetries:
-      overrides.openAiMetadataMaxRetries ?? episodeOverrides.openAiMetadataMaxRetries ?? env.OPENAI_METADATA_MAX_RETRIES ?? 3,
+      overrides.openAiMetadataMaxRetries ??
+      episodeOverrides.openAiMetadataMaxRetries ??
+      env.OPENAI_METADATA_MAX_RETRIES ??
+      3,
     openAiMetadataKeepFile:
-      overrides.openAiMetadataKeepFile ?? episodeOverrides.openAiMetadataKeepFile ?? parseBooleanEnv(env.OPENAI_METADATA_KEEP_FILE) ?? false,
+      overrides.openAiMetadataKeepFile ??
+      episodeOverrides.openAiMetadataKeepFile ??
+      parseBooleanEnv(env.OPENAI_METADATA_KEEP_FILE) ??
+      false,
     openAiMetadataTimeoutMs:
-      overrides.openAiMetadataTimeoutMs ?? episodeOverrides.openAiMetadataTimeoutMs ?? env.OPENAI_METADATA_TIMEOUT_MS ?? 120000,
+      overrides.openAiMetadataTimeoutMs ??
+      episodeOverrides.openAiMetadataTimeoutMs ??
+      env.OPENAI_METADATA_TIMEOUT_MS ??
+      120000,
     openAiImageReferenceModel:
-      overrides.openAiImageReferenceModel ?? episodeOverrides.openAiImageReferenceModel ?? env.MEDIAFORGE_OPENAI_IMAGE_REFERENCE_MODEL ?? "gpt-image-2",
+      overrides.openAiImageReferenceModel ??
+      episodeOverrides.openAiImageReferenceModel ??
+      env.MEDIAFORGE_OPENAI_IMAGE_REFERENCE_MODEL ??
+      "gpt-image-2",
     openAiImageReferenceQuality:
-      overrides.openAiImageReferenceQuality ?? episodeOverrides.openAiImageReferenceQuality ?? env.MEDIAFORGE_OPENAI_IMAGE_REFERENCE_QUALITY ?? "high",
+      overrides.openAiImageReferenceQuality ??
+      episodeOverrides.openAiImageReferenceQuality ??
+      env.MEDIAFORGE_OPENAI_IMAGE_REFERENCE_QUALITY ??
+      "high",
     openAiImageReferenceSize:
-      overrides.openAiImageReferenceSize ?? episodeOverrides.openAiImageReferenceSize ?? env.MEDIAFORGE_OPENAI_IMAGE_REFERENCE_SIZE ?? "1536x1024",
+      overrides.openAiImageReferenceSize ??
+      episodeOverrides.openAiImageReferenceSize ??
+      env.MEDIAFORGE_OPENAI_IMAGE_REFERENCE_SIZE ??
+      "1536x1024",
     openAiImageSceneModel:
-      overrides.openAiImageSceneModel ?? episodeOverrides.openAiImageSceneModel ?? env.MEDIAFORGE_OPENAI_IMAGE_SCENE_MODEL ?? "gpt-image-2",
+      overrides.openAiImageSceneModel ??
+      episodeOverrides.openAiImageSceneModel ??
+      env.MEDIAFORGE_OPENAI_IMAGE_SCENE_MODEL ??
+      "gpt-image-2",
     openAiImageSceneQuality:
-      overrides.openAiImageSceneQuality ?? episodeOverrides.openAiImageSceneQuality ?? env.MEDIAFORGE_OPENAI_IMAGE_SCENE_QUALITY ?? "high",
+      overrides.openAiImageSceneQuality ??
+      episodeOverrides.openAiImageSceneQuality ??
+      env.MEDIAFORGE_OPENAI_IMAGE_SCENE_QUALITY ??
+      "high",
     openAiImageSceneSize:
-      overrides.openAiImageSceneSize ?? episodeOverrides.openAiImageSceneSize ?? env.MEDIAFORGE_OPENAI_IMAGE_SCENE_SIZE ?? "1920x1080",
+      overrides.openAiImageSceneSize ??
+      episodeOverrides.openAiImageSceneSize ??
+      env.MEDIAFORGE_OPENAI_IMAGE_SCENE_SIZE ??
+      "1920x1080",
     openAiImageShortModel:
-      overrides.openAiImageShortModel ?? episodeOverrides.openAiImageShortModel ?? env.MEDIAFORGE_OPENAI_IMAGE_SHORT_MODEL ?? "gpt-image-2",
+      overrides.openAiImageShortModel ??
+      episodeOverrides.openAiImageShortModel ??
+      env.MEDIAFORGE_OPENAI_IMAGE_SHORT_MODEL ??
+      "gpt-image-2",
     openAiImageShortQuality:
-      overrides.openAiImageShortQuality ?? episodeOverrides.openAiImageShortQuality ?? env.MEDIAFORGE_OPENAI_IMAGE_SHORT_QUALITY ?? "high",
+      overrides.openAiImageShortQuality ??
+      episodeOverrides.openAiImageShortQuality ??
+      env.MEDIAFORGE_OPENAI_IMAGE_SHORT_QUALITY ??
+      "high",
     openAiImageShortSize:
-      overrides.openAiImageShortSize ?? episodeOverrides.openAiImageShortSize ?? env.MEDIAFORGE_OPENAI_IMAGE_SHORT_SIZE ?? "1024x1536",
+      overrides.openAiImageShortSize ??
+      episodeOverrides.openAiImageShortSize ??
+      env.MEDIAFORGE_OPENAI_IMAGE_SHORT_SIZE ??
+      "1024x1536",
     openAiImageValidatorModel:
-      overrides.openAiImageValidatorModel ?? episodeOverrides.openAiImageValidatorModel ?? env.MEDIAFORGE_OPENAI_IMAGE_VALIDATOR_MODEL ?? "gpt-5.4-mini",
+      overrides.openAiImageValidatorModel ??
+      episodeOverrides.openAiImageValidatorModel ??
+      env.MEDIAFORGE_OPENAI_IMAGE_VALIDATOR_MODEL ??
+      "gpt-5.4-mini",
     openAiImageValidatorReasoningEffort:
-      overrides.openAiImageValidatorReasoningEffort ?? episodeOverrides.openAiImageValidatorReasoningEffort ?? env.MEDIAFORGE_OPENAI_IMAGE_VALIDATOR_REASONING_EFFORT ?? "low",
+      overrides.openAiImageValidatorReasoningEffort ??
+      episodeOverrides.openAiImageValidatorReasoningEffort ??
+      env.MEDIAFORGE_OPENAI_IMAGE_VALIDATOR_REASONING_EFFORT ??
+      "low",
     openAiPromptCacheMode:
-      overrides.openAiPromptCacheMode ?? episodeOverrides.openAiPromptCacheMode ?? env.MEDIAFORGE_OPENAI_PROMPT_CACHE_MODE ?? "explicit",
+      overrides.openAiPromptCacheMode ??
+      episodeOverrides.openAiPromptCacheMode ??
+      env.MEDIAFORGE_OPENAI_PROMPT_CACHE_MODE ??
+      "explicit",
     openAiPromptCacheShardCount:
-      overrides.openAiPromptCacheShardCount ?? episodeOverrides.openAiPromptCacheShardCount ?? env.MEDIAFORGE_OPENAI_PROMPT_CACHE_SHARDS ?? "auto",
+      overrides.openAiPromptCacheShardCount ??
+      episodeOverrides.openAiPromptCacheShardCount ??
+      env.MEDIAFORGE_OPENAI_PROMPT_CACHE_SHARDS ??
+      "auto",
     youtubeMetadataLanguage:
       overrides.youtubeMetadataLanguage ??
       episodeOverrides.youtubeMetadataLanguage ??
@@ -1209,21 +1651,62 @@ export async function loadRuntimeConfig(
     openAiCompatibleApiKey: mergedOpenAiApiKey,
     openAiCompatibleOrganization: mergedOpenAiOrganization,
     openAiCompatibleProject: mergedOpenAiProject,
-    openAiCompatibleModel: overrides.openAiCompatibleModel ?? episodeOverrides.openAiCompatibleModel ?? env.MEDIAFORGE_OPENAI_COMPATIBLE_MODEL,
+    openAiCompatibleModel:
+      overrides.openAiCompatibleModel ??
+      episodeOverrides.openAiCompatibleModel ??
+      env.MEDIAFORGE_OPENAI_COMPATIBLE_MODEL,
     openAiCompatibleTtsVoice:
-      overrides.openAiCompatibleTtsVoice ?? episodeOverrides.openAiCompatibleTtsVoice ?? env.MEDIAFORGE_OPENAI_COMPATIBLE_TTS_VOICE ?? env.OPENAI_SPEECH_VOICE,
-    openAiSpeechModel: overrides.openAiSpeechModel ?? episodeOverrides.openAiSpeechModel ?? env.MEDIAFORGE_OPENAI_SPEECH_MODEL ?? env.OPENAI_SPEECH_MODEL,
-    openAiSpeechVoice: overrides.openAiSpeechVoice ?? episodeOverrides.openAiSpeechVoice ?? env.MEDIAFORGE_OPENAI_SPEECH_VOICE ?? env.OPENAI_SPEECH_VOICE,
-    speechVoicePreset: overrides.speechVoicePreset ?? episodeOverrides.speechVoicePreset ?? env.MEDIAFORGE_SPEECH_VOICE_PRESET ?? "fast",
+      overrides.openAiCompatibleTtsVoice ??
+      episodeOverrides.openAiCompatibleTtsVoice ??
+      env.MEDIAFORGE_OPENAI_COMPATIBLE_TTS_VOICE ??
+      env.OPENAI_SPEECH_VOICE,
+    openAiSpeechModel:
+      overrides.openAiSpeechModel ??
+      episodeOverrides.openAiSpeechModel ??
+      env.MEDIAFORGE_OPENAI_SPEECH_MODEL ??
+      env.OPENAI_SPEECH_MODEL,
+    openAiSpeechVoice:
+      overrides.openAiSpeechVoice ??
+      episodeOverrides.openAiSpeechVoice ??
+      env.MEDIAFORGE_OPENAI_SPEECH_VOICE ??
+      env.OPENAI_SPEECH_VOICE,
+    elevenLabsFeatureEnabled:
+      overrides.elevenLabsFeatureEnabled ??
+      parseBooleanEnv(env.ELEVENLABS_FEATURE_ENABLED) ??
+      false,
+    elevenLabsApiKey: overrides.elevenLabsApiKey ?? env.ELEVENLABS_API_KEY,
+    elevenLabsBaseUrl: overrides.elevenLabsBaseUrl ?? env.ELEVENLABS_BASE_URL,
+    elevenLabsRequestTimeoutMs:
+      overrides.elevenLabsRequestTimeoutMs ??
+      env.ELEVENLABS_REQUEST_TIMEOUT_MS ??
+      60_000,
+    speechVoicePreset:
+      overrides.speechVoicePreset ??
+      episodeOverrides.speechVoicePreset ??
+      env.MEDIAFORGE_SPEECH_VOICE_PRESET ??
+      "fast",
     narrationPipelineMode:
       overrides.narrationPipelineMode ??
       episodeOverrides.narrationPipelineMode ??
       env.MEDIAFORGE_NARRATION_PIPELINE_MODE ??
       "legacy",
-    scriptLanguage: overrides.scriptLanguage ?? episodeOverrides.scriptLanguage ?? env.MEDIAFORGE_SCRIPT_LANGUAGE ?? "en",
-    youtubeClientId: overrides.youtubeClientId ?? episodeOverrides.youtubeClientId ?? env.YOUTUBE_CLIENT_ID,
-    youtubeClientSecret: overrides.youtubeClientSecret ?? episodeOverrides.youtubeClientSecret ?? env.YOUTUBE_CLIENT_SECRET,
-    youtubeRefreshToken: overrides.youtubeRefreshToken ?? episodeOverrides.youtubeRefreshToken ?? env.YOUTUBE_REFRESH_TOKEN,
+    scriptLanguage:
+      overrides.scriptLanguage ??
+      episodeOverrides.scriptLanguage ??
+      env.MEDIAFORGE_SCRIPT_LANGUAGE ??
+      "en",
+    youtubeClientId:
+      overrides.youtubeClientId ??
+      episodeOverrides.youtubeClientId ??
+      env.YOUTUBE_CLIENT_ID,
+    youtubeClientSecret:
+      overrides.youtubeClientSecret ??
+      episodeOverrides.youtubeClientSecret ??
+      env.YOUTUBE_CLIENT_SECRET,
+    youtubeRefreshToken:
+      overrides.youtubeRefreshToken ??
+      episodeOverrides.youtubeRefreshToken ??
+      env.YOUTUBE_REFRESH_TOKEN,
     youtubeRefreshTokenGerman:
       overrides.youtubeRefreshTokenGerman ??
       episodeOverrides.youtubeRefreshTokenGerman ??
@@ -1240,8 +1723,14 @@ export async function loadRuntimeConfig(
       overrides.youtubeRefreshTokenPortuguese ??
       episodeOverrides.youtubeRefreshTokenPortuguese ??
       env.YOUTUBE_REFRESH_TOKEN_PORTUGUESE,
-    youtubeRedirectUri: overrides.youtubeRedirectUri ?? episodeOverrides.youtubeRedirectUri ?? env.YOUTUBE_REDIRECT_URI,
-    youtubeChannelId: overrides.youtubeChannelId ?? episodeOverrides.youtubeChannelId ?? env.YOUTUBE_CHANNEL_ID,
+    youtubeRedirectUri:
+      overrides.youtubeRedirectUri ??
+      episodeOverrides.youtubeRedirectUri ??
+      env.YOUTUBE_REDIRECT_URI,
+    youtubeChannelId:
+      overrides.youtubeChannelId ??
+      episodeOverrides.youtubeChannelId ??
+      env.YOUTUBE_CHANNEL_ID,
     youtubeChannelIdGerman:
       overrides.youtubeChannelIdGerman ??
       episodeOverrides.youtubeChannelIdGerman ??
@@ -1258,11 +1747,18 @@ export async function loadRuntimeConfig(
       overrides.youtubeChannelIdPortuguese ??
       episodeOverrides.youtubeChannelIdPortuguese ??
       env.YOUTUBE_CHANNEL_ID_PORTUGUESE,
-    apiPort: overrides.apiPort ?? episodeOverrides.apiPort ?? env.MEDIAFORGE_API_PORT ?? 3333,
+    apiPort:
+      overrides.apiPort ??
+      episodeOverrides.apiPort ??
+      env.MEDIAFORGE_API_PORT ??
+      3333,
     remoteRenderEnabled:
       overrides.remoteRenderEnabled ??
       episodeOverrides.remoteRenderEnabled ??
-      parseStrictBooleanEnv(env.REMOTE_RENDER_ENABLED, "REMOTE_RENDER_ENABLED") ??
+      parseStrictBooleanEnv(
+        env.REMOTE_RENDER_ENABLED,
+        "REMOTE_RENDER_ENABLED"
+      ) ??
       false,
     remoteRenderHost:
       overrides.remoteRenderHost ??
@@ -1307,17 +1803,26 @@ export async function loadRuntimeConfig(
     remoteRenderFallbackToLocal:
       overrides.remoteRenderFallbackToLocal ??
       episodeOverrides.remoteRenderFallbackToLocal ??
-      parseStrictBooleanEnv(env.REMOTE_RENDER_FALLBACK_TO_LOCAL, "REMOTE_RENDER_FALLBACK_TO_LOCAL") ??
+      parseStrictBooleanEnv(
+        env.REMOTE_RENDER_FALLBACK_TO_LOCAL,
+        "REMOTE_RENDER_FALLBACK_TO_LOCAL"
+      ) ??
       true,
     remoteRenderKeepFiles:
       overrides.remoteRenderKeepFiles ??
       episodeOverrides.remoteRenderKeepFiles ??
-      parseStrictBooleanEnv(env.REMOTE_RENDER_KEEP_FILES, "REMOTE_RENDER_KEEP_FILES") ??
+      parseStrictBooleanEnv(
+        env.REMOTE_RENDER_KEEP_FILES,
+        "REMOTE_RENDER_KEEP_FILES"
+      ) ??
       false,
     remoteRenderVerifyHostKey:
       overrides.remoteRenderVerifyHostKey ??
       episodeOverrides.remoteRenderVerifyHostKey ??
-      parseStrictBooleanEnv(env.REMOTE_RENDER_VERIFY_HOST_KEY, "REMOTE_RENDER_VERIFY_HOST_KEY") ??
+      parseStrictBooleanEnv(
+        env.REMOTE_RENDER_VERIFY_HOST_KEY,
+        "REMOTE_RENDER_VERIFY_HOST_KEY"
+      ) ??
       true,
     remoteRenderKnownHostsFile:
       overrides.remoteRenderKnownHostsFile ??
@@ -1335,7 +1840,10 @@ export async function loadRuntimeConfig(
     localRenderConcurrency:
       overrides.localRenderConcurrency ??
       episodeOverrides.localRenderConcurrency ??
-      parseOptionalPositiveIntEnv(env.LOCAL_RENDER_CONCURRENCY, "LOCAL_RENDER_CONCURRENCY"),
+      parseOptionalPositiveIntEnv(
+        env.LOCAL_RENDER_CONCURRENCY,
+        "LOCAL_RENDER_CONCURRENCY"
+      ),
     remoteRenderCleanupMaxAgeHours:
       overrides.remoteRenderCleanupMaxAgeHours ??
       episodeOverrides.remoteRenderCleanupMaxAgeHours ??
@@ -1367,18 +1875,25 @@ export async function loadRuntimeConfig(
       1,
     visualRetention: mergeVisualRetentionConfig(
       overrides.visualRetention,
-      episodeOverrides.visualRetention,
+      episodeOverrides.visualRetention
     ),
     narrationMastering: mergeNarrationMasteringConfig(
       overrides.narrationMastering,
-      episodeOverrides.narrationMastering,
+      episodeOverrides.narrationMastering
     ),
   });
   validateOpenAiModelConfiguration(config);
+  if (config.elevenLabsFeatureEnabled && !config.elevenLabsApiKey) {
+    throw new Error(
+      "ELEVENLABS_API_KEY is required when ELEVENLABS_FEATURE_ENABLED is true."
+    );
+  }
   return config;
 }
 
-function normalizeLanguageCode(language: string | undefined): string | undefined {
+function normalizeLanguageCode(
+  language: string | undefined
+): string | undefined {
   if (!language) {
     return undefined;
   }
@@ -1409,16 +1924,29 @@ export function resolveYoutubeChannelIdForLanguage(
   return config.youtubeChannelId;
 }
 
-export async function loadEpisodeConfig(episodeDir: string): Promise<EpisodeConfig | null> {
-  const raw = await loadPackageJsonConfig(path.join(episodeDir, "episode.config.json"));
+export async function loadEpisodeConfig(
+  episodeDir: string
+): Promise<EpisodeConfig | null> {
+  const raw = await loadPackageJsonConfig(
+    path.join(episodeDir, "episode.config.json")
+  );
   if (!raw) {
     return null;
   }
   return episodeConfigSchema.parse(raw);
 }
 
-export function mergeConfig<T extends Record<string, unknown>>(defaults: T, ...layers: Array<Partial<T> | null | undefined>): T {
-  return Object.assign({}, defaults, ...layers.filter((layer): layer is Partial<T> => layer !== null && layer !== undefined));
+export function mergeConfig<T extends Record<string, unknown>>(
+  defaults: T,
+  ...layers: Array<Partial<T> | null | undefined>
+): T {
+  return Object.assign(
+    {},
+    defaults,
+    ...layers.filter(
+      (layer): layer is Partial<T> => layer !== null && layer !== undefined
+    )
+  );
 }
 
 export function configError(message: string): Error {

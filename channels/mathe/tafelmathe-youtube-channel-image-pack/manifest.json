@@ -1,0 +1,67 @@
+{
+  "brand": "TafelMathe",
+  "locale": "de-DE",
+  "pack": "YouTube Channel Image Pack",
+  "assets": [
+    {
+      "key": "channel-logo",
+      "usage": "YouTube channel profile image / avatar",
+      "master": "masters/tafelmathe-channel-logo-master.png",
+      "ready_to_upload": "ready-to-upload/tafelmathe-channel-logo-800x800.png",
+      "ready_dimensions": {
+        "width": 800,
+        "height": 800
+      }
+    },
+    {
+      "key": "channel-banner-main",
+      "usage": "Primary YouTube channel banner",
+      "master": "masters/tafelmathe-channel-banner-main-master.png",
+      "ready_to_upload": "ready-to-upload/tafelmathe-channel-banner-main-2560x1440.png",
+      "ready_dimensions": {
+        "width": 2560,
+        "height": 1440
+      }
+    },
+    {
+      "key": "channel-banner-alternative",
+      "usage": "Alternative YouTube channel banner",
+      "master": "masters/tafelmathe-channel-banner-alternative-master.png",
+      "ready_to_upload": "ready-to-upload/tafelmathe-channel-banner-alternative-2560x1440.png",
+      "ready_dimensions": {
+        "width": 2560,
+        "height": 1440
+      }
+    },
+    {
+      "key": "thumbnail-template",
+      "usage": "Reusable long-form video thumbnail template",
+      "master": "masters/tafelmathe-video-thumbnail-template-master.png",
+      "ready_to_upload": "ready-to-upload/tafelmathe-video-thumbnail-template-1280x720.png",
+      "ready_dimensions": {
+        "width": 1280,
+        "height": 720
+      }
+    },
+    {
+      "key": "end-screen-template",
+      "usage": "Reusable YouTube end-screen background",
+      "master": "masters/tafelmathe-video-end-screen-template-master.png",
+      "ready_to_upload": "ready-to-upload/tafelmathe-video-end-screen-template-1920x1080.png",
+      "ready_dimensions": {
+        "width": 1920,
+        "height": 1080
+      }
+    },
+    {
+      "key": "video-watermark",
+      "usage": "Transparent YouTube branding watermark / subscribe overlay",
+      "master": "masters/tafelmathe-video-watermark-transparent-master.png",
+      "ready_to_upload": "ready-to-upload/tafelmathe-video-watermark-transparent-150x150.png",
+      "ready_dimensions": {
+        "width": 150,
+        "height": 150
+      }
+    }
+  ]
+}

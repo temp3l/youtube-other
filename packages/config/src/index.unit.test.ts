@@ -10,24 +10,45 @@ import {
 } from "./index.js";
 
 describe("runtime config", () => {
+  it("keeps ElevenLabs disabled by default and validates enabled credentials", async () => {
+    const disabled = await loadRuntimeConfig();
+    expect(disabled.elevenLabsFeatureEnabled).toBe(false);
+    expect(disabled.elevenLabsRequestTimeoutMs).toBe(60_000);
+
+    await expect(
+      loadRuntimeConfig({ elevenLabsFeatureEnabled: true })
+    ).rejects.toThrow("ELEVENLABS_API_KEY is required");
+
+    const enabled = await loadRuntimeConfig({
+      elevenLabsFeatureEnabled: true,
+      elevenLabsApiKey: "test-only-key",
+      elevenLabsRequestTimeoutMs: 12_345,
+    });
+    expect(enabled.elevenLabsFeatureEnabled).toBe(true);
+    expect(enabled.elevenLabsRequestTimeoutMs).toBe(12_345);
+  });
+
   it("keeps the workflow PostgreSQL URL separate from the legacy SQLite path", async () => {
     const config = await loadRuntimeConfig({
       dbPath: "./legacy.sqlite",
-      workflowDatabaseUrl: "postgres://workflow-user:secret@db.example.invalid:5432/mediaforge",
+      workflowDatabaseUrl:
+        "postgres://workflow-user:secret@db.example.invalid:5432/mediaforge",
     });
     expect(config.dbPath).toContain("legacy.sqlite");
-    expect(config.workflowDatabaseUrl).toBe("postgres://workflow-user:secret@db.example.invalid:5432/mediaforge");
+    expect(config.workflowDatabaseUrl).toBe(
+      "postgres://workflow-user:secret@db.example.invalid:5432/mediaforge"
+    );
   });
 
   it("lets CLI overrides beat episode config", async () => {
     const config = await loadRuntimeConfig(
       {
         ttsProvider: "mock",
-        openAiCompatibleApiKey: "cli-key"
+        openAiCompatibleApiKey: "cli-key",
       },
       {
         ttsProvider: "openai-compatible",
-        openAiCompatibleApiKey: "episode-key"
+        openAiCompatibleApiKey: "episode-key",
       }
     );
     expect(config.ttsProvider).toBe("mock");
@@ -47,7 +68,7 @@ describe("runtime config", () => {
           openAiSpeechModel: "gpt-4o-mini-tts",
           openAiSpeechVoice: "onyx",
           speechVoicePreset: "very-fast",
-          scriptLanguage: "es"
+          scriptLanguage: "es",
         },
         null,
         2
@@ -63,7 +84,7 @@ describe("runtime config", () => {
   it("defaults whisper concurrency to all available cpu cores", async () => {
     const config = await loadRuntimeConfig({
       transcriptionProvider: "whisper.cpp",
-      whisperModel: "models/ggml-base.en.bin"
+      whisperModel: "models/ggml-base.en.bin",
     });
     const cpuCount = Math.max(1, os.cpus().length);
     expect(config.whisperThreads).toBe(cpuCount);
@@ -92,14 +113,18 @@ describe("runtime config", () => {
   it("loads visual retention production defaults when no config overrides are present", async () => {
     const config = await loadRuntimeConfig();
 
-    expect(config.visualRetention.pacingProfiles["shorts-aggressive"]).toMatchObject({
+    expect(
+      config.visualRetention.pacingProfiles["shorts-aggressive"]
+    ).toMatchObject({
       id: "shorts-aggressive",
       staticShotDurationMs: { maxMs: 3000 },
       movingShotDurationMs: { maxMs: 6000 },
       openingCadenceMs: { minMs: 1500, maxMs: 3500 },
       climaxCadenceMs: { minMs: 1000, maxMs: 3000 },
     });
-    expect(config.visualRetention.pacingProfiles["high-retention"]).toMatchObject({
+    expect(
+      config.visualRetention.pacingProfiles["high-retention"]
+    ).toMatchObject({
       id: "high-retention",
       staticShotDurationMs: { maxMs: 4000 },
       movingShotDurationMs: { maxMs: 8000 },
@@ -218,7 +243,9 @@ describe("runtime config", () => {
   });
 
   it("deep-merges partial visual retention overrides without breaking existing config loading", async () => {
-    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "mediaforge-visual-retention-"));
+    const dir = await fs.mkdtemp(
+      path.join(os.tmpdir(), "mediaforge-visual-retention-")
+    );
     const episodeDir = path.join(dir, "episode");
     await fs.mkdir(episodeDir, { recursive: true });
     await fs.writeFile(
@@ -285,11 +312,15 @@ describe("runtime config", () => {
       episodeConfig ?? {}
     );
 
-    expect(config.visualRetention.pacingProfiles.balanced.movingShotDurationMs).toEqual({
+    expect(
+      config.visualRetention.pacingProfiles.balanced.movingShotDurationMs
+    ).toEqual({
       minMs: 2500,
       maxMs: 9000,
     });
-    expect(config.visualRetention.pacingProfiles.balanced.staticShotDurationMs).toEqual({
+    expect(
+      config.visualRetention.pacingProfiles.balanced.staticShotDurationMs
+    ).toEqual({
       minMs: 2000,
       maxMs: 5000,
     });
@@ -305,7 +336,9 @@ describe("runtime config", () => {
   });
 
   it("rejects malformed visual retention configuration files", async () => {
-    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "mediaforge-invalid-visual-retention-"));
+    const dir = await fs.mkdtemp(
+      path.join(os.tmpdir(), "mediaforge-invalid-visual-retention-")
+    );
     const episodeDir = path.join(dir, "episode");
     await fs.mkdir(episodeDir, { recursive: true });
 
@@ -403,7 +436,7 @@ describe("runtime config", () => {
         "MEDIAFORGE_OPENAI_METADATA_REASONING_EFFORT=low",
         "MEDIAFORGE_OPENAI_METADATA_MAX_OUTPUT_TOKENS=3000",
         "MEDIAFORGE_OPENAI_SPEECH_MODEL=gpt-4o-mini-tts",
-        "MEDIAFORGE_OPENAI_SPEECH_VOICE=onyx"
+        "MEDIAFORGE_OPENAI_SPEECH_VOICE=onyx",
       ].join("\n")
     );
     process.chdir(dir);
@@ -443,7 +476,7 @@ describe("runtime config", () => {
 
   it("allows trailing silence to be preserved when explicitly configured", async () => {
     const config = await loadRuntimeConfig({
-      trailingSilenceRatio: 0.25
+      trailingSilenceRatio: 0.25,
     });
 
     expect(config.trailingSilenceRatio).toBe(0.25);
@@ -496,14 +529,16 @@ describe("runtime config", () => {
 
   it("allows the silence buffer to be configured independently", async () => {
     const config = await loadRuntimeConfig({
-      trailingSilenceBufferSeconds: 0.75
+      trailingSilenceBufferSeconds: 0.75,
     });
 
     expect(config.trailingSilenceBufferSeconds).toBe(0.75);
   });
 
   it("defaults remote rendering to disabled with safe connection settings", async () => {
-    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "mediaforge-remote-render-"));
+    const dir = await fs.mkdtemp(
+      path.join(os.tmpdir(), "mediaforge-remote-render-")
+    );
     const previousCwd = process.cwd();
     const previousRemoteRenderEnabled = process.env.REMOTE_RENDER_ENABLED;
     delete process.env.REMOTE_RENDER_ENABLED;
@@ -583,15 +618,29 @@ describe("runtime config", () => {
       youtubeChannelIdGerman: "german-channel",
       youtubeChannelIdSpanish: "spanish-channel",
       youtubeChannelIdFrench: "french-channel",
-      youtubeChannelIdPortuguese: "portuguese-channel"
+      youtubeChannelIdPortuguese: "portuguese-channel",
     });
 
-    expect(resolveYoutubeChannelIdForLanguage(config, "de")).toBe("german-channel");
-    expect(resolveYoutubeChannelIdForLanguage(config, "de-AT")).toBe("german-channel");
-    expect(resolveYoutubeChannelIdForLanguage(config, "es")).toBe("spanish-channel");
-    expect(resolveYoutubeChannelIdForLanguage(config, "fr-CA")).toBe("french-channel");
-    expect(resolveYoutubeChannelIdForLanguage(config, "pt-BR")).toBe("portuguese-channel");
-    expect(resolveYoutubeChannelIdForLanguage(config, "it")).toBe("global-channel");
-    expect(resolveYoutubeChannelIdForLanguage(config, undefined)).toBe("global-channel");
+    expect(resolveYoutubeChannelIdForLanguage(config, "de")).toBe(
+      "german-channel"
+    );
+    expect(resolveYoutubeChannelIdForLanguage(config, "de-AT")).toBe(
+      "german-channel"
+    );
+    expect(resolveYoutubeChannelIdForLanguage(config, "es")).toBe(
+      "spanish-channel"
+    );
+    expect(resolveYoutubeChannelIdForLanguage(config, "fr-CA")).toBe(
+      "french-channel"
+    );
+    expect(resolveYoutubeChannelIdForLanguage(config, "pt-BR")).toBe(
+      "portuguese-channel"
+    );
+    expect(resolveYoutubeChannelIdForLanguage(config, "it")).toBe(
+      "global-channel"
+    );
+    expect(resolveYoutubeChannelIdForLanguage(config, undefined)).toBe(
+      "global-channel"
+    );
   });
 });
