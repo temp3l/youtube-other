@@ -116,6 +116,29 @@ describe("episode layout migration command", () => {
     ).toMatchObject({ classification: "target_collision" });
   });
 
+  it("scans mixed-case episode directories without changing their physical path", async () => {
+    const episodesRoot = await createEpisodesRoot();
+    await writeEpisodeFile(
+      episodesRoot,
+      "002-Ancient-Humans-at-Night/languages/script-en.md",
+      "Already canonical\n"
+    );
+
+    const report = await planEpisodeLayoutMigration({ episodesRoot });
+
+    expect(report.summary.filesystem_error).toBe(0);
+    expect(report.candidates).toEqual([
+      expect.objectContaining({
+        episodeSlug: "002-ancient-humans-at-night",
+        repositoryRelativePath:
+          "episodes/002-Ancient-Humans-at-Night/languages/script-en.md",
+        canonicalRepositoryRelativePath:
+          "episodes/002-Ancient-Humans-at-Night/languages/script-en.md",
+        classification: "already_canonical",
+      }),
+    ]);
+  });
+
   it("write mode performs only safe non-overwriting moves with rollback metadata", async () => {
     const episodesRoot = await createEpisodesRoot();
     await writeEpisodeFile(

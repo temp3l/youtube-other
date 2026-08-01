@@ -4,31 +4,29 @@ Source plan: `docs/plans/legacy-retirement/README.md`
 
 Date: 2026-08-01
 
-Commits: Task 01 `0aceb6c`; Task 02 `be4577e`
+Commits: Task 01 `0aceb6c`; Task 02 `be4577e`; Task 03 pending
 
 ## Summary and files
 
-Task 01 is complete. Task 02 is partial: speech/CLI rollout telemetry records
-staged, blocked, monolithic, dry-run, and actual rollback selections. The
-migration register, ten-target production matrix, architecture, plan, tests,
-and reports were updated.
+Task 01 is complete. Task 02 observability is complete locally but production
+rollout is partial. Task 03 now fixes mixed-case migration traversal and records
+a fresh read-only census. Changed migration command/test, plan statuses,
+register, census, and reports.
 
 ## Task status and deviations
 
-- Completed: Task 01 and Task 02 local observability.
-- Partial: Task 02 production rollout.
-- Not completed: default promotion and Tasks 03–08.
-- Deviation: `legacy` remains default because paid matrix evidence, owner, and
-  release window are absent.
+- Completed: Task 01; Task 02 local observability; Task 03 census repair.
+- Partial: Tasks 02 and 03.
+- Not completed: default promotion, producer cutover, artifact dispositions,
+  and Tasks 04–08.
+- Deviation: no production artifact was moved.
 
 ## Checks and results
 
-Passed focused telemetry (7), pipeline (2), and CLI (10) tests. The final
-telemetry run used a temporary alias for cross-worktree Vite resolution.
-Workflow-engine declaration build and speech typecheck passed. No paid provider
-ran.
+Focused migration test: 6 passed. Corrected dry-run: 184 candidates; 127
+canonical, 1 safe, 14 identical, 42 divergent, 0 errors. No paid provider ran.
 
 ## Risks and next steps
 
-Authorize and cap the five-language full/Short matrix, record its reviewer and
-release window, then promote the default only if every quality gate is accepted.
+Record operator dispositions, migrate only the safe candidate with rollback
+evidence, and cut producers over before deleting readers.

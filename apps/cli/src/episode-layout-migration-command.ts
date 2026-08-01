@@ -215,9 +215,10 @@ async function pathExists(filePath: string): Promise<boolean> {
 
 async function discoverEpisodeCandidates(args: {
   readonly episodesRoot: string;
+  readonly episodeDirectoryName: string;
   readonly episodeSlug: string;
 }): Promise<DiscoveredCandidate[]> {
-  const episodeRoot = path.join(args.episodesRoot, args.episodeSlug);
+  const episodeRoot = path.join(args.episodesRoot, args.episodeDirectoryName);
   const candidates: DiscoveredCandidate[] = [];
 
   async function walk(dir: string): Promise<void> {
@@ -244,6 +245,7 @@ async function discoverEpisodeCandidates(args: {
       candidates.push(
         await buildDiscoveredCandidate({
           absolutePath,
+          episodeDirectoryName: args.episodeDirectoryName,
           episodeSlug: args.episodeSlug,
           episodeRelativePath,
           repositoryRelativePath,
@@ -259,6 +261,7 @@ async function discoverEpisodeCandidates(args: {
 
 async function buildDiscoveredCandidate(args: {
   readonly absolutePath: string;
+  readonly episodeDirectoryName: string;
   readonly episodeSlug: string;
   readonly episodeRelativePath: string;
   readonly repositoryRelativePath: string;
@@ -294,7 +297,7 @@ async function buildDiscoveredCandidate(args: {
 
   const canonicalRelativePath =
     language && variant
-      ? `${args.episodeSlug}/${canonicalEpisodeRelativePath({ language, variant })}`
+      ? `${args.episodeDirectoryName}/${canonicalEpisodeRelativePath({ language, variant })}`
       : undefined;
   const canonicalRepositoryRelativePath = canonicalRelativePath
     ? `episodes/${canonicalRelativePath}`
@@ -361,7 +364,9 @@ async function classifyTargetGroup(args: {
     (candidate) =>
       candidate.canonicalRelativePath !== undefined &&
       candidate.episodeRelativePath ===
-        candidate.canonicalRelativePath.slice(candidate.episodeSlug.length + 1)
+        candidate.canonicalRelativePath.slice(
+          candidate.canonicalRelativePath.indexOf("/") + 1
+        )
   );
   const canonicalRelativePath = args.candidates[0]?.canonicalRelativePath;
   if (!canonicalRelativePath) {
@@ -495,6 +500,7 @@ export async function planEpisodeLayoutMigration(
     try {
       const discovered = await discoverEpisodeCandidates({
         episodesRoot,
+        episodeDirectoryName: episodeDir,
         episodeSlug,
       });
       const invalid = discovered.filter(
@@ -534,7 +540,9 @@ export async function planEpisodeLayoutMigration(
       reportCandidates.push({
         episodeSlug,
         relativePath: ".",
-        repositoryRelativePath: portablePath(path.relative(path.dirname(episodesRoot), path.join(episodesRoot, episodeSlug))),
+        repositoryRelativePath: portablePath(
+          path.relative(path.dirname(episodesRoot), path.join(episodesRoot, episodeDir))
+        ),
         layout: "unsupported_script",
         classification: "filesystem_error",
         reason: error instanceof Error ? error.message : String(error),

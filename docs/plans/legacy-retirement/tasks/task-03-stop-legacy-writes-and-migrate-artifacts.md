@@ -1,5 +1,7 @@
 # Task 03: Stop Legacy Writes And Migrate Artifacts
 
+Status: In progress
+
 ## Objective
 
 Enforce write-forward storage while preserving controlled reads of existing
@@ -36,3 +38,11 @@ records, workflow repositories, migration commands, and their focused tests.
 
 All active producers write canonical artifacts only, and every existing legacy
 artifact has a recorded migration or retention disposition.
+
+## Current evidence
+
+The 2026-08-01 read-only census is recorded in
+`docs/migrations/legacy-artifact-migration-census.md`. The migration planner's
+mixed-case directory traversal defect is fixed and covered by a focused test.
+No production artifact was moved. Producer cutover and operator dispositions
+for the safe and divergent candidates remain open.

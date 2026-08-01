@@ -40,7 +40,7 @@ until their declared support windows close.
 | --- | --- | --- | --- |
 | [01](tasks/task-01-inventory-owners-and-removal-gates.md) | Every compatibility surface has an owner, evidence source, and removal gate | None | Complete |
 | [02](tasks/task-02-promote-staged-narration.md) | Staged narration becomes the production default with a bounded rollback window | 01 | In progress |
-| [03](tasks/task-03-stop-legacy-writes-and-migrate-artifacts.md) | Producers write canonical artifacts only; existing artifacts have migration dispositions | 01 | Ready |
+| [03](tasks/task-03-stop-legacy-writes-and-migrate-artifacts.md) | Producers write canonical artifacts only; existing artifacts have migration dispositions | 01 | In progress |
 | [04](tasks/task-04-cut-over-downstream-media-consumers.md) | Render, status, and operator paths consume canonical staged artifacts | 02, 03 | Blocked by dependencies |
 | [05](tasks/task-05-cut-over-youtube-publishing.md) | CLI publishing uses the approval-bound, checkpointed publisher | 01 | Ready |
 | [06](tasks/task-06-cut-over-remaining-callers-and-authorities.md) | Math and other compatibility callers delegate to one canonical workflow authority | 01 | Ready |
