@@ -23,6 +23,10 @@ import {
   ThumbnailRateLimitError,
   ThumbnailResponseError,
 } from "./thumbnail-contracts.js";
+import {
+  assertCreatorMediaPolicy,
+  type CreatorMediaGenerationRequest,
+} from "./creator-media-policy.js";
 
 export interface ThumbnailOpenAiImageResponse {
   readonly data?: ReadonlyArray<{
@@ -244,7 +248,9 @@ export class ThumbnailImageGenerator {
     readonly prompt: CompiledThumbnailPrompt;
     readonly reference: ResolvedThumbnailReference;
     readonly backgroundFingerprint: string;
+    readonly creatorMedia: CreatorMediaGenerationRequest;
   }): Promise<GeneratedThumbnailBackground> {
+    assertCreatorMediaPolicy(args.creatorMedia);
     const telemetry = currentExecutionTelemetry();
     const body = buildOpenAiThumbnailEditRequest({
       input: args.input,

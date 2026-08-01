@@ -58,6 +58,10 @@ import {
   resolveConfiguredRenderSize,
 } from "./image-generation-config.js";
 import { assertGeneratedImageFileMatchesSpec } from "./video-image-spec.js";
+import {
+  assertCreatorMediaPolicy,
+  type CreatorMediaGenerationRequest,
+} from "./creator-media-policy.js";
 
 const execFile = promisify(execFileCallback);
 
@@ -340,10 +344,11 @@ export interface PreparedImageProviderRequest extends ImageProviderRequest {
 export interface ImageGenerationRequest {
   providerRequest: PreparedImageProviderRequest;
   referenceImages: ReferenceImage[];
-  context?: {
+  context: {
     episodeId: string;
     language: string;
     profile: MediaStageVariant;
+    creatorMedia: CreatorMediaGenerationRequest;
   };
 }
 
@@ -1672,6 +1677,7 @@ async function materializePendingMergeWithNextScenes(args: {
           episodeId: pending.episodeId,
           language: pending.language,
           profile: args.settings.profile,
+          creatorMedia: { syntheticLikeness: false },
         },
       });
     } catch (error) {
@@ -3553,6 +3559,7 @@ export class OpenAIImageGenerator implements ImageGenerator {
   public async generate(
     request: ImageGenerationRequest
   ): Promise<GeneratedImageResult> {
+    assertCreatorMediaPolicy(request.context?.creatorMedia);
     const start = Date.now();
     const promptHash = request.providerRequest.promptHash;
     const providerRequestHash = request.providerRequest.providerRequestHash;
@@ -3937,6 +3944,7 @@ async function ensureReferenceImage(
       episodeId: registry.episodeId,
       language: "en",
       profile: settings.profile,
+      creatorMedia: { syntheticLikeness: false },
     },
   });
   character.referenceImagePath = result.outputPath;
@@ -4981,6 +4989,7 @@ async function generateIndependentScenePlan(args: {
         episodeId: args.episodeId,
         language: args.context.identity.language,
         profile: args.context.identity.variant,
+        creatorMedia: { syntheticLikeness: false },
       },
     });
   } catch (error) {
@@ -5866,6 +5875,7 @@ export async function generateEpisodeImages(
           episodeId,
           language: context.identity.language,
           profile: context.identity.variant,
+          creatorMedia: { syntheticLikeness: false },
         },
       });
     } catch (error) {

@@ -453,6 +453,7 @@ export async function generateStoryThumbnail(
       prompt: compiled,
       reference,
       backgroundFingerprint,
+      creatorMedia: { syntheticLikeness: false },
     });
     requestId = generated.requestId;
     pricingVersion = generated.pricingVersion;

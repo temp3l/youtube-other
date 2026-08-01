@@ -34,6 +34,10 @@ import {
   resolveConfiguredRenderSize,
 } from "./image-generation-config.js";
 import { assertGeneratedImageFileMatchesSpec } from "./video-image-spec.js";
+import {
+  assertCreatorMediaPolicy,
+  type CreatorMediaGenerationRequest,
+} from "./creator-media-policy.js";
 
 export interface OpenAiImageGenerationSettings {
   readonly apiKey: string;
@@ -61,6 +65,7 @@ export interface OpenAiImageGenerationJob {
   readonly episodeDir: string;
   readonly normalizedFilename: string;
   readonly videoKind: "full" | "short";
+  readonly creatorMedia: CreatorMediaGenerationRequest;
 }
 
 export interface OpenAiImageGenerationResult extends ImageAsset {
@@ -643,6 +648,7 @@ async function generateSingleImage(
   job: OpenAiImageGenerationJob,
   settings: OpenAiImageGenerationSettings
 ): Promise<OpenAiImageGenerationResult> {
+  assertCreatorMediaPolicy(job.creatorMedia);
   const generatedDir = path.join(job.episodeDir, "images", "generated");
   const rawDir = path.join(generatedDir, "raw");
   const metadataDir = path.join(generatedDir, "metadata");
@@ -1196,6 +1202,9 @@ export async function generateOpenAiSceneImages(
     readonly client?: OpenAiImageClientLike;
   }
 ): Promise<OpenAiImageGenerationResult[]> {
+  for (const job of jobs) {
+    assertCreatorMediaPolicy(job.creatorMedia);
+  }
   logOpenAiImageSettings(settings);
 
   const client =

@@ -81,3 +81,18 @@ export {
   type LegacyMigrationWarningCode,
   type MigrateLegacyEpisodeInput,
 } from "./legacy-shot-plan.js";
+
+export {
+  EditorialDocumentaryPlanningError,
+  planEditorialDocumentaryCompositions,
+  type EditorialAspectRatio,
+  type EditorialAspectBrief,
+  type EditorialComposition,
+  type EditorialCompositionBrief,
+  type EditorialDocumentaryPlan,
+  type EditorialDocumentaryPlanSet,
+  type EditorialDocumentaryPlanningErrorCode,
+  type EditorialVisualTreatment,
+  type SuppliedEditorialMedia,
+  type SuppliedMediaRightsEvidence,
+} from "./editorial-documentary-plan.js";

@@ -1108,6 +1108,12 @@ async function createNativeVerticalImage(
       referenceImages,
     }),
     referenceImages,
+    context: {
+      episodeId: registry.episodeId,
+      language: "en",
+      profile: "short",
+      creatorMedia: { syntheticLikeness: false },
+    },
   });
   await normalizePortraitImage(tempPath, outputPath, portraitWidth, portraitHeight, "smart-crop");
   await fs.rm(tempPath, { force: true }).catch(() => undefined);
@@ -1276,6 +1282,7 @@ export async function prepareShortsImageAssets(
             episodeId: planned.stageIdentity.episodeId,
             language: planned.stageIdentity.language,
             profile: planned.stageIdentity.variant,
+            creatorMedia: { syntheticLikeness: false },
           },
         });
         await normalizePortraitImage(

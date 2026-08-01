@@ -161,7 +161,7 @@ function resolveImageBatchProvider(
 ): ImageBatchProvider {
   return isImageBatchProvider(clientOrProvider)
     ? clientOrProvider
-    : createOpenAiImageBatchProvider(clientOrProvider);
+    : createOpenAiImageBatchProvider(clientOrProvider, { syntheticLikeness: false });
 }
 
 function batchIndexStatusFromImageStatus(

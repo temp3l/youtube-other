@@ -13,6 +13,10 @@ import type {
   OpenAiFileId,
 } from "./image-batch-provider.js";
 import type { ImageBatchStatus } from "./image-batch.types.js";
+import {
+  assertCreatorMediaPolicy,
+  type CreatorMediaGenerationRequest,
+} from "./creator-media-policy.js";
 
 function toImageBatchStatus(status: string): ImageBatchStatus {
   return normalizeBatchStatus(status as never) as ImageBatchStatus;
@@ -22,7 +26,10 @@ export class OpenAiImageBatchProvider implements ImageBatchProvider {
   private readonly files: NonNullable<OpenAiStoryClient["files"]>;
   private readonly batches: NonNullable<OpenAiStoryClient["batches"]>;
 
-  constructor(private readonly client: OpenAiStoryClient) {
+  constructor(
+    private readonly client: OpenAiStoryClient,
+    private readonly creatorMedia: CreatorMediaGenerationRequest,
+  ) {
     requireBatchCapabilities(client);
     this.files = client.files;
     this.batches = client.batches;
@@ -31,6 +38,7 @@ export class OpenAiImageBatchProvider implements ImageBatchProvider {
   async uploadInputFile(
     inputFilePath: string
   ): Promise<{ readonly fileId: OpenAiFileId }> {
+    assertCreatorMediaPolicy(this.creatorMedia);
     const uploaded = await this.files.create({
       file: fs.createReadStream(inputFilePath),
       purpose: "batch",
@@ -42,6 +50,7 @@ export class OpenAiImageBatchProvider implements ImageBatchProvider {
     readonly localPath: string;
     readonly mimeType: string;
   }): Promise<{ readonly fileId: OpenAiFileId }> {
+    assertCreatorMediaPolicy(this.creatorMedia);
     void args.mimeType;
     const uploaded = await this.files.create({
       file: fs.createReadStream(args.localPath),
@@ -69,6 +78,7 @@ export class OpenAiImageBatchProvider implements ImageBatchProvider {
     readonly batchId: OpenAiBatchId;
     readonly status: ImageBatchStatus;
   }> {
+    assertCreatorMediaPolicy(this.creatorMedia);
     const created = await this.batches.create({
       input_file_id: args.inputFileId,
       endpoint: args.endpoint,
@@ -122,7 +132,8 @@ export class OpenAiImageBatchProvider implements ImageBatchProvider {
 }
 
 export function createOpenAiImageBatchProvider(
-  client: OpenAiStoryClient
+  client: OpenAiStoryClient,
+  creatorMedia: CreatorMediaGenerationRequest,
 ): OpenAiImageBatchProvider {
-  return new OpenAiImageBatchProvider(client);
+  return new OpenAiImageBatchProvider(client, creatorMedia);
 }

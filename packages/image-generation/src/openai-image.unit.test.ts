@@ -253,6 +253,7 @@ describe("OpenAI image generation settings", () => {
           episodeDir: "/tmp/episode-fixture",
           normalizedFilename: "scene-001__000000-000004__16x9.png",
           videoKind: "full",
+          creatorMedia: { syntheticLikeness: false },
         },
         settings
       );
@@ -345,6 +346,7 @@ describe("OpenAI image generation", () => {
           episodeDir,
           normalizedFilename: plan.scenes[0]!.expectedImageFilenames[0]!,
           videoKind: "full",
+          creatorMedia: { syntheticLikeness: false },
         }
       ],
       settings,
@@ -441,6 +443,7 @@ describe("OpenAI image generation", () => {
         episodeDir,
         normalizedFilename: scene.expectedImageFilenames[0]!,
         videoKind: "full",
+        creatorMedia: { syntheticLikeness: false },
       })),
       settings,
       { client }
@@ -543,6 +546,7 @@ describe("OpenAI image generation", () => {
         episodeDir,
         normalizedFilename: scene.expectedImageFilenames[0]!,
         videoKind: "full",
+        creatorMedia: { syntheticLikeness: false },
       })),
       settings,
       { client }
@@ -621,6 +625,7 @@ describe("OpenAI image generation", () => {
           episodeDir,
           normalizedFilename: plan.scenes[0]!.expectedImageFilenames[0]!,
           videoKind: "full",
+          creatorMedia: { syntheticLikeness: false },
         }
       ],
       settings,

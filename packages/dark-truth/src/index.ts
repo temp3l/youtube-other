@@ -1659,6 +1659,7 @@ export async function generateCanonicalImages(
               episodeDir: sharedDir,
               normalizedFilename: prompt.expectedFilename,
               videoKind: "full",
+              creatorMedia: { syntheticLikeness: false },
             };
           }),
           settings

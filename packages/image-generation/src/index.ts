@@ -54,6 +54,13 @@ export {
   ensureEpisodeFocalMetadataForImages,
   loadEpisodeFocalMetadata,
 } from "./focal-metadata.js";
+export {
+  CreatorMediaPolicyError,
+  assertCreatorMediaPolicy,
+  dispatchCreatorMediaGeneration,
+  type CreatorMediaGenerationRequest,
+  type CreatorMediaPolicyErrorCode,
+} from "./creator-media-policy.js";
 
 export interface PromptTemplateContext {
   readonly GLOBAL_STYLE: string;
