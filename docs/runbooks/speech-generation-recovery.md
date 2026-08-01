@@ -2,11 +2,16 @@
 
 ## Workflow retry and resume
 
-Inspect generation state, failure code, chunk outcomes, lease expiry, and the last journal
-entry. Resume reuses successful raw chunks and the cache authority. Retry only
+Inspect generation state, failure code, chunk outcomes, and lease expiry. The current API
+retry requires the exact original text/language, preserves the exact profile version, and
+reuses successful raw chunks. Retry only
 `RETRYABLE_FAILURE`; never edit a terminal generation. A dead owner is reclaimable after
 its bounded fenced lease expires. Cancellation stops the active request and records
 `CANCELLED`.
+
+Episode workflow-journal resume is not yet directly wired to these use cases; during the
+compatibility window it runs through the service-backed file facade. Do not infer API
+generation state from a legacy journal entry alone.
 
 ## Provider outage
 

@@ -1,23 +1,13 @@
-# Speech completion prompt run
+# Provider-neutral speech completion run
 
 Date: 2026-08-01
 
-Changed files:
+Summary: composed production PostgreSQL speech use cases; added durable profile, cache, retry, quota, usage, audit, and artifact behavior; routed legacy operational callers through `SpeechGenerationService`; hardened providers/audio; reconciled docs.
 
-- `docs/plans/provider-neutral-speech-generation-completion-prompt.md`
-- `docs/reports/codex-runs/2026-08-01-speech-completion-prompt.md`
+Changed paths: `apps/api`, `apps/cli`, `packages/speech`, `packages/persistence`, `packages/dark-truth`, `docs/{architecture,development,migrations,runbooks,reports}`.
 
-Checks run:
+Tests/checks: affected lint; API/speech/persistence/Dark Truth typechecks; 50 focused unit tests; 21 non-database integrations; earlier 6 PostgreSQL integrations. All scoped checks passed. Unrelated Dark Truth fixture discovery and math benchmark-schema suites failed. Final PostgreSQL rerun was blocked by sandbox approval timeout.
 
-- Read the existing speech implementation report and known-limitations document.
-- `git diff --check` after creation.
+Commit: `b3d8863` (implementation).
 
-Result: created a fresh-session prompt centered on production composition, legacy-path
-removal, durable PostgreSQL behavior, entry-point integration, audio/provider hardening,
-observability, focused verification, documentation reconciliation, and explicit completion
-gates.
-
-Risks remaining: the prompt describes future implementation work and does not itself
-resolve the current production blockers.
-
-Commit: not committed; base `a30e981`.
+Unresolved risks: canonical narration lookup, direct episode-journal/frontend API integration, consent CRUD, exporter bindings, and compatibility-facade removal remain.

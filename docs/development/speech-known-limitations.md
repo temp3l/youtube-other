@@ -7,16 +7,16 @@
   reactive design-system application.
 - Production object storage currently accepts bounded byte payloads; the local adapter
   streams to disk. A streaming object-store writer is the next scale improvement.
-- Legacy OpenAI file-oriented commands remain during the compatibility window and must be
-  removed only after all episode/math callers use the application service.
-- Production API startup does not yet compose `SpeechApiUseCases`; speech routes return
-  503 unless a deployment injects them. Persistence-to-application adapters for complete
-  profile administration, status, cache waiting, quota reservation, and usage ledger
-  behavior are still required.
-- Concurrency and quota logic has conformance/unit coverage, but no PostgreSQL race test
-  has yet demonstrated at-most-one provider call or hard-limit safety end to end.
-- Canonical FLAC command construction is unit tested; deterministic fixture-based FFmpeg
-  audio validation has not yet been run.
+- Legacy file-oriented commands execute through a deprecated service-backed facade and
+  remain until episode journals and frontend-triggered actions call the API directly.
+- API estimate/generate/retry currently require explicit narration text and language;
+  canonical video narration lookup is not yet persisted.
+- Consent and listening approvals are enforced, but their dedicated operator CRUD/API
+  surfaces are not complete.
+- The web app is a server-rendered state view, not an authenticated API client with forms
+  or i18n.
+- PostgreSQL race tests exist, but the final rerun after the completion patch can require
+  local-container permission in restricted environments.
 - Repository observability exposes a speech instrumentation port over current telemetry;
   deployment-specific Prometheus/OpenTelemetry exporters remain composition work.
 

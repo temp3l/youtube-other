@@ -2,18 +2,17 @@
 
 Date: 2026-08-01
 
-## Existing execution paths
+## Implemented production path
 
-- `packages/speech/src/index.ts` owns the file-oriented `SpeechProvider` contract and
-  `OpenAiCompatibleSpeechProvider`. The adapter writes to caller-selected paths and may
-  try configured fallback models.
-- `packages/speech/src/narration-pipeline.ts` owns the staged narration flow and a
-  per-chunk filesystem cache. It builds OpenAI-specific requests and may generate chunks
-  concurrently.
-- `apps/cli/src/index.ts`, `apps/cli/src/math-commands.ts`, and
-  `packages/dark-truth/src/index.ts` construct the OpenAI adapter independently.
-- `apps/cli/src/story-audio-command.ts` invokes the staged CLI rather than a shared
-  application service.
+- API startup injects PostgreSQL-backed `SpeechApiUseCases` and filesystem artifacts.
+- API and connected CLI support profile create/version/validate/activate/deprecate,
+  policies, overrides, estimate, generate, status, retry, and cancellation.
+- Profile resolution is video override → genre policy → idempotent OpenAI system default.
+- Cache ownership, fencing, lease recovery, quota reservations, reconciliation, chunk
+  attempts, usage, and audits are durable and workspace scoped.
+- OpenAI and ElevenLabs adapters are invoked by `SpeechGenerationService`. Legacy file
+  callers receive a service-backed compatibility facade with no model fallback.
+- Raw responses and canonical 48 kHz mono signed-16 FLAC masters are persisted and probed.
 
 ## Reusable infrastructure
 
@@ -31,23 +30,21 @@ Date: 2026-08-01
 - The API uses Node HTTP, Zod contracts, OpenAPI, OIDC/principal permissions, ETags, and
   idempotency keys.
 
-## Gaps
+## Remaining gaps
 
-- No provider-neutral generation application service or provider registry.
-- No immutable voice-profile versions, consent records, genre policy, or video override.
-- No durable speech generation/cache claim/chunk/usage schema.
-- No ElevenLabs adapter, feature flag, or validated configuration.
-- Current mastering is PCM WAV with one-pass loudness normalization, not canonical FLAC
-  with measured two-pass normalization.
-- No speech API, dedicated provider-neutral CLI surface, or durable speech workflow task.
-- `apps/web` is a static page; no design system, forms, or i18n foundation exists.
-- No metrics exporter or distributed tracing implementation exists. Speech must expose a
-  bounded-cardinality instrumentation port compatible with the current telemetry layer.
+- Canonical narration text/language is not persisted for lookup by video ID; callers must
+  send both fields and retries must resend the exact narration.
+- Episode resume/journal execution and frontend actions are not direct speech API clients;
+  legacy workflows still cross the deprecated file facade.
+- `apps/web` remains a server-rendered accessible state model without forms or i18n.
+- Consent/listening approval persistence exists, but dedicated consent CRUD and listening
+  approval HTTP operations are not exposed.
+- Deployment-specific metrics exporters and distributed tracing remain external.
+- The compatibility facade remains until 2026-10-01 and constructs the old OpenAI client
+  only inside the designated transport boundary.
 
 ## Migration constraints
 
-The first release must preserve legacy files and metadata. Existing callers migrate to a
-compatibility adapter backed by the shared application service; model/voice fallback is
-not permitted after a profile has resolved. PostgreSQL additions are additive and
-tenant-scoped. ElevenLabs remains disabled and no cloned profile becomes a production
-default automatically.
+Legacy files and metadata remain stable. PostgreSQL additions are additive and
+tenant-scoped. ElevenLabs defaults disabled, and no cloned profile or genre default is
+activated automatically.
