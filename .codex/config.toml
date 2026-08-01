@@ -4,9 +4,16 @@ sandbox_mode = "workspace-write"
 [sandbox_workspace_write]
 network_access = true
 
+[agents]
+enabled = true
+# Keep fan-out modest: three subagents can still divide independent work without
+# multiplying context and output across a large agent pool.
+max_concurrent_threads_per_session = 3
+default_subagent_model = "gpt-5.6-terra"
+default_subagent_reasoning_effort = "medium"
+# Preserve interruption visibility; the small context cost is useful for safety.
+interrupt_message = true
+
 [features.network_proxy]
 enabled = true
-domains = {
-  "api.openai.com" = "allow",
-	"registry.npmjs.org" = "allow"
-}
+domains = { "api.openai.com" = "allow", "registry.npmjs.org" = "allow" }
