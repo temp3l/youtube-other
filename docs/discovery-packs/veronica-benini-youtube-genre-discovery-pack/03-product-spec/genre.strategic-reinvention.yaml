@@ -1,0 +1,121 @@
+schemaVersion: "1.0"
+id: strategic-reinvention
+displayName: Strategic Reinvention
+description: >
+  Creator-led stories, strategic reframing and practical actions for deliberate
+  change in work, business, money, identity and personal time.
+version: "0.1.0"
+
+audience:
+  primary:
+    - people considering professional or personal change
+    - freelancers and entrepreneurs seeking independence
+    - multi-interest professionals
+    - women navigating money, work, power and visibility
+  exclusions:
+    - medical diagnosis or treatment
+    - individualized legal or financial advice
+    - unreviewed crisis or trauma content
+
+editorialPromise:
+  pattern:
+    - provocative-hook
+    - recognizable-problem
+    - creator-owned-story-or-case
+    - conventional-interpretation
+    - strategic-reframe
+    - practical-framework
+    - immediate-action
+    - creator-specific-cta
+  requirements:
+    sourceLed: true
+    firstPersonRequiresCreatorSource: true
+    claimsRequireEvidenceWhenApplicable: true
+    premiumBoundaryRequired: true
+
+episodeModes:
+  - id: story-to-strategy
+    fullDurationSeconds: { min: 600, max: 960 }
+  - id: tactical-lesson
+    fullDurationSeconds: { min: 300, max: 480 }
+  - id: position-essay
+    fullDurationSeconds: { min: 600, max: 840 }
+  - id: myth-reality
+    fullDurationSeconds: { min: 360, max: 600 }
+  - id: decision-framework
+    fullDurationSeconds: { min: 480, max: 720 }
+  - id: case-diagnosis
+    fullDurationSeconds: { min: 600, max: 900 }
+  - id: q-and-a
+    fullDurationSeconds: { min: 240, max: 480 }
+  - id: guided-exercise
+    fullDurationSeconds: { min: 300, max: 720 }
+
+shorts:
+  durationSeconds: { min: 25, max: 55 }
+  required:
+    - standalone-context
+    - one-complete-claim
+    - one-turn
+    - action-or-question
+  forbidden:
+    - decontextualized-personal-disclosure
+    - fabricated-controversy
+    - premium-method-leakage
+
+visualSystem:
+  defaultMode: editorial-documentary
+  allowed:
+    - creator-supplied-footage
+    - approved-photography
+    - kinetic-typography
+    - diagrams
+    - timelines
+    - decision-trees
+    - contextual-b-roll
+    - worksheets
+    - simple-illustration
+  avoid:
+    - generic-motivational-stock-montage
+    - cinematic-fiction-default
+    - synthetic-likeness-without-permission
+    - visual-sexualization
+    - misleading-reenactment
+
+sourcePolicy:
+  accepted:
+    - creator-recording
+    - creator-written-note
+    - approved-transcript
+    - approved-public-essay
+    - licensed-book-derived-source
+    - approved-interview
+  rejectedByDefault:
+    - scraped-paid-content
+    - private-correspondence
+    - unknown-rights
+    - current-sensitive-event
+    - third-party-client-material
+
+approvalPolicy:
+  requiredGates:
+    - source
+    - canonical-script
+    - localization
+    - voice
+    - final-render
+    - publish
+  autoPublish: false
+
+metrics:
+  primary:
+    - returning-viewers
+    - average-percentage-viewed
+    - owned-audience-conversion
+    - assisted-revenue
+    - creator-review-time
+    - production-time-saved
+  secondary:
+    - shorts-to-long-conversion
+    - localized-watch-time
+    - localization-defect-rate

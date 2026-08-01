@@ -1,0 +1,33 @@
+{
+  "name": "veronica-benini-youtube-genre-discovery-pack",
+  "version": "0.1.0",
+  "createdAt": "2026-07-31",
+  "targetRepository": "mediaforge",
+  "genreId": "strategic-reinvention",
+  "creatorProfileId": "veronica-benini",
+  "canonicalLocale": "it",
+  "files": [
+    "01-research/books-and-ip-map.md",
+    "01-research/source-register.md",
+    "01-research/veronica-research-dossier.md",
+    "02-strategy/90-day-pilot-plan.md",
+    "02-strategy/content-pillars-and-formats.md",
+    "02-strategy/genre-and-channel-strategy.md",
+    "02-strategy/multilingual-strategy.md",
+    "02-strategy/public-premium-funnel.md",
+    "03-product-spec/approval-workflow.md",
+    "03-product-spec/content-source.schema.json",
+    "03-product-spec/creator.veronica-benini.yaml",
+    "03-product-spec/episode-blueprint.schema.json",
+    "03-product-spec/genre.strategic-reinvention.yaml",
+    "04-implementation/CODEX_IMPLEMENTATION_PROMPT.md",
+    "04-implementation/acceptance-criteria.md",
+    "04-implementation/mediaforge-architecture-changes.md",
+    "05-collaboration/pilot-proposal-outline.md",
+    "05-collaboration/rights-and-permissions-checklist.md",
+    "05-collaboration/veronica-onboarding-questionnaire.md",
+    "06-samples/content-matrix.csv",
+    "06-samples/sample-episode-briefs.md",
+    "README_START_HERE.md"
+  ]
+}

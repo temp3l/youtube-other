@@ -1,0 +1,245 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mediaforge.local/schemas/strategic-reinvention-episode.schema.json",
+  "title": "Strategic Reinvention Episode Blueprint",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "episodeId",
+    "genreId",
+    "creatorProfileId",
+    "canonicalLocale",
+    "mode",
+    "sources",
+    "contentTier",
+    "thesis",
+    "beats",
+    "cta",
+    "approvals"
+  ],
+  "properties": {
+    "episodeId": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]{2,127}$"
+    },
+    "genreId": {
+      "const": "strategic-reinvention"
+    },
+    "creatorProfileId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "canonicalLocale": {
+      "type": "string",
+      "pattern": "^[a-z]{2}(-[A-Z]{2})?$"
+    },
+    "mode": {
+      "enum": [
+        "story-to-strategy",
+        "tactical-lesson",
+        "position-essay",
+        "myth-reality",
+        "decision-framework",
+        "case-diagnosis",
+        "q-and-a",
+        "guided-exercise"
+      ]
+    },
+    "sources": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z0-9][a-z0-9-]{2,127}$"
+      },
+      "uniqueItems": true
+    },
+    "contentTier": {
+      "enum": [
+        "public",
+        "lead-generation",
+        "premium",
+        "private"
+      ]
+    },
+    "thesis": {
+      "type": "string",
+      "minLength": 10
+    },
+    "viewerProblem": {
+      "type": "string"
+    },
+    "forbiddenInferences": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true
+    },
+    "beats": {
+      "type": "array",
+      "minItems": 6,
+      "maxItems": 12,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "beatId",
+          "type",
+          "purpose",
+          "sourceIds"
+        ],
+        "properties": {
+          "beatId": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]{1,63}$"
+          },
+          "type": {
+            "enum": [
+              "hook",
+              "situation",
+              "story",
+              "conventional-view",
+              "reframe",
+              "framework",
+              "example",
+              "action",
+              "cta"
+            ]
+          },
+          "purpose": {
+            "type": "string",
+            "minLength": 1
+          },
+          "sourceIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "uniqueItems": true
+          },
+          "claimIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "uniqueItems": true
+          },
+          "visualIntent": {
+            "type": "string"
+          },
+          "sensitivity": {
+            "enum": [
+              "normal",
+              "sensitive",
+              "high-risk"
+            ]
+          }
+        }
+      }
+    },
+    "cta": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "destination",
+        "campaignId"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "newsletter",
+            "free-resource",
+            "course",
+            "membership",
+            "consultation",
+            "book",
+            "none"
+          ]
+        },
+        "destination": {
+          "type": "string"
+        },
+        "campaignId": {
+          "type": "string"
+        },
+        "localizedDestinations": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "targetLocales": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true
+    },
+    "approvals": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source",
+        "canonicalScript",
+        "localization",
+        "voice",
+        "render",
+        "publish"
+      ],
+      "properties": {
+        "source": {
+          "enum": [
+            "pending",
+            "approved",
+            "rejected",
+            "not-required"
+          ]
+        },
+        "canonicalScript": {
+          "enum": [
+            "pending",
+            "approved",
+            "rejected",
+            "not-required"
+          ]
+        },
+        "localization": {
+          "enum": [
+            "pending",
+            "approved",
+            "rejected",
+            "not-required"
+          ]
+        },
+        "voice": {
+          "enum": [
+            "pending",
+            "approved",
+            "rejected",
+            "not-required"
+          ]
+        },
+        "render": {
+          "enum": [
+            "pending",
+            "approved",
+            "rejected",
+            "not-required"
+          ]
+        },
+        "publish": {
+          "enum": [
+            "pending",
+            "approved",
+            "rejected",
+            "not-required"
+          ]
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,157 @@
+schemaVersion: "1.0"
+id: veronica-benini
+displayName: Veronica Benini
+publicAlias: "@Spora"
+genreId: strategic-reinvention
+version: "0.1.0"
+status: discovery
+
+locale:
+  canonical: it
+  supported:
+    - it
+    - en
+    - es
+    - de
+    - fr
+    - pt
+  localizationOrder:
+    - en
+    - es
+    - de
+    - fr
+    - pt
+
+authorship:
+  mode: human-source-led
+  generativeFirstPersonDrafting: false
+  generativeOpinionDrafting: false
+  allowStructuralAdaptation: true
+  allowShortExtraction: true
+  allowTranslation: true
+  creatorApprovalRequired: true
+  note: >
+    Public material indicates that newsletters and podcasts are produced without
+    AI support and that this position is important. Change only through explicit
+    written approval.
+
+voice:
+  canonical:
+    preferred: creator-recorded
+  cloning:
+    enabled: false
+    requiresSeparateWrittenConsent: true
+  syntheticNarration:
+    enabled: false
+    requiresExplicitApproval: true
+  dub:
+    allowedModes:
+      - approved-human-actor
+      - approved-synthetic-voice
+      - reviewed-youtube-auto-dub
+    manualReviewRequired: true
+
+likeness:
+  syntheticAvatarEnabled: false
+  generatedLikenessEnabled: false
+  suppliedFootageAllowed: true
+  suppliedPhotographyAllowed: true
+  writtenConsentRequiredForSyntheticUse: true
+
+positioning:
+  mission:
+    - personal-and-professional-independence
+    - deliberate-change
+    - reclaiming-personal-time
+  pillars:
+    - strategic-reinvention
+    - business-and-positioning
+    - storytelling-and-communication
+    - women-money-power-and-representation
+    - personal-time-and-anti-noise
+    - practical-life-design
+  avoid:
+    - generic-motivation
+    - hustle-culture
+    - forced-positivity
+    - fabricated-personal-story
+    - advice-presented-as-therapy
+    - advice-presented-as-medical-legal-or-financial-counsel
+
+protectedTerms:
+  preserve:
+    - Spora
+    - PRESENTE
+    - StoryFaiga
+    - MULTIFAIGA
+    - VIAGGETTY
+    - LAVORETTY
+    - Corsetty
+    - Revoluscion
+  localizationRequiresApproval: true
+
+tone:
+  attributes:
+    - direct
+    - colloquial
+    - practical
+    - provocative
+    - humorous
+    - self-aware
+    - anti-cliche
+  rules:
+    - retain-first-person-only-when-supported-by-source
+    - prefer-specific-experience-over-generic-claim
+    - end-with-action-or-position
+    - do-not-sanitize-approved-colloquial-language-automatically
+    - do-not-invent-brand-wordplay
+  prohibited:
+    - imitation-from-unapproved-scraping
+    - generic-coach-language
+    - certainty-without-evidence
+    - fake-intimacy
+    - clickbait-that-distorts-outcome
+
+contentBoundary:
+  public:
+    - broad-problem
+    - distinctive-reframe
+    - high-level-method
+    - one-example
+    - one-starter-exercise
+  premium:
+    - complete-method
+    - full-workbook
+    - full-course-sequence
+    - private-podcast-or-video
+    - feedback-and-community
+  blockedByDefault:
+    - private-correspondence
+    - unpublished-manuscript
+    - client-confidential-material
+    - unapproved-current-life-event
+    - health-relationship-legal-or-safety-event
+    - unclear-rights
+
+offers:
+  requiresLiveCatalogueValidation: true
+  knownPublicExamples:
+    - PRESENTE
+    - MULTIFAIGA
+    - StoryFaiga
+    - VIAGGETTY
+    - LAVORETTY
+    - business-academies
+    - content-strategy
+    - consultations
+
+publishing:
+  autoPublish: false
+  primaryChannelLanguage: it
+  preferredMultilingualModel: single-video-with-reviewed-audio-tracks
+  separateChannelsRequireBusinessCase: true
+
+approval:
+  creatorFinalApproval: true
+  highRiskTopicSecondReview: true
+  revokeOnSourceChange: true

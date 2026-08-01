@@ -1,0 +1,318 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mediaforge.local/schemas/content-source.schema.json",
+  "title": "Mediaforge Content Source",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "sourceId",
+    "title",
+    "owner",
+    "sourceType",
+    "provenance",
+    "accessLevel",
+    "rights",
+    "aiTransformations",
+    "sensitivity",
+    "sourceHash",
+    "createdAt"
+  ],
+  "properties": {
+    "sourceId": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]{2,127}$"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1
+    },
+    "owner": {
+      "type": "string",
+      "minLength": 1
+    },
+    "sourceType": {
+      "enum": [
+        "creator-recording",
+        "creator-written-note",
+        "approved-transcript",
+        "public-essay",
+        "newsletter",
+        "book",
+        "book-excerpt",
+        "course-material",
+        "interview",
+        "audience-question",
+        "research",
+        "third-party-material"
+      ]
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "location"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "file",
+            "url",
+            "recording",
+            "manual-entry"
+          ]
+        },
+        "location": {
+          "type": "string",
+          "minLength": 1
+        },
+        "capturedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "capturedBy": {
+          "type": "string"
+        },
+        "originalLanguage": {
+          "type": "string",
+          "pattern": "^[a-z]{2}(-[A-Z]{2})?$"
+        }
+      }
+    },
+    "accessLevel": {
+      "enum": [
+        "public",
+        "lead-magnet",
+        "premium",
+        "private",
+        "confidential"
+      ]
+    },
+    "rights": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "allowedUses",
+        "permittedLocales",
+        "commercialUse"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "unknown",
+            "creator-owned",
+            "publisher-owned",
+            "licensed",
+            "permission-required",
+            "blocked"
+          ]
+        },
+        "rightsHolders": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
+        "licenseReference": {
+          "type": "string"
+        },
+        "allowedUses": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "internal-research",
+              "short-quote",
+              "summarize",
+              "adapt",
+              "translate",
+              "voice",
+              "visualize",
+              "publish",
+              "monetize"
+            ]
+          }
+        },
+        "permittedLocales": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z]{2}(-[A-Z]{2})?$"
+          },
+          "uniqueItems": true
+        },
+        "commercialUse": {
+          "type": "boolean"
+        },
+        "expiresAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "attribution": {
+          "type": "string"
+        },
+        "notes": {
+          "type": "string"
+        }
+      }
+    },
+    "aiTransformations": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "structure",
+        "summarize",
+        "adapt",
+        "translate",
+        "syntheticVoice",
+        "syntheticLikeness"
+      ],
+      "properties": {
+        "structure": {
+          "type": "boolean"
+        },
+        "summarize": {
+          "type": "boolean"
+        },
+        "adapt": {
+          "type": "boolean"
+        },
+        "translate": {
+          "type": "boolean"
+        },
+        "syntheticVoice": {
+          "type": "boolean"
+        },
+        "syntheticLikeness": {
+          "type": "boolean"
+        }
+      }
+    },
+    "sensitivity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "classification",
+        "tags",
+        "manualReviewRequired"
+      ],
+      "properties": {
+        "classification": {
+          "enum": [
+            "normal",
+            "sensitive",
+            "high-risk",
+            "blocked"
+          ]
+        },
+        "tags": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "health",
+              "relationship",
+              "violence",
+              "legal",
+              "financial-personal",
+              "politics",
+              "identity",
+              "sexuality",
+              "client-confidentiality",
+              "current-crisis",
+              "minor",
+              "none"
+            ]
+          }
+        },
+        "manualReviewRequired": {
+          "type": "boolean"
+        },
+        "notes": {
+          "type": "string"
+        }
+      }
+    },
+    "sourceHash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "approvedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "approvedBy": {
+      "type": "string"
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "accessLevel": {
+            "enum": [
+              "premium",
+              "private",
+              "confidential"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "sensitivity": {
+            "properties": {
+              "manualReviewRequired": {
+                "const": true
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "rights": {
+            "properties": {
+              "status": {
+                "enum": [
+                  "unknown",
+                  "permission-required",
+                  "blocked"
+                ]
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "rights": {
+            "properties": {
+              "allowedUses": {
+                "not": {
+                  "contains": {
+                    "enum": [
+                      "publish",
+                      "monetize"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}
