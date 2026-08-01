@@ -21,7 +21,7 @@ because runtime behavior was unchanged.
 
 ## Commit
 
-Pending.
+`fde3a93` (`docs: inventory legacy retirement gates`).
 
 ## Unresolved risks
 

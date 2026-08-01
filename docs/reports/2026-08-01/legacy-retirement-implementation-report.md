@@ -4,7 +4,7 @@ Source plan: `docs/plans/legacy-retirement/README.md`
 
 Date: 2026-08-01
 
-Commit: pending
+Implementation commit: `fde3a93`
 
 ## Summary
 
