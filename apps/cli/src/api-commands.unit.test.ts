@@ -93,6 +93,46 @@ describe("connected API commands", () => {
     } });
   });
 
+  it("exposes health, contract, workspace accounting, assets, and paginated validation reads", async () => {
+    const cases: readonly [string[], string, string][] = [
+      [["api", "health", "live"], "/health/live", "getLiveness"],
+      [["api", "health", "ready"], "/health/ready", "getReadiness"],
+      [["api", "openapi"], "/v1/openapi.json", "getOpenApiDocument"],
+      [["api", "quota", "status", "--workspace", "workspace/one"], "/v1/workspaces/workspace%2Fone/quota", "getQuota"],
+      [["api", "usage", "list", "--workspace", "w", "--page-size", "25", "--after", "cursor/one"], "/usage-records?page%5Bsize%5D=25&page%5Bafter%5D=cursor%2Fone", "listUsageRecords"],
+      [["api", "audit", "list", "--workspace", "w", "--page-size", "10", "--after", "next cursor"], "/audit-events?page%5Bsize%5D=10&page%5Bafter%5D=next+cursor", "listAuditEvents"],
+      [["api", "episode", "get", "--workspace", "w", "--project", "project/one", "--episode", "episode two"], "/projects/project%2Fone/episodes/episode%20two", "getEpisode"],
+      [["api", "asset", "get", "--workspace", "w", "--project", "p", "--asset", "asset/one"], "/assets/asset%2Fone", "getAsset"],
+      [["api", "validation", "list", "--workspace", "w", "--project", "p", "--page-size", "100", "--after", "v/2"], "/validations?page%5Bsize%5D=100&page%5Bafter%5D=v%2F2", "listValidations"],
+      [["api", "publication", "get", "--workspace", "w", "--project", "p", "--publication", "publication/one"], "/publications/publication%2Fone", "getPublication"],
+    ];
+    for (const [args, expectedUrl, operation] of cases) {
+      const result = await execute(args);
+      expect(result.requests[0]?.url).toContain(expectedUrl);
+      expect(result.requests[0]?.init?.method ?? "GET").toBe("GET");
+      expect(new Headers(result.requests[0]?.init?.headers).get("authorization")).toBe("Bearer test-secret-token");
+      expect(result.stdout.operation).toBe(operation);
+      expect(result.stdout.schemaVersion).toBe("mediaforge.api-cli.v1");
+    }
+  });
+
+  it("replaces typed episode content with URL encoding and If-Match preserved", async () => {
+    const result = await execute([
+      "api", "episode", "replace", "--workspace", "w", "--project", "project/one",
+      "--episode", "episode two", "--if-match", "\"7\"", "--profile", "dark_truth",
+      "--premise", "Replacement premise", "--story-bible", "bible-2",
+    ]);
+    const request = result.requests[0];
+    expect(request?.url).toContain("/projects/project%2Fone/episodes/episode%20two");
+    expect(request?.init?.method).toBe("PATCH");
+    expect(new Headers(request?.init?.headers).get("if-match")).toBe("\"7\"");
+    expect(JSON.parse(String(request?.init?.body))).toEqual({ content: {
+      type: "dark_truth", version: "1", premise: "Replacement premise",
+      storyBibleId: "bible-2", referenceAssetIds: [],
+    } });
+    expect(result.stdout.operation).toBe("replaceEpisodeContent");
+  });
+
   it("covers workflow, job, and approval operations while preserving concurrency headers", async () => {
     const cases: readonly [string[], string, string, Record<string, string>][] = [
       [["api", "workflow", "start", "--workspace", "w", "--project", "p", "--episode", "e", "--episode-revision", "2", "--locales", "en,de", "--variants", "full,short", "--approval-mode", "required", "--idempotency-key", "idem-start"], "/episodes/e/workflow-runs", "POST", { "idempotency-key": "idem-start" }],
@@ -102,6 +142,7 @@ describe("connected API commands", () => {
       [["api", "workflow", "resume", "--workspace", "w", "--project", "p", "--run", "r", "--if-match", "\"3\"", "--idempotency-key", "idem-resume"], "/workflow-runs/r:resume", "POST", { "if-match": "\"3\"", "idempotency-key": "idem-resume" }],
       [["api", "job", "status", "--workspace", "w", "--project", "p", "--job", "j"], "/jobs/j", "GET", {}],
       [["api", "approval", "record", "--workspace", "w", "--project", "p", "--challenge", "c", "--subject", "s", "--expected-revision", "4", "--decision", "approved", "--reason", "Reviewed", "--if-match", "\"4\"", "--idempotency-key", "idem-approval"], "/approvals", "POST", { "if-match": "\"4\"", "idempotency-key": "idem-approval" }],
+      [["api", "approval", "revoke", "--workspace", "w", "--project", "p", "--approval", "approval/one", "--reason", "Superseded", "--if-match", "\"4\"", "--idempotency-key", "idem-revoke"], "/approvals/approval%2Fone:revoke", "POST", { "if-match": "\"4\"", "idempotency-key": "idem-revoke" }],
     ];
     for (const [args, suffix, method, expectedHeaders] of cases) {
       const result = await execute(args);
@@ -140,5 +181,8 @@ describe("connected API commands", () => {
       "--episode-revision", "1", "--locales", "en", "--variants", "vertical",
       "--approval-mode", "required", "--idempotency-key", "idem",
     ])).rejects.toThrow("--variants must be one of");
+    await expect(execute([
+      "api", "usage", "list", "--workspace", "w", "--page-size", "101",
+    ])).rejects.toThrow("--page-size must be between 1 and 100");
   });
 });

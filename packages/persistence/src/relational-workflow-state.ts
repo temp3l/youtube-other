@@ -293,6 +293,15 @@ CREATE TABLE IF NOT EXISTS approvals (
   PRIMARY KEY (workspace_id, approval_id),
   FOREIGN KEY (workspace_id, run_id) REFERENCES workflow_runs (workspace_id, run_id)
 );
+ALTER TABLE approvals ADD COLUMN IF NOT EXISTS subject_revision BIGINT NULL;
+ALTER TABLE approvals ADD COLUMN IF NOT EXISTS state TEXT NOT NULL DEFAULT 'active';
+ALTER TABLE approvals ADD COLUMN IF NOT EXISTS decision_reason TEXT NULL;
+ALTER TABLE approvals ADD COLUMN IF NOT EXISTS revoked_at TIMESTAMPTZ NULL;
+ALTER TABLE approvals ADD COLUMN IF NOT EXISTS revoked_by_principal_id TEXT NULL;
+ALTER TABLE approvals ADD COLUMN IF NOT EXISTS revocation_reason TEXT NULL;
+ALTER TABLE approvals DROP CONSTRAINT IF EXISTS approvals_state_check;
+ALTER TABLE approvals ADD CONSTRAINT approvals_state_check
+  CHECK (state IN ('active', 'rejected', 'revoked'));
 CREATE TABLE IF NOT EXISTS assets (
   workspace_id TEXT NOT NULL,
   asset_id TEXT NOT NULL,
@@ -336,12 +345,23 @@ CREATE TABLE IF NOT EXISTS publications (
   run_id TEXT NOT NULL,
   status TEXT NOT NULL,
   revision BIGINT NOT NULL DEFAULT 0,
+  approval_id TEXT NULL,
   approval_revision BIGINT NULL,
+  approval_artifact_hash TEXT NULL,
+  actor_principal_id TEXT NULL,
+  actor_principal_revision BIGINT NULL,
   credential_version TEXT NULL,
   asset_hash TEXT NULL,
+  artifact_bindings JSONB NULL,
+  channel_id TEXT NULL,
+  visibility TEXT NULL,
+  scheduled_at TIMESTAMPTZ NULL,
+  playlist_ids JSONB NULL,
   recovery_identity TEXT NULL,
   active_key TEXT NULL,
   execution_fence BIGINT NOT NULL DEFAULT 0,
+  intent_lease_fence BIGINT NOT NULL DEFAULT 0,
+  channel_lease_fence BIGINT NOT NULL DEFAULT 0,
   provider_receipt JSONB NULL,
   terminal_evidence JSONB NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -350,12 +370,23 @@ CREATE TABLE IF NOT EXISTS publications (
   FOREIGN KEY (workspace_id, run_id) REFERENCES workflow_runs (workspace_id, run_id)
 );
 ALTER TABLE publications ADD COLUMN IF NOT EXISTS project_id TEXT NULL;
+ALTER TABLE publications ADD COLUMN IF NOT EXISTS approval_id TEXT NULL;
 ALTER TABLE publications ADD COLUMN IF NOT EXISTS approval_revision BIGINT NULL;
+ALTER TABLE publications ADD COLUMN IF NOT EXISTS approval_artifact_hash TEXT NULL;
+ALTER TABLE publications ADD COLUMN IF NOT EXISTS actor_principal_id TEXT NULL;
+ALTER TABLE publications ADD COLUMN IF NOT EXISTS actor_principal_revision BIGINT NULL;
 ALTER TABLE publications ADD COLUMN IF NOT EXISTS credential_version TEXT NULL;
 ALTER TABLE publications ADD COLUMN IF NOT EXISTS asset_hash TEXT NULL;
+ALTER TABLE publications ADD COLUMN IF NOT EXISTS artifact_bindings JSONB NULL;
+ALTER TABLE publications ADD COLUMN IF NOT EXISTS channel_id TEXT NULL;
+ALTER TABLE publications ADD COLUMN IF NOT EXISTS visibility TEXT NULL;
+ALTER TABLE publications ADD COLUMN IF NOT EXISTS scheduled_at TIMESTAMPTZ NULL;
+ALTER TABLE publications ADD COLUMN IF NOT EXISTS playlist_ids JSONB NULL;
 ALTER TABLE publications ADD COLUMN IF NOT EXISTS recovery_identity TEXT NULL;
 ALTER TABLE publications ADD COLUMN IF NOT EXISTS active_key TEXT NULL;
 ALTER TABLE publications ADD COLUMN IF NOT EXISTS execution_fence BIGINT NOT NULL DEFAULT 0;
+ALTER TABLE publications ADD COLUMN IF NOT EXISTS intent_lease_fence BIGINT NOT NULL DEFAULT 0;
+ALTER TABLE publications ADD COLUMN IF NOT EXISTS channel_lease_fence BIGINT NOT NULL DEFAULT 0;
 ALTER TABLE publications ADD COLUMN IF NOT EXISTS provider_receipt JSONB NULL;
 ALTER TABLE publications ADD COLUMN IF NOT EXISTS terminal_evidence JSONB NULL;
 ALTER TABLE publications ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT now();
@@ -366,6 +397,39 @@ CREATE UNIQUE INDEX IF NOT EXISTS publications_recovery_identity_unique
 CREATE UNIQUE INDEX IF NOT EXISTS publications_active_intent_unique
   ON publications (workspace_id, active_key)
   WHERE active_key IS NOT NULL AND status IN ('pending', 'executing', 'reconciliation_required');
+ALTER TABLE publications DROP CONSTRAINT IF EXISTS publications_visibility_check;
+ALTER TABLE publications ADD CONSTRAINT publications_visibility_check
+  CHECK (visibility IS NULL OR visibility IN ('private', 'unlisted', 'public'));
+ALTER TABLE publications DROP CONSTRAINT IF EXISTS publications_artifact_bindings_check;
+ALTER TABLE publications ADD CONSTRAINT publications_artifact_bindings_check
+  CHECK (artifact_bindings IS NULL OR (jsonb_typeof(artifact_bindings) = 'array' AND jsonb_array_length(artifact_bindings) > 0));
+ALTER TABLE publications DROP CONSTRAINT IF EXISTS publications_playlist_ids_check;
+ALTER TABLE publications ADD CONSTRAINT publications_playlist_ids_check
+  CHECK (playlist_ids IS NULL OR jsonb_typeof(playlist_ids) = 'array');
+CREATE TABLE IF NOT EXISTS publication_credential_versions (
+  workspace_id TEXT NOT NULL,
+  credential_version TEXT NOT NULL,
+  channel_id TEXT NOT NULL,
+  state TEXT NOT NULL CHECK (state IN ('active', 'disabled', 'revoked')),
+  revision BIGINT NOT NULL DEFAULT 0,
+  revoked_at TIMESTAMPTZ NULL,
+  created_at TIMESTAMPTZ NOT NULL,
+  updated_at TIMESTAMPTZ NOT NULL,
+  PRIMARY KEY (workspace_id, credential_version),
+  CHECK ((state = 'active' AND revoked_at IS NULL) OR state IN ('disabled', 'revoked'))
+);
+CREATE TABLE IF NOT EXISTS publication_intent_leases (
+  workspace_id TEXT NOT NULL,
+  publication_id TEXT NOT NULL,
+  lease_owner TEXT NOT NULL,
+  lease_fence BIGINT NOT NULL CHECK (lease_fence > 0),
+  lease_expires_at TIMESTAMPTZ NOT NULL,
+  revision BIGINT NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ NOT NULL,
+  updated_at TIMESTAMPTZ NOT NULL,
+  PRIMARY KEY (workspace_id, publication_id),
+  FOREIGN KEY (workspace_id, publication_id) REFERENCES publications (workspace_id, publication_id)
+);
 CREATE TABLE IF NOT EXISTS workflow_events (
   workspace_id TEXT NOT NULL,
   event_id TEXT NOT NULL,
@@ -510,13 +574,46 @@ BEGIN
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
+CREATE OR REPLACE FUNCTION enforce_approval_mutation() RETURNS trigger AS $$
+BEGIN
+  IF TG_OP = 'DELETE' THEN
+    RAISE EXCEPTION 'approval records cannot be deleted' USING ERRCODE = 'P0001';
+  END IF;
+  IF NEW.workspace_id IS DISTINCT FROM OLD.workspace_id
+    OR NEW.approval_id IS DISTINCT FROM OLD.approval_id
+    OR NEW.run_id IS DISTINCT FROM OLD.run_id
+    OR NEW.decision IS DISTINCT FROM OLD.decision
+    OR NEW.artifact_hash IS DISTINCT FROM OLD.artifact_hash
+    OR NEW.subject_revision IS DISTINCT FROM OLD.subject_revision
+    OR NEW.decision_reason IS DISTINCT FROM OLD.decision_reason
+    OR NEW.created_at IS DISTINCT FROM OLD.created_at THEN
+    RAISE EXCEPTION 'approval decision evidence is immutable' USING ERRCODE = 'P0001';
+  END IF;
+  IF NEW.revision <> OLD.revision + 1
+    OR OLD.decision <> 'approved' OR OLD.state <> 'active'
+    OR NEW.state <> 'revoked' OR NEW.revoked_at IS NULL
+    OR NEW.revoked_by_principal_id IS NULL OR NEW.revocation_reason IS NULL THEN
+    RAISE EXCEPTION 'invalid approval revocation' USING ERRCODE = 'P0001';
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
 CREATE OR REPLACE FUNCTION enforce_publication_transition() RETURNS trigger AS $$
 BEGIN
   IF NEW.project_id IS DISTINCT FROM OLD.project_id
     OR NEW.run_id IS DISTINCT FROM OLD.run_id
+    OR NEW.approval_id IS DISTINCT FROM OLD.approval_id
     OR NEW.approval_revision IS DISTINCT FROM OLD.approval_revision
+    OR NEW.approval_artifact_hash IS DISTINCT FROM OLD.approval_artifact_hash
+    OR NEW.actor_principal_id IS DISTINCT FROM OLD.actor_principal_id
+    OR NEW.actor_principal_revision IS DISTINCT FROM OLD.actor_principal_revision
     OR NEW.credential_version IS DISTINCT FROM OLD.credential_version
     OR NEW.asset_hash IS DISTINCT FROM OLD.asset_hash
+    OR NEW.artifact_bindings IS DISTINCT FROM OLD.artifact_bindings
+    OR NEW.channel_id IS DISTINCT FROM OLD.channel_id
+    OR NEW.visibility IS DISTINCT FROM OLD.visibility
+    OR NEW.scheduled_at IS DISTINCT FROM OLD.scheduled_at
+    OR NEW.playlist_ids IS DISTINCT FROM OLD.playlist_ids
     OR NEW.recovery_identity IS DISTINCT FROM OLD.recovery_identity
     OR NEW.active_key IS DISTINCT FROM OLD.active_key
     OR NEW.created_at IS DISTINCT FROM OLD.created_at THEN
@@ -534,9 +631,13 @@ BEGIN
   ) THEN
     RAISE EXCEPTION 'invalid publication transition from % to %', OLD.status, NEW.status USING ERRCODE = 'P0001';
   END IF;
-  IF NEW.execution_fence IS DISTINCT FROM OLD.execution_fence
+  IF (NEW.execution_fence IS DISTINCT FROM OLD.execution_fence
+      OR NEW.intent_lease_fence IS DISTINCT FROM OLD.intent_lease_fence
+      OR NEW.channel_lease_fence IS DISTINCT FROM OLD.channel_lease_fence)
     AND NOT (OLD.status = 'pending' AND NEW.status = 'executing'
-      AND OLD.execution_fence = 0 AND NEW.execution_fence > 0) THEN
+      AND OLD.execution_fence = 0 AND NEW.execution_fence > 0
+      AND OLD.intent_lease_fence = 0 AND NEW.intent_lease_fence > 0
+      AND OLD.channel_lease_fence = 0 AND NEW.channel_lease_fence > 0) THEN
     RAISE EXCEPTION 'publication execution fence is immutable after execution starts' USING ERRCODE = 'P0001';
   END IF;
   IF NEW.provider_receipt IS DISTINCT FROM OLD.provider_receipt AND NEW.status <> 'published' THEN
@@ -555,6 +656,42 @@ BEGIN
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
+CREATE OR REPLACE FUNCTION enforce_publication_authority_fact_mutation() RETURNS trigger AS $$
+BEGIN
+  IF TG_OP = 'DELETE' THEN
+    RAISE EXCEPTION 'publication authority facts cannot be deleted' USING ERRCODE = 'P0001';
+  END IF;
+  IF NEW.workspace_id IS DISTINCT FROM OLD.workspace_id
+    OR NEW.credential_version IS DISTINCT FROM OLD.credential_version
+    OR NEW.channel_id IS DISTINCT FROM OLD.channel_id
+    OR NEW.created_at IS DISTINCT FROM OLD.created_at THEN
+    RAISE EXCEPTION 'publication credential identity is immutable' USING ERRCODE = 'P0001';
+  END IF;
+  IF NEW.revision <> OLD.revision + 1 THEN
+    RAISE EXCEPTION 'publication credential revision must advance exactly once' USING ERRCODE = 'P0001';
+  END IF;
+  IF OLD.state <> 'active' OR NEW.state = 'active' THEN
+    RAISE EXCEPTION 'publication credential cannot be reactivated' USING ERRCODE = 'P0001';
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+CREATE OR REPLACE FUNCTION enforce_publication_intent_lease_mutation() RETURNS trigger AS $$
+BEGIN
+  IF TG_OP = 'DELETE' THEN
+    RAISE EXCEPTION 'publication intent lease rows cannot be deleted' USING ERRCODE = 'P0001';
+  END IF;
+  IF NEW.workspace_id IS DISTINCT FROM OLD.workspace_id
+    OR NEW.publication_id IS DISTINCT FROM OLD.publication_id
+    OR NEW.created_at IS DISTINCT FROM OLD.created_at THEN
+    RAISE EXCEPTION 'publication intent lease identity is immutable' USING ERRCODE = 'P0001';
+  END IF;
+  IF NEW.revision <> OLD.revision + 1 OR NEW.lease_fence <> OLD.lease_fence + 1 THEN
+    RAISE EXCEPTION 'publication intent lease fence must advance exactly once' USING ERRCODE = 'P0001';
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
 DROP TRIGGER IF EXISTS workflow_run_transition_guard ON workflow_runs;
 CREATE TRIGGER workflow_run_transition_guard BEFORE UPDATE ON workflow_runs FOR EACH ROW EXECUTE FUNCTION enforce_workflow_run_transition();
 DROP TRIGGER IF EXISTS workflow_step_transition_guard ON workflow_steps;
@@ -567,16 +704,22 @@ DROP TRIGGER IF EXISTS job_transition_guard ON jobs;
 CREATE TRIGGER job_transition_guard BEFORE UPDATE ON jobs FOR EACH ROW EXECUTE FUNCTION enforce_workflow_transition('job');
 DROP TRIGGER IF EXISTS publication_transition_guard ON publications;
 CREATE TRIGGER publication_transition_guard BEFORE UPDATE ON publications FOR EACH ROW EXECUTE FUNCTION enforce_publication_transition();
+DROP TRIGGER IF EXISTS publication_credential_guard ON publication_credential_versions;
+CREATE TRIGGER publication_credential_guard BEFORE UPDATE OR DELETE ON publication_credential_versions FOR EACH ROW EXECUTE FUNCTION enforce_publication_authority_fact_mutation();
+DROP TRIGGER IF EXISTS publication_intent_lease_guard ON publication_intent_leases;
+CREATE TRIGGER publication_intent_lease_guard BEFORE UPDATE OR DELETE ON publication_intent_leases FOR EACH ROW EXECUTE FUNCTION enforce_publication_intent_lease_mutation();
 DROP TRIGGER IF EXISTS workflow_events_immutable ON workflow_events;
 CREATE TRIGGER workflow_events_immutable BEFORE UPDATE OR DELETE ON workflow_events FOR EACH ROW EXECUTE FUNCTION reject_workflow_event_mutation();
 DROP TRIGGER IF EXISTS episode_revisions_immutable ON episode_revisions;
 CREATE TRIGGER episode_revisions_immutable BEFORE UPDATE OR DELETE ON episode_revisions FOR EACH ROW EXECUTE FUNCTION reject_episode_revision_mutation();
 DROP TRIGGER IF EXISTS approval_challenge_mutation_guard ON approval_challenges;
 CREATE TRIGGER approval_challenge_mutation_guard BEFORE UPDATE OR DELETE ON approval_challenges FOR EACH ROW EXECUTE FUNCTION enforce_approval_challenge_mutation();
+DROP TRIGGER IF EXISTS approval_mutation_guard ON approvals;
+CREATE TRIGGER approval_mutation_guard BEFORE UPDATE OR DELETE ON approvals FOR EACH ROW EXECUTE FUNCTION enforce_approval_mutation();
 DO $$
 DECLARE table_name TEXT;
 BEGIN
-  FOREACH table_name IN ARRAY ARRAY['projects', 'episodes', 'episode_revisions', 'workflow_runs', 'workflow_run_bindings', 'workflow_steps', 'workflow_attempts', 'workflow_batches', 'jobs', 'approvals', 'approval_challenges', 'assets', 'validation_results', 'publications', 'workflow_events']
+  FOREACH table_name IN ARRAY ARRAY['projects', 'episodes', 'episode_revisions', 'workflow_runs', 'workflow_run_bindings', 'workflow_steps', 'workflow_attempts', 'workflow_batches', 'jobs', 'approvals', 'approval_challenges', 'assets', 'validation_results', 'publications', 'publication_credential_versions', 'publication_intent_leases', 'workflow_events']
   LOOP
     EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY', table_name);
     EXECUTE format('ALTER TABLE %I FORCE ROW LEVEL SECURITY', table_name);

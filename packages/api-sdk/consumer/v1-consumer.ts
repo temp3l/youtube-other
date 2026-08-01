@@ -5,6 +5,8 @@ import {
   type ApiProblem,
   type ApprovalAccepted,
   type ApprovalInput,
+  type ApprovalRevocationInput,
+  type ApprovalRevoked,
   type Asset,
   type AuditEventPage,
   type Episode,
@@ -14,6 +16,7 @@ import {
   type Job,
   type Project,
   type ProjectInput,
+  type Publication,
   type UsageRecordPage,
   type ValidationPage,
   type WorkflowAdmission,
@@ -27,6 +30,7 @@ const projectInput = { name: "Consumer project", profile: "dark_truth" } satisfi
 const episodeInput = { content: { type: "dark_truth", version: "1", premise: "Premise", storyBibleId: "bible-1", referenceAssetIds: [] } } satisfies EpisodeInput;
 const workflowInput = { template: "episode-production", episodeRevision: 0, locales: ["en"], variants: ["full"], approvalMode: "required", publicationMode: "none" } satisfies WorkflowAdmission;
 const approvalInput = { challengeId: "challenge-1", subjectId: "run-1", expectedRevision: 0, decision: "approved", reason: "Reviewed" } satisfies ApprovalInput;
+const approvalRevocationInput = { reason: "Approval superseded" } satisfies ApprovalRevocationInput;
 
 const problem = { type: "https://api.example.test/problems/profile-input-invalid", title: "Profile input invalid", status: 422, detail: "Unsupported profile capability.", code: "profile_input_invalid", requestId: "request-1", retryable: false, errors: [{ path: "content.grade", message: "Unsupported value." }] } satisfies ApiProblem;
 
@@ -44,7 +48,9 @@ const publicResponses = [
   { id: "job-1", revision: 0, status: "queued", attempts: 0, cancellationRequested: false },
   { id: "asset-1", mimeType: "video/mp4", bytes: 1, sha256: "a".repeat(64), lifecycle: "ready", provenance: "generated" },
   { items: [{ id: "validation-1", createdAt: "2026-08-01T00:00:00.000Z" }] },
+  { id: "publication-1", revision: 0, status: "pending", workflowRunId: "run-1", approvalId: "approval-1", approvalRevision: 0, approvalArtifactHash: "approval-hash", assetHash: "asset-hash", artifactBindings: [{ assetId: "asset-1", role: "video", contentHash: "content-hash" }], channelId: "channel-1", visibility: "private", scheduledAt: null, playlistIds: [], createdAt: "2026-08-01T00:00:00.000Z", updatedAt: "2026-08-01T00:00:00.000Z" },
   { id: "approval-1", jobId: "job-1", revision: 0 },
+  { id: "approval-1", revision: 1, state: "revoked", revokedAt: "2026-08-01T00:00:00.000Z" },
 ] as const satisfies readonly [
   HealthStatus,
   WorkspaceQuotaStatus,
@@ -59,7 +65,9 @@ const publicResponses = [
   Job,
   Asset,
   ValidationPage,
+  Publication,
   ApprovalAccepted,
+  ApprovalRevoked,
 ];
 void publicResponses;
 void parseApiProblem(problem);
@@ -84,5 +92,7 @@ export function compileV1Consumer(client: MediaforgeApiClient): void {
   void client.getJob("workspace-1", "project-1", "job-1");
   void client.getAsset("workspace-1", "project-1", "asset-1");
   void client.listValidations("workspace-1", "project-1", { size: 25 });
+  void client.getPublication("workspace-1", "project-1", "publication-1");
   void client.recordApproval("workspace-1", "project-1", approvalInput, { ifMatch: '"0"', idempotencyKey: "approval-1" });
+  void client.revokeApproval("workspace-1", "project-1", "approval-1", approvalRevocationInput, { ifMatch: '"0"', idempotencyKey: "approval-revoke-1" });
 }

@@ -11,6 +11,7 @@ const run = (
   overrides: Partial<PersistedDurableWorkflowRun> = {}
 ): PersistedDurableWorkflowRun => ({
   workflowRunId: "run-1",
+  command: "darktruth.production",
   authority: "database-v1",
   effectClass: "reversible",
   execution: { input: { canonical: true } },
@@ -48,6 +49,7 @@ describe("DurableWorkflowJobHandler", () => {
 
     expect(load).toHaveBeenCalledWith({
       workspaceId: "workspace-1",
+      jobId: "job-1",
       workflowRunId: "run-1",
     });
     expect(execute).toHaveBeenCalledWith(
@@ -144,6 +146,24 @@ describe("DurableWorkflowJobHandler", () => {
     ).resolves.toMatchObject({
       kind: "terminal_failure",
       error: expect.stringContaining("reconciliation"),
+    });
+    load.mockResolvedValueOnce(run({ command: "mathematics.production" }));
+    await expect(
+      handler.execute(
+        {
+          ...base,
+          jobType: "workflow.execute",
+          payload: {
+            workflowRunId: "run-1",
+            jobId: "job-1",
+            command: "darktruth.production",
+          },
+        },
+        control()
+      )
+    ).resolves.toMatchObject({
+      kind: "terminal_failure",
+      error: expect.stringContaining("does not match"),
     });
     expect(execute).not.toHaveBeenCalled();
   });

@@ -1,7 +1,10 @@
 import os from "node:os";
 
 import {
+  createCanonicalDurableWorkflowCommandExecutor,
+  DurableWorkflowJobHandler,
   DurableJobWorker,
+  type CanonicalDurableWorkflowExecutor,
   type DurableJobDispatchResult,
   type DurableJobHandler,
 } from "@mediaforge/application";
@@ -11,6 +14,8 @@ import {
   type PostgresPool,
 } from "@mediaforge/persistence";
 import { z } from "zod";
+
+import { PostgresPersistedDurableWorkflowLoader } from "./postgres-durable-workflow-loader.js";
 
 const opaqueId = z
   .string()
@@ -174,4 +179,70 @@ export async function startPostgresDurableJobProcess(input: {
   } finally {
     await input.pool.end();
   }
+}
+
+/**
+ * Safe workflow-worker composition: PostgreSQL owns the selected run and the
+ * strict handler rejects arbitrary job payloads and irreversible effects.
+ * Deployment injects only the profile-aware canonical executor and its
+ * approved provider adapters.
+ */
+export function createPostgresDurableWorkflowJobHandler(input: {
+  readonly pool: PostgresPool;
+  readonly executor: CanonicalDurableWorkflowExecutor;
+}): DurableWorkflowJobHandler {
+  const repository = new PostgresWorkflowRepository(input.pool);
+  return new DurableWorkflowJobHandler(
+    new PostgresPersistedDurableWorkflowLoader(repository),
+    input.executor
+  );
+}
+
+/**
+ * Production-safe episode workflow composition. The process owns the only
+ * currently admitted durable command; deployments inject its profile-aware
+ * canonical task runner rather than a second command router.
+ */
+export function createPostgresEpisodeProductionJobHandler(input: {
+  readonly pool: PostgresPool;
+  readonly execute: CanonicalDurableWorkflowExecutor["execute"];
+}): DurableWorkflowJobHandler {
+  return createPostgresDurableWorkflowJobHandler({
+    pool: input.pool,
+    executor: createCanonicalDurableWorkflowCommandExecutor([
+      { command: "episode-production", execute: input.execute },
+    ]),
+  });
+}
+
+export function startPostgresDurableWorkflowJobProcess(input: {
+  readonly pool: PostgresPool;
+  readonly executor: CanonicalDurableWorkflowExecutor;
+  readonly signal: AbortSignal;
+  readonly environment?: NodeJS.ProcessEnv;
+  readonly now?: () => Date;
+  readonly retryAt?: (attempt: number, now: Date) => Date;
+  readonly sleep?: (milliseconds: number, signal: AbortSignal) => Promise<void>;
+  readonly onDispatch?: (result: DurableJobDispatchResult) => void;
+}): Promise<void> {
+  return startPostgresDurableJobProcess({
+    ...input,
+    handler: createPostgresDurableWorkflowJobHandler(input),
+  });
+}
+
+export function startPostgresEpisodeProductionJobProcess(input: {
+  readonly pool: PostgresPool;
+  readonly execute: CanonicalDurableWorkflowExecutor["execute"];
+  readonly signal: AbortSignal;
+  readonly environment?: NodeJS.ProcessEnv;
+  readonly now?: () => Date;
+  readonly retryAt?: (attempt: number, now: Date) => Date;
+  readonly sleep?: (milliseconds: number, signal: AbortSignal) => Promise<void>;
+  readonly onDispatch?: (result: DurableJobDispatchResult) => void;
+}): Promise<void> {
+  return startPostgresDurableJobProcess({
+    ...input,
+    handler: createPostgresEpisodeProductionJobHandler(input),
+  });
 }

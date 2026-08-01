@@ -186,15 +186,19 @@ describe("canonical Dark Truth story task adapters", () => {
       expect(manifest).toMatchObject({
         producerTaskId: taskId,
         producerAttemptId: task!.attemptId,
-        dependencyFingerprints: attempt.dependencyFingerprints,
       });
-      await expect(
-        verifyCanonicalDarkTruthStoryArtifact(repository, manifest)
-      ).resolves.toMatchObject({
+      const verifiedArtifact = await verifyCanonicalDarkTruthStoryArtifact(
+        repository,
+        manifest
+      );
+      expect(verifiedArtifact).toMatchObject({
         taskId,
         fingerprint: attempt.fingerprint,
         validation: { status: "passed" },
       });
+      expect(verifiedArtifact.dependencyFingerprints).toEqual(
+        manifest.dependencyFingerprints
+      );
     }
   }, 15_000);
 

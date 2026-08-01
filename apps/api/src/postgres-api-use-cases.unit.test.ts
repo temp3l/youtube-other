@@ -299,4 +299,114 @@ describe("PostgreSQL API use cases", () => {
     await expect(useCases.replaceEpisodeContent("episode-1", input, context))
       .rejects.toMatchObject({ code: "precondition_failed" });
   });
+
+  it("projects publication intent state without execution credentials or reconciliation evidence", async () => {
+    const readValues: Array<readonly unknown[] | undefined> = [];
+    const query = async <T>(sql: string, values?: readonly unknown[]): Promise<PostgresQueryResult<T>> => {
+      if (!sql.includes("SELECT * FROM publications")) return { rows: [] };
+      readValues.push(values);
+      return { rows: [{
+        workspace_id: "ws-1",
+        publication_id: "publication-1",
+        project_id: "project-1",
+        run_id: "run-1",
+        status: "executing",
+        revision: 3,
+        approval_revision: 2,
+        approval_id: "approval-1",
+        approval_artifact_hash: "approval-hash",
+        actor_principal_id: "user-secret",
+        actor_principal_revision: 4,
+        credential_version: "credential-secret",
+        asset_hash: "asset-hash",
+        artifact_bindings: [{ assetId: "asset-1", role: "video", contentHash: "content-hash" }],
+        channel_id: "channel-1",
+        visibility: "private",
+        scheduled_at: null,
+        playlist_ids: ["playlist-1"],
+        recovery_identity: "recovery-secret",
+        execution_fence: 9,
+        channel_lease_fence: 10,
+        provider_receipt: { token: "provider-secret" },
+        terminal_evidence: { raw: "evidence-secret" },
+        created_at: "2026-08-01T11:00:00.000Z",
+        updated_at: "2026-08-01T12:00:00.000Z",
+      } as unknown as T] };
+    };
+    const client: PostgresClient = { query, release: () => undefined };
+    const pool: PostgresPool = { query, connect: async () => client, end: async () => undefined };
+    const useCases = createPostgresApiUseCases({
+      pool,
+      workflowAdmissionHandler: { execute: async () => ({ workflowRunId: "unused", jobId: "unused", revision: 0 }) },
+      cursorSecret: "cursor-secret-that-is-longer-than-32-bytes",
+    });
+
+    const publication = await useCases.getPublication("publication-1", {
+      workspaceId: "ws-1",
+      projectId: "project-1",
+      requestId: "request-publication",
+    });
+    expect(readValues).toEqual([["ws-1", "project-1", "publication-1"]]);
+    expect(publication).toEqual({
+      id: "publication-1",
+      revision: 3,
+      status: "executing",
+      workflowRunId: "run-1",
+      approvalId: "approval-1",
+      approvalRevision: 2,
+      approvalArtifactHash: "approval-hash",
+      assetHash: "asset-hash",
+      artifactBindings: [{ assetId: "asset-1", role: "video", contentHash: "content-hash" }],
+      channelId: "channel-1",
+      visibility: "private",
+      scheduledAt: null,
+      playlistIds: ["playlist-1"],
+      createdAt: "2026-08-01T11:00:00.000Z",
+      updatedAt: "2026-08-01T12:00:00.000Z",
+    });
+    const serialized = JSON.stringify(publication);
+    for (const secret of ["user-secret", "credential-secret", "recovery-secret", "provider-secret", "evidence-secret"])
+      expect(serialized).not.toContain(secret);
+  });
+
+  it("scopes idempotent approval revocation to the project and preserves the stored replay body", async () => {
+    const valuesBySql: Array<{ sql: string; values?: readonly unknown[] }> = [];
+    const revokedAt = "2026-08-01T12:00:00.000Z";
+    const query = async <T>(sql: string, values?: readonly unknown[]): Promise<PostgresQueryResult<T>> => {
+      valuesBySql.push({ sql, ...(values ? { values } : {}) });
+      if (sql.includes("INSERT INTO command_admissions")) return { rows: [{
+        command_id: "command-generated",
+        response: { id: "approval-1", revision: 3, state: "revoked", revokedAt },
+      } as unknown as T] };
+      if (sql.includes("UPDATE approvals AS approval")) return { rows: [{ run_id: "run-1", revision: 3 } as unknown as T] };
+      return { rows: [] };
+    };
+    const client: PostgresClient = { query, release: () => undefined };
+    const pool: PostgresPool = { query, connect: async () => client, end: async () => undefined };
+    const useCases = createPostgresApiUseCases({
+      pool,
+      workflowAdmissionHandler: { execute: async () => ({ workflowRunId: "unused", jobId: "unused", revision: 0 }) },
+      cursorSecret: "cursor-secret-that-is-longer-than-32-bytes",
+      now: () => new Date(revokedAt),
+      createId: (prefix) => `${prefix}-generated`,
+    });
+    const context = {
+      workspaceId: "ws-1",
+      projectId: "project-1",
+      principal: { principalId: "reviewer-1", workspaceId: "ws-1", permissions: ["approval.decide"], kind: "user" as const },
+      requestId: "request-revoke",
+      idempotencyKey: "caller-key",
+      ifMatch: '"2"',
+    };
+
+    await expect(useCases.revokeApproval("approval-1", { reason: "Superseded" }, context)).resolves.toEqual({
+      id: "approval-1", revision: 3, state: "revoked", revokedAt, replayed: false,
+    });
+    const cas = valuesBySql.find(({ sql }) => sql.includes("UPDATE approvals AS approval"));
+    expect(cas?.sql).toContain("workflow_run_bindings AS binding");
+    expect(cas?.values).toEqual([revokedAt, "reviewer-1", "Superseded", "ws-1", "approval-1", 2, "project-1"]);
+    const admission = valuesBySql.find(({ sql }) => sql.includes("INSERT INTO command_admissions"));
+    expect(admission?.values?.[0]).toBe("ws-1");
+    expect(admission?.values?.[1]).toMatch(/^v1:[a-f0-9]{64}$/u);
+  });
 });

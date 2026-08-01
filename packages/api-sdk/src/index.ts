@@ -236,6 +236,30 @@ export interface ValidationPage {
   readonly nextAfter?: string;
 }
 
+export interface PublicationArtifactBinding {
+  readonly assetId: string;
+  readonly role: string;
+  readonly contentHash: string;
+}
+
+export interface Publication {
+  readonly id: string;
+  readonly revision: number;
+  readonly status: "pending" | "executing" | "published" | "failed" | "reconciliation_required" | "cancelled";
+  readonly workflowRunId: string;
+  readonly approvalId: string;
+  readonly approvalRevision: number;
+  readonly approvalArtifactHash: string;
+  readonly assetHash: string;
+  readonly artifactBindings: readonly PublicationArtifactBinding[];
+  readonly channelId: string;
+  readonly visibility: "private" | "unlisted" | "public";
+  readonly scheduledAt: string | null;
+  readonly playlistIds: readonly string[];
+  readonly createdAt: string;
+  readonly updatedAt: string;
+}
+
 export interface ApprovalInput {
   readonly challengeId: string;
   readonly subjectId: string;
@@ -248,6 +272,17 @@ export interface ApprovalAccepted {
   readonly id: string;
   readonly jobId: string;
   readonly revision: number;
+}
+
+export interface ApprovalRevocationInput {
+  readonly reason: string;
+}
+
+export interface ApprovalRevoked {
+  readonly id: string;
+  readonly revision: number;
+  readonly state: "revoked";
+  readonly revokedAt: string;
 }
 
 export interface HealthStatus {
@@ -604,6 +639,10 @@ export class MediaforgeApiClient {
     return this.execute(`${this.projectPath(workspaceId, projectId)}/validations${suffix}`, { options });
   }
 
+  public getPublication(workspaceId: string, projectId: string, publicationId: string, options?: RequestOptions): Promise<ApiResponse<Publication>> {
+    return this.execute(`${this.projectPath(workspaceId, projectId)}/publications/${encodePath(publicationId)}`, { ...(options ? { options } : {}) });
+  }
+
   public async *iterateValidations(workspaceId: string, projectId: string, options: ValidationListOptions = {}): AsyncGenerator<ValidationResult, void, void> {
     let after = options.after;
     do {
@@ -618,6 +657,10 @@ export class MediaforgeApiClient {
 
   public recordApproval(workspaceId: string, projectId: string, input: ApprovalInput, options: ConditionalIdempotentRequestOptions): Promise<ApiResponse<ApprovalAccepted>> {
     return this.execute(`${this.projectPath(workspaceId, projectId)}/approvals`, { method: "POST", body: input, options, ifMatch: options.ifMatch, idempotencyKey: options.idempotencyKey });
+  }
+
+  public revokeApproval(workspaceId: string, projectId: string, approvalId: string, input: ApprovalRevocationInput, options: ConditionalIdempotentRequestOptions): Promise<ApiResponse<ApprovalRevoked>> {
+    return this.execute(`${this.projectPath(workspaceId, projectId)}/approvals/${encodePath(approvalId)}:revoke`, { method: "POST", body: input, options, ifMatch: options.ifMatch, idempotencyKey: options.idempotencyKey });
   }
 
   public async pollJob(workspaceId: string, projectId: string, jobId: string, options: PollJobOptions = {}): Promise<ApiResponse<Job>> {

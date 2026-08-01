@@ -15,9 +15,25 @@ const intent: AdmitPublicationIntentInput = {
   publicationId: "publication-1",
   projectId: "project-1",
   runId: "run-1",
+  approvalId: "approval-1",
   approvalRevision: 4,
+  approvalArtifactHash: "c".repeat(64),
+  actorPrincipalId: "publisher-principal-1",
+  actorPrincipalRevision: 2,
   credentialVersion: "credential-v2",
   assetHash: "a".repeat(64),
+  artifactBindings: [
+    { assetId: "asset-video-1", role: "video", contentHash: "a".repeat(64) },
+    {
+      assetId: "asset-thumbnail-1",
+      role: "thumbnail",
+      contentHash: "d".repeat(64),
+    },
+  ],
+  channelId: "channel-1",
+  visibility: "private",
+  scheduledAt: null,
+  playlistIds: ["playlist-b", "playlist-a"],
   recoveryIdentity: "recovery-publication-1",
   effectId: "effect-publication-1-upload",
   eventId: "event-publication-1-recorded",
@@ -41,6 +57,18 @@ describe("PostgreSQL publication intent persistence", () => {
     );
     expect(POSTGRES_WORKFLOW_STATE_MIGRATION).toContain(
       "publication execution fence is immutable after execution starts"
+    );
+    expect(POSTGRES_WORKFLOW_STATE_MIGRATION).toContain(
+      "CREATE TABLE IF NOT EXISTS publication_credential_versions"
+    );
+    expect(POSTGRES_WORKFLOW_STATE_MIGRATION).toContain(
+      "CREATE TABLE IF NOT EXISTS publication_intent_leases"
+    );
+    expect(POSTGRES_WORKFLOW_STATE_MIGRATION).toContain(
+      "approval decision evidence is immutable"
+    );
+    expect(POSTGRES_WORKFLOW_STATE_MIGRATION).toContain(
+      "publication intent lease fence must advance exactly once"
     );
   });
 
@@ -113,7 +141,59 @@ describe("PostgreSQL publication intent persistence", () => {
     const publication = calls.find(({ sql }) =>
       sql.includes("INSERT INTO publications")
     );
-    expect(publication?.values?.[8]).toMatch(/^[a-f0-9]{64}$/u);
+    expect(publication?.values?.[17]).toMatch(/^[a-f0-9]{64}$/u);
+  });
+
+  it("canonicalizes artifact and playlist permutations into one active publication key", async () => {
+    const keys: unknown[] = [];
+    const admit = async (candidate: AdmitPublicationIntentInput) => {
+      const transaction = new WorkspaceTransactionRepository({
+        query: async <T>(
+          sql: string,
+          values?: readonly unknown[]
+        ): Promise<PostgresQueryResult<T>> => {
+          if (sql.includes("INSERT INTO command_admissions"))
+            return {
+              rows: [
+                {
+                  command_id: candidate.commandId,
+                  response: { publicationId: candidate.publicationId },
+                } as T,
+              ],
+              rowCount: 1,
+            };
+          if (sql.includes("INSERT INTO publications")) {
+            keys.push(values?.[17]);
+            expect(values?.[11]).toBe(
+              JSON.stringify(
+                [...candidate.artifactBindings].sort((left, right) =>
+                  left.role.localeCompare(right.role)
+                )
+              )
+            );
+            expect(values?.[15]).toBe(
+              JSON.stringify([...candidate.playlistIds].sort())
+            );
+          }
+          return { rows: [], rowCount: 1 };
+        },
+      });
+      await transaction.admitPublicationIntent(candidate);
+    };
+    await admit(intent);
+    await admit({
+      ...intent,
+      publicationId: "publication-2",
+      commandId: "command-publication-2",
+      eventId: "event-publication-2",
+      effectId: "effect-publication-2",
+      outboxId: "outbox-publication-2",
+      idempotencyKey: "publication-key-2",
+      artifactBindings: [...intent.artifactBindings].reverse(),
+      playlistIds: [...intent.playlistIds].reverse(),
+    });
+    expect(keys).toHaveLength(2);
+    expect(keys[0]).toBe(keys[1]);
   });
 
   it("replays the canonical intent response without creating another effect or event", async () => {
@@ -215,7 +295,7 @@ describe("PostgreSQL publication intent persistence", () => {
     expect(release).toHaveBeenCalledOnce();
   });
 
-  it("starts only with matching approval and credential bindings and a positive channel fence", async () => {
+  it("locks and rechecks every current authority fact before crossing the irreversible boundary", async () => {
     const queries: string[] = [];
     const transaction = new WorkspaceTransactionRepository({
       query: async <T>(sql: string): Promise<PostgresQueryResult<T>> => {
@@ -225,28 +305,250 @@ describe("PostgreSQL publication intent persistence", () => {
     });
     await expect(
       transaction.beginPublicationExecution({
-        workspaceId: intent.workspaceId,
-        publicationId: intent.publicationId,
-        approvalRevision: intent.approvalRevision,
-        credentialVersion: intent.credentialVersion,
+        ...intent,
+        workerId: "publisher-worker-1",
+        intentLeaseFence: 3,
         channelLeaseFence: 7,
-        now: intent.now,
       })
     ).resolves.toBe(true);
     expect(queries).toHaveLength(2);
-    expect(queries[0]).toContain("approval_revision = $5");
-    expect(queries[0]).toContain("credential_version = $6");
+    expect(queries[0]).toContain("FOR UPDATE OF approval");
+    expect(queries[0]).toContain("approval.state = 'active'");
+    expect(queries[0]).toContain(
+      "approval.subject_revision = intent.approval_revision"
+    );
+    expect(queries[0]).toContain(
+      "approval.artifact_hash = intent.approval_artifact_hash"
+    );
+    expect(queries[0]).toContain(
+      "principal.permissions ? 'publication.execute'"
+    );
+    expect(queries[0]).toContain("credential.state = 'active'");
+    expect(queries[0]).toContain("asset.status = 'ready'");
+    expect(queries[0]).toContain("locked_intent_lease");
+    expect(queries[0]).toContain("locked_channel_lease");
+    expect(queries[0]).toContain("intent.scheduled_at <= $21::timestamptz");
     expect(queries[1]).toContain("state = 'in_flight'");
     await expect(
       transaction.beginPublicationExecution({
+        ...intent,
+        workerId: "publisher-worker-1",
+        intentLeaseFence: 3,
+        channelLeaseFence: 0,
+      })
+    ).rejects.toThrow(/positive intent and channel lease fences/u);
+  });
+
+  it("claims a fenced intent lease only while the publication remains queued", async () => {
+    const queries: Array<{ sql: string; values?: readonly unknown[] }> = [];
+    const transaction = new WorkspaceTransactionRepository({
+      query: async <T>(
+        sql: string,
+        values?: readonly unknown[]
+      ): Promise<PostgresQueryResult<T>> => {
+        queries.push({ sql, values });
+        return {
+          rows: [
+            {
+              publication_id: intent.publicationId,
+              lease_owner: "publisher-worker-1",
+              lease_fence: 3,
+              lease_expires_at: "2026-08-01T12:01:00.000Z",
+            } as T,
+          ],
+          rowCount: 1,
+        };
+      },
+    });
+    await expect(
+      transaction.claimPublicationIntentLease({
         workspaceId: intent.workspaceId,
         publicationId: intent.publicationId,
-        approvalRevision: intent.approvalRevision,
-        credentialVersion: intent.credentialVersion,
-        channelLeaseFence: 0,
+        workerId: "publisher-worker-1",
+        leaseSeconds: 60,
         now: intent.now,
       })
-    ).rejects.toThrow(/positive channel lease fence/u);
+    ).resolves.toMatchObject({ leaseFence: 3 });
+    expect(queries[0]?.sql).toContain("status = 'pending'");
+    expect(queries[0]?.sql).toContain(
+      "lease_fence = publication_intent_leases.lease_fence + 1"
+    );
+    expect(queries[0]?.sql).toContain("lease_expires_at <= $4::timestamptz");
+  });
+
+  it("supports fenced approval revocation and fails closed when revocation wins the cutoff race", async () => {
+    const revocationQueries: string[] = [];
+    const revocation = new WorkspaceTransactionRepository({
+      query: async <T>(sql: string): Promise<PostgresQueryResult<T>> => {
+        revocationQueries.push(sql);
+        if (sql.includes("INSERT INTO command_admissions"))
+          return {
+            rows: [
+              {
+                command_id: "command-approval-revoked-1",
+                response: {
+                  id: intent.approvalId,
+                  revision: 1,
+                  state: "revoked",
+                  revokedAt: intent.now,
+                },
+              } as T,
+            ],
+            rowCount: 1,
+          };
+        if (sql.startsWith("UPDATE approvals"))
+          return {
+            rows: [{ run_id: intent.runId, revision: 1 } as T],
+            rowCount: 1,
+          };
+        return { rows: [], rowCount: 1 };
+      },
+    });
+    await expect(
+      revocation.revokeApproval({
+        workspaceId: intent.workspaceId,
+        projectId: intent.projectId,
+        approvalId: intent.approvalId,
+        expectedRevision: 0,
+        actorPrincipalId: "reviewer-1",
+        reason: "Artifact was superseded.",
+        eventId: "event-approval-revoked-1",
+        commandId: "command-approval-revoked-1",
+        idempotencyKey: "approval-revoke-key-1",
+        requestFingerprint: "e".repeat(64),
+        now: intent.now,
+      })
+    ).resolves.toEqual({
+      kind: "admitted",
+      commandId: "command-approval-revoked-1",
+      response: {
+        id: intent.approvalId,
+        revision: 1,
+        state: "revoked",
+        revokedAt: intent.now,
+      },
+    });
+    expect(revocationQueries[1]).toContain("revision = $6");
+    expect(revocationQueries[1]).toContain("state = 'active'");
+    expect(revocationQueries[1]).toContain(
+      "binding.project_id = $7 AND binding.run_id = approval.run_id"
+    );
+    expect(revocationQueries[1]).not.toContain("decision = 'revoked'");
+    expect(revocationQueries[2]).toContain("'approval.revoked'");
+
+    const cutoff = vi.fn(async () => ({ rows: [], rowCount: 0 }));
+    await expect(
+      new WorkspaceTransactionRepository({
+        query: cutoff,
+      }).beginPublicationExecution({
+        ...intent,
+        workerId: "publisher-worker-1",
+        intentLeaseFence: 3,
+        channelLeaseFence: 7,
+      })
+    ).resolves.toBe(false);
+    expect(cutoff).toHaveBeenCalledOnce();
+    expect(cutoff.mock.calls[0]?.[0]).toContain("FOR UPDATE OF approval");
+  });
+
+  it("replays equal approval revocation keys and rejects conflicting fingerprints before CAS", async () => {
+    const response = {
+      id: intent.approvalId,
+      revision: 1,
+      state: "revoked",
+      revokedAt: intent.now,
+    };
+    const input = {
+      workspaceId: intent.workspaceId,
+      projectId: intent.projectId,
+      approvalId: intent.approvalId,
+      expectedRevision: 0,
+      actorPrincipalId: "reviewer-1",
+      reason: "Artifact was superseded.",
+      eventId: "event-approval-revoked-1",
+      commandId: "command-retry",
+      idempotencyKey: "approval-revoke-key-1",
+      requestFingerprint: "e".repeat(64),
+      now: intent.now,
+    };
+    const replayQueries: string[] = [];
+    const replay = new WorkspaceTransactionRepository({
+      query: async <T>(sql: string): Promise<PostgresQueryResult<T>> => {
+        replayQueries.push(sql);
+        if (sql.includes("INSERT INTO command_admissions"))
+          return { rows: [], rowCount: 0 };
+        return {
+          rows: [
+            {
+              command_id: "command-original",
+              request_fingerprint: input.requestFingerprint,
+              response,
+            } as T,
+          ],
+          rowCount: 1,
+        };
+      },
+    });
+    await expect(replay.revokeApproval(input)).resolves.toEqual({
+      kind: "replayed",
+      commandId: "command-original",
+      response,
+    });
+    expect(replayQueries).toHaveLength(2);
+    expect(replayQueries.some((sql) => sql.startsWith("UPDATE approvals"))).toBe(
+      false
+    );
+
+    const conflict = new WorkspaceTransactionRepository({
+      query: async <T>(sql: string): Promise<PostgresQueryResult<T>> =>
+        sql.includes("INSERT INTO command_admissions")
+          ? { rows: [], rowCount: 0 }
+          : {
+              rows: [
+                {
+                  command_id: "command-original",
+                  request_fingerprint: "f".repeat(64),
+                  response,
+                } as T,
+              ],
+              rowCount: 1,
+            },
+    });
+    await expect(conflict.revokeApproval(input)).rejects.toThrow(
+      /different request/u
+    );
+  });
+
+  it("does not touch the prepared effect when an authority fact is lost or a lease fence is late", async () => {
+    const lost = vi.fn(async () => {
+      throw new Error(
+        'relation "publication_credential_versions" does not exist'
+      );
+    });
+    await expect(
+      new WorkspaceTransactionRepository({
+        query: lost,
+      }).beginPublicationExecution({
+        ...intent,
+        workerId: "publisher-worker-1",
+        intentLeaseFence: 3,
+        channelLeaseFence: 7,
+      })
+    ).rejects.toThrow(/publication_credential_versions/u);
+    expect(lost).toHaveBeenCalledOnce();
+
+    const staleFence = vi.fn(async () => ({ rows: [], rowCount: 0 }));
+    await expect(
+      new WorkspaceTransactionRepository({
+        query: staleFence,
+      }).beginPublicationExecution({
+        ...intent,
+        workerId: "publisher-worker-1",
+        intentLeaseFence: 2,
+        channelLeaseFence: 6,
+      })
+    ).resolves.toBe(false);
+    expect(staleFence).toHaveBeenCalledOnce();
   });
 
   it("records exact uncertain evidence and rejects a late publication fence before touching its effect", async () => {
@@ -270,11 +572,22 @@ describe("PostgreSQL publication intent persistence", () => {
                 run_id: intent.runId,
                 status: "reconciliation_required",
                 revision: 2,
+                approval_id: intent.approvalId,
                 approval_revision: intent.approvalRevision,
+                approval_artifact_hash: intent.approvalArtifactHash,
+                actor_principal_id: intent.actorPrincipalId,
+                actor_principal_revision: intent.actorPrincipalRevision,
                 credential_version: intent.credentialVersion,
                 asset_hash: intent.assetHash,
+                artifact_bindings: intent.artifactBindings,
+                channel_id: intent.channelId,
+                visibility: intent.visibility,
+                scheduled_at: intent.scheduledAt,
+                playlist_ids: intent.playlistIds,
                 recovery_identity: intent.recoveryIdentity,
                 execution_fence: 7,
+                intent_lease_fence: 3,
+                channel_lease_fence: 7,
                 provider_receipt: null,
                 terminal_evidence: evidence,
                 created_at: intent.now,

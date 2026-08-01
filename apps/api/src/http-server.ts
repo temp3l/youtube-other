@@ -6,11 +6,13 @@ import { ZodError } from "zod";
 
 import {
   approvalInputSchema,
+  approvalRevocationInputSchema,
   openApiDocument,
   parseEpisodeInput,
   projectInputSchema,
   workflowAdmissionSchema,
   type ApprovalInput,
+  type ApprovalRevocationInput,
   type EpisodeInput,
   type ProjectInput,
   type WorkflowAdmission,
@@ -92,6 +94,30 @@ export interface ApiAuditEvent {
   readonly occurredAt: string;
 }
 
+export interface ApiPublicationArtifactBinding {
+  readonly assetId: string;
+  readonly role: string;
+  readonly contentHash: string;
+}
+
+export interface ApiPublication {
+  readonly id: string;
+  readonly revision: number;
+  readonly status: "pending" | "executing" | "published" | "failed" | "reconciliation_required" | "cancelled";
+  readonly workflowRunId: string;
+  readonly approvalId: string;
+  readonly approvalRevision: number;
+  readonly approvalArtifactHash: string;
+  readonly assetHash: string;
+  readonly artifactBindings: readonly ApiPublicationArtifactBinding[];
+  readonly channelId: string;
+  readonly visibility: "private" | "unlisted" | "public";
+  readonly scheduledAt: string | null;
+  readonly playlistIds: readonly string[];
+  readonly createdAt: string;
+  readonly updatedAt: string;
+}
+
 export interface ApiUseCases {
   getQuota(context: Required<Pick<ApiRequestContext, "workspaceId" | "requestId">>): Promise<ApiWorkspaceQuotaStatus | null>;
   listUsageRecords(after: string | undefined, size: number, context: Required<Pick<ApiRequestContext, "workspaceId" | "requestId">>): Promise<{ readonly items: readonly ApiUsageRecord[]; readonly nextAfter?: string }>;
@@ -108,7 +134,9 @@ export interface ApiUseCases {
   getJob(jobId: string, context: Required<Pick<ApiRequestContext, "workspaceId" | "projectId" | "requestId">>): Promise<ApiJob | null>;
   getAsset(assetId: string, context: Required<Pick<ApiRequestContext, "workspaceId" | "projectId" | "requestId">>): Promise<{ readonly id: string; readonly mimeType: string; readonly bytes: number; readonly sha256: string; readonly lifecycle: string; readonly provenance: string } | null>;
   listValidations(after: string | undefined, size: number, context: Required<Pick<ApiRequestContext, "workspaceId" | "projectId" | "requestId">>): Promise<{ readonly items: readonly unknown[]; readonly nextAfter?: string }>;
+  getPublication(publicationId: string, context: Required<Pick<ApiRequestContext, "workspaceId" | "projectId" | "requestId">>): Promise<ApiPublication | null>;
   recordApproval(input: ApprovalInput, context: Required<Pick<ApiRequestContext, "workspaceId" | "projectId" | "principal" | "requestId" | "idempotencyKey" | "ifMatch">>): Promise<{ readonly id: string; readonly jobId: string; readonly revision: number }>;
+  revokeApproval(approvalId: string, input: ApprovalRevocationInput, context: Required<Pick<ApiRequestContext, "workspaceId" | "projectId" | "principal" | "requestId" | "idempotencyKey" | "ifMatch">>): Promise<{ readonly id: string; readonly revision: number; readonly state: "revoked"; readonly revokedAt: string; readonly replayed: boolean }>;
 }
 
 export interface ApiServerOptions {
@@ -249,10 +277,10 @@ function pageSize(url: URL): number {
     throw new ApplicationError("invalid_request", "page[size] must be between 1 and 100.", false);
   return parsed;
 }
-function route(pathname: string): { readonly workspace: string; readonly project?: string; readonly episode?: string; readonly run?: string; readonly runAction?: "cancel" | "resume"; readonly job?: string; readonly asset?: string; readonly tail?: string } | null {
+function route(pathname: string): { readonly workspace: string; readonly project?: string; readonly episode?: string; readonly run?: string; readonly runAction?: "cancel" | "resume"; readonly job?: string; readonly asset?: string; readonly publication?: string; readonly approval?: string; readonly approvalAction?: "revoke"; readonly tail?: string } | null {
   const parts = pathname.split("/").filter(Boolean).map(decodeURIComponent);
   if (parts[0] !== "v1" || parts[1] !== "workspaces" || !parts[2]) return null;
-  const result: { workspace: string; project?: string; episode?: string; run?: string; runAction?: "cancel" | "resume"; job?: string; asset?: string; tail?: string } = { workspace: parts[2] };
+  const result: { workspace: string; project?: string; episode?: string; run?: string; runAction?: "cancel" | "resume"; job?: string; asset?: string; publication?: string; approval?: string; approvalAction?: "revoke"; tail?: string } = { workspace: parts[2] };
   if (parts[3] !== "projects") {
     result.tail = parts.slice(3).join("/");
     return result;
@@ -274,6 +302,14 @@ function route(pathname: string): { readonly workspace: string; readonly project
   }
   if (parts[5] === "jobs" && parts[6]) result.job = parts[6];
   if (parts[5] === "assets" && parts[6]) result.asset = parts[6];
+  if (parts[5] === "publications" && parts[6]) result.publication = parts[6];
+  if (parts[5] === "approvals" && parts[6]) {
+    const action = parts[6].match(/^(.+):revoke$/u);
+    if (action?.[1]) {
+      result.approval = action[1];
+      result.approvalAction = "revoke";
+    }
+  }
   return result;
 }
 
@@ -282,6 +318,7 @@ type ApiPermission =
   | "approval.decide"
   | "content.read"
   | "content.write"
+  | "publication.read"
   | "validation.read"
   | "usage.read"
   | "workflow.cancel"
@@ -358,7 +395,20 @@ function requiredPermission(
     return "content.read";
   if (method === "GET" && matched.tail === "validations")
     return "validation.read";
+  if (
+    method === "GET" &&
+    matched.publication &&
+    matched.tail === `publications/${matched.publication}`
+  )
+    return "publication.read";
   if (method === "POST" && matched.tail === "approvals")
+    return "approval.decide";
+  if (
+    method === "POST" &&
+    matched.approval &&
+    matched.approvalAction === "revoke" &&
+    matched.tail === `approvals/${matched.approval}:revoke`
+  )
     return "approval.decide";
   return null;
 }
@@ -411,7 +461,9 @@ export function createApiServer(options: Partial<ApiServerOptions> = {}): http.S
       if (request.method === "GET" && matched.job && matched.tail === `jobs/${matched.job}`) { const result = await useCases.getJob(matched.job, projectContext); if (!result) throw new ApplicationError("not_found", "Resource not found.", false); return json(response, 200, result, { etag: etag(result.revision), "x-request-id": requestIdValue }); }
       if (request.method === "GET" && matched.asset && matched.tail?.startsWith("assets/")) { const result = await useCases.getAsset(matched.asset, projectContext); if (!result) throw new ApplicationError("not_found", "Resource not found.", false); return json(response, 200, result, { "x-request-id": requestIdValue }); }
       if (request.method === "GET" && matched.tail === "validations") { const result = await useCases.listValidations(url.searchParams.get("page[after]") ?? undefined, pageSize(url), projectContext); return json(response, 200, result, { "x-request-id": requestIdValue }); }
+      if (request.method === "GET" && matched.publication && matched.tail === `publications/${matched.publication}`) { const result = await useCases.getPublication(matched.publication, projectContext); if (!result) throw new ApplicationError("not_found", "Resource not found.", false); return json(response, 200, result, { etag: etag(result.revision), "x-request-id": requestIdValue }); }
       if (request.method === "POST" && matched.tail === "approvals") { const key = idempotencyKey(request); const match = ifMatch(request); if (!key || !match) throw new ApplicationError("precondition_required", "Idempotency-Key and If-Match are required.", false); const result = await useCases.recordApproval(approvalInputSchema.parse(await body(request)), { ...projectContext, idempotencyKey: key, ifMatch: match }); return json(response, 202, result, { location: `/v1/workspaces/${matched.workspace}/projects/${matched.project}/jobs/${result.jobId}`, etag: etag(result.revision), "x-request-id": requestIdValue }); }
+      if (request.method === "POST" && matched.approval && matched.approvalAction === "revoke" && matched.tail === `approvals/${matched.approval}:revoke`) { const match = strongIfMatch(request); const key = idempotencyKey(request); if (!key) throw new ApplicationError("precondition_required", "Idempotency-Key is required.", false); const result = await useCases.revokeApproval(matched.approval, approvalRevocationInputSchema.parse(await body(request)), { ...projectContext, idempotencyKey: key, ifMatch: match }); const { replayed, ...wire } = result; return json(response, 200, wire, { etag: etag(result.revision), ...(replayed ? { "idempotency-replayed": "true" } : {}), "x-request-id": requestIdValue }); }
       throw new ApplicationError("not_found", "Resource not found.", false);
     } catch (error) { problem(response, requestIdValue, error); }
   });

@@ -221,10 +221,32 @@ export interface ApiWorkflowStepRecord {
 export interface PublicationIntentBinding {
   readonly projectId: string;
   readonly runId: string;
+  readonly approvalId: string;
   readonly approvalRevision: number;
+  readonly approvalArtifactHash: string;
+  readonly actorPrincipalId: string;
+  readonly actorPrincipalRevision: number;
   readonly credentialVersion: string;
   readonly assetHash: string;
+  readonly artifactBindings: readonly PublicationArtifactBinding[];
+  readonly channelId: string;
+  readonly visibility: "private" | "unlisted" | "public";
+  readonly scheduledAt: string | null;
+  readonly playlistIds: readonly string[];
   readonly recoveryIdentity: string;
+}
+
+export interface PublicationArtifactBinding {
+  readonly assetId: string;
+  readonly role: string;
+  readonly contentHash: string;
+}
+
+export interface PublicationIntentLease {
+  readonly publicationId: string;
+  readonly workerId: string;
+  readonly leaseFence: number;
+  readonly leaseExpiresAt: string;
 }
 
 export interface PublicationIntentRecord extends PublicationIntentBinding {
@@ -239,6 +261,8 @@ export interface PublicationIntentRecord extends PublicationIntentBinding {
     | "cancelled";
   readonly revision: number;
   readonly executionFence: number;
+  readonly intentLeaseFence: number;
+  readonly channelLeaseFence: number;
   readonly providerReceipt: unknown | null;
   readonly terminalEvidence: unknown | null;
   readonly createdAt: string;
@@ -253,10 +277,21 @@ interface PublicationIntentRow {
   readonly status: PublicationIntentRecord["status"];
   readonly revision: string | number;
   readonly approval_revision: string | number;
+  readonly approval_id: string;
+  readonly approval_artifact_hash: string;
+  readonly actor_principal_id: string;
+  readonly actor_principal_revision: string | number;
   readonly credential_version: string;
   readonly asset_hash: string;
+  readonly artifact_bindings: readonly PublicationArtifactBinding[];
+  readonly channel_id: string;
+  readonly visibility: PublicationIntentBinding["visibility"];
+  readonly scheduled_at: Date | string | null;
+  readonly playlist_ids: readonly string[];
   readonly recovery_identity: string;
   readonly execution_fence: string | number;
+  readonly intent_lease_fence: string | number;
+  readonly channel_lease_fence: string | number;
   readonly provider_receipt: unknown | null;
   readonly terminal_evidence: unknown | null;
   readonly created_at: Date | string;
@@ -402,11 +437,25 @@ function mapPublicationIntent(
     runId: row.run_id,
     status: row.status,
     revision: Number(row.revision),
+    approvalId: row.approval_id,
     approvalRevision: Number(row.approval_revision),
+    approvalArtifactHash: row.approval_artifact_hash,
+    actorPrincipalId: row.actor_principal_id,
+    actorPrincipalRevision: Number(row.actor_principal_revision),
     credentialVersion: row.credential_version,
     assetHash: row.asset_hash,
+    artifactBindings: row.artifact_bindings,
+    channelId: row.channel_id,
+    visibility: row.visibility,
+    scheduledAt:
+      row.scheduled_at === null
+        ? null
+        : new Date(row.scheduled_at).toISOString(),
+    playlistIds: row.playlist_ids,
     recoveryIdentity: row.recovery_identity,
     executionFence: Number(row.execution_fence),
+    intentLeaseFence: Number(row.intent_lease_fence),
+    channelLeaseFence: Number(row.channel_lease_fence),
     providerReceipt: row.provider_receipt,
     terminalEvidence: row.terminal_evidence,
     createdAt: new Date(row.created_at).toISOString(),
@@ -421,12 +470,108 @@ function publicationActiveKey(binding: PublicationIntentBinding): string {
       JSON.stringify([
         binding.projectId,
         binding.runId,
+        binding.approvalId,
         binding.approvalRevision,
+        binding.approvalArtifactHash,
+        binding.actorPrincipalId,
+        binding.actorPrincipalRevision,
         binding.credentialVersion,
         binding.assetHash,
+        binding.artifactBindings,
+        binding.channelId,
+        binding.visibility,
+        binding.scheduledAt,
+        binding.playlistIds,
       ])
     )
     .digest("hex");
+}
+
+function normalizedPublicationBinding(
+  binding: PublicationIntentBinding
+): PublicationIntentBinding {
+  if (
+    !Number.isSafeInteger(binding.approvalRevision) ||
+    binding.approvalRevision < 0 ||
+    !Number.isSafeInteger(binding.actorPrincipalRevision) ||
+    binding.actorPrincipalRevision < 0
+  )
+    throw new WorkflowStateTransitionError(
+      "Publication authority revisions must be non-negative integers."
+    );
+  for (const [name, hash] of [
+    ["approval artifact", binding.approvalArtifactHash],
+    ["publication asset", binding.assetHash],
+  ] as const) {
+    if (!/^[a-f0-9]{64}$/u.test(hash))
+      throw new WorkflowStateTransitionError(
+        `Publication ${name} hash must be a lowercase SHA-256 digest.`
+      );
+  }
+  if (binding.artifactBindings.length === 0)
+    throw new WorkflowStateTransitionError(
+      "Publication requires at least one artifact binding."
+    );
+  const artifacts = binding.artifactBindings
+    .map((artifact) => {
+      if (
+        artifact.assetId.trim().length === 0 ||
+        artifact.role.trim().length === 0 ||
+        !/^[a-f0-9]{64}$/u.test(artifact.contentHash)
+      )
+        throw new WorkflowStateTransitionError(
+          "Publication artifact bindings require an asset, role, and lowercase SHA-256 hash."
+        );
+      return {
+        assetId: artifact.assetId.trim(),
+        role: artifact.role.trim(),
+        contentHash: artifact.contentHash,
+      };
+    })
+    .sort(
+      (left, right) =>
+        left.role.localeCompare(right.role) ||
+        left.assetId.localeCompare(right.assetId) ||
+        left.contentHash.localeCompare(right.contentHash)
+    );
+  if (
+    new Set(artifacts.map(({ assetId, role }) => `${role}\u0000${assetId}`))
+      .size !== artifacts.length
+  )
+    throw new WorkflowStateTransitionError(
+      "Publication artifact bindings must be unique by role and asset."
+    );
+  if (!artifacts.some(({ contentHash }) => contentHash === binding.assetHash))
+    throw new WorkflowStateTransitionError(
+      "Publication asset hash must be present in its artifact bindings."
+    );
+  const playlistIds = [
+    ...new Set(binding.playlistIds.map((id) => id.trim())),
+  ].sort();
+  if (playlistIds.some((id) => id.length === 0))
+    throw new WorkflowStateTransitionError(
+      "Publication playlist identifiers must be non-empty."
+    );
+  if (
+    binding.scheduledAt !== null &&
+    !Number.isFinite(Date.parse(binding.scheduledAt))
+  )
+    throw new WorkflowStateTransitionError(
+      "Publication schedule must be a valid timestamp."
+    );
+  for (const [name, value] of [
+    ["approval", binding.approvalId],
+    ["actor principal", binding.actorPrincipalId],
+    ["credential version", binding.credentialVersion],
+    ["channel", binding.channelId],
+    ["recovery identity", binding.recoveryIdentity],
+  ] as const) {
+    if (value.trim().length === 0)
+      throw new WorkflowStateTransitionError(
+        `Publication ${name} binding is required.`
+      );
+  }
+  return { ...binding, artifactBindings: artifacts, playlistIds };
 }
 
 function requiredJson(value: unknown, name: string): string {
@@ -541,6 +686,23 @@ export class WorkspaceTransactionRepository {
     const result = await this.connection.query<WorkflowRunRow>(
       `SELECT * FROM workflow_runs WHERE workspace_id = $1 AND run_id = $2`,
       [workspaceId, runId]
+    );
+    return result.rows[0] ? mapRow(result.rows[0]) : null;
+  }
+
+  /** Loads a run only through the tenant-local durable job that owns it. */
+  public async getForJob(
+    workspaceId: string,
+    runId: string,
+    jobId: string
+  ): Promise<RelationalWorkflowRun | null> {
+    const result = await this.connection.query<WorkflowRunRow>(
+      `SELECT run.*
+       FROM workflow_runs AS run
+       INNER JOIN jobs AS job
+         ON job.workspace_id = run.workspace_id AND job.run_id = run.run_id
+       WHERE run.workspace_id = $1 AND run.run_id = $2 AND job.job_id = $3`,
+      [workspaceId, runId, jobId]
     );
     return result.rows[0] ? mapRow(result.rows[0]) : null;
   }
@@ -1083,14 +1245,19 @@ export class WorkspaceTransactionRepository {
       );
     await this.connection.query(
       `INSERT INTO approvals (
-         workspace_id, approval_id, run_id, decision, revision, artifact_hash, created_at
-       ) VALUES ($1, $2, $3, $4, 0, $5, $6::timestamptz)`,
+         workspace_id, approval_id, run_id, decision, revision, artifact_hash,
+         subject_revision, state, decision_reason, created_at
+       ) VALUES ($1, $2, $3, $4, 0, $5, $6,
+                 CASE WHEN $4 = 'approved' THEN 'active' ELSE 'rejected' END,
+                 $7, $8::timestamptz)`,
       [
         input.workspaceId,
         input.approvalId,
         input.subjectId,
         input.decision,
         challenge.rows[0].artifact_hash,
+        input.expectedRevision,
+        input.reason,
         input.now,
       ]
     );
@@ -1120,6 +1287,141 @@ export class WorkspaceTransactionRepository {
     return admission;
   }
 
+  /** CAS revocation retains the original decision evidence and appends its event. */
+  public async revokeApproval(input: {
+    readonly workspaceId: string;
+    readonly projectId: string;
+    readonly approvalId: string;
+    readonly expectedRevision: number;
+    readonly actorPrincipalId: string;
+    readonly reason: string;
+    readonly eventId: string;
+    readonly commandId: string;
+    readonly idempotencyKey: string;
+    readonly requestFingerprint: string;
+    readonly now: string;
+  }): Promise<CommandAdmissionResult> {
+    if (
+      !Number.isSafeInteger(input.expectedRevision) ||
+      input.expectedRevision < 0 ||
+      input.projectId.trim().length === 0 ||
+      input.actorPrincipalId.trim().length === 0 ||
+      input.reason.trim().length === 0 ||
+      input.reason.length > 2_000
+    )
+      throw new WorkflowStateTransitionError(
+        "Approval revocation requires a current revision, actor, and bounded reason."
+      );
+    const response = {
+      id: input.approvalId,
+      revision: input.expectedRevision + 1,
+      state: "revoked",
+      revokedAt: input.now,
+    };
+    const admission = await this.connection.query<{
+      readonly command_id: string;
+      readonly response: unknown;
+    }>(
+      `INSERT INTO command_admissions (
+         workspace_id, idempotency_key, request_fingerprint,
+         command_id, response, created_at
+       ) VALUES ($1, $2, $3, $4, $5::jsonb, $6::timestamptz)
+       ON CONFLICT (workspace_id, idempotency_key) DO NOTHING
+       RETURNING command_id, response`,
+      [
+        input.workspaceId,
+        input.idempotencyKey,
+        input.requestFingerprint,
+        input.commandId,
+        JSON.stringify(response),
+        input.now,
+      ]
+    );
+    if (!admission.rows[0]) {
+      const existing = await this.connection.query<{
+        readonly command_id: string;
+        readonly request_fingerprint: string;
+        readonly response: unknown;
+      }>(
+        `SELECT command_id, request_fingerprint, response
+         FROM command_admissions
+         WHERE workspace_id = $1 AND idempotency_key = $2 FOR UPDATE`,
+        [input.workspaceId, input.idempotencyKey]
+      );
+      const replay = existing.rows[0];
+      if (!replay)
+        throw new Error(
+          "Idempotency record disappeared during approval revocation."
+        );
+      if (replay.request_fingerprint !== input.requestFingerprint)
+        throw new WorkflowStateTransitionError(
+          "Idempotency key is already associated with a different request."
+        );
+      return {
+        kind: "replayed",
+        commandId: replay.command_id,
+        response: replay.response,
+      };
+    }
+    const revoked = await this.connection.query<{
+      readonly run_id: string;
+      readonly revision: string | number;
+    }>(
+      `UPDATE approvals AS approval
+       SET state = 'revoked', revision = approval.revision + 1,
+           revoked_at = $1::timestamptz, revoked_by_principal_id = $2,
+           revocation_reason = $3
+       FROM workflow_run_bindings AS binding
+       WHERE approval.workspace_id = $4 AND approval.approval_id = $5
+         AND approval.revision = $6 AND approval.decision = 'approved'
+         AND approval.state = 'active' AND approval.revoked_at IS NULL
+         AND binding.workspace_id = approval.workspace_id
+         AND binding.project_id = $7 AND binding.run_id = approval.run_id
+       RETURNING approval.run_id, approval.revision`,
+      [
+        input.now,
+        input.actorPrincipalId,
+        input.reason,
+        input.workspaceId,
+        input.approvalId,
+        input.expectedRevision,
+        input.projectId,
+      ]
+    );
+    const row = revoked.rows[0];
+    if (!row)
+      throw new WorkflowStateTransitionError(
+        "Approval was missing, stale, rejected, or already revoked."
+      );
+    const revision = Number(row.revision);
+    await this.connection.query(
+      `INSERT INTO workflow_events (
+         workspace_id, event_id, run_id, subject_revision,
+         subject_type, subject_id, subject_version, type, data, occurred_at
+       ) VALUES ($1, $2, $3, $4, $5, $6, $4, 'approval.revoked',
+                 $7::jsonb, $8::timestamptz)`,
+      [
+        input.workspaceId,
+        input.eventId,
+        row.run_id,
+        revision,
+        persistedWebhookSubjectType("approval.revoked"),
+        input.approvalId,
+        JSON.stringify({
+          approvalId: input.approvalId,
+          actorPrincipalId: input.actorPrincipalId,
+          reason: input.reason,
+        }),
+        input.now,
+      ]
+    );
+    return {
+      kind: "admitted",
+      commandId: admission.rows[0].command_id,
+      response: admission.rows[0].response,
+    };
+  }
+
   public async getPublicationIntent(
     workspaceId: string,
     projectId: string,
@@ -1129,7 +1431,11 @@ export class WorkspaceTransactionRepository {
       `SELECT * FROM publications
        WHERE workspace_id = $1 AND project_id = $2 AND publication_id = $3
          AND project_id IS NOT NULL AND approval_revision IS NOT NULL
+         AND approval_id IS NOT NULL AND approval_artifact_hash IS NOT NULL
+         AND actor_principal_id IS NOT NULL AND actor_principal_revision IS NOT NULL
          AND credential_version IS NOT NULL AND asset_hash IS NOT NULL
+         AND artifact_bindings IS NOT NULL AND channel_id IS NOT NULL
+         AND visibility IS NOT NULL AND playlist_ids IS NOT NULL
          AND recovery_identity IS NOT NULL`,
       [workspaceId, projectId, publicationId]
     );
@@ -1145,6 +1451,7 @@ export class WorkspaceTransactionRepository {
     input: AdmitPublicationIntentInput
   ): Promise<CommandAdmissionResult> {
     try {
+      const binding = normalizedPublicationBinding(input);
       const response = {
         publicationId: input.publicationId,
         revision: 0,
@@ -1196,23 +1503,36 @@ export class WorkspaceTransactionRepository {
       const publication = await this.connection.query(
         `INSERT INTO publications (
            workspace_id, publication_id, project_id, run_id, status, revision,
-           approval_revision, credential_version, asset_hash, recovery_identity,
-           active_key, execution_fence, created_at, updated_at
+           approval_id, approval_revision, approval_artifact_hash,
+           actor_principal_id, actor_principal_revision, credential_version,
+           asset_hash, artifact_bindings, channel_id, visibility, scheduled_at,
+           playlist_ids, recovery_identity, active_key, execution_fence,
+           intent_lease_fence, channel_lease_fence, created_at, updated_at
          )
-         SELECT $1, $2, $3, $4, 'pending', 0, $5, $6, $7, $8, $9, 0,
-                $10::timestamptz, $10::timestamptz
+         SELECT $1, $2, $3, $4, 'pending', 0, $5, $6, $7, $8, $9, $10,
+                $11, $12::jsonb, $13, $14, $15::timestamptz, $16::jsonb,
+                $17, $18, 0, 0, 0, $19::timestamptz, $19::timestamptz
          FROM workflow_run_bindings
          WHERE workspace_id = $1 AND project_id = $3 AND run_id = $4`,
         [
           input.workspaceId,
           input.publicationId,
-          input.projectId,
-          input.runId,
-          input.approvalRevision,
-          input.credentialVersion,
-          input.assetHash,
-          input.recoveryIdentity,
-          publicationActiveKey(input),
+          binding.projectId,
+          binding.runId,
+          binding.approvalId,
+          binding.approvalRevision,
+          binding.approvalArtifactHash,
+          binding.actorPrincipalId,
+          binding.actorPrincipalRevision,
+          binding.credentialVersion,
+          binding.assetHash,
+          JSON.stringify(binding.artifactBindings),
+          binding.channelId,
+          binding.visibility,
+          binding.scheduledAt,
+          JSON.stringify(binding.playlistIds),
+          binding.recoveryIdentity,
+          publicationActiveKey(binding),
           input.now,
         ]
       );
@@ -1273,36 +1593,204 @@ export class WorkspaceTransactionRepository {
     }
   }
 
-  /** Starts the irreversible boundary only when all immutable bindings match. */
-  public async beginPublicationExecution(input: {
+  /** Claims the intent independently from the channel-wide serialization lease. */
+  public async claimPublicationIntentLease(input: {
     readonly workspaceId: string;
     readonly publicationId: string;
-    readonly approvalRevision: number;
-    readonly credentialVersion: string;
-    readonly channelLeaseFence: number;
+    readonly workerId: string;
+    readonly leaseSeconds: number;
     readonly now: string;
-  }): Promise<boolean> {
+  }): Promise<PublicationIntentLease | null> {
+    if (!Number.isSafeInteger(input.leaseSeconds) || input.leaseSeconds <= 0)
+      throw new WorkflowStateTransitionError(
+        "Publication intent lease seconds must be a positive integer."
+      );
+    const result = await this.connection.query<{
+      readonly publication_id: string;
+      readonly lease_owner: string;
+      readonly lease_fence: string | number;
+      readonly lease_expires_at: Date | string;
+    }>(
+      `INSERT INTO publication_intent_leases (
+         workspace_id, publication_id, lease_owner, lease_fence,
+         lease_expires_at, created_at, updated_at
+       )
+       SELECT $1, $2, $3, 1,
+              $4::timestamptz + ($5::text || ' seconds')::interval,
+              $4::timestamptz, $4::timestamptz
+       FROM publications
+       WHERE workspace_id = $1 AND publication_id = $2 AND status = 'pending'
+       ON CONFLICT (workspace_id, publication_id) DO UPDATE
+       SET lease_owner = EXCLUDED.lease_owner,
+           lease_fence = publication_intent_leases.lease_fence + 1,
+           lease_expires_at = EXCLUDED.lease_expires_at,
+           revision = publication_intent_leases.revision + 1,
+           updated_at = EXCLUDED.updated_at
+       WHERE publication_intent_leases.lease_expires_at <= $4::timestamptz
+       RETURNING publication_id, lease_owner, lease_fence, lease_expires_at`,
+      [
+        input.workspaceId,
+        input.publicationId,
+        input.workerId,
+        input.now,
+        input.leaseSeconds,
+      ]
+    );
+    const lease = result.rows[0];
+    return lease
+      ? {
+          publicationId: lease.publication_id,
+          workerId: lease.lease_owner,
+          leaseFence: Number(lease.lease_fence),
+          leaseExpiresAt: new Date(lease.lease_expires_at).toISOString(),
+        }
+      : null;
+  }
+
+  /**
+   * Starts the irreversible boundary only after locking and rechecking every
+   * current authority fact and both live lease fences in this transaction.
+   */
+  public async beginPublicationExecution(
+    input: PublicationIntentBinding & {
+      readonly workspaceId: string;
+      readonly publicationId: string;
+      readonly workerId: string;
+      readonly intentLeaseFence: number;
+      readonly channelLeaseFence: number;
+      readonly now: string;
+    }
+  ): Promise<boolean> {
     if (
+      !Number.isSafeInteger(input.intentLeaseFence) ||
+      input.intentLeaseFence <= 0 ||
       !Number.isSafeInteger(input.channelLeaseFence) ||
       input.channelLeaseFence <= 0
     )
       throw new WorkflowStateTransitionError(
-        "Publication execution requires a positive channel lease fence."
+        "Publication execution requires positive intent and channel lease fences."
       );
+    const binding = normalizedPublicationBinding(input);
     const publication = await this.connection.query(
-      `UPDATE publications
-       SET status = 'executing', revision = revision + 1,
-           execution_fence = $1, updated_at = $2::timestamptz
-       WHERE workspace_id = $3 AND publication_id = $4 AND status = 'pending'
-         AND approval_revision = $5 AND credential_version = $6
-       RETURNING publication_id`,
+      `WITH locked_intent AS MATERIALIZED (
+         SELECT publication.* FROM publications AS publication
+         WHERE publication.workspace_id = $1 AND publication.publication_id = $2
+           AND publication.status = 'pending'
+           AND publication.project_id = $3 AND publication.run_id = $4
+           AND publication.approval_id = $5 AND publication.approval_revision = $6
+           AND publication.approval_artifact_hash = $7
+           AND publication.actor_principal_id = $8
+           AND publication.actor_principal_revision = $9
+           AND publication.credential_version = $10
+           AND publication.asset_hash = $11
+           AND publication.artifact_bindings = $12::jsonb
+           AND publication.channel_id = $13 AND publication.visibility = $14
+           AND publication.scheduled_at IS NOT DISTINCT FROM $15::timestamptz
+           AND publication.playlist_ids = $16::jsonb
+           AND publication.recovery_identity = $17
+         FOR UPDATE OF publication
+       ), locked_approval AS MATERIALIZED (
+         SELECT approval.approval_id
+         FROM approvals AS approval
+         INNER JOIN locked_intent AS intent
+           ON intent.workspace_id = approval.workspace_id
+          AND intent.run_id = approval.run_id
+          AND intent.approval_id = approval.approval_id
+         WHERE approval.decision = 'approved' AND approval.state = 'active'
+           AND approval.revoked_at IS NULL
+           AND approval.subject_revision = intent.approval_revision
+           AND approval.artifact_hash = intent.approval_artifact_hash
+         FOR UPDATE OF approval
+       ), locked_actor AS MATERIALIZED (
+         SELECT principal.principal_id
+         FROM workspace_principals AS principal
+         INNER JOIN locked_intent AS intent
+           ON intent.workspace_id = principal.workspace_id
+          AND intent.actor_principal_id = principal.principal_id
+         WHERE principal.active = TRUE AND principal.revoked_at IS NULL
+           AND principal.revision = intent.actor_principal_revision
+           AND principal.permissions ? 'publication.execute'
+         FOR UPDATE OF principal
+       ), locked_credential AS MATERIALIZED (
+         SELECT credential.credential_version
+         FROM publication_credential_versions AS credential
+         INNER JOIN locked_intent AS intent
+           ON intent.workspace_id = credential.workspace_id
+          AND intent.credential_version = credential.credential_version
+          AND intent.channel_id = credential.channel_id
+         WHERE credential.state = 'active' AND credential.revoked_at IS NULL
+         FOR UPDATE OF credential
+       ), locked_intent_lease AS MATERIALIZED (
+         SELECT lease.publication_id
+         FROM publication_intent_leases AS lease
+         INNER JOIN locked_intent AS intent
+           ON intent.workspace_id = lease.workspace_id
+          AND intent.publication_id = lease.publication_id
+         WHERE lease.lease_owner = $18 AND lease.lease_fence = $19
+           AND lease.lease_expires_at > $21::timestamptz
+         FOR UPDATE OF lease
+       ), locked_channel_lease AS MATERIALIZED (
+         SELECT lease.channel_id
+         FROM publication_channel_leases AS lease
+         INNER JOIN locked_intent AS intent
+           ON intent.workspace_id = lease.workspace_id
+          AND intent.channel_id = lease.channel_id
+         WHERE lease.lease_owner = $18 AND lease.lease_fence = $20
+           AND lease.lease_expires_at > $21::timestamptz
+         FOR UPDATE OF lease
+       ), locked_artifacts AS MATERIALIZED (
+         SELECT asset.asset_id
+         FROM locked_intent AS intent
+         CROSS JOIN LATERAL jsonb_array_elements(intent.artifact_bindings) AS binding
+         INNER JOIN assets AS asset
+           ON asset.workspace_id = intent.workspace_id
+          AND asset.project_id = intent.project_id
+          AND asset.asset_id = binding ->> 'assetId'
+          AND asset.content_hash = binding ->> 'contentHash'
+         WHERE asset.status = 'ready'
+         FOR UPDATE OF asset
+       ), authorized AS (
+         SELECT intent.publication_id
+         FROM locked_intent AS intent
+         WHERE (intent.scheduled_at IS NULL OR intent.scheduled_at <= $21::timestamptz)
+           AND EXISTS (SELECT 1 FROM locked_approval)
+           AND EXISTS (SELECT 1 FROM locked_actor)
+           AND EXISTS (SELECT 1 FROM locked_credential)
+           AND EXISTS (SELECT 1 FROM locked_intent_lease)
+           AND EXISTS (SELECT 1 FROM locked_channel_lease)
+           AND (SELECT COUNT(*) FROM locked_artifacts) = jsonb_array_length(intent.artifact_bindings)
+       )
+       UPDATE publications AS publication
+       SET status = 'executing', revision = publication.revision + 1,
+           execution_fence = $20, intent_lease_fence = $19,
+           channel_lease_fence = $20,
+           updated_at = $21::timestamptz
+       FROM authorized
+       WHERE publication.workspace_id = $1
+         AND publication.publication_id = authorized.publication_id
+       RETURNING publication.publication_id`,
       [
-        input.channelLeaseFence,
-        input.now,
         input.workspaceId,
         input.publicationId,
-        input.approvalRevision,
-        input.credentialVersion,
+        binding.projectId,
+        binding.runId,
+        binding.approvalId,
+        binding.approvalRevision,
+        binding.approvalArtifactHash,
+        binding.actorPrincipalId,
+        binding.actorPrincipalRevision,
+        binding.credentialVersion,
+        binding.assetHash,
+        JSON.stringify(binding.artifactBindings),
+        binding.channelId,
+        binding.visibility,
+        binding.scheduledAt,
+        JSON.stringify(binding.playlistIds),
+        binding.recoveryIdentity,
+        input.workerId,
+        input.intentLeaseFence,
+        input.channelLeaseFence,
+        input.now,
       ]
     );
     if (publication.rowCount !== 1) return false;
@@ -2488,6 +2976,17 @@ export class PostgresPublicationIntentRepository {
     return this.repository.withWorkspaceTransaction(
       input.workspaceId,
       (transaction) => transaction.beginPublicationExecution(input)
+    );
+  }
+
+  public claimIntentLease(
+    input: Parameters<
+      WorkspaceTransactionRepository["claimPublicationIntentLease"]
+    >[0]
+  ): Promise<PublicationIntentLease | null> {
+    return this.repository.withWorkspaceTransaction(
+      input.workspaceId,
+      (transaction) => transaction.claimPublicationIntentLease(input)
     );
   }
 

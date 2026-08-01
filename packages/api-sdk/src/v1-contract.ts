@@ -31,7 +31,9 @@ export const SDK_V1_OPERATIONS = {
   getJob: { method: "GET", path: "/v1/workspaces/{workspace}/projects/{project}/jobs/{job}", successStatus: "200", responseSchema: "Job", requestSchema: null, requiredHeaders: [], problemResponses: true },
   getAsset: { method: "GET", path: "/v1/workspaces/{workspace}/projects/{project}/assets/{asset}", successStatus: "200", responseSchema: "Asset", requestSchema: null, requiredHeaders: [], problemResponses: true },
   listValidations: { method: "GET", path: "/v1/workspaces/{workspace}/projects/{project}/validations", successStatus: "200", responseSchema: "ValidationPage", requestSchema: null, requiredHeaders: [], problemResponses: true },
+  getPublication: { method: "GET", path: "/v1/workspaces/{workspace}/projects/{project}/publications/{publication}", successStatus: "200", responseSchema: "Publication", requestSchema: null, requiredHeaders: [], problemResponses: true },
   recordApproval: { method: "POST", path: "/v1/workspaces/{workspace}/projects/{project}/approvals", successStatus: "202", responseSchema: "ApprovalAccepted", requestSchema: "ApprovalInput", requiredHeaders: ["IdempotencyKey", "IfMatch"], problemResponses: true },
+  revokeApproval: { method: "POST", path: "/v1/workspaces/{workspace}/projects/{project}/approvals/{approval}:revoke", successStatus: "200", responseSchema: "ApprovalRevoked", requestSchema: "ApprovalRevocationInput", requiredHeaders: ["IdempotencyKey", "IfMatch"], problemResponses: true },
 } as const satisfies Readonly<Record<string, SdkV1OperationContract>>;
 
 export interface SdkV1ObjectSchemaContract {
@@ -64,8 +66,12 @@ export const SDK_V1_OBJECT_SCHEMAS = {
   Asset: { required: ["id", "mimeType", "bytes", "sha256", "lifecycle", "provenance"], additionalProperties: false },
   ValidationResult: { required: ["id", "createdAt"], additionalProperties: true },
   ValidationPage: { required: ["items"], additionalProperties: false },
+  PublicationArtifactBinding: { required: ["assetId", "role", "contentHash"], additionalProperties: false },
+  Publication: { required: ["id", "revision", "status", "workflowRunId", "approvalId", "approvalRevision", "approvalArtifactHash", "assetHash", "artifactBindings", "channelId", "visibility", "scheduledAt", "playlistIds", "createdAt", "updatedAt"], additionalProperties: false },
   ApprovalInput: { required: ["challengeId", "subjectId", "expectedRevision", "decision", "reason"], additionalProperties: false },
   ApprovalAccepted: { required: ["id", "jobId", "revision"], additionalProperties: false },
+  ApprovalRevocationInput: { required: ["reason"], additionalProperties: false },
+  ApprovalRevoked: { required: ["id", "revision", "state", "revokedAt"], additionalProperties: false },
   ProblemError: { required: ["path", "message"], additionalProperties: false },
   Problem: { required: ["type", "title", "status", "detail", "code", "requestId", "retryable", "errors"], additionalProperties: false },
   HealthStatus: { required: ["status"], additionalProperties: false },
@@ -82,6 +88,8 @@ export const SDK_V1_ENUMS = {
   "WorkflowRun.status": ["queued", "running", "awaiting_approval", "succeeded", "failed", "cancelled"],
   "Job.status": ["queued", "running", "waiting_for_approval", "retry_scheduled", "cancelling", "cancelled", "succeeded", "succeeded_with_warnings", "partially_succeeded", "failed", "dead_lettered"],
   "JobFailureProblem.code": ["job_failed", "job_dead_lettered"],
+  "Publication.status": ["pending", "executing", "published", "failed", "reconciliation_required", "cancelled"],
+  "Publication.visibility": ["private", "unlisted", "public"],
   "ApprovalInput.decision": ["approved", "rejected"],
   "HealthStatus.status": ["ok", "ready", "unavailable"],
 } as const;
@@ -93,4 +101,5 @@ export const SDK_V1_CONSTS = {
   "MathematicsEducationContent.version": "1",
   "WorkflowAdmission.template": "episode-production",
   "WorkflowAdmission.publicationMode": "none",
+  "ApprovalRevoked.state": "revoked",
 } as const;

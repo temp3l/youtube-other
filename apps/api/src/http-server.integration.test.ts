@@ -19,7 +19,9 @@ const useCases: ApiUseCases = {
   getJob: async () => ({ id: "job-1", revision: 1, status: "queued", attempts: 0, cancellationRequested: false }),
   getAsset: async () => null,
   listValidations: async () => ({ items: [] }),
+  getPublication: async () => ({ id: "publication-1", revision: 2, status: "pending", workflowRunId: "run-1", approvalId: "approval-1", approvalRevision: 1, approvalArtifactHash: "approval-hash", assetHash: "asset-hash", artifactBindings: [{ assetId: "asset-1", role: "video", contentHash: "content-hash" }], channelId: "channel-1", visibility: "private", scheduledAt: null, playlistIds: [], createdAt: "2026-08-01T00:00:00.000Z", updatedAt: "2026-08-01T00:00:00.000Z" }),
   recordApproval: async () => ({ id: "approval-1", jobId: "job-2", revision: 4 }),
+  revokeApproval: async (id) => ({ id, revision: 2, state: "revoked", revokedAt: "2026-08-01T12:00:00.000Z", replayed: false }),
 };
 const authenticate = async () => ({
   principalId: "user-1",
@@ -29,6 +31,7 @@ const authenticate = async () => ({
     "audit.read",
     "content.read",
     "content.write",
+    "publication.read",
     "validation.read",
     "usage.read",
     "workflow.cancel",
@@ -79,9 +82,105 @@ describe("HTTP API contract", () => {
         "/v1/workspaces/{workspace}/projects/{project}/workflow-runs/{run}:cancel": { post: { operationId: "cancelWorkflow" } },
         "/v1/workspaces/{workspace}/projects/{project}/workflow-runs/{run}:resume": { post: { operationId: "resumeWorkflow" } },
         "/v1/workspaces/{workspace}/projects/{project}/jobs/{job}": { get: { operationId: "getJob" } },
+        "/v1/workspaces/{workspace}/projects/{project}/publications/{publication}": { get: { operationId: "getPublication" } },
+        "/v1/workspaces/{workspace}/projects/{project}/approvals/{approval}:revoke": { post: { operationId: "revokeApproval" } },
       },
     });
     expect(response.body).not.toContain("workspaceDir");
+  });
+
+  it("returns only safe tenant- and project-scoped publication state", async () => {
+    const reads: unknown[] = [];
+    const running = await serve(createApiServer({
+      useCases: {
+        ...useCases,
+        getPublication: async (publicationId, context) => {
+          reads.push({ publicationId, context });
+          return useCases.getPublication(publicationId, context);
+        },
+      },
+      authenticate,
+      requestId: () => "request-publication",
+    }));
+    closers.push(running.close);
+    const response = await request({
+      url: `${running.baseUrl}/v1/workspaces/ws-1/projects/project-1/publications/publication-1`,
+    });
+    expect(response.status).toBe(200);
+    expect(response.headers.etag).toBe('"2"');
+    expect(JSON.parse(response.body) as unknown).toMatchObject({
+      id: "publication-1",
+      workflowRunId: "run-1",
+      status: "pending",
+      artifactBindings: [{ assetId: "asset-1", role: "video" }],
+    });
+    for (const internal of ["credentialVersion", "recoveryIdentity", "executionFence", "providerReceipt", "terminalEvidence", "actorPrincipalId"])
+      expect(response.body).not.toContain(internal);
+    expect(reads).toEqual([expect.objectContaining({
+      publicationId: "publication-1",
+      context: expect.objectContaining({ workspaceId: "ws-1", projectId: "project-1" }),
+    })]);
+
+    const forbidden = await serve(createApiServer({
+      useCases,
+      authenticate: async () => ({ ...(await authenticate()), permissions: ["content.read"] }),
+      requestId: () => "request-publication-forbidden",
+    }));
+    closers.push(forbidden.close);
+    const denied = await request({
+      url: `${forbidden.baseUrl}/v1/workspaces/ws-1/projects/project-1/publications/publication-1`,
+    });
+    expect(denied.status).toBe(403);
+  });
+
+  it("revokes approvals with project-bound CAS and durable idempotency replay", async () => {
+    const revocations: unknown[] = [];
+    const running = await serve(createApiServer({
+      useCases: {
+        ...useCases,
+        revokeApproval: async (approvalId, input, context) => {
+          revocations.push({ approvalId, input, context });
+          return { id: approvalId, revision: 3, state: "revoked", revokedAt: "2026-08-01T12:00:00.000Z", replayed: true };
+        },
+      },
+      authenticate,
+      requestId: () => "request-approval-revoke",
+    }));
+    closers.push(running.close);
+    const response = await request({
+      url: `${running.baseUrl}/v1/workspaces/ws-1/projects/project-1/approvals/approval-1:revoke`,
+      method: "POST",
+      headers: { "content-type": "application/json", "if-match": '"2"', "idempotency-key": "revoke-key" },
+      body: JSON.stringify({ reason: "  Artifact was superseded.  " }),
+    });
+    expect(response.status).toBe(200);
+    expect(response.headers.etag).toBe('"3"');
+    expect(response.headers["idempotency-replayed"]).toBe("true");
+    expect(JSON.parse(response.body) as unknown).toEqual({
+      id: "approval-1", revision: 3, state: "revoked", revokedAt: "2026-08-01T12:00:00.000Z",
+    });
+    expect(revocations).toEqual([expect.objectContaining({
+      approvalId: "approval-1",
+      input: { reason: "Artifact was superseded." },
+      context: expect.objectContaining({ workspaceId: "ws-1", projectId: "project-1", ifMatch: '"2"', idempotencyKey: "revoke-key" }),
+    })]);
+
+    for (const requestInput of [
+      { headers: { "content-type": "application/json", "idempotency-key": "revoke-key" }, body: JSON.stringify({ reason: "Valid" }), status: 428 },
+      { headers: { "content-type": "application/json", "if-match": "W/\"2\"", "idempotency-key": "revoke-key" }, body: JSON.stringify({ reason: "Valid" }), status: 412 },
+      { headers: { "content-type": "application/json", "if-match": '"2"' }, body: JSON.stringify({ reason: "Valid" }), status: 428 },
+      { headers: { "content-type": "application/json", "if-match": '"2"', "idempotency-key": "revoke-key" }, body: JSON.stringify({ reason: "x".repeat(2_001) }), status: 400 },
+    ]) {
+      const rejected = await request({
+        url: `${running.baseUrl}/v1/workspaces/ws-1/projects/project-1/approvals/approval-1:revoke`,
+        method: "POST",
+        headers: requestInput.headers,
+        body: requestInput.body,
+      });
+      expect(rejected.status).toBe(requestInput.status);
+      expect(rejected.headers["content-type"]).toContain("application/problem+json");
+    }
+    expect(revocations).toHaveLength(1);
   });
 
   it("creates a project at the advertised workspace project collection route", async () => {

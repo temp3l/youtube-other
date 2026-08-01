@@ -6,14 +6,20 @@ import type {
 
 export const quotaDimensions = [
   "active_workflows",
+  "storage_bytes",
+  "batch_items",
+  "active_batches",
+  "publication_count",
+  "active_publications",
   "provider_budget_minor",
+  "principal_provider_budget_minor",
 ] as const;
 export type QuotaDimension = (typeof quotaDimensions)[number];
 
 export const POSTGRES_QUOTA_DIMENSION_MIGRATION = `
 CREATE TABLE IF NOT EXISTS workspace_quota_dimensions (
   workspace_id TEXT NOT NULL,
-  dimension TEXT NOT NULL CHECK (dimension IN ('active_workflows', 'provider_budget_minor')),
+  dimension TEXT NOT NULL CHECK (dimension IN ('active_workflows', 'storage_bytes', 'batch_items', 'active_batches', 'publication_count', 'active_publications', 'provider_budget_minor')),
   limit_units BIGINT NOT NULL CHECK (limit_units >= 0),
   revision BIGINT NOT NULL DEFAULT 0,
   created_at TIMESTAMPTZ NOT NULL,
@@ -23,10 +29,11 @@ CREATE TABLE IF NOT EXISTS workspace_quota_dimensions (
 CREATE TABLE IF NOT EXISTS quota_dimension_reservations (
   workspace_id TEXT NOT NULL,
   reservation_id TEXT NOT NULL,
-  dimension TEXT NOT NULL CHECK (dimension IN ('active_workflows', 'provider_budget_minor')),
+  dimension TEXT NOT NULL CHECK (dimension IN ('active_workflows', 'storage_bytes', 'batch_items', 'active_batches', 'publication_count', 'active_publications', 'provider_budget_minor', 'principal_provider_budget_minor')),
   attribution_key TEXT NOT NULL,
   subject_id TEXT NOT NULL,
   attempt_id TEXT NULL,
+  principal_id TEXT NULL,
   reserved_units BIGINT NOT NULL CHECK (reserved_units > 0),
   settled_units BIGINT NULL CHECK (settled_units IS NULL OR settled_units > 0),
   state TEXT NOT NULL DEFAULT 'reserved' CHECK (state IN ('reserved', 'settled', 'released')),
@@ -37,20 +44,106 @@ CREATE TABLE IF NOT EXISTS quota_dimension_reservations (
   UNIQUE (workspace_id, dimension, attribution_key),
   FOREIGN KEY (workspace_id, dimension)
     REFERENCES workspace_quota_dimensions (workspace_id, dimension),
-  CHECK ((dimension = 'provider_budget_minor' AND attempt_id IS NOT NULL)
-    OR (dimension = 'active_workflows' AND attempt_id IS NULL)),
+  CHECK ((dimension IN ('provider_budget_minor', 'principal_provider_budget_minor') AND attempt_id IS NOT NULL)
+    OR (dimension NOT IN ('provider_budget_minor', 'principal_provider_budget_minor') AND attempt_id IS NULL)),
+  CHECK ((dimension = 'principal_provider_budget_minor' AND principal_id IS NOT NULL)
+    OR (dimension <> 'principal_provider_budget_minor' AND principal_id IS NULL)),
   CHECK ((state = 'settled' AND settled_units IS NOT NULL)
     OR (state <> 'settled' AND settled_units IS NULL))
 );
-CREATE UNIQUE INDEX IF NOT EXISTS quota_provider_attempt_attribution_unique
+ALTER TABLE workspace_quota_dimensions DROP CONSTRAINT IF EXISTS workspace_quota_dimensions_dimension_check;
+ALTER TABLE workspace_quota_dimensions ADD CONSTRAINT workspace_quota_dimensions_dimension_check
+  CHECK (dimension IN ('active_workflows', 'storage_bytes', 'batch_items', 'active_batches', 'publication_count', 'active_publications', 'provider_budget_minor'));
+ALTER TABLE quota_dimension_reservations ADD COLUMN IF NOT EXISTS principal_id TEXT NULL;
+ALTER TABLE quota_dimension_reservations DROP CONSTRAINT IF EXISTS quota_dimension_reservations_dimension_check;
+ALTER TABLE quota_dimension_reservations DROP CONSTRAINT IF EXISTS quota_dimension_reservations_check;
+ALTER TABLE quota_dimension_reservations DROP CONSTRAINT IF EXISTS quota_dimension_reservations_check1;
+ALTER TABLE quota_dimension_reservations DROP CONSTRAINT IF EXISTS quota_dimension_reservations_attempt_check;
+ALTER TABLE quota_dimension_reservations DROP CONSTRAINT IF EXISTS quota_dimension_reservations_principal_check;
+ALTER TABLE quota_dimension_reservations DROP CONSTRAINT IF EXISTS quota_dimension_reservations_settlement_check;
+ALTER TABLE quota_dimension_reservations ADD CONSTRAINT quota_dimension_reservations_dimension_check
+  CHECK (dimension IN ('active_workflows', 'storage_bytes', 'batch_items', 'active_batches', 'publication_count', 'active_publications', 'provider_budget_minor', 'principal_provider_budget_minor'));
+ALTER TABLE quota_dimension_reservations ADD CONSTRAINT quota_dimension_reservations_attempt_check
+  CHECK ((dimension IN ('provider_budget_minor', 'principal_provider_budget_minor') AND attempt_id IS NOT NULL)
+    OR (dimension NOT IN ('provider_budget_minor', 'principal_provider_budget_minor') AND attempt_id IS NULL));
+ALTER TABLE quota_dimension_reservations ADD CONSTRAINT quota_dimension_reservations_principal_check
+  CHECK ((dimension = 'principal_provider_budget_minor' AND principal_id IS NOT NULL)
+    OR (dimension <> 'principal_provider_budget_minor' AND principal_id IS NULL));
+ALTER TABLE quota_dimension_reservations ADD CONSTRAINT quota_dimension_reservations_settlement_check
+  CHECK ((state = 'settled' AND settled_units IS NOT NULL)
+    OR (state = 'released') OR (state = 'reserved' AND settled_units IS NULL));
+CREATE TABLE IF NOT EXISTS principal_quota_dimensions (
+  workspace_id TEXT NOT NULL,
+  principal_id TEXT NOT NULL,
+  dimension TEXT NOT NULL CHECK (dimension = 'principal_provider_budget_minor'),
+  limit_units BIGINT NOT NULL CHECK (limit_units >= 0),
+  revision BIGINT NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ NOT NULL,
+  updated_at TIMESTAMPTZ NOT NULL,
+  PRIMARY KEY (workspace_id, principal_id, dimension)
+);
+CREATE TABLE IF NOT EXISTS quota_dimension_policies (
+  workspace_id TEXT NOT NULL,
+  scope_type TEXT NOT NULL CHECK (scope_type IN ('workspace', 'principal')),
+  scope_id TEXT NOT NULL,
+  dimension TEXT NOT NULL,
+  limit_units BIGINT NOT NULL CHECK (limit_units >= 0),
+  revision BIGINT NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ NOT NULL,
+  updated_at TIMESTAMPTZ NOT NULL,
+  PRIMARY KEY (workspace_id, scope_type, scope_id, dimension),
+  CHECK ((scope_type = 'principal' AND dimension = 'principal_provider_budget_minor')
+    OR (scope_type = 'workspace' AND scope_id = workspace_id
+      AND dimension <> 'principal_provider_budget_minor'))
+);
+INSERT INTO quota_dimension_policies (
+  workspace_id, scope_type, scope_id, dimension, limit_units,
+  revision, created_at, updated_at
+)
+SELECT workspace_id, 'workspace', workspace_id, dimension, limit_units,
+       revision, created_at, updated_at
+FROM workspace_quota_dimensions
+ON CONFLICT (workspace_id, scope_type, scope_id, dimension) DO NOTHING;
+INSERT INTO quota_dimension_policies (
+  workspace_id, scope_type, scope_id, dimension, limit_units,
+  revision, created_at, updated_at
+)
+SELECT workspace_id, 'principal', principal_id, dimension, limit_units,
+       revision, created_at, updated_at
+FROM principal_quota_dimensions
+ON CONFLICT (workspace_id, scope_type, scope_id, dimension) DO NOTHING;
+ALTER TABLE quota_dimension_reservations ADD COLUMN IF NOT EXISTS scope_type TEXT NULL;
+ALTER TABLE quota_dimension_reservations ADD COLUMN IF NOT EXISTS scope_id TEXT NULL;
+UPDATE quota_dimension_reservations
+SET scope_type = CASE WHEN dimension = 'principal_provider_budget_minor' THEN 'principal' ELSE 'workspace' END,
+    scope_id = CASE WHEN dimension = 'principal_provider_budget_minor' THEN principal_id ELSE workspace_id END
+WHERE scope_type IS NULL OR scope_id IS NULL;
+ALTER TABLE quota_dimension_reservations ALTER COLUMN scope_type SET NOT NULL;
+ALTER TABLE quota_dimension_reservations ALTER COLUMN scope_id SET NOT NULL;
+ALTER TABLE quota_dimension_reservations DROP CONSTRAINT IF EXISTS quota_dimension_reservations_workspace_id_dimension_fkey;
+ALTER TABLE quota_dimension_reservations DROP CONSTRAINT IF EXISTS quota_dimension_reservations_scope_fkey;
+ALTER TABLE quota_dimension_reservations ADD CONSTRAINT quota_dimension_reservations_scope_fkey
+  FOREIGN KEY (workspace_id, scope_type, scope_id, dimension)
+  REFERENCES quota_dimension_policies (workspace_id, scope_type, scope_id, dimension);
+ALTER TABLE quota_dimension_reservations DROP CONSTRAINT IF EXISTS quota_dimension_reservations_scope_check;
+ALTER TABLE quota_dimension_reservations ADD CONSTRAINT quota_dimension_reservations_scope_check
+  CHECK ((scope_type = 'principal' AND scope_id = principal_id
+      AND dimension = 'principal_provider_budget_minor')
+    OR (scope_type = 'workspace' AND scope_id = workspace_id
+      AND principal_id IS NULL AND dimension <> 'principal_provider_budget_minor'));
+DROP INDEX IF EXISTS quota_provider_attempt_attribution_unique;
+CREATE UNIQUE INDEX IF NOT EXISTS quota_workspace_provider_attempt_attribution_unique
   ON quota_dimension_reservations (workspace_id, attempt_id)
   WHERE dimension = 'provider_budget_minor' AND attempt_id IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS quota_principal_provider_attempt_attribution_unique
+  ON quota_dimension_reservations (workspace_id, attempt_id)
+  WHERE dimension = 'principal_provider_budget_minor' AND attempt_id IS NOT NULL;
 CREATE INDEX IF NOT EXISTS quota_dimension_reservations_committed
   ON quota_dimension_reservations (workspace_id, dimension, state);
 DO $$
 DECLARE table_name TEXT;
 BEGIN
-  FOREACH table_name IN ARRAY ARRAY['workspace_quota_dimensions', 'quota_dimension_reservations']
+  FOREACH table_name IN ARRAY ARRAY['workspace_quota_dimensions', 'principal_quota_dimensions', 'quota_dimension_policies', 'quota_dimension_reservations']
   LOOP
     EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY', table_name);
     EXECUTE format('ALTER TABLE %I FORCE ROW LEVEL SECURITY', table_name);
@@ -164,6 +257,7 @@ export interface QuotaDimensionReservationRecord {
   readonly attributionKey: string;
   readonly subjectId: string;
   readonly attemptId: string | null;
+  readonly principalId: string | null;
   readonly reservedUnits: bigint;
   readonly settledUnits: bigint | null;
   readonly state: "reserved" | "settled" | "released";
@@ -230,6 +324,10 @@ interface QuotaDimensionPolicyRow {
   readonly revision: bigint | string;
 }
 
+interface PrincipalQuotaDimensionPolicyRow extends QuotaDimensionPolicyRow {
+  readonly principal_id: string;
+}
+
 interface QuotaDimensionReservationRow {
   readonly workspace_id: string;
   readonly reservation_id: string;
@@ -237,6 +335,7 @@ interface QuotaDimensionReservationRow {
   readonly attribution_key: string;
   readonly subject_id: string;
   readonly attempt_id: string | null;
+  readonly principal_id: string | null;
   readonly reserved_units: bigint | string;
   readonly settled_units: bigint | string | null;
   readonly state: "reserved" | "settled" | "released";
@@ -280,6 +379,7 @@ function mapQuotaDimensionReservation(
     attributionKey: row.attribution_key,
     subjectId: row.subject_id,
     attemptId: row.attempt_id,
+    principalId: row.principal_id,
     reservedUnits: BigInt(row.reserved_units),
     settledUnits: row.settled_units === null ? null : BigInt(row.settled_units),
     state: row.state,
@@ -306,17 +406,25 @@ function assertDimensionReservation(input: {
   readonly dimension: QuotaDimension;
   readonly units: bigint;
   readonly attemptId?: string;
+  readonly principalId?: string;
 }): void {
   if (input.units <= 0n)
     throw new UsageAuditQuotaPersistenceError(
       "Quota reservation units must be positive integers."
     );
+  const providerSpend =
+    input.dimension === "provider_budget_minor" ||
+    input.dimension === "principal_provider_budget_minor";
+  if (providerSpend !== (input.attemptId !== undefined))
+    throw new UsageAuditQuotaPersistenceError(
+      "Provider budget reservations require one durable attempt ID; non-provider reservations must not use one."
+    );
   if (
-    (input.dimension === "provider_budget_minor") !==
-    (input.attemptId !== undefined)
+    (input.dimension === "principal_provider_budget_minor") !==
+    (input.principalId !== undefined)
   )
     throw new UsageAuditQuotaPersistenceError(
-      "Provider budget reservations require one durable attempt ID; workflow concurrency reservations must not use one."
+      "Principal provider spend requires one explicit principal scope; workspace dimensions must not use one."
     );
 }
 
@@ -329,6 +437,7 @@ export async function reserveQuotaDimensionInTransaction(
     readonly attributionKey: string;
     readonly subjectId: string;
     readonly attemptId?: string;
+    readonly principalId?: string;
     readonly units: bigint;
     readonly now: string;
     /** Internal compatibility only. External pilot admission must provision policy. */
@@ -339,10 +448,14 @@ export async function reserveQuotaDimensionInTransaction(
   readonly reservation: QuotaDimensionReservationRecord;
 } | null> {
   assertDimensionReservation(input);
+  const principalScoped = input.dimension === "principal_provider_budget_minor";
+  const scopeType = principalScoped ? "principal" : "workspace";
+  const scopeId = principalScoped ? input.principalId! : input.workspaceId;
   const policy = await client.query<QuotaDimensionPolicyRow>(
-    `SELECT limit_units, revision FROM workspace_quota_dimensions
-     WHERE workspace_id = $1 AND dimension = $2 FOR UPDATE`,
-    [input.workspaceId, input.dimension]
+    `SELECT limit_units, revision FROM quota_dimension_policies
+     WHERE workspace_id = $1 AND scope_type = $2 AND scope_id = $3
+       AND dimension = $4 FOR UPDATE`,
+    [input.workspaceId, scopeType, scopeId, input.dimension]
   );
   if (!policy.rows[0]) {
     if (input.allowMissingPolicy === true) return null;
@@ -362,6 +475,7 @@ export async function reserveQuotaDimensionInTransaction(
       reservation.reservationId !== input.reservationId ||
       reservation.subjectId !== input.subjectId ||
       reservation.attemptId !== (input.attemptId ?? null) ||
+      reservation.principalId !== (input.principalId ?? null) ||
       reservation.reservedUnits !== input.units
     )
       throw new UsageAuditQuotaPersistenceError(
@@ -374,13 +488,15 @@ export async function reserveQuotaDimensionInTransaction(
       `SELECT COALESCE(SUM(
          CASE
            WHEN state = 'reserved' THEN reserved_units
-           WHEN state = 'settled' AND dimension = 'provider_budget_minor' THEN settled_units
+           WHEN state = 'settled' THEN settled_units
            ELSE 0
          END
        ), 0)::bigint AS committed_units
        FROM quota_dimension_reservations
-       WHERE workspace_id = $1 AND dimension = $2 AND state IN ('reserved', 'settled')`,
-      [input.workspaceId, input.dimension]
+       WHERE workspace_id = $1 AND dimension = $2
+         AND scope_type = $3 AND scope_id = $4
+         AND state IN ('reserved', 'settled')`,
+      [input.workspaceId, input.dimension, scopeType, scopeId]
     ),
     "Quota dimension total could not be read."
   );
@@ -394,8 +510,10 @@ export async function reserveQuotaDimensionInTransaction(
   const inserted = await client.query<QuotaDimensionReservationRow>(
     `INSERT INTO quota_dimension_reservations (
        workspace_id, reservation_id, dimension, attribution_key, subject_id,
-       attempt_id, reserved_units, created_at, updated_at
-     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8::timestamptz, $8::timestamptz)
+       attempt_id, principal_id, scope_type, scope_id, reserved_units,
+       created_at, updated_at
+     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
+               $11::timestamptz, $11::timestamptz)
      RETURNING *`,
     [
       input.workspaceId,
@@ -404,6 +522,9 @@ export async function reserveQuotaDimensionInTransaction(
       input.attributionKey,
       input.subjectId,
       input.attemptId ?? null,
+      input.principalId ?? null,
+      scopeType,
+      scopeId,
       input.units,
       input.now,
     ]
@@ -517,6 +638,10 @@ export class PostgresUsageAuditRepository {
     readonly limitUnits: bigint;
     readonly revision: number;
   }> {
+    if (input.dimension === "principal_provider_budget_minor")
+      throw new UsageAuditQuotaPersistenceError(
+        "Principal provider spend policy requires an explicit principal scope."
+      );
     if (input.limitUnits < 0n)
       throw new UsageAuditQuotaPersistenceError(
         "Quota dimension limit cannot be negative."
@@ -529,10 +654,12 @@ export class PostgresUsageAuditRepository {
               readonly limit_units: bigint | string;
               readonly revision: bigint | string;
             }>(
-              `INSERT INTO workspace_quota_dimensions (
-                 workspace_id, dimension, limit_units, created_at, updated_at
-               ) VALUES ($1, $2, $3, $4::timestamptz, $4::timestamptz)
-               ON CONFLICT (workspace_id, dimension) DO NOTHING
+              `INSERT INTO quota_dimension_policies (
+                 workspace_id, scope_type, scope_id, dimension, limit_units,
+                 created_at, updated_at
+               ) VALUES ($1, 'workspace', $1, $2, $3,
+                         $4::timestamptz, $4::timestamptz)
+               ON CONFLICT (workspace_id, scope_type, scope_id, dimension) DO NOTHING
                RETURNING dimension, limit_units, revision`,
               [input.workspaceId, input.dimension, input.limitUnits, input.now]
             )
@@ -541,10 +668,11 @@ export class PostgresUsageAuditRepository {
               readonly limit_units: bigint | string;
               readonly revision: bigint | string;
             }>(
-              `UPDATE workspace_quota_dimensions
+              `UPDATE quota_dimension_policies
                SET limit_units = $1, revision = revision + 1,
                    updated_at = $2::timestamptz
-               WHERE workspace_id = $3 AND dimension = $4 AND revision = $5
+               WHERE workspace_id = $3 AND scope_type = 'workspace'
+                 AND scope_id = $3 AND dimension = $4 AND revision = $5
                RETURNING dimension, limit_units, revision`,
               [
                 input.limitUnits,
@@ -566,6 +694,80 @@ export class PostgresUsageAuditRepository {
     });
   }
 
+  public async setPrincipalQuotaDimensionPolicy(input: {
+    readonly workspaceId: string;
+    readonly principalId: string;
+    readonly dimension: "principal_provider_budget_minor";
+    readonly limitUnits: bigint;
+    readonly expectedRevision?: number;
+    readonly now: string;
+  }): Promise<{
+    readonly dimension: "principal_provider_budget_minor";
+    readonly principalId: string;
+    readonly limitUnits: bigint;
+    readonly revision: number;
+  }> {
+    if (input.principalId.trim().length === 0 || input.limitUnits < 0n)
+      throw new UsageAuditQuotaPersistenceError(
+        "Principal quota policy requires a principal and non-negative limit."
+      );
+    return this.transaction(input.workspaceId, async (client) => {
+      const result =
+        input.expectedRevision === undefined
+          ? await client.query<{
+              readonly principal_id: string;
+              readonly dimension: "principal_provider_budget_minor";
+              readonly limit_units: bigint | string;
+              readonly revision: bigint | string;
+            }>(
+              `INSERT INTO quota_dimension_policies (
+                 workspace_id, scope_type, scope_id, dimension, limit_units,
+                 created_at, updated_at
+               ) VALUES ($1, 'principal', $2, 'principal_provider_budget_minor', $3,
+                         $4::timestamptz, $4::timestamptz)
+               ON CONFLICT (workspace_id, scope_type, scope_id, dimension) DO NOTHING
+               RETURNING scope_id AS principal_id, dimension, limit_units, revision`,
+              [
+                input.workspaceId,
+                input.principalId,
+                input.limitUnits,
+                input.now,
+              ]
+            )
+          : await client.query<{
+              readonly principal_id: string;
+              readonly dimension: "principal_provider_budget_minor";
+              readonly limit_units: bigint | string;
+              readonly revision: bigint | string;
+            }>(
+              `UPDATE quota_dimension_policies
+               SET limit_units = $1, revision = revision + 1,
+                   updated_at = $2::timestamptz
+               WHERE workspace_id = $3 AND scope_type = 'principal'
+                 AND scope_id = $4 AND dimension = 'principal_provider_budget_minor'
+                 AND revision = $5
+               RETURNING scope_id AS principal_id, dimension, limit_units, revision`,
+              [
+                input.limitUnits,
+                input.now,
+                input.workspaceId,
+                input.principalId,
+                input.expectedRevision,
+              ]
+            );
+      const policy = first(
+        result,
+        "Principal quota policy already exists or its revision is stale."
+      );
+      return {
+        dimension: policy.dimension,
+        principalId: policy.principal_id,
+        limitUnits: BigInt(policy.limit_units),
+        revision: Number(policy.revision),
+      };
+    });
+  }
+
   /** Direct reservations fail closed when policy is absent. */
   public reserveQuotaDimension(input: {
     readonly workspaceId: string;
@@ -574,6 +776,7 @@ export class PostgresUsageAuditRepository {
     readonly attributionKey: string;
     readonly subjectId: string;
     readonly attemptId?: string;
+    readonly principalId?: string;
     readonly units: bigint;
     readonly now: string;
   }): Promise<{
@@ -593,7 +796,7 @@ export class PostgresUsageAuditRepository {
   public settleQuotaDimension(input: {
     readonly workspaceId: string;
     readonly reservationId: string;
-    readonly attemptId: string;
+    readonly attemptId?: string;
     readonly settledUnits: bigint;
     readonly now: string;
   }): Promise<{
@@ -602,17 +805,45 @@ export class PostgresUsageAuditRepository {
   }> {
     if (input.settledUnits <= 0n)
       throw new UsageAuditQuotaPersistenceError(
-        "Settled provider budget units must be positive."
+        "Settled quota units must be positive."
       );
     return this.transaction(input.workspaceId, async (client) => {
+      const peek = mapQuotaDimensionReservation(
+        first(
+          await client.query<QuotaDimensionReservationRow>(
+            `SELECT * FROM quota_dimension_reservations
+             WHERE workspace_id = $1 AND reservation_id = $2`,
+            [input.workspaceId, input.reservationId]
+          ),
+          "Quota dimension reservation is missing."
+        )
+      );
+      if (
+        ![
+          "storage_bytes",
+          "batch_items",
+          "publication_count",
+          "provider_budget_minor",
+          "principal_provider_budget_minor",
+        ].includes(peek.dimension)
+      )
+        throw new UsageAuditQuotaPersistenceError(
+          `Quota dimension ${peek.dimension} releases at terminal state and cannot be settled.`
+        );
+      const principalScoped =
+        peek.dimension === "principal_provider_budget_minor";
+      const scopeType = principalScoped ? "principal" : "workspace";
+      const scopeId = principalScoped ? peek.principalId! : input.workspaceId;
       const policy = first(
         await client.query<QuotaDimensionPolicyRow>(
-          `SELECT limit_units, revision FROM workspace_quota_dimensions
-           WHERE workspace_id = $1 AND dimension = 'provider_budget_minor'
-           FOR UPDATE`,
-          [input.workspaceId]
+          `SELECT limit_units, revision FROM quota_dimension_policies
+           WHERE workspace_id = $1 AND scope_type = $2 AND scope_id = $3
+             AND dimension = $4 FOR UPDATE`,
+          [input.workspaceId, scopeType, scopeId, peek.dimension]
         ),
-        "Provider budget quota policy is not configured."
+        principalScoped
+          ? "Principal provider budget quota policy is not configured."
+          : `Workspace quota policy ${peek.dimension} is not configured.`
       );
       const current = mapQuotaDimensionReservation(
         first(
@@ -626,11 +857,12 @@ export class PostgresUsageAuditRepository {
         )
       );
       if (
-        current.dimension !== "provider_budget_minor" ||
-        current.attemptId !== input.attemptId
+        current.dimension !== peek.dimension ||
+        current.principalId !== peek.principalId ||
+        current.attemptId !== (input.attemptId ?? null)
       )
         throw new UsageAuditQuotaPersistenceError(
-          "Provider attempt attribution does not match the reservation."
+          "Quota settlement attribution does not match the reservation."
         );
       if (current.state === "settled") {
         if (current.settledUnits !== input.settledUnits)
@@ -649,33 +881,43 @@ export class PostgresUsageAuditRepository {
              CASE WHEN state = 'reserved' THEN reserved_units ELSE settled_units END
            ), 0)::bigint AS committed_units
            FROM quota_dimension_reservations
-           WHERE workspace_id = $1 AND dimension = 'provider_budget_minor'
-             AND state IN ('reserved', 'settled') AND reservation_id <> $2`,
-          [input.workspaceId, input.reservationId]
+           WHERE workspace_id = $1 AND dimension = $2
+             AND scope_type = $3 AND scope_id = $4
+             AND state IN ('reserved', 'settled') AND reservation_id <> $5`,
+          [
+            input.workspaceId,
+            current.dimension,
+            scopeType,
+            scopeId,
+            input.reservationId,
+          ]
         ),
-        "Provider budget total could not be read."
+        "Quota dimension total could not be read."
       );
       if (
         BigInt(committed.committed_units) + input.settledUnits >
         BigInt(policy.limit_units)
       )
         throw new WorkspaceQuotaExceededError(
-          "Workspace quota provider_budget_minor is exceeded at settlement."
+          `Quota ${current.dimension} is exceeded at settlement.`
         );
       const updated = await client.query<QuotaDimensionReservationRow>(
         `UPDATE quota_dimension_reservations
          SET state = 'settled', settled_units = $1, revision = revision + 1,
              updated_at = $2::timestamptz
          WHERE workspace_id = $3 AND reservation_id = $4
-           AND dimension = 'provider_budget_minor' AND attempt_id = $5
-           AND state = 'reserved' AND revision = $6
+           AND dimension = $5 AND principal_id IS NOT DISTINCT FROM $6
+           AND attempt_id IS NOT DISTINCT FROM $7
+           AND state = 'reserved' AND revision = $8
          RETURNING *`,
         [
           input.settledUnits,
           input.now,
           input.workspaceId,
           input.reservationId,
-          input.attemptId,
+          current.dimension,
+          current.principalId,
+          current.attemptId,
           current.revision,
         ]
       );
@@ -684,7 +926,7 @@ export class PostgresUsageAuditRepository {
         reservation: mapQuotaDimensionReservation(
           first(
             updated,
-            "Provider budget reservation changed during settlement."
+            "Quota dimension reservation changed during settlement."
           )
         ),
       };

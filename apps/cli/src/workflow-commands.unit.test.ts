@@ -4,6 +4,7 @@ import path from "node:path";
 
 import { Command } from "commander";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { MATH_EXECUTABLE_TASK_IDS } from "@mediaforge/math-education";
 
 import {
   WorkflowCliError,
@@ -156,6 +157,53 @@ describe("workflow CLI commands", () => {
       stateSource: "shared-engine",
     });
     expect(mathFixture.result.traversals).toHaveLength(30);
+  });
+
+  it("constructs the lesson CLI graph with every provider-free canonical math binding", async () => {
+    const root = await fs.mkdtemp(
+      path.join(os.tmpdir(), "workflow-cli-canonical-math-")
+    );
+
+    await run([
+      "workflow",
+      "lesson",
+      "graph",
+      "--lesson",
+      "m5-zo-001-standard",
+      "--unit-root",
+      root,
+      "--locale",
+      "de",
+    ]);
+
+    const graph = JSON.parse(String(stdout.mock.calls.at(-1)?.[0])) as {
+      result: {
+        nodes: Array<{
+          taskId: string;
+          implementationBound: boolean;
+          implementationOwner: string;
+        }>;
+      };
+    };
+    const executableNodes = graph.result.nodes.filter((node) =>
+      MATH_EXECUTABLE_TASK_IDS.includes(node.taskId as never)
+    );
+
+    expect(executableNodes).toHaveLength(MATH_EXECUTABLE_TASK_IDS.length);
+    expect(executableNodes).toEqual(
+      expect.arrayContaining(
+        MATH_EXECUTABLE_TASK_IDS.map((taskId) =>
+          expect.objectContaining({
+            taskId,
+            implementationBound: true,
+            implementationOwner: expect.stringMatching(/^@mediaforge\//u),
+          })
+        )
+      )
+    );
+    expect(
+      graph.result.nodes.find((node) => node.taskId === "math.publish")
+    ).toMatchObject({ implementationBound: false });
   });
 
   it("keeps fixture dry-runs side-effect free and runs one task by default", async () => {

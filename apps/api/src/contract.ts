@@ -89,6 +89,9 @@ export const approvalInputSchema = z
     reason: z.string().trim().min(1).max(2_000),
   })
   .strict();
+export const approvalRevocationInputSchema = z
+  .object({ reason: z.string().trim().min(1).max(2_000) })
+  .strict();
 
 const schema = (name: string) => ({ $ref: `#/components/schemas/${name}` }) as const;
 const parameter = (name: string) => ({ $ref: `#/components/parameters/${name}` }) as const;
@@ -103,6 +106,8 @@ const episodeParameters = [...projectParameters, parameter("EpisodeId")] as cons
 const workflowParameters = [...projectParameters, parameter("WorkflowRunId")] as const;
 const jobParameters = [...projectParameters, parameter("JobId")] as const;
 const assetParameters = [...projectParameters, parameter("AssetId")] as const;
+const publicationParameters = [...projectParameters, parameter("PublicationId")] as const;
+const approvalParameters = [...projectParameters, parameter("ApprovalId")] as const;
 const authenticatedErrors = {
   "401": response("Unauthorized"),
   "403": response("Forbidden"),
@@ -356,6 +361,18 @@ export const openApiDocument = {
         },
       },
     },
+    "/v1/workspaces/{workspace}/projects/{project}/publications/{publication}": {
+      get: {
+        operationId: "getPublication",
+        description: "Returns the durable publication status and immutable public bindings. Requires the `publication.read` workspace permission; execution-only authorization material, fences, recovery identity, receipts, and internal evidence are never returned.",
+        parameters: publicationParameters,
+        responses: {
+          "200": { description: "Publication intent state", headers: { ETag: responseHeader("ETag"), "x-request-id": responseHeader("RequestId") }, content: json("Publication") },
+          ...authenticatedErrors,
+          "404": response("NotFound"),
+        },
+      },
+    },
     "/v1/workspaces/{workspace}/projects/{project}/approvals": {
       post: {
         operationId: "recordApproval",
@@ -374,6 +391,23 @@ export const openApiDocument = {
         },
       },
     },
+    "/v1/workspaces/{workspace}/projects/{project}/approvals/{approval}:revoke": {
+      post: {
+        operationId: "revokeApproval",
+        description: "Revokes an active approval without changing its original decision or evidence. Requires the `approval.decide` workspace permission, a current strong ETag, and an idempotency key.",
+        parameters: [...approvalParameters, parameter("IfMatch"), parameter("IdempotencyKey")],
+        requestBody: { required: true, content: json("ApprovalRevocationInput") },
+        responses: {
+          "200": { description: "Approval revoked", headers: { ETag: responseHeader("ETag"), "Idempotency-Replayed": responseHeader("IdempotencyReplayed"), "x-request-id": responseHeader("RequestId") }, content: json("ApprovalRevoked") },
+          "400": response("BadRequest"),
+          ...authenticatedErrors,
+          "404": response("NotFound"),
+          "409": response("Conflict"),
+          "412": response("PreconditionFailed"),
+          "428": response("PreconditionRequired"),
+        },
+      },
+    },
   },
   components: {
     securitySchemes: {
@@ -384,6 +418,7 @@ export const openApiDocument = {
       RequestId: { description: "Request correlation identifier.", required: true, schema: { type: "string", minLength: 3, maxLength: 160, pattern: "^[A-Za-z0-9][A-Za-z0-9._-]{2,159}$" } },
       Location: { description: "Canonical URL of the asynchronous job.", required: true, schema: { type: "string" } },
       RetryAfter: { description: "Suggested polling delay in seconds.", required: true, schema: { type: "string", pattern: "^[0-9]+$" } },
+      IdempotencyReplayed: { description: "True when the stored response for an equal idempotent request is replayed.", required: false, schema: { type: "string", enum: ["true"] } },
     },
     parameters: {
       RequestId: { name: "x-request-id", in: "header", required: false, schema: { type: "string", minLength: 3, maxLength: 160, pattern: "^[A-Za-z0-9][A-Za-z0-9._-]{2,159}$" } },
@@ -395,6 +430,8 @@ export const openApiDocument = {
       WorkflowRunId: { name: "run", in: "path", required: true, schema: schema("OpaqueId") },
       JobId: { name: "job", in: "path", required: true, schema: schema("OpaqueId") },
       AssetId: { name: "asset", in: "path", required: true, schema: schema("OpaqueId") },
+      PublicationId: { name: "publication", in: "path", required: true, schema: schema("OpaqueId") },
+      ApprovalId: { name: "approval", in: "path", required: true, schema: schema("OpaqueId") },
       PageSize: { name: "page[size]", in: "query", required: false, schema: { type: "integer", minimum: 1, maximum: 100, default: 25 } },
       PageAfter: { name: "page[after]", in: "query", required: false, schema: { type: "string", minLength: 1, maxLength: 4_096 } },
     },
@@ -654,6 +691,39 @@ export const openApiDocument = {
           nextAfter: { type: "string" },
         },
       },
+      PublicationArtifactBinding: {
+        type: "object",
+        additionalProperties: false,
+        required: ["assetId", "role", "contentHash"],
+        properties: {
+          assetId: schema("OpaqueId"),
+          role: { type: "string", minLength: 1, maxLength: 160 },
+          contentHash: { type: "string", minLength: 1, maxLength: 255 },
+        },
+      },
+      Publication: {
+        type: "object",
+        additionalProperties: false,
+        description: "Safe publication state. Execution-only authorization material, actor internals, fences, recovery identity, receipts, and terminal evidence are excluded.",
+        required: ["id", "revision", "status", "workflowRunId", "approvalId", "approvalRevision", "approvalArtifactHash", "assetHash", "artifactBindings", "channelId", "visibility", "scheduledAt", "playlistIds", "createdAt", "updatedAt"],
+        properties: {
+          id: schema("OpaqueId"),
+          revision: schema("Revision"),
+          status: { type: "string", enum: ["pending", "executing", "published", "failed", "reconciliation_required", "cancelled"] },
+          workflowRunId: schema("OpaqueId"),
+          approvalId: schema("OpaqueId"),
+          approvalRevision: schema("Revision"),
+          approvalArtifactHash: { type: "string", minLength: 1, maxLength: 255 },
+          assetHash: { type: "string", minLength: 1, maxLength: 255 },
+          artifactBindings: { type: "array", items: schema("PublicationArtifactBinding") },
+          channelId: schema("OpaqueId"),
+          visibility: { type: "string", enum: ["private", "unlisted", "public"] },
+          scheduledAt: { oneOf: [{ type: "string", format: "date-time" }, { type: "null" }] },
+          playlistIds: { type: "array", items: schema("OpaqueId") },
+          createdAt: { type: "string", format: "date-time" },
+          updatedAt: { type: "string", format: "date-time" },
+        },
+      },
       ApprovalInput: {
         type: "object",
         additionalProperties: false,
@@ -671,6 +741,23 @@ export const openApiDocument = {
         additionalProperties: false,
         required: ["id", "jobId", "revision"],
         properties: { id: schema("OpaqueId"), jobId: schema("OpaqueId"), revision: schema("Revision") },
+      },
+      ApprovalRevocationInput: {
+        type: "object",
+        additionalProperties: false,
+        required: ["reason"],
+        properties: { reason: { type: "string", minLength: 1, maxLength: 2_000 } },
+      },
+      ApprovalRevoked: {
+        type: "object",
+        additionalProperties: false,
+        required: ["id", "revision", "state", "revokedAt"],
+        properties: {
+          id: schema("OpaqueId"),
+          revision: schema("Revision"),
+          state: { const: "revoked" },
+          revokedAt: { type: "string", format: "date-time" },
+        },
       },
       ProblemError: {
         type: "object",
@@ -720,3 +807,4 @@ export type ProjectInput = z.infer<typeof projectInputSchema>;
 export type EpisodeInput = z.infer<typeof episodeInputSchema>;
 export type WorkflowAdmission = z.infer<typeof workflowAdmissionSchema>;
 export type ApprovalInput = z.infer<typeof approvalInputSchema>;
+export type ApprovalRevocationInput = z.infer<typeof approvalRevocationInputSchema>;

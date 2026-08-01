@@ -20,9 +20,14 @@
   SSRF-resistant pinned HTTPS webhook transport, transactional workflow-event
   fanout, endpoint provisioning, replay, retry, and dead-letter persistence.
 - Strict persisted-run workflow job dispatch with propagated cancellation,
-  deadlines, fencing, and attempt controls. The first 16 canonical Dark Truth
-  story/localization tasks are bound through injected source-authoritative
-  services; media-generation and publication task families remain unbound.
+  deadlines, fencing, and attempt controls. Exact-command dispatch now binds
+  the admitted `episode-production` job to an injected canonical runner.
+- All 33 safe Dark Truth story, localization, media, validation, render,
+  metadata, and publication-dry-run tasks have canonical adapters with hashed
+  lineage, approval evidence, provider authorization, and fail-closed service
+  composition. Manual approval and irreversible publication remain unbound.
+- All 16 executable mathematics tasks are bound through publication dry-run;
+  connected and simulation CLI acceptance use canonical workflow state.
 - Stable public webhook event subjects and versions, immutable delivery facts,
   explicit sensitive-field rejection, bounded payloads, and signature coverage.
 - Atomic active-workflow and provider-budget reservations with attempt
@@ -47,9 +52,9 @@
 - Automatic OIDC/API-key policy combination and public key issuance.
 - Executable webhook role without an approved external secret resolver.
 - Generic dispatch of arbitrary CLI/filesystem commands from durable jobs.
-- Canonical dispatch for the remaining Dark Truth media/publication families,
-  all mathematics task bindings, automatic asset/approval-challenge
-  materialization, and deployment worker composition.
+- Irreversible publication task bindings, automatic asset/approval-challenge
+  materialization, approved production Dark Truth service injection, and a
+  deployable worker process with provider credentials.
 
 ## External and product gates
 
@@ -60,17 +65,19 @@
 - Prove YouTube resumable-session/recovery-marker semantics with controlled
   credentials and fault injection; implement a real channel lease and fresh
   approval/credential authority before enabling uploads.
-- Complete remaining Dark Truth/mathematics task bindings, legacy CLI cutover, live
-  provider batch evidence, restore/rotation/failover/load drills, and GA parity.
+- Complete production Dark Truth service composition, legacy file-oriented CLI
+  retirement, reviewed mathematics content acceptance, live provider batch
+  evidence, restore/rotation/failover/load drills, and GA parity.
 
 ## Verification status
 
 Focused application, persistence, API, SDK, webhook, object-storage, worker,
-publication, connected-CLI, and compatibility suites and affected package
-builds passed during the task. The final combined continuation check covered
-126 unit and 14 HTTP integration tests. The new Dark Truth adapter's focused
-test exceeded its original five-second timeout during repair and was not rerun
-after the verification budget was exhausted; its affected package build passed.
+publication, connected-CLI, canonical Dark Truth, and compatibility suites and
+affected package checks passed during the task. The latest combined unit pass
+had 113 passing tests; one mathematics registry fixture exposed a stale
+curriculum-identity setup and was corrected without a further rerun after the
+repair budget was exhausted. The targeted HTTP suite passed 16 tests, and all
+seven affected package typechecks passed.
 Live PostgreSQL integration was not rerun: the available suite truncates shared
 integration tables and destructive execution was not authorized. No live IdP,
 secret-store, object-store, or provider call was made.

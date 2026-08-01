@@ -6,6 +6,7 @@ import {
 } from "@mediaforge/application";
 import {
   PostgresUsageAuditRepository,
+  PostgresPublicationIntentRepository,
   PostgresWorkflowRepository,
   WorkflowStateTransitionError,
   type PostgresPool,
@@ -185,6 +186,7 @@ export function createPostgresApiUseCases(input: {
     throw new Error("API cursor signing secret must contain at least 32 bytes.");
   const repository = new PostgresWorkflowRepository(input.pool);
   const usageAudit = new PostgresUsageAuditRepository(input.pool);
+  const publications = new PostgresPublicationIntentRepository(repository);
   const now = input.now ?? (() => new Date());
   const createId = input.createId ?? id;
   const admit = createApiWorkflowAdmissionUseCase(input.workflowAdmissionHandler);
@@ -543,6 +545,30 @@ export function createPostgresApiUseCases(input: {
         } : {}),
       };
     },
+    getPublication: async (publicationId, context) => {
+      const record = await publications.get({
+        workspaceId: context.workspaceId,
+        projectId: context.projectId,
+        publicationId,
+      });
+      return record ? {
+        id: record.publicationId,
+        revision: record.revision,
+        status: record.status,
+        workflowRunId: record.runId,
+        approvalId: record.approvalId,
+        approvalRevision: record.approvalRevision,
+        approvalArtifactHash: record.approvalArtifactHash,
+        assetHash: record.assetHash,
+        artifactBindings: record.artifactBindings,
+        channelId: record.channelId,
+        visibility: record.visibility,
+        scheduledAt: record.scheduledAt,
+        playlistIds: record.playlistIds,
+        createdAt: record.createdAt,
+        updatedAt: record.updatedAt,
+      } : null;
+    },
     recordApproval: async (approval, context) => {
       const headerRevision = parseEtag(context.ifMatch);
       if (headerRevision !== approval.expectedRevision)
@@ -582,6 +608,63 @@ export function createPostgresApiUseCases(input: {
       } catch (error) {
         if (error instanceof WorkflowStateTransitionError)
           throw new ApplicationError("precondition_failed", error.message, false);
+        return translatePersistence(error);
+      }
+    },
+    revokeApproval: async (approvalId, revocation, context) => {
+      const expectedRevision = parseEtag(context.ifMatch);
+      const timestamp = now().toISOString();
+      try {
+        const result = await repository.withWorkspaceTransaction(
+          context.workspaceId,
+          (transaction) => transaction.revokeApproval({
+            workspaceId: context.workspaceId,
+            projectId: context.projectId,
+            approvalId,
+            expectedRevision,
+            actorPrincipalId: context.principal.principalId,
+            reason: revocation.reason,
+            eventId: createId("event"),
+            commandId: createId("command"),
+            idempotencyKey: `v1:${digest({
+              principalId: context.principal.principalId,
+              method: "POST",
+              route: `/v1/workspaces/${context.workspaceId}/projects/${context.projectId}/approvals/${approvalId}:revoke`,
+              key: context.idempotencyKey,
+            })}`,
+            requestFingerprint: digest({
+              contractVersion: "v1",
+              projectId: context.projectId,
+              approvalId,
+              expectedRevision,
+              revocation,
+            }),
+            now: timestamp,
+          })
+        );
+        const response = result.response as { readonly id?: unknown; readonly revision?: unknown; readonly state?: unknown; readonly revokedAt?: unknown };
+        if (
+          response.id !== approvalId ||
+          typeof response.revision !== "number" ||
+          !Number.isSafeInteger(response.revision) ||
+          response.revision < 0 ||
+          response.state !== "revoked" ||
+          typeof response.revokedAt !== "string" ||
+          !Number.isFinite(Date.parse(response.revokedAt))
+        ) throw new ApplicationError("upstream_unavailable", "Stored approval revocation response is invalid.", false);
+        return {
+          id: response.id,
+          revision: response.revision,
+          state: response.state,
+          revokedAt: response.revokedAt,
+          replayed: result.kind === "replayed",
+        };
+      } catch (error) {
+        if (error instanceof WorkflowStateTransitionError) {
+          if (error.message.includes("Idempotency key"))
+            throw new ApplicationError("idempotency_key_conflict", "Idempotency key is already associated with a different request.", false);
+          throw new ApplicationError("precondition_failed", "Approval is missing, stale, rejected, already revoked, or outside the project.", false);
+        }
         return translatePersistence(error);
       }
     },

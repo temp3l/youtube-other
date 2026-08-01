@@ -102,6 +102,28 @@ describe("PostgresWorkflowAdmissionPort", () => {
     ).rejects.toThrow("idempotency key");
   });
 
+  it("loads a workflow only through its tenant-local durable job binding", async () => {
+    const queries: Array<{
+      readonly sql: string;
+      readonly values?: readonly unknown[];
+    }> = [];
+    const transaction = new WorkspaceTransactionRepository({
+      query: async <T>(sql: string, values?: readonly unknown[]) => {
+        queries.push({ sql, values });
+        return { rows: [workflowRow() as T], rowCount: 1 };
+      },
+    });
+    await expect(
+      transaction.getForJob("workspace-1", "run-1", "job-1")
+    ).resolves.toMatchObject({ workspaceId: "workspace-1", runId: "run-1" });
+    expect(queries[0]?.sql).toContain("INNER JOIN jobs AS job");
+    expect(queries[0]?.sql).toContain(
+      "job.workspace_id = run.workspace_id AND job.run_id = run.run_id"
+    );
+    expect(queries[0]?.sql).toContain("job.job_id = $3");
+    expect(queries[0]?.values).toEqual(["workspace-1", "run-1", "job-1"]);
+  });
+
   it("reserves configured workflow concurrency in the admission transaction and bypasses it on replay", async () => {
     const queries: string[] = [];
     const transaction = new WorkspaceTransactionRepository({
@@ -121,7 +143,7 @@ describe("PostgresWorkflowAdmissionPort", () => {
             ],
             rowCount: 1,
           };
-        if (sql.includes("FROM workspace_quota_dimensions"))
+        if (sql.includes("FROM quota_dimension_policies"))
           return { rows: [{ limit_units: "2", revision: 0 } as T] };
         if (
           sql.includes("FROM quota_dimension_reservations") &&
@@ -181,7 +203,7 @@ describe("PostgresWorkflowAdmissionPort", () => {
       sql.includes("INSERT INTO command_admissions")
     );
     const quotaIndex = queries.findIndex((sql) =>
-      sql.includes("FROM workspace_quota_dimensions")
+      sql.includes("FROM quota_dimension_policies")
     );
     const runIndex = queries.findIndex((sql) =>
       sql.includes("INSERT INTO workflow_runs")
@@ -235,7 +257,7 @@ describe("PostgresWorkflowAdmissionPort", () => {
       now: "2026-08-01T12:01:00.000Z",
     });
     expect(
-      replayQueries.some((sql) => sql.includes("workspace_quota_dimensions"))
+      replayQueries.some((sql) => sql.includes("quota_dimension_policies"))
     ).toBe(false);
     expect(
       replayQueries.some((sql) => sql.includes("quota_dimension_reservations"))

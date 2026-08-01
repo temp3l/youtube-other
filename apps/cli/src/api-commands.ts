@@ -66,6 +66,15 @@ function integer(value: string, label: string): number {
   return parsed;
 }
 
+function pageOptions(options: { readonly pageSize?: string; readonly after?: string }): { size?: number; after?: string } {
+  const size = options.pageSize === undefined ? undefined : integer(options.pageSize, "--page-size");
+  if (size !== undefined && (size < 1 || size > 100)) throw new Error("--page-size must be between 1 and 100.");
+  return {
+    ...(size !== undefined ? { size } : {}),
+    ...(options.after !== undefined ? { after: options.after } : {}),
+  };
+}
+
 function oneOf<const T extends string>(value: string, allowed: readonly T[], label: string): T {
   if (!allowed.includes(value as T)) throw new Error(`${label} must be one of: ${allowed.join(", ")}.`);
   return value as T;
@@ -109,6 +118,28 @@ function episodeInput(options: {
   return { content: { type: "mathematics_education", version: "1", curriculumSourceId: options.curriculumSource, skillId: options.skill, grade: grade as 5 | 6 | 7 | 8 | 9 | 10, difficulty: options.difficulty, presentationPresetId: options.presentationPreset, audioPresetId: options.audioPreset } };
 }
 
+type EpisodeCommandOptions = Omit<Parameters<typeof episodeInput>[0], "profile" | "difficulty"> & {
+  readonly workspace: string;
+  readonly project: string;
+  readonly profile: string;
+  readonly difficulty?: string;
+};
+
+function parsedEpisodeInput(options: EpisodeCommandOptions): EpisodeInput {
+  return episodeInput({
+    profile: oneOf(options.profile, ["dark_truth", "mathematics_education"] as const, "--profile"),
+    ...(options.premise ? { premise: options.premise } : {}),
+    ...(options.storyBible ? { storyBible: options.storyBible } : {}),
+    ...(options.referenceAssets ? { referenceAssets: options.referenceAssets } : {}),
+    ...(options.curriculumSource ? { curriculumSource: options.curriculumSource } : {}),
+    ...(options.skill ? { skill: options.skill } : {}),
+    ...(options.grade ? { grade: options.grade } : {}),
+    ...(options.difficulty ? { difficulty: oneOf(options.difficulty, ["foundation", "standard", "challenge"] as const, "--difficulty") } : {}),
+    ...(options.presentationPreset ? { presentationPreset: options.presentationPreset } : {}),
+    ...(options.audioPreset ? { audioPreset: options.audioPreset } : {}),
+  });
+}
+
 export function registerConnectedApiCommands(program: Command, dependencies: ConnectedApiCommandDependencies = {}): void {
   const stdout = dependencies.stdout ?? process.stdout;
   const run = (operation: string, handler: (client: MediaforgeApiClient) => Promise<ApiResponse<unknown>>) => async () => {
@@ -123,31 +154,45 @@ export function registerConnectedApiCommands(program: Command, dependencies: Con
   };
 
   const api = program.command("api").description("Connected Mediaforge API commands (credentials are read only from environment)");
+  const health = api.command("health");
+  health.command("live").action(run("getLiveness", (client) => client.getLiveness()));
+  health.command("ready").action(run("getReadiness", (client) => client.getReadiness()));
+  api.command("openapi").action(run("getOpenApiDocument", (client) => client.getOpenApiDocument()));
+
+  api.command("quota").command("status").requiredOption("--workspace <id>")
+    .action((o: { workspace: string }) => run("getQuota", (client) => client.getQuota(o.workspace))());
+  api.command("usage").command("list").requiredOption("--workspace <id>")
+    .option("--page-size <number>").option("--after <cursor>")
+    .action((o: { workspace: string; pageSize?: string; after?: string }) => run("listUsageRecords", (client) => client.listUsageRecords(o.workspace, pageOptions(o)))());
+  api.command("audit").command("list").requiredOption("--workspace <id>")
+    .option("--page-size <number>").option("--after <cursor>")
+    .action((o: { workspace: string; pageSize?: string; after?: string }) => run("listAuditEvents", (client) => client.listAuditEvents(o.workspace, pageOptions(o)))());
+
   api.command("project").command("create")
     .requiredOption("--workspace <id>").requiredOption("--name <name>")
     .requiredOption("--profile <profile>", "dark_truth or mathematics_education")
     .action((options: { workspace: string; name: string; profile: string }) =>
       run("createProject", (client) => client.createProject(options.workspace, { name: options.name, profile: oneOf(options.profile, ["dark_truth", "mathematics_education"] as const, "--profile") }))());
 
-  api.command("episode").command("create")
+  const episode = api.command("episode");
+  episode.command("create")
     .requiredOption("--workspace <id>").requiredOption("--project <id>")
     .requiredOption("--profile <profile>", "dark_truth or mathematics_education")
     .option("--premise <text>").option("--story-bible <id>").option("--reference-assets <ids>")
     .option("--curriculum-source <id>").option("--skill <id>").option("--grade <number>")
     .option("--difficulty <difficulty>").option("--presentation-preset <id>").option("--audio-preset <id>")
-    .action((options: Omit<Parameters<typeof episodeInput>[0], "profile" | "difficulty"> & { workspace: string; project: string; profile: string; difficulty?: string }) =>
-      run("createEpisode", (client) => client.createEpisode(options.workspace, options.project, episodeInput({
-        profile: oneOf(options.profile, ["dark_truth", "mathematics_education"] as const, "--profile"),
-        ...(options.premise ? { premise: options.premise } : {}),
-        ...(options.storyBible ? { storyBible: options.storyBible } : {}),
-        ...(options.referenceAssets ? { referenceAssets: options.referenceAssets } : {}),
-        ...(options.curriculumSource ? { curriculumSource: options.curriculumSource } : {}),
-        ...(options.skill ? { skill: options.skill } : {}),
-        ...(options.grade ? { grade: options.grade } : {}),
-        ...(options.difficulty ? { difficulty: oneOf(options.difficulty, ["foundation", "standard", "challenge"] as const, "--difficulty") } : {}),
-        ...(options.presentationPreset ? { presentationPreset: options.presentationPreset } : {}),
-        ...(options.audioPreset ? { audioPreset: options.audioPreset } : {}),
-      })))());
+    .action((options: EpisodeCommandOptions) =>
+      run("createEpisode", (client) => client.createEpisode(options.workspace, options.project, parsedEpisodeInput(options)))());
+  episode.command("get").requiredOption("--workspace <id>").requiredOption("--project <id>").requiredOption("--episode <id>")
+    .action((o: { workspace: string; project: string; episode: string }) => run("getEpisode", (client) => client.getEpisode(o.workspace, o.project, o.episode))());
+  episode.command("replace")
+    .requiredOption("--workspace <id>").requiredOption("--project <id>").requiredOption("--episode <id>").requiredOption("--if-match <etag>")
+    .requiredOption("--profile <profile>", "dark_truth or mathematics_education")
+    .option("--premise <text>").option("--story-bible <id>").option("--reference-assets <ids>")
+    .option("--curriculum-source <id>").option("--skill <id>").option("--grade <number>")
+    .option("--difficulty <difficulty>").option("--presentation-preset <id>").option("--audio-preset <id>")
+    .action((options: EpisodeCommandOptions & { episode: string; ifMatch: string }) =>
+      run("replaceEpisodeContent", (client) => client.replaceEpisodeContent(options.workspace, options.project, options.episode, parsedEpisodeInput(options), { ifMatch: options.ifMatch }))());
 
   const workflow = api.command("workflow");
   workflow.command("start").requiredOption("--workspace <id>").requiredOption("--project <id>").requiredOption("--episode <id>")
@@ -165,6 +210,16 @@ export function registerConnectedApiCommands(program: Command, dependencies: Con
 
   api.command("job").command("status").requiredOption("--workspace <id>").requiredOption("--project <id>").requiredOption("--job <id>")
     .action((o: { workspace: string; project: string; job: string }) => run("getJob", (client) => client.getJob(o.workspace, o.project, o.job))());
-  api.command("approval").command("record").requiredOption("--workspace <id>").requiredOption("--project <id>").requiredOption("--challenge <id>").requiredOption("--subject <id>").requiredOption("--expected-revision <number>").requiredOption("--decision <decision>").requiredOption("--reason <text>").requiredOption("--if-match <etag>").requiredOption("--idempotency-key <key>")
+  api.command("asset").command("get").requiredOption("--workspace <id>").requiredOption("--project <id>").requiredOption("--asset <id>")
+    .action((o: { workspace: string; project: string; asset: string }) => run("getAsset", (client) => client.getAsset(o.workspace, o.project, o.asset))());
+  api.command("validation").command("list").requiredOption("--workspace <id>").requiredOption("--project <id>")
+    .option("--page-size <number>").option("--after <cursor>")
+    .action((o: { workspace: string; project: string; pageSize?: string; after?: string }) => run("listValidations", (client) => client.listValidations(o.workspace, o.project, pageOptions(o)))());
+  api.command("publication").command("get").requiredOption("--workspace <id>").requiredOption("--project <id>").requiredOption("--publication <id>")
+    .action((o: { workspace: string; project: string; publication: string }) => run("getPublication", (client) => client.getPublication(o.workspace, o.project, o.publication))());
+  const approval = api.command("approval");
+  approval.command("record").requiredOption("--workspace <id>").requiredOption("--project <id>").requiredOption("--challenge <id>").requiredOption("--subject <id>").requiredOption("--expected-revision <number>").requiredOption("--decision <decision>").requiredOption("--reason <text>").requiredOption("--if-match <etag>").requiredOption("--idempotency-key <key>")
     .action((o: { workspace: string; project: string; challenge: string; subject: string; expectedRevision: string; decision: string; reason: string; ifMatch: string; idempotencyKey: string }) => run("recordApproval", (client) => client.recordApproval(o.workspace, o.project, { challengeId: o.challenge, subjectId: o.subject, expectedRevision: integer(o.expectedRevision, "--expected-revision"), decision: oneOf(o.decision, ["approved", "rejected"] as const, "--decision"), reason: o.reason }, { ifMatch: o.ifMatch, idempotencyKey: o.idempotencyKey }))());
+  approval.command("revoke").requiredOption("--workspace <id>").requiredOption("--project <id>").requiredOption("--approval <id>").requiredOption("--reason <text>").requiredOption("--if-match <etag>").requiredOption("--idempotency-key <key>")
+    .action((o: { workspace: string; project: string; approval: string; reason: string; ifMatch: string; idempotencyKey: string }) => run("revokeApproval", (client) => client.revokeApproval(o.workspace, o.project, o.approval, { reason: o.reason }, { ifMatch: o.ifMatch, idempotencyKey: o.idempotencyKey }))());
 }

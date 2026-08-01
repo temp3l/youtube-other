@@ -37,7 +37,9 @@ async function canonicalFixture(
     path.join(os.tmpdir(), "math-canonical-adapters-")
   );
   const curriculum = await createReviewedCurriculumFixture(
-    path.join(workspaceRoot, "state", "reviewed-curriculum")
+    path.join(workspaceRoot, "state", "reviewed-curriculum"),
+    path.resolve("packages/math-education/data/curriculum/v1"),
+    { preserveSkillIdentity: true }
   );
   const unitId = "m5-zo-001-standard";
   const unitRoot = path.join(workspaceRoot, unitId);

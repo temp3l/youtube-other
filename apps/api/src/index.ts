@@ -15,6 +15,7 @@ import { Pool } from "pg";
 export * from "./contract.js";
 export * from "./http-server.js";
 export * from "./job-process.js";
+export * from "./postgres-durable-workflow-loader.js";
 export * from "./node-webhook-delivery.js";
 export * from "./pilot-api-key-authenticator.js";
 export * from "./pilot-api-key-admin.js";

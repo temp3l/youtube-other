@@ -29,6 +29,7 @@ const resumePayloadSchema = z
 
 export interface PersistedDurableWorkflowRun {
   readonly workflowRunId: string;
+  readonly command: string;
   readonly authority: "filesystem-legacy" | "database-v1";
   /** Irreversible effects require their dedicated intent/effect journal. */
   readonly effectClass: "reversible" | "irreversible";
@@ -39,6 +40,7 @@ export interface PersistedDurableWorkflowRun {
 export interface PersistedDurableWorkflowLoader {
   load(input: {
     readonly workspaceId: string;
+    readonly jobId: string;
     readonly workflowRunId: string;
   }): Promise<PersistedDurableWorkflowRun | null>;
 }
@@ -73,6 +75,7 @@ export class DurableWorkflowJobHandler implements DurableJobHandler {
   ): Promise<DurableJobHandlerResult> {
     let workflowRunId: string;
     let mode: "execute" | "resume";
+    let jobCommand: string | null = null;
     if (job.jobType === "workflow.execute") {
       const parsed = executePayloadSchema.safeParse(job.payload);
       if (!parsed.success || parsed.data.jobId !== job.jobId) {
@@ -80,6 +83,7 @@ export class DurableWorkflowJobHandler implements DurableJobHandler {
       }
       workflowRunId = parsed.data.workflowRunId;
       mode = "execute";
+      jobCommand = parsed.data.command;
     } else if (job.jobType === "workflow.resume") {
       const parsed = resumePayloadSchema.safeParse(job.payload);
       if (!parsed.success) {
@@ -94,6 +98,7 @@ export class DurableWorkflowJobHandler implements DurableJobHandler {
     try {
       const run = await this.loader.load({
         workspaceId: job.workspaceId,
+        jobId: job.jobId,
         workflowRunId,
       });
       if (!run || run.workflowRunId !== workflowRunId) {
@@ -104,6 +109,14 @@ export class DurableWorkflowJobHandler implements DurableJobHandler {
       if (run.authority !== "database-v1") {
         return terminal(
           "Durable workflow jobs require database-v1 execution authority."
+        );
+      }
+      if (
+        mode === "execute" &&
+        run.command !== jobCommand
+      ) {
+        return terminal(
+          "The durable job command does not match its persisted workflow run."
         );
       }
       if (run.effectClass === "irreversible") {

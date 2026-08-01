@@ -36,6 +36,7 @@ function dimensionReservation(overrides: Record<string, unknown> = {}) {
     attribution_key: "provider-attempt-1",
     subject_id: "run-1",
     attempt_id: "attempt-1",
+    principal_id: null,
     reserved_units: "30",
     settled_units: null,
     state: "reserved",
@@ -93,7 +94,19 @@ describe("Postgres usage, audit, and quota repository", () => {
       "provider_budget_minor"
     );
     expect(POSTGRES_USAGE_AUDIT_QUOTA_MIGRATION).toContain(
-      "quota_provider_attempt_attribution_unique"
+      "quota_workspace_provider_attempt_attribution_unique"
+    );
+    expect(POSTGRES_USAGE_AUDIT_QUOTA_MIGRATION).toContain(
+      "quota_principal_provider_attempt_attribution_unique"
+    );
+    expect(POSTGRES_USAGE_AUDIT_QUOTA_MIGRATION).toContain(
+      "FOREIGN KEY (workspace_id, scope_type, scope_id, dimension)"
+    );
+    expect(POSTGRES_USAGE_AUDIT_QUOTA_MIGRATION).toContain(
+      "CREATE TABLE IF NOT EXISTS quota_dimension_policies"
+    );
+    expect(POSTGRES_USAGE_AUDIT_QUOTA_MIGRATION).toContain(
+      "DROP CONSTRAINT IF EXISTS quota_dimension_reservations_workspace_id_dimension_fkey"
     );
     expect(POSTGRES_USAGE_AUDIT_QUOTA_MIGRATION).not.toMatch(
       /DOUBLE PRECISION|\bREAL\b/u
@@ -111,7 +124,7 @@ describe("Postgres usage, audit, and quota repository", () => {
 
   it("fails closed without a dimension policy and serializes configured reservations", async () => {
     const missing = fakePool((sql) =>
-      sql.includes("FROM workspace_quota_dimensions")
+      sql.includes("FROM quota_dimension_policies")
         ? { rows: [] }
         : { rows: [] }
     );
@@ -129,7 +142,7 @@ describe("Postgres usage, audit, and quota repository", () => {
     expect(missing.queries.at(-1)?.sql).toBe("ROLLBACK");
 
     const configured = fakePool((sql) => {
-      if (sql.includes("FROM workspace_quota_dimensions"))
+      if (sql.includes("FROM quota_dimension_policies"))
         return { rows: [{ limit_units: "2", revision: 0 }] };
       if (
         sql.includes("FROM quota_dimension_reservations") &&
@@ -168,14 +181,14 @@ describe("Postgres usage, audit, and quota repository", () => {
       reservation: { dimension: "active_workflows", reservedUnits: 1n },
     });
     const policyLock = configured.queries.find(({ sql }) =>
-      sql.includes("FROM workspace_quota_dimensions")
+      sql.includes("FROM quota_dimension_policies")
     )!;
     expect(policyLock.sql).toContain("FOR UPDATE");
   });
 
   it("attributes provider reservations idempotently per attempt and enforces the cap", async () => {
     const replay = fakePool((sql) => {
-      if (sql.includes("FROM workspace_quota_dimensions"))
+      if (sql.includes("FROM quota_dimension_policies"))
         return { rows: [{ limit_units: "100", revision: 0 }] };
       if (sql.includes("attribution_key = $3"))
         return { rows: [dimensionReservation()] };
@@ -198,7 +211,7 @@ describe("Postgres usage, audit, and quota repository", () => {
     ).toBe(false);
 
     const exceeded = fakePool((sql) => {
-      if (sql.includes("FROM workspace_quota_dimensions"))
+      if (sql.includes("FROM quota_dimension_policies"))
         return { rows: [{ limit_units: "100", revision: 0 }] };
       if (sql.includes("attribution_key = $3")) return { rows: [] };
       if (sql.includes("AS committed_units"))
@@ -226,7 +239,7 @@ describe("Postgres usage, audit, and quota repository", () => {
 
   it("settles provider attempts once and releases active-workflow capacity", async () => {
     const settlement = fakePool((sql) => {
-      if (sql.includes("FROM workspace_quota_dimensions"))
+      if (sql.includes("FROM quota_dimension_policies"))
         return { rows: [{ limit_units: "100", revision: 0 }] };
       if (sql.includes("WHERE workspace_id = $1 AND reservation_id = $2"))
         return { rows: [dimensionReservation()] };

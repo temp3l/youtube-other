@@ -24,7 +24,9 @@ const expectedPaths = [
   "/v1/workspaces/{workspace}/projects/{project}/jobs/{job}",
   "/v1/workspaces/{workspace}/projects/{project}/assets/{asset}",
   "/v1/workspaces/{workspace}/projects/{project}/validations",
+  "/v1/workspaces/{workspace}/projects/{project}/publications/{publication}",
   "/v1/workspaces/{workspace}/projects/{project}/approvals",
+  "/v1/workspaces/{workspace}/projects/{project}/approvals/{approval}:revoke",
 ] as const;
 
 type Operation = {
@@ -52,7 +54,7 @@ describe("OpenAPI contract", () => {
       "listUsageRecords", "listAuditEvents", "createProject",
       "createEpisode", "getEpisode", "replaceEpisodeContent", "admitWorkflow", "getWorkflow",
       "listWorkflowSteps", "cancelWorkflow", "resumeWorkflow", "getJob",
-      "getAsset", "listValidations", "recordApproval",
+      "getAsset", "listValidations", "getPublication", "recordApproval", "revokeApproval",
     ]);
   });
 
@@ -68,18 +70,22 @@ describe("OpenAPI contract", () => {
       IfMatch: { name: "If-Match", in: "header", required: true },
       PageSize: { name: "page[size]", in: "query" },
       PageAfter: { name: "page[after]", in: "query" },
+      ApprovalId: { name: "approval", in: "path" },
     });
     expect(openApiDocument.components.headers).toMatchObject({
       ETag: { required: true },
       RequestId: { required: true },
       Location: { required: true },
       RetryAfter: { required: true },
+      IdempotencyReplayed: { required: false },
     });
     expect(Object.keys(openApiDocument.components.schemas)).toEqual(expect.arrayContaining([
       "Problem", "ProjectInput", "Project", "EpisodeInput", "Episode",
       "WorkflowAdmission", "WorkflowRun", "WorkflowStep", "Job", "Asset",
       "JobFailureProblem", "ValidationResult", "ValidationPage", "ApprovalInput", "ApprovalAccepted",
       "WorkspaceQuotaStatus", "UsageRecord", "UsageRecordPage", "AuditEvent", "AuditEventPage",
+      "Publication", "PublicationArtifactBinding",
+      "ApprovalRevocationInput", "ApprovalRevoked",
     ]));
     expect(openApiDocument.components.schemas.Problem.required).toEqual(expect.arrayContaining([
       "type", "title", "status", "detail", "code", "requestId", "retryable", "errors",
@@ -218,7 +224,9 @@ describe("OpenAPI contract", () => {
       ["getJob", "content.read"],
       ["getAsset", "content.read"],
       ["listValidations", "validation.read"],
+      ["getPublication", "publication.read"],
       ["recordApproval", "approval.decide"],
+      ["revokeApproval", "approval.decide"],
     ]);
     for (const { path, operation } of operations()) {
       if (!path.startsWith("/v1/workspaces/")) continue;

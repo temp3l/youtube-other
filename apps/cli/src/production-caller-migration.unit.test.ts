@@ -28,6 +28,17 @@ describe("production caller migration", () => {
     expect(resolveProductionCallerRoute(caller)?.taskId).toBe(taskId);
   });
 
+  it("marks legacy math production routes as compatibility-only filesystem authority", () => {
+    for (const caller of ["math production run", "math production resume"]) {
+      expect(resolveProductionCallerRoute(caller)).toMatchObject({
+        caller: `mediaforge ${caller}`,
+        taskId: "math.publish-dry-run",
+        compatibility: "legacy-cli",
+        authority: "filesystem-legacy",
+      });
+    }
+  });
+
   it("wraps an existing command action without changing its arguments or result", async () => {
     const program = new Command().name("mediaforge").exitOverride();
     const action = vi.fn((source: string) => ({

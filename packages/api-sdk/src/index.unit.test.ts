@@ -57,7 +57,10 @@ describe("Mediaforge API SDK", () => {
       { workflowRunId: "run-1", jobId: "job-resume", revision: 2, links: { workflowRun: "/run", job: "/job" } },
       { id: "job-1", revision: 0, status: "queued", attempts: 0, cancellationRequested: false },
       { id: "asset-1", mimeType: "image/png", bytes: 1, sha256: "a".repeat(64), lifecycle: "ready", provenance: "upload" },
-      { items: [] }, { id: "approval-1", jobId: "job-approval", revision: 1 },
+      { items: [] },
+      { id: "publication-1", revision: 0, status: "pending", workflowRunId: "run-1", approvalId: "approval-1", approvalRevision: 0, approvalArtifactHash: "approval-hash", assetHash: "asset-hash", artifactBindings: [], channelId: "channel-1", visibility: "private", scheduledAt: null, playlistIds: [], createdAt: "2026-08-01T00:00:00.000Z", updatedAt: "2026-08-01T00:00:00.000Z" },
+      { id: "approval-1", jobId: "job-approval", revision: 1 },
+      { id: "approval-1", revision: 2, state: "revoked", revokedAt: "2026-08-01T12:00:00.000Z" },
       { workspaceId: "ws-1", budgetLimitMinor: "100", reservedMinor: "10", settledMinor: "20", availableMinor: "70", revision: 1 },
       { items: [], nextAfter: "usage-cursor" },
       { items: [] },
@@ -87,7 +90,9 @@ describe("Mediaforge API SDK", () => {
     await client.getJob("ws-1", "project-1", "job-1");
     await client.getAsset("ws-1", "project-1", "asset-1");
     await client.listValidations("ws-1", "project-1", { size: 25, after: "cursor" });
+    await client.getPublication("ws-1", "project-1", "publication/one");
     await client.recordApproval("ws-1", "project-1", { challengeId: "challenge-1", subjectId: "run-1", expectedRevision: 1, decision: "approved", reason: "Ready" }, { ifMatch: '"1"', idempotencyKey: "approval-key" });
+    await client.revokeApproval("ws-1", "project-1", "approval/one", { reason: "Superseded" }, { ifMatch: '"1"', idempotencyKey: "approval-revoke-key" });
     await client.getQuota("ws-1");
     await client.listUsageRecords("ws-1", { size: 25, after: "usage-after" });
     await client.listAuditEvents("ws-1", { size: 10, after: "audit-after" });
@@ -100,7 +105,9 @@ describe("Mediaforge API SDK", () => {
       "/v1/workspaces/ws-1/projects/project-1/workflow-runs/run-1/steps", "/v1/workspaces/ws-1/projects/project-1/workflow-runs/run-1:cancel",
       "/v1/workspaces/ws-1/projects/project-1/workflow-runs/run-1:resume", "/v1/workspaces/ws-1/projects/project-1/jobs/job-1",
       "/v1/workspaces/ws-1/projects/project-1/assets/asset-1", "/v1/workspaces/ws-1/projects/project-1/validations",
+      "/v1/workspaces/ws-1/projects/project-1/publications/publication%2Fone",
       "/v1/workspaces/ws-1/projects/project-1/approvals",
+      "/v1/workspaces/ws-1/projects/project-1/approvals/approval%2Fone:revoke",
       "/v1/workspaces/ws-1/quota", "/v1/workspaces/ws-1/usage-records", "/v1/workspaces/ws-1/audit-events",
     ]);
     expect(requests[6]!.init?.method).toBe("PATCH");
@@ -109,10 +116,12 @@ describe("Mediaforge API SDK", () => {
     expect(new Headers(requests[7]!.init?.headers).get("idempotency-key")).toBe("admit-key");
     expect(new Headers(requests[10]!.init?.headers).get("if-match")).toBe('"0"');
     expect(new Headers(requests[11]!.init?.headers).get("idempotency-key")).toBe("resume-key");
-    expect(new Headers(requests[15]!.init?.headers).get("authorization")).toBe("Bearer token");
-    expect(new Headers(requests[15]!.init?.headers).get("x-request-id")).toBe("request-sdk");
-    expect(new URL(requests[17]!.url).searchParams.get("page[after]")).toBe("usage-after");
-    expect(new URL(requests[18]!.url).searchParams.get("page[size]")).toBe("10");
+    expect(new Headers(requests[16]!.init?.headers).get("authorization")).toBe("Bearer token");
+    expect(new Headers(requests[16]!.init?.headers).get("x-request-id")).toBe("request-sdk");
+    expect(new Headers(requests[17]!.init?.headers).get("if-match")).toBe('"1"');
+    expect(new Headers(requests[17]!.init?.headers).get("idempotency-key")).toBe("approval-revoke-key");
+    expect(new URL(requests[19]!.url).searchParams.get("page[after]")).toBe("usage-after");
+    expect(new URL(requests[20]!.url).searchParams.get("page[size]")).toBe("10");
   });
 
   it("parses RFC 9457 problems and throws a typed API error", async () => {
