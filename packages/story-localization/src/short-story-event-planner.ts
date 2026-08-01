@@ -1035,7 +1035,7 @@ function assessQuality(args: {
   readonly selectedEvents: readonly StoryEvent[];
   readonly beatPlan: ShortBeatPlan;
   readonly causalValidation: { readonly status: "passed" | "failed"; readonly issues: readonly string[] };
-  readonly language: "en" | "de" | "es" | "fr" | "pt";
+  readonly language: "en" | "de" | "es" | "fr" | "it" | "pt";
   readonly targetDurationSeconds: 30 | 45 | 60 | 75;
   readonly totalEventCount?: number;
 }): ShortNarrationQualitySummary {
@@ -1083,7 +1083,7 @@ function buildQualityIssues(args: {
   readonly beatPlan: ShortBeatPlan;
   readonly causalValidation: { readonly status: "passed" | "failed"; readonly issues: readonly string[] };
   readonly localeFluencyScore: number;
-  readonly language: "en" | "de" | "es" | "fr" | "pt";
+  readonly language: "en" | "de" | "es" | "fr" | "it" | "pt";
 }): readonly ShortNarrationQualityIssue[] {
   const issues: ShortNarrationQualityIssue[] = [];
   const abstractRatio = args.sentences.length === 0
@@ -1377,7 +1377,7 @@ export function assessShortNarrationQuality(args: {
   readonly selectedEvents: readonly StoryEvent[];
   readonly beatPlan: ShortBeatPlan;
   readonly causalValidation: { readonly status: "passed" | "failed"; readonly issues: readonly string[] };
-  readonly language: "en" | "de" | "es" | "fr" | "pt";
+  readonly language: "en" | "de" | "es" | "fr" | "it" | "pt";
   readonly targetDurationSeconds: 30 | 45 | 60 | 75;
   readonly totalEventCount?: number;
 }): ShortNarrationQualitySummary {

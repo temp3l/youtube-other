@@ -23,6 +23,26 @@ export const YOUTUBE_METADATA_SCHEMA_VERSION = "1.0" as const;
 export const YOUTUBE_METADATA_OWNER = "metadata" as const;
 export const YOUTUBE_METADATA_OWNER_VERSION = "youtube-metadata-owner-v1";
 
+/** Declarative context persisted with Italian creator metadata before release. */
+export function strategicItalianMetadataContext(input: {
+  readonly protectedTerms: readonly string[];
+  readonly ctaStatus: "READY" | "REVIEW_REQUIRED";
+}): {
+  readonly language: "it";
+  readonly locale: "it-IT";
+  readonly requiredHints: readonly string[];
+  readonly protectedTerms: readonly string[];
+  readonly ctaStatus: "READY" | "REVIEW_REQUIRED";
+} {
+  return {
+    language: "it",
+    locale: "it-IT",
+    requiredHints: [" il ", " la ", " che ", " di ", " e "],
+    protectedTerms: [...input.protectedTerms],
+    ctaStatus: input.ctaStatus,
+  };
+}
+
 const chapterTimestampPattern = /^(?:\d{2}:)?\d{2}:\d{2}$/u;
 const metadataArtifactStatusSchema = z.enum(["completed", "failed"]);
 const narrationDependencySchema = z
@@ -838,6 +858,12 @@ function getMetadataLocaleHints(
   if (normalizedLocale.startsWith("fr")) {
     return {
       requiredAny: [" le ", " la ", " les ", " et ", " dans "],
+      forbidden: [" the ", " and ", " because ", " here is "],
+    };
+  }
+  if (normalizedLocale.startsWith("it")) {
+    return {
+      requiredAny: [" il ", " la ", " che ", " di ", " e "],
       forbidden: [" the ", " and ", " because ", " here is "],
     };
   }

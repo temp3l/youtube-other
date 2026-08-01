@@ -1395,6 +1395,7 @@ async function synthesizeSpeechChunks(
       );
       const result = await speech.synthesize(
         {
+          contentProfileId: "dark-truth",
           sceneId,
           text: chunk,
           voiceProfile: speechSettings.profile,
@@ -1403,6 +1404,7 @@ async function synthesizeSpeechChunks(
           ...(speechSettings.speed !== undefined
             ? { speed: speechSettings.speed }
             : {}),
+          dispatchContext: { kind: "legacy-noncreator" },
         },
         new AbortController().signal
       );
@@ -3070,6 +3072,7 @@ async function runAudioNarrationPipeline(
             const sceneNumber = idMatch?.[1] ?? "001";
             await runtime.speech.synthesize(
               {
+                contentProfileId: "dark-truth",
                 sceneId: sceneIdSchema.parse(`scene-${sceneNumber.padStart(3, "0")}`),
                 text: request.text,
                 voiceProfile: speechSettings.profile,
@@ -3079,6 +3082,7 @@ async function runAudioNarrationPipeline(
                   : {}),
                 instructions: request.instructions,
                 ...(request.speed !== undefined ? { speed: request.speed } : {}),
+                dispatchContext: { kind: "legacy-noncreator" },
               },
               new AbortController().signal
             );

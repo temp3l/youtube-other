@@ -99,6 +99,12 @@ const SHORT_DURATION_WORD_RANGES: Readonly<
     60: { min: 118, target: 130, max: 142 },
     75: { min: 148, target: 162, max: 176 },
   },
+  it: {
+    30: { min: 61, target: 69, max: 77 },
+    45: { min: 89, target: 99, max: 110 },
+    60: { min: 121, target: 133, max: 146 },
+    75: { min: 151, target: 165, max: 179 },
+  },
   pt: {
     30: { min: 62, target: 70, max: 78 },
     45: { min: 90, target: 100, max: 112 },
@@ -112,6 +118,7 @@ export const FAST_NARRATION_WPM = {
   de: { full: 180, short: 195 },
   es: { full: 190, short: 205 },
   fr: { full: 185, short: 198 },
+  it: { full: 188, short: 202 },
   pt: { full: 190, short: 205 },
 } as const satisfies Readonly<Record<LanguageCode, Readonly<Record<NarrationVariant, number>>>>;
 
@@ -120,6 +127,7 @@ export const NORMAL_NARRATION_WPM = {
   de: { full: 168, short: 170 },
   es: { full: 175, short: 178 },
   fr: { full: 172, short: 172 },
+  it: { full: 174, short: 177 },
   pt: { full: 175, short: 178 },
 } as const satisfies Readonly<Record<LanguageCode, Readonly<Record<NarrationVariant, number>>>>;
 
@@ -263,6 +271,13 @@ const TIMING_CONFIG: Readonly<
     suspensePauseMs: 145,
     revealPauseMs: 95,
     paragraphPauseMs: 185,
+  },
+  it: {
+    spokenWordDurationMs: 320,
+    punctuationPauseMs: 126,
+    suspensePauseMs: 140,
+    revealPauseMs: 92,
+    paragraphPauseMs: 180,
   },
   pt: {
     spokenWordDurationMs: 318,

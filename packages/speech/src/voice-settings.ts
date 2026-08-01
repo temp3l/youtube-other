@@ -16,7 +16,7 @@ export const speechVoicePresetSchema = {
 } as const;
 export type SpeechVoicePreset = (typeof speechVoicePresetSchema.values)[number];
 export type SpeechArtifactType = "full" | "short";
-const supportedNarrationLanguages = new Set(["en", "de", "es", "fr", "pt"]);
+const supportedNarrationLanguages = new Set(["en", "de", "es", "fr", "it", "pt"]);
 
 const fallbackVoiceInstructions: Record<SpeechVoicePreset, string> = {
   slow: [
@@ -164,6 +164,11 @@ function buildPacingInstruction(
       ? `Tenez environ ${targetWpm} mots par minute avec un rythme compact.`
       : `Tenez environ ${targetWpm} mots par minute avec un débit vif mais naturel.`;
   }
+  if (normalizedLanguage === "it") {
+    return artifactType === "short"
+      ? `Mantieni circa ${targetWpm} parole al minuto con un ritmo compatto.`
+      : `Mantieni circa ${targetWpm} parole al minuto con un ritmo agile ma naturale.`;
+  }
   if (normalizedLanguage === "pt") {
     return artifactType === "short"
       ? `Mantenha aproximadamente ${targetWpm} palavras por minuto com ritmo compacto.`
@@ -179,12 +184,16 @@ export function resolveSpeechVoiceInstructionPath(
   artifactType: SpeechArtifactType = "full"
 ): string {
   const suffix = artifactType === "short" ? "short-v1" : "v1";
+  const normalizedLanguage = normalizeNarrationLanguage(language);
+  const profileDirectory = normalizedLanguage === "it"
+    ? "strategic-reinvention"
+    : "dark-truth-documentary";
   return path.join(
     repoRoot,
     "config",
     "voices",
-    "dark-truth-documentary",
-    `${language.toLowerCase()}-${suffix}.txt`
+    profileDirectory,
+    `${normalizedLanguage}-${suffix}.txt`
   );
 }
 

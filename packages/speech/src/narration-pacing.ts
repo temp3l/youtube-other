@@ -1,6 +1,10 @@
 import { countSpokenWords } from "@mediaforge/shared";
 import { languageCodes, type LanguageCode } from "@mediaforge/story-localization";
 
+// Kept local so a locale capability can be used by speech before an upstream
+// package's published runtime artifact is refreshed.
+const pacingLanguages = ["en", "de", "es", "fr", "it", "pt"] as const;
+
 export const speechNarrationArtifactTypes = ["full", "short"] as const;
 export type SpeechNarrationArtifactType =
   (typeof speechNarrationArtifactTypes)[number];
@@ -45,6 +49,10 @@ const presetConfig = {
     full: { targetWpm: 180, providerSpeed: 1.12 },
     short: { targetWpm: 184, providerSpeed: 1.16 },
   },
+  it: {
+    full: { targetWpm: 181, providerSpeed: 1.13 },
+    short: { targetWpm: 187, providerSpeed: 1.17 },
+  },
   pt: {
     full: { targetWpm: 182, providerSpeed: 1.16 },
     short: { targetWpm: 188, providerSpeed: 1.18 },
@@ -71,7 +79,7 @@ export const SPEECH_NARRATION_PACING_PRESETS: Readonly<
   >
 > = Object.freeze(
   Object.fromEntries(
-    languageCodes.map((language) => [
+    pacingLanguages.map((language) => [
       language,
       Object.freeze(
         Object.fromEntries(
@@ -80,7 +88,9 @@ export const SPEECH_NARRATION_PACING_PRESETS: Readonly<
             return [
               artifactType,
               Object.freeze({
-                id: `dark-truth-${language}-${artifactType}-pace-v1`,
+                id: language === "it"
+                  ? `strategic-reinvention-it-${artifactType}-pace-v1`
+                  : `dark-truth-${language}-${artifactType}-pace-v1`,
                 language,
                 artifactType,
                 targetWpm: config.targetWpm,
@@ -105,6 +115,7 @@ function normalizeLanguage(language: string): LanguageCode {
     normalized === "de" ||
     normalized === "es" ||
     normalized === "fr" ||
+    normalized === "it" ||
     normalized === "pt"
   ) {
     return normalized;

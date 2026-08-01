@@ -221,6 +221,43 @@ export const LANGUAGE_PROFILES: Readonly<
     ],
     defaultShortHashtags: ["#Shorts", "#Horreur", "#DarkTruthEpisodes"],
   },
+  it: {
+    code: "it",
+    displayName: "Italian",
+    locale: "it-IT",
+    narratorLanguageName: "Italian",
+    defaultNarrationPace: "fast",
+    narrationPaces: { normal: NORMAL_NARRATION_WPM.it, fast: FAST_NARRATION_WPM.it },
+    fullNarrationWpm: FAST_NARRATION_WPM.it.full,
+    shortNarrationWpm: resolveShortDurationProfile({ language: "it", durationSeconds: 60 }).targetNarrationWpm,
+    shortWordRange: resolveShortDurationProfile({ language: "it", durationSeconds: 60 }).targetWordRange,
+    localizationLengthPolicy: FULL_LOCALIZATION_LENGTH_POLICY,
+    fullProductionInstructions: [
+      "Usare una sola voce narrante adulta e coerente.",
+      "Parlare in italiano naturale con un tono editoriale chiaro e misurato.",
+      "Presentare argomenti e transizioni con ritmo naturale.",
+      "Mantenere esempi e citazioni fedeli alle fonti approvate.",
+      "Usare pause brevi solo per rendere chiari i passaggi importanti.",
+      "Concludere con una sintesi precisa, senza enfasi drammatica.",
+    ],
+    shortProductionInstructions: [
+      "Usare la stessa voce narrante dell'episodio completo.",
+      "Parlare in italiano naturale.",
+      "Iniziare subito, senza introduzione del canale.",
+      "Mantenere un'interpretazione misurata e credibile.",
+      "Fare una breve pausa prima dell'ultima frase.",
+      "Non leggere titoli o metadati.",
+    ],
+    stylisticGuidance: [
+      "Use natural contemporary Italian.",
+      "Keep protected names, dates, quotations, and source terms unchanged unless an approved glossary says otherwise.",
+      "Prefer direct spoken clauses and avoid literary ornament that changes meaning.",
+      "Avoid regional slang, repeated commas, ellipses, and difficult consonant clusters.",
+    ],
+    // Creator packages supply reviewed metadata; the locale profile never adds tags.
+    defaultFullHashtags: [],
+    defaultShortHashtags: [],
+  },
   pt: {
     code: "pt",
     displayName: "Portuguese",
@@ -280,5 +317,5 @@ export function getLanguageProfile(code: LanguageCode): LanguageProfile {
 export function isShortLanguage(
   code: string
 ): code is Exclude<LanguageCode, "en"> {
-  return code === "de" || code === "es" || code === "fr" || code === "pt";
+  return code === "de" || code === "es" || code === "fr" || code === "it" || code === "pt";
 }

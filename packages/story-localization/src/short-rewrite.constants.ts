@@ -15,6 +15,7 @@ export const SHORT_REWRITE_SUPPORTED_LANGUAGES = {
   de: { name: "German", locale: "de-DE" },
   es: { name: "Spanish", locale: "es-419" },
   fr: { name: "French", locale: "fr-FR" },
+  it: { name: "Italian", locale: "it-IT" },
   pt: { name: "Portuguese", locale: "pt-BR" },
 } as const;
 

@@ -1,7 +1,7 @@
 import type { PromptCachePlan } from "@mediaforge/shared";
 import type { LocalizationHorrorAffectProjection } from "./localization-horror-affect-projection.js";
 
-export const languageCodes = ["en", "de", "es", "fr", "pt"] as const;
+export const languageCodes = ["en", "de", "es", "fr", "it", "pt"] as const;
 export type LanguageCode = (typeof languageCodes)[number];
 export type NarrationPace = "normal" | "fast";
 

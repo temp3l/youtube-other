@@ -9,6 +9,7 @@ const localeSectionHeadings = [
   ["de", "German Localization"],
   ["es", "Spanish Localization"],
   ["fr", "French Localization"],
+  ["it", "Italian Localization"],
   ["pt", "Portuguese Localization"],
 ] as const;
 

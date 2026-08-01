@@ -285,11 +285,13 @@ export async function runVoiceBenchmark(request: RunVoiceBenchmarkRequest): Prom
         cacheDecision = "miss";
         await request.provider.synthesize(
           {
+            contentProfileId: "dark-truth",
             sceneId: sceneIdSchema.parse("scene-001"),
             text: passage,
             voiceProfile: voiceProfileFor(voice, settings.profile),
             outputPath: cachePath,
             instructions,
+            dispatchContext: { kind: "legacy-noncreator" },
           },
           new AbortController().signal
         );

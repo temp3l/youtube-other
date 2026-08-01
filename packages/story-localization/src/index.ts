@@ -10,6 +10,8 @@ export * from "./story-workflow-planner.js";
 export * from "./story-workflow-english.js";
 export * from "./story-workflow-quality.js";
 export * from "./story-workflow-locales.js";
+export * from "./strategic-italian-media-persistence.js";
+export * from "./strategic-italian-qa.js";
 export * from "./story-workflow-shorts.js";
 export * from "./story-workflow-visual.js";
 export * from "./story-workflow-media.js";

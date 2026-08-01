@@ -111,6 +111,9 @@ describe("episode filesystem helpers", () => {
     ).toBe(
       "/workspace/009-mary-gloria-the-christmas-doll/locales/fr/full/script.md"
     );
+    expect(resolver.metadataFile({ episodeId, locale, variant })).toBe(
+      "/workspace/009-mary-gloria-the-christmas-doll/locales/fr/full/metadata/metadata.json"
+    );
     expect(resolver.canonicalScenesPath(episodeId)).toBe(
       "/workspace/009-mary-gloria-the-christmas-doll/canonical/scenes.json"
     );

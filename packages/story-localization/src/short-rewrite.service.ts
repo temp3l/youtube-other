@@ -1040,6 +1040,8 @@ function localizedFullVideoBridge(language: StoryLanguage): string {
       return "L'episode complet raconte toute l'histoire.";
     case "pt":
       return "O episodio completo mostra a historia inteira.";
+    case "it":
+      return "L'episodio completo racconta tutta la storia.";
     case "en":
     default:
       return "The full episode tells the complete story.";
@@ -1115,6 +1117,10 @@ function validateLocalizedShortMetadata(args: {
     },
     fr: {
       requiredAny: [" le ", " la ", " les ", " et ", " dans "],
+      forbidden: [" the ", " and ", " watch the full episode "],
+    },
+    it: {
+      requiredAny: [" il ", " la ", " che ", " di ", " e "],
       forbidden: [" the ", " and ", " watch the full episode "],
     },
     pt: {

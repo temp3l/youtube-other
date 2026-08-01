@@ -213,6 +213,20 @@ For Spanish localization:
 
 ---
 
+## Italian Localization
+
+For Italian localization:
+
+- Target `it-IT` and write natural contemporary spoken Italian rather than a literal English calque.
+- Preserve protected names, dates, source quotations, and terminology exactly unless a reviewed glossary explicitly authorizes a translation.
+- Keep the documentary tone restrained; prefer direct clauses, clear antecedents, and natural Italian punctuation.
+- Do not introduce regional slang, ornate literary phrasing, or English source-language leakage.
+- Preserve the approved Italian parent fingerprint and surface any protected-term or CTA-destination mismatch for review.
+- Runtime persistence accepts only the `strategic-italian` workflow route, calculates lowercase SHA-256 hashes from supplied script, captions, audio, metadata, and QA policy bytes, and requires current event-backed scoped approvals before any file write.
+- Italian creator audio is supplied media only at this boundary; it requires two distinct current voice approvers. Metadata approval binds both the script and deterministic QA-policy hashes. Caption headers bind the Italian canonical and child fingerprints, and CTA destination/Italian label/text are derived from the reviewed blueprint.
+
+---
+
 ## Portuguese Localization
 
 For Portuguese localization:

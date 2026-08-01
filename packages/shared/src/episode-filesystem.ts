@@ -533,6 +533,7 @@ export interface EpisodePathResolver {
   audioNarration(context: EpisodeContext): string;
   audioSegmentsDir(context: EpisodeContext): string;
   metadataDir(context: EpisodeContext): string;
+  metadataFile(context: EpisodeContext): string;
   thumbnailFile(context: EpisodeContext): string;
   renderDir(context: EpisodeContext, profile: "youtube" | "vertical"): string;
   renderManifest(context: EpisodeContext, profile: "youtube" | "vertical"): string;
@@ -1388,6 +1389,7 @@ export function createEpisodePathResolver(workspaceRoot: string): EpisodePathRes
     audioNarration: (context) => path.join(localeVariantRoot(context), "audio", "narration.wav"),
     audioSegmentsDir: (context) => path.join(localeVariantRoot(context), "audio", "segments"),
     metadataDir: (context) => path.join(localeVariantRoot(context), "metadata"),
+    metadataFile: (context) => path.join(localeVariantRoot(context), "metadata", "metadata.json"),
     thumbnailFile: (context) => path.join(localeVariantRoot(context), "thumbnails", "thumbnail.png"),
     renderDir: (context, profile) => path.join(localeVariantRoot(context), "renders", profile),
     renderManifest: (context, profile) => path.join(localeVariantRoot(context), "renders", profile, "render.json"),

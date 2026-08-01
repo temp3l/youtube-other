@@ -41,6 +41,13 @@ const headingLabels: Record<LanguageCode, {
     shortMetadata: "Métadonnées du Short",
     productionNote: "Instructions de production uniquement. Ne pas lire les titres, le Markdown, les métadonnées ni les noms d'effets sonores.",
   },
+  it: {
+    audio: "Istruzioni per la generazione audio",
+    metadata: "Metadati dell'episodio",
+    narrationInstructions: "Istruzioni per la narrazione",
+    shortMetadata: "Metadati dello Short",
+    productionNote: "Solo istruzioni di produzione. Non leggere titoli, Markdown, metadati o etichette degli effetti sonori.",
+  },
   pt: {
     audio: "Instruções de geração de áudio",
     metadata: "Metadados do episódio",

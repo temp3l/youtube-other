@@ -114,7 +114,7 @@ const shortRewriteParentIdentitySchema = z
   .object({
     episodeId: z.string().min(1),
     episodeSlug: z.string().min(1),
-    language: z.enum(["en", "de", "es", "fr", "pt"]),
+    language: z.enum(["en", "de", "es", "fr", "it", "pt"]),
     locale: z.string().min(1),
     variant: z.enum(["full", "short"]),
     parentFullHash: hashSchema,
@@ -176,7 +176,7 @@ export const shortRewriteAdaptationContractSchema = z
       .object({
         episodeId: z.string().min(1),
         episodeSlug: z.string().min(1),
-        language: z.enum(["en", "de", "es", "fr", "pt"]),
+        language: z.enum(["en", "de", "es", "fr", "it", "pt"]),
         locale: z.string().min(1),
         variant: z.literal("short"),
       })
@@ -278,7 +278,7 @@ export const shortRewriteGenerationSchema = z
     episodeId: z.string().min(1),
     episodeSlug: z.string().min(1),
     sourceLanguage: z.literal("en"),
-    targetLanguage: z.enum(["en", "de", "es", "fr", "pt"]),
+    targetLanguage: z.enum(["en", "de", "es", "fr", "it", "pt"]),
     locale: z.string().min(1),
     variant: z.literal("short"),
     promptVersion: z.string().min(1),
@@ -348,7 +348,7 @@ export const shortRewriteArtifactSchema = z
     episodeId: z.string().min(1),
     episodeSlug: z.string().min(1),
     sourceLanguage: z.literal("en"),
-    targetLanguage: z.enum(["en", "de", "es", "fr", "pt"]),
+    targetLanguage: z.enum(["en", "de", "es", "fr", "it", "pt"]),
     locale: z.string().min(1),
     variant: z.literal("short"),
     sourcePath: z.string().min(1),

@@ -2817,6 +2817,7 @@ export async function generateMockNarrationAudio(
           const sceneNumber = idMatch?.[1] ?? "001";
           await provider.synthesize(
             {
+              contentProfileId: "dark-truth",
               sceneId: sceneIdSchema.parse(`scene-${sceneNumber.padStart(3, "0")}`),
               text: request.text,
               voiceProfile,
@@ -2826,6 +2827,7 @@ export async function generateMockNarrationAudio(
                 : {}),
               instructions: request.instructions,
               ...(request.speed !== undefined ? { speed: request.speed } : {}),
+              dispatchContext: { kind: "legacy-noncreator" },
             },
             new AbortController().signal
           );
@@ -2893,6 +2895,7 @@ export async function generateMockNarrationAudio(
     const outputPath = path.join(segmentsDir, `${segment.id}.wav`);
     const synthesized = await provider.synthesize(
       {
+        contentProfileId: "dark-truth",
         sceneId: sceneIdSchema.parse(
           `scene-${String(segment.sequenceNumber).padStart(3, "0")}`
         ),
@@ -2903,6 +2906,7 @@ export async function generateMockNarrationAudio(
           1,
           (segment.wordCount / voiceProfile.paceWpm) * 60
         ),
+        dispatchContext: { kind: "legacy-noncreator" },
       },
       new AbortController().signal
     );

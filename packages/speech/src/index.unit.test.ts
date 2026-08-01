@@ -164,11 +164,13 @@ describe("OpenAiCompatibleSpeechProvider", () => {
     });
     const result = await provider.synthesize(
       {
+        contentProfileId: "dark-truth",
         sceneId: sceneIdSchema.parse("scene-001"),
         text: "Hello from the narrator.",
         voiceProfile: loadSpeechVoiceSettings().profile,
         outputPath,
-        instructions: "Narration-only TTS instructions."
+        instructions: "Narration-only TTS instructions.",
+        dispatchContext: { kind: "legacy-noncreator" },
       },
       new AbortController().signal
     );
@@ -204,10 +206,12 @@ describe("OpenAiCompatibleSpeechProvider", () => {
     });
     const result = await provider.synthesize(
       {
+        contentProfileId: "dark-truth",
         sceneId: sceneIdSchema.parse("scene-001"),
         text: "Hello from the narrator.",
         voiceProfile: loadSpeechVoiceSettings().profile,
-        outputPath
+        outputPath,
+        dispatchContext: { kind: "legacy-noncreator" },
       },
       new AbortController().signal
     );
@@ -241,10 +245,12 @@ describe("OpenAiCompatibleSpeechProvider", () => {
     });
     const result = await provider.synthesize(
       {
+        contentProfileId: "dark-truth",
         sceneId: sceneIdSchema.parse("scene-001"),
         text: "Hello from the narrator.",
         voiceProfile: loadSpeechVoiceSettings().profile,
-        outputPath
+        outputPath,
+        dispatchContext: { kind: "legacy-noncreator" },
       },
       new AbortController().signal
     );

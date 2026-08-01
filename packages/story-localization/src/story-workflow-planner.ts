@@ -31,6 +31,8 @@ export interface PlannedStoryWorkflowInput {
   readonly formats?: readonly string[];
   readonly createdAt?: string;
   readonly dryRun?: boolean;
+  /** Opt-in strategic route: Italian is the reviewed canonical parent. */
+  readonly strategicItalianCanonical?: boolean;
 }
 
 export interface WorkspacePlannedStoryWorkflowInput
@@ -39,6 +41,19 @@ export interface WorkspacePlannedStoryWorkflowInput
 }
 
 export type PlannedStoryWorkflowManifest = WorkflowManifest<ArtifactLineage>;
+
+/**
+ * Deliberately separate from the legacy manifest API: consumers must opt in to
+ * the Italian-parent evidence route rather than treating a strategic manifest
+ * as an ordinary English-canonical workflow.
+ */
+export interface StrategicItalianWorkflowPlan {
+  readonly route: "strategic-italian";
+  readonly manifest: PlannedStoryWorkflowManifest;
+  readonly canonicalLocale: "it";
+  readonly childLocales: readonly ["en", "es"];
+  readonly contentProfileId: "strategic-reinvention";
+}
 
 const defaultLocales: readonly WorkflowLocale[] = ["en", "de", "es", "fr", "pt"];
 const defaultFormats: readonly StoryFormat[] = ["full", "short"];
@@ -232,7 +247,12 @@ function buildPlannedStoryWorkflowManifestWithContracts(args: {
 }): PlannedStoryWorkflowManifest {
   const input = args.input;
   const episodeId = normalizeEpisodeId(input.episodeId);
-  const locales = parseLocales(input.locales);
+  const locales = input.strategicItalianCanonical
+    ? unique((input.locales?.length ? input.locales : ["it", "en", "es"]).map((value) => normalizeLocaleCode(value) as WorkflowLocale))
+    : parseLocales(input.locales);
+  if (input.strategicItalianCanonical && !locales.includes("it")) {
+    throw new Error("Strategic Italian-canonical workflows require the it locale.");
+  }
   const formats = parseFormats(input.formats);
   const createdAt = input.createdAt ?? new Date().toISOString();
   const stamp = compactTimestamp(createdAt);
@@ -268,7 +288,7 @@ function buildPlannedStoryWorkflowManifestWithContracts(args: {
       (dependency) => dependency.contractFingerprint
     );
     const realIngestContract =
-      stageType === "ingest-source" && locale === "en" && format === "full"
+      stageType === "ingest-source" && locale === canonicalLocale && format === "full"
         ? ingestSourceContractFields({ stageId: id, source: args.authoredSource })
         : undefined;
     const stageContract =
@@ -313,17 +333,18 @@ function buildPlannedStoryWorkflowManifestWithContracts(args: {
     return id;
   };
 
-  const ingest = addStage("ingest-source", "en", "full", []);
-  const rewriteFull = addStage("rewrite-full", "en", "full", [ingest]);
-  const validateFull = addStage("validate-full", "en", "full", [rewriteFull]);
-  const qualityFull = addStage("quality-full", "en", "full", [validateFull]);
-  const fullScenePlan = addStage("visual-model", "en", "full", [qualityFull]);
-  const fullPrompt = addStage("image-prompt", "en", "full", [fullScenePlan]);
-  addStage("image-generation", "en", "full", [fullPrompt]);
-  const fullByLocale = new Map<WorkflowLocale, StageId>([["en", qualityFull]]);
+  const canonicalLocale: WorkflowLocale = input.strategicItalianCanonical ? "it" : "en";
+  const ingest = addStage("ingest-source", canonicalLocale, "full", []);
+  const rewriteFull = addStage("rewrite-full", canonicalLocale, "full", [ingest]);
+  const validateFull = addStage("validate-full", canonicalLocale, "full", [rewriteFull]);
+  const qualityFull = addStage("quality-full", canonicalLocale, "full", [validateFull]);
+  const fullScenePlan = addStage("visual-model", canonicalLocale, "full", [qualityFull]);
+  const fullPrompt = addStage("image-prompt", canonicalLocale, "full", [fullScenePlan]);
+  addStage("image-generation", canonicalLocale, "full", [fullPrompt]);
+  const fullByLocale = new Map<WorkflowLocale, StageId>([[canonicalLocale, qualityFull]]);
 
   if (formats.includes("full")) {
-    for (const locale of locales.filter((entry) => entry !== "en")) {
+    for (const locale of locales.filter((entry) => entry !== canonicalLocale)) {
       const localized = addStage("localize-full", locale, "full", [qualityFull]);
       const validated = addStage("validate-full", locale, "full", [localized]);
       const quality = addStage("quality-full", locale, "full", [validated]);
@@ -391,6 +412,17 @@ export function buildPlannedStoryWorkflowManifest(
   return buildPlannedStoryWorkflowManifestWithContracts({ input });
 }
 
+export function buildStrategicItalianWorkflowPlan(
+  input: Omit<PlannedStoryWorkflowInput, "strategicItalianCanonical" | "locales">
+): StrategicItalianWorkflowPlan {
+  const manifest = buildPlannedStoryWorkflowManifest({
+    ...input,
+    locales: ["it", "en", "es"],
+    strategicItalianCanonical: true,
+  });
+  return { route: "strategic-italian", manifest, canonicalLocale: "it", childLocales: ["en", "es"], contentProfileId: "strategic-reinvention" };
+}
+
 export async function buildWorkspacePlannedStoryWorkflowManifest(
   input: WorkspacePlannedStoryWorkflowInput
 ): Promise<PlannedStoryWorkflowManifest> {
@@ -400,11 +432,17 @@ export async function buildWorkspacePlannedStoryWorkflowManifest(
     authoredSource = await resolveAuthoredScript({
       workspaceRoot: input.workspaceRoot,
       episode: episodeId,
-      language: "en",
+      language: input.strategicItalianCanonical ? "it" : "en",
       variant: "full",
     });
-  } catch {
+  } catch (error) {
+    // A strategic plan is evidence-bound: unlike the compatibility planner it
+    // must never silently substitute a synthetic ingest fingerprint.
+    if (input.strategicItalianCanonical) throw error;
     authoredSource = undefined;
+  }
+  if (input.strategicItalianCanonical && (!authoredSource || authoredSource.language !== "it" || authoredSource.variant !== "full")) {
+    throw new Error("Strategic Italian workflows require an authored it/full source.");
   }
   return buildPlannedStoryWorkflowManifestWithContracts({
     input,

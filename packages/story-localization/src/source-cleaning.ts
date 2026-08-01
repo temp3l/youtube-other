@@ -80,7 +80,7 @@ export type SourceResolvedFrom = z.infer<typeof sourceResolvedFromSchema>;
 const partialArtifactIdentitySchema = z.object({
   episodeNumber: z.string().min(1).optional(),
   episodeSlug: z.string().min(1).optional(),
-  language: z.enum(["en", "de", "es", "fr", "pt"]).optional(),
+  language: z.enum(["en", "de", "es", "fr", "it", "pt"]).optional(),
   locale: z.string().min(1).optional(),
   variant: z.enum(["full", "short"]).optional(),
 }).strict();

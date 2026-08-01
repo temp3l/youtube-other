@@ -28,7 +28,7 @@ export const SHORT_NARRATION_RESPONSE_SCHEMA_VERSION =
 
 export const narrationOnlyFullRewriteResponseSchema = z
   .object({
-    language: z.enum(["en", "de", "es", "fr", "pt"]),
+    language: z.enum(["en", "de", "es", "fr", "it", "pt"]),
     full: z
       .object({
         narrationParagraphs: z.array(z.string().min(1)).min(1),
@@ -91,7 +91,7 @@ export type ShortNarrationResponse = z.infer<
 
 export const legacyMixedBatchStoryResultSchema = z
   .object({
-    language: z.enum(["en", "de", "es", "fr", "pt"]),
+    language: z.enum(["en", "de", "es", "fr", "it", "pt"]),
     full: generatedStoryPackageSchema.shape.full.unwrap(),
     short: generatedStoryPackageSchema.shape.short,
     preservationChecklist: preservationChecklistSchema,
@@ -105,7 +105,7 @@ export type LegacyMixedBatchStoryResult = z.infer<
 
 export const legacyFullOnlyBatchStoryResultSchema = z
   .object({
-    language: z.enum(["en", "de", "es", "fr", "pt"]),
+    language: z.enum(["en", "de", "es", "fr", "it", "pt"]),
     full: generatedStoryPackageSchema.shape.full.unwrap(),
     preservationChecklist: preservationChecklistSchema,
     diagnostics: fullRewriteGenerationDiagnosticsSchema,

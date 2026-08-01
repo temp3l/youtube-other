@@ -36,7 +36,7 @@ const cacheEntrySchema = z.object({
   configurationHash: z.string().min(64),
   promptVersion: z.string().min(1),
   model: z.string().min(1),
-  language: z.enum(["en", "de", "es", "fr", "pt"]),
+  language: z.enum(["en", "de", "es", "fr", "it", "pt"]),
   locale: z.string().min(1).optional(),
   variant: z.enum(["full", "short"]).optional(),
   owner: z.literal("narration").optional(),

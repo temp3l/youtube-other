@@ -820,6 +820,7 @@ export async function generateEducationalSpeech(
             attemptCount = attempt;
             const providerResult = await provider.synthesize(
               {
+                contentProfileId: "mathematics-education",
                 sceneId: sceneIdSchema.parse(
                   `scene-${String(candidate.chunk.sequence + 1).padStart(3, "0")}`
                 ),
@@ -839,6 +840,7 @@ export async function generateEducationalSpeech(
                 speed: request.profile.providerSpeed,
                 requestFingerprint:
                   candidate.requestBuild.requestFingerprint,
+                dispatchContext: { kind: "legacy-noncreator" },
                 trace: {
                   task: "educational-speech-generate",
                   speechProfileId: request.profile.id,

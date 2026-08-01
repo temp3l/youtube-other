@@ -11,7 +11,7 @@ export type StageId = string & { readonly __brand: "StageId" };
 export type ArtifactId = string & { readonly __brand: "ArtifactId" };
 export type ProviderBatchId = string & { readonly __brand: "ProviderBatchId" };
 
-export const workflowLocales = ["en", "de", "es", "fr", "pt"] as const;
+export const workflowLocales = ["en", "de", "es", "fr", "it", "pt"] as const;
 export type WorkflowLocale = (typeof workflowLocales)[number];
 
 export const storyFormats = ["full", "short"] as const;

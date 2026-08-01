@@ -25,6 +25,7 @@ import {
   findEpisodeScenesFile,
   listEpisodeSceneFiles,
   readAndValidateScenesFile,
+  strategicItalianMetadataContext,
   parseScenesFile,
   youtubeMetadataSchema,
   type OpenAiMetadataClient,
@@ -811,5 +812,18 @@ describe("youtube metadata generation", () => {
     expect(new OpenAIUploadError("x").code).toBe("openai_upload_error");
     expect(new OpenAIResponseError("x").code).toBe("openai_response_error");
     expect(new OutputWriteError("x").code).toBe("output_write_error");
+  });
+
+  it("describes Italian metadata as it-IT with protected terms and CTA readiness", () => {
+    expect(strategicItalianMetadataContext({
+      protectedTerms: ["Luca Bianchi"],
+      ctaStatus: "REVIEW_REQUIRED",
+    })).toEqual({
+      language: "it",
+      locale: "it-IT",
+      requiredHints: [" il ", " la ", " che ", " di ", " e "],
+      protectedTerms: ["Luca Bianchi"],
+      ctaStatus: "REVIEW_REQUIRED",
+    });
   });
 });

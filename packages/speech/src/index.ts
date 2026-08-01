@@ -4,6 +4,7 @@ import {
   ProviderAuthenticationError,
   ProviderResponseError,
   type AudioSegment,
+  type ContentProfileId,
   type SceneId,
   type VoiceProfile
 } from "@mediaforge/domain";
@@ -24,6 +25,7 @@ import {
   validateSpeechAudioPayload,
 } from "./wav-analysis.js";
 import { recordNarrationTelemetry } from "./narration-telemetry.js";
+import { assertCreatorVoiceDispatchAllowed, type SpeechDispatchContext } from "./creator-voice-policy.js";
 export {
   listEpisodeScriptLanguages,
   loadEpisodeScriptMarkdown,
@@ -67,8 +69,11 @@ export * from "./speech-delivery-profile.js";
 export * from "./educational-speech-planning.js";
 export * from "./educational-pronunciation.js";
 export * from "./educational-speech-pipeline.js";
+export * from "./creator-voice-policy.js";
 
 export interface SpeechSynthesisRequest {
+  /** Runtime-validated before any provider, output, or temporary-file effect. */
+  readonly contentProfileId: ContentProfileId;
   readonly sceneId: SceneId;
   readonly text: string;
   readonly voiceProfile: VoiceProfile;
@@ -77,6 +82,7 @@ export interface SpeechSynthesisRequest {
   readonly instructions?: string;
   readonly speed?: number;
   readonly requestFingerprint?: string;
+  readonly dispatchContext?: SpeechDispatchContext;
   readonly trace?: {
     readonly task: "educational-speech-generate";
     readonly speechProfileId: string;
@@ -175,6 +181,7 @@ function resolveEpisodeRootFromAudioOutputPath(outputPath: string): string | und
 export class MockSpeechProvider implements SpeechProvider {
   public async synthesize(request: SpeechSynthesisRequest, signal: AbortSignal): Promise<SpeechSynthesisResult> {
     signal.throwIfAborted();
+    assertCreatorVoiceDispatchAllowed(request.contentProfileId, request.dispatchContext);
     const words = request.text.trim().split(/\s+/u).filter(Boolean).length;
     const estimatedDuration = request.targetDurationSeconds ?? Math.max(2, Math.ceil((words / request.voiceProfile.paceWpm) * 60));
     await writePlaceholderToneWav(request.outputPath, estimatedDuration);
@@ -217,6 +224,7 @@ export class OpenAiCompatibleSpeechProvider implements SpeechProvider {
 
   public async synthesize(request: SpeechSynthesisRequest, signal: AbortSignal): Promise<SpeechSynthesisResult> {
     signal.throwIfAborted();
+    assertCreatorVoiceDispatchAllowed(request.contentProfileId, request.dispatchContext);
     const telemetry = currentExecutionTelemetry();
     if (!this.options.apiKey) {
       throw new ProviderAuthenticationError("OpenAI TTS synthesis requires an API key.");
