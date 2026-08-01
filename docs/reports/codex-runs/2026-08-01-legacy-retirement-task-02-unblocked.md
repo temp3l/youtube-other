@@ -20,7 +20,7 @@ different profile. Direct CLI execution already initializes telemetry.
 
 ## Commit
 
-Pending.
+`4ec0596` (`docs: unblock narration rollout verification`).
 
 ## Risks
 
