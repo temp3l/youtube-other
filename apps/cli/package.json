@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@mediaforge/application": "workspace:*",
+    "@mediaforge/api-sdk": "workspace:*",
     "@mediaforge/alignment": "workspace:*",
     "@mediaforge/config": "workspace:*",
     "@mediaforge/domain": "workspace:*",

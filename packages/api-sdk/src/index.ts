@@ -1,5 +1,7 @@
 import crypto from "node:crypto";
 
+export * from "./v1-contract.js";
+
 export interface ProblemError {
   readonly path: string;
   readonly message: string;
@@ -110,8 +112,8 @@ export interface MathematicsEducationContent {
   readonly version: "1";
   readonly curriculumSourceId: string;
   readonly skillId: string;
-  readonly grade: number;
-  readonly difficulty: "introductory" | "standard" | "advanced";
+  readonly grade: 5 | 6 | 7 | 8 | 9 | 10;
+  readonly difficulty: "foundation" | "standard" | "challenge";
   readonly presentationPresetId: string;
   readonly audioPresetId: string;
 }

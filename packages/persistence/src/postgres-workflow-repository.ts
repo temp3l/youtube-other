@@ -12,6 +12,14 @@ import {
   type WorkflowRunStatus,
   WorkflowStateTransitionError,
 } from "./relational-workflow-state.js";
+import {
+  POSTGRES_QUOTA_DIMENSION_MIGRATION,
+  reserveQuotaDimensionInTransaction,
+} from "./postgres-usage-audit-repository.js";
+import {
+  persistedWebhookSubjectType,
+  type PersistedWebhookEventType,
+} from "./webhook-event-catalog.js";
 
 export interface CommandAdmissionResult {
   readonly kind: "admitted" | "replayed";
@@ -465,6 +473,20 @@ function mapOutboxLease(row: OutboxRow): OutboxLease {
     leaseExpiresAt: new Date(row.lease_expires_at).toISOString(),
     attemptCount: Number(row.attempt_count),
   };
+}
+
+function workflowWebhookEventType(
+  status: WorkflowRunStatus
+): PersistedWebhookEventType {
+  const events: Record<WorkflowRunStatus, PersistedWebhookEventType> = {
+    queued: "workflow_run.progressed",
+    running: "workflow_run.started",
+    awaiting_approval: "workflow_run.awaiting_approval",
+    succeeded: "workflow_run.succeeded",
+    failed: "workflow_run.failed",
+    cancelled: "workflow_run.cancelled",
+  };
+  return events[status];
 }
 
 function translate(error: unknown): never {
@@ -1072,15 +1094,21 @@ export class WorkspaceTransactionRepository {
         input.now,
       ]
     );
+    const approvalEventType =
+      input.decision === "rejected" ? "approval.rejected" : "approval.created";
     await this.connection.query(
       `INSERT INTO workflow_events (
-         workspace_id, event_id, run_id, subject_revision, type, data, occurred_at
-       ) VALUES ($1, $2, $3, $4, 'approval.recorded', $5::jsonb, $6::timestamptz)`,
+         workspace_id, event_id, run_id, subject_revision,
+         subject_type, subject_id, subject_version, type, data, occurred_at
+       ) VALUES ($1, $2, $3, $4, $5, $6, 1, $7, $8::jsonb, $9::timestamptz)`,
       [
         input.workspaceId,
         `event-${input.approvalId}`,
         input.subjectId,
         input.expectedRevision,
+        persistedWebhookSubjectType(approvalEventType),
+        input.approvalId,
+        approvalEventType,
         JSON.stringify({
           approvalId: input.approvalId,
           decision: input.decision,
@@ -1200,12 +1228,16 @@ export class WorkspaceTransactionRepository {
       );
       await this.connection.query(
         `INSERT INTO workflow_events (
-           workspace_id, event_id, run_id, subject_revision, type, data, occurred_at
-         ) VALUES ($1, $2, $3, 0, 'publication.intent_recorded', $4::jsonb, $5::timestamptz)`,
+           workspace_id, event_id, run_id, subject_revision,
+           subject_type, subject_id, subject_version, type, data, occurred_at
+         ) VALUES ($1, $2, $3, 0, $4, $5, 1, 'publication.started',
+                   $6::jsonb, $7::timestamptz)`,
         [
           input.workspaceId,
           input.eventId,
           input.runId,
+          persistedWebhookSubjectType("publication.started"),
+          input.publicationId,
           JSON.stringify({
             publicationId: input.publicationId,
             projectId: input.projectId,
@@ -1340,6 +1372,32 @@ export class WorkspaceTransactionRepository {
       throw new WorkflowStateTransitionError(
         "Publication upload effect was missing or in an unexpected state."
       );
+    if (input.outcome.status !== "reconciliation_required") {
+      const eventType = published
+        ? "publication.succeeded"
+        : "publication.failed";
+      const current = publication.rows[0]!;
+      await this.connection.query(
+        `INSERT INTO workflow_events (
+           workspace_id, event_id, run_id, subject_revision,
+           subject_type, subject_id, subject_version, type, data, occurred_at
+         ) VALUES ($1, $2, $3, $4, $5, $6, $4, $7, $8::jsonb, $9::timestamptz)`,
+        [
+          input.workspaceId,
+          `event-${input.publicationId}-${current.revision}-${input.outcome.status}`,
+          current.run_id,
+          Number(current.revision),
+          persistedWebhookSubjectType(eventType),
+          input.publicationId,
+          eventType,
+          JSON.stringify({
+            publicationId: input.publicationId,
+            status: input.outcome.status,
+          }),
+          input.now,
+        ]
+      );
+    }
     return mapPublicationIntent(publication.rows[0]!);
   }
 
@@ -1401,13 +1459,17 @@ export class WorkspaceTransactionRepository {
     };
     await this.connection.query(
       `INSERT INTO workflow_events (
-         workspace_id, event_id, run_id, subject_revision, type, data, occurred_at
-       ) VALUES ($1, $2, $3, $4, 'publication.reconciliation_required', $5::jsonb, $6::timestamptz)`,
+         workspace_id, event_id, run_id, subject_revision,
+         subject_type, subject_id, subject_version, type, data, occurred_at
+       ) VALUES ($1, $2, $3, $4, $5, $6, $4,
+                 'publication.reconciliation_required', $7::jsonb, $8::timestamptz)`,
       [
         input.workspaceId,
         input.eventId,
         publication.runId,
         publication.revision,
+        persistedWebhookSubjectType("publication.reconciliation_required"),
+        publication.publicationId,
         JSON.stringify(payload),
         input.now,
       ]
@@ -1455,7 +1517,36 @@ export class WorkspaceTransactionRepository {
         throw new WorkflowStateTransitionError(
           "Workflow run was missing, stale, terminal, or in an unexpected state."
         );
-      return mapRow(result.rows[0]);
+      if (["succeeded", "failed", "cancelled"].includes(input.status)) {
+        await this.connection.query(
+          `UPDATE quota_dimension_reservations
+           SET state = 'released', revision = revision + 1,
+               updated_at = $1::timestamptz
+           WHERE workspace_id = $2 AND reservation_id = $3
+             AND dimension = 'active_workflows' AND subject_id = $4
+             AND state = 'reserved'`,
+          [input.now, input.workspaceId, `workflow:${input.runId}`, input.runId]
+        );
+      }
+      const run = mapRow(result.rows[0]);
+      const eventType = workflowWebhookEventType(input.status);
+      await this.connection.query(
+        `INSERT INTO workflow_events (
+           workspace_id, event_id, run_id, subject_revision,
+           subject_type, subject_id, subject_version, type, data, occurred_at
+         ) VALUES ($1, $2, $3, $4, $5, $3, $4, $6, $7::jsonb, $8::timestamptz)`,
+        [
+          input.workspaceId,
+          `event-${input.runId}-${run.revision}-${input.status}`,
+          input.runId,
+          run.revision,
+          persistedWebhookSubjectType(eventType),
+          eventType,
+          JSON.stringify({ status: input.status }),
+          input.now,
+        ]
+      );
+      return run;
     } catch (error) {
       return translate(error);
     }
@@ -1667,6 +1758,23 @@ export class WorkspaceTransactionRepository {
           response: record.response,
         };
       }
+      /*
+       * A configured concurrency policy is authoritative and reserved in this
+       * same admission transaction. Missing policy preserves the established
+       * internal/connected-CLI contract; external pilot admission must
+       * provision this policy and is separately gated from public exposure.
+       * The command-admission replay returns above, so it cannot reserve twice.
+       */
+      await reserveQuotaDimensionInTransaction(this.connection, {
+        workspaceId: input.run.workspaceId,
+        reservationId: `workflow:${input.run.runId}`,
+        dimension: "active_workflows",
+        attributionKey: `workflow-admission:${input.idempotencyKey}`,
+        subjectId: input.run.runId,
+        units: 1n,
+        now: input.now,
+        allowMissingPolicy: true,
+      });
       await this.create(input.run);
       if (input.binding) {
         const binding = await this.connection.query(
@@ -1885,6 +1993,8 @@ export class WorkspaceTransactionRepository {
   }): Promise<"retry_scheduled" | "dead_letter" | "lost_lease"> {
     const result = await this.connection.query<{
       readonly status: "retry_scheduled" | "dead_lettered";
+      readonly run_id: string;
+      readonly revision: string | number;
     }>(
       `UPDATE jobs
        SET status = CASE WHEN attempt_count >= $1 THEN 'dead_lettered' ELSE 'retry_scheduled' END,
@@ -1894,7 +2004,7 @@ export class WorkspaceTransactionRepository {
            last_error = $4, lease_owner = NULL, lease_expires_at = NULL
        WHERE workspace_id = $5 AND job_id = $6 AND status = 'running'
          AND lease_owner = $7 AND lease_fence = $8 AND lease_expires_at > $3::timestamptz
-       RETURNING status`,
+       RETURNING status, run_id, revision`,
       [
         input.maxAttempts,
         input.nextAttemptAt,
@@ -1908,6 +2018,28 @@ export class WorkspaceTransactionRepository {
     );
     const row = result.rows[0];
     if (!row) return "lost_lease";
+    const eventType =
+      row.status === "dead_lettered"
+        ? "job.dead_lettered"
+        : "job.retry_scheduled";
+    const revision = Number(row.revision);
+    await this.connection.query(
+      `INSERT INTO workflow_events (
+         workspace_id, event_id, run_id, subject_revision,
+         subject_type, subject_id, subject_version, type, data, occurred_at
+       ) VALUES ($1, $2, $3, $4, $5, $6, $4, $7, $8::jsonb, $9::timestamptz)`,
+      [
+        input.workspaceId,
+        `event-${input.jobId}-${revision}-${row.status}`,
+        row.run_id,
+        revision,
+        persistedWebhookSubjectType(eventType),
+        input.jobId,
+        eventType,
+        JSON.stringify({ jobId: input.jobId, status: row.status }),
+        input.now,
+      ]
+    );
     return row.status === "dead_lettered" ? "dead_letter" : "retry_scheduled";
   }
 
@@ -2206,6 +2338,7 @@ export class PostgresWorkflowRepository {
       await client.query(POSTGRES_WORKFLOW_STATE_MIGRATION);
       await client.query(POSTGRES_WORKFLOW_AUTHORITY_MIGRATION);
       await client.query(POSTGRES_DURABLE_DISPATCH_MIGRATION);
+      await client.query(POSTGRES_QUOTA_DIMENSION_MIGRATION);
       await client.query("COMMIT");
     } catch (error) {
       await client.query("ROLLBACK");

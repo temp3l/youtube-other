@@ -13,6 +13,9 @@ export * from "./postgres-webhook-repository.js";
 export * from "./postgres-usage-audit-repository.js";
 export * from "./postgres-principal-directory.js";
 export * from "./postgres-pilot-api-key-repository.js";
+export * from "./postgres-asset-migration-repository.js";
+export * from "./postgres-publication-channel-lease-repository.js";
+export * from "./webhook-event-catalog.js";
 export * from "./asset-payload-validation.js";
 export * from "./tenant-object-storage.js";
 

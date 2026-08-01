@@ -14,6 +14,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { WorkflowInterruptedError } from "./index.js";
 import {
   createTaskRegistry,
+  type TaskExecutionControl,
   type TaskImplementation,
 } from "./task-registry.js";
 import { WorkflowOperator } from "./workflow-operator.js";
@@ -67,6 +68,7 @@ async function fixture(
     readonly fingerprintMaterial?: Readonly<
       Record<string, { readonly configuration: unknown }>
     >;
+    readonly executionControl?: TaskExecutionControl;
   } = {}
 ) {
   const unitRoot = await fs.mkdtemp(
@@ -126,6 +128,9 @@ async function fixture(
     },
     idFactory: () => `id${++id}`,
     fingerprintMaterial: options.fingerprintMaterial,
+    ...(options.executionControl
+      ? { executionControl: options.executionControl }
+      : {}),
   });
   return { operator, unitRoot, registry, workflow };
 }
@@ -180,6 +185,38 @@ describe("WorkflowOperator", () => {
     expect((await operator.resume()).taskId).toBe("test.prepare");
     expect(prepare).toHaveBeenCalledTimes(2);
     expect(await operator.store.listAttempts("test.prepare")).toHaveLength(2);
+  });
+
+  it("propagates durable execution control and rejects a late cancelled result", async () => {
+    const controller = new AbortController();
+    const prepare = vi.fn((context: Parameters<TaskImplementation>[0]) => {
+      expect(context.control).toMatchObject({
+        deadlineAt: "2099-08-01T12:05:00.000Z",
+        leaseFence: 7,
+        dispatchAttempt: 2,
+      });
+      expect(context.control.signal).toBe(controller.signal);
+      controller.abort("lease lost");
+      return { outputArtifacts: [], warnings: [] };
+    });
+    const { operator } = await fixture(
+      { prepare },
+      {
+        executionControl: {
+          signal: controller.signal,
+          deadlineAt: "2099-08-01T12:05:00.000Z",
+          leaseFence: 7,
+          dispatchAttempt: 2,
+        },
+      }
+    );
+
+    await expect(operator.runNext()).rejects.toBeInstanceOf(
+      WorkflowInterruptedError
+    );
+    expect((await operator.status()).tasks[0]?.persistedStatus).toBe(
+      "interrupted"
+    );
   });
 
   it("supports retry, invalidation, override, reconciliation, and state validation", async () => {

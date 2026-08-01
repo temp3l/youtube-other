@@ -1,5 +1,6 @@
 import crypto from "node:crypto";
 
+import { normalizeApiPermissions } from "@mediaforge/application";
 import { loadRuntimeConfig } from "@mediaforge/config";
 import {
   PostgresPrincipalDirectory,
@@ -34,12 +35,9 @@ export function parsePrincipalProvisionEnvironment(
   environment: NodeJS.ProcessEnv
 ): PrincipalProvisionEnvironment {
   const parsed = environmentSchema.parse(environment);
-  const permissions = [...new Set(parsed.MEDIAFORGE_PRINCIPAL_PERMISSIONS
-    .split(",")
-    .map((value) => value.trim())
-    .filter(Boolean))].sort();
-  if (permissions.length === 0 || permissions.some((value) => value.length > 160))
-    throw new Error("MEDIAFORGE_PRINCIPAL_PERMISSIONS must contain bounded comma-separated permissions.");
+  const permissions = normalizeApiPermissions(
+    parsed.MEDIAFORGE_PRINCIPAL_PERMISSIONS.split(",")
+  );
   return {
     workspaceId: parsed.MEDIAFORGE_PRINCIPAL_WORKSPACE_ID,
     oidcSubject: parsed.MEDIAFORGE_PRINCIPAL_OIDC_SUBJECT,

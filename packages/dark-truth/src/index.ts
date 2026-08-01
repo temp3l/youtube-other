@@ -89,6 +89,7 @@ export * from "./profile-store.js";
 export * from "./profile-quality.js";
 export * from "./profile-fixture.js";
 export * from "./profile-bindings.js";
+export * from "./canonical-story-task-adapters.js";
 
 export type SpeechVoicePreset = "slow" | "fast" | "very-fast";
 

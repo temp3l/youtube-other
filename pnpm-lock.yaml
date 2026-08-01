@@ -69,6 +69,9 @@ importers:
       '@mediaforge/application':
         specifier: workspace:*
         version: link:../../packages/application
+      '@mediaforge/api-sdk':
+        specifier: workspace:*
+        version: link:../../packages/api-sdk
       '@mediaforge/config':
         specifier: workspace:*
         version: link:../../packages/config
@@ -100,6 +103,9 @@ importers:
       '@mediaforge/alignment':
         specifier: workspace:*
         version: link:../../packages/alignment
+      '@mediaforge/api-sdk':
+        specifier: workspace:*
+        version: link:../../packages/api-sdk
       '@mediaforge/application':
         specifier: workspace:*
         version: link:../../packages/application

@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { openApiDocument } from "./contract.js";
+import {
+  episodeInputSchema,
+  openApiDocument,
+  parseEpisodeInput,
+} from "./contract.js";
 
 const expectedPaths = [
   "/health/live",
@@ -96,6 +100,49 @@ describe("OpenAPI contract", () => {
     expect(openApiDocument.components.schemas.UsageRecord.properties).toMatchObject({
       quantityUnits: { $ref: "#/components/schemas/SignedBigIntString" },
       costMinor: { $ref: "#/components/schemas/SignedBigIntString" },
+    });
+  });
+
+  it("keeps mathematics episode input within canonical implemented capabilities", () => {
+    const canonical = {
+      content: {
+        type: "mathematics_education",
+        version: "1",
+        curriculumSourceId: "curriculum-1",
+        skillId: "M5-NO-001",
+        grade: 5,
+        difficulty: "foundation",
+        presentationPresetId: "presentation-1",
+        audioPresetId: "audio-1",
+      },
+    } as const;
+    expect(parseEpisodeInput(canonical)).toEqual(canonical);
+
+    for (const content of [
+      { ...canonical.content, grade: 4 },
+      { ...canonical.content, difficulty: "introductory" },
+      { ...canonical.content, skillId: "skill-1" },
+      { ...canonical.content, skillId: "M6-NO-001" },
+    ]) {
+      const input = { content };
+      expect(episodeInputSchema.safeParse(input).success).toBe(false);
+      expect(() => parseEpisodeInput(input)).toThrow(
+        expect.objectContaining({ code: "profile_input_invalid" })
+      );
+    }
+
+    expect(
+      openApiDocument.components.schemas.MathematicsEducationContent.properties
+    ).toMatchObject({
+      skillId: {
+        type: "string",
+        pattern: "^M(?:5|6|7|8|9|10)-[A-Z]{2}-\\d{3}$",
+      },
+      grade: { type: "integer", enum: [5, 6, 7, 8, 9, 10] },
+      difficulty: {
+        type: "string",
+        enum: ["foundation", "standard", "challenge"],
+      },
     });
   });
 

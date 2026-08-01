@@ -9,6 +9,7 @@ export const APPLICATION_ERROR_CODES = [
   "not_found",
   "precondition_required",
   "precondition_failed",
+  "profile_input_invalid",
   "quota_exceeded",
   "state_transition_rejected",
   "upstream_unavailable",

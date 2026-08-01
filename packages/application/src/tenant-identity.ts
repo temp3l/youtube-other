@@ -1,5 +1,72 @@
 import crypto from "node:crypto";
 
+export const API_PERMISSIONS = [
+  "workspace.admin",
+  "content.read",
+  "content.write",
+  "workflow.start",
+  "workflow.cancel",
+  "render.execute",
+  "validation.read",
+  "validation.execute",
+  "approval.read",
+  "approval.decide",
+  "publication.read",
+  "publication.execute",
+  "publication.schedule",
+  "channel.credentials.manage",
+  "webhook.manage",
+  "audit.read",
+  "usage.read",
+] as const;
+
+export type ApiPermission = (typeof API_PERMISSIONS)[number];
+
+const permissionVocabulary = new Set<string>(API_PERMISSIONS);
+const forbiddenPilotApiKeyPermissions = new Set<ApiPermission>([
+  "workspace.admin",
+  "publication.execute",
+  "publication.schedule",
+  "channel.credentials.manage",
+  "webhook.manage",
+]);
+
+export function normalizeApiPermissions(
+  permissions: readonly string[],
+  credential: "principal" | "pilot-api-key" = "principal"
+): readonly ApiPermission[] {
+  const normalized = [...new Set(permissions.map((permission) => permission.trim()))]
+    .filter(Boolean)
+    .sort();
+  if (
+    normalized.length < 1 ||
+    normalized.length > 100 ||
+    normalized.some((permission) => !permissionVocabulary.has(permission)) ||
+    (credential === "pilot-api-key" &&
+      normalized.some((permission) =>
+        forbiddenPilotApiKeyPermissions.has(permission as ApiPermission)
+      ))
+  ) {
+    throw new Error(
+      credential === "pilot-api-key"
+        ? "Pilot API key permissions must use the approved non-administrative permission vocabulary."
+        : "Principal permissions must use the approved permission vocabulary."
+    );
+  }
+  return normalized as ApiPermission[];
+}
+
+export function isAllowedPilotApiKeyPermissions(
+  permissions: readonly string[]
+): permissions is readonly ApiPermission[] {
+  try {
+    normalizeApiPermissions(permissions, "pilot-api-key");
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export interface PilotApiKeyRecord {
   readonly id: string;
   readonly secretHash: string;
@@ -71,7 +138,13 @@ export function authenticatePilotApiKey(input: {
   const record = input.records.find((candidate) =>
     verifyPilotApiKeyHash(input.token!, candidate.secretHash)
   );
-  if (!record || record.revokedAt || new Date(record.expiresAt) <= input.now) return null;
+  if (
+    !record ||
+    record.revokedAt ||
+    new Date(record.expiresAt) <= input.now ||
+    !isAllowedPilotApiKeyPermissions(record.permissions)
+  )
+    return null;
   return { principalId: record.id, workspaceId: record.workspaceId, permissions: record.permissions, kind: "service" };
 }
 

@@ -9,6 +9,7 @@ import {
   POSTGRES_WEBHOOK_MIGRATION,
   PostgresWebhookRepository,
 } from "./postgres-webhook-repository.js";
+import { POSTGRES_WORKFLOW_STATE_MIGRATION } from "./relational-workflow-state.js";
 
 type Query = {
   readonly sql: string;
@@ -70,10 +71,10 @@ describe("Postgres webhook repository", () => {
     expect(POSTGRES_WEBHOOK_MIGRATION).toContain("endpoint.event_filters ? NEW.type");
     expect(POSTGRES_WEBHOOK_MIGRATION).toContain("'version', '1'");
     expect(POSTGRES_WEBHOOK_MIGRATION).toContain(
-      "'subject', jsonb_build_object('type', 'workflow_run', 'id', NEW.run_id)"
+      "'subject', jsonb_build_object('type', NEW.subject_type, 'id', NEW.subject_id)"
     );
     expect(POSTGRES_WEBHOOK_MIGRATION).toContain(
-      "'subject_version', NEW.subject_revision"
+      "'subject_version', NEW.subject_version"
     );
     expect(POSTGRES_WEBHOOK_MIGRATION).toContain("'correlation_id', COALESCE(");
     expect(POSTGRES_WEBHOOK_MIGRATION).toContain("'causation_id', COALESCE(");
@@ -89,6 +90,27 @@ describe("Postgres webhook repository", () => {
     expect(fake.client.release).toHaveBeenCalledOnce();
   });
 
+  it("additively backfills immutable webhook subjects and public catalog names", () => {
+    expect(POSTGRES_WORKFLOW_STATE_MIGRATION).toContain(
+      "ALTER TABLE workflow_events ADD COLUMN IF NOT EXISTS subject_type"
+    );
+    expect(POSTGRES_WORKFLOW_STATE_MIGRATION).toContain(
+      "ALTER TABLE workflow_events ALTER COLUMN run_id DROP NOT NULL"
+    );
+    expect(POSTGRES_WORKFLOW_STATE_MIGRATION).toContain(
+      "DROP TRIGGER IF EXISTS workflow_events_immutable"
+    );
+    expect(POSTGRES_WORKFLOW_STATE_MIGRATION).toContain(
+      "WHEN type = 'approval.recorded' THEN 'approval.created'"
+    );
+    expect(POSTGRES_WORKFLOW_STATE_MIGRATION).toContain(
+      "WHEN type = 'publication.intent_recorded' THEN 'publication.started'"
+    );
+    expect(POSTGRES_WORKFLOW_STATE_MIGRATION).toContain(
+      "ALTER TABLE workflow_events ALTER COLUMN subject_version SET NOT NULL"
+    );
+  });
+
   it("creates endpoints using a handle/version and transaction-local workspace RLS", async () => {
     const endpoint = {
       workspace_id: "workspace-1",
@@ -97,7 +119,7 @@ describe("Postgres webhook repository", () => {
       secret_version: 2,
       secret_handle: "kms/webhooks/endpoint-1/2",
       enabled: true,
-      event_filters: ["workflow.succeeded"],
+      event_filters: ["workflow_run.succeeded"],
       revision: 0,
       created_at: "2026-08-01T12:00:00.000Z",
       updated_at: "2026-08-01T12:00:00.000Z",
@@ -109,7 +131,7 @@ describe("Postgres webhook repository", () => {
       url: endpoint.url,
       secretVersion: 2,
       secretHandle: endpoint.secret_handle,
-      eventFilters: ["workflow.succeeded", "workflow.succeeded"],
+      eventFilters: ["workflow_run.succeeded", "workflow_run.succeeded"],
       now: endpoint.created_at,
     });
     expect(result).toMatchObject({ secretVersion: 2, secretHandle: endpoint.secret_handle });
@@ -117,7 +139,7 @@ describe("Postgres webhook repository", () => {
       sql: "SELECT set_config('app.workspace_id', $1, true)",
       values: ["workspace-1"],
     });
-    expect(fake.queries.find(({ sql }) => sql.includes("INSERT INTO webhook_endpoints"))?.values?.[5]).toBe('["workflow.succeeded"]');
+    expect(fake.queries.find(({ sql }) => sql.includes("INSERT INTO webhook_endpoints"))?.values?.[5]).toBe('["workflow_run.succeeded"]');
   });
 
   it("deduplicates the initial endpoint/event delivery", async () => {
@@ -147,7 +169,7 @@ describe("Postgres webhook repository", () => {
       secret_version: 3,
       secret_handle: "kms/webhooks/endpoint-1/3",
       enabled: false,
-      event_filters: ["workflow.failed"],
+      event_filters: ["workflow_run.failed"],
       revision: 2,
       created_at: "2026-08-01T12:00:00.000Z",
       updated_at: "2026-08-01T13:00:00.000Z",
@@ -162,7 +184,7 @@ describe("Postgres webhook repository", () => {
       endpointId: "endpoint-1",
       expectedRevision: 1,
       url: endpoint.url,
-      eventFilters: ["workflow.failed"],
+      eventFilters: ["workflow_run.failed"],
       enabled: false,
       now: endpoint.updated_at,
     })).resolves.toMatchObject({ revision: 2, enabled: false });

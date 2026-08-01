@@ -18,6 +18,79 @@ interface JobRow {
 }
 
 describe("PostgreSQL API use cases", () => {
+  it("rejects noncanonical mathematics input and project profile mismatches before writes", async () => {
+    const statements: string[] = [];
+    const query = async <T>(sql: string): Promise<PostgresQueryResult<T>> => {
+      statements.push(sql);
+      if (sql.includes("SELECT * FROM projects")) return { rows: [{
+        workspace_id: "ws-1",
+        project_id: "project-1",
+        name: "Dark Truth",
+        profile: "dark_truth",
+        revision: 0,
+        created_at: "2026-08-01T11:00:00.000Z",
+        updated_at: "2026-08-01T11:00:00.000Z",
+      } as unknown as T] };
+      return { rows: [] };
+    };
+    const client: PostgresClient = { query, release: () => undefined };
+    const pool: PostgresPool = {
+      query,
+      connect: async () => client,
+      end: async () => undefined,
+    };
+    const useCases = createPostgresApiUseCases({
+      pool,
+      workflowAdmissionHandler: {
+        execute: async () => ({
+          workflowRunId: "unused",
+          jobId: "unused",
+          revision: 0,
+        }),
+      },
+      cursorSecret: "cursor-secret-that-is-longer-than-32-bytes",
+    });
+    const context = {
+      workspaceId: "ws-1",
+      projectId: "project-1",
+      requestId: "request-math",
+    };
+    const noncanonical = {
+      content: {
+        type: "mathematics_education",
+        version: "1",
+        curriculumSourceId: "curriculum-1",
+        skillId: "M11-NO-001",
+        grade: 11,
+        difficulty: "advanced",
+        presentationPresetId: "presentation-1",
+        audioPresetId: "audio-1",
+      },
+    } as unknown as Parameters<typeof useCases.createEpisode>[0];
+
+    await expect(useCases.createEpisode(noncanonical, context)).rejects.toMatchObject({
+      code: "profile_input_invalid",
+    });
+    expect(statements).toEqual([]);
+
+    const canonical = {
+      content: {
+        type: "mathematics_education",
+        version: "1",
+        curriculumSourceId: "curriculum-1",
+        skillId: "M5-NO-001",
+        grade: 5,
+        difficulty: "foundation",
+        presentationPresetId: "presentation-1",
+        audioPresetId: "audio-1",
+      },
+    } as const;
+    await expect(useCases.createEpisode(canonical, context)).rejects.toMatchObject({
+      code: "profile_input_invalid",
+    });
+    expect(statements.some((sql) => sql.includes("INSERT INTO episodes"))).toBe(false);
+  });
+
   it("projects job progress and replaces raw terminal errors with stable redacted problems", async () => {
     let row: JobRow | null = {
       job_id: "job-1",

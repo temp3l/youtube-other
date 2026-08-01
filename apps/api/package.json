@@ -13,6 +13,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@mediaforge/api-sdk": "workspace:*",
     "@mediaforge/application": "workspace:*",
     "@mediaforge/config": "workspace:*",
     "@mediaforge/domain": "workspace:*",

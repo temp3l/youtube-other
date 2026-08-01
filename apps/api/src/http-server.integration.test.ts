@@ -187,6 +187,71 @@ describe("HTTP API contract", () => {
     expect(replacements).toHaveLength(1);
   });
 
+  it("rejects unsupported mathematics profile input as a stable 422 before dispatch", async () => {
+    const created: unknown[] = [];
+    const running = await serve(createApiServer({
+      useCases: {
+        ...useCases,
+        createEpisode: async (input, context) => {
+          created.push({ input, context });
+          return { id: "episode-math", revision: 0 };
+        },
+      },
+      authenticate,
+      requestId: () => "request-math-capability",
+    }));
+    closers.push(running.close);
+
+    const response = await request({
+      url: `${running.baseUrl}/v1/workspaces/ws-1/projects/project-1/episodes`,
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        content: {
+          type: "mathematics_education",
+          version: "1",
+          curriculumSourceId: "curriculum-1",
+          skillId: "M11-NO-001",
+          grade: 11,
+          difficulty: "advanced",
+          presentationPresetId: "presentation-1",
+          audioPresetId: "audio-1",
+        },
+      }),
+    });
+
+    expect(response.status).toBe(422);
+    expect(response.headers["content-type"]).toContain("application/problem+json");
+    expect(JSON.parse(response.body) as unknown).toMatchObject({
+      code: "profile_input_invalid",
+      status: 422,
+      requestId: "request-math-capability",
+      retryable: false,
+      errors: expect.arrayContaining([
+        {
+          path: "content.grade",
+          message: "Value is not supported by the selected profile capability.",
+        },
+      ]),
+    });
+    expect(response.body).not.toContain("M11-NO-001");
+    expect(response.body).not.toContain("advanced");
+    expect(created).toEqual([]);
+
+    const malformed = await request({
+      url: `${running.baseUrl}/v1/workspaces/ws-1/projects/project-1/episodes`,
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ content: {} }),
+    });
+    expect(malformed.status).toBe(400);
+    expect(JSON.parse(malformed.body) as unknown).toMatchObject({
+      code: "invalid_request",
+      status: 400,
+    });
+    expect(created).toEqual([]);
+  });
+
   it("maps episode, job, and workflow-step reads to their exact use cases", async () => {
     const calls: unknown[] = [];
     const running = await serve(createApiServer({
@@ -311,6 +376,43 @@ describe("HTTP API contract", () => {
     });
     expect(episodeResponse.status).toBe(404);
     expect(JSON.parse(episodeResponse.body) as unknown).toMatchObject({ code: "not_found" });
+  });
+
+  it("denies worker principals on public routes even when misprovisioned with permission", async () => {
+    let reads = 0;
+    const running = await serve(createApiServer({
+      useCases: {
+        ...useCases,
+        getEpisode: async () => {
+          reads += 1;
+          return { id: "episode-1", revision: 0, content: {} };
+        },
+      },
+      authenticate: async () => ({
+        principalId: "worker-1",
+        workspaceId: "ws-1",
+        permissions: ["content.read"],
+        kind: "worker" as const,
+      }),
+      requestId: () => "request-worker-public",
+    }));
+    closers.push(running.close);
+
+    const denied = await request({
+      url: `${running.baseUrl}/v1/workspaces/ws-1/projects/project-1/episodes/episode-1`,
+    });
+    expect(denied.status).toBe(403);
+    expect(JSON.parse(denied.body) as unknown).toMatchObject({
+      code: "authorization_denied",
+      requestId: "request-worker-public",
+    });
+    expect(reads).toBe(0);
+
+    const foreign = await request({
+      url: `${running.baseUrl}/v1/workspaces/foreign/projects/project-1/episodes/episode-1`,
+    });
+    expect(foreign.status).toBe(404);
+    expect(reads).toBe(0);
   });
 
   it("maps workspace quota, usage, and audit reads without numeric precision loss", async () => {

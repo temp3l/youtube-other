@@ -4,7 +4,68 @@ import type {
   PostgresQueryResult,
 } from "./postgres-workflow-repository.js";
 
+export const quotaDimensions = [
+  "active_workflows",
+  "provider_budget_minor",
+] as const;
+export type QuotaDimension = (typeof quotaDimensions)[number];
+
+export const POSTGRES_QUOTA_DIMENSION_MIGRATION = `
+CREATE TABLE IF NOT EXISTS workspace_quota_dimensions (
+  workspace_id TEXT NOT NULL,
+  dimension TEXT NOT NULL CHECK (dimension IN ('active_workflows', 'provider_budget_minor')),
+  limit_units BIGINT NOT NULL CHECK (limit_units >= 0),
+  revision BIGINT NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ NOT NULL,
+  updated_at TIMESTAMPTZ NOT NULL,
+  PRIMARY KEY (workspace_id, dimension)
+);
+CREATE TABLE IF NOT EXISTS quota_dimension_reservations (
+  workspace_id TEXT NOT NULL,
+  reservation_id TEXT NOT NULL,
+  dimension TEXT NOT NULL CHECK (dimension IN ('active_workflows', 'provider_budget_minor')),
+  attribution_key TEXT NOT NULL,
+  subject_id TEXT NOT NULL,
+  attempt_id TEXT NULL,
+  reserved_units BIGINT NOT NULL CHECK (reserved_units > 0),
+  settled_units BIGINT NULL CHECK (settled_units IS NULL OR settled_units > 0),
+  state TEXT NOT NULL DEFAULT 'reserved' CHECK (state IN ('reserved', 'settled', 'released')),
+  revision BIGINT NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ NOT NULL,
+  updated_at TIMESTAMPTZ NOT NULL,
+  PRIMARY KEY (workspace_id, reservation_id),
+  UNIQUE (workspace_id, dimension, attribution_key),
+  FOREIGN KEY (workspace_id, dimension)
+    REFERENCES workspace_quota_dimensions (workspace_id, dimension),
+  CHECK ((dimension = 'provider_budget_minor' AND attempt_id IS NOT NULL)
+    OR (dimension = 'active_workflows' AND attempt_id IS NULL)),
+  CHECK ((state = 'settled' AND settled_units IS NOT NULL)
+    OR (state <> 'settled' AND settled_units IS NULL))
+);
+CREATE UNIQUE INDEX IF NOT EXISTS quota_provider_attempt_attribution_unique
+  ON quota_dimension_reservations (workspace_id, attempt_id)
+  WHERE dimension = 'provider_budget_minor' AND attempt_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS quota_dimension_reservations_committed
+  ON quota_dimension_reservations (workspace_id, dimension, state);
+DO $$
+DECLARE table_name TEXT;
+BEGIN
+  FOREACH table_name IN ARRAY ARRAY['workspace_quota_dimensions', 'quota_dimension_reservations']
+  LOOP
+    EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY', table_name);
+    EXECUTE format('ALTER TABLE %I FORCE ROW LEVEL SECURITY', table_name);
+    EXECUTE format('DROP POLICY IF EXISTS workspace_isolation ON %I', table_name);
+    EXECUTE format(
+      'CREATE POLICY workspace_isolation ON %I USING (workspace_id = current_setting(''app.workspace_id'', true)) WITH CHECK (workspace_id = current_setting(''app.workspace_id'', true))',
+      table_name
+    );
+  END LOOP;
+END;
+$$;
+`;
+
 export const POSTGRES_USAGE_AUDIT_QUOTA_MIGRATION = `
+${POSTGRES_QUOTA_DIMENSION_MIGRATION}
 CREATE TABLE IF NOT EXISTS workspace_quota_policies (
   workspace_id TEXT PRIMARY KEY,
   budget_limit_minor BIGINT NOT NULL CHECK (budget_limit_minor >= 0),
@@ -96,6 +157,21 @@ export interface BudgetReservationRecord {
   readonly updatedAt: string;
 }
 
+export interface QuotaDimensionReservationRecord {
+  readonly workspaceId: string;
+  readonly reservationId: string;
+  readonly dimension: QuotaDimension;
+  readonly attributionKey: string;
+  readonly subjectId: string;
+  readonly attemptId: string | null;
+  readonly reservedUnits: bigint;
+  readonly settledUnits: bigint | null;
+  readonly state: "reserved" | "settled" | "released";
+  readonly revision: number;
+  readonly createdAt: string;
+  readonly updatedAt: string;
+}
+
 export interface WorkspaceQuotaStatusRecord {
   readonly workspaceId: string;
   readonly budgetLimitMinor: bigint;
@@ -149,8 +225,33 @@ interface TotalRow {
   readonly committed_minor: bigint | string;
 }
 
+interface QuotaDimensionPolicyRow {
+  readonly limit_units: bigint | string;
+  readonly revision: bigint | string;
+}
+
+interface QuotaDimensionReservationRow {
+  readonly workspace_id: string;
+  readonly reservation_id: string;
+  readonly dimension: QuotaDimension;
+  readonly attribution_key: string;
+  readonly subject_id: string;
+  readonly attempt_id: string | null;
+  readonly reserved_units: bigint | string;
+  readonly settled_units: bigint | string | null;
+  readonly state: "reserved" | "settled" | "released";
+  readonly revision: bigint | string;
+  readonly created_at: Date | string;
+  readonly updated_at: Date | string;
+}
+
+interface QuotaDimensionTotalRow {
+  readonly committed_units: bigint | string;
+}
+
 export class UsageAuditQuotaPersistenceError extends Error {}
 export class WorkspaceQuotaExceededError extends UsageAuditQuotaPersistenceError {}
+export class WorkspaceQuotaPolicyMissingError extends UsageAuditQuotaPersistenceError {}
 
 function timestamp(value: Date | string): string {
   return new Date(value).toISOString();
@@ -169,6 +270,25 @@ function mapReservation(row: ReservationRow): BudgetReservationRecord {
   };
 }
 
+function mapQuotaDimensionReservation(
+  row: QuotaDimensionReservationRow
+): QuotaDimensionReservationRecord {
+  return {
+    workspaceId: row.workspace_id,
+    reservationId: row.reservation_id,
+    dimension: row.dimension,
+    attributionKey: row.attribution_key,
+    subjectId: row.subject_id,
+    attemptId: row.attempt_id,
+    reservedUnits: BigInt(row.reserved_units),
+    settledUnits: row.settled_units === null ? null : BigInt(row.settled_units),
+    state: row.state,
+    revision: Number(row.revision),
+    createdAt: timestamp(row.created_at),
+    updatedAt: timestamp(row.updated_at),
+  };
+}
+
 function first<T>(result: PostgresQueryResult<T>, message: string): T {
   const value = result.rows[0];
   if (!value) throw new UsageAuditQuotaPersistenceError(message);
@@ -176,7 +296,124 @@ function first<T>(result: PostgresQueryResult<T>, message: string): T {
 }
 
 function positive(value: bigint, name: string): void {
-  if (value <= 0n) throw new UsageAuditQuotaPersistenceError(`${name} must use positive integer minor units.`);
+  if (value <= 0n)
+    throw new UsageAuditQuotaPersistenceError(
+      `${name} must use positive integer minor units.`
+    );
+}
+
+function assertDimensionReservation(input: {
+  readonly dimension: QuotaDimension;
+  readonly units: bigint;
+  readonly attemptId?: string;
+}): void {
+  if (input.units <= 0n)
+    throw new UsageAuditQuotaPersistenceError(
+      "Quota reservation units must be positive integers."
+    );
+  if (
+    (input.dimension === "provider_budget_minor") !==
+    (input.attemptId !== undefined)
+  )
+    throw new UsageAuditQuotaPersistenceError(
+      "Provider budget reservations require one durable attempt ID; workflow concurrency reservations must not use one."
+    );
+}
+
+export async function reserveQuotaDimensionInTransaction(
+  client: Pick<PostgresClient, "query">,
+  input: {
+    readonly workspaceId: string;
+    readonly reservationId: string;
+    readonly dimension: QuotaDimension;
+    readonly attributionKey: string;
+    readonly subjectId: string;
+    readonly attemptId?: string;
+    readonly units: bigint;
+    readonly now: string;
+    /** Internal compatibility only. External pilot admission must provision policy. */
+    readonly allowMissingPolicy?: boolean;
+  }
+): Promise<{
+  readonly replayed: boolean;
+  readonly reservation: QuotaDimensionReservationRecord;
+} | null> {
+  assertDimensionReservation(input);
+  const policy = await client.query<QuotaDimensionPolicyRow>(
+    `SELECT limit_units, revision FROM workspace_quota_dimensions
+     WHERE workspace_id = $1 AND dimension = $2 FOR UPDATE`,
+    [input.workspaceId, input.dimension]
+  );
+  if (!policy.rows[0]) {
+    if (input.allowMissingPolicy === true) return null;
+    throw new WorkspaceQuotaPolicyMissingError(
+      `Workspace quota policy ${input.dimension} is not configured.`
+    );
+  }
+  const existing = await client.query<QuotaDimensionReservationRow>(
+    `SELECT * FROM quota_dimension_reservations
+     WHERE workspace_id = $1 AND dimension = $2 AND attribution_key = $3
+     FOR UPDATE`,
+    [input.workspaceId, input.dimension, input.attributionKey]
+  );
+  if (existing.rows[0]) {
+    const reservation = mapQuotaDimensionReservation(existing.rows[0]);
+    if (
+      reservation.reservationId !== input.reservationId ||
+      reservation.subjectId !== input.subjectId ||
+      reservation.attemptId !== (input.attemptId ?? null) ||
+      reservation.reservedUnits !== input.units
+    )
+      throw new UsageAuditQuotaPersistenceError(
+        "Quota attribution key conflicts with another reservation."
+      );
+    return { replayed: true, reservation };
+  }
+  const total = first(
+    await client.query<QuotaDimensionTotalRow>(
+      `SELECT COALESCE(SUM(
+         CASE
+           WHEN state = 'reserved' THEN reserved_units
+           WHEN state = 'settled' AND dimension = 'provider_budget_minor' THEN settled_units
+           ELSE 0
+         END
+       ), 0)::bigint AS committed_units
+       FROM quota_dimension_reservations
+       WHERE workspace_id = $1 AND dimension = $2 AND state IN ('reserved', 'settled')`,
+      [input.workspaceId, input.dimension]
+    ),
+    "Quota dimension total could not be read."
+  );
+  if (
+    BigInt(total.committed_units) + input.units >
+    BigInt(policy.rows[0].limit_units)
+  )
+    throw new WorkspaceQuotaExceededError(
+      `Workspace quota ${input.dimension} is exceeded.`
+    );
+  const inserted = await client.query<QuotaDimensionReservationRow>(
+    `INSERT INTO quota_dimension_reservations (
+       workspace_id, reservation_id, dimension, attribution_key, subject_id,
+       attempt_id, reserved_units, created_at, updated_at
+     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8::timestamptz, $8::timestamptz)
+     RETURNING *`,
+    [
+      input.workspaceId,
+      input.reservationId,
+      input.dimension,
+      input.attributionKey,
+      input.subjectId,
+      input.attemptId ?? null,
+      input.units,
+      input.now,
+    ]
+  );
+  return {
+    replayed: false,
+    reservation: mapQuotaDimensionReservation(
+      first(inserted, "Quota dimension reservation could not be created.")
+    ),
+  };
 }
 
 export class PostgresUsageAuditRepository {
@@ -196,11 +433,16 @@ export class PostgresUsageAuditRepository {
     }
   }
 
-  private async transaction<T>(workspaceId: string, work: (client: PostgresClient) => Promise<T>): Promise<T> {
+  private async transaction<T>(
+    workspaceId: string,
+    work: (client: PostgresClient) => Promise<T>
+  ): Promise<T> {
     const client = await this.pool.connect();
     try {
       await client.query("BEGIN");
-      await client.query("SELECT set_config('app.workspace_id', $1, true)", [workspaceId]);
+      await client.query("SELECT set_config('app.workspace_id', $1, true)", [
+        workspaceId,
+      ]);
       const result = await work(client);
       await client.query("COMMIT");
       return result;
@@ -217,27 +459,287 @@ export class PostgresUsageAuditRepository {
     readonly budgetLimitMinor: bigint;
     readonly expectedRevision?: number;
     readonly now: string;
-  }): Promise<{ readonly budgetLimitMinor: bigint; readonly revision: number }> {
+  }): Promise<{
+    readonly budgetLimitMinor: bigint;
+    readonly revision: number;
+  }> {
     if (input.budgetLimitMinor < 0n)
-      throw new UsageAuditQuotaPersistenceError("Budget limit cannot be negative.");
+      throw new UsageAuditQuotaPersistenceError(
+        "Budget limit cannot be negative."
+      );
     return this.transaction(input.workspaceId, async (client) => {
-      const result = input.expectedRevision === undefined
-        ? await client.query<{ readonly budget_limit_minor: bigint | string; readonly revision: number | string }>(
-          `INSERT INTO workspace_quota_policies (workspace_id, budget_limit_minor, updated_at)
+      const result =
+        input.expectedRevision === undefined
+          ? await client.query<{
+              readonly budget_limit_minor: bigint | string;
+              readonly revision: number | string;
+            }>(
+              `INSERT INTO workspace_quota_policies (workspace_id, budget_limit_minor, updated_at)
            VALUES ($1, $2, $3::timestamptz)
            ON CONFLICT (workspace_id) DO NOTHING
            RETURNING budget_limit_minor, revision`,
-          [input.workspaceId, input.budgetLimitMinor, input.now]
-        )
-        : await client.query<{ readonly budget_limit_minor: bigint | string; readonly revision: number | string }>(
-          `UPDATE workspace_quota_policies
+              [input.workspaceId, input.budgetLimitMinor, input.now]
+            )
+          : await client.query<{
+              readonly budget_limit_minor: bigint | string;
+              readonly revision: number | string;
+            }>(
+              `UPDATE workspace_quota_policies
            SET budget_limit_minor = $1, revision = revision + 1, updated_at = $2::timestamptz
            WHERE workspace_id = $3 AND revision = $4
            RETURNING budget_limit_minor, revision`,
-          [input.budgetLimitMinor, input.now, input.workspaceId, input.expectedRevision]
+              [
+                input.budgetLimitMinor,
+                input.now,
+                input.workspaceId,
+                input.expectedRevision,
+              ]
+            );
+      const policy = first(
+        result,
+        "Quota policy already exists or its revision is stale."
+      );
+      return {
+        budgetLimitMinor: BigInt(policy.budget_limit_minor),
+        revision: Number(policy.revision),
+      };
+    });
+  }
+
+  public async setQuotaDimensionPolicy(input: {
+    readonly workspaceId: string;
+    readonly dimension: QuotaDimension;
+    readonly limitUnits: bigint;
+    readonly expectedRevision?: number;
+    readonly now: string;
+  }): Promise<{
+    readonly dimension: QuotaDimension;
+    readonly limitUnits: bigint;
+    readonly revision: number;
+  }> {
+    if (input.limitUnits < 0n)
+      throw new UsageAuditQuotaPersistenceError(
+        "Quota dimension limit cannot be negative."
+      );
+    return this.transaction(input.workspaceId, async (client) => {
+      const result =
+        input.expectedRevision === undefined
+          ? await client.query<{
+              readonly dimension: QuotaDimension;
+              readonly limit_units: bigint | string;
+              readonly revision: bigint | string;
+            }>(
+              `INSERT INTO workspace_quota_dimensions (
+                 workspace_id, dimension, limit_units, created_at, updated_at
+               ) VALUES ($1, $2, $3, $4::timestamptz, $4::timestamptz)
+               ON CONFLICT (workspace_id, dimension) DO NOTHING
+               RETURNING dimension, limit_units, revision`,
+              [input.workspaceId, input.dimension, input.limitUnits, input.now]
+            )
+          : await client.query<{
+              readonly dimension: QuotaDimension;
+              readonly limit_units: bigint | string;
+              readonly revision: bigint | string;
+            }>(
+              `UPDATE workspace_quota_dimensions
+               SET limit_units = $1, revision = revision + 1,
+                   updated_at = $2::timestamptz
+               WHERE workspace_id = $3 AND dimension = $4 AND revision = $5
+               RETURNING dimension, limit_units, revision`,
+              [
+                input.limitUnits,
+                input.now,
+                input.workspaceId,
+                input.dimension,
+                input.expectedRevision,
+              ]
+            );
+      const policy = first(
+        result,
+        "Quota dimension policy already exists or its revision is stale."
+      );
+      return {
+        dimension: policy.dimension,
+        limitUnits: BigInt(policy.limit_units),
+        revision: Number(policy.revision),
+      };
+    });
+  }
+
+  /** Direct reservations fail closed when policy is absent. */
+  public reserveQuotaDimension(input: {
+    readonly workspaceId: string;
+    readonly reservationId: string;
+    readonly dimension: QuotaDimension;
+    readonly attributionKey: string;
+    readonly subjectId: string;
+    readonly attemptId?: string;
+    readonly units: bigint;
+    readonly now: string;
+  }): Promise<{
+    readonly replayed: boolean;
+    readonly reservation: QuotaDimensionReservationRecord;
+  }> {
+    return this.transaction(input.workspaceId, async (client) => {
+      const result = await reserveQuotaDimensionInTransaction(client, input);
+      if (!result)
+        throw new WorkspaceQuotaPolicyMissingError(
+          `Workspace quota policy ${input.dimension} is not configured.`
         );
-      const policy = first(result, "Quota policy already exists or its revision is stale.");
-      return { budgetLimitMinor: BigInt(policy.budget_limit_minor), revision: Number(policy.revision) };
+      return result;
+    });
+  }
+
+  public settleQuotaDimension(input: {
+    readonly workspaceId: string;
+    readonly reservationId: string;
+    readonly attemptId: string;
+    readonly settledUnits: bigint;
+    readonly now: string;
+  }): Promise<{
+    readonly replayed: boolean;
+    readonly reservation: QuotaDimensionReservationRecord;
+  }> {
+    if (input.settledUnits <= 0n)
+      throw new UsageAuditQuotaPersistenceError(
+        "Settled provider budget units must be positive."
+      );
+    return this.transaction(input.workspaceId, async (client) => {
+      const policy = first(
+        await client.query<QuotaDimensionPolicyRow>(
+          `SELECT limit_units, revision FROM workspace_quota_dimensions
+           WHERE workspace_id = $1 AND dimension = 'provider_budget_minor'
+           FOR UPDATE`,
+          [input.workspaceId]
+        ),
+        "Provider budget quota policy is not configured."
+      );
+      const current = mapQuotaDimensionReservation(
+        first(
+          await client.query<QuotaDimensionReservationRow>(
+            `SELECT * FROM quota_dimension_reservations
+             WHERE workspace_id = $1 AND reservation_id = $2
+             FOR UPDATE`,
+            [input.workspaceId, input.reservationId]
+          ),
+          "Provider budget reservation is missing."
+        )
+      );
+      if (
+        current.dimension !== "provider_budget_minor" ||
+        current.attemptId !== input.attemptId
+      )
+        throw new UsageAuditQuotaPersistenceError(
+          "Provider attempt attribution does not match the reservation."
+        );
+      if (current.state === "settled") {
+        if (current.settledUnits !== input.settledUnits)
+          throw new UsageAuditQuotaPersistenceError(
+            "Provider attempt is already settled with different usage."
+          );
+        return { replayed: true, reservation: current };
+      }
+      if (current.state !== "reserved")
+        throw new UsageAuditQuotaPersistenceError(
+          "Released provider budget cannot be settled."
+        );
+      const committed = first(
+        await client.query<QuotaDimensionTotalRow>(
+          `SELECT COALESCE(SUM(
+             CASE WHEN state = 'reserved' THEN reserved_units ELSE settled_units END
+           ), 0)::bigint AS committed_units
+           FROM quota_dimension_reservations
+           WHERE workspace_id = $1 AND dimension = 'provider_budget_minor'
+             AND state IN ('reserved', 'settled') AND reservation_id <> $2`,
+          [input.workspaceId, input.reservationId]
+        ),
+        "Provider budget total could not be read."
+      );
+      if (
+        BigInt(committed.committed_units) + input.settledUnits >
+        BigInt(policy.limit_units)
+      )
+        throw new WorkspaceQuotaExceededError(
+          "Workspace quota provider_budget_minor is exceeded at settlement."
+        );
+      const updated = await client.query<QuotaDimensionReservationRow>(
+        `UPDATE quota_dimension_reservations
+         SET state = 'settled', settled_units = $1, revision = revision + 1,
+             updated_at = $2::timestamptz
+         WHERE workspace_id = $3 AND reservation_id = $4
+           AND dimension = 'provider_budget_minor' AND attempt_id = $5
+           AND state = 'reserved' AND revision = $6
+         RETURNING *`,
+        [
+          input.settledUnits,
+          input.now,
+          input.workspaceId,
+          input.reservationId,
+          input.attemptId,
+          current.revision,
+        ]
+      );
+      return {
+        replayed: false,
+        reservation: mapQuotaDimensionReservation(
+          first(
+            updated,
+            "Provider budget reservation changed during settlement."
+          )
+        ),
+      };
+    });
+  }
+
+  public releaseQuotaDimension(input: {
+    readonly workspaceId: string;
+    readonly reservationId: string;
+    readonly expectedRevision: number;
+    readonly now: string;
+  }): Promise<{
+    readonly replayed: boolean;
+    readonly reservation: QuotaDimensionReservationRecord;
+  }> {
+    return this.transaction(input.workspaceId, async (client) => {
+      const current = mapQuotaDimensionReservation(
+        first(
+          await client.query<QuotaDimensionReservationRow>(
+            `SELECT * FROM quota_dimension_reservations
+             WHERE workspace_id = $1 AND reservation_id = $2 FOR UPDATE`,
+            [input.workspaceId, input.reservationId]
+          ),
+          "Quota dimension reservation is missing."
+        )
+      );
+      if (current.state === "released")
+        return { replayed: true, reservation: current };
+      if (
+        current.state !== "reserved" ||
+        current.revision !== input.expectedRevision
+      )
+        throw new UsageAuditQuotaPersistenceError(
+          "Quota dimension reservation is stale or already consumed."
+        );
+      const updated = await client.query<QuotaDimensionReservationRow>(
+        `UPDATE quota_dimension_reservations
+         SET state = 'released', revision = revision + 1,
+             updated_at = $1::timestamptz
+         WHERE workspace_id = $2 AND reservation_id = $3
+           AND state = 'reserved' AND revision = $4
+         RETURNING *`,
+        [
+          input.now,
+          input.workspaceId,
+          input.reservationId,
+          input.expectedRevision,
+        ]
+      );
+      return {
+        replayed: false,
+        reservation: mapQuotaDimensionReservation(
+          first(updated, "Quota dimension reservation changed during release.")
+        ),
+      };
     });
   }
 
@@ -287,14 +789,20 @@ export class PostgresUsageAuditRepository {
     readonly idempotencyKey: string;
     readonly amountMinor: bigint;
     readonly now: string;
-  }): Promise<{ readonly replayed: boolean; readonly reservation: BudgetReservationRecord }> {
+  }): Promise<{
+    readonly replayed: boolean;
+    readonly reservation: BudgetReservationRecord;
+  }> {
     positive(input.amountMinor, "Reservation amount");
     return this.transaction(input.workspaceId, async (client) => {
-      const policy = first(await client.query<PolicyRow>(
-        `SELECT budget_limit_minor FROM workspace_quota_policies
+      const policy = first(
+        await client.query<PolicyRow>(
+          `SELECT budget_limit_minor FROM workspace_quota_policies
          WHERE workspace_id = $1 FOR UPDATE`,
-        [input.workspaceId]
-      ), "Workspace quota policy is not configured.");
+          [input.workspaceId]
+        ),
+        "Workspace quota policy is not configured."
+      );
       const existing = await client.query<ReservationRow>(
         `SELECT * FROM budget_reservations
          WHERE workspace_id = $1 AND idempotency_key = $2 FOR UPDATE`,
@@ -302,26 +810,50 @@ export class PostgresUsageAuditRepository {
       );
       if (existing.rows[0]) {
         const reservation = mapReservation(existing.rows[0]);
-        if (reservation.reservationId !== input.reservationId || reservation.amountMinor !== input.amountMinor)
-          throw new UsageAuditQuotaPersistenceError("Idempotency key conflicts with another budget reservation.");
+        if (
+          reservation.reservationId !== input.reservationId ||
+          reservation.amountMinor !== input.amountMinor
+        )
+          throw new UsageAuditQuotaPersistenceError(
+            "Idempotency key conflicts with another budget reservation."
+          );
         return { replayed: true, reservation };
       }
-      const totals = first(await client.query<TotalRow>(
-        `SELECT COALESCE(SUM(amount_minor), 0)::bigint AS committed_minor
+      const totals = first(
+        await client.query<TotalRow>(
+          `SELECT COALESCE(SUM(amount_minor), 0)::bigint AS committed_minor
          FROM budget_reservations
          WHERE workspace_id = $1 AND state IN ('reserved', 'settled')`,
-        [input.workspaceId]
-      ), "Workspace budget total could not be read.");
-      if (BigInt(totals.committed_minor) + input.amountMinor > BigInt(policy.budget_limit_minor))
-        throw new WorkspaceQuotaExceededError("Workspace budget quota is exceeded.");
+          [input.workspaceId]
+        ),
+        "Workspace budget total could not be read."
+      );
+      if (
+        BigInt(totals.committed_minor) + input.amountMinor >
+        BigInt(policy.budget_limit_minor)
+      )
+        throw new WorkspaceQuotaExceededError(
+          "Workspace budget quota is exceeded."
+        );
       const inserted = await client.query<ReservationRow>(
         `INSERT INTO budget_reservations (
            workspace_id, reservation_id, idempotency_key, amount_minor, created_at, updated_at
          ) VALUES ($1, $2, $3, $4, $5::timestamptz, $5::timestamptz)
          RETURNING *`,
-        [input.workspaceId, input.reservationId, input.idempotencyKey, input.amountMinor, input.now]
+        [
+          input.workspaceId,
+          input.reservationId,
+          input.idempotencyKey,
+          input.amountMinor,
+          input.now,
+        ]
       );
-      return { replayed: false, reservation: mapReservation(first(inserted, "Budget reservation could not be created.")) };
+      return {
+        replayed: false,
+        reservation: mapReservation(
+          first(inserted, "Budget reservation could not be created.")
+        ),
+      };
     });
   }
 
@@ -332,13 +864,26 @@ export class PostgresUsageAuditRepository {
     readonly state: "settled" | "released";
     readonly now: string;
   }): Promise<BudgetReservationRecord> {
-    return this.transaction(input.workspaceId, async (client) => mapReservation(first(await client.query<ReservationRow>(
-      `UPDATE budget_reservations
+    return this.transaction(input.workspaceId, async (client) =>
+      mapReservation(
+        first(
+          await client.query<ReservationRow>(
+            `UPDATE budget_reservations
        SET state = $1, revision = revision + 1, updated_at = $2::timestamptz
        WHERE workspace_id = $3 AND reservation_id = $4 AND revision = $5 AND state = 'reserved'
        RETURNING *`,
-      [input.state, input.now, input.workspaceId, input.reservationId, input.expectedRevision]
-    ), "Budget reservation was missing, stale, or no longer reserved.")));
+            [
+              input.state,
+              input.now,
+              input.workspaceId,
+              input.reservationId,
+              input.expectedRevision,
+            ]
+          ),
+          "Budget reservation was missing, stale, or no longer reserved."
+        )
+      )
+    );
   }
 
   public async appendAuditFact(input: {
@@ -361,7 +906,18 @@ export class PostgresUsageAuditRepository {
          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb, $10::timestamptz)
          ON CONFLICT (workspace_id, idempotency_key) DO NOTHING
          RETURNING audit_id`,
-        [input.workspaceId, input.auditId, input.idempotencyKey, input.action, input.subjectId, input.actorId, input.correlationId, input.causationId ?? null, JSON.stringify(input.data), input.occurredAt]
+        [
+          input.workspaceId,
+          input.auditId,
+          input.idempotencyKey,
+          input.action,
+          input.subjectId,
+          input.actorId,
+          input.correlationId,
+          input.causationId ?? null,
+          JSON.stringify(input.data),
+          input.occurredAt,
+        ]
       );
       return result.rows[0] !== undefined;
     });
@@ -382,9 +938,16 @@ export class PostgresUsageAuditRepository {
     readonly data: Readonly<Record<string, unknown>>;
     readonly occurredAt: string;
   }): Promise<boolean> {
-    if (input.quantityUnits === 0n || (input.kind === "usage" && (input.quantityUnits < 0n || input.costMinor < 0n)) ||
-      (input.kind === "correction") !== (input.correctionOfUsageId !== undefined))
-      throw new UsageAuditQuotaPersistenceError("Usage and correction quantities are invalid.");
+    if (
+      input.quantityUnits === 0n ||
+      (input.kind === "usage" &&
+        (input.quantityUnits < 0n || input.costMinor < 0n)) ||
+      (input.kind === "correction") !==
+        (input.correctionOfUsageId !== undefined)
+    )
+      throw new UsageAuditQuotaPersistenceError(
+        "Usage and correction quantities are invalid."
+      );
     return this.transaction(input.workspaceId, async (client) => {
       const result = await client.query<{ readonly usage_id: string }>(
         `INSERT INTO usage_ledger (
@@ -393,7 +956,21 @@ export class PostgresUsageAuditRepository {
          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12::jsonb, $13::timestamptz)
          ON CONFLICT (workspace_id, idempotency_key) DO NOTHING
          RETURNING usage_id`,
-        [input.workspaceId, input.usageId, input.idempotencyKey, input.kind, input.subjectId, input.operation, input.unit, input.quantityUnits, input.costMinor, input.correctionOfUsageId ?? null, input.attemptId ?? null, JSON.stringify(input.data), input.occurredAt]
+        [
+          input.workspaceId,
+          input.usageId,
+          input.idempotencyKey,
+          input.kind,
+          input.subjectId,
+          input.operation,
+          input.unit,
+          input.quantityUnits,
+          input.costMinor,
+          input.correctionOfUsageId ?? null,
+          input.attemptId ?? null,
+          JSON.stringify(input.data),
+          input.occurredAt,
+        ]
       );
       return result.rows[0] !== undefined;
     });

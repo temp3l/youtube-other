@@ -36,6 +36,17 @@ export class TaskRegistryError extends Error {
   }
 }
 
+export interface TaskExecutionControl {
+  /** Cooperative cancellation propagated from the owning worker or caller. */
+  readonly signal: AbortSignal;
+  /** Durable job deadline, when execution is owned by a leased worker. */
+  readonly deadlineAt: string | null;
+  /** Fence of the durable lease; null for local/filesystem execution. */
+  readonly leaseFence: number | null;
+  /** One-based durable dispatch attempt; local execution defaults to one. */
+  readonly dispatchAttempt: number;
+}
+
 export interface TaskExecutionContext {
   readonly unitId: string;
   readonly profileId: ContentProfileId;
@@ -46,6 +57,7 @@ export interface TaskExecutionContext {
   readonly attemptId: AttemptId;
   readonly fingerprint: TaskFingerprint;
   readonly dependencyFingerprints: readonly TaskFingerprint[];
+  readonly control: TaskExecutionControl;
 }
 
 export interface TaskExecutionResult {

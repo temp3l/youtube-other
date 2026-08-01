@@ -124,6 +124,13 @@ describe("application contracts", () => {
       code: "idempotency_key_conflict",
       retryable: false,
     });
+    expect(
+      new ApplicationError(
+        "profile_input_invalid",
+        "The profile capability does not support this input.",
+        false
+      )
+    ).toMatchObject({ code: "profile_input_invalid", retryable: false });
   });
 
   it("uses database authority by default and bounds legacy rollback", () => {

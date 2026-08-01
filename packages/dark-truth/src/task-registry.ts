@@ -620,8 +620,13 @@ export const darkTruthWorkflowDefinition: WorkflowDefinition =
     taskIds: DARK_TRUTH_TASK_IDS,
   });
 
-export function createDarkTruthTaskRegistry(): TaskRegistry {
-  const registry = createTaskRegistry(createDarkTruthTaskRegistrations());
+export function createDarkTruthTaskRegistry(
+  implementations: Readonly<Partial<Record<string, TaskImplementation>>> = {},
+  profileEvidence?: DarkTruthProfileReadinessEvidence
+): TaskRegistry {
+  const registry = createTaskRegistry(
+    createDarkTruthTaskRegistrations(implementations, profileEvidence)
+  );
   registry.validateWorkflow(darkTruthWorkflowDefinition);
   return registry;
 }

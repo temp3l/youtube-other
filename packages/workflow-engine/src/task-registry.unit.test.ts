@@ -260,6 +260,16 @@ describe("task registry and DAG", () => {
         locale: "en",
         variant: "full",
         dryRun: true,
+        runId: "run-registrytest",
+        attemptId: "attempt-registrytest",
+        fingerprint: "a".repeat(64),
+        dependencyFingerprints: [],
+        control: {
+          signal: new AbortController().signal,
+          deadlineAt: null,
+          leaseFence: null,
+          dispatchAttempt: 1,
+        },
       })
     ).resolves.toEqual({ outputArtifacts: ["episode-1"], warnings: [] });
     expect(service).toHaveBeenCalledOnce();

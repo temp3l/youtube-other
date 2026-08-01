@@ -91,8 +91,8 @@ BEGIN
            'version', '1',
            'occurred_at', NEW.occurred_at,
            'workspace_id', NEW.workspace_id,
-           'subject', jsonb_build_object('type', 'workflow_run', 'id', NEW.run_id),
-           'subject_version', NEW.subject_revision,
+           'subject', jsonb_build_object('type', NEW.subject_type, 'id', NEW.subject_id),
+           'subject_version', NEW.subject_version,
            'correlation_id', COALESCE(
              NEW.data ->> 'correlation_id',
              NEW.data ->> 'correlationId',

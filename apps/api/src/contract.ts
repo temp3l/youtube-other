@@ -1,6 +1,41 @@
 import { z } from "zod";
 
+import { ApplicationError } from "@mediaforge/application";
+
 const opaqueId = z.string().min(3).max(160).regex(/^[a-zA-Z0-9][a-zA-Z0-9._-]*$/u);
+const mathGrade = z.union([
+  z.literal(5),
+  z.literal(6),
+  z.literal(7),
+  z.literal(8),
+  z.literal(9),
+  z.literal(10),
+]);
+const mathDifficulty = z.enum(["foundation", "standard", "challenge"]);
+const mathSkillId = z
+  .string()
+  .regex(/^M(?:5|6|7|8|9|10)-[A-Z]{2}-\d{3}$/u);
+const mathematicsEducationContentSchema = z
+  .object({
+    type: z.literal("mathematics_education"),
+    version: z.literal("1"),
+    curriculumSourceId: opaqueId,
+    skillId: mathSkillId,
+    grade: mathGrade,
+    difficulty: mathDifficulty,
+    presentationPresetId: opaqueId,
+    audioPresetId: opaqueId,
+  })
+  .strict()
+  .superRefine((value, context) => {
+    if (Number(value.skillId.slice(1, value.skillId.indexOf("-"))) !== value.grade) {
+      context.addIssue({
+        code: "custom",
+        path: ["skillId"],
+        message: "Mathematics skill ID grade must match the selected grade.",
+      });
+    }
+  });
 
 export const projectInputSchema = z
   .object({ name: z.string().trim().min(1).max(160), profile: z.enum(["dark_truth", "mathematics_education"]) })
@@ -9,10 +44,32 @@ export const episodeInputSchema = z
   .object({
     content: z.discriminatedUnion("type", [
       z.object({ type: z.literal("dark_truth"), version: z.literal("1"), premise: z.string().trim().min(1).max(20_000), storyBibleId: opaqueId, referenceAssetIds: z.array(opaqueId).max(100) }).strict(),
-      z.object({ type: z.literal("mathematics_education"), version: z.literal("1"), curriculumSourceId: opaqueId, skillId: opaqueId, grade: z.number().int().min(1).max(13), difficulty: z.enum(["introductory", "standard", "advanced"]), presentationPresetId: opaqueId, audioPresetId: opaqueId }).strict(),
+      mathematicsEducationContentSchema,
     ]),
   })
   .strict();
+
+/** Keeps parsed-but-unsupported profile capability input distinct from malformed JSON. */
+export function parseEpisodeInput(value: unknown): EpisodeInput {
+  const parsed = episodeInputSchema.safeParse(value);
+  if (parsed.success) return parsed.data;
+  const content = value && typeof value === "object"
+    ? Reflect.get(value, "content")
+    : undefined;
+  if (
+    content &&
+    typeof content === "object" &&
+    Reflect.get(content, "type") === "mathematics_education"
+  ) {
+    throw new ApplicationError(
+      "profile_input_invalid",
+      "Mathematics episode input is outside the supported profile capability.",
+      false,
+      [...new Set(parsed.error.issues.map((issue) => issue.path.join(".")))]
+    );
+  }
+  throw parsed.error;
+}
 export const workflowAdmissionSchema = z
   .object({
     template: z.literal("episode-production"),
@@ -445,9 +502,9 @@ export const openApiDocument = {
           type: { const: "mathematics_education" },
           version: { const: "1" },
           curriculumSourceId: schema("OpaqueId"),
-          skillId: schema("OpaqueId"),
-          grade: { type: "integer", minimum: 1, maximum: 13 },
-          difficulty: { type: "string", enum: ["introductory", "standard", "advanced"] },
+          skillId: { type: "string", pattern: "^M(?:5|6|7|8|9|10)-[A-Z]{2}-\\d{3}$" },
+          grade: { type: "integer", enum: [5, 6, 7, 8, 9, 10] },
+          difficulty: { type: "string", enum: ["foundation", "standard", "challenge"] },
           presentationPresetId: schema("OpaqueId"),
           audioPresetId: schema("OpaqueId"),
         },

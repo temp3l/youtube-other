@@ -24,6 +24,7 @@ import {
 import {
   WorkflowBlockedError,
   WorkflowConflictError,
+  WorkflowInterruptedError,
   WorkflowPermanentFailureError,
   normalizeWorkflowError,
   errorCodeToExitCode,
@@ -38,7 +39,10 @@ import {
   type LegacyCacheAdapter,
   type TaskFingerprintMaterial,
 } from "./cache.js";
-import { type TaskRegistry } from "./task-registry.js";
+import {
+  type TaskExecutionControl,
+  type TaskRegistry,
+} from "./task-registry.js";
 import {
   WorkflowStore,
   WorkflowStoreError,
@@ -67,6 +71,7 @@ export interface WorkflowOperatorOptions {
     manifest: ArtifactManifest
   ) => boolean | Promise<boolean>;
   readonly legacyCacheAdapters?: readonly LegacyCacheAdapter[];
+  readonly executionControl?: TaskExecutionControl;
 }
 
 export interface WorkflowGraph {
@@ -156,6 +161,7 @@ export class WorkflowOperator {
   private readonly verifyArtifact: (
     manifest: ArtifactManifest
   ) => boolean | Promise<boolean>;
+  private readonly executionControl: TaskExecutionControl;
 
   public constructor(private readonly options: WorkflowOperatorOptions) {
     this.unitRoot = options.unitRoot;
@@ -166,6 +172,12 @@ export class WorkflowOperator {
     this.now = options.now ?? (() => new Date());
     this.idFactory = options.idFactory ?? defaultId;
     this.verifyArtifact = options.verifyArtifact ?? (() => false);
+    this.executionControl = options.executionControl ?? {
+      signal: new AbortController().signal,
+      deadlineAt: null,
+      leaseFence: null,
+      dispatchAttempt: 1,
+    };
     this.store =
       options.store ??
       new WorkflowStore({
@@ -174,6 +186,23 @@ export class WorkflowOperator {
         identity: options.identity,
         ...(options.now ? { now: options.now } : {}),
       });
+  }
+
+  private assertExecutionActive(): void {
+    if (this.executionControl.signal.aborted) {
+      throw new WorkflowInterruptedError(
+        "Workflow execution was cancelled by its owning dispatcher."
+      );
+    }
+    if (
+      this.executionControl.deadlineAt !== null &&
+      this.now().getTime() >=
+        new Date(this.executionControl.deadlineAt).getTime()
+    ) {
+      throw new WorkflowInterruptedError(
+        "Workflow execution exceeded its durable job deadline."
+      );
+    }
   }
 
   public list(): ReturnType<TaskRegistry["list"]> {
@@ -401,6 +430,7 @@ export class WorkflowOperator {
         `Use the existing ${registration.definition.cli.resource} command until this task family migrates.`
       );
     }
+    this.assertExecutionActive();
 
     const attempts = await this.store.listAttempts(taskId);
     const attemptNumber = attempts.length + 1;
@@ -446,7 +476,11 @@ export class WorkflowOperator {
           attemptId,
           fingerprint,
           dependencyFingerprints,
+          control: this.executionControl,
         });
+        // A provider or process may complete after cancellation or lease loss.
+        // Refuse to register that late result as canonical workflow evidence.
+        this.assertExecutionActive();
         const outputs = result.outputArtifacts.map((output) =>
           artifactManifestSchema.parse(output)
         );

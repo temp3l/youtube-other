@@ -17,6 +17,19 @@ describe("API principal provisioning", () => {
     });
   });
 
+  it("rejects permissions outside the approved vocabulary", () => {
+    expect(() =>
+      parsePrincipalProvisionEnvironment({
+        MEDIAFORGE_PRINCIPAL_WORKSPACE_ID: "workspace-1",
+        MEDIAFORGE_PRINCIPAL_OIDC_SUBJECT: "oidc|subject-1",
+        MEDIAFORGE_PRINCIPAL_ID: "principal-1",
+        MEDIAFORGE_PRINCIPAL_KIND: "service",
+        MEDIAFORGE_PRINCIPAL_PERMISSIONS: "unrelated.permission",
+        MEDIAFORGE_PRINCIPAL_ACTOR_SUBJECT: "operator|one",
+      })
+    ).toThrow(/approved permission vocabulary/u);
+  });
+
   it("migrates and provisions through the directory without exposing database details", async () => {
     const calls: unknown[] = [];
     const pool = {

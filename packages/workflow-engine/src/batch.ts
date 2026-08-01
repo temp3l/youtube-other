@@ -321,7 +321,7 @@ export class BatchCoordinator {
         const work = workById.get(itemId);
         if (!work)
           throw new Error(`Missing work implementation for ${itemId}.`);
-        manifest = await this.executeItem(manifest, itemId, work);
+        manifest = await this.executeItem(manifest, itemId, work, signal);
       }
     };
     await Promise.all(
@@ -390,7 +390,8 @@ export class BatchCoordinator {
   private async executeItem(
     manifest: BatchManifest,
     itemId: BatchItemId,
-    work: BatchWorkItem
+    work: BatchWorkItem,
+    signal?: AbortSignal
   ): Promise<BatchManifest> {
     let current = manifest;
     const startingAttempts =
@@ -431,6 +432,12 @@ export class BatchCoordinator {
           attemptId,
           fingerprint: item.fingerprint as TaskFingerprint,
           dependencyFingerprints: [],
+          control: {
+            signal: signal ?? new AbortController().signal,
+            deadlineAt: null,
+            leaseFence: null,
+            dispatchAttempt: attemptNumber,
+          },
         });
       } catch (error) {
         failure = normalizeWorkflowError(error);

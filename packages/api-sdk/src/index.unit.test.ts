@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
 
-import { describe, expect, it } from "vitest";
+import { describe, expect, expectTypeOf, it } from "vitest";
 
 import {
   ApiProblemError,
@@ -13,6 +13,7 @@ import {
   withIfMatch,
   withRequestId,
   type Job,
+  type MathematicsEducationContent,
 } from "./index.js";
 
 function jsonResponse(value: unknown, init: ResponseInit = {}): Response {
@@ -23,6 +24,26 @@ function jsonResponse(value: unknown, init: ResponseInit = {}): Response {
 }
 
 describe("Mediaforge API SDK", () => {
+  it("types the canonical mathematics capability contract", () => {
+    expectTypeOf<MathematicsEducationContent["grade"]>().toEqualTypeOf<
+      5 | 6 | 7 | 8 | 9 | 10
+    >();
+    expectTypeOf<MathematicsEducationContent["difficulty"]>().toEqualTypeOf<
+      "foundation" | "standard" | "challenge"
+    >();
+    const content: MathematicsEducationContent = {
+      type: "mathematics_education",
+      version: "1",
+      curriculumSourceId: "curriculum-1",
+      skillId: "M5-NO-001",
+      grade: 5,
+      difficulty: "foundation",
+      presentationPresetId: "presentation-1",
+      audioPresetId: "audio-1",
+    };
+    expect(content).toMatchObject({ grade: 5, difficulty: "foundation" });
+  });
+
   it("maps every current operation to its typed HTTP route and headers", async () => {
     const requests: Array<{ readonly url: string; readonly init?: RequestInit }> = [];
     const bodies: unknown[] = [

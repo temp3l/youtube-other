@@ -14,5 +14,6 @@ export * from "./release-gates.js";
 export * from "./ports.js";
 export * from "./durable-outbox-worker.js";
 export * from "./durable-job-worker.js";
+export * from "./durable-workflow-job-handler.js";
 export * from "./durable-webhook-worker.js";
 export * from "./workflow-admission.js";

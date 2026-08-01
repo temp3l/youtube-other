@@ -2,6 +2,8 @@ import crypto from "node:crypto";
 
 import {
   hashPilotApiKey,
+  isAllowedPilotApiKeyPermissions,
+  normalizeApiPermissions,
   verifyPilotApiKeyHash,
   type AuthenticatedPrincipal,
 } from "./tenant-identity.js";
@@ -145,7 +147,7 @@ export class PilotApiKeyService {
       principalId: input.principalId,
       lookupFingerprint: fingerprintPilotApiKey(token),
       secretHash: hashPilotApiKey(token),
-      permissions: [...new Set(input.permissions)].sort(),
+      permissions: normalizeApiPermissions(input.permissions, "pilot-api-key"),
       expiresAt: input.expiresAt,
       actorSubject: input.actorSubject,
       auditId: this.options.createId("audit"),
@@ -177,7 +179,13 @@ export class DurablePilotApiKeyAuthenticator {
       lookupFingerprint: fingerprintPilotApiKey(token),
       now: this.now().toISOString(),
     });
-    if (!candidate || !verifyPilotApiKeyHash(token, candidate.secretHash)) return null;
+    if (
+      !candidate ||
+      !verifyPilotApiKeyHash(token, candidate.secretHash) ||
+      !isAllowedPilotApiKeyPermissions(candidate.permissions) ||
+      !isAllowedPilotApiKeyPermissions(candidate.principalPermissions)
+    )
+      return null;
     const current = new Set(candidate.principalPermissions);
     return {
       workspaceId,

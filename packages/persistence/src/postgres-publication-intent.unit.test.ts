@@ -93,9 +93,20 @@ describe("PostgreSQL publication intent persistence", () => {
           sql.includes("'youtube.video_upload', 'prepared'")
       )
     ).toBe(true);
+    const event = calls.find(({ sql }) =>
+      sql.includes("INSERT INTO workflow_events")
+    );
+    expect(event?.sql).toContain("'publication.started'");
+    expect(event?.values).toEqual(
+      expect.arrayContaining(["publication", "publication-1"])
+    );
+    const notification = calls.find(({ sql }) =>
+      sql.includes("INSERT INTO workflow_outbox")
+    );
+    expect(notification?.sql).toContain("'publication.intent_recorded'");
     expect(
       calls.filter(({ sql }) => sql.includes("publication.intent_recorded"))
-    ).toHaveLength(2);
+    ).toHaveLength(1);
     expect(calls.some(({ sql }) => sql.includes("INSERT INTO jobs"))).toBe(
       false
     );

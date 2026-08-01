@@ -88,6 +88,14 @@ describe("pilot API key administration", () => {
       MEDIAFORGE_API_KEY_EXPIRES_AT: "2026-09-01T00:00:00.000Z",
       MEDIAFORGE_API_KEY_ACTOR_SUBJECT: "operator-1",
     })).toThrow(/PERMISSIONS/u);
+    expect(() => parsePilotApiKeyAdminEnvironment({
+      MEDIAFORGE_API_KEY_ACTION: "issue",
+      MEDIAFORGE_API_KEY_WORKSPACE_ID: "workspace-1",
+      MEDIAFORGE_API_KEY_PRINCIPAL_ID: "service-1",
+      MEDIAFORGE_API_KEY_PERMISSIONS: "publication.execute",
+      MEDIAFORGE_API_KEY_EXPIRES_AT: "2026-09-01T00:00:00.000Z",
+      MEDIAFORGE_API_KEY_ACTOR_SUBJECT: "operator-1",
+    })).toThrow(/PERMISSIONS/u);
   });
 
   it("migrates principal authority first and persists only hashes before show-once output", async () => {

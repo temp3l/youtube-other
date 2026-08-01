@@ -6,8 +6,8 @@ import { ZodError } from "zod";
 
 import {
   approvalInputSchema,
-  episodeInputSchema,
   openApiDocument,
+  parseEpisodeInput,
   projectInputSchema,
   workflowAdmissionSchema,
   type ApprovalInput,
@@ -225,10 +225,16 @@ function strongIfMatch(request: IncomingMessage): string {
 function problem(response: ServerResponse, requestIdValue: string, error: unknown): void {
   const appError = isApplicationError(error) ? error : undefined;
   const zod = error instanceof ZodError ? error : undefined;
-  const status = appError ? ({ authentication_required: 401, authorization_denied: 403, authority_conflict: 409, conflict: 409, idempotency_key_conflict: 409, idempotency_request_in_progress: 409, invalid_request: 400, not_found: 404, precondition_required: 428, precondition_failed: 412, quota_exceeded: 429, state_transition_rejected: 409, upstream_unavailable: 503 } as const)[appError.code] : zod ? 400 : 500;
+  const status = appError ? ({ authentication_required: 401, authorization_denied: 403, authority_conflict: 409, conflict: 409, idempotency_key_conflict: 409, idempotency_request_in_progress: 409, invalid_request: 400, not_found: 404, precondition_required: 428, precondition_failed: 412, profile_input_invalid: 422, quota_exceeded: 429, state_transition_rejected: 409, upstream_unavailable: 503 } as const)[appError.code] : zod ? 400 : 500;
   const code = appError?.code ?? (zod ? "invalid_request" : "internal_error");
+  const applicationErrors = appError?.code === "profile_input_invalid"
+    ? appError.details.slice(0, 20).map((detail) => ({
+        path: /^[A-Za-z0-9_.-]{1,160}$/u.test(detail) ? detail : "content",
+        message: "Value is not supported by the selected profile capability.",
+      }))
+    : [];
   response.writeHead(status, { "content-type": "application/problem+json", "x-request-id": requestIdValue });
-  response.end(JSON.stringify({ type: `https://mediaforge.invalid/problems/${code}`, title: code.replaceAll("_", " "), status, detail: appError?.message ?? (zod ? "Request validation failed." : "Internal server error."), code, requestId: requestIdValue, retryable: appError?.retryable ?? false, errors: zod?.issues.map((issue) => ({ path: issue.path.join("."), message: issue.message })) ?? [] }));
+  response.end(JSON.stringify({ type: `https://mediaforge.invalid/problems/${code}`, title: code.replaceAll("_", " "), status, detail: appError?.message ?? (zod ? "Request validation failed." : "Internal server error."), code, requestId: requestIdValue, retryable: appError?.retryable ?? false, errors: zod?.issues.map((issue) => ({ path: issue.path.join("."), message: issue.message })) ?? applicationErrors }));
 }
 async function body(request: IncomingMessage): Promise<unknown> {
   const chunks: Buffer[] = []; let size = 0;
@@ -381,6 +387,8 @@ export function createApiServer(options: Partial<ApiServerOptions> = {}): http.S
       if (!principal) throw new ApplicationError("authentication_required", "Authentication is required.", false);
       if (principal.workspaceId !== matched.workspace)
         throw new ApplicationError("not_found", "Resource not found.", false);
+      if (principal.kind === "worker")
+        throw new ApplicationError("authorization_denied", "Worker principals cannot use the public API.", false);
       const permission = requiredPermission(request.method, matched);
       if (!permission) throw new ApplicationError("not_found", "Resource not found.", false);
       if (!principal.permissions.includes(permission))
@@ -392,9 +400,9 @@ export function createApiServer(options: Partial<ApiServerOptions> = {}): http.S
       if (request.method === "POST" && !matched.project && matched.tail === "") { const result = await useCases.createProject(projectInputSchema.parse(await body(request)), context); return json(response, 201, { id: result.id, revision: result.revision }, { etag: etag(result.revision), "x-request-id": requestIdValue }); }
       if (!matched.project) throw new ApplicationError("not_found", "Resource not found.", false);
       const projectContext = { workspaceId: matched.workspace, projectId: matched.project, principal, requestId: requestIdValue };
-      if (request.method === "POST" && matched.tail === "episodes") { const result = await useCases.createEpisode(episodeInputSchema.parse(await body(request)), projectContext); return json(response, 201, { id: result.id, revision: result.revision }, { etag: etag(result.revision), "x-request-id": requestIdValue }); }
+      if (request.method === "POST" && matched.tail === "episodes") { const result = await useCases.createEpisode(parseEpisodeInput(await body(request)), projectContext); return json(response, 201, { id: result.id, revision: result.revision }, { etag: etag(result.revision), "x-request-id": requestIdValue }); }
       if (request.method === "GET" && matched.episode && matched.tail === `episodes/${matched.episode}`) { const result = await useCases.getEpisode(matched.episode, projectContext); if (!result) throw new ApplicationError("not_found", "Resource not found.", false); return json(response, 200, result, { etag: etag(result.revision), "x-request-id": requestIdValue }); }
-      if (request.method === "PATCH" && matched.episode && matched.tail === `episodes/${matched.episode}`) { const match = strongIfMatch(request); const result = await useCases.replaceEpisodeContent(matched.episode, episodeInputSchema.parse(await body(request)), { ...projectContext, ifMatch: match }); return json(response, 200, result, { etag: etag(result.revision), "x-request-id": requestIdValue }); }
+      if (request.method === "PATCH" && matched.episode && matched.tail === `episodes/${matched.episode}`) { const match = strongIfMatch(request); const result = await useCases.replaceEpisodeContent(matched.episode, parseEpisodeInput(await body(request)), { ...projectContext, ifMatch: match }); return json(response, 200, result, { etag: etag(result.revision), "x-request-id": requestIdValue }); }
       if (request.method === "POST" && matched.episode && matched.tail === `episodes/${matched.episode}/workflow-runs`) { const key = idempotencyKey(request); if (!key) throw new ApplicationError("precondition_required", "Idempotency-Key is required.", false); const result = await admitWorkflow(workflowAdmissionSchema.parse(await body(request)), { ...projectContext, episodeId: matched.episode, idempotencyKey: key }); return json(response, 202, { workflowRunId: result.workflowRunId, jobId: result.jobId, revision: result.revision, links: { workflowRun: `/v1/workspaces/${matched.workspace}/projects/${matched.project}/workflow-runs/${result.workflowRunId}`, job: `/v1/workspaces/${matched.workspace}/projects/${matched.project}/jobs/${result.jobId}` } }, { location: `/v1/workspaces/${matched.workspace}/projects/${matched.project}/jobs/${result.jobId}`, "retry-after": "3", etag: etag(result.revision), "x-request-id": requestIdValue }); }
       if (request.method === "GET" && matched.run && matched.tail === `workflow-runs/${matched.run}`) { const result = await useCases.getWorkflow(matched.run, projectContext); if (!result) throw new ApplicationError("not_found", "Resource not found.", false); return json(response, 200, result, { etag: etag(result.revision), "x-request-id": requestIdValue }); }
       if (request.method === "GET" && matched.run && matched.tail === `workflow-runs/${matched.run}/steps`) { const result = await useCases.listWorkflowSteps(matched.run, projectContext); return json(response, 200, result, { "x-request-id": requestIdValue }); }

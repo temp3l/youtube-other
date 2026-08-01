@@ -72,6 +72,14 @@ Configuration ownership lives in `@mediaforge/config`.
   `MEDIAFORGE_API_BIND_HOST` is set. `/health/live`, `/health/ready`, and
   `/v1/openapi.json` are unauthenticated; tenant resources require a valid
   token and an active directory membership.
+- Connected API CLI:
+  set `MEDIAFORGE_API_BASE_URL` to the HTTPS API root and
+  `MEDIAFORGE_API_BEARER_TOKEN` to an active bounded bearer token, then run
+  `pnpm mediaforge -- api --help`. Project/episode creation, workflow
+  start/status/steps/cancel/resume, job status, and approval recording use the
+  typed SDK. Mutating commands require the displayed idempotency key or ETag
+  options. Credentials are accepted only through the process environment and
+  are never emitted in the stable JSON command output.
 - API principal bootstrap:
   use `pnpm api:provision-principal` with the explicit
   `MEDIAFORGE_PRINCIPAL_*` variables in `.env.example`. Provisioning is

@@ -142,6 +142,10 @@ import os from "node:os";
 import path from "node:path";
 import { registerEpisodeCommands } from "./episode-commands.js";
 import {
+  ConnectedApiCliError,
+  registerConnectedApiCommands,
+} from "./api-commands.js";
+import {
   summarizeEpisodeImageState,
   type EpisodeImageSummary,
 } from "./episode-image-summary.js";
@@ -4959,6 +4963,7 @@ youtubeCommand
   );
 
 registerEpisodeCommands(program);
+registerConnectedApiCommands(program);
 registerShotsCommands(program);
 registerStoryLocalizationCommands(program);
 registerThumbnailCommands(program);
@@ -5001,7 +5006,9 @@ await withExecutionTelemetry(telemetry, async () => {
     });
   } catch (error: unknown) {
     const exitCode =
-      error instanceof MathCliSemanticError || error instanceof WorkflowCliError
+      error instanceof MathCliSemanticError ||
+      error instanceof WorkflowCliError ||
+      error instanceof ConnectedApiCliError
         ? error.exitCode
         : 1;
     await telemetry.finalize({
@@ -5013,6 +5020,12 @@ await withExecutionTelemetry(telemetry, async () => {
       `${JSON.stringify(
         error instanceof WorkflowCliError
           ? { error: error.normalized, exitCode: error.exitCode }
+          : error instanceof ConnectedApiCliError
+            ? {
+                schemaVersion: "mediaforge.api-cli.v1",
+                error: error.problem,
+                exitCode: error.exitCode,
+              }
           : serializeError(error),
         null,
         2

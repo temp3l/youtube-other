@@ -72,6 +72,23 @@ describe("durable pilot API keys", () => {
     expect(store.rotate).toHaveBeenCalledWith(expect.objectContaining({ previousKeyId: "key-1", previousExpectedRevision: 0 }));
   });
 
+  it("rejects administrative and publication authority on transitional keys", async () => {
+    const service = new PilotApiKeyService(repository(), {
+      now: () => new Date("2026-08-01T12:00:00.000Z"),
+      createId: (kind) => `${kind}-restricted`,
+      randomBytes: () => Buffer.alloc(32, 5),
+    });
+    await expect(
+      service.issue({
+        workspaceId: "workspace-1",
+        principalId: "service-1",
+        permissions: ["publication.execute"],
+        expiresAt: record.expiresAt,
+        actorSubject: "operator-1",
+      })
+    ).rejects.toThrow(/non-administrative permission vocabulary/u);
+  });
+
   it("authenticates by fingerprint plus scrypt and intersects current principal permissions", async () => {
     const issueStore = repository();
     const service = new PilotApiKeyService(issueStore, {

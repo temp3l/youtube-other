@@ -12,6 +12,7 @@ import {
 } from "@mediaforge/persistence";
 
 import type { ApiJobFailure, ApiJobStatus, ApiUseCases } from "./http-server.js";
+import { parseEpisodeInput } from "./contract.js";
 import { createApiWorkflowAdmissionUseCase } from "./http-server.js";
 
 interface CursorValue {
@@ -301,19 +302,20 @@ export function createPostgresApiUseCases(input: {
       }
     },
     createEpisode: async (episode, context) => {
+      const canonicalEpisode = parseEpisodeInput(episode);
       try {
         const record = await repository.withWorkspaceTransaction(
           context.workspaceId,
           async (transaction) => {
             const project = await transaction.getProject(context.workspaceId, context.projectId);
             if (!project) return null;
-            if (project.profile !== episode.content.type)
-              throw new ApplicationError("invalid_request", "Episode content does not match the project profile.", false);
+            if (project.profile !== canonicalEpisode.content.type)
+              throw new ApplicationError("profile_input_invalid", "Episode content does not match the project profile.", false);
             return transaction.createEpisode({
               workspaceId: context.workspaceId,
               projectId: context.projectId,
               episodeId: createId("episode"),
-              content: episode.content,
+              content: canonicalEpisode.content,
               now: now().toISOString(),
             });
           }
@@ -340,6 +342,7 @@ export function createPostgresApiUseCases(input: {
       } : null;
     },
     replaceEpisodeContent: async (episodeId, episode, context) => {
+      const canonicalEpisode = parseEpisodeInput(episode);
       const expectedRevision = parseEtag(context.ifMatch);
       try {
         const replacement = await repository.withWorkspaceTransaction(
@@ -355,15 +358,15 @@ export function createPostgresApiUseCases(input: {
             if (!current) return null;
             if (current.revision !== expectedRevision)
               throw new ApplicationError("precondition_failed", "If-Match does not match the current episode revision.", false);
-            if (project.profile !== episode.content.type)
-              throw new ApplicationError("invalid_request", "Episode content does not match the project profile.", false);
+            if (project.profile !== canonicalEpisode.content.type)
+              throw new ApplicationError("profile_input_invalid", "Episode content does not match the project profile.", false);
             return transaction.replaceEpisodeContent({
               workspaceId: context.workspaceId,
               projectId: context.projectId,
               episodeId,
               expectedRevision,
               revisionId: createId("episode-revision"),
-              content: episode.content,
+              content: canonicalEpisode.content,
               evidence: {
                 kind: "api.episode_content_replacement",
                 requestId: context.requestId,
@@ -378,7 +381,7 @@ export function createPostgresApiUseCases(input: {
         return {
           id: replacement.episode.episodeId,
           revision: replacement.episode.revision,
-          content: episode.content,
+          content: canonicalEpisode.content,
         };
       } catch (error) {
         if (error instanceof WorkflowStateTransitionError)

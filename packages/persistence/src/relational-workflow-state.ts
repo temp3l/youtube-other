@@ -369,14 +369,59 @@ CREATE UNIQUE INDEX IF NOT EXISTS publications_active_intent_unique
 CREATE TABLE IF NOT EXISTS workflow_events (
   workspace_id TEXT NOT NULL,
   event_id TEXT NOT NULL,
-  run_id TEXT NOT NULL,
-  subject_revision BIGINT NOT NULL,
+  run_id TEXT NULL,
+  subject_revision BIGINT NULL,
+  subject_type TEXT NOT NULL,
+  subject_id TEXT NOT NULL,
+  subject_version BIGINT NOT NULL CHECK (subject_version > 0),
   type TEXT NOT NULL,
   data JSONB NOT NULL,
   occurred_at TIMESTAMPTZ NOT NULL,
   PRIMARY KEY (workspace_id, event_id),
   FOREIGN KEY (workspace_id, run_id) REFERENCES workflow_runs (workspace_id, run_id)
 );
+ALTER TABLE workflow_events ADD COLUMN IF NOT EXISTS subject_type TEXT NULL;
+ALTER TABLE workflow_events ADD COLUMN IF NOT EXISTS subject_id TEXT NULL;
+ALTER TABLE workflow_events ADD COLUMN IF NOT EXISTS subject_version BIGINT NULL;
+ALTER TABLE workflow_events ALTER COLUMN run_id DROP NOT NULL;
+ALTER TABLE workflow_events ALTER COLUMN subject_revision DROP NOT NULL;
+-- A previous release made event rows immutable before these explicit subject
+-- columns existed. Drop only that guard inside this transactional migration,
+-- backfill deterministically, then recreate it below.
+DROP TRIGGER IF EXISTS workflow_events_immutable ON workflow_events;
+UPDATE workflow_events
+SET subject_type = CASE
+      WHEN type = 'approval.recorded' THEN 'approval'
+      WHEN type IN ('publication.intent_recorded', 'publication.reconciliation_required') THEN 'publication'
+      ELSE 'workflow_run'
+    END,
+    subject_id = CASE
+      WHEN type = 'approval.recorded' THEN COALESCE(data ->> 'approvalId', run_id)
+      WHEN type IN ('publication.intent_recorded', 'publication.reconciliation_required')
+        THEN COALESCE(data ->> 'publicationId', data ->> 'id', run_id)
+      ELSE run_id
+    END,
+    subject_version = CASE
+      WHEN type IN ('approval.recorded', 'publication.intent_recorded') THEN 1
+      ELSE GREATEST(subject_revision, 1)
+    END
+WHERE subject_type IS NULL OR subject_id IS NULL OR subject_version IS NULL;
+UPDATE workflow_events SET type = CASE
+  WHEN type = 'approval.recorded' AND data ->> 'decision' = 'rejected' THEN 'approval.rejected'
+  WHEN type = 'approval.recorded' THEN 'approval.created'
+  WHEN type = 'publication.intent_recorded' THEN 'publication.started'
+  ELSE type
+END
+WHERE type IN ('approval.recorded', 'publication.intent_recorded');
+ALTER TABLE workflow_events ALTER COLUMN subject_type SET NOT NULL;
+ALTER TABLE workflow_events ALTER COLUMN subject_id SET NOT NULL;
+ALTER TABLE workflow_events ALTER COLUMN subject_version SET NOT NULL;
+ALTER TABLE workflow_events DROP CONSTRAINT IF EXISTS workflow_events_subject_type_check;
+ALTER TABLE workflow_events ADD CONSTRAINT workflow_events_subject_type_check
+  CHECK (subject_type IN ('workflow_run', 'job', 'asset', 'validation', 'approval', 'publication', 'webhook_endpoint'));
+ALTER TABLE workflow_events DROP CONSTRAINT IF EXISTS workflow_events_subject_version_check;
+ALTER TABLE workflow_events ADD CONSTRAINT workflow_events_subject_version_check
+  CHECK (subject_version > 0);
 CREATE TABLE IF NOT EXISTS workflow_transition_rules (
   subject_type TEXT NOT NULL,
   from_status TEXT NOT NULL,

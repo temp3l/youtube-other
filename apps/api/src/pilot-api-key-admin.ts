@@ -1,6 +1,9 @@
 import crypto from "node:crypto";
 
-import { PilotApiKeyService } from "@mediaforge/application";
+import {
+  PilotApiKeyService,
+  normalizeApiPermissions,
+} from "@mediaforge/application";
 import { loadRuntimeConfig } from "@mediaforge/config";
 import {
   PostgresPilotApiKeyRepository,
@@ -59,18 +62,11 @@ export type PilotApiKeyAdminEnvironment =
 function permissions(value: string | undefined): readonly string[] {
   if (!value || value.length > 16_100)
     throw new Error("MEDIAFORGE_API_KEY_PERMISSIONS is required and bounded.");
-  const values = [...new Set(value.split(",").map((item) => item.trim()).filter(Boolean))].sort();
-  if (
-    values.length < 1 ||
-    values.length > 100 ||
-    values.some(
-      (permission) =>
-        permission.length > 160 ||
-        !/^[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)+$/u.test(permission)
-    )
-  )
+  try {
+    return normalizeApiPermissions(value.split(","), "pilot-api-key");
+  } catch {
     throw new Error("MEDIAFORGE_API_KEY_PERMISSIONS is invalid.");
-  return values;
+  }
 }
 
 export function parsePilotApiKeyAdminEnvironment(
