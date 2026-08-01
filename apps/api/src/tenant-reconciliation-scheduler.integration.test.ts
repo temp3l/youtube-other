@@ -21,8 +21,23 @@ const host = process.env.POSTGRES_INTEGRATION_HOST;
 const port = Number(process.env.POSTGRES_INTEGRATION_PORT ?? "55432");
 const database =
   process.env.POSTGRES_INTEGRATION_DATABASE ?? "mediaforge_task04";
-const applicationRole = "mediaforge_task04_app";
-const describePostgres = host ? describe : describe.skip;
+const adminConnectionString = process.env.POSTGRES_INTEGRATION_ADMIN_URL;
+const applicationConnectionString =
+  process.env.POSTGRES_INTEGRATION_APPLICATION_URL;
+if (Boolean(adminConnectionString) !== Boolean(applicationConnectionString)) {
+  throw new Error(
+    "POSTGRES_INTEGRATION_ADMIN_URL and POSTGRES_INTEGRATION_APPLICATION_URL must be configured together."
+  );
+}
+const applicationRole =
+  process.env.POSTGRES_INTEGRATION_APPLICATION_ROLE ?? "mediaforge_task04_app";
+if (!/^[a-z_][a-z0-9_]{0,62}$/u.test(applicationRole)) {
+  throw new Error(
+    "POSTGRES_INTEGRATION_APPLICATION_ROLE is not a safe PostgreSQL identifier."
+  );
+}
+const describePostgres =
+  host || adminConnectionString ? describe : describe.skip;
 const now = "2026-07-31T12:00:00.000Z";
 
 function reconciliationPayload(publicationId: string) {
@@ -36,14 +51,16 @@ function reconciliationPayload(publicationId: string) {
 }
 
 describePostgres("PostgreSQL tenant reconciliation scheduler", () => {
-  const adminPool = new Pool({ host, port, database, max: 1 });
-  const applicationPool = new Pool({
-    host,
-    port,
-    database,
-    user: applicationRole,
-    max: 1,
-  });
+  const adminPool = new Pool(
+    adminConnectionString
+      ? { connectionString: adminConnectionString, max: 1 }
+      : { host, port, database, max: 1 }
+  );
+  const applicationPool = new Pool(
+    applicationConnectionString
+      ? { connectionString: applicationConnectionString, max: 1 }
+      : { host, port, database, user: applicationRole, max: 1 }
+  );
   const admin = new PostgresWorkflowRepository(adminPool);
 
   async function seedReconciliation(input: {
@@ -103,13 +120,15 @@ describePostgres("PostgreSQL tenant reconciliation scheduler", () => {
 
   beforeAll(async () => {
     await admin.migrate();
-    await adminPool.query(
-      `DO $$ BEGIN
-        IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = '${applicationRole}') THEN
-          CREATE ROLE ${applicationRole} LOGIN NOSUPERUSER;
-        END IF;
-      END $$`
-    );
+    if (!applicationConnectionString) {
+      await adminPool.query(
+        `DO $$ BEGIN
+          IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = '${applicationRole}') THEN
+            CREATE ROLE ${applicationRole} LOGIN NOSUPERUSER;
+          END IF;
+        END $$`
+      );
+    }
     await adminPool.query(`GRANT USAGE ON SCHEMA public TO ${applicationRole}`);
     await adminPool.query(
       `GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO ${applicationRole}`

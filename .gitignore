@@ -17,6 +17,7 @@ episodes
 !.gitkeep
 secrets/youtube-oauth-client.json
 .env
+.env.postgres
 openai-*.tgz
 ws-*.tgz
 out.png

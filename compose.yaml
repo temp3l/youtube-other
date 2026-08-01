@@ -1,0 +1,49 @@
+name: mediaforge
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${MEDIAFORGE_POSTGRES_DATABASE:-mediaforge}
+      POSTGRES_USER: ${MEDIAFORGE_POSTGRES_ADMIN_USER:-mediaforge_admin}
+      POSTGRES_PASSWORD: ${MEDIAFORGE_POSTGRES_ADMIN_PASSWORD:-mediaforge_admin_local}
+    ports:
+      - "127.0.0.1:${MEDIAFORGE_POSTGRES_PORT:-55433}:5432"
+    volumes:
+      - mediaforge-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+
+  postgres-bootstrap:
+    image: postgres:16-alpine
+    restart: "no"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PGPASSWORD: ${MEDIAFORGE_POSTGRES_ADMIN_PASSWORD:-mediaforge_admin_local}
+      POSTGRES_ADMIN_USER: ${MEDIAFORGE_POSTGRES_ADMIN_USER:-mediaforge_admin}
+      POSTGRES_DATABASE: ${MEDIAFORGE_POSTGRES_DATABASE:-mediaforge}
+      POSTGRES_APP_USER: ${MEDIAFORGE_POSTGRES_APP_USER:-mediaforge_app}
+      POSTGRES_APP_PASSWORD: ${MEDIAFORGE_POSTGRES_APP_PASSWORD:-mediaforge_app_local}
+      POSTGRES_INTEGRATION_DATABASE: ${MEDIAFORGE_POSTGRES_INTEGRATION_DATABASE:-mediaforge_integration}
+    volumes:
+      - ./docker/postgres/bootstrap.sql:/bootstrap/bootstrap.sql:ro
+    command:
+      - /bin/sh
+      - -ec
+      - >-
+        psql --host=postgres --username="$${POSTGRES_ADMIN_USER}"
+        --dbname="$${POSTGRES_DATABASE}" --set=ON_ERROR_STOP=1
+        --set=admin_user="$${POSTGRES_ADMIN_USER}"
+        --set=app_user="$${POSTGRES_APP_USER}"
+        --set=app_password="$${POSTGRES_APP_PASSWORD}"
+        --set=integration_database="$${POSTGRES_INTEGRATION_DATABASE}"
+        --file=/bootstrap/bootstrap.sql
+
+volumes:
+  mediaforge-postgres-data:

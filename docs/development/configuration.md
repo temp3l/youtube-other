@@ -59,6 +59,9 @@ Configuration ownership lives in `@mediaforge/config`.
   `MEDIAFORGE_RECONCILIATION_MAX_ATTEMPTS` (default `8`). The process drains
   only that tenant's publication-reconciliation topic and exits cleanly on
   `SIGINT` or `SIGTERM`.
+  For the local Docker database, run `pnpm --filter @mediaforge/api build` and
+  then `pnpm reconciliation:start`; the root script loads both `.env` and the
+  ignored PostgreSQL credential file.
 - Remote rendering:
   `REMOTE_RENDER_*` and `LOCAL_RENDER_CONCURRENCY`
 
@@ -71,6 +74,11 @@ Configuration ownership lives in `@mediaforge/config`.
 
 - Workspace defaults to `./episodes`
 - SQLite defaults to `./.mediaforge.sqlite`
+- Local PostgreSQL runs through `compose.yaml` on `127.0.0.1:55433`; `pnpm postgres:up`
+  creates separate `mediaforge` runtime and `mediaforge_integration` test databases.
+  The ignored `.env.postgres` supplies distinct administrator and application credentials.
+  Use `pnpm postgres:test` for the two destructive PostgreSQL integration suites
+  and `pnpm postgres:down` to stop the containers without deleting the data volume.
 - Remote rendering is disabled by default
 - Remote render fallback to local is enabled by default
 - Horror affect rollout defaults to `shadow`

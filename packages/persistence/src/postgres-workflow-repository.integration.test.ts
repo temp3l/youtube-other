@@ -8,8 +8,25 @@ import {
 
 const host = process.env.POSTGRES_INTEGRATION_HOST;
 const port = Number(process.env.POSTGRES_INTEGRATION_PORT ?? "55432");
-const database = process.env.POSTGRES_INTEGRATION_DATABASE ?? "mediaforge_task04";
-const describePostgres = host ? describe : describe.skip;
+const database =
+  process.env.POSTGRES_INTEGRATION_DATABASE ?? "mediaforge_task04";
+const adminConnectionString = process.env.POSTGRES_INTEGRATION_ADMIN_URL;
+const applicationConnectionString =
+  process.env.POSTGRES_INTEGRATION_APPLICATION_URL;
+if (Boolean(adminConnectionString) !== Boolean(applicationConnectionString)) {
+  throw new Error(
+    "POSTGRES_INTEGRATION_ADMIN_URL and POSTGRES_INTEGRATION_APPLICATION_URL must be configured together."
+  );
+}
+const applicationRole =
+  process.env.POSTGRES_INTEGRATION_APPLICATION_ROLE ?? "mediaforge_task04_app";
+if (!/^[a-z_][a-z0-9_]{0,62}$/u.test(applicationRole)) {
+  throw new Error(
+    "POSTGRES_INTEGRATION_APPLICATION_ROLE is not a safe PostgreSQL identifier."
+  );
+}
+const describePostgres =
+  host || adminConnectionString ? describe : describe.skip;
 
 const execution = {
   input: { episodeId: "episode-1" },
@@ -24,24 +41,30 @@ const execution = {
 };
 
 describePostgres("PostgreSQL workflow state", () => {
-  const adminPool = new Pool({ host, port, database, max: 1 });
-  const applicationPool = new Pool({
-    host,
-    port,
-    database,
-    user: "mediaforge_task04_app",
-    max: 1,
-  });
+  const adminPool = new Pool(
+    adminConnectionString
+      ? { connectionString: adminConnectionString, max: 1 }
+      : { host, port, database, max: 1 }
+  );
+  const applicationPool = new Pool(
+    applicationConnectionString
+      ? { connectionString: applicationConnectionString, max: 1 }
+      : { host, port, database, user: applicationRole, max: 1 }
+  );
   const admin = new PostgresWorkflowRepository(adminPool);
   const repository = new PostgresWorkflowRepository(applicationPool);
 
   beforeAll(async () => {
     await admin.migrate();
+    if (!applicationConnectionString) {
+      await adminPool.query(
+        `DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = '${applicationRole}') THEN CREATE ROLE ${applicationRole} LOGIN NOSUPERUSER; END IF; END $$`
+      );
+    }
+    await adminPool.query(`GRANT USAGE ON SCHEMA public TO ${applicationRole}`);
     await adminPool.query(
-      "DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'mediaforge_task04_app') THEN CREATE ROLE mediaforge_task04_app LOGIN NOSUPERUSER; END IF; END $$"
+      `GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO ${applicationRole}`
     );
-    await adminPool.query("GRANT USAGE ON SCHEMA public TO mediaforge_task04_app");
-    await adminPool.query("GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO mediaforge_task04_app");
   });
 
   beforeEach(async () => {
@@ -78,10 +101,14 @@ describePostgres("PostgreSQL workflow state", () => {
     );
 
     await expect(
-      repository.withWorkspaceTransaction("workspace-a", (tx) => tx.get("workspace-b", "run-1"))
+      repository.withWorkspaceTransaction("workspace-a", (tx) =>
+        tx.get("workspace-b", "run-1")
+      )
     ).resolves.toBeNull();
     await expect(
-      repository.withWorkspaceTransaction("workspace-b", (tx) => tx.get("workspace-b", "run-1"))
+      repository.withWorkspaceTransaction("workspace-b", (tx) =>
+        tx.get("workspace-b", "run-1")
+      )
     ).resolves.toMatchObject({ workspaceId: "workspace-b", runId: "run-1" });
   });
 
@@ -100,7 +127,9 @@ describePostgres("PostgreSQL workflow state", () => {
       })
     ).rejects.toThrow("rollback");
     await expect(
-      repository.withWorkspaceTransaction("workspace-a", (tx) => tx.get("workspace-a", "rolled-back"))
+      repository.withWorkspaceTransaction("workspace-a", (tx) =>
+        tx.get("workspace-a", "rolled-back")
+      )
     ).resolves.toBeNull();
 
     await repository.withWorkspaceTransaction("workspace-a", (tx) =>
@@ -113,16 +142,18 @@ describePostgres("PostgreSQL workflow state", () => {
         createdAt: "2026-07-31T12:00:00.000Z",
       })
     );
-    const running = await repository.withWorkspaceTransaction("workspace-a", (tx) =>
-      tx.transition({
-        workspaceId: "workspace-a",
-        runId: "run-1",
-        expectedRevision: 0,
-        authority: "database-v1",
-        from: "queued",
-        status: "running",
-        now: "2026-07-31T12:01:00.000Z",
-      })
+    const running = await repository.withWorkspaceTransaction(
+      "workspace-a",
+      (tx) =>
+        tx.transition({
+          workspaceId: "workspace-a",
+          runId: "run-1",
+          expectedRevision: 0,
+          authority: "database-v1",
+          from: "queued",
+          status: "running",
+          now: "2026-07-31T12:01:00.000Z",
+        })
     );
     await expect(
       repository.withWorkspaceTransaction("workspace-a", (tx) =>
@@ -166,16 +197,24 @@ describePostgres("PostgreSQL workflow state", () => {
   it("rejects a PostgreSQL transition from the non-owning authority", async () => {
     await repository.withWorkspaceTransaction("workspace-a", (tx) =>
       tx.create({
-        workspaceId: "workspace-a", runId: "legacy-run", status: "queued",
-        authority: "filesystem-legacy", execution, supersedesRunId: null,
+        workspaceId: "workspace-a",
+        runId: "legacy-run",
+        status: "queued",
+        authority: "filesystem-legacy",
+        execution,
+        supersedesRunId: null,
         createdAt: "2026-07-31T12:00:00.000Z",
       })
     );
     await expect(
       repository.withWorkspaceTransaction("workspace-a", (tx) =>
         tx.transition({
-          workspaceId: "workspace-a", runId: "legacy-run", expectedRevision: 0,
-          authority: "database-v1", from: "queued", status: "running",
+          workspaceId: "workspace-a",
+          runId: "legacy-run",
+          expectedRevision: 0,
+          authority: "database-v1",
+          from: "queued",
+          status: "running",
           now: "2026-07-31T12:01:00.000Z",
         })
       )
@@ -192,7 +231,11 @@ describePostgres("PostgreSQL workflow state", () => {
         supersedesRunId: null,
         createdAt: "2026-07-31T12:00:00.000Z",
       });
-      await tx.createJob({ workspaceId: "workspace-a", jobId: "job-1", runId: "run-1" });
+      await tx.createJob({
+        workspaceId: "workspace-a",
+        jobId: "job-1",
+        runId: "run-1",
+      });
     });
     const claims = await Promise.all(
       ["worker-a", "worker-b"].map((workerId) =>
@@ -211,14 +254,16 @@ describePostgres("PostgreSQL workflow state", () => {
     expect(winner).toHaveLength(1);
     expect(winner[0]?.leaseFence).toBe(1);
 
-    const reclaimed = await repository.withWorkspaceTransaction("workspace-a", (tx) =>
-      tx.claimJob({
-        workspaceId: "workspace-a",
-        jobId: "job-1",
-        workerId: "worker-c",
-        now: "2026-07-31T12:02:00.000Z",
-        leaseSeconds: 60,
-      })
+    const reclaimed = await repository.withWorkspaceTransaction(
+      "workspace-a",
+      (tx) =>
+        tx.claimJob({
+          workspaceId: "workspace-a",
+          jobId: "job-1",
+          workerId: "worker-c",
+          now: "2026-07-31T12:02:00.000Z",
+          leaseSeconds: 60,
+        })
     );
     expect(reclaimed).toMatchObject({ leaseFence: 2, leaseOwner: "worker-c" });
   });
@@ -226,27 +271,57 @@ describePostgres("PostgreSQL workflow state", () => {
   it("atomically admits one command, replays equal keys, and rejects different fingerprints", async () => {
     await repository.withWorkspaceTransaction("workspace-a", (tx) =>
       tx.create({
-        workspaceId: "workspace-a", runId: "run-1", status: "queued", execution,
-        supersedesRunId: null, createdAt: "2026-07-31T12:00:00.000Z",
+        workspaceId: "workspace-a",
+        runId: "run-1",
+        status: "queued",
+        execution,
+        supersedesRunId: null,
+        createdAt: "2026-07-31T12:00:00.000Z",
       })
     );
     const admission = {
-      workspaceId: "workspace-a", idempotencyKey: "key-1", requestFingerprint: "a".repeat(64),
-      commandId: "command-1", response: { workflowRunId: "run-1" },
+      workspaceId: "workspace-a",
+      idempotencyKey: "key-1",
+      requestFingerprint: "a".repeat(64),
+      commandId: "command-1",
+      response: { workflowRunId: "run-1" },
       job: { jobId: "job-1", runId: "run-1" },
-      outbox: { outboxId: "outbox-1", topic: "workflow.queued", payload: { runId: "run-1" }, availableAt: "2026-07-31T12:00:00.000Z" },
+      outbox: {
+        outboxId: "outbox-1",
+        topic: "workflow.queued",
+        payload: { runId: "run-1" },
+        availableAt: "2026-07-31T12:00:00.000Z",
+      },
       now: "2026-07-31T12:00:00.000Z",
     };
-    const admitted = await repository.withWorkspaceTransaction("workspace-a", (tx) => tx.admitCommand(admission));
-    const replayed = await repository.withWorkspaceTransaction("workspace-a", (tx) => tx.admitCommand(admission));
-    expect(admitted).toMatchObject({ kind: "admitted", commandId: "command-1" });
-    expect(replayed).toMatchObject({ kind: "replayed", response: { workflowRunId: "run-1" } });
+    const admitted = await repository.withWorkspaceTransaction(
+      "workspace-a",
+      (tx) => tx.admitCommand(admission)
+    );
+    const replayed = await repository.withWorkspaceTransaction(
+      "workspace-a",
+      (tx) => tx.admitCommand(admission)
+    );
+    expect(admitted).toMatchObject({
+      kind: "admitted",
+      commandId: "command-1",
+    });
+    expect(replayed).toMatchObject({
+      kind: "replayed",
+      response: { workflowRunId: "run-1" },
+    });
     await expect(
       repository.withWorkspaceTransaction("workspace-a", (tx) =>
-        tx.admitCommand({ ...admission, requestFingerprint: "b".repeat(64), commandId: "command-2" })
+        tx.admitCommand({
+          ...admission,
+          requestFingerprint: "b".repeat(64),
+          commandId: "command-2",
+        })
       )
     ).rejects.toThrow("different request");
-    const outbox = await adminPool.query("SELECT outbox_id FROM workflow_outbox");
+    const outbox = await adminPool.query(
+      "SELECT outbox_id FROM workflow_outbox"
+    );
     const jobs = await adminPool.query("SELECT job_id FROM jobs");
     expect(outbox.rows).toHaveLength(1);
     expect(jobs.rows).toHaveLength(1);
@@ -255,23 +330,71 @@ describePostgres("PostgreSQL workflow state", () => {
   it("rejects late heartbeats and never blindly restarts an uncertain effect", async () => {
     await repository.withWorkspaceTransaction("workspace-a", async (tx) => {
       await tx.create({
-        workspaceId: "workspace-a", runId: "run-1", status: "queued", execution,
-        supersedesRunId: null, createdAt: "2026-07-31T12:00:00.000Z",
+        workspaceId: "workspace-a",
+        runId: "run-1",
+        status: "queued",
+        execution,
+        supersedesRunId: null,
+        createdAt: "2026-07-31T12:00:00.000Z",
       });
-      await tx.createJob({ workspaceId: "workspace-a", jobId: "job-1", runId: "run-1" });
+      await tx.createJob({
+        workspaceId: "workspace-a",
+        jobId: "job-1",
+        runId: "run-1",
+      });
     });
-    const lease = await repository.withWorkspaceTransaction("workspace-a", (tx) =>
-      tx.claimJob({ workspaceId: "workspace-a", jobId: "job-1", workerId: "worker-a", now: "2026-07-31T12:00:00.000Z", leaseSeconds: 10 })
+    const lease = await repository.withWorkspaceTransaction(
+      "workspace-a",
+      (tx) =>
+        tx.claimJob({
+          workspaceId: "workspace-a",
+          jobId: "job-1",
+          workerId: "worker-a",
+          now: "2026-07-31T12:00:00.000Z",
+          leaseSeconds: 10,
+        })
     );
-    const late = await repository.withWorkspaceTransaction("workspace-a", (tx) =>
-      tx.heartbeatJob({ workspaceId: "workspace-a", jobId: "job-1", workerId: "worker-a", leaseFence: lease?.leaseFence ?? 0, now: "2026-07-31T12:01:00.000Z", leaseSeconds: 10 })
+    const late = await repository.withWorkspaceTransaction(
+      "workspace-a",
+      (tx) =>
+        tx.heartbeatJob({
+          workspaceId: "workspace-a",
+          jobId: "job-1",
+          workerId: "worker-a",
+          leaseFence: lease?.leaseFence ?? 0,
+          now: "2026-07-31T12:01:00.000Z",
+          leaseSeconds: 10,
+        })
     );
     expect(late).toBeNull();
     await repository.withWorkspaceTransaction("workspace-a", async (tx) => {
-      await tx.prepareEffect({ workspaceId: "workspace-a", effectId: "effect-1", subjectId: "run-1", kind: "provider", now: "2026-07-31T12:00:00.000Z" });
-      expect(await tx.beginEffect({ workspaceId: "workspace-a", effectId: "effect-1", now: "2026-07-31T12:00:01.000Z" })).toBe(true);
-      await tx.markEffectUncertain({ workspaceId: "workspace-a", effectId: "effect-1", now: "2026-07-31T12:00:02.000Z", evidence: { timeout: true } });
-      expect(await tx.beginEffect({ workspaceId: "workspace-a", effectId: "effect-1", now: "2026-07-31T12:00:03.000Z" })).toBe(false);
+      await tx.prepareEffect({
+        workspaceId: "workspace-a",
+        effectId: "effect-1",
+        subjectId: "run-1",
+        kind: "provider",
+        now: "2026-07-31T12:00:00.000Z",
+      });
+      expect(
+        await tx.beginEffect({
+          workspaceId: "workspace-a",
+          effectId: "effect-1",
+          now: "2026-07-31T12:00:01.000Z",
+        })
+      ).toBe(true);
+      await tx.markEffectUncertain({
+        workspaceId: "workspace-a",
+        effectId: "effect-1",
+        now: "2026-07-31T12:00:02.000Z",
+        evidence: { timeout: true },
+      });
+      expect(
+        await tx.beginEffect({
+          workspaceId: "workspace-a",
+          effectId: "effect-1",
+          now: "2026-07-31T12:00:03.000Z",
+        })
+      ).toBe(false);
     });
   });
 });
