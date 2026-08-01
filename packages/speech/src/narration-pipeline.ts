@@ -78,7 +78,10 @@ import {
 import {
   runNarrationQualityGate,
 } from "./narration-quality-gate.js";
-import { recordNarrationTelemetry } from "./narration-telemetry.js";
+import {
+  recordNarrationRolloutSelection,
+  recordNarrationTelemetry,
+} from "./narration-telemetry.js";
 import { DEFAULT_SPEECH_VOICE } from "./voice-settings.js";
 
 export const narrationPipelineModeSchema = z.enum(["legacy", "shadow", "new"]);
@@ -421,6 +424,22 @@ export class NarrationPipeline {
   public async run(requestInput: NarrationPipelineRequest): Promise<NarrationPipelineResult> {
     const request = requireCore(requestInput);
     const stage = narrationPipelineStageSchema.parse(request.stage);
+    const legacyStagedMutationBlocked =
+      request.rolloutMode === "legacy" &&
+      !(request.dryRun ?? false) &&
+      stage !== "status" &&
+      stage !== "inspect";
+    recordNarrationRolloutSelection({
+      episodeId: request.episodeId,
+      language: request.language,
+      variant: request.variant,
+      mode: request.rolloutMode,
+      route: legacyStagedMutationBlocked ? "staged-blocked" : "staged",
+      operation: `narration:${stage}`,
+      stage,
+      dryRun: request.dryRun ?? false,
+      rollbackSelected: false,
+    });
     const paths = createNarrationArtifactPaths({
       episodeId: request.episodeId,
       locale: request.locale,

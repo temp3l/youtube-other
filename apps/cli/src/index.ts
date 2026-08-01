@@ -102,6 +102,7 @@ import {
   narrationPipelineExitCode,
   narrationPipelineModeSchema,
   narrationPipelineStageSchema,
+  recordNarrationRolloutSelection,
   runVoiceBenchmark,
   type AudioInstructionArtifact,
   type NarrationBatchStatus,
@@ -1835,6 +1836,17 @@ async function commandAudioGenerate(
   assertNarrationTtsConfigured(config);
   const language =
     config.scriptLanguage ?? episodeConfig?.scriptLanguage ?? "en";
+  recordNarrationRolloutSelection({
+    episodeId,
+    language,
+    variant: "full",
+    mode: config.narrationPipelineMode,
+    route: "monolithic",
+    operation: "audio:generate",
+    dryRun: options.dryRun ?? false,
+    rollbackSelected:
+      config.narrationPipelineMode === "legacy" && !(options.dryRun ?? false),
+  });
   const narrationDependency = await loadValidatedNarrationDependency(
     episodeDir,
     language

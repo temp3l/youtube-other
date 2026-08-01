@@ -1,5 +1,9 @@
 # Task 02: Promote Staged Narration
 
+Status: In progress. The production matrix is defined and rollout/rollback
+selection telemetry is implemented. Default promotion remains blocked until the
+matrix in `docs/migrations/narration-rollout-evidence.md` has accepted evidence.
+
 ## Objective
 
 Make staged narration the default production path and confine monolithic audio

@@ -62,6 +62,7 @@ The active production path is CLI-driven episode generation: start from source s
 - `new`: staged narration is authoritative. `audio generate-localized` routes to the staged `all` pipeline, and assembly promotes `mastered-narration.wav` to compatibility paths.
 - Roll out by running `audio narration prepare`, `plan`, `generate`, `assemble`, and `validate` in `shadow` for the target episode, language, and variant; inspect `quality-gate.json`, then switch to `--narration-pipeline-mode new` and rerun the same staged commands with `--resume`.
 - Roll back by setting `--narration-pipeline-mode legacy` or removing the config override, then rerun `pnpm mediaforge -- audio generate <episode-id>` or `pnpm mediaforge -- audio generate-localized <episode-id> --languages <code>`. Do not delete staged artifacts during rollback; they are ignored by legacy generation and useful for diagnosis.
+- Narration routing emits `narration.rollout-selection` through execution telemetry. A monolithic execution selected with `legacy` is marked as a rollback; staged `new`/`shadow` selection and legacy-blocked staged commands are reported separately. This evidence is required before the legacy rollback path can be retired.
 
 ## Deprecation Criteria
 

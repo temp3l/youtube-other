@@ -21,7 +21,7 @@ because runtime behavior was unchanged.
 
 ## Commit
 
-`fde3a93` (`docs: inventory legacy retirement gates`).
+`0aceb6c` (`docs: inventory legacy retirement gates`) after rebase.
 
 ## Unresolved risks
 

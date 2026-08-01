@@ -4,35 +4,32 @@ Source plan: `docs/plans/legacy-retirement/README.md`
 
 Date: 2026-08-01
 
-Implementation commit: `fde3a93`
+Commits: Task 01 `0aceb6c`; Task 02 pending
 
-## Summary
+## Summary and files
 
-Implemented Task 01 by creating version 1 of the authoritative retirement
-register. Seventeen compatibility families now have classifications, module and
-operational owners, canonical replacements, evidence sources, support-window
-conditions, rollback actions, removal gates, and follow-up tasks.
+Task 01 is complete. Task 02 is partial: added rollout/rollback selection
+telemetry, counters/tests, a 12-target production matrix, and updated plan,
+register, architecture, and reports. Runtime files changed in `packages/speech`
+and `apps/cli`.
 
-## Files changed
+## Task status and deviations
 
-- `docs/migrations/legacy-retirement-register.md`
-- Legacy-retirement README and Task 01 status
-- This report and the Codex run report
-
-## Task status
-
-- Completed: Task 01 inventory and gates.
-- Partial: none.
-- Not completed: Tasks 02–08.
-- Deviations: no machine-readable inventory; no automation consumes the register.
+- Completed: Task 01.
+- Partial: Task 02 evidence/observability.
+- Not completed: default promotion and Tasks 03–08.
+- Deviation: `legacy` remains default because paid matrix evidence, owner, and
+  release window are absent.
 
 ## Checks and results
 
-Targeted source/reference searches and Markdown/path checks passed. Tests were
-not run because behavior did not change.
+Initially passed telemetry (7), pipeline (2), and CLI (10) focused tests. After
+the final non-dry-run refinement, telemetry reruns failed before collection:
+unbuilt `@mediaforge/observability` resolution survived two environment fixes.
+CLI typecheck likewise failed on widespread missing workspace declarations.
 
 ## Risks and next steps
 
-Production data, databases, external scripts, telemetry, and YouTube history
-were not inspected. Begin Tasks 02, 03, 05, or 06; do not delete compatibility
-until the corresponding evidence gate closes.
+Final code is not fully reverified. Resolve isolated-worktree package outputs,
+rerun the telemetry file, reconcile Italian adapter support, authorize/cap the
+matrix, then consider changing the default.
