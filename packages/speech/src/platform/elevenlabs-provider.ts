@@ -184,7 +184,8 @@ export class ElevenLabsSpeechProvider implements SpeechProvider {
       if (
         contentLength &&
         (!/^\d+$/u.test(contentLength) ||
-          Number(contentLength) > this.maxResponseBytes)
+          Number(contentLength) > this.maxResponseBytes ||
+          Number(contentLength) === 0)
       ) {
         throw speechError(
           "SPEECH_PROVIDER_INVALID_RESPONSE",
@@ -428,6 +429,18 @@ function limitStream(stream: Readable, maximumBytes: number): Readable {
           return;
         }
         callback(null, buffer);
+      },
+      flush(callback): void {
+        if (bytesRead === 0) {
+          callback(
+            speechError(
+              "SPEECH_PROVIDER_INVALID_RESPONSE",
+              "ElevenLabs returned an empty audio response."
+            )
+          );
+          return;
+        }
+        callback();
       },
     })
   );

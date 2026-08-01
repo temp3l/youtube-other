@@ -1,5 +1,4 @@
 import fs from "node:fs/promises";
-import os from "node:os";
 import path from "node:path";
 import { Transform } from "node:stream";
 import { pipeline } from "node:stream/promises";
@@ -134,8 +133,9 @@ export class FileSystemSpeechArtifactService implements SpeechArtifactService {
         "No raw speech chunks were available for mastering."
       );
     }
+    await ensureDir(this.root);
     const temporaryDirectory = await fs.mkdtemp(
-      path.join(os.tmpdir(), "mediaforge-speech-master-")
+      path.join(this.root, ".tmp-speech-master-")
     );
     const concatListPath = path.join(temporaryDirectory, "chunks.txt");
     const cleanPath = path.join(temporaryDirectory, "clean.wav");

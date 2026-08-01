@@ -63,8 +63,8 @@ import {
   educationalSpeechLanguageSchema,
   generateEducationalSpeech,
   loadEducationalPronunciationDictionary,
-  MockSpeechProvider,
-  OpenAiCompatibleSpeechProvider,
+  createProviderNeutralLegacyMockSpeechProvider,
+  createProviderNeutralLegacyOpenAiSpeechProvider,
   resolveSpeechDeliveryProfile,
   speechDeliveryProfileIdSchema,
   type SpeechProvider,
@@ -403,7 +403,7 @@ async function canonicalPaidSpeechPreflight(input: {
   if (input.requireProvider && !runtime.openAiCompatibleApiKey) {
     throw new Error("Canonical paid speech requires an OpenAI API key.");
   }
-  const provider = new OpenAiCompatibleSpeechProvider({
+  const provider = createProviderNeutralLegacyOpenAiSpeechProvider({
     apiKey: runtime.openAiCompatibleApiKey ?? "preflight-no-provider-key",
     ...(runtime.openAiCompatibleBaseUrl
       ? { baseUrl: runtime.openAiCompatibleBaseUrl }
@@ -570,7 +570,7 @@ async function runMathSpeechGenerate(
         throw new Error(
           "OpenAI educational speech requires an API key; use --speech-dry-run to inspect without a call."
         );
-      provider = new OpenAiCompatibleSpeechProvider({
+      provider = createProviderNeutralLegacyOpenAiSpeechProvider({
         apiKey: runtime.openAiCompatibleApiKey,
         ...(runtime.openAiCompatibleBaseUrl
           ? { baseUrl: runtime.openAiCompatibleBaseUrl }
@@ -588,7 +588,7 @@ async function runMathSpeechGenerate(
         responseFormat: profile.postProcessingPolicy.outputFormat,
       });
     } else {
-      provider = new MockSpeechProvider();
+      provider = createProviderNeutralLegacyMockSpeechProvider();
     }
   }
   const candidateSelection = parseSpeechSelection(options.speechSelection);
@@ -747,7 +747,7 @@ async function runMathSpeechCompare(
           throw new Error(
             "OpenAI comparison generation requires an API key; use --speech-dry-run for a free preview."
           );
-        provider = new OpenAiCompatibleSpeechProvider({
+        provider = createProviderNeutralLegacyOpenAiSpeechProvider({
           apiKey: runtime.openAiCompatibleApiKey,
           ...(runtime.openAiCompatibleBaseUrl
             ? { baseUrl: runtime.openAiCompatibleBaseUrl }
@@ -765,7 +765,7 @@ async function runMathSpeechCompare(
           responseFormat: profile.postProcessingPolicy.outputFormat,
         });
       } else {
-        provider = new MockSpeechProvider();
+        provider = createProviderNeutralLegacyMockSpeechProvider();
       }
     }
     return generateEducationalSpeech({

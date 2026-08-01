@@ -29,8 +29,10 @@ export interface SpeechGenerationCommand {
   readonly text: string;
   readonly channel: string;
   readonly replacementProfileVersionId?: string;
+  readonly allowInactivePinnedProfile?: boolean;
   readonly forceRegeneration: boolean;
   readonly supersedesGenerationId?: string;
+  readonly reuseSuccessfulChunksFromGenerationId?: string;
   readonly idempotencyKey?: string;
   readonly abortSignal?: AbortSignal;
 }
@@ -61,6 +63,7 @@ export interface SpeechProfileResolver {
     readonly genreId?: string;
     readonly language: string;
     readonly replacementProfileVersionId?: string;
+    readonly allowInactivePinnedProfile?: boolean;
   }): Promise<ResolvedSpeechProfile>;
   consentFor(
     profile: ResolvedSpeechProfile
@@ -70,9 +73,15 @@ export interface SpeechProfileResolver {
 export type SpeechCacheClaim =
   | { readonly kind: "owner" }
   | { readonly kind: "wait" }
-  | { readonly kind: "hit"; readonly result: SpeechGenerationResult };
+  | { readonly kind: "hit"; readonly result: SpeechGenerationResult }
+  | { readonly kind: "replay"; readonly result: SpeechGenerationResult };
 
 export interface SpeechGenerationStore {
+  queueDepth?(workspaceId: string): Promise<number>;
+  reusableChunk?(input: {
+    readonly generationId: string;
+    readonly chunk: SpeechChunk;
+  }): Promise<StoredSpeechArtifact | null>;
   claim(input: {
     readonly command: SpeechGenerationCommand;
     readonly profile: ResolvedSpeechProfile;
@@ -112,7 +121,10 @@ export interface SpeechQuotaGuard {
     readonly genreId?: string;
     readonly provider: SpeechProviderId;
     readonly estimate: SpeechCostEstimate;
-  }): Promise<{ readonly reservationId: string }>;
+  }): Promise<{
+    readonly reservationId: string;
+    readonly remainingCharacters?: number;
+  }>;
   reconcile(input: {
     readonly reservationId: string;
     readonly actualBillableCharacters: number;
@@ -281,6 +293,13 @@ export class SpeechGenerationService {
   ): Promise<SpeechGenerationResult> {
     const startedAt = Date.now();
     const profile = await this.resolveProfile(command);
+    const queueDepth = await this.options.generations.queueDepth?.(
+      command.workspaceId
+    );
+    if (queueDepth !== undefined)
+      this.instrumentation.metric("speech_queue_depth", queueDepth, {
+        provider: profile.configuration.provider,
+      });
     const textHash = createHash("sha256")
       .update(command.text.normalize("NFC"), "utf8")
       .digest("hex");
@@ -296,9 +315,15 @@ export class SpeechGenerationService {
           cacheInputVersion: cache.schemaVersion,
         })
     );
+    if (claim.kind === "replay") return claim.result;
     let state: SpeechGenerationState = "QUEUED";
     let reservationId: string | undefined;
     let reservationSettled = false;
+    let attemptedEstimate: SpeechCostEstimate | undefined;
+    const providerRequestIds: string[] = [];
+    let actualBillableCharacters = 0;
+    let actualCredits = 0;
+    let creditsReported = false;
     try {
       await this.options.generations.transition({
         generationId: command.generationId,
@@ -352,6 +377,7 @@ export class SpeechGenerationService {
               : {}),
           })
       );
+      attemptedEstimate = estimate;
       const reservation = await this.instrumentation.span(
         "speech.quota_reservation",
         { provider: provider.id },
@@ -365,6 +391,12 @@ export class SpeechGenerationService {
           })
       );
       reservationId = reservation.reservationId;
+      if (reservation.remainingCharacters !== undefined)
+        this.instrumentation.metric(
+          "speech_quota_remaining_characters",
+          reservation.remainingCharacters,
+          { provider: provider.id, scope: "effective" }
+        );
       await this.options.generations.transition({
         generationId: command.generationId,
         from: state,
@@ -382,12 +414,24 @@ export class SpeechGenerationService {
         }
       );
       const rawArtifacts: StoredSpeechArtifact[] = [];
-      const providerRequestIds: string[] = [];
-      let actualBillableCharacters = 0;
-      let actualCredits = 0;
-      let creditsReported = false;
       for (const chunk of chunks) {
         await this.options.generations.renewLease(command.generationId);
+        const reusable = command.reuseSuccessfulChunksFromGenerationId
+          ? await this.options.generations.reusableChunk?.({
+              generationId: command.reuseSuccessfulChunksFromGenerationId,
+              chunk,
+            })
+          : undefined;
+        if (reusable) {
+          rawArtifacts.push(reusable);
+          await this.options.generations.recordChunk({
+            generationId: command.generationId,
+            chunk,
+            attempt: 1,
+            artifact: reusable,
+          });
+          continue;
+        }
         const generated = await this.generateChunk({ command, profile, chunk });
         rawArtifacts.push(generated.artifact);
         actualBillableCharacters += generated.actualBillableCharacters;
@@ -469,8 +513,32 @@ export class SpeechGenerationService {
       return result;
     } catch (caught: unknown) {
       const error = safeError(caught);
-      if (reservationId && !reservationSettled)
-        await this.options.quotas.release(reservationId).catch(() => undefined);
+      if (reservationId && !reservationSettled) {
+        if (attemptedEstimate && actualBillableCharacters > 0) {
+          await this.options.quotas
+            .reconcile({
+              reservationId,
+              actualBillableCharacters,
+              ...(creditsReported ? { actualCredits } : {}),
+            })
+            .catch(() => undefined);
+          await this.options.usage
+            .record({
+              command,
+              profile,
+              estimate: attemptedEstimate,
+              actualBillableCharacters,
+              ...(creditsReported ? { actualCredits } : {}),
+              cacheHit: false,
+              providerRequestIds,
+            })
+            .catch(() => undefined);
+        } else {
+          await this.options.quotas
+            .release(reservationId)
+            .catch(() => undefined);
+        }
+      }
       const failureState = configurationFailureState(error);
       await this.options.generations
         .transition({
@@ -501,6 +569,7 @@ export class SpeechGenerationService {
       | "genreId"
       | "language"
       | "replacementProfileVersionId"
+      | "allowInactivePinnedProfile"
     >
   ): Promise<ResolvedSpeechProfile> {
     return this.instrumentation.span("speech.profile_resolution", {}, () =>
@@ -511,6 +580,9 @@ export class SpeechGenerationService {
         language: command.language,
         ...(command.replacementProfileVersionId
           ? { replacementProfileVersionId: command.replacementProfileVersionId }
+          : {}),
+        ...(command.allowInactivePinnedProfile
+          ? { allowInactivePinnedProfile: true }
           : {}),
       })
     );
@@ -524,6 +596,7 @@ export class SpeechGenerationService {
       | "genreId"
       | "language"
       | "replacementProfileVersionId"
+      | "allowInactivePinnedProfile"
       | "channel"
       | "text"
       | "abortSignal"

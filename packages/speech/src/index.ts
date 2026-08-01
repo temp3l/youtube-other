@@ -106,6 +106,8 @@ export * from "./platform/filesystem-artifacts.js";
 export * from "./platform/workflow-adapter.js";
 export * from "./platform/quota.js";
 export * from "./platform/pricing.js";
+export * from "./platform/observability.js";
+export * from "./platform/legacy-application-adapter.js";
 
 export interface SpeechSynthesisRequest {
   /** Runtime-validated before any provider, output, or temporary-file effect. */

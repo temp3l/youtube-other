@@ -31,6 +31,7 @@ import {
   speechEstimateResponseSchema,
   speechGenerationInputSchema,
   speechGenerationResponseSchema,
+  speechRetryInputSchema,
   speechPolicyResponseSchema,
   speechProfileResponseSchema,
   speechProfileVersionResponseSchema,
@@ -42,6 +43,7 @@ import {
   type SpeechEstimateResponse,
   type SpeechGenerationInput,
   type SpeechGenerationResponse,
+  type SpeechRetryInput,
   type SpeechPolicyResponse,
   type SpeechProfileResponse,
   type SpeechProfileVersionResponse,
@@ -375,7 +377,13 @@ export interface SpeechApiUseCases {
   ): Promise<SpeechGenerationResponse | null>;
   retryGeneration(
     generationId: string,
-    context: ApiRequestContext
+    input: SpeechRetryInput,
+    context: Required<
+      Pick<
+        ApiRequestContext,
+        "workspaceId" | "principal" | "requestId" | "idempotencyKey"
+      >
+    >
   ): Promise<SpeechGenerationResponse>;
   cancelGeneration(
     generationId: string,
@@ -398,6 +406,15 @@ export interface SpeechApiUseCases {
     context: ApiRequestContext
   ): Promise<SpeechProfileVersionResponse>;
   activateProfileVersion(
+    versionId: string,
+    context: Required<
+      Pick<
+        ApiRequestContext,
+        "workspaceId" | "principal" | "requestId" | "ifMatch"
+      >
+    >
+  ): Promise<SpeechProfileVersionResponse>;
+  deprecateProfileVersion(
     versionId: string,
     context: Required<
       Pick<
@@ -625,9 +642,7 @@ const speechProblemStatuses = {
   SPEECH_GENERATION_CANCELLED: 409,
 } as const;
 type SpeechProblemCode = keyof typeof speechProblemStatuses;
-function speechProblem(
-  error: unknown
-):
+function speechProblem(error: unknown):
   | {
       readonly code: SpeechProblemCode;
       readonly message: string;
@@ -773,9 +788,7 @@ function pageSize(url: URL): number {
     );
   return parsed;
 }
-function route(
-  pathname: string
-): {
+function route(pathname: string): {
   readonly workspace: string;
   readonly project?: string;
   readonly episode?: string;
@@ -876,7 +889,7 @@ function requiredPermission(
       matched.tail === "speech/profiles" ||
       /^speech\/profiles\/[^/]+\/versions$/u.test(matched.tail ?? "") ||
       /^speech\/generations\/[^/]+:(retry|cancel)$/u.test(matched.tail ?? "") ||
-      /^speech\/profile-versions\/[^/]+(?:\/activate|:validate)$/u.test(
+      /^speech\/profile-versions\/[^/]+(?:\/activate|:validate|:deprecate)$/u.test(
         matched.tail ?? ""
       ))
   )
@@ -1040,6 +1053,25 @@ export function createApiServer(
         });
       }
       if (
+        !matched.project &&
+        request.method === "POST" &&
+        /^speech\/profile-versions\/[^/]+:deprecate$/u.test(matched.tail ?? "")
+      ) {
+        const versionId = matched.tail!.match(
+          /^speech\/profile-versions\/([^/]+):deprecate$/u
+        )![1]!;
+        const result = speechProfileVersionResponseSchema.parse(
+          await speechUseCases.deprecateProfileVersion(versionId, {
+            ...context,
+            ifMatch: strongIfMatch(request),
+          })
+        );
+        return json(response, 200, result, {
+          etag: etag(result.revision),
+          "x-request-id": requestIdValue,
+        });
+      }
+      if (
         request.method === "GET" &&
         !matched.project &&
         matched.tail === "usage-records"
@@ -1149,7 +1181,22 @@ export function createApiServer(
         )!;
         const result = speechGenerationResponseSchema.parse(
           action === "retry"
-            ? await speechUseCases.retryGeneration(generationId!, context)
+            ? await speechUseCases.retryGeneration(
+                generationId!,
+                speechRetryInputSchema.parse(await body(request)),
+                {
+                  ...context,
+                  idempotencyKey:
+                    idempotencyKey(request) ??
+                    (() => {
+                      throw new ApplicationError(
+                        "precondition_required",
+                        "Idempotency-Key is required for speech retries.",
+                        false
+                      );
+                    })(),
+                }
+              )
             : await speechUseCases.cancelGeneration(generationId!, context)
         );
         return json(response, 202, result, {

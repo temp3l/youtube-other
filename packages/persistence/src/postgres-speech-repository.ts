@@ -109,6 +109,69 @@ CREATE TABLE IF NOT EXISTS speech_quota_reservations (
   created_at TIMESTAMPTZ NOT NULL, updated_at TIMESTAMPTZ NOT NULL, PRIMARY KEY (workspace_id, reservation_id),
   UNIQUE (workspace_id, generation_id, scope_type), FOREIGN KEY (workspace_id, generation_id) REFERENCES speech_generations (workspace_id, generation_id)
 );
+CREATE TABLE IF NOT EXISTS speech_quota_policies (
+  workspace_id TEXT NOT NULL, scope_type TEXT NOT NULL CHECK (scope_type IN ('provider','genre')),
+  scope_id TEXT NOT NULL, monthly_hard_limit_characters INTEGER NOT NULL CHECK (monthly_hard_limit_characters > 0),
+  warning_percent INTEGER NOT NULL DEFAULT 80 CHECK (warning_percent BETWEEN 1 AND 100),
+  revision BIGINT NOT NULL DEFAULT 0, created_at TIMESTAMPTZ NOT NULL, updated_at TIMESTAMPTZ NOT NULL,
+  PRIMARY KEY (workspace_id, scope_type, scope_id)
+);
+CREATE TABLE IF NOT EXISTS speech_quota_reservation_scopes (
+  workspace_id TEXT NOT NULL, reservation_id TEXT NOT NULL, generation_id TEXT NOT NULL,
+  scope_type TEXT NOT NULL CHECK (scope_type IN ('provider','genre')), scope_id TEXT NOT NULL,
+  billing_period DATE NOT NULL, reserved_characters INTEGER NOT NULL CHECK (reserved_characters >= 0),
+  actual_characters INTEGER NULL CHECK (actual_characters IS NULL OR actual_characters >= 0),
+  state TEXT NOT NULL CHECK (state IN ('reserved','settled','released')),
+  created_at TIMESTAMPTZ NOT NULL, updated_at TIMESTAMPTZ NOT NULL,
+  PRIMARY KEY (workspace_id, reservation_id, scope_type, scope_id),
+  UNIQUE (workspace_id, generation_id, scope_type, scope_id),
+  FOREIGN KEY (workspace_id, generation_id) REFERENCES speech_generations (workspace_id, generation_id)
+);
+CREATE TABLE IF NOT EXISTS speech_artifacts (
+  workspace_id TEXT NOT NULL, generation_id TEXT NOT NULL, artifact_id TEXT NOT NULL,
+  kind TEXT NOT NULL CHECK (kind IN ('raw','master')), chunk_index INTEGER NULL,
+  sha256 TEXT NOT NULL, content_type TEXT NOT NULL, created_at TIMESTAMPTZ NOT NULL,
+  PRIMARY KEY (workspace_id, artifact_id),
+  UNIQUE (workspace_id, generation_id, kind, chunk_index),
+  FOREIGN KEY (workspace_id, generation_id) REFERENCES speech_generations (workspace_id, generation_id),
+  CHECK ((kind='raw' AND chunk_index IS NOT NULL) OR (kind='master' AND chunk_index IS NULL))
+);
+CREATE TABLE IF NOT EXISTS speech_generation_chunk_attempts (
+  workspace_id TEXT NOT NULL, generation_id TEXT NOT NULL, chunk_index INTEGER NOT NULL CHECK (chunk_index >= 0),
+  attempt INTEGER NOT NULL CHECK (attempt > 0), text_sha256 TEXT NOT NULL, provider_request_id TEXT NULL,
+  state TEXT NOT NULL CHECK (state IN ('succeeded','failed')), raw_artifact_id TEXT NULL, failure_code TEXT NULL,
+  created_at TIMESTAMPTZ NOT NULL,
+  PRIMARY KEY (workspace_id, generation_id, chunk_index, attempt),
+  FOREIGN KEY (workspace_id, generation_id) REFERENCES speech_generations (workspace_id, generation_id)
+);
+CREATE TABLE IF NOT EXISTS speech_audit_records (
+  workspace_id TEXT NOT NULL, audit_id TEXT NOT NULL, action TEXT NOT NULL, subject_id TEXT NOT NULL,
+  actor_id TEXT NOT NULL, request_id TEXT NOT NULL, metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+  occurred_at TIMESTAMPTZ NOT NULL, PRIMARY KEY (workspace_id, audit_id), CHECK (jsonb_typeof(metadata)='object')
+);
+CREATE TABLE IF NOT EXISTS speech_listening_test_approvals (
+  workspace_id TEXT NOT NULL, voice_profile_version_id TEXT NOT NULL, approved_by TEXT NOT NULL,
+  approved_at TIMESTAMPTZ NOT NULL, evidence_artifact_id TEXT NOT NULL,
+  PRIMARY KEY (workspace_id, voice_profile_version_id),
+  FOREIGN KEY (workspace_id, voice_profile_version_id) REFERENCES voice_profile_versions (workspace_id, voice_profile_version_id)
+);
+CREATE TABLE IF NOT EXISTS speech_dispatch_controls (
+  workspace_id TEXT NOT NULL, enabled BOOLEAN NOT NULL DEFAULT TRUE, revision BIGINT NOT NULL DEFAULT 0,
+  updated_at TIMESTAMPTZ NOT NULL, updated_by TEXT NOT NULL,
+  PRIMARY KEY (workspace_id)
+);
+ALTER TABLE voice_profiles ADD COLUMN IF NOT EXISTS revision BIGINT NOT NULL DEFAULT 0;
+ALTER TABLE voice_profile_versions ADD COLUMN IF NOT EXISTS language TEXT NOT NULL DEFAULT 'en';
+ALTER TABLE voice_profile_versions ADD COLUMN IF NOT EXISTS revision BIGINT NOT NULL DEFAULT 0;
+ALTER TABLE speech_generations ADD COLUMN IF NOT EXISTS request_fingerprint TEXT NULL;
+ALTER TABLE speech_generations ADD COLUMN IF NOT EXISTS channel TEXT NOT NULL DEFAULT 'default';
+ALTER TABLE speech_generations ADD COLUMN IF NOT EXISTS language TEXT NOT NULL DEFAULT 'en';
+ALTER TABLE speech_generations ADD COLUMN IF NOT EXISTS text_sha256 TEXT NULL;
+ALTER TABLE speech_generations ADD COLUMN IF NOT EXISTS estimate_characters INTEGER NULL;
+ALTER TABLE speech_generations ADD COLUMN IF NOT EXISTS estimate_credits NUMERIC NULL;
+ALTER TABLE speech_generations ADD COLUMN IF NOT EXISTS actual_characters INTEGER NULL;
+ALTER TABLE speech_generations ADD COLUMN IF NOT EXISTS actual_credits NUMERIC NULL;
+ALTER TABLE speech_generations ADD COLUMN IF NOT EXISTS force_regeneration BOOLEAN NOT NULL DEFAULT FALSE;
 CREATE INDEX IF NOT EXISTS speech_generation_cache_key_idx ON speech_generations (workspace_id, cache_key, created_at DESC);
 CREATE UNIQUE INDEX IF NOT EXISTS speech_generation_idempotency_idx ON speech_generations (workspace_id, idempotency_key) WHERE idempotency_key IS NOT NULL;
 CREATE INDEX IF NOT EXISTS speech_cache_claim_idx ON speech_cache_entries (workspace_id, cache_key, lease_expires_at) WHERE authoritative_generation_id IS NULL;
@@ -117,6 +180,9 @@ CREATE INDEX IF NOT EXISTS speech_genre_policy_profile_idx ON genre_speech_polic
 CREATE INDEX IF NOT EXISTS speech_video_override_profile_idx ON video_speech_overrides (workspace_id, voice_profile_version_id);
 CREATE INDEX IF NOT EXISTS speech_usage_period_idx ON speech_usage_ledger (workspace_id, provider, billing_period, genre_id);
 CREATE INDEX IF NOT EXISTS speech_transitions_generation_idx ON speech_generation_transitions (workspace_id, generation_id, occurred_at);
+CREATE INDEX IF NOT EXISTS speech_quota_scope_idx ON speech_quota_reservation_scopes (workspace_id, scope_type, scope_id, billing_period, state);
+CREATE INDEX IF NOT EXISTS speech_artifacts_generation_idx ON speech_artifacts (workspace_id, generation_id, kind, chunk_index);
+CREATE INDEX IF NOT EXISTS speech_audit_occurred_idx ON speech_audit_records (workspace_id, occurred_at DESC);
 CREATE OR REPLACE FUNCTION enforce_voice_profile_version_immutability() RETURNS trigger AS $$
 BEGIN
   IF TG_OP = 'DELETE' THEN RAISE EXCEPTION 'voice profile versions cannot be deleted' USING ERRCODE = 'P0001'; END IF;
@@ -129,7 +195,7 @@ BEGIN
 END; $$ LANGUAGE plpgsql;
 DROP TRIGGER IF EXISTS voice_profile_versions_immutable ON voice_profile_versions;
 CREATE TRIGGER voice_profile_versions_immutable BEFORE UPDATE OR DELETE ON voice_profile_versions FOR EACH ROW EXECUTE FUNCTION enforce_voice_profile_version_immutability();
-DO $$ DECLARE t TEXT; BEGIN FOREACH t IN ARRAY ARRAY['voice_consent_records','voice_profiles','voice_profile_versions','genre_speech_policies','video_speech_overrides','speech_generations','speech_cache_entries','speech_generation_transitions','speech_generation_chunks','speech_pricing_versions','speech_usage_ledger','speech_quota_reservations'] LOOP
+DO $$ DECLARE t TEXT; BEGIN FOREACH t IN ARRAY ARRAY['voice_consent_records','voice_profiles','voice_profile_versions','genre_speech_policies','video_speech_overrides','speech_generations','speech_cache_entries','speech_generation_transitions','speech_generation_chunks','speech_pricing_versions','speech_usage_ledger','speech_quota_reservations','speech_quota_policies','speech_quota_reservation_scopes','speech_artifacts','speech_generation_chunk_attempts','speech_audit_records','speech_listening_test_approvals','speech_dispatch_controls'] LOOP
   EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY', t); EXECUTE format('ALTER TABLE %I FORCE ROW LEVEL SECURITY', t);
   EXECUTE format('DROP POLICY IF EXISTS workspace_isolation ON %I', t);
   EXECUTE format('CREATE POLICY workspace_isolation ON %I USING (workspace_id = current_setting(''app.workspace_id'', true)) WITH CHECK (workspace_id = current_setting(''app.workspace_id'', true))', t);

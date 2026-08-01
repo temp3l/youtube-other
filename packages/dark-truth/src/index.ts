@@ -47,11 +47,12 @@ import {
 } from "@mediaforge/rendering";
 import { runCommand } from "@mediaforge/process-runner";
 import {
-  OpenAiCompatibleSpeechProvider,
+  createProviderNeutralLegacyOpenAiSpeechProvider,
   runDarkTruthNarrationAdapter,
   loadSpeechVoiceInstructionTemplate,
   loadSpeechVoiceSettings,
-  MockSpeechProvider,
+  createProviderNeutralLegacyMockSpeechProvider,
+  type SpeechProvider,
 } from "@mediaforge/speech";
 import { getLanguageProfile } from "@mediaforge/story-localization";
 import { loadEpisodeConfig, loadRuntimeConfig, type RuntimeConfig } from "@mediaforge/config";
@@ -554,7 +555,7 @@ function createSpeechProvider(
   language: SupportedLanguage,
   artifactType: ArtifactType
 ): Promise<{
-  readonly provider: MockSpeechProvider | OpenAiCompatibleSpeechProvider;
+  readonly provider: SpeechProvider;
   readonly voiceProfile: ReturnType<typeof loadSpeechVoiceSettings>["profile"];
   readonly voiceSettings: ReturnType<typeof loadSpeechVoiceSettings>;
 }> {
@@ -572,7 +573,7 @@ function createSpeechProvider(
     });
     if (!isPaidProviderOptInEnabled()) {
       return {
-        provider: new MockSpeechProvider(),
+        provider: createProviderNeutralLegacyMockSpeechProvider(),
         voiceProfile: voiceSettings.profile,
         voiceSettings,
       };
@@ -586,7 +587,7 @@ function createSpeechProvider(
     const organization =
       process.env["OPENAI_ORGANIZATION"] ?? process.env["OPENAI_ORG_ID"];
     const model = process.env["OPENAI_TTS_MODEL"] ?? voiceSettings.model;
-    const provider = new OpenAiCompatibleSpeechProvider({
+    const provider = createProviderNeutralLegacyOpenAiSpeechProvider({
       apiKey,
       ...(process.env["OPENAI_BASE_URL"]
         ? { baseUrl: process.env["OPENAI_BASE_URL"] }

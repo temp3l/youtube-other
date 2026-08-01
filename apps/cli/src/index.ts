@@ -96,8 +96,8 @@ import {
   computeSpeechModelConfigFingerprint,
   computeSpeechVoiceConfigFingerprint,
   NarrationPipeline,
-  MockSpeechProvider,
-  OpenAiCompatibleSpeechProvider,
+  createProviderNeutralLegacyMockSpeechProvider,
+  createProviderNeutralLegacyOpenAiSpeechProvider,
   buildNarrationBatchStatus,
   buildNarrationTargetStatus,
   buildNarrationTargetStatusFromError,
@@ -841,9 +841,9 @@ function createSpeechProvider(config: RuntimeConfig): SpeechProvider {
     config.ttsProvider !== "openai-compatible" ||
     !config.openAiCompatibleApiKey
   ) {
-    return new MockSpeechProvider();
+    return createProviderNeutralLegacyMockSpeechProvider();
   }
-  return new OpenAiCompatibleSpeechProvider({
+  return createProviderNeutralLegacyOpenAiSpeechProvider({
     apiKey: config.openAiCompatibleApiKey,
     ...(config.openAiCompatibleOrganization
       ? { organization: config.openAiCompatibleOrganization }

@@ -19,6 +19,7 @@
     "@mediaforge/domain": "workspace:*",
     "@mediaforge/persistence": "workspace:*",
     "@mediaforge/shared": "workspace:*",
+    "@mediaforge/speech": "workspace:*",
     "@mediaforge/youtube-upload": "workspace:*",
     "zod": "^4.0.14",
     "pg": "^8.16.3"

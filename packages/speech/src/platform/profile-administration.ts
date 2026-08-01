@@ -65,6 +65,17 @@ export class SpeechProfileAdministrationService {
       record.profile.configuration.provider
     );
     await provider.validateProfile(record.profile);
+    if (
+      !(await this.input.listeningTests.approved(
+        command.workspaceId,
+        command.profileVersionId
+      ))
+    ) {
+      throw new SpeechDomainError(
+        "SPEECH_PROFILE_INVALID",
+        "A listening-test approval is required before activating a speech profile version."
+      );
+    }
     assertSpeechConsent({
       profile: record.profile,
       ...(record.consent ? { consent: record.consent } : {}),

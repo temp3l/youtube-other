@@ -27,6 +27,7 @@ export class VersionedSpeechProfileResolver implements SpeechProfileResolver {
     readonly genreId?: string;
     readonly language: string;
     readonly replacementProfileVersionId?: string;
+    readonly allowInactivePinnedProfile?: boolean;
   }): Promise<ResolvedSpeechProfile> {
     const versionId =
       request.replacementProfileVersionId ??
@@ -43,7 +44,13 @@ export class VersionedSpeechProfileResolver implements SpeechProfileResolver {
         "SPEECH_PROFILE_NOT_FOUND",
         "The resolved speech profile version was not found."
       );
-    if (record.status !== "ACTIVE")
+    if (
+      record.status !== "ACTIVE" &&
+      !(
+        request.allowInactivePinnedProfile &&
+        request.replacementProfileVersionId
+      )
+    )
       throw new SpeechDomainError(
         "SPEECH_PROFILE_VERSION_INACTIVE",
         "The resolved speech profile version is not active."

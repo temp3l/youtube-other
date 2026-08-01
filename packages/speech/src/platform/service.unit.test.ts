@@ -42,6 +42,10 @@ class MemoryGenerationStore implements SpeechGenerationStore {
     (result: SpeechGenerationResult) => void
   >();
   private readonly generationCache = new Map<string, string>();
+  private readonly successfulChunks = new Map<
+    string,
+    NonNullable<Parameters<SpeechGenerationStore["recordChunk"]>[0]["artifact"]>
+  >();
 
   public async claim(
     input: Parameters<SpeechGenerationStore["claim"]>[0]
@@ -64,7 +68,24 @@ class MemoryGenerationStore implements SpeechGenerationStore {
   }
   public async renewLease(): Promise<void> {}
   public async transition(): Promise<void> {}
-  public async recordChunk(): Promise<void> {}
+  public async recordChunk(
+    input: Parameters<SpeechGenerationStore["recordChunk"]>[0]
+  ): Promise<void> {
+    if (input.artifact)
+      this.successfulChunks.set(
+        `${input.generationId}:${input.chunk.index}:${input.chunk.textSha256}`,
+        input.artifact
+      );
+  }
+  public async reusableChunk(
+    input: Parameters<NonNullable<SpeechGenerationStore["reusableChunk"]>>[0]
+  ) {
+    return (
+      this.successfulChunks.get(
+        `${input.generationId}:${input.chunk.index}:${input.chunk.textSha256}`
+      ) ?? null
+    );
+  }
   public async complete(result: SpeechGenerationResult): Promise<void> {
     this.cache.set(result.cacheKey, result);
     this.resolveOwner.get(result.cacheKey)?.(result);
@@ -229,5 +250,52 @@ describe("SpeechGenerationService", () => {
       test.service.generate(command("failed"))
     ).rejects.toMatchObject({ code: "SPEECH_PROVIDER_REJECTED_INPUT" });
     expect(other.synthesize).not.toHaveBeenCalled();
+  });
+
+  it("reuses successful chunks and retries only failed or unattempted chunks", async () => {
+    const synthesize = vi.fn<SpeechProvider["synthesize"]>(async (request) => {
+      if (request.generationId === "generation-1" && request.chunk?.index === 1)
+        throw new SpeechDomainError(
+          "SPEECH_PROVIDER_REJECTED_INPUT",
+          "chunk failed"
+        );
+      return {
+        rawAudio: Readable.from([Buffer.from(request.text)]),
+        rawContentType: "audio/wav",
+        actualBillableCharacters: [...request.text].length,
+        providerRequestId: `request-${request.generationId}-${request.chunk?.index ?? 0}`,
+      };
+    });
+    const test = fixture({
+      id: "openai",
+      validateProfile: async () => undefined,
+      estimate: async (request) => ({
+        billableCharacters: [...request.text].length,
+      }),
+      synthesize,
+    });
+
+    await expect(
+      test.service.generate(command("generation-1"))
+    ).rejects.toMatchObject({ code: "SPEECH_PROVIDER_REJECTED_INPUT" });
+    const retried = await test.service.generate({
+      ...command("generation-2", true),
+      supersedesGenerationId: "generation-1",
+      reuseSuccessfulChunksFromGenerationId: "generation-1",
+    });
+
+    expect(retried.state).toBe("SUCCEEDED");
+    expect(
+      synthesize.mock.calls
+        .filter(([request]) => request.generationId === "generation-2")
+        .map(([request]) => request.chunk?.index)
+    ).toEqual([1, 2]);
+    expect(test.usage).toHaveBeenCalledTimes(2);
+    const partialUsage = test.usage.mock.calls[0]?.[0];
+    expect(partialUsage).toMatchObject({ cacheHit: false });
+    expect(partialUsage?.actualBillableCharacters).toBeGreaterThan(0);
+    expect(partialUsage?.actualBillableCharacters).toBeLessThan(
+      [...command("unused").text].length
+    );
   });
 });

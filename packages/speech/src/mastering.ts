@@ -232,7 +232,7 @@ export function buildNarrationMasteringFilters(
   return [
     ...buildNarrationPreFilters(profile),
     `loudnorm=I=${profile.targetLoudnessLufs}:TP=${profile.truePeakLimitDb}:LRA=11`,
-    `alimiter=limit=${Math.pow(10, profile.truePeakLimitDb / 20).toFixed(4)}`,
+    `alimiter=limit=${Math.pow(10, profile.truePeakLimitDb / 20).toFixed(4)}:level=false`,
   ].join(",");
 }
 
@@ -290,7 +290,7 @@ export function buildNarrationSecondPassFilters(
   return [
     ...buildNarrationPreFilters(profile),
     `loudnorm=I=${profile.targetLoudnessLufs}:TP=${profile.truePeakLimitDb}:LRA=11:measured_I=${measurement.inputI}:measured_TP=${measurement.inputTp}:measured_LRA=${measurement.inputLra}:measured_thresh=${measurement.inputThreshold}:offset=${measurement.targetOffset}:linear=true:print_format=summary`,
-    `alimiter=limit=${Math.pow(10, profile.truePeakLimitDb / 20).toFixed(4)}`,
+    `alimiter=limit=${Math.pow(10, profile.truePeakLimitDb / 20).toFixed(4)}:level=false`,
   ].join(",");
 }
 
@@ -476,6 +476,11 @@ export async function masterNarration(
       outputHash,
     };
   } catch (error) {
+    const boundedErrorMessage = (
+      error instanceof Error ? error.message : String(error)
+    )
+      .replace(/[\r\n]+/gu, " ")
+      .slice(0, 1_000);
     const metadata = await writeMetadata({
       request,
       inputHash,
@@ -484,7 +489,7 @@ export async function masterNarration(
       warnings: [
         {
           code: "MASTERING_FAILED",
-          message: error instanceof Error ? error.message : String(error),
+          message: boundedErrorMessage,
         },
       ],
     });
@@ -496,7 +501,7 @@ export async function masterNarration(
       status: "failed",
       metadata,
       cleanNarrationPreserved: await fileExists(request.inputPath),
-      errorMessage: error instanceof Error ? error.message : String(error),
+      errorMessage: boundedErrorMessage,
     };
   } finally {
     await fs.rm(tempPath, { force: true }).catch(() => undefined);

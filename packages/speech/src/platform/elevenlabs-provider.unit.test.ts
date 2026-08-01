@@ -81,6 +81,7 @@ describe("ElevenLabsSpeechProvider", () => {
       providerRequestId: "req_123",
       actualBillableCharacters: 18,
     });
+    expect(result.actualCredits).toBeUndefined();
   });
 
   it("does not fall back when ElevenLabs is disabled or rejects the request", async () => {
@@ -92,14 +93,12 @@ describe("ElevenLabsSpeechProvider", () => {
       code: "SPEECH_PROVIDER_DISABLED",
     } satisfies Partial<SpeechDomainError>);
 
-    const fetchImplementation = vi
-      .fn<typeof fetch>()
-      .mockResolvedValue(
-        new Response(JSON.stringify({ detail: "voice not found" }), {
-          status: 404,
-          headers: { "content-type": "application/json" },
-        })
-      );
+    const fetchImplementation = vi.fn<typeof fetch>().mockResolvedValue(
+      new Response(JSON.stringify({ detail: "voice not found" }), {
+        status: 404,
+        headers: { "content-type": "application/json" },
+      })
+    );
     const provider = new ElevenLabsSpeechProvider({
       apiKey: "test-key",
       featureEnabled: true,
@@ -110,5 +109,191 @@ describe("ElevenLabsSpeechProvider", () => {
       retryClass: "permanent",
     } satisfies Partial<SpeechDomainError>);
     expect(fetchImplementation).toHaveBeenCalledOnce();
+  });
+
+  it.each([
+    [401, "SPEECH_PROVIDER_AUTHENTICATION_FAILED", "permanent"],
+    [403, "SPEECH_PROVIDER_AUTHENTICATION_FAILED", "permanent"],
+    [429, "SPEECH_PROVIDER_RATE_LIMITED", "retryable"],
+    [500, "SPEECH_PROVIDER_UNAVAILABLE", "retryable"],
+    [503, "SPEECH_PROVIDER_UNAVAILABLE", "retryable"],
+  ] as const)("maps HTTP %i to %s", async (status, code, retryClass) => {
+    const provider = new ElevenLabsSpeechProvider({
+      apiKey: "test-key",
+      featureEnabled: true,
+      fetchImplementation: vi.fn<typeof fetch>().mockResolvedValue(
+        new Response(JSON.stringify({ detail: "provider diagnostic" }), {
+          status,
+          headers: { "content-type": "application/json" },
+        })
+      ),
+    });
+    await expect(provider.synthesize(request)).rejects.toMatchObject({
+      code,
+      retryClass,
+    });
+  });
+
+  it("distinguishes timeout from caller cancellation", async () => {
+    const abortingFetch = vi
+      .fn<typeof fetch>()
+      .mockImplementation(
+        async (_url, init) =>
+          new Promise<Response>((_resolve, reject) =>
+            init?.signal?.addEventListener(
+              "abort",
+              () => reject(new Error("aborted")),
+              { once: true }
+            )
+          )
+      );
+    const timed = new ElevenLabsSpeechProvider({
+      apiKey: "test-key",
+      featureEnabled: true,
+      requestTimeoutMs: 1,
+      fetchImplementation: abortingFetch,
+    });
+    await expect(timed.synthesize(request)).rejects.toMatchObject({
+      code: "SPEECH_PROVIDER_TIMEOUT",
+      retryClass: "retryable",
+    });
+
+    const controller = new AbortController();
+    controller.abort();
+    const cancelled = new ElevenLabsSpeechProvider({
+      apiKey: "test-key",
+      featureEnabled: true,
+      fetchImplementation: vi
+        .fn<typeof fetch>()
+        .mockRejectedValue(new Error("cancelled")),
+    });
+    await expect(
+      cancelled.synthesize({ ...request, abortSignal: controller.signal })
+    ).rejects.toMatchObject({
+      code: "SPEECH_GENERATION_CANCELLED",
+      retryClass: "cancelled",
+    });
+  });
+
+  it("rejects invalid content types, declared oversize responses, and empty audio streams", async () => {
+    const invalidType = new ElevenLabsSpeechProvider({
+      apiKey: "test-key",
+      featureEnabled: true,
+      fetchImplementation: vi
+        .fn<typeof fetch>()
+        .mockResolvedValue(
+          new Response("not audio", {
+            status: 200,
+            headers: { "content-type": "application/json" },
+          })
+        ),
+    });
+    await expect(invalidType.synthesize(request)).rejects.toMatchObject({
+      code: "SPEECH_PROVIDER_INVALID_RESPONSE",
+    });
+
+    const oversized = new ElevenLabsSpeechProvider({
+      apiKey: "test-key",
+      featureEnabled: true,
+      maxResponseBytes: 2,
+      fetchImplementation: vi.fn<typeof fetch>().mockResolvedValue(
+        new Response(new Uint8Array([1, 2, 3]), {
+          status: 200,
+          headers: { "content-type": "audio/mpeg", "content-length": "3" },
+        })
+      ),
+    });
+    await expect(oversized.synthesize(request)).rejects.toMatchObject({
+      code: "SPEECH_PROVIDER_INVALID_RESPONSE",
+    });
+
+    const empty = new ElevenLabsSpeechProvider({
+      apiKey: "test-key",
+      featureEnabled: true,
+      fetchImplementation: vi.fn<typeof fetch>().mockResolvedValue(
+        new Response(new Uint8Array(), {
+          status: 200,
+          headers: { "content-type": "audio/mpeg" },
+        })
+      ),
+    });
+    const emptyResult = await empty.synthesize(request);
+    const consume = async () => {
+      for await (const _chunk of emptyResult.rawAudio) {
+        /* consume */
+      }
+    };
+    await expect(consume()).rejects.toMatchObject({
+      code: "SPEECH_PROVIDER_INVALID_RESPONSE",
+    });
+  });
+
+  it("enforces streaming size limits when content-length is absent", async () => {
+    const provider = new ElevenLabsSpeechProvider({
+      apiKey: "test-key",
+      featureEnabled: true,
+      maxResponseBytes: 2,
+      fetchImplementation: vi.fn<typeof fetch>().mockResolvedValue(
+        new Response(new Uint8Array([1, 2, 3]), {
+          status: 200,
+          headers: { "content-type": "audio/mpeg" },
+        })
+      ),
+    });
+    const result = await provider.synthesize(request);
+    const consume = async () => {
+      for await (const _chunk of result.rawAudio) {
+        /* consume */
+      }
+    };
+    await expect(consume()).rejects.toMatchObject({
+      code: "SPEECH_PROVIDER_INVALID_RESPONSE",
+    });
+  });
+
+  it("allows a missing request ID while extracting usage and chunk context", async () => {
+    const fetchImplementation = vi.fn<typeof fetch>().mockResolvedValue(
+      new Response(new Uint8Array([1]), {
+        status: 200,
+        headers: {
+          "content-type": "audio/mpeg",
+          "x-elevenlabs-character-count": "17",
+          "x-elevenlabs-credits-used": "2.5",
+        },
+      })
+    );
+    const provider = new ElevenLabsSpeechProvider({
+      apiKey: "test-key",
+      featureEnabled: true,
+      fetchImplementation,
+    });
+    const result = await provider.synthesize({
+      ...request,
+      chunk: { index: 1, previousContext: "Before.", nextContext: "After." },
+    });
+    expect(result.providerRequestId).toBeUndefined();
+    expect(result.actualBillableCharacters).toBe(17);
+    expect(result.actualCredits).toBe(2.5);
+    expect(
+      JSON.parse(String(fetchImplementation.mock.calls[0]?.[1]?.body))
+    ).toMatchObject({
+      previous_text: "Before.",
+      next_text: "After.",
+      pronunciation_dictionary_locators: [
+        { pronunciation_dictionary_id: "dictionary-version" },
+      ],
+    });
+  });
+
+  it("rejects missing backend credentials before network dispatch", async () => {
+    const fetchImplementation = vi.fn<typeof fetch>();
+    const provider = new ElevenLabsSpeechProvider({
+      featureEnabled: true,
+      fetchImplementation,
+    });
+    await expect(provider.synthesize(request)).rejects.toMatchObject({
+      code: "SPEECH_PROVIDER_AUTHENTICATION_FAILED",
+    });
+    expect(fetchImplementation).not.toHaveBeenCalled();
   });
 });

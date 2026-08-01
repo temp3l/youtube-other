@@ -58,7 +58,7 @@ export class LegacyOpenAiSpeechTransport implements OpenAiSpeechTransport {
       await provider.synthesize(
         {
           contentProfileId: "dark-truth",
-          sceneId: sceneIdSchema.parse("scene-speech-provider"),
+          sceneId: sceneIdSchema.parse("scene-000"),
           text: input.text,
           voiceProfile: {
             id: "resolved-speech-profile",

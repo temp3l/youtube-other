@@ -24,6 +24,7 @@ export * from "./pilot-api-key-admin.js";
 export * from "./principal-provision.js";
 export * from "./publication-reconciliation.js";
 export * from "./postgres-api-use-cases.js";
+export * from "./postgres-speech-use-cases.js";
 export * from "./reconciliation-process.js";
 export * from "./tenant-reconciliation-scheduler.js";
 export * from "./webhook-process.js";
@@ -34,6 +35,10 @@ import {
   type ApiServerOptions,
 } from "./http-server.js";
 import { createPostgresApiUseCases } from "./postgres-api-use-cases.js";
+import {
+  createPostgresSpeechApiUseCases,
+  type SpeechProductionConfiguration,
+} from "./postgres-speech-use-cases.js";
 
 /** Production composition root; HTTP only receives the shared application handler. */
 export function createPostgresApiWorkflowAdmissionHandler(
@@ -50,6 +55,7 @@ export function createPostgresApiServer(input: {
   readonly pool: PostgresPool;
   readonly authenticate: NonNullable<ApiServerOptions["authenticate"]>;
   readonly cursorSecret: string;
+  readonly speechConfiguration?: SpeechProductionConfiguration;
   readonly options?: Omit<
     ApiServerOptions,
     "workflowAdmissionHandler" | "useCases" | "authenticate" | "readiness"
@@ -74,6 +80,14 @@ export function createPostgresApiServer(input: {
       workflowAdmissionHandler,
       cursorSecret: input.cursorSecret,
     }),
+    ...(input.speechConfiguration
+      ? {
+          speechUseCases: createPostgresSpeechApiUseCases({
+            pool: input.pool,
+            config: input.speechConfiguration,
+          }),
+        }
+      : {}),
   });
 }
 
@@ -106,6 +120,36 @@ export async function startApiServer(input: {
         directory: new PostgresPrincipalDirectory(pool),
       }),
       cursorSecret: input.cursorSecret,
+      speechConfiguration: {
+        workspaceDirectory: config.workspaceDir,
+        ...(config.openAiCompatibleApiKey
+          ? { openAiApiKey: config.openAiCompatibleApiKey }
+          : {}),
+        ...(config.openAiCompatibleBaseUrl
+          ? { openAiBaseUrl: config.openAiCompatibleBaseUrl }
+          : {}),
+        ...(config.openAiCompatibleOrganization
+          ? { openAiOrganization: config.openAiCompatibleOrganization }
+          : {}),
+        ...(config.openAiCompatibleProject
+          ? { openAiProject: config.openAiCompatibleProject }
+          : {}),
+        openAiModel:
+          config.openAiSpeechModel ??
+          config.openAiCompatibleModel ??
+          "gpt-4o-mini-tts",
+        openAiVoice:
+          config.openAiSpeechVoice ?? config.openAiCompatibleTtsVoice ?? "onyx",
+        elevenLabsFeatureEnabled: config.elevenLabsFeatureEnabled,
+        ...(config.elevenLabsApiKey
+          ? { elevenLabsApiKey: config.elevenLabsApiKey }
+          : {}),
+        ...(config.elevenLabsBaseUrl
+          ? { elevenLabsBaseUrl: config.elevenLabsBaseUrl }
+          : {}),
+        elevenLabsRequestTimeoutMs: config.elevenLabsRequestTimeoutMs,
+        channel: config.youtubeChannelId ?? "youtube",
+      },
     });
     server.once("close", () => {
       void pool.end();

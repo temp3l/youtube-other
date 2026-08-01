@@ -24,10 +24,15 @@ describe("speech CLI", () => {
         "generate",
         "status",
         "retry",
+        "cancel",
       ])
     );
     expect(profiles?.commands.map((command) => command.name())).toEqual([
       "list",
+      "create",
+      "version",
+      "activate",
+      "deprecate",
       "show",
       "validate",
     ]);
@@ -36,7 +41,17 @@ describe("speech CLI", () => {
         .find((command) => command.name() === "generate")
         ?.options.map((option) => option.long)
     ).toEqual(
-      expect.arrayContaining(["--workspace", "--video", "--profile", "--force"])
+      expect.arrayContaining([
+        "--workspace",
+        "--video",
+        "--profile",
+        "--language",
+        "--text",
+        "--idempotency-key",
+        "--supersedes",
+        "--dry-run",
+        "--force",
+      ])
     );
   });
 

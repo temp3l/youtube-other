@@ -7,6 +7,11 @@ const opaqueId = z
   .regex(/^[a-zA-Z0-9][a-zA-Z0-9._-]*$/u);
 const language = z.string().regex(/^[a-z]{2}(?:-[A-Z]{2})?$/u);
 const provider = z.enum(["openai", "elevenlabs"]);
+const artifactId = z
+  .string()
+  .min(3)
+  .max(500)
+  .regex(/^(?!\/)(?!.*(?:^|\/)\.\.?(?:\/|$))[a-zA-Z0-9._/-]+$/u);
 
 export const speechGenerationStateSchema = z.enum([
   "QUEUED",
@@ -102,6 +107,12 @@ export const speechGenerationInputSchema = speechEstimateInputSchema
     supersedesGenerationId: opaqueId.optional(),
   })
   .strict();
+export const speechRetryInputSchema = z
+  .object({
+    text: z.string().min(1).max(200_000),
+    language,
+  })
+  .strict();
 export const voiceProfileInputSchema = z
   .object({
     key: z
@@ -153,7 +164,7 @@ export const speechGenerationResponseSchema = z
     profileVersionId: opaqueId,
     provider,
     cacheHit: z.boolean(),
-    masterArtifactId: opaqueId.optional(),
+    masterArtifactId: artifactId.optional(),
     failure: z
       .object({
         code: z.string().min(1).max(160),
@@ -201,6 +212,7 @@ export const speechPolicyResponseSchema = z
 
 export type SpeechEstimateInput = z.infer<typeof speechEstimateInputSchema>;
 export type SpeechGenerationInput = z.infer<typeof speechGenerationInputSchema>;
+export type SpeechRetryInput = z.infer<typeof speechRetryInputSchema>;
 export type VoiceProfileInput = z.infer<typeof voiceProfileInputSchema>;
 export type VoiceProfileVersionInput = z.infer<
   typeof voiceProfileVersionInputSchema

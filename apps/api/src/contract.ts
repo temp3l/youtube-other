@@ -835,6 +835,31 @@ export const openApiDocument = {
         },
       },
     },
+    "/v1/workspaces/{workspace}/speech/profile-versions/{version}:deprecate": {
+      post: {
+        operationId: "deprecateSpeechProfileVersion",
+        description:
+          "Deprecates an immutable profile version for future resolution while preserving pinned generation history. Requires `content.write` and a current strong ETag.",
+        parameters: [
+          ...workspaceParameters,
+          parameter("SpeechProfileVersionId"),
+          parameter("IfMatch"),
+        ],
+        responses: {
+          "200": {
+            description: "Deprecated profile version",
+            headers: {
+              ETag: responseHeader("ETag"),
+              "x-request-id": responseHeader("RequestId"),
+            },
+            content: json("SpeechProfileVersion"),
+          },
+          ...authenticatedErrors,
+          "412": response("PreconditionFailed"),
+          "428": response("PreconditionRequired"),
+        },
+      },
+    },
     "/v1/workspaces/{workspace}/genres/{genre}/speech-policy": {
       put: {
         operationId: "setGenreSpeechPolicy",
@@ -1139,7 +1164,10 @@ export const openApiDocument = {
           profileVersionId: schema("OpaqueId"),
           provider: { type: "string", enum: ["openai", "elevenlabs"] },
           cacheHit: { type: "boolean" },
-          masterArtifactId: schema("OpaqueId"),
+          masterArtifactId: {
+            type: "string",
+            pattern: "^(?!/)(?!.*(?:^|/)\\.\\.?(?:/|$))[a-zA-Z0-9._/-]+$",
+          },
           failure: {
             type: "object",
             additionalProperties: false,

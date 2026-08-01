@@ -73,6 +73,8 @@ interface WorkspaceOption {
 interface VideoOption extends WorkspaceOption {
   readonly video: string;
   readonly profile?: string;
+  readonly text?: string;
+  readonly language?: string;
 }
 
 function apiProblem(
@@ -138,8 +140,9 @@ function createSpeechApi(dependencies: SpeechCommandDependencies) {
   const baseUrl = environment.baseUrl.replace(/\/+$/u, "");
   return async <T>(
     path: string,
-    method: "GET" | "POST",
-    body?: unknown
+    method: "GET" | "POST" | "PUT",
+    body?: unknown,
+    extraHeaders: Readonly<Record<string, string>> = {}
   ): Promise<{
     readonly data: T;
     readonly status: number;
@@ -154,6 +157,7 @@ function createSpeechApi(dependencies: SpeechCommandDependencies) {
           authorization: `Bearer ${environment.bearerToken}`,
           ...(body === undefined ? {} : { "content-type": "application/json" }),
           ...(method === "POST" ? { "idempotency-key": randomUUID() } : {}),
+          ...extraHeaders,
         },
         ...(body === undefined ? {} : { body: JSON.stringify(body) }),
       });
@@ -236,6 +240,146 @@ export function registerSpeechCommands(
       );
     });
   profiles
+    .command("create")
+    .requiredOption("--workspace <id>")
+    .requiredOption("--key <key>")
+    .requiredOption("--display-name <name>")
+    .option("--consent-record <id>")
+    .action(
+      async (
+        options: WorkspaceOption & {
+          readonly key: string;
+          readonly displayName: string;
+          readonly consentRecord?: string;
+        }
+      ) => {
+        const result = await api<unknown>(
+          speechPath(requireId(options.workspace, "--workspace"), "profiles"),
+          "POST",
+          {
+            key: options.key,
+            displayName: options.displayName,
+            ...(options.consentRecord
+              ? {
+                  consentRecordId: requireId(
+                    options.consentRecord,
+                    "--consent-record"
+                  ),
+                }
+              : {}),
+          }
+        );
+        output(
+          stdout,
+          "speech.profiles.create",
+          profileSchema.parse(result.data),
+          result.status,
+          result.requestId,
+          result.etag
+        );
+      }
+    );
+  profiles
+    .command("version <profile>")
+    .requiredOption("--workspace <id>")
+    .requiredOption("--language <language>")
+    .requiredOption("--configuration <json>")
+    .action(
+      async (
+        profileId: string,
+        options: WorkspaceOption & {
+          readonly language: string;
+          readonly configuration: string;
+        }
+      ) => {
+        let configuration: unknown;
+        try {
+          configuration = JSON.parse(options.configuration) as unknown;
+        } catch {
+          throw new Error("--configuration must be valid JSON.");
+        }
+        const result = await api<unknown>(
+          speechPath(
+            requireId(options.workspace, "--workspace"),
+            `profiles/${encodeURIComponent(requireId(profileId, "profile"))}/versions`
+          ),
+          "POST",
+          {
+            language: options.language,
+            configuration,
+          }
+        );
+        output(
+          stdout,
+          "speech.profiles.version",
+          result.data,
+          result.status,
+          result.requestId,
+          result.etag
+        );
+      }
+    );
+  profiles
+    .command("activate <profile-version>")
+    .requiredOption("--workspace <id>")
+    .requiredOption("--revision <revision>")
+    .action(
+      async (
+        version: string,
+        options: WorkspaceOption & { readonly revision: string }
+      ) => {
+        if (!/^\d+$/u.test(options.revision))
+          throw new Error("--revision must be a non-negative integer.");
+        const result = await api<unknown>(
+          speechPath(
+            requireId(options.workspace, "--workspace"),
+            `profile-versions/${encodeURIComponent(requireId(version, "profile version"))}/activate`
+          ),
+          "POST",
+          {},
+          { "if-match": `"${options.revision}"` }
+        );
+        output(
+          stdout,
+          "speech.profiles.activate",
+          result.data,
+          result.status,
+          result.requestId,
+          result.etag
+        );
+      }
+    );
+  profiles
+    .command("deprecate <profile-version>")
+    .requiredOption("--workspace <id>")
+    .requiredOption("--revision <revision>")
+    .action(
+      async (
+        version: string,
+        options: WorkspaceOption & { readonly revision: string }
+      ) => {
+        if (!/^\d+$/u.test(options.revision))
+          throw new Error("--revision must be a non-negative integer.");
+        const result = await api<unknown>(
+          speechPath(
+            requireId(options.workspace, "--workspace"),
+            `profile-versions/${encodeURIComponent(requireId(version, "profile version"))}:deprecate`
+          ),
+          "POST",
+          {},
+          { "if-match": `"${options.revision}"` }
+        );
+        output(
+          stdout,
+          "speech.profiles.deprecate",
+          result.data,
+          result.status,
+          result.requestId,
+          result.etag
+        );
+      }
+    );
+  profiles
     .command("show <profile>")
     .requiredOption("--workspace <id>")
     .action(async (profile: string, options: WorkspaceOption) => {
@@ -287,12 +431,16 @@ export function registerSpeechCommands(
     .requiredOption("--workspace <id>")
     .requiredOption("--video <id>")
     .option("--profile <profile-version>")
+    .option("--language <language>")
+    .option("--text <narration>")
     .action(async (options: VideoOption) => {
       const result = await api<unknown>(
         speechPath(requireId(options.workspace, "--workspace"), "estimates"),
         "POST",
         {
           videoId: requireId(options.video, "--video"),
+          ...(options.language ? { language: options.language } : {}),
+          ...(options.text ? { text: options.text } : {}),
           ...(options.profile
             ? { profileVersionId: requireId(options.profile, "--profile") }
             : {}),
@@ -312,31 +460,91 @@ export function registerSpeechCommands(
     .requiredOption("--workspace <id>")
     .requiredOption("--video <id>")
     .option("--profile <profile-version>")
+    .option("--language <language>")
+    .option("--text <narration>")
+    .option("--idempotency-key <key>")
+    .option("--supersedes <generation-id>")
+    .option(
+      "--dry-run",
+      "estimate resolution, cache, and quota impact without generation"
+    )
     .option(
       "--force",
       "create a replacement generation without overwriting historical artifacts"
     )
-    .action(async (options: VideoOption & { readonly force?: boolean }) => {
-      const result = await api<unknown>(
-        speechPath(requireId(options.workspace, "--workspace"), "generations"),
-        "POST",
-        {
+    .action(
+      async (
+        options: VideoOption & {
+          readonly force?: boolean;
+          readonly idempotencyKey?: string;
+          readonly supersedes?: string;
+          readonly dryRun?: boolean;
+        }
+      ) => {
+        const payload = {
           videoId: requireId(options.video, "--video"),
-          forceRegeneration: options.force === true,
+          ...(options.language ? { language: options.language } : {}),
+          ...(options.text ? { text: options.text } : {}),
           ...(options.profile
             ? { profileVersionId: requireId(options.profile, "--profile") }
             : {}),
+        };
+        if (options.dryRun) {
+          const result = await api<unknown>(
+            speechPath(
+              requireId(options.workspace, "--workspace"),
+              "estimates"
+            ),
+            "POST",
+            payload
+          );
+          output(
+            stdout,
+            "speech.generate.dry-run",
+            estimateSchema.parse(result.data),
+            result.status,
+            result.requestId,
+            result.etag
+          );
+          return;
         }
-      );
-      output(
-        stdout,
-        "speech.generate",
-        generationSchema.parse(result.data),
-        result.status,
-        result.requestId,
-        result.etag
-      );
-    });
+        const result = await api<unknown>(
+          speechPath(
+            requireId(options.workspace, "--workspace"),
+            "generations"
+          ),
+          "POST",
+          {
+            ...payload,
+            forceRegeneration: options.force === true,
+            ...(options.supersedes
+              ? {
+                  supersedesGenerationId: requireId(
+                    options.supersedes,
+                    "--supersedes"
+                  ),
+                }
+              : {}),
+          },
+          options.idempotencyKey
+            ? {
+                "idempotency-key": requireId(
+                  options.idempotencyKey,
+                  "--idempotency-key"
+                ),
+              }
+            : {}
+        );
+        output(
+          stdout,
+          "speech.generate",
+          generationSchema.parse(result.data),
+          result.status,
+          result.requestId,
+          result.etag
+        );
+      }
+    );
   speech
     .command("status <generation-id>")
     .requiredOption("--workspace <id>")
@@ -360,18 +568,59 @@ export function registerSpeechCommands(
   speech
     .command("retry <generation-id>")
     .requiredOption("--workspace <id>")
+    .requiredOption("--language <language>")
+    .requiredOption("--text <narration>")
+    .option("--idempotency-key <key>")
+    .action(
+      async (
+        generationId: string,
+        options: WorkspaceOption & {
+          readonly language: string;
+          readonly text: string;
+          readonly idempotencyKey?: string;
+        }
+      ) => {
+        const result = await api<unknown>(
+          speechPath(
+            requireId(options.workspace, "--workspace"),
+            `generations/${encodeURIComponent(requireId(generationId, "generation id"))}:retry`
+          ),
+          "POST",
+          { language: options.language, text: options.text },
+          options.idempotencyKey
+            ? {
+                "idempotency-key": requireId(
+                  options.idempotencyKey,
+                  "--idempotency-key"
+                ),
+              }
+            : {}
+        );
+        output(
+          stdout,
+          "speech.retry",
+          generationSchema.parse(result.data),
+          result.status,
+          result.requestId,
+          result.etag
+        );
+      }
+    );
+  speech
+    .command("cancel <generation-id>")
+    .requiredOption("--workspace <id>")
     .action(async (generationId: string, options: WorkspaceOption) => {
       const result = await api<unknown>(
         speechPath(
           requireId(options.workspace, "--workspace"),
-          `generations/${encodeURIComponent(requireId(generationId, "generation id"))}:retry`
+          `generations/${encodeURIComponent(requireId(generationId, "generation id"))}:cancel`
         ),
         "POST",
         {}
       );
       output(
         stdout,
-        "speech.retry",
+        "speech.cancel",
         generationSchema.parse(result.data),
         result.status,
         result.requestId,
