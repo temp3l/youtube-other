@@ -2,29 +2,29 @@
 
 Source plan: `docs/plans/strategic-reinvention-implementation-plan.md`
 Date: 2026-08-01
-Status: Wave 2 complete; Wave 3 next
+Status: Wave 3 complete; Wave 4 next
 
 ## Summary
 
-Tasks 00–02 established fail-closed evidence, Italian/strategic contracts, canonical paths, and safety hardening. Task 03 added generic registries and a separate discovery-blocked creator overlay.
+Tasks 00–03 established contracts, safety foundations, registries, and a discovery-blocked creator overlay. Tasks 04–06 added race-safe provenance, scoped approvals, hosted authority, independent visual plans, byte-bound media rights, and mandatory image-mutation gates.
 
 ## Files Changed
 
-Planning/reports; domain/shared/safety foundations; config registry; new Strategic Reinvention package and full supplied YAML configuration.
+Planning/reports; source ingestion/policy; domain/workflow/CLI/Postgres approval authority; visual planning; image-provider mutation gates and explicit callers.
 
 ## Task Status
 
-- Completed: 00–03.
+- Completed: 00–06.
 - Partial: none.
-- Not started: 04–13.
-- Deviations: explicitly authorized targeted domain build and renewed focused repair budgets.
+- Not started: 07–13.
+- Deviations: authorized focused repair budgets; Task 06 ownership expanded to all real image-mutation entry points and explicit callers after barrier review.
 
 ## Checks
 
-Prior Wave 0/1 checks passed. Task 03: config 2, profile 2, targeted config build, strategic typecheck, diff check, and read-only barrier review passed.
+Prescribed suites passed (source 4 + policy 13; workflow 13 + CLI 1 + persistence/publication 22; planner 3 + creator policy 5 + image/thumbnail 28). Targeted typechecks passed except Task 06's package check, blocked by Task 08's stale five-locale type. Independent review and diff checks passed.
 
 ## Risks And Next Steps
 
-No paid/publish/synthetic action occurred. One dependency request failed on DNS; offline cache resolved it. External evidence gates remain blocked. Execute Tasks 04–06 in the safe parallel wave.
+No paid/provider/upload/publish/synthetic action occurred. No live database migration ran. External creator/rights evidence remains blocked. Execute Tasks 07–08 in the safe parallel wave; Task 08 owns the five-locale correction.
 
-Commits: `0a431eb`, `d61a924`, `45142d7`, `1bb69cf`.
+Commits: `0a431eb`, `d61a924`, `45142d7`, `1bb69cf`, `0fd0be5`, `1dbbdf2`, `97647a4`.
