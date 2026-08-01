@@ -154,12 +154,14 @@ export async function generateLocalMockTts(args: {
     } catch {
       await provider.synthesize(
         {
+          contentProfileId: "mathematics-education",
           sceneId: sceneIdSchema.parse(segment.sceneId),
           text: segment.spokenText,
           voiceProfile: MATH_MOCK_VOICE_PROFILE,
           outputPath: cachedPath,
           targetDurationSeconds: targetFrames / 30,
           requestFingerprint: cacheKey,
+          dispatchContext: { kind: "legacy-noncreator" },
         },
         new AbortController().signal
       );

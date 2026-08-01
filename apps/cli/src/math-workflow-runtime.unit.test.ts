@@ -203,13 +203,17 @@ describe("canonical math workflow runtime", () => {
   it("measures one bounded provider-free calibration shard per lane", async () => {
     const fixture = await hybridRequests();
     const calls = { local: 0, remote: 0 };
+    const workingRoot = path.join(fixture.jobRoot, "state", "math-render-work");
+    const calibrationRoots: string[] = [];
     const calibration = await runBoundedNoProviderMathSceneCalibration({
       imageId: hybridImageId,
       requests: fixture.requests,
       context: { jobRoot: fixture.jobRoot },
+      workingRoot,
       localRunner: {
-        execute: async (request) => {
+        execute: async (request, context) => {
           calls.local += 1;
+          calibrationRoots.push(context.jobRoot);
           return {
             result: calibratedShardResult(request, {
               rasterizationMs: 100,
@@ -221,8 +225,9 @@ describe("canonical math workflow runtime", () => {
         },
       },
       remoteRunner: {
-        execute: async (request) => {
+        execute: async (request, context) => {
           calls.remote += 1;
+          calibrationRoots.push(context.jobRoot);
           return {
             result: calibratedShardResult(request, {
               rasterizationMs: 50,
@@ -237,6 +242,12 @@ describe("canonical math workflow runtime", () => {
     });
 
     expect(calls).toEqual({ local: 1, remote: 1 });
+    expect(calibrationRoots).toHaveLength(2);
+    expect(
+      calibrationRoots.every((root) =>
+        root.startsWith(`${workingRoot}${path.sep}`)
+      )
+    ).toBe(true);
     expect(calibration.local).toMatchObject({
       encodeFramesPerSecond: 300,
       startupLatencyMs: 7,

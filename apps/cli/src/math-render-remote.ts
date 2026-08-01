@@ -14,7 +14,6 @@ import {
 import { spawn } from "node:child_process";
 import { createHash, randomUUID } from "node:crypto";
 import fs from "node:fs/promises";
-import os from "node:os";
 import path from "node:path";
 import { z } from "zod";
 
@@ -422,8 +421,16 @@ export async function deployMathRemoteWorker(input: {
     throw new Error("The local Docker image identity changed after build.");
   }
 
+  const deploymentWorkingRoot = path.join(
+    input.repositoryRoot,
+    ".cache",
+    "math-pipeline",
+    "state",
+    "remote-deploy"
+  );
+  await fs.mkdir(deploymentWorkingRoot, { recursive: true });
   const temporaryRoot = await fs.mkdtemp(
-    path.join(os.tmpdir(), "mediaforge-math-deploy-")
+    path.join(deploymentWorkingRoot, "deploy-")
   );
   const archive = path.join(temporaryRoot, "math-render-worker.tar");
   const remoteDeployRoot = path.posix.join(transport.baseDir, "deploy");

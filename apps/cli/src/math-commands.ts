@@ -367,7 +367,8 @@ async function canonicalPaidSpeechPreflight(input: {
     pronunciationDictionaries,
   });
   const outputRoot = path.join(
-    input.workspace ?? "/tmp/mediaforge-math-paid-plan",
+    input.workspace ??
+      path.join(repositoryLocalMathPipelineRoot(), "paid-plan"),
     createLessonId(input.skillId, input.lessonVariant),
     "locales/de/audio/educational-speech"
   );
@@ -394,7 +395,8 @@ async function canonicalPaidSpeechPreflight(input: {
     providerRequests: dryRun.dryRun.estimatedProviderRequests,
   });
   const unitRoot = path.join(
-    input.workspace ?? "/tmp/mediaforge-math-paid-plan",
+    input.workspace ??
+      path.join(repositoryLocalMathPipelineRoot(), "paid-plan"),
     createLessonId(input.skillId, input.lessonVariant)
   );
   const priorUsage = await readCanonicalPaidSpeechUsage(unitRoot);

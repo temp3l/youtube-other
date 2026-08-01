@@ -195,6 +195,17 @@ describe("math remote deployment and preflight", () => {
     expect(
       executor.invocations.find((item) => item.command === "rsync")?.args
     ).toEqual(expect.arrayContaining(["--partial", "--append-verify"]));
+    expect(
+      executor.invocations.find(
+        (item) => item.command === "docker" && item.args[0] === "save"
+      )?.args
+    ).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining(
+          path.join(root, ".cache", "math-pipeline", "state", "remote-deploy")
+        ),
+      ])
+    );
     const serializedReceipt = JSON.stringify(receipt);
     expect(receipt.target).toBe(
       `sha256:${createHash("sha256")

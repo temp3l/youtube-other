@@ -5083,8 +5083,15 @@ youtubeCommand
   );
 
 registerEpisodeCommands(program);
-registerConnectedApiCommands(program);
-registerSpeechCommands(program);
+// Connected command surfaces validate their credentials during registration.
+// Keep the local CLI usable when an operator intentionally has no API setup.
+if (
+  process.env["MEDIAFORGE_API_BASE_URL"] &&
+  process.env["MEDIAFORGE_API_BEARER_TOKEN"]
+) {
+  registerConnectedApiCommands(program);
+  registerSpeechCommands(program);
+}
 registerShotsCommands(program);
 registerStoryLocalizationCommands(program);
 registerThumbnailCommands(program);

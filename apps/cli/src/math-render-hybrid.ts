@@ -1,6 +1,5 @@
 import { createHash } from "node:crypto";
 import fs from "node:fs/promises";
-import os from "node:os";
 import path from "node:path";
 import type { RuntimeConfig } from "@mediaforge/config";
 import {
@@ -95,6 +94,14 @@ export interface MathSceneLaneRunResult {
   readonly startupLatencyMs?: number;
   readonly transferDurationMs?: number;
   readonly remoteJobId?: string;
+}
+
+async function createMathRenderWorkingDirectory(
+  workingRoot: string,
+  prefix: string
+): Promise<string> {
+  await fs.mkdir(workingRoot, { recursive: true });
+  return fs.mkdtemp(path.join(workingRoot, prefix));
 }
 
 interface MathSceneLaneExecutionContext extends MathSceneShardExecutionContext {
@@ -649,13 +656,15 @@ export function createLocalDockerMathLaneRunner(input: {
   readonly buildRevision: string;
   readonly cpuSlots: number;
   readonly cacheRoot: string;
+  readonly workingRoot: string;
   readonly executor?: MathRemoteProcessExecutor;
 }): MathSceneLaneRunner {
   const executor = input.executor ?? systemMathRemoteProcessExecutor;
   return {
     async execute(request, context) {
-      const stagingRoot = await fs.mkdtemp(
-        path.join(os.tmpdir(), "mediaforge-math-local-shard-")
+      const stagingRoot = await createMathRenderWorkingDirectory(
+        input.workingRoot,
+        "local-shard-"
       );
       try {
         const staged = await stageWorkerRequest({
@@ -758,16 +767,19 @@ export function createLocalDockerMathLaneRunner(input: {
 
 export function createRemoteMathLaneRunner(input: {
   readonly settings: MathRemoteSettings;
+  readonly workingRoot: string;
   readonly executor?: MathRemoteProcessExecutor;
 }): MathSceneLaneRunner {
   const executor = input.executor ?? systemMathRemoteProcessExecutor;
   return {
     async execute(request, context) {
-      const stagingRoot = await fs.mkdtemp(
-        path.join(os.tmpdir(), "mediaforge-math-remote-shard-")
+      const stagingRoot = await createMathRenderWorkingDirectory(
+        input.workingRoot,
+        "remote-shard-"
       );
-      const downloadRoot = await fs.mkdtemp(
-        path.join(os.tmpdir(), "mediaforge-math-remote-result-")
+      const downloadRoot = await createMathRenderWorkingDirectory(
+        input.workingRoot,
+        "remote-result-"
       );
       try {
         const staged = await stageWorkerRequest({
@@ -1021,6 +1033,7 @@ export async function runBoundedNoProviderMathSceneCalibration(input: {
   readonly imageId: string;
   readonly requests: readonly MathSceneShardRequest[];
   readonly context: MathSceneShardExecutionContext;
+  readonly workingRoot: string;
   readonly localRunner: MathSceneLaneRunner;
   readonly remoteRunner: MathSceneLaneRunner;
   readonly now?: () => number;
@@ -1029,8 +1042,9 @@ export async function runBoundedNoProviderMathSceneCalibration(input: {
     throw new Error("Math calibration requires at least one scene request.");
   }
   const now = input.now ?? Date.now;
-  const root = await fs.mkdtemp(
-    path.join(os.tmpdir(), "mediaforge-math-calibration-")
+  const root = await createMathRenderWorkingDirectory(
+    input.workingRoot,
+    "calibration-"
   );
   try {
     const localRoot = path.join(root, "local");
@@ -1157,6 +1171,7 @@ export async function createMathLocalContainerRenderExecution(input: {
       "math-render-cache",
       imageId.slice("sha256:".length)
     ),
+    workingRoot: path.join(input.workspaceRoot, "state", "math-render-work"),
     ...(input.processExecutor ? { executor: input.processExecutor } : {}),
   });
   const defaultCapability = defaultLocalMathWorkerCapability({
@@ -1253,10 +1268,12 @@ export async function createMathWorkflowRenderExecution(input: {
       "math-render-cache",
       imageId.slice("sha256:".length)
     ),
+    workingRoot: path.join(input.workspaceRoot, "state", "math-render-work"),
     ...(input.processExecutor ? { executor: input.processExecutor } : {}),
   });
   const remoteRunner = createRemoteMathLaneRunner({
     settings: { ...preparedSettings, remoteSceneSlots: 1 },
+    workingRoot: path.join(input.workspaceRoot, "state", "math-render-work"),
     ...(input.processExecutor ? { executor: input.processExecutor } : {}),
   });
   const createExecutor = (calibration: MathLaneCalibrations) => {
@@ -1293,6 +1310,7 @@ export async function createMathWorkflowRenderExecution(input: {
       imageId,
       requests,
       context,
+      workingRoot: path.join(input.workspaceRoot, "state", "math-render-work"),
       localRunner,
       remoteRunner,
     }).then(createExecutor);

@@ -1,6 +1,5 @@
 import { createHash } from "node:crypto";
 import fs from "node:fs/promises";
-import os from "node:os";
 import path from "node:path";
 import type { RuntimeConfig } from "@mediaforge/config";
 import {
@@ -399,8 +398,13 @@ export async function runSystemMathRenderBenchmark(input: {
       "Benchmark execution requires explicit --authorize-resource-use."
     );
   }
+  const benchmarkWorkingRoot = path.join(
+    path.dirname(input.artifactPath),
+    ".math-render-work"
+  );
+  await fs.mkdir(benchmarkWorkingRoot, { recursive: true });
   const temporaryRoot = await fs.mkdtemp(
-    path.join(os.tmpdir(), "mediaforge-math-benchmark-")
+    path.join(benchmarkWorkingRoot, "benchmark-")
   );
   const cacheRoots = new Map<MathRenderBenchmarkMode, string>();
   try {
