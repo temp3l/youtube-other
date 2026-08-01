@@ -14,7 +14,7 @@ Confirmed the audited branch/HEAD, dependency availability, decision ownership, 
 
 ## Tests
 
-Three focused commands passed: 68 tests. `git diff --check` is pending before commit.
+Three focused commands passed: 68 tests. `git diff --cached --check` passed after removing Markdown hard-break whitespace.
 
 ## Risks
 
@@ -22,4 +22,4 @@ All external evidence listed in the decision register remains absent. Production
 
 ## Commit
 
-Pending Task 00 checkpoint.
+`0a431eb` (`docs: finalize strategic reinvention execution gate`).
