@@ -1,7 +1,11 @@
 export interface YoutubeReconciliationClient {
   readonly search: {
     list(request: unknown): Promise<{
-      readonly data?: { readonly items?: ReadonlyArray<{ readonly id?: { readonly videoId?: string | null } | null }> };
+      readonly data?: {
+        readonly items?: ReadonlyArray<{
+          readonly id?: { readonly videoId?: string | null } | null;
+        }>;
+      };
     }>;
   };
   readonly videos: {
@@ -9,7 +13,10 @@ export interface YoutubeReconciliationClient {
       readonly data?: {
         readonly items?: ReadonlyArray<{
           readonly id?: string | null;
-          readonly snippet?: { readonly description?: string | null; readonly channelId?: string | null } | null;
+          readonly snippet?: {
+            readonly description?: string | null;
+            readonly channelId?: string | null;
+          } | null;
           readonly status?: { readonly privacyStatus?: string | null } | null;
         }>;
       };
@@ -23,8 +30,9 @@ export interface YoutubePublicationReceipt {
   readonly evidence: unknown;
 }
 
-export const youtubePublicationRecoveryMarker = (publicationId: string): string =>
-  `mediaforge-publication:${publicationId}`;
+export const youtubePublicationRecoveryMarker = (
+  publicationId: string
+): string => `mediaforge-publication:${publicationId}`;
 
 /**
  * Queries YouTube read-only and accepts receipts only when the immutable
@@ -41,6 +49,7 @@ export class YoutubePublicationEvidenceLookup {
       part: ["id"],
       q: marker,
       type: ["video"],
+      forMine: true,
       maxResults: 10,
     });
     const candidateIds = (search.data?.items ?? [])
@@ -53,8 +62,19 @@ export class YoutubePublicationEvidenceLookup {
       maxResults: candidateIds.length,
     });
     return (videos.data?.items ?? [])
-      .filter((video): video is { readonly id: string; readonly snippet: { readonly description?: string | null; readonly channelId?: string | null }; readonly status?: { readonly privacyStatus?: string | null } | null } =>
-        typeof video.id === "string" && video.snippet?.description?.includes(marker) === true
+      .filter(
+        (
+          video
+        ): video is {
+          readonly id: string;
+          readonly snippet: {
+            readonly description?: string | null;
+            readonly channelId?: string | null;
+          };
+          readonly status?: { readonly privacyStatus?: string | null } | null;
+        } =>
+          typeof video.id === "string" &&
+          video.snippet?.description?.includes(marker) === true
       )
       .map((video) => ({
         providerObjectId: video.id,

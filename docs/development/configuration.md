@@ -49,6 +49,16 @@ Configuration ownership lives in `@mediaforge/config`.
     `pnpm youtube:auth:french` writes `YOUTUBE_REFRESH_TOKEN_FRENCH` and `YOUTUBE_CHANNEL_ID_FRENCH`
     `pnpm youtube:auth:portuguese` writes `YOUTUBE_REFRESH_TOKEN_PORTUGUESE` and `YOUTUBE_CHANNEL_ID_PORTUGUESE`
     These helpers also open the Google OAuth URL in the default browser when the local environment supports it.
+- Tenant YouTube reconciliation process:
+  build `@mediaforge/api`, then run its `start:reconciliation` script with
+  `MEDIAFORGE_WORKFLOW_DATABASE_URL`, `MEDIAFORGE_RECONCILIATION_WORKSPACE_ID`,
+  `YOUTUBE_CLIENT_ID`, `YOUTUBE_CLIENT_SECRET`, and `YOUTUBE_REFRESH_TOKEN`.
+  Optional bounded controls are `MEDIAFORGE_RECONCILIATION_WORKER_ID`,
+  `MEDIAFORGE_RECONCILIATION_POLL_INTERVAL_MS` (default `1000`),
+  `MEDIAFORGE_RECONCILIATION_LEASE_SECONDS` (default `60`), and
+  `MEDIAFORGE_RECONCILIATION_MAX_ATTEMPTS` (default `8`). The process drains
+  only that tenant's publication-reconciliation topic and exits cleanly on
+  `SIGINT` or `SIGTERM`.
 - Remote rendering:
   `REMOTE_RENDER_*` and `LOCAL_RENDER_CONCURRENCY`
 

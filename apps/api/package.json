@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "tsc -p tsconfig.json",
+    "start:reconciliation": "node dist/reconciliation-entry.js",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
