@@ -2,29 +2,29 @@
 
 Source plan: `docs/plans/strategic-reinvention-implementation-plan.md`
 Date: 2026-08-01
-Status: Wave 1 complete; Task 03 next
+Status: Wave 2 complete; Wave 3 next
 
 ## Summary
 
-Task 00 established fail-closed evidence gates. Tasks 01–02 added Italian/strategic contracts, canonical paths, and global safety hardening. Iterative merge review cleared all Wave 1 blockers.
+Tasks 00–02 established fail-closed evidence, Italian/strategic contracts, canonical paths, and safety hardening. Task 03 added generic registries and a separate discovery-blocked creator overlay.
 
 ## Files Changed
 
-Planning/reports; Task 01 domain/shared contracts; Task 02 process, telemetry, debug, rendering, worker, and CLI freshness files.
+Planning/reports; domain/shared/safety foundations; config registry; new Strategic Reinvention package and full supplied YAML configuration.
 
 ## Task Status
 
-- Completed: 00–02.
+- Completed: 00–03.
 - Partial: none.
-- Not started: 03–13.
+- Not started: 04–13.
 - Deviations: explicitly authorized targeted domain build and renewed focused repair budgets.
 
 ## Checks
 
-Task 00: 68 tests. Task 01: 49 focused tests, build, typecheck. Task 02: focused security/debug/worker/rendering/CLI tests and rendering typecheck. Checkpoint diff checks passed.
+Prior Wave 0/1 checks passed. Task 03: config 2, profile 2, targeted config build, strategic typecheck, diff check, and read-only barrier review passed.
 
 ## Risks And Next Steps
 
-No paid/external/publish/synthetic action occurred. External evidence gates remain blocked. Execute Task 03 sequentially.
+No paid/publish/synthetic action occurred. One dependency request failed on DNS; offline cache resolved it. External evidence gates remain blocked. Execute Tasks 04–06 in the safe parallel wave.
 
-Commits: `0a431eb`, `d61a924`, `45142d7`.
+Commits: `0a431eb`, `d61a924`, `45142d7`, `1bb69cf`.
