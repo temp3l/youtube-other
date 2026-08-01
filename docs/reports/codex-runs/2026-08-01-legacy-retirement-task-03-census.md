@@ -23,4 +23,4 @@ decisions. Active compatibility writers remain for later Task 03 slices.
 
 ## Commit
 
-Pending.
+`bd08793` (`fix(cli): census mixed-case episode layouts`).

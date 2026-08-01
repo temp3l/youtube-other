@@ -4,7 +4,7 @@ Source plan: `docs/plans/legacy-retirement/README.md`
 
 Date: 2026-08-01
 
-Commits: Task 01 `0aceb6c`; Task 02 `be4577e`; Task 03 pending
+Commits: Task 01 `0aceb6c`; Task 02 `be4577e`; Task 03 `bd08793`
 
 ## Summary and files
 
