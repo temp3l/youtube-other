@@ -70,6 +70,40 @@ describe("artifact path resolver", () => {
     ]);
   });
 
+  it("writes strategic source and package artifacts to isolated canonical paths", () => {
+    const source = resolveArtifactPathSet({
+      workspaceRoot: "/workspace",
+      ref: artifactRefSchema.parse({
+        ...episodeRef,
+        profileId: "strategic-reinvention",
+        locale: "it",
+        kind: "source",
+        artifactKey: "source-001",
+        format: "txt",
+      }),
+    });
+    const packageArtifact = resolveArtifactPathSet({
+      workspaceRoot: "/workspace",
+      ref: artifactRefSchema.parse({
+        ...episodeRef,
+        profileId: "strategic-reinvention",
+        locale: "it",
+        kind: "multilingual-package",
+        artifactKey: "multilingual-package",
+        format: "json",
+      }),
+    });
+
+    expect(source.canonical).toBe(
+      "/workspace/episode-001/sources/content/source-001/source-001.txt"
+    );
+    expect(packageArtifact.canonical).toBe(
+      "/workspace/episode-001/locales/it/short/packages/multilingual-package.json"
+    );
+    expect(source.canonical).not.toBe(packageArtifact.canonical);
+    expect(source.legacyRelativePaths).toEqual([]);
+  });
+
   it("rejects incompatible profile artifacts", () => {
     expect(() =>
       resolveArtifactPathSet({

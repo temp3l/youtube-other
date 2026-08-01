@@ -153,6 +153,46 @@ function episodeCanonicalRelativePath(ref: ArtifactRef): string {
         ref.variant,
         artifactFileName(ref, "assessment")
       );
+    case "source-manifest":
+      return portablePath(
+        "sources",
+        "manifests",
+        artifactFileName(ref, "source-manifest")
+      );
+    case "episode-blueprint":
+      return portablePath("blueprint.json");
+    case "provenance-report":
+      return portablePath(
+        localeRoot,
+        "provenance",
+        artifactFileName(ref, "report")
+      );
+    case "composition-plan":
+      return portablePath(
+        localeRoot,
+        "composition",
+        artifactFileName(ref, "composition")
+      );
+    case "audio-track-manifest":
+      return portablePath(localeRoot, "audio", "tracks.json");
+    case "capability-report":
+      return portablePath(
+        localeRoot,
+        "capability-reports",
+        artifactFileName(ref, "capability")
+      );
+    case "multilingual-package":
+      return portablePath(
+        localeRoot,
+        "packages",
+        artifactFileName(ref, "multilingual-package")
+      );
+    case "publish-package":
+      return portablePath(
+        localeRoot,
+        "packages",
+        artifactFileName(ref, "publish-package")
+      );
     case "curriculum":
     case "lesson-specification":
     case "math-verification":
@@ -216,7 +256,7 @@ function mathCanonicalRelativePath(ref: ArtifactRef): string {
     case "lesson-specification":
       return portablePath("canonical", artifactFileName(ref, "lesson-spec"));
     case "math-verification":
-      return portablePath("canonical", artifactFileName(ref, "verification"));
+      return portablePath("canonical", `verification.${extension(ref)}`);
     case "educational-visual-style":
       return portablePath("canonical", artifactFileName(ref, "visual-style"));
     case "full-script":
@@ -266,6 +306,14 @@ function mathCanonicalRelativePath(ref: ArtifactRef): string {
       );
     case "story-bible":
     case "reference-manifest":
+    case "source-manifest":
+    case "episode-blueprint":
+    case "provenance-report":
+    case "composition-plan":
+    case "audio-track-manifest":
+    case "capability-report":
+    case "multilingual-package":
+    case "publish-package":
       throw new Error(
         `Artifact kind ${ref.kind} is not valid for the mathematics layout.`
       );
@@ -303,6 +351,24 @@ export function createMathLessonArtifactLayoutAdapter(): ArtifactLayoutAdapter {
   };
 }
 
+export function createStrategicReinventionArtifactLayoutAdapter(): ArtifactLayoutAdapter {
+  return {
+    profileId: "strategic-reinvention",
+    canonicalRelativePath: (ref) => {
+      if (ref.kind === "source") {
+        return portablePath(
+          "sources",
+          "content",
+          ref.artifactKey ?? "source",
+          artifactFileName(ref, "source")
+        );
+      }
+      return episodeCanonicalRelativePath(ref);
+    },
+    legacyRelativePaths: () => [],
+  };
+}
+
 export function resolveArtifactPathSet(args: {
   readonly workspaceRoot: string;
   readonly ref: ArtifactRef;
@@ -313,6 +379,7 @@ export function resolveArtifactPathSet(args: {
   const adapters = args.adapters ?? [
     createEpisodeArtifactLayoutAdapter(),
     createMathLessonArtifactLayoutAdapter(),
+    createStrategicReinventionArtifactLayoutAdapter(),
   ];
   const adapter = adapters.find(
     (candidate) => candidate.profileId === ref.profileId

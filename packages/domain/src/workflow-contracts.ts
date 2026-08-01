@@ -70,6 +70,7 @@ export type ArtifactManifestId = z.infer<typeof artifactManifestIdSchema>;
 export const CONTENT_PROFILE_IDS = [
   "dark-truth",
   "mathematics-education",
+  "strategic-reinvention",
 ] as const;
 export const contentProfileIdSchema = z.enum(CONTENT_PROFILE_IDS);
 export type ContentProfileId = z.infer<typeof contentProfileIdSchema>;
@@ -84,6 +85,7 @@ export const SUPPORTED_CONTENT_LOCALES = [
   "es",
   "fr",
   "pt",
+  "it",
 ] as const;
 export const contentLocaleSchema = z.enum(SUPPORTED_CONTENT_LOCALES);
 export type ContentLocale = z.infer<typeof contentLocaleSchema>;
@@ -151,9 +153,34 @@ export type MathematicsEducationContentProfile = z.infer<
   typeof mathematicsEducationContentProfileSchema
 >;
 
+export const strategicReinventionContentProfileSchema = z
+  .object({
+    ...profileBaseShape,
+    id: z.literal("strategic-reinvention"),
+    genreId: z.literal("strategic-reinvention"),
+    creatorProfileId: identifierSchema,
+    canonicalLocale: z.literal("it"),
+    supportedLocales: z.array(contentLocaleSchema).min(1),
+    autoPublish: z.literal(false),
+  })
+  .strict()
+  .superRefine((value, ctx) => {
+    if (!value.supportedLocales.includes(value.canonicalLocale)) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["supportedLocales"],
+        message: "Strategic Reinvention supported locales must include Italian.",
+      });
+    }
+  });
+export type StrategicReinventionContentProfile = z.infer<
+  typeof strategicReinventionContentProfileSchema
+>;
+
 export const contentProfileSchema = z.discriminatedUnion("id", [
   darkTruthContentProfileSchema,
   mathematicsEducationContentProfileSchema,
+  strategicReinventionContentProfileSchema,
 ]);
 export type ContentProfile = z.infer<typeof contentProfileSchema>;
 
@@ -178,6 +205,14 @@ export const ARTIFACT_KINDS = [
   "math-verification",
   "educational-visual-style",
   "quality-assessment",
+  "source-manifest",
+  "episode-blueprint",
+  "provenance-report",
+  "composition-plan",
+  "audio-track-manifest",
+  "capability-report",
+  "multilingual-package",
+  "publish-package",
 ] as const;
 export const artifactKindSchema = z.enum(ARTIFACT_KINDS);
 export type ArtifactKind = z.infer<typeof artifactKindSchema>;

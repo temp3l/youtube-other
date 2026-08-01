@@ -92,6 +92,20 @@ describe("shared workflow contracts", () => {
     ).toThrow();
   });
 
+  it("adds Italian and the fail-closed strategic profile without changing other profiles", () => {
+    expect(
+      contentProfileSchema.parse({
+        ...profileBase,
+        id: "strategic-reinvention",
+        genreId: "strategic-reinvention",
+        creatorProfileId: "veronica-benini",
+        canonicalLocale: "it",
+        supportedLocales: ["it", "en"],
+        autoPublish: false,
+      }).canonicalLocale
+    ).toBe("it");
+  });
+
   it("rejects unknown fields at top-level and nested boundaries", () => {
     expect(() =>
       artifactRefSchema.parse({ ...artifactRef, invented: true })

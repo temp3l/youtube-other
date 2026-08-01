@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 export * from "./workflow-contracts.js";
+export * from "./content-policy-contracts.js";
 
 const episodeIdPattern = /^[a-z0-9][a-z0-9-]*$/;
 const sceneIdPattern = /^scene-[0-9]{3}$/;
@@ -44,7 +45,7 @@ const positiveFiniteNumberSchema = z.number().finite().positive();
 const nonNegativeIntegerSchema = z.number().int().nonnegative();
 const positiveIntegerSchema = z.number().int().positive();
 export const aspectRatioSchema = z.enum(["16:9", "9:16"]);
-export const SUPPORTED_LANGUAGE_CODES = ["en", "de", "es", "fr", "pt"] as const;
+export const SUPPORTED_LANGUAGE_CODES = ["en", "de", "es", "fr", "pt", "it"] as const;
 export type SupportedLanguageCode = (typeof SUPPORTED_LANGUAGE_CODES)[number];
 export type LanguageCode = SupportedLanguageCode;
 export const supportedLanguageCodeSchema = z.enum(SUPPORTED_LANGUAGE_CODES);

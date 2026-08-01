@@ -8,7 +8,7 @@ import {
 
 describe("shared visual domain contracts", () => {
   it("defines the strict supported language registry", () => {
-    expect(SUPPORTED_LANGUAGE_CODES).toEqual(["en", "de", "es", "fr", "pt"]);
+    expect(SUPPORTED_LANGUAGE_CODES).toEqual(["en", "de", "es", "fr", "pt", "it"]);
     expect(() =>
       canonicalVisualManifestSchema.parse({
         episodeSlug: "022-the-whistler-in-the-woods",
@@ -19,6 +19,19 @@ describe("shared visual domain contracts", () => {
         schemaVersion: 1,
       })
     ).toThrow();
+  });
+
+  it("accepts Italian wherever shared visual contracts accept a locale", () => {
+    expect(
+      localizedVisualValidationReportSchema.parse({
+        episodeSlug: "022-the-whistler-in-the-woods",
+        language: "it",
+        variant: "full",
+        status: "safe",
+        issues: [],
+        createdAt: "2026-07-08T00:00:00.000Z",
+      }).language
+    ).toBe("it");
   });
 
   it("accepts canonical visual, alignment, and validation manifests", () => {

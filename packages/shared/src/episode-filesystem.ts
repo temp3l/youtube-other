@@ -9,7 +9,7 @@ import {
   type ArtifactPathSet,
 } from "./artifact-path-resolver.js";
 
-export const localeCodes = ["en", "de", "es", "fr", "pt"] as const;
+export const localeCodes = ["en", "de", "es", "fr", "pt", "it"] as const;
 export const SUPPORTED_LANGUAGE_CODES = localeCodes;
 export type LocaleCode = (typeof localeCodes)[number];
 export type EpisodeLanguage = LocaleCode;
@@ -30,9 +30,18 @@ export type RepositoryRelativePath = RelativePath;
 export type AbsolutePath = string & { readonly __brand: "AbsolutePath" };
 
 const episodeIdPattern = /^[a-z0-9][a-z0-9-]*$/u;
-const localeCodePattern = /^(en|de|es|fr|pt)(?:-[a-z0-9]{2,8})*$/iu;
+const localeCodePattern = /^(en|de|es|fr|pt|it)(?:-[a-z0-9]{2,8})*$/iu;
 const legacySpanishLocaleCodePattern = /^sp(?:-[a-z0-9]{2,8})*$/iu;
 const sha256FingerprintPattern = /^[a-f0-9]{64}$/u;
+const strategicArtifactIdPattern = /^[a-z0-9][a-z0-9-]{2,127}$/u;
+
+function normalizeStrategicArtifactId(value: string): string {
+  const normalized = value.trim().toLowerCase();
+  if (!strategicArtifactIdPattern.test(normalized)) {
+    throw new Error(`Invalid strategic artifact id: ${value}`);
+  }
+  return normalized;
+}
 
 export function normalizeEpisodeId(value: string): EpisodeId {
   const normalized = value.trim().toLowerCase();
@@ -501,6 +510,19 @@ export interface EpisodePathResolver {
   canonicalScenesPath(episodeId: EpisodeId): string;
   sourceRoot(episodeId: EpisodeId): string;
   sourceMediaDir(episodeId: EpisodeId): string;
+  sourceManifestsDir(episodeId: EpisodeId): string;
+  sourceManifest(episodeId: EpisodeId, sourceId: string): string;
+  blueprint(episodeId: EpisodeId): string;
+  provenanceDir(context: EpisodeContext): string;
+  provenanceReport(context: EpisodeContext, reportId?: string): string;
+  compositionDir(context: EpisodeContext): string;
+  compositionPlan(context: EpisodeContext, compositionId?: string): string;
+  audioTrackManifest(context: EpisodeContext): string;
+  capabilityReportsDir(context: EpisodeContext): string;
+  capabilityReport(context: EpisodeContext, reportId?: string): string;
+  packagesDir(context: EpisodeContext): string;
+  multilingualPackage(context: EpisodeContext, packageId?: string): string;
+  publishPackage(context: EpisodeContext, packageId?: string): string;
   sharedRoot(episodeId: EpisodeId): string;
   localeRoot(context: EpisodeContext): string;
   localeVariantRoot(context: EpisodeContext): string;
@@ -1286,7 +1308,7 @@ export function resolveEpisodeImageManifestPathFromSceneOutputPath(args: {
 export function createEpisodePathResolver(workspaceRoot: string): EpisodePathResolver {
   const resolvedWorkspace = path.resolve(workspaceRoot);
   const episodeRoot = (episodeId: EpisodeId): string =>
-    path.join(resolvedWorkspace, episodeId);
+    path.join(resolvedWorkspace, normalizeEpisodeId(episodeId));
   const episodeVisualRetentionDir = (episodeId: EpisodeId): string =>
     resolveEpisodeVisualRetentionDir(episodeRoot(episodeId));
   const localeRoot = (context: EpisodeContext): string =>
@@ -1300,8 +1322,8 @@ export function createEpisodePathResolver(workspaceRoot: string): EpisodePathRes
   return {
     workspaceRoot: resolvedWorkspace,
     artifact: (ref) => {
-      if (ref.profileId !== "dark-truth") {
-        throw new Error("Episode artifact resolver requires the dark-truth profile.");
+      if (ref.profileId !== "dark-truth" && ref.profileId !== "strategic-reinvention") {
+        throw new Error("Episode artifact resolver requires an episode content profile.");
       }
       return resolveArtifactPathSet({ workspaceRoot: resolvedWorkspace, ref });
     },
@@ -1310,6 +1332,30 @@ export function createEpisodePathResolver(workspaceRoot: string): EpisodePathRes
     canonicalScenesPath: (episodeId) => path.join(episodeRoot(episodeId), "canonical", "scenes.json"),
     sourceRoot: (episodeId) => path.join(episodeRoot(episodeId), "source"),
     sourceMediaDir: (episodeId) => path.join(episodeRoot(episodeId), "source", "media"),
+    sourceManifestsDir: (episodeId) =>
+      path.join(episodeRoot(episodeId), "sources", "manifests"),
+    sourceManifest: (episodeId, sourceId) =>
+      path.join(episodeRoot(episodeId), "sources", "manifests", `${normalizeStrategicArtifactId(sourceId)}.json`),
+    blueprint: (episodeId) => path.join(episodeRoot(episodeId), "blueprint.json"),
+    provenanceDir: (context) =>
+      path.join(localeVariantRoot(context), "provenance"),
+    provenanceReport: (context, reportId = "report") =>
+      path.join(localeVariantRoot(context), "provenance", `${normalizeStrategicArtifactId(reportId)}.json`),
+    compositionDir: (context) =>
+      path.join(localeVariantRoot(context), "composition"),
+    compositionPlan: (context, compositionId = "composition") =>
+      path.join(localeVariantRoot(context), "composition", `${normalizeStrategicArtifactId(compositionId)}.json`),
+    audioTrackManifest: (context) =>
+      path.join(localeVariantRoot(context), "audio", "tracks.json"),
+    capabilityReportsDir: (context) =>
+      path.join(localeVariantRoot(context), "capability-reports"),
+    capabilityReport: (context, reportId = "capability") =>
+      path.join(localeVariantRoot(context), "capability-reports", `${normalizeStrategicArtifactId(reportId)}.json`),
+    packagesDir: (context) => path.join(localeVariantRoot(context), "packages"),
+    multilingualPackage: (context, packageId = "multilingual-package") =>
+      path.join(localeVariantRoot(context), "packages", `${normalizeStrategicArtifactId(packageId)}.json`),
+    publishPackage: (context, packageId = "publish-package") =>
+      path.join(localeVariantRoot(context), "packages", `${normalizeStrategicArtifactId(packageId)}.json`),
     sharedRoot: (episodeId) => path.join(episodeRoot(episodeId), "shared"),
     localeRoot,
     localeVariantRoot,

@@ -72,6 +72,7 @@ describe("episode filesystem helpers", () => {
     expect(normalizeLocaleCode("DE")).toBe("de");
     expect(normalizeLocaleCode("es")).toBe("es");
     expect(normalizeLocaleCode("es-419")).toBe("es");
+    expect(normalizeLocaleCode("it-IT")).toBe("it");
     expect(normalizeContentVariant("SHORT")).toBe("short");
   });
 
@@ -83,6 +84,17 @@ describe("episode filesystem helpers", () => {
   it("rejects unsafe portable paths", () => {
     expect(() => ensurePortableRelativePath("../escape.json")).toThrow();
     expect(() => ensurePortableRelativePath("/abs/path")).toThrow();
+  });
+
+  it("rejects traversal in direct strategic resolver identifiers", () => {
+    const resolver = createEpisodePathResolver("/workspace");
+    const episodeId = normalizeEpisodeId("009-mary-gloria-the-christmas-doll");
+    expect(() => resolver.sourceManifest(episodeId, "../escape")).toThrow();
+    expect(() => resolver.multilingualPackage({
+      episodeId,
+      locale: normalizeLocaleCode("it"),
+      variant: normalizeContentVariant("short"),
+    }, "../escape")).toThrow();
   });
 
   it("resolves canonical episode and locale paths", () => {
@@ -374,6 +386,29 @@ describe("episode filesystem helpers", () => {
     );
     expect(resolver.narrationScript(germanFull)).not.toBe(
       resolver.narrationScript(germanShort)
+    );
+  });
+
+  it("resolves Italian strategic artifact roots without touching source files", () => {
+    const resolver = createEpisodePathResolver("/workspace");
+    const episodeId = normalizeEpisodeId("022-the-whistler-in-the-woods");
+    const context = {
+      episodeId,
+      locale: normalizeLocaleCode("it"),
+      variant: normalizeContentVariant("full"),
+    };
+
+    expect(resolver.sourceManifest(episodeId, "source-001")).toBe(
+      "/workspace/022-the-whistler-in-the-woods/sources/manifests/source-001.json"
+    );
+    expect(resolver.blueprint(episodeId)).toBe(
+      "/workspace/022-the-whistler-in-the-woods/blueprint.json"
+    );
+    expect(resolver.provenanceReport(context)).toBe(
+      "/workspace/022-the-whistler-in-the-woods/locales/it/full/provenance/report.json"
+    );
+    expect(resolver.multilingualPackage(context)).toBe(
+      "/workspace/022-the-whistler-in-the-woods/locales/it/full/packages/multilingual-package.json"
     );
   });
 
