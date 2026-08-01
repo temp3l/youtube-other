@@ -22,7 +22,7 @@ worktree declaration problem. No paid providers ran.
 
 ## Commit
 
-Pending.
+`be4577e` (`feat(speech): record narration rollout selections`).
 
 ## Risks
 
