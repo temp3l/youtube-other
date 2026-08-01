@@ -12,7 +12,7 @@ async function readJson(filePath: string): Promise<unknown> {
 }
 
 describe("OpenAI debug logger", () => {
-  it("redacts credentials without removing normal prompt text", () => {
+  it("redacts credentials and content by default", () => {
     const redacted = redactOpenAIDebugValue({
       headers: {
         Authorization: "Bearer sk-test-secret",
@@ -30,7 +30,7 @@ describe("OpenAI debug logger", () => {
         cookie: "[REDACTED_SECRET]",
       },
       api_key: "[REDACTED_SECRET]",
-      prompt: "Tell the story exactly as written.",
+      prompt: "[REDACTED_CONTENT]",
       model: "gpt-5.5",
       max_output_tokens: 1200,
     });
@@ -50,7 +50,7 @@ describe("OpenAI debug logger", () => {
     expect(redacted).toMatchObject({
       data: [
         {
-          revised_prompt: "A foggy hallway.",
+          revised_prompt: "[REDACTED_CONTENT]",
           b64_json: "[REDACTED_BASE64_IMAGE_RESPONSE]",
         },
       ],
@@ -98,12 +98,21 @@ describe("OpenAI debug logger", () => {
       provider: "openai",
       paidProviderCalled: true,
       request: {
-        input: [{ role: "user", content: "Keep this prompt text." }],
+        input: [{ role: "user", content: "[REDACTED_CONTENT]" }],
         authorization: "[REDACTED_SECRET]",
       },
-      response: { id: "resp_1", output_text: "ok" },
+      response: { id: "resp_1", output_text: "[REDACTED_CONTENT]" },
       usage: { inputTokens: 10, outputTokens: 5 },
     });
+  });
+
+  it("allows explicit content debug only for non-protected sources", () => {
+    expect(redactOpenAIDebugValue({ prompt: "permitted" }, undefined, true)).toEqual({ prompt: "permitted" });
+  });
+
+  it("redacts root strings and arrays nested under content keys", () => {
+    expect(redactOpenAIDebugValue("source phrase")).toBe("[REDACTED_CONTENT]");
+    expect(redactOpenAIDebugValue({ content: ["first phrase", "second phrase"] })).toEqual({ content: ["[REDACTED_CONTENT]", "[REDACTED_CONTENT]"] });
   });
 
   it("writes sanitized failed call details", async () => {
@@ -128,12 +137,12 @@ describe("OpenAI debug logger", () => {
 
     expect(await readJson(filePath)).toMatchObject({
       request: {
-        prompt: "normal visual prompt",
+        prompt: "[REDACTED_CONTENT]",
         apiKey: "[REDACTED_SECRET]",
       },
       error: {
         name: "Error",
-        message: "failed with sk-secret",
+        message: "[REDACTED_SECRET]",
         raw: { Authorization: "[REDACTED_SECRET]" },
       },
     });

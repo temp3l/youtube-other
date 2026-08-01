@@ -294,4 +294,24 @@ describe("execution telemetry", () => {
     ) as { processExecutions?: ReadonlyArray<{ args?: readonly string[] }> };
     expect(persisted.processExecutions?.[0]?.args).toEqual(redactedArgs);
   });
+
+  it("redacts source content, absolute paths, URL query values, and headers from durable reports", async () => {
+    const reportDir = await fs.mkdtemp(path.join(os.tmpdir(), "mediaforge-telemetry-"));
+    const telemetry = createExecutionTelemetry({
+      context: { executionId: "exec-sensitive", command: "test", argv: ["--token", "secret"], cwd: "/private/source", startedAt: "2026-07-08T10:00:00.000Z" },
+      logger: (await import("pino")).default(new NullStream()), reportDir,
+    });
+    telemetry.recordApiCall({ provider: "curl", operation: "other-api", startedAt: "2026-07-08T10:00:00.000Z", endedAt: "2026-07-08T10:00:01.000Z", durationMs: 1, attempt: 1, success: true, details: { sourceText: "do not persist", url: "https://example.test/x?token=secret", responseHeaders: { authorization: "Bearer secret" } } });
+    telemetry.recordImage({ outputPath: "/private/output.png" });
+    telemetry.recordWarning("source phrase secret=token");
+    telemetry.recordCost({ provider: "test", operation: "other-api", costMicros: 1, warning: "source phrase secret=token" });
+    const report = await telemetry.finalize({ success: true });
+    expect(JSON.stringify(report)).not.toContain("do not persist");
+    expect(JSON.stringify(report)).not.toContain("?token=secret");
+    expect(JSON.stringify(report)).not.toContain("/private/source");
+    expect(JSON.stringify(report)).not.toContain('"secret"');
+    const persisted = await fs.readFile(path.join(reportDir, "exec-sensitive.json"), "utf8");
+    expect(persisted).not.toContain("secret");
+    expect(persisted).not.toContain("/private/output.png");
+  });
 });

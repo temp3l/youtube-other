@@ -154,6 +154,55 @@ interface RecordedCostEntry {
 }
 
 const telemetryStore = new AsyncLocalStorage<ExecutionTelemetry>();
+const REDACTED_CONTENT = "[redacted content]";
+const REDACTED_PATH = "[redacted path]";
+const REDACTED_VALUE = "[redacted]";
+const sensitiveKeyPattern = /(?:authorization|cookie|api[-_]?key|token|secret|password|credential)/iu;
+const contentKeyPattern = /(?:content|prompt|source|transcript|input|output_text|message|body)/iu;
+
+function redactTelemetryString(value: string, key?: string): string {
+  if (key && sensitiveKeyPattern.test(key)) return REDACTED_VALUE;
+  if (key && contentKeyPattern.test(key)) return REDACTED_CONTENT;
+  if (/^(?:[a-z]+:\/\/|\/|[A-Za-z]:[\\/])/u.test(value)) {
+    try {
+      const url = new URL(value);
+      if (url.protocol === "http:" || url.protocol === "https:") {
+        return `${url.protocol}//${url.host}${url.pathname}`;
+      }
+    } catch {
+      return REDACTED_PATH;
+    }
+  }
+  return value;
+}
+
+export function redactTelemetryValue(value: unknown, key?: string): unknown {
+  if (key && sensitiveKeyPattern.test(key)) return REDACTED_VALUE;
+  if (key && contentKeyPattern.test(key)) return REDACTED_CONTENT;
+  if (typeof value === "string") return redactTelemetryString(value, key);
+  if (Array.isArray(value)) return value.map((item) => redactTelemetryValue(item));
+  if (value && typeof value === "object") {
+    return Object.fromEntries(Object.entries(value).map(([entryKey, entryValue]) => [entryKey, redactTelemetryValue(entryValue, entryKey)]));
+  }
+  return value;
+}
+
+function redactExecutionArgv(argv: readonly string[]): readonly string[] {
+  const sensitiveFlag = /^(?:--?(?:api[-_]?key|access[-_]?token|refresh[-_]?token|auth[-_]?token|bearer[-_]?token|token|secret|password|credential|client[-_]?secret))(?:=|$)/iu;
+  let redactNext = false;
+  return argv.map((arg) => {
+    if (redactNext) {
+      redactNext = false;
+      return REDACTED_VALUE;
+    }
+    if (sensitiveFlag.test(arg)) {
+      if (!arg.includes("=")) redactNext = true;
+      const equals = arg.indexOf("=");
+      return equals === -1 ? arg : `${arg.slice(0, equals + 1)}${REDACTED_VALUE}`;
+    }
+    return redactTelemetryString(arg);
+  });
+}
 
 function safeSum(values: ReadonlyArray<number | null | undefined>): number | null {
   let total = 0;
@@ -220,8 +269,9 @@ export class ExecutionTelemetry {
   }
 
   public recordApiCall(event: ApiCallEvent): void {
-    this.apiCallsInternal.push(event);
-    recordWarningSet(this.warningsInternal, event.error?.message);
+    const redactedEvent = redactTelemetryValue(event) as ApiCallEvent;
+    this.apiCallsInternal.push(redactedEvent);
+    recordWarningSet(this.warningsInternal, redactedEvent.error?.message);
     this.logger.info(
       {
         executionId: this.context.executionId,
@@ -239,45 +289,52 @@ export class ExecutionTelemetry {
   }
 
   public recordProcessExecution(event: ProcessExecutionEvent): void {
-    this.processExecutionsInternal.push(event);
+    const redactedEvent = redactTelemetryValue(event) as ProcessExecutionEvent;
+    this.processExecutionsInternal.push(redactedEvent);
     this.logger.info(
       {
         executionId: this.context.executionId,
         executable: event.executable,
         exitCode: event.exitCode,
         durationMs: event.durationMs,
-        requestUrl: event.requestUrl,
-        success: event.success,
+        requestUrl: redactedEvent.requestUrl,
+        success: redactedEvent.success,
       },
       "process_execution"
     );
   }
 
   public recordImage(image: RecordedImage): void {
-    this.imagesInternal.push(image);
+    this.imagesInternal.push(redactTelemetryValue(image) as RecordedImage);
   }
 
   public recordEvent(event: RecordedEvent): void {
-    this.eventsInternal.push(event);
+    const redactedEvent = redactTelemetryValue(event) as RecordedEvent;
+    this.eventsInternal.push(redactedEvent);
     this.logger.info(
       {
         executionId: this.context.executionId,
-        event: event.name,
-        at: event.at,
-        details: event.details,
+        event: redactedEvent.name,
+        at: redactedEvent.at,
+        details: redactedEvent.details,
       },
       "execution_event"
     );
   }
 
   public recordCost(entry: RecordedCostEntry): void {
-    this.costEntriesInternal.push(entry);
-    recordWarningSet(this.warningsInternal, entry.warning);
+    const redactedEntry = {
+      ...redactTelemetryValue(entry),
+      ...(entry.warning === undefined ? {} : { warning: redactTelemetryString(entry.warning, "message") }),
+    } as RecordedCostEntry;
+    this.costEntriesInternal.push(redactedEntry);
+    recordWarningSet(this.warningsInternal, redactedEntry.warning);
   }
 
   public recordWarning(message: string): void {
-    this.warningsInternal.add(message);
-    this.logger.warn({ executionId: this.context.executionId, message }, "execution_warning");
+    const redactedMessage = redactTelemetryString(message, "message");
+    this.warningsInternal.add(redactedMessage);
+    this.logger.warn({ executionId: this.context.executionId, message: redactedMessage }, "execution_warning");
   }
 
   public async finalize(result: {
@@ -300,8 +357,8 @@ export class ExecutionTelemetry {
     const report: ExecutionReport = {
       executionId: this.context.executionId,
       command: this.context.command,
-      argv: this.context.argv,
-      cwd: this.context.cwd,
+      argv: redactExecutionArgv(this.context.argv),
+      cwd: REDACTED_PATH,
       startedAt: this.context.startedAt,
       endedAt: this.endedAt,
       durationMs: Math.max(0, Date.parse(this.endedAt) - Date.parse(this.context.startedAt)),

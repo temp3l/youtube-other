@@ -23,6 +23,7 @@ import {
   remoteAssetFileName,
   remoteAssetRemotePath,
   remoteReadyPathForClip,
+  validateRemoteRenderManifest,
   validateFinalRenderedMedia,
   validateRenderedVideo,
   validateSceneClipArtifacts,
@@ -572,6 +573,34 @@ describe("FFmpegVideoRenderer", () => {
       ],
     });
     expect(Date.parse(marker.generatedAt)).not.toBeNaN();
+  });
+
+  it("rejects duplicate and workspace-escaping remote jobs before dispatch", () => {
+    const manifest = {
+      schemaVersion: 2,
+      runId: "run-001",
+      episodeId: "episode-001",
+      concurrency: 1,
+      generatedAt: "2026-08-01T00:00:00.000Z",
+      jobs: ["scene-001", "scene-001"].map((clipId) => ({
+        clipId,
+        sequenceNumber: 1,
+        inputPaths: ["/srv/mediaforge/assets/" + "a".repeat(64)],
+        readyPath: "/srv/mediaforge/jobs/run-001/ready/scene-001.json",
+        dependencies: [{ sourcePath: "/private/source.png", contentHash: "a".repeat(64), remotePath: "/srv/mediaforge/assets/" + "a".repeat(64), sizeBytes: 1 }],
+        outputPath: "/srv/mediaforge/jobs/run-001/output/scene-001.mp4",
+        metadataPath: "/srv/mediaforge/jobs/run-001/metadata/scene-001.json",
+        logPath: "/srv/mediaforge/jobs/run-001/logs/scene-001.log",
+        ffmpegArguments: [],
+      })),
+    };
+    expect(() => validateRemoteRenderManifest(manifest, "/srv/mediaforge/jobs/run-001", "/srv/mediaforge/assets")).toThrow(/duplicate clip ID/u);
+    expect(() => validateRemoteRenderManifest({ ...manifest, jobs: [{ ...manifest.jobs[0], outputPath: "/tmp/escape.mp4" }] }, "/srv/mediaforge/jobs/run-001", "/srv/mediaforge/assets")).toThrow(/escapes workspace/u);
+    expect(() => validateRemoteRenderManifest({ ...manifest, jobs: [{ ...manifest.jobs[0], clipId: "scene-002", inputPaths: ["/tmp/escape"], dependencies: [{ ...manifest.jobs[0].dependencies[0], remotePath: "/tmp/escape" }] }] }, "/srv/mediaforge/jobs/run-001", "/srv/mediaforge/assets")).toThrow(/dependencies/u);
+    expect(() => validateRemoteRenderManifest({ ...manifest, jobs: [{ ...manifest.jobs[0], clipId: "scene-002", ffmpegArguments: ["/etc/passwd"] }] }, "/srv/mediaforge/jobs/run-001", "/srv/mediaforge/assets")).toThrow(/ffmpeg path/u);
+    expect(() => validateRemoteRenderManifest({ ...manifest, jobs: [{ ...manifest.jobs[0], clipId: "scene-002", ffmpegArguments: ["movie=/etc/passwd"] }] }, "/srv/mediaforge/jobs/run-001", "/srv/mediaforge/assets")).toThrow(/forbidden/u);
+    expect(() => validateRemoteRenderManifest({ ...manifest, jobs: [{ ...manifest.jobs[0], clipId: "scene-002", ffmpegArguments: ["subtitles=../../secret"] }] }, "/srv/mediaforge/jobs/run-001", "/srv/mediaforge/assets")).toThrow(/traversal/u);
+    expect(() => validateRemoteRenderManifest({ ...manifest, jobs: [{ ...manifest.jobs[0], clipId: "scene-002", ffmpegArguments: ["assets/../../secret"] }] }, "/srv/mediaforge/jobs/run-001", "/srv/mediaforge/assets")).toThrow(/traversal/u);
   });
 
   it("escapes subtitle path colons in scene clip filter graphs while preserving other current metacharacter behavior", () => {

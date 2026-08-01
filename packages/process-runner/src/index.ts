@@ -36,6 +36,7 @@ const allowlist = new Set([
 const redactedValue = "[redacted]";
 const sensitiveFlagPattern = /(?:api[-_]?key|access[-_]?token|refresh[-_]?token|auth[-_]?token|bearer[-_]?token|token|secret|password|passwd|credential|client[-_]?secret)/iu;
 const sensitiveEnvPattern = /^[A-Z_][A-Z0-9_]*(?:API[-_]?KEY|TOKEN|SECRET|PASSWORD|PASSWD|CREDENTIAL)[A-Z0-9_]*=/iu;
+const sensitiveHeaderPattern = /^(?:authorization|proxy-authorization|cookie|set-cookie|x-api-key|x-auth-token)$/iu;
 
 function isHeaderFlag(value: string): boolean {
   return value === "-H" || value === "--header" || value === "--proxy-header";
@@ -47,9 +48,36 @@ function isSensitiveValueFlag(value: string): boolean {
 }
 
 function redactHeaderValue(value: string): string {
-  return value.replace(
-    /\b(authorization\s*:\s*bearer\s+)(\S+)/giu,
-    `$1${redactedValue}`
+  const separatorIndex = value.indexOf(":");
+  if (separatorIndex > 0 && sensitiveHeaderPattern.test(value.slice(0, separatorIndex).trim())) {
+    if (/^authorization\s*:\s*bearer\s+/iu.test(value)) {
+      return value.replace(/\b(authorization\s*:\s*bearer\s+)(\S+)/iu, `$1${redactedValue}`);
+    }
+    return `${value.slice(0, separatorIndex + 1)} ${redactedValue}`;
+  }
+  return value.replace(/\b(authorization\s*:\s*bearer\s+)(\S+)/giu, `$1${redactedValue}`);
+}
+
+export function redactUrl(value: string): string {
+  try {
+    const url = new URL(value);
+    if (url.protocol !== "http:" && url.protocol !== "https:") return value;
+    url.username = "";
+    url.password = "";
+    url.search = "";
+    url.hash = "";
+    return url.toString();
+  } catch {
+    return value;
+  }
+}
+
+export function redactResponseHeaders(headers: Readonly<Record<string, string>>): Record<string, string> {
+  return Object.fromEntries(
+    Object.entries(headers).map(([name, value]) => [
+      name,
+      sensitiveHeaderPattern.test(name) ? redactedValue : redactHeaderValue(value),
+    ])
   );
 }
 
@@ -62,7 +90,7 @@ function redactInlineSecret(value: string): string {
     const separatorIndex = value.indexOf("=");
     return `${value.slice(0, separatorIndex + 1)}${redactedValue}`;
   }
-  return redactHeaderValue(value);
+  return redactUrl(redactHeaderValue(value));
 }
 
 export function redactProcessArgs(args: ReadonlyArray<string>): readonly string[] {
@@ -221,6 +249,8 @@ export async function runCurl(args: ReadonlyArray<string>, options: SpawnOptions
       .then((raw) => parseHeaderBlock(raw))
       .catch(() => ({} as Record<string, string>));
     const requestId = responseHeaders["x-request-id"] ?? responseHeaders["openai-request-id"];
+    const redactedRequestUrl = requestUrl === undefined ? undefined : redactUrl(requestUrl);
+    const redactedResponseHeaders = redactResponseHeaders(responseHeaders);
     currentExecutionTelemetry()?.recordApiCall({
       provider: "curl",
       operation: "other-api",
@@ -232,14 +262,14 @@ export async function runCurl(args: ReadonlyArray<string>, options: SpawnOptions
       statusCode: result.exitCode,
       ...(requestId !== undefined ? { requestId } : {}),
       details: {
-        url: requestUrl,
-        responseHeaders
+        ...(redactedRequestUrl === undefined ? {} : { url: redactedRequestUrl }),
+        responseHeaders: redactedResponseHeaders
       }
     });
     return {
       ...result,
-      responseHeaders,
-      ...(requestUrl !== undefined ? { requestUrl } : {})
+      responseHeaders: redactedResponseHeaders,
+      ...(redactedRequestUrl !== undefined ? { requestUrl: redactedRequestUrl } : {})
     };
   } finally {
     await fs.rm(headerDir, { recursive: true, force: true }).catch(() => {});

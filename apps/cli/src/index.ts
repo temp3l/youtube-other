@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import "./env-setup.js";
+import { packagedCliFreshnessCheck } from "./doctor-freshness.js";
 import {
   loadEpisodeConfig,
   loadRuntimeConfig,
@@ -915,6 +916,7 @@ function describeDoctorItem(
 async function commandDoctor(options: CliOptions): Promise<void> {
   const config = await loadRuntimeConfig(configOverridesFromCli(options));
   const checks: DoctorCheck[] = [];
+  checks.push(await packagedCliFreshnessCheck());
   checks.push(
     describeDoctorItem(
       "Node",

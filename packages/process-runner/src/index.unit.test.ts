@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { ProcessExecutionError } from "@mediaforge/domain";
 
-import { redactProcessArgs, runCommand } from "./index.js";
+import { redactProcessArgs, redactResponseHeaders, redactUrl, runCommand } from "./index.js";
 
 describe("process runner telemetry redaction", () => {
   it("redacts bearer headers and secret-like argument values while preserving command context", () => {
@@ -40,6 +40,15 @@ describe("process runner telemetry redaction", () => {
       "gpt-image-2",
       "--quality=high",
     ]);
+  });
+
+  it("removes URL credentials/query secrets and sensitive response headers", () => {
+    expect(redactUrl("https://user:password@example.test/v1?api_key=secret#fragment")).toBe("https://example.test/v1");
+    expect(redactResponseHeaders({ authorization: "Bearer secret", cookie: "session=secret", "x-request-id": "safe" })).toEqual({
+      authorization: "[redacted]",
+      cookie: "[redacted]",
+      "x-request-id": "safe",
+    });
   });
 
   it("uses TERM grace and rejects completion after cancellation", async () => {

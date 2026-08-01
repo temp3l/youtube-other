@@ -3512,6 +3512,104 @@ export interface RemoteClipDependencyRecord {
   readonly sizeBytes: number;
 }
 
+const remoteContentHashSchema = z.string().regex(/^[a-f0-9]{64}$/u);
+const remoteAbsolutePathSchema = z.string().refine(
+  (value) => path.posix.isAbsolute(value) && !value.split("/").includes(".."),
+  "must be an absolute, traversal-free POSIX path"
+);
+const remoteClipIdSchema = z.string().regex(/^[a-zA-Z0-9][a-zA-Z0-9._-]{0,127}$/u);
+export const remoteClipDependencySchema = z.object({
+  sourcePath: z.string().min(1),
+  contentHash: remoteContentHashSchema,
+  remotePath: remoteAbsolutePathSchema,
+  sizeBytes: z.number().int().nonnegative(),
+}).strict();
+export const remoteReadyMarkerSchema = z.object({
+  schemaVersion: z.literal(1),
+  clipId: remoteClipIdSchema,
+  inputPaths: z.array(remoteAbsolutePathSchema).min(1),
+  dependencyHashes: z.array(remoteContentHashSchema).min(1),
+  dependencies: z.array(remoteClipDependencySchema).min(1),
+  generatedAt: z.string().datetime(),
+}).strict();
+export const remoteRenderJobSchema = z.object({
+  clipId: remoteClipIdSchema,
+  sequenceNumber: z.number().int().nonnegative(),
+  inputPaths: z.array(remoteAbsolutePathSchema).min(1),
+  readyPath: remoteAbsolutePathSchema,
+  dependencies: z.array(remoteClipDependencySchema).min(1),
+  outputPath: remoteAbsolutePathSchema,
+  metadataPath: remoteAbsolutePathSchema,
+  logPath: remoteAbsolutePathSchema,
+  ffmpegArguments: z.array(z.string()),
+  expectedDurationSeconds: z.number().positive().optional(),
+  expectedWidth: z.number().int().positive().optional(),
+  expectedHeight: z.number().int().positive().optional(),
+}).strict();
+export const remoteRenderManifestSchema = z.object({
+  schemaVersion: z.literal(2),
+  runId: z.string().min(1),
+  episodeId: z.string().min(1),
+  concurrency: z.number().int().min(1).max(4),
+  jobs: z.array(remoteRenderJobSchema).min(1),
+  generatedAt: z.string().datetime(),
+}).strict();
+
+function isContainedRemotePath(root: string, candidate: string): boolean {
+  const normalizedRoot = path.posix.resolve(root);
+  const normalizedCandidate = path.posix.resolve(candidate);
+  return normalizedCandidate.startsWith(`${normalizedRoot}/`);
+}
+
+function validateFfmpegPathArguments(argumentsList: readonly string[], workspaceRoot: string, assetRoot: string): void {
+  for (const value of argumentsList) {
+    if (/(?:^|[=,:/\\])\.{1,2}(?=[/\\])/u.test(value)) {
+      throw new MediaValidationError(`Remote render ffmpeg argument contains relative traversal: ${value}`);
+    }
+    if (/\b(?:movie|subtitles)=(?:file:)?\/|^(?:file|https?|concat|subfile|crypto|data):/iu.test(value)) {
+      throw new MediaValidationError(`Remote render ffmpeg argument uses a forbidden path/protocol: ${value}`);
+    }
+    const absolutePaths = value.match(/(?:^|[=,:])((?:\/)[^\s,:']+)/gu) ?? [];
+    for (const matched of absolutePaths) {
+      const candidate = matched.replace(/^[=,:]/u, "");
+      if (!isContainedRemotePath(workspaceRoot, candidate) && !isContainedRemotePath(assetRoot, candidate)) {
+        throw new MediaValidationError(`Remote render ffmpeg path escapes controlled roots: ${candidate}`);
+      }
+    }
+    if (path.posix.isAbsolute(value) && !isContainedRemotePath(workspaceRoot, value) && !isContainedRemotePath(assetRoot, value)) {
+      throw new MediaValidationError(`Remote render ffmpeg path escapes controlled roots: ${value}`);
+    }
+  }
+}
+
+/** Validates untrusted worker input before any remote process is created. */
+export function validateRemoteRenderManifest(input: unknown, workspaceRoot: string, assetRoot: string) {
+  const manifest = remoteRenderManifestSchema.parse(input);
+  const clipIds = new Set<string>();
+  for (const job of manifest.jobs) {
+    if (clipIds.has(job.clipId)) {
+      throw new MediaValidationError(`Remote render manifest contains duplicate clip ID: ${job.clipId}`);
+    }
+    clipIds.add(job.clipId);
+    for (const workspacePath of [job.readyPath, job.outputPath, job.metadataPath, job.logPath]) {
+      if (!isContainedRemotePath(workspaceRoot, workspacePath)) {
+        throw new MediaValidationError(`Remote render manifest path escapes workspace: ${workspacePath}`);
+      }
+    }
+    const dependencyPaths = new Set(job.dependencies.map((dependency) => dependency.remotePath));
+    if (
+      dependencyPaths.size !== job.dependencies.length ||
+      job.inputPaths.length !== job.dependencies.length ||
+      job.inputPaths.some((inputPath, index) => inputPath !== job.dependencies[index]?.remotePath || !isContainedRemotePath(assetRoot, inputPath)) ||
+      job.dependencies.some((dependency) => !isContainedRemotePath(assetRoot, dependency.remotePath))
+    ) {
+      throw new MediaValidationError(`Remote render manifest dependencies do not match inputs for ${job.clipId}`);
+    }
+    validateFfmpegPathArguments(job.ffmpegArguments, workspaceRoot, assetRoot);
+  }
+  return manifest;
+}
+
 export interface RemoteReadyMarker {
   readonly schemaVersion: 1;
   readonly clipId: string;
@@ -3526,7 +3624,7 @@ export function buildRemoteReadyMarker(input: {
   readonly inputPaths: readonly string[];
   readonly dependencies: readonly RemoteClipDependencyRecord[];
 }): RemoteReadyMarker {
-  return {
+  return remoteReadyMarkerSchema.parse({
     schemaVersion: 1,
     clipId: input.clipId,
     inputPaths: [...input.inputPaths],
@@ -3540,7 +3638,7 @@ export function buildRemoteReadyMarker(input: {
       sizeBytes: dependency.sizeBytes,
     })),
     generatedAt: new Date().toISOString(),
-  };
+  });
 }
 
 class RemoteWorkspaceManager {
@@ -3734,11 +3832,11 @@ class RemoteClipRenderer implements ClipRenderer {
         };
       })
     );
-    const manifest = {
+    const manifest = validateRemoteRenderManifest({
       schemaVersion: 2,
       runId: workspace.runId,
       episodeId: requests[0]?.episodeId ?? "episode",
-      concurrency: this.settings.concurrency,
+      concurrency: Math.min(this.settings.concurrency, 4),
       jobs: requestPlans.map(({ request, remoteRequest, dependencies }) => ({
         clipId: request.clipId,
         sequenceNumber: request.sequenceNumber,
@@ -3761,7 +3859,7 @@ class RemoteClipRenderer implements ClipRenderer {
         expectedHeight: remoteRequest.expectedHeight,
       })),
       generatedAt: new Date().toISOString(),
-    };
+    }, workspace.remoteRoot, remoteAssetRoot(this.settings.baseDir));
     await writeJsonAtomic(
       path.join(workspace.metadataDir, "job-manifest.json"),
       manifest

@@ -54,6 +54,10 @@ export interface WriteOpenAIDebugLogInput
   readonly id?: string;
   readonly timestamp?: string;
   readonly status?: "success" | "error" | "simulation" | "skipped" | "pre-dispatch";
+  /** Content is excluded unless this is explicitly enabled for a non-protected source. */
+  readonly allowContentLogging?: boolean;
+  /** Protected-source content is never durable debug output. */
+  readonly protectedSource?: boolean;
 }
 
 function isPlainRecord(value: unknown): value is Record<string, unknown> {
@@ -95,7 +99,11 @@ function looksLikeBase64(value: string): boolean {
   return base64Chars / compact.length > 0.98;
 }
 
-function sanitizeString(value: string, key?: string): string {
+function isContentKey(key?: string): boolean {
+  return key !== undefined && /(?:content|prompt|input|output_text|transcript|source|message|body)/iu.test(key);
+}
+
+function sanitizeString(value: string, key?: string, allowContent = false): string {
   if (key && isImageBase64Key(key)) {
     return REDACTED_BASE64_IMAGE_RESPONSE;
   }
@@ -105,25 +113,31 @@ function sanitizeString(value: string, key?: string): string {
   if (/^Bearer\s+\S+/iu.test(value)) {
     return "Bearer [REDACTED_SECRET]";
   }
+  if (/(?:\bsk-[A-Za-z0-9_-]+\b|\b(?:api[-_]?key|token|secret|password)\s*[=:]\s*\S+)/iu.test(value)) {
+    return "[REDACTED_SECRET]";
+  }
+  if ((key === undefined || isContentKey(key)) && !allowContent) {
+    return "[REDACTED_CONTENT]";
+  }
   return value;
 }
 
-export function redactOpenAIDebugValue(value: unknown, key?: string): unknown {
+export function redactOpenAIDebugValue(value: unknown, key?: string, allowContent = false): unknown {
   if (key && isSecretKey(key)) {
     return REDACTED_SECRET;
   }
   if (typeof value === "string") {
-    return sanitizeString(value, key);
+    return sanitizeString(value, key, allowContent && key !== undefined);
   }
   if (Array.isArray(value)) {
-    return value.map((entry) => redactOpenAIDebugValue(entry));
+    return value.map((entry) => redactOpenAIDebugValue(entry, key, allowContent));
   }
   if (!isPlainRecord(value)) {
     return value;
   }
   const redacted: Record<string, unknown> = {};
   for (const [entryKey, entryValue] of Object.entries(value)) {
-    redacted[entryKey] = redactOpenAIDebugValue(entryValue, entryKey);
+    redacted[entryKey] = redactOpenAIDebugValue(entryValue, entryKey, allowContent);
   }
   return redacted;
 }
@@ -184,6 +198,7 @@ export async function writeOpenAIDebugLog(
     input.error === undefined
       ? undefined
       : (redactOpenAIDebugValue(input.error) as OpenAIDebugLogEntry["error"]);
+  const allowContent = input.allowContentLogging === true && input.protectedSource !== true;
   const entry: OpenAIDebugLogEntry = {
     id,
     timestamp,
@@ -194,16 +209,16 @@ export async function writeOpenAIDebugLog(
     paidProviderCalled: input.paidProviderCalled,
     ...(input.model ? { model: input.model } : {}),
     ...(input.endpoint ? { endpoint: input.endpoint } : {}),
-    request: redactOpenAIDebugValue(input.request),
+    request: redactOpenAIDebugValue(input.request, undefined, allowContent),
     ...(input.response !== undefined
-      ? { response: redactOpenAIDebugValue(input.response) }
+      ? { response: redactOpenAIDebugValue(input.response, undefined, allowContent) }
       : {}),
     ...(input.simulatedResponse !== undefined
-      ? { simulatedResponse: redactOpenAIDebugValue(input.simulatedResponse) }
+      ? { simulatedResponse: redactOpenAIDebugValue(input.simulatedResponse, undefined, allowContent) }
       : {}),
     ...(input.skippedReason ? { skippedReason: input.skippedReason } : {}),
     ...(redactedError !== undefined ? { error: redactedError } : {}),
-    ...(input.usage !== undefined ? { usage: redactOpenAIDebugValue(input.usage) } : {}),
+    ...(input.usage !== undefined ? { usage: redactOpenAIDebugValue(input.usage, undefined, allowContent) } : {}),
     durationMs: input.durationMs,
     ...(input.attempt !== undefined ? { attempt: input.attempt } : {}),
     ...(input.caller ? { caller: input.caller } : {}),
