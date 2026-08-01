@@ -29,7 +29,7 @@ describe("YouTube publication reconciliation", () => {
               {
                 id: "video-good",
                 snippet: {
-                  description: `published ${youtubePublicationRecoveryMarker("publication-1")}`,
+                  description: `published ${youtubePublicationRecoveryMarker("recovery-intent-42")}`,
                   channelId: "channel-1",
                 },
                 status: { privacyStatus: "private" },
@@ -44,15 +44,22 @@ describe("YouTube publication reconciliation", () => {
       },
     });
     await expect(
-      lookup.findByRecoveryIdentity({ publicationId: "publication-1" })
+      lookup.findByRecoveryIdentity({
+        publicationId: "publication-1",
+        recoveryIdentity: "recovery-intent-42",
+      })
     ).resolves.toEqual([
       expect.objectContaining({
         providerObjectId: "video-good",
-        recoveryIdentity: "publication-1",
+        recoveryIdentity: "recovery-intent-42",
       }),
     ]);
     expect(searchRequests).toEqual([
-      expect.objectContaining({ forMine: true, type: ["video"] }),
+      expect.objectContaining({
+        forMine: true,
+        type: ["video"],
+        q: youtubePublicationRecoveryMarker("recovery-intent-42"),
+      }),
     ]);
   });
 
@@ -66,7 +73,10 @@ describe("YouTube publication reconciliation", () => {
       videos: { list: async () => ({}) },
     });
     await expect(
-      lookup.findByRecoveryIdentity({ publicationId: "publication-1" })
+      lookup.findByRecoveryIdentity({
+        publicationId: "publication-1",
+        recoveryIdentity: "recovery-intent-42",
+      })
     ).rejects.toThrow("youtube unavailable");
   });
 });

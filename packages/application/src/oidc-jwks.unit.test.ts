@@ -17,8 +17,8 @@ describe("OIDC JWKS authentication", () => {
     const pair = generateKeyPairSync("rsa", { modulusLength: 2048 });
     const source = new CachingJwksSource(async () => [{ ...pair.publicKey.export({ format: "jwk" }), kty: "RSA", kid: "key-1", use: "sig", alg: "RS256" }], 60_000, () => new Date("2026-07-31T12:00:00.000Z"));
     const authenticate = new OidcJwksAuthenticator(source, { issuer: "https://issuer.example", audience: "mediaforge-api", now: () => new Date("2026-07-31T12:00:00.000Z") });
-    const token = jwt({ privateKey: pair.privateKey, payload: { sub: "user-1", iss: "https://issuer.example", aud: "mediaforge-api", exp: 1_785_499_300, workspace_id: "workspace-1", scope: "projects:read workflow:write" } });
-    await expect(authenticate.authenticate(`Bearer ${token}`)).resolves.toMatchObject({ principalId: "user-1", workspaceId: "workspace-1", permissions: ["projects:read", "workflow:write"] });
+    const token = jwt({ privateKey: pair.privateKey, payload: { sub: "user-1", iss: "https://issuer.example", aud: "mediaforge-api", exp: 1_785_499_300, workspace_id: "workspace-1", scope: "content.read workflow.start" } });
+    await expect(authenticate.authenticate(`Bearer ${token}`)).resolves.toMatchObject({ principalId: "user-1", workspaceId: "workspace-1", permissions: ["content.read", "workflow.start"] });
   });
 
   it("fails closed for expired, wrong-audience, and unknown-key tokens", async () => {

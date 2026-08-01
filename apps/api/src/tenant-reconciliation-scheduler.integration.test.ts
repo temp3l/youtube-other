@@ -43,9 +43,11 @@ const now = "2026-07-31T12:00:00.000Z";
 function reconciliationPayload(publicationId: string) {
   return {
     id: publicationId,
+    projectId: `project-${publicationId}`,
     approvalRevision: 1,
     credentialVersion: "credential-r1",
     assetHash: "a".repeat(64),
+    recoveryIdentity: `recovery-${publicationId}`,
     state: "reconciliation_required",
   };
 }
@@ -77,9 +79,18 @@ describePostgres("PostgreSQL tenant reconciliation scheduler", () => {
       [input.workspaceId, runId, JSON.stringify({ fixture: true }), now]
     );
     await adminPool.query(
-      `INSERT INTO publications (workspace_id, publication_id, run_id, status)
-       VALUES ($1, $2, $3, 'reconciliation_required')`,
-      [input.workspaceId, input.publicationId, runId]
+      `INSERT INTO publications (
+         workspace_id, publication_id, project_id, run_id, status,
+         approval_revision, credential_version, asset_hash, recovery_identity
+       ) VALUES ($1, $2, $3, $4, 'reconciliation_required', 1, 'credential-r1', $5, $6)`,
+      [
+        input.workspaceId,
+        input.publicationId,
+        `project-${input.publicationId}`,
+        runId,
+        "a".repeat(64),
+        `recovery-${input.publicationId}`,
+      ]
     );
     await adminPool.query(
       `INSERT INTO workflow_outbox (workspace_id, outbox_id, topic, payload, available_at)
@@ -176,8 +187,9 @@ describePostgres("PostgreSQL tenant reconciliation scheduler", () => {
               {
                 id: "video-a",
                 snippet: {
-                  description:
-                    youtubePublicationRecoveryMarker("publication-a"),
+                  description: youtubePublicationRecoveryMarker(
+                    "recovery-publication-a"
+                  ),
                   channelId: "channel-a",
                 },
                 status: { privacyStatus: "private" },
@@ -273,7 +285,7 @@ describePostgres("PostgreSQL tenant reconciliation scheduler", () => {
     });
 
     await expect(scheduler.dispatchOne()).resolves.toEqual({
-      kind: "delivered",
+      kind: "rescheduled",
       outboxId: "provider-failure-a",
     });
     const publication = await adminPool.query<{ readonly status: string }>(
@@ -284,6 +296,10 @@ describePostgres("PostgreSQL tenant reconciliation scheduler", () => {
     );
     expect(publication.rows).toEqual([{ status: "reconciliation_required" }]);
     expect(attempts.rows).toEqual([{ reason: "provider_unavailable" }]);
+    const outbox = await adminPool.query<{ readonly state: string }>(
+      "SELECT state FROM workflow_outbox WHERE workspace_id = 'tenant-a' AND outbox_id = 'provider-failure-a'"
+    );
+    expect(outbox.rows).toEqual([{ state: "pending" }]);
   });
 
   it("rolls back a database failure and reschedules the fenced outbox lease", async () => {

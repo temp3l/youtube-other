@@ -5,6 +5,10 @@
   "type": "module",
   "scripts": {
     "build": "tsc -p tsconfig.json",
+    "start": "node dist/api-entry.js",
+    "provision:principal": "node dist/principal-provision-entry.js",
+    "administer:api-key": "node dist/pilot-api-key-admin-entry.js",
+    "provision:webhook-endpoint": "node dist/webhook-endpoint-provision-entry.js",
     "start:reconciliation": "node dist/reconciliation-entry.js",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },

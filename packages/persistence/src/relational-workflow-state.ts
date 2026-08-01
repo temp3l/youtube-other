@@ -157,15 +157,31 @@ export class InMemoryRelationalWorkflowRepository {
  * Tenant access is always transaction-local through `app.workspace_id`.
  */
 export const POSTGRES_WORKFLOW_STATE_MIGRATION = `
+CREATE TABLE IF NOT EXISTS projects (
+  workspace_id TEXT NOT NULL,
+  project_id TEXT NOT NULL,
+  name TEXT NOT NULL,
+  profile TEXT NOT NULL CHECK (profile IN ('dark_truth', 'mathematics_education')),
+  revision BIGINT NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (workspace_id, project_id)
+);
 CREATE TABLE IF NOT EXISTS episodes (
   workspace_id TEXT NOT NULL,
+  project_id TEXT NULL,
   episode_id TEXT NOT NULL,
+  content JSONB NULL,
   authority TEXT NOT NULL DEFAULT 'database-v1' CHECK (authority IN ('filesystem-legacy', 'database-v1')),
   revision BIGINT NOT NULL DEFAULT 0,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   PRIMARY KEY (workspace_id, episode_id)
 );
+ALTER TABLE episodes ADD COLUMN IF NOT EXISTS project_id TEXT NULL;
+ALTER TABLE episodes ADD COLUMN IF NOT EXISTS content JSONB NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS episodes_project_identity
+  ON episodes (workspace_id, project_id, episode_id) WHERE project_id IS NOT NULL;
 CREATE TABLE IF NOT EXISTS episode_revisions (
   workspace_id TEXT NOT NULL,
   episode_id TEXT NOT NULL,
@@ -175,6 +191,14 @@ CREATE TABLE IF NOT EXISTS episode_revisions (
   PRIMARY KEY (workspace_id, episode_id, revision_id),
   FOREIGN KEY (workspace_id, episode_id) REFERENCES episodes (workspace_id, episode_id)
 );
+ALTER TABLE episode_revisions ADD COLUMN IF NOT EXISTS project_id TEXT NULL;
+ALTER TABLE episode_revisions ADD COLUMN IF NOT EXISTS episode_revision BIGINT NULL;
+ALTER TABLE episode_revisions ADD COLUMN IF NOT EXISTS previous_revision BIGINT NULL;
+ALTER TABLE episode_revisions ADD COLUMN IF NOT EXISTS content JSONB NULL;
+ALTER TABLE episode_revisions ADD COLUMN IF NOT EXISTS evidence JSONB NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS episode_revisions_number_unique
+  ON episode_revisions (workspace_id, project_id, episode_id, episode_revision)
+  WHERE project_id IS NOT NULL AND episode_revision IS NOT NULL;
 CREATE TABLE IF NOT EXISTS workflow_runs (
   workspace_id TEXT NOT NULL,
   run_id TEXT NOT NULL,
@@ -187,6 +211,16 @@ CREATE TABLE IF NOT EXISTS workflow_runs (
   updated_at TIMESTAMPTZ NOT NULL,
   PRIMARY KEY (workspace_id, run_id),
   FOREIGN KEY (workspace_id, supersedes_run_id) REFERENCES workflow_runs (workspace_id, run_id)
+);
+CREATE TABLE IF NOT EXISTS workflow_run_bindings (
+  workspace_id TEXT NOT NULL,
+  project_id TEXT NOT NULL,
+  episode_id TEXT NOT NULL,
+  run_id TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL,
+  PRIMARY KEY (workspace_id, run_id),
+  FOREIGN KEY (workspace_id, run_id) REFERENCES workflow_runs (workspace_id, run_id),
+  FOREIGN KEY (workspace_id, episode_id) REFERENCES episodes (workspace_id, episode_id)
 );
 CREATE TABLE IF NOT EXISTS workflow_steps (
   workspace_id TEXT NOT NULL,
@@ -225,9 +259,29 @@ CREATE TABLE IF NOT EXISTS jobs (
   lease_fence BIGINT NOT NULL DEFAULT 0,
   lease_owner TEXT NULL,
   lease_expires_at TIMESTAMPTZ NULL,
+  job_type TEXT NOT NULL DEFAULT 'workflow',
+  payload JSONB NOT NULL DEFAULT '{}'::jsonb,
+  attempt_count INTEGER NOT NULL DEFAULT 0,
+  available_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  deadline_at TIMESTAMPTZ NULL,
+  cancellation_requested BOOLEAN NOT NULL DEFAULT false,
+  last_error TEXT NULL,
+  last_heartbeat_at TIMESTAMPTZ NULL,
+  completed_at TIMESTAMPTZ NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   PRIMARY KEY (workspace_id, job_id),
   FOREIGN KEY (workspace_id, run_id) REFERENCES workflow_runs (workspace_id, run_id)
 );
+ALTER TABLE jobs ADD COLUMN IF NOT EXISTS job_type TEXT NOT NULL DEFAULT 'workflow';
+ALTER TABLE jobs ADD COLUMN IF NOT EXISTS payload JSONB NOT NULL DEFAULT '{}'::jsonb;
+ALTER TABLE jobs ADD COLUMN IF NOT EXISTS attempt_count INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE jobs ADD COLUMN IF NOT EXISTS available_at TIMESTAMPTZ NOT NULL DEFAULT now();
+ALTER TABLE jobs ADD COLUMN IF NOT EXISTS deadline_at TIMESTAMPTZ NULL;
+ALTER TABLE jobs ADD COLUMN IF NOT EXISTS cancellation_requested BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE jobs ADD COLUMN IF NOT EXISTS last_error TEXT NULL;
+ALTER TABLE jobs ADD COLUMN IF NOT EXISTS last_heartbeat_at TIMESTAMPTZ NULL;
+ALTER TABLE jobs ADD COLUMN IF NOT EXISTS completed_at TIMESTAMPTZ NULL;
+ALTER TABLE jobs ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT now();
 CREATE TABLE IF NOT EXISTS approvals (
   workspace_id TEXT NOT NULL,
   approval_id TEXT NOT NULL,
@@ -247,15 +301,71 @@ CREATE TABLE IF NOT EXISTS assets (
   revision BIGINT NOT NULL DEFAULT 0,
   PRIMARY KEY (workspace_id, asset_id)
 );
+ALTER TABLE assets ADD COLUMN IF NOT EXISTS project_id TEXT NULL;
+ALTER TABLE assets ADD COLUMN IF NOT EXISTS mime_type TEXT NULL;
+ALTER TABLE assets ADD COLUMN IF NOT EXISTS byte_count BIGINT NULL;
+ALTER TABLE assets ADD COLUMN IF NOT EXISTS lifecycle TEXT NULL;
+ALTER TABLE assets ADD COLUMN IF NOT EXISTS provenance TEXT NULL;
+CREATE TABLE IF NOT EXISTS validation_results (
+  workspace_id TEXT NOT NULL,
+  project_id TEXT NOT NULL,
+  validation_id TEXT NOT NULL,
+  episode_id TEXT NULL,
+  result JSONB NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (workspace_id, validation_id)
+);
+CREATE TABLE IF NOT EXISTS approval_challenges (
+  workspace_id TEXT NOT NULL,
+  project_id TEXT NOT NULL,
+  challenge_id TEXT NOT NULL,
+  subject_id TEXT NOT NULL,
+  subject_revision BIGINT NOT NULL,
+  artifact_hash TEXT NOT NULL,
+  expires_at TIMESTAMPTZ NOT NULL,
+  consumed_at TIMESTAMPTZ NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (workspace_id, challenge_id)
+);
+ALTER TABLE approval_challenges
+  ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT now();
 CREATE TABLE IF NOT EXISTS publications (
   workspace_id TEXT NOT NULL,
   publication_id TEXT NOT NULL,
+  project_id TEXT NULL,
   run_id TEXT NOT NULL,
   status TEXT NOT NULL,
   revision BIGINT NOT NULL DEFAULT 0,
+  approval_revision BIGINT NULL,
+  credential_version TEXT NULL,
+  asset_hash TEXT NULL,
+  recovery_identity TEXT NULL,
+  active_key TEXT NULL,
+  execution_fence BIGINT NOT NULL DEFAULT 0,
+  provider_receipt JSONB NULL,
+  terminal_evidence JSONB NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   PRIMARY KEY (workspace_id, publication_id),
   FOREIGN KEY (workspace_id, run_id) REFERENCES workflow_runs (workspace_id, run_id)
 );
+ALTER TABLE publications ADD COLUMN IF NOT EXISTS project_id TEXT NULL;
+ALTER TABLE publications ADD COLUMN IF NOT EXISTS approval_revision BIGINT NULL;
+ALTER TABLE publications ADD COLUMN IF NOT EXISTS credential_version TEXT NULL;
+ALTER TABLE publications ADD COLUMN IF NOT EXISTS asset_hash TEXT NULL;
+ALTER TABLE publications ADD COLUMN IF NOT EXISTS recovery_identity TEXT NULL;
+ALTER TABLE publications ADD COLUMN IF NOT EXISTS active_key TEXT NULL;
+ALTER TABLE publications ADD COLUMN IF NOT EXISTS execution_fence BIGINT NOT NULL DEFAULT 0;
+ALTER TABLE publications ADD COLUMN IF NOT EXISTS provider_receipt JSONB NULL;
+ALTER TABLE publications ADD COLUMN IF NOT EXISTS terminal_evidence JSONB NULL;
+ALTER TABLE publications ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT now();
+ALTER TABLE publications ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT now();
+CREATE UNIQUE INDEX IF NOT EXISTS publications_recovery_identity_unique
+  ON publications (workspace_id, recovery_identity)
+  WHERE recovery_identity IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS publications_active_intent_unique
+  ON publications (workspace_id, active_key)
+  WHERE active_key IS NOT NULL AND status IN ('pending', 'executing', 'reconciliation_required');
 CREATE TABLE IF NOT EXISTS workflow_events (
   workspace_id TEXT NOT NULL,
   event_id TEXT NOT NULL,
@@ -277,7 +387,9 @@ INSERT INTO workflow_transition_rules (subject_type, from_status, to_status) VAL
   ('run', 'queued', 'running'), ('run', 'queued', 'cancelled'),
   ('run', 'running', 'awaiting_approval'), ('run', 'running', 'succeeded'), ('run', 'running', 'failed'), ('run', 'running', 'cancelled'),
   ('run', 'awaiting_approval', 'queued'), ('run', 'awaiting_approval', 'cancelled'),
-  ('job', 'queued', 'running'), ('job', 'queued', 'cancelled'), ('job', 'running', 'running'), ('job', 'running', 'succeeded'), ('job', 'running', 'failed'), ('job', 'running', 'cancelled'),
+  ('job', 'queued', 'running'), ('job', 'queued', 'cancelled'),
+  ('job', 'retry_scheduled', 'running'), ('job', 'retry_scheduled', 'cancelled'),
+  ('job', 'running', 'running'), ('job', 'running', 'succeeded'), ('job', 'running', 'failed'), ('job', 'running', 'cancelled'), ('job', 'running', 'retry_scheduled'), ('job', 'running', 'dead_lettered'),
   ('step', 'queued', 'running'), ('step', 'queued', 'cancelled'), ('step', 'running', 'succeeded'), ('step', 'running', 'failed'), ('step', 'running', 'cancelled'),
   ('attempt', 'queued', 'running'), ('attempt', 'queued', 'cancelled'), ('attempt', 'running', 'succeeded'), ('attempt', 'running', 'failed'), ('attempt', 'running', 'cancelled'),
   ('batch', 'queued', 'running'), ('batch', 'queued', 'cancelled'), ('batch', 'running', 'succeeded'), ('batch', 'running', 'failed'), ('batch', 'running', 'cancelled'),
@@ -285,7 +397,7 @@ INSERT INTO workflow_transition_rules (subject_type, from_status, to_status) VAL
 ON CONFLICT DO NOTHING;
 CREATE OR REPLACE FUNCTION enforce_workflow_transition() RETURNS trigger AS $$
 BEGIN
-  IF OLD.status IN ('succeeded', 'failed', 'cancelled', 'published') THEN
+  IF OLD.status IN ('succeeded', 'failed', 'cancelled', 'dead_lettered', 'published') THEN
     RAISE EXCEPTION 'terminal % records are immutable', TG_ARGV[0] USING ERRCODE = 'P0001';
   END IF;
   IF NEW.revision <> OLD.revision + 1 THEN
@@ -304,7 +416,8 @@ CREATE OR REPLACE FUNCTION enforce_workflow_run_transition() RETURNS trigger AS 
 BEGIN
   IF NEW.execution_spec IS DISTINCT FROM OLD.execution_spec
     OR NEW.created_at IS DISTINCT FROM OLD.created_at
-    OR NEW.supersedes_run_id IS DISTINCT FROM OLD.supersedes_run_id THEN
+    OR NEW.supersedes_run_id IS DISTINCT FROM OLD.supersedes_run_id
+    OR NEW.active_key IS DISTINCT FROM OLD.active_key THEN
     RAISE EXCEPTION 'workflow execution specifications and lineage are immutable' USING ERRCODE = 'P0001';
   END IF;
   IF OLD.status IN ('succeeded', 'failed', 'cancelled') THEN
@@ -327,6 +440,76 @@ BEGIN
   RAISE EXCEPTION 'workflow events are append-only' USING ERRCODE = 'P0001';
 END;
 $$ LANGUAGE plpgsql;
+CREATE OR REPLACE FUNCTION reject_episode_revision_mutation() RETURNS trigger AS $$
+BEGIN
+  RAISE EXCEPTION 'episode revisions are append-only' USING ERRCODE = 'P0001';
+END;
+$$ LANGUAGE plpgsql;
+CREATE OR REPLACE FUNCTION enforce_approval_challenge_mutation() RETURNS trigger AS $$
+BEGIN
+  IF TG_OP = 'DELETE' THEN
+    RAISE EXCEPTION 'approval challenges cannot be deleted' USING ERRCODE = 'P0001';
+  END IF;
+  IF NEW.workspace_id IS DISTINCT FROM OLD.workspace_id
+    OR NEW.project_id IS DISTINCT FROM OLD.project_id
+    OR NEW.challenge_id IS DISTINCT FROM OLD.challenge_id
+    OR NEW.subject_id IS DISTINCT FROM OLD.subject_id
+    OR NEW.subject_revision IS DISTINCT FROM OLD.subject_revision
+    OR NEW.artifact_hash IS DISTINCT FROM OLD.artifact_hash
+    OR NEW.expires_at IS DISTINCT FROM OLD.expires_at
+    OR NEW.created_at IS DISTINCT FROM OLD.created_at
+    OR OLD.consumed_at IS NOT NULL
+    OR NEW.consumed_at IS NULL THEN
+    RAISE EXCEPTION 'approval challenge bindings are immutable' USING ERRCODE = 'P0001';
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+CREATE OR REPLACE FUNCTION enforce_publication_transition() RETURNS trigger AS $$
+BEGIN
+  IF NEW.project_id IS DISTINCT FROM OLD.project_id
+    OR NEW.run_id IS DISTINCT FROM OLD.run_id
+    OR NEW.approval_revision IS DISTINCT FROM OLD.approval_revision
+    OR NEW.credential_version IS DISTINCT FROM OLD.credential_version
+    OR NEW.asset_hash IS DISTINCT FROM OLD.asset_hash
+    OR NEW.recovery_identity IS DISTINCT FROM OLD.recovery_identity
+    OR NEW.active_key IS DISTINCT FROM OLD.active_key
+    OR NEW.created_at IS DISTINCT FROM OLD.created_at THEN
+    RAISE EXCEPTION 'publication intent bindings are immutable' USING ERRCODE = 'P0001';
+  END IF;
+  IF OLD.status IN ('published', 'failed', 'cancelled') THEN
+    RAISE EXCEPTION 'terminal publication records are immutable' USING ERRCODE = 'P0001';
+  END IF;
+  IF NEW.revision <> OLD.revision + 1 THEN
+    RAISE EXCEPTION 'publication revision must advance exactly once' USING ERRCODE = 'P0001';
+  END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM workflow_transition_rules
+    WHERE subject_type = 'publication' AND from_status = OLD.status AND to_status = NEW.status
+  ) THEN
+    RAISE EXCEPTION 'invalid publication transition from % to %', OLD.status, NEW.status USING ERRCODE = 'P0001';
+  END IF;
+  IF NEW.execution_fence IS DISTINCT FROM OLD.execution_fence
+    AND NOT (OLD.status = 'pending' AND NEW.status = 'executing'
+      AND OLD.execution_fence = 0 AND NEW.execution_fence > 0) THEN
+    RAISE EXCEPTION 'publication execution fence is immutable after execution starts' USING ERRCODE = 'P0001';
+  END IF;
+  IF NEW.provider_receipt IS DISTINCT FROM OLD.provider_receipt AND NEW.status <> 'published' THEN
+    RAISE EXCEPTION 'publication receipt may only be recorded with publication success' USING ERRCODE = 'P0001';
+  END IF;
+  IF NEW.status = 'published' AND NEW.provider_receipt IS NULL THEN
+    RAISE EXCEPTION 'published publication requires an exact provider receipt' USING ERRCODE = 'P0001';
+  END IF;
+  IF NEW.terminal_evidence IS DISTINCT FROM OLD.terminal_evidence
+    AND NEW.status NOT IN ('failed', 'reconciliation_required') THEN
+    RAISE EXCEPTION 'publication terminal evidence has an invalid state' USING ERRCODE = 'P0001';
+  END IF;
+  IF NEW.status IN ('failed', 'reconciliation_required') AND NEW.terminal_evidence IS NULL THEN
+    RAISE EXCEPTION 'publication terminal transition requires evidence' USING ERRCODE = 'P0001';
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
 DROP TRIGGER IF EXISTS workflow_run_transition_guard ON workflow_runs;
 CREATE TRIGGER workflow_run_transition_guard BEFORE UPDATE ON workflow_runs FOR EACH ROW EXECUTE FUNCTION enforce_workflow_run_transition();
 DROP TRIGGER IF EXISTS workflow_step_transition_guard ON workflow_steps;
@@ -338,13 +521,17 @@ CREATE TRIGGER workflow_batch_transition_guard BEFORE UPDATE ON workflow_batches
 DROP TRIGGER IF EXISTS job_transition_guard ON jobs;
 CREATE TRIGGER job_transition_guard BEFORE UPDATE ON jobs FOR EACH ROW EXECUTE FUNCTION enforce_workflow_transition('job');
 DROP TRIGGER IF EXISTS publication_transition_guard ON publications;
-CREATE TRIGGER publication_transition_guard BEFORE UPDATE ON publications FOR EACH ROW EXECUTE FUNCTION enforce_workflow_transition('publication');
+CREATE TRIGGER publication_transition_guard BEFORE UPDATE ON publications FOR EACH ROW EXECUTE FUNCTION enforce_publication_transition();
 DROP TRIGGER IF EXISTS workflow_events_immutable ON workflow_events;
 CREATE TRIGGER workflow_events_immutable BEFORE UPDATE OR DELETE ON workflow_events FOR EACH ROW EXECUTE FUNCTION reject_workflow_event_mutation();
+DROP TRIGGER IF EXISTS episode_revisions_immutable ON episode_revisions;
+CREATE TRIGGER episode_revisions_immutable BEFORE UPDATE OR DELETE ON episode_revisions FOR EACH ROW EXECUTE FUNCTION reject_episode_revision_mutation();
+DROP TRIGGER IF EXISTS approval_challenge_mutation_guard ON approval_challenges;
+CREATE TRIGGER approval_challenge_mutation_guard BEFORE UPDATE OR DELETE ON approval_challenges FOR EACH ROW EXECUTE FUNCTION enforce_approval_challenge_mutation();
 DO $$
 DECLARE table_name TEXT;
 BEGIN
-  FOREACH table_name IN ARRAY ARRAY['episodes', 'episode_revisions', 'workflow_runs', 'workflow_steps', 'workflow_attempts', 'workflow_batches', 'jobs', 'approvals', 'assets', 'publications', 'workflow_events']
+  FOREACH table_name IN ARRAY ARRAY['projects', 'episodes', 'episode_revisions', 'workflow_runs', 'workflow_run_bindings', 'workflow_steps', 'workflow_attempts', 'workflow_batches', 'jobs', 'approvals', 'approval_challenges', 'assets', 'validation_results', 'publications', 'workflow_events']
   LOOP
     EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY', table_name);
     EXECUTE format('ALTER TABLE %I FORCE ROW LEVEL SECURITY', table_name);
@@ -428,17 +615,23 @@ CREATE TABLE IF NOT EXISTS effect_records (
   updated_at TIMESTAMPTZ NOT NULL,
   PRIMARY KEY (workspace_id, effect_id)
 );
-ALTER TABLE publications ADD COLUMN IF NOT EXISTS provider_receipt JSONB NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS effect_records_subject_kind_unique
+  ON effect_records (workspace_id, subject_id, kind);
 CREATE TABLE IF NOT EXISTS publication_reconciliation_attempts (
   workspace_id TEXT NOT NULL,
   attempt_id TEXT NOT NULL,
   publication_id TEXT NOT NULL,
-  reason TEXT NOT NULL CHECK (reason IN ('no_match', 'multiple_matches', 'provider_unavailable')),
+  reason TEXT NOT NULL CHECK (reason IN ('no_match', 'multiple_matches', 'provider_unavailable', 'recovery_identity_mismatch')),
   evidence JSONB NULL,
   created_at TIMESTAMPTZ NOT NULL,
   PRIMARY KEY (workspace_id, attempt_id),
   FOREIGN KEY (workspace_id, publication_id) REFERENCES publications (workspace_id, publication_id)
 );
+ALTER TABLE publication_reconciliation_attempts
+  DROP CONSTRAINT IF EXISTS publication_reconciliation_attempts_reason_check;
+ALTER TABLE publication_reconciliation_attempts
+  ADD CONSTRAINT publication_reconciliation_attempts_reason_check
+  CHECK (reason IN ('no_match', 'multiple_matches', 'provider_unavailable', 'recovery_identity_mismatch'));
 INSERT INTO workflow_transition_rules (subject_type, from_status, to_status) VALUES
   ('job', 'running', 'queued')
 ON CONFLICT DO NOTHING;

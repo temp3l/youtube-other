@@ -3,8 +3,10 @@ import crypto from "node:crypto";
 export interface WebhookEnvelope {
   readonly id: string;
   readonly type: string;
+  readonly version: "1";
   readonly occurredAt: string;
   readonly workspaceId: string;
+  readonly subjectType: string;
   readonly subjectId: string;
   readonly subjectVersion: number;
   readonly correlationId: string;
@@ -13,7 +15,18 @@ export interface WebhookEnvelope {
 }
 
 export function serializeWebhookEnvelope(event: WebhookEnvelope): string {
-  return JSON.stringify(event);
+  return JSON.stringify({
+    id: event.id,
+    type: event.type,
+    version: event.version,
+    occurred_at: event.occurredAt,
+    workspace_id: event.workspaceId,
+    subject: { type: event.subjectType, id: event.subjectId },
+    subject_version: event.subjectVersion,
+    correlation_id: event.correlationId,
+    ...(event.causationId ? { causation_id: event.causationId } : {}),
+    data: event.data,
+  });
 }
 
 export function signWebhook(payload: string, secret: string, timestamp: string): string {

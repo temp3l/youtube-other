@@ -3,11 +3,13 @@ import { ApplicationError } from "./errors.js";
 import type { WorkflowAdmissionPort } from "./ports.js";
 
 export interface WorkflowAdmissionCommand {
+  readonly projectId?: string;
+  readonly episodeId?: string;
   readonly template: string;
   readonly episodeRevision: number;
   readonly locales: readonly string[];
   readonly variants: readonly string[];
-  readonly approvalMode: "required" | "none";
+  readonly approvalMode: "required" | "automatic" | "none";
   readonly publicationMode: "none" | "manual" | "scheduled";
 }
 
@@ -23,7 +25,10 @@ export class WorkflowAdmissionHandler implements ApplicationCommandHandler<Workf
 
   public async execute(command: WorkflowAdmissionCommand, execution: ApplicationExecutionContext): Promise<WorkflowAdmissionResult> {
     if (execution.signal.aborted) throw new ApplicationError("upstream_unavailable", "The workflow admission was cancelled.", true);
-    if (execution.authorization.decision !== "allowed" || !execution.actor.permissions.includes("workflow:write")) {
+    if (
+      execution.authorization.decision !== "allowed" ||
+      !execution.actor.permissions.includes("workflow.start")
+    ) {
       throw new ApplicationError("authorization_denied", "Permission is denied.", false);
     }
     if (!execution.idempotency) throw new ApplicationError("precondition_required", "Workflow admission requires an idempotency key.", false);

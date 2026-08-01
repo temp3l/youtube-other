@@ -9,6 +9,11 @@ import { ensureDir, writeJsonAtomic } from "@mediaforge/shared";
 
 export * from "./relational-workflow-state.js";
 export * from "./postgres-workflow-repository.js";
+export * from "./postgres-webhook-repository.js";
+export * from "./postgres-usage-audit-repository.js";
+export * from "./postgres-principal-directory.js";
+export * from "./postgres-pilot-api-key-repository.js";
+export * from "./asset-payload-validation.js";
 export * from "./tenant-object-storage.js";
 
 export interface PersistenceConfig {

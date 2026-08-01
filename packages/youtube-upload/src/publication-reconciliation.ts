@@ -43,8 +43,9 @@ export class YoutubePublicationEvidenceLookup {
 
   public async findByRecoveryIdentity(input: {
     readonly publicationId: string;
+    readonly recoveryIdentity: string;
   }): Promise<readonly YoutubePublicationReceipt[]> {
-    const marker = youtubePublicationRecoveryMarker(input.publicationId);
+    const marker = youtubePublicationRecoveryMarker(input.recoveryIdentity);
     const search = await this.client.search.list({
       part: ["id"],
       q: marker,
@@ -78,7 +79,7 @@ export class YoutubePublicationEvidenceLookup {
       )
       .map((video) => ({
         providerObjectId: video.id,
-        recoveryIdentity: input.publicationId,
+        recoveryIdentity: input.recoveryIdentity,
         evidence: {
           marker,
           channelId: video.snippet.channelId ?? null,

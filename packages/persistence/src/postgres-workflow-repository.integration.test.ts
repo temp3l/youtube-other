@@ -2,6 +2,8 @@ import { Pool } from "pg";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import {
+  PostgresDurableJobRepository,
+  PostgresWorkflowAdmissionPort,
   PostgresWorkflowRepository,
   WorkflowStateTransitionError,
 } from "./index.js";
@@ -69,7 +71,7 @@ describePostgres("PostgreSQL workflow state", () => {
 
   beforeEach(async () => {
     await adminPool.query(
-      "TRUNCATE workflow_events, job_dead_letters, workflow_outbox, command_admissions, effect_records, jobs, workflow_attempts, workflow_steps, workflow_batches, approvals, assets, publications, workflow_runs, episode_revisions, episodes CASCADE"
+      "TRUNCATE workflow_events, job_dead_letters, workflow_outbox, command_admissions, effect_records, jobs, workflow_attempts, workflow_steps, workflow_batches, approvals, approval_challenges, validation_results, assets, publications, workflow_run_bindings, workflow_runs, episode_revisions, episodes, projects CASCADE"
     );
   });
 
@@ -396,5 +398,110 @@ describePostgres("PostgreSQL workflow state", () => {
         })
       ).toBe(false);
     });
+  });
+
+  it("persists tenant-scoped projects and episodes and atomically binds admitted workflows", async () => {
+    await repository.withWorkspaceTransaction("workspace-a", async (tx) => {
+      await tx.createProject({
+        workspaceId: "workspace-a",
+        projectId: "project-1",
+        name: "Project One",
+        profile: "dark_truth",
+        now: "2026-07-31T12:00:00.000Z",
+      });
+      await tx.createEpisode({
+        workspaceId: "workspace-a",
+        projectId: "project-1",
+        episodeId: "episode-1",
+        content: { type: "dark_truth", version: "1", premise: "A test" },
+        now: "2026-07-31T12:00:00.000Z",
+      });
+    });
+    const admission = new PostgresWorkflowAdmissionPort({
+      repository,
+      now: () => new Date("2026-07-31T12:01:00.000Z"),
+      createId: (prefix) => ({ workflow: "run-bound", job: "job-bound", outbox: "outbox-bound", command: "command-bound" })[prefix],
+    });
+    await admission.admit({
+      execution: {
+        workspace: { id: "workspace-a" },
+        idempotency: { key: "bound-key", fingerprint: "c".repeat(64) },
+      },
+      command: "episode-production",
+      input: {
+        projectId: "project-1",
+        episodeId: "episode-1",
+        episodeRevision: 0,
+      },
+    });
+    await expect(repository.withWorkspaceTransaction("workspace-a", (tx) =>
+      tx.getBoundWorkflow({ workspaceId: "workspace-a", projectId: "project-1", runId: "run-bound" })
+    )).resolves.toMatchObject({ runId: "run-bound", status: "queued" });
+    await expect(repository.withWorkspaceTransaction("workspace-a", (tx) =>
+      tx.getBoundWorkflow({ workspaceId: "workspace-a", projectId: "project-foreign", runId: "run-bound" })
+    )).resolves.toBeNull();
+    await expect(repository.withWorkspaceTransaction("workspace-b", (tx) =>
+      tx.getProject("workspace-a", "project-1")
+    )).resolves.toBeNull();
+  });
+
+  it("executes the fenced durable job lifecycle with retry and late-writer rejection", async () => {
+    await repository.withWorkspaceTransaction("workspace-a", async (tx) => {
+      await tx.create({
+        workspaceId: "workspace-a",
+        runId: "run-job",
+        status: "queued",
+        execution,
+        supersedesRunId: null,
+        createdAt: "2026-07-31T12:00:00.000Z",
+      });
+      await tx.createJob({
+        workspaceId: "workspace-a",
+        jobId: "job-durable",
+        runId: "run-job",
+        jobType: "workflow.execute",
+        payload: { runId: "run-job" },
+        availableAt: "2026-07-31T12:00:00.000Z",
+      });
+    });
+    const jobs = new PostgresDurableJobRepository(repository);
+    const first = await jobs.claimNextJob({
+      workspaceId: "workspace-a",
+      workerId: "worker-a",
+      now: "2026-07-31T12:00:00.000Z",
+      leaseSeconds: 60,
+    });
+    expect(first).toMatchObject({ jobType: "workflow.execute", attemptCount: 1, leaseFence: 1 });
+    await expect(jobs.scheduleJobRetry({
+      workspaceId: "workspace-a",
+      jobId: "job-durable",
+      workerId: "worker-a",
+      leaseFence: 1,
+      now: "2026-07-31T12:00:10.000Z",
+      nextAttemptAt: "2026-07-31T12:00:20.000Z",
+      error: "temporary",
+      maxAttempts: 3,
+    })).resolves.toBe("retry_scheduled");
+    const second = await jobs.claimNextJob({
+      workspaceId: "workspace-a",
+      workerId: "worker-b",
+      now: "2026-07-31T12:00:20.000Z",
+      leaseSeconds: 60,
+    });
+    expect(second).toMatchObject({ attemptCount: 2, leaseFence: 2 });
+    await expect(jobs.completeJob({
+      workspaceId: "workspace-a",
+      jobId: "job-durable",
+      workerId: "worker-a",
+      leaseFence: 1,
+      now: "2026-07-31T12:00:21.000Z",
+    })).resolves.toBe(false);
+    await expect(jobs.completeJob({
+      workspaceId: "workspace-a",
+      jobId: "job-durable",
+      workerId: "worker-b",
+      leaseFence: 2,
+      now: "2026-07-31T12:00:21.000Z",
+    })).resolves.toBe(true);
   });
 });

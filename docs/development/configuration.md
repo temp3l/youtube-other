@@ -62,6 +62,56 @@ Configuration ownership lives in `@mediaforge/config`.
   For the local Docker database, run `pnpm --filter @mediaforge/api build` and
   then `pnpm reconciliation:start`; the root script loads both `.env` and the
   ignored PostgreSQL credential file.
+- Authenticated API process:
+  build `@mediaforge/api`, configure `MEDIAFORGE_WORKFLOW_DATABASE_URL`,
+  `MEDIAFORGE_API_OIDC_ISSUER`, `MEDIAFORGE_API_OIDC_AUDIENCE`,
+  `MEDIAFORGE_API_OIDC_JWKS_URL`, and a random
+  `MEDIAFORGE_API_CURSOR_SECRET` of at least 32 bytes, then run
+  `pnpm api:start`. JWKS redirects are disabled; non-local JWKS URLs must use
+  HTTPS. The role binds to `127.0.0.1` unless
+  `MEDIAFORGE_API_BIND_HOST` is set. `/health/live`, `/health/ready`, and
+  `/v1/openapi.json` are unauthenticated; tenant resources require a valid
+  token and an active directory membership.
+- API principal bootstrap:
+  use `pnpm api:provision-principal` with the explicit
+  `MEDIAFORGE_PRINCIPAL_*` variables in `.env.example`. Provisioning is
+  revision-guarded and audit-appending. Tokens, client secrets, and signing
+  secrets are never written to the principal directory. Re-run with
+  `MEDIAFORGE_PRINCIPAL_EXPECTED_REVISION` to change an existing membership.
+  API routes use the documented dotted permission vocabulary (`content.read`,
+  `content.write`, `workflow.start`, `workflow.cancel`, `validation.read`, and
+  `approval.decide`); principals created with the former colon-delimited pilot
+  names must be reprovisioned before this API version is started.
+- Pilot API-key administration:
+  `pnpm api:administer-key` accepts the bounded `MEDIAFORGE_API_KEY_*` inputs
+  for `issue`, `rotate`, or `revoke`. Issue and rotate print new key material
+  exactly once; PostgreSQL stores only a lookup fingerprint and salted scrypt
+  verifier. The explicit `ApiKey` request adapter is not automatically combined
+  with OIDC. A deployment must opt into that authentication policy and retain
+  active principal membership/revocation checks.
+- Durable API job workers:
+  the shared role parses bounded `MEDIAFORGE_JOB_*` lease, heartbeat, retry,
+  and polling settings and uses fenced PostgreSQL mutations. Deployment must
+  inject a canonical media-task handler; no generic CLI or filesystem command
+  is executed merely because a job was admitted.
+- Durable webhook dispatcher library:
+  `startPostgresDurableWebhookProcess` composes fenced PostgreSQL delivery,
+  pinned HTTPS transport, bounded retries, and a caller-supplied secret-handle
+  resolver. Non-secret role settings are `MEDIAFORGE_WEBHOOK_WORKSPACE_ID`,
+  `MEDIAFORGE_WEBHOOK_WORKER_ID`, `MEDIAFORGE_WEBHOOK_POLL_INTERVAL_MS`
+  (default `1000`, range `50`–`60000`), and
+  `MEDIAFORGE_WEBHOOK_LEASE_SECONDS` (default `60`, range `5`–`3600`). There is
+  intentionally no package start script until deployment supplies an approved
+  external secret-store adapter. Do not place webhook signing secrets in the
+  environment or PostgreSQL. The embedding process creates and closes its
+  PostgreSQL pool; the library does not take ownership of the injected pool.
+  Operators may create the initial endpoint with
+  `pnpm api:provision-webhook-endpoint` and the bounded
+  `MEDIAFORGE_WEBHOOK_ENDPOINT_*` inputs. The value supplied as
+  `SECRET_HANDLE` must identify an already-created external secret and must not
+  contain signing material. Committed workflow events fan out transactionally
+  to enabled matching endpoints; delivery remains disabled in practice until
+  the embedding process supplies the approved handle resolver.
 - Remote rendering:
   `REMOTE_RENDER_*` and `LOCAL_RENDER_CONCURRENCY`
 
