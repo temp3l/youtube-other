@@ -18,6 +18,7 @@ const intent: AdmitPublicationIntentInput = {
   approvalId: "approval-1",
   approvalRevision: 4,
   approvalArtifactHash: "c".repeat(64),
+  approvalPolicy: "legacy-v1",
   actorPrincipalId: "publisher-principal-1",
   actorPrincipalRevision: 2,
   credentialVersion: "credential-v2",
@@ -56,6 +57,12 @@ describe("PostgreSQL publication intent persistence", () => {
       "publication intent bindings are immutable"
     );
     expect(POSTGRES_WORKFLOW_STATE_MIGRATION).toContain(
+      "approval_policy TEXT NOT NULL DEFAULT 'legacy-v1'"
+    );
+    expect(POSTGRES_WORKFLOW_STATE_MIGRATION).toContain(
+      "NEW.approval_policy IS DISTINCT FROM OLD.approval_policy"
+    );
+    expect(POSTGRES_WORKFLOW_STATE_MIGRATION).toContain(
       "publication execution fence is immutable after execution starts"
     );
     expect(POSTGRES_WORKFLOW_STATE_MIGRATION).toContain(
@@ -92,6 +99,7 @@ describe("PostgreSQL publication intent persistence", () => {
                   publicationId: intent.publicationId,
                   revision: 0,
                   status: "pending",
+                  approvalPolicy: "legacy-v1",
                 },
               } as T,
             ],
@@ -108,6 +116,7 @@ describe("PostgreSQL publication intent persistence", () => {
         publicationId: "publication-1",
         revision: 0,
         status: "pending",
+        approvalPolicy: "legacy-v1",
       },
     });
 
@@ -142,6 +151,8 @@ describe("PostgreSQL publication intent persistence", () => {
       sql.includes("INSERT INTO publications")
     );
     expect(publication?.values?.[17]).toMatch(/^[a-f0-9]{64}$/u);
+    expect(publication?.values?.[19]).toBe("legacy-v1");
+    expect(publication?.sql).toContain("approval_policy");
   });
 
   it("canonicalizes artifact and playlist permutations into one active publication key", async () => {
@@ -225,6 +236,27 @@ describe("PostgreSQL publication intent persistence", () => {
         status: "pending",
       },
     });
+    expect(query).toHaveBeenCalledTimes(2);
+  });
+
+  it("rejects replay when its immutable approval policy differs", async () => {
+    const query = vi
+      .fn()
+      .mockResolvedValueOnce({ rows: [], rowCount: 0 })
+      .mockResolvedValueOnce({
+        rows: [{
+          command_id: "command-original",
+          request_fingerprint: intent.requestFingerprint,
+          response: { publicationId: "publication-original", approvalPolicy: "legacy-v1" },
+        }],
+        rowCount: 1,
+      });
+    await expect(
+      new WorkspaceTransactionRepository({ query }).admitPublicationIntent({
+        ...intent,
+        approvalPolicy: "scoped-v1",
+      })
+    ).rejects.toThrow(/approval policy.*immutable intent/u);
     expect(query).toHaveBeenCalledTimes(2);
   });
 
@@ -328,6 +360,10 @@ describe("PostgreSQL publication intent persistence", () => {
     expect(queries[0]).toContain("locked_intent_lease");
     expect(queries[0]).toContain("locked_channel_lease");
     expect(queries[0]).toContain("intent.scheduled_at <= $21::timestamptz");
+    expect(queries[0]).toContain("intent.approval_policy = 'legacy-v1'");
+    expect(queries[0]).toContain("approval.approval_gate IS NULL");
+    expect(queries[0]).toContain("intent.approval_policy = 'scoped-v1'");
+    expect(queries[0]).toContain("approval.approval_gate = 'publish'");
     expect(queries[1]).toContain("state = 'in_flight'");
     await expect(
       transaction.beginPublicationExecution({
@@ -337,6 +373,28 @@ describe("PostgreSQL publication intent persistence", () => {
         channelLeaseFence: 0,
       })
     ).rejects.toThrow(/positive intent and channel lease fences/u);
+  });
+
+  it("authorizes legacy-v1 independently while scoped-v1 remains fail-closed without strict evidence", async () => {
+    let scopedEvidenceAvailable = false;
+    const policies: unknown[] = [];
+    const transaction = new WorkspaceTransactionRepository({
+      query: async <T>(sql: string, values?: readonly unknown[]): Promise<PostgresQueryResult<T>> => {
+        if (sql.includes("WITH locked_intent")) {
+          const policy = values?.[21];
+          policies.push(policy);
+          const authorized = policy === "legacy-v1" || scopedEvidenceAvailable;
+          return { rows: authorized ? [{ publication_id: "publication-1" } as T] : [], rowCount: authorized ? 1 : 0 };
+        }
+        return { rows: [], rowCount: 1 };
+      },
+    });
+    const execution = { workerId: "worker-1", intentLeaseFence: 1, channelLeaseFence: 1 };
+    await expect(transaction.beginPublicationExecution({ ...intent, ...execution })).resolves.toBe(true);
+    await expect(transaction.beginPublicationExecution({ ...intent, ...execution, approvalPolicy: "scoped-v1" })).resolves.toBe(false);
+    scopedEvidenceAvailable = true;
+    await expect(transaction.beginPublicationExecution({ ...intent, ...execution, approvalPolicy: "scoped-v1" })).resolves.toBe(true);
+    expect(policies).toEqual(["legacy-v1", "scoped-v1", "scoped-v1"]);
   });
 
   it("claims a fenced intent lease only while the publication remains queued", async () => {
@@ -575,6 +633,7 @@ describe("PostgreSQL publication intent persistence", () => {
                 approval_id: intent.approvalId,
                 approval_revision: intent.approvalRevision,
                 approval_artifact_hash: intent.approvalArtifactHash,
+                approval_policy: intent.approvalPolicy,
                 actor_principal_id: intent.actorPrincipalId,
                 actor_principal_revision: intent.actorPrincipalRevision,
                 credential_version: intent.credentialVersion,

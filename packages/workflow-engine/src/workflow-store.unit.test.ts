@@ -35,6 +35,8 @@ function registration(args: {
   id: `${string}.${string}`;
   dependencies?: readonly `${string}.${string}`[];
   approval?: boolean;
+  approvalGate?: "source" | "metadata" | "publish";
+  highRisk?: boolean;
 }): TaskRegistration {
   const definition = taskDefinitionSchema.parse({
     schemaVersion: TASK_SCHEMA_VERSION,
@@ -56,6 +58,15 @@ function registration(args: {
       timeoutMs: 1_000,
       lockScope: "task",
       approvalRequired: args.approval ?? false,
+      ...(args.approvalGate
+        ? {
+            approval: {
+              gate: args.approvalGate,
+              highRisk: args.highRisk ?? false,
+              requiredDistinctActors: args.highRisk ? 2 : 1,
+            },
+          }
+        : {}),
       batchable: false,
       provider: "none",
       estimatedCostClass: "none",
@@ -350,6 +361,179 @@ describe("workflow state, events, locks, and reconciliation", () => {
     await expect(store.applyManualSuccess(forbidden)).rejects.toMatchObject<
       Partial<WorkflowStoreError>
     >({ code: "OVERRIDE_FORBIDDEN" });
+  });
+
+  it("requires an exact scoped fingerprint, distinct high-risk reviewers, and an unrecalled decision", async () => {
+    await store.initialize();
+    const scoped = approvalRecordSchema.parse({
+      schemaVersion: APPROVAL_SCHEMA_VERSION,
+      id: "approval-scoped-one",
+      workflowInstanceId: "instance-001",
+      taskId: "test.publish",
+      profileId: "dark-truth",
+      unitId: "episode-001",
+      locale: "en",
+      variant: "full",
+      decision: "approved",
+      actor: "reviewer-one@example.invalid",
+      reason: "Reviewed the current render package.",
+      boundRevision: "revision-1",
+      artifactHashes: [hashA],
+      createdAt: currentTime.toISOString(),
+      scope: {
+        gate: "publish",
+        locale: "en",
+        variant: "full",
+        inputArtifactHashes: [hashB],
+        outputArtifactHashes: [hashA],
+        highRisk: true,
+      },
+    });
+    await store.recordApproval(scoped);
+    expect(
+      await store.currentApproval("test.publish", { artifactHashes: [hashA] })
+    ).toBeNull();
+    await expect(
+      store.currentApproval("test.publish", {
+        artifactHashes: [hashA],
+        gate: "publish",
+      } as Parameters<typeof store.currentApproval>[1])
+    ).rejects.toThrow();
+    await expect(
+      store.currentApproval("test.publish", {
+        artifactHashes: [],
+        gate: "publish",
+        locale: "en",
+        variant: "full",
+        inputArtifactHashes: [],
+      } as unknown as Parameters<typeof store.currentApproval>[1])
+    ).rejects.toThrow();
+    const context = {
+      artifactHashes: [hashA],
+      inputArtifactHashes: [hashB],
+      gate: "publish" as const,
+      locale: "en",
+      variant: "full",
+      requiredDistinctActors: 2,
+    };
+    expect(await store.currentApproval("test.publish", context)).toBeNull();
+    await store.recordApproval(
+      approvalRecordSchema.parse({
+        ...scoped,
+        id: "approval-scoped-two",
+        actor: "reviewer-two@example.invalid",
+        createdAt: new Date(currentTime.getTime() + 1_000).toISOString(),
+      })
+    );
+    expect(await store.currentApproval("test.publish", context)).toMatchObject({
+      id: "approval-scoped-two",
+    });
+    expect(
+      await store.currentApproval("test.publish", { ...context, locale: "it" })
+    ).toBeNull();
+    await store.revokeApproval({
+      approvalId: "approval-scoped-two",
+      actor: "operator@example.invalid",
+      reason: "The artifact was superseded.",
+    });
+    expect(await store.currentApproval("test.publish", context)).toBeNull();
+  });
+
+  it("lets terminal decisions supersede exact fingerprints and invalidates approval gates narrowly", async () => {
+    await store.initialize();
+    const makeApproval = (
+      id: string,
+      gate: "source" | "canonical-script" | "metadata" | "publish",
+      taskId: "test.prepare" | "test.publish",
+      decision: "approved" | "rejected" = "approved"
+    ) => approvalRecordSchema.parse({
+      schemaVersion: APPROVAL_SCHEMA_VERSION,
+      id,
+      workflowInstanceId: "instance-001",
+      taskId,
+      profileId: "dark-truth",
+      unitId: "episode-001",
+      locale: "en",
+      variant: "full",
+      decision,
+      actor: `${id}@example.invalid`,
+      reason: "Scoped review decision.",
+      boundRevision: "revision-1",
+      artifactHashes: [hashA],
+      createdAt: currentTime.toISOString(),
+      scope: {
+        gate,
+        locale: "en",
+        variant: "full",
+        inputArtifactHashes: [hashB],
+        outputArtifactHashes: [hashA],
+        highRisk: false,
+      },
+    });
+    const source = makeApproval("approval-source", "source", "test.prepare");
+    const script = makeApproval("approval-script", "canonical-script", "test.prepare");
+    const metadata = makeApproval("approval-metadata", "metadata", "test.publish");
+    const publish = makeApproval("approval-publish", "publish", "test.publish");
+    for (const approval of [source, script, metadata, publish]) {
+      await store.recordApproval(approval);
+    }
+    await store.recordApproval(makeApproval("approval-publish-rejected", "publish", "test.publish", "rejected"));
+    expect(await store.currentApproval("test.publish", {
+      artifactHashes: [hashA], inputArtifactHashes: [hashB], gate: "publish", locale: "en", variant: "full",
+    })).toBeNull();
+
+    const narrow = await store.invalidateApprovalsForChange({
+      change: "metadata",
+      actor: "operator@example.invalid",
+      reason: "Metadata changed.",
+    });
+    expect(narrow.revokedApprovalIds).toEqual(["approval-metadata"]);
+    expect(narrow.preservedApprovalIds).toEqual(expect.arrayContaining(["approval-source", "approval-script"]));
+    const broad = await store.invalidateApprovalsForChange({
+      change: "source",
+      actor: "operator@example.invalid",
+      reason: "Source changed.",
+    });
+    expect(broad.revokedApprovalIds).toEqual(["approval-script"]);
+    expect((await store.readEvents()).filter((event) => event.eventType === "approval-recorded")).toHaveLength(7);
+  });
+
+  it("derives scoped gate requirements from task policy and exact input/output fingerprints", async () => {
+    const scopedTask = registration({
+      id: "test.publish",
+      dependencies: ["test.prepare"],
+      approval: true,
+      approvalGate: "publish",
+      highRisk: true,
+    });
+    const scopedRegistry = createTaskRegistry([prepareTask, scopedTask]);
+    await store.initialize();
+    await store.transition({ taskId: "test.prepare", to: "skipped", reason: "Prepared by fixture." });
+    const base = approvalRecordSchema.parse({
+      schemaVersion: APPROVAL_SCHEMA_VERSION,
+      id: "approval-derived-one",
+      workflowInstanceId: "instance-001",
+      taskId: "test.publish",
+      profileId: "dark-truth",
+      unitId: "episode-001",
+      locale: "en",
+      variant: "full",
+      decision: "approved",
+      actor: "one@example.invalid",
+      reason: "First high-risk review.",
+      boundRevision: "revision-1",
+      artifactHashes: [hashA],
+      createdAt: currentTime.toISOString(),
+      scope: { gate: "publish", locale: "en", variant: "full", inputArtifactHashes: [hashB], outputArtifactHashes: [hashA], highRisk: true },
+    });
+    await store.recordApproval(base);
+    expect((await store.deriveNext(scopedRegistry, {
+      availableArtifacts: [], approvalArtifactHashes: { "test.publish": [hashA] }, approvalInputArtifactHashes: { "test.publish": [hashB] },
+    })).tasks[1]?.readiness.status).toBe("awaiting-approval");
+    await store.recordApproval(approvalRecordSchema.parse({ ...base, id: "approval-derived-two", actor: "two@example.invalid" }));
+    expect((await store.deriveNext(scopedRegistry, {
+      availableArtifacts: [], approvalArtifactHashes: { "test.publish": [hashA] }, approvalInputArtifactHashes: { "test.publish": [hashB] },
+    })).tasks[1]?.readiness.status).not.toBe("awaiting-approval");
   });
 
   it("detects active locks and recovers stale locks and interrupted runs", async () => {

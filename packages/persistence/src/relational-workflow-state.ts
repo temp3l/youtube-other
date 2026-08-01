@@ -299,6 +299,22 @@ ALTER TABLE approvals ADD COLUMN IF NOT EXISTS decision_reason TEXT NULL;
 ALTER TABLE approvals ADD COLUMN IF NOT EXISTS revoked_at TIMESTAMPTZ NULL;
 ALTER TABLE approvals ADD COLUMN IF NOT EXISTS revoked_by_principal_id TEXT NULL;
 ALTER TABLE approvals ADD COLUMN IF NOT EXISTS revocation_reason TEXT NULL;
+-- Scoped workflow approvals retain the exact gate and fingerprints that were
+-- reviewed. They are nullable only for compatibility with pre-scope records.
+ALTER TABLE approvals ADD COLUMN IF NOT EXISTS approval_gate TEXT NULL;
+ALTER TABLE approvals ADD COLUMN IF NOT EXISTS scope_locale TEXT NULL;
+ALTER TABLE approvals ADD COLUMN IF NOT EXISTS scope_variant TEXT NULL;
+ALTER TABLE approvals ADD COLUMN IF NOT EXISTS input_artifact_hashes JSONB NULL;
+ALTER TABLE approvals ADD COLUMN IF NOT EXISTS output_artifact_hashes JSONB NULL;
+ALTER TABLE approvals ADD COLUMN IF NOT EXISTS reviewer_actor TEXT NULL;
+ALTER TABLE approvals ADD COLUMN IF NOT EXISTS reviewer_role TEXT NULL;
+ALTER TABLE approvals ADD COLUMN IF NOT EXISTS expires_at TIMESTAMPTZ NULL;
+ALTER TABLE approvals ADD COLUMN IF NOT EXISTS supersedes_approval_id TEXT NULL;
+ALTER TABLE approvals ADD COLUMN IF NOT EXISTS high_risk BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE approvals ADD COLUMN IF NOT EXISTS required_distinct_actors INTEGER NOT NULL DEFAULT 1;
+ALTER TABLE approvals DROP CONSTRAINT IF EXISTS approvals_required_distinct_actors_check;
+ALTER TABLE approvals ADD CONSTRAINT approvals_required_distinct_actors_check
+  CHECK (required_distinct_actors BETWEEN 1 AND 10);
 ALTER TABLE approvals DROP CONSTRAINT IF EXISTS approvals_state_check;
 ALTER TABLE approvals ADD CONSTRAINT approvals_state_check
   CHECK (state IN ('active', 'rejected', 'revoked'));
@@ -348,6 +364,7 @@ CREATE TABLE IF NOT EXISTS publications (
   approval_id TEXT NULL,
   approval_revision BIGINT NULL,
   approval_artifact_hash TEXT NULL,
+  approval_policy TEXT NOT NULL DEFAULT 'legacy-v1',
   actor_principal_id TEXT NULL,
   actor_principal_revision BIGINT NULL,
   credential_version TEXT NULL,
@@ -373,6 +390,10 @@ ALTER TABLE publications ADD COLUMN IF NOT EXISTS project_id TEXT NULL;
 ALTER TABLE publications ADD COLUMN IF NOT EXISTS approval_id TEXT NULL;
 ALTER TABLE publications ADD COLUMN IF NOT EXISTS approval_revision BIGINT NULL;
 ALTER TABLE publications ADD COLUMN IF NOT EXISTS approval_artifact_hash TEXT NULL;
+ALTER TABLE publications ADD COLUMN IF NOT EXISTS approval_policy TEXT NOT NULL DEFAULT 'legacy-v1';
+ALTER TABLE publications DROP CONSTRAINT IF EXISTS publications_approval_policy_check;
+ALTER TABLE publications ADD CONSTRAINT publications_approval_policy_check
+  CHECK (approval_policy IN ('legacy-v1', 'scoped-v1'));
 ALTER TABLE publications ADD COLUMN IF NOT EXISTS actor_principal_id TEXT NULL;
 ALTER TABLE publications ADD COLUMN IF NOT EXISTS actor_principal_revision BIGINT NULL;
 ALTER TABLE publications ADD COLUMN IF NOT EXISTS credential_version TEXT NULL;
@@ -605,6 +626,7 @@ BEGIN
     OR NEW.approval_id IS DISTINCT FROM OLD.approval_id
     OR NEW.approval_revision IS DISTINCT FROM OLD.approval_revision
     OR NEW.approval_artifact_hash IS DISTINCT FROM OLD.approval_artifact_hash
+    OR NEW.approval_policy IS DISTINCT FROM OLD.approval_policy
     OR NEW.actor_principal_id IS DISTINCT FROM OLD.actor_principal_id
     OR NEW.actor_principal_revision IS DISTINCT FROM OLD.actor_principal_revision
     OR NEW.credential_version IS DISTINCT FROM OLD.credential_version

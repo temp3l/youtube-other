@@ -1,6 +1,14 @@
 import crypto from "node:crypto";
 
 import {
+  approvalGateSchema,
+  approvalScopeSchema,
+  type ApprovalGate,
+  type ContentLocale,
+  type ContentVariant,
+} from "@mediaforge/domain";
+
+import {
   POSTGRES_DURABLE_DISPATCH_MIGRATION,
   POSTGRES_WORKFLOW_AUTHORITY_MIGRATION,
   POSTGRES_WORKFLOW_STATE_MIGRATION,
@@ -224,6 +232,7 @@ export interface PublicationIntentBinding {
   readonly approvalId: string;
   readonly approvalRevision: number;
   readonly approvalArtifactHash: string;
+  readonly approvalPolicy: "legacy-v1" | "scoped-v1";
   readonly actorPrincipalId: string;
   readonly actorPrincipalRevision: number;
   readonly credentialVersion: string;
@@ -279,6 +288,7 @@ interface PublicationIntentRow {
   readonly approval_revision: string | number;
   readonly approval_id: string;
   readonly approval_artifact_hash: string;
+  readonly approval_policy: PublicationIntentBinding["approvalPolicy"];
   readonly actor_principal_id: string;
   readonly actor_principal_revision: string | number;
   readonly credential_version: string;
@@ -440,6 +450,7 @@ function mapPublicationIntent(
     approvalId: row.approval_id,
     approvalRevision: Number(row.approval_revision),
     approvalArtifactHash: row.approval_artifact_hash,
+    approvalPolicy: row.approval_policy,
     actorPrincipalId: row.actor_principal_id,
     actorPrincipalRevision: Number(row.actor_principal_revision),
     credentialVersion: row.credential_version,
@@ -473,6 +484,7 @@ function publicationActiveKey(binding: PublicationIntentBinding): string {
         binding.approvalId,
         binding.approvalRevision,
         binding.approvalArtifactHash,
+        binding.approvalPolicy,
         binding.actorPrincipalId,
         binding.actorPrincipalRevision,
         binding.credentialVersion,
@@ -490,6 +502,14 @@ function publicationActiveKey(binding: PublicationIntentBinding): string {
 function normalizedPublicationBinding(
   binding: PublicationIntentBinding
 ): PublicationIntentBinding {
+  if (
+    binding.approvalPolicy !== "legacy-v1" &&
+    binding.approvalPolicy !== "scoped-v1"
+  ) {
+    throw new WorkflowStateTransitionError(
+      "Publication approval policy must be legacy-v1 or scoped-v1."
+    );
+  }
   if (
     !Number.isSafeInteger(binding.approvalRevision) ||
     binding.approvalRevision < 0 ||
@@ -1192,7 +1212,78 @@ export class WorkspaceTransactionRepository {
     readonly idempotencyKey: string;
     readonly requestFingerprint: string;
     readonly now: string;
+    readonly gate?: ApprovalGate;
+    readonly locale?: ContentLocale;
+    readonly variant?: ContentVariant;
+    readonly inputArtifactHashes?: readonly string[];
+    readonly outputArtifactHashes?: readonly string[];
+    readonly actor?: string;
+    readonly reviewerRole?: string;
+    readonly expiresAt?: string;
+    readonly supersedesApprovalId?: string;
+    readonly highRisk?: boolean;
+    readonly requiredDistinctActors?: number;
   }): Promise<CommandAdmissionResult> {
+    const requiredScopedValues = [
+      input.gate,
+      input.locale,
+      input.variant,
+      input.inputArtifactHashes,
+      input.outputArtifactHashes,
+      input.actor,
+    ];
+    const hasScope =
+      requiredScopedValues.some((value) => value !== undefined) ||
+      input.highRisk !== undefined ||
+      input.requiredDistinctActors !== undefined;
+    if (hasScope && requiredScopedValues.some((value) => value === undefined)) {
+      throw new WorkflowStateTransitionError(
+        "Scoped approvals require gate, locale, variant, input/output hashes, and actor."
+      );
+    }
+    if (
+      hasScope &&
+      ((input.inputArtifactHashes?.length ?? 0) === 0 ||
+        (input.outputArtifactHashes?.length ?? 0) === 0 ||
+        [...(input.inputArtifactHashes ?? []), ...(input.outputArtifactHashes ?? [])]
+          .some((hash) => !/^[a-f0-9]{64}$/u.test(hash)))
+    ) {
+      throw new WorkflowStateTransitionError(
+        "Scoped approval input/output hashes must be non-empty lowercase SHA-256 digests."
+      );
+    }
+    if (hasScope && input.actor?.trim().length === 0) {
+      throw new WorkflowStateTransitionError("Scoped approval actor is required.");
+    }
+    if (hasScope) {
+      approvalScopeSchema.parse({
+        gate: approvalGateSchema.parse(input.gate),
+        locale: input.locale,
+        variant: input.variant,
+        inputArtifactHashes: input.inputArtifactHashes,
+        outputArtifactHashes: input.outputArtifactHashes,
+        highRisk: input.highRisk ?? false,
+      });
+      const requiredDistinctActors = input.requiredDistinctActors ?? 1;
+      if (
+        !Number.isSafeInteger(requiredDistinctActors) ||
+        requiredDistinctActors < 1 ||
+        requiredDistinctActors > 10
+      ) {
+        throw new WorkflowStateTransitionError(
+          "Required distinct approval actors must be an integer from 1 to 10."
+        );
+      }
+    }
+    if (
+      input.expiresAt !== undefined &&
+      (!Number.isFinite(Date.parse(input.expiresAt)) ||
+        Date.parse(input.expiresAt) <= Date.parse(input.now))
+    ) {
+      throw new WorkflowStateTransitionError(
+        "Approval expiry must be a valid future timestamp."
+      );
+    }
     const response = { id: input.approvalId, jobId: input.jobId, revision: 0 };
     const admission = await this.admitCommand({
       workspaceId: input.workspaceId,
@@ -1208,6 +1299,18 @@ export class WorkspaceTransactionRepository {
           approvalId: input.approvalId,
           subjectId: input.subjectId,
           decision: input.decision,
+          ...(input.gate ? { gate: input.gate } : {}),
+          ...(input.locale ? { locale: input.locale } : {}),
+          ...(input.variant ? { variant: input.variant } : {}),
+          ...(input.actor ? { actor: input.actor } : {}),
+          ...(hasScope
+            ? {
+                highRisk: input.highRisk ?? false,
+                requiredDistinctActors: input.highRisk
+                  ? Math.max(2, input.requiredDistinctActors ?? 1)
+                  : input.requiredDistinctActors ?? 1,
+              }
+            : {}),
         },
         availableAt: input.now,
       },
@@ -1243,13 +1346,25 @@ export class WorkspaceTransactionRepository {
       throw new WorkflowStateTransitionError(
         "Approval challenge was missing, stale, expired, or already consumed."
       );
+    if (
+      hasScope &&
+      !input.outputArtifactHashes?.includes(challenge.rows[0].artifact_hash)
+    ) {
+      throw new WorkflowStateTransitionError(
+        "Scoped approval output hashes must include the challenged artifact."
+      );
+    }
     await this.connection.query(
       `INSERT INTO approvals (
          workspace_id, approval_id, run_id, decision, revision, artifact_hash,
-         subject_revision, state, decision_reason, created_at
+         subject_revision, state, decision_reason, created_at,
+         approval_gate, scope_locale, scope_variant, input_artifact_hashes,
+         output_artifact_hashes, reviewer_actor, reviewer_role, expires_at,
+         supersedes_approval_id, high_risk, required_distinct_actors
        ) VALUES ($1, $2, $3, $4, 0, $5, $6,
                  CASE WHEN $4 = 'approved' THEN 'active' ELSE 'rejected' END,
-                 $7, $8::timestamptz)`,
+                 $7, $8::timestamptz, $9, $10, $11, $12::jsonb, $13::jsonb,
+                 $14, $15, $16::timestamptz, $17, $18, $19)`,
       [
         input.workspaceId,
         input.approvalId,
@@ -1259,6 +1374,23 @@ export class WorkspaceTransactionRepository {
         input.expectedRevision,
         input.reason,
         input.now,
+        input.gate ?? null,
+        input.locale ?? null,
+        input.variant ?? null,
+        input.inputArtifactHashes
+          ? JSON.stringify(input.inputArtifactHashes)
+          : null,
+        input.outputArtifactHashes
+          ? JSON.stringify(input.outputArtifactHashes)
+          : null,
+        input.actor ?? null,
+        input.reviewerRole ?? null,
+        input.expiresAt ?? null,
+        input.supersedesApprovalId ?? null,
+        input.highRisk ?? false,
+        input.highRisk
+          ? Math.max(2, input.requiredDistinctActors ?? 1)
+          : input.requiredDistinctActors ?? 1,
       ]
     );
     const approvalEventType =
@@ -1280,6 +1412,25 @@ export class WorkspaceTransactionRepository {
           approvalId: input.approvalId,
           decision: input.decision,
           reason: input.reason,
+          ...(hasScope
+            ? {
+                gate: input.gate,
+                locale: input.locale,
+                variant: input.variant,
+                inputArtifactHashes: input.inputArtifactHashes,
+                outputArtifactHashes: input.outputArtifactHashes,
+                actor: input.actor,
+                highRisk: input.highRisk ?? false,
+                requiredDistinctActors: input.highRisk
+                  ? Math.max(2, input.requiredDistinctActors ?? 1)
+                  : input.requiredDistinctActors ?? 1,
+                ...(input.reviewerRole ? { reviewerRole: input.reviewerRole } : {}),
+                ...(input.expiresAt ? { expiresAt: input.expiresAt } : {}),
+                ...(input.supersedesApprovalId
+                  ? { supersedesApprovalId: input.supersedesApprovalId }
+                  : {}),
+              }
+            : {}),
         }),
         input.now,
       ]
@@ -1432,6 +1583,7 @@ export class WorkspaceTransactionRepository {
        WHERE workspace_id = $1 AND project_id = $2 AND publication_id = $3
          AND project_id IS NOT NULL AND approval_revision IS NOT NULL
          AND approval_id IS NOT NULL AND approval_artifact_hash IS NOT NULL
+         AND approval_policy IS NOT NULL
          AND actor_principal_id IS NOT NULL AND actor_principal_revision IS NOT NULL
          AND credential_version IS NOT NULL AND asset_hash IS NOT NULL
          AND artifact_bindings IS NOT NULL AND channel_id IS NOT NULL
@@ -1456,6 +1608,7 @@ export class WorkspaceTransactionRepository {
         publicationId: input.publicationId,
         revision: 0,
         status: "pending",
+        approvalPolicy: binding.approvalPolicy,
       };
       const inserted = await this.connection.query<{
         readonly command_id: string;
@@ -1494,6 +1647,16 @@ export class WorkspaceTransactionRepository {
           throw new WorkflowStateTransitionError(
             "Idempotency key is already associated with a different request."
           );
+        const replayPolicy = (record.response as { approvalPolicy?: unknown })
+          .approvalPolicy;
+        if (
+          replayPolicy !== binding.approvalPolicy &&
+          !(replayPolicy === undefined && binding.approvalPolicy === "legacy-v1")
+        ) {
+          throw new WorkflowStateTransitionError(
+            "Publication replay approval policy does not match the immutable intent."
+          );
+        }
         return {
           kind: "replayed",
           commandId: record.command_id,
@@ -1508,10 +1671,11 @@ export class WorkspaceTransactionRepository {
            asset_hash, artifact_bindings, channel_id, visibility, scheduled_at,
            playlist_ids, recovery_identity, active_key, execution_fence,
            intent_lease_fence, channel_lease_fence, created_at, updated_at
+           , approval_policy
          )
          SELECT $1, $2, $3, $4, 'pending', 0, $5, $6, $7, $8, $9, $10,
                 $11, $12::jsonb, $13, $14, $15::timestamptz, $16::jsonb,
-                $17, $18, 0, 0, 0, $19::timestamptz, $19::timestamptz
+                $17, $18, 0, 0, 0, $19::timestamptz, $19::timestamptz, $20
          FROM workflow_run_bindings
          WHERE workspace_id = $1 AND project_id = $3 AND run_id = $4`,
         [
@@ -1534,6 +1698,7 @@ export class WorkspaceTransactionRepository {
           binding.recoveryIdentity,
           publicationActiveKey(binding),
           input.now,
+          binding.approvalPolicy,
         ]
       );
       if (publication.rowCount !== 1)
@@ -1688,6 +1853,7 @@ export class WorkspaceTransactionRepository {
            AND publication.scheduled_at IS NOT DISTINCT FROM $15::timestamptz
            AND publication.playlist_ids = $16::jsonb
            AND publication.recovery_identity = $17
+           AND publication.approval_policy = $22
          FOR UPDATE OF publication
        ), locked_approval AS MATERIALIZED (
          SELECT approval.approval_id
@@ -1700,6 +1866,75 @@ export class WorkspaceTransactionRepository {
            AND approval.revoked_at IS NULL
            AND approval.subject_revision = intent.approval_revision
            AND approval.artifact_hash = intent.approval_artifact_hash
+           AND (
+             (
+               intent.approval_policy = 'legacy-v1'
+               AND approval.approval_gate IS NULL
+               AND approval.scope_locale IS NULL
+               AND approval.scope_variant IS NULL
+               AND approval.input_artifact_hashes IS NULL
+               AND approval.output_artifact_hashes IS NULL
+               AND approval.reviewer_actor IS NULL
+               AND approval.reviewer_role IS NULL
+               AND approval.expires_at IS NULL
+               AND approval.supersedes_approval_id IS NULL
+               AND approval.high_risk = FALSE
+               AND approval.required_distinct_actors = 1
+             )
+             OR (
+           intent.approval_policy = 'scoped-v1'
+           AND approval.approval_gate = 'publish'
+           AND approval.scope_locale IN ('en', 'de', 'es', 'fr', 'pt', 'it')
+           AND approval.scope_variant IN ('full', 'short')
+           AND jsonb_typeof(approval.input_artifact_hashes) = 'array'
+           AND jsonb_array_length(approval.input_artifact_hashes) > 0
+           AND jsonb_typeof(approval.output_artifact_hashes) = 'array'
+           AND jsonb_array_length(approval.output_artifact_hashes) > 0
+           AND NOT EXISTS (
+             SELECT 1 FROM jsonb_array_elements_text(approval.input_artifact_hashes) AS hash(value)
+             WHERE hash.value !~ '^[a-f0-9]{64}$'
+           )
+           AND NOT EXISTS (
+             SELECT 1 FROM jsonb_array_elements_text(approval.output_artifact_hashes) AS hash(value)
+             WHERE hash.value !~ '^[a-f0-9]{64}$'
+           )
+           AND approval.output_artifact_hashes @> jsonb_build_array(intent.approval_artifact_hash)
+           AND approval.reviewer_actor IS NOT NULL
+           AND (approval.expires_at IS NULL OR approval.expires_at > $21::timestamptz)
+           AND NOT EXISTS (
+             SELECT 1 FROM approvals AS terminal
+             WHERE terminal.workspace_id = approval.workspace_id
+               AND terminal.run_id = approval.run_id
+               AND terminal.decision = 'rejected'
+               AND terminal.created_at >= approval.created_at
+               AND terminal.subject_revision = approval.subject_revision
+               AND terminal.approval_gate = approval.approval_gate
+               AND terminal.scope_locale = approval.scope_locale
+               AND terminal.scope_variant = approval.scope_variant
+               AND terminal.input_artifact_hashes = approval.input_artifact_hashes
+               AND terminal.output_artifact_hashes = approval.output_artifact_hashes
+           )
+           AND (
+             SELECT COUNT(DISTINCT peer.reviewer_actor)
+             FROM approvals AS peer
+             WHERE peer.workspace_id = approval.workspace_id
+               AND peer.run_id = approval.run_id
+               AND peer.decision = 'approved' AND peer.state = 'active'
+               AND peer.revoked_at IS NULL
+               AND peer.subject_revision = approval.subject_revision
+               AND peer.approval_gate = approval.approval_gate
+               AND peer.scope_locale = approval.scope_locale
+               AND peer.scope_variant = approval.scope_variant
+               AND peer.input_artifact_hashes = approval.input_artifact_hashes
+               AND peer.output_artifact_hashes = approval.output_artifact_hashes
+               AND peer.reviewer_actor IS NOT NULL
+               AND (peer.expires_at IS NULL OR peer.expires_at > $21::timestamptz)
+           ) >= GREATEST(
+             approval.required_distinct_actors,
+             CASE WHEN approval.high_risk THEN 2 ELSE 1 END
+           )
+             )
+           )
          FOR UPDATE OF approval
        ), locked_actor AS MATERIALIZED (
          SELECT principal.principal_id
@@ -1791,6 +2026,7 @@ export class WorkspaceTransactionRepository {
         input.intentLeaseFence,
         input.channelLeaseFence,
         input.now,
+        binding.approvalPolicy,
       ]
     );
     if (publication.rowCount !== 1) return false;

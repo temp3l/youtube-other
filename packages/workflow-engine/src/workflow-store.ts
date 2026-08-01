@@ -6,9 +6,12 @@ import {
   ERROR_SCHEMA_VERSION,
   TASK_SCHEMA_VERSION,
   WORKFLOW_SCHEMA_VERSION,
+  approvalGateSchema,
   approvalRecordSchema,
   artifactManifestSchema,
   attemptIdSchema,
+  contentLocaleSchema,
+  contentVariantSchema,
   normalizedWorkflowErrorSchema,
   operatorOverrideSchema,
   taskFingerprintSchema,
@@ -21,6 +24,9 @@ import {
   workflowRunIdSchema,
   workflowTaskStateSchema,
   type ApprovalRecord,
+  type ApprovalGate,
+  type ContentLocale,
+  type ContentVariant,
   type ArtifactContract,
   type ArtifactManifest,
   type OperatorOverride,
@@ -44,6 +50,24 @@ export const WORKFLOW_STORE_VERSION = "mediaforge.workflow-store.v1" as const;
 
 const isoDateTimeSchema = z.iso.datetime({ offset: true });
 const nonEmptyStringSchema = z.string().trim().min(1);
+const approvalHashesSchema = z.array(z.string().regex(/^[a-f0-9]{64}$/u)).min(1);
+const reviewerCountSchema = z.number().int().min(1).max(10).optional();
+const currentApprovalContextSchema = z.union([
+  z.object({
+    artifactHashes: approvalHashesSchema,
+    at: z.date().optional(),
+    requiredDistinctActors: reviewerCountSchema,
+  }).strict(),
+  z.object({
+    artifactHashes: approvalHashesSchema,
+    at: z.date().optional(),
+    gate: approvalGateSchema,
+    locale: contentLocaleSchema,
+    variant: contentVariantSchema,
+    inputArtifactHashes: approvalHashesSchema,
+    requiredDistinctActors: reviewerCountSchema,
+  }).strict(),
+]);
 const cacheDecisionRecordSchema = cacheDecisionSchema.extend({
   workflowInstanceId: workflowInstanceIdSchema,
   checkedAt: isoDateTimeSchema,
@@ -151,9 +175,48 @@ export interface WorkflowTransitionInput {
   readonly errorCode?: string;
 }
 
-export interface CurrentApprovalContext {
-  readonly artifactHashes: readonly string[];
+type NonEmptyHashes = readonly [string, ...string[]];
+
+function isNonEmptyHashes(value: readonly string[]): value is NonEmptyHashes {
+  return value.length > 0;
+}
+
+export interface LegacyApprovalContext {
+  readonly artifactHashes: NonEmptyHashes;
   readonly at?: Date;
+  readonly gate?: never;
+  readonly locale?: never;
+  readonly variant?: never;
+  readonly inputArtifactHashes?: never;
+  readonly requiredDistinctActors?: number;
+}
+
+export interface ScopedApprovalContext {
+  readonly artifactHashes: NonEmptyHashes;
+  readonly at?: Date;
+  readonly gate: ApprovalGate;
+  readonly locale: ContentLocale;
+  readonly variant: ContentVariant;
+  readonly inputArtifactHashes: NonEmptyHashes;
+  readonly requiredDistinctActors?: number;
+}
+
+export type CurrentApprovalContext =
+  | LegacyApprovalContext
+  | ScopedApprovalContext;
+
+export interface ApprovalRevocationInput {
+  readonly approvalId: string;
+  readonly actor: string;
+  readonly reason: string;
+}
+
+export type ApprovalInvalidationChange = "source" | "metadata";
+
+export interface ApprovalInvalidationResult {
+  readonly change: ApprovalInvalidationChange;
+  readonly revokedApprovalIds: readonly string[];
+  readonly preservedApprovalIds: readonly string[];
 }
 
 export interface DerivedTaskState {
@@ -839,8 +902,99 @@ export class WorkflowStore {
         eventType: "approval-recorded",
         approvalId: record.id,
         taskId: record.taskId,
+        decision: record.decision,
+        actor: record.actor,
+        ...(record.scope ? { gate: record.scope.gate } : {}),
+        locale: record.locale,
+        variant: record.variant,
+        ...(record.supersedesApprovalId
+          ? { supersedesApprovalId: record.supersedesApprovalId }
+          : {}),
       })
     );
+  }
+
+  /**
+   * Appends an immutable revocation decision. Earlier approval records are
+   * never rewritten, preserving an attributable audit history.
+   */
+  public async revokeApproval(input: ApprovalRevocationInput): Promise<ApprovalRecord> {
+    const state = await this.readState();
+    const records = await this.readOperatorRecords(
+      this.approvalsPath,
+      approvalRecordSchema
+    );
+    const approvalId = approvalRecordSchema.shape.id.parse(input.approvalId);
+    const target = records.find((record) => record.id === approvalId);
+    if (!target) {
+      throw new WorkflowStoreError("OPERATOR_RECORD_INVALID", "Approval to revoke does not exist.");
+    }
+    if (target.workflowInstanceId !== state.id) {
+      throw new WorkflowStoreError("IDENTITY_MISMATCH", "Approval belongs to another workflow instance.");
+    }
+    const existingRevocation = records.find(
+      (record) => record.decision === "revoked" && record.supersedesApprovalId === target.id
+    );
+    if (existingRevocation) return existingRevocation;
+    const revocation = approvalRecordSchema.parse({
+      ...target,
+      id: `approval-revoked-${crypto.randomUUID()}`,
+      decision: "revoked",
+      actor: nonEmptyStringSchema.parse(input.actor),
+      reason: nonEmptyStringSchema.parse(input.reason),
+      createdAt: this.now().toISOString(),
+      supersedesApprovalId: target.id,
+    });
+    await this.recordApproval(revocation);
+    return revocation;
+  }
+
+  public async invalidateApprovalsForChange(input: {
+    readonly change: ApprovalInvalidationChange;
+    readonly actor: string;
+    readonly reason: string;
+  }): Promise<ApprovalInvalidationResult> {
+    const records = await this.readOperatorRecords(this.approvalsPath, approvalRecordSchema);
+    const positionById = new Map(records.map((record, index) => [record.id, index]));
+    const byId = new Map(records.map((record) => [record.id, record]));
+    const gates = input.change === "source"
+      ? new Set(["canonical-script", "localization", "voice", "metadata", "render-qa", "publish"])
+      : new Set(["metadata", "publish"]);
+    const candidates = records.filter(
+      (record) =>
+        record.decision === "approved" &&
+        record.scope !== undefined &&
+        gates.has(record.scope.gate) &&
+        !records.some((decision) => {
+          if ((positionById.get(decision.id) ?? -1) <= (positionById.get(record.id) ?? -1)) {
+            return false;
+          }
+          if (decision.decision === "rejected") {
+            return this.sameApprovalFingerprint(decision, record);
+          }
+          const target = decision.supersedesApprovalId
+            ? byId.get(decision.supersedesApprovalId)
+            : undefined;
+          return decision.decision === "revoked" && target !== undefined &&
+            this.sameApprovalFingerprint(target, record);
+        })
+    );
+    const revokedApprovalIds: string[] = [];
+    for (const record of candidates) {
+      await this.revokeApproval({
+        approvalId: record.id,
+        actor: input.actor,
+        reason: input.reason,
+      });
+      revokedApprovalIds.push(record.id);
+    }
+    return {
+      change: input.change,
+      revokedApprovalIds,
+      preservedApprovalIds: records
+        .filter((record) => record.decision === "approved" && !revokedApprovalIds.includes(record.id))
+        .map((record) => record.id),
+    };
   }
 
   public async recordOverride(recordInput: OperatorOverride): Promise<void> {
@@ -921,8 +1075,11 @@ export class WorkflowStore {
 
   public async currentApproval(
     taskIdInput: string,
-    context: CurrentApprovalContext
+    contextInput: CurrentApprovalContext
   ): Promise<ApprovalRecord | null> {
+    const context = currentApprovalContextSchema.parse(
+      contextInput
+    ) as unknown as CurrentApprovalContext;
     const state = await this.readState();
     const taskId = taskIdSchema.parse(taskIdInput);
     const at = context.at ?? this.now();
@@ -935,23 +1092,128 @@ export class WorkflowStore {
         .filter((event) => event.eventType === "approval-recorded")
         .map((event) => event.approvalId)
     );
-    const matching = records
+    const matching = this.currentApprovalsFromRecords(
+      records,
+      recordedApprovalIds,
+      taskId,
+      state,
+      context,
+      at
+    );
+    const requested = context.requiredDistinctActors ?? 1;
+    if (!Number.isSafeInteger(requested) || requested < 1 || requested > 10) {
+      throw new WorkflowStoreError(
+        "OPERATOR_RECORD_INVALID",
+        "Required distinct approval actors must be an integer from 1 to 10."
+      );
+    }
+    const required = matching.some((record) => record.scope?.highRisk)
+      ? Math.max(2, requested)
+      : requested;
+    if (new Set(matching.map((record) => record.actor)).size < required) return null;
+    return matching.at(-1) ?? null;
+  }
+
+  public async currentApprovals(
+    taskIdInput: string,
+    contextInput: CurrentApprovalContext
+  ): Promise<readonly ApprovalRecord[]> {
+    const context = currentApprovalContextSchema.parse(
+      contextInput
+    ) as unknown as CurrentApprovalContext;
+    const state = await this.readState();
+    const taskId = taskIdSchema.parse(taskIdInput);
+    const records = await this.readOperatorRecords(this.approvalsPath, approvalRecordSchema);
+    const recordedApprovalIds = new Set(
+      (await this.readEvents())
+        .filter((event) => event.eventType === "approval-recorded")
+        .map((event) => event.approvalId)
+    );
+    return this.currentApprovalsFromRecords(
+      records, recordedApprovalIds, taskId, state, context, context.at ?? this.now()
+    );
+  }
+
+  private currentApprovalsFromRecords(
+    records: readonly ApprovalRecord[],
+    recordedApprovalIds: ReadonlySet<string>,
+    taskId: TaskId,
+    state: WorkflowInstance,
+    context: CurrentApprovalContext,
+    at: Date
+  ): ApprovalRecord[] {
+    const positionById = new Map(records.map((record, index) => [record.id, index]));
+    const byId = new Map(records.map((record) => [record.id, record]));
+    const revocations = records
       .filter(
         (record) =>
-          record.taskId === taskId && recordedApprovalIds.has(record.id)
+          record.decision === "revoked" && recordedApprovalIds.has(record.id)
       )
+      .map((decision) => ({
+        decision,
+        target: decision.supersedesApprovalId
+          ? byId.get(decision.supersedesApprovalId)
+          : undefined,
+      }));
+    const rejected = records.filter(
+      (record) =>
+        record.decision === "rejected" && recordedApprovalIds.has(record.id)
+    );
+    return records
+      .filter((record) => {
+        if (
+          record.taskId !== taskId ||
+          !recordedApprovalIds.has(record.id) ||
+          record.decision !== "approved" ||
+          record.boundRevision !== state.workflowRevision ||
+          isExpired(record.expiresAt, at) ||
+          !sameStrings(record.artifactHashes, context.artifactHashes)
+        ) return false;
+        if (
+          revocations.some(
+            ({ decision, target }) =>
+              target !== undefined &&
+              (positionById.get(decision.id) ?? -1) >
+                (positionById.get(record.id) ?? -1) &&
+              this.sameApprovalFingerprint(target, record)
+          )
+        ) return false;
+        if (
+          rejected.some(
+            (decision) =>
+              (positionById.get(decision.id) ?? -1) >
+                (positionById.get(record.id) ?? -1) &&
+              this.sameApprovalFingerprint(decision, record)
+          )
+        ) return false;
+        if (context.locale && record.locale !== context.locale) return false;
+        if (context.variant && record.variant !== context.variant) return false;
+        if (!context.gate) return record.scope === undefined;
+        return (
+          record.scope?.gate === context.gate &&
+          record.scope.locale === (context.locale ?? record.locale) &&
+          record.scope.variant === (context.variant ?? record.variant) &&
+          (context.inputArtifactHashes === undefined ||
+            sameStrings(record.scope.inputArtifactHashes, context.inputArtifactHashes))
+        );
+      })
       .sort((left, right) => left.createdAt.localeCompare(right.createdAt));
-    const latest = matching.at(-1);
+  }
+
+  private sameApprovalFingerprint(left: ApprovalRecord, right: ApprovalRecord): boolean {
     if (
-      !latest ||
-      latest.decision !== "approved" ||
-      latest.boundRevision !== state.workflowRevision ||
-      isExpired(latest.expiresAt, at) ||
-      !sameStrings(latest.artifactHashes, context.artifactHashes)
-    ) {
-      return null;
-    }
-    return latest;
+      left.taskId !== right.taskId ||
+      left.boundRevision !== right.boundRevision ||
+      left.locale !== right.locale ||
+      left.variant !== right.variant ||
+      !sameStrings(left.artifactHashes, right.artifactHashes)
+    ) return false;
+    if (!left.scope || !right.scope) return left.scope === right.scope;
+    return (
+      left.scope.gate === right.scope.gate &&
+      sameStrings(left.scope.inputArtifactHashes, right.scope.inputArtifactHashes) &&
+      sameStrings(left.scope.outputArtifactHashes, right.scope.outputArtifactHashes)
+    );
   }
 
   public async deriveNext(
@@ -959,6 +1221,9 @@ export class WorkflowStore {
     options: {
       readonly availableArtifacts: readonly ArtifactContract[];
       readonly approvalArtifactHashes?: Readonly<
+        Record<string, readonly string[]>
+      >;
+      readonly approvalInputArtifactHashes?: Readonly<
         Record<string, readonly string[]>
       >;
       readonly invalidatedTaskIds?: ReadonlySet<TaskId>;
@@ -977,11 +1242,26 @@ export class WorkflowStore {
     const approvedTaskIds = new Set<TaskId>();
     const currentOverrides = await this.currentOverrides();
     for (const taskId of this.workflow.taskIds) {
-      if (
-        await this.currentApproval(taskId, {
-          artifactHashes: options.approvalArtifactHashes?.[taskId] ?? [],
-        })
-      ) {
+      const policy = registry.get(taskId).definition.policies;
+      if (!policy.approvalRequired) continue;
+      const requirement = policy.approval;
+      const outputHashes = options.approvalArtifactHashes?.[taskId] ?? [];
+      if (!isNonEmptyHashes(outputHashes)) continue;
+      const inputHashes = options.approvalInputArtifactHashes?.[taskId] ?? [];
+      if (requirement && !isNonEmptyHashes(inputHashes)) continue;
+      const approvalContext: CurrentApprovalContext = requirement
+        ? {
+            artifactHashes: outputHashes,
+            gate: requirement.gate,
+            locale: state.locale,
+            variant: state.variant,
+            inputArtifactHashes: inputHashes as NonEmptyHashes,
+            requiredDistinctActors: requirement.highRisk
+              ? Math.max(2, requirement.requiredDistinctActors)
+              : requirement.requiredDistinctActors,
+          }
+        : { artifactHashes: outputHashes };
+      if (await this.currentApproval(taskId, approvalContext)) {
         approvedTaskIds.add(taskId);
       }
     }

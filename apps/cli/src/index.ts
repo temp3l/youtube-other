@@ -180,6 +180,7 @@ import {
   registerWorkflowCommands,
 } from "./workflow-commands.js";
 import { registerWorkflowAdmissionCommand } from "./workflow-admission-command.js";
+import { registerApprovalCommands } from "./approval-commands.js";
 import { migrateProductionCommandCallers } from "./production-caller-migration.js";
 
 interface CliOptions {
@@ -4972,6 +4973,7 @@ registerThumbnailCommands(program);
 registerMathCommands(program);
 registerWorkflowCommands(program);
 registerWorkflowAdmissionCommand(program);
+registerApprovalCommands(program);
 migrateProductionCommandCallers(program);
 
 const executionId = process.env["MEDIAFORGE_EXECUTION_ID"] ?? randomUUID();

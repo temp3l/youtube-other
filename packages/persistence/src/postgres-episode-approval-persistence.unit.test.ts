@@ -22,6 +22,12 @@ describe("episode revision and approval challenge persistence", () => {
     expect(POSTGRES_WORKFLOW_STATE_MIGRATION).toContain(
       "approval_challenge_mutation_guard"
     );
+    expect(POSTGRES_WORKFLOW_STATE_MIGRATION).toContain(
+      "approval_gate TEXT NULL"
+    );
+    expect(POSTGRES_WORKFLOW_STATE_MIGRATION).toContain(
+      "input_artifact_hashes JSONB NULL"
+    );
   });
 
   it("replaces episode content with project-scoped CAS and appends its evidence", async () => {
@@ -205,5 +211,110 @@ describe("episode revision and approval challenge persistence", () => {
       /missing.*stale.*project.*artifact/u
     );
     expect(query).toHaveBeenCalledOnce();
+  });
+
+  it("persists scoped approval bindings and maps attributable event evidence", async () => {
+    const calls: Array<{ sql: string; values?: readonly unknown[] }> = [];
+    const query = vi.fn(async <T>(sql: string, values?: readonly unknown[]): Promise<PostgresQueryResult<T>> => {
+      calls.push({ sql, values });
+      if (sql.includes("INSERT INTO command_admissions")) {
+        return { rows: [{ command_id: "command-1", response: { id: "approval-1", jobId: "job-1", revision: 0 } } as T], rowCount: 1 };
+      }
+      if (sql.includes("UPDATE approval_challenges")) {
+        return { rows: [{ artifact_hash: "a".repeat(64) } as T], rowCount: 1 };
+      }
+      return { rows: [], rowCount: 1 };
+    });
+    const repository = new WorkspaceTransactionRepository({ query });
+    await repository.recordApproval({
+      workspaceId: "workspace-1",
+      projectId: "project-1",
+      challengeId: "challenge-1",
+      subjectId: "run-1",
+      expectedRevision: 4,
+      decision: "approved",
+      reason: "Reviewed exact package.",
+      approvalId: "approval-1",
+      jobId: "job-1",
+      commandId: "command-1",
+      outboxId: "outbox-1",
+      idempotencyKey: "approval-key-1",
+      requestFingerprint: "f".repeat(64),
+      now,
+      gate: "publish",
+      locale: "it",
+      variant: "full",
+      inputArtifactHashes: ["b".repeat(64)],
+      outputArtifactHashes: ["a".repeat(64)],
+      actor: "reviewer-1",
+      reviewerRole: "publisher-reviewer",
+      expiresAt: "2026-08-02T12:00:00.000Z",
+      supersedesApprovalId: "approval-previous",
+      highRisk: true,
+      requiredDistinctActors: 1,
+    });
+    const insert = calls.find((call) => call.sql.includes("INSERT INTO approvals"));
+    expect(insert?.sql).toContain("approval_gate, scope_locale, scope_variant");
+    expect(insert?.values?.slice(8)).toEqual([
+      "publish", "it", "full", JSON.stringify(["b".repeat(64)]),
+      JSON.stringify(["a".repeat(64)]), "reviewer-1", "publisher-reviewer",
+      "2026-08-02T12:00:00.000Z", "approval-previous", true, 2,
+    ]);
+    const event = calls.find((call) => call.sql.includes("INSERT INTO workflow_events"));
+    expect(JSON.parse(String(event?.values?.[7]))).toMatchObject({
+      approvalId: "approval-1",
+      gate: "publish",
+      actor: "reviewer-1",
+    });
+  });
+
+  it("fails closed on invalid scoped records and rechecks scoped authority at publication", async () => {
+    const query = vi.fn(async () => ({ rows: [], rowCount: 0 }));
+    const repository = new WorkspaceTransactionRepository({ query });
+    const invalid = {
+      workspaceId: "workspace-1", projectId: "project-1", challengeId: "challenge-1",
+      subjectId: "run-1", expectedRevision: 4, decision: "approved" as const,
+      reason: "Review.", approvalId: "approval-1", jobId: "job-1",
+      commandId: "command-1", outboxId: "outbox-1", idempotencyKey: "key-1",
+      requestFingerprint: "f".repeat(64), now, gate: "publish" as const,
+      locale: "it" as const, variant: "full" as const,
+      inputArtifactHashes: ["b".repeat(64)], outputArtifactHashes: ["a".repeat(64)],
+      actor: "reviewer-1",
+    };
+    await expect(repository.recordApproval({ ...invalid, expiresAt: now })).rejects.toThrow(/future/u);
+    await expect(repository.recordApproval({ ...invalid, gate: "wrong" as never })).rejects.toThrow();
+    const legacy = {
+      workspaceId: "workspace-1", projectId: "project-1", challengeId: "challenge-1",
+      subjectId: "run-1", expectedRevision: 4, decision: "approved" as const,
+      reason: "Review.", approvalId: "approval-legacy", jobId: "job-legacy",
+      commandId: "command-legacy", outboxId: "outbox-legacy",
+      idempotencyKey: "legacy-key", requestFingerprint: "e".repeat(64), now,
+    };
+    await expect(repository.recordApproval({ ...legacy, highRisk: true })).rejects.toThrow(/scoped approvals require/iu);
+    await expect(repository.recordApproval({ ...legacy, requiredDistinctActors: 2 })).rejects.toThrow(/scoped approvals require/iu);
+    expect(query).not.toHaveBeenCalled();
+
+    await expect(repository.beginPublicationExecution({
+      workspaceId: "workspace-1", publicationId: "publication-1", projectId: "project-1",
+      runId: "run-1", approvalId: "approval-1", approvalRevision: 4,
+      approvalPolicy: "scoped-v1",
+      approvalArtifactHash: "a".repeat(64), actorPrincipalId: "publisher-1",
+      actorPrincipalRevision: 1, credentialVersion: "credential-1",
+      assetHash: "a".repeat(64), artifactBindings: [
+        { assetId: "asset-1", role: "video", contentHash: "a".repeat(64) },
+      ], channelId: "channel-1", visibility: "private", scheduledAt: null,
+      playlistIds: [], recoveryIdentity: "recovery-1", workerId: "worker-1",
+      intentLeaseFence: 1, channelLeaseFence: 1, now,
+    })).resolves.toBe(false);
+    const authoritySql = String(query.mock.calls.at(-1)?.[0]);
+    expect(authoritySql).toContain("approval.approval_gate = 'publish'");
+    expect(authoritySql).toContain("approval.high_risk = FALSE");
+    expect(authoritySql).toContain("approval.required_distinct_actors = 1");
+    expect(authoritySql).toContain("approval.scope_locale IN");
+    expect(authoritySql).toContain("approval.scope_variant IN");
+    expect(authoritySql).toContain("approval.expires_at > $21::timestamptz");
+    expect(authoritySql).toContain("COUNT(DISTINCT peer.reviewer_actor)");
+    expect(authoritySql).toContain("approval.output_artifact_hashes @> jsonb_build_array(intent.approval_artifact_hash)");
+    expect(query.mock.calls.at(-1)?.[1]?.[20]).toBe(now);
   });
 });
