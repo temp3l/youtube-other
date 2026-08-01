@@ -11,3 +11,7 @@ This is an index of decisions visible in the current implementation. It does not
 - Reasonable inference: the current repo favors resumable per-subsystem workflows over one global pipeline transaction.
 - Reasonable inference: the old `@mediaforge/pipeline` orchestration surface is historical; the active operator path is the richer CLI command set in `apps/cli`.
 - Unresolved: whether any external consumers still need release-note coverage for the removed pipeline package surface.
+
+Feature decision registers:
+
+- [Strategic Reinvention](strategic-reinvention-decision-register.md): genre/creator separation, source rights, approvals, multilingual packaging, creator-media blocks, and external evidence gates.
