@@ -4,8 +4,8 @@
 
 Started Task 02 without prematurely promoting narration. Added structured
 rollout-selection telemetry and counters, instrumented staged and monolithic
-routes, and defined the full/Short matrix for six languages. Legacy dry-runs do
-not count as rollback executions.
+routes, and defined the full/Short matrix for five Dark Truth languages. Legacy
+dry-runs do not count as rollback executions.
 
 ## Changed paths
 
@@ -15,10 +15,9 @@ not count as rollback executions.
 
 ## Tests
 
-Initial focused runs passed: telemetry 7, pipeline 2, CLI 10. Final telemetry
-reruns were blocked before collection by missing built
-`@mediaforge/observability`; CLI typecheck exposed the same widespread fresh-
-worktree declaration problem. No paid providers ran.
+Passed focused telemetry (7), pipeline (2), and CLI (10) tests. Built only
+workflow-engine declarations to unblock and pass speech typecheck. No paid
+providers ran.
 
 ## Commit
 
@@ -26,6 +25,5 @@ worktree declaration problem. No paid providers ran.
 
 ## Risks
 
-Default remains `legacy`. Final code needs a clean telemetry rerun. Production
-matrix evidence, named owner/window, Italian adapter decision, and unwrapped CLI
-usage remain blockers.
+Default remains `legacy`. Production matrix evidence and a named owner/release
+window remain blockers.

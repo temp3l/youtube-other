@@ -18,10 +18,9 @@ separate human approval and a cost cap.
 
 ## Required target matrix
 
-The speech/story language surfaces currently recognize English, German,
-Spanish, French, Italian, and Portuguese. Dark Truth adapter support for Italian
-must be reconciled before promotion; excluding it requires an explicit
-production-support decision.
+The active Dark Truth production profile recognizes English, German, Spanish,
+French, and Portuguese. Generic speech/story support for Italian belongs to a
+different profile and is outside this rollout gate.
 
 | Locale | Full shadow | Short shadow | Full new | Short new |
 | --- | --- | --- | --- | --- |
@@ -29,7 +28,6 @@ production-support decision.
 | `de` | Pending | Pending | Pending | Pending |
 | `es` | Pending | Pending | Pending | Pending |
 | `fr` | Pending | Pending | Pending | Pending |
-| `it` | Blocked: adapter support decision | Blocked: adapter support decision | Blocked: adapter support decision | Blocked: adapter support decision |
 | `pt` | Pending | Pending | Pending | Pending |
 
 Each cell must record episode, source hash, config hash, mode, quality status,
@@ -66,7 +64,8 @@ Before default promotion, record:
 - named production owner and alternate;
 - telemetry report location and query for rollback selections;
 - rollback decision procedure and incident reference;
-- acceptance that no unwrapped operator script bypasses telemetry.
+- confirmation that the CLI telemetry bootstrap remains enabled for direct and
+  npm-wrapped command execution.
 
 The monolithic route remains removable only after the named release window ends
 with zero rollback selections and source search finds no direct caller.
@@ -75,7 +74,3 @@ with zero rollback selections and source search finds no direct caller.
 
 - No paid production matrix has been authorized or run.
 - No owner, release identifier, or window dates are recorded.
-- Italian Dark Truth adapter support differs from current story/speech language
-  support.
-- Direct CLI execution outside the telemetry wrapper is not centrally observed;
-  operator acceptance or enforced wrapping is required before claiming zero use.
