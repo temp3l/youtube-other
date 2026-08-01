@@ -19,6 +19,7 @@
     "@mediaforge/alignment": "workspace:*",
     "@mediaforge/config": "workspace:*",
     "@mediaforge/domain": "workspace:*",
+    "@mediaforge/dynamic-genre": "workspace:*",
     "@mediaforge/dark-truth": "workspace:*",
     "@mediaforge/image-generation": "workspace:*",
     "@mediaforge/math-education": "workspace:*",

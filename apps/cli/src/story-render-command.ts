@@ -46,6 +46,7 @@ import {
   type StoryWorkflowSelectionOptions,
 } from "./story-workflow-command-helpers.js";
 import { mergeCommandOptions } from "./command-option-helpers.js";
+import { loadDynamicProductionConfig } from "./dynamic-genre-artifacts.js";
 
 export interface StoryRenderCliOptions extends StoryWorkflowSelectionOptions {
   readonly languages?: string;
@@ -456,11 +457,18 @@ async function prepareRenderTarget(
     }
 
     const clipEntries = await fs.readdir(clipsDir).catch(() => []);
+    const dynamicConfig = await loadDynamicProductionConfig(episodeDir);
+    const renderProfile = {
+      ...renderProfileForVariant(target.variant),
+      ...(dynamicConfig
+        ? { fps: dynamicConfig.video.frameRate }
+        : {}),
+    } satisfies RenderProfile;
     if (clipEntries.some((entry) => entry.endsWith(".mp4") || entry.endsWith(".json"))) {
       const clipValidation = await validateSceneClipArtifacts({
         clipsDir,
         scenePlan,
-        renderProfile: renderProfileForVariant(target.variant),
+        renderProfile,
       });
       if (!clipValidation.valid) {
         return {
@@ -481,7 +489,7 @@ async function prepareRenderTarget(
       episodeDir,
       outputDir,
       clipsDir,
-      renderProfile: renderProfileForVariant(target.variant),
+      renderProfile,
       scenePlan,
       sourceNarrationPath,
       ...(options.captions && (await fileExists(captionsPath))

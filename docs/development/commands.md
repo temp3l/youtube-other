@@ -66,6 +66,8 @@ transitive dependencies.
 - `pnpm mediaforge -- stories localize --episode <episode-id>`
 - `pnpm mediaforge -- stories rewrite-full --episode <episode-id>`
 - `pnpm mediaforge -- stories rewrite-short --episode <episode-id>`
+- `pnpm mediaforge -- stories dynamic preview --input <story.txt> --content-id <episode-id> --budget standard [--fixture-response <fixture.json>] --json`
+- `pnpm mediaforge -- stories dynamic analyze --input <story.txt> --content-id <episode-id> --revision <revision> --budget standard [--overrides <safe-overrides.json>] --json`
 - `pnpm mediaforge -- images plan --episode <episode-id>`
 - `pnpm mediaforge -- images generate --episode <episode-id>`
 - `pnpm mediaforge -- images resume --episode <episode-id>`

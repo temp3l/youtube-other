@@ -17,6 +17,7 @@
     "@mediaforge/application": "workspace:*",
     "@mediaforge/config": "workspace:*",
     "@mediaforge/domain": "workspace:*",
+    "@mediaforge/dynamic-genre": "workspace:*",
     "@mediaforge/persistence": "workspace:*",
     "@mediaforge/shared": "workspace:*",
     "@mediaforge/speech": "workspace:*",

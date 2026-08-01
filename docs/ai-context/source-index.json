@@ -22,7 +22,7 @@
     {
       "concept": "batch",
       "source": "packages/workflow-engine/src/batch.ts",
-      "sourceSha256": "7fd37f98d961a52de713a4b7aec58401e814a4e615e6c4b85c6de05f402934f0",
+      "sourceSha256": "6a0181fa86a123aa5614514ef1b0bc57f43f72435a408fb5c34fae257d3e7f9f",
       "symbols": [
         "class BatchCoordinator"
       ]
@@ -48,7 +48,7 @@
     {
       "concept": "cli-bootstrap",
       "source": "apps/cli/src/index.ts",
-      "sourceSha256": "0198dcb5fa5d8f3b8144ec901e15b475ed404d80bd167f1175380906421d4c2a",
+      "sourceSha256": "3f4ae23659f64fa4e76155357f1cf9be26f28ed35e7fc2a118e59f256dff443e",
       "symbols": [
         "registerWorkflowCommands(program)"
       ]
@@ -56,7 +56,7 @@
     {
       "concept": "darktruth-profile",
       "source": "packages/dark-truth/src/task-registry.ts",
-      "sourceSha256": "cadab3a02b2071457c0eba6682e705ddc66a3f2a8e78ddb4120dc799f6a64c55",
+      "sourceSha256": "9123b1d82f9214c9ed0bb9e94454684391cbe0cf319897c07029547b1e7bf2c6",
       "symbols": [
         "darkTruthWorkflowDefinition"
       ]
@@ -72,7 +72,7 @@
     {
       "concept": "image-provider",
       "source": "packages/image-generation/src/openai-image.ts",
-      "sourceSha256": "8de9962f3b892a62a807671e355065b9d1d31ac4a0cee6ea16f3dcd28a6372bb",
+      "sourceSha256": "925224eeeb89c66d1123b057e110e27cee0b3ce733790337cbc77bb577faa548",
       "symbols": [
         "generateOpenAiSceneImages"
       ]
@@ -80,7 +80,7 @@
     {
       "concept": "mathematics-profile",
       "source": "packages/math-education/src/task-registry.ts",
-      "sourceSha256": "ea53d69078761612c9a8036444d1305838017b57626389c8bf1fb16ed024a588",
+      "sourceSha256": "de318a92871298cdd444315a2944deba51679d2419c4e906edf84bfc532219a7",
       "symbols": [
         "mathWorkflowDefinition"
       ]
@@ -131,7 +131,7 @@
     {
       "concept": "task-registry",
       "source": "packages/workflow-engine/src/task-registry.ts",
-      "sourceSha256": "d905028b7443f93296c527cf1a380bb3598caaeb4cb3e5eb258438b26b1a2f32",
+      "sourceSha256": "aca8b35d9c3707351b826649b21173005208776b8ce2ca1d06e604f1a4a4f6ed",
       "symbols": [
         "createTaskRegistry"
       ]
@@ -139,7 +139,7 @@
     {
       "concept": "workflow-operator",
       "source": "packages/workflow-engine/src/workflow-operator.ts",
-      "sourceSha256": "eb3654cca40c37594bf1165dbb0119b32ff4a6ff42c1e66ea7e161e62bc5d00f",
+      "sourceSha256": "5d16b53a47da289a85cec0088fb5946b3e392d660173a890a9f08617edb248c6",
       "symbols": [
         "class WorkflowOperator"
       ]
@@ -147,7 +147,7 @@
     {
       "concept": "workflow-state",
       "source": "packages/workflow-engine/src/workflow-store.ts",
-      "sourceSha256": "aa539b52caf743c2d7946b45cac64a38b7f75bb5b4a19b77f9b4fb1a40faa1c9",
+      "sourceSha256": "693e4e985ff4c38fa54dceb867895305f8b4b48e134a3a1df9876caef75c571e",
       "symbols": [
         "class WorkflowStore"
       ]

@@ -1,9 +1,9 @@
 {
   "schemaVersion": "mediaforge.ai-pack-manifest.v1",
   "generatorVersion": "mediaforge.ai-pack-generator.v1",
-  "generatedAt": "2026-07-24T20:43:40.000Z",
+  "generatedAt": "2026-08-01T21:18:27.000Z",
   "repository": {
-    "revision": "f29a43c2eef25f185b60a20c4e56ea4598279115",
+    "revision": "8e5a5599bfed55590e98fb9f411799238c852230",
     "dirty": true
   },
   "sourceConfiguration": {
@@ -19,18 +19,18 @@
     },
     {
       "path": "01-architecture.md",
-      "sizeBytes": 10892,
-      "sha256": "1eeb3b92110164ac575b34e4d1436da7ed22324e9725e0d8605398efae97fda3"
+      "sizeBytes": 11177,
+      "sha256": "53a83bc3c8b34f1471e8d63df52b726c25656d62c9d660e0e024d4a935619eeb"
     },
     {
       "path": "02-domain-model.md",
-      "sizeBytes": 32463,
-      "sha256": "4dcd956021a4ee6b885c59b1de1358277643b453db454f48cec089eb63abab9c"
+      "sizeBytes": 36622,
+      "sha256": "d4d6d9486278c09f1b145943ab7ca727adc099215325f8a807a535373a65f8fd"
     },
     {
       "path": "03-cli-workflows.md",
-      "sizeBytes": 10892,
-      "sha256": "1eeb3b92110164ac575b34e4d1436da7ed22324e9725e0d8605398efae97fda3"
+      "sizeBytes": 11177,
+      "sha256": "53a83bc3c8b34f1471e8d63df52b726c25656d62c9d660e0e024d4a935619eeb"
     },
     {
       "path": "04-pipeline-map.md",
@@ -64,18 +64,18 @@
     },
     {
       "path": "architecture/story-localization.md",
-      "sizeBytes": 23051,
-      "sha256": "aa0adc9c590502b417c8d9a41902d1a97fdd6fef194fba5cdcd6cd1cf807ed93"
+      "sizeBytes": 24094,
+      "sha256": "adf53398e7a46462a0d1ec2020364dcd14fb6f7fb2b9777b6f6bd4fc9088bfa4"
     },
     {
       "path": "architecture/target-architecture.md",
-      "sizeBytes": 10892,
-      "sha256": "1eeb3b92110164ac575b34e4d1436da7ed22324e9725e0d8605398efae97fda3"
+      "sizeBytes": 11177,
+      "sha256": "53a83bc3c8b34f1471e8d63df52b726c25656d62c9d660e0e024d4a935619eeb"
     },
     {
       "path": "cli/commands.md",
-      "sizeBytes": 10892,
-      "sha256": "1eeb3b92110164ac575b34e4d1436da7ed22324e9725e0d8605398efae97fda3"
+      "sizeBytes": 11177,
+      "sha256": "53a83bc3c8b34f1471e8d63df52b726c25656d62c9d660e0e024d4a935619eeb"
     },
     {
       "path": "context-pack.md",
@@ -114,13 +114,13 @@
     },
     {
       "path": "schemas/workflow-contracts.ts",
-      "sizeBytes": 32463,
-      "sha256": "4dcd956021a4ee6b885c59b1de1358277643b453db454f48cec089eb63abab9c"
+      "sizeBytes": 36622,
+      "sha256": "d4d6d9486278c09f1b145943ab7ca727adc099215325f8a807a535373a65f8fd"
     },
     {
       "path": "source-index.json",
       "sizeBytes": 5152,
-      "sha256": "7835b12518ca037025d2b63b70d776ed4fb1620d3533d52301b82dacf6eb0376"
+      "sha256": "1cdbcf9cd42214cd0656a032d17cb925c4b5a771434459f499369a94b754bdd0"
     },
     {
       "path": "testing/release-validation.md",
@@ -136,13 +136,13 @@
     },
     {
       "path": "apps/cli/src/index.ts",
-      "sizeBytes": 161664,
-      "sha256": "0198dcb5fa5d8f3b8144ec901e15b475ed404d80bd167f1175380906421d4c2a"
+      "sizeBytes": 163694,
+      "sha256": "3f4ae23659f64fa4e76155357f1cf9be26f28ed35e7fc2a118e59f256dff443e"
     },
     {
       "path": "docs/architecture/story-localization.md",
-      "sizeBytes": 22873,
-      "sha256": "c9e10a5f83bebf597adf5020884347bc97bef8e2b01f39b96c7100c7b3a4b96d"
+      "sizeBytes": 23916,
+      "sha256": "84c9463340773ecbcdf38663b7cbd8bc7482682454c212f73567b696fe6c1a8a"
     },
     {
       "path": "docs/development/codex-verification-guardrails.md",
@@ -151,8 +151,8 @@
     },
     {
       "path": "docs/refactor/01-target-architecture.md",
-      "sizeBytes": 10715,
-      "sha256": "553793166f97446b8e4212b9fad8391abb698bddbd78d6fb3598e4f6ff637b6c"
+      "sizeBytes": 10999,
+      "sha256": "1f7025018fbde1818d8e52ed4521568145690ca47a8b613849216dceae1ee5ea"
     },
     {
       "path": "docs/refactor/02-safe-implementation-batches.md",
@@ -196,23 +196,23 @@
     },
     {
       "path": "packages/dark-truth/src/task-registry.ts",
-      "sizeBytes": 20674,
-      "sha256": "cadab3a02b2071457c0eba6682e705ddc66a3f2a8e78ddb4120dc799f6a64c55"
+      "sizeBytes": 20848,
+      "sha256": "9123b1d82f9214c9ed0bb9e94454684391cbe0cf319897c07029547b1e7bf2c6"
     },
     {
       "path": "packages/domain/src/workflow-contracts.ts",
-      "sizeBytes": 32283,
-      "sha256": "4a2b864b5314eeccd259bd4cb60e8fc6176aeb7d7d92264313f4652e68522611"
+      "sizeBytes": 36442,
+      "sha256": "141bd2791d8072008848befbb3029fcec56c79ada434c15bcf8f83adac29db3d"
     },
     {
       "path": "packages/image-generation/src/openai-image.ts",
-      "sizeBytes": 35639,
-      "sha256": "8de9962f3b892a62a807671e355065b9d1d31ac4a0cee6ea16f3dcd28a6372bb"
+      "sizeBytes": 35932,
+      "sha256": "925224eeeb89c66d1123b057e110e27cee0b3ce733790337cbc77bb577faa548"
     },
     {
       "path": "packages/math-education/src/task-registry.ts",
-      "sizeBytes": 15194,
-      "sha256": "ea53d69078761612c9a8036444d1305838017b57626389c8bf1fb16ed024a588"
+      "sizeBytes": 15147,
+      "sha256": "de318a92871298cdd444315a2944deba51679d2419c4e906edf84bfc532219a7"
     },
     {
       "path": "packages/story-localization/src/canonical-story-contract.ts",
@@ -246,8 +246,8 @@
     },
     {
       "path": "packages/workflow-engine/src/batch.ts",
-      "sizeBytes": 18841,
-      "sha256": "7fd37f98d961a52de713a4b7aec58401e814a4e615e6c4b85c6de05f402934f0"
+      "sizeBytes": 19073,
+      "sha256": "6a0181fa86a123aa5614514ef1b0bc57f43f72435a408fb5c34fae257d3e7f9f"
     },
     {
       "path": "packages/workflow-engine/src/cache.ts",
@@ -256,8 +256,8 @@
     },
     {
       "path": "packages/workflow-engine/src/task-registry.ts",
-      "sizeBytes": 18470,
-      "sha256": "d905028b7443f93296c527cf1a380bb3598caaeb4cb3e5eb258438b26b1a2f32"
+      "sizeBytes": 19005,
+      "sha256": "aca8b35d9c3707351b826649b21173005208776b8ce2ca1d06e604f1a4a4f6ed"
     },
     {
       "path": "packages/workflow-engine/src/workflow-errors.ts",
@@ -266,13 +266,13 @@
     },
     {
       "path": "packages/workflow-engine/src/workflow-operator.ts",
-      "sizeBytes": 32086,
-      "sha256": "eb3654cca40c37594bf1165dbb0119b32ff4a6ff42c1e66ea7e161e62bc5d00f"
+      "sizeBytes": 33214,
+      "sha256": "5d16b53a47da289a85cec0088fb5946b3e392d660173a890a9f08617edb248c6"
     },
     {
       "path": "packages/workflow-engine/src/workflow-store.ts",
-      "sizeBytes": 58396,
-      "sha256": "aa539b52caf743c2d7946b45cac64a38b7f75bb5b4a19b77f9b4fb1a40faa1c9"
+      "sizeBytes": 69202,
+      "sha256": "693e4e985ff4c38fa54dceb867895305f8b4b48e134a3a1df9876caef75c571e"
     },
     {
       "path": "packages/youtube-upload/src/publish-approval.ts",
@@ -323,7 +323,7 @@
     "packFileBytes": 300000,
     "totalPackBytes": 1800000
   },
-  "totalPackBytes": 238032,
+  "totalPackBytes": 248533,
   "variableFields": [],
   "knownLimitations": [
     "Retained compatibility adapters are indexed in the Batch 13 duplicate inventory."

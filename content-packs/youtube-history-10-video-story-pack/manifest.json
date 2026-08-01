@@ -1,0 +1,65 @@
+{
+  "persona": "Cinematic Public Historian — a documentary writer who combines narrative tension, historiographical caution, primary-source awareness, and accessible explanation.",
+  "videos": [
+    {
+      "file": "01-bronze-age-collapse.md",
+      "title": "The Bronze Age Collapse: When Civilizations Fell Together",
+      "word_count": 1110,
+      "estimated_minutes_at_108_wpm": 10.3
+    },
+    {
+      "file": "02-napoleons-invasion-of-russia.md",
+      "title": "Napoleon’s Invasion of Russia: The Campaign That Destroyed an Army",
+      "word_count": 1076,
+      "estimated_minutes_at_108_wpm": 10.0
+    },
+    {
+      "file": "03-fall-of-the-roman-empire.md",
+      "title": "The Fall of the Roman Empire: How the West Came Apart",
+      "word_count": 1144,
+      "estimated_minutes_at_108_wpm": 10.6
+    },
+    {
+      "file": "04-black-death.md",
+      "title": "The Black Death: The Pandemic That Remade Europe",
+      "word_count": 1095,
+      "estimated_minutes_at_108_wpm": 10.1
+    },
+    {
+      "file": "05-franklin-expedition.md",
+      "title": "The Mystery of the Franklin Expedition: Lost in the Arctic",
+      "word_count": 1158,
+      "estimated_minutes_at_108_wpm": 10.7
+    },
+    {
+      "file": "06-mongol-war-machine.md",
+      "title": "The Mongol War Machine: How Steppe Armies Conquered Empires",
+      "word_count": 1111,
+      "estimated_minutes_at_108_wpm": 10.3
+    },
+    {
+      "file": "07-day-life-medieval-peasant.md",
+      "title": "A Day in the Life of a Medieval Peasant",
+      "word_count": 1104,
+      "estimated_minutes_at_108_wpm": 10.2
+    },
+    {
+      "file": "08-cuban-missile-crisis.md",
+      "title": "The Cuban Missile Crisis: Thirteen Days Near Nuclear War",
+      "word_count": 1139,
+      "estimated_minutes_at_108_wpm": 10.5
+    },
+    {
+      "file": "09-cleopatra-beyond-legend.md",
+      "title": "Cleopatra Beyond the Legend: Pharaoh, Politician, and Enemy of Rome",
+      "word_count": 1100,
+      "estimated_minutes_at_108_wpm": 10.2
+    },
+    {
+      "file": "10-titanic-decisions-disaster.md",
+      "title": "Titanic: The Decisions That Caused the Disaster",
+      "word_count": 1127,
+      "estimated_minutes_at_108_wpm": 10.4
+    }
+  ]
+}

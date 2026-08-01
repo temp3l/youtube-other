@@ -1729,6 +1729,7 @@ export function createLocalMathFinalAssembler(): MathFinalAssembler {
           renderDurationMs: fragment.renderDurationMs,
           cacheHitCount: fragment.cacheHitCount,
           cacheMissCount: fragment.cacheMissCount,
+          ...(fragment.execution ? { execution: fragment.execution } : {}),
         });
         if (
           canonicalHash(inspected) !== canonicalHash(fragment) ||

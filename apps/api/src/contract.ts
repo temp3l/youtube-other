@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { ApplicationError } from "@mediaforge/application";
+import { budgetTierSchema, dynamicGenreOverrideSchema } from "@mediaforge/dynamic-genre";
 
 const opaqueId = z
   .string()
@@ -44,9 +45,16 @@ const mathematicsEducationContentSchema = z
 export const projectInputSchema = z
   .object({
     name: z.string().trim().min(1).max(160),
-    profile: z.enum(["dark_truth", "mathematics_education"]),
+    profile: z.enum(["dark_truth", "mathematics_education", "dynamic_generic"]),
   })
   .strict();
+const dynamicGenericInputSchema = z.discriminatedUnion("kind", [
+  z.object({ kind: z.literal("completed_story"), locale: z.string().regex(/^[a-z]{2}(?:-[A-Z]{2})?$/u), canonicalLanguage: z.string().regex(/^[a-z]{2}(?:-[A-Z]{2})?$/u).optional(), title: z.string().trim().min(1).max(300), body: z.string().trim().min(1).max(120_000) }).strict(),
+  z.object({ kind: z.literal("structured_outline"), locale: z.string().regex(/^[a-z]{2}(?:-[A-Z]{2})?$/u), canonicalLanguage: z.string().regex(/^[a-z]{2}(?:-[A-Z]{2})?$/u).optional(), title: z.string().trim().min(1).max(300), sections: z.array(z.object({ id: opaqueId, heading: z.string().trim().max(200).optional(), body: z.string().trim().min(1).max(30_000) }).strict()).min(1).max(200) }).strict().superRefine((value, context) => {
+    if (value.sections.reduce((total, section) => total + section.body.length, 0) > 120_000) context.addIssue({ code: "custom", path: ["sections"], message: "Outline exceeds 120000 characters." });
+  }),
+]);
+export const dynamicGenericContentSchema = z.object({ type: z.literal("dynamic_generic"), version: z.literal("1"), input: dynamicGenericInputSchema, budgetTier: budgetTierSchema, overrides: dynamicGenreOverrideSchema.optional() }).strict();
 export const episodeInputSchema = z
   .object({
     content: z.discriminatedUnion("type", [
@@ -60,6 +68,7 @@ export const episodeInputSchema = z
         })
         .strict(),
       mathematicsEducationContentSchema,
+      dynamicGenericContentSchema,
     ]),
   })
   .strict();
@@ -83,6 +92,9 @@ export function parseEpisodeInput(value: unknown): EpisodeInput {
       false,
       [...new Set(parsed.error.issues.map((issue) => issue.path.join(".")))]
     );
+  }
+  if (content && typeof content === "object" && Reflect.get(content, "type") === "dynamic_generic") {
+    throw new ApplicationError("profile_input_invalid", "Dynamic generic episode input must contain only bounded semantic content and overrides.", false, [...new Set(parsed.error.issues.map((issue) => issue.path.join(".")))]);
   }
   throw parsed.error;
 }
@@ -1392,7 +1404,7 @@ export const openApiDocument = {
           name: { type: "string", minLength: 1, maxLength: 160 },
           profile: {
             type: "string",
-            enum: ["dark_truth", "mathematics_education"],
+            enum: ["dark_truth", "mathematics_education", "dynamic_generic"],
           },
         },
       },
@@ -1454,10 +1466,44 @@ export const openApiDocument = {
           audioPresetId: schema("OpaqueId"),
         },
       },
+      DynamicGenericContent: {
+        type: "object",
+        additionalProperties: false,
+        required: ["type", "version", "input", "budgetTier"],
+        properties: {
+          type: { const: "dynamic_generic" },
+          version: { const: "1" },
+          input: {
+            oneOf: [
+              { type: "object", additionalProperties: false, required: ["kind", "locale", "title", "body"], properties: { kind: { const: "completed_story" }, locale: { type: "string", pattern: "^[a-z]{2}(?:-[A-Z]{2})?$" }, canonicalLanguage: { type: "string", pattern: "^[a-z]{2}(?:-[A-Z]{2})?$" }, title: { type: "string", minLength: 1, maxLength: 300 }, body: { type: "string", minLength: 1, maxLength: 120000 } } },
+              { type: "object", additionalProperties: false, required: ["kind", "locale", "title", "sections"], properties: { kind: { const: "structured_outline" }, locale: { type: "string", pattern: "^[a-z]{2}(?:-[A-Z]{2})?$" }, canonicalLanguage: { type: "string", pattern: "^[a-z]{2}(?:-[A-Z]{2})?$" }, title: { type: "string", minLength: 1, maxLength: 300 }, sections: { type: "array", minItems: 1, maxItems: 200, items: { type: "object", additionalProperties: false, required: ["id", "body"], properties: { id: schema("OpaqueId"), heading: { type: "string", maxLength: 200 }, body: { type: "string", minLength: 1, maxLength: 30000 } } } } } },
+            ],
+            discriminator: { propertyName: "kind" },
+          },
+          budgetTier: { type: "string", enum: ["economy", "standard", "premium"] },
+          overrides: {
+            type: "object", additionalProperties: false,
+            description: "Bounded semantic overrides; arbitrary executable configuration is rejected.",
+            properties: {
+              baseProfile: { type: "string", enum: ["neutral-narrative", "horror-compatible", "educational-compatible", "presenter-advice-compatible", "documentary", "children-family", "comedy-light", "inspirational", "business-explainer", "historical", "science-technology", "abstract-experimental"] },
+              narrationPacing: { type: "string", enum: ["slow", "measured", "balanced", "brisk", "urgent"] },
+              visualPreset: { type: "string", enum: ["neutral-cinematic", "dark-cinematic", "warm-illustrative", "clean-educational", "documentary-realism", "presenter-clean", "playful-graphic", "archival", "technical-diagram"] },
+              durationClass: { type: "string", enum: ["short", "standard", "long"] },
+              sceneDensity: { type: "number", minimum: 0, maximum: 1 },
+              imageStrategy: { type: "string", enum: ["key-scenes", "balanced-scenes", "dense-scenes", "diagrams-first", "presenter-support"] },
+              musicIntensity: { type: "number", minimum: 0, maximum: 1 },
+              thumbnailStrategy: { type: "string", enum: ["single-subject", "question", "contrast", "outcome", "mystery", "educational-proof", "presenter-promise"] },
+              budgetTier: { type: "string", enum: ["economy", "standard", "premium"] },
+              requiresReview: { type: "boolean" },
+            },
+          },
+        },
+      },
       EpisodeContent: {
         oneOf: [
           schema("DarkTruthContent"),
           schema("MathematicsEducationContent"),
+          schema("DynamicGenericContent"),
         ],
         discriminator: { propertyName: "type" },
       },

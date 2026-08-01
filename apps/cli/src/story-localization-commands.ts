@@ -10,6 +10,7 @@ import { registerStoryShortEvaluateCommand } from "./story-short-evaluate-comman
 import { registerStoryRewriteShortCommand } from "./story-short-rewrite-command.js";
 import { registerStoryRewriteFullCommand } from "./story-full-rewrite-command.js";
 import { registerStoryAnalysisCommand } from "./story-analysis-command.js";
+import { registerDynamicGenreCommands } from "./dynamic-genre-command.js";
 import { registerStoryPipelineCommand } from "./story-pipeline-command.js";
 import { registerStoryAudioCommand } from "./story-audio-command.js";
 import {
@@ -1053,6 +1054,7 @@ export function registerStoryLocalizationCommands(program: Command): void {
   registerStoryRewriteShortCommand(stories);
   registerStoryRewriteFullCommand(stories);
   registerStoryAnalysisCommand(stories);
+  registerDynamicGenreCommands(stories);
   registerStoryAudioCommand(stories);
   registerStoryImagesCommand(stories);
   registerStoryPipelineCommand(stories);

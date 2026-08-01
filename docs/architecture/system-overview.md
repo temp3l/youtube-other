@@ -14,6 +14,7 @@ This repo is a `pnpm` monorepo targeting Node 22+, written in TypeScript, with r
 
 - Orchestration: `@mediaforge/cli`, `@mediaforge/dark-truth`
 - Shared contracts and path ownership: `@mediaforge/domain`, `@mediaforge/shared`, `@mediaforge/config`, `@mediaforge/persistence`
+- Dynamic content analysis and trusted semantic-to-production compilation: `@mediaforge/dynamic-genre`
 - Media and content stages: `@mediaforge/story-localization`, `@mediaforge/speech`, `@mediaforge/transcription`, `@mediaforge/transcript-cleaning`, `@mediaforge/scene-planning`, `@mediaforge/image-generation`, `@mediaforge/rendering`, `@mediaforge/metadata`, `@mediaforge/youtube-upload`
 - Educational media: `@mediaforge/math-education` owns lesson/workflow and board synchronization;
   `@mediaforge/speech` owns the shared educational TTS orchestration; `@mediaforge/math-rendering`

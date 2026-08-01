@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  dynamicGenericContentSchema,
   episodeInputSchema,
   openApiDocument,
   parseEpisodeInput,
@@ -150,6 +151,20 @@ describe("OpenAPI contract", () => {
         enum: ["foundation", "standard", "challenge"],
       },
     });
+  });
+
+  it("accepts only bounded semantic input for dynamic generic episodes", () => {
+    const canonical = {
+      type: "dynamic_generic", version: "1",
+      input: { kind: "completed_story", locale: "en", title: "A quiet mystery", body: "A historian discovers that one detail in the archive keeps changing." },
+      budgetTier: "standard", overrides: { narrationPacing: "measured", sceneDensity: 0.4 },
+    } as const;
+    expect(dynamicGenericContentSchema.parse(canonical)).toEqual(canonical);
+    expect(parseEpisodeInput({ content: canonical })).toEqual({ content: canonical });
+    expect(dynamicGenericContentSchema.safeParse({ ...canonical, provider: "attacker-provider" }).success).toBe(false);
+    expect(dynamicGenericContentSchema.safeParse({ ...canonical, overrides: { voiceId: "personal-clone" } }).success).toBe(false);
+    expect(() => parseEpisodeInput({ content: { ...canonical, overrides: { voiceId: "personal-clone" } } })).toThrow(expect.objectContaining({ code: "profile_input_invalid" }));
+    expect(openApiDocument.components.schemas.EpisodeContent.oneOf).toContainEqual({ $ref: "#/components/schemas/DynamicGenericContent" });
   });
 
   it("models job progress and redacted terminal failures", () => {

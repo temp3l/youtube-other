@@ -24,6 +24,7 @@ This decision extends current source-backed foundations:
 | Package | Final responsibility |
 | --- | --- |
 | `packages/domain` | Strict Zod schemas, branded identifiers, discriminated content/profile/task/artifact/workflow/quality contracts. No I/O. |
+| `packages/dynamic-genre` | Strict creative-analysis contracts, injected analyzer port, deterministic base/budget/capability compilers, provenance, and atomic resolved-profile artifacts. Model output never becomes executable provider configuration. |
 | `packages/shared` | Hashing, atomic filesystem primitives, containment, redaction, canonical artifact resolver primitives. No production orchestration. |
 | `packages/workflow-engine` | New package owning registry, DAG, state/events, attempts, locks, cache decisions, invalidation, approvals, overrides, batches, reconciliation, error normalization, and execution telemetry coordination. |
 | `packages/config` | One validated configuration loader, precedence model, defaults, and explain output. |
@@ -42,7 +43,8 @@ Use a closed union:
 ```ts
 type ContentProfile =
   | DarkTruthContentProfile
-  | MathematicsEducationContentProfile;
+  | MathematicsEducationContentProfile
+  | DynamicGenericContentProfile;
 ```
 
 Both branches include validated `AudienceDefinition`, objective,
@@ -220,4 +222,3 @@ provider/model/request ID, cache state, duration, fingerprint, bible/reference o
 curriculum revision, outputs, warnings, normalized errors, exit code, token use,
 and estimated/actual cost. Secrets, authentication, binaries, large base64, and
 unnecessary personal data are excluded.
-

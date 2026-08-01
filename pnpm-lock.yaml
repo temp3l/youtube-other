@@ -66,24 +66,30 @@ importers:
 
   apps/api:
     dependencies:
-      '@mediaforge/application':
-        specifier: workspace:*
-        version: link:../../packages/application
       '@mediaforge/api-sdk':
         specifier: workspace:*
         version: link:../../packages/api-sdk
+      '@mediaforge/application':
+        specifier: workspace:*
+        version: link:../../packages/application
       '@mediaforge/config':
         specifier: workspace:*
         version: link:../../packages/config
       '@mediaforge/domain':
         specifier: workspace:*
         version: link:../../packages/domain
+      '@mediaforge/dynamic-genre':
+        specifier: workspace:*
+        version: link:../../packages/dynamic-genre
       '@mediaforge/persistence':
         specifier: workspace:*
         version: link:../../packages/persistence
       '@mediaforge/shared':
         specifier: workspace:*
         version: link:../../packages/shared
+      '@mediaforge/speech':
+        specifier: workspace:*
+        version: link:../../packages/speech
       '@mediaforge/youtube-upload':
         specifier: workspace:*
         version: link:../../packages/youtube-upload
@@ -118,6 +124,9 @@ importers:
       '@mediaforge/domain':
         specifier: workspace:*
         version: link:../../packages/domain
+      '@mediaforge/dynamic-genre':
+        specifier: workspace:*
+        version: link:../../packages/dynamic-genre
       '@mediaforge/image-generation':
         specifier: workspace:*
         version: link:../../packages/image-generation
@@ -286,6 +295,15 @@ importers:
 
   packages/domain:
     dependencies:
+      zod:
+        specifier: ^4.0.14
+        version: 4.4.3
+
+  packages/dynamic-genre:
+    dependencies:
+      '@mediaforge/shared':
+        specifier: workspace:*
+        version: link:../shared
       zod:
         specifier: ^4.0.14
         version: 4.4.3
