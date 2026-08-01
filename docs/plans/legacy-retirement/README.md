@@ -36,16 +36,16 @@ until their declared support windows close.
 
 ## Task order
 
-| Task | Outcome | Depends on |
-| --- | --- | --- |
-| [01](tasks/task-01-inventory-owners-and-removal-gates.md) | Every compatibility surface has an owner, evidence source, and removal gate | None |
-| [02](tasks/task-02-promote-staged-narration.md) | Staged narration becomes the production default with a bounded rollback window | 01 |
-| [03](tasks/task-03-stop-legacy-writes-and-migrate-artifacts.md) | Producers write canonical artifacts only; existing artifacts have migration dispositions | 01 |
-| [04](tasks/task-04-cut-over-downstream-media-consumers.md) | Render, status, and operator paths consume canonical staged artifacts | 02, 03 |
-| [05](tasks/task-05-cut-over-youtube-publishing.md) | CLI publishing uses the approval-bound, checkpointed publisher | 01 |
-| [06](tasks/task-06-cut-over-remaining-callers-and-authorities.md) | Math and other compatibility callers delegate to one canonical workflow authority | 01 |
-| [07](tasks/task-07-remove-legacy-adapters-and-configuration.md) | Expired modes, paths, adapters, and migration tools are deleted | 02–06 |
-| [08](tasks/task-08-final-retirement-evidence.md) | Removal is supported by focused checks, migration evidence, and release notes | 07 |
+| Task | Outcome | Depends on | Status |
+| --- | --- | --- | --- |
+| [01](tasks/task-01-inventory-owners-and-removal-gates.md) | Every compatibility surface has an owner, evidence source, and removal gate | None | Complete |
+| [02](tasks/task-02-promote-staged-narration.md) | Staged narration becomes the production default with a bounded rollback window | 01 | Ready |
+| [03](tasks/task-03-stop-legacy-writes-and-migrate-artifacts.md) | Producers write canonical artifacts only; existing artifacts have migration dispositions | 01 | Ready |
+| [04](tasks/task-04-cut-over-downstream-media-consumers.md) | Render, status, and operator paths consume canonical staged artifacts | 02, 03 | Blocked by dependencies |
+| [05](tasks/task-05-cut-over-youtube-publishing.md) | CLI publishing uses the approval-bound, checkpointed publisher | 01 | Ready |
+| [06](tasks/task-06-cut-over-remaining-callers-and-authorities.md) | Math and other compatibility callers delegate to one canonical workflow authority | 01 | Ready |
+| [07](tasks/task-07-remove-legacy-adapters-and-configuration.md) | Expired modes, paths, adapters, and migration tools are deleted | 02–06 | Blocked by dependencies |
+| [08](tasks/task-08-final-retirement-evidence.md) | Removal is supported by focused checks, migration evidence, and release notes | 07 | Blocked by dependency |
 
 Tasks 02, 03, 05, and 06 may be implemented independently after Task 01 if
 their files do not overlap. Tasks 07 and 08 are sequential final gates.

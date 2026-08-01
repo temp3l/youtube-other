@@ -1,5 +1,8 @@
 # Task 01: Inventory Owners And Removal Gates
 
+Status: Complete on 2026-08-01. The authoritative deliverable is
+`docs/migrations/legacy-retirement-register.md` version 1.
+
 ## Objective
 
 Create the authoritative retirement register before changing behavior.
