@@ -2,6 +2,10 @@ import { createHash } from "node:crypto";
 import type { Readable } from "node:stream";
 import { createSpeechCacheKey } from "./cache-key.js";
 import { splitSpeechText, type SpeechChunk } from "./chunking.js";
+import {
+  normalizeGermanNumericText,
+  SPOKEN_NUMERIC_VERBALIZER_VERSION,
+} from "../spoken-numeric-verbalizer.js";
 import { assertSpeechConsent, type VoiceConsentRecord } from "./consent.js";
 import type {
   ResolvedSpeechProfile,
@@ -278,9 +282,10 @@ export class SpeechGenerationService {
   }> {
     const profile = await this.resolveAndValidate(command);
     const provider = this.options.providers.get(profile.configuration.provider);
+    const providerText = this.providerBoundText(command.text, profile);
     const estimate = await provider.estimate({
       generationId: "estimate-only",
-      text: command.text,
+      text: providerText.text,
       profile,
       forceRegeneration: false,
       ...(command.abortSignal ? { abortSignal: command.abortSignal } : {}),
@@ -293,6 +298,7 @@ export class SpeechGenerationService {
   ): Promise<SpeechGenerationResult> {
     const startedAt = Date.now();
     const profile = await this.resolveProfile(command);
+    const providerText = this.providerBoundText(command.text, profile);
     const queueDepth = await this.options.generations.queueDepth?.(
       command.workspaceId
     );
@@ -301,9 +307,15 @@ export class SpeechGenerationService {
         provider: profile.configuration.provider,
       });
     const textHash = createHash("sha256")
-      .update(command.text.normalize("NFC"), "utf8")
+      .update(providerText.text, "utf8")
       .digest("hex");
-    const cache = createSpeechCacheKey({ text: command.text, profile });
+    const cache = createSpeechCacheKey({
+      text: providerText.text,
+      profile,
+      ...(providerText.changed
+        ? { spokenNumericVerbalizerVersion: SPOKEN_NUMERIC_VERBALIZER_VERSION }
+        : {}),
+    });
     const claim = await this.instrumentation.span(
       "speech.cache_claim",
       { provider: profile.configuration.provider },
@@ -369,7 +381,7 @@ export class SpeechGenerationService {
         () =>
           provider.estimate({
             generationId: command.generationId,
-            text: command.text,
+            text: providerText.text,
             profile,
             forceRegeneration: command.forceRegeneration,
             ...(command.abortSignal
@@ -405,7 +417,7 @@ export class SpeechGenerationService {
       state = "GENERATING";
 
       const chunks = splitSpeechText(
-        command.text,
+        providerText.text,
         profile.configuration.chunking ?? {
           targetCharacters: 4_000,
           hardMaximumCharacters: 8_000,
@@ -586,6 +598,19 @@ export class SpeechGenerationService {
           : {}),
       })
     );
+  }
+
+  /** Keeps source/artifact text intact; only the provider request receives German speech forms. */
+  private providerBoundText(
+    sourceText: string,
+    profile: ResolvedSpeechProfile
+  ): { readonly text: string; readonly changed: boolean } {
+    if (profile.language !== "de") return { text: sourceText, changed: false };
+    const normalized = normalizeGermanNumericText(sourceText);
+    return {
+      text: normalized.spokenText,
+      changed: normalized.changes.length > 0,
+    };
   }
 
   private async resolveAndValidate(

@@ -132,7 +132,7 @@ function isImageOutputFormat(
 function resolveImageQuality(
   value: string | undefined
 ): "low" | "medium" | "high" | "auto" {
-  if (value === undefined) return "high";
+  if (value === undefined) return "medium";
 
   if (!isImageQuality(value)) {
     throw new ConfigurationError(

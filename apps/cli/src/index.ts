@@ -145,6 +145,16 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { registerEpisodeCommands } from "./episode-commands.js";
+import { registerHistoryCommands } from "./history-commands.js";
+import {
+  importHistoryContentPack,
+  inspectHistoryContentPack,
+  inspectHistoryWorkflow,
+  getHistoryNextStep,
+  listHistoryPresets,
+  validateHistoryEpisodeFactuality,
+  validateHistoryContentPack,
+} from "@mediaforge/history";
 import {
   ConnectedApiCliError,
   registerConnectedApiCommands,
@@ -2593,6 +2603,35 @@ async function readEpisodeScenePlan(options: CliOptions, episodeId: string) {
   return { manifest, episodeDir, scenePlan: manifest.scenePlan };
 }
 
+async function assertImageGenerationGate(
+  episodeDir: string,
+  manifest: { readonly sourceMetadata?: unknown; readonly episodeId: string }
+): Promise<void> {
+  const metadata = manifest.sourceMetadata;
+  const isHistory =
+    metadata !== null &&
+    typeof metadata === "object" &&
+    Reflect.get(metadata, "genre") === "history";
+  if (isHistory) {
+    const auditPath = path.join(episodeDir, "source", "factuality-audit.json");
+    const audit = JSON.parse(await fs.readFile(auditPath, "utf8")) as {
+      readonly status?: string;
+    };
+    if (audit.status !== "passed") {
+      throw new Error(
+        `History image generation requires a passing factuality audit at ${auditPath}.`
+      );
+    }
+    return;
+  }
+  await assertScriptScoreGate({
+    outputRoot: path.dirname(episodeDir),
+    episode: manifest.episodeId,
+    locale: "en",
+    format: "full",
+  });
+}
+
 async function commandImagesPlan(
   options: CliOptions,
   episodeId: string,
@@ -2661,12 +2700,7 @@ async function commandImagesGenerate(
     options,
     episodeId
   );
-  await assertScriptScoreGate({
-    outputRoot: path.dirname(episodeDir),
-    episode: manifest.episodeId,
-    locale: "en",
-    format: "full",
-  });
+  await assertImageGenerationGate(episodeDir, manifest);
   const settings = loadEpisodeImageGenerationSettings(
     {
       ...process.env,
@@ -5083,6 +5117,15 @@ youtubeCommand
   );
 
 registerEpisodeCommands(program);
+registerHistoryCommands(program, {
+  listHistoryPresets,
+  inspectHistoryContentPack,
+  validateHistoryContentPack,
+  importHistoryContentPack,
+  inspectHistoryWorkflow,
+  getHistoryNextStep,
+  validateHistoryEpisodeFactuality,
+});
 // Connected command surfaces validate their credentials during registration.
 // Keep the local CLI usable when an operator intentionally has no API setup.
 if (

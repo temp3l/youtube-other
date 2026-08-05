@@ -11,6 +11,7 @@ import { workflowInstanceSchema } from "@mediaforge/domain";
 import {
   buildAllLessonVariants,
   buildLessonVariant,
+  assessEducationalQuality,
   canonicalHash,
   createLessonId,
   createMathTaskRegistry,
@@ -160,6 +161,17 @@ interface MathSpeechCompareOptions extends MathSelectionOptions {
   speechDryRun?: boolean;
 }
 
+interface MathLessonSelectionOptions {
+  lesson: string;
+  language: MathLanguage;
+}
+
+type MathRegenerationStage =
+  | "lesson-spec"
+  | "narration"
+  | "subtitles"
+  | "scene-plan";
+
 export class MathCliSemanticError extends Error {
   readonly exitCode = 3 as const;
 
@@ -183,6 +195,12 @@ function isPathWithin(base: string, candidate: string): boolean {
 
 function repositoryLocalMathPipelineRoot(root = repositoryRoot()): string {
   return path.join(root, ".cache", "math-pipeline");
+}
+
+function repositoryLocalMathProductionWorkspace(
+  root = repositoryRoot()
+): string {
+  return path.join(repositoryLocalMathPipelineRoot(root), "production");
 }
 
 export function isApprovedPrivateMathWorkspace(
@@ -210,6 +228,38 @@ async function curriculum() {
     path.join(repositoryRoot(), "packages/math-education/data/curriculum/v1")
   );
 }
+
+function parseCanonicalLessonId(lessonId: string): {
+  readonly skillId: string;
+  readonly variant: LessonVariant;
+} {
+  const match =
+    /^(m(?:10|[5-9]))-([a-z]{2})-(\d{3})-(foundation|standard|challenge)$/u.exec(
+      lessonId
+    );
+  if (!match?.[1] || !match[2] || !match[3] || !match[4])
+    throw new Error(`Invalid canonical math lesson ID: ${lessonId}`);
+  return {
+    skillId: `${match[1]}-${match[2]}-${match[3]}`.toUpperCase(),
+    variant: match[4] as LessonVariant,
+  };
+}
+
+async function inspectCompiledMathLesson(options: MathLessonSelectionOptions) {
+  const { skillId, variant } = parseCanonicalLessonId(options.lesson);
+  const release = await curriculum();
+  const skill = release.skills.find((candidate) => candidate.skillId === skillId);
+  if (!skill) throw new Error(`Unknown curriculum skill: ${skillId}`);
+  const lesson = buildLessonVariant(skill, variant);
+  const narration = localizeNarration(lesson, options.language);
+  const qualityReport = assessEducationalQuality({ lesson, narration });
+  const narrationReview =
+    variant === "standard" && options.language === "de"
+      ? reviewGermanStandardNarration({ lesson, narration })
+      : undefined;
+  return { lesson, narration, narrationReview, qualityReport };
+}
+
 function print(value: unknown): void {
   process.stdout.write(`${JSON.stringify(value, null, 2)}\n`);
 }
@@ -2371,6 +2421,102 @@ export function registerMathCommands(program: Command): void {
     .action(async (_opts, command) =>
       print(await simulate(selection(command)))
     );
+  lesson
+    .command("inspect")
+    .description("Inspect canonical lesson, narration, review, and quality contracts")
+    .requiredOption("--lesson <lesson-id>")
+    .option("--language <language>", "de, en, es, fr, pt", "de")
+    .action(async (options: MathLessonSelectionOptions) =>
+      print(await inspectCompiledMathLesson(options))
+    );
+  lesson
+    .command("validate")
+    .description("Run deterministic educational quality gates without writing artifacts")
+    .requiredOption("--lesson <lesson-id>")
+    .option("--language <language>", "de, en, es, fr, pt", "de")
+    .action(async (options: MathLessonSelectionOptions) => {
+      const result = await inspectCompiledMathLesson(options);
+      if (!result.qualityReport.passed) process.exitCode = 3;
+      print({
+        lessonId: result.lesson.lessonId,
+        valid: result.qualityReport.passed,
+        narrationReview: result.narrationReview,
+        qualityReport: result.qualityReport,
+      });
+    });
+  lesson
+    .command("quality-report")
+    .description("Print the structured educational quality report")
+    .requiredOption("--lesson <lesson-id>")
+    .option("--language <language>", "de, en, es, fr, pt", "de")
+    .action(async (options: MathLessonSelectionOptions) => {
+      const result = await inspectCompiledMathLesson(options);
+      if (!result.qualityReport.passed) process.exitCode = 3;
+      print(result.qualityReport);
+    });
+  lesson
+    .command("explain-failure")
+    .description("Explain deterministic educational gate failures")
+    .requiredOption("--lesson <lesson-id>")
+    .option("--language <language>", "de, en, es, fr, pt", "de")
+    .action(async (options: MathLessonSelectionOptions) => {
+      const result = await inspectCompiledMathLesson(options);
+      print({
+        lessonId: result.lesson.lessonId,
+        passed: result.qualityReport.passed,
+        blockingIssues: result.qualityReport.blockingIssues,
+        warnings: result.qualityReport.warnings,
+      });
+    });
+  lesson
+    .command("diff")
+    .description("Compare two JSON lesson artifacts by canonical content hash")
+    .requiredOption("--before <path>")
+    .requiredOption("--after <path>")
+    .action(async (options: { before: string; after: string }) => {
+      const [before, after] = await Promise.all(
+        [options.before, options.after].map(async (artifactPath) =>
+          JSON.parse(await fs.readFile(path.resolve(artifactPath), "utf8"))
+        )
+      );
+      const beforeHash = canonicalHash(before);
+      const afterHash = canonicalHash(after);
+      print({ equal: beforeHash === afterHash, beforeHash, afterHash });
+    });
+  lesson
+    .command("regenerate")
+    .description("Plan selective math artifact regeneration without mutating history")
+    .requiredOption("--lesson <lesson-id>")
+    .requiredOption(
+      "--stage <stage>",
+      "lesson-spec, narration, subtitles, or scene-plan"
+    )
+    .requiredOption("--dry-run", "require an explicit non-mutating migration plan")
+    .action(
+      (options: {
+        lesson: string;
+        stage: MathRegenerationStage;
+        dryRun: boolean;
+      }) => {
+        parseCanonicalLessonId(options.lesson);
+        const stages: readonly MathRegenerationStage[] = [
+          "lesson-spec",
+          "narration",
+          "subtitles",
+          "scene-plan",
+        ];
+        if (!stages.includes(options.stage))
+          throw new Error(`Unsupported math regeneration stage: ${options.stage}`);
+        print({
+          lessonId: options.lesson,
+          requestedStage: options.stage,
+          mode: "dry-run",
+          mutatesArtifacts: false,
+          automaticRegeneration: false,
+          nextExecutableStage: options.stage,
+        });
+      }
+    );
 
   const production = math
     .command("production")
@@ -2672,7 +2818,11 @@ export function registerMathCommands(program: Command): void {
         "hard provider-cost ceiling in USD",
         parseProviderCostUsd
       )
-      .requiredOption("--workspace <path>")
+      .option(
+        "--workspace <path>",
+        "private generated-artifact workspace",
+        repositoryLocalMathProductionWorkspace()
+      )
       .option("--python <path>")
       .action(async (_opts, command) =>
         print(

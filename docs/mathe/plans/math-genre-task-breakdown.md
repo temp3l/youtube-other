@@ -9,7 +9,7 @@ Jede Aufgabe ist einzeln review- und rollbackbar. Tests werden nach `AGENTS.md` 
 - Abhängigkeiten: keine.
 - Erwartete Dateien: neu `packages/math-education/{package.json,tsconfig.json,src/index.ts}`, `packages/math-rendering/{package.json,tsconfig.json,src/index.ts}`; Änderung `apps/cli/package.json`, `packages/config/src/index.ts`.
 - Umsetzung: Workspace-Pakete registrieren; `MathRuntimeConfig` mit separatem Workspace, Brand-Konfigurationspfad und Featureflags einführen. Bestehende Runtime-Defaults unverändert lassen.
-- Akzeptanz: beide Pakete sind filterbar/typecheckbar; ohne Math-Umgebungsvariablen verhalten sich alle bestehenden Befehle identisch; Math-Workspace defaultet nur innerhalb des Math-CLI auf `./math-episodes`.
+- Akzeptanz: beide Pakete sind filterbar/typecheckbar; ohne Math-Umgebungsvariablen verhalten sich alle bestehenden Befehle identisch; private Math-Produktion defaultet nur innerhalb des Math-CLI auf den ignorierten repository-lokalen Workspace `.cache/math-pipeline/production`.
 - Tests: neue `packages/config/src/math-config.unit.test.ts`; vorhandene `packages/config/src/index.unit.test.ts`; Paket-Typechecks.
 - Migration: additive Konfigurationsfelder, keine DB-/Dateimigration.
 - Rollback: neue Pakete/Exports und CLI-Abhängigkeiten entfernen; bestehendes Config-Schema bleibt binär identisch.

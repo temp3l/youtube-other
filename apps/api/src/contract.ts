@@ -41,11 +41,43 @@ const mathematicsEducationContentSchema = z
       });
     }
   });
+const historyContentSchema = z
+  .object({
+    type: z.literal("history"),
+    version: z.literal("1"),
+    topic: z.string().trim().min(1).max(20_000),
+    presetId: z.enum([
+      "military-campaign",
+      "civilization-rise-fall",
+      "historical-biography",
+      "archaeology-mystery",
+      "world-war-geopolitics",
+      "royal-court-intrigue",
+      "everyday-life",
+      "disaster-pandemic-survival",
+      "technology-trade-transformation",
+      "dark-strange-history",
+    ]),
+    format: z.enum(["short", "standard", "long"]),
+    audienceLevel: z.enum(["general", "enthusiast", "academic-lite"]),
+    period: z.enum([
+      "prehistory",
+      "ancient",
+      "late antiquity",
+      "medieval",
+      "early modern",
+      "industrial age",
+      "modern",
+      "contemporary history",
+      "cross-period",
+    ]).optional(),
+  })
+  .strict();
 
 export const projectInputSchema = z
   .object({
     name: z.string().trim().min(1).max(160),
-    profile: z.enum(["dark_truth", "mathematics_education", "dynamic_generic"]),
+    profile: z.enum(["dark_truth", "mathematics_education", "dynamic_generic", "history"]),
   })
   .strict();
 const dynamicGenericInputSchema = z.discriminatedUnion("kind", [
@@ -68,6 +100,7 @@ export const episodeInputSchema = z
         })
         .strict(),
       mathematicsEducationContentSchema,
+      historyContentSchema,
       dynamicGenericContentSchema,
     ]),
   })
@@ -89,6 +122,14 @@ export function parseEpisodeInput(value: unknown): EpisodeInput {
     throw new ApplicationError(
       "profile_input_invalid",
       "Mathematics episode input is outside the supported profile capability.",
+      false,
+      [...new Set(parsed.error.issues.map((issue) => issue.path.join(".")))]
+    );
+  }
+  if (content && typeof content === "object" && Reflect.get(content, "type") === "history") {
+    throw new ApplicationError(
+      "profile_input_invalid",
+      "History episode input must contain a bounded topic and supported documentary selections.",
       false,
       [...new Set(parsed.error.issues.map((issue) => issue.path.join(".")))]
     );
@@ -1404,7 +1445,7 @@ export const openApiDocument = {
           name: { type: "string", minLength: 1, maxLength: 160 },
           profile: {
             type: "string",
-            enum: ["dark_truth", "mathematics_education", "dynamic_generic"],
+            enum: ["dark_truth", "mathematics_education", "dynamic_generic", "history"],
           },
         },
       },
@@ -1466,6 +1507,34 @@ export const openApiDocument = {
           audioPresetId: schema("OpaqueId"),
         },
       },
+      HistoryContent: {
+        type: "object",
+        additionalProperties: false,
+        required: ["type", "version", "topic", "presetId", "format", "audienceLevel"],
+        properties: {
+          type: { const: "history" },
+          version: { const: "1" },
+          topic: { type: "string", minLength: 1, maxLength: 20_000 },
+          presetId: {
+            type: "string",
+            enum: [
+              "military-campaign", "civilization-rise-fall", "historical-biography",
+              "archaeology-mystery", "world-war-geopolitics", "royal-court-intrigue",
+              "everyday-life", "disaster-pandemic-survival",
+              "technology-trade-transformation", "dark-strange-history",
+            ],
+          },
+          format: { type: "string", enum: ["short", "standard", "long"] },
+          audienceLevel: { type: "string", enum: ["general", "enthusiast", "academic-lite"] },
+          period: {
+            type: "string",
+            enum: [
+              "prehistory", "ancient", "late antiquity", "medieval", "early modern",
+              "industrial age", "modern", "contemporary history", "cross-period",
+            ],
+          },
+        },
+      },
       DynamicGenericContent: {
         type: "object",
         additionalProperties: false,
@@ -1503,6 +1572,7 @@ export const openApiDocument = {
         oneOf: [
           schema("DarkTruthContent"),
           schema("MathematicsEducationContent"),
+          schema("HistoryContent"),
           schema("DynamicGenericContent"),
         ],
         discriminator: { propertyName: "type" },

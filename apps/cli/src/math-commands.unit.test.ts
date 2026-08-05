@@ -100,6 +100,24 @@ describe("math commands", () => {
     );
   });
 
+  it("defaults private production artifacts to the repository-local math cache", () => {
+    const program = new Command();
+    registerMathCommands(program);
+    const math = program.commands.find((command) => command.name() === "math");
+    const production = math?.commands.find(
+      (command) => command.name() === "production"
+    );
+    const run = production?.commands.find((command) => command.name() === "run");
+    const workspace = run?.options.find(
+      (option) => option.long === "--workspace"
+    );
+
+    expect(workspace?.mandatory).toBe(false);
+    expect(workspace?.defaultValue).toBe(
+      path.join(process.cwd(), ".cache", "math-pipeline", "production")
+    );
+  });
+
   it("registers the provider-free renderer benchmark with explicit selection and authorization", () => {
     const program = new Command();
     registerMathCommands(program);

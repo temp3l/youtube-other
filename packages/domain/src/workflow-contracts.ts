@@ -71,6 +71,7 @@ export const CONTENT_PROFILE_IDS = [
   "dark-truth",
   "mathematics-education",
   "strategic-reinvention",
+  "history",
 ] as const;
 export const contentProfileIdSchema = z.enum(CONTENT_PROFILE_IDS);
 export type ContentProfileId = z.infer<typeof contentProfileIdSchema>;
@@ -177,10 +178,23 @@ export type StrategicReinventionContentProfile = z.infer<
   typeof strategicReinventionContentProfileSchema
 >;
 
+export const historyContentProfileSchema = z
+  .object({
+    ...profileBaseShape,
+    id: z.literal("history"),
+    evidencePolicyVersion: revisionSchema,
+    reconstructionDisclosureRequired: z.literal(true),
+    factualValidationRequired: z.literal(true),
+    autoPublish: z.literal(false),
+  })
+  .strict();
+export type HistoryContentProfile = z.infer<typeof historyContentProfileSchema>;
+
 export const contentProfileSchema = z.discriminatedUnion("id", [
   darkTruthContentProfileSchema,
   mathematicsEducationContentProfileSchema,
   strategicReinventionContentProfileSchema,
+  historyContentProfileSchema,
 ]);
 export type ContentProfile = z.infer<typeof contentProfileSchema>;
 

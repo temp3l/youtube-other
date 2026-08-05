@@ -35,10 +35,30 @@ export const GERMAN_STANDARD_NARRATION_WORD_RANGE = {
 } as const;
 
 export function reviewedNarrationInstruction(text: string): string {
-  return text.replace(
-    /\[\[fact:[a-z0-9-]+\]\]/gu,
-    "die eingeblendete geprüfte Darstellung"
-  );
+  return text
+    .replace(/\[\[fact:[a-z0-9-]+\]\]/gu, "die eingeblendete Aufgabe")
+    .replace(
+      /\bgeprüft(?:e|en|er|es)?\s+(?=(?:Modell|Darstellung|Beispiel|Lösungsweg|Ergebnis|Transferlösung|Übergang)\b)/giu,
+      ""
+    );
+}
+
+/** Learner copy must never expose production, review, or data-model vocabulary. */
+export const GERMAN_LEARNER_NARRATION_FORBIDDEN_PATTERNS = [
+  /\breview(?:t|te|ter|ten|tes)?\b/iu,
+  /\b(?:mathematisch\s+geprüft|geprüft(?:e|en|er|es)?\s+(?:Modell|Darstellung|Beispiel|Lösungsweg|Ergebnis|Transferlösung|Übergang))\b/iu,
+  /\b(?:strukturierter?|strukturierten?)\s+datensatz/iu,
+  /\b(?:datensatz(?:es|e|en)?|datensätze(?:n|r)?)\b/iu,
+  /\bbinde\s+kategorien,?\s+zellen\s+und\s+werte/iu,
+  /\bleite\s+totale?,?\s+maximum\s+und\s+skala/iu,
+  /\b(?:compiler|validator|provenienz|payload|prompt|schema)\b/iu,
+  /\b(?:fuenf|fuss|gruen|buecher)\b/iu,
+] as const;
+
+export function germanLearnerNarrationSafetyIssues(text: string): string[] {
+  return GERMAN_LEARNER_NARRATION_FORBIDDEN_PATTERNS
+    .filter((pattern) => pattern.test(text))
+    .map((pattern) => pattern.exec(text)?.[0] ?? pattern.source);
 }
 
 export const legacyLocalizedNarrationSchema = z.strictObject({
@@ -110,7 +130,7 @@ const beatCopy: Record<MathLanguage, readonly string[]> = {
   de: [
     "Heute untersuchen wir",
     "Das Lernziel bleibt klar",
-    "Wir bauen ein geprüftes Modell für",
+    "Wir bauen ein passendes Modell für",
     "Wir lösen das Beispiel Schritt für Schritt",
     "Kurzer Fehlercheck: Stimmt die typische Fehlvorstellung?",
     "Bearbeite jetzt ein zweites Beispiel selbstständig zu",
@@ -121,7 +141,7 @@ const beatCopy: Record<MathLanguage, readonly string[]> = {
   en: [
     "Today we investigate",
     "Keep the learning objective in view",
-    "We build a verified model for",
+    "We build a suitable model for",
     "We solve the example step by step",
     "Quick misconception check: Is the common claim correct?",
     "Now solve a second example independently for",
@@ -132,7 +152,7 @@ const beatCopy: Record<MathLanguage, readonly string[]> = {
   es: [
     "Hoy investigamos",
     "Mantén claro el objetivo de aprendizaje",
-    "Construimos un modelo verificado de",
+    "Construimos un modelo adecuado de",
     "Resolvemos el ejemplo paso a paso",
     "Comprobación breve del error: ¿es correcta la idea frecuente?",
     "Resuelve ahora un segundo ejemplo de forma independiente sobre",
@@ -143,7 +163,7 @@ const beatCopy: Record<MathLanguage, readonly string[]> = {
   fr: [
     "Aujourd'hui, nous étudions",
     "Garde l'objectif d'apprentissage en vue",
-    "Nous construisons un modèle vérifié pour",
+    "Nous construisons un modèle adapté pour",
     "Nous résolvons l'exemple étape par étape",
     "Vérification rapide : l'idée fréquente est-elle correcte ?",
     "Résous maintenant un deuxième exemple de façon autonome sur",
@@ -154,7 +174,7 @@ const beatCopy: Record<MathLanguage, readonly string[]> = {
   pt: [
     "Hoje investigamos",
     "Mantenha o objetivo de aprendizagem em foco",
-    "Construímos um modelo verificado de",
+    "Construímos um modelo adequado de",
     "Resolvemos o exemplo passo a passo",
     "Verificação rápida do erro: a ideia comum está correta?",
     "Resolva agora um segundo exemplo de forma independente sobre",
@@ -198,6 +218,39 @@ function formatExactValue(
   };
 }
 
+function categoricalObservationText(
+  lesson: LessonVariantSpecification,
+  factId: string,
+  language: MathLanguage
+): string | undefined {
+  if (language !== "de") return undefined;
+  const fact = lesson.facts.find((candidate) => candidate.factId === factId);
+  if (!fact || factId !== `${fact.lineage.sourceTaskId}-source`) return undefined;
+  const check = lesson.checks.find((candidate) =>
+    fact.checkIds.includes(candidate.checkId)
+  );
+  if (
+    check?.kind !== "data-diagram-domain" ||
+    check.evidence.mode !== "tally-list"
+  )
+    return undefined;
+  const groups = check.evidence.dataset.rawValues.reduce<string[][]>(
+    (result, observation) => {
+      const current = result.at(-1);
+      if (!current || current[0] !== observation) result.push([observation]);
+      else current.push(observation);
+      return result;
+    },
+    []
+  );
+  return groups
+    .map((group, index) => {
+      const prefix = index === 0 ? "" : index === 1 ? "Dann " : "Danach ";
+      return `${prefix}${group.join(", ")}`;
+    })
+    .join(". ");
+}
+
 function defaultTemplates(
   lesson: LessonVariantSpecification,
   language: MathLanguage,
@@ -207,17 +260,26 @@ function defaultTemplates(
   const topic = `[[term:${concepts[0]}]]`;
   const supporting = `[[term:${concepts[1]}]]`;
   if (language === "de" && lesson.variant === "standard") {
+    if (lesson.skillId === "M5-DZ-001") {
+      return [
+        "Zwölf Kinder wurden nach ihrem Lieblingsobst gefragt. Wir sammeln ihre Antworten zuerst in einer Urliste. Gleich siehst du, wie aus den einzelnen Antworten eine übersichtliche Strichliste wird. Achte darauf: Jede Antwort zählt genau einmal.",
+        "Unser Ziel ist: Daten in Ur- und Strichlisten erfassen. Eine Urliste schreibt Antworten in der Reihenfolge auf, in der sie genannt werden. Eine Strichliste sortiert dieselben Antworten nach Kategorien. So kannst du später schneller zählen und vergleichen.",
+        "Hier ist die Urliste mit den gezählten Antworten: [[fact:example-main-source]]. Wir ordnen sie jetzt. Bei Apfel stehen [[fact:example-category-apfel]] Nennungen. Bei Birne stehen [[fact:example-category-birne]] Nennungen. Bei Banane stehen [[fact:example-category-banane]] Nennungen. In jeder Zeile setzt du für eine Antwort genau einen Strich.",
+        "Wir führen die Strichliste gemeinsam weiter. Die Urliste enthält dieselben zwölf Antworten: [[fact:example-main-source]]. Vier Striche stehen bei Apfel, drei bei Birne und fünf bei Banane. Vier plus drei plus fünf sind [[fact:example-main-answer]]. Insgesamt wurden also zwölf Kinder befragt. Die längste Strichreihe zeigt: Banane wurde am häufigsten gewählt.",
+        "Fehlercheck: Jemand sagt, der schräge fünfte Strich zählt nicht mit. Das stimmt nicht. Der fünfte Strich geht quer durch die ersten vier. Zusammen sind das fünf Striche, also eine Fünfergruppe. Die Zahl [[fact:example-main-answer]] ist die Gesamtzahl aller befragten Kinder. Welche Kategorie hat fünf Striche?",
+        "Jetzt übst du mit dem Schulweg. Die Antworten gehören zu dieser Reihenfolge: [[fact:transfer-main-source]]. Trage für Bus [[fact:transfer-category-bus]] Striche ein, für Rad [[fact:transfer-category-rad]] und für Fuß [[fact:transfer-category-fuss]]. Schreibe zuerst eine Urliste oder lies sie ab. Dann überträgst du jede Antwort in die passende Zeile der Strichliste.",
+        "Deine Aufgabe: Wie viele Kinder kommen insgesamt zur Schule? Welche Art des Schulwegs kommt am häufigsten vor? Nutze diese Urliste: [[fact:transfer-main-source]]. Zähle die Striche jeder Kategorie. Lass dir Zeit und rechne erst, wenn du alle drei Zeilen kontrolliert hast.",
+        "Hier ist die Lösung. Die Strichliste zeigt sechs für Bus, vier für Rad und fünf für Fuß. Sechs plus vier plus fünf sind [[fact:transfer-main-answer]]. Insgesamt sind es fünfzehn Kinder. Bus hat sechs Nennungen und ist damit am häufigsten. Beim Zählen hilft die Fünfergruppe: Nach vier Strichen kreuzt der fünfte die Gruppe.",
+        "Merke dir: In der Urliste stehen Antworten der Reihe nach. In der Strichliste bekommt jede Kategorie für jede Antwort einen Strich. Fünf Striche bilden eine Fünfergruppe. Danach kannst du Häufigkeiten addieren und die größte Anzahl finden. Wie würdest du eine neue Urliste in eine Strichliste übertragen?",
+      ];
+    }
     const objective = lesson.learningObjective;
-    const promise = lesson.promise;
+    const learnerPromise = "Am Ende kannst du den Rechenweg sicher erklären";
     const mistake = lesson.commonMistake.description;
     const workedExample = lesson.workedExamples[0];
     if (!workedExample) throw new Error("Reviewed worked example is missing.");
-    const workedSteps = workedExample.steps
-      .map((step) => step.explanation)
-      .join(" Danach: ");
-    const transferSteps = lesson.challenge.steps
-      .map((step) => step.explanation)
-      .join(" Danach: ");
+    const workedSteps = "Wir ordnen die Angaben, rechnen in kleinen Schritten und erklären das Ergebnis.";
+    const transferSteps = "Wir verwenden dieselbe Idee bei der neuen Aufgabe und begründen die Antwort.";
     const workedPrompt = reviewedNarrationInstruction(workedExample.prompt);
     const transferPrompt = reviewedNarrationInstruction(
       lesson.challenge.prompt
@@ -233,25 +295,25 @@ function defaultTemplates(
       const templates = placeValueQuest
         ? ([
             `Heute knacken wir einen Zahlencode. Dabei untersuchen wir ${topic} und ${supporting}. Unser Ziel lautet: ${objective}. Auf der Tafel entsteht gleich eine große Zahl aus einzelnen Stellen. Beobachte genau: Wo muss eine Null stehen, damit der Wert stimmt? ${factSentence} Noch musst du nichts ausrechnen. Suche zuerst das Muster und triff eine Vermutung.`,
-            `Deine Mission lautet: ${promise}. Das Lernziel bleibt: ${objective}. Sprich es kurz in deinen eigenen Worten aus. ${factSentence} Am Ende sollst du den Code nicht nur nennen, sondern erklären, warum jede Ziffer genau an ihrem Platz steht. Achte besonders auf leere Stellen: Sie sind nicht unwichtig.`,
-            `Hier kommt die erste Codekarte. ${workedPrompt} ${factSentence} Wir nutzen eine Stellenwerttafel und lesen von links nach rechts. ${workedExample.steps[0]?.explanation ?? workedSteps} Verbinde jeden Summanden mit seinem Fach. Wo kein Summand landet, muss die Stelle trotzdem sichtbar bleiben. So entsteht der Code Schritt für Schritt.`,
+            `Deine Mission lautet: ${learnerPromise}. Das Lernziel bleibt: ${objective}. Sprich es kurz in deinen eigenen Worten aus. ${factSentence} Am Ende sollst du den Code nicht nur nennen, sondern erklären, warum jede Ziffer genau an ihrem Platz steht. Achte besonders auf leere Stellen: Sie sind nicht unwichtig.`,
+            `Hier kommt die erste Codekarte. ${workedPrompt} ${factSentence} Wir nutzen eine Stellenwerttafel und lesen von links nach rechts. ${workedSteps} Verbinde jeden Summanden mit seinem Fach. Wo kein Summand landet, muss die Stelle trotzdem sichtbar bleiben. So entsteht der Code Schritt für Schritt.`,
             `Jetzt lösen wir die Codekarte gemeinsam. ${workedSteps} ${factSentence} Lass jede bereits gefundene Ziffer stehen. Prüfe danach die Plätze von links nach rechts. Stimmen die Hunderttausender, Zehntausender, Tausender, Hunderter, Zehner und Einer? Dann passt die Zahl zur zerlegten Darstellung.`,
             `Kurzer Fehlercheck: ${mistake} Stimmt das? Entscheide zuerst selbst. ${factSentence} Wenn du die leeren Fächer zusammenschiebst, wandern andere Ziffern an eine falsche Stelle. Vergleiche danach den kurzen falschen Code mit der vollständigen Zahl und erkläre die Korrektur in einem Satz.`,
             `Nun folgt ein zweites, eigenständiges Beispiel mit einem anderen Nullmuster. ${transferPrompt} ${factSentence} Löse es selbstständig von links nach rechts. Lege alle Stellen an, setze die vorhandenen Ziffern ein und entscheide ohne Hinweis, welche Plätze Nullen brauchen.`,
             `Jetzt bist du der Codeprofi. ${factSentence} Sage deinen Plan leise: Welche Stellen sind besetzt, welche bleiben leer? Nach meiner Frage bleibt die Tafel acht Sekunden still: Welche sechsstellige Zahl entsteht? Nutze die Pause wirklich zum Denken und kontrolliere anschließend jede Stelle.`,
             `Zeit für die Auflösung. ${transferSteps} ${factSentence} Vergleiche nicht nur die letzte Zahl. Fahre mit dem Finger von links nach rechts über die Stellenwerttafel. Jede Ziffer braucht ihr richtiges Fach, und jede leere Stelle braucht eine Null. So kannst du deinen eigenen Lösungsweg zuverlässig prüfen.`,
-            `Mission geschafft. Unser Versprechen war: ${promise}. Schließe die Tafel gedanklich und schaue nicht zurück. Erfinde eine neue sechsstellige Zahl mit anderen leeren Stellen: Wie würdest du sie zerlegen und anschließend prüfen?`,
+            `Mission geschafft. ${learnerPromise}. Schließe die Tafel gedanklich und schaue nicht zurück. Erfinde eine neue sechsstellige Zahl mit anderen leeren Stellen: Wie würdest du sie zerlegen und anschließend prüfen?`,
           ] as const)
         : ([
             `Heute untersuchen wir ${topic} und ${supporting}. Unser Ziel lautet: ${objective}. Starte mit einer Vermutung: Was könnte die Darstellung bedeuten? ${factSentence} Noch musst du nichts ausrechnen. Suche nach einer bekannten Struktur und entscheide, worauf du gleich besonders achten willst.`,
-            `Deine Mission lautet: ${promise}. Das Lernziel bleibt: ${objective}. Sprich die Aufgabe kurz in deinen eigenen Worten aus. ${factSentence} Markiere, was gegeben und was gesucht ist. Achte auf Stellen, Zeichen und Einheiten, die leicht übersehen werden.`,
-            `Jetzt bauen wir ein passendes Modell. ${workedPrompt} ${factSentence} ${workedExample.steps[0]?.explanation ?? workedSteps} Verfolge die Darstellung von links nach rechts. Verbinde jede Angabe mit ihrer Rolle und lass wichtige Zwischenschritte sichtbar.`,
+            `Deine Mission lautet: ${learnerPromise}. Das Lernziel bleibt: ${objective}. Sprich die Aufgabe kurz in deinen eigenen Worten aus. ${factSentence} Markiere, was gegeben und was gesucht ist. Achte auf Stellen, Zeichen und Einheiten, die leicht übersehen werden.`,
+            `Jetzt schauen wir auf ein passendes Beispiel. ${workedPrompt} ${factSentence} ${workedSteps} Verfolge die Darstellung von links nach rechts. Verbinde jede Angabe mit ihrer Rolle und lass wichtige Zwischenschritte sichtbar.`,
             `Wir lösen das Beispiel gemeinsam. ${workedSteps} ${factSentence} Vergleiche nach jedem Schritt Modell und Rechnung. Erkläre kurz, warum der Schritt erlaubt ist. Wenn alle Angaben erhalten bleiben und das Ergebnis zur Frage passt, ist der Weg nachvollziehbar.`,
             `Kurzer Fehlercheck: ${mistake} Stimmt das? Entscheide zuerst selbst. ${factSentence} Vergleiche danach den falschen Gedanken mit der vollständigen Darstellung. Zeige genau auf die Stelle, an der sich der Weg trennt, und erkläre die Korrektur in einem Satz.`,
             `Nun folgt ein zweites, eigenständiges Beispiel mit einem veränderten Muster. ${transferPrompt} ${factSentence} Löse es selbstständig. Nenne das Ziel, wähle die passende Darstellung und prüfe Reihenfolge, Zeichen und Einheit, ohne zum ersten Lösungsweg zurückzuschauen.`,
             `Jetzt beginnt deine Denkzeit. ${factSentence} Sage deinen Plan leise in eigenen Worten. Welche Information ist gegeben, was wird gesucht und welcher Schritt verbindet beides? Nach der Frage bleibt die Tafel acht Sekunden still. Nutze die Pause für eine echte Gegenprobe.`,
-            `Wir lösen die Denkaufgabe auf. ${transferSteps} ${factSentence} Vergleiche deinen Weg Schritt für Schritt mit der geprüften Darstellung. Stimmen Ausgangsdaten, Rechenzeichen, Zwischenschritte und Ergebnis? Erkläre auch, warum die Antwort wirklich zur Frage gehört.`,
-            `Unser Versprechen war: ${promise}. Schließe die Tafel gedanklich und schaue nicht zurück. Wie würdest du das Verfahren an einem selbst gewählten neuen Beispiel erklären und anschließend prüfen?`,
+            `Wir lösen die Denkaufgabe auf. ${transferSteps} ${factSentence} Vergleiche deinen Weg Schritt für Schritt mit der Aufgabe. Stimmen Ausgangswerte, Rechenzeichen, Zwischenschritte und Ergebnis? Erkläre auch, warum die Antwort wirklich zur Frage gehört.`,
+            `${learnerPromise}. Schließe die Tafel gedanklich und schaue nicht zurück. Wie würdest du das Verfahren an einem selbst gewählten neuen Beispiel erklären und anschließend prüfen?`,
           ] as const);
       const template = templates[index];
       if (!template) throw new Error(`Missing de narration beat ${index}.`);
@@ -327,11 +389,21 @@ export function localizeNarration(
     throw new Error(
       `Glossary region does not match ${language} locale policy.`
     );
-  const resolvedFacts = lesson.facts.map((fact) => ({
-    factId: fact.factId,
-    semanticHash: canonicalHash(fact.semantic),
-    ...formatExactValue(fact.semantic, language),
-  }));
+  const resolvedFacts = lesson.facts.map((fact) => {
+    const formatted = formatExactValue(fact.semantic, language);
+    const categoricalObservation = categoricalObservationText(
+      lesson,
+      fact.factId,
+      language
+    );
+    return {
+      factId: fact.factId,
+      semanticHash: canonicalHash(fact.semantic),
+      ...formatted,
+      display: categoricalObservation ?? formatted.display,
+      spoken: categoricalObservation ?? formatted.spoken,
+    };
+  });
   const resolvedById = new Map(
     resolvedFacts.map((fact) => [fact.factId, fact])
   );
@@ -381,6 +453,16 @@ export function localizeNarration(
     throw new Error(
       "Educational narration must end with an unguided, fact-free retrieval question."
     );
+  if (language === "de" && lesson.variant === "standard") {
+    const issues = germanLearnerNarrationSafetyIssues(
+      segments.map((segment) => segment.spokenText).join(" ")
+    );
+    if (issues.length > 0) {
+      throw new Error(
+        `German learner narration contains forbidden internal or non-standard language: ${issues.join(", ")}.`
+      );
+    }
+  }
   if (
     options.templates === undefined &&
     language === "de" &&

@@ -2,6 +2,10 @@ import { Readable } from "node:stream";
 import { describe, expect, it } from "vitest";
 import { createSpeechCacheKey } from "./cache-key.js";
 import { splitSpeechText } from "./chunking.js";
+import {
+  normalizeGermanNumericText,
+  SPOKEN_NUMERIC_VERBALIZER_VERSION,
+} from "../spoken-numeric-verbalizer.js";
 import { assertSpeechConsent } from "./consent.js";
 import type {
   ResolvedSpeechProfile,
@@ -61,6 +65,24 @@ describe("speech platform domain", () => {
     expect(composed.cacheKey).toBe(decomposed.cacheKey);
     expect(changed.cacheKey).not.toBe(composed.cacheKey);
     expect(composed.canonicalInput).toContain("speech-cache-key-v1");
+  });
+
+  it("keeps legacy cache identity for unchanged text and versions changed numeric speech", () => {
+    const unchanged = createSpeechCacheKey({ text: "Kein Wert.", profile });
+    const legacy = createSpeechCacheKey({ text: "Kein Wert.", profile });
+    expect(unchanged.cacheKey).toBe(legacy.cacheKey);
+    expect(unchanged.canonicalInput).not.toContain("spokenNumericVerbalizerVersion");
+
+    const normalized = normalizeGermanNumericText("12 Kinder und 15 Erwachsene.");
+    const changed = createSpeechCacheKey({
+      text: normalized.spokenText,
+      profile,
+      spokenNumericVerbalizerVersion: SPOKEN_NUMERIC_VERBALIZER_VERSION,
+    });
+    expect(changed.cacheKey).not.toBe(
+      createSpeechCacheKey({ text: normalized.spokenText, profile }).cacheKey
+    );
+    expect(changed.canonicalInput).toContain(SPOKEN_NUMERIC_VERBALIZER_VERSION);
   });
 
   it("chunks only at semantic boundaries where possible and preserves every character", () => {

@@ -34,6 +34,8 @@ const profile: ResolvedSpeechProfile = {
   },
 };
 
+const germanProfile: ResolvedSpeechProfile = { ...profile, language: "de" };
+
 class MemoryGenerationStore implements SpeechGenerationStore {
   private readonly cache = new Map<string, SpeechGenerationResult>();
   private readonly owners = new Map<string, Promise<SpeechGenerationResult>>();
@@ -119,7 +121,8 @@ function fixture(
       actualBillableCharacters: [...request.text].length,
       providerRequestId: `request-${request.chunk?.index ?? 0}`,
     })),
-  }
+  },
+  profileOverride: ResolvedSpeechProfile = profile
 ): {
   readonly service: SpeechGenerationService;
   readonly provider: SpeechProvider;
@@ -129,11 +132,11 @@ function fixture(
   const store = new MemoryGenerationStore();
   const resolver = new VersionedSpeechProfileResolver({
     versions: new Map([
-      [profile.profileVersionId, { profile, status: "ACTIVE" }],
+      [profileOverride.profileVersionId, { profile: profileOverride, status: "ACTIVE" }],
     ]),
     videoOverrides: new Map(),
     genreDefaults: new Map(),
-    systemDefaultProfileVersionId: profile.profileVersionId,
+    systemDefaultProfileVersionId: profileOverride.profileVersionId,
   });
   const reserve = vi.fn(async () => ({ reservationId: "reservation" }));
   const quota: SpeechQuotaGuard = {
@@ -221,6 +224,30 @@ describe("SpeechGenerationService", () => {
     expect(forced.generationId).not.toBe(first.generationId);
     expect(forced.cacheHit).toBe(false);
     expect(test.provider.synthesize).toHaveBeenCalledTimes(6);
+  });
+
+  it("sends natural German cardinals to the provider while preserving the source command", async () => {
+    const synthesize = vi.fn<SpeechProvider["synthesize"]>(async (request) => ({
+      rawAudio: Readable.from([Buffer.from(request.text)]),
+      rawContentType: "audio/wav",
+      actualBillableCharacters: [...request.text].length,
+    }));
+    const estimate = vi.fn<SpeechProvider["estimate"]>(async (request) => ({
+      billableCharacters: [...request.text].length,
+    }));
+    const test = fixture({ id: "openai", validateProfile: async () => undefined, estimate, synthesize }, germanProfile);
+    const source = { ...command("german-numbers"), language: "de", text: "12 Kinder und 15 Erwachsene." };
+    await test.service.generate(source);
+    expect(estimate).toHaveBeenCalledWith(expect.objectContaining({ text: "zwölf Kinder und fünfzehn Erwachsene." }));
+    expect(synthesize).toHaveBeenCalledWith(expect.objectContaining({ text: "zwölf Kinder und fünfzehn Erwachsene." }));
+    expect(source.text).toBe("12 Kinder und 15 Erwachsene.");
+  });
+
+  it("keeps identifiers and explicit digit annotations intentional in German provider requests", async () => {
+    const synthesize = vi.fn<SpeechProvider["synthesize"]>(async (request) => ({ rawAudio: Readable.from([]), rawContentType: "audio/wav" }));
+    const test = fixture({ id: "openai", validateProfile: async () => undefined, estimate: async () => ({ billableCharacters: 1 }), synthesize }, germanProfile);
+    await test.service.generate({ ...command("german-identifiers"), language: "de", text: "Raum 237. Code [[numeric:digits:12]]." });
+    expect(synthesize).toHaveBeenCalledWith(expect.objectContaining({ text: "Raum 237. Code eins zwei." }));
   });
 
   it("does not invoke another provider after an explicitly selected provider fails", async () => {

@@ -324,7 +324,7 @@ export class ExecutionTelemetry {
 
   public recordCost(entry: RecordedCostEntry): void {
     const redactedEntry = {
-      ...redactTelemetryValue(entry),
+      ...(redactTelemetryValue(entry) as RecordedCostEntry),
       ...(entry.warning === undefined ? {} : { warning: redactTelemetryString(entry.warning, "message") }),
     } as RecordedCostEntry;
     this.costEntriesInternal.push(redactedEntry);

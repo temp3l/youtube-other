@@ -58,3 +58,10 @@ Fachanforderungen. Sie sind keine rechtsverbindliche Kopie eines einzelnen Lande
 Jahrgangszuordnungen unterscheiden sich zwischen Bundesländern, Schulformen und
 Anforderungsniveaus. Deshalb werden stabile kanonische Skills mit Quellenprovenienz,
 Platzierungssicherheit und späteren Länder-Overrides empfohlen.
+
+## Implementierte Lerntext-Sicherheitsgrenze
+
+- [Lerntext-, Qualitäts- und Migrationsverträge](architecture/08-learner-content-quality.md)
+- [Ursachenanalyse der fehlerhaften Strichlisten-Narration](audits/2026-08-02-math-education-narration-root-cause.md)
+- [Generiertes Beispiel M5-DZ-001 standard/de](samples/m5-dz-001-standard-de.md)
+- [Migrations-Dry-Run](audits/2026-08-02-math-migration-dry-run.md)

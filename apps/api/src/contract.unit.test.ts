@@ -153,6 +153,42 @@ describe("OpenAPI contract", () => {
     });
   });
 
+  it("keeps History episode input within canonical documentary selections", () => {
+    const canonical = {
+      content: {
+        type: "history",
+        version: "1",
+        topic: "The Bronze Age Collapse",
+        presetId: "civilization-rise-fall",
+        format: "standard",
+        audienceLevel: "general",
+        period: "ancient",
+      },
+    } as const;
+    expect(parseEpisodeInput(canonical)).toEqual(canonical);
+
+    for (const content of [
+      { ...canonical.content, presetId: "unsupported" },
+      { ...canonical.content, format: "feature" },
+      { ...canonical.content, audienceLevel: "specialist" },
+      { ...canonical.content, period: "future" },
+    ]) {
+      expect(episodeInputSchema.safeParse({ content }).success).toBe(false);
+      expect(() => parseEpisodeInput({ content })).toThrow(
+        expect.objectContaining({ code: "profile_input_invalid" })
+      );
+    }
+
+    expect(openApiDocument.components.schemas.HistoryContent).toMatchObject({
+      required: ["type", "version", "topic", "presetId", "format", "audienceLevel"],
+      properties: {
+        presetId: { enum: expect.arrayContaining(["civilization-rise-fall", "dark-strange-history"]) },
+        format: { enum: ["short", "standard", "long"] },
+        audienceLevel: { enum: ["general", "enthusiast", "academic-lite"] },
+      },
+    });
+  });
+
   it("accepts only bounded semantic input for dynamic generic episodes", () => {
     const canonical = {
       type: "dynamic_generic", version: "1",

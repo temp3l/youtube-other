@@ -1,0 +1,76 @@
+{
+  "name": "youtube-multigenre-enhancement-codex-pack",
+  "prompt_count": 11,
+  "files": [
+    {
+      "path": "README.md",
+      "bytes": 829,
+      "sha256": "60d121bc62d15cc901ee40709df875167669f9a49b961f7afbbdb2409a360b25"
+    },
+    {
+      "path": "guides/EXECUTION-CHECKLIST.md",
+      "bytes": 1641,
+      "sha256": "3079dea65295673e182aa45e2f9c1b9f3c5dd6da16ff47e007cd961740f99a03"
+    },
+    {
+      "path": "guides/MASTER-IMPLEMENTATION-GUIDE.md",
+      "bytes": 11805,
+      "sha256": "87234bfd34476727d77bd681d10283dd1038796348dd8c512e74ae184b5944f6"
+    },
+    {
+      "path": "prompts/01-shared-genre-production-intelligence.md",
+      "bytes": 5809,
+      "sha256": "c36784f6edc52fda4f8d92c2b638d96ecd74dd8f8a46f4c933869f8d21db4f7e"
+    },
+    {
+      "path": "prompts/02-history-visual-planner-approval.md",
+      "bytes": 8741,
+      "sha256": "05fdacc4f0570bde78bc0647d76f33c353029ee9011cf46640722881984898e0"
+    },
+    {
+      "path": "prompts/03-history-visual-generation-rendering.md",
+      "bytes": 8319,
+      "sha256": "450937cfe394c0632be7aa815a515b674da25e92e688d2557194b4e3c4e4cda5"
+    },
+    {
+      "path": "prompts/04-history-editorial-research.md",
+      "bytes": 4929,
+      "sha256": "c6e3479daa51467b74bef68f56cd1b4705d0e0acd992fce0f79ba525b7c31a12"
+    },
+    {
+      "path": "prompts/05-history-retention-audio.md",
+      "bytes": 4156,
+      "sha256": "9675e34555c24635d4ce22ff0c049659e625699a888ab808a25cddde7192b10f"
+    },
+    {
+      "path": "prompts/06-history-packaging-publishing.md",
+      "bytes": 4857,
+      "sha256": "75b529720fb5b008e8a0cfa8d8eb94535dff10abc6dcf1a75c3217a708f2e07f"
+    },
+    {
+      "path": "prompts/07-history-analytics-localization.md",
+      "bytes": 5886,
+      "sha256": "17dc3d329fd7a5ebec49b253fa0713c13d99654f4e37f67c64d754f1cca5f07d"
+    },
+    {
+      "path": "prompts/08-horror-narrative-reveal-continuity.md",
+      "bytes": 5768,
+      "sha256": "a26f8241b551b602bccdb2338229d1a063ab943ea87491951c68812d41225a89"
+    },
+    {
+      "path": "prompts/09-horror-visual-sound-packaging-analytics.md",
+      "bytes": 5212,
+      "sha256": "198c7572a295a47b7f1cd6754d14ecda0dc827729af6dc965191f96c4014aa44"
+    },
+    {
+      "path": "prompts/10-veronicabenini-persona-voice-governance.md",
+      "bytes": 5679,
+      "sha256": "b2297769edada3cb7f6ddc50567ad342c9699ea6ac709d835e8e07097b5c0e28"
+    },
+    {
+      "path": "prompts/11-veronicabenini-content-visual-localization-analytics.md",
+      "bytes": 6510,
+      "sha256": "b67e736bd89746b5d309c7636d69746585ae78551087941e2e49901df14b971e"
+    }
+  ]
+}

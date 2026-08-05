@@ -1,4 +1,5 @@
 export * from "./artifacts.js";
+export * from "./content-boundaries.js";
 export * from "./curriculum.js";
 export * from "./identity.js";
 export * from "./lesson.js";

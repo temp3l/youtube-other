@@ -44,6 +44,33 @@ describe("Class 5 data and diagram production content", () => {
 
     const tally = specifications[0]!.checks[0]! as DataCheck;
     const chart = specifications[1]!.checks[0]! as DataCheck;
+    const tallyLesson = specifications[0]!;
+    const tallyExample = tallyLesson.workedExamples[0]!;
+    expect(tallyLesson.learningObjective).toBe(
+      "Daten in Ur- und Strichlisten erfassen"
+    );
+    expect(tallyLesson.promise).toContain("Urliste");
+    expect(tallyLesson.promise).toContain("Strichliste");
+    expect(tallyExample.prompt).toContain("nacheinander");
+    expect(tallyExample.steps.map((step) => step.explanation).join(" ")).toContain(
+      "Fünfergruppe"
+    );
+    expect(tallyExample.steps.map((step) => step.explanation).join(" ")).toContain(
+      "4 plus 3 plus 5 sind 12"
+    );
+    expect(tallyLesson.transferTask.prompt).toContain("Schulweg");
+    expect(tallyLesson.transferTask.steps[1]?.explanation).toContain(
+      "6 plus 4 plus 5 sind 15"
+    );
+    expect(tallyLesson.misconceptions[0]?.description).toContain(
+      "Querstrich"
+    );
+    expect(tallyLesson.facts.map((fact) => fact.displayLatex).join(" ")).toContain(
+      "Fuß"
+    );
+    expect(tallyLesson.facts.map((fact) => fact.displayLatex).join(" ")).not.toMatch(
+      /Kategorietotal|Maximum|geprüft|strukturiert/iu
+    );
     const malformedTally = structuredClone(tally);
     if (malformedTally.evidence.mode !== "tally-list") throw new Error("test setup");
     malformedTally.evidence.dataset.categories[2]!.tallyGroups = [4, 1];

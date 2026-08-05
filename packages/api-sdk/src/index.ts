@@ -86,7 +86,7 @@ export interface AuditEventPage {
   readonly nextAfter?: string;
 }
 
-export type Profile = "dark_truth" | "mathematics_education";
+export type Profile = "dark_truth" | "mathematics_education" | "dynamic_generic" | "history";
 export type Variant = "full" | "short";
 
 export interface ProjectInput {
@@ -118,7 +118,36 @@ export interface MathematicsEducationContent {
   readonly audioPresetId: string;
 }
 
-export type EpisodeContent = DarkTruthContent | MathematicsEducationContent;
+export interface HistoryContent {
+  readonly type: "history";
+  readonly version: "1";
+  readonly topic: string;
+  readonly presetId:
+    | "military-campaign"
+    | "civilization-rise-fall"
+    | "historical-biography"
+    | "archaeology-mystery"
+    | "world-war-geopolitics"
+    | "royal-court-intrigue"
+    | "everyday-life"
+    | "disaster-pandemic-survival"
+    | "technology-trade-transformation"
+    | "dark-strange-history";
+  readonly format: "short" | "standard" | "long";
+  readonly audienceLevel: "general" | "enthusiast" | "academic-lite";
+  readonly period?:
+    | "prehistory"
+    | "ancient"
+    | "late antiquity"
+    | "medieval"
+    | "early modern"
+    | "industrial age"
+    | "modern"
+    | "contemporary history"
+    | "cross-period";
+}
+
+export type EpisodeContent = DarkTruthContent | MathematicsEducationContent | HistoryContent;
 
 export interface EpisodeInput {
   readonly content: EpisodeContent;

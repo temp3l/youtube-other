@@ -4,6 +4,7 @@ import {
   MATH_LANGUAGES,
   MATH_VARIANTS,
   lessonVariantSchema,
+  mathLanguageSchema,
 } from "./domain/index.js";
 import {
   APPROVED_LESSON_SKILL_IDS,
@@ -69,7 +70,7 @@ export function runMathProfileDeterministicFixture(): MathProfileFixtureResult {
   const registry = createMathTaskRegistry();
   registry.validateWorkflow(mathWorkflowDefinition);
   const traversals = MATH_LANGUAGES.flatMap((localeInput) => {
-    const locale = contentLocaleSchema.parse(localeInput);
+    const locale = mathLanguageSchema.parse(contentLocaleSchema.parse(localeInput));
     return (["full", "short"] as const).flatMap((contentVariantInput) => {
       const contentVariant = contentVariantSchema.parse(contentVariantInput);
       return MATH_VARIANTS.map((lessonVariantInput) => {

@@ -2292,6 +2292,17 @@ function unresolvedRecurringMentions(
     if (!wordBoundaryPattern(term).test(haystack)) {
       continue;
     }
+    // A bare collective in documentary narration (for example, "women,
+    // children, carts") describes a one-off population, not a character that
+    // needs an identity reference. Preserve the stricter check for a named or
+    // anaphoric group such as "the children".
+    if (
+      !new RegExp(`\\b(?:the|these|those)\\s+${term}\\b`, "iu").test(
+        haystack
+      )
+    ) {
+      continue;
+    }
     const matched = registry.characters.some(
       (character) =>
         matchedCharacterIds.has(character.id) &&

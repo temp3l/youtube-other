@@ -41,6 +41,11 @@ import {
   runMathProfileDeterministicFixture,
 } from "@mediaforge/math-education";
 import {
+  createHistoryTaskRegistrations,
+  createHistoryWorkflowOperator,
+  historyWorkflowDefinition,
+} from "@mediaforge/history";
+import {
   ArtifactRepository,
   ArtifactRepositoryError,
   artifactMigrationPlanSchema,
@@ -68,7 +73,7 @@ import { z } from "zod";
 import { createCanonicalMathOperator } from "./math-workflow-runtime.js";
 
 const WORKFLOW_CLI_SCHEMA_VERSION = "mediaforge.workflow-cli.v1" as const;
-const resourceSchema = z.enum(["episode", "lesson", "fixture"]);
+const resourceSchema = z.enum(["episode", "history", "lesson", "fixture"]);
 type WorkflowResource = z.infer<typeof resourceSchema>;
 
 interface GlobalOptions {
@@ -203,20 +208,28 @@ function profileRuntime(
       registrations: createMathTaskRegistrations(),
     };
   }
+  if (resource === "history") {
+    return {
+      resource,
+      profileId: "history",
+      workflow: historyWorkflowDefinition,
+      registrations: createHistoryTaskRegistrations(),
+    };
+  }
   return fixtureRuntime(interrupt);
 }
 
 function unitId(resource: WorkflowResource, options: IdentityOptions): string {
   const value =
     options.unit ??
-    (resource === "episode"
+    (resource === "episode" || resource === "history"
       ? options.episode
       : resource === "lesson"
         ? options.lesson
         : "workflow-fixture");
   if (!value) {
     throw new WorkflowBlockedError(
-      `A ${resource === "episode" ? "--episode" : "--lesson"} identifier is required.`
+      `A ${resource === "episode" || resource === "history" ? "--episode" : "--lesson"} identifier is required.`
     );
   }
   return productionUnitIdSchema.parse(value);
@@ -230,7 +243,7 @@ function resolveUnitRoot(
   const workspace =
     program.optsWithGlobals<GlobalOptions>().workspace ?? process.cwd();
   return path.resolve(
-    options.unitRoot ?? path.join(workspace, unitId(resource, options))
+    options.unitRoot ?? path.join(workspace, ...(resource === "history" ? ["episodes", unitId(resource, options)] : [unitId(resource, options)]))
   );
 }
 
@@ -286,6 +299,14 @@ async function createOperator(
       ...(options.python ? { pythonExecutable: options.python } : {}),
       ...(options.providerMode ? { providerMode: options.providerMode } : {}),
       ...(options.authorizeProvider ? { authorizeProvider: true } : {}),
+    });
+  }
+  if (resource === "history") {
+    return createHistoryWorkflowOperator({
+      unitRoot,
+      episodeId: unit,
+      locale,
+      variant,
     });
   }
   let registrations = runtime.registrations;
@@ -510,7 +531,7 @@ function addIdentityOptions(
   command: Command,
   resource: WorkflowResource
 ): Command {
-  if (resource === "episode") {
+  if (resource === "episode" || resource === "history") {
     command.requiredOption("--episode <id>", "episode ID or slug");
   } else if (resource === "lesson") {
     command.requiredOption("--lesson <id>", "lesson ID or slug");
@@ -1118,6 +1139,7 @@ export function registerWorkflowCommands(program: Command): void {
     .command("workflow")
     .description("Canonical additive workflow-engine operator commands");
   addResourceCommands(workflow, "episode");
+  addResourceCommands(workflow, "history");
   addResourceCommands(workflow, "lesson");
   addResourceCommands(workflow, "fixture");
   const cache = program

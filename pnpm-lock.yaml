@@ -127,6 +127,9 @@ importers:
       '@mediaforge/dynamic-genre':
         specifier: workspace:*
         version: link:../../packages/dynamic-genre
+      '@mediaforge/history':
+        specifier: workspace:*
+        version: link:../../packages/history
       '@mediaforge/image-generation':
         specifier: workspace:*
         version: link:../../packages/image-generation
@@ -238,6 +241,9 @@ importers:
       '@mediaforge/domain':
         specifier: workspace:*
         version: link:../domain
+      '@mediaforge/history':
+        specifier: workspace:*
+        version: link:../history
       '@mediaforge/math-education':
         specifier: workspace:*
         version: link:../math-education
@@ -320,6 +326,27 @@ importers:
       '@types/katex':
         specifier: 0.16.8
         version: 0.16.8
+
+  packages/history:
+    dependencies:
+      '@mediaforge/domain':
+        specifier: workspace:*
+        version: link:../domain
+      '@mediaforge/shared':
+        specifier: workspace:*
+        version: link:../shared
+      '@mediaforge/workflow-engine':
+        specifier: workspace:*
+        version: link:../workflow-engine
+      js-yaml:
+        specifier: ^4.2.0
+        version: 4.2.0
+      marked:
+        specifier: ^16.4.2
+        version: 16.4.2
+      zod:
+        specifier: ^4.0.14
+        version: 4.4.3
 
   packages/image-generation:
     dependencies:

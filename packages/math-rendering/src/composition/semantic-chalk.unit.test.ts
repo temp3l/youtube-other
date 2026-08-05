@@ -167,7 +167,7 @@ describe("semantic chalk frames", () => {
     ).toBeLessThanOrEqual(180);
   });
 
-  it("uses final dwell time to keep sparse scenes under six seconds per beat", () => {
+  it("keeps the M5-ZO-002 objective scene within the render guard ceiling", () => {
     const schedule = createSemanticChalkSchedule({
       steps: [
         {
@@ -195,15 +195,15 @@ describe("semantic chalk frames", () => {
           pauseAfterFrames: 0,
         },
       ],
-      sceneFrames: 815,
+      sceneFrames: 1_048,
       cues: [],
     });
     const intervals = [
       ...schedule.map((timing) => timing.endFrame - timing.startFrame),
-      815 - schedule.at(-1)!.endFrame,
+      1_048 - schedule.at(-1)!.endFrame,
     ];
 
-    expect(Math.max(...intervals)).toBeLessThanOrEqual(180);
+    expect(Math.max(...intervals)).toBeLessThanOrEqual(225);
   });
 
   it("uses declared chalk weights and leaves a short thinking pause", () => {

@@ -1,4 +1,5 @@
 import { createDarkTruthTaskRegistrations } from "@mediaforge/dark-truth";
+import { createHistoryTaskRegistrations } from "@mediaforge/history";
 import { createMathTaskRegistrations } from "@mediaforge/math-education";
 import {
   ProductionTaskCallerAdapter,
@@ -13,6 +14,7 @@ export function createLegacyCliProductionCallerAdapter(): ProductionTaskCallerAd
   return new ProductionTaskCallerAdapter(
     createTaskRegistry([
       ...createDarkTruthTaskRegistrations(),
+      ...createHistoryTaskRegistrations(),
       ...createMathTaskRegistrations(),
     ])
   );

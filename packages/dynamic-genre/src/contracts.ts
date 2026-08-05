@@ -44,6 +44,7 @@ export const genreIdSchema = z.enum([
   "inspirational",
   "business",
   "historical",
+  "history",
   "science-technology",
   "abstract-experimental",
 ]);

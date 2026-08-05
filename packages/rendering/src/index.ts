@@ -4350,6 +4350,54 @@ class HybridClipRenderScheduler {
   }
 }
 
+async function acquireExclusiveRenderLock(
+  outputDir: string
+): Promise<() => Promise<void>> {
+  await ensureDir(outputDir);
+  const lockPath = path.join(outputDir, ".render.lock");
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try {
+      const handle = await fs.open(lockPath, "wx");
+      await handle.writeFile(
+        JSON.stringify({
+          pid: process.pid,
+          acquiredAt: new Date().toISOString(),
+        })
+      );
+      return async () => {
+        await handle.close().catch(() => undefined);
+        await fs.unlink(lockPath).catch(() => undefined);
+      };
+    } catch (error) {
+      const code =
+        error && typeof error === "object" ? Reflect.get(error, "code") : undefined;
+      if (code !== "EEXIST") throw error;
+      const owner: { pid?: unknown } = await fs
+        .readFile(lockPath, "utf8")
+        .then((raw) => JSON.parse(raw) as { pid?: unknown })
+        .catch(() => ({}));
+      const pid = typeof owner.pid === "number" ? owner.pid : undefined;
+      if (pid !== undefined) {
+        try {
+          process.kill(pid, 0);
+          throw new MediaValidationError(
+            `A render is already running for this output: ${outputDir}`
+          );
+        } catch (ownerError) {
+          if (ownerError instanceof MediaValidationError) throw ownerError;
+          const ownerCode =
+            ownerError && typeof ownerError === "object"
+              ? Reflect.get(ownerError, "code")
+              : undefined;
+          if (ownerCode !== "ESRCH") throw ownerError;
+        }
+      }
+      await fs.unlink(lockPath).catch(() => undefined);
+    }
+  }
+  throw new MediaValidationError(`Unable to acquire render lock: ${outputDir}`);
+}
+
 export class FFmpegVideoRenderer implements VideoRenderer {
   private async renderShotClips(
     request: VideoRenderRequest,
@@ -4716,6 +4764,18 @@ export class FFmpegVideoRenderer implements VideoRenderer {
   }
 
   public async render(
+    request: VideoRenderRequest,
+    signal: AbortSignal
+  ): Promise<VideoRenderResult> {
+    const releaseLock = await acquireExclusiveRenderLock(request.outputDir);
+    try {
+      return await this.renderUnlocked(request, signal);
+    } finally {
+      await releaseLock();
+    }
+  }
+
+  private async renderUnlocked(
     request: VideoRenderRequest,
     signal: AbortSignal
   ): Promise<VideoRenderResult> {

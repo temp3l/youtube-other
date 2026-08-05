@@ -12,6 +12,7 @@ import {
   generateLocalMockTts,
   MATH_FORMULA_SVG_RENDERER_VERSION,
   MATH_REMOTION_RUNNER_VERSION,
+  MATH_SEMANTIC_CHALK_MAX_STATIC_INTERVAL_FRAMES,
   MATH_SEMANTIC_CHALK_VERSION,
   MATH_SVG_RENDERER_VERSION,
   MATH_THINK_PAUSE_SECONDS,
@@ -106,7 +107,8 @@ export const CANONICAL_PRIVATE_NARRATION_SYNC_VERSION =
 export const CANONICAL_PRIVATE_NARRATION_MAX_TEMPO_RATIO = 2;
 export const CANONICAL_PRIVATE_RETRIEVAL_RESPONSE_HOLD_SECONDS = 5;
 export const CANONICAL_PRIVATE_SPEECH_RESERVED_SECONDS = 24;
-export const CANONICAL_PRIVATE_MAX_STATIC_INTERVAL_FRAMES = 225;
+export const CANONICAL_PRIVATE_MAX_STATIC_INTERVAL_FRAMES =
+  MATH_SEMANTIC_CHALK_MAX_STATIC_INTERVAL_FRAMES;
 export const CANONICAL_PRIVATE_VISUAL_STYLE_VERSION = 6;
 export const CANONICAL_PRIVATE_RENDERER_VERSIONS = {
   svg: MATH_SVG_RENDERER_VERSION,
@@ -672,6 +674,29 @@ export function selectCanonicalSemanticComponent(
         }
       : null;
   if (
+    (sceneComponent === "number-line" ||
+      sceneComponent === "place-value-chart") &&
+    boundFacts.every(
+      (fact) =>
+        fact.semantic.kind === "scalar" &&
+        fact.semantic.expression.kind === "relation"
+    )
+  )
+    return {
+      kind: "fact-stack",
+      title: context?.title ?? "Vergleich",
+      facts: boundFacts.map((fact) => {
+        if (fact.semantic.kind !== "scalar")
+          throw new Error("Comparison fact changed during selection.");
+        return {
+          kind: "scalar" as const,
+          factId: fact.factId,
+          expression: fact.semantic.expression,
+          display: fact.displayLatex,
+        };
+      }),
+    };
+  if (
     sceneComponent === "place-value-chart" &&
     boundFacts.length === 1 &&
     boundFacts[0]?.semantic.kind === "scalar"
@@ -909,9 +934,18 @@ const compatibleCanonicalVisualKinds: Readonly<
   >
 > = {
   formula: ["formula", "fact-stack", "lesson-board", "place-value-activity"],
-  "place-value-chart": ["place-value-chart", "place-value-activity"],
+  "place-value-chart": [
+    "place-value-chart",
+    "place-value-activity",
+    "fact-stack",
+  ],
   "fraction-model": ["formula"],
-  "number-line": ["number-line", "number-line-focus", "place-value-activity"],
+  "number-line": [
+    "number-line",
+    "number-line-focus",
+    "place-value-activity",
+    "fact-stack",
+  ],
   "coordinate-plane": ["graph"],
   "function-graph": ["graph"],
   geometry: ["geometry"],

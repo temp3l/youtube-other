@@ -69,6 +69,7 @@ export * from "./speech-delivery-profile.js";
 export * from "./educational-speech-planning.js";
 export * from "./educational-pronunciation.js";
 export * from "./educational-speech-pipeline.js";
+export * from "./spoken-numeric-verbalizer.js";
 export * from "./creator-voice-policy.js";
 export {
   AUDIO_MASTERING_PROFILE_VERSION,

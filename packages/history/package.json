@@ -1,0 +1,26 @@
+{
+  "name": "@mediaforge/history",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@mediaforge/domain": "workspace:*",
+    "@mediaforge/shared": "workspace:*",
+    "@mediaforge/workflow-engine": "workspace:*",
+    "js-yaml": "^4.2.0",
+    "marked": "^16.4.2",
+    "zod": "^4.0.14"
+  }
+}

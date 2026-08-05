@@ -1,7 +1,7 @@
 import crypto from "node:crypto";
 import { z } from "zod";
 import { approvalRecordSchema, episodeBlueprintSchema, taskDefinitionSchema, workflowEventSchema, type ApprovalRecord, type TaskDefinition } from "@mediaforge/domain";
-import { resolveLocaleWorkflowBranch, type StrategicItalianLocaleWorkflowInput } from "./story-workflow-locales.js";
+import type { StrategicItalianLocaleWorkflowInput } from "./story-workflow-locales.js";
 
 export type StrategicItalianReviewStatus = "READY" | "REVIEW_REQUIRED";
 export interface StrategicItalianReview { readonly status: StrategicItalianReviewStatus; readonly reasonCodes: readonly string[]; }
@@ -101,16 +101,23 @@ export function reviewStrategicItalianPackage(input: StrategicItalianQaInput & {
   if (!qaPolicySchema.safeParse(input.policy).success) reasons.add("QA_POLICY_INVALID");
   const scriptHash = strategicItalianSha256(input.script);
   const locale = input.locale ?? "it"; const variant = input.variant ?? "full";
+  const blueprint = episodeBlueprintSchema.safeParse(input.workflow.episodeBlueprint);
   if (locale === "it" && variant === "full") {
-    const branch = resolveLocaleWorkflowBranch({ ...input.workflow, locale, variant, generatedArtifact: { ...input.workflow.italianCanonicalArtifact, locale, format: variant, fingerprint: scriptHash } });
-    if (branch.status === "blocked" || input.workflow.italianCanonicalArtifact.fingerprint !== scriptHash) reasons.add("ITALIAN_ROUTE_OR_SCRIPT_LINEAGE_REQUIRED");
+    const canonical = input.workflow.italianCanonicalArtifact;
+    const exactRouteAndArtifact = input.workflow.route === "strategic-italian" &&
+      input.workflow.canonicalFingerprint === scriptHash && canonical.locale === "it" &&
+      canonical.format === "full" && canonical.fingerprint === scriptHash &&
+      blueprint.success && blueprint.data.canonicalLocale === "it" &&
+      (input.workflow.contentProfileId === undefined || input.workflow.contentProfileId === "strategic-reinvention") &&
+      (input.workflow.creatorProfileId === undefined || input.workflow.creatorProfileId === blueprint.data.creatorProfileId);
+    const currentApproval = exactRouteAndArtifact && hasCurrentStrategicApproval({ workflow: input.workflow, gate: "canonical-script", inputHashes: input.workflow.canonicalInputHashes, outputHash: scriptHash, locale, variant, ...(input.now ? { now: input.now } : {}) });
+    if (!exactRouteAndArtifact || !currentApproval) reasons.add("ITALIAN_ROUTE_OR_SCRIPT_LINEAGE_REQUIRED");
   }
   if (captionField(input.captionsVtt, "X-MEDIAFORGE-LOCALE") !== locale) reasons.add("CAPTION_LOCALE_MISMATCH");
   if (captionField(input.captionsVtt, "X-MEDIAFORGE-CANONICAL-SHA256") !== input.workflow.canonicalFingerprint) reasons.add("CAPTION_CANONICAL_FINGERPRINT_MISMATCH");
   if (captionField(input.captionsVtt, "X-MEDIAFORGE-CHILD-SHA256") !== scriptHash) reasons.add("CAPTION_CHILD_FINGERPRINT_MISMATCH");
   for (const term of input.policy.protectedTerms) if (!input.script.normalize("NFC").includes(normalized(term))) reasons.add(`PROTECTED_TERM_MISMATCH:${normalized(term)}`);
   for (const term of input.policy.pronunciationTerms) if (!input.script.normalize("NFC").includes(normalized(term))) reasons.add(`PRONUNCIATION_REVIEW_REQUIRED:${normalized(term)}`);
-  const blueprint = episodeBlueprintSchema.safeParse(input.workflow.episodeBlueprint);
   const destination = blueprint.success ? (blueprint.data.cta.localizedDestinations?.[locale] ?? (locale === "it" ? blueprint.data.cta.destination : undefined)) : undefined;
   const cta = input.metadata["cta"];
   if (!blueprint.success || typeof cta !== "object" || cta === null || (cta as Record<string, unknown>)["destination"] !== destination) reasons.add("CTA_DESTINATION_REVIEW_REQUIRED");

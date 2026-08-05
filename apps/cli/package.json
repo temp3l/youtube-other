@@ -22,6 +22,7 @@
     "@mediaforge/dynamic-genre": "workspace:*",
     "@mediaforge/dark-truth": "workspace:*",
     "@mediaforge/image-generation": "workspace:*",
+    "@mediaforge/history": "workspace:*",
     "@mediaforge/math-education": "workspace:*",
     "@mediaforge/math-rendering": "workspace:*",
     "@mediaforge/metadata": "workspace:*",

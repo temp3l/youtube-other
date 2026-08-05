@@ -13,6 +13,7 @@ import {
   withIfMatch,
   withRequestId,
   type Job,
+  type HistoryContent,
   type MathematicsEducationContent,
 } from "./index.js";
 
@@ -42,6 +43,22 @@ describe("Mediaforge API SDK", () => {
       audioPresetId: "audio-1",
     };
     expect(content).toMatchObject({ grade: 5, difficulty: "foundation" });
+  });
+
+  it("types the canonical History documentary contract", () => {
+    expectTypeOf<HistoryContent["format"]>().toEqualTypeOf<
+      "short" | "standard" | "long"
+    >();
+    const content: HistoryContent = {
+      type: "history",
+      version: "1",
+      topic: "The Bronze Age Collapse",
+      presetId: "civilization-rise-fall",
+      format: "standard",
+      audienceLevel: "general",
+      period: "ancient",
+    };
+    expect(content).toMatchObject({ presetId: "civilization-rise-fall", period: "ancient" });
   });
 
   it("maps every current operation to its typed HTTP route and headers", async () => {

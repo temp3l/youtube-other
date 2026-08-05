@@ -50,6 +50,8 @@ export function createSpeechCacheKey(input: {
   readonly text: string;
   readonly profile: ResolvedSpeechProfile;
   readonly masteringProfileVersion?: string;
+  /** Present only when provider-bound numeric speech differs from source text. */
+  readonly spokenNumericVerbalizerVersion?: string;
 }): SpeechCacheKeyResult {
   const configuration = input.profile.configuration;
   const cacheInput = {
@@ -89,6 +91,9 @@ export function createSpeechCacheKey(input: {
     profileVersionId: input.profile.profileVersionId,
     audioMasteringProfileVersion:
       input.masteringProfileVersion ?? AUDIO_MASTERING_PROFILE_VERSION,
+    ...(input.spokenNumericVerbalizerVersion
+      ? { spokenNumericVerbalizerVersion: input.spokenNumericVerbalizerVersion }
+      : {}),
   };
   const canonicalInput = canonicalJson(cacheInput);
   return {

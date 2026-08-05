@@ -4,8 +4,8 @@ import type { LessonVariantSpecification } from "../domain/index.js";
 import { canonicalHash } from "../verification/canonical-json.js";
 import {
   GERMAN_STANDARD_NARRATION_WORD_RANGE,
+  germanLearnerNarrationSafetyIssues,
   type LocalizedNarration,
-  reviewedNarrationInstruction,
 } from "./localization.js";
 
 const reviewCheckSchema = z.strictObject({
@@ -50,14 +50,30 @@ export type GermanStandardNarrationReview = z.infer<
   typeof germanStandardNarrationReviewSchema
 >;
 
-function requireText(
-  text: string,
-  expected: string,
-  checkId: string
-): void {
-  if (!text.includes(expected)) {
-    throw new Error(`${checkId} review failed: reviewed text is missing.`);
+function requireText(text: string, expected: string, checkId: string): void {
+  if (!text.includes(expected))
+    throw new Error(`${checkId} review failed: required learner explanation is missing.`);
+}
+
+function assertTallyLessonCoverage(spoken: readonly string[]): void {
+  const text = spoken.join(" ");
+  for (const [expected, checkId] of [
+    ["Urliste", "tally definition"],
+    ["Strichliste", "tally definition"],
+    ["fünfte Strich", "fifth tally explanation"],
+    ["Apfel", "category frequency"],
+    ["Birne", "category frequency"],
+    ["Banane", "category frequency"],
+    ["Vier plus drei plus fünf sind zwölf", "example total"],
+    ["Banane wurde am häufigsten", "example maximum"],
+    ["Sechs plus vier plus fünf sind fünfzehn", "transfer solution"],
+  ] as const) {
+    requireText(text, expected, checkId);
   }
+  requireText(spoken[4] ?? "", "stimmt nicht", "concrete misconception");
+  requireText(spoken[5] ?? "", "Trage", "concrete transfer task");
+  requireText(spoken[6] ?? "", "Wie viele Kinder", "transfer question");
+  requireText(spoken[8] ?? "", "Fünfergruppe", "rule summary");
 }
 
 export function reviewGermanStandardNarration(input: {
@@ -74,28 +90,7 @@ export function reviewGermanStandardNarration(input: {
     throw new Error("Narration review requires one identity-matched German standard lesson.");
   }
   const spoken = narration.segments.map((segment) => segment.spokenText);
-  requireText(spoken[0] ?? "", lesson.learningObjective, "objective");
-  requireText(spoken[1] ?? "", lesson.promise, "promise");
-  requireText(spoken[8] ?? "", lesson.promise, "recap promise");
-  for (const example of lesson.workedExamples) {
-    requireText(
-      spoken[2] ?? "",
-      reviewedNarrationInstruction(example.prompt),
-      "worked example prompt"
-    );
-    for (const step of example.steps) {
-      requireText(spoken[3] ?? "", step.explanation, "worked example step");
-    }
-  }
-  requireText(spoken[4] ?? "", lesson.commonMistake.description, "misconception");
-  requireText(
-    spoken[5] ?? "",
-    reviewedNarrationInstruction(lesson.challenge.prompt),
-    "independent example prompt"
-  );
-  for (const step of lesson.challenge.steps) {
-    requireText(spoken[7] ?? "", step.explanation, "transfer step");
-  }
+  requireText(spoken[1] ?? "", lesson.learningObjective, "objective");
   if (
     narration.segments.some(
       (segment, index) =>
@@ -143,19 +138,26 @@ export function reviewGermanStandardNarration(input: {
   if (spoken.some((text) => /\[\[|\]\]|\b(?:TODO|TBD)\b/iu.test(text))) {
     throw new Error("Narration review failed: unresolved or deferred text remains.");
   }
+  const learnerSafetyIssues = germanLearnerNarrationSafetyIssues(spoken.join(" "));
+  if (learnerSafetyIssues.length > 0) {
+    throw new Error(
+      `Narration review failed: learner narration contains internal or non-standard language: ${learnerSafetyIssues.join(", ")}.`
+    );
+  }
+  if (lesson.skillId === "M5-DZ-001") assertTallyLessonCoverage(spoken);
   const checks = [
     ["identity-and-provenance", { lessonId: lesson.lessonId, narration: narration.lessonId }],
-    ["objective-and-promise", { objective: lesson.learningObjective, promise: lesson.promise }],
+    ["objective-and-promise", { objective: lesson.learningObjective, objectiveScene: spoken[1] }],
     ["scene-purpose-order", {
       scenes: lesson.scenes.map(({ sceneId, sceneFunction }) => ({ sceneId, sceneFunction })),
       finalRetrievalQuestion: spoken[8],
     }],
-    ["worked-example", lesson.workedExamples],
-    ["transfer-task", { task: lesson.challenge, independentlyAttempted: true }],
-    ["misconception", { mistake: lesson.commonMistake, checkQuestion: spoken[4] }],
+    ["worked-example", { scene: spoken[3], factIds: narration.segments[3]?.factIds }],
+    ["transfer-task", { prompt: spoken[6], solution: spoken[7], independentlyAttempted: true }],
+    ["misconception", { scene: spoken[4], checkQuestion: spoken[4] }],
     ["formative-check-bindings", lesson.checks.map((check) => ({ checkId: check.checkId, factIds: factByCheck.get(check.checkId) }))],
     ["fact-lock-bindings", narration.segments.map(({ sceneId, factIds }) => ({ sceneId, factIds }))],
-    ["german-standard-language", { language: narration.language, variant: narration.variant, wordCount }],
+    ["german-standard-language", { language: narration.language, variant: narration.variant, wordCount, learnerSafetyIssues }],
   ].map(([checkId, evidence]) => ({
     checkId,
     status: "passed" as const,

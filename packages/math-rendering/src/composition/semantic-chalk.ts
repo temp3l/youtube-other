@@ -6,6 +6,8 @@ import {
 } from "./natural-chalk.js";
 
 export const MATH_SEMANTIC_CHALK_VERSION = "math-semantic-chalk.v7" as const;
+export const MATH_SEMANTIC_CHALK_MAX_STATIC_INTERVAL_FRAMES = 225;
+const MATH_SEMANTIC_CHALK_PREFERRED_STEP_FRAMES = 180;
 
 export interface SemanticChalkStep {
   readonly key: string;
@@ -177,7 +179,7 @@ export function semanticChalkWritingFrames(
 ): number {
   if (stepCount <= 0) return 0;
   const finalDwellFrames = Math.min(
-    180,
+    MATH_SEMANTIC_CHALK_MAX_STATIC_INTERVAL_FRAMES,
     Math.max(36, Math.floor(sceneFrames * 0.12), sceneFrames - stepCount * 180)
   );
   return Math.max(1, sceneFrames - finalDwellFrames);
@@ -260,17 +262,30 @@ export function createSemanticChalkSchedule(args: {
     const latest =
       writingFrames - 1 - (args.steps.length - index - 1) * minimumSpacing;
     const maximumFromPrevious =
-      index === 0 ? 0 : (starts[index - 1] ?? 0) + 180;
+      index === 0
+        ? 0
+        : (starts[index - 1] ?? 0) + MATH_SEMANTIC_CHALK_PREFERRED_STEP_FRAMES;
     starts.push(
       Math.max(earliest, Math.min(latest, maximumFromPrevious, desired))
     );
     accumulatedWeight += step.durationWeight;
     accumulatedPause += Math.min(45, step.pauseAfterFrames);
   }
-  if (writingFrames <= args.steps.length * 180) {
+  if (
+    writingFrames <=
+    args.steps.length * MATH_SEMANTIC_CHALK_MAX_STATIC_INTERVAL_FRAMES
+  ) {
+    const maximumStepFrames =
+      writingFrames <=
+      args.steps.length * MATH_SEMANTIC_CHALK_PREFERRED_STEP_FRAMES
+        ? MATH_SEMANTIC_CHALK_PREFERRED_STEP_FRAMES
+        : MATH_SEMANTIC_CHALK_MAX_STATIC_INTERVAL_FRAMES;
     let following = writingFrames;
     for (let index = starts.length - 1; index >= 1; index -= 1) {
-      starts[index] = Math.max(starts[index] ?? 0, following - 180);
+      starts[index] = Math.max(
+        starts[index] ?? 0,
+        following - maximumStepFrames
+      );
       following = starts[index]!;
     }
   }

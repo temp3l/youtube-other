@@ -96,7 +96,11 @@ interface ProjectRow {
   readonly workspace_id: string;
   readonly project_id: string;
   readonly name: string;
-  readonly profile: "dark_truth" | "mathematics_education" | "dynamic_generic";
+  readonly profile:
+    | "dark_truth"
+    | "mathematics_education"
+    | "dynamic_generic"
+    | "history";
   readonly revision: string | number;
   readonly created_at: Date | string;
   readonly updated_at: Date | string;
@@ -134,7 +138,11 @@ export interface ApiProjectRecord {
   readonly workspaceId: string;
   readonly projectId: string;
   readonly name: string;
-  readonly profile: "dark_truth" | "mathematics_education" | "dynamic_generic";
+  readonly profile:
+    | "dark_truth"
+    | "mathematics_education"
+    | "dynamic_generic"
+    | "history";
   readonly revision: number;
   readonly createdAt: string;
   readonly updatedAt: string;
@@ -731,7 +739,11 @@ export class WorkspaceTransactionRepository {
     readonly workspaceId: string;
     readonly projectId: string;
     readonly name: string;
-    readonly profile: "dark_truth" | "mathematics_education" | "dynamic_generic";
+    readonly profile:
+      | "dark_truth"
+      | "mathematics_education"
+      | "dynamic_generic"
+      | "history";
     readonly now: string;
   }): Promise<ApiProjectRecord> {
     try {

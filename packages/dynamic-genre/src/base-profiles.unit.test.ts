@@ -8,6 +8,7 @@ describe("dynamic base profiles", () => {
     expect(selectBaseProfile("presenter-advice")).toBe(
       "presenter-advice-compatible"
     );
+    expect(selectBaseProfile("history")).toBe("historical");
   });
 
   it("selects a deterministic primary profile for mixed genres", () => {

@@ -43,6 +43,16 @@ async function withIsolatedCwd(
 }
 
 describe("OpenAI image generation settings", () => {
+  it("defaults to medium image quality", async () => {
+    await withIsolatedCwd(() => {
+      const settings = loadOpenAiImageGenerationSettings({
+        OPENAI_API_KEY: "test-key",
+      });
+
+      expect(settings.quality).toBe("medium");
+    });
+  });
+
   it("uses curl-compatible defaults and preserves configured concurrency", async () => {
     await withIsolatedCwd(() => {
       const settings = loadOpenAiImageGenerationSettings({

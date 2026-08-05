@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   InMemoryRelationalWorkflowRepository,
+  POSTGRES_WORKFLOW_STATE_MIGRATION,
   WorkflowStateTransitionError,
 } from "./relational-workflow-state.js";
 
@@ -18,6 +19,16 @@ const execution = {
 };
 
 describe("relational workflow state conformance", () => {
+  it("accepts the canonical history project profile during fresh and existing-schema migration", () => {
+    const profileCheck =
+      "profile IN ('dark_truth', 'mathematics_education', 'dynamic_generic', 'history')";
+
+    expect(POSTGRES_WORKFLOW_STATE_MIGRATION).toContain(profileCheck);
+    expect(POSTGRES_WORKFLOW_STATE_MIGRATION.split(profileCheck)).toHaveLength(
+      3
+    );
+  });
+
   it("scopes runs by workspace and preserves immutable execution specifications", () => {
     const repository = new InMemoryRelationalWorkflowRepository();
     repository.create({

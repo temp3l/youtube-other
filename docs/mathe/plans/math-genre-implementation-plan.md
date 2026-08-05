@@ -50,10 +50,10 @@ assets/math-teacher/alex/v1/
 apps/cli/src/math-commands.ts
 ```
 
-Laufzeitdaten liegen getrennt von Horror-Episoden unter `MEDIAFORGE_MATH_WORKSPACE`, standardmäßig `./math-episodes`. Das kanonische Layout ist:
+Laufzeitdaten liegen getrennt von Horror-Episoden unter dem repository-lokalen, ignorierten Math-Workspace `.cache/math-pipeline/production` (oder einem explizit gewählten privaten Workspace außerhalb des Repositorys). Das kanonische Layout ist:
 
 ```text
-math-episodes/<lesson-id>/
+.cache/math-pipeline/production/<lesson-id>/
   manifest.json
   canonical/{skill,lesson-spec,math-spec,verification,narration,scene-plan}.json
   locales/<language>/{narration,lock-report,timing,audio,metadata,thumbnail,render,quality}.json

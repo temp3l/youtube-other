@@ -14,4 +14,5 @@ This is an index of decisions visible in the current implementation. It does not
 
 Feature decision registers:
 
+- [Current scope and publication authority](ADR-OPERATIONS-001-current-scope-and-publication-authority.md): German-only Math rollout and on-demand CLI-only publication initiation.
 - [Strategic Reinvention](strategic-reinvention-decision-register.md): genre/creator separation, source rights, approvals, multilingual packaging, creator-media blocks, and external evidence gates.

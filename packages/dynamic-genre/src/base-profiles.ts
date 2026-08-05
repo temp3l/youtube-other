@@ -67,7 +67,7 @@ export const BASE_PROFILE_REGISTRY: Readonly<
   },
   historical: {
     id: "historical",
-    supportedGenres: ["historical"],
+    supportedGenres: ["historical", "history"],
     rendererFamily: "story",
     conservative: true,
   },
@@ -98,6 +98,7 @@ const profileForGenre: Readonly<Record<GenreId, BaseProfileId>> = {
   inspirational: "inspirational",
   business: "business-explainer",
   historical: "historical",
+  history: "historical",
   "science-technology": "science-technology",
   "abstract-experimental": "abstract-experimental",
 };

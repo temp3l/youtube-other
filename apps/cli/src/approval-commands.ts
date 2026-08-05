@@ -83,11 +83,13 @@ export function registerApprovalCommands(program: Command): void {
     .option("--required-reviewers <count>", "distinct reviewer count", "1")
     .action(async (options: ApprovalCommandOptions & { task: string; gate: string; inputHashes: string; outputHashes: string; requiredReviewers: string }) => {
       const store = await openStore(options);
+      const locale = contentLocaleSchema.parse(options.locale);
+      const variant = contentVariantSchema.parse(options.variant);
       const outputHashes = hashes(options.outputHashes);
       const records = await store.currentApprovals(options.task, {
         artifactHashes: outputHashes,
-        locale: options.locale,
-        variant: options.variant,
+        locale,
+        variant,
         gate: approvalGateSchema.parse(options.gate),
         inputArtifactHashes: hashes(options.inputHashes),
       });
@@ -97,8 +99,8 @@ export function registerApprovalCommands(program: Command): void {
         : requestedDistinctActors;
       const current = await store.currentApproval(options.task, {
         artifactHashes: outputHashes,
-        locale: options.locale,
-        variant: options.variant,
+        locale,
+        variant,
         gate: approvalGateSchema.parse(options.gate),
         inputArtifactHashes: hashes(options.inputHashes),
         requiredDistinctActors,

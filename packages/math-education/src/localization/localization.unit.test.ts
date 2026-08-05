@@ -13,6 +13,7 @@ import { loadMathGlossary, parseMathGlossary } from "./glossary.js";
 import { formatExpression, formatMeasurement } from "./locale-formatter.js";
 import {
   GERMAN_STANDARD_NARRATION_WORD_RANGE,
+  germanLearnerNarrationSafetyIssues,
   localizeNarration,
 } from "./localization.js";
 import { reviewGermanStandardNarration } from "./narration-review.js";
@@ -282,11 +283,56 @@ describe("locked-fact localization", () => {
       );
       expect(narration.segments[4]?.spokenText).toContain("?");
       expect(narration.segments[5]?.spokenText).toContain(
-        "zweites, eigenständiges Beispiel"
+        skill.skillId === "M5-DZ-001"
+          ? "Jetzt übst du mit dem Schulweg"
+          : "zweites, eigenständiges Beispiel"
       );
       expect(narration.segments[8]?.factIds).toEqual([]);
       expect(narration.segments[8]?.spokenText.trim()).toMatch(/\?$/u);
     }
+  });
+
+  it("compiles Urliste and Strichliste into learner-safe German with bound facts", async () => {
+    const source = await lesson("M5-DZ-001");
+    const narration = localizeNarration(source, "de");
+    const spoken = narration.segments.map((segment) => segment.spokenText).join(" ");
+    const display = narration.segments.map((segment) => segment.displayText).join(" ");
+
+    expect(narration.segments.map((segment) => segment.factIds)).toEqual(
+      source.scenes.map((scene) => scene.factIds)
+    );
+    expect(spoken).toContain("Eine Urliste schreibt Antworten in der Reihenfolge auf");
+    expect(spoken).toContain("Eine Strichliste sortiert dieselben Antworten nach Kategorien");
+    expect(spoken).toContain("Der fünfte Strich geht quer durch die ersten vier");
+    expect(spoken).toContain("Vier plus drei plus fünf sind zwölf");
+    expect(spoken).toContain("Banane wurde am häufigsten gewählt");
+    expect(spoken).toContain("Sechs plus vier plus fünf sind fünfzehn");
+    expect(display).toContain("Apfel, Apfel, Apfel, Apfel");
+    expect(display).toContain("Bus, Bus, Bus, Bus, Bus, Bus");
+    expect(display).not.toMatch(/\(4, 3, 5\)|\(6, 4, 5\)/u);
+    expect(display).not.toContain("Nutze die Zahlen");
+    expect(narration.segments[4]?.spokenText).toContain("stimmt nicht");
+    expect(narration.segments[6]?.spokenText).toContain("Wie viele Kinder");
+    expect(narration.segments[7]?.spokenText).toContain("Bus hat sechs Nennungen");
+    expect(narration.segments[8]?.spokenText).toContain("Fünfergruppe");
+    expect(narration.segments[8]?.spokenText).toMatch(/\?$/u);
+    expect(germanLearnerNarrationSafetyIssues(`${spoken} ${display}`)).toEqual([]);
+    expect(spoken).not.toMatch(
+      /geprüftes Modell|geprüfte Darstellung|reviewter Lösungsweg|strukturierter Datensatz|Binde Kategorien, Zellen und Werte|Leite Totale, Maximum und Skala|mathematisch geprüft|reviewte Transferaufgabe|eins zwei|eins fünf|fuenf/iu
+    );
+    expect(display).not.toMatch(/fuenf|fuss|gruen|buecher/iu);
+    expect(reviewGermanStandardNarration({ lesson: source, narration }).checks).toHaveLength(9);
+  });
+
+  it("rejects internal vocabulary and ASCII German transliterations in German learner copy", async () => {
+    const source = await lesson("M5-DZ-001");
+    const templates = localizeNarration(source, "de").segments.map(
+      (segment) => segment.tokenizedText
+    );
+    templates[0] = `${templates[0]} Wir bauen ein geprüftes Modell.`;
+    expect(() => localizeNarration(source, "de", { templates })).toThrow(
+      /forbidden internal or non-standard language/u
+    );
   });
 
   it("blocks missing, duplicate, and reordered fact tokens", async () => {

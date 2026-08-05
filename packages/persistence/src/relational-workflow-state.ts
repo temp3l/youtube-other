@@ -161,7 +161,7 @@ CREATE TABLE IF NOT EXISTS projects (
   workspace_id TEXT NOT NULL,
   project_id TEXT NOT NULL,
   name TEXT NOT NULL,
-  profile TEXT NOT NULL CHECK (profile IN ('dark_truth', 'mathematics_education', 'dynamic_generic')),
+  profile TEXT NOT NULL CHECK (profile IN ('dark_truth', 'mathematics_education', 'dynamic_generic', 'history')),
   revision BIGINT NOT NULL DEFAULT 0,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -169,7 +169,7 @@ CREATE TABLE IF NOT EXISTS projects (
 );
 ALTER TABLE projects DROP CONSTRAINT IF EXISTS projects_profile_check;
 ALTER TABLE projects ADD CONSTRAINT projects_profile_check
-  CHECK (profile IN ('dark_truth', 'mathematics_education', 'dynamic_generic'));
+  CHECK (profile IN ('dark_truth', 'mathematics_education', 'dynamic_generic', 'history'));
 CREATE TABLE IF NOT EXISTS episodes (
   workspace_id TEXT NOT NULL,
   project_id TEXT NULL,

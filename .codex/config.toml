@@ -1,3 +1,12 @@
+model = "gpt-5.6-sol"
+model_reasoning_effort = "medium"
+plan_mode_reasoning_effort = "high"
+review_model = "gpt-5.6-sol"
+model_verbosity = "low"
+# before todo-prompts/history... change to: 
+# model_reasoning_effort = "high"
+
+
 approval_policy = "on-request"
 sandbox_mode = "workspace-write"
 
@@ -8,7 +17,7 @@ network_access = true
 enabled = true
 # Keep fan-out modest: three subagents can still divide independent work without
 # multiplying context and output across a large agent pool.
-max_concurrent_threads_per_session = 3
+max_concurrent_threads_per_session = 1
 default_subagent_model = "gpt-5.6-terra"
 default_subagent_reasoning_effort = "medium"
 # Preserve interruption visibility; the small context cost is useful for safety.
