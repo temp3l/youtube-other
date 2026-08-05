@@ -1,0 +1,16 @@
+{
+  "schemaVersion": "mediaforge.genre-production-intelligence.v1",
+  "genreId": "fixture-genre",
+  "profileVersion": "fixture-v1",
+  "topicPolicy": {
+    "factors": [
+      { "id": "measured-demand", "weight": 3, "required": true },
+      { "id": "editorial-fit", "weight": 1, "required": false }
+    ],
+    "minimumConfidence": 0.5
+  },
+  "packagingPolicy": { "titleCandidateCount": 3, "thumbnailCandidateCount": 3, "approvalRequired": true },
+  "analyticsPolicy": { "checkpoints": ["h48", "d7", "d28"], "minimumSampleSize": 100, "requireProposalApproval": true },
+  "localizationPolicy": { "minimumEligibilityScore": 70, "requireCostApproval": true, "requirePronunciationQa": true },
+  "extensions": { "schemas": [], "promptFragments": [], "validators": [], "artifactNames": [], "providerConstraints": [] }
+}
