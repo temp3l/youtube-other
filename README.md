@@ -1,9 +1,9 @@
 ## Incomplete
 
-→ /goal Implement every requirement and satisfy every acceptance criterion in @prompts/06-history-trusted-script-default-and-incremental-visual-provenance-goal.md. Make trusted-script the default  
- authority mode for History stories, disable automatic OpenAI research and source retrieval for trusted stories, generate honest claim and visual-planning artifacts from the trusted narration, and  
- preserve optional research-backed workflows as explicit opt-in modes. Continue until implementation, tests, CLI documentation, migration, regenerated review artifacts, and final audit are complete or  
- a concrete blocker is proven with exact evidence.
+/goal Implement every requirement and acceptance criterion in @prompts/08-history-v3.4-token-efficient-remediation-goal.md. Treat @reports/history-v3.4-independent-review-report.md as the defect  
+ specification. Make the smallest safe changes required to fix all V3.4 blockers. Do not redesign working contracts, do not perform live historical research, do not create a new major plan version, and  
+ do not regenerate unrelated genres. Work fixture-first, validate incrementally, then regenerate the four History approval packs once. Continue until complete or until a concrete external blocker is  
+ demonstrated with exact command output.
 
 # prompts
 

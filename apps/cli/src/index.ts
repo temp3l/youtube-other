@@ -174,6 +174,12 @@ import {
   decideHistoryVisualApprovalV33,
   createHistoryApprovalPackV33,
   createCombinedHistoryApprovalBundleV33,
+  createHistoryApprovalPackV34,
+  createCombinedHistoryApprovalBundleV34,
+  planHistoryVisualsV34,
+  inspectHistoryVisualsV34,
+  structureHistoryTrustedScriptV34,
+  validateHistoryTrustedClaimsV34,
   runHistoryV33Workflow,
   getHistoryV33CostStatus,
   getHistoryV33ResearchStatus,
@@ -5178,7 +5184,9 @@ registerHistoryCommands(program, {
   getHistoryNextStep,
   validateHistoryEpisodeFactuality,
   planHistoryVisuals: (request) =>
-    request.plannerVersion === "v3.3"
+    request.plannerVersion === "v3.4"
+      ? planHistoryVisualsV34(request)
+      : request.plannerVersion === "v3.3"
       ? planHistoryVisualsV33(request)
       : request.plannerVersion === "v3.2"
       ? planHistoryVisualsV32(request)
@@ -5211,7 +5219,17 @@ registerHistoryCommands(program, {
   createHistoryReviewBundleV31,
   createHistoryReviewBundleV32,
   createHistoryReviewBundleV33: createHistoryApprovalPackV33,
+  createHistoryReviewBundleV34: createHistoryApprovalPackV34,
   createCombinedHistoryApprovalBundleV33,
+  createCombinedHistoryApprovalBundleV34,
+  planHistoryVisualsV34,
+  inspectHistoryVisualsV34,
+  validateHistoryVisualPlanV34Command: async (request) => {
+    const planned = await planHistoryVisualsV34(request);
+    return planned.validation;
+  },
+  structureHistoryTrustedScriptV34,
+  validateHistoryTrustedClaimsV34,
   runHistoryV33Workflow: async (request) => {
     if (request.mode !== "live-research")
       return runHistoryV33Workflow({

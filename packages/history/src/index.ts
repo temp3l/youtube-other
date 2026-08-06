@@ -42,3 +42,8 @@ export * from "./history-trusted-script-v33.js";
 export * from "./history-trusted-workflow-v33.js";
 export * from "./visual-planner-v33.js";
 export * from "./history-workflow-v33.js";
+export * from "./history-v34-contracts.js";
+export * from "./history-claims-v34.js";
+export * from "./history-geo-v34.js";
+export * from "./visual-planner-v34.js";
+export * from "./history-workflow-v34.js";

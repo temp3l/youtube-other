@@ -2,7 +2,14 @@ import { Command } from "commander";
 
 export type HistoryContentPackMode = "strict" | "lenient";
 export type HistoryBatchFailureMode = "fail-fast" | "collect-errors";
-export type HistoryPlannerVersion = "v1" | "v2" | "v3" | "v3.1" | "v3.2" | "v3.3";
+export type HistoryPlannerVersion =
+  | "v1"
+  | "v2"
+  | "v3"
+  | "v3.1"
+  | "v3.2"
+  | "v3.3"
+  | "v3.4";
 
 export interface HistoryContentPackRequest {
   readonly packPath: string;
@@ -86,6 +93,40 @@ export interface HistoryCommandDependencies {
   }) => Promise<unknown>;
   readonly createHistoryReviewBundleV33?: (request: {
     readonly episodeId: string;
+    readonly output: string;
+    readonly outputRoot?: string;
+    readonly regenerate?: boolean;
+  }) => Promise<unknown>;
+  readonly createHistoryReviewBundleV34?: (request: {
+    readonly episodeId: string;
+    readonly output: string;
+    readonly outputRoot?: string;
+    readonly regenerate?: boolean;
+  }) => Promise<unknown>;
+  readonly planHistoryVisualsV34?: (request: {
+    readonly episodeId: string;
+    readonly outputRoot?: string;
+    readonly force?: boolean;
+  }) => Promise<unknown>;
+  readonly inspectHistoryVisualsV34?: (request: {
+    readonly episodeId: string;
+    readonly outputRoot?: string;
+  }) => Promise<unknown>;
+  readonly validateHistoryVisualPlanV34Command?: (request: {
+    readonly episodeId: string;
+    readonly outputRoot?: string;
+  }) => Promise<unknown>;
+  readonly structureHistoryTrustedScriptV34?: (request: {
+    readonly episodeId: string;
+    readonly outputRoot?: string;
+    readonly semanticStructuring?: boolean;
+  }) => Promise<unknown>;
+  readonly validateHistoryTrustedClaimsV34?: (request: {
+    readonly episodeId: string;
+    readonly outputRoot?: string;
+  }) => Promise<unknown>;
+  readonly createCombinedHistoryApprovalBundleV34?: (request: {
+    readonly episodeIds: readonly string[];
     readonly output: string;
     readonly outputRoot?: string;
     readonly regenerate?: boolean;
@@ -397,7 +438,8 @@ export function registerHistoryCommands(
               options.plannerVersion === "v3" ||
               options.plannerVersion === "v3.1" ||
               options.plannerVersion === "v3.2" ||
-              options.plannerVersion === "v3.3"
+              options.plannerVersion === "v3.3" ||
+              options.plannerVersion === "v3.4"
                 ? { plannerVersion: options.plannerVersion }
                 : {}),
               ...(options.force ? { force: true } : {}),
@@ -483,26 +525,46 @@ export function registerHistoryCommands(
           );
         }
       );
-    if (dependencies.inspectHistoryVisualsV2) {
+    if (dependencies.inspectHistoryVisualsV2 || dependencies.inspectHistoryVisualsV34) {
       visuals
         .command("inspect <episode-id>")
         .description(
-          "Read the opt-in v2 visual diagnostics without planning or generation"
+          "Inspect History visual diagnostics (v2 plan-hash or v3.4 summary)"
         )
         .option("--output-root <path>")
-        .requiredOption("--plan-hash <sha256>", "v2 plan hash to inspect")
+        .option("--plan-hash <sha256>", "v2 plan hash to inspect")
+        .option("--planner-version <version>", "inspect planner version", "v2")
         .option("--json")
         .action(
           async (
             episodeId: string,
             options: {
               readonly outputRoot?: string;
-              readonly planHash: string;
+              readonly planHash?: string;
+              readonly plannerVersion?: string;
               readonly json?: boolean;
             }
           ) => {
+            if (options.plannerVersion === "v3.4") {
+              if (!dependencies.inspectHistoryVisualsV34)
+                throw new Error("History v3.4 inspect is unavailable.");
+              emit(
+                await dependencies.inspectHistoryVisualsV34({
+                  episodeId,
+                  ...(options.outputRoot
+                    ? { outputRoot: options.outputRoot }
+                    : {}),
+                }),
+                options.json ?? inherited().json
+              );
+              return;
+            }
+            if (!dependencies.inspectHistoryVisualsV2)
+              throw new Error("History v2 inspect is unavailable.");
+            if (!options.planHash)
+              throw new Error("History v2 inspect requires --plan-hash.");
             emit(
-              await dependencies.inspectHistoryVisualsV2!({
+              await dependencies.inspectHistoryVisualsV2({
                 episodeId,
                 planHash: options.planHash,
                 ...(options.outputRoot
@@ -515,8 +577,9 @@ export function registerHistoryCommands(
         );
       visuals
         .command("validate <episode-id>")
-        .description("Validate/read the immutable opt-in v2 diagnostics")
-        .requiredOption("--plan-hash <sha256>", "v2 plan hash to validate")
+        .description("Validate History visual diagnostics (v2 or v3.4)")
+        .option("--plan-hash <sha256>", "v2 plan hash to validate")
+        .option("--planner-version <version>", "validate planner version", "v2")
         .option("--output-root <path>")
         .option("--json")
         .action(
@@ -524,12 +587,31 @@ export function registerHistoryCommands(
             episodeId: string,
             options: {
               readonly outputRoot?: string;
-              readonly planHash: string;
+              readonly planHash?: string;
+              readonly plannerVersion?: string;
               readonly json?: boolean;
             }
           ) => {
+            if (options.plannerVersion === "v3.4") {
+              if (!dependencies.validateHistoryVisualPlanV34Command)
+                throw new Error("History v3.4 validate is unavailable.");
+              emit(
+                await dependencies.validateHistoryVisualPlanV34Command({
+                  episodeId,
+                  ...(options.outputRoot
+                    ? { outputRoot: options.outputRoot }
+                    : {}),
+                }),
+                options.json ?? inherited().json
+              );
+              return;
+            }
+            if (!dependencies.inspectHistoryVisualsV2)
+              throw new Error("History v2 validate is unavailable.");
+            if (!options.planHash)
+              throw new Error("History v2 validate requires --plan-hash.");
             emit(
-              await dependencies.inspectHistoryVisualsV2!({
+              await dependencies.inspectHistoryVisualsV2({
                 episodeId,
                 planHash: options.planHash,
                 ...(options.outputRoot
@@ -576,7 +658,8 @@ export function registerHistoryCommands(
       dependencies.createHistoryReviewBundleV3 ||
       dependencies.createHistoryReviewBundleV31 ||
       dependencies.createHistoryReviewBundleV32 ||
-      dependencies.createHistoryReviewBundleV33
+      dependencies.createHistoryReviewBundleV33 ||
+      dependencies.createHistoryReviewBundleV34
     ) {
       visuals
         .command("review-bundle <episode-id>")
@@ -597,22 +680,25 @@ export function registerHistoryCommands(
             episodeId: string,
             options: {
               readonly output: string;
-              readonly plannerVersion?: "v3" | "v3.1" | "v3.2" | "v3.3";
+              readonly plannerVersion?: "v3" | "v3.1" | "v3.2" | "v3.3" | "v3.4";
               readonly outputRoot?: string;
               readonly regenerate?: boolean;
               readonly json?: boolean;
             }
           ) => {
-            const create = options.plannerVersion === "v3.3"
-              ? dependencies.createHistoryReviewBundleV33
-              : options.plannerVersion === "v3.2"
-                ? dependencies.createHistoryReviewBundleV32
-              : options.plannerVersion === "v3.1"
-                ? dependencies.createHistoryReviewBundleV31
-                : dependencies.createHistoryReviewBundleV3;
+            const create =
+              options.plannerVersion === "v3.4"
+                ? dependencies.createHistoryReviewBundleV34
+                : options.plannerVersion === "v3.3"
+                  ? dependencies.createHistoryReviewBundleV33
+                  : options.plannerVersion === "v3.2"
+                    ? dependencies.createHistoryReviewBundleV32
+                    : options.plannerVersion === "v3.1"
+                      ? dependencies.createHistoryReviewBundleV31
+                      : dependencies.createHistoryReviewBundleV3;
             if (!create)
               throw new Error(
-                `History ${options.plannerVersion ?? "v3"} review-bundle export is unavailable.`
+                `History review-bundle planner version ${options.plannerVersion ?? "v3"} is unavailable.`
               );
             emit(
               await create({
@@ -638,7 +724,9 @@ export function registerHistoryCommands(
     dependencies.extractHistoryTrustedClaims ||
     dependencies.diffHistoryTrustedScript ||
     dependencies.reattestHistoryTrustDeltas ||
-    dependencies.regenerateHistoryTrustedVisuals
+    dependencies.regenerateHistoryTrustedVisuals ||
+    dependencies.structureHistoryTrustedScriptV34 ||
+    dependencies.validateHistoryTrustedClaimsV34
   ) {
     const authoring = history
       .command("authoring")
@@ -986,6 +1074,65 @@ export function registerHistoryCommands(
                   : {}),
                 ...(options.dryRun || inherited().dryRun
                   ? { dryRun: true }
+                  : {}),
+              }),
+              options.json ?? inherited().json ?? true
+            );
+          }
+        );
+    }
+    if (dependencies.structureHistoryTrustedScriptV34) {
+      authoring
+        .command("structure-trusted-script <episode-id>")
+        .description(
+          "Structure trusted-script claims/entities offline for History V3.4"
+        )
+        .option("--output-root <path>")
+        .option(
+          "--semantic-structuring",
+          "opt-in bounded semantic proposals (no research/web search)"
+        )
+        .option("--json")
+        .action(
+          async (
+            episodeId: string,
+            options: {
+              readonly outputRoot?: string;
+              readonly semanticStructuring?: boolean;
+              readonly json?: boolean;
+            }
+          ) => {
+            emit(
+              await dependencies.structureHistoryTrustedScriptV34!({
+                episodeId,
+                ...(options.outputRoot
+                  ? { outputRoot: options.outputRoot }
+                  : {}),
+                ...(options.semanticStructuring
+                  ? { semanticStructuring: true }
+                  : {}),
+              }),
+              options.json ?? inherited().json ?? true
+            );
+          }
+        );
+    }
+    if (dependencies.validateHistoryTrustedClaimsV34) {
+      authoring
+        .command("validate-trusted-claims <episode-id>")
+        .description("Validate History V3.4 trusted-script structured claims")
+        .option("--output-root <path>")
+        .option("--json")
+        .action(
+          async (
+            episodeId: string,
+            options: { readonly outputRoot?: string; readonly json?: boolean }
+          ) => {
+            emit(
+              await dependencies.validateHistoryTrustedClaimsV34!({
+                episodeId,
+                ...(options.outputRoot
+                  ? { outputRoot: options.outputRoot }
                   : {}),
               }),
               options.json ?? inherited().json ?? true

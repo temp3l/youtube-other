@@ -243,7 +243,7 @@ export function createHistorySourceAuthorityRecordV33(input: {
     sourceAuthorityMode: input.mode,
     resolvedFrom: input.resolvedFrom,
     narrationHash: input.narrationHash ?? null,
-    updatedAt: input.updatedAt ?? FIXED_ISO,
+    updatedAt: input.updatedAt ?? new Date().toISOString(),
     policyVersion: HISTORY_TRUST_POLICY_V33,
   };
 }
@@ -267,7 +267,7 @@ export function createTrustedNarrationAttestationV1(input: {
   const selectedClaimIds = [...(input.selectedClaimIds ?? [])].sort();
   const normalizationVersion =
     input.normalizationVersion ?? HISTORY_NARRATION_NORMALIZATION_V33;
-  const assertedAt = input.assertedAt ?? FIXED_ISO;
+  const assertedAt = input.assertedAt ?? new Date().toISOString();
   const parentAttestationId = input.parentAttestationId ?? null;
   const id = `attestation-${sha256(
     [
