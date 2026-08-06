@@ -121,6 +121,7 @@ import {
   DEFAULT_SPEECH_VOICE,
   loadSpeechVoiceSettings,
   splitEpisodeScriptMarkdown,
+  probeAudioWithFfprobe,
 } from "@mediaforge/speech";
 import {
   assertNarrationTtsConfigured,
@@ -151,6 +152,19 @@ import {
   inspectHistoryContentPack,
   inspectHistoryWorkflow,
   getHistoryNextStep,
+  planHistoryVisuals,
+  planHistoryVisualsV2,
+  decideHistoryVisualApproval,
+  decideHistoryVisualApprovalV2,
+  inspectHistoryVisualV2,
+  reconcileHistoryVisualAudioV2,
+  planHistoryVisualsV3,
+  decideHistoryVisualApprovalV3,
+  createHistoryReviewBundleV3,
+  planHistoryVisualsV31,
+  decideHistoryVisualApprovalV31,
+  createHistoryReviewBundleV31,
+  assertHistoryVisualApproval,
   listHistoryPresets,
   validateHistoryEpisodeFactuality,
   validateHistoryContentPack,
@@ -2622,6 +2636,7 @@ async function assertImageGenerationGate(
         `History image generation requires a passing factuality audit at ${auditPath}.`
       );
     }
+    await assertHistoryVisualApproval(episodeDir);
     return;
   }
   await assertScriptScoreGate({
@@ -2874,6 +2889,13 @@ async function commandRender(
       dryRun: true,
     });
     return;
+  }
+  if (
+    manifest.sourceMetadata !== null &&
+    typeof manifest.sourceMetadata === "object" &&
+    Reflect.get(manifest.sourceMetadata, "genre") === "history"
+  ) {
+    await assertHistoryVisualApproval(episodeDir);
   }
   const captionsPath =
     burnCaptions && isEnglishLanguage(language)
@@ -5125,6 +5147,30 @@ registerHistoryCommands(program, {
   inspectHistoryWorkflow,
   getHistoryNextStep,
   validateHistoryEpisodeFactuality,
+  planHistoryVisuals: (request) =>
+    request.plannerVersion === "v3.1"
+      ? planHistoryVisualsV31(request)
+      : request.plannerVersion === "v3"
+        ? planHistoryVisualsV3(request)
+        : request.plannerVersion === "v2"
+          ? planHistoryVisualsV2(request)
+          : planHistoryVisuals(request),
+  decideHistoryVisualApproval: (request) =>
+    request.plannerVersion === "v3.1"
+      ? decideHistoryVisualApprovalV31(request)
+      : request.plannerVersion === "v3"
+        ? decideHistoryVisualApprovalV3(request)
+        : request.plannerVersion === "v2"
+          ? decideHistoryVisualApprovalV2(request)
+          : decideHistoryVisualApproval(request),
+  inspectHistoryVisualsV2: inspectHistoryVisualV2,
+  reconcileHistoryVisualAudioV2: (request) =>
+    reconcileHistoryVisualAudioV2({
+      ...request,
+      probeAudio: probeAudioWithFfprobe,
+    }),
+  createHistoryReviewBundleV3,
+  createHistoryReviewBundleV31,
 });
 // Connected command surfaces validate their credentials during registration.
 // Keep the local CLI usable when an operator intentionally has no API setup.

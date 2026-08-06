@@ -35,6 +35,34 @@ Imported bibliography links remain `declared-by-pack`, never approved. Source as
 
 History media uses the common provider-neutral speech, image, rendering, metadata, localization, and publishing services. Audio presets select delivery—not a provider or cloned voice. Generated scenes carry reconstruction status and anti-anachronism constraints. The configured locale contract currently supports `en`, `de`, `es`, `fr`, `pt`, and `it`.
 
+## Visual-plan approval gate
+
+Before any History image generation, create and review a deterministic visual plan. The planner uses episode runtime metadata when present, otherwise its documented 108 words-per-minute default. It writes `history-visual-plan.json`, `history-shot-list.json`, `history-asset-manifest.draft.json`, `history-approval-pack.md`, `history-visual-validation.json`, and `history-visual-approval.json` under the episode `source/` directory. Planning never starts media generation.
+
+```bash
+mediaforge history visuals plan history-youtube-history-10-video-story-pack-02-napoleons-invasion-of-russia
+# Read source/history-approval-pack.md, then use its exact hash:
+mediaforge history visuals approve history-youtube-history-10-video-story-pack-02-napoleons-invasion-of-russia --plan-hash <plan-hash>
+mediaforge history visuals reject history-youtube-history-10-video-story-pack-02-napoleons-invasion-of-russia --reason "Need clearer logistics diagram"
+```
+
+Approval is bound to the plan's SHA-256 hash. Regenerating a materially changed plan resets it to `AWAITING_VISUAL_APPROVAL`; History image generation rejects missing, rejected, stale, or mismatched approvals. The approval pack includes the exact approve, reject, and regenerate commands plus the runtime, cost-driving asset count, media mix, maps, diagrams, warnings, and beat list.
+
+### Opt-in v2 visual-planning pilot
+
+The legacy v1 workflow above remains the default. `--planner-version v2` is an additive History-only pilot: it creates hash-addressed v2 plan, derivative, diagnostics, and approval-pack files without rewriting v1 artifacts or decisions. It preserves canonical narration ranges, validates sentence boundaries and duration conflicts, records composition for both `16:9` and `9:16`, and emits a renderable shared-scene derivative without generating media.
+
+```bash
+mediaforge history visuals plan <episode-id> --planner-version v2 --json
+mediaforge history visuals inspect <episode-id> --plan-hash <v2-plan-hash> --json
+mediaforge history visuals validate <episode-id> --plan-hash <v2-plan-hash> --json
+# After locally generated narration exists; this creates a new timing revision.
+mediaforge history visuals reconcile-audio <episode-id> --audio-path episodes/<episode-id>/locales/en/full/audio/narration.wav --json
+mediaforge history visuals approve <episode-id> --planner-version v2 --plan-hash <v2-plan-hash> --derivative-hash <v2-derivative-hash>
+```
+
+Estimate-only v2 plans are explicitly provisional and may be reviewed, but final renderable approval requires a valid, hash-bound derivative. A source-lineage mismatch, incomplete final sentence, timing conflict, missing ratio variant, unresolved required evidence rights, or stale derivative is a blocking diagnostic. The v2 reconciliation workflow is separately registered as `history.visual-v2-production`, preserving the legacy workflow order during rollout.
+
 ## Recommended pilot
 
 The Bronze Age pilot ID is `history-youtube-history-10-video-story-pack-01-bronze-age-collapse`. Its imported configuration is `civilization-rise-fall`, `standard`, `general`, `rise-and-fall`, `documentary-neutral`, with maps and timelines enabled.

@@ -704,6 +704,7 @@ async function importEpisode(args: {
     research: path.join(episodeRoot, "source", "research-sources.json"),
     chapters: path.join(episodeRoot, "source", "provisional-chapters.json"),
     validation: path.join(episodeRoot, "source", "validation-report.json"),
+    canonicalNarration: path.join(episodeRoot, "source", "canonical-narration-en.md"),
     script: path.join(episodeRoot, "languages", "script-en.md"),
   };
   const now = args.importedAt;
@@ -745,6 +746,9 @@ async function importEpisode(args: {
     retainedPipelineRunCount: existingManifest?.pipelineRuns.length ?? 0,
     diagnostics: args.episode.diagnostics,
   });
+  // Preserve the imported narration as immutable lineage input. Visual v2
+  // compares it with the editable workflow script rather than repairing it.
+  await writeTextAtomic(paths.canonicalNarration, `${args.episode.narrationMarkdown.trim()}\n`);
   await writeTextAtomic(paths.script, `${args.episode.narrationMarkdown.trim()}\n`);
   await writeJsonAtomic(paths.manifest, manifest);
   await recordHistoryImportCheckpoints({ unitRoot: episodeRoot, episodeId: args.episode.episodeId, now: () => new Date(args.importedAt) });
