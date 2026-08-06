@@ -352,7 +352,16 @@ const supportedStatuses = new Set<ClaimProvenanceStatusV3_3>([
   "supported",
   "contested",
   "not_required",
+  "trusted_input",
 ]);
+
+const isTrustedInputSnapshot = (
+  snapshot: HistoryResearchSnapshotV3_3
+): boolean =>
+  snapshot.provenance.some((item) => item.status === "trusted_input") ||
+  snapshot.researchDiagnostics.some(
+    (item) => item.code === "TRUSTED_SCRIPT_RESEARCH_SKIPPED"
+  );
 
 const modalityFor = (text: string, provenanceReady: boolean): HistoryVisualModalityV3_3 => {
   if (!provenanceReady)
@@ -409,8 +418,12 @@ export function validateHistoryMapStatesV33(input: {
   readonly mapStates: readonly HistoryMapStateV3_3[];
   readonly claimIds: ReadonlySet<string>;
   readonly evidenceIds: ReadonlySet<string>;
+  readonly authorityMode?: "trusted-script" | "research-backed" | "unverified-external";
+  readonly narrationText?: string;
+  readonly claimTextsById?: ReadonlyMap<string, string>;
 }): HistoryDiagnosticV3_3[] {
   const diagnostics: HistoryDiagnosticV3_3[] = [];
+  const trusted = input.authorityMode === "trusted-script";
   for (const state of input.mapStates) {
     for (const route of state.routes) {
       const fail = (code: string, message: string): void => {
@@ -420,12 +433,34 @@ export function validateHistoryMapStatesV33(input: {
       if (route.routeType === "maritime" && /overland|road|land connection/iu.test(route.label)) fail("MAP_ROUTE_LABEL_CONTRADICTION", "A maritime route cannot be labelled overland.");
       if (route.routeType === "overland" && /maritime|ship|sea route/iu.test(route.label)) fail("MAP_ROUTE_LABEL_CONTRADICTION", "An overland route cannot be labelled maritime.");
       if (route.transportedObjectOrPathogen && route.movingActor === route.transportedObjectOrPathogen) fail("MAP_PATHOGEN_ROLE_CONFLICT", "A pathogen cannot be the carrier actor.");
-      if (!route.linkedClaimIds.length || !route.linkedEvidenceIds.length) fail("MAP_EVIDENCE_MISSING", "Every route requires claim and evidence bindings.");
-      if (route.linkedClaimIds.some((id) => !input.claimIds.has(id)) || route.linkedEvidenceIds.some((id) => !input.evidenceIds.has(id))) fail("MAP_REFERENCE_INVALID", "Map route references must resolve.");
+      if (!route.linkedClaimIds.length) fail("MAP_CLAIM_MISSING", "Every route requires claim bindings.");
+      if (route.linkedClaimIds.some((id) => !input.claimIds.has(id))) fail("MAP_REFERENCE_INVALID", "Map route claim references must resolve.");
+      if (trusted) {
+        if (route.linkedEvidenceIds.length)
+          fail("MAP_FAKE_EVIDENCE", "Trusted-script maps must not invent evidence bindings.");
+        const claimTexts = route.linkedClaimIds.map(
+          (id) => input.claimTextsById?.get(id) ?? ""
+        );
+        const corpus = [input.narrationText ?? "", ...claimTexts].join("\n").toLocaleLowerCase();
+        if (
+          !corpus.includes(route.origin.label.toLocaleLowerCase()) ||
+          !corpus.includes(route.destination.label.toLocaleLowerCase())
+        )
+          fail(
+            "MAP_ROUTE_NOT_IN_NARRATION",
+            "Map route is not present or clearly implied by trusted narration."
+          );
+      } else {
+        if (!route.linkedEvidenceIds.length) fail("MAP_EVIDENCE_MISSING", "Every route requires claim and evidence bindings.");
+        if (route.linkedEvidenceIds.some((id) => !input.evidenceIds.has(id))) fail("MAP_REFERENCE_INVALID", "Map route references must resolve.");
+      }
     }
-    for (const label of state.labels)
-      if (!label.linkedClaimIds.length || !label.linkedEvidenceIds.length)
+    for (const label of state.labels) {
+      if (!label.linkedClaimIds.length)
+        diagnostics.push(diagnostic("MAP_LABEL_CLAIM_MISSING", "editorial", "Every factual map label requires claim bindings.", [state.id, label.text]));
+      if (!trusted && (!label.linkedEvidenceIds.length))
         diagnostics.push(diagnostic("MAP_LABEL_EVIDENCE_MISSING", "editorial", "Every factual map label requires claim and evidence bindings.", [state.id, label.text]));
+    }
   }
   return diagnostics;
 }
@@ -434,20 +469,50 @@ export function validateHistoryDiagramStatesV33(input: {
   readonly diagramStates: readonly HistoryDiagramStateV3_3[];
   readonly claimIds: ReadonlySet<string>;
   readonly evidenceIds: ReadonlySet<string>;
+  readonly authorityMode?: "trusted-script" | "research-backed" | "unverified-external";
+  readonly claimTextsById?: ReadonlyMap<string, string>;
 }): HistoryDiagnosticV3_3[] {
   const diagnostics: HistoryDiagnosticV3_3[] = [];
+  const trusted = input.authorityMode === "trusted-script";
   for (const state of input.diagramStates) {
     const nodeIds = new Set(state.nodes.map((node) => node.id));
-    for (const node of state.nodes)
-      if (!node.linkedClaimIds.length || !node.linkedEvidenceIds.length)
+    for (const node of state.nodes) {
+      if (!node.linkedClaimIds.length)
+        diagnostics.push(diagnostic("DIAGRAM_NODE_CLAIM_MISSING", "editorial", "Every diagram node must be claim-bound.", [state.id, node.id]));
+      if (!trusted && !node.linkedEvidenceIds.length)
         diagnostics.push(diagnostic("DIAGRAM_NODE_EVIDENCE_MISSING", "editorial", "Every diagram node must be independently evidence-bound.", [state.id, node.id]));
+    }
     for (const edge of state.edges) {
       if (!nodeIds.has(edge.fromNodeId) || !nodeIds.has(edge.toNodeId))
         diagnostics.push(diagnostic("DIAGRAM_EDGE_REFERENCE_INVALID", "structural", "Diagram edge endpoints must resolve.", [state.id, edge.id]));
-      if (!edge.linkedClaimIds.length || !edge.linkedEvidenceIds.length)
+      if (!edge.linkedClaimIds.length)
+        diagnostics.push(diagnostic("DIAGRAM_EDGE_CLAIM_MISSING", "editorial", "Every diagram relationship must have claim bindings.", [state.id, edge.id]));
+      if (!trusted && !edge.linkedEvidenceIds.length)
         diagnostics.push(diagnostic("DIAGRAM_EDGE_EVIDENCE_MISSING", "editorial", "Every diagram relationship must have its own evidence binding.", [state.id, edge.id]));
-      if (edge.linkedClaimIds.some((id) => !input.claimIds.has(id)) || edge.linkedEvidenceIds.some((id) => !input.evidenceIds.has(id)))
+      if (edge.linkedClaimIds.some((id) => !input.claimIds.has(id)) || (!trusted && edge.linkedEvidenceIds.some((id) => !input.evidenceIds.has(id))))
         diagnostics.push(diagnostic("DIAGRAM_REFERENCE_INVALID", "structural", "Diagram evidence references must resolve.", [state.id, edge.id]));
+      if (trusted) {
+        const claimTexts = edge.linkedClaimIds.map(
+          (id) => input.claimTextsById?.get(id) ?? ""
+        );
+        const corpus = claimTexts.join("\n").toLocaleLowerCase();
+        const from = state.nodes.find((node) => node.id === edge.fromNodeId);
+        const to = state.nodes.find((node) => node.id === edge.toNodeId);
+        if (
+          from &&
+          to &&
+          (!corpus.includes(from.label.toLocaleLowerCase()) ||
+            !corpus.includes(to.label.toLocaleLowerCase()))
+        )
+          diagnostics.push(
+            diagnostic(
+              "DIAGRAM_EDGE_NOT_IN_NARRATION",
+              "editorial",
+              "Diagram edge is not expressed by trusted narration claims.",
+              [state.id, edge.id]
+            )
+          );
+      }
     }
   }
   return diagnostics;
@@ -465,6 +530,7 @@ export function buildHistoryVisualPlanV33(input: {
 }): HistoryVisualPlanV3_3 {
   assertResearchSnapshotV33(input.researchSnapshot);
   const snapshot = input.researchSnapshot;
+  const trustedMode = isTrustedInputSnapshot(snapshot);
   const durationPolicy = input.durationPolicy ?? HISTORY_LONG_FORM_DURATION_POLICY_V33;
   const timing = estimateHistoryTimingV33({
     narration: snapshot.canonicalNarration,
@@ -495,6 +561,10 @@ export function buildHistoryVisualPlanV33(input: {
   const aspectRatioPlans: AspectRatioPlanV3_3[] = [];
   const assetIntents: HistoryVisualPlanV3_3["assetIntents"][number][] = [];
   const mediaDecisions: HistoryVisualPlanV3_3["mediaDecisions"][number][] = [];
+  const mapMasters: HistoryVisualPlanV3_3["mapMasters"][number][] = [];
+  const mapStates: HistoryMapStateV3_3[] = [];
+  const diagramMasters: HistoryVisualPlanV3_3["diagramMasters"][number][] = [];
+  const diagramStates: HistoryDiagramStateV3_3[] = [];
   let cursor = 0;
   snapshot.canonicalNarration.units.forEach((unit, index) => {
     const beatNumber = String(index + 1).padStart(4, "0");
@@ -520,7 +590,9 @@ export function buildHistoryVisualPlanV33(input: {
             (/\b(?:route|river|territory|ships?|roads?)\b/iu.test(unit.text)
               ? "map" as const
               : "diagram" as const),
-          reasonForRejection: "The frozen snapshot does not contain adequate reproducible evidence for a factual graphic.",
+          reasonForRejection: trustedMode
+            ? "Trusted narration does not justify a factual graphic for this span."
+            : "The frozen snapshot does not contain adequate reproducible evidence for a factual graphic.",
           selectedFallback: modality,
           semanticJustification: "Keep narration audible without manufacturing an unsupported factual depiction.",
           linkedClaimIds: claimIds,
@@ -537,7 +609,9 @@ export function buildHistoryVisualPlanV33(input: {
       semanticJustification:
         proposedPurpose?.semanticJustification ??
         (provenanceReady
-          ? `Use ${modality} to clarify the exact narrated proposition without adding unsupported precision.`
+          ? trustedMode
+            ? `Use ${modality} only for facts explicitly present in the trusted narration.`
+            : `Use ${modality} to clarify the exact narrated proposition without adding unsupported precision.`
           : "Preserve this unique narration span while withholding factual imagery until provenance is adequate."),
       disallowedMisleadingTreatments:
         proposedPurpose?.disallowedMisleadingTreatments ??
@@ -550,27 +624,120 @@ export function buildHistoryVisualPlanV33(input: {
       evidenceRequirements:
         proposedPurpose?.evidenceRequirements ??
         (provenanceReady
-          ? ["retain supplied claim/evidence links"]
+          ? trustedMode
+            ? ["retain trusted claim and narration bindings only"]
+            : ["retain supplied claim/evidence links"]
           : ["obtain reproducible evidence before selecting a factual visual"]),
       fallbackDecision: fallback,
     });
     const ratioIds = (["16:9", "9:16"] as const).map((ratio) => `ratio-${beatNumber}-${ratio.replace(":", "x")}`);
     aspectRatioPlans.push(
       {
-        id: ratioIds[0]!, beatId, visualPurposeId: purposeId, ratio: "16:9", protectedSubject: provenanceReady ? unit.text.slice(0, 120) : "narration-led neutral field", focalEvidence: evidenceIds.join(", ") || "none; factual graphic withheld", safeZones: ["top 10% clear", "bottom 12% clear"], cropStrategy: "native landscape composition", reframingStrategy: "place focal subject on the narration-led third", labelsRetained: [], labelsRemoved: [], labelPriority: [], minimumTextSizePx: 28, textDensityResult: "pass", mapSimplification: "retain only evidenced route and critical labels", diagramSimplification: "retain only evidenced nodes and edges", conflictDiagnostics: [], independentPortraitRenderingMandatory: false,
+        id: ratioIds[0]!, beatId, visualPurposeId: purposeId, ratio: "16:9", protectedSubject: provenanceReady ? unit.text.slice(0, 120) : "narration-led neutral field", focalEvidence: trustedMode ? (claimIds.join(", ") || "trusted narration") : (evidenceIds.join(", ") || "none; factual graphic withheld"), safeZones: ["top 10% clear", "bottom 12% clear"], cropStrategy: "native landscape composition", reframingStrategy: "place focal subject on the narration-led third", labelsRetained: [], labelsRemoved: [], labelPriority: [], minimumTextSizePx: 28, textDensityResult: "pass", mapSimplification: trustedMode ? "retain only narrated route and critical labels" : "retain only evidenced route and critical labels", diagramSimplification: trustedMode ? "retain only narrated nodes and edges" : "retain only evidenced nodes and edges", conflictDiagnostics: [], independentPortraitRenderingMandatory: false,
       },
       {
-        id: ratioIds[1]!, beatId, visualPurposeId: purposeId, ratio: "9:16", protectedSubject: provenanceReady ? unit.text.slice(0, 120) : "narration-led neutral field", focalEvidence: evidenceIds.join(", ") || "none; factual graphic withheld", safeZones: ["top 14% clear", "bottom 18% clear", "center 70% protected"], cropStrategy: "no blind landscape crop", reframingStrategy: "independent portrait layout with vertically ordered evidence", labelsRetained: [], labelsRemoved: [], labelPriority: [], minimumTextSizePx: 32, textDensityResult: "pass", mapSimplification: "portrait-specific route isolation", diagramSimplification: "portrait-specific vertical node order", conflictDiagnostics: [], independentPortraitRenderingMandatory: true,
+        id: ratioIds[1]!, beatId, visualPurposeId: purposeId, ratio: "9:16", protectedSubject: provenanceReady ? unit.text.slice(0, 120) : "narration-led neutral field", focalEvidence: trustedMode ? (claimIds.join(", ") || "trusted narration") : (evidenceIds.join(", ") || "none; factual graphic withheld"), safeZones: ["top 14% clear", "bottom 18% clear", "center 70% protected"], cropStrategy: "no blind landscape crop", reframingStrategy: "independent portrait layout with vertically ordered evidence", labelsRetained: [], labelsRemoved: [], labelPriority: [], minimumTextSizePx: 32, textDensityResult: "pass", mapSimplification: "portrait-specific route isolation", diagramSimplification: "portrait-specific vertical node order", conflictDiagnostics: [], independentPortraitRenderingMandatory: true,
       }
     );
     shots.push({
-      id: shotId, beatId, durationMs, startMs: cursor, endMs, framing: framings[index % framings.length]!, cameraMovement: cameras[index % cameras.length]!, subject: provenanceReady ? unit.text.slice(0, 160) : "Neutral narration-led field; no factual depiction", focalEvidence: evidenceIds.join(", ") || "No factual evidence rendered", foreground: "No unsupported factual labels", midground: provenanceReady ? "Evidence-bound subject" : "Restrained non-factual texture", background: "Low-detail neutral context", permittedMotion: ["subtle non-diegetic texture", "narration-synchronous opacity change"], prohibitedMisleadingMotion: ["invented actor movement", "unsupported territorial change", "causal animation without edge evidence"], transition: transitions[index % transitions.length]!, assetReuseReference: null, linkedClaimIds: claimIds, linkedEvidenceIds: evidenceIds, ratioSpecificAdaptations: [{ ratio: "16:9", instruction: "Use native horizontal composition and landscape safe zones." }, { ratio: "9:16", instruction: "Render an independent vertical composition; do not crop the landscape layout." }], reconstructionPolicy: modality === "restrained atmospheric reconstruction" ? "illustrative-not-evidence" : "not-applicable",
+      id: shotId, beatId, durationMs, startMs: cursor, endMs, framing: framings[index % framings.length]!, cameraMovement: cameras[index % cameras.length]!, subject: provenanceReady ? unit.text.slice(0, 160) : "Neutral narration-led field; no factual depiction", focalEvidence: trustedMode ? (claimIds.join(", ") || "Trusted narration only") : (evidenceIds.join(", ") || "No factual evidence rendered"), foreground: "No unsupported factual labels", midground: provenanceReady ? (trustedMode ? "Narration-bound subject" : "Evidence-bound subject") : "Restrained non-factual texture", background: "Low-detail neutral context", permittedMotion: ["subtle non-diegetic texture", "narration-synchronous opacity change"], prohibitedMisleadingMotion: ["invented actor movement", "unsupported territorial change", "causal animation without edge evidence"], transition: transitions[index % transitions.length]!, assetReuseReference: null, linkedClaimIds: claimIds, linkedEvidenceIds: trustedMode ? [] : evidenceIds, ratioSpecificAdaptations: [{ ratio: "16:9", instruction: "Use native horizontal composition and landscape safe zones." }, { ratio: "9:16", instruction: "Render an independent vertical composition; do not crop the landscape layout." }], reconstructionPolicy: modality === "restrained atmospheric reconstruction" ? "illustrative-not-evidence" : "not-applicable",
     });
+    let mapStateId: string | null = null;
+    let diagramStateId: string | null = null;
+    if (trustedMode && provenanceReady && modality === "map") {
+      const places = [...new Set(snapshot.claims.filter((claim) => claimIds.includes(claim.id)).flatMap((claim) => claim.geographicQualifiers))];
+      const dates = [...new Set(snapshot.claims.filter((claim) => claimIds.includes(claim.id)).flatMap((claim) => claim.temporalQualifiers))];
+      const uncertainty = [...new Set(snapshot.claims.filter((claim) => claimIds.includes(claim.id)).flatMap((claim) => claim.uncertaintyMarkers))];
+      if (places.length >= 2) {
+        const masterId = `map-master-${beatNumber}`;
+        const stateId = `map-state-${beatNumber}`;
+        mapStateId = stateId;
+        mapMasters.push({
+          id: masterId,
+          purpose: `Narration-bound movement across ${places[0]} and ${places[1]}`,
+          supportedRatios: ["16:9", "9:16"],
+        });
+        mapStates.push({
+          id: stateId,
+          masterId,
+          purpose: unit.text.slice(0, 160),
+          baseGeography: places.slice(0, 4).join(", "),
+          timePeriod: dates[0] ?? "period as narrated",
+          affectedArea: places.slice(0, 3).join(", "),
+          territorialState: "broad narration-bound geography only",
+          labels: places.slice(0, 4).map((text) => ({
+            text,
+            linkedClaimIds: claimIds,
+            linkedEvidenceIds: [],
+          })),
+          routes: [
+            {
+              id: `route-${beatNumber}-01`,
+              routeType: /ship|sea|maritime/iu.test(unit.text) ? "maritime" : "military",
+              origin: { label: places[0]!, coordinates: [0, 0] },
+              destination: { label: places[1]!, coordinates: [1, 1] },
+              movingActor: snapshot.claims.find((claim) => claimIds.includes(claim.id))?.entities[0]?.text ?? "narrated actor",
+              carrierOrVehicle: null,
+              transportedObjectOrPathogen: null,
+              dateOrPeriod: dates[0] ?? "as narrated",
+              label: `${places[0]} to ${places[1]}`,
+              uncertainty: uncertainty.join("; ") || "No additional geographic precision beyond narration.",
+              linkedClaimIds: claimIds,
+              linkedEvidenceIds: [],
+            },
+          ],
+          uncertainty: uncertainty.join("; ") || "Keep geography broad where narration is broad.",
+          semanticStatus: "valid",
+        });
+      }
+    }
+    if (trustedMode && provenanceReady && modality === "diagram") {
+      const entities = [...new Set(snapshot.claims.filter((claim) => claimIds.includes(claim.id)).flatMap((claim) => claim.entities.map((entity) => entity.text)))];
+      if (entities.length >= 2) {
+        const masterId = `diagram-master-${beatNumber}`;
+        const stateId = `diagram-state-${beatNumber}`;
+        diagramStateId = stateId;
+        diagramMasters.push({
+          id: masterId,
+          diagramType: "relationship",
+          exactQuestion: unit.text.slice(0, 160),
+          supportedRatios: ["16:9", "9:16"],
+        });
+        const nodeA = `node-${beatNumber}-a`;
+        const nodeB = `node-${beatNumber}-b`;
+        diagramStates.push({
+          id: stateId,
+          masterId,
+          diagramType: "relationship",
+          exactQuestion: unit.text.slice(0, 160),
+          timeApplicability: "as narrated",
+          geographyApplicability: "as narrated",
+          uncertainty: [...new Set(snapshot.claims.filter((claim) => claimIds.includes(claim.id)).flatMap((claim) => claim.uncertaintyMarkers))].join("; ") || "Preserve narrated uncertainty.",
+          nodes: [
+            { id: nodeA, label: entities[0]!, linkedClaimIds: claimIds, linkedEvidenceIds: [] },
+            { id: nodeB, label: entities[1]!, linkedClaimIds: claimIds, linkedEvidenceIds: [] },
+          ],
+          edges: [
+            {
+              id: `edge-${beatNumber}-01`,
+              fromNodeId: nodeA,
+              toNodeId: nodeB,
+              relationship: /\b(?:because|led to|caused|resulted)\b/iu.test(unit.text) ? "causal as narrated" : "relationship as narrated",
+              linkedClaimIds: claimIds,
+              linkedEvidenceIds: [],
+            },
+          ],
+          rejectedAlternatives: ["unsupported causal arrows", "invented intermediaries"],
+          fallbackDecision: "Use only entities and relationships present in trusted narration.",
+          semanticStatus: "valid",
+        });
+      }
+    }
     beats.push({
-      id: beatId, narrationUnitIds: [unit.id], narrationSpan: { startUtf16: unit.startUtf16, endUtf16Exclusive: unit.endUtf16Exclusive }, startMs: cursor, endMs, linkedClaimIds: claimIds, linkedEvidenceIds: evidenceIds, visualPurposeId: purposeId, modality, assetIntentId, mapStateId: null, diagramStateId: null, timelineReference: null, documentReference: null, shotIds: [shotId], transition: transitions[index % transitions.length]!, continuityNotes: `Beat ${index + 1} continues canonical narration order without template-level semantic substitution.`, uncertaintyTreatment: provenanceReady ? "Retain claim-level uncertainty markers and evidence limits." : "Do not depict factual specifics while material provenance remains blocked.", aspectRatioPlanIds: ratioIds,
+      id: beatId, narrationUnitIds: [unit.id], narrationSpan: { startUtf16: unit.startUtf16, endUtf16Exclusive: unit.endUtf16Exclusive }, startMs: cursor, endMs, linkedClaimIds: claimIds, linkedEvidenceIds: trustedMode ? [] : evidenceIds, visualPurposeId: purposeId, modality, assetIntentId, mapStateId, diagramStateId, timelineReference: modality === "timeline" ? `timeline-${beatNumber}` : null, documentReference: modality === "document/quotation" ? `document-${beatNumber}` : null, shotIds: [shotId], transition: transitions[index % transitions.length]!, continuityNotes: `Beat ${index + 1} continues canonical narration order without template-level semantic substitution.`, uncertaintyTreatment: provenanceReady ? (trustedMode ? "Retain claim-level uncertainty markers from trusted narration." : "Retain claim-level uncertainty markers and evidence limits.") : "Do not depict factual specifics while material provenance remains blocked.", aspectRatioPlanIds: ratioIds,
     });
-    assetIntents.push({ id: assetIntentId, beatId, modality, factual: provenanceReady && !["text-only transition", "no generated visual"].includes(modality), linkedClaimIds: claimIds, linkedEvidenceIds: evidenceIds, evidenceStatus: provenanceReady ? "adequate" : "withheld-until-provenance-resolves" });
-    mediaDecisions.push({ id: `media-decision-${beatNumber}`, beatId, selectedModality: modality, rejectedModalities: fallback ? [fallback.rejectedModality] : [], justification: fallback?.semanticJustification ?? `The frozen evidence supports this beat-specific ${modality} choice.`, evidenceStatus: provenanceReady ? "adequate" : "blocked" });
+    assetIntents.push({ id: assetIntentId, beatId, modality, factual: provenanceReady && !["text-only transition", "no generated visual"].includes(modality), linkedClaimIds: claimIds, linkedEvidenceIds: trustedMode ? [] : evidenceIds, evidenceStatus: provenanceReady ? (trustedMode ? "trusted-narration" : "adequate") : "withheld-until-provenance-resolves" });
+    mediaDecisions.push({ id: `media-decision-${beatNumber}`, beatId, selectedModality: modality, rejectedModalities: fallback ? [fallback.rejectedModality] : [], justification: fallback?.semanticJustification ?? (trustedMode ? `Trusted narration supports this beat-specific ${modality} choice.` : `The frozen evidence supports this beat-specific ${modality} choice.`), evidenceStatus: provenanceReady ? (trustedMode ? "trusted-narration" : "adequate") : "blocked" });
     cursor = endMs;
   });
   const qualityMetrics = measureHistoryRepetitionV33({ purposes: visualPurposes, shots });
@@ -586,7 +753,9 @@ export function buildHistoryVisualPlanV33(input: {
       diagnostic(
         "MAP_PLAN_WITHHELD_FOR_PROVENANCE",
         "editorial",
-        "Map candidates are documented but no factual map state is reviewable until its route, labels, actors, dates, and boundaries have adequate evidence.",
+        trustedMode
+          ? "Map candidates are documented but no factual map state is reviewable until narration-bound route and label requirements are met."
+          : "Map candidates are documented but no factual map state is reviewable until its route, labels, actors, dates, and boundaries have adequate evidence.",
         withheldMapPurposes.map((purpose) => purpose.beatId)
       )
     );
@@ -595,7 +764,9 @@ export function buildHistoryVisualPlanV33(input: {
       diagnostic(
         "DIAGRAM_PLAN_WITHHELD_FOR_PROVENANCE",
         "editorial",
-        "Diagram candidates are documented but rejected until every proposed node and relationship has independent evidence.",
+        trustedMode
+          ? "Diagram candidates are documented but rejected until every proposed node and relationship is present in trusted narration."
+          : "Diagram candidates are documented but rejected until every proposed node and relationship has independent evidence.",
         withheldDiagramPurposes.map((purpose) => purpose.beatId)
       )
     );
@@ -610,12 +781,32 @@ export function buildHistoryVisualPlanV33(input: {
     diagnostics.push(diagnostic("TIMING_PREFERRED_DEVIATION", "editorial", "Duration differs from the preferred target but remains inside the allowed History range.", [], "warning"));
   if (!qualityMetrics.passes)
     diagnostics.push(diagnostic("EDITORIAL_REPETITION_THRESHOLD", "editorial", "Purpose or shot repetition exceeds the V3.3 threshold.", beats.map((beat) => beat.id)));
-  const mapMasters: HistoryVisualPlanV3_3["mapMasters"] = [];
-  const mapStates: HistoryMapStateV3_3[] = [];
-  const diagramMasters: HistoryVisualPlanV3_3["diagramMasters"] = [];
-  const diagramStates: HistoryDiagramStateV3_3[] = [];
-  diagnostics.push(...validateHistoryMapStatesV33({ mapStates, claimIds: new Set(snapshot.claims.map((claim) => claim.id)), evidenceIds: new Set(snapshot.evidenceFragments.map((fragment) => fragment.id)) }));
-  diagnostics.push(...validateHistoryDiagramStatesV33({ diagramStates, claimIds: new Set(snapshot.claims.map((claim) => claim.id)), evidenceIds: new Set(snapshot.evidenceFragments.map((fragment) => fragment.id)) }));
+  const claimTextsById = new Map(
+    snapshot.claims.map((claim) => [claim.id, claim.normalizedProposition] as const)
+  );
+  diagnostics.push(...validateHistoryMapStatesV33({
+    mapStates,
+    claimIds: new Set(snapshot.claims.map((claim) => claim.id)),
+    evidenceIds: new Set(snapshot.evidenceFragments.map((fragment) => fragment.id)),
+    ...(trustedMode
+      ? {
+          authorityMode: "trusted-script" as const,
+          narrationText: snapshot.canonicalNarration.normalizedText,
+          claimTextsById,
+        }
+      : { authorityMode: "research-backed" as const }),
+  }));
+  diagnostics.push(...validateHistoryDiagramStatesV33({
+    diagramStates,
+    claimIds: new Set(snapshot.claims.map((claim) => claim.id)),
+    evidenceIds: new Set(snapshot.evidenceFragments.map((fragment) => fragment.id)),
+    ...(trustedMode
+      ? {
+          authorityMode: "trusted-script" as const,
+          claimTextsById,
+        }
+      : { authorityMode: "research-backed" as const }),
+  }));
   const body = {
     schemaVersion: HISTORY_VISUAL_SCHEMA_V33,
     plannerVersion: HISTORY_VISUAL_PLANNER_V33,

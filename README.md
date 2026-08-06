@@ -1,3 +1,10 @@
+## Incomplete
+
+→ /goal Implement every requirement and satisfy every acceptance criterion in @prompts/06-history-trusted-script-default-and-incremental-visual-provenance-goal.md. Make trusted-script the default  
+ authority mode for History stories, disable automatic OpenAI research and source retrieval for trusted stories, generate honest claim and visual-planning artifacts from the trusted narration, and  
+ preserve optional research-backed workflows as explicit opt-in modes. Continue until implementation, tests, CLI documentation, migration, regenerated review artifacts, and final audit are complete or  
+ a concrete blocker is proven with exact evidence.
+
 # prompts
 
 Continue strictly from docs/mathe/audits/remediation-backlog.md:6:

@@ -1,6 +1,6 @@
 # History documentaries
 
-The `history` genre is a documentary workflow with evidence and release gates. Imported pack scripts are editorial drafts: structural import records their provenance and keeps every episode blocked from publication until source assessment, claim mapping, chronology, quotation, factuality, media, and publish validation have completed.
+The `history` genre is a documentary workflow with evidence and release gates. Newly imported or generated History stories default to `sourceAuthorityMode: trusted-script`: the canonical narration is treated as editorially verified input, and the pipeline does not automatically perform OpenAI research, web search, source retrieval, or evidence assessment. Independent research remains available only through explicit `research-backed` opt-in. Imported pack bibliography links remain `declared-by-pack` metadata and are never treated as approved evidence.
 
 See [content-pack-inventory.md](content-pack-inventory.md) for the immutable pack inventory, SHA-256 checksums, and implementation ownership map.
 
@@ -65,7 +65,28 @@ Estimate-only v2 plans are explicitly provisional and may be reviewed, but final
 
 ### Opt-in V3.3 research and approval packs
 
-V3.3 is an additive History-only contract. Phase A may call OpenAI and live
+History stories default to `trusted-script` authority. Canonical narration is
+treated as editorially trusted input. Automatic OpenAI research, web search,
+source retrieval, and evidence assessment are disabled unless the episode is
+explicitly promoted to `research-backed`.
+
+```bash
+mediaforge history authoring status <episode-id> --json
+mediaforge history authoring trust-script <episode-id> --json
+mediaforge history authoring set-authority <episode-id> --mode trusted-script --assertion accepted-without-independent-verification --json
+mediaforge history authoring attest <episode-id> --assertion factually-verified --json
+mediaforge history authoring extract-trusted-claims <episode-id> --json
+mediaforge history authoring diff-script <episode-id> --json
+mediaforge history authoring reattest-deltas <episode-id> --json
+mediaforge history authoring regenerate-visuals <episode-id> --json
+```
+
+Trusted migration and review regeneration are offline: no `OPENAI_API_KEY`, zero
+provider calls, and claims receive `trusted_input` rather than `supported`.
+Review packs include the warning that the pipeline did not independently verify
+the story.
+
+V3.3 research remains an additive explicit opt-in. Phase A may call OpenAI and live
 retrieval providers; it freezes immutable research snapshots. Phase B never
 performs live research and is byte-deterministic for the same canonical inputs,
 configuration, and frozen snapshot. Application code owns UTF-16 offsets,
@@ -73,10 +94,14 @@ identifiers, provenance status, gate state, hashes, and checksums. Model output
 is schema-constrained advisory data.
 
 ```bash
+mediaforge history v3.3 config --json
+mediaforge history v3.3 cost-status <episode-id> --json
+mediaforge history v3.3 research-status <episode-id> --json
 mediaforge history v3.3 normalize <episode-id> --offline-fixture --json
 mediaforge history v3.3 extract-claims <episode-id> --offline-fixture --json
-mediaforge history v3.3 retrieve-sources <episode-id> --live-research --refresh-source --json
-mediaforge history v3.3 assess-evidence <episode-id> --live-research --refresh-source --json
+mediaforge history v3.3 extract-claims <episode-id> --live-research --promote-to-research-backed --dry-run --json
+mediaforge history v3.3 retrieve-sources <episode-id> --live-research --promote-to-research-backed --refresh-source --json
+mediaforge history v3.3 assess-evidence <episode-id> --live-research --promote-to-research-backed --refresh-source --json
 mediaforge history v3.3 evaluate-provenance <episode-id> --reuse-frozen-snapshot --json
 mediaforge history v3.3 freeze <episode-id> --reuse-frozen-snapshot --json
 mediaforge history v3.3 plan <episode-id> --reuse-frozen-snapshot --json
@@ -87,18 +112,28 @@ mediaforge history v3.3 compare <episode-a> <episode-b> <episode-c> --output <di
 ```
 
 `--live-research` is opt-in, requires `OPENAI_API_KEY` (or
-`OPENAI_API_TOKEN`), and uses `OPENAI_HISTORY_MODEL` when set, otherwise
-`gpt-5-mini`. It uses strict Responses API schemas, bounded batches, SDK
-timeouts/retries, retrieval validation, and fail-closed semantic validation.
+`OPENAI_API_TOKEN`), and against a trusted-script episode also requires
+`--promote-to-research-backed`. It uses Luna-first History cost configuration
+(`HISTORY_CLAIM_EXTRACTION_MODEL` and related `HISTORY_*` vars; defaults to
+`gpt-5.6-luna` with `gpt-5.6-terra` escalation only). Legacy
+`OPENAI_HISTORY_MODEL` still overrides primary Luna-role models when the
+specific `HISTORY_*` model vars are unset. Live research uses strict Responses
+API schemas, clustered/budgeted web discovery, local source fetch/reuse,
+candidate fragment caps, compact assessments, optional Batch API with sync
+fallback, disk-backed paid-batch resume, and fail-closed provenance.
 `--offline-fixture` never makes paid calls. `--reuse-frozen-snapshot` is the
-required deterministic packaging mode. `--dry-run`, `--force`, structured JSON,
-and human-readable output remain available.
+required deterministic packaging mode. `--dry-run` estimates batches, clusters,
+search ceilings, and cost budgets without paid calls. Broad `--force` writes a
+projected-cost warning; prefer `--force-batch`, `--refresh-source-id`, or
+`--invalidate-from`.
 
 The History long-form V3.3 policy preserves a 600,000 ms preference and allows
 480,000–1,200,000 ms. Estimated timing can pass planning validation but cannot
-approve production. Unresolved claims block content; missing evidence-bound
-maps/diagrams block editorial review and are reported as `not_generated`, not
-as passing. See [the V3.3 acceptance audit](../history-v3.3/ACCEPTANCE-AUDIT.md).
+approve production. In trusted-script mode, material claims with valid
+hash-bound attestation satisfy content eligibility as `trusted_input`. In
+research-backed mode, unresolved claims still block content; missing
+evidence-bound maps/diagrams block editorial review and are reported as
+`not_generated`, not as passing. See [the V3.3 acceptance audit](../history-v3.3/ACCEPTANCE-AUDIT.md).
 
 ## Recommended pilot
 

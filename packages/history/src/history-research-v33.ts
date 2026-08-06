@@ -5,6 +5,14 @@ import type {
   CanonicalNarrationV3_3,
   TextSpanV3_3,
 } from "./history-narration-v33.js";
+import {
+  CLAIM_EXTRACTION_STABLE_PREFIX_V33,
+  EVIDENCE_ASSESSMENT_STABLE_PREFIX_V33,
+  HISTORY_PROMPT_CACHE_KEYS_V33,
+  VISUAL_SEMANTICS_STABLE_PREFIX_V33,
+  compactClaimEvidenceAssessmentV33Schema,
+  expandCompactAssessmentV33,
+} from "./history-research-compact-v33.js";
 
 export const HISTORY_CLAIM_SCHEMA_V33 = "history-claim.v3.3" as const;
 export const HISTORY_PROVENANCE_POLICY_V33 =
@@ -199,7 +207,8 @@ export type ClaimProvenanceStatusV3_3 =
   | "contested"
   | "contradicted"
   | "unresolved"
-  | "not_required";
+  | "not_required"
+  | "trusted_input";
 
 export interface ClaimProvenanceV3_3 {
   readonly claimId: string;
@@ -252,6 +261,11 @@ export interface ProviderRunMetadataV3_3 {
   readonly cachedInputTokens: number;
   readonly retryCount: number;
   readonly cacheKey: string;
+  readonly batchId?: string | null;
+  readonly escalationReason?: string | null;
+  readonly escalationModel?: string | null;
+  readonly reasoningTokens?: number | null;
+  readonly promptCacheKey?: string | null;
 }
 
 export interface HistoryResearchSnapshotV3_3 {
@@ -274,6 +288,36 @@ export interface HistoryResearchSnapshotV3_3 {
   }[];
   readonly overrides: readonly HumanOverrideV3_3[];
   readonly snapshotHash: string;
+  readonly researchClusters?: readonly {
+    readonly id: string;
+    readonly claimIds: readonly string[];
+    readonly normalizedTopic: string;
+    readonly priorityScore: number;
+  }[];
+  readonly searchBudget?: {
+    readonly totalSearchCalls: number;
+    readonly softLimit: number;
+    readonly hardLimit: number;
+    readonly remainingHardBudget: number;
+    readonly stopReason: string;
+  };
+  readonly costLedger?: {
+    readonly pricingVersion: string;
+    readonly pricingStatus: string;
+    readonly cumulativeCostUsd: number | null;
+    readonly softBudgetUsd: number;
+    readonly hardBudgetUsd: number;
+    readonly stopReason: string;
+    readonly entryCount: number;
+  };
+  readonly escalations?: readonly {
+    readonly claimId: string | null;
+    readonly operation: string;
+    readonly primaryModel: string;
+    readonly escalationModel: string;
+    readonly reasons: readonly string[];
+    readonly finalSelected: "primary" | "escalation";
+  }[];
 }
 
 export interface ClaimExtractionProviderV3_3 {
@@ -980,7 +1024,15 @@ export class OpenAiClaimExtractionProviderV33 implements ClaimExtractionProvider
     private readonly client: OpenAiResponsesClientV3_3,
     private readonly model: string,
     private readonly now: () => string = () => new Date().toISOString(),
-    private readonly timeoutMs = 2 * 60_000
+    private readonly timeoutMs = Number(
+      process.env["HISTORY_OPENAI_TIMEOUT_MS"] ??
+        process.env["OPENAI_HISTORY_TIMEOUT_MS"] ??
+        10 * 60_000
+    ),
+    private readonly maxOutputTokens = Number(
+      process.env["HISTORY_MAX_OUTPUT_TOKENS_PER_EXTRACTION_BATCH"] ?? 2_500
+    ),
+    private readonly enablePromptCaching = process.env["HISTORY_ENABLE_PROMPT_CACHING"] !== "false"
   ) {}
 
   async extract(input: {
@@ -992,25 +1044,38 @@ export class OpenAiClaimExtractionProviderV33 implements ClaimExtractionProvider
     proposals: ClaimProposalV3_3[];
     metadata: ProviderRunMetadataV3_3;
   }> {
-    const promptVersion = "history-claim-extraction-prompt.v3.3.0";
-    const prompt = [
-      "Extract atomic historical claim proposals from the canonical units.",
-      "Never return IDs other than the supplied narrationUnitId. Never return offsets, URLs, citations, or approval fields.",
-      "verbatimText must be copied exactly from one supplied unit. Separate rhetoric from factual claims.",
-      JSON.stringify({
-        episodeId: input.episodeId,
-        narrationSha256: input.narrationSha256,
-        units: input.units.map(({ id, text }) => ({ id, text })),
-      }),
-    ].join("\n");
-    const promptHash = sha256(prompt);
+    const promptVersion = "history-claim-extraction-prompt.v3.3.1";
+    const dynamicPayload = JSON.stringify({
+      episodeId: input.episodeId,
+      narrationSha256: input.narrationSha256,
+      units: input.units.map(({ id, text }) => ({ id, text })),
+    });
+    const promptHash = sha256(
+      `${CLAIM_EXTRACTION_STABLE_PREFIX_V33}\n${dynamicPayload}`
+    );
     const schemaHash = hashCanonicalV33(this.#schema);
+    const promptCacheKey = this.enablePromptCaching
+      ? HISTORY_PROMPT_CACHE_KEYS_V33.claimExtraction(
+          promptVersion,
+          HISTORY_CLAIM_SCHEMA_V33
+        )
+      : null;
     const signal = input.signal ?? AbortSignal.timeout(this.timeoutMs);
     const response = await this.client.responses.create(
       {
         model: this.model,
+        max_output_tokens: this.maxOutputTokens,
         input: [
-          { role: "user", content: [{ type: "input_text", text: prompt }] },
+          {
+            role: "system",
+            content: [
+              { type: "input_text", text: CLAIM_EXTRACTION_STABLE_PREFIX_V33 },
+            ],
+          },
+          {
+            role: "user",
+            content: [{ type: "input_text", text: dynamicPayload }],
+          },
         ],
         text: {
           format: {
@@ -1023,9 +1088,31 @@ export class OpenAiClaimExtractionProviderV33 implements ClaimExtractionProvider
       },
       { signal }
     );
-    const parsed = this.#batchSchema.parse(
-      JSON.parse(response.output_text ?? "null") as unknown
-    );
+    let parsed: { proposals: ClaimProposalV3_3[] };
+    try {
+      parsed = this.#batchSchema.parse(
+        JSON.parse(response.output_text ?? "null") as unknown
+      );
+    } catch (error) {
+      const raw = response.output_text ?? "";
+      const looksTruncated =
+        !raw.trim().endsWith("}") ||
+        /Unterminated string|Unexpected end|Expected ',' or '\]'|Expected property name/iu.test(
+          error instanceof Error ? error.message : String(error)
+        ) ||
+        (typeof response.usage?.output_tokens === "number" &&
+          response.usage.output_tokens >= this.maxOutputTokens - 5);
+      throw new HistoryProviderErrorV3_3(
+        "schema",
+        looksTruncated
+          ? `Claim extraction output truncated or invalid under max_output_tokens=${this.maxOutputTokens}; split the batch and retry.`
+          : `Claim extraction response failed schema/JSON validation: ${
+              error instanceof Error ? error.message : String(error)
+            }`,
+        false,
+        error
+      );
+    }
     return {
       proposals: parsed.proposals,
       metadata: {
@@ -1046,6 +1133,7 @@ export class OpenAiClaimExtractionProviderV33 implements ClaimExtractionProvider
         cacheKey: sha256(
           `${input.narrationSha256}\u0000${promptHash}\u0000${schemaHash}\u0000${this.model}`
         ),
+        promptCacheKey,
       },
     };
   }
@@ -1078,7 +1166,11 @@ export class OpenAiWebSearchRetrievalProviderV33 implements SourceRetrievalProvi
     private readonly client: OpenAiResponsesClientV3_3,
     private readonly model: string,
     private readonly now: () => string = () => new Date().toISOString(),
-    private readonly timeoutMs = 120_000
+    private readonly timeoutMs = Number(
+      process.env["HISTORY_OPENAI_TIMEOUT_MS"] ??
+        process.env["OPENAI_HISTORY_TIMEOUT_MS"] ??
+        10 * 60_000
+    )
   ) {}
 
   async retrieve(input: {
@@ -1143,7 +1235,9 @@ export class OpenAiWebSearchRetrievalProviderV33 implements SourceRetrievalProvi
 export class OpenAiEvidenceAssessmentProviderV33 implements EvidenceAssessmentProviderV3_3 {
   readonly provider = "openai";
   readonly #batchSchema = z
-    .object({ assessments: z.array(claimEvidenceAssessmentV33Schema) })
+    .object({
+      assessments: z.array(compactClaimEvidenceAssessmentV33Schema),
+    })
     .strict();
   readonly #schema = z.toJSONSchema(this.#batchSchema);
 
@@ -1151,7 +1245,15 @@ export class OpenAiEvidenceAssessmentProviderV33 implements EvidenceAssessmentPr
     private readonly client: OpenAiResponsesClientV3_3,
     private readonly model: string,
     private readonly now: () => string = () => new Date().toISOString(),
-    private readonly timeoutMs = 2 * 60_000
+    private readonly timeoutMs = Number(
+      process.env["HISTORY_OPENAI_TIMEOUT_MS"] ??
+        process.env["OPENAI_HISTORY_TIMEOUT_MS"] ??
+        10 * 60_000
+    ),
+    private readonly maxOutputTokens = Number(
+      process.env["HISTORY_MAX_OUTPUT_TOKENS_PER_ASSESSMENT_BATCH"] ?? 1_500
+    ),
+    private readonly enablePromptCaching = process.env["HISTORY_ENABLE_PROMPT_CACHING"] !== "false"
   ) {}
 
   async assess(input: {
@@ -1163,25 +1265,56 @@ export class OpenAiEvidenceAssessmentProviderV33 implements EvidenceAssessmentPr
     assessments: ClaimEvidenceAssessmentV3_3[];
     metadata: ProviderRunMetadataV3_3;
   }> {
-    const promptVersion = "history-evidence-assessment-prompt.v3.3.0";
+    const promptVersion = "history-evidence-assessment-prompt.v3.3.1";
     const payload = {
-      claims: input.claims,
-      evidenceFragments: input.evidenceFragments,
+      claims: input.claims.map((claim) => ({
+        id: claim.id,
+        proposition: claim.normalizedProposition,
+        kind: claim.claimKind,
+        material: claim.material,
+        temporalQualifiers: claim.temporalQualifiers,
+        geographicQualifiers: claim.geographicQualifiers,
+        entities: claim.entities,
+      })),
+      evidenceFragments: input.evidenceFragments.map((fragment) => ({
+        id: fragment.id,
+        excerpt: fragment.excerpt,
+        sourceReferenceId: fragment.sourceReferenceId,
+        locator: fragment.locator,
+      })),
       sourceQuality: input.sourceReferences.map(
         ({ id, qualityTier, sourceType }) => ({ id, qualityTier, sourceType })
       ),
     };
-    const prompt = [
-      "Assess claims only against the exact supplied fragments. Do not use outside knowledge, add IDs, sources, URLs, final statuses, or approvals.",
-      JSON.stringify(payload),
-    ].join("\n");
-    const promptHash = sha256(prompt);
+    const dynamicPayload = JSON.stringify(payload);
+    const promptHash = sha256(
+      `${EVIDENCE_ASSESSMENT_STABLE_PREFIX_V33}\n${dynamicPayload}`
+    );
     const schemaHash = hashCanonicalV33(this.#schema);
+    const promptCacheKey = this.enablePromptCaching
+      ? HISTORY_PROMPT_CACHE_KEYS_V33.evidenceAssessment(
+          promptVersion,
+          "history-claim-evidence-assessment.v3.3"
+        )
+      : null;
     const response = await this.client.responses.create(
       {
         model: this.model,
+        max_output_tokens: this.maxOutputTokens,
         input: [
-          { role: "user", content: [{ type: "input_text", text: prompt }] },
+          {
+            role: "system",
+            content: [
+              {
+                type: "input_text",
+                text: EVIDENCE_ASSESSMENT_STABLE_PREFIX_V33,
+              },
+            ],
+          },
+          {
+            role: "user",
+            content: [{ type: "input_text", text: dynamicPayload }],
+          },
         ],
         text: {
           format: {
@@ -1194,13 +1327,14 @@ export class OpenAiEvidenceAssessmentProviderV33 implements EvidenceAssessmentPr
       },
       { signal: input.signal ?? AbortSignal.timeout(this.timeoutMs) }
     );
+    const compact = this.#batchSchema.parse(
+      JSON.parse(response.output_text ?? "null") as unknown
+    ).assessments;
     const assessments = validateAssessmentsV33({
       claims: input.claims,
       sources: input.sourceReferences,
       evidence: input.evidenceFragments,
-      assessments: this.#batchSchema.parse(
-        JSON.parse(response.output_text ?? "null") as unknown
-      ).assessments,
+      assessments: compact.map(expandCompactAssessmentV33),
     });
     return {
       assessments,
@@ -1222,6 +1356,7 @@ export class OpenAiEvidenceAssessmentProviderV33 implements EvidenceAssessmentPr
         cacheKey: sha256(
           `${hashCanonicalV33(payload)}\u0000${promptHash}\u0000${schemaHash}\u0000${this.model}`
         ),
+        promptCacheKey,
       },
     };
   }
@@ -1238,7 +1373,12 @@ export class OpenAiVisualPurposeProviderV33 implements VisualPurposeProviderV3_3
     private readonly client: OpenAiResponsesClientV3_3,
     private readonly model: string,
     private readonly now: () => string = () => new Date().toISOString(),
-    private readonly timeoutMs = 2 * 60_000
+    private readonly timeoutMs = Number(
+      process.env["HISTORY_OPENAI_TIMEOUT_MS"] ??
+        process.env["OPENAI_HISTORY_TIMEOUT_MS"] ??
+        10 * 60_000
+    ),
+    private readonly enablePromptCaching = process.env["HISTORY_ENABLE_PROMPT_CACHING"] !== "false"
   ) {}
 
   async propose(input: {
@@ -1251,7 +1391,7 @@ export class OpenAiVisualPurposeProviderV33 implements VisualPurposeProviderV3_3
     proposals: VisualPurposeProposalV3_3[];
     metadata: ProviderRunMetadataV3_3;
   }> {
-    const promptVersion = "history-visual-purpose-prompt.v3.3.0";
+    const promptVersion = "history-visual-purpose-prompt.v3.3.1";
     const purposeInput = {
       episodeId: input.episodeId,
       units: input.narration.units.map(({ id, text }) => ({ id, text })),
@@ -1264,18 +1404,31 @@ export class OpenAiVisualPurposeProviderV33 implements VisualPurposeProviderV3_3
           "unresolved",
       })),
     };
-    const prompt = [
-      "Propose one semantically defensible, beat-specific visual purpose per supplied narration unit.",
-      "Do not output application IDs, claim IDs, source/evidence IDs, URLs, offsets, approval states, or unsupported factual precision. Prefer no generated visual when evidence is inadequate.",
-      JSON.stringify(purposeInput),
-    ].join("\n");
-    const promptHash = sha256(prompt);
+    const dynamicPayload = JSON.stringify(purposeInput);
+    const promptHash = sha256(
+      `${VISUAL_SEMANTICS_STABLE_PREFIX_V33}\n${dynamicPayload}`
+    );
     const schemaHash = hashCanonicalV33(this.#schema);
+    const promptCacheKey = this.enablePromptCaching
+      ? HISTORY_PROMPT_CACHE_KEYS_V33.visualSemantics(
+          promptVersion,
+          "history-visual-purpose-proposal.v3.3"
+        )
+      : null;
     const response = await this.client.responses.create(
       {
         model: this.model,
         input: [
-          { role: "user", content: [{ type: "input_text", text: prompt }] },
+          {
+            role: "system",
+            content: [
+              { type: "input_text", text: VISUAL_SEMANTICS_STABLE_PREFIX_V33 },
+            ],
+          },
+          {
+            role: "user",
+            content: [{ type: "input_text", text: dynamicPayload }],
+          },
         ],
         text: {
           format: {
@@ -1318,6 +1471,7 @@ export class OpenAiVisualPurposeProviderV33 implements VisualPurposeProviderV3_3
         cacheKey: sha256(
           `${input.narration.normalizedTextSha256}\u0000${promptHash}\u0000${schemaHash}\u0000${this.model}`
         ),
+        promptCacheKey,
       },
     };
   }

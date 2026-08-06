@@ -136,6 +136,7 @@ export interface NormalizedHistoryMetadata {
   readonly originalStatus: string;
   readonly validationStatus: "pending";
   readonly publishReady: false;
+  readonly sourceAuthorityMode: "trusted-script";
   readonly period: { readonly original: string; readonly taxonomy: HistoricalPeriod; readonly parsingConfidence: number };
   readonly geographicScope: { readonly kind: "regional"; readonly labels: readonly string[]; readonly originalLabels: readonly string[] };
   readonly runtime: {
@@ -149,12 +150,14 @@ export interface NormalizedHistoryMetadata {
     readonly actualDurationSeconds?: number;
   };
   readonly factCheck: {
-    readonly researchProvenancePresent: true;
+    readonly researchProvenancePresent: false;
+    readonly trustedScriptAccepted: true;
+    readonly independentlyVerifiedByPipeline: false;
     readonly finalFactualValidationRequired: true;
-    readonly claimExtraction: "pending";
-    readonly sourceAssessment: "pending";
-    readonly quotationVerification: "pending";
-    readonly chronologyValidation: "pending";
+    readonly claimExtraction: "trusted-deterministic-pending";
+    readonly sourceAssessment: "not-required-trusted-script";
+    readonly quotationVerification: "trusted-input-pending";
+    readonly chronologyValidation: "trusted-input-pending";
   };
   readonly presetId: HistoryDocumentaryPresetId;
   readonly requiredFeatures: HistoryContentPackEpisodeOverlay["requiredFeatures"];
@@ -499,13 +502,16 @@ async function parseEpisode(args: {
         declaredManifestWordCount: args.manifestEntry.word_count,
         calculatedNarrationWordCount: wordCount,
       },
+      sourceAuthorityMode: "trusted-script",
       factCheck: {
-        researchProvenancePresent: true,
+        researchProvenancePresent: false,
+        trustedScriptAccepted: true,
+        independentlyVerifiedByPipeline: false,
         finalFactualValidationRequired: true,
-        claimExtraction: "pending",
-        sourceAssessment: "pending",
-        quotationVerification: "pending",
-        chronologyValidation: "pending",
+        claimExtraction: "trusted-deterministic-pending",
+        sourceAssessment: "not-required-trusted-script",
+        quotationVerification: "trusted-input-pending",
+        chronologyValidation: "trusted-input-pending",
       },
       presetId: overlay.presetId,
       requiredFeatures: overlay.requiredFeatures,

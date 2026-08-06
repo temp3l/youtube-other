@@ -175,14 +175,29 @@ import {
   createHistoryApprovalPackV33,
   createCombinedHistoryApprovalBundleV33,
   runHistoryV33Workflow,
+  getHistoryV33CostStatus,
+  getHistoryV33ResearchStatus,
+  loadHistoryResearchCostConfigV33,
+  redactHistoryResearchCostConfigV33,
+  uniqueHistorySemanticModelsV33,
+  assertHistoryModelsAvailableV33,
   OpenAiClaimExtractionProviderV33,
   OpenAiEvidenceAssessmentProviderV33,
   OpenAiVisualPurposeProviderV33,
+  OpenAiWebSearchRetrievalProviderV33,
   type OpenAiResponsesClientV3_3,
   assertHistoryVisualApproval,
   listHistoryPresets,
   validateHistoryEpisodeFactuality,
   validateHistoryContentPack,
+  getHistoryAuthoringStatusV33,
+  setHistorySourceAuthorityV33,
+  attestHistoryTrustedNarrationV33,
+  runHistoryTrustScriptMigrationV33,
+  extractHistoryTrustedClaimsCommandV33,
+  diffHistoryTrustedScriptV33,
+  reattestHistoryTrustDeltasV33,
+  regenerateHistoryTrustedVisualsV33,
 } from "@mediaforge/history";
 import {
   ConnectedApiCliError,
@@ -5197,27 +5212,90 @@ registerHistoryCommands(program, {
   createHistoryReviewBundleV32,
   createHistoryReviewBundleV33: createHistoryApprovalPackV33,
   createCombinedHistoryApprovalBundleV33,
-  runHistoryV33Workflow: (request) => {
+  runHistoryV33Workflow: async (request) => {
     if (request.mode !== "live-research")
-      return runHistoryV33Workflow(request);
+      return runHistoryV33Workflow({
+        ...request,
+        costConfig: loadHistoryResearchCostConfigV33(),
+      });
+    const costConfig = loadHistoryResearchCostConfigV33();
+    const timeoutMs = costConfig.openaiTimeoutMs;
     const client = createOpenAiStoryClientWithOptions({
       maxRetries: 3,
-      timeoutMs: 60_000,
-    }) as unknown as OpenAiResponsesClientV3_3;
-    const model = process.env["OPENAI_HISTORY_MODEL"] ?? "gpt-5-mini";
+      timeoutMs,
+    }) as unknown as OpenAiResponsesClientV3_3 & {
+      models?: { retrieve(model: string): Promise<{ id: string }> };
+    };
+    if (client.models?.retrieve) {
+      await assertHistoryModelsAvailableV33({
+        models: uniqueHistorySemanticModelsV33(costConfig),
+        client: { models: client.models },
+      });
+    } else {
+      await assertHistoryModelsAvailableV33({
+        models: uniqueHistorySemanticModelsV33(costConfig),
+        skip: true,
+      });
+    }
     return runHistoryV33Workflow({
       ...request,
+      costConfig,
       claimExtractionProvider: new OpenAiClaimExtractionProviderV33(
         client,
-        model
+        costConfig.claimExtractionModel,
+        undefined,
+        timeoutMs,
+        costConfig.maxOutputTokensPerExtractionBatch,
+        costConfig.enablePromptCaching
       ),
       evidenceAssessmentProvider: new OpenAiEvidenceAssessmentProviderV33(
         client,
-        model
+        costConfig.evidenceAssessmentModel,
+        undefined,
+        timeoutMs,
+        costConfig.maxOutputTokensPerAssessmentBatch,
+        costConfig.enablePromptCaching
       ),
-      visualPurposeProvider: new OpenAiVisualPurposeProviderV33(client, model),
+      ...(costConfig.enableEscalation
+        ? {
+            evidenceAssessmentEscalationProvider:
+              new OpenAiEvidenceAssessmentProviderV33(
+                client,
+                costConfig.escalationModel,
+                undefined,
+                timeoutMs,
+                costConfig.maxOutputTokensPerAssessmentBatch,
+                costConfig.enablePromptCaching
+              ),
+          }
+        : {}),
+      visualPurposeProvider: new OpenAiVisualPurposeProviderV33(
+        client,
+        costConfig.visualSemanticModel,
+        undefined,
+        timeoutMs,
+        costConfig.enablePromptCaching
+      ),
+      sourceRetrievalProvider: new OpenAiWebSearchRetrievalProviderV33(
+        client,
+        costConfig.researchQueryModel,
+        undefined,
+        timeoutMs
+      ),
     });
   },
+  getHistoryV33Config: () =>
+    redactHistoryResearchCostConfigV33(loadHistoryResearchCostConfigV33()),
+  getHistoryV33CostStatus,
+  getHistoryV33ResearchStatus,
+  getHistoryAuthoringStatus: getHistoryAuthoringStatusV33,
+  setHistorySourceAuthority: setHistorySourceAuthorityV33,
+  attestHistoryTrustedNarration: attestHistoryTrustedNarrationV33,
+  runHistoryTrustScriptMigration: runHistoryTrustScriptMigrationV33,
+  extractHistoryTrustedClaims: extractHistoryTrustedClaimsCommandV33,
+  diffHistoryTrustedScript: diffHistoryTrustedScriptV33,
+  reattestHistoryTrustDeltas: reattestHistoryTrustDeltasV33,
+  regenerateHistoryTrustedVisuals: regenerateHistoryTrustedVisualsV33,
 });
 // Connected command surfaces validate their credentials during registration.
 // Keep the local CLI usable when an operator intentionally has no API setup.

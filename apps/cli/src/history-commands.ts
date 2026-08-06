@@ -108,12 +108,94 @@ export interface HistoryCommandDependencies {
     readonly force?: boolean;
     readonly dryRun?: boolean;
     readonly approvalOutput?: string;
+    readonly forceBatchId?: string;
+    readonly refreshSourceId?: string;
+    readonly promoteToResearchBacked?: boolean;
+    readonly invalidateFrom?:
+      | "claims"
+      | "sources"
+      | "evidence"
+      | "assessments"
+      | "provenance"
+      | "visuals";
+    readonly auditedBudgetOverride?: boolean;
+  }) => Promise<unknown>;
+  readonly getHistoryV33Config?: () => Promise<unknown> | unknown;
+  readonly getHistoryV33CostStatus?: (request: {
+    readonly episodeId: string;
+    readonly outputRoot?: string;
+  }) => Promise<unknown>;
+  readonly getHistoryV33ResearchStatus?: (request: {
+    readonly episodeId: string;
+    readonly outputRoot?: string;
   }) => Promise<unknown>;
   readonly createCombinedHistoryApprovalBundleV33?: (request: {
     readonly episodeIds: readonly string[];
     readonly output: string;
     readonly outputRoot?: string;
     readonly regenerate?: boolean;
+  }) => Promise<unknown>;
+  readonly getHistoryAuthoringStatus?: (request: {
+    readonly episodeId: string;
+    readonly outputRoot?: string;
+  }) => Promise<unknown>;
+  readonly setHistorySourceAuthority?: (request: {
+    readonly episodeId: string;
+    readonly outputRoot?: string;
+    readonly mode: "trusted-script" | "research-backed" | "unverified-external";
+    readonly actor?: string;
+    readonly reason?: string;
+    readonly assertion?:
+      | "factually-verified"
+      | "accepted-without-independent-verification";
+    readonly dryRun?: boolean;
+  }) => Promise<unknown>;
+  readonly attestHistoryTrustedNarration?: (request: {
+    readonly episodeId: string;
+    readonly outputRoot?: string;
+    readonly assertion?:
+      | "factually-verified"
+      | "accepted-without-independent-verification";
+    readonly authority?: "user" | "content-pack-owner" | "editorial-workflow";
+    readonly authorityName?: string | null;
+    readonly scope?: "entire-narration" | "selected-claims";
+    readonly selectedClaimIds?: readonly string[];
+    readonly dryRun?: boolean;
+  }) => Promise<unknown>;
+  readonly runHistoryTrustScriptMigration?: (request: {
+    readonly episodeId: string;
+    readonly outputRoot?: string;
+    readonly assertion?:
+      | "factually-verified"
+      | "accepted-without-independent-verification";
+    readonly actor?: string;
+    readonly reason?: string;
+    readonly dryRun?: boolean;
+    readonly regenerateVisuals?: boolean;
+  }) => Promise<unknown>;
+  readonly extractHistoryTrustedClaims?: (request: {
+    readonly episodeId: string;
+    readonly outputRoot?: string;
+    readonly dryRun?: boolean;
+  }) => Promise<unknown>;
+  readonly diffHistoryTrustedScript?: (request: {
+    readonly episodeId: string;
+    readonly outputRoot?: string;
+    readonly previousScriptPath?: string;
+  }) => Promise<unknown>;
+  readonly reattestHistoryTrustDeltas?: (request: {
+    readonly episodeId: string;
+    readonly outputRoot?: string;
+    readonly claimIds?: readonly string[];
+    readonly assertion?:
+      | "factually-verified"
+      | "accepted-without-independent-verification";
+    readonly dryRun?: boolean;
+  }) => Promise<unknown>;
+  readonly regenerateHistoryTrustedVisuals?: (request: {
+    readonly episodeId: string;
+    readonly outputRoot?: string;
+    readonly dryRun?: boolean;
   }) => Promise<unknown>;
 }
 
@@ -548,10 +630,416 @@ export function registerHistoryCommands(
     }
   }
 
+  if (
+    dependencies.getHistoryAuthoringStatus ||
+    dependencies.setHistorySourceAuthority ||
+    dependencies.attestHistoryTrustedNarration ||
+    dependencies.runHistoryTrustScriptMigration ||
+    dependencies.extractHistoryTrustedClaims ||
+    dependencies.diffHistoryTrustedScript ||
+    dependencies.reattestHistoryTrustDeltas ||
+    dependencies.regenerateHistoryTrustedVisuals
+  ) {
+    const authoring = history
+      .command("authoring")
+      .description(
+        "Trusted-script default History authoring, attestation, and offline claim/visual regeneration"
+      );
+    if (dependencies.getHistoryAuthoringStatus) {
+      authoring
+        .command("status <episode-id>")
+        .description("Show History source-authority mode and trust diagnostics")
+        .option("--output-root <path>")
+        .option("--json")
+        .action(
+          async (
+            episodeId: string,
+            options: { readonly outputRoot?: string; readonly json?: boolean }
+          ) => {
+            emit(
+              await dependencies.getHistoryAuthoringStatus!({
+                episodeId,
+                ...(options.outputRoot
+                  ? { outputRoot: options.outputRoot }
+                  : {}),
+              }),
+              options.json ?? inherited().json ?? true
+            );
+          }
+        );
+    }
+    if (dependencies.setHistorySourceAuthority) {
+      authoring
+        .command("set-authority <episode-id>")
+        .description("Explicitly set History source authority mode")
+        .requiredOption(
+          "--mode <mode>",
+          "trusted-script | research-backed | unverified-external"
+        )
+        .option("--assertion <assertion>")
+        .option("--actor <actor>")
+        .option("--reason <reason>")
+        .option("--output-root <path>")
+        .option("--dry-run")
+        .option("--json")
+        .action(
+          async (
+            episodeId: string,
+            options: {
+              readonly mode: string;
+              readonly assertion?: string;
+              readonly actor?: string;
+              readonly reason?: string;
+              readonly outputRoot?: string;
+              readonly dryRun?: boolean;
+              readonly json?: boolean;
+            }
+          ) => {
+            if (
+              options.mode !== "trusted-script" &&
+              options.mode !== "research-backed" &&
+              options.mode !== "unverified-external"
+            )
+              throw new Error(
+                `--mode must be trusted-script, research-backed, or unverified-external (received ${options.mode}).`
+              );
+            emit(
+              await dependencies.setHistorySourceAuthority!({
+                episodeId,
+                mode: options.mode,
+                ...(options.assertion
+                  ? {
+                      assertion: options.assertion as
+                        | "factually-verified"
+                        | "accepted-without-independent-verification",
+                    }
+                  : {}),
+                ...(options.actor ? { actor: options.actor } : {}),
+                ...(options.reason ? { reason: options.reason } : {}),
+                ...(options.outputRoot
+                  ? { outputRoot: options.outputRoot }
+                  : {}),
+                ...(options.dryRun || inherited().dryRun
+                  ? { dryRun: true }
+                  : {}),
+              }),
+              options.json ?? inherited().json ?? true
+            );
+          }
+        );
+    }
+    if (dependencies.attestHistoryTrustedNarration) {
+      authoring
+        .command("attest <episode-id>")
+        .description("Append a hash-bound trusted narration attestation")
+        .option(
+          "--assertion <assertion>",
+          "factually-verified | accepted-without-independent-verification",
+          "factually-verified"
+        )
+        .option("--authority <authority>", "user | content-pack-owner | editorial-workflow")
+        .option("--authority-name <name>")
+        .option("--scope <scope>", "entire-narration | selected-claims")
+        .option("--claim-id <id>")
+        .option("--output-root <path>")
+        .option("--dry-run")
+        .option("--json")
+        .action(
+          async (
+            episodeId: string,
+            options: {
+              readonly assertion?: string;
+              readonly authority?: string;
+              readonly authorityName?: string;
+              readonly scope?: string;
+              readonly claimId?: string | string[];
+              readonly outputRoot?: string;
+              readonly dryRun?: boolean;
+              readonly json?: boolean;
+            }
+          ) => {
+            const selectedClaimIds = options.claimId
+              ? Array.isArray(options.claimId)
+                ? options.claimId
+                : [options.claimId]
+              : undefined;
+            emit(
+              await dependencies.attestHistoryTrustedNarration!({
+                episodeId,
+                ...(options.assertion
+                  ? {
+                      assertion: options.assertion as
+                        | "factually-verified"
+                        | "accepted-without-independent-verification",
+                    }
+                  : {}),
+                ...(options.authority
+                  ? {
+                      authority: options.authority as
+                        | "user"
+                        | "content-pack-owner"
+                        | "editorial-workflow",
+                    }
+                  : {}),
+                ...(options.authorityName
+                  ? { authorityName: options.authorityName }
+                  : {}),
+                ...(options.scope
+                  ? {
+                      scope: options.scope as
+                        | "entire-narration"
+                        | "selected-claims",
+                    }
+                  : {}),
+                ...(selectedClaimIds ? { selectedClaimIds } : {}),
+                ...(options.outputRoot
+                  ? { outputRoot: options.outputRoot }
+                  : {}),
+                ...(options.dryRun || inherited().dryRun
+                  ? { dryRun: true }
+                  : {}),
+              }),
+              options.json ?? inherited().json ?? true
+            );
+          }
+        );
+    }
+    if (dependencies.runHistoryTrustScriptMigration) {
+      authoring
+        .command("trust-script <episode-id>")
+        .description(
+          "Offline trusted-script migration: attest, extract claims, regenerate visuals"
+        )
+        .option("--assertion <assertion>")
+        .option("--actor <actor>")
+        .option("--reason <reason>")
+        .option("--output-root <path>")
+        .option("--dry-run")
+        .option("--json")
+        .action(
+          async (
+            episodeId: string,
+            options: {
+              readonly assertion?: string;
+              readonly actor?: string;
+              readonly reason?: string;
+              readonly outputRoot?: string;
+              readonly dryRun?: boolean;
+              readonly json?: boolean;
+            }
+          ) => {
+            emit(
+              await dependencies.runHistoryTrustScriptMigration!({
+                episodeId,
+                ...(options.assertion
+                  ? {
+                      assertion: options.assertion as
+                        | "factually-verified"
+                        | "accepted-without-independent-verification",
+                    }
+                  : {}),
+                ...(options.actor ? { actor: options.actor } : {}),
+                ...(options.reason ? { reason: options.reason } : {}),
+                ...(options.outputRoot
+                  ? { outputRoot: options.outputRoot }
+                  : {}),
+                ...(options.dryRun || inherited().dryRun
+                  ? { dryRun: true }
+                  : {}),
+              }),
+              options.json ?? inherited().json ?? true
+            );
+          }
+        );
+    }
+    if (dependencies.extractHistoryTrustedClaims) {
+      authoring
+        .command("extract-trusted-claims <episode-id>")
+        .description("Deterministically extract trusted claims without research")
+        .option("--output-root <path>")
+        .option("--dry-run")
+        .option("--json")
+        .action(
+          async (
+            episodeId: string,
+            options: {
+              readonly outputRoot?: string;
+              readonly dryRun?: boolean;
+              readonly json?: boolean;
+            }
+          ) => {
+            emit(
+              await dependencies.extractHistoryTrustedClaims!({
+                episodeId,
+                ...(options.outputRoot
+                  ? { outputRoot: options.outputRoot }
+                  : {}),
+                ...(options.dryRun || inherited().dryRun
+                  ? { dryRun: true }
+                  : {}),
+              }),
+              options.json ?? inherited().json ?? true
+            );
+          }
+        );
+    }
+    if (dependencies.diffHistoryTrustedScript) {
+      authoring
+        .command("diff-script <episode-id>")
+        .description("Diff trusted narration and report factual deltas")
+        .option("--previous-script <path>")
+        .option("--output-root <path>")
+        .option("--json")
+        .action(
+          async (
+            episodeId: string,
+            options: {
+              readonly previousScript?: string;
+              readonly outputRoot?: string;
+              readonly json?: boolean;
+            }
+          ) => {
+            emit(
+              await dependencies.diffHistoryTrustedScript!({
+                episodeId,
+                ...(options.previousScript
+                  ? { previousScriptPath: options.previousScript }
+                  : {}),
+                ...(options.outputRoot
+                  ? { outputRoot: options.outputRoot }
+                  : {}),
+              }),
+              options.json ?? inherited().json ?? true
+            );
+          }
+        );
+    }
+    if (dependencies.reattestHistoryTrustDeltas) {
+      authoring
+        .command("reattest-deltas <episode-id>")
+        .description("Re-attest invalidated factual deltas without research")
+        .option("--claim-id <id>")
+        .option("--assertion <assertion>")
+        .option("--output-root <path>")
+        .option("--dry-run")
+        .option("--json")
+        .action(
+          async (
+            episodeId: string,
+            options: {
+              readonly claimId?: string | string[];
+              readonly assertion?: string;
+              readonly outputRoot?: string;
+              readonly dryRun?: boolean;
+              readonly json?: boolean;
+            }
+          ) => {
+            const claimIds = options.claimId
+              ? Array.isArray(options.claimId)
+                ? options.claimId
+                : [options.claimId]
+              : undefined;
+            emit(
+              await dependencies.reattestHistoryTrustDeltas!({
+                episodeId,
+                ...(claimIds ? { claimIds } : {}),
+                ...(options.assertion
+                  ? {
+                      assertion: options.assertion as
+                        | "factually-verified"
+                        | "accepted-without-independent-verification",
+                    }
+                  : {}),
+                ...(options.outputRoot
+                  ? { outputRoot: options.outputRoot }
+                  : {}),
+                ...(options.dryRun || inherited().dryRun
+                  ? { dryRun: true }
+                  : {}),
+              }),
+              options.json ?? inherited().json ?? true
+            );
+          }
+        );
+    }
+    if (dependencies.regenerateHistoryTrustedVisuals) {
+      authoring
+        .command("regenerate-visuals <episode-id>")
+        .description("Regenerate factual visuals from trusted claims offline")
+        .option("--output-root <path>")
+        .option("--dry-run")
+        .option("--json")
+        .action(
+          async (
+            episodeId: string,
+            options: {
+              readonly outputRoot?: string;
+              readonly dryRun?: boolean;
+              readonly json?: boolean;
+            }
+          ) => {
+            emit(
+              await dependencies.regenerateHistoryTrustedVisuals!({
+                episodeId,
+                ...(options.outputRoot
+                  ? { outputRoot: options.outputRoot }
+                  : {}),
+                ...(options.dryRun || inherited().dryRun
+                  ? { dryRun: true }
+                  : {}),
+              }),
+              options.json ?? inherited().json ?? true
+            );
+          }
+        );
+    }
+  }
+
   if (dependencies.runHistoryV33Workflow) {
     const v33 = history
       .command("v3.3")
       .description("Run explicit, resumable History V3.3 research and deterministic packaging phases");
+    if (dependencies.getHistoryV33Config) {
+      v33
+        .command("config")
+        .description("Show redacted effective History V3.3 low-cost research configuration")
+        .option("--json")
+        .action(async (options: { readonly json?: boolean }) => {
+          emit(await dependencies.getHistoryV33Config!(), options.json ?? inherited().json ?? true);
+        });
+    }
+    if (dependencies.getHistoryV33CostStatus) {
+      v33
+        .command("cost-status <episode-id>")
+        .description("Show History V3.3 episode cost and search-budget status")
+        .option("--output-root <path>")
+        .option("--json")
+        .action(async (episodeId: string, options: { readonly outputRoot?: string; readonly json?: boolean }) => {
+          emit(
+            await dependencies.getHistoryV33CostStatus!({
+              episodeId,
+              ...(options.outputRoot ? { outputRoot: options.outputRoot } : {}),
+            }),
+            options.json ?? inherited().json ?? true
+          );
+        });
+    }
+    if (dependencies.getHistoryV33ResearchStatus) {
+      v33
+        .command("research-status <episode-id>")
+        .description("Show History V3.3 research progress, caches, and budgets")
+        .option("--output-root <path>")
+        .option("--json")
+        .action(async (episodeId: string, options: { readonly outputRoot?: string; readonly json?: boolean }) => {
+          emit(
+            await dependencies.getHistoryV33ResearchStatus!({
+              episodeId,
+              ...(options.outputRoot ? { outputRoot: options.outputRoot } : {}),
+            }),
+            options.json ?? inherited().json ?? true
+          );
+        });
+    }
     const stages = [
       ["normalize", "normalize"],
       ["extract-claims", "extract-claims"],
@@ -573,7 +1061,15 @@ export function registerHistoryCommands(
         .option("--live-research")
         .option("--reuse-frozen-snapshot")
         .option("--refresh-source")
+        .option("--refresh-source-id <id>")
         .option("--force")
+        .option("--force-batch <id>")
+        .option("--invalidate-from <phase>")
+        .option("--audited-budget-override")
+        .option(
+          "--promote-to-research-backed",
+          "required to run live research against a trusted-script episode"
+        )
         .option("--dry-run")
         .option("--json")
         .action(async (episodeId: string, options: {
@@ -583,7 +1079,12 @@ export function registerHistoryCommands(
           readonly liveResearch?: boolean;
           readonly reuseFrozenSnapshot?: boolean;
           readonly refreshSource?: boolean;
+          readonly refreshSourceId?: string;
           readonly force?: boolean;
+          readonly forceBatch?: string;
+          readonly invalidateFrom?: string;
+          readonly auditedBudgetOverride?: boolean;
+          readonly promoteToResearchBacked?: boolean;
           readonly dryRun?: boolean;
           readonly json?: boolean;
         }) => {
@@ -594,6 +1095,19 @@ export function registerHistoryCommands(
             : options.reuseFrozenSnapshot
               ? "reuse-frozen-snapshot" as const
               : "offline-fixture" as const;
+          const invalidateFrom = options.invalidateFrom as
+            | "claims"
+            | "sources"
+            | "evidence"
+            | "assessments"
+            | "provenance"
+            | "visuals"
+            | undefined;
+          if (
+            invalidateFrom &&
+            !["claims", "sources", "evidence", "assessments", "provenance", "visuals"].includes(invalidateFrom)
+          )
+            throw new Error(`Unsupported --invalidate-from phase: ${options.invalidateFrom}`);
           emitHistoryV33(await dependencies.runHistoryV33Workflow!({
             episodeId,
             stage,
@@ -601,7 +1115,14 @@ export function registerHistoryCommands(
             ...(options.outputRoot ? { outputRoot: options.outputRoot } : {}),
             ...(options.output ? { approvalOutput: options.output } : {}),
             ...(options.refreshSource ? { refreshSources: true } : {}),
+            ...(options.refreshSourceId ? { refreshSourceId: options.refreshSourceId } : {}),
             ...(options.force || commandName === "regenerate" ? { force: true } : {}),
+            ...(options.forceBatch ? { forceBatchId: options.forceBatch } : {}),
+            ...(invalidateFrom ? { invalidateFrom } : {}),
+            ...(options.auditedBudgetOverride ? { auditedBudgetOverride: true } : {}),
+            ...(options.promoteToResearchBacked
+              ? { promoteToResearchBacked: true }
+              : {}),
             ...(options.dryRun ?? inherited().dryRun ? { dryRun: true } : {}),
           }), options.json ?? inherited().json);
         });

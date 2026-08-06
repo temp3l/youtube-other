@@ -306,4 +306,58 @@ describe("history commands", () => {
       regenerate: true,
     });
   });
+
+  it("exposes trusted-script authoring commands and promote-to-research-backed gate", async () => {
+    const services = dependencies();
+    Object.assign(services, {
+      getHistoryAuthoringStatus: vi.fn(async (request) => ({ request })),
+      runHistoryTrustScriptMigration: vi.fn(async (request) => ({ request })),
+      setHistorySourceAuthority: vi.fn(async (request) => ({ request })),
+      runHistoryV33Workflow: vi.fn(async (request) => ({ request })),
+    });
+    const program = new Command();
+    registerHistoryCommands(program, services);
+    await execute(program, ["history", "authoring", "status", "episode-1", "--json"]);
+    expect(services.getHistoryAuthoringStatus).toHaveBeenCalledWith({
+      episodeId: "episode-1",
+    });
+    await execute(program, [
+      "history",
+      "authoring",
+      "trust-script",
+      "episode-1",
+      "--json",
+    ]);
+    expect(services.runHistoryTrustScriptMigration).toHaveBeenCalledWith({
+      episodeId: "episode-1",
+    });
+    await execute(program, [
+      "history",
+      "authoring",
+      "set-authority",
+      "episode-1",
+      "--mode",
+      "research-backed",
+      "--json",
+    ]);
+    expect(services.setHistorySourceAuthority).toHaveBeenCalledWith({
+      episodeId: "episode-1",
+      mode: "research-backed",
+    });
+    await execute(program, [
+      "history",
+      "v3.3",
+      "extract-claims",
+      "episode-1",
+      "--live-research",
+      "--promote-to-research-backed",
+      "--json",
+    ]);
+    expect(services.runHistoryV33Workflow).toHaveBeenCalledWith({
+      episodeId: "episode-1",
+      stage: "extract-claims",
+      mode: "live-research",
+      promoteToResearchBacked: true,
+    });
+  });
 });
