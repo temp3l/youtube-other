@@ -71,7 +71,10 @@ import {
   type SQLitePersistence,
 } from "@mediaforge/persistence";
 import { runCommand } from "@mediaforge/process-runner";
-import { assertScriptScoreGate } from "@mediaforge/story-localization";
+import {
+  assertScriptScoreGate,
+  createOpenAiStoryClientWithOptions,
+} from "@mediaforge/story-localization";
 import {
   buildSrt,
   createEpisodePathResolver,
@@ -164,6 +167,18 @@ import {
   planHistoryVisualsV31,
   decideHistoryVisualApprovalV31,
   createHistoryReviewBundleV31,
+  planHistoryVisualsV32,
+  decideHistoryVisualApprovalV32,
+  createHistoryReviewBundleV32,
+  planHistoryVisualsV33,
+  decideHistoryVisualApprovalV33,
+  createHistoryApprovalPackV33,
+  createCombinedHistoryApprovalBundleV33,
+  runHistoryV33Workflow,
+  OpenAiClaimExtractionProviderV33,
+  OpenAiEvidenceAssessmentProviderV33,
+  OpenAiVisualPurposeProviderV33,
+  type OpenAiResponsesClientV3_3,
   assertHistoryVisualApproval,
   listHistoryPresets,
   validateHistoryEpisodeFactuality,
@@ -5148,7 +5163,11 @@ registerHistoryCommands(program, {
   getHistoryNextStep,
   validateHistoryEpisodeFactuality,
   planHistoryVisuals: (request) =>
-    request.plannerVersion === "v3.1"
+    request.plannerVersion === "v3.3"
+      ? planHistoryVisualsV33(request)
+      : request.plannerVersion === "v3.2"
+      ? planHistoryVisualsV32(request)
+      : request.plannerVersion === "v3.1"
       ? planHistoryVisualsV31(request)
       : request.plannerVersion === "v3"
         ? planHistoryVisualsV3(request)
@@ -5156,7 +5175,11 @@ registerHistoryCommands(program, {
           ? planHistoryVisualsV2(request)
           : planHistoryVisuals(request),
   decideHistoryVisualApproval: (request) =>
-    request.plannerVersion === "v3.1"
+    request.plannerVersion === "v3.3"
+      ? decideHistoryVisualApprovalV33(request)
+      : request.plannerVersion === "v3.2"
+      ? decideHistoryVisualApprovalV32(request)
+      : request.plannerVersion === "v3.1"
       ? decideHistoryVisualApprovalV31(request)
       : request.plannerVersion === "v3"
         ? decideHistoryVisualApprovalV3(request)
@@ -5171,6 +5194,30 @@ registerHistoryCommands(program, {
     }),
   createHistoryReviewBundleV3,
   createHistoryReviewBundleV31,
+  createHistoryReviewBundleV32,
+  createHistoryReviewBundleV33: createHistoryApprovalPackV33,
+  createCombinedHistoryApprovalBundleV33,
+  runHistoryV33Workflow: (request) => {
+    if (request.mode !== "live-research")
+      return runHistoryV33Workflow(request);
+    const client = createOpenAiStoryClientWithOptions({
+      maxRetries: 3,
+      timeoutMs: 60_000,
+    }) as unknown as OpenAiResponsesClientV3_3;
+    const model = process.env["OPENAI_HISTORY_MODEL"] ?? "gpt-5-mini";
+    return runHistoryV33Workflow({
+      ...request,
+      claimExtractionProvider: new OpenAiClaimExtractionProviderV33(
+        client,
+        model
+      ),
+      evidenceAssessmentProvider: new OpenAiEvidenceAssessmentProviderV33(
+        client,
+        model
+      ),
+      visualPurposeProvider: new OpenAiVisualPurposeProviderV33(client, model),
+    });
+  },
 });
 // Connected command surfaces validate their credentials during registration.
 // Keep the local CLI usable when an operator intentionally has no API setup.

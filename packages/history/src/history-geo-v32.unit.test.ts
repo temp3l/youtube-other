@@ -1,0 +1,3 @@
+import { describe, expect, it } from "vitest";
+import { validateHistoryRoutesV32 } from "./history-geo-v32.js";
+describe("History V3.2 geo", () => { it("rejects identity, missing coordinates, role conflicts, and route-label contradictions", () => { const diagnostics = validateHistoryRoutesV32([{ id: "r", origin: { id: "a", label: "A" }, destination: { id: "a", label: "A" }, routeType: "maritime", label: "overland road", pathogenId: "plague", movingActorId: "plague", supportingClaimIds: [] }]); expect(diagnostics.map((item) => item.code)).toEqual(expect.arrayContaining(["MAP_IDENTITY_ROUTE", "MAP_ENDPOINT_UNRENDERABLE", "MAP_ROUTE_LABEL_CONTRADICTION", "MAP_PATHOGEN_ROLE_CONFLICT"])); }); });

@@ -2,6 +2,7 @@ import { Command } from "commander";
 
 export type HistoryContentPackMode = "strict" | "lenient";
 export type HistoryBatchFailureMode = "fail-fast" | "collect-errors";
+export type HistoryPlannerVersion = "v1" | "v2" | "v3" | "v3.1" | "v3.2" | "v3.3";
 
 export interface HistoryContentPackRequest {
   readonly packPath: string;
@@ -43,7 +44,7 @@ export interface HistoryCommandDependencies {
   readonly planHistoryVisuals?: (request: {
     readonly episodeId: string;
     readonly outputRoot?: string;
-    readonly plannerVersion?: "v1" | "v2" | "v3" | "v3.1";
+    readonly plannerVersion?: HistoryPlannerVersion;
     readonly force?: boolean;
   }) => Promise<unknown>;
   readonly decideHistoryVisualApproval?: (request: {
@@ -52,7 +53,7 @@ export interface HistoryCommandDependencies {
     readonly decision: "APPROVED" | "REJECTED";
     readonly planHash?: string;
     readonly reason?: string;
-    readonly plannerVersion?: "v1" | "v2" | "v3" | "v3.1";
+    readonly plannerVersion?: HistoryPlannerVersion;
     readonly derivativeHash?: string;
   }) => Promise<unknown>;
   readonly inspectHistoryVisualsV2?: (request: {
@@ -77,6 +78,43 @@ export interface HistoryCommandDependencies {
     readonly outputRoot?: string;
     readonly regenerate?: boolean;
   }) => Promise<unknown>;
+  readonly createHistoryReviewBundleV32?: (request: {
+    readonly episodeId: string;
+    readonly output: string;
+    readonly outputRoot?: string;
+    readonly regenerate?: boolean;
+  }) => Promise<unknown>;
+  readonly createHistoryReviewBundleV33?: (request: {
+    readonly episodeId: string;
+    readonly output: string;
+    readonly outputRoot?: string;
+    readonly regenerate?: boolean;
+  }) => Promise<unknown>;
+  readonly runHistoryV33Workflow?: (request: {
+    readonly episodeId: string;
+    readonly outputRoot?: string;
+    readonly stage:
+      | "normalize"
+      | "extract-claims"
+      | "retrieve-sources"
+      | "assess-evidence"
+      | "evaluate-provenance"
+      | "freeze"
+      | "plan"
+      | "validate"
+      | "export";
+    readonly mode?: "offline-fixture" | "live-research" | "reuse-frozen-snapshot";
+    readonly refreshSources?: boolean;
+    readonly force?: boolean;
+    readonly dryRun?: boolean;
+    readonly approvalOutput?: string;
+  }) => Promise<unknown>;
+  readonly createCombinedHistoryApprovalBundleV33?: (request: {
+    readonly episodeIds: readonly string[];
+    readonly output: string;
+    readonly outputRoot?: string;
+    readonly regenerate?: boolean;
+  }) => Promise<unknown>;
 }
 
 interface ContentPackOptions {
@@ -93,6 +131,25 @@ function emit(value: unknown, json: boolean | undefined): void {
   process.stdout.write(
     `${JSON.stringify(value, null, json ? 2 : undefined)}\n`
   );
+}
+
+function emitHistoryV33(value: unknown, json: boolean | undefined): void {
+  if (json) {
+    emit(value, true);
+    return;
+  }
+  const record = value && typeof value === "object"
+    ? value as Record<string, unknown>
+    : { result: value };
+  const lines = [
+    `History V3.3 ${String(record["stage"] ?? "workflow")} complete.`,
+    ...(record["episodeId"] ? [`Episode: ${String(record["episodeId"])}`] : []),
+    ...(record["researchSnapshotHash"] ? [`Research snapshot: ${String(record["researchSnapshotHash"])}`] : []),
+    ...(record["planHash"] ? [`Plan: ${String(record["planHash"])}`] : []),
+    ...(record["zipSha256"] ? [`ZIP SHA-256: ${String(record["zipSha256"])}`] : []),
+    ...(Array.isArray(record["episodes"]) ? [`Episodes: ${record["episodes"].length}`] : []),
+  ];
+  process.stdout.write(`${lines.join("\n")}\n`);
 }
 
 function requireHistoryGenre(genre: string | undefined): "history" {
@@ -246,7 +303,7 @@ export function registerHistoryCommands(
           episodeId: string,
           options: {
             readonly outputRoot?: string;
-            readonly plannerVersion?: "v1" | "v2" | "v3" | "v3.1";
+            readonly plannerVersion?: HistoryPlannerVersion;
             readonly force?: boolean;
             readonly json?: boolean;
           }
@@ -256,7 +313,9 @@ export function registerHistoryCommands(
               episodeId,
               ...(options.plannerVersion === "v2" ||
               options.plannerVersion === "v3" ||
-              options.plannerVersion === "v3.1"
+              options.plannerVersion === "v3.1" ||
+              options.plannerVersion === "v3.2" ||
+              options.plannerVersion === "v3.3"
                 ? { plannerVersion: options.plannerVersion }
                 : {}),
               ...(options.force ? { force: true } : {}),
@@ -282,7 +341,7 @@ export function registerHistoryCommands(
           options: {
             readonly planHash: string;
             readonly derivativeHash?: string;
-            readonly plannerVersion?: "v1" | "v2" | "v3" | "v3.1";
+            readonly plannerVersion?: HistoryPlannerVersion;
             readonly outputRoot?: string;
             readonly json?: boolean;
           }
@@ -297,7 +356,9 @@ export function registerHistoryCommands(
                 : {}),
               ...(options.plannerVersion === "v2" ||
               options.plannerVersion === "v3" ||
-              options.plannerVersion === "v3.1"
+              options.plannerVersion === "v3.1" ||
+              options.plannerVersion === "v3.2" ||
+              options.plannerVersion === "v3.3"
                 ? { plannerVersion: options.plannerVersion }
                 : {}),
               ...(options.outputRoot ? { outputRoot: options.outputRoot } : {}),
@@ -317,7 +378,7 @@ export function registerHistoryCommands(
           episodeId: string,
           options: {
             readonly reason: string;
-            readonly plannerVersion?: "v1" | "v2" | "v3" | "v3.1";
+            readonly plannerVersion?: HistoryPlannerVersion;
             readonly outputRoot?: string;
             readonly json?: boolean;
           }
@@ -329,7 +390,9 @@ export function registerHistoryCommands(
               reason: options.reason,
               ...(options.plannerVersion === "v2" ||
               options.plannerVersion === "v3" ||
-              options.plannerVersion === "v3.1"
+              options.plannerVersion === "v3.1" ||
+              options.plannerVersion === "v3.2" ||
+              options.plannerVersion === "v3.3"
                 ? { plannerVersion: options.plannerVersion }
                 : {}),
               ...(options.outputRoot ? { outputRoot: options.outputRoot } : {}),
@@ -429,7 +492,9 @@ export function registerHistoryCommands(
     }
     if (
       dependencies.createHistoryReviewBundleV3 ||
-      dependencies.createHistoryReviewBundleV31
+      dependencies.createHistoryReviewBundleV31 ||
+      dependencies.createHistoryReviewBundleV32 ||
+      dependencies.createHistoryReviewBundleV33
     ) {
       visuals
         .command("review-bundle <episode-id>")
@@ -450,14 +515,17 @@ export function registerHistoryCommands(
             episodeId: string,
             options: {
               readonly output: string;
-              readonly plannerVersion?: "v3" | "v3.1";
+              readonly plannerVersion?: "v3" | "v3.1" | "v3.2" | "v3.3";
               readonly outputRoot?: string;
               readonly regenerate?: boolean;
               readonly json?: boolean;
             }
           ) => {
-            const create =
-              options.plannerVersion === "v3.1"
+            const create = options.plannerVersion === "v3.3"
+              ? dependencies.createHistoryReviewBundleV33
+              : options.plannerVersion === "v3.2"
+                ? dependencies.createHistoryReviewBundleV32
+              : options.plannerVersion === "v3.1"
                 ? dependencies.createHistoryReviewBundleV31
                 : dependencies.createHistoryReviewBundleV3;
             if (!create)
@@ -477,6 +545,82 @@ export function registerHistoryCommands(
             );
           }
         );
+    }
+  }
+
+  if (dependencies.runHistoryV33Workflow) {
+    const v33 = history
+      .command("v3.3")
+      .description("Run explicit, resumable History V3.3 research and deterministic packaging phases");
+    const stages = [
+      ["normalize", "normalize"],
+      ["extract-claims", "extract-claims"],
+      ["retrieve-sources", "retrieve-sources"],
+      ["assess-evidence", "assess-evidence"],
+      ["evaluate-provenance", "evaluate-provenance"],
+      ["freeze", "freeze"],
+      ["plan", "plan"],
+      ["validate", "validate"],
+      ["export", "export"],
+      ["regenerate", "export"],
+    ] as const;
+    for (const [commandName, stage] of stages) {
+      v33
+        .command(`${commandName} <episode-id>`)
+        .option("--output-root <path>")
+        .option("--output <directory>")
+        .option("--offline-fixture")
+        .option("--live-research")
+        .option("--reuse-frozen-snapshot")
+        .option("--refresh-source")
+        .option("--force")
+        .option("--dry-run")
+        .option("--json")
+        .action(async (episodeId: string, options: {
+          readonly outputRoot?: string;
+          readonly output?: string;
+          readonly offlineFixture?: boolean;
+          readonly liveResearch?: boolean;
+          readonly reuseFrozenSnapshot?: boolean;
+          readonly refreshSource?: boolean;
+          readonly force?: boolean;
+          readonly dryRun?: boolean;
+          readonly json?: boolean;
+        }) => {
+          const selectedModes = [options.offlineFixture, options.liveResearch, options.reuseFrozenSnapshot].filter(Boolean).length;
+          if (selectedModes > 1) throw new Error("Select only one History V3.3 research mode.");
+          const mode = options.liveResearch
+            ? "live-research" as const
+            : options.reuseFrozenSnapshot
+              ? "reuse-frozen-snapshot" as const
+              : "offline-fixture" as const;
+          emitHistoryV33(await dependencies.runHistoryV33Workflow!({
+            episodeId,
+            stage,
+            mode,
+            ...(options.outputRoot ? { outputRoot: options.outputRoot } : {}),
+            ...(options.output ? { approvalOutput: options.output } : {}),
+            ...(options.refreshSource ? { refreshSources: true } : {}),
+            ...(options.force || commandName === "regenerate" ? { force: true } : {}),
+            ...(options.dryRun ?? inherited().dryRun ? { dryRun: true } : {}),
+          }), options.json ?? inherited().json);
+        });
+    }
+    if (dependencies.createCombinedHistoryApprovalBundleV33) {
+      v33
+        .command("compare <episode-ids...>")
+        .requiredOption("--output <directory>")
+        .option("--output-root <path>")
+        .option("--regenerate")
+        .option("--json")
+        .action(async (episodeIds: string[], options: { readonly output: string; readonly outputRoot?: string; readonly regenerate?: boolean; readonly json?: boolean }) => {
+          emitHistoryV33(await dependencies.createCombinedHistoryApprovalBundleV33!({
+            episodeIds,
+            output: options.output,
+            ...(options.outputRoot ? { outputRoot: options.outputRoot } : {}),
+            ...(options.regenerate ? { regenerate: true } : {}),
+          }), options.json ?? inherited().json);
+        });
     }
   }
 

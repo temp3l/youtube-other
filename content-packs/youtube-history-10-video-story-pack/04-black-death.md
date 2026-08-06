@@ -6,9 +6,9 @@ format: "long-form-youtube-video"
 language: "en"
 status: "production-ready-draft"
 writer_persona: "Cinematic Public Historian — a documentary writer who combines narrative tension, historiographical caution, primary-source awareness, and accessible explanation."
-target_duration_minutes: 10
-estimated_duration_minutes_at_108_wpm: 10.1
-script_word_count: 1095
+target_duration_minutes: 10.3
+estimated_duration_minutes_at_108_wpm: 10.3
+script_word_count: 1117
 narration_pace: "measured, cinematic, measured delivery averaging approximately 104–112 words per minute"
 audience: "general history audience, ages 16+"
 tone: "cinematic, investigative, evidence-led, accessible"

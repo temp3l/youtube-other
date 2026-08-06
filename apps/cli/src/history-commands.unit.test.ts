@@ -218,4 +218,92 @@ describe("history commands", () => {
       output: "review",
     });
   });
+
+  it("keeps V3.2 planning and approval explicitly opt-in", async () => {
+    const services = dependencies();
+    const program = new Command();
+    registerHistoryCommands(program, services);
+    await execute(program, [
+      "history",
+      "visuals",
+      "plan",
+      "episode-32",
+      "--planner-version",
+      "v3.2",
+    ]);
+    expect(services.planHistoryVisuals).toHaveBeenCalledWith({
+      episodeId: "episode-32",
+      plannerVersion: "v3.2",
+    });
+    await execute(program, [
+      "history",
+      "visuals",
+      "reject",
+      "episode-32",
+      "--planner-version",
+      "v3.2",
+      "--reason",
+      "provenance incomplete",
+    ]);
+    expect(services.decideHistoryVisualApproval).toHaveBeenCalledWith({
+      episodeId: "episode-32",
+      plannerVersion: "v3.2",
+      decision: "REJECTED",
+      reason: "provenance incomplete",
+    });
+  });
+
+  it("keeps V3.2 review bundles explicitly opt-in", async () => {
+    const services = dependencies();
+    Object.assign(services, { createHistoryReviewBundleV32: vi.fn(async () => ({})) });
+    const program = new Command();
+    registerHistoryCommands(program, services);
+    await execute(program, ["history", "visuals", "review-bundle", "episode-32", "--planner-version", "v3.2", "--output", "review"]);
+    expect(services.createHistoryReviewBundleV32).toHaveBeenCalledWith({ episodeId: "episode-32", output: "review" });
+  });
+
+  it("exposes explicit resumable V3.3 phases, regeneration, and identified comparison export", async () => {
+    const services = dependencies();
+    Object.assign(services, {
+      createHistoryReviewBundleV33: vi.fn(async () => ({})),
+      runHistoryV33Workflow: vi.fn(async (request) => ({ request })),
+      createCombinedHistoryApprovalBundleV33: vi.fn(async (request) => ({ request })),
+    });
+    const program = new Command();
+    registerHistoryCommands(program, services);
+    await execute(program, [
+      "history",
+      "v3.3",
+      "regenerate",
+      "episode-33",
+      "--output",
+      "review",
+      "--reuse-frozen-snapshot",
+      "--json",
+    ]);
+    expect(services.runHistoryV33Workflow).toHaveBeenCalledWith({
+      episodeId: "episode-33",
+      stage: "export",
+      mode: "reuse-frozen-snapshot",
+      approvalOutput: "review",
+      force: true,
+    });
+    await execute(program, [
+      "history",
+      "v3.3",
+      "compare",
+      "episode-a",
+      "episode-b",
+      "episode-c",
+      "--output",
+      "combined",
+      "--regenerate",
+      "--json",
+    ]);
+    expect(services.createCombinedHistoryApprovalBundleV33).toHaveBeenCalledWith({
+      episodeIds: ["episode-a", "episode-b", "episode-c"],
+      output: "combined",
+      regenerate: true,
+    });
+  });
 });

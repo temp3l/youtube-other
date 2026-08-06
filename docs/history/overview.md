@@ -63,6 +63,43 @@ mediaforge history visuals approve <episode-id> --planner-version v2 --plan-hash
 
 Estimate-only v2 plans are explicitly provisional and may be reviewed, but final renderable approval requires a valid, hash-bound derivative. A source-lineage mismatch, incomplete final sentence, timing conflict, missing ratio variant, unresolved required evidence rights, or stale derivative is a blocking diagnostic. The v2 reconciliation workflow is separately registered as `history.visual-v2-production`, preserving the legacy workflow order during rollout.
 
+### Opt-in V3.3 research and approval packs
+
+V3.3 is an additive History-only contract. Phase A may call OpenAI and live
+retrieval providers; it freezes immutable research snapshots. Phase B never
+performs live research and is byte-deterministic for the same canonical inputs,
+configuration, and frozen snapshot. Application code owns UTF-16 offsets,
+identifiers, provenance status, gate state, hashes, and checksums. Model output
+is schema-constrained advisory data.
+
+```bash
+mediaforge history v3.3 normalize <episode-id> --offline-fixture --json
+mediaforge history v3.3 extract-claims <episode-id> --offline-fixture --json
+mediaforge history v3.3 retrieve-sources <episode-id> --live-research --refresh-source --json
+mediaforge history v3.3 assess-evidence <episode-id> --live-research --refresh-source --json
+mediaforge history v3.3 evaluate-provenance <episode-id> --reuse-frozen-snapshot --json
+mediaforge history v3.3 freeze <episode-id> --reuse-frozen-snapshot --json
+mediaforge history v3.3 plan <episode-id> --reuse-frozen-snapshot --json
+mediaforge history v3.3 validate <episode-id> --reuse-frozen-snapshot --json
+mediaforge history v3.3 export <episode-id> --reuse-frozen-snapshot --output <directory> --json
+mediaforge history v3.3 regenerate <episode-id> --reuse-frozen-snapshot --output <directory> --json
+mediaforge history v3.3 compare <episode-a> <episode-b> <episode-c> --output <directory> --regenerate --json
+```
+
+`--live-research` is opt-in, requires `OPENAI_API_KEY` (or
+`OPENAI_API_TOKEN`), and uses `OPENAI_HISTORY_MODEL` when set, otherwise
+`gpt-5-mini`. It uses strict Responses API schemas, bounded batches, SDK
+timeouts/retries, retrieval validation, and fail-closed semantic validation.
+`--offline-fixture` never makes paid calls. `--reuse-frozen-snapshot` is the
+required deterministic packaging mode. `--dry-run`, `--force`, structured JSON,
+and human-readable output remain available.
+
+The History long-form V3.3 policy preserves a 600,000 ms preference and allows
+480,000–1,200,000 ms. Estimated timing can pass planning validation but cannot
+approve production. Unresolved claims block content; missing evidence-bound
+maps/diagrams block editorial review and are reported as `not_generated`, not
+as passing. See [the V3.3 acceptance audit](../history-v3.3/ACCEPTANCE-AUDIT.md).
+
 ## Recommended pilot
 
 The Bronze Age pilot ID is `history-youtube-history-10-video-story-pack-01-bronze-age-collapse`. Its imported configuration is `civilization-rise-fall`, `standard`, `general`, `rise-and-fall`, `documentary-neutral`, with maps and timelines enabled.

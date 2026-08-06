@@ -48,7 +48,8 @@ describe("History content-pack contract", () => {
       "historical-biography",
       "disaster-pandemic-survival",
     ]);
-    expect(result.episodes.every((episode) => episode.normalizedMetadata.canonicalFormat === "standard")).toBe(true);
+    expect(result.episodes.filter((episode) => ["02-napoleons-invasion-of-russia.md", "03-fall-of-the-roman-empire.md"].includes(episode.sourceFile)).every((episode) => episode.normalizedMetadata.canonicalFormat === "long")).toBe(true);
+    expect(result.episodes.filter((episode) => !["02-napoleons-invasion-of-russia.md", "03-fall-of-the-roman-empire.md"].includes(episode.sourceFile)).every((episode) => episode.normalizedMetadata.canonicalFormat === "standard")).toBe(true);
     expect(result.episodes.every((episode) => episode.normalizedMetadata.canonicalGenre === "history")).toBe(true);
     expect(result.episodes.every((episode) => !episode.normalizedMetadata.publishReady)).toBe(true);
     expect(result.episodes.every((episode) => episode.chapters.every((chapter) => chapter.provisional))).toBe(true);
@@ -56,7 +57,7 @@ describe("History content-pack contract", () => {
     expect(await checksum(path.join(pack, "01-bronze-age-collapse.md"))).toBe(before);
   });
 
-  it("imports idempotently, retains metadata, and invalidates derived tasks on source revision", async () => {
+  it("keeps duration metadata truthful and makes manifest updates no-ops for untouched episodes", async () => {
     const fixture = await temporaryPack();
     const request = { packPath: fixture.pack, genre: "history" as const, mode: "strict" as const, dryRun: false, failureMode: "collect-errors" as const, outputRoot: fixture.output, now: () => new Date("2026-08-02T10:00:00.000Z") };
     const first = await importHistoryContentPack(request);
@@ -70,9 +71,17 @@ describe("History content-pack contract", () => {
     const operator = createHistoryWorkflowOperator({ unitRoot: path.join(fixture.output, bronze), episodeId: bronze });
     await operator.runTask("history.research-brief");
     expect((await operator.status()).tasks.find((task) => task.taskId === "history.research-brief")?.persistedStatus).toBe("succeeded");
-    await fs.appendFile(path.join(fixture.pack, "01-bronze-age-collapse.md"), "\n");
+    const manifestPath = path.join(fixture.pack, "manifest.json");
+    const manifest = JSON.parse(await fs.readFile(manifestPath, "utf8")) as { videos: Array<{ file: string; word_count: number }> };
+    manifest.videos.find((item) => item.file === "02-napoleons-invasion-of-russia.md")!.word_count = 1412;
+    await fs.writeFile(manifestPath, JSON.stringify(manifest));
     const third = await importHistoryContentPack({ ...request, now: () => new Date("2026-08-02T11:00:00.000Z") });
-    expect(third.revisedEpisodes).toContain(bronze);
+    expect(third.revisedEpisodes).toEqual([]);
+    expect(third.noOpEpisodes).toHaveLength(10);
+    await fs.appendFile(path.join(fixture.pack, "01-bronze-age-collapse.md"), "\n");
+    const fourth = await importHistoryContentPack({ ...request, now: () => new Date("2026-08-02T12:00:00.000Z") });
+    expect(fourth.revisedEpisodes).toEqual([bronze]);
+    expect(fourth.noOpEpisodes).toHaveLength(9);
     expect(await fs.readdir(path.join(fixture.output, bronze, "source", "revisions"))).toHaveLength(2);
     const revisedStatus = await operator.status();
     expect(revisedStatus.tasks.find((task) => task.taskId === "history.research-brief")?.persistedStatus).toBe("invalidated");

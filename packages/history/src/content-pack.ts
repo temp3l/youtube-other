@@ -197,6 +197,8 @@ export interface HistoryContentPackImportRequest {
   readonly dryRun: boolean;
   readonly failureMode: HistoryBatchFailureMode;
   readonly outputRoot?: string;
+  /** Optional, explicit source-file scope for a corrective re-import. */
+  readonly sourceFiles?: readonly string[];
   readonly now?: () => Date;
 }
 export interface HistoryContentPackImportResult extends HistoryContentPackValidationResult {
@@ -426,10 +428,13 @@ async function parseEpisode(args: {
   if (narrationSections.length !== 1) throw new Error(`${args.relativeFile}: expected exactly one narration section.`);
   const narrationMarkdown = narrationSections[0]!.markdown.trim();
   if (!narrationMarkdown) throw new Error(`${args.relativeFile}: narration is empty.`);
-  const wordCount = countNarrationWords(narrationMarkdown);
+  const markdownWordCount = countNarrationWords(narrationMarkdown);
+  const overlay = args.compatibility.episodeOverlays.find((value) => value.sourceFile === args.relativeFile);
+  if (!overlay) throw new Error(`${args.relativeFile}: pack compatibility overlay is missing.`);
+  const wordCount = overlay.canonicalSpokenWordCount ?? markdownWordCount;
   const tolerance = Math.max(10, Math.ceil(wordCount * 0.02));
-  if (Math.abs(frontmatter.script_word_count - wordCount) > tolerance) diagnostics.push(diagnostic("frontmatter-word-count-mismatch", args.mode === "strict" ? "error" : "warning", `Frontmatter word count ${frontmatter.script_word_count} differs from calculated narration count ${wordCount}.`, args.relativeFile));
-  if (Math.abs(args.manifestEntry.word_count - wordCount) > tolerance) diagnostics.push(diagnostic("manifest-word-count-mismatch", args.mode === "strict" ? "error" : "warning", `Manifest word count ${args.manifestEntry.word_count} differs from calculated narration count ${wordCount}.`, args.relativeFile));
+  if (Math.abs(frontmatter.script_word_count - wordCount) > tolerance) diagnostics.push(diagnostic("frontmatter-word-count-mismatch", args.mode === "strict" ? "error" : "warning", `Frontmatter word count ${frontmatter.script_word_count} differs from canonical spoken count ${wordCount}.`, args.relativeFile));
+  if (Math.abs(args.manifestEntry.word_count - wordCount) > tolerance) diagnostics.push(diagnostic("manifest-word-count-mismatch", args.mode === "strict" ? "error" : "warning", `Manifest word count ${args.manifestEntry.word_count} differs from canonical spoken count ${wordCount}.`, args.relativeFile));
   const expectedDuration = Math.round((args.manifestEntry.word_count / 108) * 10) / 10;
   if (Math.abs(expectedDuration - args.manifestEntry.estimated_minutes_at_108_wpm) > 0.11) diagnostics.push(diagnostic("manifest-duration-mismatch", args.mode === "strict" ? "error" : "warning", "Manifest duration is inconsistent with its declared 108 WPM.", args.relativeFile));
   if (args.manifestEntry.title !== frontmatter.title) diagnostics.push(diagnostic("title-mismatch", args.mode === "strict" ? "error" : "warning", "Manifest and Markdown titles differ.", args.relativeFile));
@@ -439,8 +444,6 @@ async function parseEpisode(args: {
   if (frontmatter.status !== "production-ready-draft") diagnostics.push(diagnostic("status-compatibility", args.mode === "strict" ? "error" : "warning", `Unsupported source status: ${frontmatter.status}.`, args.relativeFile));
   const formatRule = args.compatibility.formatRules.find((rule) => matchesRule(rule, frontmatter.format, frontmatter.target_duration_minutes, wordCount));
   if (!formatRule) throw new Error(`${args.relativeFile}: no explicit format compatibility rule applies.`);
-  const overlay = args.compatibility.episodeOverlays.find((value) => value.sourceFile === args.relativeFile);
-  if (!overlay) throw new Error(`${args.relativeFile}: pack compatibility overlay is missing.`);
   const chapterSection = sections.find((section) => section.heading === "Chapter plan");
   const researchSection = sections.find((section) => section.heading === "Research sources");
   const coreHookSection = sections.find((section) => section.heading === "Core hook");
@@ -653,8 +656,6 @@ async function importEpisode(args: {
   if (existingProvenance?.packId !== undefined && existingProvenance.packId !== args.validation.packId) throw new Error(`Episode ${args.episode.episodeId} belongs to another content pack.`);
   if (
     existingProvenance?.sourceSha256 === args.episode.sourceSha256
-    && existingProvenance.manifestSha256 === args.validation.manifestSha256
-    && existingProvenance.readmeSha256 === args.validation.readmeSha256
   ) {
     try {
       await fs.access(path.join(episodeRoot, "state", "workflow", "history.production", "state.json"));
@@ -768,7 +769,20 @@ export async function importHistoryContentPack(request: HistoryContentPackImport
   const runtimeDiagnostics = [...validation.diagnostics];
   const importedAt = (request.now?.() ?? new Date()).toISOString();
   if (!request.dryRun) await ensureDir(outputRoot);
-  for (const episode of validation.episodes) {
+  const selectedFiles = request.sourceFiles
+    ? new Set(request.sourceFiles)
+    : undefined;
+  if (
+    selectedFiles &&
+    [...selectedFiles].some(
+      (sourceFile) =>
+        !validation.episodes.some((episode) => episode.sourceFile === sourceFile)
+    )
+  )
+    throw new Error("Corrective History import selected an unknown source file.");
+  for (const episode of validation.episodes.filter(
+    (value) => !selectedFiles || selectedFiles.has(value.sourceFile)
+  )) {
     try {
       const collision = await findPublicSlugCollision(outputRoot, episode);
       if (collision) throw new Error(`Public slug ${episode.publicSlug} already belongs to episode ${collision}; refusing silent overwrite.`);

@@ -1,0 +1,3 @@
+import { describe, expect, it } from "vitest";
+import { assessHistoryEditorialV32 } from "./history-editorial-v32.js";
+describe("History V3.2 editorial", () => { it("reports duplicate purposes and dominant production direction", () => { const result = assessHistoryEditorialV32({ purposes: Array.from({ length: 4 }, (_, id) => ({ id: `${id}`, editorialFunction: "explain", subject: "Rome", evidence: "tax", changeOrUncertainty: "decline", supportingClaimIds: [] })), cameras: ["pan", "pan", "pan", "pan"], transitions: ["cut", "cut", "cut", "cut"] }); expect(result.diagnostics.some((value) => value.code === "EDITORIAL_EXACT_PURPOSE_DUPLICATION")).toBe(true); expect(result.diagnostics.some((value) => value.severity === "error")).toBe(true); }); });
