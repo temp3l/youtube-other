@@ -33,9 +33,7 @@ import {
   isTemplatedArchivalPurposeV35,
   measureEffectiveVisualChangeV35,
   normalizeVisualConceptFingerprintV35,
-  portraitAdaptationNotesV35,
   resolveHistoricalApprovalStateV35,
-  resolveReconstructionPolicyV35,
   routeActorIsClaimSupportedV35,
   splitModalitiesFromLegacyV35,
   validatePortraitProtectedGeographyV35,
@@ -44,12 +42,10 @@ import {
   beatAuthorizesRouteMovement,
   collectPurposePlaces,
   collectPurposeTemporals,
-  countSemanticShotSegments,
   isGenericVisualPurposeText,
   isRouteMapPurpose,
   mapIntentSignature,
   selectMapIntentForBeatV34,
-  shouldSplitLongStaticBeatV35,
   shotDurationWarningsV35,
   validateDiagramSemanticsV34,
   validateMapLabelProvenanceV34,
@@ -82,6 +78,26 @@ import {
   type HistoryVisualPurposeV35,
   type AspectRatioPlanV35,
 } from "./history-v35-contracts.js";
+import {
+  buildEditorialShotSequenceV35,
+  refineShotPlanForRepetitionV35,
+  semanticShotStructuresV35,
+  measureNearbyTemplateFamilyRepetitionV35,
+  measurePurposeTemplateFamilyDuplicationV35,
+  buildVisualSemanticSignatureV35,
+  progressionRoleForBeatIndexV35,
+  buildVisualTreatmentSignatureV35,
+  measureNearbyTreatmentRepetitionV35,
+  measureTreatmentWindowConcentrationV35,
+  type VisualSemanticSignature,
+} from "./history-visual-repetition-v35.js";
+import { refineVisualTreatmentPlanV35 } from "./history-visual-treatment-refine-v35.js";
+import { deriveVisualSubjectV35 } from "./history-visual-subject-v35.js";
+import {
+  buildVisualOpportunitiesV35,
+  detectDiagramOpportunityV35,
+  summarizeVisualOpportunityTotalsV35,
+} from "./history-visual-opportunity-v35.js";
 import type {
   HistoryApprovalV34,
   HistoryDiagnosticV34,
@@ -168,13 +184,67 @@ export function measureHistoryRepetitionV35(input: {
   const semanticPurposeDuplicateRate = comparedPairs
     ? nearDuplicatePairs / comparedPairs
     : 0;
-  const conceptFingerprints = input.concepts.map((concept) => concept.fingerprint);
   const templateFingerprints = input.purposes.map((purpose) =>
     normalizeVisualConceptFingerprintV35(purpose.visualPurpose)
   );
-  const visualConceptTemplateDuplicateRate = templateFingerprints.length
-    ? (templateFingerprints.length - new Set(templateFingerprints).size) / templateFingerprints.length
-    : 0;
+  const semanticStructures = semanticShotStructuresV35({
+    shots: input.shots,
+    beats: input.beats,
+    concepts: input.concepts,
+  });
+  const shotSignatures = input.shots.map((shot) => {
+    const beat = input.beats.find((item) => item.id === shot.beatId);
+    const concept = input.concepts.find((item) => item.beatId === shot.beatId);
+    const progressionRole = (shot.purpose.split(/\s+/u)[0] ?? "establish") as "establish";
+    return buildVisualSemanticSignatureV35({
+      modality: beat?.modality ?? "archival image",
+      subject: shot.subject,
+      claimIds: shot.linkedClaimIds,
+      composition: concept?.intendedComposition ?? shot.action,
+      progressionRole,
+      action: shot.action,
+      modalityStateReference: shot.modalityStateReference,
+      informationLayer: `${shot.beatId}|${shot.purpose}|${shot.action}`,
+    });
+  });
+  const beatPurposeSignatures = input.purposes.map((purpose) => {
+    const beat = input.beats.find((item) => item.id === purpose.beatId);
+    const concept = input.concepts.find((item) => item.beatId === purpose.beatId);
+    const beatIndex = input.beats.findIndex((item) => item.id === purpose.beatId);
+    const progressionRole = progressionRoleForBeatIndexV35(
+      Math.max(0, beatIndex),
+      purpose.linkedClaimIds
+    );
+    return buildVisualSemanticSignatureV35({
+      modality: beat?.modality ?? purpose.recommendedModality,
+      subject: concept?.historicalSubject ?? purpose.protectedFactualMeaning.slice(0, 80),
+      claimIds: purpose.linkedClaimIds,
+      composition: concept?.intendedComposition ?? purpose.visualPurpose,
+      progressionRole,
+      action: purpose.visualPurpose,
+      modalityStateReference: null,
+    });
+  });
+  const semanticConceptDuplicateRate = Math.max(
+    templateFingerprints.length
+      ? (templateFingerprints.length - new Set(templateFingerprints).size) / templateFingerprints.length
+      : 0,
+    measurePurposeTemplateFamilyDuplicationV35(beatPurposeSignatures),
+    measureNearbyTemplateFamilyRepetitionV35(shotSignatures)
+  );
+  const treatmentSignatures = input.shots.map((shot) => {
+    const beat = input.beats.find((item) => item.id === shot.beatId);
+    const modality = beat?.modality ?? "archival image";
+    const progressionRole = (shot.purpose.split(/\s+/u)[0] ?? "establish") as "establish";
+    return buildVisualTreatmentSignatureV35({ shot, modality, progressionRole });
+  });
+  const treatmentTemplateDuplicateRate = Math.max(
+    measureNearbyTreatmentRepetitionV35(treatmentSignatures),
+    measureTreatmentWindowConcentrationV35(treatmentSignatures) >= 0.6
+      ? measureTreatmentWindowConcentrationV35(treatmentSignatures) - 0.45
+      : 0
+  );
+  const visualConceptTemplateDuplicateRate = semanticConceptDuplicateRate;
   const templatedArchivalRate = input.purposes.length
     ? input.purposes.filter((purpose) => isTemplatedArchivalPurposeV35(purpose.visualPurpose)).length /
       input.purposes.length
@@ -187,9 +257,7 @@ export function measureHistoryRepetitionV35(input: {
     .sort((a, b) => b - a)
     .slice(0, 2)
     .reduce((sum, value) => sum + value, 0);
-  const shotStructures = input.shots.map(
-    (shot) => `${shot.framing}|${shot.cameraMovement}|${shot.transition}|${shot.purpose}`
-  );
+  const shotStructures = semanticStructures;
   const assetTreatments = input.shots.map(
     (shot) => `${shot.reconstructionPolicy}|${shot.action}`
   );
@@ -205,16 +273,14 @@ export function measureHistoryRepetitionV35(input: {
     : 0;
   const duplicateClusters = [...new Set(shotStructures)]
     .map((signature) => {
-      const shots = input.shots.filter(
-        (shot) =>
-          `${shot.framing}|${shot.cameraMovement}|${shot.transition}|${shot.purpose}` ===
-          signature
+      const matchingShots = input.shots.filter(
+        (_, index) => semanticStructures[index] === signature
       );
       return {
-        kind: "shot-structure",
+        kind: "semantic-shot",
         signature,
-        beatIds: [...new Set(shots.map((shot) => shot.beatId))],
-        shotIds: shots.map((shot) => shot.id),
+        beatIds: [...new Set(matchingShots.map((shot) => shot.beatId))],
+        shotIds: matchingShots.map((shot) => shot.id),
       };
     })
     .filter((cluster) => cluster.shotIds.length > 1);
@@ -227,9 +293,11 @@ export function measureHistoryRepetitionV35(input: {
     exactPurposeDuplicateRate,
     semanticPurposeDuplicateRate,
     visualConceptTemplateDuplicateRate: Math.max(
-      visualConceptTemplateDuplicateRate,
+      semanticConceptDuplicateRate,
       templatedArchivalRate
     ),
+    semanticConceptDuplicateRate,
+    treatmentTemplateDuplicateRate,
     dominantCameraRate: cameras.length ? dominantShare(cameras) : 0,
     twoInstructionAlternationRate: cameras.length ? topTwo / cameras.length : 0,
     shotStructureDuplicateRate: shotStructures.length
@@ -249,6 +317,8 @@ export function measureHistoryRepetitionV35(input: {
     Boolean(input.explicitOverride) ||
     (metric.exactPurposeDuplicateRate <= thresholds.maxExactPurposeDuplicateRate &&
       metric.semanticPurposeDuplicateRate < thresholds.maxSemanticPurposeDuplicateRate &&
+      metric.semanticConceptDuplicateRate <= thresholds.maxSemanticConceptDuplicateRate &&
+      metric.treatmentTemplateDuplicateRate <= thresholds.maxTreatmentTemplateDuplicateRate &&
       metric.visualConceptTemplateDuplicateRate <= thresholds.maxVisualConceptTemplateDuplicateRate &&
       metric.dominantCameraRate < thresholds.maxDominantCameraRate &&
       metric.twoInstructionAlternationRate < thresholds.maxTwoInstructionAlternationRate &&
@@ -272,7 +342,13 @@ function modalityFor(text: string): HistoryVisualModalityV35 {
     return "archival image";
   if (
     /\b(?:plague|Black Death|Yersinia)\b/iu.test(text) &&
-    /\b(?:trade routes?|transmission|fleas?|rats?|labou?r|wages?|mortality|population|Messina|Black Sea)\b/iu.test(
+    /\b(?:chronicle|monk|priory|abbey|notary|register)\b/iu.test(text) &&
+    /\b(?:wrote|recorded|account|described|reported|entry)\b/iu.test(text)
+  )
+    return "document";
+  if (
+    /\b(?:plague|Black Death)\b/iu.test(text) &&
+    /\b(?:afterward|after the|recovery|survivors?|depopulation|labou?r|wages?|shortage)\b/iu.test(
       text
     )
   )
@@ -283,11 +359,18 @@ function modalityFor(text: string): HistoryVisualModalityV35 {
   )
     return "diagram";
   if (
-    /\b(?:route|crossed|crossing|advanced|advancing|retreat|retreated|river|sailed|march|toward|from .+ to |island|bay|passage|niemen|moscow|smolensk|berezina|messina|mediterranean)\b/iu.test(
+    /\b(?:route|crossed|crossing|advanced|advancing|retreat|retreated|river|sailed|march|toward|from .+ to |island|bay|passage|niemen|moscow|smolensk|berezina|messina|mediterranean|aegean|anatolia|levant|cyprus|hittite|mycenae|trade routes?|eastern mediterranean)\b/iu.test(
       text
     )
   )
     return "map";
+  if (
+    /\b(?:bronze|copper|tin|palace|collapse|sea peoples|bureaucrac|dependencies?|combined to make|trade network)\b/iu.test(
+      text
+    ) &&
+    /\b(?:system|network|across|region|empire|routes?|production|mechanism)\b/iu.test(text)
+  )
+    return "diagram";
   if (
     /\b(?:Victory Point note|graves?|equipment|remains|written message|Inuit testimony|wreck)\b/iu.test(
       text
@@ -417,6 +500,15 @@ function resolveClusterModality(input: {
     });
     if (compiled) return "map";
   }
+  if (
+    input.cluster.modality === "diagram" ||
+    detectDiagramOpportunityV35({
+      claimIds: input.cluster.claimIds,
+      clusterText: input.cluster.text,
+      claims: input.structured.claims,
+    }).eligible
+  )
+    return "diagram";
   return splitModalitiesFromLegacyV35(input.cluster.modality);
 }
 
@@ -426,118 +518,6 @@ function wordSafeSlice(text: string, maxChars: number): string {
   const slice = trimmed.slice(0, maxChars);
   const boundary = slice.lastIndexOf(" ");
   return (boundary > 20 ? slice.slice(0, boundary) : slice).trim();
-}
-
-function hashPick<T>(seed: string, values: readonly T[]): T {
-  let hash = 0;
-  for (let index = 0; index < seed.length; index += 1)
-    hash = (hash * 31 + seed.charCodeAt(index)) >>> 0;
-  return values[hash % values.length]!;
-}
-
-function buildShotsForBeat(input: {
-  readonly beatId: string;
-  readonly beatNumber: string;
-  readonly beatIndex: number;
-  readonly startMs: number;
-  readonly durationMs: number;
-  readonly modality: HistoryVisualModalityV35;
-  readonly text: string;
-  readonly claimIds: readonly string[];
-  readonly modalityStateReference: string | null;
-}): HistoryShotV34[] {
-  const semanticSegments = countSemanticShotSegments({
-    text: input.text,
-    claimCount: input.claimIds.length,
-  });
-  const needsMultiple =
-    shouldSplitLongStaticBeatV35({
-      durationMs: input.durationMs,
-      modality: input.modality,
-      semanticSegments,
-    }) ||
-    input.durationMs >= 45_000 ||
-    input.claimIds.length >= 3 ||
-    input.modality === "map" ||
-    input.modality === "diagram" ||
-    input.modality === "timeline";
-  const count = needsMultiple
-    ? Math.min(3, Math.max(semanticSegments, Math.ceil(input.durationMs / 40_000)))
-    : 1;
-  const slice = Math.floor(input.durationMs / count);
-  const roles = ["orienting", "evidentiary", "explanatory", "transitional", "emotional"] as const;
-  const framings = [
-    "wide establishing vista",
-    "medium subject hold",
-    "tight evidentiary inset",
-    "split comparison board",
-    "angled document desk",
-    "overhead route board",
-  ] as const;
-  const cameras = [
-    "static locked hold",
-    "slow push-in on evidence",
-    "gentle lateral drift",
-    "measured pull-back reveal",
-    "hold then micro-pan",
-  ] as const;
-  const transitions = [
-    "hard narration cut",
-    "soft evidence dissolve",
-    "chapter hold then cut",
-    "opacity crossfade",
-    "match-cut on shared subject",
-    "beat-boundary wipe restrained",
-  ] as const;
-  const shots: HistoryShotV34[] = [];
-  let cursor = input.startMs;
-  for (let index = 0; index < count; index += 1) {
-    const durationMs = index === count - 1 ? input.startMs + input.durationMs - cursor : slice;
-    const endMs = cursor + durationMs;
-    const subjectSeed = wordSafeSlice(input.text, 110) || "Trusted narration span";
-    const role = roles[(input.beatIndex + index) % roles.length]!;
-    const seed = `${input.beatId}|${input.modality}|${role}|${index}|${subjectSeed}`;
-    const framing = hashPick(seed + "|frame", framings);
-    const cameraMovement = hashPick(seed + "|camera", cameras);
-    const transition = hashPick(seed + "|transition", transitions);
-    const purpose =
-      count === 1
-        ? `${role} ${input.modality} for ${wordSafeSlice(subjectSeed, 48)}`
-        : `${role} stage ${index + 1}/${count} on ${input.modality}`;
-    shots.push({
-      id: `shot-${input.beatNumber}-${String(index + 1).padStart(2, "0")}`,
-      beatId: input.beatId,
-      purpose,
-      durationMs,
-      startMs: cursor,
-      endMs,
-      framing,
-      cameraMovement,
-      subject: subjectSeed,
-      action: `${role} development of ${wordSafeSlice(subjectSeed, 64)}`,
-      foreground: `${input.modality}/${role} foreground: ${wordSafeSlice(subjectSeed, 40)}`,
-      midground: `${input.modality} midground claim focus ${input.claimIds[0] ?? "none"}`,
-      background: `${input.modality} background continuity for beat ${input.beatNumber}`,
-      factualLabels:
-        input.modality === "map" || input.modality === "diagram" || input.modality === "timeline"
-          ? input.claimIds.slice(0, 2)
-          : [],
-      permittedMotion: [`${role}-safe non-diegetic motion`, "narration-synchronous opacity"],
-      prohibitedAdditions: [
-        "unsupported place labels",
-        "invented causal arrows",
-        "placeholder coordinates",
-      ],
-      transition,
-      linkedClaimIds: input.claimIds,
-      modalityStateReference: input.modalityStateReference,
-      adaptation16x9: `Landscape ${role} layout for ${input.modality} beat ${input.beatNumber}.`,
-      adaptation9x16: portraitAdaptationNotesV35(input.modality),
-      reconstructionPolicy: resolveReconstructionPolicyV35(input.modality),
-    });
-    cursor = endMs;
-  }
-  return shots;
 }
 
 function buildRatioPlans(input: {
@@ -1360,6 +1340,9 @@ export function buildHistoryVisualPlanV35(input: {
     { readonly master: HistoryVisualPlanV35["mapMasters"][number]; readonly state: HistoryVisualPlanV35["mapStates"][number] }
   >();
   const diagnostics: HistoryDiagnosticV34[] = [];
+  const visualOpportunities: HistoryVisualPlanV35["visualOpportunities"][number][] = [];
+  const opportunitySummaries: HistoryVisualOpportunitySummaryV35[] = [];
+  let priorShotSignature: VisualSemanticSignature | null = null;
 
   let cursor = 0;
   clusters.forEach((cluster, index) => {
@@ -1707,7 +1690,32 @@ export function buildHistoryVisualPlanV35(input: {
           )?.normalizedLabel
       )
       .filter((label): label is string => Boolean(label));
-    const beatShots = buildShotsForBeat({
+    const entityLabels = structured.entities
+      .filter((entity) => claimIds.includes(entity.claimId))
+      .map((entity) => entity.normalizedLabel);
+    const visualSubject = deriveVisualSubjectV35({
+      claimText: cluster.text,
+      claimId: claimIds[0] ?? `claim-${beatNumber}`,
+      entityLabels,
+      claimKind: materialClaims[0]?.claimKind ?? "other",
+    });
+    const opportunityPack = buildVisualOpportunitiesV35({
+      beatId,
+      clusterText: cluster.text,
+      claimIds,
+      narrationUnitIds: cluster.unitIds,
+      claims: structured.claims,
+      entities: structured.entities,
+      geographicQualifiers: structured.geographicQualifiers,
+      mapIntents,
+      selectedModality: modality,
+      mapCompiled: Boolean(mapState),
+      diagramCompiled: Boolean(diagramState),
+      ...(fallback?.reasonForRejection ? { mapRejectionReason: fallback.reasonForRejection } : {}),
+    });
+    visualOpportunities.push(...opportunityPack.opportunities);
+    opportunitySummaries.push(opportunityPack.summary);
+    const beatShotsResult = buildEditorialShotSequenceV35({
       beatId,
       beatNumber,
       beatIndex: index,
@@ -1716,15 +1724,24 @@ export function buildHistoryVisualPlanV35(input: {
       modality,
       text: cluster.text,
       claimIds,
+      entityLabels,
+      visualSubject: visualSubject.label,
+      places: purposePlaces.length
+        ? purposePlaces
+        : mapState?.labels.map((label) => label.text) ?? [],
       modalityStateReference,
+      priorSignature: priorShotSignature,
     });
+    const beatShots = beatShotsResult.shots;
+    priorShotSignature =
+      beatShotsResult.signatures[beatShotsResult.signatures.length - 1] ?? priorShotSignature;
     shots.push(...beatShots);
     const ratios = buildRatioPlans({
       beatId,
       beatNumber,
       purposeId,
       modality,
-      subject: cluster.text,
+      subject: visualSubject.label,
       protectedGeographyLabels,
       mapState,
       diagramState,
@@ -1760,9 +1777,9 @@ export function buildHistoryVisualPlanV35(input: {
         : mapState?.labels.map((label) => label.text) ?? [],
       temporals: purposeTemporals.length ? purposeTemporals : mapState ? [mapState.timePeriod] : [],
       claimKinds: materialClaims.map((claim) => claim.claimKind),
-      entityLabels: structured.entities
-        .filter((entity) => claimIds.includes(entity.claimId))
-        .map((entity) => entity.normalizedLabel),
+      claimIds,
+      entityLabels,
+      beatIndex: index,
     });
     visualConcepts.push(concept);
     const visualPurposeText = buildConcreteVisualPurposeV35({
@@ -1906,6 +1923,19 @@ export function buildHistoryVisualPlanV35(input: {
     });
     timelineEvents.push(...events);
   }
+
+  const refinedPlan = refineShotPlanForRepetitionV35({
+    shots,
+    beats,
+    purposes: visualPurposes,
+    concepts: visualConcepts,
+  });
+  const treatmentRefined = refineVisualTreatmentPlanV35({
+    shots: refinedPlan.shots,
+    beats: refinedPlan.beats,
+  });
+  shots.splice(0, shots.length, ...treatmentRefined.shots);
+  beats.splice(0, beats.length, ...treatmentRefined.beats);
 
   const qualityMetrics = measureHistoryRepetitionV35({
     purposes: visualPurposes,
@@ -2328,6 +2358,8 @@ export function buildHistoryVisualPlanV35(input: {
     dateCardStates,
     documentStates,
     aspectRatioPlans,
+    visualOpportunities,
+    visualOpportunitySummary: summarizeVisualOpportunityTotalsV35(opportunitySummaries),
     qualityMetrics,
     diagnostics,
     approval: summarizeApproval(diagnostics),
@@ -2335,6 +2367,29 @@ export function buildHistoryVisualPlanV35(input: {
   const plan = { ...body, planHash: hashCanonicalV34(body) };
   validateHistoryVisualPlanV35(plan);
   return plan;
+}
+
+export function applyPlanApprovalPrerequisitesV35(
+  plan: HistoryVisualPlanV35,
+  prerequisites: readonly {
+    readonly code: string;
+    readonly message: string;
+    readonly gate: HistoryDiagnosticV34["gate"];
+    readonly severity?: HistoryDiagnosticV34["severity"];
+  }[]
+): HistoryVisualPlanV35 {
+  if (!prerequisites.length) return plan;
+  const extra = prerequisites.map((item) =>
+    diagnostic(item.code, item.gate, item.message, [], item.severity ?? "error")
+  );
+  const diagnostics = [...plan.diagnostics, ...extra];
+  const { planHash: _ignored, ...body } = plan;
+  const updated = {
+    ...body,
+    diagnostics,
+    approval: summarizeApproval(diagnostics),
+  };
+  return { ...updated, planHash: hashCanonicalV34(updated) };
 }
 
 export function applyPlanProductionPrerequisitesV35(
@@ -2345,18 +2400,10 @@ export function applyPlanProductionPrerequisitesV35(
     readonly severity?: HistoryDiagnosticV34["severity"];
   }[]
 ): HistoryVisualPlanV35 {
-  if (!prerequisites.length) return plan;
-  const extra = prerequisites.map((item) =>
-    diagnostic(item.code, "production", item.message, [], item.severity ?? "error")
+  return applyPlanApprovalPrerequisitesV35(
+    plan,
+    prerequisites.map((item) => ({ ...item, gate: "production" as const }))
   );
-  const diagnostics = [...plan.diagnostics, ...extra];
-  const { planHash: _ignored, ...body } = plan;
-  const updated = {
-    ...body,
-    diagnostics,
-    approval: summarizeApproval(diagnostics),
-  };
-  return { ...updated, planHash: hashCanonicalV34(updated) };
 }
 
 export function buildHistoryValidationSnapshotV35(plan: HistoryVisualPlanV35): {

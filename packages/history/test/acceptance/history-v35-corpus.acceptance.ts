@@ -91,12 +91,15 @@ describe("History V3.5 corpus acceptance", () => {
 
       if (episodeId.includes("franklin")) {
         expect(
-          plan.quantitativeQualifiers.some((item) => item.normalizedValue === "134")
-        ).toBe(true);
-        expect(
           plan.quantitativeQualifiers.some((item) => item.normalizedValue === "129")
         ).toBe(true);
-        expect(plan.narration.normalizedText).toMatch(/five men had returned from Greenland/iu);
+        expect(
+          plan.quantitativeQualifiers.some((item) => item.normalizedValue === "134")
+        ).toBe(false);
+        expect(plan.narration.normalizedText).toMatch(/129 officers and men/iu);
+        expect(plan.narration.normalizedText).toMatch(
+          /wreck of Terror, with hatches closed and much of its interior preserved/iu
+        );
       }
 
       if (episodeId.includes("roman-empire")) {

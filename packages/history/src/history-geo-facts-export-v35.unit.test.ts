@@ -103,6 +103,13 @@ function minimalPlan(
     dateCardStates: [],
     documentStates: [],
     aspectRatioPlans: [],
+    visualOpportunities: [],
+    visualOpportunitySummary: {
+      eligibleMapOpportunities: 0,
+      selectedMapOpportunities: 0,
+      eligibleDiagramOpportunities: 0,
+      selectedDiagramOpportunities: 0,
+    },
     timing: { totalDurationMs: 1000, measured: false },
     qualityMetrics: {
       thresholds: {

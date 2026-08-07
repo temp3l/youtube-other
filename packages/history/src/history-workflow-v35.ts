@@ -29,6 +29,7 @@ import {
 import {
   buildHistoryVisualPlanV35,
   applyPlanProductionPrerequisitesV35,
+  applyPlanApprovalPrerequisitesV35,
   buildHistoryValidationSnapshotV35,
   validateHistoryVisualPlanV35,
 } from "./visual-planner-v35.js";
@@ -54,14 +55,31 @@ async function runFocusedHistoryV35Verification(): Promise<Record<string, unknow
     readonly command: string;
     readonly exitCode: number;
     readonly ok: boolean;
+    readonly status: "passed" | "failed" | "execution-failure";
+    readonly diagnostic?: string;
   }> = [];
   for (const command of FOCUSED_HISTORY_V35_COMMANDS) {
     try {
-      await exec("bash", ["-lc", command], { cwd: REPO_ROOT });
-      results.push({ command, exitCode: 0, ok: true });
+      const { stderr } = await exec("bash", ["-lc", command], {
+        cwd: REPO_ROOT,
+        maxBuffer: 1024 * 1024,
+      });
+      results.push({ command, exitCode: 0, ok: true, status: "passed", diagnostic: stderr?.slice(-500) });
     } catch (error) {
-      const exitCode = (error as NodeJS.ErrnoException & { code?: number }).code ?? 1;
-      results.push({ command, exitCode: Number(exitCode), ok: false });
+      const err = error as NodeJS.ErrnoException & {
+        code?: number | string;
+        stderr?: string;
+        stdout?: string;
+      };
+      const exitCode = Number(err.code ?? 1);
+      const diagnostic = `${err.stdout ?? ""}\n${err.stderr ?? ""}`.trim().slice(-1500);
+      results.push({
+        command,
+        exitCode,
+        ok: false,
+        status: Number.isFinite(exitCode) ? "failed" : "execution-failure",
+        diagnostic: diagnostic || err.message,
+      });
     }
   }
   return {
@@ -542,6 +560,21 @@ export async function createHistoryApprovalPackV35(request: {
       message:
         "Production approval is blocked until local verification completes (test-summary.json is pending-local-verification).",
     });
+  if (testSummary["status"] === "failed") {
+    const commands = Array.isArray(testSummary["commands"])
+      ? (testSummary["commands"] as Array<{ readonly command?: string; readonly ok?: boolean; readonly exitCode?: number; readonly diagnostic?: string }>)
+      : [];
+    const failed = commands.filter((item) => item.ok === false);
+    plan = applyPlanApprovalPrerequisitesV35(plan, [
+      {
+        code: "FOCUSED_TEST_FAILURE",
+        gate: "structural",
+        message: `Required focused validation failed (${failed.length}): ${failed
+          .map((item) => `${item.command ?? "unknown"} exit ${item.exitCode ?? "?"}`)
+          .join("; ")}`,
+      },
+    ]);
+  }
   if (productionPrerequisites.length)
     plan = applyPlanProductionPrerequisitesV35(plan, productionPrerequisites);
   const validation = buildHistoryValidationSnapshotV35(plan);
@@ -803,11 +836,58 @@ export async function createCombinedHistoryApprovalBundleV35(request: {
           (sum, item) => sum + item.qualityMetrics.effectiveChange.longStaticRuntimeShare,
           0
         ) / Math.max(1, episodeSummaries.length),
+      avgSemanticConceptDuplicateRate:
+        episodeSummaries.reduce(
+          (sum, item) => sum + item.qualityMetrics.semanticConceptDuplicateRate,
+          0
+        ) / Math.max(1, episodeSummaries.length),
+      avgTreatmentTemplateDuplicateRate:
+        episodeSummaries.reduce(
+          (sum, item) => sum + item.qualityMetrics.treatmentTemplateDuplicateRate,
+          0
+        ) / Math.max(1, episodeSummaries.length),
       avgVisualConceptTemplateDuplicateRate:
         episodeSummaries.reduce(
           (sum, item) => sum + item.qualityMetrics.visualConceptTemplateDuplicateRate,
           0
         ) / Math.max(1, episodeSummaries.length),
+      effectiveChangeAuditTotals: episodeSummaries.reduce(
+        (totals, item) => {
+          const audit = item.qualityMetrics.effectiveChange.audit;
+          return {
+            assetChanges: totals.assetChanges + audit.assetChanges,
+            structuredStateChanges: totals.structuredStateChanges + audit.structuredStateChanges,
+            annotationChanges: totals.annotationChanges + audit.annotationChanges,
+            mapChanges: totals.mapChanges + audit.mapChanges,
+            diagramChanges: totals.diagramChanges + audit.diagramChanges,
+            documentChanges: totals.documentChanges + audit.documentChanges,
+            compositionChanges: totals.compositionChanges + audit.compositionChanges,
+            motionOnlyEvents: totals.motionOnlyEvents + audit.motionOnlyEvents,
+            transitionOnlyEvents: totals.transitionOnlyEvents + audit.transitionOnlyEvents,
+            unstructuredRevealEvents:
+              totals.unstructuredRevealEvents + audit.unstructuredRevealEvents,
+            clockResetsBackedByState:
+              totals.clockResetsBackedByState + audit.clockResetsBackedByState,
+            clockResetsMotionOrTransitionOnly:
+              totals.clockResetsMotionOrTransitionOnly +
+              audit.clockResetsMotionOrTransitionOnly,
+          };
+        },
+        {
+          assetChanges: 0,
+          structuredStateChanges: 0,
+          annotationChanges: 0,
+          mapChanges: 0,
+          diagramChanges: 0,
+          documentChanges: 0,
+          compositionChanges: 0,
+          motionOnlyEvents: 0,
+          transitionOnlyEvents: 0,
+          unstructuredRevealEvents: 0,
+          clockResetsBackedByState: 0,
+          clockResetsMotionOrTransitionOnly: 0,
+        }
+      ),
     },
     testCommands: FOCUSED_HISTORY_V35_COMMANDS,
   };
@@ -821,7 +901,10 @@ export async function createCombinedHistoryApprovalBundleV35(request: {
       "",
       `Episodes: ${episodeSummaries.length}`,
       `Average long-static runtime share: ${(qualityReport.corpusTotals.avgLongStaticShare * 100).toFixed(1)}%`,
+      `Average semantic concept duplicate rate: ${(qualityReport.corpusTotals.avgSemanticConceptDuplicateRate * 100).toFixed(1)}%`,
+      `Average treatment-template duplicate rate: ${(qualityReport.corpusTotals.avgTreatmentTemplateDuplicateRate * 100).toFixed(1)}%`,
       `Average visual-concept template duplicate rate: ${(qualityReport.corpusTotals.avgVisualConceptTemplateDuplicateRate * 100).toFixed(1)}%`,
+      `Effective-change audit totals: ${JSON.stringify(qualityReport.corpusTotals.effectiveChangeAuditTotals)}`,
       "",
       ...episodeSummaries.map(
         (item) =>

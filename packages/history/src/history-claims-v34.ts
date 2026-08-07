@@ -42,6 +42,15 @@ export const HISTORY_ENTITY_STOPWORDS_V34 = new Set(
     "whaling",
     "why",
     "yet",
+    "before",
+    "another",
+    "when",
+    "others",
+    "after",
+    "during",
+    "while",
+    "although",
+    "because",
     "and",
     "or",
     "of",
@@ -123,9 +132,11 @@ const CANONICAL_ENTITY_SEEDS: readonly CanonicalEntitySeed[] = [
   { label: "Victory Point note", entityType: "document", aliases: ["Victory Point"] },
   { label: "Inuit", entityType: "ethnic-or-cultural-group", aliases: ["Inuit witnesses", "Inuit communities"], defaultRole: "observer" },
   { label: "Napoleon Bonaparte", entityType: "person", aliases: ["Napoleon"], defaultRole: "leader" },
+  { label: "Tsar Alexander the First", entityType: "person", aliases: ["Tsar Alexander", "Alexander the First"] },
   { label: "Mikhail Kutuzov", entityType: "person", aliases: ["Kutuzov"] },
   { label: "Grande Armée", entityType: "military-unit", aliases: ["The Grande Armée", "Grande Armee"] },
-  { label: "Russia", entityType: "state", aliases: ["Russian Empire"] },
+  { label: "Russia", entityType: "state", aliases: ["Russian Empire", "Russian"] },
+  { label: "Poland", entityType: "state" },
   { label: "Moscow", entityType: "place", defaultRole: "destination" },
   { label: "Smolensk", entityType: "place" },
   { label: "Berezina River", entityType: "water-body", aliases: ["Berezina"] },
@@ -184,6 +195,8 @@ const ORDINARY_NOUN_REJECT = new Set(
     "decision",
     "leadership",
     "reinforcements",
+    "tensions",
+    "alexander",
   ].map((value) => value.toLocaleLowerCase())
 );
 
@@ -230,6 +243,7 @@ export function isRejectedEntityTextV34(text: string): { readonly reject: boolea
   if (HISTORY_TEMPORAL_PREFIX_PHRASES_V34.has(lower))
     return { reject: true, reason: "temporal-prefix-phrase" };
   if (PRONOUNS.has(lower)) return { reject: true, reason: "unresolved-pronoun" };
+  if (/^each\s+/iu.test(trimmed)) return { reject: true, reason: "discourse-quantifier" };
   if (ORDINARY_NOUN_REJECT.has(lower) || ORDINARY_NOUN_REJECT.has(withoutArticle))
     return { reject: true, reason: "ordinary-noun-concept" };
   if (/^(?:in|on|by|from|to)\s+[a-z]+$/iu.test(trimmed) && !ENTITY_BY_ALIAS.has(lower) && !ENTITY_BY_ALIAS.has(withoutArticle))
@@ -245,6 +259,58 @@ export function isRejectedEntityTextV34(text: string): { readonly reject: boolea
   )
     return { reject: true, reason: "sentence-start-fragment" };
   return { reject: false, reason: "" };
+}
+
+const DISCOURSE_OPENER_PATTERN =
+  /^(?:before|another|some|when|others|after|during|while|although|because|yet|so|but|however|each)\b/iu;
+
+const PROPER_NOUN_SURFACE_PATTERN =
+  /^[A-Z][\p{L}'-]+(?:\s+(?:[A-Z][\p{L}'-]+|III|II|IV|I|of|the|and))+|[A-Z][\p{L}'-]+(?:\s+(?:III|II|IV|I))?$/u;
+
+export function inferHistoricalEntitySeedFromSurfaceV34(
+  text: string,
+  unitText: string
+): CanonicalEntitySeed | null {
+  const trimmed = text.trim();
+  if (!trimmed) return null;
+  if (DISCOURSE_OPENER_PATTERN.test(trimmed) && !/\s+[A-Z]/u.test(trimmed))
+    return null;
+
+  const stripped = trimmed
+    .replace(
+      /^(?:The|A|An|In|On|By|For|From|Its|They|Their|This|That|Those|Later|Some|No|Why|Yet|Before|Another|When|Others|After|During|While|Although|Because|Each)\s+/u,
+      ""
+    )
+    .trim();
+  const candidate = stripped || trimmed;
+  const rejection = isRejectedEntityTextV34(candidate);
+  if (rejection.reject) return null;
+  if (!PROPER_NOUN_SURFACE_PATTERN.test(candidate)) return null;
+  if (/\b(?:were|was|are|is|had|have|became|began|collapsed|destroyed|believe|recorded|relied)\b/iu.test(candidate))
+    return null;
+
+  const tokens = candidate.split(/\s+/u);
+  let entityType: HistoryEntityTypeV34 = "place";
+  if (/\b(?:Empire|Kingdom|Republic|Dynasty|Confederacy|Union|Civilization)\b/u.test(candidate))
+    entityType = "state";
+  else if (/\bPeoples?\b/u.test(candidate)) entityType = "ethnic-or-cultural-group";
+  else if (/\b(?:III|II|IV|I)\b/u.test(candidate) ||
+    /\b(?:Ramesses|Pharaoh|Emperor|Empress|King|Queen|Caesar|Merneptah|Tsar)\b/u.test(candidate))
+    entityType = "person";
+  else if (/^Russian$/iu.test(candidate)) return ENTITY_BY_ALIAS.get("russian") ?? null;
+  else if (/\b(?:Sea|Ocean|Gulf|Bay|Strait|Aegean|Mediterranean)\b/u.test(candidate))
+    entityType = "water-body";
+  else if (/\bLevant\b/u.test(candidate)) entityType = "region";
+  else if (/\b(?:tablet|inscription|relief|archive|chronicle|document|stele)\b/iu.test(unitText))
+    entityType = "document";
+  else if (tokens.length === 1 && candidate.length < 4) return null;
+
+  const label = candidate.replace(/^The\s+/u, "");
+  return {
+    label,
+    entityType,
+    aliases: [...new Set([candidate, label])],
+  };
 }
 
 function detectClaimKind(text: string): HistoryClaimKindV34 {
@@ -641,7 +707,10 @@ function extractEntitiesForUnit(input: {
         startUtf16: input.unit.startUtf16 + local.startUtf16,
         endUtf16Exclusive: input.unit.startUtf16 + local.endUtf16Exclusive,
       },
-      confidenceSource: candidate.seed ? "deterministic" : "model-proposed",
+      confidenceSource:
+        candidate.seed || ENTITY_BY_ALIAS.has(key)
+          ? "deterministic"
+          : "deterministic-inferred",
     });
   }
   return { entities, rejected };
@@ -871,6 +940,7 @@ export function lookupCanonicalEntitySeedV34(
   return (
     ENTITY_BY_ALIAS.get(lower) ??
     ENTITY_BY_ALIAS.get(lower.replace(/^(?:the|a|an)\s+/u, "")) ??
+    inferHistoricalEntitySeedFromSurfaceV34(text, text) ??
     null
   );
 }

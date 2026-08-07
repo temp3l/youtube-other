@@ -20,6 +20,7 @@ import type {
   HistoryMapPurposeV34,
   HistoryReconstructionPolicyV34,
 } from "./history-v34-contracts.js";
+import type { HistoryVisualOpportunitySummaryV35 } from "./history-visual-opportunity-v35.js";
 
 export const HISTORY_CLAIM_SCHEMA_V35 = "history-claim.v3.5" as const;
 export const HISTORY_VISUAL_SCHEMA_V35 = "history-visual-plan.v3.5" as const;
@@ -99,12 +100,28 @@ export interface HistoryShotVisualChangeV35 {
   readonly resetsVisualClock: boolean;
 }
 
+export interface HistoryEffectiveChangeAuditV35 {
+  readonly assetChanges: number;
+  readonly structuredStateChanges: number;
+  readonly annotationChanges: number;
+  readonly mapChanges: number;
+  readonly diagramChanges: number;
+  readonly documentChanges: number;
+  readonly compositionChanges: number;
+  readonly motionOnlyEvents: number;
+  readonly transitionOnlyEvents: number;
+  readonly unstructuredRevealEvents: number;
+  readonly clockResetsBackedByState: number;
+  readonly clockResetsMotionOrTransitionOnly: number;
+}
+
 export interface HistoryEffectiveChangeMetricsV35 {
   readonly longStaticRuntimeShare: number;
   readonly strongLongStaticRuntimeShare: number;
   readonly longestUnchangedVisualIntervalMs: number;
   readonly effectiveChangeCadenceMs: number;
   readonly shotVisualChanges: readonly HistoryShotVisualChangeV35[];
+  readonly audit: HistoryEffectiveChangeAuditV35;
 }
 
 export type HistoryHistoricalApprovalStateV35 =
@@ -157,6 +174,8 @@ export interface HistoryQualityThresholdsV35 {
   readonly maxExactPurposeDuplicateRate: number;
   readonly maxSemanticPurposeDuplicateRate: number;
   readonly maxVisualConceptTemplateDuplicateRate: number;
+  readonly maxSemanticConceptDuplicateRate: number;
+  readonly maxTreatmentTemplateDuplicateRate: number;
   readonly maxDominantCameraRate: number;
   readonly maxTwoInstructionAlternationRate: number;
   readonly maxShotStructureDuplicateRate: number;
@@ -172,6 +191,8 @@ export interface HistoryQualityMetricsV35 {
   readonly exactPurposeDuplicateRate: number;
   readonly semanticPurposeDuplicateRate: number;
   readonly visualConceptTemplateDuplicateRate: number;
+  readonly semanticConceptDuplicateRate: number;
+  readonly treatmentTemplateDuplicateRate: number;
   readonly dominantCameraRate: number;
   readonly twoInstructionAlternationRate: number;
   readonly shotStructureDuplicateRate: number;
@@ -272,6 +293,18 @@ export interface HistoryVisualPlanV35 {
   readonly documentStates: readonly HistoryDocumentStateV35[];
   readonly aspectRatioPlans: readonly AspectRatioPlanV35[];
   readonly qualityMetrics: HistoryQualityMetricsV35;
+  readonly visualOpportunities: readonly {
+    readonly id: string;
+    readonly type: "map" | "diagram";
+    readonly claimIds: readonly string[];
+    readonly entityIds: readonly string[];
+    readonly narrationSpanIds: readonly string[];
+    readonly eligibilityReason: string;
+    readonly selected: boolean;
+    readonly selectionReason?: string;
+    readonly rejectionReason?: string;
+  }[];
+  readonly visualOpportunitySummary: HistoryVisualOpportunitySummaryV35;
   readonly diagnostics: readonly HistoryDiagnosticV34[];
   readonly approval: HistoryApprovalV34;
   readonly planHash: string;
@@ -281,6 +314,8 @@ export const DEFAULT_HISTORY_QUALITY_THRESHOLDS_V35: HistoryQualityThresholdsV35
   maxExactPurposeDuplicateRate: 0,
   maxSemanticPurposeDuplicateRate: 0.2,
   maxVisualConceptTemplateDuplicateRate: 0.15,
+  maxSemanticConceptDuplicateRate: 0.15,
+  maxTreatmentTemplateDuplicateRate: 0.15,
   maxDominantCameraRate: 0.45,
   maxTwoInstructionAlternationRate: 0.75,
   maxShotStructureDuplicateRate: 0.3,

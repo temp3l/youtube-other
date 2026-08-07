@@ -11,9 +11,9 @@ import type {
 const FRANKLIN_EPISODE =
   "history-youtube-history-10-video-story-pack-05-franklin-expedition";
 
-const FRANKLIN_OPENING = `In May 1845, two Royal Navy ships sailed from Britain with 134 officers and crew to search for the Northwest Passage.
+const FRANKLIN_OPENING = `In May 1845, two Royal Navy ships sailed from Britain to search for the Northwest Passage. HMS Erebus and HMS Terror were strong, experienced polar vessels. They carried steam engines, reinforced hulls, scientific instruments, preserved food, and 129 officers and men under Sir John Franklin.
 
-Whaling ships saw the remaining 129 in Baffin Bay that summer after five men had returned from Greenland.`;
+Whaling ships saw them in Baffin Bay that summer.`;
 
 const britainEntity: HistoryEntityMentionV34 = {
   id: "entity-britain",
@@ -75,7 +75,7 @@ const geographicQualifiers: HistoryGeographicQualifierV34[] = [
 ];
 
 describe("History V3.5 Franklin geography regressions", () => {
-  it("extracts 134 and 129 crew counts as quantitative qualifiers", () => {
+  it("extracts 129 crew count as a quantitative qualifier without temporal misclassification", () => {
     const narration = normalizeHistoryNarrationV33({
       episodeId: FRANKLIN_EPISODE,
       rawScript: FRANKLIN_OPENING,
@@ -86,13 +86,10 @@ describe("History V3.5 Franklin geography regressions", () => {
       authorityMode: "trusted-script",
     });
     expect(
-      structured.quantitativeQualifiers.some((item) => item.normalizedValue === "134")
-    ).toBe(true);
-    expect(
       structured.quantitativeQualifiers.some((item) => item.normalizedValue === "129")
     ).toBe(true);
     expect(
-      structured.temporalQualifiers.some((item) => item.normalizedValue === "134")
+      structured.quantitativeQualifiers.some((item) => item.normalizedValue === "134")
     ).toBe(false);
     expect(
       structured.temporalQualifiers.some((item) => item.normalizedValue === "129")

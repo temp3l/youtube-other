@@ -609,6 +609,11 @@ export function compileMapStateV35(input: {
   for (const place of [origin, ...waypointPlaces, destination ?? origin]) {
     if (place) labelPlaceMap.set(place.id, place);
   }
+  for (const qualifier of input.geographicQualifiers) {
+    if (!scopeClaimIds.includes(qualifier.claimId)) continue;
+    const place = resolveMentionPlace(qualifier.entityMentionId, entityById);
+    if (place) labelPlaceMap.set(place.id, place);
+  }
   const labelPlaces = [...labelPlaceMap.values()];
   const effectiveDestination = destination ?? origin;
   const shouldDrawRoute =

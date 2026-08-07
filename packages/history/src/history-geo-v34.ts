@@ -168,6 +168,13 @@ const PLACE_SEEDS: readonly PlaceSeed[] = [
     aliases: [],
   },
   {
+    label: "Poland",
+    placeType: "region",
+    coordinates: { latitude: 52.0, longitude: 19.0 },
+    geometrySource: "curated",
+    aliases: [],
+  },
+  {
     label: "Genoa",
     placeType: "city",
     coordinates: { latitude: 44.41, longitude: 8.93 },

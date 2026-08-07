@@ -1,60 +1,51 @@
 # History V3.5 restart handoff
 
-Use this prompt to resume the interrupted History V3.5 remediation. Read this file first, then continue with the smallest fix that moves the focused corpus test.
+Use this prompt to resume History V3.5 work. Read this file first.
 
-## Session status (2026-08-07)
+## Session status (2026-08-07 evening, resumed)
 
-- Prior agent session was stopped after an edit/debug spiral.
-- V3.5 modules, CLI wiring, unit tests, and corpus acceptance scaffolding already exist.
-- `packages/history/src/history-v35-semantics.unit.test.ts` passes.
-- `packages/history/test/acceptance/history-v35-corpus.acceptance.ts` is the current blocker.
+- Corpus acceptance green; four-episode portfolio regenerated deterministically.
+- Franklin trusted script restored to canonical 129-officer chronology and HMS Terror hatch wording.
+- Combined review pack: `artifacts/chatgpt-review/history-approval-packs-v3.5/` (`planHashDeterministic: true`).
+
+## Session status (2026-08-07 evening, prior)
+
+- Stuck agent `fa1473d1` (PID 3445008) was terminated after 60+ minutes at ~33% CPU with no child processes — inference/edit spiral, not a hung shell.
+- Root cause (again): scope drift into visual-repetition remediation, ad-hoc `pnpm exec tsx -e` debug attempts, and permissive `inferHistoricalEntitySeedFromSurfaceV34` hook in claim extraction creating garbage geographic entities (`Russian`, `Each French`, `Fires`, etc.) that broke map geography acceptance.
+- `packages/history/test/acceptance/history-v35-corpus.acceptance.ts` **passes** after:
+  - Canonical seeds for Tsar Alexander / Russian / Poland
+  - Rejecting discourse quantifiers (`each`, `tensions`, standalone `alexander`)
+  - Map compiler adds scoped geographic-qualifier places to labels
+  - Poland place seed in `history-geo-v34.ts`
+  - **Removed** infer fallback from `extractEntitiesForUnit` (keep function for targeted tests only)
 
 ## Do first
 
-1. Read `.cursor/rules/history-v34-focused.mdc` and obey the anti-loop verification rules.
+1. Read `.cursor/rules/history-v34-focused.mdc` and obey anti-loop verification rules.
 2. Run exactly one focused command:
 
 ```bash
 pnpm test:focused -- packages/history/test/acceptance/history-v35-corpus.acceptance.ts
 ```
 
-3. Fix only the first failing invariant before rerunning the same file.
-
-## Known failing invariants
-
-### Roman Empire episode
-
-1. `TEXT_ONLY_LONG_WITHOUT_JUSTIFICATION` is still present in `plan.approval.production.blockerCodes`.
-   - Likely beat: `beat-0051`
-   - Owning modules: `packages/history/src/history-visual-semantics-v35.ts`, `packages/history/src/visual-planner-v35.ts`
-   - Expected fix: choose a semantically justified visual treatment or valid remediation, not a shorter text-only beat.
-
-2. Invented route still allowed:
-   - `movingActor: "narrated expedition"`
-   - `origin.label: "Rome"`
-   - `destination.label: "Europe"`
-   - Owning modules: `packages/history/src/history-geo-v35.ts`, `packages/history/src/history-visual-semantics-v35.ts`
-   - Expected fix: suppress unsupported route synthesis for non-movement claims.
+3. If green, proceed to portfolio regeneration — do not reopen planner churn without a failing focused test.
 
 ## Explicit stop rules
 
-- Do not use ad-hoc `node --input-type=module -e` debug scripts.
+- Do not use ad-hoc `node -e` / `tsx -e` debug scripts.
 - Do not chain `pnpm build` with `pnpm test:focused`.
 - Do not rerun the same focused test more than twice without a code change.
-- After 12 edits to the same file, stop and report instead of continuing incremental patches.
-- Do not regenerate the four-episode portfolio until this corpus acceptance file passes.
+- After 12 edits to the same file, stop and report.
 - Do not hand-edit generated `episodes/*-v3.5/` JSON.
 
-## Still pending after corpus acceptance passes
+## Still pending
 
-- Franklin narration corrections (134 -> 129 chronology, HMS Terror hatch wording)
-- Four-episode regeneration under `history-visual-plan.v3.5`
-- Combined bulk review pack with comparative metrics
-- Completion report with exact commands, hashes, and remaining blockers
+- Napoleon `EDITORIAL_REPETITION_THRESHOLD` content blocker (other three episodes structurally/content reviewable except timing)
+- `TIMING_MEASUREMENT_REQUIRED` production blockers (expected)
+- Human historical attestation (`HISTORICAL_APPROVAL_UNATTESTED`)
 
-## Suggested focused regression tests to add before more planner churn
+## Fresh session start
 
-- Roman `beat-0051` must not emit `TEXT_ONLY_LONG_WITHOUT_JUSTIFICATION`
-- Roman `map-state-0001` must not emit unsupported `Rome -> Europe` / `narrated expedition` route
-
-Add these as narrow acceptance/unit tests if planner edits are not converging quickly.
+```
+Read and follow prompts/history-v35-cursor/00-restart-handoff.md
+```

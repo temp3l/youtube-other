@@ -1,4 +1,3 @@
-import { createHash } from "node:crypto";
 import type {
   HistoryClaimV34,
   HistoryEntityMentionV34,
@@ -88,73 +87,7 @@ export function isTemplatedArchivalPurposeV35(visualPurpose: string): boolean {
   return GENERIC_ARCHIVAL_TEMPLATE.test(visualPurpose.replace(/\s+/gu, " ").trim());
 }
 
-export function buildConcreteVisualConceptV35(input: {
-  readonly beatId: string;
-  readonly modality: HistoryVisualModalityV35;
-  readonly narrationExcerpt: string;
-  readonly places: readonly string[];
-  readonly temporals: readonly string[];
-  readonly claimKinds: readonly string[];
-  readonly entityLabels: readonly string[];
-}): HistoryVisualConceptV35 {
-  const excerpt = input.narrationExcerpt.replace(/\s+/gu, " ").trim();
-  const place = input.places[0] ?? null;
-  const period = input.temporals.find((item) => item && item !== "as narrated") ?? null;
-  const subject =
-    input.entityLabels.find((label) => /ship|person|army|empire|plague|expedition/i.test(label)) ??
-    input.entityLabels[0] ??
-    excerpt.split(/[,.]/u)[0]?.trim() ??
-    "narrated subject";
-  const evidenceClass =
-    input.modality === "document"
-      ? "archival-document"
-      : input.modality === "quotation"
-        ? "attributed-quotation"
-        : /\b(?:wreck|graves?|remains|equipment|message|note|cairn)\b/iu.test(excerpt)
-          ? "material-evidence"
-          : /\b(?:army|campaign|route|trade)\b/iu.test(excerpt)
-            ? "historical-process"
-            : "period-context";
-  const composition =
-    input.modality === "map"
-      ? place
-        ? `Geographic orientation centered on ${place}`
-        : "Geographic orientation from narrated place references"
-      : /\b(?:compare|contrast|versus|instead)\b/iu.test(excerpt)
-        ? `Split comparison foregrounding ${subject}`
-        : place
-          ? `Evidentiary hold on ${subject} in ${place}`
-          : `Evidentiary hold on ${subject}`;
-  const fingerprintSource = [
-    input.modality,
-    evidenceClass,
-    composition,
-    period ?? "unspecified-period",
-    place ?? "unspecified-geography",
-    [...input.claimKinds].sort().join(","),
-  ].join("|");
-  const fingerprint = createHash("sha256").update(fingerprintSource).digest("hex").slice(0, 16);
-  return {
-    id: `visual-concept-${input.beatId}`,
-    beatId: input.beatId,
-    modality: input.modality,
-    historicalSubject: subject,
-    approximatePeriod: period,
-    settingGeography: place,
-    evidenceSourceClass: evidenceClass,
-    intendedComposition: composition,
-    protectedFactualRelation: excerpt.slice(0, 120),
-    uncertaintyLimits: excerpt.match(/\b(?:may|might|uncertain|possibly|perhaps)\b/iu)
-      ? ["preserve narrated uncertainty; do not imply certainty beyond script"]
-      : [],
-    forbiddenAnachronisms: [
-      "unsupported place labels",
-      "invented uniforms or technology",
-      "modern map styling presented as period evidence",
-    ],
-    fingerprint,
-  };
-}
+export { buildVariedVisualConceptV35 as buildConcreteVisualConceptV35 } from "./history-visual-repetition-v35.js";
 
 export function buildConcreteVisualPurposeV35(input: {
   readonly concept: HistoryVisualConceptV35;
@@ -279,80 +212,7 @@ export function isCinematicCameraMovementV35(cameraMovement: string): boolean {
   );
 }
 
-export function measureEffectiveVisualChangeV35(input: {
-  readonly shots: readonly HistoryShotV34[];
-  readonly beats: readonly HistoryBeatV35[];
-}): HistoryEffectiveChangeMetricsV35 {
-  const beatModality = new Map(input.beats.map((beat) => [beat.id, beat.modality] as const));
-  const visualChanges: HistoryShotVisualChangeV35[] = input.shots.map((shot, index) => {
-    const prior = index > 0 ? input.shots[index - 1]! : null;
-    const changeKinds: HistoryShotVisualChangeV35["changeKinds"][number][] = [];
-    if (!prior || prior.modalityStateReference !== shot.modalityStateReference)
-      changeKinds.push("asset-change");
-    if (isCinematicCameraMovementV35(shot.cameraMovement)) changeKinds.push("camera-motion");
-    if (shot.transition !== prior?.transition) changeKinds.push("transition");
-    if (/\b(?:reveal|opacity|state)\b/iu.test(shot.action)) changeKinds.push("animated-reveal");
-    const modality = beatModality.get(shot.beatId) ?? "archival image";
-    if (modality === "map") changeKinds.push("map-state-change");
-    if (modality === "diagram") changeKinds.push("diagram-state-change");
-    if (["document", "quotation", "narration-emphasis", "date-card", "timeline"].includes(modality))
-      changeKinds.push("text-state-change");
-    const resetsVisualClock =
-      changeKinds.includes("asset-change") ||
-      changeKinds.includes("map-state-change") ||
-      changeKinds.includes("diagram-state-change") ||
-      changeKinds.includes("text-state-change") ||
-      (changeKinds.includes("camera-motion") &&
-        !/static locked hold/i.test(shot.cameraMovement));
-    return {
-      shotId: shot.id,
-      beatId: shot.beatId,
-      durationMs: shot.durationMs,
-      changeKinds,
-      resetsVisualClock,
-    };
-  });
-
-  const totalRuntime = input.shots.reduce((sum, shot) => sum + shot.durationMs, 0) || 1;
-  let longStaticMs = 0;
-  let strongLongStaticMs = 0;
-  let longestUnchanged = 0;
-  let currentUnchanged = 0;
-  let changeIntervals = 0;
-  let changeCount = 0;
-  for (const change of visualChanges) {
-    const modality = beatModality.get(change.beatId) ?? "archival image";
-    const staticModality = [
-      "archival image",
-      "historical artwork",
-      "text-only transition",
-      "narration-emphasis",
-      "document",
-      "quotation",
-    ].includes(modality);
-    if (staticModality && change.durationMs > LONG_STATIC_SOFT_WARNING_MS)
-      longStaticMs += change.durationMs;
-    if (staticModality && change.durationMs > LONG_STATIC_STRONG_WARNING_MS)
-      strongLongStaticMs += change.durationMs;
-    if (change.resetsVisualClock) {
-      longestUnchanged = Math.max(longestUnchanged, currentUnchanged);
-      currentUnchanged = change.durationMs;
-      changeCount += 1;
-    } else {
-      currentUnchanged += change.durationMs;
-    }
-    changeIntervals += 1;
-  }
-  longestUnchanged = Math.max(longestUnchanged, currentUnchanged);
-
-  return {
-    longStaticRuntimeShare: longStaticMs / totalRuntime,
-    strongLongStaticRuntimeShare: strongLongStaticMs / totalRuntime,
-    longestUnchangedVisualIntervalMs: longestUnchanged,
-    effectiveChangeCadenceMs: changeCount ? totalRuntime / changeCount : totalRuntime,
-    shotVisualChanges: visualChanges,
-  };
-}
+export { measureEffectiveVisualChangeV35 } from "./history-effective-change-v35.js";
 
 export function resolveHistoricalApprovalStateV35(input: {
   readonly authorityMode: string;
