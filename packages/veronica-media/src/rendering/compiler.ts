@@ -1,7 +1,16 @@
+import fs from "node:fs";
 import type { VeronicaRenderManifest } from "../contracts/media-plan.v1.js";
 
 function escapePath(filePath: string): string {
   return filePath.replace(/'/gu, "'\\''");
+}
+
+export function buildRenderConcatList(manifest: VeronicaRenderManifest): string {
+  return manifest.clips
+    .map((clip) =>
+      `file '${escapePath(manifest.outputPath.replace(/\.mp4$/u, `-${clip.clipId}.mp4`))}'`,
+    )
+    .join("\n");
 }
 
 export function compileRenderManifestToFfmpegArgs(
@@ -73,10 +82,13 @@ export function compileRenderManifestToFfmpegArgs(
     }
     const duration = clip.endSeconds - clip.startSeconds;
     const filterComplex = filters.length > 0 ? ["-filter_complex", filters.join(";")] : [];
+    const mapVideo =
+      filters.length > 0 ? ["-map", `[v${inputCount}]`] : ["-map", "0:v"];
     commands.push([
       "-y",
       ...inputs,
       ...filterComplex,
+      ...mapVideo,
       "-t",
       String(duration),
       "-r",
@@ -88,9 +100,7 @@ export function compileRenderManifestToFfmpegArgs(
       manifest.outputPath.replace(/\.mp4$/u, `-${clip.clipId}.mp4`),
     ]);
   }
-  const concatList = manifest.clips
-    .map((clip) => `file '${escapePath(manifest.outputPath.replace(/\.mp4$/u, `-${clip.clipId}.mp4`))}'`)
-    .join("\n");
+  const concatList = buildRenderConcatList(manifest);
   commands.push([
     "-y",
     "-f",

@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { deflateSync } from "node:zlib";
 import type { VeronicaIngestedAsset } from "../ingestion/secure-ingest.js";
 
 const PNG_SIGNATURE = Uint8Array.from([
@@ -34,7 +35,7 @@ export interface RasterizeVeronicaAssetInput {
   readonly height?: number;
 }
 
-export function rasterizeVeronicaPreparedAsset(input: RasterizeVeronicaAssetInput): Uint8Array {
+export function rasterizeVeronicaPreparedAssetSynthetic(input: RasterizeVeronicaAssetInput): Uint8Array {
   const width = input.width ?? (input.asset.mediaKind === "svg" ? 640 : 960);
   const height = input.height ?? (input.asset.mediaKind === "svg" ? 360 : 540);
   const seed = createHash("sha256")
@@ -51,14 +52,13 @@ export function rasterizeVeronicaPreparedAsset(input: RasterizeVeronicaAssetInpu
       pixels[offset + 3] = 255;
     }
   }
-  const row = Buffer.alloc(1 + width * 4);
-  const compressed: number[] = [0x78, 0x9c];
+  const raw = Buffer.alloc(height * (1 + width * 4));
   for (let y = 0; y < height; y += 1) {
-    row[0] = 0;
-    pixels.copy(row, 1, y * width * 4, (y + 1) * width * 4);
-    for (const byte of row) compressed.push(byte);
+    const rowStart = y * (1 + width * 4);
+    raw[rowStart] = 0;
+    pixels.copy(raw, rowStart + 1, y * width * 4, (y + 1) * width * 4);
   }
-  const zlib = Buffer.from(compressed);
+  const zlib = deflateSync(raw);
   const ihdr = Buffer.alloc(13);
   ihdr.writeUInt32BE(width, 0);
   ihdr.writeUInt32BE(height, 4);

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { rasterizeVeronicaPreparedAsset } from "./asset-rasterizer.js";
+import { rasterizeVeronicaPreparedAssetSynthetic } from "./asset-rasterizer.js";
 
 describe("rasterizeVeronicaPreparedAsset", () => {
   it("produces deterministic non-trivial PNG bytes for pdf and pptx candidates", () => {
@@ -15,14 +15,14 @@ describe("rasterizeVeronicaPreparedAsset", () => {
         { candidateId: "deck-slide-1", label: "Slide 1", slideNumber: 1, checksum: "b".repeat(64) },
       ],
     };
-    const first = rasterizeVeronicaPreparedAsset({
+    const first = rasterizeVeronicaPreparedAssetSynthetic({
       asset,
       candidateId: "deck-slide-1",
       label: "Slide 1",
       width: 320,
       height: 180,
     });
-    const second = rasterizeVeronicaPreparedAsset({
+    const second = rasterizeVeronicaPreparedAssetSynthetic({
       asset,
       candidateId: "deck-slide-1",
       label: "Slide 1",

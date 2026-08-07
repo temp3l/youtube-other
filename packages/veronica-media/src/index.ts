@@ -10,7 +10,13 @@ export * from "./metrics/planner-metrics.js";
 export * from "./rendering/compiler.js";
 export * from "./rendering/executor.js";
 export * from "./rendering/output-validation.js";
-export * from "./preparation/asset-rasterizer.js";
+export type { VeronicaRasterInput, VeronicaRasterMethod, VeronicaRasterResult } from "./preparation/external-rasterizer.js";
+export {
+  detectExternalRasterTools,
+  probeExternalRasterizers,
+  rasterizeVeronicaPreparedAsset,
+} from "./preparation/external-rasterizer.js";
+export { rasterizeVeronicaPreparedAssetSynthetic } from "./preparation/asset-rasterizer.js";
 export * from "./workflow/regeneration.js";
 export * from "./review-pack/export.js";
 export * from "./pipeline/input-fingerprint.js";

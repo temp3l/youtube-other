@@ -1,6 +1,8 @@
 import { spawnSync } from "node:child_process";
+import fs from "node:fs";
 import type { VeronicaRenderManifest } from "../contracts/media-plan.v1.js";
 import {
+  buildRenderConcatList,
   compileRenderManifestToFfmpegArgs,
   validateCompiledFfmpegSafety,
 } from "./compiler.js";
@@ -41,8 +43,15 @@ export function executeVeronicaRender(
     };
   }
   const ffmpeg = input.ffmpegExecutable ?? "ffmpeg";
+  const concatPath = `${input.manifest.outputPath}.concat.txt`;
+  if (commands.some((command) => command.includes(concatPath))) {
+    fs.writeFileSync(concatPath, `${buildRenderConcatList(input.manifest)}\n`);
+  }
   for (const args of commands) {
-    const result = spawnSync(ffmpeg, [...args], { encoding: "utf8" });
+    const result = spawnSync(ffmpeg, ["-hide_banner", "-loglevel", "error", ...args], {
+      encoding: "utf8",
+      maxBuffer: 16 * 1024 * 1024,
+    });
     if (result.error) {
       throw result.error;
     }

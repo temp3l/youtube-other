@@ -32,11 +32,12 @@
 
 - Generic visual-plan base extraction from history v3.5
 - External PDF/PPTX renderer integration (current rasterizer is deterministic fixture-grade PNG synthesis)
-- Measured FFmpeg render validation in CI (host `ffmpeg` required for `VERONICA_FFMPEG_RENDER=1`)
+- Measured FFmpeg render validation via `pnpm verify:veronica-ffmpeg` (`VERONICA_FFMPEG_RENDER=1`)
 
 ## Tests to rerun after merge
 
 ```bash
+pnpm verify:veronica-ffmpeg
 pnpm test:focused -- packages/veronica-media/src/fixtures/e2e.integration.test.ts
 pnpm test:focused -- packages/strategic-reinvention/src/workflow.integration.test.ts
 pnpm test:focused -- packages/strategic-reinvention/src/pilot.integration.test.ts

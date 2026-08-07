@@ -21,6 +21,7 @@
     "test:e2e": "vitest run -c vitest.e2e.config.ts",
     "test:cli-packaged": "node apps/cli/bin/mediaforge.js --help && node apps/cli/bin/mediaforge.js stories production batch --help && node apps/cli/bin/mediaforge.js stories batch todo --help && node apps/cli/bin/mediaforge.js stories production repair --help && node apps/cli/bin/mediaforge.js stories audio generate --help && node apps/cli/bin/mediaforge.js stories images generate --help && node apps/cli/bin/mediaforge.js stories render validate --help && node apps/cli/bin/mediaforge.js math --help && node apps/cli/bin/mediaforge.js math speech generate --help && node apps/cli/bin/mediaforge.js math speech compare --help && node apps/cli/bin/mediaforge.js math curriculum validate && node apps/cli/bin/mediaforge.js math curriculum import --dry-run",
     "test:focused": "bash scripts/test-focused.sh",
+    "verify:veronica-ffmpeg": "bash scripts/verify-veronica-ffmpeg.sh",
     "lint": "node scripts/run-eslint.mjs",
     "lint:affected": "node scripts/run-eslint.mjs --changed",
     "typecheck": "pnpm -r --if-present --workspace-concurrency=-1 typecheck",

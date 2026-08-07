@@ -8,7 +8,7 @@ import {
   type VeronicaRenderManifest,
 } from "../contracts/media-plan.v1.js";
 import { ingestSupplementalMediaAsset } from "../ingestion/secure-ingest.js";
-import { rasterizeVeronicaPreparedAsset } from "../preparation/asset-rasterizer.js";
+import { rasterizeVeronicaPreparedAsset, type VeronicaRasterInput } from "../preparation/external-rasterizer.js";
 import { buildSemanticMediaPlan } from "../planning/semantic-planner.js";
 import { resolveAnchorTimings } from "../narration/revision.js";
 import { evaluateApprovalEligibility } from "../approval/eligibility.js";
@@ -185,14 +185,21 @@ export async function runVeronicaSupplementalMediaPipeline(
     if (!sourceAsset) {
       throw new Error(`Missing ingested asset for prepared asset ${prepared.preparedAssetId}.`);
     }
-    const raster = rasterizeVeronicaPreparedAsset({
+    const rasterInput: VeronicaRasterInput = {
       asset: sourceAsset,
       candidateId: prepared.preparedAssetId,
       label: prepared.preparedAssetId,
       width: prepared.width,
       height: prepared.height,
-    });
-    await fs.writeFile(absolute, raster);
+    };
+    if (provenance?.sourceReference.pageNumber !== undefined) {
+      Object.assign(rasterInput, { pageNumber: provenance.sourceReference.pageNumber });
+    }
+    if (provenance?.sourceReference.slideNumber !== undefined) {
+      Object.assign(rasterInput, { slideNumber: provenance.sourceReference.slideNumber });
+    }
+    const raster = await rasterizeVeronicaPreparedAsset(rasterInput);
+    await fs.writeFile(absolute, raster.bytes);
     preparedAssetPaths[prepared.preparedAssetId] = absolute;
   }
   const approvalEligibility = evaluateApprovalEligibility({
@@ -313,10 +320,10 @@ function buildRenderManifest(input: {
         {
           kind: "contain",
           assetPath,
-          x: profile.safeAreas.title.left,
-          y: profile.safeAreas.title.top,
-          width: profile.width - profile.safeAreas.title.left - profile.safeAreas.title.right,
-          height: profile.height - profile.safeAreas.title.top - profile.safeAreas.title.bottom,
+          x: 0,
+          y: 0,
+          width: profile.width,
+          height: profile.height,
         },
       ],
     });
