@@ -36,6 +36,9 @@ Blocked by default:
 - Vitest snapshot-update flags such as `-u` or `--update`
 - broad fixture or snapshot regeneration commands
 - chained `pnpm test:focused` commands in one shell invocation
+- chained `pnpm ... build && pnpm test:focused` commands
+- filtered package `pnpm --filter ... build` commands during agent tasks
+- repeated identical focused-test commands more than twice in one session
 - ad-hoc `node --input-type=module -e` debug scripts
 
 Override:

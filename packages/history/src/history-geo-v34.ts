@@ -318,7 +318,7 @@ function proposalSignature(proposal: HistoryMapIntentProposalV34): string {
   return mapIntentSignature(proposal);
 }
 
-function supplementMapIntentsV34(input: {
+export function supplementMapIntentsV34(input: {
   readonly proposals: readonly HistoryMapIntentProposalV34[];
   readonly claims: readonly HistoryClaimV34[];
   readonly entities: readonly HistoryEntityMentionV34[];

@@ -1,5 +1,10 @@
 import fs from "node:fs";
 import { evaluateVerificationCommand } from "../../scripts/lib/verification-command-policy.mjs";
+import {
+  normalizeShellCommand,
+  readVerificationSessionState,
+  recordShellCommand,
+} from "../../scripts/lib/verification-session-state.mjs";
 
 const payloadPath = process.argv[2];
 
@@ -26,12 +31,18 @@ try {
 }
 
 const command = payload?.command ?? payload?.tool_input?.command;
+const normalized = normalizeShellCommand(command ?? "");
+const priorCount = readVerificationSessionState().shellCommands[normalized] ?? 0;
 const result = evaluateVerificationCommand(command, {
   allowBroadVerification: process.env.ALLOW_BROAD_VERIFICATION === "1",
   allowAdhocDebug: process.env.ALLOW_ADHOC_DEBUG === "1",
+  shellCommandCount: priorCount,
 });
 
 if (result.allowed) {
+  if (normalized) {
+    recordShellCommand(command);
+  }
   allow();
 } else {
   deny(result.reason);

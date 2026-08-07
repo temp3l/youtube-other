@@ -9,7 +9,8 @@ export type HistoryPlannerVersion =
   | "v3.1"
   | "v3.2"
   | "v3.3"
-  | "v3.4";
+  | "v3.4"
+  | "v3.5";
 
 export interface HistoryContentPackRequest {
   readonly packPath: string;
@@ -126,6 +127,32 @@ export interface HistoryCommandDependencies {
     readonly outputRoot?: string;
   }) => Promise<unknown>;
   readonly createCombinedHistoryApprovalBundleV34?: (request: {
+    readonly episodeIds: readonly string[];
+    readonly output: string;
+    readonly outputRoot?: string;
+    readonly regenerate?: boolean;
+  }) => Promise<unknown>;
+  readonly createHistoryReviewBundleV35?: (request: {
+    readonly episodeId: string;
+    readonly output: string;
+    readonly outputRoot?: string;
+    readonly regenerate?: boolean;
+  }) => Promise<unknown>;
+  readonly planHistoryVisualsV35?: (request: {
+    readonly episodeId: string;
+    readonly outputRoot?: string;
+    readonly force?: boolean;
+  }) => Promise<unknown>;
+  readonly inspectHistoryVisualsV35?: (request: {
+    readonly episodeId: string;
+    readonly outputRoot?: string;
+  }) => Promise<unknown>;
+  readonly validateHistoryVisualPlanV35Command?: (request: {
+    readonly episodeId: string;
+    readonly outputRoot?: string;
+    readonly force?: boolean;
+  }) => Promise<unknown>;
+  readonly createCombinedHistoryApprovalBundleV35?: (request: {
     readonly episodeIds: readonly string[];
     readonly output: string;
     readonly outputRoot?: string;
@@ -439,7 +466,8 @@ export function registerHistoryCommands(
               options.plannerVersion === "v3.1" ||
               options.plannerVersion === "v3.2" ||
               options.plannerVersion === "v3.3" ||
-              options.plannerVersion === "v3.4"
+              options.plannerVersion === "v3.4" ||
+              options.plannerVersion === "v3.5"
                 ? { plannerVersion: options.plannerVersion }
                 : {}),
               ...(options.force ? { force: true } : {}),
@@ -659,7 +687,8 @@ export function registerHistoryCommands(
       dependencies.createHistoryReviewBundleV31 ||
       dependencies.createHistoryReviewBundleV32 ||
       dependencies.createHistoryReviewBundleV33 ||
-      dependencies.createHistoryReviewBundleV34
+      dependencies.createHistoryReviewBundleV34 ||
+      dependencies.createHistoryReviewBundleV35
     ) {
       visuals
         .command("review-bundle <episode-id>")
@@ -680,14 +709,16 @@ export function registerHistoryCommands(
             episodeId: string,
             options: {
               readonly output: string;
-              readonly plannerVersion?: "v3" | "v3.1" | "v3.2" | "v3.3" | "v3.4";
+              readonly plannerVersion?: "v3" | "v3.1" | "v3.2" | "v3.3" | "v3.4" | "v3.5";
               readonly outputRoot?: string;
               readonly regenerate?: boolean;
               readonly json?: boolean;
             }
           ) => {
             const create =
-              options.plannerVersion === "v3.4"
+              options.plannerVersion === "v3.5"
+                ? dependencies.createHistoryReviewBundleV35
+                : options.plannerVersion === "v3.4"
                 ? dependencies.createHistoryReviewBundleV34
                 : options.plannerVersion === "v3.3"
                   ? dependencies.createHistoryReviewBundleV33

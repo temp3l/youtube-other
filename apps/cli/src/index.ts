@@ -176,8 +176,13 @@ import {
   createCombinedHistoryApprovalBundleV33,
   createHistoryApprovalPackV34,
   createCombinedHistoryApprovalBundleV34,
+  createHistoryApprovalPackV35,
+  createCombinedHistoryApprovalBundleV35,
   planHistoryVisualsV34,
+  planHistoryVisualsV35,
   inspectHistoryVisualsV34,
+  inspectHistoryVisualsV35,
+  buildHistoryValidationSnapshotV35,
   structureHistoryTrustedScriptV34,
   validateHistoryTrustedClaimsV34,
   runHistoryV33Workflow,
@@ -5184,7 +5189,9 @@ registerHistoryCommands(program, {
   getHistoryNextStep,
   validateHistoryEpisodeFactuality,
   planHistoryVisuals: (request) =>
-    request.plannerVersion === "v3.4"
+    request.plannerVersion === "v3.5"
+      ? planHistoryVisualsV35(request)
+      : request.plannerVersion === "v3.4"
       ? planHistoryVisualsV34(request)
       : request.plannerVersion === "v3.3"
       ? planHistoryVisualsV33(request)
@@ -5222,12 +5229,20 @@ registerHistoryCommands(program, {
   createHistoryReviewBundleV34: createHistoryApprovalPackV34,
   createCombinedHistoryApprovalBundleV33,
   createCombinedHistoryApprovalBundleV34,
+  createCombinedHistoryApprovalBundleV35,
   planHistoryVisualsV34,
+  planHistoryVisualsV35,
   inspectHistoryVisualsV34,
+  inspectHistoryVisualsV35,
   validateHistoryVisualPlanV34Command: async (request) => {
     const planned = await planHistoryVisualsV34(request);
     return planned.validation;
   },
+  validateHistoryVisualPlanV35Command: async (request) => {
+    const planned = await planHistoryVisualsV35(request);
+    return buildHistoryValidationSnapshotV35(planned.plan);
+  },
+  createHistoryReviewBundleV35: createHistoryApprovalPackV35,
   structureHistoryTrustedScriptV34,
   validateHistoryTrustedClaimsV34,
   runHistoryV33Workflow: async (request) => {

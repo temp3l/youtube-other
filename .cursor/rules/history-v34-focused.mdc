@@ -1,9 +1,9 @@
 ---
-description: Guardrails for focused History V3.4 implementation and release work
+description: Guardrails for focused History V3.4/V3.5 implementation and release work
 alwaysApply: true
 ---
 
-# History V3.4 implementation guardrails
+# History V3.4/V3.5 implementation guardrails
 
 ## Generated references
 
@@ -26,6 +26,8 @@ alwaysApply: true
 
 ## Anti-loop verification
 
+- Read `prompts/history-v35-cursor/00-restart-handoff.md` before resuming interrupted V3.5 work.
+- Repository hooks enforce shell-command policy and edit-churn warnings; reload Cursor if hooks were added recently.
 - Run exactly one `pnpm test:focused -- <test-file>` per shell command.
 - Do not chain multiple acceptance tests, builds, or episode regenerations in one
   shell invocation.

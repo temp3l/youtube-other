@@ -8,4 +8,4 @@ trap 'rm -f "$payload_file"' EXIT
 cat >"$payload_file"
 
 hook_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-node "$hook_dir/verification-guard.mjs" "$payload_file"
+node "$hook_dir/session-bootstrap.mjs" "$payload_file"

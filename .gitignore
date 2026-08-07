@@ -25,3 +25,4 @@ scene-*.png
 test.mp3
 .trash/
 artifacts/
+.cursor/hooks-state/

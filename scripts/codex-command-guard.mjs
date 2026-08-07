@@ -1,5 +1,10 @@
 import fs from "node:fs";
 import { evaluateVerificationCommand } from "./lib/verification-command-policy.mjs";
+import {
+  normalizeShellCommand,
+  readVerificationSessionState,
+  recordShellCommand,
+} from "./lib/verification-session-state.mjs";
 const payloadPath = process.argv[2];
 
 function emit(output) {
@@ -33,12 +38,18 @@ if (payload.tool_name !== "Bash") {
 }
 
 const command = payload?.tool_input?.command;
+const normalized = normalizeShellCommand(command ?? "");
+const priorCount = readVerificationSessionState().shellCommands[normalized] ?? 0;
 const result = evaluateVerificationCommand(command, {
   allowBroadVerification: process.env.ALLOW_BROAD_VERIFICATION === "1",
   allowAdhocDebug: process.env.ALLOW_ADHOC_DEBUG === "1",
+  shellCommandCount: priorCount,
 });
 
 if (result.allowed) {
+  if (normalized) {
+    recordShellCommand(command);
+  }
   approve();
 } else {
   block(result.reason);

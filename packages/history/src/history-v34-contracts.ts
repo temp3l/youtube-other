@@ -237,6 +237,35 @@ export interface HistoryMapRouteV34 {
   readonly linkedClaimIds: readonly string[];
 }
 
+export type HistoryMapSemanticTypeV35 =
+  | "locator"
+  | "sequence"
+  | "movement"
+  | "territory"
+  | "battle-disposition";
+
+export type HistoryRouteGeometrySemanticsV35 =
+  | "documented-path"
+  | "schematic-progression";
+
+export type HistoryMapDowngradeReasonV35 =
+  | "DESTINATION_NOT_SUPPORTED"
+  | "ORIGIN_NOT_SUPPORTED"
+  | "MOVEMENT_NOT_SUPPORTED"
+  | "ACTOR_NOT_SUPPORTED"
+  | "INSUFFICIENT_EVIDENCE"
+  | "EPISODE_CONTEXT_EXCLUDED"
+  | "GEOMETRY_NOT_DOCUMENTED";
+
+export interface HistoryMapCompilerResolutionV35 {
+  readonly requestedMapType: HistoryMapSemanticTypeV35;
+  readonly resolvedMapType: HistoryMapSemanticTypeV35;
+  readonly downgradeReason?: HistoryMapDowngradeReasonV35;
+  readonly scopeClaimIds: readonly string[];
+  readonly geoFactIds: readonly string[];
+  readonly routeGeometrySemantics?: HistoryRouteGeometrySemanticsV35;
+}
+
 export interface HistoryMapStateV34 {
   readonly id: string;
   readonly masterId: string;
@@ -255,6 +284,7 @@ export interface HistoryMapStateV34 {
   readonly uncertainty: string;
   readonly semanticStatus: "valid" | "blocked";
   readonly blockerCodes: readonly string[];
+  readonly compilerResolution?: HistoryMapCompilerResolutionV35;
 }
 
 export interface HistoryDiagramProposalV34 {

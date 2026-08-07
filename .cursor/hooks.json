@@ -1,9 +1,22 @@
 {
   "version": 1,
   "hooks": {
+    "sessionStart": [
+      {
+        "command": ".cursor/hooks/session-bootstrap.sh",
+        "timeout": 10
+      }
+    ],
     "beforeShellExecution": [
       {
         "command": ".cursor/hooks/verification-guard.sh",
+        "timeout": 10
+      }
+    ],
+    "postToolUse": [
+      {
+        "command": ".cursor/hooks/edit-churn-guard.sh",
+        "matcher": "StrReplace|Write|EditNotebook",
         "timeout": 10
       }
     ]

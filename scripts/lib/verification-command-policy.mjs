@@ -10,6 +10,8 @@ function tokenize(command) {
 export function evaluateVerificationCommand(command, options = {}) {
   const allowBroad = options.allowBroadVerification === true;
   const allowAdhocDebug = options.allowAdhocDebug === true;
+  const shellCommandCount = options.shellCommandCount ?? 0;
+  const maxRepeatedShellCommands = options.maxRepeatedShellCommands ?? 2;
 
   if (allowBroad) {
     return { allowed: true };
@@ -40,12 +42,35 @@ export function evaluateVerificationCommand(command, options = {}) {
     hasToken("--workspace-root") ||
     hasToken("--if-present");
   const focusedTestCount = (normalized.match(/test:focused/g) ?? []).length;
+  const isVerificationCommand =
+    hasToken("test:focused") ||
+    ((hasToken("vitest") || lower.includes(" vitest ")) && hasExplicitVitestFile);
 
   if (focusedTestCount > 1) {
     return {
       allowed: false,
       reason:
         "Chained multi-file verification is blocked. Run one `pnpm test:focused -- <test-file>` per shell command.",
+    };
+  }
+
+  if (
+    hasToken("build") &&
+    (hasToken("&&") || hasToken(";")) &&
+    (hasToken("test:focused") || lower.includes(" vitest "))
+  ) {
+    return {
+      allowed: false,
+      reason:
+        "Chained build+test commands are blocked. Run one focused test file per shell command; Vitest transpiles the affected package without a separate build step.",
+    };
+  }
+
+  if (isVerificationCommand && shellCommandCount > maxRepeatedShellCommands) {
+    return {
+      allowed: false,
+      reason:
+        `Repeated identical verification command blocked after ${maxRepeatedShellCommands} runs in this session. Stop, classify the failure, and report the exact test name, owning module, and smallest follow-up instead of rerunning the same command.`,
     };
   }
 
@@ -89,6 +114,7 @@ export function evaluateVerificationCommand(command, options = {}) {
   }
 
   if (
+    hasToken("build") ||
     hasPrefix("pnpm", "build") ||
     hasPrefix("npm", "run", "build") ||
     hasPrefix("yarn", "build") ||
@@ -97,7 +123,7 @@ export function evaluateVerificationCommand(command, options = {}) {
     return {
       allowed: false,
       reason:
-        "Workspace build commands are blocked by default during agent tasks. Use focused tests first and only run broader verification when explicitly authorized.",
+        "Build commands are blocked by default during agent tasks. Use focused tests first and only run package builds when explicitly authorized.",
     };
   }
 

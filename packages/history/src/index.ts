@@ -48,3 +48,17 @@ export * from "./history-geo-v34.js";
 export * from "./visual-planner-v34.js";
 export * from "./history-visual-semantics-v34.js";
 export * from "./history-workflow-v34.js";
+export * from "./history-v35-contracts.js";
+export * from "./history-temporal-v35.js";
+export * from "./history-visual-semantics-v35.js";
+export * from "./history-geo-facts-v35.js";
+export * from "./history-map-compiler-v35.js";
+export * from "./history-geo-v35.js";
+export * from "./visual-planner-v35.js";
+export {
+  planHistoryVisualsV35,
+  inspectHistoryVisualsV35,
+  createHistoryApprovalPackV35,
+  createCombinedHistoryApprovalBundleV35,
+  createHistoryReviewBundleV35,
+} from "./history-workflow-v35.js";

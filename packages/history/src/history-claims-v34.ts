@@ -383,11 +383,13 @@ function extractTemporalAndQuantitative(
       if (pattern.kind === "year") {
         const after = text.slice(localStart + verbatim.length, localStart + verbatim.length + 24);
         if (
-          /^\s+(officers and men|survivors|men|ships|graves|bodies|years|miles|kilometres|kilometers|percent|%)\b/iu.test(
+          /^\s+(officers and men|officers and crew|survivors|men|crew|ships|graves|bodies|years|miles|kilometres|kilometers|percent|%)\b/iu.test(
             after
           )
         )
           continue;
+        const before = text.slice(Math.max(0, localStart - 12), localStart);
+        if (/\bremaining\s+$/iu.test(before)) continue;
         const nested = occupied.some(
           (span) => localStart >= span.start && localStart + verbatim.length <= span.end
         );
@@ -412,7 +414,7 @@ function extractTemporalAndQuantitative(
   temporal.push(...deduped);
 
   const quantityRe =
-    /\b(\d{1,3}(?:,\d{3})*|\d+)\s+(officers and men|survivors|men|ships|graves|bodies|years|miles|kilometres|kilometers|percent|%)\b/giu;
+    /\b(\d{1,3}(?:,\d{3})*|\d+)\s+(officers and men|officers and crew|survivors|men|crew|ships|graves|bodies|years|miles|kilometres|kilometers|percent|%)\b/giu;
   for (const match of text.matchAll(quantityRe)) {
     const number = match[1]!;
     const unitLabel = match[2] ?? null;
@@ -435,6 +437,29 @@ function extractTemporalAndQuantitative(
             : "count",
       normalizedValue: number.replace(/,/gu, ""),
       unit: unitLabel,
+      verbatimText: verbatim,
+      span: {
+        startUtf16: unit.startUtf16 + local.start,
+        endUtf16Exclusive: unit.startUtf16 + local.end,
+      },
+    });
+  }
+
+  const remainingCountRe = /\bremaining\s+(\d{1,3}(?:,\d{3})*|\d+)\b/giu;
+  for (const match of text.matchAll(remainingCountRe)) {
+    const number = match[1]!;
+    const verbatim = match[0]!;
+    const localStart = match.index ?? -1;
+    if (localStart < 0) continue;
+    const local = { start: localStart, end: localStart + verbatim.length };
+    if (overlaps(local, occupied)) continue;
+    markOccupied(local, occupied);
+    quantitative.push({
+      id: `quantity-${shaShort(`${claimId}:${verbatim.toLocaleLowerCase()}`)}`,
+      claimId,
+      kind: "count",
+      normalizedValue: number.replace(/,/gu, ""),
+      unit: "remaining crew",
       verbatimText: verbatim,
       span: {
         startUtf16: unit.startUtf16 + local.start,
