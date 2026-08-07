@@ -36,4 +36,4 @@
 
 - Production PDF/PPTX rasterization service integration
 - Shared history approval-pack ZIP generalization
-- Strategic-reinvention workflow task 09–13 wiring
+- Full strategic-reinvention DAG beyond supplemental-media slice (core tasks 09–13 delivered for Veronica integration)

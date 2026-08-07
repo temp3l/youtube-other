@@ -157,6 +157,22 @@ describe("workflow CLI commands", () => {
       stateSource: "shared-engine",
     });
     expect(mathFixture.result.traversals).toHaveLength(30);
+
+    await run(["workflow", "strategic-episode", "profile-fixture"]);
+    const strategicFixture = JSON.parse(
+      String(stdout.mock.calls.at(-1)?.[0])
+    ) as {
+      result: {
+        status: string;
+        workflowId: string;
+        taskCount: number;
+      };
+    };
+    expect(strategicFixture.result).toMatchObject({
+      status: "passed",
+      workflowId: "strategic-reinvention.supplemental-media",
+      taskCount: 5,
+    });
   });
 
   it("constructs the lesson CLI graph with every provider-free canonical math binding", async () => {

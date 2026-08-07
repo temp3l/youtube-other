@@ -5,3 +5,7 @@ export * from "./provenance-validation.js";
 export * from "./source-adaptation.js";
 export * from "./supplemental-media-bridge.js";
 export * from "./task-registry.js";
+export * from "./workflow-operator.js";
+export * from "./multilingual-package.js";
+export * from "./publishing.js";
+export * from "./pilot-fixture.js";

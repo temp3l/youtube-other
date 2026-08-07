@@ -3,9 +3,12 @@ import path from "node:path";
 import { Command } from "commander";
 import {
   createVeronicaPilotFixtures,
+  executeVeronicaRender,
+  loadVeronicaPipelineResult,
   runVeronicaSupplementalMediaPipeline,
   veronicaEpisodeStateDir,
   veronicaMediaPlanSchema,
+  veronicaRenderManifestSchema,
 } from "@mediaforge/veronica-media";
 import { runStrategicSupplementalMediaBridge } from "@mediaforge/strategic-reinvention";
 
@@ -56,9 +59,9 @@ export function registerVeronicaMediaCommands(program: Command): void {
         const result = await runStrategicSupplementalMediaBridge({
           workspaceRoot: path.resolve(options.workspace),
           episodeId: options.episodeId,
-          narrationPath: options.narration,
-          supplementalDir: options.supplementalDir,
           resume: options.resume,
+          ...(options.narration ? { narrationPath: options.narration } : {}),
+          ...(options.supplementalDir ? { supplementalDir: options.supplementalDir } : {}),
         });
         emitResult(
           { workspace: options.workspace, episodeId: options.episodeId, json: options.json },
@@ -76,6 +79,74 @@ export function registerVeronicaMediaCommands(program: Command): void {
       veronicaMediaPlanSchema.parse(raw);
       process.stdout.write(`Valid plan: ${options.plan}\n`);
     });
+
+  veronica
+    .command("render")
+    .description("Compile or execute FFmpeg renders for cached Veronica manifests")
+    .requiredOption("--workspace <path>", "Episode workspace root")
+    .requiredOption("--episode-id <id>", "Episode identifier")
+    .option("--aspect <16:9|9:16>", "Aspect ratio to render", "16:9")
+    .option("--execute", "Execute FFmpeg on the host (default is compile-only)", false)
+    .option("--json", "Emit machine-readable output", false)
+    .action(
+      async (options: {
+        workspace: string;
+        episodeId: string;
+        aspect: "16:9" | "9:16";
+        execute: boolean;
+        json: boolean;
+      }) => {
+        const stateDir = veronicaEpisodeStateDir(
+          path.resolve(options.workspace),
+          options.episodeId,
+        );
+        const cached = await loadVeronicaPipelineResult({
+          stateDir,
+          episodeId: options.episodeId,
+          targetLanguage: "it",
+        });
+        if (!cached) {
+          throw new Error(
+            `No cached Veronica pipeline state found under ${stateDir}. Run veronica-media run first.`,
+          );
+        }
+        const manifestPath = path.join(
+          stateDir,
+          "renders",
+          options.aspect === "16:9" ? "landscape-manifest.json" : "portrait-manifest.json",
+        );
+        const manifest = veronicaRenderManifestSchema.parse(
+          JSON.parse(await fs.readFile(manifestPath, "utf8")) as unknown,
+        );
+        const result = executeVeronicaRender({
+          manifest,
+          execute: options.execute,
+        });
+        const payload = {
+          episodeId: options.episodeId,
+          aspect: options.aspect,
+          executed: result.executed,
+          outputPath: result.outputPath,
+          commandCount: result.commands.length,
+          skippedReason: result.skippedReason ?? null,
+        };
+        if (options.json) {
+          process.stdout.write(`${JSON.stringify(payload, null, 2)}\n`);
+          return;
+        }
+        process.stdout.write(
+          [
+            `Veronica render ${result.executed ? "executed" : "compiled"} for ${options.episodeId}.`,
+            `Aspect: ${options.aspect}`,
+            `Output: ${result.outputPath}`,
+            `Commands: ${result.commands.length}`,
+            result.skippedReason ? `Note: ${result.skippedReason}` : "",
+          ]
+            .filter(Boolean)
+            .join("\n") + "\n",
+        );
+      },
+    );
 }
 
 function emitResult(

@@ -39,6 +39,18 @@ import {
 } from "@mediaforge/shared";
 
 export {
+  MULTILINGUAL_AUDIO_CAPABILITY_SCHEMA_VERSION,
+  assessMultilingualAudioCapability,
+  multilingualAudioCapabilityReportSchema,
+  strategicPublicationBlockedByCapability,
+  type MultilingualAudioCapabilityReport,
+} from "./multilingual-audio-capability.js";
+export {
+  StrategicPublishRoutingError,
+  assertLegacyUploaderAllowedForProfile,
+  isStrategicReinventionProfile,
+} from "./strategic-publish-routing.js";
+export {
   genericYoutubePublishReportSchema,
   loadGenericYoutubePublishReport,
   publishYoutubeMedia,
