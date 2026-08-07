@@ -24,5 +24,10 @@ Source manifest JSON loading, bulk approval aggregation, DAG contract fixes, pil
 
 ## Risks
 
-- `pilot.integration.test.ts` unverified end-to-end after PNG/fixture fixes
-- `workflow-commands.unit.test.ts` needs one local rerun after `math-executable-task-ids.ts` extraction
+- `pilot.integration.test.ts` and `workflow-commands.unit.test.ts` hook-blocked in agent session; confirm in CI
+- Branch `veronica-media-integration-v2` at `3f778bb` synced with `origin`
+
+## Follow-up
+
+- History generic visual-plan extraction (deferred)
+- Full glossary localization beyond `detectLayoutOverflow` flags

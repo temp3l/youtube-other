@@ -4,19 +4,20 @@
 
 `ACCEPTED_WITH_LOW_RISKS`
 
-Updated after full strategic-reinvention DAG wiring, source-led adaptation bridge, external rasterizer integration, and measured FFmpeg render gate.
+Updated after source manifest JSON loading, bulk approval aggregation, pilot fixture hardening, and strategic DAG artifact-contract fixes.
 
 ## Commands run
 
 ```bash
 pnpm --filter @mediaforge/veronica-media typecheck
 pnpm --filter @mediaforge/strategic-reinvention typecheck
-pnpm test:focused -- packages/veronica-media/src/preparation/external-rasterizer.integration.test.ts
 pnpm test:focused -- packages/strategic-reinvention/src/source-adaptation-bridge.unit.test.ts
+pnpm test:focused -- packages/strategic-reinvention/src/workflow.integration.test.ts
+pnpm test:focused -- packages/veronica-media/src/fixtures/pilot.unit.test.ts
+pnpm test:focused -- packages/veronica-media/src/fixtures/e2e.integration.test.ts
+pnpm test:focused -- packages/veronica-media/src/review-pack/bulk-aggregate.unit.test.ts
 pnpm verify:veronica-ffmpeg
 ```
-
-All commands exited 0 during this review pass.
 
 ## Functional acceptance (agentic goal §1)
 
@@ -33,7 +34,7 @@ All commands exited 0 during this review pass.
 | Hard approval eligibility | pass | `approval/eligibility.ts` |
 | Post-TTS timing resolution | pass | `resolveAnchorTimings` interface |
 | FFmpeg render both ratios | pass | `pnpm verify:veronica-ffmpeg` |
-| Approval pack export | pass | `review-pack/export.ts` |
+| Approval pack export | pass | `review-pack/export.ts` + `bulk-aggregate.ts` |
 | Regeneration scope | pass | `workflow/regeneration.ts` |
 | Resume | pass | pipeline + orchestrator fingerprint caches |
 
@@ -56,15 +57,14 @@ All commands exited 0 during this review pass.
 ## Unresolved issues
 
 - Fixture-grade PDF/PPTX bytes may fall back to synthetic raster when external tools cannot parse minimal fixtures
-- Full glossary/overflow localization remains future work
-- Cross-episode bulk approval aggregation not implemented
+- Full glossary/overflow localization remains future work (`detectLayoutOverflow` flags only)
 - Live YouTube publish blocked without provider capability evidence
+- `pilot.integration.test.ts` and `workflow-commands.unit.test.ts` should be confirmed in CI after commit `3f778bb`
 
 ## Recommended follow-up
 
 1. Rerun `packages/strategic-reinvention/src/pilot.integration.test.ts` in CI
-2. Wire real source manifests (not only `sources/content/*.md`) into adaptation bridge
-3. Reconcile with stabilized history generic visual-plan exports when available
+2. Reconcile with stabilized history generic visual-plan exports when available
 
 ## Operator verification
 
