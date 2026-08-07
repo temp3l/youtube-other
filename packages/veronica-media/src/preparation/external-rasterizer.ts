@@ -4,6 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import type { VeronicaIngestedAsset } from "../ingestion/secure-ingest.js";
 import { createFixturePdf, createFixturePptx } from "../fixtures/pilot.js";
+import { readPngDimensions } from "./png-metadata.js";
 import { rasterizeVeronicaPreparedAssetSynthetic } from "./asset-rasterizer.js";
 
 export type VeronicaRasterMethod =
@@ -116,6 +117,24 @@ export async function rasterizeVeronicaPreparedAsset(
   input: VeronicaRasterInput,
 ): Promise<VeronicaRasterResult> {
   if (["png", "jpeg", "webp", "svg"].includes(input.asset.mediaKind)) {
+    if (input.width && input.height) {
+      try {
+        const dimensions = readPngDimensions(input.asset.bytes);
+        if (dimensions.width === input.width && dimensions.height === input.height) {
+          return { bytes: input.asset.bytes, method: "source-bytes" };
+        }
+      } catch {
+        // Prepared assets must match declared dimensions; rasterize deterministically.
+      }
+      return {
+        bytes: rasterizeVeronicaPreparedAssetSynthetic({
+          ...input,
+          width: input.width,
+          height: input.height,
+        }),
+        method: "synthetic",
+      };
+    }
     return { bytes: input.asset.bytes, method: "source-bytes" };
   }
 

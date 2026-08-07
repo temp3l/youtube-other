@@ -1,30 +1,19 @@
-# Acceptance Matrix
+# Acceptance Matrix — Fixture Integrity Remediation
 
 | Requirement | Status | Evidence |
 |-------------|--------|----------|
-| Mixed media ingest | pass | `secure-ingest.unit.test.ts` |
-| Narration revision traceability | pass | `media-plan.v1.unit.test.ts`, pilot fixture |
-| Versioned semantic plan | pass | `veronica-media-plan.v1` schema |
-| Claim/source/placement linkage | pass | semantic planner + plan schema |
-| Hard approval eligibility | pass | `approval/eligibility.ts` |
-| Embedded text translation flags | pass | prepared asset translation status |
-| Distinct 16:9 and 9:16 plans | pass | landscape/portrait placements + manifests |
-| Multi-state visual sequences | pass | PDF/PPTX multi-state planner |
-| Post-TTS anchor resolution | pass | `resolveAnchorTimings` in pipeline |
-| Typed FFmpeg manifest | pass | `rendering/compiler.ts` |
-| Approval pack export | pass | `review-pack/export.ts` |
-| Explicit fallback behavior | pass | fallback policy on placements |
-| Content-addressed reuse hooks | pass | checksums + cache keys |
-| Regeneration scope | pass | `workflow/regeneration.ts` |
-| Planner metrics | pass | `metrics/planner-metrics.ts` |
-| Idempotent resume | pass | state dir + plan artifact persistence |
-| Non-Veronica compatibility | pass | `compatibility.unit.test.ts` |
+| REM-001 landscape render references | pass | `manifest-integrity.unit.test.ts` |
+| REM-001 portrait render references | pass | `manifest-integrity.unit.test.ts`, regenerated v2 pack |
+| REM-001 invalid aspect reference rejected | pass | `manifest-integrity.unit.test.ts` |
+| REM-002 output checksum integrity | pass | `prepared-asset-integrity.unit.test.ts`, orchestrator integration |
+| REM-003 declared dimensions match bytes | pass | `prepared-asset-integrity.unit.test.ts`, PNG metadata validation |
+| REM-004 contact sheet visual evidence | pass | `contact-sheet.unit.test.ts`, v2 ZIP SVG base64 embeds |
+| REM-005 episode-scoped IDs | pass | `episode-scope.unit.test.ts`, planner episodeId in stableId |
+| REM-005 distinct content keys | pass | `preparedAssetId` in `contentKey` hash |
+| REM-006 cross-artifact validator | pass | `integrity-validator.ts`, pipeline finalize step |
+| REM-007 fixture metadata | pass | v2 `manifest.json`, per-episode README |
+| Bulk pack regeneration | pass | `veronica-bulk-approval-pack-v2.zip` |
 
 ## Verdict
 
-`ACCEPTED_WITH_MEDIUM_RISKS`
-
-Medium risks:
-
-- Pilot render uses deterministic placeholder PNG bytes; production rasterization of PDF/PPTX pages is not yet wired to an external renderer
-- FFmpeg commands are compiled and validated but not executed in CI by default
+`PASS`

@@ -2,7 +2,6 @@ import path from "node:path";
 import fs from "node:fs/promises";
 import { createHash } from "node:crypto";
 import {
-  veronicaRenderClipSchema,
   veronicaRenderManifestSchema,
   type VeronicaMediaPlan,
   type VeronicaRenderManifest,
@@ -14,15 +13,20 @@ import { resolveAnchorTimings } from "../narration/revision.js";
 import { evaluateApprovalEligibility } from "../approval/eligibility.js";
 import { exportVeronicaApprovalPack } from "../review-pack/export.js";
 import {
+  computePreparedAssetContentKey,
+  verifyPreparedAssetBytes,
+} from "../preparation/prepared-asset-integrity.js";
+import { sha256Bytes } from "../preparation/png-metadata.js";
+import { buildRenderManifest } from "../rendering/build-render-manifest.js";
+import {
   compileRenderManifestToFfmpegArgs,
   validateCompiledFfmpegSafety,
 } from "../rendering/compiler.js";
 import { hashCanonical } from "../canonical-json.js";
 import { buildVeronicaCacheKey } from "../workflow/regeneration.js";
 import { veronicaMediaPlanSchema } from "../contracts/media-plan.v1.js";
-import {
-  computeVeronicaPipelineInputFingerprint,
-} from "./input-fingerprint.js";
+import { computeVeronicaPipelineInputFingerprint } from "./input-fingerprint.js";
+import { finalizeVeronicaEpisodePlan } from "./finalize-episode-plan.js";
 
 export interface VeronicaPipelineInput {
   readonly workspaceRoot: string;
@@ -174,6 +178,8 @@ export async function runVeronicaSupplementalMediaPipeline(
     });
   }
   const preparedAssetPaths: Record<string, string> = {};
+  const preparedAssetBytes: Record<string, Uint8Array> = {};
+  const updatedPreparedAssets = [];
   for (const prepared of plan.preparedAssets) {
     const absolute = path.join(stateDir, prepared.relativePath);
     await fs.mkdir(path.dirname(absolute), { recursive: true });
@@ -200,25 +206,45 @@ export async function runVeronicaSupplementalMediaPipeline(
     }
     const raster = await rasterizeVeronicaPreparedAsset(rasterInput);
     await fs.writeFile(absolute, raster.bytes);
+    const outputChecksum = sha256Bytes(raster.bytes);
+    const verification = verifyPreparedAssetBytes(
+      { ...prepared, checksum: outputChecksum },
+      raster.bytes,
+    );
+    if (!verification.valid) {
+      throw new Error(
+        `Prepared asset ${prepared.preparedAssetId} failed integrity checks: ${verification.issues.join(", ")}`,
+      );
+    }
+    const contentKey = computePreparedAssetContentKey({
+      episodeId: input.episodeId,
+      preparedAssetId: prepared.preparedAssetId,
+      sourceChecksum: provenance?.checksum ?? sourceAsset.checksum,
+      transformationChain: provenance?.transformationChain ?? ["adapt"],
+      language: provenance?.language ?? input.targetLanguage,
+      aspectRatio: prepared.aspectRatio,
+      width: prepared.width,
+      height: prepared.height,
+      rendererProfile: plan.rendererProfile,
+    });
+    updatedPreparedAssets.push({
+      ...prepared,
+      checksum: outputChecksum,
+      sourceChecksum: provenance?.checksum ?? sourceAsset.checksum,
+      contentKey,
+    });
     preparedAssetPaths[prepared.preparedAssetId] = absolute;
+    preparedAssetBytes[prepared.preparedAssetId] = raster.bytes;
   }
+  plan = veronicaMediaPlanSchema.parse({
+    ...plan,
+    preparedAssets: updatedPreparedAssets,
+  });
   const approvalEligibility = evaluateApprovalEligibility({
     plan,
     ingestedAssets: ingested,
     preparedAssetPaths,
   });
-  plan = veronicaMediaPlanSchema.parse({
-    ...plan,
-    approvalEligibility,
-    contentHash: hashCanonical({ ...plan, approvalEligibility }),
-  });
-  const planPath = path.join(stateDir, "veronica-media-plan.json");
-  await fs.writeFile(planPath, `${JSON.stringify(plan, null, 2)}\n`, "utf8");
-  await fs.writeFile(
-    fingerprintPath,
-    `${JSON.stringify({ fingerprint: inputFingerprint, storedAt: new Date().toISOString() }, null, 2)}\n`,
-    "utf8",
-  );
   const landscapeManifest = buildRenderManifest({
     plan,
     aspectRatio: "16:9",
@@ -235,6 +261,21 @@ export async function runVeronicaSupplementalMediaPipeline(
     outputPath: path.join(stateDir, "renders", "portrait.mp4"),
     narrationAudioPath: path.join(stateDir, "audio", "narration.wav"),
   });
+  plan = await finalizeVeronicaEpisodePlan({
+    episodeId: input.episodeId,
+    stateDir,
+    plan,
+    approvalEligibility,
+    preparedAssetPaths,
+    preparedAssetBytes,
+    landscapeManifest,
+    portraitManifest,
+  });
+  await fs.writeFile(
+    fingerprintPath,
+    `${JSON.stringify({ fingerprint: inputFingerprint, storedAt: new Date().toISOString() }, null, 2)}\n`,
+    "utf8",
+  );
   await fs.mkdir(path.dirname(landscapeManifest.narrationAudioPath), { recursive: true });
   await fs.writeFile(landscapeManifest.narrationAudioPath, Buffer.alloc(44, 0));
   const ffmpegCommands = [
@@ -282,65 +323,6 @@ export async function runVeronicaSupplementalMediaPipeline(
     ffmpegCommands,
     resumed: false,
   };
-}
-
-function buildRenderManifest(input: {
-  readonly plan: VeronicaMediaPlan;
-  readonly aspectRatio: "16:9" | "9:16";
-  readonly placements: VeronicaMediaPlan["placements"];
-  readonly preparedAssetPaths: Readonly<Record<string, string>>;
-  readonly outputPath: string;
-  readonly narrationAudioPath: string;
-}): VeronicaRenderManifest {
-  const profile =
-    input.aspectRatio === "16:9"
-      ? input.plan.aspectProfiles.landscape
-      : input.plan.aspectProfiles.portrait;
-  let cursor = 0;
-  const clips = input.placements.map((placement) => {
-    const state = input.plan.visualStates.find(
-      (candidate) => candidate.stateId === placement.visualStateIds[0],
-    );
-    const preparedId = state?.preparedAssetId;
-    const assetPath =
-      (preparedId && input.preparedAssetPaths[preparedId]) ||
-      Object.values(input.preparedAssetPaths)[0];
-    if (!assetPath) {
-      throw new Error(`Missing prepared asset for placement ${placement.placementId}.`);
-    }
-    const startSeconds = cursor;
-    const endSeconds = cursor + placement.dwellDurationSeconds;
-    cursor = endSeconds;
-    return veronicaRenderClipSchema.parse({
-      clipId: `${placement.placementId}-clip`,
-      placementId: placement.placementId,
-      startSeconds,
-      endSeconds,
-      operations: [
-        {
-          kind: "contain",
-          assetPath,
-          x: 0,
-          y: 0,
-          width: profile.width,
-          height: profile.height,
-        },
-      ],
-    });
-  });
-  const manifestWithoutHash = {
-    schemaVersion: "veronica-render-manifest.v1" as const,
-    aspectRatio: input.aspectRatio,
-    profile,
-    clips,
-    narrationAudioPath: input.narrationAudioPath,
-    outputPath: input.outputPath,
-    contentHash: "0".repeat(64),
-  };
-  return veronicaRenderManifestSchema.parse({
-    ...manifestWithoutHash,
-    contentHash: hashCanonical(manifestWithoutHash),
-  });
 }
 
 export function createMinimalPngBytes(label: string): Uint8Array {

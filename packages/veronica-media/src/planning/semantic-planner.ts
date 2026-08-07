@@ -32,8 +32,8 @@ export interface SemanticPlannerInput {
   >;
 }
 
-function stableId(prefix: string, value: string): string {
-  return `${prefix}-${createHash("sha256").update(value).digest("hex").slice(0, 12)}`;
+function stableId(prefix: string, episodeId: string, value: string): string {
+  return `${prefix}-${createHash("sha256").update(`${episodeId}:${value}`).digest("hex").slice(0, 12)}`;
 }
 
 function chooseCandidates(asset: VeronicaIngestedAsset) {
@@ -73,7 +73,7 @@ export function buildSemanticMediaPlan(input: SemanticPlannerInput): VeronicaMed
       candidates.find((entry) => entry.candidateId === override?.candidateId) ??
       candidates[0];
     if (!candidate) return;
-    const provenanceId = stableId("prov", `${asset.assetId}:${candidate.candidateId}`);
+    const provenanceId = stableId("prov", input.episodeId, `${asset.assetId}:${candidate.candidateId}`);
     const sourceReference = {
       sourceAssetId: asset.assetId,
       ...(candidate.pageNumber ? { pageNumber: candidate.pageNumber } : {}),
@@ -97,9 +97,9 @@ export function buildSemanticMediaPlan(input: SemanticPlannerInput): VeronicaMed
     const stateIds: string[] = [];
     const stateCount = asset.mediaKind === "pptx" || asset.mediaKind === "pdf" ? 2 : 1;
     for (let stateIndex = 0; stateIndex < stateCount; stateIndex += 1) {
-      const stateId = stableId("state", `${anchor.anchorId}:${stateIndex}`);
-      const preparedAssetId = stableId("prep", `${stateId}:landscape`);
-      const preparedPortraitId = stableId("prep", `${stateId}:portrait`);
+      const stateId = stableId("state", input.episodeId, `${anchor.anchorId}:${stateIndex}`);
+      const preparedAssetId = stableId("prep", input.episodeId, `${stateId}:landscape`);
+      const preparedPortraitId = stableId("prep", input.episodeId, `${stateId}:portrait`);
       const needsTranslation =
         input.sourceLanguage && input.sourceLanguage !== input.targetLanguage;
       const translationStatus = needsTranslation
@@ -122,36 +122,61 @@ export function buildSemanticMediaPlan(input: SemanticPlannerInput): VeronicaMed
           treatment: stateIndex === 0 ? "adapt" : "preserve",
           focusLabel: stateIndex === 0 ? "establishing" : "detail-focus",
           preparedAssetId,
+          portraitPreparedAssetId: preparedPortraitId,
           provenanceId,
         }),
       );
+      const transformationFingerprint = createHash("sha256")
+        .update(
+          JSON.stringify({
+            transformationChain: ["adapt"],
+            aspectRatio: "16:9",
+            width: 1920,
+            height: 1080,
+            rendererProfile: "veronica-ffmpeg.v1",
+          }),
+        )
+        .digest("hex");
+      const portraitTransformationFingerprint = createHash("sha256")
+        .update(
+          JSON.stringify({
+            transformationChain: ["adapt"],
+            aspectRatio: "9:16",
+            width: 1080,
+            height: 1920,
+            rendererProfile: "veronica-ffmpeg.v1",
+          }),
+        )
+        .digest("hex");
       preparedAssets.push(
         veronicaPreparedAssetSchema.parse({
           preparedAssetId,
           aspectRatio: "16:9",
-          checksum: candidate.checksum,
+          checksum: "0".repeat(64),
           relativePath: `prepared/landscape/${preparedAssetId}.png`,
           width: 1920,
           height: 1080,
           provenanceId,
+          sourceChecksum: asset.checksum,
+          transformationFingerprint,
           ...(translationStatus ? { translationStatus } : {}),
         }),
         veronicaPreparedAssetSchema.parse({
           preparedAssetId: preparedPortraitId,
           aspectRatio: "9:16",
-          checksum: createHash("sha256")
-            .update(`${candidate.checksum}:portrait`)
-            .digest("hex"),
+          checksum: "0".repeat(64),
           relativePath: `prepared/portrait/${preparedPortraitId}.png`,
           width: 1080,
           height: 1920,
           provenanceId,
+          sourceChecksum: asset.checksum,
+          transformationFingerprint: portraitTransformationFingerprint,
           ...(translationStatus ? { translationStatus } : {}),
         }),
       );
       stateIds.push(stateId);
     }
-    const claimId = stableId("claim", anchor.exactText);
+    const claimId = stableId("claim", input.episodeId, anchor.exactText);
     claims.push({
       claimId,
       text: anchor.exactText,
@@ -161,7 +186,7 @@ export function buildSemanticMediaPlan(input: SemanticPlannerInput): VeronicaMed
     const requirement = override?.requirement ?? (anchorIndex === 0 ? "required" : "preferred");
     placements.push(
       veronicaMediaPlacementSchema.parse({
-        placementId: stableId("place", anchor.anchorId),
+        placementId: stableId("place", input.episodeId, anchor.anchorId),
         anchorId: anchor.anchorId,
         aspectRatio: "16:9",
         visualStateIds: stateIds,
