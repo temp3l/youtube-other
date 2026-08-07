@@ -8,6 +8,7 @@ import { createCombinedHistoryApprovalBundleV35 } from "../packages/history/src/
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const episodeIds = [
+  "history-youtube-history-10-video-story-pack-01-bronze-age-collapse",
   "history-youtube-history-10-video-story-pack-02-napoleons-invasion-of-russia",
   "history-youtube-history-10-video-story-pack-03-fall-of-the-roman-empire",
   "history-youtube-history-10-video-story-pack-04-black-death",

@@ -155,9 +155,31 @@ const CANONICAL_ENTITY_SEEDS: readonly CanonicalEntitySeed[] = [
   { label: "Europe", entityType: "region" },
   { label: "Genoa", entityType: "place" },
   { label: "Crimea", entityType: "region" },
-  { label: "Mediterranean", entityType: "water-body" },
+  { label: "Mediterranean", entityType: "water-body", aliases: ["Eastern Mediterranean"] },
   { label: "Black Sea", entityType: "water-body" },
   { label: "Messina", entityType: "place" },
+  { label: "Egypt", entityType: "state" },
+  { label: "Hittite Empire", entityType: "state", aliases: ["Hittite", "The Hittite Empire"] },
+  { label: "Hattusa", entityType: "place" },
+  { label: "Cyprus", entityType: "place" },
+  { label: "Anatolia", entityType: "region" },
+  { label: "Aegean", entityType: "water-body", aliases: ["the Aegean"] },
+  { label: "Levant", entityType: "region", aliases: ["the Levant"] },
+  { label: "Mycenae", entityType: "place" },
+  { label: "Pylos", entityType: "place" },
+  { label: "Ramesses III", entityType: "person", aliases: ["Pharaoh Ramesses III"] },
+  { label: "Merneptah", entityType: "person" },
+  { label: "Sea Peoples", entityType: "ethnic-or-cultural-group", aliases: ["the Sea Peoples"] },
+  { label: "Medinet Habu", entityType: "place" },
+  { label: "Austria", entityType: "state" },
+  { label: "France", entityType: "state" },
+  { label: "Carthage", entityType: "place" },
+  { label: "Gaul", entityType: "region" },
+  { label: "Danube", entityType: "water-body" },
+  { label: "Friedland", entityType: "place" },
+  { label: "Maloyaroslavets", entityType: "place" },
+  { label: "Eastern Europe", entityType: "region" },
+  { label: "North America", entityType: "region" },
 ];
 
 const ORDINARY_NOUN_REJECT = new Set(
@@ -197,6 +219,18 @@ const ORDINARY_NOUN_REJECT = new Set(
     "reinforcements",
     "tensions",
     "alexander",
+    "archaeology",
+    "bells",
+    "climate",
+    "communities",
+    "conflict",
+    "copper",
+    "drought",
+    "fear",
+    "lead",
+    "malnutrition",
+    "modern",
+    "and",
   ].map((value) => value.toLocaleLowerCase())
 );
 
@@ -267,6 +301,50 @@ const DISCOURSE_OPENER_PATTERN =
 const PROPER_NOUN_SURFACE_PATTERN =
   /^[A-Z][\p{L}'-]+(?:\s+(?:[A-Z][\p{L}'-]+|III|II|IV|I|of|the|and))+|[A-Z][\p{L}'-]+(?:\s+(?:III|II|IV|I))?$/u;
 
+function hasGeographicContextInUnitV34(unitText: string, surface: string): boolean {
+  const escaped = surface.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&");
+  return (
+    new RegExp(
+      `\\b(?:from|in|to|toward|towards|across|near|into|within|throughout|around|along)\\s+(?:the\\s+)?${escaped}\\b`,
+      "iu"
+    ).test(unitText) ||
+    new RegExp(
+      `\\b${escaped}\\s+(?:region|empire|kingdom|island|river|sea|coast|city|territory|passage|strait)\\b`,
+      "iu"
+    ).test(unitText)
+  );
+}
+
+export function shouldSurfaceEntityCandidateV35(input: {
+  readonly text: string;
+  readonly unitText: string;
+  readonly seed?: CanonicalEntitySeed | null;
+}): boolean {
+  if (input.seed) return true;
+  const trimmed = input.text.trim();
+  if (!trimmed) return false;
+  const rejection = isRejectedEntityTextV34(trimmed);
+  if (
+    rejection.reject &&
+    [
+      "stopword",
+      "ordinary-noun-concept",
+      "discourse-quantifier",
+      "unresolved-pronoun",
+      "bare-month",
+      "bare-quantity-or-year",
+      "prepositional-fragment",
+      "empty-entity",
+      "temporal-prefix-phrase",
+    ].includes(rejection.reason)
+  )
+    return false;
+  if (isCredibleGeographicCandidateV35({ text: trimmed, seed: null, unitText: input.unitText }))
+    return true;
+  const inferred = inferHistoricalEntitySeedFromSurfaceV34(trimmed, input.unitText);
+  return Boolean(inferred && inferred.entityType !== "place");
+}
+
 export function inferHistoricalEntitySeedFromSurfaceV34(
   text: string,
   unitText: string
@@ -290,7 +368,11 @@ export function inferHistoricalEntitySeedFromSurfaceV34(
     return null;
 
   const tokens = candidate.split(/\s+/u);
-  let entityType: HistoryEntityTypeV34 = "place";
+  const aliasHit =
+    ENTITY_BY_ALIAS.get(candidate.toLocaleLowerCase()) ??
+    ENTITY_BY_ALIAS.get(candidate.replace(/^The\s+/u, "").toLocaleLowerCase());
+  if (aliasHit) return aliasHit;
+  let entityType: HistoryEntityTypeV34 = "other";
   if (/\b(?:Empire|Kingdom|Republic|Dynasty|Confederacy|Union|Civilization)\b/u.test(candidate))
     entityType = "state";
   else if (/\bPeoples?\b/u.test(candidate)) entityType = "ethnic-or-cultural-group";
@@ -303,7 +385,17 @@ export function inferHistoricalEntitySeedFromSurfaceV34(
   else if (/\bLevant\b/u.test(candidate)) entityType = "region";
   else if (/\b(?:tablet|inscription|relief|archive|chronicle|document|stele)\b/iu.test(unitText))
     entityType = "document";
-  else if (tokens.length === 1 && candidate.length < 4) return null;
+  else if (tokens.length === 1) {
+    if (!hasGeographicContextInUnitV34(unitText, candidate)) return null;
+    entityType = "place";
+  } else if (
+    /\b(?:Sea|Ocean|Gulf|Bay|Strait|River|Aegean|Mediterranean|Danube)\b/u.test(candidate)
+  )
+    entityType = "water-body";
+  else if (/\b(?:region|empire|kingdom|Gaul|Europe|Anatolia|Levant)\b/u.test(candidate))
+    entityType = "region";
+  else if (tokens.length >= 2) entityType = "place";
+  else return null;
 
   const label = candidate.replace(/^The\s+/u, "");
   return {
@@ -647,7 +739,16 @@ function extractEntitiesForUnit(input: {
   for (const match of input.unit.text.matchAll(
     /\b(?:(?:The|A|An|In|On|By|For|From|Its|They|Their|This|That|Those|Later|Some|No|Why|Yet)\s+)?[A-Z][\p{L}'-]+(?:\s+[A-Z][\p{L}'-]+){0,4}\b/gu
   )) {
-    candidates.push({ text: match[0]!, seed: null });
+    const surface = match[0]!;
+    if (
+      !shouldSurfaceEntityCandidateV35({
+        text: surface,
+        unitText: input.unit.text,
+        seed: null,
+      })
+    )
+      continue;
+    candidates.push({ text: surface, seed: null });
   }
 
   for (const candidate of candidates) {
@@ -657,12 +758,20 @@ function extractEntitiesForUnit(input: {
     seen.add(key);
     const rejection = isRejectedEntityTextV34(text);
     if (rejection.reject && !candidate.seed) {
-      rejected.push({
-        text,
-        reason: rejection.reason,
-        claimId: input.claimId,
-        narrationUnitId: input.unit.id,
-      });
+      if (
+        isCredibleGeographicCandidateV35({
+          text,
+          seed: null,
+          unitText: input.unit.text,
+        })
+      ) {
+        rejected.push({
+          text,
+          reason: rejection.reason,
+          claimId: input.claimId,
+          narrationUnitId: input.unit.id,
+        });
+      }
       continue;
     }
     if (rejection.reject && candidate.seed && HISTORY_TEMPORAL_PREFIX_PHRASES_V34.has(key)) {
@@ -681,12 +790,20 @@ function extractEntitiesForUnit(input: {
       null;
     if (!seed) {
       const rejection = isRejectedEntityTextV34(text);
-      rejected.push({
-        text,
-        reason: rejection.reject ? rejection.reason : "uncanonical-surface",
-        claimId: input.claimId,
-        narrationUnitId: input.unit.id,
-      });
+      if (
+        isCredibleGeographicCandidateV35({
+          text,
+          seed: null,
+          unitText: input.unit.text,
+        })
+      ) {
+        rejected.push({
+          text,
+          reason: rejection.reject ? rejection.reason : "uncanonical-surface",
+          claimId: input.claimId,
+          narrationUnitId: input.unit.id,
+        });
+      }
       continue;
     }
     // Prefer canonical seed label when alias matched.
@@ -931,6 +1048,41 @@ export function validateStructuredClaimsV34(
       errors.push(`Temporal qualifier ${temporal.id} misclassified as uncertainty text.`);
   }
   return { ok: errors.length === 0, errors };
+}
+
+const GEOGRAPHIC_ENTITY_TYPES = new Set([
+  "place",
+  "region",
+  "water-body",
+  "state",
+  "island",
+]);
+
+export function isCredibleGeographicCandidateV35(input: {
+  readonly text: string;
+  readonly seed?: CanonicalEntitySeed | null;
+  readonly entityType?: string;
+  readonly unitText?: string;
+}): boolean {
+  const trimmed = input.text.trim();
+  if (!trimmed) return false;
+  const rejection = isRejectedEntityTextV34(trimmed);
+  if (
+    rejection.reject &&
+    ["ordinary-noun-concept", "stopword", "discourse-quantifier", "unresolved-pronoun"].includes(
+      rejection.reason
+    )
+  )
+    return false;
+  if (input.seed && GEOGRAPHIC_ENTITY_TYPES.has(input.seed.entityType)) return true;
+  if (input.entityType && GEOGRAPHIC_ENTITY_TYPES.has(input.entityType)) return true;
+  const canonical = ENTITY_BY_ALIAS.get(trimmed.toLocaleLowerCase());
+  if (canonical && GEOGRAPHIC_ENTITY_TYPES.has(canonical.entityType)) return true;
+  const inferred = inferHistoricalEntitySeedFromSurfaceV34(
+    trimmed,
+    input.unitText ?? trimmed
+  );
+  return Boolean(inferred && GEOGRAPHIC_ENTITY_TYPES.has(inferred.entityType));
 }
 
 export function lookupCanonicalEntitySeedV34(

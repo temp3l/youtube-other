@@ -35,6 +35,9 @@ import {
   type MovementFactV35,
   type SequenceFactV35,
 } from "./history-geo-facts-v35.js";
+import {
+  validateMovementRouteSemanticsV35,
+} from "./history-map-route-semantics-v35.js";
 import { collectUsedGeoFactIdsV35 } from "./history-geo-facts-export-v35.js";
 import {
   actorDisplayLabelV35,
@@ -574,6 +577,16 @@ export function compileMapStateV35(input: {
     blockers.push("MAP_DESTINATION_NOT_PLACE");
   if (destination && lookupCanonicalEntitySeedV34(destination.label)?.entityType === "person")
     blockers.push("MAP_DESTINATION_PERSON");
+  if (semantic.resolved === "movement" && origin && destination) {
+    blockers.push(
+      ...validateMovementRouteSemanticsV35({
+        claimText,
+        origin,
+        destination,
+        movingActor,
+      })
+    );
+  }
   if (semantic.resolved === "movement" && routeType === "none") blockers.push("MAP_ROUTE_TYPE_NONE");
   if (/military/iu.test(routeType)) blockers.push("MAP_ROUTE_TYPE_INVALID");
   if (routeType === "maritime" && /\bmarch|overland|sledges?\b/iu.test(claimText))

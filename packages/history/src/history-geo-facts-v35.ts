@@ -8,6 +8,10 @@ import type {
 } from "./history-v34-contracts.js";
 import { claimAuthorizesRouteMovement } from "./history-visual-semantics-v34.js";
 import {
+  claimUsesNonRouteMovementVerbOnly,
+  placeIsContainedInV35,
+} from "./history-map-route-semantics-v35.js";
+import {
   resolveMovementActorRefV35,
 } from "./history-map-actor-v35.js";
 import type { MovementActorRefV35 } from "./history-v34-contracts.js";
@@ -149,6 +153,29 @@ function findPlaceMentionByLabel(
   );
 }
 
+function hasExplicitRouteEndpoints(input: {
+  readonly origins: readonly string[];
+  readonly destinations: readonly string[];
+  readonly text: string;
+  readonly textOrigin: RegExpMatchArray | null;
+  readonly textDestination: RegExpMatchArray | null;
+}): boolean {
+  return (
+    (input.origins.length > 0 && input.destinations.length > 0) ||
+    Boolean(input.textOrigin && input.textDestination) ||
+    /\bfrom\b.+\bto\b/iu.test(input.text)
+  );
+}
+
+function resolveTextEndpointMention(
+  match: RegExpMatchArray | null,
+  claimId: string,
+  entities: readonly HistoryEntityMentionV34[]
+): string | undefined {
+  if (!match?.[1]) return undefined;
+  return findPlaceMentionByLabel(match[1], claimId, entities)?.id;
+}
+
 function documentedPathSupported(text: string): boolean {
   return /\b(?:exact route|documented path|along the .+ road|followed the .+ route)\b/iu.test(
     text
@@ -212,9 +239,24 @@ export function extractGeoFactsV35(input: {
       });
     }
 
-    const movementAuthorized = claimAuthorizesRouteMovement(text);
-    let originId = origins[0] ?? locations[0];
-    let destinationId = destinations[0] ?? locations[1];
+    const movementAuthorized =
+      claimAuthorizesRouteMovement(text) && !claimUsesNonRouteMovementVerbOnly(text);
+    const explicitEndpoints = hasExplicitRouteEndpoints({
+      origins,
+      destinations,
+      text,
+      textOrigin,
+      textDestination,
+    });
+    let originId =
+      origins[0] ??
+      resolveTextEndpointMention(textOrigin, claim.id, input.entities) ??
+      undefined;
+    let destinationId =
+      destinations[0] ??
+      resolveTextEndpointMention(textDestination, claim.id, input.entities) ??
+      undefined;
+
     if (movementAuthorized && /\bcross(?:ing|ed)\b/iu.test(text)) {
       const waterBody = claimEntities(claim.id, input.entities).find(
         (entity) => entity.entityType === "water-body"
@@ -225,11 +267,38 @@ export function extractGeoFactsV35(input: {
           entity.id !== waterBody?.id
       );
       if (waterBody && region) {
-        originId = waterBody.id;
-        destinationId = region.id;
+        const crossingPlaces = [waterBody.id, region.id];
+        pushFact({
+          id: factId(["sequence", "crossing", claim.id, ...crossingPlaces]),
+          type: "sequence",
+          placeMentionIds: crossingPlaces,
+          claimIds: [claim.id],
+        });
+        originId = undefined;
+        destinationId = undefined;
       }
     }
-    if (movementAuthorized && originId && destinationId && originId !== destinationId) {
+
+    if (
+      movementAuthorized &&
+      explicitEndpoints &&
+      originId &&
+      destinationId &&
+      originId !== destinationId
+    ) {
+      const originEntity = input.entities.find((entity) => entity.id === originId);
+      const destinationEntity = input.entities.find((entity) => entity.id === destinationId);
+      if (
+        originEntity &&
+        destinationEntity &&
+        placeIsContainedInV35(originEntity.normalizedLabel, destinationEntity.normalizedLabel)
+      ) {
+        originId = undefined;
+        destinationId = undefined;
+      }
+    }
+
+    if (movementAuthorized && explicitEndpoints && originId && destinationId && originId !== destinationId) {
       const actorResolution = resolveMovementActorRefV35({
         movementClaim: claim,
         scopeClaimIds: input.scopeClaimIds,

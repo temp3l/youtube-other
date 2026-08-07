@@ -136,6 +136,14 @@ export function claimAuthorizesRouteMovement(text: string): boolean {
   const normalized = text.replace(/\s+/gu, " ").trim();
   if (LOCATION_SIGHTING_PATTERN.test(normalized) && !MOVEMENT_NARRATION_PATTERN.test(normalized))
     return false;
+  if (/\b(?:captured|occupied|besieged|defeated|held|seized|took)\b/iu.test(normalized)) {
+    return (
+      /\bfrom\b.+\bto\b/iu.test(normalized) ||
+      /\b(?:cross(?:ing|ed)|into|toward|towards|entered|reached|marched|advanced|retreat(?:ed|ing)?|sailed|departed)\b/iu.test(
+        normalized
+      )
+    );
+  }
   return MOVEMENT_NARRATION_PATTERN.test(normalized) || /\bfrom\b.+\bto\b/iu.test(normalized);
 }
 

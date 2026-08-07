@@ -6,6 +6,7 @@ import type {
   HistoryVisualModalityV35,
   HistoryVisualPurposeV35,
 } from "./history-v35-contracts.js";
+import { lookupCanonicalEntitySeedV34 } from "./history-claims-v34.js";
 import {
   classifyCompositionFamilyV35,
   classifyMotionFamilyV35,
@@ -187,13 +188,21 @@ export function buildProgressionCompositionV35(input: {
         ? `Environmental context for ${subject}${placeSuffix}`
         : `Establishing context for ${subject}${placeSuffix}`;
     case "develop":
-      return `Material evidence detail of ${subject}${placeSuffix}`;
+      return input.narrationFunction === "material-evidence"
+        ? `Material evidence detail of ${subject}${placeSuffix}`
+        : `Developing evidence on ${subject}${claimSuffix}`;
     case "explain":
-      return `Explanatory treatment of ${subject}${claimSuffix}`;
+      return input.narrationFunction === "causal"
+        ? `Causal explanation of ${subject}${claimSuffix}`
+        : `Explanatory treatment of ${subject}${claimSuffix}`;
     case "contrast":
-      return `Comparative framing of ${subject}${placeSuffix}`;
+      return input.narrationFunction === "comparative"
+        ? `Comparative framing of ${subject}${placeSuffix}`
+        : `Contrasting perspectives on ${subject}${placeSuffix}`;
     case "resolve":
-      return `Consequential aftermath view of ${subject}${placeSuffix}`;
+      return input.narrationFunction === "consequence"
+        ? `Consequential aftermath view of ${subject}${placeSuffix}`
+        : `Resolution state for ${subject}${placeSuffix}`;
     default:
       return `Editorial hold on ${subject}${placeSuffix}`;
   }
@@ -272,15 +281,148 @@ export function scoreSemanticNoveltyV35(
   return { score, contributions };
 }
 
-export function semanticSignatureKeyV35(signature: VisualSemanticSignature): string {
+const COMPOSITION_ARCHETYPE_SYNONYMS: ReadonlyArray<readonly [RegExp, string]> = [
+  [/\bcomparative framing\b/iu, "comparison-board"],
+  [/\bcontrasting perspectives\b/iu, "comparison-board"],
+  [/\bside-by-side comparison\b/iu, "comparison-board"],
+  [/\bcomparative treatment\b/iu, "comparison-board"],
+  [/\bestablishing context\b/iu, "establish-context"],
+  [/\benvironmental context\b/iu, "establish-context"],
+  [/\bgeographic orientation\b/iu, "map-orientation"],
+  [/\broute or territorial consequence\b/iu, "map-progression"],
+  [/\bcausal mechanism diagram\b/iu, "causal-diagram"],
+  [/\bcausal explanation\b/iu, "causal-explain"],
+  [/\bexplanatory diagram layer\b/iu, "diagram-explain"],
+  [/\bexplanatory treatment\b/iu, "explain-treatment"],
+  [/\bprimary-source document focus\b/iu, "document-focus"],
+  [/\bchronological progression marker\b/iu, "timeline-marker"],
+  [/\bconsequential aftermath view\b/iu, "aftermath-view"],
+  [/\bresolution state\b/iu, "resolution-state"],
+  [/\bmaterial evidence detail\b/iu, "artifact-detail"],
+  [/\bdeveloping evidence\b/iu, "develop-evidence"],
+];
+
+export function normalizeCompositionArchetypeV35(composition: string): string {
+  const normalized = composition
+    .replace(/\([^)]*\)/gu, "")
+    .replace(/\bin\s+[A-Z][\p{L}'-]+(?:\s+[A-Z][\p{L}'-]+){0,3}\b/gu, "in <place>")
+    .replace(/\bfor\s+[A-Z][\p{L}'-]+(?:\s+[A-Z][\p{L}'-]+){0,3}\b/gu, "for <subject>")
+    .replace(/\bof\s+[A-Z][\p{L}'-]+(?:\s+[A-Z][\p{L}'-]+){0,3}\b/gu, "of <subject>")
+    .replace(/\bon\s+[A-Z][\p{L}'-]+(?:\s+[A-Z][\p{L}'-]+){0,3}\b/gu, "on <subject>")
+    .replace(/\bclaim-[a-f0-9]+\b/giu, "claim-<id>")
+    .replace(/\bbeat[- ]?\d+\b/giu, "beat-<n>")
+    .replace(/\s+/gu, " ")
+    .trim()
+    .toLocaleLowerCase();
+  for (const [pattern, archetype] of COMPOSITION_ARCHETYPE_SYNONYMS) {
+    if (pattern.test(normalized)) return archetype;
+  }
+  return normalized.slice(0, 64);
+}
+
+export function normalizePrimarySubjectKeyV35(input: {
+  readonly subject: string;
+  readonly modality?: HistoryVisualModalityV35;
+}): { readonly key: string; readonly class: string } {
+  const trimmed = input.subject.replace(/\s+/gu, " ").trim();
+  const seed = lookupCanonicalEntitySeedV34(trimmed);
+  if (seed) {
+    const slug = seed.label
+      .toLocaleLowerCase()
+      .replace(/[^a-z0-9]+/gu, "-")
+      .replace(/^-+|-+$/gu, "");
+    return { key: `${seed.entityType}:${slug}`, class: seed.entityType };
+  }
+  const lower = trimmed.toLocaleLowerCase();
+  if (/\b(?:soldiers?|army|troops|survivors?|refugees?)\b/iu.test(lower))
+    return { key: "group:soldiers", class: "group" };
+  if (/\bretreat(?:ing|ed)?\b/iu.test(lower))
+    return { key: "state:retreat", class: "state" };
+  if (/\b(?:villages?|settlements?).*(?:burn|destroy)/iu.test(lower))
+    return { key: "event:settlement-destruction", class: "event" };
+  if (/\bwinter\b/iu.test(lower) && /\b(?:landscape|scene|conditions?)\b/iu.test(lower))
+    return { key: "environment:winter", class: "environment" };
+  if (/\b(?:trade network|bronze production|palace administration|tax revenue)\b/iu.test(lower))
+    return {
+      key: `process:${lower.replace(/[^a-z0-9]+/gu, "-").slice(0, 48)}`,
+      class: "process",
+    };
+  if (input.modality === "map")
+    return { key: `geography:${lower.slice(0, 48)}`, class: "geography" };
+  return {
+    key: `subject:${lower.slice(0, 64)}`,
+    class: "subject",
+  };
+}
+
+export function normalizeSettingKeyV35(
+  setting: string | null | undefined
+): { readonly key: string; readonly class: string } {
+  if (!setting?.trim()) return { key: "setting:none", class: "none" };
+  const seed = lookupCanonicalEntitySeedV34(setting);
+  if (seed && ["place", "region", "water-body", "state", "island"].includes(seed.entityType)) {
+    const slug = seed.label
+      .toLocaleLowerCase()
+      .replace(/[^a-z0-9]+/gu, "-")
+      .replace(/^-+|-+$/gu, "");
+    return { key: `place:${slug}`, class: seed.entityType };
+  }
+  const lower = setting.trim().toLocaleLowerCase();
+  if (/\bbattlefield\b/iu.test(lower)) return { key: "environment:battlefield", class: "environment" };
+  if (/\b(?:court|palace)\b/iu.test(lower))
+    return { key: "environment:imperial-court", class: "environment" };
+  if (/\bwinter\b/iu.test(lower)) return { key: "environment:winter", class: "environment" };
+  if (/\btrade network\b/iu.test(lower))
+    return { key: "environment:trade-network", class: "environment" };
+  return { key: `setting:${lower.slice(0, 48)}`, class: "setting" };
+}
+
+export interface ViewerConceptSignatureInput {
+  readonly signature: VisualSemanticSignature;
+  readonly subject?: string;
+  readonly setting?: string | null;
+  readonly modality?: HistoryVisualModalityV35;
+}
+
+export function canonicalTemplateRepetitionSignatureKeyV35(
+  signature: VisualSemanticSignature
+): string {
   return [
     signature.medium,
     signature.templateFamily,
-    signature.primarySubjectKey,
-    signature.informationLayer,
-    signature.evidenceAssetId ?? "none",
-    [...signature.claimIds].sort().join(","),
+    signature.progressionRole,
+    normalizeCompositionArchetypeV35(signature.compositionPattern),
+    normalizeTreatmentActionFamilyV35(signature.informationLayer.split(":").pop() ?? ""),
   ].join("|");
+}
+
+export function canonicalViewerConceptSignatureKeyV35(
+  input: ViewerConceptSignatureInput
+): string {
+  const subject = normalizePrimarySubjectKeyV35({
+    subject: input.subject ?? input.signature.primarySubjectKey,
+    modality: input.modality ?? input.signature.medium,
+  });
+  const setting = normalizeSettingKeyV35(input.setting);
+  return [
+    input.signature.medium,
+    input.signature.templateFamily,
+    input.signature.progressionRole,
+    normalizeCompositionArchetypeV35(input.signature.compositionPattern),
+    normalizeTreatmentActionFamilyV35(input.signature.informationLayer.split(":").pop() ?? ""),
+    subject.key,
+    subject.class,
+    setting.key,
+    setting.class,
+  ].join("|");
+}
+
+export function canonicalVisualRepetitionSignatureKeyV35(signature: VisualSemanticSignature): string {
+  return canonicalViewerConceptSignatureKeyV35({ signature });
+}
+
+export function semanticSignatureKeyV35(signature: VisualSemanticSignature): string {
+  return canonicalVisualRepetitionSignatureKeyV35(signature);
 }
 
 export function measureNearbyTemplateFamilyRepetitionV35(
@@ -303,19 +445,27 @@ export function measureNearbyTemplateFamilyRepetitionV35(
   return comparedPairs ? repetitivePairs / comparedPairs : 0;
 }
 
+export function measureViewerConceptDuplicationV35(
+  signatures: readonly ViewerConceptSignatureInput[]
+): number {
+  if (!signatures.length) return 0;
+  const keys = signatures.map((item) => canonicalViewerConceptSignatureKeyV35(item));
+  return (keys.length - new Set(keys).size) / keys.length;
+}
+
+export function measureTemplateRepetitionV35(
+  signatures: readonly VisualSemanticSignature[]
+): number {
+  if (!signatures.length) return 0;
+  const keys = signatures.map((signature) => canonicalTemplateRepetitionSignatureKeyV35(signature));
+  return (keys.length - new Set(keys).size) / keys.length;
+}
+
 export function measurePurposeTemplateFamilyDuplicationV35(
   signatures: readonly VisualSemanticSignature[]
 ): number {
   if (!signatures.length) return 0;
-  const keys = signatures.map((signature) =>
-    [
-      signature.templateFamily,
-      signature.medium,
-      signature.primarySubjectKey,
-      signature.progressionRole,
-      [...signature.claimIds].sort().join(","),
-    ].join("|")
-  );
+  const keys = signatures.map((signature) => canonicalTemplateRepetitionSignatureKeyV35(signature));
   return (keys.length - new Set(keys).size) / keys.length;
 }
 
@@ -991,7 +1141,12 @@ export function semanticShotStructuresV35(input: {
       action: shot.action,
       modalityStateReference: shot.modalityStateReference,
     });
-    return semanticSignatureKeyV35(signature);
+    return canonicalViewerConceptSignatureKeyV35({
+      signature,
+      subject: shot.subject,
+      setting: concept?.settingGeography ?? null,
+      modality,
+    });
   });
 }
 

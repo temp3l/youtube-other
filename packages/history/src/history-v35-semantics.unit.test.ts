@@ -9,8 +9,11 @@ import {
   isTemplatedArchivalPurposeV35,
   normalizeVisualConceptFingerprintV35,
   portraitAdaptationNotesV35,
+  resolveHistoricalApprovalStateV35,
   validatePortraitProtectedGeographyV35,
 } from "./history-visual-semantics-v35.js";
+import { FIXED_AUDIT_PLACEHOLDER_ISO, normalizeTrustedAttestationTimestampsV34 } from "./history-visual-semantics-v34.js";
+import { createTrustedNarrationAttestationV1 } from "./history-trusted-script-v33.js";
 import { PORTRAIT_REFRAME_LABEL_V35 } from "./history-v35-contracts.js";
 
 describe("History V3.5 semantics", () => {
@@ -59,5 +62,55 @@ describe("History V3.5 semantics", () => {
     });
     expect(failures).toContain("PORTRAIT_PROTECTED_GEOGRAPHY_REMOVED:Moscow");
     expect(failures).toContain("PORTRAIT_PROTECTED_GEOGRAPHY_REMOVED:Northwest Passage");
+  });
+
+  it("historical approval false blocks production approval for non-trusted authority", () => {
+    const unresolved = resolveHistoricalApprovalStateV35({
+      authorityMode: "research-backed",
+      attestation: null,
+      independentlyVerifiedCount: 0,
+    });
+    expect(unresolved.productionHistoricalApprovalEligible).toBe(false);
+    expect(unresolved.historicalApprovalState).toBe("unattested");
+    expect(unresolved.humanHistoricalAttestationRequired).toBe(false);
+  });
+
+  it("trusted-script without human attestation does not require named historical approval", () => {
+    const state = resolveHistoricalApprovalStateV35({
+      authorityMode: "trusted-script",
+      attestation: null,
+      independentlyVerifiedCount: 0,
+    });
+    expect(state.productionHistoricalApprovalEligible).toBe(true);
+    expect(state.historicalApprovalState).toBe("trusted_input");
+    expect(state.attestationBound).toBe(false);
+    expect(state.attestationActor).toBeNull();
+    expect(state.attestationTimestamp).toBeNull();
+    expect(state.humanHistoricalAttestationRequired).toBe(false);
+  });
+
+  it("valid explicit attestation enables trusted production historical approval", () => {
+    const attestation = createTrustedNarrationAttestationV1({
+      episodeId: "episode-1",
+      narrationHash: "abc".repeat(22).slice(0, 64),
+      authorityName: "Editor Name",
+      assertedAt: "2026-08-07T12:00:00.000Z",
+    });
+    const state = resolveHistoricalApprovalStateV35({
+      authorityMode: "trusted-script",
+      attestation,
+      independentlyVerifiedCount: 0,
+    });
+    expect(state.productionHistoricalApprovalEligible).toBe(true);
+    expect(state.historicalApprovalState).toBe("explicit_human_attestation");
+  });
+
+  it("sentinel timestamp deserializes as absence", () => {
+    const normalized = normalizeTrustedAttestationTimestampsV34({
+      assertedAt: FIXED_AUDIT_PLACEHOLDER_ISO,
+      timestampStatus: "recorded",
+    });
+    expect(normalized.assertedAt).toBeNull();
+    expect(normalized.timestampStatus).toBe("not-recorded");
   });
 });

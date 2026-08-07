@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 import { normalizeHistoryNarrationV33 } from "./history-narration-v33.js";
 import {
   inferHistoricalEntitySeedFromSurfaceV34,
+  isCredibleGeographicCandidateV35,
   isRejectedEntityTextV34,
+  shouldSurfaceEntityCandidateV35,
   structureTrustedScriptClaimsV34,
   validateStructuredClaimsV34,
 } from "./history-claims-v34.js";
@@ -12,9 +14,16 @@ import {
   measureHistoryRepetitionV35,
   validateHistoryVisualPlanV35,
 } from "./visual-planner-v35.js";
-import { DEFAULT_HISTORY_QUALITY_THRESHOLDS_V35 } from "./history-v35-contracts.js";
 import {
+  reserveDiagramBeatIndexesV35,
+  scoreDiagramOpportunityV35,
+} from "./history-visual-opportunity-v35.js";
+import { DEFAULT_HISTORY_QUALITY_THRESHOLDS_V35 } from "./history-v35-contracts.js";
+import { assessVisualSemanticCoverageV35 } from "./history-visual-semantics-v35.js";
+import {
+  buildVisualSemanticSignatureV35,
   buildVisualTreatmentSignatureV35,
+  canonicalViewerConceptSignatureKeyV35,
   normalizeTreatmentActionFamilyV35,
   treatmentSignatureKeyV35,
 } from "./history-visual-repetition-v35.js";
@@ -110,11 +119,23 @@ describe("History V3.5 unit semantics", () => {
       authorityMode: "trusted-script",
     });
     const labels = structured.entities.map((entity) => entity.normalizedLabel);
-    expect(labels).toEqual(["Mediterranean"]);
+    expect(labels).toEqual(
+      expect.arrayContaining([
+        "Egypt",
+        "Hittite Empire",
+        "Hattusa",
+        "Cyprus",
+        "Anatolia",
+        "Aegean",
+        "Mycenae",
+        "Pylos",
+        "Mediterranean",
+      ])
+    );
     expect(structured.geographicQualifiers.length).toBeGreaterThan(0);
     expect(
       structured.rejectedEntities.some((item) => item.text === "Egypt")
-    ).toBe(true);
+    ).toBe(false);
     expect(validateStructuredClaimsV34(structured).ok).toBe(true);
   });
 
@@ -194,6 +215,151 @@ describe("History V3.5 unit semantics", () => {
     expect(failing.passes).toBe(false);
   });
 
+  it("discards obvious non-geographic title-case surfaces before rejection accounting", () => {
+    for (const text of ["Archaeology", "Climate", "Fear", "Modern", "And"]) {
+      expect(
+        shouldSurfaceEntityCandidateV35({
+          text,
+          unitText: `${text} shaped later interpretations of the collapse.`,
+          seed: null,
+        })
+      ).toBe(false);
+      expect(isCredibleGeographicCandidateV35({ text, unitText: `${text} shaped later interpretations.` })).toBe(
+        false
+      );
+    }
+    expect(
+      shouldSurfaceEntityCandidateV35({
+        text: "France",
+        unitText: "They marched from France toward the frontier.",
+        seed: null,
+      })
+    ).toBe(true);
+    const narration = normalizeHistoryNarrationV33({
+      episodeId: BRONZE_EPISODE,
+      rawScript:
+        "Climate shifted across the region. Archaeology reveals palace economies. Cyprus supplied copper.",
+    });
+    const structured = structureTrustedScriptClaimsV34({
+      episodeId: BRONZE_EPISODE,
+      narration,
+      authorityMode: "trusted-script",
+    });
+    expect(structured.rejectedEntities.some((item) => item.text === "Climate")).toBe(false);
+    expect(structured.rejectedEntities.some((item) => item.text === "Archaeology")).toBe(false);
+    expect(structured.entities.some((item) => item.normalizedLabel === "Cyprus")).toBe(true);
+  });
+
+  it("classifies geographic candidates without polluting coverage with generic nouns", () => {
+    for (const text of ["Archaeology", "Climate", "Fear", "Modern", "And"]) {
+      expect(isCredibleGeographicCandidateV35({ text })).toBe(false);
+    }
+    expect(isCredibleGeographicCandidateV35({ text: "Austria" })).toBe(true);
+    expect(isCredibleGeographicCandidateV35({ text: "France" })).toBe(true);
+    const coverage = assessVisualSemanticCoverageV35({
+      entities: [
+        { normalizedLabel: "Cyprus", entityType: "place" },
+        { normalizedLabel: "Egypt", entityType: "place" },
+      ],
+      rejectedEntities: [
+        { text: "Archaeology", reason: "uncanonical-surface" },
+        { text: "Climate", reason: "ordinary-noun-concept" },
+        { text: "Carthage", reason: "uncanonical-surface" },
+        { text: "Gaul", reason: "uncanonical-surface" },
+        { text: "Danube", reason: "uncanonical-surface" },
+        { text: "Friedland", reason: "uncanonical-surface" },
+        { text: "Maloyaroslavets", reason: "uncanonical-surface" },
+      ],
+      beats: [{ id: "beat-0001", modality: "map" }],
+      mapStates: [{}],
+      diagramStates: [],
+      visualOpportunitySummary: {
+        eligibleMapOpportunities: 1,
+        eligibleDiagramOpportunities: 0,
+      },
+    });
+    expect(coverage.some((item) => item.code === "ENTITY_RESOLUTION_COVERAGE_LOW")).toBe(true);
+    expect(
+      coverage.find((item) => item.code === "ENTITY_RESOLUTION_COVERAGE_LOW")?.affectedIds
+    ).toEqual(expect.arrayContaining(["Carthage", "Gaul", "Danube"]));
+    expect(
+      coverage.find((item) => item.code === "ENTITY_RESOLUTION_COVERAGE_LOW")?.payload
+        .nonGeographicRejectedSurfaces
+    ).toBe(2);
+  });
+
+  it("reserves high-confidence Bronze Age diagram opportunities", () => {
+    const clusters = [
+      {
+        claimIds: ["claim-1"],
+        text: "Copper from Cyprus and tin from distant regions were combined to make bronze.",
+      },
+      {
+        claimIds: ["claim-2"],
+        text: "Trade routes across the Eastern Mediterranean linked Mycenae, Pylos, Cyprus, Anatolia, and the Levant.",
+      },
+      {
+        claimIds: ["claim-3"],
+        text: "Drought, migration, trade disruption, and political instability combined to make collapse more likely.",
+      },
+    ];
+    const claims = clusters.map((cluster, index) => ({
+      id: cluster.claimIds[0]!,
+      claimKind: index === 2 ? ("causal" as const) : ("compound" as const),
+      materiality: "material" as const,
+      normalizedProposition: cluster.text,
+      narrationUnitIds: [`unit-${index + 1}`],
+      authorityMode: "trusted-script" as const,
+      provenanceStatus: "trusted_input" as const,
+      independentlyVerified: false,
+      temporalQualifierIds: [],
+      geographicQualifierIds: [],
+      quantitativeQualifierIds: [],
+      entityMentionIds: [],
+      sourceSpanIds: [],
+      uncertainty: [],
+      rhetoricalRole: "assertion" as const,
+    }));
+    const reserved = reserveDiagramBeatIndexesV35({
+      clusters,
+      claims,
+      entities: [],
+      maxDiagrams: 2,
+    });
+    expect(reserved.size).toBeGreaterThan(0);
+    expect(
+      scoreDiagramOpportunityV35({
+        claimIds: ["claim-3"],
+        clusterText: clusters[2]!.text,
+        claims,
+      }).score
+    ).toBeGreaterThanOrEqual(4);
+  });
+
+  it("builds Bronze Age plans with selected diagrams when causal opportunities exist", () => {
+    const narration = normalizeHistoryNarrationV33({
+      episodeId: BRONZE_EPISODE,
+      rawScript: `${BRONZE_SNIPPET}
+
+Drought, migration, trade disruption, and political instability combined to make collapse more likely.`,
+    });
+    const structured = structureTrustedScriptClaimsV34({
+      episodeId: BRONZE_EPISODE,
+      narration,
+      authorityMode: "trusted-script",
+    });
+    const plan = buildHistoryVisualPlanV35({
+      episodeId: BRONZE_EPISODE,
+      title: "Bronze Age Collapse",
+      narration,
+      authorityMode: "trusted-script",
+      structuredClaims: structured,
+    });
+    expect(plan.visualOpportunitySummary.eligibleDiagramOpportunities).toBeGreaterThan(0);
+    expect(plan.visualOpportunitySummary.selectedDiagramOpportunities).toBeGreaterThan(0);
+    expect(plan.diagramStates.length).toBeGreaterThan(0);
+  });
+
   it("blocks structural approval when focused validation prerequisites fail", () => {
     const narration = normalizeHistoryNarrationV33({
       episodeId: FRANKLIN_EPISODE,
@@ -216,5 +382,133 @@ describe("History V3.5 unit semantics", () => {
     expect(blocked.approval.structural.state).toBe("blocked");
     expect(blocked.approval.structural.blockerCodes).toContain("FOCUSED_TEST_FAILURE");
     expect(blocked.approval.productionApprovalEligible).toBe(false);
+  });
+
+  it("does not block editorial approval on template-family reuse when viewer concepts differ", () => {
+    const narration = normalizeHistoryNarrationV33({
+      episodeId: FRANKLIN_EPISODE,
+      rawScript: FRANKLIN_SNIPPET,
+    });
+    const plan = buildHistoryVisualPlanV35({
+      episodeId: FRANKLIN_EPISODE,
+      title: "Franklin Expedition",
+      narration,
+      authorityMode: "trusted-script",
+    });
+    expect(plan.qualityMetrics.viewerConceptRepetitionRate).toBeLessThanOrEqual(
+      plan.qualityMetrics.thresholds.maxViewerConceptDuplicateRate
+    );
+    expect(plan.qualityMetrics.templateRepetitionRate).toBeGreaterThan(
+      plan.qualityMetrics.thresholds.maxSemanticConceptDuplicateRate
+    );
+    expect(plan.qualityMetrics.repetitionPolicy.viewerConcept.blocking).toBe(true);
+    expect(plan.qualityMetrics.repetitionPolicy.template.blocking).toBe(false);
+    expect(plan.qualityMetrics.passes).toBe(true);
+    expect(
+      plan.diagnostics.some((item) => item.code === "EDITORIAL_REPETITION_THRESHOLD")
+    ).toBe(false);
+    expect(
+      plan.diagnostics.some((item) => item.code === "EDITORIAL_TEMPLATE_REPETITION_WARNING")
+    ).toBe(true);
+  });
+
+  it("blocks editorial approval on genuine viewer-concept repetition", () => {
+    const narration = normalizeHistoryNarrationV33({
+      episodeId: FRANKLIN_EPISODE,
+      rawScript: FRANKLIN_SNIPPET,
+    });
+    const basePlan = buildHistoryVisualPlanV35({
+      episodeId: FRANKLIN_EPISODE,
+      title: "Franklin Expedition",
+      narration,
+      authorityMode: "trusted-script",
+    });
+    const anchorShot = basePlan.shots[0]!;
+    const anchorBeat = basePlan.beats.find((beat) => beat.id === anchorShot.beatId)!;
+    const anchorConcept = basePlan.visualConcepts.find(
+      (concept) => concept.beatId === anchorShot.beatId
+    )!;
+    const duplicatedShots = Array.from({ length: 12 }, (_, index) => ({
+      ...anchorShot,
+      id: `shot-repeat-${index}`,
+      beatId: `beat-repeat-${index}`,
+      purpose: anchorShot.purpose,
+      subject: anchorShot.subject,
+      framing: anchorShot.framing,
+      action: anchorShot.action,
+      cameraMovement: anchorShot.cameraMovement,
+      transition: anchorShot.transition,
+      modalityStateReference: `asset-repeat-${index}`,
+    }));
+    const duplicatedBeats = duplicatedShots.map((shot, index) => ({
+      ...anchorBeat,
+      id: shot.beatId,
+      shotIds: [shot.id],
+      startMs: index * 5_000,
+      endMs: (index + 1) * 5_000,
+    }));
+  const metrics = measureHistoryRepetitionV35({
+      purposes: basePlan.visualPurposes,
+      concepts: duplicatedBeats.map((beat) => ({
+        ...anchorConcept,
+        beatId: beat.id,
+      })),
+      shots: duplicatedShots,
+      beats: duplicatedBeats,
+      diagramStates: basePlan.diagramStates,
+      thresholds: DEFAULT_HISTORY_QUALITY_THRESHOLDS_V35,
+    });
+    expect(metrics.viewerConceptRepetitionRate).toBeGreaterThan(
+      metrics.thresholds.maxViewerConceptDuplicateRate
+    );
+    expect(metrics.passes).toBe(false);
+    expect(metrics.repetitionPolicy.viewerConcept.passes).toBe(false);
+  });
+
+  it("trusted-script plans do not require human historical attestation", () => {
+    const narration = normalizeHistoryNarrationV33({
+      episodeId: FRANKLIN_EPISODE,
+      rawScript: FRANKLIN_SNIPPET,
+    });
+    const plan = buildHistoryVisualPlanV35({
+      episodeId: FRANKLIN_EPISODE,
+      title: "Franklin Expedition",
+      narration,
+      authorityMode: "trusted-script",
+      trustAttestation: null,
+    });
+    expect(plan.trustApproval.attestationActor).toBeNull();
+    expect(plan.trustApproval.attestationTimestamp).toBeNull();
+    expect(plan.trustApproval.attestationBound).toBe(false);
+    expect(plan.trustApproval.humanHistoricalAttestationRequired).toBe(false);
+    expect(plan.trustApproval.productionHistoricalApprovalEligible).toBe(true);
+    expect(
+      plan.diagnostics.some((item) => item.code === "HISTORICAL_APPROVAL_REQUIRED")
+    ).toBe(false);
+    expect(
+      plan.approval.production.blockerCodes.includes("HISTORICAL_APPROVAL_REQUIRED")
+    ).toBe(false);
+  });
+
+  it("still blocks production when configured factual validation prerequisites fail", () => {
+    const narration = normalizeHistoryNarrationV33({
+      episodeId: FRANKLIN_EPISODE,
+      rawScript: FRANKLIN_SNIPPET,
+    });
+    const plan = buildHistoryVisualPlanV35({
+      episodeId: FRANKLIN_EPISODE,
+      title: "Franklin Expedition",
+      narration,
+      authorityMode: "trusted-script",
+    });
+    const blocked = applyPlanApprovalPrerequisitesV35(plan, [
+      {
+        code: "FOCUSED_TEST_FAILURE",
+        gate: "structural",
+        message: "Required focused validation failed.",
+      },
+    ]);
+    expect(blocked.approval.productionApprovalEligible).toBe(false);
+    expect(blocked.approval.production.blockerCodes).toContain("FOCUSED_TEST_FAILURE");
   });
 });

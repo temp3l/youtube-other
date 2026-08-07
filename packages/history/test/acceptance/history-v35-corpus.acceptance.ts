@@ -29,7 +29,7 @@ describe("History V3.5 corpus acceptance", () => {
       });
       expect(plan.schemaVersion).toBe("history-visual-plan.v3.5");
       expect(plan.plannerVersion).toBe("history-visual-planner.v3.5.0");
-      expect(plan.trustApproval.productionHistoricalApprovalEligible).toBe(false);
+      expect(plan.trustApproval.productionHistoricalApprovalEligible).toBe(true);
       expect(
         plan.mediaDecisions.every(
           (decision) => !decision.justification.includes("Do not export dangling timeline references.")

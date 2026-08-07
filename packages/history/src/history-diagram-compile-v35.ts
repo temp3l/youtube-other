@@ -1,0 +1,131 @@
+import type { HistoryDiagramStateV34 } from "./history-v34-contracts.js";
+import type { HistoryClaimV34 } from "./history-v34-contracts.js";
+import type { HistoryVisualPlanV35 } from "./history-v35-contracts.js";
+import { scoreDiagramOpportunityV35 } from "./history-visual-opportunity-v35.js";
+
+const THEMATIC_CAUSAL_LABELS: ReadonlyArray<{
+  readonly label: string;
+  readonly pattern: RegExp;
+}> = [
+  { label: "drought pressure", pattern: /\bdrought\b/iu },
+  { label: "harvest stress", pattern: /\bharvest\b/iu },
+  { label: "migration pressure", pattern: /\bmigration\b/iu },
+  { label: "armed conflict", pattern: /\b(?:conflict|warfare|invasion)\b/iu },
+  { label: "trade disruption", pattern: /\b(?:trade disruption|trade routes?|trade network)\b/iu },
+  { label: "political instability", pattern: /\b(?:political instability|instability|fragmentation)\b/iu },
+  { label: "palace administrative failure", pattern: /\b(?:palace|administrat)/iu },
+  { label: "systems collapse", pattern: /\b(?:systems? collapse|systemic|interconnected pressures)\b/iu },
+  { label: "Bronze Age collapse", pattern: /\bBronze Age(?:\s+Collapse)?\b/iu },
+  { label: "regional interdependence", pattern: /\b(?:interdependence|interconnected)\b/iu },
+  { label: "writing loss", pattern: /\b(?:writing|script).*(?:lost|loss|disappear)|loss of writing\b/iu },
+  { label: "iron versus bronze", pattern: /\biron\b.*\bbronze\b|\bbronze\b.*\biron\b/iu },
+  { label: "earthquake disruption", pattern: /\b(?:earthquake|seismic|quake)\b/iu },
+  { label: "military fragmentation", pattern: /\b(?:army|armies|military)\b/iu },
+  { label: "fragmented evidence", pattern: /\b(?:fragmented evidence|evidence is fragmented)\b/iu },
+  { label: "metanarrative caution", pattern: /\bwarns? us against\b/iu },
+  { label: "single-cause warning", pattern: /\bsingle (?:dramatic )?explanation\b/iu },
+  { label: "supply-chain failure", pattern: /\b(?:supply|logistics|supplies)\b/iu },
+  { label: "disease and hunger", pattern: /\b(?:disease|hunger|famine|starv)\b/iu },
+  { label: "population loss", pattern: /\b(?:population loss|mortality|depopulation)\b/iu },
+  { label: "labour scarcity", pattern: /\b(?:labou?r scarcity|worker shortage)\b/iu },
+  { label: "tax and revenue strain", pattern: /\b(?:tax(?:es)?|revenue)\b/iu },
+  { label: "imperial resource cycle", pattern: /\b(?:provincial|administration|empire|resources)\b/iu },
+];
+
+function wordSafeSlice(text: string, maxChars: number): string {
+  const trimmed = text.replace(/\s+/gu, " ").trim();
+  if (trimmed.length <= maxChars) return trimmed;
+  const slice = trimmed.slice(0, maxChars);
+  const boundary = slice.lastIndexOf(" ");
+  return (boundary > 20 ? slice.slice(0, boundary) : slice).trim();
+}
+
+function buildCausalDiagramState(input: {
+  readonly beatNumber: string;
+  readonly masterId: string;
+  readonly diagramType: "process" | "causal-chain" | "evidence-set";
+  readonly exactQuestion: string;
+  readonly labels: readonly string[];
+  readonly claimIds: readonly string[];
+}): {
+  readonly master: HistoryVisualPlanV35["diagramMasters"][number];
+  readonly state: HistoryDiagramStateV34;
+} {
+  const nodeRecords = input.labels.map((label, index) => ({
+    id: `node-${input.beatNumber}-${index + 1}`,
+    label,
+    linkedClaimIds: input.claimIds,
+    entityMentionIds: [] as string[],
+  }));
+  const edges = nodeRecords.slice(0, -1).map((node, index) => ({
+    id: `edge-${input.beatNumber}-${index + 1}`,
+    fromNodeId: node.id,
+    toNodeId: nodeRecords[index + 1]!.id,
+    relationship: "sequence" as const,
+    linkedClaimIds: input.claimIds,
+  }));
+  return {
+    master: {
+      id: input.masterId,
+      diagramType: input.diagramType,
+      exactQuestion: input.exactQuestion,
+      supportedRatios: ["16:9", "9:16"],
+    },
+    state: {
+      id: `diagram-state-${input.beatNumber}`,
+      masterId: input.masterId,
+      diagramType: input.diagramType,
+      exactQuestion: input.exactQuestion,
+      nodes: nodeRecords,
+      edges,
+      semanticStatus: "valid",
+      blockerCodes: [],
+      fallbackDecision: null,
+    },
+  };
+}
+
+export function extractThematicCausalLabelsV35(text: string): string[] {
+  const labels: string[] = [];
+  for (const item of THEMATIC_CAUSAL_LABELS) {
+    if (item.pattern.test(text) && !labels.includes(item.label)) labels.push(item.label);
+  }
+  return labels;
+}
+
+export function compileAbstractCausalDiagramV35(input: {
+  readonly beatNumber: string;
+  readonly text: string;
+  readonly claimIds: readonly string[];
+  readonly claims: readonly HistoryClaimV34[];
+}): {
+  readonly master: HistoryVisualPlanV35["diagramMasters"][number];
+  readonly state: HistoryDiagramStateV34;
+} | null {
+  const scored = scoreDiagramOpportunityV35({
+    claimIds: input.claimIds,
+    clusterText: input.text,
+    claims: input.claims,
+    entityLabels: [],
+  });
+  if (!scored.eligible || scored.score < 3) return null;
+  const labels = extractThematicCausalLabelsV35(input.text);
+  if (labels.length < 2) return null;
+  const hasCausalLanguage =
+    /\b(?:because|led to|resulted|therefore|collapse|combined|interconnected|dependencies?|mechanism|warns? us against|systems?)\b/iu.test(
+      input.text
+    );
+  if (!hasCausalLanguage) return null;
+  const masterId = `diagram-master-causal-${input.beatNumber}`;
+  return buildCausalDiagramState({
+    beatNumber: input.beatNumber,
+    masterId,
+    diagramType: labels.length >= 3 ? "process" : "causal-chain",
+    exactQuestion: wordSafeSlice(
+      `What causal or systemic relationships does the narration support? ${input.text}`,
+      160
+    ),
+    labels: labels.slice(0, 5),
+    claimIds: input.claimIds,
+  });
+}

@@ -26,7 +26,21 @@ export const HISTORY_CLAIM_SCHEMA_V35 = "history-claim.v3.5" as const;
 export const HISTORY_VISUAL_SCHEMA_V35 = "history-visual-plan.v3.5" as const;
 export const HISTORY_VISUAL_PLANNER_V35 = "history-visual-planner.v3.5.0" as const;
 export const HISTORY_APPROVAL_PACK_V35 = "history-approval-pack.v3.5" as const;
-export const HISTORY_REPETITION_POLICY_V35 = "history-repetition-policy.v3.5.0" as const;
+export const HISTORY_REPETITION_POLICY_V35 = "history-repetition-policy.v3.5.1" as const;
+
+export interface HistoryRepetitionPolicyAxisV35 {
+  readonly rate: number;
+  readonly threshold: number;
+  readonly passes: boolean;
+  readonly blocking: boolean;
+}
+
+export interface HistoryRepetitionPolicySummaryV35 {
+  readonly viewerConcept: HistoryRepetitionPolicyAxisV35;
+  readonly template: HistoryRepetitionPolicyAxisV35 & {
+    readonly advisoryThreshold: number;
+  };
+}
 
 export type HistoryVisualModalityV35 =
   | "archival image"
@@ -137,7 +151,9 @@ export interface HistoryTrustApprovalSummaryV35 {
   readonly attestationActor: string | null;
   readonly attestationTimestamp: string | null;
   readonly independentlyVerifiedClaimCount: number;
+  /** Automated factual/content review satisfied for production; does not require named human attestation. */
   readonly productionHistoricalApprovalEligible: boolean;
+  readonly humanHistoricalAttestationRequired: boolean;
 }
 
 export interface HistoryTimelineEventV35 {
@@ -175,6 +191,7 @@ export interface HistoryQualityThresholdsV35 {
   readonly maxSemanticPurposeDuplicateRate: number;
   readonly maxVisualConceptTemplateDuplicateRate: number;
   readonly maxSemanticConceptDuplicateRate: number;
+  readonly maxViewerConceptDuplicateRate: number;
   readonly maxTreatmentTemplateDuplicateRate: number;
   readonly maxDominantCameraRate: number;
   readonly maxTwoInstructionAlternationRate: number;
@@ -186,12 +203,26 @@ export interface HistoryQualityThresholdsV35 {
   readonly maxStrongLongStaticRuntimeShare: number;
 }
 
+export interface HistoryDuplicateClusterV35 {
+  readonly kind: string;
+  readonly signature: string;
+  readonly beatIds: readonly string[];
+  readonly shotIds: readonly string[];
+  readonly occurrenceCount: number;
+  readonly excessCount: number;
+  readonly representativeSubjects: readonly string[];
+  readonly representativeSettings: readonly string[];
+  readonly representativeCompositions: readonly string[];
+}
+
 export interface HistoryQualityMetricsV35 {
   readonly policyVersion: typeof HISTORY_REPETITION_POLICY_V35;
   readonly exactPurposeDuplicateRate: number;
   readonly semanticPurposeDuplicateRate: number;
   readonly visualConceptTemplateDuplicateRate: number;
   readonly semanticConceptDuplicateRate: number;
+  readonly templateRepetitionRate: number;
+  readonly viewerConceptRepetitionRate: number;
   readonly treatmentTemplateDuplicateRate: number;
   readonly dominantCameraRate: number;
   readonly twoInstructionAlternationRate: number;
@@ -201,12 +232,8 @@ export interface HistoryQualityMetricsV35 {
   readonly oneShotPerLongBeatRate: number;
   readonly effectiveChange: HistoryEffectiveChangeMetricsV35;
   readonly thresholds: HistoryQualityThresholdsV35;
-  readonly duplicateClusters: readonly {
-    readonly kind: string;
-    readonly signature: string;
-    readonly beatIds: readonly string[];
-    readonly shotIds: readonly string[];
-  }[];
+  readonly duplicateClusters: readonly HistoryDuplicateClusterV35[];
+  readonly repetitionPolicy: HistoryRepetitionPolicySummaryV35;
   readonly passes: boolean;
   readonly explicitOverride: boolean;
 }
@@ -315,6 +342,7 @@ export const DEFAULT_HISTORY_QUALITY_THRESHOLDS_V35: HistoryQualityThresholdsV35
   maxSemanticPurposeDuplicateRate: 0.2,
   maxVisualConceptTemplateDuplicateRate: 0.15,
   maxSemanticConceptDuplicateRate: 0.15,
+  maxViewerConceptDuplicateRate: 0.35,
   maxTreatmentTemplateDuplicateRate: 0.15,
   maxDominantCameraRate: 0.45,
   maxTwoInstructionAlternationRate: 0.75,

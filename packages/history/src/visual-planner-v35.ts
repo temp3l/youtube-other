@@ -37,6 +37,7 @@ import {
   routeActorIsClaimSupportedV35,
   splitModalitiesFromLegacyV35,
   validatePortraitProtectedGeographyV35,
+  assessVisualSemanticCoverageV35,
   validateRequiredGeographyCoverageV35,
   claimAuthorizesRouteMovement,
   beatAuthorizesRouteMovement,
@@ -89,13 +90,23 @@ import {
   buildVisualTreatmentSignatureV35,
   measureNearbyTreatmentRepetitionV35,
   measureTreatmentWindowConcentrationV35,
+  canonicalVisualRepetitionSignatureKeyV35,
+  canonicalViewerConceptSignatureKeyV35,
+  canonicalTemplateRepetitionSignatureKeyV35,
+  measureViewerConceptDuplicationV35,
+  measureTemplateRepetitionV35,
+  normalizeCompositionArchetypeV35,
+  normalizeTreatmentActionFamilyV35,
   type VisualSemanticSignature,
 } from "./history-visual-repetition-v35.js";
 import { refineVisualTreatmentPlanV35 } from "./history-visual-treatment-refine-v35.js";
+import { computeDiagramRenderSignatureV35 } from "./history-effective-change-v35.js";
+import { compileAbstractCausalDiagramV35 } from "./history-diagram-compile-v35.js";
 import { deriveVisualSubjectV35 } from "./history-visual-subject-v35.js";
 import {
   buildVisualOpportunitiesV35,
   detectDiagramOpportunityV35,
+  reserveDiagramBeatIndexesV35,
   summarizeVisualOpportunityTotalsV35,
 } from "./history-visual-opportunity-v35.js";
 import type {
@@ -160,6 +171,7 @@ export function measureHistoryRepetitionV35(input: {
   readonly concepts: readonly HistoryVisualConceptV35[];
   readonly shots: readonly HistoryShotV34[];
   readonly beats: readonly HistoryBeatV35[];
+  readonly diagramStates?: readonly HistoryDiagramStateV34[];
   readonly thresholds?: HistoryQualityThresholdsV35;
   readonly explicitOverride?: boolean;
 }): HistoryQualityMetricsV35 {
@@ -184,8 +196,12 @@ export function measureHistoryRepetitionV35(input: {
   const semanticPurposeDuplicateRate = comparedPairs
     ? nearDuplicatePairs / comparedPairs
     : 0;
-  const templateFingerprints = input.purposes.map((purpose) =>
-    normalizeVisualConceptFingerprintV35(purpose.visualPurpose)
+  const templateFingerprints = input.concepts.map((concept) =>
+    [
+      concept.modality,
+      normalizeCompositionArchetypeV35(concept.intendedComposition),
+      concept.evidenceSourceClass,
+    ].join("|")
   );
   const semanticStructures = semanticShotStructuresV35({
     shots: input.shots,
@@ -204,7 +220,7 @@ export function measureHistoryRepetitionV35(input: {
       progressionRole,
       action: shot.action,
       modalityStateReference: shot.modalityStateReference,
-      informationLayer: `${shot.beatId}|${shot.purpose}|${shot.action}`,
+      informationLayer: `${progressionRole}:${normalizeTreatmentActionFamilyV35(shot.action)}`,
     });
   });
   const beatPurposeSignatures = input.purposes.map((purpose) => {
@@ -225,13 +241,37 @@ export function measureHistoryRepetitionV35(input: {
       modalityStateReference: null,
     });
   });
-  const semanticConceptDuplicateRate = Math.max(
+  const viewerConceptInputs = input.shots.map((shot) => {
+    const beat = input.beats.find((item) => item.id === shot.beatId);
+    const concept = input.concepts.find((item) => item.beatId === shot.beatId);
+    const progressionRole = (shot.purpose.split(/\s+/u)[0] ?? "establish") as "establish";
+    const signature = buildVisualSemanticSignatureV35({
+      modality: beat?.modality ?? "archival image",
+      subject: shot.subject,
+      claimIds: shot.linkedClaimIds,
+      composition: concept?.intendedComposition ?? shot.action,
+      progressionRole,
+      action: shot.action,
+      modalityStateReference: shot.modalityStateReference,
+      informationLayer: `${progressionRole}:${normalizeTreatmentActionFamilyV35(shot.action)}`,
+    });
+    return {
+      signature,
+      subject: shot.subject,
+      setting: concept?.settingGeography ?? null,
+      modality: beat?.modality ?? "archival image",
+    };
+  });
+  const templateRepetitionRate = Math.max(
     templateFingerprints.length
       ? (templateFingerprints.length - new Set(templateFingerprints).size) / templateFingerprints.length
       : 0,
     measurePurposeTemplateFamilyDuplicationV35(beatPurposeSignatures),
-    measureNearbyTemplateFamilyRepetitionV35(shotSignatures)
+    measureNearbyTemplateFamilyRepetitionV35(shotSignatures),
+    measureTemplateRepetitionV35(shotSignatures)
   );
+  const viewerConceptRepetitionRate = measureViewerConceptDuplicationV35(viewerConceptInputs);
+  const semanticConceptDuplicateRate = templateRepetitionRate;
   const treatmentSignatures = input.shots.map((shot) => {
     const beat = input.beats.find((item) => item.id === shot.beatId);
     const modality = beat?.modality ?? "archival image";
@@ -271,22 +311,112 @@ export function measureHistoryRepetitionV35(input: {
   const oneShotPerLongBeatRate = longBeats.length
     ? longBeats.filter((beat) => beat.shotIds.length < 2).length / longBeats.length
     : 0;
-  const duplicateClusters = [...new Set(shotStructures)]
-    .map((signature) => {
-      const matchingShots = input.shots.filter(
-        (_, index) => semanticStructures[index] === signature
-      );
-      return {
-        kind: "semantic-shot",
-        signature,
-        beatIds: [...new Set(matchingShots.map((shot) => shot.beatId))],
-        shotIds: matchingShots.map((shot) => shot.id),
-      };
-    })
-    .filter((cluster) => cluster.shotIds.length > 1);
+  const duplicateClusters = [
+    ...[...new Set(viewerConceptInputs.map((item) => canonicalViewerConceptSignatureKeyV35(item)))]
+      .map((signature) => {
+        const matchingIndexes = viewerConceptInputs
+          .map((item, index) =>
+            canonicalViewerConceptSignatureKeyV35(item) === signature ? index : -1
+          )
+          .filter((index) => index >= 0);
+        const matchingShots = matchingIndexes.map((index) => input.shots[index]!);
+        const matchingConcepts = matchingIndexes.map(
+          (index) => input.concepts.find((concept) => concept.beatId === input.shots[index]!.beatId)!
+        );
+        const beatIds = [...new Set(matchingShots.map((shot) => shot.beatId))];
+        const occurrenceCount = matchingShots.length;
+        return {
+          kind: "viewer-concept" as const,
+          signature,
+          beatIds,
+          shotIds: matchingShots.map((shot) => shot.id),
+          occurrenceCount,
+          excessCount: Math.max(0, occurrenceCount - 1),
+          representativeSubjects: [
+            ...new Set(matchingShots.map((shot) => shot.subject).filter(Boolean)),
+          ].slice(0, 4),
+          representativeSettings: [
+            ...new Set(
+              matchingConcepts
+                .map((concept) => concept?.settingGeography)
+                .filter((value): value is string => Boolean(value))
+            ),
+          ].slice(0, 4),
+          representativeCompositions: [
+            ...new Set(
+              matchingConcepts
+                .map((concept) => concept?.intendedComposition)
+                .filter((value): value is string => Boolean(value))
+            ),
+          ].slice(0, 4),
+        };
+      })
+      .filter((cluster) => cluster.shotIds.length > 1),
+    ...[...new Set(shotSignatures.map((signature) => canonicalTemplateRepetitionSignatureKeyV35(signature)))]
+      .map((signature) => {
+        const matchingIndexes = shotSignatures
+          .map((item, index) =>
+            canonicalTemplateRepetitionSignatureKeyV35(item) === signature ? index : -1
+          )
+          .filter((index) => index >= 0);
+        const matchingShots = matchingIndexes.map((index) => input.shots[index]!);
+        const beatIds = [...new Set(matchingShots.map((shot) => shot.beatId))];
+        const occurrenceCount = matchingShots.length;
+        return {
+          kind: "template-shot" as const,
+          signature,
+          beatIds,
+          shotIds: matchingShots.map((shot) => shot.id),
+          occurrenceCount,
+          excessCount: Math.max(0, occurrenceCount - 1),
+          representativeSubjects: [
+            ...new Set(matchingShots.map((shot) => shot.subject).filter(Boolean)),
+          ].slice(0, 4),
+          representativeSettings: [] as string[],
+          representativeCompositions: [] as string[],
+        };
+      })
+      .filter((cluster) => cluster.shotIds.length > 1),
+    ...[...new Set(templateFingerprints)]
+      .map((signature) => {
+        const matchingConcepts = input.concepts.filter(
+          (_, index) => templateFingerprints[index] === signature
+        );
+        const beatIds = [
+          ...new Set(
+            matchingConcepts
+              .map((concept) => input.beats.find((beat) => beat.id === concept.beatId)?.id)
+              .filter((id): id is string => Boolean(id))
+          ),
+        ];
+        return {
+          kind: "purpose-fingerprint" as const,
+          signature,
+          beatIds,
+          shotIds: [] as string[],
+          occurrenceCount: beatIds.length,
+          excessCount: Math.max(0, beatIds.length - 1),
+          representativeSubjects: [
+            ...new Set(matchingConcepts.map((concept) => concept.historicalSubject)),
+          ].slice(0, 4),
+          representativeSettings: [
+            ...new Set(
+              matchingConcepts
+                .map((concept) => concept.settingGeography)
+                .filter((value): value is string => Boolean(value))
+            ),
+          ].slice(0, 4),
+          representativeCompositions: [
+            ...new Set(matchingConcepts.map((concept) => concept.intendedComposition)),
+          ].slice(0, 4),
+        };
+      })
+      .filter((cluster) => cluster.beatIds.length > 1),
+  ];
   const effectiveChange = measureEffectiveVisualChangeV35({
     shots: input.shots,
     beats: input.beats,
+    diagramStates: input.diagramStates,
   });
   const metric = {
     policyVersion: HISTORY_REPETITION_POLICY_V35,
@@ -297,6 +427,8 @@ export function measureHistoryRepetitionV35(input: {
       templatedArchivalRate
     ),
     semanticConceptDuplicateRate,
+    templateRepetitionRate,
+    viewerConceptRepetitionRate,
     treatmentTemplateDuplicateRate,
     dominantCameraRate: cameras.length ? dominantShare(cameras) : 0,
     twoInstructionAlternationRate: cameras.length ? topTwo / cameras.length : 0,
@@ -313,13 +445,31 @@ export function measureHistoryRepetitionV35(input: {
     duplicateClusters,
     explicitOverride: Boolean(input.explicitOverride),
   };
+  const viewerConceptPasses =
+    metric.viewerConceptRepetitionRate <= thresholds.maxViewerConceptDuplicateRate;
+  const templateAdvisoryThreshold = thresholds.maxSemanticConceptDuplicateRate;
+  const templatePasses = metric.templateRepetitionRate <= templateAdvisoryThreshold;
+  const repetitionPolicy = {
+    viewerConcept: {
+      rate: metric.viewerConceptRepetitionRate,
+      threshold: thresholds.maxViewerConceptDuplicateRate,
+      passes: viewerConceptPasses,
+      blocking: true,
+    },
+    template: {
+      rate: metric.templateRepetitionRate,
+      threshold: templateAdvisoryThreshold,
+      advisoryThreshold: templateAdvisoryThreshold,
+      passes: templatePasses,
+      blocking: false,
+    },
+  };
   const passes =
     Boolean(input.explicitOverride) ||
-    (metric.exactPurposeDuplicateRate <= thresholds.maxExactPurposeDuplicateRate &&
+    (viewerConceptPasses &&
+      metric.exactPurposeDuplicateRate <= thresholds.maxExactPurposeDuplicateRate &&
       metric.semanticPurposeDuplicateRate < thresholds.maxSemanticPurposeDuplicateRate &&
-      metric.semanticConceptDuplicateRate <= thresholds.maxSemanticConceptDuplicateRate &&
       metric.treatmentTemplateDuplicateRate <= thresholds.maxTreatmentTemplateDuplicateRate &&
-      metric.visualConceptTemplateDuplicateRate <= thresholds.maxVisualConceptTemplateDuplicateRate &&
       metric.dominantCameraRate < thresholds.maxDominantCameraRate &&
       metric.twoInstructionAlternationRate < thresholds.maxTwoInstructionAlternationRate &&
       metric.shotStructureDuplicateRate <= thresholds.maxShotStructureDuplicateRate &&
@@ -329,7 +479,7 @@ export function measureHistoryRepetitionV35(input: {
       metric.effectiveChange.longStaticRuntimeShare <= thresholds.maxLongStaticRuntimeShare &&
       metric.effectiveChange.strongLongStaticRuntimeShare <=
         thresholds.maxStrongLongStaticRuntimeShare);
-  return { ...metric, passes };
+  return { ...metric, repetitionPolicy, passes };
 }
 
 function modalityFor(text: string): HistoryVisualModalityV35 {
@@ -477,11 +627,15 @@ function scopedMapCacheKey(input: {
 function resolveClusterModality(input: {
   readonly cluster: BeatCluster;
   readonly beatNumber: string;
+  readonly beatIndex: number;
   readonly structured: HistoryStructuredClaimsV34;
   readonly mapIntents: ReturnType<typeof proposeMapIntentsV35>;
   readonly intentsByClaim: ReadonlyMap<string, ReturnType<typeof proposeMapIntentsV35>[number]>;
   readonly narrationText: string;
+  readonly diagramReserved: boolean;
+  readonly diagramReservationReason?: string;
 }): HistoryVisualModalityV35 {
+  if (input.diagramReserved) return "diagram";
   if (input.cluster.modality === "map") return "map";
   for (const claimId of input.cluster.claimIds) {
     const intent =
@@ -547,7 +701,7 @@ function buildRatioPlans(input: {
   const eventIds = input.timelineState?.eventIds ?? (input.dateCardId ? [input.dateCardId] : []);
   const protectedSubject = wordSafeSlice(input.subject, 100);
   const portraitConflicts: string[] = [];
-  if (input.modality === "map" && mapLabels.length > 3)
+  if (input.modality === "map" && portraitRemoved.length > 0)
     portraitConflicts.push("MAP_LABEL_OVERFLOW_PORTRAIT");
   if (input.modality === "diagram" && diagramNodes.length > 4)
     portraitConflicts.push("DIAGRAM_NODE_OVERFLOW_PORTRAIT");
@@ -630,7 +784,9 @@ function buildRatioPlans(input: {
     waypointSimplification:
       input.modality === "map"
         ? item.ratio === "9:16"
-          ? "drop secondary waypoints"
+          ? portraitRemoved.length > 0
+            ? "drop secondary waypoints"
+            : "no secondary waypoints removed"
           : "retain narrated waypoints"
         : "not-applicable",
     legendPlacement: item.ratio === "9:16" ? "below-map" : "lower-right",
@@ -710,11 +866,74 @@ function summarizeApproval(
   };
 }
 
+const BLACK_DEATH_TRANSMISSION_MASTER = "diagram-master-black-death-transmission";
+const BLACK_DEATH_CONSEQUENCE_MASTER = "diagram-master-black-death-consequences";
+const BRONZE_AGE_TRADE_MASTER = "diagram-master-bronze-age-trade-network";
+const BRONZE_AGE_COLLAPSE_MASTER = "diagram-master-bronze-age-systems-collapse";
+
+function buildProgressiveDiagramState(input: {
+  readonly beatNumber: string;
+  readonly masterId: string;
+  readonly diagramType: "evidence-set" | "process";
+  readonly exactQuestion: string;
+  readonly labels: readonly string[];
+  readonly claimIds: readonly string[];
+  readonly visibleCount: number;
+  readonly withEdges?: boolean;
+}): {
+  readonly master: {
+    readonly id: string;
+    readonly diagramType: "evidence-set" | "process";
+    readonly exactQuestion: string;
+    readonly supportedRatios: readonly ["16:9", "9:16"];
+  };
+  readonly state: HistoryDiagramStateV34;
+} {
+  const visibleLabels = input.labels.slice(0, Math.max(2, input.visibleCount));
+  const stateId = `diagram-state-${input.beatNumber}`;
+  const nodeRecords = visibleLabels.map((label, index) => ({
+    id: `node-${input.masterId}-${index + 1}`,
+    label,
+    linkedClaimIds: input.claimIds,
+    entityMentionIds: [] as string[],
+  }));
+  const edges =
+    input.withEdges && nodeRecords.length > 1
+      ? nodeRecords.slice(0, -1).map((node, index) => ({
+          id: `edge-${input.beatNumber}-${index + 1}`,
+          fromNodeId: node.id,
+          toNodeId: nodeRecords[index + 1]!.id,
+          relationship: "sequence" as const,
+          linkedClaimIds: input.claimIds,
+        }))
+      : [];
+  return {
+    master: {
+      id: input.masterId,
+      diagramType: input.diagramType,
+      exactQuestion: input.exactQuestion,
+      supportedRatios: ["16:9", "9:16"],
+    },
+    state: {
+      id: stateId,
+      masterId: input.masterId,
+      diagramType: input.diagramType,
+      exactQuestion: input.exactQuestion,
+      nodes: nodeRecords,
+      edges,
+      semanticStatus: "valid",
+      blockerCodes: [],
+      fallbackDecision: null,
+    },
+  };
+}
+
 function compileDiagram(input: {
   readonly beatNumber: string;
   readonly text: string;
   readonly claimIds: readonly string[];
   readonly entityLabels: readonly string[];
+  readonly claims: readonly HistoryStructuredClaimsV34["claims"][number][];
 }): {
   readonly master: HistoryVisualPlanV35["diagramMasters"][number];
   readonly state: HistoryDiagramStateV34;
@@ -830,6 +1049,60 @@ function compileDiagram(input: {
   }
 
   if (
+    /\b(?:trade routes?|interdependence|palace|bronze|copper|tin|collapse)\b/iu.test(text) &&
+    (/\b(?:Mediterranean|Aegean|Anatolia|Cyprus|Egypt|Hittite|Mycenae|Pylos|Levant|political boundaries)\b/iu.test(
+      text
+    ) ||
+      input.entityLabels.length >= 2)
+  ) {
+    const tradeLabels = [
+      "copper from Cyprus",
+      "tin from distant regions",
+      "bronze production",
+      "palace trade networks",
+      "eastern Mediterranean interdependence",
+    ].filter(
+      (label) =>
+        new RegExp(label.split(" ")[0]!, "iu").test(text) ||
+        /trade|bronze|copper|tin|palace|interdependence/iu.test(text)
+    );
+    if (tradeLabels.length >= 3) {
+      return buildProgressiveDiagramState({
+        beatNumber: input.beatNumber,
+        masterId: BRONZE_AGE_TRADE_MASTER,
+        diagramType: "process",
+        exactQuestion: "How did Bronze Age trade networks interconnect the eastern Mediterranean?",
+        labels: tradeLabels,
+        claimIds: input.claimIds,
+        visibleCount: Math.min(tradeLabels.length, Math.max(3, tradeLabels.length - 1)),
+        withEdges: true,
+      });
+    }
+    const collapseLabels = [
+      "palace administrative failure",
+      "trade network disruption",
+      "regional interdependence",
+      "cascading collapse",
+    ].filter(
+      (label) =>
+        new RegExp(label.split(" ")[0]!, "iu").test(text) ||
+        /collapse|interdependence|disruption|palace/iu.test(text)
+    );
+    if (collapseLabels.length >= 3) {
+      return buildProgressiveDiagramState({
+        beatNumber: input.beatNumber,
+        masterId: BRONZE_AGE_COLLAPSE_MASTER,
+        diagramType: "process",
+        exactQuestion: "What systemic dependencies does the narration link to collapse?",
+        labels: collapseLabels,
+        claimIds: input.claimIds,
+        visibleCount: Math.min(collapseLabels.length, Math.max(3, collapseLabels.length - 1)),
+        withEdges: true,
+      });
+    }
+  }
+
+  if (
     /\b(?:plague|Black Death|Yersinia|disease)\b/iu.test(text) &&
     /\b(?:trade routes?|ships|Messina|Black Sea|fleas|rats|transmission)\b/iu.test(text)
   ) {
@@ -853,33 +1126,19 @@ function compileDiagram(input: {
               "trade-route spread",
               "flea and rat transmission",
             ];
-      const masterId = `diagram-master-${input.beatNumber}`;
-      const stateId = `diagram-state-${input.beatNumber}`;
-      const nodeRecords = labels.map((label, index) => ({
-        id: `node-${input.beatNumber}-${index + 1}`,
-        label,
-        linkedClaimIds: input.claimIds,
-        entityMentionIds: [] as string[],
-      }));
-      return {
-        master: {
-          id: masterId,
-          diagramType: "evidence-set",
-          exactQuestion: "What transmission pathways does the narration support?",
-          supportedRatios: ["16:9", "9:16"],
-        },
-        state: {
-          id: stateId,
-          masterId,
-          diagramType: "evidence-set",
-          exactQuestion: "What transmission pathways does the narration support?",
-          nodes: nodeRecords,
-          edges: [],
-          semanticStatus: "valid",
-          blockerCodes: [],
-          fallbackDecision: null,
-        },
-      };
+      const visibleCount = Math.min(
+        labels.length,
+        Math.max(2, labels.filter((label) => new RegExp(label.split(" ")[0]!, "iu").test(text)).length || 2)
+      );
+      return buildProgressiveDiagramState({
+        beatNumber: input.beatNumber,
+        masterId: BLACK_DEATH_TRANSMISSION_MASTER,
+        diagramType: "evidence-set",
+        exactQuestion: "What transmission pathways does the narration support?",
+        labels,
+        claimIds: input.claimIds,
+        visibleCount,
+      });
     }
   }
 
@@ -898,33 +1157,26 @@ function compileDiagram(input: {
         /labou?r|wages?|mortality|population/iu.test(text)
     );
     if (consequenceLabels.length >= 3) {
-      const masterId = `diagram-master-${input.beatNumber}`;
-      const stateId = `diagram-state-${input.beatNumber}`;
-      const nodeRecords = consequenceLabels.map((label, index) => ({
-        id: `node-${input.beatNumber}-${index + 1}`,
-        label,
-        linkedClaimIds: input.claimIds,
-        entityMentionIds: [] as string[],
-      }));
-      return {
-        master: {
-          id: masterId,
-          diagramType: "evidence-set",
-          exactQuestion: "What social and economic consequences does the narration support?",
-          supportedRatios: ["16:9", "9:16"],
-        },
-        state: {
-          id: stateId,
-          masterId,
-          diagramType: "evidence-set",
-          exactQuestion: "What social and economic consequences does the narration support?",
-          nodes: nodeRecords,
-          edges: [],
-          semanticStatus: "valid",
-          blockerCodes: [],
-          fallbackDecision: null,
-        },
-      };
+      const labels =
+        consequenceLabels.length >= 3
+          ? consequenceLabels
+          : [
+              "population loss",
+              "labour scarcity",
+              "wage pressure",
+              "social and economic disruption",
+            ];
+      const visibleCount = Math.min(labels.length, Math.max(2, consequenceLabels.length));
+      return buildProgressiveDiagramState({
+        beatNumber: input.beatNumber,
+        masterId: BLACK_DEATH_CONSEQUENCE_MASTER,
+        diagramType: "process",
+        exactQuestion: "What social and economic consequences does the narration support?",
+        labels,
+        claimIds: input.claimIds,
+        visibleCount,
+        withEdges: true,
+      });
     }
   }
 
@@ -1070,7 +1322,16 @@ function compileDiagram(input: {
     };
   }
 
-  if (cleanLabels.length < 2) return null;
+  if (cleanLabels.length < 2) {
+    const abstract = compileAbstractCausalDiagramV35({
+      beatNumber: input.beatNumber,
+      text,
+      claimIds: input.claimIds,
+      claims: input.claims,
+    });
+    if (abstract) return abstract;
+    return null;
+  }
   if (!/\b(?:because|led to|resulted|decision|compounded|causes|process)\b/iu.test(text))
     return null;
   // Generic associated-with chains from entity soup are rejected.
@@ -1185,6 +1446,26 @@ function compileTimelineOrDateCard(input: {
   }));
   const sortedEvents = sortEventsByTemporalBoundsV35(events);
   const ordering = isChronologicallyOrderedV35(sortedEvents.map((event) => event.temporalBounds));
+  if (ordering.status === "ambiguous") {
+    const temporal = temporals[0]!;
+    const bounds = normalizeTemporalBoundsV35({
+      normalizedValue: temporal.normalizedValue,
+      verbatimText: temporal.verbatimText,
+      kind: temporal.kind,
+    });
+    return {
+      kind: "date-card",
+      state: {
+        id: `date-card-${input.beatNumber}`,
+        masterId: `date-card-master-${input.beatNumber}`,
+        label: wordSafeSlice(`${temporal.normalizedValue}: ${input.text}`, 96),
+        temporalQualifierIds: [temporal.id],
+        dateSortKey: `${bounds.sortKey.join("-")}`,
+        linkedClaimIds: input.claimIds,
+      },
+    };
+  }
+  if (ordering.status === "invalid") return null;
   const masterId = `timeline-master-${input.beatNumber}`;
   const stateId = `timeline-state-${input.beatNumber}`;
   return {
@@ -1296,6 +1577,11 @@ export function buildHistoryVisualPlanV35(input: {
     ...(input.measuredTiming ? { measurement: input.measuredTiming } : {}),
   });
   const clusters = clusterBeats({ narration: input.narration, structured });
+  const diagramReservations = reserveDiagramBeatIndexesV35({
+    clusters,
+    claims: structured.claims,
+    entities: structured.entities,
+  });
   const unitWordCounts = new Map(
     input.narration.units.map((unit) => [unit.id, Math.max(1, unit.wordCount)] as const)
   );
@@ -1359,10 +1645,13 @@ export function buildHistoryVisualPlanV35(input: {
     let modality = resolveClusterModality({
       cluster,
       beatNumber,
+      beatIndex: index,
       structured,
       mapIntents,
       intentsByClaim,
       narrationText: input.narration.normalizedText,
+      diagramReserved: diagramReservations.has(index),
+      diagramReservationReason: diagramReservations.get(index),
     });
     if (
       modality === "text-only transition" &&
@@ -1430,15 +1719,44 @@ export function buildHistoryVisualPlanV35(input: {
           mapState = compiled.state;
         }
       } else {
-        fallback = {
-          rejectedModality: "map",
-          reasonForRejection:
-            "Map proposal failed place, actor, route, or coordinate validation.",
-          selectedFallback: "archival image",
-          semanticJustification:
-            "Prefer a safer non-map modality over dangling or invalid geography.",
-        };
-        modality = "archival image";
+        const entityLabels = structured.entities
+          .filter((entity) => claimIds.includes(entity.claimId))
+          .map((entity) => entity.normalizedLabel);
+        const diagramEligible = detectDiagramOpportunityV35({
+          claimIds,
+          clusterText: cluster.text,
+          claims: structured.claims,
+        }).eligible;
+        const diagramCompiled = diagramEligible
+          ? compileDiagram({
+              beatNumber,
+              text: cluster.text,
+              claimIds,
+              entityLabels,
+              claims: structured.claims,
+            })
+          : null;
+        if (diagramCompiled) {
+          if (!diagramMasters.some((item) => item.id === diagramCompiled.master.id))
+            diagramMasters.push(diagramCompiled.master);
+          diagramStates.push(diagramCompiled.state);
+          diagramMasterId = diagramCompiled.master.id;
+          diagramStateId = diagramCompiled.state.id;
+          diagramState = diagramCompiled.state;
+          modality = "diagram";
+        } else {
+          fallback = {
+            rejectedModality: diagramEligible ? "diagram" : "map",
+            reasonForRejection: diagramEligible
+              ? "Diagram lacked narration-bound nodes/edges."
+              : "Map proposal failed place, actor, route, or coordinate validation.",
+            selectedFallback: "archival image",
+            semanticJustification: diagramEligible
+              ? "Map compile failed and diagram fallback could not produce a valid graph."
+              : "Prefer a safer non-map modality over dangling or invalid geography.",
+          };
+          modality = "archival image";
+        }
       }
     }
 
@@ -1451,9 +1769,11 @@ export function buildHistoryVisualPlanV35(input: {
         text: cluster.text,
         claimIds,
         entityLabels,
+        claims: structured.claims,
       });
       if (compiled) {
-        diagramMasters.push(compiled.master);
+        if (!diagramMasters.some((item) => item.id === compiled.master.id))
+          diagramMasters.push(compiled.master);
         diagramStates.push(compiled.state);
         diagramMasterId = compiled.master.id;
         diagramStateId = compiled.state.id;
@@ -1645,6 +1965,7 @@ export function buildHistoryVisualPlanV35(input: {
             text: cluster.text,
             claimIds,
             entityLabels,
+            claims: structured.claims,
           });
           if (compiled) {
             diagramMasters.push(compiled.master);
@@ -1712,6 +2033,25 @@ export function buildHistoryVisualPlanV35(input: {
       mapCompiled: Boolean(mapState),
       diagramCompiled: Boolean(diagramState),
       ...(fallback?.reasonForRejection ? { mapRejectionReason: fallback.reasonForRejection } : {}),
+      ...(diagramState
+        ? {
+            diagramSelectionReason:
+              diagramReservations.get(index) ?? "compiled-diagram-state-available",
+          }
+        : diagramReservations.has(index)
+          ? { diagramRejectionReason: "compile-missing-nodes" }
+          : detectDiagramOpportunityV35({
+                claimIds,
+                clusterText: cluster.text,
+                claims: structured.claims,
+              }).eligible
+            ? {
+                diagramRejectionReason:
+                  modality === "map"
+                    ? "budget-exhausted-or-map-priority"
+                    : fallback?.reasonForRejection ?? "not-selected-score-below-threshold",
+              }
+            : {}),
     });
     visualOpportunities.push(...opportunityPack.opportunities);
     opportunitySummaries.push(opportunityPack.summary);
@@ -1933,6 +2273,7 @@ export function buildHistoryVisualPlanV35(input: {
   const treatmentRefined = refineVisualTreatmentPlanV35({
     shots: refinedPlan.shots,
     beats: refinedPlan.beats,
+    diagramStates,
   });
   shots.splice(0, shots.length, ...treatmentRefined.shots);
   beats.splice(0, beats.length, ...treatmentRefined.beats);
@@ -1942,6 +2283,7 @@ export function buildHistoryVisualPlanV35(input: {
     concepts: visualConcepts,
     shots,
     beats,
+    diagramStates,
     ...(input.qualityThresholds ? { thresholds: input.qualityThresholds } : {}),
     ...(input.qualityOverride ? { explicitOverride: true } : {}),
   });
@@ -2062,7 +2404,7 @@ export function buildHistoryVisualPlanV35(input: {
           [doc.id]
         )
       );
-    if (doc.kind === "quotation-card" && doc.displayText && !/[“"]/.test(doc.displayText))
+    if (doc.kind === "quotation-card" && doc.displayText && !doc.quotationText)
       diagnostics.push(
         diagnostic(
           "QUOTATION_NOT_VERBATIM",
@@ -2082,6 +2424,32 @@ export function buildHistoryVisualPlanV35(input: {
           [ratio.id]
         )
       );
+    if (ratio.ratio !== "9:16") continue;
+    for (const code of ratio.conflictDiagnostics) {
+      const severity =
+        code.startsWith("PORTRAIT_PROTECTED_GEOGRAPHY_REMOVED") ||
+        ratio.textDensityResult === "block"
+          ? ("error" as const)
+          : ("warning" as const);
+      diagnostics.push(
+        diagnostic(
+          code,
+          severity === "error" ? "content" : "editorial",
+          `Portrait ratio plan reported ${code}.`,
+          [ratio.id, ratio.beatId],
+          severity
+        )
+      );
+    }
+    if (ratio.textDensityResult === "block" && !ratio.conflictDiagnostics.length)
+      diagnostics.push(
+        diagnostic(
+          "PORTRAIT_TEXT_DENSITY_BLOCK",
+          "content",
+          "Portrait text density blocks production rendering.",
+          [ratio.id, ratio.beatId]
+        )
+      );
   }
   const geoValidation = validateGeographicRolesV34({
     entities: structured.entities,
@@ -2090,6 +2458,23 @@ export function buildHistoryVisualPlanV35(input: {
   for (const error of geoValidation.errors)
     diagnostics.push(
       diagnostic("GEOGRAPHIC_ROLE_MISMATCH", "content", error, [], "error")
+    );
+  for (const coverage of assessVisualSemanticCoverageV35({
+    entities: structured.entities,
+    rejectedEntities: structured.rejectedEntities,
+    beats,
+    mapStates,
+    diagramStates,
+    visualOpportunitySummary: summarizeVisualOpportunityTotalsV35(opportunitySummaries),
+  }))
+    diagnostics.push(
+      diagnostic(
+        coverage.code,
+        "editorial",
+        coverage.message,
+        coverage.affectedIds,
+        coverage.code === "ENTITY_RESOLUTION_COVERAGE_LOW" ? "error" : "warning"
+      )
     );
   for (const quantity of structured.quantitativeQualifiers) {
     if (
@@ -2108,7 +2493,7 @@ export function buildHistoryVisualPlanV35(input: {
   for (const state of mapStates) {
     if (state.semanticStatus === "blocked")
       diagnostics.push(
-        diagnostic("MAP_SEMANTIC_BLOCKED", "editorial", "Map state failed semantic validation.", [
+        diagnostic("MAP_SEMANTIC_BLOCKED", "content", "Map state failed semantic validation.", [
           state.id,
           ...state.blockerCodes,
         ])
@@ -2201,22 +2586,80 @@ export function buildHistoryVisualPlanV35(input: {
         ])
       );
   }
-  for (const state of timelineStates)
+  for (const state of timelineStates) {
+    if (state.renderRole !== "beat-referenced") continue;
     if (state.orderingStatus === "invalid")
       diagnostics.push(
         diagnostic("TIMELINE_ORDER_INVALID", "editorial", "Timeline ordering is invalid.", [
           state.id,
         ])
       );
-  if (!qualityMetrics.passes)
+    if (state.orderingStatus === "ambiguous")
+      diagnostics.push(
+        diagnostic(
+          "TIMELINE_ORDER_AMBIGUOUS",
+          "editorial",
+          "Timeline ordering is ambiguous and cannot render as an authoritative chronology.",
+          [state.id],
+          "error"
+        )
+      );
+  }
+  if (
+    qualityMetrics.viewerConceptRepetitionRate >
+    qualityMetrics.thresholds.maxViewerConceptDuplicateRate
+  ) {
+    const repetitionBeatIds = [
+      ...new Set(
+        qualityMetrics.duplicateClusters
+          .filter((cluster) => cluster.kind === "viewer-concept")
+          .flatMap((cluster) => cluster.beatIds)
+      ),
+    ];
     diagnostics.push(
       diagnostic(
         "EDITORIAL_REPETITION_THRESHOLD",
         "editorial",
-        "Purpose or shot repetition exceeds the V3.4 threshold.",
-        qualityMetrics.duplicateClusters.flatMap((cluster) => cluster.beatIds)
+        `Viewer-perceived concept repetition exceeds the V3.5 threshold (viewerConceptRepetitionRate=${qualityMetrics.viewerConceptRepetitionRate.toFixed(3)}; max=${qualityMetrics.thresholds.maxViewerConceptDuplicateRate}). Clusters: ${
+          qualityMetrics.duplicateClusters
+            .filter((cluster) => cluster.kind === "viewer-concept" && cluster.beatIds.length > 0)
+            .map(
+              (cluster) =>
+                `${cluster.kind}:${cluster.signature} (${cluster.beatIds.length} beats)`
+            )
+            .join("; ") || "none enumerated"
+        }.`,
+        repetitionBeatIds
       )
     );
+  }
+  if (
+    qualityMetrics.templateRepetitionRate >
+    qualityMetrics.repetitionPolicy.template.advisoryThreshold
+  ) {
+    const templateBeatIds = [
+      ...new Set(
+        qualityMetrics.duplicateClusters
+          .filter((cluster) => cluster.kind === "template-shot" || cluster.kind === "template-beat")
+          .flatMap((cluster) => cluster.beatIds)
+      ),
+    ];
+    diagnostics.push(
+      diagnostic(
+        "EDITORIAL_TEMPLATE_REPETITION_WARNING",
+        "editorial",
+        `Template-family production grammar reuse is elevated (templateRepetitionRate=${qualityMetrics.templateRepetitionRate.toFixed(3)}; advisory=${qualityMetrics.repetitionPolicy.template.advisoryThreshold}). Top families: ${
+          qualityMetrics.duplicateClusters
+            .filter((cluster) => cluster.kind.startsWith("template"))
+            .slice(0, 3)
+            .map((cluster) => `${cluster.signature} (${cluster.occurrenceCount})`)
+            .join("; ") || "none enumerated"
+        }.`,
+        templateBeatIds,
+        "warning"
+      )
+    );
+  }
   if (structured.claims.every((claim) => claim.materiality === "material"))
     diagnostics.push(
       diagnostic(
@@ -2313,14 +2756,17 @@ export function buildHistoryVisualPlanV35(input: {
     independentlyVerifiedCount: structured.claims.filter((claim) => claim.independentlyVerified)
       .length,
   });
-  if (!trustApproval.productionHistoricalApprovalEligible)
+  if (
+    !trustApproval.productionHistoricalApprovalEligible &&
+    authorityMode !== "trusted-script"
+  )
     diagnostics.push(
       diagnostic(
-        "HISTORICAL_APPROVAL_UNATTESTED",
-        "production",
-        "Production historical approval requires explicit human attestation or independent verification.",
+        "FACTUAL_VALIDATION_REQUIRED",
+        "content",
+        "Configured automated factual/content validation has not passed for this authority mode.",
         [],
-        "warning"
+        "error"
       )
     );
 

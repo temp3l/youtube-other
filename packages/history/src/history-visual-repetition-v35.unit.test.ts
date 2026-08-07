@@ -9,6 +9,12 @@ import {
   semanticSignatureKeyV35,
   buildEditorialShotSequenceV35,
   refineShotPlanForRepetitionV35,
+  canonicalVisualRepetitionSignatureKeyV35,
+  canonicalViewerConceptSignatureKeyV35,
+  canonicalTemplateRepetitionSignatureKeyV35,
+  measureTemplateRepetitionV35,
+  measureViewerConceptDuplicationV35,
+  normalizePrimarySubjectKeyV35,
 } from "./history-visual-repetition-v35.js";
 import type { HistoryBeatV35 } from "./history-v35-contracts.js";
 import type { HistoryShotV34 } from "./history-v34-contracts.js";
@@ -280,5 +286,119 @@ describe("History V3.5 visual repetition", () => {
       priorSignature: null,
     });
     expect(sequence.shots.every((shot) => !/stage \d+\/\d+/iu.test(shot.purpose))).toBe(true);
+  });
+
+  it("H: different subjects with the same template are not viewer duplicates", () => {
+    const russia = buildVisualSemanticSignatureV35({
+      modality: "archival image",
+      subject: "Russia",
+      claimIds: ["claim-14"],
+      composition: "Contrasting perspectives on Russia in Russia",
+      progressionRole: "contrast",
+      action: "comparison reveal",
+      modalityStateReference: "asset-14",
+    });
+    const moscow = buildVisualSemanticSignatureV35({
+      modality: "archival image",
+      subject: "Moscow",
+      claimIds: ["claim-21"],
+      composition: "Contrasting perspectives on Moscow in Moscow",
+      progressionRole: "contrast",
+      action: "comparison reveal",
+      modalityStateReference: "asset-21",
+    });
+    expect(canonicalTemplateRepetitionSignatureKeyV35(russia)).toBe(
+      canonicalTemplateRepetitionSignatureKeyV35(moscow)
+    );
+    expect(
+      canonicalViewerConceptSignatureKeyV35({
+        signature: russia,
+        subject: "Russia",
+        setting: "Russia",
+      })
+    ).not.toBe(
+      canonicalViewerConceptSignatureKeyV35({
+        signature: moscow,
+        subject: "Moscow",
+        setting: "Moscow",
+      })
+    );
+  });
+
+  it("I: same subject, setting, and composition counts as viewer duplicate", () => {
+    const left = buildVisualSemanticSignatureV35({
+      modality: "archival image",
+      subject: "Napoleon Bonaparte",
+      claimIds: ["claim-a"],
+      composition: "Establishing context for Napoleon in Moscow",
+      progressionRole: "establish",
+      action: "environmental establishing transition",
+      modalityStateReference: "asset-1",
+    });
+    const right = buildVisualSemanticSignatureV35({
+      modality: "archival image",
+      subject: "Napoleon Bonaparte",
+      claimIds: ["claim-b"],
+      composition: "Establishing context for Napoleon in Moscow",
+      progressionRole: "establish",
+      action: "environmental establishing transition",
+      modalityStateReference: "asset-2",
+      informationLayer: left.informationLayer,
+    });
+    expect(
+      canonicalViewerConceptSignatureKeyV35({
+        signature: left,
+        subject: "Napoleon Bonaparte",
+        setting: "Moscow",
+      })
+    ).toBe(
+      canonicalViewerConceptSignatureKeyV35({
+        signature: right,
+        subject: "Napoleon Bonaparte",
+        setting: "Moscow",
+      })
+    );
+  });
+
+  it("J: template repetition does not automatically mirror viewer concept repetition", () => {
+    const signatures = [
+      buildVisualSemanticSignatureV35({
+        modality: "archival image",
+        subject: "Napoleon",
+        claimIds: ["claim-a"],
+        composition: "Establishing context for Napoleon",
+        progressionRole: "establish",
+        action: "environmental establishing transition",
+        modalityStateReference: "asset-1",
+      }),
+      buildVisualSemanticSignatureV35({
+        modality: "archival image",
+        subject: "Caesar",
+        claimIds: ["claim-b"],
+        composition: "Establishing context for Caesar",
+        progressionRole: "establish",
+        action: "environmental establishing transition",
+        modalityStateReference: "asset-2",
+      }),
+    ];
+    expect(measureTemplateRepetitionV35(signatures)).toBeGreaterThan(0);
+    expect(
+      measureViewerConceptDuplicationV35(
+        signatures.map((signature, index) => ({
+          signature,
+          subject: index === 0 ? "Napoleon" : "Caesar",
+          setting: null,
+        }))
+      )
+    ).toBe(0);
+  });
+
+  it("K: subject identity is retained in normalized subject keys", () => {
+    expect(normalizePrimarySubjectKeyV35({ subject: "Napoleon Bonaparte" }).key).toContain(
+      "napoleon"
+    );
+    expect(normalizePrimarySubjectKeyV35({ subject: "retreating soldiers" }).key).toContain(
+      "soldiers"
+    );
   });
 });

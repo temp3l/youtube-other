@@ -980,4 +980,146 @@ describe("History V3.5 map compiler invariants", () => {
     expect(route?.linkedClaimIds.length).toBeGreaterThan(0);
     expect(compiled?.state.compilerResolution?.geoFactIds.length).toBeGreaterThan(0);
   });
+
+  it("Napoleon Smolensk capture does not compile Smolensk to Russia movement route", () => {
+    const text =
+      "Napoleon captured Smolensk after heavy fighting in August, but the Russian army escaped again.";
+    const claim = makeClaim({
+      id: "claim-smolensk",
+      text,
+      entityMentionIds: ["entity-napoleon", "entity-smolensk", "entity-russia"],
+      geographicQualifierIds: ["geo-smolensk", "geo-russia"],
+    });
+    const napoleon = makeEntity({
+      id: "entity-napoleon",
+      claimId: "claim-smolensk",
+      label: "Napoleon Bonaparte",
+      entityType: "person",
+      semanticRole: "leader",
+    });
+    const smolensk = makeEntity({
+      id: "entity-smolensk",
+      claimId: "claim-smolensk",
+      label: "Smolensk",
+      entityType: "place",
+      semanticRole: "location",
+    });
+    const russia = makeEntity({
+      id: "entity-russia",
+      claimId: "claim-smolensk",
+      label: "Russia",
+      entityType: "state",
+      semanticRole: "location",
+    });
+    const geo = [
+      makeGeo({
+        id: "geo-smolensk",
+        claimId: "claim-smolensk",
+        entityMentionId: smolensk.id,
+        role: "location",
+      }),
+      makeGeo({
+        id: "geo-russia",
+        claimId: "claim-smolensk",
+        entityMentionId: russia.id,
+        role: "location",
+      }),
+    ];
+    const geoFacts = extractGeoFactsV35({
+      scopeClaimIds: ["claim-smolensk"],
+      claims: [claim],
+      entities: [napoleon, smolensk, russia],
+      geographicQualifiers: geo,
+      temporalQualifiers: [],
+    });
+    expect(geoFacts.some((fact) => fact.type === "movement")).toBe(false);
+    const compiled = compileWithProposal({
+      scopeClaimIds: ["claim-smolensk"],
+      proposal: {
+        claimIds: ["claim-smolensk"],
+        mapPurpose: "journey",
+        movingActorEntityMentionIds: [napoleon.id],
+        originPlaceMentionIds: [smolensk.id],
+        destinationPlaceMentionIds: [russia.id],
+        waypointPlaceMentionIds: [],
+        temporalQualifierIds: [],
+        routeType: "overland",
+        uncertainty: [],
+      },
+      claims: [claim],
+      entities: [napoleon, smolensk, russia],
+      geographicQualifiers: geo,
+    });
+    expect(
+      compiled?.state.routes.some(
+        (route) => route.origin.label === "Smolensk" && route.destination.label === "Russia"
+      )
+    ).toBe(false);
+  });
+
+  it("Napoleon Niemen crossing does not compile river to Russia centroid movement route", () => {
+    const text =
+      "On June 24, 1812, soldiers began crossing the Niemen River into the Russian Empire.";
+    const claim = makeClaim({
+      id: "claim-niemen",
+      text,
+      entityMentionIds: ["entity-niemen", "entity-russia"],
+      geographicQualifierIds: ["geo-niemen", "geo-russia"],
+    });
+    const niemen = makeEntity({
+      id: "entity-niemen",
+      claimId: "claim-niemen",
+      label: "Niemen River",
+      entityType: "water-body",
+      semanticRole: "location",
+    });
+    const russia = makeEntity({
+      id: "entity-russia",
+      claimId: "claim-niemen",
+      label: "Russia",
+      entityType: "state",
+      semanticRole: "location",
+    });
+    const geo = [
+      makeGeo({
+        id: "geo-niemen",
+        claimId: "claim-niemen",
+        entityMentionId: niemen.id,
+        role: "location",
+      }),
+      makeGeo({
+        id: "geo-russia",
+        claimId: "claim-niemen",
+        entityMentionId: russia.id,
+        role: "location",
+      }),
+    ];
+    const geoFacts = extractGeoFactsV35({
+      scopeClaimIds: ["claim-niemen"],
+      claims: [claim],
+      entities: [niemen, russia],
+      geographicQualifiers: geo,
+      temporalQualifiers: [],
+    });
+    expect(geoFacts.some((fact) => fact.type === "movement")).toBe(false);
+    expect(geoFacts.some((fact) => fact.type === "sequence")).toBe(true);
+    const compiled = compileWithProposal({
+      scopeClaimIds: ["claim-niemen"],
+      proposal: {
+        claimIds: ["claim-niemen"],
+        mapPurpose: "area",
+        movingActorEntityMentionIds: [],
+        originPlaceMentionIds: [niemen.id],
+        destinationPlaceMentionIds: [niemen.id],
+        waypointPlaceMentionIds: [russia.id],
+        temporalQualifierIds: [],
+        routeType: "none",
+        uncertainty: [],
+      },
+      claims: [claim],
+      entities: [niemen, russia],
+      geographicQualifiers: geo,
+    });
+    expect(compiled?.state.routes.length ?? 0).toBe(0);
+  });
 });

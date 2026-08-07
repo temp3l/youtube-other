@@ -64,7 +64,7 @@ async function runFocusedHistoryV35Verification(): Promise<Record<string, unknow
         cwd: REPO_ROOT,
         maxBuffer: 1024 * 1024,
       });
-      results.push({ command, exitCode: 0, ok: true, status: "passed", diagnostic: stderr?.slice(-500) });
+      results.push({ command, exitCode: 0, ok: true, status: "passed", diagnostic: sanitizePackDiagnostic(stderr?.slice(-500) ?? "") });
     } catch (error) {
       const err = error as NodeJS.ErrnoException & {
         code?: number | string;
@@ -72,13 +72,15 @@ async function runFocusedHistoryV35Verification(): Promise<Record<string, unknow
         stdout?: string;
       };
       const exitCode = Number(err.code ?? 1);
-      const diagnostic = `${err.stdout ?? ""}\n${err.stderr ?? ""}`.trim().slice(-1500);
+      const diagnostic = sanitizePackDiagnostic(
+        `${err.stdout ?? ""}\n${err.stderr ?? ""}`.trim().slice(-1500) || err.message
+      );
       results.push({
         command,
         exitCode,
         ok: false,
         status: Number.isFinite(exitCode) ? "failed" : "execution-failure",
-        diagnostic: diagnostic || err.message,
+        diagnostic: diagnostic || sanitizePackDiagnostic(err.message),
       });
     }
   }
@@ -90,6 +92,12 @@ async function runFocusedHistoryV35Verification(): Promise<Record<string, unknow
 }
 const unsafeText =
   /(?:\b(?:api[_-]?key|authorization|password|secret|token)\b|(?:^|[/])(?:home|users)(?:[/]|$))/iu;
+
+function sanitizePackDiagnostic(value: string): string {
+  return value
+    .replace(/(?:^|\s)\/(?:home|Users)(?:\/[\w.-]+)+/giu, " <path>")
+    .replace(/(?:^|\s)\/[\w.-]+(?:\/[\w.-]+){2,}/gu, " <path>");
+}
 
 const stablePretty = (value: unknown): string => {
   const canonical = stableJsonV33(value);

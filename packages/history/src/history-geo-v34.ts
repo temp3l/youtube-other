@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import {
-  isRejectedEntityTextV34,
+  isCredibleGeographicCandidateV35,
   lookupCanonicalEntitySeedV34,
 } from "./history-claims-v34.js";
 import type {
@@ -193,7 +193,7 @@ const PLACE_SEEDS: readonly PlaceSeed[] = [
     placeType: "water-body",
     coordinates: { latitude: 35.0, longitude: 18.0 },
     geometrySource: "curated",
-    aliases: [],
+    aliases: ["Eastern Mediterranean"],
   },
   {
     label: "Black Sea",
@@ -206,6 +206,139 @@ const PLACE_SEEDS: readonly PlaceSeed[] = [
     label: "Messina",
     placeType: "city",
     coordinates: { latitude: 38.19, longitude: 15.55 },
+    geometrySource: "curated",
+    aliases: [],
+  },
+  {
+    label: "Egypt",
+    placeType: "region",
+    coordinates: { latitude: 26.8, longitude: 30.8 },
+    geometrySource: "curated",
+    aliases: [],
+  },
+  {
+    label: "Anatolia",
+    placeType: "region",
+    coordinates: { latitude: 39.0, longitude: 35.0 },
+    geometrySource: "curated",
+    aliases: [],
+  },
+  {
+    label: "Aegean",
+    placeType: "water-body",
+    coordinates: { latitude: 38.0, longitude: 25.0 },
+    geometrySource: "curated",
+    aliases: ["the Aegean"],
+  },
+  {
+    label: "Levant",
+    placeType: "region",
+    coordinates: { latitude: 33.5, longitude: 36.0 },
+    geometrySource: "curated",
+    aliases: ["the Levant"],
+  },
+  {
+    label: "Cyprus",
+    placeType: "island",
+    coordinates: { latitude: 35.0, longitude: 33.0 },
+    geometrySource: "curated",
+    aliases: [],
+  },
+  {
+    label: "Hattusa",
+    placeType: "city",
+    coordinates: { latitude: 40.02, longitude: 34.62 },
+    geometrySource: "curated",
+    aliases: [],
+  },
+  {
+    label: "Hittite Empire",
+    placeType: "region",
+    coordinates: { latitude: 39.5, longitude: 35.5 },
+    geometrySource: "curated",
+    aliases: ["Hittite"],
+  },
+  {
+    label: "Mycenae",
+    placeType: "city",
+    coordinates: { latitude: 37.73, longitude: 22.76 },
+    geometrySource: "curated",
+    aliases: [],
+  },
+  {
+    label: "Pylos",
+    placeType: "city",
+    coordinates: { latitude: 36.96, longitude: 21.69 },
+    geometrySource: "curated",
+    aliases: [],
+  },
+  {
+    label: "Medinet Habu",
+    placeType: "city",
+    coordinates: { latitude: 25.72, longitude: 32.61 },
+    geometrySource: "curated",
+    aliases: [],
+  },
+  {
+    label: "Eastern Europe",
+    placeType: "region",
+    coordinates: { latitude: 52.0, longitude: 25.0 },
+    geometrySource: "curated",
+    aliases: [],
+  },
+  {
+    label: "North America",
+    placeType: "region",
+    coordinates: { latitude: 45.0, longitude: -100.0 },
+    geometrySource: "curated",
+    aliases: [],
+  },
+  {
+    label: "Austria",
+    placeType: "country",
+    coordinates: { latitude: 47.5, longitude: 14.5 },
+    geometrySource: "curated",
+    aliases: [],
+  },
+  {
+    label: "France",
+    placeType: "country",
+    coordinates: { latitude: 46.0, longitude: 2.0 },
+    geometrySource: "curated",
+    aliases: [],
+  },
+  {
+    label: "Carthage",
+    placeType: "city",
+    coordinates: { latitude: 36.85, longitude: 10.32 },
+    geometrySource: "curated",
+    aliases: [],
+  },
+  {
+    label: "Gaul",
+    placeType: "region",
+    coordinates: { latitude: 46.0, longitude: 2.5 },
+    geometrySource: "curated",
+    aliases: [],
+  },
+  {
+    label: "Danube",
+    placeType: "river",
+    coordinates: { latitude: 48.0, longitude: 20.0 },
+    geometrySource: "curated",
+    aliases: [],
+  },
+  {
+    label: "Friedland",
+    placeType: "city",
+    coordinates: { latitude: 54.45, longitude: 21.02 },
+    geometrySource: "curated",
+    aliases: [],
+  },
+  {
+    label: "Maloyaroslavets",
+    placeType: "city",
+    coordinates: { latitude: 55.01, longitude: 36.46 },
     geometrySource: "curated",
     aliases: [],
   },
@@ -505,13 +638,13 @@ export function supplementMapIntentsV34(input: {
     if (niemen && russia) {
       pushIntent({
         claimIds: [niemenCrossingClaim.id],
-        mapPurpose: "orientation",
+        mapPurpose: "area",
         movingActorEntityMentionIds: grandeArmee ? [grandeArmee.id] : [],
         originPlaceMentionIds: [niemen.id],
-        destinationPlaceMentionIds: [russia.id],
-        waypointPlaceMentionIds: [],
+        destinationPlaceMentionIds: [niemen.id],
+        waypointPlaceMentionIds: [russia.id],
         temporalQualifierIds: niemenCrossingClaim.temporalQualifierIds,
-        routeType: "conceptual",
+        routeType: "none",
         uncertainty: niemenCrossingClaim.uncertaintyMarkers,
       });
     }
@@ -603,6 +736,70 @@ export function supplementMapIntentsV34(input: {
         temporalQualifierIds: romeOrientationClaim.temporalQualifierIds,
         routeType: "conceptual",
         uncertainty: romeOrientationClaim.uncertaintyMarkers,
+      });
+    }
+  }
+
+  const bronzeTradeClaim = findClaimByPattern(
+    input.claims,
+    /\btrade routes?\b.*\b(?:Mediterranean|Aegean|Anatolia|Cyprus|Egypt)\b/iu
+  );
+  if (bronzeTradeClaim) {
+    const mediterranean =
+      findEntityMention(input.entities, "Mediterranean", bronzeTradeClaim.id) ??
+      findEntityMention(input.entities, "Mediterranean");
+    const aegean =
+      findEntityMention(input.entities, "Aegean", bronzeTradeClaim.id) ??
+      findEntityMention(input.entities, "Aegean");
+    const anatolia =
+      findEntityMention(input.entities, "Anatolia", bronzeTradeClaim.id) ??
+      findEntityMention(input.entities, "Anatolia");
+    const cyprus =
+      findEntityMention(input.entities, "Cyprus", bronzeTradeClaim.id) ??
+      findEntityMention(input.entities, "Cyprus");
+    const egypt =
+      findEntityMention(input.entities, "Egypt", bronzeTradeClaim.id) ??
+      findEntityMention(input.entities, "Egypt");
+    const anchors = [mediterranean, aegean, anatolia, cyprus, egypt].filter(
+      (item): item is NonNullable<typeof item> => Boolean(item)
+    );
+    if (anchors.length >= 2) {
+      pushIntent({
+        claimIds: [bronzeTradeClaim.id],
+        mapPurpose: "orientation",
+        movingActorEntityMentionIds: [],
+        originPlaceMentionIds: [anchors[0]!.id],
+        destinationPlaceMentionIds: [anchors[1]!.id],
+        waypointPlaceMentionIds: anchors.slice(2).map((item) => item.id),
+        temporalQualifierIds: bronzeTradeClaim.temporalQualifierIds,
+        routeType: "conceptual",
+        uncertainty: bronzeTradeClaim.uncertaintyMarkers,
+      });
+    }
+  }
+
+  const hittiteCollapseClaim = findClaimByPattern(
+    input.claims,
+    /\bHattusa\b|\bHittite\b.*\bcollapse/iu
+  );
+  if (hittiteCollapseClaim) {
+    const hattusa =
+      findEntityMention(input.entities, "Hattusa", hittiteCollapseClaim.id) ??
+      findEntityMention(input.entities, "Hattusa");
+    const anatolia =
+      findEntityMention(input.entities, "Anatolia", hittiteCollapseClaim.id) ??
+      findEntityMention(input.entities, "Anatolia");
+    if (hattusa && anatolia) {
+      pushIntent({
+        claimIds: [hittiteCollapseClaim.id],
+        mapPurpose: "area",
+        movingActorEntityMentionIds: [],
+        originPlaceMentionIds: [hattusa.id],
+        destinationPlaceMentionIds: [anatolia.id],
+        waypointPlaceMentionIds: [],
+        temporalQualifierIds: hittiteCollapseClaim.temporalQualifierIds,
+        routeType: "none",
+        uncertainty: hittiteCollapseClaim.uncertaintyMarkers,
       });
     }
   }

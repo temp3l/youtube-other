@@ -1,4 +1,4 @@
-import type { HistoryShotV34 } from "./history-v34-contracts.js";
+import type { HistoryShotV34, HistoryDiagramStateV34 } from "./history-v34-contracts.js";
 import type { HistoryBeatV35, HistoryVisualModalityV35 } from "./history-v35-contracts.js";
 import { evaluateShotEffectiveChangeV35 } from "./history-effective-change-v35.js";
 import {
@@ -158,9 +158,31 @@ function splitLongStaticBeatShot(
   return [first, second];
 }
 
+function evaluateShotChange(input: {
+  readonly shot: HistoryShotV34;
+  readonly priorShot: HistoryShotV34 | null;
+  readonly modality: HistoryVisualModalityV35;
+  readonly priorModality: HistoryVisualModalityV35 | null;
+  readonly diagramStateById: ReadonlyMap<string, HistoryDiagramStateV34>;
+}) {
+  return evaluateShotEffectiveChangeV35({
+    shot: input.shot,
+    priorShot: input.priorShot,
+    modality: input.modality,
+    priorModality: input.priorModality,
+    diagramState: input.shot.modalityStateReference
+      ? input.diagramStateById.get(input.shot.modalityStateReference) ?? null
+      : null,
+    priorDiagramState: input.priorShot?.modalityStateReference
+      ? input.diagramStateById.get(input.priorShot.modalityStateReference) ?? null
+      : null,
+  });
+}
+
 function breakAccumulatedStaticRuns(
   shots: readonly HistoryShotV34[],
-  beatModality: ReadonlyMap<string, HistoryVisualModalityV35>
+  beatModality: ReadonlyMap<string, HistoryVisualModalityV35>,
+  diagramStateById: ReadonlyMap<string, HistoryDiagramStateV34>
 ): HistoryShotV34[] {
   const broken: HistoryShotV34[] = [];
   let staticRunMs = 0;
@@ -171,21 +193,23 @@ function breakAccumulatedStaticRuns(
     const prior = broken[broken.length - 1] ?? null;
     let next = shot;
     if (STATIC_MODALITIES.has(modality) && prior) {
-      const evaluated = evaluateShotEffectiveChangeV35({
+      const evaluated = evaluateShotChange({
         shot: next,
         priorShot: prior,
         modality,
         priorModality: beatModality.get(prior.beatId) ?? "archival image",
+        diagramStateById,
       });
       if (staticRunMs >= LONG_STATIC_SOFT_WARNING_MS && !evaluated.resetsVisualClock) {
         next = forceStaticRunBreak(next, prior, breakIndex);
         breakIndex += 1;
       }
-      const finalEval = evaluateShotEffectiveChangeV35({
+      const finalEval = evaluateShotChange({
         shot: next,
         priorShot: prior,
         modality,
         priorModality: beatModality.get(prior.beatId) ?? "archival image",
+        diagramStateById,
       });
       staticRunMs = finalEval.resetsVisualClock ? next.durationMs : staticRunMs + next.durationMs;
     } else if (STATIC_MODALITIES.has(modality)) {
@@ -244,11 +268,15 @@ function balanceCameraDistribution(
 export function refineVisualTreatmentPlanV35(input: {
   readonly shots: readonly HistoryShotV34[];
   readonly beats: readonly HistoryBeatV35[];
+  readonly diagramStates?: readonly HistoryDiagramStateV34[];
 }): {
   readonly shots: HistoryShotV34[];
   readonly beats: HistoryBeatV35[];
 } {
   const beatModality = new Map(input.beats.map((beat) => [beat.id, beat.modality] as const));
+  const diagramStateById = new Map(
+    (input.diagramStates ?? []).map((state) => [state.id, state] as const)
+  );
   const refined: HistoryShotV34[] = [];
   const treatmentWindow: VisualTreatmentSignature[] = [];
 
@@ -257,11 +285,12 @@ export function refineVisualTreatmentPlanV35(input: {
     const prior = refined[refined.length - 1] ?? null;
     const evaluated =
       prior &&
-      evaluateShotEffectiveChangeV35({
+      evaluateShotChange({
         shot,
         priorShot: prior,
         modality,
         priorModality: beatModality.get(prior.beatId) ?? "archival image",
+        diagramStateById,
       });
     const ineffectivePair =
       Boolean(evaluated) && prior?.beatId === shot.beatId && !evaluated!.resetsVisualClock;
@@ -316,7 +345,7 @@ export function refineVisualTreatmentPlanV35(input: {
     }
   }
 
-  const staticBroken = breakAccumulatedStaticRuns(refined, beatModality);
+  const staticBroken = breakAccumulatedStaticRuns(refined, beatModality, diagramStateById);
   const balancedShots = balanceCameraDistribution(staticBroken, beatModality);
   const shotsByBeat = new Map<string, string[]>();
   for (const shot of balancedShots) {

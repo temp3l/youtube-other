@@ -124,11 +124,97 @@ export function detectDiagramOpportunityV35(input: {
       reason: "supported-causal-relationship",
       claimIds: input.claimIds,
     };
+  if (
+    /\b(?:trade routes?|interdependence|interconnected|linked|network|collapse|political boundaries)\b/iu.test(
+      input.clusterText
+    ) &&
+    (/\b(?:Mediterranean|Aegean|Anatolia|Cyprus|Egypt|Hittite|Mycenae|Pylos|Levant)\b/iu.test(
+      input.clusterText
+    ) ||
+      materialClaims.some((claim) => claim.claimKind === "place"))
+  )
+    return {
+      eligible: true,
+      reason: "supported-trade-network-structure",
+      claimIds: input.claimIds,
+    };
   return {
     eligible: false,
     reason: "no-supported-structured-relationship",
     claimIds: input.claimIds,
   };
+}
+
+export function scoreDiagramOpportunityV35(input: {
+  readonly claimIds: readonly string[];
+  readonly clusterText: string;
+  readonly claims: readonly HistoryClaimV34[];
+  readonly entityLabels?: readonly string[];
+}): {
+  readonly score: number;
+  readonly eligible: boolean;
+  readonly reason: string;
+  readonly claimIds: readonly string[];
+} {
+  const detected = detectDiagramOpportunityV35(input);
+  if (!detected.eligible)
+    return { score: 0, eligible: false, reason: detected.reason, claimIds: detected.claimIds };
+  let score = 2;
+  const materialClaims = input.claims.filter(
+    (claim) => input.claimIds.includes(claim.id) && claim.materiality === "material"
+  );
+  if (materialClaims.some((claim) => claim.claimKind === "causal")) score += 2;
+  if (
+    /\b(?:because|led to|resulted|compounded|therefore|collapse|interdependence|dependencies?)\b/iu.test(
+      input.clusterText
+    )
+  )
+    score += 2;
+  if (
+    /\b(?:trade routes?|bronze|copper|tin|palace|system|network|process|hierarchy|feedback)\b/iu.test(
+      input.clusterText
+    )
+  )
+    score += 1;
+  if ((input.entityLabels?.length ?? 0) >= 2) score += 1;
+  if (detected.reason === "supported-causal-or-system-structure") score += 1;
+  return {
+    score,
+    eligible: true,
+    reason: detected.reason,
+    claimIds: detected.claimIds,
+  };
+}
+
+export function reserveDiagramBeatIndexesV35(input: {
+  readonly clusters: readonly { readonly claimIds: readonly string[]; readonly text: string }[];
+  readonly claims: readonly HistoryClaimV34[];
+  readonly entities: readonly HistoryEntityMentionV34[];
+  readonly maxDiagrams?: number;
+}): ReadonlyMap<number, string> {
+  const maxDiagrams = input.maxDiagrams ?? 3;
+  const scored = input.clusters
+    .map((cluster, index) => {
+      const entityLabels = input.entities
+        .filter((entity) => cluster.claimIds.includes(entity.claimId))
+        .map((entity) => entity.normalizedLabel);
+      const scoredOpportunity = scoreDiagramOpportunityV35({
+        claimIds: cluster.claimIds,
+        clusterText: cluster.text,
+        claims: input.claims,
+        entityLabels,
+      });
+      return { index, ...scoredOpportunity };
+    })
+    .filter((item) => item.eligible && item.score >= 4)
+    .sort((left, right) => right.score - left.score);
+  const reserved = new Map<number, string>();
+  for (const item of scored) {
+    if (reserved.size >= maxDiagrams) break;
+    if ([...reserved.keys()].some((index) => Math.abs(index - item.index) <= 1)) continue;
+    reserved.set(item.index, item.reason);
+  }
+  return reserved;
 }
 
 export function buildVisualOpportunitiesV35(input: {
@@ -145,6 +231,7 @@ export function buildVisualOpportunitiesV35(input: {
   readonly diagramCompiled: boolean;
   readonly mapRejectionReason?: string;
   readonly diagramRejectionReason?: string;
+  readonly diagramSelectionReason?: string;
 }): {
   readonly opportunities: readonly HistoryVisualOpportunityV35[];
   readonly summary: HistoryVisualOpportunitySummaryV35;
@@ -191,11 +278,14 @@ export function buildVisualOpportunitiesV35(input: {
       eligibilityReason: diagram.reason,
       selected: input.selectedModality === "diagram" && input.diagramCompiled,
       ...(input.selectedModality === "diagram" && input.diagramCompiled
-        ? { selectionReason: "compiled-diagram-state-available" }
+        ? {
+            selectionReason:
+              input.diagramSelectionReason ?? "compiled-diagram-state-available",
+          }
         : diagram.eligible
           ? {
               rejectionReason:
-                input.diagramRejectionReason ?? "diagram-not-selected-or-compile-failed",
+                input.diagramRejectionReason ?? "not-selected-score-below-threshold",
             }
           : { rejectionReason: diagram.reason }),
     },

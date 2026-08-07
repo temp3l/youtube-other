@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { HistoryBeatV35 } from "./history-v35-contracts.js";
 import type { HistoryShotV34 } from "./history-v34-contracts.js";
 import {
+  computeDiagramRenderSignatureV35,
   evaluateShotEffectiveChangeV35,
   measureEffectiveVisualChangeV35,
 } from "./history-effective-change-v35.js";
@@ -172,7 +173,141 @@ describe("History V3.5 effective visual change", () => {
     expect(evaluated.changeKinds).toContain("diagram-state-change");
   });
 
-  it("H: asset replacement resets the static clock", () => {
+  it("G: provenance-only diagram state changes do not reset the visual clock", () => {
+    const diagramA = {
+      id: "diagram-state-0011",
+      masterId: "diagram-master-black-death-transmission",
+      diagramType: "evidence-set" as const,
+      exactQuestion: "What transmission pathways does the narration support?",
+      nodes: [
+        { id: "n1", label: "Black Sea trade contact", linkedClaimIds: ["claim-a"], entityMentionIds: [] },
+        { id: "n2", label: "port arrival at Messina", linkedClaimIds: ["claim-b"], entityMentionIds: [] },
+      ],
+      edges: [],
+      semanticStatus: "valid" as const,
+      blockerCodes: [],
+      fallbackDecision: null,
+    };
+    const diagramB = {
+      ...diagramA,
+      id: "diagram-state-0012",
+      nodes: diagramA.nodes.map((node) => ({ ...node, linkedClaimIds: ["claim-c"] })),
+    };
+    expect(computeDiagramRenderSignatureV35(diagramA)).toBe(
+      computeDiagramRenderSignatureV35(diagramB)
+    );
+    const prior = baseShot({
+      beatId: "beat-diagram-1",
+      modalityStateReference: diagramA.id,
+    });
+    const next = baseShot({
+      id: "shot-diagram-02",
+      beatId: "beat-diagram-2",
+      modalityStateReference: diagramB.id,
+      action: "diagram layer introduction for causal mechanism",
+    });
+    const evaluated = evaluateShotEffectiveChangeV35({
+      shot: next,
+      priorShot: prior,
+      modality: "diagram",
+      priorModality: "diagram",
+      diagramState: diagramB,
+      priorDiagramState: diagramA,
+    });
+    expect(evaluated.resetsVisualClock).toBe(false);
+    expect(evaluated.changeKinds).not.toContain("diagram-state-change");
+  });
+
+  it("H: same visible nodes with different internal edge IDs share render signature", () => {
+    const diagramA = {
+      id: "diagram-state-0033",
+      masterId: "diagram-master-black-death-consequences",
+      diagramType: "process" as const,
+      exactQuestion: "What social and economic consequences does the narration support?",
+      nodes: [
+        { id: "n1", label: "population loss", linkedClaimIds: ["claim-a"], entityMentionIds: [] },
+        { id: "n2", label: "labour scarcity", linkedClaimIds: ["claim-a"], entityMentionIds: [] },
+      ],
+      edges: [
+        {
+          id: "edge-0033-1",
+          fromNodeId: "n1",
+          toNodeId: "n2",
+          relationship: "sequence" as const,
+          linkedClaimIds: ["claim-a"],
+        },
+      ],
+      semanticStatus: "valid" as const,
+      blockerCodes: [],
+      fallbackDecision: null,
+    };
+    const diagramB = {
+      ...diagramA,
+      id: "diagram-state-0037",
+      edges: [
+        {
+          id: "edge-0037-1",
+          fromNodeId: "n1",
+          toNodeId: "n2",
+          relationship: "sequence" as const,
+          linkedClaimIds: ["claim-b"],
+        },
+      ],
+    };
+    expect(computeDiagramRenderSignatureV35(diagramA)).toBe(
+      computeDiagramRenderSignatureV35(diagramB)
+    );
+  });
+
+  it("J: different visible diagram nodes count as effective change", () => {
+    const diagramA = {
+      id: "diagram-state-0033",
+      masterId: "diagram-master-black-death-consequences",
+      diagramType: "process" as const,
+      exactQuestion: "What social and economic consequences does the narration support?",
+      nodes: [
+        { id: "n1", label: "population loss", linkedClaimIds: ["claim-a"], entityMentionIds: [] },
+        { id: "n2", label: "labour scarcity", linkedClaimIds: ["claim-a"], entityMentionIds: [] },
+      ],
+      edges: [],
+      semanticStatus: "valid" as const,
+      blockerCodes: [],
+      fallbackDecision: null,
+    };
+    const diagramB = {
+      ...diagramA,
+      id: "diagram-state-0037",
+      nodes: [
+        ...diagramA.nodes,
+        { id: "n3", label: "wage pressure", linkedClaimIds: ["claim-b"], entityMentionIds: [] },
+      ],
+    };
+    expect(computeDiagramRenderSignatureV35(diagramA)).not.toBe(
+      computeDiagramRenderSignatureV35(diagramB)
+    );
+    const prior = baseShot({
+      beatId: "beat-diagram-1",
+      modalityStateReference: diagramA.id,
+    });
+    const next = baseShot({
+      id: "shot-diagram-02",
+      beatId: "beat-diagram-2",
+      modalityStateReference: diagramB.id,
+      action: "diagram progression with causal step highlight",
+    });
+    const evaluated = evaluateShotEffectiveChangeV35({
+      shot: next,
+      priorShot: prior,
+      modality: "diagram",
+      priorModality: "diagram",
+      diagramState: diagramB,
+      priorDiagramState: diagramA,
+    });
+    expect(evaluated.resetsVisualClock).toBe(true);
+    expect(evaluated.changeKinds).toContain("diagram-state-change");
+  });
+
+  it("K: asset replacement resets the static clock", () => {
     const prior = baseShot();
     const next = baseShot({
       id: "shot-0001-02",
@@ -189,7 +324,7 @@ describe("History V3.5 effective visual change", () => {
     expect(evaluated.changeKinds).toContain("asset-change");
   });
 
-  it("I: tiny crop or zoom alone is not sufficient", () => {
+  it("L: tiny crop or zoom alone is not sufficient", () => {
     const prior = baseShot({ framing: "medium subject hold" });
     const next = baseShot({
       id: "shot-0001-02",
@@ -205,7 +340,7 @@ describe("History V3.5 effective visual change", () => {
     expect(evaluated.resetsVisualClock).toBe(false);
   });
 
-  it("J: meaningful composition replacement may reset the static clock", () => {
+  it("K: meaningful composition replacement may reset the static clock", () => {
     const prior = baseShot({ framing: "wide establishing context" });
     const next = baseShot({
       id: "shot-0001-02",

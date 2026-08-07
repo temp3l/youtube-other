@@ -6,6 +6,7 @@ import type {
   HistoryShotVisualChangeV35,
   HistoryVisualModalityV35,
 } from "./history-v35-contracts.js";
+import type { HistoryDiagramStateV34 } from "./history-v34-contracts.js";
 import {
   LONG_STATIC_SOFT_WARNING_MS,
   LONG_STATIC_STRONG_WARNING_MS,
@@ -134,11 +135,34 @@ function factualLabelsKey(shot: HistoryShotV34): string {
   return [...shot.factualLabels].sort().join(",");
 }
 
+export function computeDiagramRenderSignatureV35(
+  state: Pick<HistoryDiagramStateV34, "diagramType" | "exactQuestion" | "nodes" | "edges">
+): string {
+  const nodeLabelById = new Map(
+    state.nodes.map((node) => [
+      node.id,
+      node.label.replace(/\s+/gu, " ").trim().toLocaleLowerCase(),
+    ] as const)
+  );
+  const visibleNodes = [...nodeLabelById.values()].sort().join("|");
+  const visibleEdges = [...state.edges]
+    .map((edge) => {
+      const from = nodeLabelById.get(edge.fromNodeId) ?? edge.fromNodeId;
+      const to = nodeLabelById.get(edge.toNodeId) ?? edge.toNodeId;
+      return `${from}->${to}:${edge.relationship}`;
+    })
+    .sort()
+    .join("|");
+  return [state.diagramType, state.exactQuestion, visibleNodes, visibleEdges].join("::");
+}
+
 export function evaluateShotEffectiveChangeV35(input: {
   readonly shot: HistoryShotV34;
   readonly priorShot: HistoryShotV34 | null;
   readonly modality: HistoryVisualModalityV35;
   readonly priorModality: HistoryVisualModalityV35 | null;
+  readonly diagramState?: HistoryDiagramStateV34 | null;
+  readonly priorDiagramState?: HistoryDiagramStateV34 | null;
 }): {
   readonly changeKinds: readonly EffectiveChangeKind[];
   readonly evidence: readonly EffectiveChangeEvidence[];
@@ -152,8 +176,29 @@ export function evaluateShotEffectiveChangeV35(input: {
   const changeKinds: EffectiveChangeKind[] = [];
   const previousStateRef = priorShot?.modalityStateReference ?? null;
   const nextStateRef = shot.modalityStateReference;
+  const priorDiagramRender =
+    input.priorDiagramState && input.modality === "diagram"
+      ? computeDiagramRenderSignatureV35(input.priorDiagramState)
+      : null;
+  const nextDiagramRender =
+    input.diagramState && input.modality === "diagram"
+      ? computeDiagramRenderSignatureV35(input.diagramState)
+      : null;
+  const diagramRenderChanged =
+    input.modality === "diagram" &&
+    Boolean(priorDiagramRender) &&
+    Boolean(nextDiagramRender) &&
+    priorDiagramRender !== nextDiagramRender;
+  const diagramRenderUnchanged =
+    input.modality === "diagram" &&
+    input.priorModality === "diagram" &&
+    Boolean(priorDiagramRender) &&
+    priorDiagramRender === nextDiagramRender;
   const assetStateChanged =
-    Boolean(priorShot) && previousStateRef !== nextStateRef;
+    Boolean(priorShot) &&
+    (input.modality === "diagram"
+      ? diagramRenderChanged
+      : previousStateRef !== nextStateRef);
   const modalityChanged =
     Boolean(input.priorModality) && input.priorModality !== input.modality;
   const claimFocusChanged =
@@ -169,6 +214,7 @@ export function evaluateShotEffectiveChangeV35(input: {
   const compositionReplacement =
     Boolean(priorShot) &&
     !assetStateChanged &&
+    !diagramRenderUnchanged &&
     meaningfulCompositionReplacement(compositionPrior!, compositionNext);
 
   let motionOnly = false;
@@ -202,7 +248,7 @@ export function evaluateShotEffectiveChangeV35(input: {
       resetsVisualClock: true,
     });
   }
-  if (input.modality === "diagram" && (assetStateChanged || modalityChanged)) {
+  if (input.modality === "diagram" && (diagramRenderChanged || modalityChanged)) {
     changeKinds.push("diagram-state-change");
     evidence.push({
       kind: "diagram-state-change",
@@ -239,6 +285,7 @@ export function evaluateShotEffectiveChangeV35(input: {
   }
   if (
     STRUCTURED_ANNOTATION_PATTERN.test(shot.action) &&
+    !diagramRenderUnchanged &&
     (assetStateChanged || claimFocusChanged || factualLabelsChanged || modalityChanged)
   ) {
     changeKinds.push("annotation-state-change");
@@ -285,7 +332,8 @@ export function evaluateShotEffectiveChangeV35(input: {
     if (!evidence.some((item) => item.resetsVisualClock)) transitionOnly = true;
   }
 
-  const resetsVisualClock = evidence.some((item) => item.resetsVisualClock);
+  let resetsVisualClock = evidence.some((item) => item.resetsVisualClock);
+  if (diagramRenderUnchanged && !modalityChanged) resetsVisualClock = false;
   return {
     changeKinds,
     evidence,
@@ -299,8 +347,12 @@ export function evaluateShotEffectiveChangeV35(input: {
 export function measureEffectiveVisualChangeV35(input: {
   readonly shots: readonly HistoryShotV34[];
   readonly beats: readonly HistoryBeatV35[];
+  readonly diagramStates?: readonly HistoryDiagramStateV34[];
 }): HistoryEffectiveChangeMetricsV35 {
   const beatModality = new Map(input.beats.map((beat) => [beat.id, beat.modality] as const));
+  const diagramStateById = new Map(
+    (input.diagramStates ?? []).map((state) => [state.id, state] as const)
+  );
   const audit: HistoryEffectiveChangeAuditV35 = {
     assetChanges: 0,
     structuredStateChanges: 0,
@@ -325,6 +377,12 @@ export function measureEffectiveVisualChangeV35(input: {
       priorShot: prior,
       modality,
       priorModality,
+      diagramState: shot.modalityStateReference
+        ? diagramStateById.get(shot.modalityStateReference) ?? null
+        : null,
+      priorDiagramState: prior?.modalityStateReference
+        ? diagramStateById.get(prior.modalityStateReference) ?? null
+        : null,
     });
 
     if (evaluated.changeKinds.includes("asset-change")) audit.assetChanges += 1;

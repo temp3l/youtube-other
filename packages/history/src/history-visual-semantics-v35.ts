@@ -6,6 +6,7 @@ import type {
   HistoryShotV34,
   HistoryVisualModalityV34,
 } from "./history-v34-contracts.js";
+import { isCredibleGeographicCandidateV35 } from "./history-claims-v34.js";
 import type {
   HistoryBeatV35,
   HistoryEffectiveChangeMetricsV35,
@@ -29,6 +30,8 @@ import {
   shouldSplitLongStaticBeat,
   shotDurationWarnings,
   summarizeVerificationStatusV34,
+  FIXED_AUDIT_PLACEHOLDER_ISO,
+  normalizeTrustedAttestationTimestampsV34,
 } from "./history-visual-semantics-v34.js";
 import type { TrustedNarrationAttestationV1 } from "./history-trusted-script-v33.js";
 import { PORTRAIT_REFRAME_LABEL_V35 } from "./history-v35-contracts.js";
@@ -103,7 +106,11 @@ export function buildConcreteVisualPurposeV35(input: {
     return `Display verbatim quotation from ${concept.historicalSubject} with source provenance preserved.`;
   if (concept.modality === "narration-emphasis")
     return `Editorial emphasis card for ${concept.protectedFactualRelation.slice(0, 72)}; not presented as historical document text.`;
-  return `${concept.intendedComposition} for ${concept.historicalSubject}${concept.approximatePeriod ? ` (${concept.approximatePeriod})` : ""}, grounded in ${concept.evidenceSourceClass}.`;
+  const relationSnippet = concept.protectedFactualRelation
+    .replace(/\s+/gu, " ")
+    .trim()
+    .slice(0, 72);
+  return `${concept.intendedComposition} for ${concept.historicalSubject}: ${relationSnippet}${concept.approximatePeriod ? ` (${concept.approximatePeriod})` : ""}, grounded in ${concept.evidenceSourceClass}.`;
 }
 
 export function resolveGeographicLabelV35(input: {
@@ -171,6 +178,121 @@ export function validatePortraitProtectedGeographyV35(input: {
   return failures;
 }
 
+export function assessVisualSemanticCoverageV35(input: {
+  readonly entities: readonly { readonly normalizedLabel: string; readonly entityType: string }[];
+  readonly rejectedEntities: readonly { readonly text: string; readonly reason: string }[];
+  readonly beats: readonly { readonly id: string; readonly modality: string }[];
+  readonly mapStates: readonly unknown[];
+  readonly diagramStates: readonly unknown[];
+  readonly visualOpportunitySummary: {
+    readonly eligibleMapOpportunities: number;
+    readonly eligibleDiagramOpportunities: number;
+  };
+}): readonly {
+  readonly code: string;
+  readonly message: string;
+  readonly affectedIds: readonly string[];
+  readonly payload: Record<string, unknown>;
+}[] {
+  const geographicEntities = input.entities.filter((entity) =>
+    ["place", "region", "water-body", "state", "island"].includes(entity.entityType)
+  );
+  const credibleRejectedGeographic = input.rejectedEntities.filter((item) =>
+    isCredibleGeographicCandidateV35({ text: item.text })
+  );
+  const nonGeographicRejectedSurfaces = input.rejectedEntities.filter(
+    (item) => !isCredibleGeographicCandidateV35({ text: item.text })
+  );
+  const mapEligibleBeats = input.beats.filter((beat) =>
+    ["map"].includes(beat.modality)
+  ).length;
+  const diagramEligibleBeats = input.beats.filter((beat) =>
+    ["diagram"].includes(beat.modality)
+  ).length;
+  const diagnostics: Array<{
+    readonly code: string;
+    readonly message: string;
+    readonly affectedIds: readonly string[];
+    readonly payload: Record<string, unknown>;
+  }> = [];
+
+  if (
+    geographicEntities.length >= 4 &&
+    input.visualOpportunitySummary.eligibleMapOpportunities >= 2 &&
+    input.mapStates.length === 0
+  ) {
+    diagnostics.push({
+      code: "GEOGRAPHIC_VISUAL_COVERAGE_SUSPICIOUS",
+      message:
+        "Strong geographic entities and map-eligible narrative beats produced zero maps.",
+      affectedIds: input.beats.map((beat) => beat.id),
+      payload: {
+        recognizedGeographicEntityCount: geographicEntities.length,
+        rejectedEntityCount: input.rejectedEntities.length,
+        credibleGeographicCandidates:
+          geographicEntities.length + credibleRejectedGeographic.length,
+        resolvedGeographicCandidates: geographicEntities.length,
+        unresolvedGeographicCandidates: credibleRejectedGeographic.map((item) => item.text),
+        nonGeographicRejectedSurfaces: nonGeographicRejectedSurfaces
+          .slice(0, 12)
+          .map((item) => item.text),
+        highConfidenceRejectedEntities: credibleRejectedGeographic
+          .slice(0, 12)
+          .map((item) => item.text),
+        mapEligibleBeatCount: mapEligibleBeats,
+        generatedMapCount: input.mapStates.length,
+        eligibleMapOpportunities: input.visualOpportunitySummary.eligibleMapOpportunities,
+      },
+    });
+  }
+
+  if (
+    input.visualOpportunitySummary.eligibleDiagramOpportunities >= 2 &&
+    diagramEligibleBeats === 0 &&
+    input.diagramStates.length === 0 &&
+    input.beats.length >= 8
+  ) {
+    diagnostics.push({
+      code: "DIAGRAM_VISUAL_COVERAGE_SUSPICIOUS",
+      message:
+        "Multiple causal or systemic narrative beats produced zero diagrams.",
+      affectedIds: input.beats.map((beat) => beat.id),
+      payload: {
+        diagramEligibleBeatCount: diagramEligibleBeats,
+        generatedDiagramCount: input.diagramStates.length,
+        eligibleDiagramOpportunities: input.visualOpportunitySummary.eligibleDiagramOpportunities,
+      },
+    });
+  }
+
+  const credibleGeographicCandidates =
+    geographicEntities.length + credibleRejectedGeographic.length;
+  const rejectionRate =
+    credibleRejectedGeographic.length / Math.max(1, credibleGeographicCandidates);
+  if (credibleRejectedGeographic.length >= 4 && rejectionRate >= 0.5) {
+    diagnostics.push({
+      code: "ENTITY_RESOLUTION_COVERAGE_LOW",
+      message: "Entity resolution rejected a majority of credible geographic candidates.",
+      affectedIds: credibleRejectedGeographic.slice(0, 20).map((item) => item.text),
+      payload: {
+        acceptedEntityCount: input.entities.length,
+        rejectedEntityCount: input.rejectedEntities.length,
+        credibleGeographicCandidates,
+        resolvedGeographicCandidates: geographicEntities.length,
+        unresolvedGeographicCandidates: credibleRejectedGeographic.length,
+        ambiguousCandidates: 0,
+        nonGeographicRejectedSurfaces: nonGeographicRejectedSurfaces.length,
+        rejectionRate,
+        highConfidenceRejectedEntities: credibleRejectedGeographic
+          .slice(0, 12)
+          .map((item) => item.text),
+      },
+    });
+  }
+
+  return diagnostics;
+}
+
 export function routeActorIsClaimSupportedV35(input: {
   readonly movingActor: string;
   readonly claimText: string;
@@ -219,10 +341,14 @@ export function resolveHistoricalApprovalStateV35(input: {
   readonly attestation: TrustedNarrationAttestationV1 | null;
   readonly independentlyVerifiedCount: number;
 }): HistoryTrustApprovalSummaryV35 {
+  const attestation = input.attestation
+    ? normalizeTrustedAttestationTimestampsV34(input.attestation)
+    : null;
   const hasExplicitAttestation = Boolean(
-    input.attestation?.assertedAt &&
-      input.attestation.authorityName &&
-      input.attestation.timestampStatus === "recorded"
+    attestation?.assertedAt &&
+      attestation.assertedAt !== FIXED_AUDIT_PLACEHOLDER_ISO &&
+      attestation.authorityName &&
+      attestation.timestampStatus === "recorded"
   );
   let historicalApprovalState: HistoryHistoricalApprovalStateV35 = "unattested";
   if (input.independentlyVerifiedCount > 0) historicalApprovalState = "independently_verified";
@@ -233,12 +359,14 @@ export function resolveHistoricalApprovalStateV35(input: {
     sourceAuthorityMode: input.authorityMode as HistoryTrustApprovalSummaryV35["sourceAuthorityMode"],
     historicalApprovalState,
     attestationBound: hasExplicitAttestation,
-    attestationActor: input.attestation?.authorityName ?? null,
-    attestationTimestamp: input.attestation?.assertedAt ?? null,
+    attestationActor: attestation?.authorityName ?? null,
+    attestationTimestamp: attestation?.assertedAt ?? null,
     independentlyVerifiedClaimCount: input.independentlyVerifiedCount,
     productionHistoricalApprovalEligible:
+      historicalApprovalState === "trusted_input" ||
       historicalApprovalState === "explicit_human_attestation" ||
       historicalApprovalState === "independently_verified",
+    humanHistoricalAttestationRequired: false,
   };
 }
 
