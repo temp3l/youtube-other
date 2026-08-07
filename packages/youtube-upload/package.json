@@ -3,8 +3,30 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    },
+    "./multilingual-audio-capability": {
+      "types": "./src/multilingual-audio-capability.ts",
+      "default": "./src/multilingual-audio-capability.ts"
+    },
+    "./publish-approval": {
+      "types": "./src/publish-approval.ts",
+      "default": "./src/publish-approval.ts"
+    },
+    "./generic-media-publish": {
+      "types": "./src/generic-media-publish.ts",
+      "default": "./src/generic-media-publish.ts"
+    },
+    "./strategic-publish-routing": {
+      "types": "./src/strategic-publish-routing.ts",
+      "default": "./src/strategic-publish-routing.ts"
+    }
+  },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit"

@@ -1,0 +1,28 @@
+{
+  "name": "@mediaforge/veronica-media",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@mediaforge/domain": "workspace:*",
+    "@mediaforge/observability": "workspace:*",
+    "@mediaforge/process-runner": "workspace:*",
+    "@mediaforge/rendering": "workspace:*",
+    "@mediaforge/shared": "workspace:*",
+    "@mediaforge/source-ingestion": "workspace:*",
+    "@mediaforge/visual-planning": "workspace:*",
+    "zod": "^4.0.14"
+  }
+}

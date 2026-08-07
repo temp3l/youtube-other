@@ -46,6 +46,12 @@ import {
   historyWorkflowDefinition,
 } from "@mediaforge/history";
 import {
+  createStrategicFullTaskRegistrations,
+  createStrategicFullWorkflowOperator,
+  runStrategicFullWorkflowFixture,
+  strategicFullWorkflowDefinition,
+} from "@mediaforge/strategic-reinvention";
+import {
   ArtifactRepository,
   ArtifactRepositoryError,
   artifactMigrationPlanSchema,
@@ -73,7 +79,13 @@ import { z } from "zod";
 import { createCanonicalMathOperator } from "./math-workflow-runtime.js";
 
 const WORKFLOW_CLI_SCHEMA_VERSION = "mediaforge.workflow-cli.v1" as const;
-const resourceSchema = z.enum(["episode", "history", "lesson", "fixture"]);
+const resourceSchema = z.enum([
+  "episode",
+  "history",
+  "lesson",
+  "strategic-episode",
+  "fixture",
+]);
 type WorkflowResource = z.infer<typeof resourceSchema>;
 
 interface GlobalOptions {
@@ -216,20 +228,28 @@ function profileRuntime(
       registrations: createHistoryTaskRegistrations(),
     };
   }
+  if (resource === "strategic-episode") {
+    return {
+      resource,
+      profileId: "strategic-reinvention",
+      workflow: strategicFullWorkflowDefinition,
+      registrations: createStrategicFullTaskRegistrations(),
+    };
+  }
   return fixtureRuntime(interrupt);
 }
 
 function unitId(resource: WorkflowResource, options: IdentityOptions): string {
   const value =
     options.unit ??
-    (resource === "episode" || resource === "history"
+    (resource === "episode" || resource === "history" || resource === "strategic-episode"
       ? options.episode
       : resource === "lesson"
         ? options.lesson
         : "workflow-fixture");
   if (!value) {
     throw new WorkflowBlockedError(
-      `A ${resource === "episode" || resource === "history" ? "--episode" : "--lesson"} identifier is required.`
+      `A ${resource === "episode" || resource === "history" || resource === "strategic-episode" ? "--episode" : "--lesson"} identifier is required.`
     );
   }
   return productionUnitIdSchema.parse(value);
@@ -303,6 +323,14 @@ async function createOperator(
   }
   if (resource === "history") {
     return createHistoryWorkflowOperator({
+      unitRoot,
+      episodeId: unit,
+      locale,
+      variant,
+    });
+  }
+  if (resource === "strategic-episode") {
+    return createStrategicFullWorkflowOperator({
       unitRoot,
       episodeId: unit,
       locale,
@@ -570,7 +598,7 @@ async function manifestsInput(
 
 const batchInputSchema = z
   .object({
-    profileId: z.enum(["dark-truth", "mathematics-education"]),
+    profileId: z.enum(["dark-truth", "mathematics-education", "strategic-reinvention"]),
     provider: z.string().min(1),
     model: z.string().min(1).optional(),
     operation: z.string().min(3),
@@ -624,7 +652,9 @@ async function readBatchPlan(filePath: string): Promise<BatchPlanInput> {
   const runtime =
     parsed.profileId === "dark-truth"
       ? profileRuntime("episode")
-      : profileRuntime("lesson");
+      : parsed.profileId === "strategic-reinvention"
+        ? profileRuntime("strategic-episode")
+        : profileRuntime("lesson");
   const registry = createTaskRegistry(runtime.registrations);
   const items: BatchWorkItem[] = parsed.items.map((item) => {
     let execute: TaskImplementation;
@@ -927,6 +957,12 @@ function addResourceCommands(
         output(runMathProfileDeterministicFixture());
       })
     );
+  } else if (resource === "strategic-episode") {
+    parent.command("profile-fixture").action(
+      action(async () => {
+        output(runStrategicFullWorkflowFixture());
+      })
+    );
   }
 
   for (const commandName of ["plan", "graph", "status", "next"] as const) {
@@ -1140,6 +1176,7 @@ export function registerWorkflowCommands(program: Command): void {
     .description("Canonical additive workflow-engine operator commands");
   addResourceCommands(workflow, "episode");
   addResourceCommands(workflow, "history");
+  addResourceCommands(workflow, "strategic-episode");
   addResourceCommands(workflow, "lesson");
   addResourceCommands(workflow, "fixture");
   const cache = program
@@ -1147,7 +1184,7 @@ export function registerWorkflowCommands(program: Command): void {
     .description("Inspect, explain, and safely prune canonical task caches");
   const addCacheIdentityOptions = (command: Command): Command =>
     command
-      .requiredOption("--resource <resource>", "episode, lesson, or fixture")
+      .requiredOption("--resource <resource>", "episode, lesson, strategic-episode, or fixture")
       .option("--unit <id>", "generic workflow unit ID")
       .option("--episode <id>", "episode ID or slug")
       .option("--lesson <id>", "lesson ID or slug")
@@ -1218,7 +1255,11 @@ export function registerWorkflowCommands(program: Command): void {
     .description("Validate all registered profile DAGs")
     .action(
       action(async () => {
-        const profiles = [profileRuntime("episode"), profileRuntime("lesson")];
+        const profiles = [
+          profileRuntime("episode"),
+          profileRuntime("lesson"),
+          profileRuntime("strategic-episode"),
+        ];
         output(
           profiles.map((profile) => ({
             resource: profile.resource,
@@ -1237,7 +1278,7 @@ export function registerWorkflowCommands(program: Command): void {
     .description("Registered task inspection");
   task
     .command("list")
-    .option("--profile <episode|lesson>", "profile registry", "episode")
+    .option("--profile <episode|lesson|strategic-episode>", "profile registry", "episode")
     .action(
       action(async (options: { readonly profile: string }) => {
         const runtime = profileRuntime(options.profile);
@@ -1249,7 +1290,7 @@ export function registerWorkflowCommands(program: Command): void {
   task
     .command("explain")
     .argument("<task-id>")
-    .option("--profile <episode|lesson>", "profile registry", "episode")
+    .option("--profile <episode|lesson|strategic-episode>", "profile registry", "episode")
     .action(
       action(async (taskId: string, options: { readonly profile: string }) => {
         const runtime = profileRuntime(options.profile);
@@ -1258,7 +1299,7 @@ export function registerWorkflowCommands(program: Command): void {
     );
   task
     .command("run")
-    .requiredOption("--profile <episode|lesson>", "profile registry")
+    .requiredOption("--profile <episode|lesson|strategic-episode>", "profile registry")
     .requiredOption("--task <task-id>", "registered task ID")
     .option("--episode <id>", "episode ID or slug")
     .option("--lesson <id>", "lesson ID or slug")

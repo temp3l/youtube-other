@@ -84,6 +84,8 @@ Media pipeline documentation:
 - [Media Implementation Inventory](docs/architecture/media-implementation-inventory.md)
 - [Target Media Architecture](docs/architecture/target-media-architecture.md)
 - [Media Consolidation Plan](docs/migrations/media-consolidation-plan.md)
+- [Strategic Reinvention Operator Guide](docs/architecture/strategic-reinvention/operator-guide.md)
+- [Veronica Supplemental Media](docs/architecture/veronica-supplemental-media/overview.md)
 - Treat source code and tests as authoritative if these docs conflict with code.
 - Read only the relevant document for the task; do not preload the full set.
 

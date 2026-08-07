@@ -172,6 +172,9 @@ importers:
       '@mediaforge/story-localization':
         specifier: workspace:*
         version: link:../../packages/story-localization
+      '@mediaforge/strategic-reinvention':
+        specifier: workspace:*
+        version: link:../../packages/strategic-reinvention
       '@mediaforge/testing':
         specifier: workspace:*
         version: link:../../packages/testing
@@ -181,6 +184,9 @@ importers:
       '@mediaforge/transcription':
         specifier: workspace:*
         version: link:../../packages/transcription
+      '@mediaforge/veronica-media':
+        specifier: workspace:*
+        version: link:../../packages/veronica-media
       '@mediaforge/visual-planning':
         specifier: workspace:*
         version: link:../../packages/visual-planning
@@ -640,6 +646,18 @@ importers:
       '@mediaforge/domain':
         specifier: workspace:*
         version: link:../domain
+      '@mediaforge/shared':
+        specifier: workspace:*
+        version: link:../shared
+      '@mediaforge/veronica-media':
+        specifier: workspace:*
+        version: link:../veronica-media
+      '@mediaforge/workflow-engine':
+        specifier: workspace:*
+        version: link:../workflow-engine
+      '@mediaforge/youtube-upload':
+        specifier: workspace:*
+        version: link:../youtube-upload
       js-yaml:
         specifier: ^4.2.0
         version: 4.2.0
@@ -691,6 +709,33 @@ importers:
       '@mediaforge/shared':
         specifier: workspace:*
         version: link:../shared
+      zod:
+        specifier: ^4.0.14
+        version: 4.4.3
+
+  packages/veronica-media:
+    dependencies:
+      '@mediaforge/domain':
+        specifier: workspace:*
+        version: link:../domain
+      '@mediaforge/observability':
+        specifier: workspace:*
+        version: link:../observability
+      '@mediaforge/process-runner':
+        specifier: workspace:*
+        version: link:../process-runner
+      '@mediaforge/rendering':
+        specifier: workspace:*
+        version: link:../rendering
+      '@mediaforge/shared':
+        specifier: workspace:*
+        version: link:../shared
+      '@mediaforge/source-ingestion':
+        specifier: workspace:*
+        version: link:../source-ingestion
+      '@mediaforge/visual-planning':
+        specifier: workspace:*
+        version: link:../visual-planning
       zod:
         specifier: ^4.0.14
         version: 4.4.3
