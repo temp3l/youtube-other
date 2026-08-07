@@ -1,0 +1,68 @@
+---
+description: Guardrails for focused History V3.4 implementation and release work
+alwaysApply: true
+---
+
+# History V3.4 implementation guardrails
+
+## Generated references
+
+- Treat every `episodes/*-v3.4/` directory as a generated reference approval pack.
+- Never implement behavior by directly patching those directories.
+- Generated files may change only through the repository's generation pipeline.
+- Behavioral changes belong in source code, planners, validators, typed schemas,
+  CLI integration, or tests.
+
+## Scope discipline
+
+- Work only on the current numbered phase.
+- Do not implement later phases early.
+- Do not modify unrelated genres.
+- Do not perform broad refactors unless a failing fixture proves they are required.
+- Prefer the smallest safe change that satisfies the generated-artifact test.
+
+## Authority and research
+
+- History authority remains `trusted-script`.
+- Do not perform historical web research, source retrieval, or evidence assessment.
+- Optional model use is limited to non-research semantic structuring.
+- Do not mark trusted claims as independently supported.
+- Record semantic-provider use separately from research-provider use.
+
+## Deterministic authority
+
+Application code owns:
+
+- narration offsets;
+- claim and entity IDs;
+- entity and qualifier types;
+- place resolution;
+- coordinates;
+- route geometry;
+- diagram graph validity;
+- timeline ordering;
+- timing;
+- diagnostics and approval gates;
+- checksums and deterministic archives.
+
+## Mandatory visuals
+
+- Mandatory fixture maps and diagrams may not silently fall back to archival imagery.
+- A failed mandatory visual remains an explicit blocker.
+- Do not lower minimum map, diagram, pacing, or quality thresholds to pass tests.
+- Do not replace semantic acceptance tests with snapshot-only assertions.
+
+## Testing and completion
+
+- Add failing generated-artifact acceptance tests before implementation.
+- Acceptance tests must inspect real generated artifacts.
+- Run focused fixture tests before portfolio regeneration.
+- Regenerate all four episodes only in the generalization phase.
+- Never claim completion without exact commands, exit status, output paths,
+  artifact counts, SHA-256 hashes, and determinism evidence.
+
+## Publishing
+
+- Publishing work is separate from semantic planning.
+- Do not mark production or publishing final without measured audio, rendered
+  video, final thumbnails, reviewed captions, and human upload review.
