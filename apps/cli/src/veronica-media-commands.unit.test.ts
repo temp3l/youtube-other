@@ -9,6 +9,7 @@ describe("veronica media commands", () => {
     const veronica = program.commands.find((command) => command.name() === "veronica-media");
     expect(veronica?.commands.map((command) => command.name())).toEqual([
       "pilot",
+      "run",
       "validate",
     ]);
   });

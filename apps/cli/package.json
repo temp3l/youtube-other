@@ -32,6 +32,7 @@
     "@mediaforge/rendering": "workspace:*",
     "@mediaforge/rewriting": "workspace:*",
     "@mediaforge/scene-planning": "workspace:*",
+    "@mediaforge/strategic-reinvention": "workspace:*",
     "@mediaforge/story-localization": "workspace:*",
     "@mediaforge/shared": "workspace:*",
     "@mediaforge/source-ingestion": "workspace:*",

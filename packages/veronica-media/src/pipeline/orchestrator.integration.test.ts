@@ -2,10 +2,8 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import {
-  createVeronicaPilotFixtures,
-  runVeronicaSupplementalMediaPipeline,
-} from "../index.js";
+import { runVeronicaSupplementalMediaPipeline } from "../index.js";
+import { createVeronicaPilotFixtures } from "../fixtures/pilot.js";
 
 const temporaryRoots: string[] = [];
 afterEach(async () => {
@@ -41,5 +39,26 @@ describe("veronica supplemental media pipeline", () => {
     ).resolves.toBeDefined();
     expect(result.plan.narrationRevision.originalScript).toContain("Benvenuti");
     expect(result.plan.metrics.suppliedAssetUtilizationRatio).toBeGreaterThan(0);
+  });
+
+  it("resumes from cached pipeline state when inputs are unchanged", async () => {
+    const workspace = await fs.mkdtemp(path.join(os.tmpdir(), "veronica-resume-"));
+    temporaryRoots.push(workspace);
+    const fixtures = createVeronicaPilotFixtures();
+    const input = {
+      workspaceRoot: workspace,
+      episodeId: "episode-resume",
+      originalNarration: fixtures.narration.original,
+      revisedNarration: fixtures.narration.revised,
+      targetLanguage: "it",
+      sourceLanguage: "it",
+      supplementalFiles: fixtures.files,
+      alignedSegments: fixtures.alignedSegments,
+    };
+    const first = await runVeronicaSupplementalMediaPipeline(input);
+    const second = await runVeronicaSupplementalMediaPipeline(input);
+    expect(first.resumed).toBe(false);
+    expect(second.resumed).toBe(true);
+    expect(second.plan.contentHash).toBe(first.plan.contentHash);
   });
 });

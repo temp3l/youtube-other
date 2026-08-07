@@ -10,5 +10,6 @@ export * from "./metrics/planner-metrics.js";
 export * from "./rendering/compiler.js";
 export * from "./workflow/regeneration.js";
 export * from "./review-pack/export.js";
+export * from "./pipeline/input-fingerprint.js";
 export * from "./pipeline/orchestrator.js";
 export * from "./fixtures/pilot.js";

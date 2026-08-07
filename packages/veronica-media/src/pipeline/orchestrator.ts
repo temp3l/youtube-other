@@ -19,6 +19,9 @@ import {
 import { hashCanonical } from "../canonical-json.js";
 import { buildVeronicaCacheKey } from "../workflow/regeneration.js";
 import { veronicaMediaPlanSchema } from "../contracts/media-plan.v1.js";
+import {
+  computeVeronicaPipelineInputFingerprint,
+} from "./input-fingerprint.js";
 
 export interface VeronicaPipelineInput {
   readonly workspaceRoot: string;
@@ -38,6 +41,7 @@ export interface VeronicaPipelineInput {
     readonly startSeconds: number;
     readonly endSeconds: number;
   }[];
+  readonly resume?: boolean;
 }
 
 export interface VeronicaPipelineResult {
@@ -47,10 +51,65 @@ export interface VeronicaPipelineResult {
   readonly approvalPackDir: string;
   readonly cacheKeys: readonly string[];
   readonly ffmpegCommands: readonly (readonly string[])[];
+  readonly resumed?: boolean;
 }
 
 export function veronicaEpisodeStateDir(workspaceRoot: string, episodeId: string): string {
   return path.join(workspaceRoot, episodeId, "state", "veronica-media");
+}
+
+function pipelineFingerprintPath(stateDir: string): string {
+  return path.join(stateDir, "pipeline-input.fingerprint.json");
+}
+
+export async function loadVeronicaPipelineResult(input: {
+  readonly stateDir: string;
+  readonly episodeId: string;
+  readonly targetLanguage: string;
+}): Promise<VeronicaPipelineResult | null> {
+  const planPath = path.join(input.stateDir, "veronica-media-plan.json");
+  try {
+    const plan = veronicaMediaPlanSchema.parse(
+      JSON.parse(await fs.readFile(planPath, "utf8")) as unknown,
+    );
+    const landscapePath = path.join(input.stateDir, "renders", "landscape-manifest.json");
+    const portraitPath = path.join(input.stateDir, "renders", "portrait-manifest.json");
+    const landscapeManifest = veronicaRenderManifestSchema.parse(
+      JSON.parse(await fs.readFile(landscapePath, "utf8")) as unknown,
+    );
+    const portraitManifest = veronicaRenderManifestSchema.parse(
+      JSON.parse(await fs.readFile(portraitPath, "utf8")) as unknown,
+    );
+    return {
+      plan,
+      landscapeManifest,
+      portraitManifest,
+      approvalPackDir: path.join(input.stateDir, "approval-pack"),
+      cacheKeys: [
+        buildVeronicaCacheKey({
+          episodeId: input.episodeId,
+          stage: "plan",
+          contentHash: plan.contentHash,
+          language: input.targetLanguage,
+          aspectRatio: "16:9",
+        }),
+        buildVeronicaCacheKey({
+          episodeId: input.episodeId,
+          stage: "plan",
+          contentHash: plan.contentHash,
+          language: input.targetLanguage,
+          aspectRatio: "9:16",
+        }),
+      ],
+      ffmpegCommands: [
+        ...compileRenderManifestToFfmpegArgs(landscapeManifest),
+        ...compileRenderManifestToFfmpegArgs(portraitManifest),
+      ],
+      resumed: true,
+    };
+  } catch {
+    return null;
+  }
 }
 
 export async function runVeronicaSupplementalMediaPipeline(
@@ -58,6 +117,25 @@ export async function runVeronicaSupplementalMediaPipeline(
 ): Promise<VeronicaPipelineResult> {
   const stateDir = veronicaEpisodeStateDir(input.workspaceRoot, input.episodeId);
   await fs.mkdir(stateDir, { recursive: true });
+  const inputFingerprint = computeVeronicaPipelineInputFingerprint(input);
+  const fingerprintPath = pipelineFingerprintPath(stateDir);
+  if (input.resume !== false) {
+    try {
+      const stored = JSON.parse(await fs.readFile(fingerprintPath, "utf8")) as {
+        fingerprint?: string;
+      };
+      if (stored.fingerprint === inputFingerprint) {
+        const cached = await loadVeronicaPipelineResult({
+          stateDir,
+          episodeId: input.episodeId,
+          targetLanguage: input.targetLanguage,
+        });
+        if (cached) return cached;
+      }
+    } catch {
+      // Continue with fresh pipeline run.
+    }
+  }
   const ingested = input.supplementalFiles.map((file) =>
     ingestSupplementalMediaAsset(file),
   );
@@ -110,6 +188,11 @@ export async function runVeronicaSupplementalMediaPipeline(
   });
   const planPath = path.join(stateDir, "veronica-media-plan.json");
   await fs.writeFile(planPath, `${JSON.stringify(plan, null, 2)}\n`, "utf8");
+  await fs.writeFile(
+    fingerprintPath,
+    `${JSON.stringify({ fingerprint: inputFingerprint, storedAt: new Date().toISOString() }, null, 2)}\n`,
+    "utf8",
+  );
   const landscapeManifest = buildRenderManifest({
     plan,
     aspectRatio: "16:9",
@@ -133,6 +216,17 @@ export async function runVeronicaSupplementalMediaPipeline(
     ...compileRenderManifestToFfmpegArgs(portraitManifest),
   ];
   validateCompiledFfmpegSafety(ffmpegCommands);
+  await fs.mkdir(path.join(stateDir, "renders"), { recursive: true });
+  await fs.writeFile(
+    path.join(stateDir, "renders", "landscape-manifest.json"),
+    `${JSON.stringify(landscapeManifest, null, 2)}\n`,
+    "utf8",
+  );
+  await fs.writeFile(
+    path.join(stateDir, "renders", "portrait-manifest.json"),
+    `${JSON.stringify(portraitManifest, null, 2)}\n`,
+    "utf8",
+  );
   const approvalPack = await exportVeronicaApprovalPack({
     outputDir: stateDir,
     plan,
@@ -160,6 +254,7 @@ export async function runVeronicaSupplementalMediaPipeline(
     approvalPackDir: approvalPack.packRoot,
     cacheKeys,
     ffmpegCommands,
+    resumed: false,
   };
 }
 

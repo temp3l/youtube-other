@@ -172,6 +172,9 @@ importers:
       '@mediaforge/story-localization':
         specifier: workspace:*
         version: link:../../packages/story-localization
+      '@mediaforge/strategic-reinvention':
+        specifier: workspace:*
+        version: link:../../packages/strategic-reinvention
       '@mediaforge/testing':
         specifier: workspace:*
         version: link:../../packages/testing
@@ -643,6 +646,15 @@ importers:
       '@mediaforge/domain':
         specifier: workspace:*
         version: link:../domain
+      '@mediaforge/shared':
+        specifier: workspace:*
+        version: link:../shared
+      '@mediaforge/veronica-media':
+        specifier: workspace:*
+        version: link:../veronica-media
+      '@mediaforge/workflow-engine':
+        specifier: workspace:*
+        version: link:../workflow-engine
       js-yaml:
         specifier: ^4.2.0
         version: 4.2.0
@@ -718,9 +730,6 @@ importers:
       '@mediaforge/source-ingestion':
         specifier: workspace:*
         version: link:../source-ingestion
-      '@mediaforge/strategic-reinvention':
-        specifier: workspace:*
-        version: link:../strategic-reinvention
       '@mediaforge/visual-planning':
         specifier: workspace:*
         version: link:../visual-planning

@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vitest";
-import { loadStrategicReinventionProfile } from "@mediaforge/strategic-reinvention";
 import {
   compileRenderManifestToFfmpegArgs,
   validateCompiledFfmpegSafety,
@@ -8,11 +7,6 @@ import {
 } from "./index.js";
 
 describe("veronica genre compatibility", () => {
-  it("keeps strategic-reinvention production blocked without supplemental media enabled by default", async () => {
-    const profile = await loadStrategicReinventionProfile();
-    expect(profile.productionReadiness.status).toBe("PRODUCTION_BLOCKED");
-  });
-
   it("compiles typed ffmpeg manifests without shell interpolation", () => {
     const manifest = veronicaRenderManifestSchema.parse({
       schemaVersion: "veronica-render-manifest.v1",

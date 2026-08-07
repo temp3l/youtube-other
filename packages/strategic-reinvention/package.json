@@ -12,6 +12,9 @@
   "dependencies": {
     "@mediaforge/config": "workspace:*",
     "@mediaforge/domain": "workspace:*",
+    "@mediaforge/shared": "workspace:*",
+    "@mediaforge/veronica-media": "workspace:*",
+    "@mediaforge/workflow-engine": "workspace:*",
     "js-yaml": "^4.2.0",
     "zod": "^4.0.14"
   }

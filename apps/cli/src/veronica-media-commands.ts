@@ -7,6 +7,7 @@ import {
   veronicaEpisodeStateDir,
   veronicaMediaPlanSchema,
 } from "@mediaforge/veronica-media";
+import { runStrategicSupplementalMediaBridge } from "@mediaforge/strategic-reinvention";
 
 export function registerVeronicaMediaCommands(program: Command): void {
   const veronica = program
@@ -31,34 +32,40 @@ export function registerVeronicaMediaCommands(program: Command): void {
         supplementalFiles: fixtures.files,
         alignedSegments: fixtures.alignedSegments,
       });
-      const payload = {
-        episodeId: options.episodeId,
-        stateDir: veronicaEpisodeStateDir(path.resolve(options.workspace), options.episodeId),
-        planPath: path.join(
-          veronicaEpisodeStateDir(path.resolve(options.workspace), options.episodeId),
-          "veronica-media-plan.json",
-        ),
-        approvalPackDir: result.approvalPackDir,
-        renderEligible: result.plan.approvalEligibility.renderEligible,
-        landscapeClips: result.landscapeManifest.clips.length,
-        portraitClips: result.portraitManifest.clips.length,
-        contentHash: result.plan.contentHash,
-      };
-      if (options.json) {
-        process.stdout.write(`${JSON.stringify(payload, null, 2)}\n`);
-        return;
-      }
-      process.stdout.write(
-        [
-          `Veronica supplemental media pilot completed for ${options.episodeId}.`,
-          `Plan: ${payload.planPath}`,
-          `Approval pack: ${payload.approvalPackDir}`,
-          `Render eligible: ${payload.renderEligible}`,
-          `Landscape clips: ${payload.landscapeClips}`,
-          `Portrait clips: ${payload.portraitClips}`,
-        ].join("\n") + "\n",
-      );
+      emitResult(options, result);
     });
+
+  veronica
+    .command("run")
+    .description("Run supplemental media planning for a strategic-reinvention episode")
+    .requiredOption("--workspace <path>", "Episode workspace root")
+    .requiredOption("--episode-id <id>", "Episode identifier")
+    .option("--narration <path>", "Optional narration script path override")
+    .option("--supplemental-dir <path>", "Optional supplemental media directory override")
+    .option("--no-resume", "Disable resume from cached pipeline state")
+    .option("--json", "Emit machine-readable output", false)
+    .action(
+      async (options: {
+        workspace: string;
+        episodeId: string;
+        narration?: string;
+        supplementalDir?: string;
+        resume: boolean;
+        json: boolean;
+      }) => {
+        const result = await runStrategicSupplementalMediaBridge({
+          workspaceRoot: path.resolve(options.workspace),
+          episodeId: options.episodeId,
+          narrationPath: options.narration,
+          supplementalDir: options.supplementalDir,
+          resume: options.resume,
+        });
+        emitResult(
+          { workspace: options.workspace, episodeId: options.episodeId, json: options.json },
+          result,
+        );
+      },
+    );
 
   veronica
     .command("validate")
@@ -69,4 +76,39 @@ export function registerVeronicaMediaCommands(program: Command): void {
       veronicaMediaPlanSchema.parse(raw);
       process.stdout.write(`Valid plan: ${options.plan}\n`);
     });
+}
+
+function emitResult(
+  options: { workspace: string; episodeId: string; json: boolean },
+  result: Awaited<ReturnType<typeof runVeronicaSupplementalMediaPipeline>>,
+): void {
+  const payload = {
+    episodeId: options.episodeId,
+    stateDir: veronicaEpisodeStateDir(path.resolve(options.workspace), options.episodeId),
+    planPath: path.join(
+      veronicaEpisodeStateDir(path.resolve(options.workspace), options.episodeId),
+      "veronica-media-plan.json",
+    ),
+    approvalPackDir: result.approvalPackDir,
+    renderEligible: result.plan.approvalEligibility.renderEligible,
+    landscapeClips: result.landscapeManifest.clips.length,
+    portraitClips: result.portraitManifest.clips.length,
+    contentHash: result.plan.contentHash,
+    resumed: result.resumed ?? false,
+  };
+  if (options.json) {
+    process.stdout.write(`${JSON.stringify(payload, null, 2)}\n`);
+    return;
+  }
+  process.stdout.write(
+    [
+      `Veronica supplemental media completed for ${options.episodeId}.`,
+      `Plan: ${payload.planPath}`,
+      `Approval pack: ${payload.approvalPackDir}`,
+      `Render eligible: ${payload.renderEligible}`,
+      `Resumed: ${payload.resumed}`,
+      `Landscape clips: ${payload.landscapeClips}`,
+      `Portrait clips: ${payload.portraitClips}`,
+    ].join("\n") + "\n",
+  );
 }

@@ -8,6 +8,6 @@
     "incremental": true,
     "tsBuildInfoFile": ".cache/tsconfig.tsbuildinfo"
   },
-  "exclude": ["src/**/*.test.ts"],
+  "exclude": ["src/**/*.test.ts", "src/**/*.integration.test.ts"],
   "include": ["src/**/*.ts"]
 }
