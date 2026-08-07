@@ -47,7 +47,7 @@ const GENERIC_VISUAL_PURPOSE_PATTERNS = [
 ] as const;
 
 const CAUSAL_NARRATION_PATTERN =
-  /\b(?:because|led to|caused|resulted|therefore|compelled|forced|triggered)\b/iu;
+  /\b(?:because|led to|caused|resulted|therefore|compelled|forced|triggered|combined|contribut(?:e|ed|ing)?|interdepend|disrupt(?:ed|ion)?|unless|collapse|pressure|failure|depended?|fragmented)\b/iu;
 const SEQUENCE_NARRATION_PATTERN =
   /\b(?:then|after|before|subsequently|first|next|finally|in turn|week later|chose|preserve|continue|abandon)\b/iu;
 const ENUMERATION_NARRATION_PATTERN =

@@ -101,7 +101,14 @@ import {
 } from "./history-visual-repetition-v35.js";
 import { refineVisualTreatmentPlanV35 } from "./history-visual-treatment-refine-v35.js";
 import { computeDiagramRenderSignatureV35 } from "./history-effective-change-v35.js";
-import { compileAbstractCausalDiagramV35 } from "./history-diagram-compile-v35.js";
+import { compileAbstractCausalDiagramV35, compileBronzeSystemsCollapseDiagramV35, compileBronzeTradeDiagramV35, compileTopologyDiagramV35 } from "./history-diagram-compile-v35.js";
+import {
+  createDiagramCompilationRegistryV35,
+  type DiagramCompilationRegistryV35,
+  selectPortraitDiagramNodeIdsV35,
+  validateDiagramTopologyV35,
+  validateGeneratedStateIdentityV35,
+} from "./history-diagram-topology-v35.js";
 import { deriveVisualSubjectV35 } from "./history-visual-subject-v35.js";
 import {
   buildVisualOpportunitiesV35,
@@ -698,12 +705,22 @@ function buildRatioPlans(input: {
   const mapRoutes = input.mapState?.routes.map((route) => route.id) ?? [];
   const diagramNodes = input.diagramState?.nodes.map((node) => node.id) ?? [];
   const diagramEdges = input.diagramState?.edges.map((edge) => edge.id) ?? [];
+  const portraitDiagramNodes = input.diagramState
+    ? selectPortraitDiagramNodeIdsV35(input.diagramState.nodes)
+    : diagramNodes.slice(0, 4);
+  const portraitDiagramNodeSet = new Set(portraitDiagramNodes);
+  const portraitDiagramEdges = input.diagramState?.edges
+    .filter(
+      (edge) =>
+        portraitDiagramNodeSet.has(edge.fromNodeId) && portraitDiagramNodeSet.has(edge.toNodeId)
+    )
+    .map((edge) => edge.id) ?? [];
   const eventIds = input.timelineState?.eventIds ?? (input.dateCardId ? [input.dateCardId] : []);
   const protectedSubject = wordSafeSlice(input.subject, 100);
   const portraitConflicts: string[] = [];
   if (input.modality === "map" && portraitRemoved.length > 0)
     portraitConflicts.push("MAP_LABEL_OVERFLOW_PORTRAIT");
-  if (input.modality === "diagram" && diagramNodes.length > 4)
+  if (input.modality === "diagram" && portraitDiagramNodes.length > 4)
     portraitConflicts.push("DIAGRAM_NODE_OVERFLOW_PORTRAIT");
   if (input.modality === "timeline" && eventIds.length > 5)
     portraitConflicts.push("TIMELINE_EVENT_OVERFLOW_PORTRAIT");
@@ -751,10 +768,10 @@ function buildRatioPlans(input: {
         labelPriority: [...input.protectedGeographyLabels, ...mapLabels].filter(
           (label, index, all) => all.indexOf(label) === index
         ),
-        retainedNodes: diagramNodes.slice(0, 4),
+        retainedNodes: portraitDiagramNodes,
         removedNodes: diagramNodes.slice(4),
-        retainedEdges: diagramEdges.slice(0, Math.max(0, diagramEdges.length - 1)),
-        verticalOrdering: diagramNodes.slice(0, 4),
+        retainedEdges: portraitDiagramEdges,
+        verticalOrdering: portraitDiagramNodes,
         retainedEvents: eventIds.slice(0, 5),
         eventGrouping: eventIds.slice(0, 5),
         conflicts: portraitConflicts,
@@ -871,6 +888,17 @@ const BLACK_DEATH_CONSEQUENCE_MASTER = "diagram-master-black-death-consequences"
 const BRONZE_AGE_TRADE_MASTER = "diagram-master-bronze-age-trade-network";
 const BRONZE_AGE_COLLAPSE_MASTER = "diagram-master-bronze-age-systems-collapse";
 
+function adoptDiagramCompilation(
+  registry: DiagramCompilationRegistryV35,
+  compiled: {
+    readonly master: HistoryVisualPlanV35["diagramMasters"][number];
+    readonly state: HistoryDiagramStateV34;
+  } | null
+): HistoryDiagramStateV34 | null {
+  if (!compiled) return null;
+  return registry.register(compiled).state;
+}
+
 function buildProgressiveDiagramState(input: {
   readonly beatNumber: string;
   readonly masterId: string;
@@ -889,43 +917,17 @@ function buildProgressiveDiagramState(input: {
   };
   readonly state: HistoryDiagramStateV34;
 } {
-  const visibleLabels = input.labels.slice(0, Math.max(2, input.visibleCount));
-  const stateId = `diagram-state-${input.beatNumber}`;
-  const nodeRecords = visibleLabels.map((label, index) => ({
-    id: `node-${input.masterId}-${index + 1}`,
-    label,
-    linkedClaimIds: input.claimIds,
-    entityMentionIds: [] as string[],
-  }));
-  const edges =
-    input.withEdges && nodeRecords.length > 1
-      ? nodeRecords.slice(0, -1).map((node, index) => ({
-          id: `edge-${input.beatNumber}-${index + 1}`,
-          fromNodeId: node.id,
-          toNodeId: nodeRecords[index + 1]!.id,
-          relationship: "sequence" as const,
-          linkedClaimIds: input.claimIds,
-        }))
-      : [];
-  return {
-    master: {
-      id: input.masterId,
-      diagramType: input.diagramType,
-      exactQuestion: input.exactQuestion,
-      supportedRatios: ["16:9", "9:16"],
-    },
-    state: {
-      id: stateId,
-      masterId: input.masterId,
-      diagramType: input.diagramType,
-      exactQuestion: input.exactQuestion,
-      nodes: nodeRecords,
-      edges,
-      semanticStatus: "valid",
-      blockerCodes: [],
-      fallbackDecision: null,
-    },
-  };
+  return compileTopologyDiagramV35({
+    beatNumber: input.beatNumber,
+    masterId: input.masterId,
+    diagramType: input.diagramType,
+    exactQuestion: input.exactQuestion,
+    labels: input.labels,
+    claimIds: input.claimIds,
+    text: input.exactQuestion,
+    visibleCount: input.visibleCount,
+    topology: input.withEdges ? undefined : "comparison",
+  });
 }
 
 function compileDiagram(input: {
@@ -1055,51 +1057,18 @@ function compileDiagram(input: {
     ) ||
       input.entityLabels.length >= 2)
   ) {
-    const tradeLabels = [
-      "copper from Cyprus",
-      "tin from distant regions",
-      "bronze production",
-      "palace trade networks",
-      "eastern Mediterranean interdependence",
-    ].filter(
-      (label) =>
-        new RegExp(label.split(" ")[0]!, "iu").test(text) ||
-        /trade|bronze|copper|tin|palace|interdependence/iu.test(text)
-    );
-    if (tradeLabels.length >= 3) {
-      return buildProgressiveDiagramState({
-        beatNumber: input.beatNumber,
-        masterId: BRONZE_AGE_TRADE_MASTER,
-        diagramType: "process",
-        exactQuestion: "How did Bronze Age trade networks interconnect the eastern Mediterranean?",
-        labels: tradeLabels,
-        claimIds: input.claimIds,
-        visibleCount: Math.min(tradeLabels.length, Math.max(3, tradeLabels.length - 1)),
-        withEdges: true,
-      });
-    }
-    const collapseLabels = [
-      "palace administrative failure",
-      "trade network disruption",
-      "regional interdependence",
-      "cascading collapse",
-    ].filter(
-      (label) =>
-        new RegExp(label.split(" ")[0]!, "iu").test(text) ||
-        /collapse|interdependence|disruption|palace/iu.test(text)
-    );
-    if (collapseLabels.length >= 3) {
-      return buildProgressiveDiagramState({
-        beatNumber: input.beatNumber,
-        masterId: BRONZE_AGE_COLLAPSE_MASTER,
-        diagramType: "process",
-        exactQuestion: "What systemic dependencies does the narration link to collapse?",
-        labels: collapseLabels,
-        claimIds: input.claimIds,
-        visibleCount: Math.min(collapseLabels.length, Math.max(3, collapseLabels.length - 1)),
-        withEdges: true,
-      });
-    }
+    const tradeCompiled = compileBronzeTradeDiagramV35({
+      beatNumber: input.beatNumber,
+      text,
+      claimIds: input.claimIds,
+    });
+    if (tradeCompiled) return tradeCompiled;
+    const collapseCompiled = compileBronzeSystemsCollapseDiagramV35({
+      beatNumber: input.beatNumber,
+      text,
+      claimIds: input.claimIds,
+    });
+    if (collapseCompiled) return collapseCompiled;
   }
 
   if (
@@ -1616,6 +1585,7 @@ export function buildHistoryVisualPlanV35(input: {
   const mapStates: HistoryVisualPlanV35["mapStates"][number][] = [];
   const diagramMasters: HistoryVisualPlanV35["diagramMasters"][number][] = [];
   const diagramStates: HistoryDiagramStateV34[] = [];
+  const diagramRegistry = createDiagramCompilationRegistryV35({ diagramMasters, diagramStates });
   const timelineMasters: HistoryVisualPlanV35["timelineMasters"][number][] = [];
   const timelineStates: HistoryTimelineStateV35[] = [];
   const timelineEvents: HistoryTimelineEventV35[] = [];
@@ -1737,12 +1707,10 @@ export function buildHistoryVisualPlanV35(input: {
             })
           : null;
         if (diagramCompiled) {
-          if (!diagramMasters.some((item) => item.id === diagramCompiled.master.id))
-            diagramMasters.push(diagramCompiled.master);
-          diagramStates.push(diagramCompiled.state);
+          const registered = adoptDiagramCompilation(diagramRegistry, diagramCompiled);
           diagramMasterId = diagramCompiled.master.id;
-          diagramStateId = diagramCompiled.state.id;
-          diagramState = diagramCompiled.state;
+          diagramStateId = registered?.id ?? diagramCompiled.state.id;
+          diagramState = registered;
           modality = "diagram";
         } else {
           fallback = {
@@ -1760,7 +1728,7 @@ export function buildHistoryVisualPlanV35(input: {
       }
     }
 
-    if (modality === "diagram") {
+    if (modality === "diagram" && !diagramStateId) {
       const entityLabels = structured.entities
         .filter((entity) => claimIds.includes(entity.claimId))
         .map((entity) => entity.normalizedLabel);
@@ -1772,12 +1740,10 @@ export function buildHistoryVisualPlanV35(input: {
         claims: structured.claims,
       });
       if (compiled) {
-        if (!diagramMasters.some((item) => item.id === compiled.master.id))
-          diagramMasters.push(compiled.master);
-        diagramStates.push(compiled.state);
+        const registered = adoptDiagramCompilation(diagramRegistry, compiled);
         diagramMasterId = compiled.master.id;
-        diagramStateId = compiled.state.id;
-        diagramState = compiled.state;
+        diagramStateId = registered?.id ?? compiled.state.id;
+        diagramState = registered;
       } else {
         fallback = {
           rejectedModality: "diagram",
@@ -1968,11 +1934,10 @@ export function buildHistoryVisualPlanV35(input: {
             claims: structured.claims,
           });
           if (compiled) {
-            diagramMasters.push(compiled.master);
-            diagramStates.push(compiled.state);
+            const registered = adoptDiagramCompilation(diagramRegistry, compiled);
             diagramMasterId = compiled.master.id;
-            diagramStateId = compiled.state.id;
-            diagramState = compiled.state;
+            diagramStateId = registered?.id ?? compiled.state.id;
+            diagramState = registered;
             fallback = {
               rejectedModality: rejectedPrior,
               reasonForRejection:
@@ -2566,6 +2531,22 @@ export function buildHistoryVisualPlanV35(input: {
           [state.id, ...diagramBlockers]
         )
       );
+    for (const code of validateDiagramTopologyV35({ state, linkedClaimText })) {
+      diagnostics.push(
+        diagnostic(
+          code,
+          "content",
+          code === "DIAGRAM_UNSUPPORTED_CAUSAL_SEQUENCE"
+            ? "Diagram causal sequence is not supported by narration relationship evidence."
+            : code === "DIAGRAM_CAUSAL_DIRECTION_CONFLICT"
+              ? "Diagram edge reverses a narrated outcome/contributor relationship."
+              : code === "DIAGRAM_INSUFFICIENT_RELATIONSHIP_EVIDENCE"
+                ? "Diagram lacks sufficient relationship evidence for directed topology."
+                : "Diagram topology failed semantic validation.",
+          [state.id, code]
+        )
+      );
+    }
     if (state.semanticStatus === "blocked")
       diagnostics.push(
         diagnostic("DIAGRAM_EMPTY_OR_BLOCKED", "editorial", "Diagram state is empty or blocked.", [
@@ -2769,6 +2750,22 @@ export function buildHistoryVisualPlanV35(input: {
         "error"
       )
     );
+
+  for (const failure of validateGeneratedStateIdentityV35({
+    diagramStates,
+    mapStates,
+    documentStates,
+    timelineStates,
+  })) {
+    diagnostics.push(
+      diagnostic(
+        failure.code,
+        "structural",
+        `Duplicate generated ${failure.stateType} state id ${failure.stateId} (${failure.occurrenceCount} occurrences).`,
+        failure.affectedIds
+      )
+    );
+  }
 
   const body = {
     schemaVersion: HISTORY_VISUAL_SCHEMA_V35,

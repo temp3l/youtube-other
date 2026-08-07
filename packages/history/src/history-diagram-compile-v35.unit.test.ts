@@ -1,8 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
   compileAbstractCausalDiagramV35,
+  compileBronzeSystemsCollapseDiagramV35,
+  compileBronzeTradeDiagramV35,
   extractThematicCausalLabelsV35,
 } from "./history-diagram-compile-v35.js";
+import { validateDiagramTopologyV35 } from "./history-diagram-topology-v35.js";
 
 const claim = (id: string, text: string) => ({
   id,
@@ -62,5 +65,49 @@ describe("History V3.5 abstract causal diagram compile", () => {
       claims: [claim("claim-3", "This is a short neutral sentence.")],
     });
     expect(compiled).toBeNull();
+  });
+
+  it("compiles bronze trade as parallel contributors without copper -> tin", () => {
+    const text =
+      "Copper from Cyprus and tin from distant regions were combined to make bronze for palace trade networks.";
+    const compiled = compileBronzeTradeDiagramV35({
+      beatNumber: "0012",
+      text,
+      claimIds: ["claim-bronze"],
+    });
+    expect(compiled).not.toBeNull();
+    const labels = new Map(compiled!.state.nodes.map((node) => [node.id, node.label]));
+    const hasCopperToTin = compiled!.state.edges.some((edge) => {
+      const from = labels.get(edge.fromNodeId) ?? "";
+      const to = labels.get(edge.toNodeId) ?? "";
+      return /copper/iu.test(from) && /tin/iu.test(to);
+    });
+    expect(hasCopperToTin).toBe(false);
+    expect(compiled!.state.semanticStatus).toBe("valid");
+  });
+
+  it("compiles systems collapse with convergence and valid semantics", () => {
+    const text =
+      "Drought pressure, trade network disruption, earthquake disruption, military fragmentation, and palace administrative failure combined before systems collapse.";
+    const compiled = compileBronzeSystemsCollapseDiagramV35({
+      beatNumber: "0030",
+      text,
+      claimIds: ["claim-collapse"],
+    });
+    expect(compiled).not.toBeNull();
+    const labels = new Map(compiled!.state.nodes.map((node) => [node.id, node.label]));
+    const collapseBeforeCause = compiled!.state.edges.some((edge) => {
+      const from = labels.get(edge.fromNodeId) ?? "";
+      const to = labels.get(edge.toNodeId) ?? "";
+      return /systems collapse/iu.test(from) && /drought|trade|earthquake|military|palace/iu.test(to);
+    });
+    expect(collapseBeforeCause).toBe(false);
+    expect(
+      validateDiagramTopologyV35({
+        state: compiled!.state,
+        linkedClaimText: text,
+      })
+    ).toEqual([]);
+    expect(compiled!.state.semanticStatus).toBe("valid");
   });
 });

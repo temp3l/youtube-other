@@ -844,6 +844,21 @@ export async function createCombinedHistoryApprovalBundleV35(request: {
           (sum, item) => sum + item.qualityMetrics.effectiveChange.longStaticRuntimeShare,
           0
         ) / Math.max(1, episodeSummaries.length),
+      avgViewerConceptRepetitionRate:
+        episodeSummaries.reduce(
+          (sum, item) => sum + item.qualityMetrics.viewerConceptRepetitionRate,
+          0
+        ) / Math.max(1, episodeSummaries.length),
+      avgTemplateRepetitionRate:
+        episodeSummaries.reduce(
+          (sum, item) => sum + item.qualityMetrics.templateRepetitionRate,
+          0
+        ) / Math.max(1, episodeSummaries.length),
+      templateRepetitionPolicy: {
+        advisory: true,
+        nonBlocking: true,
+        field: "templateRepetitionRate",
+      },
       avgSemanticConceptDuplicateRate:
         episodeSummaries.reduce(
           (sum, item) => sum + item.qualityMetrics.semanticConceptDuplicateRate,
@@ -908,8 +923,10 @@ export async function createCombinedHistoryApprovalBundleV35(request: {
       "# History V3.5 corpus comparison",
       "",
       `Episodes: ${episodeSummaries.length}`,
+      `Average viewer-concept repetition rate (editorial gate): ${(qualityReport.corpusTotals.avgViewerConceptRepetitionRate * 100).toFixed(1)}%`,
+      `Average template repetition rate (advisory / non-blocking): ${(qualityReport.corpusTotals.avgTemplateRepetitionRate * 100).toFixed(1)}%`,
       `Average long-static runtime share: ${(qualityReport.corpusTotals.avgLongStaticShare * 100).toFixed(1)}%`,
-      `Average semantic concept duplicate rate: ${(qualityReport.corpusTotals.avgSemanticConceptDuplicateRate * 100).toFixed(1)}%`,
+      `Average semantic concept duplicate rate (legacy): ${(qualityReport.corpusTotals.avgSemanticConceptDuplicateRate * 100).toFixed(1)}%`,
       `Average treatment-template duplicate rate: ${(qualityReport.corpusTotals.avgTreatmentTemplateDuplicateRate * 100).toFixed(1)}%`,
       `Average visual-concept template duplicate rate: ${(qualityReport.corpusTotals.avgVisualConceptTemplateDuplicateRate * 100).toFixed(1)}%`,
       `Effective-change audit totals: ${JSON.stringify(qualityReport.corpusTotals.effectiveChangeAuditTotals)}`,
