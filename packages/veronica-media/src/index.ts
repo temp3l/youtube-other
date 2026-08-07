@@ -20,6 +20,14 @@ export { rasterizeVeronicaPreparedAssetSynthetic } from "./preparation/asset-ras
 export * from "./workflow/regeneration.js";
 export * from "./review-pack/export.js";
 export * from "./review-pack/bulk-aggregate.js";
+export * from "./review-pack/contact-sheet.js";
+export * from "./review-pack/bulk-zip-pack.js";
+export * from "./review-pack/integrity-validator.js";
+export * from "./preparation/png-metadata.js";
+export * from "./preparation/prepared-asset-integrity.js";
+export * from "./rendering/manifest-integrity.js";
+export * from "./rendering/build-render-manifest.js";
+export * from "./identifiers/episode-scope.js";
 export * from "./pipeline/input-fingerprint.js";
 export * from "./pipeline/orchestrator.js";
 export * from "./fixtures/pilot.js";

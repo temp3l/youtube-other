@@ -148,6 +148,7 @@ export const veronicaVisualStateSchema = z.strictObject({
   treatment: veronicaTransformationLevelSchema,
   focusLabel: z.string().min(1),
   preparedAssetId: veronicaIdSchema.optional(),
+  portraitPreparedAssetId: veronicaIdSchema.optional(),
   provenanceId: veronicaIdSchema,
 });
 
@@ -159,6 +160,9 @@ export const veronicaPreparedAssetSchema = z.strictObject({
   width: z.number().int().positive(),
   height: z.number().int().positive(),
   provenanceId: veronicaIdSchema,
+  sourceChecksum: sha256Schema.optional(),
+  transformationFingerprint: sha256Schema.optional(),
+  contentKey: sha256Schema.optional(),
   translationStatus: veronicaTranslationStatusSchema.optional(),
 });
 

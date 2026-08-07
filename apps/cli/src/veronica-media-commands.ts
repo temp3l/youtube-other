@@ -10,7 +10,7 @@ import {
   veronicaMediaPlanSchema,
   veronicaRenderManifestSchema,
 } from "@mediaforge/veronica-media";
-import { runStrategicSupplementalMediaBridge } from "@mediaforge/strategic-reinvention";
+import { generateVeronicaBeniniReviewPacks, runStrategicSupplementalMediaBridge } from "@mediaforge/strategic-reinvention";
 
 export function registerVeronicaMediaCommands(program: Command): void {
   const veronica = program
@@ -66,6 +66,60 @@ export function registerVeronicaMediaCommands(program: Command): void {
         emitResult(
           { workspace: options.workspace, episodeId: options.episodeId, json: options.json },
           result,
+        );
+      },
+    );
+
+  veronica
+    .command("review-pack")
+    .description("Generate per-episode and bulk Veronica approval review packs")
+    .requiredOption("--workspace <path>", "Episode workspace root containing veronica-benini episodes")
+    .option("--bulk-dir <path>", "Bulk aggregate output directory")
+    .option(
+      "--content-matrix <path>",
+      "Discovery content-matrix.csv used to scaffold missing episodes",
+    )
+    .option("--scaffold-missing", "Scaffold episodes from the content matrix when absent", false)
+    .option("--no-resume", "Disable resume from cached pipeline state")
+    .option("--json", "Emit machine-readable output", false)
+    .action(
+      async (options: {
+        workspace: string;
+        bulkDir?: string;
+        contentMatrix?: string;
+        scaffoldMissing: boolean;
+        resume: boolean;
+        json: boolean;
+      }) => {
+        const workspaceRoot = path.resolve(options.workspace);
+        const bulkOutputDir =
+          options.bulkDir ?? path.join(workspaceRoot, "approval-packs");
+        const result = await generateVeronicaBeniniReviewPacks({
+          workspaceRoot,
+          bulkOutputDir,
+          scaffoldMissing: options.scaffoldMissing,
+          resume: options.resume,
+          ...(options.contentMatrix ? { contentMatrixPath: path.resolve(options.contentMatrix) } : {}),
+        });
+        const payload = {
+          episodeCount: result.episodes.length,
+          workspaceRoot: result.workspaceRoot,
+          bulkOutputDir: result.bulk.outputDir,
+          aggregateReviewPath: result.bulk.aggregateReviewPath,
+          findingsPath: result.bulk.findingsPath,
+          episodes: result.episodes,
+        };
+        if (options.json) {
+          process.stdout.write(`${JSON.stringify(payload, null, 2)}\n`);
+          return;
+        }
+        process.stdout.write(
+          [
+            `Generated ${payload.episodeCount} Veronica review packs.`,
+            `Workspace: ${payload.workspaceRoot}`,
+            `Bulk review: ${payload.aggregateReviewPath}`,
+            `Findings: ${payload.findingsPath}`,
+          ].join("\n") + "\n",
         );
       },
     );

@@ -48,6 +48,13 @@ pnpm mediaforge -- veronica-media run --workspace /tmp/episodes --episode-id epi
 pnpm mediaforge -- veronica-media render --workspace /tmp/episodes --episode-id episode-001 --aspect 16:9
 pnpm mediaforge -- veronica-media render --workspace /tmp/episodes --episode-id episode-001 --aspect 9:16 --execute
 pnpm mediaforge -- veronica-media validate --plan state/veronica-media/veronica-media-plan.json
+pnpm mediaforge -- veronica-media review-pack --workspace episodes/veronica-benini --scaffold-missing --content-matrix docs/discovery-packs/veronica-benini-youtube-genre-discovery-pack/06-samples/content-matrix.csv --bulk-dir artifacts/veronica-benini/approval-packs --json
+```
+
+Or use the package script:
+
+```bash
+pnpm veronica:review-packs
 ```
 
 `--execute` is required for host FFmpeg rendering. Default render mode compiles
