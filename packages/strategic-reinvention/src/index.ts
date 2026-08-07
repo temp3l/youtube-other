@@ -3,6 +3,7 @@ export * from "./source-policy.js";
 export * from "./adaptation-schema.js";
 export * from "./provenance-validation.js";
 export * from "./source-adaptation.js";
+export * from "./source-adaptation-bridge.js";
 export * from "./full-task-definitions.js";
 export * from "./episode-pipeline.js";
 export * from "./supplemental-media-bridge.js";

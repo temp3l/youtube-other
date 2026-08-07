@@ -8,6 +8,7 @@ import {
   type VeronicaRenderManifest,
 } from "../contracts/media-plan.v1.js";
 import { ingestSupplementalMediaAsset } from "../ingestion/secure-ingest.js";
+import { rasterizeVeronicaPreparedAsset } from "../preparation/asset-rasterizer.js";
 import { buildSemanticMediaPlan } from "../planning/semantic-planner.js";
 import { resolveAnchorTimings } from "../narration/revision.js";
 import { evaluateApprovalEligibility } from "../approval/eligibility.js";
@@ -148,6 +149,7 @@ export async function runVeronicaSupplementalMediaPipeline(
   const ingested = input.supplementalFiles.map((file) =>
     ingestSupplementalMediaAsset(file),
   );
+  const ingestedById = new Map(ingested.map((asset) => [asset.assetId, asset]));
   let plan = buildSemanticMediaPlan({
     episodeId: input.episodeId,
     originalNarration: input.originalNarration,
@@ -175,15 +177,22 @@ export async function runVeronicaSupplementalMediaPipeline(
   for (const prepared of plan.preparedAssets) {
     const absolute = path.join(stateDir, prepared.relativePath);
     await fs.mkdir(path.dirname(absolute), { recursive: true });
-    const pngHeader = Buffer.from([
-      0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d, 0x49,
-      0x48, 0x44, 0x52, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x08, 0x06,
-      0x00, 0x00, 0x00, 0x1f, 0x15, 0xc4, 0x89, 0x00, 0x00, 0x00, 0x0a, 0x49, 0x44,
-      0x41, 0x54, 0x78, 0x9c, 0x63, 0x00, 0x01, 0x00, 0x00, 0x05, 0x00, 0x01, 0x0d,
-      0x0a, 0x2d, 0xb4, 0x00, 0x00, 0x00, 0x00, 0x49, 0x45, 0x4e, 0x44, 0xae, 0x42,
-      0x60, 0x82,
-    ]);
-    await fs.writeFile(absolute, pngHeader);
+    const provenance = plan.provenance.find(
+      (record) => record.provenanceId === prepared.provenanceId,
+    );
+    const sourceAsset =
+      (provenance ? ingestedById.get(provenance.sourceAssetId) : undefined) ?? ingested[0];
+    if (!sourceAsset) {
+      throw new Error(`Missing ingested asset for prepared asset ${prepared.preparedAssetId}.`);
+    }
+    const raster = rasterizeVeronicaPreparedAsset({
+      asset: sourceAsset,
+      candidateId: prepared.preparedAssetId,
+      label: prepared.preparedAssetId,
+      width: prepared.width,
+      height: prepared.height,
+    });
+    await fs.writeFile(absolute, raster);
     preparedAssetPaths[prepared.preparedAssetId] = absolute;
   }
   const approvalEligibility = evaluateApprovalEligibility({

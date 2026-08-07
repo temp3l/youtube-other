@@ -40,12 +40,12 @@ const blueprint = {
   contentTier: "public",
   thesis: "Reinvention requires deliberate strategy and evidence-backed action.",
   beats: [
-    { beatId: "b1", type: "hook", purpose: "Open with tension", sourceIds: ["source-primary"] },
-    { beatId: "b2", type: "situation", purpose: "Describe context", sourceIds: ["source-primary"] },
-    { beatId: "b3", type: "story", purpose: "Tell the case", sourceIds: ["source-primary"] },
-    { beatId: "b4", type: "conventional-view", purpose: "Name the default", sourceIds: ["source-primary"] },
-    { beatId: "b5", type: "reframe", purpose: "Offer the shift", sourceIds: ["source-primary"] },
-    { beatId: "b6", type: "framework", purpose: "Give the model", sourceIds: ["source-primary"] },
+    { beatId: "beat-001", type: "hook", purpose: "Open with tension", sourceIds: ["source-primary"] },
+    { beatId: "beat-002", type: "situation", purpose: "Describe context", sourceIds: ["source-primary"] },
+    { beatId: "beat-003", type: "story", purpose: "Tell the case", sourceIds: ["source-primary"] },
+    { beatId: "beat-004", type: "conventional-view", purpose: "Name the default", sourceIds: ["source-primary"] },
+    { beatId: "beat-005", type: "reframe", purpose: "Offer the shift", sourceIds: ["source-primary"] },
+    { beatId: "beat-006", type: "framework", purpose: "Give the model", sourceIds: ["source-primary"] },
   ],
   cta: {
     kind: "consultation",
@@ -80,6 +80,11 @@ async function writePilotEpisode(workspaceRoot: string): Promise<string> {
   await fs.writeFile(
     path.join(episodeRoot, "blueprint.json"),
     `${JSON.stringify({ ...blueprint, schemaVersion: "1.1", requiredApprovalGates: ["source", "publish"] }, null, 2)}\n`,
+  );
+  await fs.writeFile(
+    path.join(episodeRoot, "sources", "content", "source-primary.md"),
+    "Benvenuti. Questo pilota dimostra il percorso di reinvenzione strategica.",
+    "utf8",
   );
   await fs.writeFile(
     path.join(episodeRoot, "languages", "script-it.md"),

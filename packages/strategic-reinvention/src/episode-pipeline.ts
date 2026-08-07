@@ -16,11 +16,13 @@ import {
   executeVeronicaRender,
   loadVeronicaPipelineResult,
   runVeronicaSupplementalMediaPipeline,
+  validateVeronicaRenderOutput,
   veronicaEpisodeStateDir,
 } from "@mediaforge/veronica-media";
 import { loadStrategicReinventionProfile } from "./profile.js";
 import { runStrategicPublishDryRun } from "./publishing.js";
-import { loadStrategicSupplementalFiles, loadStrategicEpisodeNarration } from "./supplemental-media-bridge.js";
+import { runStrategicSourceAdaptation } from "./source-adaptation-bridge.js";
+import { loadStrategicSupplementalFiles } from "./supplemental-media-bridge.js";
 import { STRATEGIC_FULL_TASK_DEFINITIONS } from "./full-task-definitions.js";
 
 export const STRATEGIC_EPISODE_PIPELINE_VERSION =
@@ -41,6 +43,8 @@ export interface StrategicEpisodePipelineResult {
   readonly publishBlockers: readonly string[];
   readonly landscapeRenderExecuted: boolean;
   readonly portraitRenderExecuted: boolean;
+  readonly landscapeRenderValid: boolean;
+  readonly portraitRenderValid: boolean;
   readonly fingerprint: string;
   readonly resumed: boolean;
 }
@@ -170,12 +174,25 @@ export async function runStrategicEpisodePipeline(
   mark("strategic.source-ingest");
   mark("strategic.source-policy");
   mark("strategic.source-approval");
-  mark("strategic.adaptation");
 
-  const canonical =
-    (await loadStrategicEpisodeNarration(workspaceRoot, episodeId).catch(() => null)) ??
-    "Benvenuti. Questo episodio strategic-reinvention usa una narrazione fixture.";
-  const shortScript = canonical.split(".").slice(0, 2).join(".").trim() + ".";
+  let canonical = "";
+  let shortScript = "";
+  try {
+    const adaptation = await runStrategicSourceAdaptation({
+      workspaceRoot,
+      episodeId,
+      blueprint,
+      profile,
+    });
+    canonical = adaptation.canonicalScript;
+    shortScript = adaptation.shortScript;
+    mark("strategic.adaptation");
+  } catch {
+    canonical =
+      "Benvenuti. Questo episodio strategic-reinvention usa una narrazione fixture.";
+    shortScript = canonical.split(".").slice(0, 2).join(".").trim() + ".";
+    mark("strategic.adaptation");
+  }
   const localized = {
     en: `Welcome. ${canonical}`,
     es: `Bienvenidos. ${canonical}`,
@@ -232,11 +249,21 @@ export async function runStrategicEpisodePipeline(
   });
   let landscapeRenderExecuted = false;
   let portraitRenderExecuted = false;
+  let landscapeRenderValid = false;
+  let portraitRenderValid = false;
   if (cached && process.env["VERONICA_FFMPEG_RENDER"] === "1") {
-    executeVeronicaRender({ manifest: cached.landscapeManifest, execute: true });
-    executeVeronicaRender({ manifest: cached.portraitManifest, execute: true });
-    landscapeRenderExecuted = true;
-    portraitRenderExecuted = true;
+    const landscape = executeVeronicaRender({ manifest: cached.landscapeManifest, execute: true });
+    const portrait = executeVeronicaRender({ manifest: cached.portraitManifest, execute: true });
+    landscapeRenderExecuted = landscape.executed;
+    portraitRenderExecuted = portrait.executed;
+    landscapeRenderValid = (await validateVeronicaRenderOutput({
+      manifest: cached.landscapeManifest,
+      executed: landscape.executed,
+    })).valid;
+    portraitRenderValid = (await validateVeronicaRenderOutput({
+      manifest: cached.portraitManifest,
+      executed: portrait.executed,
+    })).valid;
   }
   mark("strategic.render");
   mark("strategic.render-qa");
@@ -260,6 +287,8 @@ export async function runStrategicEpisodePipeline(
     publishBlockers: publish.blockers,
     landscapeRenderExecuted,
     portraitRenderExecuted,
+    landscapeRenderValid,
+    portraitRenderValid,
     fingerprint: inputFingerprint,
     resumed: false,
   };

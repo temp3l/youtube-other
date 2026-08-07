@@ -4,6 +4,7 @@ import {
   compileRenderManifestToFfmpegArgs,
   validateCompiledFfmpegSafety,
 } from "./compiler.js";
+import { validateVeronicaRenderOutputSync } from "./output-validation.js";
 
 export interface ExecuteVeronicaRenderInput {
   readonly manifest: VeronicaRenderManifest;
@@ -16,6 +17,7 @@ export interface ExecuteVeronicaRenderResult {
   readonly commands: readonly (readonly string[])[];
   readonly outputPath: string;
   readonly skippedReason?: string;
+  readonly validationIssues?: readonly string[];
 }
 
 export function prepareVeronicaRenderCommands(
@@ -50,9 +52,14 @@ export function executeVeronicaRender(
       );
     }
   }
+  const validation = validateVeronicaRenderOutputSync({
+    manifest: input.manifest,
+    executed: true,
+  });
   return {
     executed: true,
     commands,
     outputPath: input.manifest.outputPath,
+    validationIssues: validation.issues,
   };
 }

@@ -20,7 +20,9 @@
 - `packages/veronica-media/src/rendering/executor.ts` — explicit `--execute` FFmpeg gate
 - `packages/veronica-media/src/fixtures/e2e-scenarios.ts` — VMB-420 scenario matrix
 - `packages/strategic-reinvention/src/full-task-definitions.ts` — full episode DAG
-- `packages/strategic-reinvention/src/episode-pipeline.ts` — episode orchestrator
+- `packages/strategic-reinvention/src/source-adaptation-bridge.ts` — source-led adaptation wiring
+- `packages/veronica-media/src/preparation/asset-rasterizer.ts` — deterministic PDF/PPTX/page raster synthesis
+- `packages/veronica-media/src/rendering/output-validation.ts` — post-render artifact checks
 - `packages/strategic-reinvention/src/multilingual-package.ts`
 - `packages/strategic-reinvention/src/publishing.ts`
 - `packages/strategic-reinvention/src/pilot-fixture.ts`
@@ -29,8 +31,8 @@
 ## Deferred extraction/generalization
 
 - Generic visual-plan base extraction from history v3.5
-- Source-led adaptation wired into episode pipeline (DAG stages exist; pilot uses fixture narration)
-- Measured FFmpeg render validation in CI (host `ffmpeg` required for `--execute`)
+- External PDF/PPTX renderer integration (current rasterizer is deterministic fixture-grade PNG synthesis)
+- Measured FFmpeg render validation in CI (host `ffmpeg` required for `VERONICA_FFMPEG_RENDER=1`)
 
 ## Tests to rerun after merge
 
