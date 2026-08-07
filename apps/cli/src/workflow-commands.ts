@@ -46,10 +46,10 @@ import {
   historyWorkflowDefinition,
 } from "@mediaforge/history";
 import {
-  createStrategicSupplementalTaskRegistrations,
-  createStrategicSupplementalWorkflowOperator,
-  runStrategicSupplementalWorkflowFixture,
-  strategicSupplementalWorkflowDefinition,
+  createStrategicFullTaskRegistrations,
+  createStrategicFullWorkflowOperator,
+  runStrategicFullWorkflowFixture,
+  strategicFullWorkflowDefinition,
 } from "@mediaforge/strategic-reinvention";
 import {
   ArtifactRepository,
@@ -232,8 +232,8 @@ function profileRuntime(
     return {
       resource,
       profileId: "strategic-reinvention",
-      workflow: strategicSupplementalWorkflowDefinition,
-      registrations: createStrategicSupplementalTaskRegistrations(),
+      workflow: strategicFullWorkflowDefinition,
+      registrations: createStrategicFullTaskRegistrations(),
     };
   }
   return fixtureRuntime(interrupt);
@@ -330,7 +330,7 @@ async function createOperator(
     });
   }
   if (resource === "strategic-episode") {
-    return createStrategicSupplementalWorkflowOperator({
+    return createStrategicFullWorkflowOperator({
       unitRoot,
       episodeId: unit,
       locale,
@@ -960,7 +960,7 @@ function addResourceCommands(
   } else if (resource === "strategic-episode") {
     parent.command("profile-fixture").action(
       action(async () => {
-        output(runStrategicSupplementalWorkflowFixture());
+        output(runStrategicFullWorkflowFixture());
       })
     );
   }

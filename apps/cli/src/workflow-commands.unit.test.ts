@@ -170,8 +170,8 @@ describe("workflow CLI commands", () => {
     };
     expect(strategicFixture.result).toMatchObject({
       status: "passed",
-      workflowId: "strategic-reinvention.supplemental-media",
-      taskCount: 5,
+      workflowId: "strategic-reinvention.episode",
+      taskCount: 20,
     });
   });
 

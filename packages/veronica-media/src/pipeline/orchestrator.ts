@@ -41,6 +41,15 @@ export interface VeronicaPipelineInput {
     readonly startSeconds: number;
     readonly endSeconds: number;
   }[];
+  readonly overrides?: Readonly<
+    Record<
+      string,
+      {
+        readonly requirement?: "required" | "preferred" | "optional";
+        readonly candidateId?: string;
+      }
+    >
+  >;
   readonly resume?: boolean;
 }
 
@@ -146,6 +155,7 @@ export async function runVeronicaSupplementalMediaPipeline(
     assets: ingested,
     targetLanguage: input.targetLanguage,
     ...(input.sourceLanguage ? { sourceLanguage: input.sourceLanguage } : {}),
+    ...(input.overrides ? { overrides: input.overrides } : {}),
   });
   if (input.alignedSegments && input.alignedSegments.length > 0) {
     const resolvedAnchors = resolveAnchorTimings({

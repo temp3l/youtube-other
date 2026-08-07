@@ -14,3 +14,4 @@ export * from "./review-pack/export.js";
 export * from "./pipeline/input-fingerprint.js";
 export * from "./pipeline/orchestrator.js";
 export * from "./fixtures/pilot.js";
+export * from "./fixtures/e2e-scenarios.js";

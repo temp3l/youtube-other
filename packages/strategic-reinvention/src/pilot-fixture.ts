@@ -3,13 +3,12 @@ import os from "node:os";
 import path from "node:path";
 import { createFixturePng, createFixturePptx } from "@mediaforge/veronica-media";
 import {
-  createStrategicSupplementalTaskRegistry,
-  STRATEGIC_SUPPLEMENTAL_TASK_IDS,
-  strategicSupplementalWorkflowDefinition,
+  createStrategicFullTaskRegistry,
+  STRATEGIC_FULL_TASK_IDS,
+  strategicFullWorkflowDefinition,
 } from "./task-registry.js";
-import { runStrategicSupplementalMediaBridge } from "./supplemental-media-bridge.js";
+import { runStrategicEpisodePipeline } from "./episode-pipeline.js";
 import { loadStrategicReinventionProfile } from "./profile.js";
-import { runStrategicPublishDryRun } from "./publishing.js";
 
 export const STRATEGIC_PILOT_FIXTURE_SCHEMA_VERSION =
   "strategic-reinvention.pilot-fixture.v1" as const;
@@ -21,12 +20,13 @@ export interface StrategicPilotFixtureResult {
   readonly genreId: "strategic-reinvention";
   readonly locales: readonly ("it" | "en" | "es")[];
   readonly variants: readonly ("full" | "short")[];
-  readonly supplementalTaskIds: readonly string[];
+  readonly fullTaskIds: readonly string[];
   readonly providerMutations: 0;
   readonly publishStatus: "dry-run-blocked";
   readonly publishBlockers: readonly string[];
-  readonly resumedSupplemental: boolean;
+  readonly resumedEpisode: boolean;
   readonly sourceInvalidationDetected: boolean;
+  readonly completedStageCount: number;
   readonly status: "passed";
 }
 
@@ -117,31 +117,22 @@ export async function runStrategicPilotFixture(): Promise<StrategicPilotFixtureR
   if (profile.creatorProfile.id !== "veronica-benini") {
     throw new Error("Pilot fixture requires creator veronica-benini.");
   }
-  const registry = createStrategicSupplementalTaskRegistry();
-  registry.validateWorkflow(strategicSupplementalWorkflowDefinition);
+  const registry = createStrategicFullTaskRegistry();
+  registry.validateWorkflow(strategicFullWorkflowDefinition);
   const workspaceRoot = await fs.mkdtemp(path.join(os.tmpdir(), "strategic-pilot-"));
   const episodeId = await writePilotEpisode(workspaceRoot);
-  const first = await runStrategicSupplementalMediaBridge({
-    workspaceRoot,
-    episodeId,
-  });
-  const second = await runStrategicSupplementalMediaBridge({
+  const first = await runStrategicEpisodePipeline({ workspaceRoot, episodeId });
+  const second = await runStrategicEpisodePipeline({
     workspaceRoot,
     episodeId,
     resume: true,
   });
   const chartPath = path.join(workspaceRoot, episodeId, "sources", "content", "chart.png");
   await fs.writeFile(chartPath, createFixturePng("changed-source"));
-  const afterSourceChange = await runStrategicSupplementalMediaBridge({
+  const afterSourceChange = await runStrategicEpisodePipeline({
     workspaceRoot,
     episodeId,
     resume: true,
-  });
-  const publish = await runStrategicPublishDryRun({
-    workspaceRoot,
-    episodeId,
-    locale: "it",
-    variant: "full",
   });
   return {
     schemaVersion: STRATEGIC_PILOT_FIXTURE_SCHEMA_VERSION,
@@ -150,13 +141,14 @@ export async function runStrategicPilotFixture(): Promise<StrategicPilotFixtureR
     genreId: "strategic-reinvention",
     locales: ["it", "en", "es"],
     variants: ["full", "short"],
-    supplementalTaskIds: [...STRATEGIC_SUPPLEMENTAL_TASK_IDS],
+    fullTaskIds: [...STRATEGIC_FULL_TASK_IDS],
     providerMutations: 0,
     publishStatus: "dry-run-blocked",
-    publishBlockers: publish.blockers,
-    resumedSupplemental: second.resumed === true,
+    publishBlockers: first.publishBlockers,
+    resumedEpisode: second.supplementalPlanContentHash === first.supplementalPlanContentHash,
     sourceInvalidationDetected:
-      afterSourceChange.plan.contentHash !== first.plan.contentHash,
+      afterSourceChange.supplementalPlanContentHash !== first.supplementalPlanContentHash,
+    completedStageCount: first.completedStages.length,
     status: "passed",
   };
 }

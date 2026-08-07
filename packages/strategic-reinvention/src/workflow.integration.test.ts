@@ -3,10 +3,13 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import {
+  createStrategicFullTaskRegistry,
   createStrategicSupplementalTaskRegistry,
   loadStrategicReinventionProfile,
   runStrategicSupplementalMediaBridge,
+  strategicFullWorkflowDefinition,
   strategicSupplementalWorkflowDefinition,
+  STRATEGIC_FULL_TASK_IDS,
 } from "./index.js";
 import { createFixturePng, createFixturePptx } from "@mediaforge/veronica-media";
 
@@ -23,20 +26,19 @@ describe("strategic supplemental media workflow", () => {
     expect(profile.productionReadiness.status).toBe("PRODUCTION_BLOCKED");
   });
 
-  it("registers a resumable supplemental-media DAG for strategic-reinvention", () => {
+  it("registers the full strategic-reinvention episode DAG", () => {
+    const registry = createStrategicFullTaskRegistry();
+    expect(strategicFullWorkflowDefinition.profileId).toBe("strategic-reinvention");
+    const taskIds = registry.list("strategic-reinvention").map((task) => task.id);
+    expect(taskIds).toHaveLength(STRATEGIC_FULL_TASK_IDS.length);
+    expect(new Set(taskIds)).toEqual(new Set(STRATEGIC_FULL_TASK_IDS));
+  });
+
+  it("keeps the supplemental-media slice as a sub-workflow", () => {
     const registry = createStrategicSupplementalTaskRegistry();
     expect(strategicSupplementalWorkflowDefinition.profileId).toBe("strategic-reinvention");
     const taskIds = registry.list("strategic-reinvention").map((task) => task.id);
     expect(taskIds).toHaveLength(5);
-    expect(new Set(taskIds)).toEqual(
-      new Set([
-        "strategic.supplemental-ingest",
-        "strategic.supplemental-plan",
-        "strategic.supplemental-prepare",
-        "strategic.supplemental-approval-pack",
-        "strategic.supplemental-review",
-      ]),
-    );
   });
 
   it("runs the strategic bridge over episode narration and sources/content", async () => {

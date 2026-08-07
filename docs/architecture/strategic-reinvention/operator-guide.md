@@ -14,7 +14,9 @@ written activation and rights evidence are recorded.
 | Profile gate | `packages/strategic-reinvention/src/profile.ts` |
 | Supplemental media | `packages/veronica-media/` |
 | Episode bridge | `packages/strategic-reinvention/src/supplemental-media-bridge.ts` |
-| Workflow DAG slice | `packages/strategic-reinvention/src/task-registry.ts` |
+| Workflow DAG | `packages/strategic-reinvention/src/full-task-definitions.ts` |
+| Episode orchestrator | `packages/strategic-reinvention/src/episode-pipeline.ts` |
+| Workflow DAG registry | `packages/strategic-reinvention/src/task-registry.ts` |
 | Multilingual package | `packages/strategic-reinvention/src/multilingual-package.ts` |
 | Publish dry-run | `packages/strategic-reinvention/src/publishing.ts` |
 | YouTube capability | `packages/youtube-upload/src/multilingual-audio-capability.ts` |
@@ -53,10 +55,21 @@ commands only.
 
 ### Workflow
 
+The `strategic-episode` resource registers the full 20-task episode DAG
+(`strategic-reinvention.episode`): source approval through adaptation,
+localization, supplemental media, render evidence, multilingual packaging,
+and publish dry-run.
+
 ```bash
 pnpm mediaforge -- workflow strategic-episode profile-fixture
 pnpm mediaforge -- workflow strategic-episode graph --episode episode-001 --unit-root /tmp/episodes/episode-001
 pnpm mediaforge -- workflow validate
+```
+
+Programmatic pilot:
+
+```bash
+pnpm test:focused -- packages/strategic-reinvention/src/pilot.integration.test.ts
 ```
 
 ## Approvals and invalidation
