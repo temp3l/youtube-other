@@ -43,3 +43,25 @@ export function validatePortraitReadiness(plan: VeronicaMediaPlan): number {
   if (portraitPlacements === 0) return 0;
   return portraitPrepared.length / portraitPlacements;
 }
+
+export function detectLayoutOverflow(input: {
+  readonly text: string;
+  readonly maxCharacters: number;
+  readonly maxLines?: number;
+}): {
+  readonly overflow: boolean;
+  readonly characterCount: number;
+  readonly lineCount: number;
+  readonly requiresApproval: boolean;
+} {
+  const characterCount = input.text.length;
+  const lineCount = input.text.split(/\r?\n/u).length;
+  const maxLines = input.maxLines ?? Number.POSITIVE_INFINITY;
+  const overflow = characterCount > input.maxCharacters || lineCount > maxLines;
+  return {
+    overflow,
+    characterCount,
+    lineCount,
+    requiresApproval: overflow,
+  };
+}

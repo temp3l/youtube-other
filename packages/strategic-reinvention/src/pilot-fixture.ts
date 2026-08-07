@@ -9,6 +9,7 @@ import {
 } from "./task-registry.js";
 import { runStrategicEpisodePipeline } from "./episode-pipeline.js";
 import { loadStrategicReinventionProfile } from "./profile.js";
+import { hashCanonicalSourceBytes } from "./provenance-validation.js";
 
 export const STRATEGIC_PILOT_FIXTURE_SCHEMA_VERSION =
   "strategic-reinvention.pilot-fixture.v1" as const;
@@ -56,39 +57,88 @@ const blueprint = {
       es: "https://example.com/consultation-es",
     },
   },
-  approvals: {
-    source: { actor: "reviewer-a", approvedAt: "2026-08-07T10:00:00.000Z" },
-    canonicalScript: { actor: "reviewer-a", approvedAt: "2026-08-07T10:05:00.000Z" },
-    localization: { actor: "reviewer-b", approvedAt: "2026-08-07T10:10:00.000Z" },
-    voice: { actor: "reviewer-a", approvedAt: "2026-08-07T10:15:00.000Z" },
-    finalRender: { actor: "reviewer-b", approvedAt: "2026-08-07T10:20:00.000Z" },
-    publish: {
-      actor: "reviewer-a",
-      secondReviewer: "reviewer-b",
-      approvedAt: "2026-08-07T10:25:00.000Z",
-      highRisk: true,
-    },
+} as const;
+
+const pilotApprovalFixtures = {
+  source: { actor: "reviewer-a", approvedAt: "2026-08-07T10:00:00.000Z" },
+  canonicalScript: { actor: "reviewer-a", approvedAt: "2026-08-07T10:05:00.000Z" },
+  localization: { actor: "reviewer-b", approvedAt: "2026-08-07T10:10:00.000Z" },
+  voice: { actor: "reviewer-a", approvedAt: "2026-08-07T10:15:00.000Z" },
+  finalRender: { actor: "reviewer-b", approvedAt: "2026-08-07T10:20:00.000Z" },
+  publish: {
+    actor: "reviewer-a",
+    secondReviewer: "reviewer-b",
+    approvedAt: "2026-08-07T10:25:00.000Z",
+    highRisk: true,
   },
 } as const;
 
 async function writePilotEpisode(workspaceRoot: string): Promise<string> {
   const episodeId = blueprint.episodeId;
   const episodeRoot = path.join(workspaceRoot, episodeId);
+  const sourceText =
+    "Benvenuti. Questo pilota dimostra il percorso di reinvenzione strategica.";
   await fs.mkdir(path.join(episodeRoot, "sources", "content"), { recursive: true });
+  await fs.mkdir(path.join(episodeRoot, "sources", "manifests"), { recursive: true });
   await fs.mkdir(path.join(episodeRoot, "languages"), { recursive: true });
   await fs.mkdir(path.join(episodeRoot, "languages", "short"), { recursive: true });
+  await fs.mkdir(path.join(episodeRoot, "state", "strategic-reinvention"), { recursive: true });
   await fs.writeFile(
     path.join(episodeRoot, "blueprint.json"),
     `${JSON.stringify({ ...blueprint, schemaVersion: "1.1", requiredApprovalGates: ["source", "publish"] }, null, 2)}\n`,
   );
   await fs.writeFile(
-    path.join(episodeRoot, "sources", "content", "source-primary.md"),
-    "Benvenuti. Questo pilota dimostra il percorso di reinvenzione strategica.",
-    "utf8",
+    path.join(episodeRoot, "state", "strategic-reinvention", "approval-fixtures.json"),
+    `${JSON.stringify(pilotApprovalFixtures, null, 2)}\n`,
+  );
+  await fs.writeFile(path.join(episodeRoot, "sources", "content", "source-primary.md"), sourceText);
+  const sourceBytes = new TextEncoder().encode(sourceText);
+  await fs.writeFile(
+    path.join(episodeRoot, "sources", "manifests", "source-primary.json"),
+    `${JSON.stringify(
+      {
+        schemaVersion: "1.1",
+        sourceId: "source-primary",
+        title: "Pilot primary source",
+        owner: "veronica-benini",
+        sourceType: "creator-written-note",
+        provenance: {
+          kind: "file",
+          location: "sources/content/source-primary.md",
+          originalLanguage: "it",
+        },
+        accessLevel: "public",
+        rights: {
+          status: "creator-owned",
+          allowedUses: ["adapt", "translate"],
+          permittedLocales: ["it", "en", "es"],
+          commercialUse: true,
+        },
+        aiTransformations: {
+          structure: true,
+          summarize: true,
+          adapt: true,
+          translate: true,
+          syntheticVoice: false,
+          syntheticLikeness: false,
+        },
+        sensitivity: {
+          classification: "normal",
+          tags: ["none"],
+          manualReviewRequired: false,
+        },
+        sourceHash: hashCanonicalSourceBytes(sourceBytes),
+        createdAt: "2026-08-07T10:00:00.000Z",
+        approvedAt: "2026-08-07T10:00:00.000Z",
+        approvedBy: "reviewer-a",
+      },
+      null,
+      2,
+    )}\n`,
   );
   await fs.writeFile(
     path.join(episodeRoot, "languages", "script-it.md"),
-    "Benvenuti. Questo pilota dimostra il percorso di reinvenzione strategica.",
+    sourceText,
     "utf8",
   );
   await fs.writeFile(

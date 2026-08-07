@@ -1,6 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { contentSourceManifestSchema, type EpisodeBlueprint } from "@mediaforge/domain";
+import { contentSourceManifestSchema, type ContentSourceManifest, type EpisodeBlueprint } from "@mediaforge/domain";
 import { writeJsonAtomic } from "@mediaforge/shared";
 import {
   createSourceLedAdaptation,
@@ -63,7 +63,42 @@ async function loadSourceBytes(
   return null;
 }
 
-function buildManifest(sourceId: string, bytes: Uint8Array): ReturnType<typeof contentSourceManifestSchema.parse> {
+async function loadSourceManifest(input: {
+  readonly workspaceRoot: string;
+  readonly episodeId: string;
+  readonly sourceId: string;
+  readonly bytes: Uint8Array;
+}): Promise<ContentSourceManifest> {
+  const episodeRoot = path.join(input.workspaceRoot, input.episodeId);
+  const manifestPaths = [
+    path.join(episodeRoot, "sources", "manifests", `${input.sourceId}.json`),
+    path.join(episodeRoot, "sources", `${input.sourceId}.manifest.json`),
+  ];
+  for (const manifestPath of manifestPaths) {
+    try {
+      const raw = JSON.parse(await fs.readFile(manifestPath, "utf8")) as unknown;
+      const manifest = contentSourceManifestSchema.parse(raw);
+      if (manifest.sourceId !== input.sourceId) {
+        throw new Error(`Manifest sourceId mismatch for ${input.sourceId}.`);
+      }
+      if (manifest.sourceHash !== hashCanonicalSourceBytes(input.bytes)) {
+        throw new Error(`Manifest sourceHash mismatch for ${input.sourceId}.`);
+      }
+      return manifest;
+    } catch (error) {
+      if (error instanceof Error && error.message.includes("mismatch")) {
+        throw error;
+      }
+      continue;
+    }
+  }
+  return buildSyntheticManifest(input.sourceId, input.bytes);
+}
+
+function buildSyntheticManifest(
+  sourceId: string,
+  bytes: Uint8Array,
+): ContentSourceManifest {
   return contentSourceManifestSchema.parse({
     schemaVersion: "1.1",
     sourceId,
@@ -168,7 +203,7 @@ function buildCandidateFromSource(input: {
 
 function buildEvidenceApprovals(input: {
   readonly episodeId: string;
-  readonly manifest: ReturnType<typeof contentSourceManifestSchema.parse>;
+  readonly manifest: ContentSourceManifest;
   readonly evidenceSpans: readonly SourceEvidenceSpan[];
   readonly sourceBytes: Uint8Array;
 }): EvidenceApprovalContext {
@@ -228,7 +263,12 @@ export async function runStrategicSourceAdaptation(
       `No text source found for ${sourceId}. Add sources/content/${sourceId}.md.`,
     );
   }
-  const manifest = buildManifest(sourceId, bytes);
+  const manifest = await loadSourceManifest({
+    workspaceRoot: input.workspaceRoot,
+    episodeId: input.episodeId,
+    sourceId,
+    bytes,
+  });
   const { candidate, evidenceSpans } = buildCandidateFromSource({
     blueprint: input.blueprint,
     sourceId,

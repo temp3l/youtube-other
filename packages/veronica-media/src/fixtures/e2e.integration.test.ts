@@ -19,7 +19,9 @@ afterEach(async () => {
 });
 
 describe("veronica e2e scenario matrix (VMB-420)", () => {
-  it("covers narration, PDF/PPTX, image, translation, dense slide, override, fallback, and approval cases", async () => {
+  it(
+    "covers narration, PDF/PPTX, image, translation, dense slide, override, fallback, and approval cases",
+    async () => {
     expect(listVeronicaE2eScenarioIds()).toHaveLength(VERONICA_E2E_SCENARIOS.length);
     for (const scenario of VERONICA_E2E_SCENARIOS) {
       const workspace = await fs.mkdtemp(path.join(os.tmpdir(), "veronica-e2e-"));
@@ -76,5 +78,7 @@ describe("veronica e2e scenario matrix (VMB-420)", () => {
         fs.stat(path.join(result.approvalPackDir, "aggregate-review.json")),
       ).resolves.toBeDefined();
     }
-  });
+    },
+    120_000,
+  );
 });

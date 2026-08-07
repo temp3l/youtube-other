@@ -19,6 +19,7 @@ export {
 export { rasterizeVeronicaPreparedAssetSynthetic } from "./preparation/asset-rasterizer.js";
 export * from "./workflow/regeneration.js";
 export * from "./review-pack/export.js";
+export * from "./review-pack/bulk-aggregate.js";
 export * from "./pipeline/input-fingerprint.js";
 export * from "./pipeline/orchestrator.js";
 export * from "./fixtures/pilot.js";

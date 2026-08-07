@@ -97,6 +97,12 @@ import {
   MATH_TASK_REGISTRY_VERSION,
   type MathProfileReadinessEvidence,
 } from "../task-registry.js";
+import {
+  MATH_EXECUTABLE_TASK_IDS,
+  type MathExecutableTaskId,
+} from "./math-executable-task-ids.js";
+
+export { MATH_EXECUTABLE_TASK_IDS, type MathExecutableTaskId } from "./math-executable-task-ids.js";
 
 export const MATH_CANONICAL_ADAPTER_VERSION =
   "math.canonical-adapters.v1" as const;
@@ -104,25 +110,6 @@ export const MATH_CANONICAL_ARTIFACT_VERSION =
   "math.canonical-task-artifact.v1" as const;
 
 type CurriculumRelease = Awaited<ReturnType<typeof loadCurriculumRelease>>;
-
-export const MATH_EXECUTABLE_TASK_IDS = [
-  "math.curriculum-import",
-  "math.source-validation",
-  "math.prerequisite-graph",
-  "math.lesson-spec",
-  "math.math-verification",
-  "math.canonical-narration",
-  "math.scene-timing",
-  "math.localization",
-  "math.visual-style",
-  "math.visual-assets",
-  "math.tts",
-  "math.timing-reflow",
-  "math.render",
-  "math.quality-gate",
-  "math.metadata-playlists",
-  "math.publish-dry-run",
-] as const;
 
 const ownerByTask = {
   "math.curriculum-import": "@mediaforge/math-education",

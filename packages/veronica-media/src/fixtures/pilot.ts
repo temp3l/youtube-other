@@ -16,14 +16,18 @@ export function createFixturePng(label: string): Uint8Array {
   const idat = Buffer.from([
     0x78, 0x9c, 0x63, 0x00, 0x01, 0x00, 0x00, 0x05, 0x00, 0x01, 0x0d, 0x0a, 0x2d, 0xb4,
   ]);
+  const textData = Buffer.concat([
+    Buffer.from("label", "ascii"),
+    Buffer.from([0]),
+    Buffer.from(label, "utf8"),
+  ]);
   const chunks = [
     chunk("IHDR", ihdr),
+    chunk("tEXt", textData),
     chunk("IDAT", idat),
     chunk("IEND", Buffer.alloc(0)),
   ];
   const body = Buffer.concat(chunks);
-  const comment = Buffer.from(`label=${label}`, "utf8");
-  void comment;
   return Uint8Array.from(Buffer.concat([Buffer.from(PNG_SIGNATURE), body]));
 }
 

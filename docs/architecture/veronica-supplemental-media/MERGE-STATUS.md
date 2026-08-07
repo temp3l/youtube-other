@@ -20,8 +20,9 @@
 - `packages/veronica-media/src/rendering/executor.ts` — explicit `--execute` FFmpeg gate
 - `packages/veronica-media/src/fixtures/e2e-scenarios.ts` — VMB-420 scenario matrix
 - `packages/strategic-reinvention/src/full-task-definitions.ts` — full episode DAG
-- `packages/strategic-reinvention/src/source-adaptation-bridge.ts` — source-led adaptation wiring
-- `packages/veronica-media/src/preparation/asset-rasterizer.ts` — deterministic PDF/PPTX/page raster synthesis
+- `packages/strategic-reinvention/src/source-adaptation-bridge.ts` — source-led adaptation wiring + JSON manifest loading
+- `packages/veronica-media/src/review-pack/bulk-aggregate.ts` — cross-episode approval rollup
+- `packages/veronica-media/src/preparation/external-rasterizer.ts` — pdftoppm/LibreOffice with synthetic fallback
 - `packages/veronica-media/src/rendering/output-validation.ts` — post-render artifact checks
 - `packages/strategic-reinvention/src/multilingual-package.ts`
 - `packages/strategic-reinvention/src/publishing.ts`
@@ -31,13 +32,15 @@
 ## Deferred extraction/generalization
 
 - Generic visual-plan base extraction from history v3.5
-- External PDF/PPTX renderer integration (current rasterizer is deterministic fixture-grade PNG synthesis)
-- Measured FFmpeg render validation via `pnpm verify:veronica-ffmpeg` (`VERONICA_FFMPEG_RENDER=1`)
+- External PDF/PPTX renderer integration — **partial**: `external-rasterizer.ts` probes pdftoppm/LibreOffice with synthetic fallback
+- Measured FFmpeg render validation — **done**: `pnpm verify:veronica-ffmpeg`
+- Source manifest JSON loading — **done**: `sources/manifests/{sourceId}.json` with hash validation
+- Bulk cross-episode approval aggregation — **done**: `exportBulkVeronicaApprovalReview`
 
 ## Tests to rerun after merge
 
 ```bash
-pnpm verify:veronica-ffmpeg
+pnpm test:focused -- packages/veronica-media/src/fixtures/pilot.unit.test.ts
 pnpm test:focused -- packages/veronica-media/src/fixtures/e2e.integration.test.ts
 pnpm test:focused -- packages/strategic-reinvention/src/workflow.integration.test.ts
 pnpm test:focused -- packages/strategic-reinvention/src/pilot.integration.test.ts

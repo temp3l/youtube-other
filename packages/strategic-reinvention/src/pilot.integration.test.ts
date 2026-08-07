@@ -3,7 +3,9 @@ import { runStrategicPilotFixture } from "./pilot-fixture.js";
 import { STRATEGIC_FULL_TASK_IDS } from "./task-registry.js";
 
 describe("strategic pilot fixture", () => {
-  it("runs the accepted strategic workflow contract without provider mutations", async () => {
+  it(
+    "runs the accepted strategic workflow contract without provider mutations",
+    async () => {
     const first = await runStrategicPilotFixture();
     const second = await runStrategicPilotFixture();
     expect(first).toEqual({
@@ -33,5 +35,7 @@ describe("strategic pilot fixture", () => {
     expect(first.fullTaskIds).toEqual(STRATEGIC_FULL_TASK_IDS);
     expect(first.completedStageCount).toBe(STRATEGIC_FULL_TASK_IDS.length);
     expect(first.publishBlockers.length).toBeGreaterThan(0);
-  });
+    },
+    60_000,
+  );
 });

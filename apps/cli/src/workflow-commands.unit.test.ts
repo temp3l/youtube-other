@@ -4,7 +4,7 @@ import path from "node:path";
 
 import { Command } from "commander";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { MATH_EXECUTABLE_TASK_IDS } from "@mediaforge/math-education";
+import { MATH_EXECUTABLE_TASK_IDS } from "../../../packages/math-education/src/orchestration/math-executable-task-ids.js";
 
 import {
   WorkflowCliError,

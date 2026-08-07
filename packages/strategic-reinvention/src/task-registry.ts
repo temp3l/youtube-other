@@ -106,7 +106,17 @@ export function createStrategicSupplementalTaskRegistrations(
 ): readonly TaskRegistration[] {
   return STRATEGIC_FULL_TASK_DEFINITIONS.filter((definition) =>
     definition.id.startsWith("strategic.supplemental-"),
-  ).map((definition) => registration(definition, implementations));
+  ).map((definition) =>
+    registration(
+      {
+        ...definition,
+        dependencies: definition.dependencies.filter((taskId) =>
+          taskId.startsWith("strategic.supplemental-"),
+        ),
+      },
+      implementations,
+    ),
+  );
 }
 
 export const strategicFullWorkflowDefinition: WorkflowDefinition =
