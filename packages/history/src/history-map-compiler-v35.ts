@@ -33,7 +33,14 @@ import {
   type GeoFactV35,
   type LocationFactV35,
   type MovementFactV35,
+  type SequenceFactV35,
 } from "./history-geo-facts-v35.js";
+import { collectUsedGeoFactIdsV35 } from "./history-geo-facts-export-v35.js";
+import {
+  actorDisplayLabelV35,
+  actorMentionIdsV35,
+  primaryActorMentionIdV35,
+} from "./history-map-actor-v35.js";
 import { resolveHistoryPlaceV34 } from "./history-geo-v34.js";
 
 function orientationLikePurpose(
@@ -71,18 +78,6 @@ function actorIsValid(text: string, entity: HistoryEntityMentionV34 | null): boo
   )
     return true;
   return false;
-}
-
-function collectiveMapActor(claimText: string): string {
-  if (/\b(?:105 survivors|surviving expedition members)\b/iu.test(claimText))
-    return "surviving expedition members";
-  if (/\bGrande Armée\b/iu.test(claimText)) return "Grande Armée";
-  if (/\bNapoleon(?:'s)? army\b/iu.test(claimText)) return "Napoleon's army";
-  if (/\b(?:merchant ships|ships arrived)\b/iu.test(claimText)) return "merchant ships";
-  if (/\b(?:Erebus|Terror|Royal Navy ships|two Royal Navy ships)\b/iu.test(claimText))
-    return "HMS Erebus and HMS Terror";
-  if (/\bRoyal Navy\b/iu.test(claimText)) return "Royal Navy expedition";
-  return "narrated expedition";
 }
 
 function resolveMentionPlace(
@@ -126,6 +121,8 @@ function mapPurposeForResolvedType(
       return fallback === "area" ? "area" : "orientation";
     case "movement":
       return isRouteMapPurpose(fallback) ? fallback : "journey";
+    case "no-map":
+      return fallback;
     default:
       return fallback;
   }
@@ -148,30 +145,166 @@ function scopedLocationMentionIds(geoFacts: readonly GeoFactV35[]): readonly str
   ];
 }
 
-function resolveLocatorOrSequenceFallback(input: {
-  readonly geoFacts: readonly GeoFactV35[];
-  readonly downgradeReason: HistoryMapDowngradeReasonV35;
-}): {
-  readonly resolved: HistoryMapSemanticTypeV35;
-  readonly downgradeReason: HistoryMapDowngradeReasonV35;
+function semanticStrength(
+  mapType: HistoryMapSemanticTypeV35 | "no-map"
+): number {
+  switch (mapType) {
+    case "no-map":
+      return -1;
+    case "locator":
+      return 0;
+    case "sequence":
+      return 1;
+    case "movement":
+      return 2;
+    default:
+      return 0;
+  }
+}
+
+function inferFallbackDowngradeReason(input: {
+  readonly requested: HistoryMapSemanticTypeV35;
+  readonly resolved: HistoryMapSemanticTypeV35 | "no-map";
+  readonly explicitReason?: HistoryMapDowngradeReasonV35;
+}): HistoryMapDowngradeReasonV35 | undefined {
+  if (input.resolved === "no-map") return input.explicitReason ?? "INSUFFICIENT_EVIDENCE";
+  if (input.requested === input.resolved) return undefined;
+  if (semanticStrength(input.resolved) > semanticStrength(input.requested)) return undefined;
+  if (input.explicitReason) return input.explicitReason;
+  if (input.requested === "movement" && input.resolved === "sequence")
+    return "MOVEMENT_NOT_SUPPORTED";
+  if (input.requested === "movement" && input.resolved === "locator")
+    return "DESTINATION_NOT_SUPPORTED";
+  if (input.requested === "sequence" && input.resolved === "locator")
+    return "INSUFFICIENT_EVIDENCE";
+  if (input.requested === "locator" && input.resolved === "no-map")
+    return "INSUFFICIENT_EVIDENCE";
+  return downgradeReasonForMissingCapability({
+    requested: input.requested,
+    capabilities: {
+      locator: input.resolved === "locator",
+      sequence: input.resolved === "sequence",
+      movement: input.resolved === "movement",
+      territory: false,
+      battleDisposition: false,
+    },
+    geoFacts: [],
+  });
+}
+
+type SemanticResolution = {
+  readonly resolved: HistoryMapSemanticTypeV35 | "no-map";
+  readonly downgradeReason?: HistoryMapDowngradeReasonV35;
+  readonly resolutionNotes?: readonly string[];
+  readonly movement?: MovementFactV35;
+  readonly sequence?: SequenceFactV35;
   readonly sequencePlaceMentionIds: readonly string[];
   readonly locatorPlaceMentionId?: string;
-} {
-  const locationMentionIds = scopedLocationMentionIds(input.geoFacts);
-  if (locationMentionIds.length > 1) {
-    return {
-      resolved: "sequence",
-      downgradeReason: input.downgradeReason,
-      sequencePlaceMentionIds: locationMentionIds,
-    };
-  }
-  const locator = findPrimaryLocationFact(input.geoFacts);
+  readonly usedGeoFactIds: readonly string[];
+};
+
+function finalizeSemanticResolution(input: {
+  readonly requested: HistoryMapSemanticTypeV35;
+  readonly resolved: HistoryMapSemanticTypeV35 | "no-map";
+  readonly geoFacts: readonly GeoFactV35[];
+  readonly explicitReason?: HistoryMapDowngradeReasonV35;
+  readonly resolutionNotes?: readonly string[];
+  readonly movement?: MovementFactV35;
+  readonly sequence?: SequenceFactV35;
+  readonly sequencePlaceMentionIds?: readonly string[];
+  readonly locatorPlaceMentionId?: string;
+}): SemanticResolution {
+  const downgradeReason = inferFallbackDowngradeReason({
+    requested: input.requested,
+    resolved: input.resolved,
+    ...(input.explicitReason ? { explicitReason: input.explicitReason } : {}),
+  });
+  const sequencePlaceMentionIds =
+    input.sequencePlaceMentionIds ?? input.sequence?.placeMentionIds ?? [];
   return {
-    resolved: "locator",
-    downgradeReason: input.downgradeReason,
-    sequencePlaceMentionIds: [],
-    locatorPlaceMentionId: locator?.placeMentionId,
+    resolved: input.resolved,
+    ...(downgradeReason ? { downgradeReason } : {}),
+    ...(input.resolutionNotes?.length ? { resolutionNotes: input.resolutionNotes } : {}),
+    ...(input.movement ? { movement: input.movement } : {}),
+    ...(input.sequence ? { sequence: input.sequence } : {}),
+    sequencePlaceMentionIds,
+    ...(input.locatorPlaceMentionId ? { locatorPlaceMentionId: input.locatorPlaceMentionId } : {}),
+    usedGeoFactIds: collectUsedGeoFactIdsV35({
+      geoFacts: input.geoFacts,
+      ...(input.movement ? { movement: input.movement } : {}),
+      ...(input.sequence ? { sequence: input.sequence } : {}),
+      ...(input.locatorPlaceMentionId ? { locatorPlaceMentionId: input.locatorPlaceMentionId } : {}),
+      ...(sequencePlaceMentionIds.length ? { sequencePlaceMentionIds } : {}),
+    }),
   };
+}
+
+function resolveMovementFact(input: {
+  readonly geoFacts: readonly GeoFactV35[];
+  readonly requestedActorId?: string;
+}): MovementFactV35 | undefined {
+  return (
+    (input.requestedActorId
+      ? findMovementFactForActor({
+          geoFacts: input.geoFacts,
+          actorMentionId: input.requestedActorId,
+        })
+      : undefined) ?? findAnyMovementFact(input.geoFacts)
+  );
+}
+
+function fallbackFromStrongerSemantics(input: {
+  readonly requested: HistoryMapSemanticTypeV35;
+  readonly geoFacts: readonly GeoFactV35[];
+  readonly capabilities: ReturnType<typeof deriveMapCapabilitiesV35>;
+  readonly explicitReason?: HistoryMapDowngradeReasonV35;
+}): SemanticResolution {
+  if (input.capabilities.sequence) {
+    const sequence = findSequenceFact(input.geoFacts);
+    if (sequence) {
+      return finalizeSemanticResolution({
+        requested: input.requested,
+        resolved: "sequence",
+        explicitReason: input.explicitReason ?? "MOVEMENT_NOT_SUPPORTED",
+        sequence,
+        geoFacts: input.geoFacts,
+      });
+    }
+    const locationMentionIds = scopedLocationMentionIds(input.geoFacts);
+    if (locationMentionIds.length > 1) {
+      return finalizeSemanticResolution({
+        requested: input.requested,
+        resolved: "sequence",
+        explicitReason: input.explicitReason ?? "MOVEMENT_NOT_SUPPORTED",
+        sequencePlaceMentionIds: locationMentionIds,
+        geoFacts: input.geoFacts,
+      });
+    }
+  }
+
+  const locator = findPrimaryLocationFact(input.geoFacts);
+  if (locator) {
+    return finalizeSemanticResolution({
+      requested: input.requested,
+      resolved: "locator",
+      explicitReason:
+        input.explicitReason ??
+        (input.requested === "movement"
+          ? "DESTINATION_NOT_SUPPORTED"
+          : input.requested === "sequence"
+            ? "INSUFFICIENT_EVIDENCE"
+            : "INSUFFICIENT_EVIDENCE"),
+      locatorPlaceMentionId: locator.placeMentionId,
+      geoFacts: input.geoFacts,
+    });
+  }
+
+  return finalizeSemanticResolution({
+    requested: input.requested,
+    resolved: "no-map",
+    explicitReason: "INSUFFICIENT_EVIDENCE",
+    geoFacts: input.geoFacts,
+  });
 }
 
 function resolveSemanticMap(input: {
@@ -179,134 +312,100 @@ function resolveSemanticMap(input: {
   readonly capabilities: ReturnType<typeof deriveMapCapabilitiesV35>;
   readonly geoFacts: readonly GeoFactV35[];
   readonly proposal: HistoryMapIntentProposalV34;
-  readonly entityById: ReadonlyMap<string, HistoryEntityMentionV34>;
-}): {
-  readonly resolved: HistoryMapSemanticTypeV35;
-  readonly downgradeReason?: HistoryMapDowngradeReasonV35;
-  readonly movement?: MovementFactV35;
-  readonly sequencePlaceMentionIds: readonly string[];
-  readonly locatorPlaceMentionId?: string;
-} {
+}): SemanticResolution {
   const requestedActorId = input.proposal.movingActorEntityMentionIds[0];
+
   if (input.requested === "movement" && input.capabilities.movement) {
-    const movement =
-      (requestedActorId
-        ? findMovementFactForActor({
-            geoFacts: input.geoFacts,
-            actorMentionId: requestedActorId,
-          })
-        : undefined) ?? findAnyMovementFact(input.geoFacts);
+    const movement = resolveMovementFact({
+      geoFacts: input.geoFacts,
+      ...(requestedActorId ? { requestedActorId } : {}),
+    });
     if (!movement) {
-      const downgradeReason: HistoryMapDowngradeReasonV35 = requestedActorId
-        ? "ACTOR_NOT_SUPPORTED"
-        : "MOVEMENT_NOT_SUPPORTED";
-      return {
-        ...resolveLocatorOrSequenceFallback({
-          geoFacts: input.geoFacts,
-          downgradeReason,
-        }),
-      };
+      return fallbackFromStrongerSemantics({
+        requested: input.requested,
+        geoFacts: input.geoFacts,
+        capabilities: input.capabilities,
+        explicitReason: "MOVEMENT_NOT_SUPPORTED",
+      });
     }
-    if (
-      requestedActorId &&
-      movement.actorMentionId &&
-      movement.actorMentionId !== requestedActorId
-    ) {
-      return {
-        ...resolveLocatorOrSequenceFallback({
-          geoFacts: input.geoFacts,
-          downgradeReason: "ACTOR_NOT_SUPPORTED",
-        }),
-      };
-    }
-    return {
+    return finalizeSemanticResolution({
+      requested: input.requested,
       resolved: "movement",
       movement,
-      sequencePlaceMentionIds: [],
-    };
+      geoFacts: input.geoFacts,
+    });
   }
 
   if (input.requested === "sequence" && input.capabilities.sequence) {
     const sequence = findSequenceFact(input.geoFacts);
-    if (sequence)
-      return {
+    if (sequence) {
+      return finalizeSemanticResolution({
+        requested: input.requested,
         resolved: "sequence",
-        sequencePlaceMentionIds: sequence.placeMentionIds,
-      };
+        sequence,
+        geoFacts: input.geoFacts,
+      });
+    }
+  }
+
+  if (input.requested === "locator" && input.capabilities.locator) {
+    const locator = findPrimaryLocationFact(input.geoFacts);
+    if (locator) {
+      return finalizeSemanticResolution({
+        requested: input.requested,
+        resolved: "locator",
+        locatorPlaceMentionId: locator.placeMentionId,
+        geoFacts: input.geoFacts,
+      });
+    }
+    return finalizeSemanticResolution({
+      requested: input.requested,
+      resolved: "no-map",
+      explicitReason: "INSUFFICIENT_EVIDENCE",
+      geoFacts: input.geoFacts,
+    });
   }
 
   if (
     input.capabilities.movement &&
     (input.requested === "movement" || input.requested === "sequence")
   ) {
-    const movement =
-      (requestedActorId
-        ? findMovementFactForActor({
-            geoFacts: input.geoFacts,
-            actorMentionId: requestedActorId,
-          })
-        : undefined) ?? findAnyMovementFact(input.geoFacts);
+    const movement = resolveMovementFact({
+      geoFacts: input.geoFacts,
+      ...(requestedActorId ? { requestedActorId } : {}),
+    });
     if (movement) {
-      if (
-        requestedActorId &&
-        movement.actorMentionId &&
-        movement.actorMentionId !== requestedActorId
-      ) {
-        return {
-          ...resolveLocatorOrSequenceFallback({
-            geoFacts: input.geoFacts,
-            downgradeReason: "ACTOR_NOT_SUPPORTED",
-          }),
-        };
-      }
-      return {
+      return finalizeSemanticResolution({
+        requested: input.requested,
         resolved: "movement",
         movement,
-        sequencePlaceMentionIds: [],
-      };
+        geoFacts: input.geoFacts,
+      });
     }
   }
 
-  const downgradeReason =
-    downgradeReasonForMissingCapability({
+  if (input.requested === "movement") {
+    return fallbackFromStrongerSemantics({
       requested: input.requested,
-      capabilities: input.capabilities,
       geoFacts: input.geoFacts,
-    }) ?? "INSUFFICIENT_EVIDENCE";
-
-  if (input.capabilities.sequence && input.requested === "movement") {
-    const sequence = findSequenceFact(input.geoFacts);
-    if (sequence)
-      return {
-        resolved: "sequence",
-        downgradeReason: "MOVEMENT_NOT_SUPPORTED",
-        sequencePlaceMentionIds: sequence.placeMentionIds,
-      };
+      capabilities: input.capabilities,
+    });
   }
 
-  const locationMentionIds = scopedLocationMentionIds(input.geoFacts);
-  if (locationMentionIds.length > 1) {
-    return {
-      resolved: "sequence",
-      downgradeReason,
-      sequencePlaceMentionIds: locationMentionIds,
-    };
+  if (input.requested === "sequence") {
+    return fallbackFromStrongerSemantics({
+      requested: input.requested,
+      geoFacts: input.geoFacts,
+      capabilities: input.capabilities,
+      explicitReason: "INSUFFICIENT_EVIDENCE",
+    });
   }
 
-  const locator = findPrimaryLocationFact(input.geoFacts);
-  if (locator)
-    return {
-      resolved: "locator",
-      downgradeReason,
-      sequencePlaceMentionIds: [],
-      locatorPlaceMentionId: locator.placeMentionId,
-    };
-
-  return {
-    resolved: "locator",
-    downgradeReason,
-    sequencePlaceMentionIds: [],
-  };
+  return fallbackFromStrongerSemantics({
+    requested: input.requested,
+    geoFacts: input.geoFacts,
+    capabilities: input.capabilities,
+  });
 }
 
 export function compileMapStateV35(input: {
@@ -361,8 +460,9 @@ export function compileMapStateV35(input: {
     capabilities,
     geoFacts,
     proposal: normalizedProposal,
-    entityById,
   });
+
+  if (semantic.resolved === "no-map") return null;
 
   if (normalizedProposal.mapPurpose === "discovery-location") {
     const grounded = normalizedProposal.claimIds.every((claimId) => {
@@ -391,6 +491,8 @@ export function compileMapStateV35(input: {
   let waypointPlaces: HistoryPlaceV34[] = [];
   let movingActor = "";
   let actorMention: HistoryEntityMentionV34 | undefined;
+  let actorProvenance = semantic.movement?.actorRef;
+  let movingActorEntityMentionIds: string[] = [];
   let routeType: HistoryRouteTypeV34 = normalizedProposal.routeType;
   let leaders: string[] = [];
 
@@ -401,12 +503,22 @@ export function compileMapStateV35(input: {
     waypointPlaces = semantic.movement.waypointMentionIds
       .map((mentionId) => resolveMentionPlace(mentionId, entityById))
       .filter((item): item is HistoryPlaceV34 => Boolean(item));
-    actorMention = semantic.movement.actorMentionId
-      ? entityById.get(semantic.movement.actorMentionId)
-      : undefined;
-    movingActor = survivorMarch
-      ? "surviving expedition members"
-      : actorMention?.normalizedLabel ?? collectiveMapActor(claimText);
+    if (survivorMarch) {
+      movingActor = "surviving expedition members";
+      actorProvenance = {
+        kind: "claim-expression",
+        normalizedLabel: "surviving expedition members",
+        claimIds: semantic.movement.claimIds,
+      };
+      movingActorEntityMentionIds = [];
+      actorMention = undefined;
+    } else {
+      actorProvenance = semantic.movement.actorRef;
+      movingActor = actorDisplayLabelV35(actorProvenance, input.entities);
+      movingActorEntityMentionIds = [...actorMentionIdsV35(actorProvenance)];
+      const primaryActorId = primaryActorMentionIdV35(actorProvenance);
+      actorMention = primaryActorId ? entityById.get(primaryActorId) : undefined;
+    }
     leaders = (normalizedProposal.leaderEntityMentionIds ?? [])
       .map((id) => entityById.get(id)?.normalizedLabel)
       .filter((item): item is string => Boolean(item));
@@ -442,17 +554,17 @@ export function compileMapStateV35(input: {
   )
     blockers.push("MAP_IDENTITY_ROUTE");
 
-  const orientationLike = orientationLikePurpose(resolvedMapPurpose);
-  if (!survivorMarch && semantic.resolved === "movement" && !actorIsValid(movingActor, actorMention ?? null)) {
-    if (
-      orientationLike ||
-      routeType === "conceptual" ||
-      (routeType === "maritime" && /\bships?\b/iu.test(claimText))
-    ) {
-      movingActor = collectiveMapActor(claimText);
-    } else {
-      blockers.push("MAP_ACTOR_INVALID");
-    }
+  if (!survivorMarch && semantic.resolved === "movement" && actorProvenance) {
+    const actorValid = actorMention
+      ? actorIsValid(movingActor, actorMention)
+      : actorProvenance.kind === "claim-expression" && movingActor.trim().length > 0;
+    if (!actorValid) blockers.push("MAP_ACTOR_INVALID");
+  } else if (
+    !survivorMarch &&
+    semantic.resolved === "movement" &&
+    !actorIsValid(movingActor, actorMention ?? null)
+  ) {
+    blockers.push("MAP_ACTOR_INVALID");
   }
   if (actorMention && isRejectedEntityTextV34(actorMention.text).reject)
     blockers.push("MAP_ACTOR_STOPWORD");
@@ -509,8 +621,9 @@ export function compileMapStateV35(input: {
     requestedMapType,
     resolvedMapType: semantic.resolved,
     ...(semantic.downgradeReason ? { downgradeReason: semantic.downgradeReason } : {}),
+    ...(semantic.resolutionNotes?.length ? { resolutionNotes: semantic.resolutionNotes } : {}),
     scopeClaimIds,
-    geoFactIds: geoFacts.map((fact) => fact.id),
+    geoFactIds: semantic.usedGeoFactIds,
     ...(shouldDrawRoute ? { routeGeometrySemantics } : {}),
   };
 
@@ -559,6 +672,10 @@ export function compileMapStateV35(input: {
               },
               movingActor: movingActor || "unresolved actor",
               movingActorEntityMentionId: actorMention?.id ?? null,
+              ...(movingActorEntityMentionIds.length
+                ? { movingActorEntityMentionIds }
+                : {}),
+              ...(actorProvenance ? { actorProvenance } : {}),
               leaders,
               carrierOrVehicle: null,
               dateOrPeriod: period,
@@ -575,8 +692,10 @@ export function compileMapStateV35(input: {
     uncertainty:
       semantic.downgradeReason
         ? `Compiler downgraded from ${requestedMapType} to ${semantic.resolved}: ${semantic.downgradeReason}.`
-        : normalizedProposal.uncertainty.join("; ") ||
-          "Keep geography broad where narration is broad.",
+        : semantic.resolutionNotes?.length
+          ? semantic.resolutionNotes.join("; ")
+          : normalizedProposal.uncertainty.join("; ") ||
+            "Keep geography broad where narration is broad.",
     semanticStatus: blockers.length ? "blocked" : "valid",
     blockerCodes: blockers,
     compilerResolution,
@@ -599,7 +718,14 @@ export function compileMapStateV35(input: {
 
 export function validateCompiledMapStateV35(state: HistoryMapStateV34): string[] {
   const blockers = [...state.blockerCodes];
+  if (state.compilerResolution) {
+    const { requestedMapType, resolvedMapType, downgradeReason } = state.compilerResolution;
+    if (requestedMapType === resolvedMapType && downgradeReason)
+      blockers.push("MAP_COMPILER_INVALID_DOWNGRADE");
+    if (resolvedMapType === "no-map") blockers.push("MAP_COMPILER_NO_MAP_STATE");
+  }
   for (const route of state.routes) {
+    if (!route.actorProvenance) blockers.push("MAP_ACTOR_PROVENANCE_MISSING");
     if (route.originPlaceId === route.destinationPlaceId && !isSinglePlaceMapPurpose(state.mapPurpose))
       blockers.push("MAP_IDENTITY_ROUTE");
     if (isPlaceholderCoordinates(route.origin.coordinates))

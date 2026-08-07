@@ -229,6 +229,8 @@ export interface HistoryMapRouteV34 {
   };
   readonly movingActor: string;
   readonly movingActorEntityMentionId: string | null;
+  readonly movingActorEntityMentionIds?: readonly string[];
+  readonly actorProvenance?: MovementActorRefV35;
   readonly leaders: readonly string[];
   readonly carrierOrVehicle: string | null;
   readonly dateOrPeriod: string;
@@ -242,11 +244,34 @@ export type HistoryMapSemanticTypeV35 =
   | "sequence"
   | "movement"
   | "territory"
-  | "battle-disposition";
+  | "battle-disposition"
+  | "no-map";
 
 export type HistoryRouteGeometrySemanticsV35 =
   | "documented-path"
   | "schematic-progression";
+
+export type MovementActorRefV35 =
+  | {
+      readonly kind: "entity";
+      readonly entityMentionId: string;
+      readonly claimIds: readonly string[];
+    }
+  | {
+      readonly kind: "entities";
+      readonly entityMentionIds: readonly string[];
+      readonly claimIds: readonly string[];
+    }
+  | {
+      readonly kind: "claim-expression";
+      readonly normalizedLabel: string;
+      readonly claimIds: readonly string[];
+      readonly sourceText: string;
+      readonly sourceSpan?: {
+        readonly startUtf16: number;
+        readonly endUtf16Exclusive: number;
+      };
+    };
 
 export type HistoryMapDowngradeReasonV35 =
   | "DESTINATION_NOT_SUPPORTED"
@@ -261,6 +286,7 @@ export interface HistoryMapCompilerResolutionV35 {
   readonly requestedMapType: HistoryMapSemanticTypeV35;
   readonly resolvedMapType: HistoryMapSemanticTypeV35;
   readonly downgradeReason?: HistoryMapDowngradeReasonV35;
+  readonly resolutionNotes?: readonly string[];
   readonly scopeClaimIds: readonly string[];
   readonly geoFactIds: readonly string[];
   readonly routeGeometrySemantics?: HistoryRouteGeometrySemanticsV35;

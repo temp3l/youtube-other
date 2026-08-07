@@ -17,6 +17,10 @@ import {
   proposeMapIntentsV35,
 } from "./history-geo-v35.js";
 import {
+  buildReviewableGeoFactsV35,
+  validateGeoFactReferentialIntegrityV35,
+} from "./history-geo-facts-export-v35.js";
+import {
   buildConcreteVisualConceptV35,
   buildConcreteVisualPurposeV35,
   buildSemanticJustificationV35,
@@ -2463,6 +2467,14 @@ export function validateHistoryVisualPlanV35(plan: HistoryVisualPlanV35): {
     }
   if (!plan.qualityMetrics.thresholds)
     throw new Error("History V3.4 quality metrics missing thresholds.");
+  const geoFactIntegrityErrors = validateGeoFactReferentialIntegrityV35({
+    plan,
+    exportedGeoFacts: buildReviewableGeoFactsV35(plan),
+  });
+  if (geoFactIntegrityErrors.length)
+    throw new Error(
+      `History V3.5 geo-fact referential integrity failed: ${geoFactIntegrityErrors.join("; ")}`
+    );
   return {
     structurallyValid: plan.approval.structurallyValid,
     editoriallyReviewable: plan.approval.editoriallyReviewable,

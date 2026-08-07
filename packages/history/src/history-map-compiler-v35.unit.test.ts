@@ -3,7 +3,7 @@ import {
   deriveMapCapabilitiesV35,
   extractGeoFactsV35,
 } from "./history-geo-facts-v35.js";
-import { compileMapStateV35 } from "./history-map-compiler-v35.js";
+import { compileMapStateV35, validateCompiledMapStateV35 } from "./history-map-compiler-v35.js";
 import { proposeMapIntentsV35 } from "./history-geo-v35.js";
 import { normalizeHistoryNarrationV33 } from "./history-narration-v33.js";
 import { structureTrustedScriptClaimsV34 } from "./history-claims-v34.js";
@@ -335,8 +335,9 @@ describe("History V3.5 evidence-bound map compiler", () => {
       entities: [napoleon, army, moscow, smolensk],
       geographicQualifiers: geo,
     });
-    expect(compiled?.state.routes).toEqual([]);
-    expect(compiled?.state.compilerResolution?.downgradeReason).toBe("ACTOR_NOT_SUPPORTED");
+    expect(compiled?.state.routes).toHaveLength(1);
+    expect(compiled?.state.routes[0]?.movingActor).toBe("Napoleon Bonaparte");
+    expect(compiled?.state.compilerResolution?.resolvedMapType).toBe("movement");
   });
 
   it("E. episode-context destination cannot leak into beat-scoped compile", () => {
@@ -654,6 +655,267 @@ describe("History V3.5 evidence-bound map compiler", () => {
 });
 
 describe("History V3.5 map compiler invariants", () => {
+  it("never records downgrade reasons for same-type resolutions", () => {
+    const claim = makeClaim({
+      id: "claim-locator",
+      text: "Napoleon was in Moscow.",
+      entityMentionIds: ["entity-moscow"],
+      geographicQualifierIds: ["geo-moscow"],
+    });
+    const moscow = makeEntity({
+      id: "entity-moscow",
+      claimId: "claim-locator",
+      label: "Moscow",
+      entityType: "place",
+    });
+    const geo = [
+      makeGeo({
+        id: "geo-moscow",
+        claimId: "claim-locator",
+        entityMentionId: moscow.id,
+        role: "location",
+      }),
+    ];
+    const compiled = compileWithProposal({
+      scopeClaimIds: ["claim-locator"],
+      proposal: {
+        claimIds: ["claim-locator"],
+        mapPurpose: "location",
+        movingActorEntityMentionIds: [],
+        originPlaceMentionIds: [moscow.id],
+        destinationPlaceMentionIds: [moscow.id],
+        waypointPlaceMentionIds: [],
+        temporalQualifierIds: [],
+        routeType: "none",
+        uncertainty: [],
+      },
+      claims: [claim],
+      entities: [moscow],
+      geographicQualifiers: geo,
+    });
+    const resolution = compiled?.state.compilerResolution;
+    expect(resolution?.requestedMapType).toBe("locator");
+    expect(resolution?.resolvedMapType).toBe("locator");
+    expect(resolution?.downgradeReason).toBeUndefined();
+    expect(validateCompiledMapStateV35(compiled!.state)).not.toContain(
+      "MAP_COMPILER_INVALID_DOWNGRADE"
+    );
+  });
+
+  it("movement unsupported with sequence evidence downgrades to sequence", () => {
+    const claim = makeClaim({
+      id: "claim-bd",
+      text: "Messina in Sicily and the Black Sea were both affected.",
+      entityMentionIds: ["entity-messina", "entity-black-sea"],
+      geographicQualifierIds: ["geo-messina", "geo-black-sea"],
+    });
+    const messina = makeEntity({
+      id: "entity-messina",
+      claimId: "claim-bd",
+      label: "Messina",
+      entityType: "place",
+    });
+    const blackSea = makeEntity({
+      id: "entity-black-sea",
+      claimId: "claim-bd",
+      label: "Black Sea",
+      entityType: "water-body",
+    });
+    const geo = [
+      makeGeo({
+        id: "geo-messina",
+        claimId: "claim-bd",
+        entityMentionId: messina.id,
+        role: "location",
+      }),
+      makeGeo({
+        id: "geo-black-sea",
+        claimId: "claim-bd",
+        entityMentionId: blackSea.id,
+        role: "location",
+      }),
+    ];
+    const compiled = compileWithProposal({
+      scopeClaimIds: ["claim-bd"],
+      proposal: {
+        claimIds: ["claim-bd"],
+        mapPurpose: "journey",
+        movingActorEntityMentionIds: [],
+        originPlaceMentionIds: [blackSea.id],
+        destinationPlaceMentionIds: [messina.id],
+        waypointPlaceMentionIds: [],
+        temporalQualifierIds: [],
+        routeType: "maritime",
+        uncertainty: [],
+      },
+      claims: [claim],
+      entities: [messina, blackSea],
+      geographicQualifiers: geo,
+    });
+    expect(compiled?.state.compilerResolution?.resolvedMapType).toBe("sequence");
+    expect(compiled?.state.compilerResolution?.downgradeReason).toBe("MOVEMENT_NOT_SUPPORTED");
+    expect(compiled?.state.routes).toEqual([]);
+  });
+
+  it("movement unsupported with only locator evidence downgrades to locator", () => {
+    const claim = makeClaim({
+      id: "claim-locator-only",
+      text: "Napoleon retreated from Moscow.",
+      entityMentionIds: ["entity-moscow"],
+      geographicQualifierIds: ["geo-origin"],
+    });
+    const moscow = makeEntity({
+      id: "entity-moscow",
+      claimId: "claim-locator-only",
+      label: "Moscow",
+      entityType: "place",
+    });
+    const geo = [
+      makeGeo({
+        id: "geo-origin",
+        claimId: "claim-locator-only",
+        entityMentionId: moscow.id,
+        role: "origin",
+      }),
+    ];
+    const compiled = compileWithProposal({
+      scopeClaimIds: ["claim-locator-only"],
+      proposal: {
+        claimIds: ["claim-locator-only"],
+        mapPurpose: "journey",
+        movingActorEntityMentionIds: [],
+        originPlaceMentionIds: [moscow.id],
+        destinationPlaceMentionIds: [moscow.id],
+        waypointPlaceMentionIds: [],
+        temporalQualifierIds: [],
+        routeType: "overland",
+        uncertainty: [],
+      },
+      claims: [claim],
+      entities: [moscow],
+      geographicQualifiers: geo,
+    });
+    expect(compiled?.state.compilerResolution?.resolvedMapType).toBe("locator");
+    expect(compiled?.state.compilerResolution?.downgradeReason).toBe("DESTINATION_NOT_SUPPORTED");
+  });
+
+  it("retreat beat with scoped Moscow retains locator without Berezina route", () => {
+    const claim = makeClaim({
+      id: "claim-retreat-moscow",
+      text: "By October, Napoleon began the retreat from Moscow.",
+      entityMentionIds: ["entity-napoleon", "entity-moscow"],
+      geographicQualifierIds: ["geo-origin"],
+    });
+    const napoleon = makeEntity({
+      id: "entity-napoleon",
+      claimId: "claim-retreat-moscow",
+      label: "Napoleon Bonaparte",
+      entityType: "person",
+      semanticRole: "leader",
+    });
+    const moscow = makeEntity({
+      id: "entity-moscow",
+      claimId: "claim-retreat-moscow",
+      label: "Moscow",
+      entityType: "place",
+    });
+    const geo = [
+      makeGeo({
+        id: "geo-origin",
+        claimId: "claim-retreat-moscow",
+        entityMentionId: moscow.id,
+        role: "origin",
+      }),
+    ];
+    const compiled = compileWithProposal({
+      scopeClaimIds: ["claim-retreat-moscow"],
+      proposal: {
+        claimIds: ["claim-retreat-moscow"],
+        mapPurpose: "journey",
+        movingActorEntityMentionIds: [napoleon.id],
+        originPlaceMentionIds: [moscow.id],
+        destinationPlaceMentionIds: [moscow.id],
+        waypointPlaceMentionIds: [],
+        temporalQualifierIds: [],
+        routeType: "overland",
+        uncertainty: [],
+      },
+      claims: [claim],
+      entities: [napoleon, moscow],
+      geographicQualifiers: geo,
+    });
+    expect(compiled?.state.compilerResolution?.resolvedMapType).toBe("locator");
+    expect(compiled?.state.baseGeography).toContain("Moscow");
+    expect(compiled?.state.routes).toEqual([]);
+    expect(
+      compiled?.state.labels.some((label) => label.text === "Berezina River")
+    ).toBe(false);
+  });
+
+  it("Franklin supported movement still compiles movement map", () => {
+    const claim = makeClaim({
+      id: "claim-franklin",
+      text: "Two Royal Navy ships sailed from Britain to search for the Northwest Passage.",
+      entityMentionIds: ["entity-britain", "entity-passage", "entity-ships"],
+      geographicQualifierIds: ["geo-origin", "geo-destination"],
+    });
+    const britain = makeEntity({
+      id: "entity-britain",
+      claimId: "claim-franklin",
+      label: "Britain",
+      entityType: "place",
+    });
+    const passage = makeEntity({
+      id: "entity-passage",
+      claimId: "claim-franklin",
+      label: "Northwest Passage",
+      entityType: "water-body",
+    });
+    const ships = makeEntity({
+      id: "entity-ships",
+      claimId: "claim-franklin",
+      label: "Royal Navy ships",
+      entityType: "ship",
+      semanticRole: "actor",
+    });
+    const geo = [
+      makeGeo({
+        id: "geo-origin",
+        claimId: "claim-franklin",
+        entityMentionId: britain.id,
+        role: "origin",
+      }),
+      makeGeo({
+        id: "geo-destination",
+        claimId: "claim-franklin",
+        entityMentionId: passage.id,
+        role: "destination",
+      }),
+    ];
+    const compiled = compileWithProposal({
+      scopeClaimIds: ["claim-franklin"],
+      proposal: {
+        claimIds: ["claim-franklin"],
+        mapPurpose: "area",
+        movingActorEntityMentionIds: [ships.id],
+        originPlaceMentionIds: [britain.id],
+        destinationPlaceMentionIds: [passage.id],
+        waypointPlaceMentionIds: [],
+        temporalQualifierIds: [],
+        routeType: "maritime",
+        uncertainty: [],
+      },
+      claims: [claim],
+      entities: [britain, passage, ships],
+      geographicQualifiers: geo,
+    });
+    expect(compiled?.state.compilerResolution?.resolvedMapType).toBe("movement");
+    expect(compiled?.state.compilerResolution?.downgradeReason).toBeUndefined();
+    expect(compiled?.state.routes).toHaveLength(1);
+    expect(compiled?.state.routes[0]?.origin.label).toBe("Britain");
+    expect(compiled?.state.routes[0]?.destination.label).toBe("Northwest Passage");
+  });
+
   it("movement maps always include actor, endpoints, and provenance", () => {
     const claim = makeClaim({
       id: "claim-inv",

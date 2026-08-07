@@ -52,6 +52,8 @@ export * from "./history-v35-contracts.js";
 export * from "./history-temporal-v35.js";
 export * from "./history-visual-semantics-v35.js";
 export * from "./history-geo-facts-v35.js";
+export * from "./history-geo-facts-export-v35.js";
+export * from "./history-map-actor-v35.js";
 export * from "./history-map-compiler-v35.js";
 export * from "./history-geo-v35.js";
 export * from "./visual-planner-v35.js";

@@ -33,6 +33,10 @@ import {
   validateHistoryVisualPlanV35,
 } from "./visual-planner-v35.js";
 import { summarizeVerificationStatusV35, normalizeTrustedAttestationTimestampsV34 } from "./history-visual-semantics-v35.js";
+import {
+  buildReviewableGeoFactsV35,
+  validateGeoFactReferentialIntegrityV35,
+} from "./history-geo-facts-export-v35.js";
 
 const exec = promisify(execFile);
 const sha256 = (value: Buffer | string): string =>
@@ -457,6 +461,9 @@ function approvalMarkdown(plan: HistoryVisualPlanV35): string {
         resolution.downgradeReason
           ? `  downgrade: ${resolution.downgradeReason}`
           : "  downgrade: none",
+        resolution.resolutionNotes?.length
+          ? `  notes: ${resolution.resolutionNotes.join("; ")}`
+          : null,
         resolution.routeGeometrySemantics
           ? `  route geometry: ${resolution.routeGeometrySemantics}`
           : null,
@@ -538,6 +545,13 @@ export async function createHistoryApprovalPackV35(request: {
   if (productionPrerequisites.length)
     plan = applyPlanProductionPrerequisitesV35(plan, productionPrerequisites);
   const validation = buildHistoryValidationSnapshotV35(plan);
+  const geoFacts = buildReviewableGeoFactsV35(plan);
+  const geoFactIntegrityErrors = validateGeoFactReferentialIntegrityV35({
+    plan,
+    exportedGeoFacts: geoFacts,
+  });
+  if (geoFactIntegrityErrors.length)
+    throw new Error(`History V3.5 geo-fact referential integrity failed: ${geoFactIntegrityErrors.join("; ")}`);
   const paths = episodePaths(request);
   const directory = path.resolve(request.output);
   await fs.rm(directory, { recursive: true, force: true });
@@ -592,6 +606,7 @@ export async function createHistoryApprovalPackV35(request: {
     "rejected-entities.json": plan.rejectedEntities,
     "temporal-qualifiers.json": plan.temporalQualifiers,
     "geographic-qualifiers.json": plan.geographicQualifiers,
+    "geo-facts.json": geoFacts,
     "quantitative-qualifiers.json": plan.quantitativeQualifiers,
     "script-claim-bindings.json": bindings,
     "visual-concepts.json": plan.visualConcepts,

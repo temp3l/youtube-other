@@ -7,6 +7,10 @@ import type {
   HistoryTemporalQualifierV34,
 } from "./history-v34-contracts.js";
 import { claimAuthorizesRouteMovement } from "./history-visual-semantics-v34.js";
+import {
+  resolveMovementActorRefV35,
+} from "./history-map-actor-v35.js";
+import type { MovementActorRefV35 } from "./history-v34-contracts.js";
 
 export type GeoFactIdV35 = string;
 
@@ -21,6 +25,7 @@ export interface MovementFactV35 {
   readonly id: GeoFactIdV35;
   readonly type: "movement";
   readonly actorMentionId: string | null;
+  readonly actorRef: MovementActorRefV35;
   readonly originMentionId: string;
   readonly destinationMentionId: string;
   readonly waypointMentionIds: readonly string[];
@@ -207,7 +212,6 @@ export function extractGeoFactsV35(input: {
       });
     }
 
-    const actor = selectActorMention(claim, input.entities);
     const movementAuthorized = claimAuthorizesRouteMovement(text);
     let originId = origins[0] ?? locations[0];
     let destinationId = destinations[0] ?? locations[1];
@@ -226,25 +230,51 @@ export function extractGeoFactsV35(input: {
       }
     }
     if (movementAuthorized && originId && destinationId && originId !== destinationId) {
-      pushFact({
-        id: factId([
-          "movement",
-          claim.id,
-          actor?.id ?? "collective",
-          originId,
-          destinationId,
-        ]),
-        type: "movement",
-        actorMentionId: actor?.id ?? null,
-        originMentionId: originId,
-        destinationMentionId: destinationId,
-        waypointMentionIds: locations.filter(
-          (id) => id !== originId && id !== destinationId
-        ),
-        claimIds: [claim.id],
-        temporalQualifierIds: claim.temporalQualifierIds,
-        documentedPath: documentedPathSupported(text),
+      const actorResolution = resolveMovementActorRefV35({
+        movementClaim: claim,
+        scopeClaimIds: input.scopeClaimIds,
+        claims: input.claims,
+        entities: input.entities,
       });
+      if (actorResolution.status === "resolved") {
+        const actorRef = actorResolution.actorRef;
+        pushFact({
+          id: factId([
+            "movement",
+            claim.id,
+            actorRef.kind === "entity"
+              ? actorRef.entityMentionId
+              : actorRef.kind === "entities"
+                ? actorRef.entityMentionIds.join("-")
+                : actorRef.normalizedLabel,
+            originId,
+            destinationId,
+          ]),
+          type: "movement",
+          actorMentionId:
+            actorRef.kind === "entity"
+              ? actorRef.entityMentionId
+              : actorRef.kind === "entities"
+                ? (actorRef.entityMentionIds[0] ?? null)
+                : null,
+          actorRef,
+          originMentionId: originId,
+          destinationMentionId: destinationId,
+          waypointMentionIds: locations.filter(
+            (id) => id !== originId && id !== destinationId
+          ),
+          claimIds: [claim.id],
+          temporalQualifierIds: claim.temporalQualifierIds,
+          documentedPath: documentedPathSupported(text),
+        });
+      } else if (allPlaceIds.length >= 2) {
+        pushFact({
+          id: factId(["sequence", claim.id, ...allPlaceIds]),
+          type: "sequence",
+          placeMentionIds: allPlaceIds,
+          claimIds: [claim.id],
+        });
+      }
     } else if (allPlaceIds.length >= 2) {
       pushFact({
         id: factId(["sequence", claim.id, ...allPlaceIds]),
@@ -343,7 +373,11 @@ export function findMovementFactForActor(input: {
   return input.geoFacts.find(
     (fact): fact is MovementFactV35 =>
       fact.type === "movement" &&
-      (fact.actorMentionId === input.actorMentionId || fact.actorMentionId === null)
+      (fact.actorRef.kind === "entity"
+        ? fact.actorRef.entityMentionId === input.actorMentionId
+        : fact.actorRef.kind === "entities"
+          ? fact.actorRef.entityMentionIds.includes(input.actorMentionId)
+          : false)
   );
 }
 
