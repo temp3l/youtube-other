@@ -1,0 +1,42 @@
+# Soft block: excluded from codebase indexing and semantic search.
+# Files remain readable and can still be pulled in with @file when needed.
+
+# Build output, dependencies, and caches
+node_modules/
+dist/
+build/
+coverage/
+.cache/
+.turbo/
+.vite/
+*.tsbuildinfo
+
+# Episode and media pipelines (large generated trees)
+episodes/
+episodes/**/output/
+episodes/**/state/
+episodes/**/generated-assets/
+audio/
+video/
+images/
+transcripts/
+logs/
+soundfiles/
+reference-thumbnails/
+
+# Generated, archival, and vendored content
+docs.bak/
+content-ideas/
+math-video-examples/
+horror-evaluations/
+artifacts/
+.artifacts/
+.mediaforge/
+debug/openai-calls/
+.tmp-shorts-*/
+.trash/
+tools/whisper.cpp
+
+# Python virtual environments
+**/.venv/
+**/__pycache__/

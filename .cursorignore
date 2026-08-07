@@ -1,0 +1,17 @@
+# Hard block: invisible to indexing, @mentions, Tab, and Inline Edit.
+# Agent terminal/MCP tools may still read these paths — keep real secrets out of the repo.
+
+# Environment and credentials
+.env
+.env.*
+!.env.example
+secrets/
+*.pem
+*.key
+*.p12
+*.pfx
+id_rsa
+id_rsa.pub
+
+# Local databases and caches that may contain tokens or PII
+.mediaforge.sqlite
