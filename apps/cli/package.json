@@ -40,6 +40,7 @@
     "@mediaforge/testing": "workspace:*",
     "@mediaforge/transcript-cleaning": "workspace:*",
     "@mediaforge/transcription": "workspace:*",
+    "@mediaforge/veronica-media": "workspace:*",
     "@mediaforge/visual-planning": "workspace:*",
     "@mediaforge/workflow-engine": "workspace:*",
     "commander": "^14.0.0",

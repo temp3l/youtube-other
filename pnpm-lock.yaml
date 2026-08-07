@@ -181,6 +181,9 @@ importers:
       '@mediaforge/transcription':
         specifier: workspace:*
         version: link:../../packages/transcription
+      '@mediaforge/veronica-media':
+        specifier: workspace:*
+        version: link:../../packages/veronica-media
       '@mediaforge/visual-planning':
         specifier: workspace:*
         version: link:../../packages/visual-planning
@@ -691,6 +694,36 @@ importers:
       '@mediaforge/shared':
         specifier: workspace:*
         version: link:../shared
+      zod:
+        specifier: ^4.0.14
+        version: 4.4.3
+
+  packages/veronica-media:
+    dependencies:
+      '@mediaforge/domain':
+        specifier: workspace:*
+        version: link:../domain
+      '@mediaforge/observability':
+        specifier: workspace:*
+        version: link:../observability
+      '@mediaforge/process-runner':
+        specifier: workspace:*
+        version: link:../process-runner
+      '@mediaforge/rendering':
+        specifier: workspace:*
+        version: link:../rendering
+      '@mediaforge/shared':
+        specifier: workspace:*
+        version: link:../shared
+      '@mediaforge/source-ingestion':
+        specifier: workspace:*
+        version: link:../source-ingestion
+      '@mediaforge/strategic-reinvention':
+        specifier: workspace:*
+        version: link:../strategic-reinvention
+      '@mediaforge/visual-planning':
+        specifier: workspace:*
+        version: link:../visual-planning
       zod:
         specifier: ^4.0.14
         version: 4.4.3

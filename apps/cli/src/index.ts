@@ -221,6 +221,7 @@ import {
 } from "./episode-image-summary.js";
 import { registerImagesBatchCommands } from "./images-batch-commands.js";
 import { MathCliSemanticError, registerMathCommands } from "./math-commands.js";
+import { registerVeronicaMediaCommands } from "./veronica-media-commands.js";
 import { buildImageStatusOutput } from "./images-status-output.js";
 import { registerImagesResumeCommand } from "./images-resume-command.js";
 import { registerImagesSyncSharedCommand } from "./images-sync-shared-command.js";
@@ -5343,6 +5344,7 @@ registerShotsCommands(program);
 registerStoryLocalizationCommands(program);
 registerThumbnailCommands(program);
 registerMathCommands(program);
+registerVeronicaMediaCommands(program);
 registerWorkflowCommands(program);
 registerWorkflowAdmissionCommand(program);
 registerApprovalCommands(program);

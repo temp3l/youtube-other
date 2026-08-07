@@ -1,0 +1,34 @@
+{
+  "pack": "veronica-media-integration-agentic-goal-v2",
+  "version": "2.0.0",
+  "files": {
+    "00-agentic-goal.md": {
+      "sha256": "ea23b7c278ae777bcdf098165e98c5b4acfc03b76ca471546c72f7cf93fd864c",
+      "bytes": 10789
+    },
+    "01-concurrency-and-cross-session-safety.md": {
+      "sha256": "7581fb77679521ebdde20eb86de872e13ff44403a1793f9eaba2185f322907cf",
+      "bytes": 4910
+    },
+    "02-planning-and-contract-audit.md": {
+      "sha256": "c619ed949ab6bef58e4c39b31ad3a35a00b0d1536314ffd27cd2d81081610c70",
+      "bytes": 3574
+    },
+    "03-parallel-implementation-tasks.md": {
+      "sha256": "59d95e299bd9c13cddda5a6161c9e40aba9b0d32d2e357428612ce44797b7f32",
+      "bytes": 6212
+    },
+    "04-review-and-acceptance.md": {
+      "sha256": "a1b54b7f34eadadd5adcd598f2f33533704fa318509329e4df7c524455a3813d",
+      "bytes": 4990
+    },
+    "05-kickoff-prompt.md": {
+      "sha256": "dcfa830dbaea0bdc5fafa4ebba1717490bb1a47df0b0c96efea655304a9220df",
+      "bytes": 3617
+    },
+    "README.md": {
+      "sha256": "69ca09219d489830e1cfabc5d4080901624716a31c2d2a318acacded88987ee5",
+      "bytes": 2591
+    }
+  }
+}
