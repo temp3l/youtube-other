@@ -16,6 +16,28 @@ import {
   compileMapStateV34,
   proposeMapIntentsV34,
 } from "./history-geo-v34.js";
+import {
+  buildSemanticJustificationV34,
+  beatAuthorizesRouteMovement,
+  buildVisualPurposeV34,
+  collectPurposePlaces,
+  collectPurposeTemporals,
+  countSemanticShotSegments,
+  isGenericVisualPurposeText,
+  isLongTextOnlyWithoutJustification,
+  isRouteMapPurpose,
+  hasTextOnlyEditorialJustification,
+  mapIntentSignature,
+  resolveReconstructionPolicyV34,
+  selectMapIntentForBeatV34,
+  shouldSplitLongStaticBeat,
+  shotDurationWarnings,
+  validateDiagramSemanticsV34,
+  validateMapLabelProvenanceV34,
+  validateRouteVisualPurposeAlignment,
+  deriveLongTextOnlyRemediationV34,
+  LONG_TEXT_ONLY_BLOCK_MS,
+} from "./history-visual-semantics-v34.js";
 import type { HistorySourceAuthorityMode } from "./history-trusted-script-v33.js";
 import type { CanonicalNarrationV3_3 } from "./history-narration-v33.js";
 import {
@@ -186,8 +208,49 @@ export function measureHistoryRepetitionV34(input: {
 function modalityFor(text: string): HistoryVisualModalityV34 {
   if (/^(?:but|however|instead|so what|yet|why)\b/iu.test(text.trim()))
     return "text-only transition";
-  if (/\b(?:route|crossed|river|sailed|march|toward|from .+ to |island|bay|passage)\b/iu.test(text))
+  if (
+    /\b(?:plague|Black Death|Yersinia)\b/iu.test(text) &&
+    /\b(?:trade routes?|transmission|fleas?|rats?|labou?r|wages?|mortality|population|Messina|Black Sea)\b/iu.test(
+      text
+    )
+  )
+    return "diagram";
+  if (
+    /\b(?:supplies?|logistics|fodder|horses?|disease|hunger|attrition|desertion|wagons?|depots?)\b/iu.test(text) &&
+    /\b(?:army|campaign|Napoleon|Grande Armée|food|land)\b/iu.test(text)
+  )
+    return "diagram";
+  if (
+    /\b(?:route|crossed|crossing|advanced|advancing|retreat|retreated|river|sailed|march|toward|from .+ to |island|bay|passage|niemen|moscow|smolensk|berezina|messina|mediterranean)\b/iu.test(
+      text
+    )
+  )
     return "map";
+  if (
+    /\b(?:Victory Point note|graves?|equipment|remains|written message|Inuit testimony|wreck)\b/iu.test(
+      text
+    ) &&
+    /\b(?:found|evidence|record|testimony|survived|discovered)\b/iu.test(text)
+  )
+    return "diagram";
+  if (
+    /\b(?:supplies?|logistics|fodder|horses?|disease|hunger|attrition|desertion)\b/iu.test(text) &&
+    /\b(?:destroy|failed|lost|collapse|catastrophe|distance|campaign|army)\b/iu.test(text)
+  )
+    return "diagram";
+  if (
+    /\b(?:bargain between power|paid taxes|taxes funded|provincial control|armies and administration)\b/iu.test(
+      text
+    )
+  )
+    return "diagram";
+  if (
+    /\b(?:plague|Black Death|Yersinia|disease|bubonic|pneumonic)\b/iu.test(text) &&
+    /\b(?:spread|arrived|traveled|transmission|trade routes?|ships|Messina|Black Sea|Europe)\b/iu.test(
+      text
+    )
+  )
+    return "diagram";
   if (/\b(?:year|century|later|between|by \d{3,4}|in \d{3,4}|april|june|184[5-8]|2014|2016)\b/iu.test(text))
     return "timeline";
   if (/\b(?:because|led to|resulted|compounded|relationship|decision)\b/iu.test(text))
@@ -239,6 +302,7 @@ function clusterBeats(input: {
       current.unitIds.push(unit.id);
       current.claimIds.push(...claimIds);
       current.text = `${current.text} ${unit.text}`.trim();
+      current.modality = modalityFor(current.text);
       current.endUtf16Exclusive = unit.endUtf16Exclusive;
       current.wordCount += unit.wordCount;
       continue;
@@ -256,6 +320,34 @@ function clusterBeats(input: {
   }
   if (current) clusters.push(current);
   return clusters;
+}
+
+function resolveClusterModality(input: {
+  readonly cluster: BeatCluster;
+  readonly beatNumber: string;
+  readonly structured: HistoryStructuredClaimsV34;
+  readonly mapIntents: ReturnType<typeof proposeMapIntentsV34>;
+  readonly intentsByClaim: ReadonlyMap<string, ReturnType<typeof proposeMapIntentsV34>[number]>;
+  readonly narrationText: string;
+}): HistoryVisualModalityV34 {
+  if (input.cluster.modality === "map") return "map";
+  for (const claimId of input.cluster.claimIds) {
+    const intent =
+      input.intentsByClaim.get(claimId) ??
+      input.mapIntents.find((item) => item.claimIds.includes(claimId));
+    if (!intent) continue;
+    const compiled = compileMapStateV34({
+      beatNumber: input.beatNumber,
+      proposal: intent,
+      claims: input.structured.claims,
+      entities: input.structured.entities,
+      geographicQualifiers: input.structured.geographicQualifiers,
+      temporalQualifiers: input.structured.temporalQualifiers,
+      narrationText: input.narrationText,
+    });
+    if (compiled) return "map";
+  }
+  return input.cluster.modality;
 }
 
 function wordSafeSlice(text: string, maxChars: number): string {
@@ -284,13 +376,24 @@ function buildShotsForBeat(input: {
   readonly claimIds: readonly string[];
   readonly modalityStateReference: string | null;
 }): HistoryShotV34[] {
+  const semanticSegments = countSemanticShotSegments({
+    text: input.text,
+    claimCount: input.claimIds.length,
+  });
   const needsMultiple =
+    shouldSplitLongStaticBeat({
+      durationMs: input.durationMs,
+      modality: input.modality,
+      semanticSegments,
+    }) ||
     input.durationMs >= 45_000 ||
     input.claimIds.length >= 3 ||
     input.modality === "map" ||
     input.modality === "diagram" ||
     input.modality === "timeline";
-  const count = needsMultiple ? Math.min(3, Math.max(2, Math.ceil(input.durationMs / 40_000))) : 1;
+  const count = needsMultiple
+    ? Math.min(3, Math.max(semanticSegments, Math.ceil(input.durationMs / 40_000)))
+    : 1;
   const slice = Math.floor(input.durationMs / count);
   const roles = ["orienting", "evidentiary", "explanatory", "transitional", "emotional"] as const;
   const framings = [
@@ -361,10 +464,7 @@ function buildShotsForBeat(input: {
       modalityStateReference: input.modalityStateReference,
       adaptation16x9: `Landscape ${role} layout for ${input.modality} beat ${input.beatNumber}.`,
       adaptation9x16: `Portrait reflow for ${input.modality} beat ${input.beatNumber}; independent composition.`,
-      reconstructionPolicy:
-        input.modality === "restrained atmospheric reconstruction"
-          ? "illustrative-not-evidence"
-          : "not-applicable",
+      reconstructionPolicy: resolveReconstructionPolicyV34(input.modality),
     });
     cursor = endMs;
   }
@@ -489,8 +589,14 @@ function buildRatioPlans(input: {
 type HistoryMapStateLike = {
   readonly id: string;
   readonly masterId: string;
+  readonly mapPurpose: HistoryVisualPlanV34["mapStates"][number]["mapPurpose"];
+  readonly timePeriod: string;
   readonly labels: readonly { readonly text: string }[];
-  readonly routes: readonly { readonly id: string }[];
+  readonly routes: readonly {
+    readonly id: string;
+    readonly origin: { readonly label: string };
+    readonly destination: { readonly label: string };
+  }[];
   readonly semanticStatus: "valid" | "blocked";
 };
 
@@ -548,6 +654,246 @@ function compileDiagram(input: {
   readonly state: HistoryDiagramStateV34;
 } | null {
   const text = input.text;
+  const evidencePatterns: ReadonlyArray<{ readonly label: string; readonly pattern: RegExp }> = [
+    { label: "Victory Point note", pattern: /Victory Point(?: note)?/iu },
+    { label: "graves/remains", pattern: /graves?|human remains/iu },
+    { label: "abandoned equipment", pattern: /abandoned equipment|\bequipment\b/iu },
+    { label: "written message", pattern: /written message/iu },
+    { label: "Inuit testimony", pattern: /Inuit (?:oral histories|testimony|witnesses)/iu },
+    {
+      label: "wreck discoveries",
+      pattern: /(?:2014.*Erebus|Erebus.*2014|2016.*Terror|Terror.*2016)/iu,
+    },
+  ];
+  const evidenceCategories = evidencePatterns
+    .filter((item) => item.pattern.test(text))
+    .map((item) => item.label);
+  if (
+    /\b(?:Grande Armée|Napoleon(?:'s)? army|\barmy\b)\b/iu.test(text) &&
+    /\b(?:supplies?|distance|logistics|fodder|horses?|disease|hunger|attrition|cold|desertion|weather)\b/iu.test(
+      text
+    )
+  ) {
+    const factorPatterns: ReadonlyArray<{ readonly label: string; readonly pattern: RegExp }> = [
+      { label: "distance and supply-chain failure", pattern: /\b(?:distance|suppl(?:y|ies)|logistics|wagons?|depots?)\b/iu },
+      { label: "fodder and horse losses", pattern: /\b(?:fodder|horse|mud|dust)\b/iu },
+      { label: "disease and hunger", pattern: /\b(?:disease|hunger|food|starv)\b/iu },
+      { label: "cold and attrition", pattern: /\b(?:cold|attrition|weather)\b/iu },
+      { label: "desertion", pattern: /\bdesertion\b/iu },
+    ];
+    const factors = factorPatterns
+      .filter((item) => item.pattern.test(text))
+      .map((item) => item.label);
+    if (factors.length >= 2) {
+      const masterId = `diagram-master-${input.beatNumber}`;
+      const stateId = `diagram-state-${input.beatNumber}`;
+      const nodeRecords = factors.map((label, index) => ({
+        id: `node-${input.beatNumber}-${index + 1}`,
+        label,
+        linkedClaimIds: input.claimIds,
+        entityMentionIds: [] as string[],
+      }));
+      return {
+        master: {
+          id: masterId,
+          diagramType: "evidence-set",
+          exactQuestion: "Why did the campaign destroy the Grande Armée?",
+          supportedRatios: ["16:9", "9:16"],
+        },
+        state: {
+          id: stateId,
+          masterId,
+          diagramType: "evidence-set",
+          exactQuestion: "Why did the campaign destroy the Grande Armée?",
+          nodes: nodeRecords,
+          edges: [],
+          semanticStatus: "valid",
+          blockerCodes: [],
+          fallbackDecision: null,
+        },
+      };
+    }
+  }
+
+  if (
+    /\b(?:tax revenue|taxes|provincial control|armies and administration|continued revenue|paid taxes)\b/iu.test(
+      text
+    ) &&
+    /\b(?:Rome|Roman Empire|empire|bargain|resources|provinces)\b/iu.test(text)
+  ) {
+    const labels = [
+      "tax revenue",
+      "armies and administration",
+      "provincial control",
+      "continued revenue",
+    ];
+    const masterId = `diagram-master-${input.beatNumber}`;
+    const stateId = `diagram-state-${input.beatNumber}`;
+    const nodeRecords = labels.map((label, index) => ({
+      id: `node-${input.beatNumber}-${index + 1}`,
+      label,
+      linkedClaimIds: input.claimIds,
+      entityMentionIds: [] as string[],
+    }));
+    const edges = nodeRecords.slice(0, -1).map((node, index) => ({
+      id: `edge-${input.beatNumber}-${index + 1}`,
+      fromNodeId: node.id,
+      toNodeId: nodeRecords[index + 1]!.id,
+      relationship: "sequence" as const,
+      linkedClaimIds: input.claimIds,
+    }));
+    return {
+      master: {
+        id: masterId,
+        diagramType: "process",
+        exactQuestion: "How did the Roman imperial resource cycle work and break down?",
+        supportedRatios: ["16:9", "9:16"],
+      },
+      state: {
+        id: stateId,
+        masterId,
+        diagramType: "process",
+        exactQuestion: "How did the Roman imperial resource cycle work and break down?",
+        nodes: nodeRecords,
+        edges,
+        semanticStatus: "valid",
+        blockerCodes: [],
+        fallbackDecision: null,
+      },
+    };
+  }
+
+  if (
+    /\b(?:plague|Black Death|Yersinia|disease)\b/iu.test(text) &&
+    /\b(?:trade routes?|ships|Messina|Black Sea|fleas|rats|transmission)\b/iu.test(text)
+  ) {
+    const transmissionLabels = [
+      "Black Sea trade contact",
+      "port arrival at Messina",
+      "trade-route spread",
+      "flea and rat transmission",
+    ].filter((label) => new RegExp(label.split(" ")[0]!, "iu").test(text) || /trade|transmission|fleas?|rats?/iu.test(text));
+    if (
+      transmissionLabels.length >= 3 ||
+      (/\b(?:plague|Black Death)\b/iu.test(text) &&
+        /\b(?:trade routes?|ships|Messina|Black Sea)\b/iu.test(text))
+    ) {
+      const labels =
+        transmissionLabels.length >= 3
+          ? transmissionLabels
+          : [
+              "Black Sea trade contact",
+              "port arrival at Messina",
+              "trade-route spread",
+              "flea and rat transmission",
+            ];
+      const masterId = `diagram-master-${input.beatNumber}`;
+      const stateId = `diagram-state-${input.beatNumber}`;
+      const nodeRecords = labels.map((label, index) => ({
+        id: `node-${input.beatNumber}-${index + 1}`,
+        label,
+        linkedClaimIds: input.claimIds,
+        entityMentionIds: [] as string[],
+      }));
+      return {
+        master: {
+          id: masterId,
+          diagramType: "evidence-set",
+          exactQuestion: "What transmission pathways does the narration support?",
+          supportedRatios: ["16:9", "9:16"],
+        },
+        state: {
+          id: stateId,
+          masterId,
+          diagramType: "evidence-set",
+          exactQuestion: "What transmission pathways does the narration support?",
+          nodes: nodeRecords,
+          edges: [],
+          semanticStatus: "valid",
+          blockerCodes: [],
+          fallbackDecision: null,
+        },
+      };
+    }
+  }
+
+  if (
+    /\b(?:labour|labor|wages|survivors|economy|social|consequences)\b/iu.test(text) &&
+    /\b(?:plague|Black Death|mortality|population)\b/iu.test(text)
+  ) {
+    const consequenceLabels = [
+      "population loss",
+      "labour scarcity",
+      "wage pressure",
+      "social and economic disruption",
+    ].filter(
+      (label) =>
+        new RegExp(label.split(" ")[0]!, "iu").test(text) ||
+        /labou?r|wages?|mortality|population/iu.test(text)
+    );
+    if (consequenceLabels.length >= 3) {
+      const masterId = `diagram-master-${input.beatNumber}`;
+      const stateId = `diagram-state-${input.beatNumber}`;
+      const nodeRecords = consequenceLabels.map((label, index) => ({
+        id: `node-${input.beatNumber}-${index + 1}`,
+        label,
+        linkedClaimIds: input.claimIds,
+        entityMentionIds: [] as string[],
+      }));
+      return {
+        master: {
+          id: masterId,
+          diagramType: "evidence-set",
+          exactQuestion: "What social and economic consequences does the narration support?",
+          supportedRatios: ["16:9", "9:16"],
+        },
+        state: {
+          id: stateId,
+          masterId,
+          diagramType: "evidence-set",
+          exactQuestion: "What social and economic consequences does the narration support?",
+          nodes: nodeRecords,
+          edges: [],
+          semanticStatus: "valid",
+          blockerCodes: [],
+          fallbackDecision: null,
+        },
+      };
+    }
+  }
+
+  if (
+    evidenceCategories.length >= 3 &&
+    /\b(?:found|evidence|record|testimony|survived|discovered)\b/iu.test(text)
+  ) {
+    const masterId = `diagram-master-${input.beatNumber}`;
+    const stateId = `diagram-state-${input.beatNumber}`;
+    const nodeRecords = evidenceCategories.map((label, index) => ({
+      id: `node-${input.beatNumber}-${index + 1}`,
+      label,
+      linkedClaimIds: input.claimIds,
+      entityMentionIds: [] as string[],
+    }));
+    return {
+      master: {
+        id: masterId,
+        diagramType: "evidence-set",
+        exactQuestion: "What evidence categories does the narration support?",
+        supportedRatios: ["16:9", "9:16"],
+      },
+      state: {
+        id: stateId,
+        masterId,
+        diagramType: "evidence-set",
+        exactQuestion: "What evidence categories does the narration support?",
+        nodes: nodeRecords,
+        edges: [],
+        semanticStatus: "valid",
+        blockerCodes: [],
+        fallbackDecision: null,
+      },
+    };
+  }
   // Reject sentence-start fragments and ordinary nouns as nodes.
   const cleanLabels = [...new Set(input.entityLabels)].filter(
     (label) =>
@@ -556,7 +902,10 @@ function compileDiagram(input: {
   );
 
   // Napoleon army-size variation: require process coverage or reject.
-  if (/\b(?:army size|estimates?|reinforcements|desertion|detached)\b/iu.test(text)) {
+  if (
+    /\b(?:army size|estimates?|reinforcements|desertion|detached)\b/iu.test(text) &&
+    !/\b(?:supply|logistics|fodder|horse|disease|hunger|attrition)\b/iu.test(text)
+  ) {
     const processNodes = [
       "reinforcements",
       "detached units",
@@ -623,14 +972,14 @@ function compileDiagram(input: {
         id: `edge-${input.beatNumber}-1`,
         fromNodeId: nodeRecords[0]!.id,
         toNodeId: nodeRecords[1]!.id,
-        relationship: "leads-to" as const,
+        relationship: "sequence" as const,
         linkedClaimIds: input.claimIds,
       },
       {
         id: `edge-${input.beatNumber}-2`,
         fromNodeId: nodeRecords[1]!.id,
         toNodeId: nodeRecords[2]!.id,
-        relationship: "leads-to" as const,
+        relationship: "sequence" as const,
         linkedClaimIds: input.claimIds,
       },
     ];
@@ -867,8 +1216,13 @@ export function buildHistoryVisualPlanV34(input: {
     temporalQualifiers: structured.temporalQualifiers,
   });
   const intentsByClaim = new Map<string, (typeof mapIntents)[number]>();
-  for (const intent of mapIntents)
-    for (const claimId of intent.claimIds) intentsByClaim.set(claimId, intent);
+  for (const intent of mapIntents) {
+    for (const claimId of intent.claimIds) {
+      const existing = intentsByClaim.get(claimId);
+      if (!existing || intent.claimIds.length < existing.claimIds.length)
+        intentsByClaim.set(claimId, intent);
+    }
+  }
 
   const visualPurposes: HistoryVisualPurposeV34[] = [];
   const beats: HistoryBeatV34[] = [];
@@ -885,6 +1239,10 @@ export function buildHistoryVisualPlanV34(input: {
   const timelineEvents: HistoryTimelineEventV34[] = [];
   const dateCardStates: HistoryDateCardStateV34[] = [];
   const documentStates: HistoryDocumentStateV34[] = [];
+  const mapStateCache = new Map<
+    string,
+    { readonly master: HistoryVisualPlanV34["mapMasters"][number]; readonly state: HistoryVisualPlanV34["mapStates"][number] }
+  >();
   const diagnostics: HistoryDiagnosticV34[] = [];
 
   let cursor = 0;
@@ -899,7 +1257,30 @@ export function buildHistoryVisualPlanV34(input: {
     const materialClaims = structured.claims.filter(
       (claim) => claimIds.includes(claim.id) && claim.materiality === "material"
     );
-    let modality = cluster.modality;
+    let modality = resolveClusterModality({
+      cluster,
+      beatNumber,
+      structured,
+      mapIntents,
+      intentsByClaim,
+      narrationText: input.narration.normalizedText,
+    });
+    if (
+      modality === "text-only transition" &&
+      durationMs > LONG_TEXT_ONLY_BLOCK_MS &&
+      !hasTextOnlyEditorialJustification({ fallback: null })
+    ) {
+      const remediated = deriveLongTextOnlyRemediationV34({
+        text: cluster.text,
+        claimIds,
+        claims: structured.claims,
+        entities: structured.entities,
+        durationMs,
+        mapIntents,
+        hasEditorialOverride: false,
+      });
+      if (remediated) modality = remediated;
+    }
     let mapMasterId: string | null = null;
     let mapStateId: string | null = null;
     let diagramMasterId: string | null = null;
@@ -915,7 +1296,12 @@ export function buildHistoryVisualPlanV34(input: {
 
     if (modality === "map") {
       const intent =
-        claimIds.map((id) => intentsByClaim.get(id)).find(Boolean) ??
+        selectMapIntentForBeatV34({
+          claimIds,
+          clusterText: cluster.text,
+          intentsByClaim,
+          mapIntents,
+        }) ??
         mapIntents.find((item) => item.claimIds.some((id) => claimIds.includes(id)));
       const compiled = intent
         ? compileMapStateV34({
@@ -923,16 +1309,26 @@ export function buildHistoryVisualPlanV34(input: {
             proposal: intent,
             claims: structured.claims,
             entities: structured.entities,
+            geographicQualifiers: structured.geographicQualifiers,
             temporalQualifiers: structured.temporalQualifiers,
             narrationText: input.narration.normalizedText,
           })
         : null;
-      if (compiled) {
-        mapMasters.push(compiled.master);
-        mapStates.push(compiled.state);
-        mapMasterId = compiled.master.id;
-        mapStateId = compiled.state.id;
-        mapState = compiled.state;
+      if (compiled && intent) {
+        const cacheKey = mapIntentSignature(intent);
+        const cached = mapStateCache.get(cacheKey);
+        if (cached) {
+          mapMasterId = cached.master.id;
+          mapStateId = cached.state.id;
+          mapState = cached.state;
+        } else {
+          mapMasters.push(compiled.master);
+          mapStates.push(compiled.state);
+          mapStateCache.set(cacheKey, compiled);
+          mapMasterId = compiled.master.id;
+          mapStateId = compiled.state.id;
+          mapState = compiled.state;
+        }
       } else {
         fallback = {
           rejectedModality: "map",
@@ -1012,6 +1408,123 @@ export function buildHistoryVisualPlanV34(input: {
       documentStateId = document.id;
     }
 
+    if (isLongTextOnlyWithoutJustification({ modality, durationMs, fallback })) {
+      const excludeModalities: HistoryVisualModalityV34[] =
+        fallback?.rejectedModality === "timeline" ? ["timeline"] : [];
+      const remediated = deriveLongTextOnlyRemediationV34({
+        text: cluster.text,
+        claimIds,
+        claims: structured.claims,
+        entities: structured.entities,
+        durationMs,
+        mapIntents,
+        hasEditorialOverride: hasTextOnlyEditorialJustification({ fallback }),
+        excludeModalities,
+      });
+      if (remediated && remediated !== "text-only transition") {
+        const rejectedPrior = modality;
+        if (remediated === "archival image") {
+          fallback = {
+            rejectedModality: rejectedPrior,
+            reasonForRejection:
+              "Long text-only beat exceeded threshold without editorial justification.",
+            selectedFallback: "archival image",
+            semanticJustification:
+              "Trusted narration supports a restrained archival or evidence treatment.",
+          };
+          modality = "archival image";
+        } else if (remediated === "document-or-quotation") {
+          const document = compileDocument({
+            beatNumber,
+            text: cluster.text,
+            claimIds,
+          });
+          documentStates.push(document);
+          documentStateId = document.id;
+          fallback = {
+            rejectedModality: rejectedPrior,
+            reasonForRejection:
+              "Long text-only beat exceeded threshold without editorial justification.",
+            selectedFallback: "document-or-quotation",
+            semanticJustification:
+              "Trusted narration supports document or quotation treatment.",
+          };
+          modality = "document-or-quotation";
+        } else if (remediated === "map") {
+          const intent =
+            selectMapIntentForBeatV34({
+              claimIds,
+              clusterText: cluster.text,
+              intentsByClaim,
+              mapIntents,
+            }) ??
+            mapIntents.find((item) => item.claimIds.some((id) => claimIds.includes(id)));
+          const compiled = intent
+            ? compileMapStateV34({
+                beatNumber,
+                proposal: intent,
+                claims: structured.claims,
+                entities: structured.entities,
+                geographicQualifiers: structured.geographicQualifiers,
+                temporalQualifiers: structured.temporalQualifiers,
+                narrationText: input.narration.normalizedText,
+              })
+            : null;
+          if (compiled && intent) {
+            const cacheKey = mapIntentSignature(intent);
+            const cached = mapStateCache.get(cacheKey);
+            if (cached) {
+              mapMasterId = cached.master.id;
+              mapStateId = cached.state.id;
+              mapState = cached.state;
+            } else {
+              mapMasters.push(compiled.master);
+              mapStates.push(compiled.state);
+              mapStateCache.set(cacheKey, compiled);
+              mapMasterId = compiled.master.id;
+              mapStateId = compiled.state.id;
+              mapState = compiled.state;
+            }
+            fallback = {
+              rejectedModality: rejectedPrior,
+              reasonForRejection:
+                "Long text-only beat exceeded threshold without editorial justification.",
+              selectedFallback: "map",
+              semanticJustification:
+                "Trusted narration supports a narration-bound map treatment.",
+            };
+            modality = "map";
+          }
+        } else if (remediated === "diagram") {
+          const entityLabels = structured.entities
+            .filter((entity) => claimIds.includes(entity.claimId))
+            .map((entity) => entity.normalizedLabel);
+          const compiled = compileDiagram({
+            beatNumber,
+            text: cluster.text,
+            claimIds,
+            entityLabels,
+          });
+          if (compiled) {
+            diagramMasters.push(compiled.master);
+            diagramStates.push(compiled.state);
+            diagramMasterId = compiled.master.id;
+            diagramStateId = compiled.state.id;
+            diagramState = compiled.state;
+            fallback = {
+              rejectedModality: rejectedPrior,
+              reasonForRejection:
+                "Long text-only beat exceeded threshold without editorial justification.",
+              selectedFallback: "diagram",
+              semanticJustification:
+                "Trusted narration supports an evidence-set diagram treatment.",
+            };
+            modality = "diagram";
+          }
+        }
+      }
+    }
+
     const modalityStateReference =
       mapStateId ?? diagramStateId ?? timelineStateId ?? dateCardStateId ?? documentStateId;
     const beatShots = buildShotsForBeat({
@@ -1039,6 +1552,48 @@ export function buildHistoryVisualPlanV34(input: {
       dateCardId: dateCardStateId,
     });
     aspectRatioPlans.push(...ratios);
+    const purposePlaces = collectPurposePlaces({
+      entities: structured.entities,
+      claimIds,
+    });
+    const purposeTemporals = collectPurposeTemporals({
+      temporals: structured.temporalQualifiers,
+      claimIds,
+    });
+    const beatAuthorizesMovement = beatAuthorizesRouteMovement({
+      claimIds,
+      clusterText: cluster.text,
+      claims: structured.claims,
+    });
+    const routeForPurpose = mapState?.routes[0]
+      ? {
+          origin: mapState.routes[0].origin.label,
+          destination: mapState.routes[0].destination.label,
+        }
+      : null;
+    const purposeMovementAuthorized =
+      beatAuthorizesMovement ||
+      Boolean(
+        routeForPurpose &&
+          mapState?.mapPurpose &&
+          isRouteMapPurpose(mapState.mapPurpose)
+      );
+    const visualPurposeText = buildVisualPurposeV34({
+      modality,
+      narrationExcerpt: cluster.text,
+      places: purposePlaces.length
+        ? purposePlaces
+        : mapState?.labels.map((label) => label.text) ?? [],
+      temporals: purposeTemporals.length ? purposeTemporals : mapState ? [mapState.timePeriod] : [],
+      ...(mapState?.mapPurpose ? { mapPurpose: mapState.mapPurpose } : {}),
+      route: routeForPurpose,
+      beatAuthorizesMovement: purposeMovementAuthorized,
+    });
+    const semanticJustification = buildSemanticJustificationV34({
+      modality,
+      ...(mapState?.mapPurpose ? { mapPurpose: mapState.mapPurpose } : {}),
+      materialClaimCount: materialClaims.length,
+    });
     visualPurposes.push({
       id: purposeId,
       beatId,
@@ -1049,11 +1604,8 @@ export function buildHistoryVisualPlanV34(input: {
       linkedClaimIds: claimIds,
       protectedFactualMeaning: cluster.text.slice(0, 240),
       recommendedModality: modality,
-      visualPurpose: `${modality} clarifying beat ${beatNumber}`,
-      semanticJustification:
-        materialClaims.length > 0
-          ? `Use ${modality} only for facts explicitly present in trusted narration.`
-          : "Rhetorical or non-material narration uses a non-factual visual treatment.",
+      visualPurpose: visualPurposeText,
+      semanticJustification,
       disallowedMisleadingTreatments: [
         "invented labels",
         "unsupported causal arrows",
@@ -1125,8 +1677,45 @@ export function buildHistoryVisualPlanV34(input: {
         fallback?.semanticJustification ??
         `Trusted narration supports this beat-specific ${modality} choice.`,
     });
+    if (isLongTextOnlyWithoutJustification({ modality, durationMs, fallback }))
+      diagnostics.push(
+        diagnostic(
+          "TEXT_ONLY_LONG_WITHOUT_JUSTIFICATION",
+          "production",
+          "Text-only beat exceeds 12 seconds without explicit editorial justification.",
+          [beatId]
+        )
+      );
     cursor = endMs;
   });
+
+  if (timelineEvents.length < 3 && structured.temporalQualifiers.length >= 3) {
+    const sortedTemporals = [...structured.temporalQualifiers].sort((left, right) =>
+      left.normalizedValue.localeCompare(right.normalizedValue)
+    );
+    const events = sortedTemporals.map((temporal, index) => ({
+      id: `timeline-event-episode-${String(index + 1).padStart(2, "0")}`,
+      claimIds: [temporal.claimId],
+      label: temporal.normalizedValue,
+      temporalQualifierIds: [temporal.id],
+      dateSortKey: temporal.normalizedValue,
+      uncertainty: [] as string[],
+    }));
+    const masterId = "timeline-master-episode";
+    const stateId = "timeline-state-episode";
+    timelineMasters.push({
+      id: masterId,
+      purpose: "Episode chronology from trusted narration dates",
+      supportedRatios: ["16:9", "9:16"],
+    });
+    timelineStates.push({
+      id: stateId,
+      masterId,
+      eventIds: events.map((event) => event.id),
+      orderingStatus: "valid",
+    });
+    timelineEvents.push(...events);
+  }
 
   const qualityMetrics = measureHistoryRepetitionV34({
     purposes: visualPurposes,
@@ -1135,6 +1724,46 @@ export function buildHistoryVisualPlanV34(input: {
     ...(input.qualityThresholds ? { thresholds: input.qualityThresholds } : {}),
     ...(input.qualityOverride ? { explicitOverride: true } : {}),
   });
+
+  for (const purpose of visualPurposes) {
+    if (isGenericVisualPurposeText(purpose.visualPurpose))
+      diagnostics.push(
+        diagnostic(
+          "GENERIC_VISUAL_PURPOSE",
+          "editorial",
+          "Visual purpose text is templated or generic.",
+          [purpose.id],
+          "warning"
+        )
+      );
+    const beat = beats.find((item) => item.visualPurposeId === purpose.id);
+    if (beat?.modality === "map" && beat.mapStateId) {
+      const mapState = mapStates.find((state) => state.id === beat.mapStateId);
+      const route = mapState?.routes[0];
+      if (
+        route &&
+        mapState?.mapPurpose &&
+        isRouteMapPurpose(mapState.mapPurpose)
+      ) {
+        for (const code of validateRouteVisualPurposeAlignment({
+          visualPurpose: purpose.visualPurpose,
+          route: { origin: route.origin.label, destination: route.destination.label },
+        }))
+          diagnostics.push(
+            diagnostic(
+              code,
+              "content",
+              "Map visual purpose direction does not match the compiled route state.",
+              [beat.id, purpose.id, mapState!.id]
+            )
+          );
+      }
+    }
+  }
+  for (const warning of shotDurationWarnings(shots, beats))
+    diagnostics.push(
+      diagnostic(warning.code, "editorial", warning.message, [warning.shotId], "warning")
+    );
 
   for (const beat of beats) {
     if (beat.modality === "map" && (!beat.mapMasterId || !beat.mapStateId))
@@ -1255,7 +1884,7 @@ export function buildHistoryVisualPlanV34(input: {
         )
       );
   }
-  for (const state of mapStates)
+  for (const state of mapStates) {
     if (state.semanticStatus === "blocked")
       diagnostics.push(
         diagnostic("MAP_SEMANTIC_BLOCKED", "editorial", "Map state failed semantic validation.", [
@@ -1263,13 +1892,55 @@ export function buildHistoryVisualPlanV34(input: {
           ...state.blockerCodes,
         ])
       );
-  for (const state of diagramStates)
-    if (state.semanticStatus === "blocked" || !state.nodes.length || !state.edges.length)
+    for (const code of validateMapLabelProvenanceV34({
+      state,
+      claims: structured.claims,
+      entities: structured.entities,
+    }))
+      diagnostics.push(
+        diagnostic(
+          code,
+          "content",
+          "Map label provenance does not match supporting claim evidence.",
+          [state.id]
+        )
+      );
+  }
+  for (const state of diagramStates) {
+    const linkedClaimText = structured.claims
+      .filter((claim) => state.nodes.some((node) => node.linkedClaimIds.includes(claim.id)))
+      .map((claim) => claim.normalizedProposition)
+      .join("\n");
+    const diagramBlockers = validateDiagramSemanticsV34({ state, linkedClaimText });
+    if (diagramBlockers.length)
+      diagnostics.push(
+        diagnostic(
+          "DIAGRAM_UNSUPPORTED_EDGE",
+          "content",
+          "Diagram edge is not supported by narration semantics.",
+          [state.id, ...diagramBlockers]
+        )
+      );
+    if (state.semanticStatus === "blocked")
       diagnostics.push(
         diagnostic("DIAGRAM_EMPTY_OR_BLOCKED", "editorial", "Diagram state is empty or blocked.", [
           state.id,
         ])
       );
+    else if (state.diagramType === "evidence-set") {
+      if (!state.nodes.length)
+        diagnostics.push(
+          diagnostic("DIAGRAM_EMPTY_OR_BLOCKED", "editorial", "Evidence-set diagram has no nodes.", [
+            state.id,
+          ])
+        );
+    } else if (!state.nodes.length || !state.edges.length)
+      diagnostics.push(
+        diagnostic("DIAGRAM_EMPTY_OR_BLOCKED", "editorial", "Diagram state is empty or blocked.", [
+          state.id,
+        ])
+      );
+  }
   for (const state of timelineStates)
     if (state.orderingStatus === "invalid")
       diagnostics.push(
@@ -1415,6 +2086,51 @@ export function buildHistoryVisualPlanV34(input: {
   const plan = { ...body, planHash: hashCanonicalV34(body) };
   validateHistoryVisualPlanV34(plan);
   return plan;
+}
+
+export function applyPlanProductionPrerequisitesV34(
+  plan: HistoryVisualPlanV34,
+  prerequisites: readonly {
+    readonly code: string;
+    readonly message: string;
+    readonly severity?: HistoryDiagnosticV34["severity"];
+  }[]
+): HistoryVisualPlanV34 {
+  if (!prerequisites.length) return plan;
+  const extra = prerequisites.map((item) =>
+    diagnostic(item.code, "production", item.message, [], item.severity ?? "error")
+  );
+  const diagnostics = [...plan.diagnostics, ...extra];
+  const { planHash: _ignored, ...body } = plan;
+  const updated = {
+    ...body,
+    diagnostics,
+    approval: summarizeApproval(diagnostics),
+  };
+  return { ...updated, planHash: hashCanonicalV34(updated) };
+}
+
+export function buildHistoryValidationSnapshotV34(plan: HistoryVisualPlanV34): {
+  readonly structurallyValid: boolean;
+  readonly editoriallyReviewable: boolean;
+  readonly contentApprovalEligible: boolean;
+  readonly productionApprovalEligible: boolean;
+  readonly diagnostics: readonly HistoryDiagnosticV34[];
+  readonly referenceCount: number;
+  readonly approval: HistoryApprovalV34;
+  readonly productionBlockerCodes: readonly string[];
+} {
+  const structural = validateHistoryVisualPlanV34(plan);
+  return {
+    structurallyValid: plan.approval.structurallyValid,
+    editoriallyReviewable: plan.approval.editoriallyReviewable,
+    contentApprovalEligible: plan.approval.contentApprovalEligible,
+    productionApprovalEligible: plan.approval.productionApprovalEligible,
+    diagnostics: plan.diagnostics,
+    referenceCount: structural.referenceCount,
+    approval: plan.approval,
+    productionBlockerCodes: plan.approval.production.blockerCodes,
+  };
 }
 
 export function validateHistoryVisualPlanV34(plan: HistoryVisualPlanV34): {

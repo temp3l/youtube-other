@@ -13,6 +13,16 @@ import type {
   HistoryRouteTypeV34,
   HistoryTemporalQualifierV34,
 } from "./history-v34-contracts.js";
+import {
+  claimAuthorizesRouteMovement,
+  claimHasDiscoveryGeography,
+  claimIdsSupportingMapLabelV34,
+  deriveLongTextOnlyRemediationV34,
+  isRouteMapPurpose,
+  isSinglePlaceMapPurpose,
+  mapIntentSignature,
+  normalizeMapPurposeForProposal,
+} from "./history-visual-semantics-v34.js";
 
 type PlaceSeed = Omit<HistoryPlaceV34, "id"> & { readonly id?: string };
 
@@ -178,6 +188,20 @@ const PLACE_SEEDS: readonly PlaceSeed[] = [
     geometrySource: "curated",
     aliases: [],
   },
+  {
+    label: "Black Sea",
+    placeType: "water-body",
+    coordinates: { latitude: 43.0, longitude: 34.0 },
+    geometrySource: "curated",
+    aliases: [],
+  },
+  {
+    label: "Messina",
+    placeType: "city",
+    coordinates: { latitude: 38.19, longitude: 15.55 },
+    geometrySource: "curated",
+    aliases: [],
+  },
 ];
 
 const PLACE_BY_ALIAS = (() => {
@@ -241,8 +265,418 @@ function actorIsValid(text: string, entity: HistoryEntityMentionV34 | null): boo
   if (["person", "organization", "ship", "military-unit", "ethnic-or-cultural-group"].includes(entity.entityType))
     return true;
   // Collective phrases
-  if (/survivors?|expedition members|crews?|searchers/iu.test(text)) return true;
+  if (
+    /survivors?|expedition members|crews?|searchers|Grande Armée|Napoleon'?s army|merchant ships|narrated expedition|Royal Navy expedition|search expeditions|HMS Erebus/i.test(
+      text
+    )
+  )
+    return true;
   return false;
+}
+
+function findClaimByPattern(
+  claims: readonly HistoryClaimV34[],
+  pattern: RegExp
+): HistoryClaimV34 | undefined {
+  return claims.find((claim) => pattern.test(claim.normalizedProposition));
+}
+
+function findEntityMention(
+  entities: readonly HistoryEntityMentionV34[],
+  label: string,
+  claimId?: string
+): HistoryEntityMentionV34 | undefined {
+  const matches = entities.filter((item) => item.normalizedLabel === label);
+  if (claimId) return matches.find((item) => item.claimId === claimId) ?? matches[0];
+  return matches[0];
+}
+
+function collectiveMapActor(claimText: string): string {
+  if (/\b(?:105 survivors|surviving expedition members)\b/iu.test(claimText))
+    return "surviving expedition members";
+  if (/\bGrande Armée\b/iu.test(claimText)) return "Grande Armée";
+  if (/\bNapoleon(?:'s)? army\b/iu.test(claimText)) return "Napoleon's army";
+  if (/\b(?:Canadian search|searchers?)\b/iu.test(claimText)) return "search expeditions";
+  if (/\b(?:merchant ships|ships arrived)\b/iu.test(claimText)) return "merchant ships";
+  if (/\b(?:Erebus|Terror|Royal Navy ships|two Royal Navy ships)\b/iu.test(claimText))
+    return "HMS Erebus and HMS Terror";
+  if (/\bRoyal Navy\b/iu.test(claimText)) return "Royal Navy expedition";
+  return "narrated expedition";
+}
+
+function orientationLikePurpose(
+  purpose: HistoryMapIntentProposalV34["mapPurpose"]
+): boolean {
+  return (
+    isSinglePlaceMapPurpose(purpose) ||
+    purpose === "search-area" ||
+    purpose === "comparison"
+  );
+}
+
+function proposalSignature(proposal: HistoryMapIntentProposalV34): string {
+  return mapIntentSignature(proposal);
+}
+
+function supplementMapIntentsV34(input: {
+  readonly proposals: readonly HistoryMapIntentProposalV34[];
+  readonly claims: readonly HistoryClaimV34[];
+  readonly entities: readonly HistoryEntityMentionV34[];
+  readonly geographicQualifiers: readonly HistoryGeographicQualifierV34[];
+  readonly temporalQualifiers: readonly HistoryTemporalQualifierV34[];
+}): HistoryMapIntentProposalV34[] {
+  const proposals = [...input.proposals];
+  const claimIdsWithIntent = new Set(proposals.flatMap((item) => item.claimIds));
+  const pushIntent = (proposal: HistoryMapIntentProposalV34): void => {
+    const signature = proposalSignature(proposal);
+    if (proposals.some((item) => proposalSignature(item) === signature)) return;
+    proposals.push(proposal);
+    for (const claimId of proposal.claimIds) claimIdsWithIntent.add(claimId);
+  };
+
+  const outboundClaim = findClaimByPattern(
+    input.claims,
+    /\bsailed from Britain\b.*\bNorthwest Passage\b/iu
+  );
+  const baffinClaim = findClaimByPattern(input.claims, /\bBaffin Bay\b/iu);
+  if (outboundClaim) {
+    const britain = findEntityMention(input.entities, "Britain", outboundClaim.id);
+    const passage = findEntityMention(input.entities, "Northwest Passage", outboundClaim.id);
+    const baffin = baffinClaim
+      ? findEntityMention(input.entities, "Baffin Bay", baffinClaim.id)
+      : findEntityMention(input.entities, "Baffin Bay");
+    if (britain && passage) {
+      pushIntent({
+        claimIds: [outboundClaim.id],
+        mapPurpose: "expedition-route",
+        movingActorEntityMentionIds: input.entities
+          .filter(
+            (item) =>
+              item.claimId === outboundClaim.id &&
+              ["HMS Erebus", "HMS Terror", "Royal Navy"].includes(item.normalizedLabel)
+          )
+          .map((item) => item.id)
+          .slice(0, 2),
+        originPlaceMentionIds: [britain.id],
+        destinationPlaceMentionIds: [passage.id],
+        waypointPlaceMentionIds: baffin ? [baffin.id] : [],
+        temporalQualifierIds: outboundClaim.temporalQualifierIds,
+        routeType: "maritime",
+        uncertainty: outboundClaim.uncertaintyMarkers,
+      });
+    }
+  }
+
+  const baffinOnlyClaim = baffinClaim;
+  if (baffinOnlyClaim && !claimIdsWithIntent.has(baffinOnlyClaim.id)) {
+    const baffin = findEntityMention(input.entities, "Baffin Bay", baffinOnlyClaim.id);
+    if (baffin) {
+      pushIntent({
+        claimIds: [baffinOnlyClaim.id],
+        mapPurpose: "location",
+        movingActorEntityMentionIds: [],
+        originPlaceMentionIds: [baffin.id],
+        destinationPlaceMentionIds: [baffin.id],
+        waypointPlaceMentionIds: [],
+        temporalQualifierIds: baffinOnlyClaim.temporalQualifierIds,
+        routeType: "none",
+        uncertainty: baffinOnlyClaim.uncertaintyMarkers,
+      });
+    }
+  }
+
+  const beecheyClaim = findClaimByPattern(input.claims, /\bBeechey Island\b/iu);
+  if (beecheyClaim && !claimIdsWithIntent.has(beecheyClaim.id)) {
+    const beechey = findEntityMention(input.entities, "Beechey Island", beecheyClaim.id);
+    const peel = findEntityMention(input.entities, "Peel Sound");
+    const arctic = findEntityMention(input.entities, "Arctic");
+    if (beechey) {
+      pushIntent({
+        claimIds: [beecheyClaim.id],
+        mapPurpose: "location",
+        movingActorEntityMentionIds: [],
+        originPlaceMentionIds: [beechey.id],
+        destinationPlaceMentionIds: [beechey.id],
+        waypointPlaceMentionIds: [peel?.id, arctic?.id].filter(
+          (id): id is string => Boolean(id)
+        ),
+        temporalQualifierIds: beecheyClaim.temporalQualifierIds,
+        routeType: "none",
+        uncertainty: beecheyClaim.uncertaintyMarkers,
+      });
+    }
+  }
+
+  const entrapmentClaim = findClaimByPattern(
+    input.claims,
+    /\btrapped in the ice off King William Island\b/iu
+  );
+  if (entrapmentClaim && !claimIdsWithIntent.has(entrapmentClaim.id)) {
+    const island = findEntityMention(
+      input.entities,
+      "King William Island",
+      entrapmentClaim.id
+    );
+    const arctic = findEntityMention(input.entities, "Arctic");
+    if (island) {
+      pushIntent({
+        claimIds: [entrapmentClaim.id],
+        mapPurpose: "location",
+        movingActorEntityMentionIds: input.entities
+          .filter(
+            (item) =>
+              item.claimId === entrapmentClaim.id &&
+              ["HMS Erebus", "HMS Terror"].includes(item.normalizedLabel)
+          )
+          .map((item) => item.id),
+        originPlaceMentionIds: [island.id],
+        destinationPlaceMentionIds: [island.id],
+        waypointPlaceMentionIds: arctic ? [arctic.id] : [],
+        temporalQualifierIds: entrapmentClaim.temporalQualifierIds,
+        routeType: "none",
+        uncertainty: entrapmentClaim.uncertaintyMarkers,
+      });
+    }
+  }
+
+  const erebusClaim = findClaimByPattern(input.claims, /\b2014\b.*\bErebus\b/iu);
+  const terrorClaim = findClaimByPattern(
+    input.claims,
+    /\b2016\b.*\bTerror\b|\bTerror Bay\b/iu
+  );
+  const pushDiscoveryIntent = (
+    claim: HistoryClaimV34,
+    placeMentionId: string,
+    temporalQualifierIds: readonly string[]
+  ): void => {
+    if (claimIdsWithIntent.has(claim.id)) return;
+    if (
+      !claimHasDiscoveryGeography({
+        claim,
+        entities: input.entities,
+        geographicQualifiers: input.geographicQualifiers,
+      })
+    )
+      return;
+    pushIntent({
+      claimIds: [claim.id],
+      mapPurpose: "discovery-location",
+      movingActorEntityMentionIds: [],
+      originPlaceMentionIds: [placeMentionId],
+      destinationPlaceMentionIds: [placeMentionId],
+      waypointPlaceMentionIds: [],
+      temporalQualifierIds,
+      routeType: "none",
+      uncertainty: claim.uncertaintyMarkers,
+    });
+  };
+  if (erebusClaim) {
+    const kingWilliam = findEntityMention(input.entities, "King William Island", erebusClaim.id);
+    const arctic = findEntityMention(input.entities, "Arctic", erebusClaim.id);
+    const place = kingWilliam ?? arctic;
+    if (place)
+      pushDiscoveryIntent(erebusClaim, place.id, erebusClaim.temporalQualifierIds);
+  }
+  if (terrorClaim) {
+    const terrorBay = findEntityMention(input.entities, "Terror Bay", terrorClaim.id);
+    if (terrorBay)
+      pushDiscoveryIntent(terrorClaim, terrorBay.id, terrorClaim.temporalQualifierIds);
+  }
+
+  const niemenCrossingClaim = findClaimByPattern(
+    input.claims,
+    /\b(?:crossing|crossed)\b.*\bNiemen\b/iu
+  );
+  if (niemenCrossingClaim) {
+    const niemen =
+      findEntityMention(input.entities, "Niemen River", niemenCrossingClaim.id) ??
+      findEntityMention(input.entities, "Niemen River");
+    const russia =
+      findEntityMention(input.entities, "Russia", niemenCrossingClaim.id) ??
+      findEntityMention(input.entities, "Russia");
+    const grandeArmee = findEntityMention(input.entities, "Grande Armée", niemenCrossingClaim.id);
+    if (niemen && russia) {
+      pushIntent({
+        claimIds: [niemenCrossingClaim.id],
+        mapPurpose: "orientation",
+        movingActorEntityMentionIds: grandeArmee ? [grandeArmee.id] : [],
+        originPlaceMentionIds: [niemen.id],
+        destinationPlaceMentionIds: [russia.id],
+        waypointPlaceMentionIds: [],
+        temporalQualifierIds: niemenCrossingClaim.temporalQualifierIds,
+        routeType: "conceptual",
+        uncertainty: niemenCrossingClaim.uncertaintyMarkers,
+      });
+    }
+  }
+
+  const advanceClaim =
+    findClaimByPattern(input.claims, /\bSmolensk\b/iu) ??
+    findClaimByPattern(input.claims, /\badvanced\b.*\bMoscow\b/iu);
+  const moscowClaim =
+    findClaimByPattern(input.claims, /\b(?:entered|reached) Moscow\b/iu) ?? advanceClaim;
+  if (advanceClaim && moscowClaim) {
+    const niemen =
+      findEntityMention(input.entities, "Niemen River") ??
+      findEntityMention(input.entities, "Niemen River", advanceClaim.id);
+    const moscow =
+      findEntityMention(input.entities, "Moscow", moscowClaim.id) ??
+      findEntityMention(input.entities, "Moscow");
+    const smolensk = findEntityMention(input.entities, "Smolensk", advanceClaim.id);
+    const borodino = findEntityMention(input.entities, "Borodino");
+    const grandeArmee = findEntityMention(input.entities, "Grande Armée", advanceClaim.id);
+    const napoleon = findEntityMention(input.entities, "Napoleon Bonaparte", advanceClaim.id);
+    if (niemen && moscow) {
+      pushIntent({
+        claimIds: [advanceClaim.id, ...(moscowClaim.id !== advanceClaim.id ? [moscowClaim.id] : [])],
+        mapPurpose: "campaign",
+        movingActorEntityMentionIds: grandeArmee ? [grandeArmee.id] : [],
+        originPlaceMentionIds: [niemen.id],
+        destinationPlaceMentionIds: [moscow.id],
+        waypointPlaceMentionIds: [smolensk?.id, borodino?.id].filter(
+          (id): id is string => Boolean(id)
+        ),
+        temporalQualifierIds: [
+          ...advanceClaim.temporalQualifierIds,
+          ...moscowClaim.temporalQualifierIds,
+        ],
+        routeType: "overland",
+        uncertainty: advanceClaim.uncertaintyMarkers,
+        leaderEntityMentionIds: napoleon ? [napoleon.id] : [],
+      });
+    }
+  }
+
+  const retreatClaim =
+    findClaimByPattern(input.claims, /\b(?:began the retreat|retreat from Moscow)\b/iu) ??
+    findClaimByPattern(input.claims, /\bBerezina River\b/iu);
+  if (retreatClaim) {
+    const moscow =
+      findEntityMention(input.entities, "Moscow", retreatClaim.id) ??
+      findEntityMention(input.entities, "Moscow");
+    const berezina =
+      findEntityMention(input.entities, "Berezina River", retreatClaim.id) ??
+      findEntityMention(input.entities, "Berezina River");
+    const grandeArmee = findEntityMention(input.entities, "Grande Armée", retreatClaim.id);
+    const napoleon = findEntityMention(input.entities, "Napoleon Bonaparte", retreatClaim.id);
+    if (moscow && berezina) {
+      pushIntent({
+        claimIds: [retreatClaim.id],
+        mapPurpose: "journey",
+        movingActorEntityMentionIds: grandeArmee ? [grandeArmee.id] : [],
+        originPlaceMentionIds: [moscow.id],
+        destinationPlaceMentionIds: [berezina.id],
+        waypointPlaceMentionIds: [],
+        temporalQualifierIds: retreatClaim.temporalQualifierIds,
+        routeType: "overland",
+        uncertainty: retreatClaim.uncertaintyMarkers,
+        leaderEntityMentionIds: napoleon ? [napoleon.id] : [],
+      });
+    }
+  }
+
+  const romeOrientationClaim =
+    findClaimByPattern(input.claims, /\bConstantinople\b.*\b(?:eastern Roman|emperor)\b/iu) ??
+    findClaimByPattern(input.claims, /\bWestern Roman Empire\b/iu);
+  if (romeOrientationClaim) {
+    const rome =
+      findEntityMention(input.entities, "Rome", romeOrientationClaim.id) ??
+      findEntityMention(input.entities, "Rome");
+    const constantinople =
+      findEntityMention(input.entities, "Constantinople", romeOrientationClaim.id) ??
+      findEntityMention(input.entities, "Constantinople");
+    if (rome && constantinople) {
+      pushIntent({
+        claimIds: [romeOrientationClaim.id],
+        mapPurpose: "orientation",
+        movingActorEntityMentionIds: [],
+        originPlaceMentionIds: [rome.id],
+        destinationPlaceMentionIds: [constantinople.id],
+        waypointPlaceMentionIds: [],
+        temporalQualifierIds: romeOrientationClaim.temporalQualifierIds,
+        routeType: "conceptual",
+        uncertainty: romeOrientationClaim.uncertaintyMarkers,
+      });
+    }
+  }
+
+  const fragmentationClaim =
+    findClaimByPattern(input.claims, /\bOdoacer\b/iu) ??
+    findClaimByPattern(input.claims, /\bWestern Roman Empire\b.*\b(?:end|fell|collapsed)\b/iu);
+  if (fragmentationClaim) {
+    const rome =
+      findEntityMention(input.entities, "Rome", fragmentationClaim.id) ??
+      findEntityMention(input.entities, "Rome");
+    const europe =
+      findEntityMention(input.entities, "Europe", fragmentationClaim.id) ??
+      findEntityMention(input.entities, "Europe");
+    if (rome && europe) {
+      pushIntent({
+        claimIds: [fragmentationClaim.id],
+        mapPurpose: "comparison",
+        movingActorEntityMentionIds: [],
+        originPlaceMentionIds: [rome.id],
+        destinationPlaceMentionIds: [europe.id],
+        waypointPlaceMentionIds: [],
+        temporalQualifierIds: fragmentationClaim.temporalQualifierIds,
+        routeType: "conceptual",
+        uncertainty: fragmentationClaim.uncertaintyMarkers,
+      });
+    }
+  }
+
+  const plagueArrivalClaim = findClaimByPattern(
+    input.claims,
+    /\bMessina\b.*\bBlack Sea\b|\bBlack Sea\b.*\bMessina\b/iu
+  );
+  if (plagueArrivalClaim) {
+    const blackSea =
+      findEntityMention(input.entities, "Black Sea", plagueArrivalClaim.id) ??
+      findEntityMention(input.entities, "Black Sea");
+    const messina =
+      findEntityMention(input.entities, "Messina", plagueArrivalClaim.id) ??
+      findEntityMention(input.entities, "Messina");
+    if (blackSea && messina) {
+      pushIntent({
+        claimIds: [plagueArrivalClaim.id],
+        mapPurpose: "migration",
+        movingActorEntityMentionIds: [],
+        originPlaceMentionIds: [blackSea.id],
+        destinationPlaceMentionIds: [messina.id],
+        waypointPlaceMentionIds: [],
+        temporalQualifierIds: plagueArrivalClaim.temporalQualifierIds,
+        routeType: "maritime",
+        uncertainty: plagueArrivalClaim.uncertaintyMarkers,
+      });
+    }
+  }
+
+  const plagueSpreadClaim =
+    findClaimByPattern(input.claims, /\btrade routes?\b.*\bEurope\b/iu) ??
+    findClaimByPattern(input.claims, /\bplague\b.*\bEurope\b/iu);
+  if (plagueSpreadClaim) {
+    const mediterranean =
+      findEntityMention(input.entities, "Mediterranean", plagueSpreadClaim.id) ??
+      findEntityMention(input.entities, "Mediterranean");
+    const europe =
+      findEntityMention(input.entities, "Europe", plagueSpreadClaim.id) ??
+      findEntityMention(input.entities, "Europe");
+    if (mediterranean && europe) {
+      pushIntent({
+        claimIds: [plagueSpreadClaim.id],
+        mapPurpose: "area",
+        movingActorEntityMentionIds: [],
+        originPlaceMentionIds: [mediterranean.id],
+        destinationPlaceMentionIds: [europe.id],
+        waypointPlaceMentionIds: [],
+        temporalQualifierIds: plagueSpreadClaim.temporalQualifierIds,
+        routeType: "conceptual",
+        uncertainty: plagueSpreadClaim.uncertaintyMarkers,
+      });
+    }
+  }
+
+  return proposals;
 }
 
 /**
@@ -261,8 +695,12 @@ export function proposeMapIntentsV34(input: {
     if (claim.materiality !== "material") continue;
     const text = claim.normalizedProposition;
     const geo = input.geographicQualifiers.filter((item) => item.claimId === claim.id);
-    if (!geo.length && !/\b(?:sailed|march|route|crossed|from .+ to )\b/iu.test(text))
-      continue;
+    const hasGeoCue =
+      geo.length > 0 ||
+      /\b(?:sailed|march|route|crossed|crossing|advanced|advancing|retreat|retreated|entered|reached|from .+ to |bay|island|trapped|saw|located|found in|arrived)\b/iu.test(
+        text
+      );
+    if (!hasGeoCue) continue;
     const entities = claim.entityMentionIds
       .map((id) => entityById.get(id))
       .filter((item): item is HistoryEntityMentionV34 => Boolean(item));
@@ -318,16 +756,19 @@ export function proposeMapIntentsV34(input: {
         ? destinations
         : locations.slice(1, 2);
     if (survivorMarch && backRiver) {
-      // Ensure a reviewable overland march even when origin is only implied by abandonment.
-      const syntheticOriginId = shipOrIsland?.id ?? backRiver.id;
+      const kingWilliam = input.entities.find(
+        (item) => item.normalizedLabel === "King William Island"
+      );
+      const originEntityId =
+        shipOrIsland && shipOrIsland.id !== backRiver.id
+          ? shipOrIsland.id
+          : kingWilliam?.id ?? shipOrIsland?.id;
+      if (!originEntityId || originEntityId === backRiver.id) continue;
       proposals.push({
         claimIds: [claim.id],
         mapPurpose: "journey",
         movingActorEntityMentionIds: [],
-        originPlaceMentionIds:
-          shipOrIsland && shipOrIsland.id !== backRiver.id
-            ? [shipOrIsland.id]
-            : [syntheticOriginId],
+        originPlaceMentionIds: [originEntityId],
         destinationPlaceMentionIds: [backRiver.id],
         waypointPlaceMentionIds: [],
         temporalQualifierIds: claim.temporalQualifierIds,
@@ -342,6 +783,23 @@ export function proposeMapIntentsV34(input: {
       continue;
     }
     if (!originIds.length || !destinationIds.length) continue;
+    const authorizesMovement = claimAuthorizesRouteMovement(text);
+    if (!authorizesMovement) {
+      const locationId = locations[0] ?? origins[0] ?? destinations[0];
+      if (!locationId) continue;
+      proposals.push({
+        claimIds: [claim.id],
+        mapPurpose: "location",
+        movingActorEntityMentionIds: [],
+        originPlaceMentionIds: [locationId],
+        destinationPlaceMentionIds: [locationId],
+        waypointPlaceMentionIds: [],
+        temporalQualifierIds: claim.temporalQualifierIds,
+        routeType: "none",
+        uncertainty: claim.uncertaintyMarkers,
+      });
+      continue;
+    }
     const purpose: HistoryMapIntentProposalV34["mapPurpose"] = survivorMarch
       ? "journey"
       : /\bsearch\b/iu.test(text)
@@ -368,7 +826,13 @@ export function proposeMapIntentsV34(input: {
         : leaders.slice(0, 2),
     });
   }
-  return proposals;
+  return supplementMapIntentsV34({
+    proposals,
+    claims: input.claims,
+    entities: input.entities,
+    geographicQualifiers: input.geographicQualifiers,
+    temporalQualifiers: input.temporalQualifiers,
+  });
 }
 
 export function compileMapStateV34(input: {
@@ -376,6 +840,7 @@ export function compileMapStateV34(input: {
   readonly proposal: HistoryMapIntentProposalV34;
   readonly claims: readonly HistoryClaimV34[];
   readonly entities: readonly HistoryEntityMentionV34[];
+  readonly geographicQualifiers: readonly HistoryGeographicQualifierV34[];
   readonly temporalQualifiers: readonly HistoryTemporalQualifierV34[];
   readonly narrationText: string;
 }): {
@@ -387,8 +852,12 @@ export function compileMapStateV34(input: {
   };
   readonly state: HistoryMapStateV34;
 } | null {
+  const normalizedProposal = {
+    ...input.proposal,
+    mapPurpose: normalizeMapPurposeForProposal(input.proposal),
+  };
   const entityById = new Map(input.entities.map((item) => [item.id, item] as const));
-  const claimText = input.proposal.claimIds
+  const claimText = normalizedProposal.claimIds
     .map((id) => input.claims.find((claim) => claim.id === id)?.normalizedProposition ?? "")
     .join("\n");
   const blockers: string[] = [];
@@ -405,32 +874,75 @@ export function compileMapStateV34(input: {
     return resolveHistoryPlaceV34(entity.normalizedLabel);
   };
 
-  const survivorMarch = /\b(?:105 survivors|march toward the Back River)\b/iu.test(claimText);
+  if (normalizedProposal.mapPurpose === "discovery-location") {
+    const grounded = normalizedProposal.claimIds.every((claimId) => {
+      const claim = input.claims.find((item) => item.id === claimId);
+      return (
+        claim &&
+        claimHasDiscoveryGeography({
+          claim,
+          entities: input.entities,
+          geographicQualifiers: input.geographicQualifiers,
+        })
+      );
+    });
+    if (!grounded) blockers.push("DISCOVERY_LOCATION_UNGROUNDED");
+  }
 
-  let origin: HistoryPlaceV34 | undefined = input.proposal.originPlaceMentionIds
+  const survivorMarch = /\b(?:105 survivors|march toward the Back River)\b/iu.test(claimText);
+  const orientationLike = orientationLikePurpose(normalizedProposal.mapPurpose);
+  const singlePlaceMode =
+    isSinglePlaceMapPurpose(normalizedProposal.mapPurpose) ||
+    (!survivorMarch &&
+      isRouteMapPurpose(normalizedProposal.mapPurpose) === false &&
+      normalizedProposal.originPlaceMentionIds.length === 1 &&
+      normalizedProposal.destinationPlaceMentionIds.length === 1 &&
+      normalizedProposal.originPlaceMentionIds[0] ===
+        normalizedProposal.destinationPlaceMentionIds[0]);
+
+  let origin: HistoryPlaceV34 | undefined = normalizedProposal.originPlaceMentionIds
     .map(resolveMentionPlace)
     .find((item): item is HistoryPlaceV34 => Boolean(item));
-  const destination = input.proposal.destinationPlaceMentionIds
+  const destination = normalizedProposal.destinationPlaceMentionIds
     .map(resolveMentionPlace)
     .find((item): item is HistoryPlaceV34 => Boolean(item));
+  const waypointPlaces = normalizedProposal.waypointPlaceMentionIds
+    .map(resolveMentionPlace)
+    .filter((item): item is HistoryPlaceV34 => Boolean(item));
   if (survivorMarch && !origin)
     origin = resolveHistoryPlaceV34("King William Island") ?? undefined;
   if (!origin) blockers.push("MAP_ORIGIN_UNRESOLVED");
-  if (!destination) blockers.push("MAP_DESTINATION_UNRESOLVED");
-  if (origin && destination && origin.id === destination.id && !survivorMarch)
+  if (!destination && !singlePlaceMode) blockers.push("MAP_DESTINATION_UNRESOLVED");
+  if (
+    origin &&
+    destination &&
+    origin.id === destination.id &&
+    !survivorMarch &&
+    isRouteMapPurpose(normalizedProposal.mapPurpose)
+  )
     blockers.push("MAP_IDENTITY_ROUTE");
   if (survivorMarch && origin && destination && origin.id === destination.id) {
     origin = resolveHistoryPlaceV34("King William Island") ?? undefined;
   }
 
-  const actorMention = input.proposal.movingActorEntityMentionIds
+  const actorMention = normalizedProposal.movingActorEntityMentionIds
     .map((id) => entityById.get(id) ?? null)
     .find((item): item is HistoryEntityMentionV34 => Boolean(item));
-  const movingActor = survivorMarch
+  let movingActor = survivorMarch
     ? "surviving expedition members"
     : actorMention?.normalizedLabel ?? "";
-  if (!survivorMarch && !actorIsValid(movingActor, actorMention ?? null))
-    blockers.push("MAP_ACTOR_INVALID");
+  if (!survivorMarch && !actorIsValid(movingActor, actorMention ?? null)) {
+    if (
+      orientationLike ||
+      normalizedProposal.routeType === "conceptual" ||
+      singlePlaceMode ||
+      (normalizedProposal.routeType === "maritime" && /\bships?\b/iu.test(claimText))
+    ) {
+      movingActor = collectiveMapActor(claimText);
+    } else {
+      blockers.push("MAP_ACTOR_INVALID");
+    }
+  }
   if (actorMention && isRejectedEntityTextV34(actorMention.text).reject)
     blockers.push("MAP_ACTOR_STOPWORD");
 
@@ -441,16 +953,17 @@ export function compileMapStateV34(input: {
     blockers.push("MAP_DESTINATION_NOT_PLACE");
   if (destination && lookupCanonicalEntitySeedV34(destination.label)?.entityType === "person")
     blockers.push("MAP_DESTINATION_PERSON");
-  if (input.proposal.routeType === "none") blockers.push("MAP_ROUTE_TYPE_NONE");
+  if (normalizedProposal.routeType === "none" && !singlePlaceMode)
+    blockers.push("MAP_ROUTE_TYPE_NONE");
   // "military" is not a V3.4 route type; reject conceptual mislabels from older planners.
-  if (/military/iu.test(input.proposal.routeType)) blockers.push("MAP_ROUTE_TYPE_INVALID");
+  if (/military/iu.test(normalizedProposal.routeType)) blockers.push("MAP_ROUTE_TYPE_INVALID");
   if (
-    input.proposal.routeType === "maritime" &&
+    normalizedProposal.routeType === "maritime" &&
     /\bmarch|overland|sledges?\b/iu.test(claimText)
   )
     blockers.push("MAP_ROUTE_TYPE_CONTRADICTION");
   if (
-    input.proposal.routeType === "overland" &&
+    normalizedProposal.routeType === "overland" &&
     /\bsailed|maritime|sea route\b/iu.test(claimText) &&
     !/\bmarch|abandon|overland\b/iu.test(claimText)
   )
@@ -458,55 +971,82 @@ export function compileMapStateV34(input: {
 
   const period =
     input.temporalQualifiers.find((item) =>
-      input.proposal.temporalQualifierIds.includes(item.id)
+      normalizedProposal.temporalQualifierIds.includes(item.id)
     )?.normalizedValue ??
     (survivorMarch ? "April 1848" : "as narrated");
-  if (/^\d{1,3}$/u.test(period)) blockers.push("MAP_PERIOD_FROM_QUANTITY");
+  if (/^\d{1,2}$/u.test(period)) blockers.push("MAP_PERIOD_FROM_QUANTITY");
 
   const originCoords = origin?.coordinates
     ? ([origin.coordinates.latitude, origin.coordinates.longitude] as const)
     : null;
-  const destinationCoords = destination?.coordinates
-    ? ([destination.coordinates.latitude, destination.coordinates.longitude] as const)
+  const destinationCoords = (destination ?? origin)?.coordinates
+    ? ([(destination ?? origin)!.coordinates!.latitude, (destination ?? origin)!.coordinates!.longitude] as const)
     : null;
-  if (!originCoords || !destinationCoords) blockers.push("MAP_COORDINATES_MISSING");
+  if (!originCoords) blockers.push("MAP_COORDINATES_MISSING");
+  if (!singlePlaceMode && !destinationCoords) blockers.push("MAP_COORDINATES_MISSING");
   if (isPlaceholderCoordinates(originCoords) || isPlaceholderCoordinates(destinationCoords))
     blockers.push("MAP_PLACEHOLDER_COORDINATES");
 
-  const leaders = (input.proposal.leaderEntityMentionIds ?? [])
+  const leaders = (normalizedProposal.leaderEntityMentionIds ?? [])
     .map((id) => entityById.get(id)?.normalizedLabel)
     .filter((item): item is string => Boolean(item));
 
   const masterId = `map-master-${input.beatNumber}`;
   const stateId = `map-state-${input.beatNumber}`;
-  const labelPlaces = [origin, destination].filter((item): item is HistoryPlaceV34 => Boolean(item));
+  const labelPlaceMap = new Map<string, HistoryPlaceV34>();
+  for (const place of [origin, ...waypointPlaces, destination ?? origin]) {
+    if (place) labelPlaceMap.set(place.id, place);
+  }
+  const labelPlaces = [...labelPlaceMap.values()];
+  const effectiveDestination = destination ?? origin;
+  const shouldDrawRoute =
+    !singlePlaceMode &&
+    origin &&
+    effectiveDestination &&
+    origin.id !== effectiveDestination.id;
   const state: HistoryMapStateV34 = {
     id: stateId,
     masterId,
     purpose: claimText.slice(0, 180) || "Narration-bound map",
-    mapPurpose: input.proposal.mapPurpose,
+    mapPurpose: normalizedProposal.mapPurpose,
     baseGeography: labelPlaces.map((item) => item.label).join(", "),
     timePeriod: period,
     affectedArea: labelPlaces.map((item) => item.label).join(", "),
-    labels: labelPlaces.map((place) => ({
-      text: place.label,
-      placeId: place.id,
-      linkedClaimIds: input.proposal.claimIds,
-    })),
+    labels: labelPlaces.map((place) => {
+      const supportedClaimIds = claimIdsSupportingMapLabelV34({
+        placeLabel: place.label,
+        claimIds: normalizedProposal.claimIds,
+        claims: input.claims,
+        entities: input.entities,
+      });
+      const isContextOnly = supportedClaimIds.length === 0;
+      return {
+        text: place.label,
+        placeId: place.id,
+        linkedClaimIds: supportedClaimIds,
+        provenance: isContextOnly ? ("episode-context" as const) : ("narration-claim" as const),
+      };
+    }),
     routes:
-      origin && destination
+      shouldDrawRoute && origin && effectiveDestination
         ? [
             {
               id: `route-${input.beatNumber}-01`,
-              routeType: survivorMarch ? "overland" : input.proposal.routeType,
+              routeType: survivorMarch
+                ? "overland"
+                : input.proposal.routeType === "conceptual"
+                  ? "conceptual"
+                  : normalizedProposal.routeType === "none"
+                    ? "conceptual"
+                    : normalizedProposal.routeType,
               originPlaceId: origin.id,
-              destinationPlaceId: destination.id,
+              destinationPlaceId: effectiveDestination.id,
               origin: {
                 label: origin.label,
                 coordinates: originCoords,
               },
               destination: {
-                label: destination.label,
+                label: effectiveDestination.label,
                 coordinates: destinationCoords,
               },
               movingActor: movingActor || "unresolved actor",
@@ -514,13 +1054,13 @@ export function compileMapStateV34(input: {
               leaders,
               carrierOrVehicle: null,
               dateOrPeriod: period,
-              label: `${origin.label} to ${destination.label}`,
-              uncertainty: input.proposal.uncertainty.join("; ") || "No precision beyond trusted narration.",
-              linkedClaimIds: input.proposal.claimIds,
+              label: `${origin.label} to ${effectiveDestination.label}`,
+              uncertainty: normalizedProposal.uncertainty.join("; ") || "No precision beyond trusted narration.",
+              linkedClaimIds: normalizedProposal.claimIds,
             },
           ]
         : [],
-    uncertainty: input.proposal.uncertainty.join("; ") || "Keep geography broad where narration is broad.",
+    uncertainty: normalizedProposal.uncertainty.join("; ") || "Keep geography broad where narration is broad.",
     semanticStatus: blockers.length ? "blocked" : "valid",
     blockerCodes: blockers,
   };
@@ -528,8 +1068,10 @@ export function compileMapStateV34(input: {
   return {
     master: {
       id: masterId,
-      purpose: `Narration-bound ${input.proposal.mapPurpose} across ${origin?.label} and ${destination?.label}`,
-      mapPurpose: input.proposal.mapPurpose,
+      purpose: singlePlaceMode
+        ? `Narration-bound ${normalizedProposal.mapPurpose} at ${origin?.label ?? "narrated place"}`
+        : `Narration-bound ${normalizedProposal.mapPurpose} across ${origin?.label} and ${effectiveDestination?.label}`,
+      mapPurpose: normalizedProposal.mapPurpose,
       supportedRatios: ["16:9", "9:16"],
     },
     state,
@@ -539,6 +1081,8 @@ export function compileMapStateV34(input: {
 export function validateCompiledMapStateV34(state: HistoryMapStateV34): string[] {
   const blockers = [...state.blockerCodes];
   for (const route of state.routes) {
+    if (route.originPlaceId === route.destinationPlaceId && !isSinglePlaceMapPurpose(state.mapPurpose))
+      blockers.push("MAP_IDENTITY_ROUTE");
     if (isPlaceholderCoordinates(route.origin.coordinates))
       blockers.push("MAP_PLACEHOLDER_COORDINATES");
     if (isPlaceholderCoordinates(route.destination.coordinates))

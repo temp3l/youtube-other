@@ -26,6 +26,8 @@ Whaling ships saw them in Baffin Bay that summer.
 
 Then they vanished.
 
+The ships were trapped in the ice off King William Island.
+
 The 105 survivors, led by Francis Crozier and James Fitzjames, had abandoned the ships on April 22 and planned to march toward the Back River on the Canadian mainland.
 
 Why did everyone die?
@@ -124,6 +126,7 @@ describe("History V3.4 semantic visual planning", () => {
       },
       claims: structured.claims,
       entities: structured.entities,
+      geographicQualifiers: structured.geographicQualifiers,
       temporalQualifiers: structured.temporalQualifiers,
       narrationText: narration.normalizedText,
     });
@@ -142,6 +145,7 @@ describe("History V3.4 semantic visual planning", () => {
       proposal: marchIntent!,
       claims: structured.claims,
       entities: structured.entities,
+      geographicQualifiers: structured.geographicQualifiers,
       temporalQualifiers: structured.temporalQualifiers,
       narrationText: narration.normalizedText,
     });

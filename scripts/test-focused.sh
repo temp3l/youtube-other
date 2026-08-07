@@ -39,9 +39,12 @@ case "$test_file" in
   *.e2e.test.ts)
     config_file="vitest.e2e.config.ts"
     ;;
+  *.acceptance.ts)
+    config_file="vitest.acceptance.config.ts"
+    ;;
   *)
     echo "unsupported test file suffix: $test_file" >&2
-    echo "expected one of *.unit.test.ts, *.integration.test.ts, or *.e2e.test.ts" >&2
+    echo "expected one of *.unit.test.ts, *.integration.test.ts, *.e2e.test.ts, or *.acceptance.ts" >&2
     exit 64
     ;;
 esac

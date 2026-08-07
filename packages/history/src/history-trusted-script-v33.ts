@@ -68,7 +68,8 @@ export interface TrustedNarrationAttestationV1 {
   readonly assertion:
     | "factually-verified"
     | "accepted-without-independent-verification";
-  readonly assertedAt: string;
+  readonly assertedAt: string | null;
+  readonly timestampStatus?: "recorded" | "not-recorded";
   readonly policyVersion: string;
   readonly parentAttestationId: string | null;
   readonly invalidatedAt: string | null;
@@ -296,6 +297,7 @@ export function createTrustedNarrationAttestationV1(input: {
     selectedClaimIds,
     assertion,
     assertedAt,
+    timestampStatus: "recorded",
     policyVersion: HISTORY_TRUST_POLICY_V33,
     parentAttestationId,
     invalidatedAt: null,

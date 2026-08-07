@@ -145,6 +145,8 @@ const CANONICAL_ENTITY_SEEDS: readonly CanonicalEntitySeed[] = [
   { label: "Genoa", entityType: "place" },
   { label: "Crimea", entityType: "region" },
   { label: "Mediterranean", entityType: "water-body" },
+  { label: "Black Sea", entityType: "water-body" },
+  { label: "Messina", entityType: "place" },
 ];
 
 const ORDINARY_NOUN_REJECT = new Set(
@@ -368,7 +370,9 @@ function extractTemporalAndQuantitative(
     { re: new RegExp(`\\bbetween\\s+(\\d{3,4})\\s+and\\s+(\\d{3,4})\\b`, "giu"), kind: "period" },
     { re: new RegExp(`\\b(?:${MONTHS})\\s+\\d{3,4}\\b`, "giu"), kind: "month-year" },
     { re: /\b\d{3,4}\s*(?:–|-|to)\s*\d{3,4}\b/giu, kind: "period" },
-    { re: /\b(?:1[0-9]{3}|[2-9]\d{2})\b/giu, kind: "year" },
+    { re: /\b(?:[1-5]\d{2}|1[6-9]\d{2}|20\d{2})\b/giu, kind: "year" },
+    { re: /\b\d{1,2}(?:st|nd|rd|th)\s+century\b/giu, kind: "period" },
+    { re: /\b(?:late|early|mid)\s+(?:the\s+)?\d{3,4}s\b/giu, kind: "period" },
   ];
 
   for (const pattern of temporalPatterns) {
@@ -451,6 +455,54 @@ function extractQuantitative(
   unit: CanonicalNarrationUnitV3_3
 ): HistoryQuantitativeQualifierV34[] {
   return extractTemporalAndQuantitative(claimId, unit).quantitative;
+}
+
+function resolveContextualTemporalsV34(input: {
+  readonly narration: CanonicalNarrationV3_3;
+  readonly claims: readonly HistoryClaimV34[];
+  readonly temporalQualifiers: readonly HistoryTemporalQualifierV34[];
+}): HistoryTemporalQualifierV34[] {
+  const unitById = new Map(input.narration.units.map((unit) => [unit.id, unit] as const));
+  const monthDayPattern = new RegExp(`^(?:${MONTHS})\\s+\\d{1,2}$`, "iu");
+  const monthYearPattern = new RegExp(`\\b(?:${MONTHS})\\s+(\\d{3,4})\\b`, "iu");
+  const yearPattern = /\b(1[6-9]\d{2}|20\d{2})\b/u;
+
+  return input.temporalQualifiers.map((item) => {
+    if (!monthDayPattern.test(item.normalizedValue)) return item;
+    const claim = input.claims.find((candidate) => candidate.id === item.claimId);
+    const unit = claim ? unitById.get(claim.narrationUnitIds[0] ?? "") : undefined;
+    if (!unit) return item;
+
+    const inlineYear = new RegExp(
+      `${item.normalizedValue.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&")}(?:,?\\s+)(\\d{3,4})`,
+      "iu"
+    ).exec(unit.text);
+    if (inlineYear?.[1])
+      return { ...item, normalizedValue: `${item.normalizedValue}, ${inlineYear[1]}` };
+
+    const unitIndex = input.narration.units.findIndex((candidate) => candidate.id === unit.id);
+    if (/\bof that year\b/iu.test(unit.text) && unitIndex > 0) {
+      for (let back = unitIndex - 1; back >= Math.max(0, unitIndex - 3); back -= 1) {
+        const yearMatch = input.narration.units[back]!.text.match(yearPattern);
+        if (yearMatch?.[1])
+          return { ...item, normalizedValue: `${item.normalizedValue}, ${yearMatch[1]}` };
+      }
+    }
+
+    if (unitIndex > 0) {
+      const [month] = item.normalizedValue.split(/\s+/u);
+      for (let back = unitIndex - 1; back >= Math.max(0, unitIndex - 6); back -= 1) {
+        const monthYear = input.narration.units[back]!.text.match(monthYearPattern);
+        if (
+          monthYear?.[1] &&
+          monthYear[0].toLocaleLowerCase().startsWith(month!.toLocaleLowerCase())
+        )
+          return { ...item, normalizedValue: `${item.normalizedValue}, ${monthYear[1]}` };
+      }
+    }
+
+    return item;
+  });
 }
 
 function extractEntitiesForUnit(input: {
@@ -731,13 +783,19 @@ export function structureTrustedScriptClaimsV34(input: {
     });
   }
 
+  const resolvedTemporalQualifiers = resolveContextualTemporalsV34({
+    narration: input.narration,
+    claims,
+    temporalQualifiers,
+  });
+
   return {
     claims,
     entities,
     rejectedEntities: rejectedEntities.sort((a, b) =>
       a.text.localeCompare(b.text) || (a.claimId ?? "").localeCompare(b.claimId ?? "")
     ),
-    temporalQualifiers,
+    temporalQualifiers: resolvedTemporalQualifiers,
     geographicQualifiers,
     quantitativeQualifiers,
   };

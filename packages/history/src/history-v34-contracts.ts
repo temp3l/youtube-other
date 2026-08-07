@@ -169,6 +169,8 @@ export type HistoryTextualVisualKindV34 =
   | "summary-card";
 
 export type HistoryMapPurposeV34 =
+  | "location"
+  | "area"
   | "journey"
   | "expedition-route"
   | "campaign"
@@ -178,7 +180,18 @@ export type HistoryMapPurposeV34 =
   | "orientation"
   | "search-area"
   | "discovery-location"
-  | "comparison";
+  | "comparison"
+  | "hypothetical-route";
+
+export type HistoryReconstructionPolicyV34 =
+  | "documented-archival"
+  | "historical-artifact-photo"
+  | "map-or-diagram"
+  | "historically-constrained-reconstruction"
+  | "illustrative-reconstruction"
+  | "illustrative-not-evidence"
+  | "not-applicable"
+  | "unknown";
 
 export type HistoryRouteTypeV34 =
   | "maritime"
@@ -236,6 +249,7 @@ export interface HistoryMapStateV34 {
     readonly text: string;
     readonly placeId: string | null;
     readonly linkedClaimIds: readonly string[];
+    readonly provenance?: "narration-claim" | "episode-context";
   }[];
   readonly routes: readonly HistoryMapRouteV34[];
   readonly uncertainty: string;
@@ -254,7 +268,8 @@ export interface HistoryDiagramProposalV34 {
     | "decision-tree"
     | "network"
     | "resource-flow"
-    | "uncertainty-range";
+    | "uncertainty-range"
+    | "evidence-set";
   readonly questionAnswered: string;
   readonly nodes: readonly {
     readonly proposalId: string;
@@ -409,7 +424,7 @@ export interface HistoryShotV34 {
   readonly modalityStateReference: string | null;
   readonly adaptation16x9: string;
   readonly adaptation9x16: string;
-  readonly reconstructionPolicy: "not-applicable" | "illustrative-not-evidence";
+  readonly reconstructionPolicy: HistoryReconstructionPolicyV34;
 }
 
 export interface AspectRatioPlanV34 {

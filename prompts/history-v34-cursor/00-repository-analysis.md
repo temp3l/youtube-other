@@ -146,3 +146,12 @@ Map each next-phase requirement to the smallest likely source files:
 The report contains repository-verified paths, symbols, and commands.
 
 Do not implement anything in this phase.
+
+## Stop rules
+
+- Create only `reports/history-v34-pipeline-analysis.md`, then stop.
+- Do not edit production code, tests, schemas, configuration, or generated
+  artifacts even if defects are found; record them in the report only.
+- Do not run implementation verification loops, chained acceptance tests, or ad-hoc
+  `node -e` diagnostics in this phase.
+- If scope is unclear, ask once and stop rather than expanding into later phases.

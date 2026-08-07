@@ -35,14 +35,19 @@ Blocked by default:
 - workspace-wide `pnpm typecheck`
 - Vitest snapshot-update flags such as `-u` or `--update`
 - broad fixture or snapshot regeneration commands
+- chained `pnpm test:focused` commands in one shell invocation
+- ad-hoc `node --input-type=module -e` debug scripts
 
 Override:
 
 ```bash
 ALLOW_BROAD_VERIFICATION=1 pnpm test
+ALLOW_ADHOC_DEBUG=1 node --input-type=module -e "..."
 ```
 
 Use the override only when a human intentionally requests broader verification. The hook reads that environment variable and allows the command through without changing normal human terminal behavior outside Codex hook execution.
+
+Cursor agents use the same policy through `.cursor/hooks.json`.
 
 Retry and convergence limits:
 

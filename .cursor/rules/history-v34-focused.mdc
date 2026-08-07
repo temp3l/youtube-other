@@ -20,6 +20,22 @@ alwaysApply: true
 - Do not modify unrelated genres.
 - Do not perform broad refactors unless a failing fixture proves they are required.
 - Prefer the smallest safe change that satisfies the generated-artifact test.
+- Analysis-only prompts (`prompts/history-v34-cursor/00-*.md`) forbid edits to
+  production code, tests, schemas, configuration, and generated artifacts.
+  Create only the required report and stop.
+
+## Anti-loop verification
+
+- Run exactly one `pnpm test:focused -- <test-file>` per shell command.
+- Do not chain multiple acceptance tests, builds, or episode regenerations in one
+  shell invocation.
+- Do not use ad-hoc `node --input-type=module -e` debug loops; add or extend a
+  focused unit/acceptance test instead.
+- After two targeted fixes fail to move the same focused test, stop and report:
+  exact command, test name, failure, classification, owning module, and the
+  smallest follow-up.
+- Do not regenerate the four-episode portfolio until every focused acceptance
+  test for the active phase passes individually.
 
 ## Authority and research
 

@@ -28,14 +28,44 @@ import {
 } from "./history-v34-contracts.js";
 import {
   buildHistoryVisualPlanV34,
+  applyPlanProductionPrerequisitesV34,
+  buildHistoryValidationSnapshotV34,
   validateHistoryVisualPlanV34,
 } from "./visual-planner-v34.js";
+import { summarizeVerificationStatusV34, normalizeTrustedAttestationTimestampsV34 } from "./history-visual-semantics-v34.js";
 
 const exec = promisify(execFile);
-const FIXED_EPOCH = new Date("1980-01-01T00:00:00.000Z");
-const FIXED_ISO = FIXED_EPOCH.toISOString();
 const sha256 = (value: Buffer | string): string =>
   createHash("sha256").update(value).digest("hex");
+const REPO_ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..", "..", "..");
+
+const FOCUSED_HISTORY_V34_COMMANDS = [
+  "pnpm test:focused -- packages/history/src/history-v34-semantics.unit.test.ts",
+  "pnpm test:focused -- packages/history/src/history-v34.unit.test.ts",
+  "pnpm test:focused -- packages/history/test/acceptance/franklin-v34.acceptance.ts",
+] as const;
+
+async function runFocusedHistoryV34Verification(): Promise<Record<string, unknown>> {
+  const results: Array<{
+    readonly command: string;
+    readonly exitCode: number;
+    readonly ok: boolean;
+  }> = [];
+  for (const command of FOCUSED_HISTORY_V34_COMMANDS) {
+    try {
+      await exec("bash", ["-lc", command], { cwd: REPO_ROOT });
+      results.push({ command, exitCode: 0, ok: true });
+    } catch (error) {
+      const exitCode = (error as NodeJS.ErrnoException & { code?: number }).code ?? 1;
+      results.push({ command, exitCode: Number(exitCode), ok: false });
+    }
+  }
+  return {
+    status: results.every((item) => item.ok) ? "passed" : "failed",
+    completedAt: new Date().toISOString(),
+    commands: results,
+  };
+}
 const unsafeText =
   /(?:\b(?:api[_-]?key|authorization|password|secret|token)\b|(?:^|[/])(?:home|users)(?:[/]|$))/iu;
 
@@ -138,31 +168,12 @@ async function regularFiles(root: string): Promise<string[]> {
   return result;
 }
 
-async function setEpoch(root: string): Promise<void> {
-  const files = await regularFiles(root);
-  for (const file of files) await fs.utimes(file, FIXED_EPOCH, FIXED_EPOCH);
-  const directories: string[] = [root];
-  const walk = async (directory: string): Promise<void> => {
-    for (const entry of await fs.readdir(directory, { withFileTypes: true }))
-      if (entry.isDirectory()) {
-        const child = path.join(directory, entry.name);
-        directories.push(child);
-        await walk(child);
-      }
-  };
-  await walk(root);
-  for (const directory of directories.sort((left, right) => right.length - left.length))
-    await fs.utimes(directory, FIXED_EPOCH, FIXED_EPOCH);
-}
-
 async function zipDirectory(directory: string): Promise<string> {
   const zipPath = `${directory}.zip`;
   await fs.rm(zipPath, { force: true });
-  await setEpoch(directory);
   await exec("zip", ["-X", "-q", "-r", zipPath, path.basename(directory)], {
     cwd: path.dirname(directory),
   });
-  await fs.utimes(zipPath, FIXED_EPOCH, FIXED_EPOCH);
   return zipPath;
 }
 
@@ -181,18 +192,22 @@ async function loadPersistedAttestation(request: {
     (await readJsonIfExists<TrustedNarrationAttestationV1>(v34Path)) ??
     (await readJsonIfExists<TrustedNarrationAttestationV1>(v33Path));
   if (!attestation) return null;
-  if (attestation.assertedAt === FIXED_ISO) {
-    attestation = {
-      ...attestation,
-      assertedAt: new Date().toISOString(),
-    };
-    await writeStableJson(v33Path, attestation);
+  const normalized = normalizeTrustedAttestationTimestampsV34(attestation);
+  if (
+    attestation.assertedAt !== normalized.assertedAt ||
+    attestation.timestampStatus !== normalized.timestampStatus
+  ) {
+    await writeStableJson(v33Path, normalized);
     await fs.mkdir(paths.state, { recursive: true });
-    await writeStableJson(v34Path, attestation);
+    await writeStableJson(v34Path, normalized);
   }
-  return attestation;
+  return normalized;
 }
 
+async function ensureTrustedAttestation(request: {
+  readonly episodeId: string;
+  readonly outputRoot?: string;
+}): Promise<void> {
   const authorityMode = await loadHistoryAuthorityModeV33({
     episodeId: request.episodeId,
     ...(request.outputRoot ? { outputRoot: request.outputRoot } : {}),
@@ -385,7 +400,7 @@ export async function planHistoryVisualsV34(request: {
     sourceAuthorityMode: "trusted-script",
     resolvedFrom: "default",
     narrationHash: narration.normalizedTextSha256,
-    updatedAt: FIXED_ISO,
+    updatedAt: new Date().toISOString(),
     policyVersion: "history-trust-policy.v3.3.0",
   });
   if (attestation)
@@ -426,6 +441,8 @@ export async function inspectHistoryVisualsV34(request: {
 }
 
 function approvalMarkdown(plan: HistoryVisualPlanV34): string {
+  const verification = summarizeVerificationStatusV34(plan.claims);
+  const productionBlockers = plan.approval.production.blockerCodes.join(", ") || "none";
   return [
     `# History V3.4 approval pack`,
     ``,
@@ -435,13 +452,21 @@ function approvalMarkdown(plan: HistoryVisualPlanV34): string {
     ``,
     TRUSTED_SCRIPT_REVIEW_WARNING,
     ``,
+    `## Historical verification`,
+    ``,
+    `- trusted narration accepted: ${verification.trustedNarrationAccepted ? "yes" : "no"} (trusted-script)`,
+    `- independently verified claims: ${verification.independentlyVerifiedCount}`,
+    `- note: ${verification.productionApprovalNote}`,
+    ``,
     `## Gates`,
     ``,
     `- structural: ${plan.approval.structural.state} (structurallyValid=${plan.approval.structurallyValid})`,
     `- editorial: ${plan.approval.editorial.state} (editoriallyReviewable=${plan.approval.editoriallyReviewable})`,
     `- content: ${plan.approval.content.state} (contentApprovalEligible=${plan.approval.contentApprovalEligible})`,
     `- production: ${plan.approval.production.state} (productionApprovalEligible=${plan.approval.productionApprovalEligible})`,
+    `- production blockers: ${productionBlockers}`,
     ``,
+    `Do not treat trusted-script acceptance as independent historical verification.`,
     `Do not treat any generic valid flag as approval. Production remains blocked without measured timing when required.`,
     ``,
   ].join("\n");
@@ -469,7 +494,23 @@ export async function createHistoryApprovalPackV34(request: {
     ...(request.outputRoot ? { outputRoot: request.outputRoot } : {}),
     force: Boolean(request.regenerate),
   });
-  const plan = planned.plan;
+  const testSummary =
+    request.testSummary ??
+    (await runFocusedHistoryV34Verification());
+  let plan = planned.plan;
+  const productionPrerequisites: Array<{
+    readonly code: string;
+    readonly message: string;
+  }> = [];
+  if (testSummary["status"] === "pending-local-verification")
+    productionPrerequisites.push({
+      code: "LOCAL_VERIFICATION_PENDING",
+      message:
+        "Production approval is blocked until local verification completes (test-summary.json is pending-local-verification).",
+    });
+  if (productionPrerequisites.length)
+    plan = applyPlanProductionPrerequisitesV34(plan, productionPrerequisites);
+  const validation = buildHistoryValidationSnapshotV34(plan);
   const paths = episodePaths(request);
   const directory = path.resolve(request.output);
   await fs.rm(directory, { recursive: true, force: true });
@@ -491,10 +532,6 @@ export async function createHistoryApprovalPackV34(request: {
       narrationUnitIds: claim.narrationUnitIds,
       narrationSpans: claim.narrationSpans,
     })),
-  };
-  const testSummary = request.testSummary ?? {
-    status: "pending-local-verification",
-    commands: [],
   };
   const plannerConfig = {
     schemaVersion: plan.schemaVersion,
@@ -519,7 +556,9 @@ export async function createHistoryApprovalPackV34(request: {
         episodeId: plan.episodeId,
         sourceAuthorityMode: "trusted-script",
       },
-    "trusted-narration-attestation.json": attestation,
+    "trusted-narration-attestation.json": attestation
+      ? normalizeTrustedAttestationTimestampsV34(attestation)
+      : attestation,
     "canonical-narration.json": plan.narration,
     "claims.json": plan.claims,
     "entities.json": plan.entities,
@@ -543,7 +582,7 @@ export async function createHistoryApprovalPackV34(request: {
     "document-states.json": plan.documentStates,
     "aspect-ratio-plans.json": plan.aspectRatioPlans,
     "quality-metrics.json": plan.qualityMetrics,
-    "validation.json": planned.validation,
+    "validation.json": validation,
     "planner-config.json": plannerConfig,
     "test-summary.json": testSummary,
     "plan.json": plan,
@@ -552,6 +591,7 @@ export async function createHistoryApprovalPackV34(request: {
   const outputForReport = path.relative(process.cwd(), path.resolve(request.output)) || request.output;
   const planCommand = `pnpm exec tsx apps/cli/src/index.ts history visuals plan ${request.episodeId} --planner-version v3.4 --force --json`;
   const bundleCommand = `pnpm exec tsx apps/cli/src/index.ts history visuals review-bundle ${request.episodeId} --planner-version v3.4 --output ${outputForReport} --regenerate --json`;
+  const buildTimestamp = new Date().toISOString();
   const determinismReport = {
     schemaVersion: "history-determinism-report.v3.4",
     episodeId: plan.episodeId,
@@ -567,10 +607,11 @@ export async function createHistoryApprovalPackV34(request: {
       planHash: plan.planHash,
       contentHash: deterministicPayloadHash,
     },
-    byteEqualityResult: true,
-    stableArchiveTimestamp: FIXED_ISO,
-    timezoneDosTimestampInterpretation:
-      "ZIP entries and files are forced to 1980-01-01T00:00:00.000Z via utimes before zip -X.",
+    byteEqualityResult: false,
+    contentDeterminismResult: true,
+    buildTimestamp,
+    archiveTimestampPolicy:
+      "Filesystem and ZIP entry timestamps use wall-clock build time; semantic determinism is planHash/contentHash only.",
     fileOrderPolicy: "lexicographic by relative path",
     permissionPolicy: "regular files only; symlinks rejected",
   };
@@ -597,7 +638,7 @@ export async function createHistoryApprovalPackV34(request: {
     bundleVersion: HISTORY_APPROVAL_PACK_V34,
     episodeId: plan.episodeId,
     title: plan.title,
-    buildEpoch: FIXED_ISO,
+    buildEpoch: buildTimestamp,
     narrationHash: plan.narration.normalizedTextSha256,
     trustSnapshotHash: plan.trustSnapshotHash,
     planHash: plan.planHash,
@@ -668,9 +709,10 @@ export async function createCombinedHistoryApprovalBundleV34(request: {
     });
     episodes.push(pack);
   }
+  const buildTimestamp = new Date().toISOString();
   const comparison = {
     schemaVersion: "history-approval-pack-combined.v3.4",
-    buildEpoch: FIXED_ISO,
+    buildEpoch: buildTimestamp,
     episodes: episodes.map((episode) => ({
       episodeId: episode.episodeId,
       planHash: episode.planHash,
