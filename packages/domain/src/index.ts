@@ -20,6 +20,8 @@ export * from "./usage-quota-contracts.js";
 export * from "./usage-reservation-lifecycle.js";
 export * from "./usage-estimate-projector.js";
 export * from "./provider-health-resolver.js";
+export * from "./api-credential-contracts.js";
+export * from "./api-credential-lifecycle.js";
 
 const episodeIdPattern = /^[a-z0-9][a-z0-9-]*$/;
 const sceneIdPattern = /^scene-[0-9]{3}$/;

@@ -14,11 +14,17 @@ const tokenPattern = /^mfk_([A-Za-z0-9_-]+)\.([A-Za-z0-9_-]{43,})$/u;
 export interface DurablePilotApiKeyRecord {
   readonly workspaceId: string;
   readonly keyId: string;
+  readonly name: string;
   readonly principalId: string;
   readonly permissions: readonly string[];
   readonly expiresAt: string;
+  readonly overlapUntil: string | null;
+  readonly lastUsedAt: string | null;
+  readonly rotatedFromKeyId: string | null;
   readonly revokedAt: string | null;
   readonly revision: number;
+  readonly createdAt: string;
+  readonly updatedAt: string;
 }
 
 export interface DurablePilotApiKeyCandidate extends DurablePilotApiKeyRecord {
@@ -30,6 +36,7 @@ export interface DurablePilotApiKeyRepository {
   issue(input: {
     readonly workspaceId: string;
     readonly keyId: string;
+    readonly name: string;
     readonly principalId: string;
     readonly lookupFingerprint: string;
     readonly secretHash: string;
@@ -44,11 +51,13 @@ export interface DurablePilotApiKeyRepository {
     readonly previousKeyId: string;
     readonly previousExpectedRevision: number;
     readonly keyId: string;
+    readonly name: string;
     readonly principalId: string;
     readonly lookupFingerprint: string;
     readonly secretHash: string;
     readonly permissions: readonly string[];
     readonly expiresAt: string;
+    readonly overlapMs?: number;
     readonly actorSubject: string;
     readonly auditId: string;
     readonly now: string;
@@ -99,6 +108,7 @@ export class PilotApiKeyService {
   public async issue(input: {
     readonly workspaceId: string;
     readonly principalId: string;
+    readonly name: string;
     readonly permissions: readonly string[];
     readonly expiresAt: string;
     readonly actorSubject: string;
@@ -111,13 +121,16 @@ export class PilotApiKeyService {
     readonly previousKeyId: string;
     readonly previousExpectedRevision: number;
     readonly principalId: string;
+    readonly name: string;
     readonly permissions: readonly string[];
     readonly expiresAt: string;
+    readonly overlapMs?: number;
     readonly actorSubject: string;
   }): Promise<{ readonly token: string; readonly key: DurablePilotApiKeyRecord }> {
     return this.create(input, {
       keyId: input.previousKeyId,
       expectedRevision: input.previousExpectedRevision,
+      ...(input.overlapMs !== undefined ? { overlapMs: input.overlapMs } : {}),
     });
   }
 
@@ -129,11 +142,16 @@ export class PilotApiKeyService {
     input: {
       readonly workspaceId: string;
       readonly principalId: string;
+      readonly name: string;
       readonly permissions: readonly string[];
       readonly expiresAt: string;
       readonly actorSubject: string;
     },
-    previous: { readonly keyId: string; readonly expectedRevision: number } | null
+    previous: {
+      readonly keyId: string;
+      readonly expectedRevision: number;
+      readonly overlapMs?: number;
+    } | null
   ): Promise<{ readonly token: string; readonly key: DurablePilotApiKeyRecord }> {
     if (!opaqueWorkspace.test(input.workspaceId)) throw new Error("Pilot API key workspace is invalid.");
     const now = this.options.now();
@@ -144,6 +162,7 @@ export class PilotApiKeyService {
     const common = {
       workspaceId: input.workspaceId,
       keyId: this.options.createId("key"),
+      name: input.name,
       principalId: input.principalId,
       lookupFingerprint: fingerprintPilotApiKey(token),
       secretHash: hashPilotApiKey(token),
@@ -158,6 +177,9 @@ export class PilotApiKeyService {
         ...common,
         previousKeyId: previous.keyId,
         previousExpectedRevision: previous.expectedRevision,
+        ...(previous.overlapMs !== undefined
+          ? { overlapMs: previous.overlapMs }
+          : {}),
       })
       : await this.repository.issue(common);
     return { token, key };

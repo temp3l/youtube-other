@@ -4,6 +4,7 @@ import { z } from "zod";
 
 import {
   ApplicationError,
+  type AuthenticatedPrincipal,
   type WorkflowAdmissionHandler,
 } from "@mediaforge/application";
 import {
@@ -34,6 +35,7 @@ import {
   workflowAdmissionSchema,
 } from "./contract.js";
 import { createApiWorkflowAdmissionUseCase } from "./http-server.js";
+import { createApiCredentialUseCases } from "./postgres-api-credential-use-cases.js";
 
 interface CursorValue {
   readonly workspaceId: string;
@@ -248,6 +250,17 @@ export function createPostgresApiUseCases(input: {
   const now = input.now ?? (() => new Date());
   const createId = input.createId ?? id;
   const admit = createApiWorkflowAdmissionUseCase(input.workflowAdmissionHandler);
+  const {
+    issueApiCredential,
+    listApiCredentials,
+    getApiCredential,
+    revokeApiCredential,
+    getDeveloperJourneyExamples,
+  } = createApiCredentialUseCases({
+    pool: input.pool,
+    now,
+    createId,
+  });
 
   return {
     listProjects: async (after, size, context) => {
@@ -961,5 +974,10 @@ export function createPostgresApiUseCases(input: {
         return translatePersistence(error);
       }
     },
+    issueApiCredential,
+    listApiCredentials,
+    getApiCredential,
+    revokeApiCredential,
+    getDeveloperJourneyExamples,
   };
 }

@@ -8,9 +8,20 @@ import {
 
 type Query = { readonly sql: string; readonly values?: readonly unknown[] };
 const row = (overrides: Record<string, unknown> = {}) => ({
-  workspace_id: "workspace-1", key_id: "key-1", principal_id: "service-1",
-  secret_hash: "scrypt$v1$16384$8$1$c2FsdA$aGFzaA", permissions: ["projects:read"],
-  expires_at: "2026-08-02T00:00:00.000Z", revoked_at: null, revision: 0,
+  workspace_id: "workspace-1",
+  key_id: "key-1",
+  name: "integration",
+  principal_id: "service-1",
+  secret_hash: "scrypt$v1$16384$8$1$c2FsdA$aGFzaA",
+  permissions: ["projects:read"],
+  expires_at: "2026-08-02T00:00:00.000Z",
+  overlap_until: null,
+  last_used_at: null,
+  rotated_from_key_id: null,
+  created_at: "2026-08-01T12:00:00.000Z",
+  updated_at: "2026-08-01T12:00:00.000Z",
+  revoked_at: null,
+  revision: 0,
   ...overrides,
 });
 
@@ -43,9 +54,17 @@ describe("Postgres pilot API key repository", () => {
   it("issues only for an active principal and appends audit in one transaction", async () => {
     const fake = fakePool((sql) => sql.includes("INSERT INTO pilot_api_keys") ? { rows: [row()] } : { rows: [] });
     const result = await new PostgresPilotApiKeyRepository(fake.pool).issue({
-      workspaceId: "workspace-1", keyId: "key-1", principalId: "service-1", lookupFingerprint: "a".repeat(64),
-      secretHash: row().secret_hash, permissions: ["projects:read"], expiresAt: "2026-08-02T00:00:00.000Z",
-      actorSubject: "operator-1", auditId: "audit-1", now: "2026-08-01T12:00:00.000Z",
+      workspaceId: "workspace-1",
+      keyId: "key-1",
+      name: "integration",
+      principalId: "service-1",
+      lookupFingerprint: "a".repeat(64),
+      secretHash: row().secret_hash,
+      permissions: ["projects:read"],
+      expiresAt: "2026-08-02T00:00:00.000Z",
+      actorSubject: "operator-1",
+      auditId: "audit-1",
+      now: "2026-08-01T12:00:00.000Z",
     });
     expect(result).not.toHaveProperty("secretHash");
     expect(fake.queries.find(({ sql }) => sql.includes("INSERT INTO pilot_api_keys"))?.sql).toContain("active = TRUE AND revoked_at IS NULL");
@@ -60,9 +79,19 @@ describe("Postgres pilot API key repository", () => {
       return { rows: [] };
     });
     const result = await new PostgresPilotApiKeyRepository(fake.pool).rotate({
-      workspaceId: "workspace-1", previousKeyId: "key-1", previousExpectedRevision: 0, keyId: "key-2", principalId: "service-1",
-      lookupFingerprint: "b".repeat(64), secretHash: row().secret_hash, permissions: ["projects:read"], expiresAt: "2026-08-03T00:00:00.000Z",
-      actorSubject: "operator-1", auditId: "audit-2", now: "2026-08-01T12:00:00.000Z",
+      workspaceId: "workspace-1",
+      previousKeyId: "key-1",
+      previousExpectedRevision: 0,
+      keyId: "key-2",
+      name: "integration",
+      principalId: "service-1",
+      lookupFingerprint: "b".repeat(64),
+      secretHash: row().secret_hash,
+      permissions: ["projects:read"],
+      expiresAt: "2026-08-03T00:00:00.000Z",
+      actorSubject: "operator-1",
+      auditId: "audit-2",
+      now: "2026-08-01T12:00:00.000Z",
     });
     expect(result.keyId).toBe("key-2");
     expect(fake.queries.find(({ sql }) => sql.includes("UPDATE pilot_api_keys"))?.sql).toContain("revision = $6 AND revoked_at IS NULL");

@@ -25,6 +25,7 @@ const revision = z
   .transform(Number)
   .refine(Number.isSafeInteger);
 const expiresAt = z.string().max(64).datetime({ offset: true });
+const name = z.string().trim().min(1).max(160);
 const commonSchema = z.object({
   MEDIAFORGE_API_KEY_ACTION: z.enum(["issue", "rotate", "revoke"]),
   MEDIAFORGE_API_KEY_WORKSPACE_ID: opaqueId,
@@ -35,6 +36,7 @@ export type PilotApiKeyAdminEnvironment =
   | {
       readonly action: "issue";
       readonly workspaceId: string;
+      readonly name: string;
       readonly principalId: string;
       readonly permissions: readonly string[];
       readonly expiresAt: string;
@@ -43,6 +45,7 @@ export type PilotApiKeyAdminEnvironment =
   | {
       readonly action: "rotate";
       readonly workspaceId: string;
+      readonly name: string;
       readonly principalId: string;
       readonly permissions: readonly string[];
       readonly expiresAt: string;
@@ -90,6 +93,7 @@ export function parsePilotApiKeyAdminEnvironment(
   const issue = {
     workspaceId: common.MEDIAFORGE_API_KEY_WORKSPACE_ID,
     actorSubject: common.MEDIAFORGE_API_KEY_ACTOR_SUBJECT,
+    name: name.parse(environment["MEDIAFORGE_API_KEY_NAME"]),
     principalId: opaqueId.parse(environment["MEDIAFORGE_API_KEY_PRINCIPAL_ID"]),
     permissions: permissions(environment["MEDIAFORGE_API_KEY_PERMISSIONS"]),
     expiresAt: expiresAt.parse(
@@ -174,6 +178,7 @@ export async function administerPilotApiKey(input: {
           previousKeyId: input.environment.previousKeyId,
           previousExpectedRevision:
             input.environment.previousExpectedRevision,
+          name: input.environment.name,
           principalId: input.environment.principalId,
           permissions: input.environment.permissions,
           expiresAt: input.environment.expiresAt,

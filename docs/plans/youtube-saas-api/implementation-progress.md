@@ -1,6 +1,6 @@
 # YSAAS implementation progress
 
-Current wave: Wave 2 in progress (YSAAS-010 complete; YSAAS-011+ next)
+Current wave: Wave 2 in progress (YSAAS-011 complete; YSAAS-012+ next)
 
 ## Anti-stuck execution rules (session)
 
@@ -53,3 +53,9 @@ Status: completed
 Commit: cfaffb0
 Validation: `usage-quota.unit.test.ts` pass (10); domain/persistence emit pass; `apps/api` typecheck pass for new quota/health routes
 Notes: Usage dimensions, reservation lifecycle, estimate projection with cache/reuse, provider health resolver; enriched quota dimensions, usage filters, `GET /v1/workspaces/{workspace}/provider-health`
+
+### YSAAS-011
+Status: completed
+Commit: pending
+Validation: `api-credential-lifecycle.unit.test.ts` pass (4); domain/application/persistence/api-sdk emit pass; `apps/api` typecheck pass excluding pre-existing `job-process` / `provider-free-worker-entry` migrate errors
+Notes: Named credential lifecycle, show-once issue with idempotency replay, revoke with If-Match, developer journey examples; API routes + OpenAPI/SDK developer-credential module; pilot key admin `name` env; rotate overlap persistence (no public rotate route yet)

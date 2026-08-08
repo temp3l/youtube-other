@@ -1,6 +1,7 @@
 import { artifactLineageSdkV1Operations } from "./modules/artifact-lineage-operations.js";
 import { artifactSdkV1Operations, publicationSdkV1Operations, reviewSdkV1Operations } from "./modules/artifact-review-publication-operations.js";
 import { contentSdkV1Operations } from "./modules/content-operations.js";
+import { developerCredentialSdkV1Operations } from "./modules/developer-credential-operations.js";
 import { platformSdkV1Operations } from "./modules/platform-operations.js";
 import { workflowSdkV1Operations } from "./modules/workflow-operations.js";
 import type { SdkV1OperationContract, SdkV1OperationModule } from "./types.js";
@@ -8,6 +9,11 @@ import type { SdkV1OperationContract, SdkV1OperationModule } from "./types.js";
 /** Disjoint SDK operation modules. Later YSAAS tasks extend assigned modules only. */
 export const SDK_V1_OPERATION_MODULES: readonly SdkV1OperationModule[] = [
   { id: "platform", owner: "platform", operations: platformSdkV1Operations },
+  {
+    id: "developer-credential",
+    owner: "developer",
+    operations: developerCredentialSdkV1Operations,
+  },
   { id: "content", owner: "content", operations: contentSdkV1Operations },
   { id: "workflow", owner: "workflow", operations: workflowSdkV1Operations },
   {
@@ -64,6 +70,7 @@ function mergeOperations(
 export const SDK_V1_OPERATIONS = mergeOperations(
   SDK_V1_OPERATION_MODULES
 ) as typeof platformSdkV1Operations &
+  typeof developerCredentialSdkV1Operations &
   typeof contentSdkV1Operations &
   typeof workflowSdkV1Operations &
   typeof artifactLineageSdkV1Operations &

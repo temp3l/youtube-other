@@ -13,11 +13,17 @@ import {
 const record: DurablePilotApiKeyRecord = {
   workspaceId: "workspace-1",
   keyId: "key-1",
+  name: "integration",
   principalId: "service-1",
   permissions: ["content.read", "workflow.start"],
   expiresAt: "2026-08-02T00:00:00.000Z",
+  overlapUntil: null,
+  lastUsedAt: null,
+  rotatedFromKeyId: null,
   revokedAt: null,
   revision: 0,
+  createdAt: "2026-08-01T12:00:00.000Z",
+  updatedAt: "2026-08-01T12:00:00.000Z",
 };
 
 function repository(): DurablePilotApiKeyRepository {
@@ -40,6 +46,7 @@ describe("durable pilot API keys", () => {
     const issued = await service.issue({
       workspaceId: "workspace-1",
       principalId: "service-1",
+      name: "integration",
       permissions: ["workflow.start", "content.read"],
       expiresAt: record.expiresAt,
       actorSubject: "operator-1",
@@ -64,6 +71,7 @@ describe("durable pilot API keys", () => {
       previousKeyId: "key-1",
       previousExpectedRevision: 0,
       principalId: "service-1",
+      name: "integration",
       permissions: ["content.read"],
       expiresAt: record.expiresAt,
       actorSubject: "operator-1",
@@ -82,6 +90,7 @@ describe("durable pilot API keys", () => {
       service.issue({
         workspaceId: "workspace-1",
         principalId: "service-1",
+        name: "integration",
         permissions: ["publication.execute"],
         expiresAt: record.expiresAt,
         actorSubject: "operator-1",
@@ -96,7 +105,14 @@ describe("durable pilot API keys", () => {
       createId: (kind) => `${kind}-3`,
       randomBytes: () => Buffer.alloc(32, 11),
     });
-    const issued = await service.issue({ workspaceId: "workspace-1", principalId: "service-1", permissions: record.permissions, expiresAt: record.expiresAt, actorSubject: "operator-1" });
+    const issued = await service.issue({
+      workspaceId: "workspace-1",
+      principalId: "service-1",
+      name: record.name,
+      permissions: record.permissions,
+      expiresAt: record.expiresAt,
+      actorSubject: "operator-1",
+    });
     const persisted = vi.mocked(issueStore.issue).mock.calls[0]![0];
     const candidate: DurablePilotApiKeyCandidate = {
       ...record,

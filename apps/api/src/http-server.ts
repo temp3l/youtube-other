@@ -10,6 +10,13 @@ import {
   type WorkflowAdmissionHandler,
   isApplicationError,
 } from "@mediaforge/application";
+import {
+  apiCredentialIssueInputSchema,
+  apiCredentialIssueResultSchema,
+  apiCredentialRecordSchema,
+  apiCredentialRevokeInputSchema,
+  developerJourneyExamplesSchema,
+} from "@mediaforge/domain";
 import { ZodError } from "zod";
 
 import {
@@ -200,6 +207,35 @@ export interface ApiUseCases {
     readonly items: readonly ApiAuditEvent[];
     readonly nextAfter?: string;
   }>;
+  issueApiCredential(
+    body: unknown,
+    context: Required<
+      Pick<
+        ApiRequestContext,
+        "workspaceId" | "principal" | "requestId" | "idempotencyKey"
+      >
+    >
+  ): Promise<{
+    readonly credential: Record<string, unknown>;
+    readonly replayed: boolean;
+    readonly showOnce: boolean;
+    readonly token?: string | undefined;
+  }>;
+  listApiCredentials(
+    context: Required<Pick<ApiRequestContext, "workspaceId" | "principal">>
+  ): Promise<{ readonly items: readonly Record<string, unknown>[] }>;
+  getApiCredential(
+    keyId: string,
+    context: Required<Pick<ApiRequestContext, "workspaceId" | "principal">>
+  ): Promise<Record<string, unknown>>;
+  revokeApiCredential(
+    keyId: string,
+    body: unknown,
+    context: Required<
+      Pick<ApiRequestContext, "workspaceId" | "principal" | "ifMatch">
+    >
+  ): Promise<Record<string, unknown>>;
+  getDeveloperJourneyExamples(): Promise<Record<string, unknown>>;
   createProject(
     input: ProjectInput,
     context: ApiRequestContext
@@ -940,10 +976,11 @@ type ApiPermission =
   | "content.read"
   | "content.write"
   | "publication.read"
-  | "validation.read"
   | "usage.read"
+  | "validation.read"
   | "workflow.cancel"
-  | "workflow.start";
+  | "workflow.start"
+  | "workspace.admin";
 
 /** Resolves authorization from the exact implemented operation, not only its HTTP verb. */
 function requiredPermission(
@@ -962,6 +999,31 @@ function requiredPermission(
     return "content.read";
   if (method === "GET" && !matched.project && matched.tail === "provider-health")
     return "usage.read";
+  if (
+    method === "GET" &&
+    !matched.project &&
+    matched.tail === "developer-journey-examples"
+  )
+    return "content.read";
+  if (
+    method === "POST" &&
+    !matched.project &&
+    matched.tail === "api-credentials"
+  )
+    return "workspace.admin";
+  if (
+    method === "GET" &&
+    !matched.project &&
+    (matched.tail === "api-credentials" ||
+      /^api-credentials\/[^/]+$/u.test(matched.tail ?? ""))
+  )
+    return "workspace.admin";
+  if (
+    method === "POST" &&
+    !matched.project &&
+    /^api-credentials\/[^/]+:revoke$/u.test(matched.tail ?? "")
+  )
+    return "workspace.admin";
   if (method === "POST" && !matched.project && matched.tail === "")
     return "content.write";
   if (method === "GET" && !matched.project && matched.tail === "")
@@ -1220,6 +1282,77 @@ export function createApiServer(
           context
         );
         return json(response, 200, result, { "x-request-id": requestIdValue });
+      }
+      if (
+        request.method === "GET" &&
+        !matched.project &&
+        matched.tail === "developer-journey-examples"
+      ) {
+        const result = developerJourneyExamplesSchema.parse(
+          await useCases.getDeveloperJourneyExamples()
+        );
+        return json(response, 200, result, { "x-request-id": requestIdValue });
+      }
+      if (
+        request.method === "POST" &&
+        !matched.project &&
+        matched.tail === "api-credentials"
+      ) {
+        const key = idempotencyKey(request);
+        if (!key)
+          throw new ApplicationError(
+            "precondition_required",
+            "Idempotency-Key is required.",
+            false
+          );
+        const result = apiCredentialIssueResultSchema.parse(
+          await useCases.issueApiCredential(
+            apiCredentialIssueInputSchema.parse(await body(request)),
+            { ...context, idempotencyKey: key }
+          )
+        );
+        return json(response, result.replayed ? 200 : 201, result, {
+          etag: etag(result.credential.revision),
+          ...(result.replayed ? { "idempotency-replayed": "true" } : {}),
+          "x-request-id": requestIdValue,
+        });
+      }
+      if (
+        request.method === "GET" &&
+        !matched.project &&
+        matched.tail === "api-credentials"
+      ) {
+        const result = await useCases.listApiCredentials(context);
+        return json(response, 200, result, { "x-request-id": requestIdValue });
+      }
+      const apiCredentialMatch = !matched.project
+        ? matched.tail?.match(/^api-credentials\/([^/]+)$/u)
+        : null;
+      if (request.method === "GET" && apiCredentialMatch?.[1]) {
+        const result = apiCredentialRecordSchema.parse(
+          await useCases.getApiCredential(apiCredentialMatch[1], context)
+        );
+        return json(response, 200, result, {
+          etag: etag(result.revision),
+          "x-request-id": requestIdValue,
+        });
+      }
+      const apiCredentialRevokeMatch = !matched.project
+        ? matched.tail?.match(/^api-credentials\/([^/]+):revoke$/u)
+        : null;
+      if (request.method === "POST" && apiCredentialRevokeMatch?.[1]) {
+        const match = strongIfMatch(request);
+        const result = apiCredentialRecordSchema.parse(
+          await useCases.revokeApiCredential(
+            apiCredentialRevokeMatch[1],
+            apiCredentialRevokeInputSchema.parse(await body(request)),
+            { ...context, ifMatch: match }
+          )
+        );
+        return json(response, 200, result, {
+          etag: etag(result.revision),
+          "x-request-id": requestIdValue,
+        });
       }
       if (
         request.method === "GET" &&

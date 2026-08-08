@@ -37,6 +37,7 @@ describe("pilot API key administration", () => {
       parsePilotApiKeyAdminEnvironment({
         MEDIAFORGE_API_KEY_ACTION: "issue",
         MEDIAFORGE_API_KEY_WORKSPACE_ID: "workspace-1",
+        MEDIAFORGE_API_KEY_NAME: "integration",
         MEDIAFORGE_API_KEY_PRINCIPAL_ID: "service-1",
         MEDIAFORGE_API_KEY_PERMISSIONS: "content.read,workflow.start,content.read",
         MEDIAFORGE_API_KEY_EXPIRES_AT: "2026-09-01T00:00:00.000Z",
@@ -75,6 +76,7 @@ describe("pilot API key administration", () => {
       MEDIAFORGE_API_KEY_WORKSPACE_ID: "workspace-1",
       MEDIAFORGE_API_KEY_PREVIOUS_ID: "key-1",
       MEDIAFORGE_API_KEY_EXPECTED_REVISION: "2",
+      MEDIAFORGE_API_KEY_NAME: "integration",
       MEDIAFORGE_API_KEY_PRINCIPAL_ID: "service-1",
       MEDIAFORGE_API_KEY_PERMISSIONS: "content.read,workflow.start",
       MEDIAFORGE_API_KEY_EXPIRES_AT: "2026-09-01T00:00:00.000Z",
@@ -83,6 +85,7 @@ describe("pilot API key administration", () => {
     expect(() => parsePilotApiKeyAdminEnvironment({
       MEDIAFORGE_API_KEY_ACTION: "issue",
       MEDIAFORGE_API_KEY_WORKSPACE_ID: "workspace-1",
+      MEDIAFORGE_API_KEY_NAME: "integration",
       MEDIAFORGE_API_KEY_PRINCIPAL_ID: "service-1",
       MEDIAFORGE_API_KEY_PERMISSIONS: "not valid",
       MEDIAFORGE_API_KEY_EXPIRES_AT: "2026-09-01T00:00:00.000Z",
@@ -91,6 +94,7 @@ describe("pilot API key administration", () => {
     expect(() => parsePilotApiKeyAdminEnvironment({
       MEDIAFORGE_API_KEY_ACTION: "issue",
       MEDIAFORGE_API_KEY_WORKSPACE_ID: "workspace-1",
+      MEDIAFORGE_API_KEY_NAME: "integration",
       MEDIAFORGE_API_KEY_PRINCIPAL_ID: "service-1",
       MEDIAFORGE_API_KEY_PERMISSIONS: "publication.execute",
       MEDIAFORGE_API_KEY_EXPIRES_AT: "2026-09-01T00:00:00.000Z",
@@ -103,9 +107,15 @@ describe("pilot API key administration", () => {
       ? { rows: [{
         workspace_id: "workspace-1",
         key_id: "key-1",
+        name: "integration",
         principal_id: "service-1",
         permissions: ["content.read"],
         expires_at: "2026-09-01T00:00:00.000Z",
+        overlap_until: null,
+        last_used_at: null,
+        rotated_from_key_id: null,
+        created_at: "2026-08-01T00:00:00.000Z",
+        updated_at: "2026-08-01T00:00:00.000Z",
         revoked_at: null,
         revision: 0,
       }] }
@@ -115,6 +125,7 @@ describe("pilot API key administration", () => {
       environment: {
         action: "issue",
         workspaceId: "workspace-1",
+        name: "integration",
         principalId: "service-1",
         permissions: ["content.read"],
         expiresAt: "2026-09-01T00:00:00.000Z",

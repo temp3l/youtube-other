@@ -114,6 +114,12 @@ export const openApiComponents = {
         required: true,
         schema: schema("OpaqueId"),
       },
+      ApiCredentialId: {
+        name: "key",
+        in: "path",
+        required: true,
+        schema: schema("OpaqueId"),
+      },
       ApprovalId: {
         name: "approval",
         in: "path",
@@ -657,6 +663,142 @@ export const openApiComponents = {
         properties: {
           items: { type: "array", items: schema("AuditEvent") },
           nextAfter: { type: "string", minLength: 1, maxLength: 4_096 },
+        },
+      },
+      ApiCredentialRecord: {
+        type: "object",
+        additionalProperties: false,
+        required: [
+          "schemaVersion",
+          "workspaceId",
+          "keyId",
+          "name",
+          "principalId",
+          "permissions",
+          "status",
+          "expiresAt",
+          "revision",
+          "createdAt",
+          "updatedAt",
+        ],
+        properties: {
+          schemaVersion: {
+            type: "string",
+            enum: ["mediaforge.api-credential.v1"],
+          },
+          workspaceId: schema("OpaqueId"),
+          keyId: schema("OpaqueId"),
+          name: { type: "string", minLength: 1, maxLength: 160 },
+          principalId: schema("OpaqueId"),
+          permissions: {
+            type: "array",
+            items: { type: "string", minLength: 1 },
+            minItems: 1,
+          },
+          status: {
+            type: "string",
+            enum: ["active", "overlapping", "revoked", "expired"],
+          },
+          expiresAt: schema("DateTime"),
+          overlapUntil: schema("DateTime"),
+          lastUsedAt: schema("DateTime"),
+          rotatedFromKeyId: schema("OpaqueId"),
+          revision: schema("Revision"),
+          createdAt: schema("DateTime"),
+          updatedAt: schema("DateTime"),
+        },
+      },
+      ApiCredentialPage: {
+        type: "object",
+        additionalProperties: false,
+        required: ["items"],
+        properties: {
+          items: {
+            type: "array",
+            items: schema("ApiCredentialRecord"),
+          },
+        },
+      },
+      ApiCredentialIssueInput: {
+        type: "object",
+        additionalProperties: false,
+        required: ["name", "principalId", "permissions", "expiresAt"],
+        properties: {
+          name: { type: "string", minLength: 1, maxLength: 160 },
+          principalId: schema("OpaqueId"),
+          permissions: {
+            type: "array",
+            items: { type: "string", minLength: 1 },
+            minItems: 1,
+          },
+          expiresAt: schema("DateTime"),
+          overlapMs: { type: "integer", minimum: 0 },
+        },
+      },
+      ApiCredentialIssueResult: {
+        type: "object",
+        additionalProperties: false,
+        required: ["credential", "replayed", "showOnce"],
+        properties: {
+          credential: schema("ApiCredentialRecord"),
+          token: { type: "string", minLength: 1 },
+          replayed: { type: "boolean" },
+          showOnce: { type: "boolean" },
+        },
+      },
+      ApiCredentialRevokeInput: {
+        type: "object",
+        additionalProperties: false,
+        required: ["reason"],
+        properties: {
+          reason: { type: "string", minLength: 1, maxLength: 2_000 },
+        },
+      },
+      DeveloperJourneyStep: {
+        type: "object",
+        additionalProperties: false,
+        required: [
+          "operationId",
+          "method",
+          "path",
+          "requestSchema",
+          "responseSchema",
+          "requiredHeaders",
+        ],
+        properties: {
+          operationId: { type: "string", minLength: 1 },
+          method: {
+            type: "string",
+            enum: ["GET", "POST", "PATCH", "PUT", "DELETE"],
+          },
+          path: { type: "string", minLength: 1 },
+          requestSchema: {
+            oneOf: [{ type: "string", minLength: 1 }, { type: "null" }],
+          },
+          responseSchema: { type: "string", minLength: 1 },
+          requiredHeaders: {
+            type: "array",
+            items: { type: "string", minLength: 1 },
+          },
+          note: { type: "string", minLength: 1 },
+        },
+      },
+      DeveloperJourneyExamples: {
+        type: "object",
+        additionalProperties: false,
+        required: ["schemaVersion", "title", "steps", "projectedAt"],
+        properties: {
+          schemaVersion: {
+            type: "string",
+            enum: ["mediaforge.api-credential.v1"],
+          },
+          title: { type: "string", minLength: 1 },
+          steps: {
+            type: "array",
+            items: schema("DeveloperJourneyStep"),
+            minItems: 1,
+          },
+          projectedAt: schema("DateTime"),
         },
       },
       ProjectInput: {
