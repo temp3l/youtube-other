@@ -19,7 +19,7 @@ Added an isolated, fail-closed V3.6 explanatory-relation IR with deterministic I
 
 ## Commit hash
 
-`445f916517a8b5c12911a792f7a3eda75a64b672`
+`54673c8882fe565b549a5347a739d6b0c49c1ce5`
 
 ## Unresolved risks
 
