@@ -56,6 +56,6 @@ Notes: Usage dimensions, reservation lifecycle, estimate projection with cache/r
 
 ### YSAAS-011
 Status: completed
-Commit: pending
+Commit: 639a9a4
 Validation: `api-credential-lifecycle.unit.test.ts` pass (4); domain/application/persistence/api-sdk emit pass; `apps/api` typecheck pass excluding pre-existing `job-process` / `provider-free-worker-entry` migrate errors
 Notes: Named credential lifecycle, show-once issue with idempotency replay, revoke with If-Match, developer journey examples; API routes + OpenAPI/SDK developer-credential module; pilot key admin `name` env; rotate overlap persistence (no public rotate route yet)
