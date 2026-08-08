@@ -225,7 +225,9 @@ export function compileAbstractCausalDiagramV35(input: {
     entityLabels: [],
   });
   if (!scored.eligible || scored.score < 3) return null;
-  const labels = extractThematicCausalLabelsV35(input.text);
+  const thematicLabels = extractThematicCausalLabelsV35(input.text);
+  const listedFactors = extractListedCausalFactorsV35(input.text);
+  const labels = thematicLabels.length >= 2 ? thematicLabels : listedFactors;
   if (labels.length < 2) return null;
   const hasCausalLanguage =
     /\b(?:because|led to|resulted|therefore|collapse|combined|combining|coherent|interconnected|dependencies?|mechanism|warns? us against|systems?|method|escalation|flooding|evacuation)\b/iu.test(
@@ -233,7 +235,6 @@ export function compileAbstractCausalDiagramV35(input: {
     );
   if (!hasCausalLanguage) return null;
   const masterId = `diagram-master-causal-${input.beatNumber}`;
-  const listedFactors = extractListedCausalFactorsV35(input.text);
   const topology =
     listedFactors.length >= 3 && /\bcombining\b/iu.test(input.text)
       ? ("parallel-contributors" as const)

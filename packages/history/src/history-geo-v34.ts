@@ -1182,7 +1182,7 @@ export function proposeMapIntentsV34(input: {
     const geo = input.geographicQualifiers.filter((item) => item.claimId === claim.id);
     const hasGeoCue =
       geo.length > 0 ||
-      /\b(?:sailed|march|route|crossed|crossing|advanced|advancing|retreat|retreated|entered|reached|from .+ to |bay|island|trapped|saw|located|found in|arrived)\b/iu.test(
+      /\b(?:sailed|march|route|crossed|crossing|advanced|advancing|retreat|retreated|entered|reached|from .+ to |bay|island|trapped|saw|located|found in|arrived|landed|landing|invaded|invasion|disembark|amphibious|beach|armada|crusade|expedition|campaign|migration|encircle|siege|fleet)\b/iu.test(
         text
       );
     if (!hasGeoCue) continue;
@@ -1264,6 +1264,30 @@ export function proposeMapIntentsV34(input: {
             ["Francis Crozier", "James Fitzjames"].includes(item.normalizedLabel)
           )
           .map((item) => item.id),
+      });
+      continue;
+    }
+    const singlePlaceId = locations[0] ?? origins[0] ?? destinations[0];
+    const landingOrInvasionLanguage =
+      /\b(?:landed|landing|invaded|invasion|invading|disembark|amphibious|beach|armada|crusade|expedition|migration|encircle|siege|fleet)\b/iu.test(
+        text
+      );
+    if (
+      singlePlaceId &&
+      landingOrInvasionLanguage &&
+      (!originIds.length || !destinationIds.length)
+    ) {
+      proposals.push({
+        claimIds: [claim.id],
+        mapPurpose: "area",
+        movingActorEntityMentionIds: movingActorIds,
+        originPlaceMentionIds: [singlePlaceId],
+        destinationPlaceMentionIds: [singlePlaceId],
+        waypointPlaceMentionIds: [],
+        temporalQualifierIds: claim.temporalQualifierIds,
+        routeType: inferRouteType(text, "orientation"),
+        uncertainty: claim.uncertaintyMarkers,
+        leaderEntityMentionIds: leaders.slice(0, 2),
       });
       continue;
     }

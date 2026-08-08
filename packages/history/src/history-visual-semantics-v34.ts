@@ -15,7 +15,7 @@ export const LONG_STATIC_STRONG_WARNING_MS = 12_000;
 export const LONG_TEXT_ONLY_BLOCK_MS = 12_000;
 
 const MOVEMENT_NARRATION_PATTERN =
-  /\b(?:sailed|sail|marched|march(?:ed|ing)?|departed|arrived|crossed|crossing|advanced|advancing|advance|captured|retreat(?:ed|ing)?|entered|reached|invaded|invading|pursued|harassed|traveled|travelled|journey|toward|towards|headed|bound for|planned to march|from .+ to )\b/iu;
+  /\b(?:sailed|sail|marched|march(?:ed|ing)?|departed|arrived|landed|landing|disembark(?:ed|ing)?|amphibious|crossed|crossing|advanced|advancing|advance|captured|retreat(?:ed|ing)?|entered|reached|invaded|invading|invasion|pursued|harassed|traveled|travelled|journey|toward|towards|headed|bound for|planned to march|from .+ to )\b/iu;
 const LOCATION_SIGHTING_PATTERN =
   /\b(?:saw|seen|spotted|observed|located in|wintered at|trapped in|off the|off King|in the ice|anchored at|stationed at|in .+ Bay\b)\b/iu;
 

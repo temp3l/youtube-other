@@ -142,6 +142,8 @@ import {
   buildVisualOpportunitiesV35,
   detectDiagramOpportunityV35,
   reserveDiagramBeatIndexesV35,
+  scoreDiagramOpportunityV35,
+  scoreMapOpportunityV35,
   summarizeVisualOpportunityTotalsV35,
 } from "./history-visual-opportunity-v35.js";
 import type {
@@ -544,7 +546,7 @@ function modalityFor(text: string): HistoryVisualModalityV35 {
   )
     return "diagram";
   if (
-    /\b(?:route|crossed|crossing|advanced|advancing|retreat|retreated|river|sailed|march|toward|from .+ to |island|bay|passage|niemen|moscow|smolensk|berezina|messina|mediterranean|aegean|anatolia|levant|cyprus|hittite|mycenae|trade routes?|eastern mediterranean)\b/iu.test(
+    /\b(?:route|crossed|crossing|advanced|advancing|retreat|retreated|river|sailed|march|marched|toward|from .+ to |island|bay|passage|niemen|moscow|smolensk|berezina|messina|mediterranean|aegean|anatolia|levant|cyprus|hittite|mycenae|trade routes?|eastern mediterranean|landed|landing|invaded|invasion|invading|disembark|amphibious|beach|armada|crusade|expedition|campaign|migration|encircle|siege|fleet|normandy|channel|inland|territor)\b/iu.test(
       text
     )
   )
@@ -662,6 +664,36 @@ function scopedMapCacheKey(input: {
   return `${mapIntentSignature(input.intent)}|${[...input.scopeClaimIds].sort().join(",")}`;
 }
 
+function probeMapCompileForCluster(input: {
+  readonly cluster: BeatCluster;
+  readonly beatNumber: string;
+  readonly structured: HistoryStructuredClaimsV34;
+  readonly mapIntents: ReturnType<typeof proposeMapIntentsV35>;
+  readonly intentsByClaim: ReadonlyMap<string, ReturnType<typeof proposeMapIntentsV35>[number]>;
+  readonly narrationText: string;
+}): boolean {
+  for (const claimId of input.cluster.claimIds) {
+    const intent =
+      input.intentsByClaim.get(claimId) ??
+      input.mapIntents.find((item) => item.claimIds.includes(claimId));
+    if (!intent) continue;
+    if (
+      compileMapStateV35({
+        beatNumber: input.beatNumber,
+        proposal: intent,
+        scopeClaimIds: input.cluster.claimIds,
+        claims: input.structured.claims,
+        entities: input.structured.entities,
+        geographicQualifiers: input.structured.geographicQualifiers,
+        temporalQualifiers: input.structured.temporalQualifiers,
+        narrationText: input.narrationText,
+      })
+    )
+      return true;
+  }
+  return false;
+}
+
 function resolveClusterModality(input: {
   readonly cluster: BeatCluster;
   readonly beatNumber: string;
@@ -672,26 +704,45 @@ function resolveClusterModality(input: {
   readonly narrationText: string;
   readonly diagramReserved: boolean;
   readonly diagramReservationReason?: string;
+  readonly contextWindowText?: string;
 }): HistoryVisualModalityV35 {
+  const entityLabels = input.structured.entities
+    .filter((entity) => input.cluster.claimIds.includes(entity.claimId))
+    .map((entity) => entity.normalizedLabel);
+  const mapScored = scoreMapOpportunityV35({
+    claimIds: input.cluster.claimIds,
+    clusterText: input.cluster.text,
+    claims: input.structured.claims,
+    entities: input.structured.entities,
+    geographicQualifiers: input.structured.geographicQualifiers,
+    mapIntents: input.mapIntents,
+  });
+  const contextMapScored = input.contextWindowText
+    ? scoreMapOpportunityV35({
+        claimIds: input.cluster.claimIds,
+        clusterText: input.contextWindowText,
+        claims: input.structured.claims,
+        entities: input.structured.entities,
+        geographicQualifiers: input.structured.geographicQualifiers,
+        mapIntents: input.mapIntents,
+      })
+    : mapScored;
+  const effectiveMapScore =
+    mapScored.score +
+    (contextMapScored.score > mapScored.score && mapScored.eligible ? 1 : 0);
+  const diagramScored = scoreDiagramOpportunityV35({
+    claimIds: input.cluster.claimIds,
+    clusterText: input.cluster.text,
+    claims: input.structured.claims,
+    entityLabels,
+  });
+  const mapCompiles = probeMapCompileForCluster(input);
+  if (mapCompiles && mapScored.eligible && effectiveMapScore >= 4) {
+    if (!input.diagramReserved || effectiveMapScore > diagramScored.score) return "map";
+  }
   if (input.diagramReserved) return "diagram";
   if (input.cluster.modality === "map") return "map";
-  for (const claimId of input.cluster.claimIds) {
-    const intent =
-      input.intentsByClaim.get(claimId) ??
-      input.mapIntents.find((item) => item.claimIds.includes(claimId));
-    if (!intent) continue;
-    const compiled = compileMapStateV35({
-      beatNumber: input.beatNumber,
-      proposal: intent,
-      scopeClaimIds: input.cluster.claimIds,
-      claims: input.structured.claims,
-      entities: input.structured.entities,
-      geographicQualifiers: input.structured.geographicQualifiers,
-      temporalQualifiers: input.structured.temporalQualifiers,
-      narrationText: input.narrationText,
-    });
-    if (compiled) return "map";
-  }
+  if (mapCompiles && mapScored.eligible && effectiveMapScore >= 4) return "map";
   if (
     input.cluster.modality === "diagram" ||
     detectDiagramOpportunityV35({
@@ -1615,6 +1666,13 @@ export function buildHistoryVisualPlanV35(input: {
       ...(diagramReservations.get(index)
         ? { diagramReservationReason: diagramReservations.get(index)! }
         : {}),
+      contextWindowText: [
+        index > 0 ? clusters[index - 1]!.text : "",
+        cluster.text,
+        index < clusters.length - 1 ? clusters[index + 1]!.text : "",
+      ]
+        .filter(Boolean)
+        .join(" "),
     });
     if (
       modality === "text-only transition" &&

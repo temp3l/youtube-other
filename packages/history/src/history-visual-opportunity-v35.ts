@@ -25,6 +25,12 @@ export interface HistoryVisualOpportunitySummaryV35 {
   readonly selectedDiagramOpportunities: number;
 }
 
+const SPATIAL_EXPLANATION_PATTERN_V35 =
+  /\b(?:route|routes?|trade|across|from .+ to |network|territor|island|sea|empire|collapse spread|landed|landing|invaded|invasion|invading|disembark|amphibious|beach|armada|crusade|expedition|campaign|migration|encircle|encircled|siege|fleet|marched|march|retreat|retreated|advanced|advancing|crossed|crossing|sailed|inland|normandy|channel|landing zone|front line|chokepoint|territorial|conquest|expansion)\b/iu;
+
+const INCIDENTAL_BIOGRAPHY_GEOGRAPHY_PATTERN_V35 =
+  /\b(?:born in|birthplace|grew up in|raised in|native of)\b/iu;
+
 function unique<T>(values: readonly T[]): T[] {
   return [...new Set(values)];
 }
@@ -54,10 +60,20 @@ export function detectMapOpportunityV35(input: {
   const geoCount = input.geographicQualifiers.filter((item) =>
     input.claimIds.includes(item.claimId)
   ).length;
-  const hasRouteLanguage =
-    /\b(?:route|trade|across|from .+ to |network|region|territor|island|sea|empire|collapse spread)\b/iu.test(
+  const hasRouteLanguage = SPATIAL_EXPLANATION_PATTERN_V35.test(input.clusterText);
+  const incidentalBiography =
+    INCIDENTAL_BIOGRAPHY_GEOGRAPHY_PATTERN_V35.test(input.clusterText) &&
+    !/\b(?:march|invad|landed|crossed|route|from .+ to |campaign|expedition|armada|crusade)\b/iu.test(
       input.clusterText
     );
+  if (incidentalBiography)
+    return {
+      eligible: false,
+      reason: "incidental-biography-geography",
+      claimIds: input.claimIds,
+      entityIds: [],
+      intent,
+    };
   if (intent && geoEntities.length > 0)
     return {
       eligible: true,
@@ -82,12 +98,64 @@ export function detectMapOpportunityV35(input: {
       entityIds: geoEntities.map((entity) => entity.id),
       intent,
     };
+  if (
+    geoEntities.length >= 1 &&
+    /\b(?:landed|landing|invaded|invasion|armada|crusade|expedition|beach|disembark|amphibious)\b/iu.test(
+      input.clusterText
+    )
+  )
+    return {
+      eligible: true,
+      reason: "landing-or-invasion-geography",
+      claimIds: input.claimIds,
+      entityIds: geoEntities.map((entity) => entity.id),
+      intent,
+    };
   return {
     eligible: false,
     reason: "insufficient-geographic-evidence",
     claimIds: input.claimIds,
     entityIds: [],
     intent,
+  };
+}
+
+export function scoreMapOpportunityV35(input: {
+  readonly claimIds: readonly string[];
+  readonly clusterText: string;
+  readonly claims: readonly HistoryClaimV34[];
+  readonly entities: readonly HistoryEntityMentionV34[];
+  readonly geographicQualifiers: readonly HistoryGeographicQualifierV34[];
+  readonly mapIntents: readonly HistoryMapIntentProposalV34[];
+}): {
+  readonly score: number;
+  readonly eligible: boolean;
+  readonly reason: string;
+  readonly claimIds: readonly string[];
+} {
+  const detected = detectMapOpportunityV35(input);
+  if (!detected.eligible)
+    return { score: 0, eligible: false, reason: detected.reason, claimIds: detected.claimIds };
+  let score = 2;
+  if (detected.intent) score += 2;
+  if (
+    /\b(?:landed|landing|invaded|invasion|armada|crusade|expedition|marched|march|retreat|crossed|route|from .+ to |siege|encircle|migration|campaign|fleet|beach|disembark|amphibious)\b/iu.test(
+      input.clusterText
+    )
+  )
+    score += 2;
+  const geoCount = input.geographicQualifiers.filter((item) =>
+    input.claimIds.includes(item.claimId)
+  ).length;
+  if (geoCount >= 2) score += 2;
+  else if (geoCount >= 1) score += 1;
+  if (detected.reason === "supported-map-intent-with-geographic-entities") score += 1;
+  if (detected.reason === "landing-or-invasion-geography") score += 1;
+  return {
+    score,
+    eligible: true,
+    reason: detected.reason,
+    claimIds: detected.claimIds,
   };
 }
 
@@ -247,7 +315,7 @@ export function reserveDiagramBeatIndexesV35(input: {
       });
       return { index, ...scoredOpportunity };
     })
-    .filter((item) => item.eligible && item.score >= 4)
+    .filter((item) => item.eligible && item.score >= 3)
     .sort((left, right) => right.score - left.score);
   const reserved = new Map<number, string>();
   for (const item of scored) {
