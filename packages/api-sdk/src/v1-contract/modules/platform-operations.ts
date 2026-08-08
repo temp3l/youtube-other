@@ -1,0 +1,58 @@
+import type { SdkV1OperationContract } from "../types.js";
+
+export const platformSdkV1Operations = {
+  getLiveness: {
+    method: "GET",
+    path: "/health/live",
+    successStatus: "200",
+    responseSchema: "HealthStatus",
+    requestSchema: null,
+    requiredHeaders: [],
+    problemResponses: false,
+  },
+  getReadiness: {
+    method: "GET",
+    path: "/health/ready",
+    successStatus: "200",
+    responseSchema: "HealthStatus",
+    requestSchema: null,
+    requiredHeaders: [],
+    problemResponses: false,
+  },
+  getOpenApiDocument: {
+    method: "GET",
+    path: "/v1/openapi.json",
+    successStatus: "200",
+    responseSchema: "OpenApiDocument",
+    requestSchema: null,
+    requiredHeaders: [],
+    problemResponses: false,
+  },
+  getQuota: {
+    method: "GET",
+    path: "/v1/workspaces/{workspace}/quota",
+    successStatus: "200",
+    responseSchema: "WorkspaceQuotaStatus",
+    requestSchema: null,
+    requiredHeaders: [],
+    problemResponses: true,
+  },
+  listUsageRecords: {
+    method: "GET",
+    path: "/v1/workspaces/{workspace}/usage-records",
+    successStatus: "200",
+    responseSchema: "UsageRecordPage",
+    requestSchema: null,
+    requiredHeaders: [],
+    problemResponses: true,
+  },
+  listAuditEvents: {
+    method: "GET",
+    path: "/v1/workspaces/{workspace}/audit-events",
+    successStatus: "200",
+    responseSchema: "AuditEventPage",
+    requestSchema: null,
+    requiredHeaders: [],
+    problemResponses: true,
+  },
+} as const satisfies Readonly<Record<string, SdkV1OperationContract>>;

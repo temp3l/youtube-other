@@ -1,0 +1,58 @@
+import type { SdkV1OperationContract } from "../types.js";
+
+export const contentSdkV1Operations = {
+  createProject: {
+    method: "POST",
+    path: "/v1/workspaces/{workspace}/projects",
+    successStatus: "201",
+    responseSchema: "Project",
+    requestSchema: "ProjectInput",
+    requiredHeaders: [],
+    problemResponses: true,
+  },
+  listProjects: {
+    method: "GET",
+    path: "/v1/workspaces/{workspace}/projects",
+    successStatus: "200",
+    responseSchema: "ProjectPage",
+    requestSchema: null,
+    requiredHeaders: [],
+    problemResponses: true,
+  },
+  createEpisode: {
+    method: "POST",
+    path: "/v1/workspaces/{workspace}/projects/{project}/episodes",
+    successStatus: "201",
+    responseSchema: "EpisodeCreated",
+    requestSchema: "EpisodeInput",
+    requiredHeaders: [],
+    problemResponses: true,
+  },
+  listEpisodes: {
+    method: "GET",
+    path: "/v1/workspaces/{workspace}/projects/{project}/episodes",
+    successStatus: "200",
+    responseSchema: "EpisodePage",
+    requestSchema: null,
+    requiredHeaders: [],
+    problemResponses: true,
+  },
+  getEpisode: {
+    method: "GET",
+    path: "/v1/workspaces/{workspace}/projects/{project}/episodes/{episode}",
+    successStatus: "200",
+    responseSchema: "Episode",
+    requestSchema: null,
+    requiredHeaders: [],
+    problemResponses: true,
+  },
+  replaceEpisodeContent: {
+    method: "PATCH",
+    path: "/v1/workspaces/{workspace}/projects/{project}/episodes/{episode}",
+    successStatus: "200",
+    responseSchema: "Episode",
+    requestSchema: "EpisodeInput",
+    requiredHeaders: ["IfMatch"],
+    problemResponses: true,
+  },
+} as const satisfies Readonly<Record<string, SdkV1OperationContract>>;

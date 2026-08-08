@@ -1,0 +1,58 @@
+import type { SdkV1OperationContract } from "../types.js";
+
+export const workflowSdkV1Operations = {
+  admitWorkflow: {
+    method: "POST",
+    path: "/v1/workspaces/{workspace}/projects/{project}/episodes/{episode}/workflow-runs",
+    successStatus: "202",
+    responseSchema: "WorkflowCommandAccepted",
+    requestSchema: "WorkflowAdmission",
+    requiredHeaders: ["IdempotencyKey"],
+    problemResponses: true,
+  },
+  getWorkflow: {
+    method: "GET",
+    path: "/v1/workspaces/{workspace}/projects/{project}/workflow-runs/{run}",
+    successStatus: "200",
+    responseSchema: "WorkflowRun",
+    requestSchema: null,
+    requiredHeaders: [],
+    problemResponses: true,
+  },
+  listWorkflowSteps: {
+    method: "GET",
+    path: "/v1/workspaces/{workspace}/projects/{project}/workflow-runs/{run}/steps",
+    successStatus: "200",
+    responseSchema: "WorkflowStepPage",
+    requestSchema: null,
+    requiredHeaders: [],
+    problemResponses: true,
+  },
+  cancelWorkflow: {
+    method: "POST",
+    path: "/v1/workspaces/{workspace}/projects/{project}/workflow-runs/{run}:cancel",
+    successStatus: "202",
+    responseSchema: "WorkflowCommandAccepted",
+    requestSchema: null,
+    requiredHeaders: ["IfMatch"],
+    problemResponses: true,
+  },
+  resumeWorkflow: {
+    method: "POST",
+    path: "/v1/workspaces/{workspace}/projects/{project}/workflow-runs/{run}:resume",
+    successStatus: "202",
+    responseSchema: "WorkflowCommandAccepted",
+    requestSchema: null,
+    requiredHeaders: ["IdempotencyKey", "IfMatch"],
+    problemResponses: true,
+  },
+  getJob: {
+    method: "GET",
+    path: "/v1/workspaces/{workspace}/projects/{project}/jobs/{job}",
+    successStatus: "200",
+    responseSchema: "Job",
+    requestSchema: null,
+    requiredHeaders: [],
+    problemResponses: true,
+  },
+} as const satisfies Readonly<Record<string, SdkV1OperationContract>>;
