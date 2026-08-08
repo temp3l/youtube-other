@@ -7,7 +7,7 @@ import path from "node:path";
 const execute = promisify(execFile);
 const repository = path.resolve(new URL("..", import.meta.url).pathname);
 const generatedAt = new Date().toISOString();
-const timestamp = generatedAt.replaceAll(/[-:]/gu, "").replaceAll(/\.\d{3}Z$/u, "Z");
+const timestamp = generatedAt.replaceAll(/[-:]/gu, "").replace(/\.\d{3}Z$/u, "Z");
 const git = async (...args) => (await execute("git", args, { cwd: repository })).stdout.trim();
 const gitCommitSha = await git("rev-parse", "HEAD");
 const gitBranch = await git("branch", "--show-current");
