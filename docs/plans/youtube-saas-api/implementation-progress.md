@@ -1,6 +1,6 @@
 # YSAAS implementation progress
 
-Current wave: Wave 1 (YSAAS-003 next)
+Current wave: Wave 1 complete; Wave 2 next (YSAAS-005+)
 
 ## Anti-stuck execution rules (session)
 
@@ -29,3 +29,9 @@ Status: completed
 Commit: 3214f7b
 Validation: capability-configuration unit test pass (6); domain typecheck pass
 Notes: Layered capability/config contracts, resolver with provenance, admission evaluator with typed rejections
+
+### YSAAS-003
+Status: completed
+Commit: pending
+Validation: command-security unit test pass (8); domain/application/persistence typecheck pass
+Notes: Membership/action grants, idempotency replay model, audit envelope, principal-directory migration registry
