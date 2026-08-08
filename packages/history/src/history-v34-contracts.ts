@@ -367,6 +367,11 @@ export interface HistoryDiagramStateV34 {
     readonly label: string;
     readonly linkedClaimIds: readonly string[];
     readonly entityMentionIds: readonly string[];
+    readonly normalizedSupport?: {
+      readonly normalizedLabel: string;
+      readonly sourceConcepts: readonly string[];
+      readonly supportClaimIds: readonly string[];
+    };
   }[];
   readonly edges: readonly {
     readonly id: string;

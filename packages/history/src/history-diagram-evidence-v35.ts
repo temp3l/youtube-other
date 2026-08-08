@@ -357,32 +357,77 @@ export function resolveDiagramEvidenceWindowV35(input: {
   readonly beatId: string;
   readonly claimIds: readonly string[];
   readonly text: string;
+  readonly claims?: readonly Pick<HistoryClaimV34, "id" | "normalizedProposition">[];
+  readonly priorBeats?: readonly {
+    readonly id: string;
+    readonly claimIds: readonly string[];
+    readonly diagramMasterId: string | null;
+  }[];
   readonly priorBeat?: {
     readonly id: string;
     readonly claimIds: readonly string[];
     readonly diagramMasterId: string | null;
   };
 }): { readonly beatIds: readonly string[]; readonly claimIds: readonly string[] } | undefined {
-  if (isBlackDeathLabourConsequenceTextV35(input.text) && input.priorBeat) {
+  const priorBeats = input.priorBeats?.length
+    ? input.priorBeats.slice(-2)
+    : input.priorBeat
+      ? [input.priorBeat]
+      : [];
+  const priorBeat = priorBeats.at(-1);
+  if (isBlackDeathLabourConsequenceTextV35(input.text) && priorBeat) {
     return {
-      beatIds: [input.priorBeat.id, input.beatId],
-      claimIds: [...new Set([...input.priorBeat.claimIds, ...input.claimIds])],
+      beatIds: [priorBeat.id, input.beatId],
+      claimIds: [...new Set([...priorBeat.claimIds, ...input.claimIds])],
     };
   }
   if (isBlackDeathLabourPolicyTextV35(input.text)) {
-    const prior = input.priorBeat;
+    const claims = input.claims ?? [];
+    const claimTextFor = (claimIds: readonly string[]) =>
+      claims
+        .filter((claim) => claimIds.includes(claim.id))
+        .map((claim) => claim.normalizedProposition)
+        .join("\n");
+    const currentText = claimTextFor(input.claimIds) || input.text;
+    const hasPolicyRestriction =
+      /\b(?:Ordinance|Statute|law|decree|policy)\b/iu.test(currentText) &&
+      /\b(?:restrict|compel|limit|freeze|require)\b/iu.test(currentText);
+    if (hasPolicyRestriction) {
+      for (let width = 1; width <= priorBeats.length; width += 1) {
+        const adjacent = priorBeats.slice(-width);
+        const precedingTexts = adjacent.map((beat) => claimTextFor(beat.claimIds));
+        const hasPriorCondition = precedingTexts.some((text) =>
+          /\b(?:demand(?:ed)? higher wages|higher wages|better terms|wage pressure|worker shortage|labou?r scarcity)\b/iu.test(
+            text
+          )
+        );
+        const hasResponse = [...precedingTexts, currentText].some((text) =>
+          /\b(?:tried to resist|respond(?:ed|ing)?|resist(?:ed|ing)?|oppos(?:ed|ing)|attempted to restrict|sought to limit)\b/iu.test(
+            text
+          )
+        );
+        if (hasPriorCondition && hasResponse) {
+          return {
+            beatIds: [...adjacent.map((beat) => beat.id), input.beatId],
+            claimIds: [
+              ...new Set([...adjacent.flatMap((beat) => beat.claimIds), ...input.claimIds]),
+            ],
+          };
+        }
+      }
+    }
     return {
-      beatIds: prior ? [prior.id, input.beatId] : [input.beatId],
-      claimIds: [...new Set([...(prior?.claimIds ?? []), ...input.claimIds])],
+      beatIds: [input.beatId],
+      claimIds: [...input.claimIds],
     };
   }
   if (
     isRomanResourceCycleContinuationTextV35(input.text) &&
-    input.priorBeat?.diagramMasterId === ROMAN_IMPERIAL_RESOURCE_CYCLE_MASTER
+    priorBeat?.diagramMasterId === ROMAN_IMPERIAL_RESOURCE_CYCLE_MASTER
   ) {
     return {
-      beatIds: [input.priorBeat.id, input.beatId],
-      claimIds: [...new Set([...input.priorBeat.claimIds, ...input.claimIds])],
+      beatIds: [priorBeat.id, input.beatId],
+      claimIds: [...new Set([...priorBeat.claimIds, ...input.claimIds])],
     };
   }
   if (isRomanResourceCycleTextV35(input.text)) {

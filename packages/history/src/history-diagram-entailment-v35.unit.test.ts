@@ -13,6 +13,7 @@ import {
   diagramRelationshipCompatibilityV35,
 } from "./history-diagram-proposition-v35.js";
 import type { HistoryDiagramStateV34 } from "./history-v34-contracts.js";
+import { finalizeDiagramSemanticStateV35 } from "./history-diagram-semantic-v35.js";
 
 function claim(id: string, text: string) {
   return {
@@ -309,6 +310,138 @@ describe("History V3.5 diagram entailment", () => {
       evidenceClaimText: text,
     });
     expect(blockers).toEqual([]);
+  });
+
+  it("grounds a normalized evidence node only through explicit source-component provenance", () => {
+    const text =
+      "Searchers found graves, abandoned equipment, human remains, and one written message.";
+    const state: HistoryDiagramStateV34 = {
+      id: "diagram-state-franklin-evidence",
+      masterId: "diagram-master-franklin-evidence",
+      diagramType: "evidence-set",
+      exactQuestion: "What evidence categories does the narration support?",
+      nodes: [
+        {
+          id: "n1",
+          label: "graves/remains",
+          linkedClaimIds: ["claim-franklin"],
+          entityMentionIds: [],
+          normalizedSupport: {
+            normalizedLabel: "graves/remains",
+            sourceConcepts: ["graves", "human remains"],
+            supportClaimIds: ["claim-franklin"],
+          },
+        },
+        {
+          id: "n2",
+          label: "abandoned equipment",
+          linkedClaimIds: ["claim-franklin"],
+          entityMentionIds: [],
+        },
+        {
+          id: "n3",
+          label: "written message",
+          linkedClaimIds: ["claim-franklin"],
+          entityMentionIds: [],
+        },
+      ],
+      edges: [],
+      semanticStatus: "valid",
+      blockerCodes: [],
+      fallbackDecision: null,
+      evidenceClaimIds: ["claim-franklin"],
+    };
+    const finalized = finalizeDiagramSemanticStateV35({
+      state,
+      evidenceClaimText: text,
+      claims: [claim("claim-franklin", text)],
+    });
+    expect(finalized.semanticStatus).toBe("valid");
+    expect(finalized.blockerCodes).toEqual([]);
+  });
+
+  it("rejects normalized evidence nodes when any declared source component is absent", () => {
+    const text = "Searchers found graves, abandoned equipment, and one written message.";
+    const supported = isDiagramNodeSemanticallyEntailedV35({
+      label: "graves/remains",
+      evidenceClaimText: text,
+      entitySpans: [],
+      linkedClaimIds: ["claim-incomplete"],
+      claims: [claim("claim-incomplete", text)],
+      normalizedSupport: {
+        normalizedLabel: "graves/remains",
+        sourceConcepts: ["graves", "human remains"],
+        supportClaimIds: ["claim-incomplete"],
+      },
+    });
+    expect(supported).toBe(false);
+  });
+
+  it("supports reverse explanatory propositions where B varies because of exact A factors", () => {
+    const text =
+      "Exact totals vary because the force included reinforcements and units returning by different routes.";
+    for (const factor of ["reinforcements", "different return routes"]) {
+      const result = assessDiagramPropositionEdgeV35({
+        fromLabel: factor,
+        toLabel: "variation in army-size estimates",
+        relationship: "contributes-to",
+        evidenceClaimText: text,
+      });
+      expect(result.entailed, `${factor}: ${result.propositionRelations.join(",")}`).toBe(true);
+      expect(result.propositionRelations).toContain("causal");
+    }
+  });
+
+  it("keeps unsupported named-entity causal edges blocked", () => {
+    const cases = [
+      ["Pearl Harbor", "United States", "Pearl Harbor was a naval base of the United States."],
+      ["Cleopatra", "Mark Antony", "Cleopatra and Mark Antony appear in the same account."],
+    ] as const;
+    for (const [fromLabel, toLabel, text] of cases) {
+      const result = assessDiagramPropositionEdgeV35({
+        fromLabel,
+        toLabel,
+        relationship: "leads-to",
+        evidenceClaimText: text,
+      });
+      expect(result.entailed).toBe(false);
+    }
+  });
+
+  it("blocks an evidence-set factor whose substantive components are incomplete", () => {
+    const text = "Distance and supply-chain failure weakened the army.";
+    const state: HistoryDiagramStateV34 = {
+      id: "diagram-state-incomplete-supply",
+      masterId: "diagram-master-incomplete-supply",
+      diagramType: "evidence-set",
+      exactQuestion: "Why did the campaign destroy the army?",
+      nodes: [
+        {
+          id: "n1",
+          label: "distance and supply-chain failure",
+          linkedClaimIds: ["claim-supply"],
+          entityMentionIds: [],
+        },
+        {
+          id: "n2",
+          label: "disease and hunger",
+          linkedClaimIds: ["claim-supply"],
+          entityMentionIds: [],
+        },
+      ],
+      edges: [],
+      semanticStatus: "valid",
+      blockerCodes: [],
+      fallbackDecision: null,
+      evidenceClaimIds: ["claim-supply"],
+    };
+    const finalized = finalizeDiagramSemanticStateV35({
+      state,
+      evidenceClaimText: text,
+      claims: [claim("claim-supply", text)],
+    });
+    expect(finalized.semanticStatus).toBe("blocked");
+    expect(finalized.blockerCodes).toContain("DIAGRAM_UNGROUNDED_NODE");
   });
 
   it.each([

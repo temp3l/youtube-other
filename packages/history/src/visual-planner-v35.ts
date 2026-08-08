@@ -1186,17 +1186,18 @@ function compileDiagramForBeat(input: {
   readonly entityLabels: readonly string[];
   readonly entities: readonly HistoryStructuredClaimsV34["entities"][number][];
   readonly claims: readonly HistoryStructuredClaimsV34["claims"][number][];
-  readonly priorBeat?: {
+  readonly priorBeats?: readonly {
     readonly id: string;
     readonly claimIds: readonly string[];
     readonly diagramMasterId: string | null;
-  } | null;
+  }[];
 }) {
   const evidenceWindow = resolveDiagramEvidenceWindowV35({
     beatId: input.beatId,
     claimIds: input.claimIds,
     text: input.text,
-    ...(input.priorBeat ? { priorBeat: input.priorBeat } : {}),
+    claims: input.claims,
+    ...(input.priorBeats?.length ? { priorBeats: input.priorBeats } : {}),
   });
   return compileDiagram({
     beatNumber: input.beatNumber,
@@ -1267,9 +1268,17 @@ function compileDiagram(input: {
     return null;
   }
 
-  const evidencePatterns: ReadonlyArray<{ readonly label: string; readonly pattern: RegExp }> = [
+  const evidencePatterns: ReadonlyArray<{
+    readonly label: string;
+    readonly pattern: RegExp;
+    readonly sourceConcepts?: readonly string[];
+  }> = [
     { label: "Victory Point note", pattern: /Victory Point(?: note)?/iu },
-    { label: "graves/remains", pattern: /graves?|human remains/iu },
+    {
+      label: "graves/remains",
+      pattern: /graves?|human remains/iu,
+      sourceConcepts: ["graves", "human remains"],
+    },
     { label: "abandoned equipment", pattern: /abandoned equipment|\bequipment\b/iu },
     { label: "written message", pattern: /written message/iu },
     { label: "Inuit testimony", pattern: /Inuit (?:oral histories|testimony|witnesses)/iu },
@@ -1278,9 +1287,7 @@ function compileDiagram(input: {
       pattern: /(?:2014.*Erebus|Erebus.*2014|2016.*Terror|Terror.*2016)/iu,
     },
   ];
-  const evidenceCategories = evidencePatterns
-    .filter((item) => item.pattern.test(text))
-    .map((item) => item.label);
+  const evidenceCategories = evidencePatterns.filter((item) => item.pattern.test(text));
   if (
     /\b(?:Grande Armée|Napoleon(?:'s)? army|\barmy\b)\b/iu.test(text) &&
     /\b(?:supplies?|distance|logistics|fodder|horses?|disease|hunger|attrition|cold|desertion|weather)\b/iu.test(
@@ -1376,11 +1383,31 @@ function compileDiagram(input: {
   ) {
     const masterId = `diagram-master-${input.beatNumber}`;
     const stateId = `diagram-state-${input.beatNumber}`;
-    const nodeRecords = evidenceCategories.map((label, index) => ({
+    const nodeRecords = evidenceCategories.map((category, index) => ({
       id: `node-${input.beatNumber}-${index + 1}`,
-      label,
-      linkedClaimIds: input.claimIds,
+      label: category.label,
+      linkedClaimIds: evidenceClaimIds,
       entityMentionIds: [] as string[],
+      ...(category.sourceConcepts
+        ? {
+            normalizedSupport: {
+              normalizedLabel: category.label,
+              sourceConcepts: category.sourceConcepts,
+              supportClaimIds: evidenceClaimIds.filter((claimId) => {
+                const claim = input.claims.find((item) => item.id === claimId);
+                return (
+                  claim &&
+                  category.sourceConcepts!.some((concept) =>
+                    new RegExp(
+                      `\\b${concept.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&").replace(/\\s+/gu, "\\s+")}\\b`,
+                      "iu"
+                    ).test(claim.normalizedProposition)
+                  )
+                );
+              }),
+            },
+          }
+        : {}),
     }));
     return {
       master: {
@@ -1399,6 +1426,8 @@ function compileDiagram(input: {
         semanticStatus: "valid",
         blockerCodes: [],
         fallbackDecision: null,
+        evidenceBeatIds,
+        evidenceClaimIds,
       },
     };
   }
@@ -1832,11 +1861,11 @@ export function buildHistoryVisualPlanV35(input: {
   const visualOpportunities: HistoryVisualPlanV35["visualOpportunities"][number][] = [];
   const opportunitySummaries: HistoryVisualOpportunitySummaryV35[] = [];
   let priorShotSignature: VisualSemanticSignature | null = null;
-  let priorBeatContext: {
+  const priorBeatContexts: Array<{
     readonly id: string;
     readonly claimIds: readonly string[];
     readonly diagramMasterId: string | null;
-  } | null = null;
+  }> = [];
 
   let cursor = 0;
   clusters.forEach((cluster, index) => {
@@ -1945,7 +1974,7 @@ export function buildHistoryVisualPlanV35(input: {
               entityLabels,
               entities: structured.entities,
               claims: structured.claims,
-              priorBeat: priorBeatContext,
+              priorBeats: priorBeatContexts.slice(-2),
             })
           : null;
         if (diagramCompiled) {
@@ -1982,7 +2011,7 @@ export function buildHistoryVisualPlanV35(input: {
         entityLabels,
         entities: structured.entities,
         claims: structured.claims,
-        priorBeat: priorBeatContext,
+        priorBeats: priorBeatContexts.slice(-2),
       });
       if (compiled) {
         const registered = adoptDiagramCompilation(diagramRegistry, compiled);
@@ -2177,7 +2206,7 @@ export function buildHistoryVisualPlanV35(input: {
             entityLabels,
             entities: structured.entities,
             claims: structured.claims,
-            priorBeat: priorBeatContext,
+            priorBeats: priorBeatContexts.slice(-2),
           });
           if (compiled) {
             const registered = adoptDiagramCompilation(diagramRegistry, compiled);
@@ -2451,11 +2480,11 @@ export function buildHistoryVisualPlanV35(input: {
           [beatId]
         )
       );
-    priorBeatContext = {
+    priorBeatContexts.push({
       id: beatId,
       claimIds,
       diagramMasterId,
-    };
+    });
     cursor = endMs;
   });
 

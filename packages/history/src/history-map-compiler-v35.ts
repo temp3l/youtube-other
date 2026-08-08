@@ -95,6 +95,18 @@ function resolveMentionPlace(
   return resolveHistoryPlaceV34(entity.normalizedLabel);
 }
 
+function resolveDistinctMentionPlaces(
+  mentionIds: readonly string[],
+  entityById: ReadonlyMap<string, HistoryEntityMentionV34>
+): readonly { readonly mentionId: string; readonly place: HistoryPlaceV34 }[] {
+  const resolved = new Map<string, { readonly mentionId: string; readonly place: HistoryPlaceV34 }>();
+  for (const mentionId of mentionIds) {
+    const place = resolveMentionPlace(mentionId, entityById);
+    if (place && !resolved.has(place.id)) resolved.set(place.id, { mentionId, place });
+  }
+  return [...resolved.values()];
+}
+
 function inferRequestedSemanticType(
   proposal: HistoryMapIntentProposalV34
 ): HistoryMapSemanticTypeV35 {
@@ -468,7 +480,7 @@ export function compileMapStateV35(input: {
     .join("\n");
   const blockers: string[] = [];
 
-  const semantic = resolveSemanticMap({
+  let semantic = resolveSemanticMap({
     requested: requestedMapType,
     capabilities,
     geoFacts,
@@ -476,6 +488,26 @@ export function compileMapStateV35(input: {
   });
 
   if (semantic.resolved === "no-map") return null;
+
+  if (semantic.resolved === "sequence") {
+    const resolvedSequencePlaces = resolveDistinctMentionPlaces(
+      semantic.sequencePlaceMentionIds,
+      entityById
+    );
+    if (resolvedSequencePlaces.length < 2) {
+      const remaining = resolvedSequencePlaces[0];
+      if (!remaining) return null;
+      semantic = finalizeSemanticResolution({
+        requested: requestedMapType,
+        resolved: "locator",
+        geoFacts,
+        locatorPlaceMentionId: remaining.mentionId,
+        resolutionNotes: [
+          "Sequence downgraded after place resolution left fewer than two distinct waypoints.",
+        ],
+      });
+    }
+  }
 
   if (normalizedProposal.mapPurpose === "discovery-location") {
     const grounded = normalizedProposal.claimIds.every((claimId) => {
@@ -542,9 +574,10 @@ export function compileMapStateV35(input: {
         ? "conceptual"
         : normalizedProposal.routeType;
   } else if (semantic.resolved === "sequence") {
-    const places = semantic.sequencePlaceMentionIds
-      .map((mentionId) => resolveMentionPlace(mentionId, entityById))
-      .filter((item): item is HistoryPlaceV34 => Boolean(item));
+    const places = resolveDistinctMentionPlaces(
+      semantic.sequencePlaceMentionIds,
+      entityById
+    ).map((item) => item.place);
     origin = places[0];
     destination = places[places.length - 1];
     waypointPlaces = places.slice(1, -1);
@@ -748,6 +781,25 @@ export function validateCompiledMapStateV35(state: HistoryMapStateV34): string[]
     if (requestedMapType === resolvedMapType && downgradeReason)
       blockers.push("MAP_COMPILER_INVALID_DOWNGRADE");
     if (resolvedMapType === "no-map") blockers.push("MAP_COMPILER_NO_MAP_STATE");
+    if (resolvedMapType === "sequence") {
+      const distinctWaypointPlaceIds = new Set(
+        state.labels.map((label) => label.placeId).filter((placeId): placeId is string => Boolean(placeId))
+      );
+      if (distinctWaypointPlaceIds.size < 2)
+        blockers.push("MAP_SEQUENCE_INSUFFICIENT_RESOLVED_WAYPOINTS");
+    }
+    if (resolvedMapType === "movement") {
+      if (state.routes.length !== 1)
+        blockers.push("MAP_COMPILER_MOVEMENT_WITHOUT_ROUTE");
+      const route = state.routes[0];
+      if (
+        !route?.originPlaceId ||
+        !route.destinationPlaceId ||
+        route.originPlaceId === route.destinationPlaceId
+      ) {
+        blockers.push("MAP_MOVEMENT_ENDPOINTS_INCOMPLETE");
+      }
+    }
   }
   for (const route of state.routes) {
     if (!route.actorProvenance) blockers.push("MAP_ACTOR_PROVENANCE_MISSING");

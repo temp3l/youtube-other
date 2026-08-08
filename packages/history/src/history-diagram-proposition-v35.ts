@@ -92,6 +92,14 @@ const CONCEPT_ALIASES: Readonly<Record<string, readonly RegExp[]>> = {
   "tin from distant regions": [/\btin\b/iu],
   "bronze production": [/\bbronze(?: production)?\b/iu],
   "palace trade networks": [/\bpalace trade networks?\b/iu, /\btrade networks?\b/iu],
+  "different return routes": [
+    /\bdifferent return routes\b/iu,
+    /\breturn(?:ed|ing)?\b[^.!?]{0,48}\bdifferent routes\b/iu,
+  ],
+  "variation in army-size estimates": [
+    /\b(?:exact )?(?:numbers|totals|army-size estimates?|army size estimates?)\s+var(?:y|ies)\b/iu,
+    /\bestimates?\b[^.!?]{0,48}\bvar(?:y|ies)\b/iu,
+  ],
 };
 
 const NORMALIZED_MECHANISMS: ReadonlyArray<{
@@ -156,7 +164,7 @@ function explicitPropositionRelations(input: {
       /\b(?:caused|led to|resulted in|triggered|forced|compelled|enabled|produced|brought|funded|defended|helped|made|allowed|meant|therefore|so that|which)\b/iu.test(
         between
       )) ||
-    (!forward && /\b(?:because of|due to|resulted from)\b/iu.test(between))
+    (!forward && /\b(?:because(?: of)?|due to|resulted from)\b/iu.test(between))
   ) {
     relations.add("causal");
   }

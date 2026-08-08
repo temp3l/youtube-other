@@ -23,6 +23,7 @@ import {
   canonicalMapExplanationIdentityV35,
   semanticMapStateIdentityV35,
 } from "../../src/history-map-semantic-dedup-v35.js";
+import { validateCompiledMapStateV35 } from "../../src/history-map-compiler-v35.js";
 
 const repoRoot = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -107,6 +108,12 @@ describe("History V3.5 corpus acceptance", () => {
         new Set(explanationMapIdentities).size,
         `${episodeId} same-explanation duplicate maps`
       ).toBe(explanationMapIdentities.length);
+      for (const state of plan.mapStates) {
+        expect(
+          validateCompiledMapStateV35(state),
+          `${episodeId} ${state.id} map semantic completeness`
+        ).toEqual([]);
+      }
       expect(
         plan.mediaDecisions.every(
           (decision) => !decision.justification.includes("Do not export dangling timeline references.")

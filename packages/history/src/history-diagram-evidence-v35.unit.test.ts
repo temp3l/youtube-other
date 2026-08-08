@@ -135,6 +135,41 @@ describe("History V3.5 diagram evidence windows", () => {
     expect(compiled!.state.semanticStatus).toBe("valid");
   });
 
+  it("selects the smallest adjacent response window for a prior condition and policy response", () => {
+    const claims = [
+      claim("c-remote", "Unrelated mortality evidence appeared earlier."),
+      claim("c-wage", "Survivors could demand higher wages or better terms."),
+      claim("c-elites", "Elites tried to resist."),
+      claim(
+        "c-policy",
+        "The Ordinance and Statute attempted to restrict wages and compel work at earlier rates."
+      ),
+    ];
+    const window = resolveDiagramEvidenceWindowV35({
+      beatId: "beat-policy",
+      claimIds: ["c-policy"],
+      text: claims[3]!.normalizedProposition,
+      claims,
+      priorBeats: [
+        { id: "beat-remote", claimIds: ["c-remote"], diagramMasterId: null },
+        { id: "beat-wage", claimIds: ["c-wage"], diagramMasterId: null },
+        { id: "beat-elites", claimIds: ["c-elites"], diagramMasterId: null },
+      ],
+    });
+    expect(window).toEqual({
+      beatIds: ["beat-wage", "beat-elites", "beat-policy"],
+      claimIds: ["c-wage", "c-elites", "c-policy"],
+    });
+    const compiled = compileBlackDeathLabourPolicyDiagramV35({
+      beatNumber: "0035",
+      evidenceBeatIds: window!.beatIds,
+      evidenceClaimIds: window!.claimIds,
+      claims,
+    });
+    expect(compiled?.state.semanticStatus).toBe("valid");
+    expect(compiled?.state.evidenceClaimIds).not.toContain("c-remote");
+  });
+
   it("propagates semantic blockers into diagram state", () => {
     const finalized = finalizeDiagramSemanticStateV35({
       state: {

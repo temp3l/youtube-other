@@ -168,8 +168,30 @@ export function isDiagramNodeSemanticallyEntailedV35(input: {
   readonly label: string;
   readonly evidenceClaimText: string;
   readonly entitySpans: readonly string[];
+  readonly normalizedSupport?: HistoryDiagramStateV34["nodes"][number]["normalizedSupport"];
+  readonly linkedClaimIds?: readonly string[];
+  readonly claims?: readonly Pick<HistoryClaimV34, "id" | "normalizedProposition">[];
 }): boolean {
   if (isProperNameFragmentNodeV35(input)) return false;
+  if (input.normalizedSupport) {
+    const support = input.normalizedSupport;
+    const linkedClaimIds = new Set(input.linkedClaimIds ?? []);
+    const supportedClaims = (input.claims ?? []).filter(
+      (claim) =>
+        support.supportClaimIds.includes(claim.id) &&
+        (!linkedClaimIds.size || linkedClaimIds.has(claim.id))
+    );
+    const supportText = supportedClaims
+      .map((claim) => claim.normalizedProposition)
+      .join("\n");
+    return (
+      normalizeLabel(support.normalizedLabel) === normalizeLabel(input.label) &&
+      support.sourceConcepts.length >= 2 &&
+      support.supportClaimIds.length > 0 &&
+      supportedClaims.length === new Set(support.supportClaimIds).size &&
+      support.sourceConcepts.every((concept) => labelAppearsAsPhrase(concept, supportText))
+    );
+  }
   if (input.entitySpans.some((span) => normalizeLabel(span) === normalizeLabel(input.label)))
     return true;
   return isStrictDiagramLabelEntailedV35(input.label, input.evidenceClaimText);
@@ -179,6 +201,7 @@ export function validateDiagramNodeEntailmentV35(input: {
   readonly state: Pick<HistoryDiagramStateV34, "nodes" | "diagramType">;
   readonly evidenceClaimText: string;
   readonly entitySpans: readonly string[];
+  readonly claims?: readonly Pick<HistoryClaimV34, "id" | "normalizedProposition">[];
 }): readonly string[] {
   const blockers: string[] = [];
   for (const node of input.state.nodes) {
@@ -187,6 +210,9 @@ export function validateDiagramNodeEntailmentV35(input: {
         label: node.label,
         evidenceClaimText: input.evidenceClaimText,
         entitySpans: input.entitySpans,
+        ...(node.normalizedSupport ? { normalizedSupport: node.normalizedSupport } : {}),
+        linkedClaimIds: node.linkedClaimIds,
+        ...(input.claims ? { claims: input.claims } : {}),
       })
     ) {
       blockers.push("DIAGRAM_UNGROUNDED_NODE");
@@ -225,11 +251,17 @@ export function validateDiagramEdgeEntailmentV35(input: {
         label: from.label,
         evidenceClaimText: input.evidenceClaimText,
         entitySpans: input.entitySpans ?? [],
+        ...(from.normalizedSupport ? { normalizedSupport: from.normalizedSupport } : {}),
+        linkedClaimIds: from.linkedClaimIds,
+        ...(input.claims ? { claims: input.claims } : {}),
       }) &&
       isDiagramNodeSemanticallyEntailedV35({
         label: to.label,
         evidenceClaimText: input.evidenceClaimText,
         entitySpans: input.entitySpans ?? [],
+        ...(to.normalizedSupport ? { normalizedSupport: to.normalizedSupport } : {}),
+        linkedClaimIds: to.linkedClaimIds,
+        ...(input.claims ? { claims: input.claims } : {}),
       });
     if (!nodesEntailed) {
       blockers.push("DIAGRAM_UNSUPPORTED_EDGE");
@@ -344,6 +376,7 @@ export function validateDiagramEntailmentV35(input: {
         state: input.state,
         evidenceClaimText: input.evidenceClaimText,
         entitySpans,
+        claims: input.claims,
       }),
       ...validateDiagramEdgeEntailmentV35({
         state: input.state,

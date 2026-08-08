@@ -345,7 +345,7 @@ export function extractGeoFactsV35(input: {
           claimIds: [claim.id],
         });
       }
-    } else if (allPlaceIds.length >= 2) {
+    } else if (movementAuthorized && allPlaceIds.length >= 2) {
       pushFact({
         id: factId(["sequence", claim.id, ...allPlaceIds]),
         type: "sequence",
@@ -356,9 +356,16 @@ export function extractGeoFactsV35(input: {
   }
 
   if (input.scopeClaimIds.length > 1) {
+    const progressionClaimIds = scopedClaims(input.claims, input.scopeClaimIds)
+      .filter((claim) =>
+        (claimAuthorizesRouteMovement(claim.normalizedProposition) ||
+          /\b(?:left|passed)\b/iu.test(claim.normalizedProposition)) &&
+        !claimUsesNonRouteMovementVerbOnly(claim.normalizedProposition)
+      )
+      .map((claim) => claim.id);
     const orderedPlaces: string[] = [];
     const claimIds: string[] = [];
-    for (const claimId of input.scopeClaimIds) {
+    for (const claimId of progressionClaimIds) {
       const claimFacts = facts.filter(
         (fact) => fact.type === "location" && fact.claimIds.includes(claimId)
       ) as LocationFactV35[];
@@ -367,7 +374,7 @@ export function extractGeoFactsV35(input: {
         if (!claimIds.includes(claimId)) claimIds.push(claimId);
       }
     }
-    if (orderedPlaces.length >= 2) {
+    if (progressionClaimIds.length >= 2 && orderedPlaces.length >= 2) {
       pushFact({
         id: factId(["segment-sequence", ...claimIds, ...orderedPlaces]),
         type: "sequence",
