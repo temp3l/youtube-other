@@ -26,6 +26,6 @@ Notes: Modular OpenAPI path modules, SDK operation modules, web gateway/page reg
 
 ### YSAAS-002
 Status: completed
-Commit: pending
+Commit: 3214f7b
 Validation: capability-configuration unit test pass (6); domain typecheck pass
 Notes: Layered capability/config contracts, resolver with provenance, admission evaluator with typed rejections
