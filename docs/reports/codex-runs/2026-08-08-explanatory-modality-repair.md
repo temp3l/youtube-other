@@ -6,7 +6,7 @@
 |-----|-----|
 | `history-v3.5-semantic-baseline` | `aae72a565c4cf00e9b61576fc04f06e1a9a0fe73` |
 | `history-v3.5-modality-experiment-1` | `7fd52c75761b22228282db5917e7f24e293c1f7a` |
-| `history-v3.5-modality-hardening-v2` | `b2d92de1465ed7050971f01e8d5982c04528ce68` |
+| `history-v3.5-modality-hardening-v2` | `6e47409` |
 
 ## Root causes
 
