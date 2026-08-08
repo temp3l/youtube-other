@@ -68,6 +68,38 @@ describe("History V3.5 abstract causal diagram compile", () => {
     expect(compiled).toBeNull();
   });
 
+  it("compiles an explicit because-while convergence without entity inference", () => {
+    const text =
+      "The position became a trap because commanders focused on the ground ahead while opposing forces attacked the supporting flanks.";
+    const compiled = compileAbstractCausalDiagramV35({
+      beatNumber: "0046",
+      text,
+      claimIds: ["claim-convergence"],
+      claims: [claim("claim-convergence", text)],
+    });
+    expect(compiled?.state.semanticStatus).toBe("valid");
+    expect(compiled?.state.nodes.map((node) => node.label)).toEqual([
+      "commanders focused on the ground ahead",
+      "opposing forces attacked the supporting flanks",
+      "The position became a trap",
+    ]);
+    expect(compiled?.state.edges.every((edge) => edge.relationship === "contributes-to"))
+      .toBe(true);
+  });
+
+  it("does not treat a concessive even-while clause as a second contributor", () => {
+    const text =
+      "Monument production can stop because a dynasty falls even while farmers, artisans, and families remain.";
+    expect(
+      compileAbstractCausalDiagramV35({
+        beatNumber: "0027",
+        text,
+        claimIds: ["claim-concessive"],
+        claims: [claim("claim-concessive", text)],
+      })
+    ).toBeNull();
+  });
+
   it("does not emit cross-episode thematic labels without claim grounding", () => {
     const mayaText =
       "Maya palace administration weakened as regional resources shifted and local elites fragmented.";

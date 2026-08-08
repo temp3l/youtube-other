@@ -151,6 +151,75 @@ function wordSafeSlice(text: string, maxChars: number): string {
   return (boundary > 20 ? slice.slice(0, boundary) : slice).trim();
 }
 
+function exactClause(value: string): string {
+  return value.replace(/^[\s,;:]+|[\s,;:.]+$/gu, "").replace(/\s+/gu, " ").trim();
+}
+
+function compileExplicitClauseDiagramV35(input: {
+  readonly beatNumber: string;
+  readonly text: string;
+  readonly claimIds: readonly string[];
+  readonly claims: readonly HistoryClaimV34[];
+}): {
+  readonly master: HistoryVisualPlanV35["diagramMasters"][number];
+  readonly state: HistoryDiagramStateV34;
+} | null {
+  if (/\bbecause\b[^.!?]*\beven while\b/iu.test(input.text)) return null;
+  const convergence = input.text.match(
+    /(?:^|[.!?]\s*)([^.!?]{3,80}?)\s+because\s+([^.!?]{3,100}?)\s+while\s+([^.!?]{3,100})(?:[.!?]|$)/iu
+  );
+  const labels = convergence
+    ? [
+        exactClause(convergence[2]!),
+        exactClause(convergence[3]!),
+        exactClause(convergence[1]!),
+      ]
+    : null;
+  if (!labels || labels.some((label) => label.length < 3)) return null;
+
+  const masterId = `diagram-master-explicit-${input.beatNumber}`;
+  const nodes = buildDiagramNodesV35({
+    beatNumber: input.beatNumber,
+    masterId,
+    labels,
+    claimIds: input.claimIds,
+  });
+  const sink = nodes.at(-1)!;
+  const edges = nodes.slice(0, -1).map((node, index) => ({
+    id: `edge-${input.beatNumber}-${index + 1}`,
+    fromNodeId: node.id,
+    toNodeId: sink.id,
+    relationship: "contributes-to" as const,
+    linkedClaimIds: input.claimIds,
+  }));
+  const state = finalizeDiagramSemanticStateV35({
+    state: {
+      id: `diagram-state-${input.beatNumber}`,
+      masterId,
+      diagramType: "causal-chain",
+      exactQuestion: wordSafeSlice(input.text, 160),
+      nodes,
+      edges,
+      semanticStatus: "valid",
+      blockerCodes: [],
+      fallbackDecision: null,
+      evidenceClaimIds: input.claimIds,
+    },
+    evidenceClaimText: input.text,
+    claims: input.claims,
+  });
+  if (state.semanticStatus !== "valid") return null;
+  return {
+    master: {
+      id: masterId,
+      diagramType: state.diagramType,
+      exactQuestion: state.exactQuestion,
+      supportedRatios: ["16:9", "9:16"],
+    },
+    state,
+  };
+}
+
 function acceptCompiledDiagramV35(
   compiled: ReturnType<typeof compileTopologyDiagramV35>
 ): ReturnType<typeof compileTopologyDiagramV35> | null {
@@ -246,6 +315,8 @@ export function compileAbstractCausalDiagramV35(input: {
     entityLabels: [],
   });
   if (!scored.eligible || scored.score < 3) return null;
+  const explicit = compileExplicitClauseDiagramV35(input);
+  if (explicit) return explicit;
   const thematicLabels = extractThematicCausalLabelsV35(input.text);
   const listedFactors = extractListedCausalFactorsV35(input.text);
   const combinedOutcome = extractCombinedOutcomeV35(input.text);
