@@ -315,10 +315,9 @@ export function compileBronzeSystemsCollapseDiagramV35(input: {
 }): ReturnType<typeof compileTopologyDiagramV35> | null {
   const labels = [
     "drought pressure",
-    "trade network disruption",
-    "earthquake disruption",
-    "military fragmentation",
-    "palace administrative failure",
+    "migration pressure",
+    "trade disruption",
+    "political instability",
     "systems collapse",
   ].filter((label) => isClaimGroundedDiagramLabelV35(label, input.text));
   if (labels.length < 3) return null;

@@ -21,6 +21,10 @@ import {
   proposeMapIntentsV35,
 } from "./history-geo-v35.js";
 import {
+  mergeMapCompilerScopeV35,
+  semanticMapStateIdentityV35,
+} from "./history-map-semantic-dedup-v35.js";
+import {
   buildReviewableGeoFactsV35,
   validateGeoFactReferentialIntegrityV35,
 } from "./history-geo-facts-export-v35.js";
@@ -697,11 +701,52 @@ export function computeCanonicalBeatSegmentationSignatureV35(
     .join("|");
 }
 
-function scopedMapCacheKey(input: {
-  readonly intent: ReturnType<typeof proposeMapIntentsV35>[number];
-  readonly scopeClaimIds: readonly string[];
-}): string {
-  return `${mapIntentSignature(input.intent)}|${[...input.scopeClaimIds].sort().join(",")}`;
+function adoptCompiledMapStateV35(input: {
+  readonly cache: Map<
+    string,
+    {
+      master: HistoryVisualPlanV35["mapMasters"][number];
+      state: HistoryVisualPlanV35["mapStates"][number];
+    }
+  >;
+  readonly compiled: {
+    readonly master: HistoryVisualPlanV35["mapMasters"][number];
+    readonly state: HistoryVisualPlanV35["mapStates"][number];
+  };
+  readonly mapMasters: HistoryVisualPlanV35["mapMasters"][number][];
+  readonly mapStates: HistoryVisualPlanV35["mapStates"][number][];
+}): {
+  readonly master: HistoryVisualPlanV35["mapMasters"][number];
+  readonly state: HistoryVisualPlanV35["mapStates"][number];
+} {
+  const semanticKey = semanticMapStateIdentityV35(input.compiled.state);
+  const existing = input.cache.get(semanticKey);
+  if (existing) {
+    const mergedResolution = mergeMapCompilerScopeV35(
+      existing.state.compilerResolution,
+      input.compiled.state.compilerResolution
+    );
+    if (mergedResolution && mergedResolution !== existing.state.compilerResolution) {
+      const updatedState: HistoryVisualPlanV35["mapStates"][number] = {
+        ...existing.state,
+        compilerResolution: mergedResolution,
+      };
+      const stateIndex = input.mapStates.findIndex((state) => state.id === existing.state.id);
+      if (stateIndex >= 0) input.mapStates[stateIndex] = updatedState;
+      existing.state = updatedState;
+    }
+    return existing;
+  }
+  if (!input.mapMasters.some((item) => item.id === input.compiled.master.id)) {
+    input.mapMasters.push(input.compiled.master);
+  }
+  input.mapStates.push(input.compiled.state);
+  const adopted = {
+    master: input.compiled.master,
+    state: input.compiled.state,
+  };
+  input.cache.set(semanticKey, adopted);
+  return adopted;
 }
 
 function probeMapCompileForCluster(input: {
@@ -1824,20 +1869,15 @@ export function buildHistoryVisualPlanV35(input: {
           })
         : null;
       if (compiled && intent) {
-        const cacheKey = scopedMapCacheKey({ intent, scopeClaimIds: mapScopeClaimIds });
-        const cached = mapStateCache.get(cacheKey);
-        if (cached) {
-          mapMasterId = cached.master.id;
-          mapStateId = cached.state.id;
-          mapState = cached.state;
-        } else {
-          mapMasters.push(compiled.master);
-          mapStates.push(compiled.state);
-          mapStateCache.set(cacheKey, compiled);
-          mapMasterId = compiled.master.id;
-          mapStateId = compiled.state.id;
-          mapState = compiled.state;
-        }
+        const adopted = adoptCompiledMapStateV35({
+          cache: mapStateCache,
+          compiled,
+          mapMasters,
+          mapStates,
+        });
+        mapMasterId = adopted.master.id;
+        mapStateId = adopted.state.id;
+        mapState = adopted.state;
       } else {
         const entityLabels = structured.entities
           .filter((entity) => claimIds.includes(entity.claimId))
@@ -2049,20 +2089,15 @@ export function buildHistoryVisualPlanV35(input: {
               })
             : null;
           if (compiled && intent) {
-            const cacheKey = scopedMapCacheKey({ intent, scopeClaimIds: mapScopeClaimIds });
-            const cached = mapStateCache.get(cacheKey);
-            if (cached) {
-              mapMasterId = cached.master.id;
-              mapStateId = cached.state.id;
-              mapState = cached.state;
-            } else {
-              mapMasters.push(compiled.master);
-              mapStates.push(compiled.state);
-              mapStateCache.set(cacheKey, compiled);
-              mapMasterId = compiled.master.id;
-              mapStateId = compiled.state.id;
-              mapState = compiled.state;
-            }
+            const adopted = adoptCompiledMapStateV35({
+              cache: mapStateCache,
+              compiled,
+              mapMasters,
+              mapStates,
+            });
+            mapMasterId = adopted.master.id;
+            mapStateId = adopted.state.id;
+            mapState = adopted.state;
             fallback = {
               rejectedModality: rejectedPrior,
               reasonForRejection:

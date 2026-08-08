@@ -103,6 +103,7 @@ function inferRequestedSemanticType(
     proposal.destinationPlaceMentionIds[0] &&
     proposal.originPlaceMentionIds[0] !== proposal.destinationPlaceMentionIds[0];
   if (isRouteMapPurpose(proposal.mapPurpose)) return "movement";
+  if (distinctEndpoints && proposal.movingActorEntityMentionIds.length > 0) return "movement";
   if (
     proposal.mapPurpose === "area" &&
     (proposal.waypointPlaceMentionIds.length > 0 || distinctEndpoints)
@@ -260,6 +261,17 @@ function fallbackFromStrongerSemantics(input: {
   readonly capabilities: ReturnType<typeof deriveMapCapabilitiesV35>;
   readonly explicitReason?: HistoryMapDowngradeReasonV35;
 }): SemanticResolution {
+  if (input.requested === "movement" && input.capabilities.movement) {
+    const movement = findAnyMovementFact(input.geoFacts);
+    if (movement) {
+      return finalizeSemanticResolution({
+        requested: input.requested,
+        resolved: "movement",
+        movement,
+        geoFacts: input.geoFacts,
+      });
+    }
+  }
   if (input.capabilities.sequence) {
     const sequence = findSequenceFact(input.geoFacts);
     if (sequence) {

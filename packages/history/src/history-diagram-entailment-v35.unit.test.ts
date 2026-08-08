@@ -101,7 +101,7 @@ describe("History V3.5 diagram entailment", () => {
       evidenceClaimText: text,
       entitySpans: ["Europe", "England", "King Edward"],
     });
-    expect(blockers).toContain("DIAGRAM_UNSUPPORTED_EDGE");
+    expect(blockers).toContain("DIAGRAM_RELATIONSHIP_TYPE_MISMATCH");
   });
 
   it("does not treat chronology as causality for sequence edges", () => {
@@ -125,7 +125,7 @@ describe("History V3.5 diagram entailment", () => {
       },
       evidenceClaimText: text,
     });
-    expect(blockers).toContain("DIAGRAM_UNSUPPORTED_EDGE");
+    expect(blockers).toContain("DIAGRAM_RELATIONSHIP_TYPE_MISMATCH");
   });
 
   it("keeps valid causal process diagrams when claims explicitly support A -> B -> C", () => {
@@ -215,5 +215,74 @@ describe("History V3.5 diagram entailment", () => {
     });
     expect(blockers).toContain("DIAGRAM_UNGROUNDED_NODE");
     expect(blockers).toContain("DIAGRAM_UNSUPPORTED_EDGE");
+  });
+
+  it("rejects unsupported Tutankhamun -> Egypt leads-to co-occurrence edges", () => {
+    const text =
+      "Tutankhamun was buried in Egypt after his tomb was discovered in the Valley of the Kings.";
+    const state = {
+      id: "diagram-state-tut",
+      masterId: "diagram-master-tut",
+      diagramType: "causal-chain" as const,
+      exactQuestion: "What caused Tutankhamun?",
+      nodes: [
+        {
+          id: "n1",
+          label: "Tutankhamun",
+          linkedClaimIds: ["claim-tut"],
+          entityMentionIds: [],
+        },
+        {
+          id: "n2",
+          label: "Egypt",
+          linkedClaimIds: ["claim-tut"],
+          entityMentionIds: [],
+        },
+      ],
+      edges: [
+        {
+          id: "e1",
+          fromNodeId: "n1",
+          toNodeId: "n2",
+          relationship: "leads-to" as const,
+          linkedClaimIds: ["claim-tut"],
+        },
+      ],
+      semanticStatus: "valid" as const,
+      blockerCodes: [],
+      fallbackDecision: null,
+      evidenceClaimIds: ["claim-tut"],
+    };
+    const blockers = validateDiagramEntailmentV35({
+      state,
+      evidenceClaimText: text,
+      claims: [claim("claim-tut", text)],
+    });
+    expect(blockers).toContain("DIAGRAM_RELATIONSHIP_TYPE_MISMATCH");
+  });
+
+  it("allows normalized labour scarcity -> wage pressure mechanism edges", () => {
+    const text =
+      "After the demographic shock, survivors lacked workers and began to demand higher wages.";
+    const blockers = validateDiagramEdgeEntailmentV35({
+      state: {
+        diagramType: "process",
+        nodes: [
+          { id: "n1", label: "labour scarcity", linkedClaimIds: ["claim-bd"], entityMentionIds: [] },
+          { id: "n2", label: "wage pressure", linkedClaimIds: ["claim-bd"], entityMentionIds: [] },
+        ],
+        edges: [
+          {
+            id: "e1",
+            fromNodeId: "n1",
+            toNodeId: "n2",
+            relationship: "depends-on",
+            linkedClaimIds: ["claim-bd"],
+          },
+        ],
+      },
+      evidenceClaimText: text,
+    });
+    expect(blockers).toEqual([]);
   });
 });

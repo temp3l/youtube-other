@@ -14,6 +14,7 @@ import {
 import {
   resolveMovementActorRefV35,
 } from "./history-map-actor-v35.js";
+import { dedupeGeoFactsBySemanticIdentityV35 } from "./history-map-semantic-dedup-v35.js";
 import type { MovementActorRefV35 } from "./history-v34-contracts.js";
 
 export type GeoFactIdV35 = string;
@@ -393,7 +394,7 @@ export function extractGeoFactsV35(input: {
     }
   }
 
-  return facts;
+  return dedupeGeoFactsBySemanticIdentityV35(facts);
 }
 
 export function deriveMapCapabilitiesV35(input: {
