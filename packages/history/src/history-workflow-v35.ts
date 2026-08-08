@@ -43,6 +43,10 @@ import {
   buildReviewableGeoFactsV35,
   validateGeoFactReferentialIntegrityV35,
 } from "./history-geo-facts-export-v35.js";
+import { summarizeHistoricalPersonReferenceReportV35 } from "./history-person-likeness-v35.js";
+import {
+  loadPersistedHistoricalVisualDirectionV1,
+} from "./history-visual-direction-v1.js";
 
 const exec = promisify(execFile);
 const sha256 = (value: Buffer | string): string =>
@@ -531,7 +535,10 @@ export async function inspectHistoryVisualsV35(request: {
   };
 }
 
-function approvalMarkdown(plan: HistoryVisualPlanV35): string {
+function approvalMarkdown(
+  plan: HistoryVisualPlanV35,
+  visualDirection: Awaited<ReturnType<typeof loadPersistedHistoricalVisualDirectionV1>>
+): string {
   const verification = summarizeVerificationStatusV35(plan.claims);
   const productionBlockers = plan.approval.production.blockerCodes.join(", ") || "none";
   const mapResolutionLines = plan.mapStates
@@ -585,6 +592,26 @@ function approvalMarkdown(plan: HistoryVisualPlanV35): string {
     ``,
     mapResolutionLines.length
       ? [`## Map compiler resolutions`, ``, ...mapResolutionLines, ``].join("\n")
+      : "",
+    `## Historical person references`,
+    ``,
+    ...summarizeHistoricalPersonReferenceReportV35(plan.historicalPersonReferences),
+    ``,
+    visualDirection
+      ? [
+          `## Episode visual direction`,
+          ``,
+          `- artifact: \`source/history-v3.5/history-visual-direction.v1.json\``,
+          `- provider: ${visualDirection.provenance.provider} (${visualDirection.provenance.model})`,
+          `- semantic fingerprint: \`${visualDirection.provenance.semanticInputFingerprint}\``,
+          `- fallback: ${visualDirection.validation.warnings.includes("VISUAL_DIRECTION_FALLBACK") ? "yes" : "no"}`,
+          `- camera: ${visualDirection.global.cameraDirection.perspectiveLanguage}`,
+          `- lighting: ${visualDirection.global.lightingDirection.philosophy}`,
+          `- aesthetic: ${visualDirection.global.aestheticDirection.representation}`,
+          `- prohibited anachronisms: ${visualDirection.global.historicalConstraints.prohibitedAnachronisms.join(", ") || "none"}`,
+          `- scene overrides: ${visualDirection.scenes?.length ?? 0}`,
+          ``,
+        ].join("\n")
       : "",
     `Do not treat trusted-script acceptance as independent historical verification.`,
     `Do not treat any generic valid flag as approval. Production remains blocked without measured timing when required.`,
@@ -640,6 +667,7 @@ export async function createHistoryApprovalPackV35(request: {
   if (geoFactIntegrityErrors.length)
     throw new Error(`History V3.5 geo-fact referential integrity failed: ${geoFactIntegrityErrors.join("; ")}`);
   const paths = episodePaths(request);
+  const visualDirection = await loadPersistedHistoricalVisualDirectionV1(paths.root);
   const directory = path.resolve(request.output);
   await fs.rm(directory, { recursive: true, force: true });
   await fs.mkdir(directory, { recursive: true });
@@ -711,6 +739,10 @@ export async function createHistoryApprovalPackV35(request: {
     "timeline-events.json": plan.timelineEvents,
     "document-states.json": plan.documentStates,
     "aspect-ratio-plans.json": plan.aspectRatioPlans,
+    "historical-person-references.json": plan.historicalPersonReferences,
+    ...(visualDirection
+      ? { "history-visual-direction.v1.json": visualDirection }
+      : {}),
     "quality-metrics.json": plan.qualityMetrics,
     "validation.json": validation,
     "planner-config.json": plannerConfig,
@@ -755,7 +787,7 @@ export async function createHistoryApprovalPackV35(request: {
     path.join(directory, "README.md"),
     `# History V3.5 independent review bundle\n\nEpisode: \`${plan.episodeId}\`.\n\n${TRUSTED_SCRIPT_REVIEW_WARNING}\n\nCanonical claim namespace: \`claim-*\` only. No parallel trusted-claim authoritative export.\n\nPlanner: \`${plan.plannerVersion}\` / \`${HISTORY_VISUAL_SCHEMA_V35}\`.\n`
   );
-  await writeStableText(path.join(directory, "approval.md"), approvalMarkdown(plan));
+  await writeStableText(path.join(directory, "approval.md"), approvalMarkdown(plan, visualDirection));
   const beforeManifest = await regularFiles(directory);
   const payloadHashes = await Promise.all(
     beforeManifest.map(async (file) => ({

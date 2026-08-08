@@ -359,6 +359,9 @@ importers:
       '@mediaforge/domain':
         specifier: workspace:*
         version: link:../domain
+      '@mediaforge/history':
+        specifier: workspace:*
+        version: link:../history
       '@mediaforge/observability':
         specifier: workspace:*
         version: link:../observability

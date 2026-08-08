@@ -68,6 +68,18 @@ describe("History render adapter v3.5", () => {
     expect(first.timing.startSeconds).toBe(0);
     expect(last.timing.endSeconds).toBeGreaterThan(first.timing.startSeconds);
     expect(first.canonicalNarration.length).toBeGreaterThan(0);
+    expect(plan.historicalPersonReferences.usages.length).toBeGreaterThanOrEqual(0);
+    expect(derivative.historicalPersonReferenceUsages).toEqual(
+      plan.historicalPersonReferences.usages.map((usage) => ({
+        sceneId: expect.stringMatching(/^scene-\d{3}$/u),
+        shotId: usage.shotId,
+        canonicalPersonId: usage.canonicalPersonId,
+        canonicalName: usage.canonicalName,
+        likenessPolicy: usage.likenessPolicy,
+        selectedReferenceAssetIds: usage.selectedReferenceAssetIds,
+        attachmentStatus: usage.attachmentStatus,
+      }))
+    );
   });
 
   it("syncs production artifacts and enforces explicit v3.5 approval", async () => {

@@ -21,6 +21,7 @@ import type {
   HistoryReconstructionPolicyV34,
 } from "./history-v34-contracts.js";
 import type { HistoryVisualOpportunitySummaryV35 } from "./history-visual-opportunity-v35.js";
+import type { HistoryHistoricalPersonReferenceReportV35 } from "./history-person-likeness-v35.js";
 
 export const HISTORY_CLAIM_SCHEMA_V35 = "history-claim.v3.5" as const;
 export const HISTORY_VISUAL_SCHEMA_V35 = "history-visual-plan.v3.5" as const;
@@ -332,6 +333,7 @@ export interface HistoryVisualPlanV35 {
     readonly rejectionReason?: string;
   }[];
   readonly visualOpportunitySummary: HistoryVisualOpportunitySummaryV35;
+  readonly historicalPersonReferences: HistoryHistoricalPersonReferenceReportV35;
   readonly diagnostics: readonly HistoryDiagnosticV34[];
   readonly approval: HistoryApprovalV34;
   readonly planHash: string;

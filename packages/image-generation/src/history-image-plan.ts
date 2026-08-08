@@ -33,9 +33,32 @@ type HistoryVisualConcept = {
   readonly modality: string;
 };
 
-type HistoryVisualPlan = {
+type HistoryShot = {
+  readonly id: string;
+  readonly beatId: string;
+  readonly startMs: number;
+  readonly endMs: number;
+};
+
+export type HistoryVisualPlan = {
   readonly beats: readonly HistoryBeat[];
   readonly visualConcepts: readonly HistoryVisualConcept[];
+  readonly shots?: readonly HistoryShot[];
+  readonly historicalPersonReferences?: {
+    readonly usages: readonly {
+      readonly shotId: string;
+      readonly beatId: string;
+      readonly entityMentionId: string | null;
+      readonly canonicalPersonId: string;
+      readonly canonicalName: string;
+      readonly likenessPolicy: string;
+      readonly selectedReferenceAssetIds: readonly string[];
+      readonly attachmentStatus: string;
+      readonly reason: string;
+    }[];
+    readonly resolvedPersonCount: number;
+    readonly attachedReferenceCount: number;
+  };
 };
 
 import type { HistoryCinematography } from "./history-image-cinematography.js";
@@ -66,10 +89,22 @@ export async function loadHistoryVisualPlan(
     if (!Array.isArray(raw.beats) || !Array.isArray(raw.visualConcepts)) {
       return null;
     }
-    return {
+    const plan: HistoryVisualPlan = {
       beats: raw.beats as HistoryBeat[],
       visualConcepts: raw.visualConcepts as HistoryVisualConcept[],
+      ...(Array.isArray(raw.shots)
+        ? { shots: raw.shots as HistoryShot[] }
+        : {}),
+      ...(raw.historicalPersonReferences
+        ? {
+            historicalPersonReferences:
+              raw.historicalPersonReferences as NonNullable<
+                HistoryVisualPlan["historicalPersonReferences"]
+              >,
+          }
+        : {}),
     };
+    return plan;
   } catch {
     return null;
   }

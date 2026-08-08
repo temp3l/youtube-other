@@ -24,6 +24,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@mediaforge/history": "workspace:*",
     "@mediaforge/domain": "workspace:*",
     "@mediaforge/observability": "workspace:*",
     "@mediaforge/process-runner": "workspace:*",

@@ -4,6 +4,8 @@ import {
   buildSceneTextPromptSection,
 } from "./scene-text.js";
 import type { HistorySceneImageGuidance } from "./history-image-plan.js";
+import type { HistoricalVisualDirectionProfileV1 } from "@mediaforge/history";
+import { renderPersistedVisualDirectionPromptSectionsV1 } from "@mediaforge/history";
 import {
   type HistoryCinematography,
   HISTORY_RECONSTRUCTION_NEGATIVE_CONSTRAINTS,
@@ -166,6 +168,8 @@ export type HistoryImageProviderPromptRequest = {
     readonly definition?: { readonly name: string };
   }[];
   readonly referenceCharacterIds?: readonly string[];
+  readonly visualDirection?: HistoricalVisualDirectionProfileV1;
+  readonly sceneId?: string;
 };
 
 function historyCharacterIdentityText(
@@ -271,6 +275,13 @@ export function renderHistoryImageProviderPrompt(
     cinematography.stylePreset,
     narrationSource
   );
+  const persistedDirection =
+    request.visualDirection && request.sceneId
+      ? renderPersistedVisualDirectionPromptSectionsV1({
+          profile: request.visualDirection,
+          sceneId: request.sceneId,
+        })
+      : null;
 
   return [
     promptSection("PRIMARY VISUAL EVENT", primaryVisualEvent),
@@ -288,18 +299,34 @@ export function renderHistoryImageProviderPrompt(
       "ENVIRONMENT",
       `${environment} Foreground: ${foreground}. Background: ${background}.`
     ),
-    promptSection(
-      "CAMERA AND COMPOSITION",
-      historyCameraComposition(request, cinematography)
-    ),
-    promptSection(
-      "LIGHTING AND COLOR",
-      `${lightingPrompt}. Time of day: ${timeOfDay}. Mood: ${mood}.`
-    ),
-    promptSection(
-      "VISUAL STYLE",
-      `${stylePrompt}, photorealistic, believable human anatomy, natural skin and fabric textures, no illustration, no painting, no watercolor, no collage, no stylized cartoon look, no CGI render look, ${request.aspectRatio}.`
-    ),
+    ...(persistedDirection
+      ? [
+          promptSection(
+            "HISTORICAL CONSTRAINTS",
+            persistedDirection.historicalConstraints ||
+              "Maintain period-accurate material culture and avoid anachronisms."
+          ),
+          promptSection("CAMERA AND COMPOSITION", persistedDirection.cameraDirection),
+          promptSection("LIGHTING AND COLOR", persistedDirection.lightingDirection),
+          promptSection("VISUAL STYLE", persistedDirection.aestheticDirection),
+          ...(persistedDirection.sceneOverride
+            ? [promptSection("SCENE VISUAL OVERRIDE", persistedDirection.sceneOverride)]
+            : []),
+        ]
+      : [
+          promptSection(
+            "CAMERA AND COMPOSITION",
+            historyCameraComposition(request, cinematography)
+          ),
+          promptSection(
+            "LIGHTING AND COLOR",
+            `${lightingPrompt}. Time of day: ${timeOfDay}. Mood: ${mood}.`
+          ),
+          promptSection(
+            "VISUAL STYLE",
+            `${stylePrompt}, photorealistic, believable human anatomy, natural skin and fabric textures, no illustration, no painting, no watercolor, no collage, no stylized cartoon look, no CGI render look, ${request.aspectRatio}.`
+          ),
+        ]),
     promptSection(
       "TEXT REQUIREMENT",
       buildSceneTextPromptSection(request.scene.textRequirement)
@@ -323,6 +350,7 @@ export function renderHistoryImageProviderPrompt(
         ),
         (concept?.forbiddenAnachronisms ?? []).join(", "),
         HISTORY_RECONSTRUCTION_NEGATIVE_CONSTRAINTS.join(", "),
+        persistedDirection?.negativeConcepts ?? "",
         "no illustration, no painting, no concept art, no horror mood, no altered photographs, no archive-table still life unless narration requires documents",
       ]
         .filter(Boolean)

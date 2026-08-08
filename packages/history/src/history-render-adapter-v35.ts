@@ -13,6 +13,7 @@ import {
   HISTORY_VISUAL_SCHEMA_V35,
   type HistoryVisualPlanV35,
 } from "./history-v35-contracts.js";
+import type { HistoryShotPersonReferenceUsageV35 } from "./history-person-likeness-v35.js";
 
 export const HISTORY_VISUAL_ADAPTER_V35_VERSION =
   "history-render-adapter.v3.5" as const;
@@ -40,6 +41,19 @@ export const historyRenderDerivativeV35Schema = z
     scenePlan: scenePlanSchema,
     shotCount: z.number().int().nonnegative(),
     illustrationShotCount: z.number().int().nonnegative(),
+    historicalPersonReferenceUsages: z.array(
+      z
+        .object({
+          sceneId: z.string(),
+          shotId: z.string(),
+          canonicalPersonId: z.string(),
+          canonicalName: z.string(),
+          likenessPolicy: z.string(),
+          selectedReferenceAssetIds: z.array(z.string()),
+          attachmentStatus: z.string(),
+        })
+        .strict()
+    ),
   })
   .strict();
 
@@ -118,6 +132,20 @@ export function compileHistoryRenderDerivativeV35(
     return left.id.localeCompare(right.id);
   });
   let illustrationShotCount = 0;
+  const historicalPersonReferenceUsages: Array<{
+    readonly sceneId: string;
+    readonly shotId: string;
+    readonly canonicalPersonId: string;
+    readonly canonicalName: string;
+    readonly likenessPolicy: string;
+    readonly selectedReferenceAssetIds: readonly string[];
+    readonly attachmentStatus: string;
+  }> = [];
+  const usagesByShotId = new Map<string, readonly HistoryShotPersonReferenceUsageV35[]>();
+  for (const usage of plan.historicalPersonReferences.usages) {
+    const existing = usagesByShotId.get(usage.shotId) ?? [];
+    usagesByShotId.set(usage.shotId, [...existing, usage]);
+  }
   const scenes = sortedShots.map((shot, index) => {
     const beat = beatsById.get(shot.beatId);
     if (!beat) {
@@ -131,8 +159,21 @@ export function compileHistoryRenderDerivativeV35(
     const endSeconds = shot.endMs / 1_000;
     const concept = plan.visualConcepts.find((item) => item.beatId === beat.id);
     const canonicalNarration = beatNarration(plan, beat.id);
+    const sceneId = `scene-${String(sequence).padStart(3, "0")}`;
+    const personUsages = usagesByShotId.get(shot.id) ?? [];
+    for (const usage of personUsages) {
+      historicalPersonReferenceUsages.push({
+        sceneId,
+        shotId: shot.id,
+        canonicalPersonId: usage.canonicalPersonId,
+        canonicalName: usage.canonicalName,
+        likenessPolicy: usage.likenessPolicy,
+        selectedReferenceAssetIds: usage.selectedReferenceAssetIds,
+        attachmentStatus: usage.attachmentStatus,
+      });
+    }
     return {
-      id: `scene-${String(sequence).padStart(3, "0")}`,
+      id: sceneId,
       sequenceNumber: sequence,
       canonicalNarration,
       sourceSegmentIds: [`scene-${String(sequence).padStart(3, "0")}`],
@@ -181,6 +222,7 @@ export function compileHistoryRenderDerivativeV35(
     scenePlan,
     shotCount: sortedShots.length,
     illustrationShotCount,
+    historicalPersonReferenceUsages,
   };
   return historyRenderDerivativeV35Schema.parse({
     ...raw,

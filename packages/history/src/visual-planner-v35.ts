@@ -135,6 +135,10 @@ import {
 import { validatePlanStateEvidenceClosureV35 } from "./history-state-evidence-closure-v35.js";
 import { deriveVisualSubjectV35 } from "./history-visual-subject-v35.js";
 import {
+  buildHistoricalPersonReferenceReportV35,
+  historicalPersonReferenceValidationDiagnosticsV35,
+} from "./history-person-likeness-v35.js";
+import {
   buildVisualOpportunitiesV35,
   detectDiagramOpportunityV35,
   reserveDiagramBeatIndexesV35,
@@ -2820,6 +2824,16 @@ export function buildHistoryVisualPlanV35(input: {
     );
   }
 
+  const historicalPersonReferences = buildHistoricalPersonReferenceReportV35({
+    beats,
+    shots,
+    entities: structured.entities,
+    narrationText: input.narration.normalizedText,
+  });
+  diagnostics.push(
+    ...historicalPersonReferenceValidationDiagnosticsV35(historicalPersonReferences)
+  );
+
   const body = {
     schemaVersion: HISTORY_VISUAL_SCHEMA_V35,
     plannerVersion: HISTORY_VISUAL_PLANNER_V35,
@@ -2856,6 +2870,7 @@ export function buildHistoryVisualPlanV35(input: {
     aspectRatioPlans,
     visualOpportunities,
     visualOpportunitySummary: summarizeVisualOpportunityTotalsV35(opportunitySummaries),
+    historicalPersonReferences,
     qualityMetrics,
     diagnostics,
     approval: summarizeApproval(diagnostics),

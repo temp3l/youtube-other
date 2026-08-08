@@ -279,6 +279,7 @@ interface CliOptions {
   sceneLimit?: number;
   allowUnapprovedCharacterReferences?: boolean;
   force?: boolean;
+  refreshVisualDirection?: boolean;
   episode?: string;
   scene?: string;
   character?: string;
@@ -2906,6 +2907,7 @@ async function commandImagesPlan(
     settings,
     {
       ...(sceneId !== undefined ? { sceneId } : {}),
+      ...(options.refreshVisualDirection ? { refreshVisualDirection: true } : {}),
       context: resolveEpisodeImageMediaContext(manifest.episodeId, manifest),
     }
   );
@@ -3002,6 +3004,9 @@ async function commandImagesGenerate(
           ? { sceneId: selectedScenes.sceneId }
           : {}),
       ...(options.force !== undefined ? { force: options.force } : {}),
+      ...(options.refreshVisualDirection
+        ? { refreshVisualDirection: true }
+        : {}),
       context: resolveEpisodeImageMediaContext(manifest.episodeId, manifest),
     }
   );
@@ -5104,12 +5109,17 @@ imagesCommand
   .option("--scene <scene-id>")
   .option("--allow-unapproved-character-references")
   .option("--force")
+  .option(
+    "--refresh-visual-direction",
+    "regenerate the persisted episode visual-direction artifact"
+  )
   .action(
     async (opts: {
       episode: string;
       scene?: string;
       allowUnapprovedCharacterReferences?: boolean;
       force?: boolean;
+      refreshVisualDirection?: boolean;
     }) => {
       const cliOptions: CliOptions = {
         ...program.opts<CliOptions>(),
@@ -5122,6 +5132,9 @@ imagesCommand
             }
           : {}),
         ...(opts.force !== undefined ? { force: opts.force } : {}),
+        ...(opts.refreshVisualDirection !== undefined
+          ? { refreshVisualDirection: opts.refreshVisualDirection }
+          : {}),
       };
       await commandImagesPlan(cliOptions, opts.episode, opts.scene);
     }
@@ -5135,12 +5148,17 @@ imagesCommand
   )
   .option("--allow-unapproved-character-references")
   .option("--force")
+  .option(
+    "--refresh-visual-direction",
+    "regenerate the persisted episode visual-direction artifact"
+  )
   .action(
     async (opts: {
       episode: string;
       scene?: string;
       allowUnapprovedCharacterReferences?: boolean;
       force?: boolean;
+      refreshVisualDirection?: boolean;
     }) => {
       const cliOptions: CliOptions = {
         ...program.opts<CliOptions>(),
@@ -5153,6 +5171,9 @@ imagesCommand
             }
           : {}),
         ...(opts.force !== undefined ? { force: opts.force } : {}),
+        ...(opts.refreshVisualDirection !== undefined
+          ? { refreshVisualDirection: opts.refreshVisualDirection }
+          : {}),
       };
       await commandImagesGenerate(cliOptions, opts.episode, opts.scene);
     }

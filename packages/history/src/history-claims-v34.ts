@@ -140,6 +140,8 @@ const CANONICAL_ENTITY_SEEDS: readonly CanonicalEntitySeed[] = [
   { label: "Victory Point note", entityType: "document", aliases: ["Victory Point"] },
   { label: "Inuit", entityType: "ethnic-or-cultural-group", aliases: ["Inuit witnesses", "Inuit communities"], defaultRole: "observer" },
   { label: "Napoleon Bonaparte", entityType: "person", aliases: ["Napoleon"], defaultRole: "leader" },
+  { label: "Joseph Stalin", entityType: "person", aliases: ["Stalin"], defaultRole: "leader" },
+  { label: "Adolf Hitler", entityType: "person", aliases: ["Hitler"], defaultRole: "leader" },
   { label: "Tsar Alexander the First", entityType: "person", aliases: ["Tsar Alexander", "Alexander the First"] },
   { label: "Mikhail Kutuzov", entityType: "person", aliases: ["Kutuzov"] },
   { label: "Grande Armée", entityType: "military-unit", aliases: ["The Grande Armée", "Grande Armee"] },

@@ -67,6 +67,9 @@ import {
   resolveHistorySceneImageGuidance,
   type HistorySceneImageGuidance,
 } from "./history-image-plan.js";
+import { resolveHistoricalPersonReferencesForScene } from "./history-person-reference-images.js";
+import { getOrResolveHistoricalVisualDirectionForEpisode } from "./history-visual-direction-bridge-v1.js";
+import type { HistoricalVisualDirectionProfileV1 } from "@mediaforge/history";
 import {
   buildHistorySceneSpace,
   deriveHistorySceneLighting,
@@ -344,6 +347,8 @@ export interface ImageProviderRequest {
   promptProfile: ImagePromptProfile;
   authoritativeImagePrompt?: string;
   historyGuidance?: HistorySceneImageGuidance;
+  visualDirection?: HistoricalVisualDirectionProfileV1;
+  sceneIdForDirection?: string;
   referenceImages: Array<{
     characterId: CharacterId;
     path: string;
@@ -3014,6 +3019,10 @@ function renderImageProviderPrompt(request: ImageProviderRequest): string {
         referenceCharacterIds: request.referenceImages.map(
           (reference) => reference.characterId
         ),
+        ...(request.visualDirection ? { visualDirection: request.visualDirection } : {}),
+        ...(request.sceneIdForDirection
+          ? { sceneId: request.sceneIdForDirection }
+          : {}),
       },
       request.historyGuidance
     );
@@ -3108,16 +3117,61 @@ function buildImageProviderRequest(args: {
     path: string;
     sha256: string;
   }[];
+  readonly historicalPersonReferences?: readonly {
+    readonly characterId: CharacterId;
+    readonly canonicalName: string;
+    readonly role: string;
+  }[];
   readonly aspectRatio?: "16:9" | "9:16";
   readonly promptProfile?: ImagePromptProfile;
   readonly authoritativeImagePrompt?: string;
   readonly historyGuidance?: HistorySceneImageGuidance;
+  readonly visualDirection?: HistoricalVisualDirectionProfileV1;
+  readonly sceneIdForDirection?: string;
 }): ImageProviderRequest {
   const characterLookup = new Map(
     (args.registry?.characters ?? []).map(
       (character) => [character.id, character] as const
     )
   );
+  const historicalContexts: ImageProviderCharacterContext[] = (
+    args.historicalPersonReferences ?? []
+  ).map((reference) => ({
+    characterId: reference.characterId,
+    definition: {
+      id: reference.characterId,
+      name: reference.canonicalName,
+      role: "historical-person",
+      physicalDescription: `Approved curated ${reference.role} reference for ${reference.canonicalName}.`,
+      ageRange: "adult",
+      genderPresentation: "unspecified",
+      face: {
+        shape: "documentary reference",
+        skinTone: "reference-guided",
+        eyeColor: "reference-guided",
+        eyebrows: "reference-guided",
+        nose: "reference-guided",
+        mouth: "reference-guided",
+        distinguishingFeatures: [],
+      },
+      hair: {
+        color: "reference-guided",
+        length: "reference-guided",
+        style: "reference-guided",
+      },
+      build: "reference-guided",
+      defaultWardrobe: {
+        upperBody: "period-appropriate",
+        lowerBody: "period-appropriate",
+        footwear: "period-appropriate",
+        accessories: [],
+        carriedObjects: [],
+        colors: [],
+      },
+      continuityTraits: [],
+      referenceStatus: "approved",
+    },
+  }));
   return {
     sceneId: args.scene.sceneId,
     scene: args.scene,
@@ -3137,19 +3191,26 @@ function buildImageProviderRequest(args: {
       ? { authoritativeImagePrompt: args.authoritativeImagePrompt }
       : {}),
     ...(args.historyGuidance ? { historyGuidance: args.historyGuidance } : {}),
+    ...(args.visualDirection ? { visualDirection: args.visualDirection } : {}),
+    ...(args.sceneIdForDirection
+      ? { sceneIdForDirection: args.sceneIdForDirection }
+      : {}),
     referenceImages: args.referenceImages.map((reference) => ({
       characterId: reference.characterId,
       path: reference.path,
       sha256: reference.sha256,
     })),
-    characterContexts: args.scene.characters.map((usage) => {
-      const definition = characterLookup.get(usage.characterId);
-      return {
-        characterId: usage.characterId,
-        usage,
-        ...(definition ? { definition } : {}),
-      };
-    }),
+    characterContexts: [
+      ...args.scene.characters.map((usage) => {
+        const definition = characterLookup.get(usage.characterId);
+        return {
+          characterId: usage.characterId,
+          usage,
+          ...(definition ? { definition } : {}),
+        };
+      }),
+      ...historicalContexts,
+    ],
   };
 }
 
@@ -4578,12 +4639,24 @@ async function buildEpisodeScenePlans(args: {
   readonly settings: EpisodeImagePipelineSettings;
   readonly context: EpisodeImageMediaContext;
   readonly client?: OpenAI;
+  readonly refreshVisualDirection?: boolean;
 }): Promise<EpisodeScenePlan[]> {
   const promptProfile = resolveImagePromptProfile(args.context);
   const historyPlan =
     promptProfile === "history-documentary"
       ? await loadHistoryVisualPlan(args.episodeDir)
       : null;
+  const visualDirection =
+    promptProfile === "history-documentary"
+      ? await getOrResolveHistoricalVisualDirectionForEpisode({
+          episodeDir: args.episodeDir,
+          episodeId: args.context.identity.episodeId,
+          ...(args.refreshVisualDirection
+            ? { refreshVisualDirection: true }
+            : {}),
+          ...(args.client ? { client: args.client } : {}),
+        })
+      : undefined;
   const plans: EpisodeScenePlan[] = [];
   let previousScene: Scene | undefined;
   let previousSpec: SceneVisualSpec | undefined;
@@ -4612,6 +4685,24 @@ async function buildEpisodeScenePlans(args: {
       args.registry,
       spec
     );
+    const historicalPersonReferences =
+      historyPlan === null
+        ? []
+        : resolveHistoricalPersonReferencesForScene({
+            plan: historyPlan,
+            scene,
+          });
+    const historicalReferenceSummaries = await Promise.all(
+      historicalPersonReferences.map(async (reference) => ({
+        characterId: reference.characterId,
+        path: reference.filePath,
+        sha256: (await hashFile(reference.filePath).catch(() => "")) ?? "",
+      }))
+    );
+    const mergedReferenceImages = [
+      ...referenceImages,
+      ...historicalReferenceSummaries,
+    ];
     const providerRequest = prepareImageProviderRequest(
       buildImageProviderRequest({
         scene: spec,
@@ -4619,12 +4710,25 @@ async function buildEpisodeScenePlans(args: {
         registry: args.registry,
         settings: args.settings,
         outputPath,
-        referenceImages,
+        referenceImages: mergedReferenceImages,
+        ...(historicalPersonReferences.length > 0
+          ? {
+              historicalPersonReferences: historicalPersonReferences.map(
+                (reference) => ({
+                  characterId: reference.characterId,
+                  canonicalName: reference.canonicalName,
+                  role: reference.role,
+                })
+              ),
+            }
+          : {}),
         promptProfile,
         ...(scene.imagePrompt.trim()
           ? { authoritativeImagePrompt: scene.imagePrompt.trim() }
           : {}),
         ...(historyGuidance ? { historyGuidance } : {}),
+        ...(visualDirection ? { visualDirection } : {}),
+        sceneIdForDirection: scene.id,
       })
     );
     const prompt = providerRequest.prompt;
@@ -4685,7 +4789,7 @@ async function buildEpisodeScenePlans(args: {
       providerRequestHash: providerRequest.providerRequestHash,
       validationIssues,
       validationFailures,
-      referenceImages,
+      referenceImages: mergedReferenceImages,
       visualPlanArtifact,
       visualPlanHash: visualPlanHash(visualPlanArtifact),
       materialDifferencesFromPrevious: diffSpec(previousSpec, spec),
@@ -5383,6 +5487,7 @@ export async function planEpisodeImageGeneration(
     sceneId?: string;
     client?: OpenAI;
     context?: EpisodeImageMediaContext;
+    refreshVisualDirection?: boolean;
   }
 ): Promise<EpisodeImagePlanResult[]> {
   const context = await resolveEpisodeImageMediaContext(
@@ -5408,6 +5513,9 @@ export async function planEpisodeImageGeneration(
     settings,
     context,
     ...(options?.client ? { client: options.client } : {}),
+    ...(options?.refreshVisualDirection
+      ? { refreshVisualDirection: true }
+      : {}),
   });
   const { plans, promotedSceneIds } = rebalanceEpisodeScenePlans(draftPlans);
   if (promotedSceneIds.length > 0 && settings.logger) {
@@ -5678,6 +5786,7 @@ export async function generateEpisodeImages(
     force?: boolean;
     client?: OpenAI;
     context?: EpisodeImageMediaContext;
+    refreshVisualDirection?: boolean;
   }
 ): Promise<EpisodeImageGenerationResult[]> {
   const context = await resolveEpisodeImageMediaContext(
@@ -5703,6 +5812,9 @@ export async function generateEpisodeImages(
     settings,
     context,
     ...(options?.client ? { client: options.client } : {}),
+    ...(options?.refreshVisualDirection
+      ? { refreshVisualDirection: true }
+      : {}),
   });
   const { plans, promotedSceneIds } = rebalanceEpisodeScenePlans(draftPlans);
   await quarantineSupersededSceneImages(episodeDir, plans);
