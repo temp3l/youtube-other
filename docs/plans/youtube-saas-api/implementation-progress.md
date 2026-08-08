@@ -43,7 +43,7 @@ Validation: `workflow-portfolio.unit.test.ts` pass (6); `workflow-portfolio-repo
 Notes: Portfolio filter contracts, recovery classifier, projector, persistence SQL source query + row mapper, `GET /v1/workspaces/{workspace}/workflow-portfolio` API/SDK route; resume/cancel/abandon actions reference existing workflow commands
 
 ### YSAAS-006
-Status: in progress
+Status: completed
 Commit: pending
-Validation: `artifact-invalidation.unit.test.ts` pass (4); domain typecheck pass
-Notes: Production-unit graph, invalidation preview, gate evidence; API preview + scoped regeneration routes; persistence-backed unit loading deferred (client supplies snapshots)
+Validation: `artifact-invalidation.unit.test.ts` pass (4); domain emit pass; `apps/api` postgres use-case typecheck pass
+Notes: Production-unit graph, invalidation preview, gate evidence; API preview + regeneration routes; persistence unit loader and selective workflow execution deferred
