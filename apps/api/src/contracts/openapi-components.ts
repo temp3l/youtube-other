@@ -994,6 +994,181 @@ export const openApiComponents = {
         required: ["items"],
         properties: { items: { type: "array", items: schema("WorkflowStep") } },
       },
+      ProductionUnitAddress: {
+        type: "object",
+        additionalProperties: false,
+        required: ["kind"],
+        properties: {
+          kind: {
+            type: "string",
+            enum: [
+              "brief_script",
+              "narration",
+              "visual_plan",
+              "scene_visual",
+              "map",
+              "diagram",
+              "tts",
+              "subtitles",
+              "render",
+              "review_readiness",
+              "publish_readiness",
+            ],
+          },
+          unitKey: schema("OpaqueId"),
+        },
+      },
+      ProductionUnitSnapshot: {
+        type: "object",
+        additionalProperties: false,
+        required: ["address", "inputFingerprint", "status"],
+        properties: {
+          address: schema("ProductionUnitAddress"),
+          inputFingerprint: { type: "string", pattern: "^[a-f0-9]{64}$" },
+          contentHash: { type: "string", pattern: "^[a-f0-9]{64}$" },
+          status: {
+            type: "string",
+            enum: ["missing", "valid", "stale", "invalidated"],
+          },
+          artifactRecordId: schema("OpaqueId"),
+        },
+      },
+      ProductionUnitChange: {
+        type: "object",
+        additionalProperties: false,
+        required: ["address", "nextInputFingerprint"],
+        properties: {
+          address: schema("ProductionUnitAddress"),
+          nextInputFingerprint: { type: "string", pattern: "^[a-f0-9]{64}$" },
+          nextContentHash: { type: "string", pattern: "^[a-f0-9]{64}$" },
+          reason: { type: "string", minLength: 1, maxLength: 2_000 },
+        },
+      },
+      InvalidatedProductionUnit: {
+        type: "object",
+        additionalProperties: false,
+        required: ["address", "previousStatus", "reason", "preservedUpstream"],
+        properties: {
+          address: schema("ProductionUnitAddress"),
+          previousStatus: {
+            type: "string",
+            enum: ["missing", "valid", "stale", "invalidated"],
+          },
+          reason: { type: "string", minLength: 1, maxLength: 2_000 },
+          preservedUpstream: { type: "boolean" },
+        },
+      },
+      GateEvidenceUpdate: {
+        type: "object",
+        additionalProperties: false,
+        required: ["code", "message", "affectedUnitAddresses"],
+        properties: {
+          code: {
+            type: "string",
+            enum: [
+              "validation_stale",
+              "approval_stale",
+              "render_stale",
+              "evidence_changed",
+            ],
+          },
+          message: { type: "string", minLength: 1, maxLength: 2_000 },
+          affectedUnitAddresses: {
+            type: "array",
+            minItems: 1,
+            items: schema("ProductionUnitAddress"),
+          },
+          contentHashes: {
+            type: "array",
+            items: { type: "string", pattern: "^[a-f0-9]{64}$" },
+          },
+        },
+      },
+      ArtifactInvalidationPreviewInput: {
+        type: "object",
+        additionalProperties: false,
+        required: ["units", "changes"],
+        properties: {
+          units: {
+            type: "array",
+            minItems: 1,
+            items: schema("ProductionUnitSnapshot"),
+          },
+          changes: {
+            type: "array",
+            minItems: 1,
+            items: schema("ProductionUnitChange"),
+          },
+        },
+      },
+      ArtifactInvalidationPreview: {
+        type: "object",
+        additionalProperties: false,
+        required: [
+          "changedAddresses",
+          "invalidatedUnits",
+          "preservedUnits",
+          "regenerationTargets",
+          "staleReviewReadiness",
+          "stalePublishReadiness",
+          "gateEvidenceUpdates",
+          "projectedAt",
+        ],
+        properties: {
+          changedAddresses: {
+            type: "array",
+            minItems: 1,
+            items: schema("ProductionUnitAddress"),
+          },
+          invalidatedUnits: {
+            type: "array",
+            items: schema("InvalidatedProductionUnit"),
+          },
+          preservedUnits: {
+            type: "array",
+            items: schema("ProductionUnitAddress"),
+          },
+          regenerationTargets: {
+            type: "array",
+            items: schema("ProductionUnitAddress"),
+          },
+          staleReviewReadiness: { type: "boolean" },
+          stalePublishReadiness: { type: "boolean" },
+          gateEvidenceUpdates: {
+            type: "array",
+            items: schema("GateEvidenceUpdate"),
+          },
+          projectedAt: schema("DateTime"),
+        },
+      },
+      ProductionUnitRegenerationInput: {
+        type: "object",
+        additionalProperties: false,
+        required: ["targets"],
+        properties: {
+          targets: {
+            type: "array",
+            minItems: 1,
+            items: schema("ProductionUnitAddress"),
+          },
+          reason: { type: "string", minLength: 1, maxLength: 2_000 },
+        },
+      },
+      ProductionUnitRegenerationAccepted: {
+        type: "object",
+        additionalProperties: false,
+        required: ["acceptedTargets", "workflowRunId", "jobId", "revision"],
+        properties: {
+          acceptedTargets: {
+            type: "array",
+            minItems: 1,
+            items: schema("ProductionUnitAddress"),
+          },
+          workflowRunId: schema("OpaqueId"),
+          jobId: schema("OpaqueId"),
+          revision: schema("Revision"),
+        },
+      },
       WorkflowPortfolioRecovery: {
         type: "object",
         additionalProperties: false,

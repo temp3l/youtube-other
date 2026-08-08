@@ -1,3 +1,4 @@
+import { artifactLineageOpenApiPaths } from "./modules/artifact-lineage-paths.js";
 import { artifactReviewPublicationOpenApiPaths } from "./modules/artifact-review-publication-paths.js";
 import { contentOpenApiPaths } from "./modules/content-paths.js";
 import { platformOpenApiPaths } from "./modules/platform-paths.js";
@@ -18,6 +19,7 @@ export const openApiDocument = {
     ...platformOpenApiPaths,
     ...contentOpenApiPaths,
     ...workflowOpenApiPaths,
+    ...artifactLineageOpenApiPaths,
     ...artifactReviewPublicationOpenApiPaths,
     ...speechOpenApiPaths,
   },

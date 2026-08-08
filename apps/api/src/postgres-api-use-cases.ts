@@ -1,11 +1,18 @@
 import crypto from "node:crypto";
 
+import { z } from "zod";
+
 import {
   ApplicationError,
   type WorkflowAdmissionHandler,
 } from "@mediaforge/application";
 import {
   WORKFLOW_PORTFOLIO_SCHEMA_VERSION,
+  deriveGateEvidenceUpdates,
+  previewProductionUnitInvalidation,
+  productionUnitAddressSchema,
+  productionUnitChangeSchema,
+  productionUnitSnapshotSchema,
   projectWorkflowPortfolioPage,
   workflowPortfolioFilterSchema,
 } from "@mediaforge/domain";
@@ -19,7 +26,10 @@ import {
 } from "@mediaforge/persistence";
 
 import type { ApiJobFailure, ApiJobStatus, ApiUseCases } from "./http-server.js";
-import { parseEpisodeInput } from "./contract.js";
+import {
+  parseEpisodeInput,
+  workflowAdmissionSchema,
+} from "./contract.js";
 import { createApiWorkflowAdmissionUseCase } from "./http-server.js";
 
 interface CursorValue {
@@ -530,6 +540,88 @@ export function createPostgresApiUseCases(input: {
           updatedAt: item.updatedAt,
         })),
         ...(page.nextCursor ? { nextCursor: page.nextCursor } : {}),
+      };
+    },
+    previewArtifactInvalidation: async (episodeId, input, context) => {
+      const episode = await repository.withWorkspaceTransaction(
+        context.workspaceId,
+        (transaction) =>
+          transaction.getEpisode(
+            context.workspaceId,
+            context.projectId,
+            episodeId
+          )
+      );
+      if (!episode) {
+        throw new ApplicationError("not_found", "Resource not found.", false);
+      }
+      const units = productionUnitSnapshotSchema
+        .array()
+        .min(1)
+        .parse(input.units);
+      const changes = z.array(productionUnitChangeSchema).min(1).parse(
+        input.changes
+      );
+      const preview = previewProductionUnitInvalidation({
+        units,
+        changes,
+        projectedAt: now().toISOString(),
+      });
+      const gateEvidenceUpdates = deriveGateEvidenceUpdates(preview);
+      return {
+        changedAddresses: preview.changedAddresses,
+        invalidatedUnits: preview.invalidatedUnits,
+        preservedUnits: preview.preservedUnits,
+        regenerationTargets: preview.regenerationTargets,
+        staleReviewReadiness: preview.staleReviewReadiness,
+        stalePublishReadiness: preview.stalePublishReadiness,
+        gateEvidenceUpdates,
+        projectedAt: preview.projectedAt,
+      };
+    },
+    regenerateProductionUnits: async (episodeId, input, context) => {
+      const episode = await repository.withWorkspaceTransaction(
+        context.workspaceId,
+        (transaction) =>
+          transaction.getEpisode(
+            context.workspaceId,
+            context.projectId,
+            episodeId
+          )
+      );
+      if (!episode) {
+        throw new ApplicationError("not_found", "Resource not found.", false);
+      }
+      const targets = z.array(productionUnitAddressSchema).min(1).parse(
+        input.targets
+      );
+      if (
+        targets.some(
+          (target) =>
+            target.kind === "review_readiness" ||
+            target.kind === "publish_readiness"
+        )
+      ) {
+        throw new ApplicationError(
+          "profile_input_invalid",
+          "Readiness units cannot be regenerated directly.",
+          false
+        );
+      }
+      const admission = workflowAdmissionSchema.parse({
+        template: "episode-production",
+        episodeRevision: episode.revision,
+        locales: ["en"],
+        variants: ["full"],
+        approvalMode: "required",
+        publicationMode: "none",
+      });
+      const admitted = await admit(admission, context);
+      return {
+        acceptedTargets: targets,
+        workflowRunId: admitted.workflowRunId,
+        jobId: admitted.jobId,
+        revision: admitted.revision,
       };
     },
     listWorkflowSteps: async (runId, context) => {

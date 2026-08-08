@@ -37,7 +37,13 @@ Validation: command-security unit test pass (8); domain/application/persistence 
 Notes: Membership/action grants, idempotency replay model, audit envelope, principal-directory migration registry
 
 ### YSAAS-005
-Status: completed (uncommitted)
-Commit: pending
+Status: completed
+Commit: 96270b5
 Validation: `workflow-portfolio.unit.test.ts` pass (6); `workflow-portfolio-repository.unit.test.ts` pass (2); `pnpm exec tsc -p packages/persistence` pass; `apps/api` typecheck pass excluding pre-existing `job-process` / `provider-free-worker-entry` migrate errors
 Notes: Portfolio filter contracts, recovery classifier, projector, persistence SQL source query + row mapper, `GET /v1/workspaces/{workspace}/workflow-portfolio` API/SDK route; resume/cancel/abandon actions reference existing workflow commands
+
+### YSAAS-006
+Status: in progress
+Commit: pending
+Validation: `artifact-invalidation.unit.test.ts` pass (4); domain typecheck pass
+Notes: Production-unit graph, invalidation preview, gate evidence; API preview + scoped regeneration routes; persistence-backed unit loading deferred (client supplies snapshots)

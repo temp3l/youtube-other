@@ -1,3 +1,4 @@
+import { artifactLineageSdkV1Operations } from "./modules/artifact-lineage-operations.js";
 import { artifactSdkV1Operations, publicationSdkV1Operations, reviewSdkV1Operations } from "./modules/artifact-review-publication-operations.js";
 import { contentSdkV1Operations } from "./modules/content-operations.js";
 import { platformSdkV1Operations } from "./modules/platform-operations.js";
@@ -9,6 +10,11 @@ export const SDK_V1_OPERATION_MODULES: readonly SdkV1OperationModule[] = [
   { id: "platform", owner: "platform", operations: platformSdkV1Operations },
   { id: "content", owner: "content", operations: contentSdkV1Operations },
   { id: "workflow", owner: "workflow", operations: workflowSdkV1Operations },
+  {
+    id: "artifact-lineage",
+    owner: "artifact",
+    operations: artifactLineageSdkV1Operations,
+  },
   {
     id: "artifact",
     owner: "artifact",
@@ -60,6 +66,7 @@ export const SDK_V1_OPERATIONS = mergeOperations(
 ) as typeof platformSdkV1Operations &
   typeof contentSdkV1Operations &
   typeof workflowSdkV1Operations &
+  typeof artifactLineageSdkV1Operations &
   typeof artifactSdkV1Operations &
   typeof reviewSdkV1Operations &
   typeof publicationSdkV1Operations;

@@ -268,6 +268,39 @@ export interface ApiUseCases {
     readonly items: readonly Record<string, unknown>[];
     readonly nextCursor?: string;
   }>;
+  previewArtifactInvalidation(
+    episodeId: string,
+    input: {
+      readonly units: readonly Record<string, unknown>[];
+      readonly changes: readonly Record<string, unknown>[];
+    },
+    context: Required<
+      Pick<ApiRequestContext, "workspaceId" | "projectId" | "requestId">
+    >
+  ): Promise<Record<string, unknown>>;
+  regenerateProductionUnits(
+    episodeId: string,
+    input: {
+      readonly targets: readonly Record<string, unknown>[];
+      readonly reason?: string;
+    },
+    context: Required<
+      Pick<
+        ApiRequestContext,
+        | "workspaceId"
+        | "projectId"
+        | "episodeId"
+        | "principal"
+        | "requestId"
+        | "idempotencyKey"
+      >
+    >
+  ): Promise<{
+    readonly acceptedTargets: readonly Record<string, unknown>[];
+    readonly workflowRunId: string;
+    readonly jobId: string;
+    readonly revision: number;
+  }>;
   listWorkflowSteps(
     runId: string,
     context: Required<
@@ -951,6 +984,18 @@ function requiredPermission(
     matched.tail === `episodes/${matched.episode}`
   )
     return "content.read";
+  if (
+    method === "POST" &&
+    matched.episode &&
+    matched.tail === `episodes/${matched.episode}/artifact-invalidation-preview`
+  )
+    return "content.read";
+  if (
+    method === "POST" &&
+    matched.episode &&
+    matched.tail === `episodes/${matched.episode}/production-units:regenerate`
+  )
+    return "content.write";
   if (method === "GET" && matched.tail === "assets") return "content.read";
   if (
     method === "GET" &&
@@ -1473,6 +1518,57 @@ export function createApiServer(
           etag: etag(result.revision),
           "x-request-id": requestIdValue,
         });
+      }
+      if (
+        request.method === "POST" &&
+        matched.episode &&
+        matched.tail === `episodes/${matched.episode}/artifact-invalidation-preview`
+      ) {
+        const result = await useCases.previewArtifactInvalidation(
+          matched.episode,
+          (await body(request)) as {
+            units: readonly Record<string, unknown>[];
+            changes: readonly Record<string, unknown>[];
+          },
+          projectContext
+        );
+        return json(response, 200, result, { "x-request-id": requestIdValue });
+      }
+      if (
+        request.method === "POST" &&
+        matched.episode &&
+        matched.tail === `episodes/${matched.episode}/production-units:regenerate`
+      ) {
+        const key = idempotencyKey(request);
+        if (!key)
+          throw new ApplicationError(
+            "precondition_required",
+            "Idempotency-Key is required.",
+            false
+          );
+        const result = await useCases.regenerateProductionUnits(
+          matched.episode,
+          (await body(request)) as {
+            targets: readonly Record<string, unknown>[];
+            reason?: string;
+          },
+          {
+            ...projectContext,
+            episodeId: matched.episode,
+            idempotencyKey: key,
+          }
+        );
+        return json(
+          response,
+          202,
+          result,
+          {
+            location: `/v1/workspaces/${matched.workspace}/projects/${matched.project}/jobs/${result.jobId}`,
+            "retry-after": "3",
+            etag: etag(result.revision),
+            "x-request-id": requestIdValue,
+          }
+        );
       }
       if (
         request.method === "POST" &&

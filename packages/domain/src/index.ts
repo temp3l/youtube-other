@@ -13,6 +13,9 @@ export * from "./command-security-contracts.js";
 export * from "./command-security.js";
 export * from "./workflow-portfolio-contracts.js";
 export * from "./workflow-portfolio-projector.js";
+export * from "./artifact-lineage-contracts.js";
+export * from "./production-unit-graph.js";
+export * from "./artifact-invalidation.js";
 
 const episodeIdPattern = /^[a-z0-9][a-z0-9-]*$/;
 const sceneIdPattern = /^scene-[0-9]{3}$/;

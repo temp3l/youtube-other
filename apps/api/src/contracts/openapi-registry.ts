@@ -1,4 +1,5 @@
 import type { OpenApiPathModule } from "./types.js";
+import { artifactLineageOpenApiPaths } from "./modules/artifact-lineage-paths.js";
 import { artifactReviewPublicationOpenApiPaths } from "./modules/artifact-review-publication-paths.js";
 import { contentOpenApiPaths } from "./modules/content-paths.js";
 import { platformOpenApiPaths } from "./modules/platform-paths.js";
@@ -9,6 +10,11 @@ export const OPENAPI_PATH_MODULES: readonly OpenApiPathModule[] = [
   { id: "platform", owner: "platform", paths: platformOpenApiPaths },
   { id: "content", owner: "content", paths: contentOpenApiPaths },
   { id: "workflow", owner: "workflow", paths: workflowOpenApiPaths },
+  {
+    id: "artifact-lineage",
+    owner: "artifact",
+    paths: artifactLineageOpenApiPaths,
+  },
   {
     id: "artifact-review-publication",
     owner: "artifact",
