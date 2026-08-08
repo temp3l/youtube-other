@@ -11,21 +11,71 @@ import {
 
 describe("runtime config", () => {
   it("keeps ElevenLabs disabled by default and validates enabled credentials", async () => {
-    const disabled = await loadRuntimeConfig();
-    expect(disabled.elevenLabsFeatureEnabled).toBe(false);
-    expect(disabled.elevenLabsRequestTimeoutMs).toBe(60_000);
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "mediaforge-elevenlabs-"));
+    const previousCwd = process.cwd();
+    process.chdir(dir);
+    try {
+      const disabled = await loadRuntimeConfig();
+      expect(disabled.elevenLabsFeatureEnabled).toBe(false);
+      expect(disabled.elevenLabsRequestTimeoutMs).toBe(60_000);
+      expect(disabled.ttsProvider).not.toBe("elevenlabs");
 
-    await expect(
-      loadRuntimeConfig({ elevenLabsFeatureEnabled: true })
-    ).rejects.toThrow("ELEVENLABS_API_KEY is required");
+      await expect(
+        loadRuntimeConfig({ elevenLabsFeatureEnabled: true })
+      ).rejects.toThrow("ELEVENLABS_API_KEY is required");
 
-    const enabled = await loadRuntimeConfig({
-      elevenLabsFeatureEnabled: true,
-      elevenLabsApiKey: "test-only-key",
-      elevenLabsRequestTimeoutMs: 12_345,
-    });
-    expect(enabled.elevenLabsFeatureEnabled).toBe(true);
-    expect(enabled.elevenLabsRequestTimeoutMs).toBe(12_345);
+      const enabled = await loadRuntimeConfig({
+        elevenLabsFeatureEnabled: true,
+        elevenLabsApiKey: "test-only-key",
+        elevenLabsRequestTimeoutMs: 12_345,
+      });
+      expect(enabled.elevenLabsFeatureEnabled).toBe(true);
+      expect(enabled.elevenLabsRequestTimeoutMs).toBe(12_345);
+    } finally {
+      process.chdir(previousCwd);
+    }
+  });
+
+  it("does not select ElevenLabs when only the API key is present", async () => {
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "mediaforge-elevenlabs-"));
+    const previousCwd = process.cwd();
+    process.chdir(dir);
+    try {
+      const config = await loadRuntimeConfig({
+        elevenLabsApiKey: "test-only-key",
+        openAiCompatibleApiKey: "openai-key",
+      });
+      expect(config.ttsProvider).toBe("openai-compatible");
+    } finally {
+      process.chdir(previousCwd);
+    }
+  });
+
+  it("requires an API key when ElevenLabs is explicitly selected", async () => {
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "mediaforge-elevenlabs-"));
+    const previousCwd = process.cwd();
+    process.chdir(dir);
+    try {
+      await expect(
+        loadRuntimeConfig({ ttsProvider: "elevenlabs" })
+      ).rejects.toThrow(
+        "ElevenLabs TTS was selected, but ELEVENLABS_API_KEY is not configured."
+      );
+
+      const config = await loadRuntimeConfig({
+        ttsProvider: "elevenlabs",
+        elevenLabsApiKey: "test-only-key",
+        historyChannelVoiceId: "history-voice",
+        elevenLabsModelId: "eleven_flash_v2_5",
+        ttsVoiceId: "override-voice",
+      });
+      expect(config.ttsProvider).toBe("elevenlabs");
+      expect(config.historyChannelVoiceId).toBe("history-voice");
+      expect(config.elevenLabsModelId).toBe("eleven_flash_v2_5");
+      expect(config.ttsVoiceId).toBe("override-voice");
+    } finally {
+      process.chdir(previousCwd);
+    }
   });
 
   it("keeps the workflow PostgreSQL URL separate from the legacy SQLite path", async () => {

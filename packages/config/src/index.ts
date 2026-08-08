@@ -535,7 +535,7 @@ const configSchema = z.object({
   logLevel: z.enum(["fatal", "error", "warn", "info", "debug", "trace"]),
   defaultAspectRatio: z.enum(["16:9", "9:16"]),
   openArtBatchSize: z.number().int().positive(),
-  ttsProvider: z.enum(["mock", "openai-compatible"]),
+  ttsProvider: z.enum(["mock", "openai-compatible", "elevenlabs"]),
   transcriptionProvider: z.enum(["mock", "whisper.cpp", "openai-compatible"]),
   imageProvider: z.enum(["mock", "placeholder"]),
   textProvider: z.enum(["mock", "openai-compatible"]),
@@ -637,6 +637,9 @@ const configSchema = z.object({
   elevenLabsApiKey: z.string().optional(),
   elevenLabsBaseUrl: z.string().url().optional(),
   elevenLabsRequestTimeoutMs: z.number().int().positive(),
+  elevenLabsModelId: z.string().optional(),
+  historyChannelVoiceId: z.string().optional(),
+  ttsVoiceId: z.string().optional(),
   speechVoicePreset: z.enum(["slow", "fast", "very-fast"]).optional(),
   narrationPipelineMode: z.enum(["legacy", "shadow", "new"]),
   scriptLanguage: z
@@ -843,7 +846,9 @@ const envSchema = z.object({
     .optional(),
   MEDIAFORGE_DEFAULT_ASPECT_RATIO: z.enum(["16:9", "9:16"]).optional(),
   MEDIAFORGE_OPENART_BATCH_SIZE: z.coerce.number().int().positive().optional(),
-  MEDIAFORGE_TTS_PROVIDER: z.enum(["mock", "openai-compatible"]).optional(),
+  MEDIAFORGE_TTS_PROVIDER: z
+    .enum(["mock", "openai-compatible", "elevenlabs"])
+    .optional(),
   MEDIAFORGE_TRANSCRIPTION_PROVIDER: z
     .enum(["mock", "whisper.cpp", "openai-compatible"])
     .optional(),
@@ -1061,6 +1066,9 @@ const envSchema = z.object({
   ELEVENLABS_API_KEY: z.string().optional(),
   ELEVENLABS_BASE_URL: z.string().url().optional(),
   ELEVENLABS_REQUEST_TIMEOUT_MS: z.coerce.number().int().positive().optional(),
+  ELEVENLABS_MODEL_ID: z.string().optional(),
+  HISTORY_CHANNEL_VOICE_ID: z.string().optional(),
+  MEDIAFORGE_TTS_VOICE_ID: z.string().optional(),
   MEDIAFORGE_SPEECH_VOICE_PRESET: z
     .enum(["slow", "fast", "very-fast"])
     .optional(),
@@ -1680,6 +1688,18 @@ export async function loadRuntimeConfig(
       overrides.elevenLabsRequestTimeoutMs ??
       env.ELEVENLABS_REQUEST_TIMEOUT_MS ??
       60_000,
+    elevenLabsModelId:
+      overrides.elevenLabsModelId ??
+      episodeOverrides.elevenLabsModelId ??
+      env.ELEVENLABS_MODEL_ID,
+    historyChannelVoiceId:
+      overrides.historyChannelVoiceId ??
+      episodeOverrides.historyChannelVoiceId ??
+      env.HISTORY_CHANNEL_VOICE_ID,
+    ttsVoiceId:
+      overrides.ttsVoiceId ??
+      episodeOverrides.ttsVoiceId ??
+      env.MEDIAFORGE_TTS_VOICE_ID,
     speechVoicePreset:
       overrides.speechVoicePreset ??
       episodeOverrides.speechVoicePreset ??
@@ -1883,9 +1903,14 @@ export async function loadRuntimeConfig(
     ),
   });
   validateOpenAiModelConfiguration(config);
-  if (config.elevenLabsFeatureEnabled && !config.elevenLabsApiKey) {
+  if (config.elevenLabsFeatureEnabled && !config.elevenLabsApiKey?.trim()) {
     throw new Error(
       "ELEVENLABS_API_KEY is required when ELEVENLABS_FEATURE_ENABLED is true."
+    );
+  }
+  if (config.ttsProvider === "elevenlabs" && !config.elevenLabsApiKey?.trim()) {
+    throw new Error(
+      "ElevenLabs TTS was selected, but ELEVENLABS_API_KEY is not configured."
     );
   }
   return config;

@@ -101,6 +101,11 @@ import {
   NarrationPipeline,
   createProviderNeutralLegacyMockSpeechProvider,
   createProviderNeutralLegacyOpenAiSpeechProvider,
+  createProviderNeutralLegacyElevenLabsSpeechProvider,
+  assertElevenLabsApiKeyConfigured,
+  resolveEpisodeGenre,
+  resolveTtsConfig,
+  type GenreTtsGenre,
   buildNarrationBatchStatus,
   buildNarrationTargetStatus,
   buildNarrationTargetStatusFromError,
@@ -257,7 +262,8 @@ interface CliOptions {
   dryRun?: boolean;
   workspace?: string;
   db?: string;
-  ttsProvider?: "mock" | "openai-compatible";
+  ttsProvider?: "mock" | "openai-compatible" | "elevenlabs";
+  ttsVoiceId?: string;
   openAiBaseUrl?: string;
   openAiApiKey?: string;
   openAiSpeechModel?: string;
@@ -363,6 +369,9 @@ function configOverridesFromCli(options: CliOptions): RuntimeConfigOverrides {
   }
   if (options.ttsProvider) {
     overrides.ttsProvider = options.ttsProvider;
+  }
+  if (options.ttsVoiceId) {
+    overrides.ttsVoiceId = options.ttsVoiceId;
   }
   if (options.openAiBaseUrl) {
     overrides.openAiCompatibleBaseUrl = options.openAiBaseUrl;
@@ -898,11 +907,48 @@ function balanceScriptChunksForScenes(
   return packed.length > 0 ? packed : normalized;
 }
 
-function createSpeechProvider(config: RuntimeConfig): SpeechProvider {
+function createSpeechProvider(
+  config: RuntimeConfig,
+  context: { readonly genre?: GenreTtsGenre } = {}
+): SpeechProvider {
   const speechSettings = loadSpeechVoiceSettings({
     ...(config.speechVoicePreset ? { preset: config.speechVoicePreset } : {}),
     ...(config.scriptLanguage ? { language: config.scriptLanguage } : {}),
   });
+  if (config.ttsProvider === "elevenlabs") {
+    const genre = context.genre ?? "dark-truth";
+    assertElevenLabsApiKeyConfigured({
+      genre,
+      apiKey: config.elevenLabsApiKey,
+    });
+    const resolved = resolveTtsConfig({
+      genre,
+      provider: "elevenlabs",
+      overrides: {
+        voiceId: config.ttsVoiceId,
+        modelId: config.elevenLabsModelId,
+      },
+      environment: {
+        historyChannelVoiceId: config.historyChannelVoiceId,
+        elevenLabsModelId: config.elevenLabsModelId,
+      },
+    });
+    if (resolved.provider !== "elevenlabs") {
+      throw new Error("Expected ElevenLabs TTS configuration.");
+    }
+    return createProviderNeutralLegacyElevenLabsSpeechProvider({
+      apiKey: config.elevenLabsApiKey!,
+      voiceId: resolved.voiceId,
+      modelId: resolved.modelId,
+      ...(config.elevenLabsBaseUrl
+        ? { baseUrl: config.elevenLabsBaseUrl }
+        : {}),
+      requestTimeoutMs: config.elevenLabsRequestTimeoutMs,
+      ...(speechSettings.speed !== undefined
+        ? { speed: speechSettings.speed }
+        : {}),
+    });
+  }
   if (
     config.ttsProvider !== "openai-compatible" ||
     !config.openAiCompatibleApiKey
@@ -973,7 +1019,8 @@ function createTranscriptionProvider(
 
 async function loadCliRuntime(
   options: CliOptions,
-  episodeDir?: string
+  episodeDir?: string,
+  speechContext: { readonly genre?: GenreTtsGenre } = {}
 ): Promise<CliRuntime> {
   const overrides = compactConfigOverrides(configOverridesFromCli(options));
   const episodeConfig = episodeDir ? await loadEpisodeConfig(episodeDir) : null;
@@ -994,7 +1041,7 @@ async function loadCliRuntime(
     config,
     db,
     logger,
-    speech: createSpeechProvider(config),
+    speech: createSpeechProvider(config, speechContext),
     transcription: createTranscriptionProvider(config),
     renderer,
   };
@@ -1096,6 +1143,7 @@ async function commandDoctor(options: CliOptions): Promise<void> {
   const needsOpenAiCredentials =
     config.textProvider === "openai-compatible" ||
     config.ttsProvider === "openai-compatible";
+  const needsElevenLabsCredentials = config.ttsProvider === "elevenlabs";
   checks.push(
     describeDoctorItem(
       "OpenAI API key",
@@ -1104,6 +1152,16 @@ async function commandDoctor(options: CliOptions): Promise<void> {
         ? "Required for openai-compatible providers"
         : "Not required for the current configuration",
       needsOpenAiCredentials ? "credential" : "optional"
+    )
+  );
+  checks.push(
+    describeDoctorItem(
+      "ElevenLabs API key",
+      !needsElevenLabsCredentials || Boolean(config.elevenLabsApiKey?.trim()),
+      needsElevenLabsCredentials
+        ? "Required when MEDIAFORGE_TTS_PROVIDER=elevenlabs"
+        : "Not required unless ElevenLabs is explicitly selected",
+      needsElevenLabsCredentials ? "credential" : "optional"
     )
   );
   const workspace = config.workspaceDir;
@@ -1986,13 +2044,39 @@ async function commandAudioGenerate(
     });
     return;
   }
-  const runtime = await loadCliRuntime(options, episodeDir);
+  const runtime = await loadCliRuntime(options, episodeDir, {
+    genre: resolveEpisodeGenre(manifest?.sourceMetadata) ?? "dark-truth",
+  });
   const speechVoicePreset: SpeechVoicePreset =
     config.speechVoicePreset ?? episodeConfig?.speechVoicePreset ?? "fast";
   const speechSettings = loadSpeechVoiceSettings({
     preset: speechVoicePreset,
     ...(language ? { language } : {}),
     artifactType: "full",
+  });
+  const episodeGenre =
+    resolveEpisodeGenre(manifest?.sourceMetadata) ?? "dark-truth";
+  const resolvedTts = resolveTtsConfig({
+    genre: episodeGenre,
+    provider: config.ttsProvider,
+    overrides: {
+      voiceId: config.ttsVoiceId,
+      modelId: config.elevenLabsModelId,
+    },
+    environment: {
+      historyChannelVoiceId: config.historyChannelVoiceId,
+      elevenLabsModelId: config.elevenLabsModelId,
+    },
+    openAi: {
+      model:
+        config.openAiSpeechModel ??
+        config.openAiCompatibleModel ??
+        "gpt-4o-mini-tts",
+      voice:
+        config.openAiSpeechVoice ??
+        config.openAiCompatibleTtsVoice ??
+        DEFAULT_SPEECH_VOICE,
+    },
   });
   await ensureDir(segmentsDir);
   await cleanupStaleAudioTempFiles(audioDir, segmentsDir);
@@ -2003,13 +2087,13 @@ async function commandAudioGenerate(
     Math.max(1, chunks.length)
   );
   const model =
-    config.openAiSpeechModel ??
-    config.openAiCompatibleModel ??
-    "gpt-4o-mini-tts";
+    resolvedTts.provider === "elevenlabs"
+      ? resolvedTts.modelId
+      : resolvedTts.model;
   const voice =
-    config.openAiSpeechVoice ??
-    config.openAiCompatibleTtsVoice ??
-    DEFAULT_SPEECH_VOICE;
+    resolvedTts.provider === "elevenlabs"
+      ? resolvedTts.voiceId
+      : resolvedTts.voice;
   const audioInstruction = buildAudioInstructionArtifact({
     narration: narrationDependency,
     speechConfig: {
@@ -2173,6 +2257,14 @@ async function commandAudioGenerate(
       estimatedWpm: estimatedWpm ?? null,
       generatedAt,
     });
+    const ttsProviderMetadata =
+      resolvedTts.provider === "elevenlabs"
+        ? {
+            provider: "elevenlabs" as const,
+            voiceId: resolvedTts.voiceId,
+            modelId: resolvedTts.modelId,
+          }
+        : { provider: resolvedTts.provider };
     const ttsGenerationRecord: TtsGenerationRecord = {
       schemaVersion: "tts-generation-record-v1",
       owner: "audio",
@@ -2189,6 +2281,7 @@ async function commandAudioGenerate(
       segmentCount: chunks.length,
       model,
       voice,
+      ...ttsProviderMetadata,
       ...(speechSettings.speed !== undefined
         ? { speed: speechSettings.speed }
         : {}),
@@ -2236,6 +2329,13 @@ async function commandAudioGenerate(
       segmentCount: 0,
       model,
       voice,
+      ...(resolvedTts.provider === "elevenlabs"
+        ? {
+            provider: "elevenlabs" as const,
+            voiceId: resolvedTts.voiceId,
+            modelId: resolvedTts.modelId,
+          }
+        : { provider: resolvedTts.provider }),
       ...(speechSettings.speed !== undefined
         ? { speed: speechSettings.speed }
         : {}),
@@ -4595,7 +4695,11 @@ function addGlobalOptions(command: Command): Command {
     .option("--dry-run", "preview actions without writing")
     .option(
       "--tts-provider <provider>",
-      "mock or openai-compatible; narration generation requires openai-compatible"
+      "mock, openai-compatible, or elevenlabs; narration requires a configured paid provider"
+    )
+    .option(
+      "--tts-voice-id <voiceId>",
+      "explicit ElevenLabs voice override for the active genre"
     )
     .option("--openai-base-url <url>", "OpenAI API base URL")
     .option("--openai-api-key <key>", "OpenAI API key")

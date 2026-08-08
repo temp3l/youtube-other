@@ -42,4 +42,24 @@ describe("narration TTS guard", () => {
       })
     ).not.toThrow();
   });
+
+  it("accepts elevenlabs narration with an API key", () => {
+    expect(() =>
+      assertNarrationTtsConfigured({
+        ttsProvider: "elevenlabs",
+        openAiCompatibleApiKey: undefined,
+        elevenLabsApiKey: "xi-test",
+      })
+    ).not.toThrow();
+  });
+
+  it("rejects elevenlabs narration without an API key", () => {
+    expect(() =>
+      assertNarrationTtsConfigured({
+        ttsProvider: "elevenlabs",
+        openAiCompatibleApiKey: undefined,
+        elevenLabsApiKey: "",
+      })
+    ).toThrow(/ELEVENLABS_API_KEY is not configured/u);
+  });
 });

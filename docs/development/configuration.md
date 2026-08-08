@@ -34,6 +34,8 @@ Configuration ownership lives in `@mediaforge/config`.
   `MEDIAFORGE_WHISPER_*`, `WHISPER_WORD_TIMESTAMPS`, and transcript segmentation settings such as `TRANSCRIPT_MIN_SEGMENT_SECONDS`
 - Speech voices:
   `MEDIAFORGE_OPENAI_SPEECH_MODEL`, `MEDIAFORGE_OPENAI_SPEECH_VOICE`, `MEDIAFORGE_SPEECH_VOICE_PRESET`, `MEDIAFORGE_SCRIPT_LANGUAGE`
+- ElevenLabs speech (explicit opt-in only):
+  `MEDIAFORGE_TTS_PROVIDER=elevenlabs`, `ELEVENLABS_API_KEY`, `ELEVENLABS_MODEL_ID` (default `eleven_flash_v2_5`), `HISTORY_CHANNEL_VOICE_ID`, `MEDIAFORGE_TTS_VOICE_ID` / `--tts-voice-id`. Credentials alone do not enable ElevenLabs. See [ElevenLabs speech setup](elevenlabs-speech-setup.md).
 - Educational mathematics speech (non-secret):
   `MEDIAFORGE_MATH_SPEECH_PROFILE=education-natural-teacher`,
   `MEDIAFORGE_MATH_SPEECH_RATE_WPM=150`, and `MEDIAFORGE_MATH_SPEECH_CANDIDATES=1`.
