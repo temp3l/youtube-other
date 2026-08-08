@@ -50,6 +50,6 @@ Notes: Production-unit graph, invalidation preview, gate evidence; API preview +
 
 ### YSAAS-010
 Status: completed
-Commit: pending
+Commit: cfaffb0
 Validation: `usage-quota.unit.test.ts` pass (10); domain/persistence emit pass; `apps/api` typecheck pass for new quota/health routes
 Notes: Usage dimensions, reservation lifecycle, estimate projection with cache/reuse, provider health resolver; enriched quota dimensions, usage filters, `GET /v1/workspaces/{workspace}/provider-health`
