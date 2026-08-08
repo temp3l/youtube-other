@@ -2,6 +2,7 @@ import os from "node:os";
 
 import {
   createCanonicalDurableWorkflowCommandExecutor,
+  createProviderFreeProfileExecutor,
   DurableWorkflowJobHandler,
   DurableJobWorker,
   type CanonicalDurableWorkflowExecutor,
@@ -119,6 +120,8 @@ export async function runDurableJobProcess(input: {
   readonly pollIntervalMs: number;
   readonly sleep?: (milliseconds: number, signal: AbortSignal) => Promise<void>;
   readonly onDispatch?: (result: DurableJobDispatchResult) => void;
+  /** Workers normally run after a controlled migration release. */
+  readonly migrate?: boolean;
 }): Promise<void> {
   const sleep = input.sleep ?? waitForPoll;
   while (!input.signal.aborted) {
@@ -152,7 +155,7 @@ export async function startPostgresDurableJobProcess(input: {
   );
   const repository = new PostgresWorkflowRepository(input.pool);
   try {
-    await repository.migrate();
+    if (input.migrate ?? true) await repository.migrate();
     const worker = new DurableJobWorker(
       new PostgresDurableJobRepository(repository),
       input.handler,
@@ -212,6 +215,19 @@ export function createPostgresEpisodeProductionJobHandler(input: {
     executor: createCanonicalDurableWorkflowCommandExecutor([
       { command: "episode-production", execute: input.execute },
     ]),
+  });
+}
+
+/**
+ * Internal-pilot composition for the pinned profile fixtures. It deliberately
+ * has no provider, credential, CLI, or publication dependency.
+ */
+export function createProviderFreeEpisodeProductionJobHandler(input: {
+  readonly pool: PostgresPool;
+}): DurableWorkflowJobHandler {
+  return createPostgresDurableWorkflowJobHandler({
+    pool: input.pool,
+    executor: createProviderFreeProfileExecutor(),
   });
 }
 

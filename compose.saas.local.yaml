@@ -1,0 +1,33 @@
+name: mediaforge-saas-local
+
+services:
+  provider-free-worker:
+    image: node:22-alpine
+    working_dir: /workspace
+    volumes:
+      - ./:/workspace:ro
+      - saas-local-pnpm-store:/pnpm-store
+    environment:
+      MEDIAFORGE_WORKFLOW_DATABASE_URL: postgresql://mediaforge_app:mediaforge_app_local@postgres:5432/mediaforge
+      MEDIAFORGE_JOB_WORKSPACE_ID: ${MEDIAFORGE_LOCAL_WORKSPACE_ID:-workspace-local}
+      MEDIAFORGE_JOB_WORKER_ID: provider-free-worker-local
+      MEDIAFORGE_JOB_POLL_INTERVAL_MS: "250"
+      MEDIAFORGE_JOB_LEASE_SECONDS: "30"
+    # The controlled release step builds and migrates before this least-privilege role starts.
+    command: ["node", "apps/api/dist/provider-free-worker-entry.js"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      postgres-bootstrap:
+        condition: service_completed_successfully
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    restart: "no"
+
+volumes:
+  saas-local-pnpm-store:

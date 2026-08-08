@@ -19,9 +19,9 @@ const execution = {
 };
 
 describe("relational workflow state conformance", () => {
-  it("accepts the canonical history project profile during fresh and existing-schema migration", () => {
+  it("accepts History and strategic reinvention project profiles during fresh and existing-schema migration", () => {
     const profileCheck =
-      "profile IN ('dark_truth', 'mathematics_education', 'dynamic_generic', 'history')";
+      "profile IN ('dark_truth', 'mathematics_education', 'dynamic_generic', 'history', 'strategic_reinvention')";
 
     expect(POSTGRES_WORKFLOW_STATE_MIGRATION).toContain(profileCheck);
     expect(POSTGRES_WORKFLOW_STATE_MIGRATION.split(profileCheck)).toHaveLength(

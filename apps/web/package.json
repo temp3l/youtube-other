@@ -5,9 +5,11 @@
   "type": "module",
   "scripts": {
     "build": "tsc -p tsconfig.json",
+    "demo": "node dist/demo-entry.js",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@mediaforge/api-sdk": "workspace:*",
     "@mediaforge/domain": "workspace:*",
     "@mediaforge/shared": "workspace:*"
   }

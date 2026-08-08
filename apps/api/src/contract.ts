@@ -1,7 +1,10 @@
 import { z } from "zod";
 
 import { ApplicationError } from "@mediaforge/application";
-import { budgetTierSchema, dynamicGenreOverrideSchema } from "@mediaforge/dynamic-genre";
+import {
+  budgetTierSchema,
+  dynamicGenreOverrideSchema,
+} from "@mediaforge/dynamic-genre";
 
 const opaqueId = z
   .string()
@@ -60,33 +63,112 @@ const historyContentSchema = z
     ]),
     format: z.enum(["short", "standard", "long"]),
     audienceLevel: z.enum(["general", "enthusiast", "academic-lite"]),
-    period: z.enum([
-      "prehistory",
-      "ancient",
-      "late antiquity",
-      "medieval",
-      "early modern",
-      "industrial age",
-      "modern",
-      "contemporary history",
-      "cross-period",
-    ]).optional(),
+    period: z
+      .enum([
+        "prehistory",
+        "ancient",
+        "late antiquity",
+        "medieval",
+        "early modern",
+        "industrial age",
+        "modern",
+        "contemporary history",
+        "cross-period",
+      ])
+      .optional(),
+  })
+  .strict();
+const strategicReinventionContentSchema = z
+  .object({
+    type: z.literal("strategic_reinvention"),
+    version: z.literal("1"),
+    creatorProfileId: z.literal("veronica-benini"),
+    episodeMode: z.enum([
+      "story-to-strategy",
+      "tactical-lesson",
+      "position-essay",
+      "myth-reality",
+      "decision-framework",
+      "case-diagnosis",
+      "q-and-a",
+      "guided-exercise",
+    ]),
+    canonicalLocale: z.literal("it"),
+    sourceAssetIds: z.array(opaqueId).min(1).max(100),
   })
   .strict();
 
 export const projectInputSchema = z
   .object({
     name: z.string().trim().min(1).max(160),
-    profile: z.enum(["dark_truth", "mathematics_education", "dynamic_generic", "history"]),
+    profile: z.enum([
+      "dark_truth",
+      "mathematics_education",
+      "dynamic_generic",
+      "history",
+      "strategic_reinvention",
+    ]),
   })
   .strict();
 const dynamicGenericInputSchema = z.discriminatedUnion("kind", [
-  z.object({ kind: z.literal("completed_story"), locale: z.string().regex(/^[a-z]{2}(?:-[A-Z]{2})?$/u), canonicalLanguage: z.string().regex(/^[a-z]{2}(?:-[A-Z]{2})?$/u).optional(), title: z.string().trim().min(1).max(300), body: z.string().trim().min(1).max(120_000) }).strict(),
-  z.object({ kind: z.literal("structured_outline"), locale: z.string().regex(/^[a-z]{2}(?:-[A-Z]{2})?$/u), canonicalLanguage: z.string().regex(/^[a-z]{2}(?:-[A-Z]{2})?$/u).optional(), title: z.string().trim().min(1).max(300), sections: z.array(z.object({ id: opaqueId, heading: z.string().trim().max(200).optional(), body: z.string().trim().min(1).max(30_000) }).strict()).min(1).max(200) }).strict().superRefine((value, context) => {
-    if (value.sections.reduce((total, section) => total + section.body.length, 0) > 120_000) context.addIssue({ code: "custom", path: ["sections"], message: "Outline exceeds 120000 characters." });
-  }),
+  z
+    .object({
+      kind: z.literal("completed_story"),
+      locale: z.string().regex(/^[a-z]{2}(?:-[A-Z]{2})?$/u),
+      canonicalLanguage: z
+        .string()
+        .regex(/^[a-z]{2}(?:-[A-Z]{2})?$/u)
+        .optional(),
+      title: z.string().trim().min(1).max(300),
+      body: z.string().trim().min(1).max(120_000),
+    })
+    .strict(),
+  z
+    .object({
+      kind: z.literal("structured_outline"),
+      locale: z.string().regex(/^[a-z]{2}(?:-[A-Z]{2})?$/u),
+      canonicalLanguage: z
+        .string()
+        .regex(/^[a-z]{2}(?:-[A-Z]{2})?$/u)
+        .optional(),
+      title: z.string().trim().min(1).max(300),
+      sections: z
+        .array(
+          z
+            .object({
+              id: opaqueId,
+              heading: z.string().trim().max(200).optional(),
+              body: z.string().trim().min(1).max(30_000),
+            })
+            .strict()
+        )
+        .min(1)
+        .max(200),
+    })
+    .strict()
+    .superRefine((value, context) => {
+      if (
+        value.sections.reduce(
+          (total, section) => total + section.body.length,
+          0
+        ) > 120_000
+      )
+        context.addIssue({
+          code: "custom",
+          path: ["sections"],
+          message: "Outline exceeds 120000 characters.",
+        });
+    }),
 ]);
-export const dynamicGenericContentSchema = z.object({ type: z.literal("dynamic_generic"), version: z.literal("1"), input: dynamicGenericInputSchema, budgetTier: budgetTierSchema, overrides: dynamicGenreOverrideSchema.optional() }).strict();
+export const dynamicGenericContentSchema = z
+  .object({
+    type: z.literal("dynamic_generic"),
+    version: z.literal("1"),
+    input: dynamicGenericInputSchema,
+    budgetTier: budgetTierSchema,
+    overrides: dynamicGenreOverrideSchema.optional(),
+  })
+  .strict();
 export const episodeInputSchema = z
   .object({
     content: z.discriminatedUnion("type", [
@@ -101,6 +183,7 @@ export const episodeInputSchema = z
         .strict(),
       mathematicsEducationContentSchema,
       historyContentSchema,
+      strategicReinventionContentSchema,
       dynamicGenericContentSchema,
     ]),
   })
@@ -126,7 +209,11 @@ export function parseEpisodeInput(value: unknown): EpisodeInput {
       [...new Set(parsed.error.issues.map((issue) => issue.path.join(".")))]
     );
   }
-  if (content && typeof content === "object" && Reflect.get(content, "type") === "history") {
+  if (
+    content &&
+    typeof content === "object" &&
+    Reflect.get(content, "type") === "history"
+  ) {
     throw new ApplicationError(
       "profile_input_invalid",
       "History episode input must contain a bounded topic and supported documentary selections.",
@@ -134,8 +221,29 @@ export function parseEpisodeInput(value: unknown): EpisodeInput {
       [...new Set(parsed.error.issues.map((issue) => issue.path.join(".")))]
     );
   }
-  if (content && typeof content === "object" && Reflect.get(content, "type") === "dynamic_generic") {
-    throw new ApplicationError("profile_input_invalid", "Dynamic generic episode input must contain only bounded semantic content and overrides.", false, [...new Set(parsed.error.issues.map((issue) => issue.path.join(".")))]);
+  if (
+    content &&
+    typeof content === "object" &&
+    Reflect.get(content, "type") === "strategic_reinvention"
+  ) {
+    throw new ApplicationError(
+      "profile_input_invalid",
+      "Strategic reinvention input must reference Veronica Benini source assets and the canonical Italian profile.",
+      false,
+      [...new Set(parsed.error.issues.map((issue) => issue.path.join(".")))]
+    );
+  }
+  if (
+    content &&
+    typeof content === "object" &&
+    Reflect.get(content, "type") === "dynamic_generic"
+  ) {
+    throw new ApplicationError(
+      "profile_input_invalid",
+      "Dynamic generic episode input must contain only bounded semantic content and overrides.",
+      false,
+      [...new Set(parsed.error.issues.map((issue) => issue.path.join(".")))]
+    );
   }
   throw parsed.error;
 }
@@ -332,6 +440,11 @@ export const openApiDocument = {
       },
     },
     "/v1/workspaces/{workspace}/projects": {
+      get: {
+        operationId: "listProjects", description: "Lists workspace projects with a signed cursor. Requires `content.read`.",
+        parameters: [...workspaceParameters, parameter("PageSize"), parameter("PageAfter")],
+        responses: { "200": { description: "Project page", headers: { "x-request-id": responseHeader("RequestId") }, content: json("ProjectPage") }, "400": response("BadRequest"), ...authenticatedErrors },
+      },
       post: {
         operationId: "createProject",
         description: "Requires the `content.write` workspace permission.",
@@ -353,6 +466,11 @@ export const openApiDocument = {
       },
     },
     "/v1/workspaces/{workspace}/projects/{project}/episodes": {
+      get: {
+        operationId: "listEpisodes", description: "Lists project episodes with a signed cursor. Requires `content.read`.",
+        parameters: [...projectParameters, parameter("PageSize"), parameter("PageAfter")],
+        responses: { "200": { description: "Episode page", headers: { "x-request-id": responseHeader("RequestId") }, content: json("EpisodePage") }, "400": response("BadRequest"), ...authenticatedErrors },
+      },
       post: {
         operationId: "createEpisode",
         description: "Requires the `content.write` workspace permission.",
@@ -572,6 +690,20 @@ export const openApiDocument = {
         },
       },
     },
+    "/v1/workspaces/{workspace}/projects/{project}/assets": {
+      get: {
+        operationId: "listAssets", description: "Lists project asset metadata with a signed cursor. Requires `content.read`.",
+        parameters: [...projectParameters, parameter("PageSize"), parameter("PageAfter")],
+        responses: { "200": { description: "Asset page", headers: { "x-request-id": responseHeader("RequestId") }, content: json("AssetPage") }, "400": response("BadRequest"), ...authenticatedErrors },
+      },
+    },
+    "/v1/workspaces/{workspace}/projects/{project}/approval-challenges/{challenge}": {
+      get: {
+        operationId: "getApprovalChallenge", description: "Returns the exact revision and hash-bound approval challenge. Requires `approval.decide`.",
+        parameters: [...projectParameters, parameter("ApprovalChallengeId")],
+        responses: { "200": { description: "Approval challenge", headers: { "x-request-id": responseHeader("RequestId") }, content: json("ApprovalChallenge") }, ...authenticatedErrors, "404": response("NotFound") },
+      },
+    },
     "/v1/workspaces/{workspace}/projects/{project}/validations": {
       get: {
         operationId: "listValidations",
@@ -688,7 +820,7 @@ export const openApiDocument = {
         responses: {
           "200": {
             description:
-              "Safe estimate; provider credentials and narration are excluded.",
+              "Safe estimate; provider authentication material and narration are excluded.",
             headers: { "x-request-id": responseHeader("RequestId") },
             content: json("SpeechEstimate"),
           },
@@ -799,7 +931,7 @@ export const openApiDocument = {
       post: {
         operationId: "createSpeechProfile",
         description:
-          "Creates a logical voice profile; provider credentials are never accepted. Requires the `content.write` workspace permission.",
+          "Creates a logical voice profile; provider authentication material is never accepted. Requires the `content.write` workspace permission.",
         parameters: workspaceParameters,
         requestBody: { required: true, content: json("SpeechProfileInput") },
         responses: {
@@ -1086,6 +1218,12 @@ export const openApiDocument = {
       },
       ApprovalId: {
         name: "approval",
+        in: "path",
+        required: true,
+        schema: schema("OpaqueId"),
+      },
+      ApprovalChallengeId: {
+        name: "challenge",
         in: "path",
         required: true,
         schema: schema("OpaqueId"),
@@ -1445,7 +1583,13 @@ export const openApiDocument = {
           name: { type: "string", minLength: 1, maxLength: 160 },
           profile: {
             type: "string",
-            enum: ["dark_truth", "mathematics_education", "dynamic_generic", "history"],
+            enum: [
+              "dark_truth",
+              "mathematics_education",
+              "dynamic_generic",
+              "history",
+              "strategic_reinvention",
+            ],
           },
         },
       },
@@ -1454,6 +1598,14 @@ export const openApiDocument = {
         additionalProperties: false,
         required: ["id", "revision"],
         properties: { id: schema("OpaqueId"), revision: schema("Revision") },
+      },
+      ProjectPage: {
+        type: "object", additionalProperties: false, required: ["items"],
+        properties: { items: { type: "array", items: schema("ProjectSummary") }, nextAfter: { type: "string", minLength: 1, maxLength: 4096 } },
+      },
+      ProjectSummary: {
+        type: "object", additionalProperties: false, required: ["id", "name", "profile", "revision", "createdAt", "updatedAt"],
+        properties: { id: schema("OpaqueId"), name: { type: "string", minLength: 1, maxLength: 160 }, profile: { type: "string", enum: ["dark_truth", "mathematics_education", "dynamic_generic", "history", "strategic_reinvention"] }, revision: schema("Revision"), createdAt: { type: "string", format: "date-time" }, updatedAt: { type: "string", format: "date-time" } },
       },
       DarkTruthContent: {
         type: "object",
@@ -1510,7 +1662,14 @@ export const openApiDocument = {
       HistoryContent: {
         type: "object",
         additionalProperties: false,
-        required: ["type", "version", "topic", "presetId", "format", "audienceLevel"],
+        required: [
+          "type",
+          "version",
+          "topic",
+          "presetId",
+          "format",
+          "audienceLevel",
+        ],
         properties: {
           type: { const: "history" },
           version: { const: "1" },
@@ -1518,20 +1677,73 @@ export const openApiDocument = {
           presetId: {
             type: "string",
             enum: [
-              "military-campaign", "civilization-rise-fall", "historical-biography",
-              "archaeology-mystery", "world-war-geopolitics", "royal-court-intrigue",
-              "everyday-life", "disaster-pandemic-survival",
-              "technology-trade-transformation", "dark-strange-history",
+              "military-campaign",
+              "civilization-rise-fall",
+              "historical-biography",
+              "archaeology-mystery",
+              "world-war-geopolitics",
+              "royal-court-intrigue",
+              "everyday-life",
+              "disaster-pandemic-survival",
+              "technology-trade-transformation",
+              "dark-strange-history",
             ],
           },
           format: { type: "string", enum: ["short", "standard", "long"] },
-          audienceLevel: { type: "string", enum: ["general", "enthusiast", "academic-lite"] },
+          audienceLevel: {
+            type: "string",
+            enum: ["general", "enthusiast", "academic-lite"],
+          },
           period: {
             type: "string",
             enum: [
-              "prehistory", "ancient", "late antiquity", "medieval", "early modern",
-              "industrial age", "modern", "contemporary history", "cross-period",
+              "prehistory",
+              "ancient",
+              "late antiquity",
+              "medieval",
+              "early modern",
+              "industrial age",
+              "modern",
+              "contemporary history",
+              "cross-period",
             ],
+          },
+        },
+      },
+      StrategicReinventionContent: {
+        type: "object",
+        additionalProperties: false,
+        required: [
+          "type",
+          "version",
+          "creatorProfileId",
+          "episodeMode",
+          "canonicalLocale",
+          "sourceAssetIds",
+        ],
+        properties: {
+          type: { const: "strategic_reinvention" },
+          version: { const: "1" },
+          creatorProfileId: { const: "veronica-benini" },
+          episodeMode: {
+            type: "string",
+            enum: [
+              "story-to-strategy",
+              "tactical-lesson",
+              "position-essay",
+              "myth-reality",
+              "decision-framework",
+              "case-diagnosis",
+              "q-and-a",
+              "guided-exercise",
+            ],
+          },
+          canonicalLocale: { const: "it" },
+          sourceAssetIds: {
+            type: "array",
+            minItems: 1,
+            maxItems: 100,
+            items: schema("OpaqueId"),
           },
         },
       },
@@ -1544,25 +1756,140 @@ export const openApiDocument = {
           version: { const: "1" },
           input: {
             oneOf: [
-              { type: "object", additionalProperties: false, required: ["kind", "locale", "title", "body"], properties: { kind: { const: "completed_story" }, locale: { type: "string", pattern: "^[a-z]{2}(?:-[A-Z]{2})?$" }, canonicalLanguage: { type: "string", pattern: "^[a-z]{2}(?:-[A-Z]{2})?$" }, title: { type: "string", minLength: 1, maxLength: 300 }, body: { type: "string", minLength: 1, maxLength: 120000 } } },
-              { type: "object", additionalProperties: false, required: ["kind", "locale", "title", "sections"], properties: { kind: { const: "structured_outline" }, locale: { type: "string", pattern: "^[a-z]{2}(?:-[A-Z]{2})?$" }, canonicalLanguage: { type: "string", pattern: "^[a-z]{2}(?:-[A-Z]{2})?$" }, title: { type: "string", minLength: 1, maxLength: 300 }, sections: { type: "array", minItems: 1, maxItems: 200, items: { type: "object", additionalProperties: false, required: ["id", "body"], properties: { id: schema("OpaqueId"), heading: { type: "string", maxLength: 200 }, body: { type: "string", minLength: 1, maxLength: 30000 } } } } } },
+              {
+                type: "object",
+                additionalProperties: false,
+                required: ["kind", "locale", "title", "body"],
+                properties: {
+                  kind: { const: "completed_story" },
+                  locale: {
+                    type: "string",
+                    pattern: "^[a-z]{2}(?:-[A-Z]{2})?$",
+                  },
+                  canonicalLanguage: {
+                    type: "string",
+                    pattern: "^[a-z]{2}(?:-[A-Z]{2})?$",
+                  },
+                  title: { type: "string", minLength: 1, maxLength: 300 },
+                  body: { type: "string", minLength: 1, maxLength: 120000 },
+                },
+              },
+              {
+                type: "object",
+                additionalProperties: false,
+                required: ["kind", "locale", "title", "sections"],
+                properties: {
+                  kind: { const: "structured_outline" },
+                  locale: {
+                    type: "string",
+                    pattern: "^[a-z]{2}(?:-[A-Z]{2})?$",
+                  },
+                  canonicalLanguage: {
+                    type: "string",
+                    pattern: "^[a-z]{2}(?:-[A-Z]{2})?$",
+                  },
+                  title: { type: "string", minLength: 1, maxLength: 300 },
+                  sections: {
+                    type: "array",
+                    minItems: 1,
+                    maxItems: 200,
+                    items: {
+                      type: "object",
+                      additionalProperties: false,
+                      required: ["id", "body"],
+                      properties: {
+                        id: schema("OpaqueId"),
+                        heading: { type: "string", maxLength: 200 },
+                        body: {
+                          type: "string",
+                          minLength: 1,
+                          maxLength: 30000,
+                        },
+                      },
+                    },
+                  },
+                },
+              },
             ],
             discriminator: { propertyName: "kind" },
           },
-          budgetTier: { type: "string", enum: ["economy", "standard", "premium"] },
+          budgetTier: {
+            type: "string",
+            enum: ["economy", "standard", "premium"],
+          },
           overrides: {
-            type: "object", additionalProperties: false,
-            description: "Bounded semantic overrides; arbitrary executable configuration is rejected.",
+            type: "object",
+            additionalProperties: false,
+            description:
+              "Bounded semantic overrides; arbitrary executable configuration is rejected.",
             properties: {
-              baseProfile: { type: "string", enum: ["neutral-narrative", "horror-compatible", "educational-compatible", "presenter-advice-compatible", "documentary", "children-family", "comedy-light", "inspirational", "business-explainer", "historical", "science-technology", "abstract-experimental"] },
-              narrationPacing: { type: "string", enum: ["slow", "measured", "balanced", "brisk", "urgent"] },
-              visualPreset: { type: "string", enum: ["neutral-cinematic", "dark-cinematic", "warm-illustrative", "clean-educational", "documentary-realism", "presenter-clean", "playful-graphic", "archival", "technical-diagram"] },
-              durationClass: { type: "string", enum: ["short", "standard", "long"] },
+              baseProfile: {
+                type: "string",
+                enum: [
+                  "neutral-narrative",
+                  "horror-compatible",
+                  "educational-compatible",
+                  "presenter-advice-compatible",
+                  "documentary",
+                  "children-family",
+                  "comedy-light",
+                  "inspirational",
+                  "business-explainer",
+                  "historical",
+                  "science-technology",
+                  "abstract-experimental",
+                ],
+              },
+              narrationPacing: {
+                type: "string",
+                enum: ["slow", "measured", "balanced", "brisk", "urgent"],
+              },
+              visualPreset: {
+                type: "string",
+                enum: [
+                  "neutral-cinematic",
+                  "dark-cinematic",
+                  "warm-illustrative",
+                  "clean-educational",
+                  "documentary-realism",
+                  "presenter-clean",
+                  "playful-graphic",
+                  "archival",
+                  "technical-diagram",
+                ],
+              },
+              durationClass: {
+                type: "string",
+                enum: ["short", "standard", "long"],
+              },
               sceneDensity: { type: "number", minimum: 0, maximum: 1 },
-              imageStrategy: { type: "string", enum: ["key-scenes", "balanced-scenes", "dense-scenes", "diagrams-first", "presenter-support"] },
+              imageStrategy: {
+                type: "string",
+                enum: [
+                  "key-scenes",
+                  "balanced-scenes",
+                  "dense-scenes",
+                  "diagrams-first",
+                  "presenter-support",
+                ],
+              },
               musicIntensity: { type: "number", minimum: 0, maximum: 1 },
-              thumbnailStrategy: { type: "string", enum: ["single-subject", "question", "contrast", "outcome", "mystery", "educational-proof", "presenter-promise"] },
-              budgetTier: { type: "string", enum: ["economy", "standard", "premium"] },
+              thumbnailStrategy: {
+                type: "string",
+                enum: [
+                  "single-subject",
+                  "question",
+                  "contrast",
+                  "outcome",
+                  "mystery",
+                  "educational-proof",
+                  "presenter-promise",
+                ],
+              },
+              budgetTier: {
+                type: "string",
+                enum: ["economy", "standard", "premium"],
+              },
               requiresReview: { type: "boolean" },
             },
           },
@@ -1573,6 +1900,7 @@ export const openApiDocument = {
           schema("DarkTruthContent"),
           schema("MathematicsEducationContent"),
           schema("HistoryContent"),
+          schema("StrategicReinventionContent"),
           schema("DynamicGenericContent"),
         ],
         discriminator: { propertyName: "type" },
@@ -1598,6 +1926,14 @@ export const openApiDocument = {
           revision: schema("Revision"),
           content: schema("EpisodeContent"),
         },
+      },
+      EpisodePage: {
+        type: "object", additionalProperties: false, required: ["items"],
+        properties: { items: { type: "array", items: schema("EpisodeSummary") }, nextAfter: { type: "string", minLength: 1, maxLength: 4096 } },
+      },
+      EpisodeSummary: {
+        type: "object", additionalProperties: false, required: ["id", "revision", "content", "createdAt", "updatedAt"],
+        properties: { id: schema("OpaqueId"), revision: schema("Revision"), content: schema("EpisodeContent"), createdAt: { type: "string", format: "date-time" }, updatedAt: { type: "string", format: "date-time" } },
       },
       WorkflowAdmission: {
         type: "object",
@@ -1768,6 +2104,15 @@ export const openApiDocument = {
           lifecycle: { type: "string" },
           provenance: { type: "string" },
         },
+      },
+      AssetPage: {
+        type: "object", additionalProperties: false, required: ["items"],
+        properties: { items: { type: "array", items: schema("Asset") }, nextAfter: { type: "string", minLength: 1, maxLength: 4096 } },
+      },
+      ApprovalChallenge: {
+        type: "object", additionalProperties: false,
+        required: ["id", "subjectId", "subjectRevision", "artifactHash", "expiresAt", "consumedAt"],
+        properties: { id: schema("OpaqueId"), subjectId: schema("OpaqueId"), subjectRevision: schema("Revision"), artifactHash: { type: "string", pattern: "^[a-f0-9]{64}$" }, expiresAt: { type: "string", format: "date-time" }, consumedAt: { oneOf: [{ type: "string", format: "date-time" }, { type: "null" }] } },
       },
       ValidationResult: {
         type: "object",

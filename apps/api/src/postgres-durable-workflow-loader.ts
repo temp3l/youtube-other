@@ -36,6 +36,15 @@ const persistedExecutionSchema = z
       .object({
         command: z.literal("episode-production"),
         input: workflowCommandSchema,
+        profile: z
+          .enum([
+            "dark_truth",
+            "mathematics_education",
+            "dynamic_generic",
+            "history",
+            "strategic_reinvention",
+          ])
+          .optional(),
       })
       .strict(),
     configurationVersion: z.string().min(1).max(160),

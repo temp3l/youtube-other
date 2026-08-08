@@ -7,12 +7,27 @@ import type {
 } from "@mediaforge/persistence";
 
 import {
+  createProviderFreeEpisodeProductionJobHandler,
   parseDurableJobProcessEnvironment,
   runDurableJobProcess,
   startPostgresDurableJobProcess,
 } from "./job-process.js";
 
 describe("durable job process", () => {
+  it("composes the provider-free profile executor without a CLI or provider adapter", () => {
+    const handler = createProviderFreeEpisodeProductionJobHandler({
+      pool: {
+        query: async <T>(): Promise<PostgresQueryResult<T>> => ({ rows: [] }),
+        connect: async () => ({
+          query: async <T>(): Promise<PostgresQueryResult<T>> => ({ rows: [] }),
+          release: () => undefined,
+        }),
+        end: async () => undefined,
+      },
+    });
+    expect(handler).toBeDefined();
+  });
+
   it("drains ready work and waits only after an idle claim", async () => {
     const controller = new AbortController();
     const dispatchOne = vi

@@ -218,6 +218,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@mediaforge/api-sdk':
+        specifier: workspace:*
+        version: link:../../packages/api-sdk
       '@mediaforge/domain':
         specifier: workspace:*
         version: link:../../packages/domain
@@ -253,6 +256,9 @@ importers:
       '@mediaforge/math-education':
         specifier: workspace:*
         version: link:../math-education
+      '@mediaforge/strategic-reinvention':
+        specifier: workspace:*
+        version: link:../strategic-reinvention
       '@mediaforge/workflow-engine':
         specifier: workspace:*
         version: link:../workflow-engine

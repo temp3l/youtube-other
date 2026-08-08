@@ -162,6 +162,11 @@ export interface ApiPublication {
 }
 
 export interface ApiUseCases {
+  listProjects(
+    after: string | undefined,
+    size: number,
+    context: Required<Pick<ApiRequestContext, "workspaceId" | "requestId">>
+  ): Promise<{ readonly items: readonly { readonly id: string; readonly name: string; readonly profile: string; readonly revision: number; readonly createdAt: string; readonly updatedAt: string }[]; readonly nextAfter?: string }>;
   getQuota(
     context: Required<Pick<ApiRequestContext, "workspaceId" | "requestId">>
   ): Promise<ApiWorkspaceQuotaStatus | null>;
@@ -185,6 +190,11 @@ export interface ApiUseCases {
     input: ProjectInput,
     context: ApiRequestContext
   ): Promise<{ readonly id: string; readonly revision: number }>;
+  listEpisodes(
+    after: string | undefined,
+    size: number,
+    context: Required<Pick<ApiRequestContext, "workspaceId" | "projectId" | "requestId">>
+  ): Promise<{ readonly items: readonly { readonly id: string; readonly revision: number; readonly content: unknown; readonly createdAt: string; readonly updatedAt: string }[]; readonly nextAfter?: string }>;
   createEpisode(
     input: EpisodeInput,
     context: Required<
@@ -299,6 +309,15 @@ export interface ApiUseCases {
     readonly lifecycle: string;
     readonly provenance: string;
   } | null>;
+  listAssets(
+    after: string | undefined,
+    size: number,
+    context: Required<Pick<ApiRequestContext, "workspaceId" | "projectId" | "requestId">>
+  ): Promise<{ readonly items: readonly { readonly id: string; readonly mimeType: string; readonly bytes: number; readonly sha256: string; readonly lifecycle: string; readonly provenance: string }[]; readonly nextAfter?: string }>;
+  getApprovalChallenge(
+    challengeId: string,
+    context: Required<Pick<ApiRequestContext, "workspaceId" | "projectId" | "requestId">>
+  ): Promise<{ readonly id: string; readonly subjectId: string; readonly subjectRevision: number; readonly artifactHash: string; readonly expiresAt: string; readonly consumedAt: string | null } | null>;
   listValidations(
     after: string | undefined,
     size: number,
@@ -798,6 +817,7 @@ function route(pathname: string): {
   readonly asset?: string;
   readonly publication?: string;
   readonly approval?: string;
+  readonly approvalChallenge?: string;
   readonly approvalAction?: "revoke";
   readonly tail?: string;
 } | null {
@@ -813,6 +833,7 @@ function route(pathname: string): {
     asset?: string;
     publication?: string;
     approval?: string;
+    approvalChallenge?: string;
     approvalAction?: "revoke";
     tail?: string;
   } = { workspace: parts[2] };
@@ -846,6 +867,8 @@ function route(pathname: string): {
       result.approvalAction = "revoke";
     }
   }
+  if (parts[5] === "approval-challenges" && parts[6])
+    result.approvalChallenge = parts[6];
   return result;
 }
 
@@ -875,6 +898,8 @@ function requiredPermission(
     return "audit.read";
   if (method === "POST" && !matched.project && matched.tail === "")
     return "content.write";
+  if (method === "GET" && !matched.project && matched.tail === "")
+    return "content.read";
   if (method === "POST" && matched.tail === "speech/estimates")
     return "content.read";
   if (
@@ -901,6 +926,7 @@ function requiredPermission(
   )
     return "content.write";
   if (!matched.project) return null;
+  if (method === "GET" && matched.tail === "episodes") return "content.read";
   if (method === "POST" && matched.tail === "episodes") return "content.write";
   if (
     method === "GET" &&
@@ -908,6 +934,12 @@ function requiredPermission(
     matched.tail === `episodes/${matched.episode}`
   )
     return "content.read";
+  if (method === "GET" && matched.tail === "assets") return "content.read";
+  if (
+    method === "GET" &&
+    matched.approvalChallenge &&
+    matched.tail === `approval-challenges/${matched.approvalChallenge}`
+  ) return "approval.decide";
   if (
     method === "PATCH" &&
     matched.episode &&
@@ -1110,6 +1142,18 @@ export function createApiServer(
           { id: result.id, revision: result.revision },
           { etag: etag(result.revision), "x-request-id": requestIdValue }
         );
+      }
+      if (
+        request.method === "GET" &&
+        !matched.project &&
+        matched.tail === ""
+      ) {
+        const result = await useCases.listProjects(
+          url.searchParams.get("page[after]") ?? undefined,
+          pageSize(url),
+          context
+        );
+        return json(response, 200, result, { "x-request-id": requestIdValue });
       }
       if (
         !matched.project &&
@@ -1330,6 +1374,14 @@ export function createApiServer(
         principal,
         requestId: requestIdValue,
       };
+      if (request.method === "GET" && matched.tail === "episodes") {
+        const result = await useCases.listEpisodes(
+          url.searchParams.get("page[after]") ?? undefined,
+          pageSize(url),
+          projectContext
+        );
+        return json(response, 200, result, { "x-request-id": requestIdValue });
+      }
       if (request.method === "POST" && matched.tail === "episodes") {
         const result = await useCases.createEpisode(
           parseEpisodeInput(await body(request)),
@@ -1525,6 +1577,27 @@ export function createApiServer(
         matched.tail?.startsWith("assets/")
       ) {
         const result = await useCases.getAsset(matched.asset, projectContext);
+        if (!result)
+          throw new ApplicationError("not_found", "Resource not found.", false);
+        return json(response, 200, result, { "x-request-id": requestIdValue });
+      }
+      if (request.method === "GET" && matched.tail === "assets") {
+        const result = await useCases.listAssets(
+          url.searchParams.get("page[after]") ?? undefined,
+          pageSize(url),
+          projectContext
+        );
+        return json(response, 200, result, { "x-request-id": requestIdValue });
+      }
+      if (
+        request.method === "GET" &&
+        matched.approvalChallenge &&
+        matched.tail === `approval-challenges/${matched.approvalChallenge}`
+      ) {
+        const result = await useCases.getApprovalChallenge(
+          matched.approvalChallenge,
+          projectContext
+        );
         if (!result)
           throw new ApplicationError("not_found", "Resource not found.", false);
         return json(response, 200, result, { "x-request-id": requestIdValue });

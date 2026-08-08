@@ -30,6 +30,14 @@ interface WorkspaceCursorValue {
   readonly id: string;
 }
 
+interface ReadCursorValue {
+  readonly workspaceId: string;
+  readonly projectId?: string;
+  readonly collection: "projects" | "episodes" | "assets";
+  readonly createdAt?: string;
+  readonly id: string;
+}
+
 function id(prefix: string): string {
   return `${prefix}-${crypto.randomUUID()}`;
 }
@@ -115,6 +123,37 @@ function decodeWorkspaceCursor(
   }
 }
 
+function encodeReadCursor(value: ReadCursorValue, secret: string): string {
+  const payload = Buffer.from(JSON.stringify(value), "utf8").toString("base64url");
+  return `${payload}.${crypto.createHmac("sha256", secret).update(payload).digest("base64url")}`;
+}
+
+function decodeReadCursor(
+  value: string | undefined,
+  expected: Pick<ReadCursorValue, "workspaceId" | "projectId" | "collection">,
+  secret: string
+): ReadCursorValue | undefined {
+  if (value === undefined) return undefined;
+  if (value.length > 4_096) throw new ApplicationError("invalid_request", "The page cursor is invalid.", false);
+  const [payload, signature, extra] = value.split(".");
+  if (!payload || !signature || extra !== undefined) throw new ApplicationError("invalid_request", "The page cursor is invalid.", false);
+  const expectedSignature = crypto.createHmac("sha256", secret).update(payload).digest();
+  const supplied = Buffer.from(signature, "base64url");
+  if (supplied.length !== expectedSignature.length || !crypto.timingSafeEqual(supplied, expectedSignature))
+    throw new ApplicationError("invalid_request", "The page cursor is invalid.", false);
+  try {
+    const parsed = JSON.parse(Buffer.from(payload, "base64url").toString("utf8")) as Partial<ReadCursorValue>;
+    if (
+      parsed.workspaceId !== expected.workspaceId || parsed.projectId !== expected.projectId ||
+      parsed.collection !== expected.collection || typeof parsed.id !== "string" || parsed.id.length < 1 || parsed.id.length > 160 ||
+      (parsed.collection !== "assets" && (typeof parsed.createdAt !== "string" || !Number.isFinite(Date.parse(parsed.createdAt))))
+    ) throw new Error("invalid");
+    return parsed as ReadCursorValue;
+  } catch {
+    throw new ApplicationError("invalid_request", "The page cursor is invalid.", false);
+  }
+}
+
 function parseEtag(value: string): number {
   const match = value.match(/^"(0|[1-9][0-9]*)"$/u);
   if (!match) throw new ApplicationError("precondition_failed", "If-Match must contain one strong numeric ETag.", false);
@@ -192,6 +231,19 @@ export function createPostgresApiUseCases(input: {
   const admit = createApiWorkflowAdmissionUseCase(input.workflowAdmissionHandler);
 
   return {
+    listProjects: async (after, size, context) => {
+      const cursor = decodeReadCursor(after, { workspaceId: context.workspaceId, collection: "projects" }, input.cursorSecret);
+      const records = await repository.withWorkspaceTransaction(context.workspaceId, (transaction) => transaction.listProjects({
+        workspaceId: context.workspaceId,
+        ...(cursor ? { after: { createdAt: cursor.createdAt!, projectId: cursor.id } } : {}),
+        size: size + 1,
+      }));
+      const page = records.slice(0, size); const last = page.at(-1);
+      return {
+        items: page.map((record) => ({ id: record.projectId, name: record.name, profile: record.profile, revision: record.revision, createdAt: record.createdAt, updatedAt: record.updatedAt })),
+        ...(records.length > size && last ? { nextAfter: encodeReadCursor({ workspaceId: context.workspaceId, collection: "projects", createdAt: last.createdAt, id: last.projectId }, input.cursorSecret) } : {}),
+      };
+    },
     getQuota: async (context) => {
       const record = await usageAudit.getQuotaStatus(context.workspaceId);
       return record ? {
@@ -302,6 +354,18 @@ export function createPostgresApiUseCases(input: {
       } catch (error) {
         return translatePersistence(error);
       }
+    },
+    listEpisodes: async (after, size, context) => {
+      const cursor = decodeReadCursor(after, { workspaceId: context.workspaceId, projectId: context.projectId, collection: "episodes" }, input.cursorSecret);
+      const records = await repository.withWorkspaceTransaction(context.workspaceId, (transaction) => transaction.listEpisodes({
+        workspaceId: context.workspaceId, projectId: context.projectId,
+        ...(cursor ? { after: { createdAt: cursor.createdAt!, episodeId: cursor.id } } : {}), size: size + 1,
+      }));
+      const page = records.slice(0, size); const last = page.at(-1);
+      return {
+        items: page.map((record) => ({ id: record.episodeId, revision: record.revision, content: record.content, createdAt: record.createdAt, updatedAt: record.updatedAt })),
+        ...(records.length > size && last ? { nextAfter: encodeReadCursor({ workspaceId: context.workspaceId, projectId: context.projectId, collection: "episodes", createdAt: last.createdAt, id: last.episodeId }, input.cursorSecret) } : {}),
+      };
     },
     createEpisode: async (episode, context) => {
       const canonicalEpisode = parseEpisodeInput(episode);
@@ -519,6 +583,21 @@ export function createPostgresApiUseCases(input: {
         })
       );
       return record ? { id: record.assetId, mimeType: record.mimeType, bytes: record.bytes, sha256: record.sha256, lifecycle: record.lifecycle, provenance: record.provenance } : null;
+    },
+    listAssets: async (after, size, context) => {
+      const cursor = decodeReadCursor(after, { workspaceId: context.workspaceId, projectId: context.projectId, collection: "assets" }, input.cursorSecret);
+      const records = await repository.withWorkspaceTransaction(context.workspaceId, (transaction) => transaction.listAssetDescriptors({
+        workspaceId: context.workspaceId, projectId: context.projectId, ...(cursor ? { after: cursor.id } : {}), size: size + 1,
+      }));
+      const page = records.slice(0, size); const last = page.at(-1);
+      return {
+        items: page.map((record) => ({ id: record.assetId, mimeType: record.mimeType, bytes: record.bytes, sha256: record.sha256, lifecycle: record.lifecycle, provenance: record.provenance })),
+        ...(records.length > size && last ? { nextAfter: encodeReadCursor({ workspaceId: context.workspaceId, projectId: context.projectId, collection: "assets", id: last.assetId }, input.cursorSecret) } : {}),
+      };
+    },
+    getApprovalChallenge: async (challengeId, context) => {
+      const record = await repository.withWorkspaceTransaction(context.workspaceId, (transaction) => transaction.getApprovalChallenge({ workspaceId: context.workspaceId, projectId: context.projectId, challengeId }));
+      return record ? { id: record.challengeId, subjectId: record.subjectId, subjectRevision: record.subjectRevision, artifactHash: record.artifactHash, expiresAt: record.expiresAt, consumedAt: record.consumedAt } : null;
     },
     listValidations: async (after, size, context) => {
       const decoded = decodeCursor(after, context, input.cursorSecret);

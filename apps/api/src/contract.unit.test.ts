@@ -24,10 +24,24 @@ const expectedPaths = [
   "/v1/workspaces/{workspace}/projects/{project}/workflow-runs/{run}:resume",
   "/v1/workspaces/{workspace}/projects/{project}/jobs/{job}",
   "/v1/workspaces/{workspace}/projects/{project}/assets/{asset}",
+  "/v1/workspaces/{workspace}/projects/{project}/assets",
+  "/v1/workspaces/{workspace}/projects/{project}/approval-challenges/{challenge}",
   "/v1/workspaces/{workspace}/projects/{project}/validations",
   "/v1/workspaces/{workspace}/projects/{project}/publications/{publication}",
   "/v1/workspaces/{workspace}/projects/{project}/approvals",
   "/v1/workspaces/{workspace}/projects/{project}/approvals/{approval}:revoke",
+  "/v1/workspaces/{workspace}/speech/estimates",
+  "/v1/workspaces/{workspace}/speech/generations",
+  "/v1/workspaces/{workspace}/speech/generations/{generation}",
+  "/v1/workspaces/{workspace}/speech/generations/{generation}:retry",
+  "/v1/workspaces/{workspace}/speech/generations/{generation}:cancel",
+  "/v1/workspaces/{workspace}/speech/profiles",
+  "/v1/workspaces/{workspace}/speech/profiles/{profile}/versions",
+  "/v1/workspaces/{workspace}/speech/profile-versions/{version}:validate",
+  "/v1/workspaces/{workspace}/speech/profile-versions/{version}/activate",
+  "/v1/workspaces/{workspace}/speech/profile-versions/{version}:deprecate",
+  "/v1/workspaces/{workspace}/genres/{genre}/speech-policy",
+  "/v1/workspaces/{workspace}/videos/{video}/speech-override",
 ] as const;
 
 type Operation = {
@@ -35,13 +49,26 @@ type Operation = {
   readonly description?: string;
   readonly parameters?: readonly { readonly $ref: string }[];
   readonly requestBody?: { readonly content: Record<string, unknown> };
-  readonly responses: Record<string, { readonly $ref?: string; readonly content?: Record<string, unknown>; readonly headers?: Record<string, unknown> }>;
+  readonly responses: Record<
+    string,
+    {
+      readonly $ref?: string;
+      readonly content?: Record<string, unknown>;
+      readonly headers?: Record<string, unknown>;
+    }
+  >;
   readonly security?: readonly unknown[];
 };
 
-function operations(): Array<{ readonly path: string; readonly operation: Operation }> {
+function operations(): Array<{
+  readonly path: string;
+  readonly operation: Operation;
+}> {
   return Object.entries(openApiDocument.paths).flatMap(([path, item]) =>
-    Object.entries(item).map(([, operation]) => ({ path, operation: operation as Operation }))
+    Object.entries(item).map(([, operation]) => ({
+      path,
+      operation: operation as Operation,
+    }))
   );
 }
 
@@ -51,18 +78,54 @@ describe("OpenAPI contract", () => {
     const ids = operations().map(({ operation }) => operation.operationId);
     expect(new Set(ids).size).toBe(ids.length);
     expect(ids).toEqual([
-      "getLiveness", "getReadiness", "getOpenApiDocument", "getQuota",
-      "listUsageRecords", "listAuditEvents", "createProject",
-      "createEpisode", "getEpisode", "replaceEpisodeContent", "admitWorkflow", "getWorkflow",
-      "listWorkflowSteps", "cancelWorkflow", "resumeWorkflow", "getJob",
-      "getAsset", "listValidations", "getPublication", "recordApproval", "revokeApproval",
+      "getLiveness",
+      "getReadiness",
+      "getOpenApiDocument",
+      "getQuota",
+      "listUsageRecords",
+      "listAuditEvents",
+      "listProjects",
+      "createProject",
+      "listEpisodes",
+      "createEpisode",
+      "getEpisode",
+      "replaceEpisodeContent",
+      "admitWorkflow",
+      "getWorkflow",
+      "listWorkflowSteps",
+      "cancelWorkflow",
+      "resumeWorkflow",
+      "getJob",
+      "getAsset",
+      "listAssets",
+      "getApprovalChallenge",
+      "listValidations",
+      "getPublication",
+      "recordApproval",
+      "revokeApproval",
+      "estimateSpeech",
+      "createSpeechGeneration",
+      "getSpeechGeneration",
+      "retrySpeechGeneration",
+      "cancelSpeechGeneration",
+      "listSpeechProfiles",
+      "createSpeechProfile",
+      "createSpeechProfileVersion",
+      "validateSpeechProfileVersion",
+      "activateSpeechProfileVersion",
+      "deprecateSpeechProfileVersion",
+      "setGenreSpeechPolicy",
+      "setVideoSpeechOverride",
     ]);
   });
 
   it("defines reusable authentication, headers, parameters, and public schemas", () => {
     expect(openApiDocument.components.securitySchemes.BearerAuth).toEqual({
-      type: "http", scheme: "bearer", bearerFormat: "JWT",
-      description: "Workspace permissions are enforced per operation after token and membership validation.",
+      type: "http",
+      scheme: "bearer",
+      bearerFormat: "JWT",
+      description:
+        "Workspace permissions are enforced per operation after token and membership validation.",
     });
     expect(openApiDocument.security).toEqual([{ BearerAuth: [] }]);
     expect(openApiDocument.components.parameters).toMatchObject({
@@ -80,31 +143,68 @@ describe("OpenAPI contract", () => {
       RetryAfter: { required: true },
       IdempotencyReplayed: { required: false },
     });
-    expect(Object.keys(openApiDocument.components.schemas)).toEqual(expect.arrayContaining([
-      "Problem", "ProjectInput", "Project", "EpisodeInput", "Episode",
-      "WorkflowAdmission", "WorkflowRun", "WorkflowStep", "Job", "Asset",
-      "JobFailureProblem", "ValidationResult", "ValidationPage", "ApprovalInput", "ApprovalAccepted",
-      "WorkspaceQuotaStatus", "UsageRecord", "UsageRecordPage", "AuditEvent", "AuditEventPage",
-      "Publication", "PublicationArtifactBinding",
-      "ApprovalRevocationInput", "ApprovalRevoked",
-    ]));
-    expect(openApiDocument.components.schemas.Problem.required).toEqual(expect.arrayContaining([
-      "type", "title", "status", "detail", "code", "requestId", "retryable", "errors",
-    ]));
+    expect(Object.keys(openApiDocument.components.schemas)).toEqual(
+      expect.arrayContaining([
+        "Problem",
+        "ProjectInput",
+        "Project",
+        "EpisodeInput",
+        "Episode",
+        "WorkflowAdmission",
+        "WorkflowRun",
+        "WorkflowStep",
+        "Job",
+        "Asset",
+        "JobFailureProblem",
+        "ValidationResult",
+        "ValidationPage",
+        "ApprovalInput",
+        "ApprovalAccepted",
+        "WorkspaceQuotaStatus",
+        "UsageRecord",
+        "UsageRecordPage",
+        "AuditEvent",
+        "AuditEventPage",
+        "Publication",
+        "PublicationArtifactBinding",
+        "ApprovalRevocationInput",
+        "ApprovalRevoked",
+      ])
+    );
+    expect(openApiDocument.components.schemas.Problem.required).toEqual(
+      expect.arrayContaining([
+        "type",
+        "title",
+        "status",
+        "detail",
+        "code",
+        "requestId",
+        "retryable",
+        "errors",
+      ])
+    );
   });
 
   it("keeps usage and quota integer values lossless on the JSON wire", () => {
     expect(openApiDocument.components.schemas.SignedBigIntString).toEqual({
-      type: "string", pattern: "^-?(0|[1-9][0-9]*)$",
+      type: "string",
+      pattern: "^-?(0|[1-9][0-9]*)$",
     });
     expect(openApiDocument.components.schemas.NonNegativeBigIntString).toEqual({
-      type: "string", pattern: "^(0|[1-9][0-9]*)$",
+      type: "string",
+      pattern: "^(0|[1-9][0-9]*)$",
     });
-    expect(openApiDocument.components.schemas.WorkspaceQuotaStatus.properties).toMatchObject({
-      budgetLimitMinor: { $ref: "#/components/schemas/NonNegativeBigIntString" },
+    expect(
+      openApiDocument.components.schemas.WorkspaceQuotaStatus.properties
+    ).toMatchObject({
+      budgetLimitMinor: {
+        $ref: "#/components/schemas/NonNegativeBigIntString",
+      },
       availableMinor: { $ref: "#/components/schemas/NonNegativeBigIntString" },
     });
-    expect(openApiDocument.components.schemas.UsageRecord.properties).toMatchObject({
+    expect(
+      openApiDocument.components.schemas.UsageRecord.properties
+    ).toMatchObject({
       quantityUnits: { $ref: "#/components/schemas/SignedBigIntString" },
       costMinor: { $ref: "#/components/schemas/SignedBigIntString" },
     });
@@ -180,27 +280,104 @@ describe("OpenAPI contract", () => {
     }
 
     expect(openApiDocument.components.schemas.HistoryContent).toMatchObject({
-      required: ["type", "version", "topic", "presetId", "format", "audienceLevel"],
+      required: [
+        "type",
+        "version",
+        "topic",
+        "presetId",
+        "format",
+        "audienceLevel",
+      ],
       properties: {
-        presetId: { enum: expect.arrayContaining(["civilization-rise-fall", "dark-strange-history"]) },
+        presetId: {
+          enum: expect.arrayContaining([
+            "civilization-rise-fall",
+            "dark-strange-history",
+          ]),
+        },
         format: { enum: ["short", "standard", "long"] },
         audienceLevel: { enum: ["general", "enthusiast", "academic-lite"] },
       },
     });
   });
 
+  it("accepts only reference-bound Veronica Benini strategic episodes", () => {
+    const canonical = {
+      content: {
+        type: "strategic_reinvention",
+        version: "1",
+        creatorProfileId: "veronica-benini",
+        episodeMode: "decision-framework",
+        canonicalLocale: "it",
+        sourceAssetIds: ["source-deck-1"],
+      },
+    } as const;
+    expect(parseEpisodeInput(canonical)).toEqual(canonical);
+    expect(
+      episodeInputSchema.safeParse({
+        content: { ...canonical.content, canonicalLocale: "en" },
+      }).success
+    ).toBe(false);
+    expect(
+      episodeInputSchema.safeParse({
+        content: { ...canonical.content, sourceAssetIds: [] },
+      }).success
+    ).toBe(false);
+    expect(
+      openApiDocument.components.schemas.StrategicReinventionContent
+    ).toMatchObject({
+      required: [
+        "type",
+        "version",
+        "creatorProfileId",
+        "episodeMode",
+        "canonicalLocale",
+        "sourceAssetIds",
+      ],
+      properties: {
+        creatorProfileId: { const: "veronica-benini" },
+        canonicalLocale: { const: "it" },
+      },
+    });
+  });
+
   it("accepts only bounded semantic input for dynamic generic episodes", () => {
     const canonical = {
-      type: "dynamic_generic", version: "1",
-      input: { kind: "completed_story", locale: "en", title: "A quiet mystery", body: "A historian discovers that one detail in the archive keeps changing." },
-      budgetTier: "standard", overrides: { narrationPacing: "measured", sceneDensity: 0.4 },
+      type: "dynamic_generic",
+      version: "1",
+      input: {
+        kind: "completed_story",
+        locale: "en",
+        title: "A quiet mystery",
+        body: "A historian discovers that one detail in the archive keeps changing.",
+      },
+      budgetTier: "standard",
+      overrides: { narrationPacing: "measured", sceneDensity: 0.4 },
     } as const;
     expect(dynamicGenericContentSchema.parse(canonical)).toEqual(canonical);
-    expect(parseEpisodeInput({ content: canonical })).toEqual({ content: canonical });
-    expect(dynamicGenericContentSchema.safeParse({ ...canonical, provider: "attacker-provider" }).success).toBe(false);
-    expect(dynamicGenericContentSchema.safeParse({ ...canonical, overrides: { voiceId: "personal-clone" } }).success).toBe(false);
-    expect(() => parseEpisodeInput({ content: { ...canonical, overrides: { voiceId: "personal-clone" } } })).toThrow(expect.objectContaining({ code: "profile_input_invalid" }));
-    expect(openApiDocument.components.schemas.EpisodeContent.oneOf).toContainEqual({ $ref: "#/components/schemas/DynamicGenericContent" });
+    expect(parseEpisodeInput({ content: canonical })).toEqual({
+      content: canonical,
+    });
+    expect(
+      dynamicGenericContentSchema.safeParse({
+        ...canonical,
+        provider: "attacker-provider",
+      }).success
+    ).toBe(false);
+    expect(
+      dynamicGenericContentSchema.safeParse({
+        ...canonical,
+        overrides: { voiceId: "personal-clone" },
+      }).success
+    ).toBe(false);
+    expect(() =>
+      parseEpisodeInput({
+        content: { ...canonical, overrides: { voiceId: "personal-clone" } },
+      })
+    ).toThrow(expect.objectContaining({ code: "profile_input_invalid" }));
+    expect(
+      openApiDocument.components.schemas.EpisodeContent.oneOf
+    ).toContainEqual({ $ref: "#/components/schemas/DynamicGenericContent" });
   });
 
   it("models job progress and redacted terminal failures", () => {
@@ -211,11 +388,13 @@ describe("OpenAPI contract", () => {
         cancellationRequested: { type: "boolean" },
         failure: { $ref: "#/components/schemas/JobFailureProblem" },
       },
-      allOf: [{
-        if: { properties: { status: { enum: ["failed", "dead_lettered"] } } },
-        then: { required: ["failure"] },
-        else: { not: { required: ["failure"] } },
-      }],
+      allOf: [
+        {
+          if: { properties: { status: { enum: ["failed", "dead_lettered"] } } },
+          then: { required: ["failure"] },
+          else: { not: { required: ["failure"] } },
+        },
+      ],
     });
     expect(openApiDocument.components.schemas.JobFailureProblem).toMatchObject({
       additionalProperties: false,
@@ -224,35 +403,65 @@ describe("OpenAPI contract", () => {
         code: { enum: ["job_failed", "job_dead_lettered"] },
       },
     });
-    expect(openApiDocument.components.schemas.JobFailureProblem.properties).not.toHaveProperty("status");
-    expect(openApiDocument.components.schemas.JobFailureProblem.properties).not.toHaveProperty("requestId");
+    expect(
+      openApiDocument.components.schemas.JobFailureProblem.properties
+    ).not.toHaveProperty("status");
+    expect(
+      openApiDocument.components.schemas.JobFailureProblem.properties
+    ).not.toHaveProperty("requestId");
   });
 
   it("documents request bodies, command preconditions, and response wire formats", () => {
-    const byId = new Map(operations().map(({ operation }) => [operation.operationId, operation]));
-    for (const id of ["createProject", "createEpisode", "replaceEpisodeContent", "admitWorkflow", "recordApproval"]) {
-      expect(byId.get(id)?.requestBody?.content).toHaveProperty("application/json");
+    const byId = new Map(
+      operations().map(({ operation }) => [operation.operationId, operation])
+    );
+    for (const id of [
+      "createProject",
+      "createEpisode",
+      "replaceEpisodeContent",
+      "admitWorkflow",
+      "recordApproval",
+    ]) {
+      expect(byId.get(id)?.requestBody?.content).toHaveProperty(
+        "application/json"
+      );
     }
-    expect(byId.get("admitWorkflow")?.parameters).toContainEqual({ $ref: "#/components/parameters/IdempotencyKey" });
-    expect(byId.get("replaceEpisodeContent")?.parameters).toContainEqual({ $ref: "#/components/parameters/IfMatch" });
-    expect(byId.get("cancelWorkflow")?.parameters).toContainEqual({ $ref: "#/components/parameters/IfMatch" });
-    expect(byId.get("resumeWorkflow")?.parameters).toEqual(expect.arrayContaining([
-      { $ref: "#/components/parameters/IfMatch" },
-      { $ref: "#/components/parameters/IdempotencyKey" },
-    ]));
-    expect(byId.get("recordApproval")?.parameters).toEqual(expect.arrayContaining([
-      { $ref: "#/components/parameters/IfMatch" },
-      { $ref: "#/components/parameters/IdempotencyKey" },
-    ]));
+    expect(byId.get("admitWorkflow")?.parameters).toContainEqual({
+      $ref: "#/components/parameters/IdempotencyKey",
+    });
+    expect(byId.get("replaceEpisodeContent")?.parameters).toContainEqual({
+      $ref: "#/components/parameters/IfMatch",
+    });
+    expect(byId.get("cancelWorkflow")?.parameters).toContainEqual({
+      $ref: "#/components/parameters/IfMatch",
+    });
+    expect(byId.get("resumeWorkflow")?.parameters).toEqual(
+      expect.arrayContaining([
+        { $ref: "#/components/parameters/IfMatch" },
+        { $ref: "#/components/parameters/IdempotencyKey" },
+      ])
+    );
+    expect(byId.get("recordApproval")?.parameters).toEqual(
+      expect.arrayContaining([
+        { $ref: "#/components/parameters/IfMatch" },
+        { $ref: "#/components/parameters/IdempotencyKey" },
+      ])
+    );
 
     for (const { operation } of operations()) {
       for (const wireResponse of Object.values(operation.responses)) {
         expect(wireResponse.$ref || wireResponse.content).toBeTruthy();
-        if (!wireResponse.$ref) expect(wireResponse.headers).toHaveProperty("x-request-id");
+        if (!wireResponse.$ref)
+          expect(wireResponse.headers).toHaveProperty("x-request-id");
       }
     }
-    for (const responseName of Object.keys(openApiDocument.components.responses)) {
-      const problem = openApiDocument.components.responses[responseName as keyof typeof openApiDocument.components.responses];
+    for (const responseName of Object.keys(
+      openApiDocument.components.responses
+    )) {
+      const problem =
+        openApiDocument.components.responses[
+          responseName as keyof typeof openApiDocument.components.responses
+        ];
       expect(problem.content).toHaveProperty("application/problem+json");
       expect(problem.headers).toHaveProperty("x-request-id");
     }
@@ -263,7 +472,9 @@ describe("OpenAPI contract", () => {
       ["getQuota", "usage.read"],
       ["listUsageRecords", "usage.read"],
       ["listAuditEvents", "audit.read"],
+      ["listProjects", "content.read"],
       ["createProject", "content.write"],
+      ["listEpisodes", "content.read"],
       ["createEpisode", "content.write"],
       ["getEpisode", "content.read"],
       ["replaceEpisodeContent", "content.write"],
@@ -274,14 +485,31 @@ describe("OpenAPI contract", () => {
       ["resumeWorkflow", "workflow.start"],
       ["getJob", "content.read"],
       ["getAsset", "content.read"],
+      ["listAssets", "content.read"],
+      ["getApprovalChallenge", "approval.decide"],
       ["listValidations", "validation.read"],
       ["getPublication", "publication.read"],
       ["recordApproval", "approval.decide"],
       ["revokeApproval", "approval.decide"],
+      ["estimateSpeech", "content.read"],
+      ["createSpeechGeneration", "content.write"],
+      ["getSpeechGeneration", "content.read"],
+      ["retrySpeechGeneration", "content.write"],
+      ["cancelSpeechGeneration", "content.write"],
+      ["listSpeechProfiles", "content.read"],
+      ["createSpeechProfile", "content.write"],
+      ["createSpeechProfileVersion", "content.write"],
+      ["validateSpeechProfileVersion", "content.write"],
+      ["activateSpeechProfileVersion", "content.write"],
+      ["deprecateSpeechProfileVersion", "content.write"],
+      ["setGenreSpeechPolicy", "content.write"],
+      ["setVideoSpeechOverride", "content.write"],
     ]);
     for (const { path, operation } of operations()) {
       if (!path.startsWith("/v1/workspaces/")) continue;
-      expect(operation.description).toContain(`\`${expectedPermissions.get(operation.operationId)}\``);
+      expect(operation.description).toContain(
+        `\`${expectedPermissions.get(operation.operationId)}\``
+      );
     }
   });
 
@@ -290,9 +518,12 @@ describe("OpenAPI contract", () => {
     expect(openApiDocument.paths["/health/ready"].get.security).toEqual([]);
     expect(openApiDocument.paths["/v1/openapi.json"].get.security).toEqual([]);
     for (const { path, operation } of operations()) {
-      if (path.startsWith("/v1/workspaces/")) expect(operation.security).toBeUndefined();
+      if (path.startsWith("/v1/workspaces/"))
+        expect(operation.security).toBeUndefined();
     }
     const serialized = JSON.stringify(openApiDocument);
-    expect(serialized).not.toMatch(/\/_internal|workspaceDir|localPath|provider[A-Z_]|credential|argv|packageName/u);
+    expect(serialized).not.toMatch(
+      /\/_internal|workspaceDir|localPath|provider[A-Z_]|credential|argv|packageName/u
+    );
   });
 });

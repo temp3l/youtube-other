@@ -16,5 +16,6 @@ export * from "./durable-outbox-worker.js";
 export * from "./durable-job-worker.js";
 export * from "./durable-workflow-job-handler.js";
 export * from "./canonical-durable-workflow-executor.js";
+export * from "./provider-free-profile-executor.js";
 export * from "./durable-webhook-worker.js";
 export * from "./workflow-admission.js";

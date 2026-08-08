@@ -17,6 +17,7 @@ import { PostgresPersistedDurableWorkflowLoader } from "./postgres-durable-workf
 const execution = {
   input: {
     command: "episode-production",
+    profile: "history",
     input: {
       projectId: "project-1",
       episodeId: "episode-1",
@@ -217,7 +218,8 @@ describe("PostgreSQL durable workflow loading", () => {
       )
     ).resolves.toEqual({
       kind: "terminal_failure",
-      error: "The durable job command does not match its persisted workflow run.",
+      error:
+        "The durable job command does not match its persisted workflow run.",
     });
     expect(execute).toHaveBeenCalledOnce();
   });

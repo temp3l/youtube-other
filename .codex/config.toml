@@ -25,7 +25,7 @@ default_subagent_reasoning_effort = "medium"
 interrupt_message = true
 
 [features]
-codex_hooks = true
+hooks = true
 
 [features.network_proxy]
 enabled = true

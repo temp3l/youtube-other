@@ -12,7 +12,7 @@ function emit(output) {
 }
 
 function approve() {
-  emit({ decision: "approve" });
+  emit({ decision: "allow" });
 }
 
 function block(reason) {

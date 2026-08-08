@@ -648,6 +648,41 @@ These decisions are authoritative for all implementation tasks. They resolve wor
 
 The pilot is limited to the accepted education profile, controlled workspaces/channels/providers, human approval, and the approved quota policy. Production deployment also requires EU-region data handling, encrypted backups with tested restore, and the stated RPO/RTO objectives; these remain evidence gates, not claims of completed operations.
 
+## SaaS Execution Task 00 Pilot Configuration — 2026-08-08
+
+The pilot sponsor explicitly approved the following conservative implementation
+choices on 2026-08-08. They authorize local, provider-free implementation and
+isolated fake/emulator verification only. They do not authorize real customer
+data, public exposure, paid-provider calls, infrastructure provisioning, or
+YouTube mutation.
+
+| Required choice                                               | Status               | Decision owner                                   | Follow-up / source evidence                                                                                                                                                                                              |
+| ------------------------------------------------------------- | -------------------- | ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Pilot entitlement matrix                                      | Accepted             | Pilot sponsor | Mathematics education (`en`, full), History (`en`, standard/full), Dark Truth (`en`, full), and Veronica Benini strategic reinvention (`it`, full) are internal-only, provider-free fixture cells. No Short entitlement. |
+| IdP and BFF/session                                           | Accepted             | Pilot sponsor | Keycloak-compatible OIDC with authorization code + PKCE; server-side, HttpOnly secure-cookie BFF session. Local tests use a fake issuer/JWKS.                                                                            |
+| Web and hosting runtime                                       | Accepted             | Pilot sponsor | Dependency-minimal Node HTTP runtime behind a same-origin BFF; local Docker Compose is the only deployment target in this execution.                                                                                     |
+| PostgreSQL, secret/KMS, and object storage                    | Accepted             | Pilot sponsor | PostgreSQL, MinIO-compatible S3 storage, and opaque secret handles resolved only in workers. Local fakes/emulators only; production selection is deferred.                                                               |
+| YouTube OAuth and channel policy                              | Accepted             | Pilot sponsor | Workspace-scoped handles, private-first policy, one channel maximum; no credential, channel, or mutation is authorized in this execution.                                                                                |
+| Quotas and retry-cost ownership                               | Accepted             | Pilot sponsor | One concurrent workflow, one-item batch, USD 0 external-provider and publication ceilings, 1 GB storage, 60 render minutes, 30 narration minutes monthly; platform bears retry cost.                                     |
+| Compatibility, retention, residency, recovery, and escalation | Accepted             | Pilot sponsor | v1 compatibility for 90 days; EU-only production policy; existing retention policy; pilot RPO ≤1 hour/RTO ≤8 hours; critical escalation owner is the platform operator.                                                  |
+| Publication policy                                            | Accepted as disabled | Pilot sponsor | Private-first is the sole future visibility policy. Publication stays disabled until a separate non-zero effect ceiling, credentials, and recovery evidence are supplied.                                                |
+
+### First Pilot Journey And Capability Matrix
+
+The selected product direction is provider-free, human-approved internal
+production for the entitled profiles below. The permitted journey is:
+operator-provisioned user → workspace selection → project and typed episode →
+canonical workflow → review/approval → usage/audit → fake webhook. Shorts,
+paid-provider calls, public endpoints, uploads, and YouTube mutation remain
+excluded.
+
+| Profile                                            | Full                                                 | Short        | External pilot status                                                               |
+| -------------------------------------------------- | ---------------------------------------------------- | ------------ | ----------------------------------------------------------------------------------- |
+| Mathematics education (`en`, full)                 | Provider-free internal fixture only                  | Not entitled | Internal-only; external effects ceiling is USD 0                                    |
+| History (`en`, standard)                           | Provider-free internal fixture only                  | Not entitled | Internal-only; durable worker composition pending                                   |
+| Dark Truth (`en`, full)                            | Provider-free internal fixture only                  | Not entitled | Internal-only; durable worker composition pending                                   |
+| Veronica Benini strategic reinvention (`it`, full) | Source-reference and supplemental-media fixture only | Not entitled | Internal-only; creator profile remains production-blocked pending rights activation |
+
 # ADR Approval
 
 Approve the ADRs corresponding to:

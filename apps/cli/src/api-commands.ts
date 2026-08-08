@@ -96,7 +96,7 @@ function output(stdout: { write(chunk: string): unknown }, operation: string, re
 }
 
 function episodeInput(options: {
-  readonly profile: "dark_truth" | "mathematics_education";
+  readonly profile: "dark_truth" | "mathematics_education" | "history" | "strategic_reinvention";
   readonly premise?: string;
   readonly storyBible?: string;
   readonly referenceAssets?: string;
@@ -106,10 +106,27 @@ function episodeInput(options: {
   readonly difficulty?: "foundation" | "standard" | "challenge";
   readonly presentationPreset?: string;
   readonly audioPreset?: string;
+  readonly topic?: string;
+  readonly preset?: string;
+  readonly format?: "short" | "standard" | "long";
+  readonly audience?: "general" | "enthusiast" | "academic-lite";
+  readonly period?: string;
+  readonly episodeMode?: string;
+  readonly sourceAssets?: string;
 }): EpisodeInput {
   if (options.profile === "dark_truth") {
     if (!options.premise || !options.storyBible) throw new Error("Dark Truth episodes require --premise and --story-bible.");
     return { content: { type: "dark_truth", version: "1", premise: options.premise, storyBibleId: options.storyBible, referenceAssetIds: options.referenceAssets ? csv(options.referenceAssets) : [] } };
+  }
+  if (options.profile === "history") {
+    if (!options.topic || !options.preset || !options.format || !options.audience)
+      throw new Error("History episodes require --topic, --preset, --format, and --audience.");
+    return { content: { type: "history", version: "1", topic: options.topic, presetId: oneOf(options.preset, ["military-campaign", "civilization-rise-fall", "historical-biography", "archaeology-mystery", "world-war-geopolitics", "royal-court-intrigue", "everyday-life", "disaster-pandemic-survival", "technology-trade-transformation", "dark-strange-history"] as const, "--preset"), format: oneOf(options.format, ["short", "standard", "long"] as const, "--format"), audienceLevel: oneOf(options.audience, ["general", "enthusiast", "academic-lite"] as const, "--audience"), ...(options.period ? { period: oneOf(options.period, ["prehistory", "ancient", "late antiquity", "medieval", "early modern", "industrial age", "modern", "contemporary history", "cross-period"] as const, "--period") } : {}) } };
+  }
+  if (options.profile === "strategic_reinvention") {
+    if (!options.episodeMode || !options.sourceAssets)
+      throw new Error("Strategic reinvention episodes require --episode-mode and --source-assets.");
+    return { content: { type: "strategic_reinvention", version: "1", creatorProfileId: "veronica-benini", episodeMode: oneOf(options.episodeMode, ["story-to-strategy", "tactical-lesson", "position-essay", "myth-reality", "decision-framework", "case-diagnosis", "q-and-a", "guided-exercise"] as const, "--episode-mode"), canonicalLocale: "it", sourceAssetIds: csv(options.sourceAssets) } };
   }
   if (!options.curriculumSource || !options.skill || !options.grade || !options.difficulty || !options.presentationPreset || !options.audioPreset)
     throw new Error("Mathematics episodes require curriculum, skill, grade, difficulty, presentation, and audio options.");
@@ -127,7 +144,7 @@ type EpisodeCommandOptions = Omit<Parameters<typeof episodeInput>[0], "profile" 
 
 function parsedEpisodeInput(options: EpisodeCommandOptions): EpisodeInput {
   return episodeInput({
-    profile: oneOf(options.profile, ["dark_truth", "mathematics_education"] as const, "--profile"),
+    profile: oneOf(options.profile, ["dark_truth", "mathematics_education", "history", "strategic_reinvention"] as const, "--profile"),
     ...(options.premise ? { premise: options.premise } : {}),
     ...(options.storyBible ? { storyBible: options.storyBible } : {}),
     ...(options.referenceAssets ? { referenceAssets: options.referenceAssets } : {}),
@@ -137,6 +154,13 @@ function parsedEpisodeInput(options: EpisodeCommandOptions): EpisodeInput {
     ...(options.difficulty ? { difficulty: oneOf(options.difficulty, ["foundation", "standard", "challenge"] as const, "--difficulty") } : {}),
     ...(options.presentationPreset ? { presentationPreset: options.presentationPreset } : {}),
     ...(options.audioPreset ? { audioPreset: options.audioPreset } : {}),
+    ...(options.topic ? { topic: options.topic } : {}),
+    ...(options.preset ? { preset: options.preset } : {}),
+    ...(options.format ? { format: options.format } : {}),
+    ...(options.audience ? { audience: options.audience } : {}),
+    ...(options.period ? { period: options.period } : {}),
+    ...(options.episodeMode ? { episodeMode: options.episodeMode } : {}),
+    ...(options.sourceAssets ? { sourceAssets: options.sourceAssets } : {}),
   });
 }
 
@@ -170,7 +194,7 @@ export function registerConnectedApiCommands(program: Command, dependencies: Con
 
   api.command("project").command("create")
     .requiredOption("--workspace <id>").requiredOption("--name <name>")
-    .requiredOption("--profile <profile>", "dark_truth or mathematics_education")
+    .requiredOption("--profile <profile>", "dark_truth, mathematics_education, history, or strategic_reinvention")
     .action((options: { workspace: string; name: string; profile: string }) =>
       run("createProject", (client) => client.createProject(options.workspace, { name: options.name, profile: oneOf(options.profile, ["dark_truth", "mathematics_education"] as const, "--profile") }))());
 
@@ -181,16 +205,20 @@ export function registerConnectedApiCommands(program: Command, dependencies: Con
     .option("--premise <text>").option("--story-bible <id>").option("--reference-assets <ids>")
     .option("--curriculum-source <id>").option("--skill <id>").option("--grade <number>")
     .option("--difficulty <difficulty>").option("--presentation-preset <id>").option("--audio-preset <id>")
+    .option("--topic <text>").option("--preset <id>").option("--format <format>").option("--audience <level>").option("--period <period>")
+    .option("--episode-mode <mode>").option("--source-assets <ids>")
     .action((options: EpisodeCommandOptions) =>
       run("createEpisode", (client) => client.createEpisode(options.workspace, options.project, parsedEpisodeInput(options)))());
   episode.command("get").requiredOption("--workspace <id>").requiredOption("--project <id>").requiredOption("--episode <id>")
     .action((o: { workspace: string; project: string; episode: string }) => run("getEpisode", (client) => client.getEpisode(o.workspace, o.project, o.episode))());
   episode.command("replace")
     .requiredOption("--workspace <id>").requiredOption("--project <id>").requiredOption("--episode <id>").requiredOption("--if-match <etag>")
-    .requiredOption("--profile <profile>", "dark_truth or mathematics_education")
+    .requiredOption("--profile <profile>", "dark_truth, mathematics_education, history, or strategic_reinvention")
     .option("--premise <text>").option("--story-bible <id>").option("--reference-assets <ids>")
     .option("--curriculum-source <id>").option("--skill <id>").option("--grade <number>")
     .option("--difficulty <difficulty>").option("--presentation-preset <id>").option("--audio-preset <id>")
+    .option("--topic <text>").option("--preset <id>").option("--format <format>").option("--audience <level>").option("--period <period>")
+    .option("--episode-mode <mode>").option("--source-assets <ids>")
     .action((options: EpisodeCommandOptions & { episode: string; ifMatch: string }) =>
       run("replaceEpisodeContent", (client) => client.replaceEpisodeContent(options.workspace, options.project, options.episode, parsedEpisodeInput(options), { ifMatch: options.ifMatch }))());
 

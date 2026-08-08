@@ -100,7 +100,8 @@ interface ProjectRow {
     | "dark_truth"
     | "mathematics_education"
     | "dynamic_generic"
-    | "history";
+    | "history"
+    | "strategic_reinvention";
   readonly revision: string | number;
   readonly created_at: Date | string;
   readonly updated_at: Date | string;
@@ -142,7 +143,8 @@ export interface ApiProjectRecord {
     | "dark_truth"
     | "mathematics_education"
     | "dynamic_generic"
-    | "history";
+    | "history"
+    | "strategic_reinvention";
   readonly revision: number;
   readonly createdAt: string;
   readonly updatedAt: string;
@@ -743,7 +745,8 @@ export class WorkspaceTransactionRepository {
       | "dark_truth"
       | "mathematics_education"
       | "dynamic_generic"
-      | "history";
+      | "history"
+      | "strategic_reinvention";
     readonly now: string;
   }): Promise<ApiProjectRecord> {
     try {
@@ -774,6 +777,21 @@ export class WorkspaceTransactionRepository {
       [workspaceId, projectId]
     );
     return result.rows[0] ? mapProject(result.rows[0]) : null;
+  }
+
+  public async listProjects(input: {
+    readonly workspaceId: string;
+    readonly after?: { readonly createdAt: string; readonly projectId: string };
+    readonly size: number;
+  }): Promise<readonly ApiProjectRecord[]> {
+    const result = await this.connection.query<ProjectRow>(
+      `SELECT * FROM projects
+       WHERE workspace_id = $1
+         AND ($2::timestamptz IS NULL OR (created_at, project_id) > ($2::timestamptz, $3::text))
+       ORDER BY created_at, project_id LIMIT $4`,
+      [input.workspaceId, input.after?.createdAt ?? null, input.after?.projectId ?? "", input.size]
+    );
+    return result.rows.map(mapProject);
   }
 
   public async createEpisode(input: {
@@ -816,6 +834,23 @@ export class WorkspaceTransactionRepository {
       [workspaceId, projectId, episodeId]
     );
     return result.rows[0] ? mapEpisode(result.rows[0]) : null;
+  }
+
+  public async listEpisodes(input: {
+    readonly workspaceId: string;
+    readonly projectId: string;
+    readonly after?: { readonly createdAt: string; readonly episodeId: string };
+    readonly size: number;
+  }): Promise<readonly ApiEpisodeRecord[]> {
+    const result = await this.connection.query<EpisodeRow>(
+      `SELECT workspace_id, project_id, episode_id, content, revision, created_at, updated_at
+       FROM episodes
+       WHERE workspace_id = $1 AND project_id = $2
+         AND ($3::timestamptz IS NULL OR (created_at, episode_id) > ($3::timestamptz, $4::text))
+       ORDER BY created_at, episode_id LIMIT $5`,
+      [input.workspaceId, input.projectId, input.after?.createdAt ?? null, input.after?.episodeId ?? "", input.size]
+    );
+    return result.rows.map(mapEpisode);
   }
 
   /**
@@ -1106,6 +1141,53 @@ export class WorkspaceTransactionRepository {
       : null;
   }
 
+  public async listAssetDescriptors(input: {
+    readonly workspaceId: string;
+    readonly projectId: string;
+    readonly after?: string;
+    readonly size: number;
+  }): Promise<readonly ApiAssetDescriptorRecord[]> {
+    const result = await this.connection.query<{
+      readonly asset_id: string;
+      readonly mime_type: string;
+      readonly byte_count: string | number;
+      readonly content_hash: string;
+      readonly lifecycle: string;
+      readonly provenance: string;
+    }>(
+      `SELECT asset_id, mime_type, byte_count, content_hash, lifecycle, provenance
+       FROM assets
+       WHERE workspace_id = $1 AND project_id = $2 AND asset_id > $3
+         AND mime_type IS NOT NULL AND byte_count IS NOT NULL
+         AND lifecycle IS NOT NULL AND provenance IS NOT NULL
+       ORDER BY asset_id LIMIT $4`,
+      [input.workspaceId, input.projectId, input.after ?? "", input.size]
+    );
+    return result.rows.map((row) => ({
+      assetId: row.asset_id,
+      mimeType: row.mime_type,
+      bytes: Number(row.byte_count),
+      sha256: row.content_hash,
+      lifecycle: row.lifecycle,
+      provenance: row.provenance,
+    }));
+  }
+
+  public async getApprovalChallenge(input: {
+    readonly workspaceId: string;
+    readonly projectId: string;
+    readonly challengeId: string;
+  }): Promise<ApprovalChallengeRecord | null> {
+    const result = await this.connection.query<ApprovalChallengeRow>(
+      `SELECT workspace_id, project_id, challenge_id, subject_id, subject_revision,
+              artifact_hash, expires_at, consumed_at, created_at
+       FROM approval_challenges
+       WHERE workspace_id = $1 AND project_id = $2 AND challenge_id = $3`,
+      [input.workspaceId, input.projectId, input.challengeId]
+    );
+    return result.rows[0] ? mapApprovalChallenge(result.rows[0]) : null;
+  }
+
   public async listValidations(input: {
     readonly workspaceId: string;
     readonly projectId: string;
@@ -1257,15 +1339,19 @@ export class WorkspaceTransactionRepository {
       hasScope &&
       ((input.inputArtifactHashes?.length ?? 0) === 0 ||
         (input.outputArtifactHashes?.length ?? 0) === 0 ||
-        [...(input.inputArtifactHashes ?? []), ...(input.outputArtifactHashes ?? [])]
-          .some((hash) => !/^[a-f0-9]{64}$/u.test(hash)))
+        [
+          ...(input.inputArtifactHashes ?? []),
+          ...(input.outputArtifactHashes ?? []),
+        ].some((hash) => !/^[a-f0-9]{64}$/u.test(hash)))
     ) {
       throw new WorkflowStateTransitionError(
         "Scoped approval input/output hashes must be non-empty lowercase SHA-256 digests."
       );
     }
     if (hasScope && input.actor?.trim().length === 0) {
-      throw new WorkflowStateTransitionError("Scoped approval actor is required.");
+      throw new WorkflowStateTransitionError(
+        "Scoped approval actor is required."
+      );
     }
     if (hasScope) {
       approvalScopeSchema.parse({
@@ -1320,7 +1406,7 @@ export class WorkspaceTransactionRepository {
                 highRisk: input.highRisk ?? false,
                 requiredDistinctActors: input.highRisk
                   ? Math.max(2, input.requiredDistinctActors ?? 1)
-                  : input.requiredDistinctActors ?? 1,
+                  : (input.requiredDistinctActors ?? 1),
               }
             : {}),
         },
@@ -1402,7 +1488,7 @@ export class WorkspaceTransactionRepository {
         input.highRisk ?? false,
         input.highRisk
           ? Math.max(2, input.requiredDistinctActors ?? 1)
-          : input.requiredDistinctActors ?? 1,
+          : (input.requiredDistinctActors ?? 1),
       ]
     );
     const approvalEventType =
@@ -1435,8 +1521,10 @@ export class WorkspaceTransactionRepository {
                 highRisk: input.highRisk ?? false,
                 requiredDistinctActors: input.highRisk
                   ? Math.max(2, input.requiredDistinctActors ?? 1)
-                  : input.requiredDistinctActors ?? 1,
-                ...(input.reviewerRole ? { reviewerRole: input.reviewerRole } : {}),
+                  : (input.requiredDistinctActors ?? 1),
+                ...(input.reviewerRole
+                  ? { reviewerRole: input.reviewerRole }
+                  : {}),
                 ...(input.expiresAt ? { expiresAt: input.expiresAt } : {}),
                 ...(input.supersedesApprovalId
                   ? { supersedesApprovalId: input.supersedesApprovalId }
@@ -1663,7 +1751,9 @@ export class WorkspaceTransactionRepository {
           .approvalPolicy;
         if (
           replayPolicy !== binding.approvalPolicy &&
-          !(replayPolicy === undefined && binding.approvalPolicy === "legacy-v1")
+          !(
+            replayPolicy === undefined && binding.approvalPolicy === "legacy-v1"
+          )
         ) {
           throw new WorkflowStateTransitionError(
             "Publication replay approval policy does not match the immutable intent."
@@ -3360,15 +3450,30 @@ export class PostgresWorkflowAdmissionPort {
         : undefined;
     const result = await this.options.repository.withWorkspaceTransaction(
       input.execution.workspace.id,
-      (transaction) =>
-        transaction.admitWorkflow({
+      async (transaction) => {
+        const project = binding
+          ? await transaction.getProject(
+              input.execution.workspace.id,
+              binding.projectId
+            )
+          : null;
+        if (binding && !project) {
+          throw new WorkflowStateTransitionError(
+            "Workflow admission project was not found."
+          );
+        }
+        return transaction.admitWorkflow({
           run: {
             workspaceId: input.execution.workspace.id,
             runId: workflowRunId,
             status: "queued",
             execution: {
               ...this.executionDefaults,
-              input: { command: input.command, input: input.input },
+              input: {
+                command: input.command,
+                input: input.input,
+                ...(project ? { profile: project.profile } : {}),
+              },
             },
             supersedesRunId: null,
             createdAt: now,
@@ -3399,7 +3504,8 @@ export class PostgresWorkflowAdmissionPort {
           },
           ...(binding ? { binding } : {}),
           now,
-        })
+        });
+      }
     );
     return responseFromAdmission(result.response);
   }
