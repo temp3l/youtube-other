@@ -16,7 +16,7 @@
     "cross-kind-inference": 6,
     "causality": 2,
     "direction": 3,
-    "proper-name-atomicity": 4,
+    "proper-name-atomicity": 5,
     "cardinality": 2,
     "taxonomy-extension-required": 1
   }
