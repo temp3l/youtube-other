@@ -1,6 +1,6 @@
 # YSAAS implementation progress
 
-Current wave: Wave 2 in progress (YSAAS-005 complete; YSAAS-006+ next)
+Current wave: Wave 2 in progress (YSAAS-010 complete; YSAAS-011+ next)
 
 ## Anti-stuck execution rules (session)
 
@@ -44,6 +44,12 @@ Notes: Portfolio filter contracts, recovery classifier, projector, persistence S
 
 ### YSAAS-006
 Status: completed
-Commit: pending
+Commit: 50272db
 Validation: `artifact-invalidation.unit.test.ts` pass (4); domain emit pass; `apps/api` postgres use-case typecheck pass
 Notes: Production-unit graph, invalidation preview, gate evidence; API preview + regeneration routes; persistence unit loader and selective workflow execution deferred
+
+### YSAAS-010
+Status: completed
+Commit: pending
+Validation: `usage-quota.unit.test.ts` pass (10); domain/persistence emit pass; `apps/api` typecheck pass for new quota/health routes
+Notes: Usage dimensions, reservation lifecycle, estimate projection with cache/reuse, provider health resolver; enriched quota dimensions, usage filters, `GET /v1/workspaces/{workspace}/provider-health`

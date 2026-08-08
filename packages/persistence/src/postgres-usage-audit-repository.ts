@@ -1261,10 +1261,63 @@ export class PostgresUsageAuditRepository {
     });
   }
 
+  public async listWorkspaceQuotaDimensionSummaries(
+    workspaceId: string
+  ): Promise<
+    readonly {
+      readonly dimension: QuotaDimension;
+      readonly limitUnits: bigint;
+      readonly reservedUnits: bigint;
+      readonly settledUnits: bigint;
+    }[]
+  > {
+    return this.transaction(workspaceId, async (client) => {
+      const result = await client.query<{
+        readonly dimension: QuotaDimension;
+        readonly limit_units: bigint | string;
+        readonly reserved_units: bigint | string;
+        readonly settled_units: bigint | string;
+      }>(
+        `SELECT policy.dimension,
+                policy.limit_units,
+                COALESCE(SUM(reservation.reserved_units) FILTER (
+                  WHERE reservation.state = 'reserved'
+                ), 0)::bigint AS reserved_units,
+                COALESCE(SUM(reservation.settled_units) FILTER (
+                  WHERE reservation.state = 'settled'
+                ), 0)::bigint AS settled_units
+         FROM quota_dimension_policies AS policy
+         LEFT JOIN quota_dimension_reservations AS reservation
+           ON reservation.workspace_id = policy.workspace_id
+          AND reservation.scope_type = policy.scope_type
+          AND reservation.scope_id = policy.scope_id
+          AND reservation.dimension = policy.dimension
+         WHERE policy.workspace_id = $1
+           AND policy.scope_type = 'workspace'
+           AND policy.scope_id = policy.workspace_id
+         GROUP BY policy.dimension, policy.limit_units
+         ORDER BY policy.dimension`,
+        [workspaceId]
+      );
+      return result.rows.map((row) => ({
+        dimension: row.dimension,
+        limitUnits: BigInt(row.limit_units),
+        reservedUnits: BigInt(row.reserved_units),
+        settledUnits: BigInt(row.settled_units),
+      }));
+    });
+  }
+
   public async listUsage(input: {
     readonly workspaceId: string;
     readonly after?: { readonly occurredAt: string; readonly usageId: string };
     readonly size: number;
+    readonly subjectId?: string;
+    readonly operation?: string;
+    readonly unit?: string;
+    readonly attemptId?: string;
+    readonly occurredAfter?: string;
+    readonly occurredBefore?: string;
   }): Promise<readonly UsageLedgerRecord[]> {
     this.assertPageSize(input.size);
     return this.transaction(input.workspaceId, async (client) => {
@@ -1286,12 +1339,24 @@ export class PostgresUsageAuditRepository {
          FROM usage_ledger
          WHERE workspace_id = $1
            AND ($2::timestamptz IS NULL OR (occurred_at, usage_id) > ($2::timestamptz, $3::text))
+           AND ($5::text IS NULL OR subject_id = $5::text)
+           AND ($6::text IS NULL OR operation = $6::text)
+           AND ($7::text IS NULL OR unit = $7::text)
+           AND ($8::text IS NULL OR attempt_id = $8::text)
+           AND ($9::timestamptz IS NULL OR occurred_at >= $9::timestamptz)
+           AND ($10::timestamptz IS NULL OR occurred_at <= $10::timestamptz)
          ORDER BY occurred_at, usage_id LIMIT $4`,
         [
           input.workspaceId,
           input.after?.occurredAt ?? null,
           input.after?.usageId ?? "",
           input.size,
+          input.subjectId ?? null,
+          input.operation ?? null,
+          input.unit ?? null,
+          input.attemptId ?? null,
+          input.occurredAfter ?? null,
+          input.occurredBefore ?? null,
         ]
       );
       return result.rows.map((record) => ({

@@ -16,6 +16,10 @@ export * from "./workflow-portfolio-projector.js";
 export * from "./artifact-lineage-contracts.js";
 export * from "./production-unit-graph.js";
 export * from "./artifact-invalidation.js";
+export * from "./usage-quota-contracts.js";
+export * from "./usage-reservation-lifecycle.js";
+export * from "./usage-estimate-projector.js";
+export * from "./provider-health-resolver.js";
 
 const episodeIdPattern = /^[a-z0-9][a-z0-9-]*$/;
 const sceneIdPattern = /^scene-[0-9]{3}$/;

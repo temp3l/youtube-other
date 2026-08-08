@@ -70,11 +70,18 @@ export const platformOpenApiPaths = {
     "/v1/workspaces/{workspace}/usage-records": {
       get: {
         operationId: "listUsageRecords",
-        description: "Requires the `usage.read` workspace permission.",
+        description:
+          "Requires the `usage.read` workspace permission. Supports optional filters for subject, operation, unit, attempt, and occurred time range.",
         parameters: [
           ...workspaceParameters,
           parameter("PageSize"),
           parameter("PageAfter"),
+          parameter("FilterSubjectId"),
+          parameter("FilterOperation"),
+          parameter("FilterUnit"),
+          parameter("FilterAttemptId"),
+          parameter("FilterOccurredAfter"),
+          parameter("FilterOccurredBefore"),
         ],
         responses: {
           "200": {
@@ -85,6 +92,22 @@ export const platformOpenApiPaths = {
           "400": response("BadRequest"),
           ...authenticatedErrors,
           "404": response("NotFound"),
+        },
+      },
+    },
+    "/v1/workspaces/{workspace}/provider-health": {
+      get: {
+        operationId: "listProviderHealth",
+        description:
+          "Lists advisory provider health for configured integrations. Requires `usage.read`.",
+        parameters: workspaceParameters,
+        responses: {
+          "200": {
+            description: "Provider health page",
+            headers: { "x-request-id": responseHeader("RequestId") },
+            content: json("ProviderHealthPage"),
+          },
+          ...authenticatedErrors,
         },
       },
     },

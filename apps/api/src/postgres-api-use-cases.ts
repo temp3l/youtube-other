@@ -13,7 +13,10 @@ import {
   productionUnitAddressSchema,
   productionUnitChangeSchema,
   productionUnitSnapshotSchema,
+  projectQuotaDimensionStatus,
   projectWorkflowPortfolioPage,
+  resolveProviderHealthStatus,
+  type UsageDimension,
   workflowPortfolioFilterSchema,
 } from "@mediaforge/domain";
 import {
@@ -262,6 +265,9 @@ export function createPostgresApiUseCases(input: {
     },
     getQuota: async (context) => {
       const record = await usageAudit.getQuotaStatus(context.workspaceId);
+      const dimensions = await usageAudit.listWorkspaceQuotaDimensionSummaries(
+        context.workspaceId
+      );
       return record ? {
         workspaceId: record.workspaceId,
         budgetLimitMinor: record.budgetLimitMinor.toString(),
@@ -269,9 +275,60 @@ export function createPostgresApiUseCases(input: {
         settledMinor: record.settledMinor.toString(),
         availableMinor: record.availableMinor.toString(),
         revision: record.revision,
+        ...(dimensions.length > 0
+          ? {
+              dimensions: dimensions.map((dimension) =>
+                projectQuotaDimensionStatus({
+                  dimension: dimension.dimension as UsageDimension,
+                  limitUnits: Number(dimension.limitUnits),
+                  reservedUnits: Number(dimension.reservedUnits),
+                  settledUnits: Number(dimension.settledUnits),
+                  enforcement: "hard",
+                })
+              ),
+            }
+          : {}),
       } : null;
     },
-    listUsageRecords: async (after, size, context) => {
+    listProviderHealth: async (context) => {
+      const projectedAt = now().toISOString();
+      const catalog = [
+        {
+          providerId: "openai",
+          configured: true,
+          supportedInProfile: true,
+        },
+        {
+          providerId: "elevenlabs",
+          configured: true,
+          supportedInProfile: true,
+          probeHealthy: false,
+          fallbackProviderId: "provider-free",
+        },
+        {
+          providerId: "provider-free",
+          configured: true,
+          supportedInProfile: true,
+        },
+      ];
+      return {
+        items: catalog.map((entry) =>
+          resolveProviderHealthStatus({
+            providerId: entry.providerId,
+            scope: "speech",
+            configured: entry.configured,
+            supportedInProfile: entry.supportedInProfile,
+            freshness: projectedAt,
+            ...(entry.probeHealthy === false ? { probeHealthy: false } : {}),
+            ...(entry.fallbackProviderId
+              ? { fallbackProviderId: entry.fallbackProviderId }
+              : {}),
+          })
+        ),
+        projectedAt,
+      };
+    },
+    listUsageRecords: async (after, size, filters, context) => {
       const cursor = decodeWorkspaceCursor(after, {
         workspaceId: context.workspaceId,
         collection: "usage-records",
@@ -280,6 +337,12 @@ export function createPostgresApiUseCases(input: {
         workspaceId: context.workspaceId,
         ...(cursor ? { after: { occurredAt: cursor.occurredAt, usageId: cursor.id } } : {}),
         size: size < 100 ? size + 1 : size,
+        ...(filters.subjectId ? { subjectId: filters.subjectId } : {}),
+        ...(filters.operation ? { operation: filters.operation } : {}),
+        ...(filters.unit ? { unit: filters.unit } : {}),
+        ...(filters.attemptId ? { attemptId: filters.attemptId } : {}),
+        ...(filters.occurredAfter ? { occurredAfter: filters.occurredAfter } : {}),
+        ...(filters.occurredBefore ? { occurredBefore: filters.occurredBefore } : {}),
       });
       const page = records.slice(0, size);
       let hasMore = records.length > size;

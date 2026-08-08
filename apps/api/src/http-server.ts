@@ -170,9 +170,23 @@ export interface ApiUseCases {
   getQuota(
     context: Required<Pick<ApiRequestContext, "workspaceId" | "requestId">>
   ): Promise<ApiWorkspaceQuotaStatus | null>;
+  listProviderHealth(
+    context: Required<Pick<ApiRequestContext, "workspaceId" | "requestId">>
+  ): Promise<{
+    readonly items: readonly Record<string, unknown>[];
+    readonly projectedAt: string;
+  }>;
   listUsageRecords(
     after: string | undefined,
     size: number,
+    filters: {
+      readonly subjectId?: string;
+      readonly operation?: string;
+      readonly unit?: string;
+      readonly attemptId?: string;
+      readonly occurredAfter?: string;
+      readonly occurredBefore?: string;
+    },
     context: Required<Pick<ApiRequestContext, "workspaceId" | "requestId">>
   ): Promise<{
     readonly items: readonly ApiUsageRecord[];
@@ -946,6 +960,8 @@ function requiredPermission(
     return "audit.read";
   if (method === "GET" && !matched.project && matched.tail === "workflow-portfolio")
     return "content.read";
+  if (method === "GET" && !matched.project && matched.tail === "provider-health")
+    return "usage.read";
   if (method === "POST" && !matched.project && matched.tail === "")
     return "content.write";
   if (method === "GET" && !matched.project && matched.tail === "")
@@ -1147,6 +1163,14 @@ export function createApiServer(
         });
       }
       if (
+        request.method === "GET" &&
+        !matched.project &&
+        matched.tail === "provider-health"
+      ) {
+        const result = await useCases.listProviderHealth(context);
+        return json(response, 200, result, { "x-request-id": requestIdValue });
+      }
+      if (
         !matched.project &&
         request.method === "POST" &&
         /^speech\/profile-versions\/[^/]+:deprecate$/u.test(matched.tail ?? "")
@@ -1173,6 +1197,26 @@ export function createApiServer(
         const result = await useCases.listUsageRecords(
           url.searchParams.get("page[after]") ?? undefined,
           pageSize(url),
+          {
+            ...(url.searchParams.get("filter[subjectId]")
+              ? { subjectId: url.searchParams.get("filter[subjectId]")! }
+              : {}),
+            ...(url.searchParams.get("filter[operation]")
+              ? { operation: url.searchParams.get("filter[operation]")! }
+              : {}),
+            ...(url.searchParams.get("filter[unit]")
+              ? { unit: url.searchParams.get("filter[unit]")! }
+              : {}),
+            ...(url.searchParams.get("filter[attemptId]")
+              ? { attemptId: url.searchParams.get("filter[attemptId]")! }
+              : {}),
+            ...(url.searchParams.get("filter[occurredAfter]")
+              ? { occurredAfter: url.searchParams.get("filter[occurredAfter]")! }
+              : {}),
+            ...(url.searchParams.get("filter[occurredBefore]")
+              ? { occurredBefore: url.searchParams.get("filter[occurredBefore]")! }
+              : {}),
+          },
           context
         );
         return json(response, 200, result, { "x-request-id": requestIdValue });

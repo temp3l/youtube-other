@@ -240,6 +240,42 @@ export const openApiComponents = {
           ],
         },
       },
+      FilterSubjectId: {
+        name: "filter[subjectId]",
+        in: "query",
+        required: false,
+        schema: schema("OpaqueId"),
+      },
+      FilterOperation: {
+        name: "filter[operation]",
+        in: "query",
+        required: false,
+        schema: { type: "string", minLength: 1, maxLength: 160 },
+      },
+      FilterUnit: {
+        name: "filter[unit]",
+        in: "query",
+        required: false,
+        schema: { type: "string", minLength: 1, maxLength: 160 },
+      },
+      FilterAttemptId: {
+        name: "filter[attemptId]",
+        in: "query",
+        required: false,
+        schema: schema("OpaqueId"),
+      },
+      FilterOccurredAfter: {
+        name: "filter[occurredAfter]",
+        in: "query",
+        required: false,
+        schema: { type: "string", format: "date-time" },
+      },
+      FilterOccurredBefore: {
+        name: "filter[occurredBefore]",
+        in: "query",
+        required: false,
+        schema: { type: "string", format: "date-time" },
+      },
     },
     schemas: {
       OpaqueId: {
@@ -469,6 +505,84 @@ export const openApiComponents = {
           settledMinor: schema("NonNegativeBigIntString"),
           availableMinor: schema("NonNegativeBigIntString"),
           revision: schema("Revision"),
+          dimensions: {
+            type: "array",
+            items: schema("QuotaDimensionStatus"),
+          },
+        },
+      },
+      QuotaDimensionStatus: {
+        type: "object",
+        additionalProperties: false,
+        required: [
+          "dimension",
+          "limitUnits",
+          "reservedUnits",
+          "settledUnits",
+          "availableUnits",
+          "enforcement",
+        ],
+        properties: {
+          dimension: {
+            type: "string",
+            enum: [
+              "active_workflows",
+              "storage_bytes",
+              "batch_items",
+              "active_batches",
+              "publication_count",
+              "active_publications",
+              "provider_budget_minor",
+              "principal_provider_budget_minor",
+              "speech_characters",
+            ],
+          },
+          limitUnits: { type: "integer", minimum: 0 },
+          reservedUnits: { type: "integer", minimum: 0 },
+          settledUnits: { type: "integer", minimum: 0 },
+          availableUnits: { type: "integer", minimum: 0 },
+          enforcement: { type: "string", enum: ["hard", "soft"] },
+        },
+      },
+      ProviderHealthStatus: {
+        type: "object",
+        additionalProperties: false,
+        required: [
+          "providerId",
+          "scope",
+          "state",
+          "fallbackExplicit",
+          "freshness",
+        ],
+        properties: {
+          providerId: schema("OpaqueId"),
+          scope: { type: "string", enum: ["speech", "image", "render"] },
+          state: {
+            type: "string",
+            enum: [
+              "available",
+              "degraded",
+              "unavailable",
+              "unconfigured",
+              "unsupported",
+            ],
+          },
+          fallbackProviderId: schema("OpaqueId"),
+          fallbackExplicit: { type: "boolean" },
+          freshness: schema("DateTime"),
+          message: { type: "string", minLength: 1, maxLength: 2_000 },
+        },
+      },
+      ProviderHealthPage: {
+        type: "object",
+        additionalProperties: false,
+        required: ["items", "projectedAt"],
+        properties: {
+          items: {
+            type: "array",
+            items: schema("ProviderHealthStatus"),
+          },
+          projectedAt: schema("DateTime"),
         },
       },
       UsageRecord: {

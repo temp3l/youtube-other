@@ -181,6 +181,9 @@ describe("PostgreSQL API use cases", () => {
         reserved_minor: "10",
         settled_minor: "20",
       } as unknown as T] };
+      if (sql.includes("FROM quota_dimension_policies AS policy") && sql.includes("GROUP BY")) {
+        return { rows: [] };
+      }
       if (sql.includes("FROM usage_ledger")) {
         readValues.push(values);
         usageReads += 1;
@@ -216,14 +219,25 @@ describe("PostgreSQL API use cases", () => {
       availableMinor: "90071992547409900",
       revision: 8,
     });
-    const usage = await useCases.listUsageRecords(undefined, 1, context);
+    const usage = await useCases.listUsageRecords(undefined, 1, {}, context);
     expect(usage).toMatchObject({
       items: [{ quantityUnits: "9007199254740993", costMinor: "42" }],
       nextAfter: expect.any(String),
     });
     expect(usage.nextAfter).toMatch(/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/u);
-    await expect(useCases.listUsageRecords(usage.nextAfter, 1, context)).resolves.toEqual({ items: [] });
-    expect(readValues[1]).toEqual(["ws-1", "2026-08-01T12:00:00.000Z", "usage-1", 2]);
+    await expect(useCases.listUsageRecords(usage.nextAfter, 1, {}, context)).resolves.toEqual({ items: [] });
+    expect(readValues[1]).toEqual([
+      "ws-1",
+      "2026-08-01T12:00:00.000Z",
+      "usage-1",
+      2,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+    ]);
 
     const audit = await useCases.listAuditEvents(undefined, 1, context);
     expect(audit).toMatchObject({ items: [{ id: "audit-1", actorId: "user-1" }], nextAfter: expect.any(String) });
@@ -231,7 +245,7 @@ describe("PostgreSQL API use cases", () => {
       .rejects.toMatchObject({ code: "invalid_request" });
     await expect(useCases.listAuditEvents(usage.nextAfter, 1, context))
       .rejects.toMatchObject({ code: "invalid_request" });
-    await expect(useCases.listUsageRecords(usage.nextAfter, 1, { ...context, workspaceId: "ws-2" }))
+    await expect(useCases.listUsageRecords(usage.nextAfter, 1, {}, { ...context, workspaceId: "ws-2" }))
       .rejects.toMatchObject({ code: "invalid_request" });
   });
 

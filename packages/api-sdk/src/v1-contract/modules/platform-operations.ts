@@ -46,6 +46,15 @@ export const platformSdkV1Operations = {
     requiredHeaders: [],
     problemResponses: true,
   },
+  listProviderHealth: {
+    method: "GET",
+    path: "/v1/workspaces/{workspace}/provider-health",
+    successStatus: "200",
+    responseSchema: "ProviderHealthPage",
+    requestSchema: null,
+    requiredHeaders: [],
+    problemResponses: true,
+  },
   listAuditEvents: {
     method: "GET",
     path: "/v1/workspaces/{workspace}/audit-events",
