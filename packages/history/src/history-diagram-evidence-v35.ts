@@ -124,6 +124,7 @@ export function compileRomanImperialResourceCycleV35(input: {
     state: finalizeDiagramSemanticStateV35({
       state: baseState,
       evidenceClaimText: evidenceText,
+      claims: input.claims,
     }),
   };
 }
@@ -185,6 +186,7 @@ export function compileBlackDeathTransmissionDiagramV35(input: {
     state: finalizeDiagramSemanticStateV35({
       state: baseState,
       evidenceClaimText: evidenceText,
+      claims: input.claims,
     }),
   };
 }
@@ -284,6 +286,7 @@ export function compileBlackDeathLabourConsequenceDiagramV35(input: {
     state: finalizeDiagramSemanticStateV35({
       state: baseState,
       evidenceClaimText: evidenceText,
+      claims: input.claims,
     }),
   };
 }
@@ -345,6 +348,7 @@ export function compileBlackDeathLabourPolicyDiagramV35(input: {
     state: finalizeDiagramSemanticStateV35({
       state: baseState,
       evidenceClaimText: evidenceText,
+      claims: input.claims,
     }),
   };
 }

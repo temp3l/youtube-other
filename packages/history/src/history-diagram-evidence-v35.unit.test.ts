@@ -41,7 +41,7 @@ describe("History V3.5 diagram evidence windows", () => {
       "armies and administration",
     ]);
     expect(compiled!.state.edges).toHaveLength(1);
-    expect(compiled!.state.semanticStatus).toBe("valid");
+    expect(compiled!.state.semanticStatus, compiled!.state.blockerCodes.join(", ")).toBe("valid");
     expect(
       validateDiagramSemanticBlockersV35({
         state: compiled!.state,

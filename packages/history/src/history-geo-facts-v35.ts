@@ -394,7 +394,7 @@ export function extractGeoFactsV35(input: {
     }
   }
 
-  return dedupeGeoFactsBySemanticIdentityV35(facts);
+  return dedupeGeoFactsBySemanticIdentityV35(facts, input.entities);
 }
 
 export function deriveMapCapabilitiesV35(input: {

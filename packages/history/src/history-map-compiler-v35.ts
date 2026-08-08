@@ -633,11 +633,6 @@ export function compileMapStateV35(input: {
   for (const place of [origin, ...waypointPlaces, destination ?? origin]) {
     if (place) labelPlaceMap.set(place.id, place);
   }
-  for (const qualifier of input.geographicQualifiers) {
-    if (!scopeClaimIds.includes(qualifier.claimId)) continue;
-    const place = resolveMentionPlace(qualifier.entityMentionId, entityById);
-    if (place) labelPlaceMap.set(place.id, place);
-  }
   const labelPlaces = [...labelPlaceMap.values()];
   const effectiveDestination = destination ?? origin;
   const shouldDrawRoute =
@@ -651,6 +646,7 @@ export function compileMapStateV35(input: {
     resolvedMapType: semantic.resolved,
     ...(semantic.downgradeReason ? { downgradeReason: semantic.downgradeReason } : {}),
     ...(semantic.resolutionNotes?.length ? { resolutionNotes: semantic.resolutionNotes } : {}),
+    owningClaimIds: normalizedProposal.claimIds,
     scopeClaimIds,
     geoFactIds: semantic.usedGeoFactIds,
     ...(shouldDrawRoute ? { routeGeometrySemantics } : {}),

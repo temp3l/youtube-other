@@ -8,6 +8,10 @@ import {
   validateDiagramEntailmentV35,
   validateDiagramEdgeEntailmentV35,
 } from "./history-diagram-entailment-v35.js";
+import {
+  assessDiagramPropositionEdgeV35,
+  diagramRelationshipCompatibilityV35,
+} from "./history-diagram-proposition-v35.js";
 import type { HistoryDiagramStateV34 } from "./history-v34-contracts.js";
 
 function claim(id: string, text: string) {
@@ -102,6 +106,25 @@ describe("History V3.5 diagram entailment", () => {
       entitySpans: ["Europe", "England", "King Edward"],
     });
     expect(blockers).toContain("DIAGRAM_RELATIONSHIP_TYPE_MISMATCH");
+  });
+
+  it("rejects an arbitrary A -> B pairing from a causal claim about different concepts", () => {
+    const causalClaim = {
+      ...claim(
+        "c-arbitrary",
+        "A was located in B while crop failure caused families to leave the region."
+      ),
+      claimKind: "causal" as const,
+    };
+    const result = assessDiagramPropositionEdgeV35({
+      fromLabel: "A",
+      toLabel: "B",
+      relationship: "leads-to",
+      linkedClaimIds: [causalClaim.id],
+      claims: [causalClaim],
+    });
+    expect(result.entailed).toBe(false);
+    expect(result.propositionRelations).toContain("located-in");
   });
 
   it("does not treat chronology as causality for sequence edges", () => {
@@ -219,7 +242,7 @@ describe("History V3.5 diagram entailment", () => {
 
   it("rejects unsupported Tutankhamun -> Egypt leads-to co-occurrence edges", () => {
     const text =
-      "Tutankhamun was buried in Egypt after his tomb was discovered in the Valley of the Kings.";
+      "Tutankhamun is famous because his burial survived, not because he was the greatest Egyptian ruler.";
     const state = {
       id: "diagram-state-tut",
       masterId: "diagram-master-tut",
@@ -258,7 +281,9 @@ describe("History V3.5 diagram entailment", () => {
       evidenceClaimText: text,
       claims: [claim("claim-tut", text)],
     });
-    expect(blockers).toContain("DIAGRAM_RELATIONSHIP_TYPE_MISMATCH");
+    expect(blockers).toEqual(
+      expect.arrayContaining(["DIAGRAM_UNGROUNDED_NODE", "DIAGRAM_UNSUPPORTED_EDGE"])
+    );
   });
 
   it("allows normalized labour scarcity -> wage pressure mechanism edges", () => {
@@ -284,5 +309,26 @@ describe("History V3.5 diagram entailment", () => {
       evidenceClaimText: text,
     });
     expect(blockers).toEqual([]);
+  });
+
+  it.each([
+    ["A was located in B.", "located-in"],
+    ["A happened before B.", "temporal-before"],
+    ["A and B were both discussed.", "mentions-together"],
+  ] as const)("does not convert %s evidence into a causal edge", (text, expectedRelation) => {
+    const result = assessDiagramPropositionEdgeV35({
+      fromLabel: "A",
+      toLabel: "B",
+      relationship: "causes",
+      evidenceClaimText: text,
+    });
+    expect(result.entailed).toBe(false);
+    expect(result.propositionRelations).toContain(expectedRelation);
+  });
+
+  it("uses an explicit exhaustive relationship compatibility table", () => {
+    expect(diagramRelationshipCompatibilityV35("sequence")).toEqual(["temporal-before"]);
+    expect(diagramRelationshipCompatibilityV35("causes")).toEqual(["causal"]);
+    expect(diagramRelationshipCompatibilityV35("associated-with")).toEqual(["association"]);
   });
 });

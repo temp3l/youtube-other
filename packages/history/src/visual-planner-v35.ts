@@ -21,8 +21,9 @@ import {
   proposeMapIntentsV35,
 } from "./history-geo-v35.js";
 import {
-  mergeMapCompilerScopeV35,
-  semanticMapStateIdentityV35,
+  buildCanonicalMapEvidenceScopesV35,
+  canonicalMapExplanationIdentityV35,
+  selectCanonicalMapWindowV35,
 } from "./history-map-semantic-dedup-v35.js";
 import {
   buildReviewableGeoFactsV35,
@@ -53,7 +54,6 @@ import {
   collectPurposeTemporals,
   isGenericVisualPurposeText,
   isRouteMapPurpose,
-  mapIntentSignature,
   shotDurationWarningsV35,
   validateDiagramSemanticsV34,
   validateMapLabelProvenanceV34,
@@ -702,6 +702,7 @@ export function computeCanonicalBeatSegmentationSignatureV35(
 }
 
 function adoptCompiledMapStateV35(input: {
+  readonly episodeId: string;
   readonly cache: Map<
     string,
     {
@@ -719,24 +720,12 @@ function adoptCompiledMapStateV35(input: {
   readonly master: HistoryVisualPlanV35["mapMasters"][number];
   readonly state: HistoryVisualPlanV35["mapStates"][number];
 } {
-  const semanticKey = semanticMapStateIdentityV35(input.compiled.state);
+  const semanticKey = canonicalMapExplanationIdentityV35({
+    episodeId: input.episodeId,
+    state: input.compiled.state,
+  });
   const existing = input.cache.get(semanticKey);
-  if (existing) {
-    const mergedResolution = mergeMapCompilerScopeV35(
-      existing.state.compilerResolution,
-      input.compiled.state.compilerResolution
-    );
-    if (mergedResolution && mergedResolution !== existing.state.compilerResolution) {
-      const updatedState: HistoryVisualPlanV35["mapStates"][number] = {
-        ...existing.state,
-        compilerResolution: mergedResolution,
-      };
-      const stateIndex = input.mapStates.findIndex((state) => state.id === existing.state.id);
-      if (stateIndex >= 0) input.mapStates[stateIndex] = updatedState;
-      existing.state = updatedState;
-    }
-    return existing;
-  }
+  if (existing) return existing;
   if (!input.mapMasters.some((item) => item.id === input.compiled.master.id)) {
     input.mapMasters.push(input.compiled.master);
   }
@@ -747,6 +736,66 @@ function adoptCompiledMapStateV35(input: {
   };
   input.cache.set(semanticKey, adopted);
   return adopted;
+}
+
+function mapSemanticConfidenceV35(
+  mapType: import("./history-v34-contracts.js").HistoryMapSemanticTypeV35
+): number {
+  switch (mapType) {
+    case "movement":
+      return 3;
+    case "sequence":
+      return 2;
+    case "territory":
+    case "battle-disposition":
+      return 2;
+    case "locator":
+      return 1;
+    case "no-map":
+      return 0;
+  }
+}
+
+function compileCanonicalMapStateForIntentV35(input: {
+  readonly beatNumber: string;
+  readonly proposal: ReturnType<typeof proposeMapIntentsV35>[number];
+  readonly requiredClaimIds: readonly string[];
+  readonly structured: HistoryStructuredClaimsV34;
+  readonly narrationText: string;
+}) {
+  const scopes = buildCanonicalMapEvidenceScopesV35({
+    orderedClaimIds: input.structured.claims.map((claim) => claim.id),
+    owningClaimIds: [...new Set([...input.proposal.claimIds, ...input.requiredClaimIds])],
+  });
+  const candidates = scopes.flatMap((scopeClaimIds, stableOrder) => {
+    const compiled = compileMapStateV35({
+      beatNumber: input.beatNumber,
+      proposal: input.proposal,
+      scopeClaimIds,
+      claims: input.structured.claims,
+      entities: input.structured.entities,
+      geographicQualifiers: input.structured.geographicQualifiers,
+      temporalQualifiers: input.structured.temporalQualifiers,
+      narrationText: input.narrationText,
+    });
+    if (!compiled) return [];
+    const resolution = compiled.state.compilerResolution;
+    return [
+      {
+        value: compiled,
+        scopeClaimIds,
+        complete:
+          Boolean(resolution) &&
+          resolution!.requestedMapType === resolution!.resolvedMapType &&
+          !resolution!.downgradeReason,
+        semanticConfidence: resolution
+          ? mapSemanticConfidenceV35(resolution.resolvedMapType)
+          : 0,
+        stableOrder,
+      },
+    ];
+  });
+  return selectCanonicalMapWindowV35(candidates)?.value ?? null;
 }
 
 function probeMapCompileForCluster(input: {
@@ -760,6 +809,7 @@ function probeMapCompileForCluster(input: {
 }): {
   readonly compiles: boolean;
   readonly resolvedMapType: import("./history-v34-contracts.js").HistoryMapSemanticTypeV35 | null;
+  readonly owningClaimIds: readonly string[];
 } {
   const scopeClaimIds = input.scopeClaimIds ?? input.cluster.claimIds;
   for (const claimId of scopeClaimIds) {
@@ -777,24 +827,22 @@ function probeMapCompileForCluster(input: {
       input.intentsByClaim.get(claimId) ??
       input.mapIntents.find((item) => item.claimIds.includes(claimId));
     if (!intent) continue;
-    const compiled = compileMapStateV35({
+    const compiled = compileCanonicalMapStateForIntentV35({
       beatNumber: input.beatNumber,
       proposal: intent,
-      scopeClaimIds,
-      claims: input.structured.claims,
-      entities: input.structured.entities,
-      geographicQualifiers: input.structured.geographicQualifiers,
-      temporalQualifiers: input.structured.temporalQualifiers,
+      requiredClaimIds: input.cluster.claimIds,
+      structured: input.structured,
       narrationText: input.narrationText,
     });
     if (compiled) {
       return {
         compiles: true,
         resolvedMapType: compiled.state.compilerResolution?.resolvedMapType ?? null,
+        owningClaimIds: intent.claimIds,
       };
     }
   }
-  return { compiles: false, resolvedMapType: null };
+  return { compiles: false, resolvedMapType: null, owningClaimIds: [] };
 }
 
 function resolveClusterModality(input: {
@@ -844,6 +892,9 @@ function resolveClusterModality(input: {
     scopeClaimIds: windowClaimIds,
   });
   const mapCompiles = mapProbe.compiles;
+  const mapOwnedByCluster = mapProbe.owningClaimIds.some((claimId) =>
+    input.cluster.claimIds.includes(claimId)
+  );
   const explanatoryMapSelected =
     mapCompiles &&
     mapScored.tier === "explanatory" &&
@@ -863,10 +914,11 @@ function resolveClusterModality(input: {
     }) &&
     mapProbe.resolvedMapType !== "locator";
   const mapSelected =
-    explanatoryMapSelected ||
-    relationRichMapSelected ||
-    segmentationMapSelected ||
-    relationGeoFactSelected;
+    mapOwnedByCluster &&
+    (explanatoryMapSelected ||
+      relationRichMapSelected ||
+      segmentationMapSelected ||
+      relationGeoFactSelected);
   if (
     input.diagramReserved &&
     (input.cluster.modality === "diagram" || diagramDetected.eligible)
@@ -1799,7 +1851,6 @@ export function buildHistoryVisualPlanV35(input: {
       (claim) => claimIds.includes(claim.id) && claim.materiality === "material"
     );
     const contextWindow = buildModalityContextWindowV35({ clusters, index });
-    const mapScopeClaimIds = contextWindow.claimIds;
     let modality = resolveClusterModality({
       cluster,
       beatNumber,
@@ -1846,8 +1897,8 @@ export function buildHistoryVisualPlanV35(input: {
     if (modality === "map") {
       const intent =
         selectMapIntentForBeatV35({
-          claimIds: mapScopeClaimIds,
-          clusterText: contextWindow.text,
+          claimIds,
+          clusterText: cluster.text,
           intentsByClaim,
           mapIntents,
           claims: structured.claims,
@@ -1855,21 +1906,19 @@ export function buildHistoryVisualPlanV35(input: {
           geographicQualifiers: structured.geographicQualifiers,
           temporalQualifiers: structured.temporalQualifiers,
         }) ??
-        mapIntents.find((item) => item.claimIds.some((id) => mapScopeClaimIds.includes(id)));
+        mapIntents.find((item) => item.claimIds.some((id) => claimIds.includes(id)));
       const compiled = intent
-        ? compileMapStateV35({
+        ? compileCanonicalMapStateForIntentV35({
             beatNumber,
             proposal: intent,
-            scopeClaimIds: mapScopeClaimIds,
-            claims: structured.claims,
-            entities: structured.entities,
-            geographicQualifiers: structured.geographicQualifiers,
-            temporalQualifiers: structured.temporalQualifiers,
+            requiredClaimIds: claimIds,
+            structured,
             narrationText: input.narration.normalizedText,
           })
         : null;
       if (compiled && intent) {
         const adopted = adoptCompiledMapStateV35({
+          episodeId: input.episodeId,
           cache: mapStateCache,
           compiled,
           mapMasters,
@@ -2066,8 +2115,8 @@ export function buildHistoryVisualPlanV35(input: {
         } else if (remediated === "map") {
           const intent =
             selectMapIntentForBeatV35({
-              claimIds: mapScopeClaimIds,
-              clusterText: contextWindow.text,
+              claimIds,
+              clusterText: cluster.text,
               intentsByClaim,
               mapIntents,
               claims: structured.claims,
@@ -2075,21 +2124,19 @@ export function buildHistoryVisualPlanV35(input: {
               geographicQualifiers: structured.geographicQualifiers,
               temporalQualifiers: structured.temporalQualifiers,
             }) ??
-            mapIntents.find((item) => item.claimIds.some((id) => mapScopeClaimIds.includes(id)));
+            mapIntents.find((item) => item.claimIds.some((id) => claimIds.includes(id)));
           const compiled = intent
-            ? compileMapStateV35({
+            ? compileCanonicalMapStateForIntentV35({
                 beatNumber,
                 proposal: intent,
-                scopeClaimIds: mapScopeClaimIds,
-                claims: structured.claims,
-                entities: structured.entities,
-                geographicQualifiers: structured.geographicQualifiers,
-                temporalQualifiers: structured.temporalQualifiers,
+                requiredClaimIds: claimIds,
+                structured,
                 narrationText: input.narration.normalizedText,
               })
             : null;
           if (compiled && intent) {
             const adopted = adoptCompiledMapStateV35({
+              episodeId: input.episodeId,
               cache: mapStateCache,
               compiled,
               mapMasters,
@@ -2161,9 +2208,22 @@ export function buildHistoryVisualPlanV35(input: {
       temporals: structured.temporalQualifiers,
       claimIds,
     });
-    const requiredGeographicQualifierIds = structured.geographicQualifiers
+    const beatGeographicQualifierIds = structured.geographicQualifiers
       .filter((item) => claimIds.includes(item.claimId))
       .map((item) => item.id);
+    const representedMapLabels = new Set(mapState?.labels.map((label) => label.text) ?? []);
+    const requiredGeographicQualifierIds =
+      modality === "map" && mapState
+        ? beatGeographicQualifierIds.filter((qualifierId) => {
+            const qualifier = structured.geographicQualifiers.find(
+              (item) => item.id === qualifierId
+            );
+            const entity = structured.entities.find(
+              (item) => item.id === qualifier?.entityMentionId
+            );
+            return Boolean(entity && representedMapLabels.has(entity.normalizedLabel));
+          })
+        : beatGeographicQualifierIds;
     const protectedGeographyLabels = requiredGeographicQualifierIds
       .map(
         (qualifierId) =>

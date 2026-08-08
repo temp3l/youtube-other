@@ -293,6 +293,7 @@ export interface HistoryMapCompilerResolutionV35 {
   readonly resolvedMapType: HistoryMapSemanticTypeV35;
   readonly downgradeReason?: HistoryMapDowngradeReasonV35;
   readonly resolutionNotes?: readonly string[];
+  readonly owningClaimIds?: readonly string[];
   readonly scopeClaimIds: readonly string[];
   readonly geoFactIds: readonly string[];
   readonly routeGeometrySemantics?: HistoryRouteGeometrySemanticsV35;

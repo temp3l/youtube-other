@@ -1,5 +1,6 @@
 import type { HistoryClaimV34, HistoryDiagramStateV34, HistoryEntityMentionV34 } from "./history-v34-contracts.js";
 import { isClaimGroundedDiagramLabelV35 } from "./history-diagram-compile-v35.js";
+import { assessDiagramPropositionEdgeV35 } from "./history-diagram-proposition-v35.js";
 
 const LABEL_STOP_WORDS = new Set([
   "and",
@@ -32,8 +33,16 @@ const COMPOUND_THEMATIC_LABEL_STEMS: Readonly<Record<string, readonly string[]>>
   "palace administrative failure": ["palace", "administrat"],
   "systems collapse": ["collapse", "systems"],
   "supply-chain failure": ["supply", "logistics", "supplies"],
-  "population loss": ["population", "mortality", "depopulation"],
-  "labour scarcity": ["labou?r", "worker"],
+  "population loss": ["population", "mortality", "depopulation", "demographic"],
+  "labour scarcity": ["labou?r", "workers?", "apprentices?"],
+  "wage pressure": ["wages?", "wage"],
+  "labour policy response": ["ordinance", "statute", "labou?r"],
+  "wage restriction attempt": ["restrict", "compel", "wages?"],
+  "tax revenue": ["tax(?:es)?", "revenue"],
+  "armies and administration": ["armies", "administrat"],
+  "provincial control": ["provinces", "provincial", "system"],
+  "continued revenue": ["revenue", "reproduce"],
+  "bronze production": ["bronze"],
   "tax and revenue strain": ["tax", "revenue"],
   "distance and supply-chain failure": ["distance", "suppl"],
   "disease and hunger": ["disease", "hunger"],
@@ -43,17 +52,8 @@ const COMPOUND_THEMATIC_LABEL_STEMS: Readonly<Record<string, readonly string[]>>
   "variation in army-size estimates": ["army", "estimates", "vary"],
 };
 
-const CAUSAL_EDGE_RELATIONSHIPS = new Set([
-  "causes",
-  "leads-to",
-  "contributes-to",
-  "depends-on",
-]);
-
 const CONVERGENCE_EVIDENCE_PATTERN =
   /\b(?:combining|combined(?: with)?|combined to (?:make|produce)|together with|along with|as well as|both .+ and|contribut(?:e|ed|ing) to|converge|interact(?:ed|ing)? with)\b/iu;
-const DEPENDENCY_EVIDENCE_PATTERN =
-  /\b(?:depend(?:ed|s|ing)? on|relied on|required|needed|supported by|unless)\b/iu;
 
 function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&");
@@ -175,106 +175,6 @@ export function isDiagramNodeSemanticallyEntailedV35(input: {
   return isStrictDiagramLabelEntailedV35(input.label, input.evidenceClaimText);
 }
 
-function hasMechanismEdgeSupportV35(input: {
-  readonly evidenceClaimText: string;
-  readonly fromLabel: string;
-  readonly toLabel: string;
-  readonly relationship: HistoryDiagramStateV34["edges"][number]["relationship"];
-}): boolean {
-  const from = normalizeLabel(input.fromLabel);
-  const to = normalizeLabel(input.toLabel);
-  const text = input.evidenceClaimText;
-  if (from === "population loss" && to === "labour scarcity") {
-    return (
-      /\b(?:demographic shock|population loss|lacked workers|lost apprentices|struggled to harvest)\b/iu.test(
-        text
-      )
-    );
-  }
-  if (from === "labour scarcity" && to === "wage pressure") {
-    return (
-      /\b(?:labou?r scarcity|worker shortage|shortage of labou?r|lacked workers|lost apprentices)\b/iu.test(
-        text
-      ) &&
-      /\b(?:higher wages|wage pressure|demand higher wages|rising wages)\b/iu.test(text)
-    );
-  }
-  if (from === "wage pressure" && to === "labour policy response") {
-    return /\b(?:Ordinance|Statute of Labourers)\b/iu.test(text);
-  }
-  if (from === "wage pressure" && to === "labour policy response" && input.relationship === "depends-on") {
-    return /\b(?:Ordinance|Statute of Labourers)\b/iu.test(text);
-  }
-  if (from === "labour policy response" && to === "wage restriction attempt") {
-    return /\b(?:restrict wages|compel work)\b/iu.test(text);
-  }
-  if (input.relationship === "depends-on" && from === "labour scarcity" && to === "wage pressure") {
-    return (
-      /\b(?:labou?r|worker)\b/iu.test(text) &&
-      /\b(?:higher wages|wage pressure|demand higher wages)\b/iu.test(text)
-    );
-  }
-  return false;
-}
-
-function isUnsupportedCooccurrenceEdgeV35(input: {
-  readonly evidenceClaimText: string;
-  readonly fromLabel: string;
-  readonly toLabel: string;
-  readonly relationship: HistoryDiagramStateV34["edges"][number]["relationship"];
-}): boolean {
-  if (input.relationship !== "leads-to" && input.relationship !== "causes") return false;
-  if (
-    hasPairwiseRelationshipEvidenceV35(input) ||
-    hasMechanismEdgeSupportV35(input)
-  ) {
-    return false;
-  }
-  const fromTokens = contentTokens(input.fromLabel);
-  const toTokens = contentTokens(input.toLabel);
-  if (!fromTokens.length || !toTokens.length) return false;
-  const fromPresent = fromTokens.every((token) => tokenAppearsInText(token, input.evidenceClaimText));
-  const toPresent = toTokens.every((token) => tokenAppearsInText(token, input.evidenceClaimText));
-  if (!fromPresent || !toPresent) return false;
-  const escapedFrom = escapeRegExp(input.fromLabel).replace(/\s+/gu, "\\s+");
-  const escapedTo = escapeRegExp(input.toLabel).replace(/\s+/gu, "\\s+");
-  if (
-    new RegExp(
-      `${escapedFrom}.{0,80}\\b(?:in|of|at|from|within|across|ruled|reigned|buried|discovered|found)\\b.{0,80}${escapedTo}|${escapedTo}.{0,80}\\b(?:in|of|at|from|within|across)\\b.{0,80}${escapedFrom}`,
-      "iu"
-    ).test(input.evidenceClaimText)
-  ) {
-    return true;
-  }
-  return true;
-}
-
-export function hasPairwiseRelationshipEvidenceV35(input: {
-  readonly evidenceClaimText: string;
-  readonly fromLabel: string;
-  readonly toLabel: string;
-  readonly relationship: HistoryDiagramStateV34["edges"][number]["relationship"];
-}): boolean {
-  const escapedFrom = escapeRegExp(input.fromLabel).replace(/\s+/gu, "\\s+");
-  const escapedTo = escapeRegExp(input.toLabel).replace(/\s+/gu, "\\s+");
-
-  if (input.relationship === "sequence") {
-    return new RegExp(
-      `${escapedFrom}.{0,120}(?:then|followed by|before|after|subsequently|in turn|next|funded|defended|helped|which|therefore|to preserve|to continue|in order to|chose to).{0,120}${escapedTo}|${escapedTo}.{0,120}(?:after|following).{0,120}${escapedFrom}`,
-      "iu"
-    ).test(input.evidenceClaimText);
-  }
-
-  if (CAUSAL_EDGE_RELATIONSHIPS.has(input.relationship)) {
-    return new RegExp(
-      `${escapedFrom}.{0,160}(?:because|led to|caused|resulted in|therefore|triggered|forced|compelled|enabled|produced|brought).{0,160}${escapedTo}|${escapedTo}.{0,80}(?:because of|due to|from).{0,80}${escapedFrom}`,
-      "iu"
-    ).test(input.evidenceClaimText);
-  }
-
-  return false;
-}
-
 export function validateDiagramNodeEntailmentV35(input: {
   readonly state: Pick<HistoryDiagramStateV34, "nodes" | "diagramType">;
   readonly evidenceClaimText: string;
@@ -308,6 +208,7 @@ export function validateDiagramEdgeEntailmentV35(input: {
   readonly state: Pick<HistoryDiagramStateV34, "nodes" | "edges" | "diagramType">;
   readonly evidenceClaimText: string;
   readonly entitySpans?: readonly string[];
+  readonly claims?: readonly Pick<HistoryClaimV34, "id" | "normalizedProposition">[];
 }): readonly string[] {
   if (input.state.diagramType === "evidence-set") return [];
   const nodeById = new Map(input.state.nodes.map((node) => [node.id, node] as const));
@@ -330,67 +231,25 @@ export function validateDiagramEdgeEntailmentV35(input: {
         evidenceClaimText: input.evidenceClaimText,
         entitySpans: input.entitySpans ?? [],
       });
-    if (
-      edge.relationship === "contributes-to" &&
-      CONVERGENCE_EVIDENCE_PATTERN.test(input.evidenceClaimText) &&
-      nodesEntailed
-    ) {
+    if (!nodesEntailed) {
+      blockers.push("DIAGRAM_UNSUPPORTED_EDGE");
       continue;
     }
-    if (
-      edge.relationship === "depends-on" &&
-      DEPENDENCY_EVIDENCE_PATTERN.test(input.evidenceClaimText) &&
-      nodesEntailed
-    ) {
-      continue;
-    }
-    if (
-      edge.relationship === "contributes-to" &&
-      input.state.diagramType === "process" &&
-      /\b(?:reinforcements|detached|desertion|army[- ]size|estimates|return routes?|because|vary|included|drought|migration|instability|collapse)\b/iu.test(
-        input.evidenceClaimText
-      ) &&
-      nodesEntailed
-    ) {
-      continue;
-    }
-    if (
-      hasMechanismEdgeSupportV35({
-        evidenceClaimText: input.evidenceClaimText,
-        fromLabel: from.label,
-        toLabel: to.label,
-        relationship: edge.relationship,
-      })
-    ) {
-      continue;
-    }
-    if (
-      isUnsupportedCooccurrenceEdgeV35({
-        evidenceClaimText: input.evidenceClaimText,
-        fromLabel: from.label,
-        toLabel: to.label,
-        relationship: edge.relationship,
-      })
-    ) {
+    const proposition = assessDiagramPropositionEdgeV35({
+      fromLabel: from.label,
+      toLabel: to.label,
+      relationship: edge.relationship,
+      linkedClaimIds: edge.linkedClaimIds,
+      evidenceClaimText: input.evidenceClaimText,
+      ...(input.claims ? { claims: input.claims } : {}),
+    });
+    if (!proposition.entailed) {
       blockers.push(
         edge.relationship === "sequence"
           ? "DIAGRAM_UNSUPPORTED_CAUSAL_SEQUENCE"
-          : "DIAGRAM_RELATIONSHIP_TYPE_MISMATCH"
-      );
-      continue;
-    }
-    if (
-      !hasPairwiseRelationshipEvidenceV35({
-        evidenceClaimText: input.evidenceClaimText,
-        fromLabel: from.label,
-        toLabel: to.label,
-        relationship: edge.relationship,
-      })
-    ) {
-      blockers.push(
-        edge.relationship === "sequence"
-          ? "DIAGRAM_UNSUPPORTED_CAUSAL_SEQUENCE"
-          : "DIAGRAM_UNSUPPORTED_EDGE"
+          : proposition.relationshipTypeMismatch
+            ? "DIAGRAM_RELATIONSHIP_TYPE_MISMATCH"
+            : "DIAGRAM_UNSUPPORTED_EDGE"
       );
     }
   }
@@ -490,6 +349,7 @@ export function validateDiagramEntailmentV35(input: {
         state: input.state,
         evidenceClaimText: input.evidenceClaimText,
         entitySpans,
+        claims: input.claims,
       }),
       ...validateDiagramQuestionEntailmentV35({
         state: input.state,

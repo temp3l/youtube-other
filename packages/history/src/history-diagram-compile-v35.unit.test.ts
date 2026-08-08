@@ -99,6 +99,7 @@ describe("History V3.5 abstract causal diagram compile", () => {
     });
     expect(compiled).not.toBeNull();
     expect(compiled!.state.edges.length).toBeGreaterThanOrEqual(1);
+    expect(compiled!.state.nodes.at(-1)?.label).toBe("coherent method of conquest");
   });
 
   it("keeps thematic label extraction isolated across sequential calls", () => {
