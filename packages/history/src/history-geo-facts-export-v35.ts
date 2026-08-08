@@ -10,8 +10,8 @@ import type {
   HistoryEntityMentionV34,
   HistoryMapStateV34,
   HistoryRouteGeometrySemanticsV35,
-  HistoryVisualPlanV35,
 } from "./history-v34-contracts.js";
+import type { HistoryVisualPlanV35 } from "./history-v35-contracts.js";
 
 export interface ReviewableGeoFactV35 {
   readonly id: string;
@@ -49,19 +49,21 @@ function serializeGeoFactForReview(
   entities: readonly HistoryEntityMentionV34[]
 ): ReviewableGeoFactV35 {
   switch (fact.type) {
-    case "location":
+    case "location": {
+      const placeId = placeIdForMention(fact.placeMentionId, entities);
       return {
         id: fact.id,
         type: "location",
-        ...(placeIdForMention(fact.placeMentionId, entities)
-          ? { placeId: placeIdForMention(fact.placeMentionId, entities) }
-          : {}),
+        ...(placeId ? { placeId } : {}),
         claimIds: fact.claimIds,
       };
+    }
     case "movement": {
       const waypointPlaceIds = fact.waypointMentionIds
         .map((mentionId) => placeIdForMention(mentionId, entities))
         .filter((placeId): placeId is string => Boolean(placeId));
+      const originPlaceId = placeIdForMention(fact.originMentionId, entities);
+      const destinationPlaceId = placeIdForMention(fact.destinationMentionId, entities);
       const actorRef = fact.actorRef;
       return {
         id: fact.id,
@@ -77,12 +79,8 @@ function serializeGeoFactForReview(
                 actorSourceText: actorRef.sourceText,
                 ...(actorRef.sourceSpan ? { actorSourceSpan: actorRef.sourceSpan } : {}),
               }),
-        ...(placeIdForMention(fact.originMentionId, entities)
-          ? { originPlaceId: placeIdForMention(fact.originMentionId, entities) }
-          : {}),
-        ...(placeIdForMention(fact.destinationMentionId, entities)
-          ? { destinationPlaceId: placeIdForMention(fact.destinationMentionId, entities) }
-          : {}),
+        ...(originPlaceId ? { originPlaceId } : {}),
+        ...(destinationPlaceId ? { destinationPlaceId } : {}),
         ...(waypointPlaceIds.length ? { waypointPlaceIds } : {}),
         claimIds: fact.claimIds,
         ...(fact.temporalQualifierIds.length

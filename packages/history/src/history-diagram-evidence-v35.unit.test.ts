@@ -2,7 +2,10 @@ import { describe, expect, it } from "vitest";
 import {
   compileBlackDeathLabourConsequenceDiagramV35,
   compileBlackDeathLabourPolicyDiagramV35,
+  compileBlackDeathTransmissionDiagramV35,
   compileRomanImperialResourceCycleV35,
+  extractBlackDeathTransmissionLabelsV35,
+  isBlackDeathTransmissionTextV35,
   resolveDiagramEvidenceWindowV35,
   ROMAN_IMPERIAL_RESOURCE_CYCLE_MASTER,
 } from "./history-diagram-evidence-v35.js";
@@ -184,6 +187,53 @@ describe("History V3.5 diagram evidence windows", () => {
     });
     expect(finalized.semanticStatus).toBe("blocked");
     expect(finalized.blockerCodes).toContain("DIAGRAM_UNSUPPORTED_CAUSAL_SEQUENCE");
+  });
+
+  it("does not compile Black Death transmission labels for Cleopatra naval claims", () => {
+    const actiumText =
+      "Antony and Cleopatra assembled a large fleet of ships while disease spread through the camp before the battle at Actium.";
+    expect(isBlackDeathTransmissionTextV35(actiumText)).toBe(false);
+    expect(extractBlackDeathTransmissionLabelsV35(actiumText)).toEqual([]);
+    const compiled = compileBlackDeathTransmissionDiagramV35({
+      beatNumber: "0012",
+      evidenceBeatIds: ["beat-0012"],
+      evidenceClaimIds: ["c-actium"],
+      claims: [claim("c-actium", actiumText)],
+    });
+    expect(compiled).toBeNull();
+  });
+
+  it("requires plague-specific evidence for Black Death transmission nodes", () => {
+    const plagueText =
+      "In October 1347 ships arrived at Messina in Sicily from the Black Sea, and plague spread along trade routes.";
+    expect(isBlackDeathTransmissionTextV35(plagueText)).toBe(true);
+    const compiled = compileBlackDeathTransmissionDiagramV35({
+      beatNumber: "0008",
+      evidenceBeatIds: ["beat-0008"],
+      evidenceClaimIds: ["c-plague"],
+      claims: [claim("c-plague", plagueText)],
+    });
+    expect(compiled).not.toBeNull();
+    expect(compiled!.state.nodes.map((node) => node.label)).toEqual(
+      expect.arrayContaining([
+        "Black Sea trade contact",
+        "port arrival at Messina",
+        "trade-route spread",
+      ])
+    );
+    expect(compiled!.state.nodes.map((node) => node.label)).not.toContain("flea and rat transmission");
+  });
+
+  it("does not infer imperial resource cycle labels for Maya administration claims", () => {
+    const mayaText =
+      "Maya palace administration weakened as regional resources shifted and local elites fragmented.";
+    const compiled = compileRomanImperialResourceCycleV35({
+      beatNumber: "0015",
+      evidenceBeatIds: ["beat-0015"],
+      evidenceClaimIds: ["c-maya"],
+      claims: [claim("c-maya", mayaText)],
+    });
+    expect(compiled).toBeNull();
   });
 });
 

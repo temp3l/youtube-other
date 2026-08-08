@@ -658,6 +658,7 @@ function buildShortsProviderRequest(args: {
       args.referenceImages.length > 0 ? "image-edit" : "image-generation",
     aspectRatio: "9:16",
     promptVersion: 1,
+    promptProfile: "horror-short",
     referenceImages: args.referenceImages.map((reference) => ({
       characterId: reference.characterId,
       path: reference.filePath,

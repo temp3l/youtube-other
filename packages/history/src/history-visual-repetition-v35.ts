@@ -55,6 +55,9 @@ export type NarrationVisualFunction =
   | "political-institutional"
   | "quantitative"
   | "temporal"
+  | "material-evidence"
+  | "comparative"
+  | "consequence"
   | "general";
 
 export type EditorialProgressionRole =

@@ -4,6 +4,7 @@ import {
   compileBronzeSystemsCollapseDiagramV35,
   compileBronzeTradeDiagramV35,
   extractThematicCausalLabelsV35,
+  isClaimGroundedDiagramLabelV35,
 } from "./history-diagram-compile-v35.js";
 import { validateDiagramTopologyV35 } from "./history-diagram-topology-v35.js";
 
@@ -53,7 +54,7 @@ describe("History V3.5 abstract causal diagram compile", () => {
     });
     expect(compiled).not.toBeNull();
     expect(compiled!.state.nodes.map((node) => node.label)).toEqual(
-      expect.arrayContaining(["fragmented evidence", "metanarrative caution"])
+      expect.arrayContaining(["fragmented evidence", "warns against dramatic explanation"])
     );
   });
 
@@ -65,6 +66,51 @@ describe("History V3.5 abstract causal diagram compile", () => {
       claims: [claim("claim-3", "This is a short neutral sentence.")],
     });
     expect(compiled).toBeNull();
+  });
+
+  it("does not emit cross-episode thematic labels without claim grounding", () => {
+    const mayaText =
+      "Maya palace administration weakened as regional resources shifted and local elites fragmented.";
+    const labels = extractThematicCausalLabelsV35(mayaText);
+    expect(labels).not.toContain("imperial resource cycle");
+    expect(labels).not.toContain("intelligence and discipline");
+    expect(isClaimGroundedDiagramLabelV35("imperial resource cycle", mayaText)).toBe(false);
+  });
+
+  it("extracts listed causal factors from claim text instead of generic templates", () => {
+    const mongolText =
+      "Its strength came from combining organization, mobility, intelligence, discipline, engineering, logistics, diplomacy, and terror into a coherent method of conquest.";
+    const labels = extractThematicCausalLabelsV35(mongolText);
+    expect(labels).toEqual(
+      expect.arrayContaining(["organization", "mobility", "intelligence", "discipline"])
+    );
+    expect(labels).not.toContain("intelligence and discipline");
+    expect(labels).not.toContain("command coordination");
+  });
+
+  it("builds contributor edges for combining-list Mongol logistics text", () => {
+    const mongolText =
+      "Its strength came from combining organization, mobility, intelligence, discipline, engineering, logistics, diplomacy, and terror into a coherent method of conquest.";
+    const compiled = compileAbstractCausalDiagramV35({
+      beatNumber: "0006",
+      text: mongolText,
+      claimIds: ["claim-1"],
+      claims: [claim("claim-1", mongolText)],
+    });
+    expect(compiled).not.toBeNull();
+    expect(compiled!.state.edges.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("keeps thematic label extraction isolated across sequential calls", () => {
+    const mayaLabels = extractThematicCausalLabelsV35(
+      "Maya palace administration weakened as regional resources shifted."
+    );
+    const cleopatraLabels = extractThematicCausalLabelsV35(
+      "Cleopatra negotiated with Rome while Antony assembled ships for Actium."
+    );
+    expect(mayaLabels).not.toContain("Black Sea trade contact");
+    expect(cleopatraLabels).not.toContain("imperial resource cycle");
+    expect(cleopatraLabels).not.toContain("Black Sea trade contact");
   });
 
   it("compiles bronze trade as parallel contributors without copper -> tin", () => {

@@ -1,6 +1,13 @@
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import { discoverHistoryStoryPackEpisodeIds } from "../../src/history-episode-discovery.js";
 import { planHistoryVisualsV35 } from "../../src/history-workflow-v35.js";
 import { assessPlanningAcceptanceV35 } from "../../src/history-planning-acceptance-v35.js";
+import {
+  deriveCoreSubjectsV35,
+  assessCoreSubjectCompletenessV35,
+} from "../../src/history-core-subject-v35.js";
 import {
   isCinematicCameraMovementV35,
   isTemplatedArchivalPurposeV35,
@@ -8,17 +15,19 @@ import {
   validateRequiredGeographyCoverageV35,
 } from "../../src/history-visual-semantics-v35.js";
 import { validatePlanStateEvidenceClosureV35 } from "../../src/history-state-evidence-closure-v35.js";
+import { compareTemporalBoundsV35 } from "../../src/history-temporal-v35.js";
 
-const EPISODES = [
-  "history-youtube-history-10-video-story-pack-01-bronze-age-collapse",
-  "history-youtube-history-10-video-story-pack-02-napoleons-invasion-of-russia",
-  "history-youtube-history-10-video-story-pack-03-fall-of-the-roman-empire",
-  "history-youtube-history-10-video-story-pack-04-black-death",
-  "history-youtube-history-10-video-story-pack-05-franklin-expedition",
-  "history-youtube-history-10-video-story-pack-06-mongol-war-machine",
-  "history-youtube-history-10-video-story-pack-08-cuban-missile-crisis",
-  "history-youtube-history-10-video-story-pack-10-titanic-decisions-disaster",
-] as const;
+const repoRoot = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "../../../.."
+);
+const episodesDirectory = path.join(repoRoot, "episodes");
+
+const EPISODES = discoverHistoryStoryPackEpisodeIds({
+  episodesDirectory,
+  from: 1,
+  to: 30,
+});
 
 const CORPUS_TESTS = [
   "packages/history/src/history-v35-semantics.unit.test.ts",
@@ -27,10 +36,11 @@ const CORPUS_TESTS = [
 
 describe("History V3.5 corpus acceptance", () => {
   it("satisfies cross-episode semantic invariants", async () => {
+    expect(EPISODES.length).toBe(30);
     for (const episodeId of EPISODES) {
       const { plan } = await planHistoryVisualsV35({
         episodeId,
-        outputRoot: "episodes",
+        outputRoot: episodesDirectory,
         force: true,
       });
       expect(plan.schemaVersion).toBe("history-visual-plan.v3.5");
@@ -41,6 +51,23 @@ describe("History V3.5 corpus acceptance", () => {
         planningAcceptance.unexpectedProductionBlockers,
         `${episodeId} unexpected blockers: ${planningAcceptance.unexpectedProductionBlockers.join(", ")}`
       ).toEqual([]);
+      const coreIssues = assessCoreSubjectCompletenessV35({
+        coreSubjects: deriveCoreSubjectsV35({
+          episodeId: plan.episodeId,
+          title: plan.title,
+          keywords: [],
+          knownEntities: plan.entities.map((entity) => entity.normalizedLabel),
+        }),
+        entities: plan.entities,
+        rejectedEntities: plan.rejectedEntities,
+        narrationText: plan.narration.normalizedText,
+      }).filter((issue) => issue.tier === "core");
+      expect(
+        coreIssues,
+        `${episodeId} core-subject blockers: ${coreIssues.map((issue) => issue.code).join(", ")}`
+      ).toEqual([]);
+      expect(plan.approval.contentApprovalEligible, episodeId).toBe(true);
+      expect(plan.approval.editoriallyReviewable, episodeId).toBe(true);
       for (const state of plan.diagramStates) {
         if (state.blockerCodes.length) {
           expect(state.semanticStatus, `${episodeId} ${state.id}`).toBe("blocked");
@@ -87,13 +114,17 @@ describe("History V3.5 corpus acceptance", () => {
 
       for (const state of plan.timelineStates) {
         if (state.orderingStatus === "valid") {
-          const events = plan.timelineEvents.filter((event) =>
-            state.eventIds.includes(event.id)
+          const events = state.eventIds.map(
+            (eventId) => plan.timelineEvents.find((event) => event.id === eventId)!
           );
           for (let index = 1; index < events.length; index += 1) {
-            const prev = events[index - 1]!.temporalBounds.sortKey.join("-");
-            const next = events[index]!.temporalBounds.sortKey.join("-");
-            expect(prev <= next, `${episodeId} ${state.id}`).toBe(true);
+            expect(
+              compareTemporalBoundsV35(
+                events[index - 1]!.temporalBounds,
+                events[index]!.temporalBounds
+              ) <= 0,
+              `${episodeId} ${state.id}`
+            ).toBe(true);
           }
         }
       }
@@ -103,6 +134,45 @@ describe("History V3.5 corpus acceptance", () => {
         if (doc.kind === "document-card") expect(doc.sourceDocumentId).toBeTruthy();
         if (doc.kind === "narration-emphasis-card")
           expect(doc.title.toLocaleLowerCase()).toContain("emphasis");
+      }
+
+      if (episodeId.includes("bronze-age-collapse") || episodeId.includes("year-536")) {
+        if (/\bwarns us\b/iu.test(plan.narration.normalizedText)) {
+          expect(
+            plan.entities.some((entity) => entity.normalizedLabel === "United States"),
+            `${episodeId} pronoun us must not resolve to United States`
+          ).toBe(false);
+        }
+      }
+
+      if (episodeId.includes("cleopatra")) {
+        const diagramLabels = plan.diagramStates.flatMap((state) =>
+          state.nodes.map((node) => node.label)
+        );
+        expect(diagramLabels).not.toContain("Black Sea trade contact");
+        expect(diagramLabels).not.toContain("port arrival at Messina");
+        expect(
+          plan.entities.some((entity) => entity.normalizedLabel === "Cleopatra")
+        ).toBe(true);
+      }
+
+      if (episodeId.includes("maya-collapse")) {
+        if (/\bCentral America\b/iu.test(plan.narration.normalizedText)) {
+          expect(
+            plan.entities.some(
+              (entity) =>
+                entity.normalizedLabel === "United States" &&
+                entity.text.toLocaleLowerCase() === "america"
+            )
+          ).toBe(false);
+        }
+        const diagramLabels = plan.diagramStates.flatMap((state) =>
+          state.nodes.map((node) => node.label)
+        );
+        for (const label of diagramLabels) {
+          expect(label).not.toBe("imperial resource cycle");
+          expect(label).not.toBe("intelligence and discipline");
+        }
       }
 
       if (episodeId.includes("franklin")) {
@@ -188,5 +258,5 @@ describe("History V3.5 corpus acceptance", () => {
 
       expect(CORPUS_TESTS.length).toBeGreaterThan(0);
     }
-  }, 240_000);
+  }, 900_000);
 });

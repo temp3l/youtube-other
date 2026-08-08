@@ -793,6 +793,7 @@ export function validateOpenAiModelConfiguration(config: RuntimeConfig): void {
 export const runtimeConfigOverridesSchema = configSchema.partial().extend({
   visualRetention: visualRetentionConfigOverrideSchema.optional(),
   narrationMastering: narrationMasteringConfigOverrideSchema.optional(),
+  narrationAudioBasename: z.string().min(1).optional(),
 });
 export type RuntimeConfigOverrides = z.infer<
   typeof runtimeConfigOverridesSchema

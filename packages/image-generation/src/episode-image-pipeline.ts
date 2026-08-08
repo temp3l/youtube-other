@@ -62,6 +62,20 @@ import {
   assertCreatorMediaPolicy,
   type CreatorMediaGenerationRequest,
 } from "./creator-media-policy.js";
+import {
+  loadHistoryVisualPlan,
+  resolveHistorySceneImageGuidance,
+  type HistorySceneImageGuidance,
+} from "./history-image-plan.js";
+import {
+  buildHistorySceneSpace,
+  deriveHistorySceneLighting,
+  deriveHistorySceneMood,
+  deriveHistorySceneTimeOfDay,
+  planHistoryImagePromptCinematography,
+  renderHistoryImageProviderPrompt,
+} from "./history-image-prompt.js";
+import { historyCinematographySchema } from "./history-image-cinematography.js";
 
 const execFile = promisify(execFileCallback);
 
@@ -327,6 +341,9 @@ export interface ImageProviderRequest {
   operation: "image-generation" | "image-edit";
   aspectRatio: "16:9" | "9:16";
   promptVersion: number;
+  promptProfile: ImagePromptProfile;
+  authoritativeImagePrompt?: string;
+  historyGuidance?: HistorySceneImageGuidance;
   referenceImages: Array<{
     characterId: CharacterId;
     path: string;
@@ -402,7 +419,7 @@ export interface SceneGenerationManifest {
   quality: string;
   outputPath: string;
   outputSha256?: string;
-  status: "planned" | "generated" | "failed";
+  status: "planned" | "generated" | "failed" | "skipped";
   attempts: number;
   generatedAt?: string;
   error?: {
@@ -438,7 +455,8 @@ export type SceneCheckpointStatus =
   | "validation_failed"
   | "provider_requested"
   | "generated"
-  | "provider_failed";
+  | "provider_failed"
+  | "skipped_compiled_visual";
 
 export type SceneFailureStage =
   | "visual-planning"
@@ -524,7 +542,8 @@ export interface PersistedImageGenerationCheckpoint {
     | "validation-failed"
     | "provider-requested"
     | "generated"
-    | "provider-failed";
+    | "provider-failed"
+    | "compiled-visual-modality";
   details?: string[];
   recordedAt: string;
 }
@@ -588,7 +607,7 @@ const envSchema = z.object({
   OPENAI_IMAGE_QUALITY: z
     .enum(["low", "medium", "high", "auto"])
     .default("medium"),
-  OPENAI_IMAGE_CONCURRENCY: z.coerce.number().int().positive().default(1),
+  OPENAI_IMAGE_CONCURRENCY: z.coerce.number().int().positive().default(4),
   OPENAI_IMAGE_MAX_RETRIES: z.coerce.number().int().nonnegative().default(2),
   OPENAI_IMAGE_TIMEOUT_MS: z.coerce.number().int().positive().default(180000),
   OPENAI_IMAGE_ALLOW_UNAPPROVED_CHARACTER_REFERENCES: z.string().optional(),
@@ -688,7 +707,7 @@ export const sceneGenerationManifestSchema = z.object({
   quality: z.string(),
   outputPath: z.string(),
   outputSha256: z.string().optional(),
-  status: z.enum(["planned", "generated", "failed"]),
+  status: z.enum(["planned", "generated", "failed", "skipped"]),
   attempts: z.number().int().nonnegative(),
   generatedAt: z.string().optional(),
   error: z
@@ -832,6 +851,7 @@ const persistedImageGenerationCheckpointSchema = z.object({
     "provider_requested",
     "generated",
     "provider_failed",
+    "skipped_compiled_visual",
   ]),
   outputPath: z.string().min(1),
   promptHash: z.string().min(1),
@@ -846,6 +866,7 @@ const persistedImageGenerationCheckpointSchema = z.object({
     "provider-requested",
     "generated",
     "provider-failed",
+    "compiled-visual-modality",
   ]),
   details: z.array(z.string()).optional(),
   recordedAt: z.string(),
@@ -890,10 +911,25 @@ const generationModeSchema = z.enum(["text-only", "reference-assisted"]);
 const SCENE_PLAN_VERSION = "scene-plan-v1";
 const IMAGE_PLAN_STAGE_VERSION = "image-plan-v1";
 
+export type ImagePromptProfile = "horror-short" | "history-documentary";
+
 export interface EpisodeImageMediaContext extends MediaStageContext {
   readonly scenePlanningConfigFingerprint?: string;
   readonly imagePlanningConfigFingerprint?: string;
   readonly shortMediaRequirements?: ShortMediaRequirements;
+  readonly contentGenre?: "history";
+}
+
+export function buildEpisodeImageMediaContext(input: {
+  readonly episodeId: string;
+  readonly contentGenre?: "history";
+  readonly base?: EpisodeImageMediaContext;
+}): EpisodeImageMediaContext {
+  const base = input.base ?? defaultEpisodeImageMediaContext(input.episodeId);
+  return {
+    ...base,
+    ...(input.contentGenre ? { contentGenre: input.contentGenre } : {}),
+  };
 }
 
 function defaultEpisodeImageMediaContext(episodeId: string): EpisodeImageMediaContext {
@@ -918,11 +954,25 @@ function defaultEpisodeImageMediaContext(episodeId: string): EpisodeImageMediaCo
   };
 }
 
-function resolveEpisodeImageMediaContext(
+async function resolveEpisodeImageMediaContext(
+  episodeDir: string,
   episodeId: string,
   context?: EpisodeImageMediaContext
-): EpisodeImageMediaContext {
-  return context ?? defaultEpisodeImageMediaContext(episodeId);
+): Promise<EpisodeImageMediaContext> {
+  const base = context ?? defaultEpisodeImageMediaContext(episodeId);
+  if (base.contentGenre === "history") {
+    return base;
+  }
+  const historyPlanPath = path.join(
+    episodeDir,
+    "source",
+    "history-v3.5",
+    "plan.json"
+  );
+  if (await fileExists(historyPlanPath)) {
+    return { ...base, contentGenre: "history" };
+  }
+  return base;
 }
 
 function scenePlanIdentity(context: EpisodeImageMediaContext): MediaStageIdentity {
@@ -994,12 +1044,14 @@ function buildImagePlanningConfigFingerprint(
       version: IMAGE_PLAN_STAGE_VERSION,
       variant: context.identity.variant,
       locale: context.identity.locale,
+      contentGenre: context.contentGenre ?? null,
       model: providerRequest.model,
       size: providerRequest.size,
       quality: providerRequest.quality,
       aspectRatio: providerRequest.aspectRatio,
       explicitConfigFingerprint: context.imagePlanningConfigFingerprint ?? null,
       promptVersion: providerRequest.promptVersion,
+      promptProfile: providerRequest.promptProfile,
     })
   );
 }
@@ -2403,7 +2455,8 @@ function buildProhibitedElements(scene: Scene): string[] {
 export function buildSceneVisualSpec(
   scene: Scene,
   registry: CharacterRegistry,
-  previous?: SceneVisualSpec
+  previous?: SceneVisualSpec,
+  options?: { readonly profile?: ImagePromptProfile }
 ): SceneVisualSpec {
   const narrationBeat = normalizedNarrationBeat(scene);
   const textRequirement = scene.textRequirement ?? { required: false };
@@ -2411,7 +2464,13 @@ export function buildSceneVisualSpec(
   const characters = characterResolution.usages;
   const focalSubject = deriveFocalSubject(scene, characters, registry);
   const visibleAction = deriveVisibleAction(scene, focalSubject);
-  const environment = deriveEnvironment(scene, previous);
+  const historyProfile = options?.profile === "history-documentary";
+  const historySpace = historyProfile
+      ? buildHistorySceneSpace({ scene, subject: focalSubject })
+      : null;
+  const environment =
+    historySpace?.environment ??
+    deriveEnvironment(scene, previous);
   return {
     sceneId: scene.id,
     sequenceNumber: scene.sequenceNumber,
@@ -2419,8 +2478,12 @@ export function buildSceneVisualSpec(
     focalSubject,
     visibleAction,
     environment,
-    foreground: deriveForeground(scene, focalSubject, previous),
-    background: deriveBackground(scene, focalSubject, previous),
+    foreground:
+      historySpace?.foreground ??
+      deriveForeground(scene, focalSubject, previous),
+    background:
+      historySpace?.background ??
+      deriveBackground(scene, focalSubject, previous),
     shotSize: deriveShotSize(scene),
     cameraAngle: deriveCameraAngle(scene),
     ...(scene.sequenceNumber % 3 === 0
@@ -2429,11 +2492,13 @@ export function buildSceneVisualSpec(
     sourceNarration: narrationBeat.sourceNarration,
     textRequirement,
     composition: isGenericText(scene.composition)
-      ? "strong cinematic composition with a clear visual hierarchy and negative space"
+      ? historyProfile
+        ? "40-50mm natural perspective with a clear focal subject and grounded documentary realism"
+        : "strong cinematic composition with a clear visual hierarchy and negative space"
       : normalizeSentence(scene.composition),
-    lighting: deriveLighting(scene),
-    timeOfDay: deriveTimeOfDay(scene),
-    mood: deriveMood(scene),
+    lighting: historyProfile ? deriveHistorySceneLighting(scene) : deriveLighting(scene),
+    timeOfDay: historyProfile ? deriveHistorySceneTimeOfDay(scene) : deriveTimeOfDay(scene),
+    mood: historyProfile ? deriveHistorySceneMood(scene) : deriveMood(scene),
     distinctiveAnchor: extractAnchor(
       scene.canonicalNarration,
       `${scene.id} anchor`
@@ -2937,6 +3002,23 @@ function sanitizeImagePromptField(
 }
 
 function renderImageProviderPrompt(request: ImageProviderRequest): string {
+  if (request.promptProfile === "history-documentary") {
+    return renderHistoryImageProviderPrompt(
+      {
+        scene: request.scene,
+        aspectRatio: request.aspectRatio,
+        ...(request.authoritativeImagePrompt
+          ? { authoritativeImagePrompt: request.authoritativeImagePrompt }
+          : {}),
+        characterContexts: request.characterContexts,
+        referenceCharacterIds: request.referenceImages.map(
+          (reference) => reference.characterId
+        ),
+      },
+      request.historyGuidance
+    );
+  }
+
   const referenceText =
     request.characterContexts.length === 0
       ? "Use unnamed incidental figures only when the frame requires them."
@@ -3027,6 +3109,9 @@ function buildImageProviderRequest(args: {
     sha256: string;
   }[];
   readonly aspectRatio?: "16:9" | "9:16";
+  readonly promptProfile?: ImagePromptProfile;
+  readonly authoritativeImagePrompt?: string;
+  readonly historyGuidance?: HistorySceneImageGuidance;
 }): ImageProviderRequest {
   const characterLookup = new Map(
     (args.registry?.characters ?? []).map(
@@ -3046,7 +3131,12 @@ function buildImageProviderRequest(args: {
     operation:
       args.referenceImages.length > 0 ? "image-edit" : "image-generation",
     aspectRatio: args.aspectRatio ?? "16:9",
-    promptVersion: 1,
+    promptVersion: args.promptProfile === "history-documentary" ? 6 : 1,
+    promptProfile: args.promptProfile ?? "horror-short",
+    ...(args.authoritativeImagePrompt
+      ? { authoritativeImagePrompt: args.authoritativeImagePrompt }
+      : {}),
+    ...(args.historyGuidance ? { historyGuidance: args.historyGuidance } : {}),
     referenceImages: args.referenceImages.map((reference) => ({
       characterId: reference.characterId,
       path: reference.path,
@@ -3063,10 +3153,46 @@ function buildImageProviderRequest(args: {
   };
 }
 
+function enrichHistoryImageProviderRequest(
+  request: ImageProviderRequest
+): ImageProviderRequest {
+  if (request.promptProfile !== "history-documentary") {
+    return request;
+  }
+  const cinematography = planHistoryImagePromptCinematography(
+    {
+      scene: request.scene,
+      aspectRatio: request.aspectRatio,
+      characterContexts: request.characterContexts,
+      referenceCharacterIds: request.referenceImages.map(
+        (reference) => reference.characterId
+      ),
+      ...(request.authoritativeImagePrompt
+        ? { authoritativeImagePrompt: request.authoritativeImagePrompt }
+        : {}),
+    },
+    request.historyGuidance
+  );
+  return {
+    ...request,
+    historyGuidance: {
+      skipIllustration: request.historyGuidance?.skipIllustration ?? false,
+      dominantModality:
+        request.historyGuidance?.dominantModality ?? "archival image",
+      overlappingBeatIds: request.historyGuidance?.overlappingBeatIds ?? [],
+      ...(request.historyGuidance?.concept
+        ? { concept: request.historyGuidance.concept }
+        : {}),
+      cinematography,
+    },
+  };
+}
+
 function prepareImageProviderRequest(
   request: ImageProviderRequest
 ): PreparedImageProviderRequest {
-  const prompt = renderImageProviderPrompt(request);
+  const enrichedRequest = enrichHistoryImageProviderRequest(request);
+  const prompt = renderImageProviderPrompt(enrichedRequest);
   const promptHash = hashText(prompt);
   const providerRequestHash = hashText(
     JSON.stringify({
@@ -3085,7 +3211,7 @@ function prepareImageProviderRequest(
     })
   );
   return {
-    ...request,
+    ...enrichedRequest,
     prompt,
     promptHash,
     providerRequestHash,
@@ -3121,6 +3247,7 @@ export function buildPromptFromSpec(
       outputPath: "scene-output.png",
       referenceImages: [],
       aspectRatio,
+      promptProfile: "horror-short",
     })
   ).prompt;
 }
@@ -3922,6 +4049,7 @@ async function ensureReferenceImage(
       operation: "image-generation",
       aspectRatio: "16:9",
       promptVersion: 1,
+      promptProfile: "horror-short",
       referenceImages: [],
       characterContexts: [
         {
@@ -4437,6 +4565,12 @@ function rebalanceEpisodeScenePlans(
   return { plans: nextPlans, promotedSceneIds };
 }
 
+function resolveImagePromptProfile(
+  context: EpisodeImageMediaContext
+): ImagePromptProfile {
+  return context.contentGenre === "history" ? "history-documentary" : "horror-short";
+}
+
 async function buildEpisodeScenePlans(args: {
   readonly episodeDir: string;
   readonly registry: CharacterRegistry;
@@ -4445,13 +4579,24 @@ async function buildEpisodeScenePlans(args: {
   readonly context: EpisodeImageMediaContext;
   readonly client?: OpenAI;
 }): Promise<EpisodeScenePlan[]> {
+  const promptProfile = resolveImagePromptProfile(args.context);
+  const historyPlan =
+    promptProfile === "history-documentary"
+      ? await loadHistoryVisualPlan(args.episodeDir)
+      : null;
   const plans: EpisodeScenePlan[] = [];
   let previousScene: Scene | undefined;
   let previousSpec: SceneVisualSpec | undefined;
   let previousPrompt: string | undefined;
   for (const scene of args.scenes) {
     const outputPath = sceneOutputPath(args.episodeDir, scene);
-    let spec = buildSceneVisualSpec(scene, args.registry, previousSpec);
+    const historyGuidance =
+      historyPlan === null
+        ? undefined
+        : resolveHistorySceneImageGuidance({ plan: historyPlan, scene });
+    let spec = buildSceneVisualSpec(scene, args.registry, previousSpec, {
+      profile: promptProfile,
+    });
     if (previousSpec) {
       const comparison = compareSceneSemantics(previousSpec, spec);
       if (
@@ -4475,6 +4620,11 @@ async function buildEpisodeScenePlans(args: {
         settings: args.settings,
         outputPath,
         referenceImages,
+        promptProfile,
+        ...(scene.imagePrompt.trim()
+          ? { authoritativeImagePrompt: scene.imagePrompt.trim() }
+          : {}),
+        ...(historyGuidance ? { historyGuidance } : {}),
       })
     );
     const prompt = providerRequest.prompt;
@@ -4505,7 +4655,12 @@ async function buildEpisodeScenePlans(args: {
       ...(previousSpec ? { previousSpec } : {}),
       validationIssues,
     });
-    if (
+    if (historyGuidance?.skipIllustration) {
+      visualPlanArtifact = {
+        ...visualPlanArtifact,
+        renderability: "skip",
+      };
+    } else if (
       previousScene &&
       visualPlanArtifact.renderability === "direct" &&
       shouldMergeScenePair({
@@ -4759,6 +4914,59 @@ async function generateIndependentScenePlan(args: {
     promptHash: args.plan.promptHash,
     promptPath,
   });
+
+  if (args.plan.visualPlanArtifact.renderability === "skip") {
+    const manifest: SceneGenerationManifest = {
+      sceneId: args.plan.scene.id,
+      stageIdentity: imageGenerationIdentity(args.context),
+      narrationDependency: args.context.narration,
+      scenePlanDependency,
+      imagePlanDependency,
+      stageVersion: IMAGE_PLAN_STAGE_VERSION,
+      configFingerprint: buildImagePlanningConfigFingerprint(
+        args.context,
+        args.plan.providerRequest
+      ),
+      aspectRatio: args.plan.providerRequest.aspectRatio,
+      promptVersion: args.plan.providerRequest.promptVersion,
+      sceneHash: args.plan.sceneHash,
+      visualPlanHash: args.plan.visualPlanHash,
+      renderability: "skip",
+      finalPrompt: args.plan.prompt,
+      providerRequestHash: args.plan.providerRequestHash,
+      promptHash: args.plan.promptHash,
+      materialDifferencesFromPrevious: args.plan.materialDifferencesFromPrevious,
+      characterIds: args.plan.spec.characters.map(
+        (character) => character.characterId
+      ),
+      referenceImages: args.plan.referenceImages,
+      model: args.plan.providerRequest.model,
+      size: args.plan.providerRequest.size,
+      quality: args.plan.providerRequest.quality,
+      outputPath,
+      status: "skipped",
+      attempts: 0,
+      generatedAt: new Date().toISOString(),
+    };
+    await writeManifest(manifestPath, manifest);
+    await writeGenerationCheckpoint(args.episodeDir, {
+      sceneId: args.plan.scene.id,
+      status: "skipped_compiled_visual",
+      outputPath,
+      promptHash: args.plan.promptHash,
+      visualPlanHash: args.plan.visualPlanHash,
+      cacheDecision: "compiled-visual-modality",
+      details: ["scene covered by compiled map, diagram, or card visuals"],
+      recordedAt: new Date().toISOString(),
+    });
+    return {
+      episodeId: args.episodeId,
+      sceneId: args.plan.scene.id,
+      manifestPath,
+      outputPath,
+      status: "skipped",
+    };
+  }
 
   if (
     args.plan.validationFailures.length === 0 &&
@@ -5177,7 +5385,11 @@ export async function planEpisodeImageGeneration(
     context?: EpisodeImageMediaContext;
   }
 ): Promise<EpisodeImagePlanResult[]> {
-  const context = resolveEpisodeImageMediaContext(episodeId, options?.context);
+  const context = await resolveEpisodeImageMediaContext(
+    episodeDir,
+    episodeId,
+    options?.context
+  );
   const registry = await loadRegistry(episodeDir, episodeId);
   await ensureDir(path.join(episodeDir, "state", "image-generation", "manifests"));
   await ensureDir(path.join(episodeDir, "state", "image-generation", "prompts"));
@@ -5433,6 +5645,28 @@ export async function regenerateEpisodeCharacter(
   return loadRegistry(episodeDir, episodeId);
 }
 
+function resolveTargetScenes(
+  scenePlan: ScenePlan,
+  options?: { readonly sceneId?: string; readonly sceneIds?: readonly string[] }
+): ScenePlan["scenes"] {
+  if (options?.sceneIds && options.sceneIds.length > 0) {
+    const selected = scenePlan.scenes.filter((scene) =>
+      options.sceneIds!.includes(scene.id)
+    );
+    const missing = options.sceneIds.filter(
+      (sceneId) => !selected.some((scene) => scene.id === sceneId)
+    );
+    if (missing.length > 0) {
+      throw new Error(`Unknown scene ids: ${missing.join(", ")}`);
+    }
+    return selected;
+  }
+  if (options?.sceneId) {
+    return scenePlan.scenes.filter((scene) => scene.id === options.sceneId);
+  }
+  return scenePlan.scenes;
+}
+
 export async function generateEpisodeImages(
   episodeDir: string,
   episodeId: string,
@@ -5440,12 +5674,17 @@ export async function generateEpisodeImages(
   settings: EpisodeImagePipelineSettings,
   options?: {
     sceneId?: string;
+    sceneIds?: readonly string[];
     force?: boolean;
     client?: OpenAI;
     context?: EpisodeImageMediaContext;
   }
 ): Promise<EpisodeImageGenerationResult[]> {
-  const context = resolveEpisodeImageMediaContext(episodeId, options?.context);
+  const context = await resolveEpisodeImageMediaContext(
+    episodeDir,
+    episodeId,
+    options?.context
+  );
   const registry = await loadRegistry(episodeDir, episodeId);
   await ensureDir(path.join(episodeDir, "state", "image-generation", "manifests"));
   await ensureDir(path.join(episodeDir, "shared", "images", "generated"));
@@ -5454,9 +5693,7 @@ export async function generateEpisodeImages(
   await ensureDir(resolveEpisodeImageProviderResponsesDir(episodeDir));
   await ensureDir(resolveEpisodeImageCheckpointsDir(episodeDir));
   await ensureDir(resolveEpisodeImageFailuresDir(episodeDir));
-  const scenes = options?.sceneId
-    ? scenePlan.scenes.filter((scene) => scene.id === options.sceneId)
-    : scenePlan.scenes;
+  const scenes = resolveTargetScenes(scenePlan, options);
   const force = options?.force ?? settings.force;
   const generator = new OpenAIImageGenerator(settings, options?.client);
   const draftPlans = await buildEpisodeScenePlans({
@@ -5553,6 +5790,26 @@ export async function generateEpisodeImages(
       plan.scene.id,
       visualPlanArtifact
     );
+    if (visualPlanArtifact.renderability === "skip") {
+      results.push({
+        episodeId,
+        sceneId: plan.scene.id,
+        manifestPath,
+        outputPath,
+        status: "skipped",
+      });
+      await writeGenerationCheckpoint(episodeDir, {
+        sceneId: plan.scene.id,
+        status: "skipped_compiled_visual",
+        outputPath,
+        promptHash: currentPromptHash,
+        visualPlanHash: currentVisualPlanHash,
+        cacheDecision: "compiled-visual-modality",
+        details: ["scene covered by compiled map, diagram, or card visuals"],
+        recordedAt: new Date().toISOString(),
+      });
+      continue;
+    }
     if (
       canResolveByReusingNextScene(
         visualPlanArtifact.renderability,

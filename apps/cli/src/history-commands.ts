@@ -1457,9 +1457,9 @@ export function registerHistoryCommands(
           );
           const resolvedEpisodeIds = resolveHistoryV35CompareEpisodeIds({
             episodeIds,
-            from: options.from,
-            to: options.to,
             outputRoot,
+            ...(options.from !== undefined ? { from: options.from } : {}),
+            ...(options.to !== undefined ? { to: options.to } : {}),
           });
           const output = path.resolve(
             options.output ??

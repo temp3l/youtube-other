@@ -95,6 +95,31 @@ async function runFocusedHistoryV35Verification(): Promise<Record<string, unknow
     commands: results,
   };
 }
+
+export function enrichCorpusTestSummaryV35(
+  testSummary: Record<string, unknown>
+): Record<string, unknown> {
+  const failed =
+    testSummary["status"] === "failed"
+      ? (Array.isArray(testSummary["commands"])
+          ? (testSummary["commands"] as Array<{ readonly ok?: boolean }>)
+          : []
+        ).filter((item) => item.ok === false)
+      : [];
+  return {
+    ...testSummary,
+    validationScope: "corpus",
+    episodeStructuralPoisoning: false,
+    ...(testSummary["status"] === "failed"
+      ? {
+          corpusAcceptanceBlocked: true,
+          corpusBlockerCodes: ["FOCUSED_CORPUS_VALIDATION_FAILED"],
+          corpusFailureCount: failed.length,
+        }
+      : { corpusAcceptanceBlocked: false, corpusBlockerCodes: [] as const }),
+  };
+}
+
 function sanitizePackDiagnostic(value: string): string {
   return value
     .replace(/(?:^|\s)\/(?:home|Users)(?:\/[\w.-]+)+/giu, " <path>")
@@ -589,9 +614,10 @@ export async function createHistoryApprovalPackV35(request: {
     ...(request.outputRoot ? { outputRoot: request.outputRoot } : {}),
     force: Boolean(request.regenerate),
   });
-  const testSummary =
+  const rawTestSummary =
     request.testSummary ??
     (await runFocusedHistoryV35Verification());
+  const testSummary = enrichCorpusTestSummaryV35(rawTestSummary);
   let plan = planned.plan;
   const productionPrerequisites: Array<{
     readonly code: string;
@@ -603,21 +629,6 @@ export async function createHistoryApprovalPackV35(request: {
       message:
         "Production approval is blocked until local verification completes (test-summary.json is pending-local-verification).",
     });
-  if (testSummary["status"] === "failed") {
-    const commands = Array.isArray(testSummary["commands"])
-      ? (testSummary["commands"] as Array<{ readonly command?: string; readonly ok?: boolean; readonly exitCode?: number; readonly diagnostic?: string }>)
-      : [];
-    const failed = commands.filter((item) => item.ok === false);
-    plan = applyPlanApprovalPrerequisitesV35(plan, [
-      {
-        code: "FOCUSED_TEST_FAILURE",
-        gate: "structural",
-        message: `Required focused validation failed (${failed.length}): ${failed
-          .map((item) => `${item.command ?? "unknown"} exit ${item.exitCode ?? "?"}`)
-          .join("; ")}`,
-      },
-    ]);
-  }
   if (productionPrerequisites.length)
     plan = applyPlanProductionPrerequisitesV35(plan, productionPrerequisites);
   const validation = buildHistoryValidationSnapshotV35(plan);

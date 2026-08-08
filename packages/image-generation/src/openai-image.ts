@@ -1188,7 +1188,7 @@ export function loadOpenAiImageGenerationSettings(
             mergedEnv["OPENAI_IMAGE_QUALITY"]
     ),
     outputFormat: resolveImageOutputFormat(mergedEnv["OPENAI_IMAGE_FORMAT"]),
-    concurrency: parseEnvInt(mergedEnv["OPENAI_IMAGE_CONCURRENCY"], 2),
+    concurrency: parseEnvInt(mergedEnv["OPENAI_IMAGE_CONCURRENCY"], 4),
     maxRetries: parseEnvInt(mergedEnv["OPENAI_IMAGE_MAX_RETRIES"], 2),
     timeoutMs: parseEnvInt(mergedEnv["OPENAI_IMAGE_TIMEOUT_MS"], 180000),
     debug: mergedEnv["OPENAI_IMAGE_DEBUG"] === "true",

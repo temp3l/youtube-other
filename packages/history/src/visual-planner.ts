@@ -707,6 +707,12 @@ export async function decideHistoryVisualApproval(request: {
   return { state: request.decision, planHash: current.planHash };
 }
 export async function assertHistoryVisualApproval(root: string): Promise<void> {
+  const { assertHistoryVisualApprovalV35, loadHistoryVisualPlanV35 } =
+    await import("./history-render-adapter-v35.js");
+  if (await loadHistoryVisualPlanV35(root)) {
+    await assertHistoryVisualApprovalV35(root);
+    return;
+  }
   const approval = z
     .object({
       state: historyVisualApprovalStateSchema,

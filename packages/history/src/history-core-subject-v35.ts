@@ -1,4 +1,8 @@
 import { lookupCanonicalEntitySeedV34 } from "./history-claims-v34.js";
+import {
+  episodeAffinityMatchesV35,
+  isHistoricalEventTerrorContextV35,
+} from "./history-entity-resolution-v35.js";
 import type {
   HistoryEntityMentionV34,
   HistoryRejectedEntityV34,
@@ -9,8 +13,47 @@ export type CoreSubjectTierV35 = "core" | "supporting";
 export type CoreSubjectSpecV35 = {
   readonly label: string;
   readonly tier: CoreSubjectTierV35;
-  readonly source: "title" | "slug" | "keyword" | "known-entity";
+  readonly source: "title" | "slug" | "keyword" | "known-entity" | "composite-topic";
 };
+
+export type CompositeEpisodeTopicV35 = {
+  readonly topicLabel: string;
+  readonly constituentLabels: readonly string[];
+};
+
+const COMPOSITE_EPISODE_TOPICS_V35: readonly (readonly [
+  RegExp,
+  CompositeEpisodeTopicV35,
+])[] = [
+  [
+    /fall-of-the-roman-empire/i,
+    {
+      topicLabel: "Fall of the Roman Empire",
+      constituentLabels: ["Roman Empire", "Rome"],
+    },
+  ],
+  [
+    /caesar-in-gaul/i,
+    {
+      topicLabel: "Caesar in Gaul",
+      constituentLabels: ["Julius Caesar", "Gaul"],
+    },
+  ],
+  [
+    /caesar-vs-pompey/i,
+    {
+      topicLabel: "Caesar vs Pompey",
+      constituentLabels: ["Julius Caesar", "Pompey"],
+    },
+  ],
+  [
+    /reign-of-terror|french-revolution-reign/i,
+    {
+      topicLabel: "Reign of Terror",
+      constituentLabels: ["France", "Paris"],
+    },
+  ],
+];
 
 const KEYWORD_NOISE = new Set(
   [
@@ -64,6 +107,32 @@ function canonicalLabelForSurface(surface: string): string {
   return lookupCanonicalEntitySeedV34(surface)?.label ?? surface.trim();
 }
 
+function compositeTopicForEpisode(episodeId: string): CompositeEpisodeTopicV35 | null {
+  for (const [pattern, topic] of COMPOSITE_EPISODE_TOPICS_V35) {
+    if (pattern.test(episodeId)) return topic;
+  }
+  return null;
+}
+
+function isSafeCoreSubjectSeedV35(input: {
+  readonly episodeId: string;
+  readonly surface: string;
+  readonly seed: {
+    readonly label: string;
+    readonly entityType: string;
+    readonly episodeAffinity?: readonly RegExp[];
+  };
+  readonly title: string;
+}): boolean {
+  if (input.seed.label === "HMS Terror") {
+    if (/reign-of-terror|french-revolution-reign/i.test(input.episodeId)) return false;
+    if (input.surface.toLocaleLowerCase() === "terror") return false;
+    if (isHistoricalEventTerrorContextV35(input.title)) return false;
+    return episodeAffinityMatchesV35(input.episodeId, input.seed);
+  }
+  return true;
+}
+
 function addSubject(
   subjects: Map<string, CoreSubjectSpecV35>,
   label: string,
@@ -85,15 +154,28 @@ export function deriveCoreSubjectsV35(input: {
   readonly knownEntities?: readonly string[];
 }): readonly CoreSubjectSpecV35[] {
   const subjects = new Map<string, CoreSubjectSpecV35>();
+  const compositeTopic = compositeTopicForEpisode(input.episodeId);
+  if (compositeTopic) {
+    for (const constituent of compositeTopic.constituentLabels) {
+      addSubject(subjects, constituent, "core", "composite-topic");
+    }
+  }
 
   const titleSegment = input.title.split(/[:—–]/u)[0]?.trim() ?? input.title;
-  const titleMain =
-    titleSegment
-      .split(/\s+(?:Beyond|at|in|How|When|Why|The|and)\s+/iu)[0]
-      ?.trim() ?? titleSegment;
-  const titleMatch = titleMain.match(/^([A-Z][\p{L}'-]+(?:\s+[A-Z][\p{L}'-]+)?)/u);
-  if (titleMatch?.[1] && lookupCanonicalEntitySeedV34(titleMatch[1])) {
-    addSubject(subjects, titleMatch[1], "core", "title");
+  const titleWithoutArticle = titleSegment.replace(/^The\s+/iu, "").trim();
+  if (!compositeTopic && lookupCanonicalEntitySeedV34(titleWithoutArticle)) {
+    addSubject(subjects, titleWithoutArticle, "core", "title");
+  } else if (!compositeTopic && lookupCanonicalEntitySeedV34(titleSegment)) {
+    addSubject(subjects, titleSegment, "core", "title");
+  } else if (!compositeTopic) {
+    const titleMain =
+      titleSegment
+        .split(/\s+(?:Beyond|at|in|How|When|Why|The|and)\s+/iu)[0]
+        ?.trim() ?? titleSegment;
+    const titleMatch = titleMain.match(/^([A-Z][\p{L}'-]+(?:\s+[A-Z][\p{L}'-]+)?)/u);
+    if (titleMatch?.[1] && lookupCanonicalEntitySeedV34(titleMatch[1])) {
+      addSubject(subjects, titleMatch[1], "core", "title");
+    }
   }
 
   const slugMatch = input.episodeId.match(/pack-\d{2}-(.+)$/i);
@@ -105,8 +187,19 @@ export function deriveCoreSubjectsV35(input: {
     else if (lower.includes("hannibal")) {
       addSubject(subjects, "Hannibal Barca", "core", "slug");
       if (lower.includes("cannae")) addSubject(subjects, "Cannae", "core", "slug");
-    } else if (lower.includes("caesar")) addSubject(subjects, "Julius Caesar", "core", "slug");
-    else if (lower.includes("alexander")) addSubject(subjects, "Alexander the Great", "core", "slug");
+    } else if (lower.includes("caesar-in-gaul")) {
+      addSubject(subjects, "Julius Caesar", "core", "slug");
+      addSubject(subjects, "Gaul", "core", "slug");
+    } else if (lower.includes("caesar-vs-pompey")) {
+      addSubject(subjects, "Julius Caesar", "core", "slug");
+      addSubject(subjects, "Pompey", "core", "slug");
+    } else if (lower.includes("fall-of-the-roman-empire")) {
+      addSubject(subjects, "Roman Empire", "core", "slug");
+      addSubject(subjects, "Rome", "supporting", "slug");
+    } else if (lower.includes("great-heathen-army")) {
+      addSubject(subjects, "Great Heathen Army", "core", "slug");
+    } else if (lower.includes("alexander")) addSubject(subjects, "Alexander the Great", "core", "slug");
+    else if (lower.includes("maya")) addSubject(subjects, "Maya", "core", "slug");
     else if (lower.includes("pompeii")) {
       addSubject(subjects, "Pompeii", "core", "slug");
       addSubject(subjects, "Mount Vesuvius", "supporting", "slug");
@@ -114,6 +207,13 @@ export function deriveCoreSubjectsV35(input: {
     else if (lower.includes("1066") || lower.includes("battle-that-changed-england")) {
       addSubject(subjects, "Harold Godwinson", "core", "slug");
       addSubject(subjects, "Harald Hardrada", "core", "slug");
+    } else if (lower.includes("pearl-harbor")) {
+      addSubject(subjects, "Pearl Harbor", "core", "slug");
+    } else if (lower.includes("rapa-nui") || lower.includes("easter-island")) {
+      addSubject(subjects, "Rapa Nui", "core", "slug");
+    } else if (lower.includes("reign-of-terror") || lower.includes("french-revolution-reign")) {
+      addSubject(subjects, "France", "core", "slug");
+      addSubject(subjects, "Paris", "supporting", "slug");
     }
   }
 
@@ -122,6 +222,15 @@ export function deriveCoreSubjectsV35(input: {
     if (KEYWORD_NOISE.has(lower) || lower.length < 3 || /^\d/u.test(keyword)) continue;
     const seed = lookupCanonicalEntitySeedV34(keyword);
     if (!seed) continue;
+    if (
+      !isSafeCoreSubjectSeedV35({
+        episodeId: input.episodeId,
+        surface: keyword,
+        seed,
+        title: input.title,
+      })
+    )
+      continue;
     const hasCore = [...subjects.values()].some((item) => item.tier === "core");
     addSubject(
       subjects,
@@ -134,6 +243,15 @@ export function deriveCoreSubjectsV35(input: {
   for (const entity of input.knownEntities ?? []) {
     const seed = lookupCanonicalEntitySeedV34(entity);
     if (!seed) continue;
+    if (
+      !isSafeCoreSubjectSeedV35({
+        episodeId: input.episodeId,
+        surface: entity,
+        seed,
+        title: input.title,
+      })
+    )
+      continue;
     addSubject(subjects, seed.label, "supporting", "known-entity");
   }
 
@@ -220,6 +338,13 @@ export function assessCoreSubjectCompletenessV35(input: {
       input.rejectedEntities
     );
 
+    const requiresResolution =
+      inNarration ||
+      subject.source === "title" ||
+      subject.source === "slug" ||
+      subject.source === "composite-topic";
+    if (!requiresResolution) continue;
+
     if (inNarration && mentionCount >= 1 && !inAccounting) {
       diagnostics.push({
         code: "CORE_ENTITY_CANDIDATE_RECALL_FAILURE",
@@ -227,17 +352,14 @@ export function assessCoreSubjectCompletenessV35(input: {
         affectedIds: [subject.label],
         tier: subject.tier,
       });
-      continue;
     }
 
-    if (inNarration || subject.source === "title" || subject.source === "slug") {
-      diagnostics.push({
-        code: "CORE_ENTITY_UNRESOLVED",
-        message: `Core episode subject "${subject.label}" is not resolved in the semantic entity graph.`,
-        affectedIds: [subject.label],
-        tier: subject.tier,
-      });
-    }
+    diagnostics.push({
+      code: "CORE_ENTITY_UNRESOLVED",
+      message: `Core episode subject "${subject.label}" is not resolved in the semantic entity graph.`,
+      affectedIds: [subject.label],
+      tier: subject.tier,
+    });
   }
 
   return diagnostics;

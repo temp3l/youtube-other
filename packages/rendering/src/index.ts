@@ -14,6 +14,8 @@ import { runCommand, runCommandJson } from "@mediaforge/process-runner";
 import {
   assertInsideWorkspace,
   ensureDir,
+  resolveEpisodeNarrationAudioPath,
+  episodeNarrationAudioCandidates,
   copyAtomic,
   fileExists,
   hashFile,
@@ -166,6 +168,7 @@ export interface VideoRenderRequest {
     readonly subtitleDependency?: MediaStageDependency;
     readonly shortMediaRequirements?: ShortMediaRequirements;
   };
+  readonly narrationAudioBasename?: string;
 }
 
 export interface VideoRenderResult {
@@ -688,6 +691,7 @@ export interface BackfillSceneClipManifestsRequest {
   readonly imageDir?: string;
   readonly trailingSilenceRatio?: number;
   readonly trailingSilenceBufferSeconds?: number;
+  readonly narrationAudioBasename?: string;
 }
 
 export interface BackfillSceneClipManifestsResult {
@@ -809,7 +813,8 @@ export async function backfillSceneClipManifests(
       request.episodeDir,
       sortedScenePlan,
       index,
-      audioDir
+      audioDir,
+      request.narrationAudioBasename
     );
     const currentSceneHash = sceneHash(scene);
     const currentImageSha256 = await hashFile(imagePath).catch(() => "");
@@ -1799,7 +1804,8 @@ async function buildAudioAssemblyDiagnostics(input: {
         input.request.episodeDir,
         sortedScenePlan,
         index,
-        audioDir
+        audioDir,
+        input.request.narrationAudioBasename
       );
       const sourceAudioDurationSeconds = await probeDurationSeconds(
         audioPath
@@ -2862,7 +2868,8 @@ async function resolveSceneAudioPath(
   episodeDir: string,
   scenePlan: ScenePlan,
   sceneIndex: number,
-  audioDir: string
+  audioDir: string,
+  narrationAudioBasename?: string
 ): Promise<string> {
   const scene = scenePlan.scenes[sceneIndex];
   if (!scene) {
@@ -2878,11 +2885,22 @@ async function resolveSceneAudioPath(
       return candidate;
     }
   }
-  const narrationCandidates = [
-    path.join(path.dirname(audioDir), "narration.wav"),
-    path.join(path.dirname(audioDir), "narration-en.wav"),
-  ];
-  for (const candidate of narrationCandidates) {
+  const narrationCandidates = episodeNarrationAudioCandidates(
+    path.dirname(audioDir),
+    narrationAudioBasename ? { basename: narrationAudioBasename } : undefined
+  );
+  const resolvedNarration = await resolveEpisodeNarrationAudioPath(
+    path.dirname(audioDir),
+    narrationAudioBasename ? { basename: narrationAudioBasename } : undefined
+  );
+  const narrationSources =
+    resolvedNarration !== undefined
+      ? [
+          resolvedNarration,
+          ...narrationCandidates.filter((candidate) => candidate !== resolvedNarration),
+        ]
+      : narrationCandidates;
+  for (const candidate of narrationSources) {
     if (await fileExists(candidate)) {
       const targetPath =
         candidates[0] ?? path.join(audioDir, `${scene.id}.wav`);
@@ -3341,12 +3359,35 @@ async function resolveShotNarrationAudioPath(
 ): Promise<string> {
   const audioDir =
     request.sceneAudioDir ?? path.join(request.episodeDir, "audio", "segments");
+  const localizedAudioDir = path.dirname(audioDir);
+  const resolvedNarration =
+    (await resolveEpisodeNarrationAudioPath(
+      localizedAudioDir,
+      request.narrationAudioBasename
+        ? { basename: request.narrationAudioBasename }
+        : undefined
+    )) ??
+    (await resolveEpisodeNarrationAudioPath(
+      path.join(request.episodeDir, "audio"),
+      request.narrationAudioBasename
+        ? { basename: request.narrationAudioBasename }
+        : undefined
+    ));
   const narrationCandidates = [
-    path.join(path.dirname(audioDir), "narration.wav"),
-    path.join(path.dirname(audioDir), "narration-en.wav"),
-    path.join(request.episodeDir, "audio", "narration.wav"),
-    path.join(request.episodeDir, "audio", "narration-en.wav"),
-  ];
+    ...(resolvedNarration ? [resolvedNarration] : []),
+    ...episodeNarrationAudioCandidates(
+      localizedAudioDir,
+      request.narrationAudioBasename
+        ? { basename: request.narrationAudioBasename }
+        : undefined
+    ),
+    ...episodeNarrationAudioCandidates(
+      path.join(request.episodeDir, "audio"),
+      request.narrationAudioBasename
+        ? { basename: request.narrationAudioBasename }
+        : undefined
+    ),
+  ].filter((candidate, index, values) => values.indexOf(candidate) === index);
   for (const candidate of narrationCandidates) {
     if (await fileExists(candidate)) {
       return candidate;
@@ -3355,7 +3396,13 @@ async function resolveShotNarrationAudioPath(
   const sortedScenePlan = stableSortScenes(request.scenePlan);
   const audioPaths = await Promise.all(
     sortedScenePlan.scenes.map((_, index) =>
-      resolveSceneAudioPath(request.episodeDir, sortedScenePlan, index, audioDir)
+      resolveSceneAudioPath(
+        request.episodeDir,
+        sortedScenePlan,
+        index,
+        audioDir,
+        request.narrationAudioBasename
+      )
     )
   );
   const concatListPath = path.join(request.outputDir, "shot-audio-concat.txt");
@@ -4656,7 +4703,8 @@ export class FFmpegVideoRenderer implements VideoRenderer {
           request.episodeDir,
           request.scenePlan,
           index,
-          audioDir
+          audioDir,
+          request.narrationAudioBasename
         );
         const manifestPath = path.join(clipsDir, `${scene.id}.json`);
         const existingManifest = await loadSceneClipManifest(manifestPath);
@@ -5051,7 +5099,8 @@ export class HybridFFmpegVideoRenderer extends FFmpegVideoRenderer {
         request.episodeDir,
         sortedScenePlan,
         index,
-        audioDir
+        audioDir,
+        request.narrationAudioBasename
       );
       const manifestPath = path.join(clipsDir, `${scene.id}.json`);
       const existingManifest = await loadSceneClipManifest(manifestPath);

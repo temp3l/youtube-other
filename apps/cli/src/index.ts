@@ -18,8 +18,10 @@ import {
   type ArtifactReference,
   type NormalizedTranscript,
 } from "@mediaforge/domain";
+import { sliceSceneAudioFiles } from "@mediaforge/dark-truth";
 import {
   approveEpisodeCharacter,
+  buildEpisodeImageMediaContext,
   createPromptBatch,
   exportSceneWorkbook,
   generateEpisodeImageReferences,
@@ -90,6 +92,7 @@ import {
   normalizeLocaleCode,
   safeBasename,
   slugify,
+  resolveEpisodeNarrationAudioPath,
   writeJsonAtomic,
   writeTextAtomic,
 } from "@mediaforge/shared";
@@ -177,6 +180,7 @@ import {
   createHistoryReviewBundleV32,
   planHistoryVisualsV33,
   decideHistoryVisualApprovalV33,
+  decideHistoryVisualApprovalV35,
   createHistoryApprovalPackV33,
   createCombinedHistoryApprovalBundleV33,
   createHistoryApprovalPackV34,
@@ -2089,11 +2093,15 @@ async function commandAudioGenerate(
   const model =
     resolvedTts.provider === "elevenlabs"
       ? resolvedTts.modelId
-      : resolvedTts.model;
+      : resolvedTts.provider === "openai-compatible"
+        ? resolvedTts.model
+        : "mock";
   const voice =
     resolvedTts.provider === "elevenlabs"
       ? resolvedTts.voiceId
-      : resolvedTts.voice;
+      : resolvedTts.provider === "openai-compatible"
+        ? resolvedTts.voice
+        : "mock";
   const audioInstruction = buildAudioInstructionArtifact({
     narration: narrationDependency,
     speechConfig: {
@@ -2348,6 +2356,68 @@ async function commandAudioGenerate(
     } satisfies TtsGenerationRecord);
     throw error;
   }
+}
+
+async function commandAudioResliceSegments(
+  options: CliOptions,
+  episodeId: string,
+  narrationPathOverride?: string
+): Promise<void> {
+  markEpisodeTelemetry(episodeId);
+  const { manifest, episodeDir } = await readManifestForEpisode(options, episodeId);
+  if (!manifest.scenePlan) {
+    throw new Error("Scene plan is not available.");
+  }
+  const episodeConfig = await loadEpisodeConfig(episodeDir);
+  const config = await loadRuntimeConfig(
+    configOverridesFromCli(options),
+    episodeConfig ? compactConfigOverrides(episodeConfig) : {}
+  );
+  const language =
+    config.scriptLanguage ?? episodeConfig?.scriptLanguage ?? "en";
+  const audioBaseDir = localizedAudioBaseDir(episodeDir, language);
+  const audioDir = path.join(audioBaseDir, "audio");
+  const narrationPath = narrationPathOverride
+    ? path.resolve(narrationPathOverride)
+    : await resolveEpisodeNarrationAudioPath(
+        audioDir,
+        episodeConfig?.narrationAudioBasename
+          ? { basename: episodeConfig.narrationAudioBasename }
+          : undefined
+      );
+  if (!narrationPath || !(await fileExists(narrationPath))) {
+    throw new Error(
+      `No narration audio found under ${audioDir}. Expected narration_elevenlabs.mp3 or narration.wav.`
+    );
+  }
+  if (options.dryRun) {
+    printJson({
+      episodeId,
+      language,
+      narrationPath,
+      segmentsDir: localizedSegmentsDirFromBase(audioBaseDir),
+      sceneCount: manifest.scenePlan.scenes.length,
+      dryRun: true,
+    });
+    return;
+  }
+  await sliceSceneAudioFiles(narrationPath, manifest.scenePlan, audioBaseDir);
+  const durationSeconds = await inspectAudioDurationSeconds(narrationPath);
+  const result = {
+    episodeId,
+    language,
+    narrationPath,
+    durationSeconds,
+    segmentsDir: localizedSegmentsDirFromBase(audioBaseDir),
+    sceneCount: manifest.scenePlan.scenes.length,
+  };
+  if (options.json) {
+    printJson(result);
+    return;
+  }
+  process.stdout.write(
+    `Resliced ${manifest.scenePlan.scenes.length} scene segments from ${narrationPath}\n`
+  );
 }
 
 async function commandClipsGenerate(
@@ -2789,6 +2859,20 @@ async function assertImageGenerationGate(
   });
 }
 
+function resolveEpisodeImageMediaContext(
+  episodeId: string,
+  manifest: { readonly sourceMetadata?: unknown }
+) {
+  const isHistory =
+    manifest.sourceMetadata !== null &&
+    typeof manifest.sourceMetadata === "object" &&
+    Reflect.get(manifest.sourceMetadata, "genre") === "history";
+  return buildEpisodeImageMediaContext({
+    episodeId,
+    ...(isHistory ? { contentGenre: "history" as const } : {}),
+  });
+}
+
 async function commandImagesPlan(
   options: CliOptions,
   episodeId: string,
@@ -2820,7 +2904,10 @@ async function commandImagesPlan(
     manifest.episodeId,
     scenePlan,
     settings,
-    sceneId !== undefined ? { sceneId } : undefined
+    {
+      ...(sceneId !== undefined ? { sceneId } : {}),
+      context: resolveEpisodeImageMediaContext(manifest.episodeId, manifest),
+    }
   );
   const summary = {
     totalScenes: results.length,
@@ -2842,14 +2929,43 @@ async function commandImagesPlan(
   printJson({ summary, scenes: results });
 }
 
+function parseImageSceneSelection(scene?: string): {
+  readonly sceneId?: string;
+  readonly sceneIds?: readonly string[];
+} {
+  if (!scene) {
+    return {};
+  }
+  const sceneIds = scene
+    .split(",")
+    .map((value) => value.trim())
+    .filter((value) => value.length > 0);
+  if (sceneIds.length === 0) {
+    return {};
+  }
+  if (sceneIds.length === 1) {
+    const sceneId = sceneIds[0];
+    if (sceneId) {
+      return { sceneId };
+    }
+    return {};
+  }
+  return { sceneIds };
+}
+
 async function commandImagesGenerate(
   options: CliOptions,
   episodeId: string,
-  sceneId?: string
+  sceneSelection?: string
 ): Promise<void> {
-  if (options.force && sceneId === undefined) {
+  const selectedScenes = parseImageSceneSelection(sceneSelection);
+  if (
+    options.force &&
+    selectedScenes.sceneId === undefined &&
+    (selectedScenes.sceneIds === undefined || selectedScenes.sceneIds.length === 0)
+  ) {
     throw new Error(
-      "Refusing episode-wide --force image regeneration. Pass --scene <scene-id> to scope paid regeneration."
+      "Refusing episode-wide --force image regeneration. Pass --scene <scene-id> or comma-separated scene ids to scope paid regeneration."
     );
   }
   markEpisodeTelemetry(episodeId);
@@ -2861,6 +2977,7 @@ async function commandImagesGenerate(
   const settings = loadEpisodeImageGenerationSettings(
     {
       ...process.env,
+      OPENAI_IMAGE_CONCURRENCY: process.env["OPENAI_IMAGE_CONCURRENCY"] ?? "4",
       OPENAI_IMAGE_ALLOW_UNAPPROVED_CHARACTER_REFERENCES:
         options.allowUnapprovedCharacterReferences
           ? "true"
@@ -2879,8 +2996,13 @@ async function commandImagesGenerate(
     scenePlan,
     settings,
     {
-      ...(sceneId !== undefined ? { sceneId } : {}),
+      ...(selectedScenes.sceneIds !== undefined
+        ? { sceneIds: selectedScenes.sceneIds }
+        : selectedScenes.sceneId !== undefined
+          ? { sceneId: selectedScenes.sceneId }
+          : {}),
       ...(options.force !== undefined ? { force: options.force } : {}),
+      context: resolveEpisodeImageMediaContext(manifest.episodeId, manifest),
     }
   );
   printJson(results);
@@ -3101,6 +3223,9 @@ async function commandRender(
     mediaContext,
     ...(motion ? { motion } : {}),
     ...(captionsPath ? { captionsPath } : {}),
+    ...(episodeConfig?.narrationAudioBasename
+      ? { narrationAudioBasename: episodeConfig.narrationAudioBasename }
+      : {}),
   };
   const result = await runtime.renderer.render(
     renderRequest,
@@ -4804,6 +4929,34 @@ audioCommand
     await commandAudioGenerate(program.opts<CliOptions>(), episodeId);
   });
 audioCommand
+  .command("reslice-segments")
+  .description(
+    "Slice scene segment WAVs from narration_elevenlabs.mp3 when present, otherwise narration.wav"
+  )
+  .argument("<episode-id>")
+  .option(
+    "--narration-path <path>",
+    "override narration source (mp3 or wav)"
+  )
+  .option("--dry-run", "preview without writing segment files")
+  .option("--json", "emit machine-readable output")
+  .action(
+    async (
+      episodeId: string,
+      opts: { narrationPath?: string; dryRun?: boolean; json?: boolean }
+    ) => {
+      await commandAudioResliceSegments(
+        {
+          ...program.opts<CliOptions>(),
+          ...(opts.dryRun !== undefined ? { dryRun: opts.dryRun } : {}),
+          ...(opts.json !== undefined ? { json: opts.json } : {}),
+        },
+        episodeId,
+        opts.narrationPath
+      );
+    }
+  );
+audioCommand
   .command("generate-localized")
   .description(
     "Generate audio for every localized script available in the episode workspace"
@@ -4976,7 +5129,10 @@ imagesCommand
 imagesCommand
   .command("generate")
   .requiredOption("--episode <episode-id>")
-  .option("--scene <scene-id>")
+  .option(
+    "--scene <scene-id>",
+    "single scene id or comma-separated scene ids"
+  )
   .option("--allow-unapproved-character-references")
   .option("--force")
   .action(
@@ -5310,7 +5466,9 @@ registerHistoryCommands(program, {
           ? planHistoryVisualsV2(request)
           : planHistoryVisuals(request),
   decideHistoryVisualApproval: (request) =>
-    request.plannerVersion === "v3.3"
+    request.plannerVersion === "v3.5"
+      ? decideHistoryVisualApprovalV35(request)
+      : request.plannerVersion === "v3.3"
       ? decideHistoryVisualApprovalV33(request)
       : request.plannerVersion === "v3.2"
       ? decideHistoryVisualApprovalV32(request)

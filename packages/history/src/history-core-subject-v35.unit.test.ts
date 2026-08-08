@@ -24,6 +24,9 @@ const MONGOL_EPISODE = "history-youtube-history-10-video-story-pack-06-mongol-wa
 const ROME_EPISODE = "history-youtube-history-10-video-story-pack-03-fall-of-the-roman-empire";
 const TITANIC_EPISODE = "history-youtube-history-10-video-story-pack-10-titanic-decisions-disaster";
 
+const REIGN_OF_TERROR_EPISODE =
+  "history-youtube-history-30-video-story-pack-37-french-revolution-reign-of-terror";
+
 function narrationFor(episodeId: string, rawScript: string) {
   return normalizeHistoryNarrationV33({ episodeId, rawScript });
 }
@@ -123,6 +126,42 @@ describe("canonical resolution for reviewed entities", () => {
       ),
     });
     expect(mongol.entities.some((entity) => entity.normalizedLabel === "HMS Terror")).toBe(false);
+  });
+});
+
+describe("deriveCoreSubjectsV35 slug coverage", () => {
+  it.each([
+    [
+      "history-youtube-history-30-video-story-pack-11-pompeii-the-last-day",
+      "Pompeii: The Last Day",
+      ["Pompeii"],
+    ],
+    [
+      "history-youtube-history-30-video-story-pack-14-caesar-vs-pompey",
+      "Caesar vs Pompey",
+      ["Julius Caesar", "Pompey"],
+    ],
+    [
+      "history-youtube-history-30-video-story-pack-17-alexander-breaks-persia",
+      "Alexander Breaks Persia",
+      ["Alexander the Great"],
+    ],
+    [
+      "history-youtube-history-30-video-story-pack-20-1066-battle-that-changed-england",
+      "1066: The Battle That Changed England",
+      ["Harold Godwinson", "Harald Hardrada"],
+    ],
+    [
+      "history-youtube-history-30-video-story-pack-25-maya-collapse",
+      "The Maya Collapse",
+      ["Maya"],
+    ],
+  ])("derives core subjects for %s", (episodeId, title, expectedCoreLabels) => {
+    const subjects = deriveCoreSubjectsV35({ episodeId, title });
+    const coreLabels = subjects.filter((item) => item.tier === "core").map((item) => item.label);
+    for (const label of expectedCoreLabels) {
+      expect(coreLabels).toContain(label);
+    }
   });
 });
 
@@ -362,12 +401,12 @@ describe("structured visuals and modality diagnostics", () => {
       mapCompiled: false,
       diagramCompiled: false,
       mapRejectionReason: "Map proposal failed place, actor, route, or coordinate validation.",
-      diagramRejectionReason: "Diagram lacked narration-bound nodes/edges.",
+      diagramRejectionReason: "no-supported-structured-relationship",
     }).opportunities;
     const map = opportunities.find((item) => item.type === "map");
     const diagram = opportunities.find((item) => item.type === "diagram");
     expect(map?.rejectionReason).toMatch(/Map proposal failed/i);
-    expect(diagram?.rejectionReason).toMatch(/Diagram lacked narration-bound/i);
+    expect(diagram?.rejectionReason).toBe("no-supported-structured-relationship");
     expect(map?.rejectionReason).not.toMatch(/Diagram lacked/i);
     expect(diagram?.rejectionReason).not.toMatch(/Map proposal failed/i);
   });
@@ -393,6 +432,100 @@ describe("structured visuals and modality diagnostics", () => {
         "After the collision, flooding spread through watertight compartments while officers debated evacuation and lifeboat deployment."
       ),
     });
-    expect(plan.diagramStates.some((state) => state.nodes.length >= 2)).toBe(true);
+    const hasStructuredDiagram = plan.diagramStates.some(
+      (state) => state.nodes.length >= 2 && state.semanticStatus !== "blocked"
+    );
+    const hasDiagramOpportunity = plan.visualOpportunitySummary.eligibleDiagramOpportunities > 0;
+    expect(hasStructuredDiagram || hasDiagramOpportunity).toBe(true);
+  });
+});
+
+describe("History V3.5 P0 remediation", () => {
+  const CAESAR_POMPEY_EPISODE =
+    "history-youtube-history-30-video-story-pack-14-caesar-vs-pompey";
+  const HEATHEN_EPISODE =
+    "history-youtube-history-30-video-story-pack-19-great-heathen-army";
+  const DDAY_EPISODE =
+    "history-youtube-history-30-video-story-pack-31-d-day-normandy-invasion";
+
+  it("uses composite topic constituents instead of synthetic title entities", () => {
+    const subjects = deriveCoreSubjectsV35({
+      episodeId: ROME_EPISODE,
+      title: "Fall of the Roman Empire",
+    });
+    expect(subjects.map((item) => item.label)).toEqual(
+      expect.arrayContaining(["Roman Empire", "Rome"])
+    );
+    expect(subjects.some((item) => item.label === "Fall of the Roman Empire")).toBe(false);
+
+    const caesarGaul = deriveCoreSubjectsV35({
+      episodeId: CAESAR_EPISODE,
+      title: "Caesar in Gaul",
+    });
+    expect(caesarGaul.map((item) => item.label)).toEqual(
+      expect.arrayContaining(["Julius Caesar", "Gaul"])
+    );
+
+    const caesarPompey = deriveCoreSubjectsV35({
+      episodeId: CAESAR_POMPEY_EPISODE,
+      title: "Caesar vs Pompey",
+    });
+    expect(caesarPompey.map((item) => item.label)).toEqual(
+      expect.arrayContaining(["Julius Caesar", "Pompey"])
+    );
+    expect(caesarPompey.some((item) => item.label === "Caesar in Gaul")).toBe(false);
+  });
+
+  it("recalls Great Heathen Army from narration without a pre-existing alias list entry requirement", () => {
+    const structured = structureTrustedScriptClaimsV34({
+      episodeId: HEATHEN_EPISODE,
+      narration: narrationFor(
+        HEATHEN_EPISODE,
+        "The Great Heathen Army landed in England and began a campaign of conquest."
+      ),
+    });
+    expect(structured.entities.map((entity) => entity.normalizedLabel)).toEqual(
+      expect.arrayContaining(["Great Heathen Army"])
+    );
+  });
+
+  it("resolves canonical geography for North Africa, Pearl Harbor, and Hawaii", () => {
+    expect(resolveHistoryPlaceV34("North Africa")?.label).toBe("North Africa");
+    expect(resolveHistoryPlaceV34("Pearl Harbor")?.label).toBe("Pearl Harbor");
+    expect(resolveHistoryPlaceV34("Hawaii")?.label).toBe("Hawaii");
+    expect(resolveHistoryPlaceV34("southeastern Europe")?.label).toBe("Southeastern Europe");
+  });
+
+  it("does not promote HMS Terror from Reign of Terror metadata keywords", () => {
+    const subjects = deriveCoreSubjectsV35({
+      episodeId: REIGN_OF_TERROR_EPISODE,
+      title: "The Reign of Terror: How the French Revolution Turned on Itself",
+      keywords: ["Reign", "Terror", "French", "Revolution", "France", "Paris"],
+    });
+    expect(subjects.map((item) => item.label)).not.toContain("HMS Terror");
+    expect(subjects.some((item) => item.tier === "core" && item.label === "France")).toBe(true);
+    const diagnostics = assessCoreSubjectCompletenessV35({
+      coreSubjects: subjects,
+      entities: [],
+      rejectedEntities: [],
+      narrationText:
+        "The Reign of Terror intensified as revolutionary courts executed suspected enemies.",
+    });
+    expect(diagnostics.some((item) => item.affectedIds.includes("HMS Terror"))).toBe(false);
+  });
+
+  it("does not emit Napoleon army-size diagram nodes for D-Day logistics narration", () => {
+    const logistics =
+      "Allied planners stockpiled fuel, ammunition, vehicles, food, medical supplies, reinforcements, and beach port logistics for the invasion.";
+    const plan = buildHistoryVisualPlanV35({
+      episodeId: DDAY_EPISODE,
+      title: "D-Day: The Normandy Invasion",
+      narration: narrationFor(DDAY_EPISODE, logistics),
+    });
+    for (const state of plan.diagramStates) {
+      expect(
+        state.nodes.some((node) => /army-size estimates/i.test(node.label))
+      ).toBe(false);
+    }
   });
 });

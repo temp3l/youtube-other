@@ -38,6 +38,10 @@ import {
   assertHistoryVisualApproval,
   planHistoryVisuals,
 } from "./visual-planner.js";
+import {
+  loadHistoryVisualPlanV35,
+  syncHistoryProductionArtifactsV35,
+} from "./history-render-adapter-v35.js";
 
 export const HISTORY_TASK_REGISTRY_VERSION =
   "history.task-registry.v2" as const;
@@ -632,6 +636,20 @@ function createHistoryProductionImplementations(
       };
     },
     "history.visual-planning": async () => {
+      const v35Plan = await loadHistoryVisualPlanV35(root);
+      if (v35Plan) {
+        const { derivative } = await syncHistoryProductionArtifactsV35({
+          root,
+          plan: v35Plan,
+        });
+        return {
+          outputArtifacts: [],
+          warnings: [
+            `History V3.5 render derivative synced (${derivative.shotCount} shots; ${derivative.illustrationShotCount} illustration shots).`,
+            `Approve with mediaforge history visuals approve ${path.basename(root)} --planner-version v3.5 --plan-hash ${v35Plan.planHash} --derivative-hash ${derivative.derivativeHash}.`,
+          ],
+        };
+      }
       const visualPlanning = await planHistoryVisuals({
         episodeId: path.basename(root),
         outputRoot: path.dirname(root),
@@ -679,7 +697,7 @@ function createHistoryProductionImplementations(
             "no anachronistic clothing or architecture",
           ],
           aspectRatios: ["16:9"],
-          imagePrompt: `Historically grounded documentary reconstruction, clearly labeled as illustrative where evidence is incomplete. ${chunk} Period: ${metadata.period?.original ?? "historical"}. Location: ${(metadata.geographicScope?.labels ?? []).join(", ")}. No modern objects, readable text, logos, or watermarks. Landscape 16:9.`,
+          imagePrompt: `40-50mm natural perspective, cinematic historical reconstruction, grounded documentary realism. ${chunk} Period: ${metadata.period?.original ?? "historical"}. Location: ${(metadata.geographicScope?.labels ?? []).join(", ")}. Period-accurate uniforms and material culture. No modern objects, readable text, logos, or watermarks. Landscape 16:9.`,
           expectedImageFilenames: [
             sceneFilename(sequence, startSeconds, endSeconds, "16:9"),
           ],

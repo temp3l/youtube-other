@@ -3,28 +3,28 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "main": "./src/index.ts",
-  "types": "./src/index.ts",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "types": "./src/index.ts",
-      "default": "./src/index.ts"
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
     },
     "./multilingual-audio-capability": {
-      "types": "./src/multilingual-audio-capability.ts",
-      "default": "./src/multilingual-audio-capability.ts"
+      "types": "./dist/multilingual-audio-capability.d.ts",
+      "default": "./dist/multilingual-audio-capability.js"
     },
     "./publish-approval": {
-      "types": "./src/publish-approval.ts",
-      "default": "./src/publish-approval.ts"
+      "types": "./dist/publish-approval.d.ts",
+      "default": "./dist/publish-approval.js"
     },
     "./generic-media-publish": {
-      "types": "./src/generic-media-publish.ts",
-      "default": "./src/generic-media-publish.ts"
+      "types": "./dist/generic-media-publish.d.ts",
+      "default": "./dist/generic-media-publish.js"
     },
     "./strategic-publish-routing": {
-      "types": "./src/strategic-publish-routing.ts",
-      "default": "./src/strategic-publish-routing.ts"
+      "types": "./dist/strategic-publish-routing.d.ts",
+      "default": "./dist/strategic-publish-routing.js"
     }
   },
   "scripts": {

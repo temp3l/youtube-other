@@ -103,7 +103,7 @@ export function supplementMapIntentsV35(input: {
   readonly geographicQualifiers: readonly HistoryGeographicQualifierV34[];
   readonly temporalQualifiers: readonly HistoryTemporalQualifierV34[];
 }): HistoryMapIntentProposalV34[] {
-  const proposals = supplementMapIntentsV34(input)
+  const proposals: HistoryMapIntentProposalV34[] = supplementMapIntentsV34(input)
     .map((proposal) => {
       const claim = input.claims.find((item) => proposal.claimIds.includes(item.id));
       if (!claim) return proposal;
@@ -133,12 +133,12 @@ export function supplementMapIntentsV35(input: {
         if (scopedLocation) return downgradeProposalToLocator(proposal, scopedLocation);
         return {
           ...proposal,
-          mapPurpose: "location",
+          mapPurpose: "location" as const,
           originPlaceMentionIds: [],
           destinationPlaceMentionIds: [],
           waypointPlaceMentionIds: [],
           movingActorEntityMentionIds: [],
-          routeType: "none",
+          routeType: "none" as const,
         };
       }
 

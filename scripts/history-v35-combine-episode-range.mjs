@@ -19,9 +19,6 @@ function parsePositiveInteger(value, label) {
 }
 
 function parseArgs(argv) {
-  let from;
-  let to;
-  let reusePacksFrom;
   let output;
   let concurrency;
   let useWorkerThreads = true;
@@ -39,18 +36,14 @@ function parseArgs(argv) {
     }
     positional.push(token ?? "");
   }
-  from = parsePositiveInteger(positional[0] ?? "", "from");
-  to = parsePositiveInteger(positional[1] ?? "", "to");
+  const from = parsePositiveInteger(positional[0] ?? "", "from");
+  const to = parsePositiveInteger(positional[1] ?? "", "to");
   if (positional[2]) {
-    reusePacksFrom = path.resolve(repoRoot, positional[2]);
-  }
-  if (positional[3]) {
-    output = path.resolve(repoRoot, positional[3]);
+    output = path.resolve(repoRoot, positional[2]);
   }
   return {
     from,
     to,
-    ...(reusePacksFrom ? { reusePacksFrom } : {}),
     ...(output ? { output } : {}),
     concurrency: resolveHistoryApprovalPackConcurrency(concurrency),
     useWorkerThreads,
@@ -63,11 +56,11 @@ const result = await createCombinedHistoryApprovalBundleForRangeV35({
   from: args.from,
   to: args.to,
   episodesDirectory: path.join(repoRoot, "episodes"),
+  regenerate: true,
   concurrency: args.concurrency,
   useWorkerThreads: args.useWorkerThreads,
   onProgress: (event) => reportHistoryApprovalPackProgress(event),
   ...(args.output ? { output: args.output } : {}),
-  ...(args.reusePacksFrom ? { reusePacksFrom: args.reusePacksFrom } : {}),
 });
 
 process.stdout.write(
@@ -75,14 +68,15 @@ process.stdout.write(
     {
       from: result.from,
       to: result.to,
+      regenerate: true,
       concurrency: args.concurrency,
       useWorkerThreads: args.useWorkerThreads,
       output: result.bundle.directory,
       zipPath: result.bundle.zipPath,
       zipSha256: result.bundle.zipSha256,
       comparisonReportPath: result.bundle.comparisonReportPath,
-      reusedFrom: result.reusedEpisodeIds.length ? args.reusePacksFrom ?? null : null,
-      reusedEpisodeIds: result.reusedEpisodeIds,
+      reusedFrom: null,
+      reusedEpisodeIds: [],
       regeneratedEpisodeIds: result.regeneratedEpisodeIds,
       episodes: result.bundle.episodes.map((episode) => ({
         episodeId: episode.episodeId,

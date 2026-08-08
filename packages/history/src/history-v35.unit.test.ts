@@ -18,8 +18,10 @@ import {
   reserveDiagramBeatIndexesV35,
   scoreDiagramOpportunityV35,
 } from "./history-visual-opportunity-v35.js";
+import { enrichCorpusTestSummaryV35 } from "./history-workflow-v35.js";
 import { DEFAULT_HISTORY_QUALITY_THRESHOLDS_V35 } from "./history-v35-contracts.js";
 import { assessVisualSemanticCoverageV35 } from "./history-visual-semantics-v35.js";
+import { resolveHistoryPlaceV34 } from "./history-geo-v34.js";
 import {
   buildVisualSemanticSignatureV35,
   buildVisualTreatmentSignatureV35,
@@ -288,6 +290,46 @@ describe("History V3.5 unit semantics", () => {
     ).toBe(2);
   });
 
+  it("does not infer geographic place entities from narration subspans", () => {
+    const romeEpisode = "history-youtube-history-10-video-story-pack-03-fall-of-the-roman-empire";
+    const romanEmpire = structureTrustedScriptClaimsV34({
+      episodeId: romeEpisode,
+      narration: normalizeHistoryNarrationV33({
+        episodeId: romeEpisode,
+        rawScript:
+          "The Western Roman Empire fractured while Huns pressed the Danube frontier and Spain fell to new rulers.",
+      }),
+    });
+    expect(romanEmpire.entities.map((entity) => entity.normalizedLabel)).not.toEqual(
+      expect.arrayContaining(["Roman", "Huns", "West", "East"])
+    );
+    expect(resolveHistoryPlaceV34("Spain")?.label).toBe("Spain");
+
+    const pearlHarborEpisode =
+      "history-youtube-history-30-video-story-pack-33-pearl-harbor-road-to-war";
+    const americanFleet = structureTrustedScriptClaimsV34({
+      episodeId: pearlHarborEpisode,
+      narration: normalizeHistoryNarrationV33({
+        episodeId: pearlHarborEpisode,
+        rawScript: "American carriers remained at sea while diplomats negotiated in Washington.",
+      }),
+    });
+    expect(americanFleet.entities.some((entity) => entity.normalizedLabel === "American")).toBe(
+      false
+    );
+
+    const bronzeEpisode = "history-youtube-history-10-video-story-pack-01-bronze-age-collapse";
+    const linearB = structureTrustedScriptClaimsV34({
+      episodeId: bronzeEpisode,
+      narration: normalizeHistoryNarrationV33({
+        episodeId: bronzeEpisode,
+        rawScript: "Linear B archives fell silent across palace centers in Greece.",
+      }),
+    });
+    expect(linearB.entities.some((entity) => entity.normalizedLabel === "Linear")).toBe(false);
+    expect(resolveHistoryPlaceV34("Greece")?.label).toBe("Greece");
+  });
+
   it("reserves high-confidence Bronze Age diagram opportunities", () => {
     const clusters = [
       {
@@ -510,5 +552,15 @@ Drought, migration, trade disruption, and political instability combined to make
     ]);
     expect(blocked.approval.productionApprovalEligible).toBe(false);
     expect(blocked.approval.production.blockerCodes).toContain("FOCUSED_TEST_FAILURE");
+  });
+
+  it("records corpus validation failures without poisoning episode structural approval", () => {
+    const enriched = enrichCorpusTestSummaryV35({
+      status: "failed",
+      commands: [{ command: "pnpm test:focused -- corpus", ok: false, exitCode: 1 }],
+    });
+    expect(enriched.corpusAcceptanceBlocked).toBe(true);
+    expect(enriched.episodeStructuralPoisoning).toBe(false);
+    expect(enriched.corpusBlockerCodes).toEqual(["FOCUSED_CORPUS_VALIDATION_FAILED"]);
   });
 });

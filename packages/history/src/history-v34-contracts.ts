@@ -34,6 +34,7 @@ export type HistoryEntityTypeV34 =
   | "place"
   | "region"
   | "water-body"
+  | "island"
   | "ship"
   | "military-unit"
   | "ethnic-or-cultural-group"
@@ -94,7 +95,12 @@ export interface HistoryEntityMentionV34 {
   readonly entityType: HistoryEntityTypeV34;
   readonly semanticRole: HistoryEntitySemanticRoleV34;
   readonly narrationSpan: TextSpanV34;
-  readonly confidenceSource: "deterministic" | "model-proposed" | "metadata" | "editorial";
+  readonly confidenceSource:
+    | "deterministic"
+    | "deterministic-inferred"
+    | "model-proposed"
+    | "metadata"
+    | "editorial";
 }
 
 export interface HistoryRejectedEntityV34 {

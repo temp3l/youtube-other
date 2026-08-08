@@ -3,6 +3,8 @@ import type { CanonicalNarrationV3_3, CanonicalNarrationUnitV3_3 } from "./histo
 import { hashCanonicalV33 } from "./history-research-v33.js";
 import type { HistorySourceAuthorityMode } from "./history-trusted-script-v33.js";
 import {
+  classifyEntityCandidateV35,
+  isEligibleGeographicResolutionCandidateV35,
   isEntityTypeCompatibleWithSurfaceV35,
   isSafeCanonicalEntityAliasMatchV35,
   normalizeEntityCandidateSpanV35,
@@ -211,6 +213,7 @@ const CANONICAL_ENTITY_SEEDS: readonly CanonicalEntitySeed[] = [
   { label: "Cleopatra", entityType: "person", aliases: ["Cleopatra VII"], defaultRole: "leader", episodeAffinity: [/cleopatra/i] },
   { label: "Mark Antony", entityType: "person", aliases: ["Antony", "Marcus Antonius"], defaultRole: "leader" },
   { label: "Julius Caesar", entityType: "person", aliases: ["Caesar"], defaultRole: "leader", episodeAffinity: [/caesar/i] },
+  { label: "Pompey", entityType: "person", aliases: ["Gnaeus Pompey", "Pompey the Great"], defaultRole: "leader", episodeAffinity: [/pompey/i, /caesar-vs-pompey/i] },
   { label: "Alexandria", entityType: "place" },
   { label: "Ptolemaic Egypt", entityType: "state", aliases: ["Ptolemaic"] },
   { label: "Spartacus", entityType: "person", defaultRole: "leader", episodeAffinity: [/spartacus/i] },
@@ -243,6 +246,33 @@ const CANONICAL_ENTITY_SEEDS: readonly CanonicalEntitySeed[] = [
   { label: "Halicarnassus", entityType: "place" },
   { label: "Mytilene", entityType: "place" },
   { label: "Plataea", entityType: "place" },
+  { label: "Pearl Harbor", entityType: "place" },
+  { label: "Hawaii", entityType: "state" },
+  { label: "Rapa Nui", entityType: "island", aliases: ["Easter Island"] },
+  { label: "Golden Horn", entityType: "water-body" },
+  { label: "Lake Texcoco", entityType: "water-body" },
+  { label: "North Africa", entityType: "region" },
+  { label: "Asia Minor", entityType: "region" },
+  { label: "Mexico City", entityType: "place" },
+  { label: "Angkor Wat", entityType: "place" },
+  { label: "English Channel", entityType: "water-body" },
+  { label: "Chesapeake Bay", entityType: "water-body" },
+  { label: "Hatteras Island", entityType: "island" },
+  { label: "Marie Antoinette", entityType: "person" },
+  { label: "Georges Danton", entityType: "person", aliases: ["Danton"] },
+  { label: "Maximilien Robespierre", entityType: "person", aliases: ["Robespierre"] },
+  { label: "National Assembly", entityType: "organization" },
+  { label: "National Convention", entityType: "organization" },
+  { label: "First Triumvirate", entityType: "organization" },
+  { label: "German Sixth Army", entityType: "military-unit" },
+  { label: "Manhattan Project", entityType: "organization" },
+  { label: "Great Heathen Army", entityType: "military-unit" },
+  { label: "Gaul", entityType: "region", defaultRole: "destination" },
+  { label: "Dyrrhachium", entityType: "place" },
+  { label: "Pharsalus", entityType: "place" },
+  { label: "Rubicon", entityType: "water-body" },
+  { label: "Southeastern Europe", entityType: "region", aliases: ["southeastern Europe"] },
+  { label: "Western Asia", entityType: "region", aliases: ["western Asia"] },
 ];
 
 const ORDINARY_NOUN_REJECT = new Set(
@@ -294,6 +324,8 @@ const ORDINARY_NOUN_REJECT = new Set(
     "malnutrition",
     "modern",
     "and",
+    "republic",
+    "romans",
   ].map((value) => value.toLocaleLowerCase())
 );
 
@@ -364,6 +396,9 @@ const DISCOURSE_OPENER_PATTERN =
 const PROPER_NOUN_SURFACE_PATTERN =
   /^[A-Z][\p{L}'-]+(?:\s+(?:[A-Z][\p{L}'-]+|III|II|IV|I|of|the|and))+|[A-Z][\p{L}'-]+(?:\s+(?:III|II|IV|I))?$/u;
 
+const PERSON_GIVEN_NAME_SURFACE_PATTERN =
+  /^(?:Marie|Georges|Maximilien|Louis|Charles|Elizabeth|Catherine|Joseph|Napoleon|Alexander|William|John|James|Henry|Edward|George)\s+[A-Z]/u;
+
 function hasGeographicContextInUnitV34(unitText: string, surface: string): boolean {
   const escaped = surface.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&");
   return (
@@ -376,6 +411,42 @@ function hasGeographicContextInUnitV34(unitText: string, surface: string): boole
       "iu"
     ).test(unitText)
   );
+}
+
+const ETHNIC_GROUP_SURFACES_V34 = new Set(
+  ["huns", "vandals", "goths", "visigoths", "ostrogoths", "franks", "lombards", "saxons"].map(
+    (value) => value.toLocaleLowerCase()
+  )
+);
+
+const STANDALONE_NON_PLACE_SURFACES_V34 = new Set(
+  ["roman", "east", "west", "american", "linear", "eastern", "western"].map((value) =>
+    value.toLocaleLowerCase()
+  )
+);
+
+function isIncompleteGeographicSurfaceV34(unitText: string, surface: string): boolean {
+  const escaped = surface.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&");
+  if (
+    new RegExp(
+      `\\b${escaped}\\s+(?:Empire|Kingdom|Republic|Europe|B\\b|A\\b|and|Roman|fleet|carriers?|navy|forces|army|islands?|provinces?|legions?|world)\\b`,
+      "iu"
+    ).test(unitText)
+  )
+    return true;
+  if (/^(?:East|West)$/iu.test(surface) && /\b(?:Eastern|Western|East and West|the East|the West)\b/iu.test(unitText))
+    return true;
+  if (/^Roman$/iu.test(surface) && /\bRoman\s+(?:Empire|world|Republic|legions?|army|provinces?)\b/iu.test(unitText))
+    return true;
+  if (
+    /^American$/iu.test(surface) &&
+    /\bAmerican\s+(?:fleet|carriers?|navy|forces|army|ships?|islands?|territor|bases?|officials?|people|public|government|congress|president)\b/iu.test(
+      unitText
+    )
+  )
+    return true;
+  if (/^Linear$/iu.test(surface) && /\bLinear\s+[AB]\b/iu.test(unitText)) return true;
+  return false;
 }
 
 export function shouldSurfaceEntityCandidateV35(input: {
@@ -402,7 +473,7 @@ export function shouldSurfaceEntityCandidateV35(input: {
     ].includes(rejection.reason)
   )
     return false;
-  if (isCredibleGeographicCandidateV35({ text: trimmed, seed: null, unitText: input.unitText }))
+  if (isEligibleGeographicResolutionCandidateV35({ text: trimmed, seed: null, unitText: input.unitText }))
     return true;
   const inferred = inferHistoricalEntitySeedFromSurfaceV34(trimmed, input.unitText);
   return Boolean(inferred && inferred.entityType !== "place");
@@ -427,6 +498,7 @@ export function inferHistoricalEntitySeedFromSurfaceV34(
   const rejection = isRejectedEntityTextV34(candidate);
   if (rejection.reject) return null;
   if (!PROPER_NOUN_SURFACE_PATTERN.test(candidate)) return null;
+  if (STANDALONE_NON_PLACE_SURFACES_V34.has(candidate.toLocaleLowerCase())) return null;
   if (/\b(?:were|was|are|is|had|have|became|began|collapsed|destroyed|believe|recorded|relied)\b/iu.test(candidate))
     return null;
 
@@ -448,8 +520,11 @@ export function inferHistoricalEntitySeedFromSurfaceV34(
   else if (/\bLevant\b/u.test(candidate)) entityType = "region";
   else if (/\b(?:tablet|inscription|relief|archive|chronicle|document|stele)\b/iu.test(unitText))
     entityType = "document";
-  else if (tokens.length === 1) {
+  else if (ETHNIC_GROUP_SURFACES_V34.has(candidate.toLocaleLowerCase())) {
+    entityType = "ethnic-or-cultural-group";
+  } else if (tokens.length === 1) {
     if (!hasGeographicContextInUnitV34(unitText, candidate)) return null;
+    if (isIncompleteGeographicSurfaceV34(unitText, candidate)) return null;
     entityType = "place";
   } else if (
     /\b(?:Sea|Ocean|Gulf|Bay|Strait|River|Aegean|Mediterranean|Danube)\b/u.test(candidate)
@@ -457,8 +532,17 @@ export function inferHistoricalEntitySeedFromSurfaceV34(
     entityType = "water-body";
   else if (/\b(?:region|empire|kingdom|Gaul|Europe|Anatolia|Levant)\b/u.test(candidate))
     entityType = "region";
-  else if (tokens.length >= 2) entityType = "place";
-  else return null;
+  else if (tokens.length >= 2) {
+    if (/\b(?:Sea|Ocean|Gulf|Bay|Strait|River|Channel|Lake|Horn|Island|Islands|Africa|Minor|City|Wat|Harbor|Harbour)\b/u.test(candidate))
+      entityType = tokens.some((t) => /\b(?:Sea|Ocean|Gulf|Bay|Strait|River|Channel|Lake)\b/u.test(t))
+        ? "water-body"
+        : "place";
+    else if (/\b(?:Empire|Kingdom|Republic|Dynasty|Confederacy|Union|Civilization|Assembly|Convention|Project|Triumvirate)\b/u.test(candidate))
+      entityType = "organization";
+    else if (/\b(?:Army|Legion|Corps|Fleet|Division)\b/u.test(candidate)) entityType = "military-unit";
+    else if (PERSON_GIVEN_NAME_SURFACE_PATTERN.test(candidate)) entityType = "person";
+    else return null;
+  } else return null;
 
   const label = candidate.replace(/^The\s+/u, "");
   return {
@@ -763,7 +847,11 @@ function extractEntitiesForUnit(input: {
   const entities: HistoryEntityMentionV34[] = [];
   const rejected: HistoryRejectedEntityV34[] = [];
   const seen = new Set<string>();
-  const candidates: Array<{ text: string; seed: CanonicalEntitySeed | null }> = [];
+  const candidates: Array<{
+    text: string;
+    seed: CanonicalEntitySeed | null;
+    spanStart?: number;
+  }> = [];
 
   const sortedAliases = [...ENTITY_BY_ALIAS.keys()].sort((a, b) => b.length - a.length);
   const lowerText = input.unit.text.toLocaleLowerCase();
@@ -790,12 +878,13 @@ function extractEntitiesForUnit(input: {
           seed,
           unitText: input.unit.text,
           episodeId: input.episodeId,
+          spanStart: index,
         })
       ) {
         from = index + alias.length;
         continue;
       }
-      candidates.push({ text: surface, seed });
+      candidates.push({ text: surface, seed, spanStart: index });
       from = index + alias.length;
     }
   }
@@ -809,6 +898,15 @@ function extractEntitiesForUnit(input: {
           entityType: "other",
         },
       });
+  }
+
+  // Capture explicit multi-token military units before generic title-case extraction.
+  for (const match of input.unit.text.matchAll(
+    /\b(?:Great\s+)?[A-Z][\p{L}'-]+(?:\s+[A-Z][\p{L}'-]+)*\s+Army\b/gu
+  )) {
+    const surface = match[0]!;
+    const inferred = inferHistoricalEntitySeedFromSurfaceV34(surface, input.unit.text);
+    candidates.push({ text: surface, seed: inferred });
   }
 
   // Capture title-case phrases not already canonicalized, then reject stopwords.
@@ -865,6 +963,7 @@ function extractEntitiesForUnit(input: {
       candidate.seed ??
       ENTITY_BY_ALIAS.get(key) ??
       ENTITY_BY_ALIAS.get(key.replace(/^(?:the|a|an)\s+/u, "")) ??
+      inferHistoricalEntitySeedFromSurfaceV34(text, input.unit.text) ??
       null;
     if (
       seed &&
@@ -874,6 +973,7 @@ function extractEntitiesForUnit(input: {
         seed,
         unitText: input.unit.text,
         episodeId: input.episodeId,
+        ...(candidate.spanStart !== undefined ? { spanStart: candidate.spanStart } : {}),
       })
     ) {
       continue;
@@ -941,6 +1041,14 @@ function geographicFromEntities(
     )
       continue;
     if (entity.entityType === "person" || entity.entityType === "organization") continue;
+    if (
+      !isCredibleGeographicCandidateV35({
+        text: entity.normalizedLabel,
+        entityType: entity.entityType,
+        unitText,
+      })
+    )
+      continue;
     let role: HistoryGeographicQualifierV34["role"] = "location";
     if (entity.semanticRole === "origin") role = "origin";
     else if (entity.semanticRole === "destination") role = "destination";
@@ -1161,7 +1269,8 @@ export function isCredibleGeographicCandidateV35(input: {
   readonly entityType?: string;
   readonly unitText?: string;
 }): boolean {
-  const trimmed = input.text.trim();
+  const normalized = normalizeEntityCandidateSpanV35(input.text.trim()).normalizedText;
+  const trimmed = normalized.trim();
   if (!trimmed) return false;
   const rejection = isRejectedEntityTextV34(trimmed);
   if (
@@ -1171,15 +1280,36 @@ export function isCredibleGeographicCandidateV35(input: {
     )
   )
     return false;
-  if (input.seed && GEOGRAPHIC_ENTITY_TYPES.has(input.seed.entityType)) return true;
-  if (input.entityType && GEOGRAPHIC_ENTITY_TYPES.has(input.entityType)) return true;
-  const canonical = ENTITY_BY_ALIAS.get(trimmed.toLocaleLowerCase());
-  if (canonical && GEOGRAPHIC_ENTITY_TYPES.has(canonical.entityType)) return true;
-  const inferred = inferHistoricalEntitySeedFromSurfaceV34(
-    trimmed,
-    input.unitText ?? trimmed
-  );
-  return Boolean(inferred && GEOGRAPHIC_ENTITY_TYPES.has(inferred.entityType));
+
+  const canonical =
+    input.seed ??
+    ENTITY_BY_ALIAS.get(trimmed.toLocaleLowerCase()) ??
+    ENTITY_BY_ALIAS.get(trimmed.replace(/^(?:the|a|an)\s+/iu, "").toLocaleLowerCase()) ??
+    null;
+
+  const classification = classifyEntityCandidateV35({
+    surface: trimmed,
+    ...(input.unitText !== undefined ? { unitText: input.unitText } : {}),
+    seed: canonical,
+  });
+  if (input.unitText && isIncompleteGeographicSurfaceV34(input.unitText, trimmed)) return false;
+  if (STANDALONE_NON_PLACE_SURFACES_V34.has(trimmed.toLocaleLowerCase())) return false;
+  if (
+    classification.resolutionExpectation === "not-applicable" ||
+    !classification.geographicRelevance
+  ) {
+    return false;
+  }
+
+  return isEligibleGeographicResolutionCandidateV35({
+    text: trimmed,
+    seed: canonical,
+    ...(input.entityType !== undefined ? { entityType: input.entityType } : {}),
+    ...(canonical?.entityType && input.entityType === undefined
+      ? { entityType: canonical.entityType }
+      : {}),
+    ...(input.unitText !== undefined ? { unitText: input.unitText } : {}),
+  });
 }
 
 export function lookupCanonicalEntitySeedV34(

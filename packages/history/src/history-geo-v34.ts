@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import {
   isCredibleGeographicCandidateV35,
+  isRejectedEntityTextV34,
   lookupCanonicalEntitySeedV34,
 } from "./history-claims-v34.js";
 import type {
@@ -343,6 +344,27 @@ const PLACE_SEEDS: readonly PlaceSeed[] = [
     aliases: [],
   },
   {
+    label: "Western Europe",
+    placeType: "region",
+    coordinates: { latitude: 48.0, longitude: 2.0 },
+    geometrySource: "curated",
+    aliases: [],
+  },
+  {
+    label: "Greece",
+    placeType: "country",
+    coordinates: { latitude: 39.0, longitude: 22.0 },
+    geometrySource: "curated",
+    aliases: [],
+  },
+  {
+    label: "Spain",
+    placeType: "country",
+    coordinates: { latitude: 40.0, longitude: -4.0 },
+    geometrySource: "curated",
+    aliases: [],
+  },
+  {
     label: "North America",
     placeType: "region",
     coordinates: { latitude: 45.0, longitude: -100.0 },
@@ -528,6 +550,48 @@ const PLACE_SEEDS: readonly PlaceSeed[] = [
     label: "Sparta",
     placeType: "city",
     coordinates: { latitude: 37.08, longitude: 22.43 },
+    geometrySource: "curated",
+    aliases: [],
+  },
+  {
+    label: "North Africa",
+    placeType: "region",
+    coordinates: { latitude: 28.0, longitude: 10.0 },
+    geometrySource: "curated",
+    aliases: [],
+  },
+  {
+    label: "Pearl Harbor",
+    placeType: "site",
+    coordinates: { latitude: 21.35, longitude: -157.97 },
+    geometrySource: "curated",
+    aliases: [],
+  },
+  {
+    label: "Hawaii",
+    placeType: "region",
+    coordinates: { latitude: 21.3, longitude: -157.8 },
+    geometrySource: "curated",
+    aliases: [],
+  },
+  {
+    label: "Southeastern Europe",
+    placeType: "region",
+    coordinates: { latitude: 42.0, longitude: 22.0 },
+    geometrySource: "curated",
+    aliases: ["southeastern Europe"],
+  },
+  {
+    label: "Western Asia",
+    placeType: "region",
+    coordinates: { latitude: 35.0, longitude: 45.0 },
+    geometrySource: "curated",
+    aliases: ["western Asia"],
+  },
+  {
+    label: "Asia Minor",
+    placeType: "region",
+    coordinates: { latitude: 39.0, longitude: 35.0 },
     geometrySource: "curated",
     aliases: [],
   },

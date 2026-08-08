@@ -7,6 +7,7 @@ import type {
   HistoryVisualModalityV34,
 } from "./history-v34-contracts.js";
 import { isCredibleGeographicCandidateV35 } from "./history-claims-v34.js";
+import { classifyEntityCandidateV35 } from "./history-entity-resolution-v35.js";
 import type {
   HistoryBeatV35,
   HistoryEffectiveChangeMetricsV35,
@@ -148,6 +149,10 @@ export function validateRequiredGeographyCoverageV35(input: {
 }): readonly string[] {
   const blockers: string[] = [];
   for (const qualifierId of input.requiredGeographicQualifierIds) {
+    const qualifier = input.geographicQualifiers.find((item) => item.id === qualifierId);
+    const entity = qualifier
+      ? input.entities.find((item) => item.id === qualifier.entityMentionId)
+      : undefined;
     const label = resolveGeographicLabelV35({
       qualifierId,
       geographicQualifiers: input.geographicQualifiers,
@@ -157,6 +162,14 @@ export function validateRequiredGeographyCoverageV35(input: {
       blockers.push(`REQUIRED_GEOGRAPHY_UNRESOLVED:${qualifierId}`);
       continue;
     }
+    if (
+      entity &&
+      !isCredibleGeographicCandidateV35({
+        text: entity.normalizedLabel,
+        entityType: entity.entityType,
+      })
+    )
+      continue;
     if (!mapRepresentsGeographicLabelV35(input.mapState, label))
       blockers.push(`REQUIRED_GEOGRAPHY_MISSING:${label}`);
   }
@@ -197,11 +210,12 @@ export function assessVisualSemanticCoverageV35(input: {
   const geographicEntities = input.entities.filter((entity) =>
     ["place", "region", "water-body", "state", "island"].includes(entity.entityType)
   );
-  const credibleRejectedGeographic = input.rejectedEntities.filter((item) =>
-    isCredibleGeographicCandidateV35({ text: item.text })
+  const eligibleRejectedGeographic = input.rejectedEntities.filter((item) =>
+    isCredibleGeographicCandidateV35({ text: item.text, unitText: item.text })
   );
   const nonGeographicRejectedSurfaces = input.rejectedEntities.filter(
-    (item) => !isCredibleGeographicCandidateV35({ text: item.text })
+    (item) =>
+      !isCredibleGeographicCandidateV35({ text: item.text, unitText: item.text })
   );
   const mapEligibleBeats = input.beats.filter((beat) =>
     ["map"].includes(beat.modality)
@@ -230,13 +244,13 @@ export function assessVisualSemanticCoverageV35(input: {
         recognizedGeographicEntityCount: geographicEntities.length,
         rejectedEntityCount: input.rejectedEntities.length,
         credibleGeographicCandidates:
-          geographicEntities.length + credibleRejectedGeographic.length,
+          geographicEntities.length + eligibleRejectedGeographic.length,
         resolvedGeographicCandidates: geographicEntities.length,
-        unresolvedGeographicCandidates: credibleRejectedGeographic.map((item) => item.text),
+        unresolvedGeographicCandidates: eligibleRejectedGeographic.map((item) => item.text),
         nonGeographicRejectedSurfaces: nonGeographicRejectedSurfaces
           .slice(0, 12)
           .map((item) => item.text),
-        highConfidenceRejectedEntities: credibleRejectedGeographic
+        highConfidenceRejectedEntities: eligibleRejectedGeographic
           .slice(0, 12)
           .map((item) => item.text),
         mapEligibleBeatCount: mapEligibleBeats,
@@ -265,25 +279,46 @@ export function assessVisualSemanticCoverageV35(input: {
     });
   }
 
-  const credibleGeographicCandidates =
-    geographicEntities.length + credibleRejectedGeographic.length;
+  const eligibleGeographicCandidates =
+    geographicEntities.length + eligibleRejectedGeographic.length;
+  const geographicCandidateInvariant = [
+    ...geographicEntities.map((entity) => ({
+      surface: entity.normalizedLabel,
+      kind: classifyEntityCandidateV35({
+        surface: entity.normalizedLabel,
+        seed: { label: entity.normalizedLabel, entityType: entity.entityType as never },
+      }).kind,
+    })),
+    ...eligibleRejectedGeographic.map((item) => ({
+      surface: item.text,
+      kind: classifyEntityCandidateV35({ surface: item.text }).kind,
+    })),
+  ];
   const rejectionRate =
-    credibleRejectedGeographic.length / Math.max(1, credibleGeographicCandidates);
-  if (credibleRejectedGeographic.length >= 4 && rejectionRate >= 0.5) {
+    eligibleRejectedGeographic.length / Math.max(1, eligibleGeographicCandidates);
+  if (
+    eligibleGeographicCandidates > 0 &&
+    eligibleRejectedGeographic.length >= 4 &&
+    rejectionRate >= 0.5
+  ) {
     diagnostics.push({
       code: "ENTITY_RESOLUTION_COVERAGE_LOW",
       message: "Entity resolution rejected a majority of credible geographic candidates.",
-      affectedIds: credibleRejectedGeographic.slice(0, 20).map((item) => item.text),
+      affectedIds: eligibleRejectedGeographic.slice(0, 20).map((item) => item.text),
       payload: {
         acceptedEntityCount: input.entities.length,
         rejectedEntityCount: input.rejectedEntities.length,
-        credibleGeographicCandidates,
+        credibleGeographicCandidates: eligibleGeographicCandidates,
+        eligibleGeographicCandidates,
         resolvedGeographicCandidates: geographicEntities.length,
-        unresolvedGeographicCandidates: credibleRejectedGeographic.length,
+        unresolvedGeographicCandidates: eligibleRejectedGeographic.length,
         ambiguousCandidates: 0,
         nonGeographicRejectedSurfaces: nonGeographicRejectedSurfaces.length,
         rejectionRate,
-        highConfidenceRejectedEntities: credibleRejectedGeographic
+        geographicCoverageStatus:
+          eligibleGeographicCandidates === 0 ? "not-applicable" : "measured",
+        geographicCandidateKinds: geographicCandidateInvariant.map((item) => item.kind),
+        highConfidenceRejectedEntities: eligibleRejectedGeographic
           .slice(0, 12)
           .map((item) => item.text),
       },

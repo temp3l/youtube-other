@@ -6,6 +6,18 @@ export const ROMAN_IMPERIAL_RESOURCE_CYCLE_MASTER =
   "diagram-master-roman-imperial-resource-cycle" as const;
 export const BLACK_DEATH_LABOUR_CONSEQUENCES_MASTER =
   "diagram-master-black-death-labour-consequences" as const;
+export const BLACK_DEATH_TRANSMISSION_MASTER =
+  "diagram-master-black-death-transmission" as const;
+
+const BLACK_DEATH_TRANSMISSION_LABELS: ReadonlyArray<{
+  readonly label: string;
+  readonly pattern: RegExp;
+}> = [
+  { label: "Black Sea trade contact", pattern: /\bBlack Sea\b/iu },
+  { label: "port arrival at Messina", pattern: /\bMessina\b/iu },
+  { label: "trade-route spread", pattern: /\btrade routes?\b/iu },
+  { label: "flea and rat transmission", pattern: /\b(?:fleas?|rats?)\b/iu },
+];
 
 type DiagramCompilation = {
   readonly master: HistoryVisualPlanV35["diagramMasters"][number];
@@ -74,7 +86,7 @@ export function compileRomanImperialResourceCycleV35(input: {
     linkedClaimIds: input.evidenceClaimIds,
     entityMentionIds: [] as string[],
   }));
-  const edges: HistoryDiagramStateV34["edges"] = [];
+  const edges: Array<HistoryDiagramStateV34["edges"][number]> = [];
   for (let index = 0; index < nodes.length - 1; index += 1) {
     const from = nodes[index]!;
     const to = nodes[index + 1]!;
@@ -107,6 +119,67 @@ export function compileRomanImperialResourceCycleV35(input: {
       id: masterId,
       diagramType: "process",
       exactQuestion: "How did the Roman imperial resource cycle work and break down?",
+      supportedRatios: ["16:9", "9:16"],
+    },
+    state: finalizeDiagramSemanticStateV35({
+      state: baseState,
+      evidenceClaimText: evidenceText,
+    }),
+  };
+}
+
+export function isBlackDeathTransmissionTextV35(text: string): boolean {
+  return (
+    /\b(?:plague|Black Death|Yersinia pestis)\b/iu.test(text) &&
+    BLACK_DEATH_TRANSMISSION_LABELS.some((item) => item.pattern.test(text))
+  );
+}
+
+export function extractBlackDeathTransmissionLabelsV35(text: string): string[] {
+  return BLACK_DEATH_TRANSMISSION_LABELS.filter((item) => item.pattern.test(text)).map(
+    (item) => item.label
+  );
+}
+
+export function compileBlackDeathTransmissionDiagramV35(input: {
+  readonly beatNumber: string;
+  readonly evidenceBeatIds: readonly string[];
+  readonly evidenceClaimIds: readonly string[];
+  readonly claims: readonly HistoryClaimV34[];
+}): DiagramCompilation | null {
+  const evidenceText = claimText(input.claims, input.evidenceClaimIds);
+  if (!isBlackDeathTransmissionTextV35(evidenceText)) return null;
+
+  const visibleLabels = extractBlackDeathTransmissionLabelsV35(evidenceText);
+  if (visibleLabels.length < 2) return null;
+
+  const masterId = BLACK_DEATH_TRANSMISSION_MASTER;
+  const nodes = visibleLabels.map((label, index) => ({
+    id: `node-${masterId}-${index + 1}`,
+    label,
+    linkedClaimIds: input.evidenceClaimIds,
+    entityMentionIds: [] as string[],
+  }));
+
+  const baseState: HistoryDiagramStateV34 = {
+    id: `diagram-state-${input.beatNumber}`,
+    masterId,
+    diagramType: "evidence-set",
+    exactQuestion: "What transmission pathways does the narration support?",
+    nodes,
+    edges: [],
+    semanticStatus: "valid",
+    blockerCodes: [],
+    fallbackDecision: null,
+    evidenceBeatIds: input.evidenceBeatIds,
+    evidenceClaimIds: input.evidenceClaimIds,
+  };
+
+  return {
+    master: {
+      id: masterId,
+      diagramType: "evidence-set",
+      exactQuestion: "What transmission pathways does the narration support?",
       supportedRatios: ["16:9", "9:16"],
     },
     state: finalizeDiagramSemanticStateV35({
@@ -173,7 +246,7 @@ export function compileBlackDeathLabourConsequenceDiagramV35(input: {
     linkedClaimIds: input.evidenceClaimIds,
     entityMentionIds: [] as string[],
   }));
-  const edges: HistoryDiagramStateV34["edges"] = [];
+  const edges: Array<HistoryDiagramStateV34["edges"][number]> = [];
   for (let index = 0; index < nodes.length - 1; index += 1) {
     const from = nodes[index]!;
     const to = nodes[index + 1]!;
@@ -233,7 +306,7 @@ export function compileBlackDeathLabourPolicyDiagramV35(input: {
     linkedClaimIds: input.evidenceClaimIds,
     entityMentionIds: [] as string[],
   }));
-  const edges: HistoryDiagramStateV34["edges"] = [];
+  const edges: Array<HistoryDiagramStateV34["edges"][number]> = [];
   for (let index = 0; index < nodes.length - 1; index += 1) {
     const from = nodes[index]!;
     const to = nodes[index + 1]!;

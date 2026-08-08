@@ -29,14 +29,13 @@ const THEMATIC_CAUSAL_LABELS: ReadonlyArray<{
   { label: "earthquake disruption", pattern: /\b(?:earthquake|seismic|quake)\b/iu },
   { label: "military fragmentation", pattern: /\b(?:army|armies|military)\b/iu },
   { label: "fragmented evidence", pattern: /\b(?:fragmented evidence|evidence is fragmented)\b/iu },
-  { label: "metanarrative caution", pattern: /\bwarns? us against\b/iu },
+  { label: "warns against dramatic explanation", pattern: /\bwarns? us against\b/iu },
   { label: "single-cause warning", pattern: /\bsingle (?:dramatic )?explanation\b/iu },
   { label: "supply-chain failure", pattern: /\b(?:supply|logistics|supplies)\b/iu },
   { label: "disease and hunger", pattern: /\b(?:disease|hunger|famine|starv)\b/iu },
   { label: "population loss", pattern: /\b(?:population loss|mortality|depopulation)\b/iu },
   { label: "labour scarcity", pattern: /\b(?:labou?r scarcity|worker shortage)\b/iu },
   { label: "tax and revenue strain", pattern: /\b(?:tax(?:es)?|revenue)\b/iu },
-  { label: "imperial resource cycle", pattern: /\b(?:provincial|administration|empire|resources)\b/iu },
   { label: "copper from Cyprus", pattern: /\bcopper\b.*\bCyprus\b|\bCyprus\b.*\bcopper\b/iu },
   { label: "tin from distant regions", pattern: /\btin\b/iu },
   { label: "bronze production", pattern: /\bbronze\b/iu },
@@ -55,6 +54,83 @@ const THEMATIC_CAUSAL_LABELS: ReadonlyArray<{
   { label: "seasonal labour cycle", pattern: /\b(?:seasonal|harvest|field work|peasant)\b/iu },
   { label: "agricultural production", pattern: /\b(?:agricultural|crop|farm|rent|tax)\b/iu },
 ];
+
+const LABEL_STOP_WORDS = new Set([
+  "and",
+  "from",
+  "the",
+  "versus",
+  "into",
+  "with",
+  "pressure",
+  "stress",
+  "strain",
+  "loss",
+  "cycle",
+  "failure",
+  "disruption",
+  "fragmentation",
+  "scarcity",
+  "response",
+  "attempt",
+  "options",
+  "impact",
+  "progression",
+  "sequence",
+  "production",
+  "caution",
+  "warning",
+]);
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&");
+}
+
+export function isClaimGroundedDiagramLabelV35(label: string, text: string): boolean {
+  const contentTokens = label
+    .toLocaleLowerCase()
+    .split(/\s+/)
+    .filter((token) => token.length > 2 && !LABEL_STOP_WORDS.has(token));
+  if (!contentTokens.length) return false;
+  const matched = contentTokens.filter((token) =>
+    new RegExp(`\\b${escapeRegExp(token)}\\b`, "iu").test(text)
+  );
+  if (contentTokens.length === 1) return matched.length === 1;
+  return matched.length >= Math.max(1, Math.ceil(contentTokens.length * 0.5));
+}
+
+export function extractListedCausalFactorsV35(text: string): string[] {
+  const labels: string[] = [];
+  const listPatterns = [
+    /\bcombining\s+([^.!?]+?)\s+into\b/iu,
+    /\b(?:combined|integrating)\s+([^.!?]+?)\s+(?:into|to)\b/iu,
+  ];
+  for (const pattern of listPatterns) {
+    const match = pattern.exec(text);
+    if (!match) continue;
+    const parts = match[1]!
+      .split(/,|\band\b/iu)
+      .map((part) => part.replace(/\s+/gu, " ").trim())
+      .filter((part) => part.length > 2 && part.length <= 48);
+    for (const part of parts) {
+      const normalized = part.toLocaleLowerCase();
+      if (!labels.some((label) => label.toLocaleLowerCase() === normalized)) labels.push(part);
+    }
+  }
+  return labels;
+}
+
+function isCompositeOfListedFactorsV35(label: string, listedFactors: readonly string[]): boolean {
+  if (listedFactors.length < 2) return false;
+  const contentTokens = label
+    .toLocaleLowerCase()
+    .split(/\s+/)
+    .filter((token) => token.length > 2 && !LABEL_STOP_WORDS.has(token));
+  if (contentTokens.length < 2) return false;
+  return contentTokens.every((token) =>
+    listedFactors.some((factor) => new RegExp(`\\b${escapeRegExp(token)}\\b`, "iu").test(factor))
+  );
+}
 
 function wordSafeSlice(text: string, maxChars: number): string {
   const trimmed = text.replace(/\s+/gu, " ").trim();
@@ -123,9 +199,12 @@ export function compileTopologyDiagramV35(input: {
 }
 
 export function extractThematicCausalLabelsV35(text: string): string[] {
-  const labels: string[] = [];
+  const labels = [...extractListedCausalFactorsV35(text)];
   for (const item of THEMATIC_CAUSAL_LABELS) {
-    if (item.pattern.test(text) && !labels.includes(item.label)) labels.push(item.label);
+    if (!item.pattern.test(text) || labels.includes(item.label)) continue;
+    if (!isClaimGroundedDiagramLabelV35(item.label, text)) continue;
+    if (isCompositeOfListedFactorsV35(item.label, labels)) continue;
+    labels.push(item.label);
   }
   return labels;
 }
@@ -154,7 +233,11 @@ export function compileAbstractCausalDiagramV35(input: {
     );
   if (!hasCausalLanguage) return null;
   const masterId = `diagram-master-causal-${input.beatNumber}`;
-  const topology = inferDiagramTopologyV35({ labels, text: input.text });
+  const listedFactors = extractListedCausalFactorsV35(input.text);
+  const topology =
+    listedFactors.length >= 3 && /\bcombining\b/iu.test(input.text)
+      ? ("parallel-contributors" as const)
+      : inferDiagramTopologyV35({ labels, text: input.text });
   const diagramType =
     topology === "comparison"
       ? "evidence-set"

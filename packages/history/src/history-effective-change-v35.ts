@@ -211,11 +211,11 @@ export function evaluateShotEffectiveChangeV35(input: {
   const modalityChanged =
     Boolean(input.priorModality) && input.priorModality !== input.modality;
   const claimFocusChanged =
-    Boolean(priorShot) &&
+    priorShot !== null &&
     extractClaimFocus(priorShot.midground) !== extractClaimFocus(shot.midground);
   const factualLabelsChanged =
-    Boolean(priorShot) && factualLabelsKey(priorShot) !== factualLabelsKey(shot);
-  const subjectChanged = Boolean(priorShot) && priorShot.subject !== shot.subject;
+    priorShot !== null && factualLabelsKey(priorShot) !== factualLabelsKey(shot);
+  const subjectChanged = priorShot !== null && priorShot.subject !== shot.subject;
   const compositionPrior = priorShot
     ? classifyCompositionFamilyV35(priorShot.framing)
     : null;
@@ -362,7 +362,7 @@ export function measureEffectiveVisualChangeV35(input: {
   const diagramStateById = new Map(
     (input.diagramStates ?? []).map((state) => [state.id, state] as const)
   );
-  const audit: HistoryEffectiveChangeAuditV35 = {
+  const audit = {
     assetChanges: 0,
     structuredStateChanges: 0,
     annotationChanges: 0,
@@ -375,7 +375,7 @@ export function measureEffectiveVisualChangeV35(input: {
     unstructuredRevealEvents: 0,
     clockResetsBackedByState: 0,
     clockResetsMotionOrTransitionOnly: 0,
-  };
+  } satisfies HistoryEffectiveChangeAuditV35;
 
   const visualChanges: HistoryShotVisualChangeV35[] = input.shots.map((shot, index) => {
     const prior = index > 0 ? input.shots[index - 1]! : null;

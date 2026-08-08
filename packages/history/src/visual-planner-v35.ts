@@ -115,14 +115,19 @@ import {
 import {
   compileBlackDeathLabourConsequenceDiagramV35,
   compileBlackDeathLabourPolicyDiagramV35,
+  compileBlackDeathTransmissionDiagramV35,
   compileRomanImperialResourceCycleV35,
   isBlackDeathLabourConsequenceTextV35,
   isBlackDeathLabourPolicyTextV35,
+  isBlackDeathTransmissionTextV35,
   isRomanResourceCycleContinuationTextV35,
   isRomanResourceCycleTextV35,
   resolveDiagramEvidenceWindowV35,
   ROMAN_IMPERIAL_RESOURCE_CYCLE_MASTER,
 } from "./history-diagram-evidence-v35.js";
+import {
+  type HistoryVisualOpportunitySummaryV35,
+} from "./history-visual-opportunity-v35.js";
 import {
   collectDiagramEvidenceClaimTextV35,
   finalizeDiagramSemanticStateV35,
@@ -442,7 +447,7 @@ export function measureHistoryRepetitionV35(input: {
   const effectiveChange = measureEffectiveVisualChangeV35({
     shots: input.shots,
     beats: input.beats,
-    diagramStates: input.diagramStates,
+    ...(input.diagramStates ? { diagramStates: input.diagramStates } : {}),
   });
   const metric = {
     policyVersion: HISTORY_REPETITION_POLICY_V35,
@@ -905,7 +910,6 @@ function summarizeApproval(
   };
 }
 
-const BLACK_DEATH_TRANSMISSION_MASTER = "diagram-master-black-death-transmission";
 const BRONZE_AGE_TRADE_MASTER = "diagram-master-bronze-age-trade-network";
 const BRONZE_AGE_COLLAPSE_MASTER = "diagram-master-bronze-age-systems-collapse";
 
@@ -929,15 +933,7 @@ function buildProgressiveDiagramState(input: {
   readonly claimIds: readonly string[];
   readonly visibleCount: number;
   readonly withEdges?: boolean;
-}): {
-  readonly master: {
-    readonly id: string;
-    readonly diagramType: "evidence-set" | "process";
-    readonly exactQuestion: string;
-    readonly supportedRatios: readonly ["16:9", "9:16"];
-  };
-  readonly state: HistoryDiagramStateV34;
-} {
+}): ReturnType<typeof compileTopologyDiagramV35> {
   return compileTopologyDiagramV35({
     beatNumber: input.beatNumber,
     masterId: input.masterId,
@@ -947,7 +943,7 @@ function buildProgressiveDiagramState(input: {
     claimIds: input.claimIds,
     text: input.exactQuestion,
     visibleCount: input.visibleCount,
-    topology: input.withEdges ? undefined : "comparison",
+    ...(input.withEdges ? {} : { topology: "comparison" as const }),
   });
 }
 
@@ -1120,44 +1116,15 @@ function compileDiagram(input: {
     if (collapseCompiled) return collapseCompiled;
   }
 
-  if (
-    /\b(?:plague|Black Death|Yersinia|disease)\b/iu.test(text) &&
-    /\b(?:trade routes?|ships|Messina|Black Sea|fleas|rats|transmission)\b/iu.test(text)
-  ) {
-    const transmissionLabels = [
-      "Black Sea trade contact",
-      "port arrival at Messina",
-      "trade-route spread",
-      "flea and rat transmission",
-    ].filter((label) => new RegExp(label.split(" ")[0]!, "iu").test(text) || /trade|transmission|fleas?|rats?/iu.test(text));
-    if (
-      transmissionLabels.length >= 3 ||
-      (/\b(?:plague|Black Death)\b/iu.test(text) &&
-        /\b(?:trade routes?|ships|Messina|Black Sea)\b/iu.test(text))
-    ) {
-      const labels =
-        transmissionLabels.length >= 3
-          ? transmissionLabels
-          : [
-              "Black Sea trade contact",
-              "port arrival at Messina",
-              "trade-route spread",
-              "flea and rat transmission",
-            ];
-      const visibleCount = Math.min(
-        labels.length,
-        Math.max(2, labels.filter((label) => new RegExp(label.split(" ")[0]!, "iu").test(text)).length || 2)
-      );
-      return buildProgressiveDiagramState({
-        beatNumber: input.beatNumber,
-        masterId: BLACK_DEATH_TRANSMISSION_MASTER,
-        diagramType: "evidence-set",
-        exactQuestion: "What transmission pathways does the narration support?",
-        labels,
-        claimIds: input.claimIds,
-        visibleCount,
-      });
-    }
+  if (isBlackDeathTransmissionTextV35(text)) {
+    const compiled = compileBlackDeathTransmissionDiagramV35({
+      beatNumber: input.beatNumber,
+      evidenceBeatIds,
+      evidenceClaimIds,
+      claims: input.claims,
+    });
+    if (compiled?.state.semanticStatus === "valid") return compiled;
+    return null;
   }
 
   if (
@@ -1199,10 +1166,13 @@ function compileDiagram(input: {
       label.length > 2
   );
 
-  // Napoleon army-size variation: require process coverage or reject.
+  // Napoleon army-size variation: require Napoleonic campaign context or reject.
   if (
     /\b(?:army size|estimates?|reinforcements|desertion|detached)\b/iu.test(text) &&
-    !/\b(?:supply|logistics|fodder|horse|disease|hunger|attrition)\b/iu.test(text)
+    !/\b(?:supply|logistics|supplies|fodder|horse|disease|hunger|attrition|ammunition|fuel|vehicles|food|medical|beach|port)\b/iu.test(
+      text
+    ) &&
+    /\b(?:Grande Armée|Napoleon|Borodino|Kutuzov|Moscow|French invasion|1812)\b/iu.test(text)
   ) {
     const processNodes = [
       "reinforcements",
@@ -1638,7 +1608,9 @@ export function buildHistoryVisualPlanV35(input: {
       intentsByClaim,
       narrationText: input.narration.normalizedText,
       diagramReserved: diagramReservations.has(index),
-      diagramReservationReason: diagramReservations.get(index),
+      ...(diagramReservations.get(index)
+        ? { diagramReservationReason: diagramReservations.get(index)! }
+        : {}),
     });
     if (
       modality === "text-only transition" &&
@@ -1901,6 +1873,7 @@ export function buildHistoryVisualPlanV35(input: {
             ? compileMapStateV35({
                 beatNumber,
                 proposal: intent,
+                scopeClaimIds: claimIds,
                 claims: structured.claims,
                 entities: structured.entities,
                 geographicQualifiers: structured.geographicQualifiers,
@@ -2502,15 +2475,18 @@ export function buildHistoryVisualPlanV35(input: {
     ...(input.metadataKeywords ? { keywords: input.metadataKeywords } : {}),
     ...(input.knownEntities ? { knownEntities: input.knownEntities } : {}),
   });
-  for (const issue of assessCoreSubjectCompletenessV35({
+  const coreSubjectIssues = assessCoreSubjectCompletenessV35({
     coreSubjects,
     entities: structured.entities,
     rejectedEntities: structured.rejectedEntities,
     narrationText: input.narration.normalizedText,
-  }))
+  });
+  for (const issue of coreSubjectIssues)
     diagnostics.push(
-      diagnostic(issue.code, "content", issue.message, issue.affectedIds, "error")
+      diagnostic(issue.code, "editorial", issue.message, issue.affectedIds, "error")
     );
+  const coreSubjectsSatisfied =
+    coreSubjectIssues.filter((issue) => issue.tier === "core").length === 0;
   for (const coverage of assessVisualSemanticCoverageV35({
     entities: structured.entities,
     rejectedEntities: structured.rejectedEntities,
@@ -2525,7 +2501,9 @@ export function buildHistoryVisualPlanV35(input: {
         "editorial",
         coverage.message,
         coverage.affectedIds,
-        coverage.code === "ENTITY_RESOLUTION_COVERAGE_LOW" ? "error" : "warning"
+        coverage.code === "ENTITY_RESOLUTION_COVERAGE_LOW" && !coreSubjectsSatisfied
+          ? "error"
+          : "warning"
       )
     );
   for (const quantity of structured.quantitativeQualifiers) {

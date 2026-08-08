@@ -180,8 +180,6 @@ function inferFallbackDowngradeReason(input: {
     return "DESTINATION_NOT_SUPPORTED";
   if (input.requested === "sequence" && input.resolved === "locator")
     return "INSUFFICIENT_EVIDENCE";
-  if (input.requested === "locator" && input.resolved === "no-map")
-    return "INSUFFICIENT_EVIDENCE";
   return downgradeReasonForMissingCapability({
     requested: input.requested,
     capabilities: {
@@ -512,6 +510,7 @@ export function compileMapStateV35(input: {
         kind: "claim-expression",
         normalizedLabel: "surviving expedition members",
         claimIds: semantic.movement.claimIds,
+        sourceText: "surviving expedition members",
       };
       movingActorEntityMentionIds = [];
       actorMention = undefined;

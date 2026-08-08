@@ -24,8 +24,23 @@ import {
 } from "./service.js";
 import type { ResolvedSpeechProfile } from "./contracts.js";
 import type { ElevenLabsVoiceSettings } from "./contracts.js";
+import type { VoiceConsentRecord } from "./consent.js";
 import { runCommand } from "@mediaforge/process-runner";
 import { ensureDir } from "@mediaforge/shared";
+
+const LEGACY_NONCREATOR_CHANNEL = "legacy-noncreator";
+
+const LEGACY_NONCREATOR_CONSENT: VoiceConsentRecord = {
+  id: "legacy-noncreator-local-consent",
+  subjectName: "Legacy CLI narration",
+  evidenceArtifactId: "legacy-noncreator-local-consent",
+  evidenceSha256: "0".repeat(64),
+  syntheticSpeechAllowed: true,
+  commercialUseAllowed: true,
+  multilingualUseAllowed: true,
+  permittedChannels: [LEGACY_NONCREATOR_CHANNEL],
+  validFrom: new Date("2020-01-01T00:00:00Z"),
+};
 
 class SingleOwnerGenerationStore implements SpeechGenerationStore {
   public async claim() {
@@ -149,7 +164,7 @@ class ProviderNeutralLegacyOpenAiSpeechProvider implements LegacySpeechProvider 
       ]),
       profiles: {
         resolve: async () => resolvedProfile,
-        consentFor: async () => undefined,
+        consentFor: async () => LEGACY_NONCREATOR_CONSENT,
       },
       generations: new SingleOwnerGenerationStore(),
       quotas: {
@@ -170,7 +185,7 @@ class ProviderNeutralLegacyOpenAiSpeechProvider implements LegacySpeechProvider 
         workspaceId: "legacy-local",
         language: resolvedProfile.language,
         text: request.text,
-        channel: "legacy-noncreator",
+        channel: LEGACY_NONCREATOR_CHANNEL,
         replacementProfileVersionId: resolvedProfile.profileVersionId,
         forceRegeneration: true,
         abortSignal: signal,
@@ -297,7 +312,7 @@ class ProviderNeutralLegacyElevenLabsSpeechProvider implements LegacySpeechProvi
       ]),
       profiles: {
         resolve: async () => resolvedProfile,
-        consentFor: async () => undefined,
+        consentFor: async () => LEGACY_NONCREATOR_CONSENT,
       },
       generations: new SingleOwnerGenerationStore(),
       quotas: {
@@ -318,7 +333,7 @@ class ProviderNeutralLegacyElevenLabsSpeechProvider implements LegacySpeechProvi
         workspaceId: "legacy-local",
         language: resolvedProfile.language,
         text: request.text,
-        channel: "legacy-noncreator",
+        channel: LEGACY_NONCREATOR_CHANNEL,
         replacementProfileVersionId: resolvedProfile.profileVersionId,
         forceRegeneration: true,
         abortSignal: signal,

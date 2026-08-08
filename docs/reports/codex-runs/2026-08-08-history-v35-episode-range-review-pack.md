@@ -27,8 +27,10 @@ pnpm mediaforge -- history v3.5 compare --from 11 --to 31 --json
 pnpm history:v35:review-pack 11 31
 pnpm history:v35:review-pack 11 31 --concurrency 4
 pnpm history:v35:review-pack 11 31 --no-worker-threads
-pnpm mediaforge -- history v3.5 compare --from 11 --to 31 --no-worker-threads --json
+pnpm history:v35:review-pack 11 31 artifacts/chatgpt-review/custom-output
 ```
+
+`history:v35:review-pack` always regenerates every episode pack and combined bundle artifact.
 
 ## Risks
 - Full multi-episode regeneration not run in this session.

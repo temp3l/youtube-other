@@ -24,5 +24,8 @@
     "@mediaforge/youtube-upload": "workspace:*",
     "js-yaml": "^4.2.0",
     "zod": "^4.0.14"
+  },
+  "devDependencies": {
+    "@types/js-yaml": "^4.0.9"
   }
 }
