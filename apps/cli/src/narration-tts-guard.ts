@@ -3,7 +3,7 @@ import type { NarrationPipelineStage } from "@mediaforge/speech";
 
 type NarrationTtsConfig = Pick<
   RuntimeConfig,
-  "ttsProvider" | "openAiCompatibleApiKey"
+  "ttsProvider" | "openAiCompatibleApiKey" | "elevenLabsApiKey"
 >;
 
 const NARRATION_TTS_ERROR =
@@ -14,12 +14,24 @@ export function narrationStageRequiresTts(stage: NarrationPipelineStage): boolea
 }
 
 export function assertNarrationTtsConfigured(config: NarrationTtsConfig): void {
-  if (
-    config.ttsProvider !== "openai-compatible" ||
-    !config.openAiCompatibleApiKey
-  ) {
+  if (config.ttsProvider === "mock") {
     throw new Error(NARRATION_TTS_ERROR);
   }
+  if (config.ttsProvider === "openai-compatible") {
+    if (!config.openAiCompatibleApiKey) {
+      throw new Error(NARRATION_TTS_ERROR);
+    }
+    return;
+  }
+  if (config.ttsProvider === "elevenlabs") {
+    if (!config.elevenLabsApiKey?.trim()) {
+      throw new Error(
+        "ElevenLabs TTS was selected, but ELEVENLABS_API_KEY is not configured."
+      );
+    }
+    return;
+  }
+  throw new Error(NARRATION_TTS_ERROR);
 }
 
 export { NARRATION_TTS_ERROR };

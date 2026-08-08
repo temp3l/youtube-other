@@ -131,7 +131,7 @@ interface MathSelectionOptions {
   openAiApiKey?: string;
   openAiSpeechModel?: string;
   openAiSpeechVoice?: string;
-  ttsProvider?: "mock" | "openai-compatible";
+  ttsProvider?: "mock" | "openai-compatible" | "elevenlabs";
   paidSpeech?: boolean;
   maxProviderCostUsd?: number;
   maxProviderCostPerLessonUsd?: number;

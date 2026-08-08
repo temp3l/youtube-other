@@ -108,6 +108,7 @@ export * from "./platform/workflow-adapter.js";
 export * from "./platform/quota.js";
 export * from "./platform/pricing.js";
 export * from "./platform/observability.js";
+export * from "./genre-tts-config.js";
 export * from "./platform/legacy-application-adapter.js";
 
 export interface SpeechSynthesisRequest {
