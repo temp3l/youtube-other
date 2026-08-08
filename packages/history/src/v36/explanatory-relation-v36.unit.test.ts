@@ -43,8 +43,11 @@ describe("History V3.6 invariant and determinism contracts", () => {
   it("derives identical semantic IDs despite support-window ordering", () => {
     const supportA = claimIdV36("claim-window-a");
     const supportB = claimIdV36("claim-window-b");
-    const first = createExplanatoryRelationV36({ ...movement, supportClaimIds: [supportA, supportB] });
-    const second = createExplanatoryRelationV36({ ...movement, supportClaimIds: [supportB, supportA] });
+    const firstWindow = { id: "window-uuid-a", claimIds: [supportA, supportB] };
+    const secondWindow = { id: "window-uuid-b", claimIds: [supportB, supportA] };
+    const first = createExplanatoryRelationV36({ ...movement, supportClaimIds: [firstWindow.claimIds[0]!, firstWindow.claimIds[1]!] });
+    const second = createExplanatoryRelationV36({ ...movement, supportClaimIds: [secondWindow.claimIds[0]!, secondWindow.claimIds[1]!] });
+    expect(firstWindow.id).not.toBe(secondWindow.id);
     expect(first.id).toBe(second.id);
     expect(explanatoryRelationIdV36(first)).toBe(second.id);
   });
