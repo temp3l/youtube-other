@@ -9,9 +9,6 @@ import {
 } from "@mediaforge/domain";
 
 import {
-  POSTGRES_DURABLE_DISPATCH_MIGRATION,
-  POSTGRES_WORKFLOW_AUTHORITY_MIGRATION,
-  POSTGRES_WORKFLOW_STATE_MIGRATION,
   isWorkflowRunTransition,
   type JobLease,
   type RelationalWorkflowRun,
@@ -20,14 +17,24 @@ import {
   type WorkflowRunStatus,
   WorkflowStateTransitionError,
 } from "./relational-workflow-state.js";
+import { applyRegisteredPostgresMigrations } from "./postgres-migration-registry.js";
 import {
-  POSTGRES_QUOTA_DIMENSION_MIGRATION,
   reserveQuotaDimensionInTransaction,
 } from "./postgres-usage-audit-repository.js";
 import {
   persistedWebhookSubjectType,
   type PersistedWebhookEventType,
 } from "./webhook-event-catalog.js";
+import {
+  type CreateProductionRevisionInput,
+  type EpisodeProductionStateRecord,
+  getAuthoritativeProductionRevision,
+  getEpisodeProductionStateRecord,
+  insertProductionRevision,
+  type ProductionRevisionRecord,
+  replaceEpisodeProductionState,
+  type ReplaceEpisodeProductionStateInput,
+} from "./production-state-repository.js";
 
 export interface CommandAdmissionResult {
   readonly kind: "admitted" | "replayed";
@@ -385,7 +392,7 @@ export interface OutboxLease {
   readonly attemptCount: number;
 }
 
-interface Queryable {
+export interface Queryable {
   query<T>(
     sql: string,
     values?: readonly unknown[]
@@ -3152,6 +3159,34 @@ export class WorkspaceTransactionRepository {
       return translate(error);
     }
   }
+
+  public createProductionRevision(
+    input: CreateProductionRevisionInput
+  ): Promise<ProductionRevisionRecord> {
+    return insertProductionRevision(this.connection, input);
+  }
+
+  public getAuthoritativeProductionRevision(input: {
+    readonly workspaceId: string;
+    readonly projectId: string;
+    readonly episodeId: string;
+  }): Promise<ProductionRevisionRecord | null> {
+    return getAuthoritativeProductionRevision(this.connection, input);
+  }
+
+  public replaceEpisodeProductionState(
+    input: ReplaceEpisodeProductionStateInput
+  ): Promise<EpisodeProductionStateRecord> {
+    return replaceEpisodeProductionState(this.connection, input);
+  }
+
+  public getEpisodeProductionState(input: {
+    readonly workspaceId: string;
+    readonly projectId: string;
+    readonly episodeId: string;
+  }): Promise<EpisodeProductionStateRecord | null> {
+    return getEpisodeProductionStateRecord(this.connection, input);
+  }
 }
 
 export class PostgresWorkflowRepository {
@@ -3161,10 +3196,7 @@ export class PostgresWorkflowRepository {
     const client = await this.pool.connect();
     try {
       await client.query("BEGIN");
-      await client.query(POSTGRES_WORKFLOW_STATE_MIGRATION);
-      await client.query(POSTGRES_WORKFLOW_AUTHORITY_MIGRATION);
-      await client.query(POSTGRES_DURABLE_DISPATCH_MIGRATION);
-      await client.query(POSTGRES_QUOTA_DIMENSION_MIGRATION);
+      await applyRegisteredPostgresMigrations(client);
       await client.query("COMMIT");
     } catch (error) {
       await client.query("ROLLBACK");

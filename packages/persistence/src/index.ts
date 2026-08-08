@@ -8,6 +8,9 @@ import {
 import { ensureDir, writeJsonAtomic } from "@mediaforge/shared";
 
 export * from "./relational-workflow-state.js";
+export * from "./postgres-migration-registry.js";
+export * from "./postgres-production-state.js";
+export * from "./production-state-repository.js";
 export * from "./postgres-workflow-repository.js";
 export * from "./postgres-webhook-repository.js";
 export * from "./postgres-usage-audit-repository.js";

@@ -71,7 +71,7 @@ describePostgres("PostgreSQL workflow state", () => {
 
   beforeEach(async () => {
     await adminPool.query(
-      "TRUNCATE workflow_events, job_dead_letters, workflow_outbox, command_admissions, effect_records, jobs, workflow_attempts, workflow_steps, workflow_batches, approvals, approval_challenges, validation_results, assets, publications, workflow_run_bindings, workflow_runs, episode_revisions, episodes, projects CASCADE"
+      "TRUNCATE workflow_events, job_dead_letters, workflow_outbox, command_admissions, effect_records, jobs, workflow_attempts, workflow_steps, workflow_batches, approvals, approval_challenges, validation_results, assets, publications, workflow_run_bindings, workflow_runs, episode_production_state, production_revisions, episode_revisions, episodes, projects CASCADE"
     );
   });
 
