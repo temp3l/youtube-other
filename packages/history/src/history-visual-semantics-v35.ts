@@ -7,6 +7,7 @@ import type {
   HistoryVisualModalityV34,
 } from "./history-v34-contracts.js";
 import { isCredibleGeographicCandidateV35 } from "./history-claims-v34.js";
+import { resolveHistoryPlaceV34 } from "./history-geo-v34.js";
 import { classifyEntityCandidateV35 } from "./history-entity-resolution-v35.js";
 import type {
   HistoryBeatV35,
@@ -170,6 +171,7 @@ export function validateRequiredGeographyCoverageV35(input: {
       })
     )
       continue;
+    if (!resolveHistoryPlaceV34(label)) continue;
     if (!mapRepresentsGeographicLabelV35(input.mapState, label))
       blockers.push(`REQUIRED_GEOGRAPHY_MISSING:${label}`);
   }

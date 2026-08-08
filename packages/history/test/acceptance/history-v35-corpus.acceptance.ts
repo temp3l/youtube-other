@@ -2,6 +2,8 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { discoverHistoryStoryPackEpisodeIds } from "../../src/history-episode-discovery.js";
+import { findSurvivingGeographicEntitiesMissingQualifiersV35 } from "../../src/history-claims-v34.js";
+import { resolveHistoryPlaceV34 } from "../../src/history-geo-v34.js";
 import { planHistoryVisualsV35 } from "../../src/history-workflow-v35.js";
 import { assessPlanningAcceptanceV35 } from "../../src/history-planning-acceptance-v35.js";
 import {
@@ -68,6 +70,15 @@ describe("History V3.5 corpus acceptance", () => {
       ).toEqual([]);
       expect(plan.approval.contentApprovalEligible, episodeId).toBe(true);
       expect(plan.approval.editoriallyReviewable, episodeId).toBe(true);
+      const missingGeographicQualifiers = findSurvivingGeographicEntitiesMissingQualifiersV35({
+        entities: plan.entities,
+        claims: plan.claims,
+        geographicQualifiers: plan.geographicQualifiers,
+      });
+      expect(
+        missingGeographicQualifiers,
+        `${episodeId} credible geography missing qualifiers: ${missingGeographicQualifiers.join(", ")}`
+      ).toEqual([]);
       for (const state of plan.diagramStates) {
         if (state.blockerCodes.length) {
           expect(state.semanticStatus, `${episodeId} ${state.id}`).toBe("blocked");
@@ -105,6 +116,7 @@ describe("History V3.5 corpus acceptance", () => {
           const qualifier = plan.geographicQualifiers.find((item) => item.id === qualifierId);
           const entity = plan.entities.find((item) => item.id === qualifier?.entityMentionId);
           if (!entity) continue;
+          if (!resolveHistoryPlaceV34(entity.normalizedLabel)) continue;
           expect(
             mapRepresentsGeographicLabelV35(mapState, entity.normalizedLabel),
             `${episodeId} ${beat.id} missing ${entity.normalizedLabel}`

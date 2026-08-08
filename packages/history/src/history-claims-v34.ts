@@ -4,10 +4,16 @@ import { hashCanonicalV33 } from "./history-research-v33.js";
 import type { HistorySourceAuthorityMode } from "./history-trusted-script-v33.js";
 import {
   classifyEntityCandidateV35,
+  GEOGRAPHIC_OF_PHRASE_PATTERN_V35,
+  INSTITUTIONAL_TITLE_PATTERN_V35,
   isEligibleGeographicResolutionCandidateV35,
   isEntityTypeCompatibleWithSurfaceV35,
+  isGenericGeographicHeadNounV35,
+  isInstitutionalTitleSurfaceV35,
+  isNamedGeographicOfPhraseV35,
   isSafeCanonicalEntityAliasMatchV35,
   normalizeEntityCandidateSpanV35,
+  shouldSuppressGenericGeographicSubspanV35,
 } from "./history-entity-resolution-v35.js";
 import {
   HISTORY_CLAIM_SCHEMA_V34,
@@ -200,6 +206,10 @@ const CANONICAL_ENTITY_SEEDS: readonly CanonicalEntitySeed[] = [
   { label: "Soviet Union", entityType: "state", aliases: ["USSR", "Soviets"] },
   { label: "United States", entityType: "state", aliases: ["U.S.", "US", "America"] },
   { label: "Cuba", entityType: "state" },
+  { label: "Bay of Pigs", entityType: "water-body" },
+  { label: "Bay of Naples", entityType: "water-body" },
+  { label: "Berlin", entityType: "place" },
+  { label: "Turkey", entityType: "state" },
   { label: "National Security Council", entityType: "organization", aliases: ["ExComm"] },
   { label: "Limited Nuclear Test Ban Treaty", entityType: "document" },
   { label: "Valentin Savitsky", entityType: "person", aliases: ["Savitsky"] },
@@ -505,6 +515,14 @@ export function inferHistoricalEntitySeedFromSurfaceV34(
     return null;
 
   const tokens = candidate.split(/\s+/u);
+  const allowedLowercaseTokens = new Set(["of", "the", "and", "at", "in", "on", "for", "de", "la", "el"]);
+  if (
+    tokens.some(
+      (token) =>
+        /^[a-z]/u.test(token) && !allowedLowercaseTokens.has(token.toLocaleLowerCase())
+    )
+  )
+    return null;
   const aliasHit =
     ENTITY_BY_ALIAS.get(candidate.toLocaleLowerCase()) ??
     ENTITY_BY_ALIAS.get(candidate.replace(/^The\s+/u, "").toLocaleLowerCase());
@@ -517,7 +535,17 @@ export function inferHistoricalEntitySeedFromSurfaceV34(
     /\b(?:Ramesses|Pharaoh|Emperor|Empress|King|Queen|Caesar|Merneptah|Tsar)\b/u.test(candidate))
     entityType = "person";
   else if (/^Russian$/iu.test(candidate)) return ENTITY_BY_ALIAS.get("russian") ?? null;
-  else if (/\b(?:Sea|Ocean|Gulf|Bay|Strait|Aegean|Mediterranean)\b/u.test(candidate))
+  else if (tokens.length === 1 && isGenericGeographicHeadNounV35(candidate)) {
+    const escaped = candidate.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&");
+    if (new RegExp(`\\b${escaped}\\s+of\\s+(?:the\\s+)?[\\p{L}]`, "iu").test(unitText))
+      return null;
+    if (!hasGeographicContextInUnitV34(unitText, candidate)) return null;
+    if (isIncompleteGeographicSurfaceV34(unitText, candidate)) return null;
+    entityType = "water-body";
+  } else if (
+    tokens.length >= 2 &&
+    /\b(?:Sea|Ocean|Gulf|Bay|Strait|Aegean|Mediterranean)\b/u.test(candidate)
+  )
     entityType = "water-body";
   else if (/\bLevant\b/u.test(candidate)) entityType = "region";
   else if (/\b(?:tablet|inscription|relief|archive|chronicle|document|stele)\b/iu.test(unitText))
@@ -853,7 +881,54 @@ function extractEntitiesForUnit(input: {
     text: string;
     seed: CanonicalEntitySeed | null;
     spanStart?: number;
+    spanEnd?: number;
   }> = [];
+
+  const pushCandidate = (input: {
+    readonly text: string;
+    readonly seed: CanonicalEntitySeed | null;
+    readonly spanStart?: number;
+    readonly spanEnd?: number;
+  }): void => {
+    const spanStart = input.spanStart;
+    const spanEnd =
+      input.spanEnd ?? (spanStart !== undefined ? spanStart + input.text.length : undefined);
+    if (spanStart !== undefined && spanEnd !== undefined) {
+      candidates.push({ text: input.text, seed: input.seed, spanStart, spanEnd });
+      return;
+    }
+    candidates.push({ text: input.text, seed: input.seed });
+  };
+
+  for (const match of input.unit.text.matchAll(GEOGRAPHIC_OF_PHRASE_PATTERN_V35)) {
+    const surface = match[0]!;
+    const spanStart = match.index ?? -1;
+    if (spanStart < 0) continue;
+    const inferred = inferHistoricalEntitySeedFromSurfaceV34(surface, input.unit.text);
+    pushCandidate({ text: surface, seed: inferred, spanStart });
+  }
+
+  for (const match of input.unit.text.matchAll(INSTITUTIONAL_TITLE_PATTERN_V35)) {
+    const surface = match[0]!.trim();
+    if (!isInstitutionalTitleSurfaceV35(surface)) continue;
+    const spanStart = match.index ?? -1;
+    if (spanStart < 0) continue;
+    const inferred = inferHistoricalEntitySeedFromSurfaceV34(surface, input.unit.text);
+    pushCandidate({
+      text: surface,
+      seed:
+        inferred ??
+        ({
+          label: surface.replace(/^The\s+/u, ""),
+          entityType: /\b(?:Convention|Treaty|Act|Law|Agreement|Protocol|Charter|Accords|Pact)\b/iu.test(
+            surface
+          )
+            ? "document"
+            : "organization",
+        } as CanonicalEntitySeed),
+      spanStart,
+    });
+  }
 
   const sortedAliases = [...ENTITY_BY_ALIAS.keys()].sort((a, b) => b.length - a.length);
   const lowerText = input.unit.text.toLocaleLowerCase();
@@ -886,20 +961,23 @@ function extractEntitiesForUnit(input: {
         from = index + alias.length;
         continue;
       }
-      candidates.push({ text: surface, seed, spanStart: index });
+      candidates.push({ text: surface, seed, spanStart: index, spanEnd: index + alias.length });
       from = index + alias.length;
     }
   }
 
   for (const known of input.knownEntities ?? []) {
-    if (lowerText.includes(known.toLocaleLowerCase()))
-      candidates.push({
+    if (lowerText.includes(known.toLocaleLowerCase())) {
+      const index = lowerText.indexOf(known.toLocaleLowerCase());
+      pushCandidate({
         text: known,
         seed: ENTITY_BY_ALIAS.get(known.toLocaleLowerCase()) ?? {
           label: known,
           entityType: "other",
         },
+        ...(index >= 0 ? { spanStart: index } : {}),
       });
+    }
   }
 
   // Capture explicit multi-token military units before generic title-case extraction.
@@ -907,8 +985,10 @@ function extractEntitiesForUnit(input: {
     /\b(?:Great\s+)?[A-Z][\p{L}'-]+(?:\s+[A-Z][\p{L}'-]+)*\s+Army\b/gu
   )) {
     const surface = match[0]!;
+    const spanStart = match.index ?? -1;
+    if (spanStart < 0) continue;
     const inferred = inferHistoricalEntitySeedFromSurfaceV34(surface, input.unit.text);
-    candidates.push({ text: surface, seed: inferred });
+    pushCandidate({ text: surface, seed: inferred, spanStart });
   }
 
   // Capture title-case phrases not already canonicalized, then reject stopwords.
@@ -916,6 +996,8 @@ function extractEntitiesForUnit(input: {
     /\b(?:(?:The|A|An|In|On|By|For|From|Its|They|Their|This|That|Those|Later|Some|No|Why|Yet)\s+)?[A-Z][\p{L}'-]+(?:\s+[A-Z][\p{L}'-]+){0,4}\b/gu
   )) {
     const surface = match[0]!;
+    const spanStart = match.index ?? -1;
+    if (spanStart < 0) continue;
     if (
       !shouldSurfaceEntityCandidateV35({
         text: surface,
@@ -924,11 +1006,49 @@ function extractEntitiesForUnit(input: {
       })
     )
       continue;
-    candidates.push({ text: surface, seed: null });
+    pushCandidate({ text: surface, seed: null, spanStart });
   }
+
+  const enclosingCandidates = candidates
+    .filter((candidate) => candidate.spanStart !== undefined && candidate.spanEnd !== undefined)
+    .map((candidate) => {
+      const span = normalizeEntityCandidateSpanV35(candidate.text.trim());
+      const text = span.normalizedText;
+      const seed =
+        candidate.seed ??
+        ENTITY_BY_ALIAS.get(text.toLocaleLowerCase()) ??
+        inferHistoricalEntitySeedFromSurfaceV34(text, input.unit.text);
+      const geographic =
+        Boolean(seed && ["place", "region", "water-body", "state", "island"].includes(seed.entityType)) ||
+        isNamedGeographicOfPhraseV35(text) ||
+        isEligibleGeographicResolutionCandidateV35({ text, seed: seed ?? null, unitText: input.unit.text });
+      const institutional =
+        Boolean(
+          seed &&
+            ["organization", "document", "object", "event", "military-unit"].includes(seed.entityType)
+        ) || isInstitutionalTitleSurfaceV35(text);
+      return {
+        surface: text,
+        spanStart: candidate.spanStart!,
+        spanEnd: candidate.spanEnd!,
+        geographic,
+        institutional,
+      };
+    });
 
   for (const candidate of candidates) {
     const span = normalizeEntityCandidateSpanV35(candidate.text.trim());
+    if (
+      candidate.spanStart !== undefined &&
+      candidate.spanEnd !== undefined &&
+      shouldSuppressGenericGeographicSubspanV35({
+        surface: span.normalizedText,
+        spanStart: candidate.spanStart,
+        spanEnd: candidate.spanEnd,
+        enclosingCandidates,
+      })
+    )
+      continue;
     const surfaceText = span.originalText;
     const text = span.normalizedText;
     const key = text.toLocaleLowerCase();
@@ -1023,7 +1143,8 @@ function extractEntitiesForUnit(input: {
         endUtf16Exclusive: input.unit.startUtf16 + local.endUtf16Exclusive,
       },
       confidenceSource:
-        candidate.seed || ENTITY_BY_ALIAS.has(key)
+        ENTITY_BY_ALIAS.get(key) ??
+        ENTITY_BY_ALIAS.get(key.replace(/^(?:the|a|an)\s+/u, ""))
           ? "deterministic"
           : "deterministic-inferred",
     });
@@ -1324,6 +1445,34 @@ export function lookupCanonicalEntitySeedV34(
     inferHistoricalEntitySeedFromSurfaceV34(text, text) ??
     null
   );
+}
+
+export function findSurvivingGeographicEntitiesMissingQualifiersV35(input: {
+  readonly entities: readonly HistoryEntityMentionV34[];
+  readonly claims: readonly HistoryClaimV34[];
+  readonly geographicQualifiers: readonly HistoryGeographicQualifierV34[];
+}): readonly string[] {
+  const missing: string[] = [];
+  for (const entity of input.entities) {
+    if (!["place", "region", "water-body", "state"].includes(entity.entityType)) continue;
+    const claim = input.claims.find((item) => item.id === entity.claimId);
+    if (!claim) continue;
+    const unitText = claim.verbatimTexts[0] ?? "";
+    if (
+      !isCredibleGeographicCandidateV35({
+        text: entity.normalizedLabel,
+        entityType: entity.entityType,
+        unitText,
+      })
+    )
+      continue;
+    const hasQualifier = input.geographicQualifiers.some(
+      (qualifier) =>
+        qualifier.entityMentionId === entity.id && qualifier.claimId === entity.claimId
+    );
+    if (!hasQualifier) missing.push(`${entity.claimId}:${entity.normalizedLabel}`);
+  }
+  return missing;
 }
 
 export function validateGeographicRolesV34(input: {
