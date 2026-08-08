@@ -1,6 +1,15 @@
 import type { SdkV1OperationContract } from "../types.js";
 
 export const workflowSdkV1Operations = {
+  listWorkflowPortfolio: {
+    method: "GET",
+    path: "/v1/workspaces/{workspace}/workflow-portfolio",
+    successStatus: "200",
+    responseSchema: "WorkflowPortfolioPage",
+    requestSchema: null,
+    requiredHeaders: [],
+    problemResponses: true,
+  },
   admitWorkflow: {
     method: "POST",
     path: "/v1/workspaces/{workspace}/projects/{project}/episodes/{episode}/workflow-runs",

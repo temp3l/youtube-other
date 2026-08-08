@@ -253,6 +253,21 @@ export interface ApiUseCases {
     readonly revision: number;
     readonly status: string;
   } | null>;
+  listWorkflowPortfolio(
+    query: {
+      readonly projectId?: string;
+      readonly profileId?: string;
+      readonly locale?: string;
+      readonly runStatus?: string;
+      readonly jobStatus?: string;
+      readonly cursor?: string;
+      readonly size: number;
+    },
+    context: Required<Pick<ApiRequestContext, "workspaceId" | "requestId">>
+  ): Promise<{
+    readonly items: readonly Record<string, unknown>[];
+    readonly nextCursor?: string;
+  }>;
   listWorkflowSteps(
     runId: string,
     context: Required<
@@ -896,6 +911,8 @@ function requiredPermission(
     return "usage.read";
   if (method === "GET" && !matched.project && matched.tail === "audit-events")
     return "audit.read";
+  if (method === "GET" && !matched.project && matched.tail === "workflow-portfolio")
+    return "content.read";
   if (method === "POST" && !matched.project && matched.tail === "")
     return "content.write";
   if (method === "GET" && !matched.project && matched.tail === "")
@@ -1151,6 +1168,37 @@ export function createApiServer(
         const result = await useCases.listProjects(
           url.searchParams.get("page[after]") ?? undefined,
           pageSize(url),
+          context
+        );
+        return json(response, 200, result, { "x-request-id": requestIdValue });
+      }
+      if (
+        request.method === "GET" &&
+        !matched.project &&
+        matched.tail === "workflow-portfolio"
+      ) {
+        const result = await useCases.listWorkflowPortfolio(
+          {
+            size: pageSize(url),
+            ...(url.searchParams.get("filter[projectId]")
+              ? { projectId: url.searchParams.get("filter[projectId]")! }
+              : {}),
+            ...(url.searchParams.get("filter[profileId]")
+              ? { profileId: url.searchParams.get("filter[profileId]")! }
+              : {}),
+            ...(url.searchParams.get("filter[locale]")
+              ? { locale: url.searchParams.get("filter[locale]")! }
+              : {}),
+            ...(url.searchParams.get("filter[runStatus]")
+              ? { runStatus: url.searchParams.get("filter[runStatus]")! }
+              : {}),
+            ...(url.searchParams.get("filter[jobStatus]")
+              ? { jobStatus: url.searchParams.get("filter[jobStatus]")! }
+              : {}),
+            ...(url.searchParams.get("page[cursor]")
+              ? { cursor: url.searchParams.get("page[cursor]")! }
+              : {}),
+          },
           context
         );
         return json(response, 200, result, { "x-request-id": requestIdValue });

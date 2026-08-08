@@ -12,6 +12,7 @@ export * from "./postgres-migration-registry.js";
 export * from "./postgres-production-state.js";
 export * from "./production-state-repository.js";
 export * from "./postgres-workflow-repository.js";
+export * from "./workflow-portfolio-repository.js";
 export * from "./postgres-webhook-repository.js";
 export * from "./postgres-usage-audit-repository.js";
 export * from "./postgres-principal-directory.js";

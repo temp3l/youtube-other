@@ -1,6 +1,6 @@
 # YSAAS implementation progress
 
-Current wave: Wave 1 complete; Wave 2 next (YSAAS-005+)
+Current wave: Wave 2 in progress (YSAAS-005 complete; YSAAS-006+ next)
 
 ## Anti-stuck execution rules (session)
 
@@ -32,6 +32,12 @@ Notes: Layered capability/config contracts, resolver with provenance, admission 
 
 ### YSAAS-003
 Status: completed
-Commit: pending
+Commit: 4316c6e
 Validation: command-security unit test pass (8); domain/application/persistence typecheck pass
 Notes: Membership/action grants, idempotency replay model, audit envelope, principal-directory migration registry
+
+### YSAAS-005
+Status: completed (uncommitted)
+Commit: pending
+Validation: `workflow-portfolio.unit.test.ts` pass (6); `workflow-portfolio-repository.unit.test.ts` pass (2); `pnpm exec tsc -p packages/persistence` pass; `apps/api` typecheck pass excluding pre-existing `job-process` / `provider-free-worker-entry` migrate errors
+Notes: Portfolio filter contracts, recovery classifier, projector, persistence SQL source query + row mapper, `GET /v1/workspaces/{workspace}/workflow-portfolio` API/SDK route; resume/cancel/abandon actions reference existing workflow commands

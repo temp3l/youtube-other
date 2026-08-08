@@ -1017,6 +1017,106 @@ export class WorkspaceTransactionRepository {
     }));
   }
 
+  public async listWorkflowPortfolioSources(input: {
+    readonly workspaceId: string;
+    readonly projectId?: string;
+    readonly limit: number;
+    readonly cursorUpdatedAt?: string;
+    readonly cursorRunId?: string;
+  }): Promise<
+    readonly {
+      readonly workspace_id: string;
+      readonly project_id: string;
+      readonly episode_id: string;
+      readonly run_id: string;
+      readonly revision: string | number;
+      readonly status: WorkflowRunStatus;
+      readonly profile: string;
+      readonly execution_spec: WorkflowExecutionSpecification;
+      readonly created_at: Date | string;
+      readonly updated_at: Date | string;
+      readonly job_id: string | null;
+      readonly job_revision: string | number | null;
+      readonly job_status: string | null;
+      readonly job_attempt_count: string | number | null;
+      readonly step_id: string | null;
+      readonly step_status: string | null;
+    }[]
+  > {
+    const result = await this.connection.query<{
+      readonly workspace_id: string;
+      readonly project_id: string;
+      readonly episode_id: string;
+      readonly run_id: string;
+      readonly revision: string | number;
+      readonly status: WorkflowRunStatus;
+      readonly profile: string;
+      readonly execution_spec: WorkflowExecutionSpecification;
+      readonly created_at: Date | string;
+      readonly updated_at: Date | string;
+      readonly job_id: string | null;
+      readonly job_revision: string | number | null;
+      readonly job_status: string | null;
+      readonly job_attempt_count: string | number | null;
+      readonly step_id: string | null;
+      readonly step_status: string | null;
+    }>(
+      `SELECT
+         run.workspace_id,
+         binding.project_id,
+         binding.episode_id,
+         run.run_id,
+         run.revision,
+         run.status,
+         project.profile,
+         run.execution_spec,
+         run.created_at,
+         run.updated_at,
+         job.job_id,
+         job.revision AS job_revision,
+         job.status AS job_status,
+         job.attempt_count AS job_attempt_count,
+         step.step_id,
+         step.status AS step_status
+       FROM workflow_runs AS run
+       INNER JOIN workflow_run_bindings AS binding
+         ON binding.workspace_id = run.workspace_id AND binding.run_id = run.run_id
+       INNER JOIN projects AS project
+         ON project.workspace_id = binding.workspace_id
+        AND project.project_id = binding.project_id
+       LEFT JOIN LATERAL (
+         SELECT job_id, revision, status, attempt_count, created_at
+         FROM jobs
+         WHERE workspace_id = run.workspace_id AND run_id = run.run_id
+         ORDER BY created_at DESC, job_id DESC
+         LIMIT 1
+       ) AS job ON TRUE
+       LEFT JOIN LATERAL (
+         SELECT step_id, status
+         FROM workflow_steps
+         WHERE workspace_id = run.workspace_id AND run_id = run.run_id
+         ORDER BY step_id DESC
+         LIMIT 1
+       ) AS step ON TRUE
+       WHERE run.workspace_id = $1
+         AND ($2::text IS NULL OR binding.project_id = $2::text)
+         AND (
+           $3::timestamptz IS NULL
+           OR (run.updated_at, run.run_id) < ($3::timestamptz, $4::text)
+         )
+       ORDER BY run.updated_at DESC, run.run_id DESC
+       LIMIT $5`,
+      [
+        input.workspaceId,
+        input.projectId ?? null,
+        input.cursorUpdatedAt ?? null,
+        input.cursorRunId ?? "",
+        input.limit,
+      ]
+    );
+    return result.rows;
+  }
+
   public async cancelBoundWorkflow(input: {
     readonly workspaceId: string;
     readonly projectId: string;

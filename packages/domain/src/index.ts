@@ -11,6 +11,8 @@ export * from "./capability-configuration-resolver.js";
 export * from "./capability-admission-evaluator.js";
 export * from "./command-security-contracts.js";
 export * from "./command-security.js";
+export * from "./workflow-portfolio-contracts.js";
+export * from "./workflow-portfolio-projector.js";
 
 const episodeIdPattern = /^[a-z0-9][a-z0-9-]*$/;
 const sceneIdPattern = /^scene-[0-9]{3}$/;

@@ -5,10 +5,16 @@ import {
   type WorkflowAdmissionHandler,
 } from "@mediaforge/application";
 import {
+  WORKFLOW_PORTFOLIO_SCHEMA_VERSION,
+  projectWorkflowPortfolioPage,
+  workflowPortfolioFilterSchema,
+} from "@mediaforge/domain";
+import {
   PostgresUsageAuditRepository,
   PostgresPublicationIntentRepository,
   PostgresWorkflowRepository,
   WorkflowStateTransitionError,
+  mapWorkflowPortfolioRow,
   type PostgresPool,
 } from "@mediaforge/persistence";
 
@@ -472,6 +478,59 @@ export function createPostgresApiUseCases(input: {
         })
       );
       return record ? { id: record.runId, revision: record.revision, status: record.status } : null;
+    },
+    listWorkflowPortfolio: async (query, context) => {
+      const filter = workflowPortfolioFilterSchema.parse({
+        schemaVersion: WORKFLOW_PORTFOLIO_SCHEMA_VERSION,
+        workspaceId: context.workspaceId,
+        limit: query.size,
+        ...(query.projectId ? { projectId: query.projectId } : {}),
+        ...(query.profileId ? { profileId: query.profileId as never } : {}),
+        ...(query.locale ? { locale: query.locale as never } : {}),
+        ...(query.runStatus ? { runStatus: query.runStatus as never } : {}),
+        ...(query.jobStatus ? { jobStatus: query.jobStatus as never } : {}),
+        ...(query.cursor ? { cursor: query.cursor } : {}),
+      });
+      const cursorParts = filter.cursor?.split("|", 2);
+      const rows = await repository.withWorkspaceTransaction(
+        context.workspaceId,
+        (transaction) =>
+          transaction.listWorkflowPortfolioSources({
+            workspaceId: context.workspaceId,
+            limit: filter.limit + 25,
+            ...(filter.projectId ? { projectId: filter.projectId } : {}),
+            ...(cursorParts?.[0] ? { cursorUpdatedAt: cursorParts[0] } : {}),
+            ...(cursorParts?.[1] ? { cursorRunId: cursorParts[1] } : {}),
+          })
+      );
+      const page = projectWorkflowPortfolioPage({
+        filter,
+        sources: rows.map((row) => mapWorkflowPortfolioRow(row)),
+        projectedAt: now().toISOString(),
+      });
+      return {
+        items: page.items.map((item) => ({
+          projectId: item.projectId,
+          episodeId: item.episodeId,
+          runId: item.runId,
+          runRevision: item.runRevision,
+          runStatus: item.runStatus,
+          profileId: item.profileId,
+          locale: item.locale,
+          episodeRevision: item.episodeRevision,
+          latestJobId: item.latestJobId,
+          latestJobStatus: item.latestJobStatus,
+          latestJobAttempts: item.latestJobAttempts,
+          latestStageId: item.latestStageId,
+          latestStageStatus: item.latestStageStatus,
+          preservedArtifactHashes: item.preservedArtifactHashes,
+          blockers: item.blockers,
+          recovery: item.recovery,
+          createdAt: item.createdAt,
+          updatedAt: item.updatedAt,
+        })),
+        ...(page.nextCursor ? { nextCursor: page.nextCursor } : {}),
+      };
     },
     listWorkflowSteps: async (runId, context) => {
       const records = await repository.withWorkspaceTransaction(

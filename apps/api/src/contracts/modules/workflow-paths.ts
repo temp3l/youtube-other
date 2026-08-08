@@ -1,5 +1,30 @@
 import { authenticatedErrors, episodeParameters, jobParameters, json, parameter, projectParameters, requestIdParameter, response, responseHeader, workflowParameters, workspaceParameters } from "../openapi-helpers.js";
 export const workflowOpenApiPaths = {
+    "/v1/workspaces/{workspace}/workflow-portfolio": {
+      get: {
+        operationId: "listWorkflowPortfolio",
+        description:
+          "Lists tenant-scoped workflow portfolio entries with safe recovery metadata. Requires `content.read`.",
+        parameters: [
+          ...workspaceParameters,
+          parameter("PageCursor"),
+          parameter("PageSize"),
+          parameter("FilterProjectId"),
+          parameter("FilterProfileId"),
+          parameter("FilterLocale"),
+          parameter("FilterRunStatus"),
+          parameter("FilterJobStatus"),
+        ],
+        responses: {
+          "200": {
+            description: "Workflow portfolio page",
+            headers: { "x-request-id": responseHeader("RequestId") },
+            content: json("WorkflowPortfolioPage"),
+          },
+          ...authenticatedErrors,
+        },
+      },
+    },
     "/v1/workspaces/{workspace}/projects/{project}/episodes/{episode}/workflow-runs":
       {
         post: {

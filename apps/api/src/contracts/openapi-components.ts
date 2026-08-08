@@ -168,6 +168,78 @@ export const openApiComponents = {
         required: false,
         schema: { type: "string", minLength: 1, maxLength: 4_096 },
       },
+      PageCursor: {
+        name: "page[cursor]",
+        in: "query",
+        required: false,
+        schema: { type: "string", minLength: 1, maxLength: 4_096 },
+      },
+      FilterProjectId: {
+        name: "filter[projectId]",
+        in: "query",
+        required: false,
+        schema: schema("OpaqueId"),
+      },
+      FilterProfileId: {
+        name: "filter[profileId]",
+        in: "query",
+        required: false,
+        schema: {
+          type: "string",
+          enum: [
+            "dark-truth",
+            "mathematics-education",
+            "strategic-reinvention",
+            "history",
+          ],
+        },
+      },
+      FilterLocale: {
+        name: "filter[locale]",
+        in: "query",
+        required: false,
+        schema: {
+          type: "string",
+          enum: ["en", "de", "es", "fr", "pt", "it"],
+        },
+      },
+      FilterRunStatus: {
+        name: "filter[runStatus]",
+        in: "query",
+        required: false,
+        schema: {
+          type: "string",
+          enum: [
+            "queued",
+            "running",
+            "awaiting_approval",
+            "succeeded",
+            "failed",
+            "cancelled",
+          ],
+        },
+      },
+      FilterJobStatus: {
+        name: "filter[jobStatus]",
+        in: "query",
+        required: false,
+        schema: {
+          type: "string",
+          enum: [
+            "queued",
+            "running",
+            "waiting_for_approval",
+            "retry_scheduled",
+            "cancelling",
+            "cancelled",
+            "succeeded",
+            "succeeded_with_warnings",
+            "partially_succeeded",
+            "failed",
+            "dead_lettered",
+          ],
+        },
+      },
     },
     schemas: {
       OpaqueId: {
@@ -921,6 +993,117 @@ export const openApiComponents = {
         additionalProperties: false,
         required: ["items"],
         properties: { items: { type: "array", items: schema("WorkflowStep") } },
+      },
+      WorkflowPortfolioRecovery: {
+        type: "object",
+        additionalProperties: false,
+        required: ["classification", "availableActions"],
+        properties: {
+          classification: {
+            type: "string",
+            enum: [
+              "none",
+              "in_progress",
+              "retryable",
+              "non_retryable",
+              "reconciliation_required",
+              "abandoned",
+            ],
+          },
+          availableActions: {
+            type: "array",
+            minItems: 1,
+            items: {
+              type: "string",
+              enum: ["resume", "cancel", "abandon", "view_timeline"],
+            },
+          },
+          sanitizedFailureCode: { type: "string", minLength: 1, maxLength: 160 },
+          message: { type: "string", minLength: 1, maxLength: 2_000 },
+        },
+      },
+      WorkflowPortfolioEntry: {
+        type: "object",
+        additionalProperties: false,
+        required: [
+          "projectId",
+          "episodeId",
+          "runId",
+          "runRevision",
+          "runStatus",
+          "profileId",
+          "recovery",
+          "createdAt",
+          "updatedAt",
+        ],
+        properties: {
+          projectId: schema("OpaqueId"),
+          episodeId: schema("OpaqueId"),
+          runId: schema("OpaqueId"),
+          runRevision: schema("Revision"),
+          runStatus: {
+            type: "string",
+            enum: [
+              "queued",
+              "running",
+              "awaiting_approval",
+              "succeeded",
+              "failed",
+              "cancelled",
+            ],
+          },
+          profileId: {
+            type: "string",
+            enum: [
+              "dark-truth",
+              "mathematics-education",
+              "strategic-reinvention",
+              "history",
+            ],
+          },
+          locale: {
+            type: "string",
+            enum: ["en", "de", "es", "fr", "pt", "it"],
+          },
+          episodeRevision: schema("Revision"),
+          latestJobId: schema("OpaqueId"),
+          latestJobStatus: { type: "string" },
+          latestJobAttempts: { type: "integer", minimum: 0 },
+          latestStageId: schema("OpaqueId"),
+          latestStageStatus: { type: "string", maxLength: 160 },
+          preservedArtifactHashes: {
+            type: "array",
+            items: { type: "string", pattern: "^[a-f0-9]{64}$" },
+          },
+          blockers: {
+            type: "array",
+            items: {
+              type: "object",
+              additionalProperties: false,
+              required: ["code", "message", "severity"],
+              properties: {
+                code: { type: "string", minLength: 1, maxLength: 160 },
+                message: { type: "string", minLength: 1, maxLength: 2_000 },
+                severity: { type: "string", enum: ["blocking", "warning"] },
+              },
+            },
+          },
+          recovery: schema("WorkflowPortfolioRecovery"),
+          createdAt: { type: "string", format: "date-time" },
+          updatedAt: { type: "string", format: "date-time" },
+        },
+      },
+      WorkflowPortfolioPage: {
+        type: "object",
+        additionalProperties: false,
+        required: ["items"],
+        properties: {
+          items: {
+            type: "array",
+            items: schema("WorkflowPortfolioEntry"),
+          },
+          nextCursor: { type: "string", minLength: 1, maxLength: 4_096 },
+        },
       },
       Job: {
         type: "object",
