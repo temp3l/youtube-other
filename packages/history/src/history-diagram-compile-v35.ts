@@ -2,12 +2,12 @@ import type { HistoryDiagramStateV34 } from "./history-v34-contracts.js";
 import type { HistoryClaimV34 } from "./history-v34-contracts.js";
 import type { HistoryVisualPlanV35 } from "./history-v35-contracts.js";
 import {
-  applyDiagramTopologyValidationV35,
   buildDiagramEdgesV35,
   buildDiagramNodesV35,
   inferDiagramTopologyV35,
   type HistoryDiagramTopologyV35,
 } from "./history-diagram-topology-v35.js";
+import { finalizeDiagramSemanticStateV35 } from "./history-diagram-semantic-v35.js";
 import { scoreDiagramOpportunityV35 } from "./history-visual-opportunity-v35.js";
 
 const THEMATIC_CAUSAL_LABELS: ReadonlyArray<{
@@ -41,6 +41,19 @@ const THEMATIC_CAUSAL_LABELS: ReadonlyArray<{
   { label: "tin from distant regions", pattern: /\btin\b/iu },
   { label: "bronze production", pattern: /\bbronze\b/iu },
   { label: "palace trade networks", pattern: /\b(?:palace|trade network)\b/iu },
+  { label: "command coordination", pattern: /\b(?:command|coordination|organization)\b/iu },
+  { label: "mobility and logistics", pattern: /\b(?:mobility|logistics|engineering)\b/iu },
+  { label: "intelligence and discipline", pattern: /\b(?:intelligence|discipline|diplomacy)\b/iu },
+  { label: "escalation pressure", pattern: /\b(?:escalation|crisis|threat)\b/iu },
+  { label: "naval quarantine", pattern: /\b(?:quarantine|blockade|naval)\b/iu },
+  { label: "decision options", pattern: /\b(?:decision|option|ExComm|response)\b/iu },
+  { label: "missile deployment", pattern: /\b(?:missile|nuclear|deployment)\b/iu },
+  { label: "collision impact", pattern: /\b(?:collision|iceberg|impact)\b/iu },
+  { label: "flooding progression", pattern: /\b(?:flooding|flooded|compartment|watertight)\b/iu },
+  { label: "evacuation sequence", pattern: /\b(?:evacuation|lifeboat|passengers?)\b/iu },
+  { label: "manor obligations", pattern: /\b(?:manor|lord|serf|obligation)\b/iu },
+  { label: "seasonal labour cycle", pattern: /\b(?:seasonal|harvest|field work|peasant)\b/iu },
+  { label: "agricultural production", pattern: /\b(?:agricultural|crop|farm|rent|tax)\b/iu },
 ];
 
 function wordSafeSlice(text: string, maxChars: number): string {
@@ -93,6 +106,7 @@ export function compileTopologyDiagramV35(input: {
     semanticStatus: "valid",
     blockerCodes: [],
     fallbackDecision: null,
+    evidenceClaimIds: input.claimIds,
   };
   return {
     master: {
@@ -101,10 +115,9 @@ export function compileTopologyDiagramV35(input: {
       exactQuestion: input.exactQuestion,
       supportedRatios: ["16:9", "9:16"],
     },
-    state: applyDiagramTopologyValidationV35({
+    state: finalizeDiagramSemanticStateV35({
       state: baseState,
-      linkedClaimText: input.text,
-      topology,
+      evidenceClaimText: input.text,
     }),
   };
 }
@@ -136,7 +149,7 @@ export function compileAbstractCausalDiagramV35(input: {
   const labels = extractThematicCausalLabelsV35(input.text);
   if (labels.length < 2) return null;
   const hasCausalLanguage =
-    /\b(?:because|led to|resulted|therefore|collapse|combined|interconnected|dependencies?|mechanism|warns? us against|systems?)\b/iu.test(
+    /\b(?:because|led to|resulted|therefore|collapse|combined|combining|coherent|interconnected|dependencies?|mechanism|warns? us against|systems?|method|escalation|flooding|evacuation)\b/iu.test(
       input.text
     );
   if (!hasCausalLanguage) return null;

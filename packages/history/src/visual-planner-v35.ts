@@ -6,6 +6,10 @@ import {
   type DurationPolicyV3_3,
 } from "./history-narration-v33.js";
 import {
+  assessCoreSubjectCompletenessV35,
+  deriveCoreSubjectsV35,
+} from "./history-core-subject-v35.js";
+import {
   hashCanonicalV34,
   structureTrustedScriptClaimsV34,
   validateGeographicRolesV34,
@@ -106,9 +110,24 @@ import {
   createDiagramCompilationRegistryV35,
   type DiagramCompilationRegistryV35,
   selectPortraitDiagramNodeIdsV35,
-  validateDiagramTopologyV35,
   validateGeneratedStateIdentityV35,
 } from "./history-diagram-topology-v35.js";
+import {
+  compileBlackDeathLabourConsequenceDiagramV35,
+  compileBlackDeathLabourPolicyDiagramV35,
+  compileRomanImperialResourceCycleV35,
+  isBlackDeathLabourConsequenceTextV35,
+  isBlackDeathLabourPolicyTextV35,
+  isRomanResourceCycleContinuationTextV35,
+  isRomanResourceCycleTextV35,
+  resolveDiagramEvidenceWindowV35,
+  ROMAN_IMPERIAL_RESOURCE_CYCLE_MASTER,
+} from "./history-diagram-evidence-v35.js";
+import {
+  collectDiagramEvidenceClaimTextV35,
+  finalizeDiagramSemanticStateV35,
+} from "./history-diagram-semantic-v35.js";
+import { validatePlanStateEvidenceClosureV35 } from "./history-state-evidence-closure-v35.js";
 import { deriveVisualSubjectV35 } from "./history-visual-subject-v35.js";
 import {
   buildVisualOpportunitiesV35,
@@ -546,6 +565,9 @@ function modalityFor(text: string): HistoryVisualModalityV35 {
     )
   )
     return "diagram";
+  if (isRomanResourceCycleContinuationTextV35(text)) return "diagram";
+  if (isBlackDeathLabourConsequenceTextV35(text)) return "diagram";
+  if (isBlackDeathLabourPolicyTextV35(text)) return "diagram";
   if (
     /\b(?:plague|Black Death|Yersinia|disease|bubonic|pneumonic)\b/iu.test(text) &&
     /\b(?:spread|arrived|traveled|transmission|trade routes?|ships|Messina|Black Sea|Europe)\b/iu.test(
@@ -884,7 +906,6 @@ function summarizeApproval(
 }
 
 const BLACK_DEATH_TRANSMISSION_MASTER = "diagram-master-black-death-transmission";
-const BLACK_DEATH_CONSEQUENCE_MASTER = "diagram-master-black-death-consequences";
 const BRONZE_AGE_TRADE_MASTER = "diagram-master-bronze-age-trade-network";
 const BRONZE_AGE_COLLAPSE_MASTER = "diagram-master-bronze-age-systems-collapse";
 
@@ -930,17 +951,93 @@ function buildProgressiveDiagramState(input: {
   });
 }
 
-function compileDiagram(input: {
+
+function compileDiagramForBeat(input: {
   readonly beatNumber: string;
+  readonly beatId: string;
   readonly text: string;
   readonly claimIds: readonly string[];
   readonly entityLabels: readonly string[];
   readonly claims: readonly HistoryStructuredClaimsV34["claims"][number][];
+  readonly priorBeat?: {
+    readonly id: string;
+    readonly claimIds: readonly string[];
+    readonly diagramMasterId: string | null;
+  } | null;
+}) {
+  const evidenceWindow = resolveDiagramEvidenceWindowV35({
+    beatId: input.beatId,
+    claimIds: input.claimIds,
+    text: input.text,
+    ...(input.priorBeat ? { priorBeat: input.priorBeat } : {}),
+  });
+  return compileDiagram({
+    beatNumber: input.beatNumber,
+    beatId: input.beatId,
+    text: input.text,
+    claimIds: input.claimIds,
+    entityLabels: input.entityLabels,
+    claims: input.claims,
+    ...(evidenceWindow ? { evidenceWindow } : {}),
+  });
+}
+
+function compileDiagram(input: {
+  readonly beatNumber: string;
+  readonly beatId: string;
+  readonly text: string;
+  readonly claimIds: readonly string[];
+  readonly entityLabels: readonly string[];
+  readonly claims: readonly HistoryStructuredClaimsV34["claims"][number][];
+  readonly evidenceWindow?: {
+    readonly beatIds: readonly string[];
+    readonly claimIds: readonly string[];
+  };
 }): {
   readonly master: HistoryVisualPlanV35["diagramMasters"][number];
   readonly state: HistoryDiagramStateV34;
 } | null {
   const text = input.text;
+  const evidenceBeatIds = input.evidenceWindow?.beatIds ?? [input.beatId];
+  const evidenceClaimIds = input.evidenceWindow?.claimIds ?? [...input.claimIds];
+
+  if (isBlackDeathLabourPolicyTextV35(text)) {
+    const compiled = compileBlackDeathLabourPolicyDiagramV35({
+      beatNumber: input.beatNumber,
+      evidenceBeatIds,
+      evidenceClaimIds,
+      claims: input.claims,
+    });
+    if (compiled?.state.semanticStatus === "valid") return compiled;
+    return null;
+  }
+
+  if (isBlackDeathLabourConsequenceTextV35(text)) {
+    const compiled = compileBlackDeathLabourConsequenceDiagramV35({
+      beatNumber: input.beatNumber,
+      evidenceBeatIds,
+      evidenceClaimIds,
+      claims: input.claims,
+    });
+    if (compiled?.state.semanticStatus === "valid") return compiled;
+    return null;
+  }
+
+  if (
+    isRomanResourceCycleTextV35(text) ||
+    (isRomanResourceCycleContinuationTextV35(text) &&
+      input.evidenceWindow?.beatIds.some((beatId) => beatId !== input.beatId))
+  ) {
+    const compiled = compileRomanImperialResourceCycleV35({
+      beatNumber: input.beatNumber,
+      evidenceBeatIds,
+      evidenceClaimIds,
+      claims: input.claims,
+    });
+    if (compiled?.state.semanticStatus === "valid") return compiled;
+    return null;
+  }
+
   const evidencePatterns: ReadonlyArray<{ readonly label: string; readonly pattern: RegExp }> = [
     { label: "Victory Point note", pattern: /Victory Point(?: note)?/iu },
     { label: "graves/remains", pattern: /graves?|human remains/iu },
@@ -1003,54 +1100,6 @@ function compileDiagram(input: {
   }
 
   if (
-    /\b(?:tax revenue|taxes|provincial control|armies and administration|continued revenue|paid taxes)\b/iu.test(
-      text
-    ) &&
-    /\b(?:Rome|Roman Empire|empire|bargain|resources|provinces)\b/iu.test(text)
-  ) {
-    const labels = [
-      "tax revenue",
-      "armies and administration",
-      "provincial control",
-      "continued revenue",
-    ];
-    const masterId = `diagram-master-${input.beatNumber}`;
-    const stateId = `diagram-state-${input.beatNumber}`;
-    const nodeRecords = labels.map((label, index) => ({
-      id: `node-${input.beatNumber}-${index + 1}`,
-      label,
-      linkedClaimIds: input.claimIds,
-      entityMentionIds: [] as string[],
-    }));
-    const edges = nodeRecords.slice(0, -1).map((node, index) => ({
-      id: `edge-${input.beatNumber}-${index + 1}`,
-      fromNodeId: node.id,
-      toNodeId: nodeRecords[index + 1]!.id,
-      relationship: "sequence" as const,
-      linkedClaimIds: input.claimIds,
-    }));
-    return {
-      master: {
-        id: masterId,
-        diagramType: "process",
-        exactQuestion: "How did the Roman imperial resource cycle work and break down?",
-        supportedRatios: ["16:9", "9:16"],
-      },
-      state: {
-        id: stateId,
-        masterId,
-        diagramType: "process",
-        exactQuestion: "How did the Roman imperial resource cycle work and break down?",
-        nodes: nodeRecords,
-        edges,
-        semanticStatus: "valid",
-        blockerCodes: [],
-        fallbackDecision: null,
-      },
-    };
-  }
-
-  if (
     /\b(?:trade routes?|interdependence|palace|bronze|copper|tin|collapse)\b/iu.test(text) &&
     (/\b(?:Mediterranean|Aegean|Anatolia|Cyprus|Egypt|Hittite|Mycenae|Pylos|Levant|political boundaries)\b/iu.test(
       text
@@ -1107,44 +1156,6 @@ function compileDiagram(input: {
         labels,
         claimIds: input.claimIds,
         visibleCount,
-      });
-    }
-  }
-
-  if (
-    /\b(?:labour|labor|wages|survivors|economy|social|consequences)\b/iu.test(text) &&
-    /\b(?:plague|Black Death|mortality|population)\b/iu.test(text)
-  ) {
-    const consequenceLabels = [
-      "population loss",
-      "labour scarcity",
-      "wage pressure",
-      "social and economic disruption",
-    ].filter(
-      (label) =>
-        new RegExp(label.split(" ")[0]!, "iu").test(text) ||
-        /labou?r|wages?|mortality|population/iu.test(text)
-    );
-    if (consequenceLabels.length >= 3) {
-      const labels =
-        consequenceLabels.length >= 3
-          ? consequenceLabels
-          : [
-              "population loss",
-              "labour scarcity",
-              "wage pressure",
-              "social and economic disruption",
-            ];
-      const visibleCount = Math.min(labels.length, Math.max(2, consequenceLabels.length));
-      return buildProgressiveDiagramState({
-        beatNumber: input.beatNumber,
-        masterId: BLACK_DEATH_CONSEQUENCE_MASTER,
-        diagramType: "process",
-        exactQuestion: "What social and economic consequences does the narration support?",
-        labels,
-        claimIds: input.claimIds,
-        visibleCount,
-        withEdges: true,
       });
     }
   }
@@ -1524,6 +1535,7 @@ export function buildHistoryVisualPlanV35(input: {
     readonly audioSha256: string;
   };
   readonly knownEntities?: readonly string[];
+  readonly metadataKeywords?: readonly string[];
   readonly qualityThresholds?: HistoryQualityThresholdsV35;
   readonly qualityOverride?: boolean;
   readonly trustAttestation?: import("./history-trusted-script-v33.js").TrustedNarrationAttestationV1 | null;
@@ -1599,6 +1611,11 @@ export function buildHistoryVisualPlanV35(input: {
   const visualOpportunities: HistoryVisualPlanV35["visualOpportunities"][number][] = [];
   const opportunitySummaries: HistoryVisualOpportunitySummaryV35[] = [];
   let priorShotSignature: VisualSemanticSignature | null = null;
+  let priorBeatContext: {
+    readonly id: string;
+    readonly claimIds: readonly string[];
+    readonly diagramMasterId: string | null;
+  } | null = null;
 
   let cursor = 0;
   clusters.forEach((cluster, index) => {
@@ -1698,12 +1715,14 @@ export function buildHistoryVisualPlanV35(input: {
           claims: structured.claims,
         }).eligible;
         const diagramCompiled = diagramEligible
-          ? compileDiagram({
+          ? compileDiagramForBeat({
               beatNumber,
+              beatId,
               text: cluster.text,
               claimIds,
               entityLabels,
               claims: structured.claims,
+              priorBeat: priorBeatContext,
             })
           : null;
         if (diagramCompiled) {
@@ -1732,12 +1751,14 @@ export function buildHistoryVisualPlanV35(input: {
       const entityLabels = structured.entities
         .filter((entity) => claimIds.includes(entity.claimId))
         .map((entity) => entity.normalizedLabel);
-      const compiled = compileDiagram({
+      const compiled = compileDiagramForBeat({
         beatNumber,
+        beatId,
         text: cluster.text,
         claimIds,
         entityLabels,
         claims: structured.claims,
+        priorBeat: priorBeatContext,
       });
       if (compiled) {
         const registered = adoptDiagramCompilation(diagramRegistry, compiled);
@@ -1926,12 +1947,14 @@ export function buildHistoryVisualPlanV35(input: {
           const entityLabels = structured.entities
             .filter((entity) => claimIds.includes(entity.claimId))
             .map((entity) => entity.normalizedLabel);
-          const compiled = compileDiagram({
+          const compiled = compileDiagramForBeat({
             beatNumber,
+            beatId,
             text: cluster.text,
             claimIds,
             entityLabels,
             claims: structured.claims,
+            priorBeat: priorBeatContext,
           });
           if (compiled) {
             const registered = adoptDiagramCompilation(diagramRegistry, compiled);
@@ -1997,7 +2020,9 @@ export function buildHistoryVisualPlanV35(input: {
       selectedModality: modality,
       mapCompiled: Boolean(mapState),
       diagramCompiled: Boolean(diagramState),
-      ...(fallback?.reasonForRejection ? { mapRejectionReason: fallback.reasonForRejection } : {}),
+      ...(fallback?.reasonForRejection && fallback.rejectedModality === "map"
+        ? { mapRejectionReason: fallback.reasonForRejection }
+        : {}),
       ...(diagramState
         ? {
             diagramSelectionReason:
@@ -2014,7 +2039,9 @@ export function buildHistoryVisualPlanV35(input: {
                 diagramRejectionReason:
                   modality === "map"
                     ? "budget-exhausted-or-map-priority"
-                    : fallback?.reasonForRejection ?? "not-selected-score-below-threshold",
+                    : fallback?.rejectedModality === "diagram"
+                      ? fallback.reasonForRejection
+                      : "not-selected-score-below-threshold",
               }
             : {}),
     });
@@ -2188,8 +2215,25 @@ export function buildHistoryVisualPlanV35(input: {
           [beatId]
         )
       );
+    priorBeatContext = {
+      id: beatId,
+      claimIds,
+      diagramMasterId,
+    };
     cursor = endMs;
   });
+
+  for (let diagramIndex = 0; diagramIndex < diagramStates.length; diagramIndex += 1) {
+    const state = diagramStates[diagramIndex]!;
+    const evidenceClaimText = collectDiagramEvidenceClaimTextV35({
+      state,
+      claims: structured.claims,
+    });
+    diagramStates[diagramIndex] = finalizeDiagramSemanticStateV35({
+      state,
+      evidenceClaimText,
+    });
+  }
 
   const beatTimelineUsage = beats.some((beat) => beat.modality === "timeline");
   if (
@@ -2242,6 +2286,34 @@ export function buildHistoryVisualPlanV35(input: {
   });
   shots.splice(0, shots.length, ...treatmentRefined.shots);
   beats.splice(0, beats.length, ...treatmentRefined.beats);
+
+  const evidenceClosureFailures = validatePlanStateEvidenceClosureV35({
+    shots,
+    diagramStates,
+    mapStates,
+  });
+  const stateIdsWithClosureFailures = new Set(
+    evidenceClosureFailures.map((failure) => failure.stateId)
+  );
+  for (const failure of evidenceClosureFailures) {
+    diagnostics.push(
+      diagnostic(
+        failure.code,
+        "content",
+        `Shot ${failure.shotId} uses factual claims not supported by ${failure.stateId}: ${failure.unsupportedClaimIds.join(", ")}`,
+        [failure.shotId, failure.stateId, ...failure.unsupportedClaimIds]
+      )
+    );
+  }
+  for (let diagramIndex = 0; diagramIndex < diagramStates.length; diagramIndex += 1) {
+    const state = diagramStates[diagramIndex]!;
+    if (!stateIdsWithClosureFailures.has(state.id)) continue;
+    diagramStates[diagramIndex] = {
+      ...state,
+      semanticStatus: "blocked",
+      blockerCodes: [...new Set([...state.blockerCodes, "STATE_BOUND_SHOT_UNSUPPORTED_CLAIM"])],
+    };
+  }
 
   const qualityMetrics = measureHistoryRepetitionV35({
     purposes: visualPurposes,
@@ -2424,6 +2496,21 @@ export function buildHistoryVisualPlanV35(input: {
     diagnostics.push(
       diagnostic("GEOGRAPHIC_ROLE_MISMATCH", "content", error, [], "error")
     );
+  const coreSubjects = deriveCoreSubjectsV35({
+    episodeId: input.episodeId,
+    title: input.title,
+    ...(input.metadataKeywords ? { keywords: input.metadataKeywords } : {}),
+    ...(input.knownEntities ? { knownEntities: input.knownEntities } : {}),
+  });
+  for (const issue of assessCoreSubjectCompletenessV35({
+    coreSubjects,
+    entities: structured.entities,
+    rejectedEntities: structured.rejectedEntities,
+    narrationText: input.narration.normalizedText,
+  }))
+    diagnostics.push(
+      diagnostic(issue.code, "content", issue.message, issue.affectedIds, "error")
+    );
   for (const coverage of assessVisualSemanticCoverageV35({
     entities: structured.entities,
     rejectedEntities: structured.rejectedEntities,
@@ -2517,32 +2604,20 @@ export function buildHistoryVisualPlanV35(input: {
       );
   }
   for (const state of diagramStates) {
-    const linkedClaimText = structured.claims
-      .filter((claim) => state.nodes.some((node) => node.linkedClaimIds.includes(claim.id)))
-      .map((claim) => claim.normalizedProposition)
-      .join("\n");
-    const diagramBlockers = validateDiagramSemanticsV34({ state, linkedClaimText });
-    if (diagramBlockers.length)
-      diagnostics.push(
-        diagnostic(
-          "DIAGRAM_UNSUPPORTED_EDGE",
-          "content",
-          "Diagram edge is not supported by narration semantics.",
-          [state.id, ...diagramBlockers]
-        )
-      );
-    for (const code of validateDiagramTopologyV35({ state, linkedClaimText })) {
+    for (const code of state.blockerCodes) {
       diagnostics.push(
         diagnostic(
           code,
           "content",
           code === "DIAGRAM_UNSUPPORTED_CAUSAL_SEQUENCE"
             ? "Diagram causal sequence is not supported by narration relationship evidence."
-            : code === "DIAGRAM_CAUSAL_DIRECTION_CONFLICT"
-              ? "Diagram edge reverses a narrated outcome/contributor relationship."
-              : code === "DIAGRAM_INSUFFICIENT_RELATIONSHIP_EVIDENCE"
-                ? "Diagram lacks sufficient relationship evidence for directed topology."
-                : "Diagram topology failed semantic validation.",
+            : code === "DIAGRAM_UNSUPPORTED_EDGE"
+              ? "Diagram edge is not supported by narration semantics."
+              : code === "DIAGRAM_CAUSAL_DIRECTION_CONFLICT"
+                ? "Diagram edge reverses a narrated outcome/contributor relationship."
+                : code === "DIAGRAM_INSUFFICIENT_RELATIONSHIP_EVIDENCE"
+                  ? "Diagram lacks sufficient relationship evidence for directed topology."
+                  : "Diagram topology failed semantic validation.",
           [state.id, code]
         )
       );

@@ -1,5 +1,5 @@
 import type { HistoryDiagramStateV34 } from "./history-v34-contracts.js";
-import { computeDiagramRenderSignatureV35 } from "./history-effective-change-v35.js";
+import { computeDiagramRegistrySignatureV35, computeDiagramRenderSignatureV35 } from "./history-effective-change-v35.js";
 
 export type HistoryDiagramTopologyV35 =
   | "sequence"
@@ -322,11 +322,11 @@ export function createDiagramCompilationRegistryV35(input: {
 }): DiagramCompilationRegistryV35 {
   const signatureToStateId = new Map<string, string>();
   for (const state of input.diagramStates) {
-    signatureToStateId.set(computeDiagramRenderSignatureV35(state), state.id);
+    signatureToStateId.set(computeDiagramRegistrySignatureV35(state), state.id);
   }
   return {
     register(compiled) {
-      const signature = computeDiagramRenderSignatureV35(compiled.state);
+      const signature = computeDiagramRegistrySignatureV35(compiled.state);
       const existingId = signatureToStateId.get(signature);
       if (existingId) {
         const existing = input.diagramStates.find((state) => state.id === existingId);

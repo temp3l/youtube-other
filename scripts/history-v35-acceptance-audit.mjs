@@ -8,6 +8,7 @@ import {
 } from "../packages/history/src/history-effective-change-v35.js";
 import { assessVisualSemanticCoverageV35 } from "../packages/history/src/history-visual-semantics-v35.js";
 import { isCredibleGeographicCandidateV35 } from "../packages/history/src/history-claims-v34.js";
+import { assessPlanningAcceptanceV35 } from "../packages/history/src/history-planning-acceptance-v35.js";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const packRoot = path.join(
@@ -182,6 +183,7 @@ const report = { episodes: [], assertions: {}, paths: {} };
 for (const episode of EPISODES) {
   const dir = path.join(packRoot, `${episode.slug}-v3.5`);
   const plan = await readJson(path.join(dir, "plan.json"));
+  const planningAcceptance = assessPlanningAcceptanceV35(plan);
   const quality = await readJson(path.join(dir, "quality-metrics.json"));
   const geography = buildGeographyReport(plan);
   const ratioPlans = plan.aspectRatioPlans ?? [];
@@ -269,6 +271,7 @@ for (const episode of EPISODES) {
     },
     packIntegrity: await verifyChecksums(dir),
     blockers: plan.approval.production.blockerCodes,
+    planningAcceptance,
   };
 
   if (episode.num === "02") {
@@ -331,6 +334,11 @@ report.assertions = {
   sentinel1980OccurrencesInGeneratedPacks: sentinel1980,
   oldNapoleonFalseValidMapRoutesPresent: napoleonDefects.length > 0,
   packIntegrityValid: report.episodes.every((item) => item.packIntegrity),
+  planningAcceptancePassesAllEpisodes: report.episodes.every((item) => item.planningAcceptance.passes),
+  unexpectedPlanningBlockersTotal: report.episodes.reduce(
+    (sum, item) => sum + item.planningAcceptance.unexpectedProductionBlockers.length,
+    0
+  ),
   templateRatesForDiagnostics: templateRates.map(pct),
   viewerRatesForDiagnostics: viewerRates.map(pct),
 };

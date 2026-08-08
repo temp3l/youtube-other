@@ -135,6 +135,15 @@ function factualLabelsKey(shot: HistoryShotV34): string {
   return [...shot.factualLabels].sort().join(",");
 }
 
+export function computeDiagramRegistrySignatureV35(
+  state: Pick<HistoryDiagramStateV34, "diagramType" | "exactQuestion" | "nodes" | "edges" | "evidenceClaimIds">
+): string {
+  const evidenceClaimIds = state.evidenceClaimIds?.length
+    ? [...state.evidenceClaimIds].sort().join(",")
+    : [...new Set(state.nodes.flatMap((node) => node.linkedClaimIds))].sort().join(",");
+  return `${computeDiagramRenderSignatureV35(state)}::${evidenceClaimIds}`;
+}
+
 export function computeDiagramRenderSignatureV35(
   state: Pick<HistoryDiagramStateV34, "diagramType" | "exactQuestion" | "nodes" | "edges">
 ): string {

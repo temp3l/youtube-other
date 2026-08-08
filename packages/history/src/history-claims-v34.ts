@@ -3,6 +3,11 @@ import type { CanonicalNarrationV3_3, CanonicalNarrationUnitV3_3 } from "./histo
 import { hashCanonicalV33 } from "./history-research-v33.js";
 import type { HistorySourceAuthorityMode } from "./history-trusted-script-v33.js";
 import {
+  isEntityTypeCompatibleWithSurfaceV35,
+  isSafeCanonicalEntityAliasMatchV35,
+  normalizeEntityCandidateSpanV35,
+} from "./history-entity-resolution-v35.js";
+import {
   HISTORY_CLAIM_SCHEMA_V34,
   type HistoryClaimKindV34,
   type HistoryClaimV34,
@@ -105,6 +110,7 @@ type CanonicalEntitySeed = {
   readonly entityType: HistoryEntityTypeV34;
   readonly aliases?: readonly string[];
   readonly defaultRole?: HistoryEntitySemanticRoleV34;
+  readonly episodeAffinity?: readonly RegExp[];
 };
 
 const CANONICAL_ENTITY_SEEDS: readonly CanonicalEntitySeed[] = [
@@ -180,6 +186,63 @@ const CANONICAL_ENTITY_SEEDS: readonly CanonicalEntitySeed[] = [
   { label: "Maloyaroslavets", entityType: "place" },
   { label: "Eastern Europe", entityType: "region" },
   { label: "North America", entityType: "region" },
+  { label: "Genghis Khan", entityType: "person", aliases: ["Temüjin", "Temujin", "Chinggis Khan"], defaultRole: "leader" },
+  { label: "Khwarazmian Empire", entityType: "state", aliases: ["Khwarazm"] },
+  { label: "Mamluk Egypt", entityType: "state", aliases: ["Mamluks", "Mamluk"] },
+  { label: "Middle East", entityType: "region" },
+  { label: "Fidel Castro", entityType: "person", aliases: ["Castro"], defaultRole: "leader" },
+  { label: "Nikita Khrushchev", entityType: "person", aliases: ["Khrushchev"], defaultRole: "leader" },
+  { label: "John F. Kennedy", entityType: "person", aliases: ["Kennedy", "President John F. Kennedy"], defaultRole: "leader" },
+  { label: "Soviet Union", entityType: "state", aliases: ["USSR", "Soviets"] },
+  { label: "United States", entityType: "state", aliases: ["U.S.", "US", "America"] },
+  { label: "Cuba", entityType: "state" },
+  { label: "National Security Council", entityType: "organization", aliases: ["ExComm"] },
+  { label: "Limited Nuclear Test Ban Treaty", entityType: "document" },
+  { label: "Valentin Savitsky", entityType: "person", aliases: ["Savitsky"] },
+  { label: "Rudolf Anderson", entityType: "person", aliases: ["Major Rudolf Anderson"] },
+  { label: "RMS Titanic", entityType: "ship", aliases: ["Titanic"], episodeAffinity: [/titanic/i] },
+  { label: "RMS Carpathia", entityType: "ship", aliases: ["Carpathia"], episodeAffinity: [/titanic/i] },
+  { label: "Captain Edward Smith", entityType: "person", aliases: ["Edward Smith", "Captain Smith"] },
+  { label: "William Murdoch", entityType: "person", aliases: ["First Officer William Murdoch", "Murdoch"] },
+  { label: "Frederick Fleet", entityType: "person" },
+  { label: "Thomas Andrews", entityType: "person" },
+  { label: "North Atlantic", entityType: "water-body" },
+  { label: "International Ice Patrol", entityType: "organization" },
+  { label: "Cleopatra", entityType: "person", aliases: ["Cleopatra VII"], defaultRole: "leader", episodeAffinity: [/cleopatra/i] },
+  { label: "Mark Antony", entityType: "person", aliases: ["Antony", "Marcus Antonius"], defaultRole: "leader" },
+  { label: "Julius Caesar", entityType: "person", aliases: ["Caesar"], defaultRole: "leader", episodeAffinity: [/caesar/i] },
+  { label: "Alexandria", entityType: "place" },
+  { label: "Ptolemaic Egypt", entityType: "state", aliases: ["Ptolemaic"] },
+  { label: "Spartacus", entityType: "person", defaultRole: "leader", episodeAffinity: [/spartacus/i] },
+  { label: "Marcus Licinius Crassus", entityType: "person", aliases: ["Crassus", "Licinius Crassus"], defaultRole: "leader" },
+  { label: "Hannibal Barca", entityType: "person", aliases: ["Hannibal"], defaultRole: "leader", episodeAffinity: [/hannibal/i, /cannae/i] },
+  { label: "Cannae", entityType: "place" },
+  { label: "Fabius Maximus", entityType: "person", aliases: ["Fabius", "Quintus Fabius Maximus"] },
+  { label: "Gaius Terentius Varro", entityType: "person", aliases: ["Varro", "Terentius Varro"] },
+  { label: "Lucius Aemilius Paullus", entityType: "person", aliases: ["Paullus", "Aemilius Paullus"] },
+  { label: "Lake Trasimene", entityType: "place", aliases: ["Trasimene"] },
+  { label: "Trebia River", entityType: "water-body", aliases: ["Trebia"] },
+  { label: "Alexander the Great", entityType: "person", aliases: ["Alexander"], defaultRole: "leader", episodeAffinity: [/alexander/i, /persia/i] },
+  { label: "Darius III", entityType: "person", aliases: ["Darius"] },
+  { label: "Gaugamela", entityType: "place" },
+  { label: "Babylon", entityType: "place" },
+  { label: "Sparta", entityType: "place" },
+  { label: "Thucydides", entityType: "person" },
+  { label: "East Anglia", entityType: "region" },
+  { label: "Wessex", entityType: "region" },
+  { label: "Harald Hardrada", entityType: "person", aliases: ["Hardrada"], episodeAffinity: [/1066/i, /hardrada/i, /stamford/i] },
+  { label: "Harold Godwinson", entityType: "person", aliases: ["Harold Godwinson", "King Harold"], episodeAffinity: [/1066/i, /godwinson/i, /bayeux/i] },
+  { label: "Normandy", entityType: "region" },
+  { label: "Stamford Bridge", entityType: "place" },
+  { label: "York", entityType: "place" },
+  { label: "Bayeux Tapestry", entityType: "document" },
+  { label: "Mount Vesuvius", entityType: "place", aliases: ["Vesuvius"] },
+  { label: "Pompeii", entityType: "place", episodeAffinity: [/pompeii/i] },
+  { label: "Stabiae", entityType: "place" },
+  { label: "Adrianople", entityType: "place" },
+  { label: "Halicarnassus", entityType: "place" },
+  { label: "Mytilene", entityType: "place" },
+  { label: "Plataea", entityType: "place" },
 ];
 
 const ORDINARY_NOUN_REJECT = new Set(
@@ -321,7 +384,7 @@ export function shouldSurfaceEntityCandidateV35(input: {
   readonly seed?: CanonicalEntitySeed | null;
 }): boolean {
   if (input.seed) return true;
-  const trimmed = input.text.trim();
+  const trimmed = normalizeEntityCandidateSpanV35(input.text.trim()).normalizedText;
   if (!trimmed) return false;
   const rejection = isRejectedEntityTextV34(trimmed);
   if (
@@ -689,6 +752,7 @@ function resolveContextualTemporalsV34(input: {
 }
 
 function extractEntitiesForUnit(input: {
+  readonly episodeId: string;
   readonly claimId: string;
   readonly unit: CanonicalNarrationUnitV3_3;
   readonly knownEntities?: readonly string[];
@@ -719,6 +783,18 @@ function extractEntitiesForUnit(input: {
       }
       const surface = input.unit.text.slice(index, index + alias.length);
       const seed = ENTITY_BY_ALIAS.get(alias)!;
+      if (
+        !isSafeCanonicalEntityAliasMatchV35({
+          surface,
+          aliasKey: alias,
+          seed,
+          unitText: input.unit.text,
+          episodeId: input.episodeId,
+        })
+      ) {
+        from = index + alias.length;
+        continue;
+      }
       candidates.push({ text: surface, seed });
       from = index + alias.length;
     }
@@ -752,7 +828,9 @@ function extractEntitiesForUnit(input: {
   }
 
   for (const candidate of candidates) {
-    const text = candidate.text.trim();
+    const span = normalizeEntityCandidateSpanV35(candidate.text.trim());
+    const surfaceText = span.originalText;
+    const text = span.normalizedText;
     const key = text.toLocaleLowerCase();
     if (seen.has(key)) continue;
     seen.add(key);
@@ -766,7 +844,7 @@ function extractEntitiesForUnit(input: {
         })
       ) {
         rejected.push({
-          text,
+          text: surfaceText,
           reason: rejection.reason,
           claimId: input.claimId,
           narrationUnitId: input.unit.id,
@@ -776,7 +854,7 @@ function extractEntitiesForUnit(input: {
     }
     if (rejection.reject && candidate.seed && HISTORY_TEMPORAL_PREFIX_PHRASES_V34.has(key)) {
       rejected.push({
-        text,
+        text: surfaceText,
         reason: rejection.reason,
         claimId: input.claimId,
         narrationUnitId: input.unit.id,
@@ -788,6 +866,24 @@ function extractEntitiesForUnit(input: {
       ENTITY_BY_ALIAS.get(key) ??
       ENTITY_BY_ALIAS.get(key.replace(/^(?:the|a|an)\s+/u, "")) ??
       null;
+    if (
+      seed &&
+      !isSafeCanonicalEntityAliasMatchV35({
+        surface: text,
+        aliasKey: key,
+        seed,
+        unitText: input.unit.text,
+        episodeId: input.episodeId,
+      })
+    ) {
+      continue;
+    }
+    if (
+      seed &&
+      !isEntityTypeCompatibleWithSurfaceV35({ surface: text, entityType: seed.entityType })
+    ) {
+      continue;
+    }
     if (!seed) {
       const rejection = isRejectedEntityTextV34(text);
       if (
@@ -798,7 +894,7 @@ function extractEntitiesForUnit(input: {
         })
       ) {
         rejected.push({
-          text,
+          text: surfaceText,
           reason: rejection.reject ? rejection.reason : "uncanonical-surface",
           claimId: input.claimId,
           narrationUnitId: input.unit.id,
@@ -808,7 +904,7 @@ function extractEntitiesForUnit(input: {
     }
     // Prefer canonical seed label when alias matched.
     const normalizedLabel = seed.label;
-    const local = findSpan(input.unit.text, text);
+    const local = findSpan(input.unit.text, surfaceText) ?? findSpan(input.unit.text, text);
     if (!local) continue;
     const mentionKey = `${normalizedLabel.toLocaleLowerCase()}|${seed.entityType}`;
     if (entities.some((item) => `${item.normalizedLabel.toLocaleLowerCase()}|${item.entityType}` === mentionKey))
@@ -816,7 +912,7 @@ function extractEntitiesForUnit(input: {
     entities.push({
       id: `entity-${shaShort(`${input.claimId}:${mentionKey}`)}`,
       claimId: input.claimId,
-      text,
+      text: surfaceText,
       normalizedLabel,
       entityType: seed.entityType,
       semanticRole: roleForEntity(seed, input.unit.text),
@@ -946,6 +1042,7 @@ export function structureTrustedScriptClaimsV34(input: {
       narrationUnitIds: [unit.id],
     });
     const extracted = extractEntitiesForUnit({
+      episodeId: input.episodeId,
       claimId,
       unit,
       ...(input.knownEntities ? { knownEntities: input.knownEntities } : {}),

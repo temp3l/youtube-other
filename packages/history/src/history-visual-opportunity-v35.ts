@@ -138,6 +138,47 @@ export function detectDiagramOpportunityV35(input: {
       reason: "supported-trade-network-structure",
       claimIds: input.claimIds,
     };
+  if (
+    /\b(?:organization|mobility|logistics|discipline|engineering|diplomacy|command|coordination)\b/iu.test(
+      input.clusterText
+    ) &&
+    /\b(?:method|combined|coherent|army|conquest|campaign|war machine)\b/iu.test(input.clusterText)
+  )
+    return {
+      eligible: true,
+      reason: "supported-command-logistics-structure",
+      claimIds: input.claimIds,
+    };
+  if (
+    /\b(?:escalation|quarantine|blockade|missile|nuclear|ExComm|crisis)\b/iu.test(
+      input.clusterText
+    ) &&
+    /\b(?:decision|option|response|threat|naval|Cuba|Soviet)\b/iu.test(input.clusterText)
+  )
+    return {
+      eligible: true,
+      reason: "supported-escalation-decision-structure",
+      claimIds: input.claimIds,
+    };
+  if (
+    /\b(?:collision|flooding|evacuation|compartment|lifeboat|watertight|iceberg)\b/iu.test(
+      input.clusterText
+    )
+  )
+    return {
+      eligible: true,
+      reason: "supported-maritime-disaster-process",
+      claimIds: input.claimIds,
+    };
+  if (
+    /\b(?:manor|harvest|serf|obligation|feudal|peasant|lord)\b/iu.test(input.clusterText) &&
+    /\b(?:seasonal|work|field|tax|rent|crop)\b/iu.test(input.clusterText)
+  )
+    return {
+      eligible: true,
+      reason: "supported-agricultural-social-structure",
+      claimIds: input.claimIds,
+    };
   return {
     eligible: false,
     reason: "no-supported-structured-relationship",

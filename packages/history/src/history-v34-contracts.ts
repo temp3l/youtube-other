@@ -371,6 +371,8 @@ export interface HistoryDiagramStateV34 {
   readonly semanticStatus: "valid" | "blocked";
   readonly blockerCodes: readonly string[];
   readonly fallbackDecision: string | null;
+  readonly evidenceBeatIds?: readonly string[];
+  readonly evidenceClaimIds?: readonly string[];
 }
 
 export interface HistoryTimelineEventV34 {
