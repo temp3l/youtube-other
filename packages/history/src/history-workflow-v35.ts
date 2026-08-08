@@ -4,6 +4,11 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { promisify } from "node:util";
 import { normalizeEpisodeId } from "@mediaforge/shared";
+import {
+  resolveHistoryApprovalPackConcurrency,
+} from "./history-approval-pack-concurrency.js";
+import type { HistoryApprovalPackProgressEventV35 } from "./history-approval-pack-progress.js";
+import { containsUnsafeApprovalPackTextV35 } from "./history-approval-pack-safety-v35.js";
 import { normalizeHistoryNarrationV33 } from "./history-narration-v33.js";
 import { stableJsonV33 } from "./history-research-v33.js";
 import {
@@ -90,9 +95,6 @@ async function runFocusedHistoryV35Verification(): Promise<Record<string, unknow
     commands: results,
   };
 }
-const unsafeText =
-  /(?:\b(?:api[_-]?key|authorization|password|secret|token)\b|(?:^|[/])(?:home|users)(?:[/]|$))/iu;
-
 function sanitizePackDiagnostic(value: string): string {
   return value
     .replace(/(?:^|\s)\/(?:home|Users)(?:\/[\w.-]+)+/giu, " <path>")
@@ -161,10 +163,21 @@ async function episodeTitle(source: string): Promise<string> {
   try {
     const metadata = JSON.parse(
       await fs.readFile(path.join(source, "normalized-metadata.json"), "utf8")
-    ) as { title?: string };
-    return metadata.title ?? "History episode";
+    ) as { title?: string; originalFrontmatter?: { title?: string } };
+    return metadata.originalFrontmatter?.title ?? metadata.title ?? "History episode";
   } catch {
     return "History episode";
+  }
+}
+
+async function metadataKeywords(source: string): Promise<string[]> {
+  try {
+    const metadata = JSON.parse(
+      await fs.readFile(path.join(source, "normalized-metadata.json"), "utf8")
+    ) as { originalFrontmatter?: { keywords?: readonly string[] }; keywords?: readonly string[] };
+    return [...(metadata.originalFrontmatter?.keywords ?? metadata.keywords ?? [])];
+  } catch {
+    return [];
   }
 }
 
@@ -172,8 +185,26 @@ async function knownEntities(source: string): Promise<string[]> {
   try {
     const metadata = JSON.parse(
       await fs.readFile(path.join(source, "normalized-metadata.json"), "utf8")
-    ) as { entities?: readonly string[]; knownEntities?: readonly string[] };
-    return [...(metadata.entities ?? []), ...(metadata.knownEntities ?? [])];
+    ) as {
+      entities?: readonly string[];
+      knownEntities?: readonly string[];
+      originalFrontmatter?: { keywords?: readonly string[] };
+      keywords?: readonly string[];
+    };
+    const keywords = [
+      ...(metadata.originalFrontmatter?.keywords ?? metadata.keywords ?? []),
+    ].filter(
+      (keyword) =>
+        keyword.trim().length > 2 &&
+        !/^(?:at|the|army|slave|worst|romes|when)$/iu.test(keyword.trim())
+    );
+    return [
+      ...new Set([
+        ...(metadata.entities ?? []),
+        ...(metadata.knownEntities ?? []),
+        ...keywords,
+      ]),
+    ];
   } catch {
     return [];
   }
@@ -390,6 +421,8 @@ export async function planHistoryVisualsV35(request: {
     rawScript: script,
   });
   const title = await episodeTitle(paths.source);
+  const entities = await knownEntities(paths.source);
+  const keywords = await metadataKeywords(paths.source);
   const attestation = await readJsonIfExists<TrustedNarrationAttestationV1>(
     path.join(paths.source, "history-v3.3", "trusted-narration-attestation.json")
   );
@@ -408,6 +441,8 @@ export async function planHistoryVisualsV35(request: {
     trustSnapshotHash,
     structuredClaims: structuredResult.structured,
     trustAttestation: attestation,
+    knownEntities: entities,
+    metadataKeywords: keywords,
   });
   const validation = validateHistoryVisualPlanV35(plan);
   await writeStableJson(paths.plan, plan);
@@ -753,7 +788,7 @@ export async function createHistoryApprovalPackV35(request: {
     if (path.isAbsolute(relative) || relative.split(path.sep).includes(".."))
       throw new Error(`Unsafe History V3.4 approval-pack path ${relative}.`);
     const content = await fs.readFile(file, "utf8");
-    if (unsafeText.test(content))
+    if (containsUnsafeApprovalPackTextV35(content))
       throw new Error(`Unsafe or secret-like content detected in ${relative}.`);
   }
   const zipPath = await zipDirectory(directory);
@@ -768,11 +803,60 @@ export async function createHistoryApprovalPackV35(request: {
   };
 }
 
+export async function reuseHistoryApprovalPackV35(input: {
+  readonly episodeId: string;
+  readonly output: string;
+  readonly reusePacksFrom: string;
+}): Promise<HistoryApprovalPackResultV35> {
+  const sourceNested = path.join(
+    path.resolve(input.reusePacksFrom),
+    `${normalizeEpisodeId(input.episodeId)}-v3.5`
+  );
+  const sourceZip = `${sourceNested}.zip`;
+  await fs.access(sourceNested);
+  await fs.access(sourceZip);
+  const directory = path.resolve(input.output);
+  await fs.cp(sourceNested, directory, { recursive: true });
+  await fs.copyFile(sourceZip, `${directory}.zip`);
+  const manifest = await readJson<{
+    readonly episodeId: string;
+    readonly planHash: string;
+    readonly trustSnapshotHash: string;
+    readonly manifestHash: string;
+  }>(path.join(directory, "manifest.json"));
+  return {
+    episodeId: manifest.episodeId,
+    directory,
+    zipPath: `${directory}.zip`,
+    zipSha256: sha256(await fs.readFile(`${directory}.zip`)),
+    planHash: manifest.planHash,
+    trustSnapshotHash: manifest.trustSnapshotHash,
+    manifestHash: manifest.manifestHash,
+  };
+}
+
+function shouldRegenerateEpisodePackV35(
+  request: {
+    readonly regenerate?: boolean;
+    readonly regenerateOnlyEpisodeIds?: readonly string[];
+  },
+  episodeId: string
+): boolean {
+  if (request.regenerateOnlyEpisodeIds?.length)
+    return request.regenerateOnlyEpisodeIds.includes(episodeId);
+  return Boolean(request.regenerate);
+}
+
 export async function createCombinedHistoryApprovalBundleV35(request: {
   readonly episodeIds: readonly string[];
   readonly output: string;
   readonly outputRoot?: string;
   readonly regenerate?: boolean;
+  readonly reusePacksFrom?: string;
+  readonly regenerateOnlyEpisodeIds?: readonly string[];
+  readonly concurrency?: number;
+  readonly useWorkerThreads?: boolean;
+  readonly onProgress?: (event: HistoryApprovalPackProgressEventV35) => void;
 }): Promise<{
   readonly directory: string;
   readonly zipPath: string;
@@ -783,40 +867,54 @@ export async function createCombinedHistoryApprovalBundleV35(request: {
   const directory = path.resolve(request.output);
   await fs.rm(directory, { recursive: true, force: true });
   await fs.mkdir(directory, { recursive: true });
-  const episodes: HistoryApprovalPackResultV35[] = [];
-  const episodeSummaries = [];
-  for (const episodeId of request.episodeIds) {
+  const concurrency = resolveHistoryApprovalPackConcurrency(request.concurrency);
+  const totalEpisodes = request.episodeIds.length;
+  request.onProgress?.({
+    completed: 0,
+    total: totalEpisodes,
+    phase: "verification",
+  });
+  const needsVerification = request.episodeIds.some((episodeId) => {
+    if (request.reusePacksFrom && !shouldRegenerateEpisodePackV35(request, episodeId)) {
+      return false;
+    }
+    return true;
+  });
+  const testSummary = needsVerification
+    ? await runFocusedHistoryV35Verification()
+    : undefined;
+  const tasks = request.episodeIds.map((episodeId) => {
     const nested = path.join(directory, `${normalizeEpisodeId(episodeId)}-v3.5`);
-    const pack = await createHistoryApprovalPackV35({
+    const regenerate = shouldRegenerateEpisodePackV35(request, episodeId);
+    return {
       episodeId,
       output: nested,
       ...(request.outputRoot ? { outputRoot: request.outputRoot } : {}),
-      ...(request.regenerate ? { regenerate: true } : {}),
-    });
-    episodes.push(pack);
-    const plan = await readJson<import("./history-v35-contracts.js").HistoryVisualPlanV35>(
-      path.join(nested, "plan.json")
-    );
-    episodeSummaries.push({
-      episodeId: plan.episodeId,
-      planHash: plan.planHash,
-      beats: plan.beats.length,
-      shots: plan.shots.length,
-      runtimeMs: plan.timing.totalDurationMs,
-      timingSource: plan.timing.timingSource,
-      approval: plan.approval,
-      qualityMetrics: plan.qualityMetrics,
-      trustApproval: plan.trustApproval,
-      modalityCounts: plan.beats.reduce<Record<string, number>>((acc, beat) => {
-        acc[beat.modality] = (acc[beat.modality] ?? 0) + 1;
-        return acc;
-      }, {}),
-      mapStates: plan.mapStates.length,
-      timelineBeatUsage: plan.beats.filter((beat) => beat.modality === "timeline").length,
-      documentStates: plan.documentStates.length,
-      diagnostics: plan.diagnostics.map((item) => item.code),
-    });
-  }
+      regenerate,
+      ...(request.reusePacksFrom && !regenerate
+        ? { reusePacksFrom: request.reusePacksFrom }
+        : {}),
+      ...(testSummary ? { testSummary } : {}),
+    };
+  });
+  const { runHistoryApprovalPackEpisodesV35 } = await import(
+    "./history-approval-pack-worker-pool.js"
+  );
+  const episodeResults = await runHistoryApprovalPackEpisodesV35({
+    tasks,
+    concurrency,
+    ...(request.useWorkerThreads !== undefined
+      ? { useWorkerThreads: request.useWorkerThreads }
+      : {}),
+    ...(request.onProgress ? { onProgress: request.onProgress } : {}),
+  });
+  request.onProgress?.({
+    completed: totalEpisodes,
+    total: totalEpisodes,
+    phase: "bundle",
+  });
+  const episodes = episodeResults.map((result) => result.pack);
+  const episodeSummaries = episodeResults.map((result) => result.summary);
   const buildTimestamp = new Date().toISOString();
   const comparison = {
     schemaVersion: "history-approval-pack-combined.v3.5",

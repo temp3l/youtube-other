@@ -23,6 +23,7 @@
     "test:focused": "bash scripts/test-focused.sh",
     "verify:veronica-ffmpeg": "bash scripts/verify-veronica-ffmpeg.sh",
     "veronica:review-packs": "tsx scripts/generate-veronica-review-packs.ts",
+    "history:v35:review-pack": "tsx scripts/history-v35-combine-episode-range.mjs",
     "veronica:bulk-approval-zip": "tsx scripts/generate-veronica-bulk-approval-zip.ts",
     "lint": "node scripts/run-eslint.mjs",
     "lint:affected": "node scripts/run-eslint.mjs --changed",

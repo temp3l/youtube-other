@@ -64,3 +64,7 @@ export {
   createCombinedHistoryApprovalBundleV35,
   createHistoryReviewBundleV35,
 } from "./history-workflow-v35.js";
+export * from "./history-episode-discovery.js";
+export * from "./history-approval-pack-range.js";
+export * from "./history-approval-pack-concurrency.js";
+export * from "./history-approval-pack-progress.js";

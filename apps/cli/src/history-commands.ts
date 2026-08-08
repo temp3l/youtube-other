@@ -1,4 +1,12 @@
 import { Command } from "commander";
+import path from "node:path";
+import {
+  buildCombinedHistoryApprovalBundleRequestV35,
+  defaultHistoryApprovalPackRangeOutput,
+  discoverHistoryStoryPackEpisodeIds,
+  resolveHistoryApprovalPackConcurrency,
+  reportHistoryApprovalPackProgress,
+} from "@mediaforge/history";
 
 export type HistoryContentPackMode = "strict" | "lenient";
 export type HistoryBatchFailureMode = "fail-fast" | "collect-errors";
@@ -157,7 +165,11 @@ export interface HistoryCommandDependencies {
     readonly output: string;
     readonly outputRoot?: string;
     readonly regenerate?: boolean;
-  }) => Promise<unknown>;
+    readonly reusePacksFrom?: string;
+  readonly regenerateOnlyEpisodeIds?: readonly string[];
+  readonly concurrency?: number;
+  readonly useWorkerThreads?: boolean;
+}) => Promise<unknown>;
   readonly runHistoryV33Workflow?: (request: {
     readonly episodeId: string;
     readonly outputRoot?: string;
@@ -281,6 +293,66 @@ function emit(value: unknown, json: boolean | undefined): void {
   process.stdout.write(
     `${JSON.stringify(value, null, json ? 2 : undefined)}\n`
   );
+}
+
+function emitHistoryV35(value: unknown, json: boolean | undefined): void {
+  if (json) {
+    emit(value, true);
+    return;
+  }
+  const record =
+    value && typeof value === "object"
+      ? (value as Record<string, unknown>)
+      : { result: value };
+  const lines = [
+    "History V3.5 combined approval pack complete.",
+    ...(record["from"] !== undefined && record["to"] !== undefined
+      ? [`Episode range: ${String(record["from"])}-${String(record["to"])}`]
+      : []),
+    ...(record["output"] ? [`Output: ${String(record["output"])}`] : []),
+    ...(record["zipPath"] ? [`ZIP: ${String(record["zipPath"])}`] : []),
+    ...(record["zipSha256"] ? [`ZIP SHA-256: ${String(record["zipSha256"])}`] : []),
+    ...(Array.isArray(record["episodeIds"])
+      ? [`Episodes: ${record["episodeIds"].length}`]
+      : []),
+  ];
+  process.stdout.write(`${lines.join("\n")}\n`);
+}
+
+function resolveHistoryV35CompareEpisodeIds(input: {
+  readonly episodeIds: readonly string[];
+  readonly from?: number;
+  readonly to?: number;
+  readonly outputRoot: string;
+}): string[] {
+  const hasRange = input.from !== undefined || input.to !== undefined;
+  if (hasRange && input.episodeIds.length > 0) {
+    throw new Error(
+      "History V3.5 compare accepts either explicit episode IDs or --from/--to, not both."
+    );
+  }
+  if (hasRange) {
+    if (input.from === undefined || input.to === undefined) {
+      throw new Error("History V3.5 compare requires both --from and --to.");
+    }
+    const episodeIds = discoverHistoryStoryPackEpisodeIds({
+      episodesDirectory: input.outputRoot,
+      from: input.from,
+      to: input.to,
+    });
+    if (episodeIds.length === 0) {
+      throw new Error(
+        `No canonical History story-pack episodes found for range ${input.from}-${input.to}.`
+      );
+    }
+    return episodeIds;
+  }
+  if (input.episodeIds.length === 0) {
+    throw new Error(
+      "History V3.5 compare requires explicit episode IDs or --from/--to."
+    );
+  }
+  return [...input.episodeIds];
 }
 
 function emitHistoryV33(value: unknown, json: boolean | undefined): void {
@@ -1321,6 +1393,134 @@ export function registerHistoryCommands(
           }), options.json ?? inherited().json);
         });
     }
+  }
+
+  if (dependencies.createCombinedHistoryApprovalBundleV35) {
+    const v35 = history
+      .command("v3.5")
+      .description(
+        "Build combined History V3.5 approval review packs without media generation"
+      );
+    v35
+      .command("compare [episode-ids...]")
+      .description(
+        "Build a combined V3.5 approval pack from explicit episode IDs or --from/--to"
+      )
+      .option(
+        "--output <directory>",
+        "combined approval pack output directory; defaults for --from/--to ranges"
+      )
+      .option("--from <number>", "first story-pack episode number (inclusive)", (value) =>
+        Number.parseInt(value, 10)
+      )
+      .option("--to <number>", "last story-pack episode number (inclusive)", (value) =>
+        Number.parseInt(value, 10)
+      )
+      .option(
+        "--output-root <path>",
+        "episode workspace root used for discovery and planning",
+        "episodes"
+      )
+      .option(
+        "--reuse-packs-from <directory>",
+        "reuse existing per-episode V3.5 packs when present"
+      )
+      .option("--regenerate", "regenerate every selected episode pack")
+      .option(
+        "--concurrency <count>",
+        "parallel episode pack workers (default: all CPU cores)",
+        (value) => Number.parseInt(value, 10)
+      )
+      .option(
+        "--no-worker-threads",
+        "run episode packs in-process instead of worker_threads"
+      )
+      .option("--json", "emit machine-readable output")
+      .action(
+        async (
+          episodeIds: string[],
+          options: {
+            readonly output?: string;
+            readonly from?: number;
+            readonly to?: number;
+            readonly outputRoot?: string;
+            readonly reusePacksFrom?: string;
+            readonly regenerate?: boolean;
+            readonly concurrency?: number;
+            readonly noWorkerThreads?: boolean;
+            readonly json?: boolean;
+          }
+        ) => {
+          const outputRoot = path.resolve(options.outputRoot ?? "episodes");
+          const concurrency = resolveHistoryApprovalPackConcurrency(
+            options.concurrency
+          );
+          const resolvedEpisodeIds = resolveHistoryV35CompareEpisodeIds({
+            episodeIds,
+            from: options.from,
+            to: options.to,
+            outputRoot,
+          });
+          const output = path.resolve(
+            options.output ??
+              (options.from !== undefined && options.to !== undefined
+                ? defaultHistoryApprovalPackRangeOutput({
+                    from: options.from,
+                    to: options.to,
+                  })
+                : (() => {
+                    throw new Error(
+                      "History V3.5 compare requires --output when explicit episode IDs are used."
+                    );
+                  })())
+          );
+          const request = await buildCombinedHistoryApprovalBundleRequestV35({
+            episodeIds: resolvedEpisodeIds,
+            output,
+            outputRoot,
+            concurrency,
+            ...(options.regenerate ? { regenerate: true } : {}),
+            ...(options.reusePacksFrom
+              ? { reusePacksFrom: path.resolve(options.reusePacksFrom) }
+              : {}),
+            ...(options.noWorkerThreads ? { useWorkerThreads: false } : {}),
+            onProgress: (event) => reportHistoryApprovalPackProgress(event),
+          });
+          const bundle = await dependencies.createCombinedHistoryApprovalBundleV35!(
+            request
+          );
+          const record =
+            bundle && typeof bundle === "object"
+              ? (bundle as Record<string, unknown>)
+              : {};
+          emitHistoryV35(
+            {
+              from: options.from,
+              to: options.to,
+              concurrency,
+              useWorkerThreads: !options.noWorkerThreads,
+              episodeIds: resolvedEpisodeIds,
+              output: record["directory"],
+              zipPath: record["zipPath"],
+              zipSha256: record["zipSha256"],
+              comparisonReportPath: record["comparisonReportPath"],
+              reusedFrom: request.reusePacksFrom ?? null,
+              reusedEpisodeIds:
+                options.regenerate || !request.reusePacksFrom
+                  ? []
+                  : resolvedEpisodeIds.filter(
+                      (episodeId) =>
+                        !request.regenerateOnlyEpisodeIds?.includes(episodeId)
+                    ),
+              regeneratedEpisodeIds: options.regenerate
+                ? resolvedEpisodeIds
+                : (request.regenerateOnlyEpisodeIds ?? resolvedEpisodeIds),
+              episodes: record["episodes"],
+            },
+            options.json ?? inherited().json
+          );
+        }
+      );
   }
 
   const contentPack = program
