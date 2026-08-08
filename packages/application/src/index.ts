@@ -19,3 +19,4 @@ export * from "./canonical-durable-workflow-executor.js";
 export * from "./provider-free-profile-executor.js";
 export * from "./durable-webhook-worker.js";
 export * from "./workflow-admission.js";
+export * from "./command-security.js";

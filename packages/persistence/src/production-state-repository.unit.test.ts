@@ -27,6 +27,7 @@ describe("postgres migration registry", () => {
       "workflow-authority",
       "durable-dispatch",
       "production-state",
+      "principal-directory",
       "quota-dimensions",
     ]);
     expect(POSTGRES_PRODUCTION_STATE_MIGRATION).toContain(
