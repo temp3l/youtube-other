@@ -520,12 +520,6 @@ export function measureHistoryRepetitionV35(input: {
   return { ...metric, repetitionPolicy, passes };
 }
 
-function segmentationModalityFor(text: string): HistoryVisualModalityV35 {
-  const modality = modalityFor(text);
-  if (modality === "map") return "archival image";
-  return modality;
-}
-
 function modalityFor(text: string): HistoryVisualModalityV35 {
   if (/^(?:but|however|instead|so what|yet|why)\b/iu.test(text.trim()))
     return "text-only transition";
@@ -655,18 +649,19 @@ function clusterBeats(input: {
     const modality =
       materialClaims.length === 0 && /^(?:but|however|why|then they vanished)/iu.test(unit.text)
         ? ("text-only transition" as const)
-        : segmentationModalityFor(unit.text);
+        : modalityFor(unit.text);
     const canMerge =
       current &&
       current.modality === modality &&
       current.wordCount + unit.wordCount <= 90 &&
       current.unitIds.length < 3 &&
-      modality !== "timeline";
+      modality !== "timeline" &&
+      modality !== "map";
     if (canMerge && current) {
       current.unitIds.push(unit.id);
       current.claimIds.push(...claimIds);
       current.text = `${current.text} ${unit.text}`.trim();
-      current.modality = segmentationModalityFor(current.text);
+      current.modality = modalityFor(current.text);
       current.endUtf16Exclusive = unit.endUtf16Exclusive;
       current.wordCount += unit.wordCount;
       continue;
@@ -684,6 +679,17 @@ function clusterBeats(input: {
   }
   if (current) clusters.push(current);
   return clusters;
+}
+
+export function computeCanonicalBeatSegmentationSignatureV35(
+  clusters: readonly Pick<BeatCluster, "unitIds" | "startUtf16" | "endUtf16Exclusive">[]
+): string {
+  return clusters
+    .map(
+      (cluster) =>
+        `${cluster.unitIds.join("+")}@${cluster.startUtf16}-${cluster.endUtf16Exclusive}`
+    )
+    .join("|");
 }
 
 function scopedMapCacheKey(input: {
@@ -1182,23 +1188,28 @@ function compileDiagram(input: {
   }
 
   if (
-    /\b(?:trade routes?|interdependence|palace|bronze|copper|tin|collapse)\b/iu.test(text) &&
-    (/\b(?:Mediterranean|Aegean|Anatolia|Cyprus|Egypt|Hittite|Mycenae|Pylos|Levant|political boundaries)\b/iu.test(
-      text
-    ) ||
-      input.entityLabels.length >= 2)
+    /\b(?:bronze|copper|tin)\b/iu.test(text) &&
+    /\b(?:Cyprus|bronze age|trade network|palace)\b/iu.test(text)
   ) {
     const tradeCompiled = compileBronzeTradeDiagramV35({
       beatNumber: input.beatNumber,
       text,
       claimIds: input.claimIds,
+      claims: input.claims,
     });
     if (tradeCompiled?.state.semanticStatus === "valid" && !tradeCompiled.state.blockerCodes.length)
       return tradeCompiled;
+  }
+  if (
+    /\b(?:systems? collapse|Bronze Age(?:\s+Collapse)?|collapse more likely)\b/iu.test(text) ||
+    (/\bcollapse\b/iu.test(text) &&
+      /\b(?:drought|migration|trade disruption|political instability)\b/iu.test(text))
+  ) {
     const collapseCompiled = compileBronzeSystemsCollapseDiagramV35({
       beatNumber: input.beatNumber,
       text,
       claimIds: input.claimIds,
+      claims: input.claims,
     });
     if (
       collapseCompiled?.state.semanticStatus === "valid" &&

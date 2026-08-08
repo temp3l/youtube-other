@@ -4,6 +4,7 @@ import {
   usesEvidenceBoundDiagramValidationV35,
   validateDiagramEvidenceBoundEdgesV35,
 } from "./history-diagram-evidence-v35.js";
+import { validateDiagramEpisodeGroundingV35 } from "./history-diagram-provenance-v35.js";
 import { validateDiagramTopologyV35 } from "./history-diagram-topology-v35.js";
 import { validateDiagramSemanticsV34 } from "./history-visual-semantics-v34.js";
 
@@ -23,9 +24,10 @@ export function collectDiagramEvidenceClaimTextV35(input: {
 export function validateDiagramSemanticBlockersV35(input: {
   readonly state: Pick<
     HistoryDiagramStateV34,
-    "masterId" | "nodes" | "edges" | "diagramType" | "evidenceClaimIds"
+    "masterId" | "nodes" | "edges" | "diagramType" | "evidenceClaimIds" | "exactQuestion"
   >;
   readonly evidenceClaimText: string;
+  readonly claims?: readonly HistoryClaimV34[];
 }): readonly string[] {
   const genericBlockers = [
     ...new Set([
@@ -40,8 +42,16 @@ export function validateDiagramSemanticBlockersV35(input: {
     ]),
   ];
 
+  const provenanceBlockers = input.claims?.length
+    ? validateDiagramEpisodeGroundingV35({
+        state: input.state as HistoryDiagramStateV34,
+        evidenceClaimText: input.evidenceClaimText,
+        claims: input.claims,
+      })
+    : [];
+
   if (!usesEvidenceBoundDiagramValidationV35(input.state)) {
-    return genericBlockers;
+    return [...new Set([...genericBlockers, ...provenanceBlockers])];
   }
 
   const evidenceBoundBlockers = validateDiagramEvidenceBoundEdgesV35({
@@ -51,16 +61,18 @@ export function validateDiagramSemanticBlockersV35(input: {
   const filteredGenericBlockers = genericBlockers.filter(
     (blocker) => !EVIDENCE_BOUND_EDGE_BLOCKERS.has(blocker)
   );
-  return [...new Set([...filteredGenericBlockers, ...evidenceBoundBlockers])];
+  return [...new Set([...filteredGenericBlockers, ...evidenceBoundBlockers, ...provenanceBlockers])];
 }
 
 export function finalizeDiagramSemanticStateV35(input: {
   readonly state: HistoryDiagramStateV34;
   readonly evidenceClaimText: string;
+  readonly claims?: readonly HistoryClaimV34[];
 }): HistoryDiagramStateV34 {
   const blockerCodes = validateDiagramSemanticBlockersV35({
     state: input.state,
     evidenceClaimText: input.evidenceClaimText,
+    ...(input.claims ? { claims: input.claims } : {}),
   });
   if (!blockerCodes.length) {
     return {

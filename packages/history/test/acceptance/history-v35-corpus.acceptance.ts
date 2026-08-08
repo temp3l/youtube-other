@@ -10,6 +10,7 @@ import {
   deriveCoreSubjectsV35,
   assessCoreSubjectCompletenessV35,
 } from "../../src/history-core-subject-v35.js";
+import { assessDiagramProvenanceForPlanV35 } from "../../src/history-diagram-provenance-v35.js";
 import {
   isCinematicCameraMovementV35,
   isTemplatedArchivalPurposeV35,
@@ -84,6 +85,13 @@ describe("History V3.5 corpus acceptance", () => {
           expect(state.semanticStatus, `${episodeId} ${state.id}`).toBe("blocked");
         }
       }
+      const diagramProvenance = assessDiagramProvenanceForPlanV35(plan);
+      expect(
+        diagramProvenance.violations,
+        `${episodeId} diagram provenance violations: ${diagramProvenance.violations
+          .map((item) => `${item.diagramStateId}:${item.blockers.join(",")}`)
+          .join("; ")}`
+      ).toEqual([]);
       expect(
         plan.mediaDecisions.every(
           (decision) => !decision.justification.includes("Do not export dangling timeline references.")

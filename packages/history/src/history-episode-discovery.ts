@@ -59,11 +59,21 @@ export function discoverHistoryStoryPackEpisodeIds(input: {
     .map(([, directoryName]) => directoryName);
 }
 
+export function formatHistoryApprovalPackTimestampV35(
+  date: Date = new Date()
+): string {
+  return date.toISOString().replace(/[-:]/gu, "").replace(/\.\d{3}/u, "");
+}
+
 export function defaultHistoryApprovalPackRangeOutput(input: {
   readonly from: number;
   readonly to: number;
   readonly baseDirectory?: string;
+  readonly generatedAt?: Date;
 }): string {
   const baseDirectory = input.baseDirectory ?? "artifacts/chatgpt-review";
-  return `${baseDirectory}/history-approval-packs-v3.5-episodes-${String(input.from).padStart(2, "0")}-${String(input.to).padStart(2, "0")}`;
+  const timestamp = formatHistoryApprovalPackTimestampV35(input.generatedAt);
+  const from = String(input.from).padStart(2, "0");
+  const to = String(input.to).padStart(2, "0");
+  return `${baseDirectory}/history-approval-packs-v3.5-episodes-${from}-${to}-${timestamp}`;
 }

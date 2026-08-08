@@ -3,6 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import {
+  formatHistoryApprovalPackTimestampV35,
   defaultHistoryApprovalPackRangeOutput,
   discoverHistoryStoryPackEpisodeIds,
   episodeNumberFromHistoryStoryPackDirectory,
@@ -65,7 +66,19 @@ describe("history episode discovery", () => {
 
   it("builds the default combined approval-pack output directory", () => {
     expect(
-      defaultHistoryApprovalPackRangeOutput({ from: 11, to: 31 })
-    ).toBe("artifacts/chatgpt-review/history-approval-packs-v3.5-episodes-11-31");
+      defaultHistoryApprovalPackRangeOutput({
+        from: 11,
+        to: 31,
+        generatedAt: new Date("2026-08-08T13:56:00.000Z"),
+      })
+    ).toBe(
+      "artifacts/chatgpt-review/history-approval-packs-v3.5-episodes-11-31-20260808T135600Z"
+    );
+  });
+
+  it("formats UTC approval-pack timestamps as YYYYMMDDTHHMMSSZ", () => {
+    expect(
+      formatHistoryApprovalPackTimestampV35(new Date("2026-08-08T13:56:00.000Z"))
+    ).toBe("20260808T135600Z");
   });
 });

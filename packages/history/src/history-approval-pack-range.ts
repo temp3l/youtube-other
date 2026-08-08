@@ -129,7 +129,10 @@ export async function createCombinedHistoryApprovalBundleForRangeV35(input: {
       : {}),
     ...(input.onProgress ? { onProgress: input.onProgress } : {}),
   });
-  const bundle = await createCombinedHistoryApprovalBundleV35(request);
+  const bundle = await createCombinedHistoryApprovalBundleV35({
+    ...request,
+    episodeRange: `${String(input.from).padStart(2, "0")}-${String(input.to).padStart(2, "0")}`,
+  });
   const reusedEpisodeIds = request.reusePacksFrom
     ? episodeIds.filter(
         (episodeId) => !request.regenerateOnlyEpisodeIds?.includes(episodeId)

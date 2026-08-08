@@ -331,7 +331,17 @@ export function createDiagramCompilationRegistryV35(input: {
       if (existingId) {
         const existing = input.diagramStates.find((state) => state.id === existingId);
         if (existing) {
-          return { master: compiled.master, state: existing, reused: true };
+          const existingClaims = [
+            ...(existing.evidenceClaimIds ?? []),
+            ...existing.nodes.flatMap((node) => node.linkedClaimIds),
+          ].sort();
+          const incomingClaims = [
+            ...(compiled.state.evidenceClaimIds ?? []),
+            ...compiled.state.nodes.flatMap((node) => node.linkedClaimIds),
+          ].sort();
+          if (existingClaims.join(",") === incomingClaims.join(",")) {
+            return { master: compiled.master, state: existing, reused: true };
+          }
         }
       }
       const duplicateIndex = input.diagramStates.findIndex((state) => state.id === compiled.state.id);

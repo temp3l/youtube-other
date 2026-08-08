@@ -156,6 +156,7 @@ export function compileTopologyDiagramV35(input: {
   readonly labels: readonly string[];
   readonly claimIds: readonly string[];
   readonly text: string;
+  readonly claims?: readonly HistoryClaimV34[];
   readonly topology?: HistoryDiagramTopologyV35;
   readonly visibleCount?: number;
 }): {
@@ -202,6 +203,7 @@ export function compileTopologyDiagramV35(input: {
     state: finalizeDiagramSemanticStateV35({
       state: baseState,
       evidenceClaimText: input.text,
+      ...(input.claims ? { claims: input.claims } : {}),
     }),
   };
 }
@@ -264,6 +266,7 @@ export function compileAbstractCausalDiagramV35(input: {
     labels: labels.slice(0, 5),
     claimIds: input.claimIds,
     text: input.text,
+    claims: input.claims,
     topology,
   });
   return acceptCompiledDiagramV35(compiled);
@@ -273,17 +276,15 @@ export function compileBronzeTradeDiagramV35(input: {
   readonly beatNumber: string;
   readonly text: string;
   readonly claimIds: readonly string[];
+  readonly claims?: readonly HistoryClaimV34[];
 }): ReturnType<typeof compileTopologyDiagramV35> | null {
+  if (!/\b(?:bronze|copper|tin)\b/iu.test(input.text)) return null;
   const labels = [
     "copper from Cyprus",
     "tin from distant regions",
     "bronze production",
     "palace trade networks",
-  ].filter(
-    (label) =>
-      new RegExp(label.split(" ")[0]!, "iu").test(input.text) ||
-      /trade|bronze|copper|tin|palace|interdependence/iu.test(input.text)
-  );
+  ].filter((label) => isClaimGroundedDiagramLabelV35(label, input.text));
   if (labels.length < 3) return null;
   return acceptCompiledDiagramV35(
     compileTopologyDiagramV35({
@@ -294,6 +295,7 @@ export function compileBronzeTradeDiagramV35(input: {
       labels,
       claimIds: input.claimIds,
       text: input.text,
+      ...(input.claims ? { claims: input.claims } : {}),
       topology: "parallel-contributors",
       visibleCount: Math.min(labels.length, 4),
     })
@@ -304,6 +306,7 @@ export function compileBronzeSystemsCollapseDiagramV35(input: {
   readonly beatNumber: string;
   readonly text: string;
   readonly claimIds: readonly string[];
+  readonly claims?: readonly HistoryClaimV34[];
 }): ReturnType<typeof compileTopologyDiagramV35> | null {
   const labels = [
     "drought pressure",
@@ -312,11 +315,7 @@ export function compileBronzeSystemsCollapseDiagramV35(input: {
     "military fragmentation",
     "palace administrative failure",
     "systems collapse",
-  ].filter(
-    (label) =>
-      new RegExp(label.split(" ")[0]!, "iu").test(input.text) ||
-      /collapse|interdependence|disruption|palace|drought|earthquake|military/iu.test(input.text)
-  );
+  ].filter((label) => isClaimGroundedDiagramLabelV35(label, input.text));
   if (labels.length < 3) return null;
   const contributors = labels.filter((label) => !/systems collapse/i.test(label));
   const outcomes = labels.filter((label) => /systems collapse/i.test(label));
@@ -335,6 +334,7 @@ export function compileBronzeSystemsCollapseDiagramV35(input: {
       labels: visibleLabels,
       claimIds: input.claimIds,
       text: input.text,
+      ...(input.claims ? { claims: input.claims } : {}),
       topology: "convergence",
       visibleCount: visibleLabels.length,
     })
