@@ -1,0 +1,31 @@
+{
+  "schemaVersion": "history-explanatory-relations.v1",
+  "plannerVersion": "history-explanatory-relations.v3.6.0",
+  "artifact": {
+    "episodeId": "typed EpisodeIdV36",
+    "relations": "ExplanatoryRelationV36[]"
+  },
+  "relationKinds": [
+    "movement",
+    "spatial-comparison",
+    "spatial-area",
+    "causal",
+    "dependency",
+    "process",
+    "temporal-sequence",
+    "policy-response",
+    "evidence-set"
+  ],
+  "identityInputs": [
+    "episodeId",
+    "kind",
+    "ordered canonical participants",
+    "sorted supportClaimIds"
+  ],
+  "excludedIdentityInputs": [
+    "timestamps",
+    "render IDs",
+    "candidate IDs",
+    "context-window UUIDs"
+  ]
+}
