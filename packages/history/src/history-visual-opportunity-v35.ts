@@ -26,10 +26,154 @@ export interface HistoryVisualOpportunitySummaryV35 {
 }
 
 const SPATIAL_EXPLANATION_PATTERN_V35 =
-  /\b(?:route|routes?|trade|across|from .+ to |network|territor|island|sea|empire|collapse spread|landed|landing|invaded|invasion|invading|disembark|amphibious|beach|armada|crusade|expedition|campaign|migration|encircle|encircled|siege|fleet|marched|march|retreat|retreated|advanced|advancing|crossed|crossing|sailed|inland|normandy|channel|landing zone|front line|chokepoint|territorial|conquest|expansion)\b/iu;
+  /\b(?:route|routes?|trade|across|from .+ to |network|territor|island|sea|empire|collapse spread|landed|landing|invaded|invasion|invading|disembark|amphibious|beach|armada|crusade|expedition|campaign|migration|encircle|encircled|siege|fleet|marched|march|retreat|retreated|advanced|advancing|crossed|crossing|sailed|inland|normandy|channel|landing zone|front line|chokepoint|territorial|conquest|expansion|bridgehead|causeway|fleet|naval)\b/iu;
+
+const MOVEMENT_SPATIAL_PATTERN_V35 =
+  /\b(?:marched|march|crossed|crossing|sailed|landed|landing|invaded|invasion|retreat|retreated|advanced|advancing|from .+ to |route|routes?|expedition|armada|fleet|disembark|amphibious|encircle|siege|migration|inland|naval)\b/iu;
 
 const INCIDENTAL_BIOGRAPHY_GEOGRAPHY_PATTERN_V35 =
   /\b(?:born in|birthplace|grew up in|raised in|native of)\b/iu;
+
+const INCIDENTAL_REGION_ONLY_PATTERN_V35 =
+  /\b(?:changed|across|throughout|forever|entire|whole)\b[\s\S]{0,80}\b(?:Europe|world|empire|region|continent)\b/iu;
+
+export type MapExplanatoryTierV35 = "explanatory" | "locator" | "none";
+
+export interface MapOpportunityAssessmentV35 {
+  readonly eligible: boolean;
+  readonly tier: MapExplanatoryTierV35;
+  readonly score: number;
+  readonly reason: string;
+  readonly claimIds: readonly string[];
+  readonly selectionThreshold: number;
+}
+
+function distinctGeographicLabelsV35(input: {
+  readonly entities: readonly HistoryEntityMentionV34[];
+  readonly claimIds: readonly string[];
+}): string[] {
+  return [
+    ...new Set(
+      input.entities
+        .filter(
+          (entity) =>
+            input.claimIds.includes(entity.claimId) &&
+            ["place", "region", "water-body", "state"].includes(entity.entityType)
+        )
+        .map((entity) => entity.normalizedLabel)
+    ),
+  ];
+}
+
+function isLocatorMapIntentV35(intent: HistoryMapIntentProposalV34 | null): boolean {
+  if (!intent) return false;
+  const origin = intent.originPlaceMentionIds[0];
+  const destination = intent.destinationPlaceMentionIds[0];
+  if (!origin || !destination) return true;
+  if (origin === destination) return true;
+  return ["location", "area", "discovery-location"].includes(intent.mapPurpose);
+}
+
+function isRouteMapIntentV35(intent: HistoryMapIntentProposalV34 | null): boolean {
+  if (!intent) return false;
+  const origin = intent.originPlaceMentionIds[0];
+  const destination = intent.destinationPlaceMentionIds[0];
+  return Boolean(origin && destination && origin !== destination);
+}
+
+export function assessMapOpportunityV35(input: {
+  readonly claimIds: readonly string[];
+  readonly clusterText: string;
+  readonly claims: readonly HistoryClaimV34[];
+  readonly entities: readonly HistoryEntityMentionV34[];
+  readonly geographicQualifiers: readonly HistoryGeographicQualifierV34[];
+  readonly mapIntents: readonly HistoryMapIntentProposalV34[];
+}): MapOpportunityAssessmentV35 {
+  const geoLabels = distinctGeographicLabelsV35({
+    entities: input.entities,
+    claimIds: input.claimIds,
+  });
+  const intent =
+    input.mapIntents.find((item) => item.claimIds.some((id) => input.claimIds.includes(id))) ??
+    null;
+  const geoCount = input.geographicQualifiers.filter((item) =>
+    input.claimIds.includes(item.claimId)
+  ).length;
+  const hasMovementLanguage = MOVEMENT_SPATIAL_PATTERN_V35.test(input.clusterText);
+  const hasRouteLanguage = SPATIAL_EXPLANATION_PATTERN_V35.test(input.clusterText);
+  const incidentalBiography =
+    INCIDENTAL_BIOGRAPHY_GEOGRAPHY_PATTERN_V35.test(input.clusterText) &&
+    !hasMovementLanguage;
+  const incidentalRegionOnly =
+    geoLabels.length <= 1 &&
+    INCIDENTAL_REGION_ONLY_PATTERN_V35.test(input.clusterText) &&
+    !hasMovementLanguage &&
+    !isRouteMapIntentV35(intent);
+  if (incidentalBiography || incidentalRegionOnly) {
+    return {
+      eligible: false,
+      tier: "none",
+      score: 0,
+      reason: incidentalBiography
+        ? "incidental-biography-geography"
+        : "incidental-region-reference",
+      claimIds: input.claimIds,
+      selectionThreshold: 99,
+    };
+  }
+
+  const explanatory =
+    geoLabels.length >= 2 && (hasRouteLanguage || hasMovementLanguage) ||
+    isRouteMapIntentV35(intent) ||
+    (hasMovementLanguage && geoLabels.length >= 1 && /\bfrom\b.+\bto\b/iu.test(input.clusterText));
+  const locator =
+    !explanatory &&
+    (geoLabels.length >= 1 || geoCount >= 1) &&
+    (isLocatorMapIntentV35(intent) || (!hasMovementLanguage && geoLabels.length === 1));
+
+  if (explanatory) {
+    let score = 4;
+    if (isRouteMapIntentV35(intent)) score += 2;
+    if (geoLabels.length >= 2) score += 2;
+    if (hasMovementLanguage) score += 1;
+    if (
+      /\b(?:landed|landing|invasion|armada|crusade|expedition|fleet|siege|encircle|bridgehead|causeway)\b/iu.test(
+        input.clusterText
+      )
+    )
+      score += 1;
+    return {
+      eligible: true,
+      tier: "explanatory",
+      score,
+      reason: isRouteMapIntentV35(intent)
+        ? "explanatory-route-or-movement"
+        : "explanatory-multi-anchor-spatial-relationship",
+      claimIds: input.claimIds,
+      selectionThreshold: 5,
+    };
+  }
+
+  if (locator) {
+    return {
+      eligible: true,
+      tier: "locator",
+      score: 2,
+      reason: "locator-only-geography",
+      claimIds: input.claimIds,
+      selectionThreshold: 99,
+    };
+  }
+
+  return {
+    eligible: false,
+    tier: "none",
+    score: 0,
+    reason: "insufficient-explanatory-spatial-evidence",
+    claimIds: input.claimIds,
+    selectionThreshold: 99,
+  };
+}
 
 function unique<T>(values: readonly T[]): T[] {
   return [...new Set(values)];
@@ -49,73 +193,20 @@ export function detectMapOpportunityV35(input: {
   readonly entityIds: readonly string[];
   readonly intent: HistoryMapIntentProposalV34 | null;
 } {
+  const assessment = assessMapOpportunityV35(input);
+  const intent =
+    input.mapIntents.find((item) => item.claimIds.some((id) => input.claimIds.includes(id))) ??
+    null;
   const geoEntities = input.entities.filter(
     (entity) =>
       input.claimIds.includes(entity.claimId) &&
       ["place", "region", "water-body", "state"].includes(entity.entityType)
   );
-  const intent =
-    input.mapIntents.find((item) => item.claimIds.some((id) => input.claimIds.includes(id))) ??
-    null;
-  const geoCount = input.geographicQualifiers.filter((item) =>
-    input.claimIds.includes(item.claimId)
-  ).length;
-  const hasRouteLanguage = SPATIAL_EXPLANATION_PATTERN_V35.test(input.clusterText);
-  const incidentalBiography =
-    INCIDENTAL_BIOGRAPHY_GEOGRAPHY_PATTERN_V35.test(input.clusterText) &&
-    !/\b(?:march|invad|landed|crossed|route|from .+ to |campaign|expedition|armada|crusade)\b/iu.test(
-      input.clusterText
-    );
-  if (incidentalBiography)
-    return {
-      eligible: false,
-      reason: "incidental-biography-geography",
-      claimIds: input.claimIds,
-      entityIds: [],
-      intent,
-    };
-  if (intent && geoEntities.length > 0)
-    return {
-      eligible: true,
-      reason: "supported-map-intent-with-geographic-entities",
-      claimIds: intent.claimIds,
-      entityIds: geoEntities.map((entity) => entity.id),
-      intent,
-    };
-  if (geoCount >= 2 && hasRouteLanguage)
-    return {
-      eligible: true,
-      reason: "multi-place-geographic-relationship",
-      claimIds: input.claimIds,
-      entityIds: geoEntities.map((entity) => entity.id),
-      intent,
-    };
-  if (geoEntities.length >= 1 && hasRouteLanguage)
-    return {
-      eligible: true,
-      reason: "regional-context-with-geographic-evidence",
-      claimIds: input.claimIds,
-      entityIds: geoEntities.map((entity) => entity.id),
-      intent,
-    };
-  if (
-    geoEntities.length >= 1 &&
-    /\b(?:landed|landing|invaded|invasion|armada|crusade|expedition|beach|disembark|amphibious)\b/iu.test(
-      input.clusterText
-    )
-  )
-    return {
-      eligible: true,
-      reason: "landing-or-invasion-geography",
-      claimIds: input.claimIds,
-      entityIds: geoEntities.map((entity) => entity.id),
-      intent,
-    };
   return {
-    eligible: false,
-    reason: "insufficient-geographic-evidence",
-    claimIds: input.claimIds,
-    entityIds: [],
+    eligible: assessment.eligible,
+    reason: assessment.reason,
+    claimIds: assessment.claimIds,
+    entityIds: assessment.eligible ? geoEntities.map((entity) => entity.id) : [],
     intent,
   };
 }
@@ -132,31 +223,45 @@ export function scoreMapOpportunityV35(input: {
   readonly eligible: boolean;
   readonly reason: string;
   readonly claimIds: readonly string[];
+  readonly tier: MapExplanatoryTierV35;
+  readonly selectionThreshold: number;
 } {
-  const detected = detectMapOpportunityV35(input);
-  if (!detected.eligible)
-    return { score: 0, eligible: false, reason: detected.reason, claimIds: detected.claimIds };
-  let score = 2;
-  if (detected.intent) score += 2;
-  if (
-    /\b(?:landed|landing|invaded|invasion|armada|crusade|expedition|marched|march|retreat|crossed|route|from .+ to |siege|encircle|migration|campaign|fleet|beach|disembark|amphibious)\b/iu.test(
-      input.clusterText
-    )
-  )
-    score += 2;
-  const geoCount = input.geographicQualifiers.filter((item) =>
-    input.claimIds.includes(item.claimId)
-  ).length;
-  if (geoCount >= 2) score += 2;
-  else if (geoCount >= 1) score += 1;
-  if (detected.reason === "supported-map-intent-with-geographic-entities") score += 1;
-  if (detected.reason === "landing-or-invasion-geography") score += 1;
+  const assessment = assessMapOpportunityV35(input);
   return {
-    score,
-    eligible: true,
-    reason: detected.reason,
-    claimIds: detected.claimIds,
+    score: assessment.score,
+    eligible: assessment.eligible && assessment.tier === "explanatory",
+    reason: assessment.reason,
+    claimIds: assessment.claimIds,
+    tier: assessment.tier,
+    selectionThreshold: assessment.selectionThreshold,
   };
+}
+
+export function scoreDiagramWindowOpportunityV35(input: {
+  readonly claimIds: readonly string[];
+  readonly clusterText: string;
+  readonly windowText: string;
+  readonly claims: readonly HistoryClaimV34[];
+  readonly entityLabels?: readonly string[];
+}): {
+  readonly score: number;
+  readonly eligible: boolean;
+  readonly reason: string;
+  readonly claimIds: readonly string[];
+} {
+  const local = scoreDiagramOpportunityV35({
+    claimIds: input.claimIds,
+    clusterText: input.clusterText,
+    claims: input.claims,
+    ...(input.entityLabels ? { entityLabels: input.entityLabels } : {}),
+  });
+  const window = scoreDiagramOpportunityV35({
+    claimIds: input.claimIds,
+    clusterText: input.windowText,
+    claims: input.claims,
+    ...(input.entityLabels ? { entityLabels: input.entityLabels } : {}),
+  });
+  return window.score >= local.score ? window : local;
 }
 
 export function detectDiagramOpportunityV35(input: {
@@ -315,7 +420,7 @@ export function reserveDiagramBeatIndexesV35(input: {
       });
       return { index, ...scoredOpportunity };
     })
-    .filter((item) => item.eligible && item.score >= 3)
+    .filter((item) => item.eligible && item.score >= 4)
     .sort((left, right) => right.score - left.score);
   const reserved = new Map<number, string>();
   for (const item of scored) {

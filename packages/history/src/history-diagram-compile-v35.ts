@@ -140,6 +140,14 @@ function wordSafeSlice(text: string, maxChars: number): string {
   return (boundary > 20 ? slice.slice(0, boundary) : slice).trim();
 }
 
+function acceptCompiledDiagramV35(
+  compiled: ReturnType<typeof compileTopologyDiagramV35>
+): ReturnType<typeof compileTopologyDiagramV35> | null {
+  if (compiled.state.semanticStatus === "blocked" || compiled.state.blockerCodes.length > 0)
+    return null;
+  return compiled;
+}
+
 export function compileTopologyDiagramV35(input: {
   readonly beatNumber: string;
   readonly masterId: string;
@@ -258,7 +266,7 @@ export function compileAbstractCausalDiagramV35(input: {
     text: input.text,
     topology,
   });
-  return compiled.state.semanticStatus === "blocked" ? null : compiled;
+  return acceptCompiledDiagramV35(compiled);
 }
 
 export function compileBronzeTradeDiagramV35(input: {
@@ -277,17 +285,19 @@ export function compileBronzeTradeDiagramV35(input: {
       /trade|bronze|copper|tin|palace|interdependence/iu.test(input.text)
   );
   if (labels.length < 3) return null;
-  return compileTopologyDiagramV35({
-    beatNumber: input.beatNumber,
-    masterId: "diagram-master-bronze-age-trade-network",
-    diagramType: "process",
-    exactQuestion: "How did Bronze Age trade networks interconnect the eastern Mediterranean?",
-    labels,
-    claimIds: input.claimIds,
-    text: input.text,
-    topology: "parallel-contributors",
-    visibleCount: Math.min(labels.length, 4),
-  });
+  return acceptCompiledDiagramV35(
+    compileTopologyDiagramV35({
+      beatNumber: input.beatNumber,
+      masterId: "diagram-master-bronze-age-trade-network",
+      diagramType: "process",
+      exactQuestion: "How did Bronze Age trade networks interconnect the eastern Mediterranean?",
+      labels,
+      claimIds: input.claimIds,
+      text: input.text,
+      topology: "parallel-contributors",
+      visibleCount: Math.min(labels.length, 4),
+    })
+  );
 }
 
 export function compileBronzeSystemsCollapseDiagramV35(input: {
@@ -316,15 +326,17 @@ export function compileBronzeSystemsCollapseDiagramV35(input: {
     ...contributors.slice(0, maxContributors),
     ...outcomes,
   ].slice(0, visibleCount);
-  return compileTopologyDiagramV35({
-    beatNumber: input.beatNumber,
-    masterId: "diagram-master-bronze-age-systems-collapse",
-    diagramType: "process",
-    exactQuestion: "What systemic dependencies does the narration link to collapse?",
-    labels: visibleLabels,
-    claimIds: input.claimIds,
-    text: input.text,
-    topology: "convergence",
-    visibleCount: visibleLabels.length,
-  });
+  return acceptCompiledDiagramV35(
+    compileTopologyDiagramV35({
+      beatNumber: input.beatNumber,
+      masterId: "diagram-master-bronze-age-systems-collapse",
+      diagramType: "process",
+      exactQuestion: "What systemic dependencies does the narration link to collapse?",
+      labels: visibleLabels,
+      claimIds: input.claimIds,
+      text: input.text,
+      topology: "convergence",
+      visibleCount: visibleLabels.length,
+    })
+  );
 }

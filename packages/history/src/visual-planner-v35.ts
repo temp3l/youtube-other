@@ -143,6 +143,7 @@ import {
   detectDiagramOpportunityV35,
   reserveDiagramBeatIndexesV35,
   scoreDiagramOpportunityV35,
+  scoreDiagramWindowOpportunityV35,
   scoreMapOpportunityV35,
   summarizeVisualOpportunityTotalsV35,
 } from "./history-visual-opportunity-v35.js";
@@ -519,6 +520,12 @@ export function measureHistoryRepetitionV35(input: {
   return { ...metric, repetitionPolicy, passes };
 }
 
+function segmentationModalityFor(text: string): HistoryVisualModalityV35 {
+  const modality = modalityFor(text);
+  if (modality === "map") return "archival image";
+  return modality;
+}
+
 function modalityFor(text: string): HistoryVisualModalityV35 {
   if (/^(?:but|however|instead|so what|yet|why)\b/iu.test(text.trim()))
     return "text-only transition";
@@ -546,7 +553,7 @@ function modalityFor(text: string): HistoryVisualModalityV35 {
   )
     return "diagram";
   if (
-    /\b(?:route|crossed|crossing|advanced|advancing|retreat|retreated|river|sailed|march|marched|toward|from .+ to |island|bay|passage|niemen|moscow|smolensk|berezina|messina|mediterranean|aegean|anatolia|levant|cyprus|hittite|mycenae|trade routes?|eastern mediterranean|landed|landing|invaded|invasion|invading|disembark|amphibious|beach|armada|crusade|expedition|campaign|migration|encircle|siege|fleet|normandy|channel|inland|territor)\b/iu.test(
+    /\b(?:route|crossed|crossing|advanced|advancing|retreat|retreated|river|sailed|march|toward|from .+ to |island|bay|passage|niemen|moscow|smolensk|berezina|messina|mediterranean|aegean|anatolia|levant|cyprus|hittite|mycenae|trade routes?|eastern mediterranean)\b/iu.test(
       text
     )
   )
@@ -607,6 +614,29 @@ type BeatCluster = {
   wordCount: number;
 };
 
+function buildModalityContextWindowV35(input: {
+  readonly clusters: readonly BeatCluster[];
+  readonly index: number;
+  readonly radius?: number;
+}): { readonly text: string; readonly claimIds: readonly string[] } {
+  const radius = input.radius ?? 1;
+  const slice = input.clusters.slice(
+    Math.max(0, input.index - radius),
+    Math.min(input.clusters.length, input.index + radius + 1)
+  );
+  return {
+    text: slice.map((cluster) => cluster.text).join(" "),
+    claimIds: [...new Set(slice.flatMap((cluster) => cluster.claimIds))],
+  };
+}
+
+export function buildSegmentationClustersV35(input: {
+  readonly narration: CanonicalNarrationV3_3;
+  readonly structured: HistoryStructuredClaimsV34;
+}): BeatCluster[] {
+  return clusterBeats(input);
+}
+
 function clusterBeats(input: {
   readonly narration: CanonicalNarrationV3_3;
   readonly structured: HistoryStructuredClaimsV34;
@@ -625,19 +655,18 @@ function clusterBeats(input: {
     const modality =
       materialClaims.length === 0 && /^(?:but|however|why|then they vanished)/iu.test(unit.text)
         ? ("text-only transition" as const)
-        : modalityFor(unit.text);
+        : segmentationModalityFor(unit.text);
     const canMerge =
       current &&
       current.modality === modality &&
       current.wordCount + unit.wordCount <= 90 &&
       current.unitIds.length < 3 &&
-      modality !== "map" &&
       modality !== "timeline";
     if (canMerge && current) {
       current.unitIds.push(unit.id);
       current.claimIds.push(...claimIds);
       current.text = `${current.text} ${unit.text}`.trim();
-      current.modality = modalityFor(current.text);
+      current.modality = segmentationModalityFor(current.text);
       current.endUtf16Exclusive = unit.endUtf16Exclusive;
       current.wordCount += unit.wordCount;
       continue;
@@ -671,8 +700,10 @@ function probeMapCompileForCluster(input: {
   readonly mapIntents: ReturnType<typeof proposeMapIntentsV35>;
   readonly intentsByClaim: ReadonlyMap<string, ReturnType<typeof proposeMapIntentsV35>[number]>;
   readonly narrationText: string;
+  readonly scopeClaimIds?: readonly string[];
 }): boolean {
-  for (const claimId of input.cluster.claimIds) {
+  const scopeClaimIds = input.scopeClaimIds ?? input.cluster.claimIds;
+  for (const claimId of scopeClaimIds) {
     const intent =
       input.intentsByClaim.get(claimId) ??
       input.mapIntents.find((item) => item.claimIds.includes(claimId));
@@ -681,7 +712,7 @@ function probeMapCompileForCluster(input: {
       compileMapStateV35({
         beatNumber: input.beatNumber,
         proposal: intent,
-        scopeClaimIds: input.cluster.claimIds,
+        scopeClaimIds,
         claims: input.structured.claims,
         entities: input.structured.entities,
         geographicQualifiers: input.structured.geographicQualifiers,
@@ -704,54 +735,54 @@ function resolveClusterModality(input: {
   readonly narrationText: string;
   readonly diagramReserved: boolean;
   readonly diagramReservationReason?: string;
-  readonly contextWindowText?: string;
+  readonly contextWindow?: { readonly text: string; readonly claimIds: readonly string[] };
 }): HistoryVisualModalityV35 {
   const entityLabels = input.structured.entities
     .filter((entity) => input.cluster.claimIds.includes(entity.claimId))
     .map((entity) => entity.normalizedLabel);
+  const windowText = input.contextWindow?.text ?? input.cluster.text;
+  const windowClaimIds = input.contextWindow?.claimIds ?? input.cluster.claimIds;
   const mapScored = scoreMapOpportunityV35({
-    claimIds: input.cluster.claimIds,
-    clusterText: input.cluster.text,
+    claimIds: windowClaimIds,
+    clusterText: windowText,
     claims: input.structured.claims,
     entities: input.structured.entities,
     geographicQualifiers: input.structured.geographicQualifiers,
     mapIntents: input.mapIntents,
   });
-  const contextMapScored = input.contextWindowText
-    ? scoreMapOpportunityV35({
-        claimIds: input.cluster.claimIds,
-        clusterText: input.contextWindowText,
-        claims: input.structured.claims,
-        entities: input.structured.entities,
-        geographicQualifiers: input.structured.geographicQualifiers,
-        mapIntents: input.mapIntents,
-      })
-    : mapScored;
-  const effectiveMapScore =
-    mapScored.score +
-    (contextMapScored.score > mapScored.score && mapScored.eligible ? 1 : 0);
-  const diagramScored = scoreDiagramOpportunityV35({
-    claimIds: input.cluster.claimIds,
+  const diagramScored = scoreDiagramWindowOpportunityV35({
+    claimIds: windowClaimIds,
     clusterText: input.cluster.text,
+    windowText,
     claims: input.structured.claims,
     entityLabels,
   });
-  const mapCompiles = probeMapCompileForCluster(input);
-  if (mapCompiles && mapScored.eligible && effectiveMapScore >= 4) {
-    if (!input.diagramReserved || effectiveMapScore > diagramScored.score) return "map";
-  }
-  if (input.diagramReserved) return "diagram";
-  if (input.cluster.modality === "map") return "map";
-  if (mapCompiles && mapScored.eligible && effectiveMapScore >= 4) return "map";
+  const diagramDetected = detectDiagramOpportunityV35({
+    claimIds: input.cluster.claimIds,
+    clusterText: input.cluster.text,
+    claims: input.structured.claims,
+  });
+  const mapCompiles = probeMapCompileForCluster({
+    cluster: input.cluster,
+    beatNumber: input.beatNumber,
+    structured: input.structured,
+    mapIntents: input.mapIntents,
+    intentsByClaim: input.intentsByClaim,
+    narrationText: input.narrationText,
+    scopeClaimIds: windowClaimIds,
+  });
+  const explanatoryMapSelected =
+    mapCompiles &&
+    mapScored.tier === "explanatory" &&
+    mapScored.score >= mapScored.selectionThreshold;
   if (
-    input.cluster.modality === "diagram" ||
-    detectDiagramOpportunityV35({
-      claimIds: input.cluster.claimIds,
-      clusterText: input.cluster.text,
-      claims: input.structured.claims,
-    }).eligible
+    input.diagramReserved &&
+    (input.cluster.modality === "diagram" || diagramDetected.eligible)
   )
     return "diagram";
+  if (explanatoryMapSelected && diagramScored.score < mapScored.score + 2) return "map";
+  if (input.cluster.modality === "diagram" || diagramDetected.eligible) return "diagram";
+  if (explanatoryMapSelected) return "map";
   return splitModalitiesFromLegacyV35(input.cluster.modality);
 }
 
@@ -1162,13 +1193,18 @@ function compileDiagram(input: {
       text,
       claimIds: input.claimIds,
     });
-    if (tradeCompiled) return tradeCompiled;
+    if (tradeCompiled?.state.semanticStatus === "valid" && !tradeCompiled.state.blockerCodes.length)
+      return tradeCompiled;
     const collapseCompiled = compileBronzeSystemsCollapseDiagramV35({
       beatNumber: input.beatNumber,
       text,
       claimIds: input.claimIds,
     });
-    if (collapseCompiled) return collapseCompiled;
+    if (
+      collapseCompiled?.state.semanticStatus === "valid" &&
+      !collapseCompiled.state.blockerCodes.length
+    )
+      return collapseCompiled;
   }
 
   if (isBlackDeathTransmissionTextV35(text)) {
@@ -1666,13 +1702,7 @@ export function buildHistoryVisualPlanV35(input: {
       ...(diagramReservations.get(index)
         ? { diagramReservationReason: diagramReservations.get(index)! }
         : {}),
-      contextWindowText: [
-        index > 0 ? clusters[index - 1]!.text : "",
-        cluster.text,
-        index < clusters.length - 1 ? clusters[index + 1]!.text : "",
-      ]
-        .filter(Boolean)
-        .join(" "),
+      contextWindow: buildModalityContextWindowV35({ clusters, index }),
     });
     if (
       modality === "text-only transition" &&
