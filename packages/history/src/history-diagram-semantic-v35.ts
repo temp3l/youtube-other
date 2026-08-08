@@ -28,6 +28,7 @@ export function validateDiagramSemanticBlockersV35(input: {
   >;
   readonly evidenceClaimText: string;
   readonly claims?: readonly HistoryClaimV34[];
+  readonly entities?: readonly import("./history-v34-contracts.js").HistoryEntityMentionV34[];
 }): readonly string[] {
   const genericBlockers = [
     ...new Set([
@@ -47,6 +48,7 @@ export function validateDiagramSemanticBlockersV35(input: {
         state: input.state as HistoryDiagramStateV34,
         evidenceClaimText: input.evidenceClaimText,
         claims: input.claims,
+        ...(input.entities ? { entities: input.entities } : {}),
       })
     : [];
 
@@ -68,11 +70,13 @@ export function finalizeDiagramSemanticStateV35(input: {
   readonly state: HistoryDiagramStateV34;
   readonly evidenceClaimText: string;
   readonly claims?: readonly HistoryClaimV34[];
+  readonly entities?: readonly import("./history-v34-contracts.js").HistoryEntityMentionV34[];
 }): HistoryDiagramStateV34 {
   const blockerCodes = validateDiagramSemanticBlockersV35({
     state: input.state,
     evidenceClaimText: input.evidenceClaimText,
     ...(input.claims ? { claims: input.claims } : {}),
+    ...(input.entities ? { entities: input.entities } : {}),
   });
   if (!blockerCodes.length) {
     return {

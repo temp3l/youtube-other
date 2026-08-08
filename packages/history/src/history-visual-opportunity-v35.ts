@@ -3,8 +3,14 @@ import type {
   HistoryEntityMentionV34,
   HistoryGeographicQualifierV34,
   HistoryMapIntentProposalV34,
+  HistoryTemporalQualifierV34,
 } from "./history-v34-contracts.js";
 import type { HistoryVisualModalityV35 } from "./history-v35-contracts.js";
+import { extractGeoFactsV35 } from "./history-geo-facts-v35.js";
+import {
+  isRouteMapPurpose,
+  selectMapIntentForBeatV34,
+} from "./history-visual-semantics-v34.js";
 
 export interface HistoryVisualOpportunityV35 {
   readonly id: string;
@@ -539,4 +545,65 @@ export function summarizeVisualOpportunityTotalsV35(
       selectedDiagramOpportunities: 0,
     }
   );
+}
+
+export function hasRelationBearingGeoFactsInScopeV35(input: {
+  readonly scopeClaimIds: readonly string[];
+  readonly claims: readonly HistoryClaimV34[];
+  readonly entities: readonly HistoryEntityMentionV34[];
+  readonly geographicQualifiers: readonly HistoryGeographicQualifierV34[];
+  readonly temporalQualifiers?: readonly HistoryTemporalQualifierV34[];
+}): boolean {
+  const geoFacts = extractGeoFactsV35({
+    scopeClaimIds: input.scopeClaimIds,
+    claims: input.claims,
+    entities: input.entities,
+    geographicQualifiers: input.geographicQualifiers,
+    temporalQualifiers: input.temporalQualifiers ?? [],
+  });
+  return geoFacts.some((fact) => fact.type === "sequence" || fact.type === "movement");
+}
+
+export function selectMapIntentForBeatV35(input: {
+  readonly claimIds: readonly string[];
+  readonly clusterText: string;
+  readonly intentsByClaim: ReadonlyMap<string, HistoryMapIntentProposalV34>;
+  readonly mapIntents: readonly HistoryMapIntentProposalV34[];
+  readonly claims: readonly HistoryClaimV34[];
+  readonly entities: readonly HistoryEntityMentionV34[];
+  readonly geographicQualifiers: readonly HistoryGeographicQualifierV34[];
+  readonly temporalQualifiers?: readonly HistoryTemporalQualifierV34[];
+}): HistoryMapIntentProposalV34 | undefined {
+  const candidates = input.claimIds
+    .map((claimId) => input.intentsByClaim.get(claimId))
+    .filter((item): item is HistoryMapIntentProposalV34 => Boolean(item));
+  const claimSpecific = input.mapIntents.filter(
+    (intent) =>
+      intent.claimIds.length === 1 && intent.claimIds.some((claimId) => input.claimIds.includes(claimId))
+  );
+  if (
+    hasRelationBearingGeoFactsInScopeV35({
+      scopeClaimIds: input.claimIds,
+      claims: input.claims,
+      entities: input.entities,
+      geographicQualifiers: input.geographicQualifiers,
+      ...(input.temporalQualifiers ? { temporalQualifiers: input.temporalQualifiers } : {}),
+    })
+  ) {
+    const routeIntent =
+      claimSpecific.find((intent) => isRouteMapPurpose(intent.mapPurpose)) ??
+      candidates.find((intent) => isRouteMapPurpose(intent.mapPurpose)) ??
+      input.mapIntents.find(
+        (intent) =>
+          isRouteMapPurpose(intent.mapPurpose) &&
+          intent.claimIds.some((claimId) => input.claimIds.includes(claimId))
+      );
+    if (routeIntent) return routeIntent;
+  }
+  return selectMapIntentForBeatV34({
+    claimIds: input.claimIds,
+    clusterText: input.clusterText,
+    intentsByClaim: input.intentsByClaim,
+    mapIntents: input.mapIntents,
+  });
 }

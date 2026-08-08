@@ -27,7 +27,7 @@ const THEMATIC_CAUSAL_LABELS: ReadonlyArray<{
   { label: "writing loss", pattern: /\b(?:writing|script).*(?:lost|loss|disappear)|loss of writing\b/iu },
   { label: "iron versus bronze", pattern: /\biron\b.*\bbronze\b|\bbronze\b.*\biron\b/iu },
   { label: "earthquake disruption", pattern: /\b(?:earthquake|seismic|quake)\b/iu },
-  { label: "military fragmentation", pattern: /\b(?:army|armies|military)\b/iu },
+  { label: "military fragmentation", pattern: /\b(?:military fragmentation|fragmented militarily|army fragmentation)\b/iu },
   { label: "fragmented evidence", pattern: /\b(?:fragmented evidence|evidence is fragmented)\b/iu },
   { label: "warns against dramatic explanation", pattern: /\bwarns? us against\b/iu },
   { label: "single-cause warning", pattern: /\bsingle (?:dramatic )?explanation\b/iu },
@@ -40,7 +40,7 @@ const THEMATIC_CAUSAL_LABELS: ReadonlyArray<{
   { label: "tin from distant regions", pattern: /\btin\b/iu },
   { label: "bronze production", pattern: /\bbronze\b/iu },
   { label: "palace trade networks", pattern: /\b(?:palace|trade network)\b/iu },
-  { label: "command coordination", pattern: /\b(?:command|coordination|organization)\b/iu },
+  { label: "command coordination", pattern: /\b(?:command coordination|coordinated command|coordination of command)\b/iu },
   { label: "mobility and logistics", pattern: /\b(?:mobility|logistics|engineering)\b/iu },
   { label: "intelligence and discipline", pattern: /\b(?:intelligence|discipline|diplomacy)\b/iu },
   { label: "escalation pressure", pattern: /\b(?:escalation|crisis|threat)\b/iu },
@@ -237,7 +237,12 @@ export function compileAbstractCausalDiagramV35(input: {
   if (!scored.eligible || scored.score < 3) return null;
   const thematicLabels = extractThematicCausalLabelsV35(input.text);
   const listedFactors = extractListedCausalFactorsV35(input.text);
-  const labels = thematicLabels.length >= 2 ? thematicLabels : listedFactors;
+  const labels =
+    listedFactors.length >= 3 && /\bcombining\b/iu.test(input.text)
+      ? listedFactors
+      : thematicLabels.length >= 2
+        ? thematicLabels
+        : listedFactors;
   if (labels.length < 2) return null;
   const hasCausalLanguage =
     /\b(?:because|led to|resulted|therefore|collapse|combined|combining|coherent|interconnected|dependencies?|mechanism|warns? us against|systems?|method|escalation|flooding|evacuation)\b/iu.test(

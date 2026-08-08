@@ -86,12 +86,12 @@ describe("History V3.5 corpus acceptance", () => {
         }
       }
       const diagramProvenance = assessDiagramProvenanceForPlanV35(plan);
-      expect(
-        diagramProvenance.violations,
-        `${episodeId} diagram provenance violations: ${diagramProvenance.violations
-          .map((item) => `${item.diagramStateId}:${item.blockers.join(",")}`)
-          .join("; ")}`
-      ).toEqual([]);
+      expect(diagramProvenance.violations).toEqual([]);
+      expect(diagramProvenance.crossEpisodeClaimReferences).toBe(0);
+      expect(diagramProvenance.ungroundedValidNodes).toBe(0);
+      expect(diagramProvenance.ungroundedValidRelationships).toBe(0);
+      expect(diagramProvenance.ungroundedValidQuestions).toBe(0);
+      expect(diagramProvenance.properNameFragmentationViolations).toBe(0);
       expect(
         plan.mediaDecisions.every(
           (decision) => !decision.justification.includes("Do not export dangling timeline references.")

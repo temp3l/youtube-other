@@ -1,5 +1,6 @@
 import type { HistoryClaimV34, HistoryDiagramStateV34 } from "./history-v34-contracts.js";
 import type { HistoryVisualPlanV35 } from "./history-v35-contracts.js";
+import { validateDiagramEntailmentV35 } from "./history-diagram-entailment-v35.js";
 import { isClaimGroundedDiagramLabelV35 } from "./history-diagram-compile-v35.js";
 import { collectDiagramEvidenceClaimTextV35 } from "./history-diagram-semantic-v35.js";
 
@@ -150,6 +151,7 @@ export function validateDiagramEpisodeGroundingV35(input: {
   readonly state: HistoryDiagramStateV34;
   readonly evidenceClaimText: string;
   readonly claims: readonly HistoryClaimV34[];
+  readonly entities?: HistoryVisualPlanV35["entities"];
 }): readonly string[] {
   return [
     ...new Set([
@@ -165,6 +167,12 @@ export function validateDiagramEpisodeGroundingV35(input: {
         state: input.state,
         evidenceClaimText: input.evidenceClaimText,
       }),
+      ...validateDiagramEntailmentV35({
+        state: input.state,
+        evidenceClaimText: input.evidenceClaimText,
+        claims: input.claims,
+        ...(input.entities ? { entities: input.entities } : {}),
+      }),
     ]),
   ];
 }
@@ -179,12 +187,14 @@ export function assessDiagramProvenanceForPlanV35(plan: HistoryVisualPlanV35): {
   readonly ungroundedValidNodes: number;
   readonly ungroundedValidRelationships: number;
   readonly ungroundedValidQuestions: number;
+  readonly properNameFragmentationViolations: number;
 } {
   const violations: Array<{ diagramStateId: string; blockers: readonly string[] }> = [];
   let crossEpisodeClaimReferences = 0;
   let ungroundedValidNodes = 0;
   let ungroundedValidRelationships = 0;
   let ungroundedValidQuestions = 0;
+  let properNameFragmentationViolations = 0;
   let validDiagramCount = 0;
 
   for (const state of plan.diagramStates) {
@@ -196,6 +206,7 @@ export function assessDiagramProvenanceForPlanV35(plan: HistoryVisualPlanV35): {
       state,
       evidenceClaimText,
       claims: plan.claims,
+      entities: plan.entities,
     });
     const semanticBlockers = state.blockerCodes.filter((code) =>
       [
@@ -211,13 +222,19 @@ export function assessDiagramProvenanceForPlanV35(plan: HistoryVisualPlanV35): {
       }
       if (provenanceBlockers.includes("DIAGRAM_CROSS_EPISODE_CLAIM_REFERENCE"))
         crossEpisodeClaimReferences += 1;
-      if (provenanceBlockers.includes("DIAGRAM_UNGROUNDED_NODE"))
-        ungroundedValidNodes += 1;
+      if (provenanceBlockers.includes("DIAGRAM_UNGROUNDED_NODE")) ungroundedValidNodes += 1;
       if (provenanceBlockers.includes("DIAGRAM_UNGROUNDED_QUESTION"))
         ungroundedValidQuestions += 1;
+      if (provenanceBlockers.includes("DIAGRAM_PROPER_NAME_FRAGMENTATION"))
+        properNameFragmentationViolations += 1;
       if (semanticBlockers.length) ungroundedValidRelationships += semanticBlockers.length;
-    } else if (provenanceBlockers.length) {
-      violations.push({ diagramStateId: state.id, blockers: provenanceBlockers });
+      if (
+        provenanceBlockers.some((code) =>
+          ["DIAGRAM_UNSUPPORTED_EDGE", "DIAGRAM_UNSUPPORTED_CAUSAL_SEQUENCE"].includes(code)
+        )
+      ) {
+        ungroundedValidRelationships += 1;
+      }
     }
   }
 
@@ -228,5 +245,6 @@ export function assessDiagramProvenanceForPlanV35(plan: HistoryVisualPlanV35): {
     ungroundedValidNodes,
     ungroundedValidRelationships,
     ungroundedValidQuestions,
+    properNameFragmentationViolations,
   };
 }

@@ -4,8 +4,10 @@ import { structureTrustedScriptClaimsV34 } from "./history-claims-v34.js";
 import {
   assessMapOpportunityV35,
   detectDiagramOpportunityV35,
+  hasRelationBearingGeoFactsInScopeV35,
   scoreDiagramOpportunityV35,
   scoreMapOpportunityV35,
+  selectMapIntentForBeatV35,
 } from "./history-visual-opportunity-v35.js";
 import {
   buildHistoryVisualPlanV35,
@@ -250,5 +252,110 @@ describe("History V3.5 planner modality integration", () => {
       structuredClaims: structured,
     });
     expect(plan.beats.length).toBe(clusters.length);
+  });
+});
+
+describe("History V3.5 spatial preservation", () => {
+  it("retains relation-bearing geo facts for multi-location claim windows", () => {
+    const text =
+      "Missiles moved from the Soviet Union toward Cuba while the United States monitored Europe and Berlin.";
+    const claims = [materialClaim("claim-1", text, "place")];
+    const entities = [
+      geoEntity("e1", "claim-1", "Soviet Union", "origin"),
+      geoEntity("e2", "claim-1", "Cuba", "destination"),
+      geoEntity("e3", "claim-1", "United States", "location"),
+      geoEntity("e4", "claim-1", "Europe", "location"),
+      geoEntity("e5", "claim-1", "Berlin", "location"),
+    ];
+    const geographicQualifiers = [
+      { id: "g1", claimId: "claim-1", entityMentionId: "e1", role: "origin" as const },
+      { id: "g2", claimId: "claim-1", entityMentionId: "e2", role: "destination" as const },
+      { id: "g3", claimId: "claim-1", entityMentionId: "e3", role: "location" as const },
+      { id: "g4", claimId: "claim-1", entityMentionId: "e4", role: "region" as const },
+      { id: "g5", claimId: "claim-1", entityMentionId: "e5", role: "location" as const },
+    ];
+    expect(
+      hasRelationBearingGeoFactsInScopeV35({
+        scopeClaimIds: ["claim-1"],
+        claims,
+        entities,
+        geographicQualifiers,
+      })
+    ).toBe(true);
+  });
+
+  it("prefers route intents over locator intents when sequence geo facts exist", () => {
+    const text = "Trade spread from Egypt to Nubia and then into the wider eastern Mediterranean.";
+    const claims = [materialClaim("claim-1", text, "place")];
+    const entities = [
+      geoEntity("e1", "claim-1", "Egypt", "origin"),
+      geoEntity("e2", "claim-1", "Nubia", "destination"),
+      geoEntity("e3", "claim-1", "Mediterranean", "location"),
+    ];
+    const geographicQualifiers = [
+      { id: "g1", claimId: "claim-1", entityMentionId: "e1", role: "origin" as const },
+      { id: "g2", claimId: "claim-1", entityMentionId: "e2", role: "destination" as const },
+      { id: "g3", claimId: "claim-1", entityMentionId: "e3", role: "region" as const },
+    ];
+    const routeIntent = {
+      claimIds: ["claim-1"],
+      mapPurpose: "expedition-route" as const,
+      movingActorEntityMentionIds: [],
+      originPlaceMentionIds: ["e1"],
+      destinationPlaceMentionIds: ["e2"],
+      waypointPlaceMentionIds: ["e3"],
+      temporalQualifierIds: [],
+      routeType: "overland" as const,
+      uncertainty: [],
+    };
+    const locatorIntent = {
+      claimIds: ["claim-1"],
+      mapPurpose: "discovery-location" as const,
+      movingActorEntityMentionIds: [],
+      originPlaceMentionIds: [],
+      destinationPlaceMentionIds: [],
+      waypointPlaceMentionIds: ["e3"],
+      temporalQualifierIds: [],
+      routeType: "overland" as const,
+      uncertainty: [],
+    };
+    const mapIntents = [routeIntent, locatorIntent];
+    const selected = selectMapIntentForBeatV35({
+      claimIds: ["claim-1"],
+      clusterText: text,
+      intentsByClaim: new Map([["claim-1", routeIntent]]),
+      mapIntents,
+      claims,
+      entities,
+      geographicQualifiers,
+    });
+    expect(selected?.mapPurpose).toBe("expedition-route");
+  });
+
+  it("still allows legitimate locator-only opportunities when no richer relation exists", () => {
+    const text = "Archaeologists uncovered the tomb near Luxor.";
+    const assessment = assessMapOpportunityV35({
+      claimIds: ["claim-1"],
+      clusterText: text,
+      claims: [materialClaim("claim-1", text, "place")],
+      entities: [geoEntity("e1", "claim-1", "Luxor")],
+      geographicQualifiers: [
+        { id: "g1", claimId: "claim-1", entityMentionId: "e1", role: "location" },
+      ],
+      mapIntents: [
+        {
+          claimIds: ["claim-1"],
+          mapPurpose: "discovery-location",
+          movingActorEntityMentionIds: [],
+          originPlaceMentionIds: [],
+          destinationPlaceMentionIds: [],
+          waypointPlaceMentionIds: ["e1"],
+          temporalQualifierIds: [],
+          routeType: "overland",
+          uncertainty: [],
+        },
+      ],
+    });
+    expect(assessment.tier).toBe("locator");
   });
 });
