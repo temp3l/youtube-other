@@ -1,0 +1,12 @@
+{
+  "result": "PASS",
+  "sameEight": {
+    "firstHash": "cbcddf6985df634ca84e234a04c39e2e8e7c0947e7a4269808ab282ac5f2396f",
+    "secondHash": "cbcddf6985df634ca84e234a04c39e2e8e7c0947e7a4269808ab282ac5f2396f"
+  },
+  "all40": {
+    "firstHash": "0eed243d4660c40e6f6c025dca95bca24b80ed0bf06d27f1ce170c646d5e4b7f",
+    "secondHash": "0eed243d4660c40e6f6c025dca95bca24b80ed0bf06d27f1ce170c646d5e4b7f"
+  },
+  "previewHashes": "SVG and local Sharp PNG buffers compared per representative preview"
+}

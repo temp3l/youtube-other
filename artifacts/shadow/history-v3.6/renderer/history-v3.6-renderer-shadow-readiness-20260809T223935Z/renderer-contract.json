@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "history-renderer-shadow-spec.v1",
+  "rendererVersion": "history-renderer-shadow.v3.6.0",
+  "shadowOnly": true,
+  "inputs": [
+    "accepted compiler intent",
+    "accepted canonical geography",
+    "fixed presentation configuration"
+  ],
+  "outputs": [
+    "MAP_SVG",
+    "DIAGRAM_SVG",
+    "NO_SAFE_RENDERING"
+  ],
+  "identity": "sha256(contract version, compilerIntentId, semantic payload); excludes timestamps, paths, machine state, and random seeds",
+  "sidecar": "history-canonical-geography-sidecar.v1"
+}

@@ -1,0 +1,12 @@
+{
+  "movement": "MAP / map-movement-svg.v1",
+  "spatial-comparison": "MAP / map-spatial-comparison-svg.v1 / non-route connector",
+  "spatial-area": "MAP / map-spatial-area-svg.v1",
+  "event-location": "MAP / map-event-location-svg.v1 / status-preserving no-route marker",
+  "causal": "DIAGRAM / diagram-causal-svg.v1",
+  "dependency": "DIAGRAM / diagram-dependency-svg.v1 / not causality",
+  "process": "DIAGRAM / diagram-process-svg.v1 / ordered not causality",
+  "temporal-sequence": "DIAGRAM / diagram-temporal-sequence-svg.v1 / chronology not causality",
+  "policy-response": "DIAGRAM / diagram-policy-response-svg.v1 / asymmetric status and proof preserved",
+  "evidence-set": "DIAGRAM / diagram-evidence-set-svg.v1 / no member edges"
+}

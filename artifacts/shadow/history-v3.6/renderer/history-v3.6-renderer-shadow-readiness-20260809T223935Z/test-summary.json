@@ -1,0 +1,15 @@
+{
+  "result": "PASS",
+  "checks": [
+    "History typecheck",
+    "targeted ESLint",
+    "13 focused renderer/sidecar tests",
+    "same-eight specs plus local preview hashes x2",
+    "all-40 render specs x2",
+    "V3.5 isolation"
+  ],
+  "goldens": {
+    "run": false,
+    "reason": "compiler semantics unchanged"
+  }
+}

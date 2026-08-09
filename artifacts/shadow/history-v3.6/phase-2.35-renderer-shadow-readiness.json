@@ -1,0 +1,21 @@
+{
+  "phase": "2.35",
+  "result": "READY_FOR_V36_VISUAL_PLAN_SHADOW_INTEGRATION",
+  "sameEight": {
+    "compilerIntents": 34,
+    "renderSpecs": 34,
+    "previews": 9,
+    "safeAbstentions": 0,
+    "deterministic": true
+  },
+  "all40": {
+    "compilerIntents": 103,
+    "renderSpecs": 103,
+    "safeAbstentions": 0,
+    "deterministic": true
+  },
+  "semanticInvariantTotal": 0,
+  "v35Changed": false,
+  "productionActivated": false,
+  "providerCalls": 0
+}

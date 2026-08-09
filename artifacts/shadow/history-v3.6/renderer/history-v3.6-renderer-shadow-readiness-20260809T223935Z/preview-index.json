@@ -1,0 +1,96 @@
+{
+  "previews": [
+    {
+      "relationKind": "movement",
+      "relationId": "relation-movement-86967bc62f556fb8d35732c1",
+      "compilerIntentId": "history-compiler-intent-5c81d4c131c49666f0754565",
+      "renderSpecId": "history-render-spec-518e170710488cef69613928",
+      "svg": "previews/movement.svg",
+      "png": "previews/movement.png",
+      "svgSha256": "3ab10862c7c13934e6809b9fcc1df077d811db1612ca68e326a96446c60aa834",
+      "pngSha256": "558c9ac3e9dc86504b8486e91bc3b29985d853b2acf3006759b9f8d824be5110"
+    },
+    {
+      "relationKind": "spatial-comparison",
+      "relationId": "relation-spatial-comparison-63a438adf1bcce39953cbf87",
+      "compilerIntentId": "history-compiler-intent-97674ca2593338cfb9575dc4",
+      "renderSpecId": "history-render-spec-cbcd1a3200511565467b536b",
+      "svg": "previews/spatial-comparison.svg",
+      "png": "previews/spatial-comparison.png",
+      "svgSha256": "5c230da81ae6a0332826389a4b6bd8f1cd28d2b2cfac7ec1b4af9fee94f6bc21",
+      "pngSha256": "0a92e345187f017323953e10ef3676883878cb7363100789b7abdb9005679c47"
+    },
+    {
+      "relationKind": "causal",
+      "relationId": "relation-causal-aef6b1de67213a4694015efa",
+      "compilerIntentId": "history-compiler-intent-21ce1e8705f873fb24430e97",
+      "renderSpecId": "history-render-spec-fcd963069d34c15366eaf487",
+      "svg": "previews/causal.svg",
+      "png": "previews/causal.png",
+      "svgSha256": "51492ee825538bfeb5c56d21f90b008696053cd37fcbdfdc38b30dab8918df3c",
+      "pngSha256": "6ee53d026da4ad5d399d90f3c20b318fc2f3cb26eb942438eacfc0fd9707e0be"
+    },
+    {
+      "relationKind": "dependency",
+      "relationId": "relation-dependency-c2632d52cfebeecdc51ebc47",
+      "compilerIntentId": "history-compiler-intent-c96942986e05d782995aa95d",
+      "renderSpecId": "history-render-spec-2d3a94301bbaaaa3f6eebe22",
+      "svg": "previews/dependency.svg",
+      "png": "previews/dependency.png",
+      "svgSha256": "4c15121ffbe1fb1d24db42a9ad5cf372d192e23b45992f7f7f75e9e8a29bc76e",
+      "pngSha256": "9626274485524ae991ad8bffaefc7a14172d472ea173ae154c9ba75c1987afe0"
+    },
+    {
+      "relationKind": "process",
+      "relationId": "relation-process-38802c15ef20b084ef7aa074",
+      "compilerIntentId": "history-compiler-intent-9b2838dc2eddfd67a6787a9d",
+      "renderSpecId": "history-render-spec-6875be4b56dff5eb3bc65d78",
+      "svg": "previews/process.svg",
+      "png": "previews/process.png",
+      "svgSha256": "5bea8afd12ea50745bd8d523978a30e8b3d035cfa57dea4ba80f87595f1fe157",
+      "pngSha256": "5280fb31ced2a7b5121306790b012e1b668997772db0e44e61d52cee3d68bb29"
+    },
+    {
+      "relationKind": "temporal-sequence",
+      "relationId": "relation-temporal-sequence-d6bb84fe73883e01f2993992",
+      "compilerIntentId": "history-compiler-intent-ed5ff13b44e359825b4dc775",
+      "renderSpecId": "history-render-spec-405ead424549ae41406b0018",
+      "svg": "previews/temporal-sequence.svg",
+      "png": "previews/temporal-sequence.png",
+      "svgSha256": "a6ab11b5cd58faa8208a729939c1e8d536ff2f6a53e0395896d171f1334748bf",
+      "pngSha256": "a638de4191331e096c7c5fe1040bf07afa282254690dba1f52d1bf63ac144941"
+    },
+    {
+      "relationKind": "policy-response",
+      "relationId": "relation-policy-response-e1e6ce807fd50368e1bc803b",
+      "compilerIntentId": "history-compiler-intent-dd476b7e9d622b8e06f27dc2",
+      "renderSpecId": "history-render-spec-8c2731f1786f37300c370421",
+      "svg": "previews/policy-response.svg",
+      "png": "previews/policy-response.png",
+      "svgSha256": "903b75d8cd3949bafe3f85741c220ca40f269e65ff56fdbed21b8c965b25bd7a",
+      "pngSha256": "0755630d4234e8b9f029560282d0de000ffd69fb456a7f68609c5ccb681e3997"
+    },
+    {
+      "relationKind": "evidence-set",
+      "relationId": "relation-evidence-set-d746808189d93e902e87a8ea",
+      "compilerIntentId": "history-compiler-intent-48d839826102ce44deadb116",
+      "renderSpecId": "history-render-spec-87579c4afd848f222c8cbd36",
+      "svg": "previews/evidence-set.svg",
+      "png": "previews/evidence-set.png",
+      "svgSha256": "8172df4b240195cdf2da072972e65f69982f3ffaec0ef44bbcaac3d318fae25f",
+      "pngSha256": "36f1567cac9da68a9994a7ab36ed3cc2a99f026e1d639384d8a091d135d8f37f"
+    },
+    {
+      "relationKind": "event-location",
+      "relationId": "relation-event-location-599d22c6090059e3768981f7",
+      "compilerIntentId": "history-compiler-intent-65a630e5bddfda051d3c16ca",
+      "renderSpecId": "history-render-spec-49798765a1da93f47ecf198a",
+      "svg": "previews/event-location.svg",
+      "png": "previews/event-location.png",
+      "svgSha256": "c3a8cb1f37f6dda1780399858ad1f9e769bc573c4fb3e6b0fe6bac797bfb7b91",
+      "pngSha256": "13123612b935fa308055e3055b3b7e95be265addbfdfe5e0f118b4d00adf08e5"
+    }
+  ],
+  "contactSheet": "same-eight-contact-sheet.png",
+  "contactSheetSha256": "08f74016a86270abfff2c66abd02710e0287bc8f100a8c688709a82838b31ede"
+}
