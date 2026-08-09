@@ -1,6 +1,6 @@
 # YSAAS implementation progress
 
-Current wave: Wave 6 in progress (YSAAS-019 completed; YSAAS-022 and YSAAS-023 remain)
+Current wave: Wave 6 in progress (YSAAS-019 complete; YSAAS-022 partial; YSAAS-023 remains)
 
 ## Anti-stuck execution rules (session)
 
@@ -65,6 +65,12 @@ Status: completed
 Commit: 6167c53
 Validation: API SDK build and web typecheck pass; focused runtime suite blocked by sandbox loopback `EPERM` before assertions
 Notes: Server-rendered bounded bulk preflight/result page and typed BFF operations; no client eligibility/quota/orchestration.
+
+### YSAAS-022
+Status: in progress
+Commit: af66cab
+Validation: web typecheck pass
+Notes: Server-rendered tenant readiness checklist and v1 episode title/ID search. Member/role management, action retention, lifecycle confirmations, and provider/channel handoffs remain absent because no corresponding BFF contracts exist.
 
 ### YSAAS-011
 Status: completed

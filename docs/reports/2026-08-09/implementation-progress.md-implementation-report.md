@@ -15,4 +15,4 @@ Deviation: no deployment server composition exists here, so the adapter is expor
 
 Checks: focused adapter and SDK tests; SDK build; web typecheck—all passed.
 
-Risks/next: deployment must inject `recordRecentAuth` into OIDC and `recentAuthConsumer` into runtime. Browser-flow HTTP tests remain blocked by sandbox loopback `EPERM`. YSAAS-009 and YSAAS-019 now provide persisted bulk preflight/results, typed operations, quota-backed retries, worker-safe settlement, and a server-rendered bounded BFF. Portfolio filter/pagination selection remains follow-up work.
+Risks/next: deployment must inject `recordRecentAuth` into OIDC and `recentAuthConsumer` into runtime. Browser-flow HTTP tests remain blocked by sandbox loopback `EPERM`. YSAAS-009/019 provide persisted bulk operations and BFF. YSAAS-022 now has tenant readiness and narrow title/ID search; action-center, membership, and lifecycle BFF contracts remain absent.
