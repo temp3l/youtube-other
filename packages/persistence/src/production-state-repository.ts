@@ -1,6 +1,11 @@
 import crypto from "node:crypto";
 
 import {
+  artifactComparisonMetadataSchema,
+  productionUnitAddressKey,
+  productionUnitSnapshotSchema,
+  type ArtifactComparisonMetadata,
+  type ProductionUnitSnapshot,
   type EpisodeProductionState,
   episodeProductionStateSchema,
   type ProductionRevision,
@@ -25,6 +30,16 @@ export interface EpisodeProductionStateRecord {
   readonly projectionRevision: number;
   readonly state: EpisodeProductionState;
   readonly updatedAt: string;
+}
+
+export interface ProductionUnitSnapshotRecord {
+  readonly workspaceId: string;
+  readonly projectId: string;
+  readonly episodeId: string;
+  readonly snapshotId: string;
+  readonly workerId: string;
+  readonly snapshot: ProductionUnitSnapshot;
+  readonly createdAt: string;
 }
 
 export interface CreateProductionRevisionInput {
@@ -277,6 +292,157 @@ export async function getEpisodeProductionStateRecord(
   };
 }
 
+function asIso(value: Date | string): string {
+  return value instanceof Date ? value.toISOString() : String(value);
+}
+
+function mapProductionUnitSnapshot(row: {
+  readonly workspace_id: string;
+  readonly project_id: string;
+  readonly episode_id: string;
+  readonly snapshot_id: string;
+  readonly worker_id: string;
+  readonly snapshot: unknown;
+  readonly created_at: Date | string;
+}): ProductionUnitSnapshotRecord {
+  return {
+    workspaceId: row.workspace_id,
+    projectId: row.project_id,
+    episodeId: row.episode_id,
+    snapshotId: row.snapshot_id,
+    workerId: row.worker_id,
+    snapshot: productionUnitSnapshotSchema.parse(row.snapshot),
+    createdAt: asIso(row.created_at),
+  };
+}
+
+/** Append-only worker write. API request handlers have no route to this store. */
+export async function appendProductionUnitSnapshots(
+  connection: Queryable,
+  input: {
+    readonly workspaceId: string;
+    readonly projectId: string;
+    readonly episodeId: string;
+    readonly workerId: string;
+    readonly snapshots: readonly {
+      readonly snapshotId: string;
+      readonly snapshot: ProductionUnitSnapshot;
+      readonly createdAt: string;
+    }[];
+  }
+): Promise<readonly ProductionUnitSnapshotRecord[]> {
+  if (input.workerId.trim().length === 0) {
+    throw new WorkflowStateTransitionError("Production-unit snapshots require a worker identity.");
+  }
+  const records: ProductionUnitSnapshotRecord[] = [];
+  for (const entry of input.snapshots) {
+    const snapshot = productionUnitSnapshotSchema.parse(entry.snapshot);
+    const result = await connection.query<{
+      readonly workspace_id: string;
+      readonly project_id: string;
+      readonly episode_id: string;
+      readonly snapshot_id: string;
+      readonly worker_id: string;
+      readonly snapshot: unknown;
+      readonly created_at: Date | string;
+    }>(
+      `INSERT INTO episode_production_unit_snapshots (
+         workspace_id, project_id, episode_id, snapshot_id, unit_kind, unit_key,
+         input_fingerprint, content_hash, status, artifact_record_id, worker_id,
+         snapshot, created_at
+       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12::jsonb, $13::timestamptz)
+       RETURNING workspace_id, project_id, episode_id, snapshot_id, worker_id, snapshot, created_at`,
+      [
+        input.workspaceId, input.projectId, input.episodeId, entry.snapshotId,
+        snapshot.address.kind, snapshot.address.unitKey ?? null,
+        snapshot.inputFingerprint, snapshot.contentHash ?? null, snapshot.status,
+        snapshot.artifactRecordId ?? null, input.workerId, JSON.stringify(snapshot), entry.createdAt,
+      ]
+    );
+    const row = result.rows[0];
+    if (!row) throw new WorkflowStateTransitionError("Production-unit snapshot was not persisted.");
+    records.push(mapProductionUnitSnapshot(row));
+  }
+  return records;
+}
+
+export async function listCurrentProductionUnitSnapshots(
+  connection: Queryable,
+  input: { readonly workspaceId: string; readonly projectId: string; readonly episodeId: string }
+): Promise<readonly ProductionUnitSnapshotRecord[]> {
+  const result = await connection.query<{
+    readonly workspace_id: string;
+    readonly project_id: string;
+    readonly episode_id: string;
+    readonly snapshot_id: string;
+    readonly worker_id: string;
+    readonly snapshot: unknown;
+    readonly created_at: Date | string;
+  }>(
+    `SELECT DISTINCT ON (unit_kind, COALESCE(unit_key, ''))
+       workspace_id, project_id, episode_id, snapshot_id, worker_id, snapshot, created_at
+     FROM episode_production_unit_snapshots
+     WHERE workspace_id = $1 AND project_id = $2 AND episode_id = $3
+     ORDER BY unit_kind, COALESCE(unit_key, ''), created_at DESC, snapshot_id DESC`,
+    [input.workspaceId, input.projectId, input.episodeId]
+  );
+  return result.rows.map(mapProductionUnitSnapshot);
+}
+
+export async function compareCurrentProductionUnitSnapshots(
+  connection: Queryable,
+  input: { readonly workspaceId: string; readonly projectId: string; readonly episodeId: string }
+): Promise<readonly {
+  readonly current: ProductionUnitSnapshotRecord;
+  readonly previous?: ProductionUnitSnapshotRecord;
+  readonly comparison?: ArtifactComparisonMetadata;
+}[]> {
+  const result = await connection.query<{
+    readonly workspace_id: string;
+    readonly project_id: string;
+    readonly episode_id: string;
+    readonly snapshot_id: string;
+    readonly worker_id: string;
+    readonly snapshot: unknown;
+    readonly created_at: Date | string;
+    readonly snapshot_rank: string | number;
+  }>(
+    `SELECT workspace_id, project_id, episode_id, snapshot_id, worker_id, snapshot, created_at,
+       row_number() OVER (
+         PARTITION BY unit_kind, COALESCE(unit_key, '')
+         ORDER BY created_at DESC, snapshot_id DESC
+       ) AS snapshot_rank
+     FROM episode_production_unit_snapshots
+     WHERE workspace_id = $1 AND project_id = $2 AND episode_id = $3`,
+    [input.workspaceId, input.projectId, input.episodeId]
+  );
+  const grouped = new Map<string, ProductionUnitSnapshotRecord[]>();
+  for (const row of result.rows) {
+    if (Number(row.snapshot_rank) > 2) continue;
+    const record = mapProductionUnitSnapshot(row);
+    const key = productionUnitAddressKey(record.snapshot.address);
+    const group = grouped.get(key) ?? [];
+    group.push(record);
+    grouped.set(key, group);
+  }
+  return [...grouped.values()].map(([current, previous]) => ({
+    current: current!,
+    ...(previous ? { previous } : {}),
+    ...(previous?.snapshot.contentHash
+      ? {
+          comparison: artifactComparisonMetadataSchema.parse({
+            baselineKind: "previous",
+            baselineContentHash: previous.snapshot.contentHash,
+            currentContentHash: current!.snapshot.contentHash,
+            textDiffAvailable: false,
+            visualDiffAvailable: false,
+            timestampAwareMediaDiffAvailable: false,
+          }),
+        }
+      : {}),
+  }));
+}
+
 export interface FragmentedProductionSources {
   readonly productionRevision: ProductionRevisionRecord;
   readonly projectedAt: string;
@@ -338,9 +504,8 @@ export interface FragmentedProductionSources {
 export function buildEpisodeProductionStateFromSources(
   sources: FragmentedProductionSources
 ): EpisodeProductionState {
-  const productionRevision = productionRevisionSchema.parse(
-    sources.productionRevision
-  );
+  const { workspaceId: _workspaceId, ...revision } = sources.productionRevision;
+  const productionRevision = productionRevisionSchema.parse(revision);
   return projectEpisodeProductionState({
     productionRevision,
     projectedAt: sources.projectedAt,

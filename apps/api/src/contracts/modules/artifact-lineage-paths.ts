@@ -11,12 +11,28 @@ import {
 } from "../openapi-helpers.js";
 
 export const artifactLineageOpenApiPaths = {
+  "/v1/workspaces/{workspace}/projects/{project}/episodes/{episode}/production-units": {
+    get: {
+      operationId: "listProductionUnitSnapshots",
+      description: "Lists the current worker-persisted production-unit snapshots for an episode. Requires `content.read`.",
+      parameters: [...episodeParameters],
+      responses: { "200": { description: "Current production units", headers: { "x-request-id": responseHeader("RequestId") }, content: json("ProductionUnitSnapshotPage") }, "404": response("NotFound"), ...authenticatedErrors },
+    },
+  },
+  "/v1/workspaces/{workspace}/projects/{project}/episodes/{episode}/production-units:compare": {
+    get: {
+      operationId: "compareProductionUnitSnapshots",
+      description: "Returns current and prior immutable snapshots. Comparison availability is server-declared and false until a diff service is installed. Requires `content.read`.",
+      parameters: [...episodeParameters],
+      responses: { "200": { description: "Production-unit comparisons", headers: { "x-request-id": responseHeader("RequestId") }, content: json("ProductionUnitComparisonPage") }, "404": response("NotFound"), ...authenticatedErrors },
+    },
+  },
   "/v1/workspaces/{workspace}/projects/{project}/episodes/{episode}/artifact-invalidation-preview":
     {
       post: {
         operationId: "previewArtifactInvalidation",
         description:
-          "Previews production-unit invalidation and gate evidence updates for proposed upstream changes. Requires `content.read`.",
+          "Previews invalidation from worker-persisted production-unit snapshots and proposed upstream changes. Requires `content.read`.",
         parameters: [...episodeParameters],
         requestBody: {
           required: true,

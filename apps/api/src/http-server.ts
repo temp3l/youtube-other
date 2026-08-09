@@ -501,13 +501,20 @@ export interface ApiUseCases {
   previewArtifactInvalidation(
     episodeId: string,
     input: {
-      readonly units: readonly Record<string, unknown>[];
       readonly changes: readonly Record<string, unknown>[];
     },
     context: Required<
       Pick<ApiRequestContext, "workspaceId" | "projectId" | "requestId">
     >
   ): Promise<Record<string, unknown>>;
+  listProductionUnitSnapshots(
+    episodeId: string,
+    context: Required<Pick<ApiRequestContext, "workspaceId" | "projectId" | "requestId">>
+  ): Promise<{ readonly items: readonly Record<string, unknown>[] }>;
+  compareProductionUnitSnapshots(
+    episodeId: string,
+    context: Required<Pick<ApiRequestContext, "workspaceId" | "projectId" | "requestId">>
+  ): Promise<{ readonly items: readonly Record<string, unknown>[] }>;
   regenerateProductionUnits(
     episodeId: string,
     input: {
@@ -1644,6 +1651,12 @@ function requiredPermission(
   )
     return "content.read";
   if (
+    method === "GET" &&
+    matched.episode &&
+    (matched.tail === `episodes/${matched.episode}/production-units` ||
+      matched.tail === `episodes/${matched.episode}/production-units:compare`)
+  ) return "content.read";
+  if (
     method === "POST" &&
     matched.episode &&
     matched.tail === `episodes/${matched.episode}/artifact-invalidation-preview`
@@ -2720,6 +2733,20 @@ export function createApiServer(
       if (
         request.method === "GET" &&
         matched.episode &&
+        matched.tail === `episodes/${matched.episode}/production-units`
+      ) {
+        return json(response, 200, await useCases.listProductionUnitSnapshots(matched.episode, projectContext), { "x-request-id": requestIdValue });
+      }
+      if (
+        request.method === "GET" &&
+        matched.episode &&
+        matched.tail === `episodes/${matched.episode}/production-units:compare`
+      ) {
+        return json(response, 200, await useCases.compareProductionUnitSnapshots(matched.episode, projectContext), { "x-request-id": requestIdValue });
+      }
+      if (
+        request.method === "GET" &&
+        matched.episode &&
         matched.tail === `episodes/${matched.episode}`
       ) {
         const result = await useCases.getEpisode(
@@ -2757,7 +2784,6 @@ export function createApiServer(
         const result = await useCases.previewArtifactInvalidation(
           matched.episode,
           (await body(request)) as {
-            units: readonly Record<string, unknown>[];
             changes: readonly Record<string, unknown>[];
           },
           projectContext

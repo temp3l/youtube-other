@@ -19,6 +19,7 @@ const gateway: SaasJourneyGateway = {
   async listEpisodes() { return { items: episodes }; },
   async getEpisode() { return episodes[0]!; },
   async getEpisodeProductionState() { return { schemaVersion: "mediaforge.production.v1" as const, projectId: "project-history", episodeId: "episode-silk-road", currentProductionRevision: { id: "production-revision-demo" }, lifecycleStage: "reviewing" as const, workflow: { activeRunId: "run-demo", runStatus: "succeeded" as const, jobId: "job-demo" }, validation: { items: [] }, review: {}, render: {}, localization: {}, publication: {}, blockers: [{ code: "approval_missing", message: "A scoped review decision is required.", severity: "blocking" as const, evidence: [] }], warnings: [], actions: [{ actionId: "submit-review", kind: "submit_review", label: "Submit for review", enabled: true }], projectedAt: now, projectionInputFingerprint: "a".repeat(64) }; },
+  async compareProductionUnitSnapshots() { return { items: [] }; },
   async createEpisode() { return { id: "episode-demo", revision: 1 }; },
   async replaceEpisode(_identity, _project, episodeId, input) { return { id: episodeId, revision: 3, content: input.content }; },
   async startWorkflow() { return { workflowRunId: "run-demo", jobId: "job-demo", revision: 1, links: { workflowRun: "", job: "" } }; },

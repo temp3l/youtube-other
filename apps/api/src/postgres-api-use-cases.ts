@@ -13,7 +13,6 @@ import {
   previewProductionUnitInvalidation,
   productionUnitAddressSchema,
   productionUnitChangeSchema,
-  productionUnitSnapshotSchema,
   projectQuotaDimensionStatus,
   projectWorkflowPortfolioPage,
   resolveProviderHealthStatus,
@@ -629,6 +628,18 @@ export function createPostgresApiUseCases(input: {
       );
       return record?.state ?? null;
     },
+    listProductionUnitSnapshots: async (episodeId, context) => {
+      const episode = await repository.withWorkspaceTransaction(context.workspaceId, (transaction) => transaction.getEpisode(context.workspaceId, context.projectId, episodeId));
+      if (!episode) throw new ApplicationError("not_found", "Resource not found.", false);
+      const records = await repository.withWorkspaceTransaction(context.workspaceId, (transaction) => transaction.listCurrentProductionUnitSnapshots({ workspaceId: context.workspaceId, projectId: context.projectId, episodeId }));
+      return { items: records.map((record) => ({ snapshotId: record.snapshotId, snapshot: record.snapshot, createdAt: record.createdAt })) };
+    },
+    compareProductionUnitSnapshots: async (episodeId, context) => {
+      const episode = await repository.withWorkspaceTransaction(context.workspaceId, (transaction) => transaction.getEpisode(context.workspaceId, context.projectId, episodeId));
+      if (!episode) throw new ApplicationError("not_found", "Resource not found.", false);
+      const records = await repository.withWorkspaceTransaction(context.workspaceId, (transaction) => transaction.compareCurrentProductionUnitSnapshots({ workspaceId: context.workspaceId, projectId: context.projectId, episodeId }));
+      return { items: records.map((record) => ({ current: { snapshotId: record.current.snapshotId, snapshot: record.current.snapshot, createdAt: record.current.createdAt }, ...(record.previous ? { previous: { snapshotId: record.previous.snapshotId, snapshot: record.previous.snapshot, createdAt: record.previous.createdAt } } : {}), ...(record.comparison ? { comparison: record.comparison } : {}) })) };
+    },
     listWorkflowPortfolio: async (query, context) => {
       const filter = workflowPortfolioFilterSchema.parse({
         schemaVersion: WORKFLOW_PORTFOLIO_SCHEMA_VERSION,
@@ -695,15 +706,18 @@ export function createPostgresApiUseCases(input: {
       if (!episode) {
         throw new ApplicationError("not_found", "Resource not found.", false);
       }
-      const units = productionUnitSnapshotSchema
-        .array()
-        .min(1)
-        .parse(input.units);
       const changes = z.array(productionUnitChangeSchema).min(1).parse(
         input.changes
       );
+      const records = await repository.withWorkspaceTransaction(
+        context.workspaceId,
+        (transaction) => transaction.listCurrentProductionUnitSnapshots({ workspaceId: context.workspaceId, projectId: context.projectId, episodeId })
+      );
+      if (records.length === 0) {
+        throw new ApplicationError("state_transition_rejected", "Production-unit snapshots are not available yet.", false);
+      }
       const preview = previewProductionUnitInvalidation({
-        units,
+        units: records.map((record) => record.snapshot),
         changes,
         projectedAt: now().toISOString(),
       });

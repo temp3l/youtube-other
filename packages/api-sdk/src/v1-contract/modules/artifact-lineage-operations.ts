@@ -1,6 +1,8 @@
 import type { SdkV1OperationContract } from "../types.js";
 
 export const artifactLineageSdkV1Operations = {
+  listProductionUnitSnapshots: { method: "GET", path: "/v1/workspaces/{workspace}/projects/{project}/episodes/{episode}/production-units", successStatus: "200", responseSchema: "ProductionUnitSnapshotPage", requestSchema: null, requiredHeaders: [], problemResponses: true },
+  compareProductionUnitSnapshots: { method: "GET", path: "/v1/workspaces/{workspace}/projects/{project}/episodes/{episode}/production-units:compare", successStatus: "200", responseSchema: "ProductionUnitComparisonPage", requestSchema: null, requiredHeaders: [], problemResponses: true },
   previewArtifactInvalidation: {
     method: "POST",
     path: "/v1/workspaces/{workspace}/projects/{project}/episodes/{episode}/artifact-invalidation-preview",

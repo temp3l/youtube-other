@@ -45,6 +45,13 @@ export interface ApiCredentialIssueResult {
   readonly showOnce: boolean;
 }
 
+export interface ProductionUnitAddress { readonly kind: string; readonly unitKey?: string; }
+export interface ProductionUnitSnapshot { readonly address: ProductionUnitAddress; readonly inputFingerprint: string; readonly contentHash?: string; readonly status: "missing" | "valid" | "stale" | "invalidated"; readonly artifactRecordId?: string; }
+export interface ProductionUnitSnapshotRecord { readonly snapshotId: string; readonly snapshot: ProductionUnitSnapshot; readonly createdAt: string; }
+export interface ArtifactComparisonMetadata { readonly baselineKind: "previous" | "approved" | "source"; readonly baselineContentHash: string; readonly currentContentHash?: string; readonly textDiffAvailable: boolean; readonly visualDiffAvailable: boolean; readonly timestampAwareMediaDiffAvailable: boolean; }
+export interface ProductionUnitSnapshotPage { readonly items: readonly ProductionUnitSnapshotRecord[]; }
+export interface ProductionUnitComparisonPage { readonly items: readonly { readonly current: ProductionUnitSnapshotRecord; readonly previous?: ProductionUnitSnapshotRecord; readonly comparison?: ArtifactComparisonMetadata }[]; }
+
 export class ApiProblemError extends Error {
   public override readonly name = "ApiProblemError";
 
@@ -1007,6 +1014,14 @@ export class MediaforgeApiClient {
       `${this.projectPath(workspaceId, projectId)}/episodes/${encodePath(episodeId)}/production-state`,
       { ...(options ? { options } : {}) }
     );
+  }
+
+  public listProductionUnitSnapshots(workspaceId: string, projectId: string, episodeId: string, options?: RequestOptions): Promise<ApiResponse<ProductionUnitSnapshotPage>> {
+    return this.execute(`${this.projectPath(workspaceId, projectId)}/episodes/${encodePath(episodeId)}/production-units`, { ...(options ? { options } : {}) });
+  }
+
+  public compareProductionUnitSnapshots(workspaceId: string, projectId: string, episodeId: string, options?: RequestOptions): Promise<ApiResponse<ProductionUnitComparisonPage>> {
+    return this.execute(`${this.projectPath(workspaceId, projectId)}/episodes/${encodePath(episodeId)}/production-units:compare`, { ...(options ? { options } : {}) });
   }
 
   public replaceEpisodeContent(

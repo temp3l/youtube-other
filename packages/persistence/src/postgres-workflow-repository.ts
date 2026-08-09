@@ -31,7 +31,11 @@ import {
   getAuthoritativeProductionRevision,
   getEpisodeProductionStateRecord,
   insertProductionRevision,
+  appendProductionUnitSnapshots,
+  compareCurrentProductionUnitSnapshots,
+  listCurrentProductionUnitSnapshots,
   type ProductionRevisionRecord,
+  type ProductionUnitSnapshotRecord,
   replaceEpisodeProductionState,
   type ReplaceEpisodeProductionStateInput,
 } from "./production-state-repository.js";
@@ -694,6 +698,27 @@ function translate(error: unknown): never {
 
 export class WorkspaceTransactionRepository {
   public constructor(private readonly connection: Queryable) {}
+
+  public listCurrentProductionUnitSnapshots(input: {
+    readonly workspaceId: string;
+    readonly projectId: string;
+    readonly episodeId: string;
+  }): Promise<readonly ProductionUnitSnapshotRecord[]> {
+    return listCurrentProductionUnitSnapshots(this.connection, input);
+  }
+
+  public compareCurrentProductionUnitSnapshots(input: {
+    readonly workspaceId: string;
+    readonly projectId: string;
+    readonly episodeId: string;
+  }) {
+    return compareCurrentProductionUnitSnapshots(this.connection, input);
+  }
+
+  /** Internal worker-only append seam; HTTP request use cases expose no writer. */
+  public appendWorkerProductionUnitSnapshots(input: Parameters<typeof appendProductionUnitSnapshots>[1]) {
+    return appendProductionUnitSnapshots(this.connection, input);
+  }
 
   public async create(
     input: Omit<
@@ -3388,6 +3413,28 @@ export class PostgresWorkflowRepository {
     }
   }
 
+  /** Binds the worker identity used by immutable projection/snapshot writers. */
+  public async withWorkerWorkspaceTransaction<T>(
+    workspaceId: string,
+    workerId: string,
+    work: (repository: WorkspaceTransactionRepository) => Promise<T>
+  ): Promise<T> {
+    const client = await this.pool.connect();
+    try {
+      await client.query("BEGIN");
+      await client.query("SELECT set_config('app.workspace_id', $1, true)", [workspaceId]);
+      await client.query("SELECT set_config('app.worker_id', $1, true)", [workerId]);
+      const result = await work(new WorkspaceTransactionRepository(client));
+      await client.query("COMMIT");
+      return result;
+    } catch (error) {
+      await client.query("ROLLBACK");
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
   public async close(): Promise<void> {
     await this.pool.end();
   }
@@ -3462,6 +3509,25 @@ export class PostgresDurableJobRepository {
     return this.repository.withWorkspaceTransaction(
       input.workspaceId,
       (transaction) => transaction.cancelDurableJob(input)
+    );
+  }
+}
+
+/**
+ * The only exported production-unit snapshot writer. It requires the durable
+ * worker identity and binds it to the PostgreSQL transaction guard.
+ */
+export class PostgresProductionUnitSnapshotWorkerStore {
+  public constructor(
+    private readonly repository: PostgresWorkflowRepository,
+    private readonly workerId: string
+  ) {}
+
+  public append(input: Omit<Parameters<WorkspaceTransactionRepository["appendWorkerProductionUnitSnapshots"]>[0], "workerId">) {
+    return this.repository.withWorkerWorkspaceTransaction(
+      input.workspaceId,
+      this.workerId,
+      (transaction) => transaction.appendWorkerProductionUnitSnapshots({ ...input, workerId: this.workerId })
     );
   }
 }

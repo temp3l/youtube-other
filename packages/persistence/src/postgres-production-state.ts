@@ -47,10 +47,54 @@ DROP TRIGGER IF EXISTS production_revisions_immutable ON production_revisions;
 CREATE TRIGGER production_revisions_immutable
   BEFORE UPDATE OR DELETE ON production_revisions
   FOR EACH ROW EXECUTE FUNCTION reject_production_revision_mutation();
+CREATE TABLE IF NOT EXISTS episode_production_unit_snapshots (
+  workspace_id TEXT NOT NULL,
+  project_id TEXT NOT NULL,
+  episode_id TEXT NOT NULL,
+  snapshot_id TEXT NOT NULL,
+  unit_kind TEXT NOT NULL,
+  unit_key TEXT NULL,
+  input_fingerprint TEXT NOT NULL CHECK (input_fingerprint ~ '^[a-f0-9]{64}$'),
+  content_hash TEXT NULL CHECK (content_hash IS NULL OR content_hash ~ '^[a-f0-9]{64}$'),
+  status TEXT NOT NULL CHECK (status IN ('missing', 'valid', 'stale', 'invalidated')),
+  artifact_record_id TEXT NULL,
+  worker_id TEXT NOT NULL,
+  snapshot JSONB NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL,
+  PRIMARY KEY (workspace_id, snapshot_id),
+  FOREIGN KEY (workspace_id, episode_id) REFERENCES episodes (workspace_id, episode_id)
+);
+CREATE INDEX IF NOT EXISTS episode_production_unit_snapshots_current
+  ON episode_production_unit_snapshots (
+    workspace_id, project_id, episode_id, unit_kind, unit_key, created_at DESC, snapshot_id DESC
+  );
+CREATE OR REPLACE FUNCTION enforce_worker_owned_production_unit_snapshot() RETURNS trigger AS $$
+BEGIN
+  IF current_setting('app.worker_id', true) IS NULL
+    OR current_setting('app.worker_id', true) = ''
+    OR NEW.worker_id <> current_setting('app.worker_id', true) THEN
+    RAISE EXCEPTION 'production-unit snapshots require a bound worker identity' USING ERRCODE = 'P0001';
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+DROP TRIGGER IF EXISTS production_unit_snapshot_worker_guard ON episode_production_unit_snapshots;
+CREATE TRIGGER production_unit_snapshot_worker_guard
+  BEFORE INSERT ON episode_production_unit_snapshots
+  FOR EACH ROW EXECUTE FUNCTION enforce_worker_owned_production_unit_snapshot();
+CREATE OR REPLACE FUNCTION reject_production_unit_snapshot_mutation() RETURNS trigger AS $$
+BEGIN
+  RAISE EXCEPTION 'production-unit snapshots are append-only' USING ERRCODE = 'P0001';
+END;
+$$ LANGUAGE plpgsql;
+DROP TRIGGER IF EXISTS production_unit_snapshots_immutable ON episode_production_unit_snapshots;
+CREATE TRIGGER production_unit_snapshots_immutable
+  BEFORE UPDATE OR DELETE ON episode_production_unit_snapshots
+  FOR EACH ROW EXECUTE FUNCTION reject_production_unit_snapshot_mutation();
 DO $$
 DECLARE table_name TEXT;
 BEGIN
-  FOREACH table_name IN ARRAY ARRAY['production_revisions', 'episode_production_state']
+  FOREACH table_name IN ARRAY ARRAY['production_revisions', 'episode_production_state', 'episode_production_unit_snapshots']
   LOOP
     EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY', table_name);
     EXECUTE format('ALTER TABLE %I FORCE ROW LEVEL SECURITY', table_name);

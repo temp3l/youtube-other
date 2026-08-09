@@ -2081,19 +2081,36 @@ export const openApiComponents = {
       ArtifactInvalidationPreviewInput: {
         type: "object",
         additionalProperties: false,
-        required: ["units", "changes"],
+        required: ["changes"],
         properties: {
-          units: {
-            type: "array",
-            minItems: 1,
-            items: schema("ProductionUnitSnapshot"),
-          },
           changes: {
             type: "array",
             minItems: 1,
             items: schema("ProductionUnitChange"),
           },
         },
+      },
+      ArtifactComparisonMetadata: {
+        type: "object", additionalProperties: false,
+        required: ["baselineKind", "baselineContentHash", "textDiffAvailable", "visualDiffAvailable", "timestampAwareMediaDiffAvailable"],
+        properties: { baselineKind: { type: "string", enum: ["previous", "approved", "source"] }, baselineContentHash: { type: "string", pattern: "^[a-f0-9]{64}$" }, currentContentHash: { type: "string", pattern: "^[a-f0-9]{64}$" }, textDiffAvailable: { type: "boolean" }, visualDiffAvailable: { type: "boolean" }, timestampAwareMediaDiffAvailable: { type: "boolean" } },
+      },
+      ProductionUnitSnapshotRecord: {
+        type: "object", additionalProperties: false,
+        required: ["snapshotId", "snapshot", "createdAt"],
+        properties: { snapshotId: schema("OpaqueId"), snapshot: schema("ProductionUnitSnapshot"), createdAt: schema("DateTime") },
+      },
+      ProductionUnitSnapshotPage: {
+        type: "object", additionalProperties: false, required: ["items"],
+        properties: { items: { type: "array", items: schema("ProductionUnitSnapshotRecord") } },
+      },
+      ProductionUnitComparison: {
+        type: "object", additionalProperties: false, required: ["current"],
+        properties: { current: schema("ProductionUnitSnapshotRecord"), previous: schema("ProductionUnitSnapshotRecord"), comparison: schema("ArtifactComparisonMetadata") },
+      },
+      ProductionUnitComparisonPage: {
+        type: "object", additionalProperties: false, required: ["items"],
+        properties: { items: { type: "array", items: schema("ProductionUnitComparison") } },
       },
       ArtifactInvalidationPreview: {
         type: "object",

@@ -125,6 +125,7 @@ describe("SaaS runtime", () => {
         projectedAt: "2026-08-09T00:00:00.000Z",
         projectionInputFingerprint: "a".repeat(64),
       }),
+      compareProductionUnitSnapshots: async () => ({ items: [] }),
       createEpisode: async () => ({ id: "e1", revision: 1 }),
       replaceEpisode: async () => { throw new (await import("@mediaforge/api-sdk")).ApiProblemError({ type: "about:blank", title: "Precondition failed", status: 412, detail: "This brief has a newer revision.", code: "precondition_failed", requestId: "req-1", retryable: false, errors: [] }, new Response()); },
       startWorkflow: async () => ({ workflowRunId: "run-1", jobId: "job-1", revision: 1, links: { workflowRun: "", job: "" } }),
@@ -184,6 +185,7 @@ describe("SaaS runtime", () => {
     expect(await (await fetch(`${baseUrl}/episodes`)).text()).toContain("The Silk Road");
     const episodeWorkspace = await fetch(`${baseUrl}/projects/p1/episodes/e1`);
     expect(await episodeWorkspace.text()).toContain("A review decision is required before publication.");
+    expect(await (await fetch(`${baseUrl}/projects/p1/episodes/e1`)).text()).toContain("Artifact lineage and comparison");
     const settings = await fetch(`${baseUrl}/settings`);
     const settingsHtml = await settings.text();
     expect(settingsHtml).toContain("Languages and voice readiness");
