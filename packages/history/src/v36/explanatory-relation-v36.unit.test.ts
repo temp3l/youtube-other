@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   createExplanatoryRelationV36,
   claimIdV36,
+  causalAssertionSemanticsV36,
   episodeIdV36,
   explanatoryRelationIdV36,
   relationContractDocumentV36,
@@ -80,6 +81,39 @@ describe("History V3.6 invariant and determinism contracts", () => {
       effect: causal.cause,
     });
     expect(forward.id).not.toBe(reverse.id);
+  });
+
+  it("preserves causal-link modality without changing legacy asserted identity", () => {
+    if (causal.kind !== "causal") throw new Error("fixture contract changed");
+    const legacy = createExplanatoryRelationV36(causal);
+    const explicitAsserted = createExplanatoryRelationV36({ ...causal, causalAssertionStatus: "asserted" });
+    const uncertain = createExplanatoryRelationV36({ ...causal, causalAssertionStatus: "uncertain" });
+    const reported = createExplanatoryRelationV36({ ...causal, causalAssertionStatus: "reported" });
+    expect(causalAssertionSemanticsV36(legacy)).toEqual({ causalAssertionStatus: "asserted", representation: "legacy-implicit-asserted" });
+    expect(explicitAsserted.id).toBe(legacy.id);
+    expect(explicitAsserted.evidenceFingerprint).toBe(legacy.evidenceFingerprint);
+    expect(new Set([legacy.id, uncertain.id, reported.id]).size).toBe(3);
+    const context = {
+      episodeId: legacy.episodeId,
+      entities: [],
+      claims: [{
+        id: legacy.supportClaimIds[0],
+        episodeId: legacy.episodeId,
+        normalizedProposition: "modal causal relation",
+        claimKind: "compound",
+        groundedPropositions: [{
+          kind: "causal" as const,
+          cause: legacy.cause,
+          effect: legacy.effect,
+          causalAssertionStatus: "uncertain" as const,
+        }],
+      }],
+    };
+    expect(explanatoryRelationValidatorV36.validate(uncertain, context)).toEqual({ status: "valid" });
+    expect(explanatoryRelationValidatorV36.validate(reported, context)).toMatchObject({
+      status: "invalid",
+      diagnostics: [expect.objectContaining({ code: "RELATION_MODALITY_UNSUPPORTED" })],
+    });
   });
 
   it("makes process and temporal ordering part of semantic identity", () => {

@@ -314,6 +314,17 @@
             "canonicalLabel"
           ],
           "additionalProperties": false
+        },
+        "causalAssertionStatus": {
+          "type": "string",
+          "enum": [
+            "asserted",
+            "intended",
+            "attempted",
+            "uncertain",
+            "counterfactual",
+            "reported"
+          ]
         }
       },
       "required": [

@@ -95,17 +95,25 @@
         "cause",
         "effect"
       ],
+      "optional": [
+        "causalAssertionStatus"
+      ],
       "participantTypes": {
         "cause": "ConceptRefV36",
         "effect": "ConceptRefV36"
       },
+      "modalityTypes": {
+        "causalAssertionStatus": "AtomicAssertionStatusV36"
+      },
+      "legacyMissingModality": "asserted causal link; proven by V2 asserted-only projection guards",
       "cardinality": "two distinct concepts",
       "direction": "cause -> effect",
       "semanticIdentityInputs": [
         "episodeId",
         "kind",
         "cause",
-        "effect"
+        "effect",
+        "non-default causalAssertionStatus"
       ]
     },
     "dependency": {
@@ -225,7 +233,8 @@
       "history-explanatory-relations.v2",
       "history-explanatory-relations.v3"
     ],
-    "legacyPolicyResponseInterpretation": "Missing modality always means asserted/asserted in every code path.",
+    "legacyPolicyResponseInterpretation": "Missing policy-response modality always means asserted/asserted in every code path.",
+    "legacyCausalInterpretation": "Missing causal modality always means asserted in every code path.",
     "legacySemanticIds": "Unchanged; explicit asserted/asserted canonicalizes to the V2 identity payload.",
     "evidenceFingerprints": "Unchanged; premise modality never enters provenance fingerprint inputs."
   }

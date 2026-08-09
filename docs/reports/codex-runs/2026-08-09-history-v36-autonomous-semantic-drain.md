@@ -21,3 +21,14 @@
 - commit/tag: phase baseline recorded after validation
 - artifact: generated after commit
 - next decision: recompute the remaining inventory and classify whether any next action avoids a human taxonomy/modality decision
+
+## Phase 2.18
+
+- starting SHA: `20a1a44186d885f7566d301edadbe9401d1e3485`
+- target: exact three assertion/modality blocks
+- decision/change: Option A; add optional causal-link modality only; Chernobyl/Titanic become representable, Armada stays blocked for missing actor/route shape
+- before/after: candidates `53 -> 53`; validated relations `31 -> 31`; actionable modality cases `3 -> 2 representable + 1 blocked`
+- invariants: all applicable controls zero; V3.5 unchanged; provider/LLM calls `0`
+- commit/tag: causal modality contract baseline
+- artifact: generated after commit
+- next: mechanically admit only the two exact causal atoms through typed native lineage

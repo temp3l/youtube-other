@@ -1,5 +1,6 @@
 import {
   conceptRefKeyV36,
+  causalAssertionSemanticsV36,
   explanatoryRelationIdV36,
   placeRefKeyV36,
   policyResponseAssertionSemanticsV36,
@@ -95,7 +96,16 @@ function semanticParticipantPayload(relation: RelationSemanticsV36): Readonly<Re
     case "movement": return { from: placeRefKeyV36(relation.from), via: relation.via.map(placeRefKeyV36), to: placeRefKeyV36(relation.to) };
     case "spatial-comparison": return { places: [...new Set(relation.places.map(placeRefKeyV36))].sort() };
     case "spatial-area": return { place: placeRefKeyV36(relation.place) };
-    case "causal": return { cause: conceptRefKeyV36(relation.cause), effect: conceptRefKeyV36(relation.effect) };
+    case "causal": {
+      const assertion = causalAssertionSemanticsV36(relation);
+      return {
+        cause: conceptRefKeyV36(relation.cause),
+        effect: conceptRefKeyV36(relation.effect),
+        ...(assertion.causalAssertionStatus === "asserted"
+          ? {}
+          : { causalAssertionStatus: assertion.causalAssertionStatus }),
+      };
+    }
     case "dependency": return { dependency: conceptRefKeyV36(relation.dependency), dependent: conceptRefKeyV36(relation.dependent) };
     case "process":
     case "temporal-sequence": return { steps: relation.steps.map(conceptRefKeyV36) };
@@ -255,6 +265,13 @@ export const explanatoryRelationValidatorV36: ExplanatoryRelationValidatorV36 = 
         continue;
       }
       if (claim.groundedPropositions.some((proposition) => JSON.stringify(propositionParticipantKeys(proposition)) === JSON.stringify(relationParticipantKeys(relation)))) {
+        if (relation.kind === "causal" && claim.groundedPropositions.some((proposition) =>
+          proposition.kind === "causal" &&
+          conceptRefKeyV36(proposition.cause) === conceptRefKeyV36(relation.cause) &&
+          conceptRefKeyV36(proposition.effect) === conceptRefKeyV36(relation.effect))) {
+          diagnostics.push(diagnostic(relation, "RELATION_MODALITY_UNSUPPORTED", "Support claim does not establish the exact causal assertion modality.", [claim.id]));
+          continue;
+        }
         if (relation.kind === "policy-response" && claim.groundedPropositions.some((proposition) =>
           proposition.kind === "policy-response" &&
           conceptRefKeyV36(proposition.condition) === conceptRefKeyV36(relation.condition) &&

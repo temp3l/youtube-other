@@ -122,6 +122,8 @@ export interface CausalRelationV36 extends CommonRelationV36 {
   /** Direction is cause -> effect. */
   readonly cause: ConceptRefV36;
   readonly effect: ConceptRefV36;
+  /** Missing is the legacy asserted causal-link semantics. */
+  readonly causalAssertionStatus?: AtomicAssertionStatusV36;
 }
 
 /** Direction is dependency -> dependent: the dependent requires the dependency. */
@@ -230,6 +232,26 @@ export interface PolicyResponseAssertionSemanticsV36 {
   readonly representation: "legacy-implicit-asserted" | "explicit";
 }
 
+export interface CausalAssertionSemanticsV36 {
+  readonly causalAssertionStatus: AtomicAssertionStatusV36;
+  readonly representation: "legacy-implicit-asserted" | "explicit";
+}
+
+/**
+ * V2 causal relations could only be emitted from asserted evidence.
+ * Missing V3 fields therefore have one deterministic legacy meaning.
+ */
+export function causalAssertionSemanticsV36(
+  relation: Pick<CausalRelationV36, "causalAssertionStatus">
+): CausalAssertionSemanticsV36 {
+  return {
+    causalAssertionStatus: relation.causalAssertionStatus ?? "asserted",
+    representation: relation.causalAssertionStatus === undefined
+      ? "legacy-implicit-asserted"
+      : "explicit",
+  };
+}
+
 /**
  * V2 policy-response relations could only be emitted from asserted evidence.
  * Missing V3 fields therefore have one deterministic legacy meaning.
@@ -289,7 +311,16 @@ export function semanticIdentityInputsV36(
       const cause = conceptRefKeyV36(relation.cause);
       const effect = conceptRefKeyV36(relation.effect);
       if (cause === effect) throw new TypeError("Causal relation requires distinct cause and effect.");
-      return { ...common, cause, effect };
+      const assertion = causalAssertionSemanticsV36(relation);
+      return {
+        ...common,
+        cause,
+        effect,
+        // Preserve exact V2 IDs for the semantically unchanged asserted case.
+        ...(assertion.causalAssertionStatus === "asserted"
+          ? {}
+          : { causalAssertionStatus: assertion.causalAssertionStatus }),
+      };
     }
     case "dependency": {
       const dependency = conceptRefKeyV36(relation.dependency);
@@ -416,7 +447,13 @@ export const explanatoryRelationSchemaV36 = z.discriminatedUnion("kind", [
   z.object({ ...commonRelationSchema, kind: z.literal("movement"), from: placeRefSchema, to: placeRefSchema, via: z.array(placeRefSchema) }).strict(),
   z.object({ ...commonRelationSchema, kind: z.literal("spatial-comparison"), places: z.array(placeRefSchema).min(2) }).strict(),
   z.object({ ...commonRelationSchema, kind: z.literal("spatial-area"), place: placeRefSchema }).strict(),
-  z.object({ ...commonRelationSchema, kind: z.literal("causal"), cause: conceptRefSchema, effect: conceptRefSchema }).strict(),
+  z.object({
+    ...commonRelationSchema,
+    kind: z.literal("causal"),
+    cause: conceptRefSchema,
+    effect: conceptRefSchema,
+    causalAssertionStatus: z.enum(atomicAssertionStatusValuesV36).optional(),
+  }).strict(),
   z.object({ ...commonRelationSchema, kind: z.literal("dependency"), dependency: conceptRefSchema, dependent: conceptRefSchema }).strict(),
   z.object({ ...commonRelationSchema, kind: z.literal("process"), steps: z.array(conceptRefSchema).min(2) }).strict(),
   z.object({ ...commonRelationSchema, kind: z.literal("temporal-sequence"), steps: z.array(conceptRefSchema).min(2) }).strict(),
@@ -438,11 +475,12 @@ const legacyExplanatoryRelationArtifactSchemaV36 = z.object({
   relations: z.array(explanatoryRelationSchemaV36),
 }).strict().superRefine((artifact, context) => {
   artifact.relations.forEach((relation, index) => {
-    if (relation.kind === "policy-response" &&
-      (relation.conditionAssertionStatus !== undefined || relation.responseAssertionStatus !== undefined)) {
+    if ((relation.kind === "policy-response" &&
+      (relation.conditionAssertionStatus !== undefined || relation.responseAssertionStatus !== undefined)) ||
+      (relation.kind === "causal" && relation.causalAssertionStatus !== undefined)) {
       context.addIssue({
         code: "custom",
-        message: "V2 relation artifacts cannot contain policy-response modality fields.",
+        message: "V2 relation artifacts cannot contain explicit modality fields.",
         path: ["relations", index],
       });
     }
@@ -500,7 +538,16 @@ export const relationContractDocumentV36 = {
     movement: { required: ["from", "via", "to"], participantTypes: { from: "PlaceRefV36", via: "PlaceRefV36[]", to: "PlaceRefV36" }, cardinality: "from and to must differ; via is ordered", direction: "from -> via[] -> to", semanticIdentityInputs: ["episodeId", "kind", "from", "ordered via[]", "to"] },
     "spatial-comparison": { required: ["places"], participantTypes: { places: "PlaceRefV36[]" }, cardinality: "at least two distinct places", ordering: "unordered set", direction: "none", semanticIdentityInputs: ["episodeId", "kind", "canonical unordered places set"] },
     "spatial-area": { required: ["place"], participantTypes: { place: "PlaceRefV36" }, cardinality: "exactly one place", direction: "none", semanticIdentityInputs: ["episodeId", "kind", "place"] },
-    causal: { required: ["cause", "effect"], participantTypes: { cause: "ConceptRefV36", effect: "ConceptRefV36" }, cardinality: "two distinct concepts", direction: "cause -> effect", semanticIdentityInputs: ["episodeId", "kind", "cause", "effect"] },
+    causal: {
+      required: ["cause", "effect"],
+      optional: ["causalAssertionStatus"],
+      participantTypes: { cause: "ConceptRefV36", effect: "ConceptRefV36" },
+      modalityTypes: { causalAssertionStatus: "AtomicAssertionStatusV36" },
+      legacyMissingModality: "asserted causal link; proven by V2 asserted-only projection guards",
+      cardinality: "two distinct concepts",
+      direction: "cause -> effect",
+      semanticIdentityInputs: ["episodeId", "kind", "cause", "effect", "non-default causalAssertionStatus"],
+    },
     dependency: { required: ["dependency", "dependent"], participantTypes: { dependency: "ConceptRefV36", dependent: "ConceptRefV36" }, cardinality: "two distinct concepts", direction: "dependency -> dependent; dependent depends on dependency", semanticIdentityInputs: ["episodeId", "kind", "dependency", "dependent"] },
     process: { required: ["steps"], participantTypes: { steps: "ConceptRefV36[]" }, cardinality: "at least two steps; adjacent steps must differ", ordering: "ordered", direction: "first step -> later steps", semanticIdentityInputs: ["episodeId", "kind", "ordered steps[]"] },
     "temporal-sequence": { required: ["steps"], participantTypes: { steps: "ConceptRefV36[]" }, cardinality: "at least two steps; adjacent steps must differ", ordering: "ordered", direction: "earlier step -> later step", semanticIdentityInputs: ["episodeId", "kind", "ordered steps[]"] },
@@ -519,7 +566,8 @@ export const relationContractDocumentV36 = {
   runtimeValidationInvariants: ["episode-local support", "canonical entity resolution", "proper-name atomicity", "exact grounded proposition", "direction support", "kind-specific cardinality", "semantic ID match", "evidence fingerprint match", "semantic duplicate detection"],
   backwardCompatibility: {
     acceptedArtifactVersions: [HISTORY_EXPLANATORY_RELATIONS_LEGACY_SCHEMA_V36, HISTORY_EXPLANATORY_RELATIONS_SCHEMA_V36],
-    legacyPolicyResponseInterpretation: "Missing modality always means asserted/asserted in every code path.",
+    legacyPolicyResponseInterpretation: "Missing policy-response modality always means asserted/asserted in every code path.",
+    legacyCausalInterpretation: "Missing causal modality always means asserted in every code path.",
     legacySemanticIds: "Unchanged; explicit asserted/asserted canonicalizes to the V2 identity payload.",
     evidenceFingerprints: "Unchanged; premise modality never enters provenance fingerprint inputs.",
   },
