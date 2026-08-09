@@ -2,8 +2,9 @@ import { createHash } from "node:crypto";
 
 import { z } from "zod";
 
+/** V2 separates stable relation semantics from its supporting evidence. */
 export const HISTORY_EXPLANATORY_RELATIONS_SCHEMA_V36 =
-  "history-explanatory-relations.v1" as const;
+  "history-explanatory-relations.v2" as const;
 export const HISTORY_EXPLANATORY_RELATIONS_PLANNER_V36 =
   "history-explanatory-relations.v3.6.0" as const;
 
@@ -11,14 +12,20 @@ declare const episodeIdBrand: unique symbol;
 declare const claimIdBrand: unique symbol;
 declare const entityIdBrand: unique symbol;
 declare const sourceSpanIdBrand: unique symbol;
-declare const relationIdBrand: unique symbol;
+declare const semanticRelationIdBrand: unique symbol;
+declare const evidenceFingerprintBrand: unique symbol;
 
 export type EpisodeIdV36 = string & { readonly [episodeIdBrand]: "EpisodeIdV36" };
 export type ClaimIdV36 = string & { readonly [claimIdBrand]: "ClaimIdV36" };
 export type EntityIdV36 = string & { readonly [entityIdBrand]: "EntityIdV36" };
 export type SourceSpanIdV36 = string & { readonly [sourceSpanIdBrand]: "SourceSpanIdV36" };
-export type ExplanatoryRelationIdV36 = string & {
-  readonly [relationIdBrand]: "ExplanatoryRelationIdV36";
+export type SemanticRelationIdV36 = string & {
+  readonly [semanticRelationIdBrand]: "SemanticRelationIdV36";
+};
+/** @deprecated Use SemanticRelationIdV36; `id` is the semantic relation ID. */
+export type ExplanatoryRelationIdV36 = SemanticRelationIdV36;
+export type RelationEvidenceFingerprintV36 = string & {
+  readonly [evidenceFingerprintBrand]: "RelationEvidenceFingerprintV36";
 };
 
 const identifierSchema = z.string().trim().min(1).max(256);
@@ -74,83 +81,72 @@ export type RelationKindV36 =
   | "policy-response"
   | "evidence-set";
 
-export interface MovementRelationV36 {
-  readonly id: ExplanatoryRelationIdV36;
+interface CommonRelationV36 {
+  readonly id: SemanticRelationIdV36;
   readonly episodeId: EpisodeIdV36;
+  /** Canonical, deduplicated provenance support. It never contributes to `id`. */
+  readonly supportClaimIds: readonly [ClaimIdV36, ...ClaimIdV36[]];
+  /** Deterministic provenance fingerprint of `supportClaimIds`, not semantic identity. */
+  readonly evidenceFingerprint: RelationEvidenceFingerprintV36;
+}
+
+export interface MovementRelationV36 extends CommonRelationV36 {
   readonly kind: "movement";
   readonly from: PlaceRefV36;
   readonly to: PlaceRefV36;
+  /** Ordered intermediate route places. */
   readonly via: readonly PlaceRefV36[];
-  readonly supportClaimIds: readonly [ClaimIdV36, ...ClaimIdV36[]];
 }
 
-export interface SpatialComparisonRelationV36 {
-  readonly id: ExplanatoryRelationIdV36;
-  readonly episodeId: EpisodeIdV36;
+export interface SpatialComparisonRelationV36 extends CommonRelationV36 {
   readonly kind: "spatial-comparison";
+  /** Unordered distinct set of compared places. */
   readonly places: readonly [PlaceRefV36, PlaceRefV36, ...PlaceRefV36[]];
-  readonly supportClaimIds: readonly [ClaimIdV36, ...ClaimIdV36[]];
 }
 
-export interface SpatialAreaRelationV36 {
-  readonly id: ExplanatoryRelationIdV36;
-  readonly episodeId: EpisodeIdV36;
+export interface SpatialAreaRelationV36 extends CommonRelationV36 {
   readonly kind: "spatial-area";
   readonly place: PlaceRefV36;
-  readonly supportClaimIds: readonly [ClaimIdV36, ...ClaimIdV36[]];
 }
 
-export interface CausalRelationV36 {
-  readonly id: ExplanatoryRelationIdV36;
-  readonly episodeId: EpisodeIdV36;
+export interface CausalRelationV36 extends CommonRelationV36 {
   readonly kind: "causal";
+  /** Direction is cause -> effect. */
   readonly cause: ConceptRefV36;
   readonly effect: ConceptRefV36;
-  readonly supportClaimIds: readonly [ClaimIdV36, ...ClaimIdV36[]];
 }
 
-/** Direction is dependency -> dependent: the latter requires the former. */
-export interface DependencyRelationV36 {
-  readonly id: ExplanatoryRelationIdV36;
-  readonly episodeId: EpisodeIdV36;
+/** Direction is dependency -> dependent: the dependent requires the dependency. */
+export interface DependencyRelationV36 extends CommonRelationV36 {
   readonly kind: "dependency";
   readonly dependency: ConceptRefV36;
   readonly dependent: ConceptRefV36;
-  readonly supportClaimIds: readonly [ClaimIdV36, ...ClaimIdV36[]];
 }
 
-export interface ProcessRelationV36 {
-  readonly id: ExplanatoryRelationIdV36;
-  readonly episodeId: EpisodeIdV36;
+export interface ProcessRelationV36 extends CommonRelationV36 {
   readonly kind: "process";
+  /** Ordered process steps. */
   readonly steps: readonly [ConceptRefV36, ConceptRefV36, ...ConceptRefV36[]];
-  readonly supportClaimIds: readonly [ClaimIdV36, ...ClaimIdV36[]];
 }
 
-export interface TemporalSequenceRelationV36 {
-  readonly id: ExplanatoryRelationIdV36;
-  readonly episodeId: EpisodeIdV36;
+export interface TemporalSequenceRelationV36 extends CommonRelationV36 {
   readonly kind: "temporal-sequence";
+  /** Ordered chronology. */
   readonly steps: readonly [ConceptRefV36, ConceptRefV36, ...ConceptRefV36[]];
-  readonly supportClaimIds: readonly [ClaimIdV36, ...ClaimIdV36[]];
 }
 
-export interface PolicyResponseRelationV36 {
-  readonly id: ExplanatoryRelationIdV36;
-  readonly episodeId: EpisodeIdV36;
+export interface PolicyResponseRelationV36 extends CommonRelationV36 {
   readonly kind: "policy-response";
+  /** Direction is condition -> response. */
   readonly condition: ConceptRefV36;
   readonly response: ConceptRefV36;
-  readonly supportClaimIds: readonly [ClaimIdV36, ...ClaimIdV36[]];
 }
 
-export interface EvidenceSetRelationV36 {
-  readonly id: ExplanatoryRelationIdV36;
-  readonly episodeId: EpisodeIdV36;
+export interface EvidenceSetRelationV36 extends CommonRelationV36 {
   readonly kind: "evidence-set";
   readonly subject?: ConceptRefV36;
+  /** Unordered distinct semantic set, not a presentation order. */
   readonly evidence: readonly [ConceptRefV36, ConceptRefV36, ...ConceptRefV36[]];
-  readonly supportClaimIds: readonly [ClaimIdV36, ...ClaimIdV36[]];
 }
 
 export type ExplanatoryRelationV36 =
@@ -168,12 +164,20 @@ type WithoutRelationFields<T, TFields extends PropertyKey> = T extends unknown
   ? Omit<T, TFields>
   : never;
 
-export type ExplanatoryRelationDraftV36 = WithoutRelationFields<ExplanatoryRelationV36, "id">;
+export type ExplanatoryRelationDraftV36 = WithoutRelationFields<
+  ExplanatoryRelationV36,
+  "id" | "evidenceFingerprint"
+>;
 
 export type GroundedRelationPropositionV36 = WithoutRelationFields<
   ExplanatoryRelationV36,
-  "id" | "episodeId" | "supportClaimIds"
+  "id" | "episodeId" | "supportClaimIds" | "evidenceFingerprint"
 >;
+
+export interface RelationEvidenceV36 {
+  readonly supportClaimIds: readonly [ClaimIdV36, ...ClaimIdV36[]];
+  readonly evidenceFingerprint: RelationEvidenceFingerprintV36;
+}
 
 export interface RelationSupportClaimV36 {
   readonly id: ClaimIdV36;
@@ -195,77 +199,145 @@ function normalizedLabel(value: string): string {
   return value.trim().replaceAll(/\s+/gu, " ").toLocaleLowerCase();
 }
 
+/** Stable IDs take precedence over labels; labels remain a fallback for unresolved concepts. */
 export function placeRefKeyV36(ref: PlaceRefV36): string {
-  return `place:${ref.entityId}:${normalizedLabel(ref.canonicalLabel)}`;
+  return `place:${ref.entityId}`;
 }
 
 export function conceptRefKeyV36(ref: ConceptRefV36): string {
-  return `concept:${ref.entityId ?? ""}:${normalizedLabel(ref.canonicalLabel)}`;
+  return ref.entityId
+    ? `concept:${ref.entityId}`
+    : `concept:label:${normalizedLabel(ref.canonicalLabel)}`;
 }
 
-function relationParticipantsV36(relation: ExplanatoryRelationDraftV36): readonly string[] {
+function stableSet(values: readonly string[]): readonly string[] {
+  return [...new Set(values)].sort((left, right) => left.localeCompare(right));
+}
+
+function canonicalSupportClaimIdsV36(
+  supportClaimIds: readonly ClaimIdV36[]
+): readonly [ClaimIdV36, ...ClaimIdV36[]] {
+  const canonical = stableSet(supportClaimIds) as ClaimIdV36[];
+  if (!canonical.length) throw new TypeError("A relation requires at least one support claim.");
+  return canonical as [ClaimIdV36, ...ClaimIdV36[]];
+}
+
+/**
+ * The relation-specific semantic fields. Evidence is intentionally absent.
+ * Invalid cardinality is rejected here, before any final semantic ID is hashed.
+ */
+export function semanticIdentityInputsV36(
+  relation: ExplanatoryRelationDraftV36
+): Readonly<Record<string, unknown>> {
+  const common = { episodeId: relation.episodeId, kind: relation.kind };
   switch (relation.kind) {
-    case "movement":
-      return [placeRefKeyV36(relation.from), placeRefKeyV36(relation.to), ...relation.via.map(placeRefKeyV36)];
-    case "spatial-comparison":
-      return relation.places.map(placeRefKeyV36);
+    case "movement": {
+      const from = placeRefKeyV36(relation.from);
+      const to = placeRefKeyV36(relation.to);
+      if (from === to) throw new TypeError("Movement requires distinct from and to places.");
+      return { ...common, from, via: relation.via.map(placeRefKeyV36), to };
+    }
+    case "spatial-comparison": {
+      const places = stableSet(relation.places.map(placeRefKeyV36));
+      if (places.length < 2) throw new TypeError("Spatial comparison requires two distinct places.");
+      return { ...common, places };
+    }
     case "spatial-area":
-      return [placeRefKeyV36(relation.place)];
-    case "causal":
-      return [conceptRefKeyV36(relation.cause), conceptRefKeyV36(relation.effect)];
-    case "dependency":
-      return [conceptRefKeyV36(relation.dependency), conceptRefKeyV36(relation.dependent)];
+      return { ...common, place: placeRefKeyV36(relation.place) };
+    case "causal": {
+      const cause = conceptRefKeyV36(relation.cause);
+      const effect = conceptRefKeyV36(relation.effect);
+      if (cause === effect) throw new TypeError("Causal relation requires distinct cause and effect.");
+      return { ...common, cause, effect };
+    }
+    case "dependency": {
+      const dependency = conceptRefKeyV36(relation.dependency);
+      const dependent = conceptRefKeyV36(relation.dependent);
+      if (dependency === dependent) throw new TypeError("Dependency relation requires distinct participants.");
+      return { ...common, dependency, dependent };
+    }
     case "process":
-    case "temporal-sequence":
-      return relation.steps.map(conceptRefKeyV36);
-    case "policy-response":
-      return [conceptRefKeyV36(relation.condition), conceptRefKeyV36(relation.response)];
-    case "evidence-set":
-      return [
-        ...(relation.subject ? [conceptRefKeyV36(relation.subject)] : []),
-        ...relation.evidence.map(conceptRefKeyV36),
-      ];
+    case "temporal-sequence": {
+      const steps = relation.steps.map(conceptRefKeyV36);
+      if (steps.length < 2 || steps.some((step, index) => index > 0 && step === steps[index - 1])) {
+        throw new TypeError(`${relation.kind} requires two ordered, non-repeated adjacent steps.`);
+      }
+      return { ...common, steps };
+    }
+    case "policy-response": {
+      const condition = conceptRefKeyV36(relation.condition);
+      const response = conceptRefKeyV36(relation.response);
+      if (condition === response) throw new TypeError("Policy response requires distinct condition and response.");
+      return { ...common, condition, response };
+    }
+    case "evidence-set": {
+      const evidence = stableSet(relation.evidence.map(conceptRefKeyV36));
+      if (evidence.length < 2) throw new TypeError("Evidence set requires two distinct evidence members.");
+      return {
+        ...common,
+        ...(relation.subject ? { subject: conceptRefKeyV36(relation.subject) } : {}),
+        evidence,
+      };
+    }
   }
 }
 
-export function semanticIdentityPayloadV36(
-  relation: ExplanatoryRelationDraftV36
-): string {
-  return JSON.stringify({
-    episodeId: relation.episodeId,
-    kind: relation.kind,
-    participants: relationParticipantsV36(relation),
-    supportClaimIds: [...relation.supportClaimIds].sort(),
-  });
+export function semanticIdentityPayloadV36(relation: ExplanatoryRelationDraftV36): string {
+  return JSON.stringify(semanticIdentityInputsV36(relation));
 }
 
 export function explanatoryRelationIdV36(
   relation: ExplanatoryRelationDraftV36
-): ExplanatoryRelationIdV36 {
+): SemanticRelationIdV36 {
   const digest = createHash("sha256")
     .update(semanticIdentityPayloadV36(relation))
     .digest("hex")
     .slice(0, 24);
-  return brandedIdentifier<ExplanatoryRelationIdV36>(
+  return brandedIdentifier<SemanticRelationIdV36>(
     `relation-${relation.kind}-${digest}`,
     identifierSchema
   );
 }
 
+export function relationEvidenceFingerprintV36(
+  supportClaimIds: readonly ClaimIdV36[]
+): RelationEvidenceFingerprintV36 {
+  const digest = createHash("sha256")
+    .update(JSON.stringify({ supportClaimIds: canonicalSupportClaimIdsV36(supportClaimIds) }))
+    .digest("hex")
+    .slice(0, 24);
+  return brandedIdentifier<RelationEvidenceFingerprintV36>(
+    `evidence-${digest}`,
+    identifierSchema
+  );
+}
+
+export function relationEvidenceV36(
+  supportClaimIds: readonly ClaimIdV36[]
+): RelationEvidenceV36 {
+  const canonicalSupportClaimIds = canonicalSupportClaimIdsV36(supportClaimIds);
+  return {
+    supportClaimIds: canonicalSupportClaimIds,
+    evidenceFingerprint: relationEvidenceFingerprintV36(canonicalSupportClaimIds),
+  };
+}
+
+/** Creates a relation with a semantic ID and a separate canonical evidence record. */
 export function createExplanatoryRelationV36(
   draft: ExplanatoryRelationDraftV36
 ): ExplanatoryRelationV36 {
   const id = explanatoryRelationIdV36(draft);
+  const evidence = relationEvidenceV36(draft.supportClaimIds);
   switch (draft.kind) {
-    case "movement": return { ...draft, id };
-    case "spatial-comparison": return { ...draft, id };
-    case "spatial-area": return { ...draft, id };
-    case "causal": return { ...draft, id };
-    case "dependency": return { ...draft, id };
-    case "process": return { ...draft, id };
-    case "temporal-sequence": return { ...draft, id };
-    case "policy-response": return { ...draft, id };
-    case "evidence-set": return { ...draft, id };
+    case "movement": return { ...draft, ...evidence, id };
+    case "spatial-comparison": return { ...draft, ...evidence, id };
+    case "spatial-area": return { ...draft, ...evidence, id };
+    case "causal": return { ...draft, ...evidence, id };
+    case "dependency": return { ...draft, ...evidence, id };
+    case "process": return { ...draft, ...evidence, id };
+    case "temporal-sequence": return { ...draft, ...evidence, id };
+    case "policy-response": return { ...draft, ...evidence, id };
+    case "evidence-set": return { ...draft, ...evidence, id };
   }
 }
 
@@ -276,11 +348,13 @@ const conceptRefSchema = z.object({
   sourceSpanIds: z.array(identifierSchema).min(1).optional(),
 }).strict();
 const supportClaimIdsSchema = z.array(identifierSchema).min(1);
+const evidenceFingerprintSchema = z.string().regex(/^evidence-[a-f0-9]{24}$/u);
 
 const commonRelationSchema = {
   id: identifierSchema,
   episodeId: identifierSchema,
   supportClaimIds: supportClaimIdsSchema,
+  evidenceFingerprint: evidenceFingerprintSchema,
 };
 
 export const explanatoryRelationSchemaV36 = z.discriminatedUnion("kind", [
@@ -301,6 +375,45 @@ export const explanatoryRelationArtifactSchemaV36 = z.object({
   episodeId: identifierSchema,
   relations: z.array(explanatoryRelationSchemaV36),
 }).strict();
+
+/** Source-of-truth contract exported for review-schema generation. */
+export const relationContractDocumentV36 = {
+  $schema: "https://json-schema.org/draft/2020-12/schema",
+  title: "History V3.6 explanatory relation IR",
+  schemaVersion: HISTORY_EXPLANATORY_RELATIONS_SCHEMA_V36,
+  generatedFrom: "packages/history/src/v36/explanatory-relation-v36.ts#relationContractDocumentV36",
+  identity: {
+    semanticRelationId: {
+      field: "id",
+      algorithm: "relation-{kind}-{first 24 hex chars of sha256(JSON.stringify(relation-specific canonical semantic inputs))}",
+      excludes: ["supportClaimIds", "evidenceFingerprint", "sourceSpanIds", "context-window IDs", "timestamps", "candidate IDs", "render IDs", "random UUIDs"],
+    },
+    evidenceFingerprint: {
+      field: "evidenceFingerprint",
+      algorithm: "evidence-{first 24 hex chars of sha256(JSON.stringify({supportClaimIds: sorted unique IDs}))}",
+      ordering: "supportClaimIds is an unordered provenance set and is canonicalized sorted and unique.",
+    },
+  },
+  commonRequiredFields: ["id", "episodeId", "kind", "supportClaimIds", "evidenceFingerprint"],
+  commonFields: {
+    id: "SemanticRelationIdV36; semantic identity only",
+    episodeId: "EpisodeIdV36; semantic identity input",
+    supportClaimIds: "ClaimIdV36[1..n]; canonical provenance support, excluded from semantic identity",
+    evidenceFingerprint: "RelationEvidenceFingerprintV36; deterministic fingerprint of supportClaimIds",
+  },
+  relationKinds: {
+    movement: { required: ["from", "via", "to"], participantTypes: { from: "PlaceRefV36", via: "PlaceRefV36[]", to: "PlaceRefV36" }, cardinality: "from and to must differ; via is ordered", direction: "from -> via[] -> to", semanticIdentityInputs: ["episodeId", "kind", "from", "ordered via[]", "to"] },
+    "spatial-comparison": { required: ["places"], participantTypes: { places: "PlaceRefV36[]" }, cardinality: "at least two distinct places", ordering: "unordered set", direction: "none", semanticIdentityInputs: ["episodeId", "kind", "canonical unordered places set"] },
+    "spatial-area": { required: ["place"], participantTypes: { place: "PlaceRefV36" }, cardinality: "exactly one place", direction: "none", semanticIdentityInputs: ["episodeId", "kind", "place"] },
+    causal: { required: ["cause", "effect"], participantTypes: { cause: "ConceptRefV36", effect: "ConceptRefV36" }, cardinality: "two distinct concepts", direction: "cause -> effect", semanticIdentityInputs: ["episodeId", "kind", "cause", "effect"] },
+    dependency: { required: ["dependency", "dependent"], participantTypes: { dependency: "ConceptRefV36", dependent: "ConceptRefV36" }, cardinality: "two distinct concepts", direction: "dependency -> dependent; dependent depends on dependency", semanticIdentityInputs: ["episodeId", "kind", "dependency", "dependent"] },
+    process: { required: ["steps"], participantTypes: { steps: "ConceptRefV36[]" }, cardinality: "at least two steps; adjacent steps must differ", ordering: "ordered", direction: "first step -> later steps", semanticIdentityInputs: ["episodeId", "kind", "ordered steps[]"] },
+    "temporal-sequence": { required: ["steps"], participantTypes: { steps: "ConceptRefV36[]" }, cardinality: "at least two steps; adjacent steps must differ", ordering: "ordered", direction: "earlier step -> later step", semanticIdentityInputs: ["episodeId", "kind", "ordered steps[]"] },
+    "policy-response": { required: ["condition", "response"], participantTypes: { condition: "ConceptRefV36", response: "ConceptRefV36" }, cardinality: "two distinct concepts", direction: "condition -> response", semanticIdentityInputs: ["episodeId", "kind", "condition", "response"] },
+    "evidence-set": { required: ["evidence"], optional: ["subject"], participantTypes: { subject: "ConceptRefV36", evidence: "ConceptRefV36[]" }, cardinality: "at least two distinct evidence members", ordering: "evidence is an unordered semantic set, not a presentation list", direction: "subject <- evidence set when subject is present", semanticIdentityInputs: ["episodeId", "kind", "optional subject", "canonical unordered evidence set"] },
+  },
+  runtimeValidationInvariants: ["episode-local support", "canonical entity resolution", "proper-name atomicity", "exact grounded proposition", "direction support", "kind-specific cardinality", "semantic ID match", "evidence fingerprint match", "semantic duplicate detection"],
+} as const;
 
 export function parseExplanatoryRelationArtifactV36(input: unknown): ExplanatoryRelationArtifactV36 {
   return explanatoryRelationArtifactSchemaV36.parse(input) as unknown as ExplanatoryRelationArtifactV36;

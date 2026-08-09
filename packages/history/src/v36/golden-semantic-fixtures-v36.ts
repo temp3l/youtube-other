@@ -94,6 +94,32 @@ function fixture(
   };
 }
 
+/** A focused fixture may model more than one valid evidence window for one proposition. */
+function fixtureWithEvidenceWindows(
+  name: string,
+  narration: string,
+  expectedRelations: readonly ExplanatoryRelationDraftV36[],
+  forbiddenRelations: readonly ForbiddenRelationFixtureV36[] = []
+): RelationFixtureV36 {
+  const claimIds = [...new Set(expectedRelations.flatMap((relation) => relation.supportClaimIds))];
+  return {
+    name,
+    narration,
+    claims: claimIds.map((id) => ({
+      id,
+      episodeId: episode,
+      normalizedProposition: narration,
+      claimKind: "compound",
+      groundedPropositions: expectedRelations
+        .filter((relation) => relation.supportClaimIds.includes(id))
+        .map(grounded),
+    })),
+    entities: participantEntities([...expectedRelations, ...forbiddenRelations.map((item) => item.relation)]),
+    expectedRelations,
+    forbiddenRelations,
+  };
+}
+
 const atomicEntity = (label: string): ResolvedEntityV36 => ({ id: participantId(label), canonicalLabel: label, kind: "named-entity", atomic: true });
 
 export const goldenSemanticFixturesV36: readonly RelationFixtureV36[] = [
@@ -132,6 +158,28 @@ export const goldenSemanticFixturesV36: readonly RelationFixtureV36[] = [
   fixture("evidence set: Franklin-style finds", "Searchers found graves, abandoned equipment, human remains and a written message.", [evidenceFor("expedition fate", "graves and remains", "abandoned equipment", "written message")]),
   fixture("evidence set: document collection", "The archive preserved letters, receipts and ledgers.", [evidenceFor("archive", "letters", "receipts", "ledgers")]),
   fixture("evidence set negative: not causal", "Searchers found graves and a written message.", [evidence("graves", "written message")], [{ relation: causal("graves", "written message"), diagnostic: "RELATION_TYPE_MISMATCH" }]),
+  fixtureWithEvidenceWindows("identity: same movement across different evidence windows", "The fleet sailed from Lisbon to the English Channel.", [
+    { ...movement("Lisbon", "English Channel"), supportClaimIds: [claimIdV36("claim-window-c1")] },
+    { ...movement("Lisbon", "English Channel"), supportClaimIds: [claimIdV36("claim-window-c1"), claimIdV36("claim-window-c2")] },
+  ]),
+  fixtureWithEvidenceWindows("identity: reordered evidence support", "The fleet sailed from Lisbon to the English Channel.", [
+    { ...movement("Lisbon", "English Channel"), supportClaimIds: [claimIdV36("claim-order-c1"), claimIdV36("claim-order-c2")] },
+    { ...movement("Lisbon", "English Channel"), supportClaimIds: [claimIdV36("claim-order-c2"), claimIdV36("claim-order-c1")] },
+  ]),
+  fixtureWithEvidenceWindows("identity: causal reverse direction is distinct", "Drought caused the harvest to fail.", [
+    causal("drought", "harvest failure"),
+  ], [{ relation: causal("harvest failure", "drought"), diagnostic: "RELATION_DIRECTION_UNSUPPORTED" }]),
+  fixtureWithEvidenceWindows("identity: ordered process is distinct when reordered", "Ore was mined, smelted, then forged into tools.", [
+    process("ore extraction", "smelting", "tool forging"),
+    process("ore extraction", "tool forging", "smelting"),
+  ]),
+  fixtureWithEvidenceWindows("identity: evidence-set members are unordered", "The archive preserved letters, receipts and ledgers.", [
+    evidence("letters", "receipts", "ledgers"),
+    evidence("ledgers", "letters", "receipts"),
+  ]),
+  fixtureWithEvidenceWindows("identity: dependency direction control", "The archive depended on tax revenue.", [
+    dependency("tax revenue", "archive"),
+  ], [{ relation: dependency("archive", "tax revenue"), diagnostic: "RELATION_DIRECTION_UNSUPPORTED" }]),
   fixture("proper name: Great Heathen Army", "The Great Heathen Army camped near York.", [], [{ relation: area("Great"), diagnostic: "RELATION_PROPER_NAME_FRAGMENTATION" }], [atomicEntity("Great Heathen Army")]),
   fixture("proper name: Great Fire of London", "The Great Fire of London transformed the city.", [], [{ relation: causal("Great", "London"), diagnostic: "RELATION_PROPER_NAME_FRAGMENTATION" }], [atomicEntity("Great Fire of London")]),
   fixture("proper name: United States", "The United States debated the policy.", [], [{ relation: causal("United", "States"), diagnostic: "RELATION_PROPER_NAME_FRAGMENTATION" }], [atomicEntity("United States")]),
@@ -141,21 +189,21 @@ export const goldenSemanticFixturesV36: readonly RelationFixtureV36[] = [
 export const goldenFixtureSummaryV36 = {
   fixtureCount: goldenSemanticFixturesV36.length,
   positiveByKind: {
-    movement: 4,
+    movement: 8,
     "spatial-comparison": 3,
     "spatial-area": 4,
-    causal: 6,
-    dependency: 2,
-    process: 3,
+    causal: 7,
+    dependency: 3,
+    process: 5,
     "temporal-sequence": 3,
     "policy-response": 2,
-    "evidence-set": 3,
+    "evidence-set": 5,
   },
   negativeByRule: {
     movement: 4,
     "cross-kind-inference": 6,
     causality: 2,
-    direction: 3,
+    direction: 5,
     "proper-name-atomicity": 5,
     cardinality: 2,
     "taxonomy-extension-required": 1,

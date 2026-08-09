@@ -12,3 +12,4 @@
 | `RELATION_PROPER_NAME_FRAGMENTATION` | An atomic multi-token proper name was decomposed. |
 | `RELATION_DUPLICATE_SEMANTIC_IDENTITY` | A batch repeats deterministic relation semantics. |
 | `RELATION_SEMANTIC_IDENTITY_MISMATCH` | Stored ID does not match deterministic semantics. |
+| `RELATION_EVIDENCE_FINGERPRINT_MISMATCH` | Stored evidence fingerprint does not match canonical support provenance. |

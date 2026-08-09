@@ -1,21 +1,21 @@
 {
-  "fixtureCount": 38,
+  "fixtureCount": 45,
   "positiveByKind": {
-    "movement": 4,
+    "movement": 8,
     "spatial-comparison": 3,
     "spatial-area": 4,
-    "causal": 6,
-    "dependency": 2,
-    "process": 3,
+    "causal": 7,
+    "dependency": 3,
+    "process": 5,
     "temporal-sequence": 3,
     "policy-response": 2,
-    "evidence-set": 3
+    "evidence-set": 5
   },
   "negativeByRule": {
     "movement": 4,
     "cross-kind-inference": 6,
     "causality": 2,
-    "direction": 3,
+    "direction": 5,
     "proper-name-atomicity": 5,
     "cardinality": 2,
     "taxonomy-extension-required": 1

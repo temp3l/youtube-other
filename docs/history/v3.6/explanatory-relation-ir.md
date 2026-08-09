@@ -13,11 +13,36 @@ canonical narration → claims → resolved entities/places
 
 The V3.6 module does not extract relations, compile maps/diagrams, or affect V3.5 production plans. The future configuration seam is `HISTORY_RELATION_IR_VERSION=v35|v36-shadow|v36`; it is documented only, so the production default remains V3.5.
 
-## Semantics
+## Semantics and identity
 
 The strict union distinguishes movement, spatial comparison, spatial area, causal, dependency, process, temporal sequence, policy response, and evidence set. Every participant is a typed reference. A relation is valid only when its episode-local support claims contain the exact grounded proposition. Claim classification alone is not evidence. Multi-token resolved proper names remain atomic.
 
-IDs are `relation-{kind}-{sha256-prefix}` over episode, kind, ordered canonical participants, and sorted support claims. They exclude render IDs, timestamps, candidate IDs, and context-window IDs.
+`id` is a semantic relation ID, not an evidence ID. It is `relation-{kind}-{sha256-prefix}` over the episode, relation kind, and relation-specific canonical semantics only. Canonical entity IDs take precedence over labels. It excludes support claims, source spans, evidence-window IDs, timestamps, candidate IDs, render IDs, and random UUIDs.
+
+The per-kind identity rules are deliberately not a generic participant serializer:
+
+- Movement: `from`, ordered `via[]`, `to`.
+- Spatial comparison: a canonical unordered set of distinct places.
+- Spatial area: one place.
+- Causal: ordered `cause -> effect`.
+- Dependency: ordered `dependency -> dependent`; the dependent depends on the dependency.
+- Process and temporal sequence: ordered `steps[]`.
+- Policy response: ordered `condition -> response`.
+- Evidence set: optional subject plus a canonical unordered set of evidence members. `evidence[]` is not a presentation order.
+
+Invalid cardinality is rejected before a final semantic ID is computed. Direction and order are retained wherever they change meaning.
+
+## Evidence provenance and merging
+
+`supportClaimIds` is a canonical, sorted, deduplicated provenance set. Its separate `evidenceFingerprint` is `evidence-{sha256-prefix}` over that set. It never contributes to `id`.
+
+Consequently, Lisbon → English Channel supported by `[C1]` and by `[C1, C2]` resolves to one semantic relation ID with different evidence fingerprints. A later candidate/extraction layer may merge valid support into the one canonical support set, but that merge must not change the semantic ID or relation participants.
+
+## Contract and provenance versioning
+
+The hardened persisted relation contract is `history-explanatory-relations.v2`. V1 review artifacts must not be treated as V2 records because V1 overloaded semantic identity with evidence provenance. The field-level contract is generated from `relationContractDocumentV36` in the V3.6 source module using `scripts/generate-history-v36-relation-contract-docs.ts`.
+
+Review artifact provenance is independently versioned as `history-v3.6-relation-ir-review-provenance.v2`. It names the V3.6 implementation commit, the frozen V3.5 production checkpoint, and the accepted V3.5 semantic baseline separately. V2 emits no `semanticBaselineCommitSha` alias; persisted consumers must branch on provenance schema version.
 
 ## Fail closed
 
@@ -26,7 +51,7 @@ Insufficient deterministic evidence yields an invalid relation and typed diagnos
 ## Migration
 
 1. Contracts and golden fixtures — complete here.
-2. Deterministic/LLM candidate extraction — future, shadow-only.
+2. Deterministic/LLM candidate extraction — future, shadow-only, and blocked until green tests prove semantic-identity independence from evidence windows.
 3. Validators plus representative shadow corpus.
 4. V3.6 map/diagram consumers.
 5. Forty-episode shadow differential.

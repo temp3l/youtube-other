@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "schemaVersion": "history-v3.6-relation-ir-review-provenance.v2",
+  "title": "History V3.6 relation-IR review artifact provenance",
+  "artifactKind": "history-v3.6-relation-ir-review",
+  "required": [
+    "generatedAt",
+    "gitCommitSha",
+    "gitBranch",
+    "v36ImplementationCommitSha",
+    "frozenV35ProductionCommitSha",
+    "frozenV35ProductionTag",
+    "acceptedV35SemanticBaselineCommitSha",
+    "acceptedV35SemanticBaselineTag",
+    "schemaVersion",
+    "artifactKind"
+  ],
+  "properties": {
+    "generatedAt": { "type": "string", "format": "date-time", "meaning": "UTC time at which this review artifact was assembled." },
+    "gitCommitSha": { "type": "string", "meaning": "Exact repository commit from which this artifact was generated." },
+    "gitBranch": { "type": "string", "meaning": "Repository branch checked out during generation; may be empty for detached HEAD." },
+    "v36ImplementationCommitSha": { "type": "string", "meaning": "Exact V3.6 relation-IR implementation commit under review. For a baseline artifact this equals gitCommitSha." },
+    "frozenV35ProductionCommitSha": { "type": "string", "meaning": "Commit frozen as the V3.5 production checkpoint before V3.6 work." },
+    "frozenV35ProductionTag": { "type": "string", "const": "history-v3.5-frozen-before-v36", "meaning": "Immutable tag naming the frozen V3.5 production checkpoint." },
+    "acceptedV35SemanticBaselineCommitSha": { "type": "string", "meaning": "Commit accepted as the V3.5 semantic and corpus baseline; it is distinct from the later production freeze." },
+    "acceptedV35SemanticBaselineTag": { "type": "string", "const": "history-v3.5-semantic-baseline", "meaning": "Immutable tag naming the accepted V3.5 semantic baseline." },
+    "schemaVersion": { "type": "string", "const": "history-v3.6-relation-ir-review-provenance.v2", "meaning": "Versioned provenance contract." },
+    "artifactKind": { "type": "string", "const": "history-v3.6-relation-ir-review", "meaning": "Artifact contract discriminator." }
+  },
+  "compatibility": {
+    "semanticBaselineCommitSha": "Not emitted in v2 review artifacts. Consumers must read the two explicit V3.5 fields. This is a breaking persisted-artifact schema change isolated by schemaVersion; no ambiguous alias is retained."
+  }
+}

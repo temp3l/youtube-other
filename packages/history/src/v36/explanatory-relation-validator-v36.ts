@@ -2,6 +2,7 @@ import {
   conceptRefKeyV36,
   explanatoryRelationIdV36,
   placeRefKeyV36,
+  relationEvidenceFingerprintV36,
   type ConceptRefV36,
   type ExplanatoryRelationV36,
   type GroundedRelationPropositionV36,
@@ -20,7 +21,8 @@ export type RelationDiagnosticCodeV36 =
   | "RELATION_DIRECTION_UNSUPPORTED"
   | "RELATION_PROPER_NAME_FRAGMENTATION"
   | "RELATION_DUPLICATE_SEMANTIC_IDENTITY"
-  | "RELATION_SEMANTIC_IDENTITY_MISMATCH";
+  | "RELATION_SEMANTIC_IDENTITY_MISMATCH"
+  | "RELATION_EVIDENCE_FINGERPRINT_MISMATCH";
 
 export interface RelationDiagnosticV36 {
   readonly code: RelationDiagnosticCodeV36;
@@ -84,6 +86,25 @@ function participantKey(participant: ParticipantRefV36): string {
     : conceptRefKeyV36(participant.ref);
 }
 
+type RelationSemanticsV36 = ExplanatoryRelationV36 | GroundedRelationPropositionV36;
+
+function semanticParticipantPayload(relation: RelationSemanticsV36): Readonly<Record<string, unknown>> {
+  switch (relation.kind) {
+    case "movement": return { from: placeRefKeyV36(relation.from), via: relation.via.map(placeRefKeyV36), to: placeRefKeyV36(relation.to) };
+    case "spatial-comparison": return { places: [...new Set(relation.places.map(placeRefKeyV36))].sort() };
+    case "spatial-area": return { place: placeRefKeyV36(relation.place) };
+    case "causal": return { cause: conceptRefKeyV36(relation.cause), effect: conceptRefKeyV36(relation.effect) };
+    case "dependency": return { dependency: conceptRefKeyV36(relation.dependency), dependent: conceptRefKeyV36(relation.dependent) };
+    case "process":
+    case "temporal-sequence": return { steps: relation.steps.map(conceptRefKeyV36) };
+    case "policy-response": return { condition: conceptRefKeyV36(relation.condition), response: conceptRefKeyV36(relation.response) };
+    case "evidence-set": return {
+      ...(relation.subject ? { subject: conceptRefKeyV36(relation.subject) } : {}),
+      evidence: [...new Set(relation.evidence.map(conceptRefKeyV36))].sort(),
+    };
+  }
+}
+
 function propositionParticipantKeys(
   proposition: GroundedRelationPropositionV36
 ): readonly string[] {
@@ -105,7 +126,7 @@ function equivalentProposition(
   proposition: GroundedRelationPropositionV36
 ): boolean {
   return relation.kind === proposition.kind &&
-    JSON.stringify(relationParticipantKeys(relation)) === JSON.stringify(propositionParticipantKeys(proposition));
+    JSON.stringify(semanticParticipantPayload(relation)) === JSON.stringify(semanticParticipantPayload(proposition));
 }
 
 function relationParticipantKeys(relation: ExplanatoryRelationV36): readonly string[] {
@@ -174,11 +195,18 @@ export const explanatoryRelationValidatorV36: ExplanatoryRelationValidatorV36 = 
     if (relation.episodeId !== context.episodeId) {
       diagnostics.push(diagnostic(relation, "RELATION_EPISODE_MISMATCH", "Relation episode differs from validation context.", [relation.episodeId, context.episodeId]));
     }
-    if (relation.id !== explanatoryRelationIdV36(relation)) {
-      diagnostics.push(diagnostic(relation, "RELATION_SEMANTIC_IDENTITY_MISMATCH", "Relation ID does not match its deterministic semantic identity."));
-    }
-    for (const code of cardinalityDiagnostics(relation)) {
+    const cardinalityCodes = cardinalityDiagnostics(relation);
+    for (const code of cardinalityCodes) {
       diagnostics.push(diagnostic(relation, code, "Relation participants do not satisfy the kind's cardinality invariant."));
+    }
+    // Invalid cardinality has no final semantic ID. Avoid hashing malformed semantics.
+    if (!cardinalityCodes.length) {
+      if (relation.id !== explanatoryRelationIdV36(relation)) {
+        diagnostics.push(diagnostic(relation, "RELATION_SEMANTIC_IDENTITY_MISMATCH", "Relation ID does not match its deterministic semantic identity."));
+      }
+      if (relation.evidenceFingerprint !== relationEvidenceFingerprintV36(relation.supportClaimIds)) {
+        diagnostics.push(diagnostic(relation, "RELATION_EVIDENCE_FINGERPRINT_MISMATCH", "Evidence fingerprint does not match canonical support provenance."));
+      }
     }
     for (const participant of allParticipantRefs(relation)) {
       const ref = participant.ref;
@@ -226,13 +254,12 @@ export function validateExplanatoryRelationsV36(input: {
   const ids = new Map<string, ExplanatoryRelationV36>();
   return input.relations.map((relation) => {
     const result = explanatoryRelationValidatorV36.validate(relation, input.context);
-    const identity = explanatoryRelationIdV36(relation);
+    if (result.status === "invalid") return result;
+    const identity = relation.id;
     const duplicate = ids.get(identity);
     ids.set(identity, relation);
     if (!duplicate) return result;
     const duplicateDiagnostic = diagnostic(relation, "RELATION_DUPLICATE_SEMANTIC_IDENTITY", "Another relation has the same deterministic semantic identity.", [duplicate.id, relation.id]);
-    return result.status === "valid"
-      ? { status: "invalid", diagnostics: [duplicateDiagnostic] }
-      : { status: "invalid", diagnostics: [...result.diagnostics, duplicateDiagnostic] };
+    return { status: "invalid", diagnostics: [duplicateDiagnostic] };
   });
 }
