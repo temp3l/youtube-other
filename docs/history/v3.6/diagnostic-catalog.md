@@ -17,3 +17,5 @@
 | `SHADOW_RELATION_PROPOSITION_AMBIGUOUS` | Structured claim data does not establish a safe V3.6 proposition. |
 | `SHADOW_RELATION_TAXONOMY_UNSUPPORTED` | The explicit proposition needs a relation kind outside the frozen taxonomy. |
 | `SHADOW_RELATION_INSUFFICIENT_CARDINALITY` | A bounded proposal has too few required participants. |
+
+Representative projection keeps coordinated concepts grouped unless a proposition independently predicates the same relation over every member. Adjacent projection is limited to two claims and records rejected purpose-only or missing-predicate windows rather than inventing relations.

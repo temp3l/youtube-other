@@ -39,11 +39,11 @@
     },
     "schemaVersion": {
       "type": "string",
-      "const": "history-v3.6-relation-ir-review-provenance.v2"
+      "const": "history-v3.6-relation-ir-review-provenance.v3"
     },
     "artifactKind": {
       "type": "string",
-      "const": "history-v3.6-relation-ir-review"
+      "const": "history-v3.6-shadow-relations-review"
     },
     "episodeSet": {
       "minItems": 1,

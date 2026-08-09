@@ -1,9 +1,9 @@
 import { z } from "zod";
 
 export const HISTORY_V36_REVIEW_PROVENANCE_SCHEMA =
-  "history-v3.6-relation-ir-review-provenance.v2" as const;
+  "history-v3.6-relation-ir-review-provenance.v3" as const;
 export const HISTORY_V36_REVIEW_ARTIFACT_KIND =
-  "history-v3.6-relation-ir-review" as const;
+  "history-v3.6-shadow-relations-review" as const;
 
 const gitShaSchema = z.string().regex(/^[a-fA-F0-9]{40}$/u);
 const utcTimestampSchema = z.string().regex(

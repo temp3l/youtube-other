@@ -17,7 +17,7 @@ The future flag contract is `HISTORY_RELATION_IR_VERSION=v35|v36-shadow|v36`. It
 
 Shadow relation extraction must not begin until semantic-identity independence from evidence windows is covered by green tests. The hardened V3.6 IR keeps semantic relation IDs separate from deterministic evidence fingerprints, so multiple valid evidence windows converge on one semantic relation rather than creating duplicate relations.
 
-Persisted relation records use `history-explanatory-relations.v2`; review provenance uses `history-v3.6-relation-ir-review-provenance.v2`. Consumers must use their versioned contracts and must not interpret the removed ambiguous `semanticBaselineCommitSha` field.
+Persisted relation records use `history-explanatory-relations.v2`; shadow-review provenance uses `history-v3.6-relation-ir-review-provenance.v3`. Consumers must use their versioned contracts and must not interpret the removed ambiguous `semanticBaselineCommitSha` field.
 
 ## Representative shadow extraction status
 

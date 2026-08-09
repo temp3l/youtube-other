@@ -115,6 +115,8 @@ describe("History V3.6 generated relation JSON Schema", () => {
 
 describe("History V3.6 generated provenance JSON Schema", () => {
   it("is a strict object schema with all authoritative fields", () => {
+    expect(HISTORY_V36_REVIEW_PROVENANCE_SCHEMA).toBe("history-v3.6-relation-ir-review-provenance.v3");
+    expect(HISTORY_V36_REVIEW_ARTIFACT_KIND).toBe("history-v3.6-shadow-relations-review");
     expect(reviewArtifactProvenanceJsonSchemaV36.type).toBe("object");
     expect(reviewArtifactProvenanceJsonSchemaV36.additionalProperties).toBe(false);
     expect(reviewArtifactProvenanceJsonSchemaV36.required).toHaveLength(12);

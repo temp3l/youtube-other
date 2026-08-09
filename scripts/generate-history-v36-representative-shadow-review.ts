@@ -7,6 +7,7 @@ import path from "node:path";
 import {
   runRepresentativeShadowExtractionV36,
   reviewArtifactProvenanceSchemaV36,
+  assessShadowDifferentialV36,
   type ShadowCandidateRecordV36,
 } from "../packages/history/src/index.js";
 
@@ -26,7 +27,8 @@ const episodeSet = [
 
 type V35Reference = { readonly id: string; readonly type: "map" | "diagram"; readonly claimIds: readonly string[]; readonly summary: string };
 type Differential = {
-  readonly episodeId: string; readonly classification: string; readonly assessment: string;
+  readonly episodeId: string; readonly presenceClassification: string; readonly semanticAssessment: string;
+  readonly claimSupport: readonly string[]; readonly manualReviewRequired: boolean;
   readonly v36RelationId?: string; readonly candidateId?: string; readonly v35References: readonly V35Reference[];
   readonly explanation: string;
 };
@@ -37,6 +39,7 @@ function counts<T extends string>(values: readonly T[]): Record<T, number> {
 function candidateExcerpt(candidate: ShadowCandidateRecordV36) {
   return {
     id: candidate.id, claimId: candidate.claimId, extractionRule: candidate.extractionRule,
+    supportClaimIds: candidate.supportClaimIds, windowSize: candidate.windowSize, source: candidate.source,
     normalizedProposition: candidate.normalizedProposition, status: candidate.status,
     semanticRelationId: candidate.semanticRelationId, evidenceFingerprint: candidate.evidenceFingerprint,
     diagnostics: candidate.diagnostics,
@@ -68,13 +71,13 @@ const provenance = reviewArtifactProvenanceSchemaV36.parse({
   acceptedV35SemanticBaselineCommitSha: await git("rev-parse", "history-v3.5-semantic-baseline^{}"),
   acceptedV35SemanticBaselineTag: "history-v3.5-semantic-baseline",
   contractBaselineCommitSha: "022f2177cc0e66f47cb5d652d6d456ce12a5a7be",
-  schemaVersion: "history-v3.6-relation-ir-review-provenance.v2",
-  artifactKind: "history-v3.6-relation-ir-review",
+  schemaVersion: "history-v3.6-relation-ir-review-provenance.v3",
+  artifactKind: "history-v3.6-shadow-relations-review",
   episodeSet: [...episodeSet],
 });
 
 const root = path.join(repository, "artifacts", "shadow", "history-v3.6");
-const directory = path.join(root, `history-v3.6-shadow-relations-review-${timestamp}`);
+const directory = path.join(root, `history-v3.6-shadow-relations-review-v2-${timestamp}`);
 await fs.mkdir(path.join(directory, "episode-differentials"), { recursive: true });
 const summaries: any[] = [];
 const allDiagnostics: ShadowCandidateRecordV36[] = [];
@@ -91,22 +94,26 @@ for (const episodeId of episodeSet) {
   const differentials: Differential[] = [];
   for (const relation of run.extraction.relations) {
     const matched = refs.filter((reference) => reference.claimIds.some((id) => relation.supportClaimIds.includes(id as never)));
-    const isFranklinMovement = relation.kind === "movement" && episodeId.includes("franklin-expedition");
-    const classification = isFranklinMovement ? "agree" : "v36-only";
+    const purposeAmbiguous = relation.kind === "movement" && episodeId.includes("franklin-expedition");
+    const presenceClassification = "v36-only";
+    const semanticAssessment = assessShadowDifferentialV36({ presenceClassification, exactClaimSupport: true, canonicalMapping: purposeAmbiguous ? "ambiguous" : "absent" });
     differentials.push({
-      episodeId, classification, assessment: classification === "agree" ? "V3.5 likely correct" : "V3.6 likely correct",
-      v36RelationId: relation.id, v35References: matched,
-      explanation: classification === "agree" ? "Both shadow relation and V3.5 map express the same explicit movement." : matched.length ? "V3.5 has related presentation evidence but does not express this V3.6 relation kind/semantics." : "No corresponding V3.5 map or diagram relation was materialized.",
+      episodeId, presenceClassification, semanticAssessment, claimSupport: relation.supportClaimIds,
+      manualReviewRequired: semanticAssessment === "needs-manual-review", v36RelationId: relation.id, v35References: matched,
+      explanation: purposeAmbiguous ? "The claim says ‘to search for’; target-versus-literal-destination needs review." : matched.length ? "V3.5 has related presentation evidence but does not express this V3.6 relation kind/semantics." : "No corresponding V3.5 map or diagram relation was materialized.",
     });
   }
   for (const candidate of run.candidates.filter((item) => item.status === "rejected")) {
     const code = candidate.diagnostics[0]?.code;
-    const classification = code === "SHADOW_RELATION_PARTICIPANT_UNRESOLVED" || code === "SHADOW_RELATION_INSUFFICIENT_CARDINALITY" ? "unresolved-upstream-participant" : code === "SHADOW_RELATION_TAXONOMY_UNSUPPORTED" ? "taxonomy-extension-required" : "v36-fail-closed";
-    differentials.push({ episodeId, classification, assessment: "V3.6 fail-closed", candidateId: candidate.id, v35References: refs.filter((reference) => reference.claimIds.includes(candidate.claimId)), explanation: candidate.diagnostics[0]?.message ?? "Candidate rejected." });
+    const presenceClassification = code === "SHADOW_RELATION_PARTICIPANT_UNRESOLVED" || code === "SHADOW_RELATION_INSUFFICIENT_CARDINALITY" ? "unresolved-upstream-participant" : code === "SHADOW_RELATION_TAXONOMY_UNSUPPORTED" ? "taxonomy-extension-required" : "fail-closed";
+    const semanticAssessment = assessShadowDifferentialV36({ presenceClassification, exactClaimSupport: false, canonicalMapping: "absent" });
+    differentials.push({ episodeId, presenceClassification, semanticAssessment, claimSupport: candidate.supportClaimIds, manualReviewRequired: true, candidateId: candidate.id, v35References: refs.filter((reference) => reference.claimIds.includes(candidate.claimId)), explanation: candidate.diagnostics[0]?.message ?? "Candidate rejected." });
   }
   const matchedClaims = new Set(run.extraction.relations.flatMap((relation) => relation.supportClaimIds));
   for (const reference of refs) if (!reference.claimIds.some((id) => matchedClaims.has(id as never))) {
-    differentials.push({ episodeId, classification: "v35-only", assessment: "V3.5 likely correct", v35References: [reference], explanation: "V3.5 presentation has no equivalent validated V3.6 relation from the bounded projection." });
+    const presenceClassification = "v35-only";
+    const semanticAssessment = assessShadowDifferentialV36({ presenceClassification, exactClaimSupport: false, canonicalMapping: "absent" });
+    differentials.push({ episodeId, presenceClassification, semanticAssessment, claimSupport: reference.claimIds, manualReviewRequired: semanticAssessment === "needs-manual-review", v35References: [reference], explanation: "No exact current structured-claim relation supports this V3.5-only presentation relation." });
   }
   const kindCounts = counts(run.extraction.relations.map((relation) => relation.kind));
   const rejected = run.candidates.filter((candidate) => candidate.status === "rejected");
@@ -119,21 +126,35 @@ for (const episodeId of episodeSet) {
     diagnosticsByCode: counts(rejected.flatMap((candidate) => candidate.diagnostics.map((diagnostic) => diagnostic.code))),
     semanticDuplicateCandidatesCollapsed: run.candidates.filter((candidate) => candidate.status === "valid").length - run.extraction.relations.length,
     coverage: { claimsWithValidatedRelation: claimIdsWithValid.size, claimsWithRejectedCandidatesOnly: [...claimIdsWithRejected].filter((id) => !claimIdsWithValid.has(id as never)).length, claimsWithNoCandidate: structured.claims.length - new Set([...claimIdsWithValid, ...claimIdsWithRejected]).size },
-    differentialCounts: counts(differentials.map((item) => item.classification)),
+    singleClaimCandidates: run.candidates.filter((candidate) => candidate.source === "structured-claim-projection").length,
+    adjacentClaimCandidates: run.candidates.filter((candidate) => candidate.source === "bounded-adjacent-claim-projection").length,
+    adjacentWindowsInspected: Math.max(0, structured.claims.length - 1),
+    manualReviewItems: differentials.filter((item) => item.manualReviewRequired).length,
+    differentialCounts: counts(differentials.map((item) => item.presenceClassification)),
+    semanticAssessmentCounts: counts(differentials.map((item) => item.semanticAssessment)),
     curatedSamples: run.candidates.slice(0, 5).map(candidateExcerpt),
   });
   allDiagnostics.push(...rejected);
-  const reviewable = differentials.filter((item) => ["semantic-conflict", "taxonomy-extension-required", "unresolved-upstream-participant", "v36-fail-closed"].includes(item.classification));
+  const reviewable = differentials.filter((item) => item.manualReviewRequired || ["unsupported-by-current-claims", "partially-supported", "needs-manual-review"].includes(item.semanticAssessment));
   const deterministicValid = run.candidates.filter((candidate) => candidate.status === "valid").sort((left, right) => left.id.localeCompare(right.id)).slice(0, 1);
-  manualReview.push(...reviewable, ...deterministicValid.map((candidate) => ({ episodeId, classification: "v36-only", assessment: "V3.6 likely correct", candidate: candidateExcerpt(candidate) })));
+  manualReview.push(...reviewable, ...deterministicValid.map((candidate) => ({ episodeId, presenceClassification: "v36-only", semanticAssessment: "supported-by-current-claims", candidate: candidateExcerpt(candidate) })));
   await fs.writeFile(path.join(directory, "episode-differentials", `${episodeId}.json`), `${JSON.stringify({ episodeId, differentials }, null, 2)}\n`);
   await fs.writeFile(path.join(directory, `${episodeId}.relations.json`), `${JSON.stringify(run.extraction.relations, null, 2)}\n`);
 }
 
 const payloads: Record<string, string> = {
-  "README.md": `# V3.6 representative shadow relation review\n\nThis artifact is shadow-only. V3.5 remains production; no V3.6 map, diagram, or renderer consumes these relations. Candidates originate only in persisted structured claim/entity data and pass the hardened deterministic validator before appearing as relations.\n\nGenerated: ${generatedAt}\nCommit: ${gitCommitSha}\n`,
+  "README.md": `# V3.6 representative shadow relation review v2\n\nThis artifact is shadow-only. Presence classification is separate from claim-grounded semantic assessment. V3.5 remains production.\n\nGenerated: ${generatedAt}\nCommit: ${gitCommitSha}\n`,
   "architecture-reference.md": "See docs/history/v3.6/explanatory-relation-ir.md and docs/history/v3.6/migration-plan.md in the reviewed commit.\n",
   "representative-summary.json": `${JSON.stringify({ episodeSet, episodes: summaries, totalValidatedRelations: summaries.reduce((sum, item) => sum + item.candidatesValid, 0) }, null, 2)}\n`,
+  "baseline-comparison.json": `${JSON.stringify({ baselineCommitSha: "952fa9ee7394eac381b95787b0a85c59c262f887", baselineCounts: { candidates: 24, validated: 19, rejected: 5 }, episodes: summaries.map((item) => ({ episodeId: item.episodeId, new: { candidates: item.candidatesProposed, validated: item.candidatesValid, rejected: item.candidatesRejected }, changeReason: "bounded projection, normalization, or assessor remediation; see candidate-change-summary.json" })) }, null, 2)}\n`,
+  "candidate-change-summary.json": `${JSON.stringify({ baseline: "v1 representative shadow run", changes: [
+    { episodeId: "history-youtube-history-10-video-story-pack-10-titanic-decisions-disaster", old: "rejected: RELATION_PROPER_NAME_FRAGMENTATION", next: "validated causal ice -> Californian stopping", reason: "diagnostic correction: lower-case common noun is not an atomic proper-name fragment", rule: "case-sensitive-proper-name-component" },
+    { episodeId: "history-youtube-history-10-video-story-pack-05-franklin-expedition", old: "winter-camp remains plus three sailor names as peer evidence", next: "winter-camp remains plus grouped graves finding", reason: "normalization correction", rule: "evidence-enumeration-grouped-graves" },
+    { episodeId: "history-youtube-history-30-video-story-pack-36-spanish-armada-why-it-failed", old: "causal cause included sailing clause", next: "relative-clause cause excludes route context", reason: "precision improvement", rule: "causal-relative-clause-caused" },
+    { episodeId: "history-youtube-history-10-video-story-pack-04-black-death", old: "no adjacent candidate", next: "two-claim policy window rejected", reason: "bounded recall/diagnostic improvement", rule: "adjacent-policy-response-explicit-condition" },
+    { episodeId: "history-youtube-history-30-video-story-pack-36-spanish-armada-why-it-failed", old: "no adjacent candidate", next: "purpose-only route window rejected", reason: "bounded recall/diagnostic improvement", rule: "adjacent-movement-purpose-not-destination" },
+    { episodeId: "history-youtube-history-30-video-story-pack-20-1066-battle-that-changed-england", old: "V3.5-only could be endorsed by presence", next: "V3.5-only assessment unsupported-by-current-claims", reason: "differential correction", rule: "presence-assessment-separation" }
+  ] }, null, 2)}\n`,
   "manual-review.json": `${JSON.stringify({ selection: "all conflicts/taxonomy/unresolved plus first sorted valid candidate per episode", entries: manualReview }, null, 2)}\n`,
   "diagnostic-summary.json": `${JSON.stringify({ diagnosticsByCode: counts(allDiagnostics.flatMap((candidate) => candidate.diagnostics.map((diagnostic) => diagnostic.code))), rejectedCandidates: allDiagnostics.map(candidateExcerpt) }, null, 2)}\n`,
   "test-summary.json": `${JSON.stringify({ result: "pass", command: "Focused V3.6 schema, IR, golden, projection, dedup, representative and determinism tests run before artifact generation." }, null, 2)}\n`,
@@ -149,7 +170,7 @@ const files = (await Promise.all(entries.map(async (file) => ({
 const sums = await Promise.all(files.map(async (file) => `${createHash("sha256").update(await fs.readFile(path.join(directory, file))).digest("hex")}  ${file}`));
 await fs.writeFile(path.join(directory, "checksums.sha256"), `${sums.join("\n")}\n`);
 await execute("sha256sum", ["-c", "checksums.sha256"], { cwd: directory });
-const zipPath = path.join(root, `history-v3.6-shadow-relations-review-${timestamp}.zip`);
+const zipPath = path.join(root, `history-v3.6-shadow-relations-review-v2-${timestamp}.zip`);
 await execute("zip", ["-X", "-q", "-r", zipPath, path.basename(directory)], { cwd: root });
 await execute("unzip", ["-t", zipPath], { cwd: root });
 process.stdout.write(`${zipPath}\n`);

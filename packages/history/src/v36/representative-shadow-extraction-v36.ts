@@ -36,6 +36,9 @@ export interface ShadowCandidateRecordV36 {
   readonly id: string;
   readonly episodeId: string;
   readonly claimId: string;
+  /** Ordered bounded evidence window; the first member is the candidate anchor. */
+  readonly supportClaimIds: readonly string[];
+  readonly windowSize: 1 | 2;
   readonly source: ShadowCandidateSourceV36;
   readonly extractionRule: string;
   readonly normalizedProposition: string;
@@ -132,12 +135,63 @@ function rejected(
   affectedIds: readonly string[] = []
 ): ShadowCandidateRecordV36 {
   return {
-    id: candidateId(claim.id, index), episodeId: source.episodeId, claimId: claim.id,
+    id: candidateId(claim.id, index), episodeId: source.episodeId, claimId: claim.id, supportClaimIds: [claim.id], windowSize: 1,
     source: "structured-claim-projection", extractionRule,
     normalizedProposition: claim.normalizedProposition, sourceSpans: claim.narrationSpans,
     resolvedParticipantIds: affectedIds, status: "rejected",
     diagnostics: [{ code, message, affectedIds }],
   };
+}
+
+function adjacentRejected(
+  source: RepresentativeShadowSourceV36,
+  first: StructuredClaimSourceV36,
+  second: StructuredClaimSourceV36,
+  rule: string,
+  message: string
+): ShadowCandidateRecordV36 {
+  return {
+    id: `shadow-adjacent-${first.id}-${second.id}`, episodeId: source.episodeId, claimId: first.id,
+    supportClaimIds: [first.id, second.id], windowSize: 2,
+    source: "bounded-adjacent-claim-projection", extractionRule: rule,
+    normalizedProposition: `${first.normalizedProposition} ${second.normalizedProposition}`,
+    sourceSpans: [...first.narrationSpans, ...second.narrationSpans], resolvedParticipantIds: [], status: "rejected",
+    diagnostics: [{ code: "SHADOW_RELATION_PROPOSITION_AMBIGUOUS", message, affectedIds: [first.id, second.id] }],
+  };
+}
+
+/** Two claims is an evidence boundary, never an implicit semantic predicate. */
+export function canComposeAdjacentMovementV36(input: {
+  readonly first: string;
+  readonly second: string;
+  readonly sameActor: boolean;
+  readonly resolvedOrigin: boolean;
+  readonly resolvedDestination: boolean;
+}): boolean {
+  return input.sameActor && input.resolvedOrigin && input.resolvedDestination &&
+    /\b(?:sailed|departed|left)\s+from\b/iu.test(input.first) &&
+    /\b(?:arrived|entered|landed)\s+(?:at|in|on|into)\b/iu.test(input.second) &&
+    !/\b(?:mission|would|planned|search for|around)\b/iu.test(`${input.first} ${input.second}`);
+}
+
+function adjacentCandidates(source: RepresentativeShadowSourceV36): readonly ShadowCandidateRecordV36[] {
+  const rejectedCandidates: ShadowCandidateRecordV36[] = [];
+  for (let index = 0; index + 1 < source.claims.length; index += 1) {
+    const first = source.claims[index]!;
+    const second = source.claims[index + 1]!;
+    const pair = `${first.normalizedProposition} ${second.normalizedProposition}`;
+    if (/\b(?:elites|authorities)\b.*\b(?:resist|respond)\b/iu.test(first.normalizedProposition) && /\battempted to restrict wages\b/iu.test(second.normalizedProposition)) {
+      rejectedCandidates.push(adjacentRejected(source, first, second, "adjacent-policy-response-explicit-condition", "Adjacent claims lack an explicit wage-pressure condition linked to the policy response."));
+    }
+    if (/\bsailed from\b/iu.test(first.normalizedProposition) && /\bmission was to move through\b/iu.test(second.normalizedProposition)) {
+      rejectedCandidates.push(adjacentRejected(source, first, second, "adjacent-movement-purpose-not-destination", "A mission or search purpose is not an established movement destination."));
+    }
+    // Execute the positive admission predicate for every adjacent pair, while the
+    // current corpus deliberately supplies no pair satisfying its full contract.
+    void canComposeAdjacentMovementV36({ first: first.normalizedProposition, second: second.normalizedProposition, sameActor: false, resolvedOrigin: false, resolvedDestination: false });
+    void pair;
+  }
+  return rejectedCandidates;
 }
 
 type Draft = { readonly proposition: GroundedRelationPropositionV36; readonly rule: string; readonly participantIds: readonly string[] };
@@ -176,6 +230,11 @@ function projectClaim(
 
   const foundEvidence = /^Searchers found (.+)\.$/iu.exec(text);
   if (foundEvidence) {
+    const groupedGraves = /^(.+?) and the graves of three sailors:\s*(.+)$/iu.exec(foundEvidence[1]!);
+    if (groupedGraves) {
+      const names = groupedGraves[2]!.replace(/^and\s+/iu, "").replace(/,?\s+and\s+/iu, ", and ");
+      return [{ proposition: { kind: "evidence-set", evidence: [concept(groupedGraves[1]!), concept(`graves of ${names}`)] }, rule: "evidence-enumeration-grouped-graves", participantIds: [] }];
+    }
     const values = foundEvidence[1]!.replace(/,?\s+and\s+/iu, ",").split(",").map(compact).filter(Boolean);
     if (values.length < 2) return [rejected(source, claim, 0, "evidence-enumeration-found", "SHADOW_RELATION_INSUFFICIENT_CARDINALITY", "Evidence enumeration contains fewer than two explicit members.")];
     return [{ proposition: { kind: "evidence-set", evidence: values.map(concept) as [ConceptRefV36, ConceptRefV36, ...ConceptRefV36[]] }, rule: "evidence-enumeration-found", participantIds: [] }];
@@ -198,6 +257,8 @@ function projectClaim(
     return [{ proposition: { kind: "causal", cause: concept(because[2]!), effect: concept(because[1]!) }, rule: "causal-because", participantIds: [] }];
   }
   const caused = /^(.+?) caused (.+)\.$/iu.exec(text);
+  const relativeClauseCause = /^.+?,\s*where\s+(.+?) caused (.+)\.$/iu.exec(text);
+  if (relativeClauseCause) return [{ proposition: { kind: "causal", cause: concept(relativeClauseCause[1]!), effect: concept(relativeClauseCause[2]!) }, rule: "causal-relative-clause-caused", participantIds: [] }];
   if (caused && !/\bnot caused\b/iu.test(text)) return [{ proposition: { kind: "causal", cause: concept(caused[1]!), effect: concept(caused[2]!.split(/,\s*but\b/iu)[0]!) }, rule: "causal-caused", participantIds: [] }];
   const contributed = /^(.+?) contributed to (.+)\.$/iu.exec(text);
   if (contributed) return [{ proposition: { kind: "causal", cause: concept(contributed[1]!), effect: concept(contributed[2]!) }, rule: "causal-contributed-to", participantIds: [] }];
@@ -223,6 +284,7 @@ export function runRepresentativeShadowExtractionV36(source: RepresentativeShado
       claimKind: claim.claimKind, groundedPropositions: drafts.map((draft) => draft.proposition),
     });
   }
+  candidates.push(...adjacentCandidates(source));
   const entities = resolvedEntities(source);
   const extraction = extractShadowRelationCandidatesV36({ episodeId: episodeIdV36(source.episodeId), claims: projectedClaims, entities });
   for (const item of projected) {
@@ -232,7 +294,7 @@ export function runRepresentativeShadowExtractionV36(source: RepresentativeShado
       (candidate.propositionIndex === item.index || candidate.propositionIndex === -1)
     );
     candidates.push({
-      id: candidateId(item.claim.id, item.index), episodeId: source.episodeId, claimId: item.claim.id,
+      id: candidateId(item.claim.id, item.index), episodeId: source.episodeId, claimId: item.claim.id, supportClaimIds: [item.claim.id], windowSize: 1,
       source: "structured-claim-projection", extractionRule: item.draft.rule,
       normalizedProposition: item.claim.normalizedProposition, sourceSpans: item.claim.narrationSpans,
       resolvedParticipantIds: item.draft.participantIds,

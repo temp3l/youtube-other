@@ -183,8 +183,11 @@ function cardinalityDiagnostics(
 }
 
 function isProperNameFragment(label: string, entity: ResolvedEntityV36): boolean {
-  const participant = label.trim().toLocaleLowerCase();
-  const canonical = entity.canonicalLabel.trim().toLocaleLowerCase();
+  const participant = label.trim();
+  const canonical = entity.canonicalLabel.trim();
+  // A lower-case common noun (for example, "ice") is not a fragment of a
+  // title-cased atomic proper name (for example, "International Ice Patrol").
+  // Exact case-sensitive components still retain the frozen atomicity guard.
   return entity.atomic && canonical.split(/\s+/u).length > 1 && participant !== canonical &&
     canonical.split(/\s+/u).includes(participant);
 }
