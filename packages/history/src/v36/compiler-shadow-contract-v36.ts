@@ -20,6 +20,7 @@ export type CompilerDispositionV36 =
   | "NO_SAFE_COMPILATION";
 
 export type CompilerRuleV36 =
+  | "no-safe-compilation.v1"
   | "map-movement.v1"
   | "map-spatial-comparison.v1"
   | "map-spatial-area.v1"
@@ -189,6 +190,7 @@ export type DiagramIntentV36 =
 
 export interface NoSafeCompilationV36 extends CompilerIntentBaseV36 {
   readonly disposition: "NO_SAFE_COMPILATION";
+  readonly compilerRule: "no-safe-compilation.v1";
   readonly diagnosticCode: string;
   readonly reason: string;
 }

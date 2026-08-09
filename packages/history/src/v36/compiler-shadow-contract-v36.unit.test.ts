@@ -91,7 +91,7 @@ describe("History V3.6 shadow compiler contract", () => {
         ...common,
         disposition: "NO_SAFE_COMPILATION",
         relationKind: "movement",
-        compilerRule: "map-movement.v1",
+        compilerRule: "no-safe-compilation.v1",
         diagnosticCode: "NO_SAFE_TEST",
         reason: "Contract characterization only.",
       },

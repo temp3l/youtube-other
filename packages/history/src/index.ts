@@ -107,3 +107,4 @@ export * from "./v36/representative-shadow-differential-v36.js";
 export * from "./v36/review-provenance-v36.js";
 export * from "./v36/v35-v36-diff-v36.js";
 export * from "./v36/compiler-shadow-contract-v36.js";
+export * from "./v36/compiler-shadow-map-v36.js";
